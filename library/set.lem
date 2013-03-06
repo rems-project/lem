@@ -81,3 +81,8 @@ let inline {coq} compare = Coq.set_compare
 val lfp : forall 'a. set 'a -> (set 'a -> set 'a) -> set 'a
 let inline {ocaml} lfp = Ocaml.Pset.lfp
 
+val (=) : forall 'a. set 'a -> set 'a -> bool
+let inline {ocaml} (=) = Ocaml.Pset.equal 
+
+val map : forall 'a 'b. ('a -> 'b) -> set 'a -> set 'b
+let inline {ocaml} map = Ocaml.Pset.map Ocaml.compare

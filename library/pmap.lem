@@ -24,3 +24,12 @@ let inline {hol} find k m = Hol.FAPPLY m k
 let inline {isabelle} find = Isabelle.map_find
 let inline {ocaml} find = Ocaml.Pmap.find
 let inline {coq} find = Coq.map_find Coq.(==)
+
+val map : forall 'key 'a 'b. ('a -> 'b) -> map 'key 'a -> map 'key 'b
+let inline {ocaml} map = Ocaml.Pmap.map
+
+val remove: forall 'key 'a. 'key -> map 'key 'a -> map 'key 'a
+let inline {ocaml} remove = Ocaml.Pmap.remove
+
+val bindings: forall 'key 'a. map 'key 'a -> list ('key * 'a)
+let inline {ocaml} bindings = Ocaml.Pmap.bindings

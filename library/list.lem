@@ -79,6 +79,7 @@ let inline {hol} rev_map2 f l1 l2 = Hol.REVERSE (Hol.MAP2 f l1 l2)
 let inline {ocaml} rev_map2 = Ocaml.List.rev_map2
 
 val fold_left2 : forall 'a 'b 'c. ('a -> 'b -> 'c -> 'a) -> 'a -> list 'b -> list 'c -> 'a
+let inline {ocaml} fold_left2 = Ocaml.List.fold_left2
 
 val fold_right2 : forall 'a 'b 'c. ('a -> 'b -> 'c -> 'c) -> list 'a -> list 'b -> 'c -> 'c
 
