@@ -526,8 +526,8 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
                       ws skips; header; formed; from_string "."
                     ]
                 else
-                  from_string "(* recursive definition intended for different target *)"
-            | _ -> from_string "(* XXX: top level val def not supported in Coq backend *)"
+                  from_string "\n(* recursive definition intended for different target *)"
+            | _ -> from_string "\n(* XXX: top level val def not supported in Coq backend *)"
         end
       | Module (skips, (name, l), skips', skips'', defs, skips''') ->
         let name = lskips_t_to_output name in
@@ -558,8 +558,8 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
             let c = Seplist.to_list cs in
               clauses c
           else
-            from_string "(* inductive relation intended for another target *)"
-      | Val_spec val_spec -> from_string "(* XXX: top level val spec not supported in Coq backend *)\n"
+            from_string "\n(* inductive relation intended for another target *)"
+      | Val_spec val_spec -> from_string "\n(* XXX: top level val spec not supported in Coq backend *)\n"
       | Class (skips, skips', name, tyvar, skips'', body, skips''') -> from_string "Class"
       | Instance (skips, instantiation, vals, skips', sem_info) -> from_string "Instance"
       | Comment c ->
@@ -599,7 +599,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
             in
             let e = exp e in
               combine [
-                p; tv_set_sep; tv_set; topt; ws skips; from_string ":="; e
+                p; tv_set_sep; tv_set; topt; ws skips; from_string " := "; e
               ]
         | Let_fun clause -> funcl tv_set clause
     and funcl tv_set ({term = n}, pats, typ_opt, skips, e) =
@@ -1173,8 +1173,8 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
           | Typ_fn (dom, _, rng) ->
               let v = generate_fresh_name () in
                 combine [
-                  from_string "fun "; from_string v; from_string " : "; typ dom;
-                  from_string " => "; default_value rng
+                  from_string "(fun ("; from_string v; from_string " : "; typ dom;
+                  from_string ") => "; default_value rng; from_string ")"
                 ]
       and generate_default_values ts : Output.t =
         let ts = Seplist.to_list ts in
