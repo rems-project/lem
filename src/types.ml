@@ -583,17 +583,17 @@ let normalize nexp =
       | 0 -> make_mul v i
       | _ -> (make_n (Nadd(nl,nr))) in
  let rec norm nexp = 
+    (* let _ = fprintf std_formatter "norm of %a@ \n" pp_nexp nexp in *)
     match nexp.nexp with
     | Nvar _ | Nconst _ | Nuvar _ -> nexp
     | Nneg(n) -> (
        let n' = norm n in
        match n'.nexp with
         | Nconst(i) -> make_n (Nconst(-1 * i))
-        | _ -> make_n (Nmult(n',(make_n (Nconst (-1))))))
+        | _ -> norm (make_n (Nmult(n',(make_n (Nconst (-1)))))))
     | Nmult(n1,n2) -> (
        let n1',n2' = norm n1,norm n2 in
        let n1',n2' = sort n1',sort n2' in 
-(*       let _ =  fprintf std_formatter "nmult normalizing %a@ , %a@ \n" pp_nexp n1' pp_nexp n2' in  *)
        match n1'.nexp,n2'.nexp with
         | Nconst i, Nconst j -> make_n (Nconst (i*j))
         | Nconst 1, _ -> n2' | _, Nconst 1 -> n1'
@@ -605,16 +605,23 @@ let normalize nexp =
           let n1 = sort n1 in
           let n2 = sort n2 in
           make_n (Nadd(n1,n2))
-        | _ -> assert false (* make_n (Nmult(n1',n2'))*)) (*Needs to be an error, as must mean that a variable is multiplied by a variable, somewhere *)
+        | (Nconst i as n) , Nmult(n1,n2) | Nmult(n1,n2), (Nconst i as n) ->
+          (match n1.nexp with
+            | Nvar _ | Nuvar _ -> let n2 = norm (make_n (Nmult((make_n n), n2))) in
+                                  let n2 = sort n2 in
+                                  make_n (Nmult(n1,n2))
+            | _ -> assert false)
+        | _ -> assert false ) (*TODO KG Needs to be an actualy error, as must mean that a variable is multiplied by a variable, somewhere *)
     | Nadd(n1,n2) -> (
       let n1',n2' = norm n1,norm n2 in
       let n1',n2' = sort n1',sort n2' in 
-(*      let _ = fprintf std_formatter "nadd normalizing %a@ , %a@ \n" pp_nexp n1' pp_nexp n2' in*)
       match n1'.nexp,n2'.nexp with
         | Nconst i, Nconst j -> make_n (Nconst(i+j))
         | _,_ -> make_n (Nadd(n1',n2')))
   and
-    sort nexp = match nexp.nexp with 
+    sort nexp = 
+     (* let _ = fprintf std_formatter "sort of %a@ \n" pp_nexp nexp in *)
+     match nexp.nexp with 
      | Nvar _ | Nconst _ | Nuvar _ | Nmult _ | Nneg _ -> nexp
      | Nadd(n1,n2) ->
        let n1,n2 = sort n1, sort n2 in
@@ -629,15 +636,15 @@ let normalize nexp =
            (match v.nexp,n.nexp with 
             | Nvar _,Nconst i | Nuvar _,Nconst i -> 
               make_ordered n1 v n1 n2 (i+1) n1
-             | _ -> let _ =  fprintf std_formatter "%a@ * %a@ \n" pp_nexp v pp_nexp n in assert false)
+             | _ -> assert false)
          | Nmult(v,n), Nvar _ | Nmult(v,n), Nuvar _ ->
               (match v.nexp,n.nexp with 
                | Nvar _ ,Nconst i | Nuvar _, Nconst i -> 
                  make_ordered v n2 n1 n2 (i+1) n2
                | _ -> assert false)
-         | Nmult(var1,n1),Nmult(var2,n2) -> 
-              (match n1.nexp,n2.nexp with 
-               | Nconst i1, Nconst i2 ->
+         | Nmult(var1,nc1),Nmult(var2,nc2) ->
+              (match var1.nexp,nc1.nexp,var2.nexp,nc2.nexp with 
+               | _, Nconst i1, _, Nconst i2 ->
                  make_ordered var1 var2 n1 n2 (i1+i2) var1  
                | _ -> assert false)
          | Nadd(n1l,n1r),Nadd(n2l,n2r) ->
@@ -645,16 +652,16 @@ let normalize nexp =
                  | -1 -> let sorted = sort (make_n (Nadd(n1l,n2))) in
                          (match sorted.nexp with
                           | Nconst 0 -> n1r
-                          | _ -> make_n ( Nadd(sorted, n1r)))
+                          | _ -> sort (make_n ( Nadd(sorted, n1r))))
                 | 0 -> let rightmost = sort (make_n (Nadd(n1r,n2r))) in
                        let sorted = sort (make_n (Nadd(n1l,n2l))) in
                          (match rightmost.nexp,sorted.nexp with
                            | Nconst 0, n | n, Nconst 0 -> make_n n
-                           | _ -> make_n (Nadd (sorted,rightmost)))
+                           | _ -> sort (make_n (Nadd (sorted,rightmost))))
                 | _ -> let sorted = sort (make_n (Nadd(n1,n2l))) in
                         (match sorted.nexp with
                          | Nconst 0 -> n2r
-                         | _ -> make_n ( Nadd (sorted, n2r))))
+                         | _ -> sort (make_n ( Nadd (sorted, n2r)))))
          | Nadd(n1l,n1r),n | n, Nadd(n1l,n1r)->
               let sorted = sort (make_n (Nadd(n1r,(make_n n)))) in
               (match sorted.nexp with 
@@ -670,9 +677,10 @@ let normalize nexp =
        end
   in 
   let normal = norm nexp in
-(*  let _  =  fprintf std_formatter "normal unsorted is %a@ \n" pp_nexp normal in
-  let _ = fprintf std_formatter "sorted normal is %a@ \n" pp_nexp (sort normal) in *)
-  sort normal
+(*  let _  =  fprintf std_formatter "normal unsorted is %a@ \n" pp_nexp normal in*)
+  let sorted = sort normal in
+(*  let _ = fprintf std_formatter "sorted normal is %a@ \n" pp_nexp sorted in *)
+  sorted
 
 let rec assert_equal l (d : type_defs) (t1 : t) (t2 : t) : unit =
   if t1 == t2 then
@@ -912,10 +920,10 @@ module Constraint (T : Global_defs) : Constraint = struct
     else 
       let n1 = normalize nexp1 in
       let n2 = normalize nexp2 in
-(*      let n3 = normalize { nexp = Nadd(n1, {nexp= Nneg n2}) } in
+      let n3 = normalize { nexp = Nadd(n1, {nexp= Nneg n2}) } in
       match n3.nexp with
        | Nconst 0 -> ()
-       | _ ->*) equate_nexps_help l n1 n2
+       | _ -> equate_nexps_help l n1 n2 (* TODO KG Generate these diffs as constraints to be solved later. These are equality constraints *)
        
   let in_range l vec_n n =
     let (len,ind) = (normalize vec_n,normalize n) in
