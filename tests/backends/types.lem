@@ -1,0 +1,29 @@
+type t1 = num
+type t2 'a = 'a * t1
+type t3 'a 'b = 'a * 'b
+
+let v1 = (1 : t1)
+let v2 = ((1,2) : t2 num)
+let v3 = ((1,false) : t3 num  bool)
+
+type t4 = <| f1 : num; f2 : bool |>
+type t5 'a = <| f3 : 'a; f4 : bool |>
+type t6 'a 'asdf = <| f5 : 'a; f6 : 'asdf |>
+
+let v4 = (<| f1 = 1; f2 = true |> : t4)
+let v5 = (<| f3 = (1,true); f4 = false |> : t5 (num * bool))
+let v6 = (<| f5 = (fun x -> x); f6 = <| f3 = 1; f4 = true |> |> : 
+          t6 ('a->'a) (t5 num)) 
+
+type t7 = 
+  | C1 of num
+  | C2 of t8
+and t8 = 
+  | C3
+  | C4 of t7 * t8
+
+let v7 = (C1 1 : t7)
+let v8 = (C2 C3 : t7)
+let v9 = (C3 : t8)
+let v10 = (C4 (C1 1) C3 : t8)
+

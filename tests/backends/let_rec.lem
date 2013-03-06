@@ -1,0 +1,12 @@
+let rec counter n =
+	match n with
+	  | 0 -> 1
+	  | m -> counter (m - 1)
+	end
+
+let rec fix (f : set 'a -> set 'a) (x : set 'a) : set 'a =
+  let fx = f x in
+    if fx subset x then
+      x
+    else
+      fix f (fx union x)

@@ -1,0 +1,36 @@
+class (Cl 'a)
+  val a : 'a -> 'a -> bool
+end
+
+let f x y = a x y
+let g x y = if a x y then 1 else 2
+let h x y = g x y
+
+instance (Cl num)
+  let a x y = x = y
+end
+
+(*
+instance forall 'a. Cl 'a => (Cl (list 'a))
+  let rec a x y = 
+    match (x,y) with 
+      | ([], []) -> true
+      | (x'::xs, y'::ys) -> f x' y' && a xs ys
+      | _ -> false
+    end
+end
+*)
+
+instance forall 'a 'b. Cl 'a, Cl 'b => (Cl ('a * 'b))
+  let a (x1,x2) (y1,y2) = a x1 y1 && a x2 y2
+end
+
+let x1 = a 1 2
+let x2 = g 1 2
+(*
+let x3 = a [1] [2;3]
+let x4 = g [1] [2;3]
+*)
+let x5 = a (1,2) (3,4)
+let x6 = a (1,(1,2)) (1,(2,3))
+let x7 x = a (1,x) (2,x)

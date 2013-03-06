@@ -1,0 +1,66 @@
+(* fix is bound and should be renamed *)
+type value = A | B | fix | EVEN | STRCAT
+rename {isabelle} fix = isa_fix 
+
+(* Test again whether renaming really works *)
+rename {isabelle} A = value_A
+let my_val_test a (b:value) = match a with (A:value) -> b | B -> (B:value) end
+let my_val_test2 (a : value) = ([A] : list value)
+let my_val_test3 (a : value) = [A]
+let my_val_test4 a = (if a = A then [A] else [B])
+
+(* where is bound and should be renamed automatically,
+   producing a warning *)
+type my_record 'a = <| field_one : 'a; where : value |>
+
+(* op should be renamed, but assume is no good choice *)
+let op x = List.rev x
+rename {isabelle} op = assume
+
+(* multiple renamings to the same name are catched as well *)
+let bad_name = 1
+let bad_name2 = 2
+rename {isabelle} bad_name = x
+rename {isabelle} bad_name2 = x
+
+(* Test recursive definition *)
+let rec my_rec a = match a with [] -> 0 | (x::xs) -> x + (my_rec xs) end
+rename {isabelle; hol} my_rec = my_rec_renamed
+
+(* and mutually recursive definition *)
+let rec my_mrec_a a = (match a with [] -> 0 | (x::xs) -> x + (my_mrec_b xs) end) 
+    and my_mrec_b b = (match b with [] -> 1 | (x::xs) -> x + (my_mrec_a xs) end)
+
+rename {isabelle; hol} my_mrec_a = my_mrec_a_renamed
+rename {isabelle; hol} my_mrec_b = my_mrec_b_renamed
+
+
+(* second renaming should raise an error *)
+rename {isabelle} my_val_test = isa_test
+rename {hol} my_val_test = hol_test
+(* rename {isabelle} my_val_test = isa_test2 *)
+
+
+(* Testing whether automatic variable renaming works. 
+   Variables are renamed without any warning, since the
+   change is local *)
+
+let bad_name3 good_arg = (0:num)
+rename {isabelle} bad_name3 = good_arg
+
+let my_dummy op assume isa_add isa_add0 isa_add1 x = op
+
+let my_dummy2 = fun op assume isa_add isa_add0 isa_add1 x -> op
+
+let my_dummy3 = fun op assume isa_add -> fun isa_add0 isa_add1 x -> op
+
+let my_dummy4 assume assume0 = assume
+
+let my_dummy5 assume = (forall (assume0 IN {}). true)
+
+let my_dummy6 x = (forall (assume IN {}). true)
+
+let my_dummy7 assume = { assume0 | assume0 > 10 }
+
+let my_dummy8 x = { assume | assume > 10 }
+

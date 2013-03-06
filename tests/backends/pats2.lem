@@ -1,0 +1,35 @@
+type t = C1 | C2 of num | C3 of num * num
+
+let test0 (x:(t*(t*t))) = 
+  match x with
+  | (C1, ((C1, C1) as y)) -> y
+  | _ -> (C1, C1)
+end
+
+let test2 (x:t) = 
+  match x with
+  | (C2 (y:num)) -> y
+  | _ -> 0
+end
+
+type t4 = <| f1 : num; f2 : bool |>
+
+let test1 (x:t4) = 
+  match x with
+  | <| f1 = y; f2 = z |> -> y
+  | _ -> 0
+end
+
+
+let rec test3 n = 
+  match n with
+  | 0 -> 0
+  | n + 1 -> (test3 n) + 2
+end
+
+let rec fib n = 
+  match n with
+  | 0 -> 0
+  | 1 -> 1
+  | m + 2 -> fib m + fib (m + 1)
+end

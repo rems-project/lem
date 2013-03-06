@@ -1,0 +1,29 @@
+module X = struct
+  class (Eq 'a)
+    val (==) : 'a -> 'a -> bool
+  end
+end
+
+module Y = struct
+  open X
+  instance (Eq num)
+    let (==) = fun x y -> true 
+  end
+end
+
+module Z = struct
+  let f x = X.(==) 1 x
+end
+
+class (V ''n)
+  val parse_vec : string -> vector ''n bit
+end
+
+instance (V 4)
+  let parse_vec s = 0b0000
+end
+
+let f x = parse_vec x
+
+val g : string -> vector 4 bit
+let g x = parse_vec x

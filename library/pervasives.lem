@@ -1,0 +1,219 @@
+(* Not the right type, and shouldn't be here *)
+type int = Hol.Integer.int
+type uint32
+
+val (=) : forall 'a. 'a -> 'a -> bool
+let inline {hol} (=) = Hol.(=)
+let inline {ocaml} (=) = Ocaml.(=)
+let inline {isabelle} (=) = Isabelle.(=)
+let inline {coq} (=) = Coq.(==)
+
+val (<>) : forall 'a. 'a -> 'a -> bool
+let inline {hol} (<>) = Hol.(<>)
+let inline {ocaml} (<>) = Ocaml.(<>)
+let inline {isabelle} (<>) = Isabelle.~=
+let inline {coq} (<>) l r = Coq.not_b (Coq.(==) l r)
+
+val (<) : num -> num -> bool
+let inline {hol} (<) = Hol.(<)
+let inline {ocaml} (<) = Ocaml.Nat_num.(<)
+let inline {isabelle} (<) = Isabelle.(<)
+let inline {coq} (<) = Coq.lt_b
+
+val (>) : num -> num -> bool
+let inline {hol} (>) = Hol.(>)
+let inline {coq} (>) = Coq.gt_b
+let inline {ocaml} (>) = Ocaml.Nat_num.(>)
+let inline {isabelle} (>) = Isabelle.(>)
+
+val (<=) : num -> num -> bool
+let inline {hol} (<=) = Hol.(<=)
+let inline {ocaml} (<=) = Ocaml.Nat_num.(<=)
+let inline {isabelle} (<=) = Isabelle.(<=)
+let inline {coq} (<=) = Coq.lte_b
+
+val (>=) : num -> num -> bool
+let inline {hol} (>=) = Hol.(>=)
+let inline {ocaml} (>=) = Ocaml.Nat_num.(>=)
+let inline {isabelle} (>=) = Isabelle.(>=)
+let inline {coq} (>=) = Coq.gte_b
+
+val (land) : num -> num -> num
+let inline {hol} (land) = Hol.bitwise_and
+let inline {ocaml} (land) = Ocaml.Nat_num.(land)
+let inline {isabelle} (land) = Isabelle.bitwise_and
+let inline {coq} (land) = Coq.bitwise_and
+
+val (lor) : num -> num -> num
+let inline {hol} (lor) =  Hol.bitwise_or
+let inline {ocaml} (lor) = Ocaml.Nat_num.(lor)
+let inline {isabelle} (lor) = Isabelle.bitwise_or
+let inline {coq} (lor) = Coq.bitwise_or
+
+val (lxor) : num -> num -> num
+let inline {hol} (lxor) = Hol.bitwise_xor
+let inline {ocaml} (lxor) = Ocaml.Nat_num.(lxor)
+let inline {isabelle} (lxor) = Isabelle.bitwise_xor
+let inline {coq} (lxor) = Coq.bitwise_xor
+
+val lnot : num -> num
+let inline {ocaml} lnot = Ocaml.Nat_num.lnot
+let inline {hol} lnot = Hol.bitwise_not
+let inline {isabelle} lnot = Isabelle.bitwise_not
+let inline {coq} lnot = Coq.bitwise_not
+
+val (lsl) : num -> num -> num
+let inline {ocaml} (lsl) = Ocaml.Nat_num.(lsl)
+let inline {isabelle} (lsl) = Isabelle.num_lsl
+let inline {hol} (lsl) = Hol.num_lsl
+let inline {coq} (lsl) = Coq.bitwise_lsl
+
+val (lsr) : num -> num -> num
+let inline {ocaml} (lsr) = Ocaml.Nat_num.(lsr)
+let inline {isabelle} (lsr) = Isabelle.num_lsr
+let inline {hol} (lsr) = Hol.num_lsr
+let inline {coq} (lsr) = Coq.bitwise_lsr
+
+val (asr) : num -> num -> num
+let inline {ocaml} (asr) = Ocaml.Nat_num.(asr)
+let inline {isabelle} (asr) = Isabelle.num_asr
+let inline {hol} (asr) = Hol.num_asr
+let inline {coq} (asr) = Coq.bitwise_asr
+
+val not : bool -> bool
+let inline {hol} not x = Hol.~ x
+let inline {ocaml} not = Ocaml.not
+let inline {isabelle} not x = Isabelle.~ x 
+let inline {coq} not = Coq.not_b
+
+val (&&) : bool -> bool -> bool
+let inline {hol} (&&) = Hol.\\/\
+let inline {ocaml} (&&) = Ocaml.(&&)
+let inline {isabelle} (&&) = Isabelle.(&)
+let inline {coq} (&&) = Coq.(&&)
+
+val (||) : bool -> bool -> bool
+let inline {hol} (||) = Hol.\\\/
+let inline {ocaml} (||) = Ocaml.(||)
+let inline {isabelle} (||) = Isabelle.\\|
+let inline {coq} (||) = Coq.(||)
+
+val (-->) : bool -> bool -> bool
+let inline {hol} (-->) = Hol.\\==>
+let inline {ocaml} (-->) x y = (not x || y)
+let inline {isabelle} (-->) = Isabelle.(-->)
+let inline {coq} (-->) = Coq.\\-->
+
+val (+) : num -> num -> num
+let inline {hol} (+) = Hol.(+)
+let inline {ocaml} (+) = Ocaml.Nat_num.(+)
+let inline {isabelle} (+) = Isabelle.(+)
+let inline {coq} (+) = Coq.(+)
+
+val (-) : num -> num -> num
+let inline {hol} (-) = Hol.(-)
+let inline {ocaml} (-) = Ocaml.Nat_num.(-)
+let inline {isabelle} (-) = Isabelle.(-)
+let inline {coq} (-) = Coq.(-)
+
+val ( * ) : num -> num -> num
+let inline {hol} ( * ) = Hol.( * )
+let inline {ocaml} ( * ) = Ocaml.Nat_num.( * )
+let inline {isabelle} ( * ) = Isabelle.( * )
+let inline {coq} ( * ) = Coq.( * )
+
+val ( ** ) : num -> num -> num
+let inline {hol} ( ** ) = Hol.( ** )
+let inline {ocaml} ( ** ) = Ocaml.Nat_num.exp
+
+val (/) : num -> num -> num
+let inline {hol} (/) = Hol.DIV
+let inline {ocaml} (/) = Ocaml.Nat_num.(/)
+let inline {isabelle} (/) = Isabelle.div
+let inline {coq} (/) = Coq.divide
+
+val (mod) : num -> num -> num
+let inline {ocaml} (mod) = Ocaml.Nat_num.(mod)
+
+val fst : forall 'a 'b. 'a * 'b -> 'a
+let inline {hol} fst = Hol.FST
+let inline {ocaml} fst = Ocaml.fst
+let inline {isabelle} fst = Isabelle.fst
+let inline {coq} fst = Coq.fst
+
+val snd : forall 'a 'b. 'a * 'b -> 'b
+let inline {hol} snd = Hol.SND
+let inline {ocaml} snd = Ocaml.snd
+let inline {isabelle} snd = Isabelle.snd
+let inline {coq} snd = Coq.snd
+
+val (@) : forall 'a. list 'a -> list 'a -> list 'a
+let inline {hol} (@) = Hol.(++)
+let inline {ocaml} (@) = Ocaml.(@)
+let inline {isabelle} (@) = Isabelle.(@)
+let inline {coq} (@) = Coq.list_append
+
+val (IN) : forall 'a. 'a -> set 'a -> bool
+let inline {hol} (IN) = Hol.(IN)
+let inline {ocaml} (IN) e s = Ocaml.Pset.mem e s
+let inline {isabelle} (IN) e s = Isabelle.Set.member e s
+let inline {coq} (IN) e = Coq.set_exists (Coq.(==) e)
+
+(* is Lem.subset equal to <=, i.e. subset or equal *)
+val (subset) : forall 'a. set 'a -> set 'a -> bool
+let inline {hol} (subset) = Hol.SUBSET
+let inline {ocaml} (subset) s1 s2 = Ocaml.Pset.(subset) s1 s2
+let inline {isabelle} (subset) s1 s2 = Isabelle.Set.subset_eq s1 s2
+let inline {coq} (subset) = Coq.set_subset Coq.(==)
+
+val (union) : forall 'a. set 'a -> set 'a -> set 'a
+let inline {hol} (union) = Hol.UNION
+let inline {ocaml} (union) = Ocaml.Pset.(union)
+let inline {isabelle} (union) s1 s2 = Isabelle.Set.(union) s1 s2
+let inline {coq} (union) = Coq.set_union
+
+val (inter) : forall 'a. set 'a -> set 'a -> set 'a
+let inline {hol} (inter) = Hol.INTER
+let inline {ocaml} (inter) s1 s2 = Ocaml.Pset.(inter) s1 s2
+let inline {isabelle} (inter) s1 s2 = Isabelle.Set.(inter) s1 s2
+let inline {coq} (inter) = Coq.set_inter Coq.(==)
+
+val tc : forall 'a. set ('a * 'a) -> set ('a * 'a)
+let inline {coq} tc = Coq.set_tc Coq.(==)
+
+val (\) : forall 'a. set 'a -> set 'a -> set 'a
+let inline {hol} (\) = Hol.DIFF
+let inline {ocaml} (\) = Ocaml.Pset.diff
+let inline {isabelle} (\) = Isabelle.set_diff
+let inline {coq} (\) = Coq.set_diff
+
+val bigunion : forall 'a. set (set 'a) -> set 'a
+let inline {hol} bigunion = Hol.BIGUNION
+let inline {ocaml} bigunion = Ocaml.Pset.bigunion Ocaml.compare
+
+val biginter : forall 'a. set (set 'a) -> set 'a
+let inline {hol} biginter = Hol.BIGINTER
+let inline {ocaml} biginter = Ocaml.Pset.biginter
+
+val empty : forall 'a. set 'a
+let inline {hol} empty = Hol.EMPTY
+let inline {ocaml} empty = (Ocaml.Pset.empty Ocaml.Pervasives.compare)
+let inline {isabelle} empty = Isabelle.Set.empty
+let inline {coq} empty = Coq.set_empty
+
+val (^) : string -> string -> string
+let inline {hol} (^) x y = Hol.STRCAT x y
+let inline {ocaml} (^) = Ocaml.(^)
+
+val (::) : forall 'a. 'a -> list 'a -> list 'a
+let inline {hol} (::) = Hol.(::)
+let inline {ocaml} (::) = Ocaml.(::)
+let inline {isabelle} (::) = Isabelle.\\#
+let inline {coq} (::) = Coq.(::)
+
+type option 'a = 
+  | None
+  | Some of 'a
+
+val string_of_num : num -> string
+let inline {ocaml} string_of_num = Ocaml.Nat_num.string_of_num

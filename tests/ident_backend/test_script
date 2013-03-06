@@ -1,0 +1,15 @@
+#!/bin/sh
+
+./add_comments.byte < $1
+../../lem -lib ../../library -wl ign -ident test.lem | diff test.lem - &&\
+echo $1 ok #&&\
+#sed -Ef sed_script < $1 | grep -E '([*][^ `]+[*])' > $1.tmp | true &&\
+#echo $1 comments &&\
+#sed -Ef sed_script < $1Script.sml | grep -E '([*][^ ]+[*])' | diff $1.tmp - &&\
+#echo $1Script comments ok &&\
+#sed -Ef sed_script < $1.ml | grep -E '([*][^ `]+[*])' | diff $1.tmp - &&\
+#echo $1.ml comments ok &&\
+#ocamlc -I ../ocaml-lib/_build -c $1.ml &&\
+#echo $1.ml compiled &&\
+#holmake $1Theory.uo &&\
+#echo $1Theory built

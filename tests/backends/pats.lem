@@ -1,0 +1,51 @@
+type t = C1 | C2 of num | C3 of num * num
+
+let test1 = 
+  match C1 with
+    | C1 -> 1
+    | C2 x -> x
+    | C3 (x:num) y -> x + y
+  end
+
+let test2 = 
+  match (C1, C2 1) with
+      ((C1), C2 x) -> x
+    | (_, _) -> 1
+  end
+
+let test3 =
+  match [1;2;3] with
+    | [] -> 0
+    | [(1:num)] -> 0
+    | x::y -> x
+  end
+
+let test4 =
+  match [] with
+    | [true] -> 1
+    | [false] -> 0
+    | _ -> 2
+  end
+
+let test5 = 
+  match (1,true) with
+    (_,_) -> 1
+  end
+
+let test6 = 
+  match (1,true,1) with
+    (x,_,(1:num)) -> 1
+  | (_,x,_) -> 1
+  end
+
+let test7 = 
+  match "123" with
+    "" -> 1
+  | "123" -> 2
+  | _ -> 3
+  end
+
+let test8 = 
+  match () with
+    | () -> 1
+  end

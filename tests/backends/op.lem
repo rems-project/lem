@@ -1,0 +1,38 @@
+type op = 
+  | Add | Sub 
+
+type op0 =
+  | Not | Neg
+
+type op1 =
+  | Unop of op * op0 * op1
+
+let op1 op = match op with
+| Add -> 0
+| Sub -> 1
+end
+
+let rec Op_fun op = match op with
+| Add -> (+)
+| Sub -> Op_fun Add
+end
+
+let rec op2 op3 = match op3 with
+| Add -> (+)
+| Sub -> op2 Add
+end
+
+let var_scope = 
+  let op = 0 in
+  let op0 = 1 in
+  let op1 = 2 in
+  op + op0 + op1
+
+let rec var_scope2 x = 
+  if x = 0 then 0 else
+  (let op = 0 in
+   let op0 = 1 in
+   let op1 = 2 in
+   op + op0 + op1 + var_scope2 (x - 1))
+
+

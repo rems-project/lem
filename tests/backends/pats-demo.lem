@@ -1,0 +1,150 @@
+type t 'a = CC1 | CC2 of num | CC3 of 'a
+type t2 = <| f1 : num; f2 : bool |>
+
+(* Simple tuple test, the first line catches all *)
+let test_simple z = 
+  match z with
+    (x,_) -> x
+  | (_,y) -> y
+  | _ -> 3
+  end
+
+(* Let's test 'as', in particular nested ones *)
+let test_as1 z = 
+  match z with
+    ((x,w) as y) -> (y, w + 2)
+  | _ -> ((1,2), 3)
+  end
+
+let test_as2 z = 
+  match z with
+    (((x,w) as y), y2) -> (y, w + y2)
+  | _ -> ((1,2), 3)
+  end
+
+let test_as3 z = 
+  match z with
+    ((((x1, x2) as x12), ((x3, x4) as x34)) as x1234) -> (x1234, x3, x12)
+  end
+
+(* Boolean patterns / show decision tree *)
+let test_bool1 x y z =
+  match (x,y,z) with
+     (_,     false, true)  -> 1
+   | (false, true,  _)     -> 2
+   | (_,     _,     false) -> 3
+   | (_,     _,     _    ) -> 4
+  end
+
+let test_bool2 x y z =
+  match (x,y,z) with
+     (x2,     false, true)  -> x2
+   | (false, true,  _)     -> true
+   | (_,     _,     false) -> false
+   | (_,     _,     true)  -> true
+  end
+
+(* Constructor patters *)
+let test_const1 xx = 
+  match xx with
+    | CC1 -> 1
+    | CC2 x -> x
+    | CC3 y -> y
+  end
+
+let test_const2 xx = 
+  match xx with
+    | CC1 -> 1
+    | CC2 x -> x
+    | CC3 (CC3 y) -> y + y
+    | CC3 (CC2 x) -> x
+  end
+
+
+(* Incomplete *)
+let test_inc1 x =
+  match x with
+     false  -> 1
+  end
+
+let test_inc2 x y z =
+  match (x,y,z) with
+     (_,     false, true)  -> 1
+   | (false, true,  _)     -> 2
+   | (_,     _,     false) -> 3
+  end
+
+let test_inc3 xy =
+  match xy with
+    | (Some x, Some y) -> Some (x, y)
+    | _ -> None
+  end
+
+let test_inc4 (x:t2) =
+  match x with | <| f1 = 0 |> -> 1
+end
+
+(* redundant matches *)
+let test_red1 x y z =
+  match (x,y,z) with
+     (_,     false, true)  -> 1
+   | (false, true,  _)     -> 2
+   | (_,     _,     _)     -> 3
+   | (_,     _,     false) -> 4
+  end
+
+(* List patterns *)
+let test_list1 x =
+  match x with
+     []         -> 0
+   | [x1]       -> 1
+   | [x1;x2]    -> 2
+   | [x1;x2;x3] -> 3
+   | x1::xs     -> 4
+  end
+
+(* Record patterns *)
+let test_rec1 (x:t2) = 
+  match x with
+  | <| f1 = y; f2 = false |> -> y
+  | _ -> 0
+end
+
+(* Integer patterns *)
+let test_int1 x =
+  match x with
+    | 1 -> 2
+    | 3 -> 4
+    | 2 -> 3
+    | 8 -> 9
+    | 6 -> 7
+    | 2 -> 999
+    | _ -> 0
+  end
+
+let test_int2 x =
+  match x with
+    | n + 3 -> 2
+    | 2 -> 1
+    | n + 4 -> 5
+    | 8 -> 5
+  end
+
+let test_int3 x =
+  match x with
+    | n + 31 -> "31 <= x"
+    | n + 29 -> "29 <= x < 31"
+  end
+
+let test_int4 x =
+  match x with
+    | n + 50 -> "50 <= x"
+    | 40 -> "x = 40"
+    | n + 31 -> "x <> 40 && 31 <= x < 50"
+    | 29 -> "x = 29"
+    | n + 30 -> "x = 30"
+    | 4 -> "x = 4"
+    | _ -> "x <> 4 && x <> 29 && x < 30"
+  end
+
+

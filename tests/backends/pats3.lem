@@ -1,0 +1,310 @@
+(* Trivial match with unit that should disappear *)
+let test1 = 
+  match () with
+    | _ -> 1
+  end
+
+(* Trivial match with unit that should disappear *)
+let test2 = 
+  match () with
+    | () -> 1
+  end
+
+(* Trivial match that should disappear, with renaming var *)
+let test3 x = 
+  match x with
+    | y -> y
+  end
+
+(* Trivial match that should disappear, without modifying the expression *)
+let test4 x = 
+  match x with
+    | y -> 4
+  end
+
+(* Trivial match that should disappear, with introducing let *)
+let test5 x = 
+  match x + 2 with
+    | y -> y + 4
+  end
+
+(* Simple tuple test, the first line catches all and the
+   check disapears *)
+let test6 z = 
+  match z with
+    (x,_) -> 1
+  | (_,y) -> 2
+  | _ -> 3
+  end
+
+(* Again the first line catches all, but this time the
+   match is needed *)
+let test7 z = 
+  match z with
+    (x,_) -> x
+  | (_,y) -> 2
+  | _ -> 3
+  end
+
+(* Again the first line catches all, but the destruction is trivial *)
+let test8 a = 
+  match (2, a) with
+    (x,_) -> x
+  | (_,y) -> 2
+  | _ -> 3
+  end
+
+(* Let's test 'as', in particular nested ones *)
+let test9 z = 
+  match z with
+    ((x,w) as y) -> (y, w + 2)
+  | _ -> ((1,2), 3)
+  end
+
+let test10 z = 
+  match z with
+    (((x,w) as y), y2) -> (y, w + y2)
+  | _ -> ((1,2), 3)
+  end
+
+let test11 z = 
+  match z with
+    ((((x1, x2) as x12), ((x3, x4) as x34)) as x1234) -> (x1234, x3, x12)
+  end
+
+(* Boolean patterns *)
+let test12 x y z =
+  match (x,y,z) with
+     (_,     false, true)  -> 1
+   | (false, true,  _)     -> 2
+   | (_,     _,     false) -> 3
+  end
+
+(* with variables *)
+let test13 x y z =
+  match (x,y,z) with
+     (x2,     false, true)  -> x2
+   | (false, true,  _)     -> true
+   | (_,     _,     false) -> false
+   | (_,     _,     true)  -> true
+  end
+
+(* incomplete matches *)
+let test14 x =
+  match x with
+     false  -> 1
+  end
+
+let test15 x y z =
+  match (x,y,z) with
+     (_,     false, true)  -> 1
+   | (false, true,  _)     -> 2
+   | (_,     _,     false) -> 3
+  end
+
+(* redundant matches *)
+let test16 x y z =
+  match (x,y,z) with
+     (_,     false, true)  -> 1
+   | (false, true,  _)     -> 2
+   | (_,     _,     _)     -> 3
+   | (_,     _,     false) -> 4
+  end
+
+
+(* List patterns *)
+let test17 x =
+  match x with
+     []         -> 0
+   | [x1]       -> 1
+   | [x1;x2]    -> 2
+   | [x1;x2;x3] -> 3
+   | x1::xs     -> 4
+  end
+
+
+(* Option patterns *)
+
+let test18 x =
+  match x with
+    | Some x -> x
+  end
+
+let test19 xy =
+  match xy with
+    | (Some x, Some y) -> Some (x, y)
+    | _ -> None
+  end
+
+(* Integer patterns *)
+let test20 x =
+  match x with
+    | 1 -> 2
+    | 3 -> 4
+    | 2 -> 3
+    | 8 -> 9
+    | 6 -> 7
+    | 2 -> 999
+    | _ -> 0
+  end
+
+(* String patterns *)
+let test21 x =
+  match x with
+    | "xx" -> 2
+    | "x" -> 1
+    | _ -> 0
+  end
+
+(* Constructor patters *)
+(* Simple case without free type variables *)
+
+type t1 = C1 | C2 of num | C3 of num * num
+
+let test22 xx = 
+  match xx with
+    | C1 -> 1
+    | C2 x -> x
+    | C3 (x:num) y -> x + y
+  end
+
+let test23 xx = 
+  match xx with
+    | C2 x -> x
+    | C3 (x:num) y -> x + y
+  end
+
+
+(* with nesting and type instantiation *)
+
+type t2 'a = CC1 | CC2 of num | CC3 of 'a
+
+let test24 xx = 
+  match xx with
+    | CC1 -> 1
+    | CC2 x -> x
+    | CC3 y -> y
+  end
+
+let test25 xx = 
+  match xx with
+    | CC1 -> 1
+    | CC2 x -> x
+    | CC3 (CC3 y) -> y + y
+    | CC3 (CC2 x) -> x
+  end
+
+
+(* Fun test *)
+let test26 = fun x -> x
+let test27 = fun (x, y) -> x + y
+let test28 = fun (x, (0:num)) -> x
+
+(* Function test *)
+let test29 = function (_, 0) -> 0 | (1, _) -> 1 | ((x:num), y) -> x + y end
+let test30 = function (_, (0:num)) -> 0 end
+let test31 = function _ -> 1 | (_, (0:num)) -> 0 end
+
+(* Let val tests *)
+let test32 = let x = 2 in x + x
+let test33 = let [x] = [(2:num)] in x + x
+let test34 = let (x, y) = (2, 3) in x + y
+
+(* Let fun tests *)
+let test35 = let f x = x+x in f 2
+let test36 = let f [x] = x+x in f [3]
+let test37 = let f ((x, y) as z) = x+y in f (2, 3)
+
+(* function def tests *)
+let test38 x y = x+y
+let test39 (x::_) y = x+y
+let test40 (x, y) = x+y
+
+(* recursive function def tests *)
+let rec test41 x y = x+y
+let rec test42 ((x::_) as z) y = x+y
+let rec test43 ((x, y) as z) = x+y
+
+let rec test44 [] = 0
+    and test45 x = x + 2
+    and test44 (x :: xs) = test45 x + test44 xs
+
+
+(* Tests for unsed vars *)
+
+val test46 : forall 'a 'b 'c. 'a -> 'b -> 'c -> 'a
+let inline {isabelle;hol} test46 x y z = x
+
+(* Tests for set comprehension *)
+
+(* should not be touched at all *)
+let test47 = forall ((x:num) IN {}). x < 2
+
+(* Use pattern to expression *)
+let test48 = forall ((C2 x) IN {}). x < 2
+
+(* Use pattern to expression *)
+type t3 = <| f1 : num; f2 : bool |>
+
+(* Pattern compilation *)
+let test49 = forall (<| f1 = x |> IN {}). x < 2
+
+(* Underscore varibales *)
+let test50 _x y _z = match [_x] with [_zz] -> (if _z = _zz then (_x + y) else 0)
+                                 | _ -> 0 end
+
+(* Comments in patterns *)
+let test51 x y z =
+  match (x,y,z) with
+     (* c11 *) ((* c12 *) x2 (* c13 *), (* c14 *) false (* c15 *), (* c16 *) true  (* c17 *))  -> (*d11*)1(* d12 *)
+   | (* c21 *) ((* c22 *) _  (* c23 *), (* c24 *) _     (* c25 *), (* c26 *) false (* c27 *))  ->    2(* d22 *)
+  end
+
+(* Test for bug reported by Scott *)
+let test52 = fun (x,y) -> x + y
+let test53 = fun (x,_) -> x + x
+let test54 P l = forall (y MEM l) ((a,b) MEM l). P y a b 
+let test55 P l = forall (y MEM l) ((a,_) MEM l). P y a 
+
+(* Report missing patterns testing *)
+let test56 (x:t3) =
+  match x with | <| f1 = 0 |> -> 1
+end
+
+let test57 x =
+  match x with
+    | 1 -> 2
+    | 3 -> 4
+  end
+
+let test58 x =
+  match x with
+    | 1 -> 2
+    | 3 -> 4
+    | 3 -> 5
+  end
+
+let test59 x =
+  match x with
+    | n + 3 -> 2
+    | 2 -> 1
+    | n + 4 -> 5
+    | 8 -> 5
+  end
+
+let test60 x =
+  match x with
+    | n + 31 -> "31 <= x"
+    | n + 29 -> "29 <= x < 31"
+  end
+
+let test61 x =
+  match x with
+    | n + 50 -> "50 <= x"
+    | 40 -> "x = 40"
+    | n + 31 -> "x <> 40 && 31 <= x < 50"
+    | 29 -> "x = 29"
+    | n + 30 -> "x = 30"
+    | 4 -> "x = 4"
+    | _ -> "x <> 4 && x <> 29 && x < 30"
+  end

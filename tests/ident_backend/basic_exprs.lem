@@ -1,0 +1,127 @@
+module M = struct let v = 1 end
+type t = | C1 | C2 of num | C3 of num * num | C4 of num * num * num * num
+type t2= <| fn1 : num|>
+type t3 = <|fn2 : num ; fn3 : num|>
+
+let f x = x
+
+let test1 = C1
+let test2 = C2 1
+let test3 = C3 1 2
+let test4 = C4 1 2 3 4
+let test5 = C4 1 2 3
+let test6 = C4
+
+let test7 = M.v
+
+let test8 = fun y -> y
+
+let test9 = fun y z -> y z
+
+let test10 = function [1] -> [1]
+ | [x] -> [x]
+ | x -> x 
+end
+
+let test11 = function | [1] -> 1 end 
+
+let test12 = f 1
+
+let test13 = 1 + 1
+let test14 = (+) 1 2
+
+let test15 = <| fn1 = 1 |>
+let test16 = <| fn1 = 2 ; |>
+let test17 = <| fn2 = 3 ; fn3 = 4 ; |>
+let test18 = <| fn2 = 5 ; fn3 = 6 |>
+
+let test19 = <| test15 with fn1 = 1 |>
+let test20 = <| test17 with fn2 = 2 ; |>
+let test21 = <| test17 with fn2 = 3 ; fn3 = 4 ; |>
+let test22 = <| test17 with fn2 = 5 ; fn3 = 6 |>
+
+let test23 = test15 . fn1
+
+let test24 = match [1] with [] -> [] end
+let test25 = match [1] with [] -> [] end
+let test26 = match [1] with [] -> [] 
+ | [1] -> [1] end
+let test27 = match [] with | [] -> []
+ | [1] -> [1] end
+
+let test28 = ( 1 : num )
+
+let test29 = let x = 1 in x
+let test30 = let x : num = 1 in x
+
+let test31 = let x _ = 1 in x
+let test32 = let x _ x = 1 in x
+let test63 = let x _ : num = 1 in x
+
+let test33 = ( 1, 2 )
+let test34 = ( 1, 2, 3 )
+
+let test35 = []
+let test36 = [1]
+let test37 = [1 ; ]
+let test38 = [1 ; 2]
+let test39 = [1 ; 2 ; ]
+
+let test40 = ( 1 )
+
+let test41 = begin 1 end
+
+let test42 = if true then 1 else 2
+
+let test43 = 1 :: [ ]
+
+let test44 = true
+let test45 = false
+let test46 = 1
+let test47 = "123"
+let test64 = ( )
+
+let test48 = { x | true }
+let test49 = { x | forall x | true }
+let test50 = { ( x,y ) | forall x y | true }
+let test51 s1 s2 = { ( x,y ) | forall ( x IN s1 ) ( y MEM s2 ) | true }
+
+let test52 = { 1 ; 2 }
+let test53 = { }
+let test54 = { 1 ; }
+let test55 = { 1 }
+let test56 = { 1 ; 2 ; }
+
+let test57 = forall x . x
+let test58 = exists x y . x 
+let test59 = forall ( x IN {} ) . x
+let test60 = forall ( x IN {} ) ( y MEM [ ] ) . x
+
+let test62 s1 s2 = [ y | forall ( ( x,y ) MEM s2 ) | true ]
+let test65 r = r.fn1
+
+let test66 = { r.fn1 | r = <| fn1 = 2 |> }
+
+(*Vectors*)
+let test67 = [| true; false; |]
+let test68 = [| 0; 1; 2; 3 |]
+let test69 = [| 0; 1; 2 |].[ 1 ]
+let test70 = test67.[ 1 ]
+
+let test71 = test68.[ 1 .. 2 ]
+
+let test72 = Vector.vconcat test68 test71
+let test73 = Vector.vzip test68 test68
+let test74 = Vector.vmap (fun x -> x + x) test68
+
+ (* bits and bit vectors *)
+let test75 = #1
+let test76 = [| #0; #1; #0; |]
+
+let test77 = 0b00101
+let test78 = 0xA0B1D3E
+
+let test79 = Vector.vconcat test76 test78
+
+val test80 : forall ''x. vector ''x bit -> num
+let test80 v = ''x

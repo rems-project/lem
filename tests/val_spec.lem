@@ -1,0 +1,116 @@
+(******Type Definitions******)
+
+
+open List
+
+(* Abbreviations *)
+type Tid = num
+
+(* Simple Typedefs *)
+and SignT = Pos | Neg
+
+(* Typdefs with arguments *)
+and IntT = | Minus of num | Plus of num | Zero
+
+(* Records *)
+and PointT = <| x : num; y : num; |>
+type simpleRecT = <| z : num |>
+
+(* TDOD: Polymorphic Types *)
+type 'a option = None | Some of 'a
+
+(******Value Definitions******)
+let x1 a = a
+
+let y1 a = a
+
+let z1 a = a 
+
+(* Records *)
+let rec1 = <| x = 3; y = 5; |>
+
+let rec2 = <| z = 7 |> 
+
+(* Record Updates *)
+let rec3 = <| rec1 with x = 5 |>
+
+
+(* CPP extract *)
+
+let (===>) x y = y || not x
+
+let irrefl s ord = forall (x IN s). not ((x,x) IN ord)
+
+let trans s ord = forall (x IN s) (y IN s) (z IN s). ((x,y) IN ord) && ((y,z) IN ord) ===> ((x,z) IN ord)
+
+(*val cross : forall 'a. 'a set -> 'a set -> ('a * 'a) set*)
+let cross S T = { (s,t) | forall (s IN S) (t IN T) | true}
+
+(*val restrict_relation_set : ('a * 'a) set -> 'a set -> ('a * 'a) set *)
+let restrict_relation_set rel s = rel inter (cross s s)
+
+let strict_preorder s ord = irrefl s (ord) && trans s (ord)
+
+let relation_over s rel = forall ((a,b) IN rel). a IN s && b IN s 
+
+let inj_on f A =
+    (forall (x IN A). (forall (y IN A). (f x = f y) ===> (x = y)))
+
+let total_order_over s ord =
+    relation_over s ord && (forall (x IN s) (y IN s). (x,y) IN ord || (y,x) IN ord || (x = y))
+
+let strict_total_order_over s ord = strict_preorder s ord && total_order_over s ord
+
+let adjacent_less_than ord s x y =
+    (x,y) IN ord && not (exist (z IN s). (x,z) IN ord && (z,y) IN ord)
+
+
+(*val adjacent_less_than_such_that :  ('a -> bool) -> (('a * 'a) set) -> ('a set) -> 'a -> 'a -> bool*)
+let adjacent_less_than_such_that pred ord s x y =
+    pred x && (x,y) IN ord && not (exist (z IN s). pred z && (x,z) IN ord && (z,y) IN ord)
+
+
+
+(******Recursive Functions******)
+let rec dec1 n = match n with
+    0 -> 0 
+  | n -> n 
+
+let rec dec2 n = match n with 
+  | 0 -> 0
+  | _ -> n
+
+let dec3 = (function 0 -> 0 | n -> 3)
+
+let inlinefun = (fun (x : num) -> x)
+
+let inline2 = (fun (x,y) -> y)
+
+let funapp = inlinefun (rec1.x)
+
+let let_construct = let x = 2 in 5
+
+let sample_list = [1;2;3;4;5;]
+
+let sample_list2 = 0 :: sample_list
+
+let sample_tuple = (1,2,3,4,5)
+
+let sample_set = {1;2;3;4;5;}
+
+let sample_set2 = {3;4}
+
+let set1 = sample_set2 subset sample_set
+
+let set2 = sample_set inter sample_set2
+
+let set3 = sample_set2 union {7;8}
+
+(* let sample_set_compr = { n | n < 5 }
+
+let sample_set_compr2 = { n | forall (n IN sample_set) | n < 3 }
+
+let set4 = {n + n | n < 3}
+
+let range r = {snd p | forall (p IN r) | true } 
+*)

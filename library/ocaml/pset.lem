@@ -1,0 +1,83 @@
+(*========================================================================*)
+(*                        Lem                                             *)
+(*                                                                        *)
+(*          Dominic Mulligan, University of Cambridge                     *)
+(*          Francesco Zappa Nardelli, INRIA Paris-Rocquencourt            *)
+(*          Gabriel Kerneis, University of Cambridge                      *)
+(*          Kathy Gray, University of Cambridge                           *)
+(*          Peter Boehm, University of Cambridge (while working on Lem)   *)
+(*          Peter Sewell, University of Cambridge                         *)
+(*          Scott Owens, University of Kent                               *)
+(*          Thomas Tuerk, University of Cambridge                         *)
+(*                                                                        *)
+(*  The Lem sources are copyright 2010-2013                               *)
+(*  by the UK authors above and Institut National de Recherche en         *)
+(*  Informatique et en Automatique (INRIA).                               *)
+(*                                                                        *)
+(*  All files except ocaml-lib/pmap.{ml,mli} and ocaml-libpset.{ml,mli}   *)
+(*  are distributed under the license below.  The former are distributed  *)
+(*  under the LGPLv2, as in the LICENSE file.                             *)
+(*                                                                        *)
+(*                                                                        *)
+(*  Redistribution and use in source and binary forms, with or without    *)
+(*  modification, are permitted provided that the following conditions    *)
+(*  are met:                                                              *)
+(*  1. Redistributions of source code must retain the above copyright     *)
+(*  notice, this list of conditions and the following disclaimer.         *)
+(*  2. Redistributions in binary form must reproduce the above copyright  *)
+(*  notice, this list of conditions and the following disclaimer in the   *)
+(*  documentation and/or other materials provided with the distribution.  *)
+(*  3. The names of the authors may not be used to endorse or promote     *)
+(*  products derived from this software without specific prior written    *)
+(*  permission.                                                           *)
+(*                                                                        *)
+(*  THIS SOFTWARE IS PROVIDED BY THE AUTHORS ``AS IS'' AND ANY EXPRESS    *)
+(*  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED     *)
+(*  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE    *)
+(*  ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY       *)
+(*  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL    *)
+(*  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE     *)
+(*  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS         *)
+(*  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER  *)
+(*  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR       *)
+(*  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN   *)
+(*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
+(*========================================================================*)
+
+val empty: forall 'a. ('a -> 'a -> int) -> set 'a
+val from_list: forall 'a. ('a -> 'a -> int) -> list 'a -> set 'a
+val bigunion : forall 'a. ('a -> 'a -> int) -> set (set 'a) -> set 'a
+val biginter : forall 'a. set (set 'a) -> set 'a
+val is_empty: forall 'a. set 'a -> bool
+val mem: forall 'a. 'a -> set 'a -> bool
+val add: forall 'a. 'a -> set 'a -> set 'a
+val singleton: forall 'a. ('a -> 'a -> int) -> 'a -> set 'a
+val remove: forall 'a. 'a -> set 'a -> set 'a
+val (union): forall 'a. set 'a -> set 'a -> set 'a
+val (inter): forall 'a. set 'a -> set 'a -> set 'a
+val diff: forall 'a. set 'a -> set 'a -> set 'a
+val compare: forall 'a. set 'a -> set 'a -> int
+val equal: forall 'a. set 'a -> set 'a -> bool
+val (subset): forall 'a. set 'a -> set 'a -> bool
+(* val iter: forall 'a. ('a -> unit) -> set 'a -> unit *)
+val fold: forall 'a 'b. ('a -> 'b -> 'b) -> set 'a -> 'b -> 'b
+val for_all: forall 'a. ('a -> bool) -> set 'a -> bool
+val \\exists : forall 'a. ('a -> bool) -> set 'a -> bool
+val filter: forall 'a. ('a -> bool) -> set 'a -> set 'a
+val partition: forall 'a. ('a -> bool) -> set 'a -> set 'a * set 'a
+val cardinal: forall 'a. set 'a -> num
+val elements: forall 'a. set 'a -> list 'a
+val min_elt: forall 'a. set 'a -> 'a
+val max_elt: forall 'a. set 'a -> 'a
+val choose: forall 'a. set 'a -> 'a
+val split: forall 'a. 'a -> set 'a -> set 'a * bool * set 'a
+
+val comprehension1 : forall 'a 'b. ('b -> 'b -> int) -> ('a -> 'b) -> ('a -> bool) -> set 'a -> set 'b
+val comprehension2 : forall 'a 'b 'c. ('c -> 'c -> int) -> ('a -> 'b -> 'c) -> ('a -> 'b -> bool) -> set 'a -> set 'b -> set 'c
+val comprehension3 : forall 'a 'b 'c 'd. ('d -> 'd -> int) -> ('a -> 'b -> 'c -> 'd) -> ('a -> 'b -> 'c -> bool) -> set 'a -> set 'b -> set 'c -> set 'd
+val comprehension4 : forall 'a 'b 'c 'd 'e. ('e -> 'e -> int) -> ('a -> 'b -> 'c -> 'd -> 'e) -> ('a -> 'b -> 'c -> 'd -> bool) -> set 'a -> set 'b -> set 'c -> set 'd -> set 'e
+val comprehension5 : forall 'a 'b 'c 'd 'e 'f. ('f -> 'f -> int) -> ('a -> 'b -> 'c -> 'd -> 'e -> 'f) -> ('a -> 'b -> 'c -> 'd -> 'e -> bool) -> set 'a -> set 'b -> set 'c -> set 'd -> set 'e -> set 'f
+val comprehension6 : forall 'a 'b 'c 'd 'e 'f 'g. ('g -> 'g -> int) -> ('a -> 'b -> 'c -> 'd -> 'e -> 'f -> 'g) -> ('a -> 'b -> 'c -> 'd -> 'e -> 'f -> bool) -> set 'a -> set 'b -> set 'c -> set 'd -> set 'e -> set 'f -> set 'g
+val comprehension7 : forall 'a 'b 'c 'd 'e 'f 'g 'h. ('h -> 'h -> int) -> ('a -> 'b -> 'c -> 'd -> 'e -> 'f -> 'g -> 'h) -> ('a -> 'b -> 'c -> 'd -> 'e -> 'f -> 'g -> bool) -> set 'a -> set 'b -> set 'c -> set 'd -> set 'e -> set 'f -> set 'g -> set
+ 'h
+val lfp : forall 'a. set 'a -> (set 'a -> set 'a) -> set 'a

@@ -1,0 +1,43 @@
+
+type t = <| fn : num |>
+type t2 = <| X : num |>
+
+let X = <| fn = 2 |>
+
+type u = | fn
+
+module X = struct 
+  let Y = 1
+end
+
+let _ = X . fn
+
+module Y = struct
+  let Z = 1
+end
+
+let _ = Y.Z
+
+let F Y = Y . fn
+
+module Z = struct
+  type m = <| F : num |>
+  type t = <| fn : m |>
+  let x1 = <| fn = <| F = 2 |> |>
+  module F = struct
+    let _ = 1
+  end
+end
+
+let x1 = <| Z.fn = <| Z.F = 1 |> |>
+let _ = Z.x1 . Z.fn . Z.F
+let _ = (if true then x1 else x1) . Z.fn . Z.F
+
+module T = struct
+  type t = <| (^^^) : num |>
+  let (---) = 1
+end
+
+(* TODO
+let _ = <| T.( ^^^ ) = 1 |>.T.( ^^^ )
+ *)

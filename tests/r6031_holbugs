@@ -1,0 +1,16 @@
+(* Bugs in r6031 - malformed HOL generated *)
+
+
+(* Bug 1: list append *)
+(* This works *)
+let my_append (l1:num list) (l2:num list) : num list = list.append l1 l2
+
+(* But this does not : hol APPEND generated in infix position *)
+ let my_append2 (l1:num list) (l2:num list) : num list = l1 @ l2 
+
+
+
+
+
+(* Bug 2: explicit set notation 'a set goes to HOL as 'a list *)
+let (s:num set) = {0}

@@ -1,0 +1,62 @@
+type a = num
+type b 'a = 'a * a
+type c 'a 'b = 'a * 'b
+
+let d = (1 : a)
+let e = ((1, 2) : b num)
+let f = ((1, false) : c num bool)
+
+type g = <| field_one : num; field_two : bool |>
+type h 'a = <| field_three : 'a; field_four : bool |>
+type i 'a 'b = <| field_five : 'a; field_six : 'b |>
+type j = <| field_seven : g |>
+
+let k = (<| field_one = 1; field_two = true |> : g)
+let l = (<| field_three = (1, true); field_four = false |> : h (num * bool))
+let m = (<| field_seven = <| field_one = 1; field_two = true |> |>)
+
+let n = (<| field_five = (fun x -> x); field_six =
+           <| field_three = 1; field_four = true |> |> :  i ('a -> 'a) (h num))
+
+type o = A of a
+
+type p
+  = B of a
+  | C of (b num)
+  | D of g
+
+type q
+  = E of num
+  | F of i g (h a)
+  | G of r
+and r
+  = H of q
+
+let s = (B 1 : p)
+let t = (G (H (E 1)) : q)
+
+type bool =
+  True
+| False
+
+type nat =
+  Zero
+| Succ of nat
+
+type heap 'a =
+  Nil
+| Node of nat * heap 'a * 'a * heap 'a
+
+type u 'a = I of 'a
+
+type v 'a 'b 'c
+  = J of 'a
+  | K of 'b
+  | L of (w 'c)
+and w 'a =
+  | M of ('a -> 'a) * v num num num
+
+type x 'a =
+  | N of y 'a
+and y 'a =
+  | O of x 'a

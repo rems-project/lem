@@ -1,0 +1,50 @@
+type t27 = bool
+type t2 'a = t27 * 'a 
+type t3 'b 'a = t2 'b * t2 ( 'a -> 'b ) * 'a * 'b 
+type t28 = t3 t27 bool
+type t13 = <| fn2 : num ; fn3 : bool |> 
+type t14 = <| fn4 : num ; fn5 : bool ; |> 
+type t15 = <| fn6 : num ; |> 
+type t29 = <| fn9 : num |> 
+
+type t30 ''a 'b = vector ''a 'b
+type t31 ''a = vector 32 (t30 ''a t29)
+type t32 ''a = vector 64 (t31 (''a + 32))
+
+type t1 = 
+ | C1 of t2 num
+ | C2 
+ | C3 of bool 
+and t12 = <| fn1 : t6 |> 
+and t4 = 
+ | C4 
+ | C5 of bool 
+ | C6 
+and t5 = 
+   C7 
+ | C8 of num 
+and t6 = 
+   C9 of num 
+ | C10 
+and t24
+and t25 'a = t24 * 'a
+and t26 = C17 of t25 t24 
+
+type t7 'a = 'a 
+type t8 'a 'b = 'a -> 'b 
+
+type t10 = C11 of num * bool 
+type t11 = C12 of ( num * bool ) 
+
+type t16 'a = C13 of 'a 
+type t17 'b 'a = C14 of 'a * 'b 
+
+type t18 'a = <| fn7 : 'a |> 
+type t19 'b 'a = 
+ <| fn8 : 'a -> 'b |> 
+
+type t20 = | C15
+type t21 = C16 of num
+
+type t22 and t23
+

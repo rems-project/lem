@@ -1,0 +1,12 @@
+all: build-lem
+
+build-lem: 
+	rm -f library/lib_cache
+	make -C ocaml-lib all
+	make -C src all
+	ln -sf src/main.native lem
+
+clean:
+	make -C src clean
+	make -C ocaml-lib clean
+	rm -rf lem library/lib_cache

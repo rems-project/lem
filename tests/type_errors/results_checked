@@ -1,0 +1,1245 @@
+(* --------------------------- Ident syntax tests -------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+
+module M = struct type t = <| f : num |> end
+let _ = <| M .f = 1 |>
+
+--------------------------------------------------------------------------------
+File "test.lem", line 6, character 12 to line 6, character 15
+  Type error: illegal whitespace in identifier:  M .f
+================================================================================
+module M = struct module N = struct type t = <| f : num |> end end
+let _ = <| M .N.f = 1 |>
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 12 to line 2, character 17
+  Type error: illegal whitespace in identifier:  M .N.f
+================================================================================
+module M = struct module N = struct type t = <| f : num |> end end
+let _ = <| M. N.f = 1 |>
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 12 to line 2, character 17
+  Type error: illegal whitespace in identifier:  M. N.f
+================================================================================
+module M = struct module N = struct type t = <| f : num |> end end
+let _ = <| M.N .f = 1 |>
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 12 to line 2, character 17
+  Type error: illegal whitespace in identifier:  M.N .f
+================================================================================
+module M = struct module N = struct type t = <| f : num |> end end
+let _ = <| M.N. f = 1 |>
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 12 to line 2, character 17
+  Type error: illegal whitespace in identifier:  M.N. f
+================================================================================
+module M = struct let x = 1 end
+let _ = M .x
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 9 to line 2, character 12
+  Type error: illegal whitespace in identifier:  M .x
+================================================================================
+module M = struct module N = struct let x = 1 end end
+let _ = M .N.x
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 9 to line 2, character 14
+  Type error: illegal whitespace in identifier:  M .N.x
+================================================================================
+module M = struct module N = struct let x = 1 end end
+let _ = M. N.x
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 9 to line 2, character 14
+  Type error: illegal whitespace in identifier:  M. N.x
+================================================================================
+module M = struct module N = struct let x = 1 end end
+let _ = M.N .x
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 9 to line 2, character 14
+  Type error: illegal whitespace in identifier:  M.N .x
+================================================================================
+module M = struct module N = struct let x = 1 end end
+let _ = M.N. x
+
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 9 to line 2, character 14
+  Type error: illegal whitespace in identifier:  M.N. x
+================================================================================
+(* --------------------------- Type tests ---------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+
+type t = u
+
+--------------------------------------------------------------------------------
+File "test.lem", line 5, character 10 to line 5, character 10
+  Type error: unbound type constructor: u
+================================================================================
+type t = num num
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 10 to line 1, character 16
+  Type error: type constructor expected 0 type arguments, given 1: num
+================================================================================
+type t 'a = c of 'a
+type u = t
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 10 to line 2, character 10
+  Type error: type constructor expected 1 type arguments, given 0: t
+================================================================================
+class (c 'a) val f : 'a end
+type t = c
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 10 to line 2, character 10
+  Type error: type class used as type constructor: c
+================================================================================
+(* ------------------------ Pattern tests ---------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+
+type x = | X
+let f (X a) = 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 6, character 8 to line 6, character 8
+  Type error: constructor pattern expected 0 arguments, given 1: X
+================================================================================
+type x = | X of bool
+let f (X a b) = 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 8 to line 2, character 8
+  Type error: constructor pattern expected 1 arguments, given 2: X
+================================================================================
+type x = | X of bool
+let f X = 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 7 to line 2, character 7
+  Type error: constructor pattern expected 1 arguments, given 0: X
+================================================================================
+module M = struct type t = | Y end
+let f (M.X y) = 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 10 to line 2, character 10
+  Type error: non-constructor pattern has a module path: M.X
+================================================================================
+let f (M.X y) = 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 8 to line 1, character 8
+  Type error: unknown module: M
+================================================================================
+type t = <| X : num |>
+let f (X y) = 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 8 to line 2, character 8
+  Type error: non-constructor pattern given arguments: X
+================================================================================
+let f (X y) = 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 8 to line 1, character 8
+  Type error: non-constructor pattern given arguments: X
+================================================================================
+type t = | X of num
+let f (_ as X) = match 1 with | (X 1) -> 1 end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 34 to line 2, character 34
+  Type error: non-constructor pattern given arguments: X
+================================================================================
+let f <| fld = 1 |> = 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 10 to line 1, character 12
+  Type error: unbound field name: fld
+================================================================================
+type t = | fld
+let f <| fld = 1 |> = 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 10 to line 2, character 12
+  Type error: constructor name used as a field name: fld
+================================================================================
+let fld = 1
+let f <| fld = 1 |> = 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 10 to line 2, character 12
+  Type error: top level variable binding used as a field name: fld
+================================================================================
+class (c 'a) val fld : num end
+let f <| fld = 1 |> = 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 10 to line 2, character 12
+  Type error: method name used as a field name: fld
+================================================================================
+type t = <| fld : bool |>
+let f <| fld = true; fld2 = false |> = 0
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 22 to line 2, character 25
+  Type error: unbound field name: fld2
+================================================================================
+type t = <| fld : bool |>
+let f <| fld = true; fld = true |> = 0
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 22 to line 2, character 24
+  Type error: duplicate field name: fld
+================================================================================
+let f (x,x) = 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 10 to line 1, character 10
+  Type error: duplicate binding: x
+================================================================================
+(* ------------------------ Expression tests ------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+
+let _ = x
+
+--------------------------------------------------------------------------------
+File "test.lem", line 5, character 9 to line 5, character 9
+  Type error: unbound variable: x
+================================================================================
+let f x = x +++ x
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 13 to line 1, character 15
+  Type error: unbound variable: +++
+================================================================================
+let _ = M.x
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 9 to line 1, character 9
+  Type error: unbound module name or variable: M
+================================================================================
+module M = struct let y = 10 end
+let _ = M.x
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 11 to line 2, character 11
+  Type error: unbound variable: M.x
+================================================================================
+module M = struct let y = 10 end
+let _ = M.N.x
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 11 to line 2, character 11
+  Type error: unbound module name or variable: M.N
+================================================================================
+type t = <| x : bool |>
+let _ = x
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 9 to line 2, character 9
+  Type error: unbound variable: x
+================================================================================
+let _ = fun x x -> x
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 13 to line 1, character 13
+  Type error: duplicate binding: x
+================================================================================
+let _ = <| fld = 1 |>
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 12 to line 1, character 14
+  Type error: unbound field name: fld
+================================================================================
+type t = | fld
+let _ = <| fld = 1 |>
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 12 to line 2, character 14
+  Type error: constructor name used as a field name: fld
+================================================================================
+let fld = 1
+let _ = <| fld = 1 |>
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 12 to line 2, character 14
+  Type error: top level variable binding used as a field name: fld
+================================================================================
+type t = <| fld : bool |>
+let _ = <| fld = true; fld2 = false |>
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 24 to line 2, character 27
+  Type error: unbound field name: fld2
+================================================================================
+type t = <| fld : bool |>
+let _ = <| fld = true; fld = true |>
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 24 to line 2, character 26
+  Type error: duplicate field name: fld
+================================================================================
+type t = <| fld1 : bool; fld2 : bool |>
+let _ = <| fld1 = true |>
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 9 to line 2, character 25
+  Type error: missing field: fld2
+================================================================================
+let _ = 
+  let x = x in
+    x
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 11 to line 2, character 11
+  Type error: unbound variable: x
+================================================================================
+let _ = 
+  let f x = f x in
+    f
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 13 to line 2, character 13
+  Type error: unbound variable: f
+================================================================================
+let _ = 
+  let f x = 1 in
+    x
+
+--------------------------------------------------------------------------------
+File "test.lem", line 3, character 5 to line 3, character 5
+  Type error: unbound variable: x
+================================================================================
+let _ = { x | forall y | x }
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 11 to line 1, character 11
+  Type error: unbound variable: x
+================================================================================
+let _ = { x | forall (x IN x) | x }
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 28 to line 1, character 28
+  Type error: unbound variable: x
+================================================================================
+let _ = { x | forall (x IN {}) (x IN {}) | x }
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 33 to line 1, character 33
+  Type error: duplicate binding: x
+================================================================================
+let _ = [ x | forall (x IN {}) | x ]
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 23 to line 1, character 23
+  Type error: set-restricted quantifier in list comprehension: 
+================================================================================
+let _ = [ x | forall x | x ]
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 22 to line 1, character 22
+  Type error: unrestricted quantifier in list comprehension: x
+================================================================================
+let _ = forall (x IN x). true
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 22 to line 1, character 22
+  Type error: unbound variable: x
+================================================================================
+let _ = forall (x IN {}) (x IN {}). true
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 27 to line 1, character 27
+  Type error: duplicate binding: x
+================================================================================
+
+(* ------------------------ Type definition tests -------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+
+type t = num and t = bool
+
+--------------------------------------------------------------------------------
+File "test.lem", line 6, character 18 to line 6, character 18
+  Type error: duplicate type constructor definition: t
+================================================================================
+type t = num
+type t = num
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 6 to line 2, character 6
+  Type error: duplicate type constructor definition: t
+================================================================================
+class (c 'a) val f : 'a end
+type c = num
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 6 to line 2, character 6
+  Type error: type constructor already defined as a type class: c
+================================================================================
+type t 'a 'a = num
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 8 to line 1, character 9
+  Type error: duplicate type variable: 'a
+================================================================================
+type t = <| f : bool; f : bool |>
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 23 to line 1, character 23
+  Type error: duplicate field name definition: f
+================================================================================
+type t = <| f : bool |>
+type u = <| f : bool |>
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 13 to line 2, character 13
+  Type error: duplicate field name definition: f
+================================================================================
+type t = <| f : bool |> and u = <| f : bool |>
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 36 to line 1, character 36
+  Type error: duplicate field name definition: f
+================================================================================
+type t = u and u = bool
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 10 to line 1, character 10
+  Type error: unbound type constructor: u
+================================================================================
+type t = | C | C
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 16 to line 1, character 16
+  Type error: duplicate constructor definition: C
+================================================================================
+type t = | C and u = | C
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 24 to line 1, character 24
+  Type error: duplicate constructor definition: C
+================================================================================
+type t = | C
+type u = | C
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 12 to line 2, character 12
+  Type error: duplicate constructor definition: C
+================================================================================
+let C = 1
+type u = | C
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 12 to line 2, character 12
+  Type error: constructor already defined as a top-level variable binding: C
+================================================================================
+class (c 'a) val C : num end
+type u = | C
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 12 to line 2, character 12
+  Type error: constructor already defined as a class method name: C
+================================================================================
+type u 'a = 'a and t = list 'a
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 29 to line 1, character 30
+  Type error: unbound type variable: 'a
+================================================================================
+type u 'a = 'a and t = C of 'a
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 29 to line 1, character 30
+  Type error: unbound type variable: 'a
+================================================================================
+type u 'a = 'a and t = <| f : 'a |>
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 31 to line 1, character 32
+  Type error: unbound type variable: 'a
+================================================================================
+type t 'a
+type u 'b = t
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 13 to line 2, character 13
+  Type error: type constructor expected 1 type arguments, given 0: t
+================================================================================
+type t
+type u 'b = t 'b
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 13 to line 2, character 16
+  Type error: type constructor expected 0 type arguments, given 1: t
+================================================================================
+type t 'a 'b 
+type u 'b = t 'b
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 13 to line 2, character 16
+  Type error: type constructor expected 2 type arguments, given 1: t
+================================================================================
+type t = _
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 10 to line 1, character 10
+  Type error: anonymous types not permitted here: _
+================================================================================
+type t = C of _
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 15 to line 1, character 15
+  Type error: anonymous types not permitted here: _
+================================================================================
+
+(* ------------------------ Value definition tests ------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+
+(* Has a type error, unless not using any backends (except for tex) *)
+val x : num
+let _ = x
+
+--------------------------------------------------------------------------------
+File "test.lem", line 8, character 9 to line 8, character 9
+  Type error: unbound variable (has a val specification, but no definition): x
+================================================================================
+val x : 'a
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 9 to line 1, character 10
+  Type error: unbound type variable: 'a
+================================================================================
+val x : forall 'a 'b 'a. num
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 16 to line 1, character 17
+  Type error: duplicate type variable: 'a
+================================================================================
+val x : _
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 9 to line 1, character 9
+  Type error: anonymous types not permitted here: _
+================================================================================
+val x : forall 'a. c 'a => num
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 20 to line 1, character 20
+  Type error: unbound type class: c
+================================================================================
+class (c 'a) val f : num end
+val x : forall 'a. c 'b => num
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 22 to line 2, character 23
+  Type error: unbound type variable: 'b
+================================================================================
+val x : num
+val x : num
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 5 to line 2, character 5
+  Type error: specified variable already specified: x
+================================================================================
+type t = |x
+val x : num
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 5 to line 2, character 5
+  Type error: specified variable already defined as a constructor: x
+================================================================================
+class (c 'a) val x : num end
+val x : num
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 5 to line 2, character 5
+  Type error: specified variable already defined as a class method name: x
+================================================================================
+let x = 10
+val x : num
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 5 to line 2, character 5
+  Type error: specified variable already defined: x
+================================================================================
+let {hol} x = 10
+val x : num
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 11 to line 1, character 11
+  Type error: target-specific definition without preceding 'val' specification: x
+================================================================================
+let x = 1
+let x = 2
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 5 to line 2, character 5
+  Type error: defined variable is already defined: x
+================================================================================
+class (c 'a) val x : num end
+let x = 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 5 to line 2, character 5
+  Type error: defined variable is already defined as a class method: x
+================================================================================
+type t = |x
+let x y = 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 5 to line 2, character 5
+  Type error: defined variable is already defined as a constructor: x
+================================================================================
+val x : num
+let {hol} x = 1
+let {isabelle;hol} x = 2
+
+--------------------------------------------------------------------------------
+File "test.lem", line 3, character 20 to line 3, character 20
+  Type error: defined variable already has a hol-specific definition: x
+================================================================================
+let {hol} x = 1
+let x = 2
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 11 to line 1, character 11
+  Type error: target-specific definition without preceding 'val' specification: x
+================================================================================
+let x = 1
+let rec y 1 = 1 and x 1 = 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 21 to line 2, character 21
+  Type error: defined variable is already defined: x
+================================================================================
+let x = 1
+indreln forall y. true ==> x y
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 28 to line 2, character 28
+  Type error: defined variable is already defined: x
+================================================================================
+let x = 1
+let inline {hol} x = 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 18 to line 2, character 18
+  Type error: target-specific definition without preceding 'val' specification: x
+================================================================================
+val x : num
+let inline {hol} x = 1
+let inline {hol} x = 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 3, character 18 to line 3, character 18
+  Type error: defined variable already has a hol-specific definition: x
+================================================================================
+val x : num
+let {hol} x = 1
+let inline {hol} x = 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 3, character 18 to line 3, character 18
+  Type error: defined variable already has a hol-specific definition: x
+================================================================================
+val x : num
+let inline {hol} x = 1
+let {hol} x = 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 3, character 11 to line 3, character 11
+  Type error: defined variable already has a hol-specific definition: x
+================================================================================
+val x : num
+let {ocaml} x = 1
+let _ = x
+
+--------------------------------------------------------------------------------
+File "test.lem", line 3, character 9 to line 3, character 9
+  Type error: unbound variable for targets {hol}: x
+================================================================================
+val x : num
+let {ocaml} x = 1
+let {hol} _ = x
+
+--------------------------------------------------------------------------------
+File "test.lem", line 3, character 15 to line 3, character 15
+  Type error: unbound variable for targets {hol}: x
+================================================================================
+(* TODO: should have type error
+val x : num
+let x = 1
+let _ = x
+let {hol} x = 1
+*)
+
+--------------------------------------------------------------------------------
+File "test.lem", line 8, character 0:
+  Syntax error
+================================================================================
+(* ------------------------ Modules ---------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+
+module X = struct let y = 1 end
+module X = struct let z = 1 end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 6, character 8 to line 6, character 8
+  Type error: duplicate module definition: X
+================================================================================
+module X = struct let Y = 1 end
+module Y = X
+module Y = X
+
+--------------------------------------------------------------------------------
+File "test.lem", line 3, character 8 to line 3, character 8
+  Type error: duplicate module definition: Y
+================================================================================
+module X = struct let Y = 1 end
+module Y = struct let Z = 1 end
+module X = Y
+
+--------------------------------------------------------------------------------
+File "test.lem", line 3, character 8 to line 3, character 8
+  Type error: duplicate module definition: X
+================================================================================
+module X = Y
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 12 to line 1, character 12
+  Type error: unknown module: Y
+================================================================================
+open x
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 6 to line 1, character 6
+  Type error: unknown module: x
+================================================================================
+module X = struct let X = 1 let X = 1 end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 33 to line 1, character 33
+  Type error: defined variable is already defined: X
+================================================================================
+module X = struct let C = 1 end
+type t = | C of num
+open X
+let f (C 1) = 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 4, character 8 to line 4, character 8
+  Type error: non-constructor pattern given arguments: C
+================================================================================
+
+(* --------------------------- Type classes -------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+
+class (c 'a) val x : 'b end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 6, character 22 to line 6, character 23
+  Type error: unbound type variable: 'b
+================================================================================
+class (c 'a) val x : 'a end
+class (c 'a) val y : 'a end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 8 to line 2, character 8
+  Type error: duplicate type class definition: c
+================================================================================
+type c = num
+class (c 'a) val x : 'a end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 8 to line 2, character 8
+  Type error: type class already defined as a type constructor: c
+================================================================================
+class (c 'a) val x : 'a end
+class (d 'a) val x : 'a end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 18 to line 2, character 18
+  Type error: duplicate class method definition: x
+================================================================================
+class (c 'a) val x : 'a val x : 'a end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 29 to line 1, character 29
+  Type error: duplicate class method definition: x
+================================================================================
+let x = 1
+class (c 'a) val x : 'a end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 18 to line 2, character 18
+  Type error: class method already defined as a top-level variable: x
+================================================================================
+val x : num
+class (c 'a) val x : 'a end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 18 to line 2, character 18
+  Type error: class method already defined as a top-level variable: x
+================================================================================
+type t = | x
+class (c 'a) val x : 'a end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 18 to line 2, character 18
+  Type error: class method already defined as a constructor: x
+================================================================================
+class (c 'a) val x : _ end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 22 to line 1, character 22
+  Type error: anonymous types not permitted here: _
+================================================================================
+
+(* --------------------------- Class instances ----------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+
+class (c 'a) val y : 'a end
+instance (c num) let x = 1 end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 7, character 22 to line 7, character 22
+  Type error: instance method not bound to class method: x
+================================================================================
+class (c 'a) val x : 'a end
+module M = struct let x = 10 end
+open M
+instance (c num) let x = 10 end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 4, character 22 to line 4, character 22
+  Type error: instance method not bound to class method: x
+================================================================================
+class (d 'a) val x : num end
+instance (c num) let x = 1 end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 11 to line 2, character 11
+  Type error: unbound type class: c
+================================================================================
+class (c 'a) val x : 'a val y : 'a end
+instance (c num) let x = 1 end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 1 to line 2, character 30
+  Type error: missing class method: y
+================================================================================
+(* TODO: This should fail
+
+class (c 'a) val x : 'a end
+class (d 'a) val y : 'a end
+instance (c num) let x = 1 let y = 2 end
+*)
+
+--------------------------------------------------------------------------------
+File "test.lem", line 8, character 0:
+  Syntax error
+================================================================================
+class (c 'a) val x : 'a end
+type t 'a = list 'a
+instance (c t num) let x = [] end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 3, character 13 to line 3, character 13
+  Type error: type abbreviation in class instance type: t
+================================================================================
+class (c 'a) val x : 'a end
+instance (c list num) let x = [] end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 13 to line 2, character 20
+  Type error: class instance type must be a type constructor applied to type variables: 
+list num
+================================================================================
+class (c 'a) val x : 'a end
+instance (c (num*num)) let x = (1,1) end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 14 to line 2, character 20
+  Type error: class instance type must be a type constructor applied to type variables: 
+(num * num)
+================================================================================
+class (c 'a) val x : 'a end
+instance forall 'a. c 'a => (c ('a*'a)) let x = (x,x) end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 33 to line 2, character 34
+  Type error: duplicate type variable: 'a
+================================================================================
+class (c 'a) val x : num end
+instance (c 'a) let x = 1 end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 13 to line 2, character 14
+  Type error: unbound type variable: 'a
+================================================================================
+class (c 'a) val x : num end
+instance forall 'a. c 'b => (c 'a) let x = 1 end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 23 to line 2, character 24
+  Type error: unbound type variable: 'b
+================================================================================
+class (c 'a) val x : num end
+instance forall 'a. d 'd => (c 'a) let x = 1 end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 21 to line 2, character 21
+  Type error: unbound type class: d
+================================================================================
+class (c 'a) val x : num end
+instance forall 'a 'b. (c 'a) let x = 1 end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 1 to line 2, character 43
+  Type error: instance type does not use all type variables: {'b}
+================================================================================
+class (c 'a) val x : 'a end
+instance (c num) let x = 1 let x = 1 end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 22 to line 2, character 22
+  Type error: duplicate definition in an instance: x
+================================================================================
+class (d 'a) val x : num end
+type c = num
+instance (c num) let x = 10 end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 3, character 11 to line 3, character 11
+  Type error: type constructor used as type class: c
+================================================================================
+class (c 'a) val x : num end
+instance (c num) let {hol} x = 10 end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 28 to line 2, character 28
+  Type error: instance method must not be target specific: x
+================================================================================
+class (c 'a) val x : num end
+instance forall 'a 'a. (c 'a) let x = 10 end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 17 to line 2, character 18
+  Type error: duplicate type variable: 'a
+================================================================================
+(* TODO : should have type error
+class (c 'a) val x : 'a end
+instance forall 'a. c 'a => (c 'a list) let x = x end
+instance forall 'b. c 'b => (c 'b list) let x = x end
+*)
+
+--------------------------------------------------------------------------------
+File "test.lem", line 7, character 0:
+  Syntax error
+================================================================================
+
+(* ------------------------ Class constraints ------------------------------ *)
+(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+
+class (c 'a) val x : 'a end
+let _ = x::[4]
+
+--------------------------------------------------------------------------------
+File "test.lem", line 7, character 1 to line 7, character 14
+  Type error: unsatisfied type class constraint:
+(Test.c num)
+================================================================================
+(* TODO: error message should include (test.c 'a list) *)
+class (c 'a) val x : 'a end
+class (d 'a) val y : 'a val z : list 'a end
+instance forall 'a. (d 'a) let y = x let z = x end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 4, character 28 to line 4, character 46
+  Type error: unsatisfied type class constraints:
+(Test.c 'a)
+================================================================================
+class (c 'a) val x : 'a end
+val f : num -> num
+let inline {hol} f y = x
+
+--------------------------------------------------------------------------------
+File "test.lem", line 3, character 1 to line 3, character 24
+  Type error: unsatisfied type class constraint:
+(Test.c num)
+================================================================================
+class (c 'a) val x : 'a end
+val f : forall 'b. 'b -> 'b
+let inline {hol} f y = x
+
+--------------------------------------------------------------------------------
+File "test.lem", line 3, character 1 to line 3, character 24
+  Type error: unsatisfied type class constraints:
+(Test.c 'b)
+================================================================================
+class (c 'a) val x : 'a end
+val f : forall 'b. c 'b => 'b -> 'b
+let inline {hol} f y = x
+
+--------------------------------------------------------------------------------
+File "test.lem", line 3, character 1 to line 3, character 24
+  Type error: unsatisfied type class constraints:
+(Test.c 'b)
+================================================================================
+class (c 'a) val x : 'a end
+class (d 'a) val y : 'a end
+instance forall 'a 'b. c 'a , d 'b => (c ('a*'b)) let x = (x, y) end
+val a : num
+let a = match x with (a,b) -> 1 end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 5, character 1 to line 5, character 35
+  Type error: unsatisfied type class constraints:
+(Test.c 'b)
+and
+(Test.d 'a)
+================================================================================
+class (c 'a) val x : 'a end
+class (d 'a) val y : 'a end
+instance forall 'a 'b. c 'a, d 'b => (c ('a*'b)) let x = (x, y) end
+val a : forall 'a. 'a -> num
+let inline {hol} a y = match x with (a,b) -> 1 end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 5, character 1 to line 5, character 50
+  Type error: unsatisfied type class constraints:
+(Test.c 'b)
+and
+(Test.d 'a)
+================================================================================
+
+(* ------------------------ Type Mismatches -------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+
+let f (1 : bool) = 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 6, character 7 to line 6, character 16
+  Type error: type mismatch:
+bool
+and
+num
+================================================================================
+type x = | X of bool
+let f (X 1) = 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 8 to line 2, character 8
+  Type error: type mismatch:
+bool
+and
+num
+================================================================================
+type t = <| fld : bool |>
+let f <| fld = 1 |> = 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 10 to line 2, character 16
+  Type error: type mismatch:
+bool
+and
+num
+================================================================================
+let f [1;true] = 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 7 to line 1, character 14
+  Type error: type mismatch:
+num
+and
+bool
+================================================================================
+let f (1::[true]) = 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 8 to line 1, character 16
+  Type error: type mismatch:
+num
+and
+bool
+================================================================================
+let x = true
+let _ = x + 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 9 to line 2, character 13
+  Type error: type mismatch:
+bool
+and
+num
+================================================================================
+let f (x : bool) = x + 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 20 to line 1, character 24
+  Type error: type mismatch:
+bool
+and
+num
+================================================================================
+type t = | X
+let _ = X 1 
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 9 to line 2, character 11
+  Type error: type mismatch:
+(num) -> _
+and
+Test.t
+================================================================================
+type t = | X of bool
+let _ = X 1 
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 9 to line 2, character 11
+  Type error: type mismatch:
+num
+and
+bool
+================================================================================
+type t = | X of bool
+let _ = X true 1 
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 9 to line 2, character 16
+  Type error: type mismatch:
+(num) -> _
+and
+Test.t
+================================================================================
+let _ = fun (x : bool) -> x + 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 27 to line 1, character 31
+  Type error: type mismatch:
+bool
+and
+num
+================================================================================
+type x = | X of bool
+let _ = fun (X x) -> x + 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 22 to line 2, character 26
+  Type error: type mismatch:
+bool
+and
+num
+================================================================================
+type x = <| fld : bool |>
+let _ = fun <| fld = x |> -> x + 1
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 30 to line 2, character 34
+  Type error: type mismatch:
+bool
+and
+num
+================================================================================
+let _ = function | true -> 1 | 1 -> 1 end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 9 to line 1, character 41
+  Type error: type mismatch:
+bool
+and
+num
+================================================================================
+let _ = function | _ -> 1 | _ -> true end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 9 to line 1, character 41
+  Type error: type mismatch:
+num
+and
+bool
+================================================================================
+let _ = 1 2
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 9 to line 1, character 11
+  Type error: type mismatch:
+(num) -> _
+and
+num
+================================================================================
+let _ = (fun 1 -> 1) true
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 9 to line 1, character 25
+  Type error: type mismatch:
+bool
+and
+num
+================================================================================
+let _ = (function | 1 -> 1 end) true
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 9 to line 1, character 36
+  Type error: type mismatch:
+bool
+and
+num
+================================================================================
+let _ = (fun x -> x) 1 2
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 9 to line 1, character 24
+  Type error: type mismatch:
+(num) -> _
+and
+num
+================================================================================
+let _ = true + 1
+
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 9 to line 1, character 16
+  Type error: type mismatch:
+bool
+and
+num
+================================================================================
+type t5 [name = "nv*"] = NV of bool | NVC of int
+let test17 = fun (x : t5) -> x
+
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 19 to line 2, character 19
+  Type error: variables with type Test.t5 are restricted to names matching the regular expression nv*: x
+================================================================================
+type t5 [nme = "nv*"] = NV of bool | NVC of int
+
+--------------------------------------------------------------------------------
+File "test.lem", line 1, character 10 to line 1, character 12
+  Type error: Type name restrictions must begin with 'name': nme
+================================================================================
+type t5 = NV of bool | NVC of int
+type t6 [name = "nv*"] = t5
+--------------------------------------------------------------------------------
+File "test.lem", line 2, character 6 to line 2, character 7
+  Type error: Type abbreviations may not restrict identifier names: t6
+================================================================================

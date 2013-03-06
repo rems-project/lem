@@ -1,0 +1,78 @@
+let test1 = 1
+let test2 : num = 1
+let test3 _ = 1 ;;
+let test4 _ x = test2
+
+let rec test5 [] = true 
+and test5 ( x :: y ) : bool = test6 y
+and test6 [] = false 
+and test6 ( x :: y ) = test5 y
+
+let rec test7 x = 10
+
+val test8 : num
+let test8 = 1
+
+indreln 
+forall x r . 
+r x x ==> tc r x x
+and
+forall x r y z . 
+tc r x y && tc r y z ==> tc r x z
+
+val tc2 : forall 'a. ('a -> 'a -> bool) -> 'a -> 'a -> bool
+indreln
+forall x r . 
+r x x ==> tc2 r x x
+
+module M = struct
+  let x = 1
+  module N = struct
+    let y = x + 1
+  end
+
+  let z = x + N.y
+end
+
+let test11 = M.x + M.N.y + M.z
+
+module O = M.N
+
+let test12 = M.x + O.y + M.z
+
+open M
+
+let test13 = z 
+
+let test14 = N.y 
+
+class ( C 'a ) 
+  val test20 : 'a
+end
+
+class ( D 'b )
+  val test22 : 'b -> num
+  val test23 : num -> 'b
+end
+
+val test15 : num
+val test16 : forall 'a . 'a
+val test17 : forall 'a 'b . 'a -> 'b
+val test18 : forall 'a . C 'a => 'a
+val test19 : forall 'a 'b . C 'b , C 'a => 'a -> 'b
+
+instance ( C num ) 
+  let test20 = 1
+end
+
+instance forall 'a . ( C list 'a )
+  let test20 = []
+end
+
+instance forall 'a . C 'a => ( C ( list 'a ) )
+  let test20 = [test20]
+end
+
+(* The following only works when not using any backends (except tex) *)
+val test21 : bool
+let _ = test21

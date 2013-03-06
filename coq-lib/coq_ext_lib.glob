@@ -1,0 +1,402 @@
+Fcoq_ext_lib
+R15:19 Coq.Strings.Ascii <> <> lib
+R37:56 Coq.Logic.ClassicalDescription <> <> lib
+R74:79 Coq.Strings.String <> <> lib
+def 149:151 <> num
+R156:158 Coq.Init.Datatypes <> nat ind
+def 173:175 <> fst
+R192:194 Coq.Init.Datatypes <> :type_scope:x_'*'_x not
+R225:225 Coq.Init.Datatypes <> :core_scope:'('_x_','_x_','_'..'_','_x_')' not
+R227:228 Coq.Init.Datatypes <> :core_scope:'('_x_','_x_','_'..'_','_x_')' not
+R230:230 Coq.Init.Datatypes <> :core_scope:'('_x_','_x_','_'..'_','_x_')' not
+def 261:263 <> snd
+R280:282 Coq.Init.Datatypes <> :type_scope:x_'*'_x not
+R313:313 Coq.Init.Datatypes <> :core_scope:'('_x_','_x_','_'..'_','_x_')' not
+R315:316 Coq.Init.Datatypes <> :core_scope:'('_x_','_x_','_'..'_','_x_')' not
+R318:318 Coq.Init.Datatypes <> :core_scope:'('_x_','_x_','_'..'_','_x_')' not
+ax 405:410 <> DAEMON
+def 454:465 <> bool_of_Prop
+R480:483 Coq.Init.Datatypes <> bool ind
+R493:519 Coq.Logic.ClassicalDescription <> excluded_middle_informative thm
+R548:552 Coq.Init.Datatypes <> false constr
+R532:535 Coq.Init.Datatypes <> true constr
+def 567:568 <> eq
+R592:595 Coq.Init.Datatypes <> bool ind
+R624:635 coq_ext_lib <> bool_of_Prop def
+R642:644 Coq.Init.Logic <> :type_scope:x_'='_x not
+R676:677 coq_ext_lib <> eq def
+not 663 <> ::x_'=='_x
+def 753:757 <> not_b
+R764:767 Coq.Init.Datatypes <> bool ind
+R794:797 Coq.Init.Datatypes <> true constr
+R802:806 Coq.Init.Datatypes <> false constr
+R814:818 Coq.Init.Datatypes <> false constr
+R823:826 Coq.Init.Datatypes <> true constr
+def 847:854 <> bool_beq
+R865:868 Coq.Init.Datatypes <> bool ind
+R873:876 Coq.Init.Datatypes <> bool ind
+R906:909 Coq.Init.Datatypes <> true constr
+R924:928 Coq.Init.Datatypes <> false constr
+R966:969 Coq.Init.Datatypes <> true constr
+R974:978 Coq.Init.Datatypes <> false constr
+R992:996 Coq.Init.Datatypes <> false constr
+R1001:1004 Coq.Init.Datatypes <> true constr
+def 1039:1043 <> imp_b
+R1051:1054 Coq.Init.Datatypes <> bool ind
+R1081:1084 Coq.Init.Datatypes <> true constr
+R1097:1101 Coq.Init.Datatypes <> false constr
+R1106:1109 Coq.Init.Datatypes <> true constr
+R1142:1146 coq_ext_lib <> imp_b def
+not 1128 <> ::x_'-->'_x
+def 1211:1215 <> minus
+R1224:1226 Coq.Init.Datatypes <> nat ind
+R1234:1236 Coq.Init.Datatypes <> nat ind
+R1288:1288 Coq.Init.Datatypes <> S constr
+R1340:1340 Coq.Init.Datatypes <> S constr
+R1357:1357 Coq.Init.Datatypes <> S constr
+R1365:1369 coq_ext_lib <> minus def
+ax 1405:1410 <> divide
+R1429:1431 coq_ext_lib <> num def
+R1422:1424 coq_ext_lib <> num def
+R1415:1417 coq_ext_lib <> num def
+def 1444:1450 <> num_beq
+R1459:1461 coq_ext_lib <> num def
+R1466:1469 Coq.Init.Datatypes <> bool ind
+R1495:1495 Coq.Init.Datatypes <> O constr
+R1529:1529 Coq.Init.Datatypes <> O constr
+R1534:1537 Coq.Init.Datatypes <> true constr
+R1554:1558 Coq.Init.Datatypes <> false constr
+R1576:1576 Coq.Init.Datatypes <> S constr
+R1613:1613 Coq.Init.Datatypes <> O constr
+R1618:1622 Coq.Init.Datatypes <> false constr
+R1634:1634 Coq.Init.Datatypes <> S constr
+R1642:1648 coq_ext_lib <> num_beq def
+def 1683:1687 <> lte_b
+R1696:1698 coq_ext_lib <> num def
+R1703:1706 Coq.Init.Datatypes <> bool ind
+R1732:1732 Coq.Init.Datatypes <> O constr
+R1737:1740 Coq.Init.Datatypes <> true constr
+R1748:1748 Coq.Init.Datatypes <> S constr
+R1785:1785 Coq.Init.Datatypes <> O constr
+R1790:1794 Coq.Init.Datatypes <> false constr
+R1806:1806 Coq.Init.Datatypes <> S constr
+R1814:1818 coq_ext_lib <> lte_b def
+def 1855:1858 <> lt_b
+R1876:1880 coq_ext_lib <> lte_b def
+R1883:1883 Coq.Init.Datatypes <> S constr
+def 1903:1906 <> gt_b
+R1915:1917 coq_ext_lib <> num def
+R1922:1925 Coq.Init.Datatypes <> bool ind
+R1930:1933 coq_ext_lib <> lt_b def
+def 1952:1956 <> gte_b
+R1975:1978 Coq.Init.Peano <> :nat_scope:x_'<='_x not
+R2004:2008 coq_ext_lib <> minus def
+not 1992 <> ::x_'-'_x
+R2072:2076 coq_ext_lib <> lte_b def
+not 2059 <> ::x_'<='_x
+R2105:2108 coq_ext_lib <> lt_b def
+not 2093 <> ::x_'<'_x
+R2137:2140 coq_ext_lib <> gt_b def
+not 2125 <> ::x_'>'_x
+R2170:2174 coq_ext_lib <> gte_b def
+not 2157 <> ::x_'>='_x
+ax 2230:2240 <> bitwise_not
+R2252:2254 coq_ext_lib <> num def
+R2245:2247 coq_ext_lib <> num def
+ax 2264:2274 <> bitwise_and
+R2293:2295 coq_ext_lib <> num def
+R2286:2288 coq_ext_lib <> num def
+R2279:2281 coq_ext_lib <> num def
+ax 2305:2314 <> bitwise_or
+R2333:2335 coq_ext_lib <> num def
+R2326:2328 coq_ext_lib <> num def
+R2319:2321 coq_ext_lib <> num def
+ax 2345:2355 <> bitwise_xor
+R2374:2376 coq_ext_lib <> num def
+R2367:2369 coq_ext_lib <> num def
+R2360:2362 coq_ext_lib <> num def
+ax 2386:2396 <> bitwise_asr
+R2415:2417 coq_ext_lib <> num def
+R2408:2410 coq_ext_lib <> num def
+R2401:2403 coq_ext_lib <> num def
+ax 2427:2437 <> bitwise_lsl
+R2456:2458 coq_ext_lib <> num def
+R2449:2451 coq_ext_lib <> num def
+R2442:2444 coq_ext_lib <> num def
+ax 2468:2478 <> bitwise_lsr
+R2497:2499 coq_ext_lib <> num def
+R2490:2492 coq_ext_lib <> num def
+R2483:2485 coq_ext_lib <> num def
+R2548:2551 Coq.Init.Datatypes <> cons constr
+not 2535 <> ::x_'::'_x
+R2612:2614 Coq.Init.Datatypes <> nil constr
+not 2603 <> ::'['_']'
+R2647:2650 Coq.Init.Datatypes <> cons constr
+R2658:2661 Coq.Init.Datatypes <> cons constr
+R2665:2667 Coq.Init.Datatypes <> nil constr
+not 2626 <> ::'['_x_';'_'..'_';'_x_']'
+def 2685:2695 <> list_append
+R2718:2721 Coq.Init.Datatypes <> list ind
+R2735:2738 Coq.Init.Datatypes <> list ind
+R2774:2775 coq_ext_lib <> ::'['_']' not
+R2798:2799 coq_ext_lib <> ::x_'::'_x not
+R2807:2810 coq_ext_lib <> ::x_'::'_x not
+R2811:2821 coq_ext_lib <> list_append def
+def 2851:2858 <> list_map
+R2893:2896 Coq.Init.Datatypes <> list ind
+R2929:2930 coq_ext_lib <> ::'['_']' not
+R2938:2939 coq_ext_lib <> ::'['_']' not
+R2950:2951 coq_ext_lib <> ::x_'::'_x not
+R2961:2964 coq_ext_lib <> ::x_'::'_x not
+R2965:2972 coq_ext_lib <> list_map def
+def 2998:3009 <> list_reverse
+R3029:3032 Coq.Init.Datatypes <> list ind
+R3065:3066 coq_ext_lib <> ::'['_']' not
+R3074:3075 coq_ext_lib <> ::'['_']' not
+R3086:3087 coq_ext_lib <> ::x_'::'_x not
+R3094:3104 coq_ext_lib <> list_append def
+R3124:3125 coq_ext_lib <> ::'['_x_';'_'..'_';'_x_']' not
+R3127:3128 coq_ext_lib <> ::'['_x_';'_'..'_';'_x_']' not
+R3107:3118 coq_ext_lib <> list_reverse def
+def 3149:3159 <> list_length
+R3179:3182 Coq.Init.Datatypes <> list ind
+R3215:3216 coq_ext_lib <> ::'['_']' not
+R3235:3236 coq_ext_lib <> ::x_'::'_x not
+R3243:3243 Coq.Init.Datatypes <> S constr
+R3246:3256 coq_ext_lib <> list_length def
+def 3281:3291 <> list_filter
+R3316:3319 Coq.Init.Datatypes <> bool ind
+R3327:3330 Coq.Init.Datatypes <> list ind
+R3337:3340 Coq.Init.Datatypes <> list ind
+R3372:3373 coq_ext_lib <> ::'['_']' not
+R3381:3382 coq_ext_lib <> ::'['_']' not
+R3393:3394 coq_ext_lib <> ::x_'::'_x not
+R3482:3492 coq_ext_lib <> list_filter def
+R3436:3437 coq_ext_lib <> ::x_'::'_x not
+R3438:3448 coq_ext_lib <> list_filter def
+def 3518:3529 <> list_for_all
+R3558:3561 Coq.Init.Datatypes <> bool ind
+R3569:3572 Coq.Init.Datatypes <> list ind
+R3581:3584 Coq.Init.Datatypes <> bool ind
+R3614:3615 coq_ext_lib <> ::'['_']' not
+R3623:3626 Coq.Init.Datatypes <> true constr
+R3637:3638 coq_ext_lib <> ::x_'::'_x not
+R3716:3720 Coq.Init.Datatypes <> false constr
+R3675:3686 coq_ext_lib <> list_for_all def
+def 3741:3751 <> list_exists
+R3780:3783 Coq.Init.Datatypes <> bool ind
+R3791:3794 Coq.Init.Datatypes <> list ind
+R3803:3806 Coq.Init.Datatypes <> bool ind
+R3836:3837 coq_ext_lib <> ::'['_']' not
+R3845:3848 Coq.Init.Datatypes <> true constr
+R3859:3860 coq_ext_lib <> ::x_'::'_x not
+R3925:3935 coq_ext_lib <> list_exists def
+R3897:3900 Coq.Init.Datatypes <> true constr
+def 3961:3975 <> list_fold_right
+R4023:4026 Coq.Init.Datatypes <> list ind
+R4063:4064 coq_ext_lib <> ::'['_']' not
+R4083:4084 coq_ext_lib <> ::x_'::'_x not
+R4096:4110 coq_ext_lib <> list_fold_right def
+def 4139:4152 <> list_fold_left
+R4200:4203 Coq.Init.Datatypes <> list ind
+R4240:4241 coq_ext_lib <> ::'['_']' not
+R4260:4261 coq_ext_lib <> ::x_'::'_x not
+R4268:4281 coq_ext_lib <> list_fold_left def
+def 4346:4348 <> map
+R4366:4369 Coq.Init.Datatypes <> list ind
+R4373:4375 Coq.Init.Datatypes <> :type_scope:x_'*'_x not
+def 4392:4400 <> map_empty
+R4417:4419 coq_ext_lib <> map def
+R4428:4430 Coq.Init.Datatypes <> nil constr
+def 4445:4451 <> map_add
+R4489:4491 coq_ext_lib <> map def
+R4478:4480 coq_ext_lib <> map def
+R4533:4536 Coq.Init.Datatypes <> cons constr
+R4538:4538 Coq.Init.Datatypes <> :core_scope:'('_x_','_x_','_'..'_','_x_')' not
+R4540:4541 Coq.Init.Datatypes <> :core_scope:'('_x_','_x_','_'..'_','_x_')' not
+R4543:4543 Coq.Init.Datatypes <> :core_scope:'('_x_','_x_','_'..'_','_x_')' not
+def 4558:4564 <> map_mem
+R4597:4600 Coq.Init.Datatypes <> bool ind
+R4616:4618 coq_ext_lib <> map def
+R4653:4654 coq_ext_lib <> ::'['_']' not
+R4662:4666 Coq.Init.Datatypes <> false constr
+R4677:4678 coq_ext_lib <> ::x_'::'_x not
+R4700:4700 Coq.Init.Datatypes <> :core_scope:'('_x_','_x_','_'..'_','_x_')' not
+R4702:4703 Coq.Init.Datatypes <> :core_scope:'('_x_','_x_','_'..'_','_x_')' not
+R4705:4705 Coq.Init.Datatypes <> :core_scope:'('_x_','_x_','_'..'_','_x_')' not
+R4792:4798 coq_ext_lib <> map_mem def
+R4756:4759 Coq.Init.Datatypes <> true constr
+def 4827:4834 <> map_find
+R4867:4870 Coq.Init.Datatypes <> bool ind
+R4886:4888 coq_ext_lib <> map def
+R4923:4924 coq_ext_lib <> ::'['_']' not
+R4932:4937 coq_ext_lib <> DAEMON prfax
+R4948:4949 coq_ext_lib <> ::x_'::'_x not
+R4971:4971 Coq.Init.Datatypes <> :core_scope:'('_x_','_x_','_'..'_','_x_')' not
+R4973:4974 Coq.Init.Datatypes <> :core_scope:'('_x_','_x_','_'..'_','_x_')' not
+R4976:4976 Coq.Init.Datatypes <> :core_scope:'('_x_','_x_','_'..'_','_x_')' not
+R5060:5067 coq_ext_lib <> map_find def
+def 5120:5122 <> set
+R5127:5130 Coq.Init.Datatypes <> list ind
+R5160:5162 Coq.Init.Datatypes <> app def
+not 5142 <> ::x_'union'_x
+def 5217:5225 <> set_empty
+R5240:5242 coq_ext_lib <> set def
+R5249:5250 coq_ext_lib <> ::'['_']' not
+def 5265:5271 <> set_add
+R5299:5301 coq_ext_lib <> set def
+R5313:5316 Coq.Init.Datatypes <> cons constr
+def 5335:5344 <> set_choose
+R5361:5363 coq_ext_lib <> set def
+R5441:5442 coq_ext_lib <> ::'['_']' not
+R5464:5465 coq_ext_lib <> ::x_'::'_x not
+def 5493:5504 <> set_cardinal
+R5526:5528 coq_ext_lib <> set def
+R5537:5539 Coq.Init.Datatypes <> nat ind
+R5569:5570 coq_ext_lib <> ::'['_']' not
+R5589:5590 coq_ext_lib <> ::x_'::'_x not
+R5597:5597 Coq.Init.Datatypes <> S constr
+R5600:5611 coq_ext_lib <> set_cardinal def
+def 5636:5645 <> set_exists
+R5674:5677 Coq.Init.Datatypes <> bool ind
+R5685:5687 coq_ext_lib <> set def
+R5696:5699 Coq.Init.Datatypes <> bool ind
+R5729:5730 coq_ext_lib <> ::'['_']' not
+R5738:5742 Coq.Init.Datatypes <> false constr
+R5753:5754 coq_ext_lib <> ::x_'::'_x not
+R5827:5836 coq_ext_lib <> set_exists def
+R5795:5798 Coq.Init.Datatypes <> true constr
+def 5864:5873 <> set_member
+R5905:5907 coq_ext_lib <> set def
+R5916:5919 Coq.Init.Datatypes <> bool ind
+R5928:5937 coq_ext_lib <> set_exists def
+R5950:5953 coq_ext_lib <> ::x_'=='_x not
+def 5970:5980 <> set_for_all
+R6009:6012 Coq.Init.Datatypes <> bool ind
+R6020:6022 coq_ext_lib <> set def
+R6031:6034 Coq.Init.Datatypes <> bool ind
+R6064:6065 coq_ext_lib <> ::'['_']' not
+R6073:6076 Coq.Init.Datatypes <> true constr
+R6087:6088 coq_ext_lib <> ::x_'::'_x not
+R6165:6169 Coq.Init.Datatypes <> false constr
+R6125:6135 coq_ext_lib <> set_for_all def
+def 6190:6198 <> set_inter
+R6235:6238 Coq.Init.Datatypes <> bool ind
+R6251:6253 coq_ext_lib <> set def
+R6269:6271 coq_ext_lib <> set def
+R6280:6282 coq_ext_lib <> set def
+R6319:6320 coq_ext_lib <> ::'['_']' not
+R6328:6329 coq_ext_lib <> ::'['_']' not
+R6340:6341 coq_ext_lib <> ::x_'::'_x not
+R6359:6368 coq_ext_lib <> set_exists def
+R6446:6454 coq_ext_lib <> set_inter def
+R6399:6400 coq_ext_lib <> ::x_'::'_x not
+R6401:6409 coq_ext_lib <> set_inter def
+def 6487:6495 <> set_union
+R6520:6522 coq_ext_lib <> set def
+R6538:6540 coq_ext_lib <> set def
+R6578:6579 coq_ext_lib <> ::'['_']' not
+R6599:6600 coq_ext_lib <> ::x_'::'_x not
+R6608:6609 coq_ext_lib <> ::x_'::'_x not
+R6610:6618 coq_ext_lib <> set_union def
+def 6648:6655 <> set_diff
+R6680:6682 coq_ext_lib <> set def
+R6698:6700 coq_ext_lib <> set def
+R6709:6711 coq_ext_lib <> set def
+R6748:6749 coq_ext_lib <> ::'['_']' not
+R6757:6758 coq_ext_lib <> ::'['_']' not
+R6769:6770 coq_ext_lib <> ::x_'::'_x not
+R6790:6799 coq_ext_lib <> set_member def
+R6872:6873 coq_ext_lib <> ::x_'::'_x not
+R6874:6881 coq_ext_lib <> set_diff def
+R6826:6833 coq_ext_lib <> set_diff def
+def 6912:6919 <> set_fold
+R6963:6965 coq_ext_lib <> set def
+R7012:7013 coq_ext_lib <> ::'['_']' not
+R7032:7033 coq_ext_lib <> ::x_'::'_x not
+R7040:7047 coq_ext_lib <> set_fold def
+def 7081:7097 <> set_select_subset
+R7126:7129 Coq.Init.Datatypes <> bool ind
+R7137:7139 coq_ext_lib <> set def
+R7174:7175 coq_ext_lib <> ::'['_']' not
+R7183:7184 coq_ext_lib <> ::'['_']' not
+R7195:7196 coq_ext_lib <> ::x_'::'_x not
+R7282:7298 coq_ext_lib <> set_select_subset def
+R7234:7235 coq_ext_lib <> ::x_'::'_x not
+R7236:7252 coq_ext_lib <> set_select_subset def
+def 7324:7333 <> set_subset
+R7370:7373 Coq.Init.Datatypes <> bool ind
+R7386:7388 coq_ext_lib <> set def
+R7404:7406 coq_ext_lib <> set def
+R7444:7445 coq_ext_lib <> ::'['_']' not
+R7453:7456 Coq.Init.Datatypes <> true constr
+R7467:7468 coq_ext_lib <> ::x_'::'_x not
+R7486:7495 coq_ext_lib <> set_exists def
+R7571:7575 Coq.Init.Datatypes <> false constr
+R7525:7534 coq_ext_lib <> set_subset def
+ax 7593:7598 <> set_tc
+R7693:7695 coq_ext_lib <> set def
+R7701:7703 Coq.Init.Datatypes <> :type_scope:x_'*'_x not
+R7672:7674 coq_ext_lib <> set def
+R7680:7682 Coq.Init.Datatypes <> :type_scope:x_'*'_x not
+R7653:7656 Coq.Init.Datatypes <> bool ind
+def 7766:7774 <> ascii_beq
+R7785:7789 Coq.Strings.Ascii <> ascii ind
+R7794:7797 Coq.Init.Datatypes <> bool ind
+R7827:7831 Coq.Strings.Ascii <> Ascii constr
+R7893:7897 Coq.Strings.Ascii <> Ascii constr
+R7948:7951 Coq.Init.Datatypes <> andb def
+R7986:7989 Coq.Init.Datatypes <> andb def
+R8024:8027 Coq.Init.Datatypes <> andb def
+R8062:8065 Coq.Init.Datatypes <> andb def
+R8100:8103 Coq.Init.Datatypes <> andb def
+R8138:8141 Coq.Init.Datatypes <> andb def
+R8176:8179 Coq.Init.Datatypes <> andb def
+R8220:8227 coq_ext_lib <> bool_beq def
+R8182:8189 coq_ext_lib <> bool_beq def
+R8144:8151 coq_ext_lib <> bool_beq def
+R8106:8113 coq_ext_lib <> bool_beq def
+R8068:8075 coq_ext_lib <> bool_beq def
+R8030:8037 coq_ext_lib <> bool_beq def
+R7992:7999 coq_ext_lib <> bool_beq def
+R7954:7961 coq_ext_lib <> bool_beq def
+def 8274:8283 <> string_beq
+R8294:8299 Coq.Strings.String <> string ind
+R8304:8307 Coq.Init.Datatypes <> bool ind
+R8337:8347 Coq.Strings.String <> EmptyString constr
+R8386:8396 Coq.Strings.String <> EmptyString constr
+R8401:8404 Coq.Init.Datatypes <> true constr
+R8433:8437 Coq.Init.Datatypes <> false constr
+R8459:8464 Coq.Strings.String <> String constr
+R8508:8513 Coq.Strings.String <> String constr
+R8540:8543 Coq.Init.Datatypes <> andb def
+R8565:8574 coq_ext_lib <> string_beq def
+R8546:8554 coq_ext_lib <> ascii_beq def
+R8614:8618 Coq.Init.Datatypes <> false constr
+def 8679:8690 <> bool_default
+R8694:8697 Coq.Init.Datatypes <> bool ind
+R8702:8705 Coq.Init.Datatypes <> true constr
+def 8719:8729 <> num_default
+R8733:8735 coq_ext_lib <> num def
+def 8754:8764 <> set_default
+R8778:8780 coq_ext_lib <> set def
+R8787:8795 coq_ext_lib <> set_empty def
+def 8809:8820 <> list_default
+R8834:8837 Coq.Init.Datatypes <> list ind
+R8844:8845 coq_ext_lib <> ::'['_']' not
+def 8859:8872 <> option_default
+R8887:8892 Coq.Init.Datatypes <> option ind
+R8899:8902 Coq.Init.Datatypes <> None constr
+def 8916:8928 <> ascii_default
+R8932:8936 Coq.Strings.Ascii <> ascii ind
+R8941:8945 Coq.Strings.Ascii <> Ascii constr
+R8982:8985 Coq.Init.Datatypes <> true constr
+R8977:8980 Coq.Init.Datatypes <> true constr
+R8972:8975 Coq.Init.Datatypes <> true constr
+R8967:8970 Coq.Init.Datatypes <> true constr
+R8962:8965 Coq.Init.Datatypes <> true constr
+R8957:8960 Coq.Init.Datatypes <> true constr
+R8952:8955 Coq.Init.Datatypes <> true constr
+R8947:8950 Coq.Init.Datatypes <> true constr
+def 8999:9012 <> string_default
+R9016:9021 Coq.Strings.String <> string ind

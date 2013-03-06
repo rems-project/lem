@@ -1,0 +1,30 @@
+val vconcat : forall 'a ''n ''m. vector ''n 'a -> vector ''m 'a -> vector (''n + ''m) 'a
+let inline {ocaml} vconcat = Ocaml.Vector.vconcat
+
+val vmap : forall 'a 'b ''n. ('a ->'b) ->  vector ''n 'a -> vector ''n 'b
+let inline {ocaml} vmap = Ocaml.Vector.vmap
+
+val vfold : forall 'a 'b ''n. ('b -> 'a -> 'b) -> 'b -> vector ''n 'a -> 'b
+let inline {ocaml} vfold = Ocaml.Vector.vfold
+
+val vzip : forall 'a 'b ''n. vector ''n 'a -> vector ''n 'b -> vector ''n ('a * 'b)  
+let inline {ocaml} vzip = Ocaml.Vector.vzip
+
+val vmapacc : forall 'a 'b 'c ''n. ('a -> 'c -> 'b * 'c) -> vector ''n 'a -> 'c -> (vector ''n 'b) * 'c
+let inline {ocaml} vmapacc = Ocaml.Vector.vmapacc
+
+val vmapi : forall 'a 'b ''n. (num -> 'a -> 'b) -> vector ''n 'a -> vector ''n 'b
+let inline {ocaml} vmapi = Ocaml.Vector.vmapi
+
+val extend : forall 'a ''n ''m. 'a -> vector ''n 'a -> vector (''n + ''m) 'a
+let inline {ocaml} extend = Ocaml.Vector.extend
+
+val duplicate : forall 'a ''n. vector ''n 'a -> vector (2 * ''n) 'a
+let inline {ocaml} duplicate = Ocaml.Vector.duplicate
+
+val vlength : forall 'a ''n. vector ''n 'a -> num
+let inline {ocaml} vlength = Ocaml.Vector.vlength
+
+val vector_access : forall 'a ''n ''m. num -> vector ''m 'a -> 'a
+
+val vector_slice : forall 'a ''n ''m ''o ''p. num -> num -> vector ''o 'a -> vector ''p 'a

@@ -1,0 +1,47 @@
+type t1 = C1 | C2 of num | C3 of num * num
+type t2 = <| fn1 : num|>
+type t3 = <|fn2 : num ; fn3 : num|>
+
+let test1 _ = 1
+
+let test2 ( x as y ) = x + y
+
+let test3 ( x : num ) = x
+
+let test4 C1 = C1
+let test5 ( C2 x ) = x
+let test6 ( C3 x y ) = x + y
+
+let test7 <| fn1 = x |> = x
+let test8 <| fn1 = x ; |> = x
+let test9 <| fn2 = x |> = x
+let test10 <| fn2 = x ; |> = x
+let test11 <| fn2 = x ; fn3 = y |> = x
+let test12 <| fn2 = x ; fn3 = y ; |> = x
+
+let test13 ( x,y ) = x+y
+let test14 ( x,y,z ) = x+y+z
+
+let test15 [ ] = 1
+let test16 [ x ] = x
+let test17 [ x ; y ] = x + y
+
+let test18 ( x ) = x
+
+let test19 ( x :: y ) = x
+
+let test20 true = 1
+let test21 false = 2
+let test22 1 = 1
+let test23 "123" = 1
+let test25 ( ) = 1
+
+(*Literal vector pattern*)
+let test26 [| x ; y; |] = x
+(* Vector concatenation patterns *)
+let test27 [| [| x; |] [| y; z; |] |] = x
+let test28 [| x y |] = 1
+let test29 [| 0b010 x |] = true
+
+(* add patterns *)
+let test30 (n + 2) = n

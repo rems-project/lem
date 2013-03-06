@@ -1,0 +1,83 @@
+type t = | C of num
+
+let test1 =
+  match 1 with
+    | invtri0 -> invtri0
+  end
+
+let test14 =
+  match 1 with
+    | invtri -> invtri
+  end
+ 
+let test2 =
+  match 1 with
+    | (MEM) -> (MEM)
+  end
+
+(* TODO: Better name generation
+let test3 = 
+  match 1 with
+    (+) -> (+)
+  end
+*)
+
+let test4 =
+  match (1,[2;3], C 5, 2) with
+    (o, (MEM)::[LAST; (FCARD:num)], C FLAT, o0) -> 
+      o + (MEM) + LAST + FCARD + FLAT + o0
+  end
+
+let test5 = 
+  fun o LAST -> o + LAST
+
+let test6 =
+  let o LAST (MEM) LAST0 = LAST + (MEM)+ LAST0 in o
+
+let test7 =
+  let o LAST0 (MEM) LAST = LAST + (MEM)+ LAST0 in o
+
+let test8 =
+  let LAST = 1 in LAST
+
+let test9 = fun o -> fun o0 -> if o0 then o else 2
+
+let test11 = forall (MEM) LAST (LAST0 IN LAST). (MEM) + LAST0 = 0
+
+let test12 = { LAST | forall (LAST IN {}) | LAST }
+
+let test13 = fun LAST -> forall LAST0. LAST = LAST0
+
+let test10 o = o
+
+val test15 : num
+let {isabelle} test15 = 3
+let test15 = 1
+let {hol} test15 = 2
+
+val test16 : num -> num
+let {hol} test16 x = x + 2
+let test16 x = x + 1
+let {isabelle} test16 x = x + 3
+
+(* TODO: Fix
+val test17 : num -> num
+let rec {hol} 
+   test17 0 = 0 and 
+   test17 n = n + test17 (n-1)
+let rec {isabelle} 
+   test17 0 = 1 and
+   test17 n = 1 + test17 (n-1)
+let rec
+   test17 0 = 0 and 
+   test17 n = 2*n + test17 (n-1)
+*)
+
+module Test18 = struct
+  module Test19 = struct
+    let test18 = 1
+    let test19 = test18
+  end 
+  let test20 = Test19.test18
+end
+let test21 = Test18.Test19.test18

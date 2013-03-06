@@ -1,0 +1,55 @@
+(* A (* Nested *)
+     comment *)
+
+type T1 = C1 | C2 of num | C3 of bool * num
+
+type T2 = C4 of num
+
+let b = fun x -> x
+let c = fun (x, y) z -> (x, y, z)
+let d = fun (C4 x) -> x
+let e = fun (x, C4 y) -> (x, y)
+let f = fun ((x, (y : num)), z) -> x
+let g = (*1*)fun (*2*)x (*3*)(C4 y) (*4*)z (*5*)a (*6*)(C4 b) (*7*)(C4 c) (*8*)-> (*9*)x
+
+let h = function
+  | (x, y) -> (y, x)
+end
+
+let i = function
+    ((2:num),y) -> y
+  | (x,(3:num)) -> x
+  | _ -> 10
+end
+
+let j = (b : num -> num)
+let k = C2 1
+
+let l = C3 true 1
+
+let m = 1::(2 : num)::[3;4;5;]
+let n = 1::2::[3;4;5]
+let o = C1::C2 1::[]
+
+type T3 = <| f1 : num ; f2: bool |>
+
+let p = <| f1 = 1; f2 = true |>
+let q = <| f1 = 2; f2 = false; |>
+(* let r = p.f1 + q.f1
+let s = <| q with f2 = true |>
+let t = (1, true, "1234") *)
+let u = begin 2 + 1 end
+let v = if true then 4 else 5
+
+let x = let x = 2 in x
+let y = let (x, y) = (2, 3) in x + y
+let z = let f x = (x, x + 1, x + 3) in f 1
+
+let aa = { }
+
+(* let aa = {1; 2; 3; }
+let ab = {1; 2; 3 } *)
+
+let test68 x y = x && y
+let test69 x y = x || y
+let test70 x y = x --> y

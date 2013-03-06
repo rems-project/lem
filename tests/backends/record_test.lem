@@ -1,0 +1,32 @@
+type r = <| field_one : bool |>
+type s 'a = <| field_three : bool; field_two : 'a; field_four : bool |>
+
+let t = <| field_one = true |>
+let u = <| field_two = 4; field_three = false; field_four = true; |>
+
+let f = <| t with field_one = false |>
+let g = <| u with field_two = 5 |>
+
+let h = {}
+let x = {5}
+let y = {1; 2; 3; 4}
+
+let yy = <| field_two = 2; field_three = true; field_four = false |>
+let zz = <| field_four = false; field_three = true; field_two = 2; |>
+
+let zz_comm = <| 
+   (* Comment 1*) field_four = false (* Comment 2 *) (*Comment 3*);(*Comment 4*) 
+   (* Comment 5*) field_three = true (* Comment 6 *) (*Comment 7*);(*Comment 8*) 
+   (* Comment 9*) field_two = 2 (* Comment 10*) (*Comment 11*); (*Comment 12*) 
+|>
+
+let yy_comm = <| 
+   (* Comment 1*) field_two = 2 (* Comment 2 *) (*Comment 3*);(*Comment 4*) 
+   (* Comment 5*) field_three = true (* Comment 6*) (*Comment 7*); (*Comment 8*) 
+   (* Comment 9*) field_four = false (* Comment 10*) (*Comment 11*); (*Comment 12*) 
+|>
+
+(* Problematic Comment for Isabelle: (\* nested comments are fine standalone *\) *)
+(* The real problem seem to be backslashes *)
+let xx = (* second comment: (\* but not in terms *\) *) 2 + g.field_two + 1
+

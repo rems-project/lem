@@ -1,0 +1,5 @@
+<**/*.ml> : annot
+<**/*.native> : use_str
+<**/*.d.byte> : use_str
+<**/*.mli> : annot
+"ulib" : include

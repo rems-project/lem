@@ -1,0 +1,47 @@
+type t 'a 'b = C of 'a * 'b
+
+type t2 'a ''b = D of 'a 
+
+type t3 ''a = E of vector ''a bool
+
+type t4 ''a = F of t3 ''a
+
+type t5 [name = "nv*"] = NV of bool | NVC of int
+
+let test1 ( x : _ ) = x
+
+let test2 ( x : 'a ) = x
+
+let test3 ( x : 'a -> 'b ) = x
+
+let test4 ( x : ( 'a * 'b ) ) = x
+
+let test5 ( x : ( 'a * 'b * 'c ) ) = x
+
+let test10 ( x : 'a * 'b * 'c ) = x
+
+let test6 ( x :  bool ) = x
+
+let test7 ( x : list 'a ) = x
+
+let test8 ( x : t bool 'a ) = x
+
+let test9 ( x : ( 'a ) ) = x
+
+let test11 ( x : vector ''a bool ) = x
+
+let test12 ( x : vector 1 bool ) = x
+
+let test13 ( x : vector (1 + 2) bool ) = x
+
+let test14 ( x : vector (''a + ''b) bool ) = x
+
+let test15 ( x : vector (''a + (2 * ''b)) bool ) = x
+
+let test16 (x : vector 8 bool) = (test11 x)
+
+let test17 (nv : t5) = nv
+
+let test18 ( x : vector (''b + (''a + ''b)) bool) = test15 x
+
+let test19 ( x : vector (''a + (''b + ''a)) bool) = test11 (x.[ 0 .. ''a]) 

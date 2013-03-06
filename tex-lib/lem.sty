@@ -1,0 +1,152 @@
+%========================================================================%
+%                        Lem                                             %
+%                                                                        %
+%          Dominic Mulligan, University of Cambridge                     %
+%          Francesco Zappa Nardelli, INRIA Paris-Rocquencourt            %
+%          Gabriel Kerneis, University of Cambridge                      %
+%          Kathy Gray, University of Cambridge                           %
+%          Peter Boehm, University of Cambridge (while working on Lem)   %
+%          Peter Sewell, University of Cambridge                         %
+%          Scott Owens, University of Kent                               %
+%          Thomas Tuerk, University of Cambridge                         %
+%                                                                        %
+%  The Lem sources are copyright 2010-2013                               %
+%  by the UK authors above and Institut National de Recherche en         %
+%  Informatique et en Automatique (INRIA).                               %
+%                                                                        %
+%  All files except ocaml-lib/pmap.{ml,mli} and ocaml-libpset.{ml,mli}   %
+%  are distributed under the license below.  The former are distributed  %
+%  under the LGPLv2, as in the LICENSE file.                             %
+%                                                                        %
+%                                                                        %
+%  Redistribution and use in source and binary forms, with or without    %
+%  modification, are permitted provided that the following conditions    %
+%  are met:                                                              %
+%  1. Redistributions of source code must retain the above copyright     %
+%  notice, this list of conditions and the following disclaimer.         %
+%  2. Redistributions in binary form must reproduce the above copyright  %
+%  notice, this list of conditions and the following disclaimer in the   %
+%  documentation and/or other materials provided with the distribution.  %
+%  3. The names of the authors may not be used to endorse or promote     %
+%  products derived from this software without specific prior written    %
+%  permission.                                                           %
+%                                                                        %
+%  THIS SOFTWARE IS PROVIDED BY THE AUTHORS ``AS IS'' AND ANY EXPRESS    %
+%  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED     %
+%  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE    %
+%  ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY       %
+%  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL    %
+%  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE     %
+%  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS         %
+%  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER  %
+%  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR       %
+%  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN   %
+%  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         %
+%========================================================================%
+
+% symbols:
+
+
+\newcommand{\Mlrec}{\langle\![}
+\newcommand{\Mrrec}{]\!\rangle}
+\newcommand{\Mwith}{\lemkw{with}}
+
+% tabbing command handling: just disable them when not in tabbing env
+\newif\ifltsm@gicalign\ltsm@gicalignfalse
+
+\newcommand{\Mmagiclrec}{%
+  \ifltsm@gicalign$\=\+$\displaystyle\Mlrec\;$\=\+$\displaystyle\else\Mlrec\fi}
+\newcommand{\Mmagicwith}{%
+  \ifltsm@gicalign$\=\+$\displaystyle\Mwith\;$\=\+$\displaystyle\else\Mwith\fi}
+\newcommand{\Mmagicrrec}{%
+  \ifltsm@gicalign$\-\-$\displaystyle\fi\Mrrec}
+\newcommand{\Mmagicbolrrec}{%
+  \ifltsm@gicalign$\<\-\-$\displaystyle\fi\Mrrec}
+
+
+\newcommand{\tscomm}[1]{\text{\rrsmall{(*#1*)}}}  % overridden in rrfoo
+\newcommand{\no@tscomm}[1]{#1}
+
+% comments were forced to appear on a line of their own; since they
+% almost always appear on a line of their own anyway, this was
+% wasteful of vspace!
+%% \newcommand{\tslongcomm}[1]{$\par\noindent{\rrsmall{(*#1*)}}\par\noindent$\displaystyle}  % overridden in rrfoo
+%% \newcommand{\tsholcomm}[1]{$\par\noindent{\rrsmall{(*#1*)}}\par\noindent$\displaystyle}   % overridden in rrfoo
+
+\newcommand{\tslongcomm}[1]{$\linebreak[2]\parbox[t]{\linewidth}{\rrsmall(*#1\nolinebreak\mbox{*)}}\linebreak[2]$\displaystyle}  % overridden in rrfoo
+%\newcommand{\tsholcomm}[1]{\ $\linebreak[2]\parbox[t]{\linewidth}{\rrsmall(*#1\nolinebreak\mbox{*)}}\linebreak[2]$\displaystyle}   % overridden in rrfoo
+\newcommand{\un@comm}[1]{{\let\tscomm\no@tscomm\let\tslongcomm\no@tscomm\let\tsholcomm\no@tscomm{}#1}}
+
+\newdimen\@tabbingcomm
+\newcommand{\tabbingtslongcomm}[1]{$\linebreak[2]\ifltsm@gicalign\=\@tabbingcomm\linewidth\advance\@tabbingcomm -\dimen\@curtab\else\@tabbingcomm\linewidth\fi\parbox[t]{\@tabbingcomm}{\rrsmall(*#1\nolinebreak\mbox{*)}}\linebreak[2]$\displaystyle}  % overridden in rrfoo
+%\newcommand{\tabbingtsholcomm}[1]{\ $\linebreak[2]\ifltsm@gicalign\=\@tabbingcomm\linewidth\advance\@tabbingcomm -\dimen\@curtab\else\@tabbingcomm\linewidth\fi\parbox[t]{\@tabbingcomm}{\rrsmall(*#1\nolinebreak\mbox{*)}}\linebreak[2]$\displaystyle}   % overridden in rrfoo
+
+
+% HACK:Sun Dec 13 00:12:51 GMT 2009
+% remove initial space from tsholcomm and tabbingtscholcomm
+%\newcommand{\tsholcomm}[1]{$\linebreak[2]\parbox[t]{\linewidth}{\rrsmall(*#1\nolinebreak\mbox{*)}}\linebreak[2]$\displaystyle}   % overridden in rrfoo
+%\newcommand{\tabbingtsholcomm}[1]{$\linebreak[2]\ifltsm@gicalign\=\@tabbingcomm\linewidth\advance\@tabbingcomm -\dimen\@curtab\else\@tabbingcomm\linewidth\fi\parbox[t]{\@tabbingcomm}{\rrsmall(*#1\nolinebreak\mbox{*)}}\linebreak[2]$\displaystyle}   % overridden in rrfoo
+
+% versions of the above without (* *)
+\newcommand{\tsholcomm}[1]{$\linebreak[2]\parbox[t]{\linewidth}{\rrsmall#1\nolinebreak\mbox{}}\linebreak[2]$\displaystyle}   % overridden in rrfoo
+\newcommand{\tabbingtsholcomm}[1]{$\linebreak[2]\ifltsm@gicalign\=\@tabbingcomm\linewidth\advance\@tabbingcomm -\dimen\@curtab\else\@tabbingcomm\linewidth\fi\parbox[t]{\@tabbingcomm}{\rrsmall#1\nolinebreak\mbox{}}\linebreak[2]$\displaystyle}   % overridden in rrfoo
+
+% % experimental alltt versions
+% \renewcommand{\tsholcomm}[1]{$\linebreak[2]\parbox[t]{\linewidth}{\rrsmall\begin{alldoc}#1\end{alldoc}\nolinebreak\mbox{}}\linebreak[2]$\displaystyle}   % overridden in rrfoo
+% %\linebreak[2]
+% \renewcommand{\tabbingtsholcomm}[1]{$\ifltsm@gicalign\=\@tabbingcomm\linewidth\advance\@tabbingcomm-\dimen\@curtab\else\@tabbingcomm\linewidth\fi\parbox[t]{\@tabbingcomm}{\rrsmall\begin{alltt}#1\end{alltt}\nolinebreak\mbox{}}%\linebreak[2]
+% $\displaystyle\mbox{\,}}   % overridden in rrfoo
+
+
+\newcommand{\rrsmall}{\small}
+\newcommand{\rrnormalsize}{\normalsize}
+
+
+\newcommand{\lemkw}[1]{\textsf{#1}}
+
+\newcommand{\lemTermConst}[1]{\textrm{#1}}        
+\newcommand{\lemTermCtor}[1]{\textsc{#1}}         
+\newcommand{\lemTermField}[1]{\mathit{#1}}        
+\newcommand{\lemTermMethod}[1]{\mathit{#1}}       
+\newcommand{\lemTermVar}[1]{\mathit{#1}}          
+\newcommand{\lemTermVarToplevel}[1]{\mathit{#1}} 
+\newcommand{\lemTermSpec}[1]{\mathit{#1}}         
+\newcommand{\lemTypeCtor}[1]{\textsc{#1}}         
+\newcommand{\lemTypeVar}[1]{\mathit{#1}}          
+\newcommand{\lemModuleName}[1]{\mathit{#1}}       
+\newcommand{\lemClassName}[1]{\mathit{#1}}        
+\newcommand{\lemTarget}[1]{\mathit{#1}}            
+
+
+\newcommand{\lemdef}[1]{\rrenside{#1}}
+
+% Definition scope is only a single cell inside a tabbing, so we
+% have to be clever.  \\ is defined to be \@tabcr, so we redef that.
+%
+% was \ltsm@gicaligntrue below - turned off until record indent works
+% properly
+%
+\let\@ltsoldtabcr\@tabcr
+\newcommand{\rrtabcr}{$\@ltsoldtabcr$\displaystyle}
+\newcommand{\rrenside}[1]{%
+  {\let\@tabcr\rrtabcr\ltsm@gicalignfalse\let\tslongcomm\tabbingtslongcomm\let\tsholcomm\tabbingtsholcomm
+   \begin{tabbing}$\displaystyle #1$\end{tabbing}}%
+}
+
+
+\newcommand{\lemdefn}[7]{\label{#1}\lemdef{#4#5#6}}
+
+\newcommand{\lemshow}[1]{#1}
+
+
+% one style smaller in math mode:
+\newcommand{\lemsmaller}[1]{%
+  \mathchoice{{\textstyle #1}}%
+             {{\scriptstyle #1}}%
+             {{\scriptscriptstyle #1}}%
+             {{\scriptscriptstyle #1}}%
+}
+
+\newcommand{\lemwedge}{\mathbin{\lemsmaller{\wedge}}}
+\newcommand{\lemvee}{\mathbin{\lemsmaller{\vee}}}
+\newcommand{\lemnot}{\neg}

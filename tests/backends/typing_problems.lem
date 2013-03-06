@@ -1,0 +1,21 @@
+(* Fix the type of pred1 and pred2 via a val-statement.
+   This typing information is lost during translation to
+   HOL and therefore causes an error in HOL. *)
+val pred1 : (num * num) -> bool
+let pred1 (x, _) = (x = 0)
+
+val pred2 : (num * num) -> bool
+let pred2 (x, _) = (x = 1)
+
+let test = (forall (xy IN {}). pred1 xy --> not (pred2 xy))
+
+
+(* Now try it with polymorphism in Lem. 
+   Now, the definition of test2 has a free type variable, that does 
+   not occur in its signature. This should be an error
+   in Lem. In Isabelle, an extra dummy-argument is added to
+   test2 to avoid the problem. In HOL it causes an error. *)
+let pred3 (x, _) = (x = 0)
+let pred4 (x, _) = (x = 1)
+let test2 = (forall (xy IN {}). pred3 xy --> not (pred4 xy))
+

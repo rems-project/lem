@@ -1,0 +1,680 @@
+\documentclass{article}
+
+\usepackage{hyperref}
+\usepackage{amssymb}
+\usepackage{amsmath}
+
+\input{lem.tex}
+\usepackage{supertabular}
+
+\renewcommand{\ottkw}[1]{{\texttt{#1}}}
+
+\newcommand{\lem}{\textsc{Lem}}
+
+
+\title{Lem Reference Manual:\\{\Large version 0.3}}
+\author{Scott Owens, Kathryn E.\ Gray, Dominic Mulligan, Peter Sewell,\\ Thomas Tuerk, and Francesco Zappa Nardelli}
+\usepackage[T1]{fontenc}
+
+
+\begin{document}\sloppy
+\maketitle
+\vspace{-24pt}
+\begin{center}\url{http://www.cl.cam.ac.uk/~so294/lem/}\end{center}
+\vspace{12pt}
+
+{\Huge Warning: Well out of date}
+
+\lem{} is a lightweight tool for writing, managing, and publishing large scale
+semantic definitions. It is also intended as an intermediate language for
+generating definitions from domain-specific tools, and for porting definitions
+between interactive theorem proving systems (such as Coq, HOL4, and Isabelle).
+
+It resembles a pure subset of Objective Caml, supporting typical functional
+programming constructs, including top-level parametric polymorphism, datatypes,
+records, higher-order functions, and pattern matching. It also supports common
+logical mechanisms including list and set comprehensions, universal and
+existential quantifiers, and inductively defined relations. From this, \lem{}
+generates OCaml, HOL4 and Isabelle code; the OCaml backend uses a finite set
+library (and does not yet support inductive relations). A Coq backend is in
+development.
+
+This is a preliminary release of \lem{} which is not yet feature complete (see
+Section~\ref{status}).  It is currently released under a restrictive license,
+but we intend to use an open source or free software license release for later,
+more complete releases.
+
+
+\section{Installing Lem}
+
+\lem{} is written in OCaml (\url{http://caml.inria.fr/}), and is tested to
+build with version 4.00.1 of the OCaml compiler.
+
+To build \lem{} run \texttt{make} in \lem{}'s top-level directory.  This builds
+the executable \texttt{lem}, and places a symbolic link to it in \lem{}'s root
+directory.  Now set the \texttt{LEMLIB} environment variable to
+\texttt{\emph{path\_to\_lem}/library}, or alternately pass the \texttt{-lib
+\emph{path\_to\_lem}/library} flag to \texttt{lem} when you run it.  This tells
+\lem{} where to find its library of built-in functions.
+
+\section{Invoking Lem}
+
+\lem{} processes and type checks its \texttt{.lem} file arguments in order.
+Each of the \texttt{-hol}, \texttt{-isa}, \texttt{-tex}, \texttt{-coq}, and
+\texttt{-ocaml} flags cause \lem{} to produce output for the corresponding
+system, one output file per input file.  For example, 
+%
+\begin{verbatim}
+lem name1.lem name2.lem -ocaml -hol -isa 
+\end{verbatim} 
+%
+creates 6 files (assuming there are no type errors in the source files),
+\texttt{name1.ml}, \texttt{name2.ml}, \texttt{Name1Script.sml},
+\texttt{Name2Script.sml}, \texttt{Name1.thy}, and \texttt{Name2.thy}.
+
+\lem{}-generated OCaml relies on the files in \texttt{ocaml\_lib}, and so they
+must be compiled to link with
+\texttt{\emph{path\_to\_lem}/ocaml-lib/\_build/extract.cma} (or
+\texttt{extract.cmxa}).  For example,
+%
+\begin{verbatim}
+ocamlc -I path_to_lem/ocaml-lib/_build -o name extract.cma name1.ml
+\end{verbatim}
+
+If the \texttt{-tex} option is specified, then 
+for each input file \texttt{name.lem} the tool will create both a
+stand-alone LaTeX file \texttt{name.tex} that typesets the whole of
+that file and a file \texttt{name-inc.tex} of LaTeX definitions, one
+for each top-level \lem{} definition, that can be included in the
+preamble of another document, so that particular top-level \lem{}
+definitions can be quoted within it.  Additionally, \lem{} will create a
+single \texttt{alldoc.tex} and \texttt{alldoc-inc.tex} with the
+content of all the \lem{} input files.
+\lem{}-generated \LaTeX{} makes use of macros defined in
+\texttt{\emph{path\_to\_lem}/tex-lib/lem.sty}.
+
+Each file forms a module whose name is the same as the files (without the
+\texttt{.lem} suffix), except that all \lem{} module names are capitalised even
+if the file's name is lower case.
+
+\section{Syntax}
+
+\lem{} generally follows the syntax of the pure functional fragment of OCaml,
+with the following notable differences:
+%
+\begin{itemize}
+
+\item curried constructors, e.g.,
+\begin{verbatim}
+type t = C of num * bool
+let x = C 1 2
+\end{verbatim}
+
+\item \texttt{<|} and \texttt{|>} surround record expressions, instead of
+\texttt{\{} and \texttt{\}}.
+
+\item \texttt{match} and \texttt{function} expressions must terminate with the
+keyword \texttt{end}.
+
+\item All names can begin with either upper or lower case letters (except for
+module names, which must be capitalised).  
+
+\item Types are written with a prefix notation, e.g.,
+\begin{verbatim}
+type l_opt 'a = list (option 'a)
+type map 'a 'b = list ('a * 'b)
+type snmap = map string num
+\end{verbatim}
+
+\item \lem{} supports list and set comprehensions, inductive relations, type
+classes, and universal and existential quantification.  
+
+\end{itemize}
+
+
+\subsection{Literals}
+
+A literal constant $[[lit]]$ is either
+%
+\begin{itemize}
+
+\item $[[true]]$ or $[[false]]$\\ 
+booleans constants
+
+\item $[[()]]$\\ the unit constant
+
+\item a (non-empty) sequence of digits (matching \verb|[0-9]+|)\\ a numeric constant
+
+\item a sequence of non-\texttt{"} characters surrounded by \texttt{"}\\
+a string constant
+
+\item $[[bitzero]]$ or $[[bitone]]$\\
+bit constants
+
+\item a hex constant prefixed by \verb|0x| (matching \verb|0x[0-9a-fA-F]+|)\\
+a bit vector whose length is just long enough to contain the constant (including leading zeros)
+
+\item a binary constant prefixed by \verb|0b| (matching \verb|0b[01]+|)\\
+a bit vector whose length is just long enough to contain the constant (including leading zeros)
+
+\end{itemize}
+
+\subsection{Variables and other names}
+
+A name $[[x]]$ is a non-empty sequence of characters starting with a letter
+or the \texttt{\_} character, followed by letters, numbers and the \texttt{\_}
+and \texttt{'} characters.
+
+An identifier $[[id]]$ is a non-empty sequence of names separated by the
+\texttt{.} character.  An identifier is a module path, so all but the last name
+must refer to modules, and hence begin with capital letters.
+
+A constructor name $\ottnt{C}$ is an identifier that refers to the definition of
+a data constructor.
+
+A field name $\ottnt{fn}$ is an identifier that refers to a field of a defined
+record type.
+
+An infix name $[[ix]]$ is a non-empty sequence of symbolic characters:
+\texttt{!\$\%\&*+-./:<=>?@|\textasciitilde\textasciicircum} (except for
+sequences that are otherwise used as keywords, such as \texttt{->}).
+
+Infix operators are parsed in precedence on their first character in the
+following order, from tightest binding to weakest:
+\begin{itemize}
+\item \texttt{**}
+\item \texttt{*} and \texttt{/} and \texttt{\%} (also \texttt{inter})
+\item \texttt{+} and \texttt{-} (also \texttt{union})
+\item (also \texttt{::})
+\item \texttt{@} and \texttt{\textasciicircum}
+\item \texttt{=} and \texttt{<} and \texttt{>} and \texttt{|} and \texttt{\&} and
+\texttt{\$} (also \texttt{IN} and \texttt{MEM} and \texttt{subset} and
+\verb|\|)
+\item \texttt{\&\&}
+\item \texttt{||}
+\item \texttt{-->}
+\end{itemize}
+
+\subsection{Patterns}
+
+As in OCaml, most binding forms in \lem{} use patterns which match against
+a value and can bind multiple names to various of its sub-values.
+
+A pattern $[[pat]]$ is either
+%
+\begin{itemize}
+
+\item $[[lit]]$\\
+a literal pattern; matches the given literal constant
+
+\item $[[_]]$\\
+the wildcard pattern; matches anything
+
+\item $[[x]]$\\
+a variable pattern; matches anything and binds it to the variable $[[x]]$
+
+\item $\ottnt{C}$\\
+a constant constructor pattern; matches the constructor $[[C]]$
+
+\item $\ottnt{C} \, [[pat1]] \, ... \, [[patn]]$\\
+% [[C pat1 ... patn]]
+a constructor pattern; matches the $n$ argument constructor $[[C]]$ if its
+arguments match the sub-patterns
+
+\item $[[(pat1, ..., patn)]]$ where $n \geq 2$\\
+a tuple pattern; matches an $n$-tuple whose components match the sub-patterns
+
+\item $[[ [pat1; ...; patn semi_opt] ]]$\\
+a list pattern; matches an $n$-element list whose components match the
+sub-patterns (the closing \texttt{;} is optional)
+
+\item $[[ [] ]]$
+the empty list pattern; matches the empty list
+
+\item $[[pat1::pat2]]$\\
+a list pattern; matches a non-empty list whose head matches $[[pat1]]$
+and whose tail matches $[[pat2]]$
+
+\item $\ensuremath{\langle|}  \ottnt{fn_{{\mathrm{1}}}}  \ottsym{=}  [[pat1]] \ottsym{;} \, ... \, \ottsym{;}  \ottnt{fn_{\ottmv{n}}}  \ottsym{=}  [[patn]] \, [[semi_opt]]  \ensuremath{|\rangle}$\\
+%[[ <| id1 = pat1 l; ...; idn = patn l semi_opt |> ]]
+a record pattern; matches a record with the given fields whose contents match
+the sub-patterns (some of the records fields can be omitted, but none can be
+duplicated; the closing \texttt{;} is optional)
+
+\item $[[(pat : typ)]]$\\
+a type-annotated pattern; requires that $[[pat]]$ matches values of type $[[typ]]$
+
+\item $[[(pat as x)]]$\\
+an as pattern; matches values that match the sub-pattern and also bind the value
+to the variable $[[x]]$
+
+\item \emph{Add vector patterns and numerical addition patterns}
+
+\item $[[(pat)]]$\\
+a parenthesized pattern, the same as $[[pat]]$
+
+\end{itemize}
+
+\subsection{Expressions}
+
+An expression $[[exp]]$ is either
+%
+\begin{itemize}
+
+\item $[[lit]]$\\
+a literal constant
+
+\item $[[id]]$\\
+an identifier
+
+\item $[[fun pat1 ... patn -> exp]]$\\
+an $n$-argument function; the patterns must be able to match any value of their
+type, and their bindings are bound in the function's body $[[exp]]$
+
+\item $[[function bar_opt pat1 -> exp1 | ... | patn -> expn end]]$\\
+a single-argument function; each $[[pati]]$'s variables are bound in the
+corresponding $[[expi]]$, and the function's argument is matched against the
+patterns (the initial \texttt{|} is optional)
+
+\item $[[exp1 exp2]]$\\
+a function application
+
+\item $[[exp1 ix exp2]]$\\
+an infix operation
+
+\item $[[match exp with bar_opt pat1 -> exp1 | ... | patn -> expn end]]$\\
+a match expression; each $[[pati]]$'s variables are bound in the corresponding
+$[[expi]]$, and the given $[[exp]]$ is matched against the patterns (the initial
+\texttt{|} is optional)
+
+\item $[[if exp1 then exp2 else exp3]]$\\
+a conditional
+
+\item $\ottnt{C}$\\
+a data constructor
+
+\item $[[ [exp1; ...; expn semi_opt] ]]$\\
+an $n$-element list (the closing \texttt{;} is optional)
+
+\item $[[ [] ]]$\\
+the empty list
+
+\item $exp1::exp2$\\
+a list; with $[[exp1]]$ at the head
+
+\item $[[(exp1, ..., expn)]]$ where $n \geq 2$\\
+an $n$-tuple
+
+\item $\ensuremath{\langle|}  \ottnt{fn_{{\mathrm{1}}}}  \ottsym{=} [[exp1]] \,   \ottsym{;} \, ... \, \ottsym{;} \ottnt{fn_{\ottmv{n}}}  \ottsym{=}  [[expn]] \,  \, \ottnt{;}^{?} \,   \ensuremath{|\rangle}$\\
+%$[[<| id1 = exp1; ...; idn = expn semi_opt |>]]$
+a record expression; the field names can appear in any order, but must not be
+duplicated, and must contain exactly the fields from the record's type
+definition (the closing \texttt{;} is optional)
+
+\item $\ensuremath{\langle|}  [[exp]] \, \ottkw{with} \, \ottnt{fn_{{\mathrm{1}}}}  \ottsym{=}  [[exp1]] \,   \ottsym{;} \, ... \, \ottsym{;}  \ottnt{fn_{\ottmv{n}}}  \ottsym{=}  [[expn]] \,  \, \ottnt{;}^{?} \,   \ensuremath{|\rangle}$ 
+%$[[<| exp with id1 = exp1; ...; idn = expn semi_opt |>]]$
+a record update expression; the field names must be a subset of the record's
+fields, and not duplicate (the closing \texttt{;} is optional)d
+
+\item $[[exp]] \ottsym{.} \ottnt{fn}$
+%$[[exp.id]]$\\
+field projection; get the given field's value from a record
+
+\item $[[(exp : typ)]]$\\
+a type annotation; requires $[[exp]]$ to have type $[[typ]]$
+
+\item $[[let pat = exp1 in exp2]]$\\
+$[[let pat : typ = exp1 in exp2]]$\\
+locally bind the variables of $[[pat]]$ in $[[exp2]]$; $[[pat]]$ must be able to
+match any value of its type, which in the latter form must be $[[typ]]$
+
+\item $[[let x pat1 ... patn = exp1 in exp2]]$\\
+$[[let x pat1 ... patn : typ = exp1 in exp2]]$\\
+locally bind the $n$-argument function $[[x]]$ in $[[exp2]]$; each $[[pati]]$
+must be able to match any value of its type, and their variables are bound in
+$[[exp1]]$
+
+\item $[[{}]]$\\
+the empty set
+
+\item %$[[ {exp1; ...; expn opt_semi} ]]$\\
+a set whose elements are given by the sub-expressions, which can be duplicate
+values (the closing \texttt{;} is optional)
+
+\item $[[{ exp1 | exp2 }]]$\\
+a set comprehension; the comprehension ranges over the free variables of
+$[[exp1]]$ that are not bound by the enclosing scope
+
+\item $[[{ exp1 | forall qbind1 ... qbindn | exp2 }]]$\\
+a set comprehension; it ranges over the variables in the quantification bindings
+(see below)
+
+\item $[[ [ exp1 | forall qbind1 ... qbindn | exp2 ] ]]$\\
+a list comprehension; it ranges over the variables in the quantification bindings
+(see below), which must not be restricted over sets
+
+\item $[[forall qbind1 ... qbindn . exp]]$\\
+$[[exists qbind1 ... qbindn .  exp]]$\\
+quantification (see below on quantification bindings)
+
+\item $[[begin exp end]]$\\
+$[[(exp)]]$\\
+grouping; the same as $[[exp]]$
+
+\end{itemize}
+
+Quantification bindings support quantifying over and comprehending over a
+restricted domain.  In a list of quantification bindings, no variable can be
+appear twice as a binder; however, later expressions can refer to earlier
+bindings.  If a given pattern does not match all variables, then in a
+comprehension or $[[forall]]$ context they are ignored.  In an $[[exists]]$
+context, the witness must match the pattern.
+
+A quantification binding $[[qbind]]$ is either
+%
+\begin{itemize}
+
+\item $[[x]]$\\
+a variable
+
+\item $[[(pat IN exp)]]$\\
+restricted quantification over a set
+
+\item $[[(pat MEM exp)]]$\\
+restricted quantification over a list
+\end{itemize}
+
+\subsection{Definitions}
+
+Several of the definition forms are parameterized by an optional
+$[[targets_opt]]$ that specifies a set of targets that the definition should be
+used for.  This allows different definitions of a particular function to be used
+for the different targets.
+
+\subsubsection{Type definitions}\label{tdef}
+
+\lem{} supports the definition of algebraic datatypes, record types, and type
+abbreviations.  Each top-level type definition is a sequence of type definition
+expressions $[[td]]$:\\
+$[[type td1 and ... and tdn]]$\\
+%
+where a type definition expression $[[td]]$ is either 
+%
+\begin{itemize}
+
+\item $[[x tnvars = bar_opt ctor_def1 | ... | ctor_defn]]$\\
+an algebraic type with $[[n]]$ constructors/variants; each constructor
+definition $[[ctor_defn]]$ can refer to the $[[tyvars]]$ (the initial \texttt{|}
+is optional)
+
+\item $[[x tnvars = <| x1 : typ1; ...; xn : typn semi_opt |>]]$\\
+a record type; each $[[typi]]$ can refer to the $[[tyvars]]$ (the closing
+\texttt{;} is optional)
+
+\item $[[x tnvars = typ]]$\\
+a type abbreviation; $[[typ]]$ can refer to the $[[tyvars]]$ 
+
+\item $[[x tnvars]]$\\
+an abstract type abbreviation
+
+\end{itemize}
+
+A constructor definition $[[ctor_def]]$ is either
+%
+\begin{itemize}
+
+\item $[[x]]$\\
+a constant constructor
+
+\item $[[x of typ1 * ... * typn]]$\\
+an $n$-argument constructor, which is treated as an $n$-argument curried
+function
+
+\end{itemize}
+
+$[[tnvars]]$ is a (possibly empty) sequence of type variables $[['x]]$ and number variables $[[''x]]$.
+
+\subsubsection{Inductive relations}\label{indreln}
+
+An inductive relation is defined with a sequence of rules\\
+$[[indreln targets_opt rule1 and ... and rulen]]$\\
+where each $[[rulei]]$ is 
+%
+\begin{itemize}
+
+\item $[[x_l_opt forall x1 ... xk . exp ==> x exp1 ... expn]]$\\
+defines the $n$-ary relation $[[x]]$ to hold of the $[[expi]]$ when $[[exp]]$
+holds.  The optional $[[id]]$ names the rule.
+
+\end{itemize}
+
+\subsubsection{Other definitions}
+A definition is either 
+%
+\begin{itemize}
+
+\item a type definition (Section~\ref{tdef})
+
+\item $[[let targets_opt pat = exp]]$\\
+$[[let targets_opt pat : typ = exp]]$\\
+
+\item $[[let rec targets_opt funcl1 and ... and funcln]]$\\
+
+\item an inductively defined relation (Section~\ref{indreln})\\
+
+\item $[[val x : typ]]$\\
+$[[val x : forall 'x1 ... 'xn. typ]]$\\
+$[[val x : forall 'x1 ... 'xn. id1 'y1 , ...,  idk 'yk => typ]]$\\
+a type specification for the name $[[x]]$; further definitions of $[[x]]$ must
+have the given type
+
+\item $[[class (x 'y) val x1 : typ1 ... val xn : typn end]]$\\
+
+\item $[[instance instschm val_def1 ... val_defn end]]$\\ 
+
+\item $[[module x = struct defs end]]$\\
+
+\item $[[module x = id]]$\\
+
+\item $[[open id]]$\\
+
+\end{itemize}
+
+\subsection{Types}
+
+A $[[typ]]$ is either:
+\begin{itemize}
+\item $[['x]]$\\
+\item $[[typ1 -> typ2]]$\\
+\item $[[typ1 * ... * typn]]$ when $n \geq 2$\\
+\item $[[id typ1 .. typn]]$
+\item $[[(typ)]]$\\
+\item \emph{Add nexp stuff}
+\end{itemize}
+
+\section{Libraries}
+
+\subsection{Pervasives}
+
+\subsection{List}
+
+\subsection{Set}
+
+\subsection{Pmap}
+
+\section{Status}\label{status}
+
+\subsection{Working features}
+
+\begin{itemize}
+
+\item Typechecking for the the entire \lem{} input language
+
+\item HOL, Isabelle/HOL, and OCaml backends (except as noted in Section~\ref{todo}).
+
+\item \LaTeX{} backend (partial)
+
+\end{itemize}
+
+\subsection{Features in development}\label{todo}
+\begin{itemize}
+
+\item the Coq backend
+
+\item the \LaTeX{} backend (although it's somewhat usable now)
+
+\item in the OCaml backend, sets whose elements can contain functions, sets, or
+finite maps
+
+\item in the OCaml backend, inductive relations
+
+\item in all backends, robust checking that the generated output is valid in the
+target
+
+\item in all backends, type classes
+
+\item in the parse and type checker, improved error messages
+
+\item translation between the OCaml-style and HOL-style function definitions\\
+e.g.,
+%
+\begin{verbatim}
+let rec length l = match l with
+  | [] -> 0
+  | x::y = 1 + length l
+\end{verbatim}
+%
+and
+%
+\begin{verbatim}
+let rec length [] = 0
+    and length x::y = 1 + length l
+\end{verbatim}
+
+\item more robust unparsing for the various targets
+
+\item a type substitution mechanism
+
+\end{itemize}
+
+\section{Formal syntax}
+
+\emph{Check that all of the rules actually appear}
+
+The $[[l]]$ decorations on the grammar correspond to where the implementation
+records source type information; they cannot appear in source programs.
+
+\ottgrammartabular{
+\ottl\ottinterrule
+\ottxXXl\ottinterrule
+\ottixXXl\ottinterrule
+\otta\ottinterrule
+\ottaXXl\ottinterrule
+\ottid\ottinterrule
+\otttnvars\ottinterrule
+\otttypXXaux\ottinterrule
+\otttyp\ottinterrule
+\ottlitXXaux\ottinterrule
+\ottlit\ottinterrule
+\ottsemiXXopt\ottinterrule
+\ottpatXXaux\ottinterrule
+\ottpat\ottinterrule
+\ottfpat\ottinterrule
+\ottbarXXopt\ottinterrule
+\ottexpXXaux\ottinterrule
+\ottexp\ottinterrule
+\ottq\ottinterrule
+\ottqbind\ottinterrule
+\ottfexp\ottinterrule
+\ottfexps\ottinterrule
+\ottpexp\ottinterrule
+\ottpsexp\ottinterrule
+\otttannotXXopt\ottinterrule
+\ottfunclXXaux\ottinterrule
+\ottletbindXXaux\ottinterrule
+\ottletbind\ottinterrule
+\ottfuncl\ottinterrule
+\ottruleXXaux\ottinterrule
+\ottrule\ottinterrule
+\otttyps\ottinterrule
+\ottctorXXdef\ottinterrule
+\otttexp\ottinterrule
+\otttd\ottinterrule
+\ottc\ottinterrule
+\ottcs\ottinterrule
+\ottcXXpre\ottinterrule
+\otttypschm\ottinterrule
+\ottinstschm\ottinterrule
+\otttarget\ottinterrule
+\otttargets\ottinterrule
+\otttargetsXXopt\ottinterrule
+\ottvalXXdef\ottinterrule
+\ottvalXXspec\ottinterrule
+\ottdefXXaux\ottinterrule
+\ottdef\ottinterrule
+\ottsemisemiXXopt\ottinterrule
+\ottdefs\ottinterrule}
+
+\section{Formal type system}
+\ottgrammartabular{
+\ottp\ottinterrule
+\otttXXsubst\ottinterrule
+\ottt\ottinterrule
+\otttXXargs\ottinterrule
+\otttXXmulti\ottinterrule
+\otttnvs\ottinterrule
+\ottnames\ottinterrule
+\ottsemC\ottinterrule
+\ottvXXdesc\ottinterrule
+\ottSXXc\ottinterrule
+\ottSXXN\ottinterrule
+\ottE\ottinterrule
+\ottEXXx\ottinterrule
+\ottEXXm\ottinterrule
+\ottEXXp\ottinterrule
+\ottEXXl\ottinterrule
+\otttcXXabbrev\ottinterrule
+\otttcXXdef\ottinterrule
+\ottTD\ottinterrule
+\ottTC\ottinterrule
+\ottinst\ottinterrule
+\ottI\ottinterrule
+\ottD\ottinterrule
+\ottxs\ottinterrule
+%\ottterminals\ottinterrule
+\ottformula\ottinterrule
+%\ottconvertXXtvs\ottinterrule
+%\ottlookXXm\ottinterrule
+%\ottlookXXmXXid\ottinterrule
+%\ottlookXXtc\ottinterrule
+%\ottlookXXval\ottinterrule
+%\ottcheckXXt\ottinterrule
+%\ottteq\ottinterrule
+%\ottconvertXXtyp\ottinterrule
+%\ottconvertXXtyps\ottinterrule
+%\ottcheckXXlit\ottinterrule
+%\ottinstXXfield\ottinterrule
+%\ottinstXXctor\ottinterrule
+%\ottinstXXval\ottinterrule
+%\ottnotXXctor\ottinterrule
+%\ottnotXXshadowed\ottinterrule
+%\ottcheckXXpat\ottinterrule
+%\ottcheckXXexp\ottinterrule
+%\ottcheckXXrule\ottinterrule
+%\ottcheckXXtexpXXtc\ottinterrule
+%\ottcheckXXtexpsXXtc\ottinterrule
+%\ottcheckXXtexp\ottinterrule
+%\ottcheckXXtexps\ottinterrule
+%\ottconvertXXclass\ottinterrule
+%\ottsolveXXclassXXconstraint\ottinterrule
+%\ottsolveXXclassXXconstraints\ottinterrule
+%\otttargetsXXoptXXtoXXkinds\ottinterrule
+%\ottcheckXXvalXXdef\ottinterrule
+%\ottcheckXXtXXinstance\ottinterrule
+%\ottconvertXXvXXenv\ottinterrule
+%\ottcheckXXdefs\ottinterrule
+%\ottjudgement\ottinterrule
+%\ottuserXXsyntax\ottafterlastrule
+}
+\ottdefnss
+\end{document}

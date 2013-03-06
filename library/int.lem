@@ -1,0 +1,71 @@
+(* TODO: This is not the right type *)
+type int = Hol.Integer.int
+
+(* Addition *)
+val (+) : int -> int -> int
+let inline {hol} (+) = Hol.int_add
+let inline {ocaml} (+) = Ocaml.(+)
+let inline {isabelle} (+) = Isabelle.int_add
+
+(* Subtraction *)
+val (-) : int -> int -> int
+let inline {hol} (-) = Hol.int_sub
+let inline {ocaml} (-) = Ocaml.(-)
+let inline {isabelle} (-) = Isabelle.int_sub
+
+(* Multiplication *)
+val ( * ) : int -> int -> int
+let inline {hol} ( * ) = Hol.int_mul
+let inline {ocaml} ( * ) = Ocaml.( * )
+let inline {isabelle} ( * ) = Isabelle.int_mul
+
+(* Integer Exponentiation *)
+val ( ** ) : int -> num -> int
+let inline {ocaml} ( ** ) = Ocaml.Nat_num.int_exp
+let inline {isabelle} ( ** ) = Isabelle.int_exp
+
+(* Integer division *)
+val (/) : int -> int -> int
+let inline {hol} (/) = Hol.int_div
+let inline {ocaml} (/) = Ocaml.(/)
+let inline {isabelle} (/) = Isabelle.int_div
+
+(* Modulo *)
+val (%) : int -> int -> int
+let inline {hol} (%) = Hol.int_mod
+let inline {ocaml} (%) = Ocaml.(mod)
+let inline {isabelle} (%) = Isabelle.int_mod
+
+(* Less *)
+val (<) : int -> int -> bool
+let inline {hol} (<) = Hol.int_lt
+let inline {ocaml} (<) = Ocaml.(<)
+let inline {isabelle} (<) = Isabelle.int_lt
+
+(* Less equal *)
+val (<=) : int -> int -> bool
+let inline {hol} (<=) = Hol.int_le
+let inline {ocaml} (<=) = Ocaml.(<=)
+let inline {isabelle} (<=) = Isabelle.int_le
+
+(* Greater *)
+val (>) : int -> int -> bool
+let inline {hol} (>) = Hol.int_gt
+let inline {ocaml} (>) = Ocaml.(>)
+let inline {isabelle} (>) = Isabelle.int_gt
+
+(* Greater equal *)
+val (>=) : int -> int -> bool
+let inline {hol} (>=) = Hol.int_ge
+let inline {ocaml} (>=) = Ocaml.(>=)
+let inline {isabelle} (>=) = Isabelle.int_ge
+
+(* transformation of num to integer *)
+val int : num -> int
+let inline {ocaml} int = Ocaml.Nat_num.int
+let inline {isabelle} int = Isabelle.int
+
+(* negation, i.e. neg 5 = -5 *)
+val neg : int -> int
+let inline {ocaml} neg = Ocaml.Nat_num.neg
+let inline {isabelle} neg = Isabelle.int_neg

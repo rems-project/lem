@@ -1,0 +1,18 @@
+let test_minus = (Int.(-) (Int.int 10) (Int.int 20) = Int.neg (Int.int 10))
+let test_plus = (Int.(+) (Int.int 10) (Int.neg (Int.int 20)) = Int.neg (Int.int 10))
+
+let test_exp = ((Int.( ** ) (Int.int 2) 10) = (Int.int 1024))
+
+let test_mult = (Int.( * ) (Int.int 10) (Int.int 20) = (Int.int 200))
+let test_div = (Int.(/) (Int.int 24) (Int.int 10) = (Int.int 2))
+let test_div2 = (Int.(/) (Int.int 24) (Int.neg (Int.int 10)) = Int.neg (Int.int 3))
+let test_mod = (Int.(%) (Int.int 24) (Int.int 10) = (Int.int 4))
+let test_mod2 = (Int.(%) (Int.int 24) (Int.neg (Int.int 10)) = Int.neg (Int.int 6))
+
+let test_less = (Int.(<) (Int.neg (Int.int 24)) (Int.int 10))
+let test_less_eq = (Int.(<=) (Int.neg (Int.int 24)) (Int.int 10))
+let test_greater = (Int.(>) (Int.int 24) (Int.neg (Int.int 10)))
+let test_greater_eq = (Int.(>=) (Int.int 24) (Int.neg (Int.int 10)))
+
+
+let test_typing x y = Int.(-) x (Int.( ** ) y 4)

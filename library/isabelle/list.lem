@@ -1,0 +1,83 @@
+(*========================================================================*)
+(*                        Lem                                             *)
+(*                                                                        *)
+(*          Dominic Mulligan, University of Cambridge                     *)
+(*          Francesco Zappa Nardelli, INRIA Paris-Rocquencourt            *)
+(*          Gabriel Kerneis, University of Cambridge                      *)
+(*          Kathy Gray, University of Cambridge                           *)
+(*          Peter Boehm, University of Cambridge (while working on Lem)   *)
+(*          Peter Sewell, University of Cambridge                         *)
+(*          Scott Owens, University of Kent                               *)
+(*          Thomas Tuerk, University of Cambridge                         *)
+(*                                                                        *)
+(*  The Lem sources are copyright 2010-2013                               *)
+(*  by the UK authors above and Institut National de Recherche en         *)
+(*  Informatique et en Automatique (INRIA).                               *)
+(*                                                                        *)
+(*  All files except ocaml-lib/pmap.{ml,mli} and ocaml-libpset.{ml,mli}   *)
+(*  are distributed under the license below.  The former are distributed  *)
+(*  under the LGPLv2, as in the LICENSE file.                             *)
+(*                                                                        *)
+(*                                                                        *)
+(*  Redistribution and use in source and binary forms, with or without    *)
+(*  modification, are permitted provided that the following conditions    *)
+(*  are met:                                                              *)
+(*  1. Redistributions of source code must retain the above copyright     *)
+(*  notice, this list of conditions and the following disclaimer.         *)
+(*  2. Redistributions in binary form must reproduce the above copyright  *)
+(*  notice, this list of conditions and the following disclaimer in the   *)
+(*  documentation and/or other materials provided with the distribution.  *)
+(*  3. The names of the authors may not be used to endorse or promote     *)
+(*  products derived from this software without specific prior written    *)
+(*  permission.                                                           *)
+(*                                                                        *)
+(*  THIS SOFTWARE IS PROVIDED BY THE AUTHORS ``AS IS'' AND ANY EXPRESS    *)
+(*  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED     *)
+(*  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE    *)
+(*  ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY       *)
+(*  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL    *)
+(*  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE     *)
+(*  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS         *)
+(*  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER  *)
+(*  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR       *)
+(*  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN   *)
+(*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
+(*========================================================================*)
+
+val hd : forall 'a. list 'a -> 'a
+val tl : forall 'a. list 'a -> list 'a
+val last : forall 'a. list 'a -> 'a
+val butlast : forall 'a. list 'a -> list 'a 
+val set : forall 'a. list 'a -> set 'a
+val map : forall 'a 'b. ('a -> 'b) -> list 'a -> list 'b 
+val (@) : forall 'a. list 'a -> list 'a -> list 'a
+val append : forall 'a. list 'a -> list 'a -> list 'a
+val rev : forall 'a. list 'a -> list 'a 
+val filter : forall 'a. ('a -> bool) -> list 'a -> list 'a
+val foldl : forall 'a 'b. ('b -> 'a -> 'b) -> 'b -> list 'a -> 'b 
+val foldr : forall 'a 'b. ('a -> 'b -> 'b) -> list 'a -> 'b -> 'b
+val concat : forall 'a. list (list 'a) -> list 'a 
+val listsum : forall 'a. list 'a -> 'a 
+val drop : forall 'a. num -> list 'a -> list 'a
+val take : forall 'a. num -> list 'a -> list 'a 
+val nth : forall 'a. list 'a -> num -> 'a
+val list_update : forall 'a .list 'a -> num -> 'a -> list 'a
+val takeWhile : forall 'a. ('a -> bool) -> list 'a -> list 'a
+val dropWhile : forall 'a. ('a -> bool) -> list 'a -> list 'a
+val zip : forall 'a 'b. list 'a -> list 'b -> list ('a * 'b)
+val upt : num -> num -> list num
+val distinct : forall 'a. list 'a -> bool
+val remdups : forall 'a. list 'a -> list 'a 
+val insert : forall 'a. 'a -> list 'a -> list 'a 
+val remove1 : forall 'a. 'a -> list 'a -> list 'a 
+val removeAll : forall 'a. 'a -> list 'a -> list 'a 
+val replicate : forall 'a. num -> 'a -> list 'a 
+val length : forall 'a. list 'a -> num
+val rotate1 : forall 'a. list 'a -> list 'a 
+val rotate : forall 'a. num -> list 'a -> list 'a 
+val list_all : forall 'a. ('a -> bool) -> list 'a -> bool
+val list_ex : forall 'a. ('a -> bool) -> list 'a -> bool
+val list_all2 : forall 'a 'b. ('a -> 'b -> bool) -> list 'a -> list 'b -> bool
+val sublist : forall 'a. list 'a -> set num -> list 'a
+val splice : forall 'a. list 'a -> list 'a -> list 'a 
+val ListMem : forall 'a. 'a -> list 'a -> bool
