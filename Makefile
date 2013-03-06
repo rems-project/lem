@@ -152,19 +152,19 @@ ocaml-lib/vector.mli
 # pset.mli
 
 apply_header:
-	./headache -h header `ls src/*.ml`
-	./headache -h header `ls src/*.mli`
-	./headache -h header `ls src/*.mly`
-	./headache -h header `ls src/*.mll`
-	./headache -c head_config -h header `ls tex-lib/*.sty`
-	./headache -c head_config -h header `ls coq-lib/*.v`
-	./headache -c head_config -h header `ls isabelle-lib/*.thy`
-	./headache -c head_config -h header `ls tex-lib/*.sty`
-	./headache -c head_config -h header $(OCAML-LIB-NONLGPL) 
-	./headache -c head_config -h header `ls library/coq/*.lem`
-	./headache -c head_config -h header `ls library/hol/*.lem`
-	./headache -c head_config -h header `ls library/isabelle/*.lem`
-	./headache -c head_config -h header `ls library/ocaml/*.lem`
+	./headache -h etc/header `ls src/*.ml`
+	./headache -h etc/header `ls src/*.mli`
+	./headache -h etc/header `ls src/*.mly`
+	./headache -h etc/header `ls src/*.mll`
+	./headache -c etc/head_config -h etc/header `ls tex-lib/*.sty`
+	./headache -c etc/head_config -h etc/header `ls coq-lib/*.v`
+	./headache -c etc/head_config -h etc/header `ls isabelle-lib/*.thy`
+	./headache -c etc/head_config -h etc/header `ls tex-lib/*.sty`
+	./headache -c etc/head_config -h etc/header $(OCAML-LIB-NONLGPL) 
+	./headache -c etc/head_config -h etc/header `ls library/coq/*.lem`
+	./headache -c etc/head_config -h etc/header `ls library/hol/*.lem`
+	./headache -c etc/head_config -h etc/header `ls library/isabelle/*.lem`
+	./headache -c etc/head_config -h etc/header `ls library/ocaml/*.lem`
 
 
 lem_unwrapped.tex: lem.ott
