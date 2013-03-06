@@ -9,10 +9,10 @@ It is also intended as an intermediate language for generating
 definitions from domain-specific tools, and for porting definitions
 between interactive theorem proving systems
 
-This is a preliminary release of Lem which is not yet feature
-complete.  It is released under the BSD 3-clause license, with the
-exception of a few files derived from the OCaml, which are released
-under the GNU Library GPL.
+This is the development version of Lem, which is not yet feature
+complete.  It is made available under the BSD 3-clause license, with
+the exception of a few files derived from the OCaml, which are under
+the GNU Library GPL.
 
 Lem depends on OCaml (http://caml.inria.fr/). Lem is tested against OCaml
 3.12.1. Other versions might or might not work.
