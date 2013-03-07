@@ -114,7 +114,7 @@ type instance = tnvar list * (Path.t * tnvar) list * t * Name.t list
 
 val head_norm : type_defs -> t -> t
 
-val assert_equal : Ast.l -> type_defs -> t -> t -> unit
+val assert_equal : Ast.l -> string -> type_defs -> t -> t -> unit
 
 (* Gets the instance for the given class and type.  Returns None if there is
  * none.  The returned Name list is to the module enclosing the instance

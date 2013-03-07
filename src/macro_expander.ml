@@ -138,7 +138,7 @@ let rec expand_exp ((r,typ_r,src_typ_r,pat_r):((exp -> exp option) * (Types.t ->
     match r e with
       | Some(e') -> 
           begin
-            C.type_eq old_l (exp_to_typ e) (exp_to_typ e');
+            C.type_eq old_l "expand_exp" (exp_to_typ e) (exp_to_typ e');
             trans e'
           end
       | None ->

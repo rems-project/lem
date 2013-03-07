@@ -560,10 +560,10 @@ let rec get_matching_instance d (p,t) instances =
           with
               Not_found -> None
 
-let type_mismatch l t1 t2 = 
+let type_mismatch l m t1 t2 = 
   let t1 = t_to_string t1 in
   let t2 = t_to_string t2 in
-    raise (Ident.No_type(l, "type mismatch:\n" ^ t1 ^ "\nand\n" ^ t2))
+    raise (Ident.No_type(l, "type mismatch:\n" (* ^ m ^ "\n"*) ^ t1 ^ "\nand\n" ^ t2))
 
 let nexp_mismatch l n1 n2 =
   let n1 = nexp_to_string n1 in
@@ -682,39 +682,39 @@ let normalize nexp =
 (*  let _ = fprintf std_formatter "sorted normal is %a@ \n" pp_nexp sorted in *)
   sorted
 
-let rec assert_equal l (d : type_defs) (t1 : t) (t2 : t) : unit =
+let rec assert_equal l m (d : type_defs) (t1 : t) (t2 : t) : unit =
   if t1 == t2 then
     ()
   else
     let t1 = head_norm d t1 in
     let t2 = head_norm d t2 in
       match (t1.t,t2.t) with
-        | (Tuvar _, _) -> type_mismatch l t1 t2
-        | (_, Tuvar _) -> type_mismatch l t1 t2
+        | (Tuvar _, _) -> type_mismatch l m t1 t2
+        | (_, Tuvar _) -> type_mismatch l m t1 t2
         | (Tvar(s1), Tvar(s2)) ->
             if Tyvar.compare s1 s2 = 0 then
               ()
             else
-              type_mismatch l t1 t2
+              type_mismatch l m t1 t2
         | (Tfn(t1,t2), Tfn(t3,t4)) ->
-            assert_equal l d t1 t3;
-            assert_equal l d t2 t4
+            assert_equal l m d t1 t3;
+            assert_equal l m d t2 t4
         | (Ttup(ts1), Ttup(ts2)) -> 
             if List.length ts1 = List.length ts2 then
-              assert_equal_lists l d ts1 ts2
+              assert_equal_lists l m d ts1 ts2
             else 
-              type_mismatch l t1 t2
+              type_mismatch l m t1 t2
         | (Tapp(args1,p1), Tapp(args2,p2)) ->
             if Path.compare p1 p2 = 0 && List.length args1 = List.length args2 then
-              assert_equal_lists l d args1 args2
+              assert_equal_lists l m d args1 args2
             else
-              type_mismatch l t1 t2
+              type_mismatch l m t1 t2
         | (Tne(n1),Tne(n2)) -> assert_equal_nexp l n1 n2
         | _ -> 
-            type_mismatch l t1 t2
+            type_mismatch l m t1 t2
 
-and assert_equal_lists l d ts1 ts2 =
-  List.iter2 (assert_equal l d) ts1 ts2
+and assert_equal_lists l m d ts1 ts2 =
+  List.iter2 (assert_equal l m d) ts1 ts2
 
 and assert_equal_nexp l n1 n2 =
   if n1 == n2 then
@@ -864,7 +864,7 @@ module Constraint (T : Global_defs) : Constraint = struct
             if Tyvar.compare s1 s2 = 0 then
               ()
             else
-              type_mismatch l t1 t2
+              type_mismatch l "equate_types" t1 t2
         | (Tfn(t1,t2), Tfn(t3,t4)) ->
             equate_types l t1 t3;
             equate_types l t2 t4
@@ -872,16 +872,16 @@ module Constraint (T : Global_defs) : Constraint = struct
             if List.length ts1 = List.length ts2 then
               equate_type_lists l ts1 ts2
             else 
-              type_mismatch l t1 t2
+              type_mismatch l "equate_types" t1 t2
         | (Tapp(args1,p1), Tapp(args2,p2)) ->
             if Path.compare p1 p2 = 0 && List.length args1 = List.length args2 then
               equate_type_lists l args1 args2
             else
-              type_mismatch l t1 t2
+              type_mismatch l "equate_types" t1 t2
         | (Tne(n1),Tne(n2)) ->
            equate_nexps l n1 n2;
         | _ -> 
-            type_mismatch l t1 t2
+            type_mismatch l "equate_types" t1 t2
 
   and equate_type_lists l ts1 ts2 =
     List.iter2 (equate_types l) ts1 ts2
