@@ -80,6 +80,8 @@ val fold: ('a -> 'b -> 'b) -> 'a set -> 'b -> 'b
 (** [fold f s a] computes [(f xN ... (f x2 (f x1 a))...)],
   where [x1 ... xN] are the elements of [s], in increasing order. *)
 
+val map: ('b -> 'b -> int) -> ('a -> 'b) -> 'a set -> 'b set
+
 val for_all: ('a -> bool) -> 'a set -> bool
 (** [for_all p s] checks if all elements of the set
   satisfy the predicate [p]. *)

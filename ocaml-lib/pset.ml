@@ -255,6 +255,8 @@ let rec fold f s accu =
       Empty -> accu
     | Node(l, v, r, _) -> fold f r (f v (fold f l accu))
 
+let map cmp f s = fold (fun e s -> add cmp (f e) s) s empty
+
 let rec for_all p = function
     Empty -> true
   | Node(l, v, r, _) -> p v && for_all p l && for_all p r
@@ -319,6 +321,8 @@ let subset s1 s2 = subset s1.cmp s1.s s2.s
 let iter f s = iter f s.s
 
 let fold f s a = fold f s.s a
+
+let map c f s = {cmp = c; s = map c f s.s}
 
 let for_all p s = for_all p s.s
 
