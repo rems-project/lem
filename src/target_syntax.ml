@@ -270,15 +270,15 @@ let rec fix_exp get_prec e =
             old_t
       | Tup(s1,es,s2) ->
           C.mk_tup old_l
-            s1 (Seplist.map trans es) s2
+            s1 (Seplist.map (fun e -> C.delimit_exp get_prec P.App_left (trans e)) es) s2
             old_t
       | List(s1,es,s2) ->
           C.mk_list old_l
-            s1 (Seplist.map trans es) s2
+            s1 (Seplist.map (fun e -> C.delimit_exp get_prec P.App_left (trans e)) es) s2
             (exp_to_typ e)
       | Vector(s1,es,s2) ->
           C.mk_vector old_l
-            s1 (Seplist.map trans es) s2
+            s1 (Seplist.map (fun e -> C.delimit_exp get_prec P.App_left (trans e)) es) s2
             (exp_to_typ e)
       | VectorAcc(e,s1,n,s2) ->
           C.mk_vaccess old_l (trans e) s1 n s2 
