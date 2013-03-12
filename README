@@ -12,5 +12,8 @@ LEMLIB environment variable to path_to_lem/library, or alternately pass the
 -lib path_to_lem/library flag to lem when you run it. This tells Lem where to
 find its library of types for HOL/Isabelle/OCaml/Coq built-in functions.
 
-Please see the manual at http://www.cl.cam.ac.uk/~so294/lem/lem-manual.pdf or
-http://www.cl.cam.ac.uk/~so294/lem/lem-manual.html.
+The source language grammar and type system are defined in language/lem.ott,
+available in a typeset form in language/lem.pdf.  There is also a very 
+preliminary manual (not currently up to date) at 
+http://www.cl.cam.ac.uk/~so294/lem/.
+
