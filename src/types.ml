@@ -755,6 +755,7 @@ module type Constraint = sig
   val equate_types : Ast.l -> t -> t -> unit
   val in_range : Ast.l -> nexp -> nexp -> unit
   val add_constraint : Path.t -> t -> unit
+  val add_length_constraint : range -> unit
   (*
   val equate_type_lists : Ast.l -> t list -> t list -> unit
    *)
@@ -784,6 +785,9 @@ module Constraint (T : Global_defs) : Constraint = struct
 
   let class_constraints : (Path.t * t) list ref = ref []
   let length_constraints : range list ref = ref []
+
+  let add_length_constraint r =
+   length_constraints := r :: (!length_constraints)
 
   let new_type () : t =
     let i = !(next_uvar) in
@@ -923,7 +927,7 @@ module Constraint (T : Global_defs) : Constraint = struct
       let n3 = normalize { nexp = Nadd(n1, {nexp= Nneg n2}) } in
       match n3.nexp with
        | Nconst 0 -> ()
-       | _ -> equate_nexps_help l n1 n2 (* TODO KG Generate these diffs as constraints to be solved later. These are equality constraints *)
+       | _ -> equate_nexps_help l n1 n2 (*let _ = fprintf std_formatter "Non-canceling lengths %a@ and %a@ into %a@" pp_nexp n1 pp_nexp n2 pp_nexp n3 in assert false (*(equate_nexps_help l n1 n2); add_length_constraint (Equal n3)*)*)
        
   let in_range l vec_n n =
     let (len,ind) = (normalize vec_n,normalize n) in
