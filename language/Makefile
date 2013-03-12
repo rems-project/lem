@@ -17,6 +17,6 @@ lem.tex ../src/ast.ml lemScript.sml: lem.ott
 
 clean:
 	rm -rf *~
-	-rm -rf *.uo *.ui lemTheory.sig lemTheory.sml lem.tex lemScript.sml lem.aux lem.log lem.pdf lem.dvi lem.ps lem_unwrapped.tex .HOLMK 
+	-rm -rf *.uo *.ui lemTheory.sig lemTheory.sml lem.tex lemScript.sml lem.aux lem.log lem.dvi lem.ps lem_unwrapped.tex .HOLMK 
 #lem.sys lem library/lib_cache
 
