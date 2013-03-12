@@ -21,3 +21,6 @@ let f n =
     false
   else
     true
+
+(* test renaming *)
+indreln forall set. set > 0 ==> rel set

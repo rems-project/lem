@@ -308,3 +308,4 @@ let split k m =
 let find k m = find m.cmp k m.m
 let map f m = {m with m = map f m.m}
 let mapi f m = {m with m = mapi f m.m}
+let concat m1 m2 = {m1 with m = concat m1.cmp m1.m m2.m}

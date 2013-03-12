@@ -154,7 +154,6 @@ struct
                       [Def_trans.remove_vals;
                        Def_trans.remove_opens;
                        Def_trans.remove_indrelns_true_lhs;
-                       Def_trans.remove_indrelns;
                        Patterns.compile_def (Some Target_isa) Patterns.is_isabelle_pattern_match env;
                        (*Def_trans.flatten_modules*)] );
         Exp_macros (fun env ->

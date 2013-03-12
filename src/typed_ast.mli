@@ -485,7 +485,7 @@ module Exps_in_context(C : Exp_context) : sig
   val push_subst : (Types.t Types.TNfmap.t * exp_subst Nfmap.t) -> pat list -> exp -> pat list * exp
   val exp_to_term : exp -> exp_aux
   val exp_to_free : exp -> Types.t Nfmap.t
-  val type_eq : Ast.l -> Types.t -> Types.t -> unit
+  val type_eq : Ast.l -> string -> Types.t -> Types.t -> unit
   val mk_lnum : Ast.l -> lskips -> int -> Types.t option -> lit
   val mk_lbool : Ast.l -> lskips -> bool -> Types.t option -> lit
   val mk_lbit : Ast.l -> lskips -> int -> Types.t option -> lit

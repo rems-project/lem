@@ -213,6 +213,9 @@ module type Target = sig
   val reln_end : t
   val reln_sep : t
   val reln_clause_start : t
+  val reln_clause_quant : t
+  val reln_clause_show_empty_quant : bool
+  val reln_clause_show_name : bool
   val reln_clause_end : t
 
   (* Type defnitions *)
@@ -416,7 +419,10 @@ module Identity : Target = struct
   let reln_start = kwd "indreln"
   let reln_end = emp
   let reln_sep = kwd "and"
-  let reln_clause_start = kwd "forall"
+  let reln_clause_quant = kwd "forall"
+  let reln_clause_show_empty_quant = true
+  let reln_clause_show_name = false
+  let reln_clause_start = emp
   let reln_clause_end = emp
 
   let typedef_start = kwd "type"
@@ -459,7 +465,10 @@ module Html : Target = struct
   let exists = kwd "&exist;"
   let set_quant_binding = kwd "&isin;"
   let setcomp_binding_start = kwd "&forall;"
-  let reln_clause_start = kwd "&forall;"
+  let reln_clause_quant = kwd "&forall;"
+  let reln_clause_show_empty_quant = true
+  let reln_clause_show_name = false
+  let reln_clause_start = emp
 
 end
 
@@ -602,7 +611,10 @@ module Tex : Target = struct
   let reln_start = tkwdl "indreln"
   let reln_end = emp
   let reln_sep = tkwdm "and"
-  let reln_clause_start = kwd "\\forall"
+  let reln_clause_start = emp
+  let reln_clause_quant = kwd "\\forall"
+  let reln_clause_show_empty_quant = true
+  let reln_clause_show_name = false
   let reln_clause_end = emp
 
   let typedef_start = tkwdl "type"
@@ -800,6 +812,9 @@ module Isa : Target = struct
   let reln_end = emp
   let reln_sep = kwd "|"
   let reln_clause_start = kwd "\""
+  let reln_clause_quant = kwd "!!"
+  let reln_clause_show_empty_quant = false
+  let reln_clause_show_name = true
   let reln_clause_end = kwd "\""
 
   let typedef_start = kwd "datatype"
@@ -998,7 +1013,10 @@ module Hol : Target = struct
   let reln_start = meta "val _ = Hol_reln `"
   let reln_end = meta "`;"
   let reln_sep = kwd "/\\"
-  let reln_clause_start = kwd "(" ^ kwd "!"
+  let reln_clause_start = kwd "("
+  let reln_clause_quant = kwd "!"
+  let reln_clause_show_empty_quant = false
+  let reln_clause_show_name = false
   let reln_clause_end = kwd ")"
 
   let typedef_start = meta "val _ = Hol_datatype `\n"
@@ -2115,15 +2133,20 @@ let tdef ((n,l), tvs, texp, regexp) =
     tdef_tctor false tvs n regexp ^ tyexp true n' tvs' texp 
 
 let indreln_clause (name_opt, s1, qnames, s2, e_opt, s3, rname, es) =
-  ws s1 ^
-  T.reln_clause_start ^
-  flat (interspace (List.map (fun n -> Name.to_output T.infix_op_format Term_var n.term) qnames)) ^
-  ws s2 ^
-  kwd "." ^
-  (match e_opt with None -> ws s3 | Some e ->
-    exp e ^
-    ws s3 ^
-    kwd "==>") ^
+  (if T.reln_clause_show_name then (
+    (match name_opt with None -> emp | Some name ->
+      Name.to_output_quoted T.infix_op_format Term_method name ^
+      kwd ":"
+    )
+  ) else emp) ^
+  ws s1 ^ T.reln_clause_start ^
+  (if (T.reln_clause_show_empty_quant || List.length qnames > 0) then (
+    T.reln_clause_quant ^
+    flat (interspace (List.map (fun n -> Name.to_output T.infix_op_format Term_var n.term) qnames)) ^
+    ws s2 ^ 
+    kwd "."
+  ) else emp) ^
+  (match e_opt with None -> ws s3 | Some e -> exp e ^ ws s3 ^ kwd "==>") ^
   Name.to_output T.infix_op_format Term_var rname.term ^
   flat (interspace (List.map exp es)) ^
   T.reln_clause_end
@@ -2219,18 +2242,6 @@ let isa_letbind simple (lb, _) : Output.t = match lb with
       kwd "where \n\"" ^ pat p ^ ws s2 ^ kwd "= (" ^ exp e ^ kwd ")\""
   | Let_fun(clause) ->
       isa_funcl_header clause ^ kwd "where \n" ^ isa_funcl simple clause
-
-let isa_indreln_clause (name_opt, s1, qnames, s2, e_opt, s3, rname, es) =
-  (match name_opt with None -> emp | Some name ->
-    Name.to_output_quoted T.infix_op_format Term_method name ^
-    kwd ":"
-  ) ^
-  ws s1 ^ T.reln_clause_start ^
-  ws s2 ^ 
-  (match e_opt with None -> ws s3 | Some e -> exp e ^ ws s3 ^ kwd "==>") ^
-  Name.to_output T.infix_op_format Term_var rname.term ^
-  flat (interspace (List.map exp es)) ^
-  T.reln_clause_end
 
 (******* End Isabelle ********)
 
@@ -2954,7 +2965,7 @@ and isa_def d is_user_def : Output.t = match d with
          else
            emp) ^
         isa_funcl_header_indrel_seplist clauses ^
-        flat (Seplist.to_sep_list isa_indreln_clause (sep T.reln_sep) clauses) ^
+        flat (Seplist.to_sep_list indreln_clause (sep T.reln_sep) clauses) ^
         T.reln_end
       else
         emp

@@ -25,6 +25,9 @@ let inline {isabelle} find = Isabelle.map_find
 let inline {ocaml} find = Ocaml.Pmap.find
 let inline {coq} find = Coq.map_find Coq.(==)
 
+val for_all : forall 'key 'a. ('key -> 'a -> bool) -> map 'key 'a -> bool
+let inline {ocaml} for_all = Ocaml.Pmap.for_all
+
 val map : forall 'key 'a 'b. ('a -> 'b) -> map 'key 'a -> map 'key 'b
 let inline {ocaml} map = Ocaml.Pmap.map
 
@@ -33,3 +36,6 @@ let inline {ocaml} remove = Ocaml.Pmap.remove
 
 val bindings: forall 'key 'a. map 'key 'a -> list ('key * 'a)
 let inline {ocaml} bindings = Ocaml.Pmap.bindings
+
+val concat: forall 'key 'a. map 'key 'a -> map 'key 'a -> map 'key 'a
+let inline {ocaml} concat = Ocaml.Pmap.concat

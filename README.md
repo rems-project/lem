@@ -14,7 +14,7 @@ complete.  It is made available under the BSD 3-clause license, with
 the exception of a few files derived from the OCaml, which are under
 the GNU Library GPL.
 
-Lem depends on OCaml (http://caml.inria.fr/). Lem is tested against OCaml
+Lem depends on [OCaml](http://caml.inria.fr/). Lem is tested against OCaml
 3.12.1. Other versions might or might not work.
 
 To build Lem run make in the top-level directory. This builds the
@@ -24,5 +24,8 @@ alternately pass the `-lib PATH_TO_LEM/library` flag to lem when you
 run it. This tells Lem where to find its library of types for
 HOL/Isabelle/OCaml/Coq built-in functions.
 
-Please see the manual at http://www.cl.cam.ac.uk/~so294/lem/lem-manual.pdf or
-http://www.cl.cam.ac.uk/~so294/lem/lem-manual.html.
+The source language grammar and type system are defined in language/lem.ott,
+available in a typeset form in language/lem.pdf.  There is also a very 
+preliminary manual (not currently up to date) at 
+http://www.cl.cam.ac.uk/~so294/lem/.
+
