@@ -1,12 +1,10 @@
-#OTTLIB=/Users/sowens/ott/hol
-OTTLIB=$(dir $(shell which ott))../hol
 LEMVERSION=0.3.1
 DDIR=lem-$(LEMVERSION)
 
 PATH := $(CURDIR)/$(FINDLIB)/bin:$(PATH)
 
 #all: il.pdf build-main ilTheory.uo
-all: lem.pdf build-lem
+all: build-lem
 build-doc:
 	make -C doc
 do-tests:
@@ -119,17 +117,6 @@ lem-doc: build-lem
 
 lem: build-lem
 
-lem.pdf: lem.tex
-	pdflatex lem.tex
-
-lemTheory.uo: lemScript.sml
-	Holmake --qof -I $(OTTLIB) lemTheory.uo
-
-lem.tex src/ast.ml lemScript.sml: lem.ott
-	rm -f src/ast.ml
-	ott -ocaml_include_terminals true -o lem.tex -o src/ast.ml -o lemScript.sml -picky_multiple_parses true lem.ott
-	chmod a-w src/ast.ml
-
 headache: headache-1.03.tar.gz
 	tar xzf headache-1.03.tar.gz
 	cd headache-1.03; ./configure --bindir $(CURDIR)/headache
@@ -156,6 +143,7 @@ apply_header:
 	./headache -h etc/header `ls src/*.mli`
 	./headache -h etc/header `ls src/*.mly`
 	./headache -h etc/header `ls src/*.mll`
+	./headache -c etc/head_config -h etc/header `ls language/*.lem`
 	./headache -c etc/head_config -h etc/header `ls tex-lib/*.sty`
 	./headache -c etc/head_config -h etc/header `ls coq-lib/*.v`
 	./headache -c etc/head_config -h etc/header `ls isabelle-lib/*.thy`
@@ -167,11 +155,11 @@ apply_header:
 	./headache -c etc/head_config -h etc/header `ls library/ocaml/*.lem`
 
 
-lem_unwrapped.tex: lem.ott
-	ott -tex_wrap false -o lem_unwrapped.tex lem.ott
-
-install_lem_unwrapped: lem_unwrapped.tex
-	cp lem_unwrapped.tex ../../ott/examples/ich/generated/lem_unwrapped.tex
+#lem_unwrapped.tex: lem.ott
+#	ott -tex_wrap false -o lem_unwrapped.tex lem.ott
+#
+#install_lem_unwrapped: lem_unwrapped.tex
+#	cp lem_unwrapped.tex ../../ott/examples/ich/generated/lem_unwrapped.tex
 
 src/version.ml: Makefile
 	echo 'let v="$(LEMVERSION)"' > src/version.ml
@@ -227,9 +215,10 @@ distrib: src/ast.ml src/version.ml headache
 	rm -rf $(DDIR)
 
 clean:
+	-make -C language clean
 	-make -C src clean
-	-rm -rf *.uo *.ui lemTheory.sig lemTheory.sml lem.tex src/ast.ml src/version.ml lemScript.sml lem.aux lem.log lem.pdf lem.dvi lem.ps lem_unwrapped.tex .HOLMK lem.sys lem library/lib_cache
-	-rm -rf lem_dep.tex lem_dep.pdf lem_dep.aux lem_dep.log
+	-rm -rf src/version.ml lem library/lib_cache
+	#-rm -rf lem_dep.tex lem_dep.pdf lem_dep.aux lem_dep.log
 
 cleanall: clean
 	-make -C doc clean
