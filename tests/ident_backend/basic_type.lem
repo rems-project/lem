@@ -38,7 +38,7 @@ let test14 ( x : vector (''a + ''b) bool ) = x
 
 let test15 ( x : vector (''a + (2 * ''b)) bool ) = x
 
-let test16 (x : vector 8 bool) = (test11 x)
+let test16 (x : vector 8 bool) = (test11 x) 
 
 let test17 (nv : t5) = nv
 

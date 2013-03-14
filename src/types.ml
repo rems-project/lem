@@ -405,7 +405,7 @@ and
  pp_nexp ppf n =
   pp_open_box ppf 0;
   (match n.nexp with
-     | Nuvar nu -> fprintf ppf "_" (* fprintf ppf "_ (%d)" nu.nindex *)
+     | Nuvar nu -> fprintf ppf "_"(*  fprintf ppf "_ (%d)" nu.nindex *)
      | Nvar(nv) ->
          Nvar.pp ppf nv
      | Nconst(i) ->
@@ -745,9 +745,9 @@ let rec nexp_from_list nls = match nls with
     | n1::nls -> {nexp = Nadd(n1,(nexp_from_list nls))}
 
 type range =
-  | LtEq of nexp
-  | Equal of nexp
-  | GtEq of nexp 
+  | LtEq of nexp * nexp
+  | EqZero of nexp
+  | GtEq of nexp  * nexp
 
 module type Constraint = sig
   val new_type : unit -> t
@@ -927,7 +927,8 @@ module Constraint (T : Global_defs) : Constraint = struct
       let n3 = normalize { nexp = Nadd(n1, {nexp= Nneg n2}) } in
       match n3.nexp with
        | Nconst 0 -> ()
-       | _ -> equate_nexps_help l n1 n2 (*let _ = fprintf std_formatter "Non-canceling lengths %a@ and %a@ into %a@" pp_nexp n1 pp_nexp n2 pp_nexp n3 in assert false (*(equate_nexps_help l n1 n2); add_length_constraint (Equal n3)*)*)
+       | _ -> add_length_constraint (EqZero n3)
+              ; equate_nexps_help l n1 n2 (*TODO remove me because this is a temporary solution until constraint solving is fully operational*)
        
   let in_range l vec_n n =
     let (len,ind) = (normalize vec_n,normalize n) in
@@ -977,6 +978,53 @@ module Constraint (T : Global_defs) : Constraint = struct
       cur_nvar := i+1;
       nv
 
+  let rec num_nuvars n =
+    match n.nexp with
+    | Nuvar _ -> 1
+    | Nadd (n1, n2) | Nmult(n1,n2) -> (num_nuvars n1) + (num_nuvars n2)
+    | Nneg n -> num_nuvars n
+    | _ -> 0
+
+ let rec divide n i =
+   let div i j v = if ((j mod i) = 0)
+                   then {nexp = Nmult({nexp = Nconst (j/i)},v) }
+                   else assert false (* case which needs fractions *) in
+   match n.nexp with
+   | Nvar _ -> assert false (* case which needs fractions *)
+   | Nmult(n1,n2) -> (match n2.nexp with
+                     | Nconst j -> div i j n1
+                     | _ -> assert false)
+   | Nadd(n1,n2) -> { nexp = Nadd((divide n1 i),(divide n2 i)) }
+   | _ -> assert false (* normalizing says we shouldn't get here *)
+
+  (*Solves a normalized constraint with one nuvar which must be equal to the rest of the term.
+    The Nuvar should therefore be the rightmost term in a plus or solo *)
+  let simple_solver n =
+    match n.nexp with
+    | Nuvar _ | Nmult _ -> () (* In these cases the nuvar is solo, nothing to solve *)
+    | Nadd(n1,n2) -> (* Must be nuvar or multiplication of on right *)
+      begin match n2.nexp with
+        | Nuvar _ -> let n1 = normalize {nexp = (Nneg n1)} in
+                     (n2.nexp <- n1.nexp)
+        | Nmult(v,n2) -> (* v must be the nuvar *)
+          begin match n2.nexp with
+                | Nconst i -> let ni = fun _ -> { nexp = Nneg (if (i = 1) then n1 else (divide n1 i))} in
+                              let n1 = if (i= -1) then n1 else normalize (ni ()) in
+                  (v.nexp <- n1.nexp)
+                | _ -> assert false
+          end
+        | _ -> assert false
+       end
+     | _ -> assert false
+
+  let rec solve_numeric_constraints unresolved = function
+    | [] -> unresolved
+    | (EqZero n) :: n_constraints -> if (1 = (num_nuvars n)) (* Add case for zero (because nuvars have been constrained), term should now normalize to 0 or error *)
+                                        then begin (simple_solver n); unresolved end
+                                        else unresolved
+    | LtEq(n1,n2):: n_constraints -> unresolved
+    | GtEq(n1,n2):: n_constraints -> unresolved 
+
   let rec solve_constraints instances (unsolvable : PTset.t)= function
     | [] -> unsolvable 
     | (p,t) :: constraints ->
@@ -1022,6 +1070,7 @@ module Constraint (T : Global_defs) : Constraint = struct
                ignore (resolve_nexp_subst n)
           | _ -> ()
     in
+      let ns = solve_numeric_constraints [] !length_constraints in
       List.iter inst (!uvars);
       List.iter inst_n (!nuvars);
       let cs = solve_constraints T.i PTset.empty !class_constraints in

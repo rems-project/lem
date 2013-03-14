@@ -86,9 +86,9 @@ and nexp_aux =
 
 (* Type of constraints on nexps *)
 type range =
-  | LtEq of nexp
-  | Equal of nexp
-  | GtEq of nexp
+  | LtEq of nexp * nexp
+  | EqZero of nexp
+  | GtEq of nexp * nexp
 
 (* Structural comparison of types, without expanding type abbreviations.
  * Probably better not to use *)
@@ -144,6 +144,7 @@ module Constraint (T : Global_defs) : sig
 end
 
 val pp_type : Format.formatter -> t -> unit
+val pp_nexp : Format.formatter -> nexp -> unit
 val pp_class_constraint : Format.formatter -> Path.t * tnvar -> unit
 val pp_instance : Format.formatter -> instance -> unit
 
