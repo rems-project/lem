@@ -461,6 +461,12 @@ let get_name def l = match def with
     raise (Reporting_basic.err_todo false l "Error while pruning target definitions: unmatched top-level case in get_name [debug]")
 
 
+let target_supports_lemma_type target lty =
+  match (target, lty) with
+    | (Ast.Target_ocaml _, Ast.Lemma_theorem _) -> false
+    | (Ast.Target_ocaml _, Ast.Lemma_lemma _) -> false
+    | (_, _) -> true
+
 let prune_target_bindings target defs =
 
   (* given a list constant name and a list of definition, rem_dups removes all
@@ -484,11 +490,12 @@ let prune_target_bindings target defs =
   let rec def_walker target acc =  function
     | [] -> List.rev acc
 
-    | ((def,s),l)::defs -> match def with
+    | ((def,s),l)::defs -> begin
+      match def with
+        | (Val_def(Let_def(_,Some(_,targs,_),_),_,_) |
+          Val_def(Rec_def(_,_,Some(_,targs,_),_),_,_) |
+          Indreln(_,Some(_,targs,_),_) ) as d -> 
 
-      | (Val_def(Let_def(_,Some(_,targs,_),_),_,_) |
-         Val_def(Rec_def(_,_,Some(_,targs,_),_),_,_) |
-         Indreln(_,Some(_,targs,_),_) ) as d -> 
           if find_target target targs then 
               let name = get_name d l in
               let acc' = rem_dups name acc in  
@@ -497,7 +504,13 @@ let prune_target_bindings target defs =
           else
             def_walker target acc defs
       
-      | d -> def_walker target (((d,s),l) :: acc) defs
+       | Lemma(_,lty,_,_) as d ->
+         if (target_supports_lemma_type target lty) then
+            def_walker target (((d,s),l) :: acc) defs
+         else
+            def_walker target acc defs
+       | d -> def_walker target (((d,s),l) :: acc) defs
+     end
 
   in def_walker target [] defs
 
