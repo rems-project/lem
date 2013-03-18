@@ -3155,7 +3155,8 @@ let defs_to_extra ((ds:def list), end_lex_skips) =
        y)
       ds 
     emp in
-  output_to_rope out
+  if (out = emp) then None else
+    Some (output_to_rope (out ^ ws end_lex_skips))
 
 let defs_to_rope ((ds:def list),end_lex_skips) =
   match T.target with
