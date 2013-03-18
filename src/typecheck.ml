@@ -299,7 +299,7 @@ let check_dup_field_names (fns : (Name.t * Ast.l) list) : unit =
  * instead of passing them around as the formal type system does *)
 
 module type Expr_checker = sig
-  val check_exp : lex_env -> Ast.exp -> exp
+  val check_lem_exp : lex_env -> Ast.l -> Ast.exp -> Types.t -> (exp * (TNset.t * (Path.t * Types.tnvar) list))
 
   val check_letbind : 
     (* Should be None, unless checking a method definition in an instance.  Then
@@ -1081,6 +1081,12 @@ module Make_checker(T : sig
           let (xl, (a,b,c,d,t)) = check_funcl l_e funcl l in
             ((Let_fun(xl,a,b,c,d),l),
              add_binding empty_pat_env (xl.term, xl.locn) t)
+
+  let check_lem_exp (l_e : lex_env) l e ret =
+    let exp = check_exp l_e e in
+    C.equate_types l ret (exp_to_typ exp);
+    let (tnvars,constraints) = C.inst_leftover_uvars l in
+    (exp,(tnvars,constraints))
 
   let check_constraint_subset l cs1 cs2 = 
     unsat_constraint_err l
@@ -1963,15 +1969,12 @@ let check_lemma l ts (ctxt : defn_ctxt)
   let module C = Constraint(T) in
     function
       | Ast.Lemma_unnamed (lty, e) ->
-          let exp = Checker.check_exp empty_lex_env e in
-          let _ = C.equate_types l bool_ty (exp_to_typ exp) in
-          let _ = C.inst_leftover_uvars l in
-            (lty_get_sk lty, lty, None, exp) 
+          let (exp,(tnvars,constraints)) = Checker.check_lem_exp empty_lex_env l e bool_ty in
+              (lty_get_sk lty, lty, None, exp) 
       | Ast.Lemma_named (lty, name, sk, e) ->
-          let exp = Checker.check_exp empty_lex_env e in
+          let (exp,(tnvars,constraints)) = Checker.check_lem_exp empty_lex_env l e bool_ty in
+          (* TODO It's ok for tnvars to have variables (polymorphic lemma), but typed ast should keep them perhaps? Not sure if it's ok for constraints to be unconstrained *)
           let (n, l) = xl_to_nl name in
-          let _ = C.equate_types l bool_ty (exp_to_typ exp) in
-          let _ = C.inst_leftover_uvars l in
             (lty_get_sk lty, lty, Some ((n,l), sk), exp)
 
 (* Check that a type can be an instance.  That is, it can be a type variable, a
