@@ -394,6 +394,7 @@ type def = (def_aux * lskips option) * Ast.l
 and def_aux =
   | Type_def of lskips * (name_l * tnvar list * texp * name_sect option) lskips_seplist
   | Val_def of val_def * TNset.t * (Path.t * Types.tnvar) list 
+  | Lemma of Ast.lemma_typ * name_l option * lskips * exp
   | Ident_rename of lskips * targets_opt * Path.t * Ident.t * lskips * name_l
   | Module of lskips * name_l * lskips * lskips * def list * lskips
   | Rename of lskips * name_l * lskips * mod_descr id

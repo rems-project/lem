@@ -575,6 +575,18 @@ targets_opt {{ tex \ensuremath{\tau^?} }} :: 'Targ_' ::= {{ phantom }}
     {{ ocaml (Some([[targets]])) }}
     {{ hol (SOME([[targets]])) }}
 
+lemma_typ :: 'Lemma_' ::=
+  {{ com Types of Lemmata }}
+  | assert							:: :: assert
+  | lem								:: :: lemma
+  | thm	  							:: :: theorem
+
+lemma :: '' ::= 
+  {{ com Lemmata and Tests }}
+  | lemma_typ x_l : exp						:: :: Lemma_named
+  | lemma_typ exp						:: :: Lemma_unnamed
+
+
 val_def :: '' ::= 
   {{ com Value definitions }}
   | let targets_opt letbind					:: :: Let_def
@@ -594,6 +606,8 @@ def_aux :: '' ::=
     {{ com Type definitions }}
   | val_def							:: :: Val_def
     {{ com Value definitions }}
+  | lemma							:: :: Lemma
+    {{ com Lemmata }}
   | rename targets_opt id = x_l                                 :: :: Ident_rename
     {{ com Rename constant or type }}
   | module x_l = struct defs end				:: :: Module

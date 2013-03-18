@@ -87,14 +87,14 @@ n_l =  (* Location-annotated numeric variables *)
 
 
 type 
-id =  (* Long identifers *)
-   Id of ((x_l * terminal)) list * x_l * l
-
-
-type 
 tnvar =  (* Union of type variables and Nexp type variables, with locations *)
    Avl of a_l
  | Nvl of n_l
+
+
+type 
+id =  (* Long identifers *)
+   Id of ((x_l * terminal)) list * x_l * l
 
 
 type 
@@ -333,6 +333,13 @@ env_tag =  (* Tags for the (non-constructor) value descriptions *)
 
 
 type 
+lemma_typ =  (* Types of Lemmata *)
+   Lemma_assert of terminal
+ | Lemma_lemma of terminal
+ | Lemma_theorem of terminal
+
+
+type 
 typschm =  (* Type schemes *)
    Ts of c_pre * typ
 
@@ -377,6 +384,12 @@ instschm =  (* Instance schemes *)
 
 
 type 
+lemma =  (* Lemmata and Tests *)
+   Lemma_named of lemma_typ * x_l * terminal * exp
+ | Lemma_unnamed of lemma_typ * exp
+
+
+type 
 val_spec =  (* Value type specifications *)
    Val_spec of terminal * x_l * terminal * typschm
 
@@ -411,6 +424,7 @@ type
 def_aux =  (* Top-level definitions *)
    Type_def of terminal * (td * terminal) list (* Type definitions *)
  | Val_def of val_def (* Value definitions *)
+ | Lemma of lemma (* Lemmata *)
  | Ident_rename of terminal * targets option * id * terminal * x_l (* Rename constant or type *)
  | Module of terminal * x_l * terminal * terminal * defs * terminal (* Module definitions *)
  | Rename of terminal * x_l * terminal * id (* Module renamings *)

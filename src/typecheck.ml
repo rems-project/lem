@@ -299,6 +299,8 @@ let check_dup_field_names (fns : (Name.t * Ast.l) list) : unit =
  * instead of passing them around as the formal type system does *)
 
 module type Expr_checker = sig
+  val check_exp : lex_env -> Ast.exp -> exp
+
   val check_letbind : 
     (* Should be None, unless checking a method definition in an instance.  Then
      * it should contain the type that the instance is at.  In this case the
@@ -1095,7 +1097,8 @@ module Make_checker(T : sig
    * def_targets is None if the definitions is not target specific, otherwise it
    * is the set of targets that the definition is for.  def_env is the name and
    * types of all of the variables defined *)
-  let apply_specs_for_def (def_targets : Targetset.t option) l def_env  =
+  let apply_specs_for_def (def_targets : Targetset.t option) (l:Ast.l) 
+    (def_env :  (Types.t * Ast.l) Typed_ast.Nfmap.t)  =
     Nfmap.iter
       (fun n (t,l) ->
          let const_data = Nfmap.apply T.new_module_env.v_env n in
@@ -1934,6 +1937,40 @@ let check_val_def (ts : Targetset.t) (for_method : Types.t option) (l : Ast.l)
             (e_v, (Rec_def(sk1,sk2,target_opt,lbs)), tnvs, constraints, env_tag)
       | _ -> assert false
 
+let check_lemma l ts (ctxt : defn_ctxt) 
+      : Ast.lemma -> 
+        (* The type of Lemma *)
+        Ast.lemma_typ * 
+        (* The name of the Lemma *)
+        name_l option * 
+        (* whitespace *)
+        lskips * 
+        (* the expression *)
+        exp =
+  let module T = struct 
+    let d = ctxt.all_tdefs 
+    let i = ctxt.all_instances 
+    let e = ctxt.cur_env 
+    let new_module_env = ctxt.new_defs
+    let targets = ts
+  end 
+  in
+  let bool_ty = { Types.t = Types.Tapp ([], Path.boolpath) } in
+  let module Checker = Make_checker(T) in
+  let module C = Constraint(T) in
+    function
+      | Ast.Lemma_unnamed (lty, e) ->
+          let exp = Checker.check_exp empty_lex_env e in
+          let _ = C.equate_types l bool_ty (exp_to_typ exp) in
+          let _ = C.inst_leftover_uvars l in
+            (lty, None, None, exp) 
+      | Ast.Lemma_named (lty, name, sk, e) ->
+          let exp = Checker.check_exp empty_lex_env e in
+          let (n, l) = xl_to_nl name in
+          let _ = C.equate_types l bool_ty (exp_to_typ exp) in
+          let _ = C.inst_leftover_uvars l in
+            (lty, Some (n, l), sk, exp)
+
 (* Check that a type can be an instance.  That is, it can be a type variable, a
  * function between type variables, a tuple of type variables or the application
  * of a (non-abbreviation) type constructor to variables.  Returns the
@@ -2050,6 +2087,9 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
             (add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs)
                constraints env_tag None e_v, 
              Val_def(vd,tnvs, constraints))
+      | Ast.Lemma(lem) ->
+            let (lty, name_opt, sk, e) = check_lemma l backend_targets ctxt lem in
+            (ctxt, Lemma(lty, name_opt, sk, e))
       | Ast.Ident_rename(sk1,target_opt,id,sk2,xl') ->        
           let l' = Ast.xl_to_l xl' in
           let n' = Name.from_x xl' in 

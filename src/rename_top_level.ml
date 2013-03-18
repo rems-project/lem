@@ -570,6 +570,8 @@ let rec rename_def renames path ((d,s),l) =
             rename_defs renames (path @ [Name.strip_lskip n]) ds 
           in
             Module(s1,(new_n,l),s2,s3,new_ds,s4)
+      | Lemma(lty,n_opt,sk, e) -> 
+        Lemma(lty,n_opt,sk, ((rename_exp NameSet.empty path renames) e))
     | Indreln(s1,targets,c) ->
         let rename_annot_name (n : name_lskips_annot) = 
              let t' = rename_types_type renames n.typ in

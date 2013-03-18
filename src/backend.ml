@@ -2339,6 +2339,54 @@ let is_rec l =
     | (_,_,Te_record _,_) -> true
     | _ -> false
 
+let rec isa_def_extra d is_user_def : Output.t = match d with
+  | Type_def _ -> emp
+  | Val_def(Let_def _,_,_) -> emp
+  | Val_def(Rec_def(s1, s2, targets, clauses),tnvs, class_constraints) -> 
+      let is_rec = Typed_ast_syntax.is_recursive_def ((d, None), Ast.Unknown) in
+      if (in_target targets && is_rec) then
+      begin
+        let n = 
+          match Seplist.to_list clauses with
+            | [] -> assert false
+            | (n, _, _, _, _)::_ -> Name.strip_lskip n.term
+        in
+          kwd "termination" ^ space ^ 
+          kwd (Name.to_string n) ^ space ^
+          kwd "by" ^ space ^ kwd "lexicographic_order" ^
+          new_line ^ new_line 
+      end
+      else emp
+  | Val_def(Let_inline _ ,_,_) -> emp
+  | Lemma (lty, n_opt, sk, e) -> begin
+      let lem_st = match lty with
+                     | Ast.Lemma_theorem _ -> "theorem"
+                     | _ -> "lemma" in
+      let solve = match lty with
+                     | Ast.Lemma_assert _ -> "by eval"
+                     | _ -> "sorry" in
+      (kwd lem_st ^ space ^
+      (match n_opt with None -> emp | Some (n, _) -> kwd (Name.to_string (Name.strip_lskip n)) ^ kwd ":") ^
+      ws sk ^
+      new_line ^
+      kwd "\"" ^
+      exp e ^
+      kwd "\"" ^
+      new_line ^
+      kwd solve ^
+      new_line ^
+      new_line)
+    end
+  | Ident_rename _ -> emp
+  | Module _ -> emp
+  | Rename _ -> emp
+  | Open _ -> emp
+  | Indreln _ -> emp
+  | Val_spec _ -> emp
+  | Instance _ -> emp
+  | Class _ -> emp  
+  | Comment _ -> emp
+
 
 let rec def d is_user_def : Output.t = match d with
 
@@ -2456,6 +2504,16 @@ let rec def d is_user_def : Output.t = match d with
         exp body
       else
         emp
+  | Lemma (lty, n_opt, sk, e) -> begin
+      let lem_st = match lty with
+                     | Ast.Lemma_theorem _ -> "theorem"
+                     | Ast.Lemma_assert _ -> "assert"
+                     | _ -> "lemma" in
+      (kwd lem_st ^ space ^
+      (match n_opt with None -> emp | Some (n, _) -> kwd (Name.to_string (Name.strip_lskip n)) ^ kwd ":") ^
+      ws sk ^
+      exp e)
+    end
   | Ident_rename(s1,targets,p,i,s2,(n_new, _)) ->
       if (T.target = None) then
         ws s1 ^
@@ -2553,7 +2611,6 @@ let rec def d is_user_def : Output.t = match d with
   | Comment(d) ->
       let (d',sk) = def_alter_init_lskips (fun sk -> (None, sk)) d in
         ws sk ^ ws (Some([Ast.Com(Ast.Comment([Ast.Chars(X.comment_def d')]))]))
-
 
 
 (* for -inc.tex definitions *)
@@ -3009,6 +3066,28 @@ and to_rope_tex_def d : Ulib.Text.t =
 
 let output_to_rope out = to_rope T.string_quote T.lex_skip T.need_space out
 
+let defs_to_extra ((ds:def list), end_lex_skips) =
+  let out = 
+    List.fold_right
+      (fun ((d,s),l) y -> 
+         begin
+           match T.target with 
+           | Some (Ast.Target_isa _) -> isa_def_extra d (is_trans_loc l)
+           | _ -> emp
+         end ^
+
+         begin
+           match s with
+             | None ->
+                 emp
+             | Some(s) -> 
+                 ws s 
+         end ^
+       y)
+      ds 
+    emp in
+  output_to_rope out
+
 let defs_to_rope ((ds:def list),end_lex_skips) =
   match T.target with
   | Some (Ast.Target_tex _) -> 
@@ -3090,15 +3169,15 @@ module Make(C : sig val avoid : var_avoid_f end) = struct
 
   let hol_defs defs =
     let module B = F(Hol)(C)(Comment_def) in
-      B.defs_to_rope defs
+      (B.defs_to_rope defs, B.defs_to_extra defs)
 
   let ocaml_defs defs =
     let module B = F(Ocaml)(C)(Comment_def) in
-      B.defs_to_rope defs
+      (B.defs_to_rope defs, B.defs_to_extra defs)
 
   let isa_defs defs =
     let module B = F(Isa)(C)(Comment_def) in
-      B.defs_to_rope defs
+      (B.defs_to_rope defs, B.defs_to_extra defs)
 
   let isa_header_defs defs =
     let module B = F(Isa)(C)(Comment_def) in

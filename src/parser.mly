@@ -154,6 +154,7 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 %token <Ast.terminal * string> String Bin Hex
 
 %token <Ast.terminal> Indreln Forall EqEqGt Inline LtBar BarGt Exists EqGt BraceBar BarBrace DotBrace
+%token <Ast.terminal> Assert Lemma Theorem
 %token <Ast.terminal * Ulib.Text.t> IN MEM MinusMinusGt
 %token <Ast.terminal> Class_ Inst
 
@@ -808,6 +809,20 @@ targets_opt:
   | Lcurly targets Rcurly
     { Some(Targets_concrete($1,$2,$3)) }
     
+lemma_typ:
+  | Lemma
+    { Lemma_lemma $1 }
+  | Theorem
+    { Lemma_theorem $1 }
+  | Assert
+    { Lemma_assert $1 }
+
+lemma: 
+  | lemma_typ x Colon exp
+    { Lemma_named ($1, $2, $3, $4) }
+  | lemma_typ exp
+    { Lemma_unnamed ($1, $2) }
+
 val_def:  
   | Let_ targets_opt letbind
     { Let_def($1,$2,$3) }
@@ -843,6 +858,8 @@ def:
     { dloc (Class($1,$2,$3,$4,$5,$6,$7)) }
   | Inst instschm val_defs End
     { dloc (Instance($1,$2,$3,$4)) }
+  | lemma
+    { dloc (Lemma $1) }
 
 xtyp:
   | x Colon typ

@@ -155,7 +155,7 @@ let output1 libpath isa_thy targ avoid type_info m alldoc_accum alldoc_inc_accum
           end
       | Some(Typed_ast.Target_hol) ->
           begin
-            let r = B.hol_defs m.typed_ast in
+            let (r_main, r_extra) = B.hol_defs m.typed_ast in
             let o = open_out (m.module_name ^ "Script.sml") in
               Printf.fprintf o "(*%s*)\n" (generated_line m.filename);
               Printf.fprintf o "open bossLib Theory Parse res_quanTheory\n";
@@ -179,7 +179,7 @@ let output1 libpath isa_thy targ avoid type_info m alldoc_accum alldoc_inc_accum
                 else 
                   ()
               end;
-              Printf.fprintf o "%s" (Ulib.Text.to_string r);
+              Printf.fprintf o "%s" (Ulib.Text.to_string r_main);
               Printf.fprintf o "val _ = export_theory()\n\n";
               close_out o
           end
@@ -213,45 +213,57 @@ let output1 libpath isa_thy targ avoid type_info m alldoc_accum alldoc_inc_accum
           end
       | Some(Typed_ast.Target_ocaml) -> 
           begin
-            let r = B.ocaml_defs m.typed_ast in
+            let (r_main, r_extra) = B.ocaml_defs m.typed_ast in
             let o = open_out (f' ^ ".ml") in
               Printf.fprintf o "(*%s*)\n" (generated_line m.filename);
               Printf.fprintf o "open Nat_num\n\n";
               Printf.fprintf o "type 'a set = 'a Pset.set\n\n";
-              Printf.fprintf o "%s" (Ulib.Text.to_string r);
+              Printf.fprintf o "%s" (Ulib.Text.to_string r_main);
               close_out o
           end
       | Some(Typed_ast.Target_isa) -> 
           begin
-            let r = B.isa_defs m.typed_ast in
+          try begin
+            let (r_main, r_extra) = B.isa_defs m.typed_ast in
             let r1 = B.isa_header_defs m.typed_ast in
-              try
-                let o = open_out (m.module_name ^ ".thy") in 
+            let o = open_out (m.module_name ^ ".thy") in 
+            let _ = 
+            begin
+                Printf.fprintf o "header{*%s*}\n\n" (generated_line m.filename);
+                Printf.fprintf o "theory \"%s\" \n\n" m.module_name;
+                Printf.fprintf o "imports \n \t Main\n";
+                Printf.fprintf o "\t \"%s\"\n" isa_thy;
+                (*
+                Printf.fprintf o "imports \n \t \"%s/num_type\" \n" libpath;
+                 *)
+                Printf.fprintf o "%s" (Ulib.Text.to_string r1);
+
+                begin 
+                  if m.predecessor_modules <> [] then 
+                    begin
+                      List.iter (fun f -> Printf.fprintf o "\t \"%s\" \n" f) m.predecessor_modules;
+                    end
+                  else ()
+                end;
+
+                Printf.fprintf o "\nbegin \n\n";
+                Printf.fprintf o "%s" (Ulib.Text.to_string r_main);
+                Printf.fprintf o "end\n";
+                close_out o
+              end in
+              let o = open_out (m.module_name ^ "_extra.thy") in              
                   Printf.fprintf o "header{*%s*}\n\n" (generated_line m.filename);
-                  Printf.fprintf o "theory \"%s\" \n\n" m.module_name;
-                  Printf.fprintf o "imports \n \t Main\n";
-                  Printf.fprintf o "\t \"%s\"\n" isa_thy;
-                  (*
-                  Printf.fprintf o "imports \n \t \"%s/num_type\" \n" libpath;
-                   *)
-                  Printf.fprintf o "%s" (Ulib.Text.to_string r1);
-
-                  begin 
-                    if m.predecessor_modules <> [] then 
-                      begin
-                        List.iter (fun f -> Printf.fprintf o "\t \"%s\" \n" f) m.predecessor_modules;
-                      end
-                    else ()
-                  end;
-
+                  Printf.fprintf o "theory \"%s_extra\" \n\n" m.module_name;
+                  Printf.fprintf o "imports \n \t Main \"%s\"\n" m.module_name;
                   Printf.fprintf o "\nbegin \n\n";
-                  Printf.fprintf o "%s" (Ulib.Text.to_string r);
+                  Printf.fprintf o "%s" (Ulib.Text.to_string r_extra);
                   Printf.fprintf o "end\n";
                   close_out o
-              with
-                | Trans.Trans_error(l,msg) ->
+            end
+            with | Trans.Trans_error(l,msg) ->
                     raise (Reporting_basic.Fatal_error (Reporting_basic.Err_trans_header (l, msg)))
           end
+
       | Some(Typed_ast.Target_coq) -> 
           begin
             let r = B.coq_defs m.typed_ast in

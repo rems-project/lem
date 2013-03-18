@@ -86,7 +86,11 @@ let kw_table =
      ("exists",                  (fun x -> Exists(x)));
      ("inline",                  (fun x -> Inline(x)));
      ("IN",                      (fun x -> IN(x,r"IN")));
-     ("MEM",                     (fun x -> MEM(x,r"MEM")))]
+     ("MEM",                     (fun x -> MEM(x,r"MEM")));
+     ("lemma",                   (fun x -> Lemma(x)));
+     ("assert",                  (fun x -> Assert(x)));
+     ("theorem",                 (fun x -> Theorem(x)));
+]
 
 }
 
