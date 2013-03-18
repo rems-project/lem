@@ -1939,12 +1939,11 @@ let check_val_def (ts : Targetset.t) (for_method : Types.t option) (l : Ast.l)
 
 let check_lemma l ts (ctxt : defn_ctxt) 
       : Ast.lemma -> 
+        lskips *
         (* The type of Lemma *)
         Ast.lemma_typ * 
         (* The name of the Lemma *)
-        name_l option * 
-        (* whitespace *)
-        lskips * 
+        (name_l * lskips) option * 
         (* the expression *)
         exp =
   let module T = struct 
@@ -1957,19 +1956,23 @@ let check_lemma l ts (ctxt : defn_ctxt)
   in
   let bool_ty = { Types.t = Types.Tapp ([], Path.boolpath) } in
   let module Checker = Make_checker(T) in
+  let lty_get_sk = function
+    | Ast.Lemma_theorem sk -> sk
+    | Ast.Lemma_assert sk -> sk
+    | Ast.Lemma_lemma sk -> sk in
   let module C = Constraint(T) in
     function
       | Ast.Lemma_unnamed (lty, e) ->
           let exp = Checker.check_exp empty_lex_env e in
           let _ = C.equate_types l bool_ty (exp_to_typ exp) in
           let _ = C.inst_leftover_uvars l in
-            (lty, None, None, exp) 
+            (lty_get_sk lty, lty, None, exp) 
       | Ast.Lemma_named (lty, name, sk, e) ->
           let exp = Checker.check_exp empty_lex_env e in
           let (n, l) = xl_to_nl name in
           let _ = C.equate_types l bool_ty (exp_to_typ exp) in
           let _ = C.inst_leftover_uvars l in
-            (lty, Some (n, l), sk, exp)
+            (lty_get_sk lty, lty, Some ((n,l), sk), exp)
 
 (* Check that a type can be an instance.  That is, it can be a type variable, a
  * function between type variables, a tuple of type variables or the application

@@ -2358,16 +2358,15 @@ let rec isa_def_extra d is_user_def : Output.t = match d with
       end
       else emp
   | Val_def(Let_inline _ ,_,_) -> emp
-  | Lemma (lty, n_opt, sk, e) -> begin
+  | Lemma (sk0, lty, n_opt, e) -> begin
       let lem_st = match lty with
                      | Ast.Lemma_theorem _ -> "theorem"
                      | _ -> "lemma" in
       let solve = match lty with
                      | Ast.Lemma_assert _ -> "by eval"
                      | _ -> "sorry" in
-      (kwd lem_st ^ space ^
-      (match n_opt with None -> emp | Some (n, _) -> kwd (Name.to_string (Name.strip_lskip n)) ^ kwd ":") ^
-      ws sk ^
+      (ws sk0 ^ kwd lem_st ^ space ^
+      (match n_opt with None -> emp | Some ((n, _), sk1) -> kwd (Name.to_string (Name.strip_lskip n)) ^ ws sk1 ^ kwd ":") ^
       new_line ^
       kwd "\"" ^
       exp e ^
@@ -2504,14 +2503,15 @@ let rec def d is_user_def : Output.t = match d with
         exp body
       else
         emp
-  | Lemma (lty, n_opt, sk, e) -> begin
+  | Lemma (sk0, lty, n_opt, e) -> begin
       let lem_st = match lty with
-                     | Ast.Lemma_theorem _ -> "theorem"
-                     | Ast.Lemma_assert _ -> "assert"
-                     | _ -> "lemma" in
-      (kwd lem_st ^ space ^
-      (match n_opt with None -> emp | Some (n, _) -> kwd (Name.to_string (Name.strip_lskip n)) ^ kwd ":") ^
-      ws sk ^
+                     | Ast.Lemma_theorem sk -> "theorem"
+                     | Ast.Lemma_assert sk -> "assert"
+                     | Ast.Lemma_lemma sk -> "lemma" in
+      (ws sk0 ^ kwd lem_st ^ 
+      (match n_opt with None -> emp | Some ((n, l), sk1) -> 
+       Name.to_output T.infix_op_format Term_var n ^
+       ws sk1 ^ kwd ":") ^
       exp e)
     end
   | Ident_rename(s1,targets,p,i,s2,(n_new, _)) ->
