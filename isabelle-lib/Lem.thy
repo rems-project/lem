@@ -59,6 +59,13 @@ subsection{* Finite Maps *}
 abbreviation (input) "map_find k m \<equiv> the (m k)"
 abbreviation (input) "map_update k v m \<equiv> m (k \<mapsto> v)"
 
+subsection{* Lists *}
+
+abbreviation (input) "list_mem e l \<equiv> (e \<in> set l)"
+abbreviation (input) "list_forall P l \<equiv> (\<forall>e\<in>set l. P e)"
+abbreviation (input) "list_exists P l \<equiv> (\<exists>e\<in>set l. P e)"
+abbreviation (input) "list_unzip l \<equiv> (map fst l, map snd l)"
+
 subsection{* Sets *}
 
 abbreviation (input) "set_choose s \<equiv> (SOME x. (x \<in> s))"

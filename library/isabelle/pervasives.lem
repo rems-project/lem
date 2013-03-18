@@ -68,6 +68,10 @@ val set_choose : forall 'a. set 'a -> 'a
 val set_filter : forall 'a. ('a -> bool) -> set 'a -> set 'a
 val set_cross : forall 'a 'b. set 'a -> set 'b -> set ('a * 'b)
 val Sigma : forall 'a 'b. set 'a -> ('a -> set 'b) -> set ('a * 'b)
+val list_forall : forall 'a. ('a -> bool) -> list 'a -> bool
+val list_exists : forall 'a. ('a -> bool) -> list 'a -> bool
+val list_mem : forall 'a. 'a -> list 'a -> bool
+val list_unzip : forall 'a 'b. list ('a * 'b) -> (list 'a * list 'b)
 
 val \\* : num -> num -> num
 val div : num -> num -> num

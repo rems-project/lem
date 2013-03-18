@@ -81,3 +81,4 @@ val list_all2 : forall 'a 'b. ('a -> 'b -> bool) -> list 'a -> list 'b -> bool
 val sublist : forall 'a. list 'a -> set num -> list 'a
 val splice : forall 'a. list 'a -> list 'a -> list 'a 
 val ListMem : forall 'a. 'a -> list 'a -> bool
+val partition : forall 'a. ('a -> bool) -> list 'a -> (list 'a * list 'a)
