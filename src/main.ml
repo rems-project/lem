@@ -114,6 +114,13 @@ let options = Arg.align ([
   ( "-ident_pat_compile",
     Arg.Unit (fun b -> Target_trans.ident_force_pattern_compile := true; Reporting.ignore_pat_compile_warnings()),
     " activates pattern compilation for the identity backend. This is used for debugging.");
+  ( "-extra_level", 
+    Arg.Symbol (["none"; "auto"; "all"], (fun s ->
+     Backend.gen_extra_level := (match s with
+       | "none" -> 0
+       | "auto" -> 1
+       | _ -> 2))),
+    " generate no (none) extra-information, only extras that can be handled automatically (auto) or all (all) extra information")
 ] @ Reporting.warn_opts)
 
 let usage_msg = 

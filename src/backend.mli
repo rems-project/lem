@@ -44,6 +44,9 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
+(** The level of extra information to generate *)
+val gen_extra_level : int ref
+
 (* The various backends that generate text from typed asts *)
 module Make(C : sig val avoid : Typed_ast.var_avoid_f end) : sig
   val ident_defs      : Typed_ast.def list * Ast.lex_skips -> Ulib.Text.t
