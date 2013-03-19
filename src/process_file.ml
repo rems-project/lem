@@ -261,7 +261,8 @@ let output1 libpath isa_thy targ avoid type_info m alldoc_accum alldoc_inc_accum
               Printf.fprintf o "Require Import Arith.\n";
               Printf.fprintf o "Require Import Bool.\n";
               Printf.fprintf o "Require Import List.\n";
-              Printf.fprintf o "Require Import String.\n\n";
+              Printf.fprintf o "Require Import String.\n";
+              Printf.fprintf o "Require Import Program.Wf.\n\n";
               Printf.fprintf o "Open Scope nat_scope.\n";
               Printf.fprintf o "Open Scope string_scope.\n\n";
               Printf.fprintf o "%s" (Ulib.Text.to_string r);
