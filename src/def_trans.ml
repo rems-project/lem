@@ -504,8 +504,9 @@ let prune_target_bindings target defs =
           else
             def_walker target acc defs
       
-       | Lemma(_,lty,_,_) as d ->
-         if (target_supports_lemma_type target lty) then
+       | Lemma(_,lty,targets,_,_) as d ->
+         let targ_OK = match targets with None -> true | Some (_, targs, _) -> find_target target targs in
+         if (target_supports_lemma_type target lty && targ_OK) then
             def_walker target (((d,s),l) :: acc) defs
          else
             def_walker target acc defs

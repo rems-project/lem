@@ -412,7 +412,7 @@ and def_aux =
   (* The TNset contains the type length variables that the definition is parameterized
    * over, and the list contains the class constraints on those variables *)
   | Val_def of val_def * Types.TNset.t * (Path.t * Types.tnvar) list 
-  | Lemma of lskips * Ast.lemma_typ * (name_l * lskips) option * exp
+  | Lemma of lskips * Ast.lemma_typ * targets_opt * (name_l * lskips) option * exp
   | Ident_rename of lskips * targets_opt * Path.t * Ident.t * lskips * name_l
   | Module of lskips * name_l * lskips * lskips * def list * lskips
   | Rename of lskips * name_l * lskips * mod_descr id

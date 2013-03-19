@@ -1946,11 +1946,9 @@ let check_val_def (ts : Targetset.t) (for_method : Types.t option) (l : Ast.l)
 let check_lemma l ts (ctxt : defn_ctxt) 
       : Ast.lemma -> 
         lskips *
-        (* The type of Lemma *)
         Ast.lemma_typ * 
-        (* The name of the Lemma *)
+        targets_opt *
         (name_l * lskips) option * 
-        (* the expression *)
         exp =
   let module T = struct 
     let d = ctxt.all_tdefs 
@@ -1963,19 +1961,25 @@ let check_lemma l ts (ctxt : defn_ctxt)
   let bool_ty = { Types.t = Types.Tapp ([], Path.boolpath) } in
   let module Checker = Make_checker(T) in
   let lty_get_sk = function
-    | Ast.Lemma_theorem sk -> sk
-    | Ast.Lemma_assert sk -> sk
-    | Ast.Lemma_lemma sk -> sk in
+    | Ast.Lemma_theorem sk -> (sk, Ast.Lemma_theorem None)
+    | Ast.Lemma_assert sk -> (sk, Ast.Lemma_assert None)
+    | Ast.Lemma_lemma sk -> (sk, Ast.Lemma_lemma None) in
   let module C = Constraint(T) in
     function
-      | Ast.Lemma_unnamed (lty, e) ->
+      | Ast.Lemma_unnamed (lty, target_opt, e) ->
+          let target_set = target_opt_to_set target_opt in
           let (exp,(tnvars,constraints)) = Checker.check_lem_exp empty_lex_env l e bool_ty in
-              (lty_get_sk lty, lty, None, exp) 
-      | Ast.Lemma_named (lty, name, sk, e) ->
+          let (sk, lty') = lty_get_sk lty in
+          let target_opt = check_target_opt target_opt in
+              (sk, lty', target_opt, None, exp) 
+      | Ast.Lemma_named (lty, target_opt, name, sk, e) ->
+          let target_set = target_opt_to_set target_opt in
           let (exp,(tnvars,constraints)) = Checker.check_lem_exp empty_lex_env l e bool_ty in
           (* TODO It's ok for tnvars to have variables (polymorphic lemma), but typed ast should keep them perhaps? Not sure if it's ok for constraints to be unconstrained *)
+          let target_opt = check_target_opt target_opt in
+          let (sk0, lty') = lty_get_sk lty in
           let (n, l) = xl_to_nl name in
-            (lty_get_sk lty, lty, Some ((n,l), sk), exp)
+            (sk0, lty', target_opt, Some ((n,l), sk), exp)
 
 (* Check that a type can be an instance.  That is, it can be a type variable, a
  * function between type variables, a tuple of type variables or the application
@@ -2024,19 +2028,33 @@ let rec check_instance_type_shape (ctxt : defn_ctxt) (src_t : src_t)
 
 (* If a definition is target specific, we only want to check it with regards to
  * the backends that we are both translating to, and that it is for *)
-let change_effective_backends (backend_targets : Targetset.t) (Ast.Def_l(def,l)) = 
-  match def with
+let ast_def_to_target_opt = function
     | Ast.Val_def(Ast.Let_def(_,target_opt,_) |
                   Ast.Let_inline(_,_,target_opt,_) |
-                  Ast.Let_rec(_,_,target_opt,_))
-    | Ast.Indreln(_,target_opt,_) ->
+                  Ast.Let_rec(_,_,target_opt,_)) -> Some target_opt
+    | Ast.Indreln(_,target_opt,_) -> Some target_opt
+    | Ast.Lemma(Ast.Lemma_unnamed(_,target_opt,_)) -> Some target_opt
+    | Ast.Lemma(Ast.Lemma_named(_,target_opt,_,_,_)) -> Some target_opt
+    | Ast.Type_def _ -> None
+    | Ast.Ident_rename _ -> None
+    | Ast.Module _ -> None
+    | Ast.Rename _ -> None
+    | Ast.Open _ -> None
+    | Ast.Spec_def _ -> None
+    | Ast.Class _ -> None
+    | Ast.Instance _ -> None
+
+
+let change_effective_backends (backend_targets : Targetset.t) (Ast.Def_l(def,l)) = 
+  match (ast_def_to_target_opt def) with 
+    | None -> None
+    | Some target_opt ->
         begin
           match target_opt_to_set target_opt with
             | None -> None
             | Some(ts) -> 
                 Some(Targetset.inter ts backend_targets)
         end
-    | _ -> None 
 
 (* backend_targets is the set of targets for which all variables must be defined
  * (i.e., the current backends, not the set of targets that this definition if
@@ -2094,8 +2112,8 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                constraints env_tag None e_v, 
              Val_def(vd,tnvs, constraints))
       | Ast.Lemma(lem) ->
-            let (lty, name_opt, sk, e) = check_lemma l backend_targets ctxt lem in
-            (ctxt, Lemma(lty, name_opt, sk, e))
+            let (sk, lty, targs, name_opt, e) = check_lemma l backend_targets ctxt lem in
+            (ctxt, Lemma(sk, lty, targs, name_opt, e))
       | Ast.Ident_rename(sk1,target_opt,id,sk2,xl') ->        
           let l' = Ast.xl_to_l xl' in
           let n' = Name.from_x xl' in 

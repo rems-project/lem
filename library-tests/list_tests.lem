@@ -123,6 +123,10 @@ assert split_0: (List.split [(0,1); (1,2); (2,3)] = ([0;1;2], [1;2;3]))
 assert combine_0: (List.combine [0;1;2] [1;2;3] =  [(0,1); (1,2); (2,3)])
 lemma combine_split : (forall l. (let (l1, l2) = List.split l in List.combine l1 l2) = l)
 
+assert {ocaml} assoc_0: (List.assoc 2 [(3, 4); (2,3); (6,2)] = 3)
+assert {ocaml} assoc_1: (List.assoc 2 [(3, 4); (2,3); (6,2); (2, 4)] = 3)
+assert {ocaml} assoc_2: (List.assoc 2 [(2, 1); (2,3); (6,2); (2, 4)] = 1)
+
 (*
 val sort : forall 'a. ('a -> 'a -> num) -> list 'a -> list 'a
 
@@ -144,8 +148,6 @@ val exists2 : forall 'a 'b. ('a -> 'b -> bool) -> list 'a -> list 'b -> bool
 
 val find : forall 'a. ('a -> bool) -> list 'a -> 'a
 
-val assoc : forall 'a 'b. 'a -> list ('a * 'b) -> 'b
-let inline {ocaml} assoc = Ocaml.List.assoc
 
 val mem_assoc : forall 'a 'b. 'a -> list ('a * 'b) -> bool
 

@@ -561,9 +561,9 @@ let rec rename_def renames path ((d,s),l) =
               clauses
           in
             Val_def(Rec_def(s1,s2,targets,new_clauses),tnvs,class_constraints)
-      | Lemma(lty,n_opt,sk, e) -> 
+      | Lemma(sk,lty,targets,n_opt,e) -> 
         let new_e = rename_exp NameSet.empty path renames e in
-        Lemma(lty,n_opt,sk, new_e)
+        Lemma(sk,lty,targets,n_opt,new_e)
       | Open(s1,m) ->
           (* TODO: open*)
           Open(s1,m)

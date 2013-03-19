@@ -583,8 +583,8 @@ lemma_typ :: 'Lemma_' ::=
 
 lemma :: '' ::= 
   {{ com Lemmata and Tests }}
-  | lemma_typ x_l : exp						:: :: Lemma_named
-  | lemma_typ exp						:: :: Lemma_unnamed
+  | lemma_typ targets_opt x_l : exp				:: :: Lemma_named
+  | lemma_typ targets_opt exp					:: :: Lemma_unnamed
 
 
 val_def :: '' ::= 

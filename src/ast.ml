@@ -169,6 +169,16 @@ ne =  (* internal numeric expressions *)
 
 
 type 
+target =  (* Backend target names *)
+   Target_hol of terminal
+ | Target_isa of terminal
+ | Target_ocaml of terminal
+ | Target_coq of terminal
+ | Target_tex of terminal
+ | Target_html of terminal
+
+
+type 
 cs =  (* Typeclass constraint lists *)
    Cs_empty
  | Cs_list of (c * terminal) list * terminal (* Must have $>0$ constraints *)
@@ -210,16 +220,6 @@ tannot_opt =  (* Optional type annotations *)
 
 
 type 
-target =  (* Backend target names *)
-   Target_hol of terminal
- | Target_isa of terminal
- | Target_ocaml of terminal
- | Target_coq of terminal
- | Target_tex of terminal
- | Target_html of terminal
-
-
-type 
 tnv =  (* Union of type variables and Nexp type variables, without locations *)
    Av of a
  | Nv of n
@@ -235,6 +235,11 @@ t =  (* Internal types *)
 
 and t_args =  (* Lists of types *)
    T_args of (t) list
+
+
+type 
+targets =  (* Backend target name lists *)
+   Targets_concrete of terminal * (target * terminal) list * terminal
 
 
 type 
@@ -316,11 +321,6 @@ ctor_def =  (* Datatype definition clauses *)
 
 
 type 
-targets =  (* Backend target name lists *)
-   Targets_concrete of terminal * (target * terminal) list * terminal
-
-
-type 
 semC =  (* Typeclass constraint lists *)
    SemC_concrete of ((terminal * p * tnv * terminal)) list
 
@@ -385,8 +385,8 @@ instschm =  (* Instance schemes *)
 
 type 
 lemma =  (* Lemmata and Tests *)
-   Lemma_named of lemma_typ * x_l * terminal * exp
- | Lemma_unnamed of lemma_typ * exp
+   Lemma_named of lemma_typ * targets option * x_l * terminal * exp
+ | Lemma_unnamed of lemma_typ * targets option * exp
 
 
 type 

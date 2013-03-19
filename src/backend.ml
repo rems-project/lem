@@ -2379,7 +2379,7 @@ let rec isa_def_extra (gf:extra_gen_flags) d l : Output.t = match d with
           new_line ^ new_line 
       end
       else emp
-  | Lemma (sk0, lty, n_opt, e) when (extra_gen_flags_gen_lty gf lty) -> begin
+  | Lemma (sk0, lty, targets, n_opt, e) when (extra_gen_flags_gen_lty gf lty && in_target targets) -> begin
       let lem_st = match lty with
                      | Ast.Lemma_theorem _ -> "theorem"
                      | _ -> "lemma" in
@@ -2394,7 +2394,6 @@ let rec isa_def_extra (gf:extra_gen_flags) d l : Output.t = match d with
       kwd "\"" ^
       new_line ^
       kwd solve ^
-      new_line ^
       new_line)
     end
   | _ -> emp
@@ -2416,7 +2415,7 @@ let rec hol_def_extra gf d l : Output.t = match d with
         meta (String.concat "" [goal_stack_setup_s; proof_s; store_s; "\n\n"])
       end
       else emp
-  | Lemma (sk0, lty, n_opt, e) when (extra_gen_flags_gen_lty gf lty) -> begin
+  | Lemma (sk0, lty, targets, n_opt, e) when (extra_gen_flags_gen_lty gf lty && in_target targets) -> begin
       let start = match n_opt with 
           None -> "val _ = prove(\n" | 
           Some ((n, _), _) -> begin
@@ -2445,7 +2444,7 @@ let rec hol_def_extra gf d l : Output.t = match d with
   | _ -> emp
 
 let rec ocaml_def_extra gf d l : Output.t = match d with
-  | Lemma (sk0, lty, n_opt, e) when (extra_gen_flags_gen_lty gf lty) -> begin
+  | Lemma (sk0, lty, targets, n_opt, e) when (extra_gen_flags_gen_lty gf lty && in_target targets) -> begin
       let is_assert = match lty with
                      | Ast.Lemma_assert _ -> true
                      | _ -> false in
@@ -2582,7 +2581,7 @@ let rec def d is_user_def : Output.t = match d with
         exp body
       else
         emp
-  | Lemma (sk0, lty, n_opt, e) -> 
+  | Lemma (sk0, lty, targets, n_opt, e) -> 
       if (not is_identity_target) then emp else
       begin
       let lem_st = match lty with
@@ -2590,6 +2589,7 @@ let rec def d is_user_def : Output.t = match d with
                      | Ast.Lemma_assert sk -> "assert"
                      | Ast.Lemma_lemma sk -> "lemma" in
       (ws sk0 ^ kwd lem_st ^ 
+       targets_opt targets ^
       (match n_opt with None -> emp | Some ((n, l), sk1) -> 
        Name.to_output T.infix_op_format Term_var n ^
        ws sk1 ^ kwd ":") ^
