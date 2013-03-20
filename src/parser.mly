@@ -818,10 +818,10 @@ lemma_typ:
     { Lemma_assert $1 }
 
 lemma: 
-  | lemma_typ targets_opt x Colon exp
-    { Lemma_named ($1, $2, $3, $4, $5) }
-  | lemma_typ targets_opt exp
-    { Lemma_unnamed ($1, $2, $3) }
+  | lemma_typ targets_opt Lparen exp Rparen
+    { Lemma_unnamed ($1, $2, $3, $4, $5) }
+  | lemma_typ targets_opt x Colon Lparen exp Rparen
+    { Lemma_named ($1, $2, $3, $4, $5, $6, $7) }
 
 val_def:  
   | Let_ targets_opt letbind

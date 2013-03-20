@@ -384,9 +384,9 @@ instschm =  (* Instance schemes *)
 
 
 type 
-lemma =  (* Lemmata and Tests *)
-   Lemma_named of lemma_typ * targets option * x_l * terminal * exp
- | Lemma_unnamed of lemma_typ * targets option * exp
+lemma_decl =  (* Lemmata and Tests *)
+   Lemma_named of lemma_typ * targets option * x_l * terminal * terminal * exp * terminal
+ | Lemma_unnamed of lemma_typ * targets option * terminal * exp * terminal
 
 
 type 
@@ -424,7 +424,7 @@ type
 def_aux =  (* Top-level definitions *)
    Type_def of terminal * (td * terminal) list (* Type definitions *)
  | Val_def of val_def (* Value definitions *)
- | Lemma of lemma (* Lemmata *)
+ | Lemma of lemma_decl (* Lemmata *)
  | Ident_rename of terminal * targets option * id * terminal * x_l (* Rename constant or type *)
  | Module of terminal * x_l * terminal * terminal * defs * terminal (* Module definitions *)
  | Rename of terminal * x_l * terminal * id (* Module renamings *)

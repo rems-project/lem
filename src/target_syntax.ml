@@ -365,7 +365,7 @@ let rec fix_infix_and_parens get_prec defs =
   in
   let rec fix_def = function
     | Val_def(d,tnvs,class_constraints) -> Val_def(fix_val_def d,tnvs,class_constraints)
-    | Lemma(sk,lty,targets,n_opt,e) -> Lemma(sk,lty,targets,n_opt, fix_exp get_prec e)
+    | Lemma(sk,lty,targets,n_opt,sk2,e,sk3) -> Lemma(sk,lty,targets,n_opt,sk2,fix_exp get_prec e,sk3)
     | Indreln(s1,targets,c) ->
         Indreln(s1,
                 targets,

@@ -578,13 +578,13 @@ targets_opt {{ tex \ensuremath{\tau^?} }} :: 'Targ_' ::= {{ phantom }}
 lemma_typ :: 'Lemma_' ::=
   {{ com Types of Lemmata }}
   | assert							:: :: assert
-  | lem								:: :: lemma
-  | thm	  							:: :: theorem
+  | lemma    	              					:: :: lemma
+  | theorem  							:: :: theorem
 
-lemma :: '' ::= 
+lemma_decl :: '' ::= 
   {{ com Lemmata and Tests }}
-  | lemma_typ targets_opt x_l : exp				:: :: Lemma_named
-  | lemma_typ targets_opt exp					:: :: Lemma_unnamed
+  | lemma_typ targets_opt x_l : ( exp )				:: :: Lemma_named
+  | lemma_typ targets_opt ( exp )				:: :: Lemma_unnamed
 
 
 val_def :: '' ::= 
@@ -606,7 +606,7 @@ def_aux :: '' ::=
     {{ com Type definitions }}
   | val_def							:: :: Val_def
     {{ com Value definitions }}
-  | lemma							:: :: Lemma
+  | lemma_decl							:: :: Lemma
     {{ com Lemmata }}
   | rename targets_opt id = x_l                                 :: :: Ident_rename
     {{ com Rename constant or type }}
