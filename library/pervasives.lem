@@ -125,6 +125,7 @@ let inline {coq} ( * ) = Coq.( * )
 val ( ** ) : num -> num -> num
 let inline {hol} ( ** ) = Hol.( ** )
 let inline {ocaml} ( ** ) = Ocaml.Nat_num.exp
+let inline {isabelle} ( ** ) = Isabelle.nat_exp
 
 val (/) : num -> num -> num
 let inline {hol} (/) = Hol.DIV
@@ -134,6 +135,8 @@ let inline {coq} (/) = Coq.divide
 
 val (mod) : num -> num -> num
 let inline {ocaml} (mod) = Ocaml.Nat_num.(mod)
+let inline {isabelle} (mod) = Isabelle.nat_mod
+let inline {hol} (mod) = Hol.MOD
 
 val fst : forall 'a 'b. 'a * 'b -> 'a
 let inline {hol} fst = Hol.FST

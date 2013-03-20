@@ -3199,7 +3199,7 @@ begin
 
   in
   if (out = emp) then None else
-    Some (output_to_rope (out ^ ws end_lex_skips))
+    Some (output_to_rope (out ^ new_line ^ new_line))
 end
 
 let defs_to_rope ((ds:def list),end_lex_skips) =

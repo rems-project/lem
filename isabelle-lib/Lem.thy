@@ -73,6 +73,12 @@ abbreviation (input) "set_diff (s1::'a set) s2 \<equiv> s1 - s2"
 abbreviation (input) "set_filter P (s::'a set) \<equiv> {x \<in> s. P x}"
 abbreviation (input) "set_cross s1 s2 \<equiv> s1 \<times> s2"
 
+subsection{* Natural numbers *}
+
+abbreviation (input) "nat_exp (n1::nat) (n2::nat) \<equiv>  n1 ^ n2"
+abbreviation (input) "nat_mod (n1::nat) (n2::nat) \<equiv>  n1 mod n2"
+
+
 subsection{* Integers *}
 
 abbreviation (input) "int_add (i1::int) (i2::int) \<equiv> i1 + i2"

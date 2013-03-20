@@ -75,6 +75,8 @@ val list_unzip : forall 'a 'b. list ('a * 'b) -> (list 'a * list 'b)
 
 val \\* : num -> num -> num
 val div : num -> num -> num
+val nat_exp : num -> num -> num
+val nat_mod : num -> num -> num
 
 (* Integer operation *)
 type int = Hol.Integer.int

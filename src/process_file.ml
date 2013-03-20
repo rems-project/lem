@@ -283,7 +283,7 @@ let output1 libpath isa_thy targ avoid type_info m alldoc_accum alldoc_inc_accum
                 let o = open_out (m.module_name ^ "Extra.thy") in              
                 Printf.fprintf o "header{*%s*}\n\n" (generated_line m.filename);
                 Printf.fprintf o "theory \"%sExtra\" \n\n" m.module_name;
-                Printf.fprintf o "imports \n \t Main \"%s\"\n" m.module_name;
+                Printf.fprintf o "imports \n \t Main \"~~/src/HOL/Library/Efficient_Nat\" \"%s\"\n" m.module_name;
                 Printf.fprintf o "\nbegin \n\n";
                 Printf.fprintf o "%s" (Ulib.Text.to_string r_extra);
                 Printf.fprintf o "end\n";
