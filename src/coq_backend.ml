@@ -506,7 +506,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
                       ws skips; from_string "Definition"; body; from_string "."
                     ]
                 else
-                  ws skips ^ from_string "(* definition intended for different target *)"
+                  ws skips ^ from_string "(* [?]: removed value definition intended for another target. *)"
             | Rec_def (skips, skips', targets, funcl_skips_seplist) ->
                 if in_target targets then
                   let header =
@@ -526,8 +526,8 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
                       ws skips; header; formed; from_string "."
                     ]
                 else
-                  from_string "\n(* recursive definition intended for different target *)"
-            | _ -> from_string "\n(* XXX: top level val def not supported in Coq backend *)"
+                  from_string "\n(* [?]: removed recursive definition intended for another target. *)"
+            | _ -> from_string "\n(* [?]: removed top-level value definition. *)"
         end
       | Module (skips, (name, l), skips', skips'', defs, skips''') ->
         let name = lskips_t_to_output name in
@@ -558,8 +558,8 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
             let c = Seplist.to_list cs in
               clauses c
           else
-            from_string "\n(* inductive relation intended for another target *)"
-      | Val_spec val_spec -> from_string "\n(* XXX: top level val spec not supported in Coq backend *)\n"
+            from_string "\n(* [?]: removed inductive relation intended for another target. *)"
+      | Val_spec val_spec -> from_string "\n(* [?]: removed value specification. *)\n"
       | Class (skips, skips', name, tyvar, skips'', body, skips''') -> from_string "Class"
       | Instance (skips, instantiation, vals, skips', sem_info) -> from_string "Instance"
       | Comment c ->
@@ -567,7 +567,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
           combine [
       		  from_string "(* "; def inside_module def_aux; from_string " *)"
           ]
-      | Ident_rename _ -> from_string "(* XXX: ident_rename not supported in Coq backend *)"
+      | Ident_rename _ -> from_string "\n(* [?]: removed rename statement. *)"
     and clauses clause_list =
       let equality_on_relation_name (_, _, _, _, _, _, name, _) (_, _, _, _, _, _, name', _) =
         Pervasives.compare name name' = 0
@@ -578,24 +578,25 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
       match lb with
         | Let_val (p, topt, skips, e) ->
             let p = def_pattern p in
-            let tv_set_sep =
-              if Types.TNset.cardinal tv_set = 0 then
-                emp
-              else
-                from_string " "
-            in
-            let tv_set =
+            let tv_set_sep, tv_set =
               if Types.TNset.cardinal tv_set = 0 then
                 let typ = Typed_ast.exp_to_typ e in
-                  Types.free_vars typ
+                let tv_set = Types.free_vars typ in
+                  if Types.TNset.cardinal tv_set = 0 then
+                    emp, tv_set
+                  else
+                    from_string " ", tv_set
               else
-                tv_set
+                from_string " ", tv_set
             in
             let tv_set = let_type_variables top_level tv_set in
             let topt =
               match topt with
                 | None        -> emp
-                | Some (_, t) -> from_string " : " ^ pat_typ t
+                | Some (s, t) ->
+                    combine [
+                      ws s; from_string ":"; pat_typ t
+                    ]
             in
             let e = exp e in
               combine [
@@ -610,23 +611,28 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
           | [] -> emp
           | _  -> from_string " "
       in
-      let tv_set =
+      let tv_set_sep, tv_set =
         if Types.TNset.cardinal tv_set = 0 then
           let typ = Typed_ast.exp_to_typ e in
-            Types.free_vars typ
+          let tv_set = Types.free_vars typ in
+            if Types.TNset.cardinal tv_set = 0 then
+              emp, tv_set
+            else
+              from_string " ", tv_set
         else
-          tv_set
+          from_string " ", tv_set
       in
+      let tv_set = let_type_variables true tv_set in
       let typ_opt =
         match typ_opt with
           | None -> emp
           | Some (s, t) ->
               combine [
-                ws s; from_string ":"; pat_typ t
+                ws s; from_string " : "; pat_typ t
               ]
       in
         combine [
-          ws name_skips; name; from_string " "; let_type_variables false tv_set; pat_skips;
+          ws name_skips; name; tv_set_sep; tv_set; pat_skips;
           fun_pattern_list pats; typ_opt; ws skips; from_string ":="; exp e
         ]
     and let_type_variables top_level tv_set =
@@ -648,7 +654,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
           | App (e1, e2) ->
               block is_user_exp 0 (combine [
                 block (Typed_ast_syntax.is_trans_exp e1) 0 (exp e1);
-                from_string " "; break_hint_space 2;
+                break_hint_space 2;
                 block (Typed_ast_syntax.is_trans_exp e2) 0 (exp e2)
               ])
           | Paren (skips, e, skips') ->
@@ -746,7 +752,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
           | Infix (l, c, r) ->
             block is_user_exp 0 (combine [
               block (Typed_ast_syntax.is_trans_exp l) 0 (exp l);
-              from_string " "; exp c; from_string " "; break_hint_space 0;
+              break_hint_space 0; exp c; break_hint_space 0;
               block (Typed_ast_syntax.is_trans_exp r) 0 (exp r)
             ])
           | If (skips, test, skips', t, skips'', f) ->
@@ -761,7 +767,60 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
           | Quant (_, _, _, _) -> from_string "(* XXX: quant *)"
           | Comp_binding (_, _, _, _, _, _, _, _, _) -> from_string "(* XXX: comp binding *)"
           | Setcomp (_, _, _, _, _, _) -> from_string "(* XXX: setcomp *)"
-          | _ -> from_string "XXX: vectors"
+          | Nvar_e (skips, nvar) ->
+            let nvar = id Nexpr_var $ Ulib.Text.(^^^) (r"") (Nvar.to_rope nvar) in
+              combine [
+                ws skips; nvar
+              ]
+          | VectorAcc (e, skips, nexp, skips') ->
+              combine [
+                from_string "vector_index"; exp e; ws skips; src_nexp nexp; ws skips'
+              ]
+          | VectorSub (e, skips, nexp, skips', nexp', skips'') ->
+              combine [
+                from_string "vector_slice"; exp e; ws skips; src_nexp nexp;
+                ws skips'; src_nexp nexp'; ws skips'
+              ]
+          | Vector (skips, es, skips') ->
+            let body = flat $ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) exp (sep $ from_string "; ") es in
+            let skips =
+              if skips = Typed_ast.no_lskips then
+                from_string " "
+              else
+                ws skips
+            in
+              block is_user_exp 0 (
+                if Seplist.is_empty es then
+                  combine [
+                    skips; from_string "[[]]]"
+                  ]
+                else
+                  combine [
+                    skips; from_string "[["; body; ws skips'; from_string "]]"
+                  ])
+    and src_nexp n =
+      match n.nterm with
+        | Nexp_var (skips, nvar) ->
+          let nvar = id Nexpr_var $ Ulib.Text.(^^^) (r"") (Nvar.to_rope nvar) in
+            combine [
+              ws skips; nvar
+            ]
+        | Nexp_const (skips, i) ->
+            combine [
+              ws skips; from_string (string_of_int i)
+            ]
+        | Nexp_mult (nexp, skips, nexp') ->
+            combine [
+              src_nexp nexp; ws skips; from_string "*"; src_nexp nexp'
+            ]
+        | Nexp_add (nexp, skips, nexp') ->
+            combine [
+              src_nexp nexp; ws skips; from_string "+"; src_nexp nexp'
+            ]
+        | Nexp_paren (skips, nexp, skips') ->
+            combine [
+              ws skips; from_string "("; src_nexp nexp; ws skips'; from_string ")"
+            ]
     and case_line (p, skips, e, _) =
         combine [
           def_pattern p; ws skips; from_string "=>"; break_hint_space 2; exp e
@@ -979,7 +1038,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
         List.map (
           function
             | Typed_ast.Tn_A (x, y, z) -> from_string $ Ulib.Text.to_string y
-            | Typed_ast.Tn_N _ -> from_string "(* XXX: vectors not supported in Coq backend *)"
+            | Typed_ast.Tn_N _ -> from_string "(* [!]: vectors not supported in Coq backend. *)"
           ) ty_vars
       in
         inductive ty_vars n ^ tyexp name ty_vars ty
@@ -1045,7 +1104,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
             ]
         | Typ_paren(skips, t, skips') ->
             ws skips ^ from_string "(" ^ pat_typ t ^ ws skips' ^ from_string ")"
-        | Typ_len _ -> from_string "(* XXX: vectors not supported in Coq backend *)"
+        | Typ_len _ -> from_string "(* [!]: vectors not supported in Coq backend. *)"
     and typ t =
     	match t.term with
       	| Typ_wild skips -> ws skips ^ from_string "_"
@@ -1059,7 +1118,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
            from_string $ Ulib.Text.to_string (Name.to_rope name)
       	| Typ_paren(skips, t, skips') ->
           	ws skips ^ from_string "(" ^ typ t ^ from_string ")" ^ ws skips'
-        | Typ_len _ -> from_string "(* XXX: vectors not supported in Coq backend *)"
+        | Typ_len _ -> from_string "(* [!]: vectors not supported in Coq backend. *)"
     and type_def_type_variables tvs =
       match tvs with
         | [] -> emp
@@ -1091,7 +1150,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
             ]
         | Typ_paren(skips, t, skips') ->
             ws skips ^ from_string "(" ^ typ t ^ from_string ")" ^ ws skips'
-        | Typ_len _ -> from_string "(* XXX: vectors not supported in Coq backend *)"
+        | Typ_len _ -> from_string "(* [!]: vectors not supported in Coq backend. *)"
     and field ((n, _), skips, t) =
       combine [
         Name.to_output coq_infix_op Term_field n; from_string ":"; ws skips; field_typ t

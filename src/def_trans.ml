@@ -205,7 +205,7 @@ let type_annotate_definitions _ env ((d,s),l) =
           let t = (None,C.t_to_src_t (exp_to_typ e)) in
             Some
               (env,
-               [((Val_def(Let_def(sk1,topt,((Let_fun(n,ps,Some t,sk2,e),l'))),tnvs,class_constraints), s), l)])
+               [((Val_def(Let_def(sk1, topt,((Let_fun(n, ps, Some t, sk2, e), l'))), tnvs, class_constraints), s), l)])
     (* TODO: Rec_def *)
     | _ -> None
 
