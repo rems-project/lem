@@ -65,3 +65,4 @@ val vimage : forall 'a 'b. ('a -> 'b) -> set 'b -> set 'a
 val contents : forall 'a. set 'a -> 'a
 val list_of_set : forall 'a. set 'a -> list 'a
 val card : forall 'a. set 'a -> num
+val finite: forall 'a. set 'a -> bool

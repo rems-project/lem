@@ -1,0 +1,121 @@
+assert singleton_1: (Set.equal (Set.singleton 1) {1})
+assert singleton_2: (Set.equal (Set.singleton 2) {2})
+lemma singleton_thm: (forall x. Set.equal (Set.singleton x) {x})
+
+assert add_1: (Set.equal (Set.add 2 {3;4}) {2;3;4})
+assert add_2: (Set.equal (Set.add 3 {3;4}) {3;4})
+assert add_3: (Set.equal (Set.add 3 {}) {3})
+
+lemma add_swap: (forall s e1 e2. 
+  Set.equal 
+    (Set.add e1 (Set.add e2 s))
+    (Set.add e2 (Set.add e1 s))
+)
+
+lemma add_idem: (forall s e. 
+  Set.equal 
+    (Set.add e (Set.add e s))
+    (Set.add e s)
+)
+
+lemma add_in: (forall s e. e IN (Set.add e s))
+
+assert {ocaml;isabelle;coq} for_all1: (Set.for_all (fun x -> x > 2) {3;4;5})
+assert {ocaml;isabelle;coq} for_all2: (Set.for_all (fun x -> x > 2) {4;3;4;5;5})
+assert {ocaml;isabelle;coq} for_all3: (not (Set.for_all (fun x -> x > 2) {3;4;2;5}))
+lemma for_all_thm: (forall P s. ((Set.for_all P s) = (forall (e IN s). P e)))
+
+assert {ocaml;isabelle;coq} exists1: (Set.exist (fun x -> x < 2) {1;3;4;5})
+assert {ocaml;isabelle;coq} exists2: (Set.exist (fun x -> x < 2) {4;3;4;1;5;5})
+assert {ocaml;isabelle;coq} exists3: (not (Set.exist (fun x -> x < 2) {3;4;2;5}))
+lemma exists_thm: (forall P s. (Set.exist P s) = (exists (e IN s). P e))
+
+assert cardinal_1: (Set.cardinal ({}:set num) = 0)
+assert cardinal_2: (Set.cardinal {2} = 1)
+assert cardinal_3: (Set.cardinal {1;1} = 1)
+assert cardinal_4: (Set.cardinal {2;1;3} = 3)
+assert cardinal_5: (Set.cardinal {2;1;3;9} = 4)
+
+assert {ocaml; hol} finite_0: (Set.finite {})
+assert {ocaml; hol} finite_1: (Set.finite {2;3;4;5;6;7;9})
+assert {ocaml; hol} finite_2: (Set.finite {1;3;4})
+lemma finite_add: (forall e s. Set.finite s --> Set.finite (Set.add e s))
+lemma finite_counter: (not (Set.finite { x | x > 5}))
+
+assert {ocaml;isabelle;coq} from_list_1: (Set.equal (Set.from_list []) ({}:set num))
+assert {ocaml;isabelle;coq} from_list_2: (Set.equal (Set.from_list [2]) {2})
+assert {ocaml;isabelle;coq} from_list_3: (Set.equal (Set.from_list [2;3;2]) {2;3;2})
+assert {ocaml;isabelle;coq} from_list_4: (Set.equal (Set.from_list [1;2;3;4]) {1;2;3;4})
+
+assert {ocaml} to_list_1: (List.length (Set.to_list ({}:set num)) = 0)
+assert {ocaml} to_list_2: (List.length (Set.to_list {1;1;2;3}) = 3)
+assert {ocaml} to_list_3: (List.length (Set.to_list {2;3;4}) = 3)
+assert {ocaml} to_list_4: (List.mem 3 (Set.to_list {2;3;4}))
+assert {ocaml} to_list_5: (List.mem 2 (Set.to_list {2;3;4}))
+assert {ocaml} to_list_6: (List.mem 4 (Set.to_list {2;3;4}))
+assert {ocaml} to_list_7: (List.length (Set.to_list {3}) = 1)
+assert {ocaml} to_list_8: (List.mem 3 (Set.to_list {3}))
+
+lemma to_list_from_list: (forall s. Set.finite s --> Set.equal (Set.from_list (Set.to_list s)) s)
+lemma to_list_mem: (forall s e. Set.finite s --> List.mem e (Set.to_list s) = (e IN s))
+
+(* TODO: add distinct to list library 
+lemma to_list_distinct: (forall s. (List.distinct (Set.to_list s)))
+*)
+
+assert is_empty_1: (Set.is_empty {})
+assert is_empty_2: (not (Set.is_empty {1}))
+lemma is_empty_lem: (forall s. (Set.is_empty s) --> (Set.cardinal s = 0))
+
+assert {ocaml} choose_1: (Set.choose {1} 2 = 1)
+assert {ocaml} choose_2: (Set.choose {2} 3 = 2)
+assert {ocaml} choose_3: (Set.choose {3} 4 = 3)
+assert {ocaml} choose_4: (Set.choose {3;2;4} 4 IN {3;2;4})
+lemma choose_in: (forall s d. not (Set.is_empty s) --> (Set.choose s d) IN s)
+lemma choose_seteq: (forall s1 s2 d. (Set.equal s1 s2) --> ((Set.choose s1 d) = Set.choose s2 d))
+
+assert {ocaml} fold_1: (Set.fold (+) {1;2;3} 0 = 6)
+assert {ocaml} fold_2: (Set.fold (+) {} 5 = 5)
+assert {ocaml} fold_3: (Set.equal (Set.fold Set.add {2;1;3} {4}) {1;2;3;4})
+
+lemma fold_seteq: (forall s1 s2 f x0. (Set.equal s1 s2) --> (Set.fold f s1 x0 = Set.fold f s2 x0))
+
+assert {ocaml;isabelle;coq} filter_1: (Set.equal (Set.filter (fun n -> n > 2) {1;2;3;4}) {3;4})
+assert {ocaml;isabelle;coq} filter_2: (Set.equal (Set.filter (fun n -> n > 2) {}) {})
+lemma filter_emp: (forall P. (Set.equal (Set.filter P {}) {}))
+lemma filter_add: (forall e s P. (Set.equal (Set.filter P (Set.add e s))
+  (if (P e) then Set.add e (Set.filter P s) else (Set.filter P s))))
+
+assert image_1: (Set.equal (Set.image (fun x -> x + x) {2;3;4}) {4;6;8})
+assert image_2: (Set.equal (Set.image (fun x -> x + x) {5}) {10})
+lemma image_emp: (forall f. (Set.equal (Set.image f {}) {}))
+lemma image_add: (forall e s f. (Set.equal (Set.image f (Set.add e s)) 
+  (Set.add (f e) (Set.image f s))))
+
+assert cross_1: ((1,2) IN (Set.cross {2;3;1} {2;4}))
+assert cross_2: ((2,2) IN (Set.cross {2;3;1} {2;4}))
+assert cross_3: (not (((2,1) IN Set.cross {2;3;1} {2;4})))
+assert cross_4: (not (((5,3) IN Set.cross {2;3;1} {2;4})))
+lemma cross_emp_1: (forall s. Set.equal (Set.cross (s:set num) {}) {})
+
+let A = {2;3;5}
+let B n = (Set.image (fun e -> e * n) A)
+
+assert {ocaml;isabelle;coq} set_sigma_1: ((2, 10) IN (Set.set_sigma A B))
+assert {ocaml;isabelle;coq} set_sigma_2: ((3, 9) IN (Set.set_sigma A B))
+assert {ocaml;isabelle;coq} set_sigma_3: (not ((2, 9) IN (Set.set_sigma A B)))
+assert {ocaml;isabelle;coq} set_sigma_4: (Set.cardinal (Set.set_sigma A B) = 9)
+
+(*
+val compare: forall 'a. set 'a -> set 'a -> num
+let inline {coq} compare = Coq.set_compare
+
+val lfp : forall 'a. set 'a -> (set 'a -> set 'a) -> set 'a
+let inline {ocaml} lfp = Ocaml.Pset.lfp
+
+val (=) : forall 'a. set 'a -> set 'a -> bool
+let inline {ocaml} (=) = Ocaml.Pset.equal 
+let inline {hol} (=) = Hol.(=)
+let inline {isabelle} (=) = Isabelle.(=)
+
+*)

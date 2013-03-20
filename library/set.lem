@@ -1,5 +1,6 @@
 val singleton : forall 'a. 'a -> set 'a
 let inline {coq} singleton = Coq.set_singleton
+let inline {hol; isabelle; ocaml} singleton x = {x}
 
 val add : forall 'a. 'a -> set 'a -> set 'a
 let inline {coq} add = Coq.set_add
@@ -19,6 +20,11 @@ let inline {ocaml} exist = Ocaml.Pset.\\exists
 let inline {hol} exist f xs = Hol.EXISTS f (Hol.SET_TO_LIST xs)
 let inline {isabelle} exist P S = Isabelle.Set.Bex S P 
 let inline {coq} exist = Coq.set_exists
+
+val finite : forall 'a. set 'a -> bool
+let inline {ocaml;coq} finite s = true
+let inline {hol} finite = Hol.FINITE
+let inline {isabelle} finite = Isabelle.finite
 
 val cardinal : forall 'a. set 'a -> num
 let inline {ocaml} cardinal = Ocaml.Pset.cardinal
@@ -59,20 +65,25 @@ let inline {isabelle} fold f A q = Isabelle.Finite_Set.fold f q A
 
 val filter : forall 'a. ('a -> bool) -> set 'a -> set 'a
 let inline {ocaml} filter = Ocaml.Pset.filter
+let inline {hol;coq} filter P s = {e | forall (e IN s) | P e}
 let inline {isabelle} filter = Isabelle.set_filter
 
 val image : forall 'a 'b. ('a -> 'b) -> set 'a -> set 'b
 let inline {isabelle} image = Isabelle.Set.image
 let inline {hol} image = Hol.IMAGE
+let inline {ocaml} image = Ocaml.Pset.map Ocaml.compare
+let inline {coq} image f s = { f e | forall (e IN s) | true }
 
 val cross : forall 'a 'b. set 'a -> set 'b -> set ('a * 'b)
 let inline {isabelle} cross = Isabelle.set_cross
 let inline {hol} cross = Hol.CROSS
+let inline {ocaml;coq} cross s1 s2 = { (e1, e2) | forall (e1 IN s1) (e2 IN s2) | true }
 
 (* set_sigma A (fun a -> B a) should result in the set
    { (a, b) | a IN A && b IN B a } *)
 val set_sigma : forall 'a 'b. set 'a -> ('a -> set 'b) -> set ('a * 'b)
 let inline {isabelle} set_sigma = Isabelle.Sigma
+let inline {ocaml;coq;hol} set_sigma s1 s2 = { (a, b) | forall (a IN s1) (b IN s2 a) | true }
 
 val compare: forall 'a. set 'a -> set 'a -> num
 let inline {coq} compare = Coq.set_compare
@@ -90,4 +101,4 @@ val equal : forall 'a. set 'a -> set 'a -> bool
 let inline {ocaml; hol; isabelle} equal = (=)
 
 val map : forall 'a 'b. ('a -> 'b) -> set 'a -> set 'b
-let inline {ocaml} map = Ocaml.Pset.map Ocaml.compare
+let inline {ocaml;hol;isabelle;coq} map = image
