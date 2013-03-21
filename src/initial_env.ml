@@ -190,7 +190,7 @@ struct
     List.fold_left
       (fun init_env t -> proc_open (Some(Target_hol)) (full_filename Target_hol t) init_env)
       (td,initial_env)
-      ["min"; "bool"; "pair"; "arithmetic"; "pred_set"; "finite_map"; "list"; "string"; "sorting"; "set_relation"; "integer"]
+      ["min"; "bool"; "pair"; "arithmetic"; "pred_set"; "finite_map"; "list"; "string"; "sorting"; "set_relation"; "fixedPoint"; "integer"]
 
   let target = Target_ocaml
 

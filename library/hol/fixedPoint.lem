@@ -44,66 +44,9 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (*========================================================================*)
 
-val True : bool
-val False : bool
-val (=) : forall 'a. 'a -> 'a -> bool
-val ~= : forall 'a. 'a -> 'a -> bool
-val (<) : num -> num -> bool
-val (<=) : num -> num -> bool
-val (>) : num -> num -> bool
-val (>=) : num -> num -> bool
-val ~ : bool -> bool
-val (&) : bool -> bool -> bool
-val \\| : bool -> bool -> bool 
-val (-->) : bool -> bool -> bool 
-val (+) : num -> num -> num
-val (-) : num -> num -> num
-val set_diff : forall 'a. set 'a -> set 'a -> set 'a
-val fst : forall 'a 'b. 'a * 'b -> 'a
-val snd : forall 'a 'b. 'a * 'b -> 'b
-val Pair : forall 'a 'b. 'a -> 'b -> 'a * 'b
-val The : forall 'a. ('a -> bool) -> 'a
-val \\# : forall 'a. 'a -> list 'a -> list 'a
-val set_choose : forall 'a. set 'a -> 'a
-val set_filter : forall 'a. ('a -> bool) -> set 'a -> set 'a
-val set_cross : forall 'a 'b. set 'a -> set 'b -> set ('a * 'b)
-val set_lfp : forall 'a. set 'a -> (set 'a -> set 'a) -> set 'a
-val mono : forall 'a. (set 'a -> set 'a) -> bool
-val Sigma : forall 'a 'b. set 'a -> ('a -> set 'b) -> set ('a * 'b)
-val list_forall : forall 'a. ('a -> bool) -> list 'a -> bool
-val list_exists : forall 'a. ('a -> bool) -> list 'a -> bool
-val list_mem : forall 'a. 'a -> list 'a -> bool
-val list_unzip : forall 'a 'b. list ('a * 'b) -> (list 'a * list 'b)
+val lfp : forall 'a. (set 'a -> set 'a) -> set 'a
+val gfp : forall 'a. (set 'a -> set 'a) -> set 'a
+val dense : forall 'a. (set 'a -> set 'a) -> bool
+val closed : forall 'a. (set 'a -> set 'a) -> bool
+val monotone : forall 'a. (set 'a -> set 'a) -> bool
 
-val \\* : num -> num -> num
-val div : num -> num -> num
-val nat_exp : num -> num -> num
-val nat_mod : num -> num -> num
-
-(* Integer operation *)
-type int = Hol.Integer.int
-val int_add : int -> int -> int
-val int_sub : int -> int -> int
-val int_mul : int -> int -> int
-val int_exp : int -> num -> int
-val int_div : int -> int -> int
-val int_mod : int -> int -> int
-val int_lt : int -> int -> bool
-val int_le : int -> int -> bool
-val int_gt : int -> int -> bool
-val int_ge : int -> int -> bool
-val int : num -> int
-val int_neg : int -> int
-
-(* Do not have implementations yet *)
-val bitwise_and : num -> num -> num
-val bitwise_or  : num -> num -> num
-val bitwise_xor : num -> num -> num
-val bitwise_not : num -> num
-
-val num_asr : num -> num -> num
-val num_lsl : num -> num -> num
-val num_lsr : num -> num -> num
-
-val trancl  : forall 'a. set ('a * 'a) -> set ('a * 'a)
-val rtrancl : forall 'a. set ('a * 'a) -> set ('a * 'a)

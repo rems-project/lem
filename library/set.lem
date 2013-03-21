@@ -88,9 +88,20 @@ let inline {ocaml;coq;hol} set_sigma s1 s2 = { (a, b) | forall (a IN s1) (b IN s
 val compare: forall 'a. set 'a -> set 'a -> num
 let inline {coq} compare = Coq.set_compare
 
-(* TODO: Document and add HOL/Isa implementation *)
+(* least fix point. The operation 
+   lfp s f applies to f and gets a set s'.
+   If s' contains new elements they are added to s and
+   the process repeats. Otherwise s is returned.
+*)
+val monotone : forall 'a. (set 'a -> set 'a) -> bool
+let inline {coq} monotone f = (forall s1 s2. s1 subset s2 --> f s1 subset f s2)
+let inline {isabelle} monotone = Isabelle.mono
+let inline {hol} monotone = Hol.monotone
+
 val lfp : forall 'a. set 'a -> (set 'a -> set 'a) -> set 'a
 let inline {ocaml} lfp = Ocaml.Pset.lfp
+let inline {isabelle} lfp = Isabelle.set_lfp
+let inline {hol} lfp s f = Hol.lfp (fun s' -> f s' union s)
 
 val (=) : forall 'a. set 'a -> set 'a -> bool
 let inline {ocaml} (=) = Ocaml.Pset.equal 
@@ -102,3 +113,4 @@ let inline {ocaml; hol; isabelle} equal = (=)
 
 val map : forall 'a 'b. ('a -> 'b) -> set 'a -> set 'b
 let inline {ocaml;hol;isabelle;coq} map = image
+

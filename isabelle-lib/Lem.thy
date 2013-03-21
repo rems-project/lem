@@ -73,6 +73,61 @@ abbreviation (input) "set_diff (s1::'a set) s2 \<equiv> s1 - s2"
 abbreviation (input) "set_filter P (s::'a set) \<equiv> {x \<in> s. P x}"
 abbreviation (input) "set_cross s1 s2 \<equiv> s1 \<times> s2"
 
+lemma set_choose_thm[simp]:
+  "s \<noteq> {} \<Longrightarrow> (set_choose s) \<in> s"
+by (rule someI_ex) auto
+
+definition set_lfp:: "'a set \<Rightarrow> ('a set \<Rightarrow> 'a set) \<Rightarrow> 'a set" where
+  "set_lfp s f = lfp (\<lambda>s'. f s' \<union> s)"
+  
+lemma set_lfp_tail_rec_def :
+assumes mono_f: "mono f"
+shows "set_lfp s f = (if (f s) \<subseteq> s then s else (set_lfp (s \<union> f s) f))" (is "?ls = ?rs")
+proof (cases "f s \<subseteq> s")
+  case True note fs_sub_s = this
+
+  from fs_sub_s have "\<Inter>{u. f u \<union> s \<subseteq> u} = s" by auto
+  hence "?ls = s" unfolding set_lfp_def lfp_def .
+  with fs_sub_s show "?ls = ?rs" by simp
+next
+  case False note not_fs_sub_s = this
+  
+  from mono_f have mono_f': "mono (\<lambda>s'. f s' \<union> s)"
+    unfolding mono_def by auto
+
+  have "\<Inter>{u. f u \<union> s \<subseteq> u} = \<Inter>{u. f u \<union> (s \<union> f s) \<subseteq> u}" (is "\<Inter>?S1 = \<Inter>?S2")
+  proof 
+    have "?S2 \<subseteq> ?S1" by auto
+    thus "\<Inter>?S1 \<subseteq> \<Inter>?S2" by (rule Inf_superset_mono)
+  next  
+    { fix e
+      assume "e \<in> \<Inter>?S2"
+      hence S2_prop: "\<And>s'. f s' \<subseteq> s' \<Longrightarrow> s \<subseteq> s' \<Longrightarrow> f s \<subseteq> s' \<Longrightarrow> e \<in> s'" by simp
+      
+      { fix s'
+        assume "f s' \<subseteq> s'" "s \<subseteq> s'"
+        
+        from mono_f `s \<subseteq> s'` 
+        have "f s \<subseteq> f s'" unfolding mono_def by simp
+        with `f s' \<subseteq> s'` have "f s \<subseteq> s'" by simp
+        with `f s' \<subseteq> s'` `s \<subseteq> s'` S2_prop
+        have "e \<in> s'" by simp
+      }
+      hence "e \<in> \<Inter>?S1" by simp
+    }  
+    thus "\<Inter>?S2 \<subseteq> \<Inter>?S1" by auto
+  qed
+  hence "?ls = (set_lfp (s \<union> f s) f)" 
+     unfolding set_lfp_def lfp_def .     
+  with not_fs_sub_s show "?ls = ?rs" by simp
+qed
+  
+lemma set_lfp_simps [simp] :
+"mono f \<Longrightarrow> f s \<subseteq> s \<Longrightarrow> set_lfp s f = s" 
+"mono f \<Longrightarrow> \<not>(f s \<subseteq> s) \<Longrightarrow> set_lfp s f = (set_lfp (s \<union> f s) f)" 
+by (metis set_lfp_tail_rec_def)+
+
+
 subsection{* Natural numbers *}
 
 abbreviation (input) "nat_exp (n1::nat) (n2::nat) \<equiv>  n1 ^ n2"
@@ -96,12 +151,10 @@ abbreviation (input) "int_ge (i1::int) (i2::int) \<equiv> i1 \<ge> i2"
 abbreviation (input) "int_neg (i::int) \<equiv> -i"
 
 
-
-
 definition list_of_set :: "'a set \<Rightarrow> 'a list" where
    "list_of_set s = (SOME l. (set l = s \<and> distinct l))"
 
-lemma list_of_set : 
+lemma list_of_set [simp] : 
   assumes fin_s: "finite s"
   shows "(set (list_of_set s) = s \<and> distinct (list_of_set s))"
 unfolding list_of_set_def
