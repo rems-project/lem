@@ -54,7 +54,7 @@ let r = Ulib.Text.of_latin1
 let tds = 
   [(Path.listpath, Tc_type([Ty(Tyvar.from_rope (r"a"))], None, None));
    (Path.setpath, Tc_type([Ty(Tyvar.from_rope (r"a"))], None, None));
-   (Path.vectorpath, Tc_type([Nv(Nvar.from_rope (r"a"));Ty(Tyvar.from_rope (r"b"))], None, None));
+   (Path.vectorpath, Tc_type([Ty(Tyvar.from_rope (r"b"));Nv(Nvar.from_rope (r"a"))], None, None));
    (Path.numpath, Tc_type([], None, None));
    (Path.stringpath, Tc_type([], None, None));
    (Path.boolpath, Tc_type([], None, None));

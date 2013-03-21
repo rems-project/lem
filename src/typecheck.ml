@@ -273,11 +273,11 @@ let check_lit (Ast.Lit_l(lit,l)) =
     | Ast.L_bin(sk,i) ->
         let bit = { t = Tapp([], Path.bitpath) } in
         let len = { t = Tne( { nexp = Nconst(String.length i)} ) } in
-        annot (L_vector(sk,"0b",i)) { t = Tapp([len;bit], Path.vectorpath) }
+        annot (L_vector(sk,"0b",i)) { t = Tapp([bit;len], Path.vectorpath) }
     | Ast.L_hex(sk,i) ->
         let bit = { t = Tapp([], Path.bitpath) } in
         let len = { t = Tne( { nexp = Nconst(String.length i * 4)} ) } in
-        annot (L_vector(sk, "0x", i)) { t = Tapp([len;bit], Path.vectorpath) }
+        annot (L_vector(sk, "0x", i)) { t = Tapp([bit;len], Path.vectorpath) }
     | Ast.L_zero(sk) -> annot (L_zero(sk)) { t = Tapp([], Path.bitpath) }
     | Ast.L_one(sk) -> annot (L_one(sk)) { t = Tapp([], Path.bitpath) }
 
@@ -536,7 +536,7 @@ module Make_checker(T : sig
            let a = C.new_type () in
              Seplist.iter (fun pat -> C.equate_types l a pat.typ) pats;
              let len = { t = Tne({ nexp = Nconst( Seplist.length pats )} ) } in
-             C.equate_types l ret_type { t = Tapp([len;a], Path.vectorpath) };
+             C.equate_types l ret_type { t = Tapp([a;len], Path.vectorpath) };
              (A.mk_pvector l sk1 pats sk3 ret_type, pat_e)
         | Ast.P_vectorC(sk1,ps,sk2) -> 
             let (pats,pat_e) = List.fold_left (fun (l,acc) p ->
@@ -547,10 +547,10 @@ module Make_checker(T : sig
             let lens =
               List.fold_left (fun lens pat -> 
                                 let c = C.new_nexp () in
-                                ignore(C.equate_types l { t = Tapp([{t=Tne(c)};a],Path.vectorpath) }, pat.typ);
+                                ignore(C.equate_types l { t = Tapp([a;{t=Tne(c)}],Path.vectorpath) }, pat.typ);
                                 c::lens) [] pats in
               let len = { t = Tne( nexp_from_list (List.rev lens) ) } in
-              C.equate_types l ret_type { t = Tapp([len;a],Path.vectorpath) };
+              C.equate_types l ret_type { t = Tapp([a;len],Path.vectorpath) };
               (A.mk_pvectorc l sk1 pats sk2 ret_type, pat_e)
         | Ast.P_paren(sk1,p,sk2) -> 
             let (pat,pat_e) = check_pat l_e p acc in
@@ -850,14 +850,14 @@ module Make_checker(T : sig
             let a = C.new_type () in
             let len = {t = Tne( { nexp=Nconst(Seplist.length exps)} ) }in
               Seplist.iter (fun exp -> C.equate_types l a (exp_to_typ exp)) exps;
-              C.equate_types l ret_type { t = Tapp([len;a], Path.vectorpath) };
+              C.equate_types l ret_type { t = Tapp([a;len], Path.vectorpath) };
               A.mk_vector l sk1 exps sk2 ret_type
         | Ast.VAccess(e,sk1,nexp,sk2) -> 
             let exp = check_exp l_e e in
             let n = nexp_to_src_nexp C.add_nvar nexp in
             let vec_n = C.new_nexp () in
             let t = exp_to_typ exp in
-              C.equate_types l { t = Tapp([{t = Tne(vec_n)} ; ret_type],Path.vectorpath) } t;
+              C.equate_types l { t = Tapp([ ret_type;{t = Tne(vec_n)}],Path.vectorpath) } t;
               C.in_range l vec_n n.nt;
               A.mk_vaccess l exp sk1 n sk2 ret_type
         | Ast.VAccessR(e,sk1,n1,sk2,n2,sk3) -> 
@@ -867,10 +867,10 @@ module Make_checker(T : sig
             let vec_n = C.new_nexp () in
             let vec_t = C.new_type () in
             let t = exp_to_typ exp in
-              C.equate_types l { t=Tapp([{t = Tne(vec_n)} ; vec_t ], Path.vectorpath) } t;
+              C.equate_types l { t=Tapp([vec_t;{t = Tne(vec_n)}], Path.vectorpath) } t;
               C.in_range l n2.nt n1.nt;
               C.in_range l vec_n n2.nt;
-              C.equate_types l ret_type { t =Tapp([{t = Tne({ nexp=Nadd(n2.nt,{nexp=Nneg(n1.nt)})})} ; vec_t], Path.vectorpath)};
+              C.equate_types l ret_type { t =Tapp([vec_t;{t = Tne({ nexp=Nadd(n2.nt,{nexp=Nneg(n1.nt)})})}], Path.vectorpath)};
               A.mk_vaccessr l exp sk1 n1 sk2 n2 sk3 ret_type 
         | Ast.Paren(sk1,e,sk2) ->
             let exp = check_exp l_e e in

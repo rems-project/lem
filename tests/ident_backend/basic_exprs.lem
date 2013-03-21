@@ -123,5 +123,5 @@ let test78 = 0xA0B1D3E
 
 let test79 = Vector.vconcat test76 test78
 
-val test80 : forall ''x. vector ''x bit -> num
+val test80 : forall ''x. vector bit ''x -> num
 let test80 v = ''x

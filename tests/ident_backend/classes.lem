@@ -16,7 +16,7 @@ module Z = struct
 end
 
 class (V ''n)
-  val parse_vec : string -> vector ''n bit
+  val parse_vec : string -> vector bit ''n
 end
 
 instance (V 4)
@@ -25,5 +25,5 @@ end
 
 let f x = parse_vec x
 
-val g : string -> vector 4 bit
+val g : string -> vector bit 4
 let g x = parse_vec x

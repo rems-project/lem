@@ -964,7 +964,7 @@ module Exps_in_context(D : Exp_context) = struct
 
   let mk_pvector l s1 ps s2 t =
     if check then
-       type_eq l "mk_pvector" { t= Tapp([{t=Tne({nexp=Nconst(Seplist.length ps)})} ; ((Seplist.hd ps).typ)], Path.vectorpath) } t;
+       type_eq l "mk_pvector" { t= Tapp([((Seplist.hd ps).typ);{t=Tne({nexp=Nconst(Seplist.length ps)})} ], Path.vectorpath) } t;
     (* TODO KG need to check here that the types are all the same *)
     { term = P_vector(s1,ps,s2);
        locn = l;
@@ -1819,7 +1819,7 @@ module Exps_in_context(D : Exp_context) = struct
       check_typ l "mk_vector" t 
         (fun d ->
            let len = Seplist.length es in
-                     { t = Tapp([{t = Tne({nexp = Nconst(len)})}; List.hd (Seplist.to_list_map (fun e -> e.typ) es)],
+                     { t = Tapp([List.hd (Seplist.to_list_map (fun e -> e.typ) es); {t = Tne({nexp = Nconst(len)})}],
                                 Path.vectorpath) })
     (* TODO KG determine if the types should be checked here to all be the same *)
     in
@@ -1958,7 +1958,7 @@ module Exps_in_context(D : Exp_context) = struct
     let tlen = {t = Tne({nexp = Nconst(Seplist.length es)}) } in 
     if check then
      Seplist.iter
-       (fun e -> type_eq l "mk_vector" { t = Tapp([tlen;e.typ],Path.vectorpath) } t)
+       (fun e -> type_eq l "mk_vector" { t = Tapp([e.typ;tlen],Path.vectorpath) } t)
        es;
     { term = Vector(s1,es,s2);
       locn = l;
