@@ -1,4 +1,4 @@
-module M = struct let v = 1 end
+(*module M = struct let v = 1 end
 type t = | C1 | C2 of num | C3 of num * num | C4 of num * num * num * num
 type t2= <| fn1 : num|>
 type t3 = <|fn2 : num ; fn3 : num|>
@@ -100,7 +100,7 @@ let test60 = forall ( x IN {} ) ( y MEM [ ] ) . x
 let test62 s1 s2 = [ y | forall ( ( x,y ) MEM s2 ) | true ]
 let test65 r = r.fn1
 
-let test66 = { r.fn1 | r = <| fn1 = 2 |> }
+let test66 = { r.fn1 | r = <| fn1 = 2 |> }*)
 
 (*Vectors*)
 let test67 = [| true; false; |]
