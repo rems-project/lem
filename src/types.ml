@@ -570,7 +570,13 @@ let nexp_mismatch l n1 n2 =
   let n2 = nexp_to_string n2 in
     raise (Ident.No_type(l, "numeric expression mismatch:\n" ^ n1 ^ "\nand\n" ^ n2))
 
-(* Converts to linear normal form, summation of (optionally constant-multiplied) variables, with the "smallest" variable on the right *)
+(*TODO Get a location. *)
+(*TODO add kind of error information and call instead of assert false in simple solver*)
+let unresolvable_constraint n =
+  let n1 = nexp_to_string n in
+  raise (Ident.No_type(Ast.Unknown, "Type contained unresolvable constraint: 0 = " ^ n1 ^ "\n"))
+
+(* Converts to linear normal form, summation of (optionally constant-multiplied) variables, with the "smallest" variable on the left *)
 let normalize nexp =
  let make_n n = {nexp = n} in
   let make_mul n i = match i with 
@@ -745,9 +751,9 @@ let rec nexp_from_list nls = match nls with
     | n1::nls -> {nexp = Nadd(n1,(nexp_from_list nls))}
 
 type range =
-  | LtEq of nexp * nexp
-  | EqZero of nexp
-  | GtEq of nexp  * nexp
+  | LtEq of Ast.l * nexp
+  | Eq of Ast.l * nexp
+  | GtEq of Ast.l * nexp
 
 module type Constraint = sig
   val new_type : unit -> t
@@ -822,8 +828,7 @@ module Constraint (T : Global_defs) : Constraint = struct
               List.iter (occurs_check t_box) ts
           | Tapp(ts,_) ->
               List.iter (occurs_check t_box) ts
-          | _ ->
-              ()
+          | _ -> ()
 
   let rec occurs_nexp_check (n_box : nexp) (n : nexp) : unit =
      let n = resolve_nexp_subst n in 
@@ -927,14 +932,15 @@ module Constraint (T : Global_defs) : Constraint = struct
       let n3 = normalize { nexp = Nadd(n1, {nexp= Nneg n2}) } in
       match n3.nexp with
        | Nconst 0 -> ()
-       | _ -> add_length_constraint (EqZero n3)
+       | _ -> add_length_constraint (Eq (l,n3))
               ; equate_nexps_help l n1 n2 (*TODO remove me because this is a temporary solution until constraint solving is fully operational*)
        
   let in_range l vec_n n =
-    let (len,ind) = (normalize vec_n,normalize n) in
-    match (len.nexp,ind.nexp) with
-     | (Nconst n, Nconst i) -> if ((i < n) && (i > 0)) then () else nexp_mismatch l len ind
-     | (_,_) -> () (* Need to make these constraints *)
+    let (top,bot) = (normalize vec_n,normalize n) in
+    let bound = normalize {nexp = Nadd(top, {nexp = Nneg(bot)})} in
+    match bound.nexp with
+     | Nconst i -> if (i >= 0) then () else nexp_mismatch l top bot (* TODO make this bound not matching*)
+     | _ -> add_length_constraint (GtEq(l,bound))
 
 (*
   let equate_types l t1 t2 =
@@ -978,6 +984,71 @@ module Constraint (T : Global_defs) : Constraint = struct
       cur_nvar := i+1;
       nv
 
+  (* Gather all variables and unification variables used within a set of length constraints *)
+  let collect_vars constraints =
+   let rec insert v = function
+   | [] -> [v]
+   | vo::vars -> begin match (compare_nexp v vo) with
+                 | -1 -> vo::(insert v vars)
+                 |  0 -> v::vars
+                 |  _ -> v::(vo::vars)
+                 end
+   in
+   let rec add_vars curr_vars n = match n.nexp with
+    | Nvar _ | Nuvar _ -> insert n curr_vars
+    | Nconst _ -> curr_vars
+    | Nmult(n1,n2) -> add_vars curr_vars n1 (* Due to normalize, n2 is const *)
+    | Nadd(n1,n2) -> add_vars (add_vars curr_vars n2) n1
+    | _ -> assert false (*Due to normalize, should not happen*)
+   in   
+   let rec walk_constraints curr_vars = function
+   | [ ] -> curr_vars
+   | Eq(_,n) :: constraints | GtEq(_,n) :: constraints | LtEq(_,n)::constraints -> 
+     walk_constraints (add_vars curr_vars n) constraints
+   in
+   walk_constraints [] constraints
+
+  (* Make sure that each constraint contains all variables of the set of constraints *)
+  let expand_matrix constraints all_vars =
+    (* Add a multiply by 0 term so that all variables are present in all terms *)
+    let zero = { nexp = Nconst 0 } in
+    let mult_zero v = { nexp = Nmult( zero, v ) } in
+    let get_var n = match n.nexp with 
+       | Nuvar _  | Nvar _ -> n
+       | Nmult(n,_) -> n
+       | _ -> assert false
+    in
+    let rec add_vars all_vars n =
+      match (all_vars,n.nexp) with
+       | ([],_) -> n
+       | (var::all_vars, Nconst _) -> add_vars all_vars { nexp = Nadd(n, mult_zero var) } 
+       | (var::all_vars, Nuvar _ ) | (var::all_vars , Nvar _ ) | (var::all_vars, Nmult _ ) ->
+          begin match (compare_nexp var (get_var n)) with
+          | -1 -> add_vars all_vars { nexp = Nadd(n, mult_zero var) }
+          | 0 -> add_vars all_vars n
+          | _ -> add_vars all_vars { nexp = Nadd(mult_zero var, n) }
+         end
+       | (var::all_vars, Nadd(n1,n2)) ->
+          begin match n2.nexp with 
+          | Nuvar _ | Nvar _ | Nmult _ ->
+            begin match (compare_nexp var (get_var n2)) with
+            | -1 -> {nexp = Nadd( (add_vars all_vars n2), mult_zero var) }
+            | 0 ->  add_vars all_vars n
+            | _ -> { nexp = Nadd( (add_vars (var::all_vars) n1), n2) }
+            end
+          | _ -> assert false (*Normal so should not be reached*)
+         end
+       | _ -> assert false (*Normal so should not be reached*)
+    in
+    let rec walk_constraints = function
+    | [ ] -> [ ]
+    | Eq(l,n)   :: constraints -> Eq(l,(add_vars all_vars n))   :: (walk_constraints  constraints)
+    | GtEq(l,n) :: constraints -> GtEq(l,(add_vars all_vars n)) :: (walk_constraints constraints)
+    | LtEq(l,n) :: constraints -> LtEq(l,(add_vars all_vars n)) :: (walk_constraints constraints)
+    in 
+    walk_constraints constraints
+    
+
   let rec num_nuvars n =
     match n.nexp with
     | Nuvar _ -> 1
@@ -1011,19 +1082,23 @@ module Constraint (T : Global_defs) : Constraint = struct
                 | Nconst i -> let ni = fun _ -> { nexp = Nneg (if (i = 1) then n1 else (divide n1 i))} in
                               let n1 = if (i= -1) then n1 else normalize (ni ()) in
                   (v.nexp <- n1.nexp)
-                | _ -> assert false
+                | _ -> assert false (*Should not happen due to normalize*)
           end
-        | _ -> assert false
+        | _ -> assert false (*Should not happen due to normalize*)
        end
-     | _ -> assert false
+     | _ -> assert false (*Should not happen due to normalize*)
 
   let rec solve_numeric_constraints unresolved = function
     | [] -> unresolved
-    | (EqZero n) :: n_constraints -> if (1 = (num_nuvars n)) (* Add case for zero (because nuvars have been constrained), term should now normalize to 0 or error *)
-                                        then begin (simple_solver n); unresolved end
-                                        else unresolved
-    | LtEq(n1,n2):: n_constraints -> unresolved
-    | GtEq(n1,n2):: n_constraints -> unresolved 
+    | (Eq (l,n)) :: n_constraints -> (match (num_nuvars n) with
+                                      | 0 -> (match (normalize n).nexp with
+                                              | Nconst(0) -> solve_numeric_constraints unresolved n_constraints
+                                              | Nconst(i) -> unresolvable_constraint n 
+                                              | n -> solve_numeric_constraints ((Eq(l,{nexp=n}))::unresolved) n_constraints)
+                                      | 1 -> (simple_solver n); solve_numeric_constraints unresolved n_constraints
+                                      | _ -> solve_numeric_constraints ((Eq(l,n))::unresolved) n_constraints)
+    | _:: n_constraints -> unresolved
+    (*| GtEq(n1,n2):: n_constraints -> solve_numeric_constraints (GtEq(n1,n2)::unresolved) n_constraints*)
 
   let rec solve_constraints instances (unsolvable : PTset.t)= function
     | [] -> unsolvable 
