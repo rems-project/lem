@@ -1,43 +1,54 @@
 (* [[vconcat vec1 vec2]] creates a new vector containing the elements of v1 followed by the elements of v2 *)
-val vconcat : forall 'a ''n ''m. vector ''n 'a -> vector ''m 'a -> vector (''n + ''m) 'a
+val vconcat : forall 'a ''n ''m. vector 'a ''n -> vector 'a ''m -> vector 'a (''n + ''m)
 let inline {ocaml} vconcat = Ocaml.Vector.vconcat
+let inline {coq} vconcat = Coq.vector_append
 
 (* [[vmap f vec]] creates a new vector from vec, applying f to each element. The [[''i]]th element of [[vmap f vec]] is the same as [[f (vec.[''i])]] *)
-val vmap : forall 'a 'b ''n. ('a ->'b) ->  vector ''n 'a -> vector ''n 'b
+val vmap : forall 'a 'b ''n. ('a ->'b) ->  vector 'a ''n -> vector 'b ''n
 let inline {ocaml} vmap = Ocaml.Vector.vmap
+let inline {coq} vmap = Coq.vector_map
 
 (* [[vfold f base vec]] performs a left to right fold over vec *)
-val vfold : forall 'a 'b ''n. ('b -> 'a -> 'b) -> 'b -> vector ''n 'a -> 'b
+val vfold : forall 'a 'b ''n. ('b -> 'a -> 'b) -> 'b -> vector 'a ''n -> 'b
 let inline {ocaml} vfold = Ocaml.Vector.vfold
+let inline {coq} vfold = Coq.vector_fold
 
 (* [[vzip vec1 vec2]] creates a new vector with the [[''i]]th element being [[(vec1.[''i],vec2.[''i])]] *)
-val vzip : forall 'a 'b ''n. vector ''n 'a -> vector ''n 'b -> vector ''n ('a * 'b)  
+val vzip : forall 'a 'b ''n. vector 'a ''n -> vector 'b ''n -> vector ('a * 'b) ''n  
 let inline {ocaml} vzip = Ocaml.Vector.vzip
+let inline {coq} vzip = Coq.vector_zip
 
 (* [[vmapacc f vec acc]] creates a new vector from [[vec]] using [[f]] in a left to right pass, where an accumulator [[acc]] is returned and passed on each call to f*)
-val vmapacc : forall 'a 'b 'c ''n. ('a -> 'c -> 'b * 'c) -> vector ''n 'a -> 'c -> (vector ''n 'b) * 'c
+val vmapacc : forall 'a 'b 'c ''n. ('a -> 'c -> 'b * 'c) -> vector 'a ''n -> 'c -> (vector 'b ''n) * 'c
 let inline {ocaml} vmapacc = Ocaml.Vector.vmapacc
+let inline {coq} vmapacc = Coq.vector_map_accum
 
 (* [[vmapi f vec]] creates a new vector from vec, applying f to each element. The [[''i]]th element of [[vmap f vec]] is the same as [[f vec.[''i] ''i]] *)
-val vmapi : forall 'a 'b ''n. (num -> 'a -> 'b) -> vector ''n 'a -> vector ''n 'b
+val vmapi : forall 'a 'b ''n. (num -> 'a -> 'b) -> vector 'a ''n -> vector 'b ''n
 let inline {ocaml} vmapi = Ocaml.Vector.vmapi
+let inline {coq} vmapi = Coq.vector_mapi
 
 (* [[extend default vec]] creates a new vector from vec, which is ''m longer based on type inference and each of the new vector cells has value [[default]] *)
-val extend : forall 'a ''n ''m. 'a -> vector ''n 'a -> vector (''n + ''m) 'a
+val extend : forall 'a ''n ''m. 'a -> vector 'a ''n -> vector 'a (''n + ''m) 
 let inline {ocaml} extend = Ocaml.Vector.extend
+let inline {coq} extend = Coq.vector_extend
 
 (* [[duplicate vec]] creates a new vector from vec which is twice as long as [[vec]] and repeats the elements. Same as vconcat vec1 vec2 *)
-val duplicate : forall 'a ''n. vector ''n 'a -> vector (2 * ''n) 'a
+val duplicate : forall 'a ''n. vector 'a ''n -> vector 'a (2 * ''n)
 let inline {ocaml} duplicate = Ocaml.Vector.duplicate
+let inline {coq} duplicate = Coq.vector_duplicate
 
 (* [[vlength vec]] returns a num representing the length of vec *)
-val vlength : forall 'a ''n. vector ''n 'a -> num
+val vlength : forall 'a ''n. vector 'a ''n -> num
 let inline {ocaml} vlength = Ocaml.Vector.vlength
+let inline {coq} vlength = Coq.vector_length
 
 (* exp.[''n]*)
 (* Library call for special syntax of accessing the contents of a vector cell *)
-val vector_access : forall 'a ''n ''m. num -> vector ''m 'a -> 'a
+val vector_access : forall 'a ''n ''m. num -> vector 'a ''m -> 'a
+let inline {coq} vector_access = Coq.vector_index
 
 (* exp.[''n .. ''m] *)
 (* Library call for special syntax of creating a new vector of length [[''m - ''n]] from [[exp]] *)
-val vector_slice : forall 'a ''n ''m ''o ''p. num -> num -> vector ''o 'a -> vector ''p 'a
+val vector_slice : forall 'a ''n ''m ''o ''p. num -> num -> vector 'a ''o -> vector 'a ''p
+let inline {coq} vector_slice = Coq.vector_slice

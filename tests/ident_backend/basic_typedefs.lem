@@ -7,9 +7,9 @@ type t14 = <| fn4 : num ; fn5 : bool ; |>
 type t15 = <| fn6 : num ; |> 
 type t29 = <| fn9 : num |> 
 
-type t30 ''a 'b = vector ''a 'b
-type t31 ''a = vector 32 (t30 ''a t29)
-type t32 ''a = vector 64 (t31 (''a + 32))
+type t30 ''a 'b = vector 'b ''a
+type t31 ''a = vector (t30 ''a t29) 32
+type t32 ''a = vector (t31 (''a + 32)) 64
 
 type t1 = 
  | C1 of t2 num

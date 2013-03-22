@@ -570,7 +570,13 @@ let nexp_mismatch l n1 n2 =
   let n2 = nexp_to_string n2 in
     raise (Ident.No_type(l, "numeric expression mismatch:\n" ^ n1 ^ "\nand\n" ^ n2))
 
-(* Converts to linear normal form, summation of (optionally constant-multiplied) variables, with the "smallest" variable on the right *)
+(*TODO Get a location. *)
+(*TODO add kind of error information and call instead of assert false in simple solver*)
+let unresolvable_constraint n =
+  let n1 = nexp_to_string n in
+  raise (Ident.No_type(Ast.Unknown, "Type contained unresolvable constraint: 0 = " ^ n1 ^ "\n"))
+
+(* Converts to linear normal form, summation of (optionally constant-multiplied) variables, with the "smallest" variable on the left *)
 let normalize nexp =
  let make_n n = {nexp = n} in
   let make_mul n i = match i with 
@@ -745,9 +751,9 @@ let rec nexp_from_list nls = match nls with
     | n1::nls -> {nexp = Nadd(n1,(nexp_from_list nls))}
 
 type range =
-  | LtEq of nexp * nexp
-  | EqZero of nexp
-  | GtEq of nexp  * nexp
+  | LtEq of Ast.l * nexp
+  | Eq of Ast.l * nexp
+  | GtEq of Ast.l * nexp
 
 module type Constraint = sig
   val new_type : unit -> t
@@ -822,8 +828,7 @@ module Constraint (T : Global_defs) : Constraint = struct
               List.iter (occurs_check t_box) ts
           | Tapp(ts,_) ->
               List.iter (occurs_check t_box) ts
-          | _ ->
-              ()
+          | _ -> ()
 
   let rec occurs_nexp_check (n_box : nexp) (n : nexp) : unit =
      let n = resolve_nexp_subst n in 
@@ -927,14 +932,15 @@ module Constraint (T : Global_defs) : Constraint = struct
       let n3 = normalize { nexp = Nadd(n1, {nexp= Nneg n2}) } in
       match n3.nexp with
        | Nconst 0 -> ()
-       | _ -> add_length_constraint (EqZero n3)
-              ; equate_nexps_help l n1 n2 (*TODO remove me because this is a temporary solution until constraint solving is fully operational*)
+       | _ -> add_length_constraint (Eq (l,n3))
+              (*; equate_nexps_help l n1 n2 (*TODO remove me because this is a temporary solution until constraint solving is fully operational*)*)
        
   let in_range l vec_n n =
-    let (len,ind) = (normalize vec_n,normalize n) in
-    match (len.nexp,ind.nexp) with
-     | (Nconst n, Nconst i) -> if ((i < n) && (i > 0)) then () else nexp_mismatch l len ind
-     | (_,_) -> () (* Need to make these constraints *)
+    let (top,bot) = (normalize vec_n,normalize n) in
+    let bound = normalize {nexp = Nadd(top, {nexp = Nneg(bot)})} in
+    match bound.nexp with
+     | Nconst i -> if (i >= 0) then () else nexp_mismatch l top bot (* TODO make this bound not matching*)
+     | _ -> add_length_constraint (GtEq(l,bound))
 
 (*
   let equate_types l t1 t2 =
@@ -978,52 +984,172 @@ module Constraint (T : Global_defs) : Constraint = struct
       cur_nvar := i+1;
       nv
 
-  let rec num_nuvars n =
-    match n.nexp with
-    | Nuvar _ -> 1
-    | Nadd (n1, n2) | Nmult(n1,n2) -> (num_nuvars n1) + (num_nuvars n2)
-    | Nneg n -> num_nuvars n
-    | _ -> 0
+  (* Gather all variables and unification variables used within a set of length constraints *)
+  let collect_vars constraints =
+   let rec insert v = function
+   | [] -> [v]
+   | vo::vars -> begin match (compare_nexp v vo) with
+                 | -1 -> vo::(insert v vars)
+                 |  0 -> v::vars
+                 |  _ -> v::(vo::vars)
+                 end
+   in
+   let rec add_vars curr_vars n = match n.nexp with
+    | Nvar _ | Nuvar _ -> insert n curr_vars
+    | Nconst _ -> curr_vars
+    | Nmult(n1,n2) -> add_vars curr_vars n1 (* Due to normalize, n2 is const *)
+    | Nadd(n1,n2) -> add_vars (add_vars curr_vars n2) n1
+    | _ -> assert false (*Due to normalize, should not happen*)
+   in   
+   let rec walk_constraints curr_vars = function
+   | [ ] -> curr_vars
+   | Eq(_,n) :: constraints | GtEq(_,n) :: constraints | LtEq(_,n)::constraints -> 
+     walk_constraints (add_vars curr_vars n) constraints
+   in
+   walk_constraints [] constraints
 
- let rec divide n i =
-   let div i j v = if ((j mod i) = 0)
-                   then {nexp = Nmult({nexp = Nconst (j/i)},v) }
-                   else assert false (* case which needs fractions *) in
-   match n.nexp with
-   | Nvar _ -> assert false (* case which needs fractions *)
-   | Nmult(n1,n2) -> (match n2.nexp with
-                     | Nconst j -> div i j n1
-                     | _ -> assert false)
-   | Nadd(n1,n2) -> { nexp = Nadd((divide n1 i),(divide n2 i)) }
-   | _ -> assert false (* normalizing says we shouldn't get here *)
+  (* Make sure that each constraint contains all variables of the set of constraints and put each "row" into an array *)
+  let expand_matrix constraints all_vars =
+    (* Add a multiply by 0 term so that all variables are present in all terms *)
+    let zero = { nexp = Nconst 0 } in
+    let mult_zero v = { nexp = Nmult( zero, v ) } in
+    let get_var n = match n.nexp with 
+       | Nuvar _  | Nvar _ -> n
+       | Nmult(n,_) -> n
+       | _ -> assert false
+    in
+    let rec add_vars all_vars n =
+      match (all_vars,n.nexp) with
+       | ([],_) -> n
+       | (var::all_vars, Nconst _) -> add_vars all_vars { nexp = Nadd(n, mult_zero var) } 
+       | (var::all_vars, Nuvar _ ) | (var::all_vars , Nvar _ ) | (var::all_vars, Nmult _ ) ->
+          begin match (compare_nexp var (get_var n)) with
+          | -1 -> add_vars all_vars { nexp = Nadd(n, mult_zero var) }
+          | 0 -> add_vars all_vars n
+          | _ -> add_vars all_vars { nexp = Nadd(mult_zero var, n) }
+         end
+       | (var::all_vars, Nadd(n1,n2)) ->
+          begin match n2.nexp with 
+          | Nuvar _ | Nvar _ | Nmult _ ->
+            begin match (compare_nexp var (get_var n2)) with
+            | -1 -> {nexp = Nadd( (add_vars all_vars n2), mult_zero var) }
+            | 0 ->  add_vars all_vars n
+            | _ -> { nexp = Nadd( (add_vars (var::all_vars) n1), n2) }
+            end
+          | _ -> assert false (*Normal so should not be reached*)
+         end
+       | _ -> assert false (*Normal so should not be reached*)
+    in
+    let rec walk_constraints = function
+    | [ ] -> [ ]
+    | Eq(l,n)   :: constraints -> Eq(l,(add_vars all_vars n))   :: (walk_constraints  constraints)
+    | GtEq(l,n) :: constraints -> GtEq(l,(add_vars all_vars n)) :: (walk_constraints constraints)
+    | LtEq(l,n) :: constraints -> LtEq(l,(add_vars all_vars n)) :: (walk_constraints constraints)
+    in 
+    Array.of_list(walk_constraints constraints)
+    
+  let is_inconsistent = function
+    | Eq(_,n) -> begin match (normalize n).nexp with
+                 | Nconst(i) -> not (i=0)
+                 | _ -> false end
+    | GtEq(_,n) -> begin match (normalize n).nexp with
+                   | Nconst(i) -> i<0
+                   | _ -> false end
+    | LtEq(_,n) -> begin match (normalize n).nexp with
+                   | Nconst(i) -> i>0
+                   | _ -> false end
 
-  (*Solves a normalized constraint with one nuvar which must be equal to the rest of the term.
-    The Nuvar should therefore be the rightmost term in a plus or solo *)
-  let simple_solver n =
-    match n.nexp with
-    | Nuvar _ | Nmult _ -> () (* In these cases the nuvar is solo, nothing to solve *)
-    | Nadd(n1,n2) -> (* Must be nuvar or multiplication of on right *)
-      begin match n2.nexp with
-        | Nuvar _ -> let n1 = normalize {nexp = (Nneg n1)} in
-                     (n2.nexp <- n1.nexp)
-        | Nmult(v,n2) -> (* v must be the nuvar *)
-          begin match n2.nexp with
-                | Nconst i -> let ni = fun _ -> { nexp = Nneg (if (i = 1) then n1 else (divide n1 i))} in
-                              let n1 = if (i= -1) then n1 else normalize (ni ()) in
-                  (v.nexp <- n1.nexp)
-                | _ -> assert false
-          end
-        | _ -> assert false
-       end
-     | _ -> assert false
+  let is_redundant = function
+    | Eq(_,n) -> begin match (normalize n).nexp with
+                 | Nconst(i) -> i=0
+                 | _ -> false end
+    | GtEq(_,n) -> begin match (normalize n).nexp with
+                   | Nconst(i) -> i>=0
+                   | _ -> false end
+    | LtEq(_,n) -> begin match (normalize n).nexp with
+                   | Nconst(i) -> i<=0
+                   | _ -> false end
 
-  let rec solve_numeric_constraints unresolved = function
+  (* For situations with one constraint in multiple variables, attempts only to assign unification variables where possible *)
+  let solve_solo =
+    let rec nexp_to_term_list n =
+      match n.nexp with
+      | Nadd(n1,n2) -> n2::(nexp_to_term_list n1)
+      | _ -> [n] in 
+    let rec get_const n = 
+       match n.nexp with 
+         | Nconst(i) -> i
+         | Nmult(_,n1) -> get_const n1
+         | Nvar _ | Nuvar _ -> 1
+         | _ -> 0 in
+    let compare_nexp_consts n1 n2 = Pervasives.compare (abs (get_const n1)) (abs (get_const n2)) in
+    let rec equiv_nexp_consts n1 n2 = (abs (get_const n1)) = (abs (get_const n2)) in
+    let rec split_equiv_to n equivs = function
+     | [] -> equivs,[]
+     | n1::ns -> if (equiv_nexp_consts n1 n) 
+                    then split_equiv_to n (n1::equivs) ns
+                    else equivs, n1::ns
+    in
+    let rec assign_nuvar n1 n2 =
+      match n1.nexp,n2.nexp with
+      | Nvar _ , Nuvar _ -> n2.nexp <- n1.nexp
+      | Nuvar _ , Nvar _ -> n1.nexp <- n2.nexp
+      | Nconst _ , Nuvar _ -> n2.nexp <- Nconst(1)
+      | Nuvar _ , Nconst _ -> n1.nexp <- Nconst(1)
+      | Nmult(n1,_), Nmult(n2,_) -> assign_nuvar n1 n2
+      | Nmult(n1,_), _ -> assign_nuvar n1 n2
+      | _, Nmult(n2,_) -> assign_nuvar n1 n2
+      | _ -> () in
+    let rec remove_nuvars op = function
+      | [] -> ()
+      | n1::ns -> let equivs,ns = split_equiv_to n1 [] ns in
+                 (match equivs with
+                 | [] -> ()
+                 | [n2] -> if (op ((get_const n1) + (get_const n2)) 0) 
+                              then begin assign_nuvar n1 n2; remove_nuvars op ns end
+                              else remove_nuvars op ns
+                 | _ -> remove_nuvars op ns) in
+    function
+    | Eq(l,n) -> let terms = List.sort compare_nexp_consts (nexp_to_term_list n) in
+                 remove_nuvars (=) terms;
+                 let n = normalize n in
+                (match n.nexp with
+                 | Nconst 0 -> None
+                 | Nadd(n1,n2) -> (match n1.nexp,n2.nexp with
+                                    | Nconst(i),Nuvar _ -> begin n2.nexp <- Nconst( i * - 1); None end
+                                    | Nconst(i),Nmult(v,c) -> (match v.nexp,c.nexp with 
+                                                                 | Nuvar _ , Nconst j -> begin v.nexp <- Nconst(i/( - j)); None end
+                                                                 | _ -> Some(Eq(l,n)))       
+                                    | _ -> Some(Eq(l,n)))
+                     | _ -> Some(Eq(l,n)))
+    | GtEq(l,n) -> let terms = List.sort compare_nexp_consts (nexp_to_term_list n) in
+                     remove_nuvars (>=) terms;
+                     let n = normalize n in
+                     (match n.nexp with
+                     | Nconst 0 -> None
+                     | _ -> Some(GtEq(l,n)))
+    | LtEq(l,n) -> let terms = List.sort compare_nexp_consts (nexp_to_term_list n) in
+                     remove_nuvars (<=) terms;
+                     let n = normalize n in
+                     (match n.nexp with
+                     | Nconst 0 -> None
+                     | _ -> Some(LtEq(l,n)))
+
+  (*TODO find where this should have come from, or move to util*)
+  let rec some_list = function
+    | [] -> []
+    | Some(a)::rest -> a::(some_list rest)
+    | None::rest -> some_list rest
+
+  let solve_numeric_constraints unresolved = function
     | [] -> unresolved
-    | (EqZero n) :: n_constraints -> if (1 = (num_nuvars n)) (* Add case for zero (because nuvars have been constrained), term should now normalize to 0 or error *)
-                                        then begin (simple_solver n); unresolved end
-                                        else unresolved
-    | LtEq(n1,n2):: n_constraints -> unresolved
-    | GtEq(n1,n2):: n_constraints -> unresolved 
+    | [c] -> (match (solve_solo c) with
+              | Some(range) -> range::unresolved
+              | None -> unresolved)
+    | cs -> let cs = some_list (List.map solve_solo cs) in
+            let variables = collect_vars cs in
+            let matrix = expand_matrix cs variables in
+            unresolved
 
   let rec solve_constraints instances (unsolvable : PTset.t)= function
     | [] -> unsolvable 

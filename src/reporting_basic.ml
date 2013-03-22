@@ -147,7 +147,7 @@ type error =
   | Err_todo of bool * Ast.l * string
   | Err_trans of Ast.l * string
   | Err_trans_header of Ast.l * string
-  | Err_syntax of Lexing.position
+  | Err_syntax of Lexing.position * string
   | Err_syntax_locn of Ast.l * string
   | Err_lex of Lexing.position * char
   | Err_type of Ast.l * string
@@ -159,7 +159,7 @@ let dest_err = function
   | Err_unreachable (b, l, m) -> ("Unreachable code", b, Loc l, m)
   | Err_todo (b, l, m) -> ("LEM internal error", b, Loc l, "unimplemented feature "^m)
   | Err_trans (l, m) -> ("Translation error", false, Loc l, m)
-  | Err_syntax p -> ("Syntax error", false, Pos p, "")
+  | Err_syntax (p, m) -> ("Syntax error", false, Pos p, m)
   | Err_syntax_locn (l, m) -> ("Syntax error", false, Loc l, m)
   | Err_lex (p, c) -> ("Lexical error", false, Pos p, "unknown character "^(String.make 1 c))
   | Err_type (l, m) -> ("Type error", false, Loc l, m)

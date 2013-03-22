@@ -47,6 +47,7 @@
 Require Import Ascii.
 Require Import ClassicalDescription.
 Require Import String.
+Require Import Program.Wf.
 
 (* * Basic types and definitions required for Lem. *)
 
@@ -109,6 +110,74 @@ Notation "X --> Y" := (imp_b X Y) (at level 40).
 
 (* * Arithmetic definitions. *)
 
+Fixpoint nat_eq_b
+  (m n: num): bool :=
+    match m with
+      | 0 =>
+        match n with
+          | 0 => true
+          | _ => false
+        end
+      | S m =>
+        match n with
+          | S n => nat_eq_b m n
+          | _   => false
+        end
+    end.
+
+Lemma nat_eq_b_reflexive:
+  forall m,
+    nat_eq_b m m = true.
+  intro. elim m.
+    trivial.
+    intro. intro. simpl.
+    assumption.
+Qed.
+
+Lemma nat_eq_b_symmetric:
+  forall m n,
+    nat_eq_b m n = true -> nat_eq_b n m = true.
+  intro. elim m.
+    intro. case n. simpl. auto.
+    intro. simpl. intro. discriminate.
+    intro. intro. intro. case n0.
+      simpl. intro. discriminate.
+      intro. simpl. intro. apply H. auto.
+Qed.
+
+Fixpoint lte_b (l r : num) : bool :=
+  match l with
+    | O => true
+    | S l' =>
+      match r with
+        | O => false
+        | S r' => lte_b l' r'
+      end
+  end.
+
+Definition lt_b :=
+  fun l r => lte_b (S l) r.
+
+Lemma lte_b_reflexive:
+  forall m,
+    lte_b m m = true.
+  intro. elim m.
+    trivial.
+    intro. intro. simpl. assumption.
+Qed.
+
+Lemma lt_b_true_to_lte_b_true:
+  forall m n,
+    lt_b m n = true -> lte_b m n = true.
+  intro m. elim m.
+    intro n. intro. trivial.
+    intro. intro.  
+
+Definition gt_b (l r : num) : bool := lt_b r l.
+
+Definition gte_b :=
+  fun l r => r <= l.
+
 Fixpoint minus
   (m : nat) (n : nat) :=
     match m with
@@ -120,8 +189,89 @@ Fixpoint minus
         end
     end.
 
-Axiom divide:
-  num -> num -> num.
+Fixpoint power
+  (base exponent: num): num :=
+    match exponent with
+      | 0   => 1
+      | S e => base * (power base e)
+    end.
+
+Fixpoint divide_aux
+  (p m n: num): num :=
+    match lte_b m n with
+      | true => 0
+      | false =>
+        match p with
+          | 0 => 0
+          | S p => S (divide_aux p (minus m (S n)) n)
+        end
+    end.
+
+Definition divide
+  (m n: num): num :=
+    match m with
+      | O => S n (* XXX: arbitrary *)
+      | S p => divide_aux n n p
+    end.
+
+Fixpoint mod_aux
+  (p m n: num): num :=
+    match lte_b m n with
+      | true => m
+      | false =>
+        match p with
+          | 0 => m
+          | S p => mod_aux p (minus m (S n)) n
+        end
+    end.
+
+Lemma lte_b_n_0_elim:
+  forall n P,
+    lte_b n 0 = true -> P 0 -> P n.
+  intro. intro. case n.
+  compute. auto.
+  intro. compute. intro.
+  discriminate H.
+Qed.
+
+Lemma nat_case:
+  forall m P,
+    P 0 -> (forall m, P (S m)) -> P m.
+  intros. case m. auto. auto.
+Qed.
+
+Axiom nat_elim_2:
+  forall {P: nat -> nat -> Type},
+  forall m n,
+    (forall m, P 0 m) ->
+    (forall m, P (S m) 0) ->
+    (forall m n, P m n -> P (S m) (S n)) ->
+    P m n.
+
+Axiom lte_b_true_to_eq_or_lt_b_true:
+  forall m n,
+    lte_b m n = true -> nat_eq_b m n = true \/ lt_b m n = true.
+
+Axiom lte_b_m_Sn_elim:
+  forall m n P,
+  lte_b m (S n) = true ->
+  (lte_b (S m) (S n) = true -> P) ->
+  (m = S n -> P) -> P.
+
+Axiom lte_b_mod_aux_m_m: 
+  forall p n m,
+    lte_b n p = true -> lte_b (mod_aux p n m) m = true.
+
+Definition mod
+  (m n: num): num :=
+    match m with
+      | O => n
+      | S m => mod_aux n n m
+    end.
+
+Definition divide_mod
+  (m n: num): (num * num) :=
+    (divide m n, mod m n).
 
 Fixpoint num_beq (l r : num) : bool :=
   match l with
@@ -137,24 +287,6 @@ Fixpoint num_beq (l r : num) : bool :=
       end
   end.
 
-Fixpoint lte_b (l r : num) : bool :=
-  match l with
-    | O => true
-    | S l' =>
-      match r with
-        | O => false
-        | S r' => lte_b l' r'
-      end
-  end.
-
-Definition lt_b :=
-  fun l r => lte_b (S l) r.
-
-Definition gt_b (l r : num) : bool := lt_b r l.
-
-Definition gte_b :=
-  fun l r => r <= l.
-
 Notation "x - y" := (minus x y) (at level 50, left associativity).
 Notation "X <= Y" := (lte_b X Y).
 Notation "X < Y" := (lt_b X Y).
@@ -162,6 +294,23 @@ Notation "X > Y" := (gt_b X Y).
 Notation "X >= Y" := (gte_b X Y).
 
 (* * Bitwise operations on numerics. *)
+
+Program Fixpoint bits_of_num_aux
+  (m: num) (exponent: num) {measure (mod m (power 2 exponent))}: list bool :=
+    match m with
+      | 0 => nil
+      | m =>
+        let d := power 2 exponent in
+        let b := mod m d in
+        let bit :=
+          match b with
+            | 0 => false
+            | _ => true
+          end
+        in
+          cons bit (bits_of_num_aux (minus m d) (S exponent))
+    end.
+  Obligation 2.
 
 Axiom bitwise_not:
   num -> num.
@@ -301,163 +450,4 @@ Fixpoint map_find
 
 (* * Set library. *)
 
-Definition set := list.
-Notation "X 'union' Y" := (app X Y) (at level 60, right associativity).
-
-Definition set_empty {a : Type} : set a := [].
-
-Definition set_add
-  {a : Type} (x : a) (s : set a) :=
-    cons x s.
-
-Definition set_choose {elt : Type} : set elt -> elt -> elt :=
-  fun set => fun default =>
-    match set with
-      | [] => default
-      | x::xs => x
-    end.
-
-Fixpoint set_cardinal
-  {elt : Type} (s : set elt) : nat :=
-    match s with
-      | []    => 0
-      | x::xs => S (set_cardinal xs)
-    end.
-
-Fixpoint set_exists
-  {elt : Type} (p : elt -> bool) (s : set elt) : bool :=
-    match s with
-      | []    => false
-      | x::xs =>
-          if p x then
-            true
-          else
-            set_exists p xs
-    end.
-
-Definition set_member
-  {elt : Type} (e : elt) (s : set elt) : bool :=
-    set_exists (fun x => e == x) s.
-
-Fixpoint set_for_all
-  {elt : Type} (p : elt -> bool) (s : set elt) : bool :=
-    match s with
-      | []    => true
-      | x::xs =>
-        if p x then
-          set_for_all p xs
-        else
-          false
-    end.
-
-Fixpoint set_inter
-  {elt : Type} (eq : elt -> elt -> bool)
-  (left : set elt) (right : set elt) : set elt :=
-    match left with
-      | []    => []
-      | x::xs =>
-        if set_exists (eq x) right then
-          x::set_inter eq xs right
-        else
-          set_inter eq xs right
-    end.
-
-Fixpoint set_union
-  {elt : Type} (left : set elt) (right : set elt) :=
-    match left with
-      | [] => right
-      | x::xs => x::set_union xs right
-    end.
-
-Fixpoint set_diff
-  {elt : Type} (left : set elt) (right : set elt) : set elt :=
-    match left with
-      | []    => []
-      | x::xs =>
-          if set_member x right then
-            set_diff xs right
-          else
-            x::set_diff xs right
-     end.
-
-Fixpoint set_fold
-  {elt b : Type} (f : elt -> b -> b) (s : set elt) (e : b) : b :=
-    match s with
-      | []    => e
-      | x::xs => set_fold f xs (f x e)
-    end.
-
-Fixpoint set_select_subset
-  {elt : Type} (p : elt -> bool) (s : set elt) :=
-    match s with
-      | []    => []
-      | x::xs =>
-        if p x then
-          x::set_select_subset p xs
-        else
-          set_select_subset p xs
-    end.
-
-Fixpoint set_subset
-  {elt : Type} (eq : elt -> elt -> bool)
-  (left : set elt) (right : set elt) :=
-    match left with
-      | []    => true
-      | x::xs =>
-        if set_exists (eq x) right then
-          set_subset eq xs right
-        else
-          false
-    end.
-
-Axiom set_tc :
-  forall {elt : Type},
-  forall eq : elt -> elt -> bool,
-  forall s : set (elt * elt),
-    set (elt * elt).
-
-(* * String an ASCII related functions. *)
-
-Definition ascii_beq
-  (l r : ascii) : bool :=
-    match l with
-      | Ascii b1 b2 b3 b4 b5 b6 b7 b8 =>
-        match r with
-          | Ascii b1' b2' b3' b4' b5' b6' b7' b8' =>
-              andb (bool_beq b1 b1')
-              (andb (bool_beq b2 b2')
-              (andb (bool_beq b3 b3')
-              (andb (bool_beq b4 b4')
-              (andb (bool_beq b5 b5')
-              (andb (bool_beq b6 b6')
-              (andb (bool_beq b7 b7')
-                    (bool_beq b8 b8')))))))
-        end
-    end.
-
-Fixpoint string_beq
-  (l r : string) : bool :=
-    match l with
-      | EmptyString  =>
-        match r with
-          | EmptyString => true
-          | _           => false
-        end
-      | String hd tl =>
-        match r with
-          | String hd' tl' =>
-              andb (ascii_beq hd hd') (string_beq tl tl')
-          | _              => false
-        end
-    end.
-
-
-(* * Default values. *)
-
-Definition bool_default : bool := true.
-Definition num_default : num := 0.
-Definition set_default {a : Type}: set a := set_empty.
-Definition list_default {a : Type}: list a := [].
-Definition option_default {a : Type} : option a := None.
-Definition ascii_default : ascii := Ascii true true true true true true true true.
-Definition string_default : string := "" % string.
+Definition set (a : Type) := a -> Prop.

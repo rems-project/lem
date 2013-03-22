@@ -84,11 +84,11 @@ and nexp_aux =
   | Nneg of nexp (* Unary minus for representing new vector sizes after vector slicing *)
   | Nuvar of n_uvar
 
-(* Type of constraints on nexps *)
+(* Constraints for nexps, plus the location which added the constraint, each nexp is either <= 0 = 0 or >= 0 *)
 type range =
-  | LtEq of nexp * nexp
-  | EqZero of nexp
-  | GtEq of nexp * nexp
+  | LtEq of Ast.l * nexp
+  | Eq of Ast.l * nexp
+  | GtEq of Ast.l * nexp
 
 (* Structural comparison of types, without expanding type abbreviations.
  * Probably better not to use *)

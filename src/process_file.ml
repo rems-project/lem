@@ -61,7 +61,7 @@ let parse_file (f : string) : (Ast.defs * Ast.lex_skips) =
     with
       | Parsing.Parse_error ->
           let pos = Lexing.lexeme_start_p lexbuf in
-          raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax pos))
+          raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax (pos, "")))
       | Ast.Parse_error_locn(l,m) ->
           raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax_locn (l, m)))
       | Lexer.LexError(c,p) ->

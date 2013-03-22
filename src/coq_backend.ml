@@ -844,7 +844,6 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
               ws skips; default_value src_t;
               from_string " (* "; from_string explanation; from_string " *)"
             ]
-        | L_vector _ | L_one _ | L_zero _ -> from_string "(* XXX: vectors not supported in Coq backend*)"
     and fun_pattern_list ps = from_string " " ^ (separate " " $ List.map fun_pattern ps)
     and fun_pattern p =
       match p.term with
@@ -1038,7 +1037,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
         List.map (
           function
             | Typed_ast.Tn_A (x, y, z) -> from_string $ Ulib.Text.to_string y
-            | Typed_ast.Tn_N _ -> from_string "(* [!]: vectors not supported in Coq backend. *)"
+            | Typed_ast.Tn_N _ -> assert false
           ) ty_vars
       in
         inductive ty_vars n ^ tyexp name ty_vars ty
@@ -1104,7 +1103,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
             ]
         | Typ_paren(skips, t, skips') ->
             ws skips ^ from_string "(" ^ pat_typ t ^ ws skips' ^ from_string ")"
-        | Typ_len _ -> from_string "(* [!]: vectors not supported in Coq backend. *)"
+        | Typ_len nexp -> src_nexp nexp
     and typ t =
     	match t.term with
       	| Typ_wild skips -> ws skips ^ from_string "_"
@@ -1116,9 +1115,9 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
       	| Typ_app (p, ts) ->
         	let (name_list, name) = Ident.to_name_list (resolve_ident_path p p.descr) in
            from_string $ Ulib.Text.to_string (Name.to_rope name)
-      	| Typ_paren(skips, t, skips') ->
+      	| Typ_paren (skips, t, skips') ->
           	ws skips ^ from_string "(" ^ typ t ^ from_string ")" ^ ws skips'
-        | Typ_len _ -> from_string "(* [!]: vectors not supported in Coq backend. *)"
+        | Typ_len _ -> assert false
     and type_def_type_variables tvs =
       match tvs with
         | [] -> emp
@@ -1150,7 +1149,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
             ]
         | Typ_paren(skips, t, skips') ->
             ws skips ^ from_string "(" ^ typ t ^ from_string ")" ^ ws skips'
-        | Typ_len _ -> from_string "(* [!]: vectors not supported in Coq backend. *)"
+        | Typ_len _ -> assert false
     and field ((n, _), skips, t) =
       combine [
         Name.to_output coq_infix_op Term_field n; from_string ":"; ws skips; field_typ t
