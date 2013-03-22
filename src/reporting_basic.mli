@@ -94,7 +94,7 @@ type error =
 
   | Err_trans of Ast.l * string
   | Err_trans_header of Ast.l * string
-  | Err_syntax of Lexing.position
+  | Err_syntax of Lexing.position * string
   | Err_syntax_locn of Ast.l * string
   | Err_lex of Lexing.position * char
   | Err_type of Ast.l * string

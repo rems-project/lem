@@ -180,7 +180,8 @@ rule token skips = parse
   | digit+ as i                         { (Num(Some(skips),int_of_string i)) }
   | "0b" (binarydigit+ as i)		{ (Bin(Some(skips), i)) }
   | "0x" (hexdigit+ as i) 		{ (Hex(Some(skips), i)) }
-  | '"'                                 { (String(Some(skips), string lexbuf)) }
+  | '"'                                 { (String(Some(skips),
+                                           string (Lexing.lexeme_start_p lexbuf) (Buffer.create 10) lexbuf)) }
   | eof                                 { (Eof(Some(skips))) }
   | _  as c                             { raise (LexError(c, Lexing.lexeme_start_p lexbuf)) }
 
@@ -195,7 +196,11 @@ and comment = parse
   | _  as c                             { raise (LexError(c, Lexing.lexeme_start_p lexbuf)) }
   | eof                                 { [] }
 
-and string = parse
-  | ([^'"''\n']*'\n' as i)              { Lexing.new_line lexbuf; i ^ (string lexbuf) }
-  | ([^'"''\n']* as i)                      { i ^ (string lexbuf) }
-  | '"'                                 { "" }
+and string pos b = parse
+  | ([^'"''\n']*'\n' as i)              { Lexing.new_line lexbuf;
+                                          Buffer.add_string b i;
+                                          string pos b lexbuf }
+  | ([^'"''\n']* as i)                  { Buffer.add_string b i; string pos b lexbuf }
+  | '"'                                 { Buffer.contents b }
+  | eof                                 { raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax (pos,
+                                            "String literal not terminated"))) }
