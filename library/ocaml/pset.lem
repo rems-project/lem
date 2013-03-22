@@ -73,6 +73,8 @@ val choose: forall 'a. set 'a -> 'a
 val split: forall 'a. 'a -> set 'a -> set 'a * bool * set 'a
 val map : forall 'a 'b. ('a -> 'a -> int) -> ('a -> 'b) -> set 'a -> set 'b
 
+val tc : forall 'a. (('a * 'a) -> ('a * 'a) -> int) -> set ('a * 'a) -> set ('a * 'a)
+
 val comprehension1 : forall 'a 'b. ('b -> 'b -> int) -> ('a -> 'b) -> ('a -> bool) -> set 'a -> set 'b
 val comprehension2 : forall 'a 'b 'c. ('c -> 'c -> int) -> ('a -> 'b -> 'c) -> ('a -> 'b -> bool) -> set 'a -> set 'b -> set 'c
 val comprehension3 : forall 'a 'b 'c 'd. ('d -> 'd -> int) -> ('a -> 'b -> 'c -> 'd) -> ('a -> 'b -> 'c -> bool) -> set 'a -> set 'b -> set 'c -> set 'd

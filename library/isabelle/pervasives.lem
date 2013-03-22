@@ -107,3 +107,4 @@ val num_lsr : num -> num -> num
 
 val trancl  : forall 'a. set ('a * 'a) -> set ('a * 'a)
 val rtrancl : forall 'a. set ('a * 'a) -> set ('a * 'a)
+val nat_to_string : num -> string

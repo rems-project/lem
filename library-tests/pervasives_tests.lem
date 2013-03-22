@@ -129,6 +129,20 @@ assert diff_3: (Set.equal ({2;4;1} \ {1}) {2;4})
 lemma diff_empty: (forall s. Set.equal (s \ {}) s)
 lemma diff_thm: (forall s1 s2. (Set.equal (s1 \ s2) {}) = (s1 subset s2))
 
+assert {ocaml;isabelle} num_to_string_1: (string_of_num 0 = "0")
+assert {ocaml;isabelle} num_to_string_2: (string_of_num 434 = "434")
+assert {ocaml;isabelle} num_to_string_3: (string_of_num 99 = "99")
+assert {ocaml;isabelle} num_to_string_4: (string_of_num 18 = "18")
+
+
+assert tc_1 : (Set.equal (tc ({}: set (num * num))) {})
+assert tc_2 : (Set.equal (tc {(0, 0)}) {(0, 0)})
+assert tc_3 : (Set.equal (tc {(0, 0); (0, 1); (1, 2)})
+                         {(0, 0); (0, 1); (0, 2); (1, 2)})
+assert tc_4 : (Set.equal (tc {(0, 1); (1, 2); (2, 0)})
+                         {(0, 0); (0, 1); (0, 2);(1, 0); (1, 1); (1, 2);(2, 0); (2, 1); (2, 2)})
+
+
 (*
 val bigunion : forall 'a. set (set 'a) -> set 'a
 let inline {hol} bigunion = Hol.BIGUNION

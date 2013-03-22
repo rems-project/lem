@@ -183,6 +183,9 @@ let inline {coq} (inter) = Coq.set_inter Coq.(==)
 
 val tc : forall 'a. set ('a * 'a) -> set ('a * 'a)
 let inline {coq} tc = Coq.set_tc Coq.(==)
+let inline {ocaml} tc = (Ocaml.Pset.tc Ocaml.Pervasives.compare)
+let inline {hol} tc = Hol.tc
+let inline {isabelle} tc = Isabelle.trancl
 
 val (\) : forall 'a. set 'a -> set 'a -> set 'a
 let inline {hol} (\) = Hol.DIFF
@@ -220,3 +223,4 @@ type option 'a =
 
 val string_of_num : num -> string
 let inline {ocaml} string_of_num = Ocaml.Nat_num.string_of_num
+let inline {isabelle} string_of_num = Isabelle.nat_to_string

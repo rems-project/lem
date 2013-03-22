@@ -143,3 +143,5 @@ val comprehension7 : ('h -> 'h -> int) -> ('a -> 'b -> 'c -> 'd -> 'e -> 'f -> '
 val bigunion : ('a -> 'a -> int) -> 'a set set -> 'a set
 
 val lfp : 'a set -> ('a set -> 'a set) -> 'a set
+val tc : ('a * 'a -> 'a * 'a -> int) -> ('a * 'a) set -> ('a * 'a) set
+val cross : ('a * 'b -> 'a * 'b -> int) -> 'a set -> 'b set -> ('a * 'b) set

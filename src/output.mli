@@ -82,6 +82,9 @@ val kwd : string -> t
 (** [num i] constructs the output for number [i] *)
 val num : int -> t
 
+(** [str s] constructs the output for string constant [s] *)
+val str : Ulib.Text.t -> t
+
 (** Whitespace *)
 val ws : Ast.lex_skips -> t
 
@@ -178,6 +181,4 @@ val ml_comment_to_rope : Ast.ml_comment -> Ulib.Text.t
 
 
 (** {2 ???} *)
-
-val str : Ulib.Text.t -> t
 val texspace :  t
