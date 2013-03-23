@@ -228,7 +228,7 @@ let rec fix_exp get_prec e =
           C.mk_record old_l
             s1
             (Seplist.map 
-               (fun (fid,s1,e,l) -> (fid,s1,trans e,l))
+               (fun (fid,s1,e,l) -> (fid,s1,C.delimit_exp get_prec P.App_right (trans e),l))
                fieldexps)
             s2
             old_t
