@@ -2427,9 +2427,9 @@ let rec hol_def_extra gf d l : Output.t = match d with
             | [] -> assert false
             | (n, _, _, _, _)::_ -> Name.to_string (Name.strip_lskip n.term)
         in
-        let goal_stack_setup_s = Format.sprintf "(* val _ = Defn.tgoal_no_defn (%s_def, %s_ind) *)\n" n n in
-        let proof_s = Format.sprintf "val (%s_def, %s_ind) =\n  Defn.tprove_no_defn ((%s_def, %s_ind),\n    (* the termination proof *)\n  )\n" n n n n in
-        let store_s = Format.sprintf "val %s_def = save_thm (\"%s_def\", %s_def);\nval %s_ind = save_thm (\"%s_ind\", %s_ind);\n" n n n n n n in
+        let goal_stack_setup_s = Format.sprintf "(* val gst = Defn.tgoal_no_defn (%s_def, %s_ind) *)\n" n n in
+        let proof_s = Format.sprintf "val (%s_rw, %s_ind_rw) =\n  Defn.tprove_no_defn ((%s_def, %s_ind),\n    (* the termination proof *)\n  )\n" n n n n in
+        let store_s = Format.sprintf "val %s_rw = save_thm (\"%s_rw\", %s_rw);\nval %s_ind_rw = save_thm (\"%s_ind_rw\", %s_ind_rw);\n" n n n n n n in
         meta (String.concat "" [goal_stack_setup_s; proof_s; store_s; "\n\n"])
       end
       else emp
