@@ -221,6 +221,22 @@ type option 'a =
   | None
   | Some of 'a
 
+type sum 'a 'b = 
+  | Inl of 'a
+  | Inr of 'b
+
+val isl : forall 'a 'b. sum 'a 'b -> bool
+let inline {hol;ocaml;coq;isabelle} isl s = match s with Inl _ -> true | Inr _ -> false end
+
+val isr : forall 'a 'b. sum 'a 'b -> bool
+let inline {hol;ocaml;coq;isabelle} isr s = match s with Inl _ -> false | Inr _ -> true end
+
+val outl : forall 'a 'b. sum 'a 'b -> 'a
+let inline {hol;ocaml;coq;isabelle} outl s = match s with Inl a -> a end
+
+val outr : forall 'a 'b. sum 'a 'b -> 'b
+let inline {hol;ocaml;coq;isabelle} outr s = match s with Inr b -> b end
+  
 val string_of_num : num -> string
 let inline {ocaml} string_of_num = Ocaml.Nat_num.string_of_num
 let inline {isabelle} string_of_num = Isabelle.nat_to_string
