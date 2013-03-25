@@ -388,6 +388,11 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
             generate_coq_abbreviation_equality tvs name src_t
     ;;
 
+    type variable
+      = Tyvar of Output.t
+      | Nvar of Output.t
+    ;;
+
     let generate_variant_equality tvs o bods =
       let eq_typ =
         if List.length tvs = 0 then
@@ -398,15 +403,20 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
           let eq_funs = List.map (fun tv ->
             let tv =
               match tv with
-                | Typed_ast.Tn_A (_, tv, _) -> tv
-                | _ -> assert false
+                | Typed_ast.Tn_A (_, tyvar, _) -> Tyvar (from_string $ Ulib.Text.to_string tyvar)
+                | Typed_ast.Tn_N (_, nvar, _) -> Nvar (from_string $ Ulib.Text.to_string nvar)
             in
-            let name = id Type_var $ Ulib.Text.(^^^) (r"") tv in
-            let eq_fun_name = combine [name; from_string "_beq"] in
-            let eq_fun_type =
-             combine [
-                name; from_string " -> "; name; from_string " -> bool"
-              ]
+            let eq_fun_name, eq_fun_type =
+              match tv with
+                | Tyvar name ->
+                    combine [
+                      name; from_string "_beq"
+                    ],
+                    combine [
+                      name; from_string " -> "; name; from_string " -> bool"
+                    ]
+                | Nvar name ->
+                    emp, emp
             in
               combine [
                 from_string "("; eq_fun_name; from_string ": ";
@@ -416,16 +426,17 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
           in
           let eq_fun_list = separate " " eq_funs in
           let tvs = List.map (fun tv ->
-            let tv =
-              match tv with
-                | Typed_ast.Tn_A (_, tv, _) -> tv
-                | _     -> assert false
-            in
-              combine [
-                from_string "{"; id Type_var $ Ulib.Text.(^^^) (r"") tv;
-                from_string ": Type}"
-              ]
-          ) tvs
+            match tv with
+              | Typed_ast.Tn_A (_, tvar, _) ->
+                let name = from_string $ Ulib.Text.to_string tvar in
+                  combine [
+                    from_string "{"; name; from_string ": Type}"
+                  ]
+              | Typed_ast.Tn_N (_, nvar, _) ->
+                let name = from_string $ Ulib.Text.to_string nvar in
+                  combine [
+                    from_string "{"; name; from_string ": num}"
+                  ]) tvs
           in
           let tv_list = separate " " tvs in
             combine [
@@ -1001,7 +1012,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
             combine [
               ws skips; from_string "("; abbreviation_typ t; from_string ")"; ws skips'
             ]
-        | Typ_len _ -> from_string "(* XXX: vectors not supported in Coq backend *)"
+        | Typ_len nexp -> src_nexp nexp
     and type_def_record def =
     	match Seplist.hd def with
       	| (n, tyvars, (Te_record (skips, skips', fields, skips'') as r),_) ->
@@ -1036,8 +1047,8 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
       let ty_vars =
         List.map (
           function
-            | Typed_ast.Tn_A (x, y, z) -> from_string $ Ulib.Text.to_string y
-            | Typed_ast.Tn_N _ -> assert false
+            | Typed_ast.Tn_A (_, tyvar, _) -> Tyvar (from_string $ Ulib.Text.to_string tyvar)
+            | Typed_ast.Tn_N (_, nvar, _) -> Nvar (from_string $ Ulib.Text.to_string nvar)
           ) ty_vars
       in
         inductive ty_vars n ^ tyexp name ty_vars ty
@@ -1048,16 +1059,19 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
         combine [
           name; ty_var_sep; ty_vars; from_string " : Type "
         ]
-    and inductive_type_variables =
-      function
-        | []  -> emp
-        | [x] ->
-            combine [
-              from_string "{"; x; from_string " : Type}"
-            ]
-        | tvs ->
-          let body = separate " " tvs in
-            from_string "{" ^ body ^ from_string ": Type}"
+    and inductive_type_variables vars =
+      let mapped = List.map (fun v ->
+          match v with
+            | Tyvar x ->
+              combine [
+                from_string "{"; x; from_string " : Type}"
+              ]
+            | Nvar x ->
+              combine [
+                from_string "{"; x; from_string " : num}"
+              ]) vars
+      in
+        separate " " mapped
     and tyexp name ty_vars =
       function
         | Te_opaque -> emp
@@ -1123,15 +1137,21 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
         | [] -> emp
         | [Typed_ast.Tn_A tv] -> from_string "{" ^ tyvar tv ^ from_string ": Type}"
         | tvs ->
-        	let body = flat $ Seplist.to_sep_list tyvar (sep emp)
-        		(Seplist.from_list (
-              List.map (
-                function
-                  | Typed_ast.Tn_A tv -> (tv, None)
-                  | Typed_ast.Tn_N _ -> assert false (* XXX: todo add vector support *)
-                ) tvs))
-        	in
-        		from_string "{" ^ body ^ from_string ": Type}"
+          let mapped = List.map (fun t ->
+            match t with
+              | Typed_ast.Tn_A (_, tv, _) ->
+                let tv = from_string $ Ulib.Text.to_string tv in
+                  combine [
+                    from_string "{"; tv; from_string ": Type}"
+                  ]
+              | Typed_ast.Tn_N nv ->
+                  combine [
+                    from_string "{"; from_string "nv: num}"
+                  ]) tvs
+          in
+            combine [
+              from_string " "; separate " " mapped
+            ]
     and field_typ t =
       match t.term with
         | Typ_wild skips -> ws skips ^ from_string "_"
@@ -1149,7 +1169,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
             ]
         | Typ_paren(skips, t, skips') ->
             ws skips ^ from_string "(" ^ typ t ^ from_string ")" ^ ws skips'
-        | Typ_len _ -> assert false
+        | Typ_len nexp -> src_nexp nexp
     and field ((n, _), skips, t) =
       combine [
         Name.to_output coq_infix_op Term_field n; from_string ":"; ws skips; field_typ t
