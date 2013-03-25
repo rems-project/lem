@@ -1344,7 +1344,10 @@ type defn_ctxt = {
   cur_env : env;
   (* The value/function/module/field/type_names defined in this sequence of
    * definitions *)
-  new_defs : env }
+  new_defs : env;
+
+  (* The names of all assertions / lemmata defined. Used only to avoid using names multiple times. *)
+  lemmata_labels : NameSet.t; }
 
 (* Update the new and cumulative environment with new
  * function/value/module/field/path definitions according to set and select *)
@@ -1382,6 +1385,11 @@ let insert_pfmap_list (m : 'a list Pfmap.t) (k : Path.t) (v : 'a)
   match Pfmap.apply m k with
     | None -> Pfmap.insert m (k,[v])
     | Some(l) -> Pfmap.insert m (k,v::l)
+
+(* Add a lemma name to the context *)
+let add_lemma_to_ctxt (ctxt : defn_ctxt) (n : Name.t)  
+      : defn_ctxt =
+  { ctxt with lemmata_labels = NameSet.add n ctxt.lemmata_labels; }
 
 (* Add a new instance the the new instances and the global instances *)
 let add_instance_to_ctxt (ctxt : defn_ctxt) (p : Path.t) (i : instance) 
@@ -1945,6 +1953,7 @@ let check_val_def (ts : Targetset.t) (for_method : Types.t option) (l : Ast.l)
 
 let check_lemma l ts (ctxt : defn_ctxt) 
       : Ast.lemma_decl -> 
+        defn_ctxt *
         lskips *
         Ast.lemma_typ * 
         targets_opt *
@@ -1970,14 +1979,20 @@ let check_lemma l ts (ctxt : defn_ctxt)
           let (exp,(tnvars,constraints)) = Checker.check_lem_exp empty_lex_env l e bool_ty in
           let (sk0, lty') = lty_get_sk lty in
           let target_opt = check_target_opt target_opt in
-              (sk0, lty', target_opt, None, sk1, exp, sk2) 
+              (ctxt, sk0, lty', target_opt, None, sk1, exp, sk2) 
       | Ast.Lemma_named (lty, target_opt, name, sk1, sk2, e, sk3) ->
           let (exp,(tnvars,constraints)) = Checker.check_lem_exp empty_lex_env l e bool_ty in
           (* TODO It's ok for tnvars to have variables (polymorphic lemma), but typed ast should keep them perhaps? Not sure if it's ok for constraints to be unconstrained *)
           let target_opt = check_target_opt target_opt in
           let (sk0, lty') = lty_get_sk lty in
           let (n, l) = xl_to_nl name in
-            (sk0, lty', target_opt, Some ((n,l), sk1), sk2, exp, sk3)
+          let n_s = Name.strip_lskip n in
+          let _ = if (NameSet.mem n_s ctxt.lemmata_labels) then 
+                      raise_error l
+                        "lemmata-label already used"
+                         Name.pp n_s
+                   else () in
+          (add_lemma_to_ctxt ctxt n_s,  sk0, lty', target_opt, Some ((n,l), sk1), sk2, exp, sk3)
 
 (* Check that a type can be an instance.  That is, it can be a type variable, a
  * function between type variables, a tuple of type variables or the application
@@ -2110,8 +2125,8 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                constraints env_tag None e_v, 
              Val_def(vd,tnvs, constraints))
       | Ast.Lemma(lem) ->
-            let (sk, lty, targs, name_opt, sk2, e, sk3) = check_lemma l backend_targets ctxt lem in
-            (ctxt, Lemma(sk, lty, targs, name_opt, sk2, e, sk3))
+            let (ctxt', sk, lty, targs, name_opt, sk2, e, sk3) = check_lemma l backend_targets ctxt lem in
+            (ctxt', Lemma(sk, lty, targs, name_opt, sk2, e, sk3))
       | Ast.Ident_rename(sk1,target_opt,id,sk2,xl') ->        
           let l' = Ast.xl_to_l xl' in
           let n' = Name.from_x xl' in 
@@ -2444,7 +2459,8 @@ let check_defs backend_targets mod_path (tdefs, instances) env
                all_instances = instances;
                new_instances = Pfmap.empty;
                cur_env = env;
-               new_defs = empty_env }
+               new_defs = empty_env;
+               lemmata_labels = NameSet.empty }
   in
   let (ctxt,b) = check_defs backend_targets mod_path ctxt defs in
   let _ = List.map Syntactic_tests.check_decidable_equality_def b in
