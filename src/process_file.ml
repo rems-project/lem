@@ -217,6 +217,7 @@ let output1 libpath isa_thy targ avoid type_info m alldoc_accum alldoc_inc_accum
             let o = open_out (f' ^ ".ml") in
               Printf.fprintf o "(*%s*)\n" (generated_line m.filename);
               Printf.fprintf o "open Nat_num\n\n";
+              Printf.fprintf o "open Sum\n\n";
               Printf.fprintf o "type 'a set = 'a Pset.set\n\n";
               Printf.fprintf o "%s" (Ulib.Text.to_string r);
               close_out o

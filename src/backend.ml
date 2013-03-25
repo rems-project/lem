@@ -254,6 +254,8 @@ module type Target = sig
   (* TODO: remove some and none *)
   val some : Ident.t
   val none : Ident.t
+  val inl : Ident.t
+  val inr : Ident.t
 end
 
 let rec intercalate sep =
@@ -455,6 +457,8 @@ module Identity : Target = struct
 
   let some = Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r"Some"))) Ast.Unknown
   let none = Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r"None"))) Ast.Unknown
+  let inl = Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r"Inl"))) Ast.Unknown
+  let inr = Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r"Inr"))) Ast.Unknown
 end
 
 module Html : Target = struct
@@ -648,6 +652,8 @@ module Tex : Target = struct
 
   let some = Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r"Some"))) Ast.Unknown
   let none = Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r"None"))) Ast.Unknown
+  let inl = Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r"Inl"))) Ast.Unknown
+  let inr = Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r"Inr"))) Ast.Unknown
 end
 
 
@@ -696,6 +702,8 @@ module Ocaml : Target = struct
   let type_params_pre = true
   let nexp_params_vis = false
   
+  let inl = Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r"Inl"))) Ast.Unknown
+  let inr = Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r"Inr"))) Ast.Unknown
 end
 
 let back_tick = List.hd (Ulib.Text.explode (r"`"))
@@ -1050,6 +1058,8 @@ module Hol : Target = struct
 
   let some = Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r"SOME"))) Ast.Unknown
   let none = Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r"NONE"))) Ast.Unknown
+  let inl = Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r"INL"))) Ast.Unknown
+  let inr = Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r"INR"))) Ast.Unknown
 
 end
 
@@ -1404,6 +1414,12 @@ let ctor_ident_to_output cd =
     else if Path.compare cd.descr.constr_binding 
               (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"Some"))) = 0 then
       Ident.replace_first_lskip T.some sk
+    else if Path.compare cd.descr.constr_binding 
+              (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"Inl"))) = 0 then
+      Ident.replace_first_lskip T.inl sk
+    else if Path.compare cd.descr.constr_binding 
+              (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"Inr"))) = 0 then
+      Ident.replace_first_lskip T.inr sk
     else
       resolve_ident_path cd cd.descr.constr_binding
   in

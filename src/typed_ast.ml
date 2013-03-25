@@ -2411,6 +2411,9 @@ let resolve_ident_path id path : Ident.t =
     if 0 = Path.compare (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"option")))
                         (Path.mk_path mods n) then
       Ident.mk_ident [] (Name.replace_lskip (Name.add_lskip n) (Ident.get_first_lskip id)) Ast.Unknown
+    else if 0 = Path.compare (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"sum")))
+                        (Path.mk_path mods n) then
+      Ident.mk_ident [] (Name.replace_lskip (Name.add_lskip n) (Ident.get_first_lskip id)) Ast.Unknown
     else
       id
 
