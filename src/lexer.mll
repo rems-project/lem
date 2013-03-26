@@ -100,7 +100,7 @@ let ws = [' ''\t']+
 let letter = ['a'-'z''A'-'Z']
 let digit = ['0'-'9']
 let binarydigit = ['0'-'1']
-let hexdigit = ['0'-'9''A'-'F']
+let hexdigit = ['0'-'9''A'-'F''a'-'f']
 let alphanum = letter|digit
 let startident = letter|'_'
 let ident = alphanum|['_''\'']
@@ -210,7 +210,7 @@ and string pos b = parse
                                           string pos b lexbuf }
   | ([^'"''\n''\\']* as i)              { Buffer.add_string b i; string pos b lexbuf }
   | escape_sequence as i                { Buffer.add_string b i; string pos b lexbuf }
-  | '\\' '\n' ws                        { string pos b lexbuf }
+  | '\\' '\n' ws                        { Lexing.new_line lexbuf; string pos b lexbuf }
   | '\\'                                { raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax (pos,
                                             "illegal backslash escape in string"))) }
   | '"'                                 { let s = unescaped(Buffer.contents b) in
