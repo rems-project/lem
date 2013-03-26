@@ -145,7 +145,8 @@ booleans constants
 
 \item a (non-empty) sequence of digits (matching \verb|[0-9]+|)\\ a numeric constant
 
-\item a sequence of non-\texttt{"} characters surrounded by \texttt{"}\\
+\item a sequence of either UTF-8 characters different from \verb|"| and \verb|\|, or escape
+sequences starting with \verb|\|, surrounded by \texttt{"}\\
 a string constant
 
 \item $[[bitzero]]$ or $[[bitone]]$\\
