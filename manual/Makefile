@@ -12,7 +12,7 @@ lem-manual.dvi: lem-manual.tex
 
 lem-manual.tex: lem-manual.mng lem.tex
 	rm -f lem-manual.tex
-	ott -tex_filter lem-manual.mng lem-manual.tex ../lem.ott
+	ott -tex_filter lem-manual.mng lem-manual.tex ../language/lem.ott
 	chmod a-w lem-manual.tex
 
 lem-manual.html: hevea/bin/hevea lem-manual.tex
@@ -26,8 +26,8 @@ lem-manual.html: hevea/bin/hevea lem-manual.tex
 #	ott -readsys lem.ottsys -tex_filter lem-manual.mng lem-manual.tex 
 #	chmod a-w lem-manual.tex
 
-lem.ottsys: ../lem.ott
-	ott -writesys lem.ottsys ../lem.ott
+lem.ottsys: ../language/lem.ott
+	ott -writesys lem.ottsys ../language/lem.ott
 
 lem.tex: lem.ottsys
 	ott -readsys lem.ottsys -o lem.tex -tex_wrap false
