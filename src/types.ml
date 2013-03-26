@@ -106,6 +106,11 @@ and nexp_aux =
   | Nuvar of n_uvar
 and n_uvar = { nindex : int; mutable nsubst : nexp option }
 
+type range =
+  | LtEq of Ast.l * nexp
+  | Eq of Ast.l * nexp
+  | GtEq of Ast.l * nexp
+
 let free_vars t =
   let rec f t acc =
     match t.t with
@@ -405,23 +410,27 @@ and
  pp_nexp ppf n =
   pp_open_box ppf 0;
   (match n.nexp with
-     | Nuvar nu -> fprintf ppf "_"(*  fprintf ppf "_ (%d)" nu.nindex *)
+     | Nuvar nu -> fprintf ppf "_" (*  fprintf ppf "_ (%d)" nu.nindex *)
      | Nvar(nv) ->
          Nvar.pp ppf nv
      | Nconst(i) ->
          fprintf ppf "%d" i
      | Nadd(i,j) ->
-         fprintf ppf "%a + %a"
+         fprintf ppf "(%a + %a)"
              pp_nexp i
              pp_nexp j
      | Nmult(i,j) ->
-         fprintf ppf "%a * %a" 
+         fprintf ppf "(%a * %a)" 
             pp_nexp i
             pp_nexp j
      | Nneg(n) -> fprintf ppf "- %a"
             pp_nexp n);
   pp_close_box ppf ()
 
+let pp_range ppf = function
+  | GtEq(_,n) -> fprintf ppf "%a >= 0" pp_nexp n
+  | Eq(_,n)   -> fprintf ppf "%a = 0" pp_nexp n
+  | LtEq(_,n) -> fprintf ppf "%a <= 0" pp_nexp n
 
 let pp_tc ppf = function
   | Tc_type(tvs, topt, _) ->
@@ -683,7 +692,7 @@ let normalize nexp =
        end
   in 
   let normal = norm nexp in
-(*  let _  =  fprintf std_formatter "normal unsorted is %a@ \n" pp_nexp normal in*)
+(*  let _  =  fprintf std_formatter "normal unsorted is %a@ \n" pp_nexp normal in *)
   let sorted = sort normal in
 (*  let _ = fprintf std_formatter "sorted normal is %a@ \n" pp_nexp sorted in *)
   sorted
@@ -750,10 +759,15 @@ let rec nexp_from_list nls = match nls with
     | [n1;n2] -> {nexp = Nadd(n1,n2)}
     | n1::nls -> {nexp = Nadd(n1,(nexp_from_list nls))}
 
-type range =
-  | LtEq of Ast.l * nexp
-  | Eq of Ast.l * nexp
-  | GtEq of Ast.l * nexp
+let range_of_n = function
+  | LtEq(_,n) | Eq(_,n) | GtEq(_,n) -> n
+let range_l = function
+  | LtEq(l,_) | Eq(l,_) | GtEq(l,_) -> l
+
+let range_with r n = match r with
+  | LtEq(l,_) -> LtEq(l,n)
+  | Eq(l,_) -> Eq(l,n)
+  | GtEq(l,_) -> GtEq(l,n)
 
 module type Constraint = sig
   val new_type : unit -> t
@@ -1003,8 +1017,9 @@ module Constraint (T : Global_defs) : Constraint = struct
    in   
    let rec walk_constraints curr_vars = function
    | [ ] -> curr_vars
-   | Eq(_,n) :: constraints | GtEq(_,n) :: constraints | LtEq(_,n)::constraints -> 
-     walk_constraints (add_vars curr_vars n) constraints
+   | c::constraints -> 
+(*     let _ = fprintf std_formatter "calling collect_vars of %a@ \n" pp_range c in *)
+     walk_constraints (add_vars curr_vars (range_of_n c)) constraints
    in
    walk_constraints [] constraints
 
@@ -1012,7 +1027,7 @@ module Constraint (T : Global_defs) : Constraint = struct
   let expand_matrix constraints all_vars =
     (* Add a multiply by 0 term so that all variables are present in all terms *)
     let zero = { nexp = Nconst 0 } in
-    let mult_zero v = { nexp = Nmult( zero, v ) } in
+    let mult_zero v = { nexp = Nmult(v, zero ) } in
     let get_var n = match n.nexp with 
        | Nuvar _  | Nvar _ -> n
        | Nmult(n,_) -> n
@@ -1042,17 +1057,17 @@ module Constraint (T : Global_defs) : Constraint = struct
     in
     let rec walk_constraints = function
     | [ ] -> [ ]
-    | Eq(l,n)   :: constraints -> Eq(l,(add_vars all_vars n))   :: (walk_constraints  constraints)
-    | GtEq(l,n) :: constraints -> GtEq(l,(add_vars all_vars n)) :: (walk_constraints constraints)
-    | LtEq(l,n) :: constraints -> LtEq(l,(add_vars all_vars n)) :: (walk_constraints constraints)
+    | c :: constraints -> range_with c (add_vars all_vars (range_of_n c)) :: (walk_constraints  constraints)
     in 
-    Array.of_list(walk_constraints constraints)
+    Array.of_list(List.map (fun r -> ref (Some r)) (walk_constraints constraints))
     
   let is_inconsistent = function
-    | Eq(_,n) -> begin match (normalize n).nexp with
+    | Eq(_,n) -> let _ = fprintf std_formatter "inconsistent Eq call of %a@ \n" pp_nexp n in
+                 begin match (normalize n).nexp with
                  | Nconst(i) -> not (i=0)
                  | _ -> false end
-    | GtEq(_,n) -> begin match (normalize n).nexp with
+    | GtEq(_,n) -> let _ = fprintf std_formatter "inconsistent GtEq call of %a@ \n" pp_nexp n in
+                   begin match (normalize n).nexp with
                    | Nconst(i) -> i<0
                    | _ -> false end
     | LtEq(_,n) -> begin match (normalize n).nexp with
@@ -1116,29 +1131,88 @@ module Constraint (T : Global_defs) : Constraint = struct
                 (match n.nexp with
                  | Nconst 0 -> None
                  | Nadd(n1,n2) -> (match n1.nexp,n2.nexp with
-                                    | Nconst(i),Nuvar _ -> begin n2.nexp <- Nconst( i * - 1); None end
+                                    | Nconst(i),Nuvar _ -> begin n2.nexp <- Nconst( i * -1); None end
                                     | Nconst(i),Nmult(v,c) -> (match v.nexp,c.nexp with 
                                                                  | Nuvar _ , Nconst j -> begin v.nexp <- Nconst(i/( - j)); None end
                                                                  | _ -> Some(Eq(l,n)))       
                                     | _ -> Some(Eq(l,n)))
                      | _ -> Some(Eq(l,n)))
-    | GtEq(l,n) -> let terms = List.sort compare_nexp_consts (nexp_to_term_list n) in
-                     remove_nuvars (>=) terms;
-                     let n = normalize n in
-                     (match n.nexp with
-                     | Nconst 0 -> None
-                     | _ -> Some(GtEq(l,n)))
-    | LtEq(l,n) -> let terms = List.sort compare_nexp_consts (nexp_to_term_list n) in
-                     remove_nuvars (<=) terms;
-                     let n = normalize n in
-                     (match n.nexp with
-                     | Nconst 0 -> None
-                     | _ -> Some(LtEq(l,n)))
+    | GtEq(l,n) -> let n = normalize n in
+                   if is_redundant(GtEq(l,n)) then None
+                      else Some(GtEq(l,n))
+    | LtEq(l,n) -> let n = normalize n in
+                   if is_redundant(LtEq(l,n)) then None
+                       else Some(LtEq(l,n))
+
+  (*Return the nexp constant that is the multiplier for variable or unification variable v in n *)
+  let rec find_multiplier v n = 
+   match n.nexp with 
+   | Nvar _ | Nuvar _ -> if (compare_nexp v n) = 0
+                            then Some({nexp = Nconst 1})
+                            else None
+   | Nmult(v1,n) -> if (compare_nexp v1 v) = 0
+                       then Some n
+                       else None
+   | Nadd(n1,n2) -> (match (find_multiplier v n2) with
+                      | Some(n) -> Some n
+                      | None -> find_multiplier v n2)
+   | _ -> None
+
+  (*Perform multiplications and subtractions to turn the multiplier for v to 0 in n2 while keeping n1 fixed *)
+  let var_to_zero v c n1 n2 =
+(*    let _ = fprintf std_formatter "var to zero call of %a@ %a@ %a@ %a@ \n" pp_nexp v pp_nexp c pp_nexp n1 pp_nexp n2 in *)
+    let n2_c = find_multiplier v n2 in
+    match n2_c with
+      | None -> n2 (*v is already 0 in n2*)
+      | Some n2_c -> normalize {nexp = Nadd({nexp = Nmult(c,n2)},{nexp = Nneg {nexp = Nmult(n2_c,n1)}})}
+
+  let rec pivot_var n =
+    match n.nexp with
+     | Nvar _ | Nuvar _ -> Some(n,{nexp= Nconst 1})
+     | Nmult(v,n1) -> (match n1.nexp with
+                       | Nconst 0 -> None
+                       | _ -> Some(v,n1))
+     | Nadd(n1,n2) ->
+       (match (pivot_var n2) with
+         | Some(v,n) -> Some(v,n)
+         | None -> pivot_var n1)
+     | _ -> None
+
+  let rec resolve_matrix i ns =
+    if i >= Array.length ns 
+       then ()
+       else match !(ns.(i)) with
+         | None -> resolve_matrix (i+1) ns
+         | Some(rnge) ->
+            let n = range_of_n rnge in
+(*            let _ = fprintf std_formatter "resolve_matrix of %a@ \n" pp_nexp n in *)
+            let potential_pivot = pivot_var n in
+            match potential_pivot with 
+             | None -> if (is_redundant rnge) then
+                          begin ns.(i) := None ; resolve_matrix (i+1) ns end
+                          else if (is_inconsistent rnge) then
+                                  let _ = fprintf std_formatter "%a@ is inconsistent \n" pp_nexp n in assert false (* turn into error *)
+                                  else resolve_matrix (i+1) ns
+             | Some(v,c) -> 
+               let rec inner_loop j =
+                 if (j >= Array.length ns)
+                   then resolve_matrix (i+1) ns
+                 else if (i = j) then inner_loop (j+1)
+                   else 
+                     match !(ns.(j)) with
+                      | None -> inner_loop (j+1)
+                      | Some(rnge_j) -> 
+                          ns.(j) := Some(range_with rnge_j (var_to_zero v c n (range_of_n rnge_j)));
+                          inner_loop (j+1)
+                in inner_loop 0
+                          
 
   (*TODO find where this should have come from, or move to util*)
   let rec some_list = function
     | [] -> []
-    | Some(a)::rest -> a::(some_list rest)
+    | Some(a)::rest -> (*let _ = fprintf std_formatter "some constraint %a \n" pp_range a in
+                       let _ = fprintf std_formatter "some constraints, normalized %a \n" pp_nexp (normalize (range_of_n a)) in *)
+                       a::(some_list rest)
     | None::rest -> some_list rest
 
   let solve_numeric_constraints unresolved = function
@@ -1149,6 +1223,7 @@ module Constraint (T : Global_defs) : Constraint = struct
     | cs -> let cs = some_list (List.map solve_solo cs) in
             let variables = collect_vars cs in
             let matrix = expand_matrix cs variables in
+            resolve_matrix 0 matrix;
             unresolved
 
   let rec solve_constraints instances (unsolvable : PTset.t)= function
