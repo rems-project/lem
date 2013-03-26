@@ -138,6 +138,7 @@ module type Target = sig
   val const_unit : Ast.lex_skips -> t
   val const_empty : Ast.lex_skips -> t
   val string_quote : Ulib.Text.t
+  val string_escape : Ulib.UTF8.t -> Ulib.UTF8.t
   val const_num : int -> t
   val const_undefined : Types.t -> string -> t
   val const_bzero : t
@@ -343,6 +344,7 @@ module Identity : Target = struct
   let const_unit s = kwd "(" ^ ws s ^ kwd ")"
   let const_empty s = kwd "{" ^ ws s ^ kwd "}"
   let string_quote = r"\""
+  let string_escape = String.escaped
   let const_num = num
   let const_undefined t m = (kwd "Undef") (* ^ (comment m) *)
   let const_bzero = kwd "#0"
@@ -540,6 +542,7 @@ module Tex : Target = struct
   let const_true = tkwd "true"
   let const_false = tkwd "false"
   let string_quote = r"\""
+  let string_escape = String.escaped
   let const_num = num
   let const_undefined t m = (tkwd "undefined")
   let const_bzero = kwd "#0"
@@ -751,6 +754,7 @@ module Isa : Target = struct
   let const_true = kwd "True"
   let const_false = kwd "False"
   let string_quote = r"''"
+  let string_escape = fun x -> x (* XXX fix string escaping for Isa *)
   let const_num i = kwd "(" ^  num i ^ kwd ":: nat)"
   let const_unit s = kwd "() " ^ ws s
   let const_empty s = kwd "{} " ^ ws s
@@ -939,6 +943,7 @@ module Hol : Target = struct
   let const_unit s = kwd "() " ^ ws s
   let const_empty s = kwd "{" ^ ws s ^ kwd "}"
   let string_quote = r"\""
+  let string_escape = fun x -> x (* XXX fix string escaping for HOL *)
   let const_num = num
   let const_undefined t m = (kwd "ARB") 
   let const_bzero = emp
@@ -1347,7 +1352,7 @@ let lit l t = match l.term with
   | L_false(s) -> ws s ^ T.const_false
   | L_undefined(s,m) -> ws s ^ T.const_undefined t m
   | L_num(s,i) -> ws s ^ T.const_num i
-  | L_string(s,i) -> ws s ^ str (Ulib.Text.of_latin1 i)
+  | L_string(s,i) -> ws s ^ str (Ulib.Text.of_string (T.string_escape i))
   | L_unit(s1,s2) -> ws s1 ^ T.const_unit s2
   | L_zero(s) -> ws s ^ T.const_bzero 
   | L_one(s) -> ws s ^ T.const_bone

@@ -51,6 +51,8 @@ exception LexError of char * Lexing.position
 
 let (^^^) = Ulib.Text.(^^^)
 let r = Ulib.Text.of_latin1
+(* Available as Scanf.unescaped since OCaml 4.0 but 3.12 is still common *)
+let unescaped s = Scanf.sscanf ("\"" ^ s ^ "\"") "%S%!" (fun x -> x)
 
 let kw_table = 
   List.fold_left
@@ -103,6 +105,7 @@ let safe_com1 = [^'*''('')''\n']
 let safe_com2 = [^'*''(''\n']
 let com_help = "("*safe_com2 | "*"*"("+safe_com2 | "*"*safe_com1
 let com_body = com_help*"*"*
+let escape_sequence = ('\\' ['\\''\"''\'''n''t''b''r']) | ('\\' digit digit digit) | ('\\' 'x' hexdigit hexdigit)
 
 rule token skips = parse
   | ws as i
@@ -197,10 +200,18 @@ and comment = parse
   | eof                                 { [] }
 
 and string pos b = parse
-  | ([^'"''\n']*'\n' as i)              { Lexing.new_line lexbuf;
+  | ([^'"''\n''\\']*'\n' as i)          { Lexing.new_line lexbuf;
                                           Buffer.add_string b i;
                                           string pos b lexbuf }
-  | ([^'"''\n']* as i)                  { Buffer.add_string b i; string pos b lexbuf }
-  | '"'                                 { Buffer.contents b }
+  | ([^'"''\n''\\']* as i)              { Buffer.add_string b i; string pos b lexbuf }
+  | escape_sequence as i                { Buffer.add_string b i; string pos b lexbuf }
+  | '\\' '\n' ws                        { string pos b lexbuf }
+  | '\\'                                { raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax (pos,
+                                            "illegal backslash escape in string"))) }
+  | '"'                                 { let s = unescaped(Buffer.contents b) in
+                                          try Ulib.UTF8.validate s; s
+                                          with Ulib.UTF8.Malformed_code ->
+                                            raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax (pos,
+                                              "String literal is not valid utf8"))) }
   | eof                                 { raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax (pos,
                                             "String literal not terminated"))) }
