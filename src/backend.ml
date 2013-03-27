@@ -2953,8 +2953,11 @@ and isa_def d is_user_def : Output.t = match d with
            targets_opt targets 
          else
            emp) ^
-        isa_letbind is_simple bind ^ T.def_end    
-      else emp  
+        isa_letbind is_simple bind ^ T.def_end ^
+        (match val_def_get_name d with None -> emp | Some n ->
+          (if is_simple then emp else 
+                          (kwd (String.concat "" ["\ndeclare "; Name.to_string n; ".simps [simp del]"]))))
+      else emp
   
   | Val_def (Rec_def (s1, s2, targets, clauses),tnvs,class_constraints) ->
       let is_rec = Typed_ast_syntax.is_recursive_def ((d, None), Ast.Unknown) in
@@ -2966,7 +2969,11 @@ and isa_def d is_user_def : Output.t = match d with
            emp) ^
         (isa_funcl_header_seplist clauses) ^
         flat (Seplist.to_sep_list (isa_funcl_default (kwd "= ")) (sep T.def_sep) clauses) ^
-        (if is_rec then kwd "\nby pat_completeness auto\n" else kwd "\n")
+        (if is_rec then (kwd "\nby pat_completeness auto") else emp) ^
+        (match val_def_get_name d with None -> emp | Some n ->
+          (if is_rec then emp else 
+                (kwd (String.concat "" ["\ndeclare "; Name.to_string n; ".simps [simp del]"])))) ^
+        new_line
       else emp
       
   | Val_spec(s1,(n,l),s2,t) ->
