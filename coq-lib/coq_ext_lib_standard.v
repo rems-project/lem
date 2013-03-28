@@ -127,26 +127,6 @@ Fixpoint nat_eq_b
         end
     end.
 
-Lemma nat_eq_b_reflexive:
-  forall m,
-    nat_eq_b m m = true.
-  intro. elim m.
-    trivial.
-    intro. intro. simpl.
-    assumption.
-Qed.
-
-Lemma nat_eq_b_symmetric:
-  forall m n,
-    nat_eq_b m n = true -> nat_eq_b n m = true.
-  intro. elim m.
-    intro. case n. simpl. auto.
-    intro. simpl. intro. discriminate.
-    intro. intro. intro. case n0.
-      simpl. intro. discriminate.
-      intro. simpl. intro. apply H. auto.
-Qed.
-
 Fixpoint lte_b (l r : num) : bool :=
   match l with
     | O => true
@@ -159,18 +139,6 @@ Fixpoint lte_b (l r : num) : bool :=
 
 Definition lt_b :=
   fun l r => lte_b (S l) r.
-
-Lemma lte_b_reflexive:
-  forall m,
-    lte_b m m = true.
-  intro. elim m.
-    trivial.
-    intro. intro. simpl. assumption.
-Qed.
-
-Axiom lt_b_true_to_lte_b_true:
-  forall m n,
-    lt_b m n = true -> lte_b m n = true.
 
 Definition gt_b (l r : num) : bool := lt_b r l.
 
@@ -223,43 +191,6 @@ Fixpoint mod_aux
           | S p => mod_aux p (minus m (S n)) n
         end
     end.
-
-Lemma lte_b_n_0_elim:
-  forall n P,
-    lte_b n 0 = true -> P 0 -> P n.
-  intro. intro. case n.
-  compute. auto.
-  intro. compute. intro.
-  discriminate H.
-Qed.
-
-Lemma nat_case:
-  forall m P,
-    P 0 -> (forall m, P (S m)) -> P m.
-  intros. case m. auto. auto.
-Qed.
-
-Axiom nat_elim_2:
-  forall {P: nat -> nat -> Type},
-  forall m n,
-    (forall m, P 0 m) ->
-    (forall m, P (S m) 0) ->
-    (forall m n, P m n -> P (S m) (S n)) ->
-    P m n.
-
-Axiom lte_b_true_to_eq_or_lt_b_true:
-  forall m n,
-    lte_b m n = true -> nat_eq_b m n = true \/ lt_b m n = true.
-
-Axiom lte_b_m_Sn_elim:
-  forall m n P,
-  lte_b m (S n) = true ->
-  (lte_b (S m) (S n) = true -> P) ->
-  (m = S n -> P) -> P.
-
-Axiom lte_b_mod_aux_m_m: 
-  forall p n m,
-    lte_b n p = true -> lte_b (mod_aux p n m) m = true.
 
 Definition mod
   (m n: num): num :=
@@ -339,81 +270,6 @@ Axiom bitwise_lsr:
 Notation "x :: l" := (cons x l) (at level 60, right associativity).
 Notation "[ ]" := nil.
 Notation "[ x ; .. ; y ]" := (cons x .. (cons y nil) ..).
-
-Fixpoint list_append
-  {a : Type} (left : list a) (right : list a) :=
-    match left with
-      | []    => right
-      | x::xs => x :: list_append xs right
-    end.
-
-Fixpoint list_map
-  {a b : Type} (f : a -> b) (l : list a) :=
-    match l with
-      | []    => []
-      | x::xs => f x :: list_map f xs
-    end.
-
-Fixpoint list_reverse
-  {a : Type} (l : list a) :=
-    match l with
-      | []    => []
-      | x::xs => list_append (list_reverse xs) [ x ]
-    end.
-
-Fixpoint list_length
-  {a : Type} (l : list a) :=
-    match l with
-      | []    => 0
-      | x::xs => S (list_length xs)
-    end.
-
-Fixpoint list_filter
-  {a : Type} (p : a -> bool) (l : list a) : list a :=
-    match l with
-      | []    => []
-      | x::xs =>
-          if p x then
-            x::list_filter p xs
-          else
-            list_filter p xs
-    end.
-
-Fixpoint list_for_all
-  {elt : Type} (p : elt -> bool) (l : list elt) : bool :=
-    match l with
-      | []    => true
-      | x::xs =>
-        if p x then
-          list_for_all p xs
-        else
-          false
-    end.
-
-Fixpoint list_exists
-  {elt : Type} (p : elt -> bool) (l : list elt) : bool :=
-    match l with
-      | []    => true
-      | x::xs =>
-        if p x then
-          true
-        else
-          list_exists p xs
-    end.
-
-Fixpoint list_fold_right
-  {a b : Type} (f : a -> b -> b) (e : b) (l : list a) : b :=
-    match l with
-      | []    => e
-      | x::xs => f x (list_fold_right f e xs)
-    end.
-
-Fixpoint list_fold_left
-  {a b : Type} (f : a -> b -> a) (e : a) (l : list b) : a :=
-    match l with
-      | []    => e
-      | x::xs => list_fold_left f (f e x) xs
-    end.
 
 (* * Vector library. *)
 
@@ -576,38 +432,21 @@ Definition set_choose {elt : Type} : set elt -> elt -> elt :=
       | x::xs => x
     end.
 
-Fixpoint set_cardinal
-  {elt : Type} (s : set elt) : nat :=
-    match s with
-      | []    => 0
-      | x::xs => S (set_cardinal xs)
-    end.
+Definition set_cardinal
+  {elt: Type} (s: set elt): num :=
+    List.length s. 
 
-Fixpoint set_exists
+Definition set_exists
   {elt : Type} (p : elt -> bool) (s : set elt) : bool :=
-    match s with
-      | []    => false
-      | x::xs =>
-          if p x then
-            true
-          else
-            set_exists p xs
-    end.
+    List.existsb p s.
 
 Definition set_member
   {elt : Type} (e : elt) (s : set elt) : bool :=
     set_exists (fun x => e == x) s.
 
-Fixpoint set_for_all
+Definition set_for_all
   {elt : Type} (p : elt -> bool) (s : set elt) : bool :=
-    match s with
-      | []    => true
-      | x::xs =>
-        if p x then
-          set_for_all p xs
-        else
-          false
-    end.
+    List.forallb p s.
 
 Fixpoint set_inter
   {elt : Type} (eq : elt -> elt -> bool)
@@ -621,12 +460,9 @@ Fixpoint set_inter
           set_inter eq xs right
     end.
 
-Fixpoint set_union
+Definition set_union
   {elt : Type} (left : set elt) (right : set elt) :=
-    match left with
-      | [] => right
-      | x::xs => x::set_union xs right
-    end.
+    List.app left right.
 
 Fixpoint set_diff
   {elt : Type} (left : set elt) (right : set elt) : set elt :=

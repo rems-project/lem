@@ -418,6 +418,28 @@ let is_recursive_def (((d, _), _) : def) =
      end
   |  _ -> false
 
+
+let val_def_get_name d : Name.t option = match d with
+  | Val_def (Rec_def (_, _, _, clauses),_,_) -> 
+    begin
+      match Seplist.to_list clauses with
+         | [] -> None
+         | (n, _, _, _, _)::_ -> Some (Name.strip_lskip n.term)
+    end
+  | Val_def (Let_def (_, _,(bind, _)),_,_)->
+    begin
+    match bind with
+      | Let_val(p,_,_,_) ->
+        begin
+          match p.term with 
+            | P_var ns -> Some (Name.strip_lskip ns)
+            | _ -> None
+        end
+      | Let_fun(n, _, _, _, _) ->
+          Some (Name.strip_lskip n.term)
+    end
+  | _ -> None
+
 let is_trans_loc = function
     Ast.Trans _ -> true
   | _ -> false

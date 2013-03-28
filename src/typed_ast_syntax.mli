@@ -225,3 +225,6 @@ val is_trans_loc : Ast.l -> bool
 
 val is_trans_exp : exp -> bool
 val is_trans_def : def -> bool
+
+(** [val_def_get_name d] tries to extract the name of the defined function. *)
+val val_def_get_name : def_aux -> Name.t option 

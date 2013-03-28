@@ -44,5 +44,14 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (*========================================================================*)
 
+val app: forall 'a. list 'a -> list 'a -> list 'a
+val rev: forall 'a. list 'a -> list 'a
+val length: forall 'a. list 'a -> num
+val nth: forall 'a. num -> list 'a -> 'a
+val map : forall 'a 'b. ('a -> 'b) -> list 'a -> list 'b
+val flat_map: forall 'a 'b. ('a -> list 'b) -> list 'a -> list 'b
+val forallb : forall 'a. ('a -> bool) -> list 'a -> bool
+val existb : forall 'a. ('a -> bool) -> list 'a -> bool
+val filter : forall 'a. ('a -> bool) -> list 'a -> list 'a
 val fold_left : forall 'a 'b. ('a -> 'b -> 'a) -> 'a -> list 'b -> 'a
 val fold_right : forall 'a 'b. ('a -> 'b -> 'b) -> 'b -> list 'a -> 'b

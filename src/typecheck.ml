@@ -2417,7 +2417,7 @@ let check_id_restrict_p ctxt p = match p.term with
                          then None
                          else  raise_error p.locn 
                                ("variables with type " ^t_to_string p.typ ^ " are restricted to names matching the regular expression " ^ restrict)
-                               Name.pp (Name.strip_lskip n) pp_type p.typ)
+                               Name.pp (Name.strip_lskip n) )
                  | _ -> None
               end
   | _ -> None

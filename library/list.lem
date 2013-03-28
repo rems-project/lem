@@ -8,66 +8,79 @@ val hd : forall 'a. list 'a -> 'a
 let inline {hol} hd = Hol.HD
 let inline {ocaml} hd = Ocaml.List.hd
 let inline {isabelle} hd = Isabelle.List.hd
+let inline {coq} hd l =
+  match l with
+    | x::xs -> x
+  end
 
 val tl : forall 'a. list 'a -> list 'a
 let inline {hol} tl = Hol.TL
 let inline {ocaml} tl = Ocaml.List.tl
 let inline {isabelle} tl = Isabelle.List.tl
+let inline {coq} tl l =
+  match l with
+    | x::xs -> xs
+  end
 
 val nth : forall 'a. list 'a -> num -> 'a
 let inline {hol} nth l n = Hol.EL n l
 let inline {ocaml} nth = Ocaml.List.nth
 let inline {isabelle} nth = Isabelle.List.nth
+let inline {coq} nth l n = Coq.List.nth n l
 
 val rev : forall 'a. list 'a -> list 'a
 let inline {hol} rev = Hol.REVERSE
 let inline {ocaml} rev = Ocaml.List.rev
 let inline {isabelle} rev = Isabelle.List.rev
-let inline {coq} rev = Coq.list_reverse
+let inline {coq} rev = Coq.List.rev
 
 val append : forall 'a. list 'a -> list 'a -> list 'a
 let inline {hol} append = Hol.APPEND
 let inline {ocaml} append = Ocaml.List.append
 let inline {isabelle} append = Isabelle.List.append
-let inline {coq} append = Coq.list_append
+let inline {coq} append = Coq.List.app
 
 val rev_append : forall 'a. list 'a -> list 'a -> list 'a
 let inline {hol} rev_append l1 l2 = Hol.APPEND (Hol.REVERSE l1) l2
 let inline {ocaml} rev_append = Ocaml.List.rev_append
 let inline {isabelle} rev_append l1 l2 = Isabelle.List.append (Isabelle.List.rev l1) l2
+let inline {coq} rev_append l1 l2 = Coq.List.app (Coq.List.rev l1) l2
 
 val concat : forall 'a. list (list 'a) -> list 'a
 let inline {hol} concat = Hol.FLAT
 let inline {ocaml} concat = Ocaml.List.concat
 let inline {isabelle} concat = Isabelle.List.concat
+let inline {coq} concat = Coq.List.flat_map (fun x -> x)
 
 val flatten : forall 'a. list (list 'a) -> list 'a
 let inline {hol} flatten = Hol.FLAT
 let inline {ocaml} flatten = Ocaml.List.flatten
 let inline {isabelle} flatten = Isabelle.List.concat
+let inline {coq} flatten = Coq.List.flat_map (fun x -> x)
 
 val map : forall 'a 'b. ('a -> 'b) -> list 'a -> list 'b
 let inline {hol} map = Hol.MAP
 let inline {ocaml} map = Ocaml.List.map
 let inline {isabelle} map = Isabelle.List.map
-let inline {coq} map = Coq.list_map
+let inline {coq} map = Coq.List.map
 
 val rev_map : forall 'a 'b. ('a -> 'b) -> list 'a -> list 'b
 let inline {hol} rev_map f l = Hol.REVERSE (Hol.MAP f l)
 let inline {ocaml} rev_map = Ocaml.List.rev_map
 let inline {isabelle} rev_map f l = Isabelle.List.rev (Isabelle.List.map f l)
+let inline {coq} rev_map f l = Coq.List.rev (Coq.List.map f l)
 
 val fold_left : forall 'a 'b. ('a -> 'b -> 'a) -> 'a -> list 'b -> 'a
 let inline {hol} fold_left = Hol.FOLDL
 let inline {ocaml} fold_left = Ocaml.List.fold_left
 let inline {isabelle} fold_left = Isabelle.List.foldl
-let inline {coq} fold_left = Coq.list_fold_left
+let inline {coq} fold_left = Coq.List.fold_left
 
 val fold_right : forall 'a 'b. ('a -> 'b -> 'b) -> list 'a -> 'b -> 'b
 let inline {hol} fold_right f l b = Hol.FOLDR f b l
 let inline {ocaml} fold_right = Ocaml.List.fold_right
 let inline {isabelle} fold_right = Isabelle.List.foldr
-let inline {coq} fold_right f l e = Coq.list_fold_right f e l
+let inline {coq} fold_right f l e = Coq.List.fold_right f e l
 
 val map2 : forall 'a 'b 'c. ('a -> 'b -> 'c) -> list 'a -> list 'b -> list 'c 
 let inline {hol} map2 = Hol.MAP2
@@ -88,13 +101,14 @@ val for_all : forall 'a. ('a -> bool) -> list 'a -> bool
 let inline {hol} for_all = Hol.EVERY
 let inline {ocaml} for_all = Ocaml.List.for_all
 let inline {isabelle} for_all = Isabelle.list_forall
-let inline {coq} for_all = Coq.list_for_all
+let inline {coq} for_all = Coq.List.forallb
 
 val exist : forall 'a. ('a -> bool) -> list 'a -> bool
 let inline {hol} exist = Hol.EXISTS
 let inline {ocaml} exist = Ocaml.List.\\exists
 let inline {isabelle} exist = Isabelle.list_exists
-let inline {coq} exist = Coq.list_exists
+let inline {coq} exist = Coq.List.existb
+
 (*let inline {isabelle} exist P l = EX x:(set l). P x*)
 
 val for_all2 : forall 'a 'b. ('a -> 'b -> bool) -> list 'a -> list 'b -> bool
@@ -107,7 +121,7 @@ val mem : forall 'a. 'a -> list 'a -> bool
 let inline {hol} mem = Hol.(MEM)
 let inline {ocaml} mem = Ocaml.List.mem
 let inline {isabelle} mem = Isabelle.list_mem
-let inline {coq} mem e = Coq.list_exists (Coq.(==) e)
+let inline {coq} mem e = Coq.List.existb (Coq.(==) e)
 
 val find : forall 'a. ('a -> bool) -> list 'a -> 'a
 
@@ -115,7 +129,7 @@ val filter : forall 'a. ('a -> bool) -> list 'a -> list 'a
 let inline {hol} filter = Hol.FILTER
 let inline {ocaml} filter = Ocaml.List.filter
 let inline {isabelle} filter = Isabelle.List.filter
-let inline {coq} filter = Coq.list_filter
+let inline {coq} filter = Coq.List.filter
 
 val find_all : forall 'a. ('a -> bool) -> list 'a -> list 'a
 let inline {hol} find_all = Hol.FILTER
