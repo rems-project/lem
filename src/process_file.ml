@@ -166,6 +166,7 @@ let output1 libpath isa_thy targ avoid type_info m alldoc_accum alldoc_inc_accum
               begin
                 if m.predecessor_modules <> [] then
                   begin
+                    Printf.fprintf o "open";
                     List.iter
                       (fun f -> Printf.fprintf o " %s" f; Printf.fprintf o "Theory")
                       m.predecessor_modules;
