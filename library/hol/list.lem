@@ -50,11 +50,13 @@ val APPEND : forall 'a. list 'a -> list 'a -> list 'a
 val DROP : forall 'a. num -> list 'a -> list 'a
 val EL : forall 'a. num -> list 'a -> 'a
 val EVERY : forall 'a. ('a -> bool) -> list 'a -> bool
+val EVERY2 : forall 'a 'b. ('a -> 'b -> bool) -> list 'a -> list 'b -> bool
 val EXISTS : forall 'a. ('a -> bool) -> list 'a -> bool
 val FILTER : forall 'a. ('a -> bool) -> list 'a -> list 'a
 val FLAT : forall 'a. list (list 'a) -> list 'a
 val FOLDL : forall 'a 'b. ('a -> 'b -> 'a) -> 'a -> list 'b -> 'a
 val FOLDR : forall 'a 'b. ('a -> 'b -> 'b) -> 'b -> list 'a -> 'b
+val FOLDL2 : forall 'a 'b 'c. ('a -> 'b -> 'c -> 'a) -> 'a -> list 'b -> list 'c -> 'a
 val FRONT : forall 'a. list 'a -> list 'a
 val GENLIST : forall 'a. (num -> 'a) -> num -> list 'a
 val HD : forall 'a. list 'a -> 'a
@@ -74,3 +76,5 @@ val TL : forall 'a. list 'a -> list 'a
 val UNZIP : forall 'a 'b. list ('a * 'b) -> list 'a * list 'b
 val ZIP : forall 'a 'b. list 'a * list 'b -> list ('a * 'b) 
 val (++) : forall 'a. list 'a -> list 'a -> list 'a
+
+
