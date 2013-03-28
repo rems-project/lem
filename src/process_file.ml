@@ -159,8 +159,8 @@ let output1 libpath isa_thy targ avoid type_info m alldoc_accum alldoc_inc_accum
             let hol_header o = begin
               Printf.fprintf o "(*%s*)\n" (generated_line m.filename);
               Printf.fprintf o "open bossLib Theory Parse res_quanTheory\n";
-              Printf.fprintf o "open finite_mapTheory listTheory pairTheory pred_setTheory integerTheory\n";
-              Printf.fprintf o "open set_relationTheory fixedPointTheory sortingTheory stringTheory wordsTheory\n\n";
+              Printf.fprintf o "open fixedPointTheory finite_mapTheory listTheory pairTheory pred_setTheory\n";
+              Printf.fprintf o "open integerTheory set_relationTheory sortingTheory stringTheory wordsTheory\n\n";
               Printf.fprintf o "val _ = numLib.prefer_num();\n\n";
               Printf.fprintf o "\n\n";
               begin
