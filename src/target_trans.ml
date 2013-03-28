@@ -388,6 +388,20 @@ struct
             mk_string_path ["Coq"; "Hol"] "fmap",
             mk_string_path ["Map"] "map");
           ]
+      | Some(Target_hol) -> [
+           (Typed_ast.Nk_typeconstr, 
+            mk_string_path ["Pmap"] "map",
+            mk_string_path [] "fmap");
+           (Typed_ast.Nk_typeconstr, 
+            mk_string_path ["Coq"; "Hol"; "Finite_map"] "fmap",
+            mk_string_path [] "fmap");
+           (Typed_ast.Nk_typeconstr, 
+            mk_string_path ["Hol"; "Finite_map"] "fmap",
+            mk_string_path [] "fmap");
+           (Typed_ast.Nk_typeconstr, 
+            mk_string_path ["Coq"; "Hol"] "fmap",
+            mk_string_path [] "fmap");
+          ]
       | _ -> []
 
   let get_transformation targ consts =
