@@ -900,7 +900,7 @@ module Hol : Target = struct
 
   let target = Some (Ast.Target_hol None)
 
-  let path_sep = kwd "$"
+  let path_sep = meta "$"
   let list_sep = kwd ";"
 
   let ctor_typ_end _ _ = emp
