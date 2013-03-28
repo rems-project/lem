@@ -49,6 +49,7 @@ val (-) : num -> num -> num
 val ( * ) : num -> num -> num
 val ( ** ) : num -> num -> num
 val DIV : num -> num -> num
+val MOD : num -> num -> num
 val (>) : num -> num -> bool
 val (<) : num -> num -> bool
 val (>=) : num -> num -> bool

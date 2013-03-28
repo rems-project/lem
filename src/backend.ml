@@ -80,6 +80,9 @@ open Typed_ast
 open Typed_ast_syntax
 open Output
 
+
+let gen_extra_level = ref 3
+
 let r = Ulib.Text.of_latin1
 
 let gensym_tex_command =
@@ -87,10 +90,6 @@ let gensym_tex_command =
   function () ->
     n := 1 + !n;
     tex_command_escape (Ulib.Text.of_string (string_of_int !n))
-
-let space = ws (Some [Ast.Ws (r" ")])
-let new_line = ws (Some [Ast.Nl])
-let comment s = ws (Some([Ast.Com(Ast.Comment([Ast.Chars(r s)]))]))
 
 module type Target = sig
   val lex_skip : Ast.lex_skip -> Ulib.Text.t
@@ -1190,6 +1189,16 @@ module F(T : Target)(C : Exp_context)(X : sig val comment_def : def -> Ulib.Text
 
 module C = Exps_in_context(C)
 
+let is_identity_target = match T.target with
+    None -> true
+  | Some (Ast.Target_isa _)   -> false
+  | Some (Ast.Target_hol _)   -> false
+  | Some (Ast.Target_coq _)   -> false
+  | Some (Ast.Target_ocaml _) -> false
+  | Some (Ast.Target_html _)  -> true
+  | Some (Ast.Target_tex _)   -> true
+
+
 (*
 let generate_coq_decidable_theorem ty =
   kwd "Lemma " ^ ty ^ kwd "_eq_dec:\n" ^
@@ -1684,6 +1693,7 @@ and patlist ps =
   | [] -> emp
   | [p] -> pat p
   | p::((_::_) as ps') -> pat p ^ texspace ^ patlist ps'
+
 
 let rec exp e = 
 let is_user_exp = is_trans_exp e in
@@ -2355,6 +2365,123 @@ let is_rec l =
     | (_,_,Te_record _,_) -> true
     | _ -> false
 
+(* which extra information should be generated? *)
+type extra_gen_flags = 
+   {extra_gen_termination: bool; 
+    extra_gen_asserts: bool;
+    extra_gen_lemmata: bool;
+    extra_gen_theorems: bool;
+};;
+
+let extra_gen_flags_gen_lty (gf : extra_gen_flags) = function
+  | Ast.Lemma_theorem _ -> gf.extra_gen_theorems
+  | Ast.Lemma_lemma _ -> gf.extra_gen_lemmata
+  | Ast.Lemma_assert _ -> gf.extra_gen_asserts
+
+let rec isa_def_extra (gf:extra_gen_flags) d l : Output.t = match d with
+  | Val_def(Rec_def(s1, s2, targets, clauses),tnvs, class_constraints) 
+      when gf.extra_gen_termination -> 
+      let is_rec = Typed_ast_syntax.is_recursive_def ((d, None), Ast.Unknown) in
+      if (in_target targets && is_rec) then
+      begin
+        let n = 
+          match Seplist.to_list clauses with
+            | [] -> assert false
+            | (n, _, _, _, _)::_ -> Name.strip_lskip n.term
+        in
+          kwd "termination" ^ space ^ 
+          kwd (Name.to_string n) ^ space ^
+          kwd "by" ^ space ^ kwd "lexicographic_order" ^
+          new_line ^ new_line 
+      end
+      else emp
+  | Lemma (_, lty, targets, n_opt, sk1, e, sk2) when (extra_gen_flags_gen_lty gf lty && in_target targets) -> begin
+      let lem_st = match lty with
+                     | Ast.Lemma_theorem _ -> "theorem"
+                     | _ -> "lemma" in
+      let solve = match lty with
+                     | Ast.Lemma_assert _ -> "by eval"
+                     | _ -> "(* try *) by auto" in
+      (kwd lem_st ^ space ^
+      (match n_opt with None -> emp | Some ((n, _), sk1) -> kwd (Name.to_string (Name.strip_lskip n)) ^ ws sk1 ^ kwd ":") ^
+      new_line ^
+      kwd "\"" ^
+      exp e ^
+      ws sk2 ^
+      kwd "\"" ^
+      new_line ^
+      kwd solve ^
+      new_line ^
+      new_line)
+    end
+  | _ -> emp
+
+let rec hol_def_extra gf d l : Output.t = match d with
+  | Val_def(Rec_def(s1, s2, targets, clauses),tnvs, class_constraints) 
+      when gf.extra_gen_termination -> 
+      let is_rec = Typed_ast_syntax.is_recursive_def ((d, None), Ast.Unknown) in
+      if (in_target targets && is_rec) then
+      begin
+        let n = 
+          match Seplist.to_list clauses with
+            | [] -> assert false
+            | (n, _, _, _, _)::_ -> Name.to_string (Name.strip_lskip n.term)
+        in
+        let goal_stack_setup_s = Format.sprintf "(* val gst = Defn.tgoal_no_defn (%s_def, %s_ind) *)\n" n n in
+        let proof_s = Format.sprintf "val (%s_rw, %s_ind_rw) =\n  Defn.tprove_no_defn ((%s_def, %s_ind),\n    (* the termination proof *)\n  )\n" n n n n in
+        let store_s = Format.sprintf "val %s_rw = save_thm (\"%s_rw\", %s_rw);\nval %s_ind_rw = save_thm (\"%s_ind_rw\", %s_ind_rw);\n" n n n n n n in
+        meta (String.concat "" [goal_stack_setup_s; proof_s; store_s; "\n\n"])
+      end
+      else emp
+  | Lemma (sk0, lty, targets, n_opt, sk1, e, sk2) when (extra_gen_flags_gen_lty gf lty && in_target targets) -> begin
+      let start = match n_opt with 
+          None -> "val _ = prove(\n" | 
+          Some ((n, _), _) -> begin
+            let n_s = (Name.to_string (Name.strip_lskip n)) in
+            match lty with
+                     | Ast.Lemma_assert _ -> Format.sprintf "val %s = prove(\n" n_s
+                     | _ -> Format.sprintf "val %s = store_thm(\"%s\",\n" n_s n_s 
+          end
+      in
+      let tactic_s = match lty with
+                     | Ast.Lemma_assert _ -> "  EVAL_TAC"
+                     | _ -> "  (* your proof *)"
+      in
+      let (e', _) = alter_init_lskips (fun _ -> (None, None)) e in
+      kwd start ^
+      kwd "``" ^
+      exp e' ^
+      kwd "``," ^
+      new_line ^
+      meta tactic_s ^
+      new_line ^
+      kwd ");" ^
+      new_line ^
+      new_line
+    end
+  | _ -> emp
+
+let rec ocaml_def_extra gf d l : Output.t = match d with
+  | Lemma (sk0, lty, targets, n_opt, sk1, e, sk2) when (extra_gen_flags_gen_lty gf lty && in_target targets) -> begin
+      let is_assert = match lty with
+                     | Ast.Lemma_assert _ -> true
+                     | _ -> false in
+      if not (is_assert) then emp else 
+      begin
+        let n_s = match n_opt with 
+          | None -> "\"-\"" 
+          | Some ((n, _), _) -> 
+              Format.sprintf "\"%s\"" (String.escaped (Name.to_string (Name.strip_lskip n)))
+        in
+        let loc_s = Format.sprintf "\"%s\\n\"" (String.escaped (Reporting_basic.loc_to_string true l)) in 
+        let (e', _) = alter_init_lskips (fun _ -> (None, None)) e in
+        meta (Format.sprintf "let _ = run_test %s %s (\n  " n_s loc_s) ^
+        exp e' ^
+        meta "\n)\n\n"
+      end
+    end
+  | _ -> emp
+
 
 let rec def d is_user_def : Output.t = match d with
 
@@ -2472,6 +2599,20 @@ let rec def d is_user_def : Output.t = match d with
         exp body
       else
         emp
+  | Lemma (sk0, lty, targets, n_opt, sk1, e, sk2) -> 
+      if (not is_identity_target) then emp else
+      begin
+      let lem_st = match lty with
+                     | Ast.Lemma_theorem sk -> "theorem"
+                     | Ast.Lemma_assert sk -> "assert"
+                     | Ast.Lemma_lemma sk -> "lemma" in
+      (ws sk0 ^ kwd lem_st ^ 
+       targets_opt targets ^
+      (match n_opt with None -> emp | Some ((n, l), sk1) -> 
+       Name.to_output T.infix_op_format Term_var n ^
+       ws sk1 ^ kwd ":") ^
+      ws sk1 ^ kwd "(" ^ exp e ^ ws sk2 ^ kwd ")")
+    end
   | Ident_rename(s1,targets,p,i,s2,(n_new, _)) ->
       if (T.target = None) then
         ws s1 ^
@@ -2569,7 +2710,6 @@ let rec def d is_user_def : Output.t = match d with
   | Comment(d) ->
       let (d',sk) = def_alter_init_lskips (fun sk -> (None, sk)) d in
         ws sk ^ ws (Some([Ast.Com(Ast.Comment([Ast.Chars(X.comment_def d')]))]))
-
 
 
 (* for -inc.tex definitions *)
@@ -3032,6 +3172,61 @@ and to_rope_tex_def d : Ulib.Text.t =
 
 let output_to_rope out = to_rope T.string_quote T.lex_skip T.need_space out
 
+let defs_to_extra_aux gf (ds:def list) =
+    List.fold_right
+      (fun ((d,s),l) y -> 
+         begin
+           match T.target with 
+           | Some (Ast.Target_isa _) -> isa_def_extra gf d l 
+           | Some (Ast.Target_hol _) -> hol_def_extra gf d l 
+           | Some (Ast.Target_ocaml _) -> ocaml_def_extra gf d l 
+           | _ -> emp
+         end ^
+
+         begin
+           match s with
+             | None ->
+                 emp
+             | Some(s) -> 
+                 ws s 
+         end ^
+       y)
+      ds 
+    emp 
+
+let defs_to_extra ((ds:def list), end_lex_skips) =
+begin
+  let gf_termination =
+     {extra_gen_termination = (!gen_extra_level > 1);
+      extra_gen_asserts     = false;
+      extra_gen_lemmata     = false;
+      extra_gen_theorems    = false} in
+  let gf_assert =
+     {extra_gen_termination = false;
+      extra_gen_asserts     = (!gen_extra_level > 0);
+      extra_gen_lemmata     = false;
+      extra_gen_theorems    = false} in
+  let gf_lemmata =
+     {extra_gen_termination = false;
+      extra_gen_asserts     = false;
+      extra_gen_lemmata     = (!gen_extra_level > 1);
+      extra_gen_theorems    = (!gen_extra_level > 1)} in
+
+  let out =  (
+    prefix_if_not_emp (new_line ^ comment_block (Some 50) ["";"Assertions"; ""])
+      (defs_to_extra_aux gf_assert ds)  ^
+
+    prefix_if_not_emp (new_line ^ comment_block (Some 50) ["";"Termination Proofs";""])
+      (defs_to_extra_aux gf_termination ds)  ^
+
+    prefix_if_not_emp (new_line ^ comment_block (Some 50) ["";"Lemmata";""])
+      (defs_to_extra_aux gf_lemmata ds))
+
+  in
+  if (out = emp) then None else
+    Some (output_to_rope (out ^ new_line ^ new_line))
+end
+
 let defs_to_rope ((ds:def list),end_lex_skips) =
   match T.target with
   | Some (Ast.Target_tex _) -> 
@@ -3113,15 +3308,15 @@ module Make(C : sig val avoid : var_avoid_f end) = struct
 
   let hol_defs defs =
     let module B = F(Hol)(C)(Comment_def) in
-      B.defs_to_rope defs
+      (B.defs_to_rope defs, B.defs_to_extra defs)
 
   let ocaml_defs defs =
     let module B = F(Ocaml)(C)(Comment_def) in
-      B.defs_to_rope defs
+      (B.defs_to_rope defs, B.defs_to_extra defs)
 
   let isa_defs defs =
     let module B = F(Isa)(C)(Comment_def) in
-      B.defs_to_rope defs
+      (B.defs_to_rope defs, B.defs_to_extra defs)
 
   let isa_header_defs defs =
     let module B = F(Isa)(C)(Comment_def) in

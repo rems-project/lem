@@ -1,0 +1,156 @@
+assert length_0: (List.length [] = 0)
+assert length_1: (List.length [2] = 1)
+assert length_2: (List.length [2;3] = 2)
+
+assert hd_simple_1: (List.hd [3;1] = 3)
+assert hd_simple_2: (List.hd [5;4] = 5)
+
+assert tl_simple_1: (List.tl [3;1] = [1])
+assert tl_simple_2: (List.tl [5] = [])
+assert tl_simple_3: (List.tl [5;4;3;2] = [4;3;2])
+
+lemma hd_tl_cons: (forall l. List.length l > 0 --> (l = (List.hd l)::(List.tl l)))
+
+assert nth_0: (List.nth [0;1;2;3;4;5] 0 = 0)
+assert nth_1: (List.nth [0;1;2;3;4;5] 1 = 1)
+assert nth_2: (List.nth [0;1;2;3;4;5] 2 = 2)
+assert nth_3: (List.nth [0;1;2;3;4;5] 3 = 3)
+assert nth_4: (List.nth [0;1;2;3;4;5] 4 = 4)
+assert nth_5: (List.nth [0;1;2;3;4;5] 5 = 5)
+
+assert rev_nil: (List.rev [] = [])
+assert rev_1: (List.rev [1] = [1])
+assert rev_2: (List.rev [1;2] = [2;1])
+assert rev_5: (List.rev [1;2;3;4;5] = [5;4;3;2;1])
+
+assert append_1: (List.append [0;1;2;3] [4;5] = [0;1;2;3;4;5])
+lemma append_nil_1: (forall l. List.append l [] = l)
+lemma append_nil_2: (forall l. List.append [] l = l)
+
+lemma rev_append: (forall l1 l2. List.rev_append l1 l2 = List.append (List.rev l1) l2)
+assert rev_append_1: (List.rev_append [0;1;2;3] [4;5] = [3;2;1;0;4;5])
+
+assert concat_nil: (List.concat [] = [])
+assert concat_1: (List.concat [[1]] = [1])
+assert concat_2: (List.concat [[1];[2]] = [1;2])
+assert concat_3: (List.concat [[1];[];[2]] = [1;2])
+
+lemma concat_emp_thm: (List.concat [] = [])
+lemma concat_cons_thm: (forall l ll. (List.concat (l::ll) = List.append l (List.concat ll)))
+
+assert flatten_nil: (List.flatten [] = [])
+assert flatten_1: (List.flatten [[1]] = [1])
+assert flatten_2: (List.flatten [[1];[2]] = [1;2])
+assert flatten_3: (List.flatten [[1];[];[2]] = [1;2])
+
+lemma flatten_eq: (forall ll. List.flatten ll = List.concat ll)
+
+assert map_nil: (List.map (fun x -> x + 1) [] = [])
+assert map_1: (List.map (fun x -> x + 1) [0] = [1])
+assert map_4: (List.map (fun x -> x + 1) [0;1;2;3] = [1;2;3;4])
+
+lemma map_nil_thm: (forall f. List.map f [] = [])
+lemma map_cons_thm: (forall f x xs. List.map f (x :: xs) = (f x) :: (List.map f xs))
+
+assert rev_map_nil: (List.rev_map (fun x -> x + 1) [] = [])
+assert rev_map_1: (List.rev_map (fun x -> x + 1) [0] = [1])
+assert rev_map_4: (List.rev_map (fun x -> x + 1) [0;1;2;3] = [4;3;2;1])
+
+lemma rev_map_thm: (forall f l. List.rev_map f l = List.map f (List.rev l))
+
+assert fold_left_0: (List.fold_left (+) 0 [] = 0)
+assert fold_left_1: (List.fold_left (+) 0 [4] = 4)
+assert fold_left_4: (List.fold_left (fun l e -> e::l) [] [1;2;3;4] = [4;3;2;1])
+
+assert fold_right_0: (List.fold_right (+) [] 0 = 0)
+assert fold_right_1: (List.fold_right (+) [4] 1 = 5)
+assert fold_right_4: (List.fold_right (fun e l -> e::l) [1;2;3;4] [] = [1;2;3;4])
+
+assert map2_0_0: (List.map2 (fun x y -> (x,y)) [] [] = [])
+assert map2_1_1: (List.map2 (fun x y -> (x,y)) [1] [2] = [(1,2)])
+assert map2_2_2: (List.map2 (fun x y -> (x,y)) [1;2] [2;3] = [(1,2);(2,3)])
+assert map2_4_4: (List.map2 (fun x y -> (x,y)) [1;2;3;4] [2;3;4;5] = [(1,2);(2,3);(3,4);(4,5)])
+
+lemma map2_nil1: (forall f l. List.map2 f l [] = [])
+lemma map2_nil2: (forall f l. List.map2 f [] l = [])
+lemma map2_cons: (forall f e1 l1 e2 l2. List.map2 f (e1::l1) (e2::l2) = (f e1 e2)::(List.map2 f l1 l2))
+
+assert rev_map2_0_0: (List.rev_map2 (fun x y -> (x,y)) [] [] = [])
+assert rev_map2_1_1: (List.rev_map2 (fun x y -> (x,y)) [1] [2] = [(1,2)])
+assert rev_map2_2_2: (List.rev_map2 (fun x y -> (x,y)) [1;2] [2;3] = [(2,3);(1,2)])
+assert rev_map2_4_4: (List.rev_map2 (fun x y -> (x,y)) [1;2;3;4] [2;3;4;5] = [(4,5);(3,4);(2,3);(1,2)])
+
+lemma rev_map2_thm1: (forall f l1 l2. List.rev_map2 f l1 l2 = List.rev (List.map2 f l1 l2))
+lemma rev_map2_thm2: (forall f l1 l2. (List.length l1 = List.length l2) --> (List.rev_map2 f l1 l2 = List.map2 f (List.rev l1) (List.rev l2)))
+
+assert for_all_0: (List.for_all (fun x -> x > 2) [])
+assert for_all_4: (List.for_all (fun x -> x > 2) [4;5;6;7])
+assert for_all_4_neg: (not (List.for_all (fun x -> x > 2) [4;5;2;7]))
+
+lemma for_all_nil_thm: (forall P. List.for_all P [])
+lemma for_all_cons_thm: (forall P e l. List.for_all P (e::l) = (P e && List.for_all P l))
+
+assert exist_0: (not (List.exist (fun x -> (x < 3)) []))
+assert exist_4: (not (List.exist (fun x -> (x < 3)) [4;5;6;7]))
+assert exist_4_neg: (List.exist (fun x -> (x < 3)) [4;5;2;7])
+
+lemma exists_nil_thm: (forall P. not (List.exist P []))
+lemma exists_cons_thm: (forall P e l. List.exist P (e::l) = (P e || List.exist P l))
+
+assert mem_0: (not (List.mem 2 [] ))
+assert mem_1: (not (List.mem 2 [3;4] ))
+assert mem_2: (List.mem 2 [1;3;4;2;5] )
+assert mem_3: (List.mem 2 [2;3;4;2;5] )
+
+lemma mem_nil_thm: (forall e. not (List.mem e []))
+lemma mem_cons_thm: (forall e x xs. (List.mem e (x::xs)) = ((e = x) || List.mem e xs))
+
+assert filter_0: (List.filter (fun x -> x > 4) [] = [])
+assert filter_1: (List.filter (fun x -> x > 4) [1;2;4;5;2;7;6] = [5;7;6])
+lemma filter_nil_thm: (forall P. List.filter P [] = [])
+lemma filter_cons_thm: (forall P x xs. List.filter P (x::xs) = (let l' = List.filter P xs in (if (P x) then x :: l' else l')))
+
+assert find_all_0: (List.find_all (fun x -> x > 4) [] = [])
+assert find_all_1: (List.find_all (fun x -> x > 4) [1;2;4;5;2;7;6] = [5;7;6])
+lemma find_all_thm: (forall P l. List.find_all P l = List.filter P l)
+
+assert partition_0: (List.partition (fun x -> x > 4) [] = ([], []))
+assert partition_1: (List.partition (fun x -> x > 4) [1;2;4;5;2;7;6] = ([5;7;6], [1;2;4;2]))
+lemma partition_fst: (forall P l. fst (List.partition P l) = List.filter P l)
+lemma partition_snd: (forall P l. snd (List.partition P l) = List.filter (fun x -> not (P x)) l)
+
+assert split_0: (List.split [(0,1); (1,2); (2,3)] = ([0;1;2], [1;2;3]))
+assert combine_0: (List.combine [0;1;2] [1;2;3] =  [(0,1); (1,2); (2,3)])
+lemma combine_split : (forall l. (let (l1, l2) = List.split l in List.combine l1 l2) = l)
+
+assert {ocaml} assoc_0: (List.assoc 2 [(3, 4); (2,3); (6,2)] = 3)
+assert {ocaml} assoc_1: (List.assoc 2 [(3, 4); (2,3); (6,2); (2, 4)] = 3)
+assert {ocaml} assoc_2: (List.assoc 2 [(2, 1); (2,3); (6,2); (2, 4)] = 1)
+
+(*
+val sort : forall 'a. ('a -> 'a -> num) -> list 'a -> list 'a
+
+val stable_sort : forall 'a. ('a -> 'a -> num) -> list 'a -> list 'a
+
+val fast_sort : forall 'a. ('a -> 'a -> num) -> list 'a -> list 'a
+
+val merge : forall 'a. ('a -> 'a -> num) -> list 'a -> list 'a -> list 'a
+
+val fold_left2 : forall 'a 'b 'c. ('a -> 'b -> 'c -> 'a) -> 'a -> list 'b -> list 'c -> 'a
+let inline {ocaml} fold_left2 = Ocaml.List.fold_left2
+
+val fold_right2 : forall 'a 'b 'c. ('a -> 'b -> 'c -> 'c) -> list 'a -> list 'b -> 'c -> 'c
+
+val for_all2 : forall 'a 'b. ('a -> 'b -> bool) -> list 'a -> list 'b -> bool
+let inline {ocaml} for_all2 = Ocaml.List.for_all2
+let inline {isabelle} for_all2 = Isabelle.List.list_all2
+val exists2 : forall 'a 'b. ('a -> 'b -> bool) -> list 'a -> list 'b -> bool
+
+val find : forall 'a. ('a -> bool) -> list 'a -> 'a
+
+
+val mem_assoc : forall 'a 'b. 'a -> list ('a * 'b) -> bool
+
+val remove_assoc : forall 'a 'b. 'a -> list ('a * 'b) -> list ('a * 'b)
+
+*)

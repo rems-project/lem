@@ -123,12 +123,21 @@ let err s = Err(s)
 let meta s = Meta(s)
 
 let texspace = Texspace
+let space = ws (Some [Ast.Ws (r" ")])
+let new_line = ws (Some [Ast.Nl])
               
+let comment s = ws (Some([Ast.Com(Ast.Comment([Ast.Chars(r s)]))]))
+
 let (^) o1 o2 = 
   match (o1,o2) with
     | (Empty, _) -> o2
     | (_, Empty) -> o1
     | _ -> Cons(o1,o2)
+
+let prefix_if_not_emp o1 o2 =
+  match o2 with
+    | Empty -> Empty
+    | _ -> o1 ^ o2
 
 let block_h b i t = Block (b, Block_type_hbox, t)
 let block_v b i t = Block (b, Block_type_vbox i, t)
@@ -144,6 +153,22 @@ let break_hint_space j = Break_hint (true, j)
 let rec flat = function
   | [] -> Empty
   | x::y -> x ^ flat y
+
+let comment_block min_l sl = 
+  if sl = [] then emp else
+  begin    
+    let max_length = List.fold_left (fun m s -> let l = String.length s + 2 in if l > m then l else m) 
+                     (Util.option_default 0 min_l) sl in
+
+    let head = String.make max_length '*' in
+    let format_line s =
+      let suff = String.make (max_length - (String.length s + 1)) ' ' in
+      (String.concat "" [" "; s; suff])
+    in
+    comment head ^ new_line ^
+    flat (List.map (fun s -> (comment (format_line s)  ^ new_line)) sl) ^
+    comment head ^ new_line ^ new_line
+  end
 
 let rec concat o1 = function
   | [] -> Empty

@@ -313,6 +313,7 @@ let rec expand_defs defs ((r,typ_r,src_typ_r,pat_r):((exp -> exp option) * (Type
   in
   let rec expand_def = function
     | Val_def(d,tnvs,class_constraints) -> Val_def(expand_val_def d,tnvs,class_constraints)
+    | Lemma(sk,lty,targets,n_opt,sk2,e,sk3) -> Lemma(sk,lty,targets,n_opt, sk2, expand_exp (r,typ_r,src_typ_r,pat_r) e, sk3)
     | Indreln(s1,targets,c) ->
         Indreln(s1,
                 targets,

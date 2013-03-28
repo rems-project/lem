@@ -400,11 +400,11 @@ let rec pp_type ppf t =
                    pp_nexp n
      | Tuvar(u) ->
          fprintf ppf "_");
-         (*
-         fprintf ppf "<@[%d,@ %a@]>" 
+         
+         (*fprintf ppf "<@[%d,@ %a@]>" 
            u.index
-           (opt pp_type) u.subst);
-          *)
+           (opt pp_type) u.subst);*)
+          
   pp_close_box ppf ()
 and
  pp_nexp ppf n =

@@ -44,13 +44,15 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (*========================================================================*)
 
-header{* Auxiliary Definitions needed by Lem *}
+header{* Mappings of Syntax needed by Lem *}
 
 theory "Lem" 
 
 imports 
  	 Main
+ 	 LemExtraDefs
    "~~/src/HOL/Map"
+ 	 "~~/src/HOL/Library/Efficient_Nat"
 
 begin 
 
@@ -59,12 +61,25 @@ subsection{* Finite Maps *}
 abbreviation (input) "map_find k m \<equiv> the (m k)"
 abbreviation (input) "map_update k v m \<equiv> m (k \<mapsto> v)"
 
+subsection{* Lists *}
+
+abbreviation (input) "list_mem e l \<equiv> (e \<in> set l)"
+abbreviation (input) "list_forall P l \<equiv> (\<forall>e\<in>set l. P e)"
+abbreviation (input) "list_exists P l \<equiv> (\<exists>e\<in>set l. P e)"
+abbreviation (input) "list_unzip l \<equiv> (map fst l, map snd l)"
+
 subsection{* Sets *}
 
-abbreviation (input) "set_choose s \<equiv> (SOME x. (x \<in> s))"
 abbreviation (input) "set_diff (s1::'a set) s2 \<equiv> s1 - s2"
 abbreviation (input) "set_filter P (s::'a set) \<equiv> {x \<in> s. P x}"
 abbreviation (input) "set_cross s1 s2 \<equiv> s1 \<times> s2"
+
+
+subsection{* Natural numbers *}
+
+abbreviation (input) "nat_exp (n1::nat) (n2::nat) \<equiv>  n1 ^ n2"
+abbreviation (input) "nat_mod (n1::nat) (n2::nat) \<equiv>  n1 mod n2"
+
 
 subsection{* Integers *}
 
@@ -81,32 +96,6 @@ abbreviation (input) "int_gt (i1::int) (i2::int) \<equiv> i1 > i2"
 abbreviation (input) "int_ge (i1::int) (i2::int) \<equiv> i1 \<ge> i2"
 
 abbreviation (input) "int_neg (i::int) \<equiv> -i"
-
-
-
-
-definition list_of_set :: "'a set \<Rightarrow> 'a list" where
-   "list_of_set s = (SOME l. (set l = s \<and> distinct l))"
-
-lemma list_of_set : 
-  assumes fin_s: "finite s"
-  shows "(set (list_of_set s) = s \<and> distinct (list_of_set s))"
-unfolding list_of_set_def
-proof (rule someI_ex)
-  show "\<exists>l. set l = s \<and> distinct l" using fin_s
-  proof (induct s)
-    case empty
-      show ?case by auto
-    case (insert e s)
-      note e_nin_s = insert(2)
-      from insert(3) obtain l where set_l: "set l = s" and dist_l: "distinct l" by blast
-
-      from set_l have set_el: "set (e # l) = insert e s" by auto
-      from dist_l set_l e_nin_s have dist_el: "distinct (e # l)" by simp
-
-      from set_el dist_el show ?case by blast
-  qed
-qed
 
 
 subsection {* Dummy *}
@@ -128,5 +117,6 @@ definition bitwise_not :: "nat \<Rightarrow> nat" where
 
 definition bitwise_and :: "nat \<Rightarrow> nat \<Rightarrow> nat" where
   "bitwise_and n m = undefined"
+
 
 end

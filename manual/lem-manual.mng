@@ -448,6 +448,23 @@ holds.  The optional $[[id]]$ names the rule.
 
 \end{itemize}
 
+\subsubsection{Assertions / Lemmata}
+
+In order to express properties of defined functions, assertions and lemmata are
+provided. They are of the form 
+$[[lemma_typ x_l : exp]]$ or $[[lemma_typ exp]]$ where
+lemma-typ is either $[[assert]]$, $[[lemma]]$ or $[[theorem]]$.
+An assertion / lemma states that the $[[exp]]$ is valid.
+The label $[[x_l]]$ is optional and only used for user feedback.
+Assertions are assumed to be executable. The different backend check,
+whether they evaluate to true. 
+Lemmata and theorems are not assumed to
+be executable. For them, just some theorem-prover stubs are created.
+Depending on the backend, automated proof procedures might be used, but
+it is not guaranteed that these will succeed. Lemmata and theorems are
+behave exactly the same. However, the distinction allows the user to mark
+important statements. 
+
 \subsubsection{Other definitions}
 A definition is either 
 %

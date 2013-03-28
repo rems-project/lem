@@ -87,14 +87,14 @@ n_l =  (* Location-annotated numeric variables *)
 
 
 type 
-id =  (* Long identifers *)
-   Id of ((x_l * terminal)) list * x_l * l
-
-
-type 
 tnvar =  (* Union of type variables and Nexp type variables, with locations *)
    Avl of a_l
  | Nvl of n_l
+
+
+type 
+id =  (* Long identifers *)
+   Id of ((x_l * terminal)) list * x_l * l
 
 
 type 
@@ -169,6 +169,16 @@ ne =  (* internal numeric expressions *)
 
 
 type 
+target =  (* Backend target names *)
+   Target_hol of terminal
+ | Target_isa of terminal
+ | Target_ocaml of terminal
+ | Target_coq of terminal
+ | Target_tex of terminal
+ | Target_html of terminal
+
+
+type 
 cs =  (* Typeclass constraint lists *)
    Cs_empty
  | Cs_list of (c * terminal) list * terminal (* Must have $>0$ constraints *)
@@ -210,16 +220,6 @@ tannot_opt =  (* Optional type annotations *)
 
 
 type 
-target =  (* Backend target names *)
-   Target_hol of terminal
- | Target_isa of terminal
- | Target_ocaml of terminal
- | Target_coq of terminal
- | Target_tex of terminal
- | Target_html of terminal
-
-
-type 
 tnv =  (* Union of type variables and Nexp type variables, without locations *)
    Av of a
  | Nv of n
@@ -235,6 +235,11 @@ t =  (* Internal types *)
 
 and t_args =  (* Lists of types *)
    T_args of (t) list
+
+
+type 
+targets =  (* Backend target name lists *)
+   Targets_concrete of terminal * (target * terminal) list * terminal
 
 
 type 
@@ -316,11 +321,6 @@ ctor_def =  (* Datatype definition clauses *)
 
 
 type 
-targets =  (* Backend target name lists *)
-   Targets_concrete of terminal * (target * terminal) list * terminal
-
-
-type 
 semC =  (* Typeclass constraint lists *)
    SemC_concrete of ((terminal * p * tnv * terminal)) list
 
@@ -330,6 +330,13 @@ env_tag =  (* Tags for the (non-constructor) value descriptions *)
    Method of terminal (* Bound to a method *)
  | Spec of terminal (* Specified with val *)
  | Def of terminal (* Defined with let or indreln *)
+
+
+type 
+lemma_typ =  (* Types of Lemmata *)
+   Lemma_assert of terminal
+ | Lemma_lemma of terminal
+ | Lemma_theorem of terminal
 
 
 type 
@@ -377,6 +384,12 @@ instschm =  (* Instance schemes *)
 
 
 type 
+lemma_decl =  (* Lemmata and Tests *)
+   Lemma_named of lemma_typ * targets option * x_l * terminal * terminal * exp * terminal
+ | Lemma_unnamed of lemma_typ * targets option * terminal * exp * terminal
+
+
+type 
 val_spec =  (* Value type specifications *)
    Val_spec of terminal * x_l * terminal * typschm
 
@@ -411,6 +424,7 @@ type
 def_aux =  (* Top-level definitions *)
    Type_def of terminal * (td * terminal) list (* Type definitions *)
  | Val_def of val_def (* Value definitions *)
+ | Lemma of lemma_decl (* Lemmata *)
  | Ident_rename of terminal * targets option * id * terminal * x_l (* Rename constant or type *)
  | Module of terminal * x_l * terminal * terminal * defs * terminal (* Module definitions *)
  | Rename of terminal * x_l * terminal * id (* Module renamings *)

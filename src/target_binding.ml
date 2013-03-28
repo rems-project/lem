@@ -258,6 +258,7 @@ let rec fix_binding target defs =
   in
   let rec fix_def = function
     | Val_def(d,tnvs,class_constraints) -> Val_def(fix_val_def d,tnvs,class_constraints)
+    | Lemma(sk,lty,targets,n_opt,sk2,e,sk3) -> Lemma(sk,lty,targets,n_opt,sk2,fix_exp target e,sk3)
     | Indreln(s1,targets,c) ->
         Indreln(s1,
                 targets,

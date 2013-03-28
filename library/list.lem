@@ -84,11 +84,12 @@ let inline {coq} fold_right f l e = Coq.List.fold_right f e l
 
 val map2 : forall 'a 'b 'c. ('a -> 'b -> 'c) -> list 'a -> list 'b -> list 'c 
 let inline {hol} map2 = Hol.MAP2
+let inline {isabelle} map2 f l1 l2 = Isabelle.List.map (fun (x1,x2) -> f x1 x2) (Isabelle.List.zip l1 l2)
 let inline {ocaml} map2 = Ocaml.List.map2
 
 
 val rev_map2 : forall 'a 'b 'c. ('a -> 'b -> 'c) -> list 'a -> list 'b -> list 'c
-let inline {hol} rev_map2 f l1 l2 = Hol.REVERSE (Hol.MAP2 f l1 l2)
+let inline {isabelle; hol} rev_map2 f l1 l2 = rev (map2 f l1 l2)
 let inline {ocaml} rev_map2 = Ocaml.List.rev_map2
 
 val fold_left2 : forall 'a 'b 'c. ('a -> 'b -> 'c -> 'a) -> 'a -> list 'b -> list 'c -> 'a
@@ -99,14 +100,15 @@ val fold_right2 : forall 'a 'b 'c. ('a -> 'b -> 'c -> 'c) -> list 'a -> list 'b 
 val for_all : forall 'a. ('a -> bool) -> list 'a -> bool
 let inline {hol} for_all = Hol.EVERY
 let inline {ocaml} for_all = Ocaml.List.for_all
-let inline {isabelle} for_all = Isabelle.List.list_all
+let inline {isabelle} for_all = Isabelle.list_forall
 let inline {coq} for_all = Coq.List.forallb
 
 val exist : forall 'a. ('a -> bool) -> list 'a -> bool
 let inline {hol} exist = Hol.EXISTS
 let inline {ocaml} exist = Ocaml.List.\\exists
-let inline {isabelle} exist = Isabelle.List.list_ex
+let inline {isabelle} exist = Isabelle.list_exists
 let inline {coq} exist = Coq.List.existb
+
 (*let inline {isabelle} exist P l = EX x:(set l). P x*)
 
 val for_all2 : forall 'a 'b. ('a -> 'b -> bool) -> list 'a -> list 'b -> bool
@@ -118,7 +120,7 @@ val exists2 : forall 'a 'b. ('a -> 'b -> bool) -> list 'a -> list 'b -> bool
 val mem : forall 'a. 'a -> list 'a -> bool
 let inline {hol} mem = Hol.(MEM)
 let inline {ocaml} mem = Ocaml.List.mem
-let inline {isabelle} mem = Isabelle.List.ListMem
+let inline {isabelle} mem = Isabelle.list_mem
 let inline {coq} mem e = Coq.List.existb (Coq.(==) e)
 
 val find : forall 'a. ('a -> bool) -> list 'a -> 'a
@@ -135,7 +137,8 @@ let inline {ocaml} find_all = Ocaml.List.find_all
 let inline {isabelle} find_all = Isabelle.List.filter
 
 val partition : forall 'a. ('a -> bool) -> list 'a -> list 'a * list 'a
-let inline {hol} partition = Hol.Sorting.PARTITION
+let inline {hol} partition P l = (let (list_t, list_f) = Hol.PARTITION P l in (rev list_t, rev list_f))
+let inline {isabelle} partition = Isabelle.List.partition
 let inline {ocaml} partition = Ocaml.List.partition
 
 val assoc : forall 'a 'b. 'a -> list ('a * 'b) -> 'b
@@ -147,6 +150,7 @@ val remove_assoc : forall 'a 'b. 'a -> list ('a * 'b) -> list ('a * 'b)
 
 val split : forall 'a 'b. list ('a * 'b) -> list 'a * list 'b
 let inline {hol} split = Hol.UNZIP
+let inline {isabelle} split = Isabelle.list_unzip
 let inline {ocaml} split = Ocaml.List.split
 
 val combine : forall 'a 'b. list 'a -> list 'b -> list ('a * 'b)
