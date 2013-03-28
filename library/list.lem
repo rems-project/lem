@@ -2,7 +2,7 @@ val length : forall 'a. list 'a -> num
 let inline {hol} length = Hol.LENGTH
 let inline {ocaml} length = Ocaml.List.length
 let inline {isabelle} length = Isabelle.List.length
-let inline {coq} length = Coq.list_length
+let inline {coq} length = Coq.List.length
 
 val hd : forall 'a. list 'a -> 'a
 let inline {hol} hd = Hol.HD

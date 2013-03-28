@@ -864,9 +864,15 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
     and fun_pattern p =
       match p.term with
         | P_wild skips ->
+          let skips =
+            if skips = Typed_ast.no_lskips then
+              from_string " "
+            else
+              ws skips
+          in
           let t = C.t_to_src_t p.typ in
             combine [
-              ws skips; from_string "("; from_string "_ : "; pat_typ t; from_string ")"
+              skips; from_string "("; from_string "_ : "; pat_typ t; from_string ")"
             ]
         | P_var v ->
           let name = lskips_t_to_output v in
@@ -931,7 +937,16 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
         | _ -> from_string "(* XXX: todo *)"
     and def_pattern p =
       match p.term with
-        | P_wild skips -> ws skips ^ from_string "_"
+        | P_wild skips ->
+          let skips =
+            if skips = Typed_ast.no_lskips then
+              from_string " "
+            else
+              ws skips
+          in
+            combine [
+              skips; from_string "_"
+            ]
         | P_var v -> Name.to_output coq_infix_op Term_var v
         | P_lit l -> literal l
         | P_as (skips, p, skips', (n, l), skips'') ->
