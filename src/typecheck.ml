@@ -299,7 +299,7 @@ let check_dup_field_names (fns : (Name.t * Ast.l) list) : unit =
  * instead of passing them around as the formal type system does *)
 
 module type Expr_checker = sig
-  val check_lem_exp : lex_env -> Ast.l -> Ast.exp -> Types.t -> (exp * (TNset.t * (Path.t * Types.tnvar) list))
+  val check_lem_exp : lex_env -> Ast.l -> Ast.exp -> Types.t -> (exp * typ_constraints)
 
   val check_letbind : 
     (* Should be None, unless checking a method definition in an instance.  Then
@@ -315,7 +315,7 @@ module type Expr_checker = sig
     pat_env * 
     (* The type variabes, and class constraints on them used in typechecking the
      * let binding.  Must be empty when the optional type argument is Some *)
-    (TNset.t *(Path.t * Types.tnvar) list)
+    typ_constraints
 
   (* As in the comments on check letbind above *)
   val check_funs : 
@@ -325,7 +325,7 @@ module type Expr_checker = sig
     Ast.funcl lskips_seplist -> 
     funcl_aux lskips_seplist * 
     pat_env * 
-    (TNset.t * (Path.t * Types.tnvar) list)
+    typ_constraints
 
   (* As in the comments on check letbind above, but cannot be an instance
    * method definition *)
@@ -335,7 +335,7 @@ module type Expr_checker = sig
     (Ast.rule * lskips) list -> 
     (Name.lskips_t option * lskips * name_lskips_annot list * lskips * exp option * lskips * name_lskips_annot * exp list) lskips_seplist * 
     pat_env *
-    (TNset.t * (Path.t * Types.tnvar) list)
+    typ_constraints
 end
 
 module Make_checker(T : sig 
@@ -428,6 +428,8 @@ module Make_checker(T : sig
         (fun (p, tv) -> 
            C.add_constraint p (type_subst subst (tnvar_to_type tv))) 
         c.const_class;
+      (* List.iter
+         (fun r -> C.add_length_constraint (range_subst subst r)) c.const_range; *) (*TODO KG make an appropriate subst*)
       (new_id, a)
 
   let add_binding (pat_e : pat_env) ((v : Name.lskips_t), (l : Ast.l)) (t : t) 
@@ -1085,8 +1087,8 @@ module Make_checker(T : sig
   let check_lem_exp (l_e : lex_env) l e ret =
     let exp = check_exp l_e e in
     C.equate_types l ret (exp_to_typ exp);
-    let (tnvars,constraints) = C.inst_leftover_uvars l in
-    (exp,(tnvars,constraints))
+    let Tconstraints(tnvars,constraints,length_constraints) = C.inst_leftover_uvars l in
+    (exp,Tconstraints(tnvars,constraints,length_constraints))
 
   let check_constraint_subset l cs1 cs2 = 
     unsat_constraint_err l
@@ -1157,7 +1159,7 @@ module Make_checker(T : sig
                  raise_error l "defined variable is already defined as a constructor"
                    Name.pp n)
       def_env;
-    let (tnvars, constraints) = C.inst_leftover_uvars l in
+    let Tconstraints(tnvars, constraints,l_constraints) = C.inst_leftover_uvars l in
       Nfmap.iter
         (fun n (_,l') ->
            match Nfmap.apply T.e.v_env n with
@@ -1166,7 +1168,7 @@ module Make_checker(T : sig
                  check_constraint_subset l constraints c.const_class
              | _ -> assert false)
         def_env;
-      (tnvars, constraints)
+      Tconstraints(tnvars, constraints,l_constraints)
 
   let apply_specs_for_method def_targets l def_env inst_type =
     Nfmap.iter
@@ -1188,9 +1190,9 @@ module Make_checker(T : sig
                  raise_error l "instance method not bound to class method"
                    Name.pp n)
       def_env;
-    let (tnvars, constraints) = C.inst_leftover_uvars l in
+    let Tconstraints(tnvars, constraints,l_constraints) = C.inst_leftover_uvars l in
       unsat_constraint_err l constraints;
-      (tnvars, [])
+      Tconstraints(tnvars, [], l_constraints)
 
   let apply_specs for_method (def_targets : Targetset.t option) l env = 
     match for_method with
@@ -1405,7 +1407,9 @@ let add_let_defs_to_ctxt
       (tnvars : Types.tnvar list) 
       (* The class constraints that the definition's type variables must satisfy
       *) 
-      (constraints : (Path.t * Types.tnvar) list) 
+      (constraints : (Path.t * Types.tnvar) list)
+      (* The length constraints that the definition's length variables must satisfy *) 
+      (lconstraints : Types.range list)
       (* The status for just this definition, must be either K_let or
        * K_target(false, ts), and if it is K_target, there must be a preceding
        * K_val *)
@@ -1436,6 +1440,7 @@ let add_let_defs_to_ctxt
                     { const_binding = Path.mk_path mod_path n;
                       const_tparams = tnvars;
                       const_class = constraints;
+                      const_ranges = lconstraints;
                       const_type = t;
                       spec_l = l;
                       env_tag = env_tag;
@@ -1816,6 +1821,7 @@ let check_val_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
     { const_binding = Path.mk_path mod_path n';
       const_tparams = tyvars;
       const_class = sem_cp;
+      const_ranges = [];
       const_type = src_t.typ;
       spec_l = l;
       env_tag = K_val;
@@ -1860,6 +1866,7 @@ let check_class_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
     { const_binding = Path.mk_path mod_path n';
       const_tparams = [tv];
       const_class = [(class_p, tv)];
+      const_ranges = [];
       const_type = src_t.typ;
       spec_l = l;
       env_tag = K_method;
@@ -1916,10 +1923,8 @@ let check_val_def (ts : Targetset.t) (for_method : Types.t option) (l : Ast.l)
         (* An environment representing the names bound by the definition *)
         pat_env * 
         val_def * 
-        (* The type and length variables the definion is generalised over *)
-        TNset.t * 
-        (* Class constraints on the type variables *)
-        (Path.t * Types.tnvar) list * 
+        (* The type and length variables the definion is generalised over, and class constraints on the type variables, and length constraints on the length variables *)
+        typ_constraints *
         (* Which targets the binding is for *)
         env_tag =
   let module T = struct 
@@ -1936,19 +1941,19 @@ let check_val_def (ts : Targetset.t) (for_method : Types.t option) (l : Ast.l)
           let target_set = target_opt_to_set target_opt in
           let env_tag = target_opt_to_env_tag target_set in
           let target_opt = check_target_opt target_opt in
-          let (lbs,e_v,(tnvs, constraints)) = 
+          let (lbs,e_v,constraints) = 
             Checker.check_letbind for_method target_set l lb 
           in 
-            (e_v, (Let_def(sk,target_opt,lbs)), tnvs, constraints, env_tag)
+            (e_v, (Let_def(sk,target_opt,lbs)), constraints, env_tag)
       | Ast.Let_rec(sk1,sk2,target_opt,funcls) ->
           let funcls = Seplist.from_list funcls in
           let target_set = target_opt_to_set target_opt in
-          let (lbs,e_v,(tnvs, constraints)) = 
+          let (lbs,e_v,constraints) = 
             Checker.check_funs for_method target_set l funcls 
           in
           let env_tag = target_opt_to_env_tag target_set in
           let target_opt = check_target_opt target_opt in
-            (e_v, (Rec_def(sk1,sk2,target_opt,lbs)), tnvs, constraints, env_tag)
+            (e_v, (Rec_def(sk1,sk2,target_opt,lbs)), constraints, env_tag)
       | _ -> assert false
 
 let check_lemma l ts (ctxt : defn_ctxt) 
@@ -1976,13 +1981,13 @@ let check_lemma l ts (ctxt : defn_ctxt)
   let module C = Constraint(T) in
     function
       | Ast.Lemma_unnamed (lty, target_opt, sk1, e, sk2) ->
-          let (exp,(tnvars,constraints)) = Checker.check_lem_exp empty_lex_env l e bool_ty in
+          let (exp,constraints) = Checker.check_lem_exp empty_lex_env l e bool_ty in
           let (sk0, lty') = lty_get_sk lty in
           let target_opt = check_target_opt target_opt in
               (ctxt, sk0, lty', target_opt, None, sk1, exp, sk2) 
       | Ast.Lemma_named (lty, target_opt, name, sk1, sk2, e, sk3) ->
-          let (exp,(tnvars,constraints)) = Checker.check_lem_exp empty_lex_env l e bool_ty in
-          (* TODO It's ok for tnvars to have variables (polymorphic lemma), but typed ast should keep them perhaps? Not sure if it's ok for constraints to be unconstrained *)
+          let (exp,Tconstraints(tnvars,constraints,lconstraints)) = Checker.check_lem_exp empty_lex_env l e bool_ty in
+          (* TODO It's ok for tnvars to have variables (polymorphic lemma), but typed ast should keep them perhaps? Not sure if it's ok for constraints to be unconstrained or if we need length constraints kept *)
           let target_opt = check_target_opt target_opt in
           let (sk0, lty') = lty_get_sk lty in
           let (n, l) = xl_to_nl name in
@@ -2090,7 +2095,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let (res,new_ctxt) = build_ctor_defs mod_path new_ctxt tdefs in
             (new_ctxt,Type_def(sk,res))
       | Ast.Val_def(Ast.Let_inline(sk1,sk2,target_opt,lb)) ->
-          let (e_v,vd,tnvs,constraints, env_tag) = 
+          let (e_v,vd,Tconstraints(tnvs,constraints,lconstraints), env_tag) = 
             check_val_def backend_targets None l ctxt 
               (Ast.Let_def(sk1,target_opt,lb))
           in 
@@ -2112,17 +2117,17 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           in
           let ctxt = 
             add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs)
-              constraints env_tag
+              constraints lconstraints env_tag 
               (Some(((match env_tag with K_target(_,ts) -> ts | _ -> assert false), sub)))
               e_v
           in
             (ctxt, Val_def(Let_inline(sk1,sk2,target_opt,n,args,sk3,et), tnvs, constraints))
       | Ast.Val_def(val_def) ->
-          let (e_v,vd,tnvs,constraints, env_tag) = 
+          let (e_v,vd,Tconstraints(tnvs,constraints,lconstraints), env_tag) = 
             check_val_def backend_targets None l ctxt val_def 
           in
             (add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs)
-               constraints env_tag None e_v, 
+               constraints lconstraints env_tag None e_v,
              Val_def(vd,tnvs, constraints))
       | Ast.Lemma(lem) ->
             let (ctxt', sk, lty, targs, name_opt, sk2, e, sk3) = check_lemma l backend_targets ctxt lem in
@@ -2179,12 +2184,12 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let module Checker = Make_checker(T) in
           let target_opt_checked = check_target_opt target_opt in
           let target_set = target_opt_to_set target_opt in
-          let (cls,e_v,(tnvs,constraints)) = 
+          let (cls,e_v,Tconstraints(tnvs,constraints,lconstraints)) = 
             Checker.check_indrels target_set l clauses 
           in 
             (add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) 
-               constraints 
-               (target_opt_to_env_tag target_set) None e_v,
+               constraints lconstraints
+               (target_opt_to_env_tag target_set) None e_v, 
              (Indreln(sk,target_opt_checked,cls)))
       | Ast.Spec_def(val_spec) ->
           let (ctxt,vs) = check_val_spec l mod_path ctxt val_spec in
@@ -2297,10 +2302,11 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let (e_v,vdefs) = 
             List.fold_left
               (fun (e_v,vs) (v,l) ->
-                 let (e_v',v,tnvs,constraints,_) = 
+                 let (e_v',v,Tconstraints(tnvs,constraints,lconstraints),_) = 
                    check_val_def backend_targets (Some(src_t.typ)) l tmp_ctxt v 
                  in
                  let _ = assert (constraints = []) in
+                 let _ = assert (lconstraints = []) in
                  let _ = assert (TNset.is_empty tnvs) in
                  let new_e_v = 
                     match Nfmap.domains_overlap e_v e_v' with
@@ -2335,6 +2341,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                  Val({ const_binding = Path.mk_path instance_path n;
                        const_tparams = tyvars;
                        const_class = sem_cs;
+                       const_ranges = [];
                        const_type = t;
                        (* TODO: check the following *)
                        env_tag = K_instance;

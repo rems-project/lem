@@ -266,6 +266,9 @@ and const_descr =
      * length 1 for class methods *)
     const_class : (Path.t * Types.tnvar) list;
 
+    (* Its length constraints (must refer to above type parameters). Can be equality or GtEq inequalities *)
+    const_ranges : Types.range list;
+
     (* Its type *)
     const_type : Types.t; 
 

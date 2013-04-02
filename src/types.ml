@@ -769,6 +769,8 @@ let range_with r n = match r with
   | Eq(l,_) -> Eq(l,n)
   | GtEq(l,_) -> GtEq(l,n)
 
+type typ_constraints = Tconstraints of TNset.t * (Path.t * tnvar) list * range list
+
 module type Constraint = sig
   val new_type : unit -> t
   val new_nexp : unit -> nexp
@@ -785,7 +787,7 @@ module type Constraint = sig
   val same_types : Ast.l -> t list -> t
   val dest_fn_type : Ast.l -> t -> t * t
    *)
-  val inst_leftover_uvars : Ast.l -> TNset.t * (Path.t * tnvar) list
+  val inst_leftover_uvars : Ast.l -> typ_constraints
 end
 
 module type Global_defs = sig
@@ -1062,11 +1064,11 @@ module Constraint (T : Global_defs) : Constraint = struct
     Array.of_list(List.map (fun r -> ref (Some r)) (walk_constraints constraints))
     
   let is_inconsistent = function
-    | Eq(_,n) -> let _ = fprintf std_formatter "inconsistent Eq call of %a@ \n" pp_nexp n in
+    | Eq(_,n) -> (*let _ = fprintf std_formatter "inconsistent Eq call of %a@ \n" pp_nexp n in*)
                  begin match (normalize n).nexp with
                  | Nconst(i) -> not (i=0)
                  | _ -> false end
-    | GtEq(_,n) -> let _ = fprintf std_formatter "inconsistent GtEq call of %a@ \n" pp_nexp n in
+    | GtEq(_,n) -> (*let _ = fprintf std_formatter "inconsistent GtEq call of %a@ \n" pp_nexp n in*)
                    begin match (normalize n).nexp with
                    | Nconst(i) -> i<0
                    | _ -> false end
@@ -1080,6 +1082,7 @@ module Constraint (T : Global_defs) : Constraint = struct
                  | _ -> false end
     | GtEq(_,n) -> begin match (normalize n).nexp with
                    | Nconst(i) -> i>=0
+                   | Nvar _ | Nuvar _ -> true (*Since all instantiations of variables must be positive in specifications *)
                    | _ -> false end
     | LtEq(_,n) -> begin match (normalize n).nexp with
                    | Nconst(i) -> i<=0
@@ -1206,7 +1209,6 @@ module Constraint (T : Global_defs) : Constraint = struct
                           inner_loop (j+1)
                 in inner_loop 0
                           
-
   (*TODO find where this should have come from, or move to util*)
   let rec some_list = function
     | [] -> []
@@ -1214,6 +1216,27 @@ module Constraint (T : Global_defs) : Constraint = struct
                        let _ = fprintf std_formatter "some constraints, normalized %a \n" pp_nexp (normalize (range_of_n a)) in *)
                        a::(some_list rest)
     | None::rest -> some_list rest
+
+  let prune_constraints rns =    
+    let rec matrix_to_list i=
+      if (i >= Array.length rns)
+         then []
+         else match !(rns.(i)) with
+              | None -> matrix_to_list (i+1)
+              | Some r -> r::(matrix_to_list (i+1))
+    in 
+    let rec combine_eq_constraints base_eq ineqs = function
+      | [] -> base_eq, ineqs
+      | Eq(l,n)::rns -> let eqr,ineqs = combine_eq_constraints base_eq ineqs rns in
+                        Eq(l,{nexp = Nadd(n,(range_of_n eqr))}) (*location list might be better here?*) , ineqs
+      | r::rns -> combine_eq_constraints base_eq (r::ineqs) rns
+    in
+    let lst_constraints = matrix_to_list 0 in
+    let eq, ineqs = combine_eq_constraints (Eq(Ast.Unknown,{nexp=Nconst 0})) [] lst_constraints in
+    let eq_normal = range_with eq (normalize (range_of_n eq)) in
+    if (is_redundant eq_normal)
+       then ineqs
+       else eq_normal::ineqs
 
   let solve_numeric_constraints unresolved = function
     | [] -> unresolved
@@ -1224,6 +1247,7 @@ module Constraint (T : Global_defs) : Constraint = struct
             let variables = collect_vars cs in
             let matrix = expand_matrix cs variables in
             resolve_matrix 0 matrix;
+            let unresolved = prune_constraints matrix in
             unresolved
 
   let rec solve_constraints instances (unsolvable : PTset.t)= function
@@ -1275,9 +1299,10 @@ module Constraint (T : Global_defs) : Constraint = struct
       List.iter inst (!uvars);
       List.iter inst_n (!nuvars);
       let cs = solve_constraints T.i PTset.empty !class_constraints in
-        (TNset.union (TNset.union !tvars !used_tvs) 
-                     (TNset.union !nvars !used_nvs), 
-         List.map (check_constraint l) (PTset.elements cs))
+        Tconstraints(TNset.union (TNset.union !tvars !used_tvs) 
+                                 (TNset.union !nvars !used_nvs), 
+                     List.map (check_constraint l) (PTset.elements cs),
+                     ns)
 end
 
 let rec ftvs (ts : t list) (acc : TNset.t) : TNset.t = match ts with

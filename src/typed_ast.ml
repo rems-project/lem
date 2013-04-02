@@ -252,6 +252,7 @@ and pat_aux =
 and const_descr = { const_binding : Path.t;
                     const_tparams : Types.tnvar list;
                     const_class : (Path.t * Types.tnvar) list;
+                    const_ranges : Types.range list;
                     const_type : t; 
                     env_tag : env_tag;
                     spec_l : Ast.l;

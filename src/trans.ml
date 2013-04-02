@@ -927,6 +927,7 @@ let hack e =
                        descr = { const_binding = Path.mk_path [Name.from_rope (r"")] (Name.from_rope (r"eq_instruction_instance"));
                                  const_tparams = [];
                                  const_class = [];
+                                 const_ranges = [];
                                  const_type = Types.multi_fun [special_type; special_type] 
                                                 { Types.t = Types.Tapp([], Path.mk_path [] (Name.from_rope (r"num"))) };
                                  env_tag = K_target(true,Targetset.empty);

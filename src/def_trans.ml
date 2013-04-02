@@ -242,6 +242,7 @@ let instance_to_module global_env mod_path env ((d,s),l) =
             { const_binding = Path.mk_path mod_path dict_name;
               const_tparams = sem_info.inst_tyvars;
               const_class = sem_info.inst_constraints;
+              const_ranges = [];
               const_type = dict_type;
               env_tag = K_let;
               spec_l = l;

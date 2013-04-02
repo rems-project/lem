@@ -90,6 +90,8 @@ type range =
   | Eq of Ast.l * nexp
   | GtEq of Ast.l * nexp
 
+val range_with : range -> nexp -> range
+
 (* Structural comparison of types, without expanding type abbreviations.
  * Probably better not to use *)
 val compare : t -> t -> int
@@ -111,6 +113,9 @@ type type_defs = tc_def Pfmap.t
 
 (* The last Name.t list is to the module enclosing the instance declaration *)
 type instance = tnvar list * (Path.t * tnvar) list * t * Name.t list
+
+(* A type for contraints collected during type checking. TNset contains the variables the term ranges over, the second are remaining class constraints, and the third remaining length constraints *)
+type typ_constraints = Tconstraints of TNset.t * (Path.t * tnvar) list * range list
 
 val head_norm : type_defs -> t -> t
 
@@ -138,13 +143,15 @@ module Constraint (T : Global_defs) : sig
   val equate_types : Ast.l -> t -> t -> unit
   val in_range : Ast.l -> nexp -> nexp -> unit
   val add_constraint : Path.t -> t -> unit
+  val add_length_constraint : range -> unit
   val add_tyvar : Tyvar.t -> unit 
   val add_nvar : Nvar.t -> unit
-  val inst_leftover_uvars : Ast.l -> TNset.t * (Path.t * tnvar) list
+  val inst_leftover_uvars : Ast.l -> typ_constraints
 end
 
 val pp_type : Format.formatter -> t -> unit
 val pp_nexp : Format.formatter -> nexp -> unit
+val pp_range : Format.formatter -> range -> unit
 val pp_class_constraint : Format.formatter -> Path.t * tnvar -> unit
 val pp_instance : Format.formatter -> instance -> unit
 
