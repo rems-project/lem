@@ -285,14 +285,14 @@ let rec type_subst_aux (substs : t TNfmap.t) (t : t) =
         end
     | Tne(n) -> 
         begin
-          match (nexp_subst substs n) with
+          match (nexp_subst_aux substs n) with
             | n,false -> None
             | n,true -> Some({t = Tne(n)})
         end
     | Tuvar _ -> 
         assert false
 
-and nexp_subst_aux (substs : t TNfmap.t) (n: nexp) =
+and nexp_subst_aux_help (substs : t TNfmap.t) (n: nexp) =
   match n.nexp with
     | Nvar(s) ->
         (match TNfmap.apply substs (Nv s) with
@@ -301,7 +301,7 @@ and nexp_subst_aux (substs : t TNfmap.t) (n: nexp) =
     | Nconst _ -> None
     | Nadd(n1,n2) -> 
         begin
-          match (nexp_subst_aux substs n1, nexp_subst_aux substs n2) with
+          match (nexp_subst_aux_help substs n1, nexp_subst_aux_help substs n2) with
             | (None,None) -> None
             | (Some(n),None) -> Some({ nexp = Nadd(n, n2) })
             | (None,Some(n)) -> Some({ nexp = Nadd(n1, n) })
@@ -309,7 +309,7 @@ and nexp_subst_aux (substs : t TNfmap.t) (n: nexp) =
         end
     | Nmult(n1,n2) -> 
         begin
-          match (nexp_subst_aux substs n1, nexp_subst_aux substs n2) with
+          match (nexp_subst_aux_help substs n1, nexp_subst_aux_help substs n2) with
             | (None,None) -> None
             | (Some(n),None) -> Some({ nexp = Nmult(n, n2) })
             | (None,Some(n)) -> Some({ nexp = Nmult(n1, n) })
@@ -317,19 +317,23 @@ and nexp_subst_aux (substs : t TNfmap.t) (n: nexp) =
         end
     | Nneg(n) ->
         begin
-        match nexp_subst_aux substs n with
+        match nexp_subst_aux_help substs n with
          | None -> None
          | Some(n) -> Some({nexp = Nneg(n)})
         end
     | Nuvar _ -> assert false
 
-and nexp_subst (substs : t TNfmap.t) (n : nexp) : nexp * bool = 
+and nexp_subst_aux (substs : t TNfmap.t) (n : nexp) : nexp * bool = 
   if TNfmap.is_empty substs then
     n, false
   else
-    match nexp_subst_aux substs n with
+    match nexp_subst_aux_help substs n with
       | None -> n,false
       | Some(n) -> n,true
+
+let nexp_subst (substs : t TNfmap.t) (n : nexp) : nexp =
+   let n,_ = nexp_subst_aux substs n in
+   n
 
 let type_subst (substs : t TNfmap.t) (t : t) : t = 
   if TNfmap.is_empty substs then
@@ -410,7 +414,7 @@ and
  pp_nexp ppf n =
   pp_open_box ppf 0;
   (match n.nexp with
-     | Nuvar nu -> fprintf ppf "_" (*  fprintf ppf "_ (%d)" nu.nindex *)
+     | Nuvar nu -> fprintf ppf "_" (*   fprintf ppf "_ (%d)" nu.nindex *)
      | Nvar(nv) ->
          Nvar.pp ppf nv
      | Nconst(i) ->
@@ -581,112 +585,127 @@ let nexp_mismatch l n1 n2 =
 
 (*TODO Get a location. *)
 (*TODO add kind of error information and call instead of assert false in simple solver*)
-let unresolvable_constraint n =
+let unresolvable_constraint n l =
   let n1 = nexp_to_string n in
-  raise (Ident.No_type(Ast.Unknown, "Type contained unresolvable constraint: 0 = " ^ n1 ^ "\n"))
+  raise (Ident.No_type(l, "Type contained unresolvable constraint: 0 = " ^ n1 ^ "\n"))
 
 (* Converts to linear normal form, summation of (optionally constant-multiplied) variables, with the "smallest" variable on the left *)
 let normalize nexp =
+ (*Note it is only okay to call make_n if the nexp is certainly NOT an nuvar*)
+ let nBang base n = base.nexp <- n; base in
+ let make_c i = { nexp = Nconst i } in
  let make_n n = {nexp = n} in
-  let make_mul n i = match i with 
-                    | 0 -> make_n (Nconst 0)
+ let make_mul base n i = match i with 
+                    | 0 -> make_c 0
                     | 1 -> n
-                    | _ -> (make_n (Nmult (n,make_n (Nconst i)))) in 
-  let make_ordered cl cr nl nr i v =
+                    | _ -> nBang base (Nmult (n,make_c i)) in 
+  let make_ordered base cl cr nl nr i v =
     match (compare_nexp cl cr) with
-      | -1 -> (make_n (Nadd(nr,nl)))
-      | 0 -> make_mul v i
-      | _ -> (make_n (Nadd(nl,nr))) in
+      | -1 -> nBang base (Nadd(nr,nl))
+      | 0 -> make_mul base v i
+      | _ -> nBang base (Nadd(nl,nr)) in
  let rec norm nexp = 
-    (* let _ = fprintf std_formatter "norm of %a@ \n" pp_nexp nexp in *)
+(*    let _ = fprintf std_formatter "norm of %a@ \n" pp_nexp nexp in *)
     match nexp.nexp with
     | Nvar _ | Nconst _ | Nuvar _ -> nexp
     | Nneg(n) -> (
        let n' = norm n in
        match n'.nexp with
-        | Nconst(i) -> make_n (Nconst(-1 * i))
-        | _ -> norm (make_n (Nmult(n',(make_n (Nconst (-1)))))))
+        | Nconst(i) -> nBang nexp (Nconst(-1 * i))
+        | _ -> norm (make_mul nexp n' (-1)))
     | Nmult(n1,n2) -> (
        let n1',n2' = norm n1,norm n2 in
        let n1',n2' = sort n1',sort n2' in 
        match n1'.nexp,n2'.nexp with
-        | Nconst i, Nconst j -> make_n (Nconst (i*j))
+        | Nconst i, Nconst j -> nBang nexp (Nconst (i*j))
         | Nconst 1, _ -> n2' | _, Nconst 1 -> n1'
-        | Nvar _ , Nconst _ | Nuvar _ , Nconst _  -> make_n (Nmult(n1',n2'))
-        | Nconst _ , Nvar _ | Nconst _ , Nuvar _ -> make_n (Nmult(n2',n1'))
-        | (Nconst i as n) , Nadd(n1,n2) | Nadd(n1,n2), (Nconst i as n) ->
-          let n1 = norm (make_n (Nmult((make_n n),n1))) in
-          let n2 = norm (make_n (Nmult((make_n n),n2))) in
+        | Nvar _ , Nconst _ | Nuvar _ , Nconst _  -> nBang nexp (Nmult(n1',n2'))
+        | Nconst _ , Nvar _ | Nconst _ , Nuvar _ -> nBang nexp (Nmult(n2',n1'))
+        | Nconst i , Nadd(n1,n2) | Nadd(n1,n2), Nconst i ->
+          let n1 = norm (make_n (Nmult((make_c i),n1))) in
+          let n2 = norm (make_n (Nmult((make_c i),n2))) in
           let n1 = sort n1 in
           let n2 = sort n2 in
-          make_n (Nadd(n1,n2))
-        | (Nconst i as n) , Nmult(n1,n2) | Nmult(n1,n2), (Nconst i as n) ->
+          nBang nexp (Nadd(n1,n2))
+        | Nconst i , Nmult(n1,n2) | Nmult(n1,n2), Nconst i ->
           (match n1.nexp with
-            | Nvar _ | Nuvar _ -> let n2 = norm (make_n (Nmult((make_n n), n2))) in
+            | Nvar _ | Nuvar _ -> let n2 = norm (make_n (Nmult((make_c i), n2))) in
                                   let n2 = sort n2 in
-                                  make_n (Nmult(n1,n2))
+                                  nBang nexp (Nmult(n1,n2))
             | _ -> assert false)
         | _ -> assert false ) (*TODO KG Needs to be an actualy error, as must mean that a variable is multiplied by a variable, somewhere *)
     | Nadd(n1,n2) -> (
       let n1',n2' = norm n1,norm n2 in
       let n1',n2' = sort n1',sort n2' in 
       match n1'.nexp,n2'.nexp with
-        | Nconst i, Nconst j -> make_n (Nconst(i+j))
-        | _,_ -> make_n (Nadd(n1',n2')))
+        | Nconst i, Nconst j -> nBang nexp (Nconst(i+j))
+        | _,_ -> nBang nexp (Nadd(n1',n2')))
   and
     sort nexp = 
-     (* let _ = fprintf std_formatter "sort of %a@ \n" pp_nexp nexp in *)
+(*     let _ = fprintf std_formatter "sort of %a@ \n" pp_nexp nexp in *)
      match nexp.nexp with 
      | Nvar _ | Nconst _ | Nuvar _ | Nmult _ | Nneg _ -> nexp
      | Nadd(n1,n2) ->
        let n1,n2 = sort n1, sort n2 in
         begin match n1.nexp,n2.nexp with
-         | Nconst i , Nconst j -> make_n (Nconst (i+j))
-         | Nconst 0 , n | n , Nconst 0 -> make_n n
-         | Nconst _ , _ -> make_n (Nadd(n1,n2))
-         | _ , Nconst _ -> make_n (Nadd(n2,n1))
+         | Nconst i , Nconst j -> nBang nexp (Nconst (i+j))
+         | Nconst 0, n -> n2 | n , Nconst 0 -> n1 
+         | Nconst _ , (Nmult _ | Nvar _ | Nuvar _ ) -> nBang nexp (Nadd(n1,n2))
+         | (Nmult _ | Nvar _ | Nuvar _ ) , Nconst _ -> nBang nexp (Nadd(n2,n1))
          | Nuvar _ , Nuvar _ | Nuvar _ , Nvar _ | Nvar _ , Nuvar _ | Nvar _ , Nvar _ -> 
-           make_ordered n1 n2 n1 n2 2 n1
+           make_ordered nexp n1 n2 n1 n2 2 n1
          | Nvar _, Nmult(v,n) | Nuvar _, Nmult(v,n) ->
            (match v.nexp,n.nexp with 
             | Nvar _,Nconst i | Nuvar _,Nconst i -> 
-              make_ordered n1 v n1 n2 (i+1) n1
+              make_ordered nexp n1 v n1 n2 (i+1) n1
              | _ -> assert false)
          | Nmult(v,n), Nvar _ | Nmult(v,n), Nuvar _ ->
               (match v.nexp,n.nexp with 
                | Nvar _ ,Nconst i | Nuvar _, Nconst i -> 
-                 make_ordered v n2 n1 n2 (i+1) n2
+                 make_ordered nexp v n2 n1 n2 (i+1) n2
                | _ -> assert false)
          | Nmult(var1,nc1),Nmult(var2,nc2) ->
               (match var1.nexp,nc1.nexp,var2.nexp,nc2.nexp with 
                | _, Nconst i1, _, Nconst i2 ->
-                 make_ordered var1 var2 n1 n2 (i1+i2) var1  
+                 make_ordered nexp var1 var2 n1 n2 (i1+i2) var1  
                | _ -> assert false)
          | Nadd(n1l,n1r),Nadd(n2l,n2r) ->
                (match compare_nexp n1r n2r with
                  | -1 -> let sorted = sort (make_n (Nadd(n1l,n2))) in
                          (match sorted.nexp with
                           | Nconst 0 -> n1r
-                          | _ -> sort (make_n ( Nadd(sorted, n1r))))
+                          | _ -> sort (nBang nexp ( Nadd(sorted, n1r))))
                 | 0 -> let rightmost = sort (make_n (Nadd(n1r,n2r))) in
                        let sorted = sort (make_n (Nadd(n1l,n2l))) in
                          (match rightmost.nexp,sorted.nexp with
-                           | Nconst 0, n | n, Nconst 0 -> make_n n
-                           | _ -> sort (make_n (Nadd (sorted,rightmost))))
+                           | Nconst 0, n -> sorted
+                           | n, Nconst 0 -> rightmost
+                           | _ -> sort (nBang nexp (Nadd (sorted,rightmost))))
                 | _ -> let sorted = sort (make_n (Nadd(n1,n2l))) in
                         (match sorted.nexp with
                          | Nconst 0 -> n2r
-                         | _ -> sort (make_n ( Nadd (sorted, n2r)))))
-         | Nadd(n1l,n1r),n | n, Nadd(n1l,n1r)->
-              let sorted = sort (make_n (Nadd(n1r,(make_n n)))) in
+                         | _ -> sort (nBang nexp ( Nadd (sorted, n2r)))))         
+         | Nadd(n1l,n1r),n -> (*Add on left, potential nuvar on right*)
+              let sorted = sort (make_n (Nadd(n1r,n2))) in
               (match sorted.nexp with 
                  | Nadd(nb,ns) -> 
                    let sorted_left = sort (make_n (Nadd (n1l, nb))) in
                    (match sorted_left.nexp with
                      | Nconst 0 -> ns
-                     | _ -> make_n (Nadd(sorted_left,ns)))
+                     | _ -> nBang nexp (Nadd(sorted_left,ns)))
                  | Nconst 0 -> n1l
                  | _ -> make_n(Nadd(n1l, sorted))
+              )         
+         | n, Nadd(n1l,n1r)-> (* Add on right, potential nuvar on left*)
+              let sorted = sort (make_n (Nadd(n1r,n1))) in
+              (match sorted.nexp with 
+                 | Nadd(nb,ns) -> 
+                   let sorted_left = sort (make_n (Nadd (n1l, nb))) in
+                   (match sorted_left.nexp with
+                     | Nconst 0 -> ns
+                     | _ -> nBang nexp (Nadd(sorted_left,ns)))
+                 | Nconst 0 -> n1l
+                 | _ -> nBang nexp (Nadd(n1l, sorted))
               )
          | Nneg _ , _ | _ , Nneg _ -> assert false (*Should have been removed in norm*)
        end
@@ -732,6 +751,7 @@ and assert_equal_lists l m d ts1 ts2 =
   List.iter2 (assert_equal l m d) ts1 ts2
 
 and assert_equal_nexp l n1 n2 =
+(*  let _ = fprintf std_formatter "assert_equal_nexp of n1 %a  and n2 %a \n" pp_nexp n1 pp_nexp n2 in *)
   if n1 == n2 then
     ()
   else let n1 = normalize n1 in
@@ -739,19 +759,21 @@ and assert_equal_nexp l n1 n2 =
        assert_equal_nexp_help l n1 n2
 
 and assert_equal_nexp_help l n1 n2 =
+  () (*
   match (n1.nexp,n2.nexp) with
     | (Nuvar _ , _ ) -> nexp_mismatch l n1 n2
     | (_ , Nuvar _ ) -> nexp_mismatch l n1 n2
     | (Nvar(s1),Nvar(s2)) ->
-      if Nvar.compare s1 s2 = 0 then
+      (*if Nvar.compare s1 s2 = 0 then
          ()
-         else nexp_mismatch l n1 n2
+         else nexp_mismatch l n1 n2*) () (* needs to support equality up to alpha equivalence? *)
     | (Nconst(i),Nconst(j)) -> if i = j then () else nexp_mismatch l n1 n2
     | (Nadd(n11,n12),Nadd(n21,n22)) | (Nmult(n11,n12),Nmult(n21,n22)) ->
        assert_equal_nexp l n11 n21;
        assert_equal_nexp l n12 n22
     | (Nneg(n1),Nneg(n2)) -> assert_equal_nexp l n1 n2
     | _ -> nexp_mismatch l n1 n2
+*)
 
 let rec nexp_from_list nls = match nls with
     | [] -> assert false
@@ -809,6 +831,7 @@ module Constraint (T : Global_defs) : Constraint = struct
   let length_constraints : range list ref = ref []
 
   let add_length_constraint r =
+(*   let _ = fprintf std_formatter "adding constraint %a \n" pp_range r in *)
    length_constraints := r :: (!length_constraints)
 
   let new_type () : t =
@@ -911,6 +934,7 @@ module Constraint (T : Global_defs) : Constraint = struct
   and equate_type_lists l ts1 ts2 =
     List.iter2 (equate_types l) ts1 ts2
 
+  (* Should go *)
   and prim_equate_nexps (n_box : nexp) (n : nexp) : unit =
     let n = resolve_nexp_subst n in 
       if n_box == n then
@@ -927,6 +951,7 @@ module Constraint (T : Global_defs) : Constraint = struct
            | _ ->
                n_box.nexp <- n.nexp)
 
+  (*Should go*)
   and equate_nexps_help l nexp1 nexp2 =
      match (nexp1.nexp,nexp2.nexp) with
        | (Nuvar _, _) -> prim_equate_nexps nexp1 nexp2
@@ -946,10 +971,10 @@ module Constraint (T : Global_defs) : Constraint = struct
       let n1 = normalize nexp1 in
       let n2 = normalize nexp2 in
       let n3 = normalize { nexp = Nadd(n1, {nexp= Nneg n2}) } in
+(*      let _ = fprintf std_formatter "equate nexps of n1 %a n2 %a and diff %a \n" pp_nexp n1 pp_nexp n2 pp_nexp n3 in *)
       match n3.nexp with
        | Nconst 0 -> ()
        | _ -> add_length_constraint (Eq (l,n3))
-              (*; equate_nexps_help l n1 n2 (*TODO remove me because this is a temporary solution until constraint solving is fully operational*)*)
        
   let in_range l vec_n n =
     let (top,bot) = (normalize vec_n,normalize n) in
@@ -1001,7 +1026,7 @@ module Constraint (T : Global_defs) : Constraint = struct
       nv
 
   (* Gather all variables and unification variables used within a set of length constraints *)
-  let collect_vars constraints =
+  let collect_vars (constraints : range list) : nexp list =
    let rec insert v = function
    | [] -> [v]
    | vo::vars -> begin match (compare_nexp v vo) with
@@ -1061,7 +1086,7 @@ module Constraint (T : Global_defs) : Constraint = struct
     | [ ] -> [ ]
     | c :: constraints -> range_with c (add_vars all_vars (range_of_n c)) :: (walk_constraints  constraints)
     in 
-    Array.of_list(List.map (fun r -> ref (Some r)) (walk_constraints constraints))
+    Array.of_list(List.map (fun r -> ref (Some r)) constraints (* (walk_constraints constraints) *))
     
   let is_inconsistent = function
     | Eq(_,n) -> (*let _ = fprintf std_formatter "inconsistent Eq call of %a@ \n" pp_nexp n in*)
@@ -1089,7 +1114,7 @@ module Constraint (T : Global_defs) : Constraint = struct
                    | _ -> false end
 
   (* For situations with one constraint in multiple variables, attempts only to assign unification variables where possible *)
-  let solve_solo =
+  let solve_solo r =
     let rec nexp_to_term_list n =
       match n.nexp with
       | Nadd(n1,n2) -> n2::(nexp_to_term_list n1)
@@ -1120,24 +1145,30 @@ module Constraint (T : Global_defs) : Constraint = struct
       | _ -> () in
     let rec remove_nuvars op = function
       | [] -> ()
-      | n1::ns -> let equivs,ns = split_equiv_to n1 [] ns in
+      | n1::ns ->let equivs,ns = split_equiv_to n1 [] ns in
                  (match equivs with
                  | [] -> ()
                  | [n2] -> if (op ((get_const n1) + (get_const n2)) 0) 
                               then begin assign_nuvar n1 n2; remove_nuvars op ns end
                               else remove_nuvars op ns
                  | _ -> remove_nuvars op ns) in
-    function
+(*    let _ = fprintf std_formatter "solving solo of %a\n" pp_range r in *)
+    let scp n1 n2 = () (*fprintf std_formatter "special case after solve, %a %a\n" pp_nexp n1 pp_nexp n2 *) in 
+    match r with
     | Eq(l,n) -> let terms = List.sort compare_nexp_consts (nexp_to_term_list n) in
                  remove_nuvars (=) terms;
                  let n = normalize n in
                 (match n.nexp with
                  | Nconst 0 -> None
                  | Nadd(n1,n2) -> (match n1.nexp,n2.nexp with
-                                    | Nconst(i),Nuvar _ -> begin n2.nexp <- Nconst( i * -1); None end
+                                    | Nconst(i),Nuvar _ -> begin (scp n1 n2); n2.nexp <- Nconst( i * -1); (scp n1 n2); None end
                                     | Nconst(i),Nmult(v,c) -> (match v.nexp,c.nexp with 
-                                                                 | Nuvar _ , Nconst j -> begin v.nexp <- Nconst(i/( - j)); None end
-                                                                 | _ -> Some(Eq(l,n)))       
+                                                                 | Nuvar _ , Nconst j -> begin (scp n1 n2); v.nexp <- Nconst(i/( - j)); (scp n1 n2); None end
+                                                                 | _ -> Some(Eq(l,n)))
+                                    | Nvar _ ,Nuvar _ -> begin (scp n1 n2); n2.nexp <- n1.nexp; (scp n1 n2); None end
+                                    | Nvar _ ,Nmult(v,c) -> (match v.nexp,c.nexp with 
+                                                                 | Nuvar _ , (Nconst 1 | Nconst -1) -> begin (scp n1 n2); v.nexp <- n1.nexp; (scp n1 n2); None end
+                                                                 | _ -> Some(Eq(l,n)))                                           
                                     | _ -> Some(Eq(l,n)))
                      | _ -> Some(Eq(l,n)))
     | GtEq(l,n) -> let n = normalize n in
@@ -1205,15 +1236,16 @@ module Constraint (T : Global_defs) : Constraint = struct
                      match !(ns.(j)) with
                       | None -> inner_loop (j+1)
                       | Some(rnge_j) -> 
-                          ns.(j) := Some(range_with rnge_j (var_to_zero v c n (range_of_n rnge_j)));
+                          let rnge_new = range_with rnge_j (var_to_zero v c n (range_of_n rnge_j)) in
+(*                          let _ = fprintf std_formatter "%a@ after var_to_zero of %a and %a \n" pp_range rnge_new pp_nexp n pp_nexp (range_of_n rnge_j) in *)
+                          ns.(j) := Some(rnge_new);
                           inner_loop (j+1)
                 in inner_loop 0
                           
   (*TODO find where this should have come from, or move to util*)
   let rec some_list = function
     | [] -> []
-    | Some(a)::rest -> (*let _ = fprintf std_formatter "some constraint %a \n" pp_range a in
-                       let _ = fprintf std_formatter "some constraints, normalized %a \n" pp_nexp (normalize (range_of_n a)) in *)
+    | Some(a)::rest -> (*let _ = fprintf std_formatter "some constraint %a \n" pp_range a in*)
                        a::(some_list rest)
     | None::rest -> some_list rest
 
@@ -1232,7 +1264,9 @@ module Constraint (T : Global_defs) : Constraint = struct
       | r::rns -> combine_eq_constraints base_eq (r::ineqs) rns
     in
     let lst_constraints = matrix_to_list 0 in
-    let eq, ineqs = combine_eq_constraints (Eq(Ast.Unknown,{nexp=Nconst 0})) [] lst_constraints in
+(*    let _ = List.iter (fun r -> fprintf std_formatter "Constraints after matrix %a\n" pp_range r) lst_constraints in *)
+    let simplified_normalized_constraints = List.map solve_solo lst_constraints in
+    let eq, ineqs = combine_eq_constraints (Eq(Ast.Unknown,{nexp=Nconst 0})) [] (some_list simplified_normalized_constraints) in
     let eq_normal = range_with eq (normalize (range_of_n eq)) in
     if (is_redundant eq_normal)
        then ineqs
@@ -1243,7 +1277,8 @@ module Constraint (T : Global_defs) : Constraint = struct
     | [c] -> (match (solve_solo c) with
               | Some(range) -> range::unresolved
               | None -> unresolved)
-    | cs -> let cs = some_list (List.map solve_solo cs) in
+    | cs -> let cs = List.map (fun r -> range_with r (normalize (range_of_n r))) (some_list (List.map solve_solo cs)) in
+(*            let _ = List.iter (fun r -> fprintf std_formatter "Constraint to be solved after solo %a\n" pp_range r) cs in *)
             let variables = collect_vars cs in
             let matrix = expand_matrix cs variables in
             resolve_matrix 0 matrix;

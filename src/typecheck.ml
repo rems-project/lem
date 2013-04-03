@@ -428,8 +428,9 @@ module Make_checker(T : sig
         (fun (p, tv) -> 
            C.add_constraint p (type_subst subst (tnvar_to_type tv))) 
         c.const_class;
-      (* List.iter
-         (fun r -> C.add_length_constraint (range_subst subst r)) c.const_range; *) (*TODO KG make an appropriate subst*)
+      List.iter
+         (fun r -> C.add_length_constraint (range_with r (nexp_subst subst (range_of_n r)))) 
+         c.const_ranges; 
       (new_id, a)
 
   let add_binding (pat_e : pat_env) ((v : Name.lskips_t), (l : Ast.l)) (t : t) 
@@ -551,7 +552,7 @@ module Make_checker(T : sig
             let lens =
               List.fold_left (fun lens pat -> 
                                 let c = C.new_nexp () in
-                                ignore(C.equate_types l { t = Tapp([a;{t=Tne(c)}],Path.vectorpath) }, pat.typ);
+                                C.equate_types l { t = Tapp([a;{t=Tne(c)}],Path.vectorpath) } pat.typ;
                                 c::lens) [] pats in
               let len = { t = Tne( nexp_from_list (List.rev lens) ) } in
               C.equate_types l ret_type { t = Tapp([a;len],Path.vectorpath) };

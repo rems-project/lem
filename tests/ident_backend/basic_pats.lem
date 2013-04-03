@@ -43,5 +43,12 @@ let test27 [| [| x; |] [| y; z; |] |] = x
 let test28 [| x y |] = 1
 let test29 [| 0b010 x |] = true
 
+let test31 x = match x with
+ | [| 0b010 y 0b00 |] -> true
+ | 0b0000000000000000 -> false 
+ | [| 0b00 z 0b000 |] -> true
+ end
+
+
 (* add patterns *)
-let test30 (n + 2) = n
+let test30 (n + 2) = n 

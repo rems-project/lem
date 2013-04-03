@@ -91,6 +91,7 @@ type range =
   | GtEq of Ast.l * nexp
 
 val range_with : range -> nexp -> range
+val range_of_n : range -> nexp
 
 (* Structural comparison of types, without expanding type abbreviations.
  * Probably better not to use *)
@@ -98,6 +99,7 @@ val compare : t -> t -> int
 
 val multi_fun : t list -> t -> t
 val type_subst : t TNfmap.t -> t -> t
+val nexp_subst : t TNfmap.t -> nexp -> nexp
 val free_vars : t -> TNset.t
 
 val tnvar_to_name : tnvar -> Name.t

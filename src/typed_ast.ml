@@ -757,9 +757,10 @@ let pp_env_tag ppf tag =
         exists_general "???"
 
 let pp_const_descr ppf c =
-  fprintf ppf "@[<2>forall@ (@[%a@]).@ @[%a@]@ =>@ %a@]@ (%a)@ %a"
+  fprintf ppf "@[<2>forall@ (@[%a@]).@ @[%a@]@ @[%a@]@ =>@ %a@]@ (%a)@ %a"
     (lst ",@," TNvar.pp) c.const_tparams
     (lst "@ " pp_class_constraint) c.const_class
+    (lst "@ " pp_range) c.const_ranges
     pp_type c.const_type
     Path.pp c.const_binding
     pp_env_tag c.env_tag
