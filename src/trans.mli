@@ -56,10 +56,16 @@ type pat_macro = Macro_expander.pat_position -> pat macro
 module Macros (I : Types.Global_defs) (E : sig val env : env end) : sig 
 
   (** {2 Record Macros} *)
-  (** [remove_single_to_record_updates] replaces updates of
+  (** [remove_singleton_record_updates] replaces updates of
       records that have only one field with the construction
       of a completely new record. *)
   val remove_singleton_record_updates : exp macro
+
+  (** [remove_multiple_record_updates] replaces record updates
+      simultaneously updating multiple fields with a nested record
+      update, each affecting only one field, that achieves the same
+      effect. *)
+  val remove_multiple_record_updates : exp macro
 
   (** [sort_record_fields] sorts the fields of a record expression
       into the same order as in the definition of the record

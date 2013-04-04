@@ -271,6 +271,10 @@ Notation "x :: l" := (cons x l) (at level 60, right associativity).
 Notation "[ ]" := nil.
 Notation "[ x ; .. ; y ]" := (cons x .. (cons y nil) ..).
 
+(* * Finite maps. *)
+
+Definition fmap (a b: Type) := list (a * b).
+
 (* * Vector library. *)
 
 Inductive vector (a : Type) : nat -> Type :=
@@ -421,6 +425,13 @@ Notation "X 'union' Y" := (app X Y) (at level 60, right associativity).
 
 Definition set_empty {a : Type} : set a := [].
 
+Definition set_is_empty
+  {elt: Type} (s: set elt): bool :=
+    match s with
+      | [] => true
+      | _  => false
+    end.
+
 Definition set_add
   {a : Type} (x : a) (s : set a) :=
     cons x s.
@@ -505,6 +516,12 @@ Fixpoint set_subset
           false
     end.
 
+Definition set_from_list
+  {elt: Type} (s: set elt): list elt := s.
+
+Definition set_to_list
+  {elt: Type} (l: list elt): set elt := l.
+
 Axiom set_tc :
   forall {elt : Type},
   forall eq : elt -> elt -> bool,
@@ -553,6 +570,7 @@ Definition bool_default : bool := true.
 Definition num_default : num := 0.
 Definition set_default {a : Type}: set a := set_empty.
 Definition list_default {a : Type}: list a := [].
+Definition fmap_default {a b : Type}: list (a * b) := [].
 Definition option_default {a : Type} : option a := None.
 Definition ascii_default : ascii := Ascii true true true true true true true true.
 Definition string_default : string := "" % string.

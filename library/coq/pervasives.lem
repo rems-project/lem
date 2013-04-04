@@ -119,6 +119,6 @@ val set_subset : forall 'elt. ('elt -> 'elt -> bool) -> set 'elt -> set 'elt -> 
 val set_cardinal: forall 'elt. set 'elt -> num
 val set_is_empty: forall 'elt. set 'elt -> bool
 val set_from_list: forall 'elt. list 'elt -> set 'elt
-val set_elements: forall 'elt. set 'elt -> list 'elt
+val set_to_list: forall 'elt. set 'elt -> list 'elt
 val set_fold: forall 'elt 'b. ('elt -> 'b -> 'b) -> set 'elt -> 'b -> 'b
 val set_compare: forall 'elt. set 'elt -> set 'elt -> num

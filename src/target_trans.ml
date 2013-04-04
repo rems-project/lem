@@ -188,6 +188,7 @@ struct
          Exp_macros (fun env -> 
                        let module T = T(struct let env = env end) in
                          [T.remove_singleton_record_updates;
+                          T.remove_multiple_record_updates;
                           T.remove_list_comprehension;
                           T.remove_set_comprehension;
                           T.remove_quant;
@@ -385,8 +386,8 @@ struct
             mk_string_path ["Hol"; "Finite_map"] "fmap",
             mk_string_path ["Map"] "map");
            (Typed_ast.Nk_typeconstr, 
-            mk_string_path ["Coq"; "Hol"] "fmap",
-            mk_string_path ["Map"] "map");
+            mk_string_path ["Coq"; "Map"] "fmap",
+            mk_string_path ["Map"] "fmap");
           ]
       | Some(Target_hol) -> [
            (Typed_ast.Nk_typeconstr, 
@@ -402,6 +403,11 @@ struct
             mk_string_path ["Coq"; "Hol"] "fmap",
             mk_string_path [] "fmap");
           ]
+      | Some(Target_coq) -> [
+           (Typed_ast.Nk_typeconstr, 
+            mk_string_path ["Pmap"] "map",
+            mk_string_path [] "fmap");
+        ]
       | _ -> []
 
   let get_transformation targ consts =

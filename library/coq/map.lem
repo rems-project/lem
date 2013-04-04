@@ -44,3 +44,4 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (*========================================================================*)
 
+type map 'a 'b = Hol.Finite_map.fmap 'a 'b

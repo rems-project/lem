@@ -41,7 +41,7 @@ let inline {coq} from_list = Coq.set_from_list
 val to_list : forall 'a. set 'a -> list 'a
 let inline {ocaml} to_list = Ocaml.Pset.elements
 let inline {hol} to_list = Hol.SET_TO_LIST
-let inline {coq} to_list = Coq.set_elements
+let inline {coq} to_list = Coq.set_to_list
 let inline {isabelle} to_list = Isabelle.list_of_set
 
 val is_empty : forall 'a. set 'a -> bool

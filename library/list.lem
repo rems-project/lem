@@ -74,7 +74,7 @@ val fold_left : forall 'a 'b. ('a -> 'b -> 'a) -> 'a -> list 'b -> 'a
 let inline {hol} fold_left = Hol.FOLDL
 let inline {ocaml} fold_left = Ocaml.List.fold_left
 let inline {isabelle} fold_left = Isabelle.List.foldl
-let inline {coq} fold_left = Coq.List.fold_left
+let inline {coq} fold_left f e l = Coq.List.fold_left f l e
 
 val fold_right : forall 'a 'b. ('a -> 'b -> 'b) -> list 'a -> 'b -> 'b
 let inline {hol} fold_right f l b = Hol.FOLDR f b l
@@ -107,7 +107,7 @@ val exist : forall 'a. ('a -> bool) -> list 'a -> bool
 let inline {hol} exist = Hol.EXISTS
 let inline {ocaml} exist = Ocaml.List.\\exists
 let inline {isabelle} exist = Isabelle.list_exists
-let inline {coq} exist = Coq.List.existb
+let inline {coq} exist = Coq.List.existsb
 
 (*let inline {isabelle} exist P l = EX x:(set l). P x*)
 
@@ -122,7 +122,7 @@ val mem : forall 'a. 'a -> list 'a -> bool
 let inline {hol} mem = Hol.(MEM)
 let inline {ocaml} mem = Ocaml.List.mem
 let inline {isabelle} mem = Isabelle.list_mem
-let inline {coq} mem e = Coq.List.existb (Coq.(==) e)
+let inline {coq} mem e = Coq.List.existsb (Coq.(==) e)
 
 val find : forall 'a. ('a -> bool) -> list 'a -> 'a
 

@@ -301,7 +301,6 @@ let output1 libpath isa_thy targ avoid type_info m alldoc_accum alldoc_inc_accum
             let r = B.coq_defs m.typed_ast in
             let o = open_out (f' ^ ".v") in
               Printf.fprintf o "(* %s *)\n\n" (generated_line m.filename);
-              Printf.fprintf o "Set Implicit Args.\n\n";
               Printf.fprintf o "Require Import Arith.\n";
               Printf.fprintf o "Require Import Bool.\n";
               Printf.fprintf o "Require Import List.\n";

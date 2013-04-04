@@ -84,6 +84,31 @@ let remove_singleton_record_updates e =
       | _ -> None
 ;;
 
+let remove_multiple_record_updates e =
+  let l_unk = Ast.Trans("remove_multiple_record_updates", Some (exp_to_locn e)) in
+    match C.exp_to_term e with
+      | Recup(s1, e, s2, fields, s3) ->
+        begin
+            match List.rev (Seplist.to_list fields) with
+              | [] -> None
+              | [x] -> None
+              | x::xs ->
+                let singleton e =
+                  Seplist.from_pair_list None [(e, Typed_ast.no_lskips)] None
+                in
+                let recup =
+                  C.mk_recup l_unk s1 e s2 (singleton x) s3 None
+                in
+                let recups =
+                  List.fold_left (fun recup -> fun x ->
+                    C.mk_recup l_unk s2 recup s2 (singleton x) s2 None
+                  ) recup xs
+                in
+                  Some recups
+        end
+      | _ -> None
+;;
+
 let sort_record_fields e =
   let l_unk = Ast.Trans("sort_record_fields", Some (exp_to_locn e)) in
     match C.exp_to_term e with

@@ -584,6 +584,23 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
       		  from_string "(* "; def inside_module def_aux; from_string " *)"
           ]
       | Ident_rename _ -> from_string "\n(* [?]: removed rename statement. *)"
+      | Lemma (skips, lemma_typ, targets, name_skips_opt, skips', e, skips'') ->
+          if in_target targets then
+            let name =
+              match name_skips_opt with
+                | None ->
+                  let fresh = generate_fresh_name () in
+                  combine [
+                    from_string " lemma_"; from_string fresh
+                  ]
+                | Some ((name, l), skips) -> Name.to_output coq_infix_op Term_var name
+            in
+              combine [
+                ws skips; from_string "Lemma"; name; from_string ":"; ws skips'; exp e;
+                ws skips''; from_string "."
+              ]
+          else
+            from_string "(* [?]: removed lemma intended for another backend. *)"
     and clauses clause_list =
       let equality_on_relation_name (_, _, _, _, _, _, name, _) (_, _, _, _, _, _, name', _) =
         Pervasives.compare name name' = 0
@@ -752,8 +769,14 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
               ]
           | Recup (skips, e, skips', fields, skips'') ->
             let body = flat $ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) field_update (sep $ from_string ";") fields in
+            let skips'' =
+              if skips'' = Typed_ast.no_lskips then
+                from_string " "
+              else
+                ws skips''
+            in
               combine [
-                 ws skips; from_string "{["; exp e; ws skips'; from_string "with"; body; ws skips''; from_string "]}"
+                 ws skips; from_string "{["; exp e; ws skips'; from_string "with"; body; skips''; from_string " ]}"
               ]
           | Record_coq ((n, _), _, fields, _) ->
             (* DPM: no longer used?  *)
@@ -762,7 +785,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
             let body = flat $ Seplist.to_sep_list_last Seplist.Optional case_line (sep (break_hint_space 2 ^ from_string "|")) cases in
               block is_user_exp 0 (
                 combine [
-                  ws skips; from_string "match"; exp e; ws skips'; from_string "with";
+                  ws skips; from_string "match ("; exp e; from_string ")"; ws skips'; from_string "with";
                   break_hint_space 4; body; ws skips''; break_hint_space 0; from_string "end"
                 ])
           | Infix (l, c, r) ->
@@ -1273,7 +1296,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
           | Typ_fn (dom, _, rng) ->
               let v = generate_fresh_name () in
                 combine [
-                  from_string "(fun ("; from_string v; from_string " : "; typ dom;
+                  from_string "(fun ("; from_string v; from_string " : "; pat_typ dom;
                   from_string ") => "; default_value rng; from_string ")"
                 ]
       and generate_default_values ts : Output.t =
