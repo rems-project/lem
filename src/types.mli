@@ -92,6 +92,9 @@ type range =
 
 val range_with : range -> nexp -> range
 val range_of_n : range -> nexp
+val mk_gt_than : Ast.l -> nexp -> nexp -> range
+val mk_eq_to   : Ast.l -> nexp -> nexp -> range
+
 
 (* Structural comparison of types, without expanding type abbreviations.
  * Probably better not to use *)

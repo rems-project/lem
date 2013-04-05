@@ -351,8 +351,12 @@ type texp =
   | Te_variant of lskips * (name_l * lskips * src_t lskips_seplist) lskips_seplist
   | Te_variant_coq of lskips * (name_l * lskips * src_t lskips_seplist * name_l * tnvar list) lskips_seplist
 
+type range = 
+  | GtEq of Ast.l * src_nexp * lskips * src_nexp
+  | Eq of Ast.l * src_nexp * lskips * src_nexp
+
 type constraints = 
-  | Cs_list of (Ident.t * tnvar) lskips_seplist * lskips
+  | Cs_list of (Ident.t * tnvar) lskips_seplist * lskips option * range lskips_seplist * lskips
 
 type constraint_prefix =
   | Cp_forall of lskips * tnvar list * lskips * constraints option

@@ -147,13 +147,13 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 %token <Ast.terminal> Semi Lsquare Rsquare Fun_ Function_ Bar With Match Let_ And HashZero HashOne
 %token <Ast.terminal> In Of Rec Type Rename Module_ Struct End Open_ SemiSemi Eof
 %token <Ast.terminal> True False Begin_ If_ Then Else Val
-%token <Ast.terminal * Ulib.Text.t> AmpAmp BarBar ColonColon Star Plus Eq At
+%token <Ast.terminal * Ulib.Text.t> AmpAmp BarBar ColonColon Star Plus Eq At GtEq
 %token <Ast.terminal * Ulib.Text.t> X Tyvar Nvar BquoteX
 %token <Ast.terminal * Ulib.Text.t> StarstarX StarX PlusX AtX EqualX 
 %token <Ast.terminal * int> Num
 %token <Ast.terminal * string> String Bin Hex
 
-%token <Ast.terminal> Indreln Forall EqEqGt Inline LtBar BarGt Exists EqGt BraceBar BarBrace DotBrace
+%token <Ast.terminal> Indreln Forall EqEqGt Inline LtBar BarGt Exists EqGt BraceBar BarBrace DotBrace 
 %token <Ast.terminal> Assert Lemma Theorem
 %token <Ast.terminal * Ulib.Text.t> IN MEM MinusMinusGt
 %token <Ast.terminal> Class_ Inst
@@ -188,6 +188,8 @@ x:
   | Lparen Star Rparen
     { mk_pre_x_l $1 $2 $3 (loc ()) }
   | Lparen Plus Rparen
+    { mk_pre_x_l $1 $2 $3 (loc ()) }
+  | Lparen GtEq Rparen
     { mk_pre_x_l $1 $2 $3 (loc ()) }
   | Lparen PlusX Rparen
     { mk_pre_x_l $1 $2 $3 (loc ()) }
@@ -759,13 +761,30 @@ cs2:
   | c2 Comma cs2
     { ($1,$2)::$3 }
 
+range:
+  | nexp Eq nexp
+    { Range_l(Fixed($1,(fst $2),$3), loc () ) }
+  | nexp GtEq nexp
+    { Range_l(Bounded($1,(fst $2),$3), loc () ) }
+
+ranges:
+  | range
+    { [($1,None)] }
+  | range Comma ranges 
+    { ($1,$2)::$3 }
+
 typschm:
   | typ
     { Ts(C_pre_empty, $1) }
   | Forall tnvs Dot typ
     { Ts(C_pre_forall($1,$2,$3,Cs_empty),$4) }
   | Forall tnvs Dot cs EqGt typ
-    { Ts(C_pre_forall($1,$2,$3,Cs_list($4,$5)), $6) }
+    { Ts(C_pre_forall($1,$2,$3,Cs_classes($4,$5)), $6) }
+  | Forall tnvs Dot ranges EqGt typ
+    { Ts(C_pre_forall($1,$2,$3,Cs_lengths($4,$5)), $6) }
+  | Forall tnvs Dot cs Semi ranges EqGt typ
+    { Ts(C_pre_forall($1,$2,$3,Cs_both($4,$5,$6,$7)),$8) }
+
 
 insttyp:
   | typ
@@ -779,7 +798,7 @@ instschm:
   | Forall tnvs Dot Lparen id insttyp Rparen
     { Is(C_pre_forall($1,$2,$3,Cs_empty),$4,$5,$6,$7) }
   | Forall tnvs Dot cs2 EqGt Lparen id insttyp Rparen
-    { Is(C_pre_forall($1,$2,$3,Cs_list($4,$5)),$6,$7,$8,$9) }
+    { Is(C_pre_forall($1,$2,$3,Cs_classes($4,$5)),$6,$7,$8,$9) }
 
 val_spec:
   | Val x Colon typschm

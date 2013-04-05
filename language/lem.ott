@@ -199,10 +199,14 @@ Nexp :: '' ::=
   {{ com Location-annotated vector lengths }}
   | Nexp_aux l				:: :: Length_l
 
-Nexp_constraint :: '' ::=
+Nexp_constraint_aux :: '' ::=
   {{ com Whether a vector is bounded or fixed size }}
-  | Nexp					:: :: fixed
-  | >= Nexp				:: :: bounded
+  | Nexp = Nexp'				:: :: fixed
+  | Nexp >= Nexp'				:: :: bounded
+
+Nexp_constraint :: '' ::=
+  {{ com Location-annotated Nexp range }}
+  | Nexp_constraint_aux l		    	       :: :: range_l
 
 typ_aux :: 'Typ_' ::=
   {{ com Types }}
@@ -531,15 +535,19 @@ c :: '' ::=
   | id tnvar							:: :: C
 
 cs :: 'Cs_' ::=
-  {{ com Typeclass constraint lists }}
+  {{ com Typeclass and length constraint lists }}
   | 								:: :: empty
-  | c1 , .. , ci =>							:: :: list
+  | c1 , .. , ci =>							:: :: classes
     {{ com Must have $>0$ constraints }}
+  | Nexp_constraint1 , .. , Nexp_constrainti =>			:: :: lengths
+    {{ com Must have $>0$ constraints }}
+ | c1 , .. , ci ; Nexp_constraint1 , .. , Nexp_constraintn =>   :: :: both
+    {{ com Must have $>0$ of both form of constraints }}
 
 c_pre :: 'C_pre_' ::=
   {{ com Type and instance scheme prefixes }}
   |								:: :: empty
-  | forall tnvar1 .. tnvarn . cs					:: :: forall
+  | forall tnvar1 .. tnvarn . cs				:: :: forall
     {{ com Must have $>0$ type variables }}
 
 typschm :: '' ::=

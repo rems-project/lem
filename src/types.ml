@@ -759,21 +759,19 @@ and assert_equal_nexp l n1 n2 =
        assert_equal_nexp_help l n1 n2
 
 and assert_equal_nexp_help l n1 n2 =
-  () (*
   match (n1.nexp,n2.nexp) with
     | (Nuvar _ , _ ) -> nexp_mismatch l n1 n2
     | (_ , Nuvar _ ) -> nexp_mismatch l n1 n2
     | (Nvar(s1),Nvar(s2)) ->
-      (*if Nvar.compare s1 s2 = 0 then
+      if Nvar.compare s1 s2 = 0 then
          ()
-         else nexp_mismatch l n1 n2*) () (* needs to support equality up to alpha equivalence? *)
+         else nexp_mismatch l n1 n2
     | (Nconst(i),Nconst(j)) -> if i = j then () else nexp_mismatch l n1 n2
     | (Nadd(n11,n12),Nadd(n21,n22)) | (Nmult(n11,n12),Nmult(n21,n22)) ->
        assert_equal_nexp l n11 n21;
        assert_equal_nexp l n12 n22
     | (Nneg(n1),Nneg(n2)) -> assert_equal_nexp l n1 n2
     | _ -> nexp_mismatch l n1 n2
-*)
 
 let rec nexp_from_list nls = match nls with
     | [] -> assert false
@@ -785,6 +783,14 @@ let range_of_n = function
   | LtEq(_,n) | Eq(_,n) | GtEq(_,n) -> n
 let range_l = function
   | LtEq(l,_) | Eq(l,_) | GtEq(l,_) -> l
+
+let mk_gt_than l n1 n2 =
+  let n = normalize {nexp = Nadd(n1, {nexp = Nneg n2}) } in
+  GtEq(l,n)
+
+let mk_eq_to l n1 n2 =
+  let n = normalize {nexp = Nadd(n1,{nexp = Nneg n2}) } in
+  Eq(l,n)
 
 let range_with r n = match r with
   | LtEq(l,_) -> LtEq(l,n)
@@ -979,6 +985,7 @@ module Constraint (T : Global_defs) : Constraint = struct
   let in_range l vec_n n =
     let (top,bot) = (normalize vec_n,normalize n) in
     let bound = normalize {nexp = Nadd(top, {nexp = Nneg(bot)})} in
+(*    let _ = fprintf std_formatter "in_range of %a and %a, with diff %a\n" pp_nexp top pp_nexp bot pp_nexp bound in *)
     match bound.nexp with
      | Nconst i -> if (i >= 0) then () else nexp_mismatch l top bot (* TODO make this bound not matching*)
      | _ -> add_length_constraint (GtEq(l,bound))
@@ -1168,7 +1175,14 @@ module Constraint (T : Global_defs) : Constraint = struct
                                     | Nvar _ ,Nuvar _ -> begin (scp n1 n2); n2.nexp <- n1.nexp; (scp n1 n2); None end
                                     | Nvar _ ,Nmult(v,c) -> (match v.nexp,c.nexp with 
                                                                  | Nuvar _ , (Nconst 1 | Nconst -1) -> begin (scp n1 n2); v.nexp <- n1.nexp; (scp n1 n2); None end
-                                                                 | _ -> Some(Eq(l,n)))                                           
+                                                                 | _ -> Some(Eq(l,n)))
+                                    | Nuvar _ , Nmult(v,c) -> (match v.nexp,c.nexp with
+                                                                 | Nuvar _ , Nconst -1 -> begin (scp n1 n2); v.nexp <- n1.nexp; (scp n1 n2); None end
+                                                                 | _ -> Some(Eq(l,n)))
+                                    | Nmult(v,c), Nuvar _ -> (match v.nexp,c.nexp with
+                                                                 | Nuvar _ , Nconst -1 -> begin (scp n1 n2); n2.nexp <- v.nexp; (scp n1 n2); None end
+                                                                 | _ -> Some(Eq(l,n)))
+
                                     | _ -> Some(Eq(l,n)))
                      | _ -> Some(Eq(l,n)))
     | GtEq(l,n) -> let n = normalize n in
@@ -1283,6 +1297,7 @@ module Constraint (T : Global_defs) : Constraint = struct
             let matrix = expand_matrix cs variables in
             resolve_matrix 0 matrix;
             let unresolved = prune_constraints matrix in
+(*            let _ = List.iter (fun r -> fprintf std_formatter "Constraint to be kept %a\n" pp_range r) unresolved in*)
             unresolved
 
   let rec solve_constraints instances (unsolvable : PTset.t)= function

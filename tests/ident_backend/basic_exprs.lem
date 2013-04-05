@@ -125,3 +125,8 @@ let test79 = Vector.vconcat test76 test78
 
 val test80 : forall ''x. vector bit ''x -> num
 let test80 v = ''x
+
+val test81 : forall ''x ''y . ''x >= ''y => vector bit ''x -> vector bit ''y -> bit
+let test81 v _ = v.[''y]
+
+let test82 = test81 0b01010101 0b00

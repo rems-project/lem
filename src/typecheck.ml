@@ -1745,10 +1745,37 @@ let check_constraint_prefix (ctxt : defn_ctxt)
         constraint_prefix option * 
         Types.tnvar list * 
         TNset.t * 
-        (Path.t * Types.tnvar) list =
+        ((Path.t * Types.tnvar) list * Types.range list) =
+  let check_class_constraints c env =
+   List.map
+    (fun (Ast.C(id, tnv),sk) ->
+    let tnv' = tnvar_to_flat tnv in
+    let (tnv'',l) = tnvar_to_tnvar2 tnv in
+    let (p,_,_) = lookup_class_p ctxt id in
+    begin
+      if TNset.mem tnv'' env then
+         ()
+      else
+         raise_error l "unbound type variable" pp_tnvar tnv''
+    end;
+      (((Ident.from_id id, tnv'), sk),
+       (p, tnv'')))
+    c
+  in
+  let check_range_constraints rs env =
+   List.map (fun (Ast.Range_l(r,l),sk) -> 
+      match r with
+       | Ast.Bounded(n1,sk1,n2) -> 
+         let n1,n2 = nexp_to_src_nexp ignore n1, nexp_to_src_nexp ignore n2 in
+         ((GtEq(l,n1,sk1,n2),sk),mk_gt_than l n1.nt n2.nt)
+       | Ast.Fixed(n1,sk1,n2) -> 
+         let n1,n2 = nexp_to_src_nexp ignore n1, nexp_to_src_nexp ignore n2 in
+         ((Eq(l,n1,sk1,n2),sk),mk_eq_to l n1.nt n2.nt))
+   rs
+  in                        
   function
     | Ast.C_pre_empty ->
-        (None, [], TNset.empty, [])
+        (None, [], TNset.empty, ([],[]))
     | Ast.C_pre_forall(sk1,tvs,sk2,Ast.Cs_empty) ->
         let tnvars = List.map tnvar_to_tnvar2 tvs in
           (Some(Cp_forall(sk1, 
@@ -1757,28 +1784,19 @@ let check_constraint_prefix (ctxt : defn_ctxt)
                           None)),  
            List.map fst tnvars,
            tvs_to_set (List.map (fun tn -> tnvar_to_types_tnvar (tnvar_to_flat tn)) tvs),
-           [])
-    | Ast.C_pre_forall(sk1,tvs,sk2,Ast.Cs_list(c,sk3)) ->
+           ([],[]))
+    | Ast.C_pre_forall(sk1,tvs,sk2,crs) ->
         let tyvars = List.map tnvar_to_tnvar2 tvs in
         let tnvarset = tvs_to_set tyvars in
+        let (c,sk3,r,sk4) = match crs with 
+                             | Ast.Cs_empty -> assert false
+                             | Ast.Cs_classes(c,sk3) -> c,None,[],sk3
+                             | Ast.Cs_lengths(r,sk3) -> [], None, r, sk3
+                             | Ast.Cs_both(c,sk3,r,sk4) -> c, Some sk3, r, sk4 in
         let constraints = 
-          let cs =
-            List.map
-              (fun (Ast.C(id, tnv),sk) ->
-                 let tnv' = tnvar_to_flat tnv in
-                 let (tnv'',l) = tnvar_to_tnvar2 tnv in
-                 let (p,_,_) = lookup_class_p ctxt id in
-                   begin
-                     if TNset.mem tnv'' tnvarset then
-                       ()
-                     else
-                       raise_error l "unbound type variable" pp_tnvar tnv''
-                   end;
-                   (((Ident.from_id id, tnv'), sk),
-                    (p, tnv'')))
-              c
-          in
-            (Cs_list(Seplist.from_list (List.map fst cs),sk3), List.map snd cs)
+          let cs = check_class_constraints c tnvarset in
+          let rs = check_range_constraints r tnvarset in
+            (Cs_list(Seplist.from_list (List.map fst cs),sk3,Seplist.from_list (List.map fst rs),sk4), (List.map snd cs, List.map snd rs))
         in
           (Some(Cp_forall(sk1, 
                           List.map tnvar_to_flat tvs, 
@@ -1787,6 +1805,7 @@ let check_constraint_prefix (ctxt : defn_ctxt)
            List.map fst tyvars,
            tnvarset,
            snd constraints)
+   
 
 (* Check a "val" declaration. The name must not be already defined in the
  * current sequence of definitions (e.g., module body) *)
@@ -1795,7 +1814,7 @@ let check_val_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
   let l' = Ast.xl_to_l xl in
   let n = Name.from_x xl in
   let n' = Name.strip_lskip n in
-  let (src_cp, tyvars, tnvarset, sem_cp) = check_constraint_prefix ctxt cp in 
+  let (src_cp, tyvars, tnvarset, (sem_cp,sem_rp)) = check_constraint_prefix ctxt cp in 
   let () = check_free_tvs tnvarset typ in
   let src_t = typ_to_src_t anon_error ignore ignore ctxt.all_tdefs ctxt.cur_env typ in
   let () = 
@@ -1822,7 +1841,7 @@ let check_val_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
     { const_binding = Path.mk_path mod_path n';
       const_tparams = tyvars;
       const_class = sem_cp;
-      const_ranges = [];
+      const_ranges = sem_rp;
       const_type = src_t.typ;
       spec_l = l;
       env_tag = K_val;
@@ -2266,7 +2285,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
            Class(sk1,sk2,(cn,l'),tnvar, sk4,List.rev vspecs, sk5))
       | Ast.Instance(sk1,Ast.Is(cs,sk2,id,typ,sk3),vals,sk4) ->
           (* TODO: Check for duplicate instances *)
-          let (src_cs, tyvars, tnvarset, sem_cs) =
+          let (src_cs, tyvars, tnvarset, (sem_cs,sem_rs)) =
             check_constraint_prefix ctxt cs 
           in
           let () = check_free_tvs tnvarset typ in
@@ -2342,7 +2361,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                  Val({ const_binding = Path.mk_path instance_path n;
                        const_tparams = tyvars;
                        const_class = sem_cs;
-                       const_ranges = [];
+                       const_ranges = sem_rs;
                        const_type = t;
                        (* TODO: check the following *)
                        env_tag = K_instance;

@@ -2271,15 +2271,23 @@ let isa_letbind simple (lb, _) : Output.t = match lb with
 
 (******* End Isabelle ********)
 
+let range = function
+  | GtEq(_,n1,s,n2) -> nexp n1 ^ ws s ^ kwd ">=" ^ nexp n2
+  | Eq(_,n1,s,n2) -> nexp n1 ^ ws s ^ kwd "=" ^ nexp n2
+
 let constraints = function
   | None -> emp
-  | Some(Cs_list(l,s)) ->
+  | Some(Cs_list(l_c,op_s,l_r,s)) ->
       flat (Seplist.to_sep_list
               (fun (id,tv) ->
                  Ident.to_output T.infix_op_format Type_var T.path_sep id ^
                  tyvar tv)
               (sep (kwd","))
-              l) ^
+              l_c) ^
+      (match op_s with
+        | None -> emp
+        | Some s1 -> ws s1 ^ kwd ";") ^
+      flat (Seplist.to_sep_list range (sep (kwd",")) l_r) ^
       ws s ^
       kwd "=>"
 

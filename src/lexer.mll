@@ -124,6 +124,7 @@ rule token skips = parse
   | "_"                                 { (Under(Some(skips))) }
   | "*"                                 { (Star(Some(skips),r"*")) }
   | "+"					{ (Plus(Some(skips),r"+")) }
+  | ">="				{ (GtEq(Some(skips),r">=")) }
   | ":"                                 { (Colon(Some(skips))) }
   | "{"                                 { (Lcurly(Some(skips))) }
   | "}"                                 { (Rcurly(Some(skips))) }
