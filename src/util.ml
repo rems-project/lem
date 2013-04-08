@@ -214,3 +214,40 @@ module ExtraSet = functor (S : Set.S) ->
        | [] -> raise (Failure "ExtraSet.list_inter")
   end;;
 
+
+let copy_file src dst = 
+  let len = 5096 in
+  let b = String.make len ' ' in
+  let read_len = ref 0 in
+  let i = open_in_bin src in
+  let o = open_out_bin dst  in
+  while (read_len := input i b 0 len; !read_len <> 0) do
+    output o b 0 !read_len
+  done;
+  close_in i;
+  close_out o
+
+let move_file src dst =
+   if (Sys.file_exists dst) then Sys.remove dst;
+   try
+     (* try efficient version *)
+     Sys.rename src dst
+   with Sys_error _ -> 
+   begin
+     (* OK, do it the the hard way *)
+     copy_file src dst;
+     Sys.remove src
+   end
+
+let same_content_files file1 file2 : bool =
+  (Sys.file_exists file1) && (Sys.file_exists file2) && 
+  begin
+    let s1 = Stream.of_channel (open_in_bin file1) in
+    let s2 = Stream.of_channel (open_in_bin file2) in
+    let stream_is_empty s = (try Stream.empty s; true with Stream.Failure -> false) in
+    try 
+      while ((Stream.next s1) = (Stream.next s2)) do () done;
+      false
+    with Stream.Failure -> stream_is_empty s1 && stream_is_empty s2
+  end
+

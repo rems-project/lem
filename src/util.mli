@@ -145,6 +145,24 @@ val split_after : int -> 'a list -> 'a list * 'a list
 val compare_list : ('a -> 'b -> int) -> 'a list -> 'b list -> int
 
 
+(** {2 Files} *)
+
+(** [copy_file src dst] copies file [src] to file [dst]. Only files are supported,
+    no directories. *)
+val copy_file : string -> string -> unit
+
+(** [move_file src dst] moves file [src] to file [dst]. In contrast to [Sys.rename] no error is
+    produced, if [dst] already exists. Moreover, in case [Sys.rename] fails for some reason (e.g. because
+    it does not work over filesystem boundaries), [copy_file] and [Sys.remove] are used as
+    fallback. *)
+val move_file : string -> string -> unit
+
+(** [same_content_files file1 file2] checks, whether the files [file1] and [file2] have the same content.
+If at least one of the files does not exist, [false] is returned. [same_content_files] throws an exception,
+if one of the files exists, but cannot be read. *)
+val same_content_files : string -> string -> bool
+
+
 (** {2 Useful Sets} *)
 
 (** Sets of Integers *)
