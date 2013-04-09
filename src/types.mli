@@ -152,6 +152,7 @@ module Constraint (T : Global_defs) : sig
   val add_tyvar : Tyvar.t -> unit 
   val add_nvar : Nvar.t -> unit
   val inst_leftover_uvars : Ast.l -> typ_constraints
+  val check_numeric_constraint_implication : Ast.l -> range -> range list -> unit
 end
 
 val pp_type : Format.formatter -> t -> unit

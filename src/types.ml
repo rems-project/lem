@@ -487,6 +487,9 @@ let t_to_var_name t =
 let nexp_to_string n =
   pp_to_string (fun ppf -> pp_nexp ppf n)
 
+let range_to_string r =
+  pp_to_string (fun ppf -> pp_range ppf r)
+
 let rec head_norm (d : type_defs) (t : t) : t = 
   let t = resolve_subst t in
     match t.t with
@@ -583,11 +586,8 @@ let nexp_mismatch l n1 n2 =
   let n2 = nexp_to_string n2 in
     raise (Ident.No_type(l, "numeric expression mismatch:\n" ^ n1 ^ "\nand\n" ^ n2))
 
-(*TODO Get a location. *)
-(*TODO add kind of error information and call instead of assert false in simple solver*)
-let unresolvable_constraint n l =
-  let n1 = nexp_to_string n in
-  raise (Ident.No_type(l, "Type contained unresolvable constraint: 0 = " ^ n1 ^ "\n"))
+let inconsistent_constraints r l =
+  raise (Ident.No_type(l, "Constraints, including " ^ range_to_string r ^ " are inconsistent\n"))
 
 (* Converts to linear normal form, summation of (optionally constant-multiplied) variables, with the "smallest" variable on the left *)
 let normalize nexp =
@@ -816,6 +816,7 @@ module type Constraint = sig
   val dest_fn_type : Ast.l -> t -> t * t
    *)
   val inst_leftover_uvars : Ast.l -> typ_constraints
+  val check_numeric_constraint_implication : Ast.l -> range -> range list -> unit
 end
 
 module type Global_defs = sig
@@ -1239,7 +1240,7 @@ module Constraint (T : Global_defs) : Constraint = struct
              | None -> if (is_redundant rnge) then
                           begin ns.(i) := None ; resolve_matrix (i+1) ns end
                           else if (is_inconsistent rnge) then
-                                  let _ = fprintf std_formatter "%a@ is inconsistent \n" pp_nexp n in assert false (* turn into error *)
+                                  inconsistent_constraints rnge (range_l rnge)
                                   else resolve_matrix (i+1) ns
              | Some(v,c) -> 
                let rec inner_loop j =
@@ -1299,6 +1300,19 @@ module Constraint (T : Global_defs) : Constraint = struct
             let unresolved = prune_constraints matrix in
 (*            let _ = List.iter (fun r -> fprintf std_formatter "Constraint to be kept %a\n" pp_range r) unresolved in*)
             unresolved
+
+  let check_numeric_constraint_implication l c constraints =
+    let negate_c = match c with 
+                    | Eq(l,n) -> Eq(l,{nexp=Nadd(n,{nexp=Nconst 1})})
+                    | GtEq(l,n) -> LtEq(l,{nexp=Nadd(n,{nexp=Nconst 1})})
+                    | LtEq(l,n) -> GtEq(l,{nexp=Nadd(n,{nexp=Nconst(-1)})}) in
+    if (try ignore(solve_numeric_constraints [] (negate_c::constraints));
+            false
+        with 
+          | Ident.No_type _ -> true
+          | e -> raise e)
+       then ()
+       else raise (Ident.No_type(l, ("Constraint " ^ range_to_string c ^ " is required by let definition but not implied by val specification\n")))
 
   let rec solve_constraints instances (unsolvable : PTset.t)= function
     | [] -> unsolvable 

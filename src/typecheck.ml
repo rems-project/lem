@@ -1085,6 +1085,9 @@ module Make_checker(T : sig
             ((Let_fun(xl,a,b,c,d),l),
              add_binding empty_pat_env (xl.term, xl.locn) t)
 
+  (* Check lemmata expressions that must have type ret, which is expected to be bool but 
+     for flexibility can be provided.
+   *)
   let check_lem_exp (l_e : lex_env) l e ret =
     let exp = check_exp l_e e in
     C.equate_types l ret (exp_to_typ exp);
@@ -1100,6 +1103,9 @@ module Make_checker(T : sig
                       Path.compare p p' = 0 && tnvar_compare tv tv' = 0)
                    cs2))
          cs1)
+
+  let check_constraint_redundancies l csl csv =
+    List.iter (fun c -> C.check_numeric_constraint_implication l c csv) csl
 
   (* Check that a value definition has the right type according to previous
    * definitions of that name in the same module.
@@ -1166,7 +1172,8 @@ module Make_checker(T : sig
            match Nfmap.apply T.e.v_env n with
              | None -> ()
              | Some(Val(c)) ->
-                 check_constraint_subset l constraints c.const_class
+                 check_constraint_subset l constraints c.const_class;
+                 check_constraint_redundancies l l_constraints c.const_ranges
              | _ -> assert false)
         def_env;
       Tconstraints(tnvars, constraints,l_constraints)
