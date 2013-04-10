@@ -3080,7 +3080,7 @@ and isa_def d is_user_def : Output.t = match d with
           | ((n,l),tvs,Te_abbrev(s4,t),regex) ->
               ws s1 ^
               T.type_abbrev_start ^
-              tdef_tctor (check_type_name n) tvs n regex ^
+              tdef_tctor false tvs n regex ^
               tyexp_abbrev s4 t ^
               T.type_abbrev_end
           | _ -> assert false
@@ -3092,7 +3092,7 @@ and isa_def d is_user_def : Output.t = match d with
           | ((n,l),tvs,Te_record(s4,s5,fields,s6),regex) ->
               ws s1 ^
               T.typedefrec_start ^ 
-              tdef_tctor (check_type_name n) tvs n regex ^
+              tdef_tctor false tvs n regex ^
               tyexp_rec s4 s5 fields s6 ^
               T.typedefrec_end
           | _ -> assert false
@@ -3148,8 +3148,6 @@ and isa_def d is_user_def : Output.t = match d with
         
   | _ -> def d is_user_def
 
-
-and check_type_name n = List.mem (Name.to_rope (Name.strip_lskip n)) Isa_keywords.keywords
   
   (*
         
