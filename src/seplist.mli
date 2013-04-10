@@ -44,7 +44,7 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
-(** lists with separators *)
+(** general thing of lists with optional separators *)
 
 type ('a,'s) t
 

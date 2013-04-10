@@ -11,7 +11,7 @@ doc-pdf:
 	cd tex-doc; pdflatex lem-doc.tex
 
 doc-dot:
-	ocamldoc -I _build/ -I _build/ulib/ *.ml *.mli ulib/*.mli ulib/*.ml -dot -sort -d tex-doc -o dep.dot; true
+	ocamldoc -I _build/ -I _build/ulib/ *.ml *.mli ulib/*.mli ulib/*.ml -dot -sort -d tex-doc -dot-reduce -o dep.dot; true
 	dot -Tpdf -o dep.pdf dep.dot
 
 debug: 

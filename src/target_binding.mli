@@ -44,4 +44,6 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
+(** try to fix problems from target's different binding *)
+
 val fix_binding : Name.t -> Typed_ast.def list -> Typed_ast.def list

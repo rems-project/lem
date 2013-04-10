@@ -44,6 +44,8 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
+(** source-file and internal short identifiers *)
+
 (* t is the type of plain names, either normal or infix, e.g., x or cmp or ++ *)
 type t
 val compare : t -> t -> int

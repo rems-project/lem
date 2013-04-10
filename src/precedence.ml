@@ -44,6 +44,8 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
+(** the precedence model for the backends *)
+
 open Str
 
 (* Lem source can have 3 kinds of expressions involving infixes:

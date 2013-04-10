@@ -44,6 +44,8 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
+(** try to fix problems from target's different precedence *)
+
 (* Traversing expressions to resolve any target parsing problems that will arise
  * from infix and missing parentheses *)
 open Typed_ast

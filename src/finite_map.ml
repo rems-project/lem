@@ -44,6 +44,8 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
+(** finite map library *)
+
 module type Fmap = sig
   type k
   module S : Set.S with type elt = k

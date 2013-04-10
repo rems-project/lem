@@ -112,8 +112,11 @@ build-lem: src/ast.ml src/version.ml
 
 lem-doc: build-lem
 	make -C src doc
+	ln -sf src/html-doc .
 	make -C src doc-pdf
 	ln -sf src/tex-doc/lem-doc.pdf .
+	make -C src doc-dot
+	ln -sf src/dep.pdf lem-doc-dep.pdf
 
 lem: build-lem
 

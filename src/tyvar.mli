@@ -44,6 +44,8 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
+(** type of internal(?) type variables *)
+
 type t
 val compare : t -> t -> int
 val pp : Format.formatter -> t -> unit

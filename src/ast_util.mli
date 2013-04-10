@@ -44,6 +44,8 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
+(** util over untyped AST (for comprehensions) *)
+
 (* Infer the comprehension variables for a set comprehension without explicitly
  * listed comprehension variables.  The first argument should return true for
  * variables that are currently bound in the enclosing environment (such

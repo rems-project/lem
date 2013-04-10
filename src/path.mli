@@ -44,6 +44,8 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
+(** internal canonical long identifiers *)
+
 (* t is the type of globally unique identifier paths to definitions *)
 type t
 

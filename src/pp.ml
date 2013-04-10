@@ -44,6 +44,8 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
+(** pretty printing utilities *)
+
 open Format
 
 let pp_str ppf s =
