@@ -574,7 +574,10 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
             let c = Seplist.to_list cs in
               clauses c
           else
-            from_string "\n(* [?]: removed inductive relation intended for another target. *)"
+            let cs = Seplist.to_list cs in
+              combine [
+                ws skips; clauses cs
+              ]
       | Val_spec val_spec -> from_string "\n(* [?]: removed value specification. *)\n"
       | Class (skips, skips', name, tyvar, skips'', body, skips''') -> from_string "Class"
       | Instance (skips, instantiation, vals, skips', sem_info) -> from_string "Instance"
@@ -602,11 +605,76 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
           else
             from_string "(* [?]: removed lemma intended for another backend. *)"
     and clauses clause_list =
-      let equality_on_relation_name (_, _, _, _, _, _, name, _) (_, _, _, _, _, _, name', _) =
-        Pervasives.compare name name' = 0
+      let gather_names clause_list =
+        let rec gather_names_aux buffer clauses =
+          match clauses with
+            | []    -> buffer
+            | (_, _, _, _, _, _, name_lskips_annot, _)::xs ->
+              let name = name_lskips_annot.term in
+              let name = Name.strip_lskip name in
+              if List.mem name buffer then
+                gather_names_aux buffer xs
+              else
+                gather_names_aux (name::buffer) xs
+        in
+          gather_names_aux [] clause_list
       in
-      let clauses = group_with equality_on_relation_name clause_list in
-        emp
+      let gathered = gather_names clause_list in
+      let compare_clauses_by_name name (_, _, _, _, _, _, name', _) =
+        let name' = name'.term in
+        let name' = Name.strip_lskip name' in
+          Pervasives.compare name name' = 0
+      in
+      let indrelns =
+        List.map (fun name ->
+          let name_string = Name.to_string name in
+          let bodies = List.filter (compare_clauses_by_name name) clause_list in
+          let bodies =
+            List.map (fun (name_lskips_t_opt, skips, name_lskips_annot_list, skips', exp_opt, skips'', name_lskips_annot, exp_list) ->
+              let constructor_name =
+                match name_lskips_t_opt with
+                  | None ->
+                    let fresh = generate_fresh_name () in
+                    let name = Name.to_string name in
+                      combine [
+                        from_string name; from_string "_"; from_string fresh
+                      ]
+                  | Some name -> from_string (Name.to_string (Name.strip_lskip name))
+              in
+              let antecedent =
+                match exp_opt with
+                  | None -> emp
+                  | Some e -> exp e
+              in
+              let bound_variables =
+                separate " " $ List.map (fun n ->
+                  from_string (Name.to_string (Name.strip_lskip n.term))
+                ) name_lskips_annot_list
+              in
+              let binder, binder_sep =
+                match name_lskips_annot_list with
+                  | [] -> emp, emp
+                  | x::xs -> from_string "forall ", from_string ", "
+              in
+              let indices = separate " " $ List.map exp exp_list in
+              let relation_name = from_string (Name.to_string name) in
+                combine [
+                  constructor_name; from_string ": ";
+                  binder; bound_variables; binder_sep; antecedent; from_string " -> ";
+                  relation_name; from_string " "; indices
+                ]
+            ) bodies
+          in
+          let bodies = separate "\n  | " bodies in
+          combine [
+            from_string name_string; from_string " :=\n  | ";
+            bodies
+          ]
+        ) gathered
+      in
+        combine [
+          from_string "\nInductive "; separate "\nand " indrelns; from_string "."
+        ]
     and let_body top_level tv_set (lb, _) =
       match lb with
         | Let_val (p, topt, skips, e) ->
