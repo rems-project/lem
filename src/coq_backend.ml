@@ -644,7 +644,10 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
               let antecedent =
                 match exp_opt with
                   | None -> emp
-                  | Some e -> exp e
+                  | Some e ->
+                      combine [
+                        from_string "Prop_of_bool ("; exp e; from_string ")"
+                      ]
               in
               let bound_variables =
                 separate " " $ List.map (fun n ->
@@ -657,17 +660,36 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
                   | x::xs -> from_string "forall ", from_string ", "
               in
               let indices = separate " " $ List.map exp exp_list in
+              let index_free_vars = List.map (fun t -> Types.free_vars (Typed_ast.exp_to_typ t)) exp_list in
+              let index_free_vars = List.fold_right Types.TNset.union index_free_vars Types.TNset.empty in
+              let index_types = List.map (fun t ->
+                combine [
+                  from_string "("; typ $ C.t_to_src_t (Typed_ast.exp_to_typ t); from_string ")"]) exp_list in
               let relation_name = from_string (Name.to_string name) in
                 combine [
                   constructor_name; from_string ": ";
                   binder; bound_variables; binder_sep; antecedent; from_string " -> ";
                   relation_name; from_string " "; indices
-                ]
+                ], index_free_vars, index_types
             ) bodies
           in
-          let bodies = separate "\n  | " bodies in
+          let free_vars = List.map (fun (x, y, z) -> y) bodies in
+          let free_vars = Types.TNset.elements $ List.fold_right Types.TNset.union free_vars Types.TNset.empty in
+          let free_vars =
+            separate " " $ List.map (fun v ->
+              combine [
+                from_string " {"; from_string (Name.to_string (Types.tnvar_to_name v)); from_string ": Type}"
+              ]) free_vars
+          in
+          let index_types = List.concat $ List.map (fun (x, y, z) -> z) bodies in
+          let index_types =
+            combine [
+              separate " -> " index_types; from_string " -> Prop"
+            ]
+          in
+          let bodies = separate " " $ List.map (fun (x, y, z) -> x) bodies in
           combine [
-            from_string name_string; from_string " :=\n  | ";
+            from_string name_string; free_vars; from_string ": "; index_types; from_string " :=\n  | ";
             bodies
           ]
         ) gathered

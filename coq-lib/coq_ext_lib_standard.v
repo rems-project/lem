@@ -77,6 +77,12 @@ Definition bool_of_Prop (P : Prop) : bool :=
   else
     false.
 
+Definition Prop_of_bool (b: bool): Prop :=
+  match b with
+    | true => True
+    | false => False
+  end.
+
 Definition eq {a : Type}: a -> a -> bool :=
   fun left right =>
     bool_of_Prop (left = right).
