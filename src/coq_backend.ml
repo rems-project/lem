@@ -629,6 +629,17 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
         List.map (fun name ->
           let name_string = Name.to_string name in
           let bodies = List.filter (compare_clauses_by_name name) clause_list in
+          let index_types =
+            match bodies with
+              | [] -> from_string "Prop"
+              | (_, _, _, _, _, _, _, exp_list)::xs ->
+                  match exp_list with
+                    | [] -> from_string "Prop"
+                    | t::_ ->
+                        combine [
+                          from_string "("; typ $ C.t_to_src_t (Typed_ast.exp_to_typ t); from_string ")"
+                        ]
+          in
           let bodies =
             List.map (fun (name_lskips_t_opt, skips, name_lskips_annot_list, skips', exp_opt, skips'', name_lskips_annot, exp_list) ->
               let constructor_name =
@@ -662,18 +673,15 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
               let indices = separate " " $ List.map exp exp_list in
               let index_free_vars = List.map (fun t -> Types.free_vars (Typed_ast.exp_to_typ t)) exp_list in
               let index_free_vars = List.fold_right Types.TNset.union index_free_vars Types.TNset.empty in
-              let index_types = List.map (fun t ->
-                combine [
-                  from_string "("; typ $ C.t_to_src_t (Typed_ast.exp_to_typ t); from_string ")"]) exp_list in
               let relation_name = from_string (Name.to_string name) in
                 combine [
                   constructor_name; from_string ": ";
                   binder; bound_variables; binder_sep; antecedent; from_string " -> ";
                   relation_name; from_string " "; indices
-                ], index_free_vars, index_types
+                ], index_free_vars
             ) bodies
           in
-          let free_vars = List.map (fun (x, y, z) -> y) bodies in
+          let free_vars = List.map (fun (x, y) -> y) bodies in
           let free_vars = Types.TNset.elements $ List.fold_right Types.TNset.union free_vars Types.TNset.empty in
           let free_vars =
             separate " " $ List.map (fun v ->
@@ -681,13 +689,12 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
                 from_string " {"; from_string (Name.to_string (Types.tnvar_to_name v)); from_string ": Type}"
               ]) free_vars
           in
-          let index_types = List.concat $ List.map (fun (x, y, z) -> z) bodies in
           let index_types =
             combine [
-              separate " -> " index_types; from_string " -> Prop"
+              index_types; from_string " -> Prop"
             ]
           in
-          let bodies = separate " " $ List.map (fun (x, y, z) -> x) bodies in
+          let bodies = separate "\n  | " $ List.map (fun (x, y) -> x) bodies in
           combine [
             from_string name_string; free_vars; from_string ": "; index_types; from_string " :=\n  | ";
             bodies
