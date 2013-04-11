@@ -145,7 +145,6 @@ let rec fix_pat get_prec p =
       | (P_lit _ | P_wild _ | P_num_add _) ->
           p
 
-
 let rec fix_exp get_prec e = 
   let trans = fix_exp get_prec in 
   let transp = fix_pat get_prec in
@@ -308,9 +307,15 @@ let rec fix_exp get_prec e =
           C.mk_setcomp old_l
             s1 (trans e1) s2 (trans e2) s3 b
             old_t
+      (* TODO: Why isn't anything done to the qbs *)
       | Comp_binding(is_lst,s1,e1,s2,s3,qbs,s4,e2,s5) ->
           C.mk_comp_binding old_l
             is_lst s1 (trans e1) s2 s3 qbs s4 (trans e2) s5
+            old_t
+      (* TODO: Why isn't anything done to the lns *)
+      | Do(s1,mid,lns,s2,e,s3) ->
+          C.mk_do old_l
+            s1 mid lns s2 (trans e) s3
             old_t
       | Quant(q,qbs,s,e) ->
           C.mk_quant old_l

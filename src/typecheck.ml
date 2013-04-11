@@ -748,6 +748,9 @@ module Make_checker(T : sig
     let exp = check_val l_e mp (Name.from_x xl) l in
       check_all_fields exp fields
 
+  let mk_ast_id (n : string) : Ast.id =
+    Ast.Id([],Ast.X_l((None,r n),Ast.Unknown), Ast.Unknown)
+
   (* Corresponds to judgment check_exp 'Delta,E,E_ |- exp : t gives Sigma' *)
   let rec check_exp (l_e : lex_env) (Ast.Expr_l(exp,l)) : exp =
     let ret_type = C.new_type () in
@@ -959,6 +962,46 @@ module Make_checker(T : sig
               C.equate_types l ret_type { t = Tapp([a], Path.listpath) };
               A.mk_comp_binding l true sk1 exp1 sk2 sk5 
                 (List.rev qbs) sk3 exp2 sk4 rt
+        | Ast.Do(sk1,mn,lns,sk2,e,sk3) ->
+            let mod_descr = lookup_mod T.e mn in
+            let mod_env = mod_descr.mod_env in
+            let mod_id = 
+              { id_path = Id_some (Ident.from_id mn);
+                id_locn = l;
+                descr = mod_descr;
+                instantiation = []; }
+            in
+            let monad_type_ctor = 
+              lookup_p "constructor" mod_env (mk_ast_id "t")
+            in
+            let (lns_env,lns) = check_lns l_e monad_type_ctor lns in
+            let env = Nfmap.union l_e lns_env in
+            let exp = check_exp env e in
+            let a = C.new_type () in
+              C.equate_types l (exp_to_typ exp)
+                { t = Tapp([a], monad_type_ctor) };
+              A.mk_do l sk1 mod_id lns sk3 exp sk3 rt
+
+  and check_lns (l_e : lex_env) 
+                (monad_type_ctor : Path.t)
+                (lns : (Ast.pat*Ast.lex_skips*Ast.exp*Ast.lex_skips) list)
+                =
+    List.fold_left
+      (fun (env,lst) -> 
+         function
+           | (p,s1,e,s2) ->
+               let et = check_exp (Nfmap.union l_e env) e in
+               let (pt,p_env) = check_pat (Nfmap.union l_e env) p env in
+               let a = C.new_type () in
+                 C.equate_types pt.locn pt.typ a;
+                 C.equate_types (exp_to_locn et) (exp_to_typ et)
+                   { t = Tapp([a], monad_type_ctor) };
+                 (p_env,
+                  Do_line(pt, s1, et, s2)::lst))
+      (empty_lex_env,[])
+      lns
+
+
 
   (* Corresponds to check_quant_binding or check_listquant_binding
    * 'D,E,EL |- qbind .. qbind gives EL2,S' depending on is_list *)

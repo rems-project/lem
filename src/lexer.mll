@@ -92,6 +92,7 @@ let kw_table =
      ("lemma",                   (fun x -> Lemma(x)));
      ("assert",                  (fun x -> Assert(x)));
      ("theorem",                 (fun x -> Theorem(x)));
+     ("do",                      (fun x -> Do(x)));
 ]
 
 }
@@ -154,7 +155,7 @@ rule token skips = parse
 
   | "#0"				{ (HashZero(Some(skips))) }
   | "#1"				{ (HashOne(Some(skips))) }
-
+  | "<-"                                { (LeftArrow(Some(skips))) }
   | "union" as i                        { (PlusX(Some(skips),Ulib.Text.of_latin1 i)) }
   | "inter" as i                        { (StarX(Some(skips),Ulib.Text.of_latin1 i)) }
   | "subset" | "\\" as i                { (EqualX(Some(skips),Ulib.Text.of_latin1 i)) }

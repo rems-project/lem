@@ -156,7 +156,7 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 %token <Ast.terminal> Indreln Forall EqEqGt Inline LtBar BarGt Exists EqGt BraceBar BarBrace DotBrace 
 %token <Ast.terminal> Assert Lemma Theorem
 %token <Ast.terminal * Ulib.Text.t> IN MEM MinusMinusGt
-%token <Ast.terminal> Class_ Inst
+%token <Ast.terminal> Class_ Inst Do LeftArrow
 
 %start file
 %type <Ast.defs> defs
@@ -436,6 +436,8 @@ atomic_exp:
     { eloc (Case($1,$2,$3,None,false,$4,locn 4 4,$5)) }
   | Match exp With Bar patexps End
     { eloc (Case($1,$2,$3,$4,true,$5,locn 5 5,$6)) }
+  | Do id do_exps In exp End
+    { eloc (Do($1,$2,$3,$4,$5,$6)) }
 
 field_exp:
   | atomic_exp
@@ -689,6 +691,11 @@ letbind:
         | None ->
             lbloc (Let_val($1,$2,fst $3,$4)) }
 
+do_exps:
+  | 
+    { [] }
+  | pat LeftArrow exp Semi do_exps
+    { ($1,$2,$3,$4)::$5 }
 
 funcl: 
   | x atomic_pats1 opt_typ_annot Eq exp

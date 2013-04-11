@@ -2006,7 +2006,29 @@ match C.exp_to_term e with
         break_hint_space 2 ^
         block is_user_exp 0 (
         exp e))
+
+  | Do(s1,m,do_lns,s2,e,s3) ->
+      ws s1 ^
+      kwd "do" ^
+      Ident.to_output T.infix_op_format Module_name T.path_sep (resolve_ident_path m m.descr.mod_binding) ^
+      do_lines do_lns ^
+      ws s2 ^
+      kwd "in" ^
+      exp e ^
+      ws s3 ^
+      kwd "end"
           
+and do_lines = function
+  | [] -> emp
+  | (Do_line(p,s1,e,s2)::lns) ->
+      pat p ^
+      ws s1 ^
+      kwd "<-" ^
+      exp e ^
+      ws s2 ^
+      kwd ";" ^
+      do_lines lns
+
 and quant_binding = function
   | Qb_var(n) -> 
       Name.to_output T.infix_op_format Term_var n.term
