@@ -110,7 +110,7 @@ lit_aux =  (* Literal constants *)
  | L_num of terminal * int
  | L_hex of terminal * string (* hex and bin are constant bit vectors, entered as C-style hex or binaries *)
  | L_bin of terminal * string
- | L_string of terminal * Ulib.UTF8.t
+ | L_string of terminal * string
  | L_unit of terminal * terminal
  | L_zero of terminal (* bitzero and bitone are constant bits, if commonly used we will consider overloading 0 and 1 *)
  | L_one of terminal
@@ -296,6 +296,7 @@ exp_aux =  (* Expressions *)
  | Set of terminal * (exp * terminal) list * terminal * bool * terminal (* Sets *)
  | Quant of q * (qbind) list * terminal * exp (* Logical quantifications *)
  | Listcomp of terminal * exp * terminal * terminal * (qbind) list * terminal * exp * terminal (* List comprehensions (all binders must be quantified) *)
+ | Do of terminal * id * ((pat * terminal * exp * terminal)) list * terminal * exp * terminal (* Do notation for monads *)
 
 and exp =  (* Location-annotated expressions *)
    Expr_l of exp_aux * l

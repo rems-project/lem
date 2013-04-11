@@ -317,7 +317,9 @@ and exp_aux =
   (* true for list comprehensions, false for set comprehensions *)
   | Comp_binding of bool * lskips * exp * lskips * lskips * quant_binding list * lskips * exp * lskips
   | Quant of Ast.q * quant_binding list * lskips * exp
+  | Do of lskips * mod_descr id * do_line list * lskips * exp * lskips
 
+and do_line = Do_line of (pat * lskips * exp * lskips)
 
 and fexp = field_descr id * lskips * exp * Ast.l
 
@@ -663,6 +665,9 @@ let rec alter_init_lskips (lskips_f : lskips -> lskips * lskips) (e : exp) : exp
       | Quant(Ast.Q_exists(s1),ns,s2,e) ->
           let (s_new, s_ret) = lskips_f s1 in
             res (Quant(Ast.Q_exists(s_new), ns, s2, e)) s_ret
+      | Do(s1,mid,do_lines,sk2,e,sk3) ->
+          let (s_new, s_ret) = lskips_f s1 in
+            res (Do(s_new,mid,do_lines,sk2,e,sk3)) s_ret
 
 let append_lskips lskips (p : exp) : exp =
   let (e, _) = alter_init_lskips (fun s -> (Ast.combine_lex_skips lskips s, None)) p in
@@ -1267,6 +1272,25 @@ module Exps_in_context(D : Exp_context) = struct
           ({ n with term = n'; typ = t; locn = l; }, e)
       | _ -> assert false
 
+  let push_pat_exp_bind_list f_aux not_to_choose' (tsubst,vsubst) pes es =
+    let not_to_choose = 
+      List.fold_left
+        (fun s e -> NameSet.union (Nfmap.domain (exp_to_free e)) s)
+        not_to_choose'
+        es
+    in
+    let not_to_choose_ty = 
+      List.fold_left
+        (fun s e -> NameSet.union (exp_to_free_tyvars e) s)
+        NameSet.empty
+        es
+    in
+    let (new_pes,new_vsubst) =
+      f_aux not_to_choose not_to_choose_ty (tsubst,vsubst) pes
+    in
+      (new_pes, List.map (exp_subst (tsubst,new_vsubst)) es)
+
+
   let rec push_quant_binds_subst_aux not_to_choose not_to_choose_ty (tsubst, vsubst) = function
     | [] -> ([], vsubst)
     | Qb_var(n)::qbs ->
@@ -1317,22 +1341,7 @@ module Exps_in_context(D : Exp_context) = struct
         NameSet.empty
         qbs
     in
-    let not_to_choose = 
-      List.fold_left
-        (fun s e -> NameSet.union (Nfmap.domain (exp_to_free e)) s)
-        not_to_choose'
-        es
-    in
-    let not_to_choose_ty = 
-      List.fold_left
-        (fun s e -> NameSet.union (exp_to_free_tyvars e) s)
-        NameSet.empty
-        es
-    in
-    let (new_qbs,new_vsubst) =
-      push_quant_binds_subst_aux not_to_choose not_to_choose_ty (tsubst,vsubst) qbs 
-    in
-      (new_qbs, List.map (exp_subst (tsubst,new_vsubst)) es)
+    push_pat_exp_bind_list push_quant_binds_subst_aux not_to_choose' (tsubst,vsubst) qbs es
 
   let push_quant_binds_subst1 subst qbs e =
     match push_quant_binds_subst subst qbs [e] with
@@ -1343,6 +1352,40 @@ module Exps_in_context(D : Exp_context) = struct
     match push_quant_binds_subst subst qbs [e1;e2] with
       | (qbs,[e1;e2]) -> (qbs,e1,e2)
       | _ -> assert false
+
+  (* This is very similar to push_quant_binds_subst_aux, but OCaml doesn't 
+   * give us a very good way to abstract *)
+  let rec push_do_lines_subst_aux not_to_choose not_to_choose_ty (tsubst, vsubst) = function
+    | [] -> ([], vsubst)
+    | Do_line(p,s1,e,s2)::do_lines ->
+        let binders = Nfmap.domain p.rest.pvars in
+        let (renames,new_vsubst) = 
+          get_renames binders vsubst not_to_choose not_to_choose_ty
+        in
+        let p' = pat_subst (tsubst,renames) p in
+        let e' = exp_subst (tsubst,vsubst) e in
+        let (do_lines, s) =
+          push_do_lines_subst_aux
+            (NameSet.union (Nfmap.domain p'.rest.pvars) not_to_choose) 
+            not_to_choose_ty
+            (tsubst, new_vsubst)
+            do_lines
+        in
+          (Do_line(p',s1,e',s2)::do_lines, s)
+
+  let push_do_lines_subst (tsubst,vsubst) do_lines e =
+    let not_to_choose' =
+      List.fold_left
+        (fun s line ->
+           match line with
+             | Do_line(p,_,e,_) ->
+                 NameSet.union 
+                   (Nfmap.domain p.rest.pvars)
+                   (NameSet.union (Nfmap.domain (exp_to_free e)) s))
+        NameSet.empty
+        do_lines
+    in
+    push_pat_exp_bind_list push_do_lines_subst_aux not_to_choose' (tsubst,vsubst) do_lines [e]
 
   let rec exp_to_term e = 
     let (tsubst, vsubst) = e.rest.subst in
@@ -1468,6 +1511,10 @@ module Exps_in_context(D : Exp_context) = struct
         | Quant(q,qbs,s,e) ->
             let (new_qbs,e) = push_quant_binds_subst1 subst qbs e in
               Quant(q,new_qbs,s,e)
+        | Do(s1,mid,do_lines,s2,e,s3) ->
+            let (new_do_lines,e) = push_do_lines_subst subst do_lines e in
+              Do(s1,mid,new_do_lines,s2, List.hd e, s3)
+
 
   (*
   let val_descr_eq l id vd1 vd2 = 
@@ -2116,6 +2163,30 @@ module Exps_in_context(D : Exp_context) = struct
                 (bind_free_env l (qbs_bindings l qbs) (exp_to_free e) ::
                  qbs_envs l qbs);
             subst = empty_sub; }; }
+
+  let do_lns_bindings l do_lns = 
+    merge_free_env true l
+      (List.map (function | Do_line(p,_,_,_) -> p.rest.pvars) do_lns)
+
+  let do_lns_envs l do_lns =
+    List.map (function | Do_line(_,_,e,_) -> exp_to_free e) do_lns
+
+  let mk_do l s1 mid do_lns s2 e s3 t =
+    (* TODO: actually do the check *)
+    let t = check_typ l "mk_do" t (fun d -> e.typ ) in
+      { term = Do(s1,mid,do_lns,s2,e,s3);
+        locn = l;
+        typ = t;
+        rest =
+          { free = 
+              merge_free_env false l
+                (bind_free_env l
+                   (do_lns_bindings l do_lns) 
+                   (exp_to_free e) ::
+                 do_lns_envs l do_lns);
+            subst = empty_sub }}
+
+            
 
 
   type src_t_context = 

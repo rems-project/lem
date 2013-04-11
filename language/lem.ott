@@ -397,6 +397,8 @@ exp_aux :: '' ::=
     {{ com Logical quantifications }}
   | [ exp1 | forall qbind1 .. qbindn | exp2 ]		:: :: Listcomp
     {{ com List comprehensions (all binders must be quantified) }}
+  | do id pat1 <- exp1 ; .. patn <- expn ; in exp end   :: :: Do
+    {{ com Do notation for monads }}
 
 exp  :: '' ::=
   {{ com Location-annotated expressions }}

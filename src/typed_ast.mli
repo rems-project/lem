@@ -332,7 +332,9 @@ and exp_aux = private
   (* true for list comprehensions, false for set comprehensions *)
   | Comp_binding of bool * lskips * exp * lskips * lskips * quant_binding list * lskips * exp * lskips
   | Quant of Ast.q * quant_binding list * lskips * exp
+  | Do of lskips * mod_descr id * do_line list * lskips * exp * lskips
 
+and do_line = Do_line of (pat * lskips * exp * lskips)
 
 and fexp = field_descr id * lskips * exp * Ast.l
 
@@ -553,6 +555,7 @@ module Exps_in_context(C : Exp_context) : sig
   val mk_setcomp : Ast.l -> lskips -> exp -> lskips -> exp -> lskips -> NameSet.t -> Types.t option -> exp
   val mk_comp_binding : Ast.l -> bool -> lskips -> exp -> lskips -> lskips -> quant_binding list -> lskips -> exp -> lskips -> Types.t option -> exp
   val mk_quant : Ast.l -> Ast.q -> quant_binding list -> lskips -> exp -> Types.t option -> exp
+  val mk_do : Ast.l -> lskips -> mod_descr id -> do_line list -> lskips -> exp -> lskips -> Types.t option -> exp
   val t_to_src_t : Types.t -> src_t
   val pat_subst : Types.t Types.TNfmap.t * Name.t Nfmap.t -> pat -> pat
   val delimit_exp : (Precedence.op -> Precedence.t) -> Precedence.context -> exp -> exp
