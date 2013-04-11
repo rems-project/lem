@@ -122,11 +122,9 @@ let space_com_init_ws ws =
 let drop_init_ws ws = (None, ws)
 let space_init_ws ws = (space, ws)
 
-let mk_paren_exp =
-  let l = Ast.Trans ("mk_paren_exp", None) in
-  fun e ->
-     let (e', _) = alter_init_lskips remove_init_ws e in
-     C.mk_paren l space e' None (Some (exp_to_typ e))
+let mk_paren_exp e =
+     let (e', ws) = alter_init_lskips remove_init_ws e in
+     C.mk_paren (exp_to_locn e) ws e' None (Some (exp_to_typ e))
 
 let mk_opt_paren_exp (e :exp) : exp =
   match C.exp_to_term e with
