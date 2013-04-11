@@ -216,6 +216,7 @@ module type Target = sig
   val reln_clause_quant : t
   val reln_clause_show_empty_quant : bool
   val reln_clause_show_name : bool
+  val reln_clause_add_paren : bool
   val reln_clause_end : t
 
   (* Type defnitions *)
@@ -425,6 +426,7 @@ module Identity : Target = struct
   let reln_clause_quant = kwd "forall"
   let reln_clause_show_empty_quant = true
   let reln_clause_show_name = false
+  let reln_clause_add_paren = false
   let reln_clause_start = emp
   let reln_clause_end = emp
 
@@ -473,6 +475,7 @@ module Html : Target = struct
   let reln_clause_quant = kwd "&forall;"
   let reln_clause_show_empty_quant = true
   let reln_clause_show_name = false
+  let reln_clause_add_paren = false
   let reln_clause_start = emp
 
 end
@@ -621,6 +624,7 @@ module Tex : Target = struct
   let reln_clause_quant = kwd "\\forall"
   let reln_clause_show_empty_quant = true
   let reln_clause_show_name = false
+  let reln_clause_add_paren = false
   let reln_clause_end = emp
 
   let typedef_start = tkwdl "type"
@@ -826,6 +830,7 @@ module Isa : Target = struct
   let reln_clause_quant = kwd "!!"
   let reln_clause_show_empty_quant = false
   let reln_clause_show_name = true
+  let reln_clause_add_paren = false
   let reln_clause_end = kwd "\""
 
   let typedef_start = kwd "datatype"
@@ -1029,6 +1034,7 @@ module Hol : Target = struct
   let reln_clause_quant = kwd "!"
   let reln_clause_show_empty_quant = false
   let reln_clause_show_name = false
+  let reln_clause_add_paren = true
   let reln_clause_end = kwd ")"
 
   let typedef_start = meta "val _ = Hol_datatype `\n"
@@ -2177,7 +2183,9 @@ let indreln_clause (name_opt, s1, qnames, s2, e_opt, s3, rname, es) =
     ws s2 ^ 
     kwd "."
   ) else emp) ^
-  (match e_opt with None -> ws s3 | Some e -> exp e ^ ws s3 ^ kwd "==>") ^
+  (match e_opt with None -> ws s3 | Some e -> 
+     exp (if T.reln_clause_add_paren then Typed_ast_syntax.mk_opt_paren_exp e else e) ^ 
+     ws s3 ^ kwd "==>") ^
   Name.to_output T.infix_op_format Term_var rname.term ^
   flat (interspace (List.map exp es)) ^
   T.reln_clause_end
