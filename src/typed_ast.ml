@@ -855,7 +855,7 @@ module Exps_in_context(D : Exp_context) = struct
                 | (_,None) -> v1
                 | (Some(v),Some(v')) ->
                     if for_pat then
-                      raise (Ident.No_type(l, "Duplicate variable in a pattern" ^
+                      raise (Ident.No_type(l, "Duplicate variable in a pattern: " ^
                                         Pp.pp_to_string (fun ppf -> Name.pp ppf k)))
                     else
                       begin
@@ -1385,7 +1385,7 @@ module Exps_in_context(D : Exp_context) = struct
         NameSet.empty
         do_lines
     in
-    push_pat_exp_bind_list push_do_lines_subst_aux not_to_choose' (tsubst,vsubst) do_lines [e]
+      push_pat_exp_bind_list push_do_lines_subst_aux not_to_choose' (tsubst,vsubst) do_lines [e]
 
   let rec exp_to_term e = 
     let (tsubst, vsubst) = e.rest.subst in
@@ -2104,6 +2104,40 @@ module Exps_in_context(D : Exp_context) = struct
           { free = NameSet.fold (fun k e -> Nfmap.remove e k) ns env;
             subst = empty_sub; }; }
 
+  let pp_fvs = Nfmap.pp_map Name.pp Types.pp_type
+
+  (* Compute the free variables for an expression with a binding structure of
+   * pattern/expression pairs followed by an expression, where each pattern
+   * binds in subsequent expressions and in the final expression *)
+  let pat_exp_list_freevars l allow_duplicates (pes : (pat * exp option) list) exp =
+    let (bindings,frees) =
+      List.fold_left
+        (fun (bindings,frees) (p,e) ->
+           let new_bindings =
+             Nfmap.merge 
+               (fun k v1 v2 ->
+                  match (v1,v2) with
+                    | (None,_) -> v2
+                    | (_,None) -> v1
+                    | (Some(v),Some(v')) ->
+                        if allow_duplicates then
+                          Some(v')
+                        else
+                          raise (Ident.No_type(l, "Duplicate variable in a pattern: " ^
+                                                   Pp.pp_to_string (fun ppf -> Name.pp ppf k))))
+               bindings
+               p.rest.pvars
+           in
+             match e with
+               | None ->
+                   (new_bindings, frees)
+               | Some(e) ->
+                   (new_bindings, merge_free_env false l [frees; bind_free_env l bindings (exp_to_free e)]))
+        (Nfmap.empty, Nfmap.empty)
+        pes
+    in
+      merge_free_env false l [frees; bind_free_env l bindings (exp_to_free exp)]
+
   let check_qbs l = function
     | Qb_var(n) -> ()
     | Qb_restr(is_lst,s1,p,s2,e,s3) ->
@@ -2143,6 +2177,8 @@ module Exps_in_context(D : Exp_context) = struct
         typ = t; 
         rest =
           { free = 
+              (* TODO: Check that we're returning the right free variables, and
+               * consider using pat_exp_list_freevars *)
               merge_free_env false l
                 (bind_free_env l
                    (qbs_bindings l qbs) 
@@ -2165,7 +2201,7 @@ module Exps_in_context(D : Exp_context) = struct
             subst = empty_sub; }; }
 
   let do_lns_bindings l do_lns = 
-    merge_free_env true l
+    merge_free_env false l
       (List.map (function | Do_line(p,_,_,_) -> p.rest.pvars) do_lns)
 
   let do_lns_envs l do_lns =
@@ -2178,15 +2214,10 @@ module Exps_in_context(D : Exp_context) = struct
         locn = l;
         typ = t;
         rest =
-          { free = 
-              merge_free_env false l
-                (bind_free_env l
-                   (do_lns_bindings l do_lns) 
-                   (exp_to_free e) ::
-                 do_lns_envs l do_lns);
+          { free = pat_exp_list_freevars l true 
+                     (List.map (function | Do_line(p,_,e,_) -> (p,Some e)) do_lns)
+                     e;
             subst = empty_sub }}
-
-            
 
 
   type src_t_context = 

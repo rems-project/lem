@@ -422,6 +422,9 @@ and def_aux =
    * over, and the list contains the class constraints on those variables *)
   | Val_def of val_def * Types.TNset.t * (Path.t * Types.tnvar) list 
   | Lemma of lskips * Ast.lemma_typ * targets_opt * (name_l * lskips) option * lskips * exp * lskips
+    (* Renaming for already defined constants and types, e.g., if you want to 
+     * control how a name that isn't allowed in a particular back-end gets
+     * changed *)
   | Ident_rename of lskips * targets_opt * Path.t * Ident.t * lskips * name_l
   | Module of lskips * name_l * lskips * lskips * def list * lskips
   | Rename of lskips * name_l * lskips * mod_descr id

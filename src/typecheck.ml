@@ -119,7 +119,7 @@ let lookup_p msg (e : env) (Ast.Id(mp,xl,l) as i) : Path.t =
             Ident.pp (Ident.from_id i)
       | Some(p, _) -> p
 
-(* Assume that the names in mp must refer to modules. Looksup a name, not
+(* Assume that the names in mp must refer to modules. Looks up a name, not
    knowing what this name refers to. *)
 let lookup_name (e : env) (Ast.Id(mp,xl,l) as i) : Path.t =
   let e = path_lookup e (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
@@ -289,6 +289,35 @@ let check_dup_field_names (fns : (Name.t * Ast.l) list) : unit =
           (fst fn)
     | _ -> ()
 
+  (* Ensures that a monad operator is bound to a value constant that has no
+   * class or length constraints and that has no length type parameters *)
+  let check_const_for_do (mid : mod_descr id) (env : v_env) (name : string) : 
+    Tyvar.t list * t =
+    let error_path = mid.descr.mod_binding in
+      match Nfmap.apply env (Name.from_rope (r name)) with
+        | None ->
+            raise_error mid.id_locn (Printf.sprintf "monad module missing %s" name)
+              Path.pp error_path
+        | Some(Constr _) ->
+            raise_error mid.id_locn (Printf.sprintf "monad module %s bound to constructor" name)
+              Path.pp error_path
+        | Some(Val(c)) ->
+            if c.const_class <> [] then
+              raise_error mid.id_locn (Printf.sprintf "monad operator %s has class constraints" name) 
+                Path.pp error_path
+            else if c.const_ranges <> [] then
+              raise_error mid.id_locn (Printf.sprintf "monad operator %s has length constraints" name) 
+                Path.pp error_path
+            else
+              (List.map
+                 (function 
+                   | Nv _ -> 
+                       raise_error mid.id_locn (Printf.sprintf "monad operator %s has length variable type parameters" name) 
+                         Path.pp error_path
+                   | Ty(v) -> v)
+                 c.const_tparams,
+               c.const_type)
+
 (* We split the environment between top-level and lexically nested binders, and
  * inside of expressions, only the lexical environment can be extended, we
  * parameterize the entire expression-level checking apparatus over the
@@ -397,7 +426,7 @@ module Make_checker(T : sig
             let tfield = type_subst subst f.field_arg in
             let t = { t = Tfn(trec,tfield) } in
             let a = C.new_type () in
-              C.equate_types new_id.id_locn a t;
+              C.equate_types new_id.id_locn "field expression" a t;
               ((new_id, a, Path.get_name f.field_binding, f.field_names), l)
 
   (* Instantiates a constructor descriptor with fresh type variables, also
@@ -412,7 +441,7 @@ module Make_checker(T : sig
               { t = Tapp(new_id.instantiation,c.constr_tconstr) }
     in
     let a = C.new_type () in
-      C.equate_types new_id.id_locn a t;
+      C.equate_types new_id.id_locn "constructor application" a t;
       (new_id, a, List.length c.constr_args)
 
   (* Instantiates a top-level constant descriptor with fresh type variables,
@@ -423,7 +452,7 @@ module Make_checker(T : sig
     let subst = TNfmap.from_list2 c.const_tparams new_id.instantiation in
     let t = type_subst subst c.const_type in
     let a = C.new_type () in
-      C.equate_types new_id.id_locn a t;
+      C.equate_types new_id.id_locn "constant use" a t;
       List.iter 
         (fun (p, tv) -> 
            C.add_constraint p (type_subst subst (tnvar_to_type tv))) 
@@ -451,22 +480,22 @@ module Make_checker(T : sig
       match p with
         | Ast.P_wild(sk) -> 
             let a = C.new_type () in
-              C.equate_types l ret_type a;
+              C.equate_types l "underscore pattern" ret_type a;
               (A.mk_pwild l sk ret_type, acc)
         | Ast.P_as(s1,p, s2, xl,s3) -> 
             let nl = xl_to_nl xl in
             let (pat,pat_e) = check_pat l_e p acc in
             let ax = C.new_type () in
-              C.equate_types (snd nl) ax pat.typ;
-              C.equate_types l pat.typ ret_type;
+              C.equate_types (snd nl) "as pattern" ax pat.typ;
+              C.equate_types l "as pattern" pat.typ ret_type;
               (A.mk_pas l s1 pat s2 nl s3 rt, add_binding pat_e nl ax)
         | Ast.P_typ(sk1,p,sk2,typ,sk3) ->
             let (pat,pat_e) = check_pat l_e p acc in
             let src_t = 
               typ_to_src_t build_wild C.add_tyvar C.add_nvar T.d T.e typ
             in
-              C.equate_types l src_t.typ pat.typ;
-              C.equate_types l src_t.typ ret_type;
+              C.equate_types l "type-annotated pattern" src_t.typ pat.typ;
+              C.equate_types l "type-annotated pattern" src_t.typ ret_type;
               (A.mk_ptyp l sk1 pat sk2 src_t sk3 rt, pat_e)
         | Ast.P_app(Ast.Id(mp,xl,l'') as i, ps) ->
             let l' = Ast.xl_to_l xl in
@@ -485,7 +514,7 @@ module Make_checker(T : sig
                                num_args
                                (List.length pats))
                             Ident.pp (Ident.from_id i); 
-                        C.equate_types l'' t 
+                        C.equate_types l'' "constructor pattern" t 
                           (multi_fun (List.map annot_to_typ pats) ret_type);
                         (A.mk_pconstr l id pats rt, pat_e)
                   | _ ->
@@ -498,7 +527,7 @@ module Make_checker(T : sig
                             else
                               let ax = C.new_type () in
                               let n = Name.from_x xl in
-                                C.equate_types l'' ret_type ax;
+                                C.equate_types l'' "constructor pattern" ret_type ax;
                                 (A.mk_pvar l n ret_type, 
                                  add_binding acc (n,l') ax)
                         | _ ->
@@ -513,7 +542,7 @@ module Make_checker(T : sig
             in
               check_dup_field_names 
                 (Seplist.to_list_map snd checked_pats);
-              C.equate_types l a ret_type;
+              C.equate_types l "record pattern" a ret_type;
               (A.mk_precord l sk1 (Seplist.map fst checked_pats) sk3 rt,
                pat_e)
         | Ast.P_tup(sk1,ps,sk2) -> 
@@ -521,7 +550,7 @@ module Make_checker(T : sig
             let (pats,pat_e) = 
               Seplist.map_acc_left (check_pat l_e) acc pats
             in
-              C.equate_types l ret_type 
+              C.equate_types l "tuple pattern" ret_type 
                 { t = Ttup(Seplist.to_list_map annot_to_typ pats) };
               (A.mk_ptup l sk1 pats sk2 rt, pat_e)
         | Ast.P_list(sk1,ps,sk2,semi,sk3) -> 
@@ -530,8 +559,8 @@ module Make_checker(T : sig
               Seplist.map_acc_left (check_pat l_e) acc pats
             in
             let a = C.new_type () in
-              Seplist.iter (fun pat -> C.equate_types l a pat.typ) pats;
-              C.equate_types l ret_type { t = Tapp([a], Path.listpath) };
+              Seplist.iter (fun pat -> C.equate_types l "list pattern" a pat.typ) pats;
+              C.equate_types l "list pattern" ret_type { t = Tapp([a], Path.listpath) };
               (A.mk_plist l sk1 pats sk3 ret_type, pat_e)
 	| Ast.P_vector(sk1,ps,sk2,semi,sk3) -> 
            let pats = Seplist.from_list_suffix ps sk2 semi in
@@ -539,9 +568,9 @@ module Make_checker(T : sig
              Seplist.map_acc_left (check_pat l_e) acc pats
            in
            let a = C.new_type () in
-             Seplist.iter (fun pat -> C.equate_types l a pat.typ) pats;
+             Seplist.iter (fun pat -> C.equate_types l "vector pattern" a pat.typ) pats;
              let len = { t = Tne({ nexp = Nconst( Seplist.length pats )} ) } in
-             C.equate_types l ret_type { t = Tapp([a;len], Path.vectorpath) };
+             C.equate_types l "vector pattern" ret_type { t = Tapp([a;len], Path.vectorpath) };
              (A.mk_pvector l sk1 pats sk3 ret_type, pat_e)
         | Ast.P_vectorC(sk1,ps,sk2) -> 
             let (pats,pat_e) = List.fold_left (fun (l,acc) p ->
@@ -552,37 +581,37 @@ module Make_checker(T : sig
             let lens =
               List.fold_left (fun lens pat -> 
                                 let c = C.new_nexp () in
-                                C.equate_types l { t = Tapp([a;{t=Tne(c)}],Path.vectorpath) } pat.typ;
+                                C.equate_types l "vector concatenation pattern" { t = Tapp([a;{t=Tne(c)}],Path.vectorpath) } pat.typ;
                                 c::lens) [] pats in
               let len = { t = Tne( nexp_from_list (List.rev lens) ) } in
-              C.equate_types l ret_type { t = Tapp([a;len],Path.vectorpath) };
+              C.equate_types l "vector concatenation pattern" ret_type { t = Tapp([a;len],Path.vectorpath) };
               (A.mk_pvectorc l sk1 pats sk2 ret_type, pat_e)
         | Ast.P_paren(sk1,p,sk2) -> 
             let (pat,pat_e) = check_pat l_e p acc in
-              C.equate_types l ret_type pat.typ;
+              C.equate_types l "paren pattern" ret_type pat.typ;
               (A.mk_pparen l sk1 pat sk2 rt, pat_e)
         | Ast.P_cons(p1,sk,p2) ->
             let (pat1,pat_e) = check_pat l_e p1 acc in
             let (pat2,pat_e) = check_pat l_e p2 pat_e in
-              C.equate_types l ret_type { t = Tapp([pat1.typ], Path.listpath) };
-              C.equate_types l ret_type pat2.typ;
+              C.equate_types l ":: pattern" ret_type { t = Tapp([pat1.typ], Path.listpath) };
+              C.equate_types l ":: pattern" ret_type pat2.typ;
               (A.mk_pcons l pat1 sk pat2 rt, pat_e)
         | Ast.P_num_add(xl,sk1,sk2,i) ->
             let nl = xl_to_nl xl in
             let ax = C.new_type () in
-            C.equate_types l ret_type { t = Tapp([], Path.numpath) };
-            C.equate_types (snd nl) ax ret_type;
+            C.equate_types l "addition pattern" ret_type { t = Tapp([], Path.numpath) };
+            C.equate_types (snd nl) "addition pattern" ax ret_type;
           (A.mk_pnum_add l nl sk1 sk2 i rt, add_binding acc nl ax)
         | Ast.P_lit(lit) ->
             let lit = check_lit lit in
-              C.equate_types l ret_type lit.typ;
+              C.equate_types l "literal pattern" ret_type lit.typ;
               (A.mk_plit l lit rt, acc)
 
   and check_fpat a (l_e : lex_env) (Ast.Fpat(id,sk,p,l)) (acc : pat_env)  
                 : (((field_descr id * lskips * pat) * (Name.t * Ast.l)) * pat_env)=
     let (p,acc) = check_pat l_e p acc in
     let ((id,t,n,_),l') = check_field id in
-      C.equate_types l t { t = Tfn(a,p.typ) };
+      C.equate_types l "field pattern" t { t = Tfn(a,p.typ) };
       (((id,sk,p),(n,l')), acc)
 
   and check_pats (l_e : lex_env) (acc : pat_env) (ps : Ast.pat list) 
@@ -681,7 +710,7 @@ module Make_checker(T : sig
       | (sk,fid)::fids ->
           let ((id,t,fname,all_names),l) = check_field fid in
           let ret_type = C.new_type () in
-            C.equate_types l t { t = Tfn(exp_to_typ exp, ret_type) };
+            C.equate_types l "field access" t { t = Tfn(exp_to_typ exp, ret_type) };
             check_all_fields (A.mk_field l exp sk id (Some ret_type)) fids
 
   (* Corresponds to inst_val 'D,E |- val id : t gives S' and the 
@@ -704,7 +733,7 @@ module Make_checker(T : sig
                   let (id,t,num_args) = 
                     inst_constr (Ident.mk_ident mp'' n l, l) c 
                   in
-                    C.equate_types l t (C.new_type());
+                    C.equate_types l "constructor use" t (C.new_type());
                     A.mk_constr l id (Some(t))
               | Some(Val(c)) ->
                   begin
@@ -738,7 +767,7 @@ module Make_checker(T : sig
                   let (id,t) = 
                     inst_const (Ident.mk_ident mp'' n l, l) c 
                   in
-                    C.equate_types l t (C.new_type());
+                    C.equate_types l "top-level binding use" t (C.new_type());
                     A.mk_const l id (Some(t))
 
   let check_id (l_e : lex_env) (Ast.Id(mp,xl,l_add) as id) : exp =
@@ -748,9 +777,6 @@ module Make_checker(T : sig
     let exp = check_val l_e mp (Name.from_x xl) l in
       check_all_fields exp fields
 
-  let mk_ast_id (n : string) : Ast.id =
-    Ast.Id([],Ast.X_l((None,r n),Ast.Unknown), Ast.Unknown)
-
   (* Corresponds to judgment check_exp 'Delta,E,E_ |- exp : t gives Sigma' *)
   let rec check_exp (l_e : lex_env) (Ast.Expr_l(exp,l)) : exp =
     let ret_type = C.new_type () in
@@ -758,7 +784,7 @@ module Make_checker(T : sig
       match exp with
         | Ast.Ident(i) -> 
             let exp = check_id l_e i in
-              C.equate_types l ret_type (exp_to_typ exp);
+              C.equate_types l "identifier use" ret_type (exp_to_typ exp);
               exp
         | Ast.Nvar((sk,n)) -> 
             let nv = Nvar.from_rope(n) in
@@ -766,7 +792,7 @@ module Make_checker(T : sig
             A.mk_nvar_e l sk nv  { t = Tapp([], Path.numpath) }
         | Ast.Fun(sk,pse) -> 
             let (param_pats,sk',body_exp,t) = check_psexp l_e pse in
-              C.equate_types l t ret_type;
+              C.equate_types l "fun expression" t ret_type;
               A.mk_fun l sk param_pats sk' body_exp rt
         | Ast.Function(sk,bar_sk,bar,pm,end_sk) -> 
             let pm = Seplist.from_list_prefix bar_sk bar pm in
@@ -774,7 +800,7 @@ module Make_checker(T : sig
               Seplist.map
                 (fun pe ->
                    let (res,t) = check_pexp l_e pe in
-                     C.equate_types l t ret_type;
+                     C.equate_types l "function expression" t ret_type;
                      res)
                 pm
             in
@@ -782,7 +808,7 @@ module Make_checker(T : sig
         | Ast.App(fn,arg) ->
             let fnexp = check_exp l_e fn in
             let argexp = check_exp l_e arg in
-              C.equate_types l { t = Tfn(exp_to_typ argexp,ret_type) } (exp_to_typ fnexp);
+              C.equate_types l "application expression" { t = Tfn(exp_to_typ argexp,ret_type) } (exp_to_typ fnexp);
               A.mk_app l fnexp argexp rt
         | Ast.Infix(e1, xl, e2) ->
             let n = Name.from_ix xl in
@@ -790,6 +816,7 @@ module Make_checker(T : sig
             let arg1 = check_exp l_e e1 in
             let arg2 = check_exp l_e e2 in
               C.equate_types l 
+                "infix expression"
                 { t = Tfn(exp_to_typ arg1, { t = Tfn(exp_to_typ arg2,ret_type) }) }
                 (exp_to_typ id);
               A.mk_infix l arg1 id arg2 rt
@@ -800,19 +827,19 @@ module Make_checker(T : sig
                 raise_error l "missing field"
                   Name.pp
                   (NameSet.choose (NameSet.diff all_names given_names));
-              C.equate_types l t ret_type;
+              C.equate_types l "record expression" t ret_type;
               A.mk_record l sk1 res sk2 rt
         | Ast.Recup(sk1,e,sk2,r,sk3) ->
             let exp = check_exp l_e e in
             let (res,t,_,_) = check_fexps l_e r in
-              C.equate_types l (exp_to_typ exp) t;
-              C.equate_types l t ret_type;
+              C.equate_types l "record update expression" (exp_to_typ exp) t;
+              C.equate_types l "record update expression" t ret_type;
               A.mk_recup l sk1 exp sk2 res sk3 rt
         | Ast.Field(e,sk,fid) ->
             let exp = check_exp l_e e in
             let fids = disambiguate_projections sk fid in
             let new_exp = check_all_fields exp fids in
-              C.equate_types l ret_type (exp_to_typ new_exp);
+              C.equate_types l "field expression" ret_type (exp_to_typ new_exp);
               new_exp
         | Ast.Case(sk1,e,sk2,bar_sk,bar,pm,l',sk3) ->
             let pm = Seplist.from_list_prefix bar_sk bar pm in
@@ -822,50 +849,50 @@ module Make_checker(T : sig
               Seplist.map
                 (fun pe ->
                    let (res,t) = check_pexp l_e pe in
-                     C.equate_types l' t a;
+                     C.equate_types l' "match expression" t a;
                      res)
                 pm
             in
-              C.equate_types l a { t = Tfn(exp_to_typ exp,ret_type) };
+              C.equate_types l "match expression" a { t = Tfn(exp_to_typ exp,ret_type) };
               A.mk_case false l sk1 exp sk2 res sk3 rt
         | Ast.Typed(sk1,e,sk2,typ,sk3) ->
             let exp = check_exp l_e e in
             let src_t = typ_to_src_t build_wild C.add_tyvar C.add_nvar T.d T.e typ in
-              C.equate_types l src_t.typ (exp_to_typ exp);
-              C.equate_types l src_t.typ ret_type;
+              C.equate_types l "type-annotated expression" src_t.typ (exp_to_typ exp);
+              C.equate_types l "type-annotated expression" src_t.typ ret_type;
               A.mk_typed l sk1 exp sk2 src_t sk3 rt
         | Ast.Let(sk1,lb,sk2, body) -> 
             let (lb,pat_env) = check_letbind_internal l_e lb in
             let body_exp = check_exp (Nfmap.union l_e pat_env) body in
-              C.equate_types l ret_type (exp_to_typ body_exp);
+              C.equate_types l "let expression" ret_type (exp_to_typ body_exp);
               A.mk_let l sk1 lb sk2 body_exp rt
         | Ast.Tup(sk1,es,sk2) ->
             let es = Seplist.from_list es in
             let exps = Seplist.map (check_exp l_e) es in
-              C.equate_types l ret_type 
+              C.equate_types l "tuple expression" ret_type 
                 { t = Ttup(Seplist.to_list_map exp_to_typ exps) };
               A.mk_tup l sk1 exps sk2 rt
         | Ast.List(sk1,es,sk3,semi,sk2) -> 
             let es = Seplist.from_list_suffix es sk3 semi in
             let exps = Seplist.map (check_exp l_e) es in
             let a = C.new_type () in
-              Seplist.iter (fun exp -> C.equate_types l a (exp_to_typ exp)) exps;
-              C.equate_types l ret_type { t = Tapp([a], Path.listpath) };
+              Seplist.iter (fun exp -> C.equate_types l "list expression" a (exp_to_typ exp)) exps;
+              C.equate_types l "list expression" ret_type { t = Tapp([a], Path.listpath) };
               A.mk_list l sk1 exps sk2 ret_type
         | Ast.Vector(sk1,es,sk3,semi,sk2) -> 
             let es = Seplist.from_list_suffix es sk3 semi in
             let exps = Seplist.map (check_exp l_e) es in
             let a = C.new_type () in
             let len = {t = Tne( { nexp=Nconst(Seplist.length exps)} ) }in
-              Seplist.iter (fun exp -> C.equate_types l a (exp_to_typ exp)) exps;
-              C.equate_types l ret_type { t = Tapp([a;len], Path.vectorpath) };
+              Seplist.iter (fun exp -> C.equate_types l "vector expression" a (exp_to_typ exp)) exps;
+              C.equate_types l "vector expression" ret_type { t = Tapp([a;len], Path.vectorpath) };
               A.mk_vector l sk1 exps sk2 ret_type
         | Ast.VAccess(e,sk1,nexp,sk2) -> 
             let exp = check_exp l_e e in
             let n = nexp_to_src_nexp C.add_nvar nexp in
             let vec_n = C.new_nexp () in
             let t = exp_to_typ exp in
-              C.equate_types l { t = Tapp([ ret_type;{t = Tne(vec_n)}],Path.vectorpath) } t;
+              C.equate_types l "vector access expression" { t = Tapp([ ret_type;{t = Tne(vec_n)}],Path.vectorpath) } t;
               C.in_range l vec_n n.nt;
               A.mk_vaccess l exp sk1 n sk2 ret_type
         | Ast.VAccessR(e,sk1,n1,sk2,n2,sk3) -> 
@@ -875,44 +902,44 @@ module Make_checker(T : sig
             let vec_n = C.new_nexp () in
             let vec_t = C.new_type () in
             let t = exp_to_typ exp in
-              C.equate_types l { t=Tapp([vec_t;{t = Tne(vec_n)}], Path.vectorpath) } t;
+              C.equate_types l "vector access expression" { t=Tapp([vec_t;{t = Tne(vec_n)}], Path.vectorpath) } t;
               C.in_range l n2.nt n1.nt;
               C.in_range l vec_n n2.nt;
-              C.equate_types l ret_type { t =Tapp([vec_t;{t = Tne({ nexp=Nadd(n2.nt,{nexp=Nneg(n1.nt)})})}], Path.vectorpath)};
+              C.equate_types l "vector access expression" ret_type { t =Tapp([vec_t;{t = Tne({ nexp=Nadd(n2.nt,{nexp=Nneg(n1.nt)})})}], Path.vectorpath)};
               A.mk_vaccessr l exp sk1 n1 sk2 n2 sk3 ret_type 
         | Ast.Paren(sk1,e,sk2) ->
             let exp = check_exp l_e e in
-              C.equate_types l ret_type (exp_to_typ exp);
+              C.equate_types l "parenthesized expression" ret_type (exp_to_typ exp);
               A.mk_paren l sk1 exp sk2 rt
         | Ast.Begin(sk1,e,sk2) ->
             let exp = check_exp l_e e in
-              C.equate_types l ret_type (exp_to_typ exp);
+              C.equate_types l "begin expression" ret_type (exp_to_typ exp);
               A.mk_begin l sk1 exp sk2 rt
         | Ast.If(sk1,e1,sk2,e2,sk3,e3) ->
             let exp1 = check_exp l_e e1 in
             let exp2 = check_exp l_e e2 in
             let exp3 = check_exp l_e e3 in
-              C.equate_types l ret_type (exp_to_typ exp2);
-              C.equate_types l ret_type (exp_to_typ exp3);
-              C.equate_types l (exp_to_typ exp1) { t = Tapp([], Path.boolpath) };
+              C.equate_types l "if expression" ret_type (exp_to_typ exp2);
+              C.equate_types l "if expression" ret_type (exp_to_typ exp3);
+              C.equate_types l "if expression" (exp_to_typ exp1) { t = Tapp([], Path.boolpath) };
               A.mk_if l sk1 exp1 sk2 exp2 sk3 exp3 rt
         | Ast.Cons(e1,sk,e2) ->
             let e = 
               check_exp l_e 
                 (Ast.Expr_l(Ast.Infix(e1,Ast.SymX_l((sk,r"::"), l),e2), l))
             in 
-              C.equate_types l ret_type (exp_to_typ e);
+              C.equate_types l ":: expression" ret_type (exp_to_typ e);
               e
         | Ast.Lit(lit) ->
             let lit = check_lit lit in
-              C.equate_types l ret_type lit.typ;
+              C.equate_types l "literal expression" ret_type lit.typ;
               A.mk_lit l lit rt
         | Ast.Set(sk1,es,sk2,semi,sk3) -> 
             let es = Seplist.from_list_suffix es sk2 semi in
             let exps = Seplist.map (check_exp l_e) es in
             let a = C.new_type () in
-              Seplist.iter (fun exp -> C.equate_types l a (exp_to_typ exp)) exps;
-              C.equate_types l ret_type { t = Tapp([a], Path.setpath) };
+              Seplist.iter (fun exp -> C.equate_types l "set expression" a (exp_to_typ exp)) exps;
+              C.equate_types l "set expression" ret_type { t = Tapp([a], Path.setpath) };
               A.mk_set l sk1 exps sk3 ret_type
         | Ast.Setcomp(sk1,e1,sk2,e2,sk3) ->
             let not_shadowed n =
@@ -930,9 +957,9 @@ module Make_checker(T : sig
             let exp1 = check_exp env e1 in
             let exp2 = check_exp env e2 in
             let a = C.new_type () in
-              C.equate_types l (exp_to_typ exp2) { t = Tapp([], Path.boolpath) };
-              C.equate_types l (exp_to_typ exp1) a;
-              C.equate_types l ret_type { t = Tapp([a], Path.setpath) };
+              C.equate_types l "set comprehension expression" (exp_to_typ exp2) { t = Tapp([], Path.boolpath) };
+              C.equate_types l "set comprehension expression" (exp_to_typ exp1) a;
+              C.equate_types l "set comprehension expression" ret_type { t = Tapp([a], Path.setpath) };
               A.mk_setcomp l sk1 exp1 sk2 exp2 sk3 vars rt
         | Ast.Setcomp_binding(sk1,e1,sk2,sk5,qbs,sk3,e2,sk4) ->
             let (quant_env,qbs) = check_qbs false l_e qbs in
@@ -940,16 +967,16 @@ module Make_checker(T : sig
             let exp1 = check_exp env e1 in
             let exp2 = check_exp env e2 in
             let a = C.new_type () in
-              C.equate_types l (exp_to_typ exp2) { t = Tapp([], Path.boolpath) };
-              C.equate_types l (exp_to_typ exp1) a;
-              C.equate_types l ret_type { t = Tapp([a], Path.setpath) };
+              C.equate_types l "set comprehension expression" (exp_to_typ exp2) { t = Tapp([], Path.boolpath) };
+              C.equate_types l "set comprehension expression" (exp_to_typ exp1) a;
+              C.equate_types l "set comprehension expression" ret_type { t = Tapp([a], Path.setpath) };
               A.mk_comp_binding l false sk1 exp1 sk2 sk5 
                 (List.rev qbs) sk3 exp2 sk4 rt
         | Ast.Quant(q,qbs,s,e) ->
             let (quant_env,qbs) = check_qbs false l_e qbs in
             let et = check_exp (Nfmap.union l_e quant_env) e in
-              C.equate_types l ret_type { t = Tapp([], Path.boolpath) };
-              C.equate_types l ret_type (exp_to_typ et);
+              C.equate_types l "quantified expression" ret_type { t = Tapp([], Path.boolpath) };
+              C.equate_types l "quantified expression" ret_type (exp_to_typ et);
               A.mk_quant l q (List.rev qbs) s et rt
         | Ast.Listcomp(sk1,e1,sk2,sk5,qbs,sk3,e2,sk4) ->
             let (quant_env,qbs) = check_qbs true l_e qbs in
@@ -957,9 +984,9 @@ module Make_checker(T : sig
             let exp1 = check_exp env e1 in
             let exp2 = check_exp env e2 in
             let a = C.new_type () in
-              C.equate_types l (exp_to_typ exp2) { t = Tapp([], Path.boolpath) };
-              C.equate_types l (exp_to_typ exp1) a;
-              C.equate_types l ret_type { t = Tapp([a], Path.listpath) };
+              C.equate_types l "list comprehension expression" (exp_to_typ exp2) { t = Tapp([], Path.boolpath) };
+              C.equate_types l "list comprehension expression" (exp_to_typ exp1) a;
+              C.equate_types l "list comprehension expression" ret_type { t = Tapp([a], Path.listpath) };
               A.mk_comp_binding l true sk1 exp1 sk2 sk5 
                 (List.rev qbs) sk3 exp2 sk4 rt
         | Ast.Do(sk1,mn,lns,sk2,e,sk3) ->
@@ -967,20 +994,82 @@ module Make_checker(T : sig
             let mod_env = mod_descr.mod_env in
             let mod_id = 
               { id_path = Id_some (Ident.from_id mn);
-                id_locn = l;
+                id_locn = (match mn with Ast.Id(_,_,l) -> l);
                 descr = mod_descr;
                 instantiation = []; }
             in
             let monad_type_ctor = 
-              lookup_p "constructor" mod_env (mk_ast_id "t")
+              match Nfmap.apply mod_env.p_env (Name.from_rope (r "t")) with
+                | None ->
+                    raise_error mod_id.id_locn "monad module missing type t"
+                      Ident.pp (Ident.from_id mn)
+                | Some((p,l)) -> p
+            in
+            let () =
+              (* Check that the module contains an appropriate type "t" to be
+               * the monad. *)
+              match Pfmap.apply T.d monad_type_ctor with
+                | None -> assert false
+                | Some(Tc_class _) ->
+                    raise_error mod_id.id_locn "type class used as monad" 
+                      Path.pp monad_type_ctor
+                | Some(Tc_type([Nv _], _, _)) ->
+                    raise_error mod_id.id_locn "monad type constructor with a number parameter" 
+                      Path.pp monad_type_ctor
+                | Some(Tc_type([Ty _], _, _)) ->
+                    ()
+                | Some(Tc_type(tnvars, _, _)) ->
+                    raise_error mod_id.id_locn 
+                      (Printf.sprintf "monad type constructor with %d parameters" 
+                         (List.length tnvars))
+                      Path.pp monad_type_ctor
+            in
+            let (return_tvs, return_type) = 
+              check_const_for_do mod_id mod_env.v_env "return" in
+            let build_monad_type tv = {t = Tapp([{t = Tvar(tv)}], monad_type_ctor)} in
+            let () =
+              match return_tvs with
+                | [tv] ->
+                    assert_equal mod_id.id_locn "do/return"
+                      T.d return_type 
+                      { t = Tfn({t = Tvar(tv)}, build_monad_type tv) }
+                | tvs ->
+                    raise_error mod_id.id_locn (Printf.sprintf "monad return function with %d type parameters" (List.length tvs))
+                      Path.pp mod_id.descr.mod_binding
+            in
+            let (bind_tvs, bind_type) = 
+              check_const_for_do mod_id mod_env.v_env ">>=" in
+            let build_bind_type tv1 tv2 =
+              { t = Tfn(build_monad_type tv1, 
+                        { t = Tfn({t = Tfn({ t = Tvar(tv1)}, 
+                                           build_monad_type tv2)},
+                                  build_monad_type tv2)})}
+            in
+            let () =
+              match bind_tvs with
+                | [tv1;tv2] ->
+                    (try
+                      assert_equal mod_id.id_locn "do/>>="
+                        T.d bind_type
+                        (build_bind_type tv1 tv2) 
+                    with
+                      Ident.No_type _ ->
+                        assert_equal mod_id.id_locn "do/>>="
+                          T.d bind_type
+                          (build_bind_type tv2 tv1))
+                | tvs ->
+                    raise_error mod_id.id_locn (Printf.sprintf "monad >>= function with %d type parameters" (List.length tvs))
+                      Path.pp mod_id.descr.mod_binding
             in
             let (lns_env,lns) = check_lns l_e monad_type_ctor lns in
+            let lns = List.rev lns in
             let env = Nfmap.union l_e lns_env in
             let exp = check_exp env e in
             let a = C.new_type () in
-              C.equate_types l (exp_to_typ exp)
+              C.equate_types l "do expression" (exp_to_typ exp)
                 { t = Tapp([a], monad_type_ctor) };
-              A.mk_do l sk1 mod_id lns sk3 exp sk3 rt
+              C.equate_types l "do expression" (exp_to_typ exp) ret_type;
+              A.mk_do l sk1 mod_id lns sk2 exp sk3 rt
 
   and check_lns (l_e : lex_env) 
                 (monad_type_ctor : Path.t)
@@ -991,10 +1080,11 @@ module Make_checker(T : sig
          function
            | (p,s1,e,s2) ->
                let et = check_exp (Nfmap.union l_e env) e in
-               let (pt,p_env) = check_pat (Nfmap.union l_e env) p env in
+               let (pt,p_env) = check_pat (Nfmap.union l_e env) p Nfmap.empty in
+               let p_env = Nfmap.union env p_env in
                let a = C.new_type () in
-                 C.equate_types pt.locn pt.typ a;
-                 C.equate_types (exp_to_locn et) (exp_to_typ et)
+                 C.equate_types pt.locn "do expression" pt.typ a;
+                 C.equate_types (exp_to_locn et) "do expression" (exp_to_typ et)
                    { t = Tapp([a], monad_type_ctor) };
                  (p_env,
                   Do_line(pt, s1, et, s2)::lst))
@@ -1021,8 +1111,8 @@ module Make_checker(T : sig
                let et = check_exp (Nfmap.union l_e env) e in
                let (pt,p_env) = check_pat (Nfmap.union l_e env) p env in
                let a = C.new_type () in
-                 C.equate_types pt.locn pt.typ a;
-                 C.equate_types (exp_to_locn et) (exp_to_typ et)
+                 C.equate_types pt.locn "quantifier binding" pt.typ a;
+                 C.equate_types (exp_to_locn et) "quantifier binding" (exp_to_typ et)
                    { t = Tapp([a], Path.listpath) };
                  (p_env,
                   Qb_restr(true,s1, pt, s2, et, s3)::lst)
@@ -1034,8 +1124,8 @@ module Make_checker(T : sig
                let et = check_exp (Nfmap.union l_e env) e in
                let (pt,p_env) = check_pat (Nfmap.union l_e env) p env in
                let a = C.new_type () in
-                 C.equate_types pt.locn pt.typ a;
-                 C.equate_types (exp_to_locn et) (exp_to_typ et) 
+                 C.equate_types pt.locn "quantifier binding" pt.typ a;
+                 C.equate_types (exp_to_locn et) "quantifier binding" (exp_to_typ et) 
                    { t = Tapp([a], Path.setpath) };
                  (p_env,
                   Qb_restr(false,s1, pt, s2, et, s3)::lst))
@@ -1048,7 +1138,7 @@ module Make_checker(T : sig
     let ((id,t,fname,all_names),l') = check_field i in
     let exp = check_exp l_e e in
     let ret_type = C.new_type () in
-      C.equate_types l t { t = Tfn(ret_type, exp_to_typ exp) };
+      C.equate_types l "field expression" t { t = Tfn(ret_type, exp_to_typ exp) };
       ((id,sk1,exp,l), ret_type, fname, l', all_names)
 
   and check_fexps (l_e : lex_env) (Ast.Fexps(fexps,sk,semi,l)) 
@@ -1058,7 +1148,7 @@ module Make_checker(T : sig
     let stuff = Seplist.map (check_fexp l_e) fexps in
     let ret_type = C.new_type () in
       check_dup_field_names (Seplist.to_list_map (fun (_,_,n,l,_) -> (n,l)) stuff);
-      Seplist.iter (fun (_,t,_,_,_) -> C.equate_types l t ret_type) stuff;
+      Seplist.iter (fun (_,t,_,_,_) -> C.equate_types l "field expression" t ret_type) stuff;
       (Seplist.map (fun (x,_,_,_,_) -> x) stuff,
        ret_type,
        List.fold_right 
@@ -1081,10 +1171,10 @@ module Make_checker(T : sig
             None
         | Ast.Typ_annot_some(sk',typ) ->
             let src_t' = typ_to_src_t build_wild C.add_tyvar C.add_nvar T.d T.e typ in
-              C.equate_types l src_t'.typ (exp_to_typ body_exp);
+              C.equate_types l "pattern/expression list" src_t'.typ (exp_to_typ body_exp);
               Some (sk',src_t')
     in
-      C.equate_types l ret_type t;
+      C.equate_types l "pattern/expression list" ret_type t;
       (param_pats,annot,sk,body_exp,ret_type)
 
   and check_psexp (l_e : lex_env) (Ast.Patsexp(ps,sk,e,l)) 
@@ -1118,10 +1208,10 @@ module Make_checker(T : sig
                   None
               | Ast.Typ_annot_some(sk',typ) ->
                   let src_t' = typ_to_src_t build_wild C.add_tyvar C.add_nvar T.d T.e typ in
-                    C.equate_types l src_t'.typ pat.typ;
+                    C.equate_types l "let expression" src_t'.typ pat.typ;
                     Some (sk',src_t')
           in
-            C.equate_types l pat.typ (exp_to_typ exp);
+            C.equate_types l "let expression" pat.typ (exp_to_typ exp);
             ((Let_val(pat,annot,sk',exp),l), pat_env)
       | Ast.Let_fun(funcl) ->
           let (xl, (a,b,c,d,t)) = check_funcl l_e funcl l in
@@ -1133,7 +1223,7 @@ module Make_checker(T : sig
    *)
   let check_lem_exp (l_e : lex_env) l e ret =
     let exp = check_exp l_e e in
-    C.equate_types l ret (exp_to_typ exp);
+    C.equate_types l "top-level expression" ret (exp_to_typ exp);
     let Tconstraints(tnvars,constraints,length_constraints) = C.inst_leftover_uvars l in
     (exp,Tconstraints(tnvars,constraints,length_constraints))
 
@@ -1203,8 +1293,8 @@ module Make_checker(T : sig
                                Name.pp n 
                  end;
                  let a = C.new_type () in
-                   C.equate_types c.spec_l a c.const_type;
-                   C.equate_types l a t
+                   C.equate_types c.spec_l "applying val specification" a c.const_type;
+                   C.equate_types l "applying val specification" a t
              | Some(Constr _) ->
                  raise_error l "defined variable is already defined as a constructor"
                    Name.pp n)
@@ -1235,8 +1325,8 @@ module Make_checker(T : sig
                  let subst = TNfmap.from_list [(tv, inst_type)] in
                  let spec_typ = type_subst subst c.const_type in
                  let a = C.new_type () in
-                   C.equate_types c.spec_l a spec_typ;
-                   C.equate_types l a t
+                   C.equate_types c.spec_l "applying val specification" a spec_typ;
+                   C.equate_types l "applying val specification" a t
              | _ -> 
                  raise_error l "instance method not bound to class method"
                    Name.pp n)
@@ -1272,7 +1362,7 @@ module Make_checker(T : sig
         Seplist.map
           (fun (Ast.Rec_l(funcl,l')) -> 
              let (n,(a,b,c,d,t)) = check_funcl env funcl l' in
-               C.equate_types l' t 
+               C.equate_types l' "top-level function" t 
                  (match Nfmap.apply env (Name.strip_lskip n.term) with
                     | Some(t,_) -> t
                     | None -> assert false);
@@ -1313,8 +1403,8 @@ module Make_checker(T : sig
                 | Ast.X_l_some (xl, _) -> Some (Name.from_x xl)
            in
            let new_name' = annot_name (Name.from_x xl') (Ast.xl_to_l xl') rec_env in
-             C.equate_types l2 (exp_to_typ et) { t = Tapp([], Path.boolpath) };
-             C.equate_types l2 
+             C.equate_types l2 "inductive relation" (exp_to_typ et) { t = Tapp([], Path.boolpath) };
+             C.equate_types l2 "inductive relation"
                new_name'.typ 
                (multi_fun 
                   (List.map exp_to_typ ets) 

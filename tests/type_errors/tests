@@ -209,6 +209,181 @@ let _ = forall (x IN {}) (x IN {}). true
 
 ===============================================================================
 
+(* ---------------------------- Do notation tests -------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+
+let _ = 
+  do M
+  in
+    [4]
+  end
+
+===============================================================================
+module M = struct
+  type x = num
+end
+let _ =
+  do M
+  in
+    None 
+end
+
+===============================================================================
+module M = struct
+  type t 'a = option 'a
+end
+let _ =
+  do M
+  in
+    None 
+end
+
+===============================================================================
+module M = struct
+  type t 'a = option 'a
+  let return x = Some x
+end
+let _ =
+  do M
+  in
+    None 
+end
+
+===============================================================================
+module M = struct
+  type t 'a = option 'a
+  let (>>=) x y = match x with None -> None | Some x -> y x end
+end
+let _ =
+  do M
+  in
+    None 
+end
+
+===============================================================================
+module M = struct
+  let return x = Some x
+  let (>>=) x y = match x with None -> None | Some x -> y x end
+end
+let _ =
+  do M
+  in
+    None 
+end
+
+===============================================================================
+module M = struct
+  type t 'a = return of 'a
+  val (>>=) : forall 'a 'b. t 'a -> ('a -> t 'b) -> t 'b
+  let (>>=) x f = match x with return y -> f y end
+end
+let _ =
+  do M
+  in
+    M.return 1 
+end
+
+===============================================================================
+module M = struct
+  type t 'a = option 'a
+  let return x = Some x
+  let (>>=) x y = match x with None -> None | Some x -> y x end
+end
+let _ =
+  do M
+    x <- 1;
+  in
+    None 
+end
+
+===============================================================================
+module M = struct
+  type t 'a = option 'a
+  let return x = x
+  let (>>=) x y = match x with None -> None | Some x -> y x end
+end
+let _ =
+  do M
+  in
+    None 
+end
+
+===============================================================================
+module M = struct
+  type t 'a = option 'a
+  let return x = Some x
+  let (>>=) x y = match x with None -> None | Some x -> x end
+end
+let _ =
+  do M
+  in
+    None 
+end
+
+===============================================================================
+module M = struct
+  type t 'a = option 'a
+  let return x = Some x
+  let (>>=) x y = match x with None -> None | Some x -> y x end
+end
+let _ =
+  do M
+  in
+    1 
+end
+
+===============================================================================
+module M = struct
+  type t = option num 
+  let return x = Some x
+  let (>>=) x y = match x with None -> None | Some x -> y x end
+end
+let _ =
+  do M
+  in
+    None 
+end
+
+===============================================================================
+module M = struct
+  type t 'a 'b = option 'a 
+  let return x = Some x
+  let (>>=) x y = match x with None -> None | Some x -> y x end
+end
+let _ =
+  do M
+  in
+    None
+end
+
+===============================================================================
+module M = struct
+  type t 'a = option 'a 
+  let return (x,y) = Some x
+  let (>>=) x y = match x with None -> None | Some x -> y x end
+end
+let _ =
+  do M
+  in
+    None
+end
+
+===============================================================================
+module M = struct
+  type t 'a = option 'a 
+  let return x = Some x
+  val (>>=) : forall 'a. t 'a -> ('a -> t 'a) -> t 'a
+  let (>>=) x y = match x with None -> None | Some x -> y x end
+end
+let _ =
+  do M
+  in
+    None 
+end
+
+===============================================================================
+
 (* ------------------------ Type definition tests -------------------------- *)
 (* ------------------------------------------------------------------------- *)
 (* ------------------------------------------------------------------------- *)
