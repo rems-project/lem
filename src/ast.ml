@@ -110,7 +110,7 @@ lit_aux =  (* Literal constants *)
  | L_num of terminal * int
  | L_hex of terminal * string (* hex and bin are constant bit vectors, entered as C-style hex or binaries *)
  | L_bin of terminal * string
- | L_string of terminal * string
+ | L_string of terminal * Ulib.UTF8.t
  | L_unit of terminal * terminal
  | L_zero of terminal (* bitzero and bitone are constant bits, if commonly used we will consider overloading 0 and 1 *)
  | L_one of terminal

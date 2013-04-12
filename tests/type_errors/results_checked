@@ -365,6 +365,238 @@ File "test.lem", line 1, character 27 to line 1, character 27
   Type error: duplicate binding: x
 ================================================================================
 
+(* ---------------------------- Do notation tests -------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+
+let _ = 
+  do M
+  in
+    [4]
+  end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 7, character 6 to line 7, character 6
+  Type error: unknown module: M
+================================================================================
+module M = struct
+  type x = num
+end
+let _ =
+  do M
+  in
+    None 
+end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 5, character 6 to line 5, character 6
+  Type error: monad module missing type t: M
+================================================================================
+module M = struct
+  type t 'a = option 'a
+end
+let _ =
+  do M
+  in
+    None 
+end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 5, character 6 to line 5, character 6
+  Type error: monad module missing return: Test.M
+================================================================================
+module M = struct
+  type t 'a = option 'a
+  let return x = Some x
+end
+let _ =
+  do M
+  in
+    None 
+end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 6, character 6 to line 6, character 6
+  Type error: monad module missing >>=: Test.M
+================================================================================
+module M = struct
+  type t 'a = option 'a
+  let (>>=) x y = match x with None -> None | Some x -> y x end
+end
+let _ =
+  do M
+  in
+    None 
+end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 6, character 6 to line 6, character 6
+  Type error: monad module missing return: Test.M
+================================================================================
+module M = struct
+  let return x = Some x
+  let (>>=) x y = match x with None -> None | Some x -> y x end
+end
+let _ =
+  do M
+  in
+    None 
+end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 6, character 6 to line 6, character 6
+  Type error: monad module missing type t: M
+================================================================================
+module M = struct
+  type t 'a = return of 'a
+  val (>>=) : forall 'a 'b. t 'a -> ('a -> t 'b) -> t 'b
+  let (>>=) x f = match x with return y -> f y end
+end
+let _ =
+  do M
+  in
+    M.return 1 
+end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 7, character 6 to line 7, character 6
+  Type error: monad module return bound to constructor: Test.M
+================================================================================
+module M = struct
+  type t 'a = option 'a
+  let return x = Some x
+  let (>>=) x y = match x with None -> None | Some x -> y x end
+end
+let _ =
+  do M
+    x <- 1;
+  in
+    None 
+end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 8, character 10 to line 8, character 10
+  Type error: type mismatch: do expression
+num
+and
+Pervasives.option _
+================================================================================
+module M = struct
+  type t 'a = option 'a
+  let return x = x
+  let (>>=) x y = match x with None -> None | Some x -> y x end
+end
+let _ =
+  do M
+  in
+    None 
+end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 7, character 6 to line 7, character 6
+  Type error: type mismatch: do/return
+'a
+and
+Pervasives.option 'a
+================================================================================
+module M = struct
+  type t 'a = option 'a
+  let return x = Some x
+  let (>>=) x y = match x with None -> None | Some x -> x end
+end
+let _ =
+  do M
+  in
+    None 
+end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 7, character 6 to line 7, character 6
+  Type error: type mismatch: do/>>=
+Pervasives.option 'a
+and
+'b
+================================================================================
+module M = struct
+  type t 'a = option 'a
+  let return x = Some x
+  let (>>=) x y = match x with None -> None | Some x -> y x end
+end
+let _ =
+  do M
+  in
+    1 
+end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 7, character 3 to line 10, character 3
+  Type error: type mismatch: do expression
+num
+and
+Pervasives.option _
+================================================================================
+module M = struct
+  type t = option num 
+  let return x = Some x
+  let (>>=) x y = match x with None -> None | Some x -> y x end
+end
+let _ =
+  do M
+  in
+    None 
+end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 7, character 6 to line 7, character 6
+  Type error: monad type constructor with 0 parameters: Test.M.t
+================================================================================
+module M = struct
+  type t 'a 'b = option 'a 
+  let return x = Some x
+  let (>>=) x y = match x with None -> None | Some x -> y x end
+end
+let _ =
+  do M
+  in
+    None
+end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 7, character 6 to line 7, character 6
+  Type error: monad type constructor with 2 parameters: Test.M.t
+================================================================================
+module M = struct
+  type t 'a = option 'a 
+  let return (x,y) = Some x
+  let (>>=) x y = match x with None -> None | Some x -> y x end
+end
+let _ =
+  do M
+  in
+    None
+end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 7, character 6 to line 7, character 6
+  Type error: monad return function with 2 type parameters: Test.M
+================================================================================
+module M = struct
+  type t 'a = option 'a 
+  let return x = Some x
+  val (>>=) : forall 'a. t 'a -> ('a -> t 'a) -> t 'a
+  let (>>=) x y = match x with None -> None | Some x -> y x end
+end
+let _ =
+  do M
+  in
+    None 
+end
+
+--------------------------------------------------------------------------------
+File "test.lem", line 8, character 6 to line 8, character 6
+  Type error: monad >>= function with 1 type parameters: Test.M
+================================================================================
+
 (* ------------------------ Type definition tests -------------------------- *)
 (* ------------------------------------------------------------------------- *)
 (* ------------------------------------------------------------------------- *)
@@ -1039,7 +1271,7 @@ let f (1 : bool) = 1
 
 --------------------------------------------------------------------------------
 File "test.lem", line 6, character 7 to line 6, character 16
-  Type error: type mismatch:
+  Type error: type mismatch: type-annotated pattern
 bool
 and
 num
@@ -1049,7 +1281,7 @@ let f (X 1) = 1
 
 --------------------------------------------------------------------------------
 File "test.lem", line 2, character 8 to line 2, character 8
-  Type error: type mismatch:
+  Type error: type mismatch: constructor pattern
 bool
 and
 num
@@ -1059,7 +1291,7 @@ let f <| fld = 1 |> = 1
 
 --------------------------------------------------------------------------------
 File "test.lem", line 2, character 10 to line 2, character 16
-  Type error: type mismatch:
+  Type error: type mismatch: field pattern
 bool
 and
 num
@@ -1068,7 +1300,7 @@ let f [1;true] = 1
 
 --------------------------------------------------------------------------------
 File "test.lem", line 1, character 7 to line 1, character 14
-  Type error: type mismatch:
+  Type error: type mismatch: list pattern
 num
 and
 bool
@@ -1077,7 +1309,7 @@ let f (1::[true]) = 1
 
 --------------------------------------------------------------------------------
 File "test.lem", line 1, character 8 to line 1, character 16
-  Type error: type mismatch:
+  Type error: type mismatch: :: pattern
 num
 and
 bool
@@ -1087,7 +1319,7 @@ let _ = x + 1
 
 --------------------------------------------------------------------------------
 File "test.lem", line 2, character 9 to line 2, character 13
-  Type error: type mismatch:
+  Type error: type mismatch: infix expression
 bool
 and
 num
@@ -1096,7 +1328,7 @@ let f (x : bool) = x + 1
 
 --------------------------------------------------------------------------------
 File "test.lem", line 1, character 20 to line 1, character 24
-  Type error: type mismatch:
+  Type error: type mismatch: infix expression
 bool
 and
 num
@@ -1106,7 +1338,7 @@ let _ = X 1
 
 --------------------------------------------------------------------------------
 File "test.lem", line 2, character 9 to line 2, character 11
-  Type error: type mismatch:
+  Type error: type mismatch: application expression
 (num) -> _
 and
 Test.t
@@ -1116,7 +1348,7 @@ let _ = X 1
 
 --------------------------------------------------------------------------------
 File "test.lem", line 2, character 9 to line 2, character 11
-  Type error: type mismatch:
+  Type error: type mismatch: application expression
 num
 and
 bool
@@ -1126,7 +1358,7 @@ let _ = X true 1
 
 --------------------------------------------------------------------------------
 File "test.lem", line 2, character 9 to line 2, character 16
-  Type error: type mismatch:
+  Type error: type mismatch: application expression
 (num) -> _
 and
 Test.t
@@ -1135,7 +1367,7 @@ let _ = fun (x : bool) -> x + 1
 
 --------------------------------------------------------------------------------
 File "test.lem", line 1, character 27 to line 1, character 31
-  Type error: type mismatch:
+  Type error: type mismatch: infix expression
 bool
 and
 num
@@ -1145,7 +1377,7 @@ let _ = fun (X x) -> x + 1
 
 --------------------------------------------------------------------------------
 File "test.lem", line 2, character 22 to line 2, character 26
-  Type error: type mismatch:
+  Type error: type mismatch: infix expression
 bool
 and
 num
@@ -1155,7 +1387,7 @@ let _ = fun <| fld = x |> -> x + 1
 
 --------------------------------------------------------------------------------
 File "test.lem", line 2, character 30 to line 2, character 34
-  Type error: type mismatch:
+  Type error: type mismatch: infix expression
 bool
 and
 num
@@ -1164,7 +1396,7 @@ let _ = function | true -> 1 | 1 -> 1 end
 
 --------------------------------------------------------------------------------
 File "test.lem", line 1, character 9 to line 1, character 41
-  Type error: type mismatch:
+  Type error: type mismatch: function expression
 bool
 and
 num
@@ -1173,7 +1405,7 @@ let _ = function | _ -> 1 | _ -> true end
 
 --------------------------------------------------------------------------------
 File "test.lem", line 1, character 9 to line 1, character 41
-  Type error: type mismatch:
+  Type error: type mismatch: function expression
 num
 and
 bool
@@ -1182,7 +1414,7 @@ let _ = 1 2
 
 --------------------------------------------------------------------------------
 File "test.lem", line 1, character 9 to line 1, character 11
-  Type error: type mismatch:
+  Type error: type mismatch: application expression
 (num) -> _
 and
 num
@@ -1191,7 +1423,7 @@ let _ = (fun 1 -> 1) true
 
 --------------------------------------------------------------------------------
 File "test.lem", line 1, character 9 to line 1, character 25
-  Type error: type mismatch:
+  Type error: type mismatch: application expression
 bool
 and
 num
@@ -1200,7 +1432,7 @@ let _ = (function | 1 -> 1 end) true
 
 --------------------------------------------------------------------------------
 File "test.lem", line 1, character 9 to line 1, character 36
-  Type error: type mismatch:
+  Type error: type mismatch: application expression
 bool
 and
 num
@@ -1209,7 +1441,7 @@ let _ = (fun x -> x) 1 2
 
 --------------------------------------------------------------------------------
 File "test.lem", line 1, character 9 to line 1, character 24
-  Type error: type mismatch:
+  Type error: type mismatch: application expression
 (num) -> _
 and
 num
@@ -1219,7 +1451,7 @@ let _ = true + 1
 
 --------------------------------------------------------------------------------
 File "test.lem", line 1, character 9 to line 1, character 16
-  Type error: type mismatch:
+  Type error: type mismatch: infix expression
 bool
 and
 num

@@ -23,7 +23,7 @@ metavar bin ::=
 
 metavar string ::=
   {{ phantom }}
-  {{ ocaml terminal * string }}
+  {{ ocaml terminal * Ulib.UTF8.t }}
   {{ hol string }}
   {{ com String literals }}
 

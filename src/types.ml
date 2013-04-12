@@ -579,7 +579,7 @@ let rec get_matching_instance d (p,t) instances =
 let type_mismatch l m t1 t2 = 
   let t1 = t_to_string t1 in
   let t2 = t_to_string t2 in
-    raise (Ident.No_type(l, "type mismatch:\n" (* ^ m ^ "\n"*) ^ t1 ^ "\nand\n" ^ t2))
+    raise (Ident.No_type(l, "type mismatch: " ^ m ^ "\n" ^ t1 ^ "\nand\n" ^ t2))
 
 let nexp_mismatch l n1 n2 =
   let n1 = nexp_to_string n1 in
@@ -802,7 +802,7 @@ type typ_constraints = Tconstraints of TNset.t * (Path.t * tnvar) list * range l
 module type Constraint = sig
   val new_type : unit -> t
   val new_nexp : unit -> nexp
-  val equate_types : Ast.l -> t -> t -> unit
+  val equate_types : Ast.l -> string -> t -> t -> unit
   val in_range : Ast.l -> nexp -> nexp -> unit
   val add_constraint : Path.t -> t -> unit
   val add_length_constraint : range -> unit
@@ -904,7 +904,7 @@ module Constraint (T : Global_defs) : Constraint = struct
            | _ ->
                t_box.t <- t.t)
 
-  let rec equate_types (l : Ast.l) (t1 : t) (t2 : t) : unit =
+  let rec equate_types (l : Ast.l) m (t1 : t) (t2 : t) : unit =
     if t1 == t2 then
       ()
     else
@@ -919,27 +919,27 @@ module Constraint (T : Global_defs) : Constraint = struct
             if Tyvar.compare s1 s2 = 0 then
               ()
             else
-              type_mismatch l "equate_types" t1 t2
+              type_mismatch l m t1 t2
         | (Tfn(t1,t2), Tfn(t3,t4)) ->
-            equate_types l t1 t3;
-            equate_types l t2 t4
+            equate_types l m t1 t3;
+            equate_types l m t2 t4
         | (Ttup(ts1), Ttup(ts2)) -> 
             if List.length ts1 = List.length ts2 then
-              equate_type_lists l ts1 ts2
+              equate_type_lists l m ts1 ts2
             else 
-              type_mismatch l "equate_types" t1 t2
+              type_mismatch l m t1 t2
         | (Tapp(args1,p1), Tapp(args2,p2)) ->
             if Path.compare p1 p2 = 0 && List.length args1 = List.length args2 then
-              equate_type_lists l args1 args2
+              equate_type_lists l m args1 args2
             else
-              type_mismatch l "equate_types" t1 t2
+              type_mismatch l m t1 t2
         | (Tne(n1),Tne(n2)) ->
            equate_nexps l n1 n2;
         | _ -> 
-            type_mismatch l "equate_types" t1 t2
+            type_mismatch l m t1 t2
 
-  and equate_type_lists l ts1 ts2 =
-    List.iter2 (equate_types l) ts1 ts2
+  and equate_type_lists l m ts1 ts2 =
+    List.iter2 (equate_types l m) ts1 ts2
 
   (* Should go *)
   and prim_equate_nexps (n_box : nexp) (n : nexp) : unit =
