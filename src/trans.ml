@@ -1214,11 +1214,11 @@ let remove_do e =
     match C.exp_to_term e with
       | Do(sk1, m, [], sk2, e, sk3,t) ->
           Some e
-      | Do(sk1, m, Do_line(p',sk1',e',sk2')::lns, sk2, exp, sk3,t) ->
+      | Do(sk1, m, Do_line(p',sk1',e',sk2')::lns, sk2, exp, sk3, (t, direction)) ->
           let e1 = e' in
-          let e2 = bind_const l_unk m [p'.typ; t] in
+          let e2 = bind_const l_unk m (if direction = 1 then [p'.typ; t] else if direction = 2 then [t; p'.typ] else assert false) in
           let e3 = 
-            C.mk_fun l_unk None [p'] None (C.mk_do (exp_to_locn e) sk1 m lns sk2 exp sk3 t (Some (exp_to_typ e))) 
+            C.mk_fun l_unk None [p'] None (C.mk_do (exp_to_locn e) sk1 m lns sk2 exp sk3 (t, direction) (Some (exp_to_typ e))) 
               (Some { Types.t = Types.Tfn(p'.typ,exp_to_typ e)})
           in
             Some (C.mk_infix l_unk e1 e2 e3 (Some (exp_to_typ e)))

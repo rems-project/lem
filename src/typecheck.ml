@@ -1045,18 +1045,20 @@ module Make_checker(T : sig
                                            build_monad_type tv2)},
                                   build_monad_type tv2)})}
             in
-            let () =
+            let direction =
               match bind_tvs with
                 | [tv1;tv2] ->
-                    (*(try*)
+                    (try
                       assert_equal mod_id.id_locn "do/>>="
                         T.d bind_type
-                        (build_bind_type tv1 tv2) 
-                    (*with
+                        (build_bind_type tv1 tv2);
+                      1
+                    with
                       Ident.No_type _ ->
                         assert_equal mod_id.id_locn "do/>>="
                           T.d bind_type
-                          (build_bind_type tv2 tv1))*)
+                          (build_bind_type tv2 tv1);
+                      2)
                 | tvs ->
                     raise_error mod_id.id_locn (Printf.sprintf "monad >>= function with %d type parameters" (List.length tvs))
                       Path.pp mod_id.descr.mod_binding
@@ -1069,7 +1071,7 @@ module Make_checker(T : sig
               C.equate_types l "do expression" (exp_to_typ exp)
                 { t = Tapp([a], monad_type_ctor) };
               C.equate_types l "do expression" (exp_to_typ exp) ret_type;
-              A.mk_do l sk1 mod_id lns sk2 exp sk3 a rt
+              A.mk_do l sk1 mod_id lns sk2 exp sk3 (a,direction) rt
 
   and check_lns (l_e : lex_env) 
                 (monad_type_ctor : Path.t)
