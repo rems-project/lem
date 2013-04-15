@@ -91,15 +91,17 @@ let gensym_tex_command =
     n := 1 + !n;
     tex_command_escape (Ulib.Text.of_string (string_of_int !n))
 
-(* Implement SML's toString:
-   http://www.standardml.org/Basis/char.html#SIG:CHAR.toString:VAL *)
-let string_escape_sml s =
+(* Use SML-style escape sequences for HOL, with some caveats.  See
+ * src/parse/MLstring.sml in HOL source code, as well as
+ * http://www.standardml.org/Basis/char.html#SIG:CHAR.toString:VAL *)
+let string_escape_hol s =
   let b = Buffer.create (String.length s) in
-  let escape_char c = match Ulib.UChar.code c with
+  let escape_char c = match int_of_char c with
   | 0x5c -> "\\\\" (* backslash *)
   | 0x22 -> "\\\"" (* double quote *)
+  | 0x5e -> "^^"   (* carret *)
   | x when x >= 32 && x <= 126 -> (* other printable characters *)
-      String.make 1 (Ulib.UChar.char_of c)
+      String.make 1 c
   | 0x07 -> "\\a" (* common control characters *)
   | 0x08 -> "\\b"
   | 0x09 -> "\\t"
@@ -108,14 +110,14 @@ let string_escape_sml s =
   | 0x0c -> "\\f"
   | 0x0d -> "\\r"
   | x when x >= 0 && x < 32 -> (* other control characters *)
-      Printf.sprintf "\\^%c" (char_of_int (x + 64))
-  | x when x > 126 && x < 1000 ->
+      Printf.sprintf "\\^^%c" (char_of_int (x + 64))
+  | x when x > 126 && x <= 255 ->
       Printf.sprintf "\\%03u" x
-  | x when x > 999 ->
-      Printf.sprintf "\\u%04x" x
-  | _ -> failwith "Ulib.UChar.code returned a negative value"
+  | _ -> failwith "int_of_char returned an unexpected value"
   in
-  Ulib.UTF8.iter (fun c -> Buffer.add_string b (escape_char c)) s;
+  (* Do not iterate on the UTF8 code, because HOL does not handle UTF8 even
+   * though SML does, for some reason. *)
+  String.iter (fun c -> Buffer.add_string b (escape_char c)) s;
   Buffer.contents b
 
 module type Target = sig
@@ -974,7 +976,7 @@ module Hol : Target = struct
   let const_unit s = kwd "() " ^ ws s
   let const_empty s = kwd "{" ^ ws s ^ kwd "}"
   let string_quote = r"\""
-  let string_escape = string_escape_sml
+  let string_escape = string_escape_hol
   let const_num = num
   let const_undefined t m = (kwd "ARB") 
   let const_bzero = emp
