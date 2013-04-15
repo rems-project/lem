@@ -96,17 +96,17 @@ let gensym_tex_command =
 let string_escape_sml s =
   let b = Buffer.create (String.length s) in
   let escape_char c = match Ulib.UChar.code c with
-  | 0x5c -> "\\\\\\\\" (* backslash *)
-  | 0x22 -> "\\\\\\\"" (* double quote *)
+  | 0x5c -> "\\\\" (* backslash *)
+  | 0x22 -> "\\\"" (* double quote *)
   | x when x >= 32 && x <= 126 -> (* other printable characters *)
       String.make 1 (Ulib.UChar.char_of c)
-  | 0x07 -> "\\\\a" (* common control characters *)
-  | 0x08 -> "\\\\b"
-  | 0x09 -> "\\\\t"
-  | 0x0a -> "\\\\n"
-  | 0x0b -> "\\\\v"
-  | 0x0c -> "\\\\f"
-  | 0x0d -> "\\\\r"
+  | 0x07 -> "\\a" (* common control characters *)
+  | 0x08 -> "\\b"
+  | 0x09 -> "\\t"
+  | 0x0a -> "\\n"
+  | 0x0b -> "\\v"
+  | 0x0c -> "\\f"
+  | 0x0d -> "\\r"
   | x when x >= 0 && x < 32 -> (* other control characters *)
       Printf.sprintf "\\^%c" (char_of_int (x + 64))
   | x when x > 126 && x < 1000 ->
