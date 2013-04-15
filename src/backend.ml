@@ -110,9 +110,9 @@ let string_escape_sml s =
   | x when x >= 0 && x < 32 -> (* other control characters *)
       Printf.sprintf "\\^%c" (char_of_int (x + 64))
   | x when x > 126 && x < 1000 ->
-      Printf.sprintf "\\%03d" x
+      Printf.sprintf "\\%03u" x
   | x when x > 999 ->
-      Printf.sprintf "\\u%04d" x
+      Printf.sprintf "\\u%04x" x
   | _ -> failwith "Ulib.UChar.code returned a negative value"
   in
   Ulib.UTF8.iter (fun c -> Buffer.add_string b (escape_char c)) s;
