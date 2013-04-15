@@ -631,14 +631,13 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
           let bodies = List.filter (compare_clauses_by_name name) clause_list in
           let index_types =
             match bodies with
-              | [] -> from_string "Prop"
+              | [] -> [from_string "Prop"]
               | (_, _, _, _, _, _, _, exp_list)::xs ->
-                  match exp_list with
-                    | [] -> from_string "Prop"
-                    | t::_ ->
-                        combine [
-                          from_string "("; typ $ C.t_to_src_t (Typed_ast.exp_to_typ t); from_string ")"
-                        ]
+                  List.map (fun t ->
+                    combine [
+                      from_string "("; field_typ $ C.t_to_src_t (Typed_ast.exp_to_typ t); from_string ")"
+                    ]
+                  ) exp_list
           in
           let bodies =
             List.map (fun (name_lskips_t_opt, skips, name_lskips_annot_list, skips', exp_opt, skips'', name_lskips_annot, exp_list) ->
@@ -691,7 +690,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
           in
           let index_types =
             combine [
-              index_types; from_string " -> Prop"
+              separate " -> " index_types; from_string " -> Prop"
             ]
           in
           let bodies = separate "\n  | " $ List.map (fun (x, y) -> x) bodies in
