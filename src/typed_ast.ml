@@ -317,7 +317,7 @@ and exp_aux =
   (* true for list comprehensions, false for set comprehensions *)
   | Comp_binding of bool * lskips * exp * lskips * lskips * quant_binding list * lskips * exp * lskips
   | Quant of Ast.q * quant_binding list * lskips * exp
-  | Do of lskips * mod_descr id * do_line list * lskips * exp * lskips
+  | Do of lskips * mod_descr id * do_line list * lskips * exp * lskips * Types.t
 
 and do_line = Do_line of (pat * lskips * exp * lskips)
 
@@ -665,9 +665,9 @@ let rec alter_init_lskips (lskips_f : lskips -> lskips * lskips) (e : exp) : exp
       | Quant(Ast.Q_exists(s1),ns,s2,e) ->
           let (s_new, s_ret) = lskips_f s1 in
             res (Quant(Ast.Q_exists(s_new), ns, s2, e)) s_ret
-      | Do(s1,mid,do_lines,sk2,e,sk3) ->
+      | Do(s1,mid,do_lines,sk2,e,sk3,t) ->
           let (s_new, s_ret) = lskips_f s1 in
-            res (Do(s_new,mid,do_lines,sk2,e,sk3)) s_ret
+            res (Do(s_new,mid,do_lines,sk2,e,sk3,t)) s_ret
 
 let append_lskips lskips (p : exp) : exp =
   let (e, _) = alter_init_lskips (fun s -> (Ast.combine_lex_skips lskips s, None)) p in
@@ -1511,9 +1511,9 @@ module Exps_in_context(D : Exp_context) = struct
         | Quant(q,qbs,s,e) ->
             let (new_qbs,e) = push_quant_binds_subst1 subst qbs e in
               Quant(q,new_qbs,s,e)
-        | Do(s1,mid,do_lines,s2,e,s3) ->
+        | Do(s1,mid,do_lines,s2,e,s3,t) ->
             let (new_do_lines,e) = push_do_lines_subst subst do_lines e in
-              Do(s1,mid,new_do_lines,s2, List.hd e, s3)
+              Do(s1,mid,new_do_lines,s2, List.hd e, s3,t)
 
 
   (*
@@ -2207,10 +2207,10 @@ module Exps_in_context(D : Exp_context) = struct
   let do_lns_envs l do_lns =
     List.map (function | Do_line(_,_,e,_) -> exp_to_free e) do_lns
 
-  let mk_do l s1 mid do_lns s2 e s3 t =
+  let mk_do l s1 mid do_lns s2 e s3 ret_t t =
     (* TODO: actually do the check *)
     let t = check_typ l "mk_do" t (fun d -> e.typ ) in
-      { term = Do(s1,mid,do_lns,s2,e,s3);
+      { term = Do(s1,mid,do_lns,s2,e,s3,ret_t);
         locn = l;
         typ = t;
         rest =

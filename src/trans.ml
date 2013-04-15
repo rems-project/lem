@@ -1193,5 +1193,36 @@ let rec coq_type_annot_pat_vars (level,pos) p =
         Some(C.mk_pvar_annot l_unk n (C.t_to_src_t p.typ) (Some(p.typ)))
     | _ -> None
 
+let bind_id l = function
+  | Id_none(sk) ->
+      Id_some(Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r ">>="))) l)
+  | Id_some(id) ->
+      let (n1,n2) = Ident.to_name_list id in
+        Id_some (Ident.mk_ident 
+                   ((List.map (fun n -> (Name.add_lskip n, None)) n1)@[(Name.add_lskip n2, None)]) 
+                   (Name.add_lskip (Name.from_rope (r ">>="))) 
+                   l)
+
+
+let bind_const l m i =
+  let (n1,n2) = Path.to_name_list m.descr.mod_binding in
+  let descr = names_get_const E.env (n1@[n2]) (Name.from_rope (r">>=")) in
+    C.mk_const l { id_path = bind_id l m.id_path; id_locn = l; descr = descr; instantiation = i } None
+
+let remove_do e =
+  let l_unk = Ast.Trans("remove_do", Some (exp_to_locn e)) in
+    match C.exp_to_term e with
+      | Do(sk1, m, [], sk2, e, sk3,t) ->
+          Some e
+      | Do(sk1, m, Do_line(p',sk1',e',sk2')::lns, sk2, exp, sk3,t) ->
+          let e1 = e' in
+          let e2 = bind_const l_unk m [p'.typ; t] in
+          let e3 = 
+            C.mk_fun l_unk None [p'] None (C.mk_do (exp_to_locn e) sk1 m lns sk2 exp sk3 t (Some (exp_to_typ e))) 
+              (Some { Types.t = Types.Tfn(p'.typ,exp_to_typ e)})
+          in
+            Some (C.mk_infix l_unk e1 e2 e3 (Some (exp_to_typ e)))
+      | _ -> None
+
 end
 

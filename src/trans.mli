@@ -189,5 +189,6 @@ module Macros (I : Types.Global_defs) (E : sig val env : env end) : sig
   val add_nexp_param_in_const : exp macro
   val remove_vector_access : exp macro
   val remove_vector_sub : exp macro
+  val remove_do : exp macro
 
 end

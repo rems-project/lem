@@ -215,8 +215,8 @@ let rec fix_exp target e =
             is_lst s1 (trans e1) s2 s3 qbs s4 (trans e2) s5
             old_t
       (* TODO: Why is lns ignored *)
-      | Do(s1,mid,lns,s2,e,s3) ->
-          C.mk_do old_l s1 mid lns s2 (trans e) s3 old_t
+      | Do(s1,mid,lns,s2,e,s3,ret_t) ->
+          C.mk_do old_l s1 mid lns s2 (trans e) s3 ret_t old_t
       | Quant(q,qbs,s,e) ->
           C.mk_quant old_l
             q

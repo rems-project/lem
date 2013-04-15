@@ -263,7 +263,7 @@ let rec expand_exp ((r,typ_r,src_typ_r,pat_r):((exp -> exp option) * (Types.t ->
                     s
                     (trans e)
                     (Some new_t)
-              | Do(s1,mid,do_lines,s2,e,s3) ->
+              | Do(s1,mid,do_lines,s2,e,s3,t) ->
                   C.mk_do old_l s1
                     mid
                     (List.map
@@ -274,6 +274,7 @@ let rec expand_exp ((r,typ_r,src_typ_r,pat_r):((exp -> exp option) * (Types.t ->
                     s2
                     (trans e)
                     s3
+                    t
                     (Some new_t)
               | Constructor(c) ->
                   C.mk_constr old_l c (Some new_t)
