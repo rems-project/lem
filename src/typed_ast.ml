@@ -317,7 +317,7 @@ and exp_aux =
   (* true for list comprehensions, false for set comprehensions *)
   | Comp_binding of bool * lskips * exp * lskips * lskips * quant_binding list * lskips * exp * lskips
   | Quant of Ast.q * quant_binding list * lskips * exp
-  | Do of lskips * mod_descr id * do_line list * lskips * exp * lskips * Types.t
+  | Do of lskips * mod_descr id * do_line list * lskips * exp * lskips * (Types.t * int)
 
 and do_line = Do_line of (pat * lskips * exp * lskips)
 
