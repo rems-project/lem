@@ -1209,6 +1209,7 @@ let bind_const l m i =
   let descr = names_get_const E.env (n1@[n2]) (Name.from_rope (r">>=")) in
     C.mk_const l { id_path = bind_id l m.id_path; id_locn = l; descr = descr; instantiation = i } None
 
+(* TODO: do something sensible with the spacing *)
 let remove_do e =
   let l_unk = Ast.Trans("remove_do", Some (exp_to_locn e)) in
     match C.exp_to_term e with
@@ -1218,7 +1219,7 @@ let remove_do e =
           let e1 = e' in
           let e2 = bind_const l_unk m (if direction = 1 then [p'.typ; t] else if direction = 2 then [t; p'.typ] else assert false) in
           let e3 = 
-            C.mk_fun l_unk None [p'] None (C.mk_do (exp_to_locn e) sk1 m lns sk2 exp sk3 (t, direction) (Some (exp_to_typ e))) 
+            C.mk_fun l_unk None [p'] sk1' (C.mk_do (exp_to_locn e) sk1 m lns sk2 exp sk3 (t, direction) (Some (exp_to_typ e))) 
               (Some { Types.t = Types.Tfn(p'.typ,exp_to_typ e)})
           in
             Some (C.mk_infix l_unk e1 e2 e3 (Some (exp_to_typ e)))
