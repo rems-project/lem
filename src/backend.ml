@@ -2007,7 +2007,7 @@ match C.exp_to_term e with
         block is_user_exp 0 (
         exp e))
 
-  | Do(s1,m,do_lns,s2,e,s3) ->
+  | Do(s1,m,do_lns,s2,e,s3,_) ->
       ws s1 ^
       kwd "do" ^
       Ident.to_output T.infix_op_format Module_name T.path_sep (resolve_ident_path m m.descr.mod_binding) ^
