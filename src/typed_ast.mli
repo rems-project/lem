@@ -332,7 +332,12 @@ and exp_aux = private
   (* true for list comprehensions, false for set comprehensions *)
   | Comp_binding of bool * lskips * exp * lskips * lskips * quant_binding list * lskips * exp * lskips
   | Quant of Ast.q * quant_binding list * lskips * exp
+  (* The last argument is the type of the value in the monad, paired with an
+   * integer.  1 if the type is the first type argument to bind, 2 if it is the
+   * second *)
+  | Do of lskips * mod_descr id * do_line list * lskips * exp * lskips * (Types.t * int)
 
+and do_line = Do_line of (pat * lskips * exp * lskips)
 
 and fexp = field_descr id * lskips * exp * Ast.l
 
@@ -429,6 +434,9 @@ and def_aux =
    * over, and the list contains the class constraints on those variables *)
   | Val_def of val_def * Types.TNset.t * (Path.t * Types.tnvar) list 
   | Lemma of lskips * Ast.lemma_typ * targets_opt * (name_l * lskips) option * lskips * exp * lskips
+    (* Renaming for already defined constants and types, e.g., if you want to 
+     * control how a name that isn't allowed in a particular back-end gets
+     * changed *)
   | Ident_rename of lskips * targets_opt * Path.t * Ident.t * lskips * name_l
   | Module of lskips * name_l * lskips * lskips * def list * lskips
   | Rename of lskips * name_l * lskips * mod_descr id
@@ -562,6 +570,7 @@ module Exps_in_context(C : Exp_context) : sig
   val mk_setcomp : Ast.l -> lskips -> exp -> lskips -> exp -> lskips -> NameSet.t -> Types.t option -> exp
   val mk_comp_binding : Ast.l -> bool -> lskips -> exp -> lskips -> lskips -> quant_binding list -> lskips -> exp -> lskips -> Types.t option -> exp
   val mk_quant : Ast.l -> Ast.q -> quant_binding list -> lskips -> exp -> Types.t option -> exp
+  val mk_do : Ast.l -> lskips -> mod_descr id -> do_line list -> lskips -> exp -> lskips -> (Types.t * int) -> Types.t option -> exp
   val t_to_src_t : Types.t -> src_t
   val pat_subst : Types.t Types.TNfmap.t * Name.t Nfmap.t -> pat -> pat
   val delimit_exp : (Precedence.op -> Precedence.t) -> Precedence.context -> exp -> exp

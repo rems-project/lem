@@ -8,6 +8,7 @@ all:
 	./test_script basic_typedefs.lem
 	./test_script identifiers.lem
 	./test_script classes.lem
+	./test_script do_notation.lem
 
 clean:
 	-ocamlbuild -clean

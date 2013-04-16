@@ -91,6 +91,35 @@ let gensym_tex_command =
     n := 1 + !n;
     tex_command_escape (Ulib.Text.of_string (string_of_int !n))
 
+(* Use SML-style escape sequences for HOL, with some caveats.  See
+ * src/parse/MLstring.sml in HOL source code, as well as
+ * http://www.standardml.org/Basis/char.html#SIG:CHAR.toString:VAL *)
+let string_escape_hol s =
+  let b = Buffer.create (String.length s) in
+  let escape_char c = match int_of_char c with
+  | 0x5c -> "\\\\" (* backslash *)
+  | 0x22 -> "\\\"" (* double quote *)
+  | 0x5e -> "^^"   (* carret *)
+  | x when x >= 32 && x <= 126 -> (* other printable characters *)
+      String.make 1 c
+  | 0x07 -> "\\a" (* common control characters *)
+  | 0x08 -> "\\b"
+  | 0x09 -> "\\t"
+  | 0x0a -> "\\n"
+  | 0x0b -> "\\v"
+  | 0x0c -> "\\f"
+  | 0x0d -> "\\r"
+  | x when x >= 0 && x < 32 -> (* other control characters *)
+      Printf.sprintf "\\^^%c" (char_of_int (x + 64))
+  | x when x > 126 && x <= 255 ->
+      Printf.sprintf "\\%03u" x
+  | _ -> failwith "int_of_char returned an unexpected value"
+  in
+  (* Do not iterate on the UTF8 code, because HOL does not handle UTF8 even
+   * though SML does, for some reason. *)
+  String.iter (fun c -> Buffer.add_string b (escape_char c)) s;
+  Buffer.contents b
+
 module type Target = sig
   val lex_skip : Ast.lex_skip -> Ulib.Text.t
   val need_space : Output.t' -> Output.t' -> bool
@@ -947,7 +976,7 @@ module Hol : Target = struct
   let const_unit s = kwd "() " ^ ws s
   let const_empty s = kwd "{" ^ ws s ^ kwd "}"
   let string_quote = r"\""
-  let string_escape = String.escaped (* XXX fix string escaping for HOL *)
+  let string_escape = string_escape_hol
   let const_num = num
   let const_undefined t m = (kwd "ARB") 
   let const_bzero = emp
@@ -2006,7 +2035,29 @@ match C.exp_to_term e with
         break_hint_space 2 ^
         block is_user_exp 0 (
         exp e))
+
+  | Do(s1,m,do_lns,s2,e,s3,_) ->
+      ws s1 ^
+      kwd "do" ^
+      Ident.to_output T.infix_op_format Module_name T.path_sep (resolve_ident_path m m.descr.mod_binding) ^
+      do_lines do_lns ^
+      ws s2 ^
+      kwd "in" ^
+      exp e ^
+      ws s3 ^
+      kwd "end"
           
+and do_lines = function
+  | [] -> emp
+  | (Do_line(p,s1,e,s2)::lns) ->
+      pat p ^
+      ws s1 ^
+      kwd "<-" ^
+      exp e ^
+      ws s2 ^
+      kwd ";" ^
+      do_lines lns
+
 and quant_binding = function
   | Qb_var(n) -> 
       Name.to_output T.infix_op_format Term_var n.term

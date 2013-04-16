@@ -142,6 +142,7 @@ struct
                                  T.remove_quant;
                                  T.remove_vector_access;
                                  T.remove_vector_sub;
+                                 T.remove_do;
                                  Patterns.compile_exp (Some Target_ocaml) Patterns.is_ocaml_pattern_match C.d env])
                ];
       get_prec = Precedence.get_prec_ocaml;

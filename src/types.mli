@@ -110,6 +110,11 @@ val tnvar_to_type : tnvar -> t
 val tnvar_split : tnvar list -> (tnvar list * tnvar list)
 
 type tc_def = 
+  (* A type definition has 
+   * 1) a list of type and length parameters,
+   * 2) if it is an abbreviation, the type it abbreviates, and
+   * 3) optionally, a regular expression that variable names that have the type
+   *    must match *)
   | Tc_type of tnvar list * t option * string option
   (* The class' type parameter, and the names and types of the methods *)
   | Tc_class of tnvar * (Name.t * t) list
@@ -145,7 +150,7 @@ end
 module Constraint (T : Global_defs) : sig
   val new_type : unit -> t
   val new_nexp : unit -> nexp
-  val equate_types : Ast.l -> t -> t -> unit
+  val equate_types : Ast.l -> string -> t -> t -> unit
   val in_range : Ast.l -> nexp -> nexp -> unit
   val add_constraint : Path.t -> t -> unit
   val add_length_constraint : range -> unit

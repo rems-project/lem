@@ -1,0 +1,59 @@
+module M = struct
+  type t 'a = option 'a
+  val return : forall 'a. 'a -> option 'a
+  val (>>=) : forall 'a 'b. option 'a -> ('a -> option 'b) -> option 'b
+  let return x = Some x
+  let (>>=) x f =
+    match x with
+      | None -> None
+      | Some y -> f y
+    end
+end
+
+let test1 = 
+  do M
+  in
+    M.return 4
+  end
+
+let test2 =
+  do M
+    x <- M.return 1 ;
+    y <- None ;
+  in
+    y
+end
+
+let test3 =
+  do M
+    y <- None ;
+    x <- M.return 1 ;
+  in
+    y
+end
+
+let test4 = 
+  do M
+    x <- M.return 1 ;
+    y <- M.return (x + 1) ;
+  in 
+    M.return (x + y)
+end
+
+let test5 =
+  (do M
+    (x,y) <- M.return (1,true) ;
+    z <- M.return x ;
+    y <- M.return 1 ;
+    1 <- M.return y ;
+  in
+    M.return (x,y,z) 
+  end : option (num * num * num))
+
+let test6 f x =
+  do M
+    x <- f x ;
+    y <- f (x + 4) ;
+  in
+    f (x + y)
+  end
