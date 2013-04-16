@@ -371,13 +371,15 @@ type val_spec = lskips * name_l * lskips * typschm
 
 type class_val_spec = lskips * name_l * lskips * src_t
 
-type targets_opt = (lskips * Ast.target lskips_seplist * lskips) option
+type targets_opt = (bool * lskips * Ast.target lskips_seplist * lskips) option
 
-let in_targets_opt t_opt targets_opt = match t_opt with
+let in_targets_opt (t_opt : Ast.target option) (targets_opt : targets_opt) : bool = match t_opt with
     None   -> true
   | Some t -> (match targets_opt with 
                  None -> true
-               | Some (_, targets, _) -> Seplist.exists (fun t' -> ast_target_compare t t' = 0) targets)
+               | Some (neg, _, targets, _) -> 
+                 let is_in = Seplist.exists (fun t' -> ast_target_compare t t' = 0) targets in
+                 if neg then not is_in else is_in)
 
 type val_def = 
   | Let_def of lskips * targets_opt * letbind

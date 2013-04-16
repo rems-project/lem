@@ -114,14 +114,7 @@ let need_space x y =
       	not d1 && not d2 && s1 = s2
 ;;
 
-let in_target =
-  function
-    | None -> true
-    | Some (_, targets, _) ->
-        Seplist.exists (fun t' ->
-          ast_target_compare (Ast.Target_coq None) t' = 0
-        ) targets
-;;
+let in_target targets = Typed_ast.in_targets_opt (Some (Ast.Target_coq None)) targets;;
 
 let coq_infix_op a x =
   combine [

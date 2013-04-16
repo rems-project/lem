@@ -143,7 +143,7 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 
 %}
 
-%token <Ast.terminal> Dot Lparen Rparen Comma Under Arrow As Colon Lcurly Rcurly
+%token <Ast.terminal> Dot Lparen Rparen Comma Under Arrow As Colon NegLcurly Lcurly Rcurly
 %token <Ast.terminal> Semi Lsquare Rsquare Fun_ Function_ Bar With Match Let_ And HashZero HashOne
 %token <Ast.terminal> In Of Rec Type Rename Module_ Struct End Open_ SemiSemi Eof
 %token <Ast.terminal> True False Begin_ If_ Then Else Val
@@ -827,6 +827,8 @@ targets_opt:
     { Some(Targets_concrete($1,[],$2)) }
   | Lcurly targets Rcurly
     { Some(Targets_concrete($1,$2,$3)) }
+  | NegLcurly targets Rcurly
+    { Some(Targets_neg_concrete($1,$2,$3)) }
     
 lemma_typ:
   | Lemma

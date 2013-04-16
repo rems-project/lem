@@ -129,6 +129,7 @@ rule token skips = parse
   | "+"					{ (Plus(Some(skips),r"+")) }
   | ">="				{ (GtEq(Some(skips),r">=")) }
   | ":"                                 { (Colon(Some(skips))) }
+  | "~{"                                { (NegLcurly(Some(skips))) }
   | "{"                                 { (Lcurly(Some(skips))) }
   | "}"                                 { (Rcurly(Some(skips))) }
   | ";"                                 { (Semi(Some(skips))) }

@@ -526,7 +526,7 @@ name_opt {{ tex \ottnt{name}^{?} }} :: 'Name_sect_' ::=
 
 td :: '' ::=
   {{ com Type definitions }}
-  | x_l tnvars name_opt = texp			 			:: :: Td
+  | x_l tnvars name_opt = texp			 	:: :: Td
   | x_l	tnvars name_opt					:: :: Td_opaque
     {{ com Definitions of opaque types }}
 
@@ -571,6 +571,8 @@ targets {{ tex \ensuremath{\tau} }} :: 'Targets_' ::=		{{ hol target list }}
   {{ com Backend target name lists }}
   | { target1 ; .. ; targetn }					:: :: concrete
     {{ hol [[target1..targetn]] }}
+  | ~{ target1 ; .. ; targetn }					:: :: neg_concrete
+    {{ com all targets except the listed ones }}
 
 targets_opt {{ tex \ensuremath{\tau^?} }} :: 'Targ_' ::= {{ phantom }}
 								{{ hol targets option }}
@@ -595,6 +597,23 @@ lemma_decl :: '' ::=
   | lemma_typ targets_opt ( exp )				:: :: Lemma_unnamed
 
 
+dexp :: 'Dexp_' ::=
+  {{ com declaration field-expressions }}
+  | name_s = string l						:: :: name
+  | format = string l						:: :: format
+  | arguments = exp1 ... expn l					:: :: arguments
+  | targuments = texp1 ... texpn l				:: :: targuments
+
+declare_arg :: 'Decl_arg_' ::= 
+  {{ com agruments to a declaration }}
+  | string                        				:: :: string
+  | <| dexp1 ; ... ; dexpn semi_opt l |>			:: :: record
+
+declare_def :: '' ::= 
+  {{ com declarations }}
+  | declare targets_opt target-type x_l tnvars = declare_arg   :: :: Decl_target_type
+    {{ com Non-recursive value definitions }}
+
 val_def :: '' ::= 
   {{ com Value definitions }}
   | let targets_opt letbind					:: :: Let_def
@@ -616,6 +635,8 @@ def_aux :: '' ::=
     {{ com Value definitions }}
   | lemma_decl							:: :: Lemma
     {{ com Lemmata }}
+  | declare_def                                                 :: :: Declaration
+    {{ com a declaration that modifies Lem's behaviour }}
   | rename targets_opt id = x_l                                 :: :: Ident_rename
     {{ com Rename constant or type }}
   | module x_l = struct defs end				:: :: Module

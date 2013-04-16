@@ -1922,6 +1922,11 @@ let target_opt_to_set : Ast.targets option -> Targetset.t option = function
              (fun (t,_) ks -> Targetset.add (ast_targ_to_targ t) ks)
              targs
              Targetset.empty)
+  | Some(Ast.Targets_neg_concrete(_,targs,_)) ->
+      Some(List.fold_right
+             (fun (t,_) ks -> Targetset.remove (ast_targ_to_targ t) ks)
+             targs
+             all_targets)
 
 let target_opt_to_env_tag : Targetset.t option -> env_tag = function
   | None -> K_let
@@ -1930,7 +1935,9 @@ let target_opt_to_env_tag : Targetset.t option -> env_tag = function
 let check_target_opt : Ast.targets option -> _ = function
   | None -> None
   | Some(Ast.Targets_concrete(s1,targs,s2)) -> 
-      Some(s1,Seplist.from_list targs,s2)
+      Some(false, s1,Seplist.from_list targs,s2)
+  | Some(Ast.Targets_neg_concrete(s1,targs,s2)) -> 
+      Some(true, s1,Seplist.from_list targs,s2)
 
 let pat_to_name p = 
   match p.term with

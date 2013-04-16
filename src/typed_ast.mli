@@ -384,8 +384,17 @@ type val_spec = lskips * name_l * lskips * typschm
 
 type class_val_spec = lskips * name_l * lskips * src_t
 
-type targets_opt = (lskips * Ast.target lskips_seplist * lskips) option
+(** targets_opt is represents a set of targets. There are 3 types of values   
+{ul
+    {- `None` represents the universal set, i.e. all targets}
+    {- `Some (false, sk_1, tl, sk_2)` (in source `\{ t1; ...; tn \}`) is the set of all targets in the list `tl`}
+    {- `Some (true, sk_1, tl, sk_2)` (in source `~\{ t1; ...; tn \}`) is the set of all targets {b not} in the list `tl`}
+}
+*)
+type targets_opt = (bool * lskips * Ast.target lskips_seplist * lskips) option
 
+(** [in_targets_opt t_opt targets_opt] checks whether the target `t_opt` is in the set of targets represented by
+    `targets_opt`. If `t_opt` is `None`, this represents the identity backend and `true` is returned. *)
 val in_targets_opt : Ast.target option -> targets_opt -> bool
 
 type val_def = 

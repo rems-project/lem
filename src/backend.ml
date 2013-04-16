@@ -2192,19 +2192,14 @@ let indreln_clause (name_opt, s1, qnames, s2, e_opt, s3, rname, es) =
 
 let targets_opt = function
   | None -> emp
-  | Some((s1,targets,s2)) ->
+  | Some((b,s1,targets,s2)) ->
       ws s1 ^
-      T.set_start ^
+      (if b then kwd "~{" else kwd "{") ^
       flat (Seplist.to_sep_list (target_to_output Target) (sep T.set_sep) targets) ^
       ws s2 ^
-      T.set_end
+      kwd "}"
 
-let in_target targs = 
-  match (T.target,targs) with
-    | (None,_) -> true
-    | (_,None) -> true
-    | (Some(t), Some((_,targets,_))) ->
-        Seplist.exists (fun t' -> ast_target_compare t t' = 0) targets
+let in_target targs = Typed_ast.in_targets_opt T.target targs
 
 
 (****** Isabelle ******)

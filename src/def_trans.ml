@@ -412,17 +412,6 @@ let nvar_to_parameter : def_macro = fun mod_path env ((d,s),l) ->
       | _ -> None
 
 
-let find_target target targets =
-  let rec f = function
-    | [] -> false
-    | t'::l ->
-        if ast_target_compare target t' = 0 then
-          true
-        else
-          f l
-  in
-    f (Seplist.to_list targets)
-
 let get_name def l = match def with
 
   | Indreln(_,_,clauses) -> (match Seplist.to_list clauses with 
@@ -488,16 +477,16 @@ let prune_target_bindings target defs =
   (* def_walker walks over a list of definitions, checks for each def if it is a 
    * target specific one, in which case it invokes rem_dups with both, the
    * already checked defs and the remaining defs *)
-  let rec def_walker target acc =  function
+  let rec def_walker (target : Ast.target) acc =  function
     | [] -> List.rev acc
 
     | ((def,s),l)::defs -> begin
       match def with
-        | (Val_def(Let_def(_,Some(_,targs,_),_),_,_) |
-          Val_def(Rec_def(_,_,Some(_,targs,_),_),_,_) |
-          Indreln(_,Some(_,targs,_),_) ) as d -> 
+        | (Val_def(Let_def(_,topt,_),_,_) |
+          Val_def(Rec_def(_,_,topt,_),_,_) |
+          Indreln(_,topt,_) ) as d -> 
 
-          if find_target target targs then 
+          if Typed_ast.in_targets_opt (Some target) topt then 
               let name = get_name d l in
               let acc' = rem_dups name acc in  
               let defs' = rem_dups name defs in
@@ -506,7 +495,7 @@ let prune_target_bindings target defs =
             def_walker target acc defs
       
        | Lemma(_,lty,targets,_,_,_,_) as d ->
-         let targ_OK = match targets with None -> true | Some (_, targs, _) -> find_target target targs in
+         let targ_OK = Typed_ast.in_targets_opt (Some target) targets in
          if (target_supports_lemma_type target lty && targ_OK) then
             def_walker target (((d,s),l) :: acc) defs
          else
