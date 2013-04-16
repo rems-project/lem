@@ -168,6 +168,7 @@ struct
                          T.remove_set_comp_binding;
                          T.do_substitutions Target_isa;
                          T.sort_record_fields; 
+                         T.string_lits_isa;
                          Patterns.compile_exp (Some Target_isa) Patterns.is_isabelle_pattern_match C.d env]);
         Pat_macros (fun env ->
                       let module T = T(struct let env = env end) in

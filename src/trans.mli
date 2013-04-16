@@ -175,6 +175,10 @@ module Macros (I : Types.Global_defs) (E : sig val env : env end) : sig
       [Ocaml.Pset.from_list (type_specific compare) [e1, ..., en]] *)
   val remove_sets : exp macro
 
+  (** [string_lits_isa] translates non-representable string literals into list
+      of characters for Isabelle *)
+  val string_lits_isa : exp macro
+
   (** [remove_fun_pats keep_tup] removes patterns from expressions of the from
       [fun p1 ... pn -> e] by introducing [function] expressions. 
       Variable patterns and - if [keep_tup] is set - tuple patterns are kept. *)
