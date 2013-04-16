@@ -105,7 +105,7 @@ lit_aux =  (* Literal constants *)
  | L_num of terminal * int
  | L_hex of terminal * string (* hex and bin are constant bit vectors, entered as C-style hex or binaries *)
  | L_bin of terminal * string
- | L_string of terminal * string
+ | L_string of terminal * Ulib.UTF8.t
  | L_unit of terminal * terminal
  | L_zero of terminal (* bitzero and bitone are constant bits, if commonly used we will consider overloading 0 and 1 *)
  | L_one of terminal
@@ -332,8 +332,8 @@ targets =  (* Backend target name lists *)
 
 type 
 dexp =  (* declaration field-expressions *)
-   Dexp_name of terminal * terminal * terminal * string * l
- | Dexp_format of terminal * terminal * terminal * string * l
+   Dexp_name of terminal * terminal * terminal * Ulib.UTF8.t * l
+ | Dexp_format of terminal * terminal * terminal * Ulib.UTF8.t * l
  | Dexp_arguments of terminal * terminal * (exp) list * l
  | Dexp_targuments of terminal * terminal * (texp) list * l
 
@@ -371,7 +371,7 @@ lemma_typ =  (* Types of Lemmata *)
 
 type 
 declare_arg =  (* agruments to a declaration *)
-   Decl_arg_string of terminal * string
+   Decl_arg_string of terminal * Ulib.UTF8.t
  | Decl_arg_record of terminal * (dexp * terminal) list * terminal * bool * l * terminal
 
 
@@ -420,7 +420,8 @@ lemma_decl =  (* Lemmata and Tests *)
 
 type 
 declare_def =  (* declarations *)
-   Decl_target_type of terminal * targets option * terminal * x_l * tnvar list * terminal * declare_arg (* Non-recursive value definitions *)
+   Decl_target_type of terminal * targets option * terminal * x_l * tnvar list * terminal * declare_arg (* target type declaration *)
+ | Decl_target_const of terminal * targets option * terminal * x_l * (pat) list * terminal * declare_arg (* target constant declaration *)
 
 
 type 

@@ -611,10 +611,12 @@ declare_arg :: 'Decl_arg_' ::=
   | string                        				:: :: string
   | <| dexp1 ; ... ; dexpn semi_opt l |>			:: :: record
 
-declare_def :: '' ::= 
+declare_def :: 'Decl_' ::= 
   {{ com declarations }}
-  | declare targets_opt target-type x_l tnvars = declare_arg   :: :: Decl_target_type
-    {{ com Non-recursive value definitions }}
+  | declare targets_opt target_type x_l tnvars = declare_arg	:: :: target_type
+    {{ com target type declaration }}
+  | declare targets_opt target_const x_l pat1 ... patn = declare_arg :: :: target_const
+    {{ com target constant declaration }}
 
 val_def :: '' ::= 
   {{ com Value definitions }}

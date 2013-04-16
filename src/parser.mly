@@ -85,9 +85,9 @@ let dloc d = Def_l(d,loc ())
 let irloc ir = Rule_l(ir,loc())
 let reclloc fcl = Rec_l(fcl,loc())
 
-let pat_to_let p =
+let pat_dest_id_app p =
   match p with
-    | Pat_l(P_app(Id([],v,_),(arg::args as a)),_) ->
+    | Pat_l(P_app(Id([],v,_),a),_) ->
         Some((v,a))
     | _ ->
         None
@@ -154,7 +154,8 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 %token <Ast.terminal * string> String Bin Hex
 
 %token <Ast.terminal> Indreln Forall EqEqGt Inline LtBar BarGt Exists EqGt BraceBar BarBrace DotBrace 
-%token <Ast.terminal> Assert Lemma Theorem
+%token <Ast.terminal> Assert Lemma Theorem 
+%token <Ast.terminal> Declare TargetType TargetConst
 %token <Ast.terminal * Ulib.Text.t> IN MEM MinusMinusGt
 %token <Ast.terminal> Class_ Inst Do LeftArrow
 
@@ -685,11 +686,10 @@ fexps_help:
 
 letbind:
   | pat opt_typ_annot Eq exp
-    { match pat_to_let $1 with
-        | Some((v,pats)) ->
+    { match pat_dest_id_app $1 with
+        | Some((v,pats)) when (pats <> []) ->
             lbloc (Let_fun(Funcl(v,pats,$2,fst $3,$4)))
-        | None ->
-            lbloc (Let_val($1,$2,fst $3,$4)) }
+        | _ -> lbloc (Let_val($1,$2,fst $3,$4)) }
 
 do_exps:
   | 
@@ -836,7 +836,21 @@ targets_opt:
     { Some(Targets_concrete($1,$2,$3)) }
   | NegLcurly targets Rcurly
     { Some(Targets_neg_concrete($1,$2,$3)) }
-    
+
+decl_arg :
+  | String
+    { Decl_arg_string (fst $1, snd $1) }
+
+declaration :
+  | Declare targets_opt TargetType x tnvs Eq decl_arg
+    { Decl_target_type($1,$2,$3,$4,$5,fst $6,$7) }
+  | Declare targets_opt TargetConst pat Eq decl_arg
+    { match pat_dest_id_app $4 with
+        | Some((v,pats)) ->
+            Decl_target_const ($1,$2,$3,v,pats,fst $5,$6)
+        | None -> raise (Parse_error_locn(loc(),"Bad pattern for binding of a target_const"))
+    }
+
 lemma_typ:
   | Lemma
     { Lemma_lemma $1 }
@@ -888,6 +902,8 @@ def:
     { dloc (Instance($1,$2,$3,$4)) }
   | lemma
     { dloc (Lemma $1) }
+  | declaration
+    { dloc (Declaration $1) }
 
 xtyp:
   | x Colon typ

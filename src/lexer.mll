@@ -89,6 +89,9 @@ let kw_table =
      ("inline",                  (fun x -> Inline(x)));
      ("IN",                      (fun x -> IN(x,r"IN")));
      ("MEM",                     (fun x -> MEM(x,r"MEM")));
+     ("declare",                 (fun x -> Declare(x)));
+     ("target_type",             (fun x -> TargetType(x)));
+     ("target_const",            (fun x -> TargetConst(x)));
      ("lemma",                   (fun x -> Lemma(x)));
      ("assert",                  (fun x -> Assert(x)));
      ("theorem",                 (fun x -> Theorem(x)));
