@@ -408,6 +408,9 @@ struct
            (Typed_ast.Nk_typeconstr, 
             mk_string_path ["Pmap"] "map",
             mk_string_path [] "fmap");
+           (Typed_ast.Nk_typeconstr, 
+            mk_string_path ["Coq"; "Hol"; "Integer"] "int",
+            mk_string_path [] "int");
         ]
       | _ -> []
 

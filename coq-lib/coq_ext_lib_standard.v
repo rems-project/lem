@@ -116,7 +116,7 @@ Definition imp_b (b c: bool) :=
 
 Notation "X --> Y" := (imp_b X Y) (at level 40).
 
-(* * Arithmetic definitions. *)
+(* * Arithmetic definitions over naturals. *)
 
 Fixpoint nat_eq_b
   (m n: num): bool :=
@@ -228,6 +228,144 @@ Notation "X <= Y" := (lte_b X Y).
 Notation "X < Y" := (lt_b X Y).
 Notation "X > Y" := (gt_b X Y).
 Notation "X >= Y" := (gte_b X Y).
+
+(* * Integer arithmetic. *)
+
+Inductive int : Type :=
+  | pos: nat -> int
+  | minus_one_plus: nat -> int.
+
+Definition pos_int_of_num
+  (n: num): int :=
+    pos n.
+
+Definition neg_int_of_num
+  (n: num): int :=
+    match n with
+      | O => pos O
+      | S m => minus_one_plus m
+    end.
+
+Definition int_abs
+  (i: int): nat :=
+  match i with
+    | pos p => p
+    | minus_one_plus m => S m
+  end.
+
+Lemma neg_int_of_num_int_abs:
+  forall n,
+    int_abs (neg_int_of_num n) = n.
+Proof.
+  intro n. case n.
+    trivial.
+    intro m. trivial.
+Qed.
+
+Definition int_negation
+  (i: int): int :=
+  match i with
+    | pos (S p) => minus_one_plus p
+    | pos O => pos O
+    | minus_one_plus m => pos (S m)
+  end.
+
+Lemma int_negation_self_inverse:
+  forall i,
+    int_negation (int_negation i) = i.
+Proof.
+  intro i. case i.
+    intro n. case n.
+      trivial.
+      intro n'. trivial.
+    intro n. case n.
+      trivial.
+      intro n'. trivial.
+Qed.
+
+Fixpoint nat_minus_int
+  (m: nat) (n: nat): int :=
+  match m with
+    | O =>
+    match n with
+      | O => pos O
+      | S m => minus_one_plus m
+    end
+  | S m =>
+    match n with
+      | O => pos (S m)
+      | S n => nat_minus_int m n
+    end
+  end.
+
+Lemma nat_minus_int_O_right_neutral:
+  forall m,
+    nat_minus_int m 0 = pos m.
+Proof.
+  intro m. case m.
+    trivial.
+    intro n. trivial.
+Qed.
+
+Program Fixpoint int_plus
+  (i: int) (j: int): int :=
+  match i with
+    | pos p =>
+      match j with
+        | pos q => pos (p + q)
+        | minus_one_plus m => nat_minus_int p (S m)
+      end
+    | minus_one_plus m =>
+    match j with
+      | pos q => nat_minus_int m (S q)
+      | minus_one_plus n => minus_one_plus (S (m + n))
+    end
+  end.
+
+Lemma int_plus_pos_O_left_neutral:
+  forall i,
+    int_plus (pos O) i = i.
+Proof.
+  intro i. case i.
+    intro n. case n.
+      trivial.
+      intro m. trivial.
+    intro n. case n.
+      trivial.
+      intro m. trivial.
+Qed.
+      
+Definition int_minus
+  (i: int) (j: int): int :=
+    int_plus i (int_negation j).
+
+Axiom int_mult:
+  int -> int -> int.
+
+Fixpoint int_exp
+  (i: int) (n: num): int :=
+    match n with
+      | O => pos 1
+      | S m => int_mult i (int_exp i m)
+    end.
+
+Axiom int_div:
+  int -> int -> int.
+
+Axiom int_mod:
+  int -> int -> int.
+
+Axiom int_lt_b:
+  int -> int -> int.
+
+Axiom int_lte_b:
+  int -> int -> int.
+
+Axiom int_gt_b:
+  int -> int -> int.
+
+Axiom int_gte_b:
+  int -> int -> int.
 
 (* * Bitwise operations on numerics. *)
 
