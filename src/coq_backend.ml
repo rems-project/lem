@@ -972,8 +972,8 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
         | L_num (skips, n) -> ws skips ^ num n
         | L_string (skips, s) ->
             (* in Coq, string literals are UTF8 except doublequotes which are doubled *)
-            let escaped = Ulib.Text.concat (r"\"\"") (Ulib.Text.nsplit (Ulib.Text.of_string s) (r"\"")) in
-            ws skips ^ str escaped
+            let escaped = Str.global_replace (Str.regexp "\"") "\"\"" s in
+            ws skips ^ str (Ulib.Text.of_string escaped)
         | L_unit (skips, skips') -> ws skips ^ from_string "tt" ^ ws skips'
         | L_undefined (skips, explanation) ->
           let typ = l.typ in
