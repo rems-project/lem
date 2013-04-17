@@ -271,7 +271,7 @@ let do_substitutions target e =
                       Some(C.mk_fun l_unk
                              None (List.map 
                                      (fun n -> 
-                                        C.mk_pvar n.locn (Name.add_lskip n.term) n.typ) 
+                                        C.mk_pvar n.locn (Name.add_lskip n.term) (Types.type_subst tsubst n.typ))
                                      leftover_params) 
                              None b
                              None)
