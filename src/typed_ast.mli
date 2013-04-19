@@ -44,28 +44,28 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
-(* Sets of Names *)
+(** Sets of Names *)
 module NameSet : Set.S with type elt = Name.t and type t = Set.Make(Name).t
 
-(* Name keyed finite maps *)
+(** Name keyed finite maps *)
 module Nfmap : Finite_map.Fmap with type k = Name.t
 
 val nfmap_domain : 'a Nfmap.t -> NameSet.t
 
 type name_l = Name.lskips_t * Ast.l
 
-(* Whitespace, comments, and newlines *)
+(** Whitespace, comments, and newlines *)
 type lskips = Ast.lex_skips
 
 type 'a lskips_seplist = ('a, lskips) Seplist.t
 
-(* The empty lskip *)
+(** The empty lskip *)
 val no_lskips : lskips
 
-(* A space lskip *)
+(** A space lskip *)
 val space : lskips
 
-(* Get only the comments (and a trailing space) *)
+(** Get only the comments (and a trailing space) *)
 val lskips_only_comments : lskips list -> lskips
 
 val ast_target_compare : Ast.target -> Ast.target -> int
@@ -82,11 +82,11 @@ val ast_target_to_target : Ast.target -> target
 val target_to_ast_target : target -> Ast.target
 val target_compare : target -> target -> int
 
-(* target keyed finite maps *)
+(** target keyed finite maps *)
 module Targetmap : Finite_map.Fmap with type k = target
 module Targetset : Set.S with type elt = target
 
-(* The set of all the possible targets *)
+(** The set of all the possible targets *)
 val all_targets : Targetset.t
 
 val target_to_string : target -> string
@@ -94,78 +94,58 @@ val target_opt_to_string : target option -> string
 val target_to_output : Output.id_annot -> Ast.target -> Output.t
 val target_to_mname : target -> Name.t
 
-(* What kind of top-level definition a particular constant is *)
+(** What kind of top-level definition a particular constant is *)
 type env_tag = 
-  (* A class method *)
-  | K_method
-
-  (* A method instance *)
-  | K_instance
-
-  (* A val specification that has no definitions *)
-  | K_val
-
-  (* A let definition with no target specific definitions or val spec *)
-  | K_let
-
-  (* A definition that also has a val specification.  There is a target-specific
-   * definition for each target in the set, and the bool is true if there is a
-   * target non-specific definition *)
+  | K_method   (** A class method *)
+  | K_instance  (** A method instance *)
+  | K_val  (** A val specification that has no definitions *)
+  | K_let   (** A let definition with no target specific definitions or val spec *)
   | K_target of bool * Targetset.t
+      (** A definition that also has a val specification. There is a target-specific
+          definition for each target in the set, and the bool is true if there is a
+          target non-specific definition *)
+
 
 type ('a,'b) annot = { term : 'a; locn : Ast.l; typ : Types.t; rest : 'b }
 val annot_to_typ : ('a,'b) annot -> Types.t
 
-(* Represents a (data) constructor *)
+(** Represents a (data) constructor *)
 type constr_descr = 
   { 
-    (* The path to the constructor's definition *)
-    constr_binding : Path.t; 
-    
-    (* Its type parameters *)
-    constr_tparams : Types.tnvar list; 
-    
-    (* The types of the constructor's arguments (can refer to the above type
-     * parameters) *)
-    constr_args : Types.t list; 
-    
-    (* The type constructor that the constructors value has.  Implicitly
-    * parameterized by the above type parameters *)
-    constr_tconstr : Path.t;
-    
-    (* The names of the other (data) constructors of the same type *)
-    constr_names : NameSet.t; 
-
-    (* The location for the first occurrence of the definition of this constructor *)
-    constr_l : Ast.l;
+    constr_binding : Path.t;           (** The path to the constructor's definition *)
+    constr_tparams : Types.tnvar list; (** Its type parameters *)    
+    constr_args : Types.t list;        (** The types of the constructor's arguments (can refer to the above type parameters) *)  
+    constr_tconstr : Path.t;           (** The type constructor that the constructors value has.  Implicitly parameterized by the above type parameters *)    
+    constr_names : NameSet.t;          (** The names of the other (data) constructors of the same type *)
+    constr_l : Ast.l;                  (** The location for the first occurrence of the definition of this constructor *)
   }
 
-(* Represents a field *)
+(** Represents a field *)
 type field_descr = 
     {
-      (* The path to the field's definition *)
-      field_binding : Path.t;
+      field_binding : Path.t;       
+      (** The path to the field's definition *)
 
-      (* Its type parameters *)
       field_tparams : Types.tnvar list;
+      (** Its type parameters *)
 
-      (* The type constructor of the record that the field belongs to.
-      * Implicitly parameterized by the above type parameters *)
       field_tconstr : Path.t;
+      (** The type constructor of the record that the field belongs to.
+          Implicitly parameterized by the above type parameters *)
 
-      (* The type of the field (can refer to the above type parameters) *)
       field_arg : Types.t;
+      (** The type of the field (can refer to the above type parameters) *)
 
-      (* The names of the other fields of the same record type *)
       field_names : Name.t list;
+      (** The names of the other fields of the same record type *)
 
-      (* The location for the first occurrence of the definition of this field *)
       field_l : Ast.l;
+      (** The location for the first occurrence of the definition of this field *)
     }
 
-(* Maps a type name to the unique path representing that type and 
-   the first location this type is defined and any regular expression 
-   identifiers of this type should respect
+(** Maps a type name to the unique path representing that type and 
+    the first location this type is defined and any regular expression 
+    identifiers of this type should respect
 *)
 type p_env = (Path.t * Ast.l) Nfmap.t
 
@@ -174,22 +154,22 @@ type ident_option =
   | Id_some of Ident.t
 
 
-(* Represents a usage of an 'a (usually in constr_descr, field_descr,
- * const_descr) *)
+(** Represents a usage of an 'a (usually in constr_descr, field_descr,
+    const_descr) *)
 type 'a id = 
     { 
-      (* The identifier as written at the usage point.  None if it is generated
-       * internally, and therefore has no original source *)
       id_path : ident_option; 
+      (** The identifier as written at the usage point.  None if it is generated
+          internally, and therefore has no original source *)
 
-      (* The location of the usage point *)
       id_locn : Ast.l;
+      (** The location of the usage point *)
 
-      (* A description of the binding that the usage refers to *)
       descr : 'a; 
+      (** A description of the binding that the usage refers to *)
 
-      (* The usage site instantiation of the type parameters of the definition *)
       instantiation : Types.t list;
+      (** The usage site instantiation of the type parameters of the definition *)
     }
 
 
@@ -197,7 +177,6 @@ type 'a id =
  * would appear (e.g., a keyword), and represent the comments and whitespace
  * that preceded that concrete element.  They do not represent the element
  * itself *)
-
 and src_t = (src_t_aux,unit) annot
 
 and src_t_aux = 
@@ -214,7 +193,7 @@ and src_nexp =  { nterm : src_nexp_aux; nloc : Ast.l; nt : Types.nexp }
 and src_nexp_aux =
  | Nexp_var of lskips * Nvar.t 
  | Nexp_const of lskips * int
- | Nexp_mult of src_nexp * lskips * src_nexp (* One will always be const *)
+ | Nexp_mult of src_nexp * lskips * src_nexp (** One will always be const *)
  | Nexp_add of src_nexp * lskips * src_nexp 
  | Nexp_paren of lskips * src_nexp * lskips
 
@@ -223,12 +202,12 @@ type lit = (lit_aux,unit) annot
 and lit_aux =
   | L_true of lskips
   | L_false of lskips
-  | L_zero of lskips (* This is a bit, not a num *)
-  | L_one of lskips  (* see above *)
+  | L_zero of lskips (** This is a bit, not a num *)
+  | L_one of lskips  (** see above *)
   | L_num of lskips * int
   | L_string of lskips * string
   | L_unit of lskips * lskips
-  | L_vector of lskips * string * string  (* For vectors of bits, specified with hex or binary, first string is either 0b or 0x, second is the binary or hex number as a string *)
+  | L_vector of lskips * string * string  (** For vectors of bits, specified with hex or binary, first string is either 0b or 0x, second is the binary or hex number as a string *)
   | L_undefined of lskips * string (** A special undefined value that explicitly states that nothing is known about it. This is useful for expressing underspecified functions. It has been introduced to easier support pattern compilation of non-exhaustive patterns. *)
 
 type pat = (pat_aux,pat_annot) annot
@@ -249,38 +228,38 @@ and pat_aux =
   | P_cons of pat * lskips * pat
   | P_num_add of name_l * lskips * lskips * int
   | P_lit of lit
-  (* A type-annotated pattern variable.  This is redundant with the combination
-  * of the P_typ and P_var cases above, but useful as a macro target. *)
   | P_var_annot of Name.lskips_t * src_t
+    (** A type-annotated pattern variable.  This is redundant with the combination
+        of the P_typ and P_var cases above, but useful as a macro target. *)
 
-(* The description of a top-level definition *)
+(** The description of a top-level definition *)
 and const_descr = 
   { 
-    (* The path to the definition *)
     const_binding : Path.t;
+    (** The path to the definition *)
 
-    (* Its type parameters.  Must have length 1 for class methods. *)
     const_tparams : Types.tnvar list;
+    (** Its type parameters.  Must have length 1 for class methods. *)
 
-    (* Its class constraints (must refer to above type parameters).  Must have
-     * length 1 for class methods *)
     const_class : (Path.t * Types.tnvar) list;
+    (** Its class constraints (must refer to above type parameters).  Must have
+        length 1 for class methods *)
 
-    (* Its length constraints (must refer to above type parameters). Can be equality or GtEq inequalities *)
     const_ranges : Types.range list;
+    (** Its length constraints (must refer to above type parameters). Can be equality or GtEq inequalities *)
 
-    (* Its type *)
     const_type : Types.t; 
+    (** Its type *)
 
-    (* What kind of definition it is. *)
     env_tag : env_tag;
+    (** What kind of definition it is. *)
 
-    (* The location for the first occurrence of a definition/specification of
-     * this constant *)
     spec_l : Ast.l;
+    (** The location for the first occurrence of a definition/specification of
+        this constant *)
 
-    (* Target-specific substitutions to use for this constant *)
     substitutions : ((Name.t,unit) annot list * exp) Targetmap.t; 
+    (** Target-specific substitutions to use for this constant *)
   }
 
 and val_descr = 
@@ -309,8 +288,7 @@ and exp_aux = private
   | Fun of lskips * pat list * lskips * exp
   | Function of lskips * (pat * lskips * exp * Ast.l) lskips_seplist * lskips
   | App of exp * exp
-  (* The middle exp must be a Var, Constant, or Constructor *) 
-  | Infix of exp * exp * exp
+  | Infix of exp * exp * exp   (** The middle exp must be a Var, Constant, or Constructor *) 
   | Record of lskips * fexp lskips_seplist * lskips
   | Record_coq of name_l * lskips * fexp lskips_seplist * lskips
   | Recup of lskips * exp * lskips * fexp lskips_seplist * lskips
@@ -329,13 +307,13 @@ and exp_aux = private
   | Lit of lit
   | Set of lskips * exp lskips_seplist * lskips
   | Setcomp of lskips * exp * lskips * exp * lskips * NameSet.t
-  (* true for list comprehensions, false for set comprehensions *)
-  | Comp_binding of bool * lskips * exp * lskips * lskips * quant_binding list * lskips * exp * lskips
+  | Comp_binding of bool * lskips * exp * lskips * lskips * quant_binding list * lskips * exp * lskips 
+    (** [true] for list comprehensions, [false] for set comprehensions *)
   | Quant of Ast.q * quant_binding list * lskips * exp
-  (* The last argument is the type of the value in the monad, paired with an
-   * integer.  1 if the type is the first type argument to bind, 2 if it is the
-   * second *)
   | Do of lskips * mod_descr id * do_line list * lskips * exp * lskips * (Types.t * int)
+    (** The last argument is the type of the value in the monad, paired with an
+        integer.  1 if the type is the first type argument to bind, 2 if it is the
+        second *)
 
 and do_line = Do_line of (pat * lskips * exp * lskips)
 
@@ -345,8 +323,8 @@ and name_lskips_annot = (Name.lskips_t,unit) annot
 
 and quant_binding = 
   | Qb_var of name_lskips_annot
-  (* true for list quantifiers, false for set quantifiers *)
   | Qb_restr of bool * lskips * pat * lskips * exp * lskips
+    (** true for list quantifiers, false for set quantifiers *)
 
 and funcl_aux = name_lskips_annot * pat list * (lskips * src_t) option * lskips * exp
 
@@ -389,8 +367,16 @@ type val_spec = lskips * name_l * lskips * typschm
 
 type class_val_spec = lskips * name_l * lskips * src_t
 
+(** targets_opt is represents a set of targets. There are 2 types of values   
+{ul
+    {- `None` represents the universal set, i.e. all targets}
+    {- `Some (sk_1, tl, sk_2)` (in source `\{ t1; ...; tn \}`) is the set of all targets in the list `tl`}
+}
+*)
 type targets_opt = (lskips * Ast.target lskips_seplist * lskips) option
 
+(** [in_targets_opt t_opt targets_opt] checks whether the target `t_opt` is in the set of targets represented by
+    `targets_opt`. If `t_opt` is `None`, this represents the identity backend and `true` is returned. *)
 val in_targets_opt : Ast.target option -> targets_opt -> bool
 
 type val_def = 
@@ -398,22 +384,23 @@ type val_def =
   | Rec_def of lskips * lskips * targets_opt * funcl_aux lskips_seplist
   | Let_inline of lskips * lskips * targets_opt * name_lskips_annot * name_lskips_annot list * lskips * exp
 
-(* Semantic information about an instance that is used for the dictionary
- * passing transformations *)
+(** Semantic information about an instance that is used for the dictionary
+    passing transformations *)
 type inst_sem_info =
   { 
-    (* An environment that contains const bindings for all of the methods *)
     inst_env : v_env;
-    (* A module name for the instance *)
+    (** An environment that contains const bindings for all of the methods *)
     inst_name : Name.t;
-    (* The class instantiated *)
+    (** A module name for the instance *)
     inst_class : Path.t;
-    (* The type variables that the instantiation is parameterised over *)
+    (** The class instantiated *)
     inst_tyvars : Types.tnvar list;
-    (* The class constraints that the instance depends on *)
+    (** The type variables that the instantiation is parameterised over *)
     inst_constraints : (Path.t * Types.tnvar) list;
-    (* The instantiated class' method names and their types *)
-    inst_methods : (Name.t * Types.t) list; }
+    (** The class constraints that the instance depends on *)
+    inst_methods : (Name.t * Types.t) list; 
+    (** The instantiated class' method names and their types *)
+  }
 
 type name_sect = Name_restrict of (lskips * name_l * lskips * lskips * string * lskips)
 
@@ -421,16 +408,16 @@ type def = (def_aux * lskips option) * Ast.l
 
 and def_aux =
   | Type_def of lskips * (name_l * tnvar list * texp * name_sect option) lskips_seplist
-  (* The TNset contains the type length variables that the definition is parameterized
-   * over, and the list contains the class constraints on those variables *)
   | Val_def of val_def * Types.TNset.t * (Path.t * Types.tnvar) list 
+    (** The TNset contains the type length variables that the definition is parameterized
+        over, and the list contains the class constraints on those variables *)
   | Lemma of lskips * Ast.lemma_typ * targets_opt * (name_l * lskips) option * lskips * exp * lskips
-    (* Renaming for already defined constants and types, e.g., if you want to 
-     * control how a name that isn't allowed in a particular back-end gets
-     * changed *)
   | Ident_rename of lskips * targets_opt * Path.t * Ident.t * lskips * name_l
   | Module of lskips * name_l * lskips * lskips * def list * lskips
   | Rename of lskips * name_l * lskips * mod_descr id
+    (** Renaming for already defined constants and types, e.g., if you want to 
+        control how a name that isn't allowed in a particular back-end gets
+        changed *)
   | Open of lskips * mod_descr id
   | Indreln of lskips * targets_opt * 
                (Name.lskips_t option * lskips * name_lskips_annot list * lskips * exp option * lskips * name_lskips_annot * exp list) lskips_seplist
@@ -438,9 +425,8 @@ and def_aux =
   | Class of lskips * lskips * name_l * tnvar * lskips * class_val_spec list * lskips
   | Instance of lskips * instschm * val_def list * lskips * inst_sem_info
 
-  (* Does not appear in the source, used to comment out definitions for certain
-  * backends *)
   | Comment of def
+    (** Does not appear in the source, used to comment out definitions for certain backends *)
 
 val tnvar_to_types_tnvar : tnvar -> Types.tnvar * Ast.l
 
@@ -449,21 +435,21 @@ val empty_env : env
 val exp_to_locn : exp -> Ast.l
 val exp_to_typ : exp -> Types.t
 
-(* append_lskips adds new whitespace/newline/comments to the front of an
- * expression (before any existing whitespace/newline/comments in front of the
- * expression) *)
+(** append_lskips adds new whitespace/newline/comments to the front of an
+    expression (before any existing whitespace/newline/comments in front of the
+    expression) *)
 val append_lskips : lskips -> exp -> exp 
 val pat_append_lskips : lskips -> pat -> pat
 
-(* alter_init_lskips finds all of the whitespace/newline/comments preceding an
- * expression and passes it to the supplied function in a single invocation.
- * The preceding whitespace/newline/comments are replaced with the fst of the
- * function's result, and the snd of the function's result is returned from
- * alter_init_lskips *)
+(** [alter_init_lskips] finds all of the whitespace/newline/comments preceding an
+    expression and passes it to the supplied function in a single invocation.
+    The preceding whitespace/newline/comments are replaced with the fst of the
+    function's result, and the snd of the function's result is returned from
+    alter_init_lskips *)
+val alter_init_lskips : (lskips -> lskips * lskips) -> exp -> exp * lskips
 val typ_alter_init_lskips : (lskips -> lskips * lskips) -> src_t -> src_t * lskips 
 val nexp_alter_init_lskips : (lskips -> lskips * lskips) -> src_nexp -> src_nexp * lskips
 val pat_alter_init_lskips : (lskips -> lskips * lskips) -> pat -> pat * lskips
-val alter_init_lskips : (lskips -> lskips * lskips) -> exp -> exp * lskips
 val def_alter_init_lskips : (lskips -> lskips * lskips) -> def -> def * lskips
 
 val unsat_constraint_err : Ast.l -> (Path.t * Types.tnvar) list -> unit
@@ -488,10 +474,11 @@ type checked_module =
 type var_avoid_f = bool * (Name.t -> bool) * (Ulib.Text.t -> (Name.t -> bool) -> Name.t)
 
 module type Exp_context = sig
-  (* Whether the constructor functions should do type checking too *)
+  (** Whether the constructor functions should do type checking too *)
   val check : Types.type_defs option
-    (* Avoiding certain names for local variables.  Given a name and a set of
-     * names that must be avoided, choose a new name if necessary *)
+
+  (** Avoiding certain names for local variables.  Given a name and a set of
+      names that must be avoided, choose a new name if necessary *)
   val avoid : var_avoid_f option
 
 end
