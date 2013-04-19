@@ -120,6 +120,19 @@ let string_escape_hol s =
   String.iter (fun c -> Buffer.add_string b (escape_char c)) s;
   Buffer.contents b
 
+(* Check that string literal s contains only CHR characters for Isabelle.  Other
+ * string literals should have been translated into a list by a macro. *)
+let string_escape_isa s =
+  let is_isa_chr x =
+    x >= 0x20 && x <= 0x7e &&
+    (* most printable characters are supported, but there are some exceptions! *)
+    not (List.mem x [0x22; 0x27; 0x5c; 0x60]) in
+  let check_char c =
+    if not(is_isa_chr (int_of_char c))
+    then raise (Failure "Unsupported character in Isabelle string literal")
+  in
+  String.iter check_char s; s
+
 module type Target = sig
   val lex_skip : Ast.lex_skip -> Ulib.Text.t
   val need_space : Output.t' -> Output.t' -> bool
@@ -786,7 +799,7 @@ module Isa : Target = struct
   let const_true = kwd "True"
   let const_false = kwd "False"
   let string_quote = r"''"
-  let string_escape = String.escaped (* XXX fix string escaping for Isa *)
+  let string_escape = string_escape_isa
   let const_num i = kwd "(" ^  num i ^ kwd ":: nat)"
   let const_unit s = kwd "() " ^ ws s
   let const_empty s = kwd "{} " ^ ws s

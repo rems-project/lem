@@ -271,7 +271,7 @@ let do_substitutions target e =
                       Some(C.mk_fun l_unk
                              None (List.map 
                                      (fun n -> 
-                                        C.mk_pvar n.locn (Name.add_lskip n.term) n.typ) 
+                                        C.mk_pvar n.locn (Name.add_lskip n.term) (Types.type_subst tsubst n.typ))
                                      leftover_params) 
                              None b
                              None)
@@ -335,6 +335,33 @@ let names_mk_ident l i loc =
 
 let mk_ident l i loc =
   names_mk_ident (List.map Name.from_rope l) (Name.from_rope i) loc
+
+
+(* Transforms string literals that cannot be represented in Isabelle into a list
+ * of integers, and pass this list to Pervasives.nat_list_to_string which then
+ * returns an Isabelle string. *)
+
+let string_lits_isa e =
+  let l_unk = Ast.Trans("string_lits_isa", Some (exp_to_locn e)) in
+  match C.exp_to_term e with
+  | Lit {term = (L_string(lskips, s))} ->
+      let is_isa_chr x =
+        x >= 0x20 && x <= 0x7e &&
+        (* most printable characters are supported, but there are some exceptions! *)
+        not (List.mem x [0x22; 0x27; 0x5c; 0x60]) in
+      let chars = List.map int_of_char (Util.string_to_list s) in
+      if List.for_all is_isa_chr chars
+      then (* no need to translate if all characters are representable *)
+        None
+      else begin
+        let f = mk_const_exp env l_unk ["Pervasives"] "nat_list_to_string" [] in
+        let nums = List.map mk_num_exp chars in
+        let char_list = Seplist.from_list_default None nums in
+        let char_list_exp = C.mk_list l_unk None char_list None { Types.t =
+          Types.Tapp([num_ty], Path.listpath) } in
+        Some(append_lskips lskips (C.mk_app l_unk f char_list_exp None))
+      end
+  | _ -> None
 
 (* TODO: Get the Suc constructor properly when the library is working with
  * datatypes *)

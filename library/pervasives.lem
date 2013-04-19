@@ -240,3 +240,6 @@ let inline {hol;ocaml;coq;isabelle} outr s = match s with Inr b -> b end
 val string_of_num : num -> string
 let inline {ocaml} string_of_num = Ocaml.Nat_num.string_of_num
 let inline {isabelle} string_of_num = Isabelle.nat_to_string
+
+val nat_list_to_string : list num -> string
+let inline {isabelle} nat_list_to_string = Isabelle.nat_list_to_string
