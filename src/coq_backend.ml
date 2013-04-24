@@ -50,9 +50,8 @@ open Output
 open Typed_ast
 open Typed_ast_syntax
 
-let print_and_fail s =
-  let _ = prerr_endline (Pervasives.(^) s "\n") in
-    assert false
+let print_and_fail l s =
+  raise (Reporting_basic.err_general true l s)
 ;;
 
 let lex_skip =
@@ -323,7 +322,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
                     | Typ_paren (_, t, _) ->
                         let fresh_name = generate_fresh_name () in
                           (from_string fresh_name, typ.typ)
-                    | _ -> print_and_fail "illegal type appearing in variant constructor type"
+                    | _ -> print_and_fail typ.locn "illegal type appearing in variant constructor type"
                 end) typs
               in
               let arg_space = if List.length args = 0 then emp else from_string " " in
@@ -378,9 +377,9 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
 
     let rec generate_coq_abbreviation_equality tvs name bod =
       match bod.term with
-        | Typ_wild _ -> print_and_fail "illegal wildcard type appearing in abbreviation type"
-        | Typ_var (skips, tyvar) -> print_and_fail "illegal type variable appearing in abbreviation type"
-        | Typ_len src_nexp -> print_and_fail "illegal vector length index appearing in abbreviation type"
+        | Typ_wild _ -> print_and_fail bod.locn "illegal wildcard type appearing in abbreviation type"
+        | Typ_var (skips, tyvar) -> print_and_fail bod.locn "illegal type variable appearing in abbreviation type"
+        | Typ_len src_nexp -> print_and_fail bod.locn "illegal vector length index appearing in abbreviation type"
         | Typ_fn (src_t, skips, src_t') -> from_string "(* XXX: equality on Typ_fn *)\n"
         | Typ_tup src_t_lskips_seplist -> from_string "(* XXX: equality on Typ_tup *)\n"
         | Typ_app (path_id, src_t_list) ->
@@ -475,7 +474,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
         match x, y, z with
           | [], [], [] -> []
           | x::xs, y::ys, z::zs -> (x, y, z)::(zip3 xs ys zs)
-          | _ -> print_and_fail "illegal mismatch of list lengths in zip3"
+          | _ -> assert false (* illegal mismatch of list lengths *)
       in
       let zipped = zip3 tvs names bods in
       let mapped = List.map (fun (x, y, z) -> generate_variant_equality x y z) zipped in
@@ -819,7 +818,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
                   ])
           | Function _ ->
             (* DPM: should have been macro'd away *)
-              print_and_fail "illegal function in extraction, should have been previously macro'd away"
+              print_and_fail (Typed_ast.exp_to_locn e) "illegal function in extraction, should have been previously macro'd away"
           | Tup_constructor (cd, skips, es, skips') ->
             let name = Ident.to_output coq_infix_op Term_ctor path_sep (resolve_ident_path cd cd.descr.constr_binding) in
             let body = flat $ Seplist.to_sep_list exp (sep $ from_string ", ") es in
@@ -876,7 +875,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
               ]
           | Record_coq ((n, _), _, fields, _) ->
             (* DPM: no longer used?  *)
-              print_and_fail "illegal record coq in code extraction, should have been macro'd away"
+              print_and_fail (Typed_ast.exp_to_locn e) "illegal record coq in code extraction, should have been macro'd away"
           | Case (_, skips, e, skips', cases, skips'') ->
             let body = flat $ Seplist.to_sep_list_last Seplist.Optional case_line (sep (break_hint_space 2 ^ from_string "|")) cases in
               block is_user_exp 0 (
@@ -1020,7 +1019,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
             ]
         | P_record (_, fields, _) ->
           (* DPM: should have been macro'd away *)
-            print_and_fail "illegal record pattern in code extraction, should have been compiled away"
+            print_and_fail p.locn "illegal record pattern in code extraction, should have been compiled away"
         | P_cons (p1, skips, p2) ->
             combine [
               def_pattern p1; ws skips; from_string "::"; def_pattern p2
@@ -1086,7 +1085,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
             ]
         | P_record (_, fields, _) ->
             (* DPM: should have been macro'd away *)
-            print_and_fail "illegal record pattern in code extraction, should have been compiled away"
+            print_and_fail p.locn "illegal record pattern in code extraction, should have been compiled away"
         | P_cons (p1, skips, p2) ->
             combine [
               def_pattern p1; ws skips; from_string "::"; def_pattern p2
@@ -1322,7 +1321,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
             | None   -> def inside_module d ^ y
             | Some s -> def inside_module d ^ ws s ^ y
       	) ds emp
-    and generate_default_value_texp (t : texp) : Output.t =
+    and generate_default_value_texp (t: texp): Output.t =
       match t with
         | Te_opaque -> from_string "DAEMON"
         | Te_abbrev (_, src_t) -> default_value src_t
@@ -1340,11 +1339,11 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
               combine [
                 from_string "{| "; fields; from_string " |}"
               ]
-        | Te_record_coq (_, _, _, seplist, _) ->
-            print_and_fail "illegal record coq in default value generation, should have been macro'd away"
+        | Te_record_coq (_, (_, locn), _, seplist, _) ->
+            print_and_fail locn "illegal record coq in default value generation, should have been macro'd away"
         | Te_variant (_, seplist) ->
             (match Seplist.to_list seplist with
-              | []    -> print_and_fail "empty type in default value generation, should this be allowed?"
+              | []    -> assert false (* empty type in default value generation, should this be allowed? *)
               | x::xs ->
                 let ((name, _), _, src_ts) = x in
                   let ys = Seplist.to_list src_ts in
@@ -1355,7 +1354,8 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
                       o; from_string " "; mapped
                     ])
         | Te_variant_coq (_, seplist) ->
-            print_and_fail "illegal record coq in default value generation, should have been macro'd away"
+          let l_unk = Ast.Trans ("generate_default_value_texp", None) in
+            print_and_fail l_unk "illegal record coq in default value generation, should have been macro'd away"
       and generate_default_value ((name, _), tnvar_list, t, name_sect_opt) : Output.t =
         let o = lskips_t_to_output name in
         let tnvar_list_sep =
