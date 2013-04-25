@@ -404,6 +404,45 @@ exp  :: '' ::=
   {{ com Location-annotated expressions }}
   | exp_aux l						:: :: Expr_l
 
+pre_expr :: '' ::=
+  {{ Pre-condition for persistant testing, setting up test generation, and commenting }}
+  | expr :: :: exp
+  | test_spec :: :: hot
+  | pre_expr ix_l pre_expr' :: :: binop
+
+post_expr :: '' ::=
+  {{ Post-condition, will be extended further if we want explicit support for state monads}}
+  | result :: :: ans
+  | expr :: :: exp
+  | test_spec :: :: hot
+  | post_expr ix_l post_expr' :: :: binop
+
+test_exp :: '' ::=
+  {{ Hoare-logic-based specification of a unit test }}
+  | { pre_expr } expr { post_expr }  	  :: :: function
+    {{ expr is expected to be a pre-fix or infix call to one function. All may refer to quantified variables from a test_spec tbind }}
+  | { pre_expr } expr :: :: relation
+    {{ expr is expected to be a relation, but could be an ordinary predicate, expecting true }}
+
+tbind :: '' ::=
+  | x_l     :: :: name
+  {{ Introduce a name, type to be inferred. Variable to be used to generate tests }}
+  | x_l	: typ    :: :: tname
+  | x_l { = expr } :: :: example
+  {{ Introduce a name and default value to use for unit tests. To be ignored in persistent tests}}
+
+tbinds :: '' ::=
+  | tbind  :: :: end
+  | tbind , tbinds :: :: cons
+
+test_spec_aux :: '' ::=
+  {{ Quantified specification of a unit test }}
+  | forall tbinds . test_exp  	   	:: :: qtest
+  | test_exp	    			:: :: test
+
+test_spec :: '' ::=
+  | test_spec_aux l			:: :: tl
+
 q :: 'Q_' ::=
   {{ com Quantifiers }}
   | forall					:: :: forall
@@ -596,6 +635,18 @@ lemma_decl :: '' ::=
   | lemma_typ targets_opt x_l : ( exp )				:: :: Lemma_named
   | lemma_typ targets_opt ( exp )				:: :: Lemma_unnamed
 
+test_specs :: '' ::= {{ phantom }} {{ ocaml test_spec list }} {{ hol test_spec list }}
+  | test_spec0 ... test_spec1 :: :: list
+
+forall_tests :: '' ::=
+  {{ com Forall and preconds that hold for all listed specs. In the future, more generation and restriction data will be included here. }}
+  | forall tbinds . pre_exp :: :: binds
+  | 	   	    	    :: :: empty
+
+test_decl :: '' ::=
+  {{ com Test declaration }}
+  | test x_l begin forall_tests test_specs end			:: :: test
+  {{ com Name identifies the test set, is permitted to refer to the function or relation under test. All test_specs should test the same function/relation }}
 
 val_def :: '' ::= 
   {{ com Value definitions }}
