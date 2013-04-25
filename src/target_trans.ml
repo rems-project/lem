@@ -294,6 +294,8 @@ struct
     let module Ctxt = struct let avoid = None let check = Some(C.d) end in
     let module M = Macro_expander.Expander(Ctxt) in
     let (defs, end_lex_skips) = m.typed_ast in
+    let module Conv = Convert_relations.Converter(Ctxt) in
+    Conv.scan_defs env defs;
     let module_name = Name.from_rope (Ulib.Text.of_latin1 m.module_name) in
     (* TODO: Move this to a definition macro, and remove the targ argument *)
     let defs =
