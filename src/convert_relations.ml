@@ -321,16 +321,15 @@ let rec compile_code env excluded renames = function
     let call = List.fold_left (fun func arg -> mk_app Ast.Unknown func arg None) 
       (mk_var Ast.Unknown (Name.add_lskip n) ty) inp in
     let pat = mk_ptup Ast.Unknown None (sep_no_skips outp) None None in
-    mk_case false Ast.Unknown None call  None
-      (sep_no_skips 
-         [(pat, None, subexp, Ast.Unknown);
-          (mk_pwild Ast.Unknown None (exp_to_typ call), None, undef, Ast.Unknown)] 
-      ) None None
+    mk_case_exp false Ast.Unknown call
+      [(pat, subexp);
+       (mk_pwild Ast.Unknown None (exp_to_typ call),undef)] 
+      (exp_to_typ subexp)
 
 let compile_rule env (patterns, code) = 
   let pattern = mk_ptup Ast.Unknown None (sep_no_skips patterns) None None in
   let lemcode = compile_code env Nset.empty Nfmap.empty code in
-  (pattern,None,lemcode, Ast.Unknown) 
+  (pattern, lemcode) 
   
 
 (* TODO : check overlap *)
@@ -348,8 +347,9 @@ let compile_to_typed_ast env prog =
       ) (List.combine mode ty) in
       let tuple_of_vars = mk_tup Ast.Unknown None (sep_no_skips (List.map (fun (var,ty) -> mk_var Ast.Unknown var ty) vars)) None None in
       let pats_of_vars = List.map (fun (var,ty) -> mk_pvar Ast.Unknown var ty) vars in
-      let cases = sep_no_skips (List.map (compile_rule env) rules) in
-      let case = mk_case false Ast.Unknown None tuple_of_vars None cases None None in
+      let cases = List.map (compile_rule env) rules in
+      let output_type = {t=Ttup(map_filter (function (O,ty) -> Some ty | _ -> None) (List.combine mode ty))} in
+      let case = mk_case_exp false Ast.Unknown tuple_of_vars cases output_type in
       let annot = { term = Name.add_lskip n;
                     locn = Ast.Unknown;
                     typ = mty;
