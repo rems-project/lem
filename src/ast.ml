@@ -69,21 +69,11 @@ let ixl_to_l = function
 
 
 type
-a = terminal * text
-
-
-type
 n = terminal * text
 
 
-type 
-a_l =  (* Location-annotated type variables *)
-   A_l of a * l
-
-
-type 
-n_l =  (* Location-annotated numeric variables *)
-   N_l of n * l
+type
+a = terminal * text
 
 
 type 
@@ -104,6 +94,11 @@ id =  (* Long identifers *)
 
 
 type 
+a_l =  (* Location-annotated type variables *)
+   A_l of a * l
+
+
+type 
 lit_aux =  (* Literal constants *)
    L_true of terminal
  | L_false of terminal
@@ -114,40 +109,6 @@ lit_aux =  (* Literal constants *)
  | L_unit of terminal * terminal
  | L_zero of terminal (* bitzero and bitone are constant bits, if commonly used we will consider overloading 0 and 1 *)
  | L_one of terminal
-
-
-type 
-tnvar =  (* Union of type variables and Nexp type variables, with locations *)
-   Avl of a_l
- | Nvl of n_l
-
-
-type 
-nexp_constraint_aux =  (* Whether a vector is bounded or fixed size *)
-   Fixed of nexp * terminal * nexp
- | Bounded of nexp * terminal * nexp
-
-
-type 
-ne =  (* internal numeric expressions *)
-   Ne_var of n
- | Ne_const of terminal * int
- | Ne_mult of terminal * int * terminal * ne
- | Ne_add of ne * terminal * ne
- | Ne_unary of terminal * terminal * ne * terminal
-
-
-type 
-p =  (* Unique paths *)
-   Path_def of ((x * terminal)) list * x
- | Path_list of terminal
- | Path_bool of terminal
- | Path_num of terminal
- | Path_set of terminal
- | Path_string of terminal
- | Path_unit of terminal
- | Path_bit of terminal
- | Path_vector of terminal
 
 
 type 
@@ -167,46 +128,6 @@ and typ =  (* Location-annotated types *)
 type 
 lit = 
    Lit_l of lit_aux * l (* Location-annotated literal constants *)
-
-
-type 
-c =  (* Typeclass constraints *)
-   C of id * tnvar
-
-
-type 
-nexp_constraint =  (* Location-annotated Nexp range *)
-   Range_l of nexp_constraint_aux * l
-
-
-type 
-t =  (* Internal types *)
-   T_var of a
- | T_fn of t * terminal * t
- | T_tup of (t * terminal) list
- | T_app of p * t_args
- | T_len of ne
-
-and t_args =  (* Lists of types *)
-   T_args of (t) list
-
-
-type 
-tnv =  (* Union of type variables and Nexp type variables, without locations *)
-   Av of a
- | Nv of n
-
-
-type 
-tannot_opt =  (* Optional type annotations *)
-   Typ_annot_none
- | Typ_annot_some of terminal * typ
-
-
-type 
-q =  (* Quantifiers *)
-   Q_forall of terminal
- | Q_exists of terminal
 
 
 type 
@@ -233,38 +154,20 @@ and fpat =  (* Field patterns *)
 
 
 type 
-cs =  (* Typeclass and length constraint lists *)
-   Cs_empty
- | Cs_classes of (c * terminal) list * terminal (* Must have $>0$ constraints *)
- | Cs_lengths of (nexp_constraint * terminal) list * terminal (* Must have $>0$ constraints *)
- | Cs_both of (c * terminal) list * terminal * (nexp_constraint * terminal) list * terminal (* Must have $>0$ of both form of constraints *)
+q =  (* Quantifiers *)
+   Q_forall of terminal
+ | Q_exists of terminal
 
 
 type 
-target =  (* Backend target names *)
-   Target_hol of terminal
- | Target_isa of terminal
- | Target_ocaml of terminal
- | Target_coq of terminal
- | Target_tex of terminal
- | Target_html of terminal
+tannot_opt =  (* Optional type annotations *)
+   Typ_annot_none
+ | Typ_annot_some of terminal * typ
 
 
 type 
-semC =  (* Typeclass constraint lists *)
-   SemC_concrete of ((terminal * p * tnv * terminal)) list
-
-
-type 
-env_tag =  (* Tags for the (non-constructor) value descriptions *)
-   Method of terminal (* Bound to a method *)
- | Spec of terminal (* Specified with val *)
- | Def of terminal (* Defined with let or indreln *)
-
-
-type 
-ctor_def =  (* Datatype definition clauses *)
-   Cte of x_l * terminal * (typ * terminal) list
+n_l =  (* Location-annotated numeric variables *)
+   N_l of n * l
 
 
 type 
@@ -330,20 +233,154 @@ and letbind =  (* Location-annotated let bindings *)
 
 
 type 
+nexp_constraint_aux =  (* Whether a vector is bounded or fixed size *)
+   Fixed of nexp * terminal * nexp
+ | Bounded of nexp * terminal * nexp
+
+
+type 
+tnvar =  (* Union of type variables and Nexp type variables, with locations *)
+   Avl of a_l
+ | Nvl of n_l
+
+
+type 
+p =  (* Unique paths *)
+   Path_def of ((x * terminal)) list * x
+ | Path_list of terminal
+ | Path_bool of terminal
+ | Path_num of terminal
+ | Path_set of terminal
+ | Path_string of terminal
+ | Path_unit of terminal
+ | Path_bit of terminal
+ | Path_vector of terminal
+
+
+type 
+ne =  (* internal numeric expressions *)
+   Ne_var of n
+ | Ne_const of terminal * int
+ | Ne_mult of terminal * int * terminal * ne
+ | Ne_add of ne * terminal * ne
+ | Ne_unary of terminal * terminal * ne * terminal
+
+
+type 
+tbind = 
+   Tbind_name of x_l (* Introduce a name, type to be inferred. Variable to be used to generate tests *)
+ | Tbind_tname of x_l * terminal * typ
+ | Tbind_example of x_l * terminal * terminal * exp * terminal (* Introduce a name and default value to use for unit tests. To be ignored in persistent tests *)
+
+
+type 
+nexp_constraint =  (* Location-annotated Nexp range *)
+   Range_l of nexp_constraint_aux * l
+
+
+type 
+c =  (* Typeclass constraints *)
+   C of id * tnvar
+
+
+type 
+tnv =  (* Union of type variables and Nexp type variables, without locations *)
+   Av of a
+ | Nv of n
+
+
+type 
+t =  (* Internal types *)
+   T_var of a
+ | T_fn of t * terminal * t
+ | T_tup of (t * terminal) list
+ | T_app of p * t_args
+ | T_len of ne
+
+and t_args =  (* Lists of types *)
+   T_args of (t) list
+
+
+type 
+target =  (* Backend target names *)
+   Target_hol of terminal
+ | Target_isa of terminal
+ | Target_ocaml of terminal
+ | Target_coq of terminal
+ | Target_tex of terminal
+ | Target_html of terminal
+
+
+type 
+tbinds = 
+   Tbinds_end of tbind
+ | Tbinds_cons of tbind * terminal * tbinds
+
+
+type 
+cs =  (* Typeclass and length constraint lists *)
+   Cs_empty
+ | Cs_classes of (c * terminal) list * terminal (* Must have $>0$ constraints *)
+ | Cs_lengths of (nexp_constraint * terminal) list * terminal (* Must have $>0$ constraints *)
+ | Cs_both of (c * terminal) list * terminal * (nexp_constraint * terminal) list * terminal (* Must have $>0$ of both form of constraints *)
+
+
+type 
+semC =  (* Typeclass constraint lists *)
+   SemC_concrete of ((terminal * p * tnv * terminal)) list
+
+
+type 
+env_tag =  (* Tags for the (non-constructor) value descriptions *)
+   Method of terminal (* Bound to a method *)
+ | Spec of terminal (* Specified with val *)
+ | Def of terminal (* Defined with let or indreln *)
+
+
+type 
+targets =  (* Backend target name lists *)
+   Targets_concrete of terminal * (target * terminal) list * terminal
+
+
+type 
 x_l_opt =  (* Optional name for inductively defined relation clauses *)
    X_l_none
  | X_l_some of x_l * terminal
 
 
 type 
-c_pre =  (* Type and instance scheme prefixes *)
-   C_pre_empty
- | C_pre_forall of terminal * (tnvar) list * terminal * cs (* Must have $>0$ type variables *)
+pre_exp =  (* Pre-condition for persistent testing, setting up test generation, and commenting *)
+   Pre_exp_exp of exp
+ | Pre_exp_hot of test_spec
+ | Pre_exp_binop of pre_exp * ix_l * pre_exp
+
+and post_exp =  (* Post-condition, will be extended further if we want explicit support for state monads *)
+   Post_exp_ans of terminal
+ | Post_exp_exp of exp
+ | Post_exp_hot of test_spec
+ | Post_exp_binop of post_exp * ix_l * post_exp
+
+and test_exp =  (* Hoare-logic-based specification of a unit test *)
+   Test_exp_function of terminal * pre_exp * terminal * exp * terminal * post_exp * terminal (* exp is expected to be a pre-fix or infix call to one function. All may refer to quantified variables from a test spec tbind *)
+ | Test_exp_relation of terminal * pre_exp * terminal * exp (* exp is expected to be a relation, but could be an ordinary predicate, expecting true *)
+
+and test_spec_aux =  (* Quantified specification of a unit test *)
+   Test_spec_qtest of terminal * tbinds * terminal * test_exp
+ | Test_spec_ptest of test_exp
+
+and test_spec = 
+   Tl of test_spec_aux * l
 
 
 type 
-targets =  (* Backend target name lists *)
-   Targets_concrete of terminal * (target * terminal) list * terminal
+ctor_def =  (* Datatype definition clauses *)
+   Cte of x_l * terminal * (typ * terminal) list
+
+
+type 
+c_pre =  (* Type and instance scheme prefixes *)
+   C_pre_empty
+ | C_pre_forall of terminal * (tnvar) list * terminal * cs (* Must have $>0$ type variables *)
 
 
 type 
@@ -355,6 +392,23 @@ v_desc =  (* Value descriptions *)
 type 
 f_desc = 
    F_field of terminal * terminal * tnv list * terminal * p * terminal * t * terminal * terminal * x * terminal * Set.Make(String).t * terminal * terminal (* Fields *)
+
+
+type 
+funcl =  (* Location-annotated function clauses *)
+   Rec_l of funcl_aux * l
+
+
+type 
+rule_aux =  (* Inductively defined relation clauses *)
+   Rule of x_l_opt * terminal * (x_l) list * terminal * exp * terminal * x_l * (exp) list
+
+
+type 
+forall_tests =  (* Forall and preconds that hold for all listed specs. In the future, more generation and restriction data will be included here. *)
+   Forall_tests_binds of terminal * tbinds * terminal * pre_exp
+ | Forall_tests_pat of terminal * tbinds * terminal * pat
+ | Forall_tests_empty
 
 
 type 
@@ -371,11 +425,6 @@ texp =  (* Type definition bodies *)
 
 
 type 
-rule_aux =  (* Inductively defined relation clauses *)
-   Rule of x_l_opt * terminal * (x_l) list * terminal * exp * terminal * x_l * (exp) list
-
-
-type 
 typschm =  (* Type schemes *)
    Ts of c_pre * typ
 
@@ -388,22 +437,10 @@ lemma_typ =  (* Types of Lemmata *)
 
 
 type 
-funcl =  (* Location-annotated function clauses *)
-   Rec_l of funcl_aux * l
-
-
-type 
-nec =  (* Numeric expression constraints *)
-   Lessthan of ne * terminal * nec
- | Eq of ne * terminal * nec
- | Lteq of ne * terminal * nec
- | Base of ne
-
-
-type 
-td =  (* Type definitions *)
-   Td of x_l * tnvar list * name_opt * terminal * texp
- | Td_opaque of x_l * tnvar list * name_opt (* Definitions of opaque types *)
+val_def =  (* Value definitions *)
+   Let_def of terminal * targets option * letbind (* Non-recursive value definitions *)
+ | Let_rec of terminal * terminal * targets option * (funcl * terminal) list (* Recursive function definitions *)
+ | Let_inline of terminal * terminal * targets option * letbind (* Function definitions to be inlined *)
 
 
 type 
@@ -412,8 +449,19 @@ rule =  (* Location-annotated inductively defined relation clauses *)
 
 
 type 
+test_decl =  (* Test declaration *)
+   Test_decl_test of terminal * x_l * terminal * forall_tests * test_spec list * terminal (* The name identifies the decl in reports, is permitted to duplicate function or relation names. All test specs should test the same function or relation *)
+
+
+type 
 instschm =  (* Instance schemes *)
    Is of c_pre * terminal * id * typ * terminal
+
+
+type 
+td =  (* Type definitions *)
+   Td of x_l * tnvar list * name_opt * terminal * texp
+ | Td_opaque of x_l * tnvar list * name_opt (* Definitions of opaque types *)
 
 
 type 
@@ -428,10 +476,11 @@ lemma_decl =  (* Lemmata and Tests *)
 
 
 type 
-val_def =  (* Value definitions *)
-   Let_def of terminal * targets option * letbind (* Non-recursive value definitions *)
- | Let_rec of terminal * terminal * targets option * (funcl * terminal) list (* Recursive function definitions *)
- | Let_inline of terminal * terminal * targets option * letbind (* Function definitions to be inlined *)
+nec =  (* Numeric expression constraints *)
+   Lessthan of ne * terminal * nec
+ | Eq of ne * terminal * nec
+ | Lteq of ne * terminal * nec
+ | Base of ne
 
 
 type 
@@ -439,6 +488,7 @@ def_aux =  (* Top-level definitions *)
    Type_def of terminal * (td * terminal) list (* Type definitions *)
  | Val_def of val_def (* Value definitions *)
  | Lemma of lemma_decl (* Lemmata *)
+ | Test of test_decl (* Test declarations *)
  | Ident_rename of terminal * targets option * id * terminal * x_l (* Rename constant or type *)
  | Module of terminal * x_l * terminal * terminal * defs * terminal (* Module definitions *)
  | Rename of terminal * x_l * terminal * id (* Module renamings *)
@@ -456,13 +506,13 @@ and defs =  (* Definition sequences *)
 
 
 type 
-tc_def =  (* Type and class constructor definitions *)
-   Tc_def of tnv list * t option (* Type constructors *)
+inst =  (* A typeclass instance, t must not contain nested types *)
+   Inst of semC * terminal * terminal * p * t * terminal
 
 
 type 
-inst =  (* A typeclass instance, t must not contain nested types *)
-   Inst of semC * terminal * terminal * p * t * terminal
+tc_def =  (* Type and class constructor definitions *)
+   Tc_def of tnv list * t option (* Type constructors *)
 
 
 type 
