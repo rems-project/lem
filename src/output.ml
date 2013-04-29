@@ -428,7 +428,7 @@ let tex_sty_prefix     = r"lem"  (* for LaTeX commands in the lem.sty file *)
 let tex_command_escape rr = 
   Ulib.Text.concat
     Ulib.Text.empty
-    (List.map
+    (List.rev_map
        (fun c -> 
        if c=Ulib.UChar.of_char '_'  then r"T"     else
        if c=Ulib.UChar.of_char '#'  then r"H"     else
@@ -453,7 +453,7 @@ let tex_command_label rr =  tex_label_prefix ^^ tex_command_escape rr
 let tex_escape rr = 
   Ulib.Text.concat
     Ulib.Text.empty
-    (List.map
+    (List.rev_map
        (fun c ->  
          if c=Ulib.UChar.of_char '_'  then r"\\_" else 
          if c=Ulib.UChar.of_char '%'  then r"\\%" else 

@@ -548,7 +548,7 @@ module Tex : Target = struct
   let list_sep = kwd ";"
 
   let const_unit s = kwd "(" ^ ws s ^ kwd ")"
-  let const_empty s = kwd "{" ^ ws s ^ kwd "}"
+  let const_empty s = kwd "\\{" ^ ws s ^ kwd "\\}"
 
   let ctor_typ_end _ _ = emp
   let ctor_typ_end' _ _ _ = emp
