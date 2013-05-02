@@ -268,7 +268,7 @@ let main () =
   (* Parse and typecheck all of the .lem sources *)
   let (modules, type_info, _) =
     List.fold_left
-      (fun (mods, (def_info,env), previously_processed_modules) f ->
+      (fun (mods, (def_info,env), previously_processed_modules) (f, add_to_modules) ->
          let ast = parse_file f in
          let f' = Filename.basename (Filename.chop_extension f) in
          let mod_name = String.capitalize f' in
@@ -308,9 +308,16 @@ let main () =
                Typed_ast.pp_instances Format.std_formatter new_instances;
                Format.fprintf Format.std_formatter "@\n@\n"
              end;
-           (module_record::mods, ((tdefs,instances),e), mod_name::previously_processed_modules))
+           ((if add_to_modules then
+             module_record::mods
+               else
+             mods), 
+            ((tdefs,instances),e), mod_name::previously_processed_modules))
       ([],type_info,[])
-      (List.rev !lib @ !opt_file_arguments)
+      (* We don't want to add the files in !lib to the resulting module ASTs,
+       * because we don't want to put them throught the back end *)
+      (List.map (fun x -> (x, false)) (List.rev !lib) @ 
+       List.map (fun x -> (x, true)) !opt_file_arguments)
   in
 
   (* Check the parsed source and produce warnings for various things. Currently:
