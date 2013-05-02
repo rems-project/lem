@@ -157,8 +157,7 @@ let add_to_init targ file ((td,env), consts) =
   let targ_env = 
     match Nfmap.apply env.m_env (target_to_mname targ) with 
       | Some(e) -> e
-      | None -> 
-          assert false
+      | None -> assert false
   in
   let p = 
     match targ with
@@ -169,8 +168,7 @@ let add_to_init targ file ((td,env), consts) =
       | Target_tex -> assert false
       | Target_html -> assert false
   in
-  let starg = Some(targ) in
-  let (new_td,new_env) = p starg file (td,targ_env.mod_env) in
+  let (new_td,new_env) = p (Some targ) file (td,targ_env.mod_env) in
     ((new_td, 
       { env with m_env = Nfmap.insert env.m_env (target_to_mname targ, {targ_env with mod_env = new_env}) }), 
      consts)

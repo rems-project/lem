@@ -51,6 +51,7 @@ let backends = ref []
 let opt_print_types = ref false
 let opt_print_version = ref false
 let opt_library = ref None
+let lib = ref []
 let ocaml_lib = ref []
 let hol_lib = ref []
 let coq_lib = ref []
@@ -59,6 +60,9 @@ let isa_theory = ref None
 let opt_file_arguments = ref ([]:string list)
 
 let options = Arg.align ([
+  ( "-i", 
+    Arg.String (fun l -> lib := l::!lib),
+    " treat the file as input only and generate no output for it");
   ( "-tex", 
     Arg.Unit (fun b -> if not (List.mem (Some(Typed_ast.Target_tex)) !backends) then
                 backends := Some(Typed_ast.Target_tex)::!backends),
@@ -221,14 +225,14 @@ let main () =
          with 
            | Invalid_argument _ -> 
              raise (Failure("Files must have .lem extension")))
-      (!opt_file_arguments @ !ocaml_lib @ !hol_lib @ !isa_lib @ !coq_lib)
+      (!opt_file_arguments @ !lib @ !ocaml_lib @ !hol_lib @ !isa_lib @ !coq_lib)
   in
   let _ = 
     List.iter
       (fun f ->
          if not (Str.string_match (Str.regexp "[A-Za-z]") (Filename.basename f) 0) then
            raise (Failure(".lem filenames must start with a letter")))
-      (!opt_file_arguments @ !ocaml_lib @ !hol_lib @ !isa_lib @ !coq_lib)
+      (!opt_file_arguments @ !lib @ !ocaml_lib @ !hol_lib @ !isa_lib @ !coq_lib)
   in
   let init =
     try
@@ -306,7 +310,7 @@ let main () =
              end;
            (module_record::mods, ((tdefs,instances),e), mod_name::previously_processed_modules))
       ([],type_info,[])
-      !opt_file_arguments
+      (List.rev !lib @ !opt_file_arguments)
   in
 
   (* Check the parsed source and produce warnings for various things. Currently:
