@@ -1053,7 +1053,7 @@ module Hol : Target = struct
         meta (Format.sprintf "val %s_def = Define `\n" n)
   let rec_def_footer rr n =
      if rr then
-       meta (Format.sprintf "\nval _ = Defn.save_defn %s_defn;" 
+       meta (Format.sprintf "\nval _ = Lib.with_flag (computeLib.auto_import_definitions, false) Defn.save_defn %s_defn;" 
             (Ulib.Text.to_string (Name.to_rope n)))
      else emp
 
