@@ -154,7 +154,7 @@ let rec fix_exp get_prec e =
       | Tup_constructor(c,s1,es,s2) ->
           C.mk_tup_ctor old_l 
             (id_fix_parens_for_prefix (fun x -> x.constr_binding) get_prec c) 
-            s1 (Seplist.map trans es) s2 old_t
+            s1 (Seplist.map (fun e -> C.delimit_exp get_prec P.App_right (trans e)) es) s2 old_t
       | Fun(s1,ps,s2,e) ->
           C.mk_fun old_l 
             s1 (List.map (fun p -> delimit_pat P.Plist (transp p)) ps) 
