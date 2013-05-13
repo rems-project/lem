@@ -91,6 +91,48 @@ let gensym_tex_command =
     n := 1 + !n;
     tex_command_escape (Ulib.Text.of_string (string_of_int !n))
 
+(* Use SML-style escape sequences for HOL, with some caveats.  See
+ * src/parse/MLstring.sml in HOL source code, as well as
+ * http://www.standardml.org/Basis/char.html#SIG:CHAR.toString:VAL *)
+let string_escape_hol s =
+  let b = Buffer.create (String.length s) in
+  let escape_char c = match int_of_char c with
+  | 0x5c -> "\\\\" (* backslash *)
+  | 0x22 -> "\\\"" (* double quote *)
+  | 0x5e -> "^^"   (* carret *)
+  | x when x >= 32 && x <= 126 -> (* other printable characters *)
+      String.make 1 c
+  | 0x07 -> "\\a" (* common control characters *)
+  | 0x08 -> "\\b"
+  | 0x09 -> "\\t"
+  | 0x0a -> "\\n"
+  | 0x0b -> "\\v"
+  | 0x0c -> "\\f"
+  | 0x0d -> "\\r"
+  | x when x >= 0 && x < 32 -> (* other control characters *)
+      Printf.sprintf "\\^^%c" (char_of_int (x + 64))
+  | x when x > 126 && x <= 255 ->
+      Printf.sprintf "\\%03u" x
+  | _ -> failwith "int_of_char returned an unexpected value"
+  in
+  (* Do not iterate on the UTF8 code, because HOL does not handle UTF8 even
+   * though SML does, for some reason. *)
+  String.iter (fun c -> Buffer.add_string b (escape_char c)) s;
+  Buffer.contents b
+
+(* Check that string literal s contains only CHR characters for Isabelle.  Other
+ * string literals should have been translated into a list by a macro. *)
+let string_escape_isa s =
+  let is_isa_chr x =
+    x >= 0x20 && x <= 0x7e &&
+    (* most printable characters are supported, but there are some exceptions! *)
+    not (List.mem x [0x22; 0x27; 0x5c; 0x60]) in
+  let check_char c =
+    if not(is_isa_chr (int_of_char c))
+    then raise (Failure "Unsupported character in Isabelle string literal")
+  in
+  String.iter check_char s; s
+
 module type Target = sig
   val lex_skip : Ast.lex_skip -> Ulib.Text.t
   val need_space : Output.t' -> Output.t' -> bool
@@ -205,8 +247,6 @@ module type Target = sig
   val name_end : t
   val rec_def_header : bool -> lskips -> lskips -> Name.t -> t
   val rec_def_footer : bool -> Name.t -> t
-  val letbind_sep : t
-  val letbind_initial_sep : t
   val funcase_start : t
   val funcase_end : t
   val reln_start : t
@@ -416,8 +456,6 @@ module Identity : Target = struct
   let name_end = kwd "]"
   let rec_def_header _ sk1 sk2 _ =  ws sk1 ^ kwd "let" ^ ws sk2 ^ kwd "rec"
   let rec_def_footer _ n = emp
-  let letbind_sep = kwd "|" 
-  let letbind_initial_sep = kwd "|"
   let funcase_start = emp
   let funcase_end = emp
   let reln_start = kwd "indreln"
@@ -510,7 +548,7 @@ module Tex : Target = struct
   let list_sep = kwd ";"
 
   let const_unit s = kwd "(" ^ ws s ^ kwd ")"
-  let const_empty s = kwd "{" ^ ws s ^ kwd "}"
+  let const_empty s = kwd "\\{" ^ ws s ^ kwd "\\}"
 
   let ctor_typ_end _ _ = emp
   let ctor_typ_end' _ _ _ = emp
@@ -613,8 +651,6 @@ module Tex : Target = struct
   let def_sep = kwd "|"
   let rec_def_header _ sk1 sk2 _ = ws sk1 ^ tkwdm "let" ^ ws sk2 ^ tkwdm "rec"
   let rec_def_footer _ n = emp
-  let letbind_sep = kwd "|" ^ texspace 
-  let letbind_initial_sep = kwd "|" ^ texspace 
   let funcase_start = emp
   let funcase_end = emp
   let reln_start = tkwdl "indreln"
@@ -757,7 +793,7 @@ module Isa : Target = struct
   let const_true = kwd "True"
   let const_false = kwd "False"
   let string_quote = r"''"
-  let string_escape = String.escaped (* XXX fix string escaping for Isa *)
+  let string_escape = string_escape_isa
   let const_num i = kwd "(" ^  num i ^ kwd ":: nat)"
   let const_unit s = kwd "() " ^ ws s
   let const_empty s = kwd "{} " ^ ws s
@@ -819,8 +855,6 @@ module Isa : Target = struct
   let rec_def_header rr sk1 sk2 _ = (if rr then kwd "function (sequential)" else kwd "fun") ^ ws sk1 ^ ws sk2
   let rec_def_footer rr n = if rr then kwd "by pat_completeness auto" else emp
   
-  let letbind_sep = kwd "|" 
-  let letbind_initial_sep = kwd "|"
   let funcase_start = emp
   let funcase_end = emp
   let reln_start = kwd "inductive"
@@ -947,7 +981,7 @@ module Hol : Target = struct
   let const_unit s = kwd "() " ^ ws s
   let const_empty s = kwd "{" ^ ws s ^ kwd "}"
   let string_quote = r"\""
-  let string_escape = String.escaped (* XXX fix string escaping for HOL *)
+  let string_escape = string_escape_hol
   let const_num = num
   let const_undefined t m = (kwd "ARB") 
   let const_bzero = emp
@@ -1019,12 +1053,10 @@ module Hol : Target = struct
         meta (Format.sprintf "val %s_def = Define `\n" n)
   let rec_def_footer rr n =
      if rr then
-       meta (Format.sprintf "\nval _ = Defn.save_defn %s_defn;" 
+       meta (Format.sprintf "\nval _ = Lib.with_flag (computeLib.auto_import_definitions, false) Defn.save_defn %s_defn;" 
             (Ulib.Text.to_string (Name.to_rope n)))
      else emp
 
-  let letbind_sep = kwd "/\\" 
-  let letbind_initial_sep = space
   let funcase_start = kwd "("
   let funcase_end = kwd ")"
   let reln_start = meta "val _ = Hol_reln `"
@@ -2006,7 +2038,29 @@ match C.exp_to_term e with
         break_hint_space 2 ^
         block is_user_exp 0 (
         exp e))
+
+  | Do(s1,m,do_lns,s2,e,s3,_) ->
+      ws s1 ^
+      kwd "do" ^
+      Ident.to_output T.infix_op_format Module_name T.path_sep (resolve_ident_path m m.descr.mod_binding) ^
+      do_lines do_lns ^
+      ws s2 ^
+      kwd "in" ^
+      exp e ^
+      ws s3 ^
+      kwd "end"
           
+and do_lines = function
+  | [] -> emp
+  | (Do_line(p,s1,e,s2)::lns) ->
+      pat p ^
+      ws s1 ^
+      kwd "<-" ^
+      exp e ^
+      ws s2 ^
+      kwd ";" ^
+      do_lines lns
+
 and quant_binding = function
   | Qb_var(n) -> 
       Name.to_output T.infix_op_format Term_var n.term
@@ -2079,7 +2133,7 @@ and funcl tvs ({term = n}, ps, topt, s1, e) =
   end ^
   ws s1 ^
   T.def_binding ^
-  exp e ^
+  exp (if is_identity_target then e else mk_opt_paren_exp e) ^
   T.funcase_end
     
 and letbind tvs (lb, _) : Output.t = match lb with
@@ -2091,7 +2145,7 @@ and letbind tvs (lb, _) : Output.t = match lb with
           | None -> emp 
           | Some(s,t) -> ws s ^ T.typ_sep ^ typ t
       end ^
-      ws s2 ^ T.def_binding ^ exp e
+      ws s2 ^ T.def_binding ^ exp (if is_identity_target then e else mk_opt_paren_exp e)
   | Let_fun(clause) ->
       funcl tvs clause
 

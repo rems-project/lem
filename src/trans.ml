@@ -271,7 +271,7 @@ let do_substitutions target e =
                       Some(C.mk_fun l_unk
                              None (List.map 
                                      (fun n -> 
-                                        C.mk_pvar n.locn (Name.add_lskip n.term) n.typ) 
+                                        C.mk_pvar n.locn (Name.add_lskip n.term) (Types.type_subst tsubst n.typ))
                                      leftover_params) 
                              None b
                              None)
@@ -335,6 +335,33 @@ let names_mk_ident l i loc =
 
 let mk_ident l i loc =
   names_mk_ident (List.map Name.from_rope l) (Name.from_rope i) loc
+
+
+(* Transforms string literals that cannot be represented in Isabelle into a list
+ * of integers, and pass this list to Pervasives.nat_list_to_string which then
+ * returns an Isabelle string. *)
+
+let string_lits_isa e =
+  let l_unk = Ast.Trans("string_lits_isa", Some (exp_to_locn e)) in
+  match C.exp_to_term e with
+  | Lit {term = (L_string(lskips, s))} ->
+      let is_isa_chr x =
+        x >= 0x20 && x <= 0x7e &&
+        (* most printable characters are supported, but there are some exceptions! *)
+        not (List.mem x [0x22; 0x27; 0x5c; 0x60]) in
+      let chars = List.map int_of_char (Util.string_to_list s) in
+      if List.for_all is_isa_chr chars
+      then (* no need to translate if all characters are representable *)
+        None
+      else begin
+        let f = mk_const_exp env l_unk ["Pervasives"] "nat_list_to_string" [] in
+        let nums = List.map mk_num_exp chars in
+        let char_list = Seplist.from_list_default None nums in
+        let char_list_exp = C.mk_list l_unk None char_list None { Types.t =
+          Types.Tapp([num_ty], Path.listpath) } in
+        Some(append_lskips lskips (C.mk_app l_unk f char_list_exp None))
+      end
+  | _ -> None
 
 (* TODO: Get the Suc constructor properly when the library is working with
  * datatypes *)
@@ -1192,6 +1219,38 @@ let rec coq_type_annot_pat_vars (level,pos) p =
                     not (Types.TNset.is_empty (Types.free_vars p.typ)) ->
         Some(C.mk_pvar_annot l_unk n (C.t_to_src_t p.typ) (Some(p.typ)))
     | _ -> None
+
+let bind_id l = function
+  | Id_none(sk) ->
+      Id_some(Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r ">>="))) l)
+  | Id_some(id) ->
+      let (n1,n2) = Ident.to_name_list id in
+        Id_some (Ident.mk_ident 
+                   ((List.map (fun n -> (Name.add_lskip n, None)) n1)@[(Name.add_lskip n2, None)]) 
+                   (Name.add_lskip (Name.from_rope (r ">>="))) 
+                   l)
+
+
+let bind_const l m i =
+  let (n1,n2) = Path.to_name_list m.descr.mod_binding in
+  let descr = names_get_const E.env (n1@[n2]) (Name.from_rope (r">>=")) in
+    C.mk_const l { id_path = bind_id l m.id_path; id_locn = l; descr = descr; instantiation = i } None
+
+(* TODO: do something sensible with the spacing *)
+let remove_do e =
+  let l_unk = Ast.Trans("remove_do", Some (exp_to_locn e)) in
+    match C.exp_to_term e with
+      | Do(sk1, m, [], sk2, e, sk3,t) ->
+          Some e
+      | Do(sk1, m, Do_line(p',sk1',e',sk2')::lns, sk2, exp, sk3, (t, direction)) ->
+          let e1 = e' in
+          let e2 = bind_const l_unk m (if direction = 1 then [p'.typ; t] else if direction = 2 then [t; p'.typ] else assert false) in
+          let e3 = 
+            C.mk_fun l_unk None [p'] sk1' (C.mk_do (exp_to_locn e) sk1 m lns sk2 exp sk3 (t, direction) (Some (exp_to_typ e))) 
+              (Some { Types.t = Types.Tfn(p'.typ,exp_to_typ e)})
+          in
+            Some (C.mk_infix l_unk e1 e2 e3 (Some (exp_to_typ e)))
+      | _ -> None
 
 end
 

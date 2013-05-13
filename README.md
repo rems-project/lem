@@ -15,10 +15,10 @@ the exception of a few files derived from the OCaml, which are under
 the GNU Library GPL.
 
 Lem depends on [OCaml](http://caml.inria.fr/). Lem is tested against OCaml
-3.12.1. Other versions might or might not work.
+3.12.1. and 4.00.0. Other versions might or might not work.
 
 To build Lem run make in the top-level directory. This builds the
-executable lem, and places a symbolic link to it that directory. Now
+executable lem, and places a symbolic link to it in that directory. Now
 set the `LEMLIB` environment variable to `PATH_TO_LEM/library`, or
 alternately pass the `-lib PATH_TO_LEM/library` flag to lem when you
 run it. This tells Lem where to find its library of types for

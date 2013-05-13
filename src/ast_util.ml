@@ -166,6 +166,15 @@ let rec setcomp_bindings not_shadowed (Expr_l(e,l)) =
           setcomp_bindings_qbs not_shadowed qbs (scb e)
       | Listcomp(_,e1,_,_,qbs,_,e2,_) ->
           setcomp_bindings_qbs not_shadowed qbs (NameSet.union (scb e1) (scb e2))
+      | Do(_,_,lns,_,e,_) ->
+          setcomp_bindings_lns not_shadowed lns (scb e) 
+
+and setcomp_bindings_lns not_shadowed =
+  List.fold_right
+    (fun line s ->
+       match line with
+         | (p,_,e,_) ->
+             NameSet.union (setcomp_bindings not_shadowed e) (NameSet.diff s (pat_vars not_shadowed p)))
 
 and setcomp_bindings_qbs not_shadowed =
   List.fold_right

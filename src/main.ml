@@ -51,6 +51,7 @@ let backends = ref []
 let opt_print_types = ref false
 let opt_print_version = ref false
 let opt_library = ref None
+let lib = ref []
 let ocaml_lib = ref []
 let hol_lib = ref []
 let coq_lib = ref []
@@ -59,6 +60,9 @@ let isa_theory = ref None
 let opt_file_arguments = ref ([]:string list)
 
 let options = Arg.align ([
+  ( "-i", 
+    Arg.String (fun l -> lib := l::!lib),
+    " treat the file as input only and generate no output for it");
   ( "-tex", 
     Arg.Unit (fun b -> if not (List.mem (Some(Typed_ast.Target_tex)) !backends) then
                 backends := Some(Typed_ast.Target_tex)::!backends),
@@ -114,6 +118,9 @@ let options = Arg.align ([
   ( "-ident_pat_compile",
     Arg.Unit (fun b -> Target_trans.ident_force_pattern_compile := true; Reporting.ignore_pat_compile_warnings()),
     " activates pattern compilation for the identity backend. This is used for debugging.");
+  ( "-only_changed_output",
+    Arg.Unit (fun b -> Process_file.always_replace_files := false),
+    " generate only output files, whose content really changed compared to the existing file");
   ( "-extra_level", 
     Arg.Symbol (["none"; "auto"; "all"], (fun s ->
      Backend.gen_extra_level := (match s with
@@ -221,14 +228,14 @@ let main () =
          with 
            | Invalid_argument _ -> 
              raise (Failure("Files must have .lem extension")))
-      (!opt_file_arguments @ !ocaml_lib @ !hol_lib @ !isa_lib @ !coq_lib)
+      (!opt_file_arguments @ !lib @ !ocaml_lib @ !hol_lib @ !isa_lib @ !coq_lib)
   in
   let _ = 
     List.iter
       (fun f ->
          if not (Str.string_match (Str.regexp "[A-Za-z]") (Filename.basename f) 0) then
            raise (Failure(".lem filenames must start with a letter")))
-      (!opt_file_arguments @ !ocaml_lib @ !hol_lib @ !isa_lib @ !coq_lib)
+      (!opt_file_arguments @ !lib @ !ocaml_lib @ !hol_lib @ !isa_lib @ !coq_lib)
   in
   let init =
     try
@@ -264,7 +271,7 @@ let main () =
   (* Parse and typecheck all of the .lem sources *)
   let (modules, type_info, _) =
     List.fold_left
-      (fun (mods, (def_info,env), previously_processed_modules) f ->
+      (fun (mods, (def_info,env), previously_processed_modules) (f, add_to_modules) ->
          let ast = parse_file f in
          let f' = Filename.basename (Filename.chop_extension f) in
          let mod_name = String.capitalize f' in
@@ -304,9 +311,16 @@ let main () =
                Typed_ast.pp_instances Format.std_formatter new_instances;
                Format.fprintf Format.std_formatter "@\n@\n"
              end;
-           (module_record::mods, ((tdefs,instances),e), mod_name::previously_processed_modules))
+           ((if add_to_modules then
+             module_record::mods
+               else
+             mods), 
+            ((tdefs,instances),e), mod_name::previously_processed_modules))
       ([],type_info,[])
-      !opt_file_arguments
+      (* We don't want to add the files in !lib to the resulting module ASTs,
+       * because we don't want to put them throught the back end *)
+      (List.map (fun x -> (x, false)) (List.rev !lib) @ 
+       List.map (fun x -> (x, true)) !opt_file_arguments)
   in
 
   (* Check the parsed source and produce warnings for various things. Currently:

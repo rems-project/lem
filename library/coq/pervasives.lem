@@ -45,6 +45,7 @@
 (*========================================================================*)
 
 type map 'a 'b = Hol.Finite_map.fmap 'a 'b
+type int = Hol.Integer.int
 
 val (==) : forall 'a. 'a -> 'a -> bool
 
@@ -56,7 +57,7 @@ val list_map : forall 'a 'b. ('a -> 'b) -> list 'a -> list 'b
 val list_for_all : forall 'a. ('a -> bool) -> list 'a -> bool
 val list_exists : forall 'a. ('a -> bool) -> list 'a -> bool
 val list_filter : forall 'a. ('a -> bool) -> list 'a -> list 'a
-val list_fold_left : forall 'a 'b. ('a -> 'b -> 'a) -> 'a -> list 'b -> 'a
+val list_fold_left : forall 'a 'b. ('a -> 'b -> 'a) -> list 'b -> 'a-> 'a
 val list_fold_right : forall 'a 'b. ('a -> 'b -> 'b) -> 'b -> list 'a -> 'b
 
 val vector_append : forall 'a ''n ''m. vector 'a ''n -> vector 'a ''m -> vector 'a (''n + ''m)
@@ -80,6 +81,20 @@ val (+) : num -> num -> num
 val (-) : num -> num -> num
 val ( * ) : num -> num -> num
 val divide : num -> num -> num
+
+val pos_int_of_num: num -> int
+val neg_int_of_num: num -> int
+val int_negation: int -> int
+val int_plus : int -> int -> int
+val int_minus: int -> int -> int
+val int_mult: int -> int -> int
+val int_div: int -> int -> int
+val int_mod: int -> int -> int
+val int_exp: int -> num -> int
+val int_lt_b : int -> int -> bool
+val int_lte_b : int -> int -> bool
+val int_gt_b : int -> int -> bool
+val int_gte_b : int -> int -> bool
 
 val (&&) : bool -> bool -> bool
 

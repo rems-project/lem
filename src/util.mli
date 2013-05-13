@@ -162,6 +162,10 @@ If at least one of the files does not exist, [false] is returned. [same_content_
 if one of the files exists, but cannot be read. *)
 val same_content_files : string -> string -> bool
 
+(** {2 Strings} *)
+
+(** [string_to_list l] translates the string [l] to the list of its characters. *)
+val string_to_list : string -> char list
 
 (** {2 Useful Sets} *)
 

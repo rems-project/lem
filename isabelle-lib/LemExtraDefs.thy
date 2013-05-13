@@ -52,6 +52,7 @@ imports
  	 Main
    "~~/src/HOL/Map"
  	 "~~/src/HOL/Library/Efficient_Nat"
+ 	 "~~/src/HOL/Library/Char_nat"
 
 begin 
 
@@ -139,6 +140,9 @@ proof (rule someI_ex)
 qed
 
 subsection {* num to string conversions *}
+
+definition nat_list_to_string :: "nat list \<Rightarrow> string" where
+  "nat_list_to_string nl = map char_of_nat nl"
   
 definition is_digit where
   "is_digit (n::nat) = (n < 10)"

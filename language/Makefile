@@ -14,6 +14,9 @@ lem.tex ../src/ast.ml lemScript.sml: lem.ott
 	ott -ocaml_include_terminals true -o lem.tex -o ../src/ast.ml -o lemScript.sml -picky_multiple_parses true lem.ott
 	chmod a-w ../src/ast.ml
 
+lem.lem: lem.ott
+	ott -o lem.lem -picky_multiple_parses true lem.ott
+
 
 clean:
 	rm -rf *~

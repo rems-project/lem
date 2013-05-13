@@ -192,6 +192,12 @@ let rec list_iter_sep (sf : unit -> unit) (f : 'a -> unit) l : unit =
     | [x0] -> f x0
     | (x0 :: x1 :: xs) -> (f x0; sf(); list_iter_sep sf f (x1 :: xs))
 
+let string_to_list s =
+  let rec aux i acc =
+    if i < 0 then acc
+    else aux (i-1) (s.[i] :: acc)
+  in aux (String.length s - 1) []
+
 module IntSet = Set.Make( 
   struct
     let compare = Pervasives.compare

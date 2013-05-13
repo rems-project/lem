@@ -209,10 +209,14 @@ let rec fix_exp target e =
           C.mk_setcomp old_l
             s1 (trans e1) s2 (trans e2) s3 b
             old_t
+      (* TODO: Why is qbs ignored *)
       | Comp_binding(is_lst,s1,e1,s2,s3,qbs,s4,e2,s5) ->
           C.mk_comp_binding old_l
             is_lst s1 (trans e1) s2 s3 qbs s4 (trans e2) s5
             old_t
+      (* TODO: Why is lns ignored *)
+      | Do(s1,mid,lns,s2,e,s3,ret_t) ->
+          C.mk_do old_l s1 mid lns s2 (trans e) s3 ret_t old_t
       | Quant(q,qbs,s,e) ->
           C.mk_quant old_l
             q

@@ -142,6 +142,7 @@ struct
                                  T.remove_quant;
                                  T.remove_vector_access;
                                  T.remove_vector_sub;
+                                 T.remove_do;
                                  Patterns.compile_exp (Some Target_ocaml) Patterns.is_ocaml_pattern_match C.d env])
                ];
       get_prec = Precedence.get_prec_ocaml;
@@ -167,6 +168,7 @@ struct
                          T.remove_set_comp_binding;
                          T.do_substitutions Target_isa;
                          T.sort_record_fields; 
+                         T.string_lits_isa;
                          Patterns.compile_exp (Some Target_isa) Patterns.is_isabelle_pattern_match C.d env]);
         Pat_macros (fun env ->
                       let module T = T(struct let env = env end) in
@@ -409,6 +411,9 @@ struct
            (Typed_ast.Nk_typeconstr, 
             mk_string_path ["Pmap"] "map",
             mk_string_path [] "fmap");
+           (Typed_ast.Nk_typeconstr, 
+            mk_string_path ["Coq"; "Hol"; "Integer"] "int",
+            mk_string_path [] "int");
         ]
       | _ -> []
 
