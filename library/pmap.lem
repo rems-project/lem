@@ -28,6 +28,9 @@ let inline {coq} find = Coq.map_find Coq.(==)
 val for_all : forall 'key 'a. ('key -> 'a -> bool) -> map 'key 'a -> bool
 let inline {ocaml} for_all = Ocaml.Pmap.for_all
 
+val exist : forall 'key 'a. ('key -> 'a -> bool) -> map 'key 'a -> bool
+let inline {ocaml} exist = Ocaml.Pmap.exist
+
 val map : forall 'key 'a 'b. ('a -> 'b) -> map 'key 'a -> map 'key 'b
 let inline {ocaml} map = Ocaml.Pmap.map
 

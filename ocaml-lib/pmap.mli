@@ -87,7 +87,7 @@ val for_all: ('key -> 'a -> bool) -> ('key,'a) map -> bool
         @since 3.12.0
      *)
 
-val exists: ('key -> 'a -> bool) -> ('key,'a) map -> bool
+val exist: ('key -> 'a -> bool) -> ('key,'a) map -> bool
     (** [exists p m] checks if at least one binding of the map
         satisfy the predicate [p].
         @since 3.12.0

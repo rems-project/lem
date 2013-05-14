@@ -292,7 +292,7 @@ let equal f a b = equal a.cmp f a.m b.m
 let iter f m = iter f m.m
 let fold f m b = fold f m.m b
 let for_all f m = for_all f m.m
-let exists f m = exists f m.m
+let exist f m = exists f m.m
 let filter f m = {m with m = filter m.cmp f m.m}
 let partition f m = 
   let m1,m2 = partition m.cmp f m.m in
