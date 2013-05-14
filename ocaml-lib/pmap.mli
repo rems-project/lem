@@ -120,6 +120,14 @@ val bindings: ('key,'a) map -> ('key * 'a) list
         @since 3.12.0
      *)
 
+(** [domain m] returns the domain of the map [m], i.e. the
+    set of keys of this map. *)
+val domain : ('key,'a) map -> 'key Pset.set
+
+(** [range m] returns the range of the map [m], i.e. the
+    set of all values stored in this map. *)
+val range : ('key,'a) map -> 'a Pset.set
+
 val min_binding: ('key,'a) map -> ('key * 'a)
     (** Return the smallest binding of the given map
        (with respect to the [Ord.compare] ordering), or raise

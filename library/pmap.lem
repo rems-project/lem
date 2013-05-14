@@ -36,9 +36,18 @@ let inline {ocaml} map = Ocaml.Pmap.map
 
 val remove: forall 'key 'a. 'key -> map 'key 'a -> map 'key 'a
 let inline {ocaml} remove = Ocaml.Pmap.remove
+let inline {isabelle} remove = Isabelle.map_remove
 
 val bindings: forall 'key 'a. map 'key 'a -> list ('key * 'a)
 let inline {ocaml} bindings = Ocaml.Pmap.bindings
 
 val concat: forall 'key 'a. map 'key 'a -> map 'key 'a -> map 'key 'a
 let inline {ocaml} concat = Ocaml.Pmap.concat
+
+val domain: forall 'key 'a. map 'key 'a -> set 'key
+let inline {ocaml} domain = Ocaml.Pmap.domain
+let inline {isabelle} domain = Isabelle.Map.dom
+
+val range: forall 'key 'a. map 'key 'a -> set 'a
+let inline {ocaml} range = Ocaml.Pmap.range
+let inline {isabelle} range = Isabelle.Map.ran

@@ -60,6 +60,7 @@ subsection{* Finite Maps *}
 
 abbreviation (input) "map_find k m \<equiv> the (m k)"
 abbreviation (input) "map_update k v m \<equiv> m (k \<mapsto> v)"
+abbreviation (input) "map_remove k m \<equiv> m |` (- {k})"
 
 subsection{* Lists *}
 
@@ -73,7 +74,8 @@ subsection{* Sets *}
 abbreviation (input) "set_diff (s1::'a set) s2 \<equiv> s1 - s2"
 abbreviation (input) "set_filter P (s::'a set) \<equiv> {x \<in> s. P x}"
 abbreviation (input) "set_cross s1 s2 \<equiv> s1 \<times> s2"
-
+abbreviation (input) "set_bigunion S \<equiv> \<Union> S"
+abbreviation (input) "set_biginter S \<equiv> \<Inter> S"
 
 subsection{* Natural numbers *}
 

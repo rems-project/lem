@@ -49,4 +49,6 @@ type map 'a 'b = Hol.Finite_map.fmap 'a 'b
 val empty : forall 'a 'b. map 'a 'b
 val map_update : forall 'a 'b. 'a -> 'b -> map 'a 'b -> map 'a 'b
 val map_find : forall 'a 'b. 'a -> map 'a 'b -> 'b
+val map_remove : forall 'a 'b. 'a -> map 'a 'b -> map 'a 'b
 val dom : forall 'a 'b. map 'a 'b -> set 'a
+val ran : forall 'a 'b. map 'a 'b -> set 'b

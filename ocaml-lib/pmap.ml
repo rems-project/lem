@@ -298,6 +298,9 @@ let partition f m =
   let m1,m2 = partition m.cmp f m.m in
   ({m with m = m1},{m with m = m2})
 let cardinal m = cardinal m.m
+let domain m = Pset.from_list m.cmp (List.map fst (bindings m.m))
+let range m = Pset.from_list Pervasives.compare (List.map snd (bindings m.m))
+
 let bindings m = bindings m.m
 let min_binding m = min_binding m.m
 let max_binding m = max_binding m.m
