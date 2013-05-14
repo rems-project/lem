@@ -265,7 +265,10 @@ and val_descr =
 and v_env = val_descr Nfmap.t
 and f_env = field_descr Nfmap.t
 and m_env = mod_descr Nfmap.t
-and env = { m_env : m_env; p_env : p_env; f_env : f_env; v_env : v_env; }
+and r_info = { rel_witness : (Name.t * constr_descr Nfmap.t) option }
+and r_env = r_info Nfmap.t
+and env = { m_env : m_env; p_env : p_env; f_env : f_env; v_env : v_env;
+            r_env : r_env }
 
 (* free_env represents the free variables in expression, with their types *)
 and free_env = t Nfmap.t
@@ -421,7 +424,8 @@ let tnvar_to_types_tnvar tnvar =
 
 let empty_env = { m_env = Nfmap.empty;
                   p_env = Nfmap.empty;
-                  f_env = Nfmap.empty; 
+                  f_env = Nfmap.empty;
+                  r_env = Nfmap.empty;
                   v_env = Nfmap.empty; }
 
 (* Applies lskips_f to the leftmost lskips in p, replacing it with lskips_f's
@@ -2316,6 +2320,7 @@ let env_union e1 e2 =
   { m_env = Nfmap.union e1.m_env e2.m_env;
     p_env = Nfmap.union e1.p_env e2.p_env;
     v_env = Nfmap.union e1.v_env e2.v_env; 
+    r_env = Nfmap.union e1.r_env e2.r_env;
     f_env = Nfmap.union e1.f_env e2.f_env }
 
 let delimit_pat (c : P.pat_context) (p : pat) : pat =
