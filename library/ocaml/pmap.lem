@@ -74,7 +74,6 @@ val find: forall 'key 'a.  'key -> map 'key 'a -> 'a
 val map: forall 'key 'a 'b.  ('a -> 'b) -> map 'key 'a -> map 'key 'b
 val mapi: forall 'key 'a 'b.  ('key -> 'a -> 'b) -> map 'key 'a -> map 'key 'b
 
-val concat: forall 'key 'a. map 'key 'a -> map 'key 'a -> map 'key 'a
 
 val domain: forall 'key 'a. map 'key 'a -> set 'key
 val range: forall 'key 'a. map 'key 'a -> set 'a
