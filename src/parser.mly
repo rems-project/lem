@@ -147,9 +147,9 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 %token <Ast.terminal> Semi Lsquare Rsquare Fun_ Function_ Bar With Match Let_ And HashZero HashOne
 %token <Ast.terminal> In Of Rec Type Rename Module_ Struct End Open_ SemiSemi Eof
 %token <Ast.terminal> True False Begin_ If_ Then Else Val
-%token <Ast.terminal * Ulib.Text.t> AmpAmp BarBar ColonColon Star Plus Eq At GtEq
+%token <Ast.terminal * Ulib.Text.t> AmpAmp BarBar ColonColon Star Plus Eq At GtEq 
 %token <Ast.terminal * Ulib.Text.t> X Tyvar Nvar BquoteX
-%token <Ast.terminal * Ulib.Text.t> StarstarX StarX PlusX AtX EqualX 
+%token <Ast.terminal * Ulib.Text.t> StarstarX StarX PlusX AtX EqualX GtEqX
 %token <Ast.terminal * int> Num
 %token <Ast.terminal * string> String Bin Hex
 
@@ -194,6 +194,8 @@ x:
   | Lparen PlusX Rparen
     { mk_pre_x_l $1 $2 $3 (loc ()) }
   | Lparen StarX Rparen
+    { mk_pre_x_l $1 $2 $3 (loc ()) }
+  | Lparen GtEqX Rparen
     { mk_pre_x_l $1 $2 $3 (loc ()) }
   | Lparen EqualX Rparen
     { mk_pre_x_l $1 $2 $3 (loc ()) }
@@ -552,6 +554,10 @@ eq_exp:
     { eloc (Infix($1,SymX_l($2, locn 2 2), $3)) }
   | eq_exp EqualX at_exp
     { eloc (Infix($1,SymX_l($2, locn 2 2), $3)) }
+  | eq_exp GtEq at_exp
+    { eloc (Infix ($1,SymX_l($2, locn 2 2), $3)) }
+  | eq_exp GtEqX at_exp
+    { eloc (Infix ($1,SymX_l($2, locn 2 2), $3)) }
   | eq_exp IN at_exp
     { eloc (Infix($1,SymX_l($2, locn 2 2), $3)) }
   | eq_exp MEM at_exp
