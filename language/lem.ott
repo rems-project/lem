@@ -7,29 +7,34 @@ metavar num ::=
   {{ lex numeric }}
   {{ ocaml terminal * int }}
   {{ hol num }}
+  {{ lem terminal * num }}
   {{ com Numeric literals }}
 
 metavar hex ::=
   {{ phantom }}
   {{ lex numeric }}
   {{ ocaml terminal * string }}
+  {{ lem terminal * string }}
   {{ com Bit vector literal, specified by C-style hex number }}
   
 metavar bin ::=
   {{ phantom }}
   {{ lex numeric }}
   {{ ocaml terminal * string }}
+  {{ lem terminal * string }}
   {{ com Bit vector literal, specified by C-style binary number }}  
 
 metavar string ::=
   {{ phantom }}
   {{ ocaml terminal * Ulib.UTF8.t }}
+  {{ lem terminal * string }}
   {{ hol string }}
   {{ com String literals }}
 
 metavar regexp ::=
   {{ phantom }}
   {{ ocaml terminal * string }}
+  {{ lem terminal * string }}
   {{ hol string }}
   {{ com Regular expresions, as a string literal }}
 
@@ -84,16 +89,20 @@ type terminal = lex_skips
 
 metavar x , y , z ::=
   {{ ocaml terminal * text }}
+  {{ lem terminal * text }}
   {{ hol string }}
   {{ com Variables }}
   {{ ocamlvar "[[x]]" }}
+  {{ lemvar "[[x]]" }}
 
 metavar ix ::=
   {{ lex alphanum }}
   {{ ocaml terminal * text }}
+  {{ lem terminal * text }}
   {{ hol string }}
   {{ com Variables }}
   {{ ocamlvar "[[ix]]" }}
+  {{ lemvar "[[ix]]" }}
 
 
 
@@ -101,10 +110,12 @@ grammar
 
 l :: '' ::=					{{ phantom }}
 						{{ ocaml l }}
+						{{ lem l }}
 						{{ hol unit }}
   {{ com Source locations }}
   | 						:: :: Unknown
     {{ ocaml Unknown }}
+    {{ lem Unknown }}
     {{ hol () }}
 
 x_l {{ tex \ottnt{x}^{l} }} , y_l {{ tex \ottnt{y}^{l} }} , z_l {{ tex \ottnt{z}^{l} }} , name :: '' ::=
@@ -129,16 +140,27 @@ let ixl_to_l = function
   | SymX_l(_,l) -> l
   | InX_l(_,_,_,l) -> l
 }}
+{{ lem
+let xl_to_l = function
+  | X_l(_,l) -> l
+  | PreX_l(_,_,_,l) -> l
+
+let ixl_to_l = function
+  | SymX_l(_,l) -> l
+  | InX_l(_,_,_,l) -> l
+}}
 
 grammar
 
 a {{ tex \alpha }} :: '' ::=
 						{{ ocaml terminal * text }}
+						{{ lem terminal * text }}
 						{{ hol string }}
   {{ com Type variables }}
   | ' x 					:: :: A
     {{ hol [[x]] }}
     {{ ocaml [[x]] }}
+    {{ lem [[x]] }}
 
 a_l {{ tex \alpha^{l} }} :: '' ::=
   {{ com Location-annotated type variables }}
@@ -146,11 +168,13 @@ a_l {{ tex \alpha^{l} }} :: '' ::=
 
 N :: '' ::=
                                                    {{ ocaml terminal * text }}
+                                                   {{ lem terminal * text }}
                                                    {{ hol string }}
     {{ com numeric variables }} 
     | ' ' x                                        :: :: N
       {{ hol [[x]] }}
       {{ ocaml [[x]] }}            
+      {{ lem [[x]] }}            
 
 N_l {{ tex N^{l} }} :: '' ::=
   {{ com Location-annotated numeric variables }}
@@ -174,18 +198,22 @@ tnvar {{ tex tnvar^{l} }} :: '' ::=
 tnvs :: '' ::=				{{ phantom }}
 						{{ hol tnv list }}
 						{{ ocaml tnv list }}
+						{{ lem list tnv }}
   {{ com Type variable lists }}
   | tnv1 .. tnvn		:: :: Tvars
     {{ hol [[tnv1..tnvn]] }}
     {{ ocaml [[tnv1..tnvn]] }}
+    {{ lem [[tnv1..tnvn]] }}
     
 tnvars {{ tex tnvars^{l} }} :: '' ::=				{{ phantom }}
 						{{ hol tnvar list }}
 						{{ ocaml tnvar list }}
+						{{ lem list tnvar }}
   {{ com Type variable lists }}
   | tnvar1 .. tnvarn		:: :: tnvars_l
     {{ hol [[tnvar1..tnvarn]] }}
     {{ ocaml [[tnvar1..tnvarn]] }}
+    {{ lem [[tnvar1..tnvarn]] }}
     
 Nexp_aux :: 'Nexp_' ::=  
   {{ com Numerical expressions for specifying vector lengths and indexes}}
@@ -258,14 +286,17 @@ lit :: '' ::=
 
 semi_opt {{ tex \ottnt{;}^{?} }} :: 'semi_' ::=		{{ phantom }}
 							{{ ocaml terminal * bool }}
+							{{ lem terminal * bool }}
 							{{ hol bool }}
   {{ com Optional semi-colons }}
   |  							:: :: no
     {{ hol F }}
     {{ ocaml false }}
+    {{ lem false }}
   | ';'							:: :: yes
     {{ hol T }}
     {{ ocaml true }}
+    {{ lem true }}
 
 
 pat_aux :: 'P_' ::= 
@@ -316,14 +347,17 @@ grammar
 
 bar_opt {{ tex \ottkw{|}^{?} }} :: 'bar_' ::=		{{ phantom }}
 							{{ ocaml terminal * bool }}
+							{{ lem terminal * bool }}
 							{{ hol bool }}
   {{ com Optional bars }}
   |  							:: :: no
     {{ hol F }}
     {{ ocaml false }}
+    {{ lem false }}
   | '|'							:: :: yes
     {{ hol T }}
     {{ ocaml true }}
+    {{ lem true }}
 
 exp_aux :: '' ::=
   {{ com Expressions }}
@@ -493,11 +527,13 @@ grammar
 
 typs :: '' ::=						{{ phantom }}
 							{{ ocaml (typ * terminal) list }}
+							{{ lem list (typ * terminal) }}
 							{{ hol typ list }}
   {{ com Type lists }}
   | typ1 * ... * typn					:: :: Typs
     {{ hol [[typ1...typn]] }}
     {{ ocaml [[typ1...typn]] }}
+    {{ lem [[typ1...typn]] }}
 
 parsing
 Typ_tup <= Typs
@@ -510,6 +546,7 @@ ctor_def :: '' ::=
   | x_l							:: S :: Cte_s
     {{ com Constant constructors }}
     {{ ocaml (Cte([[x_l]],[])) }}
+    {{ lem (Cte([[x_l]],[])) }}
     {{ hol (Cte [[x_l]] []) }}
 
 texp :: 'Te_' ::=
@@ -579,12 +616,15 @@ targets {{ tex \ensuremath{\tau} }} :: 'Targets_' ::=		{{ hol target list }}
 targets_opt {{ tex \ensuremath{\tau^?} }} :: 'Targ_' ::= {{ phantom }}
 								{{ hol targets option }}
 								{{ ocaml targets option }}
+								{{ ocaml option targets }}
    {{ com Optional targets }}
   |								:: :: none
     {{ ocaml None }}
+    {{ lem None }}
     {{ hol NONE }}
   | targets							:: :: some
     {{ ocaml (Some([[targets]])) }}
+    {{ lem (Some([[targets]])) }}
     {{ hol (SOME([[targets]])) }}
 
 lemma_typ :: 'Lemma_' ::=
@@ -666,14 +706,17 @@ def :: '' ::=
 
 semisemi_opt {{ tex \ottkw{;;}^? }} :: 'semisemi_' ::=		{{ phantom }}
 								{{ ocaml terminal * bool }}
+								{{ lem terminal * bool }}
 								{{ hol bool }}
   {{ com Optional double-semi-colon }}
   | 	 							:: :: no
     {{ hol F }}
     {{ ocaml false }}
+    {{ lem false }}
   | ;;								:: :: yes
     {{ hol T }}
     {{ ocaml true }}
+    {{ lem true }}
 
 defs :: '' ::=
   {{ com Definition sequences }}
@@ -705,9 +748,11 @@ p :: 'Path_' ::=
 
 t_subst {{ tex \ensuremath{\sigma} }} :: '' ::=	{{ phantom }}
 						{{ hol (a # t) list }}
+						{{ lem list (a * t) }}
   {{ com Type variable substitutions }}
   | { tnv1 |-> t1 .. tnvn |-> tn }			:: :: T_subst
     {{ ocaml (assert false) }}
+    {{ lem ([[tnv1 t1 .. tnvn tn]]) }}
     {{ hol ([[tnv1 t1 .. tnvn tn]]) }}
 %ENDMOD
 
@@ -722,14 +767,17 @@ t , u :: 'T_' ::=
     {{ com Multiple substitutions }}
     {{ ocaml (assert false) }}
     {{ hol (t_subst_t [[t_subst]] [[t]]) }}
+    {{ lem (t_subst_t [[t_subst]] [[t]]) }}
   | t_subst ( tnv )			:: M :: var_subst_app
     {{ com Single variable substitution }}
     {{ ocaml (assert false) }}
     {{ hol (t_subst_t [[t_subst]] [[tnv]]) }}
+    {{ lem (t_subst_t [[t_subst]] [[tnv]]) }}
   | curry ( t_multi ,  t )			:: M :: multifn
     {{ com Curried, multiple argument functions }}
     {{ ocaml (assert false) }}
     {{ hol (FOLDR T_fn [[t]] [[t_multi]]) }}
+    {{ lem (List.fold_right T_fn [[t]] [[t_multi]]) }}
 
 ne :: 'Ne_' ::=
   {{ com internal numeric expressions }}
@@ -741,21 +789,27 @@ ne :: 'Ne_' ::=
   | normalize ( ne ) 			:: M :: normalize
     {{ ocaml (assert false) }}
     {{ hol ARB }}
+    {{ lem TODO }}
   | ne1 + ... + nen			:: M :: addmany
     {{ ocaml (assert false) }}
     {{ hol ARB }}
+    {{ lem TODO }}
   | bitlength ( bin )			:: M :: cbin
     {{ ocaml (asssert false) }}
     {{ hol ARB }}
+    {{ lem TODO }}
   | bitlength ( hex )			:: M :: chex
     {{ ocaml (assert false) }}
     {{ hol ARB }}
+    {{ lem TODO }}
   | length ( pat1 ... patn ) 		:: M :: cpat
     {{ ocaml (assert false) }}
     {{ hol ARB }}
+    {{ lem TODO }}
   | length ( exp1 ... expn )		:: M :: cexp
     {{ hol ARB }}
     {{ ocaml (assert false) }}
+    {{ lem TODO }}
 
 t_args :: '' ::=
   {{ com Lists of types }}
@@ -764,17 +818,21 @@ t_args :: '' ::=
     {{ com Multiple substitutions }}
     {{ ocaml (assert false) }}
     {{ hol (t_subst_t_args [[t_subst]] [[t_args]]) }}
+    {{ lem (t_subst_t_args [[t_subst]] [[t_args]]) }}
 
 t_multi :: '' ::=				{{ phantom }}
 						{{ hol t list }}
 						{{ ocaml t list }}
+						{{ lem list t }}
   {{ com Lists of types }}
   | ( t1 * .. * tn )				:: :: T_multi
     {{ hol [[t1..tn]] }}
+    {{ lem [[t1..tn]] }}
   | t_subst ( t_multi )				:: M :: T_multi_subst_app
     {{ com Multiple substitutions }}
     {{ ocaml (assert false) }}
     {{ hol (MAP (t_subst_t [[t_subst]]) [[t_multi]]) }}
+    {{ lem (List.map (t_subst_t [[t_subst]]) [[t_multi]]) }}
 
 nec :: '' ::=
   {{ com Numeric expression constraints }}
@@ -792,16 +850,20 @@ grammar
 
 names :: '' ::=					{{ phantom }}
 						{{ hol x set }}
+						{{ lem set x }}
 						{{ ocaml Set.Make(String).t }}
   {{ com Sets of names }}
   | { x1 , .. , xn }				:: :: Names
     {{ hol (LIST_TO_SET [[x1..xn]]) }}
+    {{ lem (Set.from_list [[x1..xn]]) }}
 
 semC {{ tex \ensuremath{\mathcal{C} } }} :: '' ::=
 								{{ hol (p#tnv) list }}
+								{{ lem list (p*tnv)  }}
   {{ com Typeclass constraint lists }}
   | ( p1 tnv1 ) .. ( pn tnvn )					:: :: SemC_concrete
     {{ hol ([[p1 tnv1..pn tnvn]]) }}
+    {{ lem ([[p1 tnv1..pn tnvn]]) }}
 
 env_tag :: '' ::=
   {{ com Tags for the (non-constructor) value descriptions }}
@@ -847,11 +909,14 @@ grammar
 
 S_c {{ tex {\ensuremath{ {\Sigma}^{\mathcal{C} } } } }} :: '' ::=			{{ phantom }}
 								{{ hol (p#t) list }}
+								{{ lem list (p*t) }}
   {{ com Typeclass constraints }}
   | { ( p1 t1 ) , .. , ( pn tn ) }				:: :: S_concrete
     {{ hol [[p1 t1 .. pn tn]] }}
+    {{ lem [[p1 t1 .. pn tn]] }}
   | S_c1 union .. union S_cn					:: M :: S_union
     {{ hol (FLAT [[S_c1..S_cn]]) }}
+    {{ lem (List.flatten [[S_c1..S_cn]]) }}
     {{ ocaml assert false }}
 
 S_N {{ tex { \ensuremath{ {\Sigma}^{\mathcal{N} } } } }} :: '' ::=
@@ -859,70 +924,94 @@ S_N {{ tex { \ensuremath{ {\Sigma}^{\mathcal{N} } } } }} :: '' ::=
    | { nec1 , .. ,  necn }				:: :: concrete
    | S_N1 union .. union S_Nn			:: M :: SN_union
      {{ hol (FLAT [[S_N1..S_Nn]]) }}
+     {{ lem (List.flatten [[S_N1..S_Nn]]) }}
      {{ ocaml assert false }}
 
+
+% lem TODO: all these environment-like structures need Lem homs
 E :: '' ::=							{{ phantom }}
 								{{ hol ((string,env_body) fmaptree) }}
+								{{ lem map string env_body }}
   {{ com Environments }}
   | < E_m , E_p , E_f , E_x >						:: :: E
     {{ hol (FTNode <|env_p:=[[E_p]]; env_f:=[[E_f]]; env_v:=[[E_x]]|> ([[E_m]])) }}
+    {{ lem TODO }}
   | E1 u+ E2							:: M :: E_union
     {{ hol (env_union [[E1]] [[E2]]) }}
+    {{ lem TODO }}
     {{ ocaml assert false }}
   | empty							:: M :: E_empty
     {{ hol (FTNode <|env_p:=FEMPTY; env_f:=FEMPTY; env_v:=FEMPTY|> FEMPTY) }}
+    {{ lem TODO }}
     {{ ocaml assert false }}
 
 E_x {{ tex \ottnt{E}^{\textsc{x} } }} :: 'E_x_' ::=		{{ phantom }}
 								{{ hol (x|-> v_desc) }}
+								{{ lem map x v_desc }}
   {{ com Value environments }}
   | { x1 |-> v_desc1 , .. , xn |-> v_descn }	:: :: concrete
     {{ hol (FOLDR (\(k1,k2) E. E |+ (k1,k2)) FEMPTY [[x1 v_desc1 .. xn v_descn]]) }}
+    {{ lem TODO }} 
   | E_x1 u+ .. u+ E_xn						:: M :: union
     {{ hol (FOLDR FUNION FEMPTY [[E_x1..E_xn]]) }}
+    {{ lem TODO }}
     {{ ocaml (assert false) }}
 
 E_f {{ tex \ottnt{E}^{\textsc{f} } }} :: 'E_f_' ::=		{{ phantom }}
 								{{ hol (x |-> f_desc) }}
+								{{ lem map x f_desc }}
   {{ com Field environments }}
   | { x1 |-> f_desc1 , .. , xn |-> f_descn }			:: :: concrete
     {{ hol (FOLDR (\x E. E |+ x) FEMPTY [[x1 f_desc1 .. xn f_descn]]) }}
+    {{ lem TODO }}
   | E_f1 u+ .. u+ E_fn						:: M :: union
     {{ hol (FOLDR FUNION FEMPTY [[E_f1..E_fn]]) }}
+    {{ lem TODO }}
     {{ ocaml (assert false) }}
 
 E_m {{ tex \ottnt{E}^{\textsc{m} } }} :: 'E_m_' ::=		{{ phantom }}
 								{{ hol (string |-> (string,env_body) fmaptree) }}
+								{{ lem TODO }} 
   {{ com Module environments }}
   | { x1 |-> E1 , .. , xn |-> En }				:: :: concrete
     {{ hol (FOLDR (\x E. E |+ x) FEMPTY [[x1 E1 .. xn En]]) }}
+    {{ lem TODO }}
 
 E_p {{ tex \ottnt{E}^{\textsc{p} } }} :: 'E_p_' ::=		{{ phantom }}
 								{{ hol (x |-> p) }}
+								{{ lem map x p }}
   {{ com Path environments }}
   | { x1 |-> p1 , .. , xn |-> pn }				:: :: concrete
     {{ hol (FOLDR (\x E. E |+ x) FEMPTY [[x1 p1 .. xn pn]]) }}
+    {{ lem TODO }}
   | E_p1 u+ .. u+ E_pn						:: M :: union
     {{ hol (FOLDR FUNION FEMPTY [[E_p1..E_pn]]) }}
+    {{ lem TODO }}
     {{ ocaml (assert false) }}
 
 E_l {{ tex \ottnt{E}^{\textsc{l} } }} :: 'E_l_' ::=		{{ phantom }}
 								{{ hol (x |-> t) }}
+								{{ lem map x t }}
   {{ com Lexical bindings }}
   | { x1 |-> t1 , .. , xn |-> tn }				:: :: concrete
     {{ hol (FOLDR (\x E. E |+ x) FEMPTY [[x1 t1 .. xn tn]]) }}
+    {{ lem TODO }}
   | E_l1 u+ .. u+ E_ln						:: M :: union
     {{ hol (FOLDR FUNION FEMPTY [[E_l1..E_ln]]) }}
+    {{ lem TODO }}
    {{ ocaml (assert false) }}
 
 tc_abbrev :: 'Tc_abbrev_' ::=					{{ phantom }}
 								{{ hol t option }}
+								{{ lem option t }}
 								{{ ocaml t option }}
   {{ com Type abbreviations }}
   | . t								:: :: some
     {{ hol (SOME [[t]]) }}
+    {{ lem (Some [[t]]) }}
   | 								:: :: none
     {{ hol NONE }}
+    {{ lem None }}
 
 tc_def :: '' ::=
   {{ com Type and class constructor definitions }} 
@@ -931,22 +1020,28 @@ tc_def :: '' ::=
 
 TD {{ tex \ensuremath{\Delta} }} :: 'TD_' ::=			{{ phantom }}
 								{{ hol p |-> tc_def }}
+								{{ lem map p tc_def }}
   {{ com Type constructor definitions }}
   | { p1 |-> tc_def1 , .. , pn |-> tc_defn }			:: :: concrete
     {{ hol (FOLDR (\x E. E |+ x) FEMPTY [[p1 tc_def1 .. pn tc_defn]]) }}
+    {{ lem TODO }}
     {{ ocaml (assert false) }}
   | TD1 u+ TD2							:: M :: union
     {{ hol (FUNION [[TD1]] [[TD2]]) }}
+    {{ lem TODO }}
     {{ ocaml (assert false) }}
 
 TC {{ tex \ensuremath{\delta} }} :: '' ::=			{{ phantom }}
 								{{ hol p |-> x list }}
+								{{ lem map p (list x) }}
   {{ com Typeclass  definitions }}
   | { p1 |-> xs1 , .. , pn |-> xsn }				:: :: TC_concrete
     {{ hol (FOLDR (\x E. E |+ x) FEMPTY [[p1 xs1 .. pn xsn]]) }}
+    {{ lem TODO }}
     {{ ocaml (assert false) }}
   | TC1 u+ TC2							:: M :: TC_union
     {{ hol (FUNION [[TC1]] [[TC2]]) }}
+    {{ lem TODO }}
     {{ ocaml (assert false) }}
 
 
@@ -956,24 +1051,31 @@ inst :: '' ::=
 
 I :: '' ::=							{{ phantom }}
 								{{ hol inst list }}
+								{{ lem list inst }}
   {{ com Global instances }}
   | { inst1 , .. , instn }					:: :: I_concrete
     {{ hol [[inst1 .. instn]] }}
+    {{ lem [[inst1 .. instn]] }}
   | I1 union I2							:: M :: I_union
     {{ hol ([[I1]] ++ [[I2]]) }}
+    {{ lem ([[I1]] ++ [[I2]]) }}
     {{ ocaml assert false }}
  
 
 D :: 'D_' ::=							{{ phantom }}
 								{{ hol ((p |-> tc_def) # (p |-> x list) # (inst list)) }}
+                                                                {{ lem TODO }}
   {{ com Global type definition store }}
   | < TD , TC , I >							:: :: concrete
     {{ hol ([[TD]], [[TC]], [[I]]) }}
+    {{ lem ([[TD]], [[TC]], [[I]]) }}
   | D1 u+ D2							:: M :: union
     {{ hol (case ([[D1]],[[D2]]) of ((x1,x2,x3),(y1,y2,y3)) => (FUNION x1 y1, FUNION x2 y2, x3 ++ y3)) }}
+    {{ lem TODO }}
     {{ ocaml (assert false) }}
   | empty							:: M :: empty
     {{ hol (FEMPTY, FEMPTY, []) }}
+    {{ lem TODO }}
     {{ ocaml assert false }}
 
 parsing
@@ -984,8 +1086,10 @@ grammar
 
 xs :: '' ::=					{{ phantom }}
 						{{ hol string list }}
+						{{ lem list string }}
   | x1 .. xn					:: :: Xs
     {{ hol [[x1..xn]] }}
+    {{ lem [[x1..xn]] }}
 
 
 terminals :: '' ::=
@@ -1048,134 +1152,160 @@ formula :: formula_ ::=
   | E_m ( x ) gives E						:: :: lookup_m
     {{ com Module lookup }}
     {{ hol (FLOOKUP [[E_m]] [[x]] = SOME [[E]]) }}
+    {{ lem TODO }} 
 
   | E_p ( x ) gives p						:: :: lookup_p
     {{ com Path lookup }}
     {{ hol (FLOOKUP [[E_p]] [[x]] = SOME [[p]]) }}
+    {{ lem TODO }} 
 
   | E_f ( x ) gives f_desc					:: :: lookup_f
     {{ com Field lookup }}
     {{ hol (FLOOKUP [[E_f]] [[x]] = SOME [[f_desc]]) }}
+    {{ lem TODO }} 
 
   | E_x ( x ) gives v_desc					:: :: lookup_v
     {{ com Value lookup }}
     {{ hol (FLOOKUP [[E_x]] [[x]] = SOME [[v_desc]]) }}
+    {{ lem TODO }} 
 
   | E_l ( x ) gives t						:: :: lookup_l
     {{ com Lexical binding lookup }}
     {{ hol (FLOOKUP [[E_l]] [[x]] = SOME [[t]]) }}
+    {{ lem TODO }} 
 
   | TD ( p ) gives tc_def					:: :: lookup_tc
     {{ com Type constructor lookup }}
     {{ hol (FLOOKUP [[TD]] [[p]] = SOME [[tc_def]]) }}
+    {{ lem TODO }} 
 
   | TC ( p ) gives xs						:: :: lookup_class
     {{ com Type constructor lookup }}
     {{ hol (FLOOKUP [[TC]] [[p]] = SOME [[xs]]) }}
+    {{ lem TODO }} 
 
   | dom ( E_m1 ) inter dom ( E_m2 ) = emptyset			:: :: E_m_disjoint
     {{ hol (DISJOINT (FDOM [[E_m1]]) (FDOM [[E_m2]])) }}
+    {{ lem TODO }} 
 
   | dom ( E_x1 ) inter dom ( E_x2 ) = emptyset			:: :: E_x_disjoint
     {{ hol (DISJOINT (FDOM [[E_x1]]) (FDOM [[E_x2]])) }}
+    {{ lem TODO }} 
     
   | dom ( E_f1 ) inter dom ( E_f2 ) = emptyset			:: :: E_f_disjoint
     {{ hol (DISJOINT (FDOM [[E_f1]]) (FDOM [[E_f2]])) }}
+    {{ lem TODO }} 
 
   | dom ( E_p1 ) inter dom ( E_p2 ) = emptyset			:: :: E_p_disjoint
     {{ hol (DISJOINT (FDOM [[E_p1]]) (FDOM [[E_p2]])) }}
+    {{ lem TODO }} 
 
   | disjoint doms ( E_l1 , .... , E_ln )			:: :: E_l_disjoint
     {{ hol (FOLDR (\E b. case b of NONE => NONE | SOME s => if DISJOINT (FDOM
 E) s then SOME (FDOM E UNION s) else NONE) (SOME {}) [[E_l1....E_ln]] <> NONE) }}
+    {{ lem TODO }} 
     {{ com Pairwise disjoint domains }}
 
   | disjoint doms ( E_x1 , .... , E_xn )			:: :: E_x_disjoint_many
     {{ hol (FOLDR (\E b. case b of NONE => NONE | SOME s => if DISJOINT (FDOM
 E) s then SOME (FDOM E UNION s) else NONE) (SOME {}) [[E_x1....E_xn]] <> NONE) }}
+    {{ lem TODO }} 
     {{ com Pairwise disjoint domains }}
 
   | compatible overlap ( x1 |-> t1 , .. , xn |-> tn )		:: :: E_l_compat
     {{ hol (!__n __m. MEM __m [[x1 t1 .. xn tn]] /\ MEM __n [[x1 t1..xn tn]] /\ (FST __m  = FST __n) ==> (SND __m = SND __n)) }}
+    {{ lem TODO }} 
     {{ com $(\ottnt{x}_i = \ottnt{x}_j) \ensuremath{\Longrightarrow} (\ottnt{t}_i = \ottnt{t}_j)$ }}
 
   | duplicates ( tnvs ) = emptyset				:: :: no_dups_tnvs
     {{ hol (ALL_DISTINCT [[tnvs]]) }}
+    {{ lem TODO }} 
 
   | duplicates ( x1 , .. , xn )	= emptyset			:: :: no_dups
     {{ hol (ALL_DISTINCT [[x1..xn]]) }}
+    {{ lem TODO }} 
 
   | x NOTIN dom ( E_l )						:: :: notin_dom_l
     {{ hol ([[x]] NOTIN FDOM [[E_l]]) }}
+    {{ lem TODO }} 
 
   | x NOTIN dom ( E_x )						:: :: notin_dom_v
     {{ hol ([[x]] NOTIN FDOM [[E_x]]) }}
+    {{ lem TODO }} 
 
   | x NOTIN dom ( E_f )						:: :: notin_dom_f
     {{ hol ([[x]] NOTIN FDOM [[E_f]]) }}
+    {{ lem TODO }} 
 
   | p NOTIN dom ( TC )						:: :: notin_dom_tc
     {{ hol ([[p]] NOTIN FDOM [[TC]]) }}
+    {{ lem TODO }} 
 
   | p NOTIN dom ( TD )						:: :: notin_dom_td
     {{ hol ([[p]] NOTIN FDOM [[TD]]) }}
+    {{ lem TODO }} 
 
   | FV ( t ) SUBSET tnvs						:: :: FV_t
     {{ com Free type variables }}
     {{ hol (LIST_TO_SET (ftv_t [[t]]) SUBSET LIST_TO_SET [[tnvs]]) }}
+    {{ lem TODO }} 
 
   | FV ( t_multi ) SUBSET tnvs					:: :: FV_t_multi
     {{ com Free type variables }}
     {{ hol (LIST_TO_SET (FLAT (MAP ftv_t [[t_multi]])) SUBSET LIST_TO_SET [[tnvs]]) }}
+    {{ lem TODO }} 
 
   | FV ( semC ) SUBSET tnvs					:: :: FV_semC
     {{ com Free type variables }}
     {{ hol (LIST_TO_SET (MAP SND [[semC]]) SUBSET LIST_TO_SET [[tnvs]]) }}
+    {{ lem TODO }} 
 
   | inst 'IN' I							:: :: inst_in
     {{ hol (MEM [[inst]] [[I]]) }}
+    {{ lem ([[inst]] IN [[I]]) }}
 
   | ( p t ) NOTIN I						:: :: notin_I
     {{ hol (~?__semC__. MEM (Inst __semC__ [[p]] [[t]]) [[I]]) }}
+    {{ lem TODO }}
 
   | E_l1 = E_l2							:: :: E_l_eqn
-    {{ hol ([[E_l1]] = [[E_l2]]) }}
+    {{ ichl ([[E_l1]] = [[E_l2]]) }}
 
   | E_x1 = E_x2							:: :: E_x_eqn
-    {{ hol ([[E_x1]] = [[E_x2]]) }}
+    {{ ichl ([[E_x1]] = [[E_x2]]) }}
 
   | E_f1 = E_f2							:: :: E_f_eqn
-    {{ hol ([[E_f1]] = [[E_f2]]) }}
+    {{ ichl ([[E_f1]] = [[E_f2]]) }}
 
   | E1 = E2							:: :: E_eqn
-    {{ hol ([[E1]] = [[E2]]) }}
+    {{ ichl ([[E1]] = [[E2]]) }}
 
   | TD1 = TD2							:: :: TD_eqn
-    {{ hol ([[TD1]] = [[TD2]]) }}
+    {{ ichl ([[TD1]] = [[TD2]]) }}
 
   | TC1 = TC2							:: :: TC_eqn
-    {{ hol ([[TC1]] = [[TC2]]) }}
+    {{ ichl ([[TC1]] = [[TC2]]) }}
 
   | I1 = I2							:: :: I_eqn
-    {{ hol ([[I1]] = [[I2]]) }}
+    {{ ichl ([[I1]] = [[I2]]) }}
 
   | names1 = names2						:: :: names_eq
-    {{ hol ([[names1]] = [[names2]]) }}
+    {{ ichl ([[names1]] = [[names2]]) }}
 
   | t1 = t2							:: :: t_eq
-    {{ hol ([[t1]] = [[t2]]) }}
+    {{ ichl ([[t1]] = [[t2]]) }}
 
   | t_subst1 = t_subst2						:: :: t_subst_eq
-    {{ hol ([[t_subst1]] = [[t_subst2]]) }}
+    {{ ichl ([[t_subst1]] = [[t_subst2]]) }}
 
   | p1 = p2							:: :: p_eq
-    {{ hol ([[p1]] = [[p2]]) }}
+    {{ ichl ([[p1]] = [[p2]]) }}
 
   | xs1 = xs2							:: :: xs_eq
-    {{ hol ([[xs1]] = [[xs2]]) }}
+    {{ ichl ([[xs1]] = [[xs2]]) }}
 
   | tnvs1 = tnvs2							:: :: tnvs_eq
-    {{ hol ([[tnvs1]] = [[tnvs2]]) }}
+    {{ ichl ([[tnvs1]] = [[tnvs2]]) }}
 
 % Substitutions and freevars are not correctly generated for the OCaml ast.ml
 %substitutions

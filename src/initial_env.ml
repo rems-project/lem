@@ -168,9 +168,8 @@ let add_to_init targ file (((td,(env:env)), consts):t) : t =
   let targ_env = 
     match Nfmap.apply env.local_env.m_env (target_to_mname targ) with 
       | Some(e) -> e
-      | None -> 
-          assert false
-  in  
+      | None -> assert false
+  in
   let p = 
     match targ with
       | Target_ocaml -> proc
@@ -180,8 +179,7 @@ let add_to_init targ file (((td,(env:env)), consts):t) : t =
       | Target_tex -> assert false
       | Target_html -> assert false
   in
-  let starg = Some(targ) in
-  let (new_td,new_env) = p starg file (td,{env with local_env = targ_env.mod_env}) in
+  let (new_td,new_env) = p (Some targ) file (td,{env with local_env = targ_env.mod_env}) in
     ((new_td, 
       { new_env with local_env = {env.local_env with m_env = Nfmap.insert new_env.local_env.m_env (target_to_mname targ, {targ_env with mod_env = new_env.local_env})}}), 
      consts)

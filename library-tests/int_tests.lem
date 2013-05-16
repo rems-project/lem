@@ -1,0 +1,5 @@
+assert sub_0: ((Int.(-) (Int.int 10) (Int.int 3)) = (Int.int 7))
+assert sub_1: ((Int.(-) (Int.int 3) (Int.int 3)) = (Int.int 0))
+assert sub_2: ((Int.(-) (Int.int 3) (Int.int 10)) = (Int.neg (Int.int 7)))
+assert sub_3: ((Int.(-) (Int.int 10) (Int.int 0)) = (Int.int 10))
+assert sub_4: ((Int.(-) (Int.int 10) (Int.int 11)) = (Int.neg (Int.int 1)))

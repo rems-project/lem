@@ -61,7 +61,7 @@ val equal: forall 'key 'a.  ('a -> 'a -> bool) -> map 'key 'a -> map 'key 'a -> 
 (*val iter: forall 'key 'a.  ('key -> 'a -> unit) -> map 'key 'a -> unit*)
 val fold: forall 'key 'a 'b.  ('key -> 'a -> 'b -> 'b) -> map 'key 'a -> 'b -> 'b
 val for_all: forall 'key 'a.  ('key -> 'a -> bool) -> map 'key 'a -> bool
-val \\exists : forall 'key 'a.  ('key -> 'a -> bool) -> map 'key 'a -> bool
+val exist : forall 'key 'a.  ('key -> 'a -> bool) -> map 'key 'a -> bool
 val filter: forall 'key 'a.  ('key -> 'a -> bool) -> map 'key 'a -> map 'key 'a
 val partition: forall 'key 'a.  ('key -> 'a -> bool) -> map 'key 'a -> map 'key 'a * map 'key 'a
 val cardinal: forall 'key 'a.  map 'key 'a -> int
@@ -74,4 +74,6 @@ val find: forall 'key 'a.  'key -> map 'key 'a -> 'a
 val map: forall 'key 'a 'b.  ('a -> 'b) -> map 'key 'a -> map 'key 'b
 val mapi: forall 'key 'a 'b.  ('key -> 'a -> 'b) -> map 'key 'a -> map 'key 'b
 
-val concat: forall 'key 'a. map 'key 'a -> map 'key 'a -> map 'key 'a
+
+val domain: forall 'key 'a. map 'key 'a -> set 'key
+val range: forall 'key 'a. map 'key 'a -> set 'a

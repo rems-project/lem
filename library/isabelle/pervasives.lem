@@ -59,6 +59,8 @@ val (-->) : bool -> bool -> bool
 val (+) : num -> num -> num
 val (-) : num -> num -> num
 val set_diff : forall 'a. set 'a -> set 'a -> set 'a
+val set_biginter : forall 'a. set (set 'a) -> set 'a
+val set_bigunion : forall 'a. set (set 'a) -> set 'a
 val fst : forall 'a 'b. 'a * 'b -> 'a
 val snd : forall 'a 'b. 'a * 'b -> 'b
 val Pair : forall 'a 'b. 'a -> 'b -> 'a * 'b

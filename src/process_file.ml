@@ -96,9 +96,11 @@ let open_output_with_check file_name =
   let (temp_file_name, o) = Filename.open_temp_file "lem_temp" "" in
   (o, (o, temp_file_name, file_name)) 
 
+let always_replace_files = ref true 
+
 let close_output_with_check (o, temp_file_name, file_name) =
   let _ = close_out o in
-  let do_replace = not (Util.same_content_files temp_file_name file_name) in 
+  let do_replace = !always_replace_files || (not (Util.same_content_files temp_file_name file_name)) in 
   let _ = if (not do_replace) then Sys.remove temp_file_name 
           else Util.move_file temp_file_name file_name in                   
   ()

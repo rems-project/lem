@@ -80,3 +80,11 @@ val output :
   unit
 
 val output_alldoc : string -> string -> Ulib.Text.t list ref -> Ulib.Text.t list ref -> Ulib.Text.t list ref -> unit
+
+(** [always_replace_files] determines whether Lem only updates modified files.
+    If it is set to [true], all output files are written, regardless of whether the
+    files existed before. If it is set to [false] and an output file already exists,
+    the output file is only updated, if its content really changes. For some
+    backends like OCaml, HOL, Isabelle, this is benefitial, since it prevents them
+    from reprocessing these unchanged files. *)
+val always_replace_files : bool ref

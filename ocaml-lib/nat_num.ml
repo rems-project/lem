@@ -20,6 +20,7 @@ let lnot = lnot
 let (lsl) = (lsl)
 let (lsr) = (lsr)
 let (asr) = (asr)
+let num_of_string n = int_of_string n
 let string_of_num n = string_of_int n
 let int i = i
 let neg i = -i

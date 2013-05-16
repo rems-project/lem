@@ -245,8 +245,6 @@ module type Target = sig
   val name_end : t
   val rec_def_header : bool -> lskips -> lskips -> Name.t -> t
   val rec_def_footer : bool -> Name.t -> t
-  val letbind_sep : t
-  val letbind_initial_sep : t
   val funcase_start : t
   val funcase_end : t
   val reln_start : t
@@ -453,8 +451,6 @@ module Identity : Target = struct
   let name_end = kwd "]"
   let rec_def_header _ sk1 sk2 _ =  ws sk1 ^ kwd "let" ^ ws sk2 ^ kwd "rec"
   let rec_def_footer _ n = emp
-  let letbind_sep = kwd "|" 
-  let letbind_initial_sep = kwd "|"
   let funcase_start = emp
   let funcase_end = emp
   let reln_start = kwd "indreln"
@@ -547,7 +543,7 @@ module Tex : Target = struct
   let list_sep = kwd ";"
 
   let const_unit s = kwd "(" ^ ws s ^ kwd ")"
-  let const_empty s = kwd "{" ^ ws s ^ kwd "}"
+  let const_empty s = kwd "\\{" ^ ws s ^ kwd "\\}"
 
   let ctor_typ_end _ _ = emp
   let ctor_typ_end' _ _ _ = emp
@@ -647,8 +643,6 @@ module Tex : Target = struct
   let def_sep = kwd "|"
   let rec_def_header _ sk1 sk2 _ = ws sk1 ^ tkwdm "let" ^ ws sk2 ^ tkwdm "rec"
   let rec_def_footer _ n = emp
-  let letbind_sep = kwd "|" ^ texspace 
-  let letbind_initial_sep = kwd "|" ^ texspace 
   let funcase_start = emp
   let funcase_end = emp
   let reln_start = tkwdl "indreln"
@@ -847,8 +841,6 @@ module Isa : Target = struct
   let rec_def_header rr sk1 sk2 _ = (if rr then kwd "function (sequential)" else kwd "fun") ^ ws sk1 ^ ws sk2
   let rec_def_footer rr n = if rr then kwd "by pat_completeness auto" else emp
   
-  let letbind_sep = kwd "|" 
-  let letbind_initial_sep = kwd "|"
   let funcase_start = emp
   let funcase_end = emp
   let reln_start = kwd "inductive"
@@ -1044,12 +1036,10 @@ module Hol : Target = struct
         meta (Format.sprintf "val %s_def = Define `\n" n)
   let rec_def_footer rr n =
      if rr then
-       meta (Format.sprintf "\nval _ = Defn.save_defn %s_defn;" 
+       meta (Format.sprintf "\nval _ = Lib.with_flag (computeLib.auto_import_definitions, false) Defn.save_defn %s_defn;" 
             (Ulib.Text.to_string (Name.to_rope n)))
      else emp
 
-  let letbind_sep = kwd "/\\" 
-  let letbind_initial_sep = space
   let funcase_start = kwd "("
   let funcase_end = kwd ")"
   let reln_start = meta "val _ = Hol_reln `"
@@ -1936,7 +1926,7 @@ and funcl tvs ({term = n}, ps, topt, s1, e) =
   end ^
   ws s1 ^
   T.def_binding ^
-  exp e ^
+  exp (if is_identity_target then e else mk_opt_paren_exp e) ^
   T.funcase_end
     
 and letbind tvs (lb, _) : Output.t = match lb with
@@ -1948,7 +1938,7 @@ and letbind tvs (lb, _) : Output.t = match lb with
           | None -> emp 
           | Some(s,t) -> ws s ^ T.typ_sep ^ typ t
       end ^
-      ws s2 ^ T.def_binding ^ exp e
+      ws s2 ^ T.def_binding ^ exp (if is_identity_target then e else mk_opt_paren_exp e)
   | Let_fun(clause) ->
       funcl tvs clause
 

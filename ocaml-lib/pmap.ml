@@ -292,12 +292,15 @@ let equal f a b = equal a.cmp f a.m b.m
 let iter f m = iter f m.m
 let fold f m b = fold f m.m b
 let for_all f m = for_all f m.m
-let exists f m = exists f m.m
+let exist f m = exists f m.m
 let filter f m = {m with m = filter m.cmp f m.m}
 let partition f m = 
   let m1,m2 = partition m.cmp f m.m in
   ({m with m = m1},{m with m = m2})
 let cardinal m = cardinal m.m
+let domain m = Pset.from_list m.cmp (List.map fst (bindings m.m))
+let range m = Pset.from_list Pervasives.compare (List.map snd (bindings m.m))
+
 let bindings m = bindings m.m
 let min_binding m = min_binding m.m
 let max_binding m = max_binding m.m
@@ -308,4 +311,3 @@ let split k m =
 let find k m = find m.cmp k m.m
 let map f m = {m with m = map f m.m}
 let mapi f m = {m with m = mapi f m.m}
-let concat m1 m2 = {m1 with m = concat m1.cmp m1.m m2.m}

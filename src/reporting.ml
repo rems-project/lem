@@ -126,7 +126,7 @@ let dest_warning (env : Typed_ast.env) (verbose: bool) (w : warning) : (bool * A
       let pat_label = if List.length rL > 1 then "patterns" else "pattern" in
       let psL = List.map (fun (_,p) -> "'" ^ Ulib.Text.to_string (B.ident_pat p) ^ "'") rL in
       let ps = String.concat ", " psL in
-      let m = Format.sprintf "redundant %s in definition of function '%s': %s" n pat_label ps in
+      let m = Format.sprintf "redundant %s in definition of function '%s': %s" pat_label n ps in
       Some (true, l, m)
 
   | Warn_pattern_needs_compilation (l, targ, e_old, e_new) -> 
@@ -222,7 +222,7 @@ let warn_opts_aux = [
    ("unused_vars", [warn_ref_unused_vars],                     "unused variables");
    ("pat_fail",    [warn_ref_pat_fail],                        "failed pattern compilation");
    ("pat_exh",     [warn_ref_pat_exh; warn_ref_def_exh],       "non-exhaustive pattern matches");
-   ("pat_red",     [warn_ref_pat_red; warn_ref_pat_red],       "redundant patterns");
+   ("pat_red",     [warn_ref_pat_red; warn_ref_def_red],       "redundant patterns");
    ("pat_comp",    [warn_ref_pat_comp],                        "pattern compilation");
    ("resort",      [warn_ref_fun_resort; warn_ref_rec_resort], "resorted record fields and function clauses");
    ("no_dec_eq",   [warn_ref_no_decidable_eq],                 "equality of type is undecidable");

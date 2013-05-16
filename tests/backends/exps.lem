@@ -117,3 +117,6 @@ let test84 = { (* Comment *) }
 let test85 = ()
 let test86 = ( )
 let test87 = ( (* Comment *) )
+
+let test88 s1 s2 = Set.equal s1 s2
+let test89 s = Set.is_empty s
