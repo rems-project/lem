@@ -65,24 +65,6 @@ let lskips_only_comments coms =
 
 type 'a lskips_seplist = ('a, lskips) Seplist.t
 
-let ast_target_compare x y = match (x,y) with
-  | (Ast.Target_hol _, Ast.Target_hol _) -> 0
-  | (Ast.Target_hol _, _) -> 1
-  | (_, Ast.Target_hol _) -> -1
-  | (Ast.Target_ocaml _, Ast.Target_ocaml _) -> 0
-  | (Ast.Target_ocaml _, _) -> 1
-  | (_, Ast.Target_ocaml _) -> -1
-  | (Ast.Target_isa _, Ast.Target_isa _) -> 0
-  | (Ast.Target_isa _, _) -> 1
-  | (_, Ast.Target_isa _) -> -1 
-  | (Ast.Target_coq _, Ast.Target_coq _) -> 0
-  | (Ast.Target_coq _, _) -> 1
-  | (_, Ast.Target_coq _) -> -1 
-  | (Ast.Target_tex _, Ast.Target_tex _) -> 0
-  | (Ast.Target_tex _, _) -> 1
-  | (_, Ast.Target_tex _) -> -1 
-  | (Ast.Target_html _, Ast.Target_html _) -> 0
-
 type target = 
   | Target_hol
   | Target_ocaml
@@ -109,7 +91,7 @@ let target_to_ast_target t = match t with
 
 let target_compare = Pervasives.compare
 
-module Targetmap = Finite_map.Fmap_map(
+module Targetmap = Finite_map.Dmap_map(
 struct 
   type t = target
   let compare = target_compare
@@ -160,6 +142,8 @@ let target_to_mname = function
 type env_tag = 
   | K_method
   | K_instance
+  | K_field
+  | K_constr
   | K_val
   | K_let
   | K_target of bool * Targetset.t
@@ -168,19 +152,12 @@ type ('a,'b) annot = { term : 'a; locn : Ast.l; typ : t; rest : 'b }
 
 let annot_to_typ a = a.typ
 
-type constr_descr = { constr_binding : Path.t; 
-                      constr_tparams : Types.tnvar list; 
-                      constr_args : t list; 
-                      constr_tconstr : Path.t;
-                      constr_names : NameSet.t; 
-                      constr_l : Ast.l;}
-
-type field_descr = { field_binding : Path.t;
-                     field_tparams : Types.tnvar list;
-                     field_tconstr : Path.t;
-                     field_arg : t;
-                     field_names : Name.t list; 
-                     field_l : Ast.l; }
+type const_descr_ref = Types.const_descr_ref
+module Cdmap = Finite_map.Fmap_map(
+struct 
+  type t = const_descr_ref
+  let compare = Pervasives.compare
+end)
 
 type p_env = (Path.t * Ast.l) Nfmap.t
 
@@ -224,8 +201,6 @@ and lit_aux =
   | L_string of lskips * string
   | L_unit of lskips * lskips
   | L_vector of lskips * string * string 
-
- 
   | L_undefined of lskips * string
 
 type pat = (pat_aux,pat_annot) annot
@@ -236,8 +211,8 @@ and pat_aux =
   | P_as of lskips * pat * lskips * name_l * lskips
   | P_typ of lskips * pat * lskips * src_t * lskips
   | P_var of Name.lskips_t
-  | P_constr of constr_descr id * pat list
-  | P_record of lskips * (field_descr id * lskips * pat) lskips_seplist * lskips
+  | P_const of const_descr_ref id * pat list
+  | P_record of lskips * (const_descr_ref id * lskips * pat) lskips_seplist * lskips
   | P_vector of lskips * pat lskips_seplist * lskips
   | P_vectorC of lskips * pat list * lskips
   | P_tup of lskips * pat lskips_seplist * lskips
@@ -248,6 +223,10 @@ and pat_aux =
   | P_lit of lit
   | P_var_annot of Name.lskips_t * src_t
 
+and const_target_rep =
+  | CR_inline of (exp list -> exp)
+  | CR_target of (exp list -> Output.t)
+  | CR_dummy
 
 and const_descr = { const_binding : Path.t;
                     const_tparams : Types.tnvar list;
@@ -256,22 +235,21 @@ and const_descr = { const_binding : Path.t;
                     const_type : t; 
                     env_tag : env_tag;
                     spec_l : Ast.l;
-                    substitutions : ((Name.t,unit) annot list * exp) Targetmap.t }
+                    target_rep : const_target_rep Targetmap.t }
 
-and val_descr = 
-  | Constr of constr_descr
-  | Val of const_descr
-
-and v_env = val_descr Nfmap.t
-and f_env = field_descr Nfmap.t
+and v_env = const_descr_ref Nfmap.t
+and f_env = const_descr_ref Nfmap.t
 and m_env = mod_descr Nfmap.t
-and env = { m_env : m_env; p_env : p_env; f_env : f_env; v_env : v_env; }
+and c_env = int * const_descr Cdmap.t
+
+and local_env = { m_env : m_env; p_env : p_env; f_env : f_env; v_env : v_env}
+and env = { local_env : local_env; c_env : c_env; t_env : Types.type_defs}
 
 (* free_env represents the free variables in expression, with their types *)
 and free_env = t Nfmap.t
 
 and mod_descr = { mod_binding : Path.t;
-                  mod_env : env; }
+                  mod_env : local_env; }
 
 and exp = (exp_aux,exp_annot) annot
 (* We keep typ with the subst applied, and term and free without, we also only
@@ -287,9 +265,7 @@ and exp_subst =
 and exp_aux =
   | Var of Name.lskips_t
   | Nvar_e of lskips * Nvar.t
-  | Constant of const_descr id
-  | Constructor of constr_descr id
-  | Tup_constructor of constr_descr id * lskips * exp lskips_seplist * lskips
+  | Constant of const_descr_ref id
   | Fun of lskips * pat list * lskips * exp
   | Function of lskips * (pat * lskips * exp * Ast.l) lskips_seplist * lskips
   | App of exp * exp
@@ -298,7 +274,7 @@ and exp_aux =
   | Record of lskips * fexp lskips_seplist * lskips
   | Record_coq of name_l * lskips * fexp lskips_seplist * lskips
   | Recup of lskips * exp * lskips * fexp lskips_seplist * lskips
-  | Field of exp * lskips * field_descr id
+  | Field of exp * lskips * const_descr_ref id
   | Vector of lskips * exp lskips_seplist * lskips
   (* | VectorC of lskips * exp * lskips * exp *)
   | VectorSub of exp * lskips * src_nexp * lskips * src_nexp * lskips
@@ -321,7 +297,7 @@ and exp_aux =
 
 and do_line = Do_line of (pat * lskips * exp * lskips)
 
-and fexp = field_descr id * lskips * exp * Ast.l
+and fexp = const_descr_ref id * lskips * exp * Ast.l
 
 and name_lskips_annot = (Name.lskips_t,unit) annot
 
@@ -380,7 +356,7 @@ let in_targets_opt (t_opt : Ast.target option) (targets_opt : targets_opt) : boo
   | Some t -> (match targets_opt with 
                  None -> true
                | Some (neg, _, targets, _) -> 
-                 let is_in = Seplist.exists (fun t' -> ast_target_compare t t' = 0) targets in
+                 let is_in = Seplist.exists (fun t' -> Ast_util.ast_target_compare t t' = 0) targets in
                  if neg then not is_in else is_in)
 
 type val_def = 
@@ -421,10 +397,41 @@ let tnvar_to_types_tnvar tnvar =
     | Tn_A(sk, tv, l) -> (Ty(Tyvar.from_rope tv),l)
     | Tn_N(sk, nv, l) -> (Nv(Nvar.from_rope nv),l)
 
-let empty_env = { m_env = Nfmap.empty;
-                  p_env = Nfmap.empty;
-                  f_env = Nfmap.empty; 
-                  v_env = Nfmap.empty; }
+let empty_local_env = { m_env = Nfmap.empty;
+                        p_env = Nfmap.empty;
+                        f_env = Nfmap.empty; 
+                        v_env = Nfmap.empty; }
+
+let empty_env = { local_env = empty_local_env;
+                  c_env = (0, Cdmap.empty);
+                  t_env = Pfmap.empty }
+
+
+let c_env_lookup l (c_env_count, c_env_map) c = 
+         match Cdmap.apply c_env_map c with
+           | None -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_type (l, "constant_id not present in environment")))
+           | Some(cd) -> cd
+
+let c_env_update (c_env_count, c_env_map) c_id c_d =
+    (c_env_count, Cdmap.insert c_env_map (c_id, c_d))
+
+let env_c_env_update env c_id c_d =
+  { env with c_env = c_env_update env.c_env c_id c_d }
+
+let c_env_store (c_env_count, c_env_map) c_d = 
+  ((c_env_count+1, Cdmap.insert c_env_map (c_env_count, c_d)), c_env_count)
+
+let c_env_save c_env c_id_opt c_d =
+  match c_id_opt with 
+    | None -> c_env_store c_env c_d
+    | Some c_id -> (c_env_update c_env c_id c_d, c_id)
+
+let env_m_env_move env mod_name new_local =
+  let md = { mod_env = env.local_env; mod_binding = Path.mk_path [] mod_name } in
+  let new_local' = { new_local with m_env = Nfmap.insert new_local.m_env (mod_name,md) } in
+  {env with local_env = new_local'}
+
+
 
 (* Applies lskips_f to the leftmost lskips in p, replacing it with lskips_f's
  * first result and returning lskips_f's second result *)
@@ -530,9 +537,9 @@ let rec pat_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (p : pat) :
       | P_var(n) -> 
           let (s_new, s_ret) = lskips_f (Name.get_lskip n) in
             res (P_var(Name.replace_lskip n s_new)) s_ret
-      | P_constr(c,ps) -> 
+      | P_const(c,ps) -> 
           let (id_new, s_ret) = id_alter_init_lskips lskips_f c in
-            res (P_constr(c,ps)) s_ret
+            res (P_const(c,ps)) s_ret
       | P_record(s1,fieldpats,s2) -> 
           let (s_new, s_ret) = lskips_f s1 in
             res (P_record(s_new, fieldpats, s2)) s_ret
@@ -581,12 +588,6 @@ let rec alter_init_lskips (lskips_f : lskips -> lskips * lskips) (e : exp) : exp
       | Constant(c) ->
           let (id_new, s_ret) = id_alter_init_lskips lskips_f c in
             res (Constant(c)) s_ret
-      | Constructor(c) ->
-          let (id_new, s_ret) = id_alter_init_lskips lskips_f c in
-            res (Constructor(id_new)) s_ret
-      | Tup_constructor(c,s1,es,s2) -> 
-          let (s_new, s_ret) = id_alter_init_lskips lskips_f c in
-            res (Tup_constructor(c,s1,es,s2)) s_ret
       | Fun(s1,ps,s2,e) ->
           let (s_new, s_ret) = lskips_f s1 in
             res (Fun(s_new,ps,s2,e)) s_ret
@@ -736,17 +737,6 @@ let empty_sub = (TNfmap.empty, Nfmap.empty)
 open Pp
 open Format
 
-let pp_constr_descr ppf c =
-  fprintf ppf "@[<2>forall@ (@[%a@]).@ %a@]"
-    (lst ",@," TNvar.pp) c.constr_tparams
-    pp_type (multi_fun 
-               c.constr_args 
-               { t = Tapp(List.map
-                          (fun tv -> match tv with | Ty(tv) -> { t = Tvar(tv) }
-                                                   | Nv(nv) -> { t = Tne( {nexp = Nvar(nv)}) }) 
-                          c.constr_tparams, 
-                          c.constr_tconstr) })
-
 let unsat_constraint_err l = function
   | [] -> ()
   | cs ->
@@ -760,6 +750,8 @@ let unsat_constraint_err l = function
 let pp_env_tag ppf tag = 
   match tag with
     | K_method -> Format.fprintf ppf "method"
+    | K_field -> Format.fprintf ppf "field"
+    | K_constr -> Format.fprintf ppf "constr"
     | K_instance -> Format.fprintf ppf "instance"
     | K_val -> Format.fprintf ppf "val"
     | K_let -> Format.fprintf ppf "let"
@@ -776,37 +768,30 @@ let pp_const_descr ppf c =
     Path.pp c.const_binding
     pp_env_tag c.env_tag
 
-let pp_field_descr ppf f =
-  fprintf ppf "@[<2>forall@ (@[%a@]).@ %a@]"
-    (lst ",@," TNvar.pp) f.field_tparams
-    pp_type ({t = Tfn({ t = Tapp(List.map 
-                                 (fun tv -> match tv with | Ty(tv) -> { t = Tvar(tv) }
-                                                          | Nv(nv) -> { t = Tne( {nexp = Nvar(nv)}) }) 
-                                 f.field_tparams, f.field_tconstr) },
-                      f.field_arg) })
-let pp_val_descr ppf = function
-  | Constr(c) -> pp_constr_descr ppf c
-  | Val(c) -> pp_const_descr ppf c
 
-let rec pp_env ppf env =
+let rec pp_local_env ppf env =
   pp_open_box ppf 0;
-  let empty_m = Nfmap.is_empty env.m_env in
+  pp_close_box ppf ()
+and pp_env ppf env =
+  pp_open_box ppf 0;
+(*  let empty_m = Nfmap.is_empty env.m_env in
   let empty_v = Nfmap.is_empty env.v_env in
   let empty_p = Nfmap.is_empty env.p_env in
   let empty_f = Nfmap.is_empty env.f_env in
     (Nfmap.pp_map Name.pp pp_mod_descr) ppf env.m_env;
     if not empty_m && not empty_v then
       fprintf ppf "@\n";
-    (Nfmap.pp_map Name.pp pp_val_descr) ppf env.v_env;
+(*    (Nfmap.pp_map Name.pp pp_const_descr) ppf env.v_env; *)
     if not empty_v && not empty_p then
       fprintf ppf "@\n";
     (Nfmap.pp_map Name.pp (fun ppf (p, _) -> Path.pp ppf p)) ppf env.p_env;
     if not empty_p && not empty_f then
       fprintf ppf "@\n";
-    (Nfmap.pp_map Name.pp pp_field_descr) ppf env.f_env;
+(*    (Nfmap.pp_map Name.pp pp_field_descr) ppf env.f_env; *)
+*)
     pp_close_box ppf ()
 and pp_mod_descr ppf md = 
-  pp_env ppf md.mod_env
+  pp_local_env ppf md.mod_env
 
 let pp_instances = Pfmap.pp_map Path.pp (lst "@\n" pp_instance)
 
@@ -820,32 +805,33 @@ type checked_module =
 type var_avoid_f = bool * (Name.t -> bool) * (Ulib.Text.t -> (Name.t -> bool) -> Name.t)
 
 module type Exp_context = sig
-  val check : type_defs option
+  val env_opt : env option
   val avoid : var_avoid_f option
 end
 
 module Exps_in_context(D : Exp_context) = struct
   
-  let check = D.check <> None
+  let check = D.env_opt <> None
 
   let empty_free_env = Nfmap.empty
 
   let sing_free_env k v = Nfmap.from_list [(k,v)]
 
   let type_eq l m t1 t2 =
-    match D.check with
+    match D.env_opt with
       | None -> ()
-      | Some(d) ->
-          assert_equal l m d t1 t2
+      | Some(env) ->
+          assert_equal l m env.t_env t1 t2
 
-  let check_typ l (m : string) (t_given : t option) (t_built : type_defs -> t) : t =
-    match (t_given,D.check) with
+  let check_typ l (m : string) (t_given : t option) (t_built_f : type_defs -> t option) : t =
+    let t_build_d_opt = Util.option_bind (fun env -> Util.option_map (fun t -> (t, env.t_env)) (t_built_f env.t_env)) D.env_opt in
+    match (t_given,t_build_d_opt) with
       | (None,None) -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_type (l, "check_typ case (None, None) " ^ m)))
       | (Some(t),None) -> t
-      | (None,Some(d)) -> t_built d 
-      | (Some(t),Some(d)) -> 
-          assert_equal l m d t (t_built d);
-          t
+      | (None,Some(t, _)) -> t
+      | (Some(t1),Some(t2, d)) -> 
+          assert_equal l m d t1 t2;
+          t1
 
   let merge_free_env for_pat l (envs : free_env list) : free_env = 
     List.fold_left
@@ -897,7 +883,7 @@ module Exps_in_context(D : Exp_context) = struct
       rest = { pvars = empty_free_env; }; }
 
   let mk_pas l s1 p s2 nl s3 t =
-    let t = check_typ l "mk_pas" t (fun d -> p.typ) in
+    let t = check_typ l "mk_pas" t (fun d -> Some p.typ) in
       { term = P_as(s1,p,s2,nl,s3);
         locn = l;
         typ = t;
@@ -908,7 +894,7 @@ module Exps_in_context(D : Exp_context) = struct
                  p.rest.pvars]; }; }
 
   let mk_ptyp l s1 p s2 t1 s3 t =
-    let t = check_typ l "mk_ptyp" t (fun d -> p.typ) in
+    let t = check_typ l "mk_ptyp" t (fun d -> Some p.typ) in
       type_eq l "mk_ptyp" p.typ t1.typ;
       { term = P_typ(s1,p,s2,t1,s3);
         locn = l;
@@ -921,30 +907,40 @@ module Exps_in_context(D : Exp_context) = struct
       typ = t;
       rest = { pvars = sing_free_env (Name.strip_lskip n) t; }; }
 
-  let mk_pconstr l c ps t =
-    let t = 
-      check_typ l "mk_pconstr" t 
-        (fun d -> { t = Tapp(c.instantiation, c.descr.constr_tconstr) })
-    in
-    if check then
+  let mk_pconst l c ps t =
+    (* only perform checks, if environment is provided *)
+    let c_base_ty_opt = Util.option_map (fun env -> begin
+      let d = c_env_lookup l env.c_env c.descr in
+      let subst = TNfmap.from_list2 d.const_tparams c.instantiation in
+      let new_c_ty = type_subst subst d.const_type in
+      let (c_tyL, c_base_ty) = Types.strip_fn_type env.t_env new_c_ty in
+      let _ = if check then
       begin
-        let subst = TNfmap.from_list2 c.descr.constr_tparams c.instantiation in
           List.iter2
-            (fun t p -> type_eq l "mk_pconstr" (type_subst subst t) p.typ)
-            c.descr.constr_args
+            (fun t p -> type_eq l "mk_pconst" (type_subst subst t) p.typ)
+            c_tyL
             ps
-      end;
-    { term = P_constr(c,ps);
+      end in
+      c_base_ty
+    end) D.env_opt in
+    let t = 
+      check_typ l "mk_pconst" t (fun d -> c_base_ty_opt)
+    in
+    { term = P_const(c,ps);
       locn = l;
       typ = t;
       rest = { pvars = merge_free_env true l (List.map (fun p -> p.rest.pvars) ps); }; }
 
   let mk_precord l s1 fps s2 t =
+    let f_rec_ty_opt = Util.option_bind (fun env -> begin
+      let (f,_,p) = Seplist.hd fps in
+      let d = c_env_lookup l env.c_env f.descr in
+      let subst = TNfmap.from_list2 d.const_tparams f.instantiation in
+      let new_f_ty = type_subst subst d.const_type in
+      Util.option_map (fun (t, _) -> t) (Types.dest_fn_type env.t_env new_f_ty)
+    end) D.env_opt in
     let t = 
-      check_typ l "mk_precord" t 
-        (fun d ->
-           let (f,_,p) = Seplist.hd fps in
-             { t = Tapp(f.instantiation, f.descr.field_tconstr) })
+      check_typ l "mk_precord" t (fun d -> f_rec_ty_opt)
     (* TODO: Add more checks *)
     in
       { term = P_record(s1,fps,s2);
@@ -955,10 +951,11 @@ module Exps_in_context(D : Exp_context) = struct
               merge_free_env true l 
                 (Seplist.to_list_map (fun (_,_,p) -> p.rest.pvars) fps); }; }
 
+
   let mk_ptup l s1 ps s2 t =
     let t = 
       check_typ l "mk_ptup" t
-        (fun d -> { t = Ttup(Seplist.to_list_map (fun p -> p.typ) ps) } )
+        (fun d -> Some { t = Ttup(Seplist.to_list_map (fun p -> p.typ) ps) } )
     in
       { term = P_tup(s1,ps,s2);
         locn = l;
@@ -996,14 +993,14 @@ module Exps_in_context(D : Exp_context) = struct
        rest = {pvars = merge_free_env true l (List.map (fun p -> p.rest.pvars) ps); }; }
    
   let mk_pparen l s1 p s2 t =
-    let t = check_typ l "mk_pparen" t (fun d -> p.typ) in
+    let t = check_typ l "mk_pparen" t (fun d -> Some p.typ) in
       { term = P_paren(s1,p,s2);
         locn = l;
         typ = t; 
         rest = { pvars = p.rest.pvars; }; }
 
   let mk_pcons l p1 s p2 t =
-    let t = check_typ l "mk_pcons" t (fun d -> p2.typ) in
+    let t = check_typ l "mk_pcons" t (fun d -> Some p2.typ) in
       type_eq l "mk_pcons" p2.typ { t = Tapp([p1.typ], Path.listpath) };
       { term = P_cons(p1,s,p2);
         locn = l;
@@ -1011,21 +1008,21 @@ module Exps_in_context(D : Exp_context) = struct
         rest = { pvars = merge_free_env true l [p1.rest.pvars; p2.rest.pvars]; }; }
 
   let mk_pnum_add l xl s1 s2 i t =
-    let t = check_typ l "mk_pnum_add" t (fun d -> { t = Tapp([], Path.numpath) }) in
+    let t = check_typ l "mk_pnum_add" t (fun d -> Some { t = Tapp([], Path.numpath) }) in
       { term = P_num_add(xl,s1,s2,i);
         locn = l;
         typ = t; 
         rest = { pvars = sing_free_env (Name.strip_lskip (fst xl)) t; }; }
 
   let mk_plit l li t = 
-    let t = check_typ l "mk_plit" t (fun d -> li.typ) in
+    let t = check_typ l "mk_plit" t (fun d -> Some li.typ) in
     { term = P_lit(li);
       locn = l;
       typ = t; 
       rest = { pvars = empty_free_env; }; }
 
   let mk_pvar_annot l n src_t t : pat =
-    let t = check_typ l "mk_pvar_annot" t (fun d -> src_t.typ) in
+    let t = check_typ l "mk_pvar_annot" t (fun d -> Some src_t.typ) in
       { term = P_var_annot(n,src_t);
         locn = l;
         typ = t;
@@ -1052,12 +1049,12 @@ module Exps_in_context(D : Exp_context) = struct
             mk_pas l s1 (pat_subst sub p) s2 (n',l) s3 (Some new_typ)
       | P_typ(s1,p,s2,src_t,s3) -> 
           mk_ptyp l s1 (pat_subst sub p) s2 src_t s3 (Some new_typ)
-      | P_constr(c,ps) -> 
+      | P_const(c,ps) -> 
           let c =
             { c with instantiation = 
                 List.map (type_subst tsubst) c.instantiation }
           in
-            mk_pconstr l c (List.map (pat_subst sub) ps) (Some new_typ)
+            mk_pconst l c (List.map (pat_subst sub) ps) (Some new_typ)
       | P_record(s1,fieldpats,s2) ->
           mk_precord l
             s1 
@@ -1307,7 +1304,7 @@ module Exps_in_context(D : Exp_context) = struct
             | _ -> assert false
         in
         let (qbs, s) =
-          push_quant_binds_subst_aux
+          push_quant_binds_subst_aux 
             (NameSet.add (Name.strip_lskip n'.term) not_to_choose) 
             not_to_choose_ty
             (tsubst, new_vsubst)
@@ -1322,7 +1319,7 @@ module Exps_in_context(D : Exp_context) = struct
         let p' = pat_subst (tsubst,renames) p in
         let e' = exp_subst (tsubst,vsubst) e in
         let (qbs, s) =
-          push_quant_binds_subst_aux
+          push_quant_binds_subst_aux 
             (NameSet.union (Nfmap.domain p'.rest.pvars) not_to_choose) 
             not_to_choose_ty
             (tsubst, new_vsubst)
@@ -1367,7 +1364,7 @@ module Exps_in_context(D : Exp_context) = struct
         let p' = pat_subst (tsubst,renames) p in
         let e' = exp_subst (tsubst,vsubst) e in
         let (do_lines, s) =
-          push_do_lines_subst_aux
+          push_do_lines_subst_aux 
             (NameSet.union (Nfmap.domain p'.rest.pvars) not_to_choose) 
             not_to_choose_ty
             (tsubst, new_vsubst)
@@ -1408,10 +1405,6 @@ module Exps_in_context(D : Exp_context) = struct
         | Nvar_e(s,v) -> Nvar_e(s,v)
         | Constant(c) -> 
             Constant(id_subst c)
-        | Constructor(c) -> 
-            Constructor(id_subst c)
-        | Tup_constructor(c,s1,es,s2) ->
-            Tup_constructor(id_subst c,s1,Seplist.map (exp_subst subst) es,s2)
         | Fun(s1,ps,s2,e) ->
             let (ps,e) = push_subst subst ps e in
               Fun(s1,ps,s2,e)
@@ -1554,21 +1547,21 @@ module Exps_in_context(D : Exp_context) = struct
    *)
 
   let mk_lnum l s i t = 
-    let t = check_typ l "mk_lnum" t (fun d -> { t = Tapp([],Path.numpath) }) in
+    let t = check_typ l "mk_lnum" t (fun d -> Some { t = Tapp([],Path.numpath) }) in
     { term = L_num(s,i);
       locn = l;
       typ = t;
       rest = (); }
 
   let mk_lbool l s b t = 
-    let t = check_typ l "mk_lbool" t (fun d -> { t = Tapp([],Path.boolpath) }) in
+    let t = check_typ l "mk_lbool" t (fun d -> Some { t = Tapp([],Path.boolpath) }) in
     { term = if b then L_true(s) else L_false(s);
       locn = l;
       typ = t;
       rest = (); }
 
   let mk_lbit l s b t =
-    let t = check_typ l "mk_lbit" t (fun d -> { t = Tapp([],Path.bitpath) }) in
+    let t = check_typ l "mk_lbit" t (fun d -> Some { t = Tapp([],Path.bitpath) }) in
     { term = if (b=0) then L_zero(s) else L_one(s);
       locn = l;
       typ = t;
@@ -1581,7 +1574,7 @@ module Exps_in_context(D : Exp_context) = struct
       rest = (); }
 
   let mk_lstring l s c t = 
-    let t = check_typ l "mk_lstring" t (fun d -> { t = Tapp([],Path.stringpath) }) in
+    let t = check_typ l "mk_lstring" t (fun d -> Some { t = Tapp([],Path.stringpath) }) in
     { term = L_string(s,c);
       locn = l;
       typ = t;
@@ -1600,7 +1593,7 @@ module Exps_in_context(D : Exp_context) = struct
       rest = (); }
 
   let mk_tfn l t1 s t2 t =
-    let t = check_typ l "mk_tfn" t (fun d -> { t = Tfn(t1.typ, t2.typ) }) in
+    let t = check_typ l "mk_tfn" t (fun d -> Some { t = Tfn(t1.typ, t2.typ) }) in
     { term = Typ_fn(t1,s,t2);
       locn = l;
       typ = t;
@@ -1609,7 +1602,7 @@ module Exps_in_context(D : Exp_context) = struct
   let mk_ttup l ts t =
     let t = 
       check_typ l "mk_ttup" t 
-        (fun d -> { t = Ttup(Seplist.to_list_map (fun x -> x.typ) ts) }) 
+        (fun d -> Some { t = Ttup(Seplist.to_list_map (fun x -> x.typ) ts) }) 
     in
     { term = Typ_tup(ts);
       locn = l;
@@ -1619,8 +1612,7 @@ module Exps_in_context(D : Exp_context) = struct
   let mk_tapp l p ts t =
     let t =
       check_typ l "mk_tapp" t 
-        (fun d -> 
-           { t = Tapp(List.map (fun x -> x.typ) ts, p.descr) })
+        (fun d -> Some { t = Tapp(List.map (fun x -> x.typ) ts, p.descr) })
     in
     { term = Typ_app(p,ts);
       locn = l;
@@ -1628,7 +1620,7 @@ module Exps_in_context(D : Exp_context) = struct
       rest = (); }
 
   let mk_tparen l s1 t1 s2 t =
-    let t = check_typ l "mk_tparen" t (fun d -> t1.typ) in
+    let t = check_typ l "mk_tparen" t (fun d -> Some t1.typ) in
     { term = Typ_paren(s1,t1,s2);
       locn = l;
       typ = t;
@@ -1651,12 +1643,15 @@ module Exps_in_context(D : Exp_context) = struct
           subst = empty_sub; }; }
 
   let mk_const l c t : exp =
+    let new_c_ty_opt = Util.option_map (fun env -> begin
+      let d = c_env_lookup l env.c_env c.descr in
+      let subst = TNfmap.from_list2 d.const_tparams c.instantiation in
+      let new_c_ty = type_subst subst d.const_type in
+      new_c_ty
+    end) D.env_opt in
     let t = 
       check_typ l "mk_const" t 
-        (fun d -> 
-           type_subst 
-             (TNfmap.from_list2 c.descr.const_tparams c.instantiation) 
-             c.descr.const_type)
+        (fun d -> new_c_ty_opt)
     in 
       { term = Constant(c);
         locn = l;
@@ -1664,47 +1659,9 @@ module Exps_in_context(D : Exp_context) = struct
         rest = { free = empty_free_env;
                  subst = empty_sub; }; }
 
-  let mk_constr l c t : exp =
-    let t =
-      check_typ l "mk_constr" t
-        (fun d -> 
-           let subst = 
-             TNfmap.from_list2 c.descr.constr_tparams c.instantiation
-           in
-             multi_fun 
-               (List.map (type_subst subst) c.descr.constr_args)
-               { t = Tapp(c.instantiation, c.descr.constr_tconstr) })
-    in
-      { term = Constructor(c);
-        locn = l;
-        typ = t;
-        rest = { free = empty_free_env;
-                 subst = empty_sub; }; }
-
-  let mk_tup_ctor l c s1 es s2 t =
-    let t = 
-      check_typ l "mk_tup_ctor" t 
-        (fun d -> { t = Tapp(c.instantiation, c.descr.constr_tconstr) })
-    in
-      if check then
-        begin
-          let subst = TNfmap.from_list2 c.descr.constr_tparams c.instantiation in
-            List.iter2
-              (fun t e -> type_eq l "mk_tup_ctor" (type_subst subst t) e.typ)
-              c.descr.constr_args
-              (Seplist.to_list es);
-        end;
-      { term = Tup_constructor(c,s1,es,s2);
-        locn = l;
-        typ = t; 
-        rest =
-          { free = 
-              merge_free_env false l (Seplist.to_list_map exp_to_free es);
-            subst = empty_sub; }; }
-
   let mk_fun l s1 ps s2 e t : exp  =
     let t = 
-      check_typ l "mk_fun" t (fun d -> multi_fun (List.map (fun p -> p.typ) ps) e.typ)
+      check_typ l "mk_fun" t (fun d -> Some (multi_fun (List.map (fun p -> p.typ) ps) e.typ))
     in
     let p_free = merge_free_env true l (List.map (fun p -> p.rest.pvars) ps) in
       { term = Fun(s1,ps,s2,e);
@@ -1719,7 +1676,7 @@ module Exps_in_context(D : Exp_context) = struct
       check_typ l "mk_function" t
         (fun d -> 
            let (p,_,e,_) = Seplist.hd pes in
-             { t = Tfn(p.typ,e.typ) })
+             Some { t = Tfn(p.typ,e.typ) })
     in
       if check then
         Seplist.iter 
@@ -1743,7 +1700,7 @@ module Exps_in_context(D : Exp_context) = struct
            match (head_norm d e1.typ).t with
              | Tfn(t1,t2) ->
                  type_eq l "mk_app" t1 e2.typ;
-                 t2
+                 Some t2
              | _ -> 
                  raise (Ident.No_type(l, "non-function in application")))
     in
@@ -1757,7 +1714,7 @@ module Exps_in_context(D : Exp_context) = struct
   let mk_infix l e1 e2 e3 t =
     let t' = 
       check_typ l "mk_infix" t
-        (fun d ->
+        (fun d -> Some (
            match (head_norm d e2.typ).t with
              | Tfn(t1,t2) ->
                  begin
@@ -1770,10 +1727,10 @@ module Exps_in_context(D : Exp_context) = struct
                          raise (Ident.No_type(l, "non-function in infix application"))
                  end
              | _ ->
-                 raise (Ident.No_type(l, "non-function in infix application")))
+                 raise (Ident.No_type(l, "non-function in infix application"))))
     in
       match exp_to_term e2 with
-        | Var _ | Constant _ | Constructor _ -> 
+        | Var _ | Constant _ -> 
             { term = Infix(e1,e2,e3);
               locn = l;
               typ = t'; 
@@ -1785,15 +1742,18 @@ module Exps_in_context(D : Exp_context) = struct
 
 
   let mk_record l s1 fes s2 t =
-    let t = 
-      check_typ l "mk_record" t
-        (fun d -> 
-          let (f,_,e,_) = Seplist.hd fes in
-          { t = Tapp(f.instantiation, f.descr.field_tconstr) })
+    let f_rec_ty_opt = Util.option_map (fun env -> begin
+      let (f,_,_,_) = Seplist.hd fes in
+      let d = c_env_lookup l env.c_env f.descr in
+      let subst = TNfmap.from_list2 d.const_tparams f.instantiation in
+      let new_f_ty = type_subst subst d.const_type in
+      let (f_rec_ty, _) = Util.option_get_exn (Reporting_basic.err_general true l "not of field type")
+                             (Types.dest_fn_type env.t_env new_f_ty) in
+      let _ = if check then (* TODO: add typecheck code *) () in
+      f_rec_ty
+    end) D.env_opt in
+    let t = check_typ l "mk_record" t (fun d -> f_rec_ty_opt )
     in
-    if check then
-      (* TODO: add typecheck code *)
-      ();
     { term = Record(s1,fes,s2);
       locn = l;
       typ = t;
@@ -1803,6 +1763,7 @@ module Exps_in_context(D : Exp_context) = struct
             (Seplist.to_list_map (fun (_,_,e,_) -> exp_to_free e) fes);
           subst = empty_sub; }; }
 
+(*
   let mk_record_coq l s1 fes s2 t =
     let strip_file_name s =
       let rec split sep str =
@@ -1840,9 +1801,10 @@ module Exps_in_context(D : Exp_context) = struct
           merge_free_env false l 
             (Seplist.to_list_map (fun (_,_,e,_) -> exp_to_free e) fes);
           subst = empty_sub; }; }
+*)
 
   let mk_recup l s1 e s2 fes s3 t =
-    let t = check_typ l "mk_recup" t (fun d -> e.typ) in
+    let t = check_typ l "mk_recup" t (fun d -> Some e.typ) in
       if check then
         (* TODO: add typecheck code *)
         ();
@@ -1856,15 +1818,16 @@ module Exps_in_context(D : Exp_context) = struct
             subst = empty_sub; }; }
 
   let mk_field l e s f t =
-    let t = 
-      check_typ l "mk_field" t
-        (fun d ->
-           let subst = 
-             TNfmap.from_list2 f.descr.field_tparams f.instantiation
-           in
-             type_eq l "mk_field" e.typ
-               { t = Tapp(f.instantiation, f.descr.field_tconstr) };
-             type_subst subst f.descr.field_arg)
+    let f_rec_ty_opt = Util.option_map (fun env -> begin
+      let d = c_env_lookup l env.c_env f.descr in
+      let subst = TNfmap.from_list2 d.const_tparams f.instantiation in
+      let new_f_ty = type_subst subst d.const_type in
+      let (f_rec_ty, f_arg_ty) = Util.option_get_exn (Reporting_basic.err_general true l "not of field type")
+                             (Types.dest_fn_type env.t_env new_f_ty) in
+      let _ = type_eq l "mk_field" e.typ f_arg_ty in
+      f_rec_ty
+    end) D.env_opt in
+    let t = check_typ l "mk_field" t (fun d -> f_rec_ty_opt)
     in
       { term = Field(e,s,f);
         locn = l;
@@ -1877,7 +1840,7 @@ module Exps_in_context(D : Exp_context) = struct
     let t =
       check_typ l "mk_vector" t 
         (fun d ->
-           let len = Seplist.length es in
+           let len = Seplist.length es in Some
                      { t = Tapp([List.hd (Seplist.to_list_map (fun e -> e.typ) es); {t = Tne({nexp = Nconst(len)})}],
                                 Path.vectorpath) })
     (* TODO KG determine if the types should be checked here to all be the same *)
@@ -1891,9 +1854,9 @@ module Exps_in_context(D : Exp_context) = struct
                         
   let mk_vectoracc l e s1 n s2 t =
     let t = 
-       check_typ l "mk_vectoracc" t (fun d -> 
+       check_typ l "mk_vectoracc" t (fun d -> Some (
                         match e.typ.t with | Tapp( [n1;t1], _ ) -> t1 (* TODO KG Need a better check that this is a vector *)
-                                           | _ -> assert false)
+                                           | _ -> assert false))
     in
       {term = VectorAcc(e,s1,n,s2);
        locn = l;
@@ -1916,7 +1879,7 @@ module Exps_in_context(D : Exp_context) = struct
       check_typ l "mk_case" t
         (fun d ->
            match Seplist.hd pats with
-             | (_,_,e,_) -> e.typ)
+             | (_,_,e,_) -> Some e.typ)
     in
       if check then
         Seplist.iter
@@ -1937,7 +1900,7 @@ module Exps_in_context(D : Exp_context) = struct
             subst = empty_sub; }; }
 
   let mk_typed l s1 e s2 src_t s3 t =
-    let t = check_typ l "mk_typed" t (fun d -> e.typ) in
+    let t = check_typ l "mk_typed" t (fun d -> Some e.typ) in
       type_eq l "mk_typed" e.typ src_t.typ;
       { term = Typed(s1,e,s2,src_t,s3);
         locn = l;
@@ -1965,7 +1928,7 @@ module Exps_in_context(D : Exp_context) = struct
     (Let_fun(n,ps,topt,s,e),l)
 
   let mk_let l s1 lb s2 e t =
-    let t = check_typ l "mk_let" t (fun d -> e.typ) in
+    let t = check_typ l "mk_let" t (fun d -> Some e.typ) in
       { term = Let(s1,lb,s2,e);
         locn = l;
         typ = t; 
@@ -1991,7 +1954,7 @@ module Exps_in_context(D : Exp_context) = struct
   let mk_tup l s1 es s2 t =
     let t = 
       check_typ l "mk_tup" t 
-        (fun d -> { t = Ttup(Seplist.to_list_map (fun e -> e.typ) es) } )
+        (fun d -> Some { t = Ttup(Seplist.to_list_map (fun e -> e.typ) es) } )
     in
       { term = Tup(s1,es,s2);
         locn = l;
@@ -2045,7 +2008,7 @@ module Exps_in_context(D : Exp_context) = struct
            subst = empty_sub } }
 
   let mk_paren l s1 e s2 t =
-    let t = check_typ l "mk_paren" t (fun d -> e.typ) in
+    let t = check_typ l "mk_paren" t (fun d -> Some e.typ) in
       { term = Paren(s1,e,s2);
         locn = l;
         typ = t; 
@@ -2054,7 +2017,7 @@ module Exps_in_context(D : Exp_context) = struct
             subst = empty_sub; }; }
 
   let mk_begin l s1 e s2 t =
-    let t = check_typ l "mk_begin" t (fun d -> e.typ) in
+    let t = check_typ l "mk_begin" t (fun d -> Some e.typ) in
       { term = Begin(s1,e,s2);
         locn = l;
         typ = t;
@@ -2063,7 +2026,7 @@ module Exps_in_context(D : Exp_context) = struct
             subst = empty_sub; }; }
 
   let mk_if l s1 e1 s2 e2 s3 e3 t =
-    let t = check_typ l "mk_if" t (fun d -> e3.typ) in
+    let t = check_typ l "mk_if" t (fun d -> Some e3.typ) in
       type_eq l "mk_if" e1.typ { t = Tapp([], Path.boolpath) };
       type_eq l "mk_if" e2.typ e3.typ;
       { term = If(s1,e1,s2,e2,s3,e3);
@@ -2075,7 +2038,7 @@ module Exps_in_context(D : Exp_context) = struct
             subst = empty_sub; }; }
 
   let mk_lit l li t =
-    let t = check_typ l "mk_lit" t (fun d -> li.typ) in
+    let t = check_typ l "mk_lit" t (fun d -> Some li.typ) in
       { term = Lit(li);
         locn = l;
         typ = t; 
@@ -2096,7 +2059,7 @@ module Exps_in_context(D : Exp_context) = struct
           subst = empty_sub; }; }
 
   let mk_setcomp l s1 e1 s2 e2 s3 ns t =
-    let t = check_typ l "mk_setcomp" t (fun d -> { t = Tapp([e1.typ], Path.setpath) }) in
+    let t = check_typ l "mk_setcomp" t (fun d -> Some { t = Tapp([e1.typ], Path.setpath) }) in
     let env = merge_free_env false l [exp_to_free e1; exp_to_free e2] in
       type_eq l "mk_setcomp" e2.typ { t = Tapp([], Path.boolpath) };
       { term = Setcomp(s1,e1,s2,e2,s3,ns);
@@ -2166,7 +2129,7 @@ module Exps_in_context(D : Exp_context) = struct
   let mk_comp_binding l is_lst s1 e1 s2 s3 qbs s4 e2 s5 t =
     let t = 
       check_typ l "mk_comp_binding" t
-        (fun d -> 
+        (fun d ->  Some
            { t = Tapp([e1.typ], if is_lst then Path.listpath else Path.setpath) })
     in
       type_eq l "mk_comp_binding" e2.typ { t = Tapp([], Path.boolpath) };
@@ -2189,7 +2152,7 @@ module Exps_in_context(D : Exp_context) = struct
             subst = empty_sub; }; }
 
   let mk_quant l q qbs s e t =
-    let t = check_typ l "mk_quant" t (fun d -> e.typ) in
+    let t = check_typ l "mk_quant" t (fun d -> Some e.typ) in
       List.iter (check_qbs l) qbs;
       type_eq l "mk_quant" e.typ { t = Tapp([],Path.boolpath) };
       { term = Quant(q,qbs,s,e);
@@ -2211,7 +2174,7 @@ module Exps_in_context(D : Exp_context) = struct
 
   let mk_do l s1 mid do_lns s2 e s3 ret_t t =
     (* TODO: actually do the check *)
-    let t = check_typ l "mk_do" t (fun d -> e.typ ) in
+    let t = check_typ l "mk_do" t (fun d -> Some e.typ ) in
       { term = Do(s1,mid,do_lns,s2,e,s3,ret_t);
         locn = l;
         typ = t;
@@ -2287,15 +2250,11 @@ let exp_to_prec get_prec (exp : exp) : P.t =
         (match c.id_path with
           | Id_none _ -> assert false
           | Id_some p -> Ident.get_prec get_prec p)
-    | Constructor(c) | Tup_constructor(c,_,_,_) -> 
-        (match c.id_path with
-          | Id_none _ -> assert false
-          | Id_some p -> Ident.get_prec get_prec p)
     | _ -> assert false
 
 let delimit_exp get_prec (c : P.context) (e : exp) : exp =
   let k = match exp_to_term e with
-    | Tup_constructor _ | App _ -> P.App
+    | App _ -> P.App
     | Infix(_,e2,_) -> P.Infix(exp_to_prec get_prec e2)
     | Fun _ | Let _ | If _ | Quant _ -> P.Let
     | _ -> P.Atomic
@@ -2314,20 +2273,20 @@ let delimit_exp get_prec (c : P.context) (e : exp) : exp =
 
 end
 
-let env_union e1 e2 =
+let local_env_union e1 e2 =
   { m_env = Nfmap.union e1.m_env e2.m_env;
     p_env = Nfmap.union e1.p_env e2.p_env;
     v_env = Nfmap.union e1.v_env e2.v_env; 
-    f_env = Nfmap.union e1.f_env e2.f_env }
+    f_env = Nfmap.union e1.f_env e2.f_env; }
 
 let delimit_pat (c : P.pat_context) (p : pat) : pat =
   let k = match p.term with
-    | P_wild _ | P_var _ | P_constr(_,[]) | P_lit _ | P_typ _ | P_record _
+    | P_wild _ | P_var _ | P_const(_,[]) | P_lit _ | P_typ _ | P_record _
     | P_tup _ | P_list _ | P_paren _ | P_var_annot _ | P_vector _ | P_vectorC _ ->
         P.Patomic
     | P_as _ -> P.Pas
     | P_cons _ -> P.Pcons
-    | P_constr _ -> P.Papp
+    | P_const _ -> P.Papp
     | P_num_add _ -> P.Pas
   in
     if P.pat_needs_parens c k then
@@ -2349,16 +2308,19 @@ type name_kind =
   | Nk_module
   | Nk_class
  
-let env_apply env n =
-  match Nfmap.apply env.p_env n with
+let env_apply (env : env) n =
+  match Nfmap.apply env.local_env.p_env n with
       Some (p, l) -> Some (Nk_typeconstr, p, l)
     | None ->
-  match Nfmap.apply env.f_env n with
-      Some d -> Some (Nk_field, d.field_binding, d.field_l)
+  match Nfmap.apply env.local_env.f_env n with    
+      Some r -> 
+        let d = c_env_lookup (Ast.Trans ("env_apply", None)) env.c_env r in
+        Some (Nk_field, d.const_binding, d.spec_l)
     | None ->
-  match Nfmap.apply env.v_env n with
-      Some (Constr d) -> Some (Nk_constr, d.constr_binding, d.constr_l)
-    | Some (Val d) -> Some (Nk_const, d.const_binding, d.spec_l)
+  match Nfmap.apply env.local_env.v_env n with
+      Some r -> 
+        let d = c_env_lookup (Ast.Trans ("env_apply", None)) env.c_env r in
+        Some (Nk_const, d.const_binding, d.spec_l)
     | None -> None
 
 (* get all the newly defined constants names of a module *)
@@ -2477,38 +2439,6 @@ let class_path_to_dict_type c arg =
   let n = Name.rename (fun x -> Ulib.Text.(^^^) x (r"_class")) n in
     { Types.t = Types.Tapp([arg], Path.mk_path mods n) }
 
-let rec names_get_field env path =
-  match path with
-    | [] -> assert false
-    | [n] ->
-        begin
-          match Nfmap.apply env.f_env n with
-            | Some(x) -> x
-            | _ ->
-              Format.printf "%a@ IN@\n%a@\n" Name.pp n pp_env env;
-              assert false
-        end
-    | n::p ->
-        begin
-          match Nfmap.apply env.m_env n with
-            | Some(x) ->
-                names_get_field x.mod_env p
-            | None -> 
-                Format.printf "%a@ IN@\n%a@\n" Name.pp n pp_env env;
-                assert false
-        end
-
-let rec fix_mod_path mp =
-  match mp with 
-    | [] -> []
-    | (n::mn) ->
-        if Name.compare n (target_to_mname Target_hol) = 0 ||
-           Name.compare n (target_to_mname Target_isa) = 0 ||
-           Name.compare n (target_to_mname Target_coq) = 0 ||
-           Name.compare n (target_to_mname Target_ocaml) = 0 then
-          fix_mod_path mn
-        else
-          n::mn
 
 (* TODO: This needs to be much more sophisticated *)
 let resolve_ident_path id path : Ident.t =
@@ -2516,20 +2446,11 @@ let resolve_ident_path id path : Ident.t =
     match id.id_path with 
       | Id_none sk -> 
           let (mod_names, name) = Path.to_name_list path in
-          let mod_names' = List.map (fun mn -> (Name.add_lskip mn, None)) (fix_mod_path mod_names) in
+          let mod_names' = List.map (fun mn -> (Name.add_lskip mn, None)) mod_names in
             Ident.replace_first_lskip (Ident.mk_ident mod_names' (Name.add_lskip name) id.id_locn) sk
       | Id_some id -> id
   in
-  (* TODO: A hack dealing with the option type *)
-  let (mods,n) = Ident.to_name_list id in
-    if 0 = Path.compare (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"option")))
-                        (Path.mk_path mods n) then
-      Ident.mk_ident [] (Name.replace_lskip (Name.add_lskip n) (Ident.get_first_lskip id)) Ast.Unknown
-    else if 0 = Path.compare (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"sum")))
-                        (Path.mk_path mods n) then
-      Ident.mk_ident [] (Name.replace_lskip (Name.add_lskip n) (Ident.get_first_lskip id)) Ast.Unknown
-    else
-      id
+  id
 
 
 let ident_get_first_lskip id =

@@ -141,6 +141,12 @@ val map_acc_right : ('a -> 'c -> 'b * 'c) -> 'c -> ('a, 's) t -> ('b, 's) t * 'c
 
 val map_acc_left : ('a -> 'c -> 'b * 'c) -> 'c -> ('a, 's) t -> ('b, 's) t * 'c
 
+(** fold right implemented via [map_acc_right] *)
+val fold_right : ('a -> 'c -> 'c) -> 'c -> ('a, 's) t -> 'c
+
+(** fold left implemented via [map_acc_left] *)
+val fold_left : ('a -> 'c -> 'c) -> 'c -> ('a, 's) t -> 'c
+
 val for_all : ('a -> bool) -> ('a,'s) t -> bool
 val exists : ('a -> bool) -> ('a,'s) t -> bool
 val find : 's -> ('a -> bool) -> ('a,'s) t -> ('a * 's)

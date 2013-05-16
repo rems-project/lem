@@ -52,6 +52,7 @@ struct
   open Typed_ast
 
   module T = Trans.Macros(struct let d = C.d let i = C.i end)
+  module M = Def_trans.Macros
 
   type which_macro =
     | Def_macros of (env -> Def_trans.def_macro list)
@@ -73,16 +74,17 @@ struct
 
   (* The macros needed to implement the dictionary passing translations to remove type classes *)
   let dictionary_macros = 
-    [Def_macros (fun _ -> [Def_trans.class_to_module]);
-     Def_macros (fun env -> [Def_trans.instance_to_module env]);
+    [
+     Def_macros (fun env -> let module M = M(struct let env = env end) in [M.class_to_module]);
+     Def_macros (fun env -> let module M = M(struct let env = env end) in [M.instance_to_module env]);
+     Def_macros (fun env -> let module M = M(struct let env = env end) in [M.class_constraint_to_parameter]);
      Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_method]);
-     Def_macros (fun _ -> [Def_trans.class_constraint_to_parameter]);
      Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_class_const])
     ]
 
   (* The macros needed to change number type variables (e.g., ''a) into function parameters *)
   let nvar_macros =
-    [Def_macros (fun _ -> [Def_trans.nvar_to_parameter]); 
+    [(* TODO add again: Def_macros (fun _ -> [Def_trans.nvar_to_parameter]); *)
      Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.add_nexp_param_in_const])
     ]
 
@@ -101,11 +103,12 @@ struct
   let hol consts fixed_renames =
     { macros = dictionary_macros @ 
                nvar_macros @
-               [Def_macros (fun env -> [Def_trans.remove_vals;
-                                        Def_trans.remove_classes;
-                                        Def_trans.remove_opens;
-                                        Patterns.compile_def (Some Target_hol) Patterns.is_hol_pattern_match env;
-                                        (*Def_trans.flatten_modules*)]);
+               [Def_macros (fun env -> let module M = M(struct let env = env end) in [
+                                          M.remove_vals;
+                                          M.remove_classes; 
+                                          M.remove_opens;
+                                          Patterns.compile_def (Some Target_hol) Patterns.is_hol_pattern_match env;
+                                          (*M.flatten_modules*)]);
                 Exp_macros (fun env ->
                               let module T = T(struct let env = env end) in
                                 [T.remove_list_comprehension;
@@ -113,30 +116,30 @@ struct
 				 T.remove_setcomp;
                                  T.remove_set_restr_quant;
                                  T.remove_restr_quant Pattern_syntax.is_var_tup_pat;
-                                 T.do_substitutions Target_hol;
+                                 (* TODO: T.do_substitutions Target_hol; *)
                                  Patterns.compile_exp (Some Target_hol) Patterns.is_hol_pattern_match C.d env]);
                 Pat_macros (fun env ->
                               let module T = T(struct let env = env end) in
-                                [T.peanoize_num_pats_hol])
+                                [(*TODO: T.peanoize_num_pats_hol *)])
                ];
       get_prec = Precedence.get_prec_hol;
-      extra = [(fun n -> 
-               Rename_top_level.rename_nested_module [n]);
+      extra = [(* TODO: (fun n -> 
+                Rename_top_level.rename_nested_module [n]); 
                (fun n -> Rename_top_level.rename_defs_target (Some Target_hol) consts fixed_renames [n]);
-               Rename_top_level.flatten_modules]; }
+               Rename_top_level.flatten_modules*)]; }
 
   let ocaml consts fixed_renames =
     { macros = dictionary_macros @
                nvar_macros @
-               [Def_macros (fun env ->
-                              [Def_trans.remove_vals;
-                               Def_trans.remove_indrelns;
+               [Def_macros (fun env -> let module M = M(struct let env = env end) in 
+                              [M.remove_vals; 
+                               M.remove_indrelns;
                                Patterns.compile_def (Some Target_ocaml) Patterns.is_ocaml_pattern_match env]);
                 Exp_macros (fun env ->
                               let module T = T(struct let env = env end) in
-                                [T.hack;
-                                 T.tup_ctor (fun e -> e) Seplist.empty;
-                                 T.do_substitutions Target_ocaml;
+                                [(* TODO: figure out what it does and perhaps add it again    T.hack; *)
+                                 (* TODO: add again or implement otherwise                    T.tup_ctor (fun e -> e) Seplist.empty; *)
+                                 (* TODO: add again                                           T.do_substitutions Target_ocaml; *)
                                  T.remove_sets;
                                  T.remove_list_comprehension;
                                  T.remove_quant;
@@ -146,15 +149,15 @@ struct
                                  Patterns.compile_exp (Some Target_ocaml) Patterns.is_ocaml_pattern_match C.d env])
                ];
       get_prec = Precedence.get_prec_ocaml;
-      extra = [(fun n -> Rename_top_level.rename_defs_target (Some Target_ocaml) consts fixed_renames [n])]; 
+      extra = [(*TODO: add again   (fun n -> Rename_top_level.rename_defs_target (Some Target_ocaml) consts fixed_renames [n]) *)]; 
     }
 
   let isa consts fixed_renames =
     { macros =
-       [Def_macros (fun env -> 
-                      [Def_trans.remove_vals;
-                       Def_trans.remove_opens;
-                       Def_trans.remove_indrelns_true_lhs;
+       [Def_macros (fun env -> let module M = M(struct let env = env end) in 
+                      [M.remove_vals;
+                       M.remove_opens;
+                       M.remove_indrelns_true_lhs;
                        Patterns.compile_def (Some Target_isa) Patterns.is_isabelle_pattern_match env;
                        (*Def_trans.flatten_modules*)] );
         Exp_macros (fun env ->
@@ -166,35 +169,35 @@ struct
                          T.remove_set_restr_quant;
                          T.remove_restr_quant Pattern_syntax.is_var_wild_tup_pat;
                          T.remove_set_comp_binding;
-                         T.do_substitutions Target_isa;
-                         T.sort_record_fields; 
+                         (* TODO: add again T.do_substitutions Target_isa;*)
+                         (* TODO: add again T.sort_record_fields;  *)
                          T.string_lits_isa;
                          Patterns.compile_exp (Some Target_isa) Patterns.is_isabelle_pattern_match C.d env]);
         Pat_macros (fun env ->
                       let module T = T(struct let env = env end) in
-                        [T.peanoize_num_pats_isa; T.remove_unit_pats])
+                        [(* TODO: add again    T.peanoize_num_pats_isa; *) T.remove_unit_pats])
        ];
       get_prec = Precedence.get_prec_isa;
-      extra = [(fun n -> Rename_top_level.rename_nested_module [n]);
+      extra = [(* TODO: add again (fun n -> Rename_top_level.rename_nested_module [n]);
                Rename_top_level.flatten_modules; 
-               (fun n -> Rename_top_level.rename_defs_target (Some Target_isa) consts fixed_renames [n])];
+               (fun n -> Rename_top_level.rename_defs_target (Some Target_isa) consts fixed_renames [n]) *)];
     }
 
   let coq consts fixed_renames =
     { macros =
-        [Def_macros (fun env ->
-                      [Def_trans.type_annotate_definitions;
-                       Def_trans.push_patterns_in_function_definitions_in;
+        [Def_macros (fun env -> let module M = M(struct let env = env end) in 
+                      [M.type_annotate_definitions;
+                       M.push_patterns_in_function_definitions_in;
                        Patterns.compile_def (Some Target_coq) Patterns.is_coq_pattern_match env
                       ]); 
          Exp_macros (fun env -> 
                        let module T = T(struct let env = env end) in
-                         [T.remove_singleton_record_updates;
-                          T.remove_multiple_record_updates;
+                         [(* TODO: add again T.remove_singleton_record_updates;
+                          T.remove_multiple_record_updates;*)
                           T.remove_list_comprehension;
                           T.remove_set_comprehension;
                           T.remove_quant;
-                          T.do_substitutions Target_coq;
+                          (* TODO: add again      T.do_substitutions Target_coq; *)
                           Patterns.compile_exp (Some Target_coq) Patterns.is_coq_pattern_match C.d env]);
          Pat_macros (fun env ->
                        let module T = T(struct let env = env end) in
@@ -202,7 +205,7 @@ struct
         ];
       (* TODO: coq_get_prec *)
       get_prec = Precedence.get_prec;
-      extra = [(fun n -> Rename_top_level.rename_defs_target (Some Target_coq) consts fixed_renames [n])]; 
+      extra = [(* TODO: add again  (fun n -> Rename_top_level.rename_defs_target (Some Target_coq) consts fixed_renames [n]) *)]; 
       }
 
   let nameset_union_map s m =
@@ -250,7 +253,7 @@ struct
 
   let rename_def_params_aux targ consts =
     let module Ctxt = Exps_in_context(struct 
-                                        let check = None
+                                        let env_opt = None
                                         (* TODO *)
                                         let avoid = Some(get_avoid_f targ consts)
                                       end) 
@@ -293,7 +296,7 @@ struct
          {m with Typed_ast.typed_ast = (let (defs, end_lex_skips) = m.Typed_ast.typed_ast in (List.map rdp defs, end_lex_skips))})
 
   let trans targ ttarg params env m =
-    let module Ctxt = struct let avoid = None let check = Some(C.d) end in
+    let module Ctxt = struct let avoid = None let env_opt = Some(env) end in
     let module M = Macro_expander.Expander(Ctxt) in
     let (defs, end_lex_skips) = m.typed_ast in
     let module_name = Name.from_rope (Ulib.Text.of_latin1 m.module_name) in
@@ -301,7 +304,7 @@ struct
     let defs =
       match targ with 
         | None -> defs 
-        | Some(targ) -> Def_trans.prune_target_bindings targ defs
+        | Some(targ) -> let module M2 = Def_trans.Macros(struct let env = env end) in M2.prune_target_bindings targ defs 
     in
     let (env,defs) = 
       List.fold_left 
@@ -347,7 +350,7 @@ struct
         | Some(ttarg) ->
             Target_binding.fix_binding (target_to_mname ttarg) defs 
     in
-    let defs = Target_syntax.fix_infix_and_parens params.get_prec defs in
+    let defs = Target_syntax.fix_infix_and_parens env params.get_prec defs in
       (* Note: this is the environment from the macro translations, ignoring the
        * extra translations *)
       (env,

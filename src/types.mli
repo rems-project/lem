@@ -109,17 +109,57 @@ val tnvar_to_name : tnvar -> Name.t
 val tnvar_to_type : tnvar -> t
 val tnvar_split : tnvar list -> (tnvar list * tnvar list)
 
+(** A reference to a constant description. These constant description references
+    are used by [typed_ast]. This module also contains the appropriate mapping
+    functionality to constant descriptions. However, the references need to
+    be defined here, because types need information about associated constants.
+    Record types need a list of all their field constants. Moreover, every type
+    can contain a list of constructor descriptions. *)
+type const_descr_ref = int
+
+type constr_family_descr = { 
+   constr_list : const_descr_ref list; 
+   (** a list of all the constructors *)
+
+   constr_case_fun : const_descr_ref option 
+   (** the case split function for this constructor list, [None] means that pattern matching is used. *)
+}
+
+(** a type description  **)
+type type_descr = { 
+  type_tparams : tnvar list;
+  (** a list of type and length parameters *)
+
+  type_abbrev : t option;
+  (** if it is an abbreviation, the type it abbreviates *)
+
+  type_varname_regexp : string option;
+  (** an optional regular expression that variable names that have the type must match *)
+
+  type_fields : (const_descr_ref list) option;
+  (** if it is a record type, the list of fields *)
+
+  type_constr : constr_family_descr list
+  (** the constructors of this type *)
+}
+
 type tc_def = 
-  (* A type definition has 
-   * 1) a list of type and length parameters,
-   * 2) if it is an abbreviation, the type it abbreviates, and
-   * 3) optionally, a regular expression that variable names that have the type
-   *    must match *)
-  | Tc_type of tnvar list * t option * string option
-  (* The class' type parameter, and the names and types of the methods *)
+  | Tc_type of type_descr
   | Tc_class of tnvar * (Name.t * t) list
+    (** The class' type parameter, and the names and types of the methods *)
 
 type type_defs = tc_def Pfmap.t
+
+(** [type_defs_update_fields d p fl] updates the fields of type [p] in [d]. *)
+val type_defs_update_fields : type_defs -> Path.t -> const_descr_ref list -> type_defs
+
+val type_defs_add_constr_family : type_defs -> Path.t -> constr_family_descr -> type_defs
+
+(** Generates a type abbreviation *)
+val mk_tc_type_abbrev : tnvar list -> t -> tc_def
+
+(** Generates a type *)
+val mk_tc_type : tnvar list -> string option -> tc_def
 
 (* The last Name.t list is to the module enclosing the instance declaration *)
 type instance = tnvar list * (Path.t * tnvar) list * t * Name.t list
@@ -128,6 +168,14 @@ type instance = tnvar list * (Path.t * tnvar) list * t * Name.t list
 type typ_constraints = Tconstraints of TNset.t * (Path.t * tnvar) list * range list
 
 val head_norm : type_defs -> t -> t
+
+(** [dest_fn_type d t] tries to destruct a function type [t]. Before the destruction, [head_norm d t] is applied. If
+    the result is a function type, [t1 --> t2], the [Some (t1, t2)] is returned. Otherwise the result is [None]. *)
+val dest_fn_type : type_defs -> t -> (t * t) option
+
+(** [strip_fn_type d t] tries to destruct a function type [t] by applying [dest_fn] repeatedly. *)
+val strip_fn_type : type_defs -> t -> (t list * t)
+
 
 val assert_equal : Ast.l -> string -> type_defs -> t -> t -> unit
 

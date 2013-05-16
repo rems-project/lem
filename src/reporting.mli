@@ -98,7 +98,7 @@ type warning =
 
 (** [report_warning w] reports a warning. Depending on the settings for the warning type this might mean,
     do nothing, print a warning message or print an error message and exit Lem *)
-val report_warning : warning -> unit
+val report_warning : Typed_ast.env -> warning -> unit
 
 (** {2 Auxiliary Functions } *)
 
@@ -116,8 +116,8 @@ val ignore_pat_compile_warnings : unit -> unit
 val debug_flag : bool ref
 
 val print_debug : string -> unit
-val print_debug_exp : string -> Typed_ast.exp list -> unit
-val print_debug_def : string -> Typed_ast.def list -> unit
-val print_debug_pat : string -> Typed_ast.pat list -> unit
-val print_debug_typ : string -> Types.t list -> unit
-val print_debug_src_t : string -> Typed_ast.src_t list -> unit
+val print_debug_exp : Typed_ast.env -> string -> Typed_ast.exp list -> unit
+val print_debug_def : Typed_ast.env -> string -> Typed_ast.def list -> unit
+val print_debug_pat : Typed_ast.env -> string -> Typed_ast.pat list -> unit
+val print_debug_typ : Typed_ast.env -> string -> Types.t list -> unit
+val print_debug_src_t : Typed_ast.env -> string -> Typed_ast.src_t list -> unit

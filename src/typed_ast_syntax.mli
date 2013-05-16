@@ -61,21 +61,50 @@ val num_ty : Types.t
 
 (** [lookup_env env path] is used to navigate inside an environment [env]. It opens
     the environment which is reachable via the path [path]. *)
-val lookup_env : env -> Name.t list -> env
+val lookup_env : local_env -> Name.t list -> local_env
+
+(** [lookup_mod_descr env path mod_name] is used to navigate inside an environment [env]. It opens
+    the module with name [mod_name], which is reachable via the path [path]. *)
+val lookup_mod_descr : local_env -> Name.t list -> Name.t -> mod_descr
 
 (** [names_get_const env path n] looks up the constant with name [n] reachable via path [path] in
    the environment [env] *)
-val names_get_const : env -> Name.t list -> Name.t -> const_descr
+val names_get_const : env -> Name.t list -> Name.t -> const_descr_ref * const_descr
 
 (** [get_const] is a wrapper around [names_get_const] that uses strings instead of names. *)
-val get_const : env -> string list -> string -> const_descr
+val get_const : env -> string list -> string -> const_descr_ref * const_descr
 
 (** [get_const_id env l path n inst] used [get_const env path n] to construct a [const_descr] and
    then wraps it in an id using location [l] and instantiations [inst]. *)
-val get_const_id : env -> Ast.l -> string list -> string -> Types.t list -> const_descr id
+val get_const_id : env -> Ast.l -> string list -> string -> Types.t list -> (const_descr_ref id * const_descr)
 
 (** [mk_const_exp] uses [get_const_id] to construct a constant expression. *)
 val mk_const_exp : env -> Ast.l -> string list -> string -> Types.t list -> exp
+
+(** [names_get_field env path n] looks up the field with name [n] reachable via path [path] in
+   the environment [env] *)
+val names_get_field : env -> Name.t list -> Name.t -> const_descr_ref * const_descr
+
+(** [get_field] is a wrapper around [names_get_field] that uses strings instead of names. *)
+val get_field : env -> string list -> string -> const_descr_ref * const_descr
+
+(** [dest_field_types l env f] looks up the types of the field [f] in environment [env].
+    It first gets the description [f_descr] of the field [f] in [env]. It then looks up
+    the type of [f]. For fields, this type is always of the form [field_type --> (free_vars) rec_ty_path].
+    [dest_field_types] checks that [free_vars] corresponds with the free typevariables of [f_descr]. 
+    If the type of [f] is not of the described from, or if [free_vars] does not correspond, 
+    the constant did not describe a proper field. In this case, [dest_field_types] fails. Otherwise,
+    it returns [(field_type, rec_ty_path, f_descr)]. *)
+val dest_field_types : Ast.l -> env -> const_descr_ref -> Types.t * Path.t * const_descr
+
+(** [get_field_type_descr l env f] uses [dest_field_types l env f] to get the base type of the
+    field [f]. It then looks up the description of this type in the environment. *)
+val get_field_type_descr : Ast.l -> env -> const_descr_ref -> Types.type_descr
+
+(** [get_field_all_fields l env f] uses [get_field_type_descr l env f] to look up the type description of
+    the record type of the field [f]. It then returns a list of all the other fields of this record. *)
+val get_field_all_fields : Ast.l -> env -> const_descr_ref -> const_descr_ref list
+
 
 (** {2 Constructing, checking and destructing expressions} *)
 
@@ -193,6 +222,13 @@ val mk_undefined_exp : Ast.l -> string -> Types.t -> exp
     never be looked at. It is only guaranteed to be an expression of this type. *)
 val mk_dummy_exp : Types.t -> exp
 
+(** [dest_app_exp e] tries to destruct an function application expression [e]. *)
+val dest_app_exp : exp -> (exp * exp) option
+
+(** [strip_app_exp e] tries to destruct multiple function applications. It returns a pair
+    [(base_fun, arg_list)] such that [e] is of the form [base_fun arg_list_1 ... arg_list_n].
+    If [e] is not a function application expression, the list [arg_list] is empty. *)
+val strip_app_exp : exp -> exp * exp list
 
 (** {2 Miscellaneous} *)
 

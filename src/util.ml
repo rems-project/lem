@@ -114,6 +114,8 @@ let list_index p l =
   in
   aux 0 l
 
+let list_subset l1 l2 = List.for_all (fun e -> List.mem e l2) l1
+
 let option_get_exn e = function
   | Some(o) -> o
   | None -> raise e
@@ -121,6 +123,11 @@ let option_get_exn e = function
 let option_default d = function
   | None -> d
   | Some(o) -> o
+
+let option_default_map op d f =
+  match op with 
+    | None -> d
+    | Some(o) -> f o
 
 let option_cases op f1 f2 = match op with
   | Some(o) -> f1 o
@@ -185,6 +192,19 @@ let list_mapi (f : int -> 'a -> 'b)  (l : 'a list) : 'b list =
        | (x :: xs) -> ((f i x) :: (aux f (i + 1) xs))
   in
     aux f 0 l
+
+let rec intercalate sep =
+  function
+    | [] -> []
+    | [x] -> [x]
+    | x::xs -> x::sep::intercalate sep xs
+;;
+
+let rec replicate n e =
+  match n with
+    | 0 -> []
+    | n -> e :: replicate (n - 1) e
+;;
 
 let rec list_iter_sep (sf : unit -> unit) (f : 'a -> unit) l : unit =
   match l with

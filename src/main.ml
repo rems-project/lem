@@ -135,15 +135,14 @@ let _ =
     usage_msg
 
 
-let check_modules (def_info,env) modules =
+let check_modules env modules =
   (* The checks. Modify these lists to add more. *)
   let exp_checks env = [Patterns.check_match_exp_warn env] in
   let pat_checks env = [] in
   let def_checks env = [Patterns.check_match_def_warn env] in
 
   (* Use the Macro_expander to execute these checks *)
-  let (d,_) = def_info in
-  let module Ctxt = struct let avoid = None let check = Some(d) end in
+  let module Ctxt = struct let avoid = None let env_opt = Some(env) end in
   let module M = Macro_expander.Expander(Ctxt) in
   let exp_mac env = Macro_expander.list_to_mac (List.map (fun f e -> (let _ = f e in None)) (exp_checks env)) in
   let exp_ty env ty = ty in
@@ -180,7 +179,7 @@ let per_target libpath isa_thy modules (def_info,env) consts alldoc_accum alldoc
       in      
       let consts' = T.extend_consts targ consts transformed_m in
       let transformed_m' = T.rename_def_params targ consts' transformed_m in
-        output libpath isa_thy targ (avoid consts') def_info (List.rev transformed_m') alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum
+        output libpath isa_thy targ (avoid consts') env def_info (List.rev transformed_m') alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum
     with
       | Trans.Trans_error(l,msg) ->
           raise (Reporting_basic.Fatal_error (Reporting_basic.Err_trans (l, msg)))
@@ -283,8 +282,8 @@ let main () =
          let ((tdefs,instances,new_instances),new_env,tast) = 
            check_ast backend_set [mod_name_name] (def_info,env) ast
          in
-         let md = { Typed_ast.mod_env = new_env; Typed_ast.mod_binding = Path.mk_path [] mod_name_name } in
-         let e = { env with Typed_ast.m_env = Typed_ast.Nfmap.insert env.Typed_ast.m_env (mod_name_name,md) } in
+
+         let e = Typed_ast.env_m_env_move new_env mod_name_name env.Typed_ast.local_env in
          let module_record = 
            { Typed_ast.filename = f;
              Typed_ast.module_name = mod_name;
@@ -312,7 +311,7 @@ let main () =
   (* Check the parsed source and produce warnings for various things. Currently:
      - non-exhaustive and redundant patterns
   *)
-  let _ = check_modules type_info modules in
+  let _ = check_modules (snd type_info) modules in
 
   let alldoc_accum = ref ([] : Ulib.Text.t list) in
   let alldoc_inc_accum = ref ([] : Ulib.Text.t list) in

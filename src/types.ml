@@ -366,11 +366,62 @@ let rec resolve_nexp_subst (n : nexp) : nexp = match n.nexp with
         | x -> n.nexp <- x; n)
    | _ -> n
 
+type const_descr_ref = int
+
+type constr_family_descr = { 
+   constr_list : const_descr_ref list; 
+   (** a list of all the constructors *)
+
+   constr_case_fun : const_descr_ref option 
+   (** the case split function for this constructor list, [None] means that pattern matching is used. *)
+}
+
+type type_descr = { 
+  type_tparams : tnvar list;
+  type_abbrev : t option;
+  type_varname_regexp : string option;
+  type_fields : (const_descr_ref list) option;
+  type_constr : constr_family_descr list
+}
+
 type tc_def = 
-  | Tc_type of tnvar list * t option * string option
+  | Tc_type of type_descr
   | Tc_class of tnvar * (Name.t * t) list
 
+let mk_tc_type_abbrev vars abbrev = Tc_type { 
+  type_tparams = vars;
+  type_abbrev = Some abbrev;
+  type_varname_regexp = None;
+  type_fields = None;
+  type_constr = []
+}
+
+let mk_tc_type vars reg = Tc_type { 
+  type_tparams = vars;
+  type_abbrev = None;
+  type_varname_regexp = reg;
+  type_fields = None;
+  type_constr = []
+}
+
 type type_defs = tc_def Pfmap.t
+
+let type_defs_update_tc_type (d : type_defs) (p : Path.t) (up : type_descr -> type_descr) : type_defs =
+begin
+  let td = match (Pfmap.apply d p) with
+    | Some (Tc_type td) -> td
+    | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(Ast.Unknown, "env did not contain type!")))
+  in
+  let td' = up td in
+  Pfmap.insert d (p, Tc_type td')
+end
+
+let type_defs_update_fields (d : type_defs) (p : Path.t) (fl : const_descr_ref list) : type_defs =
+  type_defs_update_tc_type d p (fun tc -> {tc with type_fields = Some fl})
+
+let type_defs_add_constr_family (d : type_defs) (p : Path.t) (cf : constr_family_descr) : type_defs =
+  type_defs_update_tc_type d p (fun tc -> {tc with type_constr = cf :: tc.type_constr})
+
 
 type instance = tnvar list * (Path.t * tnvar) list * t * Name.t list
 
@@ -437,10 +488,10 @@ let pp_range ppf = function
   | LtEq(_,n) -> fprintf ppf "%a <= 0" pp_nexp n
 
 let pp_tc ppf = function
-  | Tc_type(tvs, topt, _) ->
+  | Tc_type(d) ->
       begin
-        match topt with
-          | None -> fprintf ppf "%s" (string_of_int (List.length tvs))
+        match d.type_abbrev with
+          | None -> fprintf ppf "%s" (string_of_int (List.length d.type_tparams))
           | Some(t) -> fprintf ppf "%a" pp_type t
       end
   | Tc_class _ ->
@@ -502,14 +553,26 @@ let rec head_norm (d : type_defs) (t : t) : t =
                  pp_tdefs Format.std_formatter d;
                  Format.fprintf Format.std_formatter "@\n";
                   *)
-                 assert false
-             | Some(Tc_type(_,None,_)) -> t
-             | Some(Tc_type(tvs,Some(t),_)) ->
-                 head_norm d (type_subst (TNfmap.from_list2 tvs ts) t)
+                 raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(Ast.Unknown, "head_norm: env did not contain type!")))
+             | Some(Tc_type(dc)) -> Util.option_default_map dc.type_abbrev t (fun t -> head_norm d (type_subst (TNfmap.from_list2 dc.type_tparams ts) t))
              | Some(Tc_class _) ->
                  assert false)
       | _ -> 
           t
+
+let dest_fn_type (d : type_defs) (t : t) : (t * t) option =
+  match (head_norm d t).t with
+    | Tfn(t1, t2) -> Some (t1, t2)
+    | _ -> None
+
+let rec strip_fn_type d t =
+  match dest_fn_type d t with
+    | None -> ([], t)
+    | Some (t1, t2) -> begin
+        let (al, bt) = strip_fn_type d t2 in
+        (t1 :: al, bt)
+      end
+                       
 
 let t_to_tnv t =
   match t.t with

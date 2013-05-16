@@ -52,7 +52,7 @@ let r = Ulib.Text.of_latin1
 let space = Some [Ast.Ws (r" ")]
 let new_line = Some [Ast.Ws (r"\n")]
 
-module C = Exps_in_context(struct let check = None let avoid = None end)
+module C = Exps_in_context(struct let env_opt = None let avoid = None end)
 
 
 (******************************************************************************)
@@ -390,7 +390,7 @@ let pat_matrix_simp_pat l_org ((input, rows, pf) : pat_matrix) : pat_matrix opti
       | P_typ(_,p,_,_,_) -> Some (p, ee)
       | P_var(n) -> Some (C.mk_pwild l None (annot_to_typ p), add_to_ext_exp ee (Name.strip_lskip n) i)
       | P_var_annot(n,t) ->  Some (C.mk_pvar l n (annot_to_typ p), ee)
-      | P_constr _ -> None
+      | P_const _ -> None
       | P_record _ -> None
       | P_vector _ -> None
       | P_vectorC _ -> None
@@ -682,6 +682,7 @@ let list_matrix_compile_fun (gen : var_name_generator) (m_ty : Types.t) l_org : 
 
 (* constructors *)
 
+(*
 let make_id (nL: Name.t list) inst (n:Name.t) (d:'a) : ('a id) =
   let loc = Ast.Trans ("constr_matrix_compile_make_id", None) in
   let i = Ident.mk_ident (List.map (fun m -> (Name.add_lskip m, None)) nL) (Name.add_lskip n) loc in
@@ -690,6 +691,7 @@ let make_id (nL: Name.t list) inst (n:Name.t) (d:'a) : ('a id) =
     id_locn = loc;
     descr = d;
     instantiation = inst }
+
 
 let get_all_constr_descr l env i = 
   let d = i.descr in
@@ -708,7 +710,7 @@ let get_all_constr_descr l env i =
 
 
 let constr_matrix_compile_fun (simp_input: bool) (env : env) (gen : var_name_generator) (m_ty : Types.t) l_org : matrix_compile_fun = fun pL ->
-  let ((p : pat), p_id) = matrix_compile_fun_get (Util.option_first (fun p -> Util.option_map (fun (id, _) -> (p, id)) (dest_constr_pat p)) pL) in
+  let ((p : pat), p_id) = matrix_compile_fun_get (Util.option_first (fun p -> Util.option_map (fun (id, _) -> (p, id)) (dest_const_pat p)) pL) in
   let _ = matrix_compile_fun_check (List.for_all (fun p -> (is_constr_pat p || is_wild_pat p)) pL) in
   let loc = Ast.Trans ("constr_matrix_compile_fun", Some l_org) in
 
@@ -860,7 +862,7 @@ let record_matrix_compile_fun (env : env) (gen : var_name_generator) (m_ty : Typ
   let dest_in e = List.map (fun (_, _, _, f_exp, _) -> f_exp) ext_ids in
  
   Some (top_fun, [case_fun, dest_in, restr_pat], fun e -> None)
-
+*)
 
 (* Infinite case statements (for numbers and strings) *)
 let cases_matrix_compile_fun dest_pat make_lit (gen_match : bool) env (gen : var_name_generator) (m_ty : Types.t) l_org : matrix_compile_fun = fun pL ->
@@ -1153,10 +1155,10 @@ let basic_compile_funs : (bool -> env -> var_name_generator -> Types.t -> Ast.l 
    [(fun _ _ -> tuple_matrix_compile_fun); 
     (fun _ _ -> bool_matrix_compile_fun false); 
     (fun _ _ -> list_matrix_compile_fun); 
-    (           constr_matrix_compile_fun); 
+(*    (           constr_matrix_compile_fun);  *)
     (fun _   -> num_matrix_compile_fun false); (fun _   -> num_add_matrix_compile_fun_simple);
     (fun _   -> string_matrix_compile_fun false); 
-    (fun _   -> record_matrix_compile_fun)]
+(*    (fun _   -> record_matrix_compile_fun) *)]
 
 (* Target specific ones, use [basic_compile_funs] as a fallback. *)
 let get_target_compile_funs (topt:Typed_ast.target option) : (bool -> env -> var_name_generator -> Types.t -> Ast.l -> matrix_compile_fun) list = 
@@ -1193,7 +1195,7 @@ let check_match_internal l env ws m =
   try
      let mp = pat_matrix_check l cf m in Some mp
   with Pat_Matrix_Compile_Failed pL -> 
-        (Reporting.report_warning (Reporting.Warn_pattern_compilation_failed (l, pL, ws)); None)
+        (Reporting.report_warning env (Reporting.Warn_pattern_compilation_failed (l, pL, ws)); None)
 
 let check_match_exp env e =
   let l = exp_to_locn e in 
@@ -1207,7 +1209,7 @@ let check_pat_list env pL =
       None -> None 
     | Some m -> check_match_internal l env Reporting.Warn_source_unkown m 
 
-let pat_matrix_unused_vars_warn ws ((_, rows, _) : pat_matrix) : unit =
+let pat_matrix_unused_vars_warn env ws ((_, rows, _) : pat_matrix) : unit =
   let row_check ((_, pL, ee):pat_matrix_row) = begin
     let used = pat_matrix_ext_exp_vars ee in
     let check_pat p = let p_vars = nfmap_domain p.rest.pvars in
@@ -1219,7 +1221,7 @@ let pat_matrix_unused_vars_warn ws ((_, rows, _) : pat_matrix) : unit =
   let unusedL = List.flatten (List.map row_check rows) in
   (* ignore variables starting with underscore, like in OCaml *)
   let unusedL' = List.filter (fun s -> s.[0] <> '_') unusedL in
-  if unusedL' = [] then () else Reporting.report_warning (Reporting.Warn_unused_vars (Reporting.warn_source_to_locn ws, unusedL', ws))
+  if unusedL' = [] then () else Reporting.report_warning env (Reporting.Warn_unused_vars (Reporting.warn_source_to_locn ws, unusedL', ws))
 
 
 let check_match_exp_warn env e = 
@@ -1230,9 +1232,9 @@ let check_match_exp_warn env e =
   match check with
       None -> ()
     | Some (m, mp) -> 
-        let _ = if mp.is_exhaustive then () else Reporting.report_warning (Reporting.Warn_pattern_not_exhaustive (l, mp.missing_pats)) in
-        let _ = if (mp.redundant_pats = []) then () else (Reporting.report_warning (Reporting.Warn_pattern_redundant (l, mp.redundant_pats, e))) in
-        let _ = pat_matrix_unused_vars_warn (Reporting.Warn_source_exp e) m in
+        let _ = if mp.is_exhaustive then () else Reporting.report_warning env (Reporting.Warn_pattern_not_exhaustive (l, mp.missing_pats)) in
+        let _ = if (mp.redundant_pats = []) then () else (Reporting.report_warning env (Reporting.Warn_pattern_redundant (l, mp.redundant_pats, e))) in
+        let _ = pat_matrix_unused_vars_warn env (Reporting.Warn_source_exp e) m in
         ()
 
 let check_match_def env d =
@@ -1242,14 +1244,14 @@ let check_match_def env d =
 
 let check_match_def_warn env d =
   let match_props_to_warnings_def n l mp =
-    let _ = if mp.is_exhaustive then () else Reporting.report_warning (Reporting.Warn_def_not_exhaustive (l, Name.to_string n, mp.missing_pats)) in
-    let _ = if (mp.redundant_pats = []) then () else (Reporting.report_warning (Reporting.Warn_def_redundant (l, Name.to_string n, mp.redundant_pats, d))) in
+    let _ = if mp.is_exhaustive then () else Reporting.report_warning env (Reporting.Warn_def_not_exhaustive (l, Name.to_string n, mp.missing_pats)) in
+    let _ = if (mp.redundant_pats = []) then () else (Reporting.report_warning env (Reporting.Warn_def_redundant (l, Name.to_string n, mp.redundant_pats, d))) in
     ()
   in
   let mL = def_to_pat_matrix_list d in   
   let warn_matrix (n, (c, m), l) =     
     let _ = Util.option_map (match_props_to_warnings_def n l) (check_match_internal l env (Reporting.Warn_source_def d) m) in
-    let _ = if not c then pat_matrix_unused_vars_warn (Reporting.Warn_source_def d) m else () in
+    let _ = if not c then pat_matrix_unused_vars_warn env (Reporting.Warn_source_def d) m else () in
     () in
   let _ = List.map warn_matrix mL in
   ()
@@ -1349,7 +1351,7 @@ let rec collapse_nested_matches_dest_pat_fun l (no_replace_set : NameSet.t) (ps 
       let ((pL, d_f, new_avoid) : (pat list *  (pat list -> pat) * Name.t list)) = match p.term with
         | P_as (s1,p,s2,(n,l),s3) -> ([], (fun pL -> C.mk_pas l s1 (List.hd pL) s2 (n, l) s3 (Some p_ty)), [Name.strip_lskip n])
         | P_typ (s1,p,s2,src_t,s3) -> ([p], (fun pL -> C.mk_ptyp l s1 (List.hd pL) s2 src_t s3 (Some p_ty)), [])
-        | P_constr (id, pL) -> (pL, (fun pL' -> C.mk_pconstr l id pL' (Some p_ty)), [])
+        | P_const (id, pL) -> (pL, (fun pL' -> C.mk_pconst l id pL' (Some p_ty)), [])
         | P_tup (s1,ps,s2) -> (Seplist.to_list ps, (fun pL -> C.mk_ptup l' s1 (Seplist.from_list_default None pL) s2 (Some p_ty)), [])
         | P_list (s1,ps,s2) -> (Seplist.to_list ps, (fun pL -> C.mk_plist l' s1 (Seplist.from_list_default None pL) s2 p_ty), [])
         | P_paren (s1, p, s2) -> ([p], (fun pL -> C.mk_pparen l s1 (List.hd pL) s2 (Some p_ty)), [])
@@ -1563,10 +1565,10 @@ let compile_match_exp topt mca env e =
         let e'' = Util.option_default e' (collapse_nested_matches mca env e') in
         let com = lskips_only_comments [case_exp_extract_lskips e] in
         let e''' = append_lskips com e'' in
-        let _ = Reporting.report_warning (Reporting.Warn_pattern_needs_compilation (loc, topt, e, e'')) in
+        let _ = Reporting.report_warning env (Reporting.Warn_pattern_needs_compilation (loc, topt, e, e'')) in
         Some e'''
       with Pat_Matrix_Compile_Failed pL -> 
-           (Reporting.report_warning (Reporting.Warn_pattern_compilation_failed (loc, pL, Reporting.Warn_source_exp e)); None)
+           (Reporting.report_warning env (Reporting.Warn_pattern_compilation_failed (loc, pL, Reporting.Warn_source_exp e)); None)
 
 
 (******************************************************************************)
@@ -1730,10 +1732,10 @@ let compile_exp topt mca (d:Types.type_defs) env e =
  | _ -> None
 
 
-let compile_faux_seplist l comp s s2_opt t topt org_d (sl : funcl_aux lskips_seplist) : val_def option = 
+let compile_faux_seplist l env comp s s2_opt t topt org_d (sl : funcl_aux lskips_seplist) : val_def option = 
    let l = Ast.Trans ("compile_faux_seplist", Some l) in
    let (resorted, _, sll) = funcl_aux_seplist_group sl in
-   let _ = if not resorted then () else Reporting.report_warning (Reporting.Warn_fun_clauses_resorted (l, t, List.map (fun (n, _) -> Name.to_string n) sll, org_d)) in
+   let _ = if not resorted then () else Reporting.report_warning env (Reporting.Warn_fun_clauses_resorted (l, t, List.map (fun (n, _) -> Name.to_string n) sll, org_d)) in
 
    let sL = List.map (fun (_, sl) -> Seplist.to_list sl) sll in
    let sep = try Seplist.hd_sep sl with Failure _ -> None in
@@ -1775,13 +1777,15 @@ let compile_faux_seplist l comp s s2_opt t topt org_d (sl : funcl_aux lskips_sep
 
     
 let compile_def t mca env_global (_:Name.t list) env_local (((d, s), l) as org_d : def) =  
- let env = env_union env_global env_local in
+(* TODO: check that union can safely be removed after Scotts change.
+   let env = env_union env_global env_local in *)
+ let env = env_global in
  let t' = Util.option_map target_to_ast_target t in
  let cf_opt e = compile_match_exp t mca env e in
  let cf e = Util.option_default e (cf_opt e) in
  let constr topt tnvs class_constraints s1 s2 sl =       
        Util.option_map (fun d -> (env_local, [(((Val_def (d, tnvs,class_constraints),s), l):def)]))
-         (compile_faux_seplist l cf s1 s2 t topt org_d sl) in
+         (compile_faux_seplist l env cf s1 s2 t topt org_d sl) in
  if mca.def_OK env ((d, s), l) then None else
  match d with
   |  Val_def ((Let_def (s1, topt, (Let_fun faux, l))), tnvs,class_constraints) -> 
@@ -1805,8 +1809,12 @@ let compile_def t mca env_global (_:Name.t list) env_local (((d, s), l) as org_d
   
 let remove_toplevel_match targ mca env_global _ env_local (((d, s), l)) =
   let l_unk = Ast.Trans ("remove_toplevel_match", Some l) in
-  let env = env_union env_global env_local in
 
+  (* TODO check 
+  let env = env_union env_global env_local in
+  *)
+
+  let env = env_global in
   let aux sk1 sk2 topt sl tnvs class_constraints = begin
     let (_, sk_first_opt, group_nameL) = funcl_aux_seplist_group sl in
     let groupL = List.map (fun (_, x) -> x) group_nameL in

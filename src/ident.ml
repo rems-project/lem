@@ -53,6 +53,9 @@ let raise_error l msg pp n =
   let pp ppf = Format.fprintf ppf "%s: %a" msg pp n in
     raise (No_type(l, Pp.pp_to_string pp))
 
+let raise_error_string l msg =
+    raise (No_type(l, msg))
+
 (* None of the Name.lskips_t can actually have any lskips, but the last one
  * might have parentheses, so Name.t isn't suitable *)
 type t = Ast.lex_skips * Name.lskips_t list * Name.lskips_t

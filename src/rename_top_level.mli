@@ -46,7 +46,10 @@
 
 (** renaming and module flattening for some targets *)
 
+(*
+
 val rename_nested_module : Name.t list -> Typed_ast.env -> Typed_ast.def list -> Typed_ast.def list 
 val flatten_modules : Name.t -> Typed_ast.env -> Typed_ast.def list -> Typed_ast.def list
 val rename_defs_target : Typed_ast.target option -> Typed_ast.NameSet.t -> (Typed_ast.name_kind * Path.t * Path.t) list -> Name.t list -> Typed_ast.env -> Typed_ast.def list -> Typed_ast.def list
 
+  *)

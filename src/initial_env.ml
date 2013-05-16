@@ -52,22 +52,20 @@ let (^^) = Filename.concat
 let r = Ulib.Text.of_latin1
 
 let tds = 
-  [(Path.listpath, Tc_type([Ty(Tyvar.from_rope (r"a"))], None, None));
-   (Path.setpath, Tc_type([Ty(Tyvar.from_rope (r"a"))], None, None));
-   (Path.vectorpath, Tc_type([Ty(Tyvar.from_rope (r"b"));Nv(Nvar.from_rope (r"a"))], None, None));
-   (Path.numpath, Tc_type([], None, None));
-   (Path.stringpath, Tc_type([], None, None));
-   (Path.boolpath, Tc_type([], None, None));
-   (Path.bitpath, Tc_type([], None, None));
-   (Path.unitpath, Tc_type([],None, None))]
+  [(Path.listpath, mk_tc_type [Ty(Tyvar.from_rope (r"a"))] None);
+   (Path.setpath, mk_tc_type [Ty(Tyvar.from_rope (r"a"))] None);
+   (Path.vectorpath, mk_tc_type [Ty(Tyvar.from_rope (r"b"));Nv(Nvar.from_rope (r"a"))] None);
+   (Path.numpath, mk_tc_type [] None);
+   (Path.stringpath, mk_tc_type [] None);
+   (Path.boolpath, mk_tc_type [] None);
+   (Path.bitpath, mk_tc_type [] None);
+   (Path.unitpath, mk_tc_type [] None)]
 
 let initial_d : Types.type_defs = 
   List.fold_right (fun x y -> Types.Pfmap.insert y x) tds Types.Pfmap.empty
 
-let initial_env : Typed_ast.env =
-  { m_env = Nfmap.empty;
-    v_env = Nfmap.empty;
-    f_env = Nfmap.empty;
+let initial_local_env : Typed_ast.local_env =
+  { empty_local_env with
     p_env = Nfmap.from_list 
               [(Name.from_rope (r"bool"), (Path.boolpath, Ast.Unknown));
                (Name.from_rope (r"bit"), (Path.bitpath, Ast.Unknown));
@@ -77,6 +75,9 @@ let initial_env : Typed_ast.env =
                (Name.from_rope (r"string"), (Path.stringpath, Ast.Unknown));
                (Name.from_rope (r"unit"), (Path.unitpath, Ast.Unknown));
                (Name.from_rope (r"num"), (Path.numpath, Ast.Unknown))] }
+
+let initial_env : Typed_ast.env =
+  { empty_env with local_env = initial_local_env; t_env = initial_d }
 
 let space = Str.regexp "[ \t\n]+"
 
@@ -101,20 +102,28 @@ let filename_to_mod file =
 
 (* These library specifications are all built with "val" definitions, but need
  * to indicate that they are actually defined in the given target *)
-let rec add_target_to_def target defs =
-  { defs with 
-        m_env = Nfmap.map (fun k e -> { e with mod_env = add_target_to_def target e.mod_env}) defs.m_env;
-        v_env = 
-          Nfmap.map 
-            (fun k v -> 
-               match v with 
-                 | Constr _ -> v
-                 | Val(c) -> 
-                     assert (c.env_tag = K_val);
-                     Val ({ c with env_tag = K_target(false,Targetset.singleton target) }))
-            defs.v_env }
+let rec add_target_to_def target c_env (defs : local_env) : (c_env * local_env) =
+  let (c_env', m_env') = Nfmap.fold (fun (c_env, m_env) k e -> begin
+      let (c_env', mod_env') = add_target_to_def target c_env e.mod_env in
+      let e' = {e with mod_env = mod_env'} in
+      let m_env' = Nfmap.insert m_env (k, e') in
+      (c_env', m_env') end) (c_env, Nfmap.empty) defs.m_env in
 
-let process_lib target file mod_name init_env =
+  let defs' = {defs with m_env = m_env'} in
+
+  let c_env'' = Nfmap.fold (fun c_env k c ->
+        let c_d = c_env_lookup (Ast.Unknown) c_env c in
+        let c_d' = match c_d.env_tag with
+                    | K_val -> { c_d with env_tag = K_target(false,Targetset.singleton target) }
+                    | (K_constr | K_field) -> c_d
+                    | _ -> assert false
+        in 
+        c_env_update c_env c c_d')
+        c_env' defs.v_env
+  in
+  (c_env'', defs')
+
+let process_lib target file mod_name (init_env : (Types.type_defs * Process_file.instances) * Typed_ast.env) =
   let mp = 
     match target with
       | None -> []
@@ -127,16 +136,18 @@ let process_lib target file mod_name init_env =
   let new_defs2 =
     match target with
       | None -> new_defs
-      | Some(tgt) -> add_target_to_def tgt new_defs 
+      | Some(tgt) -> 
+        let (c_env', local_env') = add_target_to_def tgt new_defs.c_env new_defs.local_env in
+        {new_defs with c_env = c_env'; local_env = local_env'}
   in
     ((tdefs,instances), new_defs2)
 
-let add_lib e1 e2 = env_union e1 e2
+let add_lib (e1 : local_env) (e2 : env) = {e2 with local_env = local_env_union e2.local_env e1 }
 
 let add_open_lib k e1 e2 =
-  match Nfmap.apply e2.m_env (Name.from_rope k) with
+  match Nfmap.apply e2.local_env.m_env (Name.from_rope k) with
     | Some e ->
-        env_union (env_union e1 e2) e.mod_env
+        {e2 with local_env = local_env_union (local_env_union e1 e2.local_env) e.mod_env }
     | None ->
         assert false
 
@@ -144,22 +155,22 @@ let add_open_lib k e1 e2 =
 let proc_open target file (td,env) =
   let mod_name = filename_to_mod file in
   let (td, new_env) = process_lib target file mod_name (td,env) in
-    (td, add_open_lib mod_name env new_env)
+    (td, add_open_lib mod_name env.local_env new_env)
 
 (* Process a library for the given target *)
 let proc target file (td,env) =
   let mod_name = filename_to_mod file in
   let (td, new_env) = process_lib target file mod_name (td,env) in
-    (td, add_lib env new_env)
+    (td, add_lib env.local_env new_env)
 
 (* TODO: Add to the constants *)
-let add_to_init targ file ((td,env), consts) =
+let add_to_init targ file (((td,(env:env)), consts):t) : t =
   let targ_env = 
-    match Nfmap.apply env.m_env (target_to_mname targ) with 
+    match Nfmap.apply env.local_env.m_env (target_to_mname targ) with 
       | Some(e) -> e
       | None -> 
           assert false
-  in
+  in  
   let p = 
     match targ with
       | Target_ocaml -> proc
@@ -170,9 +181,9 @@ let add_to_init targ file ((td,env), consts) =
       | Target_html -> assert false
   in
   let starg = Some(targ) in
-  let (new_td,new_env) = p starg file (td,targ_env.mod_env) in
+  let (new_td,new_env) = p starg file (td,{env with local_env = targ_env.mod_env}) in
     ((new_td, 
-      { env with m_env = Nfmap.insert env.m_env (target_to_mname targ, {targ_env with mod_env = new_env}) }), 
+      { new_env with local_env = {env.local_env with m_env = Nfmap.insert new_env.local_env.m_env (target_to_mname targ, {targ_env with mod_env = new_env.local_env})}}), 
      consts)
 
 module Initial_libs (P : sig val path : string end) =
@@ -201,9 +212,9 @@ struct
 
   (* TODO: Remove so that the OCaml env can't refer to the HOL env *)
   let env =
-    { initial_env with 
+    { initial_env with local_env = {initial_env.local_env with      
           m_env = 
-            Nfmap.from_list [(target_to_mname Target_hol, { mod_binding = holpath; mod_env = hol_env })] }
+            Nfmap.from_list [(target_to_mname Target_hol, { mod_binding = holpath; mod_env = hol_env.local_env })] }}
 
   (* Coq Env *)
   let (td, coq_perv) =
@@ -247,14 +258,14 @@ struct
       ["list"; "pred_set"]   *)  
 
   let env = {
-    initial_env with
+    initial_env with local_env = {initial_env.local_env with
       m_env = Nfmap.from_list [
-              (target_to_mname (Target_ocaml), { mod_binding = ocamlpath; mod_env = ocaml_env });
-        (target_to_mname (Target_hol), { mod_binding = holpath; mod_env = hol_env });
-        (target_to_mname (Target_isa), { mod_binding = isapath; mod_env = isa_env });
-        (target_to_mname (Target_coq), { mod_binding = coqpath; mod_env = coq_env })
+        (target_to_mname (Target_ocaml), { mod_binding = ocamlpath; mod_env = ocaml_env.local_env });
+        (target_to_mname (Target_hol), { mod_binding = holpath; mod_env = hol_env.local_env });
+        (target_to_mname (Target_isa), { mod_binding = isapath; mod_env = isa_env.local_env });
+        (target_to_mname (Target_coq), { mod_binding = coqpath; mod_env = coq_env.local_env })
       ]
-  }
+  }}
   ;;
 
    

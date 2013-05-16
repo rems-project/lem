@@ -45,7 +45,7 @@
 (**************************************************************************)
 
 open Typed_ast
-module C = Exps_in_context(struct let check = None let avoid = None end)
+module C = Exps_in_context(struct let env_opt = None let avoid = None end)
 
 let rec is_var_wild_pat (p : pat) : bool =
   match p.term with
@@ -135,7 +135,7 @@ let mk_opt_paren_pat (p :pat) : pat =
       | P_paren _ -> false
       | P_tup _ -> false
       | P_lit _ -> false
-      | P_constr (_, pL) -> not (pL = [])
+      | P_const (_, pL) -> not (pL = [])
       | _ -> true
   in 
   if (needs_parens) then 
@@ -210,15 +210,15 @@ let rec dest_list_pat (lo : int option) (p : pat) : pat list option =
 let is_list_pat (lo : int option) p = not (dest_list_pat lo p = None)
 
 
-let rec dest_constr_pat (p : pat) : (constr_descr id * pat list) option =
+let rec dest_const_pat (p : pat) : (const_descr_ref id * pat list) option =
   match p.term with
-  | P_constr (descr, pL) -> Some (descr, pL)
+  | P_const (descr, pL) -> Some (descr, pL)
   | _ -> None
 
-let is_constr_pat p = not (dest_constr_pat p = None)
+let is_const_pat p = not (dest_const_pat p = None)
 
 
-let rec dest_record_pat (p : pat) : (field_descr id * pat) list option =
+let rec dest_record_pat (p : pat) : (const_descr_ref id * pat) list option =
   match p.term with
     | P_record (_, sl, _) -> 
      begin
@@ -238,7 +238,7 @@ let direct_subpats (p : pat) : pat list =
     | P_num_add (_, _, _, _) -> []
     | P_typ (_,p,_,_,_) -> [p] 
     | P_paren(_,p,_) -> [p]
-    | P_constr(_,ps) -> ps
+    | P_const(_,ps) -> ps
     | P_as (_, p, _, _, _) -> [p]
     | P_cons(p1,_,p2) -> [p1;p2]
     | P_tup(_,ps,_) -> Seplist.to_list ps
@@ -258,7 +258,7 @@ let rec for_all_subpat (cf : pat -> bool) (p : pat) : bool =
   cf p && List.for_all (for_all_subpat cf) (direct_subpats p)
 
 let rec is_var_tup_pat p : bool = match p.term with
-    | (P_wild _ | P_as _ | P_constr _ | P_record _ | P_list _ | P_cons _  | P_lit _) -> false
+    | (P_wild _ | P_as _ | P_const _ | P_record _ | P_list _ | P_cons _  | P_lit _) -> false
     | P_paren(_,p,_) -> is_var_tup_pat p
     | P_var _ | P_var_annot _ -> true
     | P_typ(_,p,_,_,_) -> is_var_tup_pat p
@@ -283,9 +283,10 @@ let rec single_pat_exhaustive (p : pat) : bool =
     | P_wild _ | P_var _ | P_var_annot _ -> true
     | P_tup(_,ps,_) ->
         Seplist.for_all single_pat_exhaustive ps
-    | P_constr(c,ps) ->
+    | P_const(c,ps) ->
+        (* TODO *) false (*
         NameSet.cardinal c.descr.constr_names = 1 &&
-        List.for_all single_pat_exhaustive ps
+        List.for_all single_pat_exhaustive ps *)
     | P_record(_,fes,_) ->
         Seplist.for_all
           (fun (_,_,p) -> single_pat_exhaustive p)
@@ -304,7 +305,7 @@ let rec pat_vars_src p = match p.term with
       pat_vars_src p
   | P_var(n) | P_var_annot(n,_) ->
       [{ term = n; typ = p.typ; locn = p.locn; rest = (); }]
-  | P_constr(_,ps) ->
+  | P_const(_,ps) ->
       List.concat (List.map pat_vars_src ps)
   | P_record(_,fieldpats,_) ->
       List.concat (Seplist.to_list_map (fun (_,_,p) -> pat_vars_src p) fieldpats)
@@ -333,7 +334,7 @@ let rec pat_extract_lskips p =
   | P_var(n) ->Name.get_lskip n
   | P_var_annot(n,_) -> (* TODO extract from src_t as well *)
      Name.get_lskip n
-  | P_constr(_,ps) ->
+  | P_const(_,ps) ->
      sk_flatten (List.map pat_extract_lskips ps)
   | P_record(s1,fieldpats,s2) ->
      let ws = Seplist.to_sep_list (fun (_, s, p) -> Ast.combine_lex_skips s (pat_extract_lskips p)) (fun s -> s) fieldpats in

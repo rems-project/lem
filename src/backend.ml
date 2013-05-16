@@ -76,6 +76,7 @@
  *
  *)
 
+open Backend_common
 open Typed_ast
 open Typed_ast_syntax
 open Output
@@ -163,9 +164,6 @@ module type Target = sig
   val nexp_times : t
 
   (* Patterns *)
-  val ctor_arg_start : t
-  val ctor_arg_end : t
-  val ctor_arg_sep : t
   val ctor_typ_end : t -> t list -> t
   val ctor_typ_end' : bool -> t -> t list -> t
   val pat_as : t
@@ -373,9 +371,6 @@ module Identity : Target = struct
   let nexp_plus = kwd "+"
   let nexp_times = kwd "*"
   
-  let ctor_arg_start = emp
-  let ctor_arg_end = emp
-  let ctor_arg_sep = emp
   let pat_as = kwd "as"
   let pat_rec_start = kwd "<|"
   let pat_rec_end = kwd "|>"
@@ -575,9 +570,6 @@ module Tex : Target = struct
   let nexp_plus = kwd "+"
   let nexp_times = kwd "*"
 
-  let ctor_arg_start = emp
-  let ctor_arg_end = emp
-  let ctor_arg_sep = texspace
   let pat_as = tkwd "as"
   let pat_rec_start = kwd "\\Mmagiclrec"
   let pat_rec_end = kwd "\\Mmagicrrec"
@@ -721,9 +713,6 @@ module Ocaml : Target = struct
   let ctor_typ_end _ _ = emp
   let ctor_typ_end' _ _ _ = emp
 
-  let ctor_arg_start = kwd "("
-  let ctor_arg_end = kwd ")"
-  let ctor_arg_sep = kwd ","
   let pat_rec_start = kwd "{"
   let pat_rec_end = kwd "}"
   let pat_wildcard = kwd "_"
@@ -789,9 +778,6 @@ module Isa : Target = struct
   let typ_constr_sep = emp
   let typ_var = r"'"
 
-  let ctor_arg_start = emp
-  let ctor_arg_end = emp
-  let ctor_arg_sep = emp
   let pat_as = err "as pattern in Isabelle"
   let pat_rec_start = err "record pattern in Isabelle"
   let pat_rec_end = err "record pattern in Isabelle"
@@ -976,9 +962,6 @@ module Hol : Target = struct
   let nexp_times = emp
 
 
-  let ctor_arg_start = emp
-  let ctor_arg_end = emp
-  let ctor_arg_sep = emp
   let pat_as = err "as pattern in HOL"
   let pat_rec_start = err "record pattern in HOL"
   let pat_rec_end = err "record pattern in HOL"
@@ -1115,132 +1098,13 @@ module Hol : Target = struct
 
 end
 
-(*
-module Coq : Target = struct
-  open Str
-  include Identity
 
-  let need_space x y = 
-    let sx =
-      match x with
-      | Kwd'(r) ->
-          if String.compare r "fun" = 0 then true else
-          if String.compare r "match" = 0 then true else
-          false
-      | _ -> false in
-    let sy =
-      match y with
-      | Kwd'(r) ->
-          if String.compare r "end" = 0 then true else 
-          false
-      | _ -> false in
-    sx || sy
+module F(T : Target)(A : sig val avoid : var_avoid_f option;; val env : env end)(X : sig val comment_def : def -> Ulib.Text.t end) = struct
 
-  let target = Some (Ast.Target_coq None)
-
-  let list_sep = kwd "::"
-
-  let path_sep = kwd "."
-
-  (* Types *)
-
-  let rec intercalate sep =
-    function
-      | [] -> []
-      | [x] -> [x]
-      | x::xs -> x::sep::intercalate sep xs
-
-  let ctor_typ_end n tvs =
-    let pretty_tvs = List.fold_right (^) (intercalate (kwd " ") tvs) emp in
-      kwd " :" ^ n ^ kwd " " ^ pretty_tvs
-
-  let ctor_typ_end' implicit n tvs =
-    let rec intercalate sep =
-      function
-        | [] -> []
-        | [x] -> [x]
-        | x::xs -> x::sep::intercalate sep xs
-    in
-      if implicit then
-        kwd " ->" ^ n
-      else
-        let _ = prerr_endline "YYY" in
-        let pretty_tvs = List.fold_right (^) (intercalate (kwd " ") tvs) emp in
-          kwd " ->" ^ n ^ kwd " " ^ pretty_tvs
-
-  let const_unit s = kwd "tt " ^ ws s
-  let const_empty s = kwd "[] " ^ ws s 
-
-  let typ_start = kwd ""
-  let typ_end = kwd ""
-
-  let typ_tup_section = kwd "%type"
-
-  let typ_rec_start = kwd "{"
-  let typ_rec_end = kwd "}"
-  let typ_rec_sep = kwd ";"
-  let typ_constr_sep = kwd ":"
-  let typ_var = r""
-
-  (* Patterns *)
-
-  (* Constants *)
-
-  (* Expressions *)
-  let case_line_sep = kwd "=>"
-  let cond_if = kwd "if"
-  let cond_then = kwd "then"
-  let cond_else = kwd "else"
-  let field_access_start = kwd ".("
-  let field_access_end = kwd ")"
-  let fun_sep = kwd "=>"
-  let begin_kwd = kwd "("
-  let end_kwd = kwd ")"
-  let list_begin = emp
-  let list_end = kwd "nil"
-
-  (* Value definitions *)
-  let def_start = kwd "Definition"
-  let def_binding = kwd ":="
-  let def_end = kwd "."
-  let recup_start = kwd "{["
-  let recup_end = kwd "]}"
-  let recup_assign = kwd ":="
-  let rec_start = kwd "{|"
-  let rec_end = kwd "|}"
-  let rec_sep = kwd ";"
-  let record_assign = kwd ":="
-  let set_start = kwd "["
-  let set_end = kwd "]"
-  let set_sep = kwd ","
-
-
-  (* Type definitions *)
-  let type_abbrev_start = kwd "Definition" 
-  let typedef_start = kwd "Inductive"
-  let typedef_binding = kwd ":="
-  let typedef_end = kwd "."
-  let typedef_sep = kwd "with"
-  let typedefrec_start = kwd "Record"
-  let typedefrec_end = kwd "."
-  let constr_sep = kwd "->"
-
-  let before_tyvars = kwd "{"
-  let after_tyvars = kwd "}"
-
-  let last_list_sep = Seplist.Require(None)
-  let type_params_pre = false
-  let nexp_params_vis = false
-  let type_abbrev_start = kwd "Definition"
-  let type_abbrev_sep = kwd ":="
-  let type_abbrev_end = kwd "."
-
-end
-*)
-
-module F(T : Target)(C : Exp_context)(X : sig val comment_def : def -> Ulib.Text.t end) = struct
-
-module C = Exps_in_context(C)
+module C = Exps_in_context (struct
+  let env_opt = Some A.env
+  let avoid = A.avoid
+end);;
 
 let is_identity_target = match T.target with
     None -> true
@@ -1466,56 +1330,11 @@ let rec typ t = match t.term with
       ws s2 ^
       kwd ")"
 
-let ctor_ident_to_output cd =
-  (* TODO: remove this hack *)
-  let sk = match cd.id_path with | Id_none sk -> sk | Id_some id -> Ident.get_first_lskip id in
-  let id = 
-    if Path.compare cd.descr.constr_binding 
-         (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"None"))) = 0 then
-      Ident.replace_first_lskip T.none sk
-    else if Path.compare cd.descr.constr_binding 
-              (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"Some"))) = 0 then
-      Ident.replace_first_lskip T.some sk
-    else if Path.compare cd.descr.constr_binding 
-              (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"Inl"))) = 0 then
-      Ident.replace_first_lskip T.inl sk
-    else if Path.compare cd.descr.constr_binding 
-              (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"Inr"))) = 0 then
-      Ident.replace_first_lskip T.inr sk
-    else
-      resolve_ident_path cd cd.descr.constr_binding
-  in
-    Ident.to_output T.infix_op_format Term_ctor T.path_sep id
+let ast_target_opt_to_target_opt t_opt = Util.option_map ast_target_to_target t_opt;;
 
-
-let const_ident_to_output cd =
-  (* TODO: remove this hack *)
-  match T.target with
-  | Some (Ast.Target_tex _) -> 
-      if      Path.compare cd.descr.const_binding (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"union"))) = 0 then kwd "\\cup"
-      else if Path.compare cd.descr.const_binding (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"inter"))) = 0 then kwd "\\cap"
-      else if Path.compare cd.descr.const_binding (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"IN")))    = 0 then kwd "\\in"
-      else if Path.compare cd.descr.const_binding (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"&&")))    = 0 then kwd "\\lemwedge"
-      else if Path.compare cd.descr.const_binding (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"||")))    = 0 then kwd "\\lemvee"
-      else if Path.compare cd.descr.const_binding (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"not")))   = 0 then kwd "\\lemnot"
-      else
-        Ident.to_output T.infix_op_format Term_const T.path_sep (resolve_ident_path cd cd.descr.const_binding)
-  | Some (Ast.Target_html _) -> 
-      if      Path.compare cd.descr.const_binding (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"union"))) = 0 then kwd "&cup;" 
-      else if Path.compare cd.descr.const_binding (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"inter"))) = 0 then kwd "^cap;"
-      else if Path.compare cd.descr.const_binding (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"-->")))    = 0 then kwd "&rarr;"
-      else if Path.compare cd.descr.const_binding (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"IN")))    = 0 then kwd "&isin;"
-      else if Path.compare cd.descr.const_binding (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"&&")))    = 0 then kwd "&amp;&amp;"
-(*
-      else if Path.compare cd.descr.const_binding (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"||")))    = 0 then kwd "\\lemvee"
-      else if Path.compare cd.descr.const_binding (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"not")))   = 0 then kwd "\\lemnot"
-*)
-      else
-        Ident.to_output T.infix_op_format Term_const T.path_sep (resolve_ident_path cd cd.descr.const_binding)
-  | _ -> 
-        Ident.to_output T.infix_op_format Term_const T.path_sep (resolve_ident_path cd cd.descr.const_binding)
-
-
+let const_ident_to_output a cd =
+  Ident.to_output T.infix_op_format a T.path_sep (const_id_to_ident (ast_target_opt_to_target_opt T.target) A.env cd)
+;;
 
 let tyvar tv =
   match tv with
@@ -1652,20 +1471,9 @@ let rec pat p = match p.term with
       kwd ")"
   | P_var(n) ->
       Name.to_output T.infix_op_format Term_var n
-  | P_constr(cd,ps) ->
-      (* TODO: do we need to check the internal kind of cd (ctor/let)? *)
-      ctor_ident_to_output cd ^
-      begin
-        match ps with
-          | [] ->
-              emp
-          | _ ->
-              texspace ^ 
-              T.ctor_arg_start ^
-              concat T.ctor_arg_sep (List.map pat ps) ^
-              T.ctor_arg_end
-      end
-
+  | P_const(cd,ps) ->
+      let oL = pattern_application_to_output (ast_target_opt_to_target_opt T.target) (Ident.to_output T.infix_op_format Term_const T.path_sep) pat A.env cd ps in
+      concat texspace oL
   | P_record(s1,fields,s2) ->
       ws s1 ^
       T.pat_rec_start ^
@@ -1734,9 +1542,8 @@ let rec pat p = match p.term with
       typ t ^
       kwd ")"
 
-
 and patfield (fd,s1,p) =
-  Ident.to_output T.infix_op_format Term_field T.path_sep (resolve_ident_path fd fd.descr.field_binding) ^
+  const_ident_to_output Term_field fd ^
   ws s1 ^
   kwd "=" ^
   pat p
@@ -1758,21 +1565,7 @@ match C.exp_to_term e with
       ws s ^ id Nexpr_var (Ulib.Text.(^^^) T.nexp_var (Nvar.to_rope n))
 
   | Constant(cd) ->
-      const_ident_to_output cd (*Ident.to_output T.infix_op_format Term_const T.path_sep cd.id_path*)
-
-  | Constructor(cd) ->
-      ctor_ident_to_output cd
-
-  | Tup_constructor(cd,s1,es,s2) ->
-      Ident.to_output T.infix_op_format Term_ctor T.path_sep (resolve_ident_path cd cd.descr.constr_binding) ^
-      ws s1 ^
-      (if Seplist.length es = 0 then
-         ws s2
-       else
-         kwd "(" ^
-         flat (Seplist.to_sep_list exp (sep T.tup_sep) es) ^
-         ws s2 ^
-         kwd ")")
+      const_ident_to_output Term_const cd 
 
   | Fun(s1,ps,s2,e) ->
       ws s1 ^
@@ -1847,7 +1640,7 @@ match C.exp_to_term e with
   | Field(e,s,fd) ->
       if (T.target = Some (Ast.Target_isa None)) then
         kwd "(" ^ T.field_access_start ^ 
-        Ident.to_output T.infix_op_format Term_field T.path_sep (resolve_ident_path fd fd.descr.field_binding) ^
+        const_ident_to_output Term_field fd ^
         T.field_access_end ^ 
         exp e ^ kwd ")" ^
         ws s
@@ -1855,7 +1648,7 @@ match C.exp_to_term e with
         exp e ^
         ws s ^
         T.field_access_start ^
-        Ident.to_output T.infix_op_format Term_field T.path_sep (resolve_ident_path fd fd.descr.field_binding) ^
+        const_ident_to_output Term_field fd ^
         T.field_access_end
 
   | Case(b,s1,e,s2,cases,s3) ->
@@ -2091,7 +1884,7 @@ and isa_quant q qb = match q with
       ws s1 ^ T.exists ^ (quant_binding qb) ^ kwd "." ^ space
 
 and expfield (fd,s1,e,_) =
-  Ident.to_output T.infix_op_format Term_field T.path_sep (resolve_ident_path fd fd.descr.field_binding) ^
+  const_ident_to_output Term_field fd ^
   ws s1 ^
   T.record_assign ^
   exp e
@@ -2101,7 +1894,7 @@ and expfield_coq (fd,s1,e,_) =
   exp e ^ kwd ")"
 
 and expfieldup (fd,s1,e,_) =
-  Ident.to_output T.infix_op_format Term_field T.path_sep (resolve_ident_path fd fd.descr.field_binding) ^
+  const_ident_to_output Term_field fd ^
   ws s1 ^
   T.recup_assign ^
   exp e
@@ -2849,8 +2642,8 @@ and names_of_pat p : (Ulib.Text.t * Ulib.Text.t * Ast.l) list = match p.term wit
   | P_var(n) | P_var_annot(n,_) ->
       let n' = Name.strip_lskip n in 
       [(Name.to_rope n', Name.to_rope_tex Term_var n', p.locn)]
-  | P_constr(cd,ps) ->
-      let n = Ident.get_name (resolve_ident_path cd cd.descr.constr_binding) in
+  | P_const(cd,ps) ->
+      let n = Ident.get_name (const_id_to_ident (ast_target_opt_to_target_opt T.target) A.env cd) in
       let n' = Name.strip_lskip n in 
       [(Name.to_rope n', Name.to_rope_tex Term_ctor n', p.locn)]
   | P_record(s1,fields,s2) ->
@@ -3359,10 +3152,10 @@ let header_defs ((defs:def list),(end_lex_skips : Typed_ast.lskips)) =
 
 end
 
-module Make(C : sig val avoid : var_avoid_f end) = struct
+module Make(A : sig val avoid : var_avoid_f;; val env : env end) = struct
   module Dummy = struct let comment_def d = assert false end
 
-  module C = struct let check = None let avoid = Some(C.avoid) end
+  module C = struct let env = A.env;; let avoid = Some(A.avoid) end
 
   let ident_defs defs =
     let module B = F(Identity)(C)(Dummy) in
@@ -3401,7 +3194,7 @@ module Make(C : sig val avoid : var_avoid_f end) = struct
       B.header_defs defs
 
   let coq_defs defs =
-    let module B = Coq_backend.CoqBackend (struct let avoid = C.avoid end) in
+    let module B = Coq_backend.CoqBackend (C) in
       B.coq_defs defs
 
   let ident_exp e = 

@@ -131,3 +131,43 @@ module Fmap_map(Key : Set.OrderedType) : Fmap
     M.fold (fun k _ s -> S.add k s) m S.empty
 end
 
+
+
+module type Dmap = sig
+  type k
+  type 'a t
+
+  val empty : 'a t
+  val set_default : 'a t -> 'a option -> 'a t
+  val insert : 'a t -> (k * 'a) -> 'a t
+  val apply : 'a t -> k -> 'a option
+
+  val remove : 'a t -> k -> 'a t
+  val in_dom : k -> 'a t -> bool
+
+end
+
+module Dmap_map(Key : Set.OrderedType) : Dmap 
+                  with type k = Key.t = struct
+
+  type k = Key.t
+  module S = Set.Make(Key)
+  module M = Map.Make(Key)
+  type 'a t = 'a M.t * S.t * 'a option
+
+  let empty = (M.empty, S.empty, None)
+  let is_empty m = M.is_empty m
+  let set_default (m, s, d_opt) d_opt' = (m, s, d_opt')
+
+  let apply (m, s, d_opt) k =
+    try
+      Some(M.find k m)
+    with
+      | Not_found -> if S.mem k s then None else d_opt;;
+     
+  let in_dom k (m, s, d_opt) = M.mem k m || (S.mem k s && d_opt <> None)
+    
+  let insert (m, s, d_opt) (k,v) = (M.add k v m, S.remove k s, d_opt)
+  let remove (m, s, d_opt) k = (M.remove k m, S.add k s, d_opt)
+end
+

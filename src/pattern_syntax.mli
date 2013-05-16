@@ -165,12 +165,12 @@ val is_list_pat : int option -> pat -> bool
 
 
 (** [dest_contr_pat p] destructs constructor patterns. *)
-val dest_constr_pat : pat ->  (constr_descr id * pat list) option
-val is_constr_pat : pat -> bool
+val dest_const_pat : pat ->  (const_descr_ref id * pat list) option
+val is_const_pat : pat -> bool
 
 
 (** [dest_record_pat p] destructs record patterns. *)
-val dest_record_pat : pat ->  (field_descr id * pat) list option
+val dest_record_pat : pat ->  (const_descr_ref id * pat) list option
 val is_record_pat : pat -> bool
 
 

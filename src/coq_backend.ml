@@ -46,6 +46,7 @@
 
 open Coq_backend_utils
 open Coq_records
+open Backend_common
 open Output
 open Typed_ast
 open Typed_ast_syntax
@@ -122,29 +123,19 @@ let coq_infix_op a x =
   ]
 ;;
 
-let const_ident_to_output cd =
-  Ident.to_output coq_infix_op Term_const (from_string ".") (resolve_ident_path cd cd.descr.const_binding)
+let const_ident_to_output env a cd =
+  Ident.to_output coq_infix_op a path_sep (const_id_to_ident (Some Target_coq) env cd)
 ;;
+
+let type_ident_to_output td =
+  Ident.to_output coq_infix_op Type_ctor path_sep (resolve_ident_path td td.descr)
+;;
+
 
 let none = Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r"None"))) Ast.Unknown
 ;;
 
 let some = Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r"Some"))) Ast.Unknown
-;;
-
-let ctor_ident_to_output cd =
-  let sk = match cd.id_path with | Id_none sk -> sk | Id_some id -> Ident.get_first_lskip id in
-  let id =
-    if Path.compare cd.descr.constr_binding
-         (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"None"))) = 0 then
-      Ident.replace_first_lskip none sk
-    else if Path.compare cd.descr.constr_binding
-              (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"Some"))) = 0 then
-      Ident.replace_first_lskip some sk
-    else
-      resolve_ident_path cd cd.descr.constr_binding
-  in
-    Ident.to_output coq_infix_op Term_ctor (from_string ".") id
 ;;
 
 let fresh_name_counter = ref 0
@@ -206,12 +197,12 @@ let rec src_t_to_string =
         from_string "(" ^ src_t_to_string src_t.term ^ from_string ")"
 ;;
 
-module CoqBackend (A : sig val avoid : var_avoid_f option end) =
+module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
   struct
 
     module C = Exps_in_context (
       struct
-        let check = None
+        let env_opt = Some A.env
         let avoid = A.avoid
       end)
     ;;
@@ -265,7 +256,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
       in
       let rec decidable_equality_possible l =
         let l = List.map (fun (x, y, z) -> z) l in
-          all (fun typ ->
+          List.for_all (fun typ ->
             match typ.term with
               | _ -> true
           ) l
@@ -377,7 +368,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
         | Typ_fn (src_t, skips, src_t') -> from_string "(* XXX: equality on Typ_fn *)\n"
         | Typ_tup src_t_lskips_seplist -> from_string "(* XXX: equality on Typ_tup *)\n"
         | Typ_app (path_id, src_t_list) ->
-            let eq_name = Ident.to_output coq_infix_op Term_ctor path_sep (resolve_ident_path path_id path_id.descr) in
+            let eq_name = type_ident_to_output path_id in
             combine [
               from_string "(* Definition"; name; from_string "_beq :=";
               eq_name; from_string "_beq. *)"
@@ -460,7 +451,8 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
     ;;
 
     let generate_coq_variant_equality lskips_seplist =
-      let l = Seplist.to_list lskips_seplist in
+        combine [];;
+(*      let l = Seplist.to_list lskips_seplist in
       let names = List.map (fun (x, y, z, _) -> lskips_t_to_string x) l in
       let tvs = List.map (fun (x, y, z, _) -> y) l in
       let bods = List.map (fun (x, y, z, _) -> z) l in
@@ -472,20 +464,21 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
       in
       let zipped = zip3 tvs names bods in
       let mapped = List.map (fun (x, y, z) -> generate_variant_equality x y z) zipped in
-      let body = separate "\nwith " mapped in
+      let body = separate "\nwith " mapped in 
         combine [
-          (* from_string "(* "; from_string "Fixpoint "; body; from_string ". *)\n" *)
+           from_string "(* "; from_string "Fixpoint "; body; from_string ". *)\n" 
         ]
     ;;
+*)
 
     let rec is_inferrable (s : src_t) : bool =
       match s.term with
         | Typ_var _ -> true
         | Typ_app (path, src_ts) ->
-            List.length src_ts = 0 || all is_inferrable src_ts
+            List.length src_ts = 0 || List.for_all is_inferrable src_ts
         | Typ_tup seplist ->
           let src_ts = Seplist.to_list seplist in
-            all is_inferrable src_ts
+            List.for_all is_inferrable src_ts
         | Typ_paren (_, src_t, _) -> is_inferrable src_t
         | _ -> false
     ;;
@@ -768,6 +761,8 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
           emp
         else
           combine [from_string "{"; flat tyvars; from_string " : Type}"]
+    and coq_function_application_to_output id args = function_application_to_output (Some Typed_ast.Target_coq)
+           (Ident.to_output coq_infix_op Term_const path_sep) exp A.env id args
     and exp e =
       let is_user_exp = Typed_ast_syntax.is_trans_exp e in
         match C.exp_to_term e with
@@ -802,8 +797,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
                 combine [
                   ws skips; from_string "let"; body; ws skips'; from_string "in "; exp e;
                 ]
-          | Constant const -> const_ident_to_output const
-          | Constructor ctor -> ctor_ident_to_output ctor
+          | Constant const -> const_ident_to_output A.env Term_const const
           | Fun (skips, ps, skips', e) ->
               let ps = fun_pattern_list ps in
                 block_hov (Typed_ast_syntax.is_trans_exp e) 2 (
@@ -813,17 +807,6 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
           | Function _ ->
             (* DPM: should have been macro'd away *)
               print_and_fail "illegal function in extraction, should have been previously macro'd away"
-          | Tup_constructor (cd, skips, es, skips') ->
-            let name = Ident.to_output coq_infix_op Term_ctor path_sep (resolve_ident_path cd cd.descr.constr_binding) in
-            let body = flat $ Seplist.to_sep_list exp (sep $ from_string ", ") es in
-              if Seplist.length es = 0 then
-                combine [
-                  name; ws skips; ws skips'
-                ]
-              else
-                combine [
-                  name; ws skips; from_string "("; body; ws skips'; from_string ")"
-                ]
           | Set (skips, es, skips') ->
             let body = flat $ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) exp (sep $ from_string "; ") es in
             let skips =
@@ -852,7 +835,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
                 ws skips; from_string "{|"; body; ws skips'; from_string "|}"
               ]
           | Field (e, skips, fd) ->
-            let name = Ident.to_output coq_infix_op Term_field path_sep (resolve_ident_path fd fd.descr.field_binding) in
+            let name = const_ident_to_output A.env Term_field fd in
               combine [
                 from_string "("; name; ws skips; exp e; from_string ")"
               ]
@@ -954,7 +937,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
           def_pattern p; ws skips; from_string "=>"; break_hint_space 2; exp e
         ]
     and field_update (fd, skips, e, _) =
-      let name = Ident.to_output coq_infix_op Term_field path_sep (resolve_ident_path fd fd.descr.field_binding) in
+      let name = const_ident_to_output A.env Term_field fd in
         combine [
           name; ws skips; from_string ":="; exp e
         ]
@@ -1032,19 +1015,12 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
             combine [
               ws skips; from_string "("; fun_pattern p; ws skips'; from_string ")"
             ]
-        | P_constr (cd, ps) ->
-          (* TODO: do we need to check the internal kind of cd (ctor/let)? *)
-          let args =
-            match ps with
-              | [] -> emp
-              | _  -> concat emp (List.map fun_pattern ps)
-          in
-            combine [
-              ctor_ident_to_output cd; args
-            ]
+        | P_const(cd, ps) ->
+            let oL = pattern_application_to_output (Some Target_coq) (Ident.to_output coq_infix_op Term_const path_sep) fun_pattern A.env cd ps in
+            concat emp oL
         | P_num_add ((name, l), skips, skips', k) ->
-            let succs = separate "" $ iterate (from_string "S (") k in
-            let close = separate "" $ iterate (from_string ")") k in
+            let succs = separate "" $ Util.replicate k (from_string "S (") in
+            let close = separate "" $ Util.replicate k (from_string ")") in
             let name = lskips_t_to_output name in
               combine [
                 ws skips; succs; name; close
@@ -1096,19 +1072,12 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
             combine [
               from_string "("; ws skips; def_pattern p; ws skips'; from_string ")"
             ]
-        | P_constr(cd, ps) ->
-          (* TODO: do we need to check the internal kind of cd (ctor/let)? *)
-          let args =
-            match ps with
-              | [] -> emp
-              | _  -> concat emp (List.map (def_pattern) ps)
-          in
-            combine [
-              ctor_ident_to_output cd; args
-            ]
+        | P_const(cd, ps) ->
+            let oL = pattern_application_to_output (Some Target_coq) (Ident.to_output coq_infix_op Term_const path_sep) def_pattern A.env cd ps in
+            concat emp oL
         | P_num_add ((name, l), skips, skips', k) ->
-            let succs = separate "" $ iterate (from_string "S (") k in
-            let close = separate "" $ iterate (from_string ")") k in
+            let succs = separate "" $ Util.replicate k (from_string "S (") in
+            let close = separate "" $ Util.replicate k (from_string ")") in
             let name = lskips_t_to_output name in
               combine [
                 ws skips; succs; name; close
@@ -1376,7 +1345,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
                   from_string "("; separate ", " mapped; from_string ")"
                 ]
           | Typ_app (path, src_ts) ->
-              if List.length src_ts = 0 || all is_inferrable src_ts then
+              if List.length src_ts = 0 || List.for_all is_inferrable src_ts then
                 let path = path.descr in
                 let (tail, head) = Path.to_name_list path in
                   combine [

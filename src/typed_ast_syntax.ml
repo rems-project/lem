@@ -50,7 +50,7 @@ let r = Ulib.Text.of_latin1
 let space = Some [Ast.Ws (r" ")]
 let new_line = Some [Ast.Ws (r"\n")]
 
-module C = Exps_in_context(struct let check = None let avoid = None end)
+module C = Exps_in_context(struct let env_opt = None let avoid = None end)
 
 let bool_ty = { Types.t = Types.Tapp ([], Path.boolpath) }
 let num_ty  = { Types.t = Types.Tapp ([], Path.numpath)  }
@@ -130,7 +130,6 @@ let mk_opt_paren_exp (e :exp) : exp =
   match C.exp_to_term e with
     | Var _ -> e
     | Constant _ -> e
-    | Constructor _ -> e
     | Tup _ -> e
     | Paren _ -> e
     | Lit _ -> e
@@ -173,27 +172,73 @@ let mk_undefined_exp l m ty = begin
    be fine.  *)
 let mk_dummy_exp ty = mk_undefined_exp Ast.Unknown "Dummy expression" ty
 
-let rec lookup_env e mp = match mp with
+
+let lookup_env_step (m_env : m_env) (n : Name.t) : mod_descr =
+   match Nfmap.apply m_env n with
+    | None -> (
+        let nL = NameSet.elements (nfmap_domain m_env) in
+        let sL = List.map (fun n -> ("'" ^ (Name.to_string n) ^ "'")) nL in
+        let s = String.concat ", " sL in
+        (raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal (Ast.Unknown, 
+              "lookup_env failed to find '" ^ (Name.to_string n) ^"' in [" ^ s ^"]")))))
+    | Some(e) -> e
+
+
+let rec lookup_env (e : local_env) (mp : Name.t list) : local_env = match mp with
   | [] -> e
   | n::nl ->
-      match Nfmap.apply e.m_env n with
-        | None -> (
-            let nL = NameSet.elements (nfmap_domain e.m_env) in
-            let sL = List.map (fun n -> ("'" ^ (Name.to_string n) ^ "'")) nL in
-            let s = String.concat ", " sL in
-            (raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal (Ast.Unknown, 
-                  "lookup_env failed to find '" ^ (Name.to_string n) ^"' in [" ^ s ^"]")))))
-        | Some(e) -> lookup_env e.mod_env nl
+      let m_d = lookup_env_step e.m_env n in
+      lookup_env m_d.mod_env nl
 
-let names_get_const env mp n =
-  let env' = lookup_env env mp in
-  match Nfmap.apply env'.v_env n with
-      | Some(Val d) -> d
-      | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(Ast.Unknown, "names_get_const env did not contain constant!")))
+let rec lookup_mod_descr (e : local_env) (mp : Name.t list) (n : Name.t) : mod_descr = 
+  let e' = lookup_env e mp in lookup_env_step e'.m_env n
 
-let get_const env mp n =
+let names_get_const (env : env) mp n =
+  let l = Ast.Trans ("names_get_const", None) in
+  let local_env = lookup_env env.local_env mp in
+  let c_ref = match Nfmap.apply local_env.v_env n with
+      | Some(d) -> d
+      | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "names_get_const: env did not contain constant!"))) in
+  let c_d = c_env_lookup l env.c_env c_ref in
+  (c_ref, c_d)
+
+let get_const (env : env) mp n =
   names_get_const env (List.map (fun n -> (Name.from_rope (r n))) mp) (Name.from_rope (r n))
 
+let rec names_get_field env mp n =
+  let l = Ast.Trans ("names_get_field", None) in
+  let local_env = lookup_env env.local_env mp in
+  let c_ref = match Nfmap.apply local_env.f_env n with
+      | Some(d) -> d
+      | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "names_get_field: env did not contain constant!"))) in
+  let c_d = c_env_lookup l env.c_env c_ref in
+  (c_ref, c_d)
+
+let get_field (env : env) mp n =
+  names_get_field env (List.map (fun n -> (Name.from_rope (r n))) mp) (Name.from_rope (r n))
+
+let dest_field_types l env (f : const_descr_ref) =
+  let l = Ast.Trans("dest_field_types", Some l) in 
+  let f_d = c_env_lookup l env.c_env f in
+  let full_type = f_d.const_type in
+  match Types.dest_fn_type (env.t_env) full_type with
+    | Some (t_arg, { Types.t = Types.Tapp (t_b_args, t_b_c) }) when t_b_args = List.map Types.tnvar_to_type (f_d.const_tparams) -> 
+         (t_arg, t_b_c, f_d)
+    | None -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "not a field type")))
+
+let get_field_type_descr l env (f : const_descr_ref) =
+  let l = Ast.Trans("get_field_type_descr", Some l) in 
+  let (f_field_arg, f_tconstr, f_d) = dest_field_types l env f in
+  match Types.Pfmap.apply env.t_env f_tconstr with
+    | Some(Types.Tc_type(td)) -> td
+    | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "not a field type")))
+
+let get_field_all_fields l env (f : const_descr_ref) : const_descr_ref list =
+  let l = Ast.Trans("get_field_all_fields", Some l) in 
+  let td = get_field_type_descr l env f in
+  match td.Types.type_fields with
+    | Some(fl) -> fl
+    | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "not a field type")))
 
 let names_mk_ident l i loc =
   Ident.mk_ident (List.map (fun r -> (Name.add_lskip r, None)) l)
@@ -203,17 +248,19 @@ let names_mk_ident l i loc =
 let mk_ident l i loc =
   names_mk_ident (List.map (fun n -> Name.from_rope (r n)) l) (Name.from_rope (r i)) loc
 
-let get_const_id env l mp n inst =
-{ id_path = Id_some (mk_ident mp n l);
+let get_const_id (env : env) l mp n inst =
+let (c_ref, c_d) = get_const env mp n in
+({ id_path = Id_some (mk_ident mp n l);
   id_locn = l;
-  descr = (get_const env mp n);
-  instantiation = inst }
+  descr = c_ref;
+  instantiation = inst },
+ c_d)
 
-let mk_const_exp env l mp n inst =
-  let c = (get_const_id env l mp n inst) in
+let mk_const_exp (env : env) l mp n inst =
+  let (c, c_d) = (get_const_id env l mp n inst) in
   let t = Types.type_subst 
-             (Types.TNfmap.from_list2 c.descr.const_tparams c.instantiation) 
-             c.descr.const_type in
+             (Types.TNfmap.from_list2 c_d.const_tparams c.instantiation) 
+             c_d.const_type in
   C.mk_const l c (Some t)
 
 let mk_eq_exp env (e1 : exp) (e2 : exp) : exp =
@@ -225,7 +272,7 @@ let mk_eq_exp env (e1 : exp) (e2 : exp) : exp =
 
   let eq_id = { id_path = Id_some (Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r "="))) l);
                 id_locn = l;
-                descr = (get_const env ["Ocaml"; "Pervasives"] "=");
+                descr = fst (get_const env ["Ocaml"; "Pervasives"] "=");
                 instantiation = [ty] } in
 
   let eq_exp = C.mk_const l eq_id (Some ty_1) in
@@ -239,7 +286,7 @@ let mk_and_exp env (e1 : exp) (e2 : exp) : exp =
 
   let and_id = { id_path = Id_some (Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r "&&"))) l);
                 id_locn = l;
-                descr = get_const env ["Pervasives"] "&&";
+                descr = fst (get_const env ["Pervasives"] "&&");
                 instantiation = [] } in
 
   let and_exp = C.mk_const l and_id (Some ty_1) in
@@ -253,7 +300,7 @@ let mk_le_exp env (e1 : exp) (e2 : exp) : exp =
 
   let le_id = { id_path = Id_some (Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r "<="))) l);
                 id_locn = l;
-                descr = get_const env ["Pervasives"] "<=";
+                descr = fst (get_const env ["Pervasives"] "<=");
                 instantiation = [] } in
 
   let le_exp = C.mk_const l le_id (Some ty_1) in
@@ -267,7 +314,7 @@ let mk_add_exp env (e1 : exp) (e2 : exp) : exp =
 
   let add_id = { id_path = Id_some (Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r "+"))) l);
                 id_locn = l;
-                descr = get_const env ["Pervasives"] "+";
+                descr = fst (get_const env ["Pervasives"] "+");
                 instantiation = [] } in
 
   let add_exp = C.mk_const l add_id (Some ty_1) in
@@ -281,7 +328,7 @@ let mk_sub_exp env (e1 : exp) (e2 : exp) : exp =
 
   let sub_id = { id_path = Id_some (Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r "-"))) l);
                 id_locn = l;
-                descr = get_const env ["Pervasives"] "-";
+                descr = fst (get_const env ["Pervasives"] "-");
                 instantiation = [] } in
 
   let sub_exp = C.mk_const l sub_id (Some ty_1) in
@@ -393,6 +440,21 @@ let rec strip_paren_typ_exp (e :exp) : exp =
     | Paren (s1, e', s2) -> strip_paren_typ_exp e'
     | Typed (s1, e', s2, src_t, s3) -> strip_paren_typ_exp e'
     | _ -> e
+
+
+let dest_app_exp (e :exp) : (exp * exp) option =
+  match C.exp_to_term e with
+    | App (e1, e2) -> Some (e1, e2)
+    | _ -> None
+
+let strip_app_exp (e : exp) : exp * exp list = 
+  let rec aux e =
+    match dest_app_exp e with
+      | None -> ([], e)
+      | Some (e1, e2) -> let (eL, e') = aux e1 in (e2 :: eL, e')
+  in
+  let (eL, e') = aux e in (e', List.rev eL)
+
 
 let is_recursive_def (((d, _), _) : def) =  
  match d with

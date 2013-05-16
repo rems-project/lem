@@ -52,6 +52,7 @@
 open Typed_ast
 open Util
 
+(*
 module NKmap = 
   Finite_map.Fmap_map(struct 
                         type t = name_kind
@@ -90,26 +91,29 @@ let compute_rename (path : Name.t list)
 (* given a constant description and a target option, return whether this
    constant might appear in output for this target. It cannot apear
    if it is inlined or not defined for this target *)
-let constant_used_for_target targ d =
+let constant_used_for_target targ (d : const_descr) =
   match targ with 
     None -> false 
   | Some t -> 
-      if (Targetmap.in_dom t d.substitutions) then false else
+      if (Targetmap.in_dom t d.target_rep) then false else
      (match d.env_tag with
        | K_method -> true
        | K_instance -> true
        | K_let -> true
+       | K_field -> true
+       | K_constr -> true
        | K_val -> false
        | K_target (let_def, defined_targets) -> let_def || Targetset.mem t defined_targets
      )
 
-let compute_renames_v targ path f renames e_v =
+let compute_renames_v env targ path f renames (e_v : v_env) =
   Nfmap.fold 
     (fun renames n v -> 
        let (nk, l, do_it) =
-         match v with
-           | Constr d -> (Nk_constr, d.constr_l, true)
-           | Val d -> (Nk_const, d.spec_l, constant_used_for_target targ d)
+         let v_d = c_env_lookup Ast.Unknown env.c_env v in
+         match v_d.env_tag with
+           | K_constr -> (Nk_constr, v_d.spec_l, true)
+           | _ -> (Nk_const, v_d.spec_l, constant_used_for_target targ v_d)
        in
          (if do_it then compute_rename path f renames l nk n else renames))
     renames
@@ -697,3 +701,6 @@ let flatten_modules_macro path env ((d,s),l) =
 
 let flatten_modules n e d = 
   snd (Def_trans.process_defs [] flatten_modules_macro n e d)
+
+
+*)

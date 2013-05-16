@@ -58,8 +58,8 @@ let rec has_decidable_equality_src_t (src_t : src_t) : bool =
     | Typ_fn (_, _, _) -> false
     | Typ_tup src_ts ->
         let seplist = Seplist.to_list src_ts in
-          all has_decidable_equality_src_t seplist
-    | Typ_app (_, src_ts) -> all has_decidable_equality_src_t src_ts
+          List.for_all has_decidable_equality_src_t seplist
+    | Typ_app (_, src_ts) -> List.for_all has_decidable_equality_src_t src_ts
     | Typ_paren (_, src_t, _) -> has_decidable_equality_src_t src_t
 ;;
 
@@ -73,21 +73,21 @@ let has_decidable_equality_texp (t : texp) (in_module_scope : bool) : bool =
     | Te_abbrev (_, src_t) -> has_decidable_equality_src_t src_t
     | Te_record (_, _, seplist, _) ->
         let src_ts = Seplist.to_list seplist in
-          all (fun (_, _, z) -> has_decidable_equality_src_t z) src_ts
+          List.for_all (fun (_, _, z) -> has_decidable_equality_src_t z) src_ts
     | Te_record_coq (_, _, _, seplist, _) ->
         let src_ts = Seplist.to_list seplist in
-          all (fun (_, _, z) -> has_decidable_equality_src_t z) src_ts
+          List.for_all (fun (_, _, z) -> has_decidable_equality_src_t z) src_ts
     | Te_variant (_, seplist) ->
         let src_t_seplist = Seplist.to_list seplist in
-          all (fun (_, _, seplist) ->
+          List.for_all (fun (_, _, seplist) ->
             let src_ts = Seplist.to_list seplist in
-              all has_decidable_equality_src_t src_ts
+              List.for_all has_decidable_equality_src_t src_ts
           ) src_t_seplist
     | Te_variant_coq (_, seplist) ->
         let src_t_seplist = Seplist.to_list seplist in
-          all (fun (_, _, seplist, _, _) ->
+          List.for_all (fun (_, _, seplist, _, _) ->
             let seplist = Seplist.to_list seplist in
-              all has_decidable_equality_src_t seplist
+              List.for_all has_decidable_equality_src_t seplist
           ) src_t_seplist
 ;;
 
@@ -95,7 +95,7 @@ let has_decidable_equality_texp (t : texp) (in_module_scope : bool) : bool =
     cases are for type definitions and modules, which may also define a
     type).
  *)
-let rec check_decidable_equality_def' (((d, _), l) : def) (in_module_scope : bool) : unit =
+let rec check_decidable_equality_def' env (((d, _), l) : def) (in_module_scope : bool) : unit =
   match d with
     | Type_def (_, seplist) ->
         let texps = Seplist.to_list seplist in
@@ -106,20 +106,20 @@ let rec check_decidable_equality_def' (((d, _), l) : def) (in_module_scope : boo
             else
               let name = Name.strip_lskip name in
               let sname = Name.to_string name in
-                Reporting.report_warning (Reporting.Warn_no_decidable_equality (l, sname))
+                Reporting.report_warning env (Reporting.Warn_no_decidable_equality (l, sname))
           ) texps
         in
           ()
     | Module (_, _, _, _, defs, _) ->
         let _ =
-          List.map (fun x -> check_decidable_equality_def' x true)
+          List.map (fun x -> check_decidable_equality_def' env x true)
         in
           ()
     | _ -> ()
 ;;
 
-let check_decidable_equality_def (d : def) : unit =
-  check_decidable_equality_def' d false
+let check_decidable_equality_def env (d : def) : unit =
+  check_decidable_equality_def' env d false
 ;;
 
 (** Definition of strict positivity, a la Coq, for an inductive data type X.
@@ -145,13 +145,13 @@ let rec occurs_src_t (x : Name.t) (s : src_t) : bool =
           occurs_src_t x rng
     | Typ_tup src_ts ->
         let src_ts = Seplist.to_list src_ts in
-          any (occurs_src_t x) src_ts
+          List.exists (occurs_src_t x) src_ts
     | Typ_app (path, src_ts) ->
         let (tail, head) = Path.to_name_list path.descr in
           if head = x && tail = [] then
             true
           else
-            any (occurs_src_t x) src_ts
+           List.exists (occurs_src_t x) src_ts
     | Typ_paren (_, src_t, _) -> occurs_src_t x src_t
 ;;
 
@@ -202,9 +202,9 @@ and occurs_strictly_positively (inductive_types : src_t list InductiveMap.t) (x 
         let (tail, head) = Path.to_name_list path.descr in
           if InductiveMap.mem head inductive_types then
             let ctors = InductiveMap.find head inductive_types in
-              all (nested_positivity_condition inductive_types x) ctors
+              List.for_all (nested_positivity_condition inductive_types x) ctors
           else
-            all (fun y -> not (occurs_src_t x y)) src_ts
+            List.for_all (fun y -> not (occurs_src_t x y)) src_ts
     | Typ_paren (_, src_t, _) -> occurs_strictly_positively inductive_types x src_t
 
 (**
@@ -227,7 +227,7 @@ and strict_positivity_condition (inductive_types : src_t list InductiveMap.t) (x
         let src_ts = Seplist.to_list seplist in
           all (strict_positivity_condition x) src_ts *)
     | Typ_app (path, src_ts) ->
-        all (fun y -> not (occurs_src_t x y)) src_ts
+        List.for_all (fun y -> not (occurs_src_t x y)) src_ts
     | Typ_paren (_, src_t, _) -> strict_positivity_condition inductive_types x src_t
 ;;
 
@@ -239,15 +239,15 @@ let check_positivity_condition_texp (inductive_types : src_t list InductiveMap.t
     | Te_record_coq _ -> true
     | Te_variant (_, seplist) ->
       let seplist = Seplist.to_list seplist in
-        all (fun (_, _, z) ->
+        List.for_all (fun (_, _, z) ->
           let src_ts = Seplist.to_list z in
-            all (strict_positivity_condition inductive_types x) src_ts
+            List.for_all (strict_positivity_condition inductive_types x) src_ts
         ) seplist
     | Te_variant_coq (_, seplist) ->
       let seplist = Seplist.to_list seplist in
-        all (fun (_, _, z, _, _) ->
+        List.for_all (fun (_, _, z, _, _) ->
           let src_ts = Seplist.to_list z in
-            all (strict_positivity_condition inductive_types x) src_ts
+            List.for_all (strict_positivity_condition inductive_types x) src_ts
         ) seplist
 ;;
 

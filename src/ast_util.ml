@@ -195,3 +195,12 @@ and letbind_freevars not_shadowed = function
        NameSet.singleton (xl_to_name xl))
 
 
+let target_to_int = function
+  | Ast.Target_hol _ -> 6
+  | Ast.Target_ocaml _ -> 5
+  | Ast.Target_isa _ -> 4
+  | Ast.Target_coq _ -> 3
+  | Ast.Target_tex _ -> 2
+  | Ast.Target_html _ -> 1
+
+let ast_target_compare x y = Pervasives.compare (target_to_int x) (target_to_int y)

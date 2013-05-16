@@ -95,8 +95,8 @@ let rec expand_pat pat_pos p (typ_r, src_typ_r, r) : pat =
                 C.mk_pas old_l s1 (trans p) s2 nl s3 (Some new_t)
             | P_typ(s1,p,s2,t,s3) -> 
                 C.mk_ptyp old_l s1 (trans p) s2 t s3 (Some new_t)
-            | P_constr(c,ps) -> 
-                C.mk_pconstr old_l 
+            | P_const(c,ps) -> 
+                C.mk_pconst old_l 
                   c 
                   (List.map (fun p -> (trans p)) ps)
                   (Some new_t)
@@ -144,10 +144,6 @@ let rec expand_exp ((r,typ_r,src_typ_r,pat_r):((exp -> exp option) * (Types.t ->
       | None ->
           begin
             match (C.exp_to_term e) with
-              | Tup_constructor(c,s1,es,s2) ->
-                  C.mk_tup_ctor old_l 
-                    c 
-                    s1 (Seplist.map trans es) s2 (Some new_t)
               | Fun(s1,ps,s2,e) ->
                   C.mk_fun old_l 
                     s1 (List.map (fun p -> transp Param p) ps) 
@@ -175,14 +171,14 @@ let rec expand_exp ((r,typ_r,src_typ_r,pat_r):((exp -> exp option) * (Types.t ->
                        fieldexps)
                     s2
                     (Some new_t)
-              | Record_coq(n,s1,fieldexps,s2) ->
+(*              | Record_coq(n,s1,fieldexps,s2) ->
                   C.mk_record_coq old_l
                     s1
                     (Seplist.map 
                        (fun (fid,s1,e,l) -> (fid,s1,trans e,l))
                        fieldexps)
                     s2
-                    (Some new_t)
+                    (Some new_t)*)
               | Recup(s1,e,s2,fieldexps,s3) ->
                   C.mk_recup old_l
                     s1 (trans e) s2
@@ -276,8 +272,6 @@ let rec expand_exp ((r,typ_r,src_typ_r,pat_r):((exp -> exp option) * (Types.t ->
                     s3
                     t
                     (Some new_t)
-              | Constructor(c) ->
-                  C.mk_constr old_l c (Some new_t)
               | Constant(c) ->
                   C.mk_const old_l c (Some new_t)
               | Var(n) ->

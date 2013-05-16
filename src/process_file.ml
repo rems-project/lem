@@ -142,9 +142,10 @@ let html_postamble =
 "  </body>\n" ^
 "</html>\n"
 
-let output1 libpath isa_thy targ avoid type_info m alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum =
+let output1 env libpath isa_thy targ avoid type_info m alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum =
   let module C = struct
     let avoid = avoid
+    let env = env
   end
   in
   let module B = Backend.Make(C) in
@@ -323,10 +324,10 @@ let output1 libpath isa_thy targ avoid type_info m alldoc_accum alldoc_inc_accum
               close_output_with_check ext_o
           end
 
-let output libpath isa_thy targ consts type_info mods alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum =
+let output libpath isa_thy targ consts env type_info mods alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum =
   List.iter
     (fun m ->
-       output1 libpath isa_thy targ consts type_info m alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum)
+       output1 env libpath isa_thy targ consts type_info m alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum)
     mods
 
 

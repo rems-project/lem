@@ -46,10 +46,6 @@
 
 open Reporting_basic
 
-module B = Backend.Make(struct
-  let avoid = (false, (fun _ -> true), Name.fresh)
-end)
-
 type warn_source = 
   | Warn_source_exp of Typed_ast.exp
   | Warn_source_def of Typed_ast.def
@@ -74,10 +70,10 @@ type warning =
   | Warn_record_resorted of Ast.l * Typed_ast.exp
   | Warn_no_decidable_equality of Ast.l * string
 
-let warn_source_to_string ws =
+let warn_source_to_string exp def ws =
   match ws with 
-      Warn_source_exp e -> Some ("expression", Ulib.Text.to_string (B.ident_exp e))
-    | Warn_source_def d -> Some ("definition", Ulib.Text.to_string (B.ident_def d))
+      Warn_source_exp e -> Some ("expression", Ulib.Text.to_string (exp e))
+    | Warn_source_def d -> Some ("definition", Ulib.Text.to_string (def d))
     | Warn_source_unkown -> None
 
 (* construct the appropriate output of a warning. The result is a triple (b, l, m) stating
@@ -85,7 +81,12 @@ let warn_source_to_string ws =
    l: the source location
    m: the message to display
 *)
-let dest_warning (verbose: bool) (w : warning) : (bool * Ast.l * string) option = match w with
+let dest_warning (env : Typed_ast.env) (verbose: bool) (w : warning) : (bool * Ast.l * string) option = 
+  let module B = Backend.Make(struct
+    let avoid = (false, (fun _ -> true), Name.fresh);;
+    let env = env
+  end) in
+  match w with
   | Warn_general (b, l, m) -> Some (b, l, m)
 
   | Warn_rename (l, n_org, n_via_opt, n_new, targ) ->
@@ -100,7 +101,7 @@ let dest_warning (verbose: bool) (w : warning) : (bool * Ast.l * string) option 
       let ps = String.concat ", " psL in
       let m = Format.sprintf "could not compile the following list of patterns: %s" ps in
       let m' = if not verbose then "" else
-          (match warn_source_to_string ws with None -> "" | Some (l, s) -> Format.sprintf "\n  in the following %s\n    %s\n" l s)
+          (match warn_source_to_string B.ident_exp B.ident_def ws with None -> "" | Some (l, s) -> Format.sprintf "\n  in the following %s\n    %s\n" l s)
       in
       Some (true, l, m ^ m')
 
@@ -251,13 +252,13 @@ let warn_opts =
   in (all :: sopts)
 
 
-let report_warning w =
+let report_warning env w =
   let level = warn_level w in  
   match level with
       Level_Ignore       -> ()
-    | Level_Warn         -> (match dest_warning false w with None -> () | Some (b, l, m) -> print_err false false true  l "Warning" m)
-    | Level_Warn_Verbose -> (match dest_warning true  w with None -> () | Some (b, l, m) -> print_err false b     false l "Verbose warning" m)
-    | Level_Error        -> (match dest_warning true  w with None -> () | Some (b, l, m) -> print_err true  b     false l "Error"   m)
+    | Level_Warn         -> (match dest_warning env false w with None -> () | Some (b, l, m) -> print_err false false true  l "Warning" m)
+    | Level_Warn_Verbose -> (match dest_warning env true  w with None -> () | Some (b, l, m) -> print_err false b     false l "Verbose warning" m)
+    | Level_Error        -> (match dest_warning env true  w with None -> () | Some (b, l, m) -> print_err true  b     false l "Error"   m)
 
 (******************************************************************************)
 (* Debuging                                                                   *)
@@ -274,10 +275,38 @@ let print_debug_data f s xs =
   let xs_s = List.map (fun x -> Ulib.Text.to_string (f x)) xs in
   print_debug (s ^ "\n" ^ (String.concat "\n" xs_s))
 
-let print_debug_exp = print_debug_data B.ident_exp
-let print_debug_pat = print_debug_data B.ident_pat
-let print_debug_def = print_debug_data B.ident_def
-let print_debug_typ = print_debug_data B.ident_typ
-let print_debug_src_t = print_debug_data B.ident_src_t
+let print_debug_exp env = 
+  let module B = Backend.Make(struct
+    let avoid = (false, (fun _ -> true), Name.fresh);;
+    let env = env
+  end) in
+  print_debug_data B.ident_exp
 
+let print_debug_pat env = 
+  let module B = Backend.Make(struct
+    let avoid = (false, (fun _ -> true), Name.fresh);;
+    let env = env
+  end) in
+  print_debug_data B.ident_pat
+
+let print_debug_def env = 
+  let module B = Backend.Make(struct
+    let avoid = (false, (fun _ -> true), Name.fresh);;
+    let env = env
+  end) in
+  print_debug_data B.ident_def
+
+let print_debug_typ env = 
+  let module B = Backend.Make(struct
+    let avoid = (false, (fun _ -> true), Name.fresh);;
+    let env = env
+  end) in
+  print_debug_data B.ident_typ
+
+let print_debug_src_t env = 
+  let module B = Backend.Make(struct
+    let avoid = (false, (fun _ -> true), Name.fresh);;
+    let env = env
+  end) in
+  print_debug_data B.ident_src_t
 

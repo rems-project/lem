@@ -57,7 +57,7 @@ type pat_macro = Macro_expander.pat_position -> pat macro
 
 module Macros(I : Types.Global_defs)(E : sig val env : env end) = struct
 
-module C = Exps_in_context(struct let check = Some(I.d) let avoid = None end)
+module C = Exps_in_context(struct let env_opt = Some E.env;; let avoid = None end)
 module T = Types.Constraint(I)
 
 let d = I.d
@@ -66,6 +66,7 @@ open E
 
 (* Macros *)
 
+(* TODO fix and add again 
 let remove_singleton_record_updates e =
     match C.exp_to_term e with
       | Recup(s1, exp, s2, fields, s3) ->
@@ -83,6 +84,7 @@ let remove_singleton_record_updates e =
         end
       | _ -> None
 ;;
+
 
 let remove_multiple_record_updates e =
   let l_unk = Ast.Trans("remove_multiple_record_updates", Some (exp_to_locn e)) in
@@ -142,6 +144,7 @@ let sort_record_fields e =
         end 
       | _ -> None
 ;;
+*)
 
 (* Turn function | pat1 -> exp1 ... | patn -> expn end into
  * fun x -> match x with | pat1 -> exp1 ... | patn -> expn end *)
@@ -232,52 +235,7 @@ let rec build_subst (params : (Name.t,unit) annot list) (args : (exp * Ast.l) li
         let (subst, x, y) = build_subst params args in
           (Nfmap.insert subst (p.term, Sub(a)), x, y)
 
-(* Inline sub [target] bindings *)
-let do_substitutions target e =
-  let l_unk = Ast.Trans("do_substitutions", Some (exp_to_locn e)) in
-  let (f,infix,args) = app_list e in
-    match C.exp_to_term f with
-      | Constant(c) ->
-          begin
-            match Targetmap.apply c.descr.substitutions target with
-              | None -> None
-              | Some((params,body)) ->
-                  let tsubst = 
-                    Types.TNfmap.from_list2 c.descr.const_tparams c.instantiation
-                  in
-                  let (vsubst, leftover_params, leftover_args) = 
-                    build_subst params args
-                  in
-                  let b = 
-                    C.exp_subst (tsubst,vsubst) 
-                      (fst (alter_init_lskips (fun _ -> (ident_get_first_lskip c, None)) body))
-                  in
-                    if params = [] && infix then
-                      begin
-                        match leftover_args with
-                          | (a1,l)::(a2,_)::args ->
-                              Some(List.fold_left 
-                                     (fun e (e',l) -> C.mk_app l e e' None)
-                                     (C.mk_infix l a1 b a2 None)
-                                     args)
-                          | _ -> assert false
-                      end
-                    else if leftover_params = [] then
-                      Some(List.fold_left 
-                             (fun e (e',l) -> C.mk_app l e e' None)
-                             b
-                             leftover_args)
-                    else
-                      Some(C.mk_fun l_unk
-                             None (List.map 
-                                     (fun n -> 
-                                        C.mk_pvar n.locn (Name.add_lskip n.term) (Types.type_subst tsubst n.typ))
-                                     leftover_params) 
-                             None b
-                             None)
-          end
-      | _ -> None
-
+(* Replace by something more clever 
 (* Change constructors into tupled constructors *) 
 let rec tup_ctor build_result args e = 
   let l_unk = Ast.Trans("tup_ctor", None) in
@@ -326,7 +284,7 @@ let rec tup_ctor build_result args e =
               (Seplist.cons_entry e3 
                  (Seplist.cons_sep_alt None args)))) e2
   | _ -> None
-
+*)
 
 let names_mk_ident l i loc =
   Ident.mk_ident (List.map (fun r -> (Name.add_lskip r, None)) l)
@@ -363,13 +321,14 @@ let string_lits_isa e =
       end
   | _ -> None
 
+(* TODO: Do something much more clever 
 (* TODO: Get the Suc constructor properly when the library is working with
  * datatypes *)
 let peanoize_num_pats_aux suc _ p =
   let l_unk = Ast.Trans("peanoize_num_pats", Some p.locn) in
 
   let pean_pat s i p = begin   
-    let rec f i = if i = 0 then p else C.mk_pconstr l_unk suc [f (i - 1)] None
+    let rec f i = if i = 0 then p else C.mk_pconst l_unk suc [f (i - 1)] None
     in Pattern_syntax.mk_opt_paren_pat (pat_append_lskips s (f i))
   end in
   let string_to_comment s = Some([Ast.Com(Ast.Comment([Ast.Chars(Ulib.Text.of_latin1 s)]))]) in
@@ -392,14 +351,14 @@ let peanoize_num_pats_aux suc _ p =
 let isa_suc = { id_path = Id_none None;
         id_locn = Ast.Trans ("trans.ml - isa_suc", None);
         descr = 
-           { constr_binding = Path.mk_path [] (Name.from_rope (r"Suc"));
-             constr_tparams = [];
-             constr_args = [{ Types.t = Types.Tapp([], Path.numpath) }];
-             constr_tconstr = Path.numpath;
-             constr_names = 
+           { const_binding = Path.mk_path [] (Name.from_rope (r"Suc"));
+             const_tparams = [];
+             const_args = [{ Types.t = Types.Tapp([], Path.numpath) }];
+             const_tconstr = Path.numpath;
+             const_names = 
                NameSet.add (Name.from_rope (r"Zero"))
                (NameSet.singleton (Name.from_rope (r"Suc")));
-             constr_l = Ast.Trans ("trans.ml - isa_suc", None) };
+             const_l = Ast.Trans ("trans.ml - isa_suc", None) };
            instantiation = [] }
 
 let hol_suc = { id_path = Id_none None;
@@ -417,6 +376,8 @@ let hol_suc = { id_path = Id_none None;
 
 let peanoize_num_pats_hol = peanoize_num_pats_aux hol_suc
 let peanoize_num_pats_isa = peanoize_num_pats_aux isa_suc
+
+*)
 
 
 let remove_unit_pats _ p =
@@ -622,7 +583,7 @@ let get_compare t =
   C.mk_const l_unk
     { id_path = Id_none None;
       id_locn = l_unk;
-      descr = get_const env ["Ocaml"] "compare";
+      descr = fst (get_const env ["Ocaml"] "compare");
       instantiation = [t] }
     None
 
@@ -641,7 +602,7 @@ let remove_sets e =
                 C.mk_const l_unk
                   { id_path = Id_none None;
                     id_locn = l_unk;
-                    descr = get_const env ["Ocaml"; "Pset"] "from_list";
+                    descr = fst (get_const env ["Ocaml"; "Pset"] "from_list");
                     instantiation = [t] }
                   None
               in
@@ -671,7 +632,7 @@ let strip_quant_lskips = function
 let get_quant_impl is_lst t : Ast.q -> exp = 
   let l_unk = Ast.Trans("get_quant_impl", None) in
   let f path name s =
-    let d = get_const env path name in
+    let d = fst (get_const env path name) in
       append_lskips s
         (C.mk_const l_unk 
           { id_path = Id_none None;
@@ -756,10 +717,10 @@ let rec pat_to_exp env p =
         C.mk_typed p.locn lskips1 (pat_to_exp env p) lskips2 t lskips3 None
     | P_var(n) ->
         C.mk_var p.locn n p.typ
-    | P_constr(c,ps) ->
+    | P_const(c,ps) ->
         List.fold_left
           (fun e p -> C.mk_app l_unk e (pat_to_exp env p) None)
-          (C.mk_constr p.locn c None)
+          (C.mk_const p.locn c None)
           ps
     | P_record(_,fieldpats,_) ->
         raise (Pat_to_exp_unsupported(p.locn, "record pattern"))
@@ -841,7 +802,7 @@ let remove_set_restr_quant e =
                  false s1 e1 s2 s3 new_qbs s4 pred_exp s5 None)
   | _ -> None)
   with Pat_to_exp_unsupported (l, m) -> 
-    (Reporting.report_warning (Reporting.Warn_general (true, exp_to_locn e, m^" in restricted set comprehension")); None) (* it can still be handled by pattern compilation *)
+    (Reporting.report_warning env (Reporting.Warn_general (true, exp_to_locn e, m^" in restricted set comprehension")); None) (* it can still be handled by pattern compilation *)
 
 
 (* Moves quantification to the condition part of the 
@@ -959,24 +920,27 @@ let remove_restr_quant pat_OK e =
           Some(C.mk_quant (exp_to_locn e) q new_qbs s pred_exp None)
   | _ -> None)
   with Pat_to_exp_unsupported (l, m) -> 
-    (Reporting.report_warning (Reporting.Warn_general (true, exp_to_locn e, m^" in restricted set comprehension")); None) (* it can still be handled by pattern compilation *)
+    (Reporting.report_warning env (Reporting.Warn_general (true, exp_to_locn e, m^" in restricted set comprehension")); None) (* it can still be handled by pattern compilation *)
 
 
 let eq_path = Path.mk_path [Name.from_rope (r"Ocaml"); Name.from_rope (r"Pervasives")] (Name.from_rope (r"="))
 
+(* TODO: What does it do ? Fix it? 
 let hack e = 
   let l_unk = Ast.Trans("hack", Some (exp_to_locn e)) in
   match C.exp_to_term e with
   | Constant(c) ->
-      if Path.compare c.descr.const_binding eq_path = 0 then
+      let c_d = c_env_lookup l_unk env.c_env c.descr in
+      if Path.compare c_d.const_binding eq_path = 0 then
         begin
           match c.instantiation with
             | [t] when Types.compare (Types.head_norm d t) special_type = 0 ->
                 Some
                   (C.mk_const l_unk
                     { id_path = Id_none None;
-                       id_locn = l_unk;
-                       descr = { const_binding = Path.mk_path [Name.from_rope (r"")] (Name.from_rope (r"eq_instruction_instance"));
+                      id_locn = l_unk;
+                      descr = { const_tag = CT_const;
+                                 const_binding = Path.mk_path [Name.from_rope (r"")] (Name.from_rope (r"eq_instruction_instance"));
                                  const_tparams = [];
                                  const_class = [];
                                  const_ranges = [];
@@ -984,7 +948,7 @@ let hack e =
                                                 { Types.t = Types.Tapp([], Path.mk_path [] (Name.from_rope (r"num"))) };
                                  env_tag = K_target(true,Targetset.empty);
                                  spec_l = l_unk;
-                                 substitutions = Targetmap.empty };
+                                 target_rep = Targetmap.empty };
                        instantiation = [] }
                      None)
             | _ -> None
@@ -992,6 +956,8 @@ let hack e =
       else
         None
   | _ -> None
+*)
+
 
 let tnfmap_apply m k =
   match Types.TNfmap.apply m k with
@@ -1003,10 +969,11 @@ let remove_method e =
   match C.exp_to_term e with
     | Constant(c) ->
         begin
-          match c.descr.env_tag with
+          let c_descr = c_env_lookup l_unk env.c_env c.descr in
+          match c_descr.env_tag with
             | K_method ->
                 begin 
-                  match (c.descr.const_class, c.instantiation) with
+                  match (c_descr.const_class, c.instantiation) with
                     | ([(c_path,tparam)],[targ]) -> 
                         begin
                           match Types.get_matching_instance d (c_path, targ) inst with
@@ -1014,14 +981,14 @@ let remove_method e =
                                 (* There is an instance for this method at this type, so
                                  * we directly call the instance *)
                                 begin
-                                  let new_const = 
-                                    names_get_const env instance_path (Path.get_name c.descr.const_binding)
+                                  let (new_const_ref, new_const_descr) = 
+                                    names_get_const env instance_path (Path.get_name c_descr.const_binding)
                                   in
                                   let id = 
                                     { id_path = Id_none (Typed_ast.ident_get_first_lskip c);
                                       id_locn = c.id_locn;
-                                      descr = new_const;
-                                      instantiation = List.map (tnfmap_apply subst) new_const.const_tparams; }
+                                      descr = new_const_ref;
+                                      instantiation = List.map (tnfmap_apply subst) new_const_descr.const_tparams; }
                                   in
                                   let new_e = C.mk_const l_unk id None in
                                     Some(new_e)
@@ -1037,13 +1004,13 @@ let remove_method e =
                                 let t = class_path_to_dict_type c_path targ in
                                 let dict = C.mk_var l_unk (Name.add_lskip n) t in
                                 let (c_pnames,_) = Path.to_name_list c_path in
-                                let (_,mname) = Path.to_name_list c.descr.const_binding in
+                                let (_,mname) = Path.to_name_list c_descr.const_binding in
                                 let mname = Name.rename (fun x -> Ulib.Text.(^^^) x (r"_method")) mname in
                                 let sk = ident_get_first_lskip c in
                                 let field = 
                                   { id_path = Id_none None;
                                     id_locn = c.id_locn;
-                                    descr = names_get_field env (c_pnames @ [mname]);
+                                    descr = fst (names_get_field env c_pnames mname);
                                     instantiation = [targ] }
                                 in
                                 let new_e = 
@@ -1063,12 +1030,13 @@ let remove_class_const e =
   match C.exp_to_term e with
     | Constant(c) ->
         begin
-          match c.descr.env_tag with
+          let c_descr = c_env_lookup l_unk env.c_env c.descr in
+          match c_descr.env_tag with
             | K_let | K_target _ ->
-                if c.descr.const_class = [] then
+                if c_descr.const_class = [] then
                   None
                 else
-                  let subst = Types.TNfmap.from_list2 c.descr.const_tparams c.instantiation in
+                  let subst = Types.TNfmap.from_list2 c_descr.const_tparams c.instantiation in
                   let args = 
                     List.map
                       (fun (c_path, tv) ->
@@ -1076,12 +1044,12 @@ let remove_class_const e =
                          let open Types in 
                            match get_matching_instance d (c_path, t_inst) inst with
                              | Some(instance_path, subst, instance_constraints) ->
-                                 let dict_const = names_get_const env instance_path (Name.from_rope (r"dict")) in
+                                 let (dict_const_ref, dict_const_descr) = names_get_const env instance_path (Name.from_rope (r"dict")) in
                                    C.mk_const l_unk
                                      { id_path = Id_none None;
                                        id_locn = l_unk;
-                                       descr = dict_const;
-                                       instantiation = List.map (tnfmap_apply subst) dict_const.const_tparams }
+                                       descr = dict_const_ref;
+                                       instantiation = List.map (tnfmap_apply subst) dict_const_descr.const_tparams }
                                      None
                              | None ->
                                 let tv = 
@@ -1092,11 +1060,11 @@ let remove_class_const e =
                                 in
                                 let t = class_path_to_dict_type c_path t_inst in
                                   C.mk_var l_unk (Name.add_lskip (class_path_to_dict_name c_path tv)) t)
-                      c.descr.const_class
+                      c_descr.const_class
                   in
-                  let (c_path1,c_path2) = Path.to_name_list c.descr.const_binding in
-                  let new_c = names_get_const env c_path1 c_path2 in
-                  let new_id = {c with descr = new_c } in
+                  let (c_path1,c_path2) = Path.to_name_list c_descr.const_binding in
+                  let (new_c_ref, _) = names_get_const env c_path1 c_path2 in
+                  let new_id = {c with descr = new_c_ref } in
                   let new_e = 
                     List.fold_left
                       (fun e arg -> C.mk_app l_unk e arg None)
@@ -1121,11 +1089,11 @@ let nexp_to_exp n =
       | Types.Nconst(i) -> let lit =  C.mk_lnum l_unk Typed_ast.no_lskips i (Some num_type) in
                            C.mk_lit l_unk lit (Some num_type)
       | Types.Nadd(n1,n2) -> 
-               let plus_const_id = get_const_id env l_unk ["Pervasives"] "+" [] in
+               let (plus_const_id, _) = get_const_id env l_unk ["Pervasives"] "+" [] in
                let plus = C.mk_const l_unk plus_const_id (Some bin_op_type) in
                C.mk_infix l_unk (to_exp n1) plus (to_exp n2) (Some num_type)
       | Types.Nmult(n1,n2) ->
-               let mult_const_id = get_const_id env l_unk ["Pervasives"] "*" [] in
+               let (mult_const_id, _) = get_const_id env l_unk ["Pervasives"] "*" [] in
                let mult = C.mk_const l_unk mult_const_id (Some bin_op_type) in
                C.mk_infix l_unk (to_exp n1) mult (to_exp n2) (Some num_type)
       | _ -> assert false
@@ -1145,25 +1113,26 @@ let add_nexp_param_in_const e =
   match C.exp_to_term e with
     | Constant(c) ->
         begin
-          match c.descr.env_tag with
+          let c_descr = c_env_lookup l_unk env.c_env c.descr in
+          match c_descr.env_tag with
             | K_method -> None 
             | K_let | K_target _ ->
-                if c.descr.const_tparams = [] then None
+                if c_descr.const_tparams = [] then None
                 else    
-                  let (nvars,tvars) = Types.tnvar_split c.descr.const_tparams in
+                  let (nvars,tvars) = Types.tnvar_split c_descr.const_tparams in
                   if nvars = [] then None
                   else
-                    let (c_path1,c_path2) = Path.to_name_list c.descr.const_binding in
-                    let new_c = names_get_const env c_path1 c_path2 in
+                    let (c_path1,c_path2) = Path.to_name_list c_descr.const_binding in
+                    let (new_c_ref, new_c_descr) = names_get_const env c_path1 c_path2 in
                     (* This causes the add_nexp_param_in_const to terminate as the def_trans will update nvar types in the descr,
                        and the add_nexp updates the local descr. This only works when the macro is run after the def_trans for nvars
                        and before other macros have updated the local descr.
                     *)
-                    if c.descr = new_c then None
+                    if c.descr = new_c_ref then None
                     else 
                       let (args,instances) = remove_tne c.instantiation in
                       let args = List.map (fun t -> match t.Types.t with | Types.Tne(n) -> nexp_to_exp n | _ -> assert false) args in
-                      let new_id = {c with descr = new_c } in
+                      let new_id = {c with descr = new_c_ref } in
                       (*let _ = Format.printf "%a@ =@ %a@\n" Types.pp_type (exp_to_typ (C.mk_const l_unk new_id None)) Types.pp_type (exp_to_typ e) in*)
                       let new_e = 
                         List.fold_left
@@ -1184,7 +1153,7 @@ let remove_vector_access e =
       let num_type = { Types.t = Types.Tapp([],Path.numpath) } in
       let acc_typ1 = { Types.t = Types.Tfn(exp_to_typ v,exp_to_typ e) } in
       let acc_typ = { Types.t = Types.Tfn(num_type, acc_typ1) } in
-      let f_id = get_const_id env l_unk ["Vector"] "vector_access" [(exp_to_typ e); {Types.t = Types.Tne(i.nt)}; vlength ] in
+      let (f_id, _) = get_const_id env l_unk ["Vector"] "vector_access" [(exp_to_typ e); {Types.t = Types.Tne(i.nt)}; vlength ] in
       let f = C.mk_const l_unk f_id (Some acc_typ) in
       let app1 = C.mk_app l_unk f (nexp_to_exp i.nt) (Some acc_typ1) in
       Some(C.mk_app l_unk app1 v (Some (exp_to_typ e)))
@@ -1201,7 +1170,7 @@ let remove_vector_sub e =
       let acc_typ1 = { Types.t = Types.Tfn(exp_to_typ v,exp_to_typ e) } in
       let acc_typ2 = { Types.t = Types.Tfn(num_type, acc_typ1) } in
       let acc_typ3 = { Types.t = Types.Tfn(num_type, acc_typ2) } in
-      let f_id = get_const_id env l_unk ["Vector"] "vector_slice" [a; { Types.t = Types.Tne(i1.nt)}; {Types.t = Types.Tne(i2.nt)}; vlength1; vlength2] in 
+      let (f_id, _) = get_const_id env l_unk ["Vector"] "vector_slice" [a; { Types.t = Types.Tne(i1.nt)}; {Types.t = Types.Tne(i2.nt)}; vlength1; vlength2] in 
       let f = C.mk_const l_unk f_id (Some acc_typ3) in
       let app1 = C.mk_app l_unk f (nexp_to_exp i1.nt) (Some acc_typ2) in
       let app2 = C.mk_app l_unk app1 (nexp_to_exp i2.nt) (Some acc_typ1) in
@@ -1233,7 +1202,7 @@ let bind_id l = function
 
 let bind_const l m i =
   let (n1,n2) = Path.to_name_list m.descr.mod_binding in
-  let descr = names_get_const E.env (n1@[n2]) (Name.from_rope (r">>=")) in
+  let (descr, _) = names_get_const E.env (n1@[n2]) (Name.from_rope (r">>=")) in
     C.mk_const l { id_path = bind_id l m.id_path; id_locn = l; descr = descr; instantiation = i } None
 
 (* TODO: do something sensible with the spacing *)

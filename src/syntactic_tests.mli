@@ -45,4 +45,4 @@
 (**************************************************************************)
 
 val check_positivity_condition_def : Typed_ast.def -> unit
-val check_decidable_equality_def : Typed_ast.def -> unit
+val check_decidable_equality_def : Typed_ast.env -> Typed_ast.def -> unit

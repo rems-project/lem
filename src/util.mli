@@ -74,6 +74,12 @@ val option_bind : ('a -> 'b option) -> 'a option -> 'b option
     whereas [option_default d (Some x)] returns [x]. *)
 val option_default : 'a -> 'a option -> 'a
 
+(** [option_default_map v d f] is short for 
+    [option_default d (option_map f v)]. This means that
+    [option_default_map None d f] returns [d], whereas
+    [option_default_map (Some x) d f] returns [f x]. *)
+val option_default_map : 'a option -> 'b -> ('a -> 'b) -> 'b
+
 (** [option_get_exn exn None] throws the exception [exn],
     whereas [option_get_exn exn (Some x)] returns [x]. *)
 val option_get_exn : exn -> 'a option -> 'a
@@ -92,6 +98,10 @@ val changed2 : ('a -> 'b -> 'c) -> ('a -> 'a option) -> 'a -> ('b -> 'b option) 
     the predicate [p (l!i)] holds. If no such [i] exists,
     [None] is returned. *)
 val list_index: ('a -> bool) -> 'a list -> int option
+
+(** [list_subset l1 l2] tests whether all elements of [l1] also
+    occur in [l2]. *)
+val list_subset : 'a list -> 'a list -> bool
 
 (** [option_first f l] searches for the first element [x] of [l] such
     that the [f x] is not [None]. If such an element exists, [f x] is
@@ -117,9 +127,16 @@ val map_changed_default : ('a -> 'b) -> ('a -> 'b option) -> 'a list -> 'b list 
     argument. Counting starts at [0]. *)
 val list_mapi : (int -> 'a -> 'b) -> 'a list -> 'b list
 
-(** [list_iter sf f [a1; ...; an]] applies function [f] in turn to [a1; ...; an] and
+(** [list_iter_sep sf f [a1; ...; an]] applies function [f] in turn to [a1; ...; an] and
     calls [sf ()] in between. It is equivalent to [begin f a1; sf(); f a2; sf(); ...; f an; () end]. *)
 val list_iter_sep : (unit -> unit) -> ('a -> unit) -> 'a list -> unit 
+
+(** [intercalate sep as] inserts [sep] between the elements of [as], i.e. it returns a list of the form
+     [a1; sep; ... sep ; an]. *)
+val intercalate : 'a -> 'a list -> 'a list
+
+(** [replicate n e] creates a list that contains [n] times the element [e]. *)
+val replicate : int -> 'a -> 'a list
 
 (** [map_filter f l] maps [f] over [l] and removes all entries [x] of [l]
     with [f x = None]. *)

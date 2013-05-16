@@ -52,7 +52,6 @@ let r = Ulib.Text.of_latin1
 let space = Some [Ast.Ws (r" ")]
 let new_line = Some [Ast.Ws (r"\n")]
 
-module C = Exps_in_context (struct let check = None let avoid = None end)
 
 let rec list_to_mac = function
   | [] -> (fun p e d -> None)
@@ -63,9 +62,9 @@ let rec list_to_mac = function
              | None -> ms_f p e d
              | Some((e,d)) -> Some((e,d)))
 
-let rec process_defs path trans mod_name env defs = 
-  let sub_env = 
-    match Nfmap.apply env.m_env mod_name with
+let rec process_defs path (trans : def_macro) mod_name (env : env) defs = 
+  let (sub_env : mod_descr) = 
+    match Nfmap.apply env.local_env.m_env mod_name with
       | None -> assert false
       | Some(x) -> x
   in
@@ -91,9 +90,17 @@ let rec process_defs path trans mod_name env defs =
                     (env'', def'::defs'))
           end
   in
-  let (sub_env',defs') = p sub_env.mod_env defs in
-    ({ env with m_env = Nfmap.insert env.m_env (mod_name, {sub_env with mod_env = sub_env'}) },
+  let (env',defs') = p {env with local_env = sub_env.mod_env} defs in
+  let m_env' = Nfmap.insert env.local_env.m_env (mod_name, {sub_env with mod_env = env'.local_env}) in
+  let local_env' = {env.local_env with m_env = m_env'} in
+    ({ env' with local_env = local_env' },
      defs')
+
+
+
+module Macros(E : sig val env : env end) = struct
+
+module C = Exps_in_context (struct let avoid = None let env_opt = Some E.env end)
 
 let simple_def d = [((d,None),Ast.Unknown)]
 
@@ -145,12 +152,6 @@ let push_patterns_in_function_definitions_in _ env (((d, s), l)) =
           def_lskips, targets_opt,
           (Let_fun (name_lskips_annot, pat_list, _, fun_lskips, exp), l')),
         tnvs, class_constraints) ->
-          let module C = Exps_in_context (
-            struct
-              let avoid = None
-              let check = None
-            end
-          ) in
           let lskips = Some [Ast.Ws (Ulib.Text.of_string " ")] in
           let new_typ =
             let rec pat_typ_fold =
@@ -181,11 +182,6 @@ let type_annotate_definitions _ env ((d,s),l) =
         if Types.TNset.is_empty (Types.free_vars (exp_to_typ e)) then
           None
         else
-          let module C = Exps_in_context(struct 
-                                           let avoid = None
-                                           let check = None
-                                         end)
-         in
           let t = (None,C.t_to_src_t (exp_to_typ e)) in
             Some
               (env,
@@ -197,11 +193,6 @@ let type_annotate_definitions _ env ((d,s),l) =
         if Types.TNset.is_empty (Types.free_vars (exp_to_typ e)) then
           None
         else
-          let module C = Exps_in_context(struct 
-                                           let avoid = None
-                                           let check = None
-                                         end)
-         in
           let t = (None,C.t_to_src_t (exp_to_typ e)) in
             Some
               (env,
@@ -214,8 +205,8 @@ let build_field_name n =
 
 let dict_type_name cn = (Name.lskip_rename (fun x -> Ulib.Text.(^^^) x (r"_class")) cn)
 
-let class_to_module mod_path env (((d,s),l) as def) =
-  let l_unk = Ast.Trans("class_to_module", Some l) in
+let class_to_module mod_path env ((d,s),l) =
+(*  let l_unk = Ast.Trans("class_to_module", Some l) in *)
     match d with
       | Class(sk1,sk2,(n,l),tnvar,sk3,specs,sk4) ->
           let fields = Seplist.from_list_default None
@@ -230,11 +221,9 @@ let class_to_module mod_path env (((d,s),l) as def) =
       | _ -> None
 
 
-let instance_to_module global_env mod_path env ((d,s),l) =
+let instance_to_module (global_env : env) mod_path (env : env) ((d,s),l) =
   let l_unk n = Ast.Trans("instance_to_module" ^ string_of_int n , Some l) in
-  (* TODO : avoid and check shouldn't be None *)
-  let module C = Exps_in_context (struct let check = None let avoid = None end) in
-    match d with
+  match d with
       | Instance(sk1, (prefix, sk2, id, t, sk3), vdefs, sk4, sem_info) ->
           let dict_name = Name.from_rope (r"dict") in
           let dict_type = Typed_ast.class_path_to_dict_type sem_info.inst_class t.typ in
@@ -246,27 +235,29 @@ let instance_to_module global_env mod_path env ((d,s),l) =
               const_type = dict_type;
               env_tag = K_let;
               spec_l = l;
-              substitutions = Targetmap.empty;
+              target_rep = Targetmap.empty;
             }
           in
-          let v_env = Nfmap.insert sem_info.inst_env (dict_name, Val(dict_c)) in
-          let env =
-            { env with m_env = 
-                Nfmap.insert env.m_env 
+          let (c_env,dict_ref) = c_env_store env.c_env dict_c in
+          let v_env = Nfmap.insert sem_info.inst_env (dict_name, dict_ref) in
+          let local_env =
+            { env.local_env with m_env = 
+                Nfmap.insert env.local_env.m_env 
                 (sem_info.inst_name, { mod_binding = Path.mk_path mod_path sem_info.inst_name;
-                                       mod_env = {empty_env with v_env = v_env }}) }
-          in
+                                       mod_env = {empty_local_env with v_env = v_env }}) } in
+          let env = {env with local_env = local_env; c_env = c_env} in
           let fields =
             List.map (fun (method_n,_) ->
                         let method_name = 
                           Name.rename (fun n -> Ulib.Text.(^^^) n (r"_method")) method_n 
                         in
                         let c = match Nfmap.apply sem_info.inst_env method_n with 
-                                  | Some (Val c) -> c
+                                  | Some (c) -> c
                                   | _ -> assert false
                         in
+                        let c_d = c_env_lookup l c_env c in
                         let (path_to_class,_) = Path.to_name_list sem_info.inst_class in
-                        let f = names_get_field global_env (path_to_class@[method_name]) in
+                        let (f, _) = names_get_field global_env path_to_class method_name in
                         (({ id_path = Id_none None;
                             id_locn = l_unk 1;
                             descr = f;
@@ -276,8 +267,8 @@ let instance_to_module global_env mod_path env ((d,s),l) =
                                              id_locn = l_unk 3;
                                              descr = c;
                                              instantiation = List.map
-                                             Types.tnvar_to_type c.const_tparams; }
-                                     (Some c.const_type), 
+                                             Types.tnvar_to_type c_d.const_tparams; }
+                                     (Some c_d.const_type), 
                           (l_unk 4)),
                          None))
                      sem_info.inst_methods
@@ -312,7 +303,6 @@ let instance_to_module global_env mod_path env ((d,s),l) =
 let class_constraint_to_parameter : def_macro = fun mod_path env ((d,s),l) ->
   let l_unk = Ast.Trans("class_constraint_to_parameter", Some l) in
   (* TODO : avoid shouldn't be None *)
-  let module C = Exps_in_context (struct let check = None let avoid = None end) in
     match d with
       | Val_def(_, tnvs, []) ->
           None
@@ -327,17 +317,10 @@ let class_constraint_to_parameter : def_macro = fun mod_path env ((d,s),l) ->
           in
           let build_fun sk1 targs n ps topt sk2 e l' =
             let n' = Name.strip_lskip n.term in
-            let c = match Typed_ast.Nfmap.apply env.v_env n' with
-                      | Some (Val c) -> c
-                      | _ -> 
-                         Format.printf "%a@\nIN@\n%a@\n" Name.pp n' pp_env env;
-                         assert false
-            in
-            let t' = Types.multi_fun (List.map (fun x -> x.typ) new_pats) c.const_type in
-            let c_new = Val ({ c with const_class = []; const_type = t' }) in
-            let env' =
-              { env with v_env = Typed_ast.Nfmap.insert env.v_env (n', c_new) }
-            in
+            let (c, c_d) = names_get_const env [] n' in
+            let t' = Types.multi_fun (List.map (fun x -> x.typ) new_pats) c_d.const_type in
+            let c_d_new = ({ c_d with const_class = []; const_type = t' }) in
+            let env' = env_c_env_update env c c_d_new in
             let n'' = { n with typ = t' } in
             Some(env',
                  [((Val_def(Let_def(sk1,targs,(Let_fun(n'',new_pats@ps,topt,sk2,e), l')),tnvs,[]),s),l)])
@@ -365,7 +348,6 @@ let class_constraint_to_parameter : def_macro = fun mod_path env ((d,s),l) ->
 
 let nvar_to_parameter : def_macro = fun mod_path env ((d,s),l) ->
   let l_unk = Ast.Trans("nvar_to_parameter", Some l) in
-  let module C = Exps_in_context (struct let check = None let avoid = None end) in
     match d with
       | Val_def(lb, tnvs, class_constraints) ->
         if (Types.TNset.is_empty tnvs) then None
@@ -378,15 +360,11 @@ let nvar_to_parameter : def_macro = fun mod_path env ((d,s),l) ->
                                 nvars in
         let build_fun sk1 targs n ps topt sk2 e l' =
             let n' = Name.strip_lskip n.term in
-            let c = match Typed_ast.Nfmap.apply env.v_env n' with
-                      | Some (Val c) -> c
-                      | _ ->  Format.printf "%a@\nIN@\n%a@\n" Name.pp n' pp_env env;
-                              assert false
-            in 
-            let t' = Types.multi_fun (List.map (fun x -> x.typ) new_pats) c.const_type in
+            let (c, c_d) = names_get_const env [] n' in 
+            let t' = Types.multi_fun (List.map (fun x -> x.typ) new_pats) c_d.const_type in
             let n'' = { n with typ = t' } in
-            let c_new = Val({ c with const_type = t' } ) in
-            let env' = { env with v_env = Typed_ast.Nfmap.insert env.v_env (n',c_new)} in
+            let c_new_d = ({ c_d with const_type = t' } ) in
+            let env' = env_c_env_update env c c_new_d in
           Some(env',
                  [((Val_def(Let_def(sk1,targs,(Let_fun(n'',new_pats@ps,topt,sk2,e),l')),
                             (List.fold_left (fun s t -> Types.TNset.add t s) Types.TNset.empty tvars),class_constraints),s),l)])
@@ -505,3 +483,5 @@ let prune_target_bindings target defs =
 
   in def_walker target [] defs
 
+
+end

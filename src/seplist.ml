@@ -303,6 +303,12 @@ let map_acc_left f base_acc (o1,l,o2) =
   in
     ((o1, List.rev new_l, new_o2), new_acc)
 
+let fold_left f base_acc sl =
+  snd (map_acc_left (fun a c -> ((), f a c)) base_acc sl)
+
+let fold_right f base_acc sl =
+  snd (map_acc_right (fun a c -> ((), f a c)) base_acc sl)
+
 let for_all f (o1,l,o2) =
   let rec help l = match l with
     | [] -> true

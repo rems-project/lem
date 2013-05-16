@@ -49,8 +49,8 @@
 
 open Typed_ast
 
-module M = Macro_expander.Expander(struct let avoid = None let check = None end)
-module C = Exps_in_context(struct let avoid = None let check = None end)
+module M = Macro_expander.Expander(struct let avoid = None let env_opt = None end)
+module C = Exps_in_context(struct let avoid = None let env_opt = None end)
 module P = Precedence
 
 (* TODO: This needs to be much more complex to be really right *)
@@ -84,8 +84,8 @@ let rec fix_pat target p =
           C.mk_pas old_l sk1 (trans p) s nl sk2 old_t
       | P_typ(s1,p,s2,t,s3) -> 
           C.mk_ptyp old_l s1 (trans p) s2 (fix_src_t target t) s3 old_t
-      | P_constr(c,ps) -> 
-          C.mk_pconstr old_l (id_fix_binding target c) (List.map trans ps) old_t
+      | P_const(c,ps) -> 
+          C.mk_pconst old_l (id_fix_binding target c) (List.map trans ps) old_t
       | P_record(s1,fieldpats,s2) ->
           C.mk_precord old_l
             s1 
@@ -117,9 +117,6 @@ let rec fix_exp target e =
   let old_t = Some(exp_to_typ e) in
   let old_l = exp_to_locn e in
     match (C.exp_to_term e) with
-      | Tup_constructor(c,s1,es,s2) ->
-          C.mk_tup_ctor old_l 
-            (id_fix_binding target c) s1 (Seplist.map trans es) s2 old_t
       | Fun(s1,ps,s2,e) ->
           C.mk_fun old_l s1 (List.map transp ps) s2 (trans e) old_t
       | Function(s1,pes,s2) ->
@@ -141,14 +138,14 @@ let rec fix_exp target e =
                fieldexps)
             s2
             old_t
-      | Record_coq(n,s1,fieldexps,s2) ->
+(*      | Record_coq(n,s1,fieldexps,s2) ->
           C.mk_record_coq old_l
             s1
             (Seplist.map 
                (fun (fid,s1,e,l) -> (id_fix_binding target fid,s1,trans e,l))
                fieldexps)
             s2
-            old_t
+            old_t*)
       | Recup(s1,e,s2,fieldexps,s3) ->
           C.mk_recup old_l
             s1 (trans e) s2
@@ -229,8 +226,6 @@ let rec fix_exp target e =
             s
             (trans e)
             old_t
-      | Constructor(c) ->
-          C.mk_constr old_l (id_fix_binding target c) old_t
       | Constant(c) ->
           C.mk_const old_l (id_fix_binding target c) old_t
       | Var _ | Lit _  | Nvar_e _ ->

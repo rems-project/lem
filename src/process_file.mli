@@ -67,12 +67,12 @@ val check_ast :
   (Types.type_defs * instances * instances) * env *
   (def list * Ast.lex_skips)
 
-val output : 
+val output :   
   string ->                           (* The path to the library *)
   string ->                           (* Isabelle Theory to be included *)
   target option ->                    (* Backend name (None for the identity backend) *) 
   Typed_ast.var_avoid_f ->
-  (Types.type_defs * instances) -> (* The full environment built after all typechecking, and transforming *)
+  Typed_ast.env -> (Types.type_defs * instances) -> (* The full environment built after all typechecking, and transforming *)
   checked_module list ->              (* The typechecked modules *)
   Ulib.Text.t list ref ->               (* alldoc accumulator *)
   Ulib.Text.t list ref ->               (* alldoc-inc accumulator *)

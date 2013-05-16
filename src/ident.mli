@@ -51,6 +51,7 @@
 type t
 
 exception No_type of Ast.l * string
+val raise_error_string : Ast.l -> string -> 'a
 val raise_error : Ast.l -> string -> (Format.formatter -> 'a -> unit) -> 'a -> 'b
 
 (** Pretty print *)
