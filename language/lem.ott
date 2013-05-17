@@ -7,34 +7,42 @@ metavar num ::=
   {{ lex numeric }}
   {{ ocaml terminal * int }}
   {{ hol num }}
-  {{ lem terminal * num }}
+  {{ lem (terminal * num) }}
   {{ com Numeric literals }}
+
+metavar nat ::=
+  {{ phantom }}
+  {{ lex numeric }}
+  {{ ocaml int }}
+  {{ hol num }}
+  {{ lem num }}
+  {{ com Internal literal numbers }}
 
 metavar hex ::=
   {{ phantom }}
   {{ lex numeric }}
   {{ ocaml terminal * string }}
-  {{ lem terminal * string }}
+  {{ lem (terminal * string) }}
   {{ com Bit vector literal, specified by C-style hex number }}
   
 metavar bin ::=
   {{ phantom }}
   {{ lex numeric }}
   {{ ocaml terminal * string }}
-  {{ lem terminal * string }}
+  {{ lem (terminal * string) }}
   {{ com Bit vector literal, specified by C-style binary number }}  
 
 metavar string ::=
   {{ phantom }}
   {{ ocaml terminal * Ulib.UTF8.t }}
-  {{ lem terminal * string }}
+  {{ lem (terminal * string) }}
   {{ hol string }}
   {{ com String literals }}
 
 metavar regexp ::=
   {{ phantom }}
   {{ ocaml terminal * string }}
-  {{ lem terminal * string }}
+  {{ lem (terminal * string) }}
   {{ hol string }}
   {{ com Regular expresions, as a string literal }}
 
@@ -86,10 +94,43 @@ type terminal = lex_skips
 
 }}
 
+embed
+{{ lem
+open Pmap
+
+type l =
+  | Unknown
+  | Trans of string * option l
+  | Range of num * num
+
+type lex_skip =
+  | Com of string
+  | Ws of string
+  | Nl
+
+type lex_skips = option (list lex_skip)
+type terminal = lex_skips
+
+val disjoint : forall 'a . set 'a -> set 'a -> bool
+let disjoint s1 s2 = 
+  let diff = s1 inter s2 in
+  diff = Pervasives.empty
+
+
+val disjoint_all : forall 'a. list (set 'a) -> bool
+let rec disjoint_all ls = match ls with
+  | [] -> true
+  | [a] -> true
+  | a::b::rs -> (disjoint a b) && (disjoint_all (b::rs))
+end
+
+val duplicates : forall 'a. list 'a -> list 'a
+
+}}
 
 metavar x , y , z ::=
   {{ ocaml terminal * text }}
-  {{ lem terminal * text }}
+  {{ lem terminal * string }}
   {{ hol string }}
   {{ com Variables }}
   {{ ocamlvar "[[x]]" }}
@@ -98,7 +139,7 @@ metavar x , y , z ::=
 metavar ix ::=
   {{ lex alphanum }}
   {{ ocaml terminal * text }}
-  {{ lem terminal * text }}
+  {{ lem terminal * string }}
   {{ hol string }}
   {{ com Variables }}
   {{ ocamlvar "[[ix]]" }}
@@ -141,20 +182,24 @@ let ixl_to_l = function
   | InX_l(_,_,_,l) -> l
 }}
 {{ lem
-let xl_to_l = function
+
+(*let xl_to_l = function
   | X_l(_,l) -> l
-  | PreX_l(_,_,_,l) -> l
+  | PreX_l(_,_,l) -> l
+end
 
 let ixl_to_l = function
   | SymX_l(_,l) -> l
   | InX_l(_,_,_,l) -> l
+end*)
+
 }}
 
 grammar
 
 a {{ tex \alpha }} :: '' ::=
 						{{ ocaml terminal * text }}
-						{{ lem terminal * text }}
+						{{ lem terminal * string }}
 						{{ hol string }}
   {{ com Type variables }}
   | ' x 					:: :: A
@@ -168,7 +213,7 @@ a_l {{ tex \alpha^{l} }} :: '' ::=
 
 N :: '' ::=
                                                    {{ ocaml terminal * text }}
-                                                   {{ lem terminal * text }}
+                                                   {{ lem terminal * string }}
                                                    {{ hol string }}
     {{ com numeric variables }} 
     | ' ' x                                        :: :: N
@@ -264,6 +309,7 @@ Typ_fn <= Typ_tup
 %Typ_fn right Typ_app1
 %Typ_tup right Typ_app1
 
+
 grammar
 
 lit_aux :: 'L_' ::=
@@ -286,7 +332,7 @@ lit :: '' ::=
 
 semi_opt {{ tex \ottnt{;}^{?} }} :: 'semi_' ::=		{{ phantom }}
 							{{ ocaml terminal * bool }}
-							{{ lem terminal * bool }}
+							{{ lem (terminal * bool) }}
 							{{ hol bool }}
   {{ com Optional semi-colons }}
   |  							:: :: no
@@ -400,7 +446,6 @@ exp_aux :: '' ::=
 %(or unzip)
 
 %  and maybe with nice syntax
-%  and maybe a combination fold map
 
   | match exp with bar_opt pexp1 '|' ... '|' pexpn l end :: :: Case
     {{ com Pattern matching expressions }}
@@ -410,7 +455,7 @@ exp_aux :: '' ::=
     {{ com Let expressions }}
   | ( exp1 , .... , expn )				:: :: Tup
     {{ com Tuples }}
-  | [ exp1 ; .. ; expn semi_opt ]			:: :: List
+  | [ exp1 ; .. ; expn semi_opt ]			:: :: Elist
     {{ com Lists }}
   | ( exp )						:: :: Paren
   | begin exp end					:: :: Begin
@@ -614,7 +659,7 @@ targets {{ tex \ensuremath{\tau} }} :: 'Targets_' ::=		{{ hol target list }}
 targets_opt {{ tex \ensuremath{\tau^?} }} :: 'Targ_' ::= {{ phantom }}
 								{{ hol targets option }}
 								{{ ocaml targets option }}
-								{{ ocaml option targets }}
+								{{ lem option targets }}
    {{ com Optional targets }}
   |								:: :: none
     {{ ocaml None }}
@@ -725,13 +770,12 @@ p :: 'Path_' ::=
 
 t_subst {{ tex \ensuremath{\sigma} }} :: '' ::=	{{ phantom }}
 						{{ hol (a # t) list }}
-						{{ lem list (a * t) }}
+						{{ lem list (tnv * t) }}
   {{ com Type variable substitutions }}
   | { tnv1 |-> t1 .. tnvn |-> tn }			:: :: T_subst
     {{ ocaml (assert false) }}
     {{ lem ([[tnv1 t1 .. tnvn tn]]) }}
     {{ hol ([[tnv1 t1 .. tnvn tn]]) }}
-%ENDMOD
 
 t , u :: 'T_' ::=
   {{ com Internal types }}
@@ -748,8 +792,8 @@ t , u :: 'T_' ::=
   | t_subst ( tnv )			:: M :: var_subst_app
     {{ com Single variable substitution }}
     {{ ocaml (assert false) }}
-    {{ hol (t_subst_t [[t_subst]] [[tnv]]) }}
-    {{ lem (t_subst_t [[t_subst]] [[tnv]]) }}
+    {{ hol (t_subst_tnv [[t_subst]] [[tnv]]) }}
+    {{ lem (t_subst_tnv [[t_subst]] [[tnv]]) }}
   | curry ( t_multi ,  t )			:: M :: multifn
     {{ com Curried, multiple argument functions }}
     {{ ocaml (assert false) }}
@@ -759,34 +803,34 @@ t , u :: 'T_' ::=
 ne :: 'Ne_' ::=
   {{ com internal numeric expressions }}
   | N						:: :: var
-  | num					:: :: const
-  | num * ne				:: :: mult
+  | nat					:: :: const
+  | ne1 * ne2				:: :: mult
   | ne1 + ne2				:: :: add
   | ( - ne )  				:: :: unary
   | normalize ( ne ) 			:: M :: normalize
     {{ ocaml (assert false) }}
     {{ hol ARB }}
-    {{ lem TODO }}
+    {{ lem (normalize [[ne]] ) }}
   | ne1 + ... + nen			:: M :: addmany
     {{ ocaml (assert false) }}
     {{ hol ARB }}
-    {{ lem TODO }}
+    {{ lem (sumation_nes [[ne1...nen]]) }}
   | bitlength ( bin )			:: M :: cbin
     {{ ocaml (asssert false) }}
     {{ hol ARB }}
-    {{ lem TODO }}
+    {{ lem (blength [[bin]]) }}
   | bitlength ( hex )			:: M :: chex
     {{ ocaml (assert false) }}
     {{ hol ARB }}
-    {{ lem TODO }}
+    {{ lem (hlength [[hex]]) }}
   | length ( pat1 ... patn ) 		:: M :: cpat
     {{ ocaml (assert false) }}
     {{ hol ARB }}
-    {{ lem TODO }}
+    {{ lem (Ne_const (List.length [[pat1...patn]])) }}
   | length ( exp1 ... expn )		:: M :: cexp
     {{ hol ARB }}
     {{ ocaml (assert false) }}
-    {{ lem TODO }}
+    {{ lem (Ne_const (List.length [[exp1...expn]])) }}
 
 t_args :: '' ::=
   {{ com Lists of types }}
@@ -821,6 +865,25 @@ nec :: '' ::=
 parsing
 T_fn right T_fn
 T_tup <= T_multi
+
+embed
+{{ lem
+
+val t_subst_t : list (tnv * t) -> t -> t 
+val t_subst_tnv : list (tnv * t) -> tnv -> t
+
+(*TODO Should this normalize following the implementation? And blength and hlength need a means of implementation*)
+let normalize n = n
+
+let blength (_,bit) = Ne_const 8
+let hlength (_,bit) = Ne_const 8
+
+let rec sumation_nes nes = match nes with
+  | [ a; b] -> Ne_add a b 
+  | x :: y -> Ne_add x (sumation_nes y)
+end
+
+}}
 
 grammar
 
@@ -880,9 +943,20 @@ val _ = Define `
                 env_v:=FUNION i1.env_v i2.env_v |>
              (FUNION m1 m2)`;
 }}
+{{ lem
+type env =
+  | EnvEmp 
+  | Env of (map x env) * (map x p) * (map x f_desc) * (map x v_desc)
+}}
 
 grammar
 
+xs :: '' ::=					{{ phantom }}
+						{{ hol string list }}
+						{{ lem list string }}
+  | x1 .. xn					:: :: Xs
+    {{ hol [[x1..xn]] }}
+    {{ lem [[x1..xn]] }}
 
 S_c {{ tex {\ensuremath{ {\Sigma}^{\mathcal{C} } } } }} :: '' ::=			{{ phantom }}
 								{{ hol (p#t) list }}
@@ -905,21 +979,20 @@ S_N {{ tex { \ensuremath{ {\Sigma}^{\mathcal{N} } } } }} :: '' ::=
      {{ ocaml assert false }}
 
 
-% lem TODO: all these environment-like structures need Lem homs
 E :: '' ::=							{{ phantom }}
 								{{ hol ((string,env_body) fmaptree) }}
-								{{ lem map string env_body }}
+								{{ lem env }}
   {{ com Environments }}
   | < E_m , E_p , E_f , E_x >						:: :: E
     {{ hol (FTNode <|env_p:=[[E_p]]; env_f:=[[E_f]]; env_v:=[[E_x]]|> ([[E_m]])) }}
-    {{ lem TODO }}
+    {{ lem (Env [[E_m]] [[E_p]] [[E_f]] [[E_x]]) }}
   | E1 u+ E2							:: M :: E_union
     {{ hol (env_union [[E1]] [[E2]]) }}
-    {{ lem TODO }}
+    {{ lem env_union [[E1]] [[E2]] }}
     {{ ocaml assert false }}
   | empty							:: M :: E_empty
     {{ hol (FTNode <|env_p:=FEMPTY; env_f:=FEMPTY; env_v:=FEMPTY|> FEMPTY) }}
-    {{ lem TODO }}
+    {{ lem EnvEmp }}
     {{ ocaml assert false }}
 
 E_x {{ tex \ottnt{E}^{\textsc{x} } }} :: 'E_x_' ::=		{{ phantom }}
@@ -928,10 +1001,10 @@ E_x {{ tex \ottnt{E}^{\textsc{x} } }} :: 'E_x_' ::=		{{ phantom }}
   {{ com Value environments }}
   | { x1 |-> v_desc1 , .. , xn |-> v_descn }	:: :: concrete
     {{ hol (FOLDR (\(k1,k2) E. E |+ (k1,k2)) FEMPTY [[x1 v_desc1 .. xn v_descn]]) }}
-    {{ lem TODO }} 
+    {{ lem (List.fold_right (fun (x,v) m -> Pmap.add x v m) [[x1 v_desc1 .. xn v_descn]] Pmap.empty) }} 
   | E_x1 u+ .. u+ E_xn						:: M :: union
     {{ hol (FOLDR FUNION FEMPTY [[E_x1..E_xn]]) }}
-    {{ lem TODO }}
+    {{ lem (List.fold_right Pmap.concat [[E_x1..E_xn]] [ ]) }}
     {{ ocaml (assert false) }}
 
 E_f {{ tex \ottnt{E}^{\textsc{f} } }} :: 'E_f_' ::=		{{ phantom }}
@@ -940,19 +1013,19 @@ E_f {{ tex \ottnt{E}^{\textsc{f} } }} :: 'E_f_' ::=		{{ phantom }}
   {{ com Field environments }}
   | { x1 |-> f_desc1 , .. , xn |-> f_descn }			:: :: concrete
     {{ hol (FOLDR (\x E. E |+ x) FEMPTY [[x1 f_desc1 .. xn f_descn]]) }}
-    {{ lem TODO }}
+    {{ lem (List.fold_right (fun (x,f) m -> Pmap.add x f m) [[x1 f_desc1 .. xn f_descn]] Pmap.empty) }} 
   | E_f1 u+ .. u+ E_fn						:: M :: union
     {{ hol (FOLDR FUNION FEMPTY [[E_f1..E_fn]]) }}
-    {{ lem TODO }}
+    {{ lem (List.fold_right Pmap.concat [[E_f1..E_fn]] Pmap.empty) }}
     {{ ocaml (assert false) }}
 
 E_m {{ tex \ottnt{E}^{\textsc{m} } }} :: 'E_m_' ::=		{{ phantom }}
 								{{ hol (string |-> (string,env_body) fmaptree) }}
-								{{ lem TODO }} 
+								{{ lem map x env }} 
   {{ com Module environments }}
   | { x1 |-> E1 , .. , xn |-> En }				:: :: concrete
     {{ hol (FOLDR (\x E. E |+ x) FEMPTY [[x1 E1 .. xn En]]) }}
-    {{ lem TODO }}
+    {{ lem (List.fold_right (fun (x,e) m -> Pmap.add x v m) [[x1 E1 .. xn En]] Pmap.empty) }} 
 
 E_p {{ tex \ottnt{E}^{\textsc{p} } }} :: 'E_p_' ::=		{{ phantom }}
 								{{ hol (x |-> p) }}
@@ -960,10 +1033,10 @@ E_p {{ tex \ottnt{E}^{\textsc{p} } }} :: 'E_p_' ::=		{{ phantom }}
   {{ com Path environments }}
   | { x1 |-> p1 , .. , xn |-> pn }				:: :: concrete
     {{ hol (FOLDR (\x E. E |+ x) FEMPTY [[x1 p1 .. xn pn]]) }}
-    {{ lem TODO }}
+    {{ lem (List.fold_right (fun (x,p) m -> Pmap.add x p m) [[x1 p1 .. xn pn]] Pmap.empty) }} 
   | E_p1 u+ .. u+ E_pn						:: M :: union
     {{ hol (FOLDR FUNION FEMPTY [[E_p1..E_pn]]) }}
-    {{ lem TODO }}
+    {{ lem (List.fold_right Pmap.concat [[E_p1..E_pn]] Pmap.empty) }}
     {{ ocaml (assert false) }}
 
 E_l {{ tex \ottnt{E}^{\textsc{l} } }} :: 'E_l_' ::=		{{ phantom }}
@@ -972,10 +1045,10 @@ E_l {{ tex \ottnt{E}^{\textsc{l} } }} :: 'E_l_' ::=		{{ phantom }}
   {{ com Lexical bindings }}
   | { x1 |-> t1 , .. , xn |-> tn }				:: :: concrete
     {{ hol (FOLDR (\x E. E |+ x) FEMPTY [[x1 t1 .. xn tn]]) }}
-    {{ lem TODO }}
+    {{ lem (List.fold_right (fun (x,t) m -> Pmap.add x t m) [[x1 t1 .. xn tn]] Pmap.empty) }} 
   | E_l1 u+ .. u+ E_ln						:: M :: union
     {{ hol (FOLDR FUNION FEMPTY [[E_l1..E_ln]]) }}
-    {{ lem TODO }}
+    {{ lem (List.fold_right Pmap.concat [[E_l1..E_ln]] Pmap.empty) }}
    {{ ocaml (assert false) }}
 
 tc_abbrev :: 'Tc_abbrev_' ::=					{{ phantom }}
@@ -1001,11 +1074,11 @@ TD {{ tex \ensuremath{\Delta} }} :: 'TD_' ::=			{{ phantom }}
   {{ com Type constructor definitions }}
   | { p1 |-> tc_def1 , .. , pn |-> tc_defn }			:: :: concrete
     {{ hol (FOLDR (\x E. E |+ x) FEMPTY [[p1 tc_def1 .. pn tc_defn]]) }}
-    {{ lem TODO }}
+    {{ lem (List.fold_right (fun (p,t) m -> Pmap.add p t m) [[p1 tc_def1 .. pn tc_defn]] Pmap.empty) }} 
     {{ ocaml (assert false) }}
   | TD1 u+ TD2							:: M :: union
     {{ hol (FUNION [[TD1]] [[TD2]]) }}
-    {{ lem TODO }}
+    {{ lem (Pmap.concat [[TD1]] [[TD2]]) }}
     {{ ocaml (assert false) }}
 
 TC {{ tex \ensuremath{\delta} }} :: '' ::=			{{ phantom }}
@@ -1014,11 +1087,11 @@ TC {{ tex \ensuremath{\delta} }} :: '' ::=			{{ phantom }}
   {{ com Typeclass  definitions }}
   | { p1 |-> xs1 , .. , pn |-> xsn }				:: :: TC_concrete
     {{ hol (FOLDR (\x E. E |+ x) FEMPTY [[p1 xs1 .. pn xsn]]) }}
-    {{ lem TODO }}
+    {{ lem (List.fold_right (fun (p,xs) m -> Pmap.add p xs m) [[p1 xs1 .. pn xsn]] Pmap.empty) }} 
     {{ ocaml (assert false) }}
   | TC1 u+ TC2							:: M :: TC_union
     {{ hol (FUNION [[TC1]] [[TC2]]) }}
-    {{ lem TODO }}
+    {{ lem (Pmap.concat [[TC1]] [[TC2]]) }}
     {{ ocaml (assert false) }}
 
 
@@ -1041,33 +1114,31 @@ I :: '' ::=							{{ phantom }}
 
 D :: 'D_' ::=							{{ phantom }}
 								{{ hol ((p |-> tc_def) # (p |-> x list) # (inst list)) }}
-                                                                {{ lem TODO }}
+                                                                {{ lem tdefs}}
   {{ com Global type definition store }}
   | < TD , TC , I >							:: :: concrete
     {{ hol ([[TD]], [[TC]], [[I]]) }}
-    {{ lem ([[TD]], [[TC]], [[I]]) }}
+    {{ lem D([[TD]], [[TC]], [[I]]) }}
   | D1 u+ D2							:: M :: union
     {{ hol (case ([[D1]],[[D2]]) of ((x1,x2,x3),(y1,y2,y3)) => (FUNION x1 y1, FUNION x2 y2, x3 ++ y3)) }}
-    {{ lem TODO }}
+    {{ lem union_tcdefs [[D1]] [[D2]] }}
     {{ ocaml (assert false) }}
   | empty							:: M :: empty
     {{ hol (FEMPTY, FEMPTY, []) }}
-    {{ lem TODO }}
+    {{ lem DEmp }}
     {{ ocaml assert false }}
 
 parsing
 E_union left E_union
 
+embed
+{{ lem
+type tdefs =
+  | DEmp
+  | D of (map p tc_def) * (map p (list x)) * (list inst)
+}}
 
 grammar
-
-xs :: '' ::=					{{ phantom }}
-						{{ hol string list }}
-						{{ lem list string }}
-  | x1 .. xn					:: :: Xs
-    {{ hol [[x1..xn]] }}
-    {{ lem [[x1..xn]] }}
-
 
 terminals :: '' ::=
   | >=					:: :: geq
@@ -1129,113 +1200,113 @@ formula :: formula_ ::=
   | E_m ( x ) gives E						:: :: lookup_m
     {{ com Module lookup }}
     {{ hol (FLOOKUP [[E_m]] [[x]] = SOME [[E]]) }}
-    {{ lem TODO }} 
+    {{ lem (Pmap.find [[x]] [[E_m]]) = [[E]] }} 
 
   | E_p ( x ) gives p						:: :: lookup_p
     {{ com Path lookup }}
     {{ hol (FLOOKUP [[E_p]] [[x]] = SOME [[p]]) }}
-    {{ lem TODO }} 
+    {{ lem Pmap.find [[x]] [[E_p]] = [[p]] }} 
 
   | E_f ( x ) gives f_desc					:: :: lookup_f
     {{ com Field lookup }}
     {{ hol (FLOOKUP [[E_f]] [[x]] = SOME [[f_desc]]) }}
-    {{ lem TODO }} 
+    {{ lem Pmap.find [[x]] [[E_f]] = [[f_desc]] }} 
 
   | E_x ( x ) gives v_desc					:: :: lookup_v
     {{ com Value lookup }}
     {{ hol (FLOOKUP [[E_x]] [[x]] = SOME [[v_desc]]) }}
-    {{ lem TODO }} 
+    {{ lem Pmap.find [[x]] [[E_x]] = [[v_desc]] }} 
 
   | E_l ( x ) gives t						:: :: lookup_l
     {{ com Lexical binding lookup }}
     {{ hol (FLOOKUP [[E_l]] [[x]] = SOME [[t]]) }}
-    {{ lem TODO }} 
+    {{ lem Pmap.find [[x]] [[E_l]] = [[t]] }} 
 
   | TD ( p ) gives tc_def					:: :: lookup_tc
     {{ com Type constructor lookup }}
     {{ hol (FLOOKUP [[TD]] [[p]] = SOME [[tc_def]]) }}
-    {{ lem TODO }} 
+    {{ lem Pmap.find [[p]] [[TD]] = [[tc_def]] }} 
 
   | TC ( p ) gives xs						:: :: lookup_class
     {{ com Type constructor lookup }}
     {{ hol (FLOOKUP [[TC]] [[p]] = SOME [[xs]]) }}
-    {{ lem TODO }} 
+    {{ lem Pmap.find [[p]] [[TC]] = [[xs]] }} 
 
   | dom ( E_m1 ) inter dom ( E_m2 ) = emptyset			:: :: E_m_disjoint
     {{ hol (DISJOINT (FDOM [[E_m1]]) (FDOM [[E_m2]])) }}
-    {{ lem TODO }} 
+    {{ lem disjoint (Pmap.domain [[E_m1]]) (Pmap.domain [[E_m2]]) }} 
 
   | dom ( E_x1 ) inter dom ( E_x2 ) = emptyset			:: :: E_x_disjoint
     {{ hol (DISJOINT (FDOM [[E_x1]]) (FDOM [[E_x2]])) }}
-    {{ lem TODO }} 
+    {{ lem disjoint (Pmap.domain [[E_x1]]) (Pmap.domain [[E_x2]])  }} 
     
   | dom ( E_f1 ) inter dom ( E_f2 ) = emptyset			:: :: E_f_disjoint
     {{ hol (DISJOINT (FDOM [[E_f1]]) (FDOM [[E_f2]])) }}
-    {{ lem TODO }} 
+    {{ lem disjoint (Pmap.domain [[E_f1]]) (Pmap.domain [[E_f2]]) }} 
 
   | dom ( E_p1 ) inter dom ( E_p2 ) = emptyset			:: :: E_p_disjoint
     {{ hol (DISJOINT (FDOM [[E_p1]]) (FDOM [[E_p2]])) }}
-    {{ lem TODO }} 
+    {{ lem disjoint (Pmap.domain [[E_p1]]) (Pmap.domain [[E_p2]]) }} 
 
   | disjoint doms ( E_l1 , .... , E_ln )			:: :: E_l_disjoint
     {{ hol (FOLDR (\E b. case b of NONE => NONE | SOME s => if DISJOINT (FDOM
 E) s then SOME (FDOM E UNION s) else NONE) (SOME {}) [[E_l1....E_ln]] <> NONE) }}
-    {{ lem TODO }} 
+    {{ lem disjoint_all (List.map Pmap.domain [[E_l1 .... E_ln]]) }}
     {{ com Pairwise disjoint domains }}
 
   | disjoint doms ( E_x1 , .... , E_xn )			:: :: E_x_disjoint_many
     {{ hol (FOLDR (\E b. case b of NONE => NONE | SOME s => if DISJOINT (FDOM
 E) s then SOME (FDOM E UNION s) else NONE) (SOME {}) [[E_x1....E_xn]] <> NONE) }}
-    {{ lem TODO }} 
+    {{ lem disjoint_all (List.map Pmap.domain [[E_x1 .... E_xn]]) }}
     {{ com Pairwise disjoint domains }}
 
   | compatible overlap ( x1 |-> t1 , .. , xn |-> tn )		:: :: E_l_compat
     {{ hol (!__n __m. MEM __m [[x1 t1 .. xn tn]] /\ MEM __n [[x1 t1..xn tn]] /\ (FST __m  = FST __n) ==> (SND __m = SND __n)) }}
-    {{ lem TODO }} 
+    {{ lem (lem_intersection_needed) }} 
     {{ com $(\ottnt{x}_i = \ottnt{x}_j) \ensuremath{\Longrightarrow} (\ottnt{t}_i = \ottnt{t}_j)$ }}
 
   | duplicates ( tnvs ) = emptyset				:: :: no_dups_tnvs
     {{ hol (ALL_DISTINCT [[tnvs]]) }}
-    {{ lem TODO }} 
+    {{ lem (duplicates [[tnvs]]) = [ ] }} 
 
   | duplicates ( x1 , .. , xn )	= emptyset			:: :: no_dups
     {{ hol (ALL_DISTINCT [[x1..xn]]) }}
-    {{ lem TODO }} 
+    {{ lem (duplicates [[x1..xn]]) = [ ] }} 
 
   | x NOTIN dom ( E_l )						:: :: notin_dom_l
     {{ hol ([[x]] NOTIN FDOM [[E_l]]) }}
-    {{ lem TODO }} 
+    {{ lem Pervasives.not (Pmap.mem [[x]] [[E_l]]) }} 
 
   | x NOTIN dom ( E_x )						:: :: notin_dom_v
     {{ hol ([[x]] NOTIN FDOM [[E_x]]) }}
-    {{ lem TODO }} 
+    {{ lem Pervasives.not (Pmap.mem [[x]] [[E_x]]) }} 
 
   | x NOTIN dom ( E_f )						:: :: notin_dom_f
     {{ hol ([[x]] NOTIN FDOM [[E_f]]) }}
-    {{ lem TODO }} 
+    {{ lem Pervasives.not (Pmap.mem [[x]] [[E_f]]) }} 
 
   | p NOTIN dom ( TC )						:: :: notin_dom_tc
     {{ hol ([[p]] NOTIN FDOM [[TC]]) }}
-    {{ lem TODO }} 
+    {{ lem Pervasives.not (Pmap.mem [[p]] [[TC]]) }} 
 
   | p NOTIN dom ( TD )						:: :: notin_dom_td
     {{ hol ([[p]] NOTIN FDOM [[TD]]) }}
-    {{ lem TODO }} 
+    {{ lem Pervasives.not (Pmap.mem [[p]] [[TD]]) }} 
 
   | FV ( t ) SUBSET tnvs						:: :: FV_t
     {{ com Free type variables }}
     {{ hol (LIST_TO_SET (ftv_t [[t]]) SUBSET LIST_TO_SET [[tnvs]]) }}
-    {{ lem TODO }} 
+    {{ lem subst (ftv_t [[t]]) [[tnvs]]  }} 
 
   | FV ( t_multi ) SUBSET tnvs					:: :: FV_t_multi
     {{ com Free type variables }}
     {{ hol (LIST_TO_SET (FLAT (MAP ftv_t [[t_multi]])) SUBSET LIST_TO_SET [[tnvs]]) }}
-    {{ lem TODO }} 
+    {{ lem subst (ftv_tm [[t_multi]]) [[tnvs]]  }} 
 
   | FV ( semC ) SUBSET tnvs					:: :: FV_semC
     {{ com Free type variables }}
     {{ hol (LIST_TO_SET (MAP SND [[semC]]) SUBSET LIST_TO_SET [[tnvs]]) }}
-    {{ lem TODO }} 
+    {{ lem subst (ftv_s [[semC]]) [[tnvs]] }} 
 
   | inst 'IN' I							:: :: inst_in
     {{ hol (MEM [[inst]] [[I]]) }}
@@ -1243,7 +1314,7 @@ E) s then SOME (FDOM E UNION s) else NONE) (SOME {}) [[E_x1....E_xn]] <> NONE) }
 
   | ( p t ) NOTIN I						:: :: notin_I
     {{ hol (~?__semC__. MEM (Inst __semC__ [[p]] [[t]]) [[I]]) }}
-    {{ lem TODO }}
+    {{ lem Pervasives.not (List.mem ([[p]],[[t]]) [[I]] ) }}
 
   | E_l1 = E_l2							:: :: E_l_eqn
     {{ ichl ([[E_l1]] = [[E_l2]]) }}
@@ -1494,15 +1565,17 @@ by
 |- N l ~> N
 
 ------------------------------------------------------------ :: num
-|- num ~> num
+|- num l ~> nat
 
+|- Nexp1 ~> ne1
+|- Nexp2 ~> ne2
 ------------------------------------------------------------ :: mult
-|- num * N ~> num * N
+|- Nexp1 * Nexp2 l ~> ne1 * ne2
 
 |- Nexp1 ~> ne1
 |- Nexp2 ~> ne2
 ----------------------------------------------------------- :: add
-|- Nexp1 + Nexp2 ~> :Ne_add: ne1 + ne2
+|- Nexp1 + Nexp2 l ~> :Ne_add: ne1 + ne2
 
 defns
 convert_typs :: '' ::=
@@ -1531,13 +1604,13 @@ by
 ------------------------------------------------------------ :: num
 |- num l : __num
 
-num = bitlength(hex)
+nat = bitlength(hex)
 ------------------------------------------------------------ :: hex
-|- hex l : __vector num __bit
+|- hex l : __vector nat __bit
 
-num = bitlength(bin)
+nat = bitlength(bin)
 ------------------------------------------------------------ :: bin 
-|- bin l : __vector num __bit
+|- bin l : __vector nat __bit
 
 ------------------------------------------------------------ :: string
 |- string l : __string
@@ -1683,9 +1756,9 @@ TD,E,E_l |- <| </idi = pati li//i/> semi_opt |> : p t_args gives u+ </E_li//i/>
 
 TD,E,E_l |- pat1 : t gives E_l1 ... TD,E,E_l |- patn : t gives E_ln
 disjoint doms(E_l1 , ... , E_ln)
-length(pat1 ... patn) = num
+length(pat1 ... patn) = nat
 ----------------------------------------------------------- :: vector
-TD,E,E_l |- [| pat1 ; ... ; patn  |] : __vector num t gives E_l1 u+ ... u+ E_ln
+TD,E,E_l |- [| pat1 ; ... ; patn semi_opt |] : __vector nat t gives E_l1 u+ ... u+ E_ln
 
 TD,E,E_l |- pat1 : __vector ne1 t gives E_l1 ... TD,E,E_l |- patn : __vector nen t gives E_ln
 disjoint doms(E_l1 , ... , E_ln)
@@ -1785,7 +1858,7 @@ TD,E,E_l |- x l1 l2 : t gives {},{}
 
 %TODO KG Add check that N is in scope
 ------------------------------------------------------------ :: nvar
-TD,E,E_l |- N : num gives {},{}
+TD,E,E_l |- N : __num gives {},{}
 
 E_l |- id not shadowed
 E |- id value
@@ -1851,9 +1924,9 @@ TD,E,E_l |- exp : p t_args gives S_c',S_N'
 TD,E,E_l |- <| exp with </idi = expi li//i/> semi_opt l |> : p t_args gives S_c' union </S_ci//i/>,S_N' union </S_Ni//i/>
 
 TD,E,E_l |- exp1 : t gives S_c1,S_N1 ... TD,E,E_l |- expn : t gives S_cn,S_Nn
-length(exp1 ... expn) = num
+length(exp1 ... expn) = nat
 ------------------------------------------------------------ :: vector
-TD,E,E_l |- [| exp1 ; ... ; expn |] : __vector num t gives S_c1 union ... union S_cn, S_N1 union ... union S_Nn
+TD,E,E_l |- [| exp1 ; ... ; expn |] : __vector nat t gives S_c1 union ... union S_cn, S_N1 union ... union S_Nn
 
 TD,E,E_l |- exp : __vector ne' t gives S_c,S_N
 |- Nexp ~> ne

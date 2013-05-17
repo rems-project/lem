@@ -872,7 +872,7 @@ module Make_checker(T : sig
               C.equate_types l "tuple expression" ret_type 
                 { t = Ttup(Seplist.to_list_map exp_to_typ exps) };
               A.mk_tup l sk1 exps sk2 rt
-        | Ast.List(sk1,es,sk3,semi,sk2) -> 
+        | Ast.Elist(sk1,es,sk3,semi,sk2) -> 
             let es = Seplist.from_list_suffix es sk3 semi in
             let exps = Seplist.map (check_exp l_e) es in
             let a = C.new_type () in
