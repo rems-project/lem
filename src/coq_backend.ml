@@ -849,9 +849,6 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
               combine [
                  ws skips; from_string "{["; exp e; ws skips'; from_string "with"; body; skips''; from_string " ]}"
               ]
-          | Record_coq ((n, _), _, fields, _) ->
-            (* DPM: no longer used?  *)
-              print_and_fail (Typed_ast.exp_to_locn e) "illegal record coq in code extraction, should have been macro'd away"
           | Case (_, skips, e, skips', cases, skips'') ->
             let body = flat $ Seplist.to_sep_list_last Seplist.Optional case_line (sep (break_hint_space 2 ^ from_string "|")) cases in
               block is_user_exp 0 (

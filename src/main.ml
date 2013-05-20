@@ -167,10 +167,10 @@ let check_modules env modules =
 
 (* Do the transformations for a given target, and then generate the output files
  * *)
-let per_target libpath isa_thy modules (def_info,env) consts alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum targ =
+let per_target libpath isa_thy modules env consts alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum targ =
   let consts = List.assoc targ consts in
   let module C = struct
-    let (d,i) = def_info
+    let (d,i) = (env.Typed_ast.t_env, env.Typed_ast.i_env)
   end
   in
   let module T = Target_trans.Make(C) in
@@ -186,7 +186,7 @@ let per_target libpath isa_thy modules (def_info,env) consts alldoc_accum alldoc
       in      
       let consts' = T.extend_consts targ consts transformed_m in
       let transformed_m' = T.rename_def_params targ consts' transformed_m in
-        output libpath isa_thy targ (avoid consts') env def_info (List.rev transformed_m') alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum
+        output libpath isa_thy targ (avoid consts') env (List.rev transformed_m') alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum
     with
       | Trans.Trans_error(l,msg) ->
           raise (Reporting_basic.Fatal_error (Reporting_basic.Err_trans (l, msg)))
@@ -266,11 +266,11 @@ let main () =
          (targ,consts))
       (snd init)
   in
-  let type_info : (Types.type_defs * instances) * Typed_ast.env = fst init in
+  let type_info : Typed_ast.env = fst init in
   (* Parse and typecheck all of the .lem sources *)
   let (modules, type_info, _) =
     List.fold_left
-      (fun (mods, (def_info,env), previously_processed_modules) (f, add_to_modules) ->
+      (fun (mods, env, previously_processed_modules) (f, add_to_modules) ->
          let ast = parse_file f in
          let f' = Filename.basename (Filename.chop_extension f) in
          let mod_name = String.capitalize f' in
@@ -286,9 +286,7 @@ let main () =
              !backends
              Typed_ast.Targetset.empty 
          in
-         let ((tdefs,instances,new_instances),new_env,tast) = 
-           check_ast backend_set [mod_name_name] (def_info,env) ast
-         in
+         let (new_env,tast) = check_ast backend_set [mod_name_name] env ast in
 
          let e = Typed_ast.env_m_env_move new_env mod_name_name env.Typed_ast.local_env in
          let module_record = 
@@ -306,15 +304,13 @@ let main () =
                 *)
                Format.fprintf Format.std_formatter "%s@\nenvironment:@\n" f;
                Typed_ast.pp_env Format.std_formatter new_env;
-               Format.fprintf Format.std_formatter "@\ninstances:@\n";
-               Typed_ast.pp_instances Format.std_formatter new_instances;
                Format.fprintf Format.std_formatter "@\n@\n"
              end;
            ((if add_to_modules then
              module_record::mods
                else
              mods), 
-            ((tdefs,instances),e), mod_name::previously_processed_modules))
+            e, mod_name::previously_processed_modules))
       ([],type_info,[])
       (* We don't want to add the files in !lib to the resulting module ASTs,
        * because we don't want to put them throught the back end *)
@@ -325,7 +321,7 @@ let main () =
   (* Check the parsed source and produce warnings for various things. Currently:
      - non-exhaustive and redundant patterns
   *)
-  let _ = check_modules (snd type_info) modules in
+  let _ = check_modules type_info modules in
 
   let alldoc_accum = ref ([] : Ulib.Text.t list) in
   let alldoc_inc_accum = ref ([] : Ulib.Text.t list) in

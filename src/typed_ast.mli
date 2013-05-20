@@ -240,7 +240,7 @@ and f_env = const_descr_ref Nfmap.t
 and m_env = mod_descr Nfmap.t
 and c_env 
 and local_env = { m_env : m_env; p_env : p_env; f_env : f_env; v_env : v_env}
-and env = { local_env : local_env; c_env : c_env; t_env : Types.type_defs}
+and env = { local_env : local_env; c_env : c_env; t_env : Types.type_defs; i_env : (Types.instance list) Types.Pfmap.t}
 
 and mod_descr = { mod_binding : Path.t; mod_env : local_env; }
 
@@ -258,7 +258,6 @@ and exp_aux = private
   | App of exp * exp
   | Infix of exp * exp * exp (** The middle exp must be a Var, Constant, or Constructor *) 
   | Record of lskips * fexp lskips_seplist * lskips
-  | Record_coq of name_l * lskips * fexp lskips_seplist * lskips
   | Recup of lskips * exp * lskips * fexp lskips_seplist * lskips
   | Field of exp * lskips * const_descr_ref id
   | Vector of lskips * exp lskips_seplist * lskips

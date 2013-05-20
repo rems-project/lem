@@ -1607,14 +1607,6 @@ match C.exp_to_term e with
       ws s2 ^
       T.rec_end
 
-  | Record_coq((n,l),s1,fields,s2) ->
-      ws s1 ^
-      (Name.to_output T.infix_op_format Term_field n) ^
-      flat 
-        (Seplist.to_sep_list_last 
-           T.last_rec_sep 
-           expfield_coq (fun s -> ws s) fields) ^
-      ws s2
   | Recup(s1,e,s2,fields,s3) ->
         ws s1 ^
         T.recup_start ^

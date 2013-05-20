@@ -1497,7 +1497,7 @@ type defn_ctxt = {
   lemmata_labels : NameSet.t; }
 
 let defn_ctxt_get_cur_env (d : defn_ctxt) : env =
-  { local_env = d.cur_env; Typed_ast.c_env = d.c_env; t_env = d.all_tdefs }
+  { local_env = d.cur_env; Typed_ast.c_env = d.c_env; t_env = d.all_tdefs; i_env = d.all_instances }
 
 (* Update the new and cumulative environment with new
  * function/value/module/field/path definitions according to set and select.
@@ -2668,11 +2668,11 @@ let rec check_ids env ctxt defs =
             defs
 *)
 
-let check_defs backend_targets mod_path (tdefs, instances) (env : env)
+let check_defs backend_targets mod_path (env : env)
       (Ast.Defs(defs)) =
-  let ctxt = { all_tdefs = tdefs;
+  let ctxt = { all_tdefs = env.t_env;
                new_tdefs = [];  
-               all_instances = instances;
+               all_instances = env.i_env;
                new_instances = Pfmap.empty;
                cur_env = env.local_env;
                new_defs = empty_local_env;
@@ -2680,9 +2680,9 @@ let check_defs backend_targets mod_path (tdefs, instances) (env : env)
                c_env = env.Typed_ast.c_env }
   in
   let (ctxt,b) = check_defs backend_targets mod_path ctxt defs in
-  let env' = { local_env = ctxt.new_defs; Typed_ast.c_env = ctxt.c_env; t_env = ctxt.all_tdefs } in
+  let env' = { (defn_ctxt_get_cur_env ctxt) with local_env = ctxt.new_defs} in
   let _ = List.map (Syntactic_tests.check_decidable_equality_def env') b in
   let _ = List.map Syntactic_tests.check_positivity_condition_def b in
     check_ids env' ctxt b;    
-    ((ctxt.all_tdefs, ctxt.all_instances, ctxt.new_instances), env', b)
+    (env', b)
 

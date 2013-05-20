@@ -70,20 +70,20 @@ let parse_file (f : string) : (Ast.defs * Ast.lex_skips) =
 type instances = Types.instance list Types.Pfmap.t
 
 let check_ast (ts : Typed_ast.Targetset.t) (mod_path : Name.t list) 
-      ((tdefs,env) : ((Types.type_defs * instances) * Typed_ast.env)) 
+      (env : Typed_ast.env)
       (ast, end_lex_skips)
-      : (Types.type_defs * instances * instances) * Typed_ast.env * (Typed_ast.def list * Ast.lex_skips) =
+      : Typed_ast.env * (Typed_ast.def list * Ast.lex_skips) =
   try
-    let (defs,env,tast) = Typecheck.check_defs ts mod_path tdefs env ast in
-      (defs,env,(tast,end_lex_skips))
+    let (env,tast) = Typecheck.check_defs ts mod_path env ast in
+      (env,(tast,end_lex_skips))
   with
     | Ident.No_type(l,m) ->
         raise (Reporting_basic.Fatal_error (Reporting_basic.Err_type (l, m)))
 
 let check_ast_as_module (ts : Typed_ast.Targetset.t) (mod_path : Name.t list)
-      (e : ((Types.type_defs * instances) * Typed_ast.env)) 
+      (e : Typed_ast.env) 
       (mod_name : Ulib.Text.t) (ast, end_lex_skips)
-      : (Types.type_defs * instances * instances) * Typed_ast.env * (Typed_ast.def list * Ast.lex_skips) =
+      : Typed_ast.env * (Typed_ast.def list * Ast.lex_skips) =
   check_ast ts mod_path e
     (Ast.Defs([(Ast.Def_l(Ast.Module(None, Ast.X_l((None,mod_name),Ast.Unknown), None, None, ast, None), Ast.Unknown), 
                 None,
@@ -142,7 +142,7 @@ let html_postamble =
 "  </body>\n" ^
 "</html>\n"
 
-let output1 env libpath isa_thy targ avoid type_info m alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum =
+let output1 env libpath isa_thy targ avoid m alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum =
   let module C = struct
     let avoid = avoid
     let env = env
@@ -324,10 +324,10 @@ let output1 env libpath isa_thy targ avoid type_info m alldoc_accum alldoc_inc_a
               close_output_with_check ext_o
           end
 
-let output libpath isa_thy targ consts env type_info mods alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum =
+let output libpath isa_thy targ consts env mods alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum =
   List.iter
     (fun m ->
-       output1 env libpath isa_thy targ consts type_info m alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum)
+       output1 env libpath isa_thy targ consts m alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum)
     mods
 
 

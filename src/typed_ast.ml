@@ -243,7 +243,7 @@ and m_env = mod_descr Nfmap.t
 and c_env = int * const_descr Cdmap.t
 
 and local_env = { m_env : m_env; p_env : p_env; f_env : f_env; v_env : v_env}
-and env = { local_env : local_env; c_env : c_env; t_env : Types.type_defs}
+and env = { local_env : local_env; c_env : c_env; t_env : Types.type_defs; i_env : (instance list) Pfmap.t }
 
 (* free_env represents the free variables in expression, with their types *)
 and free_env = t Nfmap.t
@@ -272,7 +272,6 @@ and exp_aux =
   (* The middle exp must be a Var, Constant, or Constructor *) 
   | Infix of exp * exp * exp
   | Record of lskips * fexp lskips_seplist * lskips
-  | Record_coq of name_l * lskips * fexp lskips_seplist * lskips
   | Recup of lskips * exp * lskips * fexp lskips_seplist * lskips
   | Field of exp * lskips * const_descr_ref id
   | Vector of lskips * exp lskips_seplist * lskips
@@ -404,7 +403,8 @@ let empty_local_env = { m_env = Nfmap.empty;
 
 let empty_env = { local_env = empty_local_env;
                   c_env = (0, Cdmap.empty);
-                  t_env = Pfmap.empty }
+                  t_env = Pfmap.empty;
+                  i_env = Pfmap.empty }
 
 
 let c_env_lookup l (c_env_count, c_env_map) c = 
@@ -605,9 +605,6 @@ let rec alter_init_lskips (lskips_f : lskips -> lskips * lskips) (e : exp) : exp
       | Record(s1,fieldexps,s2) ->
           let (s_new, s_ret) = lskips_f s1 in
             res (Record(s_new, fieldexps,s2)) s_ret
-      | Record_coq((n,l),s1,fieldexps,s2) ->
-          let (s_new, s_ret) = lskips_f (Name.get_lskip n) in
-            res (Record_coq((Name.replace_lskip n s_new, l),s1,fieldexps,s2)) s_ret
       | Recup(s1,e,s2,fieldexps,s3) ->
           let (s_new, s_ret) = lskips_f s1 in
             res (Recup(s_new, e, s2, fieldexps,s3)) s_ret
@@ -1447,12 +1444,6 @@ module Exps_in_context(D : Exp_context) = struct
             Infix(exp_subst subst e1, exp_subst subst e2, exp_subst subst e3)
         | Record(s1,fieldexps,s2) ->
             Record(s1, 
-                   Seplist.map 
-                     (fun (fd,s3,e,l) -> (id_subst fd,s3,exp_subst subst e, l)) 
-                     fieldexps, 
-                   s2)
-        | Record_coq(n,s1,fieldexps,s2) ->
-            Record_coq(n,s1, 
                    Seplist.map 
                      (fun (fd,s3,e,l) -> (id_subst fd,s3,exp_subst subst e, l)) 
                      fieldexps, 
