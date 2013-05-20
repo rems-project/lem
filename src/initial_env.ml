@@ -110,9 +110,8 @@ let rec add_target_to_def target c_env (defs : local_env) : (c_env * local_env) 
       (c_env', m_env') end) (c_env, Nfmap.empty) defs.m_env in
 
   let defs' = {defs with m_env = m_env'} in
-
   let c_env'' = Nfmap.fold (fun c_env k c ->
-        let c_d = c_env_lookup (Ast.Unknown) c_env c in
+        let c_d = c_env_lookup (Ast.Trans ("add_target_to_def", None)) c_env c in
         let c_d' = match c_d.env_tag with
                     | K_val -> { c_d with env_tag = K_target(false,Targetset.singleton target) }
                     | (K_constr | K_field) -> c_d
@@ -188,7 +187,7 @@ module Initial_libs (P : sig val path : string end) =
 struct
   open P
 
-  let td = (initial_d, Pfmap.empty)
+  let td = (initial_d, Pfmap.empty);;
 
   let full_filename targ f = 
     List.fold_right Filename.concat [path; target_to_string targ] (f ^ ".lem")
@@ -201,34 +200,25 @@ struct
       (td,initial_env)
       ["min"; "bool"; "pair"; "arithmetic"; "pred_set"; "finite_map"; "list"; "string"; "sorting"; "set_relation"; "fixedPoint"; "integer"]
 
-  let target = Target_ocaml
+  let hol_env' = env_m_env_move hol_env (target_to_mname Target_hol) initial_local_env
 
-  let holpath = Path.mk_path [] (target_to_mname Target_hol)
-  let ocamlpath = Path.mk_path [] (target_to_mname Target_ocaml)
-  let isapath = Path.mk_path [] (target_to_mname Target_isa)
-  let coqpath = Path.mk_path [] (target_to_mname Target_coq)
-
-  (* TODO: Remove so that the OCaml env can't refer to the HOL env *)
-  let env =
-    { initial_env with local_env = {initial_env.local_env with      
-          m_env = 
-            Nfmap.from_list [(target_to_mname Target_hol, { mod_binding = holpath; mod_env = hol_env.local_env })] }}
 
   (* Coq Env *)
-  let (td, coq_perv) =
-    proc_open (Some Target_coq) (full_filename Target_coq "pervasives") (td, env)
-  ;;
+  let (td, coq_perv) = proc_open (Some Target_coq) (full_filename Target_coq "pervasives") (td, hol_env');;
 
   let (td, coq_env) = 
     List.fold_left (
       fun init_env t ->
         proc (Some Target_coq) (full_filename Target_coq t) init_env
     ) (td, coq_perv)
-    ["pervasives"; "set"; "list"] (* remove hol_env eventually when type synonyms work *)
+    ["pervasives"; "set"; "list"] 
   ;;
   
+  let coq_env' = env_m_env_move coq_env (target_to_mname Target_coq) initial_local_env
+  let hol_env' = {coq_env' with local_env = hol_env'.local_env}
+
   (* OCAML Env *)
-  let (td,ocaml_perv) = proc_open (Some(Target_ocaml)) (full_filename Target_ocaml "pervasives") (td,env)
+  let (td,ocaml_perv) = proc_open (Some(Target_ocaml)) (full_filename Target_ocaml "pervasives") (td,hol_env')
 
   let (td, ocaml_env) = 
     List.fold_left
@@ -236,9 +226,11 @@ struct
       (td,ocaml_perv)
       ["list"; "pset"; "pmap"; "nat_num" ; "vector" ; "bit"]
   
-  
+  let ocaml_env' = env_m_env_move ocaml_env (target_to_mname Target_ocaml) initial_local_env
+  let hol_env' = {ocaml_env' with local_env = hol_env'.local_env}
+
   (* Isabelle Env *)
-  let (td,isa_perv) = proc_open (Some(Target_isa)) (full_filename Target_isa "pervasives") (td,env)
+  let (td,isa_perv) = proc_open (Some(Target_isa)) (full_filename Target_isa "pervasives") (td,hol_env')
 
   let (td,isa_env) = 
       List.fold_left
@@ -247,29 +239,22 @@ struct
         ["pervasives";"list";"set";"finite_Set";"map"]   
         (* PS HACK - TEMPORARILY REMOVE IN HOPES OF GETTING HOL BUILD *)
   
-  (*
-  let (td,isa_env) =
+  let isa_env' = env_m_env_move isa_env (target_to_mname Target_isa) initial_local_env
 
-    List.fold_left 
-      (fun (td,isa_env) t -> proc (Some(Ast.Target_isa(None))) t td isa_env)
-      (td,isa_perv)
-      ["list"; "pred_set"]   *)  
+  let env = {isa_env' with local_env = 
+     local_env_union hol_env'.local_env (
+     local_env_union coq_env'.local_env (
+     local_env_union isa_env'.local_env 
+                     ocaml_env'.local_env)) }
+     
+  let _ = Format.printf "XXXX \n";;
 
-  let env = {
-    initial_env with local_env = {initial_env.local_env with
-      m_env = Nfmap.from_list [
-        (target_to_mname (Target_ocaml), { mod_binding = ocamlpath; mod_env = ocaml_env.local_env });
-        (target_to_mname (Target_hol), { mod_binding = holpath; mod_env = hol_env.local_env });
-        (target_to_mname (Target_isa), { mod_binding = isapath; mod_env = isa_env.local_env });
-        (target_to_mname (Target_coq), { mod_binding = coqpath; mod_env = coq_env.local_env })
-      ]
-  }}
-  ;;
 
-   
   let (td, perv) =
     proc_open None (Filename.concat path "pervasives.lem") (td, env)
   ;;
+
+  let _ = Format.printf "XXXX \n";;
 
   let init =
     (List.fold_left (

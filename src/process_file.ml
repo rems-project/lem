@@ -74,9 +74,7 @@ let check_ast (ts : Typed_ast.Targetset.t) (mod_path : Name.t list)
       (ast, end_lex_skips)
       : (Types.type_defs * instances * instances) * Typed_ast.env * (Typed_ast.def list * Ast.lex_skips) =
   try
-    let (defs,env,tast) = 
-      Typecheck.check_defs ts mod_path tdefs env ast 
-    in
+    let (defs,env,tast) = Typecheck.check_defs ts mod_path tdefs env ast in
       (defs,env,(tast,end_lex_skips))
   with
     | Ident.No_type(l,m) ->

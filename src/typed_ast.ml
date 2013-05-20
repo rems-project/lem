@@ -409,7 +409,9 @@ let empty_env = { local_env = empty_local_env;
 
 let c_env_lookup l (c_env_count, c_env_map) c = 
          match Cdmap.apply c_env_map c with
-           | None -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_type (l, "constant_id not present in environment")))
+           | None -> 
+             let m = Format.sprintf "constant-id %d not present in environment" c in
+             raise (Reporting_basic.Fatal_error (Reporting_basic.Err_type (l, m)))
            | Some(cd) -> cd
 
 let c_env_update (c_env_count, c_env_map) c_id c_d =
@@ -768,10 +770,30 @@ let pp_const_descr ppf c =
     Path.pp c.const_binding
     pp_env_tag c.env_tag
 
+let pp_const_ref ppf c =
+  fprintf ppf "%d" c     
+
+let pp_c_env ppf (c, _) =
+  fprintf ppf "%d" c     
 
 let rec pp_local_env ppf env =
   pp_open_box ppf 0;
+  let empty_m = Nfmap.is_empty env.m_env in
+  let empty_v = Nfmap.is_empty env.v_env in
+  let empty_p = Nfmap.is_empty env.p_env in
+  let empty_f = Nfmap.is_empty env.f_env in
+  (Nfmap.pp_map Name.pp pp_mod_descr) ppf env.m_env;
+    if not empty_m && not empty_v then
+      fprintf ppf "@\n";
+  (Nfmap.pp_map Name.pp pp_const_ref) ppf env.v_env; 
+    if not empty_v && not empty_p then
+      fprintf ppf "@\n";
+    (Nfmap.pp_map Name.pp (fun ppf (p, _) -> Path.pp ppf p)) ppf env.p_env;
+    if not empty_p && not empty_f then
+      fprintf ppf "@\n";
+    (Nfmap.pp_map Name.pp pp_const_ref) ppf env.f_env; 
   pp_close_box ppf ()
+
 and pp_env ppf env =
   pp_open_box ppf 0;
 (*  let empty_m = Nfmap.is_empty env.m_env in
@@ -790,6 +812,7 @@ and pp_env ppf env =
 (*    (Nfmap.pp_map Name.pp pp_field_descr) ppf env.f_env; *)
 *)
     pp_close_box ppf ()
+
 and pp_mod_descr ppf md = 
   pp_local_env ppf md.mod_env
 
@@ -1818,16 +1841,16 @@ module Exps_in_context(D : Exp_context) = struct
             subst = empty_sub; }; }
 
   let mk_field l e s f t =
-    let f_rec_ty_opt = Util.option_map (fun env -> begin
+    let f_arg_ty_opt = Util.option_map (fun env -> begin
       let d = c_env_lookup l env.c_env f.descr in
       let subst = TNfmap.from_list2 d.const_tparams f.instantiation in
       let new_f_ty = type_subst subst d.const_type in
       let (f_rec_ty, f_arg_ty) = Util.option_get_exn (Reporting_basic.err_general true l "not of field type")
                              (Types.dest_fn_type env.t_env new_f_ty) in
-      let _ = type_eq l "mk_field" e.typ f_arg_ty in
-      f_rec_ty
+      let _ = type_eq l "mk_field" e.typ f_rec_ty in
+      f_arg_ty
     end) D.env_opt in
-    let t = check_typ l "mk_field" t (fun d -> f_rec_ty_opt)
+    let t = check_typ l "mk_field" t (fun d -> f_arg_ty_opt)
     in
       { term = Field(e,s,f);
         locn = l;

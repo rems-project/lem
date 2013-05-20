@@ -222,7 +222,7 @@ let dest_field_types l env (f : const_descr_ref) =
   let f_d = c_env_lookup l env.c_env f in
   let full_type = f_d.const_type in
   match Types.dest_fn_type (env.t_env) full_type with
-    | Some (t_arg, { Types.t = Types.Tapp (t_b_args, t_b_c) }) when t_b_args = List.map Types.tnvar_to_type (f_d.const_tparams) -> 
+    | Some ({ Types.t = Types.Tapp (t_b_args, t_b_c) }, t_arg) when t_b_args = List.map Types.tnvar_to_type (f_d.const_tparams) -> 
          (t_arg, t_b_c, f_d)
     | None -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "not a field type")))
 

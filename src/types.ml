@@ -422,6 +422,20 @@ let type_defs_update_fields (d : type_defs) (p : Path.t) (fl : const_descr_ref l
 let type_defs_add_constr_family (d : type_defs) (p : Path.t) (cf : constr_family_descr) : type_defs =
   type_defs_update_tc_type d p (fun tc -> {tc with type_constr = cf :: tc.type_constr})
 
+let type_defs_lookup (d : type_defs) (t : t) =
+    let l = Ast.Trans ("type_defs_lookup", None) in
+    match t with 
+      | { t = Tapp(_, p) } -> begin
+          match (Pfmap.apply d p) with
+            | Some (Tc_type td) -> Some td
+            | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "env did not contain type!")))
+        end  
+      | _ -> None
+
+let type_defs_get_constr_families (d : type_defs) (t : t) (c : const_descr_ref) : constr_family_descr list =
+  match type_defs_lookup d t with 
+    | None -> []
+    | Some td -> List.filter (fun fs -> List.mem c fs.constr_list) td.type_constr
 
 type instance = tnvar list * (Path.t * tnvar) list * t * Name.t list
 

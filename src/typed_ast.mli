@@ -456,6 +456,7 @@ val def_alter_init_lskips : (lskips -> lskips * lskips) -> def -> def * lskips
 val unsat_constraint_err : Ast.l -> (Path.t * Types.tnvar) list -> unit
 val pp_const_descr : Format.formatter -> const_descr -> unit
 val pp_env : Format.formatter -> env -> unit
+val pp_c_env : Format.formatter -> c_env -> unit
 val pp_instances : Format.formatter -> Types.instance list Types.Pfmap.t -> unit
 
 type checked_module =

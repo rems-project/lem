@@ -155,6 +155,14 @@ val type_defs_update_fields : type_defs -> Path.t -> const_descr_ref list -> typ
 
 val type_defs_add_constr_family : type_defs -> Path.t -> constr_family_descr -> type_defs
 
+(** [type_defs_get_constr_families d t c] gets all constructor family descriptions for type [t] in
+    type environment [d], which contain the constant [c]. *)
+val type_defs_get_constr_families : type_defs -> t -> const_descr_ref -> constr_family_descr list
+
+val type_defs_lookup : type_defs -> t -> type_descr option
+
+
+
 (** Generates a type abbreviation *)
 val mk_tc_type_abbrev : tnvar list -> t -> tc_def
 

@@ -372,7 +372,7 @@ module Make_checker(T : sig
                     end) : Expr_checker = struct
 
   module C = Constraint(T)
-  module A = Exps_in_context(struct let env_opt = Some T.e let avoid = None end)
+  module A = Exps_in_context(struct let env_opt = None let avoid = None end)
           
   (* An identifier instantiated to fresh type variables *)
   let make_new_id ((id : Ident.t), l) (tvs : Types.tnvar list) (descr : 'a) : 'a id =
@@ -420,9 +420,9 @@ module Make_checker(T : sig
               TNfmap.from_list2 f_d.const_tparams new_id.instantiation 
             in
             let tfield = type_subst subst f_field_arg in
-            let t = { t = Tfn(trec,tfield) } in
+            let t = { t = Tfn(trec, tfield) } in
             let a = C.new_type () in
-              C.equate_types new_id.id_locn "field expression" a t;
+              C.equate_types new_id.id_locn "field expression 1" a t;
               ((new_id, a), l)
           end
 
@@ -430,12 +430,12 @@ module Make_checker(T : sig
    * also calculates its type.  Corresponds to judgment inst_val 'Delta,E |- val
    * id : t gives Sigma', except that that also looks up the descriptor. Moreover,
    * it computes the number of arguments this constant expects *)
-  let inst_const id_l (env : env) (c : const_descr_ref) : const_descr_ref id * t * int =
+  let inst_const id_l (env : env) (c : const_descr_ref) : const_descr_ref id * t * int * Types.t =
     let cd = c_env_lookup (snd id_l) env.c_env c in
     let new_id = make_new_id id_l cd.const_tparams c in
     let subst = TNfmap.from_list2 cd.const_tparams new_id.instantiation in
     let t = type_subst subst cd.const_type in
-    let (arg_ts, _) = Types.strip_fn_type env.t_env cd.const_type in
+    let (arg_ts, base_t) = Types.strip_fn_type env.t_env cd.const_type in
     let a = C.new_type () in
       C.equate_types new_id.id_locn "constant use" a t;
       List.iter 
@@ -445,7 +445,7 @@ module Make_checker(T : sig
       List.iter
          (fun r -> C.add_length_constraint (range_with r (nexp_subst subst (range_of_n r)))) 
          cd.const_ranges; 
-      (new_id, a, List.length arg_ts)
+      (new_id, a, List.length arg_ts, base_t)
 
   let add_binding (pat_e : pat_env) ((v : Name.lskips_t), (l : Ast.l)) (t : t) 
         : pat_env =
@@ -485,24 +485,37 @@ module Make_checker(T : sig
         | Ast.P_app(Ast.Id(mp,xl,l'') as i, ps) ->
             let l' = Ast.xl_to_l xl in
             let e = path_lookup T.e.local_env (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
-              begin
-                match Nfmap.apply e.v_env (Name.strip_lskip (Name.from_x xl)) with
-                  | Some(c) when (lookup_l l_e mp (Name.from_x xl) = None) ->
+            let const_lookup_res = Nfmap.apply e.v_env (Name.strip_lskip (Name.from_x xl)) in
+
+            (** Try to handle it as a construtor, if success, then return Some, otherwise None
+                and handle as variable *)
+            let constr_res_opt = begin
+                match const_lookup_res with
+                   | Some(c) when (lookup_l l_e mp (Name.from_x xl) = None) ->
                       (* i is bound to a constructor that is not lexically
                        * shadowed, this corresponds to the
                        * check_pat_aux_ident_constr case *)
-                      let (id,t,num_args) = inst_const (id_to_identl i) T.e c in
+                      let (id,t,num_args,base_t) = inst_const (id_to_identl i) T.e c in
+                      let is_constr = (List.length (type_defs_get_constr_families T.d base_t c) > 0) in
                       let (pats,pat_e) = check_pats l_e acc ps in
-                        if List.length pats <> num_args then
+                        if (List.length pats <> num_args) || (not is_constr) then (
+                          if (List.length pats == 0) then (*handle as var*) None else
                           raise_error l' 
                             (Printf.sprintf "constructor pattern expected %d arguments, given %d"
                                num_args
                                (List.length pats))
-                            Ident.pp (Ident.from_id i); 
-                        C.equate_types l'' "constructor pattern" t 
-                          (multi_fun (List.map annot_to_typ pats) ret_type);
-                        (A.mk_pconst l id pats rt, pat_e)
-                  | _ ->
+                            Ident.pp (Ident.from_id i)
+                        ) else (
+                          C.equate_types l'' "constructor pattern" t 
+                            (multi_fun (List.map annot_to_typ pats) ret_type);
+                          Some (A.mk_pconst l id pats rt, pat_e)
+                        )
+                   | _ -> None
+              end in
+            begin 
+                match constr_res_opt with 
+                   | Some res -> res 
+                   | None -> begin
                       (* the check_pat_aux_var case *)
                       match mp with
                         | [] ->
@@ -518,6 +531,7 @@ module Make_checker(T : sig
                         | _ ->
                             raise_error l' "non-constructor pattern has a module path" 
                               Ident.pp (Ident.from_id i)
+                      end
               end
         | Ast.P_record(sk1,ips,sk2,term_semi,sk3) ->
             let fpats = Seplist.from_list_suffix ips sk2 term_semi in
@@ -746,9 +760,7 @@ module Make_checker(T : sig
                             else
                               ()
                   end;
-                  let (id,t,_) = 
-                    inst_const (Ident.mk_ident mp'' n l, l) T.e c 
-                  in
+                  let (id,t,_,_) = inst_const (Ident.mk_ident mp'' n l, l) T.e c in
                     C.equate_types l "top-level binding use" t (C.new_type());
                     A.mk_const l id (Some(t))
 
@@ -824,7 +836,7 @@ module Make_checker(T : sig
             let exp = check_exp l_e e in
             let fids = disambiguate_projections sk fid in
             let new_exp = check_all_fields exp fids in
-              C.equate_types l "field expression" ret_type (exp_to_typ new_exp);
+              C.equate_types l "field expression 2" ret_type (exp_to_typ new_exp);
               new_exp
         | Ast.Case(sk1,e,sk2,bar_sk,bar,pm,l',sk3) ->
             let pm = Seplist.from_list_prefix bar_sk bar pm in
@@ -1127,7 +1139,7 @@ module Make_checker(T : sig
     let ((id,t),l') = check_field i in
     let exp = check_exp l_e e in
     let ret_type = C.new_type () in
-      C.equate_types l "field expression" t { t = Tfn(ret_type, exp_to_typ exp) };
+      C.equate_types l "field expression 3" t { t = Tfn(ret_type, exp_to_typ exp) };
       ((id,sk1,exp,l), ret_type,id.descr, l')
 
   and check_fexps (l_e : lex_env) (Ast.Fexps(fexps,sk,semi,l)) 
@@ -1136,7 +1148,7 @@ module Make_checker(T : sig
     let stuff = Seplist.map (check_fexp l_e) fexps in
     let ret_type = C.new_type () in
       check_dup_field_names T.e.c_env (Seplist.to_list_map (fun (_,_,n,l) -> (n,l)) stuff);
-      Seplist.iter (fun (_,t,_,_) -> C.equate_types l "field expression" t ret_type) stuff;
+      Seplist.iter (fun (_,t,_,_) -> C.equate_types l "field expression 4" t ret_type) stuff;
       (Seplist.map (fun (x,_,_,_) -> x) stuff,
        ret_type,
        Seplist.to_list_map (fun (_,_,n,_) -> n) stuff)
@@ -1595,7 +1607,7 @@ let add_let_defs_to_ctxt
                       target_rep = Targetmap.empty } in
               let (c_env', c) = c_env_save c_env None c_d in
               (c_env', Nfmap.insert new_env (n, c))
-          | Some(c) ->
+          | Some(c) -> 
               (* The definition is already in the context.  Here we just assume
                * it is compatible with the existing definition, having
                * previously checked it. *) 
@@ -1614,8 +1626,7 @@ let add_let_defs_to_ctxt
                       K_target(letdef1||letdef2, 
                                Targetset.union targets1 targets2) in
               let (c_env', c) = c_env_save c_env (Some c) (add_subst { c_d with env_tag = tag }) in
-              (c_env', Nfmap.insert new_env (n, c))
-          | _ -> assert false)
+              (c_env', Nfmap.insert new_env (n, c)))
       (ctxt.c_env, Nfmap.empty) l_env
   in
   { ctxt with 
@@ -1836,7 +1847,7 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
                    const_tparams = tparams;
                    const_class = [];
                    const_ranges = [];
-                   const_type = { t = Tfn (t, { t = Tapp (tparams_t, type_path) }) };
+                   const_type = { t = Tfn ({ t = Tapp (tparams_t, type_path) }, t) };
                    spec_l = l;
                    env_tag = K_field;
                    target_rep = Targetmap.empty })
@@ -2339,11 +2350,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let (new_ctxt,ds) = 
             check_defs backend_targets (mod_path @ [Name.strip_lskip n]) ctxt1 defs 
           in
-          let ctxt2 = 
-            { ctxt with all_tdefs = new_ctxt.all_tdefs;
-                        new_tdefs = new_ctxt.new_tdefs; 
-                        all_instances = new_ctxt.all_instances;
-                        new_instances = new_ctxt.new_instances; }
+          let ctxt2 = {new_ctxt with new_defs = ctxt.new_defs }
           in
             (add_m_to_ctxt l' ctxt2 n { mod_binding = Path.mk_path mod_path n'; mod_env = new_ctxt.new_defs },
              Module(sk1,(n,l'),sk2,sk3,ds,sk4))
