@@ -46,6 +46,7 @@
 
 open Typed_ast
 open Typed_ast_syntax
+open Target
 open Pattern_syntax
 
 let r = Ulib.Text.of_latin1
@@ -1161,7 +1162,7 @@ let basic_compile_funs : (bool -> env -> var_name_generator -> Types.t -> Ast.l 
 (*    (fun _   -> record_matrix_compile_fun) *)]
 
 (* Target specific ones, use [basic_compile_funs] as a fallback. *)
-let get_target_compile_funs (topt:Typed_ast.target option) : (bool -> env -> var_name_generator -> Types.t -> Ast.l -> matrix_compile_fun) list = 
+let get_target_compile_funs (topt:target option) : (bool -> env -> var_name_generator -> Types.t -> Ast.l -> matrix_compile_fun) list = 
   let rec target_compile_funs topt =
     match topt with
     | Some Target_ocaml -> [

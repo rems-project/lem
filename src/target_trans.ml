@@ -50,6 +50,7 @@ module Make(C : sig include Types.Global_defs end) =
 struct
 
   open Typed_ast
+  open Target
 
   module T = Trans.Macros(struct let d = C.d let i = C.i end)
   module M = Def_trans.Macros

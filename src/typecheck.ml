@@ -48,6 +48,7 @@ open Format
 open Types
 open Typed_ast
 open Typed_ast_syntax
+open Target
 
 let raise_error = Ident.raise_error
 let raise_error_string = Ident.raise_error_string

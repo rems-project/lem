@@ -44,12 +44,79 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
-open Types
+let r = Ulib.Text.of_latin1
 
-val check_defs : 
-  Target.Targetset.t ->
-  Name.t list ->
-  Typed_ast.env ->
-  Ast.defs ->
-  Typed_ast.env * Typed_ast.def list
+type target = 
+  | Target_hol
+  | Target_ocaml
+  | Target_isa
+  | Target_coq
+  | Target_tex
+  | Target_html
+
+let ast_target_to_target t = match t with
+  | Ast.Target_hol   _ -> Target_hol 
+  | Ast.Target_ocaml _ -> Target_ocaml 
+  | Ast.Target_isa   _ -> Target_isa
+  | Ast.Target_coq   _ -> Target_coq
+  | Ast.Target_tex   _ -> Target_tex
+  | Ast.Target_html  _ -> Target_html
+
+let target_to_ast_target t = match t with
+  | Target_hol   -> Ast.Target_hol None
+  | Target_ocaml -> Ast.Target_ocaml None
+  | Target_isa   -> Ast.Target_isa None
+  | Target_coq   -> Ast.Target_coq None
+  | Target_tex   -> Ast.Target_tex None
+  | Target_html  -> Ast.Target_html None
+
+let target_compare = Pervasives.compare
+
+module Targetmap = Finite_map.Dmap_map(
+struct 
+  type t = target
+  let compare = target_compare
+end)
+
+module Targetset = Set.Make(
+struct 
+  type t = target
+  let compare = target_compare
+end)
+
+let all_targets = 
+  List.fold_right Targetset.add 
+    [Target_hol; Target_ocaml; Target_isa; Target_coq; Target_tex; Target_html] 
+    Targetset.empty
+
+let target_to_string = function
+  | Target_hol -> "hol"
+  | Target_ocaml -> "ocaml"
+  | Target_isa -> "isabelle"
+  | Target_coq -> "coq"
+  | Target_tex -> "tex"
+  | Target_html -> "html"
+
+let target_opt_to_string = function
+  | None -> "ident"
+  | Some t -> target_to_string t
+
+let target_to_output a t = 
+  let open Output in
+    match t with
+      | Ast.Target_hol(s) -> ws s ^ id a (r"hol")
+      | Ast.Target_ocaml(s) -> ws s ^ id a (r"ocaml")
+      | Ast.Target_isa(s) -> ws s ^ id a (r"isabelle")
+      | Ast.Target_coq(s) -> ws s ^ id a (r"coq")
+      | Ast.Target_tex(s) -> ws s ^ id a (r"tex")
+      | Ast.Target_html(s) -> ws s ^ id a (r"html")
+
+let target_to_mname = function
+  | Target_hol -> Name.from_rope (r"Hol")
+  | Target_ocaml -> Name.from_rope (r"Ocaml")
+  | Target_isa -> Name.from_rope (r"Isabelle")
+  | Target_coq -> Name.from_rope (r"Coq")
+  | Target_tex -> Name.from_rope (r"Tex")
+  | Target_html -> Name.from_rope (r"Html")
+
 

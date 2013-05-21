@@ -44,12 +44,26 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
-open Types
+type target = 
+  | Target_hol
+  | Target_ocaml
+  | Target_isa
+  | Target_coq
+  | Target_tex
+  | Target_html
 
-val check_defs : 
-  Target.Targetset.t ->
-  Name.t list ->
-  Typed_ast.env ->
-  Ast.defs ->
-  Typed_ast.env * Typed_ast.def list
+val ast_target_to_target : Ast.target -> target
+val target_to_ast_target : target -> Ast.target
+val target_compare : target -> target -> int
 
+(** target keyed finite maps *)
+module Targetmap : Finite_map.Dmap with type k = target
+module Targetset : Set.S with type elt = target
+
+(** The set of all the possible targets *)
+val all_targets : Targetset.t
+
+val target_to_string : target -> string
+val target_opt_to_string : target option -> string
+val target_to_output : Output.id_annot -> Ast.target -> Output.t
+val target_to_mname : target -> Name.t

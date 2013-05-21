@@ -45,6 +45,7 @@
 (**************************************************************************)
 
 open Typed_ast
+open Target
 
 val parse_file : string -> Ast.defs * Ast.lex_skips
 

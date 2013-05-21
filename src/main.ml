@@ -64,28 +64,28 @@ let options = Arg.align ([
     Arg.String (fun l -> lib := l::!lib),
     " treat the file as input only and generate no output for it");
   ( "-tex", 
-    Arg.Unit (fun b -> if not (List.mem (Some(Typed_ast.Target_tex)) !backends) then
-                backends := Some(Typed_ast.Target_tex)::!backends),
+    Arg.Unit (fun b -> if not (List.mem (Some(Target.Target_tex)) !backends) then
+                backends := Some(Target.Target_tex)::!backends),
     " generate LaTeX");
   ( "-html", 
-    Arg.Unit (fun b -> if not (List.mem (Some(Typed_ast.Target_html)) !backends) then
-                backends := Some(Typed_ast.Target_html)::!backends),
+    Arg.Unit (fun b -> if not (List.mem (Some(Target.Target_html)) !backends) then
+                backends := Some(Target.Target_html)::!backends),
     " generate Html");
   ( "-hol", 
-    Arg.Unit (fun b -> if not (List.mem (Some(Typed_ast.Target_hol)) !backends) then
-                backends := Some(Typed_ast.Target_hol)::!backends),
+    Arg.Unit (fun b -> if not (List.mem (Some(Target.Target_hol)) !backends) then
+                backends := Some(Target.Target_hol)::!backends),
     " generate HOL");
   ( "-ocaml", 
-    Arg.Unit (fun b -> if not (List.mem (Some(Typed_ast.Target_ocaml)) !backends) then
-                backends := Some(Typed_ast.Target_ocaml)::!backends),
+    Arg.Unit (fun b -> if not (List.mem (Some(Target.Target_ocaml)) !backends) then
+                backends := Some(Target.Target_ocaml)::!backends),
     " generate OCaml");
   ( "-isa",
-    Arg.Unit (fun b -> if not (List.mem (Some(Typed_ast.Target_isa)) !backends) then
-                backends := Some(Typed_ast.Target_isa)::!backends),
+    Arg.Unit (fun b -> if not (List.mem (Some(Target.Target_isa)) !backends) then
+                backends := Some(Target.Target_isa)::!backends),
     " generate Isabelle");
   ( "-coq",
-    Arg.Unit (fun b -> if not (List.mem (Some(Typed_ast.Target_coq)) !backends) then
-                backends := Some(Typed_ast.Target_coq)::!backends),
+    Arg.Unit (fun b -> if not (List.mem (Some(Target.Target_coq)) !backends) then
+                backends := Some(Target.Target_coq)::!backends),
     " generate Coq");
   ( "-ident",
     Arg.Unit (fun b -> if not (List.mem None !backends) then
@@ -251,10 +251,10 @@ let main () =
             I.init
   in
   (* TODO: These should go into the sets of top-level constant names *)
-  let init = List.fold_right (Initial_env.add_to_init Typed_ast.Target_hol) !hol_lib init in
-  let init = List.fold_right (Initial_env.add_to_init Typed_ast.Target_ocaml) !ocaml_lib init in
-  let init = List.fold_right (Initial_env.add_to_init Typed_ast.Target_isa) !isa_lib init in
-  let init = List.fold_right (Initial_env.add_to_init Typed_ast.Target_coq) !coq_lib init in
+  let init = List.fold_right (Initial_env.add_to_init Target.Target_hol) !hol_lib init in
+  let init = List.fold_right (Initial_env.add_to_init Target.Target_ocaml) !ocaml_lib init in
+  let init = List.fold_right (Initial_env.add_to_init Target.Target_isa) !isa_lib init in
+  let init = List.fold_right (Initial_env.add_to_init Target.Target_coq) !coq_lib init in
 
   let consts = 
     List.map
@@ -280,11 +280,11 @@ let main () =
              (fun x s ->
                 match x with
                   | None -> s
-                  | Some(Typed_ast.Target_tex) -> s
-                  | Some(Typed_ast.Target_html) -> s
-                  | Some(t) -> Typed_ast.Targetset.add t s)
+                  | Some(Target.Target_tex) -> s
+                  | Some(Target.Target_html) -> s
+                  | Some(t) -> Target.Targetset.add t s)
              !backends
-             Typed_ast.Targetset.empty 
+             Target.Targetset.empty 
          in
          let (new_env,tast) = check_ast backend_set [mod_name_name] env ast in
 
@@ -327,7 +327,7 @@ let main () =
   let alldoc_inc_accum = ref ([] : Ulib.Text.t list) in
   let alldoc_inc_usage_accum = ref ([] : Ulib.Text.t list) in
     ignore (List.iter (per_target lib_path isa_thy (List.rev modules) type_info consts alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum) !backends);
-    (if List.mem (Some(Typed_ast.Target_tex)) !backends then 
+    (if List.mem (Some(Target.Target_tex)) !backends then 
        output_alldoc "alldoc" (String.concat " " !opt_file_arguments) alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum)
 
 let _ = 

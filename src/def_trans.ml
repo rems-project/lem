@@ -46,6 +46,7 @@
 
 open Typed_ast
 open Typed_ast_syntax
+open Target
 type def_macro = Name.t list -> env -> def -> (env * def list) option
 
 let r = Ulib.Text.of_latin1

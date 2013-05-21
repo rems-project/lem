@@ -46,6 +46,7 @@
 
 open Typed_ast
 open Types
+open Target
 open Process_file
 
 let (^^) = Filename.concat
@@ -94,7 +95,7 @@ let read_constants file =
   in f()
 
 type t = 
-    Typed_ast.env * (Typed_ast.target option * Ulib.Text.t list) list
+    Typed_ast.env * (Target.target option * Ulib.Text.t list) list
 
 let filename_to_mod file =
   Ulib.Text.of_latin1 (String.capitalize (Filename.basename (Filename.chop_extension file))) 

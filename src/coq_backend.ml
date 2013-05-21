@@ -50,6 +50,7 @@ open Backend_common
 open Output
 open Typed_ast
 open Typed_ast_syntax
+open Target
 
 let print_and_fail l s =
   raise (Reporting_basic.err_general true l s)
@@ -760,7 +761,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
           emp
         else
           combine [from_string "{"; flat tyvars; from_string " : Type}"]
-    and coq_function_application_to_output id args = function_application_to_output (Some Typed_ast.Target_coq)
+    and coq_function_application_to_output id args = function_application_to_output (Some Target.Target_coq)
            (Ident.to_output coq_infix_op Term_const path_sep) exp A.env id args
     and exp e =
       let is_user_exp = Typed_ast_syntax.is_trans_exp e in

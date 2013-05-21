@@ -80,7 +80,7 @@ open Backend_common
 open Typed_ast
 open Typed_ast_syntax
 open Output
-
+open Target
 
 let gen_extra_level = ref 3
 
@@ -1269,7 +1269,7 @@ let lit l t = match l.term with
   | L_one(s) -> ws s ^ T.const_bone
   | L_vector(s,p,b) -> ws s ^ kwd (String.concat "" [p;b])
 
-let typ_ident_to_output p =     
+let typ_ident_to_output (p : Path.t id) =     
   Ident.to_output T.infix_op_format Type_ctor T.path_sep (resolve_ident_path p p.descr)
 
 let nexp n =

@@ -376,13 +376,18 @@ type constr_family_descr = {
    (** the case split function for this constructor list, [None] means that pattern matching is used. *)
 }
 
+type type_target_rep =
+  | TR_dummy
+
 type type_descr = { 
   type_tparams : tnvar list;
   type_abbrev : t option;
   type_varname_regexp : string option;
   type_fields : (const_descr_ref list) option;
-  type_constr : constr_family_descr list
+  type_constr : constr_family_descr list;
+(*  target_rep : type_target_rep Target.Targetmap.t  *)
 }
+
 
 type tc_def = 
   | Tc_type of type_descr

@@ -68,30 +68,6 @@ val space : lskips
 (** Get only the comments (and a trailing space) *)
 val lskips_only_comments : lskips list -> lskips
 
-type target = 
-  | Target_hol
-  | Target_ocaml
-  | Target_isa
-  | Target_coq
-  | Target_tex
-  | Target_html
-
-val ast_target_to_target : Ast.target -> target
-val target_to_ast_target : target -> Ast.target
-val target_compare : target -> target -> int
-
-(** target keyed finite maps *)
-module Targetmap : Finite_map.Dmap with type k = target
-module Targetset : Set.S with type elt = target
-
-(** The set of all the possible targets *)
-val all_targets : Targetset.t
-
-val target_to_string : target -> string
-val target_opt_to_string : target option -> string
-val target_to_output : Output.id_annot -> Ast.target -> Output.t
-val target_to_mname : target -> Name.t
-
 (** What kind of top-level definition a particular constant is *)
 type env_tag = 
   | K_method   (** A class method *)
@@ -100,7 +76,7 @@ type env_tag =
   | K_constr (** A type constructor *)
   | K_val  (** A val specification that has no definitions *)
   | K_let   (** A let definition with no target specific definitions or val spec *)
-  | K_target of bool * Targetset.t
+  | K_target of bool * Target.Targetset.t
       (** A definition that also has a val specification. There is a target-specific
           definition for each target in the set, and the bool is true if there is a
           target non-specific definition *)
@@ -231,7 +207,7 @@ and const_descr =
     (** The location for the first occurrence of a definition/specification of
         this constant *)
 
-    target_rep : const_target_rep Targetmap.t; 
+    target_rep : const_target_rep Target.Targetmap.t; 
     (** Target-specific representation of for this constant *)
   }
 
@@ -554,10 +530,10 @@ end
 
 val local_env_union : local_env -> local_env -> local_env
 val delimit_pat : Precedence.pat_context -> pat -> pat
-val get_new_constants_types : target option -> checked_module list -> Ast.l Nfmap.t * Ast.l Nfmap.t
+val get_new_constants_types : Target.target option -> checked_module list -> Ast.l Nfmap.t * Ast.l Nfmap.t
 
 exception Renaming_error of Ast.l * string
-val get_renames_of_defs : target option -> (Path.t * ( Ast.l * Path.t)) list -> def list -> (Path.t * ( Ast.l * Path.t)) list
+val get_renames_of_defs : Target.target option -> (Path.t * ( Ast.l * Path.t)) list -> def list -> (Path.t * ( Ast.l * Path.t)) list
 
 type name_kind =
   | Nk_typeconstr

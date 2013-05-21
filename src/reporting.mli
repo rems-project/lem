@@ -63,7 +63,7 @@ type warning =
   | Warn_general of bool * Ast.l * string
     (** [Warn_general vl ls m] is a general warning with message [m], locations [ls] and a flag [vl] whether to print these locations verbosely. *)
 
-  | Warn_rename of Ast.l * string * (string * Ast.l) option * string * Typed_ast.target option 
+  | Warn_rename of Ast.l * string * (string * Ast.l) option * string * Target.target option 
     (** Warning about renaming an identifier. The arguments are the old name, an optional intermediate one, the new name and the target *)
 
   | Warn_pattern_compilation_failed of Ast.l * Typed_ast.pat list * warn_source 
@@ -81,13 +81,13 @@ type warning =
   | Warn_def_redundant of Ast.l * string * (int * Typed_ast.pat) list * Typed_ast.def 
     (** redundant patterns in function definition *)
 
-  | Warn_pattern_needs_compilation of Ast.l * Typed_ast.target option * Typed_ast.exp * Typed_ast.exp 
+  | Warn_pattern_needs_compilation of Ast.l * Target.target option * Typed_ast.exp * Typed_ast.exp 
     (** [Warn_pattern_needs_compilation l topt old_e new_e] warns about the compilation of [old_e] to [new_e] for target [topt] *)
 
   | Warn_unused_vars of Ast.l * string list * warn_source 
     (** unused variables detected *)
 
-  | Warn_fun_clauses_resorted of Ast.l * Typed_ast.target option * string list * Typed_ast.def 
+  | Warn_fun_clauses_resorted of Ast.l * Target.target option * string list * Typed_ast.def 
     (** clauses of mutually recursive function definitions resorted *)
 
   | Warn_record_resorted of Ast.l * Typed_ast.exp

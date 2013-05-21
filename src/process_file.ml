@@ -69,7 +69,7 @@ let parse_file (f : string) : (Ast.defs * Ast.lex_skips) =
 
 type instances = Types.instance list Types.Pfmap.t
 
-let check_ast (ts : Typed_ast.Targetset.t) (mod_path : Name.t list) 
+let check_ast (ts : Target.Targetset.t) (mod_path : Name.t list) 
       (env : Typed_ast.env)
       (ast, end_lex_skips)
       : Typed_ast.env * (Typed_ast.def list * Ast.lex_skips) =
@@ -80,7 +80,7 @@ let check_ast (ts : Typed_ast.Targetset.t) (mod_path : Name.t list)
     | Ident.No_type(l,m) ->
         raise (Reporting_basic.Fatal_error (Reporting_basic.Err_type (l, m)))
 
-let check_ast_as_module (ts : Typed_ast.Targetset.t) (mod_path : Name.t list)
+let check_ast_as_module (ts : Target.Targetset.t) (mod_path : Name.t list)
       (e : Typed_ast.env) 
       (mod_name : Ulib.Text.t) (ast, end_lex_skips)
       : Typed_ast.env * (Typed_ast.def list * Ast.lex_skips) =
@@ -155,7 +155,7 @@ let output1 env libpath isa_thy targ avoid m alldoc_accum alldoc_inc_accum alldo
       | None ->
           let r = B.ident_defs m.typed_ast in
             Printf.printf "%s" (Ulib.Text.to_string r)
-      | Some(Typed_ast.Target_html) -> 
+      | Some(Target.Target_html) -> 
           begin
             let r = B.html_defs m.typed_ast in
             let (o, ext_o) = open_output_with_check (f' ^ ".html") in
@@ -165,7 +165,7 @@ let output1 env libpath isa_thy targ avoid m alldoc_accum alldoc_inc_accum alldo
               Printf.fprintf o "%s" html_postamble;
               close_output_with_check ext_o
           end
-      | Some(Typed_ast.Target_hol) ->
+      | Some(Target.Target_hol) ->
           begin
             let (r_main, r_extra_opt) = B.hol_defs m.typed_ast in
             let hol_header o = begin
@@ -207,7 +207,7 @@ let output1 env libpath isa_thy targ avoid m alldoc_accum alldoc_inc_accum alldo
                 close_output_with_check ext_o
               end in ()
           end
-      | Some(Typed_ast.Target_tex) -> 
+      | Some(Target.Target_tex) -> 
           begin
             let rr = B.tex_defs m.typed_ast in
             (* complete tex document, wrapped in tex_preamble and tex_postamble *)
@@ -235,7 +235,7 @@ let output1 env libpath isa_thy targ avoid m alldoc_accum alldoc_inc_accum alldo
                     Printf.fprintf o "%s" (Ulib.Text.to_string r_usage);
                     close_output_with_check ext_o
           end
-      | Some(Typed_ast.Target_ocaml) -> 
+      | Some(Target.Target_ocaml) -> 
           begin
             let (r_main, r_extra_opt) = B.ocaml_defs m.typed_ast in
             let _ = begin
@@ -261,7 +261,7 @@ let output1 env libpath isa_thy targ avoid m alldoc_accum alldoc_inc_accum alldo
                 close_output_with_check ext_o
              end in ()
           end
-      | Some(Typed_ast.Target_isa) -> 
+      | Some(Target.Target_isa) -> 
           begin
           try begin
             let (r_main, r_extra_opt) = B.isa_defs m.typed_ast in
@@ -308,7 +308,7 @@ let output1 env libpath isa_thy targ avoid m alldoc_accum alldoc_inc_accum alldo
                     raise (Reporting_basic.Fatal_error (Reporting_basic.Err_trans_header (l, msg)))
           end
 
-      | Some(Typed_ast.Target_coq) -> 
+      | Some(Target.Target_coq) -> 
           begin
             let r = B.coq_defs m.typed_ast in
             let (o, ext_o) = open_output_with_check (f' ^ ".v") in
