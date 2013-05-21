@@ -1092,7 +1092,7 @@ module Constraint (T : Global_defs) : Constraint = struct
  *)
 
   let add_constraint p t =
-    let _ = fprintf std_formatter "adding constraint %a@ \n" pp_instance_constraint (p,t) in 
+(*  let _ = fprintf std_formatter "adding constraint %a@ \n" pp_instance_constraint (p,t) in *)
     class_constraints := (p,t) :: (!class_constraints)
 
   let cur_tyvar = ref 0
@@ -1407,7 +1407,6 @@ module Constraint (T : Global_defs) : Constraint = struct
   let rec solve_constraints instances (unsolvable : PTset.t)= function
     | [] -> unsolvable 
     | (p,t) :: constraints ->
-        let _ = Format.printf "solve\n %a \n\n" pp_instance_defs instances in
         match get_matching_instance T.d (p,t) instances with
           | None ->
               solve_constraints instances (PTset.add (p,t) unsolvable) constraints

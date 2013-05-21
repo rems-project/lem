@@ -2363,7 +2363,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let (new_ctxt,ds) = 
             check_defs backend_targets (mod_path @ [Name.strip_lskip n]) ctxt1 defs 
           in
-          let ctxt2 = {new_ctxt with new_defs = ctxt.new_defs }
+          let ctxt2 = {new_ctxt with new_defs = ctxt.new_defs; cur_env = ctxt.cur_env }
           in
             (add_m_to_ctxt l' ctxt2 n { mod_binding = Path.mk_path mod_path n'; mod_env = new_ctxt.new_defs },
              Module(sk1,(n,l'),sk2,sk3,ds,sk4))
