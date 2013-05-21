@@ -150,16 +150,16 @@ type tc_def =
 
 type type_defs = tc_def Pfmap.t
 
-(** [type_defs_update_fields d p fl] updates the fields of type [p] in [d]. *)
-val type_defs_update_fields : type_defs -> Path.t -> const_descr_ref list -> type_defs
+(** [type_defs_update_fields l d p fl] updates the fields of type [p] in [d]. *)
+val type_defs_update_fields : Ast.l -> type_defs -> Path.t -> const_descr_ref list -> type_defs
 
-val type_defs_add_constr_family : type_defs -> Path.t -> constr_family_descr -> type_defs
+val type_defs_add_constr_family : Ast.l -> type_defs -> Path.t -> constr_family_descr -> type_defs
 
 (** [type_defs_get_constr_families d t c] gets all constructor family descriptions for type [t] in
     type environment [d], which contain the constant [c]. *)
-val type_defs_get_constr_families : type_defs -> t -> const_descr_ref -> constr_family_descr list
+val type_defs_get_constr_families : Ast.l -> type_defs -> t -> const_descr_ref -> constr_family_descr list
 
-val type_defs_lookup : type_defs -> t -> type_descr option
+val type_defs_lookup : Ast.l -> type_defs -> t -> type_descr option
 
 
 
@@ -221,6 +221,7 @@ val pp_nexp : Format.formatter -> nexp -> unit
 val pp_range : Format.formatter -> range -> unit
 val pp_class_constraint : Format.formatter -> Path.t * tnvar -> unit
 val pp_instance : Format.formatter -> instance -> unit
+val pp_instance_defs: Format.formatter -> (instance list) Pfmap.t -> unit
 
 val t_to_string : t -> string
 

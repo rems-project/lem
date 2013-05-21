@@ -360,6 +360,16 @@ module type Expr_checker = sig
     typ_constraints
 end
 
+let unsat_constraint_err l = function
+  | [] -> ()
+  | cs ->
+      let t1 = 
+        Pp.pp_to_string 
+          (fun ppf -> 
+             (Pp.lst "@\nand@\n" pp_class_constraint) ppf cs)
+      in
+        raise (Ident.No_type(l, "unsatisfied type class constraints:\n" ^ t1))
+
 module Make_checker(T : sig 
                       (* The backend targets that each identifier use must be
                        * defined for *)
@@ -373,7 +383,7 @@ module Make_checker(T : sig
 
   module C = Constraint(T)
   module A = Exps_in_context(struct let env_opt = None let avoid = None end)
-          
+
   (* An identifier instantiated to fresh type variables *)
   let make_new_id ((id : Ident.t), l) (tvs : Types.tnvar list) (descr : 'a) : 'a id =
     let ts_inst = List.map (fun v -> match v with | Ty _ -> C.new_type () | Nv _ -> {t = Tne(C.new_nexp ())}) tvs in
@@ -430,12 +440,11 @@ module Make_checker(T : sig
    * also calculates its type.  Corresponds to judgment inst_val 'Delta,E |- val
    * id : t gives Sigma', except that that also looks up the descriptor. Moreover,
    * it computes the number of arguments this constant expects *)
-  let inst_const id_l (env : env) (c : const_descr_ref) : const_descr_ref id * t * int * Types.t =
+  let inst_const id_l (env : env) (c : const_descr_ref) : const_descr_ref id * t =
     let cd = c_env_lookup (snd id_l) env.c_env c in
     let new_id = make_new_id id_l cd.const_tparams c in
     let subst = TNfmap.from_list2 cd.const_tparams new_id.instantiation in
     let t = type_subst subst cd.const_type in
-    let (arg_ts, base_t) = Types.strip_fn_type env.t_env cd.const_type in
     let a = C.new_type () in
       C.equate_types new_id.id_locn "constant use" a t;
       List.iter 
@@ -444,8 +453,8 @@ module Make_checker(T : sig
         cd.const_class;
       List.iter
          (fun r -> C.add_length_constraint (range_with r (nexp_subst subst (range_of_n r)))) 
-         cd.const_ranges; 
-      (new_id, a, List.length arg_ts, base_t)
+         cd.const_ranges;
+      (new_id, a)
 
   let add_binding (pat_e : pat_env) ((v : Name.lskips_t), (l : Ast.l)) (t : t) 
         : pat_env =
@@ -495,17 +504,20 @@ module Make_checker(T : sig
                       (* i is bound to a constructor that is not lexically
                        * shadowed, this corresponds to the
                        * check_pat_aux_ident_constr case *)
-                      let (id,t,num_args,base_t) = inst_const (id_to_identl i) T.e c in
-                      let is_constr = (List.length (type_defs_get_constr_families T.d base_t c) > 0) in
+
+                      let cd = c_env_lookup (snd (id_to_identl i)) T.e.c_env c in
+                      let (arg_ts, base_t) = Types.strip_fn_type T.e.t_env cd.const_type in
+                      let is_constr = (List.length (type_defs_get_constr_families l' T.d base_t c) > 0) in
                       let (pats,pat_e) = check_pats l_e acc ps in
-                        if (List.length pats <> num_args) || (not is_constr) then (
+                        if (List.length pats <> List.length arg_ts) || (not is_constr) then (
                           if (List.length pats == 0) then (*handle as var*) None else
                           raise_error l' 
                             (Printf.sprintf "constructor pattern expected %d arguments, given %d"
-                               num_args
+                               (List.length arg_ts)
                                (List.length pats))
                             Ident.pp (Ident.from_id i)
                         ) else (
+                          let (id,t) = inst_const (id_to_identl i) T.e c in
                           C.equate_types l'' "constructor pattern" t 
                             (multi_fun (List.map annot_to_typ pats) ret_type);
                           Some (A.mk_pconst l id pats rt, pat_e)
@@ -760,7 +772,7 @@ module Make_checker(T : sig
                             else
                               ()
                   end;
-                  let (id,t,_,_) = inst_const (Ident.mk_ident mp'' n l, l) T.e c in
+                  let (id,t) = inst_const (Ident.mk_ident mp'' n l, l) T.e c in
                     C.equate_types l "top-level binding use" t (C.new_type());
                     A.mk_const l id (Some(t))
 
@@ -1222,6 +1234,7 @@ module Make_checker(T : sig
     (exp,Tconstraints(tnvars,constraints,length_constraints))
 
   let check_constraint_subset l cs1 cs2 = 
+    let l  = Ast.Trans ("check_constraint_subset", Some l) in
     unsat_constraint_err l
       (List.filter
          (fun (p,tv) ->
@@ -1331,7 +1344,7 @@ module Make_checker(T : sig
                    Name.pp n)
       def_env;
     let Tconstraints(tnvars, constraints,l_constraints) = C.inst_leftover_uvars l in
-      unsat_constraint_err l constraints;
+      unsat_constraint_err (Ast.Trans ("apply_specs_for_method", Some l)) constraints;
       Tconstraints(tnvars, [], l_constraints)
 
   let apply_specs for_method (def_targets : Targetset.t option) l env = 
@@ -1854,7 +1867,7 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
               context
               (Seplist.map (fun (x,y,src_t) -> (x,y,src_t.typ)) recs)
           in
-          let ctxt = {ctxt with all_tdefs = type_defs_update_fields ctxt.all_tdefs type_path field_refs} in 
+          let ctxt = {ctxt with all_tdefs = type_defs_update_fields l ctxt.all_tdefs type_path field_refs} in 
             (((tn,l), tnvs, Te_record(sk3,sk1',recs,sk3'), regexp), ctxt)
       | Some(sk3, Ast.Te_variant(sk_init_bar,bar,ntyps)) ->
           let ntyps = Seplist.from_list_prefix sk_init_bar bar ntyps in
@@ -1876,7 +1889,7 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
               ntyps
           in
           let constr_family = {constr_list = cl; constr_case_fun = None} in
-          let ctxt = {ctxt with all_tdefs = type_defs_add_constr_family ctxt.all_tdefs type_path constr_family} in 
+          let ctxt = {ctxt with all_tdefs = type_defs_add_constr_family l ctxt.all_tdefs type_path constr_family} in 
             (((tn,l),tnvs, Te_variant(sk3,vars), regexp), ctxt)
   end;;
 
@@ -2298,8 +2311,8 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let (e_v,vd,Tconstraints(tnvs,constraints,lconstraints), env_tag) = 
             check_val_def backend_targets None l ctxt 
               (Ast.Let_def(sk1,target_opt,lb))
-          in 
-          let _ = unsat_constraint_err l constraints in
+          in          
+          let _ = unsat_constraint_err (Ast.Trans ("check_def - val_def", Some l)) constraints in
           let (sk1,sk2,target_opt,n,args,sk3,et) = 
             match vd with
               | Let_def(sk1, target_opt, (Let_val(p,src_t,sk3,e),l)) ->
@@ -2445,14 +2458,14 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let tparams = [tnvar'] in
           let tparams_t = List.map tnvar_to_type tparams in
           let type_path = Path.mk_path mod_path (Name.strip_lskip dict_type_name) in
-          let (field_refs, ctxt''') =
+          let (_, ctxt''') =
             add_record_to_ctxt 
               (fun fname l t ->
                  { const_binding = Path.mk_path mod_path fname;
                    const_tparams = tparams;
                    const_class = [];
                    const_ranges = [];
-                   const_type = { t = Tfn (t, { t = Tapp (tparams_t, type_path) }) };
+                   const_type = { t = Tfn ({ t = Tapp (tparams_t, type_path) }, t) };
                    spec_l = l;
                    env_tag = K_field;
                    target_rep = Targetmap.empty })
@@ -2462,7 +2475,6 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                                        (((Name.add_lskip (build_field_name n),l), None, t),None)) 
                                     methods))
           in
-          let ctxt''' = {ctxt with all_tdefs = type_defs_update_fields ctxt.all_tdefs type_path field_refs} in 
           (add_d_to_ctxt ctxt''' p 
              (Tc_class(tnvar', List.map (fun ((n,l), t) -> (n,t)) methods)),
            Class(sk1,sk2,(cn,l'),tnvar, sk4,List.rev vspecs, sk5))
@@ -2566,7 +2578,6 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
               inst_constraints = sem_cs;
               inst_methods = methods; }
           in
-            (*Format.fprintf Format.std_formatter "%a@\n" pp_env { empty_env with v_env = env};*)
             (add_instance_to_ctxt ctxt p (tyvars, sem_cs, src_t.typ, instance_path),
              Instance(sk1,(src_cs,sk2,Ident.from_id id, src_t, sk3), List.rev vdefs, sk4, 
                       sem_info))

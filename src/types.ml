@@ -406,34 +406,43 @@ let mk_tc_type vars reg = Tc_type {
 
 type type_defs = tc_def Pfmap.t
 
-let type_defs_update_tc_type (d : type_defs) (p : Path.t) (up : type_descr -> type_descr) : type_defs =
+let env_no_type_exp l p = 
+  let _ = Format.flush_str_formatter() in
+  let _ = Format.fprintf Format.str_formatter "environment does not contain type '%a'!" Path.pp p in
+  let m = Format.flush_str_formatter() in
+  Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, m))
+
+let type_defs_update_tc_type (l : Ast.l) (d : type_defs) (p : Path.t) (up : type_descr -> type_descr) : type_defs =
 begin
+  let l = Ast.Trans ("type_defs_update_tc_type", Some l) in
   let td = match (Pfmap.apply d p) with
     | Some (Tc_type td) -> td
-    | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(Ast.Unknown, "env did not contain type!")))
+    | _ -> raise (env_no_type_exp l p)
   in
   let td' = up td in
   Pfmap.insert d (p, Tc_type td')
 end
 
-let type_defs_update_fields (d : type_defs) (p : Path.t) (fl : const_descr_ref list) : type_defs =
-  type_defs_update_tc_type d p (fun tc -> {tc with type_fields = Some fl})
+let type_defs_update_fields l (d : type_defs) (p : Path.t) (fl : const_descr_ref list) : type_defs =
+  let l = Ast.Trans ("type_defs_update_fields", Some l) in
+  type_defs_update_tc_type l d p (fun tc -> {tc with type_fields = Some fl})
 
-let type_defs_add_constr_family (d : type_defs) (p : Path.t) (cf : constr_family_descr) : type_defs =
-  type_defs_update_tc_type d p (fun tc -> {tc with type_constr = cf :: tc.type_constr})
+let type_defs_add_constr_family l (d : type_defs) (p : Path.t) (cf : constr_family_descr) : type_defs =
+  let l = Ast.Trans ("type_defs_add_constr_family", Some l) in
+  type_defs_update_tc_type l d p (fun tc -> {tc with type_constr = cf :: tc.type_constr})
 
-let type_defs_lookup (d : type_defs) (t : t) =
-    let l = Ast.Trans ("type_defs_lookup", None) in
+let type_defs_lookup l (d : type_defs) (t : t) =
+    let l = Ast.Trans ("type_defs_lookup", Some l) in
     match t with 
       | { t = Tapp(_, p) } -> begin
           match (Pfmap.apply d p) with
             | Some (Tc_type td) -> Some td
-            | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "env did not contain type!")))
+            | _ -> raise (env_no_type_exp l p)
         end  
       | _ -> None
 
-let type_defs_get_constr_families (d : type_defs) (t : t) (c : const_descr_ref) : constr_family_descr list =
-  match type_defs_lookup d t with 
+let type_defs_get_constr_families l (d : type_defs) (t : t) (c : const_descr_ref) : constr_family_descr list =
+  match type_defs_lookup l d t with 
     | None -> []
     | Some td -> List.filter (fun fs -> List.mem c fs.constr_list) td.type_constr
 
@@ -531,6 +540,9 @@ let pp_instance ppf (tyvars, constraints, t, p) =
     (lst "@ " pp_class_constraint) constraints
     pp_type t
     (lst "." Name.pp) p
+
+let pp_instance_defs ppf ipf =
+  Pfmap.pp_map Path.pp (lst ",@," pp_instance) ppf ipf
 
 let t_to_string t =
   pp_to_string (fun ppf -> pp_type ppf t)
@@ -1080,6 +1092,7 @@ module Constraint (T : Global_defs) : Constraint = struct
  *)
 
   let add_constraint p t =
+    let _ = fprintf std_formatter "adding constraint %a@ \n" pp_instance_constraint (p,t) in 
     class_constraints := (p,t) :: (!class_constraints)
 
   let cur_tyvar = ref 0
@@ -1394,6 +1407,7 @@ module Constraint (T : Global_defs) : Constraint = struct
   let rec solve_constraints instances (unsolvable : PTset.t)= function
     | [] -> unsolvable 
     | (p,t) :: constraints ->
+        let _ = Format.printf "solve\n %a \n\n" pp_instance_defs instances in
         match get_matching_instance T.d (p,t) instances with
           | None ->
               solve_constraints instances (PTset.add (p,t) unsolvable) constraints

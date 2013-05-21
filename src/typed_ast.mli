@@ -452,7 +452,6 @@ val nexp_alter_init_lskips : (lskips -> lskips * lskips) -> src_nexp -> src_nexp
 val pat_alter_init_lskips : (lskips -> lskips * lskips) -> pat -> pat * lskips
 val def_alter_init_lskips : (lskips -> lskips * lskips) -> def -> def * lskips
 
-val unsat_constraint_err : Ast.l -> (Path.t * Types.tnvar) list -> unit
 val pp_const_descr : Format.formatter -> const_descr -> unit
 val pp_env : Format.formatter -> env -> unit
 val pp_c_env : Format.formatter -> c_env -> unit

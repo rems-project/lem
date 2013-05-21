@@ -736,16 +736,6 @@ let empty_sub = (TNfmap.empty, Nfmap.empty)
 open Pp
 open Format
 
-let unsat_constraint_err l = function
-  | [] -> ()
-  | cs ->
-      let t1 = 
-        Pp.pp_to_string 
-          (fun ppf -> 
-             (Pp.lst "@\nand@\n" pp_class_constraint) ppf cs)
-      in
-        raise (Ident.No_type(l, "unsatisfied type class constraints:\n" ^ t1))
-
 let pp_env_tag ppf tag = 
   match tag with
     | K_method -> Format.fprintf ppf "method"
