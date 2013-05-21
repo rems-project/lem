@@ -464,11 +464,6 @@ type
 inst =  (* A typeclass instance, t must not contain nested types *)
    Inst of semC * terminal * terminal * p * t * terminal
 
-
-type 
-s_N =  (* Nexp constraint lists *)
-   Concrete of terminal * (nec * terminal) list * terminal
-
 (** definitions *)
 (** definitions *)
 (** definitions *)

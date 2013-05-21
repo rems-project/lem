@@ -97,6 +97,7 @@ type terminal = lex_skips
 embed
 {{ lem
 open Pmap
+open Pervasives
 
 type l =
   | Unknown
@@ -116,7 +117,6 @@ let disjoint s1 s2 =
   let diff = s1 inter s2 in
   diff = Pervasives.empty
 
-
 val disjoint_all : forall 'a. list (set 'a) -> bool
 let rec disjoint_all ls = match ls with
   | [] -> true
@@ -125,6 +125,12 @@ let rec disjoint_all ls = match ls with
 end
 
 val duplicates : forall 'a. list 'a -> list 'a
+
+val union_map : forall 'a 'b. map 'a 'b -> map 'a 'b -> map 'a 'b
+
+val set_from_list : forall 'a. list 'a -> set 'a
+
+val subst : forall 'a. list 'a -> list 'a -> bool
 
 }}
 
@@ -393,7 +399,7 @@ grammar
 
 bar_opt {{ tex \ottkw{|}^{?} }} :: 'bar_' ::=		{{ phantom }}
 							{{ ocaml terminal * bool }}
-							{{ lem terminal * bool }}
+							{{ lem (terminal * bool) }}
 							{{ hol bool }}
   {{ com Optional bars }}
   |  							:: :: no
@@ -572,7 +578,7 @@ grammar
 
 typs :: '' ::=						{{ phantom }}
 							{{ ocaml (typ * terminal) list }}
-							{{ lem list (typ * terminal) }}
+							{{ lem list typ }}
 							{{ hol typ list }}
   {{ com Type lists }}
   | typ1 * ... * typn					:: :: Typs
@@ -728,7 +734,7 @@ def :: '' ::=
 
 semisemi_opt {{ tex \ottkw{;;}^? }} :: 'semisemi_' ::=		{{ phantom }}
 								{{ ocaml terminal * bool }}
-								{{ lem terminal * bool }}
+								{{ lem (terminal * bool) }}
 								{{ hol bool }}
   {{ com Optional double-semi-colon }}
   | 	 							:: :: no
@@ -798,7 +804,7 @@ t , u :: 'T_' ::=
     {{ com Curried, multiple argument functions }}
     {{ ocaml (assert false) }}
     {{ hol (FOLDR T_fn [[t]] [[t_multi]]) }}
-    {{ lem (List.fold_right T_fn [[t]] [[t_multi]]) }}
+    {{ lem (List.fold_right T_fn [[t_multi]] [[t]]) }}
 
 ne :: 'Ne_' ::=
   {{ com internal numeric expressions }}
@@ -871,6 +877,10 @@ embed
 
 val t_subst_t : list (tnv * t) -> t -> t 
 val t_subst_tnv : list (tnv * t) -> tnv -> t
+val ftv_t : t -> list tnv
+val ftv_tm : list t -> list tnv
+val ftv_s : list (p*tnv) -> list tnv
+val compatible_overlap : list (x*t) -> bool
 
 (*TODO Should this normalize following the implementation? And blength and hlength need a means of implementation*)
 let normalize n = n
@@ -895,7 +905,7 @@ names :: '' ::=					{{ phantom }}
   {{ com Sets of names }}
   | { x1 , .. , xn }				:: :: Names
     {{ hol (LIST_TO_SET [[x1..xn]]) }}
-    {{ lem (Set.from_list [[x1..xn]]) }}
+    {{ lem (set_from_list [[x1..xn]]) }}
 
 semC {{ tex \ensuremath{\mathcal{C} } }} :: '' ::=
 								{{ hol (p#tnv) list }}
@@ -947,6 +957,16 @@ val _ = Define `
 type env =
   | EnvEmp 
   | Env of (map x env) * (map x p) * (map x f_desc) * (map x v_desc)
+
+val env_union : env -> env -> env
+let env_union e1 e2 =
+  match (e1,e2) with
+   | (EnvEmp,e2) -> e2
+   | (e1,EnvEmp) -> e1
+   | ((Env Em1 Ep1 Ef1 Ev1),(Env Em2 Ep2 Ef2 Ev2)) ->
+     Env(union_map Em1 Em2) (union_map Ep1 Ep2) (union_map Ef1 Ef2) (union_map Ev1 Ev2)
+end
+
 }}
 
 grammar
@@ -970,9 +990,13 @@ S_c {{ tex {\ensuremath{ {\Sigma}^{\mathcal{C} } } } }} :: '' ::=			{{ phantom }
     {{ lem (List.flatten [[S_c1..S_cn]]) }}
     {{ ocaml assert false }}
 
-S_N {{ tex { \ensuremath{ {\Sigma}^{\mathcal{N} } } } }} :: '' ::=
+S_N {{ tex { \ensuremath{ {\Sigma}^{\mathcal{N} } } } }} :: '' ::= {{ phantom }}
+                                                                   {{ hol nec list }}
+                                                                   {{ lem list nec }}
    {{ com Nexp constraint lists }}
-   | { nec1 , .. ,  necn }				:: :: concrete
+   | { nec1 , .. ,  necn }				:: :: Sn_concrete
+     {{ hol [[nec1 .. necn]] }}
+     {{ lem [[nec1 .. necn]] }}
    | S_N1 union .. union S_Nn			:: M :: SN_union
      {{ hol (FLAT [[S_N1..S_Nn]]) }}
      {{ lem (List.flatten [[S_N1..S_Nn]]) }}
@@ -988,7 +1012,7 @@ E :: '' ::=							{{ phantom }}
     {{ lem (Env [[E_m]] [[E_p]] [[E_f]] [[E_x]]) }}
   | E1 u+ E2							:: M :: E_union
     {{ hol (env_union [[E1]] [[E2]]) }}
-    {{ lem env_union [[E1]] [[E2]] }}
+    {{ lem (env_union [[E1]] [[E2]]) }}
     {{ ocaml assert false }}
   | empty							:: M :: E_empty
     {{ hol (FTNode <|env_p:=FEMPTY; env_f:=FEMPTY; env_v:=FEMPTY|> FEMPTY) }}
@@ -1004,7 +1028,7 @@ E_x {{ tex \ottnt{E}^{\textsc{x} } }} :: 'E_x_' ::=		{{ phantom }}
     {{ lem (List.fold_right (fun (x,v) m -> Pmap.add x v m) [[x1 v_desc1 .. xn v_descn]] Pmap.empty) }} 
   | E_x1 u+ .. u+ E_xn						:: M :: union
     {{ hol (FOLDR FUNION FEMPTY [[E_x1..E_xn]]) }}
-    {{ lem (List.fold_right Pmap.concat [[E_x1..E_xn]] [ ]) }}
+    {{ lem (List.fold_right union_map [[E_x1..E_xn]] Pmap.empty) }}
     {{ ocaml (assert false) }}
 
 E_f {{ tex \ottnt{E}^{\textsc{f} } }} :: 'E_f_' ::=		{{ phantom }}
@@ -1016,7 +1040,7 @@ E_f {{ tex \ottnt{E}^{\textsc{f} } }} :: 'E_f_' ::=		{{ phantom }}
     {{ lem (List.fold_right (fun (x,f) m -> Pmap.add x f m) [[x1 f_desc1 .. xn f_descn]] Pmap.empty) }} 
   | E_f1 u+ .. u+ E_fn						:: M :: union
     {{ hol (FOLDR FUNION FEMPTY [[E_f1..E_fn]]) }}
-    {{ lem (List.fold_right Pmap.concat [[E_f1..E_fn]] Pmap.empty) }}
+    {{ lem (List.fold_right union_map [[E_f1..E_fn]] Pmap.empty) }}
     {{ ocaml (assert false) }}
 
 E_m {{ tex \ottnt{E}^{\textsc{m} } }} :: 'E_m_' ::=		{{ phantom }}
@@ -1025,7 +1049,7 @@ E_m {{ tex \ottnt{E}^{\textsc{m} } }} :: 'E_m_' ::=		{{ phantom }}
   {{ com Module environments }}
   | { x1 |-> E1 , .. , xn |-> En }				:: :: concrete
     {{ hol (FOLDR (\x E. E |+ x) FEMPTY [[x1 E1 .. xn En]]) }}
-    {{ lem (List.fold_right (fun (x,e) m -> Pmap.add x v m) [[x1 E1 .. xn En]] Pmap.empty) }} 
+    {{ lem (List.fold_right (fun (x,e) m -> Pmap.add x e m) [[x1 E1 .. xn En]] Pmap.empty) }} 
 
 E_p {{ tex \ottnt{E}^{\textsc{p} } }} :: 'E_p_' ::=		{{ phantom }}
 								{{ hol (x |-> p) }}
@@ -1036,7 +1060,7 @@ E_p {{ tex \ottnt{E}^{\textsc{p} } }} :: 'E_p_' ::=		{{ phantom }}
     {{ lem (List.fold_right (fun (x,p) m -> Pmap.add x p m) [[x1 p1 .. xn pn]] Pmap.empty) }} 
   | E_p1 u+ .. u+ E_pn						:: M :: union
     {{ hol (FOLDR FUNION FEMPTY [[E_p1..E_pn]]) }}
-    {{ lem (List.fold_right Pmap.concat [[E_p1..E_pn]] Pmap.empty) }}
+    {{ lem (List.fold_right union_map [[E_p1..E_pn]] Pmap.empty) }}
     {{ ocaml (assert false) }}
 
 E_l {{ tex \ottnt{E}^{\textsc{l} } }} :: 'E_l_' ::=		{{ phantom }}
@@ -1048,7 +1072,7 @@ E_l {{ tex \ottnt{E}^{\textsc{l} } }} :: 'E_l_' ::=		{{ phantom }}
     {{ lem (List.fold_right (fun (x,t) m -> Pmap.add x t m) [[x1 t1 .. xn tn]] Pmap.empty) }} 
   | E_l1 u+ .. u+ E_ln						:: M :: union
     {{ hol (FOLDR FUNION FEMPTY [[E_l1..E_ln]]) }}
-    {{ lem (List.fold_right Pmap.concat [[E_l1..E_ln]] Pmap.empty) }}
+    {{ lem (List.fold_right union_map [[E_l1..E_ln]] Pmap.empty) }}
    {{ ocaml (assert false) }}
 
 tc_abbrev :: 'Tc_abbrev_' ::=					{{ phantom }}
@@ -1078,7 +1102,7 @@ TD {{ tex \ensuremath{\Delta} }} :: 'TD_' ::=			{{ phantom }}
     {{ ocaml (assert false) }}
   | TD1 u+ TD2							:: M :: union
     {{ hol (FUNION [[TD1]] [[TD2]]) }}
-    {{ lem (Pmap.concat [[TD1]] [[TD2]]) }}
+    {{ lem (union_map [[TD1]] [[TD2]]) }}
     {{ ocaml (assert false) }}
 
 TC {{ tex \ensuremath{\delta} }} :: '' ::=			{{ phantom }}
@@ -1091,7 +1115,7 @@ TC {{ tex \ensuremath{\delta} }} :: '' ::=			{{ phantom }}
     {{ ocaml (assert false) }}
   | TC1 u+ TC2							:: M :: TC_union
     {{ hol (FUNION [[TC1]] [[TC2]]) }}
-    {{ lem (Pmap.concat [[TC1]] [[TC2]]) }}
+    {{ lem (union_map [[TC1]] [[TC2]]) }}
     {{ ocaml (assert false) }}
 
 
@@ -1101,14 +1125,14 @@ inst :: '' ::=
 
 I :: '' ::=							{{ phantom }}
 								{{ hol inst list }}
-								{{ lem list inst }}
+								{{ lem set inst }}
   {{ com Global instances }}
   | { inst1 , .. , instn }					:: :: I_concrete
     {{ hol [[inst1 .. instn]] }}
-    {{ lem [[inst1 .. instn]] }}
+    {{ lem (set_from_list [[inst1 .. instn]]) }}
   | I1 union I2							:: M :: I_union
     {{ hol ([[I1]] ++ [[I2]]) }}
-    {{ lem ([[I1]] ++ [[I2]]) }}
+    {{ lem ([[I1]] union [[I2]]) }}
     {{ ocaml assert false }}
  
 
@@ -1118,10 +1142,10 @@ D :: 'D_' ::=							{{ phantom }}
   {{ com Global type definition store }}
   | < TD , TC , I >							:: :: concrete
     {{ hol ([[TD]], [[TC]], [[I]]) }}
-    {{ lem D([[TD]], [[TC]], [[I]]) }}
+    {{ lem (D [[TD]] [[TC]] [[I]]) }}
   | D1 u+ D2							:: M :: union
     {{ hol (case ([[D1]],[[D2]]) of ((x1,x2,x3),(y1,y2,y3)) => (FUNION x1 y1, FUNION x2 y2, x3 ++ y3)) }}
-    {{ lem union_tcdefs [[D1]] [[D2]] }}
+    {{ lem (union_tcdefs [[D1]] [[D2]]) }}
     {{ ocaml (assert false) }}
   | empty							:: M :: empty
     {{ hol (FEMPTY, FEMPTY, []) }}
@@ -1135,7 +1159,10 @@ embed
 {{ lem
 type tdefs =
   | DEmp
-  | D of (map p tc_def) * (map p (list x)) * (list inst)
+  | D of (map p tc_def) * (map p (list x)) * (set inst)
+
+val union_tcdefs : tdefs -> tdefs -> tdefs
+
 }}
 
 grammar
@@ -1262,7 +1289,7 @@ E) s then SOME (FDOM E UNION s) else NONE) (SOME {}) [[E_x1....E_xn]] <> NONE) }
 
   | compatible overlap ( x1 |-> t1 , .. , xn |-> tn )		:: :: E_l_compat
     {{ hol (!__n __m. MEM __m [[x1 t1 .. xn tn]] /\ MEM __n [[x1 t1..xn tn]] /\ (FST __m  = FST __n) ==> (SND __m = SND __n)) }}
-    {{ lem (lem_intersection_needed) }} 
+    {{ lem (compatible_overlap [[x1 t1 .. xn tn]]) }} 
     {{ com $(\ottnt{x}_i = \ottnt{x}_j) \ensuremath{\Longrightarrow} (\ottnt{t}_i = \ottnt{t}_j)$ }}
 
   | duplicates ( tnvs ) = emptyset				:: :: no_dups_tnvs
@@ -1314,7 +1341,7 @@ E) s then SOME (FDOM E UNION s) else NONE) (SOME {}) [[E_x1....E_xn]] <> NONE) }
 
   | ( p t ) NOTIN I						:: :: notin_I
     {{ hol (~?__semC__. MEM (Inst __semC__ [[p]] [[t]]) [[I]]) }}
-    {{ lem Pervasives.not (List.mem ([[p]],[[t]]) [[I]] ) }}
+    {{ lem (Pervasives.not ((Inst [] [[p]] [[t]]) IN [[I]])) }}
 
   | E_l1 = E_l2							:: :: E_l_eqn
     {{ ichl ([[E_l1]] = [[E_l2]]) }}
@@ -1880,7 +1907,7 @@ disjoint doms(E_l1,...,E_ln)
 TD,E,E_l |- fun pat1 ... patn -> exp l : curry((t1*...*tn), u) gives S_c,S_N
 
 %TODO: the various patterns might want to use different specifications for vector length (i.e. 32 in one and 8+n+8 in another)
-% So should be pati : ti, and t constraint solved nt and should add constraints (i.e. n = 16)
+% So should be pati : t gives E_li,S_Ni
 </TD,E,E_l |- pati : t gives E_li//i/>
 </TD,E,E_l u+ E_li |- expi : u gives S_ci, S_Ni//i/>
 ------------------------------------------------------------ :: function
@@ -1926,7 +1953,7 @@ TD,E,E_l |- <| exp with </idi = expi li//i/> semi_opt l |> : p t_args gives S_c'
 TD,E,E_l |- exp1 : t gives S_c1,S_N1 ... TD,E,E_l |- expn : t gives S_cn,S_Nn
 length(exp1 ... expn) = nat
 ------------------------------------------------------------ :: vector
-TD,E,E_l |- [| exp1 ; ... ; expn |] : __vector nat t gives S_c1 union ... union S_cn, S_N1 union ... union S_Nn
+TD,E,E_l |- [| exp1 ; ... ; expn semi_opt |] : __vector nat t gives S_c1 union ... union S_cn, S_N1 union ... union S_Nn
 
 TD,E,E_l |- exp : __vector ne' t gives S_c,S_N
 |- Nexp ~> ne
