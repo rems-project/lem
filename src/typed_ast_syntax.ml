@@ -249,13 +249,8 @@ let get_field_all_fields l env (f : const_descr_ref) : const_descr_ref list =
     | Some(fl) -> fl
     | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "not a field type")))
 
-let names_mk_ident l i loc =
-  Ident.mk_ident (List.map (fun r -> (Name.add_lskip r, None)) l)
-    (Name.add_lskip i)
-    loc
-
-let mk_ident l i loc =
-  names_mk_ident (List.map (fun n -> Name.from_rope (r n)) l) (Name.from_rope (r i)) loc
+let names_mk_ident l i loc = Ident.mk_ident_names l i
+let mk_ident l i loc = Ident.mk_ident_strings l i
 
 let get_const_id (env : env) l mp n inst =
 let (c_ref, c_d) = get_const env mp n in

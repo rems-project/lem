@@ -44,6 +44,10 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
+(** Datatype and Function for Targets *)
+
+(** A datatype for Targets. In contrast to the one in
+    [ast.ml] this one does not carry white-space information. *)
 type target = 
   | Target_hol
   | Target_ocaml
@@ -52,18 +56,40 @@ type target =
   | Target_tex
   | Target_html
 
+(** [ast_target_to_target t] converts an ast-target to a
+    target. This essentially means dropping the white-space information. *)
 val ast_target_to_target : Ast.target -> target
+
+(** [target_to_ast_target t] converts a target [t] to an
+    ast_target. This essentially means adding empty white-space information. *)
 val target_to_ast_target : target -> Ast.target
+
+(** [ast_target_compare] is a comparison function for ast-targets. *)
+val ast_target_compare : Ast.target -> Ast.target -> int
+
+(** [target_compare] is a comparison function for targets. *)
 val target_compare : target -> target -> int
 
-(** target keyed finite maps *)
+(** target keyed finite maps with a default value*)
 module Targetmap : Finite_map.Dmap with type k = target
+
+(** target sets *)
 module Targetset : Set.S with type elt = target
 
-(** The set of all the possible targets *)
+(** The set of all the targets. *)
 val all_targets : Targetset.t
 
+(** [target_to_string t] returns a string description of a target [t]. *)
 val target_to_string : target -> string
+
+(** [target_opt_to_string t_opt] returns a string description of a target.
+    If some target is given, it does the same as [target_to_string]. Otherwise,
+    it returns a string description of the identity backend. *)
 val target_opt_to_string : target option -> string
-val target_to_output : Output.id_annot -> Ast.target -> Output.t
+
+(** [target_to_mname t] returns a name for a target. It is similar to
+    [target_to_string t]. However, it returns capitalised versions. *)
 val target_to_mname : target -> Name.t
+
+(** [target_to_output a t] returns output for a target [t] and id-annotation [a]. *)
+val target_to_output : Output.id_annot -> Ast.target -> Output.t

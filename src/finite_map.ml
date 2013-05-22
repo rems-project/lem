@@ -141,6 +141,7 @@ module type Dmap = sig
   val set_default : 'a t -> 'a option -> 'a t
   val insert : 'a t -> (k * 'a) -> 'a t
   val apply : 'a t -> k -> 'a option
+  val apply_opt : 'a t -> k option -> 'a option
 
   val remove : 'a t -> k -> 'a t
   val in_dom : k -> 'a t -> bool
@@ -164,6 +165,8 @@ module Dmap_map(Key : Set.OrderedType) : Dmap
       Some(M.find k m)
     with
       | Not_found -> if S.mem k s then None else d_opt;;
+
+  let apply_opt (m, s, d_opt) = function None -> d_opt | Some k -> apply (m, s, d_opt) k
      
   let in_dom k (m, s, d_opt) = M.mem k m || (S.mem k s && d_opt <> None)
     

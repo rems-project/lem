@@ -97,6 +97,14 @@ let mk_ident m n l : t =
             (ms' @ [n]);
           (Name.get_lskip m', Name.replace_lskip m' None::ms', n)
 
+let mk_ident_names l i =
+  mk_ident (List.map (fun r -> (Name.add_lskip r, None)) l)
+    (Name.add_lskip i)
+    (Ast.Trans ("mk_ident_names", None))
+
+let mk_ident_strings l i =
+  mk_ident_names (List.map (fun n -> Name.from_string n) l) (Name.from_string i) 
+
 let from_id (Ast.Id(m,xl,l)) : t =
   mk_ident 
     (List.map (fun (xl,l) -> (Name.from_x xl, l)) m)

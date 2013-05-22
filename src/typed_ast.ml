@@ -282,7 +282,7 @@ let in_targets_opt (t_opt : Ast.target option) (targets_opt : targets_opt) : boo
   | Some t -> (match targets_opt with 
                  None -> true
                | Some (neg, _, targets, _) -> 
-                 let is_in = Seplist.exists (fun t' -> Ast_util.ast_target_compare t t' = 0) targets in
+                 let is_in = Seplist.exists (fun t' -> ast_target_compare t t' = 0) targets in
                  if neg then not is_in else is_in)
 
 type val_def = 
@@ -2382,7 +2382,6 @@ let resolve_ident_path id path : Ident.t =
       | Id_some id -> id
   in
   id
-
 
 let ident_get_first_lskip id =
   match id.id_path with

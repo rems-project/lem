@@ -62,7 +62,20 @@ val from_id : Ast.id -> t
 (** Return the last name in the ident, e.g., M.Y.x gives x *)
 val get_name : t -> Name.lskips_t
 
+(** [mk_ident nsl ns l] generates a new identifiers giving full control. Whitespace is prohibited though and
+    only parenthesis might be used in the [Name.lskips_t]. Otherwise, this operation my fails and uses
+    the location [l] for the error message. *)
 val mk_ident : (Name.lskips_t * Ast.lex_skips) list -> Name.lskips_t -> Ast.l -> t
+
+(** Since [mk_ident] does not allow whitespace and parenthesis are often not needed, 
+    [mk_ident_names] provides a simpler interface that uses names. Since it cannot fail, the location is
+    not needed. *)
+val mk_ident_names : Name.t list -> Name.t -> t
+
+(** [mk_ident_strings] is a version of [mk_ident_names] that uses strings as input. *)
+val mk_ident_strings : string list -> string -> t
+
+
 val to_output : (Output.id_annot -> Ulib.Text.t -> Output.t) -> Output.id_annot -> Output.t -> t -> Output.t
 val get_first_lskip: t -> Ast.lex_skips
 val drop_parens : (Precedence.op -> Precedence.t) -> t -> t

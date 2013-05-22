@@ -138,7 +138,7 @@ module type Target = sig
   val lex_skip : Ast.lex_skip -> Ulib.Text.t
   val need_space : Output.t' -> Output.t' -> bool
 
-  val target : Ast.target option
+  val target : Target.target option
 
   val path_sep : t
   val list_sep : t
@@ -499,7 +499,7 @@ end
 
 module Html : Target = struct
   include Identity 
-  let target = Some (Ast.Target_html None)
+  let target = Some Target_html
 
   let forall = kwd "&forall;"
   let exists = kwd "&exist;"
@@ -532,7 +532,7 @@ module Tex : Target = struct
 
   let need_space x y = false
 
-  let target = Some (Ast.Target_tex None)
+  let target = Some Target_tex
 
   let tkwd s = kwd (String.concat "" ["\\lemkw{"; s;  "}"])
   let tkwdl s = kwd (String.concat "" ["\\lemkw{"; s;  "}"]) ^ texspace
@@ -694,7 +694,7 @@ end
 module Ocaml : Target = struct
   include Identity 
 
-  let target = Some (Ast.Target_ocaml None)
+  let target = Some Target_ocaml
 
   let path_sep = kwd "."
 
@@ -750,7 +750,7 @@ module Isa : Target = struct
     | Ast.Ws(r) -> r
     | Ast.Nl -> r"\n"
 
-  let target = Some (Ast.Target_isa None)
+  let target = Some Target_isa
 
   (* TODO : write need_space *)
 
@@ -927,7 +927,7 @@ module Hol : Target = struct
     let (d2,s2) = f y in
       not d1 && not d2 && s1 = s2
 
-  let target = Some (Ast.Target_hol None)
+  let target = Some Target_hol
 
   let path_sep = meta "$"
   let list_sep = kwd ";"
@@ -1098,12 +1098,12 @@ end);;
 
 let is_identity_target = match T.target with
     None -> true
-  | Some (Ast.Target_isa _)   -> false
-  | Some (Ast.Target_hol _)   -> false
-  | Some (Ast.Target_coq _)   -> false
-  | Some (Ast.Target_ocaml _) -> false
-  | Some (Ast.Target_html _)  -> true
-  | Some (Ast.Target_tex _)   -> true
+  | Some Target_isa   -> false
+  | Some Target_hol   -> false
+  | Some Target_coq   -> false
+  | Some Target_ocaml -> false
+  | Some Target_html  -> true
+  | Some Target_tex   -> true
 
 
 (*
@@ -1270,7 +1270,7 @@ let lit l t = match l.term with
   | L_vector(s,p,b) -> ws s ^ kwd (String.concat "" [p;b])
 
 let typ_ident_to_output (p : Path.t id) =     
-  Ident.to_output T.infix_op_format Type_ctor T.path_sep (resolve_ident_path p p.descr)
+  Ident.to_output T.infix_op_format Type_ctor T.path_sep (typ_id_to_ident T.target A.env p)
 
 let nexp n =
   let rec nexp_int n = match n.nterm with
@@ -1320,10 +1320,8 @@ let rec typ t = match t.term with
       ws s2 ^
       kwd ")"
 
-let ast_target_opt_to_target_opt t_opt = Util.option_map ast_target_to_target t_opt;;
-
 let const_ident_to_output a cd =
-  Ident.to_output T.infix_op_format a T.path_sep (const_id_to_ident (ast_target_opt_to_target_opt T.target) A.env cd)
+  Ident.to_output T.infix_op_format a T.path_sep (const_id_to_ident T.target A.env cd)
 ;;
 
 let tyvar tv =
@@ -1462,7 +1460,7 @@ let rec pat p = match p.term with
   | P_var(n) ->
       Name.to_output T.infix_op_format Term_var n
   | P_const(cd,ps) ->
-      let oL = pattern_application_to_output (ast_target_opt_to_target_opt T.target) (Ident.to_output T.infix_op_format Term_const T.path_sep) pat A.env cd ps in
+      let oL = pattern_application_to_output T.target (Ident.to_output T.infix_op_format Term_const T.path_sep) pat A.env cd ps in
       concat texspace oL
   | P_record(s1,fields,s2) ->
       ws s1 ^
@@ -1620,7 +1618,7 @@ match C.exp_to_term e with
         ws s3 ^
         T.recup_end
   | Field(e,s,fd) ->
-      if (T.target = Some (Ast.Target_isa None)) then
+      if (T.target = Some Target_isa) then
         kwd "(" ^ T.field_access_start ^ 
         const_ident_to_output Term_field fd ^
         T.field_access_end ^ 
@@ -1754,7 +1752,7 @@ match C.exp_to_term e with
       T.set_start ^
       exp e1 ^
       ws s2 ^
-      (if T.target = Some (Ast.Target_isa(None)) then 
+      (if T.target = Some Target_isa then 
          (if (is_var_tup_exp e1 && NameSet.equal vars (nfmap_domain (C.exp_to_free e1))) then kwd "." else 
           T.setcomp_sep ^
           flat (List.map (fun x -> id Term_var (Name.to_rope x)) (NameSet.elements vars)) ^
@@ -1799,7 +1797,7 @@ match C.exp_to_term e with
 
   (* TODO: Add an Isabelle transformation to nested Quants *)
   | Quant(q,qbs,s2,e) ->
-      if (T.target = Some (Ast.Target_isa None)) then 
+      if (T.target = Some Target_isa) then 
         block is_user_exp 0 (
         kwd "(" ^ 
         flat (List.map (isa_quant q) qbs) ^
@@ -2038,7 +2036,7 @@ let targets_opt = function
       ws s2 ^
       kwd "}"
 
-let in_target targs = Typed_ast.in_targets_opt T.target targs
+let in_target targs = Typed_ast.in_targets_opt (Util.option_map target_to_ast_target T.target) targs
 
 
 (****** Isabelle ******)
@@ -2384,7 +2382,7 @@ let rec def d is_user_def : Output.t = match d with
       end
   | Type_def(s, defs) ->
       let defs = 
-        if T.target = Some (Ast.Target_hol None) then 
+        if T.target = Some Target_hol then 
           Seplist.map (hol_strip_args (collect_type_names defs)) defs 
         else 
           defs 
@@ -2625,7 +2623,7 @@ and names_of_pat p : (Ulib.Text.t * Ulib.Text.t * Ast.l) list = match p.term wit
       let n' = Name.strip_lskip n in 
       [(Name.to_rope n', Name.to_rope_tex Term_var n', p.locn)]
   | P_const(cd,ps) ->
-      let n = Ident.get_name (const_id_to_ident (ast_target_opt_to_target_opt T.target) A.env cd) in
+      let n = Ident.get_name (const_id_to_ident T.target A.env cd) in
       let n' = Name.strip_lskip n in 
       [(Name.to_rope n', Name.to_rope_tex Term_ctor n', p.locn)]
   | P_record(s1,fields,s2) ->
@@ -2891,9 +2889,9 @@ and defs (ds:def list) =
     (fun ((d,s),l) y -> 
        begin
          match T.target with 
-         | Some (Ast.Target_isa _) -> isa_def d (is_trans_loc l)
-         | Some (Ast.Target_tex _) -> raise (Failure "should be unreachable")
-         | Some (Ast.Target_html _) -> html_link_def d ^ def d (is_trans_loc l)
+         | Some Target_isa  -> isa_def d (is_trans_loc l)
+         | Some Target_tex  -> raise (Failure "should be unreachable")
+         | Some Target_html -> html_link_def d ^ def d (is_trans_loc l)
          | _ -> def d (is_trans_loc l)
        end ^
 
@@ -3030,9 +3028,9 @@ let defs_to_extra_aux gf (ds:def list) =
       (fun ((d,s),l) y -> 
          begin
            match T.target with 
-           | Some (Ast.Target_isa _) -> isa_def_extra gf d l 
-           | Some (Ast.Target_hol _) -> hol_def_extra gf d l 
-           | Some (Ast.Target_ocaml _) -> ocaml_def_extra gf d l 
+           | Some Target_isa   -> isa_def_extra gf d l 
+           | Some Target_hol   -> hol_def_extra gf d l 
+           | Some Target_ocaml -> ocaml_def_extra gf d l 
            | _ -> emp
          end ^
 
@@ -3082,7 +3080,7 @@ end
 
 let defs_to_rope ((ds:def list),end_lex_skips) =
   match T.target with
-  | Some (Ast.Target_tex _) -> 
+  | Some Target_tex -> 
       Ulib.Text.concat (r"") (List.map (function ((d,s),l) -> to_rope_tex_def d) ds) ^^^^
       (match to_rope_option_tex T.lex_skip T.need_space true (ws end_lex_skips) with None -> r"" | Some rr -> 
         r"\\lemdef{\n" ^^^^
@@ -3105,7 +3103,7 @@ let rec batrope_pair_concat : (Ulib.Text.t * Ulib.Text.t) list -> (Ulib.Text.t *
 (* for -inc.tex file *)
 let defs_inc ((ds:def list),end_lex_skips) =
   match T.target with
-  | Some (Ast.Target_tex _) -> 
+  | Some Target_tex -> 
       batrope_pair_concat (List.map (function ((d,s),l) -> batrope_pair_concat (def_tex_inc d)) ds)
   | _ ->
       raise (Failure "defs_inc called on non-tex target")
@@ -3118,7 +3116,7 @@ let header_defs ((defs:def list),(end_lex_skips : Typed_ast.lskips)) =
        (fun ((d,s),l) y ->
           begin match T.target with
 
-              Some (Ast.Target_isa _) -> 
+              Some Target_isa -> 
                 begin 
                   match d with 
                       Open(s,m) -> 

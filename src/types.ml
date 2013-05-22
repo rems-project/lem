@@ -377,7 +377,8 @@ type constr_family_descr = {
 }
 
 type type_target_rep =
-  | TR_dummy
+  | TR_rename of Name.t
+  | TR_new_ident of Ident.t
 
 type type_descr = { 
   type_tparams : tnvar list;
@@ -385,7 +386,7 @@ type type_descr = {
   type_varname_regexp : string option;
   type_fields : (const_descr_ref list) option;
   type_constr : constr_family_descr list;
-(*  target_rep : type_target_rep Target.Targetmap.t  *)
+  type_target_rep : type_target_rep Target.Targetmap.t
 }
 
 
@@ -398,7 +399,8 @@ let mk_tc_type_abbrev vars abbrev = Tc_type {
   type_abbrev = Some abbrev;
   type_varname_regexp = None;
   type_fields = None;
-  type_constr = []
+  type_constr = [];
+  type_target_rep = Target.Targetmap.empty
 }
 
 let mk_tc_type vars reg = Tc_type { 
@@ -406,7 +408,8 @@ let mk_tc_type vars reg = Tc_type {
   type_abbrev = None;
   type_varname_regexp = reg;
   type_fields = None;
-  type_constr = []
+  type_constr = [];
+  type_target_rep = Target.Targetmap.empty
 }
 
 type type_defs = tc_def Pfmap.t
@@ -436,18 +439,37 @@ let type_defs_add_constr_family l (d : type_defs) (p : Path.t) (cf : constr_fami
   let l = Ast.Trans ("type_defs_add_constr_family", Some l) in
   type_defs_update_tc_type l d p (fun tc -> {tc with type_constr = cf :: tc.type_constr})
 
-let type_defs_lookup l (d : type_defs) (t : t) =
+let type_defs_rename_type l (d : type_defs) (p : Path.t) (t: Target.target) (n : Name.t) : type_defs =
+  let l = Ast.Trans ("type_defs_rename_type", Some l) in
+  let up td = begin
+    let tm = td.type_target_rep in
+    let tm' = Target.Targetmap.insert tm (t, TR_rename n) in
+    {td with type_target_rep = tm'}
+  end in
+  type_defs_update_tc_type l d p up
+
+let type_defs_new_ident_type l (d : type_defs) (p : Path.t) (t: Target.target) (i : Ident.t) : type_defs =
+  let l = Ast.Trans ("type_defs_target_type", Some l) in
+  let up td = begin
+    let tm = td.type_target_rep in
+    let tm' = Target.Targetmap.insert tm (t, TR_new_ident i) in
+    {td with type_target_rep = tm'}
+  end in
+  type_defs_update_tc_type l d p up
+
+let type_defs_lookup l (d : type_defs) (p : Path.t) =
     let l = Ast.Trans ("type_defs_lookup", Some l) in
+    match (Pfmap.apply d p) with
+      | Some (Tc_type td) -> td
+      | _ -> raise (env_no_type_exp l p)
+
+let type_defs_lookup_typ l (d : type_defs) (t : t) =
     match t with 
-      | { t = Tapp(_, p) } -> begin
-          match (Pfmap.apply d p) with
-            | Some (Tc_type td) -> Some td
-            | _ -> raise (env_no_type_exp l p)
-        end  
+      | { t = Tapp(_, p) } -> Some (type_defs_lookup l d p)
       | _ -> None
 
 let type_defs_get_constr_families l (d : type_defs) (t : t) (c : const_descr_ref) : constr_family_descr list =
-  match type_defs_lookup l d t with 
+  match type_defs_lookup_typ l d t with 
     | None -> []
     | Some td -> List.filter (fun fs -> List.mem c fs.constr_list) td.type_constr
 

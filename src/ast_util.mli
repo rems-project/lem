@@ -51,6 +51,3 @@
     variables that are currently bound in the enclosing environment (such
     variables cannot become comprehension variables) *)
 val setcomp_bindings : (Name.t -> bool) -> Ast.exp -> Set.Make(Name).t
-
-(** a comparison function for targets *)
-val ast_target_compare : Ast.target -> Ast.target -> int

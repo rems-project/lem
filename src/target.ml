@@ -72,6 +72,16 @@ let target_to_ast_target t = match t with
 
 let target_compare = Pervasives.compare
 
+let ast_target_to_int = function
+  | Ast.Target_hol _ -> 6
+  | Ast.Target_ocaml _ -> 5
+  | Ast.Target_isa _ -> 4
+  | Ast.Target_coq _ -> 3
+  | Ast.Target_tex _ -> 2
+  | Ast.Target_html _ -> 1
+
+let ast_target_compare x y = Pervasives.compare (ast_target_to_int x) (ast_target_to_int y)
+
 module Targetmap = Finite_map.Dmap_map(
 struct 
   type t = target
@@ -118,5 +128,4 @@ let target_to_mname = function
   | Target_coq -> Name.from_rope (r"Coq")
   | Target_tex -> Name.from_rope (r"Tex")
   | Target_html -> Name.from_rope (r"Html")
-
 

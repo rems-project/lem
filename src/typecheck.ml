@@ -1774,7 +1774,7 @@ let build_record tvs_set (ctxt : defn_ctxt)
 let add_record_to_ctxt build_descr (ctxt : defn_ctxt) 
       (recs : (name_l * lskips * t) lskips_seplist) 
       : (const_descr_ref list * defn_ctxt)  =
-    (Seplist.fold_right
+    (Seplist.fold_left
       (fun ((fn,l'),sk1,t) (field_list, ctxt) ->
          let fn' = Name.strip_lskip fn in
          let field_descr = build_descr fn' l' t in
