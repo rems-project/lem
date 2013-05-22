@@ -713,11 +713,13 @@ funcls:
   | funcl And funcls
     { ($1,$2)::$3 }
 
-xs:
+name_ts:
   |
     { [] }
-  | x xs
-    { $1::$2 }
+  | x name_ts
+    { (Name_t_name $1)::$2 }
+  | Lparen x Colon typ Rparen name_ts
+    { (Name_t_nt($1,$2,$3,$4,$5))::$6 }
 
 exps:
   |
@@ -725,21 +727,25 @@ exps:
   | field_exp exps
     { $1::$2 }
  
-x_opt:
-  |
-      { X_l_none }
-  | x Colon
-      { X_l_some ($1, $2) }
-
 indreln_clause:
-  | x_opt Forall xs Dot exp EqEqGt x exps
-    { irloc (Rule($1,$2,$3,$4,$5,$6,$7,$8)) }
+  | x Colon Forall name_ts Dot exp EqEqGt x exps
+    { irloc (Rule($1,$2,$3,$4,$5,$6,$7,$8,$9)) }
 
 
 and_indreln_clauses:
   | indreln_clause
     { [($1,None)] }
   | indreln_clause And and_indreln_clauses
+    { ($1,$2)::$3 }
+
+indreln_name :
+  | Lsquare x Colon typschm Rsquare
+    { Name_l ( Inderln_name_Name ($1,$2,$3,$4,Witness_none,Check_none,Functions_none,$5) ,loc ()) }
+
+and_indreln_names:
+  | indreln_name
+    { [($1,None)] }
+  | indreln_name And and_indreln_names
     { ($1,$2)::$3 }
 
 tnvs:
@@ -882,8 +888,8 @@ def:
     { mod_cap $2; dloc (Rename($1,$2,fst $3,$4)) }
   | Open_ id
     { dloc (Open($1,$2)) }
-  | Indreln targets_opt and_indreln_clauses
-    { dloc (Indreln($1,$2,$3)) }
+  | Indreln targets_opt and_indreln_names and_indreln_clauses
+    { dloc (Indreln($1,$2,$3,$4)) }
   | val_spec
     { dloc (Spec_def($1)) }
   | Class_ Lparen x tnvar Rparen class_val_specs End
