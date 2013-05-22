@@ -166,3 +166,5 @@ val stable_sort : forall 'a. ('a -> 'a -> num) -> list 'a -> list 'a
 val fast_sort : forall 'a. ('a -> 'a -> num) -> list 'a -> list 'a
 
 val merge : forall 'a. ('a -> 'a -> num) -> list 'a -> list 'a -> list 'a
+
+val intersect : forall 'a. list 'a -> list 'a -> list 'a

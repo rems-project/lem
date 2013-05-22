@@ -412,7 +412,7 @@ atomic_exp:
   | BraceBar semi_exps BarBrace
     { eloc (Vector($1,fst $2, fst (snd $2), snd (snd $2), $3)) }
   | Lsquare semi_exps Rsquare
-    { eloc (List($1,fst $2,fst (snd $2), snd (snd $2), $3)) }
+    { eloc (Elist($1,fst $2,fst (snd $2), snd (snd $2), $3)) }
   | Lparen comma_exps Rparen
     { eloc (Tup($1,$2,$3)) }
   | Lparen exp Rparen

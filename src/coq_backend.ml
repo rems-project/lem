@@ -626,11 +626,11 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
                   ) exp_list
           in
           let bodies =
-            List.map (fun (name_lskips_t_opt, skips, name_lskips_annot_list, skips', exp_opt, skips'', name_lskips_annot, exp_list) ->
+            mapi (fun counter -> fun (name_lskips_t_opt, skips, name_lskips_annot_list, skips', exp_opt, skips'', name_lskips_annot, exp_list) ->
               let constructor_name =
                 match name_lskips_t_opt with
                   | None ->
-                    let fresh = generate_fresh_name () in
+                    let fresh = string_of_int counter in
                     let name = Name.to_string name in
                       combine [
                         from_string name; from_string "_"; from_string fresh
