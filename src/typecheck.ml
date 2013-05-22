@@ -92,20 +92,30 @@ let id_to_identl id =
 
 (* Assume that the names in mp must refer to modules.  Corresponds to judgment
  * look_m 'E1(x1..xn) gives E2' *)
-let rec path_lookup (e : local_env) (mp : (Name.lskips_t * Ast.l) list) : local_env = 
-  lookup_env e (List.map (fun (n, _) -> Name.strip_lskip n) mp)
+let rec path_lookup l (e : local_env) (mp : (Name.lskips_t * Ast.l) list) : local_env =   
+  let mp_names = List.map (fun (n, _) -> Name.strip_lskip n) mp in
+  match lookup_env_opt e mp_names with
+    | Some e -> e
+    | None -> 
+      let mp_rev = List.rev mp_names in
+      let p = Path.mk_path (List.rev (List.tl mp_rev)) (List.hd mp_rev) in
+      raise_error l "unknown module" Path.pp p
 
 (* Assume that the names in mp must refer to modules. Corresponds to judgment
  * look_m_id 'E1(id) gives E2' *)
 let lookup_mod (e : local_env) (Ast.Id(mp,xl,l'')) : mod_descr = 
   let mp' = List.map (fun (xl,_) -> Name.strip_lskip (Name.from_x xl)) mp in
   let n = Name.strip_lskip (Name.from_x xl) in 
-  lookup_mod_descr e mp' n
+  match lookup_mod_descr_opt e mp' n with
+      | None -> 
+          raise_error (Ast.xl_to_l xl) "unknown module"
+            Name.pp (Name.strip_lskip (Name.from_x xl))
+      | Some(e) -> e
 
 (* Assume that the names in mp must refer to modules. Corresponds to judgment
  * look_tc 'E(id) gives p' *)
 let lookup_p msg (e : local_env) (Ast.Id(mp,xl,l) as i) : Path.t =
-  let e = path_lookup e (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
+  let e = path_lookup l e (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
     match Nfmap.apply e.p_env (Name.strip_lskip (Name.from_x xl)) with
       | None ->
           raise_error l (Printf.sprintf "unbound type %s" msg)
@@ -115,7 +125,7 @@ let lookup_p msg (e : local_env) (Ast.Id(mp,xl,l) as i) : Path.t =
 (* Assume that the names in mp must refer to modules. Looks up a name, not
    knowing what this name refers to. *)
 let lookup_name (e : env) (Ast.Id(mp,xl,l) as i) : Path.t =
-  let e_l = path_lookup e.local_env (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
+  let e_l = path_lookup l e.local_env (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
   let e = {e with local_env = e_l} in
     match env_apply e (Name.strip_lskip (Name.from_x xl)) with
       | None ->
@@ -401,7 +411,7 @@ module Make_checker(T : sig
    *)
   let check_field (Ast.Id(mp,xl,l) as i) 
         : (const_descr_ref id * Types.t) * Ast.l =
-    let env = path_lookup T.e.local_env (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
+    let env = path_lookup l T.e.local_env (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
     match Nfmap.apply env.f_env (Name.strip_lskip (Name.from_x xl)) with
         | None ->
             begin
@@ -494,7 +504,7 @@ module Make_checker(T : sig
               (A.mk_ptyp l sk1 pat sk2 src_t sk3 rt, pat_e)
         | Ast.P_app(Ast.Id(mp,xl,l'') as i, ps) ->
             let l' = Ast.xl_to_l xl in
-            let e = path_lookup T.e.local_env (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
+            let e = path_lookup l' T.e.local_env (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
             let const_lookup_res = Nfmap.apply e.v_env (Name.strip_lskip (Name.from_x xl)) in
 
             (** Try to handle it as a construtor, if success, then return Some, otherwise None
@@ -513,9 +523,10 @@ module Make_checker(T : sig
                         if (List.length pats <> List.length arg_ts) || (not is_constr) then (
                           if (List.length pats == 0) then (*handle as var*) None else
                           raise_error l' 
-                            (Printf.sprintf "constructor pattern expected %d arguments, given %d"
-                               (List.length arg_ts)
-                               (List.length pats))
+                             (if is_constr then
+                               (Printf.sprintf "constructor pattern expected %d arguments, given %d"
+                                 (List.length arg_ts) (List.length pats)) 
+                              else "non-constructor pattern given arguments")
                             Ident.pp (Ident.from_id i)
                         ) else (
                           let (id,t) = inst_const (id_to_identl i) T.e c in
@@ -735,7 +746,7 @@ module Make_checker(T : sig
       | None -> 
           let mp' = List.map (fun (xl,_) -> xl_to_nl xl) mp in
           let mp'' = List.map (fun (xl,skips) -> (Name.from_x xl, skips)) mp in
-          let e = path_lookup T.e.local_env mp' in
+          let e = path_lookup l T.e.local_env mp' in
             match Nfmap.apply e.v_env (Name.strip_lskip n) with
               | None ->
                   if Ulib.Text.to_string (Name.to_rope (Name.strip_lskip n)) = "Coq.TYPE_EQ" then
@@ -831,12 +842,20 @@ module Make_checker(T : sig
             let (res,t,given_fields) = check_fexps l_e r in
             let one_field = match given_fields with [] -> raise_error_string l "empty records, no fields given" | f::_ -> f in
             let all_fields = get_field_all_fields l T.e one_field in
-            if not (Util.list_subset all_fields given_fields) then
-                  raise_error_string l "missing field";
-(* TODO: restore old error message
-                  raise_error l "missing field"
-                  Name.pp
-                  (NameSet.choose (NameSet.diff all_names given_names));*)
+            let missing_fields = Util.list_diff all_fields given_fields in
+            if (Util.list_longer 0 missing_fields) then
+              begin
+                  (* get names of missing fields for error message *)
+                  let field_get_name f_ref = begin
+                     let f_d = c_env_lookup l T.e.c_env f_ref in
+                     let f_path = f_d.const_binding in
+                     Path.get_name f_path
+                  end in
+                  let names = List.map field_get_name missing_fields in
+                  let names_string = Pp.pp_to_string (fun ppf -> (Pp.lst "@, @" Name.pp) ppf names) in
+                  let message = Printf.sprintf "missing %s: %s" (if Util.list_longer 1 missing_fields then "fields" else "field") names_string in
+                  raise_error_string l message
+              end;
               C.equate_types l "record expression" t ret_type;
               A.mk_record l sk1 res sk2 rt
         | Ast.Recup(sk1,e,sk2,r,sk3) ->
@@ -1235,7 +1254,6 @@ module Make_checker(T : sig
     (exp,Tconstraints(tnvars,constraints,length_constraints))
 
   let check_constraint_subset l cs1 cs2 = 
-    let l  = Ast.Trans ("check_constraint_subset", Some l) in
     unsat_constraint_err l
       (List.filter
          (fun (p,tv) ->
@@ -1345,7 +1363,7 @@ module Make_checker(T : sig
                    Name.pp n)
       def_env;
     let Tconstraints(tnvars, constraints,l_constraints) = C.inst_leftover_uvars l in
-      unsat_constraint_err (Ast.Trans ("apply_specs_for_method", Some l)) constraints;
+      unsat_constraint_err l constraints;
       Tconstraints(tnvars, [], l_constraints)
 
   let apply_specs for_method (def_targets : Targetset.t option) l env = 
@@ -2313,7 +2331,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
             check_val_def backend_targets None l ctxt 
               (Ast.Let_def(sk1,target_opt,lb))
           in          
-          let _ = unsat_constraint_err (Ast.Trans ("check_def - val_def", Some l)) constraints in
+          let _ = unsat_constraint_err l constraints in
           let (sk1,sk2,target_opt,n,args,sk3,et) = 
             match vd with
               | Let_def(sk1, target_opt, (Let_val(p,src_t,sk3,e),l)) ->

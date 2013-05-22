@@ -103,6 +103,14 @@ val list_index: ('a -> bool) -> 'a list -> int option
     occur in [l2]. *)
 val list_subset : 'a list -> 'a list -> bool
 
+(** [list_diff l1 l2] removes all elements from [l1] that occur in [l2]. *)
+val list_diff : 'a list -> 'a list -> 'a list
+
+(** [list_longer n l] checks whether the list [l] has more than [n] elements.
+    It is equivalent to [List.length l > n], but more efficient, as it aborts counting,
+    when the limit is reached. *)
+val list_longer : int -> 'a list -> bool
+
 (** [option_first f l] searches for the first element [x] of [l] such
     that the [f x] is not [None]. If such an element exists, [f x] is
     returned, otherwise [None]. *)

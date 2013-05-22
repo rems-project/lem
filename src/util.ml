@@ -115,6 +115,12 @@ let list_index p l =
   aux 0 l
 
 let list_subset l1 l2 = List.for_all (fun e -> List.mem e l2) l1
+let list_diff l1 l2 = List.filter (fun e -> not (List.mem e l2)) l1
+
+let rec list_longer n l = match (l, n) with
+  | ([],_) -> false
+  | (_::_, 0) -> true
+  | (_::l', n) -> list_longer (n-1) l'
 
 let option_get_exn e = function
   | Some(o) -> o

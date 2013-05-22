@@ -59,12 +59,24 @@ val num_ty : Types.t
 
 (** {2 Navigating Environments} *)
 
+(** [lookup_env_opt env path] is used to navigate inside an environment [env]. It returns
+    the environment which is reachable via the path [path]. If no such environment exists,
+    [None] is returned. *)
+val lookup_env_opt : local_env -> Name.t list -> local_env option
+
 (** [lookup_env env path] is used to navigate inside an environment [env]. It opens
-    the environment which is reachable via the path [path]. *)
+    the environment which is reachable via the path [path].  If no such environment exists,
+    [Reporting_basic] is used to report an internal error. *)
 val lookup_env : local_env -> Name.t list -> local_env
 
-(** [lookup_mod_descr env path mod_name] is used to navigate inside an environment [env]. It opens
-    the module with name [mod_name], which is reachable via the path [path]. *)
+(** [lookup_mod_descr_opt env path mod_name] is used to navigate inside an environment [env]. It returns
+    the module with name [mod_name], which is reachable via the path [path]. If no such environment exists,
+    [None] is returned.*)
+val lookup_mod_descr_opt : local_env -> Name.t list -> Name.t -> mod_descr option
+
+(** [lookup_mod_descr env path mod_name] is used to navigate inside an environment [env]. It returns
+    the module with name [mod_name], which is reachable via the path [path]. If no such environment exists,
+    [Reporting_basic] is used to report an internal error. *)
 val lookup_mod_descr : local_env -> Name.t list -> Name.t -> mod_descr
 
 (** [names_get_const env path n] looks up the constant with name [n] reachable via path [path] in

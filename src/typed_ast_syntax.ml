@@ -190,8 +190,17 @@ let rec lookup_env (e : local_env) (mp : Name.t list) : local_env = match mp wit
       let m_d = lookup_env_step e.m_env n in
       lookup_env m_d.mod_env nl
 
+let rec lookup_env_opt (e : local_env) (mp : Name.t list) : local_env option = match mp with
+  | [] -> Some e
+  | n::nl ->
+      Util.option_bind (fun m_d -> lookup_env_opt m_d.mod_env nl) (Nfmap.apply e.m_env n)
+
+
 let rec lookup_mod_descr (e : local_env) (mp : Name.t list) (n : Name.t) : mod_descr = 
   let e' = lookup_env e mp in lookup_env_step e'.m_env n
+
+let rec lookup_mod_descr_opt (e : local_env) (mp : Name.t list) (n : Name.t) : mod_descr option = 
+  Util.option_bind (fun e -> Nfmap.apply e.m_env n) (lookup_env_opt e mp)
 
 let names_get_const (env : env) mp n =
   let l = Ast.Trans ("names_get_const", None) in
@@ -224,7 +233,7 @@ let dest_field_types l env (f : const_descr_ref) =
   match Types.dest_fn_type (env.t_env) full_type with
     | Some ({ Types.t = Types.Tapp (t_b_args, t_b_c) }, t_arg) when t_b_args = List.map Types.tnvar_to_type (f_d.const_tparams) -> 
          (t_arg, t_b_c, f_d)
-    | None -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "not a field type")))
+    | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "not a field type")))
 
 let get_field_type_descr l env (f : const_descr_ref) =
   let l = Ast.Trans("get_field_type_descr", Some l) in 
