@@ -151,9 +151,8 @@ and pat_aux =
   | P_var_annot of Name.lskips_t * src_t
 
 and const_target_rep =
-  | CR_inline of (exp list -> exp)
-  | CR_target of (exp list -> Output.t)
-  | CR_dummy
+  | CR_rename of Name.t               
+  | CR_inline of ((Name.t,unit) annot list * exp)
 
 and const_descr = { const_binding : Path.t;
                     const_tparams : Types.tnvar list;

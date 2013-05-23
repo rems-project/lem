@@ -236,6 +236,55 @@ let rec build_subst (params : (Name.t,unit) annot list) (args : (exp * Ast.l) li
         let (subst, x, y) = build_subst params args in
           (Nfmap.insert subst (p.term, Sub(a)), x, y)
 
+
+(* Inline sub [target] bindings *)
+let do_substitutions target e =
+  let l_unk = Ast.Trans("do_substitutions", Some (exp_to_locn e)) in
+  let (f,infix,args) = app_list e in
+    match C.exp_to_term f with
+      | Constant(c_id) ->
+          let cd = c_env_lookup l_unk E.env.c_env c_id.descr in
+          begin            
+            match Targetmap.apply cd.target_rep target with
+              | Some(CR_inline (params,body)) ->
+                  let tsubst = 
+                    Types.TNfmap.from_list2 cd.const_tparams c_id.instantiation
+                  in
+                  let (vsubst, leftover_params, leftover_args) = 
+                    build_subst params args
+                  in
+                  let b = 
+                    C.exp_subst (tsubst,vsubst) 
+                      (fst (alter_init_lskips (fun _ -> (ident_get_first_lskip c_id, None)) body))
+                  in
+                    if params = [] && infix then
+                      begin
+                        match leftover_args with
+                          | (a1,l)::(a2,_)::args ->
+                              Some(List.fold_left 
+                                     (fun e (e',l) -> C.mk_app l e e' None)
+                                     (C.mk_infix l a1 b a2 None)
+                                     args)
+                          | _ -> assert false
+                      end
+                    else if leftover_params = [] then
+                      Some(List.fold_left 
+                             (fun e (e',l) -> C.mk_app l e e' None)
+                             b
+                             leftover_args)
+                    else
+                      Some(C.mk_fun l_unk
+                             None (List.map 
+                                     (fun n -> 
+                                        C.mk_pvar n.locn (Name.add_lskip n.term) (Types.type_subst tsubst n.typ))
+                                     leftover_params) 
+                             None b
+                             None)
+              | _ -> None
+          end
+      | _ -> None
+
+
 (* Replace by something more clever 
 (* Change constructors into tupled constructors *) 
 let rec tup_ctor build_result args e = 

@@ -709,17 +709,24 @@ let get_all_constr_descr l env i =
   in
   List.map get_descr nl
 
+val type_defs_get_constr_families : Ast.l -> type_defs -> t -> const_descr_ref -> constr_family_descr list
 
 let constr_matrix_compile_fun (simp_input: bool) (env : env) (gen : var_name_generator) (m_ty : Types.t) l_org : matrix_compile_fun = fun pL ->
   let ((p : pat), p_id) = matrix_compile_fun_get (Util.option_first (fun p -> Util.option_map (fun (id, _) -> (p, id)) (dest_const_pat p)) pL) in
-  let _ = matrix_compile_fun_check (List.for_all (fun p -> (is_constr_pat p || is_wild_pat p)) pL) in
+  let _ = matrix_compile_fun_check (List.for_all (fun p -> (is_const_pat p || is_wild_pat p)) pL) in
   let loc = Ast.Trans ("constr_matrix_compile_fun", Some l_org) in
 
   let p_ty = annot_to_typ p in
-  let all_ids = get_all_constr_descr loc env p_id in
+
+  (* get the family of constructors to match against *)
+  let cfam = begin 
+    let refl = List.map_filter dest_const_pat pL in
+    let cfam_canditates = type_defs_get_constr_families loc env.t_env p_ty p_id.descr in
+    let cfam_ok cfam = List.subset refl cfam.constr_list in
+    matrix_compile_fun_get (Util.option_first (fun cfam -> if cfam_OK cfam then Some cfam else None) cfam_canditates)
+  end in
 
   (* now build the real argument types and fresh variable names for the arguments *)
-
   let build_args (id : constr_descr id) =
     let c = id.descr in 
     let subst = Types.TNfmap.from_list2 c.constr_tparams id.instantiation in
@@ -728,6 +735,7 @@ let constr_matrix_compile_fun (simp_input: bool) (env : env) (gen : var_name_gen
     (id, resL)
   in
   let all_args = List.map build_args all_ids in
+
 
   (* Build top-fun *)
   let top_fun : matrix_compile_top_fun  = fun i eL -> 
@@ -1156,7 +1164,7 @@ let basic_compile_funs : (bool -> env -> var_name_generator -> Types.t -> Ast.l 
    [(fun _ _ -> tuple_matrix_compile_fun); 
     (fun _ _ -> bool_matrix_compile_fun false); 
     (fun _ _ -> list_matrix_compile_fun); 
-(*    (           constr_matrix_compile_fun);  *)
+(*    (           constr_matrix_compile_fun);    *)
     (fun _   -> num_matrix_compile_fun false); (fun _   -> num_add_matrix_compile_fun_simple);
     (fun _   -> string_matrix_compile_fun false); 
 (*    (fun _   -> record_matrix_compile_fun) *)]
@@ -1778,8 +1786,6 @@ let compile_faux_seplist l env comp s s2_opt t topt org_d (sl : funcl_aux lskips
 
     
 let compile_def t mca env_global (_:Name.t list) env_local (((d, s), l) as org_d : def) =  
-(* TODO: check that union can safely be removed after Scotts change.
-   let env = env_union env_global env_local in *)
  let env = env_global in
  let t' = Util.option_map target_to_ast_target t in
  let cf_opt e = compile_match_exp t mca env e in
@@ -1810,11 +1816,6 @@ let compile_def t mca env_global (_:Name.t list) env_local (((d, s), l) as org_d
   
 let remove_toplevel_match targ mca env_global _ env_local (((d, s), l)) =
   let l_unk = Ast.Trans ("remove_toplevel_match", Some l) in
-
-  (* TODO check 
-  let env = env_union env_global env_local in
-  *)
-
   let env = env_global in
   let aux sk1 sk2 topt sl tnvs class_constraints = begin
     let (_, sk_first_opt, group_nameL) = funcl_aux_seplist_group sl in

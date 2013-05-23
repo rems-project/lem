@@ -152,6 +152,9 @@ module Macros (I : Types.Global_defs) (E : sig val env : env end) : sig
   (** [remove_unit_pats] replaces unit-patterns [()] with wildcard ones [_]. *)
   val remove_unit_pats : pat_macro
 
+  (** [do_substitutions env target] does the inlining of target specific constant definitions *)
+  val do_substitutions : Target.target -> exp macro
+
 (* TODO: add again
 
   (** Warning: HOL specific! Transforms num-patterns of the form [n] or [x + n] into

@@ -117,7 +117,7 @@ struct
 				 T.remove_setcomp;
                                  T.remove_set_restr_quant;
                                  T.remove_restr_quant Pattern_syntax.is_var_tup_pat;
-                                 (* TODO: T.do_substitutions Target_hol; *)
+                                 T.do_substitutions Target_hol;
                                  Patterns.compile_exp (Some Target_hol) Patterns.is_hol_pattern_match C.d env]);
                 Pat_macros (fun env ->
                               let module T = T(struct let env = env end) in
@@ -140,7 +140,7 @@ struct
                               let module T = T(struct let env = env end) in
                                 [(* TODO: figure out what it does and perhaps add it again    T.hack; *)
                                  (* TODO: add again or implement otherwise                    T.tup_ctor (fun e -> e) Seplist.empty; *)
-                                 (* TODO: add again                                           T.do_substitutions Target_ocaml; *)
+                                 T.do_substitutions Target_ocaml;
                                  T.remove_sets;
                                  T.remove_list_comprehension;
                                  T.remove_quant;
@@ -170,7 +170,7 @@ struct
                          T.remove_set_restr_quant;
                          T.remove_restr_quant Pattern_syntax.is_var_wild_tup_pat;
                          T.remove_set_comp_binding;
-                         (* TODO: add again T.do_substitutions Target_isa;*)
+                         T.do_substitutions Target_isa;
                          (* TODO: add again T.sort_record_fields;  *)
                          T.string_lits_isa;
                          Patterns.compile_exp (Some Target_isa) Patterns.is_isabelle_pattern_match C.d env]);
@@ -198,7 +198,7 @@ struct
                           T.remove_list_comprehension;
                           T.remove_set_comprehension;
                           T.remove_quant;
-                          (* TODO: add again      T.do_substitutions Target_coq; *)
+                          T.do_substitutions Target_coq; 
                           Patterns.compile_exp (Some Target_coq) Patterns.is_coq_pattern_match C.d env]);
          Pat_macros (fun env ->
                        let module T = T(struct let env = env end) in

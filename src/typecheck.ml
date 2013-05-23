@@ -1613,12 +1613,11 @@ let add_let_defs_to_ctxt
   let add_subst =
     match substitution with
       | None -> (fun c -> c)
-      | Some(ts,(nl, e)) ->
+      | Some(ts,s) ->
           (fun c -> 
-            let s_rep = CR_dummy in
              { c with target_rep = 
                  Targetset.fold
-                   (fun t r -> Targetmap.insert r (t,s_rep))
+                   (fun t r -> Targetmap.insert r (t,CR_inline s))
                    ts 
                    c.target_rep
              })
@@ -1907,7 +1906,7 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
               context
               ntyps
           in
-          let constr_family = {constr_list = cl; constr_case_fun = None} in
+          let constr_family = {constr_list = cl; constr_case_fun = None; constr_exhaustive = true} in
           let ctxt = {ctxt with all_tdefs = type_defs_add_constr_family l ctxt.all_tdefs type_path constr_family} in 
             (((tn,l),tnvs, Te_variant(sk3,vars), regexp), ctxt)
   end;;

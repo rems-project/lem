@@ -121,6 +121,9 @@ type constr_family_descr = {
    constr_list : const_descr_ref list; 
    (** a list of all the constructors *)
 
+   constr_exhaustive : bool;
+   (** is this family of constructors exhaustive, or does a special catch-other case needs adding? *)
+
    constr_case_fun : const_descr_ref option 
    (** the case split function for this constructor list, [None] means that pattern matching is used. *)
 }

@@ -178,9 +178,12 @@ and pat_aux =
         of the P_typ and P_var cases above, but useful as a macro target. *)
 
 and const_target_rep =
-  | CR_inline of (exp list -> exp)
-  | CR_target of (exp list -> Output.t)
-  | CR_dummy
+  | CR_rename of Name.t               
+    (** rename the constant to the given name, but keep Module structure *)
+
+  | CR_inline of ((Name.t,unit) annot list * exp)
+    (** [CR_inline (vars, e)] means inlining the costant with the expression [e] and
+        replacing the variable [vars] inside [e] with the arguments of the constant. *)
 
 (** The description of a top-level definition *)
 and const_descr = 
