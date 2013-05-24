@@ -45,6 +45,7 @@
 (**************************************************************************)
 
 open Typed_ast
+open Typed_ast_syntax
 open Types
 open Target
 open Process_file
@@ -253,10 +254,16 @@ struct
     proc_open None (Filename.concat path "pervasives.lem") env
   ;;
 
-  let init =
-    (List.fold_left (
+  let env =
+     List.fold_left (
        fun env t -> proc None (Filename.concat path (t ^ ".lem")) env
-     ) perv ["list"; "set"; "pmap"; "int" ; "vector" ; "bit"],
+     ) perv ["list"; "set"; "pmap"; "int" ; "vector" ; "bit"];;
+
+  let env = set_target_const_rep env ["Pervasives"] "SUC" Target_isa (CR_new_ident (Ident.mk_ident_strings [] "Suc"));;
+  let env = set_target_const_rep env ["Pervasives"] "SUC" Target_hol (CR_new_ident (Ident.mk_ident_strings [] "SUC"));;
+
+  let init =
+    (env,
      [(Some(Target_hol),
        read_constants (path ^^ target_to_string Target_hol ^^ "constants"));
       (Some(Target_isa),

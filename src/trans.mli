@@ -55,7 +55,6 @@ type pat_macro = Macro_expander.pat_position -> pat macro
 
 module Macros (I : Types.Global_defs) (E : sig val env : env end) : sig 
 
-(* TODO: add again 
   (** {2 Record Macros} *)
   (** [remove_singleton_record_updates] replaces updates of
       records that have only one field with the construction
@@ -73,7 +72,6 @@ module Macros (I : Types.Global_defs) (E : sig val env : env end) : sig
       type. If they do not need resorting, everything is fine,
       otherwise a warning is produced. *)
   val sort_record_fields : exp macro
-*)
 
   (** {2 Set and List Comprehension Macros} *)
 
@@ -155,17 +153,8 @@ module Macros (I : Types.Global_defs) (E : sig val env : env end) : sig
   (** [do_substitutions env target] does the inlining of target specific constant definitions *)
   val do_substitutions : Target.target -> exp macro
 
-(* TODO: add again
-
-  (** Warning: HOL specific! Transforms num-patterns of the form [n] or [x + n] into
-      [SUC (SUC ...)]. *)
-  val peanoize_num_pats_hol : pat_macro 
-
-  (** Warning: Isabelle specific! Transforms num-patterns of the form [n] or [x + n] into
-      [Suc (Suc ...)]. *)
-  val peanoize_num_pats_isa : pat_macro
-
-*)
+  (** Transforms num-patterns of the form [n] or [x + n] into [SUC (SUC ...)]. *)
+  val peanoize_num_pats : pat_macro 
 
   (** Add type annotations to pattern variables whose type contains a type variable
      (only add for arguments to top-level functions) *)

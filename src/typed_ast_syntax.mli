@@ -117,6 +117,14 @@ val get_field_type_descr : Ast.l -> env -> const_descr_ref -> Types.type_descr
     the record type of the field [f]. It then returns a list of all the other fields of this record. *)
 val get_field_all_fields : Ast.l -> env -> const_descr_ref -> const_descr_ref list
 
+(** [update_const_descr l up c env] updates the description of the constant [c] in environment [env] using
+    the function [up]. *)
+val update_const_descr : Ast.l -> (const_descr -> const_descr) -> const_descr_ref -> env -> env
+
+(** [set_target_const_rep env mp n target rep] sets the representation of the constant described by
+    module-path [mp] and name [n] for target [target] to [rep] in environment [env]. *)
+val set_target_const_rep : env -> string list -> string -> Target.target -> const_target_rep -> env
+
 
 (** {2 Constructing, checking and destructing expressions} *)
 

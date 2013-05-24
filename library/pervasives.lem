@@ -110,6 +110,8 @@ let inline {ocaml} (+) = Ocaml.Nat_num.(+)
 let inline {isabelle} (+) = Isabelle.(+)
 let inline {coq} (+) = Coq.(+)
 
+val SUC : num -> num
+
 val (-) : num -> num -> num
 let inline {hol} (-) = Hol.(-)
 let inline {ocaml} (-) = Ocaml.Nat_num.(-)

@@ -67,25 +67,29 @@ open E
 
 (* Macros *)
 
-(* TODO fix and add again 
 let remove_singleton_record_updates e =
     match C.exp_to_term e with
       | Recup(s1, exp, s2, fields, s3) ->
         begin
             match Seplist.to_list fields with
               | [x] ->
-                  let (field_descr_id, s4, exp', loc) = x in
-                  let field_descr = field_descr_id.descr in
-                  let field_names = field_descr.field_names in
-                    if List.length field_names = 1 then
-                      Some (C.mk_record_coq loc s1 fields s3 (Some (exp_to_typ e)))
-                    else
-                      None
+                  let l = exp_to_locn e in
+                  let td_opt = Types.type_defs_lookup_typ l E.env.t_env (exp_to_typ e) in
+                  let field_count = match td_opt with 
+                    | None -> 0 (* should not happen, since type occours in AST *)
+                    | Some td -> begin 
+                        match td.Types.type_fields with
+                          | None -> 0 (* should not happen, since type is a record type *)
+                          | Some fl -> List.length fl
+                      end in
+                  if field_count = 1 then
+                    Some (C.mk_record l s1 fields s3 (Some (exp_to_typ e)))
+                  else
+                    None
               | _   -> None
         end
       | _ -> None
 ;;
-
 
 let remove_multiple_record_updates e =
   let l_unk = Ast.Trans("remove_multiple_record_updates", Some (exp_to_locn e)) in
@@ -112,22 +116,16 @@ let remove_multiple_record_updates e =
       | _ -> None
 ;;
 
+
 let sort_record_fields e =
   let l_unk = Ast.Trans("sort_record_fields", Some (exp_to_locn e)) in
     match C.exp_to_term e with
       | Record(s1,fields,s2) -> if Seplist.length fields < 2 then None else
         begin
-          let field_names = begin
-                let (field_descr_id, s4, exp', loc) = Seplist.hd fields in
-                let field_descr = field_descr_id.descr in
-                field_descr.field_names
-          end in
+          let all_fields_opt = Util.option_bind (fun td -> td.Types.type_fields) (Types.type_defs_lookup_typ l_unk E.env.t_env (exp_to_typ e)) in
+          let all_fields = Util.option_get_exn (Reporting_basic.err_unreachable true l_unk "type of record is no record-type") all_fields_opt in
           let (hd_sep_opt, fieldsL) = Seplist.to_pair_list None fields in
-          let find_field_fun n (a,s) = begin
-                let (field_descr_id, s4, exp', loc) = a in
-                let n' = Path.get_name (field_descr_id.descr.field_binding) in		
-					(n = n')
-              end in
+          let find_field_fun r ((field_descr_id, _, _, _),s) = (r = field_descr_id.descr) in
           let rec find_field n b = function
                 | [] -> raise Not_found
                 | x::xs ->
@@ -135,17 +133,16 @@ let sort_record_fields e =
       		      let (y, b', ys) = find_field n true xs in (y, b', x::ys)) in
           let (changed, _, resultL) = try List.fold_left (fun (changed, fieldL, resultL) n -> 
                let (y, changed', ys) = find_field n changed fieldL in (changed', ys, y::resultL)) 
-               (false, fieldsL, []) field_names
+               (false, fieldsL, []) all_fields
             with Not_found -> (false, fieldsL, fieldsL) 
           in if (not changed) then None else begin
             let fields' = Seplist.from_pair_list hd_sep_opt (List.rev resultL) None in
             let res = C.mk_record l_unk s1 fields' s2 (Some (exp_to_typ e)) in
-            let _ = Reporting.report_warning (Reporting.Warn_record_resorted (exp_to_locn e, e)) in
+            let _ = Reporting.report_warning E.env (Reporting.Warn_record_resorted (exp_to_locn e, e)) in
             Some (res) end
         end 
       | _ -> None
 ;;
-*)
 
 (* Turn function | pat1 -> exp1 ... | patn -> expn end into
  * fun x -> match x with | pat1 -> exp1 ... | patn -> expn end *)
@@ -336,14 +333,6 @@ let rec tup_ctor build_result args e =
   | _ -> None
 *)
 
-let names_mk_ident l i loc =
-  Ident.mk_ident (List.map (fun r -> (Name.add_lskip r, None)) l)
-    (Name.add_lskip i)
-    loc
-
-let mk_ident l i loc =
-  names_mk_ident (List.map Name.from_rope l) (Name.from_rope i) loc
-
 
 (* Transforms string literals that cannot be represented in Isabelle into a list
  * of integers, and pass this list to Pervasives.nat_list_to_string which then
@@ -371,12 +360,10 @@ let string_lits_isa e =
       end
   | _ -> None
 
-(* TODO: Do something much more clever 
-(* TODO: Get the Suc constructor properly when the library is working with
- * datatypes *)
-let peanoize_num_pats_aux suc _ p =
-  let l_unk = Ast.Trans("peanoize_num_pats", Some p.locn) in
 
+let peanoize_num_pats _ p =
+  let l_unk = Ast.Trans("peanoize_num_pats", Some p.locn) in 
+  let (suc, _) = get_const_id E.env l_unk ["Pervasives"] "SUC" [] in
   let pean_pat s i p = begin   
     let rec f i = if i = 0 then p else C.mk_pconst l_unk suc [f (i - 1)] None
     in Pattern_syntax.mk_opt_paren_pat (pat_append_lskips s (f i))
@@ -396,38 +383,6 @@ let peanoize_num_pats_aux suc _ p =
         let com_ws = Ast.combine_lex_skips s1 (Ast.combine_lex_skips s2 (string_to_comment ("_ + " ^ string_of_int i))) in
         Some(pean_pat com_ws i pat0)
     | _ -> None
-
-
-let isa_suc = { id_path = Id_none None;
-        id_locn = Ast.Trans ("trans.ml - isa_suc", None);
-        descr = 
-           { const_binding = Path.mk_path [] (Name.from_rope (r"Suc"));
-             const_tparams = [];
-             const_args = [{ Types.t = Types.Tapp([], Path.numpath) }];
-             const_tconstr = Path.numpath;
-             const_names = 
-               NameSet.add (Name.from_rope (r"Zero"))
-               (NameSet.singleton (Name.from_rope (r"Suc")));
-             const_l = Ast.Trans ("trans.ml - isa_suc", None) };
-           instantiation = [] }
-
-let hol_suc = { id_path = Id_none None;
-        id_locn = Ast.Trans ("trans.ml - hol_suc", None);
-        descr = 
-           { constr_binding = Path.mk_path [] (Name.from_rope (r"SUC"));
-             constr_tparams = [];
-             constr_args = [{ Types.t = Types.Tapp([], Path.numpath) }];
-             constr_tconstr = Path.numpath;
-             constr_names = 
-               NameSet.add (Name.from_rope (r"Zero"))
-               (NameSet.singleton (Name.from_rope (r"SUC")));
-             constr_l = Ast.Trans ("trans.ml - hol_suc", None) };
-           instantiation = [] }
-
-let peanoize_num_pats_hol = peanoize_num_pats_aux hol_suc
-let peanoize_num_pats_isa = peanoize_num_pats_aux isa_suc
-
-*)
 
 
 let remove_unit_pats _ p =
@@ -975,7 +930,7 @@ let remove_restr_quant pat_OK e =
 
 let eq_path = Path.mk_path [Name.from_rope (r"Ocaml"); Name.from_rope (r"Pervasives")] (Name.from_rope (r"="))
 
-(* TODO: What does it do ? Fix it? 
+(* TODO: Fix it? 
 let hack e = 
   let l_unk = Ast.Trans("hack", Some (exp_to_locn e)) in
   match C.exp_to_term e with

@@ -249,6 +249,22 @@ let get_field_all_fields l env (f : const_descr_ref) : const_descr_ref list =
     | Some(fl) -> fl
     | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "not a field type")))
 
+
+let update_const_descr l up c env =
+  let l = Ast.Trans("update_const_descr", Some l) in 
+  let cd = c_env_lookup l env.c_env c in
+  let new_cd = up cd in
+  let new_c_env = c_env_update env.c_env c new_cd in
+  {env with c_env = new_c_env}
+
+let set_target_const_rep env path name target rep =
+  begin
+    let (c_ref, cd) = get_const env path name in
+    let new_tr = Target.Targetmap.insert cd.target_rep (target, rep) in
+    let new_c_env = c_env_update env.c_env c_ref {cd with target_rep = new_tr} in
+    {env with c_env = new_c_env}
+  end
+
 let names_mk_ident l i loc = Ident.mk_ident_names l i
 let mk_ident l i loc = Ident.mk_ident_strings l i
 

@@ -152,6 +152,7 @@ and pat_aux =
 
 and const_target_rep =
   | CR_rename of Name.t               
+  | CR_new_ident of Ident.t               
   | CR_inline of ((Name.t,unit) annot list * exp)
 
 and const_descr = { const_binding : Path.t;
@@ -1692,46 +1693,6 @@ module Exps_in_context(D : Exp_context) = struct
           merge_free_env false l 
             (Seplist.to_list_map (fun (_,_,e,_) -> exp_to_free e) fes);
           subst = empty_sub; }; }
-
-(*
-  let mk_record_coq l s1 fes s2 t =
-    let strip_file_name s =
-      let rec split sep str =
-        try
-          let i = String.index str sep in
-            String.sub str 0 i :: split sep (String.sub str (1 + i) (String.length str - (i + 1)))
-        with Not_found -> [str]
-      in
-      let splitted = split '.' s in
-        match splitted with
-          | []    -> assert false
-          | x::xs -> List.hd (List.rev splitted)
-    in
-    let t = 
-      check_typ l "mk_record_coq" t
-        (fun d -> 
-          let (f,_,e,_) = Seplist.hd fes in
-          { t = Tapp(f.instantiation, f.descr.field_tconstr) })
-    in
-    (* FZ WORKING HERE, discuss with Scott and Peter how to do this properly *)
-    (* TODO: fix the Record_coq type accordingly *)
-    let s = 
-      Format.flush_str_formatter (Types.pp_type Format.str_formatter t) in
-    (* DPM: ugly, ugly, ugly!  We should record both the name of the record
-            type and the name of the function needed to build an inhabitant of
-            that record type somehow.
-    *)
-    let stripped = strip_file_name s in
-    let s = "Build_" ^ stripped in
-    { term = Record_coq((Name.add_lskip (Name.from_rope (Ulib.Text.of_string s)),l),s1,fes,s2);
-      locn = l;
-      typ = t;
-      rest = 
-        { free = 
-          merge_free_env false l 
-            (Seplist.to_list_map (fun (_,_,e,_) -> exp_to_free e) fes);
-          subst = empty_sub; }; }
-*)
 
   let mk_recup l s1 e s2 fes s3 t =
     let t = check_typ l "mk_recup" t (fun d -> Some e.typ) in

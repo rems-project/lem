@@ -121,7 +121,7 @@ struct
                                  Patterns.compile_exp (Some Target_hol) Patterns.is_hol_pattern_match C.d env]);
                 Pat_macros (fun env ->
                               let module T = T(struct let env = env end) in
-                                [(*TODO: T.peanoize_num_pats_hol *)])
+                                [T.peanoize_num_pats])
                ];
       get_prec = Precedence.get_prec_hol;
       extra = [(* TODO: (fun n -> 
@@ -171,12 +171,12 @@ struct
                          T.remove_restr_quant Pattern_syntax.is_var_wild_tup_pat;
                          T.remove_set_comp_binding;
                          T.do_substitutions Target_isa;
-                         (* TODO: add again T.sort_record_fields;  *)
+                         T.sort_record_fields;
                          T.string_lits_isa;
                          Patterns.compile_exp (Some Target_isa) Patterns.is_isabelle_pattern_match C.d env]);
         Pat_macros (fun env ->
                       let module T = T(struct let env = env end) in
-                        [(* TODO: add again    T.peanoize_num_pats_isa; *) T.remove_unit_pats])
+                        [T.peanoize_num_pats; T.remove_unit_pats])
        ];
       get_prec = Precedence.get_prec_isa;
       extra = [(* TODO: add again (fun n -> Rename_top_level.rename_nested_module [n]);
@@ -193,8 +193,8 @@ struct
                       ]); 
          Exp_macros (fun env -> 
                        let module T = T(struct let env = env end) in
-                         [(* TODO: add again T.remove_singleton_record_updates;
-                          T.remove_multiple_record_updates;*)
+                         [T.remove_singleton_record_updates;
+                          T.remove_multiple_record_updates;
                           T.remove_list_comprehension;
                           T.remove_set_comprehension;
                           T.remove_quant;

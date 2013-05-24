@@ -181,6 +181,9 @@ and const_target_rep =
   | CR_rename of Name.t               
     (** rename the constant to the given name, but keep Module structure *)
 
+  | CR_new_ident of Ident.t               
+    (** rename the constant to the given identifier, breaking the module structure *)
+
   | CR_inline of ((Name.t,unit) annot list * exp)
     (** [CR_inline (vars, e)] means inlining the costant with the expression [e] and
         replacing the variable [vars] inside [e] with the arguments of the constant. *)
