@@ -404,12 +404,20 @@ type inst_sem_info =
 
 type name_sect = Name_restrict of (lskips * name_l * lskips * lskips * string * lskips)
 
+type rule_quant_name = 
+  | QName of name_lskips_annot
+  | Name_typ of lskips * name_lskips_annot * lskips * src_t * lskips
+
+type rule = Rule of Name.lskips_t * lskips * rule_quant_name list * lskips * exp option * lskips * name_lskips_annot * exp list
+
+type indrel_name = RName of Name.lskips_t * (tnvar list * texp) * (Name.lskips_t option) * (Name.lskips_t option) * ((Name.lskips_t * src_t) list) option
+
 type def = (def_aux * lskips option) * Ast.l
 
 and def_aux =
   | Type_def of lskips * (name_l * tnvar list * texp * name_sect option) lskips_seplist
   | Val_def of val_def * Types.TNset.t * (Path.t * Types.tnvar) list 
-    (** The TNset contains the type length variables that the definition is parameterized
+    (** The TNset contains the type and length variables that the definition is parameterized
         over, and the list contains the class constraints on those variables *)
   | Lemma of lskips * Ast.lemma_typ * targets_opt * (name_l * lskips) option * lskips * exp * lskips
   | Ident_rename of lskips * targets_opt * Path.t * Ident.t * lskips * name_l
@@ -419,8 +427,7 @@ and def_aux =
         control how a name that isn't allowed in a particular back-end gets
         changed *)
   | Open of lskips * mod_descr id
-  | Indreln of lskips * targets_opt * 
-               (Name.lskips_t option * lskips * name_lskips_annot list * lskips * exp option * lskips * name_lskips_annot * exp list) lskips_seplist
+  | Indreln of lskips * targets_opt * indrel_name lskips_seplist * rule lskips_seplist
   | Val_spec of val_spec
   | Class of lskips * lskips * name_l * tnvar * lskips * class_val_spec list * lskips
   | Instance of lskips * instschm * val_def list * lskips * inst_sem_info

@@ -361,8 +361,9 @@ module type Expr_checker = sig
   val check_indrels : 
     Targetset.t option ->
     Ast.l ->
+    (Ast.indreln_name * lskips) list ->
     (Ast.rule * lskips) list -> 
-    (Name.lskips_t option * lskips * name_lskips_annot list * lskips * exp option * lskips * name_lskips_annot * exp list) lskips_seplist * 
+    rule lskips_seplist * 
     pat_env *
     typ_constraints
 end
@@ -1374,36 +1375,34 @@ module Make_checker(T : sig
         (funcls, env, apply_specs for_method def_targets l env)
 
   (* See Expr_checker signature above *)
-  let check_indrels (def_targets : Targetset.t option) l clauses =
+  let check_indrels (def_targets : Targetset.t option) l names clauses =
     let rec_env =
       List.fold_left
-        (fun l_e (Ast.Rule_l(Ast.Rule(_,_,_,_,_,_,xl,_), _), _) ->
-           let n = Name.strip_lskip (Name.from_x xl) in
-             if Nfmap.in_dom n l_e then
-               l_e
-             else
-               add_binding l_e (xl_to_nl xl) (C.new_type ()))
-        empty_lex_env
-        clauses
+        (fun l_e (Ast.Name_l (Ast.Inderln_name_Name(_,x_l,_,_,_,_,_,_),_),_) ->
+          let n = Name.strip_lskip (Name.from_x x_l) in
+              if Nfmap.in_dom n l_e then 
+                assert false (* TODO Make this an error of duplicate definitions *)
+              else
+                add_binding l_e (xl_to_nl x_l) (C.new_type ())) (* Consider whether we should now use the typschem here or still a unification variable *)
+         empty_lex_env
+         names
     in
     let clauses = Seplist.from_list clauses in
     let c =
       Seplist.map
-        (fun (Ast.Rule_l(Ast.Rule(xl,s1,ns,s2,e,s3,xl',es), l2)) ->
+        (fun (Ast.Rule_l(Ast.Rule(xl,s0,s1,ns,s2,e,s3,xl',es), l2)) ->
            let quant_env =
              List.fold_left
-               (fun l_e xl -> add_binding l_e (xl_to_nl xl) (C.new_type ()))
+               (fun l_e nt -> match nt with
+                              | Ast.Name_t_name xl -> add_binding l_e (xl_to_nl xl) (C.new_type ())
+                              | Ast.Name_t_nt (_,xl,_,t,_) -> add_binding l_e (xl_to_nl xl) (C.new_type ()) (*Need to equate this type to t*))
                empty_lex_env
                ns
            in
            let extended_env = Nfmap.union rec_env quant_env in
            let et = check_exp extended_env e in
            let ets = List.map (check_exp extended_env) es in
-           let new_name =
-              match xl with
-                | Ast.X_l_none -> None
-                | Ast.X_l_some (xl, _) -> Some (Name.from_x xl)
-           in
+           let new_name = Name.from_x xl in
            let new_name' = annot_name (Name.from_x xl') (Ast.xl_to_l xl') rec_env in
              C.equate_types l2 "inductive relation" (exp_to_typ et) { t = Tapp([], Path.boolpath) };
              C.equate_types l2 "inductive relation"
@@ -1411,10 +1410,10 @@ module Make_checker(T : sig
                (multi_fun 
                   (List.map exp_to_typ ets) 
                   { t = Tapp([], Path.boolpath) });
-             (new_name,
+             Rule(new_name,
               s1,
               List.map 
-                (fun xl -> annot_name (Name.from_x xl) (Ast.xl_to_l xl) quant_env)
+                (fun (Ast.Name_t_name xl) -> QName (annot_name (Name.from_x xl) (Ast.xl_to_l xl) quant_env))
                 ns,
               s2,
               Some et,
@@ -2212,7 +2211,7 @@ let ast_def_to_target_opt = function
     | Ast.Val_def(Ast.Let_def(_,target_opt,_) |
                   Ast.Let_inline(_,_,target_opt,_) |
                   Ast.Let_rec(_,_,target_opt,_)) -> Some target_opt
-    | Ast.Indreln(_,target_opt,_) -> Some target_opt
+    | Ast.Indreln(_,target_opt,_,_) -> Some target_opt
     | Ast.Lemma(Ast.Lemma_unnamed(_,target_opt,_,_,_)) -> Some target_opt
     | Ast.Lemma(Ast.Lemma_named(_,target_opt,_,_,_,_,_)) -> Some target_opt
     | Ast.Type_def _ -> None
@@ -2341,18 +2340,18 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                      id_locn = l;
                      descr = mod_descr;
                      instantiation = []; })))
-      | Ast.Indreln(sk, target_opt, clauses) ->
+      | Ast.Indreln(sk, target_opt, names, clauses) ->
           let module T = struct include T let targets = backend_targets end in
           let module Checker = Make_checker(T) in
           let target_opt_checked = check_target_opt target_opt in
           let target_set = target_opt_to_set target_opt in
           let (cls,e_v,Tconstraints(tnvs,constraints,lconstraints)) = 
-            Checker.check_indrels target_set l clauses 
+            Checker.check_indrels target_set l names clauses 
           in 
             (add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) 
                constraints lconstraints
                (target_opt_to_env_tag target_set) None e_v, 
-             (Indreln(sk,target_opt_checked,cls)))
+             (Indreln(sk,target_opt_checked,Seplist.empty,cls)))
       | Ast.Spec_def(val_spec) ->
           let (ctxt,vs) = check_val_spec l mod_path ctxt val_spec in
             (ctxt, Val_spec(vs))

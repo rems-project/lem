@@ -396,6 +396,14 @@ type inst_sem_info =
 
 type name_sect = Name_restrict of (lskips * name_l * lskips * lskips * string * lskips)
 
+type rule_quant_name = 
+  | QName of name_lskips_annot
+  | Name_typ of lskips * name_lskips_annot * lskips * src_t * lskips
+
+type rule = Rule of Name.lskips_t * lskips * rule_quant_name list * lskips * exp option * lskips * name_lskips_annot * exp list
+
+type indrel_name = RName of Name.lskips_t * (tnvar list * texp) * (Name.lskips_t option) * (Name.lskips_t option) * ((Name.lskips_t * src_t) list) option
+
 type def = (def_aux * lskips option) * Ast.l
 
 and def_aux =
@@ -406,8 +414,7 @@ and def_aux =
   | Module of lskips * name_l * lskips * lskips * def list * lskips
   | Rename of lskips * name_l * lskips * mod_descr id
   | Open of lskips * mod_descr id
-  | Indreln of lskips * targets_opt * 
-               (Name.lskips_t option * lskips * name_lskips_annot list * lskips * exp option * lskips * name_lskips_annot * exp list) lskips_seplist
+  | Indreln of lskips * targets_opt * indrel_name lskips_seplist * rule lskips_seplist
   | Val_spec of val_spec
   | Class of lskips * lskips * name_l * tnvar * lskips * class_val_spec list * lskips
   (* The v_env, name and Path/tyvar list are for converting the instance into a module. *)
@@ -703,9 +710,9 @@ let rec def_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (((d,s),l) 
       | Open(sk,m) ->
           let (s_new, s_ret) = lskips_f sk in
             res (Open(s_new,m)) s_ret
-      | Indreln(sk,topt,rules) ->
+      | Indreln(sk,topt,names,rules) ->
           let (s_new, s_ret) = lskips_f sk in
-            res (Indreln(s_new,topt,rules)) s_ret
+            res (Indreln(s_new,topt,names,rules)) s_ret
       | Val_spec(sk1,n,sk2,ts) ->
           let (s_new, s_ret) = lskips_f sk1 in
             res (Val_spec(s_new,n,sk2,ts)) s_ret

@@ -573,7 +573,7 @@ let rec rename_def renames path ((d,s),l) =
             rename_defs renames (path @ [Name.strip_lskip n]) ds 
           in
             Module(s1,(new_n,l),s2,s3,new_ds,s4)
-    | Indreln(s1,targets,c) ->
+    | Indreln(s1,targets,names,c) ->
         let rename_annot_name (n : name_lskips_annot) = 
              let t' = rename_types_type renames n.typ in
              let n' = apply_def_rename renames Nk_const path n.term in 
@@ -581,11 +581,12 @@ let rec rename_def renames path ((d,s),l) =
         in
         Indreln(s1,
                 targets,
+                names, (* TODO Indreln. THis should name wihtin the names *)
                 Seplist.map
-                  (fun (name_opt,s1,ns,s2,e_opt,s3,n,es) ->
-                     (name_opt,
+                  (fun (Rule(name_opt,s1,ns,s2,e_opt,s3,n,es)) ->
+                     Rule(name_opt,
                       s1,
-                      List.map rename_annot_name ns,
+                      List.map (fun n -> QName n) (List.map rename_annot_name (List.map (fun (QName n) -> n) ns)),
                       s2,
                       Util.option_map (rename_exp NameSet.empty path renames) e_opt, 
                       s3, 

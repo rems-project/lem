@@ -2223,17 +2223,17 @@ let tdef ((n,l), tvs, texp, regexp) =
                                                 | Tn_N (x, y, z) -> kwd (Ulib.Text.to_string y))) tvs in
     tdef_tctor false tvs n regexp ^ tyexp true n' tvs' texp 
 
-let indreln_clause (name_opt, s1, qnames, s2, e_opt, s3, rname, es) =
+let indreln_clause (Rule(name, s1, qnames, s2, e_opt, s3, rname, es)) =
   (if T.reln_clause_show_name then (
-    (match name_opt with None -> emp | Some name ->
-      Name.to_output_quoted T.infix_op_format Term_method name ^
+    (Name.to_output_quoted T.infix_op_format Term_method name ^
       kwd ":"
     )
   ) else emp) ^
   ws s1 ^ T.reln_clause_start ^
+  (*Indreln TODO does not print format annoated variables with their types *)
   (if (T.reln_clause_show_empty_quant || List.length qnames > 0) then (
     T.reln_clause_quant ^
-    flat (interspace (List.map (fun n -> Name.to_output T.infix_op_format Term_var n.term) qnames)) ^
+    flat (interspace (List.map (fun (QName n) -> Name.to_output T.infix_op_format Term_var n.term) qnames)) ^
     ws s2 ^ 
     kwd "."
   ) else emp) ^
@@ -2310,7 +2310,7 @@ let isa_funcl_header_seplist clause_sl =
 
 let isa_funcl_header_indrel_seplist clause_sl =
   let clauseL = Seplist.to_list clause_sl in
-  let (_, clauseL_filter) = List.fold_left (fun (ns, acc) (_, _, _, _, _, _, rname, _) ->
+  let (_, clauseL_filter) = List.fold_left (fun (ns, acc) (Rule(_, _, _, _, _, _, rname, _)) ->
       let n = Name.strip_lskip rname.term in 
       if NameSet.mem n ns then (ns, acc) else (NameSet.add n ns, rname :: acc)) (NameSet.empty, []) clauseL in
   let headerL = List.map (fun rname -> 
@@ -2721,7 +2721,8 @@ let rec def d is_user_def : Output.t = match d with
       ws s ^
       T.module_open ^
       Ident.to_output T.infix_op_format Module_name T.path_sep (resolve_ident_path m m.descr.mod_binding)
-  | Indreln(s,targets,clauses) ->
+  (*TODO_INDRELN names have simply been added to the term, code needs to be written to write them out*)
+  | Indreln(s,targets,names,clauses) ->
       if in_target targets then
         ws s ^
         T.reln_start ^
@@ -3194,7 +3195,8 @@ and isa_def d is_user_def : Output.t = match d with
   | Val_spec(s1,(n,l),s2,t) ->
       raise (Reporting_basic.err_todo false l "Isabelle: Top-level type constraints omited; should not occur at the moment")
 
-  | Indreln(s,targets,clauses) ->
+  (* TODO INDRELN THe names should be output *)
+  | Indreln(s,targets,names,clauses) ->
       if in_target targets then
         ws s ^
         T.reln_start ^
