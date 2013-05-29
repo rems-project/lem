@@ -567,7 +567,7 @@ rule :: '' ::=
 witness_opt {{ tex \ottnt{witness}^? }} :: 'witness_' ::=
   {{ com Optional witness type name declaration. Must be present for a witness type to be generated. }}  
   |  	 	  :: :: none
-  | witness x_l ; :: :: some
+  | witness type x_l ; :: :: some
 
 check_opt {{ tex \ottnt{check}^? }} :: 'check_' ::=
   {{ com Option check name declaration }}
@@ -577,7 +577,7 @@ check_opt {{ tex \ottnt{check}^? }} :: 'check_' ::=
 functions_opt {{ tex \ottnt{functions}^? }} :: 'functions_' ::=
   {{ com Optional names and types for functions to be generated. Types should use only in, out, unit, or the witness type }}
   |  	 	  	:: :: none
-  | x_l ; typ		:: :: one
+  | x_l : typ		:: :: one
   | x_l : typ ;	functions_opt	:: :: some
 
 indreln_name_aux :: 'inderln_name_' ::=

@@ -583,8 +583,9 @@ let rec rename_def renames path ((d,s),l) =
                 targets,
                 names, (* TODO Indreln. THis should name wihtin the names *)
                 Seplist.map
-                  (fun (Rule(name_opt,s1,ns,s2,e_opt,s3,n,es)) ->
+                  (fun (Rule(name_opt,s0,s1,ns,s2,e_opt,s3,n,es)) ->
                      Rule(name_opt,
+                      s0,
                       s1,
                       List.map (fun n -> QName n) (List.map rename_annot_name (List.map (fun (QName n) -> n) ns)),
                       s2,

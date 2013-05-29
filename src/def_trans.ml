@@ -125,9 +125,9 @@ let remove_indrelns_true_lhs _ env ((d,s),l) =
   let l_unk = Ast.Trans ("remove_indrelns_true_lhs", Some l) in
   match d with
     | Indreln (s', targ, names, sl) ->
-        let remove_true (Rule (name_opt, s1, qnames, s2, e_opt, s3, rname, es)) =
+        let remove_true (Rule (name_opt,s0, s1, qnames, s2, e_opt, s3, rname, es)) =
             (match e_opt with None -> None | Some e -> (if Typed_ast_syntax.is_tf_exp true e then 
-                Some (Rule(name_opt, s1, qnames, s2, None, s3, rname, es)) else None))
+                Some (Rule(name_opt, s0,s1, qnames, s2, None, s3, rname, es)) else None))
         in
         (match Seplist.map_changed remove_true sl with
              None -> None
@@ -430,7 +430,7 @@ let get_name def l = match def with
     | [] ->  
         raise (Reporting_basic.err_todo false l "Error while pruning target definitions: empty Indreln clauses in get_name [debug]")
         
-    | ((Rule(_,_,_,_,_,_,name,_))::cs) -> Name.strip_lskip name.term     
+    | ((Rule(_,_,_,_,_,_,_,name,_))::cs) -> Name.strip_lskip name.term     
     )
   
   | Val_def(Rec_def(_,_,_,clauses),ntvs,_) -> (match Seplist.to_list clauses with

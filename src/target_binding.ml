@@ -268,8 +268,8 @@ let rec fix_binding target defs =
                 targets,
                 names,
                 Seplist.map
-                  (fun (Rule(name,s1,ns,s2,e_opt,s3,n,es)) ->
-                     Rule(name,s1,ns,s2,Util.option_map (fix_exp target) e_opt, s3, n, 
+                  (fun (Rule(name,s0,s1,ns,s2,e_opt,s3,n,es)) ->
+                     Rule(name,s0,s1,ns,s2,Util.option_map (fix_exp target) e_opt, s3, n, 
                       List.map (fix_exp target) es))
                   c)
     | Module(sk1, nl, sk2, sk3, ds, sk4) ->

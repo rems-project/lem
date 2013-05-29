@@ -859,10 +859,10 @@ File "test.lem", line 2, character 21 to line 2, character 21
   Type error: defined variable is already defined: x
 ================================================================================
 let x = 1
-indreln forall y. true ==> x y
+indreln [ x : forall 'a. 'a -> bool ] arm : forall y. true ==> x y
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 28 to line 2, character 28
+File "test.lem", line 2, character 11 to line 2, character 11
   Type error: defined variable is already defined: x
 ================================================================================
 let x = 1

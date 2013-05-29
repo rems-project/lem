@@ -281,7 +281,7 @@ typschm =  (* Type schemes *)
 type 
 witness_opt =  (* Optional witness type name declaration. Must be present for a witness type to be generated. *)
    Witness_none
- | Witness_some of terminal * x_l * terminal
+ | Witness_some of terminal * terminal * x_l * terminal
 
 
 type 

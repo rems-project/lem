@@ -608,7 +608,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
         let rec gather_names_aux buffer clauses =
           match clauses with
             | []    -> buffer
-            | (Rule(_, _, _, _, _, _, name_lskips_annot, _))::xs ->
+            | (Rule(_,_, _, _, _, _, _, name_lskips_annot, _))::xs ->
               let name = name_lskips_annot.term in
               let name = Name.strip_lskip name in
               if List.mem name buffer then
@@ -619,7 +619,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
           gather_names_aux [] clause_list
       in
       let gathered = gather_names clause_list in
-      let compare_clauses_by_name name (Rule(_, _, _, _, _, _, name', _)) =
+      let compare_clauses_by_name name (Rule(_,_, _, _, _, _, _, name', _)) =
         let name' = name'.term in
         let name' = Name.strip_lskip name' in
           Pervasives.compare name name' = 0
@@ -631,7 +631,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
           let index_types =
             match bodies with
               | [] -> [from_string "Prop"]
-              | (Rule(_, _, _, _, _, _, _, exp_list))::xs ->
+              | (Rule(_,_, _, _, _, _, _, _, exp_list))::xs ->
                   List.map (fun t ->
                     combine [
                       from_string "("; field_typ $ C.t_to_src_t (Typed_ast.exp_to_typ t); from_string ")"
@@ -639,9 +639,9 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
                   ) exp_list
           in
           let bodies =
-            mapi (fun counter -> fun (Rule(name_lskips_t, skips, name_lskips_annot_list, skips', exp_opt, skips'', name_lskips_annot, exp_list)) ->
+            mapi (fun counter -> fun (Rule(name_lskips_t, skips0, skips, name_lskips_annot_list, skips', exp_opt, skips'', name_lskips_annot, exp_list)) ->
               let constructor_name =
-              (* Note, now that names are not optional, this code is likely unneccessary *)
+              (* Note, now that names are not optional, this code is likely unneccessary, and an extra skip is added*)
 (*                match name_lskips_t_opt with
                   | None ->
                     let fresh = string_of_int counter in

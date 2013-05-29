@@ -145,7 +145,7 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 
 %token <Ast.terminal> Dot Lparen Rparen Comma Under Arrow As Colon Lcurly Rcurly
 %token <Ast.terminal> Semi Lsquare Rsquare Fun_ Function_ Bar With Match Let_ And HashZero HashOne
-%token <Ast.terminal> In Of Rec Type Rename Module_ Struct End Open_ SemiSemi Eof
+%token <Ast.terminal> In Of Rec Type Witness Check Rename Module_ Struct End Open_ SemiSemi Eof
 %token <Ast.terminal> True False Begin_ If_ Then Else Val
 %token <Ast.terminal * Ulib.Text.t> AmpAmp BarBar ColonColon Star Plus Eq At GtEq 
 %token <Ast.terminal * Ulib.Text.t> X Tyvar Nvar BquoteX
@@ -738,9 +738,30 @@ and_indreln_clauses:
   | indreln_clause And and_indreln_clauses
     { ($1,$2)::$3 }
 
+witness_clause:
+  | Witness Type x Semi
+    { Witness_some($1,$2,$3,$4) }
+
+check_clause:
+  | Check x Semi
+    { Check_some($1,$2,$3) }
+
+functions_clause:
+ | x Colon typ
+  { Functions_one($1,$2,$3) }
+ | x Colon typ Semi functions_clause
+  { Functions_some($1,$2,$3,$4,$5) }
+
 indreln_name :
   | Lsquare x Colon typschm Rsquare
     { Name_l ( Inderln_name_Name ($1,$2,$3,$4,Witness_none,Check_none,Functions_none,$5) ,loc ()) }
+  | Lsquare x Colon typschm witness_clause Rsquare
+    { Name_l ( Inderln_name_Name ($1,$2,$3,$4,$5,Check_none,Functions_none,$6) ,loc ()) }
+  | Lsquare x Colon typschm witness_clause check_clause Rsquare
+    { Name_l ( Inderln_name_Name ($1,$2,$3,$4,$5,$6,Functions_none,$7) ,loc ()) }
+  | Lsquare x Colon typschm witness_clause check_clause functions_clause Rsquare
+    { Name_l ( Inderln_name_Name ($1,$2,$3,$4,$5,$6,$7,$8) ,loc ()) }
+  
 
 and_indreln_names:
   | indreln_name
