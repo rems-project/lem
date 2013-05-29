@@ -52,7 +52,7 @@ let get_rels (l : (Name.lskips_t option * lskips * name_lskips_annot list * lski
     let rulecond = match cond with
       | Some x -> x
       | None -> C.mk_lit Ast.Unknown ({term = L_true None; locn = Ast.Unknown; typ =  {t = Tapp([], Path.boolpath)}; rest = ()}) None in
-    let ruledescr = (rulename, Nmap.from_list (List.map (fun v -> (Name.strip_lskip v.term, v.typ) ) vars), split_and rulecond, args) in
+    let ruledescr = (rulename, List.map (fun v -> (Name.strip_lskip v.term, v.typ) ) vars, split_and rulecond, args) in
     match Nmap.apply s relname with
       | None -> Nmap.insert s (relname, [ruledescr])
       | Some rules -> Nmap.insert s (relname, ruledescr::rules)
@@ -205,7 +205,7 @@ let report_no_translation rule notok eqconds sideconds =
 
 let transform_rule mode_env _ty mode rule = 
   let (rulename, vars, conds, args) = rule in
-  let vars = Nfmap.domain vars in
+  let vars = Nfmap.domain (Nfmap.from_list vars) in
   let gen_rn = make_renamer vars (Nmap.domain mode_env) in
   let (patterns, initknown, initeqs) = 
     convert_output gen_rn args (List.map (fun x -> x = O) mode) in
