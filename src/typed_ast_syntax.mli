@@ -215,6 +215,16 @@ val mk_set_image_exp : env -> exp -> exp -> exp
 (** [mk_fun_exp [p1, ..., pn] e] constructs the expression [fun p1 ... pn -> e]. *)
 val mk_fun_exp : pat list -> exp -> exp
 
+(** [mk_app_exp d e1 e2] constructs the expression [e1 e2]. The type definitions [d] are needed
+    for typechecking. *)
+val mk_app_exp : Types.type_defs -> exp -> exp -> exp
+
+(** [mk_list_app_exp d f [a1 ... an]] constructs the expression [f a1 ... an] by repeatedly calling [mk_app_exp]. *)
+val mk_list_app_exp : Types.type_defs -> exp -> exp list -> exp
+
+(** [mk_opt_fun_exp pL e] returns [mk_fun_exp pL e] if [pL] is not empty and [e] otherwise. *)
+val mk_opt_fun_exp : pat list -> exp -> exp
+
 (** [mk_paren_exp e] adds parenthesis around expression [e]. Standard whitespaces are applied. This
     means that whitespace (except comments) are deleted before expression [e]. *)
 val mk_paren_exp : exp -> exp

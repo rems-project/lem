@@ -85,7 +85,7 @@ struct
 
   (* The macros needed to change number type variables (e.g., ''a) into function parameters *)
   let nvar_macros =
-    [(* TODO add again: Def_macros (fun _ -> [Def_trans.nvar_to_parameter]); *)
+    [Def_macros (fun env -> let module M = M(struct let env = env end) in [M.nvar_to_parameter]);
      Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.add_nexp_param_in_const])
     ]
 
@@ -108,8 +108,7 @@ struct
                                           M.remove_vals;
                                           M.remove_classes; 
                                           M.remove_opens;
-                                          Patterns.compile_def (Some Target_hol) Patterns.is_hol_pattern_match env;
-                                          (*M.flatten_modules*)]);
+                                          Patterns.compile_def (Some Target_hol) Patterns.is_hol_pattern_match env;]);
                 Exp_macros (fun env ->
                               let module T = T(struct let env = env end) in
                                 [T.remove_list_comprehension;
@@ -159,8 +158,7 @@ struct
                       [M.remove_vals;
                        M.remove_opens;
                        M.remove_indrelns_true_lhs;
-                       Patterns.compile_def (Some Target_isa) Patterns.is_isabelle_pattern_match env;
-                       (*Def_trans.flatten_modules*)] );
+                       Patterns.compile_def (Some Target_isa) Patterns.is_isabelle_pattern_match env;] );
         Exp_macros (fun env ->
                       let module T = T(struct let env = env end) in
                         [T.list_quant_to_set_quant;

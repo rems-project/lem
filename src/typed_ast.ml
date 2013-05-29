@@ -468,7 +468,7 @@ let rec pat_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (p : pat) :
             res (P_var(Name.replace_lskip n s_new)) s_ret
       | P_const(c,ps) -> 
           let (id_new, s_ret) = id_alter_init_lskips lskips_f c in
-            res (P_const(c,ps)) s_ret
+            res (P_const(id_new,ps)) s_ret
       | P_record(s1,fieldpats,s2) -> 
           let (s_new, s_ret) = lskips_f s1 in
             res (P_record(s_new, fieldpats, s2)) s_ret
@@ -850,7 +850,7 @@ module Exps_in_context(D : Exp_context) = struct
       let d = c_env_lookup l env.c_env c.descr in
       let subst = TNfmap.from_list2 d.const_tparams c.instantiation in
       let new_c_ty = type_subst subst d.const_type in
-      let (c_tyL, c_base_ty) = Types.strip_fn_type env.t_env new_c_ty in
+      let (c_tyL, c_base_ty) = Types.strip_fn_type (Some env.t_env) new_c_ty in
       let _ = if check then
       begin
           List.iter2
@@ -874,7 +874,7 @@ module Exps_in_context(D : Exp_context) = struct
       let d = c_env_lookup l env.c_env f.descr in
       let subst = TNfmap.from_list2 d.const_tparams f.instantiation in
       let new_f_ty = type_subst subst d.const_type in
-      Util.option_map (fun (t, _) -> t) (Types.dest_fn_type env.t_env new_f_ty)
+      Util.option_map (fun (t, _) -> t) (Types.dest_fn_type (Some env.t_env) new_f_ty)
     end) D.env_opt in
     let t = 
       check_typ l "mk_precord" t (fun d -> f_rec_ty_opt)
@@ -1679,7 +1679,7 @@ module Exps_in_context(D : Exp_context) = struct
       let subst = TNfmap.from_list2 d.const_tparams f.instantiation in
       let new_f_ty = type_subst subst d.const_type in
       let (f_rec_ty, _) = Util.option_get_exn (Reporting_basic.err_general true l "not of field type")
-                             (Types.dest_fn_type env.t_env new_f_ty) in
+                             (Types.dest_fn_type (Some env.t_env) new_f_ty) in
       let _ = if check then (* TODO: add typecheck code *) () in
       f_rec_ty
     end) D.env_opt in
@@ -1714,7 +1714,7 @@ module Exps_in_context(D : Exp_context) = struct
       let subst = TNfmap.from_list2 d.const_tparams f.instantiation in
       let new_f_ty = type_subst subst d.const_type in
       let (f_rec_ty, f_arg_ty) = Util.option_get_exn (Reporting_basic.err_general true l "not of field type")
-                             (Types.dest_fn_type env.t_env new_f_ty) in
+                             (Types.dest_fn_type (Some env.t_env) new_f_ty) in
       let _ = type_eq l "mk_field" e.typ f_rec_ty in
       f_arg_ty
     end) D.env_opt in

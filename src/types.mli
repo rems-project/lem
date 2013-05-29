@@ -198,12 +198,15 @@ type typ_constraints = Tconstraints of TNset.t * (Path.t * tnvar) list * range l
 
 val head_norm : type_defs -> t -> t
 
-(** [dest_fn_type d t] tries to destruct a function type [t]. Before the destruction, [head_norm d t] is applied. If
-    the result is a function type, [t1 --> t2], the [Some (t1, t2)] is returned. Otherwise the result is [None]. *)
-val dest_fn_type : type_defs -> t -> (t * t) option
+(** [dest_fn_type d_opt t] tries to destruct a function type
+    [t]. Before the destruction, [head_norm d t] is applied, if
+    [d_opt] is of the form [Some d]. If the result is a function type,
+    [t1 --> t2], the [Some (t1, t2)] is returned. Otherwise the result
+    is [None]. *)
+val dest_fn_type : type_defs option -> t -> (t * t) option
 
 (** [strip_fn_type d t] tries to destruct a function type [t] by applying [dest_fn] repeatedly. *)
-val strip_fn_type : type_defs -> t -> (t list * t)
+val strip_fn_type : type_defs option -> t -> (t list * t)
 
 
 val assert_equal : Ast.l -> string -> type_defs -> t -> t -> unit

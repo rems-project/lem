@@ -1,4 +1,4 @@
-(**************************************************************************)
+7(**************************************************************************)
 (*                        Lem                                             *)
 (*                                                                        *)
 (*          Dominic Mulligan, University of Cambridge                     *)
@@ -114,7 +114,7 @@ let matrix_compile_mk_plist pL ty =
 
 let matrix_compile_mk_precord fid pL ty =
   let l = Ast.Trans ("matrix_compile_mk_precord", None) in
-  let psl = Seplist.from_list (List.map2 (fun id p -> ((id, None, p), None)) fid pL) in
+  let psl = Seplist.from_list (List.map2 (fun (id, _) p -> ((id, None, p), None)) fid pL) in
   C.mk_precord l None psl None (Some ty)
 
 let matrix_compile_mk_pvar_pwild vs n ty =
@@ -683,85 +683,125 @@ let list_matrix_compile_fun (gen : var_name_generator) (m_ty : Types.t) l_org : 
 
 (* constructors *)
 
-(*
-let make_id (nL: Name.t list) inst (n:Name.t) (d:'a) : ('a id) =
+(** [make_id mp n inst c] create an id for the the reference [c] with instantiation [inst] and
+    stored under module path [mp] and name [n]. *)
+let make_id (mp: Name.t list option) (n : Name.t) inst (c:const_descr_ref) : (const_descr_ref id) =
   let loc = Ast.Trans ("constr_matrix_compile_make_id", None) in
-  let i = Ident.mk_ident (List.map (fun m -> (Name.add_lskip m, None)) nL) (Name.add_lskip n) loc in
-
-  { id_path = Id_some i;
+  let id_p = match mp with None -> Id_none None | Some mp -> Id_some (Ident.mk_ident_names mp n) in
+  { id_path = id_p;
     id_locn = loc;
-    descr = d;
+    descr = c;
     instantiation = inst }
 
-
-let get_all_constr_descr l env i = 
-  let d = i.descr in
-  let (module_path, _) = Ident.to_name_list (resolve_ident_path i d.constr_binding) in
-  let inst = i.instantiation in
-
-  let (mp, _) = Path.to_name_list d.constr_binding in
-  let env' = lookup_env env mp in
-  let nl = NameSet.elements d.constr_names in
-  let get_descr n =
-    match Nfmap.apply env'.v_env n with
-      | Some(Constr d) -> (make_id module_path inst n d)
-      | _ -> raise Pat_Matrix_Compile_Fun_Failed
-  in
-  List.map get_descr nl
-
-val type_defs_get_constr_families : Ast.l -> type_defs -> t -> const_descr_ref -> constr_family_descr list
 
 let constr_matrix_compile_fun (simp_input: bool) (env : env) (gen : var_name_generator) (m_ty : Types.t) l_org : matrix_compile_fun = fun pL ->
   let ((p : pat), p_id) = matrix_compile_fun_get (Util.option_first (fun p -> Util.option_map (fun (id, _) -> (p, id)) (dest_const_pat p)) pL) in
   let _ = matrix_compile_fun_check (List.for_all (fun p -> (is_const_pat p || is_wild_pat p)) pL) in
   let loc = Ast.Trans ("constr_matrix_compile_fun", Some l_org) in
-
-  let p_ty = annot_to_typ p in
+  let p_ty = annot_to_typ p in  
+  let module_path_opt : Name.t list option = match p_id.id_path with Id_none _ -> None | Id_some i -> Some (fst (Ident.to_name_list i)) in
 
   (* get the family of constructors to match against *)
   let cfam = begin 
-    let refl = List.map_filter dest_const_pat pL in
-    let cfam_canditates = type_defs_get_constr_families loc env.t_env p_ty p_id.descr in
-    let cfam_ok cfam = List.subset refl cfam.constr_list in
-    matrix_compile_fun_get (Util.option_first (fun cfam -> if cfam_OK cfam then Some cfam else None) cfam_canditates)
+    let (refl : const_descr_ref list) = Util.map_filter (fun p -> Util.option_map (fun (id, _) -> id.descr) (dest_const_pat p)) pL in
+    let cfam_canditates = Types.type_defs_get_constr_families loc env.t_env p_ty p_id.descr in
+    let cfam_ok cfam = Util.list_subset refl cfam.Types.constr_list in
+    matrix_compile_fun_get (Util.option_first (fun cfam -> if cfam_ok cfam then Some cfam else None) cfam_canditates)
   end in
 
-  (* now build the real argument types and fresh variable names for the arguments *)
-  let build_args (id : constr_descr id) =
-    let c = id.descr in 
-    let subst = Types.TNfmap.from_list2 c.constr_tparams id.instantiation in
-    let tyL = List.map (Types.type_subst subst) c.constr_args in
-    let resL = List.map (fun ty -> (ty, gen None ty, matrix_compile_mk_pwild ty)) tyL in
-    (id, resL)
+  (* OK, we have the family now, now let's get the instantiation and the right arguments *)
+  let inst = match p_ty with 
+    | { Types.t = Types.Tapp(args, _) } -> args
+    | _ -> raise Pat_Matrix_Compile_Fun_Failed (* should not happen, since constructor types should be all basic and since
+         the lookup of the constructor family before would have failed already *)
   in
-  let all_args = List.map build_args all_ids in
-
+  let all_args = begin
+    let build_args (c : const_descr_ref) =
+      let cd = c_env_lookup loc env.c_env c in   
+      let subst = Types.TNfmap.from_list2 cd.const_tparams inst in
+      let c_type = Types.type_subst subst cd.const_type in
+      let (arg_tyL, _) = Types.strip_fn_type None c_type in
+      let resL = List.map (fun ty -> (ty, gen None ty, matrix_compile_mk_pwild ty)) arg_tyL in
+      let c_id =  make_id module_path_opt (Path.get_name cd.const_binding) inst c in
+      (c_id, resL)
+    in List.map build_args cfam.Types.constr_list
+  end in
 
   (* Build top-fun *)
-  let top_fun : matrix_compile_top_fun  = fun i eL -> 
-     let _ = matrix_compile_fun_check (List.length eL = List.length all_args) in
-     let build_row (id, argL) ee = 
-     begin
-       let vs = nfmap_domain (C.exp_to_free ee) in
-       let build_arg (ty, n, _) = (let (_, p) = matrix_compile_mk_pvar_pwild vs n ty in p) in
-       let arg_pL = List.map build_arg argL in
-       let full_pat = C.mk_pconstr loc id arg_pL (Some p_ty) in
-       (full_pat, ee)
+  let top_fun : matrix_compile_top_fun  = begin  
+     let dest_eL eL = begin
+        let (eL, ed_opt) = if (cfam.Types.constr_exhaustive) then (eL, None) else
+            let (eL', e) = Util.list_dest_snoc eL in (eL', Some e) 
+        in
+        let _ = matrix_compile_fun_check (List.length eL = List.length all_args) in
+        (eL, ed_opt)
      end in
 
-     let pl = List.map2 build_row all_args eL in
-     mk_case_exp true loc i pl m_ty
-  in
-  let restr_pat (id, _) pL = C.mk_pconstr loc id (List.map mk_opt_paren_pat pL) (Some p_ty) in
+     let top_fun_default i eL ed_opt =
+        let build_row (c, argL) ee = 
+        begin
+          let vs = nfmap_domain (C.exp_to_free ee) in
+          let build_arg (ty, n, _) = (let (_, p) = matrix_compile_mk_pvar_pwild vs n ty in p) in
+          let arg_pL = List.map build_arg argL in
+          let full_pat = C.mk_pconst loc c arg_pL (Some p_ty) in
+          (full_pat, ee)
+        end in
+
+        let pl = List.map2 build_row all_args eL in
+        let pl' = match ed_opt with None -> pl | Some ee ->(pl @ [(matrix_compile_mk_pwild p_ty, ee)]) in
+        mk_case_exp true loc i pl' m_ty
+     in
+
+     let top_fun_special f i eL ed_opt = begin
+        let build_exp (c, argL) ee = 
+        begin
+          let vs = nfmap_domain (C.exp_to_free ee) in
+          let build_arg (ty, n, _) = (let (_, p) = matrix_compile_mk_pvar_pwild vs n ty in p) in
+          let arg_pL = List.map build_arg argL in
+          let fun_ee = C.mk_fun loc None arg_pL None ee None in
+          fun_ee
+        end in
+
+        let pl = List.map2 build_exp all_args eL in
+        let pl' = match ed_opt with None -> pl | Some ee ->(pl @ [ee]) in
+
+        let f_exp = begin
+          let fd = c_env_lookup loc env.c_env f in
+          let f_ty = Types.type_subst (Types.TNfmap.from_list2 fd.const_tparams inst) fd.const_type in
+          let f_id =   { id_path = Id_none None; id_locn = loc; descr = f; instantiation = inst } in
+          C.mk_const loc f_id (Some f_ty)
+        end in
+        mk_list_app_exp (env.t_env) f_exp (i::pl')
+     end
+
+     in fun i eL -> begin
+        let (eL, ed_opt) = dest_eL eL in
+        match cfam.Types.constr_case_fun with
+          | None -> top_fun_default i eL ed_opt
+          | Some f -> top_fun_special f i eL ed_opt
+     end
+  end in
+  
+
+  let restr_pat (id, _) pL = C.mk_pconst loc id (List.map mk_opt_paren_pat pL) (Some p_ty) in
+  let restr_pat_else _ = matrix_compile_mk_pwild p_ty in
+
   let case_fun (id, argL) p ee = match p.term with
       | P_wild _ -> Some (List.map (fun (_, _, wcp) -> wcp) argL, ee)
-      | P_constr (id', pL) -> if (id.descr.constr_binding = id'.descr.constr_binding) then (Some (pL, ee)) else None
+      | P_const (id', pL) -> if (id.descr = id'.descr) then (Some (pL, ee)) else None
       | _ -> None
   in
   let dest_in (id, argL) = 
     let vL = List.map (fun (ty, n, _) -> matrix_compile_mk_var n ty) argL in
     fun e -> vL
   in
+  let case_fun_else p ee = 
+    if (is_wild_pat p) then Some ([], ee) else
+    match dest_const_pat p with 
+      | None -> None
+      | Some (id, _) -> if List.mem id.descr cfam.Types.constr_list then None else Some ([], ee)
+  in
+  let dest_in_else e = [] in
 
   (* build default case *)
   let strip_app e = 
@@ -772,8 +812,8 @@ let constr_matrix_compile_fun (simp_input: bool) (env : env) (gen : var_name_gen
   in
 
   let in_case e = let (e', eL) = strip_app e in match C.exp_to_term e' with
-      | Constructor id' -> begin
-          let pos_opt = Util.list_index (fun (id, _) -> (id.descr.constr_binding = id'.descr.constr_binding)) all_args in
+      | Constant id' -> begin
+          let pos_opt = Util.list_index (fun (id, _) -> (id.descr = id'.descr)) all_args in
           match pos_opt with None -> None
             | Some i -> Some (i, eL)
           end
@@ -781,27 +821,14 @@ let constr_matrix_compile_fun (simp_input: bool) (env : env) (gen : var_name_gen
   in
   
   Some (top_fun, 
-        List.map (fun x -> (case_fun x, dest_in x, restr_pat x)) all_args, 
+
+        (let funs = List.map (fun x -> (case_fun x, dest_in x, restr_pat x)) all_args in
+        if (cfam.Types.constr_exhaustive) then funs else funs @ [(case_fun_else, dest_in_else, restr_pat_else)]),
+         
         if simp_input then in_case else (fun e -> None))
 
 
 (* Record patters *)
-
-let get_all_field_descr l env i = 
-  let d = i.descr in
-  let (module_path, _) = Ident.to_name_list (resolve_ident_path i d.field_binding) in
-  let inst = i.instantiation in
-
-  let (mp, _) = Path.to_name_list d.field_binding in
-  let env' = lookup_env env mp in
-  let nl = d.field_names in
-  let get_descr n =
-    match Nfmap.apply env'.f_env n with
-      | Some(fd) -> (make_id module_path inst n fd)
-      | _ -> raise Pat_Matrix_Compile_Fun_Failed
-  in
-  List.map get_descr nl
-
 
 let record_matrix_compile_fun (env : env) (gen : var_name_generator) (m_ty : Types.t) l_org : matrix_compile_fun = fun pL ->
   let ((p : pat), field_p_list) = matrix_compile_fun_get (Util.option_first (fun p -> Util.option_map (fun l -> (p, l)) (dest_record_pat p)) pL) in
@@ -809,33 +836,45 @@ let record_matrix_compile_fun (env : env) (gen : var_name_generator) (m_ty : Typ
   let loc = Ast.Trans ("record_matrix_compile_fun", Some l_org) in
 
   let p_ty = annot_to_typ p in  
+  let inst = match p_ty with 
+    | { Types.t = Types.Tapp(args, _) } -> args
+    | _ -> raise Pat_Matrix_Compile_Fun_Failed (* should not happen, since reconstor types should be all basic *)
+  in
   let first_id = match (List.hd field_p_list) with (fid, _) -> fid in
+  let module_path_opt : Name.t list option = match first_id.id_path with Id_none _ -> None | Id_some i -> Some (fst (Ident.to_name_list i)) in
 
   (* figure out which fields are really needed *)
   let needed_fields = begin
     let fipL =  List.flatten (Util.map_filter dest_record_pat pL) in
-    let fL = List.map (fun (fi, _) -> Path.get_name (fi.descr.field_binding)) fipL in
+    let fL = List.map (fun (fi, _) -> fi.descr) fipL in
     let dL = Util.remove_duplicates fL in
     dL
   end in
 
-  let all_ids = get_all_field_descr loc env first_id in
-  let needed_ids = List.filter (fun fi -> List.mem (Path.get_name (fi.descr.field_binding)) needed_fields) all_ids in
+  let needed_ids_descr = begin
+    let build_id (c : const_descr_ref) =
+      let cd = c_env_lookup loc env.c_env c in   
+      let c_id =  make_id module_path_opt (Path.get_name cd.const_binding) inst c in
+      (c_id, cd)
+    in 
+    List.map build_id needed_fields
+  end in
 
   (* now build the real argument types and fresh variable names for the arguments *)
   let record_var_name = gen None p_ty in
   let record_var = matrix_compile_mk_var record_var_name p_ty in
 
-  let id_process_fun (fi : Typed_ast.field_descr Typed_ast.id) = begin
-    let n = (Path.get_name (fi.descr.field_binding)) in
-    let subst = Types.TNfmap.from_list2 fi.descr.field_tparams fi.instantiation in
-    let ty_field = Types.type_subst subst fi.descr.field_arg in
+  let id_process_fun ((fi : Typed_ast.const_descr_ref Typed_ast.id), (f_d : Typed_ast.const_descr)) = begin
+    let subst = Types.TNfmap.from_list2 f_d.const_tparams fi.instantiation in
+    let ty_field = match Types.dest_fn_type (Some env.t_env) (Types.type_subst subst f_d.const_type) with
+      | Some (_, ty) -> ty
+      | _ -> raise (match_compile_unreachable "not a record type")
+    in
     let f_exp = C.mk_field loc record_var None fi (Some ty_field) in
     let f_wc = matrix_compile_mk_pwild ty_field in
-    (n, fi, ty_field, f_exp, f_wc) 
+    (fi, ty_field, f_exp, f_wc) 
   end in
-
-  let ext_ids = List.map id_process_fun needed_ids in
+  let ext_ids = List.map id_process_fun needed_ids_descr in
 
   (* build auxiliary variables, pattern variables and wildcards *)
 
@@ -851,16 +890,16 @@ let record_matrix_compile_fun (env : env) (gen : var_name_generator) (m_ty : Typ
   | _ -> assert false
   in
 
-  let restr_pat pL = matrix_compile_mk_precord needed_ids pL p_ty in
+  let restr_pat pL = matrix_compile_mk_precord needed_ids_descr pL p_ty in
 
   let case_fun p ee = match p.term with
-      | P_wild _ -> Some (List.map (fun (_, _, _, _, f_wc) -> f_wc) ext_ids, ee)
+      | P_wild _ -> Some (List.map (fun (_, _, _, f_wc) -> f_wc) ext_ids, ee)
       | P_record _ -> 
         begin
           let fipL = matrix_compile_fun_get (dest_record_pat p) in
-          let find_exp (n, _, _, _, f_wc) =
+          let find_exp (f_i, _, _, f_wc) =
           begin
-            let res = try Some (List.find (fun (fid, p) -> (Path.get_name (fid.descr.field_binding) = n)) fipL) with Not_found -> None in
+            let res = try Some (List.find (fun (fid, p) -> (fid.descr = f_i.descr)) fipL) with Not_found -> None in
             match res with None -> f_wc | Some (_, p) -> p
           end
           in Some (List.map find_exp ext_ids, ee)
@@ -868,10 +907,10 @@ let record_matrix_compile_fun (env : env) (gen : var_name_generator) (m_ty : Typ
       | _ -> None
   in
 
-  let dest_in e = List.map (fun (_, _, _, f_exp, _) -> f_exp) ext_ids in
+  let dest_in e = List.map (fun (_, _, f_exp, _) -> f_exp) ext_ids in
  
   Some (top_fun, [case_fun, dest_in, restr_pat], fun e -> None)
-*)
+
 
 (* Infinite case statements (for numbers and strings) *)
 let cases_matrix_compile_fun dest_pat make_lit (gen_match : bool) env (gen : var_name_generator) (m_ty : Types.t) l_org : matrix_compile_fun = fun pL ->
@@ -913,7 +952,6 @@ let cases_matrix_compile_fun dest_pat make_lit (gen_match : bool) env (gen : var
   in  
   let restr_pat_else _ = matrix_compile_mk_pwild p_ty in
 
-  (* build functions for the only case *)
   let case_fun_const c p ee = 
      let check = is_wild_pat p || (dest_pat p = Some c) in
      if check then Some ([], ee) else None in
@@ -1164,10 +1202,10 @@ let basic_compile_funs : (bool -> env -> var_name_generator -> Types.t -> Ast.l 
    [(fun _ _ -> tuple_matrix_compile_fun); 
     (fun _ _ -> bool_matrix_compile_fun false); 
     (fun _ _ -> list_matrix_compile_fun); 
-(*    (           constr_matrix_compile_fun);    *)
+    (           constr_matrix_compile_fun);    
     (fun _   -> num_matrix_compile_fun false); (fun _   -> num_add_matrix_compile_fun_simple);
     (fun _   -> string_matrix_compile_fun false); 
-(*    (fun _   -> record_matrix_compile_fun) *)]
+    (fun _   -> record_matrix_compile_fun)]
 
 (* Target specific ones, use [basic_compile_funs] as a fallback. *)
 let get_target_compile_funs (topt:target option) : (bool -> env -> var_name_generator -> Types.t -> Ast.l -> matrix_compile_fun) list = 

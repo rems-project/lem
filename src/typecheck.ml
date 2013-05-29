@@ -517,7 +517,7 @@ module Make_checker(T : sig
                        * check_pat_aux_ident_constr case *)
 
                       let cd = c_env_lookup (snd (id_to_identl i)) T.e.c_env c in
-                      let (arg_ts, base_t) = Types.strip_fn_type T.e.t_env cd.const_type in
+                      let (arg_ts, base_t) = Types.strip_fn_type (Some T.e.t_env) cd.const_type in
                       let is_constr = (List.length (type_defs_get_constr_families l' T.d base_t c) > 0) in
                       let (pats,pat_e) = check_pats l_e acc ps in
                         if (List.length pats <> List.length arg_ts) || (not is_constr) then (

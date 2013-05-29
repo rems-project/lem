@@ -230,7 +230,7 @@ let dest_field_types l env (f : const_descr_ref) =
   let l = Ast.Trans("dest_field_types", Some l) in 
   let f_d = c_env_lookup l env.c_env f in
   let full_type = f_d.const_type in
-  match Types.dest_fn_type (env.t_env) full_type with
+  match Types.dest_fn_type (Some env.t_env) full_type with
     | Some ({ Types.t = Types.Tapp (t_b_args, t_b_c) }, t_arg) when t_b_args = List.map Types.tnvar_to_type (f_d.const_tparams) -> 
          (t_arg, t_b_c, f_d)
     | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "not a field type")))
@@ -454,6 +454,22 @@ let mk_fun_exp (pL : pat list) (e_s : exp) : exp =
   let res_ty = Types.multi_fun (List.map (fun p -> p.typ) pL) (exp_to_typ e_s) in
   let res = C.mk_fun l space pL' space (mk_opt_paren_exp e_s) (Some res_ty) in
   res
+
+let mk_opt_fun_exp pL e_s =
+  if (Util.list_longer 0 pL) then mk_fun_exp pL e_s else e_s
+
+let mk_app_exp d e1 e2 =
+  let l = Ast.Trans ("mk_app_exp", None) in
+  let b_ty = match Types.dest_fn_type (Some d) (exp_to_typ e1) with
+               | None -> raise (Ident.No_type(l, "non-function in application"))
+               | Some (_, b_ty) -> b_ty
+  in
+  C.mk_app l e1 e2 (Some b_ty)
+
+let rec mk_list_app_exp d f aL =
+  match aL with 
+    | [] -> f
+    | a :: aL' -> mk_list_app_exp d (mk_app_exp d f a) aL'
 
 let rec strip_paren_typ_exp (e :exp) : exp =
   match C.exp_to_term e with

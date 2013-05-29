@@ -616,16 +616,17 @@ let rec head_norm (d : type_defs) (t : t) : t =
       | _ -> 
           t
 
-let dest_fn_type (d : type_defs) (t : t) : (t * t) option =
-  match (head_norm d t).t with
+let dest_fn_type (d_opt : type_defs option) (t : t) : (t * t) option =
+  let t' = match d_opt with None -> t | Some d -> head_norm d t in
+  match t'.t with
     | Tfn(t1, t2) -> Some (t1, t2)
     | _ -> None
 
-let rec strip_fn_type d t =
-  match dest_fn_type d t with
+let rec strip_fn_type d_opt t =
+  match dest_fn_type d_opt t with
     | None -> ([], t)
     | Some (t1, t2) -> begin
-        let (al, bt) = strip_fn_type d t2 in
+        let (al, bt) = strip_fn_type d_opt t2 in
         (t1 :: al, bt)
       end
                        

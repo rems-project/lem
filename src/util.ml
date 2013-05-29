@@ -122,6 +122,14 @@ let rec list_longer n l = match (l, n) with
   | (_::_, 0) -> true
   | (_::l', n) -> list_longer (n-1) l'
 
+let list_dest_snoc l =  
+  match l with
+    | [] -> raise (Failure "list_dest_snoc")
+    | _ -> begin
+      let l_rev = List.rev l in
+      (List.rev (List.tl l_rev), List.hd l_rev)
+    end 
+
 let option_get_exn e = function
   | Some(o) -> o
   | None -> raise e
