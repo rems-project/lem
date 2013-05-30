@@ -410,7 +410,9 @@ type rule_quant_name =
 
 type rule = Rule of Name.lskips_t * lskips * lskips * rule_quant_name list * lskips * exp option * lskips * name_lskips_annot * exp list
 
-type indrel_name = RName of lskips* Name.lskips_t * lskips * typschm * (Name.lskips_t option) * (Name.lskips_t option) * ((Name.lskips_t * src_t) list) option * lskips
+type witness = Witness of lskips * lskips * Name.lskips_t * lskips
+type indfn = Fn of Name.lskips_t * lskips * src_t * lskips option
+type indrel_name = RName of lskips* Name.lskips_t * lskips * typschm * (witness option) * ((lskips*Name.lskips_t*lskips) option) * (indfn list) option * lskips
 
 type def = (def_aux * lskips option) * Ast.l
 

@@ -257,6 +257,45 @@ let rec typ_to_src_t (wild_f : Ast.l -> lskips -> src_t)
           typ = {t = Tne(nexp'.nt);};
           rest=(); }
 
+(*Permits only in, out, and the type of the witness *)
+let rec typ_to_src_t_indreln wit (Ast.Typ_l(typ,l)) =
+  match typ with
+    | Ast.Typ_wild(sk) -> assert false (*todo, make an error*)
+    | Ast.Typ_var _ -> assert false
+    | Ast.Typ_fn(typ1, sk, typ2) -> 
+        let st1 = typ_to_src_t_indreln wit typ1 in
+        let st2 = typ_to_src_t_indreln wit typ2 in
+          { term = Typ_fn(st1, sk, st2);
+            locn = l; 
+            typ = { t = Tfn(st1.typ,st2.typ) };
+            rest = (); }
+    | Ast.Typ_tup(typs) -> assert false
+    | Ast.Typ_app(i,typs) ->
+       (match i,typs with
+         | _,x::xs -> assert false
+         | Ast.Id([],xl,l0),[] -> 
+            (match (Name.to_string (Name.strip_lskip (Name.from_x xl))) with
+              | "in" | "out" | "bool" | "unit" -> ()
+              | x -> if x = wit then () else assert false);
+             let p = Path.mk_path [] (Name.strip_lskip (Name.from_x xl)) in
+             let id = {id_path = Id_some (Ident.from_id i); 
+                       id_locn = l0;
+                       descr = Path.mk_path [] (Name.strip_lskip (Name.from_x xl));
+                       instantiation = []; }
+             in
+	       { term = Typ_app(id,[]);
+                 locn = l;
+                 typ = { t = Tapp([],p) };
+                 rest = (); })
+    | Ast.Typ_paren(sk1,typ,sk2) ->
+        let st = typ_to_src_t_indreln wit typ in
+        { term = Typ_paren(sk1,st,sk2); 
+          locn = l; 
+          typ = st.typ; 
+          rest = (); }
+    | Ast.Typ_Nexps(nexp) -> assert false
+
+
 (* Corresponds to judgment check_lit '|- lit : t' *)
 let check_lit (Ast.Lit_l(lit,l)) =
   let annot (lit : lit_aux) (t : t) : lit = 
@@ -1555,7 +1594,20 @@ module Make_checker(T : sig
             let (src_cp, tyvars, tnvarset, (sem_cp,sem_rp)) = check_constraint_prefix ctxt cp in 
             let () = check_free_tvs tnvarset typ in
             let src_t = typ_to_src_t anon_error ignore ignore ctxt.all_tdefs ctxt.cur_env typ in
-            RName(s0,Name.from_x xl,s1,(src_cp,src_t),None, None, None,s2))
+            let witness,wit_name = (match witness_opt with
+                            | Ast.Witness_none -> None,""
+                            | Ast.Witness_some (s0,s1,xl,s2) -> Some( Witness(s0,s1,Name.from_x xl,s2)), (Name.to_string (Name.strip_lskip (Name.from_x xl)))) in
+            let check = (match check_opt with 
+                            | Ast.Check_none -> None
+                            | Ast.Check_some(s0,xl,s1) -> Some(s0,Name.from_x xl,s1)) in
+            let rec mk_functions fo =
+                    match fo with
+                      | Ast.Functions_none -> None
+                      | Ast.Functions_one(xl,s1,t) -> Some([Fn(Name.from_x xl,s1,typ_to_src_t_indreln wit_name t,None)])
+                      | Ast.Functions_some(xl,s1,t,s2,fs) -> (match (mk_functions fs) with
+                                                             | None -> Some([Fn(Name.from_x xl, s1, typ_to_src_t_indreln wit_name  t, Some s2)])
+                                                             | Some fs -> Some((Fn(Name.from_x xl,s1, typ_to_src_t_indreln wit_name t, Some s2))::fs)) in
+            RName(s0,Name.from_x xl,s1,(src_cp,src_t),witness, check, mk_functions functions_opt,s2))
          names 
     in
     let clauses = Seplist.from_list clauses in
