@@ -85,17 +85,6 @@ let generate_coq_record_update_notation e =
         | x::xs -> result
   in
     match e with
-      | Te_record_coq (s3, name, s1, fields, s2) ->
-          let all_fields = Seplist.to_list fields in
-          let all_fields_names = List.map (fun ((lskips, l), s4, ty) -> Ulib.Text.to_string (Name.to_rope (Name.strip_lskip lskips))) all_fields in
-          let field_entries = List.fold_right (^) (intercalate (from_string "\n") (List.map (aux all_fields_names) all_fields)) emp in
-          let terminator =
-            if List.length all_fields = 0 then
-              emp
-            else
-              from_string "\n"
-          in
-            field_entries ^ terminator
       | Te_record (s1, s2, fields, s3) ->
           let all_fields = Seplist.to_list fields in
           let all_fields_names = List.map (fun ((lskips, l), s4, ty) -> Ulib.Text.to_string (Name.to_rope (Name.strip_lskip lskips))) all_fields in

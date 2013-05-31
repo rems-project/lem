@@ -149,97 +149,49 @@ let capitalize x =
   let c = Ulib.UChar.of_char (Char.uppercase (Ulib.UChar.char_of (Ulib.UTF8.get x 0))) in
     from_rope (Ulib.Text.set (to_rope x) 0 c)
 
-type name_type =
-  | Bquote
-  | Paren
-  | Plain
+type lskips_t = Ast.lex_skips * Ulib.Text.t 
 
-type lskips_t = Ast.lex_skips * Ulib.Text.t * name_type
+let r = Ulib.Text.of_latin1
 
 let from_ix = function 
-  | Ast.SymX_l((s,x),l) -> (s,x,Plain)
-  | Ast.InX_l(s,(None,x),None,l) -> (s,x,Bquote)
-  | _ -> assert false
+  | Ast.SymX_l((s,x),l) -> (s,x)
 
 let from_x = function 
-  | Ast.X_l((s,x),l) -> (s,x,Plain)
-  | Ast.PreX_l(s1,(None,x),None,l) -> (s1,x,Paren)
-  | Ast.PreX_l(s1,(_,x),_,l) -> 
-      (* The parser should prevent this from happening in its mk_pre_x_l
-       * function *)
-      assert false
+  | Ast.X_l((s,x),l) -> (s,x)
+  | Ast.PreX_l(s,(_,x),_,_) ->  (s, x) (* TODO: check the missing parenthesis information is not important *)
 
 
-let strip_lskip (_,x,_) = from_rope x
-
-let add_lskip n = 
-  (None,to_rope n,Plain)
+let strip_lskip (_,x) = from_rope x
+let add_lskip n = (None,to_rope n)
 
 let star = Ulib.Text.of_latin1 "*"
 let space = Output.ws (Some [Ast.Ws (Ulib.Text.of_latin1 " ")])
 
-let to_output infix_f a (s,x,nt)= 
-  let open Output in
-    match nt with
-      | Plain -> ws s ^ id a x
-      | Paren -> ws s ^ (infix_f a x)
-      (* TODO : Bquote might not be correct for all targets *)
-      | Bquote -> 
-          ws s ^ kwd "`" ^ id a x ^ kwd "`"
+let to_output a (s,x) = Output.(^) (Output.ws s) (Output.id a x)
 
-let r = Ulib.Text.of_latin1
+let to_output_infix infix_f a (s,x) = Output.(^) (Output.ws s) (infix_f a x)
 
-let to_output_quoted infix_f a (s,x,nt)= 
+let to_output_quoted a (s,x)= 
   let open Output in
   let (^^) = Ulib.Text.(^^^) in
-  to_output infix_f a (s, (r"\"" ^^ x ^^ r"\""), nt)
+  to_output a (s, (r"\"" ^^ x ^^ r"\""))
 
 let to_rope_tex a n = 
   Output.to_rope_ident a (to_rope n)
 
-let add_pre_lskip lskip (s,x,nt) = 
-  (Ast.combine_lex_skips lskip s,x,nt)
+let add_pre_lskip lskip (s,x) = 
+  (Ast.combine_lex_skips lskip s,x)
 
-let get_lskip (s,x,nt) = s
+let get_lskip (s,x) = s
 
-let drop_parens (s,x,nt) = 
-  match nt with
-    | Plain ->
-        (s,x,Plain)
-    | Paren ->
-        (s,x,Plain)
-    | Bquote -> 
-        assert false
-
-let add_parens (s,x,nt) = 
-  match nt with
-    | Plain ->
-        (s,x,Paren)
-    | Paren ->
-        (s,x,Paren)
-    | Bquote -> 
-        assert false
-
-let lskip_pp ppf (s,x,nt) = 
-  match nt with
-    | Plain -> 
+let lskip_pp ppf (s,x) = 
         Format.fprintf ppf "%a%a" 
           Ast.pp_lex_skips s
           pp (from_rope x)
-    | Paren -> 
-        Format.fprintf ppf "%a(%a)" 
-          Ast.pp_lex_skips s
-          pp (from_rope x)
-    | Bquote -> 
-        Format.fprintf ppf "%a`%a`" 
-          Ast.pp_lex_skips s 
-          pp (from_rope x)
 
-let lskip_rename f (s,x,nt) =
-  (s,f x,nt)
+let lskip_rename f (s,x) =
+  (s,f x)
 
-let replace_lskip (s,x,nt) s_new = 
-  (s_new,x,nt)
+let replace_lskip (s,x) s_new = 
+  (s_new,x)
 
-let get_prec gp (s,x,nt) =
-  gp (Precedence.Op (Ulib.Text.to_string x))

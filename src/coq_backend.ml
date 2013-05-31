@@ -46,7 +46,6 @@
 
 open Coq_backend_utils
 open Coq_records
-open Backend_common
 open Output
 open Typed_ast
 open Typed_ast_syntax
@@ -123,14 +122,6 @@ let coq_infix_op a x =
   ]
 ;;
 
-let const_ident_to_output env a cd =
-  Ident.to_output coq_infix_op a path_sep (const_id_to_ident (Some Target_coq) env cd)
-;;
-
-let type_ident_to_output td =
-  Ident.to_output coq_infix_op Type_ctor path_sep (resolve_ident_path td td.descr)
-;;
-
 
 let none = Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r"None"))) Ast.Unknown
 ;;
@@ -200,12 +191,29 @@ let rec src_t_to_string =
 module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
   struct
 
+    module B = Backend_common.Make (
+      struct
+        let env = A.env
+        let target_opt = Some Target_coq
+        let id_format_args = (coq_infix_op, path_sep)
+      end);;
+
     module C = Exps_in_context (
       struct
         let env_opt = Some A.env
         let avoid = A.avoid
       end)
     ;;
+
+let const_ident_to_output env a cd =
+  let is_infix = Precedence.is_infix (Precedence.get_prec (Some Target_coq) env cd.descr) in
+  let to_out_fun = if is_infix then Ident.to_output_infix coq_infix_op else Ident.to_output in
+  to_out_fun a path_sep (B.const_id_to_ident cd)
+;;
+
+let type_ident_to_output td =
+  Ident.to_output Type_ctor path_sep (resolve_ident_path td td.descr)
+;;
 
     let generate_record_equality tvs o lskips_seplist =
       let eq_typ =
@@ -290,7 +298,6 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
         | Te_opaque -> from_string "(* XXX: extracting equality for an opaque type.  Hard drive will now be formatted. *)"
         | Te_abbrev (_, src_t) -> from_string " (* XXX: internal Lem error, please report *)"
         | Te_record (_, _, name_l_src_t_lskips_seplist, _) -> from_string " (* XXX: internal Lem error, please report *)"
-        | Te_record_coq (_, name_l, _, name_l_src_t_lskips_seplist, _) -> from_string " (* XXX: internal Lem error, please report *)"
         | Te_variant (_, name_l_src_t_lskips_seplist) ->
             let l = Seplist.to_list name_l_src_t_lskips_seplist in
             let cases = List.map (fun ((name, _), y, typs) ->
@@ -343,12 +350,12 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
               let right_hand_side =
                 combine [
                   from_string "match r with\n        |";
-                  Name.to_output coq_infix_op Type_ctor name; arg_space; right_args_list;
+                  Name.to_output Type_ctor name; arg_space; right_args_list;
                   from_string " => "; equality_test; catch_all; from_string "\n      end"
                 ]
               in
                 combine [
-                  from_string "|"; Name.to_output coq_infix_op Type_ctor name; arg_space;
+                  from_string "|"; Name.to_output Type_ctor name; arg_space;
                   names_list; from_string " =>\n      "; right_hand_side;
                 ]) l
             in
@@ -356,8 +363,6 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
               combine [
                 from_string "  match l with\n    "; cases; from_string "\n  end"
               ]
-        | Te_variant_coq (_, name_l_src_t_seplist) ->
-            from_string " (* XXX: internal Lem error, please report *)"
     ;;
 
     let rec generate_coq_abbreviation_equality tvs name bod =
@@ -551,7 +556,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
       | Open (skips, mod_descr) ->
           let mod_path = resolve_ident_path mod_descr mod_descr.descr.mod_binding in
           let mod_name = Ident.get_name mod_path in
-          let mod_name = Name.to_output coq_infix_op Term_var mod_name in
+          let mod_name = Name.to_output Term_var mod_name in
             combine [
               ws skips; from_string "Require Import "; mod_name; from_string ".\n"
             ]
@@ -582,7 +587,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
                   combine [
                     from_string " lemma_"; from_string fresh
                   ]
-                | Some ((name, l), skips) -> Name.to_output coq_infix_op Term_var name
+                | Some ((name, l), skips) -> Name.to_output Term_var name
             in
               combine [
                 ws skips; from_string "Lemma"; name; from_string ":"; ws skips'; exp e;
@@ -761,19 +766,28 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
           emp
         else
           combine [from_string "{"; flat tyvars; from_string " : Type}"]
-    and coq_function_application_to_output id args = function_application_to_output (Some Target.Target_coq)
-           (Ident.to_output coq_infix_op Term_const path_sep) exp A.env id args
+    and coq_function_application_to_output id args = B.function_application_to_output exp id args
     and exp e =
       let is_user_exp = Typed_ast_syntax.is_trans_exp e in
         match C.exp_to_term e with
-          | Var v -> Name.to_output coq_infix_op Term_var v
+          | Var v -> Name.to_output Term_var v
           | Lit l -> literal l
           | App (e1, e2) ->
-              block is_user_exp 0 (combine [
-                block (Typed_ast_syntax.is_trans_exp e1) 0 (exp e1);
-                break_hint_space 2;
-                block (Typed_ast_syntax.is_trans_exp e2) 0 (exp e2)
-              ])
+              let trans e = block (Typed_ast_syntax.is_trans_exp e) 0 (exp e) in
+              let sep = (break_hint_space 2) in
+
+              let oL = begin
+              (* try to strip all application and see whether there is a constant at the beginning *)
+              let (e0, args) = strip_app_exp e in
+                match C.exp_to_term e0 with
+                  | Constant cd -> 
+                    (* constant, so use special formatting *)
+                    B.function_application_to_output trans false cd args
+                  | _ -> (* no constant, so use standard one *)
+                    List.map trans (e0 :: args)
+              end in
+              let o = Output.concat sep oL in
+              block is_user_exp 0 o
           | Paren (skips, e, skips') ->
               combine [
                 ws skips; from_string "("; exp e; ws skips'; from_string ")";
@@ -857,12 +871,21 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
                   ws skips; from_string "match ("; exp e; from_string ")"; ws skips'; from_string "with";
                   break_hint_space 4; body; ws skips''; break_hint_space 0; from_string "end"
                 ])
-          | Infix (l, c, r) ->
-            block is_user_exp 0 (combine [
-              block (Typed_ast_syntax.is_trans_exp l) 0 (exp l);
-              break_hint_space 0; exp c; break_hint_space 0;
-              block (Typed_ast_syntax.is_trans_exp r) 0 (exp r)
-            ])
+           | Infix (l, c, r) ->
+             let trans e = block (Typed_ast_syntax.is_trans_exp e) 0 (exp e) in
+             let sep = (break_hint_space 0) in
+
+             let oL = begin
+               (* check, whether there is a constant in the middle *)
+               match C.exp_to_term c with
+                 | Constant cd -> 
+                   (* constant, so use special formatting *)
+                   B.function_application_to_output trans true cd [l;r]
+                 | _ -> (* no constant, so use standard one *)
+                   List.map trans [l;c;r]
+            end in
+            let o = Output.concat sep oL in
+            block is_user_exp 0 o
           | If (skips, test, skips', t, skips'', f) ->
               block is_user_exp 0 (combine [
                 ws skips; break_hint_cut; from_string "if";
@@ -977,7 +1000,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
             ]
         | P_lit l -> literal l
         | P_as (skips, p, skips', (n, l), skips'') ->
-          let name = Name.to_output coq_infix_op Term_var n in
+          let name = Name.to_output Term_var n in
             combine [
               ws skips; fun_pattern p; ws skips'; from_string "as"; ws skips''; name
             ]
@@ -999,7 +1022,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
               def_pattern p1; ws skips; from_string "::"; def_pattern p2
             ]
         | P_var_annot (n, t) ->
-            let name = Name.to_output coq_infix_op Term_var n in
+            let name = Name.to_output Term_var n in
               combine [
                 from_string "("; name; from_string " : "; pat_typ t; from_string ")"
               ]
@@ -1013,7 +1036,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
               ws skips; from_string "("; fun_pattern p; ws skips'; from_string ")"
             ]
         | P_const(cd, ps) ->
-            let oL = pattern_application_to_output (Some Target_coq) (Ident.to_output coq_infix_op Term_const path_sep) fun_pattern A.env cd ps in
+            let oL = B.pattern_application_to_output fun_pattern false cd ps in
             concat emp oL
         | P_num_add ((name, l), skips, skips', k) ->
             let succs = separate "" $ Util.replicate k (from_string "S (") in
@@ -1035,10 +1058,10 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
             combine [
               skips; from_string "_"
             ]
-        | P_var v -> Name.to_output coq_infix_op Term_var v
+        | P_var v -> Name.to_output Term_var v
         | P_lit l -> literal l
         | P_as (skips, p, skips', (n, l), skips'') ->
-          let name = Name.to_output coq_infix_op Term_var n in
+          let name = Name.to_output Term_var n in
             combine [
               ws skips; def_pattern p; ws skips'; from_string "as"; ws skips'; name
             ]
@@ -1059,7 +1082,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
             ]
         | P_var_annot (n, t) ->
           (* DPM: type restriction not allowed in Coq *)
-            Name.to_output coq_infix_op Term_var n
+            Name.to_output Term_var n
         | P_list (skips, ps, skips') ->
           let body = flat $ Seplist.to_sep_list_last Seplist.Optional def_pattern (sep $ from_string "; ") ps in
             combine [
@@ -1070,7 +1093,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
               from_string "("; ws skips; def_pattern p; ws skips'; from_string ")"
             ]
         | P_const(cd, ps) ->
-            let oL = pattern_application_to_output (Some Target_coq) (Ident.to_output coq_infix_op Term_const path_sep) def_pattern A.env cd ps in
+            let oL = B.pattern_application_to_output def_pattern false cd ps in
             concat emp oL
         | P_num_add ((name, l), skips, skips', k) ->
             let succs = separate "" $ Util.replicate k (from_string "S (") in
@@ -1083,7 +1106,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
     and type_def_abbreviation def =
     	match Seplist.hd def with
     		| ((n, _), tyvars, Te_abbrev (skips, t),_) ->
-    				let name = Name.to_output coq_infix_op Type_ctor n in
+    				let name = Name.to_output Type_ctor n in
             let tyvars' = type_def_type_variables tyvars in
     				let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
             let body = abbreviation_typ t in
@@ -1118,7 +1141,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
     	match Seplist.hd def with
       	| (n, tyvars, (Te_record (skips, skips', fields, skips'') as r),_) ->
             let (n', _) = n in
-      			let name = Name.to_output coq_infix_op Type_ctor n' in
+      			let name = Name.to_output Type_ctor n' in
       			let body = flat $ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) field (sep $ from_string ";") fields in
       			let tyvars' = type_def_type_variables tyvars in
             let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
@@ -1144,7 +1167,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
           boolean_equality
         ]
     and type_def' ((n, l), ty_vars, ty, _) =
-      let name = Name.to_output coq_infix_op Type_ctor n in
+      let name = Name.to_output Type_ctor n in
       let ty_vars =
         List.map (
           function
@@ -1156,7 +1179,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
     and inductive ty_vars name =
       let ty_var_sep = if List.length ty_vars = 0 then emp else from_string " " in
       let ty_vars = inductive_type_variables ty_vars in
-      let name = Name.to_output coq_infix_op Type_ctor name in
+      let name = Name.to_output Type_ctor name in
         combine [
           name; ty_var_sep; ty_vars; from_string " : Type "
         ]
@@ -1183,9 +1206,8 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
             combine [
               from_string ":="; ws skips; body
             ]
-        | _           -> from_string "(* tyexp *)"
     and constructor ind_name ty_vars ((ctor_name, _), skips, args) =
-      let ctor_name = Name.to_output coq_infix_op Type_ctor ctor_name in
+      let ctor_name = Name.to_output Type_ctor ctor_name in
       let body = flat $ Seplist.to_sep_list abbreviation_typ (sep $ from_string "-> ") args in
       let tail = combine [from_string "->"; ind_name ] in
         if Seplist.length args = 0 then
@@ -1273,7 +1295,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
         | Typ_len nexp -> src_nexp nexp
     and field ((n, _), skips, t) =
       combine [
-        Name.to_output coq_infix_op Term_field n; from_string ":"; ws skips; field_typ t
+        Name.to_output Term_field n; from_string ":"; ws skips; field_typ t
       ]
     and defs inside_module (ds : def list) =
       	List.fold_right (fun ((d, s), l) y ->
@@ -1299,8 +1321,6 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
               combine [
                 from_string "{| "; fields; from_string " |}"
               ]
-        | Te_record_coq (_, (_, locn), _, seplist, _) ->
-            print_and_fail locn "illegal record coq in default value generation, should have been macro'd away"
         | Te_variant (_, seplist) ->
             (match Seplist.to_list seplist with
               | []    -> assert false (* empty type in default value generation, should this be allowed? *)
@@ -1313,9 +1333,6 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
                     combine [
                       o; from_string " "; mapped
                     ])
-        | Te_variant_coq (_, seplist) ->
-          let l_unk = Ast.Trans ("generate_default_value_texp", None) in
-            print_and_fail l_unk "illegal record coq in default value generation, should have been macro'd away"
       and generate_default_value ((name, _), tnvar_list, t, name_sect_opt) : Output.t =
         let o = lskips_t_to_output name in
         let tnvar_list_sep =

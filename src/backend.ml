@@ -1091,6 +1091,12 @@ end
 
 module F(T : Target)(A : sig val avoid : var_avoid_f option;; val env : env end)(X : sig val comment_def : def -> Ulib.Text.t end) = struct
 
+module B = Backend_common.Make (struct
+  let env = A.env
+  let target_opt = T.target
+  let id_format_args =  (T.infix_op_format, T.path_sep)    
+end);;
+
 module C = Exps_in_context (struct
   let env_opt = Some A.env
   let avoid = A.avoid
@@ -1270,7 +1276,7 @@ let lit l t = match l.term with
   | L_vector(s,p,b) -> ws s ^ kwd (String.concat "" [p;b])
 
 let typ_ident_to_output (p : Path.t id) =     
-  Ident.to_output T.infix_op_format Type_ctor T.path_sep (typ_id_to_ident T.target A.env p)
+  Ident.to_output Type_ctor T.path_sep (B.typ_id_to_ident p)
 
 let nexp n =
   let rec nexp_int n = match n.nterm with
@@ -1321,7 +1327,7 @@ let rec typ t = match t.term with
       kwd ")"
 
 let const_ident_to_output a cd =
-  Ident.to_output T.infix_op_format a T.path_sep (const_id_to_ident T.target A.env cd)
+  Ident.to_output a T.path_sep (B.const_id_to_ident cd)
 ;;
 
 let tyvar tv =
@@ -1330,7 +1336,7 @@ let tyvar tv =
    | Tn_N(s,nv,l) -> ws s ^ id Nexpr_var (Ulib.Text.(^^^) T.nexp_var nv)
 
 let tyfield ((n,l),s1,t) =
-  Name.to_output T.infix_op_format Term_field n ^
+  Name.to_output Term_field n ^
   ws s1 ^
   block false 2 ( 
   T.typ_sep ^
@@ -1339,7 +1345,7 @@ let tyfield ((n,l),s1,t) =
   T.typ_end)
 
 let tyconstr implicit n' tvs ((n,l),s1,targs) =
-  Name.to_output T.infix_op_format Type_ctor n ^
+  Name.to_output Type_ctor n ^
   ws s1 ^
   (if Seplist.length targs = 0 then
      T.ctor_typ_end n' tvs
@@ -1352,7 +1358,7 @@ let tyconstr implicit n' tvs ((n,l),s1,targs) =
      break_hint_space 0 )
 
 let tyconstr_coq implicit ((n,l),s1,targs,(n1,l1),tvs) =
-  Name.to_output T.infix_op_format Type_ctor n ^
+  Name.to_output Type_ctor n ^
   ws s1 ^
   (if Seplist.length targs = 0 then
      emp
@@ -1360,7 +1366,7 @@ let tyconstr_coq implicit ((n,l),s1,targs,(n1,l1),tvs) =
      T.typ_constr_sep ^
      T.typ_start ^
      flat (Seplist.to_sep_list typ (sep T.constr_sep) targs) ^
-     T.constr_sep ^ Name.to_output T.infix_op_format Type_ctor n1 ^ space ^
+     T.constr_sep ^ Name.to_output Type_ctor n1 ^ space ^
      if implicit then
        emp ^ T.typ_end
      else
@@ -1396,22 +1402,7 @@ let tyexp implicit n tvs = function
   
   | Te_record(s3, s1, fields, s2) ->
       tyexp_rec s3 s1 fields s2
-  | Te_record_coq(s3, (n,l), s1, fields, s2) ->
-      ws s3 ^ 
-      block false 0 (
-      T.typedef_binding ^
-      Name.to_output T.infix_op_format Type_ctor n ^
-      ws s1 ^
-      break_hint_space 2 ^
-      T.typ_rec_start ^
-      block_hv false 0 (
-      flat (
-        Seplist.to_sep_list
-        tyfield (sep (break_hint_space 2 ^ T.typ_rec_sep)) fields)) ^
-      ws s2 ^
-      T.typ_rec_end ^
-      new_line)
-  
+ 
   | Te_variant(s,constrs) ->
       ws s ^
       T.typedef_binding ^
@@ -1422,17 +1413,6 @@ let tyexp implicit n tvs = function
               (tyconstr implicit n tvs)
               (sep (texspace ^ kwd "|" ^ texspace))
               constrs))
-
-  | Te_variant_coq(s,constrs) ->
-      ws s ^
-      T.typedef_binding ^
-      flat (
-        Seplist.to_sep_list_first 
-          T.first_case_sep
-          (tyconstr_coq implicit)
-          (sep (kwd "|"))
-          constrs
-        )
 
   
 let rec pat p = match p.term with
@@ -1445,7 +1425,7 @@ let rec pat p = match p.term with
       pat p ^
       ws s2 ^ 
       T.pat_as ^
-      Name.to_output T.infix_op_format Term_var n ^
+      Name.to_output Term_var n ^
       ws s3
 
   | P_typ(s1,p,s2,t,s3) ->
@@ -1458,9 +1438,9 @@ let rec pat p = match p.term with
       ws s3 ^
       kwd ")"
   | P_var(n) ->
-      Name.to_output T.infix_op_format Term_var n
+      Name.to_output Term_var n
   | P_const(cd,ps) ->
-      let oL = pattern_application_to_output T.target (Ident.to_output T.infix_op_format Term_const T.path_sep) pat A.env cd ps in
+      let oL = B.pattern_application_to_output pat false cd ps in
       concat texspace oL
   | P_record(s1,fields,s2) ->
       ws s1 ^
@@ -1514,7 +1494,7 @@ let rec pat p = match p.term with
       pat p2
 
   | P_num_add ((n, _),s1,s2,i) ->
-      (Name.to_output T.infix_op_format Term_var n) ^
+      (Name.to_output Term_var n) ^
       ws s1 ^
       T.pat_add_op ^
       ws s2 ^
@@ -1525,7 +1505,7 @@ let rec pat p = match p.term with
 
   | P_var_annot(n,t) ->
       kwd "(" ^
-      Name.to_output T.infix_op_format Term_var n ^
+      Name.to_output Term_var n ^
       T.typ_sep ^
       typ t ^
       kwd ")"
@@ -1547,13 +1527,13 @@ let rec exp e =
 let is_user_exp = is_trans_exp e in
 match C.exp_to_term e with
   | Var(n) ->
-      Name.to_output T.infix_op_format Term_var n
+      Name.to_output Term_var n
  
   | Nvar_e(s,n) ->
       ws s ^ id Nexpr_var (Ulib.Text.(^^^) T.nexp_var (Nvar.to_rope n))
 
   | Constant(cd) ->
-      const_ident_to_output Term_const cd 
+      Output.concat emp (B.function_application_to_output exp false cd [])
 
   | Fun(s1,ps,s2,e) ->
       ws s1 ^
@@ -1580,20 +1560,37 @@ match C.exp_to_term e with
       T.function_end
 
   | App(e1,e2) ->
-      block is_user_exp 0 (
-      block (is_trans_exp e1) 0 (exp e1) ^
-      texspace ^
-      break_hint_space 2 ^
-      block (is_trans_exp e2) 0 (exp e2))
+      let trans e = block (is_trans_exp e) 0 (exp e) in
+      let sep = (texspace ^ break_hint_space 2) in
 
-  | Infix(e1,e2,e3) ->
-      block is_user_exp 0 (
-      block (is_trans_exp e1) 0 (exp e1) ^
-      texspace ^ 
-      exp e2 ^
-      texspace ^ 
-      break_hint_space 0 ^
-      block (is_trans_exp e3) 0 (exp e3))
+      let oL = begin
+         (* try to strip all application and see whether there is a constant at the beginning *)
+         let (e0, args) = strip_app_exp e in
+         match C.exp_to_term e0 with
+           | Constant cd -> 
+             (* constant, so use special formatting *)
+             B.function_application_to_output trans false cd args
+           | _ -> (* no constant, so use standard one *)
+             List.map trans (e0 :: args)
+      end in
+      let o = Output.concat sep oL in
+      block is_user_exp 0 o
+
+  | Infix(e1,e2,e3) ->      
+      let trans e = block (is_trans_exp e) 0 (exp e) in
+      let sep = (texspace ^ break_hint_space 2) in
+
+      let oL = begin
+         (* check, whether there is a constant in the middle *)
+         match C.exp_to_term e2 with
+           | Constant cd -> 
+             (* constant, so use special formatting *)
+             B.function_application_to_output trans true cd [e1;e3]
+           | _ -> (* no constant, so use standard one *)
+             List.map trans [e1;e2;e3]
+      end in
+      let o = Output.concat sep oL in
+      block is_user_exp 0 o
 
   | Record(s1,fields,s2) ->
       ws s1 ^
@@ -1825,7 +1822,7 @@ match C.exp_to_term e with
   | Do(s1,m,do_lns,s2,e,s3,_) ->
       ws s1 ^
       kwd "do" ^
-      Ident.to_output T.infix_op_format Module_name T.path_sep (resolve_ident_path m m.descr.mod_binding) ^
+      Ident.to_output Module_name T.path_sep (resolve_ident_path m m.descr.mod_binding) ^
       do_lines do_lns ^
       ws s2 ^
       kwd "in" ^
@@ -1846,7 +1843,7 @@ and do_lines = function
 
 and quant_binding = function
   | Qb_var(n) -> 
-      Name.to_output T.infix_op_format Term_var n.term
+      Name.to_output Term_var n.term
   | Qb_restr(is_lst,s1,p,s2,e,s3) ->
       ws s1 ^
       T.quant_binding_start ^
@@ -1905,7 +1902,7 @@ and tyvar_binding tvs = emp
 and funcl tvs ({term = n}, ps, topt, s1, e) =
   ws (Name.get_lskip n) ^ 
   T.funcase_start ^
-  Name.to_output T.infix_op_format Term_var (Name.replace_lskip n None) ^
+  Name.to_output Term_var (Name.replace_lskip n None) ^
   tyvar_binding tvs ^
   (match ps with [] -> emp | _ -> texspace) ^
   patlist ps ^
@@ -1983,12 +1980,12 @@ let tdef_tvars ml_style tvs =
 
 let tdef_tctor quoted_name tvs n regexp =
   let nout = 
-    if quoted_name then Name.to_output_quoted T.infix_op_format Type_ctor n else Name.to_output T.infix_op_format Type_ctor n 
+    if quoted_name then Name.to_output_quoted Type_ctor n else Name.to_output Type_ctor n 
   in
   let regexp_out = 
     match regexp with | None -> emp
                       | Some(Name_restrict(sk1,(x,l),sk2,sk3,s,sk4)) -> 
-                              ws sk1 ^ T.name_start ^ Name.to_output T.infix_op_format Term_var x ^ ws sk2 ^ kwd "=" ^ ws sk3 ^ str (Ulib.Text.of_latin1 s) ^ T.name_end ^ ws sk4 
+                              ws sk1 ^ T.name_start ^ Name.to_output Term_var x ^ ws sk2 ^ kwd "=" ^ ws sk3 ^ str (Ulib.Text.of_latin1 s) ^ T.name_end ^ ws sk4 
   in 
     if T.type_params_pre then
       tdef_tvars true tvs ^ regexp_out ^
@@ -2001,7 +1998,7 @@ let tdef_tctor quoted_name tvs n regexp =
       tdef_tvars false tvs ^ regexp_out
 
 let tdef ((n,l), tvs, texp, regexp) =
-  let n' = Name.to_output T.infix_op_format Type_ctor n in
+  let n' = Name.to_output Type_ctor n in
   let tvs' = List.map (fun tn -> (match tn with | Tn_A (x, y, z) -> kwd (Ulib.Text.to_string y)
                                                 | Tn_N (x, y, z) -> kwd (Ulib.Text.to_string y))) tvs in
     tdef_tctor false tvs n regexp ^ tyexp true n' tvs' texp 
@@ -2009,21 +2006,21 @@ let tdef ((n,l), tvs, texp, regexp) =
 let indreln_clause (name_opt, s1, qnames, s2, e_opt, s3, rname, es) =
   (if T.reln_clause_show_name then (
     (match name_opt with None -> emp | Some name ->
-      Name.to_output_quoted T.infix_op_format Term_method name ^
+      Name.to_output_quoted Term_method name ^
       kwd ":"
     )
   ) else emp) ^
   ws s1 ^ T.reln_clause_start ^
   (if (T.reln_clause_show_empty_quant || List.length qnames > 0) then (
     T.reln_clause_quant ^
-    flat (interspace (List.map (fun n -> Name.to_output T.infix_op_format Term_var n.term) qnames)) ^
+    flat (interspace (List.map (fun n -> Name.to_output Term_var n.term) qnames)) ^
     ws s2 ^ 
     kwd "."
   ) else emp) ^
   (match e_opt with None -> ws s3 | Some e -> 
      exp (if T.reln_clause_add_paren then Typed_ast_syntax.mk_opt_paren_exp e else e) ^ 
      ws s3 ^ kwd "==>") ^
-  Name.to_output T.infix_op_format Term_var rname.term ^
+  Name.to_output Term_var rname.term ^
   flat (interspace (List.map exp es)) ^
   T.reln_clause_end
 
@@ -2075,7 +2072,7 @@ let isa_is_simple_letbind (lb, _) : bool = match lb with
       List.for_all (fun p -> (Pattern_syntax.is_var_wild_pat p)) ps
 
 let isa_funcl_header ({term = n}, ps, topt, s1, (e : Typed_ast.exp)) =
-  isa_mk_typed_def_header (Name.to_output T.infix_op_format Term_var n, List.map Typed_ast.annot_to_typ ps, s1, exp_to_typ e)
+  isa_mk_typed_def_header (Name.to_output Term_var n, List.map Typed_ast.annot_to_typ ps, s1, exp_to_typ e)
 
 let isa_funcl_header_seplist clause_sl =
   let clauseL = Seplist.to_list clause_sl in
@@ -2092,16 +2089,16 @@ let isa_funcl_header_indrel_seplist clause_sl =
       let n = Name.strip_lskip rname.term in 
       if NameSet.mem n ns then (ns, acc) else (NameSet.add n ns, rname :: acc)) (NameSet.empty, []) clauseL in
   let headerL = List.map (fun rname -> 
-        isa_mk_typed_def_header(Name.to_output T.infix_op_format Term_var rname.term,[], None,
+        isa_mk_typed_def_header(Name.to_output Term_var rname.term,[], None,
                 Typed_ast.annot_to_typ rname)) clauseL_filter in
   (Output.concat (kwd "\n      and") headerL) ^ (kwd "where")        
 
 
 let isa_funcl_default eqsign ({term = n}, ps, topt, s1, (e : Typed_ast.exp)) =
-  kwd "\"" ^ Name.to_output T.infix_op_format Term_var n ^ flat (List.map pat ps)^ ws s1 ^ eqsign ^ kwd "(" ^ exp e ^ kwd ")\""
+  kwd "\"" ^ Name.to_output Term_var n ^ flat (List.map pat ps)^ ws s1 ^ eqsign ^ kwd "(" ^ exp e ^ kwd ")\""
 
 let isa_funcl_abs eqsign ({term = n}, ps, topt, s1, (e : Typed_ast.exp)) =
-  kwd "\"" ^ Name.to_output T.infix_op_format Term_var n ^ ws s1 ^ eqsign ^ kwd "(%" ^ flat (List.map pat ps) ^ kwd ". " ^ exp e ^ kwd ")\""
+  kwd "\"" ^ Name.to_output Term_var n ^ ws s1 ^ eqsign ^ kwd "(%" ^ flat (List.map pat ps) ^ kwd ". " ^ exp e ^ kwd ")\""
 
 let isa_funcl simple =
 (*  if simple then isa_funcl_abs (kwd "= ") else isa_funcl_default (kwd "= ") *)
@@ -2125,7 +2122,7 @@ let constraints = function
   | Some(Cs_list(l_c,op_s,l_r,s)) ->
       flat (Seplist.to_sep_list
               (fun (id,tv) ->
-                 Ident.to_output T.infix_op_format Type_var T.path_sep id ^
+                 Ident.to_output Type_var T.path_sep id ^
                  tyvar tv)
               (sep (kwd","))
               l_c) ^
@@ -2193,7 +2190,6 @@ let hol_strip_args_texp type_names texp = match texp with
   | Te_record(sk1,sk2,stuff,sk3) -> Te_record(sk1,sk2,stuff,sk3)
   | Te_variant(sk1, ctors) ->
       Te_variant(sk1, Seplist.map (hol_strip_args_ctors type_names) ctors)
-  | _ -> assert false
 
 let hol_strip_args type_names ((n,l), tvs, texp,optreg) =
   ((n,l),
@@ -2445,8 +2441,8 @@ let rec def d is_user_def : Output.t = match d with
         ws s2 ^
         kwd "inline" ^
         targets_opt targets ^
-        Name.to_output T.infix_op_format Term_var n.term ^
-        flat (List.map (fun n -> Name.to_output T.infix_op_format Term_var n.term) args) ^ 
+        Name.to_output Term_var n.term ^
+        flat (List.map (fun n -> Name.to_output Term_var n.term) args) ^ 
         ws s4 ^
         kwd "=" ^
         exp body
@@ -2462,7 +2458,7 @@ let rec def d is_user_def : Output.t = match d with
       (ws sk0 ^ kwd lem_st ^ 
        targets_opt targets ^
       (match n_opt with None -> emp | Some ((n, l), sk1) -> 
-       Name.to_output T.infix_op_format Term_var n ^
+       Name.to_output Term_var n ^
        ws sk1 ^ kwd ":") ^
       ws sk1 ^ kwd "(" ^ exp e ^ ws sk2 ^ kwd ")")
     end
@@ -2471,16 +2467,16 @@ let rec def d is_user_def : Output.t = match d with
         ws s1 ^
         kwd "rename" ^
         targets_opt targets ^
-        Ident.to_output T.infix_op_format Type_ctor T.path_sep i ^
+        Ident.to_output Type_ctor T.path_sep i ^
         ws s2 ^
         kwd "= " ^
-        Name.to_output T.infix_op_format Term_var n_new
+        Name.to_output Term_var n_new
       else
         ws s1 ^ ws s2
   | Module(s1,(n,l),s2,s3,ds,s4) -> 
       ws s1 ^
       T.module_module ^
-      Name.to_output T.infix_op_format Module_name n ^
+      Name.to_output Module_name n ^
       ws s2 ^
       kwd "=" ^
       ws s3 ^
@@ -2491,14 +2487,14 @@ let rec def d is_user_def : Output.t = match d with
   | Rename(s1,(n,l),s2,m) ->
       ws s1 ^
       T.module_module ^
-      Name.to_output T.infix_op_format Module_name n ^
+      Name.to_output Module_name n ^
       ws s2 ^
       kwd "=" ^
-      Ident.to_output T.infix_op_format Module_name T.path_sep (resolve_ident_path m m.descr.mod_binding)
+      Ident.to_output Module_name T.path_sep (resolve_ident_path m m.descr.mod_binding)
   | Open(s,m) ->
       ws s ^
       T.module_open ^
-      Ident.to_output T.infix_op_format Module_name T.path_sep (resolve_ident_path m m.descr.mod_binding)
+      Ident.to_output Module_name T.path_sep (resolve_ident_path m m.descr.mod_binding)
   | Indreln(s,targets,clauses) ->
       if in_target targets then
         ws s ^
@@ -2514,7 +2510,7 @@ let rec def d is_user_def : Output.t = match d with
   | Val_spec(s1,(n,l),s2,(constraint_pre,t)) ->
       ws s1 ^
       T.val_start ^
-      Name.to_output T.infix_op_format Term_var n ^
+      Name.to_output Term_var n ^
       ws s2 ^
       T.typ_sep ^
       begin
@@ -2533,7 +2529,7 @@ let rec def d is_user_def : Output.t = match d with
       end ^
       ws s2 ^
       kwd "(" ^
-      Ident.to_output T.infix_op_format Term_method T.path_sep id ^
+      Ident.to_output Term_method T.path_sep id ^
       typ t ^
       ws s3 ^
       kwd ")" ^
@@ -2545,7 +2541,7 @@ let rec def d is_user_def : Output.t = match d with
       kwd "class" ^
       ws s2 ^
       kwd "(" ^
-      Name.to_output T.infix_op_format Class_name n ^
+      Name.to_output Class_name n ^
       tyvar tv ^
       ws s3 ^
       kwd ")" ^
@@ -2553,7 +2549,7 @@ let rec def d is_user_def : Output.t = match d with
               (fun (s1,(n,l),s2,t) ->
                 ws s1 ^
                 T.val_start ^
-                Name.to_output T.infix_op_format Term_method n ^
+                Name.to_output Term_method n ^
                 ws s2 ^
                 kwd ":" ^
                 typ t)
@@ -2623,7 +2619,7 @@ and names_of_pat p : (Ulib.Text.t * Ulib.Text.t * Ast.l) list = match p.term wit
       let n' = Name.strip_lskip n in 
       [(Name.to_rope n', Name.to_rope_tex Term_var n', p.locn)]
   | P_const(cd,ps) ->
-      let n = Ident.get_name (const_id_to_ident T.target A.env cd) in
+      let n = Ident.get_name (B.const_id_to_ident cd) in
       let n' = Name.strip_lskip n in 
       [(Name.to_rope n', Name.to_rope_tex Term_ctor n', p.locn)]
   | P_record(s1,fields,s2) ->
@@ -2692,7 +2688,7 @@ and tex_inc_letbind (lb, l) lhs_keyword = match lb with
       let post_comment = r"" (* PLACEHOLDER *) in      
 
       let lhs_output = 
-        (Name.to_output T.infix_op_format Term_var source_name) ^ 
+        (Name.to_output Term_var source_name) ^ 
         begin
           match ps with
           | [] ->
@@ -2761,7 +2757,7 @@ and def_tex_inc d : (Ulib.Text.t*Ulib.Text.t) list = match d with
 (*   | Module(s1,(n,l),s2,s3,ds,s4) ->  *)
 (*       ws s1 ^ *)
 (*       T.module_module ^ *)
-(*       Name.to_output T.infix_op_format Module_name n ^ *)
+(*       Name.to_output Module_name n ^ *)
 (*       ws s2 ^ *)
 (*       kwd "=" ^ *)
 (*       ws s3 ^ *)
@@ -2772,14 +2768,14 @@ and def_tex_inc d : (Ulib.Text.t*Ulib.Text.t) list = match d with
 (*   | Rename(s1,(n,l),s2,m) -> *)
 (*       ws s1 ^ *)
 (*       T.module_module ^ *)
-(*       Name.to_output T.infix_op_format Module_name n ^ *)
+(*       Name.to_output Module_name n ^ *)
 (*       ws s2 ^ *)
 (*       kwd "=" ^ *)
-(*       Ident.to_output T.infix_op_format Module_name T.path_sep m.id_path *)
+(*       Ident.to_output Module_name T.path_sep m.id_path *)
 (*   | Open(s,m) -> *)
 (*       ws s ^ *)
 (*       T.module_open ^ *)
-(*       Ident.to_output T.infix_op_format Module_name T.path_sep m.id_path *)
+(*       Ident.to_output Module_name T.path_sep m.id_path *)
 (*   | Indreln(s,targets,clauses) -> *)
 (*       if in_target targets then *)
 (*         ws s ^ *)
@@ -2795,7 +2791,7 @@ and def_tex_inc d : (Ulib.Text.t*Ulib.Text.t) list = match d with
 (*   | Val_spec(s1,(n,l),s2,(constraint_pre,t)) -> *)
 (*       ws s1 ^ *)
 (*       kwd "val" ^ *)
-(*       Name.to_output T.infix_op_format Term_var n ^ *)
+(*       Name.to_output Term_var n ^ *)
 (*       ws s2 ^ *)
 (*       T.typ_sep ^ *)
 (*       begin *)
@@ -2813,8 +2809,8 @@ and def_tex_inc d : (Ulib.Text.t*Ulib.Text.t) list = match d with
 (*         target_to_output Term_var target ^ *)
 (*         ws s3 ^ *)
 (*         kwd "]" ^ *)
-(*         Name.to_output T.infix_op_format Term_var n.term ^ *)
-(*         flat (List.map (fun n -> Name.to_output T.infix_op_format Term_var n.term) args) ^  *)
+(*         Name.to_output Term_var n.term ^ *)
+(*         flat (List.map (fun n -> Name.to_output Term_var n.term) args) ^  *)
 (*         ws s4 ^ *)
 (*         kwd "=" ^ *)
 (*         exp body *)
@@ -2830,7 +2826,7 @@ and def_tex_inc d : (Ulib.Text.t*Ulib.Text.t) list = match d with
 (*       end ^ *)
 (*       ws s2 ^ *)
 (*       kwd "(" ^ *)
-(*       Ident.to_output T.infix_op_format Term_method T.path_sep id ^ *)
+(*       Ident.to_output Term_method T.path_sep id ^ *)
 (*       typ t ^ *)
 (*       ws s3 ^ *)
 (*       kwd ")" ^ *)
@@ -2842,7 +2838,7 @@ and def_tex_inc d : (Ulib.Text.t*Ulib.Text.t) list = match d with
 (*       kwd "class" ^ *)
 (*       ws s2 ^ *)
 (*       kwd "(" ^ *)
-(*       Name.to_output T.infix_op_format Class_name n ^ *)
+(*       Name.to_output Class_name n ^ *)
 (*       tyvar tv ^ *)
 (*       ws s3 ^ *)
 (*       kwd ")" ^ *)
@@ -2850,7 +2846,7 @@ and def_tex_inc d : (Ulib.Text.t*Ulib.Text.t) list = match d with
 (*               (fun (s1,(n,l),s2,t) -> *)
 (*                 ws s1 ^ *)
 (*                 kwd "val" ^ *)
-(*                 Name.to_output T.infix_op_format Term_method n ^ *)
+(*                 Name.to_output Term_method n ^ *)
 (*                 ws s2 ^ *)
 (*                 kwd ":" ^ *)
 (*                 typ t) *)
@@ -3120,7 +3116,7 @@ let header_defs ((defs:def list),(end_lex_skips : Typed_ast.lskips)) =
                 begin 
                   match d with 
                       Open(s,m) -> 
-                        kwd "\t \""^Ident.to_output T.infix_op_format Module_name T.path_sep (resolve_ident_path m m.descr.mod_binding)^kwd "\""
+                        kwd "\t \""^Ident.to_output Module_name T.path_sep (resolve_ident_path m m.descr.mod_binding)^kwd "\""
                     | _ -> emp
                 end
 

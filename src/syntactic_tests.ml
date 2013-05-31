@@ -74,20 +74,11 @@ let has_decidable_equality_texp (t : texp) (in_module_scope : bool) : bool =
     | Te_record (_, _, seplist, _) ->
         let src_ts = Seplist.to_list seplist in
           List.for_all (fun (_, _, z) -> has_decidable_equality_src_t z) src_ts
-    | Te_record_coq (_, _, _, seplist, _) ->
-        let src_ts = Seplist.to_list seplist in
-          List.for_all (fun (_, _, z) -> has_decidable_equality_src_t z) src_ts
     | Te_variant (_, seplist) ->
         let src_t_seplist = Seplist.to_list seplist in
           List.for_all (fun (_, _, seplist) ->
             let src_ts = Seplist.to_list seplist in
               List.for_all has_decidable_equality_src_t src_ts
-          ) src_t_seplist
-    | Te_variant_coq (_, seplist) ->
-        let src_t_seplist = Seplist.to_list seplist in
-          List.for_all (fun (_, _, seplist, _, _) ->
-            let seplist = Seplist.to_list seplist in
-              List.for_all has_decidable_equality_src_t seplist
           ) src_t_seplist
 ;;
 
@@ -236,16 +227,9 @@ let check_positivity_condition_texp (inductive_types : src_t list InductiveMap.t
     | Te_opaque -> true
     | Te_abbrev _ -> true
     | Te_record _ -> true
-    | Te_record_coq _ -> true
     | Te_variant (_, seplist) ->
       let seplist = Seplist.to_list seplist in
         List.for_all (fun (_, _, z) ->
-          let src_ts = Seplist.to_list z in
-            List.for_all (strict_positivity_condition inductive_types x) src_ts
-        ) seplist
-    | Te_variant_coq (_, seplist) ->
-      let seplist = Seplist.to_list seplist in
-        List.for_all (fun (_, _, z, _, _) ->
           let src_ts = Seplist.to_list z in
             List.for_all (strict_positivity_condition inductive_types x) src_ts
         ) seplist
@@ -257,15 +241,6 @@ let gather_inductive_types_texp (name : Name.t) (t : texp) : src_t list Inductiv
         let src_ts = Seplist.to_list seplist in
         let mapped =
           List.map (fun (_, _, src_ts) ->
-            let src_ts = Seplist.to_list src_ts in
-              InductiveMap.add name src_ts InductiveMap.empty
-          ) src_ts
-        in
-          List.fold_right (InductiveMap.merge (fun key left right -> left)) mapped InductiveMap.empty
-    | Te_variant_coq (_, seplist) ->
-        let src_ts = Seplist.to_list seplist in
-        let mapped =
-          List.map (fun (_, _, src_ts, _, _) ->
             let src_ts = Seplist.to_list src_ts in
               InductiveMap.add name src_ts InductiveMap.empty
           ) src_ts

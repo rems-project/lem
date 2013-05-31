@@ -174,8 +174,6 @@ x_l {{ tex \ottnt{x}^{l} }} , y_l {{ tex \ottnt{y}^{l} }} , z_l {{ tex \ottnt{z}
 ix_l {{ tex \ottnt{ix}^{l} }} :: '' ::=
   {{ com Location-annotated infix names }}
   | ix l					:: :: SymX_l
-  | ` x ` l					:: :: InX_l
-    {{ com Add infix status }}
 
 embed
 {{ ocaml
@@ -185,7 +183,6 @@ let xl_to_l = function
 
 let ixl_to_l = function
   | SymX_l(_,l) -> l
-  | InX_l(_,_,_,l) -> l
 }}
 {{ lem
 
@@ -196,7 +193,6 @@ end
 
 let ixl_to_l = function
   | SymX_l(_,l) -> l
-  | InX_l(_,_,_,l) -> l
 end*)
 
 }}

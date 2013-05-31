@@ -76,18 +76,19 @@ val mk_ident_names : Name.t list -> Name.t -> t
 val mk_ident_strings : string list -> string -> t
 
 
-val to_output : (Output.id_annot -> Ulib.Text.t -> Output.t) -> Output.id_annot -> Output.t -> t -> Output.t
+val to_output : Output.id_annot -> Output.t -> t -> Output.t
+val to_output_infix : (Output.id_annot -> Ulib.Text.t -> Output.t) -> Output.id_annot -> Output.t -> t -> Output.t
 val get_first_lskip: t -> Ast.lex_skips
+
+(*
 val drop_parens : (Precedence.op -> Precedence.t) -> t -> t
 val add_parens : (Precedence.op -> Precedence.t) -> t -> t
-(*
 val starts_with_upper_letter : t -> bool
 val starts_with_lower_letter : t -> bool
 val capitalize : t -> t
 val uncapitalize : t -> t
  *)
 val replace_first_lskip : t -> Ast.lex_skips -> t
-val get_prec : (Precedence.op -> Precedence.t) -> t -> Precedence.t
 val to_name_list : t -> Name.t list * Name.t
 
 (** Remove the name from the identifier if it occurs at the first *)

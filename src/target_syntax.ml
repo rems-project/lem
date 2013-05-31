@@ -54,6 +54,44 @@ module M = Macro_expander.Expander(struct let avoid = None let env_opt = None en
 module C = Exps_in_context(struct let avoid = None let env_opt = None end)
 module P = Precedence
 
+
+(* TODO: redo without string matching *)
+let exp_to_prec get_prec (exp : exp) : P.t = 
+  match C.exp_to_term exp with
+    | Var(n) -> Precedence.P_prefix
+    | Constant(c) -> get_prec c.descr
+    | _ -> assert false
+
+let delimit_exp get_prec (c : P.context) (e : exp) : exp =
+  let k = match C.exp_to_term e with
+    | App _ -> P.App
+    | Infix(_,e2,_) -> P.Infix(exp_to_prec get_prec e2)
+    | Fun _ | Let _ | If _ | Quant _ -> P.Let
+    | _ -> P.Atomic
+  in
+    if P.needs_parens c k then Typed_ast_syntax.mk_paren_exp e else e
+
+let delimit_pat (c : P.pat_context) (p : pat) : pat =
+  let k = match p.term with
+    | P_wild _ | P_var _ | P_const(_,[]) | P_lit _ | P_typ _ | P_record _
+    | P_tup _ | P_list _ | P_paren _ | P_var_annot _ | P_vector _ | P_vectorC _ ->
+        P.Patomic
+    | P_as _ -> P.Pas
+    | P_cons _ -> P.Pcons
+    | P_const _ -> P.Papp
+    | P_num_add _ -> P.Pas
+  in
+    if P.pat_needs_parens c k then
+      begin
+        let (p_new, lskips) = pat_alter_init_lskips (fun s -> (no_lskips, s)) p in
+          { term = P_paren(lskips,p_new,no_lskips); 
+            locn = p.locn; typ = p.typ; rest = p.rest; }
+      end
+    else
+      p
+
+
+(*
 let id_fix_parens_for_prefix env get_prec id =
   let l = Ast.Trans ("id_fix_parens_for_prefix", None) in
   let c_d = c_env_lookup l env.c_env id.descr in
@@ -72,10 +110,11 @@ let name_fix_parens_for_prefix get_prec n =
   else
     Name.drop_parens n
 
+
 let fix_pat_parens env get_prec p =
   let l_unk = Ast.Trans("fix_pat_parens", Some (p.locn)) in
   match p.term with
-    | P_const(c,ps) ->
+    | P_const(c,ps) -> 
         let c_d = c_env_lookup l_unk env.c_env c.descr in
         let id = resolve_ident_path c c_d.const_binding in
         let path = 
@@ -84,7 +123,7 @@ let fix_pat_parens env get_prec p =
           else
             Ident.drop_parens get_prec id
         in
-          { p with term = P_const({c with id_path = Id_some path}, ps) }
+          { p with term = P_const({c with id_path = Id_some path}, ps) } 
     | P_var(n) ->
         let n = 
           if P.is_infix (Name.get_prec get_prec n) then
@@ -102,6 +141,7 @@ let fix_pat_parens env get_prec p =
         in
           { p with term = P_var_annot(n,t) }
     | _ -> assert false
+*)
 
 let rec fix_pat env get_prec p = 
   let old_t = Some(p.typ) in
@@ -113,7 +153,6 @@ let rec fix_pat env get_prec p =
       | P_typ(s1,p,s2,t,s3) -> 
           C.mk_ptyp old_l s1 (trans p) s2 t s3 old_t
       | P_const(c,ps) -> 
-          fix_pat_parens env get_prec
             (C.mk_pconst old_l 
                c 
                (List.map 
@@ -145,7 +184,7 @@ let rec fix_pat env get_prec p =
             (delimit_pat P.Pcons_right (trans p2))
             old_t
       | (P_var _ | P_var_annot _) -> 
-          fix_pat_parens env get_prec p
+          p
       | (P_lit _ | P_wild _ | P_num_add _) ->
           p
 
@@ -169,8 +208,8 @@ let rec fix_exp env get_prec e =
             old_t
       | App(e1,e2) ->
           C.mk_app old_l
-            (C.delimit_exp get_prec P.App_left (skip_apps env get_prec e1))
-            (C.delimit_exp get_prec P.App_right (trans e2))
+            (delimit_exp get_prec P.App_left (skip_apps env get_prec e1))
+            (delimit_exp get_prec P.App_right (trans e2))
             old_t
       | Infix(e1,e2,e3) ->
           let trans_e2 = trans e2 in
@@ -178,7 +217,7 @@ let rec fix_exp env get_prec e =
           let stay_infix =
             match e2_term with
               | Var _ | Constant _ ->
-                  P.is_infix (C.exp_to_prec get_prec e2)
+                  P.is_infix (exp_to_prec get_prec e2)
               | _ -> false
           in
             if stay_infix then
@@ -186,25 +225,23 @@ let rec fix_exp env get_prec e =
                 let e2' =
                   match e2_term with
                     | Var(n) ->
-                        C.mk_var (exp_to_locn trans_e2)
-                          (Name.drop_parens n) 
-                          (exp_to_typ trans_e2)
+                        C.mk_var (exp_to_locn trans_e2) n (exp_to_typ trans_e2)
                     | Constant(c) ->
                         let l = (exp_to_locn trans_e2) in
                         let c_d = c_env_lookup l env.c_env c.descr in
                         C.mk_const l
                           { c with id_path = 
-                              Id_some (Ident.drop_parens get_prec (resolve_ident_path c c_d.const_binding)) }
+                              Id_some (resolve_ident_path c c_d.const_binding) }
                           (Some(exp_to_typ trans_e2))
                     | _ -> assert false
                 in
                   C.mk_infix old_l 
-                    (C.delimit_exp get_prec
-                       (P.Infix_left(C.exp_to_prec get_prec e2)) 
+                    (delimit_exp get_prec
+                       (P.Infix_left(exp_to_prec get_prec e2)) 
                        (trans e1))
                     e2'
-                    (C.delimit_exp get_prec 
-                       (P.Infix_right(C.exp_to_prec get_prec e2)) 
+                    (delimit_exp get_prec 
+                       (P.Infix_right(exp_to_prec get_prec e2)) 
                        (trans e3))
                     old_t
               end
@@ -216,28 +253,20 @@ let rec fix_exp env get_prec e =
               let trans_e2' = append_lskips sk trans_e2 in
                 C.mk_app old_l 
                   (C.mk_app old_l 
-                     (C.delimit_exp get_prec P.App_left trans_e2')
-                     (C.delimit_exp get_prec P.App_right (trans e1'))
+                     (delimit_exp get_prec P.App_left trans_e2')
+                     (delimit_exp get_prec P.App_right (trans e1'))
                      (Some({ Types.t = Types.Tfn(exp_to_typ e3,exp_to_typ e) })))
-                  (C.delimit_exp get_prec P.App_right (trans e3))
+                  (delimit_exp get_prec P.App_right (trans e3))
                   old_t
 
       | Record(s1,fieldexps,s2) ->
           C.mk_record old_l
             s1
             (Seplist.map 
-               (fun (fid,s1,e,l) -> (fid,s1,C.delimit_exp get_prec P.App_right (trans e),l))
+               (fun (fid,s1,e,l) -> (fid,s1,delimit_exp get_prec P.App_right (trans e),l))
                fieldexps)
             s2
             old_t
-(*      | Record_coq(n,s1,fieldexps,s2) ->
-          C.mk_record_coq old_l
-            s1
-            (Seplist.map 
-               (fun (fid,s1,e,l) -> (fid,s1,trans e,l))
-               fieldexps)
-            s2
-            old_t*)
       | Recup(s1,e,s2,fieldexps,s3) ->
           C.mk_recup old_l
             s1 (trans e) s2
@@ -248,7 +277,7 @@ let rec fix_exp env get_prec e =
             old_t
       | Field(e,s,fid) ->
           C.mk_field old_l 
-            (C.delimit_exp get_prec P.Field (trans e)) s fid
+            (delimit_exp get_prec P.Field (trans e)) s fid
             old_t
       | Case(c,s1,e,s2,patexps,s3) ->
           C.mk_case c old_l
@@ -268,15 +297,15 @@ let rec fix_exp env get_prec e =
             old_t
       | Tup(s1,es,s2) ->
           C.mk_tup old_l
-            s1 (Seplist.map (fun e -> C.delimit_exp get_prec P.App_left (trans e)) es) s2
+            s1 (Seplist.map (fun e -> delimit_exp get_prec P.App_left (trans e)) es) s2
             old_t
       | List(s1,es,s2) ->
           C.mk_list old_l
-            s1 (Seplist.map (fun e -> C.delimit_exp get_prec P.App_left (trans e)) es) s2
+            s1 (Seplist.map (fun e -> delimit_exp get_prec P.App_left (trans e)) es) s2
             (exp_to_typ e)
       | Vector(s1,es,s2) ->
           C.mk_vector old_l
-            s1 (Seplist.map (fun e -> C.delimit_exp get_prec P.App_left (trans e)) es) s2
+            s1 (Seplist.map (fun e -> delimit_exp get_prec P.App_left (trans e)) es) s2
             (exp_to_typ e)
       | VectorAcc(e,s1,n,s2) ->
           C.mk_vaccess old_l (trans e) s1 n s2 
@@ -327,17 +356,17 @@ let rec fix_exp env get_prec e =
             (trans e)
             old_t
       | Constant(c) ->
-          C.mk_const old_l (id_fix_parens_for_prefix env get_prec c) old_t
+          C.mk_const old_l c old_t
       | Var(n) ->
-          C.mk_var old_l (name_fix_parens_for_prefix get_prec n) (exp_to_typ e) 
+          C.mk_var old_l n (exp_to_typ e) 
       | Lit _  | Nvar_e _ ->
           e
 
 and skip_apps env get_prec e = match (C.exp_to_term e) with
   | App(e1,e2) ->
       C.mk_app (exp_to_locn e)
-        (C.delimit_exp get_prec P.App_left (skip_apps env get_prec e1))
-        (C.delimit_exp get_prec P.App_right (fix_exp env get_prec e2))
+        (delimit_exp get_prec P.App_left (skip_apps env get_prec e1))
+        (delimit_exp get_prec P.App_right (fix_exp env get_prec e2))
         (Some(exp_to_typ e))
   | _ -> fix_exp env get_prec e
 
@@ -350,7 +379,8 @@ and fix_letbind env get_prec (lb,l) = match lb with
         n (List.map (fun p -> delimit_pat P.Plist (fix_pat env get_prec p)) ps) t s1 
         (fix_exp env get_prec e)
 
-let rec fix_infix_and_parens env get_prec defs =
+let rec fix_infix_and_parens env target_opt defs =
+  let get_prec = Precedence.get_prec target_opt env in
   let fix_val_def = function
     | Let_def(s1,targets,lb) ->
         Let_def(s1, targets,fix_letbind env get_prec lb)
@@ -386,5 +416,5 @@ let rec fix_infix_and_parens env get_prec defs =
     match defs with
       | [] -> []
       | ((def,s),l)::defs ->
-          ((fix_def def,s),l)::fix_infix_and_parens env get_prec defs
+          ((fix_def def,s),l)::fix_infix_and_parens env target_opt defs
 

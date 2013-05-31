@@ -74,12 +74,10 @@ val from_x : Ast.x_l -> lskips_t
 val from_ix : Ast.ix_l -> lskips_t
 val add_lskip : t -> lskips_t
 val strip_lskip : lskips_t -> t
-val to_output : (Output.id_annot -> Ulib.Text.t -> Output.t) -> Output.id_annot -> lskips_t -> Output.t
-val to_output_quoted : (Output.id_annot -> Ulib.Text.t -> Output.t) -> Output.id_annot -> lskips_t -> Output.t
+val to_output : Output.id_annot -> lskips_t -> Output.t
+val to_output_infix : (Output.id_annot -> Ulib.Text.t -> Output.t) -> Output.id_annot -> lskips_t -> Output.t
+val to_output_quoted : Output.id_annot -> lskips_t -> Output.t
 val add_pre_lskip : Ast.lex_skips -> lskips_t -> lskips_t
 val get_lskip : lskips_t -> Ast.lex_skips
-val drop_parens : lskips_t -> lskips_t
-val add_parens : lskips_t -> lskips_t
 val lskip_rename : (Ulib.Text.t -> Ulib.Text.t) -> lskips_t -> lskips_t
 val replace_lskip : lskips_t -> Ast.lex_skips -> lskips_t
-val get_prec : (Precedence.op -> Precedence.t) -> lskips_t -> Precedence.t

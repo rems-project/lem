@@ -47,6 +47,7 @@
 (** the precedence model for the backends *)
 
 open Str
+open Typed_ast
 
 (* Lem source can have 3 kinds of expressions involving infixes:
  * x + y
@@ -67,9 +68,19 @@ open Str
 
 type op = Cons | Op of string
 
-type assoc = | Right | Left | Nonassoc
+type t = P_prefix
+       | P_infix of int
+       | P_infix_left of int
+       | P_infix_right of int
+       | P_special
 
-type t = int * assoc
+let t_to_int = function
+  | P_special _ -> -1
+  | P_prefix -> 0
+  | P_infix i -> i
+  | P_infix_left i -> i
+  | P_infix_right i -> i
+  
 
 type pat_context =
   | Plist
@@ -100,10 +111,8 @@ type exp_kind =
   | Atomic
 
 let is_infix = function
-  | (0,_) -> false
+  | P_prefix -> false
   | _ -> true
-
-let not_infix = (0,Left)
 
 let oper_char = "[-!$%&*+./:<=>?@^|~]"
 let star_star = regexp (Printf.sprintf "^[*][*]%s*\\|lsl\\|lsr\\|asr$" oper_char)
@@ -123,25 +132,25 @@ let get_prec s =
       | Op(s) -> s
   in
   if string_match star_star s 0 then
-    (1,Right)
+    (P_infix_right 1)
   else if string_match star s 0 then
-    (2,Left)
+    (P_infix_left 2)
   else if string_match plus s 0 then
-    (3,Left)
+    (P_infix_left 3)
   else if string_match cons s 0 then
-    (4,Right)
+    (P_infix_right 4)
   else if string_match at s 0 then
-    (5,Right)
+    (P_infix_right 5)
   else if string_match eq s 0 then
-    (6,Left)
+    (P_infix_left 6)
   else if string_match amp s 0 then
-    (7,Right)
+    (P_infix_right 7)
   else if string_match bar_bar s 0 then
-    (8,Right)
+    (P_infix_right 8)
   else if string_match imp s 0 then
-    (9,Right)
+    (P_infix_right 9)
   else
-    (0,Left)
+    P_prefix
 
 
 let star_ocaml = regexp (Printf.sprintf "^\\([*/%%]%s*\\|mod\\|land\\|lor\\|lxor\\)$" oper_char)
@@ -155,23 +164,23 @@ let get_prec_ocaml s =
       | Op(s) -> s
   in
   if string_match star_star s 0 then
-    (1,Right)
+    (P_infix_right 1)
   else if string_match star_ocaml s 0 then
-    (2,Left)
+    (P_infix_left 2)
   else if string_match plus_ocaml s 0 then
-    (3,Left)
+    (P_infix_left 3)
   else if string_match cons s 0 then
-    (4,Right)
+    (P_infix_right 4)
   else if string_match at s 0 then
-    (5,Right)
+    (P_infix_right 5)
   else if string_match eq_ocaml s 0 then
-    (6,Left)
+    (P_infix_left 6)
   else if string_match amp s 0 then
-    (7,Right)
+    (P_infix_right 7)
   else if string_match bar_bar s 0 then
-    (8,Right)
+    (P_infix_right 8)
   else
-    (0,Left)
+    P_prefix
 
 let hol_important_constants = 
   ["let"; "in"; "and"; "\\"; "."; ";"; "=>"; "|"; "||"; ":"; ":="; "with";
@@ -193,47 +202,47 @@ Application and '
 & - ~
  *)
   if List.mem s ["O"; "o"] then
-    (1,Right)
+    (P_infix_right 1)
   else if List.mem s ["@@"; "**"; "EXP"; "int_exp"] then
-    (2,Right)
+    (P_infix_right 2)
   else if List.mem s ["#<<"; "#>>"; ">>>"; ">>"; "<<"] then
-    (3,Left)
+    (P_infix_left 3)
   else if List.mem s ["MOD"; "%"] then
-    (4,Left)
+    (P_infix_left 4)
   else if List.mem s ["*,"] then
-    (5,Right)
+    (P_infix_right 5)
   else if List.mem s ["tint_mul"; "quot"; "/"; "//"; "\\"; "|+"; "CROSS"; "INTER"; "DIV"; "*"; "RINTER"] then
-    (6,Left)
+    (P_infix_left 6)
   else if List.mem s ["int_sub"; "tint_add"; "fcp_index"; "UNION"; "f_o"; "o_f"; "f_o_f"; "|++"; "DELETE"; "DIFF"; "-"; "+"; "RUNION"] then
-    (7,Left)
+    (P_infix_left 7)
   else if List.mem s ["###"; "===>"; "-->"; "::"; "INSERT"; "LEX"; "##"] then
-    (8,Right)
+    (P_infix_right 8)
   else if List.mem s ["+++"; "++"] then
-    (9,Left)
+    (P_infix_left 9)
   else if List.mem s ["int_divides"; ">=+"; "<+"; ">+"; "<=+"; "=="; "SUBMAP"; "<<="; "PSUBSET"; "SUBSET"; ">="; "<="; ">"; "<"; "RSUBSET"; "<>"] then
-    (10,Nonassoc)
+    (P_infix 10)
   else if List.mem s ["equiv_on"; "NOTIN"; "IN"] then
-    (11,Nonassoc)
+    (P_infix 11)
   else if List.mem s ["&&"; "~&&"; "/\\"] then
-    (12,Right)
+    (P_infix_right 12)
   else if List.mem s ["---"; "><"; "--"; "''"; "~??"; "??"] then
-    (13,Right)
+    (P_infix_right 13)
   else if List.mem s [":+"] then
-    (14,Left)
+    (P_infix_left 14)
   else if List.mem s ["=+"] then
-    (15,Nonassoc)
+    (P_infix 15)
   else if List.mem s [":>"] then
-    (16,Left)
+    (P_infix_left 16)
   else if List.mem s ["!!"; "~!!"; "\\/"] then
-    (17,Right)
+    (P_infix_right 17)
   else if List.mem s ["==>"] then
-    (18,Right)
+    (P_infix_right 18)
   else if List.mem s ["<=/=>"; "<=>"; "="] then
-    (19,Nonassoc)
+    (P_infix 19)
   else if List.mem s [":-"] then
-    (20,Nonassoc)
+    (P_infix 20)
   else
-    (0,Left)
+    P_prefix
     
 
 let get_prec_isa s =
@@ -244,61 +253,61 @@ let get_prec_isa s =
   in
   (* 110 (isa prec) - map restric *)
   if List.mem s ["|`"] then 
-    (1,Left)
+    (P_infix_left 1)
   (* 100 *)
   else if List.mem s ["!"; "++"; "!!"] then 
-    (2,Left)
+    (P_infix_left 2)
   (* 95 - image and vimage ops *) 
   else if List.mem s ["`"; "-`"] then 
-    (3, Right)
+    (P_infix_right 3)
   (* 90 *)
   else if List.mem s ["BIT"] then 
-    (4,Left)
+    (P_infix_left 4)
   (* 80 *) 
   else if List.mem s ["<*>"; "\\<times>"] then 
-    (5, Right)
+    (P_infix_right 5)
   (* 70 *)
   else if List.mem s ["\\<inter>"; "div"; "mod"; "*"; "/"; "\\<sqinter>"] then 
-    (6, Left)
+    (P_infix_left 6)
   (* 70 - some ops from Imperative_HOL: noteq_array, noteq_ref *)
   else if List.mem s ["=!!=!"; "=!="] then
-    (6, Nonassoc) 
+    (P_infix 6)
   (* 65 *)
   else if List.mem s ["\\<union>"; "-"; "+"; "\\<sqinter>"] then
-    (7, Left)
+    (P_infix_left 7)
   (* 65 *)
   else if List.mem s ["#"; "@"] then 
-    (7, Right)   (* Same precedence as union, but to the right, not to the left! *)
+    (P_infix_right 7) (* Same precedence as union, but to the right, not to the left! *)
   (* 60 *)
   else if List.mem s ["\\<circ>>"; "\\<circ>\\<rightarrow>"] then 
-    (8, Left)
+    (P_infix_left 8)
   (* 55 *)
   else if List.mem s ["o"; "\\<circ>"; "o'_m"; "\\<circ>\\<^sub>m"; "<<"; ">>"; ">>>"] then
-    (9, Left)
+    (P_infix_left 9)
   (* 50 *)
   else if List.mem s ["=";"~=";"\\<noteq>";"udvd";"dvd"] then 
-    (10, Left)
+    (P_infix_left 10)
   (* 50 *)
   else if List.mem s [">=";">";"<";"<=";"\\<ge>";"\\<le>";"\\<sqsubseteq>";"\\<sqsubset>"] then 
-    (10, Nonassoc)
+    (P_infix 10)
   (* 35 *)
   else if List.mem s ["&";"\\<and>"] then 
-    (11, Right)
+    (P_infix_right 11)
   (* 30 *)
   else if List.mem s ["|";"\\<or>"] then 
-    (12, Right)
+    (P_infix_right 12)
   (* 25 *)
   else if List.mem s ["-->";"\\<longrightarrow>";"<->";"\\<longleftrightarrow>"] then 
-    (13, Right)
+    (P_infix_right 13)
   (* 20 - This is the product type * which is 'overloaded' Isabelle - what to do? *)
   (*
   else if List.mem s ["*"] then 
-    (13, Right) *)
+    (P_infix_right 13) *)
   (* 2 *) 
   else if List.mem s ["=="; "\\<equiv>"] then
-    (14, Right)
+    (P_infix_right 14)
   else 
-    (0, Left)
+    P_prefix
 
 
 let needs_parens context t =
@@ -306,23 +315,27 @@ let needs_parens context t =
     | (_,Atomic) -> false
     | (Delimited,_) -> false
     | (Field,_) -> true
-    | ((App_right|Infix_right(0,_)|Infix_left(0,_)), _) -> true
-    | (App_left, (App|Infix(0,_))) -> false
+    | ((App_right|Infix_right P_prefix|Infix_left P_prefix), _) -> true
+    | (App_left, (App|Infix P_prefix)) -> false
     | (App_left,_) -> true
-    | ((Infix_left _ | Infix_right _), (App|Infix(0,_))) -> false
+    | ((Infix_left _ | Infix_right _), (App|Infix P_prefix)) -> false
     | ((Infix_left _ | Infix_right _), Let) -> true
-    | (Infix_left((p1,a1)), Infix((p2,a2))) ->
-          if p1 < p2 then
+    | (Infix_left p1, Infix p2) ->
+          if t_to_int p1 < t_to_int p2 then
             true
-          else if p1 = p2 then
-            not (a1 = Left && a2 = Left)
+          else if t_to_int p1 = t_to_int p2 then
+            match (p1, p2) with
+              | (P_infix_left _, P_infix_left _) -> false 
+              | _ -> true
           else
             false
-    | (Infix_right((p1,a1)), Infix((p2,a2))) ->
-          if p1 < p2 then
+    | (Infix_right p1, Infix p2) ->
+          if t_to_int p1 < t_to_int p2 then
             true
-          else if p1 = p2 then
-            not (a1 = Right && a2 = Right)
+          else if t_to_int p1 = t_to_int p2 then
+            match (p1, p2) with
+              | (P_infix_right _, P_infix_right _) -> false 
+              | _ -> true
           else
             false
 
@@ -337,3 +350,24 @@ let pat_needs_parens context t =
     | (Pcons_right,Pas) -> true
     | (Pcons_right,_) -> false
 
+
+let get_prec target_opt env c =
+  let l = Ast.Trans ("get_prec", None) in
+  let c_descr = c_env_lookup l env.c_env c in
+
+(* TODO: Use the taregt_rep
+  let i = match Target.Targetmap.apply_opt c_descr.target_rep target_opt with
+     | None -> resolve_ident_path c_id c_descr.const_binding
+     | Some (CR_new_ident i) -> i
+     | Some (CR_rename n) -> rename_ident (resolve_ident_path c_id c_descr.const_binding) n
+     | Some (CR_inline _) -> (* TODO: handle inline here instead of macro *) assert false
+*)
+  
+  let n = Path.get_name c_descr.const_binding in
+  let p_fun = match target_opt with 
+    | Some Target.Target_ocaml -> get_prec_ocaml
+    | Some Target.Target_hol -> get_prec_hol
+    | Some Target.Target_isa -> get_prec_isa
+    | _ -> get_prec
+  in
+  p_fun (Op (Name.to_string n))

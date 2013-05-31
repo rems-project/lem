@@ -57,7 +57,6 @@ x_l =  (* Location-annotated names *)
 type 
 ix_l =  (* Location-annotated infix names *)
    SymX_l of ix * l
- | InX_l of terminal * x * terminal * l (* Add infix status *)
 
 let xl_to_l = function
   | X_l(_,l) -> l
@@ -65,7 +64,6 @@ let xl_to_l = function
 
 let ixl_to_l = function
   | SymX_l(_,l) -> l
-  | InX_l(_,_,_,l) -> l
 
 
 type

@@ -296,9 +296,7 @@ type texp =
   | Te_opaque
   | Te_abbrev of lskips * src_t
   | Te_record of lskips * lskips * (name_l * lskips * src_t) lskips_seplist * lskips
-  | Te_record_coq of lskips * name_l * lskips * (name_l * lskips * src_t) lskips_seplist * lskips
   | Te_variant of lskips * (name_l * lskips * src_t lskips_seplist) lskips_seplist
-  | Te_variant_coq of lskips * (name_l * lskips * src_t lskips_seplist * name_l * tnvar list) lskips_seplist
 
 type range = 
   | GtEq of Ast.l * src_nexp * lskips * src_nexp
@@ -408,7 +406,6 @@ val env_c_env_update : env -> const_descr_ref -> const_descr -> env
     [new_local] and adds a module with name [mod_name] and the content of the old local environment
     to the module map of the new environment. *)
 val env_m_env_move : env -> Name.t -> local_env -> env
-
 
 (** [c_env_save c_env c_ref_opt c_d] is a combination of [c_env_update] and [c_env_store].
     If [c_ref_opt] is given, [c_env_update] is called, otherwise [c_env_store]. *)
@@ -530,12 +527,9 @@ module Exps_in_context(C : Exp_context) : sig
   val mk_do : Ast.l -> lskips -> mod_descr id -> do_line list -> lskips -> exp -> lskips -> (Types.t * int) -> Types.t option -> exp
   val t_to_src_t : Types.t -> src_t
   val pat_subst : Types.t Types.TNfmap.t * Name.t Nfmap.t -> pat -> pat
-  val delimit_exp : (Precedence.op -> Precedence.t) -> Precedence.context -> exp -> exp
-  val exp_to_prec : (Precedence.op -> Precedence.t) -> exp -> Precedence.t
 end
 
 val local_env_union : local_env -> local_env -> local_env
-val delimit_pat : Precedence.pat_context -> pat -> pat
 val get_new_constants_types : Target.target option -> checked_module list -> Ast.l Nfmap.t * Ast.l Nfmap.t
 
 exception Renaming_error of Ast.l * string

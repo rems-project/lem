@@ -58,11 +58,11 @@ let raise_error_string l msg =
 
 (* None of the Name.lskips_t can actually have any lskips, but the last one
  * might have parentheses, so Name.t isn't suitable *)
-type t = Ast.lex_skips * Name.lskips_t list * Name.lskips_t
+type t = Ast.lex_skips * Name.t list * Name.t
 
 let pp ppf (sk,ns,n) =
   fprintf ppf "%a" 
-    (Pp.lst "." Name.lskip_pp) (ns @ [n])
+    (Pp.lst "." Name.pp) (ns @ [n])
 
 
 let error_pp_help ppf (n,sk) =
@@ -75,6 +75,8 @@ let error_pp ppf (sk,ns,n) =
     (Pp.lst "." error_pp_help) (ns @ [n])
 
 
+let mk_ident_names m n = (None, m, n)
+
 let mk_ident m n l : t = 
   let ms = List.map (fun (n,sk) -> n) m in
   let prelim_id = (None, m, (n,None)) in
@@ -85,7 +87,7 @@ let mk_ident m n l : t =
       m;
     match ms with
       | [] ->
-          (Name.get_lskip n, [], Name.replace_lskip n None)
+          (Name.get_lskip n, [], Name.strip_lskip n)
       | m'::ms' ->
           List.iter 
             (fun n ->
@@ -95,7 +97,7 @@ let mk_ident m n l : t =
                else
                  ())
             (ms' @ [n]);
-          (Name.get_lskip m', Name.replace_lskip m' None::ms', n)
+          (Name.get_lskip m', List.map Name.strip_lskip (m'::ms'), Name.strip_lskip n)
 
 let mk_ident_names l i =
   mk_ident (List.map (fun r -> (Name.add_lskip r, None)) l)
@@ -111,61 +113,26 @@ let from_id (Ast.Id(m,xl,l)) : t =
     (Name.from_x xl)
     l
 
-let get_name (_,_,x) = x
+let get_name (_,_,x) = Name.add_lskip x
 
 let (^) = Output.(^)
 
-let to_output ident_f a sep ((sk,ns,n):t) = 
-  Output.ws sk ^ Output.concat sep (List.map (Name.to_output ident_f a) (ns@[n]))
+let to_output_infix ident_f a sep ((sk,ns,n):t) = 
+  Output.ws sk ^ Output.concat sep ((List.map (fun n -> Name.to_output a (Name.add_lskip n)) ns) @ [Name.to_output_infix ident_f a (Name.add_lskip n)])
 
-let drop_parens gp ((sk,ns,n):t) =
-  if ns = [] then
-    (sk, [], Name.drop_parens n)
-  else if Precedence.is_infix (Name.get_prec gp n) then
-    (sk,ns,Name.add_parens n)
-  else
-    (sk,ns,Name.drop_parens n)
+let to_output a sep ((sk,ns,n):t) = 
+  Output.ws sk ^ Output.concat sep (List.map (fun n -> Name.to_output a (Name.add_lskip n)) (ns@[n]))
 
-let add_parens gp ((sk,ns,n):t) =
-  if ns = [] then
-    (sk, [], Name.add_parens n)
-  else if Precedence.is_infix (Name.get_prec gp n) then
-    (sk,ns,Name.add_parens n)
-  else
-    (sk,ns,Name.drop_parens n)
-
-      (*
-let capitalize (ns,n) = (ns,Name.capitalize n)
-
-let uncapitalize (ns,n) = (ns,Name.uncapitalize n)
-
-let starts_with_lower_letter (ns,n) = Name.starts_with_lower_letter n
-
-let starts_with_upper_letter (ns,n) = Name.starts_with_upper_letter n
-
-       *)
-
-let replace_first_lskip ((sk,ns,n):t) s = 
-  (s,ns,n)
-
-let get_first_lskip ((sk,ns,n):t) =
-  sk
-                  
-let get_prec gp (sk,l,i) =
-  if l = [] then
-    Name.get_prec gp i
-  else
-    Precedence.not_infix
-
-let to_name_list ((sk,ns,n):t) =
-  (List.map Name.strip_lskip ns, Name.strip_lskip n)
+let replace_first_lskip ((sk,ns,n):t) s = (s,ns,n)
+let get_first_lskip ((sk,ns,n):t) = sk                
+let to_name_list ((sk,ns,n):t) = (ns, n)
 
 let strip_path name ((sk,ns,n) :t) : t =
   match ns with
     | [] -> 
         (sk,[],n)
     | (h::t) ->
-        if Name.compare name (Name.strip_lskip h) = 0 then
+        if Name.compare name h = 0 then
           (sk,t, n)
         else
           (sk,ns,n)

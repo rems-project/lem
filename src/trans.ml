@@ -217,13 +217,6 @@ let app_list e =
   let (f,infix,args) = help e in
     (f, infix, List.rev args)
 
-let in_target p t =
-  let tn = target_to_mname t in
-    Path.check_prefix tn p
-
-let insert2 subst (p1,e1) (p2,e2) =
-  Nfmap.insert (Nfmap.insert subst (p1,e1)) (p2,e2)
-
 let rec build_subst (params : (Name.t,unit) annot list) (args : (exp * Ast.l) list) 
       : exp_subst Nfmap.t * (Name.t,unit) annot list * (exp * Ast.l) list =
   match (params, args) with
@@ -930,7 +923,7 @@ let remove_restr_quant pat_OK e =
 
 let eq_path = Path.mk_path [Name.from_rope (r"Ocaml"); Name.from_rope (r"Pervasives")] (Name.from_rope (r"="))
 
-(* TODO: Fix it? 
+(* TODO: Fix it? Replace with Type-classes?
 let hack e = 
   let l_unk = Ast.Trans("hack", Some (exp_to_locn e)) in
   match C.exp_to_term e with

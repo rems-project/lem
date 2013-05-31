@@ -115,7 +115,7 @@ let rec setcomp_bindings not_shadowed (Expr_l(e,l)) =
             emp
       | App(e1,e2) ->
           NameSet.union (scb e1) (scb e2)
-      | Infix(e1,(SymX_l((_,op),_)|InX_l(_,(_,op),_,_)),e2) ->
+      | Infix(e1,SymX_l((_,op),_),e2) ->
           let s = NameSet.union (scb e1) (scb e2) in
           let n = Name.from_rope op in
             if not_shadowed n then

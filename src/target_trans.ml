@@ -62,12 +62,9 @@ struct
 
   type trans =
       { 
-        (* Which macdos to run, in the given order so that updates to the
+        (* Which macros to run, in the given order so that updates to the
          * environment by definition macros can be properly accounted for. *)
         macros : which_macro list;
-
-        (* A description of operator precedences *)
-        get_prec : Precedence.op -> Precedence.t; 
 
         (* Perform the extra translations after the above, left-to-right *)
         extra : (Name.t -> env -> def list -> def list) list
@@ -93,12 +90,10 @@ struct
     { (* for debugging pattern compilation *)
       macros = [ Def_macros (fun env -> if !ident_force_pattern_compile then [Patterns.compile_def None (Patterns.is_pattern_match_const false) env] else []);
                  Exp_macros (fun env -> if !ident_force_pattern_compile then [Patterns.compile_exp None (Patterns.is_pattern_match_const false) C.d env] else []) ];
-      get_prec = Precedence.get_prec; 
       extra = []; }
 
   let tex =
     { macros = [];
-      get_prec = Precedence.get_prec;
       extra = []; }
 
   let hol consts fixed_renames =
@@ -122,7 +117,6 @@ struct
                               let module T = T(struct let env = env end) in
                                 [T.peanoize_num_pats])
                ];
-      get_prec = Precedence.get_prec_hol;
       extra = [(* TODO: (fun n -> 
                 Rename_top_level.rename_nested_module [n]); 
                (fun n -> Rename_top_level.rename_defs_target (Some Target_hol) consts fixed_renames [n]);
@@ -148,7 +142,6 @@ struct
                                  T.remove_do;
                                  Patterns.compile_exp (Some Target_ocaml) Patterns.is_ocaml_pattern_match C.d env])
                ];
-      get_prec = Precedence.get_prec_ocaml;
       extra = [(*TODO: add again   (fun n -> Rename_top_level.rename_defs_target (Some Target_ocaml) consts fixed_renames [n]) *)]; 
     }
 
@@ -176,7 +169,6 @@ struct
                       let module T = T(struct let env = env end) in
                         [T.peanoize_num_pats; T.remove_unit_pats])
        ];
-      get_prec = Precedence.get_prec_isa;
       extra = [(* TODO: add again (fun n -> Rename_top_level.rename_nested_module [n]);
                Rename_top_level.flatten_modules; 
                (fun n -> Rename_top_level.rename_defs_target (Some Target_isa) consts fixed_renames [n]) *)];
@@ -203,7 +195,6 @@ struct
                          [T.coq_type_annot_pat_vars])
         ];
       (* TODO: coq_get_prec *)
-      get_prec = Precedence.get_prec;
       extra = [(* TODO: add again  (fun n -> Rename_top_level.rename_defs_target (Some Target_coq) consts fixed_renames [n]) *)]; 
       }
 
@@ -349,7 +340,7 @@ struct
         | Some(ttarg) ->
             Target_binding.fix_binding (target_to_mname ttarg) defs 
     in
-    let defs = Target_syntax.fix_infix_and_parens env params.get_prec defs in
+    let defs = Target_syntax.fix_infix_and_parens env ttarg defs in
       (* Note: this is the environment from the macro translations, ignoring the
        * extra translations *)
       (env,

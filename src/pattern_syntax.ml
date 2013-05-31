@@ -124,8 +124,8 @@ in exp
 let mk_paren_pat =
   let l = Ast.Trans ("mk_paren_pat", None) in
   fun p ->
-     let (p', _) = pat_alter_init_lskips Typed_ast_syntax.remove_init_ws p in
-     C.mk_pparen l space p' None (Some (annot_to_typ p))
+     let (p', ws) = pat_alter_init_lskips Typed_ast_syntax.remove_init_ws p in
+     C.mk_pparen l ws p' None (Some (annot_to_typ p))
 
 let mk_opt_paren_pat (p :pat) : pat =
   let needs_parens =

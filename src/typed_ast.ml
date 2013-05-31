@@ -46,7 +46,6 @@
 
 open Types
 open Target
-module P = Precedence
 module NameSet = Set.Make(Name)
 module Nfmap = Finite_map.Fmap_map(Name)
 type name_l = Name.lskips_t * Ast.l
@@ -251,9 +250,7 @@ type texp =
   | Te_opaque
   | Te_abbrev of lskips * src_t
   | Te_record of lskips * lskips * (name_l * lskips * src_t) lskips_seplist * lskips
-  | Te_record_coq of lskips * name_l * lskips * (name_l * lskips * src_t) lskips_seplist * lskips
   | Te_variant of lskips * (name_l * lskips * src_t lskips_seplist) lskips_seplist
-  | Te_variant_coq of lskips * (name_l * lskips * src_t lskips_seplist * name_l * tnvar list) lskips_seplist
 
 type range = 
   | GtEq of Ast.l * src_nexp * lskips * src_nexp
@@ -359,8 +356,6 @@ let env_m_env_move env mod_name new_local =
   let md = { mod_env = env.local_env; mod_binding = Path.mk_path [] mod_name } in
   let new_local' = { new_local with m_env = Nfmap.insert new_local.m_env (mod_name,md) } in
   {env with local_env = new_local'}
-
-
 
 (* Applies lskips_f to the leftmost lskips in p, replacing it with lskips_f's
  * first result and returning lskips_f's second result *)
@@ -2134,34 +2129,6 @@ module Exps_in_context(D : Exp_context) = struct
             mk_tapp Ast.Unknown pid ts (Some(texp))
       | _ -> mk_twild Ast.Unknown None texp
 
-let exp_to_prec get_prec (exp : exp) : P.t = 
-  match exp_to_term exp with
-    | Var(n) -> Name.get_prec get_prec n
-    | Constant(c) -> 
-        (match c.id_path with
-          | Id_none _ -> assert false
-          | Id_some p -> Ident.get_prec get_prec p)
-    | _ -> assert false
-
-let delimit_exp get_prec (c : P.context) (e : exp) : exp =
-  let k = match exp_to_term e with
-    | App _ -> P.App
-    | Infix(_,e2,_) -> P.Infix(exp_to_prec get_prec e2)
-    | Fun _ | Let _ | If _ | Quant _ -> P.Let
-    | _ -> P.Atomic
-  in
-    if P.needs_parens c k then
-      begin
-        let (e, lskips) = alter_init_lskips (fun s -> (no_lskips, s)) e in
-        let e' =
-          { e with rest = { free = e.rest.free; 
-                            subst = (TNfmap.empty,Nfmap.empty); }; }
-        in
-          { e with term = Paren(lskips,e',no_lskips); }
-      end
-    else
-      e
-
 end
 
 let local_env_union e1 e2 =
@@ -2169,25 +2136,6 @@ let local_env_union e1 e2 =
     p_env = Nfmap.union e1.p_env e2.p_env;
     v_env = Nfmap.union e1.v_env e2.v_env; 
     f_env = Nfmap.union e1.f_env e2.f_env; }
-
-let delimit_pat (c : P.pat_context) (p : pat) : pat =
-  let k = match p.term with
-    | P_wild _ | P_var _ | P_const(_,[]) | P_lit _ | P_typ _ | P_record _
-    | P_tup _ | P_list _ | P_paren _ | P_var_annot _ | P_vector _ | P_vectorC _ ->
-        P.Patomic
-    | P_as _ -> P.Pas
-    | P_cons _ -> P.Pcons
-    | P_const _ -> P.Papp
-    | P_num_add _ -> P.Pas
-  in
-    if P.pat_needs_parens c k then
-      begin
-        let (p_new, lskips) = pat_alter_init_lskips (fun s -> (no_lskips, s)) p in
-          { term = P_paren(lskips,p_new,no_lskips); 
-            locn = p.locn; typ = p.typ; rest = p.rest; }
-      end
-    else
-      p
 
 (* Lookup a name in an environment and report what type of name it is *)
 
@@ -2237,19 +2185,9 @@ let add_new_constants_types_of_def targ (const_map, type_map) ((aux, _), l_base)
               let field_name_list = List.map (fun ((n, l), _, _) -> (Name.strip_lskip n, l)) (Seplist.to_list fields) in
               let const_map' = List.fold_left Nfmap.insert const_map field_name_list in
                 (const_map', type_map')
-            | ((n,l),_,Te_record_coq(_, _, _, fields, _),_) ->
-              let type_map' = Nfmap.insert type_map (Name.strip_lskip n, l) in
-              let field_name_list = List.map (fun ((n, l), _, _) -> (Name.strip_lskip n, l)) (Seplist.to_list fields) in
-              let const_map' = List.fold_left Nfmap.insert const_map field_name_list in
-                (const_map', type_map')
             | ((n,l),_,Te_variant(_, constrs),_) -> 
               let type_map' = Nfmap.insert type_map (Name.strip_lskip n, l) in
               let constr_name_list = List.map (fun ((n, l), _, _) -> (Name.strip_lskip n, l)) (Seplist.to_list constrs) in
-              let const_map' = List.fold_left Nfmap.insert const_map constr_name_list in
-                (const_map', type_map')
-            | ((n,l),_,Te_variant_coq(_, constrs),_) ->
-              let type_map' = Nfmap.insert type_map (Name.strip_lskip n, l) in
-              let constr_name_list = List.map (fun ((n, l), _, _, _, _) -> (Name.strip_lskip n, l)) (Seplist.to_list constrs) in
               let const_map' = List.fold_left Nfmap.insert const_map constr_name_list in
                 (const_map', type_map')
             | _ -> (const_map, type_map)
