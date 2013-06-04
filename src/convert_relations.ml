@@ -15,7 +15,8 @@ type ('a,'b) annot = { term : 'a; locn : Ast.l; typ : t; rest : 'b }
 
 module Converter(C : Exp_context) = struct
 
-  module C = Exps_in_context(C)
+module C = Exps_in_context(C)
+open C
 
 module Nmap = Typed_ast.Nfmap
 module Nset = Nmap.S
@@ -29,6 +30,62 @@ let is_true l = match l.term with
 let r = Ulib.Text.of_latin1
 let mk_string_path ns n = Path.mk_path (List.map (fun s -> Name.from_rope (r s)) ns) (Name.from_rope (r n))
 let and_path = mk_string_path ["Pervasives"] "&&"
+
+let mk_option ty = 
+  { Types.t = Types.Tapp([ty], mk_string_path ["Pervasives"] "option") } 
+
+let remove_option ty = 
+  match ty.t with
+    | Types.Tapp([ty], _) -> ty
+    | _ -> failwith "???"
+
+let names_get_constructor env mp n = 
+  let env' = lookup_env env mp in
+  match Nfmap.apply env'.v_env n with
+    | Some(Constr d) -> d
+    | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(Ast.Unknown, "names_get_constructor env did not contain constructor!")))
+
+let get_constructor env mp n = 
+    names_get_constructor env (List.map (fun n -> (Name.from_rope (r n))) mp) (Name.from_rope (r n))
+
+let get_constr_id l env mp n tys =
+  { id_path = Id_some(Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r n))) l);
+    id_locn = l;
+    descr = get_constructor env mp n;
+    instantiation = tys }
+
+let mk_constr_exp env mp n tys args = 
+  let l = Ast.Trans ("mk_constr_exp", None) in
+  let c = get_constr_id l env mp n tys in
+  List.fold_left (fun fn arg -> mk_app l fn arg None) (mk_constr l c None) args
+
+let mk_pconstr_pat env mp n tys args = 
+  let l = Ast.Trans ("mk_pconstr_pat", None) in
+  let c = get_constr_id l env mp n tys in
+  mk_pconstr l c args None
+
+module LemOptionMonad = struct
+
+
+let mk_none env ty = mk_constr_exp env ["Pervasives"] "None" [ty] [] 
+let mk_some env e = mk_constr_exp env ["Pervasives"] "Some" [exp_to_typ e] [e]
+let mk_pnone env ty = mk_pconstr_pat env ["Pervasives"] "None" [ty] []
+let mk_psome env p = mk_pconstr_pat env ["Pervasives"] "Some" [p.typ] [p]
+
+let mk_bind env call pat code = 
+  let l = Ast.Trans ("mk_bind", None) in
+  mk_case_exp false l call
+    [(mk_psome env pat, code);
+     (mk_pwild l None (exp_to_typ call), mk_none env (remove_option (exp_to_typ code)))]
+    (exp_to_typ code)
+
+let mk_cond env cond code = 
+  let l = Ast.Trans ("mk_cond", None) in
+  mk_if_exp l cond code (mk_none env (remove_option (exp_to_typ code)))
+
+
+end
+
 
 let is_and e = match C.exp_to_term e with
   | Constant c -> Path.compare c.descr.const_binding and_path = 0
@@ -151,7 +208,6 @@ let cons_path = mk_string_path ["Pervasives"] "::"
 let is_cons cons = Path.compare cons.descr.const_binding cons_path = 0
 
 let exp_to_pat e check_rename transform_exp  =
-  let open C in
   let rec exp_to_pat e = 
     let loc = exp_to_locn e in
     let typ = Some(exp_to_typ e) in
@@ -318,42 +374,7 @@ let debug_print_transformed trans =
     Format.eprintf "-------------------------------------\n"
   ) trans
 
-open C
-
 let sep_no_skips l = Seplist.from_list_default None l
-
-let mk_option ty = 
-  { Types.t = Types.Tapp([ty], mk_string_path ["Pervasives"] "option") } 
-
-let remove_option ty = 
-  match ty.t with
-    | Types.Tapp([ty], _) -> ty
-    | _ -> failwith "???"
-
-let names_get_constructor env mp n = 
-  let env' = lookup_env env mp in
-  match Nfmap.apply env'.v_env n with
-    | Some(Constr d) -> d
-    | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(Ast.Unknown, "names_get_constructor env did not contain constructor!")))
-
-let get_constructor env mp n = 
-    names_get_constructor env (List.map (fun n -> (Name.from_rope (r n))) mp) (Name.from_rope (r n))
-
-let get_constr_id l env mp n tys =
-  { id_path = Id_some(Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r n))) l);
-    id_locn = l;
-    descr = get_constructor env mp n;
-    instantiation = tys }
-
-let mk_constr_exp env mp n tys args = 
-  let l = Ast.Trans ("mk_constr_exp", None) in
-  let c = get_constr_id l env mp n tys in
-  List.fold_left (fun fn arg -> mk_app l fn arg None) (mk_constr l c None) args
-
-let mk_pconstr_pat env mp n tys args = 
-  let l = Ast.Trans ("mk_pconstr_pat", None) in
-  let c = get_constr_id l env mp n tys in
-  mk_pconstr l c args None
 
 module Compile_pure_code = struct
 (* TODO : not correct (must check excluded & renames) *)
@@ -431,23 +452,7 @@ end
 
 module Compile_option_code = struct
 
-
-let mk_none env ty = mk_constr_exp env ["Pervasives"] "None" [ty] [] 
-let mk_some env e = mk_constr_exp env ["Pervasives"] "Some" [exp_to_typ e] [e]
-let mk_pnone env ty = mk_pconstr_pat env ["Pervasives"] "None" [ty] []
-let mk_psome env p = mk_pconstr_pat env ["Pervasives"] "Some" [p.typ] [p]
-
-let mk_bind env call pat code = 
-  let l = Ast.Trans ("mk_bind", None) in
-  mk_case_exp false l call
-    [(mk_psome env pat, code);
-     (mk_pwild l None (exp_to_typ call), mk_none env (remove_option (exp_to_typ code)))]
-    (exp_to_typ code)
-
-let mk_cond env cond code = 
-  let l = Ast.Trans ("mk_cond", None) in
-  mk_if_exp l cond code (mk_none env (remove_option (exp_to_typ code)))
-
+  open LemOptionMonad
 
 (* TODO : not correct (must check excluded & renames) *)
 (* TODO : parametrize w/ a monad or something *)
