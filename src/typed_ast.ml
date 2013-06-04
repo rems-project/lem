@@ -2520,6 +2520,7 @@ let resolve_ident_path id path : Ident.t =
       | Id_none sk -> 
           let (mod_names, name) = Path.to_name_list path in
           let mod_names' = List.map (fun mn -> (Name.add_lskip mn, None)) (fix_mod_path mod_names) in
+          let mod_names' = [] in
             Ident.replace_first_lskip (Ident.mk_ident mod_names' (Name.add_lskip name) id.id_locn) sk
       | Id_some id -> id
   in
