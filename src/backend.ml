@@ -80,7 +80,6 @@ open Typed_ast
 open Typed_ast_syntax
 open Output
 
-
 let gen_extra_level = ref 3
 
 let r = Ulib.Text.of_latin1
