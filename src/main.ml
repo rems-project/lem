@@ -50,7 +50,7 @@ open Debug
 let backends = ref []
 let opt_print_types = ref false
 let opt_print_version = ref false
-let opt_library = ref None
+let opt_library = ref (Some (Build_directory.d^"/library"))
 let lib = ref []
 let ocaml_lib = ref []
 let hol_lib = ref []
@@ -96,7 +96,7 @@ let options = Arg.align ([
     " print types on stdout");
   ( "-lib", 
     Arg.String (fun l -> opt_library := Some l),
-    " library path");
+    " library path"^match !opt_library with None->"" | Some s -> " (default "^s^")");
   ( "-ocaml_lib", 
     Arg.String (fun l -> ocaml_lib := l::!ocaml_lib),
     " add to OCaml library");
