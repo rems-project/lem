@@ -1488,6 +1488,7 @@ let const_ident_to_output cd =
       else if Path.compare cd.descr.const_binding (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"&&")))    = 0 then kwd "\\lemwedge"
       else if Path.compare cd.descr.const_binding (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"||")))    = 0 then kwd "\\lemvee"
       else if Path.compare cd.descr.const_binding (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"not")))   = 0 then kwd "\\lemnot"
+      else if Path.compare cd.descr.const_binding (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"<>")))   = 0 then kwd "\\neq"
       else
         Ident.to_output T.infix_op_format Term_const T.path_sep (resolve_ident_path cd cd.descr.const_binding)
   | Some (Ast.Target_html _) -> 
