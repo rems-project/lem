@@ -36,6 +36,7 @@
 (*  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE    *)
 (*  ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY       *)
 (*  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL    *)
+
 (*  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE     *)
 (*  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS         *)
 (*  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER  *)
@@ -257,43 +258,72 @@ let rec typ_to_src_t (wild_f : Ast.l -> lskips -> src_t)
           typ = {t = Tne(nexp'.nt);};
           rest=(); }
 
-(*Permits only in, out, and the type of the witness *)
-let rec typ_to_src_t_indreln wit (Ast.Typ_l(typ,l)) =
-  match typ with
-    | Ast.Typ_wild(sk) -> assert false (*todo, make an error*)
-    | Ast.Typ_var _ -> assert false
-    | Ast.Typ_fn(typ1, sk, typ2) -> 
-        let st1 = typ_to_src_t_indreln wit typ1 in
-        let st2 = typ_to_src_t_indreln wit typ2 in
-          { term = Typ_fn(st1, sk, st2);
-            locn = l; 
-            typ = { t = Tfn(st1.typ,st2.typ) };
-            rest = (); }
-    | Ast.Typ_tup(typs) -> assert false
-    | Ast.Typ_app(i,typs) ->
-       (match i,typs with
-         | _,x::xs -> assert false
-         | Ast.Id([],xl,l0),[] -> 
-            (match (Name.to_string (Name.strip_lskip (Name.from_x xl))) with
-              | "in" | "out" | "bool" | "unit" -> ()
-              | x -> if x = wit then () else assert false);
-             let p = Path.mk_path [] (Name.strip_lskip (Name.from_x xl)) in
-             let id = {id_path = Id_some (Ident.from_id i); 
-                       id_locn = l0;
-                       descr = Path.mk_path [] (Name.strip_lskip (Name.from_x xl));
-                       instantiation = []; }
+(*Permits only in, out, and the type of the witness, and enforces that it otherwise matches the relation type *)
+let typ_to_src_t_indreln wit (d : type_defs) (e : env) (typt : Types.t) typ : src_t =
+  let rec compare (fun_ok : bool) (last_res : bool) (typt : Types.t) (Ast.Typ_l(typ,l)) =
+    match typ, typt.t , fun_ok , last_res with
+      | Ast.Typ_wild _,_,_,_ | Ast.Typ_var _,_,_,_ | Ast.Typ_tup _,_,_,_ | Ast.Typ_Nexps _,_ ,_,_ ->
+	raise (Ident.No_type(l,"Only functions and type constructors can occur in indrel function specifications"))
+      | Ast.Typ_fn _, _, false, _->
+	raise (Ident.No_type(l,"Only type constructors can occur here in indrel function specifications"))
+      | Ast.Typ_fn(typ1, sk, typ2) , Tfn(t1,t2), true , false -> 
+          let st1 = compare false false t1 typ1 in
+          let lst = (match t2.t with | Tfn _ -> false | _ -> true) in
+          let st2 = compare true lst t2 typ2 in
+            { term = Typ_fn(st1, sk, st2);
+              locn = l; 
+              typ = { t = Tfn(st1.typ,st2.typ) };
+              rest = (); }
+      | Ast.Typ_app(i,typs), Tfn(t1,t2), true, true -> compare false true t1 (Ast.Typ_l(typ,l))
+      | Ast.Typ_app(i,typs), Tapp([],p),_,lst->
+         (match i,typs with
+           | _,x::xs ->raise_error l "Types in indrel function specifications cannot have arguments" Ident.pp (Ident.from_id i)
+           | Ast.Id(path,xl,l0),[] -> 
+             let n_init = Name.strip_lskip (Name.from_x xl) in
+             let p = 
+	        (match (Name.to_string n_init) with
+		| "in" | "out" ->  Path.mk_path [] n_init
+		| other -> if lst then
+		    let p = lookup_p "constructor" e i in
+		    begin
+		      match Pfmap.apply d p with
+		      | None -> assert false
+		      | Some(Tc_type([],_,_)) -> p 
+                      | Some(Tc_type(pre,_,_)) -> 
+			raise_error l "Invalid type constructor for indrel function specification" Ident.pp (Ident.from_id i)
+		      | Some(Tc_class _) ->
+			raise_error l "type class used as type constructor" 
+			  Ident.pp (Ident.from_id i)
+		    end 
+		  else raise_error l "only in or out may be used here" Ident.pp (Ident.from_id i)) in
+	     let id = {id_path = Id_some (Ident.from_id i); 
+		       id_locn = l0;
+		       descr = p;
+		       instantiation = []; }
              in
-	       { term = Typ_app(id,[]);
-                 locn = l;
-                 typ = { t = Tapp([],p) };
-                 rest = (); })
-    | Ast.Typ_paren(sk1,typ,sk2) ->
-        let st = typ_to_src_t_indreln wit typ in
+             (match lst,wit with
+	     | (true,None) ->
+	       if (((Path.compare p Path.boolpath)=0) || ((Path.compare p Path.unitpath)=0))
+	       then ()
+	       else raise_error l "Last type in indrel function specifications must be bool or unit" Path.pp p
+	     | (true,Some(wit_p)) ->
+	       if (((Path.compare p Path.boolpath)=0) || ((Path.compare p Path.unitpath)=0) || ((Path.compare p wit_p)=0))
+	       then ()
+	       else raise_error l "Last type in indrel function specifications must be bool, unit, or the witness" Path.pp p
+	     | (false,_) -> ());
+	     { term = Typ_app(id,[]);
+               locn = l;
+               typ = { t = Tapp([],p) };
+               rest = (); })
+      | Ast.Typ_paren(sk1,typ,sk2), _,_,_ ->
+        let st = compare fun_ok last_res typt typ in
         { term = Typ_paren(sk1,st,sk2); 
           locn = l; 
           typ = st.typ; 
           rest = (); }
-    | Ast.Typ_Nexps(nexp) -> assert false
+      | _,_,_,_ -> raise (Ident.No_type(l,"Type of indrel function specification must match indrel type"))
+  in
+  compare true false typt typ
 
 
 (* Corresponds to judgment check_lit '|- lit : t' *)
@@ -512,6 +542,36 @@ let check_constraint_prefix (ctxt : defn_ctxt)
            tnvarset,
            snd constraints)
 
+(* Update the new and cumulative environment with new
+ * function/value/module/field/path definitions according to set and select *)
+let ctxt_add (select : env -> 'a Nfmap.t) (set : env -> 'a Nfmap.t -> env) 
+      (ctxt : defn_ctxt) (m : Name.t * 'a)
+      : defn_ctxt =
+  { ctxt with 
+        cur_env = set ctxt.cur_env (Nfmap.insert (select ctxt.cur_env) m);
+        new_defs = set ctxt.new_defs (Nfmap.insert (select ctxt.new_defs) m); } 
+
+(* Update new and cumulative enviroments with a new module definition, after
+ * first checking that its name doesn't clash with another module definition in
+ * the same definition sequence.  It can have the same name as another module
+ * globally. *)
+let add_m_to_ctxt (l : Ast.l) (ctxt : defn_ctxt) (k : Name.lskips_t) (v : mod_descr)
+      : defn_ctxt = 
+  let k = Name.strip_lskip k in
+    if Nfmap.in_dom k ctxt.new_defs.m_env then
+      raise_error l "duplicate module definition" Name.pp k
+    else
+      ctxt_add 
+        (fun x -> x.m_env) 
+        (fun x y -> { x with m_env = y }) 
+        ctxt 
+        (k,v)
+
+(* Add a new type definition to the global and local contexts *)
+let add_d_to_ctxt (ctxt : defn_ctxt) (p : Path.t) (d : tc_def) =
+  { ctxt with all_tdefs = Pfmap.insert ctxt.all_tdefs (p,d);
+              new_tdefs = Pfmap.insert ctxt.new_tdefs (p,d) }
+
 
 (* We split the environment between top-level and lexically nested binders, and
  * inside of expressions, only the lexical environment can be extended, we
@@ -555,6 +615,7 @@ module type Expr_checker = sig
    * method definition *)
   val check_indrels : 
     defn_ctxt ->
+    Name.t list -> 
     Targetset.t option ->
     Ast.l ->
     (Ast.indreln_name * lskips) list ->
@@ -1574,7 +1635,7 @@ module Make_checker(T : sig
 
 
   (* See Expr_checker signature above *)
-  let check_indrels (ctxt : defn_ctxt) (def_targets : Targetset.t option) l names clauses =
+  let check_indrels (ctxt : defn_ctxt) (mod_path : Name.t list) (def_targets : Targetset.t option) l names clauses =
     let rec_env =
       List.fold_left
         (fun l_e (Ast.Name_l (Ast.Inderln_name_Name(_,x_l,_,_,_,_,_,_),_),_) ->
@@ -1582,7 +1643,7 @@ module Make_checker(T : sig
               if Nfmap.in_dom n l_e then 
                 assert false (* TODO Make this an error of duplicate definitions *)
               else
-                add_binding l_e (xl_to_nl x_l) (C.new_type ())) (* Consider whether we should now use the typschem here or still a unification variable *)
+                add_binding l_e (xl_to_nl x_l) (C.new_type ())) 
          empty_lex_env
          names
     in
@@ -1590,23 +1651,37 @@ module Make_checker(T : sig
     let n = 
       Seplist.map 
          (fun (Ast.Name_l(Ast.Inderln_name_Name(s0,xl,s1,Ast.Ts(cp,typ),witness_opt,check_opt,functions_opt,s2), l1)) ->
-            (* Todo add checks and processing of witness_opt, check_opt, and funcitons_opt *)
             let (src_cp, tyvars, tnvarset, (sem_cp,sem_rp)) = check_constraint_prefix ctxt cp in 
             let () = check_free_tvs tnvarset typ in
             let src_t = typ_to_src_t anon_error ignore ignore ctxt.all_tdefs ctxt.cur_env typ in
-            let witness,wit_name = (match witness_opt with
-                            | Ast.Witness_none -> None,""
-                            | Ast.Witness_some (s0,s1,xl,s2) -> Some( Witness(s0,s1,Name.from_x xl,s2)), (Name.to_string (Name.strip_lskip (Name.from_x xl)))) in
+            let r_t = src_t.typ in
+            (* Todo add checks and processing of witness_opt, check_opt, and funcitons_opt *)
+            let witness,wit_path,ctxt  = (match witness_opt with
+                            | Ast.Witness_none -> None,None,ctxt
+                            | Ast.Witness_some (s0,s1,xl,s2) -> 
+                              let n = Name.from_x xl in
+                              let tn = Name.strip_lskip n in
+                              let type_path = Path.mk_path mod_path tn in
+                              let new_ctxt = ctxt_add 
+                                    (fun x -> x.p_env) 
+                                    (fun x y -> { x with p_env = y })
+                                    ctxt 
+                                    (tn, (type_path, (Ast.xl_to_l xl))) in
+                              Some( Witness(s0,s1,n,s2)), 
+                                    Some type_path, 
+                                    add_d_to_ctxt new_ctxt type_path (Tc_type ([],None,None))) in
             let check = (match check_opt with 
                             | Ast.Check_none -> None
                             | Ast.Check_some(s0,xl,s1) -> Some(s0,Name.from_x xl,s1)) in
+            let to_src_t = typ_to_src_t_indreln wit_path ctxt.all_tdefs ctxt.cur_env r_t in
             let rec mk_functions fo =
-                    match fo with
-                      | Ast.Functions_none -> None
-                      | Ast.Functions_one(xl,s1,t) -> Some([Fn(Name.from_x xl,s1,typ_to_src_t_indreln wit_name t,None)])
-                      | Ast.Functions_some(xl,s1,t,s2,fs) -> (match (mk_functions fs) with
-                                                             | None -> Some([Fn(Name.from_x xl, s1, typ_to_src_t_indreln wit_name  t, Some s2)])
-                                                             | Some fs -> Some((Fn(Name.from_x xl,s1, typ_to_src_t_indreln wit_name t, Some s2))::fs)) in
+                match fo with
+                  | Ast.Functions_none -> None
+                  | Ast.Functions_one(xl,s1,t) -> Some([Fn(Name.from_x xl,s1,to_src_t t,None)])
+                  | Ast.Functions_some(xl,s1,t,s2,fs) -> 
+                     (match (mk_functions fs) with
+                      | None -> Some([Fn(Name.from_x xl, s1, to_src_t t, Some s2)])
+                      | Some fs -> Some((Fn(Name.from_x xl,s1, to_src_t t, Some s2))::fs)) in
             RName(s0,Name.from_x xl,s1,(src_cp,src_t),witness, check, mk_functions functions_opt,s2))
          names 
     in
@@ -1650,35 +1725,6 @@ module Make_checker(T : sig
 
 end
 
-(* Update the new and cumulative environment with new
- * function/value/module/field/path definitions according to set and select *)
-let ctxt_add (select : env -> 'a Nfmap.t) (set : env -> 'a Nfmap.t -> env) 
-      (ctxt : defn_ctxt) (m : Name.t * 'a)
-      : defn_ctxt =
-  { ctxt with 
-        cur_env = set ctxt.cur_env (Nfmap.insert (select ctxt.cur_env) m);
-        new_defs = set ctxt.new_defs (Nfmap.insert (select ctxt.new_defs) m); } 
-
-(* Update new and cumulative enviroments with a new module definition, after
- * first checking that its name doesn't clash with another module definition in
- * the same definition sequence.  It can have the same name as another module
- * globally. *)
-let add_m_to_ctxt (l : Ast.l) (ctxt : defn_ctxt) (k : Name.lskips_t) (v : mod_descr)
-      : defn_ctxt = 
-  let k = Name.strip_lskip k in
-    if Nfmap.in_dom k ctxt.new_defs.m_env then
-      raise_error l "duplicate module definition" Name.pp k
-    else
-      ctxt_add 
-        (fun x -> x.m_env) 
-        (fun x y -> { x with m_env = y }) 
-        ctxt 
-        (k,v)
-
-(* Add a new type definition to the global and local contexts *)
-let add_d_to_ctxt (ctxt : defn_ctxt) (p : Path.t) (d : tc_def) =
-  { ctxt with all_tdefs = Pfmap.insert ctxt.all_tdefs (p,d);
-              new_tdefs = Pfmap.insert ctxt.new_tdefs (p,d) }
 
 (* Support for maps from paths to lists of things *)
 let insert_pfmap_list (m : 'a list Pfmap.t) (k : Path.t) (v : 'a) 
@@ -2413,7 +2459,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let target_opt_checked = check_target_opt target_opt in
           let target_set = target_opt_to_set target_opt in
           let (ns,cls,e_v,Tconstraints(tnvs,constraints,lconstraints)) = 
-            Checker.check_indrels ctxt target_set l names clauses 
+            Checker.check_indrels ctxt mod_path target_set l names clauses 
           in 
             (add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) 
                constraints lconstraints
