@@ -274,15 +274,15 @@ struct
                   Ctxt.push_subst (Types.TNfmap.empty, Nfmap.empty) ps e
                 in
                   Val_def(Let_def(s1,topt,(Let_fun(n,ps,t,s2,e),l)),tnvs,class_constraints)
-            | Indreln(s1,topt,clauses) ->
+            | Indreln(s1,topt,names,clauses) ->
                 let clauses =
                   Seplist.map
-                    (fun (name_opt,s1,ns,s2,e,s3,n,es) ->
+                    (fun (Rule(name,s0,s1,ns,s2,e,s3,n,es)) ->
                        (* TODO: rename to avoid conflicts *)
-                       (name_opt,s1,ns,s2,e,s3,n,es))
+                       Rule(name,s0,s1,ns,s2,e,s3,n,es))
                     clauses
                 in
-                  Indreln(s1,topt,clauses)      
+                  Indreln(s1,topt,names,clauses)      
             | d -> d
         in
           ((d,lex_skips),l)

@@ -87,7 +87,7 @@ val for_all: ('key -> 'a -> bool) -> ('key,'a) map -> bool
         @since 3.12.0
      *)
 
-val exists: ('key -> 'a -> bool) -> ('key,'a) map -> bool
+val exist: ('key -> 'a -> bool) -> ('key,'a) map -> bool
     (** [exists p m] checks if at least one binding of the map
         satisfy the predicate [p].
         @since 3.12.0
@@ -119,6 +119,14 @@ val bindings: ('key,'a) map -> ('key * 'a) list
        given to {!Map.Make}.
         @since 3.12.0
      *)
+
+(** [domain m] returns the domain of the map [m], i.e. the
+    set of keys of this map. *)
+val domain : ('key,'a) map -> 'key Pset.set
+
+(** [range m] returns the range of the map [m], i.e. the
+    set of all values stored in this map. *)
+val range : ('key,'a) map -> 'a Pset.set
 
 val min_binding: ('key,'a) map -> ('key * 'a)
     (** Return the smallest binding of the given map
@@ -165,5 +173,3 @@ val map: ('a -> 'b) -> ('key,'a) map -> ('key,'b) map
 val mapi: ('key -> 'a -> 'b) -> ('key,'a) map -> ('key,'b) map
     (** Same as {!Map.S.map}, but the function receives as arguments both the
        key and the associated value for each binding of the map. *)
-
-val concat: ('key, 'a) map -> ('key, 'a) map -> ('key, 'a) map

@@ -11,7 +11,7 @@ let inline {coq} (+) = Coq.int_plus
 (* Subtraction *)
 val (-) : int -> int -> int
 let inline {hol} (-) = Hol.int_sub
-let inline {ocaml} (-) = Ocaml.(-)
+let inline {ocaml} (-) = Ocaml.Pervasives.(-)
 let inline {isabelle} (-) = Isabelle.int_sub
 let inline {coq} (-) = Coq.int_minus
 

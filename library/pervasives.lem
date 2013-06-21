@@ -196,10 +196,12 @@ let inline {coq} (\) = Coq.set_diff
 val bigunion : forall 'a. set (set 'a) -> set 'a
 let inline {hol} bigunion = Hol.BIGUNION
 let inline {ocaml} bigunion = Ocaml.Pset.bigunion Ocaml.compare
+let inline {isabelle} bigunion = Isabelle.set_bigunion
 
 val biginter : forall 'a. set (set 'a) -> set 'a
 let inline {hol} biginter = Hol.BIGINTER
 let inline {ocaml} biginter = Ocaml.Pset.biginter
+let inline {isabelle} biginter = Isabelle.set_biginter
 
 val empty : forall 'a. set 'a
 let inline {hol} empty = Hol.EMPTY

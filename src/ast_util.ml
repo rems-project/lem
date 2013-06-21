@@ -142,7 +142,7 @@ let rec setcomp_bindings not_shadowed (Expr_l(e,l)) =
             NameSet.union fv (NameSet.diff (scb e) binds)
       | Tup(_,es,_) ->
           scb_list (List.map fst es)
-      | List(_,es,_,_,_) | Vector(_,es,_,_,_) ->
+      | Elist(_,es,_,_,_) | Vector(_,es,_,_,_) ->
           scb_list (List.map fst es)
       | VAccess(e,_,_,_) | VAccessR(e,_,_,_,_,_) ->
           scb e

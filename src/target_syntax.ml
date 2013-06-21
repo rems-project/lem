@@ -154,7 +154,7 @@ let rec fix_exp get_prec e =
       | Tup_constructor(c,s1,es,s2) ->
           C.mk_tup_ctor old_l 
             (id_fix_parens_for_prefix (fun x -> x.constr_binding) get_prec c) 
-            s1 (Seplist.map trans es) s2 old_t
+            s1 (Seplist.map (fun e -> C.delimit_exp get_prec P.App_right (trans e)) es) s2 old_t
       | Fun(s1,ps,s2,e) ->
           C.mk_fun old_l 
             s1 (List.map (fun p -> delimit_pat P.Plist (transp p)) ps) 
@@ -373,12 +373,13 @@ let rec fix_infix_and_parens get_prec defs =
   let rec fix_def = function
     | Val_def(d,tnvs,class_constraints) -> Val_def(fix_val_def d,tnvs,class_constraints)
     | Lemma(sk,lty,targets,n_opt,sk2,e,sk3) -> Lemma(sk,lty,targets,n_opt,sk2,fix_exp get_prec e,sk3)
-    | Indreln(s1,targets,c) ->
+    | Indreln(s1,targets,names,c) ->
         Indreln(s1,
                 targets,
+                names,
                 Seplist.map
-                  (fun (name_opt,s1,ns,s2,e_opt,s3,n,es) ->
-                     (name_opt,s1,ns,s2,
+                  (fun (Rule(name,s0,s1,ns,s2,e_opt,s3,n,es)) ->
+                     Rule(name,s0,s1,ns,s2,
                       Util.option_map (fix_exp get_prec) e_opt, s3, n, 
                       List.map (fix_exp get_prec) es))
                   c)

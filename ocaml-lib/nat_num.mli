@@ -15,6 +15,7 @@ val lnot : num -> num
 val (lsl) : num -> num -> num
 val (lsr) : num -> num -> num
 val (asr) : num -> num -> num
+val num_of_string : string -> num
 val string_of_num : num -> string
 val int : int -> int
 val neg : int -> int

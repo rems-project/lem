@@ -93,6 +93,8 @@ let kw_table =
      ("assert",                  (fun x -> Assert(x)));
      ("theorem",                 (fun x -> Theorem(x)));
      ("do",                      (fun x -> Do(x)));
+     ("witness",		 (fun x -> Witness(x)));
+     ("check",			 (fun x -> Check(x)));
 ]
 
 }
@@ -184,6 +186,7 @@ rule token skips = parse
   | ['/''%'] oper_char* as i         { (StarX(Some(skips), Ulib.Text.of_latin1 i)) }
   | "*" oper_char+ as i         { (StarX(Some(skips), Ulib.Text.of_latin1 i)) }
   | ['+''-'] oper_char* as i            { (PlusX(Some(skips), Ulib.Text.of_latin1 i)) }
+  | ">=" oper_char+ as i   		{ (GtEqX(Some(skips), Ulib.Text.of_latin1 i)) }
   | ['@''^'] oper_char* as i            { (AtX(Some(skips), Ulib.Text.of_latin1 i)) }
   | ['=''<''>''|''&''$'] oper_char* as i { (EqualX(Some(skips), Ulib.Text.of_latin1 i)) }
   | digit+ as i                         { (Num(Some(skips),int_of_string i)) }

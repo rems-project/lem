@@ -104,6 +104,24 @@ let rec split_and (e : exp) = match C.exp_to_term e with
   Group rules by output relation
 *)
 
+(* TODO : Un-Option the name *)
+let get_rels (l: Typed_ast.rule lskips_seplist) =
+  List.fold_left (fun s (Rule(rulename,_,_,vars,_,cond,_,rel,args)) ->
+    let rulename = Some(rulename) in
+    let relname = Name.strip_lskip rel.term in
+    let rulecond = match cond with
+      | Some x -> x
+      | None -> C.mk_lit Ast.Unknown ({term = L_true None; locn = Ast.Unknown; typ =  {t = Tapp([], Path.boolpath)}; rest = ()}) None in
+    let vars = List.map (function
+      | QName(n) -> n
+      | Name_typ(_,n,_,_,_) -> n
+    ) vars in
+    let ruledescr = (rulename, List.map (fun v -> (Name.strip_lskip v.term, v.typ) ) vars, split_and rulecond, args) in
+    match Nmap.apply s relname with
+      | None -> Nmap.insert s (relname, [ruledescr])
+      | Some rules -> Nmap.insert s (relname, ruledescr::rules)
+  ) Nfmap.empty (Seplist.to_list l)
+(*
 let get_rels (l : (Name.lskips_t option * lskips * name_lskips_annot list * lskips * exp option * lskips * name_lskips_annot * exp list) lskips_seplist ) = 
   List.fold_left (fun s (rulename,_,vars,_,cond,_,rel,args) ->
     let relname = Name.strip_lskip rel.term in
@@ -115,7 +133,7 @@ let get_rels (l : (Name.lskips_t option * lskips * name_lskips_annot list * lski
       | None -> Nmap.insert s (relname, [ruledescr])
       | Some rules -> Nmap.insert s (relname, ruledescr::rules)
   ) Nmap.empty (Seplist.to_list l)
-
+*)
 type io = I | O
 type ep = IExp of exp | OPat of pat
 type mode = io list
@@ -700,7 +718,7 @@ let transform_rels env rules def =
 (* instances ? *)
 let rec scan_defs env l = List.concat (List.map (scan_def env) l)
 and scan_def env (((d,aa),bb) as def) = match d with
-  | Indreln(_,_,rules) as r -> def::transform_rels env rules def
+  | Indreln(_,_,_,rules) as r -> def::transform_rels env rules def
   | Module(a,b,c,d,defs,e) -> [((Module(a,b,c,d,scan_defs env defs,e),aa),bb)]
   | u -> [def]
 
@@ -1077,7 +1095,7 @@ and funcl_aux = name_lskips_annot * pat list * (lskips * src_t) option * lskips 
 
 let rec gen_type_scan_defs mn env l = List.concat (List.map (gen_type_scan_def mn env) l)
 and gen_type_scan_def mn env (((d,aa), bb) as def) = match d with
-  | Indreln(_,_,rules) -> [def;gen_witness_type_def mn env rules;
+  | Indreln(_,_,_,rules) -> [def;gen_witness_type_def mn env rules;
                            gen_witness_check_def mn env rules]
   | Module(a,b,c,d,defs,e) -> failwith "Modules not supported"
   | _ -> [def]

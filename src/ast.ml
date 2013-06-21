@@ -89,13 +89,13 @@ and nexp =  (* Location-annotated vector lengths *)
 
 
 type 
-a_l =  (* Location-annotated type variables *)
-   A_l of a * l
+n_l =  (* Location-annotated numeric variables *)
+   N_l of n * l
 
 
 type 
-n_l =  (* Location-annotated numeric variables *)
-   N_l of n * l
+a_l =  (* Location-annotated type variables *)
+   A_l of a * l
 
 
 type 
@@ -116,19 +116,6 @@ id =  (* Long identifers *)
 
 
 type 
-lit_aux =  (* Literal constants *)
-   L_true of terminal
- | L_false of terminal
- | L_num of terminal * int
- | L_hex of terminal * string (* hex and bin are constant bit vectors, entered as C-style hex or binaries *)
- | L_bin of terminal * string
- | L_string of terminal * Ulib.UTF8.t
- | L_unit of terminal * terminal
- | L_zero of terminal (* bitzero and bitone are constant bits, if commonly used we will consider overloading 0 and 1 *)
- | L_one of terminal
-
-
-type 
 nexp_constraint =  (* Location-annotated Nexp range *)
    Range_l of nexp_constraint_aux * l
 
@@ -139,22 +126,16 @@ c =  (* Typeclass constraints *)
 
 
 type 
-typ_aux =  (* Types *)
-   Typ_wild of terminal (* Unspecified type *)
- | Typ_var of a_l (* Type variables *)
- | Typ_fn of typ * terminal * typ (* Function types *)
- | Typ_tup of (typ * terminal) list (* Tuple types *)
- | Typ_Nexps of nexp (* As a typ to permit applications over Nexps, otherwise not accepted *)
- | Typ_app of id * (typ) list (* Type applications *)
- | Typ_paren of terminal * typ * terminal
-
-and typ =  (* Location-annotated types *)
-   Typ_l of typ_aux * l
-
-
-type 
-lit = 
-   Lit_l of lit_aux * l (* Location-annotated literal constants *)
+lit_aux =  (* Literal constants *)
+   L_true of terminal
+ | L_false of terminal
+ | L_num of terminal * int
+ | L_hex of terminal * string (* hex and bin are constant bit vectors, entered as C-style hex or binaries *)
+ | L_bin of terminal * string
+ | L_string of terminal * Ulib.UTF8.t
+ | L_unit of terminal * terminal
+ | L_zero of terminal (* bitzero and bitone are constant bits, if commonly used we will consider overloading 0 and 1 *)
+ | L_one of terminal
 
 
 type 
@@ -173,10 +154,55 @@ p =  (* Unique paths *)
 type 
 ne =  (* internal numeric expressions *)
    Ne_var of n
- | Ne_const of terminal * int
- | Ne_mult of terminal * int * terminal * ne
+ | Ne_const of int
+ | Ne_mult of ne * terminal * ne
  | Ne_add of ne * terminal * ne
  | Ne_unary of terminal * terminal * ne * terminal
+
+
+type 
+typ_aux =  (* Types *)
+   Typ_wild of terminal (* Unspecified type *)
+ | Typ_var of a_l (* Type variables *)
+ | Typ_fn of typ * terminal * typ (* Function types *)
+ | Typ_tup of (typ * terminal) list (* Tuple types *)
+ | Typ_Nexps of nexp (* As a typ to permit applications over Nexps, otherwise not accepted *)
+ | Typ_app of id * (typ) list (* Type applications *)
+ | Typ_paren of terminal * typ * terminal
+
+and typ =  (* Location-annotated types *)
+   Typ_l of typ_aux * l
+
+
+type 
+cs =  (* Typeclass and length constraint lists *)
+   Cs_empty
+ | Cs_classes of (c * terminal) list * terminal (* Must have $>0$ constraints *)
+ | Cs_lengths of (nexp_constraint * terminal) list * terminal (* Must have $>0$ constraints *)
+ | Cs_both of (c * terminal) list * terminal * (nexp_constraint * terminal) list * terminal (* Must have $>0$ of both form of constraints *)
+
+
+type 
+lit = 
+   Lit_l of lit_aux * l (* Location-annotated literal constants *)
+
+
+type 
+tnv =  (* Union of type variables and Nexp type variables, without locations *)
+   Av of a
+ | Nv of n
+
+
+type 
+t =  (* Internal types *)
+   T_var of a
+ | T_fn of t * terminal * t
+ | T_tup of (t * terminal) list
+ | T_app of p * t_args
+ | T_len of ne
+
+and t_args =  (* Lists of types *)
+   T_args of (t) list
 
 
 type 
@@ -190,11 +216,9 @@ target =  (* Backend target names *)
 
 
 type 
-cs =  (* Typeclass and length constraint lists *)
-   Cs_empty
- | Cs_classes of (c * terminal) list * terminal (* Must have $>0$ constraints *)
- | Cs_lengths of (nexp_constraint * terminal) list * terminal (* Must have $>0$ constraints *)
- | Cs_both of (c * terminal) list * terminal * (nexp_constraint * terminal) list * terminal (* Must have $>0$ of both form of constraints *)
+c_pre =  (* Type and instance scheme prefixes *)
+   C_pre_empty
+ | C_pre_forall of terminal * (tnvar) list * terminal * cs (* Must have $>0$ type variables *)
 
 
 type 
@@ -233,21 +257,8 @@ tannot_opt =  (* Optional type annotations *)
 
 
 type 
-tnv =  (* Union of type variables and Nexp type variables, without locations *)
-   Av of a
- | Nv of n
-
-
-type 
-t =  (* Internal types *)
-   T_var of a
- | T_fn of t * terminal * t
- | T_tup of (t * terminal) list
- | T_app of p * t_args
- | T_len of ne
-
-and t_args =  (* Lists of types *)
-   T_args of (t) list
+ctor_def =  (* Datatype definition clauses *)
+   Cte of x_l * terminal * (typ * terminal) list
 
 
 type 
@@ -256,9 +267,27 @@ targets =  (* Backend target name lists *)
 
 
 type 
-c_pre =  (* Type and instance scheme prefixes *)
-   C_pre_empty
- | C_pre_forall of terminal * (tnvar) list * terminal * cs (* Must have $>0$ type variables *)
+functions_opt =  (* Optional names and types for functions to be generated. Types should use only in, out, unit, or the witness type *)
+   Functions_none
+ | Functions_one of x_l * terminal * typ
+ | Functions_some of x_l * terminal * typ * terminal * functions_opt
+
+
+type 
+typschm =  (* Type schemes *)
+   Ts of c_pre * typ
+
+
+type 
+witness_opt =  (* Optional witness type name declaration. Must be present for a witness type to be generated. *)
+   Witness_none
+ | Witness_some of terminal * terminal * x_l * terminal
+
+
+type 
+check_opt =  (* Option check name declaration *)
+   Check_none
+ | Check_some of terminal * x_l * terminal
 
 
 type 
@@ -279,7 +308,7 @@ exp_aux =  (* Expressions *)
  | Typed of terminal * exp * terminal * typ * terminal (* Type-annotated expressions *)
  | Let of terminal * letbind * terminal * exp (* Let expressions *)
  | Tup of terminal * (exp * terminal) list * terminal (* Tuples *)
- | List of terminal * (exp * terminal) list * terminal * bool * terminal (* Lists *)
+ | Elist of terminal * (exp * terminal) list * terminal * bool * terminal (* Lists *)
  | Paren of terminal * exp * terminal
  | Begin of terminal * exp * terminal (* Alternate syntax for $\ottnt(exp)$ *)
  | If of terminal * exp * terminal * exp * terminal * exp (* Conditionals *)
@@ -324,43 +353,15 @@ and letbind =  (* Location-annotated let bindings *)
 
 
 type 
-x_l_opt =  (* Optional name for inductively defined relation clauses *)
-   X_l_none
- | X_l_some of x_l * terminal
+name_t =  (* Name or name with type for inductively defined relation clauses *)
+   Name_t_name of x_l
+ | Name_t_nt of terminal * x_l * terminal * typ * terminal
 
 
 type 
-ctor_def =  (* Datatype definition clauses *)
-   Cte of x_l * terminal * (typ * terminal) list
-
-
-type 
-semC =  (* Typeclass constraint lists *)
-   SemC_concrete of ((terminal * p * tnv * terminal)) list
-
-
-type 
-env_tag =  (* Tags for the (non-constructor) value descriptions *)
-   Method of terminal (* Bound to a method *)
- | Spec of terminal (* Specified with val *)
- | Def of terminal (* Defined with let or indreln *)
-
-
-type 
-lemma_typ =  (* Types of Lemmata *)
-   Lemma_assert of terminal
- | Lemma_lemma of terminal
- | Lemma_theorem of terminal
-
-
-type 
-typschm =  (* Type schemes *)
-   Ts of c_pre * typ
-
-
-type 
-rule_aux =  (* Inductively defined relation clauses *)
-   Rule of x_l_opt * terminal * (x_l) list * terminal * exp * terminal * x_l * (exp) list
+name_opt =  (* Optional name specification for variables of defined type *)
+   Name_sect_none
+ | Name_sect_name of terminal * x_l * terminal * terminal * string * terminal
 
 
 type 
@@ -371,9 +372,15 @@ texp =  (* Type definition bodies *)
 
 
 type 
-name_opt =  (* Optional name specification for variables of defined type *)
-   Name_sect_none
- | Name_sect_name of terminal * x_l * terminal * terminal * string * terminal
+lemma_typ =  (* Types of Lemmata *)
+   Lemma_assert of terminal
+ | Lemma_lemma of terminal
+ | Lemma_theorem of terminal
+
+
+type 
+indreln_name_aux =  (* Name for inductively defined relation *)
+   Inderln_name_Name of terminal * x_l * terminal * typschm * witness_opt * check_opt * functions_opt * terminal
 
 
 type 
@@ -382,14 +389,22 @@ funcl =  (* Location-annotated function clauses *)
 
 
 type 
-f_desc = 
-   F_field of terminal * terminal * tnv list * terminal * p * terminal * t * terminal * terminal * x * terminal * Set.Make(String).t * terminal * terminal (* Fields *)
+rule_aux =  (* Inductively defined relation clauses *)
+   Rule of x_l * terminal * terminal * (name_t) list * terminal * exp * terminal * x_l * (exp) list
 
 
 type 
-v_desc =  (* Value descriptions *)
-   V_constr of terminal * terminal * tnv list * terminal * t list * terminal * p * terminal * terminal * x * terminal * Set.Make(String).t * terminal * terminal (* Constructors *)
- | V_val of terminal * terminal * tnv list * terminal * semC * terminal * t * terminal * env_tag * terminal (* Values *)
+nec =  (* Numeric expression constraints *)
+   Lessthan of ne * terminal * nec
+ | Eq of ne * terminal * nec
+ | Lteq of ne * terminal * nec
+ | Base of ne
+
+
+type 
+td =  (* Type definitions *)
+   Td of x_l * tnvar list * name_opt * terminal * texp
+ | Td_opaque of x_l * tnvar list * name_opt (* Definitions of opaque types *)
 
 
 type 
@@ -409,14 +424,8 @@ val_spec =  (* Value type specifications *)
 
 
 type 
-rule =  (* Location-annotated inductively defined relation clauses *)
-   Rule_l of rule_aux * l
-
-
-type 
-td =  (* Type definitions *)
-   Td of x_l * tnvar list * name_opt * terminal * texp
- | Td_opaque of x_l * tnvar list * name_opt (* Definitions of opaque types *)
+indreln_name =  (* Location-annotated name for inductively defined relations *)
+   Name_l of indreln_name_aux * l
 
 
 type 
@@ -427,11 +436,8 @@ val_def =  (* Value definitions *)
 
 
 type 
-nec =  (* Numeric expression constraints *)
-   Lessthan of ne * terminal * nec
- | Eq of ne * terminal * nec
- | Lteq of ne * terminal * nec
- | Base of ne
+rule =  (* Location-annotated inductively defined relation clauses *)
+   Rule_l of rule_aux * l
 
 
 type 
@@ -443,7 +449,7 @@ def_aux =  (* Top-level definitions *)
  | Module of terminal * x_l * terminal * terminal * defs * terminal (* Module definitions *)
  | Rename of terminal * x_l * terminal * id (* Module renamings *)
  | Open of terminal * id (* Opening modules *)
- | Indreln of terminal * targets option * (rule * terminal) list (* Inductively defined relations *)
+ | Indreln of terminal * targets option * (indreln_name * terminal) list * (rule * terminal) list (* Inductively defined relations *)
  | Spec_def of val_spec (* Top-level type constraints *)
  | Class of terminal * terminal * x_l * tnvar * terminal * ((terminal * x_l * terminal * typ * l)) list * terminal (* Typeclass definitions *)
  | Instance of terminal * instschm * ((val_def * l)) list * terminal (* Typeclass instantiations *)
@@ -456,8 +462,31 @@ and defs =  (* Definition sequences *)
 
 
 type 
-tc_def =  (* Type and class constructor definitions *)
-   Tc_def of tnv list * t option (* Type constructors *)
+name_ts =  (* Names with optional types for inductively defined relation clauses *)
+   NameTs of (name_t) list
+
+
+type 
+env_tag =  (* Tags for the (non-constructor) value descriptions *)
+   Method of terminal (* Bound to a method *)
+ | Spec of terminal (* Specified with val *)
+ | Def of terminal (* Defined with let or indreln *)
+
+
+type 
+semC =  (* Typeclass constraint lists *)
+   SemC_concrete of ((terminal * p * tnv * terminal)) list
+
+
+type 
+v_desc =  (* Value descriptions *)
+   V_constr of terminal * terminal * tnv list * terminal * t list * terminal * p * terminal * terminal * x * terminal * Set.Make(String).t * terminal * terminal (* Constructors *)
+ | V_val of terminal * terminal * tnv list * terminal * semC * terminal * t * terminal * env_tag * terminal (* Values *)
+
+
+type 
+f_desc = 
+   F_field of terminal * terminal * tnv list * terminal * p * terminal * t * terminal * terminal * x * terminal * Set.Make(String).t * terminal * terminal (* Fields *)
 
 
 type 
@@ -466,8 +495,8 @@ inst =  (* A typeclass instance, t must not contain nested types *)
 
 
 type 
-s_N =  (* Nexp constraint lists *)
-   Concrete of terminal * (nec * terminal) list * terminal
+tc_def =  (* Type and class constructor definitions *)
+   Tc_def of tnv list * t option (* Type constructors *)
 
 (** definitions *)
 (** definitions *)
