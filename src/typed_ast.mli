@@ -270,7 +270,10 @@ and v_env = val_descr Nfmap.t
 
 and f_env = field_descr Nfmap.t
 and m_env = mod_descr Nfmap.t
-and r_info = { rel_witness : (Name.t * constr_descr Nfmap.t) option }
+and r_info = { 
+  rel_witness : (Path.t * constr_descr Nfmap.t) option;
+  rel_check : Path.t option;
+}
 and r_env = r_info Nfmap.t
 and env = { m_env : m_env; p_env : p_env; f_env : f_env; v_env : v_env; 
             r_env : r_env }

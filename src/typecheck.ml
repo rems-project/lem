@@ -2195,9 +2195,13 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let (cls,e_v,Tconstraints(tnvs,constraints,lconstraints)) = 
             Checker.check_indrels target_set l clauses 
           in 
-            (add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) 
-               constraints lconstraints
-               (target_opt_to_env_tag target_set) None e_v, 
+          let module Conv = Convert_relations.Converter(struct let check = None let avoid = None end) in
+          let newctxt = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs)
+            constraints lconstraints
+            (target_opt_to_env_tag target_set) None e_v in
+          let newctxt = Conv.gen_witness_type_info mod_path newctxt cls in
+          let newctxt = Conv.gen_witness_check_info mod_path newctxt cls in
+            (newctxt,
              (Indreln(sk,target_opt_checked,cls)))
       | Ast.Spec_def(val_spec) ->
           let (ctxt,vs) = check_val_spec l mod_path ctxt val_spec in
