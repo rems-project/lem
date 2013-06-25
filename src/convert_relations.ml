@@ -104,8 +104,15 @@ let rec split_and (e : exp) = match C.exp_to_term e with
   Group rules by output relation
 *)
 
-(* TODO : Un-Option the name *)
-let get_rels (l: Typed_ast.rule lskips_seplist) =
+type ruledescr = {
+  rule_name : Name.t;
+  rule_vars : (Name.t * Types.t) list;
+  rule_conds : exp list;
+  rule_args : exp list
+} 
+type reldescr = ruledescr list Nfmap.t
+
+let get_rels (l: Typed_ast.rule lskips_seplist) : reldescr =
   List.fold_left (fun s (Rule(rulename,_,_,vars,_,cond,_,rel,args)) ->
     let rulename = Name.strip_lskip rulename in
     let relname = Name.strip_lskip rel.term in
@@ -116,24 +123,17 @@ let get_rels (l: Typed_ast.rule lskips_seplist) =
       | QName(n) -> n
       | Name_typ(_,n,_,_,_) -> n
     ) vars in
-    let ruledescr = (rulename, List.map (fun v -> (Name.strip_lskip v.term, v.typ) ) vars, split_and rulecond, args) in
+    let ruledescr = {
+      rule_name = rulename;
+      rule_vars = List.map (fun v -> (Name.strip_lskip v.term, v.typ) ) vars;
+      rule_conds = split_and rulecond;
+      rule_args = args
+    } in
     match Nmap.apply s relname with
       | None -> Nmap.insert s (relname, [ruledescr])
       | Some rules -> Nmap.insert s (relname, ruledescr::rules)
   ) Nfmap.empty (Seplist.to_list l)
-(*
-let get_rels (l : (Name.lskips_t option * lskips * name_lskips_annot list * lskips * exp option * lskips * name_lskips_annot * exp list) lskips_seplist ) = 
-  List.fold_left (fun s (rulename,_,vars,_,cond,_,rel,args) ->
-    let relname = Name.strip_lskip rel.term in
-    let rulecond = match cond with
-      | Some x -> x
-      | None -> C.mk_lit Ast.Unknown ({term = L_true None; locn = Ast.Unknown; typ =  {t = Tapp([], Path.boolpath)}; rest = ()}) None in
-    let ruledescr = (rulename, List.map (fun v -> (Name.strip_lskip v.term, v.typ) ) vars, split_and rulecond, args) in
-    match Nmap.apply s relname with
-      | None -> Nmap.insert s (relname, [ruledescr])
-      | Some rules -> Nmap.insert s (relname, ruledescr::rules)
-  ) Nmap.empty (Seplist.to_list l)
-*)
+
 type io = I | O
 type ep = IExp of exp | OPat of pat
 type mode = io list
@@ -273,17 +273,15 @@ let convert_output gen_rn exps mask =
 
 let report_no_translation rule notok eqconds sideconds =
   let (%) f x = Ulib.Text.to_string (f x) in
-  let (_,_,conds,args) = rule in
-  Reporting.print_debug_exp "No translation for relation with args" args;
-  Reporting.print_debug_exp "Conditions are" conds;
+  Reporting.print_debug_exp "No translation for relation with args" rule.rule_args;
+  Reporting.print_debug_exp "Conditions are" rule.rule_conds;
   no_translation None
 
-let transform_rule mode_env _ty mode rule = 
-  let (rulename, vars, conds, args) = rule in
-  let vars = Nfmap.domain (Nfmap.from_list vars) in
+let transform_rule mode_env _ty mode (rule : ruledescr) = 
+  let vars = Nfmap.domain (Nfmap.from_list rule.rule_vars) in
   let gen_rn = make_renamer vars (Nmap.domain mode_env) in
   let (patterns, initknown, initeqs) = 
-    convert_output gen_rn args (List.map (fun x -> x = O) mode) in
+    convert_output gen_rn rule.rule_args (List.map (fun x -> x = O) mode) in
   (* TODO : we should substitute *)
   let relknowns = 
     Nfmap.fold (fun set rel (_ty,modes) ->
@@ -293,7 +291,7 @@ let transform_rule mode_env _ty mode rule =
   let returns = map_filter (function
     | (I, _) -> None
     | (O, r) -> Some(r)
-  ) (List.map2 (fun x y -> (x,y)) mode args) in
+  ) (List.map2 (fun x y -> (x,y)) mode rule.rule_args) in
   let rec build_code known indconds sideconds eqconds =
     let exp_known e = Nfmap.fold (fun b v _ -> b && Nset.mem v known) 
       true (C.exp_to_free e) in
@@ -339,7 +337,7 @@ let transform_rule mode_env _ty mode rule =
             | Some(_ty,modes) -> ((n,modes,args)::left, right)
             | _ -> (left, e::right)
         end
-        | _ -> (left, e::right)) ([],[]) conds in
+        | _ -> (left, e::right)) ([],[]) rule.rule_conds in
   (patterns, build_code initknown indconds sideconds initeqs)
   
 
@@ -666,9 +664,9 @@ open Compile_list_code
 
 
 
-let type_rules rels = 
+let type_rules (rels : reldescr) = 
   Nfmap.map (fun _ -> function
-    | (_, _, _, args)::_ -> List.map exp_to_typ args
+    | rule::_ -> List.map exp_to_typ rule.rule_args
     | [] -> failwith "Impossible") rels
   
 let transform_rels env rules def = 
@@ -847,13 +845,13 @@ let gen_witness_type_aux env get_typepath_from_rel rules =
   in
   let tds = Nfmap.map (fun relname rules ->
     let typename = gen_typename_from_rel relname in
-    let constructors = List.map (fun (rulename,vars,conds,_args)  ->
-      let consname = gen_consname rulename in
-      let vars_ty = List.map (fun x -> (snd x,t_to_src_t (snd x))) vars in
+    let constructors = List.map (fun rule  ->
+      let consname = gen_consname rule.rule_name in
+      let vars_ty = List.map (fun x -> (snd x,t_to_src_t (snd x))) rule.rule_vars in
       let conds_ty = map_filter 
-        (fun cond -> is_relation (fst (split_app cond))) conds in
+        (fun cond -> is_relation (fst (split_app cond))) rule.rule_conds in
       let argstypes = vars_ty @ conds_ty in
-      (rulename, consname, argstypes)
+      (rule.rule_name, consname, argstypes)
     ) rules in
     (typename, constructors)
   ) rels in
@@ -908,8 +906,7 @@ let ctxt_mod update ctxt =
 let gen_witness_check_info mod_path ctxt rules =
   let rels = get_rels rules in
   let defs = Nfmap.map (fun relname rules ->
-    let (_,_,_,args) = List.hd rules in
-    let ret = List.map exp_to_typ args in
+    let ret = List.map exp_to_typ (List.hd rules).rule_args in
     let check_name = gen_check_name relname in
     let check_path = Path.mk_path mod_path check_name in
     let witness_type = 
@@ -921,7 +918,7 @@ let gen_witness_check_info mod_path ctxt rules =
         Path.pp check_path
     in
     (* TODO : generate option type *)
-    let check_type = {t=Tfn(witness_type, mk_option {t=Ttup(List.map exp_to_typ args)})} in
+    let check_type = {t=Tfn(witness_type, mk_option {t=Ttup(ret)})} in
     (check_name, check_path, check_type)
   ) rels in
   (* Register the functions *)
@@ -981,9 +978,9 @@ let gen_witness_check_def mn env rules =
   ) rels in
   let defs = Nfmap.map (fun relname (def_name, (witness_path, witness_constrs), check_path, rules) ->
     let witness_ty = {t=Tapp([],witness_path)} in
-    let pats = List.map (fun (rulename, vars, conds, args) ->
+    let pats = List.map (fun rule ->
       (* Bad indices from get_witness_type_info, sorry *)
-      let Some(constr) = Nfmap.apply witness_constrs rulename in
+      let Some(constr) = Nfmap.apply witness_constrs rule.rule_name in
       (* THIS IS WRONG *)
      (* (* If a var and a localdef share a name, we need to rename the var *)
       let defvars = nset_of_list (Nfmap.fold (fun acc _ (v,_,_) -> v::acc) [] localdefs) in
@@ -1036,14 +1033,14 @@ let gen_witness_check_def mn env rules =
             end
           | _ -> Right e
       in    
-      let (relconds,auxconds) = map_partition is_rel_or_aux conds in
+      let (relconds,auxconds) = map_partition is_rel_or_aux rule.rule_conds in
       let relconds = List.map (fun (args,witness_path,check_exp) ->
         let witness_ty = {t=Tapp([],witness_path)} in
         let witness_name = gen_name (Ulib.Text.of_latin1 "witness") in
         (args, witness_ty, check_exp, witness_name)
       ) relconds in
       let pvars = List.map 
-        (fun (var,typ) -> mk_pvar Ast.Unknown (Name.add_lskip var) typ) vars in
+        (fun (var,typ) -> mk_pvar Ast.Unknown (Name.add_lskip var) typ) rule.rule_vars in
       let pconds = List.map
         (fun (_,witness_ty,_,var) -> 
           mk_pvar Ast.Unknown (Name.add_lskip var) witness_ty
@@ -1054,7 +1051,7 @@ let gen_witness_check_def mn env rules =
                         instantiation = [] } in
       let pattern = mk_pconstr Ast.Unknown constr_id (pvars @ pconds) None in
       let ret = mk_some env 
-        (mk_tup Ast.Unknown None (sep_no_skips args) None None) in
+        (mk_tup Ast.Unknown None (sep_no_skips rule.rule_args) None None) in
       let genconds_exps = List.map (fun (args,witness_ty,check_fun,witness) ->
         let witness_var = mk_var Ast.Unknown (Name.add_lskip witness) witness_ty in
         let rhs = mk_some env (mk_tup Ast.Unknown None (sep_no_skips args) None None) in
