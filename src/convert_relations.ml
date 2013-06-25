@@ -107,7 +107,7 @@ let rec split_and (e : exp) = match C.exp_to_term e with
 (* TODO : Un-Option the name *)
 let get_rels (l: Typed_ast.rule lskips_seplist) =
   List.fold_left (fun s (Rule(rulename,_,_,vars,_,cond,_,rel,args)) ->
-    let rulename = Some(rulename) in
+    let rulename = Name.strip_lskip rulename in
     let relname = Name.strip_lskip rel.term in
     let rulecond = match cond with
       | Some x -> x
@@ -848,10 +848,6 @@ let gen_witness_type_aux env get_typepath_from_rel rules =
   let tds = Nfmap.map (fun relname rules ->
     let typename = gen_typename_from_rel relname in
     let constructors = List.map (fun (rulename,vars,conds,_args)  ->
-      let rulename = match rulename with
-        | None -> failwith "Rule without associated name"
-        | Some n -> Name.strip_lskip n
-      in
       let consname = gen_consname rulename in
       let vars_ty = List.map (fun x -> (snd x,t_to_src_t (snd x))) vars in
       let conds_ty = map_filter 
@@ -986,9 +982,8 @@ let gen_witness_check_def mn env rules =
   let defs = Nfmap.map (fun relname (def_name, (witness_path, witness_constrs), check_path, rules) ->
     let witness_ty = {t=Tapp([],witness_path)} in
     let pats = List.map (fun (rulename, vars, conds, args) ->
-      let Some(rulename) = rulename in
       (* Bad indices from get_witness_type_info, sorry *)
-      let Some(constr) = Nfmap.apply witness_constrs (Name.strip_lskip rulename) in
+      let Some(constr) = Nfmap.apply witness_constrs rulename in
       (* THIS IS WRONG *)
      (* (* If a var and a localdef share a name, we need to rename the var *)
       let defvars = nset_of_list (Nfmap.fold (fun acc _ (v,_,_) -> v::acc) [] localdefs) in
