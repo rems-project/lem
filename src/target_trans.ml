@@ -414,6 +414,28 @@ struct
             mk_string_path ["Coq"; "Hol"; "Integer"] "int",
             mk_string_path [] "int");
         ]
+
+      | Some(Target_ocaml) -> [
+           (Typed_ast.Nk_typeconstr, 
+            mk_string_path ["Hol"; "Integer"] "int",
+            mk_string_path ["Num"] "num");
+           (Typed_ast.Nk_typeconstr, 
+            mk_string_path ["Coq"; "Hol"; "Integer"] "int",
+            mk_string_path ["Num"] "num");
+           (Typed_ast.Nk_typeconstr, 
+            mk_string_path ["Int"] "int",
+            mk_string_path ["Num"] "num");
+           (Typed_ast.Nk_typeconstr, 
+            mk_string_path ["Isabelle"; "Pervasives"] "int",
+            mk_string_path ["Num"] "num");
+           (Typed_ast.Nk_typeconstr, 
+            mk_string_path ["Ocaml"; "Pervasives"] "int",
+            mk_string_path ["Num"] "num");
+           (Typed_ast.Nk_typeconstr, 
+            mk_string_path ["Pervasives"] "int",
+            mk_string_path ["Num"] "num");
+      ]
+
       | _ -> []
 
   let get_transformation targ consts =

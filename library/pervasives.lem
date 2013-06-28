@@ -245,3 +245,9 @@ let inline {isabelle} string_of_num = Isabelle.nat_to_string
 
 val nat_list_to_string : list num -> string
 let inline {isabelle} nat_list_to_string = Isabelle.nat_list_to_string
+
+
+type ordering =
+  | LT
+  | EQ
+  | GT
