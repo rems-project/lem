@@ -223,7 +223,7 @@ struct
     List.fold_left
       (fun init_env t -> proc (Some(Target_ocaml)) (full_filename Target_ocaml t) init_env)
       (td,ocaml_perv)
-      ["list"; "pset"; "pmap"; "nat_num" ; "vector" ; "bit"; "num"]
+      ["list"; "pset"; "pmap"; "nat_num" ; "vector" ; "bit"]
   
   
   (* Isabelle Env *)
