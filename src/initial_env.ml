@@ -68,7 +68,7 @@ let tds =
 let initial_d : Types.type_defs = 
   List.fold_right (fun x y -> Types.Pfmap.insert y x) tds Types.Pfmap.empty
 
-let initial_d = Types.type_defs_new_ident_type Ast.Unknown initial_d Path.numpath Target.Target_isa (Ident.mk_ident_strings [] "nat")
+let initial_d = Typed_ast_syntax.type_defs_new_ident_type Ast.Unknown initial_d Path.numpath Target.Target_isa (Ident.mk_ident_strings [] "nat")
 
 let initial_local_env : Typed_ast.local_env =
   { empty_local_env with
@@ -259,8 +259,8 @@ struct
        fun env t -> proc None (Filename.concat path (t ^ ".lem")) env
      ) perv ["list"; "set"; "pmap"; "int" ; "vector" ; "bit"];;
 
-  let env = set_target_const_rep env ["Pervasives"] "SUC" Target_isa (CR_new_ident (Ident.mk_ident_strings [] "Suc"));;
-  let env = set_target_const_rep env ["Pervasives"] "SUC" Target_hol (CR_new_ident (Ident.mk_ident_strings [] "SUC"));;
+  let env = set_target_const_rep env ["Pervasives"] "SUC" Target_isa (CR_new_ident (Ast.Unknown, false, Ident.mk_ident_strings [] "Suc"));;
+  let env = set_target_const_rep env ["Pervasives"] "SUC" Target_hol (CR_new_ident (Ast.Unknown, false, Ident.mk_ident_strings [] "SUC"));;
 
   let init =
     (env,

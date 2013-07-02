@@ -178,15 +178,20 @@ and pat_aux =
         of the P_typ and P_var cases above, but useful as a macro target. *)
 
 and const_target_rep =
-  | CR_rename of Name.t               
-    (** rename the constant to the given name, but keep Module structure *)
-
-  | CR_new_ident of Ident.t               
-    (** rename the constant to the given identifier, breaking the module structure *)
-
-  | CR_inline of ((Name.t,unit) annot list * exp)
-    (** [CR_inline (vars, e)] means inlining the costant with the expression [e] and
+  | CR_rename of Ast.l * bool * Name.t
+    (** rename the constant to the given name, but keep Module structure. The flag indicates whether further renaming is allowed. *)
+  | CR_new_ident of Ast.l * bool * Ident.t               
+    (** rename the constant to the given identifier, breaking the module structure. The flag indicates whether further renaming is allowed. *)
+  | CR_inline of Ast.l * name_lskips_annot list * exp
+    (** [CR_inline (loc, vars, e)] means inlining the constant with the expression [e] and
         replacing the variable [vars] inside [e] with the arguments of the constant. *)
+  | CR_special of Ast.l * bool * bool * Name.t * (Output.t list -> Output.t list) * Name.t list
+    (** [CR_special (loc, allow_rename, name_in_output, name, to_out, vars)] describes special formating of this 
+        constant. The constant is renamed to [name]. This name (including path prefix) and all arguments are transformed to
+        output. The function [to_out] is then given the formatted name and the appropriate number of these
+        outputs. The expected arguments are described by [vars]. If there are more arguments than variables,
+        they are appended. If there are less, for expressions local functions are introduced. For patterns,
+        an exception is thrown.  The flag [name_in_output] states, whether [to_out] uses the formatted [name].*)
 
 (** The description of a top-level definition *)
 and const_descr = 
@@ -277,13 +282,19 @@ and quant_binding =
   | Qb_restr of bool * lskips * pat * lskips * exp * lskips
     (** true for list quantifiers, false for set quantifiers *)
 
-and funcl_aux = name_lskips_annot * pat list * (lskips * src_t) option * lskips * exp
+and funcl_aux = name_lskips_annot * const_descr_ref * pat list * (lskips * src_t) option * lskips * exp
 
 and letbind = letbind_aux * Ast.l
 
 and letbind_aux =
   | Let_val of pat * (lskips * src_t) option * lskips * exp
-  | Let_fun of funcl_aux
+    (** [Let_val (p, ty_opt, sk, e)] describes binding the pattern [p] to exp [e] in a local
+        let statement, i.e. a statement like [let p = e in ...] *)
+  | Let_fun of name_lskips_annot * pat list * (lskips * src_t) option * lskips * exp
+    (** [Let_val (n, ps, ty_opt, sk, e)] describes defining a local function [f] with arguments [ps] locally.
+        It represents a statement like [let n ps = e in ...]. Notice that the arguments of [Let_fun] are
+        similar to [funcl_aux]. However, funcl_aux has a constant-references, as it is used in top-level definitions,
+        whereas [Let_fun] is used only for local functions. *)
   
 type tyvar = lskips * Ulib.Text.t * Ast.l
 type nvar = lskips * Ulib.Text.t * Ast.l
@@ -292,11 +303,18 @@ type tnvar =
   | Tn_A of tyvar
   | Tn_N of nvar
 
+(** Type exepressions for defining types *)
 type texp = 
-  | Te_opaque
-  | Te_abbrev of lskips * src_t
-  | Te_record of lskips * lskips * (name_l * lskips * src_t) lskips_seplist * lskips
-  | Te_variant of lskips * (name_l * lskips * src_t lskips_seplist) lskips_seplist
+  | Te_opaque (** introduce just a new type name without definition *)
+  | Te_abbrev of lskips * src_t (** a type abbreviation with the type Te_abbrev *)
+  | Te_record of lskips * lskips * (name_l * const_descr_ref * lskips * src_t) lskips_seplist * lskips
+    (** [Te_record (_, _, field_list, _)] defines a record type. The fields and their types
+         are stored in [field_list]. The entries of [field_list] consist of the name of the field,
+         the reference to it's constant description and the type of the field as well as white-spaces.*)
+  | Te_variant of lskips * (name_l * const_descr_ref * lskips * src_t lskips_seplist) lskips_seplist
+    (** [Te_variant (_, _, constr_list, _)] defines a variant type. The constructors and their types
+         are stored in [constr_list]. The entries of [constr_list] consist of the name of the constructor,
+         the reference to it's constant description and the type of it's arguments as well as white-spaces.*)
 
 type range = 
   | GtEq of Ast.l * src_nexp * lskips * src_nexp
@@ -312,9 +330,9 @@ type typschm = constraint_prefix option * src_t
 
 type instschm = constraint_prefix option * lskips * Ident.t * src_t * lskips
 
-type val_spec = lskips * name_l * lskips * typschm
+type val_spec = lskips * name_l * const_descr_ref * lskips * typschm
 
-type class_val_spec = lskips * name_l * lskips * src_t
+type class_val_spec = lskips * name_l * const_descr_ref * lskips * src_t
 
 (** targets_opt is represents a set of targets. There are 3 types of values   
 {ul
@@ -328,12 +346,17 @@ type targets_opt = (bool * lskips * Ast.target lskips_seplist * lskips) option
 
 (** [in_targets_opt t_opt targets_opt] checks whether the target `t_opt` is in the set of targets represented by
     `targets_opt`. If `t_opt` is `None`, this represents the identity backend and `true` is returned. *)
-val in_targets_opt : Ast.target option -> targets_opt -> bool
+val in_targets_opt : Target.target option -> targets_opt -> bool
+
+(** [target_opt_to_list targets_opt] returns a distinct list of all the targets in the option. *)
+val targets_opt_to_list : targets_opt -> Target.target list
 
 type val_def = 
-  | Let_def of lskips * targets_opt * letbind
-  | Rec_def of lskips * lskips * targets_opt * funcl_aux lskips_seplist
-  | Let_inline of lskips * lskips * targets_opt * name_lskips_annot * name_lskips_annot list * lskips * exp
+  | Let_def of lskips * targets_opt * (pat * (Name.t * const_descr_ref) list * (lskips * src_t) option * lskips * exp)
+  | Fun_def of lskips * lskips option * targets_opt * funcl_aux lskips_seplist
+    (** [Fun_def (sk1, sk2_opt, topt, clauses)] encodes a function definition, which might consist of multiple clauses. If
+        [sk2_opt] is [None], it is a non-recursive definition, otherwise, a recursive one. *)
+  | Let_inline of lskips * lskips * targets_opt * name_lskips_annot * const_descr_ref * name_lskips_annot list * lskips * exp
 
 (** Semantic information about an instance that is used for the dictionary
     passing transformations *)
@@ -358,22 +381,28 @@ type name_sect = Name_restrict of (lskips * name_l * lskips * lskips * string * 
 type def = (def_aux * lskips option) * Ast.l
 
 and def_aux =
-  | Type_def of lskips * (name_l * tnvar list * texp * name_sect option) lskips_seplist
+  | Type_def of lskips * (name_l * tnvar list * Path.t * texp * name_sect option) lskips_seplist
+    (** [Type_def (sk, sl)] defines one or more types. The entries of [sl] are the type definitions.
+        They contain a name of the type, the full path of the defined type, the free type variables, the main type definiton and 
+        restrictions on variable names of this type *)
   | Val_def of val_def * Types.TNset.t * (Path.t * Types.tnvar) list 
     (** The TNset contains the type length variables that the definition is parameterized
         over, and the list contains the class constraints on those variables *)
   | Lemma of lskips * Ast.lemma_typ * targets_opt * (name_l * lskips) option * lskips * exp * lskips
   | Ident_rename of lskips * targets_opt * Path.t * Ident.t * lskips * name_l
-  | Module of lskips * name_l * lskips * lskips * def list * lskips
-  | Rename of lskips * name_l * lskips * mod_descr id
     (** Renaming for already defined constants and types, e.g., if you want to 
         control how a name that isn't allowed in a particular back-end gets
         changed *)
+  | Module of lskips * name_l * Path.t * lskips * lskips * def list * lskips
+  | Rename of lskips * name_l * Path.t * lskips * mod_descr id
+    (** Renaming an already defined module *)
   | Open of lskips * mod_descr id
   | Indreln of lskips * targets_opt * 
-               (Name.lskips_t option * lskips * name_lskips_annot list * lskips * exp option * lskips * name_lskips_annot * exp list) lskips_seplist
+               (Name.lskips_t option * lskips * name_lskips_annot list * lskips * exp option * lskips * name_lskips_annot * const_descr_ref * exp list) lskips_seplist
+    (** Inductive relations. The seplist contains clauses of the form [(clause_name_opt, sk1, bound_vars, sk2, left_hand_side_opt, sk3, rel_name, c, args)].
+        This form encodes a clause [clause_name: forall bound_vars. (left_hand_side ==> rel_name args)]. [c] is the reference of the relation [rel_name]. *)
   | Val_spec of val_spec
-  | Class of lskips * lskips * name_l * tnvar * lskips * class_val_spec list * lskips
+  | Class of lskips * lskips * name_l * tnvar * Path.t * lskips * class_val_spec list * lskips
   | Instance of lskips * instschm * val_def list * lskips * inst_sem_info
 
   | Comment of def
@@ -389,10 +418,12 @@ val empty_env : env
     lookup fails, a fatal error is thrown using location [l] for the error message. *)
 val c_env_lookup : Ast.l -> c_env -> const_descr_ref -> const_descr
 
-(** [c_env_store c_env c_d] stores the description [c_d] 
+(** [c_env_store_raw c_env c_d] stores the description [c_d] 
     environment [c_env]. Thereby, a new unique reference is generated and returned
-    along with the modified environment. *)
-val c_env_store : c_env -> const_descr -> (c_env * const_descr_ref)
+    along with the modified environment. It stores the real [c_d] passed. The function
+    [c_env_store] preprocesses [c_d] to add common features like for example 
+    capitalizing constructors for the Ocaml backend. *)
+val c_env_store_raw : c_env -> const_descr -> (c_env * const_descr_ref)
 
 (** [c_env_update c_env c_ref c_d] updates the description of constant [c_ref] with 
     [c_d] in environment [c_env]. *)
@@ -406,10 +437,6 @@ val env_c_env_update : env -> const_descr_ref -> const_descr -> env
     [new_local] and adds a module with name [mod_name] and the content of the old local environment
     to the module map of the new environment. *)
 val env_m_env_move : env -> Name.t -> local_env -> env
-
-(** [c_env_save c_env c_ref_opt c_d] is a combination of [c_env_update] and [c_env_store].
-    If [c_ref_opt] is given, [c_env_update] is called, otherwise [c_env_store]. *)
-val c_env_save : c_env -> const_descr_ref option -> const_descr -> c_env * const_descr_ref
 
 val exp_to_locn : exp -> Ast.l
 val exp_to_typ : exp -> Types.t
@@ -530,24 +557,14 @@ module Exps_in_context(C : Exp_context) : sig
 end
 
 val local_env_union : local_env -> local_env -> local_env
-val get_new_constants_types : Target.target option -> checked_module list -> Ast.l Nfmap.t * Ast.l Nfmap.t
-
-exception Renaming_error of Ast.l * string
-val get_renames_of_defs : Target.target option -> (Path.t * ( Ast.l * Path.t)) list -> def list -> (Path.t * ( Ast.l * Path.t)) list
 
 type name_kind =
-  | Nk_typeconstr
-  | Nk_const
-  | Nk_constr
-  | Nk_field
-  | Nk_module
+  | Nk_typeconstr of Path.t
+  | Nk_const of const_descr_ref
+  | Nk_constr of const_descr_ref
+  | Nk_field of const_descr_ref
+  | Nk_module of Path.t
   | Nk_class
-
-(** [env_apply env n] looks up the name [n] in the environment [env], regardless of whether [n] is a
-   name of a type, field, constructor or constant and returns the
-   type of this name, it's full path and the location of the original definition *)
-val env_apply : env -> Name.t -> (name_kind * Path.t * Ast.l) option
-
 
 (** Mutually recursive function definitions may contain multiple clauses for the
     same function. These can however appear interleaved with clauses for other functions. 

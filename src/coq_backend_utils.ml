@@ -69,14 +69,7 @@ let rec nub =
 
 let intercalate = Util.intercalate;;
 
-let mapi f xs =
-	let rec go counter f =
-		function
-			| []    -> []
-			| x::xs -> f counter x :: go (counter + 1) f xs
-	in
-		go 0 f xs
-;;
+let mapi f xs = Util.list_mapi f xs;;
 
 let from_string x = meta x
 ;;

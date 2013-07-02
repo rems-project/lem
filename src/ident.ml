@@ -127,6 +127,8 @@ let replace_first_lskip ((sk,ns,n):t) s = (s,ns,n)
 let get_first_lskip ((sk,ns,n):t) = sk                
 let to_name_list ((sk,ns,n):t) = (ns, n)
 
+let has_empty_path_prefix ((sk,ns,n):t) = (List.length ns = 0)
+
 let strip_path name ((sk,ns,n) :t) : t =
   match ns with
     | [] -> 
@@ -136,3 +138,6 @@ let strip_path name ((sk,ns,n) :t) : t =
           (sk,t, n)
         else
           (sk,ns,n)
+
+
+let rename (sk,ns,n) n' = (sk,ns,n')

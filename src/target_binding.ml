@@ -242,15 +242,16 @@ and fix_letbind target (lb,l) = match lb with
 
 let rec fix_binding target defs =
   let fix_val_def = function
-    | Let_def(s1,targets,lb) ->
-        Let_def(s1, targets,fix_letbind target lb)
-    | Rec_def(s1,s2,targets,clauses) ->
-        Rec_def(s1,
-                s2,
+    | Let_def(s1,targets,(p,name_map,t,s2,e)) ->
+        Let_def(s1, targets,
+        (fix_pat target p, name_map, t, s2, (fix_exp target e)))
+    | Fun_def(s1,s2_opt,targets,clauses) ->
+        Fun_def(s1,
+                s2_opt,
                 targets,
                 Seplist.map
-                  (fun (nl,ps,topt,s3,e) -> 
-                     (nl, List.map (fun p -> fix_pat target p) ps,
+                  (fun (nl,c,ps,topt,s3,e) -> 
+                     (nl, c, List.map (fun p -> fix_pat target p) ps,
                       topt,s3,fix_exp target e))
                   clauses)
     | let_inline -> let_inline
@@ -262,12 +263,12 @@ let rec fix_binding target defs =
         Indreln(s1,
                 targets,
                 Seplist.map
-                  (fun (name_opt,s1,ns,s2,e_opt,s3,n,es) ->
-                     (name_opt,s1,ns,s2,Util.option_map (fix_exp target) e_opt, s3, n, 
+                  (fun (name_opt,s1,ns,s2,e_opt,s3,n,n_ref,es) ->
+                     (name_opt,s1,ns,s2,Util.option_map (fix_exp target) e_opt, s3, n, n_ref, 
                       List.map (fix_exp target) es))
                   c)
-    | Module(sk1, nl, sk2, sk3, ds, sk4) ->
-        Module(sk1, nl, sk2, sk3, List.map (fun ((d,s),l) -> ((fix_def d,s),l)) ds, sk4)
+    | Module(sk1, nl, mod_path,sk2, sk3, ds, sk4) ->
+        Module(sk1, nl, mod_path, sk2, sk3, List.map (fun ((d,s),l) -> ((fix_def d,s),l)) ds, sk4)
     | Instance(sk1,is,vdefs,sk2,sem_info) ->
         Instance(sk1, is, List.map fix_val_def vdefs, sk2, sem_info)
     | def -> def

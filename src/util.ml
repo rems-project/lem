@@ -200,12 +200,12 @@ let split_after n l =
   in aux [] n l
 
 let list_mapi (f : int -> 'a -> 'b)  (l : 'a list) : 'b list =
-  let rec aux f i l =
+  let rec aux i l =
      match l with
          [] -> []
-       | (x :: xs) -> ((f i x) :: (aux f (i + 1) xs))
+       | (x :: xs) -> ((f i x) :: (aux (i + 1) xs))
   in
-    aux f 0 l
+    aux 0 l
 
 let rec intercalate sep =
   function

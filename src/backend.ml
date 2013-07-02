@@ -243,8 +243,11 @@ module type Target = sig
   val def_sep : t
   val name_start : t
   val name_end : t
-  val rec_def_header : bool -> lskips -> lskips -> Name.t -> t
-  val rec_def_footer : bool -> Name.t -> t
+  val rec_def_header : bool -> bool -> lskips -> lskips -> Name.t -> t
+    (** [rec_def_header is_rec is_real_rec sk1 sk2 n] formats [let sk1 rec? sk2 n]. 
+        The flag [is_rec] denotes whether the keyword [rec] occours in the input, while
+        [is_real_rec] denotes whether the definition is really recursive. *)
+  val rec_def_footer : bool -> bool -> Name.t -> t
   val funcase_start : t
   val funcase_end : t
   val reln_start : t
@@ -449,8 +452,8 @@ module Identity : Target = struct
   let def_sep = kwd "and"
   let name_start = kwd "["
   let name_end = kwd "]"
-  let rec_def_header _ sk1 sk2 _ =  ws sk1 ^ kwd "let" ^ ws sk2 ^ kwd "rec"
-  let rec_def_footer _ n = emp
+  let rec_def_header rr rrr sk1 sk2 _ =  ws sk1 ^ kwd "let" ^ ws sk2 ^ (if (rr || rrr) then kwd "rec" else emp)
+  let rec_def_footer _ _ n = emp
   let funcase_start = emp
   let funcase_end = emp
   let reln_start = kwd "indreln"
@@ -641,8 +644,8 @@ module Tex : Target = struct
   let name_start = kwd "["
   let name_end = kwd "]"
   let def_sep = kwd "|"
-  let rec_def_header _ sk1 sk2 _ = ws sk1 ^ tkwdm "let" ^ ws sk2 ^ tkwdm "rec"
-  let rec_def_footer _ n = emp
+  let rec_def_header _ rrr sk1 sk2 _ = ws sk1 ^ tkwdm "let" ^ ws sk2 ^ (if rrr then tkwdm "rec" else emp)
+  let rec_def_footer _ _ n = emp
   let funcase_start = emp
   let funcase_end = emp
   let reln_start = tkwdl "indreln"
@@ -838,8 +841,8 @@ module Isa : Target = struct
   let def_end = emp
 
   let def_sep = kwd "|"
-  let rec_def_header rr sk1 sk2 _ = (if rr then kwd "function (sequential)" else kwd "fun") ^ ws sk1 ^ ws sk2
-  let rec_def_footer rr n = if rr then kwd "by pat_completeness auto" else emp
+  let rec_def_header _ rr sk1 sk2 _ = (if rr then kwd "function (sequential)" else kwd "fun") ^ ws sk1 ^ ws sk2
+  let rec_def_footer _ rr n = if rr then kwd "by pat_completeness auto" else emp
   
   let funcase_start = emp
   let funcase_end = emp
@@ -1027,15 +1030,15 @@ module Hol : Target = struct
   let def_sep = kwd "/\\"
   let name_start = kwd "(*"
   let name_end = kwd "*)"
-  let rec_def_header rr sk1 sk2 n = 
+  let rec_def_header _ rrr sk1 sk2 n = 
     ws sk1 ^ ws sk2 ^   
     let n = Ulib.Text.to_string (Name.to_rope n) in 
-      if rr then
+      if rrr then
         meta (Format.sprintf "val %s_defn = Hol_defn \"%s\" `\n" n n)
       else
         meta (Format.sprintf "val %s_def = Define `\n" n)
-  let rec_def_footer rr n =
-     if rr then
+  let rec_def_footer _ rrr n =
+     if rrr then
        meta (Format.sprintf "\nval _ = Lib.with_flag (computeLib.auto_import_definitions, false) Defn.save_defn %s_defn;" 
             (Ulib.Text.to_string (Name.to_rope n)))
      else emp
@@ -1111,127 +1114,6 @@ let is_identity_target = match T.target with
   | Some Target_html  -> true
   | Some Target_tex   -> true
 
-
-(*
-let generate_coq_decidable_theorem ty =
-  kwd "Lemma " ^ ty ^ kwd "_eq_dec:\n" ^
-  kwd "\tforall m n : " ^ ty ^ kwd ",\n" ^
-  kwd "\t\tProof.\n" ^
-  kwd "\t\t\tintros.\n" ^
-  kwd "\t\t\tdecide equality; auto.\n" ^
-  kwd "\t\tQed."
-;;
-
-let rec generate_coq_boolean_equality' t =
-  match t with
-     | Typ_wild _ -> None
-     | Typ_var (_, _) -> None
-     | Typ_len _ -> None
-     | Typ_fn (src, _, dom) -> None
-     | Typ_tup srct_skiplist -> assert false
-     | Typ_app (id, typ) -> assert false
-     | Typ_paren (_, src, _) -> generate_coq_boolean_equality' src.term
-;;
-
-let generate_coq_boolean_equality tvs name t =
-  match t with
-    | Te_opaque -> kwd "(* opaque type, no equality generated *)"
-    | Te_abbrev (lskips, src_t) ->
-      begin
-        match generate_coq_boolean_equality' src_t.term with
-          | None -> kwd "(* unable to generate decidable equality for " ^ name ^ kwd " *)"
-          | Some t ->
-              kwd "Definition " ^ name ^ kwd "_beq := " ^ t ^ kwd "."
-      end
-    | Te_record (lskips, lskips', lskips_seplist, lskips'') ->
-        let eq_typ =
-          if List.length tvs = 0 then
-            name ^ kwd " -> " ^ name ^ kwd " -> bool "
-          else
-            emp
-        in
-        let l = Seplist.to_list lskips_seplist in
-        let prefix = kwd "Definition " ^ name ^ kwd "_beq : " ^ eq_typ ^ kwd ":= fun l r => " in
-        let body = List.map (fun (name, _, typ) ->
-          let t = Types.t_to_string typ.typ in
-          let (lskips_t, _) = name in
-          let o = kwd (Ulib.Text.to_string (Name.to_rope (Name.strip_lskip lskips_t))) in
-            kwd t ^ kwd "_beq (" ^ o ^ kwd " l) " ^ kwd "(" ^ o ^ kwd " r)") l
-        in
-        let i = intercalate (kwd " && ") body in
-        let f = List.fold_right (^) i (kwd "") in
-          prefix ^ f ^ kwd "."
-    | Te_record_coq (lskips, name_l, lskips', lskips_seplist, lskips'') -> kwd "(* record coq type " ^ name ^ kwd "*)"
-    | Te_variant (lskips, lskips_seplist) -> kwd "(* variant type " ^ name ^ kwd "*)"
-    | Te_variant_coq (lskips, lskips_seplist) -> kwd "(* variant coq type " ^ name ^ kwd "*)"
-;;
-
-let generate_coq_decidable_equalities defs =
-  let n = Seplist.to_list defs in
-    match n with
-      | []    -> emp (* XXX: should not happen *)
-      | x::xs ->
-        let ((name, l), tyvars, exp) = x in
-        let stripped = Name.strip_lskip name in
-        let output = Ulib.Text.to_string (Name.to_rope stripped) in
-        let scheme_kwd = kwd "Scheme" in
-        let equality_kwd = kwd "Equality" in
-        let for_kwd = kwd "for" in
-          scheme_kwd ^ kwd " " ^ equality_kwd ^ kwd " " ^ for_kwd ^ kwd " " ^ kwd output ^ kwd "."
-
-let generate_coq_record_update_notation e =
-  let notation_kwd = kwd "Notation" in
-  let with_kwd = kwd "\'with\'" in
-  let prefix = List.fold_right (^) [
-      notation_kwd; kwd " "; kwd "\""; T.recup_start; kwd " ";
-      kwd "r"; kwd " "; with_kwd; kwd " "
-    ] emp
-  in
-  let aux all_fields x =
-    let ((lskips, l), s4, ty) = x in
-    let name = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip lskips)) in
-    let all_fields = List.filter (fun x -> Pervasives.compare name x <> 0) all_fields in
-    let other_fields = List.fold_right (^) (intercalate (kwd "; ")
-      (List.map (fun x ->
-        kwd x ^ kwd " " ^ T.recup_assign ^ kwd " " ^ kwd x ^ kwd " " ^ kwd "r"
-      ) all_fields)) emp
-    in
-    let focussed_field = kwd name ^ kwd " " ^ T.recup_assign ^ kwd " " ^ kwd "e" in
-    let body =
-      List.fold_right (^) [
-        kwd "\'"; kwd name; kwd "\'"; kwd " "; T.recup_assign; kwd " "; kwd "e"; kwd " ";
-        T.recup_end; kwd "\""; kwd " "; kwd ":="; kwd " "
-      ] emp
-    in
-    let result = List.fold_right (^) [
-        prefix; body; kwd "("; kwd "{|"; kwd " "; focussed_field;
-        kwd "; "; other_fields; kwd " "; kwd "|}"; kwd ")";
-        kwd "."
-      ] emp
-    in
-      match all_fields with
-        | []    -> emp (* DPM: this should have been macro'd away earlier *)
-        | x::xs -> result
-  in
-    match e with
-      | Te_record_coq (s3, name, s1, fields, s2) ->
-          let all_fields = Seplist.to_list fields in
-          let all_fields_names = List.map (fun ((lskips, l), s4, ty) -> Ulib.Text.to_string (Name.to_rope (Name.strip_lskip lskips))) all_fields in
-          let field_entries = List.fold_right (^) (intercalate (kwd "\n") (List.map (aux all_fields_names) all_fields)) emp in
-            field_entries
-      | Te_record (s1, s2, fields, s3) -> emp
-(*
-          match T.target with
-            | Some (Ast.Target_coq None) ->
-                let all_fields = Seplist.to_list fields in
-                let all_fields_names = List.map (fun ((lskips, l), s4, ty) -> Ulib.Text.to_string (Name.to_rope (Name.strip_lskip lskips))) all_fields in
-                let field_entries = List.fold_right (^) (intercalate (kwd "\n") (List.map (aux all_fields_names) all_fields)) emp in
-                  field_entries
-            | _                          -> emp
-*)
-;;
-*)
-
 let rec interspace os = 
   match os with
   | [] -> [emp]
@@ -1276,7 +1158,7 @@ let lit l t = match l.term with
   | L_vector(s,p,b) -> ws s ^ kwd (String.concat "" [p;b])
 
 let typ_ident_to_output (p : Path.t id) =     
-  Ident.to_output Type_ctor T.path_sep (B.typ_id_to_ident p)
+  Ident.to_output Type_ctor T.path_sep (B.type_id_to_ident p)
 
 let nexp n =
   let rec nexp_int n = match n.nterm with
@@ -1326,8 +1208,8 @@ let rec typ t = match t.term with
       ws s2 ^
       kwd ")"
 
-let const_ident_to_output a cd =
-  Ident.to_output a T.path_sep (B.const_id_to_ident cd)
+let field_ident_to_output cd =
+  Ident.to_output Term_field T.path_sep (B.const_id_to_ident cd)
 ;;
 
 let tyvar tv =
@@ -1335,8 +1217,8 @@ let tyvar tv =
    | Tn_A(s,tv,l) -> ws s ^ id Type_var (Ulib.Text.(^^^) T.typ_var tv)
    | Tn_N(s,nv,l) -> ws s ^ id Nexpr_var (Ulib.Text.(^^^) T.nexp_var nv)
 
-let tyfield ((n,l),s1,t) =
-  Name.to_output Term_field n ^
+let tyfield ((n,l),f_ref,s1,t) =
+  Name.to_output Term_field (B.const_ref_to_name n f_ref) ^
   ws s1 ^
   block false 2 ( 
   T.typ_sep ^
@@ -1344,8 +1226,8 @@ let tyfield ((n,l),s1,t) =
   block false 0 (typ t) ^
   T.typ_end)
 
-let tyconstr implicit n' tvs ((n,l),s1,targs) =
-  Name.to_output Type_ctor n ^
+let tyconstr implicit n' tvs ((n,l),c_ref,s1,targs) =
+  Name.to_output Type_ctor (B.const_ref_to_name n c_ref) ^
   ws s1 ^
   (if Seplist.length targs = 0 then
      T.ctor_typ_end n' tvs
@@ -1357,21 +1239,6 @@ let tyconstr implicit n' tvs ((n,l),s1,targs) =
      T.typ_end ^
      break_hint_space 0 )
 
-let tyconstr_coq implicit ((n,l),s1,targs,(n1,l1),tvs) =
-  Name.to_output Type_ctor n ^
-  ws s1 ^
-  (if Seplist.length targs = 0 then
-     emp
-   else
-     T.typ_constr_sep ^
-     T.typ_start ^
-     flat (Seplist.to_sep_list typ (sep T.constr_sep) targs) ^
-     T.constr_sep ^ Name.to_output Type_ctor n1 ^ space ^
-     if implicit then
-       emp ^ T.typ_end
-     else
-       (flat (List.map tyvar tvs)) ^ (* FZ discharging comments here *) T.typ_end)
-    
 let tyexp_abbrev s4 t =
   ws s4 ^
   T.type_abbrev_sep ^
@@ -1440,7 +1307,7 @@ let rec pat p = match p.term with
   | P_var(n) ->
       Name.to_output Term_var n
   | P_const(cd,ps) ->
-      let oL = B.pattern_application_to_output pat false cd ps in
+      let oL = B.pattern_application_to_output pat cd ps in
       concat texspace oL
   | P_record(s1,fields,s2) ->
       ws s1 ^
@@ -1511,7 +1378,7 @@ let rec pat p = match p.term with
       kwd ")"
 
 and patfield (fd,s1,p) =
-  const_ident_to_output Term_field fd ^
+  field_ident_to_output fd ^
   ws s1 ^
   kwd "=" ^
   pat p
@@ -1617,7 +1484,7 @@ match C.exp_to_term e with
   | Field(e,s,fd) ->
       if (T.target = Some Target_isa) then
         kwd "(" ^ T.field_access_start ^ 
-        const_ident_to_output Term_field fd ^
+        field_ident_to_output fd ^
         T.field_access_end ^ 
         exp e ^ kwd ")" ^
         ws s
@@ -1625,7 +1492,7 @@ match C.exp_to_term e with
         exp e ^
         ws s ^
         T.field_access_start ^
-        const_ident_to_output Term_field fd ^
+        field_ident_to_output fd ^
         T.field_access_end
 
   | Case(b,s1,e,s2,cases,s3) ->
@@ -1861,7 +1728,7 @@ and isa_quant q qb = match q with
       ws s1 ^ T.exists ^ (quant_binding qb) ^ kwd "." ^ space
 
 and expfield (fd,s1,e,_) =
-  const_ident_to_output Term_field fd ^
+  field_ident_to_output fd ^
   ws s1 ^
   T.record_assign ^
   exp e
@@ -1871,7 +1738,7 @@ and expfield_coq (fd,s1,e,_) =
   exp e ^ kwd ")"
 
 and expfieldup (fd,s1,e,_) =
-  const_ident_to_output Term_field fd ^
+  field_ident_to_output fd ^
   ws s1 ^
   T.recup_assign ^
   exp e
@@ -1899,7 +1766,7 @@ and tyvar_binding tvs = emp
     emp
 *)
 
-and funcl tvs ({term = n}, ps, topt, s1, e) =
+and funcl_aux tvs (n, ps, topt, s1, e) =
   ws (Name.get_lskip n) ^ 
   T.funcase_start ^
   Name.to_output Term_var (Name.replace_lskip n None) ^
@@ -1915,7 +1782,10 @@ and funcl tvs ({term = n}, ps, topt, s1, e) =
   T.def_binding ^
   exp (if is_identity_target then e else mk_opt_paren_exp e) ^
   T.funcase_end
-    
+
+and funcl tvs (({term = n}, c, ps, topt, s1, e):funcl_aux) =
+  funcl_aux tvs (B.const_ref_to_name n c, ps, topt, s1, e)    
+
 and letbind tvs (lb, _) : Output.t = match lb with
   | Let_val(p,topt,s2,e) ->
       pat p ^
@@ -1926,8 +1796,8 @@ and letbind tvs (lb, _) : Output.t = match lb with
           | Some(s,t) -> ws s ^ T.typ_sep ^ typ t
       end ^
       ws s2 ^ T.def_binding ^ exp (if is_identity_target then e else mk_opt_paren_exp e)
-  | Let_fun(clause) ->
-      funcl tvs clause
+  | Let_fun (n, ps, topt, s1, e) ->
+      funcl_aux tvs (n.term, ps, topt, s1, e)
 
 
 (* In Isabelle we have to handle the following three cases for type definitions
@@ -1997,13 +1867,14 @@ let tdef_tctor quoted_name tvs n regexp =
       nout ^
       tdef_tvars false tvs ^ regexp_out
 
-let tdef ((n,l), tvs, texp, regexp) =
+let tdef ((n0,l), tvs, t_path, texp, regexp) =
+  let n = B.type_path_to_name n0 t_path in 
   let n' = Name.to_output Type_ctor n in
   let tvs' = List.map (fun tn -> (match tn with | Tn_A (x, y, z) -> kwd (Ulib.Text.to_string y)
                                                 | Tn_N (x, y, z) -> kwd (Ulib.Text.to_string y))) tvs in
     tdef_tctor false tvs n regexp ^ tyexp true n' tvs' texp 
 
-let indreln_clause (name_opt, s1, qnames, s2, e_opt, s3, rname, es) =
+let indreln_clause (name_opt, s1, qnames, s2, e_opt, s3, rname, c, es) =
   (if T.reln_clause_show_name then (
     (match name_opt with None -> emp | Some name ->
       Name.to_output_quoted Term_method name ^
@@ -2033,7 +1904,7 @@ let targets_opt = function
       ws s2 ^
       kwd "}"
 
-let in_target targs = Typed_ast.in_targets_opt (Util.option_map target_to_ast_target T.target) targs
+let in_target targs = Typed_ast.in_targets_opt T.target targs
 
 
 (****** Isabelle ******)
@@ -2066,18 +1937,16 @@ let isa_mk_typed_def_header (name, ptyps, s, etyp) : Output.t =
   flat (List.map (function ex -> typ (C.t_to_src_t (exp_to_typ ex))) es) ^ 
 *)
 
-let isa_is_simple_letbind (lb, _) : bool = match lb with  
-  | Let_val(p,topt,s2,e) -> (Pattern_syntax.is_var_wild_pat p)
-  | Let_fun({term = n}, ps, topt, s1, (e : Typed_ast.exp)) ->
-      List.for_all (fun p -> (Pattern_syntax.is_var_wild_pat p)) ps
+let isa_is_simple_funcl_aux ((_, _, ps, _, _, _):funcl_aux) : bool = 
+   List.for_all (fun p -> (Pattern_syntax.is_var_wild_pat p)) ps
 
-let isa_funcl_header ({term = n}, ps, topt, s1, (e : Typed_ast.exp)) =
-  isa_mk_typed_def_header (Name.to_output Term_var n, List.map Typed_ast.annot_to_typ ps, s1, exp_to_typ e)
+let isa_funcl_header (({term = n}, c, ps, topt, s1, (e : Typed_ast.exp)):funcl_aux) =
+  isa_mk_typed_def_header (Name.to_output Term_var (B.const_ref_to_name n c), List.map Typed_ast.annot_to_typ ps, s1, exp_to_typ e)
 
 let isa_funcl_header_seplist clause_sl =
   let clauseL = Seplist.to_list clause_sl in
-  let (_, clauseL_filter) = List.fold_left (fun (ns, acc) (({term = n'}, _, _, _, _) as c) ->
-         let n = Name.strip_lskip n' in if NameSet.mem n ns then (ns, acc) else (NameSet.add n ns, c :: acc)) (NameSet.empty, []) clauseL in
+  let (_, clauseL_filter) = List.fold_left (fun (ns, acc) (({term = n'}, n'_ref, _, _, _, _) as c) ->
+     let n = Name.strip_lskip (B.const_ref_to_name n' n'_ref) in if NameSet.mem n ns then (ns, acc) else (NameSet.add n ns, c :: acc)) (NameSet.empty, []) clauseL in
 
   let headerL = List.map isa_funcl_header clauseL_filter in
   (Output.concat (kwd "\n                   and") headerL) ^ (kwd "where \n    ")
@@ -2085,7 +1954,7 @@ let isa_funcl_header_seplist clause_sl =
 
 let isa_funcl_header_indrel_seplist clause_sl =
   let clauseL = Seplist.to_list clause_sl in
-  let (_, clauseL_filter) = List.fold_left (fun (ns, acc) (_, _, _, _, _, _, rname, _) ->
+  let (_, clauseL_filter) = List.fold_left (fun (ns, acc) (_, _, _, _, _, _, rname, c, _) ->
       let n = Name.strip_lskip rname.term in 
       if NameSet.mem n ns then (ns, acc) else (NameSet.add n ns, rname :: acc)) (NameSet.empty, []) clauseL in
   let headerL = List.map (fun rname -> 
@@ -2094,21 +1963,17 @@ let isa_funcl_header_indrel_seplist clause_sl =
   (Output.concat (kwd "\n      and") headerL) ^ (kwd "where")        
 
 
-let isa_funcl_default eqsign ({term = n}, ps, topt, s1, (e : Typed_ast.exp)) =
-  kwd "\"" ^ Name.to_output Term_var n ^ flat (List.map pat ps)^ ws s1 ^ eqsign ^ kwd "(" ^ exp e ^ kwd ")\""
+let isa_funcl_default eqsign (({term = n}, c, ps, topt, s1, (e : Typed_ast.exp)):funcl_aux) =
+  kwd "\"" ^ Name.to_output Term_var (B.const_ref_to_name n c) ^ flat (List.map pat ps)^ ws s1 ^ eqsign ^ kwd "(" ^ exp e ^ kwd ")\""
 
-let isa_funcl_abs eqsign ({term = n}, ps, topt, s1, (e : Typed_ast.exp)) =
-  kwd "\"" ^ Name.to_output Term_var n ^ ws s1 ^ eqsign ^ kwd "(%" ^ flat (List.map pat ps) ^ kwd ". " ^ exp e ^ kwd ")\""
+let isa_funcl_abs eqsign (({term = n}, c, ps, topt, s1, (e : Typed_ast.exp)):funcl_aux) =
+  kwd "\"" ^ Name.to_output Term_var (B.const_ref_to_name n c) ^ ws s1 ^ eqsign ^ kwd "(%" ^ flat (List.map pat ps) ^ kwd ". " ^ exp e ^ kwd ")\""
 
 let isa_funcl simple =
 (*  if simple then isa_funcl_abs (kwd "= ") else isa_funcl_default (kwd "= ") *)
   isa_funcl_default (kwd "= ")
 
-let isa_letbind simple (lb, _) : Output.t = match lb with  
-  | Let_val(p,topt,s2,e) ->
-      isa_mk_typed_def_header (pat p, [], s2, exp_to_typ e) ^
-      kwd "where \n\"" ^ pat p ^ ws s2 ^ kwd "= (" ^ exp e ^ kwd ")\""
-  | Let_fun(clause) ->
+let isa_funcl_aux simple (clause:funcl_aux) : Output.t = 
       isa_funcl_header clause ^ kwd "where \n" ^ isa_funcl simple clause
 
 (******* End Isabelle ********)
@@ -2179,10 +2044,8 @@ let rec hol_strip_args_t type_names t = match t.term with
   | Typ_paren(sk1,t,sk2) -> 
       { t with term = Typ_paren(sk1,hol_strip_args_t type_names t, sk2) }
 
-let hol_strip_args_ctors type_names (n_l,sk,ts) =
-  (n_l, 
-   sk, 
-   Seplist.map (hol_strip_args_t type_names) ts)
+let hol_strip_args_ctors type_names (n_l,c_ref,sk,ts) =
+  (n_l,c_ref, sk, Seplist.map (hol_strip_args_t type_names) ts)
 
 let hol_strip_args_texp type_names texp = match texp with
   | Te_opaque -> Te_opaque
@@ -2191,27 +2054,28 @@ let hol_strip_args_texp type_names texp = match texp with
   | Te_variant(sk1, ctors) ->
       Te_variant(sk1, Seplist.map (hol_strip_args_ctors type_names) ctors)
 
-let hol_strip_args type_names ((n,l), tvs, texp,optreg) =
+let hol_strip_args type_names ((n,l), tvs, type_path, texp,optreg) =
   ((n,l),
    [],
+   type_path,
    hol_strip_args_texp type_names texp,
    optreg)
 
 let collect_type_names defs = 
   Seplist.to_list_map 
-    (fun ((n,l),tvs,_,_) -> (Name.strip_lskip n, tvs))
+    (fun ((n,l),tvs,type_path,_,_) -> (Name.strip_lskip n, tvs))
     defs
 
 let is_abbrev l = 
   Seplist.length l = 1 &&
   match Seplist.hd l with
-    | (_,_,Te_abbrev _,_) -> true
+    | (_,_,_,Te_abbrev _,_) -> true
     | _ -> false
 
 let is_rec l = 
   Seplist.length l = 1 &&
   match Seplist.hd l with
-    | (_,_,Te_record _,_) -> true
+    | (_,_,_,Te_record _,_) -> true
     | _ -> false
 
 (* which extra information should be generated? *)
@@ -2228,7 +2092,7 @@ let extra_gen_flags_gen_lty (gf : extra_gen_flags) = function
   | Ast.Lemma_assert _ -> gf.extra_gen_asserts
 
 let rec isa_def_extra (gf:extra_gen_flags) d l : Output.t = match d with
-  | Val_def(Rec_def(s1, s2, targets, clauses),tnvs, class_constraints) 
+  | Val_def(Fun_def(s1, s2_opt, targets, clauses),tnvs, class_constraints) 
       when gf.extra_gen_termination -> 
       let is_rec = Typed_ast_syntax.is_recursive_def ((d, None), Ast.Unknown) in
       if (in_target targets && is_rec) then
@@ -2236,7 +2100,7 @@ let rec isa_def_extra (gf:extra_gen_flags) d l : Output.t = match d with
         let n = 
           match Seplist.to_list clauses with
             | [] -> assert false
-            | (n, _, _, _, _)::_ -> Name.strip_lskip n.term
+            | (n, c, _, _, _, _)::_ -> Name.strip_lskip (B.const_ref_to_name n.term c)
         in
           kwd "termination" ^ space ^ 
           kwd (Name.to_string n) ^ space ^
@@ -2266,7 +2130,7 @@ let rec isa_def_extra (gf:extra_gen_flags) d l : Output.t = match d with
   | _ -> emp
 
 let rec hol_def_extra gf d l : Output.t = match d with
-  | Val_def(Rec_def(s1, s2, targets, clauses),tnvs, class_constraints) 
+  | Val_def(Fun_def(s1, s2_opt, targets, clauses),tnvs, class_constraints) 
       when gf.extra_gen_termination -> 
       let is_rec = Typed_ast_syntax.is_recursive_def ((d, None), Ast.Unknown) in
       if (in_target targets && is_rec) then
@@ -2274,7 +2138,7 @@ let rec hol_def_extra gf d l : Output.t = match d with
         let n = 
           match Seplist.to_list clauses with
             | [] -> assert false
-            | (n, _, _, _, _)::_ -> Name.to_string (Name.strip_lskip n.term)
+            | (n, c, _, _, _, _)::_ -> Name.to_string (Name.strip_lskip (B.const_ref_to_name n.term c))
         in
         let goal_stack_setup_s = Format.sprintf "(* val gst = Defn.tgoal_no_defn (%s_def, %s_ind) *)\n" n n in
         let proof_s = Format.sprintf "val (%s_rw, %s_ind_rw) =\n  Defn.tprove_no_defn ((%s_def, %s_ind),\n    (* the termination proof *)\n  )\n" n n n n in
@@ -2338,11 +2202,11 @@ let rec def d is_user_def : Output.t = match d with
   | Type_def(s1, l) when is_abbrev l->
       begin
         match Seplist.hd l with
-          | ((n,l),tvs,Te_abbrev(s4,t),regexp) ->
+          | ((n,l),tvs,t_p,Te_abbrev(s4,t),regexp) ->
               ws s1 ^
               block is_user_def 0 (
               T.type_abbrev_start ^
-              tdef_tctor T.type_abbrev_name_quoted tvs n regexp ^
+              tdef_tctor T.type_abbrev_name_quoted tvs (B.type_path_to_name n t_p) regexp ^
               tyexp_abbrev s4 t ^
               T.type_abbrev_end)
           | _ -> assert false
@@ -2352,11 +2216,11 @@ let rec def d is_user_def : Output.t = match d with
   | Type_def(s1, l) when is_rec l->
       begin
         match Seplist.hd l with
-          | ((n,l'),tvs, Te_record(s4,s5,fields,s6),regexp) ->
+          | ((n,l'),tvs, t_p, Te_record(s4,s5,fields,s6),regexp) ->
               ws s1 ^
               block is_user_def 0 (
               T.typedefrec_start ^		
-              tdef_tctor false tvs n regexp ^
+              tdef_tctor false tvs (B.type_path_to_name n t_p) regexp ^
               tyexp_rec s4 s5 fields s6 ^
               T.typedefrec_end) (*
               if T.target = Some (Ast.Target_coq None) then
@@ -2403,7 +2267,8 @@ let rec def d is_user_def : Output.t = match d with
         else
           emp *)
 
-  | Val_def(Let_def(s1, targets,bind),tnvs,class_constraints) -> 
+  | Val_def(Let_def(s1, targets,(p, name_map, topt, sk, e)),tnvs,class_constraints) -> 
+      (* TODO: use name_map to do proper renaming *)
       if in_target targets then
         ws s1 ^
         T.def_start ^
@@ -2411,37 +2276,39 @@ let rec def d is_user_def : Output.t = match d with
            targets_opt targets 
          else
            emp) ^
-        letbind tnvs bind ^
+        letbind tnvs (Let_val (p, topt, sk, e), Ast.Unknown) ^
         break_hint_space 0 ^
         T.def_end
       else
         emp
-  | Val_def(Rec_def(s1, s2, targets, clauses),tnvs, class_constraints) -> 
+  | Val_def(Fun_def(s1, s2_opt, targets, clauses),tnvs, class_constraints) -> 
       if in_target targets then
         let is_rec = Typed_ast_syntax.is_recursive_def ((d, None), Ast.Unknown) in
+        let is_real_rec = match s2_opt with None -> false | _ -> true in
+        let s2 = Util.option_default None s2_opt in
         let n = 
           match Seplist.to_list clauses with
             | [] -> assert false
-            | (n, _, _, _, _)::_ -> Name.strip_lskip n.term
+            | (n,n_ref, _, _, _, _)::_ -> Name.strip_lskip (B.const_ref_to_name n.term n_ref)
         in
-          T.rec_def_header is_rec s1 s2 n ^
+          T.rec_def_header is_rec is_real_rec s1 s2 n ^
           (if T.target = None then
              targets_opt targets 
            else
              emp) ^
           flat (Seplist.to_sep_list (funcl tnvs) (sep T.def_sep) clauses) ^
           T.def_end ^
-          T.rec_def_footer is_rec n
+          T.rec_def_footer is_rec is_real_rec n
           else
         emp
-  | Val_def(Let_inline(s1,s2,targets,n,args,s4,body),tnvs,class_constraints) ->
+  | Val_def(Let_inline(s1,s2,targets,n,c,args,s4,body),tnvs,class_constraints) ->
       if (T.target = None) then
         ws s1 ^
         kwd "let" ^
         ws s2 ^
         kwd "inline" ^
         targets_opt targets ^
-        Name.to_output Term_var n.term ^
+        Name.to_output Term_var (B.const_ref_to_name n.term c) ^
         flat (List.map (fun n -> Name.to_output Term_var n.term) args) ^ 
         ws s4 ^
         kwd "=" ^
@@ -2473,7 +2340,7 @@ let rec def d is_user_def : Output.t = match d with
         Name.to_output Term_var n_new
       else
         ws s1 ^ ws s2
-  | Module(s1,(n,l),s2,s3,ds,s4) -> 
+  | Module(s1,(n,l),mod_bind,s2,s3,ds,s4) -> 
       ws s1 ^
       T.module_module ^
       Name.to_output Module_name n ^
@@ -2484,7 +2351,7 @@ let rec def d is_user_def : Output.t = match d with
       defs ds ^
       ws s4 ^
       T.module_end
-  | Rename(s1,(n,l),s2,m) ->
+  | Rename(s1,(n,l),mod_bind,s2,m) ->
       ws s1 ^
       T.module_module ^
       Name.to_output Module_name n ^
@@ -2507,7 +2374,7 @@ let rec def d is_user_def : Output.t = match d with
         T.reln_end
       else
         emp
-  | Val_spec(s1,(n,l),s2,(constraint_pre,t)) ->
+  | Val_spec(s1,(n,l),n_ref,s2,(constraint_pre,t)) ->
       ws s1 ^
       T.val_start ^
       Name.to_output Term_var n ^
@@ -2536,7 +2403,7 @@ let rec def d is_user_def : Output.t = match d with
       flat (List.map (fun d -> def (Val_def(d,Types.TNset.empty,[])) is_user_def) methods) ^
       ws s4 ^
       kwd "end"
-  | Class(s1,s2,(n,l), tv, s3, specs, s4) -> 
+  | Class(s1,s2,(n,l), tv, class_path, s3, specs, s4) -> 
       ws s1 ^
       kwd "class" ^
       ws s2 ^
@@ -2546,7 +2413,7 @@ let rec def d is_user_def : Output.t = match d with
       ws s3 ^
       kwd ")" ^
       flat (List.map 
-              (fun (s1,(n,l),s2,t) ->
+              (fun (s1,(n,l),f_ref,s2,t) ->
                 ws s1 ^
                 T.val_start ^
                 Name.to_output Term_method n ^
@@ -2649,8 +2516,7 @@ and tex_of_output out =
   | Some r -> r
 
 
-and tex_inc_letbind (lb, l) lhs_keyword = match lb with
-  | Let_val(p,topt,s2,e) ->
+and tex_inc_letbind (p, name_map, topt, sk, e) lhs_keyword = 
       let (source_name, typeset_name) = 
         match names_of_pat p with 
         | [(source_name, typeset_name, l)] -> (source_name, typeset_name) 
@@ -2670,40 +2536,9 @@ and tex_inc_letbind (lb, l) lhs_keyword = match lb with
           | None -> emp 
           | Some(s,t) -> ws s ^ T.typ_sep ^ typ t
         end ^
-        ws s2 ^ T.def_binding in
+        ws sk ^ T.def_binding in
       let rhs_output = exp e in
 
-      let lhs = tex_of_output lhs_output in
-      let rhs = tex_of_output rhs_output in
-      make_lemdefn latex_name latex_label typeset_name pre_comment lhs_keyword lhs rhs post_comment
-
-
-  | Let_fun(clause) ->
-      let (function_name, ps, topt, pre_equal_comment, e) = clause in
-      let source_name =  (function_name.term : Name.lskips_t) in
-      let typeset_name = (Name.to_rope_tex Term_var (Name.strip_lskip source_name)) in
-      let latex_name = Output.tex_command_name (Name.to_rope (Name.strip_lskip source_name)) in
-      let latex_label = Output.tex_command_label (Name.to_rope (Name.strip_lskip source_name)) in
-      let pre_comment = r"" (* PLACEHOLDER *) in      
-      let post_comment = r"" (* PLACEHOLDER *) in      
-
-      let lhs_output = 
-        (Name.to_output Term_var source_name) ^ 
-        begin
-          match ps with
-          | [] ->
-              emp
-          | _ ->
-              texspace ^ 
-              concat texspace (List.map pat ps) 
-        end ^
-        begin
-          match topt with
-          | None -> emp 
-          | Some(s,t) -> ws s ^ T.typ_sep ^ typ t
-        end ^
-        ws pre_equal_comment ^ T.def_binding in
-      let rhs_output = exp e in
       let lhs = tex_of_output lhs_output in
       let rhs = tex_of_output rhs_output in
       make_lemdefn latex_name latex_label typeset_name pre_comment lhs_keyword lhs rhs post_comment
@@ -2745,9 +2580,8 @@ and def_tex_inc d : (Ulib.Text.t*Ulib.Text.t) list = match d with
 
   | Val_def(Let_def(s1, targets,bind),tnvs,class_constraints) ->
       if in_target targets then
-        let lhs_keyword = 
-          tex_of_output (ws s1 ^ T.def_start) in
-        [tex_inc_letbind (bind) lhs_keyword]
+        let lhs_keyword = tex_of_output (ws s1 ^ T.def_start) in
+        [tex_inc_letbind bind lhs_keyword]
       else
         []
 
@@ -2855,17 +2689,11 @@ and def_tex_inc d : (Ulib.Text.t*Ulib.Text.t) list = match d with
 (*       kwd "end" *)
 
 
-and html_source_name_letbind (lb,l) = match lb with
-  | Let_val(p,topt,s2,e) ->
-      (match names_of_pat p with 
+and html_source_name_letbind (p, _, _, _, _) = 
+    match names_of_pat p with 
       | [(source_name, typeset_name, l)] -> Some source_name
-    (* ghastly temporary hacks *)
       | (source_name, typeset_name, l)::_ -> Some source_name
-      | [] -> None)
-  | Let_fun(clause) ->
-      let (function_name, ps, topt, pre_equal_comment, e) = clause in
-      let source_name =  (function_name.term : Name.lskips_t) in
-      Some (Name.to_rope (Name.strip_lskip (source_name)))
+      | [] -> None
 
 and html_source_name_def d = match d with
   | Val_def(Let_def(s1, targets,bind),tnvs,class_constraints) ->
@@ -2913,10 +2741,10 @@ and isa_def d is_user_def : Output.t = match d with
   | Type_def(s1, l) when is_abbrev l->
       begin
         match Seplist.hd l with
-          | ((n,l),tvs,Te_abbrev(s4,t),regex) ->
+          | ((n,l),tvs,t_path,Te_abbrev(s4,t),regex) ->
               ws s1 ^
               T.type_abbrev_start ^
-              tdef_tctor false tvs n regex ^
+              tdef_tctor false tvs (B.type_path_to_name n t_path) regex ^
               tyexp_abbrev s4 t ^
               T.type_abbrev_end
           | _ -> assert false
@@ -2925,32 +2753,34 @@ and isa_def d is_user_def : Output.t = match d with
   | Type_def(s1, l) when is_rec l->
       begin
         match Seplist.hd l with
-          | ((n,l),tvs,Te_record(s4,s5,fields,s6),regex) ->
+          | ((n,l),tvs,t_path,Te_record(s4,s5,fields,s6),regex) ->
               ws s1 ^
               T.typedefrec_start ^ 
-              tdef_tctor false tvs n regex ^
+              tdef_tctor false tvs (B.type_path_to_name n t_path) regex ^
               tyexp_rec s4 s5 fields s6 ^
               T.typedefrec_end
           | _ -> assert false
       end
 
-  | Val_def (Let_def(s1, targets,bind),tnvs,class_constraints) ->
-      let is_simple = isa_is_simple_letbind bind in
+  | Val_def (Let_def(s1, targets,(p, name_map, topt,sk, e)),tnvs,class_constraints) ->
+      let is_simple = true in
       if in_target targets then 
         ws s1 ^ kwd (if is_simple then "definition" else "fun") ^ 
         (if T.target = None then
            targets_opt targets 
          else
            emp) ^
-        isa_letbind is_simple bind ^ T.def_end ^
+        isa_mk_typed_def_header (pat p, [], sk, exp_to_typ e) ^
+        kwd "where \n\"" ^ pat p ^ ws sk ^ kwd "= (" ^ exp e ^ kwd ")\"" ^ T.def_end ^
         (match val_def_get_name d with None -> emp | Some n ->
           (if is_simple then emp else 
                           (kwd (String.concat "" ["\ndeclare "; Name.to_string n; ".simps [simp del]"]))))
       else emp
   
-  | Val_def (Rec_def (s1, s2, targets, clauses),tnvs,class_constraints) ->
+  | Val_def (Fun_def (s1, s2_opt, targets, clauses),tnvs,class_constraints) ->
       let is_rec = Typed_ast_syntax.is_recursive_def ((d, None), Ast.Unknown) in
       if in_target targets then 
+        let s2 = Util.option_default None s2_opt in
         ws s1 ^ kwd (if is_rec then "function (sequential)" else "fun") ^ ws s2 ^
         (if T.target = None then
            targets_opt targets 
@@ -2965,7 +2795,7 @@ and isa_def d is_user_def : Output.t = match d with
         new_line
       else emp
       
-  | Val_spec(s1,(n,l),s2,t) ->
+  | Val_spec(s1,(n,l),n_ref,s2,t) ->
       raise (Reporting_basic.err_todo false l "Isabelle: Top-level type constraints omited; should not occur at the moment")
 
   | Indreln(s,targets,clauses) ->

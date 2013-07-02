@@ -165,8 +165,7 @@ let check_modules env modules =
   ()
 
 
-(* Do the transformations for a given target, and then generate the output files
- * *)
+(* Do the transformations for a given target *)
 let per_target libpath isa_thy modules env consts alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum targ =
   let consts = List.assoc targ consts in
   let module C = struct
@@ -174,27 +173,27 @@ let per_target libpath isa_thy modules env consts alldoc_accum alldoc_inc_accum 
   end
   in
   let module T = Target_trans.Make(C) in
-  let (trans,avoid) = T.get_transformation targ consts in
-    try
-      let (_,transformed_m) = 
-        List.fold_left 
-          (fun (env,new_mods) old_mod -> 
-             let (env,m) = trans env old_mod in
-               (env,m::new_mods))
-          (env,[])
-          modules
-      in      
-      let consts' = T.extend_consts targ consts transformed_m in
-      let transformed_m' = T.rename_def_params targ consts' transformed_m in
-        output libpath isa_thy targ (avoid consts') env (List.rev transformed_m') alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum
-    with
+  let (trans,avoid) = T.get_transformation targ in
+  try
+    let (env',transformed_m) = 
+      List.fold_left 
+        (fun (env,new_mods) old_mod -> 
+           let (env,m) = trans env old_mod in
+             (env,m::new_mods))
+        (env,[])
+        modules
+    in      
+    (* perform renamings *)
+    let used_entities = Typed_ast_syntax.get_checked_modules_entities targ transformed_m in
+    let env'' = Rename_top_level.rename_defs_target targ used_entities consts env' in
+    let transformed_m' = T.rename_def_params targ consts transformed_m in
+    let _ = output libpath isa_thy targ (avoid consts) env'' (List.rev transformed_m') alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum in
+    env''
+  with
       | Trans.Trans_error(l,msg) ->
           raise (Reporting_basic.Fatal_error (Reporting_basic.Err_trans (l, msg)))
       | Ident.No_type(l,msg) ->
           raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal (l, msg)))
-      | Typed_ast.Renaming_error(ls,msg) ->
-          raise (Reporting_basic.Fatal_error (Reporting_basic.Err_rename (ls, msg)))
-
 
 let main () =
   let _ = if !opt_print_version then print_string ("Lem " ^ Version.v ^ "\n") in
@@ -326,9 +325,10 @@ let main () =
   let alldoc_accum = ref ([] : Ulib.Text.t list) in
   let alldoc_inc_accum = ref ([] : Ulib.Text.t list) in
   let alldoc_inc_usage_accum = ref ([] : Ulib.Text.t list) in
-    ignore (List.iter (per_target lib_path isa_thy (List.rev modules) type_info consts alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum) !backends);
-    (if List.mem (Some(Target.Target_tex)) !backends then 
-       output_alldoc "alldoc" (String.concat " " !opt_file_arguments) alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum)
+  let _ = List.fold_left (fun env -> (per_target lib_path isa_thy (List.rev modules) env consts alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum))
+    type_info !backends in
+  (if List.mem (Some(Target.Target_tex)) !backends then 
+     output_alldoc "alldoc" (String.concat " " !opt_file_arguments) alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum)
 
 let _ = 
   try 

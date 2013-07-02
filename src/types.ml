@@ -380,8 +380,8 @@ type constr_family_descr = {
 }
 
 type type_target_rep =
-  | TR_rename of Name.t
-  | TR_new_ident of Ident.t
+  | TR_rename of Ast.l * bool * Name.t
+  | TR_new_ident of Ast.l * bool * Ident.t
 
 type type_descr = { 
   type_tparams : tnvar list;
@@ -423,48 +423,40 @@ let env_no_type_exp l p =
   let m = Format.flush_str_formatter() in
   Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, m))
 
-let type_defs_update_tc_type (l : Ast.l) (d : type_defs) (p : Path.t) (up : type_descr -> type_descr) : type_defs =
+let env_no_update_exp l p = 
+  let _ = Format.flush_str_formatter() in
+  let _ = Format.fprintf Format.str_formatter "update of type-description not possible for type '%a'!" Path.pp p in
+  let m = Format.flush_str_formatter() in
+  Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, m))
+
+let type_defs_update_tc_type (l : Ast.l) (d : type_defs) (p : Path.t) (up : type_descr -> type_descr option) : type_defs =
 begin
   let l = Ast.Trans ("type_defs_update_tc_type", Some l) in
   let td = match (Pfmap.apply d p) with
     | Some (Tc_type td) -> td
     | _ -> raise (env_no_type_exp l p)
   in
-  let td' = up td in
-  Pfmap.insert d (p, Tc_type td')
+  match up td with
+    | Some td' -> Pfmap.insert d (p, Tc_type td')
+    | None -> raise (env_no_update_exp l p)
 end
 
 let type_defs_update_fields l (d : type_defs) (p : Path.t) (fl : const_descr_ref list) : type_defs =
   let l = Ast.Trans ("type_defs_update_fields", Some l) in
-  type_defs_update_tc_type l d p (fun tc -> {tc with type_fields = Some fl})
+  type_defs_update_tc_type l d p (fun tc -> Some {tc with type_fields = Some fl})
 
 let type_defs_add_constr_family l (d : type_defs) (p : Path.t) (cf : constr_family_descr) : type_defs =
   let l = Ast.Trans ("type_defs_add_constr_family", Some l) in
-  type_defs_update_tc_type l d p (fun tc -> {tc with type_constr = cf :: tc.type_constr})
-
-let type_defs_rename_type l (d : type_defs) (p : Path.t) (t: Target.target) (n : Name.t) : type_defs =
-  let l = Ast.Trans ("type_defs_rename_type", Some l) in
-  let up td = begin
-    let tm = td.type_target_rep in
-    let tm' = Target.Targetmap.insert tm (t, TR_rename n) in
-    {td with type_target_rep = tm'}
-  end in
-  type_defs_update_tc_type l d p up
-
-let type_defs_new_ident_type l (d : type_defs) (p : Path.t) (t: Target.target) (i : Ident.t) : type_defs =
-  let l = Ast.Trans ("type_defs_target_type", Some l) in
-  let up td = begin
-    let tm = td.type_target_rep in
-    let tm' = Target.Targetmap.insert tm (t, TR_new_ident i) in
-    {td with type_target_rep = tm'}
-  end in
-  type_defs_update_tc_type l d p up
+  type_defs_update_tc_type l d p (fun tc -> Some {tc with type_constr = cf :: tc.type_constr})
 
 let type_defs_lookup l (d : type_defs) (p : Path.t) =
     let l = Ast.Trans ("type_defs_lookup", Some l) in
     match (Pfmap.apply d p) with
       | Some (Tc_type td) -> td
       | _ -> raise (env_no_type_exp l p)
+
+let type_defs_update (d : type_defs) (p : Path.t) td =
+    Pfmap.insert d (p, Tc_type td)
 
 let type_defs_lookup_typ l (d : type_defs) (t : t) =
     match t with 

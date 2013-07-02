@@ -69,6 +69,12 @@ val lookup_env_opt : local_env -> Name.t list -> local_env option
     [Reporting_basic] is used to report an internal error. *)
 val lookup_env : local_env -> Name.t list -> local_env
 
+(** [env_apply env n] looks up the name [n] in the environment [env], regardless of whether [n] is a
+   name of a type, field, constructor or constant and returns the
+   type of this name, it's full path and the location of the original definition *)
+val env_apply : env -> Name.t -> (name_kind * Path.t * Ast.l) option
+
+
 (** [lookup_mod_descr_opt env path mod_name] is used to navigate inside an environment [env]. It returns
     the module with name [mod_name], which is reachable via the path [path]. If no such environment exists,
     [None] is returned.*)
@@ -85,6 +91,11 @@ val names_get_const : env -> Name.t list -> Name.t -> const_descr_ref * const_de
 
 (** [get_const] is a wrapper around [names_get_const] that uses strings instead of names. *)
 val get_const : env -> string list -> string -> const_descr_ref * const_descr
+
+(** [const_descr_to_kind r d] assumes that [d] is the description associated with reference [r]. It
+    then determines the kind of constant (field, constructor, constant) depending on the information
+    stored in [d]. *)
+val const_descr_to_kind : const_descr_ref * const_descr -> name_kind
 
 (** [get_const_id env l path n inst] used [get_const env path n] to construct a [const_descr] and
    then wraps it in an id using location [l] and instantiations [inst]. *)
@@ -121,12 +132,58 @@ val get_field_all_fields : Ast.l -> env -> const_descr_ref -> const_descr_ref li
     the function [up]. *)
 val update_const_descr : Ast.l -> (const_descr -> const_descr) -> const_descr_ref -> env -> env
 
+(** [c_env_store c_env c_d] stores the description [c_d] 
+    environment [c_env]. Thereby, a new unique reference is generated and returned
+    along with the modified environment. *)
+val c_env_store : c_env -> const_descr -> (c_env * const_descr_ref)
+
+(** [c_env_save c_env c_ref_opt c_d] is a combination of [c_env_update] and [c_env_store].
+    If [c_ref_opt] is given, [c_env_update] is called, otherwise [c_env_store]. *)
+val c_env_save : c_env -> const_descr_ref option -> const_descr -> c_env * const_descr_ref
+
+(** {2 target-representations} *)
+
 (** [set_target_const_rep env mp n target rep] sets the representation of the constant described by
     module-path [mp] and name [n] for target [target] to [rep] in environment [env]. *)
 val set_target_const_rep : env -> string list -> string -> Target.target -> const_target_rep -> env
 
+(** [const_descr_to_name targ cd] looks up the representation for target [targ] in the constant
+    description [cd]. It returns a tuple [(n_is_shown, n)]. The name [n] is the name of the constant for this
+    target. [n_is_shown] indiciates, whether this name is actually printed. Special representations or inline representation
+    might have a name, that is not used for the output. *)
+val constant_descr_to_name : Target.target option -> const_descr -> (bool * Name.t)
+
+(** [type_descr_to_name targ ty td] looks up the representation for target [targ] in the type
+    description [td]. Since in constrast to constant-description, type-descriptions don't contain the
+    full type-name, but only renamings, the orginal type-name is passed as argument [ty]. It is assumed that
+    [td] really belongs to [ty]. *)
+val type_descr_to_name : Target.target option -> Path.t -> Types.type_descr -> Name.t
+
+(** [const_descr_rename targ n' l' cd] looks up the representation for target [targ] in the constant
+    description [cd]. It then updates this description by renaming to the new name [n'] and new location [l']. 
+    If this renaming is not possible, [None] is returned, otherwise the updated description is returned along with information of where the constant
+    was last renamed and to which name. *)
+val constant_descr_rename : Target.target option -> Name.t -> Ast.l -> const_descr -> (const_descr * (Ast.l * Name.t) option) option
+
+(** [type_descr_rename targ n' l' td] looks up the representation for target [targ] in the type
+    description [td]. It then updates this description by renaming to the new name [n'] and new location [l']. 
+    If this renaming is not possible, [None] is returned, otherwise the updated description is returned along with information of where the type
+    was last renamed and to which name. *)
+val type_descr_rename : Target.target option -> Name.t -> Ast.l -> Types.type_descr -> (Types.type_descr * (Ast.l * Name.t) option) option
+
+(** [type_def_rename_type l d p t n] renames the type with path [p] in the defs [d] to the name [n] for
+target [t]. Renaming means that the module structure is kept. Only the name is changed. *)
+val type_defs_rename_type: Ast.l -> Types.type_defs -> Path.t -> Target.target -> Name.t -> Types.type_defs
+
+(** [type_def_new_ident_type l d p t i] changes the representation of the type with path [p] in the defs [d] to the identifier [i] for
+target [t]. This means that the whole module structure is lost and replace by the identifier. *)
+val type_defs_new_ident_type: Ast.l -> Types.type_defs -> Path.t -> Target.target -> Ident.t -> Types.type_defs
+
 
 (** {2 Constructing, checking and destructing expressions} *)
+
+(** [mk_name_lskips_annot] creates an annoted name *)
+val mk_name_lskips_annot : Ast.l -> Name.lskips_t -> Types.t -> name_lskips_annot 
 
 (** Destructor for variable expressions *)
 val dest_var_exp : exp -> Name.t option
@@ -260,6 +317,52 @@ val dest_app_exp : exp -> (exp * exp) option
     If [e] is not a function application expression, the list [arg_list] is empty. *)
 val strip_app_exp : exp -> exp * exp list
 
+
+(** [dest_infix_exp e] tries to destruct an infix expression [e]. If [e] is of the form
+    [l infix_op r] then [Some (l, infix_op, r)] is returned, otherwise [None]. *)
+val dest_infix_exp : exp -> (exp * exp * exp) option
+
+(** [is_infix_exp e] checks whether [e] is an infix operation *)
+val is_infix_exp : exp -> bool
+
+(** [strip_infix_exp e] is similar to [dest_infix_exp], but returns the result in the same way as
+    [strip_app_exp]. If [e] is of the form
+    [l infix_op r] then [(infix_op, [l;r])] is returned, otherwise [(e, [])]. *)
+val strip_infix_exp : exp -> exp * exp list 
+
+(** [strip_app_infix_exp e] is a combination of [strip_infix_exp] and [strip_app_exp]. 
+    The additional boolean result states, whether [e] is an infix operation. 
+    If [e] is an infix operation [strip_infix_exp] is called and the additional boolean result
+    is [true]. Otherwise [strip_app_exp] is called and the result is set to [false]. *)
+val strip_app_infix_exp : exp -> exp * exp list * bool
+
+
+(** {2 Constructing, checking and destructing definitions} *)
+
+(** [is_type_def_abbrev d] checks whether the definition [d] is a 
+    type-abbreviation definition. *)
+val is_type_def_abbrev : def -> bool
+
+(** [is_type_def_abbrev d] checks whether the definition [d] is a 
+    definition of a record_type. *)
+val is_type_def_record : def -> bool
+
+
+(** {2 Collecting information about uses constants, types, modules ...} *)
+
+(** The type [used_entities] collects lists of used constant references, modules and types of some expression, definition, pattern ... 
+   used_entities is using lists, because the order in which entities occur might be important for renaming.
+   However, these lists should not contain duplicates. *)
+type used_entities = { used_consts : const_descr_ref list; used_types : Path.t list; used_modules : Path.t list }
+
+(** An empty collection of entities *)
+val empty_used_entities : used_entities
+
+(** [get_checked_module_entities t_opt ml] gets all the modules, types, constants ... used by modules [ml] for target 
+  [t_opt]. If [t_opt] is [None], all targets are considered. *)
+val get_checked_modules_entities : Target.target option -> checked_module list -> used_entities
+
+
 (** {2 Miscellaneous} *)
 
 (** [remove_init_ws] should be used with function like [Typed_ast.alter_init_lskips]. It removes
@@ -294,3 +397,6 @@ val is_trans_def : def -> bool
 
 (** [val_def_get_name d] tries to extract the name of the defined function. *)
 val val_def_get_name : def_aux -> Name.t option 
+
+
+

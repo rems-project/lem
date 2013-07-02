@@ -76,6 +76,9 @@ module Targetmap : Finite_map.Dmap with type k = target
 (** target sets *)
 module Targetset : Set.S with type elt = target
 
+(** A list of all the targets. *)
+val all_targets_list : target list
+
 (** The set of all the targets. *)
 val all_targets : Targetset.t
 

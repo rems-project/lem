@@ -80,16 +80,15 @@ val to_output : Output.id_annot -> Output.t -> t -> Output.t
 val to_output_infix : (Output.id_annot -> Ulib.Text.t -> Output.t) -> Output.id_annot -> Output.t -> t -> Output.t
 val get_first_lskip: t -> Ast.lex_skips
 
-(*
-val drop_parens : (Precedence.op -> Precedence.t) -> t -> t
-val add_parens : (Precedence.op -> Precedence.t) -> t -> t
-val starts_with_upper_letter : t -> bool
-val starts_with_lower_letter : t -> bool
-val capitalize : t -> t
-val uncapitalize : t -> t
- *)
 val replace_first_lskip : t -> Ast.lex_skips -> t
 val to_name_list : t -> Name.t list * Name.t
 
+(** [has_empty_path_prefix i] check whether the identifier [i] consists of just a single name without any
+    prefix describing its module path *)
+val has_empty_path_prefix : t -> bool
+
 (** Remove the name from the identifier if it occurs at the first *)
 val strip_path : Name.t -> t -> t
+
+(** [rename i n'] renames the last name component of identifier [i] to [n']. *)
+val rename : t -> Name.t -> t 

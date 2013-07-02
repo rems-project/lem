@@ -56,18 +56,55 @@ val to_rope_tex : Output.id_annot -> t -> Ulib.Text.t
 val to_string : t -> string
 val from_string : string -> t
 (*val to_rope_core : Output.id_annot -> Ast.v -> Ulib.Text.t*)
+
+(** [fresh n OK] generates a name [m], such that 
+    [OK m] holds. [m] is of the form [n] followed by
+    an integer postfix. First [n] without postfix is tried.
+    Then counting up from 0 starts, till [OK] is satisfied. *)
 val fresh : Ulib.Text.t -> (t -> bool) -> t
+
+(** [fresh_list i n OK] generates a list of [i] fresh names. Internally,
+    [fresh n OK] is used [n] times. However, [OK] is updated to ensure, that
+    the elemenst of the resulting list are also distinct from each other. *)
 val fresh_list : int -> Ulib.Text.t -> (t -> bool) -> t list
+
+(** [rename r_fun n] renames [n] using the function [r_fun]. It looks at the 
+  text representation [n_text] of [n] and returns then the name corresponding to
+  [r_fun n_text]. *)
 val rename : (Ulib.Text.t -> Ulib.Text.t) -> t -> t
+
+(** [start_with_upper_letter n] checks, whether the name [n] starts with
+    a character in the range [A-Z]. *)
 val starts_with_upper_letter : t -> bool
+
+(** [uncapitalize n] tries to uncapitalize the first letter of [n].
+    If [n] does not start with a uppercase character, [None] is returned, otherwise 
+    the modified name. *)
+val uncapitalize : t -> t option
+
+(** [start_with_lower_letter n] checks, whether the name [n] starts with
+    a character in the range [a-z]. *)
 val starts_with_lower_letter : t -> bool
+
+(** [capitalize n] tries to capitalize the first letter of [n].
+    If [n] does not start with a lowercase character, [None] is returned, otherwise 
+    the modified name. *)
+val capitalize : t -> t option
+
+(** [start_with_underscore n] checks, whether the name [n] starts with
+    an underscore character. *)
 val starts_with_underscore : t -> bool
-val capitalize : t -> t
-val uncapitalize : t -> t
-val remove_underscore : t -> t
+
+(** [remove_underscore n] tries to remove a leading underscore from name [n].
+    If [n] does not start with an underscore character, [None] is returned, otherwise 
+    the modified name. *)
+val remove_underscore : t -> t option
+
+
+
 
 (* lskips_t is the type of names with immediately preceding spaces, comments and
-* newlines, as well as surrounding `` and (), e.g., (* Foo *) x or (++) or `y` *)
+ * newlines, as well as surrounding `` and (), e.g., (* Foo *) x or (++) or `y` *)
 type lskips_t
 val lskip_pp : Format.formatter -> lskips_t -> unit
 val from_x : Ast.x_l -> lskips_t

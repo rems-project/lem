@@ -124,14 +124,14 @@ let lookup_p msg (e : local_env) (Ast.Id(mp,xl,l) as i) : Path.t =
 
 (* Assume that the names in mp must refer to modules. Looks up a name, not
    knowing what this name refers to. *)
-let lookup_name (e : env) (Ast.Id(mp,xl,l) as i) : Path.t =
+let lookup_name (e : env) (Ast.Id(mp,xl,l) as i) : (name_kind * Path.t) =
   let e_l = path_lookup l e.local_env (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
   let e = {e with local_env = e_l} in
     match env_apply e (Name.strip_lskip (Name.from_x xl)) with
       | None ->
           raise_error l (Printf.sprintf "unbound name")
             Ident.pp (Ident.from_id i)
-      | Some(_, p, _) -> p
+      | Some(nk, p, _) -> (nk, p)
 
 
 (* Lookup in the lex env.  A formula in the formal type system *)
@@ -356,7 +356,7 @@ module type Expr_checker = sig
     Targetset.t option ->
     Ast.l ->
     Ast.funcl lskips_seplist -> 
-    funcl_aux lskips_seplist * 
+    (name_lskips_annot * pat list * (lskips * src_t) option * lskips * exp) lskips_seplist * 
     pat_env * 
     typ_constraints
 
@@ -1374,7 +1374,7 @@ module Make_checker(T : sig
   (* See Expr_checker signature above *)
   let check_letbind for_method (def_targets : Targetset.t option) l lb =
     let (lb,pe) = check_letbind_internal empty_lex_env lb in
-      (lb, pe, apply_specs for_method def_targets l pe)
+    (lb, pe, apply_specs for_method def_targets l pe)
 
   (* See Expr_checker signature above *)
   let check_funs for_method (def_targets : Targetset.t option) l funcls =
@@ -1605,29 +1605,14 @@ let add_let_defs_to_ctxt
        * K_target(false, ts), and if it is K_target, there must be a preceding
        * K_val *)
       (env_tag : env_tag) 
-      (* If this definition should be inlined for a target, give that target,
-       * the parameters and the body *)
-      (substitution : (Targetset.t * ((Name.t,unit) annot list * exp)) option)
       (l_env : lex_env) 
       : defn_ctxt =
-  let add_subst =
-    match substitution with
-      | None -> (fun c -> c)
-      | Some(ts,s) ->
-          (fun c -> 
-             { c with target_rep = 
-                 Targetset.fold
-                   (fun t r -> Targetmap.insert r (t,CR_inline s))
-                   ts 
-                   c.target_rep
-             })
-  in
   let (c_env, new_env) =
     Nfmap.fold
       (fun (c_env, new_env) n (t,l) ->
         match Nfmap.apply ctxt.new_defs.v_env n with
           | None ->
-              let c_d = add_subst
+              let c_d = 
                     { const_binding = Path.mk_path mod_path n;
                       const_tparams = tnvars;
                       const_class = constraints;
@@ -1656,7 +1641,7 @@ let add_let_defs_to_ctxt
                   | (K_target(letdef1,targets1), K_target(letdef2,targets2)) ->
                       K_target(letdef1||letdef2, 
                                Targetset.union targets1 targets2) in
-              let (c_env', c) = c_env_save c_env (Some c) (add_subst { c_d with env_tag = tag }) in
+              let (c_env', c) = c_env_save c_env (Some c) { c_d with env_tag = tag } in
               (c_env', Nfmap.insert new_env (n, c)))
       (ctxt.c_env, Nfmap.empty) l_env
   in
@@ -1771,12 +1756,12 @@ let build_record tvs_set (ctxt : defn_ctxt)
     recs
 
 let add_record_to_ctxt build_descr (ctxt : defn_ctxt) 
-      (recs : (name_l * lskips * t) lskips_seplist) 
-      : (const_descr_ref list * defn_ctxt)  =
-   let (rL, ctxt) = Seplist.fold_left
-      (fun ((fn,l'),sk1,t) (field_list, ctxt) ->
+      (recs : (name_l * lskips * src_t) lskips_seplist) 
+      : ((name_l * const_descr_ref * lskips * src_t) lskips_seplist * defn_ctxt)  =
+   Seplist.map_acc_right
+      (fun ((fn,l'),sk1,src_t) ctxt ->
          let fn' = Name.strip_lskip fn in
-         let field_descr = build_descr fn' l' t in
+         let field_descr = build_descr fn' l' src_t.typ in
          let () = 
            match Nfmap.apply ctxt.new_defs.f_env fn' with
              | None -> ()
@@ -1793,14 +1778,13 @@ let add_record_to_ctxt build_descr (ctxt : defn_ctxt)
              ctxt 
              (fn', f)
          in
-           (f::field_list, ctxt))
-      ([], ctxt)
-      recs in
-    (List.rev rL, ctxt)
+           ((fn, l'),f,sk1,src_t), ctxt)
+      ctxt
+      recs
 
 let rec build_variant build_descr tvs_set (ctxt : defn_ctxt) 
       (vars : Ast.ctor_def lskips_seplist) 
-      : (name_l * lskips * src_t lskips_seplist) lskips_seplist * (const_descr_ref list * defn_ctxt) =
+      : (name_l * const_descr_ref * lskips * src_t lskips_seplist) lskips_seplist * (const_descr_ref list * defn_ctxt) =
   let (sl, (cl, ctxt)) =
   Seplist.map_acc_left
     (fun (Ast.Cte(ctor_name,sk1,typs)) (cl, ctxt) ->
@@ -1843,7 +1827,7 @@ let rec build_variant build_descr tvs_set (ctxt : defn_ctxt)
             (ctn', c)
         in
           List.iter (fun (t,_) -> check_free_tvs tvs_set t) typs;
-          (((ctn,l'),sk1,src_ts), (c :: cl, ctxt)))
+          (((ctn,l'),c,sk1,src_ts), (c :: cl, ctxt)))
     ([], ctxt)
     vars in
   (sl, (List.rev cl, ctxt));;
@@ -1851,7 +1835,7 @@ let rec build_variant build_descr tvs_set (ctxt : defn_ctxt)
 
 let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
       type_name (tvs : Ast.tnvar list)  (regexp : name_sect option) td
-      : (name_l * tnvar list * texp * name_sect option) * defn_ctxt= 
+      : (name_l * tnvar list * Path.t * texp * name_sect option) * defn_ctxt= 
   let l = Ast.xl_to_l type_name in
   let tnvs = List.map tnvar_to_flat tvs in
   let tvs_set = tvs_to_set (List.map tnvar_to_types_tnvar tnvs) in
@@ -1860,10 +1844,10 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
   begin
     match td with
       | None -> 
-          (((tn,l),tnvs,Te_opaque, regexp), context)
+          (((tn,l),tnvs,type_path, Te_opaque, regexp), context)
       | Some(sk3, Ast.Te_abbrev(t)) -> 
           (* Check and throw error if there's a regexp here *)
-          (((tn,l), tnvs, 
+          (((tn,l), tnvs, type_path,
             Te_abbrev(sk3,
                       typ_to_src_t anon_error ignore ignore context.all_tdefs context.cur_env t), None),
            context)
@@ -1872,7 +1856,7 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
           let recs = build_record tvs_set context ntyps in
           let tparams = List.map (fun tnv -> fst (tnvar_to_types_tnvar tnv)) tnvs in
           let tparams_t = List.map tnvar_to_type tparams in
-          let (field_refs, ctxt) =
+          let (recs', ctxt) =
             add_record_to_ctxt 
               (fun fname l t ->
                  { const_binding = Path.mk_path mod_path fname;
@@ -1884,10 +1868,11 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
                    env_tag = K_field;
                    target_rep = Targetmap.empty })
               context
-              (Seplist.map (fun (x,y,src_t) -> (x,y,src_t.typ)) recs)
+              (Seplist.map (fun (x,y,src_t) -> (x,y,src_t)) recs)
           in
+          let field_refs = Seplist.to_list_map (fun (_, f, _, _) -> f) recs' in
           let ctxt = {ctxt with all_tdefs = type_defs_update_fields l ctxt.all_tdefs type_path field_refs} in 
-            (((tn,l), tnvs, Te_record(sk3,sk1',recs,sk3'), regexp), ctxt)
+            (((tn,l), tnvs, type_path, Te_record(sk3,sk1',recs',sk3'), regexp), ctxt)
       | Some(sk3, Ast.Te_variant(sk_init_bar,bar,ntyps)) ->
           let ntyps = Seplist.from_list_prefix sk_init_bar bar ntyps in
           let tparams = List.map (fun tnv -> fst (tnvar_to_types_tnvar tnv)) tnvs in
@@ -1909,7 +1894,7 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
           in
           let constr_family = {constr_list = cl; constr_case_fun = None; constr_exhaustive = true} in
           let ctxt = {ctxt with all_tdefs = type_defs_add_constr_family l ctxt.all_tdefs type_path constr_family} in 
-            (((tn,l),tnvs, Te_variant(sk3,vars), regexp), ctxt)
+            (((tn,l),tnvs, type_path, Te_variant(sk3,vars), regexp), ctxt)
   end;;
 
 
@@ -1917,7 +1902,7 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
  * *) 
 let rec build_ctor_defs (mod_path : Name.t list) (ctxt : defn_ctxt) 
       (tds : Ast.td lskips_seplist) 
-      : ((name_l * tnvar list * texp * name_sect option) lskips_seplist * defn_ctxt) =
+      : ((name_l * tnvar list * Path.t * texp * name_sect option) lskips_seplist * defn_ctxt) =
   Seplist.map_acc_left
     (fun td ctxt -> 
        match td with
@@ -2058,14 +2043,14 @@ let check_val_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
        (fun x -> x.v_env) 
        (fun x y -> { x with v_env = y })
        ctxt (n',v),
-     (sk1, (n,l'), sk2, (src_cp, src_t)))
+     (sk1, (n,l'), v, sk2, (src_cp, src_t)))
 
 (* Check a method definition in a type class.  mod_path is the path to the
  * enclosing module. class_p is the path to the enclosing type class, and tv is
  * its type parameter. *)
 let check_class_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
       (class_p : Path.t) (tv : Types.tnvar) (sk1,xl,sk2,typ) 
-      : const_descr_ref * const_descr * defn_ctxt * _ =
+      : const_descr_ref * const_descr * defn_ctxt * src_t * _ =
   let l' = Ast.xl_to_l xl in
   let n = Name.from_x xl in
   let n' = Name.strip_lskip n in
@@ -2111,7 +2096,7 @@ let check_class_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
        (fun x y -> { x with v_env = y })
        ctxt (n',v))
   in
-    (v, v_d, ctxt, (sk1, (n,l'), sk2, src_t))
+    (v, v_d, ctxt, src_t, (sk1, (n,l'), v, sk2, src_t))
 
 let target_opt_to_set : Ast.targets option -> Targetset.t option = function
   | None -> None
@@ -2130,35 +2115,88 @@ let target_opt_to_env_tag : Targetset.t option -> env_tag = function
   | None -> K_let
   | Some(ts) -> K_target(false,ts)
 
-let check_target_opt : Ast.targets option -> _ = function
+let check_target_opt : Ast.targets option -> Typed_ast.targets_opt = function
   | None -> None
   | Some(Ast.Targets_concrete(s1,targs,s2)) -> 
       Some(false, s1,Seplist.from_list targs,s2)
   | Some(Ast.Targets_neg_concrete(s1,targs,s2)) -> 
       Some(true, s1,Seplist.from_list targs,s2)
 
-let pat_to_name p = 
-  match p.term with
-    | P_var n -> { term = n; typ= p.typ; locn = p.locn; rest = (); }
-    (* TODO error messages *)
-    | _ -> assert false
+let letbind_to_funcl_aux_dest (ctxt : defn_ctxt) (lb_aux, l) = begin
+  let l = Ast.Trans("letbind_to_funcl_aux_dest", Some l) in
+  let module C = Exps_in_context(struct let env_opt = None let avoid = None end) in
+  let get_const_exp_from_name (nls : name_lskips_annot) : (const_descr_ref * exp) = begin
+    let n = Name.strip_lskip nls.term in
+    let n_ref =  match Nfmap.apply ctxt.cur_env.v_env n with
+      | Some(r) -> r
+      | _ -> raise (Reporting_basic.err_unreachable true l "n should have been added just before") in
+    let n_d = c_env_lookup l ctxt.c_env n_ref in
+    let id = { id_path = Id_some (Ident.mk_ident [] (Name.add_lskip n) l); id_locn = l; descr = n_ref; instantiation = List.map tnvar_to_type n_d.const_tparams } in
+    let e = C.mk_const l id (Some (annot_to_typ nls)) in
+    (n_ref, e)
+  end in
+  let (nls, pL, ty_opt, sk, e) = begin match lb_aux with
+    | Let_val (p, ty_opt, sk, e) -> begin
+         let nls = match Pattern_syntax.pat_to_ext_name p with 
+                  | None -> raise_error_string l "unsupported pattern in top-level let definition"
+                  | Some nls -> nls in
+         (nls, [], ty_opt, sk, e)
+      end
+    | Let_fun (nls, pL, ty_opt, sk, e) -> (nls, pL, ty_opt, sk, e)
+  end in
+  let (n_ref, n_exp) = get_const_exp_from_name nls in
+  (nls, n_ref, n_exp, pL, ty_opt, sk, e)
+end 
 
-(* check "let" definitions.  for_method should be None, unless checking a method
+let letbind_to_funcl_aux sk0 target_opt ctxt (lb : letbind) : val_def = begin
+  let l = Ast.Trans ("letbind_to_funcl_aux", None) in
+  let create_fun_def = match lb with
+     | (Let_val (p, _, _, _), _) -> Pattern_syntax.is_ext_var_pat p
+     | _ -> true
+  in
+  if create_fun_def then begin
+     let (nls, n_ref, n_exp, pL, ty_opt, sk, e) = letbind_to_funcl_aux_dest ctxt lb in
+     let sl = Seplist.sing (nls, n_ref, pL, ty_opt, sk, e) in
+     Fun_def(sk0, None, target_opt, sl)
+  end else begin
+    let get_const_from_name_annot (nls : name_lskips_annot) : (Name.t * const_descr_ref) = begin
+      let n = Name.strip_lskip nls.term in
+      let n_ref =  match Nfmap.apply ctxt.cur_env.v_env n with
+        | Some(r) -> r
+        | _ -> raise (Reporting_basic.err_unreachable true l "n should have been added just before") in
+      (n, n_ref)
+    end in
+    let (p, ty_opt, sk, e) = match lb with | (Let_val (p, ty_opt, sk, e), _) -> (p, ty_opt, sk, e) | _ -> assert false in
+    let pvars = Pattern_syntax.pat_vars_src p in
+    let name_map = List.map get_const_from_name_annot pvars in
+    Let_def(sk0, target_opt,  (p, name_map, ty_opt, sk, e))
+  end
+
+end
+
+let letbinds_to_funcl_aux_rec l ctxt (lbs : (_ Typed_ast.lskips_seplist)) : funcl_aux Typed_ast.lskips_seplist =
+  let lbs' = Seplist.map (fun (nls, pL, ty_opt, sk, e) -> letbind_to_funcl_aux_dest ctxt (Let_fun (nls, pL, ty_opt, sk, e), l)) lbs in
+  let var_subst = Seplist.fold_left (fun (nls, _, n_exp, _, _, _, _) subst -> Nfmap.insert subst (Name.strip_lskip nls.term, Sub n_exp)) Nfmap.empty lbs' in
+  let sub = (TNfmap.empty, var_subst) in
+  let module C = Exps_in_context(struct let env_opt = None let avoid = None end) in
+  let res = Seplist.map (fun (nls, n_ref, n_exp, pL, ty_opt, sk, e) -> (nls, n_ref, pL, ty_opt, sk, C.exp_subst sub e)) lbs' in
+  res
+
+(* check "let" definitions. for_method should be None, unless checking a method
  * definition in an instance.  When checking an instance it should contain the
  * type that the instance is at.  In this case the returned env_tag must be
  * K_method, and the returned constraints and type variables must be empty. 
  * ts is the set of targets for which all variables must be defined (i.e., the
  * current backends, not the set of targets that this definition if for) *)
-let check_val_def (ts : Targetset.t) (for_method : Types.t option) (l : Ast.l) 
+let check_val_def (ts : Targetset.t) (mod_path : Name.t list) (for_method : Types.t option) (l : Ast.l) 
       (ctxt : defn_ctxt) 
-      : Ast.val_def -> 
-        (* An environment representing the names bound by the definition *)
-        pat_env * 
-        val_def * 
+      (vd : Ast.val_def) :
+        (* The updated environment *)
+        defn_ctxt * 
+        (* The names of the defined values *) lex_env *
+        val_def *
         (* The type and length variables the definion is generalised over, and class constraints on the type variables, and length constraints on the length variables *)
-        typ_constraints *
-        (* Which targets the binding is for *)
-        env_tag =
+        typ_constraints =
   let module T = struct 
     let d = ctxt.all_tdefs 
     let i = ctxt.all_instances 
@@ -2167,26 +2205,46 @@ let check_val_def (ts : Targetset.t) (for_method : Types.t option) (l : Ast.l)
     let targets = ts
   end 
   in
+  let target_opt_ast = match vd with
+      | Ast.Let_def(_,target_opt,_) -> target_opt
+      | Ast.Let_rec(_,_,target_opt,_) -> target_opt
+      | Ast.Let_inline (_,_,target_opt,_) ->  target_opt
+  in
+  let target_set = target_opt_to_set target_opt_ast in
+  let target_opt = check_target_opt target_opt_ast in
+  let env_tag = target_opt_to_env_tag target_set in
+
   let module Checker = Make_checker(T) in
-    function
-      | Ast.Let_def(sk,target_opt,lb) ->
-          let target_set = target_opt_to_set target_opt in
-          let env_tag = target_opt_to_env_tag target_set in
-          let target_opt = check_target_opt target_opt in
-          let (lbs,e_v,constraints) = 
-            Checker.check_letbind for_method target_set l lb 
-          in 
-            (e_v, (Let_def(sk,target_opt,lbs)), constraints, env_tag)
-      | Ast.Let_rec(sk1,sk2,target_opt,funcls) ->
+  match vd with
+      | Ast.Let_def(sk,_,lb) ->
+          let (lb,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_letbind for_method target_set l lb in 
+          let _ = unsat_constraint_err l constraints in
+          let ctxt' = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) constraints lconstraints env_tag e_v in
+          let (vd : val_def) = letbind_to_funcl_aux sk target_opt ctxt' lb in
+          (ctxt', e_v, vd, Tconstraints(tnvs,constraints,lconstraints))
+      | Ast.Let_rec(sk1,sk2,_,funcls) ->
           let funcls = Seplist.from_list funcls in
-          let target_set = target_opt_to_set target_opt in
-          let (lbs,e_v,constraints) = 
-            Checker.check_funs for_method target_set l funcls 
-          in
-          let env_tag = target_opt_to_env_tag target_set in
-          let target_opt = check_target_opt target_opt in
-            (e_v, (Rec_def(sk1,sk2,target_opt,lbs)), constraints, env_tag)
-      | _ -> assert false
+          let (lbs,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_funs for_method target_set l funcls in 
+          let _ = unsat_constraint_err l constraints in
+          let ctxt' = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) constraints lconstraints env_tag e_v in
+          let fauxs = letbinds_to_funcl_aux_rec l ctxt' lbs in
+            (ctxt', e_v, (Fun_def(sk1,Some sk2,target_opt,fauxs)), Tconstraints(tnvs,constraints,lconstraints))
+      | Ast.Let_inline (sk1,sk2,_,lb) -> 
+          let (lb,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_letbind for_method target_set l lb in 
+          let _ = unsat_constraint_err l constraints in
+          let ctxt' = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) constraints lconstraints env_tag e_v in
+          let (nls, n_ref, _, pL, ty_opt, sk3, et) = letbind_to_funcl_aux_dest ctxt' lb in
+          let args = match Util.map_all Pattern_syntax.pat_to_ext_name pL with
+                       | None -> raise_error_string l "non-variable pattern in inline"
+                       | Some a -> a in         
+          let new_tr = CR_inline (l, args, et) in
+          let d = c_env_lookup l ctxt'.c_env n_ref in
+          let tr = match target_set with
+               | None -> Targetmap.set_default d.target_rep (Some new_tr)
+               | Some ts -> Targetset.fold (fun t r -> Targetmap.insert r (t,new_tr)) ts d.target_rep
+            in
+          let ctxt'' = {ctxt' with c_env = c_env_update ctxt'.c_env n_ref {d with target_rep = tr}} in
+            (ctxt'', e_v, Let_inline(sk1,sk2,target_opt,nls,n_ref,args,sk3,et), Tconstraints(tnvs,constraints,lconstraints))
 
 let check_lemma l ts (ctxt : defn_ctxt) 
       : Ast.lemma_decl -> 
@@ -2326,55 +2384,48 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let new_ctxt = build_type_defs mod_path ctxt tdefs in
           let (res,new_ctxt) = build_ctor_defs mod_path new_ctxt tdefs in
             (new_ctxt,Type_def(sk,res))
-      | Ast.Val_def(Ast.Let_inline(sk1,sk2,target_opt,lb)) ->
-          let (e_v,vd,Tconstraints(tnvs,constraints,lconstraints), env_tag) = 
-            check_val_def backend_targets None l ctxt 
-              (Ast.Let_def(sk1,target_opt,lb))
-          in          
-          let _ = unsat_constraint_err l constraints in
-          let (sk1,sk2,target_opt,n,args,sk3,et) = 
-            match vd with
-              | Let_def(sk1, target_opt, (Let_val(p,src_t,sk3,e),l)) ->
-                  (sk1,sk2,target_opt,pat_to_name p,[],sk3,e)
-              | Let_def(sk1, target_opt, (Let_fun(n,ps,src_t,sk3,e),l)) ->
-                  (sk1,sk2,target_opt,n, List.map pat_to_name ps,sk3,e)
-              | _ ->
-                  assert false
-          in
-          let sub = 
-            (List.map 
-               (fun x -> {x with term = Name.strip_lskip x.term})
-               args, 
-             et)
-          in
-          let ctxt = 
-            add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs)
-              constraints lconstraints env_tag 
-              (Some(((match env_tag with K_target(_,ts) -> ts | _ -> assert false), sub)))
-              e_v
-          in
-            (ctxt, Val_def(Let_inline(sk1,sk2,target_opt,n,args,sk3,et), tnvs, constraints))
       | Ast.Val_def(val_def) ->
-          let (e_v,vd,Tconstraints(tnvs,constraints,lconstraints), env_tag) = 
-            check_val_def backend_targets None l ctxt val_def 
+          let (ctxt',_,vd,Tconstraints(tnvs,constraints,lconstraints)) = 
+            check_val_def backend_targets mod_path None l ctxt val_def 
           in
-            (add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs)
-               constraints lconstraints env_tag None e_v,
-             Val_def(vd,tnvs, constraints))
+            (ctxt', Val_def(vd,tnvs, constraints))
       | Ast.Lemma(lem) ->
             let (ctxt', sk, lty, targs, name_opt, sk2, e, sk3) = check_lemma l backend_targets ctxt lem in
             (ctxt', Lemma(sk, lty, targs, name_opt, sk2, e, sk3))
       | Ast.Ident_rename(sk1,target_opt,id,sk2,xl') ->        
           let l' = Ast.xl_to_l xl' in
           let n' = Name.from_x xl' in 
-          let env = defn_ctxt_get_cur_env ctxt in
           let id' = Ident.from_id id in
-          let p = lookup_name env id in
-             (ctxt,
-             (Ident_rename(sk1, check_target_opt target_opt,
+          let targs = check_target_opt target_opt in
+
+          (* do the renaming *)
+          let (nk, p) = lookup_name (defn_ctxt_get_cur_env ctxt) id in
+          let ctxt' = match nk with
+            | (Nk_const c | Nk_field c | Nk_constr c) ->
+              begin 
+                let cd = c_env_lookup l ctxt.c_env c in
+                let cd' = List.fold_left (fun cd t -> 
+                   match constant_descr_rename (Some t) (Name.strip_lskip n') l cd with
+                     | Some (cd', _) -> cd'
+                     | None -> raise_error_string l "internal error: count not rename constant. This is a bug and should not happen.")
+                   cd (targets_opt_to_list targs) in
+                let c_env' = c_env_update ctxt.c_env c cd' in
+                {ctxt with c_env = c_env'}
+              end
+            | Nk_typeconstr p -> 
+              begin 
+                let td' = List.fold_left (fun td t -> type_defs_rename_type l td p t (Name.strip_lskip n'))
+                   ctxt.all_tdefs (targets_opt_to_list targs) in
+                {ctxt with all_tdefs = td'}
+              end
+            | Nk_module m -> ctxt
+            | Nk_class -> ctxt
+          in
+             (ctxt',
+             (Ident_rename(sk1, targs,
                      p, id', 
                      sk2, (n', l'))))
-      | Ast.Module(sk1,xl, sk2,sk3,Ast.Defs(defs),sk4) ->
+      | Ast.Module(sk1,xl,sk2,sk3,Ast.Defs(defs),sk4) ->
           let l' = Ast.xl_to_l xl in
           let n = Name.from_x xl in 
           let n' = Name.strip_lskip n in 
@@ -2385,7 +2436,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let ctxt2 = {new_ctxt with new_defs = ctxt.new_defs; cur_env = ctxt.cur_env }
           in
             (add_m_to_ctxt l' ctxt2 n { mod_binding = Path.mk_path mod_path n'; mod_env = new_ctxt.new_defs },
-             Module(sk1,(n,l'),sk2,sk3,ds,sk4))
+             Module(sk1,(n,l'),Path.mk_path mod_path n',sk2,sk3,ds,sk4))
       | Ast.Rename(sk1,xl',sk2,i) ->
           let l' = Ast.xl_to_l xl' in
           let n = Name.from_x xl' in 
@@ -2393,6 +2444,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
             (add_m_to_ctxt l' ctxt n mod_descr,
              (Rename(sk1,
                      (n,l'), 
+                     Path.mk_path mod_path (Name.strip_lskip n),
                      sk2,
                      { id_path = Id_some (Ident.from_id i);
                        id_locn = l;
@@ -2413,12 +2465,20 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let target_opt_checked = check_target_opt target_opt in
           let target_set = target_opt_to_set target_opt in
           let (cls,e_v,Tconstraints(tnvs,constraints,lconstraints)) = 
-            Checker.check_indrels target_set l clauses 
-          in 
-            (add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) 
+            Checker.check_indrels target_set l clauses in
+          let ctxt' = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) 
                constraints lconstraints
-               (target_opt_to_env_tag target_set) None e_v, 
-             (Indreln(sk,target_opt_checked,cls)))
+               (target_opt_to_env_tag target_set) e_v in
+          let add_const (name_opt, s1, qnames, s2, e_opt, s3, rname, es) = begin
+              let n = Name.strip_lskip rname.term in
+              let n_ref =  match Nfmap.apply ctxt'.cur_env.v_env n with
+                 | Some(r) -> r
+                 | _ -> raise (Reporting_basic.err_unreachable true l "n should have been added just before") in
+              (name_opt, s1, qnames, s2, e_opt, s3, rname, n_ref, es)
+          end in 
+          let cls' = Seplist.map add_const cls in
+            (ctxt', 
+             (Indreln(sk,target_opt_checked,cls')))
       | Ast.Spec_def(val_spec) ->
           let (ctxt,vs) = check_val_spec l mod_path ctxt val_spec in
             (ctxt, Val_spec(vs))
@@ -2453,13 +2513,11 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let (ctxt',vspecs,methods) = 
             List.fold_left
               (fun (ctxt,vs,methods) (a,b,c,d,l) ->
-                 let (tc,tc_d,ctxt,v) = 
-                   check_class_spec l mod_path ctxt p tv 
-                     (a,b,c,d)
+                 let (tc,tc_d,ctxt,src_t,v) = check_class_spec l mod_path ctxt p tv (a,b,c,d)
                  in
                    (ctxt,
                     v::vs,
-                    ((Path.get_name tc_d.const_binding, l), tc_d.const_type)::methods))
+                    ((Path.get_name tc_d.const_binding, l), src_t)::methods))
               (ctxt,[],[])
               specs
           in
@@ -2490,14 +2548,17 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                    target_rep = Targetmap.empty })
               ctxt''
               (Seplist.from_list (List.map 
-                                    (fun ((n,l),t) -> 
-                                       (((Name.add_lskip (build_field_name n),l), None, t),None)) 
+                                    (fun ((n,l),src_t) -> 
+                                       (((Name.add_lskip (build_field_name n),l), None, src_t),None)) 
                                     methods))
           in
           (add_d_to_ctxt ctxt''' p 
-             (Tc_class(tnvar', List.map (fun ((n,l), t) -> (n,t)) methods)),
-           Class(sk1,sk2,(cn,l'),tnvar, sk4,List.rev vspecs, sk5))
+             (Tc_class(tnvar', List.map (fun ((n,l), src_t) -> (n,src_t.typ)) methods)),
+           Class(sk1,sk2,(cn,l'),tnvar,type_path,sk4,List.rev vspecs, sk5))
       | Ast.Instance(sk1,Ast.Is(cs,sk2,id,typ,sk3),vals,sk4) ->
+          (* TODO: completely broken, needs fixing. adapt check_val_def to check the
+                   right methods via apply_specs, document apply_specs, fix name bindings,
+                   ... *)
           (* TODO: Check for duplicate instances *)
           let (src_cs, tyvars, tnvarset, (sem_cs,sem_rs)) =
             check_constraint_prefix ctxt cs 
@@ -2529,15 +2590,12 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
               ctxt.all_instances
               sem_cs
           in
-          let tmp_ctxt = 
-            { ctxt with all_instances = tmp_all_inst }
-          in
           (* TODO: lexical bindings hide class methods *)
-          let (e_v,vdefs) = 
+          let (e_v,ctxt',vdefs) = 
             List.fold_left
-              (fun (e_v,vs) (v,l) ->
-                 let (e_v',v,Tconstraints(tnvs,constraints,lconstraints),_) = 
-                   check_val_def backend_targets (Some(src_t.typ)) l tmp_ctxt v 
+              (fun (e_v,ctxt,vs) (v,l) ->
+                 let (ctxt',e_v',vd,Tconstraints(tnvs,constraints,lconstraints)) = 
+                   check_val_def backend_targets instance_path (Some(src_t.typ)) l ctxt v 
                  in
                  let _ = assert (constraints = []) in
                  let _ = assert (lconstraints = []) in
@@ -2555,10 +2613,11 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                       | None ->
                           Nfmap.union e_v' e_v
                  in
-                   (new_e_v, v::vs))
-              (Nfmap.empty,[])
+                   (new_e_v, ctxt', vd::vs))
+              (Nfmap.empty,{ ctxt with all_instances = tmp_all_inst },[])              
               vals
           in
+          let ctxt = { ctxt' with all_instances = ctxt.all_instances } in
           let _ = 
             List.iter
               (fun (n,t) ->

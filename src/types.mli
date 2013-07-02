@@ -130,8 +130,8 @@ type constr_family_descr = {
 
 (** the target representation of a type *)
 type type_target_rep =
-  | TR_rename of Name.t (** Rename the type to the given name. This means keeping the module structure unchanged and just modifying the name *)
-  | TR_new_ident of Ident.t (** Replace the type identifier with the given one. Module prefixes are thrown away and replaced *)
+  | TR_rename of Ast.l *  bool * Name.t (** Rename the type to the given name. This means keeping the module structure unchanged and just modifying the name *)
+  | TR_new_ident of Ast.l *  bool * Ident.t (** Replace the type identifier with the given one. Module prefixes are thrown away and replaced *)
 
 (** a type description  **)
 type type_descr = { 
@@ -161,6 +161,10 @@ type tc_def =
 
 type type_defs = tc_def Pfmap.t
 
+(** [type_defs_update_tc_type l d p up] updates the description of type [p] in [d] using the function [up].
+    If there is no type [p] in [d] or if [up] returns [None], an exception is raised. *)
+val type_defs_update_tc_type : Ast.l -> type_defs -> Path.t -> (type_descr -> type_descr option) -> type_defs
+
 (** [type_defs_update_fields l d p fl] updates the fields of type [p] in [d]. *)
 val type_defs_update_fields : Ast.l -> type_defs -> Path.t -> const_descr_ref list -> type_defs
 
@@ -170,19 +174,14 @@ val type_defs_add_constr_family : Ast.l -> type_defs -> Path.t -> constr_family_
     type environment [d], which contain the constant [c]. *)
 val type_defs_get_constr_families : Ast.l -> type_defs -> t -> const_descr_ref -> constr_family_descr list
 
-(** [type_def_rename_type l d p t n] renames the type with path [p] in the defs [d] to the name [n] for
-target [t]. Renaming means that the module structure is kept. Only the name is changed. *)
-val type_defs_rename_type: Ast.l -> type_defs -> Path.t -> Target.target -> Name.t -> type_defs
-
-(** [type_def_new_ident_type l d p t i] changes the representation of the type with path [p] in the defs [d] to the identifier [i] for
-target [t]. This means that the whole module structure is lost and replace by the identifier. *)
-val type_defs_new_ident_type: Ast.l -> type_defs -> Path.t -> Target.target -> Ident.t -> type_defs
-
 (** [type_defs_lookup_typ l d t] looks up the description of type [t] in defs [d]. *)
 val type_defs_lookup_typ : Ast.l -> type_defs -> t -> type_descr option
 
 (** [type_defs_lookup l d p] looks up the description of type with path [p] in defs [d]. *)
 val type_defs_lookup : Ast.l -> type_defs -> Path.t -> type_descr
+
+(** [type_defs_update d p td] updates the description of type with path [p] in defs [d] with [td]. *)
+val type_defs_update : type_defs -> Path.t -> type_descr -> type_defs
 
 (** Generates a type abbreviation *)
 val mk_tc_type_abbrev : tnvar list -> t -> tc_def

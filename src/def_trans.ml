@@ -57,10 +57,9 @@ let new_line = Some [Ast.Ws (r"\n")]
 let rec list_to_mac = function
   | [] -> (fun p e d -> None)
   | m1::ms ->
-      let ms_f = list_to_mac ms in
         (fun p e d ->
            match m1 p e d with
-             | None -> ms_f p e d
+             | None -> let ms_f = list_to_mac ms in ms_f p e d
              | Some((e,d)) -> Some((e,d)))
 
 let rec process_defs path (trans : def_macro) mod_name (env : env) defs = 
@@ -80,11 +79,11 @@ let rec process_defs path (trans : def_macro) mod_name (env : env) defs =
               | None -> ( 
                   let (env',def') = 
                     match def with
-                      | ((Module(sk1,(n,l'),sk2,sk3,ds,sk4),s),l) ->
+                      | ((Module(sk1,(n,l'),mod_bind,sk2,sk3,ds,sk4),s),l) ->
                           let (env',ds') = 
                             process_defs (mod_name::path) trans (Name.strip_lskip n) env ds 
                           in
-                            (env',((Module(sk1,(n,l'),sk2,sk3,ds',sk4),s),l))
+                            (env',((Module(sk1,(n,l'),mod_bind,sk2,sk3,ds',sk4),s),l))
                       | _ -> (env,def)
                   in
                   let (env'', defs') = p env' defs in
@@ -133,9 +132,9 @@ let remove_indrelns_true_lhs _ env ((d,s),l) =
   let l_unk = Ast.Trans ("remove_indrelns_true_lhs", Some l) in
   match d with
     | Indreln (s', targ, sl) ->
-        let remove_true (name_opt, s1, qnames, s2, e_opt, s3, rname, es) =
+        let remove_true (name_opt, s1, qnames, s2, e_opt, s3, rname, c, es) =
             (match e_opt with None -> None | Some e -> (if Typed_ast_syntax.is_tf_exp true e then 
-                Some (name_opt, s1, qnames, s2, None, s3, rname, es) else None))
+                Some (name_opt, s1, qnames, s2, None, s3, rname, c, es) else None))
         in
         (match Seplist.map_changed remove_true sl with
              None -> None
@@ -144,61 +143,25 @@ let remove_indrelns_true_lhs _ env ((d,s),l) =
              Some(env, [def]))
     | _ -> None
 
-(* Transform let f (x, y) ... (z, a) = e into let f = fun (x, y) ... (z, a) -> e *)
-let push_patterns_in_function_definitions_in _ env (((d, s), l)) =
-  let l_unk = Ast.Trans ("push_patterns_in_function_definitions", Some l) in
-  match d with
-    | Val_def (
-        Let_def (
-          def_lskips, targets_opt,
-          (Let_fun (name_lskips_annot, pat_list, _, fun_lskips, exp), l')),
-        tnvs, class_constraints) ->
-          let lskips = Some [Ast.Ws (Ulib.Text.of_string " ")] in
-          let new_typ =
-            let rec pat_typ_fold =
-              function
-                | []  -> exp_to_typ exp
-                | [x] -> { Types.t = Types.Tfn (x.typ, exp_to_typ exp) }
-                | x::xs -> { Types.t = Types.Tfn (x.typ, pat_typ_fold xs) }
-            in
-              pat_typ_fold pat_list
-          in
-          let func = C.mk_fun (Typed_ast.exp_to_locn exp) lskips pat_list lskips exp (Some new_typ) in
-          let pat = {
-            term = P_var name_lskips_annot.term; locn = l_unk;
-            typ = name_lskips_annot.typ; rest = { pvars = Nfmap.empty }
-            } in
-          let let_bind = (Let_val (pat, None, fun_lskips, func), l') in
-          let val_def = Val_def (Let_def (def_lskips, targets_opt, let_bind), tnvs, class_constraints) in
-            Some (env, [(val_def, s), l])
-    | _ -> None
-;;
-
 (* For Coq, add return types to function definitions that have type variables *)
+let generate_srt_t_opt src_opt e =
+  match src_opt with 
+    | Some _ -> None
+    | None ->  
+        if Types.TNset.is_empty (Types.free_vars (exp_to_typ e)) then
+          None
+        else
+          Some (None,C.t_to_src_t (exp_to_typ e))
+             
 let type_annotate_definitions _ env ((d,s),l) =
   match d with
-    | Val_def(Let_def(sk1,topt,(Let_val(ps,Some _,sk2,e),l')),tnvs,class_constraints) ->
-        None
-    | Val_def(Let_def(sk1,topt,(Let_val(ps,None,sk2,e),l')),tnvs,class_constraints) ->
-        if Types.TNset.is_empty (Types.free_vars (exp_to_typ e)) then
-          None
-        else
-          let t = (None,C.t_to_src_t (exp_to_typ e)) in
-            Some
-              (env,
-               [((Val_def(Let_def(sk1,topt,(Let_val(ps,Some t,sk2,e),l')),tnvs,class_constraints),
-                  s),l)])
-    | Val_def(Let_def(sk1,topt,((Let_fun(n,ps,Some _,sk2,e),l'))),tnvs,class_constraints) ->
-        None
-    | Val_def(Let_def(sk1,topt,((Let_fun(n,ps,None,sk2,e),l'))),tnvs,class_constraints) ->
-        if Types.TNset.is_empty (Types.free_vars (exp_to_typ e)) then
-          None
-        else
-          let t = (None,C.t_to_src_t (exp_to_typ e)) in
-            Some
-              (env,
-               [((Val_def(Let_def(sk1, topt,((Let_fun(n, ps, Some t, sk2, e), l'))), tnvs, class_constraints), s), l)])
-    (* TODO: Rec_def *)
+    | Val_def(Let_def(sk1,topt,(p, name_map, src_t_opt, sk2, e)),tnvs,class_constraints) -> begin
+        match generate_srt_t_opt src_t_opt e with
+          | None -> None
+          | Some t -> Some (env,
+               [((Val_def(Let_def(sk1, topt,(p, name_map, Some t, sk2, e)), tnvs, class_constraints), s), l)])
+      end
+    (* TODO: Handle Fun_def *)
     | _ -> None
 
 let build_field_name n = 
@@ -209,14 +172,15 @@ let dict_type_name cn = (Name.lskip_rename (fun x -> Ulib.Text.(^^^) x (r"_class
 let class_to_module mod_path env ((d,s),l) =
 (*  let l_unk = Ast.Trans("class_to_module", Some l) in *)
     match d with
-      | Class(sk1,sk2,(n,l),tnvar,sk3,specs,sk4) ->
+      | Class(sk1,sk2,(n,l),tnvar,class_path,sk3,specs,sk4) ->
           let fields = Seplist.from_list_default None
                          (*TODO: Something with sk1 *)
-                         (List.map (fun (sk1, (n,l), sk2, src_t) -> ((build_field_name n, l), sk2, src_t)) specs)
+                         (List.map (fun (sk1, (n,l), ref, sk2, src_t) -> ((build_field_name n, l), ref, sk2, src_t)) specs)
           in
+          
           let rec_def = 
             Type_def (Ast.combine_lex_skips sk1 sk2, 
-                      Seplist.from_list_default None [((dict_type_name n, l), [tnvar], Te_record(None, sk3, fields, sk4), None)])
+                      Seplist.from_list_default None [((dict_type_name n, l), [tnvar], class_path, Te_record(None, sk3, fields, sk4), None)])
           in
             Some((env, (simple_def rec_def)))
       | _ -> None
@@ -239,7 +203,7 @@ let instance_to_module (global_env : env) mod_path (env : env) ((d,s),l) =
               target_rep = Targetmap.empty;
             }
           in
-          let (c_env,dict_ref) = c_env_store env.c_env dict_c in
+          let (c_env,dict_ref) = Typed_ast_syntax.c_env_store env.c_env dict_c in
           let v_env = Nfmap.insert sem_info.inst_env (dict_name, dict_ref) in
           let local_env =
             { env.local_env with m_env = 
@@ -284,15 +248,14 @@ let instance_to_module (global_env : env) mod_path (env : env) ((d,s),l) =
               rest = ();
             }
           in
-          let dict' =
-            Let_val(C.mk_pvar (l_unk 7) dict_name.term dict_type, None, None, dict_body)
-          in
-          let dict = Let_def(new_line,None,(dict',l_unk 8)) in
+          let dict' = ((dict_name,  dict_ref, [], None, None, dict_body):funcl_aux) in
+          let dict = Fun_def(new_line,None,None,Seplist.cons_entry dict' Seplist.empty) in
           let tnvars_set = 
             List.fold_right Types.TNset.add sem_info.inst_tyvars Types.TNset.empty
           in
           let m = 
-            Module(sk1, (Name.add_lskip sem_info.inst_name, l_unk 9), sk2, None, 
+            Module(sk1, (Name.add_lskip sem_info.inst_name, l_unk 9), 
+                   Path.mk_path mod_path sem_info.inst_name, sk2, None, 
                    List.map (fun d -> ((Val_def(d,tnvars_set,sem_info.inst_constraints),None), l_unk 10)) 
                             (vdefs @ [dict]), 
                    sk4)
@@ -305,8 +268,7 @@ let class_constraint_to_parameter : def_macro = fun mod_path env ((d,s),l) ->
   let l_unk = Ast.Trans("class_constraint_to_parameter", Some l) in
   (* TODO : avoid shouldn't be None *)
     match d with
-      | Val_def(_, tnvs, []) ->
-          None
+      | Val_def(_, tnvs, []) -> None
       | Val_def(lb,tnvs,class_constraints) ->
           let new_pats =
             List.map
@@ -316,7 +278,7 @@ let class_constraint_to_parameter : def_macro = fun mod_path env ((d,s),l) ->
                      (Typed_ast.class_path_to_dict_type c (Types.tnvar_to_type tnv)))
               class_constraints
           in
-          let build_fun sk1 targs n ps topt sk2 e l' =
+          let build_fun sk1 targs n ps topt sk2 e =
             let n' = Name.strip_lskip n.term in
             let (c, c_d) = names_get_const env [] n' in
             let t' = Types.multi_fun (List.map (fun x -> x.typ) new_pats) c_d.const_type in
@@ -324,25 +286,16 @@ let class_constraint_to_parameter : def_macro = fun mod_path env ((d,s),l) ->
             let env' = env_c_env_update env c c_d_new in
             let n'' = { n with typ = t' } in
             Some(env',
-                 [((Val_def(Let_def(sk1,targs,(Let_fun(n'',new_pats@ps,topt,sk2,e), l')),tnvs,[]),s),l)])
+                 [((Val_def(Fun_def(sk1,None,targs,Seplist.sing (n'',c,new_pats@ps,topt,sk2,e)),tnvs,[]),s),l)])
           in
           begin
             match lb with
-             | Let_def(sk1,targs,(Let_fun(n, ps, topt, sk2, e), l')) ->
-                 build_fun sk1 targs n ps topt sk2 e l'
-             | Let_def(sk,targs,(Let_val(p, topt, sk2, e), l')) ->
-                  begin
-                    match p.term with
-                      | P_var(n) ->
-                          let pn = { term = n; typ = p.typ; locn = p.locn; rest = () } in
-                            build_fun sk targs pn [] topt sk2 e l'
-                      | _ -> 
-                          raise (Reporting_basic.err_todo true l "Constant with class constraints bound to a non-variable pattern")
-                  end
-              | Rec_def(sk1,sk2,topt,funs) ->
+              | Let_def(_,_,_) -> None
+              | Fun_def(sk,None,_,_) -> None
+
+              | Fun_def(_,Some _,_,_) ->
                   raise (Reporting_basic.err_todo true l "Recursive function with class constraints")
-              | Let_inline _ ->
-                  assert false
+              | Let_inline _ -> None
          end
       | _ -> None
 
@@ -359,31 +312,23 @@ let nvar_to_parameter : def_macro = fun mod_path env ((d,s),l) ->
         let new_pats = List.map (fun n -> C.mk_pvar l_unk (Name.add_lskip (Types.tnvar_to_name n))
                                                           { Types.t = Types.Tapp([],Path.numpath) })
                                 nvars in
-        let build_fun sk1 targs n ps topt sk2 e l' =
-            let n' = Name.strip_lskip n.term in
-            let (c, c_d) = names_get_const env [] n' in 
+
+        let tnvs' = List.fold_left (fun s t -> Types.TNset.add t s) Types.TNset.empty tvars in
+
+        let build_funcl_aux ((sk1, c, ps, topt, sk2, e):funcl_aux) : (env * funcl_aux) = 
+        begin
+            let c_d = c_env_lookup l_unk env.c_env c in 
             let t' = Types.multi_fun (List.map (fun x -> x.typ) new_pats) c_d.const_type in
-            let n'' = { n with typ = t' } in
             let c_new_d = ({ c_d with const_type = t' } ) in
             let env' = env_c_env_update env c c_new_d in
-          Some(env',
-                 [((Val_def(Let_def(sk1,targs,(Let_fun(n'',new_pats@ps,topt,sk2,e),l')),
-                            (List.fold_left (fun s t -> Types.TNset.add t s) Types.TNset.empty tvars),class_constraints),s),l)])
-            in
+            (env', ((sk1,c,new_pats@ps,topt,sk2,e):funcl_aux))
+        end in
             begin
               match lb with 
-             | Let_def(sk1,targs,(Let_fun(n, ps, topt, sk2, e), l')) ->
-                 build_fun sk1 targs n ps topt sk2 e l'
-             | Let_def(sk,targs,(Let_val(p, topt, sk2, e), l')) ->
-                  begin
-                    match p.term with
-                      | P_var(n) ->
-                          let pn = { term = n; typ = p.typ; locn = p.locn; rest = () } in
-                            build_fun sk targs pn [] topt sk2 e l'
-                      | _ -> 
-                          raise (Reporting_basic.err_todo true l "Constant with nvars bound to a non-variable pattern")
-                  end
-              | Rec_def(sk1,sk2,topt,funs) ->
+              | Let_def(_,_,_) -> None
+              | Fun_def(sk1,None,topt,funs) ->
+                  raise (Reporting_basic.err_todo true l "Recursive function with nvars")
+              | Fun_def(sk1,sk2,topt,funs) ->
                   raise (Reporting_basic.err_todo true l "Recursive function with nvars")
               | Let_inline _ ->
                   assert false
@@ -397,10 +342,10 @@ let get_name def l = match def with
     | [] ->  
         raise (Reporting_basic.err_todo false l "Error while pruning target definitions: empty Indreln clauses in get_name [debug]")
         
-    | ((_,_,_,_,_,_,name,_)::cs) -> Name.strip_lskip name.term     
+    | ((_,_,_,_,_,_,name,_,_)::cs) -> Name.strip_lskip name.term     
     )
   
-  | Val_def(Rec_def(_,_,_,clauses),ntvs,_) -> (match Seplist.to_list clauses with
+  | Val_def(Fun_def(_,_,_,clauses),ntvs,_) -> (match Seplist.to_list clauses with
 
     (* in a Rec_def, the constant names of all clauses should be the same, so we
      * check only the first TODO: check! *)
@@ -408,32 +353,23 @@ let get_name def l = match def with
     | [] ->  
         raise (Reporting_basic.err_todo false l "Error while pruning target definitions: empty Rec_def clauses in get_name [debug]")
 
-    | ((name,_,_,_,_)::cs) -> Name.strip_lskip name.term     
+    | ((name,_,_,_,_,_)::cs) -> Name.strip_lskip name.term     
     )
 
-  | Val_def(Let_def(_,_,lb),tnvs,_) -> (match lb with 
-    
-    | (Let_fun(name,_,_,_,_), _) -> 
-        Name.strip_lskip name.term
-    
-    | (Let_val(pat,_,_,_), _) ->  
-        (match pat.term with
-      
-      | P_var name -> 
-          Name.strip_lskip name
-          
-      | _ -> 
-        raise (Reporting_basic.err_todo false l "Error while pruning target definitions: unmatched Let_val case in get_name [debug]")
-      ))
-  | Val_def(Let_inline(_,_,_,name,_,_,_), _,_) -> Name.strip_lskip name.term
+  | Val_def(Let_def(_,_,(p,_,_,_,_)),tnvs,_) -> begin
+      match Pattern_syntax.pat_to_ext_name p with
+        | Some nls -> Name.strip_lskip nls.term 
+        | None -> raise (Reporting_basic.err_todo false l "Error while pruning target definitions: unmatched Let_val case in get_name [debug]")
+    end
+  | Val_def(Let_inline(_,_,_,name,_,_,_,_), _,_) -> Name.strip_lskip name.term
   | _ -> 
     raise (Reporting_basic.err_todo false l "Error while pruning target definitions: unmatched top-level case in get_name [debug]")
 
 
 let target_supports_lemma_type target lty =
   match (target, lty) with
-    | (Ast.Target_ocaml _, Ast.Lemma_theorem _) -> false
-    | (Ast.Target_ocaml _, Ast.Lemma_lemma _) -> false
+    | (Target.Target_ocaml, Ast.Lemma_theorem _) -> false
+    | (Target.Target_ocaml, Ast.Lemma_lemma _) -> false
     | (_, _) -> true
 
 let prune_target_bindings target defs =
@@ -456,13 +392,13 @@ let prune_target_bindings target defs =
   (* def_walker walks over a list of definitions, checks for each def if it is a 
    * target specific one, in which case it invokes rem_dups with both, the
    * already checked defs and the remaining defs *)
-  let rec def_walker (target : Ast.target) acc =  function
+  let rec def_walker (target : Target.target) acc =  function
     | [] -> List.rev acc
 
     | ((def,s),l)::defs -> begin
       match def with
         | (Val_def(Let_def(_,topt,_),_,_) |
-          Val_def(Rec_def(_,_,topt,_),_,_) |
+          Val_def(Fun_def(_,_,topt,_),_,_) |
           Indreln(_,topt,_) ) as d -> 
 
           if Typed_ast.in_targets_opt (Some target) topt then 

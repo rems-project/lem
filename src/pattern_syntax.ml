@@ -74,6 +74,13 @@ let is_var_pat (p : pat) : bool =
     | P_var _ -> true
     | _ -> false
 
+let rec pat_to_ext_name (p:pat) : name_lskips_annot option = 
+  match p.term with
+    | P_var n -> Some { term = n; typ= p.typ; locn = p.locn; rest = (); }
+    | P_var_annot (n, _) -> Some { term = n; typ= p.typ; locn = p.locn; rest = (); }
+    | P_typ(_,p,_,_,_) | P_paren(_,p,_) -> pat_to_ext_name p
+    | _ -> None
+
 (** Is it a wildcard pattern? Nothing else including typed vars accepted. 
     @param p Something *)
 let rec is_wild_pat (p : pat) : bool =

@@ -67,7 +67,6 @@ val is_var_pat : pat -> bool
     accepts wildcard patterns. *)
 val is_ext_var_pat : pat -> bool
 
-
 (** [is_var_tup_pat p] checks whether the pattern [p] consists only
     of variable and tuple patterns. *)
 val is_var_tup_pat : pat -> bool
@@ -76,8 +75,19 @@ val is_var_tup_pat : pat -> bool
     of variable, wildcard and tuple patterns. *)
 val is_var_wild_tup_pat : pat -> bool
 
+(** [dest_var_pat p] destructs variable patterns and returs their name. If [p] 
+    is not a variable pattern, [None] is returned. *)
 val dest_var_pat : pat -> Name.t option
+
+(** [dest_ext_var_pat p] is an extended version of [det_var_pat p]. In addition
+    to [det_var_pat p] it can handle variable patterns with type annotations and
+    is able to strip parenthesis. *)
 val dest_ext_var_pat : pat -> Name.t option
+
+(** [pat_to_ext_name p] is very similar to [dest_ext_var_pat p]. 
+    However, intead of returning just a name, [pat_to_ext_name] returns additionally 
+    the whitespace and the type in form of a [name_lskips_annot]. *)
+val pat_to_ext_name : pat -> name_lskips_annot option 
 
 (** [is_wild_pat p] checks whether the pattern [p] is
     a wildcard pattern. *)
@@ -195,6 +205,8 @@ val for_all_subpat : (pat -> bool) -> pat -> bool
 (** [single_pat_exhaustive p] checks whether the pattern [p] is exhaustive. *)
 val single_pat_exhaustive : pat -> bool
 
+(** [pat_vars_src p] returns a list of all the variable names occuring in the pattern.
+    The names are annotated with the type and the whitespace information. *)
 val pat_vars_src : pat -> (Name.lskips_t, unit) annot list
 
 (** {2 miscellaneous } *)

@@ -203,6 +203,9 @@ let cons_entry x = function
   | (None, [], Some _) ->
       assert false
 
+let sing x = (None, [], Some x)
+  
+
 let length (_,l,o2) =
   List.length l 
   + 

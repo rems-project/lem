@@ -150,9 +150,10 @@ and pat_aux =
   | P_var_annot of Name.lskips_t * src_t
 
 and const_target_rep =
-  | CR_rename of Name.t               
-  | CR_new_ident of Ident.t               
-  | CR_inline of ((Name.t,unit) annot list * exp)
+  | CR_rename of Ast.l * bool * Name.t
+  | CR_new_ident of Ast.l * bool * Ident.t               
+  | CR_inline of Ast.l * (Name.lskips_t,unit) annot list * exp
+  | CR_special of Ast.l * bool * bool * Name.t * (Output.t list -> Output.t list) * Name.t list
 
 and const_descr = { const_binding : Path.t;
                     const_tparams : Types.tnvar list;
@@ -231,13 +232,13 @@ and quant_binding =
   (* true for list quantifiers, false for set quantifiers *)
   | Qb_restr of bool * lskips * pat * lskips * exp * lskips
 
-and funcl_aux = name_lskips_annot * pat list * (lskips * src_t) option * lskips * exp
+and funcl_aux = name_lskips_annot * const_descr_ref * pat list * (lskips * src_t) option * lskips * exp
 
 and letbind = letbind_aux * Ast.l
 
 and letbind_aux = 
   | Let_val of pat * (lskips * src_t) option * lskips * exp
-  | Let_fun of funcl_aux
+  | Let_fun of name_lskips_annot * pat list * (lskips * src_t) option * lskips * exp
 
 type tyvar = lskips * Ulib.Text.t * Ast.l
 type nvar = lskips * Ulib.Text.t * Ast.l
@@ -249,8 +250,8 @@ type tnvar =
 type texp = 
   | Te_opaque
   | Te_abbrev of lskips * src_t
-  | Te_record of lskips * lskips * (name_l * lskips * src_t) lskips_seplist * lskips
-  | Te_variant of lskips * (name_l * lskips * src_t lskips_seplist) lskips_seplist
+  | Te_record of lskips * lskips * (name_l * const_descr_ref * lskips * src_t) lskips_seplist * lskips
+  | Te_variant of lskips * (name_l * const_descr_ref * lskips * src_t lskips_seplist) lskips_seplist
 
 type range = 
   | GtEq of Ast.l * src_nexp * lskips * src_nexp
@@ -268,24 +269,28 @@ type typschm = constraint_prefix option * src_t
 
 type instschm = constraint_prefix option * lskips * Ident.t * src_t * lskips
 
-type val_spec = lskips * name_l * lskips * typschm
+type val_spec = lskips * name_l * const_descr_ref * lskips * typschm
 
-type class_val_spec = lskips * name_l * lskips * src_t
+type class_val_spec = lskips * name_l * const_descr_ref * lskips * src_t
 
 type targets_opt = (bool * lskips * Ast.target lskips_seplist * lskips) option
 
-let in_targets_opt (t_opt : Ast.target option) (targets_opt : targets_opt) : bool = match t_opt with
+let in_targets_opt (t_opt : Target.target option) (targets_opt : targets_opt) : bool = match t_opt with
     None   -> true
   | Some t -> (match targets_opt with 
                  None -> true
                | Some (neg, _, targets, _) -> 
-                 let is_in = Seplist.exists (fun t' -> ast_target_compare t t' = 0) targets in
+                 let is_in = Seplist.exists (fun t' -> ast_target_compare (target_to_ast_target t) t' = 0) targets in
                  if neg then not is_in else is_in)
 
+let targets_opt_to_list (targets_opt : targets_opt) : Target.target list =
+   List.filter (fun t -> in_targets_opt (Some t) targets_opt) Target.all_targets_list
+                         
+
 type val_def = 
-  | Let_def of lskips * targets_opt * letbind
-  | Rec_def of lskips * lskips * targets_opt * funcl_aux lskips_seplist
-  | Let_inline of lskips * lskips * targets_opt * name_lskips_annot * name_lskips_annot list * lskips * exp
+  | Let_def of lskips * targets_opt * (pat * (Name.t * const_descr_ref) list * (lskips * src_t) option * lskips * exp)
+  | Fun_def of lskips * lskips option * targets_opt * funcl_aux lskips_seplist
+  | Let_inline of lskips * lskips * targets_opt * name_lskips_annot * const_descr_ref * name_lskips_annot list * lskips * exp
 
 type inst_sem_info =
   { inst_env : v_env;
@@ -300,17 +305,17 @@ type name_sect = Name_restrict of (lskips * name_l * lskips * lskips * string * 
 type def = (def_aux * lskips option) * Ast.l
 
 and def_aux =
-  | Type_def of lskips * (name_l * tnvar list * texp * name_sect option) lskips_seplist
+  | Type_def of lskips * (name_l * tnvar list * Path.t * texp * name_sect option) lskips_seplist
   | Val_def of val_def * TNset.t * (Path.t * Types.tnvar) list 
   | Lemma of lskips * Ast.lemma_typ * targets_opt * (name_l * lskips) option * lskips * exp * lskips
   | Ident_rename of lskips * targets_opt * Path.t * Ident.t * lskips * name_l
-  | Module of lskips * name_l * lskips * lskips * def list * lskips
-  | Rename of lskips * name_l * lskips * mod_descr id
+  | Module of lskips * name_l * Path.t * lskips * lskips * def list * lskips
+  | Rename of lskips * name_l * Path.t * lskips * mod_descr id
   | Open of lskips * mod_descr id
   | Indreln of lskips * targets_opt * 
-               (Name.lskips_t option * lskips * name_lskips_annot list * lskips * exp option * lskips * name_lskips_annot * exp list) lskips_seplist
+               (Name.lskips_t option * lskips * name_lskips_annot list * lskips * exp option * lskips * name_lskips_annot * const_descr_ref * exp list) lskips_seplist
   | Val_spec of val_spec
-  | Class of lskips * lskips * name_l * tnvar * lskips * class_val_spec list * lskips
+  | Class of lskips * lskips * name_l * tnvar * Path.t * lskips * class_val_spec list * lskips
   (* The v_env, name and Path/tyvar list are for converting the instance into a module. *)
   | Instance of lskips * instschm * val_def list * lskips * inst_sem_info
   | Comment of def
@@ -344,13 +349,8 @@ let c_env_update (c_env_count, c_env_map) c_id c_d =
 let env_c_env_update env c_id c_d =
   { env with c_env = c_env_update env.c_env c_id c_d }
 
-let c_env_store (c_env_count, c_env_map) c_d = 
+let c_env_store_raw (c_env_count, c_env_map) c_d = 
   ((c_env_count+1, Cdmap.insert c_env_map (c_env_count, c_d)), c_env_count)
-
-let c_env_save c_env c_id_opt c_d =
-  match c_id_opt with 
-    | None -> c_env_store c_env c_d
-    | Some c_id -> (c_env_update c_env c_id c_d, c_id)
 
 let env_m_env_move env mod_name new_local =
   let md = { mod_env = env.local_env; mod_binding = Path.mk_path [] mod_name } in
@@ -511,7 +511,7 @@ let rec alter_init_lskips (lskips_f : lskips -> lskips * lskips) (e : exp) : exp
             res (Nvar_e(s_new,n)) s_ret 
       | Constant(c) ->
           let (id_new, s_ret) = id_alter_init_lskips lskips_f c in
-            res (Constant(c)) s_ret
+            res (Constant(id_new)) s_ret
       | Fun(s1,ps,s2,e) ->
           let (s_new, s_ret) = lskips_f s1 in
             res (Fun(s_new,ps,s2,e)) s_ret
@@ -606,21 +606,21 @@ let rec def_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (((d,s),l) 
       | Val_def(Let_def(sk, topt, lb),tnvs, class_constraints) -> 
           let (s_new, s_ret) = lskips_f sk in
             res (Val_def(Let_def(s_new,topt,lb),tnvs, class_constraints)) s_ret
-      | Val_def(Rec_def(sk1, sk2, topt, funs),tnvs, class_constraints) -> 
+      | Val_def(Fun_def(sk1, sk2, topt, funs),tnvs, class_constraints) -> 
           let (s_new, s_ret) = lskips_f sk1 in
-            res (Val_def(Rec_def(s_new, sk2, topt, funs),tnvs, class_constraints)) s_ret
-      | Val_def(Let_inline(sk1,sk2,targ,n,ns,sk4,e), tnvs, class_constraints) ->
+            res (Val_def(Fun_def(s_new, sk2, topt, funs),tnvs, class_constraints)) s_ret
+      | Val_def(Let_inline(sk1,sk2,targ,n,c,ns,sk4,e), tnvs, class_constraints) ->
           let (s_new, s_ret) = lskips_f sk1 in
-            res (Val_def(Let_inline(s_new,sk2,targ,n,ns,sk4,e), tnvs, class_constraints)) s_ret
+            res (Val_def(Let_inline(s_new,sk2,targ,n,c,ns,sk4,e), tnvs, class_constraints)) s_ret
       | Lemma(sk1, lty, targ, n_opt, sk2, e, sk3) ->
           let (s_new, s_ret) = lskips_f sk1 in
             res (Lemma(s_new, lty, targ, n_opt,sk2, e, sk3)) s_ret
-      | Module(sk1, n, sk2, sk3, ds, sk4) ->
+      | Module(sk1, n, mod_bind, sk2, sk3, ds, sk4) ->
           let (s_new, s_ret) = lskips_f sk1 in
-            res (Module(s_new, n, sk2, sk3, ds, sk4)) s_ret
-      | Rename(sk1, n, sk2, m) ->
+            res (Module(s_new, n, mod_bind, sk2, sk3, ds, sk4)) s_ret
+      | Rename(sk1, n, mod_bind, sk2, m) ->
           let (s_new, s_ret) = lskips_f sk1 in
-            res (Rename(s_new, n, sk2, m)) s_ret
+            res (Rename(s_new, n, mod_bind, sk2, m)) s_ret
       | Ident_rename (sk1,topt,p,i,sk2,nl) ->
           let (s_new, s_ret) = lskips_f sk1 in
             res (Ident_rename (s_new,topt,p,i,sk2,nl)) s_ret
@@ -630,12 +630,12 @@ let rec def_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (((d,s),l) 
       | Indreln(sk,topt,rules) ->
           let (s_new, s_ret) = lskips_f sk in
             res (Indreln(s_new,topt,rules)) s_ret
-      | Val_spec(sk1,n,sk2,ts) ->
+      | Val_spec(sk1,n,n_ref,sk2,ts) ->
           let (s_new, s_ret) = lskips_f sk1 in
-            res (Val_spec(s_new,n,sk2,ts)) s_ret
-      | Class(sk1,sk2,n,tvar,sk3,body,sk4) ->
+            res (Val_spec(s_new,n,n_ref,sk2,ts)) s_ret
+      | Class(sk1,sk2,n,tvar,class_ty,sk3,body,sk4) ->
           let (s_new, s_ret) = lskips_f sk1 in
-            res (Class(s_new,sk2,n,tvar,sk3,body,sk4)) s_ret
+            res (Class(s_new,sk2,n,tvar,class_ty,sk3,body,sk4)) s_ret
       | Instance(sk1,is,ds,sk2,sem_info) ->
           let (s_new, s_ret) = lskips_f sk1 in
             res (Instance(s_new,is,ds,sk2,sem_info)) s_ret
@@ -2140,102 +2140,17 @@ let local_env_union e1 e2 =
 (* Lookup a name in an environment and report what type of name it is *)
 
 type name_kind =
-  | Nk_typeconstr
-  | Nk_const
-  | Nk_constr
-  | Nk_field
-  | Nk_module
+  | Nk_typeconstr of Path.t
+  | Nk_const of const_descr_ref
+  | Nk_constr of const_descr_ref
+  | Nk_field of const_descr_ref
+  | Nk_module of Path.t
   | Nk_class
  
-let env_apply (env : env) n =
-  match Nfmap.apply env.local_env.p_env n with
-      Some (p, l) -> Some (Nk_typeconstr, p, l)
-    | None ->
-  match Nfmap.apply env.local_env.f_env n with    
-      Some r -> 
-        let d = c_env_lookup (Ast.Trans ("env_apply", None)) env.c_env r in
-        Some (Nk_field, d.const_binding, d.spec_l)
-    | None ->
-  match Nfmap.apply env.local_env.v_env n with
-      Some r -> 
-        let d = c_env_lookup (Ast.Trans ("env_apply", None)) env.c_env r in
-        Some (Nk_const, d.const_binding, d.spec_l)
-    | None -> None
-
-(* get all the newly defined constants names of a module *)
-
-let add_new_constants_types_of_funcl_aux l (const_map, type_map) (n, _, _, _, _) =
-   (Nfmap.insert const_map (Name.strip_lskip n.term, l), type_map)
-
-let add_new_constants_types_of_letbind (const_map, type_map) (lb, l) =
-   match lb with
-     | Let_val _ -> (const_map, type_map)
-     | Let_fun faux -> add_new_constants_types_of_funcl_aux l (const_map, type_map) faux
-
-let add_new_constants_types_of_def targ (const_map, type_map) ((aux, _), l_base) =
-    match aux with
-      | Type_def(s1, tds) ->   
-        begin
-          let add_td (const_map, type_map) x =
-            match x with
-            | ((n,l),_,Te_abbrev(_,_),_) ->
-                (const_map, Nfmap.insert type_map (Name.strip_lskip n, l))
-            | ((n,l),_,Te_record(_, _, fields, _),_) -> 
-              let type_map' = Nfmap.insert type_map (Name.strip_lskip n, l) in
-              let field_name_list = List.map (fun ((n, l), _, _) -> (Name.strip_lskip n, l)) (Seplist.to_list fields) in
-              let const_map' = List.fold_left Nfmap.insert const_map field_name_list in
-                (const_map', type_map')
-            | ((n,l),_,Te_variant(_, constrs),_) -> 
-              let type_map' = Nfmap.insert type_map (Name.strip_lskip n, l) in
-              let constr_name_list = List.map (fun ((n, l), _, _) -> (Name.strip_lskip n, l)) (Seplist.to_list constrs) in
-              let const_map' = List.fold_left Nfmap.insert const_map constr_name_list in
-                (const_map', type_map')
-            | _ -> (const_map, type_map)
-          in
-            List.fold_left add_td (const_map, type_map) (Seplist.to_list tds) 
-        end
-      | Val_spec(_,(n, l),_,_) -> 
-        (Nfmap.insert const_map (Name.strip_lskip n, l), type_map)
-
-      | Val_def(Let_def(_, topt, lb),_,_) -> if not (in_targets_opt targ topt) then (const_map, type_map) else add_new_constants_types_of_letbind (const_map, type_map) lb
-
-      | Val_def(Rec_def(_, _, topt, funs),_,_) -> if not (in_targets_opt targ topt) then (const_map, type_map) else
-           List.fold_left (add_new_constants_types_of_funcl_aux l_base) (const_map, type_map) (Seplist.to_list funs)
-
-      | Val_def(Let_inline(sk1,sk2,targ,n,ns,sk4,e), tnvs,_) -> (const_map, type_map)
-
-      | _  -> (const_map, type_map)
-
-
-
-let get_new_constants_types targ checked_module_list =
-  let ast_target_opt = Util.option_map target_to_ast_target targ in
-  let add_def_list s dl = List.fold_left (add_new_constants_types_of_def ast_target_opt) s dl in
-  let add_fun s cm = add_def_list s (fst (cm.typed_ast)) in
-  let result = List.fold_left add_fun (Nfmap.empty, Nfmap.empty) checked_module_list in
-  result
-
-exception Renaming_error of Ast.l * string
-
-let add_renames_of_def targ resL ((aux, _), _) =
-    match aux with
-      | Ident_rename(_, topt, p, _, _, (n_new, l)) -> 
-          if not (in_targets_opt targ topt) then resL else 
-            let already_renamed = try (match List.assoc p resL with (l', _) -> Some l') with Not_found -> None in
-            (match already_renamed with
-              | Some l' -> (
-                   raise (Renaming_error (l, ("Identifier '"^(Name.to_string (Path.get_name p))^ "' has already been renamed at "^ (Reporting_basic.loc_to_string true l) ^ "!")))
-                )
-              | None -> (p, (l, let (nl, _) = Path.to_name_list p in Path.mk_path nl (Name.strip_lskip n_new))) :: resL)
-      | _  -> resL
-
-let get_renames_of_defs targ org_ren def_list =
-  let ast_target_opt = Util.option_map target_to_ast_target targ in
-  List.fold_left (add_renames_of_def ast_target_opt) org_ren def_list
 
 let funcl_aux_seplist_group (sl : funcl_aux lskips_seplist) = begin
   let (first_s, pL) = Seplist.to_pair_list None sl in
-  let add_fun_name ((((nsa, _, _, _, _) : funcl_aux), _) as x) =
+  let add_fun_name ((((nsa, _, _, _, _, _) : funcl_aux), _) as x) =
     let n = Name.strip_lskip (nsa.term) in (n, x) in
   let npL = List.map add_fun_name pL in
   let np_comp (n1, _) (n2, _) = Name.compare n1 n2 in

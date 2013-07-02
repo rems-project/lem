@@ -78,7 +78,7 @@ let is_abbreviation l =
 	let length = Seplist.length l in
 	let abbreviation =
 		match Seplist.hd l with
-    	| (_, _, Te_abbrev _, _) -> true
+    	| (_, _, _, Te_abbrev _, _) -> true
     	| _ -> false
   in
   	length = 1 && abbreviation
@@ -88,7 +88,7 @@ let is_record l =
 	let length = Seplist.length l in
 	let record =
 		match Seplist.hd l with
-    	| (_, _, Te_record _, _) -> true
+    	| (_, _, _, Te_record _, _) -> true
     	| _ -> false
   in
   	length = 1 && record
@@ -114,7 +114,7 @@ let need_space x y =
       	not d1 && not d2 && s1 = s2
 ;;
 
-let in_target targets = Typed_ast.in_targets_opt (Some (Ast.Target_coq None)) targets;;
+let in_target targets = Typed_ast.in_targets_opt (Some Target.Target_coq) targets;;
 
 let coq_infix_op a x =
   combine [
@@ -205,10 +205,8 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
       end)
     ;;
 
-let const_ident_to_output env a cd =
-  let is_infix = Precedence.is_infix (Precedence.get_prec (Some Target_coq) env cd.descr) in
-  let to_out_fun = if is_infix then Ident.to_output_infix coq_infix_op else Ident.to_output in
-  to_out_fun a path_sep (B.const_id_to_ident cd)
+let field_ident_to_output fd = 
+  Ident.to_output Term_field path_sep (B.const_id_to_ident fd)
 ;;
 
 let type_ident_to_output td =
@@ -263,7 +261,7 @@ let type_ident_to_output td =
             ]
       in
       let rec decidable_equality_possible l =
-        let l = List.map (fun (x, y, z) -> z) l in
+        let l = List.map (fun (x, _, y, z) -> z) l in
           List.for_all (fun typ ->
             match typ.term with
               | _ -> true
@@ -277,7 +275,7 @@ let type_ident_to_output td =
               eq_typ; from_string ":=\n  "
             ]
           in
-          let body = List.map (fun (name, _, typ) ->
+          let body = List.map (fun (name, _, _, typ) ->
             let t = src_t_to_string typ.term ^ from_string "_beq" in
             let _ = decidable_equality_tracker := OutputSet.add t !decidable_equality_tracker in
             let o = lskips_t_to_string name in
@@ -300,7 +298,7 @@ let type_ident_to_output td =
         | Te_record (_, _, name_l_src_t_lskips_seplist, _) -> from_string " (* XXX: internal Lem error, please report *)"
         | Te_variant (_, name_l_src_t_lskips_seplist) ->
             let l = Seplist.to_list name_l_src_t_lskips_seplist in
-            let cases = List.map (fun ((name, _), y, typs) ->
+            let cases = List.map (fun ((name, _), _, y, typs) ->
               let typs = Seplist.to_list typs in
               let args = List.map (fun typ ->
                 begin
@@ -491,8 +489,7 @@ let type_ident_to_output td =
     let rec def inside_module m =
       match m with
       | Type_def (skips, def) ->
-          let funcl =
-        		if is_abbreviation def then
+          let funcl =	if is_abbreviation def then
         		  type_def_abbreviation
         		else if is_record def then
         		  type_def_record
@@ -506,16 +503,18 @@ let type_ident_to_output td =
       | Val_def (def, tv_set, class_constraints) ->
         begin
           match def with
-            | Let_def (skips, targets, bind) ->
+            | Let_def (skips, targets, (p, name_map, topt, sk, e)) ->
                 if in_target targets then
+                  let bind = (Let_val (p, topt, sk, e), Ast.Unknown) in
                   let body = let_body true tv_set bind in
                     combine [
                       ws skips; from_string "Definition"; body; from_string "."
                     ]
                 else
                   ws skips ^ from_string "(* [?]: removed value definition intended for another target. *)"
-            | Rec_def (skips, skips', targets, funcl_skips_seplist) ->
+            | Fun_def (skips, skips'_opt, targets, funcl_skips_seplist) ->
                 if in_target targets then
+                  let skips' = Util.option_default None skips'_opt in
                   let header =
                     if Typed_ast_syntax.is_recursive_def ((m, None), Ast.Unknown) then
                       combine [
@@ -536,7 +535,7 @@ let type_ident_to_output td =
                   from_string "\n(* [?]: removed recursive definition intended for another target. *)"
             | _ -> from_string "\n(* [?]: removed top-level value definition. *)"
         end
-      | Module (skips, (name, l), skips', skips'', defs, skips''') ->
+      | Module (skips, (name, l), mod_binding, skips', skips'', defs, skips''') ->
         let name = lskips_t_to_output name in
         let body = flat $ List.map (fun ((d, s), l) ->
           let skips =
@@ -552,7 +551,7 @@ let type_ident_to_output td =
             ws skips; from_string "Module "; name; from_string "."; ws skips'; ws skips'';
             body; from_string "\nEnd "; name; from_string "."; ws skips'''
           ]
-      | Rename (skips, name, skips', mod_descr) -> from_string "Rename"
+      | Rename (skips, name, mod_binding, skips', mod_descr) -> from_string "Rename"
       | Open (skips, mod_descr) ->
           let mod_path = resolve_ident_path mod_descr mod_descr.descr.mod_binding in
           let mod_name = Ident.get_name mod_path in
@@ -570,7 +569,7 @@ let type_ident_to_output td =
                 ws skips; clauses cs
               ]
       | Val_spec val_spec -> from_string "\n(* [?]: removed value specification. *)\n"
-      | Class (skips, skips', name, tyvar, skips'', body, skips''') -> from_string "Class"
+      | Class (skips, skips', name, tyvar, p, skips'', body, skips''') -> from_string "Class"
       | Instance (skips, instantiation, vals, skips', sem_info) -> from_string "Instance"
       | Comment c ->
       	let ((def_aux, skips_opt), l) = c in
@@ -600,7 +599,7 @@ let type_ident_to_output td =
         let rec gather_names_aux buffer clauses =
           match clauses with
             | []    -> buffer
-            | (_, _, _, _, _, _, name_lskips_annot, _)::xs ->
+            | (_, _, _, _, _, _, name_lskips_annot, _, _)::xs ->
               let name = name_lskips_annot.term in
               let name = Name.strip_lskip name in
               if List.mem name buffer then
@@ -611,7 +610,8 @@ let type_ident_to_output td =
           gather_names_aux [] clause_list
       in
       let gathered = gather_names clause_list in
-      let compare_clauses_by_name name (_, _, _, _, _, _, name', _) =
+      (* TODO: use refs instead of names *)
+      let compare_clauses_by_name name (_, _, _, _, _, _, name', _, _) =
         let name' = name'.term in
         let name' = Name.strip_lskip name' in
           Pervasives.compare name name' = 0
@@ -623,7 +623,7 @@ let type_ident_to_output td =
           let index_types =
             match bodies with
               | [] -> [from_string "Prop"]
-              | (_, _, _, _, _, _, _, exp_list)::xs ->
+              | (_, _, _, _, _, _, _, _, exp_list)::xs ->
                   List.map (fun t ->
                     combine [
                       from_string "("; field_typ $ C.t_to_src_t (Typed_ast.exp_to_typ t); from_string ")"
@@ -631,7 +631,7 @@ let type_ident_to_output td =
                   ) exp_list
           in
           let bodies =
-            mapi (fun counter -> fun (name_lskips_t_opt, skips, name_lskips_annot_list, skips', exp_opt, skips'', name_lskips_annot, exp_list) ->
+            mapi (fun counter -> fun (name_lskips_t_opt, skips, name_lskips_annot_list, skips', exp_opt, skips'', name_lskips_annot, c, exp_list) ->
               let constructor_name =
                 match name_lskips_t_opt with
                   | None ->
@@ -694,7 +694,7 @@ let type_ident_to_output td =
         combine [
           from_string "\nInductive "; separate "\nand " indrelns; from_string "."
         ]
-    and let_body top_level tv_set (lb, _) =
+    and let_body top_level tv_set ((lb, _):letbind) =
       match lb with
         | Let_val (p, topt, skips, e) ->
             let p = def_pattern p in
@@ -722,8 +722,8 @@ let type_ident_to_output td =
               combine [
                 p; tv_set_sep; tv_set; topt; ws skips; from_string " := "; e
               ]
-        | Let_fun clause -> funcl tv_set clause
-    and funcl tv_set ({term = n}, pats, typ_opt, skips, e) =
+        | Let_fun (n, pats, typ_opt, skips, e) -> funcl_aux tv_set (n.term, pats, typ_opt, skips, e)
+    and funcl_aux tv_set (n, pats, typ_opt, skips, e) =
       let name_skips = Name.get_lskip n in
       let name = lskips_t_to_output n in
       let pat_skips =
@@ -755,6 +755,8 @@ let type_ident_to_output td =
           ws name_skips; name; tv_set_sep; tv_set; pat_skips;
           fun_pattern_list pats; typ_opt; ws skips; from_string ":="; exp e
         ]
+    and funcl tv_set ({term = n}, c, pats, typ_opt, skips, e) = funcl_aux tv_set (n, pats, typ_opt, skips, e)      
+    and funcl_letfun tv_set ({term = n}, pats, typ_opt, skips, e) = funcl_aux tv_set (n, pats, typ_opt, skips, e)      
     and let_type_variables top_level tv_set =
       let tyvars = intercalate (from_string " ") $
         List.map (fun tv -> match tv with
@@ -811,7 +813,7 @@ let type_ident_to_output td =
                 combine [
                   ws skips; from_string "let"; body; ws skips'; from_string "in "; exp e;
                 ]
-          | Constant const -> const_ident_to_output A.env Term_const const
+          | Constant const -> Output.concat emp (B.function_application_to_output exp false const [])
           | Fun (skips, ps, skips', e) ->
               let ps = fun_pattern_list ps in
                 block_hov (Typed_ast_syntax.is_trans_exp e) 2 (
@@ -849,7 +851,7 @@ let type_ident_to_output td =
                 ws skips; from_string "{|"; body; ws skips'; from_string "|}"
               ]
           | Field (e, skips, fd) ->
-            let name = const_ident_to_output A.env Term_field fd in
+            let name = field_ident_to_output fd in
               combine [
                 from_string "("; name; ws skips; exp e; from_string ")"
               ]
@@ -957,7 +959,7 @@ let type_ident_to_output td =
           def_pattern p; ws skips; from_string "=>"; break_hint_space 2; exp e
         ]
     and field_update (fd, skips, e, _) =
-      let name = const_ident_to_output A.env Term_field fd in
+      let name = field_ident_to_output fd in
         combine [
           name; ws skips; from_string ":="; exp e
         ]
@@ -1036,7 +1038,7 @@ let type_ident_to_output td =
               ws skips; from_string "("; fun_pattern p; ws skips'; from_string ")"
             ]
         | P_const(cd, ps) ->
-            let oL = B.pattern_application_to_output fun_pattern false cd ps in
+            let oL = B.pattern_application_to_output fun_pattern cd ps in
             concat emp oL
         | P_num_add ((name, l), skips, skips', k) ->
             let succs = separate "" $ Util.replicate k (from_string "S (") in
@@ -1093,7 +1095,7 @@ let type_ident_to_output td =
               from_string "("; ws skips; def_pattern p; ws skips'; from_string ")"
             ]
         | P_const(cd, ps) ->
-            let oL = B.pattern_application_to_output def_pattern false cd ps in
+            let oL = B.pattern_application_to_output def_pattern cd ps in
             concat emp oL
         | P_num_add ((name, l), skips, skips', k) ->
             let succs = separate "" $ Util.replicate k (from_string "S (") in
@@ -1105,7 +1107,7 @@ let type_ident_to_output td =
         | _ -> from_string "(* XXX: todo *)"
     and type_def_abbreviation def =
     	match Seplist.hd def with
-    		| ((n, _), tyvars, Te_abbrev (skips, t),_) ->
+    		| ((n, _), tyvars, _, Te_abbrev (skips, t),_) ->
     				let name = Name.to_output Type_ctor n in
             let tyvars' = type_def_type_variables tyvars in
     				let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
@@ -1139,7 +1141,7 @@ let type_ident_to_output td =
         | Typ_len nexp -> src_nexp nexp
     and type_def_record def =
     	match Seplist.hd def with
-      	| (n, tyvars, (Te_record (skips, skips', fields, skips'') as r),_) ->
+      	| (n, tyvars, _, (Te_record (skips, skips', fields, skips'') as r),_) ->
             let (n', _) = n in
       			let name = Name.to_output Type_ctor n' in
       			let body = flat $ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) field (sep $ from_string ";") fields in
@@ -1166,7 +1168,7 @@ let type_ident_to_output td =
           head; body; from_string ".\n";
           boolean_equality
         ]
-    and type_def' ((n, l), ty_vars, ty, _) =
+    and type_def' ((n, l), ty_vars, _, ty, _) =
       let name = Name.to_output Type_ctor n in
       let ty_vars =
         List.map (
@@ -1206,7 +1208,7 @@ let type_ident_to_output td =
             combine [
               from_string ":="; ws skips; body
             ]
-    and constructor ind_name ty_vars ((ctor_name, _), skips, args) =
+    and constructor ind_name ty_vars ((ctor_name, _), _, skips, args) =
       let ctor_name = Name.to_output Type_ctor ctor_name in
       let body = flat $ Seplist.to_sep_list abbreviation_typ (sep $ from_string "-> ") args in
       let tail = combine [from_string "->"; ind_name ] in
@@ -1293,7 +1295,7 @@ let type_ident_to_output td =
         | Typ_paren(skips, t, skips') ->
             ws skips ^ from_string "(" ^ typ t ^ from_string ")" ^ ws skips'
         | Typ_len nexp -> src_nexp nexp
-    and field ((n, _), skips, t) =
+    and field ((n, _), _, skips, t) =
       combine [
         Name.to_output Term_field n; from_string ":"; ws skips; field_typ t
       ]
@@ -1309,7 +1311,7 @@ let type_ident_to_output td =
         | Te_abbrev (_, src_t) -> default_value src_t
         | Te_record (_, _, seplist, _) ->
             let fields = Seplist.to_list seplist in
-            let mapped = List.map (fun ((name, _), _, src_t) ->
+            let mapped = List.map (fun ((name, _), _, _, src_t) ->
               let o = lskips_t_to_output name in
               let s = default_value src_t in
                 combine [
@@ -1325,7 +1327,7 @@ let type_ident_to_output td =
             (match Seplist.to_list seplist with
               | []    -> assert false (* empty type in default value generation, should this be allowed? *)
               | x::xs ->
-                let ((name, _), _, src_ts) = x in
+                let ((name, _), _, _, src_ts) = x in
                   let ys = Seplist.to_list src_ts in
                   let mapped = List.map default_value ys in
                   let mapped = separate " " mapped in
@@ -1333,7 +1335,7 @@ let type_ident_to_output td =
                     combine [
                       o; from_string " "; mapped
                     ])
-      and generate_default_value ((name, _), tnvar_list, t, name_sect_opt) : Output.t =
+      and generate_default_value ((name, _), tnvar_list, _, t, name_sect_opt) : Output.t =
         let o = lskips_t_to_output name in
         let tnvar_list_sep =
           if List.length tnvar_list = 0 then

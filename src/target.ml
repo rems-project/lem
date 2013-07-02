@@ -54,6 +54,14 @@ type target =
   | Target_tex
   | Target_html
 
+let all_targets_list = [
+  Target_hol; 
+  Target_ocaml; 
+  Target_isa; 
+  Target_coq; 
+  Target_tex; 
+  Target_html] 
+
 let ast_target_to_target t = match t with
   | Ast.Target_hol   _ -> Target_hol 
   | Ast.Target_ocaml _ -> Target_ocaml 
@@ -94,10 +102,7 @@ struct
   let compare = target_compare
 end)
 
-let all_targets = 
-  List.fold_right Targetset.add 
-    [Target_hol; Target_ocaml; Target_isa; Target_coq; Target_tex; Target_html] 
-    Targetset.empty
+let all_targets = List.fold_right Targetset.add all_targets_list Targetset.empty
 
 let target_to_string = function
   | Target_hol -> "hol"

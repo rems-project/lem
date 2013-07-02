@@ -88,7 +88,8 @@ module Fmap_map(Key : Set.OrderedType) : Fmap
   let empty = M.empty
   let is_empty m = M.is_empty m
   let from_list l = List.fold_left (fun m (k,v) -> M.add k v m) M.empty l
-  let from_list2 l1 l2 = List.fold_left2 (fun m k v -> M.add k v m) M.empty l1 l2
+  let from_list2 l1 l2 = let _ = assert (List.length l1 = List.length l2) in
+                         List.fold_left2 (fun m k v -> M.add k v m) M.empty l1 l2
   let insert m (k,v) = M.add k v m
   let union m1 m2 = 
     M.merge (fun k v1 v2 -> match v2 with | None -> v1 | Some _ -> v2) m1 m2
@@ -140,6 +141,7 @@ module type Dmap = sig
   val empty : 'a t
   val set_default : 'a t -> 'a option -> 'a t
   val insert : 'a t -> (k * 'a) -> 'a t
+  val insert_opt : 'a t -> (k option * 'a) -> 'a t
   val apply : 'a t -> k -> 'a option
   val apply_opt : 'a t -> k option -> 'a option
 
@@ -171,6 +173,11 @@ module Dmap_map(Key : Set.OrderedType) : Dmap
   let in_dom k (m, s, d_opt) = M.mem k m || (S.mem k s && d_opt <> None)
     
   let insert (m, s, d_opt) (k,v) = (M.add k v m, S.remove k s, d_opt)
+
+  let insert_opt dm (k_opt,v) = match k_opt with
+    | None -> set_default dm (Some v)
+    | Some k -> insert dm (k, v)
+
   let remove (m, s, d_opt) k = (M.remove k m, S.add k s, d_opt)
 end
 

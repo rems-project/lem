@@ -73,10 +73,10 @@ let has_decidable_equality_texp (t : texp) (in_module_scope : bool) : bool =
     | Te_abbrev (_, src_t) -> has_decidable_equality_src_t src_t
     | Te_record (_, _, seplist, _) ->
         let src_ts = Seplist.to_list seplist in
-          List.for_all (fun (_, _, z) -> has_decidable_equality_src_t z) src_ts
+          List.for_all (fun (_, _, _, z) -> has_decidable_equality_src_t z) src_ts
     | Te_variant (_, seplist) ->
         let src_t_seplist = Seplist.to_list seplist in
-          List.for_all (fun (_, _, seplist) ->
+          List.for_all (fun (_, _, _, seplist) ->
             let src_ts = Seplist.to_list seplist in
               List.for_all has_decidable_equality_src_t src_ts
           ) src_t_seplist
@@ -91,7 +91,7 @@ let rec check_decidable_equality_def' env (((d, _), l) : def) (in_module_scope :
     | Type_def (_, seplist) ->
         let texps = Seplist.to_list seplist in
         let _ =
-          List.map (fun ((name, _), _, z, _) ->
+          List.map (fun ((name, _), _, _, z, _) ->
             if has_decidable_equality_texp z in_module_scope then
               ()
             else
@@ -101,7 +101,7 @@ let rec check_decidable_equality_def' env (((d, _), l) : def) (in_module_scope :
           ) texps
         in
           ()
-    | Module (_, _, _, _, defs, _) ->
+    | Module (_, _, _, _, _, defs, _) ->
         let _ =
           List.map (fun x -> check_decidable_equality_def' env x true)
         in
@@ -229,7 +229,7 @@ let check_positivity_condition_texp (inductive_types : src_t list InductiveMap.t
     | Te_record _ -> true
     | Te_variant (_, seplist) ->
       let seplist = Seplist.to_list seplist in
-        List.for_all (fun (_, _, z) ->
+        List.for_all (fun (_, _, _, z) ->
           let src_ts = Seplist.to_list z in
             List.for_all (strict_positivity_condition inductive_types x) src_ts
         ) seplist
@@ -240,7 +240,7 @@ let gather_inductive_types_texp (name : Name.t) (t : texp) : src_t list Inductiv
     | Te_variant (_, seplist) ->
         let src_ts = Seplist.to_list seplist in
         let mapped =
-          List.map (fun (_, _, src_ts) ->
+          List.map (fun (_, _, _, src_ts) ->
             let src_ts = Seplist.to_list src_ts in
               InductiveMap.add name src_ts InductiveMap.empty
           ) src_ts
@@ -254,7 +254,7 @@ let gather_inductive_types (((d, _), _) : def) : src_t list InductiveMap.t =
     | Type_def (_, seplist) ->
       let texps = Seplist.to_list seplist in
       let mapped =
-        List.map (fun ((name, _), _, texp, _) ->
+        List.map (fun ((name, _), _, _, texp, _) ->
           let name = Name.strip_lskip name in
             gather_inductive_types_texp name texp
         ) texps
@@ -270,7 +270,7 @@ let check_positivity_condition_def (d : def) : unit =
       | Type_def (_, seplist) ->
           let texps = Seplist.to_list seplist in
           let _ =
-            List.map (fun ((name, _), _, texp, _) ->
+            List.map (fun ((name, _), _, _, texp, _) ->
               let name = Name.strip_lskip name in
               let sname = Name.to_string name in
                 if check_positivity_condition_texp inductive_types name texp then

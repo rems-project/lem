@@ -228,16 +228,18 @@ let pat_list_to_pat_matrix (pL : pat list) : pat_matrix option =
 
 (* Transforming an expression into a matrix, not only case expressions *)
 let funcl_aux_list_to_pat_matrix = function
-  | ((((_, first_pL, _, _, _):funcl_aux)::_) as l) ->
+  | ((((_, _, first_pL, _, _, _):funcl_aux)::_) as l) ->
   let iL = List.map (fun p -> mk_dummy_exp(annot_to_typ p)) first_pL in
-  let rows = List.map (fun (_, pL, _, _, e) -> (pL, e)) l in
+  let rows = List.map (fun (_, _, pL, _, _, e) -> (pL, e)) l in
   let m = make_initial_pat_matrix iL rows in
   m
   | [] -> assert false
 
 let letbind_to_pat_matrix ((lb, _):letbind) ee =
   match lb with
-      Let_fun funcl_aux -> (false, funcl_aux_list_to_pat_matrix [funcl_aux])
+    | Let_fun (_, pL, _, _, e) -> (false, 
+        let iL = List.map (fun p -> mk_dummy_exp(annot_to_typ p)) pL in
+        make_initial_pat_matrix iL [(pL, e)])
     | Let_val (p, _, _, e) -> begin
          let m = make_initial_pat_matrix [e] [([p], ee)] in
          (true, m)
@@ -272,13 +274,12 @@ let letbind_to_defname ((lb, l):letbind) =
            | None -> Name.from_rope (r "_")
 
 let def_to_pat_matrix_list (((d, _), l) : def) : (Name.t * (bool * pat_matrix) * Ast.l) list = match  d with 
-  |  Val_def ((Let_def (_, _, lb)), _,_) -> [(letbind_to_defname lb, letbind_to_pat_matrix lb (mk_dummy_exp { Types.t = Types.Tapp ([], Path.boolpath) }), l)]
-  |  Val_def ((Rec_def (_, _, _, sl)), _,_) -> begin 
+  |  Val_def ((Fun_def (_, _, _, sl)), _,_) -> begin 
        let (_, _, sll) = funcl_aux_seplist_group sl in
        let to_m (n, (sl:funcl_aux lskips_seplist)) = (n, (false, funcl_aux_list_to_pat_matrix (Seplist.to_list sl)), l) in
        List.map to_m sll       
      end
-  |  Val_def (Let_inline (_, _, _, nsa, nl, _, e), _,_) -> begin 
+  |  Val_def (Let_inline (_, _, _, nsa, _, nl, _, e), _,_) -> begin 
        let n = Name.strip_lskip (nsa.term) in
        let nsa_to_pvar nsa =
          let ty = annot_to_typ nsa in
@@ -369,6 +370,7 @@ let trivial_pat_matrix_to_exp (m : pat_matrix) : exp =
        | P_var ns -> add_to_ext_exp ee (Name.strip_lskip ns) e 
        | _ -> raise (match_compile_unreachable "trivial matrix contains other patterns than var and wildcards")
       in  
+      let _ = assert (List.length input = List.length pats) in
       let ee' = List.fold_left2 process_fun ee input pats in
         extended_exp_to_exp ee'  
   | _ -> raise (match_compile_unreachable "trivial matrix is empty")
@@ -1787,15 +1789,15 @@ let compile_faux_seplist l env comp s s2_opt t topt org_d (sl : funcl_aux lskips
    let sL = List.map (fun (_, sl) -> Seplist.to_list sl) sll in
    let sep = try Seplist.hd_sep sl with Failure _ -> None in
 
-   let faux_OK (_, pL, _, _, _) = List.for_all is_var_pat pL in
+   let faux_OK (_, _, pL, _, _, _) = List.for_all is_var_pat pL in
    if (List.for_all (List.for_all faux_OK) sL) then None else
    begin
 
    let comp_funcl_aux_seplist (sl:funcl_aux list) : funcl_aux option = 
      match sl with [] -> None (* Should not happen, as funcl_aux_seplist_group should not return empty seplists *)
-                  | (nsa, pL, topt', _, e) :: _ ->
+                   | ((nsa, c, pL, topt', _, e):funcl_aux) :: _ ->
    begin
-     let gen = mk_var_name_gen (NameSetE.list_union (List.map (fun (_, _, _, _, e) -> nfmap_domain (C.exp_to_free e)) sl)) in
+     let gen = mk_var_name_gen (NameSetE.list_union (List.map (fun ((_, _, _, _, _, e):funcl_aux) -> nfmap_domain (C.exp_to_free e)) sl)) in
      let tyL = List.map annot_to_typ pL in
      let nL = List.map (pattern_gen gen) pL in
      let tup_ty = { Types.t = Types.Ttup tyL } in
@@ -1805,27 +1807,25 @@ let compile_faux_seplist l env comp s s2_opt t topt org_d (sl : funcl_aux lskips
      let var_seplist = (Seplist.from_list (List.map2 (fun n ty -> (matrix_compile_mk_var n ty, None)) nL tyL)) in
      let vars_t = C.mk_tup l space var_seplist None (Some tup_ty) in
 
-     let process_row (_, pL, _, _, e) = begin
+     let process_row (_, _, pL, _, _, e) = begin
          let pats_seplist = (Seplist.from_list (List.map (fun p -> (p, None)) pL)) in
          let pats_t = C.mk_ptup l None pats_seplist space (Some tup_ty) in
          (pats_t, e) end in
      let case_exp = mk_case_exp false l vars_t (List.map process_row sl) (exp_to_typ e) in
-     Some (nsa, pvarL, topt', space, comp case_exp)
+     Some (nsa, c, pvarL, topt', space, comp case_exp)
    end in
 
    let funcl_auxL:funcl_aux list = Util.map_filter comp_funcl_aux_seplist sL in
    begin
-   match (s2_opt, funcl_auxL) with
-     | (_, []) -> None
-     | (None, fa :: _) -> Some (Let_def (s, topt, (Let_fun fa, l)))
-     | (Some s2, _) -> Some (Rec_def (s, s2, topt, Seplist.from_list (List.map (fun fa -> (fa, sep)) funcl_auxL)))
+   match funcl_auxL with
+     | [] -> None
+     | _ -> Some (Fun_def (s, s2_opt, topt, Seplist.from_list (List.map (fun fa -> (fa, sep)) funcl_auxL)))
    end
    end
 
     
 let compile_def t mca env_global (_:Name.t list) env_local (((d, s), l) as org_d : def) =  
  let env = env_global in
- let t' = Util.option_map target_to_ast_target t in
  let cf_opt e = compile_match_exp t mca env e in
  let cf e = Util.option_default e (cf_opt e) in
  let constr topt tnvs class_constraints s1 s2 sl =       
@@ -1833,12 +1833,9 @@ let compile_def t mca env_global (_:Name.t list) env_local (((d, s), l) as org_d
          (compile_faux_seplist l env cf s1 s2 t topt org_d sl) in
  if mca.def_OK env ((d, s), l) then None else
  match d with
-  |  Val_def ((Let_def (s1, topt, (Let_fun faux, l))), tnvs,class_constraints) -> 
-       if not (in_targets_opt t' topt) then None else 
-       constr topt tnvs class_constraints s1 None (Seplist.from_list [(faux, None)])
-  |  Val_def ((Rec_def (s1, s2, topt, sl)), tnvs,class_constraints) -> begin 
-       if not (in_targets_opt t' topt) then None else 
-       constr topt tnvs class_constraints s1 (Some s2) sl
+  |  Val_def (Fun_def (s1, s2_opt, topt, sl), tnvs,class_constraints) -> begin 
+       if not (in_targets_opt t topt) then None else 
+       constr topt tnvs class_constraints s1 s2_opt sl
      end
   |  _ -> None
 
@@ -1855,13 +1852,13 @@ let compile_def t mca env_global (_:Name.t list) env_local (((d, s), l) as org_d
 let remove_toplevel_match targ mca env_global _ env_local (((d, s), l)) =
   let l_unk = Ast.Trans ("remove_toplevel_match", Some l) in
   let env = env_global in
-  let aux sk1 sk2 topt sl tnvs class_constraints = begin
+  let aux sk1 sk2_opt topt sl tnvs class_constraints = begin
     let (_, sk_first_opt, group_nameL) = funcl_aux_seplist_group sl in
     let groupL = List.map (fun (_, x) -> x) group_nameL in
     let group_apply sl = if not (Seplist.length sl = 1) then None else   
     match Seplist.to_list sl with 
       | ([] | _ :: _ :: _) -> raise (Reporting_basic.err_unreachable true l_unk "Not reachable, because of length check")
-      | [(n,ps,topt,s,e)] -> 
+      | [(n,c,ps,topt,s,e)] -> 
           let e0 = strip_paren_typ_exp e in
           let e1 = Util.option_default e0 (compile_match_exp targ mca env e0) in
           let e2 = strip_paren_typ_exp e1 in
@@ -1872,21 +1869,19 @@ let remove_toplevel_match targ mca env_global _ env_local (((d, s), l)) =
           begin 
             let adapt_ws_pL pL = List.map (fun p -> let (p', _) = pat_alter_init_lskips space_com_init_ws p in p') pL in
             let work_row ((p, _, ee, _) : (pat * lskips * exp * Ast.l)) : funcl_aux option =
-              Util.option_map (fun pL -> (n, adapt_ws_pL pL, topt, s, ee)) (dest_f [p]) in
+              Util.option_map (fun pL -> (n, c, adapt_ws_pL pL, topt, s, ee)) (dest_f [p]) in
             let sl_opt = Util.map_all (fun r -> Util.option_map (fun x -> (x, new_line)) (work_row r)) (Seplist.to_list pats) in
             Util.option_map Seplist.from_list sl_opt
           end)
           | _ -> None) in
     match (Util.map_changed group_apply groupL) with None -> None | Some sll' ->
       let sl' = Seplist.flatten space sll' in
-      let new_d = ((Val_def ((Rec_def (sk1, sk2, topt, sl')), tnvs, class_constraints), s), l) in
+      let new_d = ((Val_def ((Fun_def (sk1, sk2_opt, topt, sl')), tnvs, class_constraints), s), l) in
       if mca.def_OK env new_d then Some (env_local, [new_d]) else None
   end in
   match d with 
-  |  Val_def ((Let_def (sk1, topt, (Let_fun funcl_aux, _))), tnvs, class_constraints) -> 
-       aux sk1 None topt (Seplist.from_list [(funcl_aux, None)]) tnvs class_constraints
-  |  Val_def ((Rec_def (sk1, sk2, topt, sl)), tnvs, class_constraints) -> begin 
-       aux sk1 sk2 topt sl tnvs class_constraints
+  |  Val_def ((Fun_def (sk1, sk2_opt, topt, sl)), tnvs, class_constraints) -> begin 
+       aux sk1 sk2_opt topt sl tnvs class_constraints
      end
   | _ -> None
 

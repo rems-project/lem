@@ -108,8 +108,14 @@ let fresh s ok = from_rope (fresh_start None s ok)
 let rec fresh_list i s ok =
   if i = 0 then
     []
-  else
-    from_rope (fresh_start (Some(i)) s ok) :: fresh_list (i - 1) s ok
+  else begin
+    let new_name = from_rope (fresh_start (Some(i)) s ok) in
+    let new_ok n = ok n && (n <> new_name) in
+    new_name :: fresh_list (i - 1) s new_ok
+  end
+
+
+
 
 let rename f r = from_rope (f (to_rope r))
 
@@ -129,8 +135,9 @@ let starts_with_underscore x =
     | Ulib.UChar.Out_of_range -> false
 
 let remove_underscore x = 
-  assert (starts_with_underscore x);
-  from_rope (let r = (to_rope x) in Ulib.Text.sub r 1 (Ulib.Text.length r -1))
+  if (starts_with_underscore x) then
+     Some (from_rope (let r = (to_rope x) in Ulib.Text.sub r 1 (Ulib.Text.length r -1)))
+  else None
 
 let starts_with_lower_letter x = 
   try 
@@ -140,14 +147,16 @@ let starts_with_lower_letter x =
     | Ulib.UChar.Out_of_range -> false
 
 let uncapitalize x = 
-  assert (starts_with_upper_letter x);
-  let c = Ulib.UChar.of_char (Char.lowercase (Ulib.UChar.char_of (Ulib.UTF8.get x 0))) in
-    from_rope (Ulib.Text.set (to_rope x) 0 c)
+  if (starts_with_upper_letter x) then
+    let c = Ulib.UChar.of_char (Char.lowercase (Ulib.UChar.char_of (Ulib.UTF8.get x 0))) in
+    Some (from_rope (Ulib.Text.set (to_rope x) 0 c))
+  else None
 
 let capitalize x =
-  assert (starts_with_lower_letter x);
-  let c = Ulib.UChar.of_char (Char.uppercase (Ulib.UChar.char_of (Ulib.UTF8.get x 0))) in
-    from_rope (Ulib.Text.set (to_rope x) 0 c)
+  if (starts_with_lower_letter x) then
+    let c = Ulib.UChar.of_char (Char.uppercase (Ulib.UChar.char_of (Ulib.UTF8.get x 0))) in
+    Some (from_rope (Ulib.Text.set (to_rope x) 0 c))
+  else None
 
 type lskips_t = Ast.lex_skips * Ulib.Text.t 
 

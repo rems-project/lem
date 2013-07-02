@@ -289,6 +289,11 @@ and skip_apps (r,typ_r,src_typ_r,pat_r) e = match (C.exp_to_term e) with
         (Some(typ_r (exp_to_typ e)))
   | _ -> expand_exp (r,typ_r,src_typ_r,pat_r) e
 
+and expand_funcl_aux (level,_) (r,typ_r,src_typ_r,pat_r) ((nl,c,ps,topt,s3,e):funcl_aux) : funcl_aux = 
+  (expand_annot_typ typ_r nl, c,
+   List.map (fun p -> expand_pat (Top_level,Param) p (typ_r, src_typ_r, pat_r)) ps,
+   topt,s3,expand_exp (r,typ_r,src_typ_r,pat_r) e)
+
 and expand_letbind (level,_) (r,typ_r,src_typ_r,pat_r) (lb,l) = match lb with
   | Let_val(p,topt,s,e) ->
       let topt' = Util.option_map (fun (s, ty) -> (s, src_typ_r ty)) topt in
@@ -302,21 +307,14 @@ and expand_letbind (level,_) (r,typ_r,src_typ_r,pat_r) (lb,l) = match lb with
 
 let rec expand_defs defs ((r,typ_r,src_typ_r,pat_r):((exp -> exp option) * (Types.t -> Types.t) * (src_t -> src_t) * (pat_position -> pat -> pat option))) =
   let expand_val_def = function
-    | Let_def(s1,targets,lb) ->
-        Let_def(s1, targets, expand_letbind (Top_level,Bind) (r, typ_r, src_typ_r, pat_r) lb)
-    | Rec_def(s1,s2,targets,clauses) ->
-        Rec_def(s1,
-                s2,
-                targets,
-                Seplist.map
-                  (fun (nl,ps,topt,s3,e) -> 
-                     (nl,
-                      List.map 
-                        (fun p -> expand_pat (Top_level,Param) p (typ_r, src_typ_r, pat_r))
-                        ps,
-                      topt,s3,expand_exp (r,typ_r,src_typ_r,pat_r) e))
-                  clauses)
-    | let_inline -> let_inline
+    | Let_def(s1,targets,(p, name_map, topt, sk, e)) ->
+        let lb = (expand_pat (Top_level,Param) p (typ_r, src_typ_r, pat_r), name_map, topt, sk, 
+                  expand_exp (r,typ_r,src_typ_r,pat_r) e) in
+        Let_def(s1, targets, lb)
+    | Fun_def(s1,s2_opt,targets,clauses) ->
+        Fun_def(s1, s2_opt, targets, Seplist.map (expand_funcl_aux (Top_level,Bind) (r, typ_r, src_typ_r, pat_r)) clauses)
+    | Let_inline(s1,s2,targets,n,c,ns,sk,e) -> Let_inline (s1, s2, targets, (expand_annot_typ typ_r n), c,
+        List.map (expand_annot_typ typ_r) ns, sk, (expand_exp (r,typ_r,src_typ_r,pat_r) e))
   in
   let rec expand_def = function
     | Val_def(d,tnvs,class_constraints) -> Val_def(expand_val_def d,tnvs,class_constraints)
@@ -325,17 +323,18 @@ let rec expand_defs defs ((r,typ_r,src_typ_r,pat_r):((exp -> exp option) * (Type
         Indreln(s1,
                 targets,
                 Seplist.map
-                  (fun (name_opt,s1,ns,s2,e_opt,s3,n,es) ->
+                  (fun (name_opt,s1,ns,s2,e_opt,s3,n,c,es) ->
                      (name_opt,
                       s1,
                       List.map (expand_annot_typ typ_r) ns,
                       s2,
                       Util.option_map (expand_exp (r,typ_r,src_typ_r,pat_r)) e_opt, s3, 
                       expand_annot_typ typ_r n, 
+                      c,
                       List.map (expand_exp (r,typ_r,src_typ_r,pat_r)) es))
                   c)
-    | Module(sk1, nl, sk2, sk3, ds, sk4) ->
-        Module(sk1, nl, sk2, sk3, List.map (fun ((d,s),l) -> ((expand_def d,s),l)) ds, sk4)
+    | Module(sk1, nl, mod_path, sk2, sk3, ds, sk4) ->
+        Module(sk1, nl, mod_path, sk2, sk3, List.map (fun ((d,s),l) -> ((expand_def d,s),l)) ds, sk4)
     | Instance(sk1,is,vdefs,sk2,sem_info) ->
         Instance(sk1, is, List.map expand_val_def vdefs, sk2, sem_info)
     | def -> def

@@ -57,6 +57,10 @@ val cons_entry : 'a -> ('a,'s) t -> ('a,'s) t
 
 val is_empty : ('a,'s) t -> bool
 
+(** [sing a] constructs a seplist with entry [a]. It does the same as
+    [cons_entry a empty]. *)
+val sing : 'a -> ('a, 's) t
+
 (** gets the first entry, if there is one *)
 val hd : ('a,'s) t -> 'a
 

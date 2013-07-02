@@ -58,7 +58,7 @@ let generate_coq_record_update_notation e =
     ]
   in
   let aux all_fields x =
-    let ((lskips, l), s4, ty) = x in
+    let ((lskips, l), _, s4, ty) = x in
     let name = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip lskips)) in
     let all_fields = List.filter (fun x -> Pervasives.compare name x <> 0) all_fields in
     let other_fields = List.fold_right (^) (intercalate (kwd "; ")
@@ -87,7 +87,7 @@ let generate_coq_record_update_notation e =
     match e with
       | Te_record (s1, s2, fields, s3) ->
           let all_fields = Seplist.to_list fields in
-          let all_fields_names = List.map (fun ((lskips, l), s4, ty) -> Ulib.Text.to_string (Name.to_rope (Name.strip_lskip lskips))) all_fields in
+          let all_fields_names = List.map (fun ((lskips, l), _, s4, ty) -> Ulib.Text.to_string (Name.to_rope (Name.strip_lskip lskips))) all_fields in
           let field_entries = List.fold_right (^) (intercalate (from_string "\n") (List.map (aux all_fields_names) all_fields)) emp in
           let terminator =
             if List.length all_fields = 0 then

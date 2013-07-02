@@ -96,7 +96,7 @@ struct
     { macros = [];
       extra = []; }
 
-  let hol consts fixed_renames =
+  let hol =
     { macros = dictionary_macros @ 
                nvar_macros @
                [Def_macros (fun env -> let module M = M(struct let env = env end) in [
@@ -111,18 +111,17 @@ struct
 				 T.remove_setcomp;
                                  T.remove_set_restr_quant;
                                  T.remove_restr_quant Pattern_syntax.is_var_tup_pat;
-                                 T.do_substitutions Target_hol;
+                                 Backend_common.inline_exp_macro (Some Target_hol) env;
                                  Patterns.compile_exp (Some Target_hol) Patterns.is_hol_pattern_match C.d env]);
                 Pat_macros (fun env ->
                               let module T = T(struct let env = env end) in
                                 [T.peanoize_num_pats])
                ];
-      extra = [(* TODO: (fun n -> 
-                Rename_top_level.rename_nested_module [n]); 
-               (fun n -> Rename_top_level.rename_defs_target (Some Target_hol) consts fixed_renames [n]);
-               Rename_top_level.flatten_modules*)]; }
+      extra = [(* (fun n -> Rename_top_level.rename_nested_module [n]);  
+               (fun n -> Rename_top_level.rename_defs_target (Some Target_hol) consts fixed_renames [n]);*)
+               Rename_top_level.flatten_modules]; }
 
-  let ocaml consts fixed_renames =
+  let ocaml =
     { macros = dictionary_macros @
                nvar_macros @
                [Def_macros (fun env -> let module M = M(struct let env = env end) in 
@@ -133,7 +132,7 @@ struct
                               let module T = T(struct let env = env end) in
                                 [(* TODO: figure out what it does and perhaps add it again    T.hack; *)
                                  (* TODO: add again or implement otherwise                    T.tup_ctor (fun e -> e) Seplist.empty; *)
-                                 T.do_substitutions Target_ocaml;
+                                 Backend_common.inline_exp_macro (Some Target_ocaml) env;
                                  T.remove_sets;
                                  T.remove_list_comprehension;
                                  T.remove_quant;
@@ -142,10 +141,10 @@ struct
                                  T.remove_do;
                                  Patterns.compile_exp (Some Target_ocaml) Patterns.is_ocaml_pattern_match C.d env])
                ];
-      extra = [(*TODO: add again   (fun n -> Rename_top_level.rename_defs_target (Some Target_ocaml) consts fixed_renames [n]) *)]; 
+      extra = [(* (fun n -> Rename_top_level.rename_defs_target (Some Target_ocaml) consts fixed_renames [n]) *)]; 
     }
 
-  let isa consts fixed_renames =
+  let isa  =
     { macros =
        [Def_macros (fun env -> let module M = M(struct let env = env end) in 
                       [M.remove_vals;
@@ -161,7 +160,7 @@ struct
                          T.remove_set_restr_quant;
                          T.remove_restr_quant Pattern_syntax.is_var_wild_tup_pat;
                          T.remove_set_comp_binding;
-                         T.do_substitutions Target_isa;
+                         Backend_common.inline_exp_macro (Some Target_isa) env;
                          T.sort_record_fields;
                          T.string_lits_isa;
                          Patterns.compile_exp (Some Target_isa) Patterns.is_isabelle_pattern_match C.d env]);
@@ -169,16 +168,15 @@ struct
                       let module T = T(struct let env = env end) in
                         [T.peanoize_num_pats; T.remove_unit_pats])
        ];
-      extra = [(* TODO: add again (fun n -> Rename_top_level.rename_nested_module [n]);
+      extra = [(* (fun n -> Rename_top_level.rename_nested_module [n]);
                Rename_top_level.flatten_modules; 
-               (fun n -> Rename_top_level.rename_defs_target (Some Target_isa) consts fixed_renames [n]) *)];
+               (fun n -> Rename_top_level.rename_defs_target (Some Target_isa) consts fixed_renames [n])*)];
     }
 
-  let coq consts fixed_renames =
+  let coq =
     { macros =
         [Def_macros (fun env -> let module M = M(struct let env = env end) in 
                       [M.type_annotate_definitions;
-                       M.push_patterns_in_function_definitions_in;
                        Patterns.compile_def (Some Target_coq) Patterns.is_coq_pattern_match env
                       ]); 
          Exp_macros (fun env -> 
@@ -188,32 +186,15 @@ struct
                           T.remove_list_comprehension;
                           T.remove_set_comprehension;
                           T.remove_quant;
-                          T.do_substitutions Target_coq; 
+                          Backend_common.inline_exp_macro (Some Target_coq) env;
                           Patterns.compile_exp (Some Target_coq) Patterns.is_coq_pattern_match C.d env]);
          Pat_macros (fun env ->
                        let module T = T(struct let env = env end) in
                          [T.coq_type_annot_pat_vars])
         ];
       (* TODO: coq_get_prec *)
-      extra = [(* TODO: add again  (fun n -> Rename_top_level.rename_defs_target (Some Target_coq) consts fixed_renames [n]) *)]; 
+      extra = [(* fun n -> Rename_top_level.rename_defs_target (Some Target_coq) consts fixed_renames [n]) *)]; 
       }
-
-  let nameset_union_map s m =
-    Nfmap.fold (fun s k _ -> NameSet.add k s) s m
-
-  let extend_consts_consts targ consts modules = 
-      let (new_consts, new_types) = Typed_ast.get_new_constants_types targ modules in
-      nameset_union_map consts new_consts
-
-
-  let extend_consts_full targ consts modules = 
-      let (new_consts, new_types) = Typed_ast.get_new_constants_types targ modules in
-      nameset_union_map (nameset_union_map consts new_types) new_consts
-
-  let extend_consts targ consts =
-    match targ with
-      | Some(Target_isa) -> extend_consts_full targ consts
-      | _ -> fun _ -> consts
 
   let default_avoid_f ty_avoid (cL : (Name.t -> Name.t option) list) consts = 
     let is_good n = not (NameSet.mem n consts) && List.for_all (fun c -> c n = None) cL
@@ -225,13 +206,10 @@ struct
           let n' = Util.option_default n (Util.option_map Name.to_rope new_n_opt) in
           Name.fresh n' (fun n -> check n && is_good n)))
 
-  let ocaml_avoid_f consts = 
-    let upper_fun n = if Name.starts_with_upper_letter n then Some (Name.uncapitalize n) else None
-    in default_avoid_f false [upper_fun] consts
+  let ocaml_avoid_f consts = default_avoid_f false [Name.capitalize] consts
 
   let underscore_avoid_f consts = 
-    let us_fun n = if Name.starts_with_underscore n then Some (Name.remove_underscore n) else None
-    in default_avoid_f false [us_fun] consts
+    default_avoid_f false [Name.remove_underscore] consts
 
   let get_avoid_f targ : (NameSet.t -> var_avoid_f) = 
     match targ with
@@ -251,28 +229,23 @@ struct
       fun ((d,lex_skips),l) ->
         let d = 
           match d with
-            | Val_def(Rec_def(s1,s2,topt,clauses),tnvs,class_constraints) ->
+            | Val_def(Fun_def(s1,s2_opt,topt,clauses),tnvs,class_constraints) ->
                 let clauses = 
                   Seplist.map
-                    (fun (n,ps,topt,s,e) ->
+                    (fun (n,c,ps,topt,s,e) ->
                        let (ps,e) =
                          Ctxt.push_subst (Types.TNfmap.empty, Nfmap.empty) ps e
                        in
-                         (n,ps,topt,s,e))
+                         (n,c,ps,topt,s,e))
                     clauses
                 in
-                  Val_def(Rec_def(s1,s2,topt,clauses),tnvs,class_constraints)
-            | Val_def(Let_def(s1,topt,(Let_fun(n,ps,t,s2,e),l)),tnvs,class_constraints) ->
-                let (ps, e) = 
-                  Ctxt.push_subst (Types.TNfmap.empty, Nfmap.empty) ps e
-                in
-                  Val_def(Let_def(s1,topt,(Let_fun(n,ps,t,s2,e),l)),tnvs,class_constraints)
+                  Val_def(Fun_def(s1,s2_opt,topt,clauses),tnvs,class_constraints)
             | Indreln(s1,topt,clauses) ->
                 let clauses =
                   Seplist.map
-                    (fun (name_opt,s1,ns,s2,e,s3,n,es) ->
+                    (fun (name_opt,s1,ns,s2,e,s3,n,n_ref,es) ->
                        (* TODO: rename to avoid conflicts *)
-                       (name_opt,s1,ns,s2,e,s3,n,es))
+                       (name_opt,s1,ns,s2,e,s3,n,n_ref,es))
                     clauses
                 in
                   Indreln(s1,topt,clauses)      
@@ -346,86 +319,23 @@ struct
       (env,
        { m with typed_ast = (List.rev defs, end_lex_skips) })
 
-  let get_fixed_renames targ : (Typed_ast.name_kind * Path.t * Path.t) list =
-    let r = Ulib.Text.of_latin1 in
-    let mk_string_path ns n = Path.mk_path (List.map (fun s -> Name.from_rope (r s)) ns) (Name.from_rope (r n)) in
-    match targ with
-      | Some(Target_isa) -> [
-           (Typed_ast.Nk_typeconstr, 
-            Path.numpath,
-            mk_string_path [] "nat");
-
-           (Typed_ast.Nk_typeconstr, 
-            mk_string_path ["Hol"; "Integer"] "int",
-            mk_string_path [] "int");
-
-           (Typed_ast.Nk_typeconstr, 
-            mk_string_path ["Coq"; "Hol"; "Integer"] "int",
-            mk_string_path [] "int");
-
-           (Typed_ast.Nk_typeconstr, 
-            mk_string_path ["Int"] "int",
-            mk_string_path [] "int");
-
-           (Typed_ast.Nk_typeconstr, 
-            mk_string_path ["Isabelle"; "Pervasives"] "int",
-            mk_string_path [] "int");
-
-           (Typed_ast.Nk_typeconstr, 
-            mk_string_path ["Pmap"] "map",
-            mk_string_path ["Map"] "map");
-           (Typed_ast.Nk_typeconstr, 
-            mk_string_path ["Coq"; "Hol"; "Finite_map"] "fmap",
-            mk_string_path ["Map"] "map");
-           (Typed_ast.Nk_typeconstr, 
-            mk_string_path ["Hol"; "Finite_map"] "fmap",
-            mk_string_path ["Map"] "map");
-           (Typed_ast.Nk_typeconstr, 
-            mk_string_path ["Coq"; "Map"] "fmap",
-            mk_string_path ["Map"] "fmap");
-          ]
-      | Some(Target_hol) -> [
-           (Typed_ast.Nk_typeconstr, 
-            mk_string_path ["Pmap"] "map",
-            mk_string_path [] "fmap");
-           (Typed_ast.Nk_typeconstr, 
-            mk_string_path ["Coq"; "Hol"; "Finite_map"] "fmap",
-            mk_string_path [] "fmap");
-           (Typed_ast.Nk_typeconstr, 
-            mk_string_path ["Hol"; "Finite_map"] "fmap",
-            mk_string_path [] "fmap");
-           (Typed_ast.Nk_typeconstr, 
-            mk_string_path ["Coq"; "Hol"] "fmap",
-            mk_string_path [] "fmap");
-          ]
-      | Some(Target_coq) -> [
-           (Typed_ast.Nk_typeconstr, 
-            mk_string_path ["Pmap"] "map",
-            mk_string_path [] "fmap");
-           (Typed_ast.Nk_typeconstr, 
-            mk_string_path ["Coq"; "Hol"; "Integer"] "int",
-            mk_string_path [] "int");
-        ]
-      | _ -> []
-
-  let get_transformation targ consts =
-    let fixed_renames = get_fixed_renames targ in
+  let get_transformation targ =
     match targ with
       | Some(Target_hol) -> 
-          (trans (Some(Ast.Target_hol(None))) targ (hol consts fixed_renames),
+          (trans (Some(Target.Target_hol)) targ hol,
            get_avoid_f targ)
       | Some(Target_ocaml) -> 
           (* TODO *)
-          (trans (Some(Ast.Target_ocaml(None))) targ (ocaml consts fixed_renames),
+          (trans (Some(Target.Target_ocaml)) targ ocaml,
            get_avoid_f targ)
       | Some(Target_coq) -> 
-          (trans (Some(Ast.Target_coq(None))) targ (coq consts fixed_renames),
+          (trans (Some(Target.Target_coq)) targ coq,
            get_avoid_f targ)
       | Some(Target_isa) -> 
-          (trans (Some(Ast.Target_isa(None))) targ (isa consts fixed_renames),
+          (trans (Some(Target.Target_isa)) targ isa,
            get_avoid_f targ)
       | Some(Target_tex) -> 
-          (trans (Some(Ast.Target_tex(None))) targ tex,
+          (trans (Some(Target.Target_tex)) targ tex,
            get_avoid_f targ)
       | Some(Target_html) -> 
           (trans None targ ident,
