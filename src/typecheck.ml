@@ -1758,7 +1758,7 @@ let build_record tvs_set (ctxt : defn_ctxt)
 let add_record_to_ctxt build_descr (ctxt : defn_ctxt) 
       (recs : (name_l * lskips * src_t) lskips_seplist) 
       : ((name_l * const_descr_ref * lskips * src_t) lskips_seplist * defn_ctxt)  =
-   Seplist.map_acc_right
+   Seplist.map_acc_left
       (fun ((fn,l'),sk1,src_t) ctxt ->
          let fn' = Name.strip_lskip fn in
          let field_descr = build_descr fn' l' src_t.typ in

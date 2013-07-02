@@ -44,6 +44,8 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
+(* XXX: for debugging the developing code: open Coq_ast *)
+
 let r = Ulib.Text.of_latin1
 
 let get_lexbuf fn =

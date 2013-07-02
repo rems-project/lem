@@ -187,6 +187,7 @@ struct
                           T.remove_set_comprehension;
                           T.remove_quant;
                           Backend_common.inline_exp_macro (Some Target_coq) env;
+                          T.remove_do;
                           Patterns.compile_exp (Some Target_coq) Patterns.is_coq_pattern_match C.d env]);
          Pat_macros (fun env ->
                        let module T = T(struct let env = env end) in

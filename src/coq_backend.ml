@@ -870,7 +870,7 @@ let type_ident_to_output td =
             let body = flat $ Seplist.to_sep_list_last Seplist.Optional case_line (sep (break_hint_space 2 ^ from_string "|")) cases in
               block is_user_exp 0 (
                 combine [
-                  ws skips; from_string "match ("; exp e; from_string ")"; ws skips'; from_string "with";
+                  ws skips; from_string "match ("; exp e; from_string ")"; from_string " with"; ws skips';
                   break_hint_space 4; body; ws skips''; break_hint_space 0; from_string "end"
                 ])
            | Infix (l, c, r) ->

@@ -676,7 +676,7 @@ module Tex : Target = struct
   let last_list_sep = Seplist.Optional
   let last_set_sep = Seplist.Optional
   let first_variant_sep = Seplist.Optional
-  let type_params_pre = true
+  let type_params_pre = false
   let nexp_params_vis = true
   let type_abbrev_sep = kwd "="
   let type_abbrev_end = emp
