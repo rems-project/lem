@@ -40,6 +40,16 @@ let path_size =
   name_size
 ;;
 
+type lex_skip
+  = Nl
+  | Ws of Ulib.Text.t
+;;
+
+type ml_comment
+  = Chars of Ulib.Text.t
+  | Comment of ml_comment list
+;;
+
 type typ
   = TyWildcard
   | TyVar of Tyvar.t
@@ -47,21 +57,29 @@ type typ
   | TyArrow of typ * typ
   | TyBracketed of typ
   | TyApp of Path.t Typed_ast.id * typ list
-  | TyWhitespace of Ast.lex_skip list * typ
-  | TyComment of string * typ
+  | TyWhitespace of lex_skip list * typ
+  | TyComment of ml_comment * typ
 ;;
 
 let rec ml_comment_size c =
   match c with
-    | Ast.Chars cs -> Ulib.Text.to_string |> String.length $ cs
-    | Ast.Comment cs -> sum ml_comment_size cs
+    | Chars cs -> Ulib.Text.to_string |> String.length $ cs
+    | Comment cs -> sum ml_comment_size cs
+;;
+
+let rec string_of_ml_comment c =
+  match c with
+    | Chars cs -> Ulib.Text.to_string cs
+    | Comment cs ->
+        List.map string_of_ml_comment |>
+        (fun x -> List.fold_right (^) x "") $
+        cs
 ;;
 
 let whitespace_size ws =
   match ws with
-    | Ast.Com c -> ml_comment_size c
-    | Ast.Nl -> 1
-    | Ast.Ws w -> Ulib.Text.to_string |> String.length $ w
+    | Nl -> 1
+    | Ws w -> Ulib.Text.to_string |> String.length $ w
 ;;
 
 let whitespace_list_size ws =
@@ -84,16 +102,7 @@ let rec typ_size = function
   | TyWhitespace (ws, typ) ->
       sum whitespace_size ws + typ_size typ
   | TyComment (c, typ) ->
-      String.length c + typ_size typ
-;;
-
-let rec string_of_ml_comment c =
-  match c with
-    | Ast.Chars cs -> Ulib.Text.to_string cs
-    | Ast.Comment cs ->
-        List.map string_of_ml_comment |>
-        (fun x -> List.fold_right (^) x "") $
-        cs
+      ml_comment_size c + typ_size typ
 ;;
 
 let string_of_path =
@@ -101,21 +110,33 @@ let string_of_path =
   Name.to_string
 ;;
 
-let rec pretty_print_whitespace caret limit ws =
-  match ws with
-    | Ast.Com c ->
-      let sep, caret =
-        if caret >= limit - whitespace_size ws then
-          let m = min (2 + whitespace_size ws) limit in
-          let indent = repeat ' ' m in
-            "\n" ^ indent, m
-        else
-          "", min (caret + whitespace_size ws) limit
-      in
-        caret, sep ^ string_of_ml_comment c
+let progress caret limit size i =
+  let s = size i in
+    if caret >= limit - s then
+      let m = min (2 + s) limit in
+      let indent = repeat ' ' m in
+        "\n" ^ indent, m
+    else
+      "", min (caret + s) limit
 ;;
 
-let rec lift (caret: int) (limit: int) (sep: string) (pp: int -> int -> 'a -> int * string) (l: 'a list) =
+let pretty_print_ml_comment caret limit c =
+  let sep, caret = progress caret limit ml_comment_size c in
+    caret, sep ^ string_of_ml_comment c
+;;
+
+let rec pretty_print_whitespace caret limit w =
+  match w with
+    | Nl ->
+      let _, caret = progress caret limit whitespace_size w in
+        caret, "\n"
+    | Ws ws ->
+      let sep, caret = progress caret limit whitespace_size w in
+        caret, sep ^ Ulib.Text.to_string ws
+;;
+
+let rec lift (caret: int) (limit: int) (sep: string)
+              (pp: int -> int -> 'a -> int * string) (l: 'a list) =
   match l with
     | [] -> caret, ""
     | x::xs ->
@@ -127,16 +148,6 @@ let rec lift (caret: int) (limit: int) (sep: string) (pp: int -> int -> 'a -> in
 
 let rec pretty_print_whitespace_list caret limit =
   lift caret limit " " pretty_print_whitespace
-;;
-
-let progress caret limit size i =
-  let s = size i in
-    if caret >= limit - s then
-      let m = min (2 + s) limit in
-      let indent = repeat ' ' m in
-        "\n" ^ indent, m
-    else
-      "", min (caret + s) limit
 ;;
 
 let pretty_print_path caret limit p =
@@ -151,25 +162,11 @@ let pretty_print_typ =
         let sep, caret = progress caret limit typ_size typ in
           caret, sep ^ "_"
       | TyVar v ->
-        let sep, caret =
-          if caret >= limit - typ_size typ then
-            let m = min (2 + typ_size typ) limit in
-            let indent = repeat ' ' m in
-              "\n" ^ indent, m
-          else
-            "", min (caret + typ_size typ) limit
-        in
+        let sep, caret = progress caret limit typ_size typ in
         let v = Tyvar.to_rope |> Ulib.Text.to_string $ v in
           caret, sep ^ v
       | TyConst c ->
-        let sep, caret =
-          if caret >= limit - typ_size typ then
-            let m = min (2 + typ_size typ) limit in
-            let indent = repeat ' ' m in
-              "\n" ^ indent, m
-          else
-            "", min (caret + typ_size typ) limit
-        in
+        let sep, caret = progress caret limit typ_size typ in
         let c = Path.to_name |> Name.to_rope |> Ulib.Text.to_string $ c.Typed_ast.descr in
           caret, sep ^ c
       | TyArrow (l, r) ->
@@ -184,9 +181,13 @@ let pretty_print_typ =
         let caret, r = aux_list (caret + 1) limit r in
           caret, l ^ " " ^ r
       | TyWhitespace (ws, t) ->
-        let ws_size = whitespace_list_size ws in
         let caret, ws = pretty_print_whitespace_list caret limit ws in
-          ws ^ aux caret limit t
+        let caret, t = aux caret limit t in
+          caret, ws ^ t
+      | TyComment (c, t) ->
+        let caret, c = pretty_print_ml_comment caret limit c in
+        let caret, t = aux caret limit t in
+          caret, c ^ t
     and aux_list caret limit = lift caret limit " " aux
   in
     aux
@@ -199,7 +200,7 @@ let _ =
   let _ = prerr_endline (string_of_int caret), prerr_endline pp in
   let caret, pp = pretty_print_typ 77 80 TyWildcard in
   let _ = prerr_endline (string_of_int caret), prerr_endline pp in
-  let caret, pp = pretty_print_typ 77 80 (TyArrow (TyWildcard, TyWildcard)) in
+  let caret, pp = pretty_print_typ 77 80 (TyArrow (TyArrow (TyBracketed TyWildcard, TyWildcard), TyWildcard)) in
   let _ = prerr_endline (string_of_int caret), prerr_endline pp in
     ()
 ;;
@@ -207,6 +208,11 @@ let _ =
 type bit
   = ZeroBit
   | OneBit
+;;
+
+let string_of_bit = function
+  | ZeroBit -> "Zero"
+  | OneBit -> "One"
 ;;
 
 type vector_literal_type
@@ -244,8 +250,8 @@ and term
   | Const of (Name.t, literal) union
   | Bracketed of term
   | Explicit of term * typ
-  | Comment of string * term
-  | Whitespace of Ast.lex_skip list * term
+  | Comment of ml_comment * term
+  | Whitespace of lex_skip list * term
   | Infix of term * term * term
   | App of term * term
   | Fun of term list * term
@@ -261,4 +267,57 @@ and term
      that more appropriate thing is!
   *)
   | Do of Typed_ast.mod_descr Typed_ast.id * (term * term) list
+;;
+
+let rec term_size t =
+  match t with
+    | Var v -> name_size v
+    | Const c ->
+      (match c with
+        | Inl n -> name_size n
+        | Inr l -> literal_size l)
+    | Bracketed t -> 2 + term_size t
+    | Explicit (t, typ) -> 2 + term_size t + typ_size typ
+and literal_size l =
+  match l with
+    | LBoolean b -> string_of_bool |> String.length $ b
+    | LBit b -> string_of_bit |> String.length $ b
+    | LInt i -> string_of_int |> String.length $ i
+    | LString s -> String.length s
+    | LUnit -> 2
+    | LVector (_, _, l) -> 2 + l
+    | LUndefined c -> 9 + String.length c
+    | LCollection (_, ts) ->
+      match ts with
+        | [] -> 2
+        | [x] -> term_size x + 2
+        | _ ->
+          let ts_size = sum term_size ts in
+            2 + ts_size + ((List.length ts - 1) * 2)
+;;
+
+let pretty_print_term =
+  let rec aux_term caret limit t =
+    match t with
+      | Var v ->
+        let sep, caret = progress caret limit term_size t in
+        let v = Name.to_string v in
+          caret, sep ^ v
+  and aux_literal caret limit l =
+    match l with
+      | LBoolean b ->
+        let sep, caret = progress caret limit literal_size l in
+          caret, sep ^ string_of_bool b
+  in
+    aux_term
+;;
+
+let _ =
+  let caret, pp = pretty_print_term 0 80 (Const (Inr (LBoolean true))) in
+  let _ = prerr_endline (string_of_int caret), prerr_endline pp in
+  let caret, pp = pretty_print_term 79 80 (Const (Inr (LBoolean false))) in
+  let _ = prerr_endline (string_of_int caret), prerr_endline pp in
+  let caret, pp = pretty_print_term 0 80 (Explicit (Const (Inr (LUndefined "foo")), TyArrow (TyWildcard, TyWildcard))) in
+  let _ = prerr_endline (string_of_int caret), prerr_endline pp in
+    ()
 ;;
