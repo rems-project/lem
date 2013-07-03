@@ -50,12 +50,6 @@ open Typed_ast
 let r = Ulib.Text.of_latin1
 ;;
 
-let ($) f x = f x
-;;
-
-let (|>) f g = fun x -> g (f x)
-;;
-
 let rec nub =
   function
     | []    -> []

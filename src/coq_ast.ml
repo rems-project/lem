@@ -1,10 +1,7 @@
 let r = Ulib.Text.of_latin1
 ;;
 
-let ($) f x = f x
-;;
-
-let (|>) f g = fun x -> g (f x)
+let (|>) x f = f x
 ;;
 
 type ('a, 'b) union
@@ -12,9 +9,9 @@ type ('a, 'b) union
   | Inr of 'b
 ;;
 
-let sum f =
-  List.map f |>
-  fun l -> List.fold_right (+) l 0
+let sum f l =
+  List.map f l |>
+  List.fold_left (+) 0
 ;;
 
 let rec repeat (c: char) (i: int): string =
@@ -23,20 +20,20 @@ let rec repeat (c: char) (i: int): string =
     | m -> Char.escaped c ^ repeat c (m - 1)
 ;;
 
-let tyvar_size =
-  Tyvar.to_rope |>
+let tyvar_size ty =
+  Tyvar.to_rope ty |>
   Ulib.Text.to_string |>
   String.length
 ;;
 
-let name_size =
-  Name.to_rope |>
+let name_size n =
+  Name.to_rope n |>
   Ulib.Text.to_string |>
   String.length
 ;;
 
-let path_size =
-  Path.to_name |>
+let path_size p =
+  Path.to_name p |>
   name_size
 ;;
 
@@ -53,7 +50,7 @@ type typ
 
 let rec ml_comment_size c =
   match c with
-    | Ast.Chars cs -> Ulib.Text.to_string |> String.length $ cs
+    | Ast.Chars cs -> cs |> Ulib.Text.to_string |> String.length
     | Ast.Comment cs -> sum ml_comment_size cs
 ;;
 
@@ -61,7 +58,7 @@ let whitespace_size ws =
   match ws with
     | Ast.Com c -> ml_comment_size c
     | Ast.Nl -> 1
-    | Ast.Ws w -> Ulib.Text.to_string |> String.length $ w
+    | Ast.Ws w -> w |> Ulib.Text.to_string |> String.length
 ;;
 
 let whitespace_list_size ws =
@@ -91,13 +88,13 @@ let rec string_of_ml_comment c =
   match c with
     | Ast.Chars cs -> Ulib.Text.to_string cs
     | Ast.Comment cs ->
+        cs |>
         List.map string_of_ml_comment |>
-        (fun x -> List.fold_right (^) x "") $
-        cs
+        String.concat
 ;;
 
-let string_of_path =
-  Path.to_name |>
+let string_of_path p =
+  Path.to_name p |>
   Name.to_string
 ;;
 
@@ -159,8 +156,8 @@ let pretty_print_typ =
           else
             "", min (caret + typ_size typ) limit
         in
-        let v = Tyvar.to_rope |> Ulib.Text.to_string $ v in
-          caret, sep ^ v
+        let v' = v |> Tyvar.to_rope |> Ulib.Text.to_string in
+          caret, sep ^ v'
       | TyConst c ->
         let sep, caret =
           if caret >= limit - typ_size typ then
@@ -170,8 +167,8 @@ let pretty_print_typ =
           else
             "", min (caret + typ_size typ) limit
         in
-        let c = Path.to_name |> Name.to_rope |> Ulib.Text.to_string $ c.Typed_ast.descr in
-          caret, sep ^ c
+        let c' = c.Typed_ast.descr |> Path.to_name |> Name.to_rope |> Ulib.Text.to_string in
+          caret, sep ^ c'
       | TyArrow (l, r) ->
         let caret, l = aux caret limit l in
         let caret', r = aux (caret + 4) limit r in
