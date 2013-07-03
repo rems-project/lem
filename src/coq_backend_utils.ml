@@ -126,8 +126,7 @@ let sep x s = ws s ^ x
 let path_sep = from_string "."
 
 let tyvar (_, tv, _) = id Type_var (Ulib.Text.(^^^) (r"") tv)
-let separate s = concat (from_string s)
-let combine = flat
+let concat_str s = concat (from_string s)
 
 let lskips_t_to_output name =
   let stripped = Name.strip_lskip name in
