@@ -47,8 +47,22 @@
 open Output
 open Typed_ast
 
+(* Backward compatibility functions *)
+
+(* Available in OCaml since 4.00.0 - copied from list.ml *)
+let rec mapi i f = function
+    [] -> []
+  | a::l -> let r = f i a in r :: mapi (i + 1) f l
+;;
+let mapi f l = mapi 0 f l ;;
+
+(* Available in OCaml since 4.01.00 - optimisable with "%apply" and "%revapply" *)
 let (|>) x f = f x
 ;;
+let (@@) f x = f x
+;;
+
+
 
 type ('a, 'b) union
   = Inl of 'a
@@ -60,16 +74,10 @@ let sum f l =
   List.fold_left (+) 0
 ;;
 
-let rec repeat (c: char) (i: int): string =
-  match i with
-    | 0 -> ""
-    | m -> Pervasives.(^) (Char.escaped c) (repeat c (m - 1))
-;;
-
-let (@@) f x = f x
-;;
-
 let r = Ulib.Text.of_latin1
+;;
+
+let iterate i n = Array.make n i |> Array.to_list
 ;;
 
 let rec nub =
@@ -102,12 +110,6 @@ let rec drop_while p l =
           x::drop_while p xs
 ;;
 
-let rec iterate i n =
-  match n with
-    | 0 -> []
-    | n -> i :: iterate i (n - 1)
-;;
-
 let span p l = (take_while p l, drop_while p l)
 ;;
 
@@ -119,49 +121,13 @@ let rec group_with p l =
           (x::ys)::group_with p zs
 ;;
 
-let rec intercalate sep =
-  function
-    | [] -> []
-    | [x] -> [x]
-    | x::xs -> x::sep::intercalate sep xs
-;;
-
-let mapi f xs =
-	let rec go counter f =
-		function
-			| []    -> []
-			| x::xs -> f counter x :: go (counter + 1) f xs
-	in
-		go 0 f xs
-;;
-
 let from_string x = meta x
-;;
-
 let sep x s = ws s ^ x
-;;
+let path_sep = from_string "."
 
 let tyvar (_, tv, _) = id Type_var (Ulib.Text.(^^^) (r"") tv)
-;;
-
-let path_sep = from_string "."
-;;
-
-let all p l =
-  List.fold_right (&&) (List.map p l) true
-;;
-
-let any p l =
-  List.fold_right (||) (List.map p l) false
-;;
-
-let separate sep l =
-  List.fold_right (^) (intercalate (from_string sep) l) emp
-;;
-
-let combine l =
-    List.fold_right (^) l emp
-;;
+let separate s = concat (from_string s)
+let combine = flat
 
 let lskips_t_to_output name =
   let stripped = Name.strip_lskip name in

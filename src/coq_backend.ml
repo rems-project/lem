@@ -271,7 +271,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
       in
       let rec decidable_equality_possible l =
         let l = List.map (fun (x, y, z) -> z) l in
-          all (fun typ ->
+          List.for_all (fun typ ->
             match typ.term with
               | _ -> true
           ) l
@@ -293,8 +293,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
                 o; from_string " r)"
               ]) l
           in
-          let i = intercalate (from_string " && ") body in
-          let f = List.fold_right (^) i (from_string "") in
+          let f = separate " && " body in
             combine [prefix; f; kwd ". *)"]
         else
           from_string "(* XXX: unable to produce decidable equality for type " ^ o ^ from_string ". *)"
@@ -488,10 +487,10 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
       match s.term with
         | Typ_var _ -> true
         | Typ_app (path, src_ts) ->
-            List.length src_ts = 0 || all is_inferrable src_ts
+            List.length src_ts = 0 || List.for_all is_inferrable src_ts
         | Typ_tup seplist ->
           let src_ts = Seplist.to_list seplist in
-            all is_inferrable src_ts
+            List.for_all is_inferrable src_ts
         | Typ_paren (_, src_t, _) -> is_inferrable src_t
         | _ -> false
     ;;
@@ -800,16 +799,16 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
           fun_pattern_list pats; typ_opt; ws skips; from_string ":="; exp e
         ]
     and let_type_variables top_level tv_set =
-      let tyvars = intercalate (from_string " ") @@
+      if Types.TNset.is_empty tv_set || not top_level then
+        emp
+      else
+      let tyvars =
         List.map (fun tv -> match tv with
           | Types.Ty tv -> id Type_var (Tyvar.to_rope tv)
           | Types.Nv nv -> id Type_var (Nvar.to_rope nv)) (*TODO This may not be how the length variables should be represented, so should be checked on *)
         (Types.TNset.elements tv_set)
       in
-        if List.length tyvars = 0 || not top_level then
-          emp
-        else
-          combine [from_string "{"; flat tyvars; from_string " : Type}"]
+          (from_string "{") ^ (separate " " tyvars) ^ (from_string " : Type}")
     and exp e =
       let is_user_exp = Typed_ast_syntax.is_trans_exp e in
         match C.exp_to_term e with
@@ -1086,8 +1085,8 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
               ctor_ident_to_output cd; args
             ]
         | P_num_add ((name, l), skips, skips', k) ->
-            let succs = separate "" @@ iterate (from_string "S (") k in
-            let close = separate "" @@ iterate (from_string ")") k in
+            let succs = combine @@ iterate (from_string "S (") k in
+            let close = combine @@ iterate (from_string ")") k in
             let name = lskips_t_to_output name in
               combine [
                 ws skips; succs; name; close
@@ -1150,8 +1149,8 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
               ctor_ident_to_output cd; args
             ]
         | P_num_add ((name, l), skips, skips', k) ->
-            let succs = separate "" @@ iterate (from_string "S (") k in
-            let close = separate "" @@ iterate (from_string ")") k in
+            let succs = combine @@ iterate (from_string "S (") k in
+            let close = combine @@ iterate (from_string ")") k in
             let name = lskips_t_to_output name in
               combine [
                 ws skips; succs; name; close
@@ -1299,7 +1298,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
           let (name_list, name) = Ident.to_name_list (resolve_ident_path p p.descr) in
             combine [
               from_string @@ Ulib.Text.to_string (Name.to_rope name); from_string " ";
-              flat @@ intercalate (from_string " ") (List.map pat_typ ts)
+              separate " " (List.map pat_typ ts)
             ]
         | Typ_paren(skips, t, skips') ->
             ws skips ^ from_string "(" ^ pat_typ t ^ ws skips' ^ from_string ")"
@@ -1440,7 +1439,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option end) =
                   from_string "("; separate ", " mapped; from_string ")"
                 ]
           | Typ_app (path, src_ts) ->
-              if List.length src_ts = 0 || all is_inferrable src_ts then
+              if List.length src_ts = 0 || List.for_all is_inferrable src_ts then
                 let path = path.descr in
                 let (tail, head) = Path.to_name_list path in
                   combine [
