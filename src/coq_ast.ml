@@ -1,42 +1,22 @@
+open Coq_backend_utils
+
 let r = Ulib.Text.of_latin1
 ;;
 
-let ($) f x = f x
-;;
-
-let (|>) f g = fun x -> g (f x)
-;;
-
-type ('a, 'b) union
-  = Inl of 'a
-  | Inr of 'b
-;;
-
-let sum f =
-  List.map f |>
-  fun l -> List.fold_right (+) l 0
-;;
-
-let rec repeat (c: char) (i: int): string =
-  match i with
-    | 0 -> ""
-    | m -> Char.escaped c ^ repeat c (m - 1)
-;;
-
-let tyvar_size =
-  Tyvar.to_rope |>
+let tyvar_size ty =
+  Tyvar.to_rope ty |>
   Ulib.Text.to_string |>
   String.length
 ;;
 
-let name_size =
-  Name.to_rope |>
+let name_size n =
+  Name.to_rope n |>
   Ulib.Text.to_string |>
   String.length
 ;;
 
-let path_size =
-  Path.to_name |>
+let path_size p =
+  Path.to_name p |>
   name_size
 ;;
 
@@ -63,7 +43,7 @@ type typ
 
 let rec ml_comment_size c =
   match c with
-    | Chars cs -> Ulib.Text.to_string |> String.length $ cs
+    | Chars cs -> cs |> Ulib.Text.to_string |> String.length
     | Comment cs -> sum ml_comment_size cs
 ;;
 
@@ -71,15 +51,17 @@ let rec string_of_ml_comment c =
   match c with
     | Chars cs -> Ulib.Text.to_string cs
     | Comment cs ->
+        cs |>
         List.map string_of_ml_comment |>
-        (fun x -> List.fold_right (^) x "") $
-        cs
+        (fun x -> List.fold_right (^) x "")
+        
+        
 ;;
 
 let whitespace_size ws =
   match ws with
     | Nl -> 1
-    | Ws w -> Ulib.Text.to_string |> String.length $ w
+    | Ws w -> w |> Ulib.Text.to_string |> String.length
 ;;
 
 let whitespace_list_size ws =
@@ -105,8 +87,8 @@ let rec typ_size = function
       ml_comment_size c + typ_size typ
 ;;
 
-let string_of_path =
-  Path.to_name |>
+let string_of_path p =
+  Path.to_name p |>
   Name.to_string
 ;;
 
@@ -163,11 +145,11 @@ let pretty_print_typ =
           caret, sep ^ "_"
       | TyVar v ->
         let sep, caret = progress caret limit typ_size typ in
-        let v = Tyvar.to_rope |> Ulib.Text.to_string $ v in
+        let v = v |> Tyvar.to_rope |> Ulib.Text.to_string in
           caret, sep ^ v
       | TyConst c ->
         let sep, caret = progress caret limit typ_size typ in
-        let c = Path.to_name |> Name.to_rope |> Ulib.Text.to_string $ c.Typed_ast.descr in
+        let c = c.Typed_ast.descr |> Path.to_name |> Name.to_rope |> Ulib.Text.to_string in
           caret, sep ^ c
       | TyArrow (l, r) ->
         let caret, l = aux caret limit l in
@@ -280,9 +262,9 @@ let rec term_size t =
     | Explicit (t, typ) -> 2 + term_size t + typ_size typ
 and literal_size l =
   match l with
-    | LBoolean b -> string_of_bool |> String.length $ b
-    | LBit b -> string_of_bit |> String.length $ b
-    | LInt i -> string_of_int |> String.length $ i
+    | LBoolean b -> b |> string_of_bool |> String.length
+    | LBit b -> b |> string_of_bit |> String.length
+    | LInt i -> i |> string_of_int |> String.length
     | LString s -> String.length s
     | LUnit -> 2
     | LVector (_, _, l) -> 2 + l

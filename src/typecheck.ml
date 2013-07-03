@@ -1038,7 +1038,7 @@ module Make_checker(T : sig
                       Path.pp mod_id.descr.mod_binding
             in
             let (bind_tvs, bind_type) = 
-              check_const_for_do mod_id mod_env.v_env ">>=" in
+              check_const_for_do mod_id mod_env.v_env "bind" in
             let build_bind_type tv1 tv2 =
               { t = Tfn(build_monad_type tv1, 
                         { t = Tfn({t = Tfn({ t = Tvar(tv1)}, 
