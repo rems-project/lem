@@ -80,7 +80,6 @@ open Typed_ast
 open Typed_ast_syntax
 open Output
 
-
 let gen_extra_level = ref 3
 
 let r = Ulib.Text.of_latin1
@@ -691,7 +690,7 @@ module Tex : Target = struct
   let last_list_sep = Seplist.Optional
   let last_set_sep = Seplist.Optional
   let first_variant_sep = Seplist.Optional
-  let type_params_pre = true
+  let type_params_pre = false
   let nexp_params_vis = true
   let type_abbrev_sep = kwd "="
   let type_abbrev_end = emp
@@ -1504,6 +1503,7 @@ let const_ident_to_output cd =
       else if Path.compare cd.descr.const_binding (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"&&")))    = 0 then kwd "\\lemwedge"
       else if Path.compare cd.descr.const_binding (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"||")))    = 0 then kwd "\\lemvee"
       else if Path.compare cd.descr.const_binding (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"not")))   = 0 then kwd "\\lemnot"
+      else if Path.compare cd.descr.const_binding (Path.mk_path [Name.from_rope (r"Pervasives")] (Name.from_rope (r"<>")))   = 0 then kwd "\\neq"
       else
         Ident.to_output T.infix_op_format Term_const T.path_sep (resolve_ident_path cd cd.descr.const_binding)
   | Some (Ast.Target_html _) -> 
