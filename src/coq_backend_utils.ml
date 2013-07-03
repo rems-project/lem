@@ -47,13 +47,29 @@
 open Output
 open Typed_ast
 
+let (|>) x f = f x
+;;
+
+type ('a, 'b) union
+  = Inl of 'a
+  | Inr of 'b
+;;
+
+let sum f l =
+  List.map f l |>
+  List.fold_left (+) 0
+;;
+
+let rec repeat (c: char) (i: int): string =
+  match i with
+    | 0 -> ""
+    | m -> Pervasives.(^) (Char.escaped c) (repeat c (m - 1))
+;;
+
+let (@@) f x = f x
+;;
+
 let r = Ulib.Text.of_latin1
-;;
-
-let ($) f x = f x
-;;
-
-let (|>) f g = fun x -> g (f x)
 ;;
 
 let rec nub =
@@ -92,4 +108,3 @@ let lskips_t_to_output name =
   let rope = Name.to_rope stripped in
     Output.id Term_var rope
 ;;
-

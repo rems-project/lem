@@ -1119,18 +1119,18 @@ let rec coq_type_annot_pat_vars (level,pos) p =
 
 let bind_id l = function
   | Id_none(sk) ->
-      Id_some(Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r ">>="))) l)
+      Id_some(Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r "bind"))) l)
   | Id_some(id) ->
       let (n1,n2) = Ident.to_name_list id in
         Id_some (Ident.mk_ident 
                    ((List.map (fun n -> (Name.add_lskip n, None)) n1)@[(Name.add_lskip n2, None)]) 
-                   (Name.add_lskip (Name.from_rope (r ">>="))) 
+                   (Name.add_lskip (Name.from_rope (r "bind"))) 
                    l)
 
 
 let bind_const l m i =
   let (n1,n2) = Path.to_name_list m.descr.mod_binding in
-  let (descr, _) = names_get_const E.env (n1@[n2]) (Name.from_rope (r">>=")) in
+  let (descr, _) = names_get_const E.env (n1@[n2]) (Name.from_rope (r"bind")) in
     C.mk_const l { id_path = bind_id l m.id_path; id_locn = l; descr = descr; instantiation = i } None
 
 (* TODO: do something sensible with the spacing *)

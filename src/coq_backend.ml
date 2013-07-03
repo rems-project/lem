@@ -105,7 +105,7 @@ let need_space x y =
         else
           (false,false)
       | Ident'(r) ->
-        (false, is_symbolic $ Ulib.Text.to_string r)
+        (false, is_symbolic @@ Ulib.Text.to_string r)
       | Num' _ ->
         (false,false)
     in
@@ -170,16 +170,16 @@ let error o =
 
 let lskips_t_to_string name =
   let (lskips_t, _) = name in
-    kwd (Ulib.Text.to_string $ Name.to_rope (Name.strip_lskip lskips_t))
+    kwd (Ulib.Text.to_string @@ Name.to_rope (Name.strip_lskip lskips_t))
 ;;
 
 let rec src_t_to_string =
   function
     | Typ_app (p, ts) ->
       let (name_list, name) = Ident.to_name_list (resolve_ident_path p p.descr) in
-        from_string $ Ulib.Text.to_string (Name.to_rope name)
+        from_string @@ Ulib.Text.to_string (Name.to_rope name)
     | Typ_var (_, v) ->
-        id Type_var $ Ulib.Text.(^^^) (r"") (Tyvar.to_rope v)
+        id Type_var @@ Ulib.Text.(^^^) (r"") (Tyvar.to_rope v)
     | Typ_wild skips -> from_string "_"
     | Typ_len src_nexp -> from_string "(* src_t_to_string len *)"
     | Typ_fn (src_t, skips, src_t') -> from_string "(* src_t_to_string fn *)"
@@ -328,7 +328,7 @@ let type_ident_to_output td =
                   let body = mapi (fun i -> fun x ->
                       let left_name = List.nth names i in
                       let right_name = List.nth right_args i in
-                      let typ = C.t_to_src_t $ List.nth typs i in
+                      let typ = C.t_to_src_t @@ List.nth typs i in
                       let typ_name = src_t_to_string typ.term in
                       let eq_name = typ_name ^ from_string "_beq " in
                         combine [
@@ -395,8 +395,8 @@ let type_ident_to_output td =
           let eq_funs = List.map (fun tv ->
             let tv =
               match tv with
-                | Typed_ast.Tn_A (_, tyvar, _) -> Tyvar (from_string $ Ulib.Text.to_string tyvar)
-                | Typed_ast.Tn_N (_, nvar, _) -> Nvar (from_string $ Ulib.Text.to_string nvar)
+                | Typed_ast.Tn_A (_, tyvar, _) -> Tyvar (from_string @@ Ulib.Text.to_string tyvar)
+                | Typed_ast.Tn_N (_, nvar, _) -> Nvar (from_string @@ Ulib.Text.to_string nvar)
             in
             let eq_fun_name, eq_fun_type =
               match tv with
@@ -420,12 +420,12 @@ let type_ident_to_output td =
           let tvs = List.map (fun tv ->
             match tv with
               | Typed_ast.Tn_A (_, tvar, _) ->
-                let name = from_string $ Ulib.Text.to_string tvar in
+                let name = from_string @@ Ulib.Text.to_string tvar in
                   combine [
                     from_string "{"; name; from_string ": Type}"
                   ]
               | Typed_ast.Tn_N (_, nvar, _) ->
-                let name = from_string $ Ulib.Text.to_string nvar in
+                let name = from_string @@ Ulib.Text.to_string nvar in
                   combine [
                     from_string "{"; name; from_string ": num}"
                   ]) tvs
@@ -454,11 +454,10 @@ let type_ident_to_output td =
     ;;
 
     let generate_coq_variant_equality lskips_seplist =
-        combine [];;
-(*      let l = Seplist.to_list lskips_seplist in
-      let names = List.map (fun (x, y, z, _) -> lskips_t_to_string x) l in
-      let tvs = List.map (fun (x, y, z, _) -> y) l in
-      let bods = List.map (fun (x, y, z, _) -> z) l in
+      let l = Seplist.to_list lskips_seplist in
+      let names = List.map (fun (x, y, _, z, _) -> lskips_t_to_string x) l in
+      let tvs = List.map (fun (x, y, _, z, _) -> y) l in
+      let bods = List.map (fun (x, y, _, z, _) -> z) l in
       let rec zip3 x y z =
         match x, y, z with
           | [], [], [] -> []
@@ -469,10 +468,9 @@ let type_ident_to_output td =
       let mapped = List.map (fun (x, y, z) -> generate_variant_equality x y z) zipped in
       let body = separate "\nwith " mapped in 
         combine [
-           from_string "(* "; from_string "Fixpoint "; body; from_string ". *)\n" 
+          (* from_string "(* "; from_string "Fixpoint "; body; from_string ". *)\n" *)
         ]
     ;;
-*)
 
     let rec is_inferrable (s : src_t) : bool =
       match s.term with
@@ -484,6 +482,38 @@ let type_ident_to_output td =
             List.for_all is_inferrable src_ts
         | Typ_paren (_, src_t, _) -> is_inferrable src_t
         | _ -> false
+    ;;
+
+    module DefaultMap = Map.Make (struct type t = string let compare = Pervasives.compare end)
+    ;;
+
+    let initial_default_map : string list DefaultMap.t ref =
+      let d =
+        DefaultMap.empty |>
+        DefaultMap.add "fmap_default" ["a"; "b"] |>
+        DefaultMap.add "set_default" ["a"] |>
+        DefaultMap.add "list_default" ["a"]
+      in
+        ref d
+    ;;
+
+    let add_to_default_map k v =
+      initial_default_map := DefaultMap.add k v !initial_default_map
+    ;;
+
+    let lookup_from_default_map k =
+      DefaultMap.find k !initial_default_map
+    ;;
+
+    let is_const e =
+      match C.exp_to_term e with
+        | Constant _ -> true
+        | _ -> false
+    ;;
+
+    let dest_const e =
+      match e with
+        | Constant c -> c
     ;;
 
     let rec def inside_module m =
@@ -537,7 +567,7 @@ let type_ident_to_output td =
         end
       | Module (skips, (name, l), mod_binding, skips', skips'', defs, skips''') ->
         let name = lskips_t_to_output name in
-        let body = flat $ List.map (fun ((d, s), l) ->
+        let body = flat @@ List.map (fun ((d, s), l) ->
           let skips =
             match s with
               | None -> emp
@@ -555,10 +585,13 @@ let type_ident_to_output td =
       | Open (skips, mod_descr) ->
           let mod_path = resolve_ident_path mod_descr mod_descr.descr.mod_binding in
           let mod_name = Ident.get_name mod_path in
-          let mod_name = Name.to_output Term_var mod_name in
-            combine [
-              ws skips; from_string "Require Import "; mod_name; from_string ".\n"
-            ]
+          if (mod_name |> Name.strip_lskip |> Name.to_string) = "Vector" then
+            combine []
+          else
+            let mod_name = Name.to_output Term_var mod_name in
+              combine [
+                ws skips; from_string "Require Import "; mod_name; from_string ".\n"
+              ]
       | Indreln (skips, targets, cs) ->
           if in_target targets then
             let c = Seplist.to_list cs in
@@ -626,7 +659,7 @@ let type_ident_to_output td =
               | (_, _, _, _, _, _, _, _, exp_list)::xs ->
                   List.map (fun t ->
                     combine [
-                      from_string "("; field_typ $ C.t_to_src_t (Typed_ast.exp_to_typ t); from_string ")"
+                      from_string "("; field_typ @@ C.t_to_src_t (Typed_ast.exp_to_typ t); from_string ")"
                     ]
                   ) exp_list
           in
@@ -651,7 +684,7 @@ let type_ident_to_output td =
                       ]
               in
               let bound_variables =
-                separate " " $ List.map (fun n ->
+                separate " " @@ List.map (fun n ->
                   from_string (Name.to_string (Name.strip_lskip n.term))
                 ) name_lskips_annot_list
               in
@@ -660,7 +693,7 @@ let type_ident_to_output td =
                   | [] -> emp, emp
                   | x::xs -> from_string "forall ", from_string ", "
               in
-              let indices = separate " " $ List.map exp exp_list in
+              let indices = separate " " @@ List.map exp exp_list in
               let index_free_vars = List.map (fun t -> Types.free_vars (Typed_ast.exp_to_typ t)) exp_list in
               let index_free_vars = List.fold_right Types.TNset.union index_free_vars Types.TNset.empty in
               let relation_name = from_string (Name.to_string name) in
@@ -672,9 +705,9 @@ let type_ident_to_output td =
             ) bodies
           in
           let free_vars = List.map (fun (x, y) -> y) bodies in
-          let free_vars = Types.TNset.elements $ List.fold_right Types.TNset.union free_vars Types.TNset.empty in
+          let free_vars = Types.TNset.elements @@ List.fold_right Types.TNset.union free_vars Types.TNset.empty in
           let free_vars =
-            separate " " $ List.map (fun v ->
+            separate " " @@ List.map (fun v ->
               combine [
                 from_string " {"; from_string (Name.to_string (Types.tnvar_to_name v)); from_string ": Type}"
               ]) free_vars
@@ -684,7 +717,7 @@ let type_ident_to_output td =
               separate " -> " index_types; from_string " -> Prop"
             ]
           in
-          let bodies = separate "\n  | " $ List.map (fun (x, y) -> x) bodies in
+          let bodies = separate "\n  | " @@ List.map (fun (x, y) -> x) bodies in
           combine [
             from_string name_string; free_vars; from_string ": "; index_types; from_string " :=\n  | ";
             bodies
@@ -758,7 +791,7 @@ let type_ident_to_output td =
     and funcl tv_set ({term = n}, c, pats, typ_opt, skips, e) = funcl_aux tv_set (n, pats, typ_opt, skips, e)      
     and funcl_letfun tv_set ({term = n}, pats, typ_opt, skips, e) = funcl_aux tv_set (n, pats, typ_opt, skips, e)      
     and let_type_variables top_level tv_set =
-      let tyvars = intercalate (from_string " ") $
+      let tyvars = intercalate (from_string " ") @@
         List.map (fun tv -> match tv with
           | Types.Ty tv -> id Type_var (Tyvar.to_rope tv)
           | Types.Nv nv -> id Type_var (Nvar.to_rope nv)) (*TODO This may not be how the length variables should be represented, so should be checked on *)
@@ -774,6 +807,7 @@ let type_ident_to_output td =
         match C.exp_to_term e with
           | Var v -> Name.to_output Term_var v
           | Lit l -> literal l
+          | Do (skips, mod_descr_id, do_line_list, skips', e, skips'', type_int) -> assert false (* DPM: should have been removed by macros *)
           | App (e1, e2) ->
               let trans e = block (Typed_ast_syntax.is_trans_exp e) 0 (exp e) in
               let sep = (break_hint_space 2) in
@@ -799,12 +833,12 @@ let type_ident_to_output td =
                 ws skips; from_string "("; exp e; from_string " :"; ws skips'; typ t; ws skips''; from_string ")";
               ]
           | Tup (skips, es, skips') ->
-              let tups = flat $ Seplist.to_sep_list exp (sep (from_string ", ")) es in
+              let tups = flat @@ Seplist.to_sep_list exp (sep (from_string ", ")) es in
                 combine [
                   ws skips; from_string "("; tups; from_string ")"; ws skips'
                 ]
           | List (skips, es, skips') ->
-              let lists = flat $ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> from_string " ")) exp (sep $ from_string "; ") es in
+              let lists = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> from_string " ")) exp (sep @@ from_string "; ") es in
                 combine [
                   ws skips; from_string "["; lists; from_string "]"; ws skips'
                 ]
@@ -824,7 +858,7 @@ let type_ident_to_output td =
             (* DPM: should have been macro'd away *)
               print_and_fail (Typed_ast.exp_to_locn e) "illegal function in extraction, should have been previously macro'd away"
           | Set (skips, es, skips') ->
-            let body = flat $ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) exp (sep $ from_string "; ") es in
+            let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) exp (sep @@ from_string "; ") es in
             let skips =
               if skips = Typed_ast.no_lskips then
                 from_string " "
@@ -846,7 +880,7 @@ let type_ident_to_output td =
                 from_string "(* end block *)"
               ]
           | Record (skips, fields, skips') ->
-            let body = flat $ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) field_update (sep $ from_string ";") fields in
+            let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) field_update (sep @@ from_string ";") fields in
               combine [
                 ws skips; from_string "{|"; body; ws skips'; from_string "|}"
               ]
@@ -856,7 +890,7 @@ let type_ident_to_output td =
                 from_string "("; name; ws skips; exp e; from_string ")"
               ]
           | Recup (skips, e, skips', fields, skips'') ->
-            let body = flat $ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) field_update (sep $ from_string ";") fields in
+            let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) field_update (sep @@ from_string ";") fields in
             let skips'' =
               if skips'' = Typed_ast.no_lskips then
                 from_string " "
@@ -867,7 +901,7 @@ let type_ident_to_output td =
                  ws skips; from_string "{["; exp e; ws skips'; from_string "with"; body; skips''; from_string " ]}"
               ]
           | Case (_, skips, e, skips', cases, skips'') ->
-            let body = flat $ Seplist.to_sep_list_last Seplist.Optional case_line (sep (break_hint_space 2 ^ from_string "|")) cases in
+            let body = flat @@ Seplist.to_sep_list_last Seplist.Optional case_line (sep (break_hint_space 2 ^ from_string "|")) cases in
               block is_user_exp 0 (
                 combine [
                   ws skips; from_string "match ("; exp e; from_string ")"; from_string " with"; ws skips';
@@ -901,7 +935,7 @@ let type_ident_to_output td =
           | Comp_binding (_, _, _, _, _, _, _, _, _) -> from_string "(* XXX: comp binding *)"
           | Setcomp (_, _, _, _, _, _) -> from_string "(* XXX: setcomp *)"
           | Nvar_e (skips, nvar) ->
-            let nvar = id Nexpr_var $ Ulib.Text.(^^^) (r"") (Nvar.to_rope nvar) in
+            let nvar = id Nexpr_var @@ Ulib.Text.(^^^) (r"") (Nvar.to_rope nvar) in
               combine [
                 ws skips; nvar
               ]
@@ -915,7 +949,7 @@ let type_ident_to_output td =
                 ws skips'; src_nexp nexp'; ws skips'
               ]
           | Vector (skips, es, skips') ->
-            let body = flat $ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) exp (sep $ from_string "; ") es in
+            let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) exp (sep @@ from_string "; ") es in
             let skips =
               if skips = Typed_ast.no_lskips then
                 from_string " "
@@ -934,7 +968,7 @@ let type_ident_to_output td =
     and src_nexp n =
       match n.nterm with
         | Nexp_var (skips, nvar) ->
-          let nvar = id Nexpr_var $ Ulib.Text.(^^^) (r"") (Nvar.to_rope nvar) in
+          let nvar = id Nexpr_var @@ Ulib.Text.(^^^) (r"") (Nvar.to_rope nvar) in
             combine [
               ws skips; nvar
             ]
@@ -980,7 +1014,7 @@ let type_ident_to_output td =
               ws skips; default_value src_t;
               from_string " (* "; from_string explanation; from_string " *)"
             ]
-    and fun_pattern_list ps = from_string " " ^ (separate " " $ List.map fun_pattern ps)
+    and fun_pattern_list ps = from_string " " ^ (separate " " @@ List.map fun_pattern ps)
     and fun_pattern p =
       match p.term with
         | P_wild skips ->
@@ -1012,7 +1046,7 @@ let type_ident_to_output td =
               ws skips''; pat_typ t; from_string ")"
             ]
         | P_tup (skips, ps, skips') ->
-          let body = flat $ Seplist.to_sep_list fun_pattern (sep $ from_string ", ") ps in
+          let body = flat @@ Seplist.to_sep_list fun_pattern (sep @@ from_string ", ") ps in
             combine [
               ws skips; from_string "("; body; ws skips'; from_string ")"
             ]
@@ -1029,7 +1063,7 @@ let type_ident_to_output td =
                 from_string "("; name; from_string " : "; pat_typ t; from_string ")"
               ]
         | P_list (skips, ps, skips') ->
-          let body = flat $ Seplist.to_sep_list_last Seplist.Optional fun_pattern (sep $ from_string "; ") ps in
+          let body = flat @@ Seplist.to_sep_list_last Seplist.Optional fun_pattern (sep @@ from_string "; ") ps in
             combine [
               ws skips; from_string "["; body; from_string "]"; ws skips'
             ]
@@ -1041,8 +1075,8 @@ let type_ident_to_output td =
             let oL = B.pattern_application_to_output fun_pattern cd ps in
             concat emp oL
         | P_num_add ((name, l), skips, skips', k) ->
-            let succs = separate "" $ Util.replicate k (from_string "S (") in
-            let close = separate "" $ Util.replicate k (from_string ")") in
+            let succs = separate "" @@ Util.replicate k (from_string "S (") in
+            let close = separate "" @@ Util.replicate k (from_string ")") in
             let name = lskips_t_to_output name in
               combine [
                 ws skips; succs; name; close
@@ -1071,7 +1105,7 @@ let type_ident_to_output td =
             (* DPM: type restriction not allowed in Coq *)
             ws skips ^ def_pattern p ^ ws skips'
         | P_tup (skips, ps, skips') ->
-          let body = flat $ Seplist.to_sep_list def_pattern (sep $ from_string ", ") ps in
+          let body = flat @@ Seplist.to_sep_list def_pattern (sep @@ from_string ", ") ps in
             combine [
               ws skips; from_string "("; body; from_string ")"; ws skips'
             ]
@@ -1086,7 +1120,7 @@ let type_ident_to_output td =
           (* DPM: type restriction not allowed in Coq *)
             Name.to_output Term_var n
         | P_list (skips, ps, skips') ->
-          let body = flat $ Seplist.to_sep_list_last Seplist.Optional def_pattern (sep $ from_string "; ") ps in
+          let body = flat @@ Seplist.to_sep_list_last Seplist.Optional def_pattern (sep @@ from_string "; ") ps in
             combine [
               ws skips; from_string "["; body; from_string "]"; ws skips'
             ]
@@ -1098,8 +1132,8 @@ let type_ident_to_output td =
             let oL = B.pattern_application_to_output def_pattern cd ps in
             concat emp oL
         | P_num_add ((name, l), skips, skips', k) ->
-            let succs = separate "" $ Util.replicate k (from_string "S (") in
-            let close = separate "" $ Util.replicate k (from_string ")") in
+            let succs = separate "" @@ Util.replicate k (from_string "S (") in
+            let close = separate "" @@ Util.replicate k (from_string ")") in
             let name = lskips_t_to_output name in
               combine [
                 ws skips; succs; name; close
@@ -1122,17 +1156,17 @@ let type_ident_to_output td =
     and abbreviation_typ t =
       match t.term with
         | Typ_wild skips -> ws skips ^ from_string "_"
-        | Typ_var (skips, v) -> id Type_var $ Ulib.Text.(^^^) (r"") (Tyvar.to_rope v)
+        | Typ_var (skips, v) -> id Type_var @@ Ulib.Text.(^^^) (r"") (Tyvar.to_rope v)
         | Typ_fn (t1, skips, t2) -> abbreviation_typ t1 ^ ws skips ^ kwd "->" ^ abbreviation_typ t2
         | Typ_tup ts ->
-            let body = flat $ Seplist.to_sep_list abbreviation_typ (sep $ from_string "*") ts in
+            let body = flat @@ Seplist.to_sep_list abbreviation_typ (sep @@ from_string "*") ts in
               from_string "(" ^ body ^ from_string ") % type"
         | Typ_app (p, ts) ->
-          let args = separate " " $ List.map abbreviation_typ ts in
+          let args = separate " " @@ List.map abbreviation_typ ts in
           let (name_list, name) = Ident.to_name_list (resolve_ident_path p p.descr) in
           let arg_sep = if List.length ts > 1 then from_string " " else emp in
             combine [
-              kwd $ Ulib.Text.to_string (Name.to_rope name); arg_sep; args
+              kwd @@ Ulib.Text.to_string (Name.to_rope name); arg_sep; args
             ]
         | Typ_paren(skips, t, skips') ->
             combine [
@@ -1143,8 +1177,8 @@ let type_ident_to_output td =
     	match Seplist.hd def with
       	| (n, tyvars, _, (Te_record (skips, skips', fields, skips'') as r),_) ->
             let (n', _) = n in
-      			let name = Name.to_output Type_ctor n' in
-      			let body = flat $ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) field (sep $ from_string ";") fields in
+ 	                let name = Name.to_output Type_ctor n' in
+      			let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) field (sep @@ from_string ";") fields in
       			let tyvars' = type_def_type_variables tyvars in
             let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
             let boolean_equality = generate_coq_record_equality tyvars n fields in
@@ -1156,7 +1190,7 @@ let type_ident_to_output td =
       			  ]
         | _ -> from_string "(* Internal Lem error, please report. *)"
     and type_def inside_module defs =
-      let body = flat $ Seplist.to_sep_list type_def' (sep $ from_string "with") defs in
+      let body = flat @@ Seplist.to_sep_list type_def' (sep @@ from_string "with") defs in
       let boolean_equality = generate_coq_variant_equality defs in
       let head =
         if inside_module then
@@ -1173,11 +1207,19 @@ let type_ident_to_output td =
       let ty_vars =
         List.map (
           function
-            | Typed_ast.Tn_A (_, tyvar, _) -> Tyvar (from_string $ Ulib.Text.to_string tyvar)
-            | Typed_ast.Tn_N (_, nvar, _) -> Nvar (from_string $ Ulib.Text.to_string nvar)
+            | Typed_ast.Tn_A (_, tyvar, _) -> Tyvar (from_string @@ Ulib.Text.to_string tyvar)
+            | Typed_ast.Tn_N (_, nvar, _) -> Nvar (from_string @@ Ulib.Text.to_string nvar)
           ) ty_vars
       in
-        inductive ty_vars n ^ tyexp name ty_vars ty
+        match ty with
+          | Te_opaque ->
+              combine [
+                inductive ty_vars n; from_string ":= "
+              ]
+          | _ ->
+            combine [
+              inductive ty_vars n; tyexp name ty_vars ty
+            ]
     and inductive ty_vars name =
       let ty_var_sep = if List.length ty_vars = 0 then emp else from_string " " in
       let ty_vars = inductive_type_variables ty_vars in
@@ -1204,13 +1246,13 @@ let type_ident_to_output td =
         | Te_abbrev (skips, t) -> ws skips ^ tyexp_abbreviation t
         | Te_record (skips, _, fields, skips') -> ws skips ^ tyexp_record fields ^ ws skips'
         | Te_variant (skips, ctors) ->
-          let body = flat $ Seplist.to_sep_list_first Seplist.Optional (constructor name ty_vars) (sep $ from_string "|") ctors in
+          let body = flat @@ Seplist.to_sep_list_first Seplist.Optional (constructor name ty_vars) (sep @@ from_string "|") ctors in
             combine [
               from_string ":="; ws skips; body
             ]
     and constructor ind_name ty_vars ((ctor_name, _), _, skips, args) =
       let ctor_name = Name.to_output Type_ctor ctor_name in
-      let body = flat $ Seplist.to_sep_list abbreviation_typ (sep $ from_string "-> ") args in
+      let body = flat @@ Seplist.to_sep_list abbreviation_typ (sep @@ from_string "-> ") args in
       let tail = combine [from_string "->"; ind_name ] in
         if Seplist.length args = 0 then
           combine [
@@ -1225,20 +1267,20 @@ let type_ident_to_output td =
     and pat_typ t =
       match t.term with
         | Typ_wild skips -> ws skips ^ from_string "_"
-        | Typ_var (skips, v) -> ws skips ^ (id Type_var $ Ulib.Text.(^^^) (r"") (Tyvar.to_rope v))
+        | Typ_var (skips, v) -> ws skips ^ (id Type_var @@ Ulib.Text.(^^^) (r"") (Tyvar.to_rope v))
         | Typ_fn (t1, skips, t2) ->
             if skips = Typed_ast.no_lskips then
               pat_typ t1 ^ from_string " -> " ^ ws skips ^ pat_typ t2
             else
               pat_typ t1 ^ from_string " ->" ^ ws skips ^ pat_typ t2
         | Typ_tup ts ->
-            let body = flat $ Seplist.to_sep_list pat_typ (sep $ from_string "*") ts in
+            let body = flat @@ Seplist.to_sep_list pat_typ (sep @@ from_string "*") ts in
               from_string "(" ^ body ^ from_string ") % type"
         | Typ_app (p, ts) ->
           let (name_list, name) = Ident.to_name_list (resolve_ident_path p p.descr) in
             combine [
-              from_string $ Ulib.Text.to_string (Name.to_rope name); from_string " ";
-              flat $ intercalate (from_string " ") (List.map pat_typ ts)
+              from_string @@ Ulib.Text.to_string (Name.to_rope name); from_string " ";
+              flat @@ intercalate (from_string " ") (List.map pat_typ ts)
             ]
         | Typ_paren(skips, t, skips') ->
             ws skips ^ from_string "(" ^ pat_typ t ^ ws skips' ^ from_string ")"
@@ -1246,14 +1288,14 @@ let type_ident_to_output td =
     and typ t =
     	match t.term with
       	| Typ_wild skips -> ws skips ^ from_string "_"
-      	| Typ_var (skips, v) -> id Type_var $ Ulib.Text.(^^^) (r"") (Tyvar.to_rope v)
+      	| Typ_var (skips, v) -> id Type_var @@ Ulib.Text.(^^^) (r"") (Tyvar.to_rope v)
       	| Typ_fn (t1, skips, t2) -> typ t1 ^ ws skips ^ kwd "->" ^ typ t2
       	| Typ_tup ts ->
-      			let body = flat $ Seplist.to_sep_list typ (sep $ from_string "*") ts in
+      			let body = flat @@ Seplist.to_sep_list typ (sep @@ from_string "*") ts in
           		from_string "(" ^ body ^ from_string ") % type"
       	| Typ_app (p, ts) ->
         	let (name_list, name) = Ident.to_name_list (resolve_ident_path p p.descr) in
-           from_string $ Ulib.Text.to_string (Name.to_rope name)
+           from_string @@ Ulib.Text.to_string (Name.to_rope name)
       	| Typ_paren (skips, t, skips') ->
           	ws skips ^ from_string "(" ^ typ t ^ from_string ")" ^ ws skips'
         | Typ_len nexp -> src_nexp nexp
@@ -1265,7 +1307,7 @@ let type_ident_to_output td =
           let mapped = List.map (fun t ->
             match t with
               | Typed_ast.Tn_A (_, tv, _) ->
-                let tv = from_string $ Ulib.Text.to_string tv in
+                let tv = from_string @@ Ulib.Text.to_string tv in
                   combine [
                     from_string "{"; tv; from_string ": Type}"
                   ]
@@ -1280,17 +1322,17 @@ let type_ident_to_output td =
     and field_typ t =
       match t.term with
         | Typ_wild skips -> ws skips ^ from_string "_"
-        | Typ_var (skips, v) -> id Type_var $ Ulib.Text.(^^^) (r"") (Tyvar.to_rope v)
+        | Typ_var (skips, v) -> id Type_var @@ Ulib.Text.(^^^) (r"") (Tyvar.to_rope v)
         | Typ_fn (t1, skips, t2) -> field_typ t1 ^ ws skips ^ from_string "->" ^ field_typ t2
         | Typ_tup ts ->
-            let body = flat $ Seplist.to_sep_list typ (sep $ from_string "*") ts in
+            let body = flat @@ Seplist.to_sep_list typ (sep @@ from_string "*") ts in
               from_string "(" ^ body ^ from_string ") % type"
         | Typ_app (p, ts) ->
           let (name_list, name) = Ident.to_name_list (resolve_ident_path p p.descr) in
-          let args = separate " " $ List.map field_typ ts in
+          let args = separate " " @@ List.map field_typ ts in
           let args_space = if List.length ts = 1 then from_string " " else emp in
             combine [
-              from_string $ Ulib.Text.to_string (Name.to_rope name); args_space; args
+              from_string @@ Ulib.Text.to_string (Name.to_rope name); args_space; args
             ]
         | Typ_paren(skips, t, skips') ->
             ws skips ^ from_string "(" ^ typ t ^ from_string ")" ^ ws skips'
@@ -1305,7 +1347,7 @@ let type_ident_to_output td =
             | None   -> def inside_module d ^ y
             | Some s -> def inside_module d ^ ws s ^ y
       	) ds emp
-    and generate_default_value_texp (t: texp): Output.t =
+    and generate_default_value_texp (t: texp) =
       match t with
         | Te_opaque -> from_string "DAEMON"
         | Te_abbrev (_, src_t) -> default_value src_t
@@ -1343,12 +1385,24 @@ let type_ident_to_output td =
           else
             from_string " "
         in
-        let tnvar_list = type_def_type_variables tnvar_list in
+        let tnvar_list' = type_def_type_variables tnvar_list in
         let default = generate_default_value_texp t in
+        let mapped = separate " " @@ List.map (fun x ->
+          match x with
+            | Typed_ast.Tn_A (_, x, _)->
+              let x = Ulib.Text.to_string x in
+              combine [
+                from_string "("; from_string x; from_string ":=";
+                from_string x; from_string ")"
+              ]
+              | _ -> from_string "BUG"
+          ) tnvar_list
+        in
           combine [
             from_string "Definition "; o; from_string "_default";
-            tnvar_list; tnvar_list_sep; from_string ": "; o;
-            from_string " := "; default; from_string "."
+            tnvar_list'; tnvar_list_sep; from_string ": "; o;
+            from_string " := "; default; from_string " ";
+            mapped; from_string "."
           ]
       and default_value (s : src_t) : Output.t =
         match s.term with
@@ -1384,7 +1438,7 @@ let type_ident_to_output td =
       ;;
 
     let coq_defs ((ds : def list), end_lex_skips) =
-    	to_rope (r"\"") lex_skip need_space $ defs false ds ^ ws end_lex_skips
+    	to_rope (r"\"") lex_skip need_space @@ defs false ds ^ ws end_lex_skips
     ;;
 end
 ;;
