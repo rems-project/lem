@@ -212,6 +212,12 @@ val dest_tf_exp : exp -> bool option
 (** [is_tf_exp v e] checks whether [e] is a [true] or [false] expression. *)
 val is_tf_exp : bool -> exp -> bool
 
+(** Destructor for constants expressions *)
+val dest_const_exp : exp -> const_descr_ref id option
+
+(** [is_const_exp e] checks whether [e] is a constant expression *)
+val is_const_exp : exp -> bool
+
 (** [dest_num_exp e] destructs a number literal expression. *)
 val dest_num_exp : exp -> int option
 
@@ -385,9 +391,10 @@ val space_com_init_ws : Ast.lex_skips -> (Ast.lex_skips * Ast.lex_skips)
     Warning: This might delete white-space! *)
 val strip_paren_typ_exp : exp -> exp
 
-(** [is_recursive_def d] checks whether [d] is recursive. Instead of just looking at the type,
-    it actually checks, whether a recursive call actually is present. *)
-val is_recursive_def : def -> bool
+(** [is_recursive_def d] checks whether [d] is recursive. It returns a pair of booleans [(is_syntactic_rec, is_real_rec)].
+    The flag [is_syntactic_rec] states, whether the definition was made using the [rec]-keyword. The flag [is_real_rec] states,
+    whether the function actually appears inside its own definition. *)
+val is_recursive_def : def -> bool * bool
 
 (** [is_trans_loc l] checks whether [l] is of the form [Ast.Trans _] *)
 val is_trans_loc : Ast.l -> bool

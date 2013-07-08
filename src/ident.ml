@@ -141,3 +141,5 @@ let strip_path name ((sk,ns,n) :t) : t =
 
 
 let rename (sk,ns,n) n' = (sk,ns,n')
+
+let drop_path (sk, _, n) = (sk, [], n)

@@ -181,6 +181,13 @@ let pattern_application_to_output (arg_f : pat -> Output.t) (c_id : const_descr_
         end
      | _ -> constant_application_to_output_simple false arg_f args c_id
 
+let type_path_to_name n0 (p : Path.t) : Name.lskips_t =
+  let l = Ast.Trans ("type_path_to_name", None) in
+  let td = Types.type_defs_lookup l A.env.t_env p in
+  let n = type_descr_to_name A.target_opt p td in
+  let n' = Name.replace_lskip (Name.add_lskip n) (Name.get_lskip n0) in
+  n'
+
 let type_id_to_ident (p : Path.t id) =
    let l = Ast.Trans ("type_id_to_ident", None) in
    let td = Types.type_defs_lookup l A.env.t_env p.descr in
@@ -189,19 +196,17 @@ let type_id_to_ident (p : Path.t id) =
      | Some (Types.TR_new_ident (_, _, i)) -> i 
      | Some (Types.TR_rename (_, _, n)) -> Ident.rename (resolve_ident_path p p.descr) n
 
+(* TODO: delete. Since type_ids are not implemente properly, drop everything except the name as a hack. Fix soon! *)
+let type_id_to_ident (p : Path.t id) =
+  Ident.drop_path (type_id_to_ident p)
+  
+
+
 let const_ref_to_name n0 c =
   let l = Ast.Trans ("const_ref_to_name", None) in
   let c_descr = c_env_lookup l A.env.c_env c in
   let (_, n) = constant_descr_to_name A.target_opt c_descr in
   let n' = Name.replace_lskip (Name.add_lskip n) (Name.get_lskip n0) in
   n'
-
-let type_path_to_name n0 (p : Path.t) : Name.lskips_t =
-  let l = Ast.Trans ("type_path_to_name", None) in
-  let td = Types.type_defs_lookup l A.env.t_env p in
-  let n = type_descr_to_name A.target_opt p td in
-  let n' = Name.replace_lskip (Name.add_lskip n) (Name.get_lskip n0) in
-  n'
-
 
 end

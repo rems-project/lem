@@ -49,20 +49,9 @@ open Typed_ast
 
 (* Backward compatibility functions *)
 
-(* Available in OCaml since 4.00.0 - copied from list.ml *)
-let rec mapi i f = function
-    [] -> []
-  | a::l -> let r = f i a in r :: mapi (i + 1) f l
-;;
-let mapi f l = mapi 0 f l ;;
-
 (* Available in OCaml since 4.01.00 - optimisable with "%apply" and "%revapply" *)
-let (|>) x f = f x
-;;
-let (@@) f x = f x
-;;
-
-
+let (|>) x f = f x;;
+let (@@) f x = f x;;
 
 type ('a, 'b) union
   = Inl of 'a
@@ -75,19 +64,6 @@ let sum f l =
 ;;
 
 let r = Ulib.Text.of_latin1
-;;
-
-let iterate i n = Array.make n i |> Array.to_list
-;;
-
-let rec nub =
-  function
-    | []    -> []
-    | x::xs ->
-        if List.mem x xs then
-          nub xs
-        else
-          x::nub xs
 ;;
 
 let from_string x = meta x

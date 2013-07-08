@@ -45,7 +45,6 @@
 (**************************************************************************)
 
 open Coq_backend_utils
-open Coq_records
 open Output
 open Typed_ast
 open Typed_ast_syntax
@@ -205,13 +204,64 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
       end)
     ;;
 
+let typ_ident_to_output (p : Path.t id) =     
+  Ident.to_output Type_ctor path_sep (B.type_id_to_ident p)
+
 let field_ident_to_output fd = 
   Ident.to_output Term_field path_sep (B.const_id_to_ident fd)
 ;;
 
-let type_ident_to_output td =
-  Ident.to_output Type_ctor path_sep (resolve_ident_path td td.descr)
+let generate_coq_record_update_notation e =
+  let notation_kwd = from_string "Notation" in
+  let with_kwd = from_string "\'with\'" in
+  let prefix =
+    Output.flat [
+      notation_kwd; from_string " \"{[ r "; with_kwd; from_string " "
+    ]
+  in
+  let aux all_fields x =
+    let ((n0, l), c, s4, ty) = x in
+    let n = B.const_ref_to_name n0 c in
+    let name = Name.to_string (Name.strip_lskip n) in
+    let all_fields = List.filter (fun x -> Pervasives.compare name x <> 0) all_fields in
+    let other_fields = concat (kwd "; ")
+      (List.map (fun x ->
+        Output.flat [
+          from_string x; from_string " := " ^ from_string x ^ from_string " r"
+        ]
+      ) all_fields)
+    in
+    let focussed_field = from_string name ^ from_string " := e" in
+    let body =
+      Output.flat [
+        from_string "\'"; from_string name; from_string "\' := e ]}\" := "
+      ]
+    in
+    let result =
+      Output.flat [
+        prefix; body; from_string "("; from_string "{| "; focussed_field;
+        from_string "; "; other_fields; from_string " |})."
+      ]
+    in
+      match all_fields with
+        | []    -> emp (* DPM: this should have been macro'd away earlier *)
+        | x::xs -> result
+  in
+    match e with
+      | Te_record (s1, s2, fields, s3) ->
+          let all_fields = Seplist.to_list fields in
+          let all_fields_names = List.map (fun ((n0, l), c, s4, ty) -> Name.to_string (Name.strip_lskip (B.const_ref_to_name n0 c))) all_fields in
+          let field_entries = concat_str "\n" (List.map (aux all_fields_names) all_fields) in
+          let terminator =
+            if List.length all_fields = 0 then
+              emp
+            else
+              from_string "\n"
+          in
+            field_entries ^ terminator
+      | _                          -> emp
 ;;
+
 
     let generate_record_equality tvs o lskips_seplist =
       let eq_typ =
@@ -297,7 +347,8 @@ let type_ident_to_output td =
         | Te_record (_, _, name_l_src_t_lskips_seplist, _) -> from_string " (* XXX: internal Lem error, please report *)"
         | Te_variant (_, name_l_src_t_lskips_seplist) ->
             let l = Seplist.to_list name_l_src_t_lskips_seplist in
-            let cases = List.map (fun ((name, _), _, y, typs) ->
+            let cases = List.map (fun ((name0, _), c_ref, y, typs) ->
+              let name = B.const_ref_to_name name0 c_ref in
               let typs = Seplist.to_list typs in
               let args = List.map (fun typ ->
                 begin
@@ -324,7 +375,7 @@ let type_ident_to_output td =
                 if List.length typs = 0 then
                   from_string "true"
                 else
-                  let body = mapi (fun i -> fun x ->
+                  let body = Util.list_mapi (fun i -> fun x ->
                       let left_name = List.nth names i in
                       let right_name = List.nth right_args i in
                       let typ = C.t_to_src_t @@ List.nth typs i in
@@ -370,7 +421,7 @@ let type_ident_to_output td =
         | Typ_fn (src_t, skips, src_t') -> from_string "(* XXX: equality on Typ_fn *)\n"
         | Typ_tup src_t_lskips_seplist -> from_string "(* XXX: equality on Typ_tup *)\n"
         | Typ_app (path_id, src_t_list) ->
-            let eq_name = type_ident_to_output path_id in
+            let eq_name = typ_ident_to_output path_id in
             Output.flat [
               from_string "(* Definition"; name; from_string "_beq :=";
               eq_name; from_string "_beq. *)"
@@ -453,6 +504,7 @@ let type_ident_to_output td =
     ;;
 
     let generate_coq_variant_equality lskips_seplist =
+      (* 
       let l = Seplist.to_list lskips_seplist in
       let names = List.map (fun (x, y, _, z, _) -> lskips_t_to_string x) l in
       let tvs = List.map (fun (x, y, _, z, _) -> y) l in
@@ -467,8 +519,10 @@ let type_ident_to_output td =
       let mapped = List.map (fun (x, y, z) -> generate_variant_equality x y z) zipped in
       let body = concat_str "\nwith " mapped in
         Output.flat [
-          (* from_string "(* "; from_string "Fixpoint "; body; from_string ". *)\n" *)
+          from_string "(* "; from_string "Fixpoint "; body; from_string ". *)\n" 
         ]
+      *)
+      emp
     ;;
 
     let rec is_inferrable (s : src_t) : bool =
@@ -504,17 +558,6 @@ let type_ident_to_output td =
       DefaultMap.find k !initial_default_map
     ;;
 
-    let is_const e =
-      match C.exp_to_term e with
-        | Constant _ -> true
-        | _ -> false
-    ;;
-
-    let dest_const e =
-      match e with
-        | Constant c -> c
-    ;;
-
     let rec def inside_module m =
       match m with
       | Type_def (skips, def) ->
@@ -545,7 +588,7 @@ let type_ident_to_output td =
                 if in_target targets then
                   let skips' = Util.option_default None skips'_opt in
                   let header =
-                    if Typed_ast_syntax.is_recursive_def ((m, None), Ast.Unknown) then
+                    if snd (Typed_ast_syntax.is_recursive_def ((m, None), Ast.Unknown)) then
                       Output.flat [
                         from_string "Program"; ws skips'; from_string "Fixpoint"
                       ]
@@ -663,7 +706,7 @@ let type_ident_to_output td =
                   ) exp_list
           in
           let bodies =
-            mapi (fun counter -> fun (name_lskips_t_opt, skips, name_lskips_annot_list, skips', exp_opt, skips'', name_lskips_annot, c, exp_list) ->
+            Util.list_mapi (fun counter -> fun (name_lskips_t_opt, skips, name_lskips_annot_list, skips', exp_opt, skips'', name_lskips_annot, c, exp_list) ->
               let constructor_name =
                 match name_lskips_t_opt with
                   | None ->
@@ -787,7 +830,7 @@ let type_ident_to_output td =
           ws name_skips; name; tv_set_sep; tv_set; pat_skips;
           fun_pattern_list pats; typ_opt; ws skips; from_string ":="; exp e
         ]
-    and funcl tv_set ({term = n}, c, pats, typ_opt, skips, e) = funcl_aux tv_set (n, pats, typ_opt, skips, e)      
+    and funcl tv_set ({term = n}, c, pats, typ_opt, skips, e) = funcl_aux tv_set (B.const_ref_to_name n c, pats, typ_opt, skips, e)      
     and funcl_letfun tv_set ({term = n}, pats, typ_opt, skips, e) = funcl_aux tv_set (n, pats, typ_opt, skips, e)      
     and let_type_variables top_level tv_set =
       if Types.TNset.is_empty tv_set || not top_level then
@@ -1077,8 +1120,8 @@ let type_ident_to_output td =
             let oL = B.pattern_application_to_output fun_pattern cd ps in
             concat emp oL
         | P_num_add ((name, l), skips, skips', k) ->
-            let succs = Output.flat @@ iterate (from_string "S (") k in
-            let close = Output.flat @@ iterate (from_string ")") k in
+            let succs = Output.flat @@ Util.replicate k (from_string "S (") in
+            let close = Output.flat @@ Util.replicate k (from_string ")") in
             let name = lskips_t_to_output name in
               Output.flat [
                 ws skips; succs; name; close
@@ -1134,8 +1177,8 @@ let type_ident_to_output td =
             let oL = B.pattern_application_to_output def_pattern cd ps in
             concat emp oL
         | P_num_add ((name, l), skips, skips', k) ->
-            let succs = Output.flat @@ iterate (from_string "S (") k in
-            let close = Output.flat @@ iterate (from_string ")") k in
+            let succs = Output.flat @@ Util.replicate k (from_string "S (") in
+            let close = Output.flat @@ Util.replicate k (from_string ")") in
             let name = lskips_t_to_output name in
               Output.flat [
                 ws skips; succs; name; close
@@ -1204,7 +1247,8 @@ let type_ident_to_output td =
           head; body; from_string ".\n";
           boolean_equality
         ]
-    and type_def' ((n, l), ty_vars, _, ty, _) =
+    and type_def' ((n0, l), ty_vars, t_path, ty, _) =
+      let n = B.type_path_to_name n0 t_path in 
       let name = Name.to_output Type_ctor n in
       let ty_vars =
         List.map (
@@ -1252,7 +1296,8 @@ let type_ident_to_output td =
             Output.flat [
               from_string ":="; ws skips; body
             ]
-    and constructor ind_name ty_vars ((ctor_name, _), _, skips, args) =
+    and constructor ind_name ty_vars ((name0, _), c_ref, skips, args) =
+      let ctor_name = B.const_ref_to_name name0 c_ref in
       let ctor_name = Name.to_output Type_ctor ctor_name in
       let body = flat @@ Seplist.to_sep_list abbreviation_typ (sep @@ from_string "-> ") args in
       let tail = Output.flat [from_string "->"; ind_name ] in
@@ -1278,10 +1323,9 @@ let type_ident_to_output td =
         | Typ_tup ts ->
             let body = flat @@ Seplist.to_sep_list pat_typ (sep @@ from_string "*") ts in
               from_string "(" ^ body ^ from_string ") % type"
-        | Typ_app (p, ts) ->
-          let (name_list, name) = Ident.to_name_list (resolve_ident_path p p.descr) in
+        | Typ_app (p, ts) ->                    
             Output.flat [
-              from_string @@ Ulib.Text.to_string (Name.to_rope name); from_string " ";
+              typ_ident_to_output p; from_string " ";
               concat_str " " (List.map pat_typ ts)
             ]
         | Typ_paren(skips, t, skips') ->
@@ -1296,8 +1340,7 @@ let type_ident_to_output td =
       			let body = flat @@ Seplist.to_sep_list typ (sep @@ from_string "*") ts in
           		from_string "(" ^ body ^ from_string ") % type"
       	| Typ_app (p, ts) ->
-        	let (name_list, name) = Ident.to_name_list (resolve_ident_path p p.descr) in
-           from_string @@ Ulib.Text.to_string (Name.to_rope name)
+           typ_ident_to_output p
       	| Typ_paren (skips, t, skips') ->
           	ws skips ^ from_string "(" ^ typ t ^ from_string ")" ^ ws skips'
         | Typ_len nexp -> src_nexp nexp
@@ -1330,18 +1373,18 @@ let type_ident_to_output td =
             let body = flat @@ Seplist.to_sep_list typ (sep @@ from_string "*") ts in
               from_string "(" ^ body ^ from_string ") % type"
         | Typ_app (p, ts) ->
-          let (name_list, name) = Ident.to_name_list (resolve_ident_path p p.descr) in
           let args = concat_str " " @@ List.map field_typ ts in
           let args_space = if List.length ts = 1 then from_string " " else emp in
             Output.flat [
-              from_string @@ Ulib.Text.to_string (Name.to_rope name); args_space; args
+              typ_ident_to_output p; args_space; args
             ]
         | Typ_paren(skips, t, skips') ->
             ws skips ^ from_string "(" ^ typ t ^ from_string ")" ^ ws skips'
         | Typ_len nexp -> src_nexp nexp
-    and field ((n, _), _, skips, t) =
+    and field ((n, _), f_ref, skips, t) =
       Output.flat [
-        Name.to_output Term_field n; from_string ":"; ws skips; field_typ t
+          Name.to_output Term_field (B.const_ref_to_name n f_ref); 
+          from_string ":"; ws skips; field_typ t
       ]
     and defs inside_module (ds : def list) =
       	List.fold_right (fun ((d, s), l) y ->
@@ -1419,10 +1462,9 @@ let type_ident_to_output td =
                 ]
           | Typ_app (path, src_ts) ->
               if List.length src_ts = 0 || List.for_all is_inferrable src_ts then
-                let path = path.descr in
-                let (tail, head) = Path.to_name_list path in
                   Output.flat [
-                    from_string (Name.to_string head); from_string "_default"
+                    from_string (Name.to_string (Name.strip_lskip (Ident.get_name (B.type_id_to_ident path)))); 
+                    from_string "_default"
                   ]
               else
                 from_string "DAEMON"

@@ -199,13 +199,12 @@ let split_after n l =
     | _            -> raise (Failure "index too large")
   in aux [] n l
 
-let list_mapi (f : int -> 'a -> 'b)  (l : 'a list) : 'b list =
-  let rec aux i l =
-     match l with
-         [] -> []
-       | (x :: xs) -> ((f i x) :: (aux (i + 1) xs))
-  in
-    aux 0 l
+(* Available in OCaml since 4.00.0 - copied from list.ml *)
+let rec mapi i f = function
+    [] -> []
+  | a::l -> let r = f i a in r :: mapi (i + 1) f l
+;;
+let list_mapi f l = mapi 0 f l ;;
 
 let rec intercalate sep =
   function

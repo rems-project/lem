@@ -92,3 +92,7 @@ val strip_path : Name.t -> t -> t
 
 (** [rename i n'] renames the last name component of identifier [i] to [n']. *)
 val rename : t -> Name.t -> t 
+
+(** [drop_path i] drops the path of an identier. This means an identifier of the form
+    [M1.M2...Mn.name] is converted to [name]. White-space is preserved. *)
+val drop_path : t -> t

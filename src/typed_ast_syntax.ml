@@ -372,6 +372,15 @@ let mk_opt_paren_exp (e :exp) : exp =
     | _ -> mk_paren_exp e
 
 
+let dest_const_exp (e : exp) : const_descr_ref id option =
+  match C.exp_to_term e with
+     | Constant c -> Some c
+     | _ -> None
+  ;;
+
+let is_const_exp e = not (dest_const_exp e = None)
+
+
 let mk_case_exp final (l:Ast.l) (in_e : exp) (rows : (pat * exp) list) (ty : Types.t) : exp =
   let loc = Ast.Trans ("mk_case_exp", Some l) in
   let rows_sep_list = Seplist.from_list (List.map (fun (p,e) -> ((pat_append_lskips space p, space, fst (alter_init_lskips space_init_ws e), loc), space)) rows) in
@@ -652,29 +661,6 @@ let strip_app_infix_exp (e : exp) : exp * exp list * bool =
 (* -------------------------------------------------------------------------- *)
 (* checking properties and extracting specific informations                   *)
 (* -------------------------------------------------------------------------- *)
-
-let is_recursive_def (((d, _), _) : def) =  
- match d with
-  |  Val_def ((Fun_def (_, Some _, _, sl)), tnvs,class_constraints) -> begin 
-       let (_, pL) = Seplist.to_pair_list None sl in
-
-       (* get the names of all newly defined functions *)
-       let get_fun_name s ((((nsa, _, _, _, _, _) : funcl_aux), _)) =
-         let n = Name.strip_lskip (nsa.term) in NameSet.add n s in
-       let names = List.fold_left get_fun_name NameSet.empty pL in
-
-       (* get the variables used on the rhs / 
-          WARNING: in the future this might need changing to all constants, 
-                   when the representation of recursive calls changes *)
-       let get_rhs_names s ((((_, _, _, _, _, e) : funcl_aux), _)) =
-         NameSet.union (nfmap_domain (C.exp_to_free e)) s in
-       let rhs_names = List.fold_left get_rhs_names NameSet.empty pL in
-
-       let is_rec = not (NameSet.is_empty (NameSet.inter names rhs_names)) in
-       is_rec
-     end
-  |  _ -> false
-
 
 let val_def_get_name d : Name.t option = match d with
   | Val_def (Fun_def (_, _, _, clauses),_,_) -> 
@@ -979,3 +965,20 @@ let get_checked_modules_entities (t_opt : Target.target option) (ml : checked_mo
   reverse_used_entities (List.fold_left (add_checked_module_entities t_opt) empty_used_entities ml)
 
 
+(* check whether a definition is recursive using entities *)
+let is_recursive_def (((d, _), _) : def) =  
+ match d with
+  |  Val_def ((Fun_def (_, Some _, _, sl)), tnvs,class_constraints) -> begin 
+       let (_, pL) = Seplist.to_pair_list None sl in
+
+       (* get the names of all newly defined functions *)
+       let add_fun_ref s ((((_, c, _, _, _, _) : funcl_aux), _)) = if (List.mem c s) then s else c::s in
+       let all_consts = List.fold_left add_fun_ref [] pL in
+
+       let get_rhs_entities ue ((((_, _, _, _, _, e) : funcl_aux), _)) = add_exp_entities ue e in
+       let rhs_ue = List.fold_left get_rhs_entities empty_used_entities pL in
+
+       let is_real_rec = List.exists (fun c -> List.mem c rhs_ue.used_consts) all_consts in
+       (true, is_real_rec)
+     end
+  |  _ -> (false, false)

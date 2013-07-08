@@ -2088,7 +2088,7 @@ let extra_gen_flags_gen_lty (gf : extra_gen_flags) = function
 let rec isa_def_extra (gf:extra_gen_flags) d l : Output.t = match d with
   | Val_def(Fun_def(s1, s2_opt, targets, clauses),tnvs, class_constraints) 
       when gf.extra_gen_termination -> 
-      let is_rec = Typed_ast_syntax.is_recursive_def ((d, None), Ast.Unknown) in
+      let (_, is_rec) = Typed_ast_syntax.is_recursive_def ((d, None), Ast.Unknown) in
       if (in_target targets && is_rec) then
       begin
         let n = 
@@ -2126,7 +2126,7 @@ let rec isa_def_extra (gf:extra_gen_flags) d l : Output.t = match d with
 let rec hol_def_extra gf d l : Output.t = match d with
   | Val_def(Fun_def(s1, s2_opt, targets, clauses),tnvs, class_constraints) 
       when gf.extra_gen_termination -> 
-      let is_rec = Typed_ast_syntax.is_recursive_def ((d, None), Ast.Unknown) in
+      let (_, is_rec) = Typed_ast_syntax.is_recursive_def ((d, None), Ast.Unknown) in
       if (in_target targets && is_rec) then
       begin
         let n = 
@@ -2277,8 +2277,7 @@ let rec def d is_user_def : Output.t = match d with
         emp
   | Val_def(Fun_def(s1, s2_opt, targets, clauses),tnvs, class_constraints) -> 
       if in_target targets then
-        let is_rec = Typed_ast_syntax.is_recursive_def ((d, None), Ast.Unknown) in
-        let is_real_rec = match s2_opt with None -> false | _ -> true in
+        let (is_rec, is_real_rec) = Typed_ast_syntax.is_recursive_def ((d, None), Ast.Unknown) in
         let s2 = Util.option_default None s2_opt in
         let n = 
           match Seplist.to_list clauses with
@@ -2772,7 +2771,7 @@ and isa_def d is_user_def : Output.t = match d with
       else emp
   
   | Val_def (Fun_def (s1, s2_opt, targets, clauses),tnvs,class_constraints) ->
-      let is_rec = Typed_ast_syntax.is_recursive_def ((d, None), Ast.Unknown) in
+      let (_, is_rec) = Typed_ast_syntax.is_recursive_def ((d, None), Ast.Unknown) in
       if in_target targets then 
         let s2 = Util.option_default None s2_opt in
         ws s1 ^ kwd (if is_rec then "function (sequential)" else "fun") ^ ws s2 ^

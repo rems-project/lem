@@ -229,7 +229,7 @@ let digit =
 
 let digits =
   many1 digit >>= fun ds ->
-  let r = mapi (fun d -> fun e -> e * (10 * List.length ds - d)) ds in
+  let r = Util.list_mapi (fun d -> fun e -> e * (10 * List.length ds - d)) ds in
   let r = List.fold_right (+) r 0 in
     return r
 ;;
