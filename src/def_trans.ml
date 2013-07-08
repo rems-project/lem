@@ -162,6 +162,19 @@ let type_annotate_definitions _ env ((d,s),l) =
                [((Val_def(Let_def(sk1, topt,(p, name_map, Some t, sk2, e)), tnvs, class_constraints), s), l)])
       end
     (* TODO: Handle Fun_def *)
+    | Val_def(Fun_def(sk1,sk2,topt,funs),tnvs,class_constraints) -> begin
+        let fix_funcl_aux (n, n_c, pL, src_t_opt, sk, e) = begin
+          let src_t_opt' = generate_srt_t_opt src_t_opt e 
+          in match src_t_opt' with 
+            | None -> None 
+            | _ -> Some (n, n_c, pL, src_t_opt', sk, e)
+        end in
+        let funs'_opt = Seplist.map_changed fix_funcl_aux funs in
+        match funs'_opt with 
+          | None -> None
+          | Some funs' -> Some (env,
+               [((Val_def(Fun_def(sk1,sk2,topt,funs'), tnvs, class_constraints), s), l)])
+      end
     | _ -> None
 
 let build_field_name n = 

@@ -117,7 +117,7 @@ let need_space x y =
 let in_target targets = Typed_ast.in_targets_opt (Some Target.Target_coq) targets;;
 
 let coq_infix_op a x =
-  combine [
+  Output.flat [
     from_string "(fun x y => x "; id a x; from_string " y)"
   ]
 ;;
@@ -216,7 +216,7 @@ let type_ident_to_output td =
     let generate_record_equality tvs o lskips_seplist =
       let eq_typ =
         if List.length tvs = 0 then
-          combine [
+          Output.flat [
             from_string "(l : "; o; from_string ") (r :"; o;
             from_string ") : bool"
           ]
@@ -228,15 +228,15 @@ let type_ident_to_output td =
                 | _ -> assert false
             in
             let name = id Type_var tv in
-            let eq_fun_name = combine [name; from_string "_beq"] in
-            let eq_fun_type = combine [name; from_string " -> "; name; from_string " -> bool"] in
-              combine [
+            let eq_fun_name = Output.flat [name; from_string "_beq"] in
+            let eq_fun_type = Output.flat [name; from_string " -> "; name; from_string " -> bool"] in
+              Output.flat [
                 from_string "("; eq_fun_name; from_string ": ";
                 eq_fun_type; from_string ")"
               ]
             ) tvs
           in
-          let eq_fun_list = separate " " eq_funs in
+          let eq_fun_list = concat_str " " eq_funs in
           let tvs = List.map (fun tv ->
             let tv =
               match tv with
@@ -244,19 +244,19 @@ let type_ident_to_output td =
                 | _ -> assert false
             in
             let name = id Type_var tv in
-              combine [
+              Output.flat [
                 from_string "{"; name; from_string ": Type}"
               ]
             ) tvs
           in
-          let tv_list = separate " " tvs in
+          let tv_list = concat_str " " tvs in
           let eq_type =
-            combine [
+            Output.flat [
               eq_fun_list; from_string " (l : "; o; from_string ") (r :"; o;
               from_string ") : bool"
             ]
           in
-            combine [
+            Output.flat [
               tv_list; from_string " "; eq_type
             ]
       in
@@ -270,7 +270,7 @@ let type_ident_to_output td =
       let l = Seplist.to_list lskips_seplist in
         if decidable_equality_possible l then
           let prefix =
-            combine [
+            Output.flat [
               from_string "(* Definition "; o; from_string "_beq ";
               eq_typ; from_string ":=\n  "
             ]
@@ -279,14 +279,13 @@ let type_ident_to_output td =
             let t = src_t_to_string typ.term ^ from_string "_beq" in
             let _ = decidable_equality_tracker := OutputSet.add t !decidable_equality_tracker in
             let o = lskips_t_to_string name in
-              combine [
+              Output.flat [
                 t; from_string " ("; o; from_string " l) (";
                 o; from_string " r)"
               ]) l
           in
-          let i = intercalate (from_string " && ") body in
-          let f = List.fold_right (^) i (from_string "") in
-            combine [prefix; f; kwd ". *)"]
+          let f = concat_str " && " body in
+            Output.flat [prefix; f; kwd ". *)"]
         else
           from_string "(* XXX: unable to produce decidable equality for type " ^ o ^ from_string ". *)"
     ;;
@@ -318,9 +317,9 @@ let type_ident_to_output td =
               let arg_space = if List.length args = 0 then emp else from_string " " in
               let names = List.map fst args in
               let right_args = List.map (fun x -> from_string (generate_fresh_name ())) args in
-              let right_args_list = separate " " right_args in
+              let right_args_list = concat_str " " right_args in
               let typs = List.map snd args in
-              let names_list = separate " " names in
+              let names_list = concat_str " " names in
               let equality_test =
                 if List.length typs = 0 then
                   from_string "true"
@@ -331,12 +330,12 @@ let type_ident_to_output td =
                       let typ = C.t_to_src_t @@ List.nth typs i in
                       let typ_name = src_t_to_string typ.term in
                       let eq_name = typ_name ^ from_string "_beq " in
-                        combine [
+                        Output.flat [
                           eq_name; left_name; from_string " "; right_name
                         ]
                     ) typs
                   in
-                  let body = separate " && " body in
+                  let body = concat_str " && " body in
                     body
               in
               let catch_all =
@@ -346,19 +345,19 @@ let type_ident_to_output td =
                   emp
               in
               let right_hand_side =
-                combine [
+                Output.flat [
                   from_string "match r with\n        |";
                   Name.to_output Type_ctor name; arg_space; right_args_list;
                   from_string " => "; equality_test; catch_all; from_string "\n      end"
                 ]
               in
-                combine [
+                Output.flat [
                   from_string "|"; Name.to_output Type_ctor name; arg_space;
                   names_list; from_string " =>\n      "; right_hand_side;
                 ]) l
             in
-            let cases = separate "\n    " cases in
-              combine [
+            let cases = concat_str "\n    " cases in
+              Output.flat [
                 from_string "  match l with\n    "; cases; from_string "\n  end"
               ]
     ;;
@@ -372,7 +371,7 @@ let type_ident_to_output td =
         | Typ_tup src_t_lskips_seplist -> from_string "(* XXX: equality on Typ_tup *)\n"
         | Typ_app (path_id, src_t_list) ->
             let eq_name = type_ident_to_output path_id in
-            combine [
+            Output.flat [
               from_string "(* Definition"; name; from_string "_beq :=";
               eq_name; from_string "_beq. *)"
             ]
@@ -388,7 +387,7 @@ let type_ident_to_output td =
     let generate_variant_equality tvs o bods =
       let eq_typ =
         if List.length tvs = 0 then
-          combine [
+          Output.flat [
             from_string " (l : "; o; from_string ") (r : "; o; from_string ") : bool"
           ]
         else
@@ -401,48 +400,48 @@ let type_ident_to_output td =
             let eq_fun_name, eq_fun_type =
               match tv with
                 | Tyvar name ->
-                    combine [
+                    Output.flat [
                       name; from_string "_beq"
                     ],
-                    combine [
+                    Output.flat [
                       name; from_string " -> "; name; from_string " -> bool"
                     ]
                 | Nvar name ->
                     emp, emp
             in
-              combine [
+              Output.flat [
                 from_string "("; eq_fun_name; from_string ": ";
                 eq_fun_type; from_string ")"
               ]
             ) tvs
           in
-          let eq_fun_list = separate " " eq_funs in
+          let eq_fun_list = concat_str " " eq_funs in
           let tvs = List.map (fun tv ->
             match tv with
               | Typed_ast.Tn_A (_, tvar, _) ->
                 let name = from_string @@ Ulib.Text.to_string tvar in
-                  combine [
+                  Output.flat [
                     from_string "{"; name; from_string ": Type}"
                   ]
               | Typed_ast.Tn_N (_, nvar, _) ->
                 let name = from_string @@ Ulib.Text.to_string nvar in
-                  combine [
+                  Output.flat [
                     from_string "{"; name; from_string ": num}"
                   ]) tvs
           in
-          let tv_list = separate " " tvs in
-            combine [
+          let tv_list = concat_str " " tvs in
+            Output.flat [
               from_string " "; tv_list; from_string " "; eq_fun_list;
               from_string " (l : "; o; from_string ") (r : "; o; from_string ") : bool"
             ]
       in
       let dec_eq_name =
-        combine [
+        Output.flat [
           o; from_string "_beq"
         ]
       in
       let cases = generate_case_expressions bods in
-        combine [
+        Output.flat [
           from_string "(* "; dec_eq_name; eq_typ;
           from_string " :=\n"; cases; from_string " *)"
         ]
@@ -466,8 +465,8 @@ let type_ident_to_output td =
       in
       let zipped = zip3 tvs names bods in
       let mapped = List.map (fun (x, y, z) -> generate_variant_equality x y z) zipped in
-      let body = separate "\nwith " mapped in 
-        combine [
+      let body = concat_str "\nwith " mapped in
+        Output.flat [
           (* from_string "(* "; from_string "Fixpoint "; body; from_string ". *)\n" *)
         ]
     ;;
@@ -526,7 +525,7 @@ let type_ident_to_output td =
         		else
         			type_def inside_module
           in
-            combine [
+            Output.flat [
               ws skips; funcl def;
               generate_default_values def;
             ]
@@ -537,7 +536,7 @@ let type_ident_to_output td =
                 if in_target targets then
                   let bind = (Let_val (p, topt, sk, e), Ast.Unknown) in
                   let body = let_body true tv_set bind in
-                    combine [
+                    Output.flat [
                       ws skips; from_string "Definition"; body; from_string "."
                     ]
                 else
@@ -547,18 +546,18 @@ let type_ident_to_output td =
                   let skips' = Util.option_default None skips'_opt in
                   let header =
                     if Typed_ast_syntax.is_recursive_def ((m, None), Ast.Unknown) then
-                      combine [
+                      Output.flat [
                         from_string "Program"; ws skips'; from_string "Fixpoint"
                       ]
                     else
-                      combine [
+                      Output.flat [
                         from_string "Definition";
                       ]
                   in
                   let funcls = Seplist.to_list funcl_skips_seplist in
                   let bodies = List.map (funcl tv_set) funcls in
-                  let formed = separate "\nwith" bodies in
-                    combine [
+                  let formed = concat_str "\nwith" bodies in
+                    Output.flat [
                       ws skips; header; formed; from_string "."
                     ]
                 else
@@ -573,11 +572,11 @@ let type_ident_to_output td =
               | None -> emp
               | Some s -> ws s
           in
-          combine [
+          Output.flat [
             skips; def true d
           ]) defs
         in
-          combine [
+          Output.flat [
             ws skips; from_string "Module "; name; from_string "."; ws skips'; ws skips'';
             body; from_string "\nEnd "; name; from_string "."; ws skips'''
           ]
@@ -586,10 +585,10 @@ let type_ident_to_output td =
           let mod_path = resolve_ident_path mod_descr mod_descr.descr.mod_binding in
           let mod_name = Ident.get_name mod_path in
           if (mod_name |> Name.strip_lskip |> Name.to_string) = "Vector" then
-            combine []
+            Output.flat []
           else
             let mod_name = Name.to_output Term_var mod_name in
-              combine [
+              Output.flat [
                 ws skips; from_string "Require Import "; mod_name; from_string ".\n"
               ]
       | Indreln (skips, targets, cs) ->
@@ -598,7 +597,7 @@ let type_ident_to_output td =
               clauses c
           else
             let cs = Seplist.to_list cs in
-              combine [
+              Output.flat [
                 ws skips; clauses cs
               ]
       | Val_spec val_spec -> from_string "\n(* [?]: removed value specification. *)\n"
@@ -606,7 +605,7 @@ let type_ident_to_output td =
       | Instance (skips, instantiation, vals, skips', sem_info) -> from_string "Instance"
       | Comment c ->
       	let ((def_aux, skips_opt), l) = c in
-          combine [
+          Output.flat [
       		  from_string "(* "; def inside_module def_aux; from_string " *)"
           ]
       | Ident_rename _ -> from_string "\n(* [?]: removed rename statement. *)"
@@ -616,12 +615,12 @@ let type_ident_to_output td =
               match name_skips_opt with
                 | None ->
                   let fresh = generate_fresh_name () in
-                  combine [
+                  Output.flat [
                     from_string " lemma_"; from_string fresh
                   ]
                 | Some ((name, l), skips) -> Name.to_output Term_var name
             in
-              combine [
+              Output.flat [
                 ws skips; from_string "Lemma"; name; from_string ":"; ws skips'; exp e;
                 ws skips''; from_string "."
               ]
@@ -658,7 +657,7 @@ let type_ident_to_output td =
               | [] -> [from_string "Prop"]
               | (_, _, _, _, _, _, _, _, exp_list)::xs ->
                   List.map (fun t ->
-                    combine [
+                    Output.flat [
                       from_string "("; field_typ @@ C.t_to_src_t (Typed_ast.exp_to_typ t); from_string ")"
                     ]
                   ) exp_list
@@ -670,7 +669,7 @@ let type_ident_to_output td =
                   | None ->
                     let fresh = string_of_int counter in
                     let name = Name.to_string name in
-                      combine [
+                      Output.flat [
                         from_string name; from_string "_"; from_string fresh
                       ]
                   | Some name -> from_string (Name.to_string (Name.strip_lskip name))
@@ -679,12 +678,12 @@ let type_ident_to_output td =
                 match exp_opt with
                   | None -> emp
                   | Some e ->
-                      combine [
+                      Output.flat [
                         from_string "Prop_of_bool ("; exp e; from_string ")"
                       ]
               in
               let bound_variables =
-                separate " " @@ List.map (fun n ->
+                concat_str " " @@ List.map (fun n ->
                   from_string (Name.to_string (Name.strip_lskip n.term))
                 ) name_lskips_annot_list
               in
@@ -693,11 +692,11 @@ let type_ident_to_output td =
                   | [] -> emp, emp
                   | x::xs -> from_string "forall ", from_string ", "
               in
-              let indices = separate " " @@ List.map exp exp_list in
+              let indices = concat_str " " @@ List.map exp exp_list in
               let index_free_vars = List.map (fun t -> Types.free_vars (Typed_ast.exp_to_typ t)) exp_list in
               let index_free_vars = List.fold_right Types.TNset.union index_free_vars Types.TNset.empty in
               let relation_name = from_string (Name.to_string name) in
-                combine [
+                Output.flat [
                   constructor_name; from_string ": ";
                   binder; bound_variables; binder_sep; antecedent; from_string " -> ";
                   relation_name; from_string " "; indices
@@ -707,25 +706,25 @@ let type_ident_to_output td =
           let free_vars = List.map (fun (x, y) -> y) bodies in
           let free_vars = Types.TNset.elements @@ List.fold_right Types.TNset.union free_vars Types.TNset.empty in
           let free_vars =
-            separate " " @@ List.map (fun v ->
-              combine [
+            concat_str " " @@ List.map (fun v ->
+              Output.flat [
                 from_string " {"; from_string (Name.to_string (Types.tnvar_to_name v)); from_string ": Type}"
               ]) free_vars
           in
           let index_types =
-            combine [
-              separate " -> " index_types; from_string " -> Prop"
+            Output.flat [
+              concat_str " -> " index_types; from_string " -> Prop"
             ]
           in
-          let bodies = separate "\n  | " @@ List.map (fun (x, y) -> x) bodies in
-          combine [
+          let bodies = concat_str "\n  | " @@ List.map (fun (x, y) -> x) bodies in
+          Output.flat [
             from_string name_string; free_vars; from_string ": "; index_types; from_string " :=\n  | ";
             bodies
           ]
         ) gathered
       in
-        combine [
-          from_string "\nInductive "; separate "\nand " indrelns; from_string "."
+        Output.flat [
+          from_string "\nInductive "; concat_str "\nand " indrelns; from_string "."
         ]
     and let_body top_level tv_set ((lb, _):letbind) =
       match lb with
@@ -747,12 +746,12 @@ let type_ident_to_output td =
               match topt with
                 | None        -> emp
                 | Some (s, t) ->
-                    combine [
+                    Output.flat [
                       ws s; from_string ":"; pat_typ t
                     ]
             in
             let e = exp e in
-              combine [
+              Output.flat [
                 p; tv_set_sep; tv_set; topt; ws skips; from_string " := "; e
               ]
         | Let_fun (n, pats, typ_opt, skips, e) -> funcl_aux tv_set (n.term, pats, typ_opt, skips, e)
@@ -780,18 +779,21 @@ let type_ident_to_output td =
         match typ_opt with
           | None -> emp
           | Some (s, t) ->
-              combine [
+              Output.flat [
                 ws s; from_string " : "; pat_typ t
               ]
       in
-        combine [
+        Output.flat [
           ws name_skips; name; tv_set_sep; tv_set; pat_skips;
           fun_pattern_list pats; typ_opt; ws skips; from_string ":="; exp e
         ]
     and funcl tv_set ({term = n}, c, pats, typ_opt, skips, e) = funcl_aux tv_set (n, pats, typ_opt, skips, e)      
     and funcl_letfun tv_set ({term = n}, pats, typ_opt, skips, e) = funcl_aux tv_set (n, pats, typ_opt, skips, e)      
     and let_type_variables top_level tv_set =
-      let tyvars = intercalate (from_string " ") @@
+      if Types.TNset.is_empty tv_set || not top_level then
+        emp
+      else
+      let tyvars =
         List.map (fun tv -> match tv with
           | Types.Ty tv -> id Type_var (Tyvar.to_rope tv)
           | Types.Nv nv -> id Type_var (Nvar.to_rope nv)) (*TODO This may not be how the length variables should be represented, so should be checked on *)
@@ -800,7 +802,7 @@ let type_ident_to_output td =
         if List.length tyvars = 0 || not top_level then
           emp
         else
-          combine [from_string "{"; flat tyvars; from_string " : Type}"]
+          (from_string "{") ^ (concat_str " " tyvars) ^ (from_string " : Type}")
     and coq_function_application_to_output id args = B.function_application_to_output exp id args
     and exp e =
       let is_user_exp = Typed_ast_syntax.is_trans_exp e in
@@ -825,33 +827,33 @@ let type_ident_to_output td =
               let o = Output.concat sep oL in
               block is_user_exp 0 o
           | Paren (skips, e, skips') ->
-              combine [
+              Output.flat [
                 ws skips; from_string "("; exp e; ws skips'; from_string ")";
               ]
           | Typed (skips, e, skips', t, skips'') ->
-              combine [
+              Output.flat [
                 ws skips; from_string "("; exp e; from_string " :"; ws skips'; typ t; ws skips''; from_string ")";
               ]
           | Tup (skips, es, skips') ->
               let tups = flat @@ Seplist.to_sep_list exp (sep (from_string ", ")) es in
-                combine [
+                Output.flat [
                   ws skips; from_string "("; tups; from_string ")"; ws skips'
                 ]
           | List (skips, es, skips') ->
               let lists = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> from_string " ")) exp (sep @@ from_string "; ") es in
-                combine [
+                Output.flat [
                   ws skips; from_string "["; lists; from_string "]"; ws skips'
                 ]
           | Let (skips, bind, skips', e) ->
               let body = let_body false Types.TNset.empty bind in
-                combine [
+                Output.flat [
                   ws skips; from_string "let"; body; ws skips'; from_string "in "; exp e;
                 ]
           | Constant const -> Output.concat emp (B.function_application_to_output exp false const [])
           | Fun (skips, ps, skips', e) ->
               let ps = fun_pattern_list ps in
                 block_hov (Typed_ast_syntax.is_trans_exp e) 2 (
-                  combine [
+                  Output.flat [
                     ws skips; from_string "fun"; ps; ws skips'; from_string "=>"; break_hint_space 0; exp e
                   ])
           | Function _ ->
@@ -867,26 +869,26 @@ let type_ident_to_output td =
             in
               block is_user_exp 0 (
                 if Seplist.is_empty es then
-                  combine [
+                  Output.flat [
                     skips; from_string "[]"
                   ]
                 else
-                  combine [
+                  Output.flat [
                     skips; from_string "["; body; ws skips'; from_string "]"
                   ])
           | Begin (skips, e, skips') ->
-              combine [
+              Output.flat [
                 ws skips; from_string "(* begin block *)"; exp e; ws skips';
                 from_string "(* end block *)"
               ]
           | Record (skips, fields, skips') ->
             let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) field_update (sep @@ from_string ";") fields in
-              combine [
+              Output.flat [
                 ws skips; from_string "{|"; body; ws skips'; from_string "|}"
               ]
           | Field (e, skips, fd) ->
             let name = field_ident_to_output fd in
-              combine [
+              Output.flat [
                 from_string "("; name; ws skips; exp e; from_string ")"
               ]
           | Recup (skips, e, skips', fields, skips'') ->
@@ -897,13 +899,13 @@ let type_ident_to_output td =
               else
                 ws skips''
             in
-              combine [
+              Output.flat [
                  ws skips; from_string "{["; exp e; ws skips'; from_string "with"; body; skips''; from_string " ]}"
               ]
           | Case (_, skips, e, skips', cases, skips'') ->
             let body = flat @@ Seplist.to_sep_list_last Seplist.Optional case_line (sep (break_hint_space 2 ^ from_string "|")) cases in
               block is_user_exp 0 (
-                combine [
+                Output.flat [
                   ws skips; from_string "match ("; exp e; from_string ")"; from_string " with"; ws skips';
                   break_hint_space 4; body; ws skips''; break_hint_space 0; from_string "end"
                 ])
@@ -923,7 +925,7 @@ let type_ident_to_output td =
             let o = Output.concat sep oL in
             block is_user_exp 0 o
           | If (skips, test, skips', t, skips'', f) ->
-              block is_user_exp 0 (combine [
+              block is_user_exp 0 (Output.flat [
                 ws skips; break_hint_cut; from_string "if";
                 block (Typed_ast_syntax.is_trans_exp test) 0 (exp test);
                 ws skips'; from_string "then"; break_hint_space 2;
@@ -936,15 +938,15 @@ let type_ident_to_output td =
           | Setcomp (_, _, _, _, _, _) -> from_string "(* XXX: setcomp *)"
           | Nvar_e (skips, nvar) ->
             let nvar = id Nexpr_var @@ Ulib.Text.(^^^) (r"") (Nvar.to_rope nvar) in
-              combine [
+              Output.flat [
                 ws skips; nvar
               ]
           | VectorAcc (e, skips, nexp, skips') ->
-              combine [
+              Output.flat [
                 from_string "vector_index"; exp e; ws skips; src_nexp nexp; ws skips'
               ]
           | VectorSub (e, skips, nexp, skips', nexp', skips'') ->
-              combine [
+              Output.flat [
                 from_string "vector_slice"; exp e; ws skips; src_nexp nexp;
                 ws skips'; src_nexp nexp'; ws skips'
               ]
@@ -958,43 +960,43 @@ let type_ident_to_output td =
             in
               block is_user_exp 0 (
                 if Seplist.is_empty es then
-                  combine [
+                  Output.flat [
                     skips; from_string "[[]]]"
                   ]
                 else
-                  combine [
+                  Output.flat [
                     skips; from_string "[["; body; ws skips'; from_string "]]"
                   ])
     and src_nexp n =
       match n.nterm with
         | Nexp_var (skips, nvar) ->
           let nvar = id Nexpr_var @@ Ulib.Text.(^^^) (r"") (Nvar.to_rope nvar) in
-            combine [
+            Output.flat [
               ws skips; nvar
             ]
         | Nexp_const (skips, i) ->
-            combine [
+            Output.flat [
               ws skips; from_string (string_of_int i)
             ]
         | Nexp_mult (nexp, skips, nexp') ->
-            combine [
+            Output.flat [
               src_nexp nexp; ws skips; from_string "*"; src_nexp nexp'
             ]
         | Nexp_add (nexp, skips, nexp') ->
-            combine [
+            Output.flat [
               src_nexp nexp; ws skips; from_string "+"; src_nexp nexp'
             ]
         | Nexp_paren (skips, nexp, skips') ->
-            combine [
+            Output.flat [
               ws skips; from_string "("; src_nexp nexp; ws skips'; from_string ")"
             ]
     and case_line (p, skips, e, _) =
-        combine [
+        Output.flat [
           def_pattern p; ws skips; from_string "=>"; break_hint_space 2; exp e
         ]
     and field_update (fd, skips, e, _) =
       let name = field_ident_to_output fd in
-        combine [
+        Output.flat [
           name; ws skips; from_string ":="; exp e
         ]
     and literal l =
@@ -1010,11 +1012,11 @@ let type_ident_to_output td =
         | L_undefined (skips, explanation) ->
           let typ = l.typ in
           let src_t = C.t_to_src_t typ in
-            combine [
+            Output.flat [
               ws skips; default_value src_t;
               from_string " (* "; from_string explanation; from_string " *)"
             ]
-    and fun_pattern_list ps = from_string " " ^ (separate " " @@ List.map fun_pattern ps)
+    and fun_pattern_list ps = from_string " " ^ (concat_str " " @@ List.map fun_pattern ps)
     and fun_pattern p =
       match p.term with
         | P_wild skips ->
@@ -1025,60 +1027,60 @@ let type_ident_to_output td =
               ws skips
           in
           let t = C.t_to_src_t p.typ in
-            combine [
+            Output.flat [
               skips; from_string "("; from_string "_ : "; pat_typ t; from_string ")"
             ]
         | P_var v ->
           let name = lskips_t_to_output v in
           let t = C.t_to_src_t p.typ in
-            combine [
+            Output.flat [
               from_string "("; name; from_string " : "; pat_typ t; from_string ")"
             ]
         | P_lit l -> literal l
         | P_as (skips, p, skips', (n, l), skips'') ->
           let name = Name.to_output Term_var n in
-            combine [
+            Output.flat [
               ws skips; fun_pattern p; ws skips'; from_string "as"; ws skips''; name
             ]
         | P_typ (skips, p, skips', t, skips'') ->
-            combine [
+            Output.flat [
               ws skips; from_string "("; def_pattern p; ws skips'; from_string ":";
               ws skips''; pat_typ t; from_string ")"
             ]
         | P_tup (skips, ps, skips') ->
           let body = flat @@ Seplist.to_sep_list fun_pattern (sep @@ from_string ", ") ps in
-            combine [
+            Output.flat [
               ws skips; from_string "("; body; ws skips'; from_string ")"
             ]
         | P_record (_, fields, _) ->
           (* DPM: should have been macro'd away *)
             print_and_fail p.locn "illegal record pattern in code extraction, should have been compiled away"
         | P_cons (p1, skips, p2) ->
-            combine [
+            Output.flat [
               def_pattern p1; ws skips; from_string "::"; def_pattern p2
             ]
         | P_var_annot (n, t) ->
             let name = Name.to_output Term_var n in
-              combine [
+              Output.flat [
                 from_string "("; name; from_string " : "; pat_typ t; from_string ")"
               ]
         | P_list (skips, ps, skips') ->
           let body = flat @@ Seplist.to_sep_list_last Seplist.Optional fun_pattern (sep @@ from_string "; ") ps in
-            combine [
+            Output.flat [
               ws skips; from_string "["; body; from_string "]"; ws skips'
             ]
         | P_paren (skips, p, skips') ->
-            combine [
+            Output.flat [
               ws skips; from_string "("; fun_pattern p; ws skips'; from_string ")"
             ]
         | P_const(cd, ps) ->
             let oL = B.pattern_application_to_output fun_pattern cd ps in
             concat emp oL
         | P_num_add ((name, l), skips, skips', k) ->
-            let succs = separate "" @@ Util.replicate k (from_string "S (") in
-            let close = separate "" @@ Util.replicate k (from_string ")") in
+            let succs = Output.flat @@ iterate (from_string "S (") k in
+            let close = Output.flat @@ iterate (from_string ")") k in
             let name = lskips_t_to_output name in
-              combine [
+              Output.flat [
                 ws skips; succs; name; close
               ]
         | _ -> from_string "(* XXX: todo *)"
@@ -1091,14 +1093,14 @@ let type_ident_to_output td =
             else
               ws skips
           in
-            combine [
+            Output.flat [
               skips; from_string "_"
             ]
         | P_var v -> Name.to_output Term_var v
         | P_lit l -> literal l
         | P_as (skips, p, skips', (n, l), skips'') ->
           let name = Name.to_output Term_var n in
-            combine [
+            Output.flat [
               ws skips; def_pattern p; ws skips'; from_string "as"; ws skips'; name
             ]
         | P_typ (skips, p, _, t, skips') ->
@@ -1106,14 +1108,14 @@ let type_ident_to_output td =
             ws skips ^ def_pattern p ^ ws skips'
         | P_tup (skips, ps, skips') ->
           let body = flat @@ Seplist.to_sep_list def_pattern (sep @@ from_string ", ") ps in
-            combine [
+            Output.flat [
               ws skips; from_string "("; body; from_string ")"; ws skips'
             ]
         | P_record (_, fields, _) ->
             (* DPM: should have been macro'd away *)
             print_and_fail p.locn "illegal record pattern in code extraction, should have been compiled away"
         | P_cons (p1, skips, p2) ->
-            combine [
+            Output.flat [
               def_pattern p1; ws skips; from_string "::"; def_pattern p2
             ]
         | P_var_annot (n, t) ->
@@ -1121,21 +1123,21 @@ let type_ident_to_output td =
             Name.to_output Term_var n
         | P_list (skips, ps, skips') ->
           let body = flat @@ Seplist.to_sep_list_last Seplist.Optional def_pattern (sep @@ from_string "; ") ps in
-            combine [
+            Output.flat [
               ws skips; from_string "["; body; from_string "]"; ws skips'
             ]
         | P_paren (skips, p, skips') ->
-            combine [
+            Output.flat [
               from_string "("; ws skips; def_pattern p; ws skips'; from_string ")"
             ]
         | P_const(cd, ps) ->
             let oL = B.pattern_application_to_output def_pattern cd ps in
             concat emp oL
         | P_num_add ((name, l), skips, skips', k) ->
-            let succs = separate "" @@ Util.replicate k (from_string "S (") in
-            let close = separate "" @@ Util.replicate k (from_string ")") in
+            let succs = Output.flat @@ iterate (from_string "S (") k in
+            let close = Output.flat @@ iterate (from_string ")") k in
             let name = lskips_t_to_output name in
-              combine [
+              Output.flat [
                 ws skips; succs; name; close
               ]
         | _ -> from_string "(* XXX: todo *)"
@@ -1147,7 +1149,7 @@ let type_ident_to_output td =
     				let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
             let body = abbreviation_typ t in
             let equality = generate_coq_abbreviation_equality tyvars name t in
-              combine [
+              Output.flat [
     						from_string "Definition"; name; tyvar_sep; tyvars';
                 from_string " : Type :="; ws skips; body; from_string ".\n";
                 (*equality*)
@@ -1162,14 +1164,14 @@ let type_ident_to_output td =
             let body = flat @@ Seplist.to_sep_list abbreviation_typ (sep @@ from_string "*") ts in
               from_string "(" ^ body ^ from_string ") % type"
         | Typ_app (p, ts) ->
-          let args = separate " " @@ List.map abbreviation_typ ts in
+          let args = concat_str " " @@ List.map abbreviation_typ ts in
           let (name_list, name) = Ident.to_name_list (resolve_ident_path p p.descr) in
           let arg_sep = if List.length ts > 1 then from_string " " else emp in
-            combine [
+            Output.flat [
               kwd @@ Ulib.Text.to_string (Name.to_rope name); arg_sep; args
             ]
         | Typ_paren(skips, t, skips') ->
-            combine [
+            Output.flat [
               ws skips; from_string "("; abbreviation_typ t; from_string ")"; ws skips'
             ]
         | Typ_len nexp -> src_nexp nexp
@@ -1182,7 +1184,7 @@ let type_ident_to_output td =
       			let tyvars' = type_def_type_variables tyvars in
             let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
             let boolean_equality = generate_coq_record_equality tyvars n fields in
-      			  combine [
+      			  Output.flat [
                 from_string "Record"; name; tyvar_sep; tyvars'; from_string " : Type";
                 ws skips; from_string ":="; ws skips'; from_string "{";
                 body; ws skips''; from_string "}.\n";
@@ -1198,7 +1200,7 @@ let type_ident_to_output td =
         else
           from_string "Inductive"
       in
-        combine [
+        Output.flat [
           head; body; from_string ".\n";
           boolean_equality
         ]
@@ -1213,33 +1215,33 @@ let type_ident_to_output td =
       in
         match ty with
           | Te_opaque ->
-              combine [
+              Output.flat [
                 inductive ty_vars n; from_string ":= "
               ]
           | _ ->
-            combine [
+            Output.flat [
               inductive ty_vars n; tyexp name ty_vars ty
             ]
     and inductive ty_vars name =
       let ty_var_sep = if List.length ty_vars = 0 then emp else from_string " " in
       let ty_vars = inductive_type_variables ty_vars in
       let name = Name.to_output Type_ctor name in
-        combine [
+        Output.flat [
           name; ty_var_sep; ty_vars; from_string " : Type "
         ]
     and inductive_type_variables vars =
       let mapped = List.map (fun v ->
           match v with
             | Tyvar x ->
-              combine [
+              Output.flat [
                 from_string "{"; x; from_string " : Type}"
               ]
             | Nvar x ->
-              combine [
+              Output.flat [
                 from_string "{"; x; from_string " : num}"
               ]) vars
       in
-        separate " " mapped
+        concat_str " " mapped
     and tyexp name ty_vars =
       function
         | Te_opaque -> emp
@@ -1247,19 +1249,19 @@ let type_ident_to_output td =
         | Te_record (skips, _, fields, skips') -> ws skips ^ tyexp_record fields ^ ws skips'
         | Te_variant (skips, ctors) ->
           let body = flat @@ Seplist.to_sep_list_first Seplist.Optional (constructor name ty_vars) (sep @@ from_string "|") ctors in
-            combine [
+            Output.flat [
               from_string ":="; ws skips; body
             ]
     and constructor ind_name ty_vars ((ctor_name, _), _, skips, args) =
       let ctor_name = Name.to_output Type_ctor ctor_name in
       let body = flat @@ Seplist.to_sep_list abbreviation_typ (sep @@ from_string "-> ") args in
-      let tail = combine [from_string "->"; ind_name ] in
+      let tail = Output.flat [from_string "->"; ind_name ] in
         if Seplist.length args = 0 then
-          combine [
+          Output.flat [
             ctor_name; from_string ":"; ws skips; ind_name
           ]
         else
-          combine [
+          Output.flat [
             ctor_name; from_string ":"; ws skips; body; from_string " "; tail
           ]
     and tyexp_abbreviation t = from_string "(* tyexp_abbreviation *)"
@@ -1278,9 +1280,9 @@ let type_ident_to_output td =
               from_string "(" ^ body ^ from_string ") % type"
         | Typ_app (p, ts) ->
           let (name_list, name) = Ident.to_name_list (resolve_ident_path p p.descr) in
-            combine [
+            Output.flat [
               from_string @@ Ulib.Text.to_string (Name.to_rope name); from_string " ";
-              flat @@ intercalate (from_string " ") (List.map pat_typ ts)
+              concat_str " " (List.map pat_typ ts)
             ]
         | Typ_paren(skips, t, skips') ->
             ws skips ^ from_string "(" ^ pat_typ t ^ ws skips' ^ from_string ")"
@@ -1308,16 +1310,16 @@ let type_ident_to_output td =
             match t with
               | Typed_ast.Tn_A (_, tv, _) ->
                 let tv = from_string @@ Ulib.Text.to_string tv in
-                  combine [
+                  Output.flat [
                     from_string "{"; tv; from_string ": Type}"
                   ]
               | Typed_ast.Tn_N nv ->
-                  combine [
+                  Output.flat [
                     from_string "{"; from_string "nv: num}"
                   ]) tvs
           in
-            combine [
-              from_string " "; separate " " mapped
+            Output.flat [
+              from_string " "; concat_str " " mapped
             ]
     and field_typ t =
       match t.term with
@@ -1329,16 +1331,16 @@ let type_ident_to_output td =
               from_string "(" ^ body ^ from_string ") % type"
         | Typ_app (p, ts) ->
           let (name_list, name) = Ident.to_name_list (resolve_ident_path p p.descr) in
-          let args = separate " " @@ List.map field_typ ts in
+          let args = concat_str " " @@ List.map field_typ ts in
           let args_space = if List.length ts = 1 then from_string " " else emp in
-            combine [
+            Output.flat [
               from_string @@ Ulib.Text.to_string (Name.to_rope name); args_space; args
             ]
         | Typ_paren(skips, t, skips') ->
             ws skips ^ from_string "(" ^ typ t ^ from_string ")" ^ ws skips'
         | Typ_len nexp -> src_nexp nexp
     and field ((n, _), _, skips, t) =
-      combine [
+      Output.flat [
         Name.to_output Term_field n; from_string ":"; ws skips; field_typ t
       ]
     and defs inside_module (ds : def list) =
@@ -1356,13 +1358,13 @@ let type_ident_to_output td =
             let mapped = List.map (fun ((name, _), _, _, src_t) ->
               let o = lskips_t_to_output name in
               let s = default_value src_t in
-                combine [
+                Output.flat [
                   o; from_string " := "; s
                 ]
               ) fields
             in
-            let fields = separate "; " mapped in
-              combine [
+            let fields = concat_str "; " mapped in
+              Output.flat [
                 from_string "{| "; fields; from_string " |}"
               ]
         | Te_variant (_, seplist) ->
@@ -1372,9 +1374,9 @@ let type_ident_to_output td =
                 let ((name, _), _, _, src_ts) = x in
                   let ys = Seplist.to_list src_ts in
                   let mapped = List.map default_value ys in
-                  let mapped = separate " " mapped in
+                  let mapped = concat_str " " mapped in
                   let o = lskips_t_to_output name in
-                    combine [
+                    Output.flat [
                       o; from_string " "; mapped
                     ])
       and generate_default_value ((name, _), tnvar_list, _, t, name_sect_opt) : Output.t =
@@ -1387,18 +1389,18 @@ let type_ident_to_output td =
         in
         let tnvar_list' = type_def_type_variables tnvar_list in
         let default = generate_default_value_texp t in
-        let mapped = separate " " @@ List.map (fun x ->
+        let mapped = concat_str " " @@ List.map (fun x ->
           match x with
             | Typed_ast.Tn_A (_, x, _)->
               let x = Ulib.Text.to_string x in
-              combine [
+              Output.flat [
                 from_string "("; from_string x; from_string ":=";
                 from_string x; from_string ")"
               ]
               | _ -> from_string "BUG"
           ) tnvar_list
         in
-          combine [
+          Output.flat [
             from_string "Definition "; o; from_string "_default";
             tnvar_list'; tnvar_list_sep; from_string ": "; o;
             from_string " := "; default; from_string " ";
@@ -1412,14 +1414,14 @@ let type_ident_to_output td =
           | Typ_tup seplist ->
               let src_ts = Seplist.to_list seplist in
               let mapped = List.map default_value src_ts in
-                combine [
-                  from_string "("; separate ", " mapped; from_string ")"
+                Output.flat [
+                  from_string "("; concat_str ", " mapped; from_string ")"
                 ]
           | Typ_app (path, src_ts) ->
               if List.length src_ts = 0 || List.for_all is_inferrable src_ts then
                 let path = path.descr in
                 let (tail, head) = Path.to_name_list path in
-                  combine [
+                  Output.flat [
                     from_string (Name.to_string head); from_string "_default"
                   ]
               else
@@ -1427,14 +1429,14 @@ let type_ident_to_output td =
           | Typ_paren (_, src_t, _) -> default_value src_t
           | Typ_fn (dom, _, rng) ->
               let v = generate_fresh_name () in
-                combine [
+                Output.flat [
                   from_string "(fun ("; from_string v; from_string " : "; pat_typ dom;
                   from_string ") => "; default_value rng; from_string ")"
                 ]
       and generate_default_values ts : Output.t =
         let ts = Seplist.to_list ts in
         let mapped = List.map generate_default_value ts in
-          separate "\n" mapped
+          concat_str "\n" mapped
       ;;
 
     let coq_defs ((ds : def list), end_lex_skips) =

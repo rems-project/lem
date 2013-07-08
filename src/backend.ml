@@ -300,12 +300,6 @@ module type Target = sig
   val inr : Ident.t
 end
 
-let rec intercalate sep =
-  function
-    | [] -> []
-    | [x] -> [x]
-    | x::xs -> x::sep::intercalate sep xs
-;;
 
 module Identity : Target = struct
   open Str

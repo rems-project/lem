@@ -142,7 +142,7 @@ let rec occurs_src_t (x : Name.t) (s : src_t) : bool =
           if head = x && tail = [] then
             true
           else
-           List.exists (occurs_src_t x) src_ts
+            List.exists (occurs_src_t x) src_ts
     | Typ_paren (_, src_t, _) -> occurs_src_t x src_t
 ;;
 
@@ -216,7 +216,7 @@ and strict_positivity_condition (inductive_types : src_t list InductiveMap.t) (x
           strict_positivity_condition inductive_types x rng
     | Typ_tup seplist -> true (* ??? how do you handle tuples in a ctor type?
         let src_ts = Seplist.to_list seplist in
-          all (strict_positivity_condition x) src_ts *)
+          List.for_all (strict_positivity_condition x) src_ts *)
     | Typ_app (path, src_ts) ->
         List.for_all (fun y -> not (occurs_src_t x y)) src_ts
     | Typ_paren (_, src_t, _) -> strict_positivity_condition inductive_types x src_t

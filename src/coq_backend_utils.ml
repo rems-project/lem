@@ -47,8 +47,22 @@
 open Output
 open Typed_ast
 
+(* Backward compatibility functions *)
+
+(* Available in OCaml since 4.00.0 - copied from list.ml *)
+let rec mapi i f = function
+    [] -> []
+  | a::l -> let r = f i a in r :: mapi (i + 1) f l
+;;
+let mapi f l = mapi 0 f l ;;
+
+(* Available in OCaml since 4.01.00 - optimisable with "%apply" and "%revapply" *)
 let (|>) x f = f x
 ;;
+let (@@) f x = f x
+;;
+
+
 
 type ('a, 'b) union
   = Inl of 'a
@@ -60,16 +74,10 @@ let sum f l =
   List.fold_left (+) 0
 ;;
 
-let rec repeat (c: char) (i: int): string =
-  match i with
-    | 0 -> ""
-    | m -> Pervasives.(^) (Char.escaped c) (repeat c (m - 1))
-;;
-
-let (@@) f x = f x
-;;
-
 let r = Ulib.Text.of_latin1
+;;
+
+let iterate i n = Array.make n i |> Array.to_list
 ;;
 
 let rec nub =
@@ -82,26 +90,12 @@ let rec nub =
           x::nub xs
 ;;
 
-
-let intercalate = Util.intercalate;;
-
-let mapi f xs = Util.list_mapi f xs;;
-
 let from_string x = meta x
-;;
-
 let sep x s = ws s ^ x
-;;
+let path_sep = from_string "."
 
 let tyvar (_, tv, _) = id Type_var (Ulib.Text.(^^^) (r"") tv)
-;;
-
-let path_sep = from_string "."
-;;
-
-let separate sep l = concat (from_string sep) l;;
-
-let combine l = concat emp l;;
+let concat_str s = concat (from_string s)
 
 let lskips_t_to_output name =
   let stripped = Name.strip_lskip name in

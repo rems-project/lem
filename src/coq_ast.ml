@@ -96,7 +96,7 @@ let progress caret limit size i =
   let s = size i in
     if caret >= limit - s then
       let m = min (2 + s) limit in
-      let indent = repeat ' ' m in
+      let indent = String.make m ' ' in
         "\n" ^ indent, m
     else
       "", min (caret + s) limit

@@ -53,7 +53,7 @@ let generate_coq_record_update_notation e =
   let notation_kwd = from_string "Notation" in
   let with_kwd = from_string "\'with\'" in
   let prefix =
-    combine [
+    Output.flat [
       notation_kwd; from_string " \"{[ r "; with_kwd; from_string " "
     ]
   in
@@ -61,21 +61,21 @@ let generate_coq_record_update_notation e =
     let ((lskips, l), _, s4, ty) = x in
     let name = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip lskips)) in
     let all_fields = List.filter (fun x -> Pervasives.compare name x <> 0) all_fields in
-    let other_fields = List.fold_right (^) (intercalate (kwd "; ")
+    let other_fields = concat (kwd "; ")
       (List.map (fun x ->
-        combine [
+        Output.flat [
           from_string x; from_string " := " ^ from_string x ^ from_string " r"
         ]
-      ) all_fields)) emp
+      ) all_fields)
     in
     let focussed_field = from_string name ^ from_string " := e" in
     let body =
-      combine [
+      Output.flat [
         from_string "\'"; from_string name; from_string "\' := e ]}\" := "
       ]
     in
     let result =
-      combine [
+      Output.flat [
         prefix; body; from_string "("; from_string "{| "; focussed_field;
         from_string "; "; other_fields; from_string " |})."
       ]
@@ -87,8 +87,8 @@ let generate_coq_record_update_notation e =
     match e with
       | Te_record (s1, s2, fields, s3) ->
           let all_fields = Seplist.to_list fields in
-          let all_fields_names = List.map (fun ((lskips, l), _, s4, ty) -> Ulib.Text.to_string (Name.to_rope (Name.strip_lskip lskips))) all_fields in
-          let field_entries = List.fold_right (^) (intercalate (from_string "\n") (List.map (aux all_fields_names) all_fields)) emp in
+          let all_fields_names = List.map (fun ((lskips, l), _, s4, ty) -> Name.to_string (Name.strip_lskip lskips)) all_fields in
+          let field_entries = concat_str "\n" (List.map (aux all_fields_names) all_fields) in
           let terminator =
             if List.length all_fields = 0 then
               emp
