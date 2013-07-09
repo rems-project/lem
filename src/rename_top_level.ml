@@ -77,9 +77,9 @@ let compute_ocaml_rename_constant_fun (nk : name_kind) (n : Name.t) : Name.t opt
     | Nk_module _     -> Name.capitalize n
     | Nk_class        -> None
 
-let compute_target_rename_constant_fun (targ : Target.target option) (nk : name_kind) (n : Name.t) : Name.t option =
+let compute_target_rename_constant_fun (targ : Target.non_ident_target) (nk : name_kind) (n : Name.t) : Name.t option =
   match targ with 
-    | Some Target_ocaml -> compute_ocaml_rename_constant_fun nk n
+    | Target_ocaml -> compute_ocaml_rename_constant_fun nk n
     | _ -> None
 
 let get_fresh_name consts consts' n = 
@@ -87,11 +87,11 @@ let get_fresh_name consts consts' n =
   if (is_good n) then None else
   Some (Name.fresh (Name.to_rope n) is_good)
 
-let rename_constant (targ : Target.target option) (consts : NameSet.t) (consts_new : NameSet.t) (env : env) (c : const_descr_ref) : 
+let rename_constant (targ : Target.non_ident_target) (consts : NameSet.t) (consts_new : NameSet.t) (env : env) (c : const_descr_ref) : 
   (NameSet.t * env) = begin
   let l = Ast.Trans ("rename_constant", None) in
   let c_d = c_env_lookup l env.c_env c in
-  let (n_is_shown, n) = constant_descr_to_name targ c_d in
+  let (n_is_shown, n) = constant_descr_to_name (Target_no_ident targ) c_d in
 
   (* if constant name is not printed (e.g. for some special syntax, don't rename it *)
   if (not n_is_shown) then (consts_new, env) else
@@ -118,7 +118,7 @@ let rename_constant (targ : Target.target option) (consts : NameSet.t) (consts_n
           (* print warning *)
           let n0 : string = Name.to_string (Path.get_name c_d.const_binding) in
           let _ = (if (not is_auto_renamed) then () else 
-                  (Reporting.report_warning env (Reporting.Warn_rename (c_d.spec_l, n0, Util.option_map (fun (l, n) -> (Name.to_string n, l)) via_opt, Name.to_string n'', targ))))
+                  (Reporting.report_warning env (Reporting.Warn_rename (c_d.spec_l, n0, Util.option_map (fun (l, n) -> (Name.to_string n, l)) via_opt, Name.to_string n'', Target_no_ident targ))))
           in
 
           (* update environment *)
@@ -128,11 +128,11 @@ let rename_constant (targ : Target.target option) (consts : NameSet.t) (consts_n
   end
 end
 
-let rename_type (targ : Target.target option) (consts : NameSet.t) (consts_new : NameSet.t) (env : env) (t : Path.t) : 
+let rename_type (targ : Target.non_ident_target) (consts : NameSet.t) (consts_new : NameSet.t) (env : env) (t : Path.t) : 
   (NameSet.t * env) = begin
   let l = Ast.Trans ("rename_type", None) in
   let td = Types.type_defs_lookup l env.t_env t in
-  let n = type_descr_to_name targ t td in
+  let n = type_descr_to_name (Target_no_ident targ) t td in
 
   (* apply target specific renaming *)
   let n'_opt = compute_target_rename_constant_fun targ (Nk_typeconstr t) n in
@@ -154,7 +154,7 @@ let rename_type (targ : Target.target option) (consts : NameSet.t) (consts_new :
           (* print warning *)
           let n0 : string = Name.to_string (Path.get_name t) in
           let _ = (if (not is_auto_renamed) then () else 
-                  (Reporting.report_warning env (Reporting.Warn_rename (Ast.Unknown, n0, Util.option_map (fun (l, n) -> (Name.to_string n, l)) via_opt, Name.to_string n'', targ))))
+                  (Reporting.report_warning env (Reporting.Warn_rename (Ast.Unknown, n0, Util.option_map (fun (l, n) -> (Name.to_string n, l)) via_opt, Name.to_string n'', Target_no_ident targ))))
           in
 
           (* update environment *)
@@ -164,15 +164,17 @@ let rename_type (targ : Target.target option) (consts : NameSet.t) (consts_new :
 end
 
 
-let rename_defs_target targ ue consts env = 
-  match targ with (* do nothing for identity backend *) None -> env | _ -> 
+let rename_defs_target (targ : Target.target) ue consts env = 
+  match targ with
+    | Target_ident -> env
+    | Target_no_ident targ_ni ->
   begin 
-    let (new_types', env) = List.fold_left (fun (consts_new, env) t -> rename_type targ consts consts_new env t) (NameSet.empty, env) 
+    let (new_types', env) = List.fold_left (fun (consts_new, env) t -> rename_type targ_ni consts consts_new env t) (NameSet.empty, env) 
       ue.Typed_ast_syntax.used_types in
 
 
     (* rename constants *)
-    let (new_consts', env) = List.fold_left (fun (consts_new, env) c -> rename_constant targ consts consts_new env c) (NameSet.empty, env) 
+    let (new_consts', env) = List.fold_left (fun (consts_new, env) c -> rename_constant targ_ni consts consts_new env c) (NameSet.empty, env) 
       ue.Typed_ast_syntax.used_consts in
     env
   end

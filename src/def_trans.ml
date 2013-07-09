@@ -405,7 +405,7 @@ let prune_target_bindings target defs =
   (* def_walker walks over a list of definitions, checks for each def if it is a 
    * target specific one, in which case it invokes rem_dups with both, the
    * already checked defs and the remaining defs *)
-  let rec def_walker (target : Target.target) acc =  function
+  let rec def_walker (target : Target.non_ident_target) acc =  function
     | [] -> List.rev acc
 
     | ((def,s),l)::defs -> begin
@@ -414,7 +414,7 @@ let prune_target_bindings target defs =
           Val_def(Fun_def(_,_,topt,_),_,_) |
           Indreln(_,topt,_) ) as d -> 
 
-          if Typed_ast.in_targets_opt (Some target) topt then 
+          if Typed_ast.in_targets_opt (Target_no_ident target) topt then 
               let name = get_name d l in
               let acc' = rem_dups name acc in  
               let defs' = rem_dups name defs in
@@ -423,7 +423,7 @@ let prune_target_bindings target defs =
             def_walker target acc defs
       
        | Lemma(_,lty,targets,_,_,_,_) as d ->
-         let targ_OK = Typed_ast.in_targets_opt (Some target) targets in
+         let targ_OK = Typed_ast.in_targets_opt (Target_no_ident target) targets in
          if (target_supports_lemma_type target lty && targ_OK) then
             def_walker target (((d,s),l) :: acc) defs
          else

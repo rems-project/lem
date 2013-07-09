@@ -144,7 +144,7 @@ let html_postamble =
 "  </body>\n" ^
 "</html>\n"
 
-let output1 env libpath isa_thy targ avoid m alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum =
+let output1 env libpath isa_thy (targ : Target.target) avoid m alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum =
   let module C = struct
     let avoid = avoid
     let env = env
@@ -154,10 +154,10 @@ let output1 env libpath isa_thy targ avoid m alldoc_accum alldoc_inc_accum alldo
   let open Typed_ast in
   let f' = Filename.basename (Filename.chop_extension m.filename) in
     match targ with
-      | None ->
+      | Target.Target_ident ->
           let r = B.ident_defs m.typed_ast in
             Printf.printf "%s" (Ulib.Text.to_string r)
-      | Some(Target.Target_html) -> 
+      | Target.Target_no_ident (Target.Target_html) -> 
           begin
             let r = B.html_defs m.typed_ast in
             let (o, ext_o) = open_output_with_check (f' ^ ".html") in
@@ -167,7 +167,7 @@ let output1 env libpath isa_thy targ avoid m alldoc_accum alldoc_inc_accum alldo
               Printf.fprintf o "%s" html_postamble;
               close_output_with_check ext_o
           end
-      | Some(Target.Target_hol) ->
+      | Target.Target_no_ident (Target.Target_hol) ->
           begin
             let (r_main, r_extra_opt) = B.hol_defs m.typed_ast in
             let hol_header o = begin
@@ -209,7 +209,7 @@ let output1 env libpath isa_thy targ avoid m alldoc_accum alldoc_inc_accum alldo
                 close_output_with_check ext_o
               end in ()
           end
-      | Some(Target.Target_tex) -> 
+      | Target.Target_no_ident (Target.Target_tex) -> 
           begin
             let rr = B.tex_defs m.typed_ast in
             (* complete tex document, wrapped in tex_preamble and tex_postamble *)
@@ -237,7 +237,7 @@ let output1 env libpath isa_thy targ avoid m alldoc_accum alldoc_inc_accum alldo
                     Printf.fprintf o "%s" (Ulib.Text.to_string r_usage);
                     close_output_with_check ext_o
           end
-      | Some(Target.Target_ocaml) -> 
+      | Target.Target_no_ident(Target.Target_ocaml) -> 
           begin
             let (r_main, r_extra_opt) = B.ocaml_defs m.typed_ast in
             let _ = begin
@@ -263,7 +263,7 @@ let output1 env libpath isa_thy targ avoid m alldoc_accum alldoc_inc_accum alldo
                 close_output_with_check ext_o
              end in ()
           end
-      | Some(Target.Target_isa) -> 
+      | Target.Target_no_ident(Target.Target_isa) -> 
           begin
           try begin
             let (r_main, r_extra_opt) = B.isa_defs m.typed_ast in
@@ -310,7 +310,7 @@ let output1 env libpath isa_thy targ avoid m alldoc_accum alldoc_inc_accum alldo
                     raise (Reporting_basic.Fatal_error (Reporting_basic.Err_trans_header (l, msg)))
           end
 
-      | Some(Target.Target_coq) -> 
+      | Target.Target_no_ident(Target.Target_coq) -> 
           begin
             let r = B.coq_defs m.typed_ast in
             let (o, ext_o) = open_output_with_check (f' ^ ".v") in
@@ -326,7 +326,7 @@ let output1 env libpath isa_thy targ avoid m alldoc_accum alldoc_inc_accum alldo
               close_output_with_check ext_o
           end
 
-let output libpath isa_thy targ consts env mods alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum =
+let output libpath isa_thy (targ : Target.target) consts env mods alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum =
   List.iter
     (fun m ->
        output1 env libpath isa_thy targ consts m alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum)

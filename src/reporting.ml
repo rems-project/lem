@@ -58,15 +58,15 @@ let warn_source_to_locn = function
   
 type warning = 
   | Warn_general of bool * Ast.l * string
-  | Warn_rename of Ast.l * string * (string * Ast.l) option * string * Target.target option
+  | Warn_rename of Ast.l * string * (string * Ast.l) option * string * Target.target 
   | Warn_pattern_compilation_failed of Ast.l * Typed_ast.pat list * warn_source
   | Warn_pattern_not_exhaustive of Ast.l * Typed_ast.pat list list
   | Warn_def_not_exhaustive of Ast.l * string * Typed_ast.pat list list
   | Warn_pattern_redundant of Ast.l * (int * Typed_ast.pat) list * Typed_ast.exp
   | Warn_def_redundant of Ast.l * string * (int * Typed_ast.pat) list * Typed_ast.def
-  | Warn_pattern_needs_compilation of Ast.l * Target.target option * Typed_ast.exp * Typed_ast.exp
+  | Warn_pattern_needs_compilation of Ast.l * Target.target * Typed_ast.exp * Typed_ast.exp
   | Warn_unused_vars of Ast.l * string list * warn_source
-  | Warn_fun_clauses_resorted of Ast.l * Target.target option * string list * Typed_ast.def
+  | Warn_fun_clauses_resorted of Ast.l * Target.target * string list * Typed_ast.def
   | Warn_record_resorted of Ast.l * Typed_ast.exp
   | Warn_no_decidable_equality of Ast.l * string
 
@@ -90,7 +90,7 @@ let dest_warning (env : Typed_ast.env) (verbose: bool) (w : warning) : (bool * A
   | Warn_general (b, l, m) -> Some (b, l, m)
 
   | Warn_rename (l, n_org, n_via_opt, n_new, targ) ->
-     let target_s = (Target.target_opt_to_string targ) in
+     let target_s = (Target.target_to_string targ) in
      let via_s = (Util.option_default "" (Util.option_map (fun (n, l') -> "\n  via '"^n^"' at " ^
                   loc_to_string true l') n_via_opt)) in
      let m = Format.sprintf "renaming '%s' to '%s' for target %s%s" n_org n_new target_s via_s in
@@ -130,7 +130,7 @@ let dest_warning (env : Typed_ast.env) (verbose: bool) (w : warning) : (bool * A
       Some (true, l, m)
 
   | Warn_pattern_needs_compilation (l, targ, e_old, e_new) -> 
-      let target_s = Target.target_opt_to_string targ in
+      let target_s = Target.target_to_string targ in
       let m_basic = "pattern compilation used for target " ^ target_s in
       let m_verb = if not verbose then "" else begin
         let e_old_s = Ulib.Text.to_string (B.ident_exp e_old) in
@@ -151,7 +151,7 @@ let dest_warning (env : Typed_ast.env) (verbose: bool) (w : warning) : (bool * A
       let fun_label = if List.length nl > 1 then "functions " else "function " in
       let fsL = List.map (fun s -> ("'" ^ s ^ "'")) nl in
       let fs = String.concat ", " fsL in
-      let target_s = Target.target_opt_to_string targ in
+      let target_s = Target.target_to_string targ in
       let m : string = Format.sprintf "function definition clauses of %s %s reordered for target %s" fun_label fs target_s in
       Some (false, l, m)
 

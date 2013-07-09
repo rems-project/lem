@@ -351,11 +351,11 @@ let pat_needs_parens context t =
     | (Pcons_right,_) -> false
 
 
-let get_prec target_opt env c =
+let get_prec targ env c =
   let l = Ast.Trans ("get_prec", None) in
   let c_descr = c_env_lookup l env.c_env c in
 
-(* TODO: Use the taregt_rep
+(* TODO: Use the target_rep
   let i = match Target.Targetmap.apply_opt c_descr.target_rep target_opt with
      | None -> resolve_ident_path c_id c_descr.const_binding
      | Some (CR_new_ident i) -> i
@@ -364,10 +364,10 @@ let get_prec target_opt env c =
 *)
   
   let n = Path.get_name c_descr.const_binding in
-  let p_fun = match target_opt with 
-    | Some Target.Target_ocaml -> get_prec_ocaml
-    | Some Target.Target_hol -> get_prec_hol
-    | Some Target.Target_isa -> get_prec_isa
+  let p_fun = match targ with 
+    | Target.Target_no_ident Target.Target_ocaml -> get_prec_ocaml
+    | Target.Target_no_ident Target.Target_hol -> get_prec_hol
+    | Target.Target_no_ident Target.Target_isa -> get_prec_isa
     | _ -> get_prec
   in
   p_fun (Op (Name.to_string n))

@@ -48,7 +48,7 @@
 
 (** A datatype for Targets. In contrast to the one in
     [ast.ml] this one does not carry white-space information. *)
-type target = 
+type non_ident_target = 
   | Target_hol
   | Target_ocaml
   | Target_isa
@@ -56,43 +56,66 @@ type target =
   | Target_tex
   | Target_html
 
+(** [target] for the typechecked ast is either a real target as in the AST or
+    the identity target *)
+type target =
+  | Target_no_ident of non_ident_target 
+  | Target_ident
+
 (** [ast_target_to_target t] converts an ast-target to a
     target. This essentially means dropping the white-space information. *)
-val ast_target_to_target : Ast.target -> target
+val ast_target_to_target : Ast.target -> non_ident_target
 
 (** [target_to_ast_target t] converts a target [t] to an
     ast_target. This essentially means adding empty white-space information. *)
-val target_to_ast_target : target -> Ast.target
+val target_to_ast_target : non_ident_target -> Ast.target
 
 (** [ast_target_compare] is a comparison function for ast-targets. *)
 val ast_target_compare : Ast.target -> Ast.target -> int
 
 (** [target_compare] is a comparison function for targets. *)
-val target_compare : target -> target -> int
+val target_compare : non_ident_target -> non_ident_target -> int
 
-(** target keyed finite maps with a default value*)
-module Targetmap : Finite_map.Dmap with type k = target
+(** target keyed finite maps *)
+module Targetmap : sig
+   include Finite_map.Fmap with type k = non_ident_target
+
+   (** [apply_drop_ident m targ] looks up the [targ] in map [m]. 
+       Target-maps only store information for real targets, not the identity one.
+       If therefore [targ_opt] is [Target_ident], i.e. represents the identity backend,
+       [None] is returned. *)
+   val apply_target : 'a t -> target -> 'a option
+end
 
 (** target sets *)
-module Targetset : Set.S with type elt = target
+module Targetset : Set.S with type elt = non_ident_target
 
 (** A list of all the targets. *)
-val all_targets_list : target list
+val all_targets_list : non_ident_target list
 
 (** The set of all the targets. *)
 val all_targets : Targetset.t
 
-(** [target_to_string t] returns a string description of a target [t]. *)
-val target_to_string : target -> string
+(** [non_ident_target_to_string t] returns a string description of a target [t]. *)
+val non_ident_target_to_string : non_ident_target -> string
 
-(** [target_opt_to_string t_opt] returns a string description of a target.
+(** [target_to_string t_opt] returns a string description of a target.
     If some target is given, it does the same as [target_to_string]. Otherwise,
     it returns a string description of the identity backend. *)
-val target_opt_to_string : target option -> string
+val target_to_string : target -> string
 
-(** [target_to_mname t] returns a name for a target. It is similar to
-    [target_to_string t]. However, it returns capitalised versions. *)
-val target_to_mname : target -> Name.t
+(** [non_ident_target_to_mname t] returns a name for a target. It is similar to
+    [non_ident_target_to_string t]. However, it returns capitalised versions. *)
+val non_ident_target_to_mname : non_ident_target -> Name.t
 
 (** [target_to_output a t] returns output for a target [t] and id-annotation [a]. *)
 val target_to_output : Output.id_annot -> Ast.target -> Output.t
+
+(** [is_human_target targ] checks whether [targ] is a target intended to be read by humans
+    and therefore needs preserving the original structure very closely. Examples for such targets are
+    the tex-, html- and identity-targets. *)
+val is_human_target : target -> bool
+
+(** [dest_human_target targ] destructs [targ] to get the non-identity target. If it s a human-target, 
+    [None] is returned, otherwise the non-identity target. *)
+val dest_human_target : target -> non_ident_target option

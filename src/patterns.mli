@@ -93,11 +93,11 @@ val cleanup_match_exp : env -> bool -> exp -> exp option
     the whole case-expression is processed and transformed into an expression with
     the same semantics that contains only supported patterns. During this compilation, 
     warning messages might be issued. This warning uses [target_opt]. Otherwise, it is not used.*)
-val compile_match_exp : target option -> match_check_arg -> env -> exp -> exp option
+val compile_match_exp : target -> match_check_arg -> env -> exp -> exp option
 
-val compile_exp : target option -> match_check_arg -> Types.type_defs -> env -> exp -> exp option
+val compile_exp : target -> match_check_arg -> Types.type_defs -> env -> exp -> exp option
 
-val compile_def : target option -> match_check_arg -> env -> Def_trans.def_macro
+val compile_def : target -> match_check_arg -> env -> Def_trans.def_macro
 
 
 val is_isabelle_pattern_match : match_check_arg
@@ -118,7 +118,7 @@ val remove_fun : (exp -> exp) -> exp -> exp option
 
 (** [remove_toplevel_match] tries to introduce matching directly in the function definition by
     eliminating match-expressions in the body. *)
-val remove_toplevel_match : target option -> match_check_arg -> env -> Def_trans.def_macro
+val remove_toplevel_match : target -> match_check_arg -> env -> Def_trans.def_macro
 
 (** [collapse_nested_matches] tries to eliminate nested matches by collapsing them. It is used internally by pattern
     compilation. *)

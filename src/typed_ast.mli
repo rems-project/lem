@@ -344,12 +344,13 @@ type class_val_spec = lskips * name_l * const_descr_ref * lskips * src_t
 type targets_opt = (bool * lskips * Ast.target lskips_seplist * lskips) option
 
 
-(** [in_targets_opt t_opt targets_opt] checks whether the target `t_opt` is in the set of targets represented by
-    `targets_opt`. If `t_opt` is `None`, this represents the identity backend and `true` is returned. *)
-val in_targets_opt : Target.target option -> targets_opt -> bool
+(** [in_targets_opt targ targets_opt] checks whether the target `targ` is in the set of targets represented by
+    `targets_opt`. [targets_opt] contains only AST-targets, i.e. it can't explicitly contain
+     the identity target. If `targ` is the identity backend, `true` is returned for all [targets_opt]. *)
+val in_targets_opt : Target.target -> targets_opt -> bool
 
 (** [target_opt_to_list targets_opt] returns a distinct list of all the targets in the option. *)
-val targets_opt_to_list : targets_opt -> Target.target list
+val targets_opt_to_list : targets_opt -> Target.non_ident_target list
 
 type val_def = 
   | Let_def of lskips * targets_opt * (pat * (Name.t * const_descr_ref) list * (lskips * src_t) option * lskips * exp)

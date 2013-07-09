@@ -1210,25 +1210,25 @@ let basic_compile_funs : (bool -> env -> var_name_generator -> Types.t -> Ast.l 
     (fun _   -> record_matrix_compile_fun)]
 
 (* Target specific ones, use [basic_compile_funs] as a fallback. *)
-let get_target_compile_funs (topt:target option) : (bool -> env -> var_name_generator -> Types.t -> Ast.l -> matrix_compile_fun) list = 
+let get_target_compile_funs (topt:target) : (bool -> env -> var_name_generator -> Types.t -> Ast.l -> matrix_compile_fun) list = 
   let rec target_compile_funs topt =
     match topt with
-    | Some Target_ocaml -> [
+    | Target_no_ident Target_ocaml -> [
          (fun _   -> num_add_matrix_compile_fun true (fun i -> i < 3)); (* if less than 3 cases are missing list all cases, otherwise use >= *)
          (fun _   -> num_matrix_compile_fun true);
       ]
-    | Some Target_hol -> [
+    | Target_no_ident Target_hol -> [
          (fun _ _ -> bool_matrix_compile_fun true); 
          (fun _   -> string_matrix_compile_fun true); 
          (fun _   -> num_matrix_compile_fun true);
       ]
-    | Some Target_isa -> [
+    | Target_no_ident Target_isa -> [
          (fun _   -> num_matrix_compile_fun true);
       ]
-    | Some Target_coq -> [
+    | Target_no_ident Target_coq -> [
          (fun _   -> num_matrix_compile_fun true);
       ]
-    | None -> (* make identity behave like ocaml for debug *) target_compile_funs (Some Target_ocaml)
+    | Target_ident -> (* make identity behave like ocaml for debug, controlled by flag !ident_force_pattern_compile *) target_compile_funs (Target_no_ident Target_ocaml) 
     | _ -> []
   in target_compile_funs topt @ basic_compile_funs
 

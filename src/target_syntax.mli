@@ -44,4 +44,4 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
-val fix_infix_and_parens : Typed_ast.env -> Target.target option -> Typed_ast.def list -> Typed_ast.def list
+val fix_infix_and_parens : Typed_ast.env -> Target.target -> Typed_ast.def list -> Typed_ast.def list

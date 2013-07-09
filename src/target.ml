@@ -46,13 +46,17 @@
 
 let r = Ulib.Text.of_latin1
 
-type target = 
+type non_ident_target = 
   | Target_hol
   | Target_ocaml
   | Target_isa
   | Target_coq
   | Target_tex
   | Target_html
+
+type target =
+  | Target_no_ident of non_ident_target 
+  | Target_ident
 
 let all_targets_list = [
   Target_hol; 
@@ -90,21 +94,32 @@ let ast_target_to_int = function
 
 let ast_target_compare x y = Pervasives.compare (ast_target_to_int x) (ast_target_to_int y)
 
-module Targetmap = Finite_map.Dmap_map(
-struct 
-  type t = target
-  let compare = target_compare
-end)
+module Targetmap = struct 
+
+  (* include finite maps *)
+  include Finite_map.Fmap_map(
+    struct 
+      type t = non_ident_target
+      let compare = target_compare
+    end
+  )
+
+  let apply_target m targ = 
+    match targ with
+      | Target_ident -> None (* No entry for identity backend *)
+      | Target_no_ident t -> apply m t
+
+end
 
 module Targetset = Set.Make(
 struct 
-  type t = target
+  type t = non_ident_target
   let compare = target_compare
 end)
 
 let all_targets = List.fold_right Targetset.add all_targets_list Targetset.empty
 
-let target_to_string = function
+let non_ident_target_to_string = function
   | Target_hol -> "hol"
   | Target_ocaml -> "ocaml"
   | Target_isa -> "isabelle"
@@ -112,9 +127,9 @@ let target_to_string = function
   | Target_tex -> "tex"
   | Target_html -> "html"
 
-let target_opt_to_string = function
-  | None -> "ident"
-  | Some t -> target_to_string t
+let target_to_string = function
+  | Target_ident -> "ident"
+  | Target_no_ident t -> non_ident_target_to_string t
 
 let target_to_output a t = 
   let open Output in
@@ -126,7 +141,7 @@ let target_to_output a t =
       | Ast.Target_tex(s) -> ws s ^ id a (r"tex")
       | Ast.Target_html(s) -> ws s ^ id a (r"html")
 
-let target_to_mname = function
+let non_ident_target_to_mname = function
   | Target_hol -> Name.from_rope (r"Hol")
   | Target_ocaml -> Name.from_rope (r"Ocaml")
   | Target_isa -> Name.from_rope (r"Isabelle")
@@ -134,3 +149,17 @@ let target_to_mname = function
   | Target_tex -> Name.from_rope (r"Tex")
   | Target_html -> Name.from_rope (r"Html")
 
+
+let is_human_target = function
+    Target_ident -> true
+  | Target_no_ident Target_isa   -> false
+  | Target_no_ident Target_hol   -> false
+  | Target_no_ident Target_coq   -> false
+  | Target_no_ident Target_ocaml -> false
+  | Target_no_ident Target_html  -> true
+  | Target_no_ident Target_tex   -> true
+
+
+let dest_human_target = function
+    Target_ident -> None
+  | Target_no_ident t ->  if is_human_target (Target_no_ident t) then None else Some t

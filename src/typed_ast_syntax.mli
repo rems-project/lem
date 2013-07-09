@@ -145,39 +145,39 @@ val c_env_save : c_env -> const_descr_ref option -> const_descr -> c_env * const
 
 (** [set_target_const_rep env mp n target rep] sets the representation of the constant described by
     module-path [mp] and name [n] for target [target] to [rep] in environment [env]. *)
-val set_target_const_rep : env -> string list -> string -> Target.target -> const_target_rep -> env
+val set_target_const_rep : env -> string list -> string -> Target.non_ident_target -> const_target_rep -> env
 
 (** [const_descr_to_name targ cd] looks up the representation for target [targ] in the constant
     description [cd]. It returns a tuple [(n_is_shown, n)]. The name [n] is the name of the constant for this
     target. [n_is_shown] indiciates, whether this name is actually printed. Special representations or inline representation
     might have a name, that is not used for the output. *)
-val constant_descr_to_name : Target.target option -> const_descr -> (bool * Name.t)
+val constant_descr_to_name : Target.target -> const_descr -> (bool * Name.t)
 
 (** [type_descr_to_name targ ty td] looks up the representation for target [targ] in the type
     description [td]. Since in constrast to constant-description, type-descriptions don't contain the
     full type-name, but only renamings, the orginal type-name is passed as argument [ty]. It is assumed that
     [td] really belongs to [ty]. *)
-val type_descr_to_name : Target.target option -> Path.t -> Types.type_descr -> Name.t
+val type_descr_to_name : Target.target -> Path.t -> Types.type_descr -> Name.t
 
 (** [const_descr_rename targ n' l' cd] looks up the representation for target [targ] in the constant
     description [cd]. It then updates this description by renaming to the new name [n'] and new location [l']. 
     If this renaming is not possible, [None] is returned, otherwise the updated description is returned along with information of where the constant
     was last renamed and to which name. *)
-val constant_descr_rename : Target.target option -> Name.t -> Ast.l -> const_descr -> (const_descr * (Ast.l * Name.t) option) option
+val constant_descr_rename : Target.non_ident_target -> Name.t -> Ast.l -> const_descr -> (const_descr * (Ast.l * Name.t) option) option
 
 (** [type_descr_rename targ n' l' td] looks up the representation for target [targ] in the type
     description [td]. It then updates this description by renaming to the new name [n'] and new location [l']. 
     If this renaming is not possible, [None] is returned, otherwise the updated description is returned along with information of where the type
     was last renamed and to which name. *)
-val type_descr_rename : Target.target option -> Name.t -> Ast.l -> Types.type_descr -> (Types.type_descr * (Ast.l * Name.t) option) option
+val type_descr_rename : Target.non_ident_target -> Name.t -> Ast.l -> Types.type_descr -> (Types.type_descr * (Ast.l * Name.t) option) option
 
 (** [type_def_rename_type l d p t n] renames the type with path [p] in the defs [d] to the name [n] for
 target [t]. Renaming means that the module structure is kept. Only the name is changed. *)
-val type_defs_rename_type: Ast.l -> Types.type_defs -> Path.t -> Target.target -> Name.t -> Types.type_defs
+val type_defs_rename_type: Ast.l -> Types.type_defs -> Path.t -> Target.non_ident_target -> Name.t -> Types.type_defs
 
 (** [type_def_new_ident_type l d p t i] changes the representation of the type with path [p] in the defs [d] to the identifier [i] for
 target [t]. This means that the whole module structure is lost and replace by the identifier. *)
-val type_defs_new_ident_type: Ast.l -> Types.type_defs -> Path.t -> Target.target -> Ident.t -> Types.type_defs
+val type_defs_new_ident_type: Ast.l -> Types.type_defs -> Path.t -> Target.non_ident_target -> Ident.t -> Types.type_defs
 
 
 (** {2 Constructing, checking and destructing expressions} *)
@@ -364,9 +364,10 @@ type used_entities = { used_consts : const_descr_ref list; used_types : Path.t l
 (** An empty collection of entities *)
 val empty_used_entities : used_entities
 
-(** [get_checked_module_entities t_opt ml] gets all the modules, types, constants ... used by modules [ml] for target 
-  [t_opt]. If [t_opt] is [None], all targets are considered. *)
-val get_checked_modules_entities : Target.target option -> checked_module list -> used_entities
+(** [get_checked_module_entities targ ml] gets all the modules, types, constants ... used by modules [ml] for target 
+    [targ]. Notice that the identity backend won't throw parts of modules away. Therefore the result for the identiy backend
+    is the union of the results for all other backends. *)
+val get_checked_modules_entities : Target.target -> checked_module list -> used_entities
 
 
 (** {2 Miscellaneous} *)

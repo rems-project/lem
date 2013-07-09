@@ -69,7 +69,7 @@ val check_ast :
 val output :   
   string ->                           (* The path to the library *)
   string ->                           (* Isabelle Theory to be included *)
-  target option ->                    (* Backend name (None for the identity backend) *) 
+  target ->                           (* Backend name *) 
   Typed_ast.var_avoid_f ->
   Typed_ast.env ->                    (* The full environment built after all typechecking, and transforming *)
   checked_module list ->              (* The typechecked modules *)

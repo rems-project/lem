@@ -113,7 +113,7 @@ let need_space x y =
       	not d1 && not d2 && s1 = s2
 ;;
 
-let in_target targets = Typed_ast.in_targets_opt (Some Target.Target_coq) targets;;
+let in_target targets = Typed_ast.in_targets_opt (Target.Target_no_ident Target.Target_coq) targets;;
 
 let coq_infix_op a x =
   Output.flat [
@@ -193,7 +193,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
     module B = Backend_common.Make (
       struct
         let env = A.env
-        let target_opt = Some Target_coq
+        let target = Target_no_ident Target_coq
         let id_format_args = (coq_infix_op, path_sep)
       end);;
 

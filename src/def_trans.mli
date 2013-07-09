@@ -83,7 +83,7 @@ module Macros(E : sig val env : env end) : sig
   val class_constraint_to_parameter : def_macro
   val nvar_to_parameter : def_macro
 
-  val prune_target_bindings : Target.target -> def list -> def list
+  val prune_target_bindings : Target.non_ident_target -> def list -> def list
 
 end
 

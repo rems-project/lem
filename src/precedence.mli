@@ -83,6 +83,6 @@ val is_infix : t -> bool
 val needs_parens : context -> exp_kind -> bool
 val pat_needs_parens : pat_context -> pat_kind -> bool
 
-(** [get_prec target_opt env c] looks up the precedence of constant [c] in environment [env]
-    for the target [target_opt]. *)
-val get_prec : Target.target option -> Typed_ast.env -> Typed_ast.const_descr_ref -> t
+(** [get_prec target env c] looks up the precedence of constant [c] in environment [env]
+    for the target [target]. *)
+val get_prec : Target.target -> Typed_ast.env -> Typed_ast.const_descr_ref -> t

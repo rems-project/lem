@@ -778,7 +778,7 @@ module Make_checker(T : sig
                                    (fun ppf -> 
                                       Format.fprintf ppf
                                         "unbound variable for targets {%a}"
-                                        (Pp.lst ";" (fun ppf t -> Pp.pp_str ppf (target_to_string t)))
+                                        (Pp.lst ";" (fun ppf t -> Pp.pp_str ppf (non_ident_target_to_string t)))
                                         (Targetset.elements undefined_targets)))
                                 Name.pp (Name.strip_lskip n)
                             else
@@ -1321,7 +1321,7 @@ module Make_checker(T : sig
                            if not (Targetset.is_empty relevant_duplicate_targets) then
                              raise_error l
                                (Printf.sprintf "defined variable already has a %s-specific definition" 
-                                  (target_to_string 
+                                  (non_ident_target_to_string 
                                      (Targetset.choose relevant_duplicate_targets)))
                                Name.pp n 
                  end;
@@ -2098,7 +2098,7 @@ let check_class_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
   in
     (v, v_d, ctxt, src_t, (sk1, (n,l'), v, sk2, src_t))
 
-let target_opt_to_set : Ast.targets option -> Targetset.t option = function
+let target_opt_to_set_opt : Ast.targets option -> Targetset.t option = function
   | None -> None
   | Some(Ast.Targets_concrete(_,targs,_)) ->
       Some(List.fold_right
@@ -2210,27 +2210,27 @@ let check_val_def (ts : Targetset.t) (mod_path : Name.t list) (for_method : Type
       | Ast.Let_rec(_,_,target_opt,_) -> target_opt
       | Ast.Let_inline (_,_,target_opt,_) ->  target_opt
   in
-  let target_set = target_opt_to_set target_opt_ast in
+  let target_set_opt = target_opt_to_set_opt target_opt_ast in
   let target_opt = check_target_opt target_opt_ast in
-  let env_tag = target_opt_to_env_tag target_set in
+  let env_tag = target_opt_to_env_tag target_set_opt in
 
   let module Checker = Make_checker(T) in
   match vd with
       | Ast.Let_def(sk,_,lb) ->
-          let (lb,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_letbind for_method target_set l lb in 
+          let (lb,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_letbind for_method target_set_opt l lb in 
           let _ = unsat_constraint_err l constraints in
           let ctxt' = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) constraints lconstraints env_tag e_v in
           let (vd : val_def) = letbind_to_funcl_aux sk target_opt ctxt' lb in
           (ctxt', e_v, vd, Tconstraints(tnvs,constraints,lconstraints))
       | Ast.Let_rec(sk1,sk2,_,funcls) ->
           let funcls = Seplist.from_list funcls in
-          let (lbs,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_funs for_method target_set l funcls in 
+          let (lbs,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_funs for_method target_set_opt l funcls in 
           let _ = unsat_constraint_err l constraints in
           let ctxt' = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) constraints lconstraints env_tag e_v in
           let fauxs = letbinds_to_funcl_aux_rec l ctxt' lbs in
             (ctxt', e_v, (Fun_def(sk1,Some sk2,target_opt,fauxs)), Tconstraints(tnvs,constraints,lconstraints))
       | Ast.Let_inline (sk1,sk2,_,lb) -> 
-          let (lb,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_letbind for_method target_set l lb in 
+          let (lb,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_letbind for_method target_set_opt l lb in 
           let _ = unsat_constraint_err l constraints in
           let ctxt' = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) constraints lconstraints env_tag e_v in
           let (nls, n_ref, _, pL, ty_opt, sk3, et) = letbind_to_funcl_aux_dest ctxt' lb in
@@ -2239,10 +2239,8 @@ let check_val_def (ts : Targetset.t) (mod_path : Name.t list) (for_method : Type
                        | Some a -> a in         
           let new_tr = CR_inline (l, args, et) in
           let d = c_env_lookup l ctxt'.c_env n_ref in
-          let tr = match target_set with
-               | None -> Targetmap.set_default d.target_rep (Some new_tr)
-               | Some ts -> Targetset.fold (fun t r -> Targetmap.insert r (t,new_tr)) ts d.target_rep
-            in
+          let ts = Util.option_default Target.all_targets target_set_opt in
+          let tr = Targetset.fold (fun t r -> Targetmap.insert r (t,new_tr)) ts d.target_rep in
           let ctxt'' = {ctxt' with c_env = c_env_update ctxt'.c_env n_ref {d with target_rep = tr}} in
             (ctxt'', e_v, Let_inline(sk1,sk2,target_opt,nls,n_ref,args,sk3,et), Tconstraints(tnvs,constraints,lconstraints))
 
@@ -2358,7 +2356,7 @@ let change_effective_backends (backend_targets : Targetset.t) (Ast.Def_l(def,l))
     | None -> None
     | Some target_opt ->
         begin
-          match target_opt_to_set target_opt with
+          match target_opt_to_set_opt target_opt with
             | None -> None
             | Some(ts) -> 
                 Some(Targetset.inter ts backend_targets)
@@ -2405,7 +2403,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
               begin 
                 let cd = c_env_lookup l ctxt.c_env c in
                 let cd' = List.fold_left (fun cd t -> 
-                   match constant_descr_rename (Some t) (Name.strip_lskip n') l cd with
+                   match constant_descr_rename t (Name.strip_lskip n') l cd with
                      | Some (cd', _) -> cd'
                      | None -> raise_error_string l "internal error: count not rename constant. This is a bug and should not happen.")
                    cd (targets_opt_to_list targs) in
@@ -2463,12 +2461,12 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let module T = struct include T let targets = backend_targets end in
           let module Checker = Make_checker(T) in
           let target_opt_checked = check_target_opt target_opt in
-          let target_set = target_opt_to_set target_opt in
+          let target_set_opt = target_opt_to_set_opt target_opt in
           let (cls,e_v,Tconstraints(tnvs,constraints,lconstraints)) = 
-            Checker.check_indrels target_set l clauses in
+            Checker.check_indrels target_set_opt l clauses in
           let ctxt' = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) 
                constraints lconstraints
-               (target_opt_to_env_tag target_set) e_v in
+               (target_opt_to_env_tag target_set_opt) e_v in
           let add_const (name_opt, s1, qnames, s2, e_opt, s3, rname, es) = begin
               let n = Name.strip_lskip rname.term in
               let n_ref =  match Nfmap.apply ctxt'.cur_env.v_env n with

@@ -173,23 +173,23 @@ let update_const_descr l up c env =
   let new_c_env = c_env_update env.c_env c new_cd in
   {env with c_env = new_c_env}
 
-let constant_descr_to_name (targ : Target.target option) (cd : const_descr) : (bool * Name.t) = 
-  match Target.Targetmap.apply_opt cd.target_rep targ with
+let constant_descr_to_name (targ : Target.target) (cd : const_descr) : (bool * Name.t) = 
+  match Target.Targetmap.apply_target cd.target_rep targ with
     | Some (CR_rename (l, _, n)) -> (true, n)
     | Some (CR_new_ident (_, _, i)) -> (true, Name.strip_lskip (Ident.get_name i))
     | Some (CR_inline _) -> (false, Path.get_name cd.const_binding)
     | Some (CR_special (_, _, b, n, _, _)) -> (b, n)
     | None -> (true, Path.get_name cd.const_binding)
 
-let type_descr_to_name (targ : Target.target option) (p : Path.t) (td : type_descr) : Name.t = 
-  match Target.Targetmap.apply_opt td.Types.type_target_rep targ with
+let type_descr_to_name (targ : Target.target) (p : Path.t) (td : type_descr) : Name.t = 
+  match Target.Targetmap.apply_target td.Types.type_target_rep targ with
      | None -> Path.get_name p 
      | Some (Types.TR_new_ident (_, _, i)) -> Name.strip_lskip (Ident.get_name i)
      | Some (Types.TR_rename (_, _, n)) -> n
 
 
-let constant_descr_rename  (targ : Target.target option) (n':Name.t) (l' : Ast.l) (cd : const_descr) : (const_descr * (Ast.l * Name.t) option) option = 
-  let rep = Target.Targetmap.apply_opt cd.target_rep targ in
+let constant_descr_rename  (targ : Target.non_ident_target) (n':Name.t) (l' : Ast.l) (cd : const_descr) : (const_descr * (Ast.l * Name.t) option) option = 
+  let rep = Target.Targetmap.apply cd.target_rep targ in
   let rep_info_opt = match rep with
     | Some (CR_rename (l, true, n)) -> Some (CR_rename (l', true, n'), Some (l, n))
     | Some (CR_new_ident (l, true, i)) -> Some (CR_new_ident (l', true, Ident.rename i n'), Some (l, Name.strip_lskip (Ident.get_name i)))
@@ -198,13 +198,13 @@ let constant_descr_rename  (targ : Target.target option) (n':Name.t) (l' : Ast.l
     | _ -> None
   in
   let save_env (cr, d) = begin
-    let tr = Target.Targetmap.insert_opt (cd.target_rep) (targ, cr) in
+    let tr = Target.Targetmap.insert (cd.target_rep) (targ, cr) in
     ({cd with target_rep = tr}, d)
   end in
   Util.option_map save_env rep_info_opt
 
-let type_descr_rename  (targ : Target.target option) (n':Name.t) (l' : Ast.l) (td : type_descr) : (type_descr * (Ast.l * Name.t) option) option = 
-  let rep = Target.Targetmap.apply_opt td.type_target_rep targ in
+let type_descr_rename  (targ : Target.non_ident_target) (n':Name.t) (l' : Ast.l) (td : type_descr) : (type_descr * (Ast.l * Name.t) option) option = 
+  let rep = Target.Targetmap.apply td.type_target_rep targ in
   let rep_info_opt = match rep with
     | Some (TR_rename (l, true, n)) -> Some (TR_rename (l', true, n'), Some (l, n))
     | Some (TR_new_ident (l, true, i)) -> Some (TR_new_ident (l', true, Ident.rename i n'), Some (l, Name.strip_lskip (Ident.get_name i)))
@@ -212,35 +212,35 @@ let type_descr_rename  (targ : Target.target option) (n':Name.t) (l' : Ast.l) (t
     | _ -> None
   in
   let save_env (tr, d) = begin
-    let targ_rep = Target.Targetmap.insert_opt (td.type_target_rep) (targ, tr) in
+    let targ_rep = Target.Targetmap.insert (td.type_target_rep) (targ, tr) in
     ({td with type_target_rep = targ_rep}, d)
   end in
   Util.option_map save_env rep_info_opt
 
-let type_descr_set_ident  (targ : Target.target option) (i:Ident.t) (l' : Ast.l) (td : type_descr) : type_descr option = 
-  let rep = Target.Targetmap.apply_opt td.type_target_rep targ in
+let type_descr_set_ident  (targ : Target.non_ident_target) (i:Ident.t) (l' : Ast.l) (td : type_descr) : type_descr option = 
+  let rep = Target.Targetmap.apply td.type_target_rep targ in
   let rep_info_opt = match rep with
     | (Some (TR_rename (_, true, _)) | Some (TR_new_ident (_, true, _)) | None) -> 
          Some (TR_new_ident (l', true, i))
     | _ -> None
   in
   let save_env tr = begin
-    let targ_rep = Target.Targetmap.insert_opt (td.type_target_rep) (targ, tr) in
+    let targ_rep = Target.Targetmap.insert (td.type_target_rep) (targ, tr) in
     ({td with type_target_rep = targ_rep})
   end in
   Util.option_map save_env rep_info_opt
 
-let type_defs_rename_type l (d : type_defs) (p : Path.t) (t: Target.target) (n : Name.t) : type_defs =
+let type_defs_rename_type l (d : type_defs) (p : Path.t) (t: Target.non_ident_target) (n : Name.t) : type_defs =
   let l' = Ast.Trans ("type_defs_rename_type", Some l) in
   let up td = begin
-    let res_opt = type_descr_rename (Some t) n l td in
+    let res_opt = type_descr_rename t n l td in
     Util.option_map (fun (td, _) -> td) res_opt
   end in
   Types.type_defs_update_tc_type l' d p up
 
-let type_defs_new_ident_type l (d : type_defs) (p : Path.t) (t: Target.target) (i : Ident.t) : type_defs =
+let type_defs_new_ident_type l (d : type_defs) (p : Path.t) (t: Target.non_ident_target) (i : Ident.t) : type_defs =
   let l' = Ast.Trans ("type_defs_target_type", Some l) in
-  let up td = type_descr_set_ident (Some t) i l td in
+  let up td = type_descr_set_ident t i l td in
   Types.type_defs_update_tc_type l' d p up
 
 let const_descr_to_kind (r, d) =
@@ -894,7 +894,7 @@ and add_funcl_aux_entities (ue : used_entities) ((_, c, ps, src_t_opt, _, e):fun
   ue
 end
 
-and add_def_entities (t_opt : Target.target option) (ue : used_entities) (((d, _), _) : def) : used_entities = 
+and add_def_entities (t_opt : Target.target) (ue : used_entities) (((d, _), _) : def) : used_entities = 
   match d with
       | Type_def(sk, tds) ->
          Seplist.fold_left (fun (_, _, type_path, texp, _) ue -> begin
@@ -957,11 +957,11 @@ and add_def_entities (t_opt : Target.target option) (ue : used_entities) (((d, _
       | Comment _ -> ue
 
 
-let add_checked_module_entities (t_opt : Target.target option) (ue : used_entities) (m : checked_module): used_entities = 
+let add_checked_module_entities (t_opt : Target.target) (ue : used_entities) (m : checked_module): used_entities = 
   let (dl, _) = m.typed_ast in 
   List.fold_left (add_def_entities t_opt) ue dl
 
-let get_checked_modules_entities (t_opt : Target.target option) (ml : checked_module list) : used_entities =
+let get_checked_modules_entities (t_opt : Target.target) (ml : checked_module list) : used_entities =
   reverse_used_entities (List.fold_left (add_checked_module_entities t_opt) empty_used_entities ml)
 
 

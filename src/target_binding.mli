@@ -46,4 +46,4 @@
 
 (** try to fix problems from target's different binding *)
 
-val fix_binding : Name.t -> Typed_ast.def list -> Typed_ast.def list
+val fix_binding : Target.non_ident_target -> Typed_ast.def list -> Typed_ast.def list

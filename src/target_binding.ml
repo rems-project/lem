@@ -54,13 +54,13 @@ module C = Exps_in_context(struct let avoid = None let env_opt = None end)
 module P = Precedence
 
 (* TODO: This needs to be much more complex to be really right *)
-let id_fix_binding target id =
+let id_fix_binding (target : Target.non_ident_target) id =
   match id.id_path with
     | Id_none _ -> id
     | Id_some p -> 
-        { id with id_path = Id_some (Ident.strip_path target p) }
+        { id with id_path = Id_some (Ident.strip_path (Target.non_ident_target_to_mname target) p) }
 
-let rec fix_src_t target t =
+let rec fix_src_t (target : Target.non_ident_target) t =
   match t.term with
     | Typ_wild _ | Typ_var _ -> t
     | Typ_fn(t1,sk,t2) -> 
@@ -75,7 +75,7 @@ let rec fix_src_t target t =
         { t with term = Typ_paren(sk1, fix_src_t target t', sk2) }
 
 
-let rec fix_pat target p = 
+let rec fix_pat (target : Target.non_ident_target) p = 
   let old_t = Some(p.typ) in
   let old_l = p.locn in
   let trans = fix_pat target in
@@ -240,7 +240,7 @@ and fix_letbind target (lb,l) = match lb with
         n (List.map (fix_pat target) ps) t s1 
         (fix_exp target e)
 
-let rec fix_binding target defs =
+let rec fix_binding (target : Target.non_ident_target) defs =
   let fix_val_def = function
     | Let_def(s1,targets,(p,name_map,t,s2,e)) ->
         Let_def(s1, targets,

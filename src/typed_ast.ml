@@ -275,16 +275,16 @@ type class_val_spec = lskips * name_l * const_descr_ref * lskips * src_t
 
 type targets_opt = (bool * lskips * Ast.target lskips_seplist * lskips) option
 
-let in_targets_opt (t_opt : Target.target option) (targets_opt : targets_opt) : bool = match t_opt with
-    None   -> true
-  | Some t -> (match targets_opt with 
+let in_targets_opt (targ : Target.target) (targets_opt : targets_opt) : bool = match targ with
+    Target_ident   -> true
+  | Target_no_ident t -> (match targets_opt with 
                  None -> true
                | Some (neg, _, targets, _) -> 
                  let is_in = Seplist.exists (fun t' -> ast_target_compare (target_to_ast_target t) t' = 0) targets in
                  if neg then not is_in else is_in)
 
-let targets_opt_to_list (targets_opt : targets_opt) : Target.target list =
-   List.filter (fun t -> in_targets_opt (Some t) targets_opt) Target.all_targets_list
+let targets_opt_to_list (targets_opt : targets_opt) : Target.non_ident_target list =
+   List.filter (fun t -> in_targets_opt (Target_no_ident t) targets_opt) Target.all_targets_list
                          
 
 type val_def = 

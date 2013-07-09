@@ -47,7 +47,10 @@
 open Process_file
 open Debug
 
-let backends = ref []
+let backends = ref ([] : Target.target list)
+
+let add_backend b () : unit = if not (List.mem b !backends) then (backends := b::!backends)
+
 let opt_print_types = ref false
 let opt_print_version = ref false
 let opt_library = ref (Some (Build_directory.d^"/library"))
@@ -64,32 +67,25 @@ let options = Arg.align ([
     Arg.String (fun l -> lib := l::!lib),
     " treat the file as input only and generate no output for it");
   ( "-tex", 
-    Arg.Unit (fun b -> if not (List.mem (Some(Target.Target_tex)) !backends) then
-                backends := Some(Target.Target_tex)::!backends),
+    Arg.Unit (add_backend (Target.Target_no_ident Target.Target_tex)),
     " generate LaTeX");
   ( "-html", 
-    Arg.Unit (fun b -> if not (List.mem (Some(Target.Target_html)) !backends) then
-                backends := Some(Target.Target_html)::!backends),
+    Arg.Unit (add_backend (Target.Target_no_ident Target.Target_html)),
     " generate Html");
   ( "-hol", 
-    Arg.Unit (fun b -> if not (List.mem (Some(Target.Target_hol)) !backends) then
-                backends := Some(Target.Target_hol)::!backends),
+    Arg.Unit (add_backend (Target.Target_no_ident Target.Target_hol)),
     " generate HOL");
   ( "-ocaml", 
-    Arg.Unit (fun b -> if not (List.mem (Some(Target.Target_ocaml)) !backends) then
-                backends := Some(Target.Target_ocaml)::!backends),
+    Arg.Unit (add_backend (Target.Target_no_ident Target.Target_ocaml)),
     " generate OCaml");
   ( "-isa",
-    Arg.Unit (fun b -> if not (List.mem (Some(Target.Target_isa)) !backends) then
-                backends := Some(Target.Target_isa)::!backends),
+    Arg.Unit (add_backend (Target.Target_no_ident Target.Target_isa)),
     " generate Isabelle");
   ( "-coq",
-    Arg.Unit (fun b -> if not (List.mem (Some(Target.Target_coq)) !backends) then
-                backends := Some(Target.Target_coq)::!backends),
+    Arg.Unit (add_backend (Target.Target_no_ident Target.Target_coq)),
     " generate Coq");
   ( "-ident",
-    Arg.Unit (fun b -> if not (List.mem None !backends) then
-                backends := None::!backends),
+    Arg.Unit (add_backend Target.Target_ident),
     " generate input on stdout");
   ( "-print_types",
     Arg.Unit (fun b -> opt_print_types := true),
@@ -277,10 +273,8 @@ let main () =
          let backend_set = 
            List.fold_right 
              (fun x s ->
-                match x with
+                match Target.dest_human_target x with
                   | None -> s
-                  | Some(Target.Target_tex) -> s
-                  | Some(Target.Target_html) -> s
                   | Some(t) -> Target.Targetset.add t s)
              !backends
              Target.Targetset.empty 
@@ -327,7 +321,7 @@ let main () =
   let alldoc_inc_usage_accum = ref ([] : Ulib.Text.t list) in
   let _ = List.fold_left (fun env -> (per_target lib_path isa_thy (List.rev modules) env consts alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum))
     type_info !backends in
-  (if List.mem (Some(Target.Target_tex)) !backends then 
+  (if List.mem (Target.Target_no_ident Target.Target_tex) !backends then 
      output_alldoc "alldoc" (String.concat " " !opt_file_arguments) alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum)
 
 let _ = 

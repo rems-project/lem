@@ -138,7 +138,7 @@ module type Target = sig
   val lex_skip : Ast.lex_skip -> Ulib.Text.t
   val need_space : Output.t' -> Output.t' -> bool
 
-  val target : Target.target option
+  val target : Target.target
 
   val path_sep : t
   val list_sep : t
@@ -340,7 +340,7 @@ module Identity : Target = struct
     let (d2,s2) = f y in
       not d1 && not d2 && s1 = s2
 
-  let target = None
+  let target = Target_ident
 
   let path_sep = kwd "."
   let list_sep = kwd ";"
@@ -496,7 +496,7 @@ end
 
 module Html : Target = struct
   include Identity 
-  let target = Some Target_html
+  let target = Target_no_ident Target_html
 
   let forall = kwd "&forall;"
   let exists = kwd "&exist;"
@@ -529,7 +529,7 @@ module Tex : Target = struct
 
   let need_space x y = false
 
-  let target = Some Target_tex
+  let target = Target_no_ident Target_tex
 
   let tkwd s = kwd (String.concat "" ["\\lemkw{"; s;  "}"])
   let tkwdl s = kwd (String.concat "" ["\\lemkw{"; s;  "}"]) ^ texspace
@@ -691,7 +691,7 @@ end
 module Ocaml : Target = struct
   include Identity 
 
-  let target = Some Target_ocaml
+  let target = Target_no_ident Target_ocaml
 
   let path_sep = kwd "."
 
@@ -747,7 +747,7 @@ module Isa : Target = struct
     | Ast.Ws(r) -> r
     | Ast.Nl -> r"\n"
 
-  let target = Some Target_isa
+  let target = Target_no_ident Target_isa
 
   (* TODO : write need_space *)
 
@@ -924,7 +924,7 @@ module Hol : Target = struct
     let (d2,s2) = f y in
       not d1 && not d2 && s1 = s2
 
-  let target = Some Target_hol
+  let target = Target_no_ident Target_hol
 
   let path_sep = meta "$"
   let list_sep = kwd ";"
@@ -1090,7 +1090,7 @@ module F(T : Target)(A : sig val avoid : var_avoid_f option;; val env : env end)
 
 module B = Backend_common.Make (struct
   let env = A.env
-  let target_opt = T.target
+  let target = T.target
   let id_format_args =  (T.infix_op_format, T.path_sep)    
 end);;
 
@@ -1098,15 +1098,6 @@ module C = Exps_in_context (struct
   let env_opt = Some A.env
   let avoid = A.avoid
 end);;
-
-let is_identity_target = match T.target with
-    None -> true
-  | Some Target_isa   -> false
-  | Some Target_hol   -> false
-  | Some Target_coq   -> false
-  | Some Target_ocaml -> false
-  | Some Target_html  -> true
-  | Some Target_tex   -> true
 
 let rec interspace os = 
   match os with
@@ -1476,7 +1467,7 @@ match C.exp_to_term e with
         ws s3 ^
         T.recup_end
   | Field(e,s,fd) ->
-      if (T.target = Some Target_isa) then
+      if (T.target = Target_no_ident Target_isa) then
         kwd "(" ^ T.field_access_start ^ 
         field_ident_to_output fd ^
         T.field_access_end ^ 
@@ -1610,7 +1601,7 @@ match C.exp_to_term e with
       T.set_start ^
       exp e1 ^
       ws s2 ^
-      (if T.target = Some Target_isa then 
+      (if T.target = Target_no_ident Target_isa then 
          (if (is_var_tup_exp e1 && NameSet.equal vars (nfmap_domain (C.exp_to_free e1))) then kwd "." else 
           T.setcomp_sep ^
           flat (List.map (fun x -> id Term_var (Name.to_rope x)) (NameSet.elements vars)) ^
@@ -1655,7 +1646,7 @@ match C.exp_to_term e with
 
   (* TODO: Add an Isabelle transformation to nested Quants *)
   | Quant(q,qbs,s2,e) ->
-      if (T.target = Some Target_isa) then 
+      if (T.target = Target_no_ident Target_isa) then 
         block is_user_exp 0 (
         kwd "(" ^ 
         flat (List.map (isa_quant q) qbs) ^
@@ -1774,7 +1765,7 @@ and funcl_aux tvs (n, ps, topt, s1, e) =
   end ^
   ws s1 ^
   T.def_binding ^
-  exp (if is_identity_target then e else mk_opt_paren_exp e) ^
+  exp (if is_human_target T.target then e else mk_opt_paren_exp e) ^
   T.funcase_end
 
 and funcl tvs (({term = n}, c, ps, topt, s1, e):funcl_aux) =
@@ -1789,7 +1780,7 @@ and letbind tvs (lb, _) : Output.t = match lb with
           | None -> emp 
           | Some(s,t) -> ws s ^ T.typ_sep ^ typ t
       end ^
-      ws s2 ^ T.def_binding ^ exp (if is_identity_target then e else mk_opt_paren_exp e)
+      ws s2 ^ T.def_binding ^ exp (if is_human_target T.target then e else mk_opt_paren_exp e)
   | Let_fun (n, ps, topt, s1, e) ->
       funcl_aux tvs (n.term, ps, topt, s1, e)
 
@@ -2236,7 +2227,7 @@ let rec def d is_user_def : Output.t = match d with
       end
   | Type_def(s, defs) ->
       let defs = 
-        if T.target = Some Target_hol then 
+        if T.target = Target_no_ident Target_hol then 
           Seplist.map (hol_strip_args (collect_type_names defs)) defs 
         else 
           defs 
@@ -2266,7 +2257,7 @@ let rec def d is_user_def : Output.t = match d with
       if in_target targets then
         ws s1 ^
         T.def_start ^
-        (if T.target = None then
+        (if T.target = Target_ident then
            targets_opt targets 
          else
            emp) ^
@@ -2285,7 +2276,7 @@ let rec def d is_user_def : Output.t = match d with
             | (n,n_ref, _, _, _, _)::_ -> Name.strip_lskip (B.const_ref_to_name n.term n_ref)
         in
           T.rec_def_header is_rec is_real_rec s1 s2 n ^
-          (if T.target = None then
+          (if T.target = Target_ident then
              targets_opt targets 
            else
              emp) ^
@@ -2295,7 +2286,7 @@ let rec def d is_user_def : Output.t = match d with
           else
         emp
   | Val_def(Let_inline(s1,s2,targets,n,c,args,s4,body),tnvs,class_constraints) ->
-      if (T.target = None) then
+      if (T.target = Target_ident) then
         ws s1 ^
         kwd "let" ^
         ws s2 ^
@@ -2309,7 +2300,7 @@ let rec def d is_user_def : Output.t = match d with
       else
         emp
   | Lemma (sk0, lty, targets, n_opt, sk1, e, sk2) -> 
-      if (not is_identity_target) then emp else
+      if (not (is_human_target T.target)) then emp else
       begin
       let lem_st = match lty with
                      | Ast.Lemma_theorem sk -> "theorem"
@@ -2323,7 +2314,7 @@ let rec def d is_user_def : Output.t = match d with
       ws sk1 ^ kwd "(" ^ exp e ^ ws sk2 ^ kwd ")")
     end
   | Ident_rename(s1,targets,p,i,s2,(n_new, _)) ->
-      if (T.target = None) then
+      if (T.target = Target_ident) then
         ws s1 ^
         kwd "rename" ^
         targets_opt targets ^
@@ -2359,7 +2350,7 @@ let rec def d is_user_def : Output.t = match d with
       if in_target targets then
         ws s ^
         T.reln_start ^
-        (if T.target = None then
+        (if T.target = Target_ident then
            targets_opt targets 
          else
            emp) ^
@@ -2706,9 +2697,9 @@ and defs (ds:def list) =
     (fun ((d,s),l) y -> 
        begin
          match T.target with 
-         | Some Target_isa  -> isa_def d (is_trans_loc l)
-         | Some Target_tex  -> raise (Failure "should be unreachable")
-         | Some Target_html -> html_link_def d ^ def d (is_trans_loc l)
+         | Target_no_ident Target_isa  -> isa_def d (is_trans_loc l)
+         | Target_no_ident Target_tex  -> raise (Failure "should be unreachable")
+         | Target_no_ident Target_html -> html_link_def d ^ def d (is_trans_loc l)
          | _ -> def d (is_trans_loc l)
        end ^
 
@@ -2759,7 +2750,7 @@ and isa_def d is_user_def : Output.t = match d with
       let is_simple = true in
       if in_target targets then 
         ws s1 ^ kwd (if is_simple then "definition" else "fun") ^ 
-        (if T.target = None then
+        (if T.target = Target_ident then
            targets_opt targets 
          else
            emp) ^
@@ -2775,7 +2766,7 @@ and isa_def d is_user_def : Output.t = match d with
       if in_target targets then 
         let s2 = Util.option_default None s2_opt in
         ws s1 ^ kwd (if is_rec then "function (sequential)" else "fun") ^ ws s2 ^
-        (if T.target = None then
+        (if T.target = Target_ident then
            targets_opt targets 
          else
            emp) ^
@@ -2795,7 +2786,7 @@ and isa_def d is_user_def : Output.t = match d with
       if in_target targets then
         ws s ^
         T.reln_start ^
-        (if T.target = None then
+        (if T.target = Target_ident then
            targets_opt targets 
          else
            emp) ^
@@ -2847,9 +2838,9 @@ let defs_to_extra_aux gf (ds:def list) =
       (fun ((d,s),l) y -> 
          begin
            match T.target with 
-           | Some Target_isa   -> isa_def_extra gf d l 
-           | Some Target_hol   -> hol_def_extra gf d l 
-           | Some Target_ocaml -> ocaml_def_extra gf d l 
+           | Target_no_ident Target_isa   -> isa_def_extra gf d l 
+           | Target_no_ident Target_hol   -> hol_def_extra gf d l 
+           | Target_no_ident Target_ocaml -> ocaml_def_extra gf d l 
            | _ -> emp
          end ^
 
@@ -2899,7 +2890,7 @@ end
 
 let defs_to_rope ((ds:def list),end_lex_skips) =
   match T.target with
-  | Some Target_tex -> 
+  | Target_no_ident Target_tex -> 
       Ulib.Text.concat (r"") (List.map (function ((d,s),l) -> to_rope_tex_def d) ds) ^^^^
       (match to_rope_option_tex T.lex_skip T.need_space true (ws end_lex_skips) with None -> r"" | Some rr -> 
         r"\\lemdef{\n" ^^^^
@@ -2922,7 +2913,7 @@ let rec batrope_pair_concat : (Ulib.Text.t * Ulib.Text.t) list -> (Ulib.Text.t *
 (* for -inc.tex file *)
 let defs_inc ((ds:def list),end_lex_skips) =
   match T.target with
-  | Some Target_tex -> 
+  | Target_no_ident Target_tex -> 
       batrope_pair_concat (List.map (function ((d,s),l) -> batrope_pair_concat (def_tex_inc d)) ds)
   | _ ->
       raise (Failure "defs_inc called on non-tex target")
@@ -2935,7 +2926,7 @@ let header_defs ((defs:def list),(end_lex_skips : Typed_ast.lskips)) =
        (fun ((d,s),l) y ->
           begin match T.target with
 
-              Some Target_isa -> 
+              Target_no_ident Target_isa -> 
                 begin 
                   match d with 
                       Open(s,m) -> 

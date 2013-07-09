@@ -48,13 +48,13 @@
 
 open Typed_ast
 
-(** [inline_exp_macro target_opt env e] does the inlining of target specific constant definitions *)
-val inline_exp_macro : Target.target option -> env -> exp -> exp option
+(** [inline_exp_macro target env e] does the inlining of target specific constant definitions *)
+val inline_exp_macro : Target.non_ident_target -> env -> exp -> exp option
 
 
 module Make(A : sig
   val env : env;; 
-  val target_opt : Target.target option;;
+  val target : Target.target;;
   val id_format_args : (Output.id_annot -> Ulib.Text.t -> Output.t) * Output.t
  end) : sig
 
@@ -81,13 +81,13 @@ module Make(A : sig
 val pattern_application_to_output : (pat -> Output.t) -> const_descr_ref id -> pat list -> Output.t list
 
 (** [const_id_to_ident c_id] tries to format a constant
-    [c_id] as an identifier for target [A.target_opt] using the rules stored
+    [c_id] as an identifier for target [A.target] using the rules stored
     in environment [A.env]. Depending on the formating rules for this
     constant, this might fail. *)
 val const_id_to_ident : const_descr_ref id -> Ident.t
 
 (** [const_ref_to_name n c] tries to format a constant
-    [c] for target [A.target_opt] using the rules stored
+    [c] for target [A.target] using the rules stored
     in environment [A.env]. It always returns a name [n']. If special formatting
     rules are installed, this name might not be the one used by [function_application_to_output], though.
     The argument [n] is the name used in the original input. It's whitespace is used to
@@ -95,7 +95,7 @@ val const_id_to_ident : const_descr_ref id -> Ident.t
 val const_ref_to_name : Name.lskips_t -> const_descr_ref -> Name.lskips_t
 
 (** [type_path_to_name n p] tries to format a type-path
-    [p] for target [A.target_opt] using the rules stored
+    [p] for target [A.target] using the rules stored
     in environment [A.env]. It always returns a name [n']. If special formatting
     rules are installed, this name might not be the one used by [function_application_to_output], though.
     The argument [n] is the name used in the original input. It's whitespace is used to
@@ -103,7 +103,7 @@ val const_ref_to_name : Name.lskips_t -> const_descr_ref -> Name.lskips_t
 val type_path_to_name : Name.lskips_t -> Path.t -> Name.lskips_t
 
 (** [type_id_to_ident ty_id] tries to format a type
-    [c_id] as an identifier for target [A.target_opt] using the rules stored
+    [c_id] as an identifier for target [A.target] using the rules stored
     in environment [A.env]. 
 *)
 val type_id_to_ident : Path.t id -> Ident.t

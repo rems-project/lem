@@ -48,14 +48,14 @@ module Make(C : sig include Types.Global_defs end) : sig
   (* For each target, returns the (pre-backend) transformation function, and the
   * local variable renaming function (for Typed_ast.Exp_context.avoid) *)
   val get_transformation : 
-    Target.target option -> 
+    Target.target -> 
     ((Typed_ast.env -> Typed_ast.checked_module -> (Typed_ast.env * Typed_ast.checked_module)) *
      (Typed_ast.NameSet.t -> Typed_ast.var_avoid_f))
   
   (* Rename the arguments to definitions, if they clash with constants in a given set of constants.
      This was previously part of the transformation returned by get_transformation. It got moved
      out in order to see all the renamings of definitions before changing their arguments. *)
-  val rename_def_params : Target.target option -> Typed_ast.NameSet.t ->  Typed_ast.checked_module list ->  Typed_ast.checked_module list
+  val rename_def_params : Target.target -> Typed_ast.NameSet.t ->  Typed_ast.checked_module list ->  Typed_ast.checked_module list
 
 (*  (* extend the set of constants that should be avoided, depending on the definitions in
      the modules passed as arguments *)

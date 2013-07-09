@@ -100,8 +100,7 @@ let read_constants file =
           []
   in f()
 
-type t = 
-    Typed_ast.env * (Target.target option * Ulib.Text.t list) list
+type t = Typed_ast.env * (Target.target * Ulib.Text.t list) list
 
 let filename_to_mod file =
   Ulib.Text.of_latin1 (String.capitalize (Filename.basename (Filename.chop_extension file))) 
@@ -131,8 +130,8 @@ let rec add_target_to_def target c_env (defs : local_env) : (c_env * local_env) 
 let process_lib target file mod_name (init_env : Typed_ast.env) =
   let mp = 
     match target with
-      | None -> []
-      | Some(n) -> [(target_to_mname n)]
+      | Target_ident -> []
+      | Target_no_ident n -> [(non_ident_target_to_mname n)]
   in
   let ast = parse_file file in
   let (new_defs,_) =
@@ -140,8 +139,8 @@ let process_lib target file mod_name (init_env : Typed_ast.env) =
   in
   let new_defs2 =
     match target with
-      | None -> new_defs
-      | Some(tgt) -> 
+      | Target_ident -> new_defs
+      | Target_no_ident (tgt) -> 
         let (c_env', local_env') = add_target_to_def tgt new_defs.c_env new_defs.local_env in
         {new_defs with c_env = c_env'; local_env = local_env'}
   in
@@ -157,13 +156,13 @@ let add_open_lib k e1 e2 =
         assert false
 
 (* Process a library for the given target and open it in the current init_env *)
-let proc_open target file env =
+let proc_open (target : target) file env =
   let mod_name = filename_to_mod file in
   let new_env = process_lib target file mod_name env in
     (add_open_lib mod_name env.local_env new_env)
 
 (* Process a library for the given target *)
-let proc target file env =
+let proc (target : target) file env =
   let mod_name = filename_to_mod file in
   let new_env = process_lib target file mod_name env in
     (add_lib env.local_env new_env)
@@ -171,7 +170,7 @@ let proc target file env =
 (* TODO: Add to the constants *)
 let add_to_init targ file (((env:env), consts):t) : t =
   let targ_env = 
-    match Nfmap.apply env.local_env.m_env (target_to_mname targ) with 
+    match Nfmap.apply env.local_env.m_env (non_ident_target_to_mname targ) with 
       | Some(e) -> e
       | None -> assert false
   in
@@ -184,8 +183,8 @@ let add_to_init targ file (((env:env), consts):t) : t =
       | Target_tex -> assert false
       | Target_html -> assert false
   in
-  let new_env = p (Some targ) file {env with local_env = targ_env.mod_env} in
-    ({ new_env with local_env = {env.local_env with m_env = Nfmap.insert new_env.local_env.m_env (target_to_mname targ, {targ_env with mod_env = new_env.local_env})}}, 
+  let new_env = p (Target_no_ident targ) file {env with local_env = targ_env.mod_env} in
+    ({ new_env with local_env = {env.local_env with m_env = Nfmap.insert new_env.local_env.m_env (non_ident_target_to_mname targ, {targ_env with mod_env = new_env.local_env})}}, 
      consts)
 
 module Initial_libs (P : sig val path : string end) =
@@ -193,56 +192,56 @@ struct
   open P
 
   let full_filename targ f = 
-    List.fold_right Filename.concat [path; target_to_string targ] (f ^ ".lem")
+    List.fold_right Filename.concat [path; non_ident_target_to_string targ] (f ^ ".lem")
   ;;
 
   (* HOL Env *)
   let hol_env = 
     List.fold_left
-      (fun init_env t -> proc_open (Some(Target_hol)) (full_filename Target_hol t) init_env)
+      (fun init_env t -> proc_open (Target_no_ident (Target_hol)) (full_filename Target_hol t) init_env)
       initial_env
       ["min"; "bool"; "pair"; "arithmetic"; "pred_set"; "finite_map"; "list"; "string"; "sorting"; "set_relation"; "fixedPoint"; "integer"]
 
-  let hol_env' = env_m_env_move hol_env (target_to_mname Target_hol) initial_local_env
+  let hol_env' = env_m_env_move hol_env (non_ident_target_to_mname Target_hol) initial_local_env
 
 
   (* Coq Env *)
-  let coq_perv = proc_open (Some Target_coq) (full_filename Target_coq "pervasives") hol_env';;
+  let coq_perv = proc_open (Target_no_ident Target_coq) (full_filename Target_coq "pervasives") hol_env';;
 
   let coq_env = 
     List.fold_left (
       fun init_env t ->
-        proc (Some Target_coq) (full_filename Target_coq t) init_env
+        proc (Target_no_ident Target_coq) (full_filename Target_coq t) init_env
     ) coq_perv
     ["pervasives"; "set"; "list"] 
   ;;
   
-  let coq_env' = env_m_env_move coq_env (target_to_mname Target_coq) initial_local_env
+  let coq_env' = env_m_env_move coq_env (non_ident_target_to_mname Target_coq) initial_local_env
   let hol_env' = {coq_env' with local_env = hol_env'.local_env}
 
   (* OCAML Env *)
-  let ocaml_perv = proc_open (Some(Target_ocaml)) (full_filename Target_ocaml "pervasives") hol_env'
+  let ocaml_perv = proc_open (Target_no_ident Target_ocaml) (full_filename Target_ocaml "pervasives") hol_env'
 
   let ocaml_env = 
     List.fold_left
-      (fun init_env t -> proc (Some(Target_ocaml)) (full_filename Target_ocaml t) init_env)
+      (fun init_env t -> proc (Target_no_ident Target_ocaml) (full_filename Target_ocaml t) init_env)
       ocaml_perv
       ["list"; "pset"; "pmap"; "nat_num" ; "vector" ; "bit"]
   
-  let ocaml_env' = env_m_env_move ocaml_env (target_to_mname Target_ocaml) initial_local_env
+  let ocaml_env' = env_m_env_move ocaml_env (non_ident_target_to_mname Target_ocaml) initial_local_env
   let hol_env' = {ocaml_env' with local_env = hol_env'.local_env}
 
   (* Isabelle Env *)
-  let isa_perv = proc_open (Some(Target_isa)) (full_filename Target_isa "pervasives") hol_env'
+  let isa_perv = proc_open (Target_no_ident Target_isa) (full_filename Target_isa "pervasives") hol_env'
 
   let isa_env = 
       List.fold_left
-        (fun init_env t -> proc_open (Some(Target_isa)) (full_filename Target_isa t) init_env)
+        (fun init_env t -> proc_open (Target_no_ident Target_isa) (full_filename Target_isa t) init_env)
         isa_perv
         ["pervasives";"list";"set";"finite_Set";"map"]   
         (* PS HACK - TEMPORARILY REMOVE IN HOPES OF GETTING HOL BUILD *)
   
-  let isa_env' = env_m_env_move isa_env (target_to_mname Target_isa) initial_local_env
+  let isa_env' = env_m_env_move isa_env (non_ident_target_to_mname Target_isa) initial_local_env
 
   let env = {isa_env' with local_env = 
      local_env_union hol_env'.local_env (
@@ -251,31 +250,31 @@ struct
                      ocaml_env'.local_env)) }
      
   let perv =
-    proc_open None (Filename.concat path "pervasives.lem") env
+    proc_open Target_ident (Filename.concat path "pervasives.lem") env
   ;;
 
   let env =
      List.fold_left (
-       fun env t -> proc None (Filename.concat path (t ^ ".lem")) env
+       fun env t -> proc Target_ident (Filename.concat path (t ^ ".lem")) env
      ) perv ["list"; "set"; "pmap"; "int" ; "vector" ; "bit"];;
 
   let env = set_target_const_rep env ["Pervasives"] "SUC" Target_isa (CR_new_ident (Ast.Unknown, false, Ident.mk_ident_strings [] "Suc"));;
   let env = set_target_const_rep env ["Pervasives"] "SUC" Target_hol (CR_new_ident (Ast.Unknown, false, Ident.mk_ident_strings [] "SUC"));;
 
-  let init =
+  let init : t =
     (env,
-     [(Some(Target_hol),
-       read_constants (path ^^ target_to_string Target_hol ^^ "constants"));
-      (Some(Target_isa),
-       read_constants (path ^^ target_to_string Target_isa ^^ "constants"));
-      (Some(Target_ocaml),
+     [(Target_no_ident Target_hol,
+       read_constants (path ^^ non_ident_target_to_string Target_hol ^^ "constants"));
+      (Target_no_ident Target_isa,
+       read_constants (path ^^ non_ident_target_to_string Target_isa ^^ "constants"));
+      (Target_no_ident Target_ocaml,
        []);
-      (Some(Target_coq),
-       read_constants (path ^^ target_to_string Target_coq ^^ "constants"));
-      (None,
+      (Target_no_ident Target_coq,
+       read_constants (path ^^ non_ident_target_to_string Target_coq ^^ "constants"));
+      (Target_ident,
        []);
-      (Some(Target_tex),
+      (Target_no_ident Target_tex,
        []);
-      (Some(Target_html),
+      (Target_no_ident Target_html,
        [])])
 end
