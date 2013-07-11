@@ -194,6 +194,7 @@ struct
                           T.remove_list_comprehension;
                           T.remove_set_comprehension;
                           T.remove_quant;
+                          T.remove_do;
                           T.do_substitutions Target_coq;
                           Patterns.compile_exp (Some Target_coq) Patterns.is_coq_pattern_match C.d env]);
          Pat_macros (fun env ->

@@ -98,13 +98,13 @@ test-texw:
 test-texgw:
 	g tests/test-tex/test-tex-inc-wrapper
 
-debug: src/ast.ml src/version.ml
+debug: src/ast.ml src/version.ml src/build_directory.ml
 	rm -f library/lib_cache
 	make -C src debug
 	ln -sf src/main.d.byte lem
 
 
-build-lem: src/ast.ml src/version.ml
+build-lem: src/ast.ml src/version.ml src/build_directory.ml
 	rm -f library/lib_cache
 	make -C ocaml-lib all
 	make -C src all
@@ -168,6 +168,10 @@ src/version.ml: Makefile
 	echo 'let v="$(LEMVERSION)"' > src/version.ml
 	chmod a-x src/version.ml
 
+src/build_directory.ml: 
+	echo let d=\"$$(pwd)\" > src/build_directory.ml
+
+
 distrib: src/ast.ml src/version.ml headache
 	rm -rf $(DDIR)
 	rm -rf $(DDIR).tar.gz
@@ -220,7 +224,7 @@ distrib: src/ast.ml src/version.ml headache
 clean:
 	-make -C language clean
 	-make -C src clean
-	-rm -rf src/version.ml lem library/lib_cache
+	-rm -rf src/version.ml lem library/lib_cache src/build_directory.ml
 	#-rm -rf lem_dep.tex lem_dep.pdf lem_dep.aux lem_dep.log
 
 cleanall: clean

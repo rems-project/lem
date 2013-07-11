@@ -65,3 +65,4 @@ val LIST_TO_SET : forall 'a.  list 'a -> set 'a
 val SET_TO_LIST : forall 'a.  set 'a -> list 'a
 val ITSET : forall 'a 'b.  ('a -> 'b -> 'b) -> set 'a -> 'b -> 'b
 val FINITE : forall 'a. set 'a -> bool
+val countable : forall 'a. set 'a -> bool
