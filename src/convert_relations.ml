@@ -39,6 +39,15 @@ let remove_option ty =
     | Types.Tapp([ty], _) -> ty
     | _ -> failwith "???"
 
+let path_to_string_list p = 
+  let (mp,n) = Path.to_name_list p in
+  (List.map Name.to_string mp, Name.to_string n)
+
+let mk_const_from_path env l path inst = 
+  let (mp,n) = path_to_string_list path in
+  mk_const_exp env l mp n inst
+
+
 let names_get_constructor env mp n = 
   let env' = lookup_env env mp in
   let cname = Name.to_string n in
@@ -110,9 +119,114 @@ type ruledescr = {
   rule_conds : exp list;
   rule_args : exp list
 } 
-type reldescr = ruledescr list Nfmap.t
 
-let get_rels (l: Typed_ast.rule lskips_seplist) : reldescr =
+type reldescr = {
+  rel_name : Name.t;
+  rel_type : typschm;
+  rel_argtypes : Types.t list;
+  rel_witness : Name.t option;
+  rel_check : Name.t option;
+  rel_indfns : (Name.t * (mode * bool)) list;
+  rel_rules : ruledescr list
+}
+
+type relsdescr = reldescr Nfmap.t
+
+
+let mk_list_type ty = 
+  { Types.t = Types.Tapp([ty], Path.listpath) }
+
+let map_option f = function
+  | Some(x) -> Some(f x)
+  | None -> None
+
+let to_in_out (typ : src_t) : input_or_output = 
+  match typ.term with
+    | Typ_app({id_path = p}, []) ->
+      begin match p with
+        | Id_some(i) -> 
+          begin match Name.to_string (Name.strip_lskip (Ident.get_name i)) with
+            | "input" -> I
+            | "out" -> O
+            | _ -> raise (Invalid_argument "to_in_out")
+          end
+        | _ -> raise (Invalid_argument "to_in_out")
+      end
+    | _ -> raise (Invalid_argument "to_in_out")
+
+let rec src_t_to_mode (typ : src_t) : mode * bool =
+  match typ.term with
+    | Typ_paren(_,t,_) -> src_t_to_mode t
+    | Typ_fn(x1,_,x2) -> 
+      let (mode, wit) = src_t_to_mode x2 in
+      (to_in_out x1::mode, wit)
+    | Typ_app({id_path = p },[]) ->
+      begin 
+        try ([to_in_out typ], false)
+        with Invalid_argument _ -> 
+          begin match p with
+            | Id_some(i) ->
+              let n = Name.to_string (Name.strip_lskip (Ident.get_name i)) in
+              ([], not (n = "unit" || n = "bool"))
+            | _ -> raise (Invalid_argument "src_t_to_mode")
+          end
+      end
+    | _ -> raise (Invalid_argument "src_t_to_mode")
+
+
+let rec decompose_rel_type typ = 
+  match typ.term with
+    | Typ_fn(u,_,v) -> u.typ::decompose_rel_type v
+    | _ -> [] (* The return value is assumed to be bool, we don't check it *)
+
+(* the src_t is frustrating ! *)
+let out_ty_from_mode env reldescr (mode, wit) = 
+  let ret = map_filter (function
+    | (O,x) -> Some x
+    | _ -> None
+  ) (List.map2 (fun x y -> (x,y)) mode reldescr.rel_argtypes) in
+  let ret = if wit then 
+    let Some(x) = Nfmap.apply env.r_env reldescr.rel_name in
+    let Some(t,_) = x.ri_witness in
+    ret@[{t = Tapp([],t)}]
+    else ret 
+  in
+  mk_list_type {t=Ttup(ret)}
+ 
+let in_tys_from_mode env reldescr (mode, _wit) = 
+  map_filter (function
+    | (I,x) -> Some x
+    | _ -> None
+  ) (List.map2 (fun x y -> (x,y)) mode reldescr.rel_argtypes)
+
+let ty_from_mode env reldescr mode = 
+  let args = in_tys_from_mode env reldescr mode in
+  let ret = out_ty_from_mode env reldescr mode in
+  List.fold_right (fun a b -> {t=Tfn(a,b)}) args ret
+
+
+let get_rels (names : indrel_name lskips_seplist) 
+    (l: Typed_ast.rule lskips_seplist) : relsdescr =
+  let names = List.fold_left (fun s (RName(_,n,_,t,wit,chk,fn,_)) ->
+    let relname = Name.strip_lskip n in
+    let witness = map_option (fun (Witness(_,_,n,_)) -> Name.strip_lskip n) wit in 
+    let check = map_option (fun (_,n,_) -> Name.strip_lskip n) chk in
+    let (_constraints, typ) = t in
+    let argtypes = decompose_rel_type typ in
+    let fn = match fn with None -> [] | Some(x) -> x in
+    let indfns = List.map 
+      (fun (Fn(n,_,t,_)) -> (Name.strip_lskip n, src_t_to_mode t)) fn in
+    let descr = {
+      rel_name = relname;
+      rel_type = t;
+      rel_argtypes = argtypes; 
+      rel_witness = witness;
+      rel_check = check;
+      rel_indfns = indfns;
+      rel_rules = []
+    } in
+    Nfmap.insert s (relname, descr)
+  ) Nfmap.empty (Seplist.to_list names) in
   List.fold_left (fun s (Rule(rulename,_,_,vars,_,cond,_,rel,args)) ->
     let rulename = Name.strip_lskip rulename in
     let relname = Name.strip_lskip rel.term in
@@ -129,22 +243,29 @@ let get_rels (l: Typed_ast.rule lskips_seplist) : reldescr =
       rule_conds = split_and rulecond;
       rule_args = args
     } in
-    match Nmap.apply s relname with
-      | None -> Nmap.insert s (relname, [ruledescr])
-      | Some rules -> Nmap.insert s (relname, ruledescr::rules)
-  ) Nfmap.empty (Seplist.to_list l)
+    match Nfmap.apply s relname with
+      | None -> failwith "Relation without description (is this ok ?)" (* TODO *)
+      | Some rel -> Nfmap.insert s 
+        (relname, {rel with rel_rules = ruledescr::rel.rel_rules})
+  ) names (Seplist.to_list l)
 
-type io = I | O
 type ep = IExp of exp | OPat of pat
-type mode = io list
+type ('a,'b) choice = Left of 'a | Right of 'b
+
+let map_partition f l = 
+  List.fold_right (fun x (ls,rs) ->
+    match f x with
+      | Left l -> (l::ls,rs)
+      | Right r -> (ls,r::rs)
+  ) l ([],[])
+
 
 (* Just a small model of the code we will generate later
    We will need a partial "exp to pattern" function somewhere *)
 type code = 
   | IF of exp * code 
-  | CALL of Name.t * Types.t * exp list * pat list * code
+  | CALL of (Name.t * Types.t, Path.t) choice * exp list * pat list * code
   | IFEQ of exp * exp * code 
-  | LET of pat * exp * code
   | RETURN of exp list
 
 exception No_translation of exp option
@@ -276,7 +397,7 @@ let report_no_translation rule notok eqconds sideconds =
   Reporting.print_debug_exp "No translation for relation with args" rule.rule_args;
   Reporting.print_debug_exp "Conditions are" rule.rule_conds;
   no_translation None
-
+(*
 let transform_rule mode_env _ty mode (rule : ruledescr) = 
   let vars = Nfmap.domain (Nfmap.from_list rule.rule_vars) in
   let gen_rn = make_renamer vars (Nmap.domain mode_env) in
@@ -339,9 +460,9 @@ let transform_rule mode_env _ty mode (rule : ruledescr) =
         end
         | _ -> (left, e::right)) ([],[]) rule.rule_conds in
   (patterns, build_code initknown indconds sideconds initeqs)
-  
+*)  
 
-
+(*
 let debug_print_transformed trans = 
   let module B = Backend.Make(struct
     let avoid = (false, (fun _ -> true), Name.fresh)
@@ -390,9 +511,11 @@ let debug_print_transformed trans =
     ) modes;
     Format.eprintf "-------------------------------------\n"
   ) trans
+*)
 
 let sep_no_skips l = Seplist.from_list_default None l
 
+(*
 module Compile_pure_code = struct
 (* TODO : not correct (must check excluded & renames) *)
 (* TODO : parametrize w/ a monad or something *)
@@ -540,6 +663,8 @@ let ty_from_mode ty mode =
     (List.rev inputs)
 
 end
+*)
+
 
 module Compile_list_code = struct
 
@@ -548,9 +673,6 @@ let remove_list ty =
   match ty.t with
     | Types.Tapp([ty], _) -> ty
     | _ -> failwith "???"
-
-let mk_list_type ty = 
-  { Types.t = Types.Tapp([ty], Path.listpath) }
 
 let mk_list_map env fn lst = 
   let l = Ast.Trans ("mk_list_map", None) in
@@ -594,10 +716,14 @@ let rec compile_code env excluded renames code =
     let subexp = compile_code env excluded renames code in
     let cond = mk_eq_exp env e1 e2 in
     mk_cond env cond subexp
-  | CALL(n, ty, inp, outp, code) ->
+  | CALL(n, inp, outp, code) ->
     let subexp = compile_code env excluded renames code in
+    let func = match n with 
+      | Left(n,ty) -> mk_var l (Name.add_lskip n) ty 
+      | Right(path) -> mk_const_from_path env l path []
+    in
     let call = List.fold_left (fun func arg -> mk_app l func arg None) 
-      (mk_var l (Name.add_lskip n) ty) inp in
+      func inp in
     let pat = mk_ptup l None (sep_no_skips outp) None None in
     mk_bind env call pat subexp
 
@@ -611,21 +737,19 @@ let compile_rule env (patterns, code) =
 (* TODO : check overlap *)
 let compile_to_typed_ast env prog =
   let l = Ast.Trans ("compile_to_typed_ast", None) in
-  let funcs = Nfmap.fold (fun l _ (_ty,funcs) -> 
+  let funcs = Nfmap.fold (fun l _ (_,funcs) -> 
     (List.map (fun (name, _, _, _) -> name) funcs)@l) [] prog in
   let fun_names = List.fold_right Nset.add funcs Nset.empty in
-  let defs = Nfmap.map (fun _rel (ty,modes) ->
+  let defs = Nfmap.map (fun _rel (reldescr, modes) ->
     List.map (fun (n, mode, mty, rules) ->
       let gen_name = make_namegen fun_names in
-      let vars = map_filter (function 
-        | (I, ty) -> Some(Name.add_lskip (gen_name (Ulib.Text.of_latin1 "input")),
-                          ty)
-        | (O, _) -> None
-      ) (List.combine mode ty) in
+      let vars = List.map 
+        (fun ty -> Name.add_lskip (gen_name (Ulib.Text.of_latin1 "input")), ty)
+        (in_tys_from_mode env reldescr mode) in
       let tuple_of_vars = mk_tup l None (sep_no_skips (List.map (fun (var,ty) -> mk_var Ast.Unknown var ty) vars)) None None in
       let pats_of_vars = List.map (fun (var,ty) -> mk_pvar l var ty) vars in
       let cases = List.map (compile_rule env) rules in
-      let output_type = {t=Ttup(map_filter (function (O,ty) -> Some ty | _ -> None) (List.combine mode ty))} in
+      let output_type = out_ty_from_mode env reldescr mode in
       (* Generate a list of binds and concat them ! *)
       let bcases = List.map 
         (fun (pat,code) -> 
@@ -634,7 +758,7 @@ let compile_to_typed_ast env prog =
             pat code)
         cases in
       let body = mk_list_concat env (mk_list l None (sep_no_skips bcases)
-                                       None (mk_list_type (mk_list_type output_type))) in
+                                       None (mk_list_type output_type)) in
       let annot = { term = Name.add_lskip n;
                     locn = l;
                     typ = mty;
@@ -645,7 +769,7 @@ let compile_to_typed_ast env prog =
   let defs = sep_no_skips (Nfmap.fold (fun l _ c -> c@l) [] defs) in
   ((Val_def(Rec_def(None,None,None,defs), Types.TNset.empty, []), None), l)
 
-
+(*
 let ty_from_mode ty mode = 
   let open Types in
   let inputs = map_filter id (
@@ -655,23 +779,23 @@ let ty_from_mode ty mode =
   let ret = {t=Ttup(outputs)} in
   List.fold_left (fun ret arg -> {t=Tfn(arg,ret)}) (mk_list_type ret) 
     (List.rev inputs)
-
+*)
 
 end
-
+(*
 open Compile_list_code
 
 
 
-
-let type_rules (rels : reldescr) = 
+(* TODO : fixme to use the type in the descr (use decompose_rel_types) *)
+let type_rules (rels : relsdescr) = 
   Nfmap.map (fun _ -> function
-    | rule::_ -> List.map exp_to_typ rule.rule_args
-    | [] -> failwith "Impossible") rels
+    | {rel_rules = rule::_} -> List.map exp_to_typ rule.rule_args
+    | _ -> failwith "Rule without relations") rels
   
-let transform_rels env rules def = 
+let transform_rels env names rules def = 
 (*  try *)
-    let rels = get_rels rules in
+    let rels = get_rels names rules in
     (** During typechecking **)
     let types = type_rules rels in
     (*let mymodes = [ (* ("reduce", [("redtest",[I;I]);("red",[I;O])]);
@@ -701,9 +825,9 @@ let transform_rels env rules def =
       | Some(typed_modes) -> 
   (** After typechecking **)
   let compiled = Nfmap.map (fun rel (ty,modes) ->
-    let rules = match Nfmap.apply rels rel with Some(rs) -> rs | None -> failwith "Bad mode" in
+    let reldescr = match Nfmap.apply rels rel with Some(rs) -> rs | None -> failwith "Bad mode" in
     (ty, List.map (fun (n,mode,mty) ->
-      (n, mode, mty, List.map (fun rule -> transform_rule typed_modes ty mode rule) rules)
+      (n, mode, mty, List.map (fun rule -> transform_rule typed_modes ty mode rule) reldescr.rel_rules)
     ) modes)
   ) typed_modes in
   debug_print_transformed compiled;
@@ -716,17 +840,14 @@ let transform_rels env rules def =
 (* instances ? *)
 let rec scan_defs env l = List.concat (List.map (scan_def env) l)
 and scan_def env (((d,aa),bb) as def) = match d with
-  | Indreln(_,_,_,rules) as r -> def::transform_rels env rules def
+  | Indreln(_,_,names,rules) as r -> def::transform_rels env names rules def
   | Module(a,b,c,d,defs,e) -> [((Module(a,b,c,d,scan_defs env defs,e),aa),bb)]
   | u -> [def]
-
+*)
 open Typecheck_ctxt
 
-(* Temporary *)
-let gen_typename_from_rel relname = Name.from_string (Name.to_string relname ^ "_witness")
 
-(* May not be temporary *)
-let gen_consname rulename = gen_typename_from_rel rulename
+let gen_consname relname = Name.from_string (Name.to_string relname ^ "_witness")
 
 let mk_name_l n = (Name.add_lskip n , Ast.Unknown)
 
@@ -782,7 +903,7 @@ let register_types ctxt mod_path tds =
     let rule_to_constr = Nfmap.from_list 
       (List.map (fun (crule, cname, cargs) -> (crule, mk_descr cname cargs)) tconses) in
     let ctxt = ctxt_add (fun x -> x.r_env) (fun x y -> { x with r_env = y })
-      ctxt (relname, { rel_witness = Some(type_path, rule_to_constr); rel_check = None }) in
+      ctxt (relname, { ri_witness = Some(type_path, rule_to_constr); ri_check = None; ri_fns = [] }) in
     List.fold_left (fun ctxt (crule, cname, cargs) ->
       let () = 
         match Nfmap.apply ctxt.new_defs.v_env cname with
@@ -815,10 +936,14 @@ let rec path_lookup (e : env) (mp : Name.t list) : env option =
           | Some(e) -> path_lookup e.mod_env ns
 
 (* TODO : || -> either, && -> *, forall -> (->), exists -> ... *)
-let gen_witness_type_aux env get_typepath_from_rel rules = 
-  let rels = get_rels rules in
-  let reltypes = Nfmap.map 
-    (fun relname rules -> get_typepath_from_rel relname) rels in
+(* TODO : remove this get_typepath_from_rel nonsense *)
+let gen_witness_type_aux env get_typepath_from_rel names rules = 
+  let rels = get_rels names rules in
+  let reltypes = Nfmap.fold (fun reltypes relname reldescr ->
+    match get_typepath_from_rel relname reldescr with
+      | None -> reltypes
+      | Some(ty) -> Nfmap.insert reltypes (relname, ty)
+  ) Nfmap.empty rels in
   (* We want to return a type here *)
   let is_relation e = match exp_to_term e with
     | Var v ->
@@ -832,10 +957,10 @@ let gen_witness_type_aux env get_typepath_from_rel rules =
         | Some(env) -> 
           begin match Nfmap.apply env.r_env n with
             | None -> None
-            | Some { rel_witness = None } ->
+            | Some { ri_witness = None } ->
               raise_error Ast.Unknown "no witness for relation"
                 Path.pp c.descr.const_binding 
-            | Some { rel_witness = Some(tn,_) } -> 
+            | Some { ri_witness = Some(tn,_) } -> 
               let t = {t=Tapp([],tn)} in
               Some(t, t_to_src_t t) 
           end
@@ -843,18 +968,20 @@ let gen_witness_type_aux env get_typepath_from_rel rules =
       end
     | _ -> None
   in
-  let tds = Nfmap.map (fun relname rules ->
-    let typename = gen_typename_from_rel relname in
-    let constructors = List.map (fun rule  ->
-      let consname = gen_consname rule.rule_name in
-      let vars_ty = List.map (fun x -> (snd x,t_to_src_t (snd x))) rule.rule_vars in
-      let conds_ty = map_filter 
-        (fun cond -> is_relation (fst (split_app cond))) rule.rule_conds in
-      let argstypes = vars_ty @ conds_ty in
-      (rule.rule_name, consname, argstypes)
-    ) rules in
-    (typename, constructors)
-  ) rels in
+  let tds = Nfmap.fold (fun tds relname reldescr ->
+    match reldescr.rel_witness with
+      | None -> tds
+      | Some(typename) ->
+        let constructors = List.map (fun rule  ->
+          let consname = gen_consname rule.rule_name in
+          let vars_ty = List.map (fun x -> (snd x,t_to_src_t (snd x))) rule.rule_vars in
+          let conds_ty = map_filter 
+            (fun cond -> is_relation (fst (split_app cond))) rule.rule_conds in
+          let argstypes = vars_ty @ conds_ty in
+          (rule.rule_name, consname, argstypes)
+        ) reldescr.rel_rules in
+        Nfmap.insert tds (relname, (typename, constructors))
+  ) Nfmap.empty rels in
   tds
 
 let clean_src_app p = 
@@ -870,32 +997,29 @@ let clean_src_app p =
   let loc = Ast.Trans("clean_src_app", None) in
   (t, mk_tapp loc pid [] (Some t) (* t_to_src_t t *))
 
-let gen_witness_type_info mod_path ctxt rules = 
+let gen_witness_type_info mod_path ctxt names rules = 
   let tds = gen_witness_type_aux ctxt.cur_env 
-    (fun relname -> 
-      let tn = gen_typename_from_rel relname in
-      let p = Path.mk_path mod_path tn in
-      clean_src_app p
+    (fun relname reldescr -> 
+      match reldescr.rel_witness with
+        | None -> None
+        | Some(tn) ->
+          let p = Path.mk_path mod_path tn in
+          Some(clean_src_app p)
     ) 
-    rules in
+    names rules in
   let newctxt = register_types ctxt mod_path tds in
-  let defs = newctxt.new_defs.v_env in
   newctxt
 
-let gen_witness_type_def mn env rules =
+let gen_witness_type_def mn env names rules =
   let Some(locenv) = Nfmap.apply env.m_env mn in 
   let tds = gen_witness_type_aux env 
-    (fun relname -> 
+    (fun relname _ -> 
       match Nfmap.apply locenv.mod_env.r_env relname with
-      | Some({rel_witness = Some(tn,_)}) -> 
-        clean_src_app tn
-      | None -> failwith "No witness type ?"
+        | Some({ri_witness = Some(tn,_)}) -> Some(clean_src_app tn)
+        | None -> None
     )
-    rules in
-  (make_typedef tds, None),  Ast.Unknown
-
-let gen_check_name relname = 
-  Name.from_string (Name.to_string relname ^ "_check")
+    names rules in
+  [(make_typedef tds, None),  Ast.Unknown]
 
 let ctxt_mod update ctxt = 
   { ctxt with
@@ -903,24 +1027,26 @@ let ctxt_mod update ctxt =
     new_defs = update ctxt.new_defs
   }
 
-let gen_witness_check_info mod_path ctxt rules =
-  let rels = get_rels rules in
-  let defs = Nfmap.map (fun relname rules ->
-    let ret = List.map exp_to_typ (List.hd rules).rule_args in
-    let check_name = gen_check_name relname in
-    let check_path = Path.mk_path mod_path check_name in
-    let witness_type = 
-      match Nfmap.apply ctxt.cur_env.r_env relname with
-      | Some({rel_witness = Some(witness_type,_)}) -> 
-        {t = Tapp([],witness_type)}
-      | None -> raise_error Ast.Unknown 
-        "no witness for relation while generating witness-checking function"
-        Path.pp check_path
-    in
-    (* TODO : generate option type *)
-    let check_type = {t=Tfn(witness_type, mk_option {t=Ttup(ret)})} in
-    (check_name, check_path, check_type)
-  ) rels in
+let gen_witness_check_info mod_path ctxt names rules =
+  let rels = get_rels names rules in
+  let defs = Nfmap.fold (fun defs relname reldescr ->
+    match reldescr.rel_check with
+      | None -> defs
+      | Some(check_name) -> 
+        let rules = reldescr.rel_rules in
+        let ret = List.map exp_to_typ (List.hd rules).rule_args in
+        let check_path = Path.mk_path mod_path check_name in
+        let witness_type = 
+          match Nfmap.apply ctxt.cur_env.r_env relname with
+            | Some({ri_witness = Some(witness_type,_)}) -> 
+              {t = Tapp([],witness_type)}
+            | _ -> raise_error Ast.Unknown 
+              "no witness for relation while generating witness-checking function"
+              Path.pp check_path
+        in
+        let check_type = {t=Tfn(witness_type, mk_option {t=Ttup(ret)})} in
+        Nfmap.insert defs (relname, (check_name, check_path, check_type))
+  ) Nfmap.empty rels in
   (* Register the functions *)
   Nfmap.fold (fun ctxt relname (cname,cpath,ctype) ->
     let const_descr = {
@@ -935,48 +1061,32 @@ let gen_witness_check_info mod_path ctxt rules =
     } in
     let ctxt = ctxt_add (fun x -> x.v_env) (fun x y -> {x with v_env = y})
       ctxt (cname, Val(const_descr)) in
-    ctxt_mod (fun x -> {x with r_env = let Some r_info = Nfmap.apply x.r_env relname in Nfmap.insert x.r_env (relname, {r_info with rel_check = Some cpath})}) ctxt
+    ctxt_mod (fun x -> {x with r_env = let Some r_info = Nfmap.apply x.r_env relname in Nfmap.insert x.r_env (relname, {r_info with ri_check = Some cpath})}) ctxt
   ) ctxt defs
 
 let nset_of_list l = List.fold_left (fun set x -> Nset.add x set) Nset.empty l
 
-(* Variable management : 
- - abstract
- - unabstract
-*)
-
-type ('a,'b) choice = Left of 'a | Right of 'b
-
-let map_partition f l = 
-  List.fold_right (fun x (ls,rs) ->
-    match f x with
-      | Left l -> (l::ls,rs)
-      | Right r -> (ls,r::rs)
-  ) l ([],[])
-
 open LemOptionMonad
 
-let path_to_string_list p = 
-  let (mp,n) = Path.to_name_list p in
-  let (n::mp) = List.map Name.to_string (n::mp) in
-  (mp, n)
+let rel_lookup env path = 
+  let (mpath, n) = Path.to_name_list path in
+  match path_lookup env mpath with
+    | None -> None
+    | Some(env) -> Nfmap.apply env.r_env n
 
-let mk_const_from_path env l path inst = 
-  let (mp,n) = path_to_string_list path in
-  mk_const_exp env l mp n inst
-
-let gen_witness_check_def mn env rules = 
-  let rels = get_rels rules in
+let gen_witness_check_def mn env names rules = 
+  let rels = get_rels names rules in
   let Some(localenv) = Nfmap.apply env.m_env mn in
   let localenv = localenv.mod_env in
-  let localdefs = Nfmap.map (fun relname rules ->
+  let localdefs = Nfmap.fold (fun localdefs relname rules ->
     match Nfmap.apply localenv.r_env relname with
-      | Some({rel_witness = Some(witness_info); rel_check = Some(check_path)}) ->
+      | Some({ri_witness = Some(witness_info); ri_check = Some(check_path)}) ->
         let (_,def_name) = Path.to_name_list check_path in
-        (def_name, witness_info,check_path, rules)
-      | None -> failwith "Need map_filter here"
-  ) rels in
-  let defs = Nfmap.map (fun relname (def_name, (witness_path, witness_constrs), check_path, rules) ->
+        Nfmap.insert localdefs (relname,(def_name, witness_info,check_path, rules))
+      | _ -> localdefs
+  ) Nfmap.empty rels in
+  let defs = Nfmap.map (fun relname (def_name, (witness_path, witness_constrs), check_path, reldescr) ->
+    let rules = reldescr.rel_rules in
     let witness_ty = {t=Tapp([],witness_path)} in
     let pats = List.map (fun rule ->
       (* Bad indices from get_witness_type_info, sorry *)
@@ -992,8 +1102,6 @@ let gen_witness_check_def mn env rules =
       (* Travailler sur les conds *)
       let is_rel_or_aux e = 
         let (head, args) = split_app e in
-        (* COMPLETELY WRONG : references to things defined in THIS binding
-           should be VARIABLES, not CONSTANTS *)
         match exp_to_term head with
           | Var v ->
             (* TODO : factorisation *)
@@ -1001,8 +1109,8 @@ let gen_witness_check_def mn env rules =
             begin match Nfmap.apply localenv.r_env n with
               | None -> Right e
               (* TODO : adjust ids for local things *)
-              | Some {rel_check = Some(check_path);
-                      rel_witness = Some(witness_path, witness_constrs)} ->
+              | Some {ri_check = Some(check_path);
+                      ri_witness = Some(witness_path, witness_constrs)} ->
                 let check_exp = match Nfmap.apply localdefs n with
                   | Some(def_name,_,_,_) -> 
                     let witness_ty = {t=Tapp([],witness_path)} in
@@ -1016,20 +1124,15 @@ let gen_witness_check_def mn env rules =
                   Path.pp check_path
             end
           | Constant c ->
-            let (mpath, n) = Path.to_name_list c.descr.const_binding in
-            begin match path_lookup env mpath with
-              | Some(env) ->
-                begin match Nfmap.apply env.r_env n with
-                  | None -> Right e
-                  | Some { rel_witness = Some(witness_path, _);
-                           rel_check = Some(check_path) } ->
+            begin match rel_lookup env c.descr.const_binding with
+              | None -> Right e
+              | Some { ri_witness = Some(witness_path, _);
+                           ri_check = Some(check_path) } ->
                     let check_exp = mk_const_from_path env Ast.Unknown check_path [] in
                     Left (args, witness_path, check_exp)
-                  | Some _ ->
-                    raise_error Ast.Unknown "no witness checking function for relation"
-                      Path.pp check_path
-                end
-              | None -> failwith "Impossible"
+              | Some _ -> 
+                raise_error Ast.Unknown "no witness checking function for relation"
+                  Path.pp check_path
             end
           | _ -> Right e
       in    
@@ -1079,18 +1182,151 @@ let gen_witness_check_def mn env rules =
   ) localdefs in
   let defs = Nfmap.fold (fun l _ v -> v::l) [] defs in
   let def = Rec_def(None,None,None,sep_no_skips defs) in
-  ((Val_def(def, Types.TNset.empty, []), None), Ast.Unknown)
+  if defs = [] then []
+  else [((Val_def(def, Types.TNset.empty, []), None), Ast.Unknown)]
 
 (* Rec_def of lskips * sips * targtets_opt * funcl_aux lskips_seplist 
 and funcl_aux = name_lskips_annot * pat list * (lskips * src_t) option * lskips * exp
 *)
 
+let gen_fns_info mod_path (ctxt : defn_ctxt) names rules =
+  let rels = get_rels names rules in
+  Nfmap.fold (fun ctxt relname reldescr ->
+    List.fold_left (fun ctxt (name, (mode, wit)) ->
+      let ty = ty_from_mode ctxt.cur_env reldescr (mode, wit) in
+      let path = Path.mk_path mod_path name in
+      let ctxt = ctxt_mod (fun x -> {x with r_env =
+          Nfmap.insert x.r_env 
+            (relname, 
+             let info = match Nfmap.apply x.r_env relname with
+              | Some y -> y
+              | None -> { ri_witness = None; ri_check = None; ri_fns = [] } in
+             {info with ri_fns = ((mode, wit), path)::info.ri_fns})}) ctxt in
+      let const_descr = {
+        const_binding = path;
+        const_tparams = [];
+        const_class = [];
+        const_ranges = [];
+        const_type = ty;
+        env_tag = K_let;
+        spec_l = Ast.Unknown;
+        substitutions = Targetmap.empty
+      } in
+      ctxt_add (fun x -> x.v_env) (fun x y -> {x with v_env = y})
+        ctxt (name, Val(const_descr))
+    ) ctxt reldescr.rel_indfns
+  ) ctxt rels
+
+let transform_rule env localrels (mode, need_wit) rel (rule : ruledescr) = 
+  let vars = Nfmap.domain (Nfmap.from_list rule.rule_vars) in
+  let avoid = Nfmap.fold (fun avoid relname reldescr ->
+    List.fold_left (fun avoid (funname, _) -> Nset.add funname avoid)
+      (Nset.add relname avoid) reldescr.rel_indfns
+  ) Nset.empty localrels in
+  let gen_rn = make_renamer vars avoid in
+  let (patterns, initknown, initeqs) = 
+    convert_output gen_rn rule.rule_args (List.map (fun x -> x = O) mode) in
+  let returns = map_filter (function
+    | (I, _) -> None
+    | (O, r) -> Some(r)
+  ) (List.map2 (fun x y -> (x,y)) mode rule.rule_args) in
+  let rec build_code known indconds sideconds eqconds =
+    let exp_known e = Nfmap.fold (fun b v _ -> b && Nset.mem v known) 
+      true (C.exp_to_free e) in
+    let (selected_eqs,eqconds2) = 
+      List.partition (fun (e1,e2) -> exp_known e1 && exp_known e2) eqconds in
+    let (selected_side,sideconds2) = 
+      List.partition (fun e -> exp_known e) sideconds in
+    let add_eq eq x = List.fold_left (fun x (e1,e2) -> IFEQ(e1,e2,x)) x eq in
+    let add_side side x = List.fold_left (fun x e -> IF(e,x)) x side in 
+    let rec search notok = function
+      | [] ->
+        begin match eqconds2,sideconds2 with
+          | [], [] when notok = [] -> RETURN returns
+          | _ -> report_no_translation rule notok eqconds2 sideconds2
+        end
+      | (modes,args) as c::cs ->
+        let inargs = List.map exp_known args in
+        let mode_matches ((fun_mode, fun_wit),_info) = 
+          List.for_all (fun x -> x)
+            (List.map2 (fun inp m -> inp || m = O) inargs fun_mode)
+            && (not need_wit || fun_wit) in
+        match List.filter mode_matches modes with
+          | [] -> search (c::notok) cs
+          | ((fun_mode, fun_wit), fun_info) ::ms -> 
+            (* Still some work to do to generate witnesses *)
+            let (outputs, bound, equalities) = convert_output gen_rn args 
+              (List.map (fun m -> m = I) mode) in
+            let inputs = map_filter id (List.map2 (fun exp m ->
+              match m with
+                | I -> Some(exp)
+                | O -> None
+            ) args mode) in
+            CALL(fun_info, inputs, outputs,
+                 build_code (Nset.union bound known) (cs@notok) 
+                   sideconds2 (equalities@eqconds2))
+    in
+    add_eq selected_eqs (add_side selected_side (search [] indconds))
+  in
+  let (indconds, sideconds) = 
+    map_partition (fun x ->
+      let (e,args) = split_app x in
+      match exp_to_term e with
+        | Var n ->
+          begin match Nfmap.apply localrels (Name.strip_lskip n) with
+            | Some(rel) ->
+              let modes = List.map (fun (name, mode) -> (mode, Left(name,ty_from_mode env rel mode))) rel.rel_indfns in
+              Left(modes,args)
+            | None -> Right(x)
+          end
+        | Constant c ->
+          begin match rel_lookup env c.descr.const_binding with
+            | Some(relinfo) ->
+              Left(List.map (fun (mode,path) -> (mode, Right(path))) relinfo.ri_fns,args)
+            | None -> Right(x)
+          end
+        | _ -> Right(x)
+    ) rule.rule_conds
+  in
+  (patterns, build_code initknown indconds sideconds initeqs)
+
+
+let transform_rules env localrels (mode, wit) reldescr =
+  List.map (transform_rule env localrels (mode,wit) reldescr) reldescr.rel_rules
+
+let gen_fns_def mn env names rules =
+  let rels = get_rels names rules in
+  let transformed_rules = Nfmap.map (fun relname reldescr ->
+    (reldescr, List.map (fun (name, mode) ->
+      (name, mode, ty_from_mode env reldescr mode,transform_rules env rels mode reldescr)
+    ) reldescr.rel_indfns)
+  ) rels in
+  let code = Compile_list_code.compile_to_typed_ast env transformed_rules in
+  [code]
+  
+
+(*
+(* Generate new rules based on old ones *)
+let extend_rules rules env =
+  Nfmap.map (fun relname rules ->
+    (* Do something with the env *)
+    List.map (fun rule ->
+      let Rule(name,s1,s2,args,s3,cond,s4,reln,args) = rule in
+      let witness = 
+      Rule(name,s1,s2,args,s3,cond,s3,reln,args@[witness])
+    )
+
+*)
+
+
 let rec gen_type_scan_defs mn env l = List.concat (List.map (gen_type_scan_def mn env) l)
 and gen_type_scan_def mn env (((d,aa), bb) as def) = match d with
-  | Indreln(_,_,_,rules) -> [def;gen_witness_type_def mn env rules;
-                           gen_witness_check_def mn env rules]
+  | Indreln(_,_,names,rules) -> [def]
+    @gen_witness_type_def mn env names rules
+    @gen_witness_check_def mn env names rules
+    @gen_fns_def mn env names rules
   | Module(a,b,c,d,defs,e) -> failwith "Modules not supported"
-  | _ -> [def]
+  | _ -> [def]  
 
 end
 

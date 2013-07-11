@@ -268,7 +268,7 @@ let rec typ_to_src_t_indreln wit (Ast.Typ_l(typ,l)) =
          | _,x::xs -> assert false
          | Ast.Id([],xl,l0),[] -> 
             (match (Name.to_string (Name.strip_lskip (Name.from_x xl))) with
-              | "in" | "out" | "bool" | "unit" -> ()
+              | "input" | "out" | "bool" | "unit" -> ()
               | x -> if x = wit then () else assert false);
              let p = Path.mk_path [] (Name.strip_lskip (Name.from_x xl)) in
              let id = {id_path = Id_some (Ident.from_id i); 
@@ -2320,8 +2320,9 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let newctxt = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs)
             constraints lconstraints
             (target_opt_to_env_tag target_set) None e_v in
-          let newctxt = Conv.gen_witness_type_info mod_path newctxt cls in
-          let newctxt = Conv.gen_witness_check_info mod_path newctxt cls in
+          let newctxt = Conv.gen_witness_type_info mod_path newctxt ns cls in
+          let newctxt = Conv.gen_witness_check_info mod_path newctxt ns cls in
+          let newctxt = Conv.gen_fns_info mod_path newctxt ns cls in
             (newctxt,
              (Indreln(sk,target_opt_checked,ns,cls)))
       | Ast.Spec_def(val_spec) ->
