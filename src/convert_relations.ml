@@ -770,81 +770,8 @@ let compile_to_typed_ast env localenv prog =
   let defs = sep_no_skips (Nfmap.fold (fun l _ c -> c@l) [] defs) in
   ((Val_def(Rec_def(None,None,None,defs), Types.TNset.empty, []), None), l)
 
-(*
-let ty_from_mode ty mode = 
-  let open Types in
-  let inputs = map_filter id (
-    List.map2 (fun ty mode -> if mode = I then Some(ty) else None) ty mode) in
-  let outputs = map_filter id (
-    List.map2 (fun ty mode -> if mode = O then Some(ty) else None) ty mode) in
-  let ret = {t=Ttup(outputs)} in
-  List.fold_left (fun ret arg -> {t=Tfn(arg,ret)}) (mk_list_type ret) 
-    (List.rev inputs)
-*)
-
 end
-(*
-open Compile_list_code
 
-
-
-(* TODO : fixme to use the type in the descr (use decompose_rel_types) *)
-let type_rules (rels : relsdescr) = 
-  Nfmap.map (fun _ -> function
-    | {rel_rules = rule::_} -> List.map exp_to_typ rule.rule_args
-    | _ -> failwith "Rule without relations") rels
-  
-let transform_rels env names rules def = 
-(*  try *)
-    let rels = get_rels names rules in
-    (** During typechecking **)
-    let types = type_rules rels in
-    (*let mymodes = [ (* ("reduce", [("redtest",[I;I]);("red",[I;O])]);
-                    *)   ("GtT", [("typecheck",[I;I;I])]) ] in *)
-    let mymodes = [("xinG", [("xinG_fun", [I;I])]);
-(*                   ("XinG", [("XinG_fun", [I;I])]);
-                   ("tin",  [("tin_fun", [I;I;I]);
-                             ("tin_get", [I;O;I])]);
-                   ("Gok",  [("Gok_fun", [I])]);
-                   ("GT",   [("GT_fun", [I;I])]);
-                   ("Ty",   [("Ty_fun", [I;I;I]);
-                             ("Ty_get", [I;I;O])]);*)
-                  ] in
-    let modess = Nfmap.from_list 
-      (List.map (fun (rel, modes) -> 
-        (Name.from_rope (Ulib.Text.of_latin1 rel),
-         List.map (fun (n,m) -> (Name.from_rope (Ulib.Text.of_latin1 n), m)) modes))
-         mymodes) in
-    match (try 
-  let typed_modes = Nfmap.map (fun rel modes ->
-    let ty = match Nfmap.apply types rel with Some(ty) -> ty | None -> failwith ("Bad mode for " ^ (Ulib.Text.to_string (Name.to_rope rel))) in
-    (ty, List.map (fun (n,mode) -> (n,mode,ty_from_mode ty mode)) modes)
-  ) modess in
-  Some(typed_modes)
-      with _ -> None) with
-      | None -> []
-      | Some(typed_modes) -> 
-  (** After typechecking **)
-  let compiled = Nfmap.map (fun rel (ty,modes) ->
-    let reldescr = match Nfmap.apply rels rel with Some(rs) -> rs | None -> failwith "Bad mode" in
-    (ty, List.map (fun (n,mode,mty) ->
-      (n, mode, mty, List.map (fun rule -> transform_rule typed_modes ty mode rule) reldescr.rel_rules)
-    ) modes)
-  ) typed_modes in
-  debug_print_transformed compiled;
-  let code = compile_to_typed_ast env compiled in
-  Reporting.print_debug_def "Generated code" [code];
-  [code]
-  (* How do I print code ? *)
-(*  with _ -> Reporting.print_debug_def "Relation ignored" [def] *)
-
-(* instances ? *)
-let rec scan_defs env l = List.concat (List.map (scan_def env) l)
-and scan_def env (((d,aa),bb) as def) = match d with
-  | Indreln(_,_,names,rules) as r -> def::transform_rels env names rules def
-  | Module(a,b,c,d,defs,e) -> [((Module(a,b,c,d,scan_defs env defs,e),aa),bb)]
-  | u -> [def]
-*)
 open Typecheck_ctxt
 
 
@@ -1011,16 +938,16 @@ let gen_witness_type_info mod_path ctxt names rules =
   let newctxt = register_types ctxt mod_path tds in
   newctxt
 
-let gen_witness_type_def mn env names rules =
-  let Some(locenv) = Nfmap.apply env.m_env mn in 
+let gen_witness_type_def env mpath localenv names rules =
   let tds = gen_witness_type_aux env 
     (fun relname _ -> 
-      match Nfmap.apply locenv.mod_env.r_env relname with
+      match Nfmap.apply localenv.r_env relname with
         | Some({ri_witness = Some(tn,_)}) -> Some(clean_src_app tn)
-        | None -> None
+        | _ -> None
     )
     names rules in
-  [(make_typedef tds, None),  Ast.Unknown]
+  if Nfmap.is_empty tds then []
+  else [(make_typedef tds, None),  Ast.Unknown]
 
 let ctxt_mod update ctxt = 
   { ctxt with
@@ -1075,15 +1002,14 @@ let rel_lookup env path =
     | None -> None
     | Some(env) -> Nfmap.apply env.r_env n
 
-let gen_witness_check_def mn env names rules = 
+let gen_witness_check_def env mpath localenv names rules = 
   let rels = get_rels names rules in
-  let Some(localenv) = Nfmap.apply env.m_env mn in
-  let localenv = localenv.mod_env in
   let localdefs = Nfmap.fold (fun localdefs relname rules ->
     match Nfmap.apply localenv.r_env relname with
-      | Some({ri_witness = Some(witness_info); ri_check = Some(check_path)}) ->
+      | Some({ri_witness = Some(witness_info); ri_check = Some(check_path)}) 
+        when rules.rel_check <> None ->
         let (_,def_name) = Path.to_name_list check_path in
-        Nfmap.insert localdefs (relname,(def_name, witness_info,check_path, rules))
+         Nfmap.insert localdefs (relname,(def_name, witness_info,check_path, rules))
       | _ -> localdefs
   ) Nfmap.empty rels in
   let defs = Nfmap.map (fun relname (def_name, (witness_path, witness_constrs), check_path, reldescr) ->
@@ -1331,33 +1257,64 @@ let transform_rule env localenv localrels (mode, need_wit) rel (rule : ruledescr
 let transform_rules env localenv localrels (mode, wit) reldescr =
   List.map (transform_rule env localenv localrels (mode,wit) reldescr) reldescr.rel_rules
 
-let gen_fns_def mn env names rules =
+let gen_fns_def env mpath localenv names rules =
   let rels = get_rels names rules in
-  let Some(localenv) = Nfmap.apply env.m_env mn in
-  let localenv = localenv.mod_env in
   let transformed_rules = Nfmap.map (fun relname reldescr ->
     (reldescr, List.map (fun (name, mode) ->
       (name, mode, ty_from_mode env localenv reldescr mode,transform_rules env localenv rels mode reldescr)
     ) reldescr.rel_indfns)
   ) rels in
   let code = Compile_list_code.compile_to_typed_ast env localenv transformed_rules in
-  [code]
+  let emptydef = 
+    Nfmap.fold (fun b _ (_,l) -> b && [] = l) true transformed_rules in
+  if emptydef then []
+  else [code]
 
-let rec gen_type_scan_defs mn env l = List.concat (List.map (gen_type_scan_def mn env) l)
-and gen_type_scan_def mn env (((d,aa), bb) as def) = match d with
-  | Indreln(_,_,names,rules) -> [def]
-    @gen_witness_type_def mn env names rules
-    @gen_witness_check_def mn env names rules
-    @gen_fns_def mn env names rules
-  | Module(a,b,c,d,defs,e) -> failwith "Modules not supported"
-  | _ -> [def]  
+let gen_witness_type_macro env mpath localenv def =
+  match def with
+    | (Indreln(x,y,names,rules),z), t ->
+      let remove_witness = 
+        function RName(a,b,c,d,_witness,f,g,h) ->
+          RName(a,b,c,d,None,f,g,h)
+      in
+      let def = (Indreln(x,y,Seplist.map remove_witness names, rules),z),t in
+      let tdefs = gen_witness_type_def env mpath localenv names rules in
+      if tdefs = []
+      then None
+      else Some(localenv, def::tdefs)
+    | _ -> None
+
+let gen_witness_check_macro env mpath localenv def_ =
+  match def_ with
+    | (Indreln(x,y,names,rules),z), t ->
+      let remove_check = 
+        function RName(a,b,c,d,e,_check,g,h) ->
+          (* TODO : preserve lskips *)
+          RName(a,b,c,d,e,None,g,h)
+      in
+      let def = (Indreln(x,y,Seplist.map remove_check names, rules),z),t in
+      let cdefs = gen_witness_check_def env mpath localenv names rules in
+      if cdefs = []
+      then None
+      else Some(localenv, def::cdefs)
+    | _ -> None
+
+
+let gen_fns_macro env mpath localenv def =
+  match def with
+    | (Indreln(x,y,names,rules),z), t ->
+      let remove_indfns = 
+        function RName(a,b,c,d,e,f,_indfns,h) ->
+          RName(a,b,c,d,e,f,None,h)
+      in
+      let def = (Indreln(x,y,Seplist.map remove_indfns names, rules),z),t in
+      let fdefs = gen_fns_def env mpath localenv names rules in
+      if fdefs = []
+      then None
+      else Some(localenv, def::fdefs)
+    | _ -> None
 
 end
-
-
-
-
-
 
 
 
