@@ -204,7 +204,7 @@ let mk_ident l i loc =
   names_mk_ident (List.map (fun n -> Name.from_rope (r n)) l) (Name.from_rope (r i)) loc
 
 let get_const_id env l mp n inst =
-{ id_path = Id_some (mk_ident mp n l);
+{ id_path = (*Id_some (mk_ident mp n l)*) Id_none None;
   id_locn = l;
   descr = (get_const env mp n);
   instantiation = inst }

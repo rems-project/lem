@@ -170,6 +170,11 @@ x_l {{ tex \ottnt{x}^{l} }} , y_l {{ tex \ottnt{y}^{l} }} , z_l {{ tex \ottnt{z}
   | x l						:: :: X_l
   | ( ix ) l					:: :: PreX_l
     {{ com Remove infix status }}
+  | name_t -> x_l					:: M :: extract
+    {{ com Extract x from a name\_t }}
+    {{ lem (match [[name_t]] with | Name (x,l) -> (x,l) | Nt _ (x,l) _ _ -> (x,l) }}
+    {{ hol TODO }}
+    {{ ocaml (assert false) }}
 
 ix_l {{ tex \ottnt{ix}^{l} }} :: '' ::=
   {{ com Location-annotated infix names }}
@@ -542,18 +547,46 @@ funcl :: '' ::=
   {{ com Location-annotated function clauses }}
   | funcl_aux l						:: :: Rec_l
 
-x_l_opt {{ tex \ottnt{id}^? }} :: 'X_l_' ::=
-  {{ com Optional name for inductively defined relation clauses }}
-  |              :: :: none
-  | x_l :        :: :: some
+name_t :: 'name_t_' ::=
+  {{ com Name or name with type for inductively defined relation clauses }}
+  | x_l	      	 :: :: name
+  | ( x_l : typ ) :: :: nt
+
+name_ts :: '' ::=
+  {{ com Names with optional types for inductively defined relation clauses }}
+  | name_t0 .. name_tn :: :: NameTs
 
 rule_aux :: '' ::=
   {{ com Inductively defined relation clauses }}
-  | x_l_opt forall x_l1 .. x_ln . exp ==> x_l exp1 .. expi	:: :: Rule
+  | x_l : forall name_t1 .. name_ti . exp ==> x_l1 exp1 .. expn	:: :: Rule
 
 rule :: '' ::=
   {{ com Location-annotated inductively defined relation clauses }}
   | rule_aux l						:: :: Rule_l
+
+witness_opt {{ tex \ottnt{witness}^? }} :: 'witness_' ::=
+  {{ com Optional witness type name declaration. Must be present for a witness type to be generated. }}  
+  |  	 	  :: :: none
+  | witness type x_l ; :: :: some
+
+check_opt {{ tex \ottnt{check}^? }} :: 'check_' ::=
+  {{ com Option check name declaration }}
+  |  	 	      :: :: none
+  | check x_l ;	      :: :: some
+
+functions_opt {{ tex \ottnt{functions}^? }} :: 'functions_' ::=
+  {{ com Optional names and types for functions to be generated. Types should use only in, out, unit, or the witness type }}
+  |  	 	  	:: :: none
+  | x_l : typ		:: :: one
+  | x_l : typ ;	functions_opt	:: :: some
+
+indreln_name_aux :: 'inderln_name_' ::=
+  {{ com Name for inductively defined relation }}
+  | [ x_l : typschm witness_opt check_opt functions_opt ] :: :: Name
+
+indreln_name :: '' ::=
+  {{ com Location-annotated name for inductively defined relations }}
+  | indreln_name_aux l	    	     		 	 :: :: Name_l
 
 parsing
 
@@ -719,7 +752,7 @@ def_aux :: '' ::=
     {{ com Opening modules }}
 %  | include id							:: :: Include
 %    {{ com Including modules }}
-  | indreln targets_opt rule1 and ... and rulen			:: :: Indreln
+  | indreln targets_opt indreln_name1 and ... and indreln_namei rule1 and ... and rulen			:: :: Indreln
     {{ com Inductively defined relations }}
   | val_spec 							:: :: Spec_def
     {{ com Top-level type constraints }}
@@ -1070,6 +1103,9 @@ E_l {{ tex \ottnt{E}^{\textsc{l} } }} :: 'E_l_' ::=		{{ phantom }}
   | { x1 |-> t1 , .. , xn |-> tn }				:: :: concrete
     {{ hol (FOLDR (\x E. E |+ x) FEMPTY [[x1 t1 .. xn tn]]) }}
     {{ lem (List.fold_right (fun (x,t) m -> Pmap.add x t m) [[x1 t1 .. xn tn]] Pmap.empty) }} 
+  | { x_l1 |-> t1 , .. , x_ln |-> tn }	    	       	    	 :: :: concrete_loc
+    {{ hol TODO }}
+    {{ lem (List.fold_right (fun ((x,l),t) m -> Pmap.add x t m) [[x_l1 t1 .. x_ln tn]] Pmap.empty) }}
   | E_l1 u+ .. u+ E_ln						:: M :: union
     {{ hol (FOLDR FUNION FEMPTY [[E_l1..E_ln]]) }}
     {{ lem (List.fold_right union_map [[E_l1..E_ln]] Pmap.empty) }}
@@ -1750,12 +1786,12 @@ by
 
 TD |- t ok
 ------------------------------------------------------------ :: wild
-TD,E,E_l |- _ : t gives {}
+TD,E,E_l |- _ : t gives :E_l_concrete: {}
 
 TD,E,E_l1 |- pat : t gives E_l2
 x NOTIN dom(E_l2)
 ------------------------------------------------------------ :: as
-TD,E,E_l1 |- (pat as x l) : t gives E_l2 u+ {x|->t}
+TD,E,E_l1 |- (pat as x l) : t gives E_l2 u+ :E_l_concrete: {x|->t}
 
 TD,E,E_l1 |- pat : t gives E_l2
 TD,E |- typ ~> t
@@ -1772,7 +1808,7 @@ TD,E,E_l |- id pat1 .. patn : p t_args gives E_l1 u+ .. u+ E_ln
 TD |- t ok
 E,E_l |- x not ctor
 ------------------------------------------------------------ :: var
-TD,E,E_l |- x l1 l2 : t gives {x|->t}
+TD,E,E_l |- x l1 l2 : t gives :E_l_concrete: {x|->t}
 
 </TD,E |- field idi : p t_args -> ti gives (xi of names) // i />
 </TD,E,E_l |- pati : ti gives E_li//i/>
@@ -1817,11 +1853,11 @@ TD,E,E_l1 |- pat1 :: pat2 : __list t gives E_l2 u+ E_l3
 
 |- lit : t
 ------------------------------------------------------------ :: lit
-TD,E,E_l |- lit : t gives {}
+TD,E,E_l |- lit : t gives :E_l_concrete: {}
 
 E,E_l |- x not ctor
 ------------------------------------------------------------ :: num_add
-TD,E,E_l |- x l + num : __num gives {x|->__num}
+TD,E,E_l |- x l + num : __num gives :E_l_concrete: {x|->__num}
 
 
 defns
@@ -1984,11 +2020,10 @@ TD,E |- typ ~> t
 ------------------------------------------------------------ :: typed
 TD,E,E_l |- (exp : typ) : t gives S_c,S_N
 
-%KATHYCOMMENT: where does E_l1 come from?
 TD,E,E_l1 |- letbind gives E_l2, S_c1,S_N1
 TD,E,E_l1 u+ E_l2 |- exp : t gives S_c2,S_N2
 ------------------------------------------------------------ :: let
-TD,E,E_l |- let letbind in exp : t gives S_c1 union S_c2,S_N1 union S_N2
+TD,E,E_l1 |- let letbind in exp : t gives S_c1 union S_c2,S_N1 union S_N2
 
 TD,E,E_l |- exp1 : t1 gives S_c1,S_N1 .... TD,E,E_l |- expn : tn gives S_cn,S_Nn
 ------------------------------------------------------------ :: tup
@@ -2007,14 +2042,12 @@ TD,E,E_l |- exp : t gives S_c,S_N
 ------------------------------------------------------------ :: begin
 TD,E,E_l |- begin exp end : t gives S_c,S_N
 
-%TODO t might need different index constraints
 TD,E,E_l |- exp1 : __bool gives S_c1,S_N1
 TD,E,E_l |- exp2 : t gives S_c2,S_N2
 TD,E,E_l |- exp3 : t gives S_c3,S_N3
 ------------------------------------------------------------ :: if
 TD,E,E_l |- if exp1 then exp2 else exp3 : t gives S_c1 union S_c2 union S_c3,S_N1 union S_N2 union S_N3
 
-%TODO t might need different index constraints
 TD,E,E_l |- exp1 : t gives S_c1,S_N1
 TD,E,E_l |- exp2 : __list t gives S_c2,S_N2
 ------------------------------------------------------------ :: cons
@@ -2026,9 +2059,9 @@ TD,E,E_l |- lit : t gives {},{}
 
 % TODO: should require that each xi actually appears free in exp1
 </TD |- ti ok//i/>
-TD,E,E_l u+ {</xi|->ti//i/>} |- exp1 : t gives S_c1,S_N1
-TD,E,E_l u+ {</xi|->ti//i/>} |- exp2 : __bool gives S_c2,S_N2
-disjoint doms(E_l, {</xi|->ti//i/>})
+TD,E,E_l u+ :E_l_concrete: {</xi|->ti//i/>} |- exp1 : t gives S_c1,S_N1
+TD,E,E_l u+ :E_l_concrete: {</xi|->ti//i/>} |- exp2 : __bool gives S_c2,S_N2
+disjoint doms(E_l, :E_l_concrete: {</xi|->ti//i/>})
 E = <E_m,E_p,E_f,E_x>
 </xi NOTIN dom(E_x)//i/>
 ------------------------------------------------------------ :: set_comp
@@ -2063,13 +2096,13 @@ TD , E , E_l1 |- qbind1 .. qbindn gives E_l2 , S_c :: :: check_listquant_binding
  by
 
 ------------------------------------------------------------ :: empty
-TD,E,E_l |- gives {},{}
+TD,E,E_l |- gives :E_l_concrete:{},{}
 
 TD |- t ok
-TD,E,E_l1 u+ {x |-> t} |- </qbindi//i/> gives E_l2,S_c1
-disjoint doms({x |-> t}, E_l2)
+TD,E,E_l1 u+ :E_l_concrete: {x |-> t} |- </qbindi//i/> gives E_l2,S_c1
+disjoint doms(:E_l_concrete: {x |-> t}, E_l2)
 ------------------------------------------------------------ :: var
-TD,E,E_l1 |- x l </qbindi//i/> gives {x |-> t} u+ E_l2,S_c1
+TD,E,E_l1 |- x l </qbindi//i/> gives :E_l_concrete: {x |-> t} u+ E_l2,S_c1
 
 TD,E,E_l1 |- pat : t gives E_l3
 TD,E,E_l1 |- exp : __set t gives S_c1,S_N1
@@ -2091,7 +2124,7 @@ TD , E , E_l1 |- list qbind1 .. qbindn gives E_l2 , S_c :: :: check_quant_bindin
  by
 
 ------------------------------------------------------------ :: empty
-TD,E,E_l |- list gives {},{}
+TD,E,E_l |- list gives :E_l_concrete:{},{}
 
 TD,E,E_l1 |- pat : t gives E_l3
 TD,E,E_l1 |- exp : __list t gives S_c1,S_N1
@@ -2139,7 +2172,7 @@ TD,E,E_l1 |- pat = exp l gives E_l2,S_c,S_N
 
 :check_funcl:TD,E,E_l1 |- funcl_aux l gives {x|->t},S_c,S_N
 ------------------------------------------------------------ :: fn
-TD,E,E_l1 |- funcl_aux l gives {x|->t},S_c,S_N
+TD,E,E_l1 |- funcl_aux l gives :E_l_concrete: {x|->t},S_c,S_N
 
 defns
 check_rule :: '' ::=
@@ -2150,11 +2183,11 @@ TD , E , E_l |- rule gives { x |-> t } , S_c , S_N :: :: check_rule :: check_rul
 by
 
 </TD |- ti ok//i/>
-E_l2 = {</yi|->ti//i/>} 
+E_l2 = {</name_ti->x|->ti//i/>} 
 TD,E,E_l1 u+ E_l2 |- exp' : __bool gives S_c',S_N'
 TD,E,E_l1 u+ E_l2 |- exp1 : u1 gives S_c1,S_N1 .. TD,E,E_l1 u+ E_l2 |- expn : un gives S_cn,S_Nn
 ------------------------------------------------------------ :: rule
-TD,E,E_l1 |- x_l_opt forall </yi li//i/> . exp' ==> x l exp1 .. expn l' gives {x|->curry((u1 * .. * un) , __bool)}, S_c' union S_c1 union .. union S_cn,S_N' union S_N1 union .. union S_Nn
+TD,E,E_l1 |- x_l1 : forall </name_ti//i/> . exp' ==> x l exp1 .. expn l' gives {x|->curry((u1 * .. * un) , __bool)}, S_c' union S_c1 union .. union S_cn,S_N' union S_N1 union .. union S_Nn
 
 defns
 check_texp_tc :: '' ::=
@@ -2304,7 +2337,7 @@ TD , I , E |- val_def gives E_x :: :: check_val_def :: check_val_def_
 {{ com Check a value definition }}
 by
 
-TD,E,{} |- letbind gives {</xi|->ti//i/>},S_c,S_N
+TD,E,:E_l_concrete: {} |- letbind gives :E_l_concrete: {</xi|->ti//i/>},S_c,S_N
 %TODO, check S_N constraints
 I |- S_c gives semC
 </FV(ti) SUBSET tnvs//i/>
@@ -2317,7 +2350,7 @@ I |- S_c gives semC
 </FV(ti) SUBSET tnvs//i/>
 FV(semC) SUBSET tnvs
 compatible overlap(</xi|->ti//i/>)
-E_l = {</xi|->ti//i/>}
+E_l = :E_l_concrete: {</xi|->ti//i/>}
 ------------------------------------------------------------ :: recfun
 TD,I,E |- let rec targets_opt </funcli//i/> gives {</xi|-><forall tnvs. semC => ti,let>//i/>}
 
@@ -2363,15 +2396,15 @@ TD,I,E |- val_def gives E_x
 </zj//j/>,<TD,TC,I>,E |- val_def l gives empty,<{},{},{},E_x>
 
 </TD,E1,E_l |- rulei gives {xi|->ti},S_ci,S_Ni//i/>
-%TODO Check S_N constraints
+%TODO Check S_N constraints Check indreln_names
 I |- </S_ci//i/> gives semC
 </FV(ti) SUBSET tnvs//i/>
 FV(semC) SUBSET tnvs
 compatible overlap(</xi|->ti//i/>)
-E_l = {</xi|->ti//i/>}
+E_l = :E_l_concrete: {</xi|->ti//i/>}
 E2 = <{},{},{},{</xi |-><forall tnvs. semC => ti,let>//i/>}>
 ------------------------------------------------------------ :: indreln
-</zj//j/>,<TD,TC,I>,E1 |- indreln targets_opt </rulei//i/> l gives empty,E2
+</zj//j/>,<TD,TC,I>,E1 |- indreln targets_opt indreln_names </rulei//i/> l gives empty,E2
 
 </zj//j/> x,D1,E1 |- defs gives D2,E2
 ------------------------------------------------------------ :: module

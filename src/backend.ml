@@ -251,10 +251,13 @@ module type Target = sig
   val reln_start : t
   val reln_end : t
   val reln_sep : t
+  val reln_name_start : t
+  val reln_name_end : t
   val reln_clause_start : t
   val reln_clause_quant : t
   val reln_clause_show_empty_quant : bool
   val reln_clause_show_name : bool
+  val reln_clause_quote_name : bool
   val reln_clause_add_paren : bool
   val reln_clause_end : t
 
@@ -462,9 +465,12 @@ module Identity : Target = struct
   let reln_start = kwd "indreln"
   let reln_end = emp
   let reln_sep = kwd "and"
+  let reln_name_start = kwd "["
+  let reln_name_end = kwd "]"
   let reln_clause_quant = kwd "forall"
   let reln_clause_show_empty_quant = true
-  let reln_clause_show_name = false
+  let reln_clause_show_name = true
+  let reln_clause_quote_name = false
   let reln_clause_add_paren = false
   let reln_clause_start = emp
   let reln_clause_end = emp
@@ -513,7 +519,8 @@ module Html : Target = struct
   let setcomp_binding_start = kwd "&forall;"
   let reln_clause_quant = kwd "&forall;"
   let reln_clause_show_empty_quant = true
-  let reln_clause_show_name = false
+  let reln_clause_show_name = true
+  let reln_clause_quote_name = false
   let reln_clause_add_paren = false
   let reln_clause_start = emp
 
@@ -657,10 +664,13 @@ module Tex : Target = struct
   let reln_start = tkwdl "indreln"
   let reln_end = emp
   let reln_sep = tkwdm "and"
+  let reln_name_start = kwd "["
+  let reln_name_end = kwd "]"
   let reln_clause_start = emp
   let reln_clause_quant = kwd "\\forall"
   let reln_clause_show_empty_quant = true
-  let reln_clause_show_name = false
+  let reln_clause_show_name = true
+  let reln_clause_quote_name = false
   let reln_clause_add_paren = false
   let reln_clause_end = emp
 
@@ -861,10 +871,13 @@ module Isa : Target = struct
   let reln_start = kwd "inductive"
   let reln_end = emp
   let reln_sep = kwd "|"
+  let reln_name_start = emp (*TODO Indreln fix up for isabelle*)
+  let reln_name_end = emp
   let reln_clause_start = kwd "\""
   let reln_clause_quant = kwd "!!"
   let reln_clause_show_empty_quant = false
   let reln_clause_show_name = true
+  let reln_clause_quote_name = true
   let reln_clause_add_paren = false
   let reln_clause_end = kwd "\""
 
@@ -1063,10 +1076,13 @@ module Hol : Target = struct
   let reln_start = meta "val _ = Hol_reln `"
   let reln_end = meta "`;"
   let reln_sep = kwd "/\\"
+  let reln_name_start = emp (*TODO Inderln fixup for Hol*)
+  let reln_name_end = emp
   let reln_clause_start = kwd "("
   let reln_clause_quant = kwd "!"
   let reln_clause_show_empty_quant = false
   let reln_clause_show_name = false
+  let reln_clause_quote_name = false
   let reln_clause_add_paren = true
   let reln_clause_end = kwd ")"
 
@@ -2225,17 +2241,60 @@ let tdef ((n,l), tvs, texp, regexp) =
                                                 | Tn_N (x, y, z) -> kwd (Ulib.Text.to_string y))) tvs in
     tdef_tctor false tvs n regexp ^ tyexp true n' tvs' texp 
 
-let indreln_clause (name_opt, s1, qnames, s2, e_opt, s3, rname, es) =
+let range = function
+  | GtEq(_,n1,s,n2) -> nexp n1 ^ ws s ^ kwd ">=" ^ nexp n2
+  | Eq(_,n1,s,n2) -> nexp n1 ^ ws s ^ kwd "=" ^ nexp n2
+
+let constraints = function
+  | None -> emp
+  | Some(Cs_list(l_c,op_s,l_r,s)) ->
+      flat (Seplist.to_sep_list
+              (fun (id,tv) ->
+                 Ident.to_output T.infix_op_format Type_var T.path_sep id ^
+                 tyvar tv)
+              (sep (kwd","))
+              l_c) ^
+      (match op_s with
+        | None -> emp
+        | Some s1 -> ws s1 ^ kwd ";") ^
+      flat (Seplist.to_sep_list range (sep (kwd",")) l_r) ^
+      ws s ^
+      kwd "=>"
+
+let constraint_prefix (Cp_forall(s1,tvs,s2,constrs)) =
+  ws s1 ^
+  T.forall ^
+  flat (List.map tyvar tvs) ^
+  ws s2 ^
+  kwd "." ^
+  constraints constrs
+
+let indreln_name (RName(s1,name,s2,(constraint_pre,t),witness,checks,functions,s3)) =
+  ws s1 ^
+  T.reln_name_start ^ 
+  (Name.to_output T.infix_op_format Term_method name) ^ ws s2 ^
+  T.typ_sep ^
+      begin
+        match constraint_pre with
+          | None -> emp
+          | Some(cp) -> constraint_prefix cp
+      end ^
+      typ t ^  
+  ws s3 ^
+  T.reln_name_end
+
+let indreln_clause (Rule(name, s0, s1, qnames, s2, e_opt, s3, rname, es)) =
   (if T.reln_clause_show_name then (
-    (match name_opt with None -> emp | Some name ->
-      Name.to_output_quoted T.infix_op_format Term_method name ^
+    ((if T.reln_clause_quote_name then Name.to_output_quoted else Name.to_output) T.infix_op_format Term_method name ^
+      ws s0 ^
       kwd ":"
     )
   ) else emp) ^
   ws s1 ^ T.reln_clause_start ^
+  (*Indreln TODO does not print format annotated variables with their types find*)
   (if (T.reln_clause_show_empty_quant || List.length qnames > 0) then (
     T.reln_clause_quant ^
-    flat (interspace (List.map (fun n -> Name.to_output T.infix_op_format Term_var n.term) qnames)) ^
+    flat (interspace (List.map (fun (QName n) -> Name.to_output T.infix_op_format Term_var n.term) qnames)) ^
     ws s2 ^ 
     kwd "."
   ) else emp) ^
@@ -2312,7 +2371,7 @@ let isa_funcl_header_seplist clause_sl =
 
 let isa_funcl_header_indrel_seplist clause_sl =
   let clauseL = Seplist.to_list clause_sl in
-  let (_, clauseL_filter) = List.fold_left (fun (ns, acc) (_, _, _, _, _, _, rname, _) ->
+  let (_, clauseL_filter) = List.fold_left (fun (ns, acc) (Rule(_,_, _, _, _, _, _, rname, _)) ->
       let n = Name.strip_lskip rname.term in 
       if NameSet.mem n ns then (ns, acc) else (NameSet.add n ns, rname :: acc)) (NameSet.empty, []) clauseL in
   let headerL = List.map (fun rname -> 
@@ -2340,33 +2399,6 @@ let isa_letbind simple (lb, _) : Output.t = match lb with
 
 (******* End Isabelle ********)
 
-let range = function
-  | GtEq(_,n1,s,n2) -> nexp n1 ^ ws s ^ kwd ">=" ^ nexp n2
-  | Eq(_,n1,s,n2) -> nexp n1 ^ ws s ^ kwd "=" ^ nexp n2
-
-let constraints = function
-  | None -> emp
-  | Some(Cs_list(l_c,op_s,l_r,s)) ->
-      flat (Seplist.to_sep_list
-              (fun (id,tv) ->
-                 Ident.to_output T.infix_op_format Type_var T.path_sep id ^
-                 tyvar tv)
-              (sep (kwd","))
-              l_c) ^
-      (match op_s with
-        | None -> emp
-        | Some s1 -> ws s1 ^ kwd ";") ^
-      flat (Seplist.to_sep_list range (sep (kwd",")) l_r) ^
-      ws s ^
-      kwd "=>"
-
-let constraint_prefix (Cp_forall(s1,tvs,s2,constrs)) =
-  ws s1 ^
-  T.forall ^
-  flat (List.map tyvar tvs) ^
-  ws s2 ^
-  kwd "." ^
-  constraints constrs
 
 let rec hol_strip_args_n type_names n ts =
   match type_names with
@@ -2723,7 +2755,7 @@ let rec def d is_user_def : Output.t = match d with
       ws s ^
       T.module_open ^
       Ident.to_output T.infix_op_format Module_name T.path_sep (resolve_ident_path m m.descr.mod_binding)
-  | Indreln(s,targets,clauses) ->
+  | Indreln(s,targets,names,clauses) ->
       if in_target targets then
         ws s ^
         T.reln_start ^
@@ -2731,6 +2763,7 @@ let rec def d is_user_def : Output.t = match d with
            targets_opt targets 
          else
            emp) ^
+        flat (Seplist.to_sep_list indreln_name (sep T.reln_sep) names) ^
         flat (Seplist.to_sep_list indreln_clause (sep T.reln_sep) clauses) ^
         T.reln_end
       else
@@ -3196,7 +3229,8 @@ and isa_def d is_user_def : Output.t = match d with
   | Val_spec(s1,(n,l),s2,t) ->
       raise (Reporting_basic.err_todo false l "Isabelle: Top-level type constraints omited; should not occur at the moment")
 
-  | Indreln(s,targets,clauses) ->
+  (* TODO INDRELN THe names should be output *)
+  | Indreln(s,targets,names,clauses) ->
       if in_target targets then
         ws s ^
         T.reln_start ^

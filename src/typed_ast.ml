@@ -265,7 +265,16 @@ and val_descr =
 and v_env = val_descr Nfmap.t
 and f_env = field_descr Nfmap.t
 and m_env = mod_descr Nfmap.t
-and env = { m_env : m_env; p_env : p_env; f_env : f_env; v_env : v_env; }
+and input_or_output = I | O
+and mode = input_or_output list
+and r_info = {
+  ri_witness : (Path.t * constr_descr Nfmap.t) option;
+  ri_check : Path.t option;
+  ri_fns : ((mode * bool) * Path.t) list
+}
+and r_env = r_info Nfmap.t
+and env = { m_env : m_env; p_env : p_env; f_env : f_env; v_env : v_env;
+            r_env : r_env }
 
 (* free_env represents the free variables in expression, with their types *)
 and free_env = t Nfmap.t
@@ -396,6 +405,16 @@ type inst_sem_info =
 
 type name_sect = Name_restrict of (lskips * name_l * lskips * lskips * string * lskips)
 
+type rule_quant_name = 
+  | QName of name_lskips_annot
+  | Name_typ of lskips * name_lskips_annot * lskips * src_t * lskips
+
+type rule = Rule of Name.lskips_t * lskips * lskips * rule_quant_name list * lskips * exp option * lskips * name_lskips_annot * exp list
+
+type witness = Witness of lskips * lskips * Name.lskips_t * lskips
+type indfn = Fn of Name.lskips_t * lskips * src_t * lskips option
+type indrel_name = RName of lskips* Name.lskips_t * lskips * typschm * (witness option) * ((lskips*Name.lskips_t*lskips) option) * (indfn list) option * lskips
+
 type def = (def_aux * lskips option) * Ast.l
 
 and def_aux =
@@ -406,8 +425,7 @@ and def_aux =
   | Module of lskips * name_l * lskips * lskips * def list * lskips
   | Rename of lskips * name_l * lskips * mod_descr id
   | Open of lskips * mod_descr id
-  | Indreln of lskips * targets_opt * 
-               (Name.lskips_t option * lskips * name_lskips_annot list * lskips * exp option * lskips * name_lskips_annot * exp list) lskips_seplist
+  | Indreln of lskips * targets_opt * indrel_name lskips_seplist * rule lskips_seplist
   | Val_spec of val_spec
   | Class of lskips * lskips * name_l * tnvar * lskips * class_val_spec list * lskips
   (* The v_env, name and Path/tyvar list are for converting the instance into a module. *)
@@ -421,7 +439,8 @@ let tnvar_to_types_tnvar tnvar =
 
 let empty_env = { m_env = Nfmap.empty;
                   p_env = Nfmap.empty;
-                  f_env = Nfmap.empty; 
+                  f_env = Nfmap.empty;
+                  r_env = Nfmap.empty;
                   v_env = Nfmap.empty; }
 
 (* Applies lskips_f to the leftmost lskips in p, replacing it with lskips_f's
@@ -703,9 +722,9 @@ let rec def_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (((d,s),l) 
       | Open(sk,m) ->
           let (s_new, s_ret) = lskips_f sk in
             res (Open(s_new,m)) s_ret
-      | Indreln(sk,topt,rules) ->
+      | Indreln(sk,topt,names,rules) ->
           let (s_new, s_ret) = lskips_f sk in
-            res (Indreln(s_new,topt,rules)) s_ret
+            res (Indreln(s_new,topt,names,rules)) s_ret
       | Val_spec(sk1,n,sk2,ts) ->
           let (s_new, s_ret) = lskips_f sk1 in
             res (Val_spec(s_new,n,sk2,ts)) s_ret
@@ -924,6 +943,8 @@ module Exps_in_context(D : Exp_context) = struct
       check_typ l "mk_pconstr" t 
         (fun d -> { t = Tapp(c.instantiation, c.descr.constr_tconstr) })
     in
+    if List.length ps <> List.length c.descr.constr_args
+    then raise (Ident.No_type(l, "wrong number of arguments for constructor"));
     if check then
       begin
         let subst = TNfmap.from_list2 c.descr.constr_tparams c.instantiation in
@@ -2316,6 +2337,7 @@ let env_union e1 e2 =
   { m_env = Nfmap.union e1.m_env e2.m_env;
     p_env = Nfmap.union e1.p_env e2.p_env;
     v_env = Nfmap.union e1.v_env e2.v_env; 
+    r_env = Nfmap.union e1.r_env e2.r_env;
     f_env = Nfmap.union e1.f_env e2.f_env }
 
 let delimit_pat (c : P.pat_context) (p : pat) : pat =
@@ -2515,6 +2537,7 @@ let resolve_ident_path id path : Ident.t =
       | Id_none sk -> 
           let (mod_names, name) = Path.to_name_list path in
           let mod_names' = List.map (fun mn -> (Name.add_lskip mn, None)) (fix_mod_path mod_names) in
+          let mod_names' = [] in
             Ident.replace_first_lskip (Ident.mk_ident mod_names' (Name.add_lskip name) id.id_locn) sk
       | Id_some id -> id
   in

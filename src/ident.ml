@@ -139,7 +139,7 @@ let replace_first_lskip ((sk,ns,n):t) s =
 
 let get_first_lskip ((sk,ns,n):t) =
   sk
-                  
+
 let get_prec gp (sk,l,i) =
   if l = [] then
     Name.get_prec gp i

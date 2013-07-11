@@ -275,15 +275,15 @@ struct
                   Ctxt.push_subst (Types.TNfmap.empty, Nfmap.empty) ps e
                 in
                   Val_def(Let_def(s1,topt,(Let_fun(n,ps,t,s2,e),l)),tnvs,class_constraints)
-            | Indreln(s1,topt,clauses) ->
+            | Indreln(s1,topt,names,clauses) ->
                 let clauses =
                   Seplist.map
-                    (fun (name_opt,s1,ns,s2,e,s3,n,es) ->
+                    (fun (Rule(name,s0,s1,ns,s2,e,s3,n,es)) ->
                        (* TODO: rename to avoid conflicts *)
-                       (name_opt,s1,ns,s2,e,s3,n,es))
+                       Rule(name,s0,s1,ns,s2,e,s3,n,es))
                     clauses
                 in
-                  Indreln(s1,topt,clauses)      
+                  Indreln(s1,topt,names,clauses)      
             | d -> d
         in
           ((d,lex_skips),l)
@@ -297,6 +297,16 @@ struct
     let module Ctxt = struct let avoid = None let check = Some(C.d) end in
     let module M = Macro_expander.Expander(Ctxt) in
     let (defs, end_lex_skips) = m.typed_ast in
+    let module Conv = Convert_relations.Converter(Ctxt) in
+    let indreln_macros = 
+      [
+        Def_macros (fun env -> [
+        Conv.gen_witness_type_macro env;
+        Conv.gen_witness_check_macro env;
+        Conv.gen_fns_macro env; ]); 
+      ]
+    in
+    let params = {params with macros = indreln_macros @ params.macros } in
     let module_name = Name.from_rope (Ulib.Text.of_latin1 m.module_name) in
     (* TODO: Move this to a definition macro, and remove the targ argument *)
     let defs =

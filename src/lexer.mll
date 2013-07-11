@@ -93,6 +93,8 @@ let kw_table =
      ("assert",                  (fun x -> Assert(x)));
      ("theorem",                 (fun x -> Theorem(x)));
      ("do",                      (fun x -> Do(x)));
+     ("witness",		 (fun x -> Witness(x)));
+     ("check",			 (fun x -> Check(x)));
 ]
 
 }

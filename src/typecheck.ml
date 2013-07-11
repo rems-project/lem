@@ -36,6 +36,7 @@
 (*  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE    *)
 (*  ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY       *)
 (*  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL    *)
+
 (*  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE     *)
 (*  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS         *)
 (*  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER  *)
@@ -47,6 +48,7 @@
 open Format
 open Types
 open Typed_ast
+open Typecheck_ctxt
 
 let raise_error = Ident.raise_error
 
@@ -62,14 +64,6 @@ module NamelSet = Set.Make(Namel)
 
 module DupNames = Util.Duplicate(NamelSet)
 module DupTvs = Util.Duplicate(TNset)
-
-type pat_env = (t * Ast.l) Nfmap.t
-let empty_pat_env = Nfmap.empty
-
-(* Non-top level binders map to a type, not a type scheme, method or constructor
- * *) 
-type lex_env = (t * Ast.l) Nfmap.t
-let empty_lex_env = Nfmap.empty
 
 let annot_name n l env = 
   { term = n;
@@ -257,6 +251,74 @@ let rec typ_to_src_t (wild_f : Ast.l -> lskips -> src_t)
           typ = {t = Tne(nexp'.nt);};
           rest=(); }
 
+(*Permits only in, out, and the type of the witness, and enforces that it otherwise matches the relation type *)
+let typ_to_src_t_indreln wit (d : type_defs) (e : env) (typt : Types.t) typ : src_t =
+  let rec compare (fun_ok : bool) (last_res : bool) (typt : Types.t) (Ast.Typ_l(typ,l)) =
+    match typ, typt.t , fun_ok , last_res with
+      | Ast.Typ_wild _,_,_,_ | Ast.Typ_var _,_,_,_ | Ast.Typ_tup _,_,_,_ | Ast.Typ_Nexps _,_ ,_,_ ->
+	raise (Ident.No_type(l,"Only functions and type constructors can occur in indrel function specifications"))
+      | Ast.Typ_fn _, _, false, _->
+	raise (Ident.No_type(l,"Only type constructors can occur here in indrel function specifications"))
+      | Ast.Typ_fn(typ1, sk, typ2) , Tfn(t1,t2), true , false -> 
+          let st1 = compare false false t1 typ1 in
+          let lst = (match t2.t with | Tfn _ -> false | _ -> true) in
+          let st2 = compare true lst t2 typ2 in
+            { term = Typ_fn(st1, sk, st2);
+              locn = l; 
+              typ = { t = Tfn(st1.typ,st2.typ) };
+              rest = (); }
+      | Ast.Typ_app(i,typs), Tfn(t1,t2), true, true -> compare false true t1 (Ast.Typ_l(typ,l))
+      | Ast.Typ_app(i,typs), Tapp([],p),_,lst->
+         (match i,typs with
+           | _,x::xs ->raise_error l "Types in indrel function specifications cannot have arguments" Ident.pp (Ident.from_id i)
+           | Ast.Id(path,xl,l0),[] -> 
+             let n_init = Name.strip_lskip (Name.from_x xl) in
+             let p = 
+	        (match (Name.to_string n_init) with
+		| "input" | "out" ->  Path.mk_path [] n_init
+		| other -> if lst then
+		    let p = lookup_p "constructor" e i in
+		    begin
+		      match Pfmap.apply d p with
+		      | None -> assert false
+		      | Some(Tc_type([],_,_)) -> p 
+                      | Some(Tc_type(pre,_,_)) -> 
+			raise_error l "Invalid type constructor for indrel function specification" Ident.pp (Ident.from_id i)
+		      | Some(Tc_class _) ->
+			raise_error l "type class used as type constructor" 
+			  Ident.pp (Ident.from_id i)
+		    end 
+		  else raise_error l "only in or out may be used here" Ident.pp (Ident.from_id i)) in
+	     let id = {id_path = Id_some (Ident.from_id i); 
+		       id_locn = l0;
+		       descr = p;
+		       instantiation = []; }
+             in
+             (match lst,wit with
+	     | (true,None) ->
+	       if (((Path.compare p Path.boolpath)=0) || ((Path.compare p Path.unitpath)=0))
+	       then ()
+	       else raise_error l "Last type in indrel function specifications must be bool or unit" Path.pp p
+	     | (true,Some(wit_p)) ->
+	       if (((Path.compare p Path.boolpath)=0) || ((Path.compare p Path.unitpath)=0) || ((Path.compare p wit_p)=0))
+	       then ()
+	       else raise_error l "Last type in indrel function specifications must be bool, unit, or the witness" Path.pp p
+	     | (false,_) -> ());
+	     { term = Typ_app(id,[]);
+               locn = l;
+               typ = { t = Tapp([],p) };
+               rest = (); })
+      | Ast.Typ_paren(sk1,typ,sk2), _,_,_ ->
+        let st = compare fun_ok last_res typt typ in
+        { term = Typ_paren(sk1,st,sk2); 
+          locn = l; 
+          typ = st.typ; 
+          rest = (); }
+      | _,_,_,_ -> raise (Ident.No_type(l,"Type of indrel function specification must match indrel type"))
+  in
+  compare true false typt typ
+
+
 (* Corresponds to judgment check_lit '|- lit : t' *)
 let check_lit (Ast.Lit_l(lit,l)) =
   let annot (lit : lit_aux) (t : t) : lit = 
@@ -318,6 +380,169 @@ let check_dup_field_names (fns : (Name.t * Ast.l) list) : unit =
                  c.const_tparams,
                c.const_type)
 
+(* Finds a type class's path, and its methods, in the current enviroment, given
+ * its name. *)
+let lookup_class_p (ctxt : defn_ctxt) (id : Ast.id) : Path.t * Types.tnvar * (Name.t * t) list = 
+  let p = lookup_p "class" ctxt.cur_env id in
+    match Pfmap.apply ctxt.all_tdefs p with
+      | None -> assert false
+      | Some(Tc_class(tv,methods)) -> (p, tv,methods)
+      | Some(Tc_type _) ->
+          raise_error (match id with Ast.Id(_,_,l) -> l)
+            "type constructor used as type class" Ident.pp (Ident.from_id id)
+
+let tnvar_to_flat (tnvar : Ast.tnvar) : Typed_ast.tnvar =
+  match tnvar with
+    | (Ast.Avl(Ast.A_l((sk,tv),l))) -> Tn_A(sk,tv,l)
+    | (Ast.Nvl(Ast.N_l((sk,nv),l))) -> Tn_N(sk,nv,l)
+
+let tnvar_to_tnvar2 (tnvar:Ast.tnvar) =
+   match tnvar with
+    | (Ast.Avl(Ast.A_l((sk,tv),l))) -> (Ty(Tyvar.from_rope tv),l)
+    | (Ast.Nvl(Ast.N_l((sk,nv),l))) -> (Nv(Nvar.from_rope nv),l)
+
+let tvs_to_set (tvs : (Types.tnvar * Ast.l) list) : TNset.t =
+  match DupTvs.duplicates (List.map fst tvs) with
+    | DupTvs.Has_dups(tv) ->
+        let (tv',l) = 
+          List.find (fun (tv',_) -> TNvar.compare tv tv' = 0) tvs
+        in
+          raise_error l "duplicate type variable" TNvar.pp tv'
+    | DupTvs.No_dups(tvs_set) ->
+        tvs_set
+
+let anon_error l = 
+  raise (Ident.No_type(l, "anonymous types not permitted here: _"))
+
+let rec check_free_tvs (tvs : TNset.t) (Ast.Typ_l(t,l)) : unit =
+  match t with
+    | Ast.Typ_wild _ ->
+        anon_error l
+    | Ast.Typ_var(Ast.A_l((t,x),l)) ->
+       if TNset.mem (Ty (Tyvar.from_rope x)) tvs then
+        ()
+       else
+        raise_error l "unbound type variable" 
+          Tyvar.pp (Tyvar.from_rope x)
+    | Ast.Typ_fn(t1,_,t2) -> 
+        check_free_tvs tvs t1; check_free_tvs tvs t2
+    | Ast.Typ_tup(ts) -> 
+        List.iter (check_free_tvs tvs) (List.map fst ts)
+    | Ast.Typ_Nexps(n) -> check_free_ns tvs n
+    | Ast.Typ_app(_,ts) -> 
+        List.iter (check_free_tvs tvs) ts
+    | Ast.Typ_paren(_,t,_) -> 
+        check_free_tvs tvs t
+and check_free_ns (nvs: TNset.t) (Ast.Length_l(nexp,l)) : unit =
+  match nexp with
+   | Ast.Nexp_var((_,x)) ->
+       if TNset.mem (Nv (Nvar.from_rope x)) nvs then
+        ()
+       else
+        raise_error l "unbound length variable" Nvar.pp (Nvar.from_rope x)
+   | Ast.Nexp_constant _ -> ()
+   | Ast.Nexp_sum(n1,_,n2) | Ast.Nexp_times(n1,_,n2) -> check_free_ns nvs n1 ; check_free_ns nvs n2
+   | Ast.Nexp_paren(_,n,_) -> check_free_ns nvs n
+
+(* Process the "forall 'a. (C 'a) =>" part of a type,  Returns the bound
+ * variables both as a list and as a set *)
+let check_constraint_prefix (ctxt : defn_ctxt) 
+      : Ast.c_pre -> 
+        constraint_prefix option * 
+        Types.tnvar list * 
+        TNset.t * 
+        ((Path.t * Types.tnvar) list * Types.range list) =
+  let check_class_constraints c env =
+   List.map
+    (fun (Ast.C(id, tnv),sk) ->
+    let tnv' = tnvar_to_flat tnv in
+    let (tnv'',l) = tnvar_to_tnvar2 tnv in
+    let (p,_,_) = lookup_class_p ctxt id in
+    begin
+      if TNset.mem tnv'' env then
+         ()
+      else
+         raise_error l "unbound type variable" pp_tnvar tnv''
+    end;
+      (((Ident.from_id id, tnv'), sk),
+       (p, tnv'')))
+    c
+  in
+  let check_range_constraints rs env =
+   List.map (fun (Ast.Range_l(r,l),sk) -> 
+      match r with
+       | Ast.Bounded(n1,sk1,n2) -> 
+         let n1,n2 = nexp_to_src_nexp ignore n1, nexp_to_src_nexp ignore n2 in
+         ((GtEq(l,n1,sk1,n2),sk),mk_gt_than l n1.nt n2.nt)
+       | Ast.Fixed(n1,sk1,n2) -> 
+         let n1,n2 = nexp_to_src_nexp ignore n1, nexp_to_src_nexp ignore n2 in
+         ((Eq(l,n1,sk1,n2),sk),mk_eq_to l n1.nt n2.nt))
+   rs
+  in                        
+  function
+    | Ast.C_pre_empty ->
+        (None, [], TNset.empty, ([],[]))
+    | Ast.C_pre_forall(sk1,tvs,sk2,Ast.Cs_empty) ->
+        let tnvars = List.map tnvar_to_tnvar2 tvs in
+          (Some(Cp_forall(sk1, 
+                          List.map tnvar_to_flat tvs, 
+                          sk2, 
+                          None)),  
+           List.map fst tnvars,
+           tvs_to_set (List.map (fun tn -> tnvar_to_types_tnvar (tnvar_to_flat tn)) tvs),
+           ([],[]))
+    | Ast.C_pre_forall(sk1,tvs,sk2,crs) ->
+        let tyvars = List.map tnvar_to_tnvar2 tvs in
+        let tnvarset = tvs_to_set tyvars in
+        let (c,sk3,r,sk4) = match crs with 
+                             | Ast.Cs_empty -> assert false
+                             | Ast.Cs_classes(c,sk3) -> c,None,[],sk3
+                             | Ast.Cs_lengths(r,sk3) -> [], None, r, sk3
+                             | Ast.Cs_both(c,sk3,r,sk4) -> c, Some sk3, r, sk4 in
+        let constraints = 
+          let cs = check_class_constraints c tnvarset in
+          let rs = check_range_constraints r tnvarset in
+            (Cs_list(Seplist.from_list (List.map fst cs),sk3,Seplist.from_list (List.map fst rs),sk4), (List.map snd cs, List.map snd rs))
+        in
+          (Some(Cp_forall(sk1, 
+                          List.map tnvar_to_flat tvs, 
+                          sk2, 
+                          Some(fst constraints))),
+           List.map fst tyvars,
+           tnvarset,
+           snd constraints)
+
+(* Update the new and cumulative environment with new
+ * function/value/module/field/path definitions according to set and select *)
+let ctxt_add (select : env -> 'a Nfmap.t) (set : env -> 'a Nfmap.t -> env) 
+      (ctxt : defn_ctxt) (m : Name.t * 'a)
+      : defn_ctxt =
+  { ctxt with 
+        cur_env = set ctxt.cur_env (Nfmap.insert (select ctxt.cur_env) m);
+        new_defs = set ctxt.new_defs (Nfmap.insert (select ctxt.new_defs) m); } 
+
+(* Update new and cumulative enviroments with a new module definition, after
+ * first checking that its name doesn't clash with another module definition in
+ * the same definition sequence.  It can have the same name as another module
+ * globally. *)
+let add_m_to_ctxt (l : Ast.l) (ctxt : defn_ctxt) (k : Name.lskips_t) (v : mod_descr)
+      : defn_ctxt = 
+  let k = Name.strip_lskip k in
+    if Nfmap.in_dom k ctxt.new_defs.m_env then
+      raise_error l "duplicate module definition" Name.pp k
+    else
+      ctxt_add 
+        (fun x -> x.m_env) 
+        (fun x y -> { x with m_env = y }) 
+        ctxt 
+        (k,v)
+
+(* Add a new type definition to the global and local contexts *)
+let add_d_to_ctxt (ctxt : defn_ctxt) (p : Path.t) (d : tc_def) =
+  { ctxt with all_tdefs = Pfmap.insert ctxt.all_tdefs (p,d);
+              new_tdefs = Pfmap.insert ctxt.new_tdefs (p,d) }
+
+
 (* We split the environment between top-level and lexically nested binders, and
  * inside of expressions, only the lexical environment can be extended, we
  * parameterize the entire expression-level checking apparatus over the
@@ -359,12 +584,17 @@ module type Expr_checker = sig
   (* As in the comments on check letbind above, but cannot be an instance
    * method definition *)
   val check_indrels : 
+    defn_ctxt ->
+    Name.t list -> 
     Targetset.t option ->
     Ast.l ->
+    (Ast.indreln_name * lskips) list ->
     (Ast.rule * lskips) list -> 
-    (Name.lskips_t option * lskips * name_lskips_annot list * lskips * exp option * lskips * name_lskips_annot * exp list) lskips_seplist * 
+    indrel_name lskips_seplist *
+    rule lskips_seplist * 
     pat_env *
     typ_constraints
+
 end
 
 module Make_checker(T : sig 
@@ -1373,37 +1603,74 @@ module Make_checker(T : sig
       in
         (funcls, env, apply_specs for_method def_targets l env)
 
+
   (* See Expr_checker signature above *)
-  let check_indrels (def_targets : Targetset.t option) l clauses =
+  let check_indrels (ctxt : defn_ctxt) (mod_path : Name.t list) (def_targets : Targetset.t option) l names clauses =
     let rec_env =
       List.fold_left
-        (fun l_e (Ast.Rule_l(Ast.Rule(_,_,_,_,_,_,xl,_), _), _) ->
-           let n = Name.strip_lskip (Name.from_x xl) in
-             if Nfmap.in_dom n l_e then
-               l_e
-             else
-               add_binding l_e (xl_to_nl xl) (C.new_type ()))
-        empty_lex_env
-        clauses
+        (fun l_e (Ast.Name_l (Ast.Inderln_name_Name(_,x_l,_,_,_,_,_,_),_),_) ->
+          let n = Name.strip_lskip (Name.from_x x_l) in
+              if Nfmap.in_dom n l_e then 
+                assert false (* TODO Make this an error of duplicate definitions *)
+              else
+                add_binding l_e (xl_to_nl x_l) (C.new_type ())) 
+         empty_lex_env
+         names
+    in
+    let names = Seplist.from_list names in
+    let n = 
+      Seplist.map 
+         (fun (Ast.Name_l(Ast.Inderln_name_Name(s0,xl,s1,Ast.Ts(cp,typ),witness_opt,check_opt,functions_opt,s2), l1)) ->
+            let (src_cp, tyvars, tnvarset, (sem_cp,sem_rp)) = check_constraint_prefix ctxt cp in 
+            let () = check_free_tvs tnvarset typ in
+            let src_t = typ_to_src_t anon_error ignore ignore ctxt.all_tdefs ctxt.cur_env typ in
+            let r_t = src_t.typ in
+            (* Todo add checks and processing of witness_opt, check_opt, and funcitons_opt *)
+            let witness,wit_path,ctxt  = (match witness_opt with
+                            | Ast.Witness_none -> None,None,ctxt
+                            | Ast.Witness_some (s0,s1,xl,s2) -> 
+                              let n = Name.from_x xl in
+                              let tn = Name.strip_lskip n in
+                              let type_path = Path.mk_path mod_path tn in
+                              let new_ctxt = ctxt_add 
+                                    (fun x -> x.p_env) 
+                                    (fun x y -> { x with p_env = y })
+                                    ctxt 
+                                    (tn, (type_path, (Ast.xl_to_l xl))) in
+                              Some( Witness(s0,s1,n,s2)), 
+                                    Some type_path, 
+                                    add_d_to_ctxt new_ctxt type_path (Tc_type ([],None,None))) in
+            let check = (match check_opt with 
+                            | Ast.Check_none -> None
+                            | Ast.Check_some(s0,xl,s1) -> Some(s0,Name.from_x xl,s1)) in
+            let to_src_t = typ_to_src_t_indreln wit_path ctxt.all_tdefs ctxt.cur_env r_t in
+            let rec mk_functions fo =
+                match fo with
+                  | Ast.Functions_none -> None
+                  | Ast.Functions_one(xl,s1,t) -> Some([Fn(Name.from_x xl,s1,to_src_t t,None)])
+                  | Ast.Functions_some(xl,s1,t,s2,fs) -> 
+                     (match (mk_functions fs) with
+                      | None -> Some([Fn(Name.from_x xl, s1, to_src_t t, Some s2)])
+                      | Some fs -> Some((Fn(Name.from_x xl,s1, to_src_t t, Some s2))::fs)) in
+            RName(s0,Name.from_x xl,s1,(src_cp,src_t),witness, check, mk_functions functions_opt,s2))
+         names 
     in
     let clauses = Seplist.from_list clauses in
     let c =
       Seplist.map
-        (fun (Ast.Rule_l(Ast.Rule(xl,s1,ns,s2,e,s3,xl',es), l2)) ->
+        (fun (Ast.Rule_l(Ast.Rule(xl,s0,s1,ns,s2,e,s3,xl',es), l2)) ->
            let quant_env =
              List.fold_left
-               (fun l_e xl -> add_binding l_e (xl_to_nl xl) (C.new_type ()))
+               (fun l_e nt -> match nt with
+                              | Ast.Name_t_name xl -> add_binding l_e (xl_to_nl xl) (C.new_type ())
+                              | Ast.Name_t_nt (_,xl,_,t,_) -> add_binding l_e (xl_to_nl xl) (C.new_type ()) (*Need to equate this type to t*))
                empty_lex_env
                ns
            in
            let extended_env = Nfmap.union rec_env quant_env in
            let et = check_exp extended_env e in
            let ets = List.map (check_exp extended_env) es in
-           let new_name =
-              match xl with
-                | Ast.X_l_none -> None
-                | Ast.X_l_some (xl, _) -> Some (Name.from_x xl)
-           in
+           let new_name = Name.from_x xl in
            let new_name' = annot_name (Name.from_x xl') (Ast.xl_to_l xl') rec_env in
              C.equate_types l2 "inductive relation" (exp_to_typ et) { t = Tapp([], Path.boolpath) };
              C.equate_types l2 "inductive relation"
@@ -1411,10 +1678,11 @@ module Make_checker(T : sig
                (multi_fun 
                   (List.map exp_to_typ ets) 
                   { t = Tapp([], Path.boolpath) });
-             (new_name,
+             Rule(new_name,
+              s0,
               s1,
               List.map 
-                (fun xl -> annot_name (Name.from_x xl) (Ast.xl_to_l xl) quant_env)
+                (fun (Ast.Name_t_name xl) -> QName (annot_name (Name.from_x xl) (Ast.xl_to_l xl) quant_env))
                 ns,
               s2,
               Some et,
@@ -1423,7 +1691,7 @@ module Make_checker(T : sig
               ets))
         clauses
     in
-      (c,rec_env, apply_specs None def_targets l rec_env)
+      (n,c,rec_env, apply_specs None def_targets l rec_env)
 
 end
 
@@ -1469,153 +1737,6 @@ and check_free_ns (nvs: TNset.t) (Ast.Length_l(nexp,l)) : unit =
    | Ast.Nexp_constant _ -> ()
    | Ast.Nexp_sum(n1,_,n2) | Ast.Nexp_times(n1,_,n2) -> check_free_ns nvs n1 ; check_free_ns nvs n2
    | Ast.Nexp_paren(_,n,_) -> check_free_ns nvs n
-
-
-(* As we process definitions, we need to keep track of the type definitions
- * (type_defs), class instance definitions (instance list Pfmap.t) and
- * function/value/module/field (env) definitions we encounter. *)
-type defn_ctxt = { 
-  (* All type definitions ever seen *) 
-  all_tdefs : type_defs; 
-  (* All types defined in this sequence of definitions *)
-  new_tdefs : type_defs;
-
-  (* All class instances ever seen *)
-  all_instances : instance list Pfmap.t;
-  (* All class instances defined in this sequence of definitions *)
-  new_instances : instance list Pfmap.t;
-
-  (* The current value/function/module/field/type_name environment *)
-  cur_env : env;
-  (* The value/function/module/field/type_names defined in this sequence of
-   * definitions *)
-  new_defs : env;
-
-  (* The names of all assertions / lemmata defined. Used only to avoid using names multiple times. *)
-  lemmata_labels : NameSet.t; }
-
-(* Update the new and cumulative environment with new
- * function/value/module/field/path definitions according to set and select *)
-let ctxt_add (select : env -> 'a Nfmap.t) (set : env -> 'a Nfmap.t -> env) 
-      (ctxt : defn_ctxt) (m : Name.t * 'a)
-      : defn_ctxt =
-  { ctxt with 
-        cur_env = set ctxt.cur_env (Nfmap.insert (select ctxt.cur_env) m);
-        new_defs = set ctxt.new_defs (Nfmap.insert (select ctxt.new_defs) m); } 
-
-(* Update new and cumulative enviroments with a new module definition, after
- * first checking that its name doesn't clash with another module definition in
- * the same definition sequence.  It can have the same name as another module
- * globally. *)
-let add_m_to_ctxt (l : Ast.l) (ctxt : defn_ctxt) (k : Name.lskips_t) (v : mod_descr)
-      : defn_ctxt = 
-  let k = Name.strip_lskip k in
-    if Nfmap.in_dom k ctxt.new_defs.m_env then
-      raise_error l "duplicate module definition" Name.pp k
-    else
-      ctxt_add 
-        (fun x -> x.m_env) 
-        (fun x y -> { x with m_env = y }) 
-        ctxt 
-        (k,v)
-
-(* Add a new type definition to the global and local contexts *)
-let add_d_to_ctxt (ctxt : defn_ctxt) (p : Path.t) (d : tc_def) =
-  { ctxt with all_tdefs = Pfmap.insert ctxt.all_tdefs (p,d);
-              new_tdefs = Pfmap.insert ctxt.new_tdefs (p,d) }
-
-(* Support for maps from paths to lists of things *)
-let insert_pfmap_list (m : 'a list Pfmap.t) (k : Path.t) (v : 'a) 
-      : 'a list Pfmap.t =
-  match Pfmap.apply m k with
-    | None -> Pfmap.insert m (k,[v])
-    | Some(l) -> Pfmap.insert m (k,v::l)
-
-(* Add a lemma name to the context *)
-let add_lemma_to_ctxt (ctxt : defn_ctxt) (n : Name.t)  
-      : defn_ctxt =
-  { ctxt with lemmata_labels = NameSet.add n ctxt.lemmata_labels; }
-
-(* Add a new instance the the new instances and the global instances *)
-let add_instance_to_ctxt (ctxt : defn_ctxt) (p : Path.t) (i : instance) 
-      : defn_ctxt =
-  { ctxt with all_instances = insert_pfmap_list ctxt.all_instances p i;
-              new_instances = insert_pfmap_list ctxt.new_instances p i; }
-
-let add_let_defs_to_ctxt 
-      (* The path of the enclosing module *)
-      (mod_path : Name.t list)
-      (ctxt : defn_ctxt)
-      (* The type and length variables that were generalised for this definition *)
-      (tnvars : Types.tnvar list) 
-      (* The class constraints that the definition's type variables must satisfy
-      *) 
-      (constraints : (Path.t * Types.tnvar) list)
-      (* The length constraints that the definition's length variables must satisfy *) 
-      (lconstraints : Types.range list)
-      (* The status for just this definition, must be either K_let or
-       * K_target(false, ts), and if it is K_target, there must be a preceding
-       * K_val *)
-      (env_tag : env_tag) 
-      (* If this definition should be inlined for a target, give that target,
-       * the parameters and the body *)
-      (substitution : (Targetset.t * ((Name.t,unit) annot list * exp)) option)
-      (l_env : lex_env) 
-      : defn_ctxt =
-  let add_subst =
-    match substitution with
-      | None -> (fun c -> c)
-      | Some(ts,s) ->
-          (fun c -> 
-             { c with substitutions = 
-                 Targetset.fold
-                   (fun t r -> Targetmap.insert r (t,s))
-                   ts 
-                   c.substitutions 
-             })
-  in
-  let new_env =
-    Nfmap.map
-      (fun n (t,l) ->
-        match Nfmap.apply ctxt.new_defs.v_env n with
-          | None ->
-              Val(add_subst
-                    { const_binding = Path.mk_path mod_path n;
-                      const_tparams = tnvars;
-                      const_class = constraints;
-                      const_ranges = lconstraints;
-                      const_type = t;
-                      spec_l = l;
-                      env_tag = env_tag;
-                      substitutions = Targetmap.empty })
-          | Some(Val(c)) ->
-              (* The definition is already in the context.  Here we just assume
-               * it is compatible with the existing definition, having
-               * previously checked it. *) 
-              let tag =
-                match (c.env_tag, env_tag) with
-                  | (K_val, K_val) | (K_let,K_let) | ((K_method|K_instance),_) 
-                  | (_,(K_method|K_instance)) | (K_let, K_val) | (K_target _, K_val) -> 
-                      assert false
-                  | (K_val, K_let) -> K_target(true, Targetset.empty)
-                  | (K_val, K_target(letdef,targets)) -> 
-                      K_target(letdef,targets)
-                  | (K_let, K_target(_,targets)) -> K_target(true,targets)
-                  | (K_target(_,targets),K_let) -> K_target(true,targets)
-                  | (K_target(letdef1,targets1), K_target(letdef2,targets2)) ->
-                      K_target(letdef1||letdef2, 
-                               Targetset.union targets1 targets2)
-              in
-                Val(add_subst { c with env_tag = tag })
-          | _ -> assert false)
-      l_env
-  in
-  { ctxt with 
-        cur_env = 
-          { ctxt.cur_env with v_env = Nfmap.union ctxt.cur_env.v_env new_env };
-        new_defs = 
-          { ctxt.new_defs with 
-                v_env = Nfmap.union ctxt.new_defs.v_env new_env } }
 
 let tnvar_to_flat (tnvar : Ast.tnvar) : Typed_ast.tnvar =
   match tnvar with
@@ -1867,87 +1988,7 @@ let rec build_ctor_defs (mod_path : Name.t list) (ctxt : defn_ctxt)
          | Ast.Td_opaque(type_name, tnvs, name_sec) ->
              build_ctor_def mod_path ctxt type_name tnvs (build_type_name_regexp name_sec) None)
     ctxt
-    tds
-
-(* Finds a type class's path, and its methods, in the current enviroment, given
- * its name. *)
-let lookup_class_p (ctxt : defn_ctxt) (id : Ast.id) : Path.t * Types.tnvar * (Name.t * t) list = 
-  let p = lookup_p "class" ctxt.cur_env id in
-    match Pfmap.apply ctxt.all_tdefs p with
-      | None -> assert false
-      | Some(Tc_class(tv,methods)) -> (p, tv,methods)
-      | Some(Tc_type _) ->
-          raise_error (match id with Ast.Id(_,_,l) -> l)
-            "type constructor used as type class" Ident.pp (Ident.from_id id)
-
-(* Process the "forall 'a. (C 'a) =>" part of a type,  Returns the bound
- * variables both as a list and as a set *)
-let check_constraint_prefix (ctxt : defn_ctxt) 
-      : Ast.c_pre -> 
-        constraint_prefix option * 
-        Types.tnvar list * 
-        TNset.t * 
-        ((Path.t * Types.tnvar) list * Types.range list) =
-  let check_class_constraints c env =
-   List.map
-    (fun (Ast.C(id, tnv),sk) ->
-    let tnv' = tnvar_to_flat tnv in
-    let (tnv'',l) = tnvar_to_tnvar2 tnv in
-    let (p,_,_) = lookup_class_p ctxt id in
-    begin
-      if TNset.mem tnv'' env then
-         ()
-      else
-         raise_error l "unbound type variable" pp_tnvar tnv''
-    end;
-      (((Ident.from_id id, tnv'), sk),
-       (p, tnv'')))
-    c
-  in
-  let check_range_constraints rs env =
-   List.map (fun (Ast.Range_l(r,l),sk) -> 
-      match r with
-       | Ast.Bounded(n1,sk1,n2) -> 
-         let n1,n2 = nexp_to_src_nexp ignore n1, nexp_to_src_nexp ignore n2 in
-         ((GtEq(l,n1,sk1,n2),sk),mk_gt_than l n1.nt n2.nt)
-       | Ast.Fixed(n1,sk1,n2) -> 
-         let n1,n2 = nexp_to_src_nexp ignore n1, nexp_to_src_nexp ignore n2 in
-         ((Eq(l,n1,sk1,n2),sk),mk_eq_to l n1.nt n2.nt))
-   rs
-  in                        
-  function
-    | Ast.C_pre_empty ->
-        (None, [], TNset.empty, ([],[]))
-    | Ast.C_pre_forall(sk1,tvs,sk2,Ast.Cs_empty) ->
-        let tnvars = List.map tnvar_to_tnvar2 tvs in
-          (Some(Cp_forall(sk1, 
-                          List.map tnvar_to_flat tvs, 
-                          sk2, 
-                          None)),  
-           List.map fst tnvars,
-           tvs_to_set (List.map (fun tn -> tnvar_to_types_tnvar (tnvar_to_flat tn)) tvs),
-           ([],[]))
-    | Ast.C_pre_forall(sk1,tvs,sk2,crs) ->
-        let tyvars = List.map tnvar_to_tnvar2 tvs in
-        let tnvarset = tvs_to_set tyvars in
-        let (c,sk3,r,sk4) = match crs with 
-                             | Ast.Cs_empty -> assert false
-                             | Ast.Cs_classes(c,sk3) -> c,None,[],sk3
-                             | Ast.Cs_lengths(r,sk3) -> [], None, r, sk3
-                             | Ast.Cs_both(c,sk3,r,sk4) -> c, Some sk3, r, sk4 in
-        let constraints = 
-          let cs = check_class_constraints c tnvarset in
-          let rs = check_range_constraints r tnvarset in
-            (Cs_list(Seplist.from_list (List.map fst cs),sk3,Seplist.from_list (List.map fst rs),sk4), (List.map snd cs, List.map snd rs))
-        in
-          (Some(Cp_forall(sk1, 
-                          List.map tnvar_to_flat tvs, 
-                          sk2, 
-                          Some(fst constraints))),
-           List.map fst tyvars,
-           tnvarset,
-           snd constraints)
-   
+    tds  
 
 (* Check a "val" declaration. The name must not be already defined in the
  * current sequence of definitions (e.g., module body) *)
@@ -2212,7 +2253,7 @@ let ast_def_to_target_opt = function
     | Ast.Val_def(Ast.Let_def(_,target_opt,_) |
                   Ast.Let_inline(_,_,target_opt,_) |
                   Ast.Let_rec(_,_,target_opt,_)) -> Some target_opt
-    | Ast.Indreln(_,target_opt,_) -> Some target_opt
+    | Ast.Indreln(_,target_opt,_,_) -> Some target_opt
     | Ast.Lemma(Ast.Lemma_unnamed(_,target_opt,_,_,_)) -> Some target_opt
     | Ast.Lemma(Ast.Lemma_named(_,target_opt,_,_,_,_,_)) -> Some target_opt
     | Ast.Type_def _ -> None
@@ -2341,18 +2382,23 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                      id_locn = l;
                      descr = mod_descr;
                      instantiation = []; })))
-      | Ast.Indreln(sk, target_opt, clauses) ->
+      | Ast.Indreln(sk, target_opt, names, clauses) ->
           let module T = struct include T let targets = backend_targets end in
           let module Checker = Make_checker(T) in
           let target_opt_checked = check_target_opt target_opt in
           let target_set = target_opt_to_set target_opt in
-          let (cls,e_v,Tconstraints(tnvs,constraints,lconstraints)) = 
-            Checker.check_indrels target_set l clauses 
+          let (ns,cls,e_v,Tconstraints(tnvs,constraints,lconstraints)) = 
+            Checker.check_indrels ctxt mod_path target_set l names clauses 
           in 
-            (add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) 
-               constraints lconstraints
-               (target_opt_to_env_tag target_set) None e_v, 
-             (Indreln(sk,target_opt_checked,cls)))
+          let module Conv = Convert_relations.Converter(struct let check = None let avoid = None end) in
+          let newctxt = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs)
+            constraints lconstraints
+            (target_opt_to_env_tag target_set) None e_v in
+          let newctxt = Conv.gen_witness_type_info mod_path newctxt ns cls in
+          let newctxt = Conv.gen_witness_check_info mod_path newctxt ns cls in
+          let newctxt = Conv.gen_fns_info mod_path newctxt ns cls in
+            (newctxt,
+             (Indreln(sk,target_opt_checked,ns,cls)))
       | Ast.Spec_def(val_spec) ->
           let (ctxt,vs) = check_val_spec l mod_path ctxt val_spec in
             (ctxt, Val_spec(vs))

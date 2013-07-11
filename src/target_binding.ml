@@ -263,12 +263,13 @@ let rec fix_binding target defs =
   let rec fix_def = function
     | Val_def(d,tnvs,class_constraints) -> Val_def(fix_val_def d,tnvs,class_constraints)
     | Lemma(sk,lty,targets,n_opt,sk2,e,sk3) -> Lemma(sk,lty,targets,n_opt,sk2,fix_exp target e,sk3)
-    | Indreln(s1,targets,c) ->
+    | Indreln(s1,targets,names,c) ->
         Indreln(s1,
                 targets,
+                names,
                 Seplist.map
-                  (fun (name_opt,s1,ns,s2,e_opt,s3,n,es) ->
-                     (name_opt,s1,ns,s2,Util.option_map (fix_exp target) e_opt, s3, n, 
+                  (fun (Rule(name,s0,s1,ns,s2,e_opt,s3,n,es)) ->
+                     Rule(name,s0,s1,ns,s2,Util.option_map (fix_exp target) e_opt, s3, n, 
                       List.map (fix_exp target) es))
                   c)
     | Module(sk1, nl, sk2, sk3, ds, sk4) ->

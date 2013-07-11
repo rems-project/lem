@@ -68,6 +68,7 @@ let initial_env : Typed_ast.env =
   { m_env = Nfmap.empty;
     v_env = Nfmap.empty;
     f_env = Nfmap.empty;
+    r_env = Nfmap.empty;
     p_env = Nfmap.from_list 
               [(Name.from_rope (r"bool"), (Path.boolpath, Ast.Unknown));
                (Name.from_rope (r"bit"), (Path.bitpath, Ast.Unknown));
