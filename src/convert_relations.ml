@@ -181,32 +181,6 @@ let rec decompose_rel_type typ =
     | Typ_fn(u,_,v) -> u.typ::decompose_rel_type v
     | _ -> [] (* The return value is assumed to be bool, we don't check it *)
 
-(* the src_t is frustrating ! *)
-let out_ty_from_mode env localenv reldescr (mode, wit) = 
-  let ret = map_filter (function
-    | (O,x) -> Some x
-    | _ -> None
-  ) (List.map2 (fun x y -> (x,y)) mode reldescr.rel_argtypes) in
-  let ret = if wit then 
-    let Some(x) = Nfmap.apply localenv.r_env reldescr.rel_name in
-    let Some(t,_) = x.ri_witness in
-    ret@[{t = Tapp([],t)}]
-    else ret 
-  in
-  mk_list_type {t=Ttup(ret)}
- 
-let in_tys_from_mode env reldescr (mode, _wit) = 
-  map_filter (function
-    | (I,x) -> Some x
-    | _ -> None
-  ) (List.map2 (fun x y -> (x,y)) mode reldescr.rel_argtypes)
-
-let ty_from_mode env localenv reldescr mode = 
-  let args = in_tys_from_mode env reldescr mode in
-  let ret = out_ty_from_mode env localenv reldescr mode in
-  List.fold_right (fun a b -> {t=Tfn(a,b)}) args ret
-
-
 let get_rels (names : indrel_name lskips_seplist) 
     (l: Typed_ast.rule lskips_seplist) : relsdescr =
   let names = List.fold_left (fun s (RName(_,n,_,t,wit,chk,fn,_)) ->
@@ -381,7 +355,6 @@ let exp_to_pat e check_rename transform_exp  =
       | _ -> Reporting.print_debug_exp "Untranslatable" [e]; transform_exp e ty
   and exps_to_pats es = Seplist.map exp_to_pat es in
   exp_to_pat e
-(* TODO : what is Nvar_e*)
 
 let find_some f l = try Some(List.find f l) with Not_found -> None
 
@@ -398,70 +371,6 @@ let report_no_translation rule notok eqconds sideconds =
   Reporting.print_debug_exp "No translation for relation with args" rule.rule_args;
   Reporting.print_debug_exp "Conditions are" rule.rule_conds;
   no_translation None
-(*
-let transform_rule mode_env _ty mode (rule : ruledescr) = 
-  let vars = Nfmap.domain (Nfmap.from_list rule.rule_vars) in
-  let gen_rn = make_renamer vars (Nmap.domain mode_env) in
-  let (patterns, initknown, initeqs) = 
-    convert_output gen_rn rule.rule_args (List.map (fun x -> x = O) mode) in
-  (* TODO : we should substitute *)
-  let relknowns = 
-    Nfmap.fold (fun set rel (_ty,modes) ->
-      if List.exists (fun (_n,m,_t) -> List.for_all (fun k -> k = I) m) modes
-      then Nset.add rel set
-      else set) Nset.empty mode_env in
-  let returns = map_filter (function
-    | (I, _) -> None
-    | (O, r) -> Some(r)
-  ) (List.map2 (fun x y -> (x,y)) mode rule.rule_args) in
-  let rec build_code known indconds sideconds eqconds =
-    let exp_known e = Nfmap.fold (fun b v _ -> b && Nset.mem v known) 
-      true (C.exp_to_free e) in
-    let (selected_eqs,eqconds2) = 
-      List.partition (fun (e1,e2) -> exp_known e1 && exp_known e2) eqconds in
-    let (selected_side,sideconds2) = 
-      List.partition (fun e -> exp_known e) sideconds in
-    let add_eq eq x = List.fold_left (fun x (e1,e2) -> IFEQ(e1,e2,x)) x eq in
-    let add_side side x = List.fold_left (fun x e -> IF(e,x)) x side in 
-    let rec search notok = function
-      | [] ->
-        begin match eqconds2,sideconds2 with
-          | [], [] when notok = [] -> RETURN returns
-          | _ -> report_no_translation rule notok eqconds2 sideconds2
-        end
-      | (head,modes,args) as c::cs ->
-        let inargs = List.map exp_known args in
-        let mode_matches (_name,mode,_ty) = 
-          List.for_all (fun x -> x) 
-            (List.map2 (fun inp m -> inp || m = O) inargs mode) in
-        match List.filter mode_matches modes with
-          | [] -> search (c::notok) cs
-          | (name,mode,ty)::ms -> 
-            let (outputs, bound, equalities) = convert_output gen_rn args 
-              (List.map (fun m -> m = I) mode) in
-            let inputs = map_filter id (List.map2 (fun exp m ->
-              match m with
-                | I -> Some(exp)
-                | O -> None
-            ) args mode) in
-            CALL(name, ty, inputs, outputs,
-                 build_code (Nset.union bound known) (cs@notok) 
-                   sideconds2 (equalities@eqconds2))
-    in
-    add_eq selected_eqs (add_side selected_side (search [] indconds))
-  in
-  let (indconds, sideconds) = 
-    List.fold_left (fun (left, right) x -> 
-      let (e, args) = split_app x in
-      match Typed_ast_syntax.dest_var_exp e with
-        | Some(n) when not (Nset.mem n vars)-> begin
-          match Nfmap.apply mode_env n with
-            | Some(_ty,modes) -> ((n,modes,args)::left, right)
-            | _ -> (left, e::right)
-        end
-        | _ -> (left, e::right)) ([],[]) rule.rule_conds in
-  (patterns, build_code initknown indconds sideconds initeqs)
-*)  
 
 (*
 let debug_print_transformed trans = 
@@ -520,261 +429,239 @@ let newline = Some([Ast.Nl])
 
 let sep_newline l = Seplist.from_list_default newline l
 
-(*
-module Compile_pure_code = struct
-(* TODO : not correct (must check excluded & renames) *)
-(* TODO : parametrize w/ a monad or something *)
-let rec compile_code env excluded renames = function
-  | RETURN(exps) -> mk_tup Ast.Unknown None (sep_no_skips exps) None None
-  | IF(cond, code) -> 
-    let subexp = compile_code env excluded renames code in 
-    let undef = mk_undefined_exp Ast.Unknown "Undef" (exp_to_typ subexp) in
-    mk_if_exp Ast.Unknown cond subexp undef
-  | IFEQ(e1,e2,code) ->
-    let subexp = compile_code env excluded renames code in
-    let undef = mk_undefined_exp Ast.Unknown "Undef" (exp_to_typ subexp) in
-    let cond = mk_eq_exp env e1 e2 in
-    mk_if_exp Ast.Unknown cond subexp undef
-  | CALL(n, ty, inp, outp, code) ->
-    let subexp = compile_code env excluded renames code in
-    let undef = mk_undefined_exp Ast.Unknown "Undef" (exp_to_typ subexp) in
-    let call = List.fold_left (fun func arg -> mk_app Ast.Unknown func arg None) 
-      (mk_var Ast.Unknown (Name.add_lskip n) ty) inp in
-    let pat = mk_ptup Ast.Unknown None (sep_no_skips outp) None None in
-    mk_case_exp false Ast.Unknown call
-      [(pat, subexp);
-       (mk_pwild Ast.Unknown None (exp_to_typ call),undef)] 
-      (exp_to_typ subexp)
+module type COMPILATION_CONTEXT = sig
+  (* lem signature : type a -> type m a) *)
+  val mk_type : Types.t -> Types.t
+  val remove_type : Types.t -> Types.t
 
-let compile_rule env (patterns, code) = 
-  let pattern = mk_ptup Ast.Unknown None (sep_no_skips patterns) None None in
-  let lemcode = compile_code env Nset.empty Nfmap.empty code in
-  (pattern, lemcode) 
+  (* lem signature : type a -> exp m a *)
+  val mk_failure : Typed_ast.env -> Types.t -> Typed_ast.exp
 
+  (* exp a -> exp m a *)
+  val mk_return : Typed_ast.env -> Typed_ast.exp -> Typed_ast.exp
 
-(* TODO : check overlap *)
-let compile_to_typed_ast env prog =
-  let funcs = Nfmap.fold (fun l _ (_ty,funcs) -> 
-    (List.map (fun (name, _, _, _) -> name) funcs)@l) [] prog in
-  let fun_names = List.fold_right Nset.add funcs Nset.empty in
-  let defs = Nfmap.map (fun _rel (ty,modes) ->
-    List.map (fun (n, mode, mty, rules) ->
-      let gen_name = make_namegen fun_names in
-      let vars = map_filter (function 
-        | (I, ty) -> Some(Name.add_lskip (gen_name (Ulib.Text.of_latin1 "input")),
-                          ty)
-        | (O, _) -> None
-      ) (List.combine mode ty) in
-      let tuple_of_vars = mk_tup Ast.Unknown None (sep_no_skips (List.map (fun (var,ty) -> mk_var Ast.Unknown var ty) vars)) None None in
-      let pats_of_vars = List.map (fun (var,ty) -> mk_pvar Ast.Unknown var ty) vars in
-      let cases = List.map (compile_rule env) rules in
-      let output_type = {t=Ttup(map_filter (function (O,ty) -> Some ty | _ -> None) (List.combine mode ty))} in
-      let case = mk_case_exp false Ast.Unknown tuple_of_vars cases output_type in
-      let annot = { term = Name.add_lskip n;
-                    locn = Ast.Unknown;
-                    typ = mty;
-                    rest = () } in
-      (annot, pats_of_vars, None, None, case)
-    ) modes 
-  ) prog in
-  let defs = sep_no_skips (Nfmap.fold (fun l _ c -> c@l) [] defs) in
-  ((Val_def(Rec_def(None,None,None,defs), Types.TNset.empty, []), None), 
-   Ast.Unknown)
+  (* exp m a -> pat a -> exp m b -> exp m b *)
+  val mk_bind : Typed_ast.env -> Typed_ast.exp -> Typed_ast.pat -> Typed_ast.exp -> Typed_ast.exp
 
+  (* exp bool -> exp m a -> exp m a *)
+  val mk_cond : Typed_ast.env -> Typed_ast.exp -> Typed_ast.exp -> Typed_ast.exp
 
-let ty_from_mode ty mode = 
-  let open Types in
-  let inputs = map_filter id (
-    List.map2 (fun ty mode -> if mode = I then Some(ty) else None) ty mode) in
-  let outputs = map_filter id (
-    List.map2 (fun ty mode -> if mode = O then Some(ty) else None) ty mode) in
-  let ret = {t=Ttup(outputs)} in
-  List.fold_left (fun ret arg -> {t=Tfn(arg,ret)}) (ret) 
-    (List.rev inputs)
+  (* type b -> exp a -> (exp a * exp m b) list -> m b *)
+  val mk_choice : Typed_ast.env -> Types.t -> Typed_ast.exp ->
+    (Typed_ast.pat * Typed_ast.exp) list -> Typed_ast.exp
+end
 
+module Compile_list : COMPILATION_CONTEXT = struct
+
+  let mk_type ty = 
+    { Types.t = Types.Tapp([ty], Path.listpath) }
+
+  let remove_type ty = 
+    match ty.t with
+      | Types.Tapp([ty], _) -> ty
+      | _ -> failwith "???"
+
+  let remove_list = remove_type
+
+  let mk_list_map env fn lst = 
+    let l = Ast.Trans ("mk_list_map", None) in
+    match (exp_to_typ fn).t with
+      | Types.Tfn(a,b) ->
+        mk_app l (mk_app l (mk_const_exp env l ["List"] "map" [a;b]) fn None) lst None
+      | _ -> failwith "???"
+        
+  let mk_list_concat env lst = 
+    let t = remove_list (remove_list (exp_to_typ lst)) in
+    let l = Ast.Trans ("mk_list_concat", None) in
+    mk_app l (mk_const_exp env l ["List"] "concat" [t]) lst None
+
+  let mk_return env e =
+    mk_list Ast.Unknown None (sep_no_skips [e]) None (mk_type (exp_to_typ e))
+
+  let mk_failure env t = 
+    mk_list (Ast.Trans("mk_failure", None)) None (sep_no_skips []) None (mk_type t)
+      
+  let mk_bind env call pat code = 
+    let l = Ast.Trans ("mk_bind", None) in
+    let namegen = make_namegen (Nfmap.domain (exp_to_free code)) in
+    let var = Name.add_lskip (namegen (Ulib.Text.of_latin1 "x")) in
+    let inty = pat.typ in 
+    let fn = mk_fun l None [mk_pvar l var inty] None 
+      (mk_case_exp false l (mk_var l var inty) 
+         [(pat, code);
+          (mk_pwild l None inty, mk_list l None (sep_no_skips []) None (exp_to_typ code))
+         ] (exp_to_typ code)) None in
+    mk_list_concat env (mk_list_map env fn call)
+      
+  let mk_cond env cond code = 
+    let l = Ast.Trans ("mk_cond", None) in
+    mk_if_exp l cond code (mk_list l None (sep_no_skips []) None (exp_to_typ code))
+
+  let mk_let env pat v code = 
+    let l = Ast.Trans("mk_let", None) in
+    mk_case_exp false l v
+      [(pat, code);
+       (mk_pwild l None pat.typ, mk_list l None (sep_no_skips []) None (exp_to_typ code))
+      ] (exp_to_typ code)
+
+  let mk_choice env ty input pats = 
+    let l = Ast.Trans("mk_choice", None) in
+    mk_list_concat env 
+      (mk_list l None (sep_newline (List.map (fun (pat, code) -> mk_let env pat input code) pats)) None (mk_list_type (mk_list_type ty)))
 
 end
 
-module Compile_option_code = struct
+module Compile_pure : COMPILATION_CONTEXT = struct
+  let mk_type x = x
+  let remove_type x = x
 
-  open LemOptionMonad
+  let mk_return _ e = e
+  let mk_failure _ t = mk_undefined_exp (Ast.Trans("mk_undefined", None))
+    "Undef" t
 
-(* TODO : not correct (must check excluded & renames) *)
-(* TODO : parametrize w/ a monad or something *)
-let rec compile_code env excluded renames = function
-  | RETURN(exps) -> mk_some env (mk_tup Ast.Unknown None (sep_no_skips exps) None None)
-  | IF(cond, code) -> 
-    let subexp = compile_code env excluded renames code in 
-    mk_cond env cond subexp
-  | IFEQ(e1,e2,code) ->
-    let subexp = compile_code env excluded renames code in
-    let cond = mk_eq_exp env e1 e2 in
-    mk_cond env cond subexp
-  | CALL(n, ty, inp, outp, code) ->
-    let subexp = compile_code env excluded renames code in
-    let call = List.fold_left (fun func arg -> mk_app Ast.Unknown func arg None) 
-      (mk_var Ast.Unknown (Name.add_lskip n) ty) inp in
-    let pat = mk_ptup Ast.Unknown None (sep_no_skips outp) None None in
-    mk_bind env call pat subexp
+  let mk_bind _ e pat code =
+    let l = Ast.Trans("mk_bind", None) in
+    mk_case_exp false l e [(pat, code)] (exp_to_typ code)
 
-let compile_rule env (patterns, code) = 
-  let pattern = mk_ptup Ast.Unknown None (sep_no_skips patterns) None None in
-  let lemcode = compile_code env Nset.empty Nfmap.empty code in
-  (pattern, lemcode) 
+  let mk_cond env cond code =
+    let l = Ast.Trans("mk_cond", None) in
+    mk_if_exp l cond code (mk_failure env (remove_type (exp_to_typ code)))
 
+  let mk_choice _ t v pats = 
+    let l = Ast.Trans("mk_choice", None) in
+    mk_case_exp false l v pats (mk_type t)
+end
 
+(* TODO : merge with LemOptionMonad ? *)
+module Compile_option_pre = struct
 
-(* TODO : check overlap *)
-let compile_to_typed_ast env prog =
-  let funcs = Nfmap.fold (fun l _ (_ty,funcs) -> 
-    (List.map (fun (name, _, _, _) -> name) funcs)@l) [] prog in
-  let fun_names = List.fold_right Nset.add funcs Nset.empty in
-  let defs = Nfmap.map (fun _rel (ty,modes) ->
-    List.map (fun (n, mode, mty, rules) ->
-      let gen_name = make_namegen fun_names in
-      let vars = map_filter (function 
-        | (I, ty) -> Some(Name.add_lskip (gen_name (Ulib.Text.of_latin1 "input")),
-                          ty)
-        | (O, _) -> None
-      ) (List.combine mode ty) in
-      let tuple_of_vars = mk_tup Ast.Unknown None (sep_no_skips (List.map (fun (var,ty) -> mk_var Ast.Unknown var ty) vars)) None None in
-      let pats_of_vars = List.map (fun (var,ty) -> mk_pvar Ast.Unknown var ty) vars in
-      let cases = List.map (compile_rule env) rules in
-      let output_type = {t=Ttup(map_filter (function (O,ty) -> Some ty | _ -> None) (List.combine mode ty))} in
-      let lastcase = (mk_pwild Ast.Unknown None (exp_to_typ tuple_of_vars), 
-                      mk_none env output_type) in
-      let case = mk_case_exp false Ast.Unknown tuple_of_vars 
-        (cases @ [lastcase])  (mk_option output_type) in
-      let annot = { term = Name.add_lskip n;
-                    locn = Ast.Unknown;
-                    typ = mty;
-                    rest = () } in
-      (annot, pats_of_vars, None, None, case)
-    ) modes 
-  ) prog in
-  let defs = sep_no_skips (Nfmap.fold (fun l _ c -> c@l) [] defs) in
-  ((Val_def(Rec_def(None,None,None,defs), Types.TNset.empty, []), None), 
-   Ast.Unknown)
+  let mk_type ty = 
+    { Types.t = Types.Tapp([ty], mk_string_path ["Pervasives"] "option") } 
 
+  let remove_type ty = 
+    match ty.t with
+      | Types.Tapp([ty], _) -> ty
+      | _ -> failwith "???"
 
-let ty_from_mode ty mode = 
-  let open Types in
-  let inputs = map_filter id (
-    List.map2 (fun ty mode -> if mode = I then Some(ty) else None) ty mode) in
-  let outputs = map_filter id (
-    List.map2 (fun ty mode -> if mode = O then Some(ty) else None) ty mode) in
-  let ret = {t=Ttup(outputs)} in
-  List.fold_left (fun ret arg -> {t=Tfn(arg,ret)}) (mk_option ret) 
-    (List.rev inputs)
+  let mk_none env ty = mk_constr_exp env ["Pervasives"] "None" [ty] [] 
+  let mk_some env e = mk_constr_exp env ["Pervasives"] "Some" [exp_to_typ e] [e]
+  let mk_pnone env ty = mk_pconstr_pat env ["Pervasives"] "None" [ty] []
+  let mk_psome env p = mk_pconstr_pat env ["Pervasives"] "Some" [p.typ] [p]
+
+  let mk_return env e = mk_some env e
+
+  let mk_failure env ty = mk_none env ty
+
+  let mk_bind env call pat code = 
+    let l = Ast.Trans ("mk_bind", None) in
+    mk_case_exp false l call
+      [(mk_psome env pat, code);
+       (mk_pwild l None (exp_to_typ call), mk_none env (remove_option (exp_to_typ code)))]
+      (exp_to_typ code)
+
+  let mk_cond env cond code = 
+    let l = Ast.Trans ("mk_cond", None) in
+    mk_if_exp l cond code (mk_none env (remove_option (exp_to_typ code)))
 
 end
-*)
 
+module Compile_option : COMPILATION_CONTEXT = struct
+  include Compile_option_pre
 
-module Compile_list_code = struct
+  let mk_choice _ = failwith "Not implemented"
+end
 
-(* XXX *)
-let remove_list ty = 
-  match ty.t with
-    | Types.Tapp([ty], _) -> ty
-    | _ -> failwith "???"
+module Compile_option_unique : COMPILATION_CONTEXT = struct
+  include Compile_option_pre
 
-let mk_list_map env fn lst = 
-  let l = Ast.Trans ("mk_list_map", None) in
-  match (exp_to_typ fn).t with
-    | Types.Tfn(a,b) ->
-      mk_app l (mk_app l (mk_const_exp env l ["List"] "map" [a;b]) fn None) lst None
-    | _ -> failwith "???"
+  let mk_choice _ = failwith "Not implemented"
+end
 
-let mk_list_concat env lst = 
-  let t = remove_list (remove_list (exp_to_typ lst)) in
-  let l = Ast.Trans ("mk_list_concat", None) in
-  mk_app l (mk_const_exp env l ["List"] "concat" [t]) lst None
+module Compile(M : COMPILATION_CONTEXT) = struct
 
-let mk_bind env call pat code = 
-  let l = Ast.Trans ("mk_bind", None) in
-  let namegen = make_namegen (Nfmap.domain (exp_to_free code)) in
-  let var = Name.add_lskip (namegen (Ulib.Text.of_latin1 "x")) in
-  let inty = pat.typ in 
-  let fn = mk_fun l None [mk_pvar l var inty] None 
-    (mk_case_exp false l (mk_var l var inty) 
-    [(pat, code);
-     (mk_pwild l None inty, mk_list l None (sep_no_skips []) None (exp_to_typ code))
-    ] (exp_to_typ code)) None in
-  mk_list_concat env (mk_list_map env fn call)
+    let out_ty_from_mode env localenv reldescr (mode, wit) = 
+      let ret = map_filter (function
+        | (O,x) -> Some x
+        | _ -> None
+      ) (List.map2 (fun x y -> (x,y)) mode reldescr.rel_argtypes) in
+      let ret = if wit then 
+          let Some(x) = Nfmap.apply localenv.r_env reldescr.rel_name in
+          let Some(t,_) = x.ri_witness in
+          ret@[{t = Tapp([],t)}]
+        else ret 
+      in
+      M.mk_type {t=Ttup(ret)}
+        
+    let in_tys_from_mode env reldescr (mode, _wit) = 
+      map_filter (function
+        | (I,x) -> Some x
+        | _ -> None
+      ) (List.map2 (fun x y -> (x,y)) mode reldescr.rel_argtypes)
+        
+    let ty_from_mode env localenv reldescr mode = 
+      let args = in_tys_from_mode env reldescr mode in
+      let ret = out_ty_from_mode env localenv reldescr mode in
+      List.fold_right (fun a b -> {t=Tfn(a,b)}) args ret
 
-let mk_cond env cond code = 
-  let l = Ast.Trans ("mk_cond", None) in
-  mk_if_exp l cond code (mk_list l None (sep_no_skips []) None (exp_to_typ code))
+  let rec compile_code env excluded renames code = 
+    let l = Ast.Trans ("compile_code", None) in
+    match code with
+      | RETURN(exps) -> 
+        let ret = mk_tup l None (sep_no_skips exps) None None in
+        M.mk_return env ret
+      | IF(cond, code) -> 
+        let subexp = compile_code env excluded renames code in 
+        M.mk_cond env cond subexp
+      | IFEQ(e1,e2,code) ->
+        let subexp = compile_code env excluded renames code in
+        let cond = mk_eq_exp env e1 e2 in
+        M.mk_cond env cond subexp
+      | CALL(n, inp, outp, code) ->
+        let subexp = compile_code env excluded renames code in
+        let func = match n with 
+          | Left(n,ty) -> mk_var l (Name.add_lskip n) ty 
+          | Right(path) -> mk_const_from_path env l path []
+        in
+        let call = List.fold_left (fun func arg -> mk_app l func arg None) 
+          func inp in
+        let pat = mk_ptup l None (sep_no_skips outp) None None in
+        M.mk_bind env call pat subexp
+          
+  let compile_rule env (patterns, code) = 
+    let pattern = mk_ptup (Ast.Trans("compile_rule", None)) None (sep_no_skips patterns) None None in
+    let lemcode = compile_code env Nset.empty Nfmap.empty code in
+    (pattern, lemcode) 
 
-
-let rec compile_code env excluded renames code = 
-  let l = Ast.Trans ("compile_code", None) in
-  match code with
-  | RETURN(exps) -> 
-    let ret = mk_tup l None (sep_no_skips exps) None None in
-    mk_list l None (sep_no_skips [ret]) None (mk_list_type (exp_to_typ ret))
-  | IF(cond, code) -> 
-    let subexp = compile_code env excluded renames code in 
-    mk_cond env cond subexp
-  | IFEQ(e1,e2,code) ->
-    let subexp = compile_code env excluded renames code in
-    let cond = mk_eq_exp env e1 e2 in
-    mk_cond env cond subexp
-  | CALL(n, inp, outp, code) ->
-    let subexp = compile_code env excluded renames code in
-    let func = match n with 
-      | Left(n,ty) -> mk_var l (Name.add_lskip n) ty 
-      | Right(path) -> mk_const_from_path env l path []
-    in
-    let call = List.fold_left (fun func arg -> mk_app l func arg None) 
-      func inp in
-    let pat = mk_ptup l None (sep_no_skips outp) None None in
-    mk_bind env call pat subexp
-
-let compile_rule env (patterns, code) = 
-  let pattern = mk_ptup (Ast.Trans("compile_rule", None)) None (sep_no_skips patterns) None None in
-  let lemcode = compile_code env Nset.empty Nfmap.empty code in
-  (pattern, lemcode) 
-
-
-
-(* TODO : check overlap *)
-let compile_to_typed_ast env localenv prog =
-  let l = Ast.Trans ("compile_to_typed_ast", None) in
-  let funcs = Nfmap.fold (fun l _ (_,funcs) -> 
-    (List.map (fun (name, _, _, _) -> name) funcs)@l) [] prog in
-  let fun_names = List.fold_right Nset.add funcs Nset.empty in
-  let defs = Nfmap.map (fun _rel (reldescr, modes) ->
-    List.map (fun (n, mode, mty, rules) ->
-      let gen_name = make_namegen fun_names in
-      let vars = List.map 
-        (fun ty -> Name.add_lskip (gen_name (Ulib.Text.of_latin1 "input")), ty)
-        (in_tys_from_mode env reldescr mode) in
-      let tuple_of_vars = mk_tup l None (sep_no_skips (List.map (fun (var,ty) -> mk_var Ast.Unknown var ty) vars)) None None in
-      let pats_of_vars = List.map (fun (var,ty) -> mk_pvar l var ty) vars in
-      let cases = List.map (compile_rule env) rules in
-      let output_type = out_ty_from_mode env localenv reldescr mode in
-      (* Generate a list of binds and concat them ! *)
-      let bcases = List.map 
-        (fun (pat,code) -> 
-          mk_bind env 
-            (mk_list l None (sep_no_skips [tuple_of_vars]) None (mk_list_type (exp_to_typ tuple_of_vars))) 
-            pat code)
-        cases in
-      let body = mk_list_concat env (mk_list l None (sep_newline bcases)
-                                       None (mk_list_type output_type)) in
-      let annot = { term = Name.add_lskip n;
-                    locn = l;
-                    typ = mty;
-                    rest = () } in
-      (annot, pats_of_vars, None, None, body)
-    ) modes 
-  ) prog in
-  let defs = sep_newline (Nfmap.fold (fun l _ c -> c@l) [] defs) in
-  ((Val_def(Rec_def(None,None,None,defs), Types.TNset.empty, []), None), l)
+  let compile_to_typed_ast env localenv prog =
+    let l = Ast.Trans ("compile_to_typed_ast", None) in
+    let funcs = Nfmap.fold (fun l _ (_,funcs) -> 
+      (List.map (fun (name, _, _, _) -> name) funcs)@l) [] prog in
+    let fun_names = List.fold_right Nset.add funcs Nset.empty in
+    let defs = Nfmap.map (fun _rel (reldescr, modes) ->
+      List.map (fun (n, mode, mty, rules) ->
+        let gen_name = make_namegen fun_names in
+        let vars = List.map 
+          (fun ty -> Name.add_lskip (gen_name (Ulib.Text.of_latin1 "input")), ty)
+          (in_tys_from_mode env reldescr mode) in
+        let tuple_of_vars = mk_tup l None (sep_no_skips (List.map (fun (var,ty) -> mk_var Ast.Unknown var ty) vars)) None None in
+        let pats_of_vars = List.map (fun (var,ty) -> mk_pvar l var ty) vars in
+        let cases = List.map (compile_rule env) rules in
+        let output_type = out_ty_from_mode env localenv reldescr mode in
+        (* Generate a list of binds and concat them ! *)
+        let body = M.mk_choice env (M.remove_type output_type) tuple_of_vars cases in
+        let annot = { term = Name.add_lskip n;
+                      locn = l;
+                      typ = mty;
+                      rest = () } in
+        (annot, pats_of_vars, None, None, body)
+      ) modes 
+    ) prog in
+    let defs = sep_newline (Nfmap.fold (fun l _ c -> c@l) [] defs) in
+    ((Val_def(Rec_def(newline,None,None,defs), Types.TNset.empty, []), None), l)
 
 end
+
+module Compile_list_code = Compile(Compile_list_code)
 
 open Typecheck_ctxt
 
@@ -1120,6 +1007,7 @@ let gen_witness_check_def env mpath localenv names rules =
 (* Rec_def of lskips * sips * targtets_opt * funcl_aux lskips_seplist 
 and funcl_aux = name_lskips_annot * pat list * (lskips * src_t) option * lskips * exp
 *)
+open Compile_list_code
 
 let gen_fns_info mod_path (ctxt : defn_ctxt) names rules =
   let rels = get_rels names rules in
@@ -1320,9 +1208,3 @@ let gen_fns_macro env mpath localenv def =
     | _ -> None
 
 end
-
-
-
-
-
-
