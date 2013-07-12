@@ -516,6 +516,10 @@ let debug_print_transformed trans =
 
 let sep_no_skips l = Seplist.from_list_default None l
 
+let newline = Some([Ast.Nl])
+
+let sep_newline l = Seplist.from_list_default newline l
+
 (*
 module Compile_pure_code = struct
 (* TODO : not correct (must check excluded & renames) *)
@@ -758,7 +762,7 @@ let compile_to_typed_ast env localenv prog =
             (mk_list l None (sep_no_skips [tuple_of_vars]) None (mk_list_type (exp_to_typ tuple_of_vars))) 
             pat code)
         cases in
-      let body = mk_list_concat env (mk_list l None (sep_no_skips bcases)
+      let body = mk_list_concat env (mk_list l None (sep_newline bcases)
                                        None (mk_list_type output_type)) in
       let annot = { term = Name.add_lskip n;
                     locn = l;
@@ -767,13 +771,12 @@ let compile_to_typed_ast env localenv prog =
       (annot, pats_of_vars, None, None, body)
     ) modes 
   ) prog in
-  let defs = sep_no_skips (Nfmap.fold (fun l _ c -> c@l) [] defs) in
+  let defs = sep_newline (Nfmap.fold (fun l _ c -> c@l) [] defs) in
   ((Val_def(Rec_def(None,None,None,defs), Types.TNset.empty, []), None), l)
 
 end
 
 open Typecheck_ctxt
-
 
 let gen_consname relname = Name.from_string (Name.to_string relname ^ "_witness")
 
@@ -788,7 +791,7 @@ let make_typedef tds =
     let texp = Te_variant(None, sep_no_skips (List.map make_cons tconses)) in
     (mk_name_l tname, [], texp, None)
   in
-  Type_def(None, sep_no_skips (List.map make_def tds))
+  Type_def(newline, sep_no_skips (List.map make_def tds))
 
 let register_types ctxt mod_path tds = 
   Nfmap.fold (fun ctxt relname (tname, tconses) ->
@@ -892,7 +895,9 @@ let gen_witness_type_aux env get_typepath_from_rel names rules =
               let t = {t=Tapp([],tn)} in
               Some(t, t_to_src_t t) 
           end
-        | None -> failwith "Impossible"
+        | None -> 
+          (* Then it must be a function from the current module *)
+          None
       end
     | _ -> None
   in
@@ -1108,7 +1113,7 @@ let gen_witness_check_def env mpath localenv names rules =
     (annot, [xpat], None, None, body)
   ) localdefs in
   let defs = Nfmap.fold (fun l _ v -> v::l) [] defs in
-  let def = Rec_def(None,None,None,sep_no_skips defs) in
+  let def = Rec_def(newline,None,None,sep_newline defs) in
   if defs = [] then []
   else [((Val_def(def, Types.TNset.empty, []), None), Ast.Unknown)]
 
