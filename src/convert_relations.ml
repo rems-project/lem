@@ -136,7 +136,7 @@ let to_in_out (typ : src_t) : input_or_output =
         | Id_some(i) -> 
           begin match Name.to_string (Name.strip_lskip (Ident.get_name i)) with
             | "input" -> I
-            | "out" -> O
+            | "output" -> O
             | s -> raise (Invalid_argument ("to_in_out: "^s))
           end
         | _ -> raise (Invalid_argument "to_in_out")

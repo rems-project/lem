@@ -252,72 +252,79 @@ let rec typ_to_src_t (wild_f : Ast.l -> lskips -> src_t)
           rest=(); }
 
 (*Permits only in, out, and the type of the witness, and enforces that it otherwise matches the relation type *)
-let typ_to_src_t_indreln wit (d : type_defs) (e : env) (typt : Types.t) typ : src_t =
-  let rec compare (fun_ok : bool) (last_res : bool) (typt : Types.t) (Ast.Typ_l(typ,l)) =
-    match typ, typt.t , fun_ok , last_res with
-      | Ast.Typ_wild _,_,_,_ | Ast.Typ_var _,_,_,_ | Ast.Typ_tup _,_,_,_ | Ast.Typ_Nexps _,_ ,_,_ ->
-	raise (Ident.No_type(l,"Only functions and type constructors can occur in indrel function specifications"))
-      | Ast.Typ_fn _, _, false, _->
-	raise (Ident.No_type(l,"Only type constructors can occur here in indrel function specifications"))
-      | Ast.Typ_fn(typ1, sk, typ2) , Tfn(t1,t2), true , false -> 
-          let st1 = compare false false t1 typ1 in
-          let lst = (match t2.t with | Tfn _ -> false | _ -> true) in
-          let st2 = compare true lst t2 typ2 in
-            { term = Typ_fn(st1, sk, st2);
-              locn = l; 
-              typ = { t = Tfn(st1.typ,st2.typ) };
-              rest = (); }
-      | Ast.Typ_app(i,typs), Tfn(t1,t2), true, true -> compare false true t1 (Ast.Typ_l(typ,l))
-      | Ast.Typ_app(i,typs), Tapp([],p),_,lst->
-         (match i,typs with
-           | _,x::xs ->raise_error l "Types in indrel function specifications cannot have arguments" Ident.pp (Ident.from_id i)
-           | Ast.Id(path,xl,l0),[] -> 
-             let n_init = Name.strip_lskip (Name.from_x xl) in
-             let p = 
-	        (match (Name.to_string n_init) with
-		| "input" | "out" ->  Path.mk_path [] n_init
-		| other -> if lst then
-		    let p = lookup_p "constructor" e i in
-		    begin
-		      match Pfmap.apply d p with
-		      | None -> assert false
-		      | Some(Tc_type([],_,_)) -> p 
-                      | Some(Tc_type(pre,_,_)) -> 
-			raise_error l "Invalid type constructor for indrel function specification" Ident.pp (Ident.from_id i)
-		      | Some(Tc_class _) ->
-			raise_error l "type class used as type constructor" 
-			  Ident.pp (Ident.from_id i)
-		    end 
-		  else raise_error l "only in or out may be used here" Ident.pp (Ident.from_id i)) in
-	     let id = {id_path = Id_some (Ident.from_id i); 
-		       id_locn = l0;
-		       descr = p;
-		       instantiation = []; }
-             in
-             (match lst,wit with
-	     | (true,None) ->
-	       if (((Path.compare p Path.boolpath)=0) || ((Path.compare p Path.unitpath)=0))
-	       then ()
-	       else raise_error l "Last type in indrel function specifications must be bool or unit" Path.pp p
-	     | (true,Some(wit_p)) ->
-	       if (((Path.compare p Path.boolpath)=0) || ((Path.compare p Path.unitpath)=0) || ((Path.compare p wit_p)=0))
-	       then ()
-	       else raise_error l "Last type in indrel function specifications must be bool, unit, or the witness" Path.pp p
-	     | (false,_) -> ());
-	     { term = Typ_app(id,[]);
-               locn = l;
-               typ = { t = Tapp([],p) };
-               rest = (); })
-      | Ast.Typ_paren(sk1,typ,sk2), _,_,_ ->
-        let st = compare fun_ok last_res typt typ in
-        { term = Typ_paren(sk1,st,sk2); 
-          locn = l; 
-          typ = st.typ; 
-          rest = (); }
-      | _,_,_,_ -> raise (Ident.No_type(l,"Type of indrel function specification must match indrel type"))
-  in
-  compare true false typt typ
 
+(* It's easier if we realise that there are two very distinct cases :
+  - either we are in the "spine" composed of in, out, ...
+  - or we are in the last part, containing extra information
+*)
+let typ_to_src_t_indreln wit (d : type_defs) (e : env) (typt : Types.t) typ : src_t =
+  let dest_id (Ast.Id(path,xl,l0) as i) =
+    let n = Name.strip_lskip (Name.from_x xl) in
+    (Name.to_string n,
+     {id_path = Id_some (Ident.from_id i);
+      id_locn = l0;
+      descr = Path.mk_path [] n;
+      instantiation = []; })
+  in
+  let rec compare_spine typt (Ast.Typ_l(typ,l) as typ') =
+    match typt.t, typ with
+      | Tfn(t1,t2), Ast.Typ_fn(typ1, sk, typ2) -> 
+        let st1 = compare_io t1 typ1 in
+        let st2 = compare_spine t2 typ2 in
+        { term = Typ_fn(st1, sk, st2);
+          locn = l;
+          typ = { t = Tfn(st1.typ, st2.typ) };
+          rest = (); }
+      | Tfn(_,{t=Tfn(_,_)}), _ ->
+        raise (Ident.No_type(l,"Too few arguments in indrel function specification (expecting an arrow here)"))
+      | Tfn(t1, _t2), _ -> compare_io t1 typ' (* _t2 is assumed to be bool *)
+      | _ -> compare_end typt typ'
+  and compare_io _ (Ast.Typ_l(typ,l)) = 
+    match typ with
+      | Ast.Typ_app(i, []) ->
+        let n, id = dest_id i in
+        let p = Path.mk_path [] (Name.from_string n) in
+        if n = "input" || n = "output"
+        then { term = Typ_app(id, []);
+               locn = l;
+               typ = { t = Tapp([], p) };
+               rest = (); }
+        else raise (Ident.No_type(l,"Only input or output may be used here")) 
+      | _ -> raise (Ident.No_type(l,"Only input or output may be used here"))
+  and compare_wu ((Ast.Typ_l(typ,l)) as typ') =
+      match typ with
+      | Ast.Typ_app(i, []) -> 
+        let n, id = dest_id i in
+        let p = lookup_p "constructor" e i in
+        begin match wit with
+          | _ when Path.compare p Path.unitpath = 0 -> ()
+          | Some(wit_p) when Path.compare p wit_p = 0 -> ()
+          | _ -> raise_error l "Expected unit or the witness" Path.pp p
+        end;
+        { term = Typ_app({id with descr = p},[]);
+          locn = l;
+          typ = { t = Tapp([],p) };
+          rest = (); }
+      | _ -> raise (Ident.No_type(l, "Expected unit or the witness"))
+  and compare_end _ (Ast.Typ_l(typ,l) as typ') = 
+   (* The other type should be bool, we don't check that *) 
+   try compare_wu typ' 
+    with _ -> 
+      match typ with
+        | Ast.Typ_app(i, (([] | [_]) as typs)) ->
+          begin match dest_id i with
+            | ("list"|"unique"|"pure"|"option") as n , id ->
+              let sub = List.map compare_wu typs in
+              { term = Typ_app(id, sub);
+                locn = l;
+                typ = { t = Tapp(List.map (fun x -> x.typ) sub, 
+                                 Path.mk_path [] (Name.from_string n)) }; 
+                rest = (); }
+            | _ -> raise (Ident.No_type(l, "Expected list, unique, pure, option, unit or witness"))
+          end
+        | _ -> raise (Ident.No_type(l, "Expected list, unique, pure, option, unit or witness"))
+  in
+  compare_spine typt typ
 
 (* Corresponds to judgment check_lit '|- lit : t' *)
 let check_lit (Ast.Lit_l(lit,l)) =
