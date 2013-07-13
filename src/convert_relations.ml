@@ -5,14 +5,6 @@ open Types
 open Util
 open Typed_ast_syntax
 
-(* Notes on names :
- Name.strip_lskip
- Name.add_lskip
-
-type ('a,'b) annot = { term : 'a; locn : Ast.l; typ : t; rest : 'b }
-
-*)
-
 module Converter(C : Exp_context) = struct
 
 module C = Exps_in_context(C)
@@ -20,8 +12,6 @@ open C
 
 module Nmap = Typed_ast.Nfmap
 module Nset = Nmap.S
-
-(* Split on infix (&&) : ((a && b) && (c && d)) && true -> [a;b;c;d] *)
 
 let is_true l = match l.term with
   | L_true _ -> true
@@ -76,23 +66,21 @@ let mk_pconstr_pat env mp n tys args =
 
 module LemOptionMonad = struct
 
-
-let mk_none env ty = mk_constr_exp env ["Pervasives"] "None" [ty] [] 
-let mk_some env e = mk_constr_exp env ["Pervasives"] "Some" [exp_to_typ e] [e]
-let mk_pnone env ty = mk_pconstr_pat env ["Pervasives"] "None" [ty] []
-let mk_psome env p = mk_pconstr_pat env ["Pervasives"] "Some" [p.typ] [p]
-
-let mk_bind env call pat code = 
-  let l = Ast.Trans ("mk_bind", None) in
-  mk_case_exp false l call
-    [(mk_psome env pat, code);
-     (mk_pwild l None (exp_to_typ call), mk_none env (remove_option (exp_to_typ code)))]
-    (exp_to_typ code)
-
-let mk_cond env cond code = 
-  let l = Ast.Trans ("mk_cond", None) in
-  mk_if_exp l cond code (mk_none env (remove_option (exp_to_typ code)))
-
+  let mk_none env ty = mk_constr_exp env ["Pervasives"] "None" [ty] [] 
+  let mk_some env e = mk_constr_exp env ["Pervasives"] "Some" [exp_to_typ e] [e]
+  let mk_pnone env ty = mk_pconstr_pat env ["Pervasives"] "None" [ty] []
+  let mk_psome env p = mk_pconstr_pat env ["Pervasives"] "Some" [p.typ] [p]
+    
+  let mk_bind env call pat code = 
+    let l = Ast.Trans ("mk_bind", None) in
+    mk_case_exp false l call
+      [(mk_psome env pat, code);
+       (mk_pwild l None (exp_to_typ call), mk_none env (remove_option (exp_to_typ code)))]
+      (exp_to_typ code)
+      
+  let mk_cond env cond code = 
+    let l = Ast.Trans ("mk_cond", None) in
+    mk_if_exp l cond code (mk_none env (remove_option (exp_to_typ code)))
 
 end
 
@@ -101,6 +89,7 @@ let is_and e = match C.exp_to_term e with
   | Constant c -> Path.compare c.descr.const_binding and_path = 0
   | _ -> false
 
+(* Splits on infix (&&) : ((a && b) && (c && d)) && true -> [a;b;c;d] *)
 let rec split_and (e : exp) = match C.exp_to_term e with
   | Infix(e1, op_and, e2) when is_and op_and ->
     split_and e1 @ split_and e2
@@ -126,7 +115,7 @@ type reldescr = {
   rel_argtypes : Types.t list;
   rel_witness : Name.t option;
   rel_check : Name.t option;
-  rel_indfns : (Name.t * (mode * bool)) list;
+  rel_indfns : (Name.t * (mode * bool * output_type)) list;
   rel_rules : ruledescr list
 }
 
@@ -154,22 +143,22 @@ let to_in_out (typ : src_t) : input_or_output =
       end
     | _ -> raise (Invalid_argument "to_in_out")
 
+let default_out_mode = Out_pure
 
-(* This is all wrong *)
-let rec src_t_to_mode (typ : src_t) : mode * bool =
+let rec src_t_to_mode (typ : src_t) : mode * bool * output_type =
   match typ.term with
     | Typ_paren(_,t,_) -> src_t_to_mode t
     | Typ_fn(x1,_,x2) -> 
-      let (mode,wit) = src_t_to_mode x2 in
-      (to_in_out x1::mode, wit)
+      let (mode, wit, out) = src_t_to_mode x2 in
+      (to_in_out x1::mode, wit, out)
     | Typ_app({id_path = p },[]) ->
       begin 
-        try ([to_in_out typ], false)
+        try ([to_in_out typ], false, default_out_mode)
         with Invalid_argument _ -> 
           begin match p with
             | Id_some(i) ->
               let n = Name.to_string (Name.strip_lskip (Ident.get_name i)) in
-              ([], not (n = "unit" || n = "bool"))
+              ([], not (n = "unit" || n = "bool"), default_out_mode)
             | _ -> raise (Invalid_argument "src_t_to_mode")
           end
       end
@@ -372,57 +361,6 @@ let report_no_translation rule notok eqconds sideconds =
   Reporting.print_debug_exp "Conditions are" rule.rule_conds;
   no_translation None
 
-(*
-let debug_print_transformed trans = 
-  let module B = Backend.Make(struct
-    let avoid = (false, (fun _ -> true), Name.fresh)
-  end) in
-  let (%) f x = Ulib.Text.to_string (f x) in
-  let print_compiled (patterns, code) =
-    Format.eprintf "PATTERNS: ";
-    List.iter (fun pat -> 
-      Format.eprintf "[%s] " (B.ident_pat % pat)
-    ) patterns;
-    Format.eprintf "\n--CODE: \n";
-    let rec print_code = function 
-      | IF(e,c) -> 
-        Format.eprintf "IF [%s]\n" (B.ident_exp % e); 
-        print_code c
-      | IFEQ(e1,e2,c) -> 
-        Format.eprintf "IFEQ [%s] == [%s]\n" (B.ident_exp % e1) (B.ident_exp % e2);
-        print_code c
-      | CALL(n,ty,inputs, outputs,c) ->
-        Format.eprintf "CALL (%s : %s) " (Name.to_rope % n) (B.ident_typ % ty);
-        List.iter (fun i->Format.eprintf "[%s] "(B.ident_exp%i)) inputs;
-        Format.eprintf "==> ";
-        List.iter (fun o->Format.eprintf "[%s] "(B.ident_pat%o)) outputs; 
-        Format.eprintf "\n";
-        print_code c
-      | RETURN returns -> 
-        Format.eprintf "RETURN ";
-        List.iter (fun exp -> Format.eprintf "[%s] " (B.ident_exp % exp)) returns;
-        Format.eprintf "\n"
-    in
-    print_code code;
-    Format.eprintf "--END CODE\n\n";
-    Format.pp_print_flush Format.err_formatter ()
-  in
-  Nfmap.iter (fun rel (_ty, modes) ->
-    Format.eprintf "### RELATION : %s\n" (Name.to_rope % rel);
-    List.iter (fun (n, mode, _ty, rules) ->
-      Format.eprintf "# %s : " (Name.to_rope % n);
-      List.iter (function
-        | I -> Format.eprintf "I"
-        | O -> Format.eprintf "O"
-      ) mode;
-      Format.eprintf "\n\n";
-      List.iter print_compiled rules;
-      Format.eprintf "\n\n\n"
-    ) modes;
-    Format.eprintf "-------------------------------------\n"
-  ) trans
-*)
-
 let sep_no_skips l = Seplist.from_list_default None l
 
 let newline = Some([Ast.Nl])
@@ -451,7 +389,7 @@ module type COMPILATION_CONTEXT = sig
     (Typed_ast.pat * Typed_ast.exp) list -> Typed_ast.exp
 end
 
-module Compile_list : COMPILATION_CONTEXT = struct
+module Context_list : COMPILATION_CONTEXT = struct
 
   let mk_type ty = 
     { Types.t = Types.Tapp([ty], Path.listpath) }
@@ -511,7 +449,7 @@ module Compile_list : COMPILATION_CONTEXT = struct
 
 end
 
-module Compile_pure : COMPILATION_CONTEXT = struct
+module Context_pure : COMPILATION_CONTEXT = struct
   let mk_type x = x
   let remove_type x = x
 
@@ -533,7 +471,7 @@ module Compile_pure : COMPILATION_CONTEXT = struct
 end
 
 (* TODO : merge with LemOptionMonad ? *)
-module Compile_option_pre = struct
+module Context_option_pre = struct
 
   let mk_type ty = 
     { Types.t = Types.Tapp([ty], mk_string_path ["Pervasives"] "option") } 
@@ -565,44 +503,51 @@ module Compile_option_pre = struct
 
 end
 
-module Compile_option : COMPILATION_CONTEXT = struct
-  include Compile_option_pre
+module Context_option : COMPILATION_CONTEXT = struct
+  include Context_option_pre
 
   let mk_choice _ = failwith "Not implemented"
 end
 
-module Compile_option_unique : COMPILATION_CONTEXT = struct
-  include Compile_option_pre
+module Context_unique : COMPILATION_CONTEXT = struct
+  include Context_option_pre
 
   let mk_choice _ = failwith "Not implemented"
 end
+
+let select_module = function
+  | Out_list -> (module Context_list : COMPILATION_CONTEXT)
+  | Out_pure -> (module Context_pure : COMPILATION_CONTEXT)
+  | Out_unique -> (module Context_unique : COMPILATION_CONTEXT)
+  | Out_option -> (module Context_option : COMPILATION_CONTEXT)
+
+let out_ty_from_mode env localenv reldescr (mode, wit, _out) = 
+  let ret = map_filter (function
+    | (O,x) -> Some x
+    | _ -> None
+  ) (List.map2 (fun x y -> (x,y)) mode reldescr.rel_argtypes) in
+  let ret = if wit then 
+      let Some(x) = Nfmap.apply localenv.r_env reldescr.rel_name in
+      let Some(t,_) = x.ri_witness in
+      ret@[{t = Tapp([],t)}]
+    else ret 
+  in
+  {t=Ttup(ret)}
+        
+let in_tys_from_mode env reldescr (mode, _wit, _out) = 
+  map_filter (function
+    | (I,x) -> Some x
+    | _ -> None
+  ) (List.map2 (fun x y -> (x,y)) mode reldescr.rel_argtypes)
+
+let ty_from_mode env localenv reldescr ((_,_,out) as mode) = 
+  let args = in_tys_from_mode env reldescr mode in
+  let ret = out_ty_from_mode env localenv reldescr mode in
+  let module M = (val select_module out : COMPILATION_CONTEXT) in
+  List.fold_right (fun a b -> {t=Tfn(a,b)}) args (M.mk_type ret)
 
 module Compile(M : COMPILATION_CONTEXT) = struct
-
-    let out_ty_from_mode env localenv reldescr (mode, wit) = 
-      let ret = map_filter (function
-        | (O,x) -> Some x
-        | _ -> None
-      ) (List.map2 (fun x y -> (x,y)) mode reldescr.rel_argtypes) in
-      let ret = if wit then 
-          let Some(x) = Nfmap.apply localenv.r_env reldescr.rel_name in
-          let Some(t,_) = x.ri_witness in
-          ret@[{t = Tapp([],t)}]
-        else ret 
-      in
-      M.mk_type {t=Ttup(ret)}
         
-    let in_tys_from_mode env reldescr (mode, _wit) = 
-      map_filter (function
-        | (I,x) -> Some x
-        | _ -> None
-      ) (List.map2 (fun x y -> (x,y)) mode reldescr.rel_argtypes)
-        
-    let ty_from_mode env localenv reldescr mode = 
-      let args = in_tys_from_mode env reldescr mode in
-      let ret = out_ty_from_mode env localenv reldescr mode in
-      List.fold_right (fun a b -> {t=Tfn(a,b)}) args ret
-
   let rec compile_code env excluded renames code = 
     let l = Ast.Trans ("compile_code", None) in
     match code with
@@ -632,36 +577,47 @@ module Compile(M : COMPILATION_CONTEXT) = struct
     let lemcode = compile_code env Nset.empty Nfmap.empty code in
     (pattern, lemcode) 
 
-  let compile_to_typed_ast env localenv prog =
-    let l = Ast.Trans ("compile_to_typed_ast", None) in
-    let funcs = Nfmap.fold (fun l _ (_,funcs) -> 
-      (List.map (fun (name, _, _, _) -> name) funcs)@l) [] prog in
-    let fun_names = List.fold_right Nset.add funcs Nset.empty in
-    let defs = Nfmap.map (fun _rel (reldescr, modes) ->
-      List.map (fun (n, mode, mty, rules) ->
-        let gen_name = make_namegen fun_names in
-        let vars = List.map 
-          (fun ty -> Name.add_lskip (gen_name (Ulib.Text.of_latin1 "input")), ty)
-          (in_tys_from_mode env reldescr mode) in
-        let tuple_of_vars = mk_tup l None (sep_no_skips (List.map (fun (var,ty) -> mk_var Ast.Unknown var ty) vars)) None None in
-        let pats_of_vars = List.map (fun (var,ty) -> mk_pvar l var ty) vars in
-        let cases = List.map (compile_rule env) rules in
-        let output_type = out_ty_from_mode env localenv reldescr mode in
-        (* Generate a list of binds and concat them ! *)
-        let body = M.mk_choice env (M.remove_type output_type) tuple_of_vars cases in
-        let annot = { term = Name.add_lskip n;
-                      locn = l;
-                      typ = mty;
-                      rest = () } in
-        (annot, pats_of_vars, None, None, body)
-      ) modes 
-    ) prog in
-    let defs = sep_newline (Nfmap.fold (fun l _ c -> c@l) [] defs) in
-    ((Val_def(Rec_def(newline,None,None,defs), Types.TNset.empty, []), None), l)
-
+  let compile_function env localenv fun_names reldescr (n,mode,mty,rules) =
+    let l = Ast.Trans ("compile_function", None) in 
+    let gen_name = make_namegen fun_names in
+    let vars = List.map 
+      (fun ty -> Name.add_lskip (gen_name (Ulib.Text.of_latin1 "input")), ty)
+      (in_tys_from_mode env reldescr mode) in
+    let tuple_of_vars = mk_tup l None (sep_no_skips (List.map (fun (var,ty) -> mk_var Ast.Unknown var ty) vars)) None None in
+    let pats_of_vars = List.map (fun (var,ty) -> mk_pvar l var ty) vars in
+    let cases = List.map (compile_rule env) rules in
+    let output_type = out_ty_from_mode env localenv reldescr mode in
+    (* Generate a list of binds and concat them ! *)
+    let body = M.mk_choice env output_type tuple_of_vars cases in
+    let annot = { term = Name.add_lskip n;
+                  locn = l;
+                  typ = mty;
+                  rest = () } in
+    (annot, pats_of_vars, None, None, body)
 end
 
-module Compile_list_code = Compile(Compile_list_code)
+let compile_function env localenv fun_names reldescr 
+    ((_,(_,_,out_mode),_,_) as m) = 
+  let module M = (val select_module out_mode) in
+  let module C = Compile(M) in
+  C.compile_function env localenv fun_names reldescr m
+
+
+let compile_to_typed_ast env localenv prog =
+  let l = Ast.Trans ("compile_to_typed_ast", None) in
+  let funcs = Nfmap.fold (fun l _ (_,funcs) -> 
+    (List.map (fun (name, _, _, _) -> name) funcs)@l) [] prog in
+  let fun_names = List.fold_right Nset.add funcs Nset.empty in
+  let defs = Nfmap.map (fun _rel (reldescr, modes) ->
+    List.map (compile_function env localenv fun_names reldescr) modes 
+  ) prog in
+  let defs = sep_newline (Nfmap.fold (fun l _ c -> c@l) [] defs) in
+  ((Val_def(Rec_def(newline,None,None,defs), Types.TNset.empty, []), None), l)
+
+module Compile_list = Compile(Context_list)
+module Compile_pure = Compile(Context_pure)
+module Compile_unique = Compile(Context_unique)
+module Compile_option = Compile(Context_option)
 
 open Typecheck_ctxt
 
@@ -804,6 +760,7 @@ let gen_witness_type_aux env get_typepath_from_rel names rules =
   ) Nfmap.empty rels in
   tds
 
+(* TODO : remove this once the backend is fixed *)
 let clean_src_app p = 
   let t = {t=Tapp([],p)} in
   let tn = snd (Path.to_name_list p) in
@@ -815,7 +772,7 @@ let clean_src_app p =
     instantiation = []
   } in
   let loc = Ast.Trans("clean_src_app", None) in
-  (t, mk_tapp loc pid [] (Some t) (* t_to_src_t t *))
+  (t, mk_tapp loc pid [] (Some t))
 
 let gen_witness_type_info mod_path ctxt names rules = 
   let tds = gen_witness_type_aux ctxt.cur_env 
@@ -1004,16 +961,13 @@ let gen_witness_check_def env mpath localenv names rules =
   if defs = [] then []
   else [((Val_def(def, Types.TNset.empty, []), None), Ast.Unknown)]
 
-(* Rec_def of lskips * sips * targtets_opt * funcl_aux lskips_seplist 
-and funcl_aux = name_lskips_annot * pat list * (lskips * src_t) option * lskips * exp
-*)
-open Compile_list_code
+open Compile_list
 
 let gen_fns_info mod_path (ctxt : defn_ctxt) names rules =
   let rels = get_rels names rules in
   Nfmap.fold (fun ctxt relname reldescr ->
-    List.fold_left (fun ctxt (name, (mode, wit)) ->
-      let ty = ty_from_mode ctxt.cur_env ctxt.cur_env reldescr (mode, wit) in
+    List.fold_left (fun ctxt (name, mode) ->
+      let ty = ty_from_mode ctxt.cur_env ctxt.cur_env reldescr mode in
       let path = Path.mk_path mod_path name in
       let ctxt = ctxt_mod (fun x -> {x with r_env =
           Nfmap.insert x.r_env 
@@ -1021,7 +975,7 @@ let gen_fns_info mod_path (ctxt : defn_ctxt) names rules =
              let info = match Nfmap.apply x.r_env relname with
               | Some y -> y
               | None -> { ri_witness = None; ri_check = None; ri_fns = [] } in
-             {info with ri_fns = ((mode, wit), path)::info.ri_fns})}) ctxt in
+             {info with ri_fns = (mode, path)::info.ri_fns})}) ctxt in
       let const_descr = {
         const_binding = path;
         const_tparams = [];
@@ -1037,7 +991,7 @@ let gen_fns_info mod_path (ctxt : defn_ctxt) names rules =
     ) ctxt reldescr.rel_indfns
   ) ctxt rels
 
-let transform_rule env localenv localrels (mode, need_wit) rel (rule : ruledescr) = 
+let transform_rule env localenv localrels (mode, need_wit, out_mode) rel (rule : ruledescr) = 
   let vars = Nfmap.domain (Nfmap.from_list rule.rule_vars) in
   let avoid = Nfmap.fold (fun avoid relname reldescr ->
     List.fold_left (fun avoid (funname, _) -> Nset.add funname avoid)
@@ -1046,7 +1000,6 @@ let transform_rule env localenv localrels (mode, need_wit) rel (rule : ruledescr
   let gen_rn = make_renamer vars avoid in
   let (patterns, initknown, initeqs) = 
     convert_output gen_rn rule.rule_args (List.map (fun x -> x = O) mode) in
-  (* TODO : generate better names *)
   let gen_witness_name = 
     let gen = make_namegen Nset.empty in
     fun () -> gen (Ulib.Text.of_latin1 "witness") in
@@ -1116,13 +1069,15 @@ let transform_rule env localenv localrels (mode, need_wit) rel (rule : ruledescr
         end
       | (modes,args,wit_var) as c::cs ->
         let inargs = List.map exp_known args in
-        let mode_matches ((fun_mode, fun_wit),_info) = 
+        let mode_matches ((fun_mode, fun_wit, fun_out_mode),_info) = 
           List.for_all (fun x -> x)
             (List.map2 (fun inp m -> inp || m = O) inargs fun_mode)
-            && (not need_wit || fun_wit) in
+            && (not need_wit || fun_wit) 
+            && (fun_out_mode = out_mode)
+        in
         match List.filter mode_matches modes with
           | [] -> search (c::notok) cs
-          | ((fun_mode, fun_wit), fun_info) ::ms -> 
+          | ((fun_mode, fun_wit, _out_mode), fun_info) ::ms -> 
             (* Still some work to do to generate witnesses *)
             let (outputs, bound, equalities) = convert_output gen_rn args 
               (List.map (fun m -> m = I) mode) in
@@ -1147,8 +1102,8 @@ let transform_rule env localenv localrels (mode, need_wit) rel (rule : ruledescr
   (patterns, build_code initknown indconds sideconds initeqs)
 
 
-let transform_rules env localenv localrels (mode, wit) reldescr =
-  List.map (transform_rule env localenv localrels (mode,wit) reldescr) reldescr.rel_rules
+let transform_rules env localenv localrels mode reldescr =
+  List.map (transform_rule env localenv localrels mode reldescr) reldescr.rel_rules
 
 let gen_fns_def env mpath localenv names rules =
   let rels = get_rels names rules in
@@ -1157,7 +1112,7 @@ let gen_fns_def env mpath localenv names rules =
       (name, mode, ty_from_mode env localenv reldescr mode,transform_rules env localenv rels mode reldescr)
     ) reldescr.rel_indfns)
   ) rels in
-  let code = Compile_list_code.compile_to_typed_ast env localenv transformed_rules in
+  let code = compile_to_typed_ast env localenv transformed_rules in
   let emptydef = 
     Nfmap.fold (fun b _ (_,l) -> b && [] = l) true transformed_rules in
   if emptydef then []

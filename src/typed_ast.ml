@@ -267,10 +267,11 @@ and f_env = field_descr Nfmap.t
 and m_env = mod_descr Nfmap.t
 and input_or_output = I | O
 and mode = input_or_output list
+and output_type = Out_list | Out_pure | Out_option | Out_unique
 and r_info = {
   ri_witness : (Path.t * constr_descr Nfmap.t) option;
   ri_check : Path.t option;
-  ri_fns : ((mode * bool) * Path.t) list
+  ri_fns : ((mode * bool * output_type) * Path.t) list
 }
 and r_env = r_info Nfmap.t
 and env = { m_env : m_env; p_env : p_env; f_env : f_env; v_env : v_env;
