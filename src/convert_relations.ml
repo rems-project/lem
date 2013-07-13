@@ -151,14 +151,20 @@ let rec src_t_to_mode (typ : src_t) : mode * bool * output_type =
     | Typ_fn(x1,_,x2) -> 
       let (mode, wit, out) = src_t_to_mode x2 in
       (to_in_out x1::mode, wit, out)
-    | Typ_app({id_path = p },[]) ->
+    | Typ_app({id_path = p },args) ->
       begin 
         try ([to_in_out typ], false, default_out_mode)
         with Invalid_argument _ -> 
           begin match p with
             | Id_some(i) ->
               let n = Name.to_string (Name.strip_lskip (Ident.get_name i)) in
-              ([], not (n = "unit" || n = "bool"), default_out_mode)
+              begin match n with 
+                | "unit" | "bool" -> ([], false, default_out_mode)
+                | "list" -> ([], args <> [], Out_list)
+                | "option" -> ([], args <> [], Out_option)
+                | "unique" -> ([], args <> [], Out_unique)
+                | _ -> ([], true, default_out_mode)
+              end
             | _ -> raise (Invalid_argument "src_t_to_mode")
           end
       end
