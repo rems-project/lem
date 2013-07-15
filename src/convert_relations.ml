@@ -475,8 +475,19 @@ module Context_pure : COMPILATION_CONTEXT = struct
     let l = Ast.Trans("mk_cond", None) in
     mk_if_exp l cond code (mk_failure env (remove_type (exp_to_typ code)))
 
-  let mk_choice _ t v pats = 
+  let mk_choice env t v pats = 
     let l = Ast.Trans("mk_choice", None) in
+    (* Check pattern non-overlap & completeness or emit a warning *)
+    let props = Patterns.check_pat_list env (List.map fst pats) in
+    (match props with
+      | None -> failwith "Pattern matching compilation failed"
+      | Some(props) ->
+        if not props.Patterns.is_exhaustive
+        then Reporting.report_warning 
+          (Reporting.Warn_general(true, Ast.Unknown, "non-exhaustive patterns in inductive relation"));
+        if props.Patterns.overlapping_pats <> []
+        then Reporting.report_warning
+          (Reporting.Warn_general(true, Ast.Unknown, "overlapping patterns in inductive relation")));
     mk_case_exp false l v pats (mk_type t)
 end
 
