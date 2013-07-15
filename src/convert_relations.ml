@@ -370,8 +370,12 @@ let report_no_translation rule notok eqconds sideconds =
 let sep_no_skips l = Seplist.from_list_default None l
 
 let newline = Some([Ast.Nl])
+let space = Some([Ast.Ws(Ulib.Text.of_latin1 " ")])
 
 let sep_newline l = Seplist.from_list_default newline l
+
+let mk_pvar_ty l n t =
+  mk_ptyp l space (mk_pvar l n t) None (t_to_src_t t) None None
 
 module type COMPILATION_CONTEXT = sig
   (* lem signature : type a -> type m a) *)
@@ -583,14 +587,14 @@ module Compile(M : COMPILATION_CONTEXT) = struct
     let lemcode = compile_code env Nset.empty Nfmap.empty code in
     (pattern, lemcode) 
 
-  let compile_function env localenv fun_names reldescr (n,mode,mty,rules) =
+  let compile_function env localenv fun_names reldescr (n,mode,mty,rules) : funcl_aux =
     let l = Ast.Trans ("compile_function", None) in 
     let gen_name = make_namegen fun_names in
     let vars = List.map 
       (fun ty -> Name.add_lskip (gen_name (Ulib.Text.of_latin1 "input")), ty)
       (in_tys_from_mode env reldescr mode) in
     let tuple_of_vars = mk_tup l None (sep_no_skips (List.map (fun (var,ty) -> mk_var Ast.Unknown var ty) vars)) None None in
-    let pats_of_vars = List.map (fun (var,ty) -> mk_pvar l var ty) vars in
+    let pats_of_vars = List.map (fun (var,ty) -> mk_pvar_ty l var ty) vars in
     let cases = List.map (compile_rule env) rules in
     let output_type = out_ty_from_mode env localenv reldescr mode in
     (* Generate a list of binds and concat them ! *)
@@ -599,7 +603,7 @@ module Compile(M : COMPILATION_CONTEXT) = struct
                   locn = l;
                   typ = mty;
                   rest = () } in
-    (annot, pats_of_vars, None, None, body)
+    (annot, pats_of_vars, Some(space, t_to_src_t (M.mk_type output_type)), space, body)
 end
 
 let compile_function env localenv fun_names reldescr 
@@ -952,7 +956,7 @@ let gen_witness_check_def env mpath localenv names rules =
       (pattern, code)
     ) rules in
     let x = Name.add_lskip (make_namegen Nset.empty (Ulib.Text.of_latin1 "x")) in
-    let xpat = mk_pvar Ast.Unknown x witness_ty in
+    let xpat = mk_pvar_ty Ast.Unknown x witness_ty in
     let xvar = mk_var Ast.Unknown x witness_ty in
     let return_ty = exp_to_typ (snd (List.hd pats))  in
     let body = mk_case_exp false Ast.Unknown xvar pats return_ty in
@@ -960,7 +964,7 @@ let gen_witness_check_def env mpath localenv names rules =
                   locn = Ast.Unknown;
                   typ = {t=Tfn(witness_ty,return_ty)};
                   rest = () } in
-    (annot, [xpat], None, None, body)
+    (annot, [xpat], Some(space, t_to_src_t return_ty), space, body)
   ) localdefs in
   let defs = Nfmap.fold (fun l _ v -> v::l) [] defs in
   let def = Rec_def(newline,None,None,sep_newline defs) in
