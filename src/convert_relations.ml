@@ -227,7 +227,7 @@ let get_rels (l : Ast.l) (names : indrel_name lskips_seplist)
       rule_loc = l;
     } in
     match Nfmap.apply s relname with
-      | None -> failwith "Relation without description (is this ok ?)" (* TODO *)
+      | None -> failwith "Relation without description"
       | Some rel -> Nfmap.insert s 
         (relname, {rel with rel_rules = ruledescr::rel.rel_rules})
   ) names (Seplist.to_list rules)
@@ -694,7 +694,6 @@ let register_types rel_loc ctxt mod_path tds =
     let ctxt = ctxt_add (fun x -> x.p_env) (fun x y -> { x with p_env = y })
       ctxt (tname, (type_path,l)) in
     let ctxt = add_d_to_ctxt ctxt type_path (Tc_type([],None,None)) in
-    (* Register the value constructors FIXME *)
     let cnames = List.fold_left (fun s (_,cname,_) -> NameSet.add cname s) 
       NameSet.empty tconses in
     let mk_descr cname cargs =
@@ -765,15 +764,14 @@ let gen_witness_type_aux env l get_typepath_from_rel names rules =
           begin match Nfmap.apply env.r_env n with
             | None -> None
             | Some { ri_witness = None } ->
-              raise_error Ast.Unknown "no witness for relation"
+              raise_error l "no witness for relation"
                 Path.pp c.descr.const_binding 
             | Some { ri_witness = Some(tn,_) } -> 
               let t = {t=Tapp([],tn)} in
               Some(t, t_to_src_t t) 
           end
         | None -> 
-          (* Then it must be a function from the current module *)
-          None
+          (Format.eprintf "MODULE LOOKUP FAILURE\n"; None)
       end
     | _ -> None
   in
@@ -807,8 +805,47 @@ let clean_src_app p =
   let loc = Ast.Trans("clean_src_app", None) in
   (t, mk_tapp loc pid [] (Some t))
 
+
+let initial_env : Typed_ast.env =
+  { m_env = Nfmap.empty;
+    v_env = Nfmap.empty;
+    f_env = Nfmap.empty;
+    r_env = Nfmap.empty;
+    p_env = Nfmap.from_list 
+              [(Name.from_rope (r"bool"), (Path.boolpath, Ast.Unknown));
+               (Name.from_rope (r"bit"), (Path.bitpath, Ast.Unknown));
+               (Name.from_rope (r"vector"), (Path.vectorpath, Ast.Unknown));
+               (Name.from_rope (r"set"), (Path.setpath, Ast.Unknown));
+               (Name.from_rope (r"list"), (Path.listpath, Ast.Unknown));
+               (Name.from_rope (r"string"), (Path.stringpath, Ast.Unknown));
+               (Name.from_rope (r"unit"), (Path.unitpath, Ast.Unknown));
+               (Name.from_rope (r"num"), (Path.numpath, Ast.Unknown))] }
+
+let path_from_name_list_rev (u::v) = Path.mk_path (List.rev v) u
+
+let path_to_list p = let (u,v) = Path.to_name_list p in 
+                     u@[v]
+
+let unfocus_env env mod_path = 
+  let rec insert_mod env m where = function
+    | [] -> m
+    | p::ps ->
+      let e = match Nfmap.apply env.m_env p with
+        | None -> { mod_binding = path_from_name_list_rev (p::where);
+                    mod_env = initial_env }
+        | Some(e) -> e
+      in
+      let e = { e with mod_env = insert_mod e.mod_env m (p::where) ps } in
+      {env with m_env = Nfmap.insert env.m_env (p, e) }
+  in
+  let e = initial_env in 
+  let e = insert_mod e env [] mod_path in
+  Nfmap.fold (fun env _ m -> insert_mod env m.mod_env [] (path_to_list m.mod_binding)) e env.m_env 
+
 let gen_witness_type_info l mod_path ctxt names rules = 
-  let tds = gen_witness_type_aux ctxt.cur_env l 
+  (* Ugly hack *)
+  let unfocused_env = unfocus_env ctxt.cur_env mod_path in
+  let tds = gen_witness_type_aux unfocused_env l 
     (fun relname reldescr -> 
       match reldescr.rel_witness with
         | None -> None
@@ -950,7 +987,7 @@ let gen_witness_check_def env l mpath localenv names rules =
           | _ -> Right e
       in    
       let (relconds,auxconds) = map_partition is_rel_or_aux rule.rule_conds in
-      let relconds = List.map (fun (args,witness_path,check_exp) ->
+       let relconds = List.map (fun (args,witness_path,check_exp) ->
         let witness_ty = {t=Tapp([],witness_path)} in
         let witness_name = gen_name (Ulib.Text.of_latin1 "witness") in
         (args, witness_ty, check_exp, witness_name)

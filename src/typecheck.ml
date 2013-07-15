@@ -291,7 +291,7 @@ let typ_to_src_t_indreln wit (d : type_defs) (e : env) (typt : Types.t) typ : sr
                rest = (); }
         else raise (Ident.No_type(l,"Only input or output may be used here")) 
       | _ -> raise (Ident.No_type(l,"Only input or output may be used here"))
-  and compare_wu ((Ast.Typ_l(typ,l)) as typ') =
+  and compare_wu (Ast.Typ_l(typ,l)) =
       match typ with
       | Ast.Typ_app(i, []) -> 
         let n, id = dest_id i in
