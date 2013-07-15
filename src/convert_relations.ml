@@ -177,7 +177,7 @@ let rec decompose_rel_type typ =
     | _ -> [] (* The return value is assumed to be bool, we don't check it *)
 
 let get_rels (names : indrel_name lskips_seplist) 
-    (l: Typed_ast.rule lskips_seplist) : relsdescr =
+    (rules: Typed_ast.rule lskips_seplist) : relsdescr =
   let names = List.fold_left (fun s (RName(_,n,_,t,wit,chk,fn,_)) ->
     let relname = Name.strip_lskip n in
     let witness = map_option (fun (Witness(_,_,n,_)) -> Name.strip_lskip n) wit in 
@@ -198,7 +198,7 @@ let get_rels (names : indrel_name lskips_seplist)
     } in
     Nfmap.insert s (relname, descr)
   ) Nfmap.empty (Seplist.to_list names) in
-  List.fold_left (fun s (Rule(rulename,_,_,vars,_,cond,_,rel,args)) ->
+  List.fold_left (fun s (Rule(rulename,_,_,vars,_,cond,_,rel,args),l) ->
     let rulename = Name.strip_lskip rulename in
     let relname = Name.strip_lskip rel.term in
     let rulecond = match cond with
@@ -218,7 +218,7 @@ let get_rels (names : indrel_name lskips_seplist)
       | None -> failwith "Relation without description (is this ok ?)" (* TODO *)
       | Some rel -> Nfmap.insert s 
         (relname, {rel with rel_rules = ruledescr::rel.rel_rules})
-  ) names (Seplist.to_list l)
+  ) names (Seplist.to_list rules)
 
 type ('a,'b) choice = Left of 'a | Right of 'b
 

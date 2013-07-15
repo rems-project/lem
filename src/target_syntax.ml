@@ -378,10 +378,10 @@ let rec fix_infix_and_parens get_prec defs =
                 targets,
                 names,
                 Seplist.map
-                  (fun (Rule(name,s0,s1,ns,s2,e_opt,s3,n,es)) ->
-                     Rule(name,s0,s1,ns,s2,
+                  (fun (Rule(name,s0,s1,ns,s2,e_opt,s3,n,es),l) ->
+                     (Rule(name,s0,s1,ns,s2,
                       Util.option_map (fix_exp get_prec) e_opt, s3, n, 
-                      List.map (fix_exp get_prec) es))
+                      List.map (fix_exp get_prec) es),l))
                   c)
     | Module(sk1, nl, sk2, sk3, ds, sk4) ->
         Module(sk1, nl, sk2, sk3, List.map (fun ((d,s),l) -> ((fix_def d,s),l)) ds, sk4)

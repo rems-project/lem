@@ -2283,7 +2283,7 @@ let indreln_name (RName(s1,name,s2,(constraint_pre,t),witness,checks,functions,s
   ws s3 ^
   T.reln_name_end
 
-let indreln_clause (Rule(name, s0, s1, qnames, s2, e_opt, s3, rname, es)) =
+let indreln_clause (Rule(name, s0, s1, qnames, s2, e_opt, s3, rname, es),_) =
   (if T.reln_clause_show_name then (
     ((if T.reln_clause_quote_name then Name.to_output_quoted else Name.to_output) T.infix_op_format Term_method name ^
       ws s0 ^
@@ -2371,7 +2371,7 @@ let isa_funcl_header_seplist clause_sl =
 
 let isa_funcl_header_indrel_seplist clause_sl =
   let clauseL = Seplist.to_list clause_sl in
-  let (_, clauseL_filter) = List.fold_left (fun (ns, acc) (Rule(_,_, _, _, _, _, _, rname, _)) ->
+  let (_, clauseL_filter) = List.fold_left (fun (ns, acc) (Rule(_,_, _, _, _, _, _, rname, _),_) ->
       let n = Name.strip_lskip rname.term in 
       if NameSet.mem n ns then (ns, acc) else (NameSet.add n ns, rname :: acc)) (NameSet.empty, []) clauseL in
   let headerL = List.map (fun rname -> 

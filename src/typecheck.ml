@@ -1685,7 +1685,7 @@ module Make_checker(T : sig
                (multi_fun 
                   (List.map exp_to_typ ets) 
                   { t = Tapp([], Path.boolpath) });
-             Rule(new_name,
+             (Rule(new_name,
               s0,
               s1,
               List.map 
@@ -1695,7 +1695,7 @@ module Make_checker(T : sig
               Some et,
               s3,
               new_name',
-              ets))
+              ets),l2))
         clauses
     in
       (n,c,rec_env, apply_specs None def_targets l rec_env)

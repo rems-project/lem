@@ -332,15 +332,15 @@ let rec expand_defs defs ((r,typ_r,src_typ_r,pat_r):((exp -> exp option) * (Type
                 targets,
                 names (*TODO Consider if this should be walked*),
                 Seplist.map
-                  (fun (Rule (name_opt,s0,s1,ns,s2,e_opt,s3,n,es)) ->
-                     Rule (name_opt,
+                  (fun (Rule (name_opt,s0,s1,ns,s2,e_opt,s3,n,es),l) ->
+                     (Rule (name_opt,
                       s0,
                       s1,
                       (List.map (fun n -> QName n) (List.map (expand_annot_typ typ_r) (List.map (fun (QName n) -> n) ns))), (*Need to map into type annotated vars as well*)
                       s2,
                       Util.option_map (expand_exp (r,typ_r,src_typ_r,pat_r)) e_opt, s3, 
                       expand_annot_typ typ_r n, 
-                      List.map (expand_exp (r,typ_r,src_typ_r,pat_r)) es))
+                      List.map (expand_exp (r,typ_r,src_typ_r,pat_r)) es),l))
                   c)
     | Module(sk1, nl, sk2, sk3, ds, sk4) ->
         Module(sk1, nl, sk2, sk3, List.map (fun ((d,s),l) -> ((expand_def d,s),l)) ds, sk4)

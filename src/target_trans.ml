@@ -278,9 +278,9 @@ struct
             | Indreln(s1,topt,names,clauses) ->
                 let clauses =
                   Seplist.map
-                    (fun (Rule(name,s0,s1,ns,s2,e,s3,n,es)) ->
+                    (fun (Rule(name,s0,s1,ns,s2,e,s3,n,es),l) ->
                        (* TODO: rename to avoid conflicts *)
-                       Rule(name,s0,s1,ns,s2,e,s3,n,es))
+                       (Rule(name,s0,s1,ns,s2,e,s3,n,es),l))
                     clauses
                 in
                   Indreln(s1,topt,names,clauses)      

@@ -410,7 +410,8 @@ type rule_quant_name =
   | QName of name_lskips_annot
   | Name_typ of lskips * name_lskips_annot * lskips * src_t * lskips
 
-type rule = Rule of Name.lskips_t * lskips * lskips * rule_quant_name list * lskips * exp option * lskips * name_lskips_annot * exp list
+type rule_aux = Rule of Name.lskips_t * lskips * lskips * rule_quant_name list * lskips * exp option * lskips * name_lskips_annot * exp list
+type rule = rule_aux * Ast.l
 
 type witness = Witness of lskips * lskips * Name.lskips_t * lskips
 type indfn = Fn of Name.lskips_t * lskips * src_t * lskips option
