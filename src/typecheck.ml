@@ -2401,9 +2401,9 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let newctxt = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs)
             constraints lconstraints
             (target_opt_to_env_tag target_set) None e_v in
-          let newctxt = Conv.gen_witness_type_info mod_path newctxt ns cls in
-          let newctxt = Conv.gen_witness_check_info mod_path newctxt ns cls in
-          let newctxt = Conv.gen_fns_info mod_path newctxt ns cls in
+          let newctxt = Conv.gen_witness_type_info l mod_path newctxt ns cls in
+          let newctxt = Conv.gen_witness_check_info l mod_path newctxt ns cls in
+          let newctxt = Conv.gen_fns_info l mod_path newctxt ns cls in
             (newctxt,
              (Indreln(sk,target_opt_checked,ns,cls)))
       | Ast.Spec_def(val_spec) ->
