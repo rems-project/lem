@@ -1,13 +1,14 @@
 all:
+#	ocamlbuild -cflag -g main.native
 	ocamlbuild main.native
 
 doc:
 	mkdir -p html-doc
-	ocamldoc -I _build/ -I _build/ulib/ *.mli ulib/*.mli ulib/*.ml -sort -html -d html-doc
+	ocamldoc -I _build/ -I _build/ulib/ *.mli finite_map.ml -sort -html -d html-doc
 
 doc-pdf:
 	mkdir -p tex-doc
-	ocamldoc -I _build/ -I _build/ulib/ *.mli ulib/*.mli -latex -sort -d tex-doc -o tex-doc/lem-doc.tex; true
+	ocamldoc -I _build/ -I _build/ulib/ *.mli finite_map.ml -latex -sort -d tex-doc -o tex-doc/lem-doc.tex; true
 	cd tex-doc; pdflatex lem-doc.tex
 
 doc-dot:
