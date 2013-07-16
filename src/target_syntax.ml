@@ -226,13 +226,7 @@ let rec fix_exp env get_prec e =
                   match e2_term with
                     | Var(n) ->
                         C.mk_var (exp_to_locn trans_e2) n (exp_to_typ trans_e2)
-                    | Constant(c) ->
-                        let l = (exp_to_locn trans_e2) in
-                        let c_d = c_env_lookup l env.c_env c.descr in
-                        C.mk_const l
-                          { c with id_path = 
-                              Id_some (resolve_ident_path c c_d.const_binding) }
-                          (Some(exp_to_typ trans_e2))
+                    | Constant(c) -> trans_e2
                     | _ -> assert false
                 in
                   C.mk_infix old_l 
@@ -409,13 +403,13 @@ let rec fix_infix_and_parens env target_opt defs =
                       List.map (fix_exp env get_prec) es))
                   c)
     | Module(sk1, nl, mod_path, sk2, sk3, ds, sk4) ->
-        Module(sk1, nl, mod_path, sk2, sk3, List.map (fun ((d,s),l) -> ((fix_def d,s),l)) ds, sk4)
+        Module(sk1, nl, mod_path, sk2, sk3, List.map (fun ((d,s),l,lenv) -> ((fix_def d,s),l,lenv)) ds, sk4)
     | Instance(sk1,is,vdefs,sk2,sem_info) ->
         Instance(sk1, is, List.map fix_val_def vdefs, sk2, sem_info)
     | def -> def
   in
     match defs with
       | [] -> []
-      | ((def,s),l)::defs ->
-          ((fix_def def,s),l)::fix_infix_and_parens env target_opt defs
+      | ((def,s),l,lenv)::defs ->
+          ((fix_def def,s),l,lenv)::fix_infix_and_parens env target_opt defs
 

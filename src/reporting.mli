@@ -104,7 +104,7 @@ val report_warning : Typed_ast.env -> warning -> unit
 
 (** Command line options for warnings *)
 val warn_opts : (string * Arg.spec * string) list
-
+  
 (** Turn off pattern compilation warnings, used by main *)
 val ignore_pat_compile_warnings : unit -> unit
 
@@ -112,10 +112,6 @@ val ignore_pat_compile_warnings : unit -> unit
 
 (** {2 Debuging } *)
 
-(** Should debug be printed *)
-val debug_flag : bool ref
-
-val print_debug : string -> unit
 val print_debug_exp : Typed_ast.env -> string -> Typed_ast.exp list -> unit
 val print_debug_def : Typed_ast.env -> string -> Typed_ast.def list -> unit
 val print_debug_pat : Typed_ast.env -> string -> Typed_ast.pat list -> unit

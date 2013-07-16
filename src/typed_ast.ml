@@ -149,11 +149,14 @@ and pat_aux =
   | P_lit of lit
   | P_var_annot of Name.lskips_t * src_t
 
+and cr_special_fun =
+  | CR_special_uncurry of int
+
 and const_target_rep =
   | CR_rename of Ast.l * bool * Name.t
   | CR_new_ident of Ast.l * bool * Ident.t               
   | CR_inline of Ast.l * (Name.lskips_t,unit) annot list * exp
-  | CR_special of Ast.l * bool * bool * Name.t * (Output.t list -> Output.t list) * Name.t list
+  | CR_special of Ast.l * bool * bool * Name.t * cr_special_fun * Name.t list
 
 and const_descr = { const_binding : Path.t;
                     const_tparams : Types.tnvar list;
@@ -302,7 +305,7 @@ type inst_sem_info =
 
 type name_sect = Name_restrict of (lskips * name_l * lskips * lskips * string * lskips)
 
-type def = (def_aux * lskips option) * Ast.l
+type def = (def_aux * lskips option) * Ast.l * local_env
 
 and def_aux =
   | Type_def of lskips * (name_l * tnvar list * Path.t * texp * name_sect option) lskips_seplist
@@ -597,8 +600,8 @@ let append_lskips lskips (p : exp) : exp =
   let (e, _) = alter_init_lskips (fun s -> (Ast.combine_lex_skips lskips s, None)) p in
     e
 
-let rec def_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (((d,s),l) : def) : def * lskips = 
-  let res x y = (((x,s),l),y) in
+let rec def_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (((d,s),l,lenv) : def) : def * lskips = 
+  let res x y = (((x,s),l,lenv),y) in
     match d with
       | Type_def(sk, tds) ->
           let (s_new, s_ret) = lskips_f sk in
@@ -2183,18 +2186,6 @@ let class_path_to_dict_type c arg =
   let n = Name.rename (fun x -> Ulib.Text.(^^^) x (r"_class")) n in
     { Types.t = Types.Tapp([arg], Path.mk_path mods n) }
 
-
-(* TODO: This needs to be much more sophisticated *)
-let resolve_ident_path id path : Ident.t =
-  let id = 
-    match id.id_path with 
-      | Id_none sk -> 
-          let (mod_names, name) = Path.to_name_list path in
-          let mod_names' = List.map (fun mn -> (Name.add_lskip mn, None)) mod_names in
-            Ident.replace_first_lskip (Ident.mk_ident mod_names' (Name.add_lskip name) id.id_locn) sk
-      | Id_some id -> id
-  in
-  id
 
 let ident_get_first_lskip id =
   match id.id_path with

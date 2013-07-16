@@ -51,16 +51,16 @@ open Typed_ast
 (** [inline_exp_macro target env e] does the inlining of target specific constant definitions *)
 val inline_exp_macro : Target.non_ident_target -> env -> exp -> exp option
 
-
 module Make(A : sig
   val env : env;; 
   val target : Target.target;;
   val id_format_args : (Output.id_annot -> Ulib.Text.t -> Output.t) * Output.t
  end) : sig
 
-(** [function_application_to_output exp inf c_id args] tries to format
-    a function application as output. It gets an id [c_id]. The
-    corresponding description is looked up in [A.env]. Depending on
+(** [function_application_to_output l exp inf full_exp c_id args] tries to format
+    a function application as output. It gets an expression [full_ex] of the from
+    [c arg1 ... argn]. The id [c_id] corresponds to constant [c]. The arguments [arg1, ... argn] are 
+    handed over as [args]. The description corresponding to [c] is looked up in [A.env]. Depending on
     this description and the backend-specific formats therein, the
     function and its arguments are formated as output.  In the
     simplest case the representation is an identifier ([Ident.t]),
@@ -69,9 +69,11 @@ module Make(A : sig
     cases, formating of expressions is needed, which is done via the
     callback [exp]. In particular if some arguments are not needed by
     the formating of the function application, the function [exp] is
-    called on these remaining arguments.
+    called on these remaining arguments. The original expression [full_exp] is
+    needed, if not enough parameters are present to format the definition correctly. 
+    In this case, eta-expansion is applied and the resulting expression formatting via [exp].
 *)
-  val function_application_to_output : (exp -> Output.t) -> bool -> const_descr_ref id -> exp list -> Output.t list
+val function_application_to_output : Ast.l -> (exp -> Output.t) -> bool -> exp -> const_descr_ref id -> exp list -> Output.t list
 
 (** [pattern_application_to_output pat c_id args] tries to
     format a function application in a pattern as output. It does otherwise the same as
@@ -80,10 +82,10 @@ module Make(A : sig
 *)
 val pattern_application_to_output : (pat -> Output.t) -> const_descr_ref id -> pat list -> Output.t list
 
-(** [const_id_to_ident c_id] tries to format a constant
+(** [const_id_to_ident c_id] tries to format a constant, constructor or field
     [c_id] as an identifier for target [A.target] using the rules stored
     in environment [A.env]. Depending on the formating rules for this
-    constant, this might fail. *)
+    constant, this might fail.*)
 val const_id_to_ident : const_descr_ref id -> Ident.t
 
 (** [const_ref_to_name n c] tries to format a constant
@@ -107,5 +109,11 @@ val type_path_to_name : Name.lskips_t -> Path.t -> Name.lskips_t
     in environment [A.env]. 
 *)
 val type_id_to_ident : Path.t id -> Ident.t
+
+(** [module_id_to_ident m_id] tries to format a module
+    [m_id] as an identifier for target [A.target] using the rules stored
+    in environment [A.env]. 
+*)
+val module_id_to_ident : mod_descr id -> Ident.t
 
 end

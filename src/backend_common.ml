@@ -47,6 +47,43 @@
 open Output
 open Typed_ast
 open Typed_ast_syntax
+open Target_binding
+
+let r = Ulib.Text.of_latin1
+let marker_lex_skip : Ast.lex_skips = (Some [Ast.Ws (Ulib.Text.of_latin1 "***marker***")])
+
+(* Resolve a const identifier stored inside a id, with a full one in case of Id_none *)
+let resolve_constant_id_ident env id path : Ident.t =
+  match id.id_path with 
+      | Id_none sk -> minimize_const_ident env (Path.to_ident sk path)
+      | Id_some id -> id
+
+let resolve_type_id_ident env id path : Ident.t =
+  match id.id_path with 
+      | Id_none sk -> minimize_type_ident env (Path.to_ident sk path)
+      | Id_some id -> id
+
+let resolve_module_id_ident env id path : Ident.t =
+  match id.id_path with 
+      | Id_none sk -> Path.to_ident sk (minimize_module_path env path)
+      | Id_some id -> id
+
+
+let cr_special_uncurry_fun n oL = begin
+  if not (List.length oL = n + 1) then
+     raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal (Ast.Unknown, "target presentation of OCaml constructor got the wrong number of args")))
+  else if (n = 0) then oL else
+  if (n = 1) then
+     [List.nth oL 0; texspace; List.nth oL 1]
+  else
+     [List.hd oL; texspace; meta "("] @
+      Util.intercalate (meta ",") (List.tl oL) @
+     [meta ")"]
+  end
+
+
+let cr_special_fun_to_fun = function
+  CR_special_uncurry n -> cr_special_uncurry_fun n
 
 
 (** Axiliary function for [inline_exp] *)
@@ -115,6 +152,29 @@ module Make(A : sig
  end) = struct
 
 
+
+(** An auxiliary, temporary function to strip the artifacts of the library structure.
+    Hopefully, this won't be necessary much longer, when the library gets redesigned. *)
+let strip_library_prefix =
+  match A.target with
+    | Target.Target_ident -> (fun i -> i)
+    | Target.Target_no_ident t -> 
+         let n_t = Target.non_ident_target_to_mname t in
+         let n_p = Name.from_string "Pervasives" in
+      fun i -> begin
+         let i = Ident.strip_path n_t i in  
+(*         let i = Ident.strip_path n_p i in   *)
+         i
+      end
+
+
+(** TODO: add renaming of modules here later.
+          remove intermediate stripping of library prefix *)
+let fix_module_prefix_ident env i =
+  strip_library_prefix i
+
+
+
 let ident_to_output use_infix =
   let (ident_f, sep) = A.id_format_args in 
   if use_infix then
@@ -126,14 +186,16 @@ let ident_to_output use_infix =
 let const_id_to_ident c_id =
   let l = Ast.Trans ("const_id_to_ident", None) in
   let c_descr = c_env_lookup l A.env.c_env c_id.descr in
+  let org_ident = resolve_constant_id_ident (A.env.local_env) c_id c_descr.const_binding in
   let i = match Target.Targetmap.apply_target c_descr.target_rep A.target with
-     | None -> resolve_ident_path c_id c_descr.const_binding
+     | None -> org_ident
      | Some (CR_new_ident (_, _, i)) -> i
-     | Some (CR_rename (_, _, n)) -> Ident.rename (resolve_ident_path c_id c_descr.const_binding) n
+     | Some (CR_rename (_, _, n)) -> Ident.rename org_ident n
      | Some (CR_inline _) -> raise (Reporting_basic.err_unreachable false l "Inlining should have already been done by Macro")
-     | Some (CR_special (_, _, _, n, _, _)) -> Ident.rename (resolve_ident_path c_id c_descr.const_binding) n
+     | Some (CR_special (_, _, _, n, _, _)) -> Ident.rename org_ident n
   in
-  i
+  let i' = fix_module_prefix_ident (A.env.local_env) i in
+  i'
 
 let constant_application_to_output_simple is_infix_pos arg_f args c_id = begin
   let i = const_id_to_ident c_id in 
@@ -141,7 +203,7 @@ let constant_application_to_output_simple is_infix_pos arg_f args c_id = begin
   let is_infix = (is_infix_pos && const_is_infix && (Ident.has_empty_path_prefix i)) in
   let use_infix_notation = ((not is_infix) && const_is_infix) in
   let name = ident_to_output use_infix_notation i in
-  let args_out = List.map arg_f args in
+  let args_out = List.map (arg_f use_infix_notation) args in
   if (not is_infix) then
      (name :: args_out) 
   else 
@@ -153,31 +215,36 @@ let constant_application_to_output_special c_id to_out arg_f args vars : Output.
   let name = ident_to_output false (const_id_to_ident c_id) in
   let args_output = List.map arg_f args in
   let (o_vars, o_rest) = Util.split_after (List.length vars) args_output (* assume there are enough elements *) in
-  let o_fun = to_out (name :: o_vars) in
+  let o_fun = (cr_special_fun_to_fun to_out) (name :: o_vars) in
   o_fun @ o_rest
 
 
-let function_application_to_output (arg_f : exp -> Output.t) (is_infix_pos : bool) (c_id : const_descr_ref id) (args : 'a list) : Output.t list =
+let function_application_to_output l (arg_f0 : exp -> Output.t) (is_infix_pos : bool) (full_exp : exp) (c_id : const_descr_ref id) (args : exp list) : Output.t list =
   let _ = if is_infix_pos && not (List.length args = 2) then (raise (Reporting_basic.err_unreachable false Ast.Unknown "Infix position with wrong number of args")) else () in
-
+  let arg_f b e = if b then arg_f0 (mk_opt_paren_exp e) else arg_f0 e in
   let c_descr = c_env_lookup Ast.Unknown A.env.c_env c_id.descr in
   match Target.Targetmap.apply_target c_descr.target_rep A.target with
      | Some (CR_special (_, _, _, _, to_out, vars)) -> 
             if (List.length args < List.length vars) then begin
-              raise (Reporting_basic.err_todo true Ast.Unknown "Special function syntax needs fun-introduction!")
+              (* eta expand and call recursively *)
+              let remaining_vars = Util.list_dropn (List.length args) vars in
+              let eta_exp = mk_eta_expansion_exp (A.env.t_env) remaining_vars full_exp in
+              [arg_f true eta_exp]
+              
             end else begin
-              constant_application_to_output_special c_id to_out arg_f args vars 
+              constant_application_to_output_special c_id to_out (arg_f false) args vars 
             end
      | _ -> constant_application_to_output_simple is_infix_pos arg_f args c_id
 
-let pattern_application_to_output (arg_f : pat -> Output.t) (c_id : const_descr_ref id) (args : pat list) : Output.t list =
+let pattern_application_to_output (arg_f0 : pat -> Output.t) (c_id : const_descr_ref id) (args : pat list) : Output.t list =
+  let arg_f b p = if b then arg_f0 (Pattern_syntax.mk_opt_paren_pat p) else arg_f0 p in
   let c_descr = c_env_lookup Ast.Unknown A.env.c_env c_id.descr in
   match Target.Targetmap.apply_target c_descr.target_rep A.target with
      | Some (CR_special (_, _, _, _, to_out, vars)) -> 
         if (List.length args < List.length vars) then begin
            raise (Reporting_basic.err_unreachable true Ast.Unknown "Constructor without enough arguments!")
         end else begin
-           constant_application_to_output_special c_id to_out arg_f args vars 
+           constant_application_to_output_special c_id to_out (arg_f false) args vars 
         end
      | _ -> constant_application_to_output_simple false arg_f args c_id
 
@@ -191,16 +258,19 @@ let type_path_to_name n0 (p : Path.t) : Name.lskips_t =
 let type_id_to_ident (p : Path.t id) =
    let l = Ast.Trans ("type_id_to_ident", None) in
    let td = Types.type_defs_lookup l A.env.t_env p.descr in
-   match Target.Targetmap.apply_target td.Types.type_target_rep A.target with
-     | None -> resolve_ident_path p p.descr
+   let org_type = resolve_type_id_ident A.env.local_env p p.descr in
+   let i = match Target.Targetmap.apply_target td.Types.type_target_rep A.target with
+     | None -> org_type
      | Some (Types.TR_new_ident (_, _, i)) -> i 
-     | Some (Types.TR_rename (_, _, n)) -> Ident.rename (resolve_ident_path p p.descr) n
+     | Some (Types.TR_rename (_, _, n)) -> Ident.rename org_type n in
+   let i' = fix_module_prefix_ident A.env.local_env i in
+   i'
 
-(* TODO: delete. Since type_ids are not implemente properly, drop everything except the name as a hack. Fix soon! *)
-let type_id_to_ident (p : Path.t id) =
-  Ident.drop_path (type_id_to_ident p)
-  
-
+let module_id_to_ident (mod_descr : mod_descr id) : Ident.t =
+   let l = Ast.Trans ("module_id_to_ident", None) in
+   let i = resolve_module_id_ident (A.env.local_env) mod_descr mod_descr.descr.mod_binding in
+   let i' = fix_module_prefix_ident (A.env.local_env) i in
+   i'
 
 let const_ref_to_name n0 c =
   let l = Ast.Trans ("const_ref_to_name", None) in

@@ -105,17 +105,25 @@ let fresh_start start s ok =
 
 let fresh s ok = from_rope (fresh_start None s ok)
 
-let rec fresh_list i s ok =
+let rec fresh_num_list i s ok =
   if i = 0 then
     []
   else begin
     let new_name = from_rope (fresh_start (Some(i)) s ok) in
     let new_ok n = ok n && (n <> new_name) in
-    new_name :: fresh_list (i - 1) s new_ok
+    new_name :: fresh_num_list (i - 1) s new_ok
   end
 
 
+let rec fresh_list_aux (acc : t list) (ok : t -> bool) = function
+  | []      -> List.rev acc
+  | n :: ns -> begin
+      let n' = fresh (to_rope n) ok in
+      let ok' n =  ok n && (n <> n') in
+      fresh_list_aux (n'::acc) ok' ns
+    end 
 
+let fresh_list ok ns = fresh_list_aux [] ok ns
 
 let rename f r = from_rope (f (to_rope r))
 
@@ -186,7 +194,7 @@ let to_output_quoted a (s,x)=
   to_output a (s, (r"\"" ^^ x ^^ r"\""))
 
 let to_rope_tex a n = 
-  Output.to_rope_ident a (to_rope n)
+  Output.to_rope_tex (Output.id a (to_rope n))
 
 let add_pre_lskip lskip (s,x) = 
   (Ast.combine_lex_skips lskip s,x)

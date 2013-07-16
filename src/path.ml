@@ -101,12 +101,8 @@ let flat = function
 
 let (^) = Ulib.Text.(^^^)
 
-let to_ident p =  match to_name_list p with 
-     (vs,v) -> 
-        Ident.mk_ident 
-          (List.map (fun v -> (Name.add_lskip v, None)) vs) 
-          (Name.add_lskip v)
-          Ast.Unknown
+let to_ident sk p =  match to_name_list p with 
+     (vs,v) -> Ident.mk_ident sk vs v
 
 let numpath = Path_num
 

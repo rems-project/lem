@@ -784,7 +784,7 @@ module Make_checker(T : sig
                             else
                               ()
                   end;
-                  let (id,t) = inst_const (Ident.mk_ident mp'' n l, l) T.e c in
+                  let (id,t) = inst_const (Ident.mk_ident_ast mp'' n l, l) T.e c in
                     C.equate_types l "top-level binding use" t (C.new_type());
                     A.mk_const l id (Some(t))
 
@@ -2131,7 +2131,7 @@ let letbind_to_funcl_aux_dest (ctxt : defn_ctxt) (lb_aux, l) = begin
       | Some(r) -> r
       | _ -> raise (Reporting_basic.err_unreachable true l "n should have been added just before") in
     let n_d = c_env_lookup l ctxt.c_env n_ref in
-    let id = { id_path = Id_some (Ident.mk_ident [] (Name.add_lskip n) l); id_locn = l; descr = n_ref; instantiation = List.map tnvar_to_type n_d.const_tparams } in
+    let id = { id_path = Id_some (Ident.mk_ident None [] n); id_locn = l; descr = n_ref; instantiation = List.map tnvar_to_type n_d.const_tparams } in
     let e = C.mk_const l id (Some (annot_to_typ nls)) in
     (n_ref, e)
   end in
@@ -2672,7 +2672,7 @@ and check_defs (backend_targets : Targetset.t) (mod_path : Name.t list)
                   check_def backend_targets mod_path ctxt d sk semi
                 in
                 let (ctxt,ds) = check_defs backend_targets mod_path ctxt ds in
-                  (ctxt, ((d,s),l)::ds)
+                  (ctxt, ((d,s),l,ctxt.cur_env)::ds)
             | Some(new_backend_targets) ->
                 if Targetset.is_empty new_backend_targets then
                   check_defs backend_targets mod_path ctxt ds
@@ -2683,7 +2683,7 @@ and check_defs (backend_targets : Targetset.t) (mod_path : Name.t list)
                   let (ctxt,ds) = 
                     check_defs backend_targets mod_path ctxt ds 
                   in
-                    (ctxt, ((d,s),l)::ds)
+                    (ctxt, ((d,s),l,ctxt.cur_env)::ds)
 
 (* Code to check that identifiers in type checked program conform to regular expressions specified in type definitions *)
 

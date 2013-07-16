@@ -66,7 +66,7 @@ val stringpath : t
 val unitpath : t
 val get_name : t -> Name.t
 val check_prefix : Name.t -> t -> bool
-val to_ident : t -> Ident.t
+val to_ident : Ast.lex_skips -> t -> Ident.t
 val to_name : t -> Name.t
 val to_name_list : t -> Name.t list * Name.t
 (*

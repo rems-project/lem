@@ -177,6 +177,9 @@ and pat_aux =
     (** A type-annotated pattern variable.  This is redundant with the combination
         of the P_typ and P_var cases above, but useful as a macro target. *)
 
+and cr_special_fun (** an indirection for target-representation output functions, the mapping is done in [Backend_common.cr_special_fun_to_fun] *) =
+  | CR_special_uncurry of int (** [CR_special_uncurry n] formats a function with [n] arguments curried, i.e. turn the arguments into a tupled argument, surrounded by parenthesis and separated by "," *)
+
 and const_target_rep =
   | CR_rename of Ast.l * bool * Name.t
     (** rename the constant to the given name, but keep Module structure. The flag indicates whether further renaming is allowed. *)
@@ -185,13 +188,16 @@ and const_target_rep =
   | CR_inline of Ast.l * name_lskips_annot list * exp
     (** [CR_inline (loc, vars, e)] means inlining the constant with the expression [e] and
         replacing the variable [vars] inside [e] with the arguments of the constant. *)
-  | CR_special of Ast.l * bool * bool * Name.t * (Output.t list -> Output.t list) * Name.t list
+  | CR_special of Ast.l * bool * bool * Name.t * cr_special_fun * Name.t list
     (** [CR_special (loc, allow_rename, name_in_output, name, to_out, vars)] describes special formating of this 
         constant. The constant is renamed to [name]. This name (including path prefix) and all arguments are transformed to
-        output. The function [to_out] is then given the formatted name and the appropriate number of these
+        output. [to_out] represents a function that is then given the formatted name and the appropriate number of these
         outputs. The expected arguments are described by [vars]. If there are more arguments than variables,
         they are appended. If there are less, for expressions local functions are introduced. For patterns,
-        an exception is thrown.  The flag [name_in_output] states, whether [to_out] uses the formatted [name].*)
+        an exception is thrown.  The flag [name_in_output] states, whether [to_out] uses the formatted [name].
+        Since values of [const_target_rep] need to be written out to file via [output_value] in order to cache libraries,
+        it cannot be a function of type [Output.t list -> Output.t list] directly. Instead, the type [cr_special_fun] is used
+        as an indirection.*)
 
 (** The description of a top-level definition *)
 and const_descr = 
@@ -226,7 +232,13 @@ and v_env = const_descr_ref Nfmap.t
 and f_env = const_descr_ref Nfmap.t
 and m_env = mod_descr Nfmap.t
 and c_env 
-and local_env = { m_env : m_env; p_env : p_env; f_env : f_env; v_env : v_env}
+and 
+  (** [local_env] represents local_environments, i.e. essentially maps form names to the entities they represent *)
+  local_env = { 
+    m_env : m_env; (** module map *)
+    p_env : p_env; (** type map *)
+    f_env : f_env; (** field map *)
+    v_env : v_env (** constructor and constant map *)}
 and env = { local_env : local_env; c_env : c_env; t_env : Types.type_defs; i_env : (Types.instance list) Types.Pfmap.t}
 
 and mod_descr = { mod_binding : Path.t; mod_env : local_env; }
@@ -379,7 +391,9 @@ type inst_sem_info =
 
 type name_sect = Name_restrict of (lskips * name_l * lskips * lskips * string * lskips)
 
-type def = (def_aux * lskips option) * Ast.l
+(** A definition consists of a the real definition represented as a [def_aux], followed by some white-space.
+    There is also the location of the definition and the local-environment for the definition. *)
+type def = (def_aux * lskips option) * Ast.l * local_env
 
 and def_aux =
   | Type_def of lskips * (name_l * tnvar list * Path.t * texp * name_sect option) lskips_seplist
@@ -576,6 +590,5 @@ val funcl_aux_seplist_group : funcl_aux lskips_seplist -> (bool * lskips option 
 val class_path_to_dict_name : Path.t -> Types.tnvar -> Name.t
 val class_path_to_dict_type : Path.t -> Types.t -> Types.t
 
-val resolve_ident_path : 'a id -> Path.t -> Ident.t
 val ident_get_first_lskip : 'a id -> Ast.lex_skips
 val ident_replace_first_lskip : ident_option -> Ast.lex_skips -> ident_option

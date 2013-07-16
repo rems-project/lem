@@ -199,6 +199,9 @@ let split_after n l =
     | _            -> raise (Failure "index too large")
   in aux [] n l
 
+let list_firstn n l = fst (split_after n l)
+let list_dropn n l = snd (split_after n l)
+
 (* Available in OCaml since 4.00.0 - copied from list.ml *)
 let rec mapi i f = function
     [] -> []

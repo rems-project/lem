@@ -74,10 +74,7 @@ let error_pp ppf (sk,ns,n) =
   fprintf ppf "%a" 
     (Pp.lst "." error_pp_help) (ns @ [n])
 
-
-let mk_ident_names m n = (None, m, n)
-
-let mk_ident m n l : t = 
+let mk_ident_ast m n l : t = 
   let ms = List.map (fun (n,sk) -> n) m in
   let prelim_id = (None, m, (n,None)) in
     List.iter (fun (_, sk) ->
@@ -99,16 +96,13 @@ let mk_ident m n l : t =
             (ms' @ [n]);
           (Name.get_lskip m', List.map Name.strip_lskip (m'::ms'), Name.strip_lskip n)
 
-let mk_ident_names l i =
-  mk_ident (List.map (fun r -> (Name.add_lskip r, None)) l)
-    (Name.add_lskip i)
-    (Ast.Trans ("mk_ident_names", None))
+let mk_ident sk m n = ((sk, m, n) : t)
 
 let mk_ident_strings l i =
-  mk_ident_names (List.map (fun n -> Name.from_string n) l) (Name.from_string i) 
+  mk_ident None (List.map (fun n -> Name.from_string n) l) (Name.from_string i) 
 
 let from_id (Ast.Id(m,xl,l)) : t =
-  mk_ident 
+  mk_ident_ast
     (List.map (fun (xl,l) -> (Name.from_x xl, l)) m)
     (Name.from_x xl)
     l

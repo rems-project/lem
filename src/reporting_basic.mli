@@ -71,6 +71,14 @@ val loc_to_string : bool -> Ast.l -> string
 *)
 val print_err : bool -> bool -> bool -> Ast.l -> string -> string -> unit
 
+(** {2 Debuging } *)
+
+(** Should debug be printed *)
+val debug_flag : bool ref
+
+(** [print_debug s] prints the string [s] with some debug prefix to the standard error output. *)
+val print_debug : string -> unit 
+
 (** {2 Errors } *)
 
 (** In contrast to warnings, errors always kill the current run of Lem. They can't be recovered from. 

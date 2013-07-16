@@ -207,7 +207,7 @@ struct
           let n' = Util.option_default n (Util.option_map Name.to_rope new_n_opt) in
           Name.fresh n' (fun n -> check n && is_good n)))
 
-  let ocaml_avoid_f consts = default_avoid_f false [Name.capitalize] consts
+  let ocaml_avoid_f consts = default_avoid_f false [Name.uncapitalize] consts
 
   let underscore_avoid_f consts = 
     default_avoid_f false [Name.remove_underscore] consts
@@ -227,7 +227,7 @@ struct
                                         let avoid = Some(get_avoid_f targ consts)
                                       end) 
     in
-      fun ((d,lex_skips),l) ->
+      fun ((d,lex_skips),l,lenv) ->
         let d = 
           match d with
             | Val_def(Fun_def(s1,s2_opt,topt,clauses),tnvs,class_constraints) ->
@@ -252,7 +252,7 @@ struct
                   Indreln(s1,topt,clauses)      
             | d -> d
         in
-          ((d,lex_skips),l)
+          ((d,lex_skips),l,lenv)
 
   let rename_def_params targ consts =
       let rdp = rename_def_params_aux targ consts in
@@ -307,11 +307,6 @@ struct
         (fun defs e -> e (Name.from_rope (Ulib.Text.of_latin1 m.module_name)) env defs)
         defs
         params.extra
-    in
-    let defs = 
-      match targ with
-        | Target_ident -> defs
-        | Target_no_ident t -> Target_binding.fix_binding t defs 
     in
     let defs = Target_syntax.fix_infix_and_parens env targ defs in
       (* Note: this is the environment from the macro translations, ignoring the

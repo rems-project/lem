@@ -109,6 +109,12 @@ val new_line : t
 (** a single space *)
 val space : t
 
+(** ??? Unsure what it is. Some kind of tex specific space, similar to space, but
+    treated slightly differently by the Latex backend. It seems to be for example removed
+    at beginnings and ends of lines and multiple ones are collapsed into a single space. *)
+val texspace :  t
+
+
 (** An identifier *)
 val id : id_annot -> Ulib.Text.t -> t
 
@@ -167,18 +173,28 @@ val ensure_newline : t
 
 (** {2 Output to Rope} *)
 
+(** [to_rope quote_char lex_skips_to_rope need_space t] formats the output [t] as an unicode text.
+The [quote_char] argument is used around strings. The function [lex_skips_to_rope] is used to format
+whitespace. Finally the function [need_space] is used to determine, whether an extra space is needed between
+simplified outputs. *)
 val to_rope : Ulib.Text.t -> (Ast.lex_skip -> Ulib.Text.t) -> (t' -> t' -> bool) -> t -> Ulib.Text.t
-val to_rope_option_tex : (Ast.lex_skip -> Ulib.Text.t) -> (t' -> t' -> bool) -> bool -> t -> Ulib.Text.t option
-val to_rope_ident : id_annot ->  Ulib.Text.t -> Ulib.Text.t
+
+(** [ml_comment_to_rope com] formats an ML-comment as a text by putting [(*] and [*)] around it. *)
+val ml_comment_to_rope : Ast.ml_comment -> Ulib.Text.t
+
+
+(** {2 Latex Output} *)
+
+(** [to_rope_tex t] corresponds to [to_rope] for the Latex backend. Since it is used for only one backend,
+    the backend parameters of [to_rope] can be hard-coded.  *)
+val to_rope_tex : t -> Ulib.Text.t 
+
+(** [to_rope_option_tex t] is similar to [to_rope_tex t]. However, it checks whether the
+    result is an empty text and returns [None] is in this case. *)
+val to_rope_option_tex : t -> Ulib.Text.t option
 
 val tex_escape : Ulib.Text.t -> Ulib.Text.t
-
 val tex_command_escape : Ulib.Text.t -> Ulib.Text.t
 val tex_command_label  : Ulib.Text.t -> Ulib.Text.t
 val tex_command_name  : Ulib.Text.t -> Ulib.Text.t
 
-val ml_comment_to_rope : Ast.ml_comment -> Ulib.Text.t
-
-
-(** {2 ???} *)
-val texspace :  t

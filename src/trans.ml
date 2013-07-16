@@ -334,7 +334,7 @@ let remove_comprehension for_lst e =
         in
         match
           List.map (fun n -> Name.add_pre_lskip space (Name.add_lskip n))
-            (Name.fresh_list 2 (r"x") (fun n -> not (Nfmap.in_dom n avoid)))
+            (Name.fresh_num_list 2 (r"x") (fun n -> not (Nfmap.in_dom n avoid)))
         with
           | [x;y] -> (x,y)
           | _ -> assert false
@@ -1119,13 +1119,10 @@ let rec coq_type_annot_pat_vars (level,pos) p =
 
 let bind_id l = function
   | Id_none(sk) ->
-      Id_some(Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r "bind"))) l)
+      Id_some(Ident.mk_ident_strings [] "bind")
   | Id_some(id) ->
       let (n1,n2) = Ident.to_name_list id in
-        Id_some (Ident.mk_ident 
-                   ((List.map (fun n -> (Name.add_lskip n, None)) n1)@[(Name.add_lskip n2, None)]) 
-                   (Name.add_lskip (Name.from_rope (r "bind"))) 
-                   l)
+        Id_some (Ident.mk_ident None (n1 @ [n2]) (Name.from_rope (r "bind")))
 
 
 let bind_const l m i =
