@@ -393,14 +393,15 @@ let rec fix_infix_and_parens env target_opt defs =
   let rec fix_def = function
     | Val_def(d,tnvs,class_constraints) -> Val_def(fix_val_def d,tnvs,class_constraints)
     | Lemma(sk,lty,targets,n_opt,sk2,e,sk3) -> Lemma(sk,lty,targets,n_opt,sk2,fix_exp env get_prec e,sk3)
-    | Indreln(s1,targets,c) ->
+    | Indreln(s1,targets,names,c) ->
         Indreln(s1,
                 targets,
+                names,
                 Seplist.map
-                  (fun (name_opt,s1,ns,s2,e_opt,s3,n,n_ref,es) ->
-                     (name_opt,s1,ns,s2,
-                      Util.option_map (fix_exp env get_prec) e_opt, s3, n, n_ref, 
-                      List.map (fix_exp env get_prec) es))
+                  (fun (Rule(name,s0,s1,ns,s2,e_opt,s3,n,n_ref,es),l) ->
+                     (Rule(name,s0,s1,ns,s2,
+                      Util.option_map (fix_exp env get_prec) e_opt, s3, n, n_ref,
+                      List.map (fix_exp env get_prec) es),l))
                   c)
     | Module(sk1, nl, mod_path, sk2, sk3, ds, sk4) ->
         Module(sk1, nl, mod_path, sk2, sk3, List.map (fun ((d,s),l,lenv) -> ((fix_def d,s),l,lenv)) ds, sk4)

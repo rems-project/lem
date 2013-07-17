@@ -72,6 +72,7 @@ type env_tag =
   | K_constr
   | K_val
   | K_let
+  | K_relation
   | K_target of bool * Targetset.t
 
 type ('a,'b) annot = { term : 'a; locn : Ast.l; typ : t; rest : 'b }
@@ -79,6 +80,9 @@ type ('a,'b) annot = { term : 'a; locn : Ast.l; typ : t; rest : 'b }
 let annot_to_typ a = a.typ
 
 type const_descr_ref = Types.const_descr_ref
+let nil_const_descr_ref = 0
+let is_nil_const_descr_ref r = (r = 0)
+
 module Cdmap = Finite_map.Fmap_map(
 struct 
   type t = const_descr_ref
@@ -158,11 +162,21 @@ and const_target_rep =
   | CR_inline of Ast.l * (Name.lskips_t,unit) annot list * exp
   | CR_special of Ast.l * bool * bool * Name.t * cr_special_fun * Name.t list
 
+and rel_io = Rel_mode_in | Rel_mode_out
+and rel_mode = rel_io list
+and rel_output_type = Out_list | Out_pure | Out_option | Out_unique
+and rel_info = {
+  ri_witness : (Path.t * const_descr_ref Nfmap.t) option;
+  ri_check : const_descr_ref option;
+  ri_fns : ((rel_mode * bool * rel_output_type) * const_descr_ref) list
+}
+
 and const_descr = { const_binding : Path.t;
                     const_tparams : Types.tnvar list;
                     const_class : (Path.t * Types.tnvar) list;
                     const_ranges : Types.range list;
                     const_type : t; 
+		    relation_info: rel_info option;
                     env_tag : env_tag;
                     spec_l : Ast.l;
                     target_rep : const_target_rep Targetmap.t }
@@ -305,8 +319,18 @@ type inst_sem_info =
 
 type name_sect = Name_restrict of (lskips * name_l * lskips * lskips * string * lskips)
 
-type def = (def_aux * lskips option) * Ast.l * local_env
+type indreln_rule_quant_name = 
+  | QName of name_lskips_annot
+  | Name_typ of lskips * name_lskips_annot * lskips * src_t * lskips
 
+type indreln_rule_aux = Rule of Name.lskips_t * lskips * lskips * indreln_rule_quant_name list * lskips * exp option * lskips * name_lskips_annot * const_descr_ref * exp list
+type indreln_rule = indreln_rule_aux * Ast.l
+
+type indreln_witness = Indreln_witness of lskips * lskips * Name.lskips_t * lskips
+type indreln_indfn = Indreln_fn of Name.lskips_t * lskips * src_t * lskips option
+type indreln_name = RName of lskips* Name.lskips_t * const_descr_ref * lskips * typschm * (indreln_witness option) * ((lskips*Name.lskips_t*lskips) option) * (indreln_indfn list) option * lskips
+
+type def = (def_aux * lskips option) * Ast.l * local_env
 and def_aux =
   | Type_def of lskips * (name_l * tnvar list * Path.t * texp * name_sect option) lskips_seplist
   | Val_def of val_def * TNset.t * (Path.t * Types.tnvar) list 
@@ -315,8 +339,7 @@ and def_aux =
   | Module of lskips * name_l * Path.t * lskips * lskips * def list * lskips
   | Rename of lskips * name_l * Path.t * lskips * mod_descr id
   | Open of lskips * mod_descr id
-  | Indreln of lskips * targets_opt * 
-               (Name.lskips_t option * lskips * name_lskips_annot list * lskips * exp option * lskips * name_lskips_annot * const_descr_ref * exp list) lskips_seplist
+  | Indreln of lskips * targets_opt * indreln_name lskips_seplist * indreln_rule lskips_seplist
   | Val_spec of val_spec
   | Class of lskips * lskips * name_l * tnvar * Path.t * lskips * class_val_spec list * lskips
   (* The v_env, name and Path/tyvar list are for converting the instance into a module. *)
@@ -334,7 +357,7 @@ let empty_local_env = { m_env = Nfmap.empty;
                         v_env = Nfmap.empty; }
 
 let empty_env = { local_env = empty_local_env;
-                  c_env = (0, Cdmap.empty);
+                  c_env = (nil_const_descr_ref + 1, Cdmap.empty);
                   t_env = Pfmap.empty;
                   i_env = Pfmap.empty }
 
@@ -630,9 +653,9 @@ let rec def_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (((d,s),l,l
       | Open(sk,m) ->
           let (s_new, s_ret) = lskips_f sk in
             res (Open(s_new,m)) s_ret
-      | Indreln(sk,topt,rules) ->
+      | Indreln(sk,topt,names,rules) ->
           let (s_new, s_ret) = lskips_f sk in
-            res (Indreln(s_new,topt,rules)) s_ret
+            res (Indreln(s_new,topt,names,rules)) s_ret
       | Val_spec(sk1,n,n_ref,sk2,ts) ->
           let (s_new, s_ret) = lskips_f sk1 in
             res (Val_spec(s_new,n,n_ref,sk2,ts)) s_ret
@@ -669,6 +692,7 @@ let pp_env_tag ppf tag =
     | K_instance -> Format.fprintf ppf "instance"
     | K_val -> Format.fprintf ppf "val"
     | K_let -> Format.fprintf ppf "let"
+    | K_relation -> Format.fprintf ppf "relation"
     | K_target(exists_general, targets) -> 
         Format.fprintf ppf "target(%b,%s)"
         exists_general "???"
@@ -850,6 +874,10 @@ module Exps_in_context(D : Exp_context) = struct
       let new_c_ty = type_subst subst d.const_type in
       let (c_tyL, c_base_ty) = Types.strip_fn_type (Some env.t_env) new_c_ty in
       let _ = if check then
+    (** TODO: perhaps add check for right no of args again 
+    if List.length ps <> List.length c.descr.constr_args
+    then raise (Ident.No_type(l, "wrong number of arguments for constructor")); *)
+
       begin
           List.iter2
             (fun t p -> type_eq l "mk_pconst" (type_subst subst t) p.typ)
@@ -2185,7 +2213,6 @@ let class_path_to_dict_type c arg =
   let (mods,n) = Path.to_name_list c in
   let n = Name.rename (fun x -> Ulib.Text.(^^^) x (r"_class")) n in
     { Types.t = Types.Tapp([arg], Path.mk_path mods n) }
-
 
 let ident_get_first_lskip id =
   match id.id_path with

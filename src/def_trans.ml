@@ -134,15 +134,15 @@ let remove_classes _ env (((d,_),_,_) as def) =
 let remove_indrelns_true_lhs _ env ((d,s),l,lenv) =
   let l_unk = Ast.Trans ("remove_indrelns_true_lhs", Some l) in
   match d with
-    | Indreln (s', targ, sl) ->
-        let remove_true (name_opt, s1, qnames, s2, e_opt, s3, rname, c, es) =
+    | Indreln (s', targ, names, sl) ->
+        let remove_true (Rule (name_opt,s0, s1, qnames, s2, e_opt, s3, rname, c, es),l) =
             (match e_opt with None -> None | Some e -> (if Typed_ast_syntax.is_tf_exp true e then 
-                Some (name_opt, s1, qnames, s2, None, s3, rname, c, es) else None))
+                Some (Rule(name_opt, s0,s1, qnames, s2, None, s3, rname, c, es),l) else None))
         in
         (match Seplist.map_changed remove_true sl with
              None -> None
            | Some sl' -> 
-             let def = (((Indreln (s', targ, sl'), s), l_unk, lenv):def) in 
+             let def = (((Indreln (s', targ, names, sl'), s), l_unk,lenv):def) in 
              Some(env, [def]))
     | _ -> None
 
@@ -216,6 +216,7 @@ let instance_to_module (global_env : env) mod_path (env : env) ((d,s),l,lenv) =
               const_type = dict_type;
               env_tag = K_let;
               spec_l = l;
+              relation_info = None;
               target_rep = Targetmap.empty;
             }
           in
@@ -354,11 +355,12 @@ let nvar_to_parameter : def_macro = fun mod_path env ((d,s),l,_) ->
 
 let get_name def l = match def with
 
-  | Indreln(_,_,clauses) -> (match Seplist.to_list clauses with 
+  (*TODO : Check the name section, no just within the clauses*)
+  | Indreln(_,_,_,clauses) -> (match Seplist.to_list clauses with 
     | [] ->  
         raise (Reporting_basic.err_todo false l "Error while pruning target definitions: empty Indreln clauses in get_name [debug]")
         
-    | ((_,_,_,_,_,_,name,_,_)::cs) -> Name.strip_lskip name.term     
+    | ((Rule(_,_,_,_,_,_,_,name,_,_),_)::cs) -> Name.strip_lskip name.term
     )
   
   | Val_def(Fun_def(_,_,_,clauses),ntvs,_) -> (match Seplist.to_list clauses with
@@ -415,8 +417,7 @@ let prune_target_bindings target (defs : def list) : def list =
       match def with
         | (Val_def(Let_def(_,topt,_),_,_) |
           Val_def(Fun_def(_,_,topt,_),_,_) |
-          Indreln(_,topt,_) ) as d -> 
-
+          Indreln(_,topt,_,_) ) as d -> 
           if Typed_ast.in_targets_opt (Target_no_ident target) topt then 
               let name = get_name d l in
               let acc' = rem_dups name acc in  

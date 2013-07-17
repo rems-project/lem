@@ -621,7 +621,7 @@ let generate_coq_record_update_notation e =
               Output.flat [
                 ws skips; from_string "Require Import "; mod_name; from_string ".\n"
               ]
-      | Indreln (skips, targets, cs) ->
+      | Indreln (skips, targets, names,cs) -> (*INDERL_TODO Only added the name declaration parameter here*)
           if in_target targets then
             let c = Seplist.to_list cs in
               clauses c
@@ -661,7 +661,7 @@ let generate_coq_record_update_notation e =
         let rec gather_names_aux buffer clauses =
           match clauses with
             | []    -> buffer
-            | (_, _, _, _, _, _, name_lskips_annot, _, _)::xs ->
+            | (Rule(_,_, _, _, _, _, _, name_lskips_annot, _, _),_)::xs ->
               let name = name_lskips_annot.term in
               let name = Name.strip_lskip name in
               if List.mem name buffer then
@@ -673,7 +673,7 @@ let generate_coq_record_update_notation e =
       in
       let gathered = gather_names clause_list in
       (* TODO: use refs instead of names *)
-      let compare_clauses_by_name name (_, _, _, _, _, _, name', _, _) =
+      let compare_clauses_by_name name (Rule(_,_, _, _, _, _, _, name', _, _),_) =
         let name' = name'.term in
         let name' = Name.strip_lskip name' in
           Pervasives.compare name name' = 0
@@ -685,7 +685,7 @@ let generate_coq_record_update_notation e =
           let index_types =
             match bodies with
               | [] -> [from_string "Prop"]
-              | (_, _, _, _, _, _, _, _, exp_list)::xs ->
+              | (Rule(_,_, _, _, _, _, _, _, _, exp_list),_)::xs ->
                   List.map (fun t ->
                     Output.flat [
                       from_string "("; field_typ @@ C.t_to_src_t (Typed_ast.exp_to_typ t); from_string ")"
@@ -693,16 +693,17 @@ let generate_coq_record_update_notation e =
                   ) exp_list
           in
           let bodies =
-            Util.list_mapi (fun counter -> fun (name_lskips_t_opt, skips, name_lskips_annot_list, skips', exp_opt, skips'', name_lskips_annot, c, exp_list) ->
+            Util.list_mapi (fun counter -> fun (Rule(name_lskips_t, skips0, skips, name_lskips_annot_list, skips', exp_opt, skips'', name_lskips_annot, c, exp_list),_) ->
               let constructor_name =
-                match name_lskips_t_opt with
+              (* Note, now that names are not optional, this code is likely unneccessary, and an extra skip is added*)
+(*                match name_lskips_t_opt with
                   | None ->
                     let fresh = string_of_int counter in
                     let name = Name.to_string name in
                       Output.flat [
                         from_string name; from_string "_"; from_string fresh
                       ]
-                  | Some name -> from_string (Name.to_string (Name.strip_lskip name))
+                  | Some name ->*) from_string (Name.to_string (Name.strip_lskip name_lskips_t))
               in
               let antecedent =
                 match exp_opt with
@@ -712,8 +713,9 @@ let generate_coq_record_update_notation e =
                         from_string "Prop_of_bool ("; exp e; from_string ")"
                       ]
               in
+              (* Indrel TODO This does not match variables with type annotations *)
               let bound_variables =
-                concat_str " " @@ List.map (fun n ->
+                concat_str " " @@ List.map (fun (QName n) ->
                   from_string (Name.to_string (Name.strip_lskip n.term))
                 ) name_lskips_annot_list
               in

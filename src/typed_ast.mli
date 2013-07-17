@@ -76,6 +76,7 @@ type env_tag =
   | K_constr (** A type constructor *)
   | K_val  (** A val specification that has no definitions *)
   | K_let   (** A let definition with no target specific definitions or val spec *)
+  | K_relation (** A definition coming from a relation *)
   | K_target of bool * Target.Targetset.t
       (** A definition that also has a val specification. There is a target-specific
           definition for each target in the set, and the bool is true if there is a
@@ -153,6 +154,11 @@ and lit_aux =
   | L_undefined of lskips * string (** A special undefined value that explicitly states that nothing is known about it. This is useful for expressing underspecified functions. It has been introduced to easier support pattern compilation of non-exhaustive patterns. *)
 
 type const_descr_ref = Types.const_descr_ref
+
+(** a nil reference *)
+val nil_const_descr_ref : const_descr_ref
+val is_nil_const_descr_ref : const_descr_ref -> bool
+
 module Cdmap : Finite_map.Fmap with type k = const_descr_ref
 
 type pat = (pat_aux,pat_annot) annot
@@ -199,6 +205,33 @@ and const_target_rep =
         it cannot be a function of type [Output.t list -> Output.t list] directly. Instead, the type [cr_special_fun] is used
         as an indirection.*)
 
+and (** rel_io represents whether an argument of an inductive relation is considerred as an input or an output *)
+  rel_io = Rel_mode_in | Rel_mode_out 
+and rel_mode = rel_io list
+and (** rel_output_type specifies the type of the result *)
+  rel_output_type = 
+  | Out_list 
+  (** Return a list of possible outputs *)
+  | Out_pure 
+  (** Return one possible output or fail if no such output exists *)
+  | Out_option
+  (** Return one possible output or None if no such output exists *)
+  | Out_unique
+  (** Return the output if it is unique or None otherwise *)
+
+and (** rel_info represents information about functions and types genereated from this relation 0*)
+  rel_info = {
+  ri_witness : (Path.t * const_descr_ref Nfmap.t) option;
+  (** Contains the path of the witness type and a mapping from rules to constructors.
+      [None] if no witness type has been generated *)
+
+  ri_check : const_descr_ref option;
+  (** A reference to the witness checking function or [None] if it is not generated *)
+
+  ri_fns : ((rel_mode * bool * rel_output_type) * const_descr_ref) list;
+  (** A list of functions generated from the relation together with their modes *)
+}
+
 (** The description of a top-level definition *)
 and const_descr = 
   { const_binding : Path.t;
@@ -216,6 +249,10 @@ and const_descr =
 
     const_type : Types.t; 
     (** Its type *)
+
+    relation_info: rel_info option;
+    (** If the constant is a relation, it might contain additional information about this relation.
+        However, it might be [None] for some relations as well. *)
 
     env_tag : env_tag;
     (** What kind of definition it is. *)
@@ -238,7 +275,7 @@ and
     m_env : m_env; (** module map *)
     p_env : p_env; (** type map *)
     f_env : f_env; (** field map *)
-    v_env : v_env (** constructor and constant map *)}
+    v_env : v_env  (** constructor and constant map *)}
 and env = { local_env : local_env; c_env : c_env; t_env : Types.type_defs; i_env : (Types.instance list) Types.Pfmap.t}
 
 and mod_descr = { mod_binding : Path.t; mod_env : local_env; }
@@ -391,17 +428,37 @@ type inst_sem_info =
 
 type name_sect = Name_restrict of (lskips * name_l * lskips * lskips * string * lskips)
 
-(** A definition consists of a the real definition represented as a [def_aux], followed by some white-space.
-    There is also the location of the definition and the local-environment for the definition. *)
-type def = (def_aux * lskips option) * Ast.l * local_env
+type indreln_rule_quant_name = 
+  | QName of name_lskips_annot
+  | Name_typ of lskips * name_lskips_annot * lskips * src_t * lskips
 
-and def_aux =
+(**
+   A rule of the form [Rule(clause_name_opt, sk1, sk2, bound_vars, sk3, left_hand_side_opt, sk4, rel_name, c, args)] encodes
+   a clause [clause_name: forall bound_vars. (left_hand_side ==> rel_name args)]. [c] is the reference of the relation [rel_name]. *)
+type indreln_rule_aux = Rule of Name.lskips_t * lskips * lskips * indreln_rule_quant_name list * lskips * exp option * lskips * name_lskips_annot * const_descr_ref * exp list
+
+type indreln_rule = indreln_rule_aux * Ast.l
+
+
+(** Name of the witness type to be generated *)
+type indreln_witness = Indreln_witness of lskips * lskips * Name.lskips_t * lskips
+
+(** Name and mode of a function to be generated from an inductive relation *)
+type indreln_indfn = Indreln_fn of Name.lskips_t * lskips * src_t * lskips option
+
+(** Type annotation for the relation and information on what to generate from it.
+    [RName(sk1, rel_name, rel_name_ref, sk2, rel_type, witness_opt, check_opt, indfns opt, sk3)] *)
+type indreln_name = RName of lskips* Name.lskips_t * const_descr_ref * lskips * typschm * 
+                             (indreln_witness option) * ((lskips*Name.lskips_t*lskips) option) * 
+                             (indreln_indfn list) option * lskips
+
+type def_aux =
   | Type_def of lskips * (name_l * tnvar list * Path.t * texp * name_sect option) lskips_seplist
     (** [Type_def (sk, sl)] defines one or more types. The entries of [sl] are the type definitions.
         They contain a name of the type, the full path of the defined type, the free type variables, the main type definiton and 
         restrictions on variable names of this type *)
   | Val_def of val_def * Types.TNset.t * (Path.t * Types.tnvar) list 
-    (** The TNset contains the type length variables that the definition is parameterized
+    (** The TNset contains the type and length variables that the definition is parameterized
         over, and the list contains the class constraints on those variables *)
   | Lemma of lskips * Ast.lemma_typ * targets_opt * (name_l * lskips) option * lskips * exp * lskips
   | Ident_rename of lskips * targets_opt * Path.t * Ident.t * lskips * name_l
@@ -412,16 +469,18 @@ and def_aux =
   | Rename of lskips * name_l * Path.t * lskips * mod_descr id
     (** Renaming an already defined module *)
   | Open of lskips * mod_descr id
-  | Indreln of lskips * targets_opt * 
-               (Name.lskips_t option * lskips * name_lskips_annot list * lskips * exp option * lskips * name_lskips_annot * const_descr_ref * exp list) lskips_seplist
-    (** Inductive relations. The seplist contains clauses of the form [(clause_name_opt, sk1, bound_vars, sk2, left_hand_side_opt, sk3, rel_name, c, args)].
-        This form encodes a clause [clause_name: forall bound_vars. (left_hand_side ==> rel_name args)]. [c] is the reference of the relation [rel_name]. *)
+  | Indreln of lskips * targets_opt * indreln_name lskips_seplist * indreln_rule lskips_seplist
+    (** Inductive relations *)
   | Val_spec of val_spec
   | Class of lskips * lskips * name_l * tnvar * Path.t * lskips * class_val_spec list * lskips
   | Instance of lskips * instschm * val_def list * lskips * inst_sem_info
 
   | Comment of def
     (** Does not appear in the source, used to comment out definitions for certain backends *)
+
+(** A definition consists of a the real definition represented as a [def_aux], followed by some white-space.
+    There is also the location of the definition and the local-environment for the definition. *)
+and def = (def_aux * lskips option) * Ast.l * local_env
 
 val tnvar_to_types_tnvar : tnvar -> Types.tnvar * Ast.l
 

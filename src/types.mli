@@ -186,7 +186,9 @@ val type_defs_update : type_defs -> Path.t -> type_descr -> type_defs
 (** Generates a type abbreviation *)
 val mk_tc_type_abbrev : tnvar list -> t -> tc_def
 
-(** Generates a type *)
+(** [mk_tc_type vars reg_exp_opt] generates a simple description of a type,
+    which uses the type arguments [vars] and the [reg_exp_opt] for restricting
+    the names of variables of this type. *)
 val mk_tc_type : tnvar list -> string option -> tc_def
 
 (* The last Name.t list is to the module enclosing the instance declaration *)

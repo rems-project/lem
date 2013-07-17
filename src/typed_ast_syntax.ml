@@ -955,13 +955,14 @@ and add_def_entities (t_opt : Target.target) (ue : used_entities) (((d, _), _, _
       | Ident_rename (_,_,_,_,_,_) ->
           (* TODO: replace Ident_rename with something more general *) ue
       | Open(_,m) -> used_entities_add_module ue m.descr.mod_binding
-      | Indreln(_,targ,rules) -> begin
-          let add_rule (_,_,_,_,e_opt,_,_,n_ref,es) ue = begin
+      | Indreln(_,targ,names,rules) -> begin
+          let add_rule (Rule (_,_,_,_,_,e_opt,_,_,n_ref,es),_) ue = begin
              let ue = match e_opt with None -> ue | Some e -> add_exp_entities ue e in
              let ue = used_entities_add_const ue n_ref in
              let ue = List.fold_left add_exp_entities ue es in
              ue
           end in
+          (* TODO: consider what to do about names *)
           Seplist.fold_left add_rule ue rules
         end
       | Val_spec(_,_,n_ref,_,(_, src_t)) ->begin
