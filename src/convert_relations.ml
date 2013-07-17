@@ -359,9 +359,9 @@ let exp_to_pat e check_rename transform_exp  =
         (* XXX TODO FIXME XXX: cheat here *)
         let se = Seplist.hd es in
         let pat = exp_to_pat se in
-        Reporting.print_debug_exp "Cheated on set expression" [e];
+(*        Reporting.print_debug_exp "Cheated on set expression" [e]; *)
         transform_exp loc e ty
-      | _ -> Reporting.print_debug_exp "Untranslatable" [e]; transform_exp loc e ty
+      | _ -> (* Reporting.print_debug_exp "Untranslatable" [e]; *)transform_exp loc e ty
   and exps_to_pats es = Seplist.map exp_to_pat es in
   exp_to_pat e
 
@@ -374,11 +374,6 @@ let convert_output gen_rn exps mask =
     else Some (exp_to_pat exp check_rename transform_exp)
   ) exps mask) in
   (outargs, !bound, !equalities)
-
-let report_no_translation rule notok eqconds sideconds =
-  Reporting.print_debug_exp "No translation for relation with args" rule.rule_args;
-  Reporting.print_debug_exp "Conditions are" rule.rule_conds;
-  no_translation None
 
 let sep_no_skips l = Seplist.from_list_default None l
 
@@ -826,6 +821,7 @@ let path_from_name_list_rev (u::v) = Path.mk_path (List.rev v) u
 let path_to_list p = let (u,v) = Path.to_name_list p in 
                      u@[v]
 
+(* FIXME : should probably use cur_env & mod_env *)
 let unfocus_env env mod_path = 
   let rec insert_mod env m where = function
     | [] -> m
@@ -1035,38 +1031,30 @@ let gen_witness_check_def env l mpath localenv names rules =
   if defs = [] then []
   else [((Val_def(def, Types.TNset.empty, []), None), l)]
 
-open Compile_list
+let pp_mode ppf (io, wit, out) = 
+  List.iter (function 
+    | I -> Format.fprintf ppf "input -> " 
+    | O -> Format.fprintf ppf "output -> "
+  ) io;
+  Format.fprintf ppf "%s" 
+    (match out with
+      | Out_pure -> ""
+      | Out_list -> "list"
+      | Out_option -> "option"
+      | Out_unique -> "unique"
+    );
+  if wit then Format.fprintf ppf " witness"
+  else Format.fprintf ppf " unit"
 
-let gen_fns_info l mod_path (ctxt : defn_ctxt) names rules =
-  let rels = get_rels l names rules in
-  let l = loc_trans "gen_fns_info" l in
-  Nfmap.fold (fun ctxt relname reldescr ->
-    List.fold_left (fun ctxt (name, mode) ->
-      let ty = ty_from_mode ctxt.cur_env ctxt.cur_env reldescr mode in
-      let path = Path.mk_path mod_path name in
-      let ctxt = ctxt_mod (fun x -> {x with r_env =
-          Nfmap.insert x.r_env 
-            (relname, 
-             let info = match Nfmap.apply x.r_env relname with
-              | Some y -> y
-              | None -> { ri_witness = None; ri_check = None; ri_fns = [] } in
-             {info with ri_fns = (mode, path)::info.ri_fns})}) ctxt in
-      let const_descr = {
-        const_binding = path;
-        const_tparams = [];
-        const_class = [];
-        const_ranges = [];
-        const_type = ty;
-        env_tag = K_let;
-        spec_l = l;
-        substitutions = Targetmap.empty
-      } in
-      ctxt_add (fun x -> x.v_env) (fun x y -> {x with v_env = y})
-        ctxt (name, Val(const_descr))
-    ) ctxt reldescr.rel_indfns
-  ) ctxt rels
 
-let transform_rule env localenv localrels (mode, need_wit, out_mode) rel (rule : ruledescr) = 
+let report_no_translation reldescr ruledescr mode =
+  Format.eprintf "No transalation for relation %s, mode %a\n"
+    (Name.to_string reldescr.rel_name) pp_mode mode;
+  Format.eprintf "Blocking rule is %s\n"  (Name.to_string ruledescr.rule_name);
+  no_translation None
+
+
+let transform_rule env localenv localrels ((mode, need_wit, out_mode) as full_mode) rel (rule : ruledescr) = 
   let l = loc_trans "transform_rule" rule.rule_loc in
   let vars = Nfmap.domain (Nfmap.from_list rule.rule_vars) in
   let avoid = Nfmap.fold (fun avoid relname reldescr ->
@@ -1141,7 +1129,7 @@ let transform_rule env localenv localrels (mode, need_wit, out_mode) rel (rule :
       | [] ->
         begin match eqconds2,sideconds2 with
           | [], [] when notok = [] -> RETURN returns
-          | _ -> report_no_translation rule notok eqconds2 sideconds2
+          | _ -> report_no_translation rel rule full_mode
         end
       | (modes,args,wit_var) as c::cs ->
         let inargs = List.map exp_known args in
@@ -1180,6 +1168,95 @@ let transform_rule env localenv localrels (mode, need_wit, out_mode) rel (rule :
 
 let transform_rules env localenv localrels mode reldescr =
   List.map (transform_rule env localenv localrels mode reldescr) reldescr.rel_rules
+
+
+(* env is the globalized env *)
+(* For each relation : we assume all modes are possible (via updating reldescr)
+   and then try to see what mode can effectively computed from that.
+   We then try to get the least fixed point
+*)
+let join f a b = 
+  List.concat (List.map (fun x -> List.map (fun y -> f x y ) b) a)
+
+let list_possible_modes env localenv rels =
+  let all_modes =
+    let gen_name = make_namegen Nset.empty in
+    Nfmap.map (fun _ reldescr ->
+      let out_modes = [Out_pure; Out_list; Out_unique; Out_option] in
+      let wit_modes = if reldescr.rel_witness = None then [false] else [false;true] in
+      let io_modes = List.fold_left (fun acc _ -> join (fun x y -> x::y) [I;O] acc) [[]]
+        reldescr.rel_argtypes in
+      let modes = join (fun (x,y) z -> (gen_name (Ulib.Text.of_latin1 "indfn"), (x,y,z))) (join (fun x y -> (x,y)) io_modes wit_modes) out_modes in
+      { reldescr with rel_indfns = modes }
+    ) rels
+  in
+  let modeset_equals rels1 rels2 = 
+    Nfmap.fold (fun acc _ x -> acc && x) true
+      (Nfmap.merge (fun _ a b -> match a, b with
+        | None, None -> Some(true)
+        | Some(rd1), Some(rd2) -> 
+          Some(List.length rd1.rel_indfns = List.length rd2.rel_indfns 
+              && List.for_all (fun e -> List.mem e rd2.rel_indfns) rd1.rel_indfns)
+        | _ -> Some(false)) rels1 rels2)
+  in
+  let shrink_modeset rels = 
+    Nfmap.map (fun _ reldescr ->
+      { reldescr with rel_indfns = List.filter (fun (_,mode) ->
+        try
+          ignore (transform_rules env localenv rels mode reldescr); 
+          true
+        with _ -> (Format.eprintf "failure\n"; false)
+      )  reldescr.rel_indfns}
+    ) rels
+  in
+  let rec iter rels = 
+    Format.eprintf "ITER ONCE\n";
+    let newrels = shrink_modeset rels in
+    if modeset_equals rels newrels
+    then rels
+    else iter newrels
+  in
+  let modes = iter all_modes in
+  Nfmap.iter (fun _ reldescr ->
+    Format.eprintf "** Relation %s :\n" (Name.to_string reldescr.rel_name);
+    List.iter (fun (_, mode) -> Format.eprintf "%a\n" pp_mode mode) reldescr.rel_indfns
+  ) modes;
+  Format.eprintf "ITER DONE\n";
+  flush stderr;
+  modes
+  
+
+let gen_fns_info l mod_path (ctxt : defn_ctxt) names rules =
+  let rels = get_rels l names rules in
+  let l = loc_trans "gen_fns_info" l in
+  let rels = list_possible_modes (unfocus_env ctxt.cur_env mod_path)
+    ctxt.cur_env rels in
+  Nfmap.fold (fun ctxt relname reldescr ->
+    List.fold_left (fun ctxt (name, mode) ->
+      let ty = ty_from_mode ctxt.cur_env ctxt.cur_env reldescr mode in
+      let path = Path.mk_path mod_path name in
+      let ctxt = ctxt_mod (fun x -> {x with r_env =
+          Nfmap.insert x.r_env 
+            (relname, 
+             let info = match Nfmap.apply x.r_env relname with
+              | Some y -> y
+              | None -> { ri_witness = None; ri_check = None; ri_fns = [] } in
+             {info with ri_fns = (mode, path)::info.ri_fns})}) ctxt in
+      let const_descr = {
+        const_binding = path;
+        const_tparams = [];
+        const_class = [];
+        const_ranges = [];
+        const_type = ty;
+        env_tag = K_let;
+        spec_l = l;
+        substitutions = Targetmap.empty
+      } in
+      ctxt_add (fun x -> x.v_env) (fun x y -> {x with v_env = y})
+        ctxt (name, Val(const_descr))
+    ) ctxt reldescr.rel_indfns
+  ) ctxt rels
+
 
 let gen_fns_def env l mpath localenv names rules =
   let rels = get_rels l names rules in
