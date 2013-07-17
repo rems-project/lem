@@ -158,6 +158,7 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 %token <Ast.terminal> Declare TargetType TargetConst
 %token <Ast.terminal * Ulib.Text.t> IN MEM MinusMinusGt
 %token <Ast.terminal> Class_ Inst Do LeftArrow
+%token <Ast.terminal> Module Function Field Type Constant Automatic Manual Exhaustive Inexhaustive AsciiRep SetFlag TerminationArgument PatternMatch
 
 %start file
 %type <Ast.defs> defs
@@ -843,19 +844,71 @@ targets_opt:
   | NegLcurly targets Rcurly
     { Some(Targets_neg_concrete($1,$2,$3)) }
 
-decl_arg :
-  | String
-    { Decl_arg_string (fst $1, snd $1) }
+component :
+  | Module
+    { Component_module $1 }
+  | Function
+    { Component_function $1 }
+  | Type
+    { Component_type $1 }
+  | Field
+    { Component_field $1 }
+  | Constant
+    { Component_constant $1 }
+
+termination_setting :
+  | Automatic
+    { Termination_setting_automatic $1 }
+  | Manual
+    { Termination_setting_manual $1 }
+
+exhaustivity_setting :
+  | Exhaustive
+    { Exhaustivity_setting_exhaustive $1 }
+  | Inexhaustive
+    { Exhaustivity_setting_inexhaustive $1 }
+
+elim_opt :
+  |
+    { Elim_opt_none }
+  | exp
+    { Elim_opt_some($1) }
+
+elim_opt :
+  |
+    { Elim_opt_none }
+  | exp
+    { Elim_opt_some($1) }
+
+exp_list :
+  |
+    { [] }
+  | exp Comma exp_list
+    { $1::$3 }
+
+pat_list :
+  |
+    { [] }
+  | pat Comma pat_list
+    { $1::$3 }
+
+tnvar_list :
+  |
+    { [] }
+  | tnvar tnvar_list
+    { $1::$2 }
 
 declaration :
-  | Declare targets_opt TargetType x tnvs Eq decl_arg
-    { Decl_target_type($1,$2,$3,$4,$5,fst $6,$7) }
-  | Declare targets_opt TargetConst pat Eq decl_arg
-    { match pat_dest_id_app $4 with
-        | Some((v,pats)) ->
-            Decl_target_const ($1,$2,$3,v,pats,fst $5,$6)
-        | None -> raise (Parse_error_locn(loc(),"Bad pattern for binding of a target_const"))
-    }
+  | Declare targets_opt Rename component id Eq x
+    { Decl_rename_decl($1, $2, $3, $4, $5, fst $6, $7) }
+  | Declare targets_opt AsciiRep component id Eq x
+    { Decl_ascii_rep_decl($1, $2, $3, $4, $5, fst $6, $7) }
+  | Declare SetFlag Eq String
+    { Decl_set_flag_decl($1, $2, $3, $4) }
+  | Declare targets_opt TerminationArgument id Eq termination_setting
+    { Decl_termination_argument_decl($1, $2, $3, $4, $5, $6) }
+  | Declare targets_opt PatternMatch exhaustivity_setting x tnvar_list Eq Lsquare exp_list Rsquare elim_opt
+    { Decl_pattern_match_decl($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) }
 
 lemma_typ:
   | Lemma
@@ -890,8 +943,6 @@ def:
     { dloc (Type_def($1,$2)) }
   | val_def
     { dloc (Val_def($1)) }
-  | Rename targets_opt id Eq x
-    { dloc (Ident_rename($1,$2,$3,fst $4,$5)) }
   | Module_ x Eq Struct defs End
     { mod_cap $2; dloc (Module($1,$2,fst $3,$4,$5,$6)) }
   | Module_ x Eq id
