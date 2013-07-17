@@ -1,0 +1,13 @@
+type nat = Z | S of nat
+
+indreln 
+[add : nat -> nat -> nat -> bool]
+add0 : forall n. true ==> add n Z n
+and
+addN : forall m n p. add m n p ==> add m (S n) (S p)
+
+indreln
+[mul : nat -> nat -> nat -> bool]
+mul0 : forall n. true ==> mul n Z Z
+and
+mulN : forall m n p q. mul m n p && add p m q ==> mul m (S n) q 
