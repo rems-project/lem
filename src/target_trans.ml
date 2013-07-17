@@ -207,7 +207,7 @@ struct
           let n' = Util.option_default n (Util.option_map Name.to_rope new_n_opt) in
           Name.fresh n' (fun n -> check n && is_good n)))
 
-  let ocaml_avoid_f consts = default_avoid_f false [Name.capitalize] consts
+  let ocaml_avoid_f consts = default_avoid_f false [Name.uncapitalize] consts
 
   let underscore_avoid_f consts = 
     default_avoid_f false [Name.remove_underscore] consts
@@ -227,7 +227,7 @@ struct
                                         let avoid = Some(get_avoid_f targ consts)
                                       end) 
     in
-      fun ((d,lex_skips),l) ->
+      fun ((d,lex_skips),l,lenv) ->
         let d = 
           match d with
             | Val_def(Fun_def(s1,s2_opt,topt,clauses),tnvs,class_constraints) ->
@@ -241,18 +241,18 @@ struct
                     clauses
                 in
                   Val_def(Fun_def(s1,s2_opt,topt,clauses),tnvs,class_constraints)
-            | Indreln(s1,topt,clauses) ->
+            | Indreln(s1,topt,names,clauses) ->
                 let clauses =
                   Seplist.map
-                    (fun (name_opt,s1,ns,s2,e,s3,n,n_ref,es) ->
-                       (* TODO: rename to avoid conflicts *)
-                       (name_opt,s1,ns,s2,e,s3,n,n_ref,es))
+                    (fun (Rule(name,s0,s1,ns,s2,e,s3,n,c,es),l) ->
+                       (* TODO: rename ns to avoid conflicts *)
+                       (Rule(name,s0,s1,ns,s2,e,s3,n,c,es),l))
                     clauses
                 in
-                  Indreln(s1,topt,clauses)      
+                  Indreln(s1,topt,names,clauses)      
             | d -> d
         in
-          ((d,lex_skips),l)
+          ((d,lex_skips),l,lenv)
 
   let rename_def_params targ consts =
       let rdp = rename_def_params_aux targ consts in
@@ -263,6 +263,17 @@ struct
     let module Ctxt = struct let avoid = None let env_opt = Some(env) end in
     let module M = Macro_expander.Expander(Ctxt) in
     let (defs, end_lex_skips) = m.typed_ast in
+(*    let module Conv = Convert_relations.Converter(Ctxt) in
+    let indreln_macros = 
+      [
+        Def_macros (fun env -> [
+        Conv.gen_witness_type_macro env;
+        Conv.gen_witness_check_macro env;
+        Conv.gen_fns_macro env; ]); 
+      ]
+    in
+    let params = {params with macros = indreln_macros @ params.macros } in
+*)
     let module_name = Name.from_rope (Ulib.Text.of_latin1 m.module_name) in
     (* TODO: Move this to a definition macro, and remove the targ argument *)
     let defs =
@@ -307,11 +318,6 @@ struct
         (fun defs e -> e (Name.from_rope (Ulib.Text.of_latin1 m.module_name)) env defs)
         defs
         params.extra
-    in
-    let defs = 
-      match targ with
-        | Target_ident -> defs
-        | Target_no_ident t -> Target_binding.fix_binding t defs 
     in
     let defs = Target_syntax.fix_infix_and_parens env targ defs in
       (* Note: this is the environment from the macro translations, ignoring the

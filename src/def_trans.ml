@@ -79,11 +79,11 @@ let rec process_defs path (trans : def_macro) mod_name (env : env) defs =
               | None -> ( 
                   let (env',def') = 
                     match def with
-                      | ((Module(sk1,(n,l'),mod_bind,sk2,sk3,ds,sk4),s),l) ->
+                      | ((Module(sk1,(n,l'),mod_bind,sk2,sk3,ds,sk4),s),l,lenv) ->
                           let (env',ds') = 
                             process_defs (mod_name::path) trans (Name.strip_lskip n) env ds 
                           in
-                            (env',((Module(sk1,(n,l'),mod_bind,sk2,sk3,ds',sk4),s),l))
+                            (env',((Module(sk1,(n,l'),mod_bind,sk2,sk3,ds',sk4),s),l,lenv))
                       | _ -> (env,def)
                   in
                   let (env'', defs') = p env' defs in
@@ -102,44 +102,47 @@ module Macros(E : sig val env : env end) = struct
 
 module C = Exps_in_context (struct let avoid = None let env_opt = Some E.env end)
 
-let simple_def d = [((d,None),Ast.Unknown)]
+(* let simple_def d = [((d,None),Ast.Unknown)] *)
 
-let remove_vals _ env (((d,s),l) as def) =
+let comment_def ((((d, s), l, lenv):def) as def) : def =
+  ((Comment (def), s), Ast.Trans("comment_def", Some l), lenv)
+
+let remove_vals _ env (((d,_),_,_) as def) =
   match d with
     | Val_spec _ ->
-        Some((env, simple_def (Comment(def))))
+        Some (env, [comment_def def])
     | _ -> None
 
-let remove_indrelns _ env (((d,s),l) as def) =
+let remove_indrelns _ env (((d,_),_,_) as def) =
   match d with
     | Indreln _ ->
-        Some((env, simple_def (Comment(def))))
+        Some (env, [comment_def def])
     | _ -> None
 
-let remove_opens _ env (((d,s),l) as def) =
+let remove_opens _ env (((d,_),_,_) as def) =
   match d with
     | Open _ ->
-        Some((env, simple_def (Comment(def))))
+        Some (env, [comment_def def])
     | _ -> None
 
-let remove_classes _ env (((d,s),l) as def) =
+let remove_classes _ env (((d,_),_,_) as def) =
   match d with
     | Class _ ->
-        Some((env, simple_def (Comment(def))))
+        Some(env, [comment_def def])
     | _ -> None
 
-let remove_indrelns_true_lhs _ env ((d,s),l) =
+let remove_indrelns_true_lhs _ env ((d,s),l,lenv) =
   let l_unk = Ast.Trans ("remove_indrelns_true_lhs", Some l) in
   match d with
-    | Indreln (s', targ, sl) ->
-        let remove_true (name_opt, s1, qnames, s2, e_opt, s3, rname, c, es) =
+    | Indreln (s', targ, names, sl) ->
+        let remove_true (Rule (name_opt,s0, s1, qnames, s2, e_opt, s3, rname, c, es),l) =
             (match e_opt with None -> None | Some e -> (if Typed_ast_syntax.is_tf_exp true e then 
-                Some (name_opt, s1, qnames, s2, None, s3, rname, c, es) else None))
+                Some (Rule(name_opt, s0,s1, qnames, s2, None, s3, rname, c, es),l) else None))
         in
         (match Seplist.map_changed remove_true sl with
              None -> None
            | Some sl' -> 
-             let def = (((Indreln (s', targ, sl'), s), l_unk):def) in 
+             let def = (((Indreln (s', targ, names, sl'), s), l_unk,lenv):def) in 
              Some(env, [def]))
     | _ -> None
 
@@ -153,13 +156,13 @@ let generate_srt_t_opt src_opt e =
         else
           Some (None,C.t_to_src_t (exp_to_typ e))
              
-let type_annotate_definitions _ env ((d,s),l) =
+let type_annotate_definitions _ env ((d,s),l,lenv) =
   match d with
     | Val_def(Let_def(sk1,topt,(p, name_map, src_t_opt, sk2, e)),tnvs,class_constraints) -> begin
         match generate_srt_t_opt src_t_opt e with
           | None -> None
           | Some t -> Some (env,
-               [((Val_def(Let_def(sk1, topt,(p, name_map, Some t, sk2, e)), tnvs, class_constraints), s), l)])
+               [((Val_def(Let_def(sk1, topt,(p, name_map, Some t, sk2, e)), tnvs, class_constraints), s), l, lenv)])
       end
     (* TODO: Handle Fun_def *)
     | Val_def(Fun_def(sk1,sk2,topt,funs),tnvs,class_constraints) -> begin
@@ -173,7 +176,7 @@ let type_annotate_definitions _ env ((d,s),l) =
         match funs'_opt with 
           | None -> None
           | Some funs' -> Some (env,
-               [((Val_def(Fun_def(sk1,sk2,topt,funs'), tnvs, class_constraints), s), l)])
+               [((Val_def(Fun_def(sk1,sk2,topt,funs'), tnvs, class_constraints), s), l, lenv)])
       end
     | _ -> None
 
@@ -182,7 +185,7 @@ let build_field_name n =
 
 let dict_type_name cn = (Name.lskip_rename (fun x -> Ulib.Text.(^^^) x (r"_class")) cn)
 
-let class_to_module mod_path env ((d,s),l) =
+let class_to_module mod_path env ((d,s),l,lenv) =
 (*  let l_unk = Ast.Trans("class_to_module", Some l) in *)
     match d with
       | Class(sk1,sk2,(n,l),tnvar,class_path,sk3,specs,sk4) ->
@@ -195,11 +198,11 @@ let class_to_module mod_path env ((d,s),l) =
             Type_def (Ast.combine_lex_skips sk1 sk2, 
                       Seplist.from_list_default None [((dict_type_name n, l), [tnvar], class_path, Te_record(None, sk3, fields, sk4), None)])
           in
-            Some((env, (simple_def rec_def)))
+            Some (env, [((rec_def, s), l, lenv)])
       | _ -> None
 
 
-let instance_to_module (global_env : env) mod_path (env : env) ((d,s),l) =
+let instance_to_module (global_env : env) mod_path (env : env) ((d,s),l,lenv) =
   let l_unk n = Ast.Trans("instance_to_module" ^ string_of_int n , Some l) in
   match d with
       | Instance(sk1, (prefix, sk2, id, t, sk3), vdefs, sk4, sem_info) ->
@@ -213,6 +216,7 @@ let instance_to_module (global_env : env) mod_path (env : env) ((d,s),l) =
               const_type = dict_type;
               env_tag = K_let;
               spec_l = l;
+              relation_info = None;
               target_rep = Targetmap.empty;
             }
           in
@@ -269,15 +273,15 @@ let instance_to_module (global_env : env) mod_path (env : env) ((d,s),l) =
           let m = 
             Module(sk1, (Name.add_lskip sem_info.inst_name, l_unk 9), 
                    Path.mk_path mod_path sem_info.inst_name, sk2, None, 
-                   List.map (fun d -> ((Val_def(d,tnvars_set,sem_info.inst_constraints),None), l_unk 10)) 
+                   List.map (fun d -> ((Val_def(d,tnvars_set,sem_info.inst_constraints),None), l_unk 10, lenv)) 
                             (vdefs @ [dict]), 
                    sk4)
           in
-            Some((env,[((m,s),l)]))
+            Some((env,[((m,s),l,lenv)]))
       | _ ->
           None
 
-let class_constraint_to_parameter : def_macro = fun mod_path env ((d,s),l) ->
+let class_constraint_to_parameter : def_macro = fun mod_path env ((d,s),l,lenv) ->
   let l_unk = Ast.Trans("class_constraint_to_parameter", Some l) in
   (* TODO : avoid shouldn't be None *)
     match d with
@@ -313,7 +317,7 @@ let class_constraint_to_parameter : def_macro = fun mod_path env ((d,s),l) ->
       | _ -> None
 
 
-let nvar_to_parameter : def_macro = fun mod_path env ((d,s),l) ->
+let nvar_to_parameter : def_macro = fun mod_path env ((d,s),l,_) ->
   let l_unk = Ast.Trans("nvar_to_parameter", Some l) in
     match d with
       | Val_def(lb, tnvs, class_constraints) ->
@@ -351,11 +355,12 @@ let nvar_to_parameter : def_macro = fun mod_path env ((d,s),l) ->
 
 let get_name def l = match def with
 
-  | Indreln(_,_,clauses) -> (match Seplist.to_list clauses with 
+  (*TODO : Check the name section, no just within the clauses*)
+  | Indreln(_,_,_,clauses) -> (match Seplist.to_list clauses with 
     | [] ->  
         raise (Reporting_basic.err_todo false l "Error while pruning target definitions: empty Indreln clauses in get_name [debug]")
         
-    | ((_,_,_,_,_,_,name,_,_)::cs) -> Name.strip_lskip name.term     
+    | ((Rule(_,_,_,_,_,_,_,name,_,_),_)::cs) -> Name.strip_lskip name.term
     )
   
   | Val_def(Fun_def(_,_,_,clauses),ntvs,_) -> (match Seplist.to_list clauses with
@@ -385,20 +390,20 @@ let target_supports_lemma_type target lty =
     | (Target.Target_ocaml, Ast.Lemma_lemma _) -> false
     | (_, _) -> true
 
-let prune_target_bindings target defs =
+let prune_target_bindings target (defs : def list) : def list =
 
   (* given a list constant name and a list of definition, rem_dups removes all
    * duplicate definitions (i.e. with the same name) from the list *)
   let rec rem_dups name = function 
     | [] -> []
-    | ((def,s),l)::defs -> 
+    | ((def,s),l, lenv)::defs -> 
         (match def with 
       | (Val_def _ | Indreln _) -> 
           if (Name.compare name (get_name def l) = 0) then
             rem_dups name defs
           else 
-            ((def,s),l) :: rem_dups name defs
-      | d -> ((d,s),l) :: rem_dups name defs
+            ((def,s),l,lenv) :: rem_dups name defs
+      | d -> ((d,s),l,lenv) :: rem_dups name defs
     )
   in
 
@@ -408,27 +413,26 @@ let prune_target_bindings target defs =
   let rec def_walker (target : Target.non_ident_target) acc =  function
     | [] -> List.rev acc
 
-    | ((def,s),l)::defs -> begin
+    | ((def,s),l,lenv)::defs -> begin
       match def with
         | (Val_def(Let_def(_,topt,_),_,_) |
           Val_def(Fun_def(_,_,topt,_),_,_) |
-          Indreln(_,topt,_) ) as d -> 
-
+          Indreln(_,topt,_,_) ) as d -> 
           if Typed_ast.in_targets_opt (Target_no_ident target) topt then 
               let name = get_name d l in
               let acc' = rem_dups name acc in  
               let defs' = rem_dups name defs in
-            def_walker target (((def,s),l) :: acc') defs' 
+            def_walker target (((def,s),l,lenv) :: acc') defs' 
           else
             def_walker target acc defs
       
        | Lemma(_,lty,targets,_,_,_,_) as d ->
          let targ_OK = Typed_ast.in_targets_opt (Target_no_ident target) targets in
          if (target_supports_lemma_type target lty && targ_OK) then
-            def_walker target (((d,s),l) :: acc) defs
+            def_walker target (((d,s),l,lenv) :: acc) defs
          else
             def_walker target acc defs
-       | d -> def_walker target (((d,s),l) :: acc) defs
+       | d -> def_walker target (((d,s),l,lenv) :: acc) defs
      end
 
   in def_walker target [] defs

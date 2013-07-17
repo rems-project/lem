@@ -54,12 +54,12 @@ open Typed_ast_syntax
 open Target
 open Util
 
-let flatten_modules_macro path env ((d,s),l) =
+let flatten_modules_macro path env ((d,s),l,lenv) =
   let l_unk = Ast.Trans("flatten_modules", Some l) in
     match d with
       | Module(sk1,n,mod_path,sk2,sk3,ds,sk4) ->
-          let mod_shell = ((Module(sk1,n,mod_path,sk2,sk3,[],sk4),s),l) in
-          let com = ((Comment(mod_shell),None),l_unk) in
+          let mod_shell = ((Module(sk1,n,mod_path,sk2,sk3,[],sk4),s),l,lenv) in
+          let com = ((Comment(mod_shell),None),l_unk,lenv) in
             Some((env,com::ds))
       | _ -> None
 
@@ -79,7 +79,7 @@ let compute_ocaml_rename_constant_fun (nk : name_kind) (n : Name.t) : Name.t opt
 
 let compute_target_rename_constant_fun (targ : Target.non_ident_target) (nk : name_kind) (n : Name.t) : Name.t option =
   match targ with 
-    | Target_ocaml -> compute_ocaml_rename_constant_fun nk n
+    | Target_ocaml -> compute_ocaml_rename_constant_fun nk n 
     | _ -> None
 
 let get_fresh_name consts consts' n = 

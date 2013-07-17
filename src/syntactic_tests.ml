@@ -86,7 +86,7 @@ let has_decidable_equality_texp (t : texp) (in_module_scope : bool) : bool =
     cases are for type definitions and modules, which may also define a
     type).
  *)
-let rec check_decidable_equality_def' env (((d, _), l) : def) (in_module_scope : bool) : unit =
+let rec check_decidable_equality_def' env (((d, _), l, _) : def) (in_module_scope : bool) : unit =
   match d with
     | Type_def (_, seplist) ->
         let texps = Seplist.to_list seplist in
@@ -249,7 +249,7 @@ let gather_inductive_types_texp (name : Name.t) (t : texp) : src_t list Inductiv
     | _ -> InductiveMap.empty
 ;;
 
-let gather_inductive_types (((d, _), _) : def) : src_t list InductiveMap.t =
+let gather_inductive_types (((d, _), _, _) : def) : src_t list InductiveMap.t =
   match d with
     | Type_def (_, seplist) ->
       let texps = Seplist.to_list seplist in
@@ -265,7 +265,7 @@ let gather_inductive_types (((d, _), _) : def) : src_t list InductiveMap.t =
 
 let check_positivity_condition_def (d : def) : unit =
   let inductive_types = gather_inductive_types d in
-  let ((d, _), _) = d in
+  let ((d, _), _, _) = d in
     match d with
       | Type_def (_, seplist) ->
           let texps = Seplist.to_list seplist in

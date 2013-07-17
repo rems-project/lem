@@ -14,15 +14,17 @@ val test8 : num
 let test8 = 1
 
 indreln 
-forall x r . 
+[tc : forall 'a. ('a -> 'a -> bool) -> 'a -> 'a -> bool]
+base : forall x r . 
 r x x ==> tc r x x
 and
-forall x r y z . 
+trans : forall x r y z . 
 tc r x y && tc r y z ==> tc r x z
 
 val tc2 : forall 'a. ('a -> 'a -> bool) -> 'a -> 'a -> bool
 indreln
-forall x r . 
+[tc2 : forall 'a. ('a -> 'a -> bool) -> 'a -> 'a -> bool ]
+call : forall x r . 
 r x x ==> tc2 r x x
 
 module M = struct

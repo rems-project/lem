@@ -292,7 +292,24 @@ let (c_ref, c_d) = get_const env mp n in
 (* fixing initial representations                                             *)
 (* -------------------------------------------------------------------------- *)
 
-let fix_const_descr_ocaml_constr c_d = c_d
+let fix_const_descr_ocaml_constr c_d = 
+  let is_constr = match c_d.env_tag with
+    | K_constr -> true
+    | _ -> false
+  in if not is_constr then c_d else begin
+    let targ = Target.Target_no_ident Target.Target_ocaml in
+    let (_, name) = constant_descr_to_name targ c_d in
+
+    (* get the argument types *)
+    let (arg_tyL, _) = Types.strip_fn_type None c_d.const_type in
+    let vars = List.map t_to_var_name arg_tyL in
+
+    let rep = CR_special (c_d.spec_l, true, true, name, CR_special_uncurry (List.length arg_tyL), vars) in
+    let new_tr = Target.Targetmap.insert c_d.target_rep (Target.Target_ocaml, rep) in
+    
+    { c_d with target_rep = new_tr }
+  end
+
   
 let fix_const_descr c_d =
   let c_d = fix_const_descr_ocaml_constr c_d in
@@ -431,7 +448,7 @@ let mk_eq_exp env (e1 : exp) (e2 : exp) : exp =
   let ty_0 = { Types.t = Types.Tfn (ty, bool_ty) } in
   let ty_1 = { Types.t = Types.Tfn (ty, ty_0) } in
 
-  let eq_id = { id_path = Id_some (Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r "="))) l);
+  let eq_id = { id_path = Id_some (Ident.mk_ident_strings [] "=");
                 id_locn = l;
                 descr = fst (get_const env ["Ocaml"; "Pervasives"] "=");
                 instantiation = [ty] } in
@@ -445,7 +462,7 @@ let mk_and_exp env (e1 : exp) (e2 : exp) : exp =
   let ty_0 = { Types.t = Types.Tfn (bool_ty, bool_ty) } in
   let ty_1 = { Types.t = Types.Tfn (bool_ty, ty_0) } in
 
-  let and_id = { id_path = Id_some (Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r "&&"))) l);
+  let and_id = { id_path = Id_some (Ident.mk_ident_strings [] "&&");
                 id_locn = l;
                 descr = fst (get_const env ["Pervasives"] "&&");
                 instantiation = [] } in
@@ -459,7 +476,7 @@ let mk_le_exp env (e1 : exp) (e2 : exp) : exp =
   let ty_0 = { Types.t = Types.Tfn (num_ty, bool_ty) } in
   let ty_1 = { Types.t = Types.Tfn (num_ty, ty_0) } in
 
-  let le_id = { id_path = Id_some (Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r "<="))) l);
+  let le_id = { id_path = Id_some (Ident.mk_ident_strings [] "<=");
                 id_locn = l;
                 descr = fst (get_const env ["Pervasives"] "<=");
                 instantiation = [] } in
@@ -473,7 +490,7 @@ let mk_add_exp env (e1 : exp) (e2 : exp) : exp =
   let ty_0 = { Types.t = Types.Tfn (num_ty, num_ty) } in
   let ty_1 = { Types.t = Types.Tfn (num_ty, ty_0) } in
 
-  let add_id = { id_path = Id_some (Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r "+"))) l);
+  let add_id = { id_path = Id_some (Ident.mk_ident_strings [] "+");
                 id_locn = l;
                 descr = fst (get_const env ["Pervasives"] "+");
                 instantiation = [] } in
@@ -487,7 +504,7 @@ let mk_sub_exp env (e1 : exp) (e2 : exp) : exp =
   let ty_0 = { Types.t = Types.Tfn (num_ty, num_ty) } in
   let ty_1 = { Types.t = Types.Tfn (num_ty, ty_0) } in
 
-  let sub_id = { id_path = Id_some (Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r "-"))) l);
+  let sub_id = { id_path = Id_some (Ident.mk_ident_strings [] "-");
                 id_locn = l;
                 descr = fst (get_const env ["Pervasives"] "-");
                 instantiation = [] } in
@@ -682,10 +699,10 @@ let is_trans_loc = function
 let is_trans_exp e =
   is_trans_loc (exp_to_locn e)
 
-let is_trans_def (((_, _), l) : def) =  is_trans_loc l
+let is_trans_def (((_, _), l, _) : def) =  is_trans_loc l
 
 
-let is_type_def_abbrev ((d, _), _) = 
+let is_type_def_abbrev (((d, _), _, _):def) = 
   match d with
     | Type_def (_, l) -> begin
         Seplist.length l = 1 &&
@@ -695,7 +712,7 @@ let is_type_def_abbrev ((d, _), _) =
       end
     | _ -> false
 
-let is_type_def_record  ((d, _), _) = 
+let is_type_def_record  (((d, _), _, _):def) = 
   match d with
     | Type_def (_, l) -> begin
         Seplist.length l = 1 &&
@@ -894,7 +911,7 @@ and add_funcl_aux_entities (ue : used_entities) ((_, c, ps, src_t_opt, _, e):fun
   ue
 end
 
-and add_def_entities (t_opt : Target.target) (ue : used_entities) (((d, _), _) : def) : used_entities = 
+and add_def_entities (t_opt : Target.target) (ue : used_entities) (((d, _), _, _) : def) : used_entities = 
   match d with
       | Type_def(sk, tds) ->
          Seplist.fold_left (fun (_, _, type_path, texp, _) ue -> begin
@@ -938,13 +955,14 @@ and add_def_entities (t_opt : Target.target) (ue : used_entities) (((d, _), _) :
       | Ident_rename (_,_,_,_,_,_) ->
           (* TODO: replace Ident_rename with something more general *) ue
       | Open(_,m) -> used_entities_add_module ue m.descr.mod_binding
-      | Indreln(_,targ,rules) -> begin
-          let add_rule (_,_,_,_,e_opt,_,_,n_ref,es) ue = begin
+      | Indreln(_,targ,names,rules) -> begin
+          let add_rule (Rule (_,_,_,_,_,e_opt,_,_,n_ref,es),_) ue = begin
              let ue = match e_opt with None -> ue | Some e -> add_exp_entities ue e in
              let ue = used_entities_add_const ue n_ref in
              let ue = List.fold_left add_exp_entities ue es in
              ue
           end in
+          (* TODO: consider what to do about names *)
           Seplist.fold_left add_rule ue rules
         end
       | Val_spec(_,_,n_ref,_,(_, src_t)) ->begin
@@ -966,7 +984,7 @@ let get_checked_modules_entities (t_opt : Target.target) (ml : checked_module li
 
 
 (* check whether a definition is recursive using entities *)
-let is_recursive_def (((d, _), _) : def) =  
+let is_recursive_def (d:def_aux) =  
  match d with
   |  Val_def ((Fun_def (_, Some _, _, sl)), tnvs,class_constraints) -> begin 
        let (_, pL) = Seplist.to_pair_list None sl in
@@ -982,3 +1000,37 @@ let is_recursive_def (((d, _), _) : def) =
        (true, is_real_rec)
      end
   |  _ -> (false, false)
+
+
+let mk_eta_expansion_exp t_env (vars : Name.t list) (e : exp) : exp =
+begin
+  let l = Ast.Trans ("mk_eta_expansion", Some (exp_to_locn e)) in
+
+  (* make the variable names distinct from any already used names and from each other *)
+  let fv_map = C.exp_to_free e in
+  let vars' = Name.fresh_list (fun n -> not (Nfmap.in_dom n fv_map)) vars in
+  
+  (* get types *)
+  let (arg_tyL, _) = strip_fn_type (Some t_env) (exp_to_typ e) in
+  let (var_types, _) = Util.split_after (List.length vars') arg_tyL in
+
+  (* get the typed list of variables*)
+  let typed_vars = List.combine vars' var_types in
+
+  (* make application *)
+  let mk_var_app (e : exp) ((n: Name.t), (ty : Types.t)) = begin
+    let var = C.mk_var l (Name.add_lskip n) ty in
+    let ty = match (dest_fn_type (Some t_env) (exp_to_typ e)) with
+      | Some (_, ty) -> ty
+      | None -> raise (Reporting_basic.err_unreachable true l "fun type already checked above")
+    in
+    C.mk_app l e var (Some ty) 
+  end in
+  let e' = List.fold_left mk_var_app e typed_vars in
+
+  (* make fun *)
+  let e'' = C.mk_fun l None (List.map (fun (n, ty) -> C.mk_pvar l (Name.add_lskip n) ty) typed_vars) None e' (Some (exp_to_typ e)) in
+
+  e''
+end
+

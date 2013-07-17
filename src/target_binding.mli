@@ -44,6 +44,16 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
-(** try to fix problems from target's different binding *)
+open Typed_ast
 
-val fix_binding : Target.non_ident_target -> Typed_ast.def list -> Typed_ast.def list
+(** [minimize_module_path lenv m] tries to minimize the module-path [m] in local environment [lenv].
+    It returns a (hopefully shorter) path [m'] that resolves to the same module in [lenv]. *)
+val minimize_module_path : local_env -> Path.t -> Path.t
+
+(** [minimize_const_ident lenv i] tries to minimize the path of identifier [i] in local environment [lenv].
+    It returns a (hopefully shorter) identifier [i'] that resolves to the same constant in [lenv]. *)
+val minimize_const_ident : local_env -> Ident.t -> Ident.t
+
+(** [minimize_type_ident lenv i] tries to minimize the path of identifier [i] in local environment [lenv].
+    It returns a (hopefully shorter) identifier [i'] that resolves to the same constant in [lenv]. *)
+val minimize_type_ident : local_env -> Ident.t -> Ident.t

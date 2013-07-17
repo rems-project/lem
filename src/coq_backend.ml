@@ -56,7 +56,7 @@ let print_and_fail l s =
 
 let lex_skip =
 	function
-		| Ast.Com r -> ml_comment_to_rope r
+    | Ast.Com r -> ml_comment_to_rope r
     | Ast.Ws r -> r
     | Ast.Nl -> r"\n"
 ;;
@@ -122,11 +122,8 @@ let coq_infix_op a x =
 ;;
 
 
-let none = Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r"None"))) Ast.Unknown
-;;
-
-let some = Ident.mk_ident [] (Name.add_lskip (Name.from_rope (r"Some"))) Ast.Unknown
-;;
+let none = Ident.mk_ident_strings [] "None";;
+let some = Ident.mk_ident_strings [] "Some";;
 
 let fresh_name_counter = ref 0
 ;;
@@ -172,22 +169,7 @@ let lskips_t_to_string name =
     kwd (Ulib.Text.to_string @@ Name.to_rope (Name.strip_lskip lskips_t))
 ;;
 
-let rec src_t_to_string =
-  function
-    | Typ_app (p, ts) ->
-      let (name_list, name) = Ident.to_name_list (resolve_ident_path p p.descr) in
-        from_string @@ Ulib.Text.to_string (Name.to_rope name)
-    | Typ_var (_, v) ->
-        id Type_var @@ Ulib.Text.(^^^) (r"") (Tyvar.to_rope v)
-    | Typ_wild skips -> from_string "_"
-    | Typ_len src_nexp -> from_string "(* src_t_to_string len *)"
-    | Typ_fn (src_t, skips, src_t') -> from_string "(* src_t_to_string fn *)"
-    | Typ_tup src_t_lskips_seplist -> from_string "(* src_t_to_string tuple *)"
-    | Typ_paren (skips, src_t, skips') ->
-        from_string "(" ^ src_t_to_string src_t.term ^ from_string ")"
-;;
-
-module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
+module CoqBackendAux (A : sig val avoid : var_avoid_f option;; val env : env end) =
   struct
 
     module B = Backend_common.Make (
@@ -204,6 +186,20 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
       end)
     ;;
 
+let rec src_t_to_string =
+  function
+    | Typ_app (p, ts) ->
+      let (name_list, name) = Ident.to_name_list (B.type_id_to_ident p) in
+        from_string @@ Ulib.Text.to_string (Name.to_rope name)
+    | Typ_var (_, v) ->
+        id Type_var @@ Ulib.Text.(^^^) (r"") (Tyvar.to_rope v)
+    | Typ_wild skips -> from_string "_"
+    | Typ_len src_nexp -> from_string "(* src_t_to_string len *)"
+    | Typ_fn (src_t, skips, src_t') -> from_string "(* src_t_to_string fn *)"
+    | Typ_tup src_t_lskips_seplist -> from_string "(* src_t_to_string tuple *)"
+    | Typ_paren (skips, src_t, skips') ->
+        from_string "(" ^ src_t_to_string src_t.term ^ from_string ")"
+;;
 let typ_ident_to_output (p : Path.t id) =     
   Ident.to_output Type_ctor path_sep (B.type_id_to_ident p)
 
@@ -558,7 +554,7 @@ let generate_coq_record_update_notation e =
       DefaultMap.find k !initial_default_map
     ;;
 
-    let rec def inside_module m =
+    let rec def (callback : def list -> Output.t) (inside_module : bool) (m : def_aux) =
       match m with
       | Type_def (skips, def) ->
           let funcl =	if is_abbreviation def then
@@ -588,7 +584,7 @@ let generate_coq_record_update_notation e =
                 if in_target targets then
                   let skips' = Util.option_default None skips'_opt in
                   let header =
-                    if snd (Typed_ast_syntax.is_recursive_def ((m, None), Ast.Unknown)) then
+                    if snd (Typed_ast_syntax.is_recursive_def m) then
                       Output.flat [
                         from_string "Program"; ws skips'; from_string "Fixpoint"
                       ]
@@ -609,23 +605,14 @@ let generate_coq_record_update_notation e =
         end
       | Module (skips, (name, l), mod_binding, skips', skips'', defs, skips''') ->
         let name = lskips_t_to_output name in
-        let body = flat @@ List.map (fun ((d, s), l) ->
-          let skips =
-            match s with
-              | None -> emp
-              | Some s -> ws s
-          in
-          Output.flat [
-            skips; def true d
-          ]) defs
-        in
+        let body = callback defs in
           Output.flat [
             ws skips; from_string "Module "; name; from_string "."; ws skips'; ws skips'';
             body; from_string "\nEnd "; name; from_string "."; ws skips'''
           ]
       | Rename (skips, name, mod_binding, skips', mod_descr) -> from_string "Rename"
       | Open (skips, mod_descr) ->
-          let mod_path = resolve_ident_path mod_descr mod_descr.descr.mod_binding in
+          let mod_path = B.module_id_to_ident mod_descr in
           let mod_name = Ident.get_name mod_path in
           if (mod_name |> Name.strip_lskip |> Name.to_string) = "Vector" then
             Output.flat []
@@ -634,7 +621,7 @@ let generate_coq_record_update_notation e =
               Output.flat [
                 ws skips; from_string "Require Import "; mod_name; from_string ".\n"
               ]
-      | Indreln (skips, targets, cs) ->
+      | Indreln (skips, targets, names,cs) -> (*INDERL_TODO Only added the name declaration parameter here*)
           if in_target targets then
             let c = Seplist.to_list cs in
               clauses c
@@ -647,9 +634,9 @@ let generate_coq_record_update_notation e =
       | Class (skips, skips', name, tyvar, p, skips'', body, skips''') -> from_string "Class"
       | Instance (skips, instantiation, vals, skips', sem_info) -> from_string "Instance"
       | Comment c ->
-      	let ((def_aux, skips_opt), l) = c in
+      	let ((def_aux, skips_opt), l, lenv) = c in
           Output.flat [
-      		  from_string "(* "; def inside_module def_aux; from_string " *)"
+      		  from_string "(* "; def callback inside_module def_aux; from_string " *)"
           ]
       | Ident_rename _ -> from_string "\n(* [?]: removed rename statement. *)"
       | Lemma (skips, lemma_typ, targets, name_skips_opt, skips', e, skips'') ->
@@ -674,7 +661,7 @@ let generate_coq_record_update_notation e =
         let rec gather_names_aux buffer clauses =
           match clauses with
             | []    -> buffer
-            | (_, _, _, _, _, _, name_lskips_annot, _, _)::xs ->
+            | (Rule(_,_, _, _, _, _, _, name_lskips_annot, _, _),_)::xs ->
               let name = name_lskips_annot.term in
               let name = Name.strip_lskip name in
               if List.mem name buffer then
@@ -686,7 +673,7 @@ let generate_coq_record_update_notation e =
       in
       let gathered = gather_names clause_list in
       (* TODO: use refs instead of names *)
-      let compare_clauses_by_name name (_, _, _, _, _, _, name', _, _) =
+      let compare_clauses_by_name name (Rule(_,_, _, _, _, _, _, name', _, _),_) =
         let name' = name'.term in
         let name' = Name.strip_lskip name' in
           Pervasives.compare name name' = 0
@@ -698,7 +685,7 @@ let generate_coq_record_update_notation e =
           let index_types =
             match bodies with
               | [] -> [from_string "Prop"]
-              | (_, _, _, _, _, _, _, _, exp_list)::xs ->
+              | (Rule(_,_, _, _, _, _, _, _, _, exp_list),_)::xs ->
                   List.map (fun t ->
                     Output.flat [
                       from_string "("; field_typ @@ C.t_to_src_t (Typed_ast.exp_to_typ t); from_string ")"
@@ -706,16 +693,17 @@ let generate_coq_record_update_notation e =
                   ) exp_list
           in
           let bodies =
-            Util.list_mapi (fun counter -> fun (name_lskips_t_opt, skips, name_lskips_annot_list, skips', exp_opt, skips'', name_lskips_annot, c, exp_list) ->
+            Util.list_mapi (fun counter -> fun (Rule(name_lskips_t, skips0, skips, name_lskips_annot_list, skips', exp_opt, skips'', name_lskips_annot, c, exp_list),_) ->
               let constructor_name =
-                match name_lskips_t_opt with
+              (* Note, now that names are not optional, this code is likely unneccessary, and an extra skip is added*)
+(*                match name_lskips_t_opt with
                   | None ->
                     let fresh = string_of_int counter in
                     let name = Name.to_string name in
                       Output.flat [
                         from_string name; from_string "_"; from_string fresh
                       ]
-                  | Some name -> from_string (Name.to_string (Name.strip_lskip name))
+                  | Some name ->*) from_string (Name.to_string (Name.strip_lskip name_lskips_t))
               in
               let antecedent =
                 match exp_opt with
@@ -725,8 +713,9 @@ let generate_coq_record_update_notation e =
                         from_string "Prop_of_bool ("; exp e; from_string ")"
                       ]
               in
+              (* Indrel TODO This does not match variables with type annotations *)
               let bound_variables =
-                concat_str " " @@ List.map (fun n ->
+                concat_str " " @@ List.map (fun (QName n) ->
                   from_string (Name.to_string (Name.strip_lskip n.term))
                 ) name_lskips_annot_list
               in
@@ -846,7 +835,7 @@ let generate_coq_record_update_notation e =
           emp
         else
           (from_string "{") ^ (concat_str " " tyvars) ^ (from_string " : Type}")
-    and coq_function_application_to_output id args = B.function_application_to_output exp id args
+    and coq_function_application_to_output l id args = B.function_application_to_output l exp id args
     and exp e =
       let is_user_exp = Typed_ast_syntax.is_trans_exp e in
         match C.exp_to_term e with
@@ -863,7 +852,7 @@ let generate_coq_record_update_notation e =
                 match C.exp_to_term e0 with
                   | Constant cd -> 
                     (* constant, so use special formatting *)
-                    B.function_application_to_output trans false cd args
+                    B.function_application_to_output (exp_to_locn e) trans false e cd args
                   | _ -> (* no constant, so use standard one *)
                     List.map trans (e0 :: args)
               end in
@@ -892,7 +881,7 @@ let generate_coq_record_update_notation e =
                 Output.flat [
                   ws skips; from_string "let"; body; ws skips'; from_string "in "; exp e;
                 ]
-          | Constant const -> Output.concat emp (B.function_application_to_output exp false const [])
+          | Constant const -> Output.concat emp (B.function_application_to_output (exp_to_locn e) exp false e const [])
           | Fun (skips, ps, skips', e) ->
               let ps = fun_pattern_list ps in
                 block_hov (Typed_ast_syntax.is_trans_exp e) 2 (
@@ -961,7 +950,7 @@ let generate_coq_record_update_notation e =
                match C.exp_to_term c with
                  | Constant cd -> 
                    (* constant, so use special formatting *)
-                   B.function_application_to_output trans true cd [l;r]
+                   B.function_application_to_output (exp_to_locn e) trans true e cd [l;r]
                  | _ -> (* no constant, so use standard one *)
                    List.map trans [l;c;r]
             end in
@@ -1208,7 +1197,7 @@ let generate_coq_record_update_notation e =
               from_string "(" ^ body ^ from_string ") % type"
         | Typ_app (p, ts) ->
           let args = concat_str " " @@ List.map abbreviation_typ ts in
-          let (name_list, name) = Ident.to_name_list (resolve_ident_path p p.descr) in
+          let (name_list, name) = Ident.to_name_list (B.type_id_to_ident p) in
           let arg_sep = if List.length ts > 1 then from_string " " else emp in
             Output.flat [
               kwd @@ Ulib.Text.to_string (Name.to_rope name); arg_sep; args
@@ -1222,9 +1211,9 @@ let generate_coq_record_update_notation e =
     	match Seplist.hd def with
       	| (n, tyvars, _, (Te_record (skips, skips', fields, skips'') as r),_) ->
             let (n', _) = n in
- 	                let name = Name.to_output Type_ctor n' in
-      			let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) field (sep @@ from_string ";") fields in
-      			let tyvars' = type_def_type_variables tyvars in
+            let name = Name.to_output Type_ctor n' in
+            let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) field (sep @@ from_string ";") fields in
+      	    let tyvars' = type_def_type_variables tyvars in
             let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
             let boolean_equality = generate_coq_record_equality tyvars n fields in
       			  Output.flat [
@@ -1386,12 +1375,6 @@ let generate_coq_record_update_notation e =
           Name.to_output Term_field (B.const_ref_to_name n f_ref); 
           from_string ":"; ws skips; field_typ t
       ]
-    and defs inside_module (ds : def list) =
-      	List.fold_right (fun ((d, s), l) y ->
-          match s with
-            | None   -> def inside_module d ^ y
-            | Some s -> def inside_module d ^ ws s ^ y
-      	) ds emp
     and generate_default_value_texp (t: texp) =
       match t with
         | Te_opaque -> from_string "DAEMON"
@@ -1480,9 +1463,29 @@ let generate_coq_record_update_notation e =
         let mapped = List.map generate_default_value ts in
           concat_str "\n" mapped
       ;;
+end
+;;
+
+
+
+module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
+  struct
+
+    let rec defs inside_module (ds : def list) =
+      	List.fold_right (fun (((d, s), l, lenv):def) y ->
+          let module C = CoqBackendAux (
+             struct
+                let avoid = A.avoid;;
+                let env = {A.env with local_env = lenv}
+             end) in
+          let callback = defs true in
+          match s with
+            | None   -> C.def callback inside_module d ^ y
+            | Some s -> C.def callback inside_module d ^ ws s ^ y
+      	) ds emp
 
     let coq_defs ((ds : def list), end_lex_skips) =
     	to_rope (r"\"") lex_skip need_space @@ defs false ds ^ ws end_lex_skips
     ;;
+
 end
-;;

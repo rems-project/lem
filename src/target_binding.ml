@@ -44,237 +44,79 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
-(* Traversing expressions to resolve any target problems that will arise from
- * its binding and module structure and namespaces being different from Lem's *)
-
 open Typed_ast
-
-module M = Macro_expander.Expander(struct let avoid = None let env_opt = None end)
-module C = Exps_in_context(struct let avoid = None let env_opt = None end)
-module P = Precedence
-
-(* TODO: This needs to be much more complex to be really right *)
-let id_fix_binding (target : Target.non_ident_target) id =
-  match id.id_path with
-    | Id_none _ -> id
-    | Id_some p -> 
-        { id with id_path = Id_some (Ident.strip_path (Target.non_ident_target_to_mname target) p) }
-
-let rec fix_src_t (target : Target.non_ident_target) t =
-  match t.term with
-    | Typ_wild _ | Typ_var _ -> t
-    | Typ_fn(t1,sk,t2) -> 
-        { t with term = Typ_fn(fix_src_t target t1, sk, fix_src_t target t2) }
-    | Typ_tup(ts) -> 
-        { t with term = Typ_tup(Seplist.map (fix_src_t target) ts) }
-    | Typ_app(id,ts) ->
-        { t with term = 
-            Typ_app(id_fix_binding target id, List.map (fix_src_t target) ts) }
-    | Typ_len(n) -> t
-    | Typ_paren(sk1,t',sk2) -> 
-        { t with term = Typ_paren(sk1, fix_src_t target t', sk2) }
+open Typed_ast_syntax
 
 
-let rec fix_pat (target : Target.non_ident_target) p = 
-  let old_t = Some(p.typ) in
-  let old_l = p.locn in
-  let trans = fix_pat target in
-    match p.term with
-      | P_as(sk1,p,s,nl,sk2) -> 
-          C.mk_pas old_l sk1 (trans p) s nl sk2 old_t
-      | P_typ(s1,p,s2,t,s3) -> 
-          C.mk_ptyp old_l s1 (trans p) s2 (fix_src_t target t) s3 old_t
-      | P_const(c,ps) -> 
-          C.mk_pconst old_l (id_fix_binding target c) (List.map trans ps) old_t
-      | P_record(s1,fieldpats,s2) ->
-          C.mk_precord old_l
-            s1 
-            (Seplist.map 
-               (fun (fid,s1,p) -> (id_fix_binding target fid,s1,trans p))
-               fieldpats)
-            s2
-            old_t
-      | P_tup(s1,ps,s2) -> 
-          C.mk_ptup old_l s1 (Seplist.map trans ps) s2 old_t
-      | P_list(s1,ps,s2) -> 
-          C.mk_plist old_l s1 (Seplist.map trans ps) s2 p.typ
-      | P_vector(s1,ps,s2) ->
-          C.mk_pvector old_l s1 (Seplist.map trans ps) s2 p.typ
-      | P_vectorC(s1,ps,s2) ->
-          C.mk_pvectorc old_l s1 (List.map trans ps) s2 p.typ
-      | P_paren(s1,p,s2) -> 
-          C.mk_pparen old_l s1 (trans p) s2 old_t
-      | P_cons(p1,s,p2) -> 
-          C.mk_pcons old_l (trans p1) s (trans p2) old_t
-      | P_num_add _ -> p
-      | P_var _ | P_var_annot _ | P_lit _ | P_wild _ ->
-          p
+(* Given some entity of the form [m1. ... . mn . name] the function 
+   [minimize_module_prefix eq_fun env [m1, ... , mn]] tries minimize the module prefix
+   needed to describe [name]. It is first checked, whether [name] means the same as the full
+   prefixed version in [env]. If this is not the case, the function tries to chop of 
+   module names at the beginning, as long as the meaning in [env] is preserved. In order to check
+   whether it "means" the same, the function [eq_fun] is applied to the local environments reachable from [env]
+   with the different module prefixes.
 
+   (* TODO: perhaps performance improvements *)
+ *)
 
-let rec fix_exp target e = 
-  let trans = fix_exp target in 
-  let transp = fix_pat target in
-  let old_t = Some(exp_to_typ e) in
-  let old_l = exp_to_locn e in
-    match (C.exp_to_term e) with
-      | Fun(s1,ps,s2,e) ->
-          C.mk_fun old_l s1 (List.map transp ps) s2 (trans e) old_t
-      | Function(s1,pes,s2) ->
-          C.mk_function old_l
-            s1 (Seplist.map 
-                  (fun (p,s1,e,l) -> (transp p,s1,trans e,l))
-                  pes)
-            s2
-            old_t
-      | App(e1,e2) ->
-          C.mk_app old_l (trans e1) (trans e2) old_t
-      | Infix(e1,e2,e3) ->
-          C.mk_infix old_l (trans e1) (trans e2) (trans e3) old_t
-      | Record(s1,fieldexps,s2) ->
-          C.mk_record old_l
-            s1
-            (Seplist.map 
-               (fun (fid,s1,e,l) -> (id_fix_binding target fid,s1,trans e,l))
-               fieldexps)
-            s2
-            old_t
-(*      | Record_coq(n,s1,fieldexps,s2) ->
-          C.mk_record_coq old_l
-            s1
-            (Seplist.map 
-               (fun (fid,s1,e,l) -> (id_fix_binding target fid,s1,trans e,l))
-               fieldexps)
-            s2
-            old_t*)
-      | Recup(s1,e,s2,fieldexps,s3) ->
-          C.mk_recup old_l
-            s1 (trans e) s2
-            (Seplist.map 
-               (fun (fid,s1,e,l) -> (id_fix_binding target fid,s1,trans e,l))
-               fieldexps)
-            s3
-            old_t
-      | Field(e,s,fid) ->
-          C.mk_field old_l (trans e) s (id_fix_binding target fid) old_t
-      | Case(c,s1,e,s2,patexps,s3) ->
-          C.mk_case c old_l
-            s1 (trans e) s2
-            (Seplist.map
-               (fun (p,s1,e,l) -> (transp p,s1,trans e,l))
-               patexps)
-            s3
-            old_t
-      | Typed(s1,e,s2,t,s3) ->
-          C.mk_typed old_l 
-            s1 (trans e) s2 (fix_src_t target t) s3
-            old_t
-      | Let(s1,letbind,s2,e) ->
-          C.mk_let old_l
-            s1 (fix_letbind target letbind) s2 (trans e)
-            old_t
-      | Tup(s1,es,s2) ->
-          C.mk_tup old_l
-            s1 (Seplist.map trans es) s2
-            old_t
-      | List(s1,es,s2) ->
-          C.mk_list old_l
-            s1 (Seplist.map trans es) s2
-            (exp_to_typ e)
-      | Vector(s1,es,s2) ->
-         C.mk_vector old_l s1 (Seplist.map trans es) s2 (exp_to_typ e)
-      | VectorAcc(e,s1,n,s2) ->
-         C.mk_vaccess old_l (trans e) s1 n s2 (exp_to_typ e)
-      | VectorSub(e,s1,n1,s2,n2,s3) ->
-         C.mk_vaccessr old_l (trans e) s1 n1 s2 n2 s3 (exp_to_typ e)
-      | Paren(s1,e,s2) ->
-          C.mk_paren old_l
-            s1 (trans e) s2
-            old_t
-      | Begin(s1,e,s2) ->
-          C.mk_begin old_l
-            s1 (trans e) s2
-            old_t
-      | If(s1,e1,s2,e2,s3,e3) ->
-          C.mk_if old_l
-            s1 (trans e1) s2 (trans e2) s3 (trans e3)
-            old_t
-      | Set(s1,es,s2) ->
-          C.mk_set old_l
-            s1 (Seplist.map trans es) s2
-            (exp_to_typ e)
-      | Setcomp(s1,e1,s2,e2,s3,b) ->
-          C.mk_setcomp old_l
-            s1 (trans e1) s2 (trans e2) s3 b
-            old_t
-      (* TODO: Why is qbs ignored *)
-      | Comp_binding(is_lst,s1,e1,s2,s3,qbs,s4,e2,s5) ->
-          C.mk_comp_binding old_l
-            is_lst s1 (trans e1) s2 s3 qbs s4 (trans e2) s5
-            old_t
-      (* TODO: Why is lns ignored *)
-      | Do(s1,mid,lns,s2,e,s3,ret_t) ->
-          C.mk_do old_l s1 mid lns s2 (trans e) s3 ret_t old_t
-      | Quant(q,qbs,s,e) ->
-          C.mk_quant old_l
-            q
-            (List.map
-               (function
-                  | Qb_var(n) -> Qb_var(n)
-                  | Qb_restr(is_lst,s1,n,s2,e,s3) ->
-                      Qb_restr(is_lst,s1,n,s2,trans e,s3))
-               qbs)
-            s
-            (trans e)
-            old_t
-      | Constant(c) ->
-          C.mk_const old_l (id_fix_binding target c) old_t
-      | Var _ | Lit _  | Nvar_e _ ->
-          e
+let minimize_module_prefix (eq_fun : local_env -> local_env -> bool) (env : local_env) (p : Name.t list) : Name.t list =
+begin 
+  let p_env = lookup_env env p in
 
-and fix_letbind target (lb,l) = match lb with
-  | Let_val(p,topt,s,e) ->
-      C.mk_let_val l
-        (fix_pat target p) topt s (fix_exp target e)
-  | Let_fun(n,ps,t,s1,e) -> 
-      C.mk_let_fun l
-        n (List.map (fix_pat target) ps) t s1 
-        (fix_exp target e)
+  let compare_prefix p2 = begin
+    let p2_env_opt = lookup_env_opt env p2 in
 
-let rec fix_binding (target : Target.non_ident_target) defs =
-  let fix_val_def = function
-    | Let_def(s1,targets,(p,name_map,t,s2,e)) ->
-        Let_def(s1, targets,
-        (fix_pat target p, name_map, t, s2, (fix_exp target e)))
-    | Fun_def(s1,s2_opt,targets,clauses) ->
-        Fun_def(s1,
-                s2_opt,
-                targets,
-                Seplist.map
-                  (fun (nl,c,ps,topt,s3,e) -> 
-                     (nl, c, List.map (fun p -> fix_pat target p) ps,
-                      topt,s3,fix_exp target e))
-                  clauses)
-    | let_inline -> let_inline
-  in
-  let rec fix_def = function
-    | Val_def(d,tnvs,class_constraints) -> Val_def(fix_val_def d,tnvs,class_constraints)
-    | Lemma(sk,lty,targets,n_opt,sk2,e,sk3) -> Lemma(sk,lty,targets,n_opt,sk2,fix_exp target e,sk3)
-    | Indreln(s1,targets,c) ->
-        Indreln(s1,
-                targets,
-                Seplist.map
-                  (fun (name_opt,s1,ns,s2,e_opt,s3,n,n_ref,es) ->
-                     (name_opt,s1,ns,s2,Util.option_map (fix_exp target) e_opt, s3, n, n_ref, 
-                      List.map (fix_exp target) es))
-                  c)
-    | Module(sk1, nl, mod_path,sk2, sk3, ds, sk4) ->
-        Module(sk1, nl, mod_path, sk2, sk3, List.map (fun ((d,s),l) -> ((fix_def d,s),l)) ds, sk4)
-    | Instance(sk1,is,vdefs,sk2,sem_info) ->
-        Instance(sk1, is, List.map fix_val_def vdefs, sk2, sem_info)
-    | def -> def
-  in
-    match defs with
+    match p2_env_opt with
+      | (Some p2_env) -> eq_fun p_env p2_env
+      | _ -> false
+  end in
+
+  (* let's try to drop p completely *)
+  let drop_all = match p with | []  -> true | _ -> compare_prefix [] in
+  if drop_all then [] else
+  begin
+    let rec aux = function
       | [] -> []
-      | ((def,s),l)::defs ->
-          ((fix_def def,s),l)::fix_binding target defs
+      | [m] -> (* drop all already tested *) [m]
+      | m1 :: m2 :: ms -> if compare_prefix (m2 :: ms) then
+                             aux (m2 :: ms) else (m1 :: m2 :: ms)
+    in
+      aux p
+  end
+end;;
 
+let minimize_module_path env (p : Path.t) =
+  let (ns, n) = Path.to_name_list p in
+  let mod_eq env1 env2 = begin
+    let md1_opt = lookup_mod_descr_opt env1 [] n in
+    let md2_opt = lookup_mod_descr_opt env2 [] n in
+    match (md1_opt, md2_opt) with
+      | (Some md1, Some md2) -> (Path.compare md1.mod_binding md2.mod_binding = 0)
+      | _ -> false
+  end in
+  let ns' = minimize_module_prefix mod_eq env ns in
+  Path.mk_path ns' n
+
+let minimize_const_ident env (i : Ident.t) =
+  let (ns, n) = Ident.to_name_list i in
+  let const_eq env1 env2 = begin
+    let c1_opt = Nfmap.apply env1.v_env n in
+    let c2_opt = Nfmap.apply env2.v_env n in
+    match (c1_opt, c2_opt) with
+      | (Some c1, Some c2) -> (c1 = c2)
+      | _ -> false
+  end in
+  let ns' = minimize_module_prefix const_eq env ns in
+  Ident.mk_ident (Ident.get_first_lskip i) ns' n
+
+let minimize_type_ident env (i : Ident.t) =
+  let (ns, n) = Ident.to_name_list i in
+  let type_eq env1 env2 = begin
+    let t1_opt = Nfmap.apply env1.p_env n in
+    let t2_opt = Nfmap.apply env2.p_env n in
+    match (t1_opt, t2_opt) with
+      | (Some (t1, _), Some (t2, _)) -> (Path.compare t1 t2 = 0)
+      | _ -> false
+  end in
+  let ns' = minimize_module_prefix type_eq env ns in
+  Ident.mk_ident (Ident.get_first_lskip i) ns' n

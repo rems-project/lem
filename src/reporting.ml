@@ -53,7 +53,7 @@ type warn_source =
 
 let warn_source_to_locn = function
     Warn_source_exp e -> Typed_ast.exp_to_locn e
-  | Warn_source_def (_, l) -> l
+  | Warn_source_def (_, l, _) -> l
   | Warn_source_unkown -> Ast.Unknown
   
 type warning = 
@@ -263,13 +263,6 @@ let report_warning env w =
 (******************************************************************************)
 (* Debuging                                                                   *)
 (******************************************************************************)
-
-let debug_flag = ref true
-
-let print_debug s =
-  if (not !debug_flag) then () else
-  (Format.eprintf "DEBUG: %s\n\n" s;
-   Format.pp_print_flush Format.err_formatter ())
 
 let print_debug_data f s xs =
   let xs_s = List.map (fun x -> Ulib.Text.to_string (f x)) xs in

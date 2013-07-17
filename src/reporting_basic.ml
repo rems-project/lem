@@ -180,4 +180,14 @@ let report_error e =
   (print_err_internal true verb_pos false pos_l m1 m2; exit 1)
 
 
+(******************************************************************************)
+(* Debuging                                                                   *)
+(******************************************************************************)
+
+let debug_flag = ref true
+
+let print_debug s =
+  if (not !debug_flag) then () else
+  (Format.eprintf "DEBUG: %s\n\n" s;
+   Format.pp_print_flush Format.err_formatter ())
 

@@ -167,6 +167,14 @@ val undo_list_to_front : int -> 'a list -> 'a list
     [l1] and [l2], with [length l1 = n] and [l1 @ l2 = l]. Fails if n is too small or large. *)
 val split_after : int -> 'a list -> 'a list * 'a list
 
+(** [list_fristn n l] gets the first [n] elemenst from list [l], i.e. it does the same as
+    [fst (split_after n l)]. It fails if n is too small or large. *)
+val list_firstn : int -> 'a list -> 'a list 
+
+(** [list_dropn n l] drops the first [n] elemenst from list [l], i.e. it does the same as
+    [snd (split_after n l)]. It fails if n is too small or large. *)
+val list_dropn : int -> 'a list -> 'a list
+
 (** [list_dest_snoc l] splits the last entry off a list. This mean
     that [list_dest_snoc (l @ [x])] returns [(l, x)]. It raises a
     [Failure "list_dest_snoc"] exception, if the list [l] is empty. *)

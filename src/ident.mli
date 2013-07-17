@@ -62,19 +62,15 @@ val from_id : Ast.id -> t
 (** Return the last name in the ident, e.g., M.Y.x gives x *)
 val get_name : t -> Name.lskips_t
 
-(** [mk_ident nsl ns l] generates a new identifiers giving full control. Whitespace is prohibited though and
-    only parenthesis might be used in the [Name.lskips_t]. Otherwise, this operation my fails and uses
-    the location [l] for the error message. *)
-val mk_ident : (Name.lskips_t * Ast.lex_skips) list -> Name.lskips_t -> Ast.l -> t
+(** [mk_ident sk ms n] creates an identifier [n] with module prefix [ms] and leading whitespace [sk]. *)
+val mk_ident : Ast.lex_skips -> Name.t list -> Name.t -> t
 
-(** Since [mk_ident] does not allow whitespace and parenthesis are often not needed, 
-    [mk_ident_names] provides a simpler interface that uses names. Since it cannot fail, the location is
-    not needed. *)
-val mk_ident_names : Name.t list -> Name.t -> t
+(** [mk_ident_ast nsl ns l] generates a new identifiers during type-checking. Whitespace is prohibited in all [Name.lskips_t] except the very first one
+    and all [Ast.lex_skips] has to be empty. Otherwise, this operation my fails and uses the location [l] for the error message. *)
+val mk_ident_ast : (Name.lskips_t * Ast.lex_skips) list -> Name.lskips_t -> Ast.l -> t
 
-(** [mk_ident_strings] is a version of [mk_ident_names] that uses strings as input. *)
+(** [mk_ident_strings] is a version of [mk_ident] that uses strings as input and uses empty whitespace. *)
 val mk_ident_strings : string list -> string -> t
-
 
 val to_output : Output.id_annot -> Output.t -> t -> Output.t
 val to_output_infix : (Output.id_annot -> Ulib.Text.t -> Output.t) -> Output.id_annot -> Output.t -> t -> Output.t

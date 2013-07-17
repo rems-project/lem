@@ -45,8 +45,7 @@
 (**************************************************************************)
 
 open Types
-type t = 
-    Typed_ast.env * (Target.target * Ulib.Text.t list) list
+type t = Typed_ast.env * (Target.target * Ulib.Text.t list) list
 val add_to_init : Target.non_ident_target -> string -> t -> t
 
 module Initial_libs(P : sig val path : string end) : sig

@@ -319,28 +319,30 @@ let rec expand_defs defs ((r,typ_r,src_typ_r,pat_r):((exp -> exp option) * (Type
   let rec expand_def = function
     | Val_def(d,tnvs,class_constraints) -> Val_def(expand_val_def d,tnvs,class_constraints)
     | Lemma(sk,lty,targets,n_opt,sk2,e,sk3) -> Lemma(sk,lty,targets,n_opt, sk2, expand_exp (r,typ_r,src_typ_r,pat_r) e, sk3)
-    | Indreln(s1,targets,c) ->
+    | Indreln(s1,targets,names,c) ->
         Indreln(s1,
                 targets,
+                names (*TODO Consider if this should be walked*),
                 Seplist.map
-                  (fun (name_opt,s1,ns,s2,e_opt,s3,n,c,es) ->
-                     (name_opt,
+                  (fun (Rule (name_opt,s0,s1,ns,s2,e_opt,s3,n,n_ref,es),l) ->
+                     (Rule (name_opt,
+                      s0,
                       s1,
-                      List.map (expand_annot_typ typ_r) ns,
+                      (List.map (fun n -> QName n) (List.map (expand_annot_typ typ_r) (List.map (fun (QName n) -> n) ns))), (*Need to map into type annotated vars as well*)
                       s2,
                       Util.option_map (expand_exp (r,typ_r,src_typ_r,pat_r)) e_opt, s3, 
                       expand_annot_typ typ_r n, 
-                      c,
-                      List.map (expand_exp (r,typ_r,src_typ_r,pat_r)) es))
+                      n_ref,
+                      List.map (expand_exp (r,typ_r,src_typ_r,pat_r)) es),l))
                   c)
     | Module(sk1, nl, mod_path, sk2, sk3, ds, sk4) ->
-        Module(sk1, nl, mod_path, sk2, sk3, List.map (fun ((d,s),l) -> ((expand_def d,s),l)) ds, sk4)
+        Module(sk1, nl, mod_path, sk2, sk3, List.map (fun ((d,s),l,lenv) -> ((expand_def d,s),l,lenv)) ds, sk4)
     | Instance(sk1,is,vdefs,sk2,sem_info) ->
         Instance(sk1, is, List.map expand_val_def vdefs, sk2, sem_info)
     | def -> def
   in
     match defs with
       | [] -> []
-      | ((def,s),l)::defs ->
-          ((expand_def def,s),l)::expand_defs defs (r,typ_r,src_typ_r,pat_r)
+      | ((def,s),l,lenv)::defs ->
+          ((expand_def def,s),l,lenv)::expand_defs defs (r,typ_r,src_typ_r,pat_r)
 end

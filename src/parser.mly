@@ -145,7 +145,7 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 
 %token <Ast.terminal> Dot Lparen Rparen Comma Under Arrow As Colon NegLcurly Lcurly Rcurly
 %token <Ast.terminal> Semi Lsquare Rsquare Fun_ Function_ Bar With Match Let_ And HashZero HashOne
-%token <Ast.terminal> In Of Rec Type Rename Module_ Struct End Open_ SemiSemi Eof
+%token <Ast.terminal> In Of Rec Type Witness Check Rename Module_ Struct End Open_ SemiSemi Eof
 %token <Ast.terminal> True False Begin_ If_ Then Else Val
 %token <Ast.terminal * Ulib.Text.t> AmpAmp BarBar ColonColon Star Plus Eq At GtEq 
 %token <Ast.terminal * Ulib.Text.t> X Tyvar Nvar BquoteX
@@ -714,11 +714,13 @@ funcls:
   | funcl And funcls
     { ($1,$2)::$3 }
 
-xs:
+name_ts:
   |
     { [] }
-  | x xs
-    { $1::$2 }
+  | x name_ts
+    { (Name_t_name $1)::$2 }
+  | Lparen x Colon typ Rparen name_ts
+    { (Name_t_nt($1,$2,$3,$4,$5))::$6 }
 
 exps:
   |
@@ -726,21 +728,46 @@ exps:
   | field_exp exps
     { $1::$2 }
  
-x_opt:
-  |
-      { X_l_none }
-  | x Colon
-      { X_l_some ($1, $2) }
-
 indreln_clause:
-  | x_opt Forall xs Dot exp EqEqGt x exps
-    { irloc (Rule($1,$2,$3,$4,$5,$6,$7,$8)) }
+  | x Colon Forall name_ts Dot exp EqEqGt x exps
+    { irloc (Rule($1,$2,$3,$4,$5,$6,$7,$8,$9)) }
 
 
 and_indreln_clauses:
   | indreln_clause
     { [($1,None)] }
   | indreln_clause And and_indreln_clauses
+    { ($1,$2)::$3 }
+
+witness_clause:
+  | Witness Type x Semi
+    { Witness_some($1,$2,$3,$4) }
+
+check_clause:
+  | Check x Semi
+    { Check_some($1,$2,$3) }
+
+functions_clause:
+ | x Colon typ
+  { Functions_one($1,$2,$3) }
+ | x Colon typ Semi functions_clause
+  { Functions_some($1,$2,$3,$4,$5) }
+
+indreln_name :
+  | Lsquare x Colon typschm Rsquare
+    { Name_l ( Inderln_name_Name ($1,$2,$3,$4,Witness_none,Check_none,Functions_none,$5) ,loc ()) }
+  | Lsquare x Colon typschm witness_clause Rsquare
+    { Name_l ( Inderln_name_Name ($1,$2,$3,$4,$5,Check_none,Functions_none,$6) ,loc ()) }
+  | Lsquare x Colon typschm witness_clause check_clause Rsquare
+    { Name_l ( Inderln_name_Name ($1,$2,$3,$4,$5,$6,Functions_none,$7) ,loc ()) }
+  | Lsquare x Colon typschm witness_clause check_clause functions_clause Rsquare
+    { Name_l ( Inderln_name_Name ($1,$2,$3,$4,$5,$6,$7,$8) ,loc ()) }
+  
+
+and_indreln_names:
+  | indreln_name
+    { [($1,None)] }
+  | indreln_name And and_indreln_names
     { ($1,$2)::$3 }
 
 tnvs:
@@ -949,8 +976,8 @@ def:
     { mod_cap $2; dloc (Rename($1,$2,fst $3,$4)) }
   | Open_ id
     { dloc (Open($1,$2)) }
-  | Indreln targets_opt and_indreln_clauses
-    { dloc (Indreln($1,$2,$3)) }
+  | Indreln targets_opt and_indreln_names and_indreln_clauses
+    { dloc (Indreln($1,$2,$3,$4)) }
   | val_spec
     { dloc (Spec_def($1)) }
   | Class_ Lparen x tnvar Rparen class_val_specs End

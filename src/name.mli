@@ -63,10 +63,15 @@ val from_string : string -> t
     Then counting up from 0 starts, till [OK] is satisfied. *)
 val fresh : Ulib.Text.t -> (t -> bool) -> t
 
-(** [fresh_list i n OK] generates a list of [i] fresh names. Internally,
+(** [fresh_num_list i n OK] generates a list of [i] fresh names. If no conflicts occur
+    it returns a list of the form [[ni, n(i-1), ..., n1]]. Internally,
     [fresh n OK] is used [n] times. However, [OK] is updated to ensure, that
-    the elemenst of the resulting list are also distinct from each other. *)
-val fresh_list : int -> Ulib.Text.t -> (t -> bool) -> t list
+    the elemenst of the resulting list not only satisfy [OK], but are also distinct from each other. *)
+val fresh_num_list : int -> Ulib.Text.t -> (t -> bool) -> t list
+
+(** [fresh_list OK ns] builds variants of the names in list [ns] such that all elements of 
+    the resulting list [ns'] satisfy [OK] and are distinct to each other.*)
+val fresh_list : (t -> bool) -> t list -> t list
 
 (** [rename r_fun n] renames [n] using the function [r_fun]. It looks at the 
   text representation [n_text] of [n] and returns then the name corresponding to

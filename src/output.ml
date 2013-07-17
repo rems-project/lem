@@ -64,7 +64,6 @@ type id_annot =  (* kind annotation for latex'd identifiers *)
   | Class_name
   | Target
 
-
 type block_type =
     Block_type_hbox
   | Block_type_vbox of int
@@ -76,7 +75,6 @@ let open_block_type ff = function
   | Block_type_vbox d   -> Format.pp_open_vbox ff d
   | Block_type_hvbox d  -> Format.pp_open_hvbox ff d
   | Block_type_hovbox d -> Format.pp_open_hovbox ff d
-
 
 type t = 
   | Empty                          (* Empty output *)
@@ -100,11 +98,8 @@ type t' =
   | Num' of int
 
 let emp = Empty
-
 let kwd t = Kwd(t)
-
 let id a t = Ident(a,t)
-
 let num t = Num(t)
 
 let ws = function
@@ -117,9 +112,7 @@ let ws = function
            (List.rev ts))
 
 let str s = Str(s)
-
 let err s = Err(s)
-
 let meta s = Meta(s)
 
 let texspace = Texspace
@@ -194,7 +187,6 @@ let ns need_space t1 t2 =
 (* Debug pp *)
 (* ******** *)
 
-
 let pp_raw_id_annot = function
   | Term_const         -> r"Term_const"       
   | Term_ctor          -> r"Term_ctor"        
@@ -236,8 +228,6 @@ let rec pp_raw_t t =
   | Block(b,d,t) -> r"Block(" ^^ pp_raw_bool b ^^ r"," ^^ pp_raw_t t ^^ r")"
   | Break_hint _ -> r"Breakhint"
   | Internalspace -> r"Internalspace"
-
-
 
 
 (* turns a single, unstructered Output.t into a string *)
@@ -414,17 +404,19 @@ let to_rope quote_char lex_skips_to_rope need_space t =
 
 
 
-(* ************* *)
-(* LaTeX backend *)
-(* ************* *)
+
+
+(******************************************************************************)
+(* LaTeX backend                                                              *)
+(******************************************************************************)
 
 let tex_command_prefix = r"LEM"  (* for LaTeX commands in generated .tex and -inc.tex files *)
 let tex_label_prefix   = r"lem:" (* for LaTeX labels in generated .tex and -inc.tex files *)
 let tex_sty_prefix     = r"lem"  (* for LaTeX commands in the lem.sty file *)
 
 (* escaping of Lem source names to use in LaTeX command names
- (probably it needs to be more aggressive)
- (and it isn't injective, so we should do some global check or rename too...) *)
+   (probably it needs to be more aggressive)
+   (and it isn't injective, so we should do some global check or rename too...) *)
 let tex_command_escape rr = 
   Ulib.Text.concat
     Ulib.Text.empty
@@ -529,22 +521,20 @@ let line_break : t list -> t list list  =
 
 let debug = false
 
-let to_rope_ident a rr =
+let to_rope_tex_ident a rr =
   let (r1,r2) = split_suffix_rope rr in
   tex_id_wrap a ^^ r"{" ^^ tex_escape r1 ^^ r"}" ^^ r2
-
-let quote_char = r"\""
 
 let rec to_rope_tex_single t = 
   match t with
   | Empty -> r""
   | Kwd(s) ->  Ulib.Text.of_latin1 s
-  | Ident(a,r) -> to_rope_ident a r
+  | Ident(a,r) -> to_rope_tex_ident a r
   | Num(i) ->  Ulib.Text.of_latin1 (string_of_int i)
   | Inter(Ast.Com(rr)) -> r"\\tsholcomm{" ^^ tex_escape (ml_comment_to_rope rr)  ^^ r"}" 
   | Inter(Ast.Ws(rr)) -> rr
   | Inter(Ast.Nl) -> raise (Failure "Nl in to_rope_tex")
-  | Str(s) ->  quote_string quote_char s
+  | Str(s) ->  quote_string (r"\"") s
   | Err(s) -> raise (Backend(s))
   | Meta(s) -> Ulib.Text.of_latin1 s
   | Texspace -> r"\\ "   
@@ -554,8 +544,8 @@ let rec to_rope_tex_single t =
   | Cons(t1,t2) -> raise (Failure "Cons in to_rope_tex") 
   | Block _ -> raise (Failure "Block in to_rope_tex") 
 
-
-let make_indent r = 
+(** [make_indent r] returns a text consisting only of spaces of the same length as [r] *)
+let make_indent (r : Ulib.Text.t) : Ulib.Text.t = 
   let n = Ulib.Text.length r in
   let single_indent = "\\ " in
   let rec n_of x n = if n=0 then [] else x::n_of x (n-1) in
@@ -565,12 +555,10 @@ let strip_initial_and_final_texspace ts =
   let rec strip_initial_texspace ts = match ts with
   | [] -> [] 
   | Texspace :: ts' -> strip_initial_texspace ts'
-  | _ :: ts' -> ts in
-  List.rev (strip_initial_texspace (List.rev (strip_initial_texspace ts))) 
+  | _ :: ts' -> ts in List.rev (strip_initial_texspace (List.rev (strip_initial_texspace ts))) 
     
-
 (* returns None if all whitespace or texspace, otherwise Some of the indented rope *)
-let to_rope_option_line : t list -> Ulib.Text.t option 
+let to_rope_tex_option_line : t list -> Ulib.Text.t option 
     = function ts -> 
       let rec f indent_acc ts = 
         match ts with
@@ -589,20 +577,21 @@ let strip_initial_and_final_blank_lines tss =
   let rec strip_initial tss = match tss with
   | [] -> []
   | None::tss' -> strip_initial tss'
-  | _ :: _ -> tss in
-  let dummy_space tso = match tso with 
-  | None -> r"\\ "  (* to workaround latex tabbing sensitivity *)
-  | Some r -> r in
-  List.map dummy_space (List.rev (strip_initial (List.rev (strip_initial tss)))) 
+  | _ :: _ -> tss in begin
+    let dummy_space tso = match tso with 
+      | None -> r"\\ "  (* to workaround latex tabbing sensitivity *)
+      | Some r -> r in 
+    List.map dummy_space (List.rev (strip_initial (List.rev (strip_initial tss)))) 
+  end
 
-let rec to_rope_lines strip_blanks tss = 
+let rec to_rope_tex_lines strip_blanks tss = 
   let rs = if strip_blanks then 
     strip_initial_and_final_blank_lines 
-      (List.map to_rope_option_line tss)
+      (List.map to_rope_tex_option_line tss)
   else
     List.map
       (function | None -> r"" | Some r -> r) 
-      (List.map to_rope_option_line tss) in
+      (List.map to_rope_tex_option_line tss) in
 
   let rec f rs = 
     match rs with
@@ -615,16 +604,19 @@ let rec to_rope_lines strip_blanks tss =
   | _ -> Some (f rs) 
 
 
-let to_rope_option_tex term need_space strip_blanks t = 
-
+let to_rope_option_tex t = 
   if debug then Printf.printf "\n\n\nto_rope_tex input:\n%s" (Ulib.Text.to_string (pp_raw_t t));
 
   let lines = line_break (flatten_to_list t) in
-  
-  let ro = to_rope_lines strip_blanks lines in
+  let ro = to_rope_tex_lines true lines in
   
   (if debug then Printf.printf "\n\nto_rope_tex output:\n%s" (Ulib.Text.to_string (match ro with None -> r"None" | Some rr -> r"Some(" ^^ rr ^^ r")")));
   
   ro
 
+
+let to_rope_tex t = 
+  match to_rope_option_tex t with
+    | None -> r""
+    | Some rr -> rr
 
