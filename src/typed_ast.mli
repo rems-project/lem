@@ -68,19 +68,17 @@ val space : lskips
 (** Get only the comments (and a trailing space) *)
 val lskips_only_comments : lskips list -> lskips
 
-(** What kind of top-level definition a particular constant is *)
+(** [env_tag] is used by [const_descr] to describe the type of constant. Constants can be defined in multiple ways:
+    the most common way is via a [let]-statement. Record-type definitions introduce fields-accessor 
+    functions and variant types introduce constructors. There are methods, instances and relations as well.
+    A [let] definition can be made via a [val] definition and multiple, target specific lets. *)
 type env_tag = 
+  | K_let      (** A let definition, the most common case. Convers val as well, details see above. *)
+  | K_field    (** A field *)
+  | K_constr   (** A type constructor *)
+  | K_relation (** A relation *)
   | K_method   (** A class method *)
-  | K_instance  (** A method instance *)
-  | K_field   (** A field *)
-  | K_constr (** A type constructor *)
-  | K_val  (** A val specification that has no definitions *)
-  | K_let   (** A let definition with no target specific definitions or val spec *)
-  | K_relation (** A definition coming from a relation *)
-  | K_target of bool * Target.Targetset.t
-      (** A definition that also has a val specification. There is a target-specific
-          definition for each target in the set, and the bool is true if there is a
-          target non-specific definition *)
+  | K_instance (** A method instance *)
 
 
 type ('a,'b) annot = { term : 'a; locn : Ast.l; typ : Types.t; rest : 'b }
@@ -257,10 +255,13 @@ and const_descr =
     env_tag : env_tag;
     (** What kind of definition it is. *)
 
+    const_targets : Target.Targetset.t;
+    (** If the constant is defined for all targets [None], otherwise the set of targets, it is defined for. *)
+
     spec_l : Ast.l;
     (** The location for the first occurrence of a definition/specification of
-        this constant *)
-
+        this constant. *)
+    
     target_rep : const_target_rep Target.Targetmap.t; 
     (** Target-specific representation of for this constant *)
   }

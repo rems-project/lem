@@ -162,10 +162,10 @@ let dest_err = function
   | Err_syntax (p, m) -> ("Syntax error", false, Pos p, m)
   | Err_syntax_locn (l, m) -> ("Syntax error", false, Loc l, m)
   | Err_lex (p, c) -> ("Lexical error", false, Pos p, "unknown character "^(String.make 1 c))
-  | Err_type (l, m) -> ("Type error", false, Loc l, m)
   | Err_trans_header (l, m) -> ("Header translation error", false,  Loc l, m)
   | Err_internal (l, m) -> ("LEM internal error", false, Loc l, m)
   | Err_rename (l, m) -> ("Renaming error", false, Loc l, m)
+  | Err_type (l, m) -> ("Type error", false, Loc l, m)
 
 exception Fatal_error of error
 
@@ -174,6 +174,11 @@ let err_todo b l m = Fatal_error (Err_todo (b, l, m))
 let err_unreachable b l m = Fatal_error (Err_unreachable (b, l, m))
 let err_general b l m = Fatal_error (Err_general (b, l, m))
 
+let err_type l m = Fatal_error (Err_type (l, m))
+
+let err_type_pp l msg pp n =
+  let pp ppf = Format.fprintf ppf "%s: %a" msg pp n in
+  err_type l (Pp.pp_to_string pp)
 
 let report_error e = 
   let (m1, verb_pos, pos_l, m2) = dest_err e in

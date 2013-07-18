@@ -411,5 +411,6 @@ val is_trans_def : def -> bool
 (** [val_def_get_name d] tries to extract the name of the defined function. *)
 val val_def_get_name : def_aux -> Name.t option 
 
-
-
+(** [env_tag_to_string tag] formats [tag] as a string. This functions should only be used
+    for human-readable output in e.g. error-messages. *)
+val env_tag_to_string : env_tag -> string
