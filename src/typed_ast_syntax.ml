@@ -87,6 +87,16 @@ let drop_init_ws ws = (None, ws)
 let space_init_ws ws = (space, ws)
 
 
+let env_tag_to_string = function
+    | K_field    -> "field"
+    | K_constr   -> "constructor"
+    | K_instance -> "instance of a class method"
+    | K_method   -> "class method"
+    | K_let      -> "top-level variable binding"
+    | K_relation -> "relation"
+
+
+
 (* -------------------------------------------------------------------------- *)
 (* navigating environments                                                    *)
 (* -------------------------------------------------------------------------- *)
@@ -619,7 +629,7 @@ let mk_opt_fun_exp pL e_s =
 let mk_app_exp d e1 e2 =
   let l = Ast.Trans ("mk_app_exp", None) in
   let b_ty = match Types.dest_fn_type (Some d) (exp_to_typ e1) with
-               | None -> raise (Ident.No_type(l, "non-function in application"))
+               | None -> raise (Reporting_basic.err_type l "non-function in application")
                | Some (_, b_ty) -> b_ty
   in
   C.mk_app l e1 e2 (Some b_ty)

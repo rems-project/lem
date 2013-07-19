@@ -960,7 +960,7 @@ let remove_class_const e =
         begin
           let c_descr = c_env_lookup l_unk env.c_env c.descr in
           match c_descr.env_tag with
-            | K_let | K_target _ ->
+            | K_let ->
                 if c_descr.const_class = [] then
                   None
                 else
@@ -1044,7 +1044,7 @@ let add_nexp_param_in_const e =
           let c_descr = c_env_lookup l_unk env.c_env c.descr in
           match c_descr.env_tag with
             | K_method -> None 
-            | K_let | K_target _ ->
+            | K_let ->
                 if c_descr.const_tparams = [] then None
                 else    
                   let (nvars,tvars) = Types.tnvar_split c_descr.const_tparams in

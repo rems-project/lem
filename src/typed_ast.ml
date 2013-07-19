@@ -66,14 +66,12 @@ let lskips_only_comments coms =
 type 'a lskips_seplist = ('a, lskips) Seplist.t
 
 type env_tag = 
-  | K_method
-  | K_instance
+  | K_let
   | K_field
   | K_constr
-  | K_val
-  | K_let
   | K_relation
-  | K_target of bool * Targetset.t
+  | K_method
+  | K_instance
 
 type ('a,'b) annot = { term : 'a; locn : Ast.l; typ : t; rest : 'b }
 
@@ -178,6 +176,7 @@ and const_descr = { const_binding : Path.t;
                     const_type : t; 
 		    relation_info: rel_info option;
                     env_tag : env_tag;
+                    const_targets : Targetset.t;
                     spec_l : Ast.l;
                     target_rep : const_target_rep Targetmap.t }
 
@@ -366,7 +365,7 @@ let c_env_lookup l (c_env_count, c_env_map) c =
          match Cdmap.apply c_env_map c with
            | None -> 
              let m = Format.sprintf "constant-id %d not present in environment" c in
-             raise (Reporting_basic.Fatal_error (Reporting_basic.Err_type (l, m)))
+             raise (Reporting_basic.err_type l m)
            | Some(cd) -> cd
 
 let c_env_update (c_env_count, c_env_map) c_id c_d =
@@ -690,12 +689,8 @@ let pp_env_tag ppf tag =
     | K_field -> Format.fprintf ppf "field"
     | K_constr -> Format.fprintf ppf "constr"
     | K_instance -> Format.fprintf ppf "instance"
-    | K_val -> Format.fprintf ppf "val"
     | K_let -> Format.fprintf ppf "let"
     | K_relation -> Format.fprintf ppf "relation"
-    | K_target(exists_general, targets) -> 
-        Format.fprintf ppf "target(%b,%s)"
-        exists_general "???"
 
 let pp_const_descr ppf c =
   fprintf ppf "@[<2>forall@ (@[%a@]).@ @[%a@]@ @[%a@]@ =>@ %a@]@ (%a)@ %a"
@@ -802,15 +797,15 @@ module Exps_in_context(D : Exp_context) = struct
                 | (_,None) -> v1
                 | (Some(v),Some(v')) ->
                     if for_pat then
-                      raise (Ident.No_type(l, "Duplicate variable in a pattern: " ^
+                      raise (Reporting_basic.err_type l ("Duplicate variable in a pattern: " ^
                                         Pp.pp_to_string (fun ppf -> Name.pp ppf k)))
                     else
                       begin
                         try
                           type_eq l "merge_free_env" v v'
                         with
-                          | Ident.No_type(l,s) ->
-                              raise (Ident.No_type(l,s ^ "\n in merging: " ^ Pp.pp_to_string (fun ppf -> Name.pp ppf k)))
+                          | Reporting_basic.Fatal_error (Reporting_basic.Err_type (l,s)) ->
+                              raise (Reporting_basic.err_type l (s ^ "\n in merging: " ^ Pp.pp_to_string (fun ppf -> Name.pp ppf k)))
                       end;
                     v1)
            e_res
@@ -828,8 +823,8 @@ module Exps_in_context(D : Exp_context) = struct
                  try
                    type_eq l "bind_free_env" v v'
                  with
-                   | Ident.No_type(l,s) ->
-                       raise (Ident.No_type(l,s ^ "\nin binding " ^ Pp.pp_to_string (fun ppf -> Name.pp ppf k)))
+                   | Reporting_basic.Fatal_error (Reporting_basic.Err_type (l,s)) ->
+                       raise (Reporting_basic.err_type l (s ^ "\nin binding " ^ Pp.pp_to_string (fun ppf -> Name.pp ppf k)))
                end;
                Nfmap.remove e_res k)
       exp_env
@@ -1659,7 +1654,7 @@ module Exps_in_context(D : Exp_context) = struct
                  type_eq l "mk_app" t1 e2.typ;
                  Some t2
              | _ -> 
-                 raise (Ident.No_type(l, "non-function in application")))
+                 raise (Reporting_basic.err_type l "non-function in application"))
     in
       { term = App(e1,e2);
         locn = l;
@@ -1681,10 +1676,10 @@ module Exps_in_context(D : Exp_context) = struct
                          type_eq l "mk_infix" t3 e3.typ;
                          t4
                      | _ -> 
-                         raise (Ident.No_type(l, "non-function in infix application"))
+                         raise (Reporting_basic.err_type l "non-function in infix application")
                  end
              | _ ->
-                 raise (Ident.No_type(l, "non-function in infix application"))))
+                 raise (Reporting_basic.err_type l "non-function in infix application")))
     in
       match exp_to_term e2 with
         | Var _ | Constant _ -> 
@@ -2005,7 +2000,7 @@ module Exps_in_context(D : Exp_context) = struct
                         if allow_duplicates then
                           Some(v')
                         else
-                          raise (Ident.No_type(l, "Duplicate variable in a pattern: " ^
+                          raise (Reporting_basic.err_type l ("Duplicate variable in a pattern: " ^
                                                    Pp.pp_to_string (fun ppf -> Name.pp ppf k))))
                bindings
                p.rest.pvars

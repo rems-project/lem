@@ -188,8 +188,6 @@ let per_target libpath isa_thy modules env consts alldoc_accum alldoc_inc_accum 
   with
       | Trans.Trans_error(l,msg) ->
           raise (Reporting_basic.Fatal_error (Reporting_basic.Err_trans (l, msg)))
-      | Ident.No_type(l,msg) ->
-          raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal (l, msg)))
 
 let main () =
   let _ = if !opt_print_version then print_string ("Lem " ^ Version.v ^ "\n") in

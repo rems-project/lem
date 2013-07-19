@@ -216,6 +216,7 @@ let instance_to_module (global_env : env) mod_path (env : env) ((d,s),l,lenv) =
               const_type = dict_type;
               env_tag = K_let;
               spec_l = l;
+              const_targets = Target.all_targets;
               relation_info = None;
               target_rep = Targetmap.empty;
             }

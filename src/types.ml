@@ -44,6 +44,8 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
+open Reporting_basic
+
 type tnvar = 
   | Ty of Tyvar.t
   | Nv of Nvar.t
@@ -691,15 +693,15 @@ let rec get_matching_instance d (p,t) instances =
 let type_mismatch l m t1 t2 = 
   let t1 = t_to_string t1 in
   let t2 = t_to_string t2 in
-    raise (Ident.No_type(l, "type mismatch: " ^ m ^ "\n" ^ t1 ^ "\nand\n" ^ t2))
+    raise (err_type l ("type mismatch: " ^ m ^ "\n" ^ t1 ^ "\nand\n" ^ t2))
 
 let nexp_mismatch l n1 n2 =
   let n1 = nexp_to_string n1 in
   let n2 = nexp_to_string n2 in
-    raise (Ident.No_type(l, "numeric expression mismatch:\n" ^ n1 ^ "\nand\n" ^ n2))
+    raise (err_type l ("numeric expression mismatch:\n" ^ n1 ^ "\nand\n" ^ n2))
 
 let inconsistent_constraints r l =
-  raise (Ident.No_type(l, "Constraints, including " ^ range_to_string r ^ " are inconsistent\n"))
+  raise (err_type l ("Constraints, including " ^ range_to_string r ^ " are inconsistent\n"))
 
 (* Converts to linear normal form, summation of (optionally constant-multiplied) variables, with the "smallest" variable on the left *)
 let normalize nexp =
@@ -976,7 +978,7 @@ module Constraint (T : Global_defs) : Constraint = struct
   let rec occurs_check (t_box : t) (t : t) : unit =
     let t = resolve_subst t in
       if t_box == t then
-        raise (Ident.No_type(Ast.Unknown, "Failed occurs check"))
+        raise (err_type Ast.Unknown "Failed occurs check")
       else
         match t.t with
           | Tfn(t1,t2) ->
@@ -991,7 +993,7 @@ module Constraint (T : Global_defs) : Constraint = struct
   let rec occurs_nexp_check (n_box : nexp) (n : nexp) : unit =
      let n = resolve_nexp_subst n in 
        if n_box == n then
-          raise (Ident.No_type(Ast.Unknown, "Nexpressions failed occurs check"))
+          raise (err_type Ast.Unknown "Nexpressions failed occurs check")
        else
           match n.nexp with
             | Nadd(n1,n2) | Nmult(n1,n2) -> 
@@ -1422,10 +1424,10 @@ module Constraint (T : Global_defs) : Constraint = struct
     if (try ignore(solve_numeric_constraints [] (negate_c::constraints));
             false
         with 
-          | Ident.No_type _ -> true
+          | (Fatal_error (Err_type _)) -> true
           | e -> raise e)
        then ()
-       else raise (Ident.No_type(l, ("Constraint " ^ range_to_string c ^ " is required by let definition but not implied by val specification\n")))
+       else raise (err_type l ("Constraint " ^ range_to_string c ^ " is required by let definition but not implied by val specification\n"))
 
   let rec solve_constraints instances (unsolvable : PTset.t)= function
     | [] -> unsolvable 
@@ -1442,12 +1444,12 @@ module Constraint (T : Global_defs) : Constraint = struct
       | Tne(n) -> (match n.nexp with
                    | Nvar(nv) -> (p, Nv nv)
                    | _ -> let t1 = Pp.pp_to_string (fun ppf -> pp_instance_constraint ppf (p, t)) in
-                      raise (Ident.No_type(l, "unsatisfied type class constraint:\n" ^t1)))
+                      raise (err_type l ("unsatisfied type class constraint:\n" ^t1)))
       | _ -> 
           let t1 = 
             Pp.pp_to_string (fun ppf -> pp_instance_constraint ppf (p, t))
           in 
-            raise (Ident.No_type(l, "unsatisfied type class constraint:\n" ^ t1))
+            raise (err_type l ("unsatisfied type class constraint:\n" ^ t1))
 
   let inst_leftover_uvars l =  
     let used_tvs = ref TNset.empty in

@@ -1864,7 +1864,7 @@ let tdef_tvars ml_style tvs =
 
 let tdef_tctor quoted_name tvs n regexp =
   let nout = 
-    if quoted_name then Name.to_output_quoted Type_ctor n else Name.to_output Type_ctor n 
+    if quoted_name then Name.to_output_quoted "\"" Type_ctor n else Name.to_output Type_ctor n 
   in
   let regexp_out = 
     match regexp with | None -> emp
@@ -1932,7 +1932,7 @@ let indreln_name (RName(s1,name,name_ref,s2,(constraint_pre,t),witness,checks,fu
 
 let indreln_clause (Rule(name, s0, s1, qnames, s2, e_opt, s3, rname, rname_ref, es),_) =
   (if T.reln_clause_show_name then (
-    ((if T.reln_clause_quote_name then Name.to_output_quoted else Name.to_output) Term_method name ^
+    ((if T.reln_clause_quote_name then Name.to_output_quoted "\"" else Name.to_output) Term_method name ^
       ws s0 ^
       kwd ":"
     )
