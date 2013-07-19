@@ -103,7 +103,7 @@ let get_name (_,_,x) = Name.add_lskip x
 let (^) = Output.(^)
 
 let to_output_infix ident_f a sep ((sk,ns,n):t) = 
-  Output.ws sk ^ Output.concat sep ((List.map (fun n -> Name.to_output a (Name.add_lskip n)) ns) @ [Name.to_output_infix ident_f a (Name.add_lskip n)])
+  Output.ws sk ^ Output.concat sep ((List.map (fun n -> Name.to_output a (Name.add_lskip n)) ns) @ [Name.to_output_format ident_f a (Name.add_lskip n)])
 
 let to_output a sep ((sk,ns,n):t) = 
   Output.ws sk ^ Output.concat sep (List.map (fun n -> Name.to_output a (Name.add_lskip n)) (ns@[n]))
