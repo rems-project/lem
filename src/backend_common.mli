@@ -54,7 +54,7 @@ val inline_exp_macro : Target.non_ident_target -> env -> exp -> exp option
 module Make(A : sig
   val env : env;; 
   val target : Target.target;;
-  val id_format_args : (Output.id_annot -> Ulib.Text.t -> Output.t) * Output.t
+  val id_format_args : (bool -> Output.id_annot -> Ulib.Text.t -> Output.t) * Output.t
  end) : sig
 
 (** [function_application_to_output l exp inf full_exp c_id args] tries to format
@@ -84,9 +84,10 @@ val pattern_application_to_output : (pat -> Output.t) -> const_descr_ref id -> p
 
 (** [const_id_to_ident c_id] tries to format a constant, constructor or field
     [c_id] as an identifier for target [A.target] using the rules stored
-    in environment [A.env]. Depending on the formating rules for this
-    constant, this might fail.*)
+    in environment [A.env]. Depending on the formating rules for the
+    constant, [const_id_to_ident] might raise an exception. *)
 val const_id_to_ident : const_descr_ref id -> Ident.t
+
 
 (** [const_ref_to_name n c] tries to format a constant
     [c] for target [A.target] using the rules stored

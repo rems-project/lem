@@ -121,6 +121,11 @@ let coq_infix_op a x =
   ]
 ;;
 
+let coq_format_op use_infix =
+  if use_infix then
+    coq_infix_op
+  else
+    id
 
 let none = Ident.mk_ident_strings [] "None";;
 let some = Ident.mk_ident_strings [] "Some";;
@@ -176,7 +181,7 @@ module CoqBackendAux (A : sig val avoid : var_avoid_f option;; val env : env end
       struct
         let env = A.env
         let target = Target_no_ident Target_coq
-        let id_format_args = (coq_infix_op, path_sep)
+        let id_format_args = (coq_format_op, path_sep)
       end);;
 
     module C = Exps_in_context (
@@ -206,6 +211,10 @@ let typ_ident_to_output (p : Path.t id) =
 let field_ident_to_output fd = 
   Ident.to_output Term_field path_sep (B.const_id_to_ident fd)
 ;;
+
+let const_name_to_output a n =
+  Name.to_output Term_var n
+
 
 let generate_coq_record_update_notation e =
   let notation_kwd = from_string "Notation" in
