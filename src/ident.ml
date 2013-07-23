@@ -47,8 +47,6 @@
 open Format
 open Pp
 
-(* None of the Name.lskips_t can actually have any lskips, but the last one
- * might have parentheses, so Name.t isn't suitable *)
 type t = Ast.lex_skips * Name.t list * Name.t
 
 let pp ppf (sk,ns,n) =
@@ -102,11 +100,10 @@ let get_name (_,_,x) = Name.add_lskip x
 
 let (^) = Output.(^)
 
-let to_output_infix ident_f a sep ((sk,ns,n):t) = 
+let to_output_format ident_f a sep ((sk,ns,n):t) = 
   Output.ws sk ^ Output.concat sep ((List.map (fun n -> Name.to_output a (Name.add_lskip n)) ns) @ [Name.to_output_format ident_f a (Name.add_lskip n)])
 
-let to_output a sep ((sk,ns,n):t) = 
-  Output.ws sk ^ Output.concat sep (List.map (fun n -> Name.to_output a (Name.add_lskip n)) (ns@[n]))
+let to_output = to_output_format Output.id
 
 let replace_first_lskip ((sk,ns,n):t) s = (s,ns,n)
 let get_first_lskip ((sk,ns,n):t) = sk                

@@ -116,7 +116,7 @@ val fresh_list : (t -> bool) -> t list -> t list
 
 
 
-(** {2 names with whitespace} *)
+(** {2 names with whitespace an type} *)
 
 (** [lskips_t] is the type of names with immediately preceding skips, i.e. whitespace or comments *)
 type lskips_t
@@ -151,20 +151,16 @@ val lskip_rename : (Ulib.Text.t -> Ulib.Text.t) -> lskips_t -> lskips_t
 
 (** {2 output functions} *)
 
-(** [to_output id_annot n] formats the name [n] as an [id_annot]. This is the default way
-    to convert a name to output. The annotation describes the type of name (e.g. variable, constant, type, constructor), 
-    so the backend later knows how to format it. [to_output] *)
-val to_output : Output.id_annot -> lskips_t -> Output.t
-
-(** [to_output_format format_fun id_annot n] formats [n] as output using [format_fun]. It is a more
-    costomizable version of [to_output]. The function [format_fun] can be used to format the non-whitespace part of [n].
-    This is for example useful for formatting infix-operators as prefix-operations, which requieres different syntax for
-    each backend. *)
+(** [to_output_format format_fun id_annot n] formats the name [n] as output. A name with output consists of preedeing whitespace, 
+    the name as a text and a name-type. The space is formated using [ws], the other componenst together with [id_annot] are formated 
+    with [format_fun]. *)
 val to_output_format : (Output.id_annot -> Ulib.Text.t -> Output.t) -> Output.id_annot -> lskips_t -> Output.t
 
-(** [to_output_quoted qs id_annot n] is another costumization of [to_output]. It adds the string [qs] (usually containing
-    the quotation mark character) around [n] before formatting. *)
-val to_output_quoted : string -> Output.id_annot -> lskips_t -> Output.t
+(** [to_output] is the same as [to_output_format Output.id] *)
+val to_output : Output.id_annot -> lskips_t -> Output.t
+
+(** [to_output_quoted qs_begin qs_end id_annot n] formats [n] with the quoting strings [qs_begin] and [qs_end] added before and after respectively. *)
+val to_output_quoted : string -> string -> Output.id_annot -> lskips_t -> Output.t
 
 (** [to_rope_tex a n] formats [n] as [a] for the tex-backend as a string. The preceeding whitespace is ignored. *)
 val to_rope_tex : Output.id_annot -> t -> Ulib.Text.t
