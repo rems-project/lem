@@ -85,8 +85,7 @@ type ('a,'b) annot = { term : 'a; locn : Ast.l; typ : Types.t; rest : 'b }
 val annot_to_typ : ('a,'b) annot -> Types.t
 
 (** Maps a type name to the unique path representing that type and 
-    the first location this type is defined and any regular expression 
-    identifiers of this type should respect
+    the first location this type is defined
 *)
 type p_env = (Path.t * Ast.l) Nfmap.t
 

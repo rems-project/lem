@@ -50,7 +50,7 @@ open Types
 open Typed_ast
 open Typed_ast_syntax
 open Target
-(* open Typecheck_ctxt *)
+open Typecheck_ctxt
 
 let r = Ulib.Text.of_latin1
 
@@ -396,34 +396,6 @@ let check_dup_field_names (c_env : c_env) (fns : (const_descr_ref * Ast.l) list)
                  c_d.const_tparams,
                c_d.const_type)
 
-(* As we process definitions, we need to keep track of the type definitions
- * (type_defs), class instance definitions (instance list Pfmap.t) and
- * function/value/module/field (env) definitions we encounter. *)
-type defn_ctxt = { 
-  (* All type definitions ever seen *) 
-  all_tdefs : type_defs; 
-
-  (* The global c_env *)
-  ctxt_c_env : c_env;
-
-  (* All types defined in this sequence of definitions *)
-  new_tdefs : Path.t list;
-
-  (* All class instances ever seen *)
-  all_instances : instance list Pfmap.t;
-  (* All class instances defined in this sequence of definitions *)
-  new_instances : instance list Pfmap.t;
-
-  (* The current value/function/module/field/type_name environment *)
-  cur_env : local_env;
-
-  (* The value/function/module/field/type_names defined in this sequence of
-   * definitions *)
-  new_defs : local_env;
-
-  (* The names of all assertions / lemmata defined. Used only to avoid using names multiple times. *)
-  lemmata_labels : NameSet.t; }
-
 let defn_ctxt_get_cur_env (d : defn_ctxt) : env =
   { local_env = d.cur_env; Typed_ast.c_env = d.ctxt_c_env; t_env = d.all_tdefs; i_env = d.all_instances }
 
@@ -559,21 +531,6 @@ let check_constraint_prefix (ctxt : defn_ctxt)
            List.map fst tyvars,
            tnvarset,
            snd constraints)
-
-(* Update the new and cumulative environment with new
- * function/value/module/field/path definitions according to set and select.
- * The types of set and select are quite general. However, they are only used
- * to select and set the appropriate fields of the local environment. No fancy
- * operations are performed. With this contract, the function ctxt really only
- * adds a module, constant, field, ... to the context.
- *)
-let ctxt_add (select : local_env -> 'a Nfmap.t) (set : local_env -> 'a Nfmap.t -> local_env) 
-      (ctxt : defn_ctxt) (m : Name.t * 'a)
-      : defn_ctxt =
-  { ctxt with 
-        cur_env = set ctxt.cur_env (Nfmap.insert (select ctxt.cur_env) m);
-        new_defs = set ctxt.new_defs (Nfmap.insert (select ctxt.new_defs) m); } 
-
 
 (* Update new and cumulative enviroments with a new module definition, after
  * first checking that its name doesn't clash with another module definition in
