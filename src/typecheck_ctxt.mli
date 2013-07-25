@@ -42,3 +42,8 @@ val ctxt_add :
   (Typed_ast.local_env -> 'a Typed_ast.Nfmap.t) ->
   (Typed_ast.local_env -> 'a Typed_ast.Nfmap.t -> Typed_ast.local_env) ->
   defn_ctxt -> Name.t * 'a -> defn_ctxt
+
+val add_d_to_ctxt : 
+  defn_ctxt -> Path.t -> Types.tc_def -> defn_ctxt
+
+val defn_ctxt_get_cur_env : defn_ctxt -> Typed_ast.env

@@ -396,10 +396,6 @@ let check_dup_field_names (c_env : c_env) (fns : (const_descr_ref * Ast.l) list)
                  c_d.const_tparams,
                c_d.const_type)
 
-let defn_ctxt_get_cur_env (d : defn_ctxt) : env =
-  { local_env = d.cur_env; Typed_ast.c_env = d.ctxt_c_env; t_env = d.all_tdefs; i_env = d.all_instances }
-
-
 (* Finds a type class's path, and its methods, in the current enviroment, given
  * its name. *)
 let lookup_class_p (ctxt : defn_ctxt) (id : Ast.id) : Path.t * Types.tnvar * (Name.t * t) list = 
@@ -547,11 +543,6 @@ let add_m_to_ctxt (l : Ast.l) (ctxt : defn_ctxt) (k : Name.lskips_t) (v : mod_de
         (fun x y -> { x with m_env = y }) 
         ctxt 
         (k,v)
-
-(* Add a new type definition to the global and local contexts *)
-let add_d_to_ctxt (ctxt : defn_ctxt) (p : Path.t) (d : tc_def) =
-  { ctxt with all_tdefs = Pfmap.insert ctxt.all_tdefs (p,d);
-              new_tdefs = p :: ctxt.new_tdefs }
 
 (* Add a lemma name to the context *)
 let add_lemma_to_ctxt (ctxt : defn_ctxt) (n : Name.t)  

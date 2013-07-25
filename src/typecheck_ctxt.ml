@@ -34,3 +34,13 @@ let ctxt_add (select : local_env -> 'a Nfmap.t) (set : local_env -> 'a Nfmap.t -
   { ctxt with 
         cur_env = set ctxt.cur_env (Nfmap.insert (select ctxt.cur_env) m);
         new_defs = set ctxt.new_defs (Nfmap.insert (select ctxt.new_defs) m); } 
+
+
+(* Add a new type definition to the global and local contexts *)
+let add_d_to_ctxt (ctxt : defn_ctxt) (p : Path.t) (d : tc_def) =
+  { ctxt with all_tdefs = Pfmap.insert ctxt.all_tdefs (p,d);
+              new_tdefs = p :: ctxt.new_tdefs }
+
+
+let defn_ctxt_get_cur_env (d : defn_ctxt) : env =
+  { local_env = d.cur_env; Typed_ast.c_env = d.ctxt_c_env; t_env = d.all_tdefs; i_env = d.all_instances }
