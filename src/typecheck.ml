@@ -2520,7 +2520,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let (ns,cls,e_v,Tconstraints(tnvs,constraints,lconstraints)) = 
             Checker.check_indrels ctxt mod_path target_set_opt l names clauses 
           in 
-(*          let module Conv = Convert_relations.Converter(struct let env_opt = None let avoid = None end) in *)
+          let module Conv = Convert_relations.Converter(struct let env_opt = None let avoid = None end) in
           let module C = Exps_in_context(struct let env_opt = None let avoid = None end) in
           let newctxt = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs)
             constraints lconstraints
@@ -2559,11 +2559,9 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
              (Rule (name_opt, s1, s1b, qnames, s2, e_opt', s3, rname, n_ref, es), l)
           end in 
           let cls' = Seplist.map add_const_rule cls in
-(*
           let newctxt = Conv.gen_witness_type_info l mod_path newctxt ns' cls' in
           let newctxt = Conv.gen_witness_check_info l mod_path newctxt ns' cls' in
           let newctxt = Conv.gen_fns_info l mod_path newctxt ns' cls' in
-*)
             (newctxt,
              (Indreln(sk,target_opt_checked,ns',cls')))
       | Ast.Spec_def(val_spec) ->

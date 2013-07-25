@@ -263,17 +263,17 @@ struct
     let module Ctxt = struct let avoid = None let env_opt = Some(env) end in
     let module M = Macro_expander.Expander(Ctxt) in
     let (defs, end_lex_skips) = m.typed_ast in
-(*    let module Conv = Convert_relations.Converter(Ctxt) in
+    let module Conv = Convert_relations.Converter(Ctxt) in
     let indreln_macros = 
       [
         Def_macros (fun env -> [
         Conv.gen_witness_type_macro env;
         Conv.gen_witness_check_macro env;
-        Conv.gen_fns_macro env; ]); 
+        Conv.gen_fns_macro env;]); 
       ]
     in
     let params = {params with macros = indreln_macros @ params.macros } in
-*)
+
     let module_name = Name.from_rope (Ulib.Text.of_latin1 m.module_name) in
     (* TODO: Move this to a definition macro, and remove the targ argument *)
     let defs =
