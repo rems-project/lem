@@ -96,9 +96,10 @@ val mk_gt_than : Ast.l -> nexp -> nexp -> range
 val mk_eq_to   : Ast.l -> nexp -> nexp -> range
 
 
-(* Structural comparison of types, without expanding type abbreviations.
- * Probably better not to use *)
+(** Structural comparison of types, without expanding type abbreviations.
+    Probably better not to use. Consider using [compare_expand] instead. *)
 val compare : t -> t -> int
+
 
 val multi_fun : t list -> t -> t
 val type_subst : t TNfmap.t -> t -> t
@@ -191,8 +192,10 @@ val mk_tc_type_abbrev : tnvar list -> t -> tc_def
     the names of variables of this type. *)
 val mk_tc_type : tnvar list -> string option -> tc_def
 
-(* The last Name.t list is to the module enclosing the instance declaration *)
-type instance = tnvar list * (Path.t * tnvar) list * t * Name.t list
+(** An instance carries
+    the location, it vas defined, all the free type variables of the instance, the constrainst of these
+    type vairables, the type the corresponding class is instantiated with and the module the instance is declared in. *)
+type instance = CInstance of Ast.l * tnvar list * (Path.t * tnvar) list * t * Name.t list
 
 (* A type for contraints collected during type checking. TNset contains the variables the term ranges over, the second are remaining class constraints, and the third remaining length constraints *)
 type typ_constraints = Tconstraints of TNset.t * (Path.t * tnvar) list * range list
@@ -209,8 +212,22 @@ val dest_fn_type : type_defs option -> t -> (t * t) option
 (** [strip_fn_type d t] tries to destruct a function type [t] by applying [dest_fn] repeatedly. *)
 val strip_fn_type : type_defs option -> t -> (t list * t)
 
+(** [check_equal d t1 t2] checks whether [t1] and [t2] are equal in type environment [d]. 
+    It expands the type to perform this check. Therefore, it is more reliable than [compare t1 t2 = 0],
+    which only performs a structural check, but does not unfold type definitions. *)
+val check_equal : type_defs -> t -> t -> bool
 
+(** [assert_equal l m d t1 t2] performs the same check as [check_equal d t1 t2]. However, while 
+    check_equal returns wether the types are equal, [assert_equal] raises a type-exception 
+    in case they are not. [l] and [m] are used for printing this exception. *)
 val assert_equal : Ast.l -> string -> type_defs -> t -> t -> unit
+
+(** [compare_expand d t1 t2] is similar [check_equal d t1 t2]. Instead of just checking for equality,
+    it compare the values though. During this comparison, type abbrivations are unfolded. Therefore,
+    it is in general preferable to the very similar method [compare], which perform comparisons without
+    unfolding. *)
+val compare_expand : type_defs -> t -> t -> int
+
 
 (* Gets the instance for the given class and type.  Returns None if there is
  * none.  The returned Name list is to the module enclosing the instance
@@ -218,7 +235,7 @@ val assert_equal : Ast.l -> string -> type_defs -> t -> t -> unit
  * variables.  The returned list is the set of instances that the found instance
  * relies on. *)
 val get_matching_instance : type_defs -> (Path.t * t) -> instance list Pfmap.t -> 
-          (Name.t list * t TNfmap.t * (Path.t * t) list) option
+          (Ast.l * Name.t list * t TNfmap.t * (Path.t * t) list) option
 
 (* Convert a list of nexp into a binary sumation *)
 val nexp_from_list : nexp list -> nexp

@@ -905,7 +905,7 @@ let remove_method e =
                     | ([(c_path,tparam)],[targ]) -> 
                         begin
                           match Types.get_matching_instance d (c_path, targ) inst with
-                            | Some(instance_path, subst, instance_constraints) ->
+                            | Some(_, instance_path, subst, instance_constraints) ->
                                 (* There is an instance for this method at this type, so
                                  * we directly call the instance *)
                                 begin
@@ -971,7 +971,7 @@ let remove_class_const e =
                          let t_inst = tnfmap_apply subst tv in
                          let open Types in 
                            match get_matching_instance d (c_path, t_inst) inst with
-                             | Some(instance_path, subst, instance_constraints) ->
+                             | Some(_, instance_path, subst, instance_constraints) ->
                                  let (dict_const_ref, dict_const_descr) = names_get_const env instance_path (Name.from_rope (r"dict")) in
                                    C.mk_const l_unk
                                      { id_path = Id_none None;

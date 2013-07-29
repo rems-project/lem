@@ -62,6 +62,8 @@
 
 (** {2 Auxiliary Functions } *)
 
+(** [loc_to_string short l] formats [l] as a string. If [short] is set, only the
+    most originating location is formated, not what methods transformed [l]. *)
 val loc_to_string : bool -> Ast.l -> string
 
 (** [print_err fatal print_loc_source print_only_first_loc l head mes] prints an error / warning message to

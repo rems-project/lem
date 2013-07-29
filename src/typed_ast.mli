@@ -255,7 +255,7 @@ and const_descr =
     (** What kind of definition it is. *)
 
     const_targets : Target.Targetset.t;
-    (** If the constant is defined for all targets [None], otherwise the set of targets, it is defined for. *)
+    (** The set of targets the constant is defined for. *)
 
     spec_l : Ast.l;
     (** The location for the first occurrence of a definition/specification of

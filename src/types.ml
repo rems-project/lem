@@ -470,7 +470,7 @@ let type_defs_get_constr_families l (d : type_defs) (t : t) (c : const_descr_ref
     | None -> []
     | Some td -> List.filter (fun fs -> List.mem c fs.constr_list) td.type_constr
 
-type instance = tnvar list * (Path.t * tnvar) list * t * Name.t list
+type instance = CInstance of Ast.l * tnvar list * (Path.t * tnvar) list * t * Name.t list
 
 module IM = Map.Make(struct type t = int let compare = Pervasives.compare end)
 open Format
@@ -558,7 +558,7 @@ let pp_instance_constraint ppf (p, t) =
     Path.pp p
     pp_type t
 
-let pp_instance ppf (tyvars, constraints, t, p) =
+let pp_instance ppf (CInstance (l, tyvars, constraints, t, p)) =
   fprintf ppf "@[<2>forall@ (@[%a@]).@ @[%a@]@ =>@ %a@]@ (%a)"
     (lst ",@," pp_tnvar) tyvars
     (lst "@ " pp_class_constraint) constraints
@@ -669,17 +669,17 @@ let do_type_match t_pat t =
     | (Tne(n),Tne(n')) -> do_nexp_match n n'
     | _ -> assert false
 
-let rec get_matching_instance d (p,t) instances = 
+let rec get_matching_instance d (p,t) (instances : (instance list) Pfmap.t) = 
   let t = head_norm d t in 
     match Pfmap.apply instances p with
       | None -> None
       | Some(possibilities) ->
           try
-            let (tvs,cs,t',p) = 
-              List.find (fun (tvs,cs,t',p) -> types_match t' t) possibilities
+            let CInstance (l,tvs,cs,t',p) = 
+              List.find (fun i -> match i with | CInstance (l, tvs, cs, t', p) -> types_match t' t) possibilities
             in
             let subst = do_type_match t' t in
-              Some(p,
+              Some(l, p,
                    subst,
                    List.map (fun (p, tnv) ->
                                (p, 
@@ -830,62 +830,95 @@ let normalize nexp =
 (*  let _ = fprintf std_formatter "sorted normal is %a@ \n" pp_nexp sorted in *)
   sorted
 
-let rec assert_equal l m (d : type_defs) (t1 : t) (t2 : t) : unit =
-  if t1 == t2 then
-    ()
-  else
+(** [check_equal_with_withness d t1 t2] checks whether [t1] and [t2] are
+    equal in [d]. It expands types. If they are equal, [None] is returned. Otherwise,
+    a pair of types occuring a the same subposition of [t1] and [t2], which are not
+    equal are returned. For example ['a list] and [num list] would return the pair [Some ('a, num)]. *)
+
+type check_equal_witness =
+  | CEW_equal               (* no witness found, therefore types are equal *)
+  | CEW_type of t * t       (* A type mismatch with the witness *)
+  | CEW_nexp of nexp * nexp (* A numeric variable mismatch *)
+
+let rec check_equal_with_withness (d : type_defs) (t1 : t) (t2 : t) : check_equal_witness =
+  if t1 == t2 then CEW_equal else
     let t1 = head_norm d t1 in
     let t2 = head_norm d t2 in
       match (t1.t,t2.t) with
-        | (Tuvar _, _) -> type_mismatch l m t1 t2
-        | (_, Tuvar _) -> type_mismatch l m t1 t2
+        | (Tuvar _, _) -> CEW_type (t1, t2)
+        | (_, Tuvar _) -> CEW_type (t1, t2)
         | (Tvar(s1), Tvar(s2)) ->
-            if Tyvar.compare s1 s2 = 0 then
-              ()
-            else
-              type_mismatch l m t1 t2
+            if Tyvar.compare s1 s2 = 0 then CEW_equal else CEW_type (t1, t2)
         | (Tfn(t1,t2), Tfn(t3,t4)) ->
-            assert_equal l m d t1 t3;
-            assert_equal l m d t2 t4
+          begin
+            match check_equal_with_withness d t1 t3 with
+              | CEW_equal -> check_equal_with_withness d t2 t4
+              | (_ as w) -> w
+          end
         | (Ttup(ts1), Ttup(ts2)) -> 
             if List.length ts1 = List.length ts2 then
-              assert_equal_lists l m d ts1 ts2
+              check_equal_with_withness_lists d ts1 ts2
             else 
-              type_mismatch l m t1 t2
+              CEW_type (t1, t2)
         | (Tapp(args1,p1), Tapp(args2,p2)) ->
             if Path.compare p1 p2 = 0 && List.length args1 = List.length args2 then
-              assert_equal_lists l m d args1 args2
+              check_equal_with_withness_lists d args1 args2
             else
-              type_mismatch l m t1 t2
-        | (Tne(n1),Tne(n2)) -> assert_equal_nexp l n1 n2
-        | _ -> 
-            type_mismatch l m t1 t2
+              CEW_type (t1, t2)
+        | (Tne(n1),Tne(n2)) -> check_equal_with_withness_nexp n1 n2
+        | _ ->  CEW_type (t1, t2)
 
-and assert_equal_lists l m d ts1 ts2 =
-  List.iter2 (assert_equal l m d) ts1 ts2
+and check_equal_with_withness_lists d ts1 ts2 =
+  match (ts1, ts2) with
+    | ([], _) -> CEW_equal
+    | (_, []) -> CEW_equal
+    | (t1::ts1', t2::ts2') ->
+         match check_equal_with_withness d t1 t2 with
+           | CEW_equal -> check_equal_with_withness_lists d ts1' ts2'
+           | (_ as wit) -> wit
 
-and assert_equal_nexp l n1 n2 =
-(*  let _ = fprintf std_formatter "assert_equal_nexp of n1 %a  and n2 %a \n" pp_nexp n1 pp_nexp n2 in *)
-  if n1 == n2 then
-    ()
+and check_equal_with_withness_nexp n1 n2 =
+  if n1 == n2 then CEW_equal
   else let n1 = normalize n1 in
        let n2 = normalize n2 in
-       assert_equal_nexp_help l n1 n2
+       check_equal_with_withness_nexp_help n1 n2
 
-and assert_equal_nexp_help l n1 n2 =
+and check_equal_with_withness_nexp_help n1 n2 =
   match (n1.nexp,n2.nexp) with
-    | (Nuvar _ , _ ) -> nexp_mismatch l n1 n2
-    | (_ , Nuvar _ ) -> nexp_mismatch l n1 n2
+    | (Nuvar _ , _ ) -> CEW_nexp (n1, n2)
+    | (_ , Nuvar _ ) -> CEW_nexp (n1, n2)
     | (Nvar(s1),Nvar(s2)) ->
-      if Nvar.compare s1 s2 = 0 then
-         ()
-         else nexp_mismatch l n1 n2
-    | (Nconst(i),Nconst(j)) -> if i = j then () else nexp_mismatch l n1 n2
-    | (Nadd(n11,n12),Nadd(n21,n22)) | (Nmult(n11,n12),Nmult(n21,n22)) ->
-       assert_equal_nexp l n11 n21;
-       assert_equal_nexp l n12 n22
-    | (Nneg(n1),Nneg(n2)) -> assert_equal_nexp l n1 n2
-    | _ -> nexp_mismatch l n1 n2
+        if Nvar.compare s1 s2 = 0 then
+          CEW_equal
+        else CEW_nexp (n1, n2)
+    | (Nconst(i),Nconst(j)) -> if i = j then CEW_equal else CEW_nexp (n1, n2)
+    | (Nadd(n11,n12),Nadd(n21,n22)) | (Nmult(n11,n12),Nmult(n21,n22)) -> begin
+       match check_equal_with_withness_nexp n11 n21 with
+         | CEW_equal -> check_equal_with_withness_nexp n12 n22
+         | (_ as wit) -> wit
+      end
+    | (Nneg(n1),Nneg(n2)) -> check_equal_with_withness_nexp n1 n2
+    | _ -> CEW_nexp (n1, n2)
+
+
+let assert_equal l m (d : type_defs) (t1 : t) (t2 : t) : unit =
+  match check_equal_with_withness d t1 t2 with
+    | CEW_equal -> ()
+    | CEW_type (t1', t2') -> type_mismatch l m t1' t2'
+    | CEW_nexp (n1, n2) -> nexp_mismatch l n1 n2
+
+
+let check_equal (d : type_defs) (t1 : t) (t2 : t) : bool =
+  match check_equal_with_withness d t1 t2 with
+    | CEW_equal -> true
+    | _ -> false
+
+let compare_expand (d : type_defs) (t1 : t) (t2 : t) : int =
+  match check_equal_with_withness d t1 t2 with
+    | CEW_equal -> 0
+    | CEW_type (t1', t2') -> compare t1' t2'
+    | CEW_nexp (n1, n2) -> compare_nexp n1 n2
+
 
 let rec nexp_from_list nls = match nls with
     | [] -> assert false
@@ -1429,13 +1462,13 @@ module Constraint (T : Global_defs) : Constraint = struct
        then ()
        else raise (err_type l ("Constraint " ^ range_to_string c ^ " is required by let definition but not implied by val specification\n"))
 
-  let rec solve_constraints instances (unsolvable : PTset.t)= function
+  let rec solve_constraints (instances : (instance list) Pfmap.t) (unsolvable : PTset.t)= function
     | [] -> unsolvable 
     | (p,t) :: constraints ->
         match get_matching_instance T.d (p,t) instances with
           | None ->
               solve_constraints instances (PTset.add (p,t) unsolvable) constraints
-          | Some((_,_,new_cs)) ->
+          | Some(l,_,_,new_cs) ->
               solve_constraints instances unsolvable (new_cs @ constraints)
 
   let check_constraint l (p,t) =
