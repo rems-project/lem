@@ -50,10 +50,6 @@
     spacing), e.g. [(*Foo*) M . x] *)
 type t
 
-exception No_type of Ast.l * string
-val raise_error_string : Ast.l -> string -> 'a
-val raise_error : Ast.l -> string -> (Format.formatter -> 'a -> unit) -> 'a -> 'b
-
 (** Pretty print *)
 val pp : Format.formatter -> t -> unit
 
@@ -72,8 +68,8 @@ val mk_ident_ast : (Name.lskips_t * Ast.lex_skips) list -> Name.lskips_t -> Ast.
 (** [mk_ident_strings] is a version of [mk_ident] that uses strings as input and uses empty whitespace. *)
 val mk_ident_strings : string list -> string -> t
 
+val to_output_format : (Output.id_annot -> Ulib.Text.t -> Output.t) -> Output.id_annot -> Output.t -> t -> Output.t
 val to_output : Output.id_annot -> Output.t -> t -> Output.t
-val to_output_infix : (Output.id_annot -> Ulib.Text.t -> Output.t) -> Output.id_annot -> Output.t -> t -> Output.t
 val get_first_lskip: t -> Ast.lex_skips
 
 val replace_first_lskip : t -> Ast.lex_skips -> t

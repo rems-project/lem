@@ -62,6 +62,8 @@
 
 (** {2 Auxiliary Functions } *)
 
+(** [loc_to_string short l] formats [l] as a string. If [short] is set, only the
+    most originating location is formated, not what methods transformed [l]. *)
 val loc_to_string : bool -> Ast.l -> string
 
 (** [print_err fatal print_loc_source print_only_first_loc l head mes] prints an error / warning message to
@@ -106,6 +108,7 @@ type error =
   | Err_syntax_locn of Ast.l * string
   | Err_lex of Lexing.position * char
   | Err_type of Ast.l * string
+    (** A typechecking error *)
   | Err_internal of Ast.l * string
   | Err_rename of Ast.l * string
   
@@ -122,7 +125,16 @@ val err_general : bool -> Ast.l -> string -> exn
 (** [err_unreachable b l m] is an abreviatiation for [Fatal_error (Err_unreachable (b, l, m))] *)
 val err_unreachable : bool -> Ast.l -> string -> exn
 
+(** [err_type l msg] is an abreviatiation for [Fatal_error (Err_type (l, m)], i.e. for a general type-checking error
+    at location [l] with error message [msg]. *)
+val err_type : Ast.l -> string -> exn
+
+(** [err_type l msg pp n] is similar to [err_type]. However it uses the formatter [pp] to format [n], resulting
+    in a string [label]. The error message then has the form [label : msg]. *)
+val err_type_pp : Ast.l -> string -> (Format.formatter -> 'a -> unit) -> 'a -> exn
+
 (** Report error should only be used by main to print the error in the end. Everywhere else,
     raising a [Fatal_error] exception is recommended. *)
 val report_error : error -> 'a
+
 

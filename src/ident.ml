@@ -47,17 +47,6 @@
 open Format
 open Pp
 
-exception No_type of Ast.l * string
-
-let raise_error l msg pp n =
-  let pp ppf = Format.fprintf ppf "%s: %a" msg pp n in
-    raise (No_type(l, Pp.pp_to_string pp))
-
-let raise_error_string l msg =
-    raise (No_type(l, msg))
-
-(* None of the Name.lskips_t can actually have any lskips, but the last one
- * might have parentheses, so Name.t isn't suitable *)
 type t = Ast.lex_skips * Name.t list * Name.t
 
 let pp ppf (sk,ns,n) =
@@ -79,8 +68,8 @@ let mk_ident_ast m n l : t =
   let prelim_id = (None, m, (n,None)) in
     List.iter (fun (_, sk) ->
                  if sk <> None && sk <> Some([]) then
-                   raise_error l "illegal whitespace in identifier"
-                     error_pp prelim_id)
+                   raise (Reporting_basic.err_type_pp l "illegal whitespace in identifier"
+                     error_pp prelim_id))
       m;
     match ms with
       | [] ->
@@ -89,8 +78,8 @@ let mk_ident_ast m n l : t =
           List.iter 
             (fun n ->
                if Name.get_lskip n <> None && Name.get_lskip n <> Some([]) then
-                 raise_error l "illegal whitespace in identifier"
-                   error_pp prelim_id 
+                 raise (Reporting_basic.err_type_pp l "illegal whitespace in identifier"
+                   error_pp prelim_id)
                else
                  ())
             (ms' @ [n]);
@@ -111,11 +100,10 @@ let get_name (_,_,x) = Name.add_lskip x
 
 let (^) = Output.(^)
 
-let to_output_infix ident_f a sep ((sk,ns,n):t) = 
-  Output.ws sk ^ Output.concat sep ((List.map (fun n -> Name.to_output a (Name.add_lskip n)) ns) @ [Name.to_output_infix ident_f a (Name.add_lskip n)])
+let to_output_format ident_f a sep ((sk,ns,n):t) = 
+  Output.ws sk ^ Output.concat sep ((List.map (fun n -> Name.to_output a (Name.add_lskip n)) ns) @ [Name.to_output_format ident_f a (Name.add_lskip n)])
 
-let to_output a sep ((sk,ns,n):t) = 
-  Output.ws sk ^ Output.concat sep (List.map (fun n -> Name.to_output a (Name.add_lskip n)) (ns@[n]))
+let to_output = to_output_format Output.id
 
 let replace_first_lskip ((sk,ns,n):t) s = (s,ns,n)
 let get_first_lskip ((sk,ns,n):t) = sk                

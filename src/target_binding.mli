@@ -46,14 +46,15 @@
 
 open Typed_ast
 
-(** [minimize_module_path lenv m] tries to minimize the module-path [m] in local environment [lenv].
-    It returns a (hopefully shorter) path [m'] that resolves to the same module in [lenv]. *)
-val minimize_module_path : local_env -> Path.t -> Path.t
+(** [resolve_module_path lenv sk m] tries to find the module-path [m] in local environment [lenv].
+    It returns a shortest suffix [m'] of [m] that resolves to the same module in [lenv], and adds the lskips [sk] to the returned ident. *)
+val resolve_module_path : local_env -> lskips -> Path.t -> Ident.t
 
-(** [minimize_const_ident lenv i] tries to minimize the path of identifier [i] in local environment [lenv].
-    It returns a (hopefully shorter) identifier [i'] that resolves to the same constant in [lenv]. *)
-val minimize_const_ident : local_env -> Ident.t -> Ident.t
+(** [resolve_type_path lenv sk p] tries to find the type of (absolute) path [p] in local environment [lenv].
+    It returns a shortest suffix [p'] of [p] that resolves to the same type in [lenv], and adds the lskips [sk] to the returned ident. *)
+val resolve_type_path : local_env -> lskips -> Path.t -> Ident.t
 
-(** [minimize_type_ident lenv i] tries to minimize the path of identifier [i] in local environment [lenv].
-    It returns a (hopefully shorter) identifier [i'] that resolves to the same constant in [lenv]. *)
-val minimize_type_ident : local_env -> Ident.t -> Ident.t
+(** [resolve_const_ref lenv sk p c_ref] tries to find the constant [c_ref] in local environment [lenv].
+    [p] is an absolute path for [c_ref].
+    It returns a shortest suffix [p'] of [p] that resolves to the same constant in [lenv], and adds the lskips [sk] to the returned ident. *)
+val resolve_const_ref : local_env -> lskips -> Path.t -> const_descr_ref -> Ident.t

@@ -46,32 +46,23 @@
 
 (** source-file and internal short identifiers *)
 
-(* t is the type of plain names, either normal or infix, e.g., x or cmp or ++ *)
+(** {2 plain names } *)
+
+(** t is the type of plain names, names are essentially strings *)
 type t
+
+(** {3 basic functions on plain names } *)
 val compare : t -> t -> int
 val pp : Format.formatter -> t -> unit
+
+val from_string : string -> t
+val to_string : t -> string
+
 val from_rope : Ulib.Text.t -> t
 val to_rope : t -> Ulib.Text.t
-val to_rope_tex : Output.id_annot -> t -> Ulib.Text.t
-val to_string : t -> string
-val from_string : string -> t
-(*val to_rope_core : Output.id_annot -> Ast.v -> Ulib.Text.t*)
 
-(** [fresh n OK] generates a name [m], such that 
-    [OK m] holds. [m] is of the form [n] followed by
-    an integer postfix. First [n] without postfix is tried.
-    Then counting up from 0 starts, till [OK] is satisfied. *)
-val fresh : Ulib.Text.t -> (t -> bool) -> t
 
-(** [fresh_num_list i n OK] generates a list of [i] fresh names. If no conflicts occur
-    it returns a list of the form [[ni, n(i-1), ..., n1]]. Internally,
-    [fresh n OK] is used [n] times. However, [OK] is updated to ensure, that
-    the elemenst of the resulting list not only satisfy [OK], but are also distinct from each other. *)
-val fresh_num_list : int -> Ulib.Text.t -> (t -> bool) -> t list
-
-(** [fresh_list OK ns] builds variants of the names in list [ns] such that all elements of 
-    the resulting list [ns'] satisfy [OK] and are distinct to each other.*)
-val fresh_list : (t -> bool) -> t list -> t list
+(** {3 modifying names} *)
 
 (** [rename r_fun n] renames [n] using the function [r_fun]. It looks at the 
   text representation [n_text] of [n] and returns then the name corresponding to
@@ -105,21 +96,71 @@ val starts_with_underscore : t -> bool
     the modified name. *)
 val remove_underscore : t -> t option
 
+(** {3 generating fresh names} *)
+
+(** [fresh n OK] generates a name [m], such that 
+    [OK m] holds. [m] is of the form [n] followed by
+    an integer postfix. First [n] without postfix is tried.
+    Then counting up from 0 starts, till [OK] is satisfied. *)
+val fresh : Ulib.Text.t -> (t -> bool) -> t
+
+(** [fresh_num_list i n OK] generates a list of [i] fresh names. If no conflicts occur
+    it returns a list of the form [[ni, n(i-1), ..., n1]]. Internally,
+    [fresh n OK] is used [n] times. However, [OK] is updated to ensure, that
+    the elemenst of the resulting list not only satisfy [OK], but are also distinct from each other. *)
+val fresh_num_list : int -> Ulib.Text.t -> (t -> bool) -> t list
+
+(** [fresh_list OK ns] builds variants of the names in list [ns] such that all elements of 
+    the resulting list [ns'] satisfy [OK] and are distinct to each other.*)
+val fresh_list : (t -> bool) -> t list -> t list
 
 
 
-(* lskips_t is the type of names with immediately preceding spaces, comments and
- * newlines, as well as surrounding `` and (), e.g., (* Foo *) x or (++) or `y` *)
+(** {2 names with whitespace an type} *)
+
+(** [lskips_t] is the type of names with immediately preceding skips, i.e. whitespace or comments *)
 type lskips_t
+
 val lskip_pp : Format.formatter -> lskips_t -> unit
+
+(** creates a name from Ast.x_l, used during typechecking *)
 val from_x : Ast.x_l -> lskips_t
+
+(** creates a name from Ast.ix_l, used during typechecking *)
 val from_ix : Ast.ix_l -> lskips_t
+
+(** [add_lskip] converts a name into a name with skips by adding empty whitespace *)
 val add_lskip : t -> lskips_t
+
+(** [strip_lskip] converts a name with whitespace into a name by dropping the preceeding whitespace *)
 val strip_lskip : lskips_t -> t
-val to_output : Output.id_annot -> lskips_t -> Output.t
-val to_output_infix : (Output.id_annot -> Ulib.Text.t -> Output.t) -> Output.id_annot -> lskips_t -> Output.t
-val to_output_quoted : Output.id_annot -> lskips_t -> Output.t
-val add_pre_lskip : Ast.lex_skips -> lskips_t -> lskips_t
+
+(** [get_lskip n] gets the preceeding whitespace of [n] *)
 val get_lskip : lskips_t -> Ast.lex_skips
-val lskip_rename : (Ulib.Text.t -> Ulib.Text.t) -> lskips_t -> lskips_t
+
+(** [add_pre_lskip sk n] adds additional whitespace in front of [n] *)
+val add_pre_lskip : Ast.lex_skips -> lskips_t -> lskips_t
+
+(** [replace_lskip sk n] replaces the whitespace in front of [n] with [sk]. The old whitespace is
+    thrown away. *)
 val replace_lskip : lskips_t -> Ast.lex_skips -> lskips_t
+
+(** [lskip_rename r_fun n] is a version of [rename] that can handle lskips. It renames [n] using 
+    the function [r_fun] and preserves the original whitespace. *)
+val lskip_rename : (Ulib.Text.t -> Ulib.Text.t) -> lskips_t -> lskips_t
+
+(** {2 output functions} *)
+
+(** [to_output_format format_fun id_annot n] formats the name [n] as output. A name with output consists of preedeing whitespace, 
+    the name as a text and a name-type. The space is formated using [ws], the other componenst together with [id_annot] are formated 
+    with [format_fun]. *)
+val to_output_format : (Output.id_annot -> Ulib.Text.t -> Output.t) -> Output.id_annot -> lskips_t -> Output.t
+
+(** [to_output] is the same as [to_output_format Output.id] *)
+val to_output : Output.id_annot -> lskips_t -> Output.t
+
+(** [to_output_quoted qs_begin qs_end id_annot n] formats [n] with the quoting strings [qs_begin] and [qs_end] added before and after respectively. *)
+val to_output_quoted : string -> string -> Output.id_annot -> lskips_t -> Output.t
+
+(** [to_rope_tex a n] formats [n] as [a] for the tex-backend as a string. The preceeding whitespace is ignored. *)
+val to_rope_tex : Output.id_annot -> t -> Ulib.Text.t

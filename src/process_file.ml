@@ -75,12 +75,8 @@ let check_ast (ts : Target.Targetset.t) (mod_path : Name.t list)
       (env : Typed_ast.env)
       (ast, end_lex_skips)
       : Typed_ast.env * (Typed_ast.def list * Ast.lex_skips) =
-  try
     let (env,tast) = Typecheck.check_defs ts mod_path env ast in
       (env,(tast,end_lex_skips))
-  with
-    | Ident.No_type(l,m) ->
-        raise (Reporting_basic.Fatal_error (Reporting_basic.Err_type (l, m)))
 
 let check_ast_as_module (ts : Target.Targetset.t) (mod_path : Name.t list)
       (e : Typed_ast.env) 

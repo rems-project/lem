@@ -55,17 +55,17 @@ let marker_lex_skip : Ast.lex_skips = (Some [Ast.Ws (Ulib.Text.of_latin1 "***mar
 (* Resolve a const identifier stored inside a id, with a full one in case of Id_none *)
 let resolve_constant_id_ident env id path : Ident.t =
   match id.id_path with 
-      | Id_none sk -> minimize_const_ident env (Path.to_ident sk path)
+      | Id_none sk -> resolve_const_ref env sk path id.descr
       | Id_some id -> id
 
 let resolve_type_id_ident env id path : Ident.t =
   match id.id_path with 
-      | Id_none sk -> minimize_type_ident env (Path.to_ident sk path)
+      | Id_none sk -> resolve_type_path env sk path
       | Id_some id -> id
 
 let resolve_module_id_ident env id path : Ident.t =
   match id.id_path with 
-      | Id_none sk -> Path.to_ident sk (minimize_module_path env path)
+      | Id_none sk -> resolve_module_path env sk path
       | Id_some id -> id
 
 
@@ -148,7 +148,7 @@ let inline_exp_macro (target : Target.non_ident_target) env e =
 module Make(A : sig 
   val env : env;; 
   val target : Target.target;;
-  val id_format_args : (Output.id_annot -> Ulib.Text.t -> Output.t) * Output.t
+  val id_format_args : (bool -> Output.id_annot -> Ulib.Text.t -> Output.t) * Output.t
  end) = struct
 
 
@@ -160,10 +160,8 @@ let strip_library_prefix =
     | Target.Target_ident -> (fun i -> i)
     | Target.Target_no_ident t -> 
          let n_t = Target.non_ident_target_to_mname t in
-         let n_p = Name.from_string "Pervasives" in
       fun i -> begin
          let i = Ident.strip_path n_t i in  
-(*         let i = Ident.strip_path n_p i in   *)
          i
       end
 
@@ -174,13 +172,9 @@ let fix_module_prefix_ident env i =
   strip_library_prefix i
 
 
-
 let ident_to_output use_infix =
   let (ident_f, sep) = A.id_format_args in 
-  if use_infix then
-    Ident.to_output_infix ident_f Term_const sep
-  else 
-    Ident.to_output Term_const sep 
+  Ident.to_output_format (ident_f use_infix) Term_const sep
 
 
 let const_id_to_ident c_id =
@@ -212,7 +206,8 @@ end
 
 (* assumes that there are enough arguments, otherwise list_split_after will fail *)
 let constant_application_to_output_special c_id to_out arg_f args vars : Output.t list =
-  let name = ident_to_output false (const_id_to_ident c_id) in
+  let i = const_id_to_ident c_id in
+  let name = ident_to_output false i in
   let args_output = List.map arg_f args in
   let (o_vars, o_rest) = Util.split_after (List.length vars) args_output (* assume there are enough elements *) in
   let o_fun = (cr_special_fun_to_fun to_out) (name :: o_vars) in
@@ -267,7 +262,7 @@ let type_id_to_ident (p : Path.t id) =
    i'
 
 let module_id_to_ident (mod_descr : mod_descr id) : Ident.t =
-   let l = Ast.Trans ("module_id_to_ident", None) in
+(*   let l = Ast.Trans ("module_id_to_ident", None) in *)
    let i = resolve_module_id_ident (A.env.local_env) mod_descr mod_descr.descr.mod_binding in
    let i' = fix_module_prefix_ident (A.env.local_env) i in
    i'

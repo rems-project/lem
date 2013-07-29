@@ -166,7 +166,7 @@ let capitalize x =
     Some (from_rope (Ulib.Text.set (to_rope x) 0 c))
   else None
 
-type lskips_t = Ast.lex_skips * Ulib.Text.t 
+type lskips_t = Ast.lex_skips * Ulib.Text.t
 
 let r = Ulib.Text.of_latin1
 
@@ -184,14 +184,13 @@ let add_lskip n = (None,to_rope n)
 let star = Ulib.Text.of_latin1 "*"
 let space = Output.ws (Some [Ast.Ws (Ulib.Text.of_latin1 " ")])
 
-let to_output a (s,x) = Output.(^) (Output.ws s) (Output.id a x)
+let to_output_format f a ((s,x):lskips_t) = Output.(^) (Output.ws s) (f a x)
+let to_output = to_output_format Output.id
 
-let to_output_infix infix_f a (s,x) = Output.(^) (Output.ws s) (infix_f a x)
-
-let to_output_quoted a (s,x)= 
+let to_output_quoted q_begin q_end a (s,x)= 
   let open Output in
   let (^^) = Ulib.Text.(^^^) in
-  to_output a (s, (r"\"" ^^ x ^^ r"\""))
+  to_output a (s, (r q_begin ^^ x ^^ r q_end))
 
 let to_rope_tex a n = 
   Output.to_rope_tex (Output.id a (to_rope n))

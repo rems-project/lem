@@ -231,7 +231,7 @@ module type Target = sig
   val vector_begin : t
   val vector_end : t
   val first_case_sep : (Ast.lex_skips,t) Seplist.optsep
-  val infix_op_format : Output.id_annot -> Ulib.Text.t -> t
+  val op_format : bool -> Output.id_annot -> Ulib.Text.t -> t
 
   (* Pattern and Expression tuples *)
   val tup_sep : t
@@ -443,6 +443,8 @@ module Identity : Target = struct
      else
        kwd "(" ^ id a x ^ kwd ")"
 
+  let op_format use_infix = if use_infix then infix_op_format else id
+
   let def_start = kwd "let"
   let def_binding = kwd "="
   let def_end = emp
@@ -635,7 +637,7 @@ module Tex : Target = struct
   let vector_begin = kwd "[|"
   let vector_end = kwd "|]"
   let first_case_sep = Seplist.Optional
-  let infix_op_format = Identity.infix_op_format
+  let op_format = Identity.op_format
 
   let tup_sep = kwd ",\\,"
 
@@ -837,6 +839,8 @@ module Isa : Target = struct
   let first_case_sep = Seplist.Forbid(fun sk -> ws sk ^ meta " ")
   let infix_op_format a x = match a with (Term_var | Term_var_toplevel) -> id a x | _ -> kwd "(op" ^ id a x  ^ kwd ")"
 
+  let op_format use_infix = if use_infix then infix_op_format else id
+
   let pat_add_op = err "add pattern in Isabelle"
   let cons_op = kwd "#"
   let set_sep = kwd ","
@@ -1028,6 +1032,7 @@ module Hol : Target = struct
   let vector_end = emp
   let first_case_sep = Seplist.Forbid(fun sk -> ws sk ^ meta " ")
   let infix_op_format a x = match a with (Term_var | Term_var_toplevel) -> id a x | _ -> kwd "(" ^ (id a x) ^ kwd ")"
+  let op_format use_infix = if use_infix then infix_op_format else id
 
   let tup_sep = kwd ","
 
@@ -1120,7 +1125,7 @@ module F_Aux(T : Target)(A : sig val avoid : var_avoid_f option;; val env : env 
 module B = Backend_common.Make (struct
   let env = A.env
   let target = T.target
-  let id_format_args =  (T.infix_op_format, T.path_sep)    
+  let id_format_args =  (T.op_format, T.path_sep)    
 end);;
 
 module C = Exps_in_context (struct
@@ -1864,7 +1869,7 @@ let tdef_tvars ml_style tvs =
 
 let tdef_tctor quoted_name tvs n regexp =
   let nout = 
-    if quoted_name then Name.to_output_quoted Type_ctor n else Name.to_output Type_ctor n 
+    if quoted_name then Name.to_output_quoted "\"" "\"" Type_ctor n else Name.to_output Type_ctor n 
   in
   let regexp_out = 
     match regexp with | None -> emp
@@ -1932,7 +1937,7 @@ let indreln_name (RName(s1,name,name_ref,s2,(constraint_pre,t),witness,checks,fu
 
 let indreln_clause (Rule(name, s0, s1, qnames, s2, e_opt, s3, rname, rname_ref, es),_) =
   (if T.reln_clause_show_name then (
-    ((if T.reln_clause_quote_name then Name.to_output_quoted else Name.to_output) Term_method name ^
+    ((if T.reln_clause_quote_name then Name.to_output_quoted "\"" "\"" else Name.to_output) Term_method name ^
       ws s0 ^
       kwd ":"
     )
@@ -2807,7 +2812,7 @@ let header_defs ((defs:def list),(end_lex_skips : Typed_ast.lskips)) =
           let module B = Backend_common.Make (struct
             let env = { A.env with local_env = lenv }
             let target = T.target
-            let id_format_args =  (T.infix_op_format, T.path_sep)    
+            let id_format_args =  (T.op_format, T.path_sep)    
           end) in
           begin match T.target with
 
