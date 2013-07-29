@@ -667,7 +667,7 @@ end
 
 let compile_function env reldescr 
     ((n,((_,_,out_mode) as mode),mty,rules) as m) = 
-  let module M = (val select_module out_mode) in
+  let module M = (val select_module out_mode : COMPILATION_CONTEXT) in
   let module C = Compile(M) in
   let rel_info = c_env_lookup_rel_info reldescr.rel_loc env.c_env reldescr.rel_const_ref in
   let fun_ref = List.assoc mode rel_info.ri_fns in
