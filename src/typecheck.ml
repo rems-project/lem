@@ -2189,7 +2189,7 @@ let letbind_to_funcl_aux sk0 target_opt ctxt (lb : letbind) : val_def = begin
   if create_fun_def then begin
      let (nls, n_ref, n_exp, pL, ty_opt, sk, e) = letbind_to_funcl_aux_dest ctxt lb in
      let sl = Seplist.sing (nls, n_ref, pL, ty_opt, sk, e) in
-     Fun_def(sk0, None, target_opt, sl)
+     Fun_def(sk0, FR_non_rec, target_opt, sl)
   end else begin
     let get_const_from_name_annot (nls : name_lskips_annot) : (Name.t * const_descr_ref) = begin
       let n = Name.strip_lskip nls.term in
@@ -2253,7 +2253,7 @@ let check_val_def (ts : Targetset.t) (mod_path : Name.t list) (l : Ast.l)
           let (lbs,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_funs None target_set_opt l funcls in 
           let ctxt' = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) constraints lconstraints K_let target_set_opt e_v in
           let fauxs = letbinds_to_funcl_aux_rec l ctxt' lbs in
-            (ctxt', e_v, (Fun_def(sk1,Some sk2,target_opt,fauxs)), Tconstraints(tnvs,constraints,lconstraints))
+            (ctxt', e_v, (Fun_def(sk1,FR_rec sk2,target_opt,fauxs)), Tconstraints(tnvs,constraints,lconstraints))
       | Ast.Let_inline (sk1,sk2,_,lb) -> 
           let (lb,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_letbind None target_set_opt l lb in 
           let ctxt' = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) constraints lconstraints K_let target_set_opt e_v in

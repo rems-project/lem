@@ -996,7 +996,7 @@ let get_checked_modules_entities (t_opt : Target.target) (ml : checked_module li
 (* check whether a definition is recursive using entities *)
 let is_recursive_def (d:def_aux) =  
  match d with
-  |  Val_def ((Fun_def (_, Some _, _, sl)), tnvs,class_constraints) -> begin 
+  |  Val_def ((Fun_def (_, FR_rec _, _, sl)), tnvs,class_constraints) -> begin 
        let (_, pL) = Seplist.to_pair_list None sl in
 
        (* get the names of all newly defined functions *)

@@ -78,14 +78,6 @@ type ('a,'b) annot = { term : 'a; locn : Ast.l; typ : t; rest : 'b }
 let annot_to_typ a = a.typ
 
 type const_descr_ref = Types.const_descr_ref
-let nil_const_descr_ref = 0
-let is_nil_const_descr_ref r = (r = 0)
-
-module Cdmap = Finite_map.Fmap_map(
-struct 
-  type t = const_descr_ref
-  let compare = Pervasives.compare
-end)
 
 type p_env = (Path.t * Ast.l) Nfmap.t
 
@@ -183,7 +175,7 @@ and const_descr = { const_binding : Path.t;
 and v_env = const_descr_ref Nfmap.t
 and f_env = const_descr_ref Nfmap.t
 and m_env = mod_descr Nfmap.t
-and c_env = int * const_descr Cdmap.t
+and c_env = const_descr cdmap
 
 and local_env = { m_env : m_env; p_env : p_env; f_env : f_env; v_env : v_env}
 and env = { local_env : local_env; c_env : c_env; t_env : Types.type_defs; i_env : (instance list) Pfmap.t }
@@ -302,10 +294,13 @@ let in_targets_opt (targ : Target.target) (targets_opt : targets_opt) : bool = m
 let targets_opt_to_list (targets_opt : targets_opt) : Target.non_ident_target list =
    List.filter (fun t -> in_targets_opt (Target_no_ident t) targets_opt) Target.all_targets_list
                          
+type fun_def_rec_flag =
+  | FR_non_rec
+  | FR_rec of lskips
 
 type val_def = 
   | Let_def of lskips * targets_opt * (pat * (Name.t * const_descr_ref) list * (lskips * src_t) option * lskips * exp)
-  | Fun_def of lskips * lskips option * targets_opt * funcl_aux lskips_seplist
+  | Fun_def of lskips * fun_def_rec_flag * targets_opt * funcl_aux lskips_seplist
   | Let_inline of lskips * lskips * targets_opt * name_lskips_annot * const_descr_ref * name_lskips_annot list * lskips * exp
 
 type inst_sem_info =
@@ -356,26 +351,24 @@ let empty_local_env = { m_env = Nfmap.empty;
                         v_env = Nfmap.empty; }
 
 let empty_env = { local_env = empty_local_env;
-                  c_env = (nil_const_descr_ref + 1, Cdmap.empty);
+                  c_env = cdmap_empty();
                   t_env = Pfmap.empty;
                   i_env = Pfmap.empty }
 
 
-let c_env_lookup l (c_env_count, c_env_map) c = 
-         match Cdmap.apply c_env_map c with
+let c_env_lookup l m c = 
+         match cdmap_lookup m c with
            | None -> 
-             let m = Format.sprintf "constant-id %d not present in environment" c in
+             let m = Format.sprintf "constant-description reference %s not present in environment" (string_of_const_descr_ref c) in
              raise (Reporting_basic.err_type l m)
            | Some(cd) -> cd
 
-let c_env_update (c_env_count, c_env_map) c_id c_d =
-    (c_env_count, Cdmap.insert c_env_map (c_id, c_d))
+let c_env_update = cdmap_update 
 
 let env_c_env_update env c_id c_d =
   { env with c_env = c_env_update env.c_env c_id c_d }
 
-let c_env_store_raw (c_env_count, c_env_map) c_d = 
-  ((c_env_count+1, Cdmap.insert c_env_map (c_env_count, c_d)), c_env_count)
+let c_env_store_raw = cdmap_insert
 
 let env_m_env_move env mod_name new_local =
   let md = { mod_env = env.local_env; mod_binding = Path.mk_path [] mod_name } in
@@ -702,10 +695,10 @@ let pp_const_descr ppf c =
     pp_env_tag c.env_tag
 
 let pp_const_ref ppf c =
-  fprintf ppf "%d" c     
+  fprintf ppf "%s" (string_of_const_descr_ref c)
 
-let pp_c_env ppf (c, _) =
-  fprintf ppf "%d" c     
+let pp_c_env ppf m =
+  fprintf ppf "cdmap"
 
 let rec pp_local_env ppf env =
   pp_open_box ppf 0;
