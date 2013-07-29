@@ -1134,7 +1134,8 @@ let transform_rule env localrels ((mode, need_wit, out_mode) as full_mode) rel (
     let rec search notok = function
       | [] ->
         begin match eqconds2,sideconds2 with
-          | [], [] when notok = [] -> RETURN returns
+          | [], [] when notok = [] && List.for_all exp_known returns -> 
+            RETURN returns
           | _ -> report_no_translation rel rule full_mode print_debug
         end
       | (modes,args,wit_var) as c::cs ->
@@ -1147,10 +1148,9 @@ let transform_rule env localrels ((mode, need_wit, out_mode) as full_mode) rel (
         in
         match List.filter mode_matches modes with
           | [] -> search (c::notok) cs
-          | ((fun_mode, fun_wit, _out_mode), fun_info) ::ms -> 
-            (* Still some work to do to generate witnesses *)
+          | ((fun_mode, fun_wit, _out_mode), fun_ref) ::ms -> 
             let (outputs, bound, equalities) = convert_output env gen_rn args 
-              (List.map (fun m -> m = Rel_mode_in) mode) in
+              (List.map (fun m -> m = Rel_mode_in) fun_mode) in
             let outputs = 
               if not fun_wit
               then outputs
@@ -1162,8 +1162,8 @@ let transform_rule env localrels ((mode, need_wit, out_mode) as full_mode) rel (
               match m with
                 | Rel_mode_in -> Some(exp)
                 | Rel_mode_out -> None
-            ) args mode) in
-            CALL(fun_info, inputs, outputs,
+            ) args fun_mode) in
+            CALL(fun_ref, inputs, outputs,
                  build_code (Nset.union bound known) (cs@notok) 
                    sideconds2 (equalities@eqconds2))
     in
