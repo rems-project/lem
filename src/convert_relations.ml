@@ -633,7 +633,7 @@ end
 
 let compile_function env localenv fun_names reldescr 
     ((_,(_,_,out_mode),_,_) as m) = 
-  let module M = (val select_module out_mode) in
+  let module M = (val select_module out_mode : COMPILATION_CONTEXT) in
   let module C = Compile(M) in
   C.compile_function env localenv fun_names reldescr m
 
