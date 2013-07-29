@@ -16,6 +16,35 @@ open C
 module Nmap = Typed_ast.Nfmap
 module Nset = Nmap.S
 
+
+let sep_no_skips l = Seplist.from_list_default None l
+
+
+let typ_unit = {t=Tapp([],Path.unitpath)}
+
+let lit_unit l = {
+  term = L_unit(None, None);
+  locn = l;
+  typ = typ_unit;
+  rest = ()
+}
+
+let mk_tup_unit_exp l : exp list -> exp = function
+  | [] -> mk_lit l (lit_unit l) None
+  | [e] -> e
+  | es -> mk_tup l None (sep_no_skips es) None None
+
+let mk_tup_unit_pat l : pat list -> pat= function
+  | [] -> mk_plit l (lit_unit l) None
+  | [p] -> p
+  | ps -> mk_ptup l None (sep_no_skips ps) None None
+
+let mk_tup_unit_typ = function
+  | [] -> typ_unit
+  | [t] -> t
+  | l -> {t=Ttup(l)}
+
+
 let loc_trans s l = Ast.Trans(s, Some(l))
 
 let is_true l = match l.term with
@@ -362,10 +391,7 @@ let is_constructor env t c_d =
 
 let cons_ref env = get_const_ref env ["Pervasives"] "::"
 
-(**** TODO FIXME TODO FIXME ????
-  - will calls to contructor from the same group appear as
-      constants ?
-******)
+
 let exp_to_pat env e check_rename transform_exp  =
   let rec exp_to_pat e = 
     let loc = loc_trans "exp_to_pat" (exp_to_locn e) in
@@ -410,8 +436,6 @@ let convert_output env gen_rn exps mask =
     else Some (exp_to_pat env exp check_rename transform_exp)
   ) exps mask) in
   (outargs, !bound, !equalities)
-
-let sep_no_skips l = Seplist.from_list_default None l
 
 let newline = Some([Ast.Nl])
 let space = Some([Ast.Ws(Ulib.Text.of_latin1 " ")])
@@ -604,7 +628,7 @@ let out_ty_from_mode env reldescr (mode, wit, _out) =
       | None -> failwith "Invalid mode, should have been rejected before"
       | Some(t,_) -> ret@[{t=Tapp([],t)}]
   in
-  {t=Ttup(ret)}
+  mk_tup_unit_typ ret
         
 let in_tys_from_mode env reldescr (mode, _wit, _out) = 
   map_filter (function
@@ -620,11 +644,11 @@ let ty_from_mode env reldescr ((_,_,out) as mode) =
 
 module Compile(M : COMPILATION_CONTEXT) = struct
   
-  let rec compile_code env loc code = 
+  let rec compile_code env loc code : exp = 
     let l = loc_trans "compile_code" loc in
     match code with
       | RETURN(exps) -> 
-        let ret = mk_tup l None (sep_no_skips exps) None None in
+        let ret = mk_tup_unit_exp l exps in
         M.mk_return env l ret
       | IF(cond, code) -> 
         let subexp = compile_code env loc code in 
@@ -638,11 +662,11 @@ module Compile(M : COMPILATION_CONTEXT) = struct
         let func = mk_const_ref env l n_ref [] in
         let call = List.fold_left (fun func arg -> mk_app l func arg None) 
           func inp in
-        let pat = mk_ptup l None (sep_no_skips outp) None None in
+        let pat = mk_tup_unit_pat l outp in
         M.mk_bind env l call pat subexp
           
   let compile_rule env (loc, patterns, code) = 
-    let pattern = mk_ptup (loc_trans "compile_rule" loc) None (sep_no_skips patterns) None None in
+    let pattern = mk_tup_unit_pat (loc_trans "compile_rule" loc) patterns in
     let lemcode = compile_code env loc code in
     (pattern, lemcode) 
 
@@ -652,7 +676,7 @@ module Compile(M : COMPILATION_CONTEXT) = struct
     let vars = List.map 
       (fun ty -> Name.add_lskip (gen_name (Ulib.Text.of_latin1 "input")), ty)
       (in_tys_from_mode env reldescr mode) in
-    let tuple_of_vars = mk_tup l None (sep_no_skips (List.map (fun (var,ty) -> mk_var l var ty) vars)) None None in
+    let tuple_of_vars = mk_tup_unit_exp l (List.map (fun (var,ty) -> mk_var l var ty) vars) in
     let pats_of_vars = List.map (fun (var,ty) -> mk_pvar_ty l var ty) vars in
     let cases = List.map (compile_rule env) rules in
     let output_type = out_ty_from_mode env reldescr mode in
@@ -883,7 +907,7 @@ let gen_witness_check_info l mod_path ctxt names rules =
             "no witness for relation while generating witness-checking function"
             Path.pp check_path
         in
-        let check_type = {t=Tfn(witness_type, mk_option {t=Ttup(ret)})} in
+        let check_type = {t=Tfn(witness_type, mk_option (mk_tup_unit_typ ret))} in
         Cdmap.insert defs (reldescr.rel_const_ref, (check_name, check_path, check_type))
   ) Cdmap.empty rels in
   (* Register the functions *)
@@ -971,10 +995,10 @@ let gen_witness_check_def env l mpath localenv names rules local =
                         instantiation = [] } in
       let pattern = mk_pconst l constr_id (pvars @ pconds) None in
       let ret = mk_some env 
-        (mk_tup l None (sep_no_skips rule.rule_args) None None) in
+        (mk_tup_unit_exp l rule.rule_args) in
       let genconds_exps = List.map (fun (args,witness_ty,check_ref,witness) ->
         let witness_var = mk_var l (Name.add_lskip witness) witness_ty in
-        let rhs = mk_some env (mk_tup l None (sep_no_skips args) None None) in
+        let rhs = mk_some env (mk_tup_unit_exp l args) in
         let check_id = { id_path = Id_none None; id_locn = l;
                          descr = check_ref; instantiation = [] } in
         let check_fun = mk_const l check_id None in
