@@ -1026,14 +1026,16 @@ let pp_mode ppf (io, wit, out) =
   else Format.fprintf ppf " unit"
 
 
-let report_no_translation reldescr ruledescr mode =
-  Format.eprintf "No transalation for relation %s, mode %a\n"
-    (Name.to_string reldescr.rel_name) pp_mode mode;
-  Format.eprintf "Blocking rule is %s\n"  (Name.to_string ruledescr.rule_name);
+let report_no_translation reldescr ruledescr mode print_debug =
+  if print_debug then begin
+    Format.eprintf "No transalation for relation %s, mode %a\n"
+      (Name.to_string reldescr.rel_name) pp_mode mode;
+    Format.eprintf "Blocking rule is %s\n"  (Name.to_string ruledescr.rule_name)
+  end;
   no_translation None
 
 
-let transform_rule env localrels ((mode, need_wit, out_mode) as full_mode) rel (rule : ruledescr) = 
+let transform_rule env localrels ((mode, need_wit, out_mode) as full_mode) rel (rule : ruledescr) print_debug = 
   let l = loc_trans "transform_rule" rule.rule_loc in
   let vars = Nfmap.domain (Nfmap.from_list rule.rule_vars) in
   (* TODO : we probably don't need localrels here *)
@@ -1109,7 +1111,7 @@ let transform_rule env localrels ((mode, need_wit, out_mode) as full_mode) rel (
       | [] ->
         begin match eqconds2,sideconds2 with
           | [], [] when notok = [] -> RETURN returns
-          | _ -> report_no_translation rel rule full_mode
+          | _ -> report_no_translation rel rule full_mode print_debug
         end
       | (modes,args,wit_var) as c::cs ->
         let inargs = List.map exp_known args in
@@ -1146,8 +1148,9 @@ let transform_rule env localrels ((mode, need_wit, out_mode) as full_mode) rel (
   (l, patterns, build_code initknown indconds sideconds initeqs)
 
 
-let transform_rules env localrels mode reldescr =
-  List.map (transform_rule env localrels mode reldescr) reldescr.rel_rules
+let transform_rules env localrels mode reldescr print_debug =
+  List.map (fun x -> transform_rule env localrels mode reldescr x print_debug) 
+    reldescr.rel_rules
 
 
 (* env is the globalized env *)
@@ -1158,60 +1161,8 @@ let transform_rules env localrels mode reldescr =
 let join f a b = 
   List.concat (List.map (fun x -> List.map (fun y -> f x y ) b) a)
 
-let list_possible_modes env rels =
-  let all_modes =
-    let gen_name = make_namegen Nset.empty in
-    Nfmap.map (fun _ reldescr ->
-      let out_modes = [Out_pure; Out_list; Out_unique; Out_option] in
-      let wit_modes = if reldescr.rel_witness = None then [false] else [false;true] in
-      let io_modes = List.fold_left 
-        (fun acc _ -> join (fun x y -> x::y) [Rel_mode_in; Rel_mode_out] acc) 
-        [[]] reldescr.rel_argtypes in
-      let modes = join (fun (x,y) z -> (gen_name (Ulib.Text.of_latin1 "indfn"), (x,y,z))) (join (fun x y -> (x,y)) io_modes wit_modes) out_modes in
-      { reldescr with rel_indfns = modes }
-    ) rels
-  in
-  let modeset_equals rels1 rels2 = 
-    Nfmap.fold (fun acc _ x -> acc && x) true
-      (Nfmap.merge (fun _ a b -> match a, b with
-        | None, None -> Some(true)
-        | Some(rd1), Some(rd2) -> 
-          Some(List.length rd1.rel_indfns = List.length rd2.rel_indfns 
-              && List.for_all (fun e -> List.mem e rd2.rel_indfns) rd1.rel_indfns)
-        | _ -> Some(false)) rels1 rels2)
-  in
-  let shrink_modeset rels = 
-    Nfmap.map (fun _ reldescr ->
-      { reldescr with rel_indfns = List.filter (fun (_,mode) ->
-        try
-          ignore (transform_rules env rels mode reldescr); 
-          true
-        with _ -> (Format.eprintf "failure\n"; false)
-      )  reldescr.rel_indfns}
-    ) rels
-  in
-  let rec iter rels = 
-    Format.eprintf "ITER ONCE\n";
-    let newrels = shrink_modeset rels in
-    if modeset_equals rels newrels
-    then rels
-    else iter newrels
-  in
-  let modes = iter all_modes in
-  Nfmap.iter (fun _ reldescr ->
-    Format.eprintf "** Relation %s :\n" (Name.to_string reldescr.rel_name);
-    List.iter (fun (_, mode) -> Format.eprintf "%a\n" pp_mode mode) reldescr.rel_indfns
-  ) modes;
-  Format.eprintf "ITER DONE\n";
-  flush stderr;
-  modes
-  
-
-let gen_fns_info l mod_path (ctxt : defn_ctxt) names rules =
+let gen_fns_info_aux l mod_path ctxt rels =
   let env = defn_ctxt_get_cur_env ctxt in
-  let rels = get_rels env l names rules in
-  let l = loc_trans "gen_fns_info" l in
-(*  let rels = list_possible_modes env rels in *)
   Nfmap.fold (fun ctxt relname reldescr ->
     let rel_ref = reldescr.rel_const_ref in
     List.fold_left (fun ctxt (name, mode) ->
@@ -1240,11 +1191,66 @@ let gen_fns_info l mod_path (ctxt : defn_ctxt) names rules =
   ) ctxt rels
 
 
+let list_possible_modes mod_path ctxt rels =
+  let all_modes =
+    let gen_name = make_namegen Nset.empty in
+    Nfmap.map (fun _ reldescr ->
+      let out_modes = [Out_pure] in
+      let wit_modes = if reldescr.rel_witness = None then [false] else [false;true] in
+      let io_modes = List.fold_left 
+        (fun acc _ -> join (fun x y -> x::y) [Rel_mode_in; Rel_mode_out] acc) 
+        [[]] reldescr.rel_argtypes in
+      let modes = join (fun (x,y) z -> (gen_name (Ulib.Text.of_latin1 "indfn"), (x,y,z))) (join (fun x y -> (x,y)) io_modes wit_modes) out_modes in
+      { reldescr with rel_indfns = modes }
+    ) rels
+  in
+  let modeset_equals rels1 rels2 = 
+    Nfmap.fold (fun acc _ x -> acc && x) true
+      (Nfmap.merge (fun _ a b -> match a, b with
+        | None, None -> Some(true)
+        | Some(rd1), Some(rd2) -> 
+          Some(List.length rd1.rel_indfns = List.length rd2.rel_indfns 
+              && List.for_all (fun e -> List.mem e rd2.rel_indfns) rd1.rel_indfns)
+        | _ -> Some(false)) rels1 rels2)
+  in
+  let shrink_modeset rels =
+    let ctxt = gen_fns_info_aux Ast.Unknown mod_path ctxt rels in
+    let env = defn_ctxt_get_cur_env ctxt in
+    Nfmap.map (fun _ reldescr ->
+      { reldescr with rel_indfns = List.filter (fun (_,mode) ->
+        try
+          ignore (transform_rules env rels mode reldescr false); 
+          true
+        with _ -> false
+      )  reldescr.rel_indfns}
+    ) rels
+  in
+  let rec iter rels = 
+    let newrels = shrink_modeset rels in
+    if modeset_equals rels newrels
+    then rels
+    else iter newrels
+  in
+  let modes = iter all_modes in
+  Nfmap.iter (fun _ reldescr ->
+    Format.eprintf "** Relation %s :\n" (Name.to_string reldescr.rel_name);
+    List.iter (fun (_, mode) -> Format.eprintf "%a\n" pp_mode mode) reldescr.rel_indfns
+  ) modes;
+  flush stderr;
+  modes
+
+let gen_fns_info l mod_path (ctxt : defn_ctxt) names rules =
+  let env = defn_ctxt_get_cur_env ctxt in
+  let rels = get_rels env l names rules in
+  let l = loc_trans "gen_fns_info" l in
+(*  list_possible_modes mod_path ctxt rels;  *)
+  gen_fns_info_aux l mod_path ctxt rels
+
 let gen_fns_def env l mpath localenv names rules local =
   let rels = get_rels env l names rules in
   let transformed_rules = Nfmap.map (fun relname reldescr ->
     (reldescr, List.map (fun (name, mode) ->
-      (name, mode, ty_from_mode env reldescr mode,transform_rules env rels mode reldescr)
+      (name, mode, ty_from_mode env reldescr mode,transform_rules env rels mode reldescr true)
     ) reldescr.rel_indfns)
   ) rels in
   let u,v = compile_to_typed_ast env transformed_rules in
