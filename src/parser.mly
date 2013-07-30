@@ -930,12 +930,12 @@ declaration :
     { Decl_rename_decl($1, $2, $3, $4, $5, fst $6, $7) }
   | Declare targets_opt AsciiRep component id Eq x
     { Decl_ascii_rep_decl($1, $2, $3, $4, $5, fst $6, $7) }
-  | Declare SetFlag Eq String
-    { Decl_set_flag_decl($1, $2, $3, $4) }
+  | Declare SetFlag id Eq x
+    { Decl_set_flag_decl($1, $2, $3, fst $4, $5) }
   | Declare targets_opt TerminationArgument id Eq termination_setting
-    { Decl_termination_argument_decl($1, $2, $3, $4, $5, $6) }
+    { Decl_termination_argument_decl($1, $2, $3, $4, fst $5, $6) }
   | Declare targets_opt PatternMatch exhaustivity_setting x tnvar_list Eq Lsquare exp_list Rsquare elim_opt
-    { Decl_pattern_match_decl($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) }
+    { Decl_pattern_match_decl($1, $2, $3, $4, $5, $6, fst $7, $8, $9, $10, $11) }
 
 lemma_typ:
   | Lemma

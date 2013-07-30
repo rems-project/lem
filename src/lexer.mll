@@ -90,6 +90,8 @@ let kw_table =
      ("IN",                      (fun x -> IN(x,r"IN")));
      ("MEM",                     (fun x -> MEM(x,r"MEM")));
      ("declare",                 (fun x -> Declare(x)));
+     ("constant"),               (fun x -> Constant(x));
+     ("field"),                  (fun x -> Field(x));
      ("target_type",             (fun x -> TargetType(x)));
      ("target_const",            (fun x -> TargetConst(x)));
      ("lemma",                   (fun x -> Lemma(x)));

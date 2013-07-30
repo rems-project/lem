@@ -83,7 +83,6 @@ let pp_lex_skips ppf sk =
                    Format.fprintf ppf "%s" (Ulib.Text.to_string r)
                | Nl -> Format.fprintf ppf "\\n")
           sks
-
 let combine_lex_skips s1 s2 =
   match (s1,s2) with
     | (None,_) -> s2
@@ -753,10 +752,10 @@ elim_opt :: 'Elim_opt_' ::=
 
 declare_def :: 'Decl_' ::= 
   {{ com declarations }}
-  | declare targets_opt rename component id = x_l :: :: rename_decl
-  | declare targets_opt ascii_rep component id = x_l :: :: ascii_rep_decl
-  | declare set_flag = string :: :: set_flag_decl
-  | declare targets_opt termination_argument id = termination_setting :: :: termination_argument_decl
+  | declare targets_opt rename component id = x_l                                                 :: :: rename_decl
+  | declare targets_opt ascii_rep component id = x_l                                              :: :: ascii_rep_decl
+  | declare set_flag id = x_l                                                                     :: :: set_flag_decl
+  | declare targets_opt termination_argument id = termination_setting                             :: :: termination_argument_decl
   | declare targets_opt pattern_match exhaustivity_setting x_l tnvars = [ exp1 .. expn ] elim_opt :: :: pattern_match_decl
 
 val_def :: '' ::= 

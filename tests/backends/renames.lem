@@ -1,10 +1,10 @@
 (* fix is bound and should be renamed *)
 type value = A | B | fix | EVEN | STRCAT
-rename {isabelle} fix = isa_fix 
-rename {coq} value = value0
+declare {coq} rename constant fix = coq_fix 
+declare {coq} rename type value = value0
 
 (* Test again whether renaming really works *)
-rename {isabelle} A = value_A
+declare {coq} rename constant A = value_A
 let my_val_test a (b:value) = match a with (A:value) -> b | B -> (B:value) end
 let my_val_test2 (a : value) = ([A] : list value)
 let my_val_test3 (a : value) = [A]
@@ -14,7 +14,9 @@ let my_val_test4 a = (if a = A then [A] else [B])
    producing a warning *)
 type my_record 'a = <| field_one : 'a; where : value |>
 
-rename {coq} where = field_two
+declare {coq} rename field where = field_two
+
+(*
 
 (* op should be renamed, but assume is no good choice *)
 let op x = List.rev x
@@ -70,3 +72,4 @@ let my_dummy7 assume = { assume0 | assume0 > 10 }
 
 let my_dummy8 x = { assume | assume > 10 }
 
+*)
