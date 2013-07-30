@@ -1768,13 +1768,13 @@ let remove_comp_binding_pat_restr_quant env comp e =
   | _ -> None
 
 
-let compile_exp topt mca (d:Types.type_defs) env e =  
+let compile_exp topt mca env e =  
  let cf_opt e = compile_match_exp topt mca env e in
  let cf e = Util.option_default e (cf_opt e) in
  match C.exp_to_term e with 
    Case _ -> cf_opt e
  | Fun _ -> if mca.exp_OK env e then None else remove_fun cf e
- | Function _ -> if mca.exp_OK env e then None else remove_function d cf e
+ | Function _ -> if mca.exp_OK env e then None else remove_function env.t_env cf e
  | Let _ -> if mca.exp_OK env e then None else remove_let cf e
  | Quant _ -> if mca.exp_OK env e then None else remove_pat_restr_quant cf e
  | Comp_binding _ -> if mca.exp_OK env e then None else remove_comp_binding_pat_restr_quant env cf e 

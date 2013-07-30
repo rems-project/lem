@@ -164,12 +164,9 @@ let check_modules env modules =
 (* Do the transformations for a given target *)
 let per_target libpath isa_thy modules env consts alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum targ =
   let consts = List.assoc targ consts in
-  let module C = struct
-    let (d,i) = (env.Typed_ast.t_env, env.Typed_ast.i_env)
-  end
-  in
-  let module T = Target_trans.Make(C) in
-  let (trans,avoid) = T.get_transformation targ in
+  let module C = struct let env = env end in
+
+  let trans = Target_trans.get_transformation targ in
   try
     let (env',transformed_m) = 
       List.fold_left 
@@ -178,12 +175,17 @@ let per_target libpath isa_thy modules env consts alldoc_accum alldoc_inc_accum 
              (env,m::new_mods))
         (env,[])
         modules
-    in      
+    in     
+ 
     (* perform renamings *)
     let used_entities = Typed_ast_syntax.get_checked_modules_entities targ transformed_m in
     let env'' = Rename_top_level.rename_defs_target targ used_entities consts env' in
-    let transformed_m' = T.rename_def_params targ consts transformed_m in
-    let _ = output libpath isa_thy targ (avoid consts) env'' (List.rev transformed_m') alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum in
+
+    let consts' = Target_trans.add_used_entities_to_avoid_names env'' targ used_entities consts in
+    let transformed_m' = Target_trans.rename_def_params targ consts' transformed_m in
+
+    let avoid = Target_trans.get_avoid_f targ consts' in
+    let _ = output libpath isa_thy targ avoid env'' (List.rev transformed_m') alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum in
     env''
   with
       | Trans.Trans_error(l,msg) ->

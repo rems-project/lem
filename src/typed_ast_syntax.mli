@@ -147,7 +147,7 @@ val c_env_save : c_env -> const_descr_ref option -> const_descr -> c_env * const
     module-path [mp] and name [n] for target [target] to [rep] in environment [env]. *)
 val set_target_const_rep : env -> string list -> string -> Target.non_ident_target -> const_target_rep -> env
 
-(** [const_descr_to_name targ cd] looks up the representation for target [targ] in the constant
+(** [constant_descr_to_name targ cd] looks up the representation for target [targ] in the constant
     description [cd]. It returns a tuple [(n_is_shown, n)]. The name [n] is the name of the constant for this
     target. [n_is_shown] indiciates, whether this name is actually printed. Special representations or inline representation
     might have a name, that is not used for the output. *)

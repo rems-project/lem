@@ -56,8 +56,9 @@ let r = Ulib.Text.of_latin1
 type 'a macro = 'a -> 'a option
 type pat_macro = Macro_expander.pat_position -> pat macro
 
-module Macros(I : Types.Global_defs)(E : sig val env : env end) = struct
+module Macros(E : sig val env : env end) = struct
 
+module I = struct let d = E.env.t_env let i = E.env.i_env end
 module C = Exps_in_context(struct let env_opt = Some E.env;; let avoid = None end)
 module T = Types.Constraint(I)
 

@@ -54,6 +54,29 @@ open Typed_ast_syntax
 open Target
 open Util
 
+
+(* TODO: Fix this hack for recognising library functions!*)
+let library_pathL : Name.t list = 
+  let targetsL = List.map non_ident_target_to_mname (Targetset.elements all_targets) in
+  let extraL = ["Pervasives"; "Pmap"; "Int"; "List"; "Vector"; "Set"] in
+  let extranL = List.map Name.from_string extraL in
+  targetsL @ extranL  
+
+let is_lib_path path = 
+  match path with 
+    | [] -> true
+    | p :: _ ->  List.exists (fun p' -> (Name.compare p p' = 0)) library_pathL
+
+let prevent_lib_renames p =
+  let exceptions = [] in
+  let (path, n) = Path.to_name_list p in
+  let path_n_s = (List.map Name.to_string path, Name.to_string n) in
+  if (List.mem path_n_s exceptions) then false else is_lib_path path
+
+(* end hack *)
+
+
+
 let flatten_modules_macro path env ((d,s),l,lenv) =
   let l_unk = Ast.Trans("flatten_modules", Some l) in
     match d with
@@ -94,7 +117,7 @@ let rename_constant (targ : Target.non_ident_target) (consts : NameSet.t) (const
   let (n_is_shown, n) = constant_descr_to_name (Target_no_ident targ) c_d in
 
   (* if constant name is not printed (e.g. for some special syntax, don't rename it *)
-  if (not n_is_shown) then (consts_new, env) else
+  if (not n_is_shown || prevent_lib_renames c_d.const_binding) then (consts_new, env) else
   begin
     (* apply target specific renaming *)
     let nk = const_descr_to_kind (c, c_d) in
@@ -162,6 +185,7 @@ let rename_type (targ : Target.non_ident_target) (consts : NameSet.t) (consts_ne
           (consts_new', env')
         end
 end
+
 
 
 let rename_defs_target (targ : Target.target) ue consts env = 

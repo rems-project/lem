@@ -2638,8 +2638,12 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
   | Val_def (Fun_def (s1, rec_flag, targets, clauses),tnvs,class_constraints) ->
       let (_, is_rec) = Typed_ast_syntax.is_recursive_def d in
       if in_target targets then 
+        let is_simple = not is_rec && (match Seplist.to_list clauses with
+          | [(_, _, ps, _, _, _)] -> List.for_all (fun p -> (Pattern_syntax.is_var_wild_pat p)) ps
+          | _ -> false) 
+        in
         let s2 = match rec_flag with FR_non_rec -> None | FR_rec sk -> sk in
-        ws s1 ^ kwd (if is_rec then "function (sequential)" else "fun") ^ ws s2 ^
+        ws s1 ^ kwd (if is_rec then "function (sequential)" else (if is_simple then "definition" else "fun")) ^ ws s2 ^
         (if T.target = Target_ident then
            targets_opt targets 
          else
@@ -2648,7 +2652,7 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
         flat (Seplist.to_sep_list (isa_funcl_default (kwd "= ")) (sep T.def_sep) clauses) ^
         (if is_rec then (kwd "\nby pat_completeness auto") else emp) ^
         (match val_def_get_name d with None -> emp | Some n ->
-          (if is_rec then emp else 
+          (if is_rec || is_simple then emp else 
                 (kwd (String.concat "" ["\ndeclare "; Name.to_string n; ".simps [simp del]"])))) ^
         new_line
       else emp
