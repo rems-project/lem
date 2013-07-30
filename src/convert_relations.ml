@@ -844,14 +844,14 @@ let rec path_lookup (e : local_env) (mp : Name.t list) : local_env option =
           | Some(e) -> path_lookup e.mod_env ns
 
 (* TODO : || -> either, && -> *, forall -> (->), exists -> ... *)
-let gen_witness_type_aux (env : env) mod_path l names rules = 
+let gen_witness_type_aux (env : env) mod_path l names rules warn_incomplete = 
   let rels = get_rels env l names rules in
   let localrels = Nfmap.fold (fun localrels relname reldescr ->
     Cdmap.insert localrels (reldescr.rel_const_ref, reldescr)
   ) Cdmap.empty rels 
   in
   (* Return (maybe) the witness type for a relation. *)
-  let is_relation e = match exp_to_term e with
+  let relation_witness e = match exp_to_term e with
     | Constant {descr=c_ref} ->
       begin match Cdmap.apply localrels c_ref with
         | Some r -> 
@@ -872,6 +872,26 @@ let gen_witness_type_aux (env : env) mod_path l names rules =
       end
     | _ -> None
   in
+  (* Check whether an expression contains the name of an inductive 
+     relation and emit a warning in this case *)
+  let is_relation c_ref = 
+    Cdmap.in_dom c_ref localrels
+          || (let c_d = c_env_lookup l env.c_env c_ref in c_d.env_tag = K_relation)
+  in
+  let check_complete = match warn_incomplete with
+    | false -> ignore
+    | true -> fun e ->
+      let entities = add_exp_entities empty_used_entities e in
+      if List.exists is_relation entities.used_consts
+      then Reporting.report_warning env
+        (Reporting.Warn_general(false, l, "An incomplete witness will be generated"))
+  in
+  let is_head_relation e =
+    let (head, args) = split_app e in
+    match relation_witness head with
+      | Some v -> List.iter check_complete args; Some v
+      | None -> check_complete e; None
+  in
   let tds = Nfmap.fold (fun tds relname reldescr ->
     match reldescr.rel_witness with
       | None -> tds
@@ -880,7 +900,7 @@ let gen_witness_type_aux (env : env) mod_path l names rules =
           let consname = gen_consname rule.rule_name in
           let vars_ty = List.map (fun (_,t) -> t) rule.rule_vars in
           let conds_ty = map_filter 
-            (fun cond -> is_relation (fst (split_app cond))) rule.rule_conds in
+            (fun cond -> is_head_relation cond) rule.rule_conds in
           let argstypes = vars_ty @ conds_ty in
           (rule.rule_name, consname, argstypes)
         ) reldescr.rel_rules in
@@ -891,14 +911,14 @@ let gen_witness_type_aux (env : env) mod_path l names rules =
 let gen_witness_type_info l mod_path ctxt names rules = 
   let env = defn_ctxt_get_cur_env ctxt in
   let tds = gen_witness_type_aux env mod_path l 
-    names rules in
+    names rules true in
   let newctxt = register_types l ctxt mod_path tds in
   newctxt
 
 let gen_witness_type_def env l mpath localenv names rules local =
   let l = loc_trans "gen_witness_type_def" l in
   let tds = gen_witness_type_aux env mpath l
-    names rules in
+    names rules false in
   let r = if Nfmap.is_empty tds then []
   else [(make_typedef env l tds, None),  l, local] in
   r
@@ -1176,7 +1196,7 @@ let transform_rule env localrels ((mode, need_wit, out_mode) as full_mode) rel (
             let outputs = match wit_var with
               | Some(wit_name, wit_ty) when fun_wit ->
                 outputs @ [mk_pvar l (Name.add_lskip wit_name) wit_ty]
-              | None -> outputs
+              | _ -> outputs
             in
             let inputs = map_filter id (List.map2 (fun exp m ->
               match m with

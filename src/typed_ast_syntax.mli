@@ -369,6 +369,8 @@ type used_entities = { used_consts : const_descr_ref list; used_types : Path.t l
 (** An empty collection of entities *)
 val empty_used_entities : used_entities
 
+val add_exp_entities : used_entities -> exp -> used_entities
+
 (** [get_checked_module_entities targ ml] gets all the modules, types, constants ... used by modules [ml] for target 
     [targ]. Notice that the identity backend won't throw parts of modules away. Therefore the result for the identiy backend
     is the union of the results for all other backends. *)
