@@ -2431,6 +2431,7 @@ let ast_def_to_target_opt = function
     | Ast.Open _ -> None
     | Ast.Spec_def _ -> None
     | Ast.Class _ -> None
+    | Ast.Rename _ -> None
     | Ast.Instance _ -> None
 
 
@@ -2540,6 +2541,19 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           in
             (add_m_to_ctxt l' ctxt2 (Name.strip_lskip n) { mod_binding = Path.mk_path mod_path n'; mod_env = new_ctxt.new_defs },
              Some (Module(sk1,(n,l'),Path.mk_path mod_path n',sk2,sk3,ds,sk4)))
+      | Ast.Rename(sk1, xl', sk2, id) ->
+          let l' = Ast.xl_to_l xl' in
+          let n = Name.from_x xl' in 
+          let mod_descr = lookup_mod ctxt.cur_env id in
+            add_m_to_ctxt l' ctxt (Name.strip_lskip n) mod_descr,
+              Some (Rename(sk1,
+                          (n,l'), 
+                          Path.mk_path mod_path (Name.strip_lskip n),
+                          sk2,
+                          { id_path = Id_some (Ident.from_id id);
+                            id_locn = l;
+                            descr = mod_descr;
+                            instantiation = []; }))
       | Ast.Open(sk,i) -> 
           let mod_descr = lookup_mod ctxt.cur_env i in
           let env = mod_descr.mod_env in

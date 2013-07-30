@@ -113,6 +113,16 @@ tnvar =  (* Union of type variables and Nexp type variables, with locations *)
 
 
 type 
+nexp_constraint =  (* Location-annotated Nexp range *)
+   Range_l of nexp_constraint_aux * l
+
+
+type 
+c =  (* Typeclass constraints *)
+   C of id * tnvar
+
+
+type 
 lit_aux =  (* Literal constants *)
    L_true of terminal
  | L_false of terminal
@@ -126,13 +136,11 @@ lit_aux =  (* Literal constants *)
 
 
 type 
-nexp_constraint =  (* Location-annotated Nexp range *)
-   Range_l of nexp_constraint_aux * l
-
-
-type 
-c =  (* Typeclass constraints *)
-   C of id * tnvar
+cs =  (* Typeclass and length constraint lists *)
+   Cs_empty
+ | Cs_classes of (c * terminal) list * terminal (* Must have $>0$ constraints *)
+ | Cs_lengths of (nexp_constraint * terminal) list * terminal (* Must have $>0$ constraints *)
+ | Cs_both of (c * terminal) list * terminal * (nexp_constraint * terminal) list * terminal (* Must have $>0$ of both form of constraints *)
 
 
 type 
@@ -152,14 +160,6 @@ and typ =  (* Location-annotated types *)
 type 
 lit = 
    Lit_l of lit_aux * l (* Location-annotated literal constants *)
-
-
-type 
-cs =  (* Typeclass and length constraint lists *)
-   Cs_empty
- | Cs_classes of (c * terminal) list * terminal (* Must have $>0$ constraints *)
- | Cs_lengths of (nexp_constraint * terminal) list * terminal (* Must have $>0$ constraints *)
- | Cs_both of (c * terminal) list * terminal * (nexp_constraint * terminal) list * terminal (* Must have $>0$ of both form of constraints *)
 
 
 type 
@@ -185,10 +185,23 @@ ne =  (* internal numeric expressions *)
 
 
 type 
-fpat =  (* Field patterns *)
-   Fpat of id * terminal * pat * l
+c_pre =  (* Type and instance scheme prefixes *)
+   C_pre_empty
+ | C_pre_forall of terminal * (tnvar) list * terminal * cs (* Must have $>0$ type variables *)
 
-and pat_aux =  (* Patterns *)
+
+type 
+target =  (* Backend target names *)
+   Target_hol of terminal
+ | Target_isa of terminal
+ | Target_ocaml of terminal
+ | Target_coq of terminal
+ | Target_tex of terminal
+ | Target_html of terminal
+
+
+type 
+pat_aux =  (* Patterns *)
    P_wild of terminal (* Wildcards *)
  | P_as of terminal * pat * terminal * x_l * terminal (* Named patterns *)
  | P_typ of terminal * pat * terminal * typ * terminal (* Typed patterns *)
@@ -206,6 +219,9 @@ and pat_aux =  (* Patterns *)
 and pat =  (* Location-annotated patterns *)
    Pat_l of pat_aux * l
 
+and fpat =  (* Field patterns *)
+   Fpat of id * terminal * pat * l
+
 
 type 
 q =  (* Quantifiers *)
@@ -217,22 +233,6 @@ type
 tannot_opt =  (* Optional type annotations *)
    Typ_annot_none
  | Typ_annot_some of terminal * typ
-
-
-type 
-target =  (* Backend target names *)
-   Target_hol of terminal
- | Target_isa of terminal
- | Target_ocaml of terminal
- | Target_coq of terminal
- | Target_tex of terminal
- | Target_html of terminal
-
-
-type 
-c_pre =  (* Type and instance scheme prefixes *)
-   C_pre_empty
- | C_pre_forall of terminal * (tnvar) list * terminal * cs (* Must have $>0$ type variables *)
 
 
 type 
@@ -251,6 +251,36 @@ t =  (* Internal types *)
 
 and t_args =  (* Lists of types *)
    T_args of (t) list
+
+
+type 
+typschm =  (* Type schemes *)
+   Ts of c_pre * typ
+
+
+type 
+witness_opt =  (* Optional witness type name declaration. Must be present for a witness type to be generated. *)
+   Witness_none
+ | Witness_some of terminal * terminal * x_l * terminal
+
+
+type 
+check_opt =  (* Option check name declaration *)
+   Check_none
+ | Check_some of terminal * x_l * terminal
+
+
+type 
+functions_opt =  (* Optional names and types for functions to be generated. Types should use only in, out, unit, or the witness type *)
+   Functions_none
+ | Functions_one of x_l * terminal * typ
+ | Functions_some of x_l * terminal * typ * terminal * functions_opt
+
+
+type 
+targets =  (* Backend target name lists *)
+   Targets_concrete of terminal * (target * terminal) list * terminal
+ | Targets_neg_concrete of terminal * (target * terminal) list * terminal (* all targets except the listed ones *)
 
 
 type 
@@ -316,9 +346,10 @@ and letbind =  (* Location-annotated let bindings *)
 
 
 type 
-targets =  (* Backend target name lists *)
-   Targets_concrete of terminal * (target * terminal) list * terminal
- | Targets_neg_concrete of terminal * (target * terminal) list * terminal (* all targets except the listed ones *)
+fixity_decl = 
+   Fixity_right_assoc of terminal * int
+ | Fixity_left_assoc of terminal * int
+ | Fixity_non_assoc of terminal * int
 
 
 type 
@@ -333,33 +364,15 @@ ctor_def =  (* Datatype definition clauses *)
 
 
 type 
-witness_opt =  (* Optional witness type name declaration. Must be present for a witness type to be generated. *)
-   Witness_none
- | Witness_some of terminal * terminal * x_l * terminal
+indreln_name_aux =  (* Name for inductively defined relation *)
+   Inderln_name_Name of terminal * x_l * terminal * typschm * witness_opt * check_opt * functions_opt * terminal
 
 
 type 
-check_opt =  (* Option check name declaration *)
-   Check_none
- | Check_some of terminal * x_l * terminal
-
-
-type 
-functions_opt =  (* Optional names and types for functions to be generated. Types should use only in, out, unit, or the witness type *)
-   Functions_none
- | Functions_one of x_l * terminal * typ
- | Functions_some of x_l * terminal * typ * terminal * functions_opt
-
-
-type 
-typschm =  (* Type schemes *)
-   Ts of c_pre * typ
-
-
-type 
-elim_opt = 
-   Elim_opt_none
- | Elim_opt_some of exp
+lemma_typ =  (* Types of Lemmata *)
+   Lemma_assert of terminal
+ | Lemma_lemma of terminal
+ | Lemma_theorem of terminal
 
 
 type 
@@ -381,6 +394,19 @@ type
 exhaustivity_setting = 
    Exhaustivity_setting_exhaustive of terminal
  | Exhaustivity_setting_inexhaustive of terminal
+
+
+type 
+elim_opt = 
+   Elim_opt_none
+ | Elim_opt_some of exp
+
+
+type 
+target_rep_rhs = 
+   Target_rep_rhsinfix of terminal * fixity_decl * id
+ | Target_rep_rhsreplacement of id * (x_l) list
+ | Target_rep_rhsspecial of terminal * terminal * Ulib.UTF8.t * (exp) list
 
 
 type 
@@ -407,21 +433,26 @@ funcl =  (* Location-annotated function clauses *)
 
 
 type 
-indreln_name_aux =  (* Name for inductively defined relation *)
-   Inderln_name_Name of terminal * x_l * terminal * typschm * witness_opt * check_opt * functions_opt * terminal
+indreln_name =  (* Location-annotated name for inductively defined relations *)
+   Name_l of indreln_name_aux * l
 
 
 type 
-lemma_typ =  (* Types of Lemmata *)
-   Lemma_assert of terminal
- | Lemma_lemma of terminal
- | Lemma_theorem of terminal
+instschm =  (* Instance schemes *)
+   Is of c_pre * terminal * id * typ * terminal
+
+
+type 
+lemma_decl =  (* Lemmata and Tests *)
+   Lemma_named of lemma_typ * targets option * x_l * terminal * terminal * exp * terminal
+ | Lemma_unnamed of lemma_typ * targets option * terminal * exp * terminal
 
 
 type 
 declare_def =  (* declarations *)
    Decl_rename_decl of terminal * targets option * terminal * component * id * terminal * x_l
  | Decl_ascii_rep_decl of terminal * targets option * terminal * component * id * terminal * x_l
+ | Decl_target_rep_decl of terminal * target * terminal * id * (id) list * terminal * target_rep_rhs
  | Decl_set_flag_decl of terminal * terminal * id * terminal * x_l
  | Decl_termination_argument_decl of terminal * targets option * terminal * id * terminal * termination_setting
  | Decl_pattern_match_decl of terminal * targets option * terminal * exhaustivity_setting * x_l * tnvar list * terminal * terminal * (exp) list * terminal * elim_opt
@@ -448,22 +479,6 @@ val_def =  (* Value definitions *)
    Let_def of terminal * targets option * letbind (* Non-recursive value definitions *)
  | Let_rec of terminal * terminal * targets option * (funcl * terminal) list (* Recursive function definitions *)
  | Let_inline of terminal * terminal * targets option * letbind (* Function definitions to be inlined *)
-
-
-type 
-indreln_name =  (* Location-annotated name for inductively defined relations *)
-   Name_l of indreln_name_aux * l
-
-
-type 
-instschm =  (* Instance schemes *)
-   Is of c_pre * terminal * id * typ * terminal
-
-
-type 
-lemma_decl =  (* Lemmata and Tests *)
-   Lemma_named of lemma_typ * targets option * x_l * terminal * terminal * exp * terminal
- | Lemma_unnamed of lemma_typ * targets option * terminal * exp * terminal
 
 
 type 

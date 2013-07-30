@@ -92,6 +92,18 @@ let kw_table =
      ("declare",                 (fun x -> Declare(x)));
      ("constant"),               (fun x -> Constant(x));
      ("field"),                  (fun x -> Field(x));
+     ("automatic"),              (fun x -> Automatic(x));
+     ("manual"),                 (fun x -> Manual(x));
+     ("exhaustive"),             (fun x -> Exhaustive(x));
+     ("inexhaustive"),           (fun x -> Inexhaustive(x));
+     ("ascii_rep"),              (fun x -> AsciiRep(x));
+     ("set_flag"),               (fun x -> SetFlag(x));
+     ("termination_argument"),   (fun x -> TerminationArgument(x));
+     ("pattern_match"),          (fun x -> PatternMatch(x));
+     ("right_assoc"),            (fun x -> RightAssoc(x));
+     ("left_assoc"),             (fun x -> LeftAssoc(x));
+     ("non_assoc"),              (fun x -> NonAssoc(x));
+     ("special"),                (fun x -> Special(x));
      ("target_type",             (fun x -> TargetType(x)));
      ("target_const",            (fun x -> TargetConst(x)));
      ("lemma",                   (fun x -> Lemma(x)));
