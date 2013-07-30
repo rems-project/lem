@@ -77,6 +77,8 @@ let mk_const_ref (env : env) l (c_ref : const_descr_ref) inst =
 
 
 let and_const_ref env = get_const_ref env ["Pervasives"] "&&"
+let eq_const_ref env = get_const_ref env ["Pervasives"] "="
+let id_const_ref env = get_const_ref env ["Pervasives"] "id"
 
 let mk_fun_ty args ret =
   List.fold_right (fun a b -> {t=Tfn(a,b)}) args ret
@@ -300,6 +302,7 @@ let map_partition f l =
 type code = 
   | IF of exp * code 
   | CALL of const_descr_ref * exp list * pat list * code
+  | LET of pat * exp * code
   | IFEQ of exp * exp * code 
   | RETURN of exp list
 
@@ -462,6 +465,9 @@ module type COMPILATION_CONTEXT = sig
   (* exp bool -> exp m a -> exp m a *)
   val mk_cond : Typed_ast.env -> Ast.l -> Typed_ast.exp -> Typed_ast.exp -> Typed_ast.exp
 
+  (* pat a -> exp a -> exp m b -> exp m b *)
+  val mk_let : Typed_ast.env -> Ast.l -> Typed_ast.pat -> Typed_ast.exp -> Typed_ast.exp -> Typed_ast.exp
+
   (* type b -> exp a -> (exp a * exp m b) list -> m b *)
   val mk_choice : Typed_ast.env -> Ast.l -> Types.t -> Typed_ast.exp ->
     (Typed_ast.pat * Typed_ast.exp) list -> Typed_ast.exp
@@ -539,6 +545,8 @@ module Context_pure : COMPILATION_CONTEXT = struct
     let l = loc_trans "mk_bind" l in
     mk_case_exp false l e [(pat, code)] (exp_to_typ code)
 
+  let mk_let env l p e code = mk_bind env l e p code
+
   let mk_cond env l cond code =
     let l = loc_trans "mk_cond" l in
     mk_if_exp l cond code (mk_failure env l (remove_type (exp_to_typ code)))
@@ -578,6 +586,14 @@ module Context_option_pre = struct
   let mk_return env l e = mk_some env l e
 
   let mk_failure env l ty = mk_none env l ty
+
+  let mk_let env l pat exp code = 
+    let l = loc_trans "mk_let" l in
+    mk_case_exp false l exp
+      [(pat, code);
+       (mk_pwild l None (exp_to_typ exp), 
+        mk_none env l (remove_option (exp_to_typ code)))]
+      (exp_to_typ code)
 
   let mk_bind env l call pat code = 
     let l = loc_trans "mk_bind" l in
@@ -657,6 +673,9 @@ module Compile(M : COMPILATION_CONTEXT) = struct
         let subexp = compile_code env loc code in
         let cond = mk_eq_exp env e1 e2 in
         M.mk_cond env l cond subexp
+      | LET(p,e,code) ->
+        let subexp = compile_code env loc code in
+        M.mk_let env l p e subexp
       | CALL(n_ref, inp, outp, code) ->
         let subexp = compile_code env loc code in
         let func = mk_const_ref env l n_ref [] in
@@ -1081,18 +1100,21 @@ let transform_rule env localrels ((mode, need_wit, out_mode) as full_mode) rel (
   let (indconds, sideconds) = 
     map_partition (fun x ->
       let (e,args) = split_app x in
-      match exp_to_term e with
-        | Constant {descr = c_ref} ->
+      match exp_to_term e, args with
+        | Constant {descr = eq_ref}, [u;v] when eq_ref = eq_const_ref env ->
+          Right(Left(u,v))
+        | Constant {descr = c_ref}, _ ->
           let c_d = c_env_lookup l env.c_env c_ref in
           begin match c_d with
             | {env_tag = K_relation} ->
               let relinfo = c_env_lookup_rel_info l env.c_env c_ref in
               Left(relinfo.ri_fns , args, gen_witness_var relinfo)
-            | _ -> Right(x)
+            | _ -> Right(Right(x))
           end
-        | _ -> Right(x)
+        | _ -> Right(Right(x))
     ) rule.rule_conds
   in
+  let (usefuleqs, sideconds) = map_partition id sideconds in
   (* map_filter drops relations with no witnesses.
      it's not a problem because if our relation has a witness, all these
      relations must have one *)
@@ -1122,7 +1144,7 @@ let transform_rule env localrels ((mode, need_wit, out_mode) as full_mode) rel (
       let wit = List.fold_left (fun u v -> mk_app l u v None) constr args in
       returns@[wit]
   in
-  let rec build_code known indconds sideconds eqconds =
+  let rec build_code known indconds sideconds eqconds usefuleqs =
     let exp_known e = Nfmap.fold (fun b v _ -> b && Nset.mem v known) 
       true (C.exp_to_free e) in
     let (selected_eqs,eqconds2) = 
@@ -1130,8 +1152,8 @@ let transform_rule env localrels ((mode, need_wit, out_mode) as full_mode) rel (
     let (selected_side,sideconds2) = 
       List.partition (fun e -> exp_known e) sideconds in
     let add_eq eq x = List.fold_left (fun x (e1,e2) -> IFEQ(e1,e2,x)) x eq in
-    let add_side side x = List.fold_left (fun x e -> IF(e,x)) x side in 
-    let rec search notok = function
+    let add_side side x = List.fold_left (fun x e -> IF(e,x)) x side in
+    let rec search_ind notok = function
       | [] ->
         begin match eqconds2,sideconds2 with
           | [], [] when notok = [] && List.for_all exp_known returns -> 
@@ -1147,16 +1169,14 @@ let transform_rule env localrels ((mode, need_wit, out_mode) as full_mode) rel (
             && (fun_out_mode = out_mode)
         in
         match List.filter mode_matches modes with
-          | [] -> search (c::notok) cs
+          | [] -> search_ind (c::notok) cs
           | ((fun_mode, fun_wit, _out_mode), fun_ref) ::ms -> 
             let (outputs, bound, equalities) = convert_output env gen_rn args 
               (List.map (fun m -> m = Rel_mode_in) fun_mode) in
-            let outputs = 
-              if not fun_wit
-              then outputs
-              else
-                let Some(wit_name, wit_ty) = wit_var in
-                outputs@[mk_pvar l (Name.add_lskip wit_name) wit_ty]
+            let outputs = match wit_var with
+              | Some(wit_name, wit_ty) when fun_wit ->
+                outputs @ [mk_pvar l (Name.add_lskip wit_name) wit_ty]
+              | None -> outputs
             in
             let inputs = map_filter id (List.map2 (fun exp m ->
               match m with
@@ -1165,11 +1185,24 @@ let transform_rule env localrels ((mode, need_wit, out_mode) as full_mode) rel (
             ) args fun_mode) in
             CALL(fun_ref, inputs, outputs,
                  build_code (Nset.union bound known) (cs@notok) 
-                   sideconds2 (equalities@eqconds2))
+                   sideconds2 (equalities@eqconds2) usefuleqs)
     in
-    add_eq selected_eqs (add_side selected_side (search [] indconds))
+    let use_eq usefuleqs u v = 
+      (* u is known, v is (maybe) unknown *)
+      let ([output], bound, equalities) = convert_output env gen_rn [v] [false] in
+      LET(output, u, 
+          build_code (Nset.union bound known) indconds
+            sideconds2 (equalities@eqconds2) usefuleqs)
+    in
+    let rec search_eq notok = function
+      | [] -> search_ind [] indconds
+      | (u,v)::es when exp_known u -> use_eq (notok@es) u v
+      | (u,v)::es when exp_known v -> use_eq (notok@es) v u
+      | e::es -> search_eq (e::notok) es
+    in
+    add_eq selected_eqs (add_side selected_side (search_eq [] usefuleqs))
   in
-  (l, patterns, build_code initknown indconds sideconds initeqs)
+  (l, patterns, build_code initknown indconds sideconds initeqs usefuleqs)
 
 
 let transform_rules env localrels mode reldescr print_debug =
