@@ -267,7 +267,7 @@ let instance_to_module (global_env : env) mod_path (env : env) ((d,s),l,lenv) =
             }
           in
           let dict' = ((dict_name,  dict_ref, [], None, None, dict_body):funcl_aux) in
-          let dict = Fun_def(new_line,None,None,Seplist.cons_entry dict' Seplist.empty) in
+          let dict = Fun_def(new_line,FR_non_rec,None,Seplist.cons_entry dict' Seplist.empty) in
           let tnvars_set = 
             List.fold_right Types.TNset.add sem_info.inst_tyvars Types.TNset.empty
           in
@@ -304,14 +304,14 @@ let class_constraint_to_parameter : def_macro = fun mod_path env ((d,s),l,lenv) 
             let env' = env_c_env_update env c c_d_new in
             let n'' = { n with typ = t' } in
             Some(env',
-                 [((Val_def(Fun_def(sk1,None,targs,Seplist.sing (n'',c,new_pats@ps,topt,sk2,e)),tnvs,[]),s),l)])
+                 [((Val_def(Fun_def(sk1,FR_non_rec,targs,Seplist.sing (n'',c,new_pats@ps,topt,sk2,e)),tnvs,[]),s),l)])
           in
           begin
             match lb with
               | Let_def(_,_,_) -> None
-              | Fun_def(sk,None,_,_) -> None
+              | Fun_def(sk,FR_non_rec,_,_) -> None
 
-              | Fun_def(_,Some _,_,_) ->
+              | Fun_def(_,FR_rec _,_,_) ->
                   raise (Reporting_basic.err_todo true l "Recursive function with class constraints")
               | Let_inline _ -> None
          end
@@ -344,13 +344,13 @@ let nvar_to_parameter : def_macro = fun mod_path env ((d,s),l,_) ->
             begin
               match lb with 
               | Let_def(_,_,_) -> None
-              | Fun_def(sk1,None,topt,funs) ->
+              | Fun_def(sk1,_,topt,funs) ->
                   raise (Reporting_basic.err_todo true l "Recursive function with nvars")
-              | Fun_def(sk1,sk2,topt,funs) ->
+              | Fun_def(sk1,_,topt,funs) ->
                   raise (Reporting_basic.err_todo true l "Recursive function with nvars")
               | Let_inline _ ->
                   assert false
-         end
+            end
       | _ -> None
 
 

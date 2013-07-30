@@ -2302,10 +2302,10 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         T.def_end
       else
         emp
-  | Val_def(Fun_def(s1, s2_opt, targets, clauses),tnvs, class_constraints) -> 
+  | Val_def(Fun_def(s1, rec_flag, targets, clauses),tnvs, class_constraints) -> 
       if in_target targets then
         let (is_rec, is_real_rec) = Typed_ast_syntax.is_recursive_def d in
-        let s2 = Util.option_default None s2_opt in
+        let s2 = match rec_flag with FR_non_rec -> None | FR_rec sk -> sk in
         let n = 
           match Seplist.to_list clauses with
             | [] -> assert false
@@ -2635,10 +2635,10 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
                           (kwd (String.concat "" ["\ndeclare "; Name.to_string n; ".simps [simp del]"]))))
       else emp
   
-  | Val_def (Fun_def (s1, s2_opt, targets, clauses),tnvs,class_constraints) ->
+  | Val_def (Fun_def (s1, rec_flag, targets, clauses),tnvs,class_constraints) ->
       let (_, is_rec) = Typed_ast_syntax.is_recursive_def d in
       if in_target targets then 
-        let s2 = Util.option_default None s2_opt in
+        let s2 = match rec_flag with FR_non_rec -> None | FR_rec sk -> sk in
         ws s1 ^ kwd (if is_rec then "function (sequential)" else "fun") ^ ws s2 ^
         (if T.target = Target_ident then
            targets_opt targets 
@@ -2671,7 +2671,7 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
       else
         emp
         
-  | _ -> def callback inside_module d is_user_def
+  | _ -> def_internal callback inside_module d is_user_def
 
 and def callback (inside_module : bool) d is_user_def =
   match T.target with 

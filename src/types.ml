@@ -370,6 +370,31 @@ let rec resolve_nexp_subst (n : nexp) : nexp = match n.nexp with
 
 type const_descr_ref = int
 
+let string_of_const_descr_ref = string_of_int
+
+let nil_const_descr_ref = 0
+let is_nil_const_descr_ref r = (r = 0)
+
+module Cdmap = Finite_map.Fmap_map(
+struct 
+  type t = const_descr_ref
+  let compare = Pervasives.compare
+end)
+
+type 'a cdmap = const_descr_ref * 'a Cdmap.t
+
+let cdmap_lookup (c_env_count, c_env_map) c = Cdmap.apply c_env_map c
+
+let cdmap_update (c_env_count, c_env_map) c_id c_d =
+    (c_env_count, Cdmap.insert c_env_map (c_id, c_d))
+
+let cdmap_insert (c_env_count, c_env_map) c_d = 
+  ((c_env_count+1, Cdmap.insert c_env_map (c_env_count, c_d)), c_env_count)
+
+let cdmap_empty () = (nil_const_descr_ref + 1, Cdmap.empty)
+
+
+
 type constr_family_descr = { 
    constr_list : const_descr_ref list; 
    (** a list of all the constructors *)

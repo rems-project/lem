@@ -83,7 +83,6 @@ let pp_lex_skips ppf sk =
                    Format.fprintf ppf "%s" (Ulib.Text.to_string r)
                | Nl -> Format.fprintf ppf "\\n")
           sks
-
 let combine_lex_skips s1 s2 =
   match (s1,s2) with
     | (None,_) -> s2
@@ -731,12 +730,44 @@ declare_arg :: 'Decl_arg_' ::=
   | string                        				:: :: string
   | <| dexp1 ; ... ; dexpn semi_opt l |>			:: :: record
 
+component :: 'Component_' ::=
+  {{ com components }}
+  | module   :: :: module
+  | function :: :: function
+  | type     :: :: type
+  | constant :: :: constant
+  | field    :: :: field
+
+termination_setting :: 'Termination_setting_' ::=
+  | automatic :: :: automatic
+  | manual    :: :: manual
+
+exhaustivity_setting :: 'Exhaustivity_setting_' ::=
+  | exhaustive   :: :: exhaustive
+  | inexhaustive :: :: inexhaustive
+
+elim_opt :: 'Elim_opt_' ::=
+  |     :: :: none
+  | exp :: :: some
+
+fixity_decl :: 'Fixity_' ::=
+  | right_assoc nat :: :: right_assoc
+  | left_assoc  nat :: :: left_assoc
+  | non_assoc   nat :: :: non_assoc
+
+target_rep_rhs :: 'Target_rep_rhs' ::=
+  | infix fixity_decl id         :: :: infix
+  | 'id' x_l1 ... x_ln           :: :: replacement
+  | special string exp1 ... expn :: :: special
+
 declare_def :: 'Decl_' ::= 
   {{ com declarations }}
-  | declare targets_opt target_type x_l tnvars = declare_arg	:: :: target_type
-    {{ com target type declaration }}
-  | declare targets_opt target_const x_l pat1 ... patn = declare_arg :: :: target_const
-    {{ com target constant declaration }}
+  | declare targets_opt rename component id = x_l                                                 :: :: rename_decl
+  | declare targets_opt ascii_rep component id = x_l                                              :: :: ascii_rep_decl
+  | declare target target_rep id id1 ... idn = target_rep_rhs                                     :: :: target_rep_decl
+  | declare set_flag id = x_l                                                                     :: :: set_flag_decl
+  | declare targets_opt termination_argument id = termination_setting                             :: :: termination_argument_decl
+  | declare targets_opt pattern_match exhaustivity_setting x_l tnvars = [ exp1 .. expn ] elim_opt :: :: pattern_match_decl
 
 val_def :: '' ::= 
   {{ com Value definitions }}
@@ -761,8 +792,6 @@ def_aux :: '' ::=
     {{ com Lemmata }}
   | declare_def                                                 :: :: Declaration
     {{ com a declaration that modifies Lem's behaviour }}
-  | rename targets_opt id = x_l                                 :: :: Ident_rename
-    {{ com Rename constant or type }}
   | module x_l = struct defs end				:: :: Module
     {{ com Module definitions }}
   | module x_l = id						:: :: Rename

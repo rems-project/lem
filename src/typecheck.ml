@@ -2189,7 +2189,7 @@ let letbind_to_funcl_aux sk0 target_opt ctxt (lb : letbind) : val_def = begin
   if create_fun_def then begin
      let (nls, n_ref, n_exp, pL, ty_opt, sk, e) = letbind_to_funcl_aux_dest ctxt lb in
      let sl = Seplist.sing (nls, n_ref, pL, ty_opt, sk, e) in
-     Fun_def(sk0, None, target_opt, sl)
+     Fun_def(sk0, FR_non_rec, target_opt, sl)
   end else begin
     let get_const_from_name_annot (nls : name_lskips_annot) : (Name.t * const_descr_ref) = begin
       let n = Name.strip_lskip nls.term in
@@ -2253,7 +2253,7 @@ let check_val_def (ts : Targetset.t) (mod_path : Name.t list) (l : Ast.l)
           let (lbs,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_funs None target_set_opt l funcls in 
           let ctxt' = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) constraints lconstraints K_let target_set_opt e_v in
           let fauxs = letbinds_to_funcl_aux_rec l ctxt' lbs in
-            (ctxt', e_v, (Fun_def(sk1,Some sk2,target_opt,fauxs)), Tconstraints(tnvs,constraints,lconstraints))
+            (ctxt', e_v, (Fun_def(sk1,FR_rec sk2,target_opt,fauxs)), Tconstraints(tnvs,constraints,lconstraints))
       | Ast.Let_inline (sk1,sk2,_,lb) -> 
           let (lb,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_letbind None target_set_opt l lb in 
           let ctxt' = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) constraints lconstraints K_let target_set_opt e_v in
@@ -2426,12 +2426,12 @@ let ast_def_to_target_opt = function
     | Ast.Lemma(Ast.Lemma_unnamed(_,target_opt,_,_,_)) -> Some target_opt
     | Ast.Lemma(Ast.Lemma_named(_,target_opt,_,_,_,_,_)) -> Some target_opt
     | Ast.Type_def _ -> None
-    | Ast.Ident_rename _ -> None
+    | Ast.Declaration _ -> None
     | Ast.Module _ -> None
-    | Ast.Rename _ -> None
     | Ast.Open _ -> None
     | Ast.Spec_def _ -> None
     | Ast.Class _ -> None
+    | Ast.Rename _ -> None
     | Ast.Instance _ -> None
 
 
@@ -2445,13 +2445,14 @@ let change_effective_backends (backend_targets : Targetset.t) (Ast.Def_l(def,l))
             | Some(ts) -> 
                 Some(Targetset.inter ts backend_targets)
         end
+;;
 
 (* backend_targets is the set of targets for which all variables must be defined
  * (i.e., the current backends, not the set of targets that this definition if
  * for) *)
 let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list) 
       (ctxt : defn_ctxt) (Ast.Def_l(def,l)) semi_sk semi 
-      : defn_ctxt * def_aux =
+      : defn_ctxt * (def_aux option) =
   let module T = 
     struct 
       let d = ctxt.all_tdefs 
@@ -2465,16 +2466,16 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let tdefs = Seplist.from_list tdefs in
           let new_ctxt = build_type_defs mod_path ctxt tdefs in
           let (res,new_ctxt) = build_ctor_defs mod_path new_ctxt tdefs in
-            (new_ctxt,Type_def(sk,res))
+            (new_ctxt, Some (Type_def(sk,res)))
       | Ast.Val_def(val_def) ->
           let (ctxt',_,vd,Tconstraints(tnvs,constraints,lconstraints)) = 
             check_val_def backend_targets mod_path l ctxt val_def 
           in
-            (ctxt', Val_def(vd,tnvs, constraints))
+            (ctxt', Some (Val_def(vd,tnvs, constraints)))
       | Ast.Lemma(lem) ->
             let (ctxt', sk, lty, targs, name_opt, sk2, e, sk3) = check_lemma l backend_targets ctxt lem in
-            (ctxt', Lemma(sk, lty, targs, name_opt, sk2, e, sk3))
-      | Ast.Ident_rename(sk1,target_opt,id,sk2,xl') ->        
+            (ctxt', Some (Lemma(sk, lty, targs, name_opt, sk2, e, sk3)))
+      | Ast.Declaration(Ast.Decl_rename_decl(sk1, target_opt, sk2, component, id, sk3, xl')) ->
           let l' = Ast.xl_to_l xl' in
           let n' = Name.from_x xl' in 
           let id' = Ident.from_id id in
@@ -2482,31 +2483,52 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
 
           (* do the renaming *)
           let (nk, p) = lookup_name (defn_ctxt_get_cur_env ctxt) id in
-          let ctxt' = match nk with
-            | (Nk_const c | Nk_field c | Nk_constr c) ->
-              begin 
-                let cd = c_env_lookup l ctxt.ctxt_c_env c in
-                let cd' = List.fold_left (fun cd t -> 
-                   match constant_descr_rename t (Name.strip_lskip n') l cd with
-                     | Some (cd', _) -> cd'
-                     | None -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal (l, "could not rename constant. This is a bug and should not happen."))))
-                   cd (targets_opt_to_list targs) in
-                let c_env' = c_env_update ctxt.ctxt_c_env c cd' in
-                {ctxt with ctxt_c_env = c_env'}
-              end
-            | Nk_typeconstr p -> 
-              begin 
-                let td' = List.fold_left (fun td t -> type_defs_rename_type l td p t (Name.strip_lskip n'))
-                   ctxt.all_tdefs (targets_opt_to_list targs) in
-                {ctxt with all_tdefs = td'}
-              end
-            | Nk_module m -> ctxt
-            | Nk_class -> ctxt
-          in
-             (ctxt',
-             (Ident_rename(sk1, targs,
+          let rename_component component nk ctxt =
+            match (component, nk) with
+              | (Ast.Component_constant _, Nk_const c)
+              | (Ast.Component_field _, Nk_field c)
+              | (Ast.Component_constant _, Nk_constr c) ->
+                  begin 
+                    let cd = c_env_lookup l ctxt.ctxt_c_env c in
+                    let cd' = List.fold_left (fun cd t -> 
+                      match constant_descr_rename t (Name.strip_lskip n') l cd with
+                        | Some (cd', _) -> cd'
+                        | None -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal (l, "could not rename constant. This is a bug and should not happen."))))
+                          cd (targets_opt_to_list targs)
+                    in
+                      let c_env' = c_env_update ctxt.ctxt_c_env c cd' in
+                        {ctxt with ctxt_c_env = c_env'},
+                        Some (Ident_rename(sk1, targs,
+                          p, id', 
+                          sk2, (n', l')))
+                  end
+              | (Ast.Component_type _, Nk_typeconstr p) -> 
+                begin 
+                  let td' = List.fold_left (fun td t -> type_defs_rename_type l td p t (Name.strip_lskip n'))
+                     ctxt.all_tdefs (targets_opt_to_list targs)
+                  in
+                    {ctxt with all_tdefs = td'},
+                    Some (Ident_rename(sk1, targs,
                      p, id', 
-                     sk2, (n', l'))))
+                     sk2, (n', l')))
+                end
+            | (Ast.Component_module _, Nk_module m) ->
+                let l' = Ast.xl_to_l xl' in
+                let n = Name.from_x xl' in 
+                let mod_descr = lookup_mod ctxt.cur_env id in
+                  add_m_to_ctxt l' ctxt (Name.strip_lskip n) mod_descr,
+                    Some (Rename(sk1,
+                            (n,l'), 
+                            Path.mk_path mod_path (Name.strip_lskip n),
+                            sk2,
+                            { id_path = Id_some (Ident.from_id id);
+                              id_locn = l;
+                              descr = mod_descr;
+                              instantiation = []; }))
+            | (Ast.Component_type _, Nk_class) -> ctxt, None
+            | _, _ -> ctxt, None
+          in
+            rename_component component nk ctxt
       | Ast.Module(sk1,xl,sk2,sk3,Ast.Defs(defs),sk4) ->
           let l' = Ast.xl_to_l xl in
           let n = Name.from_x xl in 
@@ -2518,29 +2540,29 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let ctxt2 = {new_ctxt with new_defs = ctxt.new_defs; cur_env = ctxt.cur_env }
           in
             (add_m_to_ctxt l' ctxt2 (Name.strip_lskip n) { mod_binding = Path.mk_path mod_path n'; mod_env = new_ctxt.new_defs },
-             Module(sk1,(n,l'),Path.mk_path mod_path n',sk2,sk3,ds,sk4))
-      | Ast.Rename(sk1,xl',sk2,i) ->
+             Some (Module(sk1,(n,l'),Path.mk_path mod_path n',sk2,sk3,ds,sk4)))
+      | Ast.Rename(sk1, xl', sk2, id) ->
           let l' = Ast.xl_to_l xl' in
           let n = Name.from_x xl' in 
-          let mod_descr = lookup_mod ctxt.cur_env i in
-            (add_m_to_ctxt l' ctxt (Name.strip_lskip n) mod_descr,
-             (Rename(sk1,
-                     (n,l'), 
-                     Path.mk_path mod_path (Name.strip_lskip n),
-                     sk2,
-                     { id_path = Id_some (Ident.from_id i);
-                       id_locn = l;
-                       descr = mod_descr;
-                       instantiation = []; })))
+          let mod_descr = lookup_mod ctxt.cur_env id in
+            add_m_to_ctxt l' ctxt (Name.strip_lskip n) mod_descr,
+              Some (Rename(sk1,
+                          (n,l'), 
+                          Path.mk_path mod_path (Name.strip_lskip n),
+                          sk2,
+                          { id_path = Id_some (Ident.from_id id);
+                            id_locn = l;
+                            descr = mod_descr;
+                            instantiation = []; }))
       | Ast.Open(sk,i) -> 
           let mod_descr = lookup_mod ctxt.cur_env i in
           let env = mod_descr.mod_env in
             ({ ctxt with cur_env = local_env_union ctxt.cur_env env },
-             (Open(sk,
+             (Some (Open(sk,
                    { id_path = Id_some (Ident.from_id i);
                      id_locn = l;
                      descr = mod_descr;
-                     instantiation = []; })))
+                     instantiation = []; }))))
       | Ast.Indreln(sk, target_opt, names, clauses) ->
           let module T = struct include T let targets = backend_targets end in
           let module Checker = Make_checker(T) in
@@ -2592,10 +2614,10 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let newctxt = Conv.gen_witness_check_info l mod_path newctxt ns' cls' in
           let newctxt = Conv.gen_fns_info l mod_path newctxt ns' cls' in
             (newctxt,
-             (Indreln(sk,target_opt_checked,ns',cls')))
+             (Some (Indreln(sk,target_opt_checked,ns',cls'))))
       | Ast.Spec_def(val_spec) ->
           let (ctxt,vs) = check_val_spec l mod_path ctxt val_spec in
-            (ctxt, Val_spec(vs))
+            (ctxt, Some (Val_spec(vs)))
       | Ast.Class(sk1,sk2,xl,tnv,sk4,specs,sk5) ->
           (* extract class_name cn / cn', the free type variable tv, location l' and full class path p *)
 
@@ -2677,7 +2699,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let ctxt''' = {ctxt'' with all_tdefs = type_defs_update_fields l ctxt''.all_tdefs type_path field_refs} in 
 
           (* all done, return the result *)
-          (ctxt''',  Class(sk1,sk2,(cn,l'),tnvar,type_path,sk4,List.rev vspecs, sk5))
+          (ctxt''', Some (Class(sk1,sk2,(cn,l'),tnvar,type_path,sk4,List.rev vspecs, sk5)))
       | Ast.Instance(sk1,Ast.Is(cs,sk2,id,typ,sk3),vals,sk4) ->
           (* TODO: Check for duplicate instances *)
           let (src_cs, tyvars, tnvarset, (sem_cs,sem_rs)) =
@@ -2811,8 +2833,8 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
               inst_methods = methods; }
           in
             (add_instance_to_ctxt ctxt p (CInstance (l, tyvars, sem_cs, src_t.typ, instance_path)),
-             Instance(sk1,(src_cs,sk2,Ident.from_id id, src_t, sk3), List.rev vdefs, sk4, 
-                      sem_info))
+             Some (Instance(sk1,(src_cs,sk2,Ident.from_id id, src_t, sk3), List.rev vdefs, sk4, 
+                      sem_info)))
 
 
 and check_defs (backend_targets : Targetset.t) (mod_path : Name.t list)
@@ -2824,22 +2846,28 @@ and check_defs (backend_targets : Targetset.t) (mod_path : Name.t list)
         let s = if semi then Some(sk) else None in
           match change_effective_backends backend_targets d with
             | None ->
-                let (ctxt,d) = 
-                  check_def backend_targets mod_path ctxt d sk semi
-                in
-                let (ctxt,ds) = check_defs backend_targets mod_path ctxt ds in
-                  (ctxt, ((d,s),l,ctxt.cur_env)::ds)
+              begin
+                let (ctxt,d) = check_def backend_targets mod_path ctxt d sk semi in
+                let (ctxt, ds) = check_defs backend_targets mod_path ctxt ds in
+                  begin
+                    match d with
+                      | None -> (ctxt, ds)
+                      | Some d -> (ctxt, ((d,s),l,ctxt.cur_env)::ds)
+                  end
+              end
             | Some(new_backend_targets) ->
+              begin
                 if Targetset.is_empty new_backend_targets then
                   check_defs backend_targets mod_path ctxt ds
                 else
-                  let (ctxt,d) = 
-                    check_def new_backend_targets mod_path ctxt d sk semi 
-                  in
-                  let (ctxt,ds) = 
-                    check_defs backend_targets mod_path ctxt ds 
-                  in
-                    (ctxt, ((d,s),l,ctxt.cur_env)::ds)
+                  let (ctxt,d) = check_def new_backend_targets mod_path ctxt d sk semi in
+                  let (ctxt,ds) = check_defs backend_targets mod_path ctxt ds in
+                    begin
+                      match d with
+                        | None -> (ctxt, ds)
+                        | Some d -> (ctxt, ((d,s),l,ctxt.cur_env)::ds)
+                    end
+              end
 
 (* Code to check that identifiers in type checked program conform to regular expressions specified in type definitions *)
 
