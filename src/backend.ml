@@ -2671,7 +2671,7 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
       else
         emp
         
-  | _ -> def callback inside_module d is_user_def
+  | _ -> def_internal callback inside_module d is_user_def
 
 and def callback (inside_module : bool) d is_user_def =
   match T.target with 
