@@ -152,12 +152,6 @@ and lit_aux =
 
 type const_descr_ref = Types.const_descr_ref
 
-(** a nil reference *)
-val nil_const_descr_ref : const_descr_ref
-val is_nil_const_descr_ref : const_descr_ref -> bool
-
-module Cdmap : Finite_map.Fmap with type k = const_descr_ref
-
 type pat = (pat_aux,pat_annot) annot
 and pat_annot = { pvars : Types.t Nfmap.t }
 
@@ -401,11 +395,16 @@ val in_targets_opt : Target.target -> targets_opt -> bool
 (** [target_opt_to_list targets_opt] returns a distinct list of all the targets in the option. *)
 val targets_opt_to_list : targets_opt -> Target.non_ident_target list
 
+(** [fun_def_rec_flag] is used to encode, whether a [Fun_def] is recursive. The recursive one carries some whitespace for
+    printing after the rec-keyword. *)
+type fun_def_rec_flag =
+  | FR_non_rec
+  | FR_rec of lskips
+
 type val_def = 
   | Let_def of lskips * targets_opt * (pat * (Name.t * const_descr_ref) list * (lskips * src_t) option * lskips * exp)
-  | Fun_def of lskips * lskips option * targets_opt * funcl_aux lskips_seplist
-    (** [Fun_def (sk1, sk2_opt, topt, clauses)] encodes a function definition, which might consist of multiple clauses. If
-        [sk2_opt] is [None], it is a non-recursive definition, otherwise, a recursive one. *)
+  | Fun_def of lskips * fun_def_rec_flag * targets_opt * funcl_aux lskips_seplist
+    (** [Fun_def (sk1, rec_flag, topt, clauses)] encodes a function definition, which might consist of multiple clauses. *)
   | Let_inline of lskips * lskips * targets_opt * name_lskips_annot * const_descr_ref * name_lskips_annot list * lskips * exp
 
 (** Semantic information about an instance that is used for the dictionary

@@ -589,9 +589,9 @@ let generate_coq_record_update_notation e =
                     ]
                 else
                   ws skips ^ from_string "(* [?]: removed value definition intended for another target. *)"
-            | Fun_def (skips, skips'_opt, targets, funcl_skips_seplist) ->
+            | Fun_def (skips, rec_flag, targets, funcl_skips_seplist) ->
                 if in_target targets then
-                  let skips' = Util.option_default None skips'_opt in
+                  let skips' = match rec_flag with FR_non_rec -> None | FR_rec sk -> sk in
                   let header =
                     if snd (Typed_ast_syntax.is_recursive_def m) then
                       Output.flat [
