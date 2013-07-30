@@ -215,11 +215,15 @@ let add_used_entities_to_avoid_names env targ ue ns =
 begin
   let l = Ast.Trans (false, "add_used_entities_to_avoid_names", None) in
 
-  let avoid_consts = true in
+  let avoid_consts =  match targ with
+                        | Target_no_ident Target_hol -> false 
+                        | _ -> true
+  in
   let avoid_types = match targ with
                       | Target_no_ident Target_isa -> false
+                      | Target_no_ident Target_hol -> false
                       | _ -> true in
-  let avoid_modules = true in
+  let avoid_modules = false in
 
   let add_avoid_const ns r = begin
     let c_d = c_env_lookup l env.c_env r in

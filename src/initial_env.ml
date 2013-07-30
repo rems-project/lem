@@ -257,6 +257,9 @@ struct
   let env = set_target_const_rep env ["Pervasives"] "SUC" Target_isa (CR_new_ident (Ast.Unknown, false, Ident.mk_ident_strings [] "Suc"));;
   let env = set_target_const_rep env ["Pervasives"] "SUC" Target_hol (CR_new_ident (Ast.Unknown, false, Ident.mk_ident_strings [] "SUC"));;
 
+  let env = set_target_const_rep env ["Pervasives"] "Some" Target_hol (CR_rename (Ast.Unknown, false, Name.from_string "SOME"));;
+  let env = set_target_const_rep env ["Pervasives"] "None" Target_hol (CR_rename (Ast.Unknown, false, Name.from_string "NONE"));;
+
   let init : t =
     (env,
      [(Target_no_ident Target_hol,

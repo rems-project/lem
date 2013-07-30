@@ -1048,7 +1048,7 @@ module Hol : Target = struct
       if rrr then
         meta (Format.sprintf "val %s_defn = Hol_defn \"%s\" `\n" n n)
       else
-        meta (Format.sprintf "val %s_def = Define `\n" n)
+        meta (Format.sprintf "val _ = Define `\n")
   let rec_def_footer _ rrr n =
      if rrr then
        meta (Format.sprintf "\nval _ = Lib.with_flag (computeLib.auto_import_definitions, false) Defn.save_defn %s_defn;" 
