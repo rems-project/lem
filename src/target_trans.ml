@@ -213,7 +213,7 @@ let underscore_avoid_f consts =
 
 let add_used_entities_to_avoid_names env targ ue ns =
 begin
-  let l = Ast.Trans ("add_used_entities_to_avoid_names", None) in
+  let l = Ast.Trans (false, "add_used_entities_to_avoid_names", None) in
 
   let avoid_consts = true in
   let avoid_types = match targ with

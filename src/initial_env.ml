@@ -116,7 +116,7 @@ let rec add_target_to_def target c_env (defs : local_env) : (c_env * local_env) 
 
   let defs' = {defs with m_env = m_env'} in
   let c_env'' = Nfmap.fold (fun c_env k c ->
-        let c_d = c_env_lookup (Ast.Trans ("add_target_to_def", None)) c_env c in
+        let c_d = c_env_lookup (Ast.Trans (false, "add_target_to_def", None)) c_env c in
         let c_d' = { c_d with const_targets = Targetset.singleton target } in
         c_env_update c_env c c_d')
         c_env' defs.v_env

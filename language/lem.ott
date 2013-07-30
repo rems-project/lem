@@ -53,7 +53,7 @@ type text = Ulib.Text.t
 
 type l =
   | Unknown
-  | Trans of string * l option
+  | Trans of bool (* do pretty-printing? *) * string * l option 
   | Range of Lexing.position * Lexing.position
 
 exception Parse_error_locn of l * string
@@ -100,7 +100,7 @@ open Pervasives
 
 type l =
   | Unknown
-  | Trans of string * option l
+  | Trans of bool * string * option l
   | Range of num * num
 
 type lex_skip =

@@ -1410,7 +1410,7 @@ and patlist ps =
 
 
 let rec exp e = 
-let is_user_exp = is_trans_exp e in
+let is_user_exp = is_pp_exp e in
 match C.exp_to_term e with
   | Var(n) ->
       Name.to_output Term_var n
@@ -1446,7 +1446,7 @@ match C.exp_to_term e with
       T.function_end
 
   | App(e1,e2) ->
-      let trans e = block (is_trans_exp e) 0 (exp e) in
+      let trans e = block (is_pp_exp e) 0 (exp e) in
       let sep = (texspace ^ break_hint_space 2) in
 
       let oL = begin
@@ -1463,7 +1463,7 @@ match C.exp_to_term e with
       block is_user_exp 0 o
 
   | Infix(e1,e2,e3) ->      
-      let trans e = block (is_trans_exp e) 0 (exp e) in
+      let trans e = block (is_pp_exp e) 0 (exp e) in
       let sep = (texspace ^ break_hint_space 2) in
 
       let oL = begin
@@ -1601,16 +1601,16 @@ match C.exp_to_term e with
       ws s1 ^
       break_hint_cut ^
       T.cond_if ^
-      block (is_trans_exp e1) 0 (exp e1) ^
+      block (is_pp_exp e1) 0 (exp e1) ^
       ws s2 ^
       T.cond_then ^
       break_hint_space 2 ^
-      block (is_trans_exp e2) 0 (exp e2) ^
+      block (is_pp_exp e2) 0 (exp e2) ^
       ws s3 ^
       break_hint_space 0 ^
       T.cond_else ^
       break_hint_space 2 ^
-      block (is_trans_exp e3) 0 (exp e3))
+      block (is_pp_exp e3) 0 (exp e3))
 
   | Lit(l) ->
       lit l (exp_to_typ e)
@@ -1685,7 +1685,7 @@ match C.exp_to_term e with
         kwd "(" ^ 
         flat (List.map (isa_quant q) qbs) ^
         break_hint_space 2 ^
-        block (is_trans_exp e) 0 (
+        block (is_pp_exp e) 0 (
         ws s2 ^ exp e) ^
         kwd ")")
       else 
@@ -1766,7 +1766,7 @@ and case_line (p,s1,e,_) =
   pat p ^
   ws s1 ^
   T.case_line_sep ^
-  block (is_trans_exp e) 2 (exp e)
+  block (is_pp_exp e) 2 (exp e)
 
 and tyvar_binding tvs = emp
 (*
@@ -2728,7 +2728,7 @@ let rec defs (ds:def list) =
     (fun ((d,s),l,lenv) y -> 
        begin
         let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = lenv } end)(X) in
-        F'.def defs false d (is_trans_loc l)
+        F'.def defs false d (is_pp_loc l)
        end ^
 
        begin

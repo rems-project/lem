@@ -2155,7 +2155,7 @@ let check_target_opt : Ast.targets option -> Typed_ast.targets_opt = function
       Some(true, s1,Seplist.from_list targs,s2)
 
 let letbind_to_funcl_aux_dest (ctxt : defn_ctxt) (lb_aux, l) = begin
-  let l = Ast.Trans("letbind_to_funcl_aux_dest", Some l) in
+  let l = Ast.Trans(false, "letbind_to_funcl_aux_dest", Some l) in
   let module C = Exps_in_context(struct let env_opt = None let avoid = None end) in
   let get_const_exp_from_name (nls : name_lskips_annot) : (const_descr_ref * exp) = begin
     let n = Name.strip_lskip nls.term in
@@ -2181,7 +2181,7 @@ let letbind_to_funcl_aux_dest (ctxt : defn_ctxt) (lb_aux, l) = begin
 end 
 
 let letbind_to_funcl_aux sk0 target_opt ctxt (lb : letbind) : val_def = begin
-  let l = Ast.Trans ("letbind_to_funcl_aux", None) in
+  let l = Ast.Trans (false, "letbind_to_funcl_aux", None) in
   let create_fun_def = match lb with
      | (Let_val (p, _, _, _), _) -> Pattern_syntax.is_ext_var_pat p
      | _ -> true
@@ -2751,7 +2751,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let tmp_all_inst = 
             List.fold_left 
               (fun instances (p, tv) -> 
-                 insert_pfmap_list instances p (CInstance (Ast.Trans ("Internal Instance", Some l), [], [], tnvar_to_type tv, instance_path)))
+                 insert_pfmap_list instances p (CInstance (Ast.Trans (false, "Internal Instance", Some l), [], [], tnvar_to_type tv, instance_path)))
               ctxt.all_instances
               sem_cs in
           let ctxt_inst0 = { ctxt with new_defs = empty_local_env; all_instances = tmp_all_inst } in

@@ -78,7 +78,7 @@ let prevent_lib_renames p =
 
 
 let flatten_modules_macro path env ((d,s),l,lenv) =
-  let l_unk = Ast.Trans("flatten_modules", Some l) in
+  let l_unk = Ast.Trans(false, "flatten_modules", Some l) in
     match d with
       | Module(sk1,n,mod_path,sk2,sk3,ds,sk4) ->
           let mod_shell = ((Module(sk1,n,mod_path,sk2,sk3,[],sk4),s),l,lenv) in
@@ -112,7 +112,7 @@ let get_fresh_name consts consts' n =
 
 let rename_constant (targ : Target.non_ident_target) (consts : NameSet.t) (consts_new : NameSet.t) (env : env) (c : const_descr_ref) : 
   (NameSet.t * env) = begin
-  let l = Ast.Trans ("rename_constant", None) in
+  let l = Ast.Trans (false, "rename_constant", None) in
   let c_d = c_env_lookup l env.c_env c in
   let (n_is_shown, n) = constant_descr_to_name (Target_no_ident targ) c_d in
 
@@ -153,7 +153,7 @@ end
 
 let rename_type (targ : Target.non_ident_target) (consts : NameSet.t) (consts_new : NameSet.t) (env : env) (t : Path.t) : 
   (NameSet.t * env) = begin
-  let l = Ast.Trans ("rename_type", None) in
+  let l = Ast.Trans (false, "rename_type", None) in
   let td = Types.type_defs_lookup l env.t_env t in
   let n = type_descr_to_name (Target_no_ident targ) t td in
 

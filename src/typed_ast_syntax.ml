@@ -96,6 +96,15 @@ let env_tag_to_string = function
     | K_relation -> "relation"
 
 
+let is_pp_loc = function
+    Ast.Trans (b, _, _) -> b
+  | _ -> false
+
+let is_pp_exp e =
+  is_pp_loc (exp_to_locn e)
+
+let is_pp_def (((_, _), l, _) : def) =  is_pp_loc l
+
 
 (* -------------------------------------------------------------------------- *)
 (* navigating environments                                                    *)
@@ -129,20 +138,26 @@ let rec lookup_mod_descr (e : local_env) (mp : Name.t list) (n : Name.t) : mod_d
 let rec lookup_mod_descr_opt (e : local_env) (mp : Name.t list) (n : Name.t) : mod_descr option = 
   Util.option_bind (fun e -> Nfmap.apply e.m_env n) (lookup_env_opt e mp)
 
-let names_get_const (env : env) mp n =
-  let l = Ast.Trans ("names_get_const", None) in
+let names_get_const_ref (env : env) mp n = 
+  let l = Ast.Trans(false, "names_get_const_ref", None) in
   let local_env = lookup_env env.local_env mp in
-  let c_ref = match Nfmap.apply local_env.v_env n with
-      | Some(d) -> d
-      | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "names_get_const: env did not contain constant!"))) in
-  let c_d = c_env_lookup l env.c_env c_ref in
+  match Nfmap.apply local_env.v_env n with
+    | Some(d) -> d
+    | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "names_get_const_ref: env did not contain constant!")))
+
+let get_const_ref (env : env) mp n =
+  names_get_const_ref env (List.map (fun n -> (Name.from_rope (r n))) mp) (Name.from_rope (r n))
+
+let names_get_const (env : env) mp n =
+  let c_ref = names_get_const_ref env mp n in
+  let c_d = c_env_lookup Ast.Unknown env.c_env c_ref in
   (c_ref, c_d)
 
 let get_const (env : env) mp n =
   names_get_const env (List.map (fun n -> (Name.from_rope (r n))) mp) (Name.from_rope (r n))
 
 let rec names_get_field env mp n =
-  let l = Ast.Trans ("names_get_field", None) in
+  let l = Ast.Trans (false, "names_get_field", None) in
   let local_env = lookup_env env.local_env mp in
   let c_ref = match Nfmap.apply local_env.f_env n with
       | Some(d) -> d
@@ -154,7 +169,7 @@ let get_field (env : env) mp n =
   names_get_field env (List.map (fun n -> (Name.from_rope (r n))) mp) (Name.from_rope (r n))
 
 let dest_field_types l env (f : const_descr_ref) =
-  let l = Ast.Trans("dest_field_types", Some l) in 
+  let l = Ast.Trans(false, "dest_field_types", Some l) in 
   let f_d = c_env_lookup l env.c_env f in
   let full_type = f_d.const_type in
   match Types.dest_fn_type (Some env.t_env) full_type with
@@ -163,21 +178,21 @@ let dest_field_types l env (f : const_descr_ref) =
     | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "not a field type")))
 
 let get_field_type_descr l env (f : const_descr_ref) =
-  let l = Ast.Trans("get_field_type_descr", Some l) in 
+  let l = Ast.Trans(false, "get_field_type_descr", Some l) in 
   let (f_field_arg, f_tconstr, f_d) = dest_field_types l env f in
   match Types.Pfmap.apply env.t_env f_tconstr with
     | Some(Types.Tc_type(td)) -> td
     | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "not a field type")))
 
 let get_field_all_fields l env (f : const_descr_ref) : const_descr_ref list =
-  let l = Ast.Trans("get_field_all_fields", Some l) in 
+  let l = Ast.Trans(false, "get_field_all_fields", Some l) in 
   let td = get_field_type_descr l env f in
   match td.Types.type_fields with
     | Some(fl) -> fl
     | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "not a field type")))
 
 let update_const_descr l up c env =
-  let l = Ast.Trans("update_const_descr", Some l) in 
+  let l = Ast.Trans(false, "update_const_descr", Some l) in 
   let cd = c_env_lookup l env.c_env c in
   let new_cd = up cd in
   let new_c_env = c_env_update env.c_env c new_cd in
@@ -241,7 +256,7 @@ let type_descr_set_ident  (targ : Target.non_ident_target) (i:Ident.t) (l' : Ast
   Util.option_map save_env rep_info_opt
 
 let type_defs_rename_type l (d : type_defs) (p : Path.t) (t: Target.non_ident_target) (n : Name.t) : type_defs =
-  let l' = Ast.Trans ("type_defs_rename_type", Some l) in
+  let l' = Ast.Trans (false, "type_defs_rename_type", Some l) in
   let up td = begin
     let res_opt = type_descr_rename t n l td in
     Util.option_map (fun (td, _) -> td) res_opt
@@ -249,7 +264,7 @@ let type_defs_rename_type l (d : type_defs) (p : Path.t) (t: Target.non_ident_ta
   Types.type_defs_update_tc_type l' d p up
 
 let type_defs_new_ident_type l (d : type_defs) (p : Path.t) (t: Target.non_ident_target) (i : Ident.t) : type_defs =
-  let l' = Ast.Trans ("type_defs_target_type", Some l) in
+  let l' = Ast.Trans (false, "type_defs_target_type", Some l) in
   let up td = type_descr_set_ident t i l td in
   Types.type_defs_update_tc_type l' d p up
 
@@ -265,12 +280,12 @@ let env_apply (env : env) n =
     | None ->
   match Nfmap.apply env.local_env.f_env n with    
       Some r -> 
-        let d = c_env_lookup (Ast.Trans ("env_apply", None)) env.c_env r in
+        let d = c_env_lookup (Ast.Trans (false, "env_apply", None)) env.c_env r in
         Some (Nk_field r, d.const_binding, d.spec_l)
     | None ->
   match Nfmap.apply env.local_env.v_env n with
       Some r -> 
-        let d = c_env_lookup (Ast.Trans ("env_apply", None)) env.c_env r in
+        let d = c_env_lookup (Ast.Trans (false, "env_apply", None)) env.c_env r in
         Some (const_descr_to_kind (r, d), d.const_binding, d.spec_l)
     | None -> 
   match Nfmap.apply env.local_env.m_env n with
@@ -361,7 +376,7 @@ let rec is_var_tup_exp e = is_var_exp e ||
      List.for_all is_var_tup_exp eL)
 
 let mk_tf_exp b =
-  let l = Ast.Trans ("mk_tf_exp", None) in
+  let l = Ast.Trans (false, "mk_tf_exp", None) in
   let lit = C.mk_lbool l None b (Some bool_ty) in
   let exp = C.mk_lit l lit (Some bool_ty) 
 in exp
@@ -381,7 +396,7 @@ let dest_num_exp e =
 let is_num_exp e = not (dest_tf_exp e = None)
 
 let mk_num_exp i = 
-  let l = Ast.Trans ("mk_num_exp", None) in
+  let l = Ast.Trans (false, "mk_num_exp", None) in
   let lit = C.mk_lnum l None i (Some num_ty) in
   C.mk_lit l lit (Some num_ty)
 
@@ -409,18 +424,18 @@ let is_const_exp e = not (dest_const_exp e = None)
 
 
 let mk_case_exp final (l:Ast.l) (in_e : exp) (rows : (pat * exp) list) (ty : Types.t) : exp =
-  let loc = Ast.Trans ("mk_case_exp", Some l) in
+  let loc = Ast.Trans (true, "mk_case_exp", Some l) in
   let rows_sep_list = Seplist.from_list (List.map (fun (p,e) -> ((pat_append_lskips space p, space, fst (alter_init_lskips space_init_ws e), loc), space)) rows) in
   C.mk_case final loc None in_e space rows_sep_list space (Some ty)
 
 let mk_case_exp_new_line final (l:Ast.l) (in_e : exp) (rows : (pat * exp) list) (ty : Types.t) : exp =
-  let loc = Ast.Trans ("mk_case_exp", Some l) in
+  let loc = Ast.Trans (true, "mk_case_exp", Some l) in
   let case_space = Some [Ast.Ws (r"\n  ")] in
   let rows_sep_list = Seplist.from_list (List.map (fun (p,e) -> ((pat_append_lskips space p, space, fst (alter_init_lskips space_init_ws e), loc), case_space)) rows) in
   C.mk_case final loc new_line in_e space rows_sep_list new_line (Some ty)
 
 let mk_let_exp (l:Ast.l) ((n: Name.t), (e1:exp)) (e2:exp) : exp =
-  let loc = Ast.Trans ("mk_let_exp", Some l) in
+  let loc = Ast.Trans (true, "mk_let_exp", Some l) in
 
   let (e1'', _) = alter_init_lskips remove_init_ws e1 in
   let e1' = append_lskips space e1'' in
@@ -452,7 +467,7 @@ let mk_const_exp (env : env) l mp n inst =
   C.mk_const l c (Some t)
 
 let mk_eq_exp env (e1 : exp) (e2 : exp) : exp =
-  let l = Ast.Trans ("mk_eq", None) in
+  let l = Ast.Trans (true, "mk_eq", None) in
   let ty = exp_to_typ e1 in  
 
   let ty_0 = { Types.t = Types.Tfn (ty, bool_ty) } in
@@ -468,7 +483,7 @@ let mk_eq_exp env (e1 : exp) (e2 : exp) : exp =
   res
 
 let mk_and_exp env (e1 : exp) (e2 : exp) : exp =
-  let l = Ast.Trans ("mk_and_exp", None) in
+  let l = Ast.Trans (true, "mk_and_exp", None) in
   let ty_0 = { Types.t = Types.Tfn (bool_ty, bool_ty) } in
   let ty_1 = { Types.t = Types.Tfn (bool_ty, ty_0) } in
 
@@ -482,7 +497,7 @@ let mk_and_exp env (e1 : exp) (e2 : exp) : exp =
   res
 
 let mk_le_exp env (e1 : exp) (e2 : exp) : exp =
-  let l = Ast.Trans ("mk_le_exp", None) in
+  let l = Ast.Trans (true, "mk_le_exp", None) in
   let ty_0 = { Types.t = Types.Tfn (num_ty, bool_ty) } in
   let ty_1 = { Types.t = Types.Tfn (num_ty, ty_0) } in
 
@@ -496,7 +511,7 @@ let mk_le_exp env (e1 : exp) (e2 : exp) : exp =
   res
 
 let mk_add_exp env (e1 : exp) (e2 : exp) : exp =
-  let l = Ast.Trans ("matrix_compile_mk_add", None) in
+  let l = Ast.Trans (true, "matrix_compile_mk_add", None) in
   let ty_0 = { Types.t = Types.Tfn (num_ty, num_ty) } in
   let ty_1 = { Types.t = Types.Tfn (num_ty, ty_0) } in
 
@@ -510,7 +525,7 @@ let mk_add_exp env (e1 : exp) (e2 : exp) : exp =
   res
 
 let mk_sub_exp env (e1 : exp) (e2 : exp) : exp =
-  let l = Ast.Trans ("matrix_compile_mk_sub", None) in
+  let l = Ast.Trans (true, "matrix_compile_mk_sub", None) in
   let ty_0 = { Types.t = Types.Tfn (num_ty, num_ty) } in
   let ty_1 = { Types.t = Types.Tfn (num_ty, ty_0) } in
 
@@ -524,14 +539,14 @@ let mk_sub_exp env (e1 : exp) (e2 : exp) : exp =
   res
 
 let mk_num_add_exp env n i = 
-  let l = Ast.Trans ("mk_num_add_exp", None) in
+  let l = Ast.Trans (true, "mk_num_add_exp", None) in
   let e1 = C.mk_var l (Name.add_lskip n) num_ty in
   let e2 = mk_num_exp i in
   let ee = mk_add_exp env e1 e2 in
   mk_opt_paren_exp ee
 
 let mk_num_sub_exp env n i = 
-  let l = Ast.Trans ("mk_num_sub_exp", None) in
+  let l = Ast.Trans (true, "mk_num_sub_exp", None) in
   let e1 = C.mk_var l  (Name.add_lskip n) num_ty in
   let e2 = mk_num_exp i in
   let ee = mk_sub_exp env e1 e2 in
@@ -539,7 +554,7 @@ let mk_num_sub_exp env n i =
 
 
 let mk_from_list_exp env (e : exp) : exp =
-  let l = Ast.Trans ("mk_from_list_exp", None) in
+  let l = Ast.Trans (true, "mk_from_list_exp", None) in
 
   let list_ty = exp_to_typ e in
   let base_ty = match list_ty.Types.t with
@@ -552,7 +567,7 @@ let mk_from_list_exp env (e : exp) : exp =
   res
 
 let mk_cross_exp env (e1 : exp) (e2 : exp) : exp =
-  let l = Ast.Trans ("mk_cross_exp", None) in
+  let l = Ast.Trans (true, "mk_cross_exp", None) in
 
   let get_set_type e = match (exp_to_typ e).Types.t with
        | Types.Tapp([t],_) -> t
@@ -570,7 +585,7 @@ let mk_cross_exp env (e1 : exp) (e2 : exp) : exp =
   res
 
 let mk_set_sigma_exp env (e1 : exp) (e2 : exp) : exp =
-  let l = Ast.Trans ("mk_set_sigma_exp", None) in
+  let l = Ast.Trans (true, "mk_set_sigma_exp", None) in
 
   let (e1_ty, e2_ty) = match (exp_to_typ e2).Types.t with
        | Types.Tfn(e1_ty, {Types.t = Types.Tapp([e2_ty],_)}) -> (e1_ty, e2_ty)
@@ -586,7 +601,7 @@ let mk_set_sigma_exp env (e1 : exp) (e2 : exp) : exp =
   res
 
 let mk_set_filter_exp env (e_P : exp) (e_s : exp) : exp =
-  let l = Ast.Trans ("mk_filter_exp", None) in
+  let l = Ast.Trans (true, "mk_filter_exp", None) in
 
   let set_ty = match (exp_to_typ e_P).Types.t with
        | Types.Tfn (ty_a, _) -> ty_a
@@ -602,7 +617,7 @@ let mk_set_filter_exp env (e_P : exp) (e_s : exp) : exp =
 
 
 let mk_set_image_exp env (e_f : exp) (e_s : exp) : exp =
-  let l = Ast.Trans ("mk_image_exp", None) in
+  let l = Ast.Trans (true, "mk_image_exp", None) in
 
   let (ty_a, ty_b) = match (exp_to_typ e_f).Types.t with
        | Types.Tfn (ty_a, ty_b) -> (ty_a, ty_b)
@@ -617,7 +632,7 @@ let mk_set_image_exp env (e_f : exp) (e_s : exp) : exp =
   res
 
 let mk_fun_exp (pL : pat list) (e_s : exp) : exp =
-  let l = Ast.Trans ("mk_fun_exp", None) in
+  let l = Ast.Trans (true, "mk_fun_exp", None) in
   let pL' = List.map (fun p -> fst (pat_alter_init_lskips space_com_init_ws p)) pL in
   let res_ty = Types.multi_fun (List.map (fun p -> p.typ) pL) (exp_to_typ e_s) in
   let res = C.mk_fun l space pL' space (mk_opt_paren_exp e_s) (Some res_ty) in
@@ -627,7 +642,7 @@ let mk_opt_fun_exp pL e_s =
   if (Util.list_longer 0 pL) then mk_fun_exp pL e_s else e_s
 
 let mk_app_exp d e1 e2 =
-  let l = Ast.Trans ("mk_app_exp", None) in
+  let l = Ast.Trans (true, "mk_app_exp", None) in
   let b_ty = match Types.dest_fn_type (Some d) (exp_to_typ e1) with
                | None -> raise (Reporting_basic.err_type l "non-function in application")
                | Some (_, b_ty) -> b_ty
@@ -701,16 +716,6 @@ let val_def_get_name d : Name.t option = match d with
          | P_var ns -> Some (Name.strip_lskip ns)
          | _ -> None)
   | _ -> None
-
-let is_trans_loc = function
-    Ast.Trans _ -> true
-  | _ -> false
-
-let is_trans_exp e =
-  is_trans_loc (exp_to_locn e)
-
-let is_trans_def (((_, _), l, _) : def) =  is_trans_loc l
-
 
 let is_type_def_abbrev (((d, _), _, _):def) = 
   match d with
@@ -1014,7 +1019,7 @@ let is_recursive_def (d:def_aux) =
 
 let mk_eta_expansion_exp t_env (vars : Name.t list) (e : exp) : exp =
 begin
-  let l = Ast.Trans ("mk_eta_expansion", Some (exp_to_locn e)) in
+  let l = Ast.Trans (true, "mk_eta_expansion", Some (exp_to_locn e)) in
 
   (* make the variable names distinct from any already used names and from each other *)
   let fv_map = C.exp_to_free e in

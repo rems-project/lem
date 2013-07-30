@@ -458,10 +458,9 @@ let env_no_update_exp l p =
 
 let type_defs_update_tc_type (l : Ast.l) (d : type_defs) (p : Path.t) (up : type_descr -> type_descr option) : type_defs =
 begin
-  let l = Ast.Trans ("type_defs_update_tc_type", Some l) in
   let td = match (Pfmap.apply d p) with
     | Some (Tc_type td) -> td
-    | _ -> raise (env_no_type_exp l p)
+    | _ -> raise (env_no_type_exp (Ast.Trans (false, "type_defs_update_tc_type", Some l)) p)
   in
   match up td with
     | Some td' -> Pfmap.insert d (p, Tc_type td')
@@ -469,15 +468,15 @@ begin
 end
 
 let type_defs_update_fields l (d : type_defs) (p : Path.t) (fl : const_descr_ref list) : type_defs =
-  let l = Ast.Trans ("type_defs_update_fields", Some l) in
+  let l = Ast.Trans (false, "type_defs_update_fields", Some l) in
   type_defs_update_tc_type l d p (fun tc -> Some {tc with type_fields = Some fl})
 
 let type_defs_add_constr_family l (d : type_defs) (p : Path.t) (cf : constr_family_descr) : type_defs =
-  let l = Ast.Trans ("type_defs_add_constr_family", Some l) in
+  let l = Ast.Trans (false, "type_defs_add_constr_family", Some l) in
   type_defs_update_tc_type l d p (fun tc -> Some {tc with type_constr = cf :: tc.type_constr})
 
 let type_defs_lookup l (d : type_defs) (p : Path.t) =
-    let l = Ast.Trans ("type_defs_lookup", Some l) in
+    let l = Ast.Trans (false, "type_defs_lookup", Some l) in
     match (Pfmap.apply d p) with
       | Some (Tc_type td) -> td
       | _ -> raise (env_no_type_exp l p)

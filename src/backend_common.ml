@@ -98,7 +98,7 @@ let rec build_subst (params : name_lskips_annot list) (args : exp list)
 
 let inline_exp l (target : Target.non_ident_target) env was_infix params body tsubst (args : exp list) =
   let module C = Exps_in_context(struct let env_opt = Some env;; let avoid = None end) in
-  let loc = Ast.Trans("inline_exp", Some l) in
+  let loc = Ast.Trans(false, "inline_exp", Some l) in
   let (vsubst, leftover_params, leftover_args) = build_subst params args in
   let b = C.exp_subst (tsubst,vsubst) body in
   let stays_infix = match C.exp_to_term b with
@@ -126,7 +126,7 @@ let inline_exp l (target : Target.non_ident_target) env was_infix params body ts
 
 
 let inline_exp_macro (target : Target.non_ident_target) env e =
-  let l_unk = Ast.Trans("do_substitutions", Some (exp_to_locn e)) in
+  let l_unk = Ast.Trans(false, "do_substitutions", Some (exp_to_locn e)) in
   let module C = Exps_in_context(struct let env_opt = Some env;; let avoid = None end) in
   let (f,args,was_infix) = strip_app_infix_exp e in
     match C.exp_to_term f with
@@ -178,7 +178,7 @@ let ident_to_output use_infix =
 
 
 let const_id_to_ident c_id =
-  let l = Ast.Trans ("const_id_to_ident", None) in
+  let l = Ast.Trans (false, "const_id_to_ident", None) in
   let c_descr = c_env_lookup l A.env.c_env c_id.descr in
   let org_ident = resolve_constant_id_ident (A.env.local_env) c_id c_descr.const_binding in
   let i = match Target.Targetmap.apply_target c_descr.target_rep A.target with
@@ -244,14 +244,14 @@ let pattern_application_to_output (arg_f0 : pat -> Output.t) (c_id : const_descr
      | _ -> constant_application_to_output_simple false arg_f args c_id
 
 let type_path_to_name n0 (p : Path.t) : Name.lskips_t =
-  let l = Ast.Trans ("type_path_to_name", None) in
+  let l = Ast.Trans (false, "type_path_to_name", None) in
   let td = Types.type_defs_lookup l A.env.t_env p in
   let n = type_descr_to_name A.target p td in
   let n' = Name.replace_lskip (Name.add_lskip n) (Name.get_lskip n0) in
   n'
 
 let type_id_to_ident (p : Path.t id) =
-   let l = Ast.Trans ("type_id_to_ident", None) in
+   let l = Ast.Trans (false, "type_id_to_ident", None) in
    let td = Types.type_defs_lookup l A.env.t_env p.descr in
    let org_type = resolve_type_id_ident A.env.local_env p p.descr in
    let i = match Target.Targetmap.apply_target td.Types.type_target_rep A.target with
@@ -268,7 +268,7 @@ let module_id_to_ident (mod_descr : mod_descr id) : Ident.t =
    i'
 
 let const_ref_to_name n0 c =
-  let l = Ast.Trans ("const_ref_to_name", None) in
+  let l = Ast.Trans (false, "const_ref_to_name", None) in
   let c_descr = c_env_lookup l A.env.c_env c in
   let (_, n) = constant_descr_to_name A.target c_descr in
   let n' = Name.replace_lskip (Name.add_lskip n) (Name.get_lskip n0) in

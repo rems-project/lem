@@ -92,28 +92,28 @@ let pattern_gen gen p =
 (******************************************************************************)
 
 let matrix_compile_mk_pvar n ty =
-  let l = Ast.Trans ("matrix_compile_mk_pvar", None) in
+  let l = Ast.Trans (false, "matrix_compile_mk_pvar", None) in
   C.mk_pvar l (Name.add_lskip n) ty
 
 let matrix_compile_mk_var n ty =
-  let l = Ast.Trans ("matrix_compile_mk_var", None) in
+  let l = Ast.Trans (false, "matrix_compile_mk_var", None) in
   C.mk_var l (Name.add_lskip n) ty
 
 let matrix_compile_mk_pwild ty =
-  let l = Ast.Trans ("matrix_compile_mk_pvar", None) in
+  let l = Ast.Trans (false, "matrix_compile_mk_pwild", None) in
   C.mk_pwild l None ty
 
 let matrix_compile_mk_pcons p1 p2 =
-  let l = Ast.Trans ("matrix_compile_mk_pcons", None) in
+  let l = Ast.Trans (true, "matrix_compile_mk_pcons", None) in
   C.mk_pcons l p1 None p2 (Some (annot_to_typ p2))
 
 let matrix_compile_mk_plist pL ty =
-  let l = Ast.Trans ("matrix_compile_mk_plist", None) in
+  let l = Ast.Trans (true, "matrix_compile_mk_plist", None) in
   let psl = Seplist.from_list (List.map (fun p -> (p, None)) pL) in
   C.mk_plist l None psl None ty
 
 let matrix_compile_mk_precord fid pL ty =
-  let l = Ast.Trans ("matrix_compile_mk_precord", None) in
+  let l = Ast.Trans (true, "matrix_compile_mk_precord", None) in
   let psl = Seplist.from_list (List.map2 (fun (id, _) p -> ((id, None, p), None)) fid pL) in
   C.mk_precord l None psl None (Some ty)
 
@@ -295,7 +295,7 @@ let def_to_pat_matrix_list (((d, _), l,_) : def) : (Name.t * (bool * pat_matrix)
 (* and back again *)
 let extended_exp_to_exp ((_, let_list, exp):pat_matrix_ext_exp) : exp =
   let l_org = exp_to_locn exp in
-  let l = Ast.Trans ("extended_exp_to_exp", Some l_org) in
+  let l = Ast.Trans (true, "extended_exp_to_exp", Some l_org) in
   let new_sub n m = (Types.TNfmap.empty, Nfmap.insert Nfmap.empty (n, Sub_rename m)) in
   let sub_fun ((n : Name.t), (en : Name.t)) = (C.exp_subst (new_sub n en)) in
 
@@ -308,7 +308,7 @@ let extended_exp_to_exp ((_, let_list, exp):pat_matrix_ext_exp) : exp =
   r
 
 let pat_matrix_to_exp org_l ((input, rows, _) : pat_matrix) : exp = 
-  let l = Ast.Trans ("pat_matrix_to_exp", Some org_l) in
+  let l = Ast.Trans (true, "pat_matrix_to_exp", Some org_l) in
   let mk_tup_ty (tyL: Types.t list) : Types.t option = Some ({ Types.t = (Types.Ttup tyL); }) in
 
   let from_list xL = Seplist.from_list (List.map (fun x -> (x, None)) xL) in
@@ -385,7 +385,7 @@ let trivial_pat_matrix_to_exp (m : pat_matrix) : exp =
 type pat_matrix_simp = pat_matrix -> pat_matrix option
 
 let pat_matrix_simp_pat l_org ((input, rows, pf) : pat_matrix) : pat_matrix option =
-  let l = Ast.Trans ("pat_matrix_simp_pat", Some l_org) in
+  let l = Ast.Trans (true, "pat_matrix_simp_pat", Some l_org) in
   let pat_simp (p:pat) (i:exp) (ee : pat_matrix_ext_exp) = 
       match p.term with
       | P_wild _ -> None
@@ -563,7 +563,7 @@ let tuple_matrix_compile_fun (gen : var_name_generator) (m_ty : Types.t) l_org :
 
   let tyL = matrix_compile_fun_get (match (annot_to_typ p).Types.t with Types.Ttup tyL -> Some tyL | _ -> None) in
   let _ = matrix_compile_fun_check (List.length tyL = l) in
-  let loc = Ast.Trans ("tuple_matrix_compile_fun", Some l_org) in
+  let loc = Ast.Trans (true, "tuple_matrix_compile_fun", Some l_org) in
 
   (* build auxiliary variables, pattern variables and wildcards *)
   let new_var_nameL = (
@@ -599,7 +599,7 @@ let tuple_matrix_compile_fun (gen : var_name_generator) (m_ty : Types.t) l_org :
 let bool_matrix_compile_fun (gen_match : bool) (gen : var_name_generator) (m_ty : Types.t) l_org : matrix_compile_fun = fun pL ->
   let _ = matrix_compile_fun_check (List.exists is_tf_pat pL) in
   let _ = matrix_compile_fun_check (List.for_all (fun p -> (is_tf_pat p || is_wild_pat p)) pL) in
-  let loc = Ast.Trans ("bool_matrix_compile_fun", Some l_org) in
+  let loc = Ast.Trans (true, "bool_matrix_compile_fun", Some l_org) in
 
   (* Build top-fun *)
   let top_fun : matrix_compile_top_fun  = fun i eL -> match eL with
@@ -626,7 +626,7 @@ let bool_matrix_compile_fun (gen_match : bool) (gen : var_name_generator) (m_ty 
 let list_matrix_compile_fun (gen : var_name_generator) (m_ty : Types.t) l_org : matrix_compile_fun = fun pL ->
   let _ = matrix_compile_fun_check (List.exists (fun p -> (is_cons_pat p || is_list_pat None p)) pL) in
   let _ = matrix_compile_fun_check (List.for_all (fun p -> (is_cons_pat p || is_list_pat None p || is_wild_pat p)) pL) in
-  let loc = Ast.Trans ("list_matrix_compile_fun", Some l_org) in
+  let loc = Ast.Trans (true, "list_matrix_compile_fun", Some l_org) in
 
   let p = List.hd pL in
   let list_ty = annot_to_typ p in
@@ -688,7 +688,7 @@ let list_matrix_compile_fun (gen : var_name_generator) (m_ty : Types.t) l_org : 
 (** [make_id mp n inst c] create an id for the the reference [c] with instantiation [inst] and
     stored under module path [mp] and name [n]. *)
 let make_id (mp: Name.t list option) (n : Name.t) inst (c:const_descr_ref) : (const_descr_ref id) =
-  let loc = Ast.Trans ("constr_matrix_compile_make_id", None) in
+  let loc = Ast.Trans (true, "constr_matrix_compile_make_id", None) in
   let id_p = match mp with None -> Id_none None | Some mp -> Id_some (Ident.mk_ident None mp n) in
   { id_path = id_p;
     id_locn = loc;
@@ -699,7 +699,7 @@ let make_id (mp: Name.t list option) (n : Name.t) inst (c:const_descr_ref) : (co
 let constr_matrix_compile_fun (simp_input: bool) (env : env) (gen : var_name_generator) (m_ty : Types.t) l_org : matrix_compile_fun = fun pL ->
   let ((p : pat), p_id) = matrix_compile_fun_get (Util.option_first (fun p -> Util.option_map (fun (id, _) -> (p, id)) (dest_const_pat p)) pL) in
   let _ = matrix_compile_fun_check (List.for_all (fun p -> (is_const_pat p || is_wild_pat p)) pL) in
-  let loc = Ast.Trans ("constr_matrix_compile_fun", Some l_org) in
+  let loc = Ast.Trans (true, "constr_matrix_compile_fun", Some l_org) in
   let p_ty = annot_to_typ p in  
   let module_path_opt : Name.t list option = match p_id.id_path with Id_none _ -> None | Id_some i -> Some (fst (Ident.to_name_list i)) in
 
@@ -835,7 +835,7 @@ let constr_matrix_compile_fun (simp_input: bool) (env : env) (gen : var_name_gen
 let record_matrix_compile_fun (env : env) (gen : var_name_generator) (m_ty : Types.t) l_org : matrix_compile_fun = fun pL ->
   let ((p : pat), field_p_list) = matrix_compile_fun_get (Util.option_first (fun p -> Util.option_map (fun l -> (p, l)) (dest_record_pat p)) pL) in
   let _ = matrix_compile_fun_check (List.for_all (fun p -> (is_record_pat p || is_wild_pat p)) pL) in
-  let loc = Ast.Trans ("record_matrix_compile_fun", Some l_org) in
+  let loc = Ast.Trans (true, "record_matrix_compile_fun", Some l_org) in
 
   let p_ty = annot_to_typ p in  
   let inst = match p_ty with 
@@ -920,7 +920,7 @@ let cases_matrix_compile_fun dest_pat make_lit (gen_match : bool) env (gen : var
   let _ = matrix_compile_fun_check (List.for_all (fun p -> ((not (dest_pat p = None)) || is_wild_pat p)) pL) in
   let p_ty = annot_to_typ (List.hd pL) in
 
-  let loc = Ast.Trans ("cases_matrix_compile_fun", Some l_org) in
+  let loc = Ast.Trans (true, "cases_matrix_compile_fun", Some l_org) in
   let constL = Util.remove_duplicates (Util.map_filter dest_pat pL) in 
   
   (* Build top-fun *)
@@ -970,11 +970,11 @@ let cases_matrix_compile_fun dest_pat make_lit (gen_match : bool) env (gen : var
 
 
 let num_matrix_compile_fun =
-  let l = Ast.Trans ("num_matrix_compile_fun", None) in
+  let l = Ast.Trans (true, "num_matrix_compile_fun", None) in
   cases_matrix_compile_fun (dest_num_pat) (fun c -> (C.mk_lnum l None c (Some num_ty), num_ty))
 
 let string_matrix_compile_fun =
-  let l = Ast.Trans ("string_matrix_compile_fun", None) in
+  let l = Ast.Trans (true, "string_matrix_compile_fun", None) in
   let string_ty = { Types.t = Types.Tapp ([], Path.stringpath)} in
   cases_matrix_compile_fun (dest_string_pat) (fun c -> (C.mk_lstring l None c (Some string_ty), string_ty)) 
 
@@ -991,7 +991,7 @@ end
 let num_add_matrix_compile_fun_simple env (gen : var_name_generator) (m_ty : Types.t) l_org : matrix_compile_fun = fun pL ->
   let _ = matrix_compile_fun_check (List.exists (fun p -> is_num_add_pat p) pL) in
   let _ = matrix_compile_fun_check (List.for_all (fun p -> ((is_num_add_pat p || is_num_pat p || is_wild_pat p))) pL) in
-  let loc = Ast.Trans ("num_add_matrix_compile_fun_simple", Some l_org) in
+  let loc = Ast.Trans (true, "num_add_matrix_compile_fun_simple", Some l_org) in
   
   (* Build top-fun *)
   let abb_n = gen None num_ty in
@@ -1036,7 +1036,7 @@ let num_add_matrix_compile_fun_simple env (gen : var_name_generator) (m_ty : Typ
 let num_add_matrix_compile_fun (gen_match : bool) (use_split : int -> bool) env (gen : var_name_generator) (m_ty : Types.t) l_org : matrix_compile_fun = fun pL ->
   let _ = matrix_compile_fun_check (List.exists (fun p -> is_num_add_pat p) pL) in
   let _ = matrix_compile_fun_check (List.for_all (fun p -> ((is_num_add_pat p || is_num_pat p || is_wild_pat p))) pL) in
-  let loc = Ast.Trans ("num_add_matrix_compile_fun", Some l_org) in
+  let loc = Ast.Trans (true, "num_add_matrix_compile_fun", Some l_org) in
   
   (* find the smallest add-number (except 0) we need to be able to handle, then perform the split:
      0, 1, 2, ..., min - 1, x + min *)
@@ -1253,7 +1253,7 @@ let check_match_exp env e =
     | Some m -> check_match_internal l env (Reporting.Warn_source_exp e) m 
 
 let check_pat_list env pL =
-  let l = Ast.Trans ("check_pat_list", None) in 
+  let l = Ast.Trans (true, "check_pat_list", None) in 
   match pat_list_to_pat_matrix pL with 
       None -> None 
     | Some m -> check_match_internal l env Reporting.Warn_source_unkown m 
@@ -1395,7 +1395,7 @@ let rec collapse_nested_matches_dest_pat_fun l (no_replace_set : NameSet.t) (ps 
       (* at position p_i there is a non-variable pattern, try to destruct it *)
       let p = List.nth ps p_i in
       let p_ty = (annot_to_typ p) in
-      let l' = Ast.Trans ("remove_toplevel_match_dest_pat_fun", Some l) in
+      let l' = Ast.Trans (true, "remove_toplevel_match_dest_pat_fun", Some l) in
       let skip_res = ([], (fun _ -> p), NameSet.elements (nfmap_domain p.rest.pvars)) in
       let ((pL, d_f, new_avoid) : (pat list *  (pat list -> pat) * Name.t list)) = match p.term with
         | P_as (s1,p,s2,(n,l),s3) -> ([], (fun pL -> C.mk_pas l s1 (List.hd pL) s2 (n, l) s3 (Some p_ty)), [Name.strip_lskip n])
@@ -1451,7 +1451,7 @@ let rec collapse_nested_matches_dest_pat_fun l (no_replace_set : NameSet.t) (ps 
 
 
 let rec collapse_nested_matches mca env exp =
-  let l_unk = Ast.Trans ("collapse_nested_matches", Some (exp_to_locn exp)) in
+  let l_unk = Ast.Trans (true, "collapse_nested_matches", Some (exp_to_locn exp)) in
   match C.exp_to_term exp with 
     | Case (ec, es1, ee, es2, epats, es3) -> 
       begin
@@ -1546,7 +1546,7 @@ let rec pat_matrix_compile (l : Ast.l) (undef_exp : exp) (cf : matrix_compile_fu
 
 let cleanup_match_exp env add_missing e = 
   let l = exp_to_locn e in 
-  let loc = Ast.Trans ("cleanup_match_exp", Some l) in
+  let loc = Ast.Trans (true, "cleanup_match_exp", Some l) in
   match C.exp_to_term e with 
     Case(_,s1,e',s2,patexps,s3) -> 
     (match check_match_exp env e with None -> None | Some mp -> 
@@ -1607,7 +1607,7 @@ let compile_match_exp topt mca env e =
 
         let undef_exp = begin
           let mes = "Incomplete Pattern at " ^ (Reporting_basic.loc_to_string true loc) in
-          let loc' = Ast.Trans ("pat_matrix_compile", Some loc) in
+          let loc' = Ast.Trans (true, "pat_matrix_compile", Some loc) in
           mk_undefined_exp loc' mes matrix_ty 
         end in
         let e' = pat_matrix_compile loc undef_exp cf m in
@@ -1632,7 +1632,7 @@ let compile_match_exp topt mca env e =
 (* Turn function | pat1 -> exp1 ... | patn -> expn end into
  * fun x -> match x with | pat1 -> exp1 ... | patn -> expn end *)
 let remove_function (d:Types.type_defs) (comp: exp -> exp) e = 
-    let l_unk = Ast.Trans("remove_function", Some (exp_to_locn e)) in
+    let l_unk = Ast.Trans(true, "remove_function", Some (exp_to_locn e)) in
       match C.exp_to_term e with
         | Function(s1,cases,s2) ->
             let free = C.exp_to_free e in
@@ -1652,7 +1652,7 @@ let remove_function (d:Types.type_defs) (comp: exp -> exp) e =
 
 (* Remove patterns from (fun ps -> ...), except for variable and wildcard patterns *)
 let remove_fun (comp: exp -> exp) e = 
-  let loc = Ast.Trans("remove_fun", Some (exp_to_locn e)) in
+  let loc = Ast.Trans(true, "remove_fun", Some (exp_to_locn e)) in
   match C.exp_to_term e with
     | Fun(s1,ps,s2,e') -> if (List.for_all is_ext_var_pat ps) then None else
         let gen = mk_var_name_gen (nfmap_domain (C.exp_to_free e')) in
@@ -1677,7 +1677,7 @@ let remove_fun (comp: exp -> exp) e =
 ;;
 
 let remove_let (comp: exp -> exp) e = 
-  let loc = Ast.Trans("remove_let", Some (exp_to_locn e)) in
+  let loc = Ast.Trans(true, "remove_let", Some (exp_to_locn e)) in
   match C.exp_to_term e with
     | Let(s1,(Let_fun(n, ps, topt, s2, e1),l),s3,e2) ->
          let fun_t = List.fold_right (fun p t -> { Types.t = Types.Tfn (p.typ, t) }) ps (exp_to_typ e1) in
@@ -1741,7 +1741,7 @@ let remove_pat_restr_quant_aux loc qbs is_forall e eL =
     (new_qbs, case_exp, case_expL);;
 
 let remove_pat_restr_quant comp e =   
-  let loc = Ast.Trans("remove_pat_restr_quant", Some (exp_to_locn e)) in
+  let loc = Ast.Trans(true, "remove_pat_restr_quant", Some (exp_to_locn e)) in
   let qb_OK = (function | Qb_var _ -> true | Qb_restr(_,_,p,_,_,_) -> is_var_pat p) in
   match C.exp_to_term e with
   | Quant(q,qbs,s,e') ->
@@ -1757,7 +1757,7 @@ let remove_pat_restr_quant comp e =
  * forall (p IN e). P x  goes to
  * forall x IN e. match x with p --> P x | _ -> true*)
 let remove_comp_binding_pat_restr_quant env comp e = 
-  let loc = Ast.Trans("remove_comp_binding_pat_restr_quant", Some (exp_to_locn e)) in
+  let loc = Ast.Trans(true, "remove_comp_binding_pat_restr_quant", Some (exp_to_locn e)) in
   let qb_OK = (function | Qb_var _ -> true | Qb_restr(_,_,p,_,_,_) -> is_var_pat p) in
   match C.exp_to_term e with
   | Comp_binding(is_lst,s1,e1,s2,s5,qbs,s3,e2,s4) ->
@@ -1782,7 +1782,7 @@ let compile_exp topt mca env e =
 
 
 let compile_faux_seplist l env comp s s2_opt t topt org_d (sl : funcl_aux lskips_seplist) : val_def option = 
-   let l = Ast.Trans ("compile_faux_seplist", Some l) in
+   let l = Ast.Trans(true, "compile_faux_seplist", Some l) in
    let (resorted, _, sll) = funcl_aux_seplist_group sl in
    let _ = if not resorted then () else Reporting.report_warning env (Reporting.Warn_fun_clauses_resorted (l, t, List.map (fun (n, _) -> Name.to_string n) sll, org_d)) in
 
@@ -1850,7 +1850,7 @@ let compile_def t mca env_global (_:Name.t list) env_local (((d, s), l, lenv) as
        and f p2 = e2 ... *)
   
 let remove_toplevel_match targ mca env_global _ env_local (((d, s), l, lenv)) =
-  let l_unk = Ast.Trans ("remove_toplevel_match", Some l) in
+  let l_unk = Ast.Trans (true, "remove_toplevel_match", Some l) in
   let env = env_global in
   let aux sk1 sk2_opt topt sl tnvs class_constraints = begin
     let (_, sk_first_opt, group_nameL) = funcl_aux_seplist_group sl in
