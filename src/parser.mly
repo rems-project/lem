@@ -743,10 +743,12 @@ and_indreln_clauses:
 witness_clause:
   | Witness Type x Semi
     { Witness_some($1,$2,$3,$4) }
+  | Semi { Witness_none }
 
 check_clause:
   | Check x Semi
     { Check_some($1,$2,$3) }
+  | { Check_none }
 
 functions_clause:
  | x Colon typ
