@@ -188,10 +188,18 @@ type type_descr = {
   (** target representation of the type *)
 }
 
+type class_descr = { 
+  class_tparam : tnvar; (** the type paremeter of the type class *)
+  class_record : Path.t; (** for dictionary style passing a corresponding record is defined, this is its path *)
+  class_methods : (const_descr_ref * const_descr_ref) list; 
+   (** The methods of the class. For each method there is a corresponding record field. Therefore, methods are represented by pairs
+       (method_ref, field_ref). Details like the names and types can be looked up in the environment. *)
+  class_target_rep : type_target_rep Target.Targetmap.t
+}
+
 type tc_def = 
   | Tc_type of type_descr
-  | Tc_class of tnvar * (Name.t * t) list
-    (** The class' type parameter, and the names and types of the methods *)
+  | Tc_class of class_descr
 
 type type_defs = tc_def Pfmap.t
 
@@ -225,10 +233,17 @@ val mk_tc_type_abbrev : tnvar list -> t -> tc_def
     the names of variables of this type. *)
 val mk_tc_type : tnvar list -> string option -> tc_def
 
-(** An instance carries
-    the location, it vas defined, all the free type variables of the instance, the constrainst of these
-    type vairables, the type the corresponding class is instantiated with and the module the instance is declared in. *)
-type instance = CInstance of Ast.l * tnvar list * (Path.t * tnvar) list * t * Name.t list
+(** an instance of a type class *)
+type instance = {
+  inst_l : Ast.l; (** The location, the instance was declared *)
+  inst_binding : Path.t; (** The path of the instance *)
+  inst_class : Path.t; (** The type class, that is instantiated *)
+  inst_type : t; (** The type, the type-class is instantiated with *)
+  inst_tyvars : tnvar list; (** The free type variables of this instance *)
+  inst_constraints : (Path.t * tnvar) list; (** Type class constraints on the free type variables of the instance *)
+  inst_methods : (const_descr_ref * const_descr_ref) list; (** The methods of this instance. Since each instance method corresponds to one
+    class method it instantiates, the methods are given as a list of pairs [(class_method_ref, instance_method_ref)]. *)
+}
 
 (* A type for contraints collected during type checking. TNset contains the variables the term ranges over, the second are remaining class constraints, and the third remaining length constraints *)
 type typ_constraints = Tconstraints of TNset.t * (Path.t * tnvar) list * range list
@@ -262,20 +277,35 @@ val assert_equal : Ast.l -> string -> type_defs -> t -> t -> unit
 val compare_expand : type_defs -> t -> t -> int
 
 
-(* Gets the instance for the given class and type.  Returns None if there is
- * none.  The returned Name list is to the module enclosing the instance
- * declaration.  The returned map is the instantiation of the instances type
- * variables.  The returned list is the set of instances that the found instance
- * relies on. *)
-val get_matching_instance : type_defs -> (Path.t * t) -> instance list Pfmap.t -> 
-          (Ast.l * Name.t list * t TNfmap.t * (Path.t * t) list) option
+(** an instance environment carries information about all defined instances *)
+type i_env 
+
+(** an empty instance environment *)
+val empty_i_env : i_env 
+
+(** [i_env_add i_env i] adds an additional instance [i] to the instance environment. *)
+val i_env_add : i_env -> instance -> i_env
+
+(** [get_matching_instance type_env (class, ty) i_env] searches for an
+    instantiation of type class [class] instantianted with type [ty]
+    in the type invironment [i_env]. The type environment [type_env]
+    is necessary to match [ty] against other instantiations of
+    [class].  An instance can itself have free typevariables. If a
+    matching instance is found, it is returned to together with the
+    substition, which needs to be applied to the free type variables
+    of the instance in order to match type [t] excactly.  The
+    typevariables of an instances might have attached type
+    constraints. It is not (!) checked, that the found substitution
+    satisfies these constraints.
+*)
+val get_matching_instance : type_defs -> (Path.t * t) -> i_env -> (instance * t TNfmap.t) option
 
 (* Convert a list of nexp into a binary sumation *)
 val nexp_from_list : nexp list -> nexp
 
 module type Global_defs = sig
   val d : type_defs 
-  val i : (instance list) Pfmap.t 
+  val i : i_env
 end 
 
 module Constraint (T : Global_defs) : sig
@@ -296,7 +326,7 @@ val pp_nexp : Format.formatter -> nexp -> unit
 val pp_range : Format.formatter -> range -> unit
 val pp_class_constraint : Format.formatter -> Path.t * tnvar -> unit
 val pp_instance : Format.formatter -> instance -> unit
-val pp_instance_defs: Format.formatter -> (instance list) Pfmap.t -> unit
+val pp_instance_defs: Format.formatter -> i_env -> unit
 
 val t_to_string : t -> string
 

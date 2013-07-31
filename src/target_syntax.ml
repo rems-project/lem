@@ -405,8 +405,8 @@ let rec fix_infix_and_parens env target_opt defs =
                   c)
     | Module(sk1, nl, mod_path, sk2, sk3, ds, sk4) ->
         Module(sk1, nl, mod_path, sk2, sk3, List.map (fun ((d,s),l,lenv) -> ((fix_def d,s),l,lenv)) ds, sk4)
-    | Instance(sk1,is,vdefs,sk2,sem_info) ->
-        Instance(sk1, is, List.map fix_val_def vdefs, sk2, sem_info)
+    | Instance(sk1,is,vdefs,sk2) ->
+        Instance(sk1, is, List.map fix_val_def vdefs, sk2)
     | def -> def
   in
     match defs with

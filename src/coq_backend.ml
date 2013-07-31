@@ -641,7 +641,7 @@ let generate_coq_record_update_notation e =
               ]
       | Val_spec val_spec -> from_string "\n(* [?]: removed value specification. *)\n"
       | Class (skips, skips', name, tyvar, p, skips'', body, skips''') -> from_string "Class"
-      | Instance (skips, instantiation, vals, skips', sem_info) -> from_string "Instance"
+      | Instance (skips, instantiation, vals, skips') -> from_string "Instance"
       | Comment c ->
       	let ((def_aux, skips_opt), l, lenv) = c in
           Output.flat [
