@@ -53,7 +53,7 @@ exception Trans_error of Ast.l * string
 type 'a macro = 'a -> 'a option
 type pat_macro = Macro_expander.pat_position -> pat macro
 
-module Macros (I : Types.Global_defs) (E : sig val env : env end) : sig 
+module Macros (E : sig val env : env end) : sig 
 
   (** {2 Record Macros} *)
   (** [remove_singleton_record_updates] replaces updates of

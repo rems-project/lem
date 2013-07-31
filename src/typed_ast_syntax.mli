@@ -92,6 +92,13 @@ val names_get_const : env -> Name.t list -> Name.t -> const_descr_ref * const_de
 (** [get_const] is a wrapper around [names_get_const] that uses strings instead of names. *)
 val get_const : env -> string list -> string -> const_descr_ref * const_descr
 
+(** [names_get_const_ref env path n] looks up the constant with name [n] reachable via path [path] in
+   the environment [env] *)
+val names_get_const_ref : env -> Name.t list -> Name.t -> const_descr_ref
+
+(** [get_const_ref] is a wrapper around [names_get_const_ref] that uses strings instead of names. *)
+val get_const_ref : env -> string list -> string -> const_descr_ref 
+
 (** [const_descr_to_kind r d] assumes that [d] is the description associated with reference [r]. It
     then determines the kind of constant (field, constructor, constant) depending on the information
     stored in [d]. *)
@@ -147,7 +154,7 @@ val c_env_save : c_env -> const_descr_ref option -> const_descr -> c_env * const
     module-path [mp] and name [n] for target [target] to [rep] in environment [env]. *)
 val set_target_const_rep : env -> string list -> string -> Target.non_ident_target -> const_target_rep -> env
 
-(** [const_descr_to_name targ cd] looks up the representation for target [targ] in the constant
+(** [constant_descr_to_name targ cd] looks up the representation for target [targ] in the constant
     description [cd]. It returns a tuple [(n_is_shown, n)]. The name [n] is the name of the constant for this
     target. [n_is_shown] indiciates, whether this name is actually printed. Special representations or inline representation
     might have a name, that is not used for the output. *)
@@ -404,11 +411,13 @@ val strip_paren_typ_exp : exp -> exp
     whether the function actually appears inside its own definition. *)
 val is_recursive_def : def_aux -> bool * bool
 
-(** [is_trans_loc l] checks whether [l] is of the form [Ast.Trans _] *)
-val is_trans_loc : Ast.l -> bool
+(** [is_pp_loc l] checks whether [l] is of the form [Ast.Trans (true, _, _)]. This means
+    that the entity marked with [l] should be formated using a pretty printer that calculates whitespaces new instead
+    of using the ones provided by the user.  *)
+val is_pp_loc : Ast.l -> bool
 
-val is_trans_exp : exp -> bool
-val is_trans_def : def -> bool
+val is_pp_exp : exp -> bool
+val is_pp_def : def -> bool
 
 (** [val_def_get_name d] tries to extract the name of the defined function. *)
 val val_def_get_name : def_aux -> Name.t option 

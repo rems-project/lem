@@ -105,7 +105,7 @@ module C = Exps_in_context (struct let avoid = None let env_opt = Some E.env end
 (* let simple_def d = [((d,None),Ast.Unknown)] *)
 
 let comment_def ((((d, s), l, lenv):def) as def) : def =
-  ((Comment (def), s), Ast.Trans("comment_def", Some l), lenv)
+  ((Comment (def), s), Ast.Trans(false,"comment_def", Some l), lenv)
 
 let remove_vals _ env (((d,_),_,_) as def) =
   match d with
@@ -132,7 +132,7 @@ let remove_classes _ env (((d,_),_,_) as def) =
     | _ -> None
 
 let remove_indrelns_true_lhs _ env ((d,s),l,lenv) =
-  let l_unk = Ast.Trans ("remove_indrelns_true_lhs", Some l) in
+  let l_unk = Ast.Trans (true, "remove_indrelns_true_lhs", Some l) in
   match d with
     | Indreln (s', targ, names, sl) ->
         let remove_true (Rule (name_opt,s0, s1, qnames, s2, e_opt, s3, rname, c, es),l) =
@@ -203,7 +203,7 @@ let class_to_module mod_path env ((d,s),l,lenv) =
 
 
 let instance_to_module (global_env : env) mod_path (env : env) ((d,s),l,lenv) =
-  let l_unk n = Ast.Trans("instance_to_module" ^ string_of_int n , Some l) in
+  let l_unk n = Ast.Trans(true, "instance_to_module" ^ string_of_int n , Some l) in
   match d with
       | Instance(sk1, (prefix, sk2, id, t, sk3), vdefs, sk4, sem_info) ->
           let dict_name = Name.from_rope (r"dict") in
@@ -283,7 +283,7 @@ let instance_to_module (global_env : env) mod_path (env : env) ((d,s),l,lenv) =
           None
 
 let class_constraint_to_parameter : def_macro = fun mod_path env ((d,s),l,lenv) ->
-  let l_unk = Ast.Trans("class_constraint_to_parameter", Some l) in
+  let l_unk = Ast.Trans(true, "class_constraint_to_parameter", Some l) in
   (* TODO : avoid shouldn't be None *)
     match d with
       | Val_def(_, tnvs, []) -> None
@@ -319,7 +319,7 @@ let class_constraint_to_parameter : def_macro = fun mod_path env ((d,s),l,lenv) 
 
 
 let nvar_to_parameter : def_macro = fun mod_path env ((d,s),l,_) ->
-  let l_unk = Ast.Trans("nvar_to_parameter", Some l) in
+  let l_unk = Ast.Trans(true, "nvar_to_parameter", Some l) in
     match d with
       | Val_def(lb, tnvs, class_constraints) ->
         if (Types.TNset.is_empty tnvs) then None
@@ -344,8 +344,6 @@ let nvar_to_parameter : def_macro = fun mod_path env ((d,s),l,_) ->
             begin
               match lb with 
               | Let_def(_,_,_) -> None
-              | Fun_def(sk1,_,topt,funs) ->
-                  raise (Reporting_basic.err_todo true l "Recursive function with nvars")
               | Fun_def(sk1,_,topt,funs) ->
                   raise (Reporting_basic.err_todo true l "Recursive function with nvars")
               | Let_inline _ ->

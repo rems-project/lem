@@ -2126,7 +2126,7 @@ module Exps_in_context(D : Exp_context) = struct
       | Tfn(te1,te2) -> 
           mk_tfn Ast.Unknown 
             (delimit_typ TC_fn_left (t_to_src_t te1))
-            None 
+            space 
             (delimit_typ TC_fn_right (t_to_src_t te2))
             (Some(texp))
       | Ttup(tys) -> 

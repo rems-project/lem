@@ -54,8 +54,31 @@ open Typed_ast_syntax
 open Target
 open Util
 
+
+(* TODO: Fix this hack for recognising library functions!*)
+let library_pathL : Name.t list = 
+  let targetsL = List.map non_ident_target_to_mname (Targetset.elements all_targets) in
+  let extraL = ["Pervasives"; "Pmap"; "Int"; "List"; "Vector"; "Set"] in
+  let extranL = List.map Name.from_string extraL in
+  targetsL @ extranL  
+
+let is_lib_path path = 
+  match path with 
+    | [] -> true
+    | p :: _ ->  List.exists (fun p' -> (Name.compare p p' = 0)) library_pathL
+
+let prevent_lib_renames p =
+  let exceptions = [] in
+  let (path, n) = Path.to_name_list p in
+  let path_n_s = (List.map Name.to_string path, Name.to_string n) in
+  if (List.mem path_n_s exceptions) then false else is_lib_path path
+
+(* end hack *)
+
+
+
 let flatten_modules_macro path env ((d,s),l,lenv) =
-  let l_unk = Ast.Trans("flatten_modules", Some l) in
+  let l_unk = Ast.Trans(false, "flatten_modules", Some l) in
     match d with
       | Module(sk1,n,mod_path,sk2,sk3,ds,sk4) ->
           let mod_shell = ((Module(sk1,n,mod_path,sk2,sk3,[],sk4),s),l,lenv) in
@@ -89,12 +112,12 @@ let get_fresh_name consts consts' n =
 
 let rename_constant (targ : Target.non_ident_target) (consts : NameSet.t) (consts_new : NameSet.t) (env : env) (c : const_descr_ref) : 
   (NameSet.t * env) = begin
-  let l = Ast.Trans ("rename_constant", None) in
+  let l = Ast.Trans (false, "rename_constant", None) in
   let c_d = c_env_lookup l env.c_env c in
   let (n_is_shown, n) = constant_descr_to_name (Target_no_ident targ) c_d in
 
   (* if constant name is not printed (e.g. for some special syntax, don't rename it *)
-  if (not n_is_shown) then (consts_new, env) else
+  if (not n_is_shown || prevent_lib_renames c_d.const_binding) then (consts_new, env) else
   begin
     (* apply target specific renaming *)
     let nk = const_descr_to_kind (c, c_d) in
@@ -130,7 +153,7 @@ end
 
 let rename_type (targ : Target.non_ident_target) (consts : NameSet.t) (consts_new : NameSet.t) (env : env) (t : Path.t) : 
   (NameSet.t * env) = begin
-  let l = Ast.Trans ("rename_type", None) in
+  let l = Ast.Trans (false, "rename_type", None) in
   let td = Types.type_defs_lookup l env.t_env t in
   let n = type_descr_to_name (Target_no_ident targ) t td in
 
@@ -162,6 +185,7 @@ let rename_type (targ : Target.non_ident_target) (consts : NameSet.t) (consts_ne
           (consts_new', env')
         end
 end
+
 
 
 let rename_defs_target (targ : Target.target) ue consts env = 

@@ -159,7 +159,7 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 %token <Ast.terminal * Ulib.Text.t> IN MEM MinusMinusGt
 %token <Ast.terminal> Class_ Inst Do LeftArrow
 %token <Ast.terminal> Module Function Field Type Constant Automatic Manual Exhaustive Inexhaustive AsciiRep SetFlag TerminationArgument PatternMatch
-%token <Ast.terminal> RightAssoc LeftAssoc NonAssoc Infix Special TargetRep
+%token <Ast.terminal> RightAssoc LeftAssoc NonAssoc Infix Special TargetRepTerm TargetRepType
 
 %start file
 %type <Ast.defs> defs

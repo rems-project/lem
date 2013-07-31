@@ -45,7 +45,7 @@ let mk_tup_unit_typ = function
   | l -> {t=Ttup(l)}
 
 
-let loc_trans s l = Ast.Trans(s, Some(l))
+let loc_trans s l = Ast.Trans(true, s, Some(l))
 
 let is_true l = match l.term with
   | L_true _ -> true
@@ -53,16 +53,6 @@ let is_true l = match l.term with
 
 let r = Ulib.Text.of_latin1
 let mk_string_path ns n = Path.mk_path (List.map (fun s -> Name.from_rope (r s)) ns) (Name.from_rope (r n))
-
-let names_get_const_ref (env : env) mp n = 
-  let l = Ast.Trans("names_get_const_ref", None) in
-  let local_env = lookup_env env.local_env mp in
-  match Nfmap.apply local_env.v_env n with
-    | Some(d) -> d
-    | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(Ast.Unknown, "names_get_const_ref: env did not contain constant!")))
-
-let get_const_ref (env : env) mp n =
-  names_get_const_ref env (List.map (fun n -> (Name.from_rope (r n))) mp) (Name.from_rope (r n))
 
 let mk_const_ref (env : env) l (c_ref : const_descr_ref) inst = 
   let id = {id_path = Id_none None; 
@@ -125,14 +115,14 @@ module LemOptionMonad = struct
   let mk_psome env p = mk_pconst_pat env Ast.Unknown ["Pervasives"] "Some" [p.typ] [p]
     
   let mk_bind env call pat code = 
-    let l = Ast.Trans ("mk_bind", None) in
+    let l = Ast.Trans (true, "mk_bind", None) in
     mk_case_exp false l call
       [(mk_psome env pat, code);
        (mk_pwild l None (exp_to_typ call), mk_none env (remove_option (exp_to_typ code)))]
       (exp_to_typ code)
       
   let mk_cond env cond code = 
-    let l = Ast.Trans ("mk_cond", None) in
+    let l = Ast.Trans (true, "mk_cond", None) in
     mk_if_exp l cond code (mk_none env (remove_option (exp_to_typ code)))
 
 end
@@ -718,7 +708,7 @@ let compile_function env reldescr
 
 
 let compile_to_typed_ast env prog =
-  let l = Ast.Trans ("compile_to_typed_ast", None) in
+  let l = Ast.Trans (true, "compile_to_typed_ast", None) in
   let defs = Nfmap.map (fun _rel (reldescr, modes) ->
     List.map (compile_function env reldescr) modes 
   ) prog in

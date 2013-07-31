@@ -116,7 +116,7 @@ let rec add_target_to_def target c_env (defs : local_env) : (c_env * local_env) 
 
   let defs' = {defs with m_env = m_env'} in
   let c_env'' = Nfmap.fold (fun c_env k c ->
-        let c_d = c_env_lookup (Ast.Trans ("add_target_to_def", None)) c_env c in
+        let c_d = c_env_lookup (Ast.Trans (false, "add_target_to_def", None)) c_env c in
         let c_d' = { c_d with const_targets = Targetset.singleton target } in
         c_env_update c_env c c_d')
         c_env' defs.v_env
@@ -256,6 +256,9 @@ struct
 
   let env = set_target_const_rep env ["Pervasives"] "SUC" Target_isa (CR_new_ident (Ast.Unknown, false, Ident.mk_ident_strings [] "Suc"));;
   let env = set_target_const_rep env ["Pervasives"] "SUC" Target_hol (CR_new_ident (Ast.Unknown, false, Ident.mk_ident_strings [] "SUC"));;
+
+  let env = set_target_const_rep env ["Pervasives"] "Some" Target_hol (CR_rename (Ast.Unknown, false, Name.from_string "SOME"));;
+  let env = set_target_const_rep env ["Pervasives"] "None" Target_hol (CR_rename (Ast.Unknown, false, Name.from_string "NONE"));;
 
   let init : t =
     (env,

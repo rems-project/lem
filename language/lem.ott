@@ -53,7 +53,7 @@ type text = Ulib.Text.t
 
 type l =
   | Unknown
-  | Trans of string * l option
+  | Trans of bool (* do pretty-printing? *) * string * l option 
   | Range of Lexing.position * Lexing.position
 
 exception Parse_error_locn of l * string
@@ -100,7 +100,7 @@ open Pervasives
 
 type l =
   | Unknown
-  | Trans of string * option l
+  | Trans of bool * string * option l
   | Range of num * num
 
 type lex_skip =
@@ -757,14 +757,16 @@ fixity_decl :: 'Fixity_' ::=
 
 target_rep_rhs :: 'Target_rep_rhs' ::=
   | infix fixity_decl id         :: :: infix
-  | 'id' x_l1 ... x_ln           :: :: replacement
+  | exp                          :: :: term_replacement
+  | typ                          :: :: type_replacement
   | special string exp1 ... expn :: :: special
 
 declare_def :: 'Decl_' ::= 
   {{ com declarations }}
   | declare targets_opt rename component id = x_l                                                 :: :: rename_decl
   | declare targets_opt ascii_rep component id = x_l                                              :: :: ascii_rep_decl
-  | declare target target_rep id id1 ... idn = target_rep_rhs                                     :: :: target_rep_decl
+  | declare target target_rep_term id x_l1 ... x_ln = target_rep_rhs                              :: :: target_rep_term_decl
+  | declare target target_rep_type typschm = target_rep_rhs                                       :: :: target_rep_type_decl
   | declare set_flag id = x_l                                                                     :: :: set_flag_decl
   | declare targets_opt termination_argument id = termination_setting                             :: :: termination_argument_decl
   | declare targets_opt pattern_match exhaustivity_setting x_l tnvars = [ exp1 .. expn ] elim_opt :: :: pattern_match_decl

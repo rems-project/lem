@@ -1048,7 +1048,7 @@ module Hol : Target = struct
       if rrr then
         meta (Format.sprintf "val %s_defn = Hol_defn \"%s\" `\n" n n)
       else
-        meta (Format.sprintf "val %s_def = Define `\n" n)
+        meta (Format.sprintf "val _ = Define `\n")
   let rec_def_footer _ rrr n =
      if rrr then
        meta (Format.sprintf "\nval _ = Lib.with_flag (computeLib.auto_import_definitions, false) Defn.save_defn %s_defn;" 
@@ -1410,7 +1410,7 @@ and patlist ps =
 
 
 let rec exp e = 
-let is_user_exp = is_trans_exp e in
+let is_user_exp = is_pp_exp e in
 match C.exp_to_term e with
   | Var(n) ->
       Name.to_output Term_var n
@@ -1446,7 +1446,7 @@ match C.exp_to_term e with
       T.function_end
 
   | App(e1,e2) ->
-      let trans e = block (is_trans_exp e) 0 (exp e) in
+      let trans e = block (is_pp_exp e) 0 (exp e) in
       let sep = (texspace ^ break_hint_space 2) in
 
       let oL = begin
@@ -1463,7 +1463,7 @@ match C.exp_to_term e with
       block is_user_exp 0 o
 
   | Infix(e1,e2,e3) ->      
-      let trans e = block (is_trans_exp e) 0 (exp e) in
+      let trans e = block (is_pp_exp e) 0 (exp e) in
       let sep = (texspace ^ break_hint_space 2) in
 
       let oL = begin
@@ -1601,16 +1601,16 @@ match C.exp_to_term e with
       ws s1 ^
       break_hint_cut ^
       T.cond_if ^
-      block (is_trans_exp e1) 0 (exp e1) ^
+      block (is_pp_exp e1) 0 (exp e1) ^
       ws s2 ^
       T.cond_then ^
       break_hint_space 2 ^
-      block (is_trans_exp e2) 0 (exp e2) ^
+      block (is_pp_exp e2) 0 (exp e2) ^
       ws s3 ^
       break_hint_space 0 ^
       T.cond_else ^
       break_hint_space 2 ^
-      block (is_trans_exp e3) 0 (exp e3))
+      block (is_pp_exp e3) 0 (exp e3))
 
   | Lit(l) ->
       lit l (exp_to_typ e)
@@ -1685,7 +1685,7 @@ match C.exp_to_term e with
         kwd "(" ^ 
         flat (List.map (isa_quant q) qbs) ^
         break_hint_space 2 ^
-        block (is_trans_exp e) 0 (
+        block (is_pp_exp e) 0 (
         ws s2 ^ exp e) ^
         kwd ")")
       else 
@@ -1766,7 +1766,7 @@ and case_line (p,s1,e,_) =
   pat p ^
   ws s1 ^
   T.case_line_sep ^
-  block (is_trans_exp e) 2 (exp e)
+  block (is_pp_exp e) 2 (exp e)
 
 and tyvar_binding tvs = emp
 (*
@@ -2638,8 +2638,12 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
   | Val_def (Fun_def (s1, rec_flag, targets, clauses),tnvs,class_constraints) ->
       let (_, is_rec) = Typed_ast_syntax.is_recursive_def d in
       if in_target targets then 
+        let is_simple = not is_rec && (match Seplist.to_list clauses with
+          | [(_, _, ps, _, _, _)] -> List.for_all (fun p -> (Pattern_syntax.is_var_wild_pat p)) ps
+          | _ -> false) 
+        in
         let s2 = match rec_flag with FR_non_rec -> None | FR_rec sk -> sk in
-        ws s1 ^ kwd (if is_rec then "function (sequential)" else "fun") ^ ws s2 ^
+        ws s1 ^ kwd (if is_rec then "function (sequential)" else (if is_simple then "definition" else "fun")) ^ ws s2 ^
         (if T.target = Target_ident then
            targets_opt targets 
          else
@@ -2648,7 +2652,7 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
         flat (Seplist.to_sep_list (isa_funcl_default (kwd "= ")) (sep T.def_sep) clauses) ^
         (if is_rec then (kwd "\nby pat_completeness auto") else emp) ^
         (match val_def_get_name d with None -> emp | Some n ->
-          (if is_rec then emp else 
+          (if is_rec || is_simple then emp else 
                 (kwd (String.concat "" ["\ndeclare "; Name.to_string n; ".simps [simp del]"])))) ^
         new_line
       else emp
@@ -2724,7 +2728,7 @@ let rec defs (ds:def list) =
     (fun ((d,s),l,lenv) y -> 
        begin
         let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = lenv } end)(X) in
-        F'.def defs false d (is_trans_loc l)
+        F'.def defs false d (is_pp_loc l)
        end ^
 
        begin

@@ -352,7 +352,7 @@ let pat_needs_parens context t =
 
 
 let get_prec targ env c =
-  let l = Ast.Trans ("get_prec", None) in
+  let l = Ast.Trans (false, "get_prec", None) in
   let c_descr = c_env_lookup l env.c_env c in
 
 (* TODO: Use the target_rep

@@ -56,8 +56,9 @@ let r = Ulib.Text.of_latin1
 type 'a macro = 'a -> 'a option
 type pat_macro = Macro_expander.pat_position -> pat macro
 
-module Macros(I : Types.Global_defs)(E : sig val env : env end) = struct
+module Macros(E : sig val env : env end) = struct
 
+module I = struct let d = E.env.t_env let i = E.env.i_env end
 module C = Exps_in_context(struct let env_opt = Some E.env;; let avoid = None end)
 module T = Types.Constraint(I)
 
@@ -92,7 +93,7 @@ let remove_singleton_record_updates e =
 ;;
 
 let remove_multiple_record_updates e =
-  let l_unk = Ast.Trans("remove_multiple_record_updates", Some (exp_to_locn e)) in
+  let l_unk = Ast.Trans(true, "remove_multiple_record_updates", Some (exp_to_locn e)) in
     match C.exp_to_term e with
       | Recup(s1, e, s2, fields, s3) ->
         begin
@@ -118,7 +119,7 @@ let remove_multiple_record_updates e =
 
 
 let sort_record_fields e =
-  let l_unk = Ast.Trans("sort_record_fields", Some (exp_to_locn e)) in
+  let l_unk = Ast.Trans(true, "sort_record_fields", Some (exp_to_locn e)) in
     match C.exp_to_term e with
       | Record(s1,fields,s2) -> if Seplist.length fields < 2 then None else
         begin
@@ -152,7 +153,7 @@ let remove_function e = Patterns.remove_function d (fun e -> e) e
  * (optionally) tuple patterns *)
 (* Patterns.remove_fun is very similar, but introduces case-expressions *)
 let remove_fun_pats keep_tup e = 
-  let l_unk = Ast.Trans("remove_fun_pats", Some (exp_to_locn e)) in
+  let l_unk = Ast.Trans(true, "remove_fun_pats", Some (exp_to_locn e)) in
   let rec keep p = if keep_tup then Pattern_syntax.is_var_tup_pat p else Pattern_syntax.is_ext_var_pat p in
   let rec group acc = function
     | [] -> 
@@ -205,64 +206,12 @@ let remove_fun_pats keep_tup e =
 ;;
 
 
-(* Replace by something more clever 
-(* Change constructors into tupled constructors *) 
-let rec tup_ctor build_result args e = 
-  let l_unk = Ast.Trans("tup_ctor", None) in
-  match C.exp_to_term e with
-  | Constructor(c) ->
-      let l = List.length c.descr.constr_args in
-        if Seplist.length args = l then
-          Some(C.mk_tup_ctor (exp_to_locn e) c None args None None)
-        else
-          let names = Name.fresh_list l (r"x") (fun n -> true) in
-          let tsubst = Types.TNfmap.from_list2 c.descr.constr_tparams c.instantiation in
-          let types = List.map (Types.type_subst tsubst) c.descr.constr_args in
-          let pats = 
-            List.map2 
-              (fun n t -> C.mk_pvar l_unk (Name.add_lskip n) t)
-              names
-              types
-          in
-          let refs =
-            List.fold_right2 
-              (fun n t l -> 
-                 Seplist.cons_entry
-                   (C.mk_var l_unk (Name.add_lskip n) t)
-                   (Seplist.cons_sep_alt None l))
-              names
-              types
-              Seplist.empty
-          in
-          let body = C.mk_tup_ctor l_unk c None refs None None in
-          let f = C.mk_fun l_unk None pats None body None in
-            Some(build_result f)
-  | App(e1,e2) ->
-      tup_ctor 
-        (fun e' -> 
-           build_result 
-             (C.mk_app (exp_to_locn e) e' e2 (Some (exp_to_typ e)))) 
-        (Seplist.cons_entry e2 (Seplist.cons_sep_alt None args)) e1
-  (* TODO: Is this right *)
-  | Infix(e1,e2,e3) ->
-      tup_ctor 
-        (fun e' ->
-           build_result 
-             (C.mk_infix (exp_to_locn e) e1 e' e3 (Some (exp_to_typ e))))
-        (Seplist.cons_entry e1 
-           (Seplist.cons_sep_alt None 
-              (Seplist.cons_entry e3 
-                 (Seplist.cons_sep_alt None args)))) e2
-  | _ -> None
-*)
-
-
 (* Transforms string literals that cannot be represented in Isabelle into a list
  * of integers, and pass this list to Pervasives.nat_list_to_string which then
  * returns an Isabelle string. *)
 
 let string_lits_isa e =
-  let l_unk = Ast.Trans("string_lits_isa", Some (exp_to_locn e)) in
+  let l_unk = Ast.Trans(true, "string_lits_isa", Some (exp_to_locn e)) in
   match C.exp_to_term e with
   | Lit {term = (L_string(lskips, s))} ->
       let is_isa_chr x =
@@ -285,7 +234,7 @@ let string_lits_isa e =
 
 
 let peanoize_num_pats _ p =
-  let l_unk = Ast.Trans("peanoize_num_pats", Some p.locn) in 
+  let l_unk = Ast.Trans(true, "peanoize_num_pats", Some p.locn) in 
   let (suc, _) = get_const_id E.env l_unk ["Pervasives"] "SUC" [] in
   let pean_pat s i p = begin   
     let rec f i = if i = 0 then p else C.mk_pconst l_unk suc [f (i - 1)] None
@@ -309,7 +258,7 @@ let peanoize_num_pats _ p =
 
 
 let remove_unit_pats _ p =
-  let l_unk = Ast.Trans("remove_unit_pats", Some p.locn) in
+  let l_unk = Ast.Trans(true, "remove_unit_pats", Some p.locn) in
   match p.term with
     | P_lit({ term = L_unit(s1, s2)}) ->
         Some(C.mk_pwild l_unk s1 { Types.t = Types.Tapp([], Path.unitpath) } )
@@ -317,7 +266,7 @@ let remove_unit_pats _ p =
 
 (* Turn comprehensions into nested folds, fails on unrestricted quantifications *)
 let remove_comprehension for_lst e = 
-  let l_unk n = Ast.Trans("remove_comprehension " ^ string_of_int n, Some (exp_to_locn e)) in
+  let l_unk n = Ast.Trans(true, "remove_comprehension " ^ string_of_int n, Some (exp_to_locn e)) in
   match C.exp_to_term e with
   | Comp_binding(is_lst,s1,e1,s2,s3,qbs,s4,e2,s5) when is_lst = for_lst ->
       let (acc_name,param_name) = 
@@ -438,7 +387,7 @@ let rec var_tup_pat_eq_exp p e =
 (* Replaces set comprehension by introducing set_image and set_filter. Perhaps
    cross is added as well. *)
 let remove_set_comprehension_image_filter allow_sigma e = 
-  let l_unk = Ast.Trans("remove_set_comprehension_image_filter", Some (exp_to_locn e)) in
+  let l_unk = Ast.Trans(true, "remove_set_comprehension_image_filter", Some (exp_to_locn e)) in
   match C.exp_to_term e with
   | Comp_binding(false,s1,e1,s2,s3,qbs,s4,e2,s5) ->
       let all_quant_vars = List.fold_left (fun acc -> function Qb_var _ -> acc | Qb_restr (_, _, p, _, _, _) -> 
@@ -483,7 +432,7 @@ let remove_set_comprehension_image_filter allow_sigma e =
 
 (* Replaces Setcomp with Comp_binding. *)
 let remove_setcomp e = 
-  let l_unk = Ast.Trans("remove_setcomp", Some (exp_to_locn e)) in
+  let l_unk = Ast.Trans(true, "remove_setcomp", Some (exp_to_locn e)) in
   match C.exp_to_term e with
    | Setcomp(s1,e1,s2,e2,s3,bindings) -> begin
        let e1_free_map = C.exp_to_free e1 in
@@ -503,7 +452,7 @@ let special_type =
   { Types.t = Types.Tapp([], Path.mk_path [Name.from_rope (r"MachineDefTypes")] (Name.from_rope (r"instruction_instance"))) }
 
 let get_compare t = 
-  let l_unk = Ast.Trans("get_compare", None) in
+  let l_unk = Ast.Trans(true, "get_compare", None) in
   (* TODO: Remove this hack *)
   if Types.compare (Types.head_norm d t) special_type = 0 then
     mk_const_exp env l_unk ["MachineDefTypes"] "compare_instruction_instance" []
@@ -516,7 +465,7 @@ let get_compare t =
     None
 
 let remove_sets e = 
-  let l_unk = Ast.Trans("remove_sets", Some (exp_to_locn e)) in
+  let l_unk = Ast.Trans(true, "remove_sets", Some (exp_to_locn e)) in
   match C.exp_to_term e with
   | Set(s1,es,s2) ->
       begin
@@ -558,7 +507,7 @@ let strip_quant_lskips = function
   | Ast.Q_exists(s) -> Ast.Q_exists(space)
 
 let get_quant_impl is_lst t : Ast.q -> exp = 
-  let l_unk = Ast.Trans("get_quant_impl", None) in
+  let l_unk = Ast.Trans(true, "get_quant_impl", None) in
   let f path name s =
     let d = fst (get_const env path name) in
       append_lskips s
@@ -583,7 +532,7 @@ let get_quant_impl is_lst t : Ast.q -> exp =
 
 (* Turn quantifiers into iteration, fails on unrestricted quantifications *)
 let remove_quant e = 
-  let l_unk = Ast.Trans("remove_quant", Some (exp_to_locn e)) in
+  let l_unk = Ast.Trans(true, "remove_quant", Some (exp_to_locn e)) in
   match C.exp_to_term e with
   | Quant(q,[],s,e) ->
       Some(append_lskips s e)
@@ -609,7 +558,7 @@ let remove_quant e =
 
 (* Turn forall (x MEM L). P x into forall (x IN Set.from_list L). P x *)
 let list_quant_to_set_quant e = 
-  let l_unk = Ast.Trans("list_quant_to_set_quant", Some (exp_to_locn e)) in
+  let l_unk = Ast.Trans(true, "list_quant_to_set_quant", Some (exp_to_locn e)) in
   match C.exp_to_term e with
   | Quant(q,qbs,s1,e') ->
       let qbs =
@@ -635,7 +584,7 @@ let list_quant_to_set_quant e =
 
 exception Pat_to_exp_unsupported of Ast.l * string
 let rec pat_to_exp env p = 
-  let l_unk = Ast.Trans("pat_to_exp", Some p.locn) in
+  let l_unk = Ast.Trans(true, "pat_to_exp", Some p.locn) in
   match p.term with
     | P_wild(lskips) -> 
         raise (Pat_to_exp_unsupported(p.locn, "_ pattern"))
@@ -682,7 +631,7 @@ let rec pat_to_exp env p =
  * compilation is needed. 
  *)
 let remove_set_restr_quant e = 
-  let l_unk = Ast.Trans("remove_set_restr_quant", Some (exp_to_locn e)) in
+  let l_unk = Ast.Trans(true, "remove_set_restr_quant", Some (exp_to_locn e)) in
   let qb_OK = (function | Qb_var _ -> true | Qb_restr _ -> false) in
   try (
   match C.exp_to_term e with
@@ -740,7 +689,7 @@ let remove_set_restr_quant e =
  * if x notin FV p.
  *)
 let cleanup_set_quant e = 
-  let l_unk = Ast.Trans("cleanup_set_restr_quant", Some (exp_to_locn e)) in
+  let l_unk = Ast.Trans(true, "cleanup_set_restr_quant", Some (exp_to_locn e)) in
   match C.exp_to_term e with
   | Comp_binding(false,s1,e1,s2,s3,qbs,s4,e2,s5) ->
       let used_vars = List.fold_left (fun acc -> function 
@@ -767,7 +716,7 @@ let cleanup_set_quant e =
  * { f x | P x y1 ... yn } 
  *)
 let remove_set_comp_binding e = 
-  let l_unk = Ast.Trans("remove_comp_binding", Some (exp_to_locn e)) in
+  let l_unk = Ast.Trans(true, "remove_comp_binding", Some (exp_to_locn e)) in
   let qb_OK = (function | Qb_var _ -> true | Qb_restr _ -> false) in
   match C.exp_to_term e with
   | Comp_binding(false,s1,e1,s2,s3,qbs,s4,e2,s5) ->
@@ -798,7 +747,7 @@ let remove_set_comp_binding e =
  * patterns, for which pat_OK returns true are kept 
  *)
 let remove_restr_quant pat_OK e = 
-  let l_unk = Ast.Trans("remove_restr_quant", Some (exp_to_locn e)) in
+  let l_unk = Ast.Trans(true, "remove_restr_quant", Some (exp_to_locn e)) in
   let qb_OK = (function | Qb_var _ -> true | Qb_restr(_,_,p,_,_,_) -> pat_OK p) in
   try (match C.exp_to_term e with
   | Quant(q,qbs,s,e) ->
@@ -893,7 +842,7 @@ let tnfmap_apply m k =
     | Some x -> x
 
 let remove_method e =
-  let l_unk = Ast.Trans("remove_method", Some (exp_to_locn e)) in
+  let l_unk = Ast.Trans(true, "remove_method", Some (exp_to_locn e)) in
   match C.exp_to_term e with
     | Constant(c) ->
         begin
@@ -954,7 +903,7 @@ let remove_method e =
 
 
 let remove_class_const e =
-  let l_unk = Ast.Trans("remove_class_const", Some (exp_to_locn e)) in
+  let l_unk = Ast.Trans(true, "remove_class_const", Some (exp_to_locn e)) in
   match C.exp_to_term e with
     | Constant(c) ->
         begin
@@ -1008,7 +957,7 @@ let remove_class_const e =
 
 (*Convert nexpressions to expressions *)
 let nexp_to_exp n =
-   let l_unk = Ast.Trans ("nexp_to_exp", None) in
+   let l_unk = Ast.Trans (true, "nexp_to_exp", None) in
    let num_type = { Types.t = Types.Tapp([],Path.numpath) } in
    let bin_op_type = { Types.t = Types.Tfn(num_type,num_type) } in
    let rec to_exp n =
@@ -1037,7 +986,7 @@ let rec remove_tne ts =
 
 (*add numeric parameter for nexp type parameter in function calls with constants*)
 let add_nexp_param_in_const e =
-  let l_unk = Ast.Trans("add_nexp_param_in_const", Some (exp_to_locn e)) in
+  let l_unk = Ast.Trans(true, "add_nexp_param_in_const", Some (exp_to_locn e)) in
   match C.exp_to_term e with
     | Constant(c) ->
         begin
@@ -1074,7 +1023,7 @@ let add_nexp_param_in_const e =
 
 (*Replace vector access with an appropriate external library call, ocaml specific at the moment*)
 let remove_vector_access e =
-  let l_unk = Ast.Trans("remove_vector_acc", Some (exp_to_locn e)) in
+  let l_unk = Ast.Trans(true, "remove_vector_acc", Some (exp_to_locn e)) in
   match C.exp_to_term e with
     | VectorAcc(v, sk1, i, sk2) -> 
       let vlength = match (exp_to_typ v).Types.t with | Types.Tapp([n;a],_) -> n | _ -> assert false in
@@ -1089,7 +1038,7 @@ let remove_vector_access e =
 
 (*Replace vector sub with an appropriate external library call, ocaml specific at the moment*)
 let remove_vector_sub e =
-  let l_unk = Ast.Trans("remove_vector_sub", Some (exp_to_locn e)) in
+  let l_unk = Ast.Trans(true, "remove_vector_sub", Some (exp_to_locn e)) in
   match C.exp_to_term e with
     | VectorSub(v, sk1, i1, sk2, i2, sk3) -> 
       let (vlength1,a) = match (exp_to_typ v).Types.t with | Types.Tapp([n;a],_) -> (n,a) | _ -> assert false in
@@ -1109,7 +1058,7 @@ let remove_vector_sub e =
 (* Add type annotations to pattern variables whose type contains a type variable
  * (only add for arguments to top-level functions) *)
 let rec coq_type_annot_pat_vars (level,pos) p = 
-  let l_unk = Ast.Trans("coq_type_annot_pat_vars", Some p.locn) in
+  let l_unk = Ast.Trans(true, "coq_type_annot_pat_vars", Some p.locn) in
   match p.term with
     | P_var(n) when level = Macro_expander.Top_level && 
                     pos = Macro_expander.Param && 
@@ -1132,7 +1081,7 @@ let bind_const l m i =
 
 (* TODO: do something sensible with the spacing *)
 let remove_do e =
-  let l_unk = Ast.Trans("remove_do", Some (exp_to_locn e)) in
+  let l_unk = Ast.Trans(true, "remove_do", Some (exp_to_locn e)) in
     match C.exp_to_term e with
       | Do(sk1, m, [], sk2, e, sk3,t) ->
           Some e

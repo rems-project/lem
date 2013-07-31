@@ -101,7 +101,7 @@ let rec dest_tup_pat (lo : int option) (p : pat) : pat list option =
 let is_tup_pat lo p = not (dest_tup_pat lo p = None)
 
 let mk_tup_pat = function [p] -> p | pL ->
-  let l = Ast.Trans ("mk_tup_pat", None) in
+  let l = Ast.Trans (true, "mk_tup_pat", None) in
   let ty = { Types.t = Types.Ttup(List.map annot_to_typ pL) } in
   let ps = Seplist.from_list (List.map (fun p -> (p, None)) pL) in
   let p = C.mk_ptup l None ps None (Some ty) 
@@ -122,14 +122,14 @@ let is_t_pat p = (dest_tf_pat p = Some true)
 let is_f_pat p = (dest_tf_pat p = Some false)
 
 let mk_tf_pat b =
-  let l = Ast.Trans ("mk_tf_pat", None) in
+  let l = Ast.Trans (false, "mk_tf_pat", None) in
   let bool_ty = { Types.t = Types.Tapp ([], Path.boolpath) } in
   let lit = C.mk_lbool l None b (Some bool_ty) in
   let exp = C.mk_plit l lit (Some bool_ty) 
 in exp
 
 let mk_paren_pat =
-  let l = Ast.Trans ("mk_paren_pat", None) in
+  let l = Ast.Trans (false, "mk_paren_pat", None) in
   fun p ->
      let (p', ws) = pat_alter_init_lskips Typed_ast_syntax.remove_init_ws p in
      C.mk_pparen l ws p' None (Some (annot_to_typ p))
@@ -163,7 +163,7 @@ let rec dest_num_pat (p :pat) : int option =
 let is_num_pat p = not (dest_num_pat p = None)
 
 let mk_num_pat i = 
-  let l = Ast.Trans ("mk_num_pat", None) in
+  let l = Ast.Trans (false, "mk_num_pat", None) in
   let num_ty = { Types.t = Types.Tapp ([], Path.numpath)} in
   let lit = C.mk_lnum l None i (Some num_ty) in
   C.mk_plit l lit (Some num_ty)
@@ -178,7 +178,7 @@ let rec dest_num_add_pat (p :pat) : (Name.t * int) option =
 let is_num_add_pat p = not (dest_num_add_pat p = None)
 
 let mk_num_add_pat n i = 
-  let l = Ast.Trans ("mk_num_add_pat", None) in
+  let l = Ast.Trans (false, "mk_num_add_pat", None) in
   let num_ty = { Types.t = Types.Tapp ([], Path.numpath)} in
   mk_paren_pat (C.mk_pnum_add l (Name.add_lskip n,l) space space i (Some num_ty))
 

@@ -846,13 +846,13 @@ let generate_coq_record_update_notation e =
           (from_string "{") ^ (concat_str " " tyvars) ^ (from_string " : Type}")
     and coq_function_application_to_output l id args = B.function_application_to_output l exp id args
     and exp e =
-      let is_user_exp = Typed_ast_syntax.is_trans_exp e in
+      let is_user_exp = Typed_ast_syntax.is_pp_exp e in
         match C.exp_to_term e with
           | Var v -> Name.to_output Term_var v
           | Lit l -> literal l
           | Do (skips, mod_descr_id, do_line_list, skips', e, skips'', type_int) -> assert false (* DPM: should have been removed by macros *)
           | App (e1, e2) ->
-              let trans e = block (Typed_ast_syntax.is_trans_exp e) 0 (exp e) in
+              let trans e = block (Typed_ast_syntax.is_pp_exp e) 0 (exp e) in
               let sep = (break_hint_space 2) in
 
               let oL = begin
@@ -893,7 +893,7 @@ let generate_coq_record_update_notation e =
           | Constant const -> Output.concat emp (B.function_application_to_output (exp_to_locn e) exp false e const [])
           | Fun (skips, ps, skips', e) ->
               let ps = fun_pattern_list ps in
-                block_hov (Typed_ast_syntax.is_trans_exp e) 2 (
+                block_hov (Typed_ast_syntax.is_pp_exp e) 2 (
                   Output.flat [
                     ws skips; from_string "fun"; ps; ws skips'; from_string "=>"; break_hint_space 0; exp e
                   ])
@@ -951,7 +951,7 @@ let generate_coq_record_update_notation e =
                   break_hint_space 4; body; ws skips''; break_hint_space 0; from_string "end"
                 ])
            | Infix (l, c, r) ->
-             let trans e = block (Typed_ast_syntax.is_trans_exp e) 0 (exp e) in
+             let trans e = block (Typed_ast_syntax.is_pp_exp e) 0 (exp e) in
              let sep = (break_hint_space 0) in
 
              let oL = begin
@@ -968,11 +968,11 @@ let generate_coq_record_update_notation e =
           | If (skips, test, skips', t, skips'', f) ->
               block is_user_exp 0 (Output.flat [
                 ws skips; break_hint_cut; from_string "if";
-                block (Typed_ast_syntax.is_trans_exp test) 0 (exp test);
+                block (Typed_ast_syntax.is_pp_exp test) 0 (exp test);
                 ws skips'; from_string "then"; break_hint_space 2;
-                block (Typed_ast_syntax.is_trans_exp t) 0 (exp t);
+                block (Typed_ast_syntax.is_pp_exp t) 0 (exp t);
                 ws skips''; break_hint_space 0; from_string "else"; break_hint_space 2;
-                block (Typed_ast_syntax.is_trans_exp f) 0 (exp f)
+                block (Typed_ast_syntax.is_pp_exp f) 0 (exp f)
               ])
           | Quant (_, _, _, _) -> from_string "(* XXX: quant *)"
           | Comp_binding (_, _, _, _, _, _, _, _, _) -> from_string "(* XXX: comp binding *)"
