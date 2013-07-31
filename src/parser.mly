@@ -926,6 +926,24 @@ tnvar_list :
   | tnvar tnvar_list
     { $1::$2 }
 
+fixity_decl :
+  | RightAssoc Num
+    { Fixity_right_assoc($1, snd $2) }
+  | LeftAssoc Num
+    { Fixity_left_assoc($1, snd $2) }
+  | NonAssoc Num
+    { Fixity_non_assoc($1, snd $2) }
+
+target_rep_rhs :
+  | Infix fixity_decl id
+    { Target_rep_rhs_infix($1, $2, $3) }
+  | exp
+    { Target_rep_rhs_term_replacement($1) }
+  | typ
+    { Target_rep_rhs_type_replacement($1) }
+  | Special String exps
+    { Target_rep_rhs_special($1, fst $2, snd $2, $3) }
+
 declaration :
   | Declare targets_opt Rename component id Eq x
     { Decl_rename_decl($1, $2, $3, $4, $5, fst $6, $7) }

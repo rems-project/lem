@@ -404,10 +404,10 @@ elim_opt =
 
 type 
 target_rep_rhs = 
-   Target_rep_rhsinfix of terminal * fixity_decl * id
- | Target_rep_rhsterm_replacement of exp
- | Target_rep_rhstype_replacement of typ
- | Target_rep_rhsspecial of terminal * terminal * Ulib.UTF8.t * (exp) list
+   Target_rep_rhs_infix of terminal * fixity_decl * id
+ | Target_rep_rhs_term_replacement of exp
+ | Target_rep_rhs_type_replacement of typ
+ | Target_rep_rhs_special of terminal * terminal * Ulib.UTF8.t * (exp) list
 
 
 type 

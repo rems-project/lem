@@ -755,7 +755,7 @@ fixity_decl :: 'Fixity_' ::=
   | left_assoc  nat :: :: left_assoc
   | non_assoc   nat :: :: non_assoc
 
-target_rep_rhs :: 'Target_rep_rhs' ::=
+target_rep_rhs :: 'Target_rep_rhs_' ::=
   | infix fixity_decl id         :: :: infix
   | exp                          :: :: term_replacement
   | typ                          :: :: type_replacement
