@@ -12,8 +12,8 @@ type defn_ctxt = {
   all_tdefs : type_defs; 
   ctxt_c_env : c_env;
   new_tdefs : Path.t list;
-  all_instances : instance list Pfmap.t;
-  new_instances : instance list Pfmap.t;
+  all_instances : i_env;
+  new_instances : i_env;
   cur_env : local_env;
   new_defs : local_env;
   lemmata_labels : NameSet.t; 

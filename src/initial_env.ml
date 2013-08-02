@@ -84,7 +84,7 @@ let initial_local_env : Typed_ast.local_env =
 
 
 let initial_env : Typed_ast.env =
-  { empty_env with local_env = initial_local_env; t_env = initial_d; i_env = Pfmap.empty }
+  { empty_env with local_env = initial_local_env; t_env = initial_d }
 
 let space = Str.regexp "[ \t\n]+"
 

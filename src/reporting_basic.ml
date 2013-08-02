@@ -181,6 +181,8 @@ let err_type_pp l msg pp n =
   err_type l (Pp.pp_to_string pp)
 
 let report_error e = 
+  if Printexc.backtrace_status ()
+  then Printexc.print_backtrace stderr;
   let (m1, verb_pos, pos_l, m2) = dest_err e in
   (print_err_internal true verb_pos false pos_l m1 m2; exit 1)
 

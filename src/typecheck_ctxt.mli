@@ -23,9 +23,10 @@ type defn_ctxt = {
   new_tdefs : Path.t list;
 
   (* All class instances ever seen *)
-  all_instances : Types.instance list Types.Pfmap.t;
+  all_instances : Types.i_env;
+
   (* All class instances defined in this sequence of definitions *)
-  new_instances : Types.instance list Types.Pfmap.t;
+  new_instances : Types.i_env;
 
   (* The current value/function/module/field/type_name environment *)
   cur_env : Typed_ast.local_env;

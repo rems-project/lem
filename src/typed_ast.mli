@@ -270,7 +270,7 @@ and
     p_env : p_env; (** type map *)
     f_env : f_env; (** field map *)
     v_env : v_env  (** constructor and constant map *)}
-and env = { local_env : local_env; c_env : c_env; t_env : Types.type_defs; i_env : (Types.instance list) Types.Pfmap.t}
+and env = { local_env : local_env; c_env : c_env; t_env : Types.type_defs; i_env : Types.i_env}
 
 and mod_descr = { mod_binding : Path.t; mod_env : local_env; }
 
@@ -407,24 +407,6 @@ type val_def =
     (** [Fun_def (sk1, rec_flag, topt, clauses)] encodes a function definition, which might consist of multiple clauses. *)
   | Let_inline of lskips * lskips * targets_opt * name_lskips_annot * const_descr_ref * name_lskips_annot list * lskips * exp
 
-(** Semantic information about an instance that is used for the dictionary
-    passing transformations *)
-type inst_sem_info =
-  { 
-    inst_env : v_env;
-    (** An environment that contains const bindings for all of the methods *)
-    inst_name : Name.t;
-    (** A module name for the instance *)
-    inst_class : Path.t;
-    (** The class instantiated *)
-    inst_tyvars : Types.tnvar list;
-    (** The type variables that the instantiation is parameterised over *)
-    inst_constraints : (Path.t * Types.tnvar) list;
-    (** The class constraints that the instance depends on *)
-    inst_methods : (Name.t * Types.t) list; 
-    (** The instantiated class' method names and their types *)
-  }
-
 type name_sect = Name_restrict of (lskips * name_l * lskips * lskips * string * lskips)
 
 type indreln_rule_quant_name = 
@@ -472,7 +454,7 @@ type def_aux =
     (** Inductive relations *)
   | Val_spec of val_spec
   | Class of lskips * lskips * name_l * tnvar * Path.t * lskips * class_val_spec list * lskips
-  | Instance of lskips * instschm * val_def list * lskips * inst_sem_info
+  | Instance of lskips * instschm * val_def list * lskips
 
   | Comment of def
     (** Does not appear in the source, used to comment out definitions for certain backends *)

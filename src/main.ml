@@ -123,7 +123,10 @@ let options = Arg.align ([
        | "none" -> 0
        | "auto" -> 1
        | _ -> 2))),
-    " generate no (none) extra-information, only extras that can be handled automatically (auto) or all (all) extra information")
+    " generate no (none) extra-information, only extras that can be handled automatically (auto) or all (all) extra information");
+  ( "-debug",
+    Arg.Unit (fun b -> Printexc.record_backtrace true),
+    " print a backtrace for all errors (lem needs to be compiled in debug mode)")
 ] @ Reporting.warn_opts)
 
 let usage_msg = 

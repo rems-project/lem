@@ -986,7 +986,7 @@ and add_def_entities (t_opt : Target.target) (ue : used_entities) (((d, _), _, _
           ue
         end
       | Class(_,_,n,tvar,_,_,body,_) -> (* TODO: classes broken, needs fixing in typechecking and AST *) ue
-      | Instance(_,_,_,_,_) -> (* TODO: broken, needs fixing in typechecking and AST *) ue
+      | Instance(_,_,_,_) -> (* TODO: broken, needs fixing in typechecking and AST *) ue
       | Comment _ -> ue
 
 

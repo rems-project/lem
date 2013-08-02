@@ -98,11 +98,7 @@ let rec process_defs path (trans : def_macro) mod_name (env : env) defs =
 
 
 
-module Macros(E : sig val env : env end) = struct
-
-module C = Exps_in_context (struct let avoid = None let env_opt = Some E.env end)
-
-(* let simple_def d = [((d,None),Ast.Unknown)] *)
+module C = Exps_in_context (struct let avoid = None let env_opt = None end)
 
 let comment_def ((((d, s), l, lenv):def) as def) : def =
   ((Comment (def), s), Ast.Trans(false,"comment_def", Some l), lenv)
@@ -185,8 +181,8 @@ let build_field_name n =
 
 let dict_type_name cn = (Name.lskip_rename (fun x -> Ulib.Text.(^^^) x (r"_class")) cn)
 
-let class_to_module mod_path env ((d,s),l,lenv) =
-(*  let l_unk = Ast.Trans("class_to_module", Some l) in *)
+let class_to_record mod_path env ((d,s),l,lenv) =
+    let l_unk = Ast.Trans(true, "class_to_record", Some l) in 
     match d with
       | Class(sk1,sk2,(n,l),tnvar,class_path,sk3,specs,sk4) ->
           let fields = Seplist.from_list_default None
@@ -201,7 +197,10 @@ let class_to_module mod_path env ((d,s),l,lenv) =
             Some (env, [((rec_def, s), l, lenv)])
       | _ -> None
 
+(* TODO: implement *)
+let instance_to_module (global_env : env) mod_path (env : env) ((d,s),l,lenv) = None
 
+(*
 let instance_to_module (global_env : env) mod_path (env : env) ((d,s),l,lenv) =
   let l_unk n = Ast.Trans(true, "instance_to_module" ^ string_of_int n , Some l) in
   match d with
@@ -281,6 +280,7 @@ let instance_to_module (global_env : env) mod_path (env : env) ((d,s),l,lenv) =
             Some((env,[((m,s),l,lenv)]))
       | _ ->
           None
+*)
 
 let class_constraint_to_parameter : def_macro = fun mod_path env ((d,s),l,lenv) ->
   let l_unk = Ast.Trans(true, "class_constraint_to_parameter", Some l) in
@@ -437,4 +437,3 @@ let prune_target_bindings target (defs : def list) : def list =
   in def_walker target [] defs
 
 
-end

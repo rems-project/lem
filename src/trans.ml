@@ -841,6 +841,12 @@ let tnfmap_apply m k =
     | None -> assert false
     | Some x -> x
 
+
+(* TODO: implement *)
+let remove_method e = None
+let remove_class_const e = None
+
+(*
 let remove_method e =
   let l_unk = Ast.Trans(true, "remove_method", Some (exp_to_locn e)) in
   match C.exp_to_term e with
@@ -953,7 +959,7 @@ let remove_class_const e =
                 None
         end
     | _ -> None
-
+*)
 
 (*Convert nexpressions to expressions *)
 let nexp_to_exp n =

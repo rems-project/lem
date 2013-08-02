@@ -178,7 +178,7 @@ and m_env = mod_descr Nfmap.t
 and c_env = const_descr cdmap
 
 and local_env = { m_env : m_env; p_env : p_env; f_env : f_env; v_env : v_env}
-and env = { local_env : local_env; c_env : c_env; t_env : Types.type_defs; i_env : (instance list) Pfmap.t }
+and env = { local_env : local_env; c_env : c_env; t_env : Types.type_defs; i_env : Types.i_env }
 
 (* free_env represents the free variables in expression, with their types *)
 and free_env = t Nfmap.t
@@ -303,14 +303,6 @@ type val_def =
   | Fun_def of lskips * fun_def_rec_flag * targets_opt * funcl_aux lskips_seplist
   | Let_inline of lskips * lskips * targets_opt * name_lskips_annot * const_descr_ref * name_lskips_annot list * lskips * exp
 
-type inst_sem_info =
-  { inst_env : v_env;
-    inst_name : Name.t;
-    inst_class : Path.t;
-    inst_tyvars : Types.tnvar list;
-    inst_constraints : (Path.t * Types.tnvar) list;
-    inst_methods : (Name.t * Types.t) list; }
-
 type name_sect = Name_restrict of (lskips * name_l * lskips * lskips * string * lskips)
 
 type indreln_rule_quant_name = 
@@ -337,7 +329,7 @@ and def_aux =
   | Val_spec of val_spec
   | Class of lskips * lskips * name_l * tnvar * Path.t * lskips * class_val_spec list * lskips
   (* The v_env, name and Path/tyvar list are for converting the instance into a module. *)
-  | Instance of lskips * instschm * val_def list * lskips * inst_sem_info
+  | Instance of lskips * instschm * val_def list * lskips 
   | Comment of def
 
 let tnvar_to_types_tnvar tnvar = 
@@ -353,7 +345,7 @@ let empty_local_env = { m_env = Nfmap.empty;
 let empty_env = { local_env = empty_local_env;
                   c_env = cdmap_empty();
                   t_env = Pfmap.empty;
-                  i_env = Pfmap.empty }
+                  i_env = Types.empty_i_env }
 
 
 let c_env_lookup l m c = 
@@ -654,9 +646,9 @@ let rec def_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (((d,s),l,l
       | Class(sk1,sk2,n,tvar,class_ty,sk3,body,sk4) ->
           let (s_new, s_ret) = lskips_f sk1 in
             res (Class(s_new,sk2,n,tvar,class_ty,sk3,body,sk4)) s_ret
-      | Instance(sk1,is,ds,sk2,sem_info) ->
+      | Instance(sk1,is,ds,sk2) ->
           let (s_new, s_ret) = lskips_f sk1 in
-            res (Instance(s_new,is,ds,sk2,sem_info)) s_ret
+            res (Instance(s_new,is,ds,sk2)) s_ret
       | Comment(d) ->
           let (d',s_ret) = def_alter_init_lskips lskips_f d in
             res (Comment(d')) s_ret

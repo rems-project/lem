@@ -46,6 +46,8 @@
 
 open Typed_ast
 
+(** {2 Infrastructure form definition macros} *)
+
 (** [def_macro] is the type of definition macros. A definition macro [def_mac] gets the arguments
     [rev_path], [env] and [d]. The argument [d] is the definition the macro should process.
     [rev_path] represents the path of the module of definition [d] as a list of names in reverse order.
@@ -70,20 +72,29 @@ val list_to_mac : def_macro list -> def_macro
     The result of [process_defs] is an updated environment and a new list of definitons. *)
 val process_defs : Name.t list -> def_macro -> Name.t -> env -> def list -> (env * def list)
 
-module Macros(E : sig val env : env end) : sig
 
-  val remove_vals : def_macro
-  val remove_indrelns : def_macro
-  val remove_indrelns_true_lhs : def_macro
-  val remove_opens : def_macro
-  val remove_classes : def_macro
-  val instance_to_module : env -> def_macro
-  val class_to_module : def_macro
-  val type_annotate_definitions : def_macro
-  val class_constraint_to_parameter : def_macro
-  val nvar_to_parameter : def_macro
+(** {2 Dictionary passing} *)
 
-  val prune_target_bindings : Target.non_ident_target -> def list -> def list
+(** Type classes are not supported by all backends. The [def_macro] [class_to_record] takes a
+    definition of a type class and turns it into a definition of a record type. The methods of the
+    class become field of the record. This record can then be used as the dictionary type for the
+    dictionary passing. *)
+val class_to_record : def_macro
 
-end
+
+(** {2 Misc} *)
+
+val remove_vals : def_macro
+val remove_indrelns : def_macro
+val remove_indrelns_true_lhs : def_macro
+val remove_opens : def_macro
+val remove_classes : def_macro
+val instance_to_module : env -> def_macro
+val type_annotate_definitions : def_macro
+val class_constraint_to_parameter : def_macro
+val nvar_to_parameter : def_macro
+
+val prune_target_bindings : Target.non_ident_target -> def list -> def list
+
+
 

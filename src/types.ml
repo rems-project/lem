@@ -420,9 +420,16 @@ type type_descr = {
 }
 
 
+type class_descr = { 
+  class_tparam : tnvar;
+  class_record : Path.t; 
+  class_methods : (const_descr_ref * const_descr_ref) list;
+  class_target_rep : type_target_rep Target.Targetmap.t
+}
+
 type tc_def = 
-  | Tc_type of type_descr
-  | Tc_class of tnvar * (Name.t * t) list
+  | Tc_type of type_descr 
+  | Tc_class of class_descr
 
 let mk_tc_type_abbrev vars abbrev = Tc_type { 
   type_tparams = vars;
@@ -494,7 +501,15 @@ let type_defs_get_constr_families l (d : type_defs) (t : t) (c : const_descr_ref
     | None -> []
     | Some td -> List.filter (fun fs -> List.mem c fs.constr_list) td.type_constr
 
-type instance = CInstance of Ast.l * tnvar list * (Path.t * tnvar) list * t * Name.t list
+type instance = {
+  inst_l : Ast.l;
+  inst_binding : Path.t; 
+  inst_class : Path.t;
+  inst_type : t;
+  inst_tyvars : tnvar list;
+  inst_constraints : (Path.t * tnvar) list;
+  inst_methods : (const_descr_ref * const_descr_ref) list;
+}
 
 module IM = Map.Make(struct type t = int let compare = Pervasives.compare end)
 open Format
@@ -582,12 +597,12 @@ let pp_instance_constraint ppf (p, t) =
     Path.pp p
     pp_type t
 
-let pp_instance ppf (CInstance (l, tyvars, constraints, t, p)) =
+let pp_instance ppf inst =
   fprintf ppf "@[<2>forall@ (@[%a@]).@ @[%a@]@ =>@ %a@]@ (%a)"
-    (lst ",@," pp_tnvar) tyvars
-    (lst "@ " pp_class_constraint) constraints
-    pp_type t
-    (lst "." Name.pp) p
+    (lst ",@," pp_tnvar) inst.inst_tyvars
+    (lst "@ " pp_class_constraint) inst.inst_constraints
+    pp_type inst.inst_type 
+    Path.pp inst.inst_binding
 
 let pp_instance_defs ppf ipf =
   Pfmap.pp_map Path.pp (lst ",@," pp_instance) ppf ipf
@@ -693,24 +708,26 @@ let do_type_match t_pat t =
     | (Tne(n),Tne(n')) -> do_nexp_match n n'
     | _ -> assert false
 
-let rec get_matching_instance d (p,t) (instances : (instance list) Pfmap.t) = 
+
+type i_env = (instance list) Pfmap.t 
+let empty_i_env = Pfmap.empty
+
+let i_env_add (m : i_env) (i : instance)  : i_env =
+  let other_insts =  match Pfmap.apply m i.inst_class with
+    | None -> []
+    | Some(l) -> l
+  in
+  Pfmap.insert m (i.inst_class,i::other_insts)
+
+let rec get_matching_instance d (p,t) (instances : (instance list) Pfmap.t) : (instance * t TNfmap.t) option = 
   let t = head_norm d t in 
     match Pfmap.apply instances p with
       | None -> None
       | Some(possibilities) ->
           try
-            let CInstance (l,tvs,cs,t',p) = 
-              List.find (fun i -> match i with | CInstance (l, tvs, cs, t', p) -> types_match t' t) possibilities
-            in
-            let subst = do_type_match t' t in
-              Some(l, p,
-                   subst,
-                   List.map (fun (p, tnv) ->
-                               (p, 
-                                match TNfmap.apply subst tnv with
-                                  | Some(t) -> t
-                                  | None -> assert false))
-                     cs)
+            let i = List.find (fun i -> types_match i.inst_type t) possibilities in
+            let subst = do_type_match i.inst_type t in
+              Some(i, subst)
           with
               Not_found -> None
 
@@ -1486,13 +1503,20 @@ module Constraint (T : Global_defs) : Constraint = struct
        then ()
        else raise (err_type l ("Constraint " ^ range_to_string c ^ " is required by let definition but not implied by val specification\n"))
 
-  let rec solve_constraints (instances : (instance list) Pfmap.t) (unsolvable : PTset.t)= function
+  let rec solve_constraints (instances : (instance list) Pfmap.t) (unsolvable : PTset.t) = function
     | [] -> unsolvable 
     | (p,t) :: constraints ->
         match get_matching_instance T.d (p,t) instances with
           | None ->
               solve_constraints instances (PTset.add (p,t) unsolvable) constraints
-          | Some(l,_,_,new_cs) ->
+          | Some(i,subst) ->
+               (** apply subst to constraints of instance *)
+               let new_cs = List.map (fun (p, tnv) -> (p, 
+                     match TNfmap.apply subst tnv with
+                             | Some(t) -> t
+                             | None -> raise (Reporting_basic.err_unreachable true i.inst_l "get_matching_instance does not provide proper substitution!")))
+                    i.inst_constraints
+              in
               solve_constraints instances unsolvable (new_cs @ constraints)
 
   let check_constraint l (p,t) =

@@ -51,7 +51,7 @@ open Typed_ast_syntax
 open Target
 
 module T = Trans.Macros
-module M = Def_trans.Macros
+module M = Def_trans
 
 type which_macro =
   | Def_macros of (env -> Def_trans.def_macro list)
@@ -71,16 +71,16 @@ type trans =
 (* The macros needed to implement the dictionary passing translations to remove type classes *)
 let dictionary_macros = 
   [
-   Def_macros (fun env -> let module M = M(struct let env = env end) in [M.class_to_module]);
-   Def_macros (fun env -> let module M = M(struct let env = env end) in [M.instance_to_module env]);
-   Def_macros (fun env -> let module M = M(struct let env = env end) in [M.class_constraint_to_parameter]);
+   Def_macros (fun env -> [M.class_to_record]);
+   Def_macros (fun env -> [M.instance_to_module env]);
+   Def_macros (fun env -> [M.class_constraint_to_parameter]);
    Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_method]);
    Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_class_const])
   ]
 
 (* The macros needed to change number type variables (e.g., ''a) into function parameters *)
 let nvar_macros =
-  [Def_macros (fun env -> let module M = M(struct let env = env end) in [M.nvar_to_parameter]);
+  [Def_macros (fun env -> [M.nvar_to_parameter]);
    Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.add_nexp_param_in_const])
   ]
 
@@ -97,8 +97,7 @@ let tex =
 let hol =
   { macros = dictionary_macros @ 
              nvar_macros @
-             [Def_macros (fun env -> let module M = M(struct let env = env end) in [
-                                        M.remove_vals;
+             [Def_macros (fun env -> [  M.remove_vals;
                                         M.remove_classes; 
                                         M.remove_opens;
                                         Patterns.compile_def (Target_no_ident Target_hol) Patterns.is_hol_pattern_match env;]);
@@ -122,7 +121,7 @@ let hol =
 let ocaml =
   { macros = dictionary_macros @
              nvar_macros @
-             [Def_macros (fun env -> let module M = M(struct let env = env end) in 
+             [Def_macros (fun env ->  
                             [M.remove_vals; 
                              M.remove_indrelns;
                              Patterns.compile_def (Target_no_ident Target_ocaml) Patterns.is_ocaml_pattern_match env]);
@@ -144,7 +143,7 @@ let ocaml =
 
 let isa  =
   { macros =
-     [Def_macros (fun env -> let module M = M(struct let env = env end) in 
+     [Def_macros (fun env ->
                     [M.remove_vals;
                      M.remove_opens;
                      M.remove_indrelns_true_lhs;
@@ -173,7 +172,7 @@ let isa  =
 
 let coq =
   { macros =
-      [Def_macros (fun env -> let module M = M(struct let env = env end) in 
+      [Def_macros (fun env -> 
                     [M.type_annotate_definitions;
                      Patterns.compile_def (Target_no_ident Target_coq) Patterns.is_coq_pattern_match env
                     ]); 
@@ -216,10 +215,12 @@ begin
   let l = Ast.Trans (false, "add_used_entities_to_avoid_names", None) in
 
   let avoid_consts =  match targ with
+                        | Target_ident -> false
                         | Target_no_ident Target_hol -> false 
                         | _ -> true
   in
   let avoid_types = match targ with
+                      | Target_ident -> false
                       | Target_no_ident Target_isa -> false
                       | Target_no_ident Target_hol -> false
                       | _ -> true in
@@ -311,7 +312,7 @@ let trans (targ : Target.target) params env m =
   let defs =
     match targ with 
       | Target_ident -> defs
-      | Target_no_ident t -> let module M2 = Def_trans.Macros(struct let env = env end) in M2.prune_target_bindings t defs 
+      | Target_no_ident t -> Def_trans.prune_target_bindings t defs 
   in
   let (env,defs) = 
     List.fold_left 
