@@ -67,10 +67,6 @@ instance ( C num )
   let test20 = 1
 end
 
-instance forall 'a . ( C list 'a )
-  let test20 = []
-end
-
 instance forall 'a . C 'a => ( C ( list 'a ) )
   let test20 = [test20]
 end

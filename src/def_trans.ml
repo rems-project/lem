@@ -47,6 +47,7 @@
 open Typed_ast
 open Typed_ast_syntax
 open Target
+open Types
 type def_macro = Name.t list -> env -> def -> (env * def list) option
 
 let r = Ulib.Text.of_latin1
@@ -160,7 +161,6 @@ let type_annotate_definitions _ env ((d,s),l,lenv) =
           | Some t -> Some (env,
                [((Val_def(Let_def(sk1, topt,(p, name_map, Some t, sk2, e)), tnvs, class_constraints), s), l, lenv)])
       end
-    (* TODO: Handle Fun_def *)
     | Val_def(Fun_def(sk1,sk2,topt,funs),tnvs,class_constraints) -> begin
         let fix_funcl_aux (n, n_c, pL, src_t_opt, sk, e) = begin
           let src_t_opt' = generate_srt_t_opt src_t_opt e 
@@ -176,112 +176,109 @@ let type_annotate_definitions _ env ((d,s),l,lenv) =
       end
     | _ -> None
 
-let build_field_name n = 
-  Name.lskip_rename (fun x -> Ulib.Text.(^^^) x (r"_method")) n
 
-let dict_type_name cn = (Name.lskip_rename (fun x -> Ulib.Text.(^^^) x (r"_class")) cn)
-
+(* Turn a class definition into a record one for dictionary passing.
+   The type definition of the record and the definition of its fields has 
+   already been done during type-checking. *)
 let class_to_record mod_path env ((d,s),l,lenv) =
     let l_unk = Ast.Trans(true, "class_to_record", Some l) in 
     match d with
       | Class(sk1,sk2,(n,l),tnvar,class_path,sk3,specs,sk4) ->
-          let fields = Seplist.from_list_default None
-                         (*TODO: Something with sk1 *)
-                         (List.map (fun (sk1, (n,l), ref, sk2, src_t) -> ((build_field_name n, l), ref, sk2, src_t)) specs)
-          in
-          
+          (* lookup class-description *)
+          let cd = lookup_class_descr l_unk env class_path in
+
+          (* turn the methods specs into pairs of sk + field spec *)
+          let process_method_spec (sk1, (method_name, l), method_ref, sk2, src_t) =
+          begin
+            let field_ref = lookup_field_for_class_method l cd method_ref in
+            let fd = c_env_lookup l env.c_env field_ref in
+            let field_name = Name.add_pre_lskip sk1 (Name.add_lskip (Path.get_name fd.const_binding)) in
+              
+	    ((field_name, l), field_ref, sk2, src_t)
+          end in   
+          let fields = Seplist.from_list_default None (List.map process_method_spec specs) in
+          let (sk_fields, fields) = Seplist.drop_first_sep fields in
+
+          let rec_path = cd.class_record in
+          let rec_name = Name.add_pre_lskip sk2 (Name.add_lskip (Path.get_name rec_path)) in
           let rec_def = 
-            Type_def (Ast.combine_lex_skips sk1 sk2, 
-                      Seplist.from_list_default None [((dict_type_name n, l), [tnvar], class_path, Te_record(None, sk3, fields, sk4), None)])
+            Type_def (sk1, 
+                      Seplist.from_list_default None [((rec_name, l), [tnvar], rec_path, Te_record(None, sk3, fields, sk4), None)])
           in
             Some (env, [((rec_def, s), l, lenv)])
       | _ -> None
 
-(* TODO: implement *)
-let instance_to_module (global_env : env) mod_path (env : env) ((d,s),l,lenv) = None
 
-(*
+(* turns an instance declaration into a module containing all the field declarations
+   and a dictionary at the end *)
 let instance_to_module (global_env : env) mod_path (env : env) ((d,s),l,lenv) =
   let l_unk n = Ast.Trans(true, "instance_to_module" ^ string_of_int n , Some l) in
   match d with
-      | Instance(sk1, (prefix, sk2, id, t, sk3), vdefs, sk4, sem_info) ->
-          let dict_name = Name.from_rope (r"dict") in
-          let dict_type = Typed_ast.class_path_to_dict_type sem_info.inst_class t.typ in
-          let dict_c =
-            { const_binding = Path.mk_path mod_path dict_name;
-              const_tparams = sem_info.inst_tyvars;
-              const_class = sem_info.inst_constraints;
-              const_ranges = [];
-              const_type = dict_type;
-              env_tag = K_let;
-              spec_l = l;
-              const_targets = Target.all_targets;
-              relation_info = None;
-              target_rep = Targetmap.empty;
-            }
-          in
-          let (c_env,dict_ref) = Typed_ast_syntax.c_env_store env.c_env dict_c in
-          let v_env = Nfmap.insert sem_info.inst_env (dict_name, dict_ref) in
-          let local_env =
-            { env.local_env with m_env = 
-                Nfmap.insert env.local_env.m_env 
-                (sem_info.inst_name, { mod_binding = Path.mk_path mod_path sem_info.inst_name;
-                                       mod_env = {empty_local_env with v_env = v_env }}) } in
-          let env = {env with local_env = local_env; c_env = c_env} in
-          let fields =
-            List.map (fun (method_n,_) ->
-                        let method_name = 
-                          Name.rename (fun n -> Ulib.Text.(^^^) n (r"_method")) method_n 
-                        in
-                        let c = match Nfmap.apply sem_info.inst_env method_n with 
-                                  | Some (c) -> c
-                                  | _ -> assert false
-                        in
-                        let c_d = c_env_lookup l c_env c in
-                        let (path_to_class,_) = Path.to_name_list sem_info.inst_class in
-                        let (f, _) = names_get_field global_env path_to_class method_name in
-                        (({ id_path = Id_none None;
-                            id_locn = l_unk 1;
-                            descr = f;
-                            instantiation = [t.typ]; }, 
-                          None, 
-                          C.mk_const (l_unk 2) { id_path = Id_none None;
-                                             id_locn = l_unk 3;
-                                             descr = c;
-                                             instantiation = List.map
-                                             Types.tnvar_to_type c_d.const_tparams; }
-                                     (Some c_d.const_type), 
-                          (l_unk 4)),
-                         None))
-                     sem_info.inst_methods
-          in
-          let dict_body =
-            C.mk_record (l_unk 5) None (Seplist.from_list fields) None (Some dict_type)
-          in
-          let dict_name =
-            { term = Name.add_lskip dict_name;
-              typ = dict_type;
-              locn = l_unk 6;
-              rest = ();
-            }
-          in
-          let dict' = ((dict_name,  dict_ref, [], None, None, dict_body):funcl_aux) in
-          let dict = Fun_def(new_line,FR_non_rec,None,Seplist.cons_entry dict' Seplist.empty) in
-          let tnvars_set = 
-            List.fold_right Types.TNset.add sem_info.inst_tyvars Types.TNset.empty
-          in
+      | Instance(sk1, (prefix, sk2, id, class_path, t, sk3), vdefs, sk4) ->
+          (* lookup instance and class description *)
+          let id_opt = get_matching_instance env.t_env (class_path, t.typ) env.i_env in 
+          let id = match id_opt with
+                     | Some (id, subst) -> id
+                     | None -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal (l, "instance has not been added properly to the environment during typechecking.")))
+          in      
+          let cd = lookup_class_descr (l_unk 0) env id.inst_class in
+
+          let (inst_path, inst_name) = Path.to_name_list id.inst_binding in
+
+          (* now generate the definition of the record dict *)
+          let dict = begin
+            let mk_field_entry (class_method_ref, inst_method_ref) =
+              begin
+                let field_ref = lookup_field_for_class_method l cd class_method_ref in
+                let field_id = { id_path = Id_none None;
+                                 id_locn = l_unk 1;
+                                 descr = field_ref;
+                                 instantiation = [t.typ]; } in
+
+                let inst_method_d = c_env_lookup l env.c_env inst_method_ref in
+                let inst_method_id = { id_path = Id_none None;
+                                       id_locn = l_unk 3;
+                                       descr = inst_method_ref;
+                                       instantiation = List.map Types.tnvar_to_type inst_method_d.const_tparams; } in
+                let inst_method_const = C.mk_const (l_unk 2) inst_method_id (Some inst_method_d.const_type) in
+
+                ((field_id, None, inst_method_const, (l_unk 4)),
+                 None)
+              end in
+            let fields = List.map mk_field_entry id.inst_methods in
+            let dict_type = class_descr_get_dict_type cd t.typ in
+            let dict_d = c_env_lookup (l_unk 7) env.c_env id.inst_dict in
+            let dict_body = C.mk_record (l_unk 5) None (Seplist.from_list fields) None (Some dict_type)
+            in
+            let dict_name =
+              { term = Name.add_lskip (Path.get_name dict_d.const_binding);
+                typ = dict_type;
+                locn = l_unk 6;
+                rest = ();
+              }
+            in
+            let dict' = ((dict_name, id.inst_dict, [], None, None, dict_body):funcl_aux) in
+            let dict = Fun_def(new_line,FR_non_rec,None,Seplist.cons_entry dict' Seplist.empty) in
+            dict
+          end in
+
+          (* environment inside the module *)
+          let lenv' = local_env_union lenv (lookup_mod_descr lenv [] inst_name).mod_env in
+
+          (* finally, we get the module *)
+          let tnvars_set = List.fold_right TNset.add id.inst_tyvars TNset.empty in
           let m = 
-            Module(sk1, (Name.add_lskip sem_info.inst_name, l_unk 9), 
-                   Path.mk_path mod_path sem_info.inst_name, sk2, None, 
-                   List.map (fun d -> ((Val_def(d,tnvars_set,sem_info.inst_constraints),None), l_unk 10, lenv)) 
+            Module(sk1, (Name.add_lskip inst_name, l_unk 9), 
+                   id.inst_binding, sk2, None, 
+                   List.map (fun d -> ((Val_def(d,tnvars_set,id.inst_constraints),None), l_unk 10, lenv')) 
                             (vdefs @ [dict]), 
                    sk4)
           in
             Some((env,[((m,s),l,lenv)]))
       | _ ->
           None
-*)
 
+(* for dictionary passing turn class constriants into additional arguments *) 
 let class_constraint_to_parameter : def_macro = fun mod_path env ((d,s),l,lenv) ->
   let l_unk = Ast.Trans(true, "class_constraint_to_parameter", Some l) in
   (* TODO : avoid shouldn't be None *)
@@ -292,31 +289,54 @@ let class_constraint_to_parameter : def_macro = fun mod_path env ((d,s),l,lenv) 
             List.map
               (fun (c,tnv) ->
                  let n = Typed_ast.class_path_to_dict_name c tnv in
-                   C.mk_pvar l_unk (Name.add_lskip n) 
-                     (Typed_ast.class_path_to_dict_type c (Types.tnvar_to_type tnv)))
+                 let cd = lookup_class_descr l_unk env c in
+                 let dict_type = class_descr_get_dict_type cd (Types.tnvar_to_type tnv) in
+                   C.mk_pvar l_unk (Name.add_lskip n) dict_type) 
               class_constraints
           in
-          let build_fun sk1 targs n ps topt sk2 e =
-            let n' = Name.strip_lskip n.term in
-            let (c, c_d) = names_get_const env [] n' in
-            let t' = Types.multi_fun (List.map (fun x -> x.typ) new_pats) c_d.const_type in
-            let c_d_new = ({ c_d with const_class = []; const_type = t' }) in
-            let env' = env_c_env_update env c c_d_new in
-            let n'' = { n with typ = t' } in
-            Some(env',
-                 [((Val_def(Fun_def(sk1,FR_non_rec,targs,Seplist.sing (n'',c,new_pats@ps,topt,sk2,e)),tnvs,[]),s),l)])
+          let build_fun sk1 fr targs clauses =
+            (* update the constant description *)
+            let (clauses', c_env') = Seplist.map_acc_left (fun ((n, c, ps, topt, sk2, e):funcl_aux) c_env -> 
+              begin
+              let c_d = c_env_lookup l_unk c_env c  in
+	      let (c', t', c_env') = 
+                match c_d.const_no_class with
+		  | Some c' -> 
+                      let c_d' = c_env_lookup l_unk c_env c' in
+                      (c', c_d'.const_type, c_env)
+		  | None -> 
+                    begin            
+                      let t' = Types.multi_fun (List.map (fun x -> x.typ) new_pats) c_d.const_type in
+
+                      let c_d' = ({ c_d with const_class = []; const_type = t' }) in
+                      let (c_env', c') = c_env_store_raw c_env c_d' in 
+
+                      let c_d_new = { c_d with const_no_class = Some c' } in
+                      let c_env' = c_env_update c_env' c c_d_new in 
+
+                      (c',t', c_env')
+                   end
+              in
+              let n'' = { n with typ = t' } in
+              let (clause':funcl_aux) = (n'',c',new_pats@ps,topt,sk2,e) in
+              (clause', c_env') end)
+            env.c_env clauses in
+
+            Some({ env with c_env = c_env'},
+                 [((Val_def(Fun_def(sk1,fr,targs,clauses'),tnvs,[]),s),l,lenv)])
           in
           begin
             match lb with
-              | Let_def(_,_,_) -> None
-              | Fun_def(sk,FR_non_rec,_,_) -> None
+              | Let_def(_,_,_) -> 
+                  raise (Reporting_basic.err_unreachable true l "Fancy, top level pattern maching should not have a class constraint. Typechecking should have complained.")
 
-              | Fun_def(_,FR_rec _,_,_) ->
-                  raise (Reporting_basic.err_todo true l "Recursive function with class constraints")
-              | Let_inline _ -> None
+              | Fun_def(sk,fr,topt,clauses) -> build_fun sk fr topt clauses
+
+              | Let_inline _ -> 
+                  raise (Reporting_basic.err_unreachable true l "Inline functions should not have a class constraint. Typechecking should have complained.")
+
          end
       | _ -> None
-
 
 let nvar_to_parameter : def_macro = fun mod_path env ((d,s),l,_) ->
   let l_unk = Ast.Trans(true, "nvar_to_parameter", Some l) in

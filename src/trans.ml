@@ -48,6 +48,7 @@ open Typed_ast
 open Typed_ast_syntax
 open Pattern_syntax
 open Target
+open Types
 open Util
 exception Trans_error of Ast.l * string
 
@@ -842,11 +843,7 @@ let tnfmap_apply m k =
     | Some x -> x
 
 
-(* TODO: implement *)
-let remove_method e = None
-let remove_class_const e = None
-
-(*
+(* remove a class-method and replace it either with the instance method or add a dictionary style passing argument *)
 let remove_method e =
   let l_unk = Ast.Trans(true, "remove_method", Some (exp_to_locn e)) in
   match C.exp_to_term e with
@@ -860,21 +857,19 @@ let remove_method e =
                     | ([(c_path,tparam)],[targ]) -> 
                         begin
                           match Types.get_matching_instance d (c_path, targ) inst with
-                            | Some(_, instance_path, subst, instance_constraints) ->
+                            | Some (instance, subst) ->
                                 (* There is an instance for this method at this type, so
                                  * we directly call the instance *)
                                 begin
-                                  let (new_const_ref, new_const_descr) = 
-                                    names_get_const env instance_path (Path.get_name c_descr.const_binding)
-                                  in
+                                  let new_const_ref = lookup_inst_method_for_class_method l_unk instance c.descr in
+                                  let new_const_descr = c_env_lookup l_unk env.c_env new_const_ref in
                                   let id = 
                                     { id_path = Id_none (Typed_ast.ident_get_first_lskip c);
                                       id_locn = c.id_locn;
                                       descr = new_const_ref;
                                       instantiation = List.map (tnfmap_apply subst) new_const_descr.const_tparams; }
                                   in
-                                  let new_e = C.mk_const l_unk id None in
-                                    Some(new_e)
+                                  let new_e = C.mk_const l_unk id None in Some(new_e)
                                 end
                             | None ->
                                 let tv = 
@@ -883,21 +878,20 @@ let remove_method e =
                                     | Types.Tne { Types.nexp = Types.Nvar v } -> Types.Nv v
                                     | _ -> raise (Reporting_basic.err_unreachable true l_unk "because there was no instance")
                                 in
+                                let cd = lookup_class_descr l_unk env c_path in
                                 let n = class_path_to_dict_name c_path tv in
-                                let t = class_path_to_dict_type c_path targ in
-                                let dict = C.mk_var l_unk (Name.add_lskip n) t in
-                                let (c_pnames,_) = Path.to_name_list c_path in
-                                let (_,mname) = Path.to_name_list c_descr.const_binding in
-                                let mname = Name.rename (fun x -> Ulib.Text.(^^^) x (r"_method")) mname in
-                                let sk = ident_get_first_lskip c in
+                                let n_sk = Name.add_pre_lskip (ident_get_first_lskip c) (Name.add_lskip n) in
+                                let t = class_descr_get_dict_type cd targ in
+                                let dict = C.mk_var l_unk n_sk t in
+
                                 let field = 
                                   { id_path = Id_none None;
                                     id_locn = c.id_locn;
-                                    descr = fst (names_get_field env c_pnames mname);
+                                    descr = lookup_field_for_class_method l_unk cd c.descr;
                                     instantiation = [targ] }
                                 in
                                 let new_e = 
-                                  C.mk_field l_unk (fst (alter_init_lskips (fun _ -> (sk,None)) dict)) None field (Some (exp_to_typ e))
+                                  C.mk_field l_unk dict None field (Some (exp_to_typ e))
                                 in
                                     Some(new_e)
                         end
@@ -908,58 +902,63 @@ let remove_method e =
     | _ -> None
 
 
+(* remove class constraints from constants by adding explicit dictionary arguments. *)
+
+let remove_class_const_aux l_unk mk_exp c =
+  let c_descr = c_env_lookup l_unk env.c_env c.descr in
+  match (c_descr.const_class, c_descr.const_no_class) with
+      | (([], _) | (_, None)) ->                 
+          (* if there are no class constraints, there is nothing to do *)
+          None
+      | (_, Some c_ref') ->
+          let subst = Types.TNfmap.from_list2 c_descr.const_tparams c.instantiation in
+          let class_constraint_to_arg (c_path, tv) =
+	    begin
+              let t_inst = tnfmap_apply subst tv in
+              match Types.get_matching_instance d (c_path, t_inst) inst with
+                | Some(inst, subst) -> 
+                  begin
+                     (* if there is a matching instance, we know which dictionary to attach*)                                 
+                     let dict_const_descr = c_env_lookup l_unk env.c_env inst.inst_dict in
+                       C.mk_const l_unk
+                         { id_path = Id_none None;
+                           id_locn = l_unk;
+                           descr = inst.inst_dict;
+                           instantiation = List.map (tnfmap_apply subst) dict_const_descr.const_tparams }
+                         None
+                  end
+                | None ->
+                    (* it's not bound, so the constraint is propagating. Use the argument as a free var therefore *)
+                    let tv = 
+                      match t_inst.Types.t with
+                        | Tvar tv -> Ty tv
+                        | Tne { nexp = Nvar v } -> Nv v
+                        | _ -> raise (Reporting_basic.err_unreachable true l_unk "because there was no instance")
+                    in
+                    let cd = lookup_class_descr l_unk env c_path in
+                    let t = class_descr_get_dict_type cd t_inst in
+                        C.mk_var l_unk (Name.add_lskip (class_path_to_dict_name c_path tv)) t
+            end
+          in
+          let args = List.map class_constraint_to_arg c_descr.const_class in          
+          let new_e = 
+            List.fold_left
+              (fun e arg -> C.mk_app l_unk e arg None)
+              (mk_exp {c with descr = c_ref'})
+              args
+          in
+            Some(new_e)
+     
+
 let remove_class_const e =
   let l_unk = Ast.Trans(true, "remove_class_const", Some (exp_to_locn e)) in
   match C.exp_to_term e with
     | Constant(c) ->
-        begin
-          let c_descr = c_env_lookup l_unk env.c_env c.descr in
-          match c_descr.env_tag with
-            | K_let ->
-                if c_descr.const_class = [] then
-                  None
-                else
-                  let subst = Types.TNfmap.from_list2 c_descr.const_tparams c.instantiation in
-                  let args = 
-                    List.map
-                      (fun (c_path, tv) ->
-                         let t_inst = tnfmap_apply subst tv in
-                         let open Types in 
-                           match get_matching_instance d (c_path, t_inst) inst with
-                             | Some(_, instance_path, subst, instance_constraints) ->
-                                 let (dict_const_ref, dict_const_descr) = names_get_const env instance_path (Name.from_rope (r"dict")) in
-                                   C.mk_const l_unk
-                                     { id_path = Id_none None;
-                                       id_locn = l_unk;
-                                       descr = dict_const_ref;
-                                       instantiation = List.map (tnfmap_apply subst) dict_const_descr.const_tparams }
-                                     None
-                             | None ->
-                                let tv = 
-                                  match t_inst.t with
-                                    | Tvar tv -> Ty tv
-                                    | Tne { nexp = Nvar v } -> Nv v
-                                    | _ -> raise (Reporting_basic.err_unreachable true l_unk "because there was no instance")
-                                in
-                                let t = class_path_to_dict_type c_path t_inst in
-                                  C.mk_var l_unk (Name.add_lskip (class_path_to_dict_name c_path tv)) t)
-                      c_descr.const_class
-                  in
-                  let (c_path1,c_path2) = Path.to_name_list c_descr.const_binding in
-                  let (new_c_ref, _) = names_get_const env c_path1 c_path2 in
-                  let new_id = {c with descr = new_c_ref } in
-                  let new_e = 
-                    List.fold_left
-                      (fun e arg -> C.mk_app l_unk e arg None)
-                      (C.mk_const l_unk new_id None)
-                      args
-                  in
-                    Some(new_e)
-            | _ -> 
-                None
-        end
+        remove_class_const_aux l_unk (fun c' -> (C.mk_const l_unk c' None)) c
+    | Field(e,sk,fd) ->
+        remove_class_const_aux l_unk (fun fd' -> (C.mk_field l_unk e sk fd' None)) fd
     | _ -> None
-*)
+
 
 (*Convert nexpressions to expressions *)
 let nexp_to_exp n =

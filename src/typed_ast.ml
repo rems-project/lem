@@ -164,6 +164,7 @@ and rel_info = {
 and const_descr = { const_binding : Path.t;
                     const_tparams : Types.tnvar list;
                     const_class : (Path.t * Types.tnvar) list;
+                    const_no_class : const_descr_ref option;
                     const_ranges : Types.range list;
                     const_type : t; 
 		    relation_info: rel_info option;
@@ -275,7 +276,7 @@ type rename_tag = | RT_field | RT_constr | RT_fun | RT_type
 
 type typschm = constraint_prefix option * src_t
 
-type instschm = constraint_prefix option * lskips * Ident.t * src_t * lskips
+type instschm = constraint_prefix option * lskips * Ident.t * Path.t * src_t * lskips
 
 type val_spec = lskips * name_l * const_descr_ref * lskips * typschm
 
@@ -2188,11 +2189,6 @@ let class_path_to_dict_name c tv =
                      (r"dict" ::
                        (* TODO KG & SO Should the tv distinguish ty vs nv *)
                        (List.map Name.to_rope pnames @ [Name.to_rope n; Types.tnvar_to_rope tv])))
-
-let class_path_to_dict_type c arg =
-  let (mods,n) = Path.to_name_list c in
-  let n = Name.rename (fun x -> Ulib.Text.(^^^) x (r"_class")) n in
-    { Types.t = Types.Tapp([arg], Path.mk_path mods n) }
 
 let ident_get_first_lskip id =
   match id.id_path with

@@ -135,6 +135,24 @@ val get_field_type_descr : Ast.l -> env -> const_descr_ref -> Types.type_descr
     the record type of the field [f]. It then returns a list of all the other fields of this record. *)
 val get_field_all_fields : Ast.l -> env -> const_descr_ref -> const_descr_ref list
 
+(** [lookup_class_descr l env c_path] looks up the description of type-class [c_path] in environment [env]. 
+    If [c_path] is no valid type-class, an exception is raised. *)
+val lookup_class_descr : Ast.l -> env -> Path.t -> Types.class_descr
+
+(** [lookup_field_for_class_method l cd method_ref] looks up the field reference corresponding to 
+    the method identified by [method_ref] in the description [cd] of a type class.
+    If the reference does not point to a method of this type-class, an exception is raised. *)
+val lookup_field_for_class_method : Ast.l -> Types.class_descr -> const_descr_ref -> const_descr_ref
+
+(** [lookup_inst_method_for_class_method l i method_ref] looks up the instance method reference corresponding to 
+    the method identified by [method_ref] in the instance [i].
+    If the reference does not point to a method of this instance, an exception is raised. *)
+val lookup_inst_method_for_class_method : Ast.l -> Types.instance -> const_descr_ref -> const_descr_ref
+
+(** [Given a class-description [cd] and an argument type [arg], the function [class_descr_get_dict_type cd arg] generates
+    the type of the dictionary for the class and argument type. *)
+val class_descr_get_dict_type : Types.class_descr -> Types.t -> Types.t
+
 (** [update_const_descr l up c env] updates the description of the constant [c] in environment [env] using
     the function [up]. *)
 val update_const_descr : Ast.l -> (const_descr -> const_descr) -> const_descr_ref -> env -> env

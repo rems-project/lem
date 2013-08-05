@@ -53,9 +53,9 @@ let r = Ulib.Text.of_latin1
 let marker_lex_skip : Ast.lex_skips = (Some [Ast.Ws (Ulib.Text.of_latin1 "***marker***")])
 
 (* Resolve a const identifier stored inside a id, with a full one in case of Id_none *)
-let resolve_constant_id_ident env id path : Ident.t =
+let resolve_constant_id_ident env id : Ident.t =
   match id.id_path with 
-      | Id_none sk -> resolve_const_ref env sk path id.descr
+      | Id_none sk -> resolve_const_ref env sk id.descr
       | Id_some id -> id
 
 let resolve_type_id_ident env id path : Ident.t =
@@ -180,7 +180,7 @@ let ident_to_output use_infix =
 let const_id_to_ident c_id =
   let l = Ast.Trans (false, "const_id_to_ident", None) in
   let c_descr = c_env_lookup l A.env.c_env c_id.descr in
-  let org_ident = resolve_constant_id_ident (A.env.local_env) c_id c_descr.const_binding in
+  let org_ident = resolve_constant_id_ident A.env c_id in
   let i = match Target.Targetmap.apply_target c_descr.target_rep A.target with
      | None -> org_ident
      | Some (CR_new_ident (_, _, i)) -> i

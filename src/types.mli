@@ -243,6 +243,7 @@ type instance = {
   inst_constraints : (Path.t * tnvar) list; (** Type class constraints on the free type variables of the instance *)
   inst_methods : (const_descr_ref * const_descr_ref) list; (** The methods of this instance. Since each instance method corresponds to one
     class method it instantiates, the methods are given as a list of pairs [(class_method_ref, instance_method_ref)]. *)
+  inst_dict : const_descr_ref (** a dictionary for the instance *)
 }
 
 (* A type for contraints collected during type checking. TNset contains the variables the term ranges over, the second are remaining class constraints, and the third remaining length constraints *)

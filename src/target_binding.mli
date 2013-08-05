@@ -54,7 +54,7 @@ val resolve_module_path : local_env -> lskips -> Path.t -> Ident.t
     It returns a shortest suffix [p'] of [p] that resolves to the same type in [lenv], and adds the lskips [sk] to the returned ident. *)
 val resolve_type_path : local_env -> lskips -> Path.t -> Ident.t
 
-(** [resolve_const_ref lenv sk p c_ref] tries to find the constant [c_ref] in local environment [lenv].
-    [p] is an absolute path for [c_ref].
+(** [resolve_const_ref env sk c_ref] tries to find the constant [c_ref] in environment [env].
+    Let [p] be the absolute path for [c_ref].
     It returns a shortest suffix [p'] of [p] that resolves to the same constant in [lenv], and adds the lskips [sk] to the returned ident. *)
-val resolve_const_ref : local_env -> lskips -> Path.t -> const_descr_ref -> Ident.t
+val resolve_const_ref : env -> lskips -> const_descr_ref -> Ident.t

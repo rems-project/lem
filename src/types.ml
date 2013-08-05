@@ -509,6 +509,7 @@ type instance = {
   inst_tyvars : tnvar list;
   inst_constraints : (Path.t * tnvar) list;
   inst_methods : (const_descr_ref * const_descr_ref) list;
+  inst_dict : const_descr_ref
 }
 
 module IM = Map.Make(struct type t = int let compare = Pervasives.compare end)
@@ -645,7 +646,7 @@ let rec head_norm (d : type_defs) (t : t) : t =
                  raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(Ast.Unknown, "head_norm: env did not contain type!")))
              | Some(Tc_type(dc)) -> Util.option_default_map dc.type_abbrev t (fun t -> head_norm d (type_subst (TNfmap.from_list2 dc.type_tparams ts) t))
              | Some(Tc_class _) ->
-                 assert false)
+                 raise (Reporting_basic.err_unreachable true Ast.Unknown "head_norm: called on a type-class!"))
       | _ -> 
           t
 

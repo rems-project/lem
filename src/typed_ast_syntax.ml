@@ -191,6 +191,27 @@ let get_field_all_fields l env (f : const_descr_ref) : const_descr_ref list =
     | Some(fl) -> fl
     | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "not a field type")))
 
+let lookup_class_descr l env (class_path : Path.t) =
+  let l = Ast.Trans(false, "get_class_descr", Some l) in 
+  match Types.Pfmap.apply env.t_env class_path with
+    | Some(Types.Tc_class(cd)) -> cd
+    | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "not a type class")))
+
+let lookup_field_for_class_method l cd method_ref = 
+  try 
+     List.assoc method_ref cd.Types.class_methods
+  with Not_found -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "method-ref not present in class!")))
+
+let lookup_inst_method_for_class_method l id method_ref = 
+  try 
+     List.assoc method_ref id.Types.inst_methods
+  with Not_found -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "method-ref not present in class!")))
+
+
+let class_descr_get_dict_type cd arg =
+    { Types.t = Types.Tapp([arg], cd.class_record) }
+
+
 let update_const_descr l up c env =
   let l = Ast.Trans(false, "update_const_descr", Some l) in 
   let cd = c_env_lookup l env.c_env c in
@@ -305,10 +326,10 @@ let set_target_const_rep env path name target rep =
 
 let get_const_id (env : env) l mp n inst =
 let (c_ref, c_d) = get_const env mp n in
-({ id_path = Id_some (Ident.mk_ident_strings mp n);
-  id_locn = l;
-  descr = c_ref;
-  instantiation = inst },
+({ id_path = Id_none None;
+   id_locn = l;
+   descr = c_ref;
+   instantiation = inst },
  c_d)
 
 

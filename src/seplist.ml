@@ -113,6 +113,30 @@ let to_pair_list default_s (o1,l,o2) =
 
 let from_pair_list o1 l o2 = (o1, l, o2)
 
+let from_pair_list_sym o1 l o2 = 
+  let rec aux a0 l = 
+    match l with 
+      | [] -> begin
+          match o2 with 
+            | None -> ([], Some a0)
+            | Some s -> ([(a0,s)], None)
+        end
+      | (s,a)::l' -> let (l'', o2') = aux a l' in
+          ((a0,s) :: l'', o2')
+  in
+  match l with 
+    | [] -> begin
+              match (o1, o2) with
+                | (Some a, Some s) -> (None, [(a,s)], None)
+                | _ -> (o2, [], o1)
+            end
+    | (s0,a1)::l' -> let (l'', o2') = aux a1 l' in begin
+                 match o1 with None -> (Some s0, l'', o2')
+                             | Some a0 -> (None, (a0, s0)::l'', o2') 
+                 end
+
+let drop_first_sep (o1, l, o2) = (o1, (None, l, o2))
+
 let to_list_map f (_,l,o) =
   let l = List.map (fun x -> f (fst x)) l in
    match o with

@@ -67,3 +67,6 @@ val rename_def_params : target -> NameSet.t -> checked_module list -> checked_mo
 
 (** This flag enables pattern compilation for the identity backend. Used for debugging. *)
 val ident_force_pattern_compile : bool ref
+
+(** This flag enables dictionary passing transfromations for the identity backend. Used for debugging. *)
+val ident_force_dictionary_passing : bool ref 

@@ -157,6 +157,22 @@ module Macros (E : sig val env : env end) : sig
      (only add for arguments to top-level functions) *)
   val coq_type_annot_pat_vars : pat_macro
 
+  (** {2 Type Class Macros } *)
+
+   (** [remove_method] is used to remove occurrences of class methods. 
+       It is assumed to be used together with [Def_trans.class_constraint_to_parameter].
+       If a class method is encountered, the [remove_method] macro first tries to 
+       resolve the type-class instantiation statically and replace the method with it's
+       instantiation. If this static resolving attempt fails, the method is replaced with
+       the lookup in a dictionary. This dictionary is added by the
+       [Def_trans.class_constraint_to_parameter] to the arguments of each definition that
+       has type class constraints. *)
+  val remove_method : exp macro
+
+  (** [remove_class_const] remove constants that have class constraints by adding
+      explicit dictionary parameters. *)
+  val remove_class_const : exp macro
+
   (** {2 Misc} *)
 
   (** [remove_function] turns [function | pat1 -> exp1 ... | patn -> expn end] into
@@ -185,9 +201,6 @@ module Macros (E : sig val env : env end) : sig
   val tup_ctor : (exp -> exp) -> exp lskips_seplist -> exp macro
 *)
 
-
-  val remove_class_const : exp macro
-  val remove_method : exp macro
   val add_nexp_param_in_const : exp macro
   val remove_vector_access : exp macro
   val remove_vector_sub : exp macro

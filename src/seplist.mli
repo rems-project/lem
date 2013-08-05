@@ -100,6 +100,16 @@ val to_pair_list : 's -> ('a,'s) t -> ('s option * ('a * 's) list)
     last separator is kept *)
 val from_pair_list : 's option -> ('a * 's) list -> 'a option -> ('a, 's) t
 
+(** [from_pair_list_sym first_val_opt sep_val_list last_sep_opt] 
+    constructs a seplist from a list of pairs [sep_val_list]. In contrast to [from_pair_list], 
+    the separator is the first component of these pairs. This also means that
+    we now need an optional first value before the list and an optional last separator after the list,
+    whereas from_pair_list has an optional first separator and last value. *)
+val from_pair_list_sym : 'a option -> ('s * 'a) list -> 's option -> ('a, 's) t
+
+(** If [sl] starts with a seperator, it is dropped and returned, otherwise nothing happens. *)
+val drop_first_sep : ('a, 's) t -> 's option * ('a, 's) t
+
 (** Flattens into a normal list with separators and elements intermixed *)
 val to_sep_list : ('a -> 'b) -> ('s -> 'b) -> ('a,'s) t -> 'b list
 

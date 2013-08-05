@@ -33,11 +33,13 @@ let x1 = <| Z.fn = <| Z.F = 1 |> |>
 let _ = Z.x1 . Z.fn . Z.F
 let _ = (if true then x1 else x1) . Z.fn . Z.F
 
+(* TODO
+
 module T = struct
   type t = <| (^^^) : num |>
   let (---) = 1
 end
 
-(* TODO
+
 let _ = <| T.( ^^^ ) = 1 |>.T.( ^^^ )
  *)

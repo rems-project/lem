@@ -114,6 +114,9 @@ let options = Arg.align ([
   ( "-ident_pat_compile",
     Arg.Unit (fun b -> Target_trans.ident_force_pattern_compile := true; Reporting.ignore_pat_compile_warnings()),
     " activates pattern compilation for the identity backend. This is used for debugging.");
+  ( "-ident_dict_passing",
+    Arg.Unit (fun b -> Target_trans.ident_force_dictionary_passing := true),
+    " activates dictionary passing transformations for the identity backend. This is used for debugging.");
   ( "-only_changed_output",
     Arg.Unit (fun b -> Process_file.always_replace_files := false),
     " generate only output files, whose content really changed compared to the existing file");

@@ -1786,6 +1786,7 @@ let add_let_defs_to_ctxt
                     { const_binding = Path.mk_path mod_path n;
                       const_tparams = tnvars;
                       const_class = constraints;
+                      const_no_class = None;
                       const_ranges = lconstraints;
                       const_type = t;
                       spec_l = l;
@@ -1993,6 +1994,7 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
                  { const_binding = Path.mk_path mod_path fname;
                    const_tparams = tparams;
                    const_class = [];
+                   const_no_class = None;
                    const_ranges = [];
                    const_type = { t = Tfn ({ t = Tapp (tparams_t, type_path) }, t) };
                    spec_l = l;
@@ -2016,6 +2018,7 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
                  { const_binding = Path.mk_path mod_path cname;
                    const_tparams = tparams;
                    const_class = [];
+                   const_no_class = None;
                    const_ranges = [];
                    const_type = multi_fun (Seplist.to_list_map (fun t -> annot_to_typ t) ts) { t = Tapp (tparams_t, type_path) };
                    spec_l = l;
@@ -2072,6 +2075,7 @@ let check_val_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
     { const_binding = Path.mk_path mod_path n';
       const_tparams = tyvars;
       const_class = sem_cp;
+      const_no_class = None;
       const_ranges = sem_rp;
       const_type = src_t.typ;
       spec_l = l;
@@ -2115,6 +2119,7 @@ let check_class_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
     { const_binding = Path.mk_path mod_path n';
       const_tparams = [tv];
       const_class = [(class_p, tv)];
+      const_no_class = None;
       const_ranges = [];
       const_type = src_t.typ;
       spec_l = l;
@@ -2676,6 +2681,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                  { const_binding = Path.mk_path mod_path fname;
                    const_tparams = tparams;
                    const_class = [];
+                   const_no_class = None;
                    const_ranges = [];
                    const_type = { t = Tfn ({ t = Tapp (tparams_t, type_path) }, t) };
                    spec_l = l;
@@ -2707,7 +2713,6 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           (* all done, return the result *)
           (ctxt''', Some (Class(sk1,sk2,(cn,l'),tnvar,p,sk4,List.rev vspecs,sk5)))
       | Ast.Instance(sk1,Ast.Is(cs,sk2,id,typ,sk3),vals,sk4) ->
-          (* TODO: Check for duplicate instances *)
           let (src_cs, tyvars, tnvarset, (sem_cs,sem_rs)) =
             check_constraint_prefix ctxt cs 
           in
@@ -2767,7 +2772,8 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
 	     inst_constraints = [];
 	     inst_class = p;
 	     inst_methods = (* this violates the invariant that instances should implement all the methods of their parent class. However, this should not matter much, since it is only temporary and used during typechecking*) [];
-	     inst_type = tnvar_to_type tv
+	     inst_type = tnvar_to_type tv;
+	     inst_dict = nil_const_descr_ref (* only temporary *);
           } in
           let tmp_all_inst = 
             List.fold_left 
@@ -2838,6 +2844,29 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                    | None -> raise (Reporting_basic.err_type_pp l "missing class method" Name.pp n)
                ) class_methods in
 
+
+          (* add a dictionary constant *)
+          let dict_name = Name.from_string "dict" in
+          let dict_type = class_descr_get_dict_type p_d src_t.typ in
+
+          let dict_d =
+            { const_binding = Path.mk_path instance_path dict_name;
+              const_tparams = tyvars;
+              const_class = sem_cs;
+              const_no_class = None;
+              const_ranges = [];
+              const_type = dict_type;
+              env_tag = K_let;
+              spec_l = Ast.Trans(true, "instance_to_module", Some l);
+              const_targets = Target.all_targets;
+              relation_info = None;
+              target_rep = Targetmap.empty;
+            }
+          in
+          let (c_env',dict_ref) = Typed_ast_syntax.c_env_store ctxt_inst.ctxt_c_env dict_d in
+          let v_env' = Nfmap.insert ctxt_inst.new_defs.v_env (dict_name, dict_ref) in
+          let ctxt_inst = {ctxt_inst with ctxt_c_env = c_env'; new_defs = { ctxt_inst.new_defs with v_env = v_env'}} in
+ 
           (* move new definitions into special module, since here the old context is thrown away and ctxt.new_defs is used,
              it afterwards becomes irrelevant thet ctxt_inst.new_defs contains more definitions than ctxt. *)
           let ctxt = begin
@@ -2854,9 +2883,10 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
 	      inst_tyvars = tyvars;
 	      inst_constraints = sem_cs;
 	      inst_methods = inst_methods;
+	      inst_dict = dict_ref;
      	  } in
             (add_instance_to_ctxt ctxt inst,
-             Some (Instance(sk1,(src_cs,sk2,Ident.from_id id, src_t, sk3), List.rev vdefs, sk4)))
+             Some (Instance(sk1,(src_cs,sk2,Ident.from_id id, p, src_t, sk3), List.rev vdefs, sk4)))
 
 
 and check_defs (backend_targets : Targetset.t) (mod_path : Name.t list)

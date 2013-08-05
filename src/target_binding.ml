@@ -71,8 +71,10 @@ let search_module_suffix env is_ok ns =
   in
   match aux None ns with
     | None -> 
+
       raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal
-          (Ast.Unknown, "search_module_suffix failed to find a path")))
+          (Ast.Unknown, "search_module_suffix failed to find a path"))) 
+(*      (Name.from_string "----not_found----") :: ns *)
     | Some x -> x
 
 
@@ -98,15 +100,26 @@ let resolve_type_path env sk p =
   let ns' = search_module_suffix env is_ok ns in
   Ident.mk_ident sk ns' n
 
-let resolve_const_ref env sk p c_ref = 
-  let (ns, n) = Path.to_name_list p in
-  let is_ok env = 
-    let c_ref_opt = Nfmap.apply env.v_env n in
+let resolve_const_ref env sk c_ref = 
+  let c_descr = c_env_lookup Ast.Unknown env.c_env c_ref in
+  let c_kind = const_descr_to_kind (c_ref, c_descr) in
+  let (ns, n) = Path.to_name_list c_descr.const_binding in
+  
+  let is_ok lenv = 
+    let m = match c_kind with
+              | Nk_field _ -> lenv.f_env 
+              | _ -> lenv.v_env
+    in
+    let c_ref_opt = Nfmap.apply m n in
     match c_ref_opt with
       | None -> false
-      | Some c_ref' -> c_ref = c_ref'
+      | Some c_ref' -> ((c_ref = c_ref') ||
+        begin
+          let c_descr' = c_env_lookup Ast.Unknown env.c_env c_ref' in
+          c_descr'.const_no_class = Some c_ref
+        end)
   in
-  let ns' = search_module_suffix env is_ok ns in
+  let ns' = search_module_suffix env.local_env is_ok ns in
   Ident.mk_ident sk ns' n
 
 

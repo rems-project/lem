@@ -45,6 +45,7 @@
 (**************************************************************************)
 
 let ident_force_pattern_compile = ref false
+let ident_force_dictionary_passing = ref false
 
 open Typed_ast
 open Typed_ast_syntax
@@ -84,9 +85,9 @@ let nvar_macros =
    Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.add_nexp_param_in_const])
   ]
 
-let ident =
+let ident () =
   { (* for debugging pattern compilation *)
-    macros = [ Def_macros (fun env -> if !ident_force_pattern_compile then [Patterns.compile_def Target_ident (Patterns.is_pattern_match_const false) env] else []);
+    macros = (if !ident_force_dictionary_passing then dictionary_macros else []) @ [ Def_macros (fun env -> if !ident_force_pattern_compile then [Patterns.compile_def Target_ident (Patterns.is_pattern_match_const false) env] else []);
                Exp_macros (fun env -> if !ident_force_pattern_compile then [Patterns.compile_exp Target_ident (Patterns.is_pattern_match_const false) env] else []) ];
     extra = []; }
 
@@ -293,13 +294,13 @@ let rename_def_params targ consts =
        {m with Typed_ast.typed_ast = (let (defs, end_lex_skips) = m.Typed_ast.typed_ast in (List.map rdp defs, end_lex_skips))})
 
 let trans (targ : Target.target) params env m =
-  let module Ctxt = struct let avoid = None let env_opt = Some(env) end in
-  let module M = Macro_expander.Expander(Ctxt) in
   let (defs, end_lex_skips) = m.typed_ast in
-  let module Conv = Convert_relations.Converter(Ctxt) in
   let indreln_macros = 
     [
-      Def_macros (fun env -> [
+      Def_macros (fun env ->   
+        let module Ctxt = struct let avoid = None let env_opt = Some(env) end in
+        let module Conv = Convert_relations.Converter(Ctxt) in
+      [
       Conv.gen_witness_type_macro env;
       Conv.gen_witness_check_macro env;
       Conv.gen_fns_macro env;]); 
@@ -326,6 +327,8 @@ let trans (targ : Target.target) params env m =
                  env
                  defs
            | Exp_macros etrans ->
+               let module Ctxt = struct let avoid = None let env_opt = Some(env) end in
+               let module M = Macro_expander.Expander(Ctxt) in
                let defs =
                  M.expand_defs defs
                    (Macro_expander.list_to_mac (etrans env),
@@ -335,6 +338,8 @@ let trans (targ : Target.target) params env m =
                in
                  (env,defs)
            | Pat_macros ptrans ->
+               let module Ctxt = struct let avoid = None let env_opt = Some(env) end in
+               let module M = Macro_expander.Expander(Ctxt) in
                let defs =
                  M.expand_defs defs
                    (Macro_expander.list_to_mac [],
@@ -365,8 +370,8 @@ let get_transformation targ =
     | Target_no_ident Target_coq   -> coq
     | Target_no_ident Target_isa   -> isa
     | Target_no_ident Target_tex   -> tex
-    | Target_no_ident Target_html  -> ident
-    | Target_ident                 -> ident
+    | Target_no_ident Target_html  -> ident ()
+    | Target_ident                 -> ident ()
   in
     trans targ tr
 
