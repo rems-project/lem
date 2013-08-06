@@ -1092,7 +1092,11 @@ let remove_do e =
           Some e
       | Do(sk1, m, Do_line(p',sk1',e',sk2')::lns, sk2, exp, sk3, (t, direction)) ->
           let e1 = e' in
-          let e2 = bind_const l_unk m (if direction = 1 then [p'.typ; t] else if direction = 2 then [t; p'.typ] else assert false) in
+          let tyargs = match direction with
+                         | BTO_input_output -> [p'.typ; t]
+                         | BTO_output_input -> [t; p'.typ]
+          in
+          let e2 = bind_const l_unk m tyargs in
           let e3 = 
             C.mk_fun l_unk None [p'] sk1' (C.mk_do (exp_to_locn e) sk1 m lns sk2 exp sk3 (t, direction) (Some (exp_to_typ e))) 
               (Some { Types.t = Types.Tfn(p'.typ,exp_to_typ e)})

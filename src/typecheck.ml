@@ -1311,13 +1311,13 @@ module Make_checker(T : sig
                       assert_equal mod_id.id_locn "do/>>="
                         T.d bind_type
                         (build_bind_type tv1 tv2);
-                      1
+                      BTO_input_output
                     with
                       Reporting_basic.Fatal_error (Reporting_basic.Err_type _) ->
                         assert_equal mod_id.id_locn "do/>>="
                           T.d bind_type
                           (build_bind_type tv2 tv1);
-                      2)
+                      BTO_output_input )
                 | tvs ->
                     raise (Reporting_basic.err_type_pp mod_id.id_locn (Printf.sprintf "monad >>= function with %d type parameters" (List.length tvs))
                       Path.pp mod_id.descr.mod_binding)
@@ -1330,7 +1330,7 @@ module Make_checker(T : sig
               C.equate_types l "do expression" (exp_to_typ exp)
                 { t = Tapp([a], monad_type_ctor) };
               C.equate_types l "do expression" (exp_to_typ exp) ret_type;
-              A.mk_do l sk1 mod_id lns sk2 exp sk3 (a,direction) rt
+              A.mk_do l sk1 mod_id lns sk2 exp sk3 (a, direction) rt
 
   and check_lns (l_e : lex_env) 
                 (monad_type_ctor : Path.t)

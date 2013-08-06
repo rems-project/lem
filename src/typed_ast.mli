@@ -314,12 +314,20 @@ and exp_aux = private
   | Comp_binding of bool * lskips * exp * lskips * lskips * quant_binding list * lskips * exp * lskips
     (** [true] for list comprehensions, [false] for set comprehensions *)
   | Quant of Ast.q * quant_binding list * lskips * exp
-  | Do of lskips * mod_descr id * do_line list * lskips * exp * lskips * (Types.t * int)
-    (** The last argument is the type of the value in the monad, paired with an
-        integer.  1 if the type is the first type argument to bind, 2 if it is the
-        second *)
+  | Do of lskips * mod_descr id * do_line list * lskips * exp * lskips * (Types.t * bind_tyargs_order)
+    (** The last argument is the type of the value in the monad *)
 
 and do_line = Do_line of (pat * lskips * exp * lskips)
+
+and (** A bind constant of a monad M has type [M 'a -> ('a -> M 'b) -> M 'b].
+        Here, I call ['a] the input type and ['b] the output type. Depending on
+        how the bind constant is defined in detail its free type variable list
+        (stored in constant-description record, field const_tparams) might be either
+        of the form [['a, 'b]] or [['b, 'a]]. This type is used to distinguish the
+        two possibilities. *)
+     bind_tyargs_order = 
+   | BTO_input_output (** [['a, 'b]] *)
+   | BTO_output_input (** [['b, 'a]] *)
 
 and fexp = const_descr_ref id * lskips * exp * Ast.l
 
@@ -613,7 +621,7 @@ module Exps_in_context(C : Exp_context) : sig
   val mk_setcomp : Ast.l -> lskips -> exp -> lskips -> exp -> lskips -> NameSet.t -> Types.t option -> exp
   val mk_comp_binding : Ast.l -> bool -> lskips -> exp -> lskips -> lskips -> quant_binding list -> lskips -> exp -> lskips -> Types.t option -> exp
   val mk_quant : Ast.l -> Ast.q -> quant_binding list -> lskips -> exp -> Types.t option -> exp
-  val mk_do : Ast.l -> lskips -> mod_descr id -> do_line list -> lskips -> exp -> lskips -> (Types.t * int) -> Types.t option -> exp
+  val mk_do : Ast.l -> lskips -> mod_descr id -> do_line list -> lskips -> exp -> lskips -> (Types.t * bind_tyargs_order) -> Types.t option -> exp
   val t_to_src_t : Types.t -> src_t
   val pat_subst : Types.t Types.TNfmap.t * Name.t Nfmap.t -> pat -> pat
 end

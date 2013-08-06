@@ -1,9 +1,9 @@
 module M = struct
   type t 'a = option 'a
   val return : forall 'a. 'a -> option 'a
-  val (>>=) : forall 'a 'b. option 'a -> ('a -> option 'b) -> option 'b
+  val bind : forall 'a 'b. option 'a -> ('a -> option 'b) -> option 'b
   let return x = Some x
-  let (>>=) x f =
+  let bind x f =
     match x with
       | None -> None
       | Some y -> f y
