@@ -158,7 +158,7 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 %token <Ast.terminal> Declare TargetType TargetConst
 %token <Ast.terminal * Ulib.Text.t> IN MEM MinusMinusGt
 %token <Ast.terminal> Class_ Inst Do LeftArrow
-%token <Ast.terminal> Module Function Field Type Constant Automatic Manual Exhaustive Inexhaustive AsciiRep SetFlag TerminationArgument PatternMatch
+%token <Ast.terminal> Module Field Type Constant Automatic Manual Exhaustive Inexhaustive AsciiRep SetFlag TerminationArgument PatternMatch
 %token <Ast.terminal> RightAssoc LeftAssoc NonAssoc Infix Special TargetRepTerm TargetRepType
 
 %start file
@@ -858,11 +858,15 @@ class_val_specs:
   | class_val_spec class_val_specs
     { ((fun (a,b,c,d) -> (a,b,c,d,loc())) $1)::$2 }
 
-targets:
+target :
   | X
-    { [(get_target $1,None)] }
-  | X Semi targets
-    { (get_target $1, $2)::$3 }
+    { get_target $1, None }
+
+targets:
+  | target
+    { [ $1 ] }
+  | target Semi targets
+    { $1::$3 }
 
 targets_opt:
   |
@@ -877,7 +881,7 @@ targets_opt:
 component :
   | Module
     { Component_module $1 }
-  | Function
+  | Function_
     { Component_function $1 }
   | Type
     { Component_type $1 }
@@ -946,11 +950,21 @@ target_rep_rhs :
   | Special String exps
     { Target_rep_rhs_special($1, fst $2, snd $2, $3) }
 
+x_ls :
+  | X
+    { [ Ast.X_l ($1, loc()) ] }
+  | X x_ls
+    { (Ast.X_l ($1, loc()))::$2 }
+
 declaration :
   | Declare targets_opt Rename component id Eq x
     { Decl_rename_decl($1, $2, $3, $4, $5, fst $6, $7) }
   | Declare targets_opt AsciiRep component id Eq x
     { Decl_ascii_rep_decl($1, $2, $3, $4, $5, fst $6, $7) }
+  | Declare target TargetRepTerm id x_ls Eq target_rep_rhs
+    { Decl_target_rep_term_decl($1, fst $2, $3, $4, $5, fst $6, $7) }
+  | Declare target TargetRepType typschm Eq target_rep_rhs
+    { Decl_target_rep_type_decl($1, fst $2, $3, $4, fst $5, $6) }
   | Declare SetFlag id Eq x
     { Decl_set_flag_decl($1, $2, $3, fst $4, $5) }
   | Declare targets_opt TerminationArgument id Eq termination_setting

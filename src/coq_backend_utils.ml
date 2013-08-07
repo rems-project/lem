@@ -78,3 +78,14 @@ let lskips_t_to_output name =
   let rope = Name.to_rope stripped in
     Output.id Term_var rope
 ;;
+
+let char_list_of_string s =
+  let len = String.length s in
+  let rec aux n =
+    if n < len then
+      s.[n] :: aux (n + 1)
+    else
+      []
+  in
+    aux 0
+;;

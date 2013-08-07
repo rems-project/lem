@@ -1793,7 +1793,8 @@ let add_let_defs_to_ctxt
                       env_tag = env_tag;
                       const_targets = new_targs;
 		      relation_info = None;
-                      target_rep = Targetmap.empty } in
+                      target_rep = Targetmap.empty;
+                      ascii_rep = None } in
               let (c_env', c) = c_env_save c_env None c_d in
               (c_env', Nfmap.insert new_env (n, c))
           | Some(c) -> 
@@ -2001,7 +2002,8 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
                    env_tag = K_field;
                    relation_info = None;
                    const_targets = all_targets;
-                   target_rep = Targetmap.empty })
+                   target_rep = Targetmap.empty;
+                   ascii_rep = None })
               context
               (Seplist.map (fun (x,y,src_t) -> (x,y,src_t)) recs)
           in
@@ -2025,7 +2027,8 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
                    env_tag = K_constr;
                    relation_info = None;
                    const_targets = all_targets;
-                   target_rep = Targetmap.empty})
+                   target_rep = Targetmap.empty;
+                   ascii_rep = None})
               tvs_set
               context
               ntyps
@@ -2082,7 +2085,8 @@ let check_val_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
       env_tag = K_let;
       const_targets = Targetset.empty;
       relation_info = None;
-      target_rep = Targetmap.empty }
+      target_rep = Targetmap.empty;
+      ascii_rep = None }
   in
   let (c_env', v) = c_env_save ctxt.ctxt_c_env None v_d in
   let ctxt = { ctxt with ctxt_c_env = c_env' } in
@@ -2126,7 +2130,8 @@ let check_class_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
       env_tag = K_method;
       const_targets = all_targets;
       relation_info = None;
-      target_rep = Targetmap.empty }
+      target_rep = Targetmap.empty;
+      ascii_rep = None }
   in
   let (c_env', v) = c_env_save ctxt.ctxt_c_env None v_d in
   let ctxt = { ctxt with ctxt_c_env = c_env' } in
@@ -2529,6 +2534,22 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
             | _, _ -> ctxt, None
           in
             rename_component component nk ctxt
+      | Ast.Declaration(Ast.Decl_ascii_rep_decl(sk1, targets_opt, sk2, component, id, sk3, name)) ->
+          let rec is_ascii char_list =
+            match char_list with
+              | [] -> true
+              | x::xs ->
+                if (Char.code x <= 90 && Char.code x >= 65) || (Char.code x <= 122 && Char.code x >= 97) then
+                  is_ascii xs
+                else
+                  false
+          in
+          let name = Name.to_string (Name.strip_lskip (Name.from_x name)) in
+            if is_ascii (Coq_backend_utils.char_list_of_string name) then
+              let current_env = ctxt.cur_env in
+                assert false (* XXX: here *)
+            else
+              raise (Reporting_basic.err_general true l "non-ascii ascii representation provided")
       | Ast.Module(sk1,xl,sk2,sk3,Ast.Defs(defs),sk4) ->
           let l' = Ast.xl_to_l xl in
           let n = Name.from_x xl in 
@@ -2688,7 +2709,8 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                    env_tag = K_field;
                    const_targets = all_targets;
                    relation_info = None;
-                   target_rep = Targetmap.empty })
+                   target_rep = Targetmap.empty;
+                   ascii_rep = None })
               ctxt''
               (Seplist.from_list (List.map 
                                     (fun ((n,l),_,src_t) -> 
@@ -2861,6 +2883,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
               const_targets = Target.all_targets;
               relation_info = None;
               target_rep = Targetmap.empty;
+              ascii_rep = None
             }
           in
           let (c_env',dict_ref) = Typed_ast_syntax.c_env_store ctxt_inst.ctxt_c_env dict_d in

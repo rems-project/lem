@@ -262,6 +262,9 @@ and const_descr =
     
     target_rep : const_target_rep Target.Targetmap.t; 
     (** Target-specific representation of for this constant *)
+
+    ascii_rep : Name.t option
+    (** Optional ASCII representation for this constant. *)
   }
 
 and v_env = const_descr_ref Nfmap.t

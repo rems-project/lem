@@ -171,7 +171,8 @@ and const_descr = { const_binding : Path.t;
                     env_tag : env_tag;
                     const_targets : Targetset.t;
                     spec_l : Ast.l;
-                    target_rep : const_target_rep Targetmap.t }
+                    target_rep : const_target_rep Targetmap.t;
+                    ascii_rep : Name.t option }
 
 and v_env = const_descr_ref Nfmap.t
 and f_env = const_descr_ref Nfmap.t
