@@ -1,0 +1,126 @@
+(******************************************************************************)
+(* A library for option                                                       *)
+(*                                                                            *)
+(* It mainly follows the Haskell Maybe-library                                *)
+(******************************************************************************)
+
+
+
+
+(* rename module to clash with existing list modules of targets
+   problem: renaming from inside the module itself! *)
+declare rename module = lem_maybe
+
+
+(* ========================================================================== *)
+(* Basic stuff                                                                *)
+(* ========================================================================== *)
+
+type maybe 'a = 
+  | Nothing
+  | Just of 'a
+
+declare targettype hol      maybe 'a = 'option' 'a
+declare targettype isabelle maybe 'a = 'option' 'a
+declare targettype coq      maybe 'a = 'option' 'a
+declare targettype ocaml    maybe 'a = 'option' 'a
+
+declare targetrep hol      Just = 'SOME'
+declare targetrep ocaml    Just = 'Some'
+declare targetrep isabelle Just = 'Some'
+declare targetrep coq      Just = 'Some'
+
+declare targetrep hol      Nothing = 'NONE'
+declare targetrep ocaml    Nothing = 'None'
+declare targetrep isabelle Nothing = 'None'
+declare targetrep coq      Nothing = 'None'
+
+(* ----------------------- *)
+(* maybe                   *)
+(* ----------------------- *)
+
+val maybe : forall 'a 'b. 'b -> ('a -> 'b) -> maybe 'a -> 'b
+let maybe d f mb = match mb with 
+  | Just a -> f a
+  | Nothing -> d
+end
+
+declare targetrep ocaml    maybe d f mb = 'Option.map_default' f d mb
+
+(* ----------------------- *)
+(* isJust / isNothing      *)
+(* ----------------------- *)
+
+val isJust : forall 'a. maybe 'a -> bool
+let isJust mb = match mb with 
+  | Just _ -> true
+  | Nothing -> false
+end
+
+declare targetrep hol      isJust = 'IS_SOME'
+declare targetrep ocaml    isJust = 'is_some'
+declare targetrep isabelle isJust x = not (x = Nothing)
+
+val isNothing : forall 'a. maybe 'a -> bool
+let isNothing mb = match mb with 
+  | Just _ -> false
+  | Nothing -> true
+end
+
+declare targetrep hol      isNothing = 'IS_NONE'
+declare targetrep ocaml    isNothing = 'is_none'
+declare targetrep isabelle isNothing x = (x = Nothing)
+
+lemma isJustNothing: (
+  (forall x. isNothing x = not (isJust x)) &&
+  (forall v. isJust (Just v)) &&
+  (isNothing Nothing))
+
+(* ----------------------- *)
+(* fromJust                *)
+(* ----------------------- *)
+
+val fromJust : forall 'a. maybe 'a -> 'a
+let fromJust (Just v) = v
+declare termination_argument length = automatic
+declare compile_message fromJust = "fromJust is only defined on Just. Better use 'fromMaybe' or use explicit maching to handle the Nothing-case."
+
+declare targetrep hol      fromJust = 'THE'
+declare targetrep ocaml    fromJust = 'Option.get'
+declare targetrep isabelle fromJust = 'the'
+
+lemma fromJust: (forall v. fromJust (Just v) = v)
+
+
+(* ----------------------- *)
+(* fromMaybe               *)
+(* ----------------------- *)
+
+val fromMaybe : forall 'a. 'a -> maybe 'a -> 'a
+let fromMaybe d mb = match mb with
+   | Just v  -> v
+   | Nothing -> d
+end
+
+declare targetrep ocaml    fromMaybe = 'Option.default'
+
+lemma fromMaybe: (
+  (forall d v. fromMaybe d (Just v) = v)
+  (forall d. fromMaybe d Nothing = d))
+
+
+(* ----------------------- *)
+(* map                     *)
+(* ----------------------- *)
+
+val map : forall 'a 'b. ('a -> 'b) -> option 'a -> option 'b 
+let map f = maybe Nothing (fun v -> Just (f v))
+
+declare targetrep hol      map = 'OPTION_MAP'
+declare targetrep ocaml    map = 'Option.map'
+declare targetrep isabelle map = 'Option.map'
+
+lemma option_map: (
+  (forall f. map f Nothing = Nothing) &&
+  (forall f v. map f (Just v) = Just (f v)))
+

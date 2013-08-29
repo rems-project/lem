@@ -1,0 +1,73 @@
+(******************************************************************************)
+(* Boolean                                                                    *)
+(******************************************************************************)
+
+(* The type bool is hard-coded, so are true and false *)
+
+
+(* ----------------------- *)
+(* not                     *)
+(* ----------------------- *)
+
+val not : bool -> bool
+let not b = match b with
+  true -> false
+  false -> true
+end
+
+declare targetrep hol      not = '~'
+declare targetrep ocaml    not = 'not'
+declare targetrep isabelle not = '~'
+declare targetrep coq      not = 'not_b
+
+
+(* ----------------------- *)
+(* and                     *)
+(* ----------------------- *)
+
+val (&&) : bool -> bool -> bool
+let (&&) b1 b2 = match (b1, b2) with
+  (true, true) -> true
+  _ -> false
+end
+declare ascii_rep function (&&) = and
+
+declare targetrep hol      and = infix '/\'
+declare targetrep ocaml    and = infix '&&'
+declare targetrep isabelle and = infix '\<and>'
+declare targetrep coq      and = infix '&&'
+
+
+(* ----------------------- *)
+(* or                      *)
+(* ----------------------- *)
+
+val (||) : bool -> bool -> bool
+let (||) b1 b2 = match (b1, b2) with
+  (false, false) -> false
+  _ -> true
+end
+declare ascii_rep function (||) = or
+
+declare targetrep hol      or = infix '\/'
+declare targetrep ocaml    or = infix '||'
+declare targetrep isabelle or = infix '\<or>'
+declare targetrep coq      or = infix '||'
+
+
+(* ----------------------- *)
+(* implication             *)
+(* ----------------------- *)
+
+val (-->) : bool -> bool -> bool
+let (-->) b1 b2 = match (b1, b2) with
+  (true, false) -> false
+  _ -> true
+end
+declare ascii_rep function (-->) = imp
+
+declare targetrep hol      imp = infix '==>'
+declare targetrep ocaml    imp x y = ((not x) || y))
+declare targetrep isabelle imp = infix '\<implies>'
+declare targetrep coq      imp = infix '-->'
+

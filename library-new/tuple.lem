@@ -1,0 +1,70 @@
+(******************************************************************************)
+(* Tuples                                                                     *)
+(******************************************************************************)
+
+(* The type for tuples (pairs) is hard-coded, so here only a few functions are used *)
+
+
+(* ----------------------- *)
+(* fst                     *)
+(* ----------------------- *)
+
+val fst : forall 'a 'b. 'a * 'b -> 'a
+let fst (v1, v2) = v1
+
+declare targetrep hol      fst = 'FST'
+declare targetrep ocaml    fst = 'fst'
+declare targetrep isabelle fst = 'fst'
+declare targetrep coq      fst = 'fst'
+
+
+(* ----------------------- *)
+(* snd                     *)
+(* ----------------------- *)
+
+val snd : forall 'a 'b. 'a * 'b -> 'a
+let snd (v1, v2) = v2
+
+declare targetrep hol      fst = 'SND'
+declare targetrep ocaml    fst = 'snd'
+declare targetrep isabelle fst = 'snd'
+declare targetrep coq      fst = 'snd'
+
+lemma fst_snd: (forall v. v = (fst v, snd v))
+
+
+(* ----------------------- *)
+(* curry                   *)
+(* ----------------------- *)
+
+val curry : forall 'a 'b 'c. ('a * 'b -> 'c) -> ('a -> 'b -> 'c)
+let curry f v1 v2 = f (v1, v2)
+
+declare targetrep hol      curry = 'CURRY'
+declare targetrep isabelle curry = 'curry'
+
+
+(* ----------------------- *)
+(* uncurry                 *)
+(* ----------------------- *)
+
+val uncurry : forall 'a 'b 'c. ('a -> 'b -> 'c) -> ('a * 'b -> 'c) 
+let uncurry f v = f (fst v) (snd v)
+
+declare targetrep hol      uncurry = 'UNCURRY'
+declare targetrep isabelle uncurry = 'split'
+
+lemma curry_uncurry: (forall f. uncurry (curry f) = f)
+lemma uncurry_curry: (forall f. curry (uncurry f) = f)
+
+
+(* ----------------------- *)
+(* swap                    *)
+(* ----------------------- *)
+
+val swap : forall 'a 'b. ('a * 'b) -> ('b * 'a) 
+let swap (v1, v2) = (v2, v1)
+
+declare targetrep hol      swap = 'SWAP'
+
+
