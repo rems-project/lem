@@ -177,23 +177,27 @@ let ident_to_output use_infix =
   Ident.to_output_format (ident_f use_infix) Term_const sep
 
 
-let const_id_to_ident c_id =
+let const_id_to_ident c_id ascii_alternative =
   let l = Ast.Trans (false, "const_id_to_ident", None) in
   let c_descr = c_env_lookup l A.env.c_env c_id.descr in
-  let org_ident = resolve_constant_id_ident A.env c_id in
-  let i = match Target.Targetmap.apply_target c_descr.target_rep A.target with
-     | None -> org_ident
-     | Some (CR_new_ident (_, _, i)) -> i
-     | Some (CR_rename (_, _, n)) -> Ident.rename org_ident n
-     | Some (CR_inline _) -> raise (Reporting_basic.err_unreachable false l "Inlining should have already been done by Macro")
-     | Some (CR_special (_, _, _, n, _, _)) -> Ident.rename org_ident n
-  in
-  let i' = fix_module_prefix_ident (A.env.local_env) i in
-  i'
+    match (c_descr.ascii_rep, ascii_alternative) with
+      | (Some ascii, true) -> assert false (* XXXX: here *)
+      | _                  ->
+          let org_ident = resolve_constant_id_ident A.env c_id in
+          let i = match Target.Targetmap.apply_target c_descr.target_rep A.target with
+             | None -> org_ident
+             | Some (CR_new_ident (_, _, i)) -> i
+             | Some (CR_rename (_, _, n)) -> Ident.rename org_ident n
+             | Some (CR_inline _) -> raise (Reporting_basic.err_unreachable false l "Inlining should have already been done by Macro")
+             | Some (CR_special (_, _, _, n, _, _)) -> Ident.rename org_ident n
+          in
+          let i' = fix_module_prefix_ident (A.env.local_env) i in
+          i'
+;;
 
-let constant_application_to_output_simple is_infix_pos arg_f args c_id = begin
-  let i = const_id_to_ident c_id in 
-  let const_is_infix = Precedence.is_infix (Precedence.get_prec A.target A.env c_id.descr) in
+let constant_application_to_output_simple is_infix_pos arg_f args c_id ascii_alternative = begin
+  let i = const_id_to_ident c_id ascii_alternative in 
+  let const_is_infix = not (ascii_alternative) && Precedence.is_infix (Precedence.get_prec A.target A.env c_id.descr) in
   let is_infix = (is_infix_pos && const_is_infix && (Ident.has_empty_path_prefix i)) in
   let use_infix_notation = ((not is_infix) && const_is_infix) in
   let name = ident_to_output use_infix_notation i in
@@ -205,8 +209,8 @@ let constant_application_to_output_simple is_infix_pos arg_f args c_id = begin
 end
 
 (* assumes that there are enough arguments, otherwise list_split_after will fail *)
-let constant_application_to_output_special c_id to_out arg_f args vars : Output.t list =
-  let i = const_id_to_ident c_id in
+let constant_application_to_output_special c_id to_out arg_f args vars ascii_alternative : Output.t list =
+  let i = const_id_to_ident c_id ascii_alternative in
   let name = ident_to_output false i in
   let args_output = List.map arg_f args in
   let (o_vars, o_rest) = Util.split_after (List.length vars) args_output (* assume there are enough elements *) in
@@ -214,7 +218,7 @@ let constant_application_to_output_special c_id to_out arg_f args vars : Output.
   o_fun @ o_rest
 
 
-let function_application_to_output l (arg_f0 : exp -> Output.t) (is_infix_pos : bool) (full_exp : exp) (c_id : const_descr_ref id) (args : exp list) : Output.t list =
+let function_application_to_output l (arg_f0 : exp -> Output.t) (is_infix_pos : bool) (full_exp : exp) (c_id : const_descr_ref id) (args : exp list) (ascii_alternative: bool) : Output.t list =
   let _ = if is_infix_pos && not (List.length args = 2) then (raise (Reporting_basic.err_unreachable false Ast.Unknown "Infix position with wrong number of args")) else () in
   let arg_f b e = if b then arg_f0 (mk_opt_paren_exp e) else arg_f0 e in
   let c_descr = c_env_lookup Ast.Unknown A.env.c_env c_id.descr in
@@ -227,11 +231,11 @@ let function_application_to_output l (arg_f0 : exp -> Output.t) (is_infix_pos : 
               [arg_f true eta_exp]
               
             end else begin
-              constant_application_to_output_special c_id to_out (arg_f false) args vars 
+              constant_application_to_output_special c_id to_out (arg_f false) args vars ascii_alternative 
             end
-     | _ -> constant_application_to_output_simple is_infix_pos arg_f args c_id
+     | _ -> constant_application_to_output_simple is_infix_pos arg_f args c_id ascii_alternative
 
-let pattern_application_to_output (arg_f0 : pat -> Output.t) (c_id : const_descr_ref id) (args : pat list) : Output.t list =
+let pattern_application_to_output (arg_f0 : pat -> Output.t) (c_id : const_descr_ref id) (args : pat list) (ascii_alternative : bool) : Output.t list =
   let arg_f b p = if b then arg_f0 (Pattern_syntax.mk_opt_paren_pat p) else arg_f0 p in
   let c_descr = c_env_lookup Ast.Unknown A.env.c_env c_id.descr in
   match Target.Targetmap.apply_target c_descr.target_rep A.target with
@@ -239,9 +243,9 @@ let pattern_application_to_output (arg_f0 : pat -> Output.t) (c_id : const_descr
         if (List.length args < List.length vars) then begin
            raise (Reporting_basic.err_unreachable true Ast.Unknown "Constructor without enough arguments!")
         end else begin
-           constant_application_to_output_special c_id to_out (arg_f false) args vars 
+           constant_application_to_output_special c_id to_out (arg_f false) args vars ascii_alternative
         end
-     | _ -> constant_application_to_output_simple false arg_f args c_id
+     | _ -> constant_application_to_output_simple false arg_f args c_id ascii_alternative
 
 let type_path_to_name n0 (p : Path.t) : Name.lskips_t =
   let l = Ast.Trans (false, "type_path_to_name", None) in

@@ -83,7 +83,6 @@ val class_to_record : def_macro
 
 
 (** {2 Misc} *)
-
 val remove_vals : def_macro
 val remove_indrelns : def_macro
 val remove_indrelns_true_lhs : def_macro

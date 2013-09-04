@@ -1,3 +1,14 @@
+let rec (++) left right =
+  match left with
+    | [] -> right
+    | x::xs -> x::(xs ++ right)
+  end
+;;
+
+declare {coq} ascii_rep function (++) = append
+
+(*
+
 (* fix is bound and should be renamed *)
 type value = A | B | fix | EVEN | STRCAT
 declare {coq} rename constant fix = coq_fix 
@@ -72,4 +83,5 @@ let my_dummy7 assume = { assume0 | assume0 > 10 }
 
 let my_dummy8 x = { assume | assume > 10 }
 
+*)
 *)

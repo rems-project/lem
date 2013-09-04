@@ -2482,7 +2482,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
             (ctxt', Some (Lemma(sk, lty, targs, name_opt, sk2, e, sk3)))
       | Ast.Declaration(Ast.Decl_rename_decl(sk1, target_opt, sk2, component, id, sk3, xl')) ->
           let l' = Ast.xl_to_l xl' in
-          let n' = Name.from_x xl' in 
+          let n' = Name.from_x xl' in
           let id' = Ident.from_id id in
           let targs = check_target_opt target_opt in
 
@@ -2490,9 +2490,8 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let (nk, p) = lookup_name (defn_ctxt_get_cur_env ctxt) id in
           let rename_component component nk ctxt =
             match (component, nk) with
-              | (Ast.Component_constant _, Nk_const c)
               | (Ast.Component_field _, Nk_field c)
-              | (Ast.Component_constant _, Nk_constr c) ->
+              | (Ast.Component_function _, Nk_constr c) ->
                   begin 
                     let cd = c_env_lookup l ctxt.ctxt_c_env c in
                     let cd' = List.fold_left (fun cd t -> 
@@ -2534,7 +2533,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
             | _, _ -> ctxt, None
           in
             rename_component component nk ctxt
-      | Ast.Declaration(Ast.Decl_ascii_rep_decl(sk1, targets_opt, sk2, component, id, sk3, name)) ->
+      | Ast.Declaration(Ast.Decl_ascii_rep_decl(sk1, targets_opt, sk2, component, source_name, sk3, target_name)) ->
           let rec is_ascii char_list =
             match char_list with
               | [] -> true
@@ -2544,10 +2543,43 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                 else
                   false
           in
-          let name = Name.to_string (Name.strip_lskip (Name.from_x name)) in
-            if is_ascii (Coq_backend_utils.char_list_of_string name) then
+          let source_name = Name.strip_lskip (Name.from_x source_name) in
+          let target_name = Name.strip_lskip (Name.from_x target_name) in
+            if is_ascii (Coq_backend_utils.char_list_of_string (Name.to_string target_name)) then
               let current_env = ctxt.cur_env in
-                assert false (* XXX: here *)
+                match component with
+                  | Ast.Component_function _ ->
+                      let lenv = current_env.v_env in
+                        begin
+                          match Nfmap.apply lenv source_name with
+                            | None -> assert false
+                            | Some const_descr_ref ->
+                              let ctxt_c_env = ctxt.ctxt_c_env in
+                              let const_descr = Typed_ast.c_env_lookup Ast.Unknown ctxt_c_env const_descr_ref in
+                              let const_descr = { const_descr with ascii_rep = Some target_name } in
+                              let cenv = Typed_ast.c_env_update ctxt_c_env const_descr_ref const_descr in
+                              let ctxt = { ctxt with ctxt_c_env = cenv } in
+                                ctxt, None
+                        end
+                  | Ast.Component_module _ ->
+                      let lenv = current_env.m_env in
+                        assert false
+                  | Ast.Component_type _ ->
+                      let lenv = current_env.p_env in
+                        assert false
+                  | Ast.Component_field _ ->
+                      let lenv = current_env.f_env in
+                        begin
+                          match Nfmap.apply lenv source_name with
+                            | None -> assert false
+                            | Some const_descr_ref ->
+                              let ctxt_c_env = ctxt.ctxt_c_env in
+                              let const_descr = Typed_ast.c_env_lookup Ast.Unknown ctxt_c_env const_descr_ref in
+                              let const_descr = { const_descr with ascii_rep = Some target_name } in
+                              let cenv = Typed_ast.c_env_update ctxt_c_env const_descr_ref const_descr in
+                              let ctxt = { ctxt with ctxt_c_env = cenv } in
+                                ctxt, None
+                        end
             else
               raise (Reporting_basic.err_general true l "non-ascii ascii representation provided")
       | Ast.Module(sk1,xl,sk2,sk3,Ast.Defs(defs),sk4) ->

@@ -209,13 +209,26 @@ let rec src_t_to_string =
 let typ_ident_to_output (p : Path.t id) =     
   Ident.to_output Type_ctor path_sep (B.type_id_to_ident p)
 
-let field_ident_to_output fd = 
-  Ident.to_output Term_field path_sep (B.const_id_to_ident fd)
+let field_ident_to_output fd ascii_alternative = 
+  Ident.to_output Term_field path_sep (B.const_id_to_ident fd ascii_alternative)
 ;;
 
 let const_name_to_output a n =
   Name.to_output Term_var n
 
+
+let get_function_ascii_alternative name =
+  let env = A.env in
+  let v_env = env.local_env.v_env in
+    match Nfmap.apply v_env name with
+      | None   -> name
+      | Some s ->
+        let c_env = env.c_env in
+        let const_descr = Typed_ast.c_env_lookup Ast.Unknown c_env s in
+          match const_descr.ascii_rep with
+            | None -> name
+            | Some n -> n
+;;
 
 let generate_coq_record_update_notation e =
   let notation_kwd = from_string "Notation" in
@@ -799,7 +812,8 @@ let generate_coq_record_update_notation e =
         | Let_fun (n, pats, typ_opt, skips, e) -> funcl_aux tv_set (n.term, pats, typ_opt, skips, e)
     and funcl_aux tv_set (n, pats, typ_opt, skips, e) =
       let name_skips = Name.get_lskip n in
-      let name = lskips_t_to_output n in
+      let name = get_function_ascii_alternative (Name.strip_lskip n) in
+      let name = from_string (Ulib.Text.to_string (Name.to_rope name)) in
       let pat_skips =
         match pats with
           | [] -> emp
@@ -849,7 +863,8 @@ let generate_coq_record_update_notation e =
     and exp e =
       let is_user_exp = Typed_ast_syntax.is_pp_exp e in
         match C.exp_to_term e with
-          | Var v -> Name.to_output Term_var v
+          | Var v ->
+              Name.to_output Term_var v
           | Lit l -> literal l
           | Do (skips, mod_descr_id, do_line_list, skips', e, skips'', type_int) -> assert false (* DPM: should have been removed by macros *)
           | App (e1, e2) ->
@@ -862,7 +877,7 @@ let generate_coq_record_update_notation e =
                 match C.exp_to_term e0 with
                   | Constant cd -> 
                     (* constant, so use special formatting *)
-                    B.function_application_to_output (exp_to_locn e) trans false e cd args
+                    B.function_application_to_output (exp_to_locn e) trans false e cd args (*XXX: change*) true
                   | _ -> (* no constant, so use standard one *)
                     List.map trans (e0 :: args)
               end in
@@ -891,7 +906,8 @@ let generate_coq_record_update_notation e =
                 Output.flat [
                   ws skips; from_string "let"; body; ws skips'; from_string "in "; exp e;
                 ]
-          | Constant const -> Output.concat emp (B.function_application_to_output (exp_to_locn e) exp false e const [])
+          | Constant const -> 
+            Output.concat emp (B.function_application_to_output (exp_to_locn e) exp false e const [] (*XXX: change*) true)
           | Fun (skips, ps, skips', e) ->
               let ps = fun_pattern_list ps in
                 block_hov (Typed_ast_syntax.is_pp_exp e) 2 (
@@ -929,7 +945,7 @@ let generate_coq_record_update_notation e =
                 ws skips; from_string "{|"; body; ws skips'; from_string "|}"
               ]
           | Field (e, skips, fd) ->
-            let name = field_ident_to_output fd in
+            let name = field_ident_to_output fd (*XXX: change*) true in
               Output.flat [
                 from_string "("; name; ws skips; exp e; from_string ")"
               ]
@@ -951,21 +967,40 @@ let generate_coq_record_update_notation e =
                   ws skips; from_string "match ("; exp e; from_string ")"; from_string " with"; ws skips';
                   break_hint_space 4; body; ws skips''; break_hint_space 0; from_string "end"
                 ])
-           | Infix (l, c, r) ->
-             let trans e = block (Typed_ast_syntax.is_pp_exp e) 0 (exp e) in
-             let sep = (break_hint_space 0) in
-
-             let oL = begin
-               (* check, whether there is a constant in the middle *)
-               match C.exp_to_term c with
-                 | Constant cd -> 
-                   (* constant, so use special formatting *)
-                   B.function_application_to_output (exp_to_locn e) trans true e cd [l;r]
-                 | _ -> (* no constant, so use standard one *)
-                   List.map trans [l;c;r]
-            end in
-            let o = Output.concat sep oL in
-            block is_user_exp 0 o
+          | Infix (l, c, r) ->
+              let trans e = block (Typed_ast_syntax.is_pp_exp e) 0 (exp e) in
+              let sep = (break_hint_space 0) in
+              begin
+                match C.exp_to_term c with
+                  | Constant cd ->
+                    begin
+                      let env = A.env in
+                      let c_env = env.c_env in
+                      let const_descr_ref = cd.descr in
+                      let const_descr = Typed_ast.c_env_lookup Ast.Unknown c_env const_descr_ref in
+                      begin
+                        match const_descr.ascii_rep with
+                          | None ->
+                            let pieces = B.function_application_to_output (exp_to_locn e) trans true e cd [l; r] (*XXX: change*) true in
+                            let output = Output.concat sep pieces in
+                              block is_user_exp 0 output
+                          | Some ascii ->
+                            let name = from_string (Ulib.Text.to_string (Name.to_rope ascii)) in
+                            let output =
+                              Output.concat sep [
+                                name; trans l; trans r
+                              ]
+                            in
+                              block is_user_exp 0 output
+                      end
+                    end
+                  | _           ->
+                    begin
+                      let mapped = List.map trans [l; c; r] in
+                      let output = Output.concat sep mapped in
+                        block is_user_exp 0 output
+                    end
+              end
           | If (skips, test, skips', t, skips'', f) ->
               block is_user_exp 0 (Output.flat [
                 ws skips; break_hint_cut; from_string "if";
@@ -979,7 +1014,7 @@ let generate_coq_record_update_notation e =
           | Comp_binding (_, _, _, _, _, _, _, _, _) -> from_string "(* XXX: comp binding *)"
           | Setcomp (_, _, _, _, _, _) -> from_string "(* XXX: setcomp *)"
           | Nvar_e (skips, nvar) ->
-            let nvar = id Nexpr_var @@ Ulib.Text.(^^^) (r"") (Nvar.to_rope nvar) in
+            let nvar = id Nexpr_var @@ Ulib.Text.(^^^) (r "") (Nvar.to_rope nvar) in
               Output.flat [
                 ws skips; nvar
               ]
@@ -1037,7 +1072,7 @@ let generate_coq_record_update_notation e =
           def_pattern p; ws skips; from_string "=>"; break_hint_space 2; exp e
         ]
     and field_update (fd, skips, e, _) =
-      let name = field_ident_to_output fd in
+      let name = field_ident_to_output fd (*XXX: change*) true in
         Output.flat [
           name; ws skips; from_string ":="; exp e
         ]
@@ -1116,7 +1151,7 @@ let generate_coq_record_update_notation e =
               ws skips; from_string "("; fun_pattern p; ws skips'; from_string ")"
             ]
         | P_const(cd, ps) ->
-            let oL = B.pattern_application_to_output fun_pattern cd ps in
+            let oL = B.pattern_application_to_output fun_pattern cd ps (*XXX: change*) true in
             concat emp oL
         | P_num_add ((name, l), skips, skips', k) ->
             let succs = Output.flat @@ Util.replicate k (from_string "S (") in
@@ -1173,7 +1208,7 @@ let generate_coq_record_update_notation e =
               from_string "("; ws skips; def_pattern p; ws skips'; from_string ")"
             ]
         | P_const(cd, ps) ->
-            let oL = B.pattern_application_to_output def_pattern cd ps in
+            let oL = B.pattern_application_to_output def_pattern cd ps (*XXX: change*) true in
             concat emp oL
         | P_num_add ((name, l), skips, skips', k) ->
             let succs = Output.flat @@ Util.replicate k (from_string "S (") in
@@ -1486,7 +1521,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
           let module C = CoqBackendAux (
              struct
                 let avoid = A.avoid;;
-                let env = {A.env with local_env = lenv}
+                let env = {A.env with local_env = fst lenv }
              end) in
           let callback = defs true in
           match s with

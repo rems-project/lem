@@ -350,8 +350,8 @@ and letbind_aux =
     (** [Let_val (p, ty_opt, sk, e)] describes binding the pattern [p] to exp [e] in a local
         let statement, i.e. a statement like [let p = e in ...] *)
   | Let_fun of name_lskips_annot * pat list * (lskips * src_t) option * lskips * exp
-    (** [Let_val (n, ps, ty_opt, sk, e)] describes defining a local function [f] with arguments [ps] locally.
-        It represents a statement like [let n ps = e in ...]. Notice that the arguments of [Let_fun] are
+    (** [Let_fun (n, ps, ty_opt, sk, e)] describes defining a local function [f] with arguments [ps] locally.
+        It repre0sents a statement like [let n ps = e in ...]. Notice that the arguments of [Let_fun] are
         similar to [funcl_aux]. However, funcl_aux has a constant-references, as it is used in top-level definitions,
         whereas [Let_fun] is used only for local functions. *)
   
@@ -478,7 +478,7 @@ type def_aux =
 
 (** A definition consists of a the real definition represented as a [def_aux], followed by some white-space.
     There is also the location of the definition and the local-environment present after the definition has been processed. *)
-and def = (def_aux * lskips option) * Ast.l * local_env
+and def = (def_aux * lskips option) * Ast.l * (local_env * NameSet.t)
 
 val tnvar_to_types_tnvar : tnvar -> Types.tnvar * Ast.l
 

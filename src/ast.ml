@@ -346,7 +346,7 @@ and letbind =  (* Location-annotated let bindings *)
 
 
 type 
-fixity_decl = 
+fixity_decl =  (* fixity declarations for infix identifiers *)
    Fixity_right_assoc of terminal * int
  | Fixity_left_assoc of terminal * int
  | Fixity_non_assoc of terminal * int
@@ -380,30 +380,29 @@ component =  (* components *)
    Component_module of terminal
  | Component_function of terminal
  | Component_type of terminal
- | Component_constant of terminal
  | Component_field of terminal
 
 
 type 
-termination_setting = 
+termination_setting =  (* termination settings *)
    Termination_setting_automatic of terminal
  | Termination_setting_manual of terminal
 
 
 type 
-exhaustivity_setting = 
+exhaustivity_setting =  (* exhaustivity settings *)
    Exhaustivity_setting_exhaustive of terminal
  | Exhaustivity_setting_inexhaustive of terminal
 
 
 type 
-elim_opt = 
+elim_opt =  (* optional terms used as eliminators for pattern matching *)
    Elim_opt_none
  | Elim_opt_some of exp
 
 
 type 
-target_rep_rhs = 
+target_rep_rhs =  (* right hand side of a target representation declaration *)
    Target_rep_rhs_infix of terminal * fixity_decl * id
  | Target_rep_rhs_term_replacement of exp
  | Target_rep_rhs_type_replacement of typ
@@ -451,11 +450,12 @@ lemma_decl =  (* Lemmata and Tests *)
 
 type 
 declare_def =  (* declarations *)
-   Decl_rename_decl of terminal * targets option * terminal * component * id * terminal * x_l
- | Decl_ascii_rep_decl of terminal * targets option * terminal * component * id * terminal * x_l
+   Decl_compile_message_decl of terminal * targets option * terminal * x_l * terminal * terminal * Ulib.UTF8.t
+ | Decl_rename_decl of terminal * targets option * terminal * component * id * terminal * x_l
+ | Decl_ascii_rep_decl of terminal * targets option * terminal * component * x_l * terminal * x_l
  | Decl_target_rep_term_decl of terminal * target * terminal * id * (x_l) list * terminal * target_rep_rhs
  | Decl_target_rep_type_decl of terminal * target * terminal * typschm * terminal * target_rep_rhs
- | Decl_set_flag_decl of terminal * terminal * id * terminal * x_l
+ | Decl_set_flag_decl of terminal * terminal * x_l * terminal * x_l
  | Decl_termination_argument_decl of terminal * targets option * terminal * id * terminal * termination_setting
  | Decl_pattern_match_decl of terminal * targets option * terminal * exhaustivity_setting * x_l * tnvar list * terminal * terminal * (exp) list * terminal * elim_opt
 
@@ -526,7 +526,7 @@ name_ts =  (* Names with optional types for inductively defined relation clauses
 
 
 type 
-declare_arg =  (* agruments to a declaration *)
+declare_arg =  (* arguments to a declaration *)
    Decl_arg_string of terminal * Ulib.UTF8.t
  | Decl_arg_record of terminal * (dexp * terminal) list * terminal * bool * l * terminal
 

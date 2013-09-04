@@ -1228,7 +1228,7 @@ let rec typ t = match t.term with
       kwd ")"
 
 let field_ident_to_output cd =
-  Ident.to_output Term_field T.path_sep (B.const_id_to_ident cd)
+  Ident.to_output Term_field T.path_sep (B.const_id_to_ident cd (*XXX: change*) true)
 ;;
 
 let tyvar tv =
@@ -1326,7 +1326,7 @@ let rec pat p = match p.term with
   | P_var(n) ->
       Name.to_output Term_var n
   | P_const(cd,ps) ->
-      let oL = B.pattern_application_to_output pat cd ps in
+      let oL = B.pattern_application_to_output pat cd ps (*XXX: change*) true in
       concat texspace oL
   | P_record(s1,fields,s2) ->
       ws s1 ^
@@ -1419,7 +1419,7 @@ match C.exp_to_term e with
       ws s ^ id Nexpr_var (Ulib.Text.(^^^) T.nexp_var (Nvar.to_rope n))
 
   | Constant(cd) ->
-      Output.concat emp (B.function_application_to_output (exp_to_locn e) exp false e cd [])
+      Output.concat emp (B.function_application_to_output (exp_to_locn e) exp false e cd [] (*XXX: change*) true)
 
   | Fun(s1,ps,s2,e) ->
       ws s1 ^
@@ -1455,7 +1455,7 @@ match C.exp_to_term e with
          match C.exp_to_term e0 with
            | Constant cd -> 
              (* constant, so use special formatting *)
-             B.function_application_to_output (exp_to_locn e) trans false e cd args
+             B.function_application_to_output (exp_to_locn e) trans false e cd args (*XXX: change*) true
            | _ -> (* no constant, so use standard one *)
              List.map trans (e0 :: args)
       end in
@@ -1471,7 +1471,7 @@ match C.exp_to_term e with
          match C.exp_to_term e2 with
            | Constant cd -> 
              (* constant, so use special formatting *)
-             B.function_application_to_output (exp_to_locn e) trans true e cd [e1;e3]
+             B.function_application_to_output (exp_to_locn e) trans true e cd [e1;e3] (*XXX: change*) true
            | _ -> (* no constant, so use standard one *)
              List.map trans [e1;e2;e3]
       end in
@@ -2507,7 +2507,7 @@ and names_of_pat p : (Ulib.Text.t * Ulib.Text.t * Ast.l) list = match p.term wit
       let n' = Name.strip_lskip n in 
       [(Name.to_rope n', Name.to_rope_tex Term_var n', p.locn)]
   | P_const(cd,ps) ->
-      let n = Ident.get_name (B.const_id_to_ident cd) in
+      let n = Ident.get_name (B.const_id_to_ident cd (*XXX: change*) true) in
       let n' = Name.strip_lskip n in 
       [(Name.to_rope n', Name.to_rope_tex Term_ctor n', p.locn)]
   | P_record(s1,fields,s2) ->
@@ -2717,7 +2717,7 @@ let defs_inc ((ds:def list),end_lex_skips) =
   match T.target with
   | Target_no_ident Target_tex -> 
       batrope_pair_concat (List.map (function ((d,s),l,lenv) -> 
-        let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = lenv } end)(X) in
+        let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = fst lenv } end)(X) in
         batrope_pair_concat (F'.def_tex_inc d)) ds)
   | _ ->
       raise (Failure "defs_inc called on non-tex target")
@@ -2727,7 +2727,7 @@ let rec defs (ds:def list) =
   List.fold_right
     (fun ((d,s),l,lenv) y -> 
        begin
-        let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = lenv } end)(X) in
+        let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = fst lenv } end)(X) in
         F'.def defs false d (is_pp_loc l)
        end ^
 
@@ -2757,7 +2757,7 @@ let defs_to_extra_aux gf (ds:def list) =
     List.fold_right
       (fun ((d,s),l,lenv) y -> 
          begin
-           let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = lenv } end)(X) in
+           let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = fst lenv } end)(X) in
            match T.target with 
            | Target_no_ident Target_isa   -> F'.isa_def_extra gf d l 
            | Target_no_ident Target_hol   -> F'.hol_def_extra gf d l 
@@ -2814,7 +2814,7 @@ let header_defs ((defs:def list),(end_lex_skips : Typed_ast.lskips)) =
     (List.fold_right 
        (fun ((d,s),l,lenv) y ->
           let module B = Backend_common.Make (struct
-            let env = { A.env with local_env = lenv }
+            let env = { A.env with local_env = fst lenv }
             let target = T.target
             let id_format_args =  (T.op_format, T.path_sep)    
           end) in

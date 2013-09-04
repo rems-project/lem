@@ -90,13 +90,13 @@ let kw_table =
      ("IN",                      (fun x -> IN(x,r"IN")));
      ("MEM",                     (fun x -> MEM(x,r"MEM")));
      ("declare",                 (fun x -> Declare(x)));
-     ("constant"),               (fun x -> Constant(x));
      ("field"),                  (fun x -> Field(x));
      ("automatic"),              (fun x -> Automatic(x));
      ("manual"),                 (fun x -> Manual(x));
      ("exhaustive"),             (fun x -> Exhaustive(x));
      ("inexhaustive"),           (fun x -> Inexhaustive(x));
      ("ascii_rep"),              (fun x -> AsciiRep(x));
+     ("compile_message"),        (fun x -> CompileMessage(x));
      ("set_flag"),               (fun x -> SetFlag(x));
      ("termination_argument"),   (fun x -> TerminationArgument(x));
      ("pattern_match"),          (fun x -> PatternMatch(x));

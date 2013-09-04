@@ -72,21 +72,23 @@ module Make(A : sig
     called on these remaining arguments. The original expression [full_exp] is
     needed, if not enough parameters are present to format the definition correctly. 
     In this case, eta-expansion is applied and the resulting expression formatting via [exp].
+    [ascii_alternative] denotes whether an ascii alternative representation for this
+    function name is required.
 *)
-val function_application_to_output : Ast.l -> (exp -> Output.t) -> bool -> exp -> const_descr_ref id -> exp list -> Output.t list
+val function_application_to_output : Ast.l -> (exp -> Output.t) -> bool -> exp -> const_descr_ref id -> exp list -> bool -> Output.t list
 
 (** [pattern_application_to_output pat c_id args] tries to
     format a function application in a pattern as output. It does otherwise the same as
     function_application_to_output. However, since there are no infix patterns, the
     parameter [inf] is always set to [false]. 
 *)
-val pattern_application_to_output : (pat -> Output.t) -> const_descr_ref id -> pat list -> Output.t list
+val pattern_application_to_output : (pat -> Output.t) -> const_descr_ref id -> pat list -> bool -> Output.t list
 
 (** [const_id_to_ident c_id] tries to format a constant, constructor or field
     [c_id] as an identifier for target [A.target] using the rules stored
     in environment [A.env]. Depending on the formating rules for the
     constant, [const_id_to_ident] might raise an exception. *)
-val const_id_to_ident : const_descr_ref id -> Ident.t
+val const_id_to_ident : const_descr_ref id -> bool -> Ident.t
 
 
 (** [const_ref_to_name n c] tries to format a constant

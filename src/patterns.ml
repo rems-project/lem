@@ -1884,6 +1884,19 @@ let remove_toplevel_match targ mca env_global _ env_local (((d, s), l, lenv)) =
        aux sk1 sk2_opt topt sl tnvs class_constraints
      end
   | _ -> None
+;;
+
+let reinstate_top_level_match targ mca env_global _ env_local (((d, s), l, lenv)) =
+  let l_unk = Ast.Trans (true, "reinstate_top_level_match", Some l) in
+  let env = env_global in
+  let aux sk1 sk2_opt topt sl tnvs class_constraints =
+    assert false
+  in
+    match d with
+      | Val_def ((Fun_def (sk1, sk2_opt, topt, sl)), tnvs, class_constraints) ->
+          aux sk1 sk2_opt topt sl tnvs class_constraints
+      | _ -> None
+;;
 
 
 (******************************************************************************)

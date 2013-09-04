@@ -120,6 +120,9 @@ val remove_fun : (exp -> exp) -> exp -> exp option
     eliminating match-expressions in the body. *)
 val remove_toplevel_match : target -> match_check_arg -> env -> Def_trans.def_macro
 
+(** [reinstate_top_level_match] performs the inverse transformation of [remove_top_level_match]. *)
+val reinstate_top_level_match : target -> match_check_arg -> env -> Def_trans.def_macro
+
 (** [collapse_nested_matches] tries to eliminate nested matches by collapsing them. It is used internally by pattern
     compilation. *)
 val collapse_nested_matches : match_check_arg -> env -> exp -> exp option

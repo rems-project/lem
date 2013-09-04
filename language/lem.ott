@@ -726,7 +726,7 @@ dexp :: 'Dexp_' ::=
   | targuments = texp1 ... texpn l				:: :: targuments
 
 declare_arg :: 'Decl_arg_' ::= 
-  {{ com agruments to a declaration }}
+  {{ com arguments to a declaration }}
   | string                        				:: :: string
   | <| dexp1 ; ... ; dexpn semi_opt l |>			:: :: record
 
@@ -735,27 +735,31 @@ component :: 'Component_' ::=
   | module   :: :: module
   | function :: :: function
   | type     :: :: type
-  | constant :: :: constant
   | field    :: :: field
 
 termination_setting :: 'Termination_setting_' ::=
+  {{ com termination settings }}
   | automatic :: :: automatic
   | manual    :: :: manual
 
 exhaustivity_setting :: 'Exhaustivity_setting_' ::=
+  {{ com exhaustivity settings }}
   | exhaustive   :: :: exhaustive
   | inexhaustive :: :: inexhaustive
 
 elim_opt :: 'Elim_opt_' ::=
+  {{ com optional terms used as eliminators for pattern matching }}
   |     :: :: none
   | exp :: :: some
 
 fixity_decl :: 'Fixity_' ::=
+  {{ com fixity declarations for infix identifiers }}
   | right_assoc nat :: :: right_assoc
   | left_assoc  nat :: :: left_assoc
   | non_assoc   nat :: :: non_assoc
 
 target_rep_rhs :: 'Target_rep_rhs_' ::=
+  {{ com right hand side of a target representation declaration }}
   | infix fixity_decl id         :: :: infix
   | exp                          :: :: term_replacement
   | typ                          :: :: type_replacement
@@ -763,11 +767,12 @@ target_rep_rhs :: 'Target_rep_rhs_' ::=
 
 declare_def :: 'Decl_' ::= 
   {{ com declarations }}
-  | declare targets_opt rename component id = x_l                                                 :: :: rename_decl
-  | declare targets_opt ascii_rep component id = x_l                                              :: :: ascii_rep_decl
+  | declare targets_opt compile_message x_l1 = string                                              :: :: compile_message_decl
+  | declare targets_opt rename component id = x_l2                                                :: :: rename_decl
+  | declare targets_opt ascii_rep component x_l1 = x_l2                                             :: :: ascii_rep_decl
   | declare target target_rep_term id x_l1 ... x_ln = target_rep_rhs                              :: :: target_rep_term_decl
   | declare target target_rep_type typschm = target_rep_rhs                                       :: :: target_rep_type_decl
-  | declare set_flag id = x_l                                                                     :: :: set_flag_decl
+  | declare set_flag x_l1 = x_l2                                                                    :: :: set_flag_decl
   | declare targets_opt termination_argument id = termination_setting                             :: :: termination_argument_decl
   | declare targets_opt pattern_match exhaustivity_setting x_l tnvars = [ exp1 .. expn ] elim_opt :: :: pattern_match_decl
 
