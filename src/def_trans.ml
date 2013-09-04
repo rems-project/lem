@@ -274,7 +274,7 @@ let instance_to_module (global_env : env) mod_path (env : env) ((d,s),l,lenv) =
                             (vdefs @ [dict]), 
                    sk4)
           in
-            Some((env,[((m,s),l,lenv]))
+            Some(env,[((m,s),l,lenv)])
       | _ ->
           None
 

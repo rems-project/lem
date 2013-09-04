@@ -1521,7 +1521,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
           let module C = CoqBackendAux (
              struct
                 let avoid = A.avoid;;
-                let env = {A.env with local_env = fst lenv }
+                let env = {A.env with local_env = lenv }
              end) in
           let callback = defs true in
           match s with

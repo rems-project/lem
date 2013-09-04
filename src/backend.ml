@@ -2717,7 +2717,7 @@ let defs_inc ((ds:def list),end_lex_skips) =
   match T.target with
   | Target_no_ident Target_tex -> 
       batrope_pair_concat (List.map (function ((d,s),l,lenv) -> 
-        let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = fst lenv } end)(X) in
+        let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = lenv } end)(X) in
         batrope_pair_concat (F'.def_tex_inc d)) ds)
   | _ ->
       raise (Failure "defs_inc called on non-tex target")
@@ -2727,7 +2727,7 @@ let rec defs (ds:def list) =
   List.fold_right
     (fun ((d,s),l,lenv) y -> 
        begin
-        let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = fst lenv } end)(X) in
+        let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = lenv } end)(X) in
         F'.def defs false d (is_pp_loc l)
        end ^
 
@@ -2757,7 +2757,7 @@ let defs_to_extra_aux gf (ds:def list) =
     List.fold_right
       (fun ((d,s),l,lenv) y -> 
          begin
-           let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = fst lenv } end)(X) in
+           let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = lenv } end)(X) in
            match T.target with 
            | Target_no_ident Target_isa   -> F'.isa_def_extra gf d l 
            | Target_no_ident Target_hol   -> F'.hol_def_extra gf d l 
@@ -2814,7 +2814,7 @@ let header_defs ((defs:def list),(end_lex_skips : Typed_ast.lskips)) =
     (List.fold_right 
        (fun ((d,s),l,lenv) y ->
           let module B = Backend_common.Make (struct
-            let env = { A.env with local_env = fst lenv }
+            let env = { A.env with local_env = lenv }
             let target = T.target
             let id_format_args =  (T.op_format, T.path_sep)    
           end) in

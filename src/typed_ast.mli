@@ -478,7 +478,7 @@ type def_aux =
 
 (** A definition consists of a the real definition represented as a [def_aux], followed by some white-space.
     There is also the location of the definition and the local-environment present after the definition has been processed. *)
-and def = (def_aux * lskips option) * Ast.l * (local_env * NameSet.t)
+and def = (def_aux * lskips option) * Ast.l * local_env
 
 val tnvar_to_types_tnvar : tnvar -> Types.tnvar * Ast.l
 

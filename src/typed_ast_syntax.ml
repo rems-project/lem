@@ -947,7 +947,7 @@ and add_funcl_aux_entities (ue : used_entities) ((_, c, ps, src_t_opt, _, e):fun
   ue
 end
 
-and add_def_entities (t_opt : Target.target) (ue : used_entities) (((d, _), _, _) : def) (new_only : bool) : used_entities = 
+and add_def_entities (t_opt : Target.target) (ue : used_entities) (((d, _), _, _) : def) : used_entities = 
   match d with
       | Type_def(sk, tds) ->
          Seplist.fold_left (fun (_, _, type_path, texp, _) ue -> begin
