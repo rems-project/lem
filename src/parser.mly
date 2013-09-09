@@ -955,8 +955,8 @@ target_rep_lhs :
     { Target_rep_lhs_type ($1, $2, $3) }
 
 x_ls :
-  | X
-    { [ Ast.X_l ($1, loc()) ] }
+  |
+    { [] }
   | X x_ls
     { (Ast.X_l ($1, loc()))::$2 }
 

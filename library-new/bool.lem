@@ -11,14 +11,14 @@
 
 val not : bool -> bool
 let not b = match b with
-  true -> false
-  false -> true
+  | true -> false
+  | false -> true
 end
 
-declare targetrep hol      not = '~'
-declare targetrep ocaml    not = 'not'
-declare targetrep isabelle not = '~'
-declare targetrep coq      not = 'not_b
+declare hol      target_rep function not = true
+(*declare ocaml    target_rep not = 'not'
+declare isabelle target_rep not = '~'
+declare coq      target_rep not = 'not_b
 
 
 (* ----------------------- *)
@@ -71,3 +71,4 @@ declare targetrep ocaml    imp x y = ((not x) || y))
 declare targetrep isabelle imp = infix '\<implies>'
 declare targetrep coq      imp = infix '-->'
 
+*)
