@@ -159,7 +159,7 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 %token <Ast.terminal * Ulib.Text.t> IN MEM MinusMinusGt
 %token <Ast.terminal> Class_ Inst Do LeftArrow
 %token <Ast.terminal> Module CompileMessage Field Type Automatic Manual Exhaustive Inexhaustive AsciiRep SetFlag TerminationArgument PatternMatch
-%token <Ast.terminal> RightAssoc LeftAssoc NonAssoc Infix Special TargetRepTerm TargetRepType
+%token <Ast.terminal> RightAssoc LeftAssoc NonAssoc Infix Special TargetRep
 
 %start file
 %type <Ast.defs> defs
@@ -948,6 +948,12 @@ target_rep_rhs :
   | Special String exps
     { Target_rep_rhs_special($1, fst $2, snd $2, $3) }
 
+target_rep_lhs :
+  | TargetRep component id x_ls
+    { Target_rep_lhs_term ($1, $2, $3, $4) }
+  | TargetRep component typschm
+    { Target_rep_lhs_type ($1, $2, $3) }
+
 x_ls :
   | X
     { [ Ast.X_l ($1, loc()) ] }
@@ -961,10 +967,8 @@ declaration :
     { Decl_rename_decl($1, $2, $3, $4, $5, fst $6, $7) }
   | Declare targets_opt AsciiRep component x Eq x
     { Decl_ascii_rep_decl($1, $2, $3, $4, $5, fst $6, $7) }
-  | Declare target TargetRepTerm id x_ls Eq target_rep_rhs
-    { Decl_target_rep_term_decl($1, fst $2, $3, $4, $5, fst $6, $7) }
-  | Declare target TargetRepType typschm Eq target_rep_rhs
-    { Decl_target_rep_type_decl($1, fst $2, $3, $4, fst $5, $6) }
+  | Declare target target_rep_lhs Eq target_rep_rhs
+    { Decl_target_rep_decl($1, fst $2, snd $2, $3, fst $4, $5) }
   | Declare SetFlag x Eq x
     { Decl_set_flag_decl($1, $2, $3, fst $4, $5) }
   | Declare targets_opt TerminationArgument id Eq termination_setting

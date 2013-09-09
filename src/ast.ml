@@ -66,11 +66,21 @@ let ixl_to_l = function
 
 
 type
-n = terminal * text
+a = terminal * text
 
 
 type
-a = terminal * text
+n = terminal * text
+
+
+type 
+a_l =  (* Location-annotated type variables *)
+   A_l of a * l
+
+
+type 
+n_l =  (* Location-annotated numeric variables *)
+   N_l of n * l
 
 
 type 
@@ -86,13 +96,14 @@ and nexp =  (* Location-annotated vector lengths *)
 
 
 type 
-a_l =  (* Location-annotated type variables *)
-   A_l of a * l
+tnvar =  (* Union of type variables and Nexp type variables, with locations *)
+   Avl of a_l
+ | Nvl of n_l
 
 
 type 
-n_l =  (* Location-annotated numeric variables *)
-   N_l of n * l
+id =  (* Long identifers *)
+   Id of ((x_l * terminal)) list * x_l * l
 
 
 type 
@@ -102,24 +113,13 @@ nexp_constraint_aux =  (* Whether a vector is bounded or fixed size *)
 
 
 type 
-id =  (* Long identifers *)
-   Id of ((x_l * terminal)) list * x_l * l
-
-
-type 
-tnvar =  (* Union of type variables and Nexp type variables, with locations *)
-   Avl of a_l
- | Nvl of n_l
+c =  (* Typeclass constraints *)
+   C of id * tnvar
 
 
 type 
 nexp_constraint =  (* Location-annotated Nexp range *)
    Range_l of nexp_constraint_aux * l
-
-
-type 
-c =  (* Typeclass constraints *)
-   C of id * tnvar
 
 
 type 
@@ -254,11 +254,6 @@ and t_args =  (* Lists of types *)
 
 
 type 
-typschm =  (* Type schemes *)
-   Ts of c_pre * typ
-
-
-type 
 witness_opt =  (* Optional witness type name declaration. Must be present for a witness type to be generated. *)
    Witness_none
  | Witness_some of terminal * terminal * x_l * terminal
@@ -275,6 +270,11 @@ functions_opt =  (* Optional names and types for functions to be generated. Type
    Functions_none
  | Functions_one of x_l * terminal * typ
  | Functions_some of x_l * terminal * typ * terminal * functions_opt
+
+
+type 
+typschm =  (* Type schemes *)
+   Ts of c_pre * typ
 
 
 type 
@@ -353,6 +353,14 @@ fixity_decl =  (* fixity declarations for infix identifiers *)
 
 
 type 
+component =  (* components *)
+   Component_module of terminal
+ | Component_function of terminal
+ | Component_type of terminal
+ | Component_field of terminal
+
+
+type 
 name_t =  (* Name or name with type for inductively defined relation clauses *)
    Name_t_name of x_l
  | Name_t_nt of terminal * x_l * terminal * typ * terminal
@@ -373,14 +381,6 @@ lemma_typ =  (* Types of Lemmata *)
    Lemma_assert of terminal
  | Lemma_lemma of terminal
  | Lemma_theorem of terminal
-
-
-type 
-component =  (* components *)
-   Component_module of terminal
- | Component_function of terminal
- | Component_type of terminal
- | Component_field of terminal
 
 
 type 
@@ -407,6 +407,12 @@ target_rep_rhs =  (* right hand side of a target representation declaration *)
  | Target_rep_rhs_term_replacement of exp
  | Target_rep_rhs_type_replacement of typ
  | Target_rep_rhs_special of terminal * terminal * Ulib.UTF8.t * (exp) list
+
+
+type 
+target_rep_lhs =  (* left hand side of a target representation declaration *)
+   Target_rep_lhs_term of terminal * component * id * (x_l) list
+ | Target_rep_lhs_type of terminal * component * typschm
 
 
 type 
@@ -453,8 +459,7 @@ declare_def =  (* declarations *)
    Decl_compile_message_decl of terminal * targets option * terminal * x_l * terminal * terminal * Ulib.UTF8.t
  | Decl_rename_decl of terminal * targets option * terminal * component * id * terminal * x_l
  | Decl_ascii_rep_decl of terminal * targets option * terminal * component * x_l * terminal * x_l
- | Decl_target_rep_term_decl of terminal * target * terminal * id * (x_l) list * terminal * target_rep_rhs
- | Decl_target_rep_type_decl of terminal * target * terminal * typschm * terminal * target_rep_rhs
+ | Decl_target_rep_decl of terminal * target * terminal * target_rep_lhs * terminal * target_rep_rhs
  | Decl_set_flag_decl of terminal * terminal * x_l * terminal * x_l
  | Decl_termination_argument_decl of terminal * targets option * terminal * id * terminal * termination_setting
  | Decl_pattern_match_decl of terminal * targets option * terminal * exhaustivity_setting * x_l * tnvar list * terminal * terminal * (exp) list * terminal * elim_opt

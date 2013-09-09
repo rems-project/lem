@@ -765,14 +765,18 @@ target_rep_rhs :: 'Target_rep_rhs_' ::=
   | typ                          :: :: type_replacement
   | special string exp1 ... expn :: :: special
 
+target_rep_lhs  :: 'Target_rep_lhs_' ::=
+  {{ com left hand side of a target representation declaration }}
+  | target_rep component id x_l1 .. x_ln :: :: term
+  | target_rep component typschm         :: :: type
+
 declare_def :: 'Decl_' ::= 
   {{ com declarations }}
-  | declare targets_opt compile_message x_l1 = string                                              :: :: compile_message_decl
+  | declare targets_opt compile_message x_l1 = string                                             :: :: compile_message_decl
   | declare targets_opt rename component id = x_l2                                                :: :: rename_decl
-  | declare targets_opt ascii_rep component x_l1 = x_l2                                             :: :: ascii_rep_decl
-  | declare target target_rep_term id x_l1 ... x_ln = target_rep_rhs                              :: :: target_rep_term_decl
-  | declare target target_rep_type typschm = target_rep_rhs                                       :: :: target_rep_type_decl
-  | declare set_flag x_l1 = x_l2                                                                    :: :: set_flag_decl
+  | declare targets_opt ascii_rep component x_l1 = x_l2                                           :: :: ascii_rep_decl
+  | declare target target_rep target_rep_lhs = target_rep_rhs                                     :: :: target_rep_decl
+  | declare set_flag x_l1 = x_l2                                                                  :: :: set_flag_decl
   | declare targets_opt termination_argument id = termination_setting                             :: :: termination_argument_decl
   | declare targets_opt pattern_match exhaustivity_setting x_l tnvars = [ exp1 .. expn ] elim_opt :: :: pattern_match_decl
 

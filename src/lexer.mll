@@ -104,8 +104,7 @@ let kw_table =
      ("left_assoc"),             (fun x -> LeftAssoc(x));
      ("non_assoc"),              (fun x -> NonAssoc(x));
      ("special"),                (fun x -> Special(x));
-     ("target_rep_term"),        (fun x -> TargetRepTerm(x));
-     ("target_rep_type"),        (fun x -> TargetRepType(x));
+     ("target_rep"),             (fun x -> TargetRep(x));
      ("target_type",             (fun x -> TargetType(x)));
      ("target_const",            (fun x -> TargetConst(x)));
      ("lemma",                   (fun x -> Lemma(x)));
