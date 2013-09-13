@@ -80,7 +80,7 @@ let annot_name n l env =
       begin
         match Nfmap.apply env (Name.strip_lskip n) with
           | Some((x,l)) -> x 
-          | None -> assert false
+          | None -> raise (Reporting_basic.err_general true l "invariant in annotating names broken")
       end;
     rest = (); }
 
@@ -222,7 +222,8 @@ let rec typ_to_src_t (wild_f : Ast.l -> lskips -> src_t)
         let p = lookup_p "constructor" e i in
           begin
             match Pfmap.apply d p with
-              | None -> assert false
+              | None ->
+                  raise (Reporting_basic.err_general true l "invariant in checking type application broken")
               | Some(Tc_type(td)) ->
                   if List.length td.type_tparams = List.length typs then
                     let sts = 
@@ -401,7 +402,7 @@ let check_dup_field_names (c_env : c_env) (fns : (const_descr_ref * Ast.l) list)
 let lookup_class_p (ctxt : defn_ctxt) (id : Ast.id) : Path.t * class_descr = 
   let p = lookup_p "class" ctxt.cur_env id in
     match Pfmap.apply ctxt.all_tdefs p with
-      | None -> assert false
+      | None -> raise (Reporting_basic.err_general true Ast.Unknown "invariant in finding type class path broken")
       | Some(Tc_class d) -> (p, d)
       | Some(Tc_type _) ->
           raise (Reporting_basic.err_type_pp (match id with Ast.Id(_,_,l) -> l)
@@ -509,7 +510,8 @@ let check_constraint_prefix (ctxt : defn_ctxt)
         let tnvars_types = List.map tnvar_to_types_tnvar tnvars in
         let tnvarset = tvs_to_set tnvars_types in
         let (c,sk3,r,sk4) = match crs with 
-                             | Ast.Cs_empty -> assert false
+                             | Ast.Cs_empty ->
+                                raise (Reporting_basic.err_general true Ast.Unknown "invariant in checking checking range constraints broken")
                              | Ast.Cs_classes(c,sk3) -> c,None,[],sk3
                              | Ast.Cs_lengths(r,sk3) -> [], None, r, sk3
                              | Ast.Cs_both(c,sk3,r,sk4) -> c, Some sk3, r, sk4 in
@@ -1266,7 +1268,8 @@ module Make_checker(T : sig
               (* Check that the module contains an appropriate type "t" to be
                * the monad. *)
               match Pfmap.apply T.d monad_type_ctor with
-                | None -> assert false
+                | None ->
+                    raise (Reporting_basic.err_general true l "invariant in checking module contains monad structure broken")
                 | Some(Tc_class _) ->
                     raise (Reporting_basic.err_type_pp mod_id.id_locn "type class used as monad" 
                       Path.pp monad_type_ctor)
@@ -1440,7 +1443,7 @@ module Make_checker(T : sig
         : (pat * lskips * exp * Ast.l) * t = 
     match check_psexp l_e (Ast.Patsexp([p],sk1,e,l)) with
       | ([pat],_,exp,t) -> ((pat,sk1,exp,l),t)
-      | _ -> assert false 
+      | _ -> raise (Reporting_basic.err_general true l "invariant in checking pexp broken")
 
   and check_funcl (l_e : lex_env) (Ast.Funcl(xl,ps,topt,sk,e)) l =
     let (ps,topt,s,e,t) = check_psexp_help l_e ps topt sk e l in
@@ -1615,7 +1618,8 @@ module Make_checker(T : sig
                C.equate_types l' "top-level function" t 
                  (match Nfmap.apply env (Name.strip_lskip n.term) with
                     | Some(t,_) -> t
-                    | None -> assert false);
+                    | None ->
+                        raise (Reporting_basic.err_general true l "invariant in checking functions broken"));
                (n,a,b,c,d))
           funcls
       in
@@ -1629,7 +1633,7 @@ module Make_checker(T : sig
         (fun l_e (Ast.Name_l (Ast.Inderln_name_Name(_,x_l,_,_,_,_,_,_),_),_) ->
           let n = Name.strip_lskip (Name.from_x x_l) in
               if Nfmap.in_dom n l_e then 
-                assert false (* TODO Make this an error of duplicate definitions *)
+                raise (Reporting_basic.err_general true l "invariant in checking duplicate definition in indrelns broken")
               else
                 add_binding l_e (xl_to_nl x_l) (C.new_type ())) 
          empty_lex_env
@@ -1830,7 +1834,7 @@ let build_type_def_help (mod_path : Name.t list) (context : defn_ctxt)
       | Some(p, _) ->
           begin
             match Pfmap.apply context.all_tdefs p with
-              | None -> assert false
+              | None -> raise (Reporting_basic.err_general true l "invariant in checking type definition broken")
               | Some(Tc_type _) ->
                   raise (Reporting_basic.err_type_pp l "duplicate type constructor definition"
                     Name.pp tn)
@@ -2203,7 +2207,11 @@ let letbind_to_funcl_aux sk0 target_opt ctxt (lb : letbind) : val_def = begin
         | _ -> raise (Reporting_basic.err_unreachable true l "n should have been added just before") in
       (n, n_ref)
     end in
-    let (p, ty_opt, sk, e) = match lb with | (Let_val (p, ty_opt, sk, e), _) -> (p, ty_opt, sk, e) | _ -> assert false in
+    let (p, ty_opt, sk, e) =
+      match lb with
+        | (Let_val (p, ty_opt, sk, e), _) -> (p, ty_opt, sk, e)
+        | _ -> raise (Reporting_basic.err_general true l "invariant in checking letbind broken")
+    in
     let pvars = Pattern_syntax.pat_vars_src p in
     let name_map = List.map get_const_from_name_annot pvars in
     Let_def(sk0, target_opt,  (p, name_map, ty_opt, sk, e))
@@ -2407,7 +2415,11 @@ let rec check_instance_type_shape (ctxt : defn_ctxt) (src_t : src_t)
           match Pfmap.apply ctxt.all_tdefs p.descr with
             | Some(Tc_type {type_abbrev = Some _}) ->
                 raise (Reporting_basic.err_type_pp p.id_locn "type abbreviation in class instance type"
-                  Ident.pp (match p.id_path with | Id_some id -> id | Id_none _ -> assert false))
+                  Ident.pp (
+                    match p.id_path with
+                      | Id_some id -> id
+                      | Id_none _ -> raise (Reporting_basic.err_general true l "invariant in checking instance type shapes broken")
+                  ))
             | _ -> 
                 (tvs_to_set (List.map to_tnvar ts),
                  Name.to_rope (Path.to_name p.descr))
@@ -2450,6 +2462,34 @@ let change_effective_backends (backend_targets : Targetset.t) (Ast.Def_l(def,l))
             | Some(ts) -> 
                 Some(Targetset.inter ts backend_targets)
         end
+;;
+
+let check_targets (to_check : Ast.targets) (check_against : Targetset.t) =
+  let rec check_positive (ts : Ast.target list) =
+    match ts with
+      | []    -> false
+      | t::ts ->
+          if Targetset.mem (Target.ast_target_to_target t) check_against then
+            check_positive ts
+          else
+            false
+  in
+  let rec check_negative (ts : Ast.target list) =
+    match ts with
+      | []    -> true
+      | t::ts ->
+          if Targetset.mem (Target.ast_target_to_target t) check_against then
+            false
+          else
+            check_negative ts
+  in
+    match to_check with
+      | Ast.Targets_concrete(_, ts, _) ->
+          let ts = List.map fst ts in
+            check_positive ts
+      | Ast.Targets_neg_concrete(_, ts, _) ->
+          let ts = List.map fst ts in
+            check_negative ts
 ;;
 
 (* backend_targets is the set of targets for which all variables must be defined
@@ -2533,6 +2573,31 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
             | _, _ -> ctxt, None
           in
             rename_component component nk ctxt
+      | Ast.Declaration(Ast.Decl_pattern_match_decl (_, _, _, _, _, _, _, _, _, _, _)) ->
+          let _ = prerr_endline "pattern match decl encountered" in
+            ctxt, None
+      | Ast.Declaration(Ast.Decl_termination_argument_decl (_, _, _, _, _, _)) ->
+          let _ = prerr_endline "termination argument decl encountered" in
+            ctxt, None
+      | Ast.Declaration(Ast.Decl_target_rep_decl (_, _, _, _, _, _)) ->
+          let _ = prerr_endline "target rep declaration encountered" in
+            ctxt, None
+      | Ast.Declaration(Ast.Decl_set_flag_decl (_, _, _, _, _)) ->
+          let _ = prerr_endline "set flag declaration encountered" in
+            ctxt, None
+      | Ast.Declaration(Ast.Decl_compile_message_decl (_, targets_opt, _, l, _, _, msg)) ->
+        begin
+          match targets_opt with
+            | None ->
+                let _ = prerr_endline msg in
+                  ctxt, None
+            | Some targets ->
+                if check_targets targets backend_targets then
+                  let _ = prerr_endline msg in
+                    ctxt, None
+                  else
+                    ctxt, None
+        end
       | Ast.Declaration(Ast.Decl_ascii_rep_decl(sk1, targets_opt, sk2, component, source_name, sk3, target_name)) ->
           let rec is_ascii char_list =
             match char_list with
@@ -2552,7 +2617,8 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                       let lenv = current_env.v_env in
                         begin
                           match Nfmap.apply lenv source_name with
-                            | None -> assert false
+                            | None ->
+                                raise (Reporting_basic.err_general true l "invariant broken in ascii renaming, when checking functions")
                             | Some const_descr_ref ->
                               let ctxt_c_env = ctxt.ctxt_c_env in
                               let const_descr = Typed_ast.c_env_lookup Ast.Unknown ctxt_c_env const_descr_ref in
@@ -2563,15 +2629,15 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                         end
                   | Ast.Component_module _ ->
                       let lenv = current_env.m_env in
-                        assert false
+                        raise (Reporting_basic.err_general true l "ascii representation for modules not implemented yet")
                   | Ast.Component_type _ ->
                       let lenv = current_env.p_env in
-                        assert false
+                        raise (Reporting_basic.err_general true l "ascii representation for types not implemented yet")
                   | Ast.Component_field _ ->
                       let lenv = current_env.f_env in
                         begin
                           match Nfmap.apply lenv source_name with
-                            | None -> assert false
+                            | None -> raise (Reporting_basic.err_general true l "invariant broken in ascii renaming, when checking fields")
                             | Some const_descr_ref ->
                               let ctxt_c_env = ctxt.ctxt_c_env in
                               let const_descr = Typed_ast.c_env_lookup Ast.Unknown ctxt_c_env const_descr_ref in
@@ -2688,7 +2754,8 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
               | Some(p, _) ->
                   begin
                     match Pfmap.apply ctxt.all_tdefs p with
-                      | None -> assert false
+                      | None ->
+                          raise (Reporting_basic.err_general true l "invariant in typechecking type classes broken")
                       | Some(Tc_class _) ->
                           raise (Reporting_basic.err_type_pp l' "duplicate type class definition" 
                             Name.pp cn')
@@ -2986,7 +3053,8 @@ let check_id_restrict_e ctxt (e : Typed_ast.exp) : Typed_ast.exp option =
               begin
               match head_norm_type.t with
                  | Tapp(_,p) -> (match Pfmap.apply ctxt.all_tdefs p with
-                    | None | Some(Tc_class _) -> assert false
+                    | None | Some(Tc_class _) ->
+                        raise (Reporting_basic.err_general true Ast.Unknown "invariant in typechecking identifier broken")
                     | Some(Tc_type { type_varname_regexp = None }) -> None
                     | Some(Tc_type { type_varname_regexp = Some(restrict) }) -> 
                        if (Str.string_match (Str.regexp restrict) id 0) 
@@ -3004,7 +3072,7 @@ let check_id_restrict_p ctxt p = match p.term with
               begin
               match head_norm_type.t with
                  | Tapp(_,path) -> (match Pfmap.apply ctxt.all_tdefs path with
-                    | None | Some(Tc_class _) -> assert false
+                    | None | Some(Tc_class _) -> raise (Reporting_basic.err_general true Ast.Unknown "invariant broken when checking id_restrict_p")
                     | Some(Tc_type { type_varname_regexp = None }) -> None
                     | Some(Tc_type { type_varname_regexp = Some(restrict) }) -> 
                        if (Str.string_match (Str.regexp restrict) id 0) 
