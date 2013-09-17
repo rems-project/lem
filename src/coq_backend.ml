@@ -175,7 +175,7 @@ let lskips_t_to_string name =
     kwd (Ulib.Text.to_string @@ Name.to_rope (Name.strip_lskip lskips_t))
 ;;
 
-module CoqBackendAux (A : sig val avoid : var_avoid_f option;; val env : env end) =
+module CoqBackendAux (A : sig val avoid : var_avoid_f option;; val env : env;; val ascii_rep_set : Types.Cdset.t end) =
   struct
 
     module B = Backend_common.Make (
@@ -191,6 +191,8 @@ module CoqBackendAux (A : sig val avoid : var_avoid_f option;; val env : env end
         let avoid = A.avoid
       end)
     ;;
+
+let use_ascii_rep_for_const (cd : const_descr_ref id) : bool = Types.Cdset.mem cd.descr A.ascii_rep_set
 
 let rec src_t_to_string =
   function
@@ -877,7 +879,7 @@ let generate_coq_record_update_notation e =
                 match C.exp_to_term e0 with
                   | Constant cd -> 
                     (* constant, so use special formatting *)
-                    B.function_application_to_output (exp_to_locn e) trans false e cd args (*XXX: change*) true
+                    B.function_application_to_output (exp_to_locn e) trans false e cd args (use_ascii_rep_for_const cd)
                   | _ -> (* no constant, so use standard one *)
                     List.map trans (e0 :: args)
               end in
@@ -907,7 +909,7 @@ let generate_coq_record_update_notation e =
                   ws skips; from_string "let"; body; ws skips'; from_string "in "; exp e;
                 ]
           | Constant const -> 
-            Output.concat emp (B.function_application_to_output (exp_to_locn e) exp false e const [] (*XXX: change*) true)
+            Output.concat emp (B.function_application_to_output (exp_to_locn e) exp false e const [] (use_ascii_rep_for_const const))
           | Fun (skips, ps, skips', e) ->
               let ps = fun_pattern_list ps in
                 block_hov (Typed_ast_syntax.is_pp_exp e) 2 (
@@ -945,7 +947,7 @@ let generate_coq_record_update_notation e =
                 ws skips; from_string "{|"; body; ws skips'; from_string "|}"
               ]
           | Field (e, skips, fd) ->
-            let name = field_ident_to_output fd (*XXX: change*) true in
+            let name = field_ident_to_output fd (use_ascii_rep_for_const fd) in
               Output.flat [
                 from_string "("; name; ws skips; exp e; from_string ")"
               ]
@@ -981,7 +983,7 @@ let generate_coq_record_update_notation e =
                       begin
                         match const_descr.ascii_rep with
                           | None ->
-                            let pieces = B.function_application_to_output (exp_to_locn e) trans true e cd [l; r] (*XXX: change*) true in
+                            let pieces = B.function_application_to_output (exp_to_locn e) trans true e cd [l; r] (use_ascii_rep_for_const cd) in
                             let output = Output.concat sep pieces in
                               block is_user_exp 0 output
                           | Some ascii ->
@@ -1072,7 +1074,7 @@ let generate_coq_record_update_notation e =
           def_pattern p; ws skips; from_string "=>"; break_hint_space 2; exp e
         ]
     and field_update (fd, skips, e, _) =
-      let name = field_ident_to_output fd (*XXX: change*) true in
+      let name = field_ident_to_output fd (use_ascii_rep_for_const fd) in
         Output.flat [
           name; ws skips; from_string ":="; exp e
         ]
@@ -1151,7 +1153,7 @@ let generate_coq_record_update_notation e =
               ws skips; from_string "("; fun_pattern p; ws skips'; from_string ")"
             ]
         | P_const(cd, ps) ->
-            let oL = B.pattern_application_to_output fun_pattern cd ps (*XXX: change*) true in
+            let oL = B.pattern_application_to_output fun_pattern cd ps (use_ascii_rep_for_const cd) in
             concat emp oL
         | P_num_add ((name, l), skips, skips', k) ->
             let succs = Output.flat @@ Util.replicate k (from_string "S (") in
@@ -1208,7 +1210,7 @@ let generate_coq_record_update_notation e =
               from_string "("; ws skips; def_pattern p; ws skips'; from_string ")"
             ]
         | P_const(cd, ps) ->
-            let oL = B.pattern_application_to_output def_pattern cd ps (*XXX: change*) true in
+            let oL = B.pattern_application_to_output def_pattern cd ps (use_ascii_rep_for_const cd) in
             concat emp oL
         | P_num_add ((name, l), skips, skips', k) ->
             let succs = Output.flat @@ Util.replicate k (from_string "S (") in
@@ -1512,16 +1514,20 @@ end
 ;;
 
 
+module CdsetE = Util.ExtraSet(Types.Cdset)
 
 module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
   struct
 
     let rec defs inside_module (ds : def list) =
       	List.fold_right (fun (((d, s), l, lenv):def) y ->
+          let ue = add_def_entities (Target_no_ident Target_coq) true empty_used_entities ((d,s),l,lenv) in
+
           let module C = CoqBackendAux (
              struct
                 let avoid = A.avoid;;
-                let env = {A.env with local_env = lenv }
+                let env = {A.env with local_env = lenv};;
+		let ascii_rep_set = CdsetE.from_list ue.used_consts
              end) in
           let callback = defs true in
           match s with

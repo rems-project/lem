@@ -381,6 +381,12 @@ struct
   let compare = Pervasives.compare
 end)
 
+module Cdset = Set.Make(
+struct 
+  type t = const_descr_ref
+  let compare = Pervasives.compare
+end)
+
 type 'a cdmap = const_descr_ref * 'a Cdmap.t
 
 let cdmap_lookup (c_env_count, c_env_map) c = Cdmap.apply c_env_map c

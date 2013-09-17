@@ -936,74 +936,80 @@ and add_texp_entities (ue : used_entities) = function
          ue
        end) ue constr_sl
 
-and add_funcl_aux_entities (ue : used_entities) ((_, c, ps, src_t_opt, _, e):funcl_aux) = begin
+and add_funcl_aux_entities (ue : used_entities) only_new ((_, c, ps, src_t_opt, _, e):funcl_aux) = begin
   let ue = used_entities_add_const ue c in
-  let ue = List.fold_left add_pat_entities ue ps in
-  let ue = match src_t_opt with 
-    | Some (_, src_t) -> add_src_t_entities ue src_t 
-    | _ -> ue 
-  in
-  let ue = add_exp_entities ue e in
-  ue
+  if only_new then ue else begin
+    let ue = List.fold_left add_pat_entities ue ps in
+    let ue = match src_t_opt with 
+      | Some (_, src_t) -> add_src_t_entities ue src_t 
+      | _ -> ue 
+    in
+    let ue = add_exp_entities ue e in
+    ue
+  end
 end
 
-and add_def_entities (t_opt : Target.target) (ue : used_entities) (((d, _), _, _) : def) : used_entities = 
+and add_def_entities (t_opt : Target.target) (only_new : bool) (ue : used_entities) (((d, _), _, _) : def) : used_entities = 
   match d with
       | Type_def(sk, tds) ->
          Seplist.fold_left (fun (_, _, type_path, texp, _) ue -> begin
            let ue = used_entities_add_type ue type_path in
-           let ue = add_texp_entities ue texp in
+           let ue = if only_new then ue else add_texp_entities ue texp in
            ue
          end) ue tds
       | Val_def(Let_def(_, targs, (p, nm, src_t_opt, _, e)), _, _) -> 
          if (not (in_targets_opt t_opt targs)) then ue else begin
-           let ue = add_pat_entities ue p in
            let ue = List.fold_left (fun ue  (_, c) -> used_entities_add_const ue c) ue nm in
-           let ue = match src_t_opt with 
-             | Some (_, src_t) -> add_src_t_entities ue src_t 
-             | _ -> ue 
-           in
-           let ue = add_exp_entities ue e in
-           ue
+           if only_new then ue else begin
+             let ue = add_pat_entities ue p in
+             let ue = match src_t_opt with 
+               | Some (_, src_t) -> add_src_t_entities ue src_t 
+               | _ -> ue 
+             in
+             let ue = add_exp_entities ue e in
+             ue
+           end
          end
       | (Val_def(Fun_def(_, _, targs, funs),_,_)) -> 
          if (in_targets_opt t_opt targs) then 
-           Seplist.fold_left (fun clause ue -> add_funcl_aux_entities ue clause) ue funs 
+           Seplist.fold_left (fun clause ue -> add_funcl_aux_entities ue only_new clause) ue funs 
          else ue
       | Val_def(Let_inline(_,_,targs,_,c,_,_,e), tnvs, class_constraints) ->
-         if (in_targets_opt t_opt targs) then begin
+         if (in_targets_opt t_opt targs) && not only_new then begin
            let ue = used_entities_add_const ue c in
            let ue = add_exp_entities ue e in
            ue
          end else ue
       | Lemma(_, _, targs, _, _, e, _) ->
-          if (in_targets_opt t_opt targs) then add_exp_entities ue e else ue
+          if (in_targets_opt t_opt targs) && (not only_new) then add_exp_entities ue e else ue
       | Module(_, _, mod_path, _, _, ds, _) -> begin
           let ue = used_entities_add_module ue mod_path in
-          let ue = List.fold_left (add_def_entities t_opt) ue ds in
+          let ue = List.fold_left (add_def_entities t_opt only_new) ue ds in
           ue
         end
       | Rename(_, _, mod_path, _, m) -> begin
           let ue = used_entities_add_module ue mod_path in
-          let ue = used_entities_add_module ue m.descr.mod_binding in
+          let ue = if only_new then ue else used_entities_add_module ue m.descr.mod_binding in
           ue
         end
       | Ident_rename (_,_,_,_,_,_) ->
           (* TODO: replace Ident_rename with something more general *) ue
-      | Open(_,m) -> used_entities_add_module ue m.descr.mod_binding
+      | Open(_,m) -> if only_new then ue else used_entities_add_module ue m.descr.mod_binding
       | Indreln(_,targ,names,rules) -> begin
           let add_rule (Rule (_,_,_,_,_,e_opt,_,_,n_ref,es),_) ue = begin
-             let ue = match e_opt with None -> ue | Some e -> add_exp_entities ue e in
              let ue = used_entities_add_const ue n_ref in
-             let ue = List.fold_left add_exp_entities ue es in
-             ue
+             if only_new then ue else begin
+               let ue = match e_opt with None -> ue | Some e -> add_exp_entities ue e in
+               let ue = List.fold_left add_exp_entities ue es in
+               ue
+             end
           end in
           (* TODO: consider what to do about names *)
           Seplist.fold_left add_rule ue rules
         end
       | Val_spec(_,_,n_ref,_,(_, src_t)) ->begin
           let ue = used_entities_add_const ue n_ref in
-          let ue = add_src_t_entities ue src_t in
+          let ue = if only_new then ue else add_src_t_entities ue src_t in
           ue
         end
       | Class(_,_,n,tvar,_,_,body,_) -> (* TODO: classes broken, needs fixing in typechecking and AST *) ue
@@ -1011,12 +1017,12 @@ and add_def_entities (t_opt : Target.target) (ue : used_entities) (((d, _), _, _
       | Comment _ -> ue
 
 
-let add_checked_module_entities (t_opt : Target.target) (ue : used_entities) (m : checked_module): used_entities = 
+let add_checked_module_entities (t_opt : Target.target) only_new (ue : used_entities) (m : checked_module): used_entities = 
   let (dl, _) = m.typed_ast in 
-  List.fold_left (add_def_entities t_opt) ue dl
+  List.fold_left (add_def_entities t_opt only_new) ue dl
 
-let get_checked_modules_entities (t_opt : Target.target) (ml : checked_module list) : used_entities =
-  reverse_used_entities (List.fold_left (add_checked_module_entities t_opt) empty_used_entities ml)
+let get_checked_modules_entities (t_opt : Target.target) only_new (ml : checked_module list) : used_entities =
+  reverse_used_entities (List.fold_left (add_checked_module_entities t_opt only_new) empty_used_entities ml)
 
 
 (* check whether a definition is recursive using entities *)

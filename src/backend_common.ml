@@ -177,13 +177,16 @@ let ident_to_output use_infix =
   Ident.to_output_format (ident_f use_infix) Term_const sep
 
 
-let const_id_to_ident c_id ascii_alternative =
+(* A version of const_id_to_ident that returns additionally, whether
+   the ascii-alternative was used. This is handly for determining infix
+   status. *)
+let const_id_to_ident_aux c_id ascii_alternative =
   let l = Ast.Trans (false, "const_id_to_ident", None) in
   let c_descr = c_env_lookup l A.env.c_env c_id.descr in
+  let org_ident = resolve_constant_id_ident A.env c_id in
     match (c_descr.ascii_rep, ascii_alternative) with
-      | (Some ascii, true) -> assert false (* XXXX: here *)
+      | (Some ascii, true) -> (true, Ident.rename org_ident ascii) 
       | _                  ->
-          let org_ident = resolve_constant_id_ident A.env c_id in
           let i = match Target.Targetmap.apply_target c_descr.target_rep A.target with
              | None -> org_ident
              | Some (CR_new_ident (_, _, i)) -> i
@@ -192,12 +195,14 @@ let const_id_to_ident c_id ascii_alternative =
              | Some (CR_special (_, _, _, n, _, _)) -> Ident.rename org_ident n
           in
           let i' = fix_module_prefix_ident (A.env.local_env) i in
-          i'
+          (false, i')
 ;;
 
+let const_id_to_ident c_id ascii_alternative = snd (const_id_to_ident_aux c_id ascii_alternative)
+
 let constant_application_to_output_simple is_infix_pos arg_f args c_id ascii_alternative = begin
-  let i = const_id_to_ident c_id ascii_alternative in 
-  let const_is_infix = not (ascii_alternative) && Precedence.is_infix (Precedence.get_prec A.target A.env c_id.descr) in
+  let (ascii_used, i) = const_id_to_ident_aux c_id ascii_alternative in 
+  let const_is_infix = not (ascii_used) && Precedence.is_infix (Precedence.get_prec A.target A.env c_id.descr) in 
   let is_infix = (is_infix_pos && const_is_infix && (Ident.has_empty_path_prefix i)) in
   let use_infix_notation = ((not is_infix) && const_is_infix) in
   let name = ident_to_output use_infix_notation i in
@@ -209,8 +214,8 @@ let constant_application_to_output_simple is_infix_pos arg_f args c_id ascii_alt
 end
 
 (* assumes that there are enough arguments, otherwise list_split_after will fail *)
-let constant_application_to_output_special c_id to_out arg_f args vars ascii_alternative : Output.t list =
-  let i = const_id_to_ident c_id ascii_alternative in
+let constant_application_to_output_special c_id to_out arg_f args vars : Output.t list =
+  let i = const_id_to_ident c_id false in
   let name = ident_to_output false i in
   let args_output = List.map arg_f args in
   let (o_vars, o_rest) = Util.split_after (List.length vars) args_output (* assume there are enough elements *) in
@@ -223,7 +228,7 @@ let function_application_to_output l (arg_f0 : exp -> Output.t) (is_infix_pos : 
   let arg_f b e = if b then arg_f0 (mk_opt_paren_exp e) else arg_f0 e in
   let c_descr = c_env_lookup Ast.Unknown A.env.c_env c_id.descr in
   match Target.Targetmap.apply_target c_descr.target_rep A.target with
-     | Some (CR_special (_, _, _, _, to_out, vars)) -> 
+     | Some (CR_special (_, _, _, _, to_out, vars)) when not ascii_alternative -> 
             if (List.length args < List.length vars) then begin
               (* eta expand and call recursively *)
               let remaining_vars = Util.list_dropn (List.length args) vars in
@@ -231,7 +236,7 @@ let function_application_to_output l (arg_f0 : exp -> Output.t) (is_infix_pos : 
               [arg_f true eta_exp]
               
             end else begin
-              constant_application_to_output_special c_id to_out (arg_f false) args vars ascii_alternative 
+              constant_application_to_output_special c_id to_out (arg_f false) args vars 
             end
      | _ -> constant_application_to_output_simple is_infix_pos arg_f args c_id ascii_alternative
 
@@ -239,11 +244,11 @@ let pattern_application_to_output (arg_f0 : pat -> Output.t) (c_id : const_descr
   let arg_f b p = if b then arg_f0 (Pattern_syntax.mk_opt_paren_pat p) else arg_f0 p in
   let c_descr = c_env_lookup Ast.Unknown A.env.c_env c_id.descr in
   match Target.Targetmap.apply_target c_descr.target_rep A.target with
-     | Some (CR_special (_, _, _, _, to_out, vars)) -> 
+     | Some (CR_special (_, _, _, _, to_out, vars)) when not ascii_alternative -> 
         if (List.length args < List.length vars) then begin
            raise (Reporting_basic.err_unreachable true Ast.Unknown "Constructor without enough arguments!")
         end else begin
-           constant_application_to_output_special c_id to_out (arg_f false) args vars ascii_alternative
+           constant_application_to_output_special c_id to_out (arg_f false) args vars 
         end
      | _ -> constant_application_to_output_simple false arg_f args c_id ascii_alternative
 

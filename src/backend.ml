@@ -1120,7 +1120,7 @@ let extra_gen_flags_gen_lty (gf : extra_gen_flags) = function
   | Ast.Lemma_assert _ -> gf.extra_gen_asserts
 
 
-module F_Aux(T : Target)(A : sig val avoid : var_avoid_f option;; val env : env end)(X : sig val comment_def : def -> Ulib.Text.t end) = struct
+module F_Aux(T : Target)(A : sig val avoid : var_avoid_f option;; val env : env;; val ascii_rep_set : Types.Cdset.t end)(X : sig val comment_def : def -> Ulib.Text.t end) = struct
 
 module B = Backend_common.Make (struct
   let env = A.env
@@ -1132,6 +1132,8 @@ module C = Exps_in_context (struct
   let env_opt = Some A.env
   let avoid = A.avoid
 end);;
+
+let use_ascii_rep_for_const (cd : const_descr_ref id) : bool = Types.Cdset.mem cd.descr A.ascii_rep_set
 
 let rec interspace os = 
   match os with
@@ -1228,7 +1230,7 @@ let rec typ t = match t.term with
       kwd ")"
 
 let field_ident_to_output cd =
-  Ident.to_output Term_field T.path_sep (B.const_id_to_ident cd (*XXX: change*) true)
+  Ident.to_output Term_field T.path_sep (B.const_id_to_ident cd (use_ascii_rep_for_const cd))
 ;;
 
 let tyvar tv =
@@ -1326,7 +1328,7 @@ let rec pat p = match p.term with
   | P_var(n) ->
       Name.to_output Term_var n
   | P_const(cd,ps) ->
-      let oL = B.pattern_application_to_output pat cd ps (*XXX: change*) true in
+      let oL = B.pattern_application_to_output pat cd ps (use_ascii_rep_for_const cd) in
       concat texspace oL
   | P_record(s1,fields,s2) ->
       ws s1 ^
@@ -1419,7 +1421,7 @@ match C.exp_to_term e with
       ws s ^ id Nexpr_var (Ulib.Text.(^^^) T.nexp_var (Nvar.to_rope n))
 
   | Constant(cd) ->
-      Output.concat emp (B.function_application_to_output (exp_to_locn e) exp false e cd [] (*XXX: change*) true)
+      Output.concat emp (B.function_application_to_output (exp_to_locn e) exp false e cd [] (use_ascii_rep_for_const cd))
 
   | Fun(s1,ps,s2,e) ->
       ws s1 ^
@@ -1455,7 +1457,7 @@ match C.exp_to_term e with
          match C.exp_to_term e0 with
            | Constant cd -> 
              (* constant, so use special formatting *)
-             B.function_application_to_output (exp_to_locn e) trans false e cd args (*XXX: change*) true
+             B.function_application_to_output (exp_to_locn e) trans false e cd args (use_ascii_rep_for_const cd)
            | _ -> (* no constant, so use standard one *)
              List.map trans (e0 :: args)
       end in
@@ -1471,7 +1473,7 @@ match C.exp_to_term e with
          match C.exp_to_term e2 with
            | Constant cd -> 
              (* constant, so use special formatting *)
-             B.function_application_to_output (exp_to_locn e) trans true e cd [e1;e3] (*XXX: change*) true
+             B.function_application_to_output (exp_to_locn e) trans true e cd [e1;e3] (use_ascii_rep_for_const cd)
            | _ -> (* no constant, so use standard one *)
              List.map trans [e1;e2;e3]
       end in
@@ -2695,12 +2697,14 @@ let (^^^^) = Ulib.Text.(^^^)
 
 let output_to_rope out = to_rope T.string_quote T.lex_skip T.need_space out
 
-module F' = F_Aux(T)(A)(X)
+module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = A.env;; let ascii_rep_set = Types.Cdset.empty end)(X)
 
 module C = Exps_in_context (struct
   let env_opt = Some A.env
   let avoid = A.avoid
 end);;
+
+module CdsetE = Util.ExtraSet(Types.Cdset)
 
 let exp_to_rope e = output_to_rope (F'.exp e)
 let pat_to_rope p = output_to_rope (F'.pat p)
@@ -2717,7 +2721,9 @@ let defs_inc ((ds:def list),end_lex_skips) =
   match T.target with
   | Target_no_ident Target_tex -> 
       batrope_pair_concat (List.map (function ((d,s),l,lenv) -> 
-        let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = lenv } end)(X) in
+        let ue = add_def_entities T.target true empty_used_entities ((d,s),l,lenv) in
+        let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = lenv };;
+					let ascii_rep_set = CdsetE.from_list ue.used_consts end)(X) in
         batrope_pair_concat (F'.def_tex_inc d)) ds)
   | _ ->
       raise (Failure "defs_inc called on non-tex target")
@@ -2727,7 +2733,9 @@ let rec defs (ds:def list) =
   List.fold_right
     (fun ((d,s),l,lenv) y -> 
        begin
-        let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = lenv } end)(X) in
+        let ue = add_def_entities T.target true empty_used_entities ((d,s),l,lenv) in
+        let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = lenv };;
+					let ascii_rep_set = CdsetE.from_list ue.used_consts end)(X) in
         F'.def defs false d (is_pp_loc l)
        end ^
 
@@ -2757,7 +2765,9 @@ let defs_to_extra_aux gf (ds:def list) =
     List.fold_right
       (fun ((d,s),l,lenv) y -> 
          begin
-           let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = lenv } end)(X) in
+           let ue = add_def_entities T.target true empty_used_entities ((d,s),l,lenv) in
+           let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = lenv };;
+                                           let ascii_rep_set = CdsetE.from_list ue.used_consts end)(X) in
            match T.target with 
            | Target_no_ident Target_isa   -> F'.isa_def_extra gf d l 
            | Target_no_ident Target_hol   -> F'.hol_def_extra gf d l 

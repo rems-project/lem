@@ -84,11 +84,12 @@ val function_application_to_output : Ast.l -> (exp -> Output.t) -> bool -> exp -
 *)
 val pattern_application_to_output : (pat -> Output.t) -> const_descr_ref id -> pat list -> bool -> Output.t list
 
-(** [const_id_to_ident c_id] tries to format a constant, constructor or field
+(** [const_id_to_ident c_id use_ascii] tries to format a constant, constructor or field
     [c_id] as an identifier for target [A.target] using the rules stored
-    in environment [A.env]. Depending on the formating rules for the
+    in environment [A.env]. If the flag [use_ascii] is set, the ascii representation of the
+    constant should be used, if there is one. Depending on the formating rules for the
     constant, [const_id_to_ident] might raise an exception. *)
-val const_id_to_ident : const_descr_ref id -> bool -> Ident.t
+val const_id_to_ident : const_descr_ref id -> bool -> Ident.t 
 
 
 (** [const_ref_to_name n c] tries to format a constant

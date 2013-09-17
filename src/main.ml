@@ -184,7 +184,7 @@ let per_target libpath isa_thy modules env consts alldoc_accum alldoc_inc_accum 
     in     
  
     (* perform renamings *)
-    let used_entities = Typed_ast_syntax.get_checked_modules_entities targ transformed_m in
+    let used_entities = Typed_ast_syntax.get_checked_modules_entities targ false transformed_m in
     let env'' = Rename_top_level.rename_defs_target targ used_entities consts env' in
 
     let consts' = Target_trans.add_used_entities_to_avoid_names env'' targ used_entities consts in
