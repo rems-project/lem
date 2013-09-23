@@ -1823,7 +1823,6 @@ let compile_faux_seplist l env comp s s2_opt t topt org_d (sl : funcl_aux lskips
    end
    end
 
-    
 let compile_def t mca env_global (_:Name.t list) env_local (((d, s), l, lenv) as org_d : def) =  
  let env = env_global in
  let cf_opt e = compile_match_exp t mca env e in
@@ -1838,7 +1837,7 @@ let compile_def t mca env_global (_:Name.t list) env_local (((d, s), l, lenv) as
        constr topt tnvs class_constraints s1 s2_opt sl
      end
   |  _ -> None
-
+;;
 
 
 (******************************************************************************)
@@ -1885,19 +1884,6 @@ let remove_toplevel_match targ mca env_global _ env_local (((d, s), l, lenv)) =
      end
   | _ -> None
 ;;
-
-let reinstate_top_level_match targ mca env_global _ env_local (((d, s), l, lenv)) =
-  let l_unk = Ast.Trans (true, "reinstate_top_level_match", Some l) in
-  let env = env_global in
-  let aux sk1 sk2_opt topt sl tnvs class_constraints =
-    assert false
-  in
-    match d with
-      | Val_def ((Fun_def (sk1, sk2_opt, topt, sl)), tnvs, class_constraints) ->
-          aux sk1 sk2_opt topt sl tnvs class_constraints
-      | _ -> None
-;;
-
 
 (******************************************************************************)
 (* Define what should be compiled away for different backends                 *)
@@ -2017,9 +2003,10 @@ let is_ocaml_pattern_match:match_check_arg =
      allow_redundant = true;
      allow_non_exhaustive = true }
 
-let is_coq_pat_direct (p : pat) : bool = 
+let is_coq_pat_direct (toplevel : bool) (p : pat) : bool = 
   match p.term with
     | P_record _ -> false
+    | P_tup _ -> not toplevel
     | (P_vector _ | P_vectorC _) -> false
     | _ -> true
 
@@ -2034,13 +2021,13 @@ let rec is_coq_exp env (e : exp) : bool =
     | _ -> false
 ;;
 
-let is_coq_pat = for_all_subpat is_coq_pat_direct
-let is_coq_def = is_pat_match_def is_coq_pat (fun mp -> mp.redundant_pats = [] && mp.is_exhaustive)
+let is_coq_pat toplevel = for_all_subpat (is_coq_pat_direct toplevel)
+let is_coq_def = is_pat_match_def (is_coq_pat true) (fun mp -> mp.redundant_pats = [] && mp.is_exhaustive)
 
 let is_coq_pattern_match : match_check_arg = 
    { exp_OK = (fun env e -> is_coq_exp env e &&
                  (match check_match_exp env e with Some mp -> mp.redundant_pats = [] && mp.is_exhaustive | None -> true));
      def_OK = is_coq_def;
-     pat_OK = (fun _ p -> is_coq_pat p);
+     pat_OK = (fun _ p -> is_coq_pat false p);
      allow_redundant = false;
      allow_non_exhaustive = false }
