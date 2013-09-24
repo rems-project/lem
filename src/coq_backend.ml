@@ -594,40 +594,7 @@ let generate_coq_record_update_notation e =
               generate_default_values def;
             ]
       | Val_def (def, tv_set, class_constraints) ->
-        begin
-          match def with
-            | Let_def (skips, targets, (p, name_map, topt, sk, e)) ->
-                if in_target targets then
-                  let bind = (Let_val (p, topt, sk, e), Ast.Unknown) in
-                  let body = let_body true tv_set bind in
-                    Output.flat [
-                      ws skips; from_string "Definition"; body; from_string "."
-                    ]
-                else
-                  ws skips ^ from_string "(* [?]: removed value definition intended for another target. *)"
-            | Fun_def (skips, rec_flag, targets, funcl_skips_seplist) ->
-                if in_target targets then
-                  let skips' = match rec_flag with FR_non_rec -> None | FR_rec sk -> sk in
-                  let header =
-                    if snd (Typed_ast_syntax.is_recursive_def m) then
-                      Output.flat [
-                        from_string "Program"; ws skips'; from_string "Fixpoint"
-                      ]
-                    else
-                      Output.flat [
-                        from_string "Definition";
-                      ]
-                  in
-                  let funcls = Seplist.to_list funcl_skips_seplist in
-                  let bodies = List.map (funcl tv_set) funcls in
-                  let formed = concat_str "\nwith" bodies in
-                    Output.flat [
-                      ws skips; header; formed; from_string "."
-                    ]
-                else
-                  from_string "\n(* [?]: removed recursive definition intended for another target. *)"
-            | _ -> from_string "\n(* [?]: removed top-level value definition. *)"
-        end
+          val_def false (snd (Typed_ast_syntax.is_recursive_def m)) def tv_set class_constraints
       | Module (skips, (name, l), mod_binding, skips', skips'', defs, skips''') ->
         let name = lskips_t_to_output name in
         let body = callback defs in
@@ -656,8 +623,97 @@ let generate_coq_record_update_notation e =
                 ws skips; clauses cs
               ]
       | Val_spec val_spec -> from_string "\n(* [?]: removed value specification. *)\n"
-      | Class (skips, skips', name, tyvar, p, skips'', body, skips''') -> from_string "Class"
-      | Instance (skips, instantiation, vals, skips') -> from_string "Instance"
+      | Class (skips, skips', (name, l), tv, p, skips'', body, skips''') ->
+          let name = Name.to_output Term_var name in
+          let tv =
+            begin
+              match tv with
+                | Typed_ast.Tn_A (_, tyvar, _) ->
+                    from_string @@ Ulib.Text.to_string tyvar
+                | Typed_ast.Tn_N (_, nvar, l) ->
+                    from_string "NOT SUPPORTED"
+            end
+          in
+          let body =
+            Output.concat (from_string ";") (List.map (fun (skips, (name, l), const_descr_ref, skips', src_t) ->
+              Output.flat [
+                ws skips; Name.to_output Term_var name; from_string ":"; ws skips'; typ src_t
+              ]
+            ) body)
+          in
+          Output.flat [
+            ws skips; from_string "Class"; name; ws skips'; from_string "("; tv; from_string ": Type): Type := {"
+          ; ws skips''; body
+          ; from_string "\n}."; ws skips'''
+          ]
+      | Instance (skips, inst, vals, skips') ->
+          let prefix =
+            match inst with
+              | (constraint_prefix_opt, skips, ident, path, src_t, skips') ->
+                let c =
+                  begin
+                  match constraint_prefix_opt with
+                    | None -> from_string ""
+                    | Some c ->
+                      begin
+                      match c with
+                        | Cp_forall (skips, tnvar_list, skips', constraints_opt) ->
+                            let tnvars =
+                              Output.concat (from_string " ") (List.map (fun t ->
+                                match t with
+                                  | Typed_ast.Tn_A (_, var, _) ->
+                                      from_string @@ Ulib.Text.to_string var
+                                  | _ -> from_string "NOT SUPPORTED"
+                              ) tnvar_list)
+                            in
+                            let cs =
+                              begin
+                              match constraints_opt with
+                                | None -> from_string ""
+                                | Some cs ->
+                                  match cs with
+                                    | Cs_list (ident_var_seplist, skips_opt, range_seplist, skips') ->
+                                      let ident_var_list = Seplist.to_list ident_var_seplist in
+                                      let ident_var_list =
+                                        Output.concat (from_string " ") (List.map (fun (id, var) ->
+                                          let var =
+                                            match var with
+                                              | Typed_ast.Tn_A (_, var, _) ->
+                                                  from_string @@ Ulib.Text.to_string var
+                                              | _ -> from_string "NOT SUPPORTED"
+                                          in
+                                          let ident = Name.to_output Term_var (Ident.get_name id) in
+                                            Output.flat [
+                                              ident; from_string ": "; var
+                                            ]) ident_var_list)
+                                      in
+                                        ident_var_list
+                              end
+                            in
+                              Output.flat [
+                                ws skips; from_string "("; tnvars; from_string ")"; ws skips'; cs
+                              ]
+                      end
+                  end
+                in
+                let id = Name.to_output Term_var (Ident.get_name ident) in
+                let instance_id =
+                  Output.flat [
+                    typ src_t; from_string "_"; id
+                  ]
+                in
+                  Output.flat [
+                    c; ws skips; instance_id; from_string ": "; id; typ src_t
+                  ]
+          in
+          let body =
+            Output.concat (from_string "\n") (List.map (fun d -> val_def true false d Types.TNset.empty []) vals)
+          in
+            Output.flat [
+              ws skips; from_string "Instance"; prefix; from_string ":= {";
+              body;
+              from_string "\n}."; ws skips'
+            ]
       | Comment c ->
       	let ((def_aux, skips_opt), l, lenv) = c in
           Output.flat [
@@ -681,6 +737,53 @@ let generate_coq_record_update_notation e =
               ]
           else
             from_string "(* [?]: removed lemma intended for another backend. *)"
+    and val_def inside_instance is_recursive def tv_set class_constraints =
+      begin
+        match def with
+          | Let_def (skips, targets, (p, name_map, topt, sk, e)) ->
+              if in_target targets then
+                let bind = (Let_val (p, topt, sk, e), Ast.Unknown) in
+                let body = let_body true tv_set bind in
+                let defn =
+                  if inside_instance then
+                    from_string ""
+                  else
+                    from_string "Definition"
+                  in
+                    Output.flat [
+                      ws skips; defn; body; from_string "."
+                    ]
+              else
+                ws skips ^ from_string "(* [?]: removed value definition intended for another target. *)"
+          | Fun_def (skips, rec_flag, targets, funcl_skips_seplist) ->
+              if in_target targets then
+                let skips' = match rec_flag with FR_non_rec -> None | FR_rec sk -> sk in
+                let header =
+                  if is_recursive then
+                    if inside_instance then
+                      ws skips'
+                    else
+                      Output.flat [
+                        from_string "Program"; ws skips'; from_string "Fixpoint"
+                      ]
+                  else
+                    if inside_instance then
+                      from_string ""
+                    else
+                      Output.flat [
+                        from_string "Definition";
+                      ]
+                in
+                let funcls = Seplist.to_list funcl_skips_seplist in
+                let bodies = List.map (funcl tv_set) funcls in
+                let formed = concat_str "\nwith" bodies in
+                  Output.flat [
+                    ws skips; header; formed; from_string "."
+                  ]
+              else
+                from_string "\n(* [?]: removed recursive definition intended for another target. *)"
+          | _ -> from_string "\n(* [?]: removed top-level value definition. *)"
+      end
     and clauses clause_list =
       let gather_names clause_list =
         let rec gather_names_aux buffer clauses =
