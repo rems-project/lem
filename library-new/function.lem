@@ -1,0 +1,51 @@
+(******************************************************************************)
+(* A library for common operations on functions                               *)
+(******************************************************************************)
+
+(* ----------------------- *)
+(* identity function       *)
+(* ----------------------- *)
+
+val id : forall 'a. 'a -> 'a
+let id x = x
+
+(* ----------------------- *)
+(* constant function       *)
+(* ----------------------- *)
+
+val const : forall 'a 'b. 'a -> 'b -> 'a
+let const x _ = x
+
+
+(* ----------------------- *)
+(* function composition    *)
+(* ----------------------- *)
+
+val (.) : forall 'a 'b 'c. ('b -> 'c) -> ('a -> 'b) -> ('a -> 'c)
+declare ascii_rep function (.) = comb
+let comb f g = (fun x -> f (g x))
+
+
+(* ----------------------- *)
+(* function application    *)
+(* ----------------------- *)
+
+val ($) : forall 'a 'b. ('a -> 'b) -> ('a -> 'b)
+declare ascii_rep function ($) = apply
+let apply f = (fun x -> f x)
+
+
+(* ----------------------- *)
+(* flipping argument order *)
+(* ----------------------- *)
+
+val flip : forall 'a 'b 'c. ('a -> 'b -> 'c) -> ('b -> 'a -> 'c)
+let flip f = (fun x y -> f y x)
+
+
+(* ----------------------- *)
+(* getting a unique value  *)
+(* ----------------------- *)
+
+val THE : forall 'a. ('a -> bool) -> maybe 'a
+lemma THE_spec : (forall p x. (THE p = Just x) <-> ((p x) && (forall y. p y --> (x = y))))

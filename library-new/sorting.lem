@@ -1,0 +1,121 @@
+(******************************************************************************)
+(* A library for sorting lists                                                *)
+(*                                                                            *)
+(* It mainly follows the Haskell List-library                                 *)
+(******************************************************************************)
+
+
+
+(* ========================================================================== *)
+(* Header                                                                     *)
+(* ========================================================================== *)
+
+declare rename module = lem_sorting
+
+
+(* ------------------------- *)
+(* permutations              *)
+(* ------------------------- *)
+
+val isPermutation : forall 'a. Eq 'a => list 'a -> list 'a -> bool
+val isPermutationBy : forall 'a. ('a -> 'a -> bool) -> list 'a -> list 'a -> bool
+
+
+let isPermutation = isPermutationBy (=)
+
+let rec isPermutation l1 l2 = match l1 with
+  | [] -> List.null l2
+  | x :: xs -> begin
+      match deleteFirst ((=) x) l2 with
+        | Nothing -> false
+        | Just ys -> isPermutation xs ys
+    end
+
+let perm_1: (isPermutation [] [])
+let perm_2: (not (isPermutation [2] []))
+let perm_3: (isPermutation [2;1;3;5;4] [1;2;3;4;5])
+let perm_4: (not (isPermutation [2;3;3;5;4] [1;2;3;4;5])
+let perm_5: (not (isPermutation [2;1;3;5;4;3] [1;2;3;4;5]))
+let perm_6: (isPermutation [2;1;3;5;4;3] [1;2;3;3;4;5])
+
+lemma isPermutation_1 : (isEquivalence (rel_from_pred isPermutation))
+lemma isPermutation_2 : (forall l1 l2. isPermutation l1 l2 --> (length l1 = length l2))
+lemma isPermutation_3 : (forall l1 l2. isPermutation l1 l2 --> (forall x. elem x l1 = elem x l2))
+
+
+
+(* ------------------------- *)
+(* isSorted                  *)
+(* ------------------------- *)
+
+(* isSortedBy R l 
+   checks, whether the list l is sorted by ordering R. 
+   R should represent an order, i.e. it should be transitive.
+   Different backends defined "isSorted" slightly differently. However,
+   the definitions coincide for transitive R. Therefore there is the
+   following restriction:
+
+   WARNING: Use isSorted and isSortedBy only with transitive relations!
+*)
+
+val isSorted : forall 'a. Ord 'a => list 'a -> bool
+val isSortedBy : forall 'a. ('a -> 'a -> bool) -> list 'a -> bool
+
+let isSorted = isSortedBy (<=)
+
+let rec isSortedBy cmp l = match l with
+  | [] -> true
+  | [x] -> true
+  | x1 :: x2 :: xs -> (cmp x1 x2 && isSortedBy cmp (x2 :: xs))
+end
+
+
+assert isSorted_1: (isSorted [])
+assert isSorted_2: (isSorted [2])
+assert isSorted_3: (isSorted [2;4;5])
+assert isSorted_4: (isSorted [1;2;2;4;4;8])
+assert isSorted_5: (not (isSorted [3;2]))
+assert isSorted_6: (not (isSorted [1;2;3;2;3;4;5]))
+
+
+(* ----------------------- *)
+(* insertion sort          *)
+(* ----------------------- *) 
+
+val insert : forall 'a. Ord 'a => 'a -> list 'a -> list 'a
+val insertBy : forall 'a. ('a -> 'a -> bool) -> 'a -> list 'a -> list 'a
+
+val insertSort: forall 'a. Ord 'a => list 'a -> list 'a
+val insertSortBy: forall 'a. ('a -> 'a -> bool) -> list 'a -> list 'a
+
+let insert = insertBy (<=)
+let insertSort = insertSortBy (<=)
+
+let rec insertBy cmp e l = match l with
+  | [] -> [e]
+  | x :: xs -> if cmp x e then x :: (insertBy cmp e xs) else (e :: x :: xs)
+end
+
+let insertSortBy cmp l = List.foldl (fun l e -> insertBy cmp e l) [] l
+
+lemma insertBy_1: (forall l e cmp. (isTransitive (rel_from_pred cmp) && isSortedBy cmp l) --> isSortedBy cmp (insertBy cmp e l))
+lemma insertBy_2: (forall l e cmp. length (insertBy cmp e l) = length l + 1)
+lemma insertBy_3: (forall l e1 e2 cmp. elem e1 (insertBy cmp e2 l) = ((e1 = e2) || elem e1 l))
+
+lemma insertSort_1: (forall l cmp. isPermutation (insertSort l) l)
+lemma insertSort_2: (forall l cmp. isSorted (insertSort l))
+
+
+(* ----------------------- *)
+(* general sorting         *)
+(* ----------------------- *) 
+
+val sort: forall 'a. Ord 'a => list 'a -> list 'a
+val sortBy: forall 'a. ('a -> 'a -> bool) -> list 'a -> list 'a
+
+let sort = sortBy (<=)
+let sortBy = insertSortBy
+
+lemma insertSort_1: (forall l cmp. isPermutation (sort l) l)
+lemma insertSort_2: (forall l cmp. isSorted (sort l))
+

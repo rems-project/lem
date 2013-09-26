@@ -6,7 +6,11 @@
 (* Equality                                                                   *)
 (* ========================================================================== *)
 
-(* Lem's default equality (=) is defined by the following type-class Eq *)
+(* Lem's default equality (=) is defined by the following type-class Eq.
+   This typeclass should define equality on an abstract datatype 'a. It should
+   always coincide with the default equality of Coq, HOL and Isabelle.
+   For OCaml, it might be different, since abstract datatypes like sets
+   might have fancy equalities. *)
 
 class ( Eq 'a ) 
   val (=) : 'a -> 'a -> bool
@@ -22,11 +26,8 @@ let inline (<>) = (/=)
 
 
 (* (=) should for all instances be an equivalence relation *)
-lemma eq_equiv: (
-  (forall x. x = x) &&
-  (forall x y. (x = y) <-> (y = x)) &&
-  (forall x y z. ((x = y) && (y = z)) --> (x = z))
-)
+lemma eq_equiv: (isEquivalence (relFromPred (=)))
+
 
 (* Structural equality *)
 
@@ -65,19 +66,19 @@ end
 
 val (<) : forall 'a. Ord 'a => 'a -> 'a -> bool
 let (<) x y = (compare x y = LT)
-declare ascii_rep function (<) = is_less
+declare ascii_rep function (<) = isLess
 
 val (<=) : forall 'a. Ord 'a => 'a -> 'a -> bool
 let (<=) x y = let r = compare x y in (r = LT || r = EQ)
-declare ascii_rep function (<=) = is_less_equal
+declare ascii_rep function (<=) = isLessEqual
 
 val (>) : forall 'a. Ord 'a => 'a -> 'a -> bool
 let (>) x y = (compare x y = GT)
-declare ascii_rep function (>) = is_greater
+declare ascii_rep function (>) = isGreater
 
 val (>=) : forall 'a. Ord 'a => 'a -> 'a -> bool
 let (>=) x y = let r = compare x y in (r = GT || r = EQ)
-declare ascii_rep function (>=) = is_greater_equal
+declare ascii_rep function (>=) = isGreaterEqual
 
 (* if we can compare, we can check for equality *)
 instance forall 'a. Ord 'a => (Eq 'a)
