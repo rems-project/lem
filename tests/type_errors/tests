@@ -249,7 +249,7 @@ end
 ===============================================================================
 module M = struct
   type t 'a = option 'a
-  let (>>=) x y = match x with None -> None | Some x -> y x end
+  let bind x y = match x with None -> None | Some x -> y x end
 end
 let _ =
   do M
@@ -260,7 +260,7 @@ end
 ===============================================================================
 module M = struct
   let return x = Some x
-  let (>>=) x y = match x with None -> None | Some x -> y x end
+  let bind x y = match x with None -> None | Some x -> y x end
 end
 let _ =
   do M
@@ -271,8 +271,8 @@ end
 ===============================================================================
 module M = struct
   type t 'a = return of 'a
-  val (>>=) : forall 'a 'b. t 'a -> ('a -> t 'b) -> t 'b
-  let (>>=) x f = match x with return y -> f y end
+  val bind : forall 'a 'b. t 'a -> ('a -> t 'b) -> t 'b
+  let bind x f = match x with return y -> f y end
 end
 let _ =
   do M
@@ -284,7 +284,7 @@ end
 module M = struct
   type t 'a = option 'a
   let return x = Some x
-  let (>>=) x y = match x with None -> None | Some x -> y x end
+  let bind x y = match x with None -> None | Some x -> y x end
 end
 let _ =
   do M
@@ -297,7 +297,7 @@ end
 module M = struct
   type t 'a = option 'a
   let return x = x
-  let (>>=) x y = match x with None -> None | Some x -> y x end
+  let bind x y = match x with None -> None | Some x -> y x end
 end
 let _ =
   do M
@@ -309,7 +309,7 @@ end
 module M = struct
   type t 'a = option 'a
   let return x = Some x
-  let (>>=) x y = match x with None -> None | Some x -> x end
+  let bind x y = match x with None -> None | Some x -> x end
 end
 let _ =
   do M
@@ -321,7 +321,7 @@ end
 module M = struct
   type t 'a = option 'a
   let return x = Some x
-  let (>>=) x y = match x with None -> None | Some x -> y x end
+  let bind x y = match x with None -> None | Some x -> y x end
 end
 let _ =
   do M
@@ -333,7 +333,7 @@ end
 module M = struct
   type t = option num 
   let return x = Some x
-  let (>>=) x y = match x with None -> None | Some x -> y x end
+  let bind x y = match x with None -> None | Some x -> y x end
 end
 let _ =
   do M
@@ -345,7 +345,7 @@ end
 module M = struct
   type t 'a 'b = option 'a 
   let return x = Some x
-  let (>>=) x y = match x with None -> None | Some x -> y x end
+  let bind x y = match x with None -> None | Some x -> y x end
 end
 let _ =
   do M
@@ -357,7 +357,7 @@ end
 module M = struct
   type t 'a = option 'a 
   let return (x,y) = Some x
-  let (>>=) x y = match x with None -> None | Some x -> y x end
+  let bind x y = match x with None -> None | Some x -> y x end
 end
 let _ =
   do M
@@ -369,8 +369,8 @@ end
 module M = struct
   type t 'a = option 'a 
   let return x = Some x
-  val (>>=) : forall 'a. t 'a -> ('a -> t 'a) -> t 'a
-  let (>>=) x y = match x with None -> None | Some x -> y x end
+  val bind : forall 'a. t 'a -> ('a -> t 'a) -> t 'a
+  let bind x y = match x with None -> None | Some x -> y x end
 end
 let _ =
   do M

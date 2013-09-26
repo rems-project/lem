@@ -1,14 +1,3 @@
-
-type pat_env = (Types.t * Ast.l) Typed_ast.Nfmap.t
-val empty_pat_env : 'a Typed_ast.Nfmap.t
-
-
-(* Non-top level binders map to a type, not a type scheme, method or constructor
- * *) 
-type lex_env = (Types.t * Ast.l) Typed_ast.Nfmap.t
-val empty_lex_env : 'a Typed_ast.Nfmap.t
-
-
 (* As we process definitions, we need to keep track of the type definitions
  * (type_defs), class instance definitions (instance list Pfmap.t) and
  * function/value/module/field (env) definitions we encounter. *)
@@ -44,7 +33,13 @@ val ctxt_add :
   (Typed_ast.local_env -> 'a Typed_ast.Nfmap.t -> Typed_ast.local_env) ->
   defn_ctxt -> Name.t * 'a -> defn_ctxt
 
-val add_d_to_ctxt : 
-  defn_ctxt -> Path.t -> Types.tc_def -> defn_ctxt
+val add_d_to_ctxt : defn_ctxt -> Path.t -> Types.tc_def -> defn_ctxt
+val add_p_to_ctxt : defn_ctxt -> Name.t * (Path.t * Ast.l) -> defn_ctxt
+val add_f_to_ctxt : defn_ctxt -> Name.t * Types.const_descr_ref -> defn_ctxt
+val add_v_to_ctxt : defn_ctxt -> Name.t * Types.const_descr_ref -> defn_ctxt
+val add_m_to_ctxt : Ast.l -> defn_ctxt -> Name.t -> Typed_ast.mod_descr -> defn_ctxt
+val add_instance_to_ctxt : defn_ctxt -> Types.instance -> defn_ctxt
+val add_lemma_to_ctxt : defn_ctxt -> Name.t -> defn_ctxt
 
 val defn_ctxt_get_cur_env : defn_ctxt -> Typed_ast.env
+

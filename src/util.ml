@@ -293,3 +293,34 @@ let same_content_files file1 file2 : bool =
     with Stream.Failure -> stream_is_empty s1 && stream_is_empty s2
   end
 
+
+let string_for_all p s = List.for_all p (string_to_list s)
+
+let is_letter_char x = 
+  let c = Char.code x in 
+  begin
+    (c <= 90  && c >= 65) (* A-Z *) || 
+    (c <= 122 && c >= 97) (* a-z *)
+  end
+
+let is_digit_char x = 
+  let c = Char.code x in 
+  begin
+    (c <= 57  && c >= 48) (* 0-9 *)
+  end
+
+let is_simple_ident_char x = 
+  is_letter_char x ||
+  is_digit_char x ||
+  (x = '_')  
+
+let is_simple_ident_string s =
+  match (string_to_list s) with
+    | [] -> false (* no empty idents *)
+    | c::cs -> is_letter_char c && List.for_all is_simple_ident_char cs
+
+let message_singular_plural (s, p) = function
+  | []  -> s
+  | [_] -> s
+  | _   -> p
+

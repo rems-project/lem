@@ -205,6 +205,22 @@ val same_content_files : string -> string -> bool
 (** [string_to_list l] translates the string [l] to the list of its characters. *)
 val string_to_list : string -> char list
 
+(** [string_for_all p s] checks whether all characters of [s] satisfy [p]. *)
+val string_for_all : (char -> bool) -> string -> bool
+
+(** [is_simple_ident_string s] checks whether [s] is a "simple" identifier. The meaning of
+    simple is fuzzy. Essentially it means that [s] can be used by all backends. Currently the
+    restricting is that [s] is non-empty, starts with a letter and contains only letters, numbers
+    and underscores. *)
+val is_simple_ident_string : string -> bool
+
+
+(** [message_singular_plural (sing_message, multiple_message) l] is used
+    to determine whether the singular or plural form should be used in messages. If the list [l] contains
+    no elements or exactly one element, [sing_message] is returned. Otherwise, i.e. for multiple elements,
+    the result is [multiple_message]. *)
+val message_singular_plural : (string * string) -> 'a list -> string
+
 (** {2 Useful Sets} *)
 
 (** Sets of Integers *)

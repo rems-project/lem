@@ -415,6 +415,8 @@ exp_aux :: '' ::=
   {{ com Expressions }}
   | id							:: :: Ident
     {{ com Identifiers }}
+  | ` x_l ` 						:: :: Backend
+    {{ com identifier that should be literally used in output }}
   | N							:: :: Nvar
     {{ com Nexp var, has type num }}
   | fun psexp						:: :: Fun 
@@ -760,7 +762,7 @@ fixity_decl :: 'Fixity_' ::=
 
 target_rep_rhs :: 'Target_rep_rhs_' ::=
   {{ com right hand side of a target representation declaration }}
-  | infix fixity_decl id         :: :: infix
+  | infix fixity_decl ` x_l `    :: :: infix
   | exp                          :: :: term_replacement
   | typ                          :: :: type_replacement
   | special string exp1 ... expn :: :: special

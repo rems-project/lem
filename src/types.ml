@@ -1532,12 +1532,12 @@ module Constraint (T : Global_defs) : Constraint = struct
       | Tne(n) -> (match n.nexp with
                    | Nvar(nv) -> (p, Nv nv)
                    | _ -> let t1 = Pp.pp_to_string (fun ppf -> pp_instance_constraint ppf (p, t)) in
-                      raise (err_type l ("unsatisfied type class constraint:\n" ^t1)))
+                      raise (err_type l ("unsatisfied type class constraint:\n    " ^t1)))
       | _ -> 
           let t1 = 
             Pp.pp_to_string (fun ppf -> pp_instance_constraint ppf (p, t))
           in 
-            raise (err_type l ("unsatisfied type class constraint:\n" ^ t1))
+            raise (err_type l ("unsatisfied type class constraint:\n    " ^ t1))
 
   let inst_leftover_uvars l =  
     let used_tvs = ref TNset.empty in

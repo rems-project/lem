@@ -1,13 +1,6 @@
 open Types
 open Typed_ast
 
-type pat_env = (t * Ast.l) Nfmap.t
-let empty_pat_env = Nfmap.empty
-
-type lex_env = (t * Ast.l) Nfmap.t
-let empty_lex_env = Nfmap.empty
-
-
 type defn_ctxt = { 
   all_tdefs : type_defs; 
   ctxt_c_env : c_env;
@@ -44,3 +37,45 @@ let add_d_to_ctxt (ctxt : defn_ctxt) (p : Path.t) (d : tc_def) =
 
 let defn_ctxt_get_cur_env (d : defn_ctxt) : env =
   { local_env = d.cur_env; Typed_ast.c_env = d.ctxt_c_env; t_env = d.all_tdefs; i_env = d.all_instances }
+
+
+(* adds a type to p_env *)
+let add_p_to_ctxt ctxt ((n:Name.t), ((ty_p:Path.t), (ty_l:Ast.l))) =
+   if Nfmap.in_dom n ctxt.new_defs.p_env then
+     raise (Reporting_basic.err_type_pp ty_l "duplicate type definition" Name.pp n)
+   else
+     ctxt_add (fun x -> x.p_env) (fun x y -> { x with p_env = y }) ctxt (n, (ty_p, ty_l))
+
+(* adds a field to f_env *)
+let add_f_to_ctxt ctxt ((n:Name.t), (r:const_descr_ref)) =
+     ctxt_add (fun x -> x.f_env) (fun x y -> { x with f_env = y }) ctxt (n, r)
+
+(* adds a constant to v_env *)
+let add_v_to_ctxt ctxt ((n:Name.t), (r:const_descr_ref)) =
+     ctxt_add (fun x -> x.v_env) (fun x y -> { x with v_env = y }) ctxt (n, r)
+
+(* Update new and cumulative enviroments with a new module definition, after
+ * first checking that its name doesn't clash with another module definition in
+ * the same definition sequence.  It can have the same name as another module
+ * globally. *)
+let add_m_to_ctxt (l : Ast.l) (ctxt : defn_ctxt) (k : Name.t) (v : mod_descr)
+      : defn_ctxt = 
+    if Nfmap.in_dom k ctxt.new_defs.m_env then
+      raise (Reporting_basic.err_type_pp l "duplicate module definition" Name.pp k)
+    else
+      ctxt_add 
+        (fun x -> x.m_env) 
+        (fun x y -> { x with m_env = y }) 
+        ctxt 
+        (k,v)
+
+(* Add a lemma name to the context *)
+let add_lemma_to_ctxt (ctxt : defn_ctxt) (n : Name.t)  
+      : defn_ctxt =
+  { ctxt with lemmata_labels = NameSet.add n ctxt.lemmata_labels; }
+
+(* Add a new instance the the new instances and the global instances *)
+let add_instance_to_ctxt (ctxt : defn_ctxt) (i : instance) 
+      : defn_ctxt =
+  { ctxt with all_instances = i_env_add ctxt.all_instances i;
+              new_instances = i_env_add ctxt.new_instances i; }
