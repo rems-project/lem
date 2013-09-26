@@ -642,7 +642,7 @@ let generate_coq_record_update_notation e =
             ) body)
           in
           Output.flat [
-            ws skips; from_string "Class"; name; ws skips'; from_string "("; tv; from_string ": Type): Type := {"
+            ws skips; from_string "Class"; ws skips'; name; from_string " ("; tv; from_string ": Type): Type := {"
           ; ws skips''; body
           ; from_string "\n}."; ws skips'''
           ]
@@ -651,10 +651,10 @@ let generate_coq_record_update_notation e =
           let prefix =
             match inst with
               | (constraint_prefix_opt, skips, ident, path, src_t, skips') ->
-                let c =
+                let tyvars, c =
                   begin
                   match constraint_prefix_opt with
-                    | None -> from_string ""
+                    | None -> from_string "", from_string ""
                     | Some c ->
                       begin
                       match c with
@@ -687,26 +687,30 @@ let generate_coq_record_update_notation e =
                                           in
                                           let ident = Name.to_output Term_var (Ident.get_name id) in
                                             Output.flat [
-                                              ident; from_string ": "; var
+                                              from_string "`{"; ident; from_string " "; var; from_string "}"
                                             ]) ident_var_list)
                                       in
                                         ident_var_list
                               end
                             in
                               Output.flat [
-                                ws skips; from_string "("; tnvars; from_string ")"; ws skips'; cs
+                                ws skips; from_string "{"; tnvars; from_string ": Type}";
+                              ],
+                              Output.flat [
+                                ws skips'; cs
                               ]
                       end
                   end
                 in
                 let id = Name.to_output Term_var (Ident.get_name ident) in
                 let instance_id =
+                  let fresh = generate_fresh_name () in
                   Output.flat [
-                    typ src_t; from_string "_"; id
+                     from_string fresh; from_string "_"; id
                   ]
                 in
                   Output.flat [
-                    c; ws skips; instance_id; from_string ": "; id; typ src_t
+                    ws skips; instance_id; tyvars; from_string " "; c; from_string ": "; id; typ src_t
                   ]
           in
           let body =
