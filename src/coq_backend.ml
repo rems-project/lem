@@ -746,6 +746,29 @@ let generate_coq_record_update_notation e =
             from_string "(* [?]: removed lemma intended for another backend. *)"
     and val_def inside_instance is_recursive def tv_set class_constraints =
       begin
+        let constraints =
+          let body =
+            Output.concat (from_string " ") (List.map (fun (path, tnvar) ->
+              let name = Path.get_name path in
+              let name = from_string (Ulib.Text.to_string (Name.to_rope name)) in
+              let var =
+                match tnvar with
+                  | Types.Ty var -> from_string @@ Ulib.Text.to_string @@ Types.tnvar_to_rope tnvar
+                  | _ ->
+                      raise (Reporting_basic.err_general true Ast.Unknown "nexps not supported in type class constraints")
+              in 
+                Output.flat [
+                  name; from_string " "; var
+                ]
+            ) class_constraints)
+          in
+          if List.length class_constraints = 0 then
+            from_string ""
+          else
+            Output.flat [
+              from_string "`{"; body; from_string "}"
+            ]
+        in
         match def with
           | Let_def (skips, targets, (p, name_map, topt, sk, e)) ->
               if in_target targets then
@@ -758,7 +781,7 @@ let generate_coq_record_update_notation e =
                     from_string "Definition", from_string "."
                   in
                     Output.flat [
-                      ws skips; defn; body; ending
+                      ws skips; defn; constraints; body; ending
                     ]
               else
                 ws skips ^ from_string "(* [?]: removed value definition intended for another target. *)"
@@ -782,7 +805,7 @@ let generate_coq_record_update_notation e =
                       ], from_string "."
                 in
                 let funcls = Seplist.to_list funcl_skips_seplist in
-                let bodies = List.map (funcl inside_instance tv_set) funcls in
+                let bodies = List.map (funcl inside_instance constraints tv_set) funcls in
                 let formed = concat_str "\nwith" bodies in
                   Output.flat [
                     ws skips; header; formed; ending
@@ -922,8 +945,8 @@ let generate_coq_record_update_notation e =
               Output.flat [
                 p; tv_set_sep; tv_set; topt; ws skips; from_string " := "; e
               ]
-        | Let_fun (n, pats, typ_opt, skips, e) -> funcl_aux inside_instance tv_set (n.term, pats, typ_opt, skips, e)
-    and funcl_aux inside_instance tv_set (n, pats, typ_opt, skips, e) =
+        | Let_fun (n, pats, typ_opt, skips, e) -> funcl_aux inside_instance (from_string "") tv_set (n.term, pats, typ_opt, skips, e)
+    and funcl_aux inside_instance constraints tv_set (n, pats, typ_opt, skips, e) =
       let name_skips = Name.get_lskip n in
       let name = get_function_ascii_alternative (Name.strip_lskip n) in
       let name = from_string (Ulib.Text.to_string (Name.to_rope name)) in
@@ -931,6 +954,12 @@ let generate_coq_record_update_notation e =
         match pats with
           | [] -> emp
           | _  -> from_string " "
+      in
+      let constraints_sep =
+        if constraints = from_string "" then
+          from_string ""
+        else
+          from_string " "
       in
       let tv_set_sep, tv_set =
         if Types.TNset.cardinal tv_set = 0 then
@@ -953,11 +982,11 @@ let generate_coq_record_update_notation e =
               ]
       in
         Output.flat [
-          ws name_skips; name; tv_set_sep; tv_set; pat_skips;
+          ws name_skips; name; tv_set_sep; tv_set; constraints_sep; constraints; pat_skips;
           fun_pattern_list inside_instance pats; typ_opt; ws skips; from_string ":="; exp inside_instance e
         ]
-    and funcl inside_instance tv_set ({term = n}, c, pats, typ_opt, skips, e) = funcl_aux inside_instance tv_set (B.const_ref_to_name n c, pats, typ_opt, skips, e)      
-    and funcl_letfun inside_instance tv_set ({term = n}, pats, typ_opt, skips, e) = funcl_aux inside_instance tv_set (n, pats, typ_opt, skips, e)      
+    and funcl inside_instance constraints tv_set ({term = n}, c, pats, typ_opt, skips, e) = funcl_aux inside_instance constraints tv_set (B.const_ref_to_name n c, pats, typ_opt, skips, e)      
+    and funcl_letfun inside_instance tv_set ({term = n}, pats, typ_opt, skips, e) = funcl_aux inside_instance (from_string "") tv_set (n, pats, typ_opt, skips, e)      
     and let_type_variables top_level tv_set =
       if Types.TNset.is_empty tv_set || not top_level then
         emp
