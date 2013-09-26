@@ -4,9 +4,6 @@
 (* It mainly follows the Haskell Maybe-library                                *)
 (******************************************************************************)
 
-
-
-
 (* rename module to clash with existing list modules of targets
    problem: renaming from inside the module itself! *)
 declare rename module = lem_maybe
@@ -113,14 +110,14 @@ lemma fromMaybe: (
 (* map                     *)
 (* ----------------------- *)
 
-val map : forall 'a 'b. ('a -> 'b) -> option 'a -> option 'b 
+val map : forall 'a 'b. ('a -> 'b) -> maybe 'a -> maybe 'b 
 let map f = maybe Nothing (fun v -> Just (f v))
 
 declare targetrep hol      map = 'OPTION_MAP'
 declare targetrep ocaml    map = 'Option.map'
 declare targetrep isabelle map = 'Option.map'
 
-lemma option_map: (
+lemma maybe_map: (
   (forall f. map f Nothing = Nothing) &&
   (forall f v. map f (Just v) = Just (f v)))
 

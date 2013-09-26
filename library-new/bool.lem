@@ -4,7 +4,6 @@
 
 (* The type bool is hard-coded, so are true and false *)
 
-
 (* ----------------------- *)
 (* not                     *)
 (* ----------------------- *)
@@ -15,8 +14,9 @@ let not b = match b with
   | false -> true
 end
 
-declare hol      target_rep function not = true
-(*declare ocaml    target_rep not = 'not'
+declare hol      target_rep function not = '~'
+(*
+declare ocaml    target_rep not = 'not'
 declare isabelle target_rep not = '~'
 declare coq      target_rep not = 'not_b
 

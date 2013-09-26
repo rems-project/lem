@@ -14,7 +14,6 @@
 (* rename module to clash with existing list modules of targets
    problem: renaming from inside the module itself! *)
 declare rename module = lem_list
-declare rename module list = lem_list
 
 
 (* ========================================================================== *)
@@ -34,7 +33,6 @@ val null : forall 'a. list 'a -> bool
 let null l = match l with [] -> true | _ -> false
 
 declare targetrep hol null = 'NULL'
-
 
 assert null_simple_1: (null [])
 assert null_simple_2: (not (null [2;3;4]))
@@ -126,21 +124,21 @@ assert map_4: (map (fun x -> x + 1) [0;1;2;3] = [1;2;3;4])
    This can be implemented more efficienctly than appending and is
    used to implement reverse. *)
 
-val reverse_append : forall 'a. list 'a -> list 'a -> list 'a (* originally named rev_append *)
-let rec reverse_append l1 l2 = match l1 with 
+val reverseAppend : forall 'a. list 'a -> list 'a -> list 'a (* originally named rev_append *)
+let rec reverseAppend l1 l2 = match l1 with 
                                 | [] -> l2
-                                | x :: xs -> reverse_append xs (x :: l2)
+                                | x :: xs -> reverseAppend xs (x :: l2)
                                end
-declare termination_argument reverse_append = automatic
+declare termination_argument reverseAppend = automatic
 
-declare targetrep hol      reverse_append = 'REV'
-declare targetrep ocaml    reverse_append = 'List.rev_append'
+declare targetrep hol      reverseAppend = 'REV'
+declare targetrep ocaml    reverseAppend = 'List.rev_append'
 
-assert reverse_append_1: (reverse_append [0;1;2;3] [4;5] = [3;2;1;0;4;5])
+assert reverseAppend_1: (reverseAppend [0;1;2;3] [4;5] = [3;2;1;0;4;5])
 
 (* Reversing a list *)
 val reverse : forall 'a. list 'a -> list 'a (* originally named rev *)
-let reverse l = reverse_append l [] 
+let reverse l = reverseAppend l [] 
 
 declare targetrep hol      reverse = 'REVERSE'
 declare targetrep ocaml    reverse = 'List.rev'
@@ -152,7 +150,8 @@ assert reverse_1: (reverse [1] = [1])
 assert reverse_2: (reverse [1;2] = [2;1])
 assert reverse_5: (reverse [1;2;3;4;5] = [5;4;3;2;1])
 
-lemma reverse_append: (forall l1 l2. reverse_append l1 l2 = append (reverse l1) l2)
+lemma reverseAppend: (forall l1 l2. reverseAppend l1 l2 = append (reverse l1) l2)
+
 
 (* ----------------------- *)
 (* Reverse Map             *)
@@ -303,12 +302,13 @@ declare termination_argument genlist = automatic
 
 assert genlist_0: (genlist (fun n -> n) 0 = [])
 assert genlist_1: (genlist (fun n -> n) 1 = [0])
-assert genlist_2: (genlist (fun n -> n) 2 = [1;2])
-assert genlist_3: (genlist (fun n -> n) 3 = [1;2;3])
+assert genlist_2: (genlist (fun n -> n) 2 = [0;1])
+assert genlist_3: (genlist (fun n -> n) 3 = [0;1;2])
 lemma genlist_length: (forall n x. (length (genlist f n) = n))
-lemma genlist_index: (forall f n i. i < n --> index (genlist f n) i = Some (f i))
+lemma genlist_index: (forall f n i. i < n --> index (genlist f n) i = Just (f i))
 
 declare targetrep hol genlist = 'GENLIST'
+
 
 (* ------------------------- *)
 (* replicate                 *)
@@ -325,7 +325,7 @@ assert replicate_1: (replicate 1 2 = [2])
 assert replicate_2: (replicate 2 2 = [2;2])
 assert replicate_3: (replicate 3 2 = [2;2;2])
 lemma replicate_length: (forall n x. (length (replicate n x) = n))
-lemma replicate_index: (forall n x i. i < n --> index (replicate n x) i = Some x)
+lemma replicate_index: (forall n x i. i < n --> index (replicate n x) i = Just x)
 
 
 (* ========================================================================== *)
@@ -333,25 +333,25 @@ lemma replicate_index: (forall n x i. i < n --> index (replicate n x) i = Some x
 (* ========================================================================== *)
 
 (* ------------------------- *)
-(* index / nth with option   *)
+(* index / nth with maybe   *)
 (* ------------------------- *)
 
-val index : forall 'a. list 'a -> num -> option 'a
+val index : forall 'a. list 'a -> num -> maybe 'a
 let rec index l n = match l with 
-  | []      -> None
-  | x :: xs -> if n = 0 then Some x else index xs (n-1)
+  | []      -> Nothing
+  | x :: xs -> if n = 0 then Just x else index xs (n-1)
 end
 declare termination_argument index = automatic
 
-assert index_0: (index [0;1;2;3;4;5] 0 = Some 0)
-assert index_1: (index [0;1;2;3;4;5] 1 = Some 1)
-assert index_2: (index [0;1;2;3;4;5] 2 = Some 2)
-assert index_3: (index [0;1;2;3;4;5] 3 = Some 3)
-assert index_4: (index [0;1;2;3;4;5] 4 = Some 4)
-assert index_5: (index [0;1;2;3;4;5] 5 = Some 5)
-assert index_6: (index [0;1;2;3;4;5] 6 = None)
+assert index_0: (index [0;1;2;3;4;5] 0 = Just 0)
+assert index_1: (index [0;1;2;3;4;5] 1 = Just 1)
+assert index_2: (index [0;1;2;3;4;5] 2 = Just 2)
+assert index_3: (index [0;1;2;3;4;5] 3 = Just 3)
+assert index_4: (index [0;1;2;3;4;5] 4 = Just 4)
+assert index_5: (index [0;1;2;3;4;5] 5 = Just 5)
+assert index_6: (index [0;1;2;3;4;5] 6 = Nothing)
 
-lemma index_is_none: (forall l n. (index l n = None) <-> (n >= length l))
+lemma index_is_none: (forall l n. (index l n = Nothing) <-> (n >= length l))
 lemma index_list_eq: (forall l1 l2. ((forall n. index l1 n = index l2 n) <-> (l1 = l2)))
 
 (* ------------------------- *)
@@ -378,20 +378,24 @@ assert findIndices_3: (findIndices (fun n -> n > 3) [1;5;3;1;2;6] = [1;5])
 (* ------------------------- *)
 
 (* findIndex returns the first index of a list that satisfies a given predicate. *)
-val findIndex : forall 'a. ('a -> bool) -> list 'a -> option num
+val findIndex : forall 'a. ('a -> bool) -> list 'a -> maybe num
 let findIndex P l = match findIndices P l with
-  | [] -> None
-  | x :: _ -> Some x
+  | [] -> Nothing
+  | x :: _ -> Just x
 end
 
+(* ------------------------- *)
+(* elemIndices               *)
+(* ------------------------- *)
+
 val elemIndices : forall 'a. Eq 'a => 'a -> list 'a -> list num
-let elemIndices e l = findIndices (is_equal e) l
+let elemIndices e l = findIndices (isEqual e) l
 
 (* ------------------------- *)
 (* elemIndex                 *)
 (* ------------------------- *)
 
-val elemIndex : forall 'a. Eq 'a => 'a -> list 'a -> option num
+val elemIndex : forall 'a. Eq 'a => 'a -> list 'a -> maybe num
 let elemIndex e l = findIndex ((=) e) l
 
 (* ========================================================================== *)
@@ -423,12 +427,12 @@ assert splitAt_3: (splitAt 100 [1;2;3;4;5;6] = ([1;2;3;4;5;6], []))
 
 lemma splitAt_append: (forall n xs.
   let (xs1, xs2) = splitAt n xs in 
-  (xs = xs1 ++ xs2)
+  (xs = xs1 ++ xs2))
 
 lemma splitAt_length: (forall n xs. 
   let (xs1, xs2) = splitAt n xs in 
   ((length xs1 = n) ||
-   ((length xs1 = length xs) && null xs2))
+   ((length xs1 = length xs) && null xs2)))
 
 
 (* ------------------------- *)
@@ -476,8 +480,8 @@ let rec update l n e =
     | x :: xs -> if n = 0 then e :: xs else x :: (update xs (n - 1) e)
 end
 
-declare targetrep hol      update = 'List.list_update'
-declare targetrep isabelle update l n e = 'LUPDATE' e n l
+declare targetrep isabelle update = 'List.list_update'
+declare targetrep hol      update l n e = 'LUPDATE' e n l
 
 assert list_update_1: (update [] 2 3 = [])
 assert list_update_2: (update [1;2;3;4;5] 0 0 = [0;2;3;4;5])
@@ -487,7 +491,7 @@ assert list_update_5: (update [1;2;3;4;5] 5 0 = [1;2;3;4;5])
 
 lemma list_update_length: (forall l n e. length (update l n e) = length l)
 lemma list_update_index: (forall i l n e. 
-  (index (update l n e) i = ((if i = n && n < length l then Some e else index l e))))
+  (index (update l n e) i = ((if i = n && n < length l then Just e else index l e))))
 
 
 
@@ -512,49 +516,57 @@ lemma list_update_index: (forall i l n e.
    Moreover, nearly all the old Lem generated code would change and require 
    (hopefully minor) adaptions of proofs.
 
-   As a solution to this problem. the code below introduces [elem_raw], which is
-   implemented using native membership tests of the backends. If a type class implements
-   (=) with unsafe_structural_equality, a [rewrite] statement is used to map [elem] to [elem_raw]. 
+   For now, we ignore this problem and just demand, that all instances of
+   the equality type class do the right thing for the theorem prover backends.   
 *)
 
 val elem : forall 'a. Eq 'a => 'a -> list 'a -> bool
-let inline elem e l = any ((=) e) l
+val elemBy : forall 'a. ('a -> 'a -> bool) -> list 'a -> bool
 
-val elem_raw : forall 'a. 'a -> list 'a -> bool
-declare targetrep hol      elem_raw = 'MEM'
-declare targetrep ocaml    elem_raw = 'List.mem'
-declare targetrep isabelle elem_raw e l = e IN ('set' l)
-declare targetrep coq      elem_raw = 'List.forallb' 
+let elem = elemBy (=)
+let elemBy eq e l = any (eq e) l
 
-rewrite {HOL} elem_raw_intro: (forall e l. (any (unsafe_structural_equality e) l) = (elem_raw e l))
+declare targetrep hol      elem = 'MEM'
+declare targetrep ocaml    elem = 'List.mem'
+declare targetrep isabelle elem e l = e IN ('set' l)
+declare targetrep coq      elem = 'List.forallb' 
 
+assert elem_1: (elem 2 [3;1;2;4])
+assert elem_2: (elem 3 [3;1;2;4])
+assert elem_3: (elem 4 [3;1;2;4])
+assert elem_4: (not (elem 5 [3;1;2;4]))
+
+lemma elem_spec: ((forall e. not (elem e [])) &&
+                  (forall e x xs. (elem e (x :: xs)) = ((e = x) || (elem e xs))))
 
 (* ------------------------- *)
 (* Find                      *)
 (* ------------------------- *)
-val find : forall 'a. ('a -> bool) -> list 'a -> option 'a (* previously not of option type *)
+val find : forall 'a. ('a -> bool) -> list 'a -> maybe 'a (* previously not of maybe type *)
 let rec find P l = match l with 
-  | []      -> None
-  | x :: xs -> if P x then Some x else find P xs
+  | []      -> Nothing
+  | x :: xs -> if P x then Just x else find P xs
 end
 
 declare targetrep isabelle find = 'List.find'
 
+assert find_1: ((find (fun n -> n > 3) []) = Nothing)
+assert find_2: ((find (fun n -> n > 3) [2;1;3]) = Nothing)
+assert find_3: ((find (fun n -> n > 3) [2;1;5;4]) = Just 5)
+assert find_4: ((find (fun n -> n > 3) [2;1;4;5;4]) = Just 4)
 
-assert find_1: ((find (fun n -> n > 3) []) = None)
-assert find_2: ((find (fun n -> n > 3) [2;1;3]) = None)
-assert find_3: ((find (fun n -> n > 3) [2;1;5;4]) = Some 5)
-assert find_4: ((find (fun n -> n > 3) [2;1;4;5;4]) = Some 4)
-
-lemma find_in: (forall P l x. (find P l = Some x) --> P x && elem x l)
-lemma find_not_in: (forall P l. (find P l = None) = (not (any P l)))
+lemma find_in: (forall P l x. (find P l = Just x) --> P x && elem x l)
+lemma find_not_in: (forall P l. (find P l = Nothing) = (not (any P l)))
 
 
 (* ----------------------------- *)
 (* Lookup in an associative list *)
 (* ----------------------------- *)
-val lookup : forall 'a. Eq 'a => 'a -> list ('a * 'b) -> option 'b
-let inline lookup k m = option_map fst (find (is_equal e) m)
+val lookup : forall 'a. Eq 'a => 'a -> list ('a * 'b) -> maybe 'b
+val lookupBy : forall 'a. ('a -> 'a -> bool) -> 'a -> list ('a * 'b) -> maybe 'b
+
+let inline lookup = lookupBy (=)
+let lookupBy eq k m = maybe_map snd (find (eq k) m)
 
 
 (* ------------------------- *)
@@ -565,6 +577,7 @@ let rec filter P l = match l with
                        | [] -> []
                        | x :: xs -> if (P x) then x :: (filter P xs) else filter P xs
                      end
+declare termination_argument filter = automatic
 
 declare targetrep hol      filter = 'FILTER'
 declare targetrep ocaml    filter = 'List.filter'
@@ -591,6 +604,35 @@ assert partition_0: (partition (fun x -> x > 4) [] = ([], []))
 assert partition_1: (partition (fun x -> x > 4) [1;2;4;5;2;7;6] = ([5;7;6], [1;2;4;2]))
 lemma partition_fst: (forall P l. fst (partition P l) = filter P l)
 lemma partition_snd: (forall P l. snd (partition P l) = filter (fun x -> not (P x)) l)
+
+
+(* ------------------------- *)
+(* delete first element      *)
+(* with certain property     *)
+(* ------------------------- *)
+
+val deleteFirst : forall 'a. ('a -> bool) -> list 'a -> maybe (list 'a) 
+let rec deleteFirst P l = match l with
+                            | [] -> Nothing
+                            | x :: xs -> if (P x) then Just xs else Maybe.map (fun xs' -> x :: xs') (deleteFirst P xs)
+                          end
+declare termination_argument deleteFirst = automatic
+
+assert deleteFirst_1: (deleteFirst (fun x -> x > 5) [3;6;7;1] = Just [3;7;1])
+assert deleteFirst_2: (deleteFirst (fun x -> x > 15) [3;6;7;1] = Nothing)
+assert deleteFirst_3: (deleteFirst (fun x -> x > 2) [3;6;7;1] = Just [6;7;1])
+
+
+val delete : forall 'a. Eq 'a => 'a -> list 'a -> list 'a
+val deleteBy : forall 'a. ('a -> 'a -> bool) -> 'a -> list 'a -> list 'a
+
+let delete = deleteBy (=)
+let deleteBy eq x l = fromMaybe l (deleteFirst (eq x) l)
+
+assert delete_1: (delete 6 [3;6;7;1] = [3;7;1])
+assert delete_2: (delete 4 [3;6;7;1] = [3;6;7;1])
+assert delete_3: (delete 3 [3;6;7;1] = [6;7;1])
+assert delete_3: (delete 3 [3;3;6;7;1] = [3;6;7;1])
 
 
 (* ========================================================================== *)
@@ -660,7 +702,7 @@ assert tail_simple_1: (tail [3;1] = [1])
 assert tail_simple_2: (tail [5] = [])
 assert tail_simple_3: (tail [5;4;3;2] = [4;3;2])
 
-lemma head_tail_cons: (forall l. length l > 0 --> (l = (List.head l)::(List.tail l)))
+lemma head_tail_cons: (forall l. length l > 0 --> (l = (head l)::(tail l)))
 
 
 (* ------------------------- *)
@@ -719,7 +761,7 @@ declare compile_message foldr1 = "foldr1 is only defined on non-empty lists. Bet
 
 (* get the nth element of a list *)
 val (!!) : forall 'a. list 'a -> num -> 'a
-let (!!) l n = match index l n with Some e -> e 
+let (!!) l n = match index l n with Just e -> e 
 declare ascii_rep function (!!) = nth
 declare compile_message foldl1 = "nth is undefined for too large indices, use carefully"
 
@@ -735,12 +777,11 @@ assert nth_3: (List.nth [0;1;2;3;4;5] 3 = 3)
 assert nth_4: (List.nth [0;1;2;3;4;5] 4 = 4)
 assert nth_5: (List.nth [0;1;2;3;4;5] 5 = 5)
 
-lemma nth_index: (forall l n e. n < length l --> index l n = Some (l !! n))
-
+lemma nth_index: (forall l n e. n < length l --> index l n = Just (l !! n))
 
 
 (* ========================================================================== *)
-(* Comments                                                                   *)
+(* Comments (not clean yet, please ignore the rest of the file)               *)
 (* ========================================================================== *)
 
 (* ----------------------- *)
@@ -865,10 +906,10 @@ val fold_left2 : forall 'a 'b 'c. ('a -> 'b -> 'c -> 'a) -> 'a -> list 'b -> lis
 val fold_right2 : forall 'a 'b 'c. ('a -> 'b -> 'c -> 'c) -> list 'a -> list 'b -> 'c -> 'c
 
 
-(* now option result *)
+(* now maybe result *)
 val find : forall 'a. ('a -> bool) -> list 'a -> 'a 
 
-(* now option reuslt and called lookup *)
+(* now maybe result and called lookup *)
 val assoc : forall 'a 'b. 'a -> list ('a * 'b) -> 'b
 let inline {ocaml} assoc = Ocaml.List.assoc
 
@@ -878,14 +919,11 @@ val remove_assoc : forall 'a 'b. 'a -> list ('a * 'b) -> list ('a * 'b)
 
 
 
-val sort : forall 'a. ('a -> 'a -> num) -> list 'a -> list 'a
 val stable_sort : forall 'a. ('a -> 'a -> num) -> list 'a -> list 'a
 val fast_sort : forall 'a. ('a -> 'a -> num) -> list 'a -> list 'a
+
 val merge : forall 'a. ('a -> 'a -> num) -> list 'a -> list 'a -> list 'a
 val intersect : forall 'a. list 'a -> list 'a -> list 'a
-
-
-
 
 
 *)
