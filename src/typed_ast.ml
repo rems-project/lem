@@ -322,6 +322,26 @@ type indreln_witness = Indreln_witness of lskips * lskips * Name.lskips_t * lski
 type indreln_indfn = Indreln_fn of Name.lskips_t * lskips * src_t * lskips option
 type indreln_name = RName of lskips* Name.lskips_t * const_descr_ref * lskips * typschm * (indreln_witness option) * ((lskips*Name.lskips_t*lskips) option) * (indreln_indfn list) option * lskips
 
+type 
+target_rep_rhs =  (* right hand side of a target representation declaration *)
+   Target_rep_rhs_infix of lskips * Ast.fixity_decl * Ident.t
+ | Target_rep_rhs_term_replacement of exp
+ | Target_rep_rhs_type_replacement of src_t
+ | Target_rep_rhs_special of lskips * lskips * string * exp list
+
+
+type declare_def =  (* declarations *)
+ | Decl_compile_message_decl of lskips * targets_opt * lskips * const_descr_ref id * lskips * lskips * string 
+ | Decl_target_rep_decl_term of lskips * Target.target * lskips * Ast.component * const_descr_ref id * Name.t list * lskips * target_rep_rhs
+
+(*
+ | Decl_rename_decl of lskips * targets option * lskips * component * id * lskips * x_l
+ | Decl_ascii_rep_decl of lskips * targets option * lskips * component * x_l * lskips * x_l
+ | Decl_set_flag_decl of lskips * lskips * x_l * lskips * x_l
+ | Decl_termination_argument_decl of lskips * targets option * lskips * id * lskips * termination_setting
+ | Decl_pattern_match_decl of lskips * targets option * lskips * exhaustivity_setting * x_l * tnvar list * lskips * lskips * (exp) list * lskips * elim_opt
+*)
+
 type def = (def_aux * lskips option) * Ast.l * local_env
 and def_aux =
   | Type_def of lskips * (name_l * tnvar list * Path.t * texp * name_sect option) lskips_seplist
@@ -337,6 +357,8 @@ and def_aux =
   (* The v_env, name and Path/tyvar list are for converting the instance into a module. *)
   | Instance of lskips * instschm * val_def list * lskips 
   | Comment of def
+  | Declaration of declare_def
+
 
 let tnvar_to_types_tnvar tnvar = 
   match tnvar with

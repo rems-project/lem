@@ -63,7 +63,6 @@
    meaning, as in let (x y) = exp.  In the former, a bar allows the other
    meaning, as in type t = | u .
 
-   TODO: BquoteX
 
    TODO KG: In VAccessR, Dot Dot either needs both dots in the data structure, which is difficult from ott, or DotDot with no space
 
@@ -143,12 +142,12 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 
 %}
 
-%token <Ast.terminal> Dot Lparen Rparen Comma Under Arrow As Colon NegLcurly Lcurly Rcurly
+%token <Ast.terminal> Dot Lparen Rparen Comma Under Arrow As Colon NegLcurly Lcurly Rcurly Quote
 %token <Ast.terminal> Semi Lsquare Rsquare Fun_ Function_ Bar With Match Let_ And HashZero HashOne
 %token <Ast.terminal> In Of Rec Type Witness Check Rename Module_ Struct End Open_ SemiSemi Eof
 %token <Ast.terminal> True False Begin_ If_ Then Else Val
 %token <Ast.terminal * Ulib.Text.t> AmpAmp BarBar ColonColon Star Plus Eq At GtEq 
-%token <Ast.terminal * Ulib.Text.t> X Tyvar Nvar BquoteX
+%token <Ast.terminal * Ulib.Text.t> X Tyvar Nvar 
 %token <Ast.terminal * Ulib.Text.t> StarstarX StarX PlusX AtX EqualX GtEqX
 %token <Ast.terminal * int> Num
 %token <Ast.terminal * string> String Bin Hex
@@ -423,6 +422,8 @@ atomic_exp:
     { eloc (Begin($1,$2,$3)) }
   | lit
     { eloc (Lit($1)) }
+  | Quote id Quote
+    { eloc (Backend($1,$2,$3)) }
   | Nvar
     { eloc (Nvar($1)) }
   | Lcurly exp Bar exp Rcurly

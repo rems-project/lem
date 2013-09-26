@@ -1314,10 +1314,11 @@ let check_match_def_warn env d =
      exp_OK : is a given expression in a given environment supported (except match-expressions)?
      def_OK : is a given definition in a given environment supported?
 
-     match expressions are judges using the follwoing 3 parameters
+     match-expressions are judged using the follwoing 3 parameters, all other expressions using exp_OK
+
+     pat_OK               : is a given pattern as part of a case (match) statement supported?
      allow_non_exhaustive : are non-exhaustive pattern matches allowed?
-     allow_redundant : are redundant pattern matches allowed?
-     pat_OK : is a given pattern as part of a case (match) statement supported?
+     allow_redundant      : are redundant pattern matches allowed?
 
      a match is excepted, if it is exhaustive or (non-exhaustive is allowed), contains
      no redundant patterns (or redundant patterns are allowed) and all patterns in the

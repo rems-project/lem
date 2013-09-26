@@ -450,6 +450,21 @@ type indreln_name = RName of lskips* Name.lskips_t * const_descr_ref * lskips * 
                              (indreln_witness option) * ((lskips*Name.lskips_t*lskips) option) * 
                              (indreln_indfn list) option * lskips
 
+type target_rep_rhs =  (** right hand side of a target representation declaration *)
+   Target_rep_rhs_infix of lskips * Ast.fixity_decl * Ident.t (** Declaration of an infix constant *)
+ | Target_rep_rhs_term_replacement of exp (** the standard term replacement, replace with the exp for the given backend *)
+ | Target_rep_rhs_type_replacement of src_t (** the standard term replacement, replace with the type for the given backend *)
+ | Target_rep_rhs_special of lskips * lskips * string * exp list (** fancy represenation of terms *)
+
+type declare_def =  (** Declarations *)
+ | Decl_compile_message_decl of lskips * targets_opt * lskips * const_descr_ref id * lskips * lskips * string 
+   (** [Decl_compile_message_decl (sk1, targs, sk2, c, sk3, sk4, message)], declares printing waring message
+       [message], if constant [c] is used for one of the targets in [targs] *)
+ | Decl_target_rep_decl_term of lskips * Target.target * lskips * Ast.component * const_descr_ref id * Name.t list * lskips * target_rep_rhs
+   (** [Decl_target_rep_decl (sk1, targ, sk2, comp, c, args, sk3, rhs)] declares a targetrepresentation. for target [targ] and
+       constant [const] with arguments [args]. Since fields and constant life in different namespaces, [comp] is used to declare
+       wether a field or a constant is meant. The [rhs] constains details about the representation. *)
+
 type def_aux =
   | Type_def of lskips * (name_l * tnvar list * Path.t * texp * name_sect option) lskips_seplist
     (** [Type_def (sk, sl)] defines one or more types. The entries of [sl] are the type definitions.
@@ -475,6 +490,8 @@ type def_aux =
     (** [Instance (sk, instance_scheme, methods, sk2)] *)
   | Comment of def
     (** Does not appear in the source, used to comment out definitions for certain backends *)
+  | Declaration of declare_def 
+    (** Declarations that change the behaviour of lem, but have no semantic meaning *)
 
 (** A definition consists of a the real definition represented as a [def_aux], followed by some white-space.
     There is also the location of the definition and the local-environment present after the definition has been processed. *)

@@ -116,14 +116,14 @@ let dest_warning (env : Typed_ast.env) (verbose: bool) (w : warning) : (bool * A
       Some (true, l, "function '"^n^"' is defined by non-exhaustive pattern-matching\n  missing patterns " ^ ps)
 
   | Warn_pattern_redundant (l, rL, e) -> 
-      let pat_label = if List.length rL > 1 then "patterns" else "pattern" in
+      let pat_label = Util.message_singular_plural ("pattern", "patterns") rL in
       let psL = List.map (fun (_,p) -> "'" ^ Ulib.Text.to_string (B.ident_pat p) ^ "'") rL in
       let ps = String.concat ", " psL in
       let m = Format.sprintf "redundant %s: %s" pat_label ps in
       Some (true, l, m)
 
   | Warn_def_redundant (l, n, rL, d) ->  
-      let pat_label = if List.length rL > 1 then "patterns" else "pattern" in
+      let pat_label = Util.message_singular_plural ("pattern", "patterns") rL in
       let psL = List.map (fun (_,p) -> "'" ^ Ulib.Text.to_string (B.ident_pat p) ^ "'") rL in
       let ps = String.concat ", " psL in
       let m = Format.sprintf "redundant %s in definition of function '%s': %s" pat_label n ps in
@@ -141,14 +141,14 @@ let dest_warning (env : Typed_ast.env) (verbose: bool) (w : warning) : (bool * A
       Some (true, l, m)
 
   | Warn_unused_vars (l, sl, ws) -> 
-      let var_label = if List.length sl > 1 then "variables" else "variable" in
+      let var_label = Util.message_singular_plural ("variable", "variables") sl in
       let vsL = List.map (fun s -> ("'" ^ s ^ "'")) sl in
       let vs = String.concat ", " vsL in
       let m = Format.sprintf "unused %s: %s" var_label vs in
       Some (true, l, m)
 
   | Warn_fun_clauses_resorted (l, targ, nl, d) -> 
-      let fun_label = if List.length nl > 1 then "functions " else "function " in
+      let fun_label = Util.message_singular_plural ("function ", "functions ") nl in
       let fsL = List.map (fun s -> ("'" ^ s ^ "'")) nl in
       let fs = String.concat ", " fsL in
       let target_s = Target.target_to_string targ in

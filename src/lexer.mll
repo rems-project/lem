@@ -163,6 +163,7 @@ rule token skips = parse
   | "::" as i                           { (ColonColon(Some(skips),Ulib.Text.of_latin1 i)) }
   | "&&" as i                           { (AmpAmp(Some(skips),Ulib.Text.of_latin1 i)) }
   | "||" as i                           { (BarBar(Some(skips),Ulib.Text.of_latin1 i)) }
+  | "'"                                 { (Quote(Some(skips))) }
   | "=>"                                { (EqGt(Some(skips))) }
 
   | "==>"                               { (EqEqGt(Some(skips))) }
@@ -183,9 +184,6 @@ rule token skips = parse
   | "lsl" | "lsr" | "asr" as i          { (StarstarX(Some(skips), Ulib.Text.of_latin1 i)) }
   | "mod" | "land" | "lor" | "lxor" as i  { (StarX(Some(skips), Ulib.Text.of_latin1 i)) }
 
-  (* TODO: Add checking that keywords aren't used in these *)
-  (* TODO: make union, inter, subset appear as oper_char+, or make them not infix *)
-  | "`" (startident ident* as i) "`"    { (BquoteX(Some(skips),Ulib.Text.of_latin1 i)) }
 
   | "(*"                           
     { token (Ast.Com(Ast.Comment(comment lexbuf))::skips) lexbuf }

@@ -121,13 +121,6 @@ let f (X a b) = 1
 File "test.lem", line 2, character 8 to line 2, character 8
   Type error: constructor pattern expected 1 arguments, given 2: X
 ================================================================================
-type x = | X of bool
-let f X = 1
-
---------------------------------------------------------------------------------
-File "test.lem", line 2, character 7 to line 2, character 7
-  Type error: constructor pattern expected 1 arguments, given 0: X
-================================================================================
 module M = struct type t = | Y end
 let f (M.X y) = 1
 
@@ -138,7 +131,7 @@ File "test.lem", line 2, character 10 to line 2, character 10
 let f (M.X y) = 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 8 to line 1, character 8
+File "test.lem", line 1, character 10 to line 1, character 10
   Type error: unknown module: M
 ================================================================================
 type t = <| X : num |>
@@ -417,11 +410,11 @@ end
 
 --------------------------------------------------------------------------------
 File "test.lem", line 6, character 6 to line 6, character 6
-  Type error: monad module missing >>=: Test.M
+  Type error: monad module missing bind: Test.M
 ================================================================================
 module M = struct
   type t 'a = option 'a
-  let (>>=) x y = match x with None -> None | Some x -> y x end
+  let bind x y = match x with None -> None | Some x -> y x end
 end
 let _ =
   do M
@@ -435,7 +428,7 @@ File "test.lem", line 6, character 6 to line 6, character 6
 ================================================================================
 module M = struct
   let return x = Some x
-  let (>>=) x y = match x with None -> None | Some x -> y x end
+  let bind x y = match x with None -> None | Some x -> y x end
 end
 let _ =
   do M
@@ -449,8 +442,8 @@ File "test.lem", line 6, character 6 to line 6, character 6
 ================================================================================
 module M = struct
   type t 'a = return of 'a
-  val (>>=) : forall 'a 'b. t 'a -> ('a -> t 'b) -> t 'b
-  let (>>=) x f = match x with return y -> f y end
+  val bind : forall 'a 'b. t 'a -> ('a -> t 'b) -> t 'b
+  let bind x f = match x with return y -> f y end
 end
 let _ =
   do M
@@ -465,7 +458,7 @@ File "test.lem", line 7, character 6 to line 7, character 6
 module M = struct
   type t 'a = option 'a
   let return x = Some x
-  let (>>=) x y = match x with None -> None | Some x -> y x end
+  let bind x y = match x with None -> None | Some x -> y x end
 end
 let _ =
   do M
@@ -484,7 +477,7 @@ Pervasives.option _
 module M = struct
   type t 'a = option 'a
   let return x = x
-  let (>>=) x y = match x with None -> None | Some x -> y x end
+  let bind x y = match x with None -> None | Some x -> y x end
 end
 let _ =
   do M
@@ -502,7 +495,7 @@ Pervasives.option 'a
 module M = struct
   type t 'a = option 'a
   let return x = Some x
-  let (>>=) x y = match x with None -> None | Some x -> x end
+  let bind x y = match x with None -> None | Some x -> x end
 end
 let _ =
   do M
@@ -520,7 +513,7 @@ and
 module M = struct
   type t 'a = option 'a
   let return x = Some x
-  let (>>=) x y = match x with None -> None | Some x -> y x end
+  let bind x y = match x with None -> None | Some x -> y x end
 end
 let _ =
   do M
@@ -538,7 +531,7 @@ Pervasives.option _
 module M = struct
   type t = option num 
   let return x = Some x
-  let (>>=) x y = match x with None -> None | Some x -> y x end
+  let bind x y = match x with None -> None | Some x -> y x end
 end
 let _ =
   do M
@@ -553,7 +546,7 @@ File "test.lem", line 7, character 6 to line 7, character 6
 module M = struct
   type t 'a 'b = option 'a 
   let return x = Some x
-  let (>>=) x y = match x with None -> None | Some x -> y x end
+  let bind x y = match x with None -> None | Some x -> y x end
 end
 let _ =
   do M
@@ -568,7 +561,7 @@ File "test.lem", line 7, character 6 to line 7, character 6
 module M = struct
   type t 'a = option 'a 
   let return (x,y) = Some x
-  let (>>=) x y = match x with None -> None | Some x -> y x end
+  let bind x y = match x with None -> None | Some x -> y x end
 end
 let _ =
   do M
@@ -583,8 +576,8 @@ File "test.lem", line 7, character 6 to line 7, character 6
 module M = struct
   type t 'a = option 'a 
   let return x = Some x
-  val (>>=) : forall 'a. t 'a -> ('a -> t 'a) -> t 'a
-  let (>>=) x y = match x with None -> None | Some x -> y x end
+  val bind : forall 'a. t 'a -> ('a -> t 'a) -> t 'a
+  let bind x y = match x with None -> None | Some x -> y x end
 end
 let _ =
   do M
@@ -683,7 +676,7 @@ type u = | C
 
 --------------------------------------------------------------------------------
 File "test.lem", line 2, character 12 to line 2, character 12
-  Type error: constructor already defined as a class method name: C
+  Type error: constructor already defined as a class method: C
 ================================================================================
 type u 'a = 'a and t = list 'a
 
@@ -747,7 +740,7 @@ let _ = x
 
 --------------------------------------------------------------------------------
 File "test.lem", line 8, character 9 to line 8, character 9
-  Type error: unbound variable (has a val specification, but no definition): x
+  Type error: unbound variable for targets {hol;ocaml}: x
 ================================================================================
 val x : 'a
 
@@ -785,7 +778,7 @@ val x : num
 
 --------------------------------------------------------------------------------
 File "test.lem", line 2, character 5 to line 2, character 5
-  Type error: specified variable already specified: x
+  Type error: specified variable already defined as a top-level variable binding: x
 ================================================================================
 type t = |x
 val x : num
@@ -799,14 +792,14 @@ val x : num
 
 --------------------------------------------------------------------------------
 File "test.lem", line 2, character 5 to line 2, character 5
-  Type error: specified variable already defined as a class method name: x
+  Type error: specified variable already defined as a class method: x
 ================================================================================
 let x = 10
 val x : num
 
 --------------------------------------------------------------------------------
 File "test.lem", line 2, character 5 to line 2, character 5
-  Type error: specified variable already defined: x
+  Type error: specified variable already defined as a top-level variable binding: x
 ================================================================================
 let {hol} x = 10
 val x : num
@@ -820,7 +813,7 @@ let x = 2
 
 --------------------------------------------------------------------------------
 File "test.lem", line 2, character 5 to line 2, character 5
-  Type error: defined variable is already defined: x
+  Type error: defined variable 'x' is already defined for targets: hol, ocaml
 ================================================================================
 class (c 'a) val x : num end
 let x = 1
@@ -842,7 +835,7 @@ let {isabelle;hol} x = 2
 
 --------------------------------------------------------------------------------
 File "test.lem", line 3, character 20 to line 3, character 20
-  Type error: defined variable already has a hol-specific definition: x
+  Type error: defined variable 'x' is already defined for targets: hol
 ================================================================================
 let {hol} x = 1
 let x = 2
@@ -856,21 +849,21 @@ let rec y 1 = 1 and x 1 = 1
 
 --------------------------------------------------------------------------------
 File "test.lem", line 2, character 21 to line 2, character 21
-  Type error: defined variable is already defined: x
+  Type error: defined variable 'x' is already defined for targets: hol, ocaml
 ================================================================================
 let x = 1
 indreln [ x : forall 'a. 'a -> bool ] arm : forall y. true ==> x y
 
 --------------------------------------------------------------------------------
 File "test.lem", line 2, character 11 to line 2, character 11
-  Type error: defined variable is already defined: x
+  Type error: defined variable 'x' is already defined for targets: hol, ocaml
 ================================================================================
 let x = 1
 let inline {hol} x = 1
 
 --------------------------------------------------------------------------------
 File "test.lem", line 2, character 18 to line 2, character 18
-  Type error: target-specific definition without preceding 'val' specification: x
+  Type error: defined variable 'x' is already defined for targets: hol
 ================================================================================
 val x : num
 let inline {hol} x = 1
@@ -878,7 +871,7 @@ let inline {hol} x = 1
 
 --------------------------------------------------------------------------------
 File "test.lem", line 3, character 18 to line 3, character 18
-  Type error: defined variable already has a hol-specific definition: x
+  Type error: defined variable 'x' is already defined for targets: hol
 ================================================================================
 val x : num
 let {hol} x = 1
@@ -886,7 +879,7 @@ let inline {hol} x = 1
 
 --------------------------------------------------------------------------------
 File "test.lem", line 3, character 18 to line 3, character 18
-  Type error: defined variable already has a hol-specific definition: x
+  Type error: defined variable 'x' is already defined for targets: hol
 ================================================================================
 val x : num
 let inline {hol} x = 1
@@ -894,7 +887,7 @@ let {hol} x = 1
 
 --------------------------------------------------------------------------------
 File "test.lem", line 3, character 11 to line 3, character 11
-  Type error: defined variable already has a hol-specific definition: x
+  Type error: defined variable 'x' is already defined for targets: hol
 ================================================================================
 val x : num
 let {ocaml} x = 1
@@ -966,7 +959,7 @@ module X = struct let X = 1 let X = 1 end
 
 --------------------------------------------------------------------------------
 File "test.lem", line 1, character 33 to line 1, character 33
-  Type error: defined variable is already defined: X
+  Type error: defined variable 'X' is already defined for targets: hol, ocaml
 ================================================================================
 module X = struct let C = 1 end
 type t = | C of num
@@ -1020,14 +1013,14 @@ class (c 'a) val x : 'a end
 
 --------------------------------------------------------------------------------
 File "test.lem", line 2, character 18 to line 2, character 18
-  Type error: class method already defined as a top-level variable: x
+  Type error: class method already defined as a top-level variable binding: x
 ================================================================================
 val x : num
 class (c 'a) val x : 'a end
 
 --------------------------------------------------------------------------------
 File "test.lem", line 2, character 18 to line 2, character 18
-  Type error: class method already defined as a top-level variable: x
+  Type error: class method already defined as a top-level variable binding: x
 ================================================================================
 type t = | x
 class (c 'a) val x : 'a end
@@ -1151,7 +1144,7 @@ class (c 'a) val x : 'a end
 instance (c num) let x = 1 let x = 1 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 22 to line 2, character 22
+File "test.lem", line 2, character 32 to line 2, character 32
   Type error: duplicate definition in an instance: x
 ================================================================================
 class (d 'a) val x : num end
@@ -1166,8 +1159,8 @@ class (c 'a) val x : num end
 instance (c num) let {hol} x = 10 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 28 to line 2, character 28
-  Type error: instance method must not be target specific: x
+File "test.lem", line 2, character 18 to line 2, character 33
+  Type error: instance method must not be target specific
 ================================================================================
 class (c 'a) val x : num end
 instance forall 'a 'a. (c 'a) let x = 10 end
@@ -1197,7 +1190,7 @@ let _ = x::[4]
 --------------------------------------------------------------------------------
 File "test.lem", line 7, character 1 to line 7, character 14
   Type error: unsatisfied type class constraint:
-(Test.c num)
+    (Test.c num)
 ================================================================================
 (* TODO: error message should include (test.c 'a list) *)
 class (c 'a) val x : 'a end
@@ -1206,8 +1199,8 @@ instance forall 'a. (d 'a) let y = x let z = x end
 
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 28 to line 4, character 46
-  Type error: unsatisfied type class constraints:
-(Test.c 'a)
+  Type error: unsatisfied type class constraint:
+    (Test.c 'a)
 ================================================================================
 class (c 'a) val x : 'a end
 val f : num -> num
@@ -1216,7 +1209,7 @@ let inline {hol} f y = x
 --------------------------------------------------------------------------------
 File "test.lem", line 3, character 1 to line 3, character 24
   Type error: unsatisfied type class constraint:
-(Test.c num)
+    (Test.c num)
 ================================================================================
 class (c 'a) val x : 'a end
 val f : forall 'b. 'b -> 'b
@@ -1224,8 +1217,8 @@ let inline {hol} f y = x
 
 --------------------------------------------------------------------------------
 File "test.lem", line 3, character 1 to line 3, character 24
-  Type error: unsatisfied type class constraints:
-(Test.c 'b)
+  Type error: unsatisfied type class constraint:
+    (Test.c 'b)
 ================================================================================
 class (c 'a) val x : 'a end
 val f : forall 'b. c 'b => 'b -> 'b
@@ -1233,8 +1226,8 @@ let inline {hol} f y = x
 
 --------------------------------------------------------------------------------
 File "test.lem", line 3, character 1 to line 3, character 24
-  Type error: unsatisfied type class constraints:
-(Test.c 'b)
+  Type error: inlined functions with class contraints:
+    (Test.c 'b)
 ================================================================================
 class (c 'a) val x : 'a end
 class (d 'a) val y : 'a end
@@ -1245,9 +1238,9 @@ let a = match x with (a,b) -> 1 end
 --------------------------------------------------------------------------------
 File "test.lem", line 5, character 1 to line 5, character 35
   Type error: unsatisfied type class constraints:
-(Test.c 'b)
-and
-(Test.d 'a)
+    (Test.c 'b)
+  and
+    (Test.d 'a)
 ================================================================================
 class (c 'a) val x : 'a end
 class (d 'a) val y : 'a end
@@ -1258,9 +1251,9 @@ let inline {hol} a y = match x with (a,b) -> 1 end
 --------------------------------------------------------------------------------
 File "test.lem", line 5, character 1 to line 5, character 50
   Type error: unsatisfied type class constraints:
-(Test.c 'b)
-and
-(Test.d 'a)
+    (Test.c 'b)
+  and
+    (Test.d 'a)
 ================================================================================
 
 (* ------------------------ Type Mismatches -------------------------------- *)
