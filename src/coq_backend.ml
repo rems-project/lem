@@ -579,7 +579,7 @@ let generate_coq_record_update_notation e =
       DefaultMap.find k !initial_default_map
     ;;
 
-    let rec def (callback : def list -> Output.t) (inside_module : bool) (m : def_aux) =
+    let rec def (inside_instance: bool) (callback : def list -> Output.t) (inside_module : bool) (m : def_aux) =
       match m with
       | Type_def (skips, def) ->
           let funcl =	if is_abbreviation def then
@@ -613,14 +613,14 @@ let generate_coq_record_update_notation e =
               Output.flat [
                 ws skips; from_string "Require Import "; mod_name; from_string ".\n"
               ]
-      | Indreln (skips, targets, names,cs) -> (*INDERL_TODO Only added the name declaration parameter here*)
+      | Indreln (skips, targets, names, cs) -> (*INDERL_TODO Only added the name declaration parameter here*)
           if in_target targets then
             let c = Seplist.to_list cs in
-              clauses c
+              clauses inside_instance c
           else
             let cs = Seplist.to_list cs in
               Output.flat [
-                ws skips; clauses cs
+                ws skips; clauses inside_instance cs
               ]
       | Val_spec val_spec -> from_string "\n(* [?]: removed value specification. *)\n"
       | Class (skips, skips', (name, l), tv, p, skips'', body, skips''') ->
@@ -647,6 +647,7 @@ let generate_coq_record_update_notation e =
           ; from_string "\n}."; ws skips'''
           ]
       | Instance (skips, inst, vals, skips') ->
+        let l_unk = Ast.Unknown in
           let prefix =
             match inst with
               | (constraint_prefix_opt, skips, ident, path, src_t, skips') ->
@@ -663,7 +664,8 @@ let generate_coq_record_update_notation e =
                                 match t with
                                   | Typed_ast.Tn_A (_, var, _) ->
                                       from_string @@ Ulib.Text.to_string var
-                                  | _ -> from_string "NOT SUPPORTED"
+                                  | _ ->
+                                    raise (Reporting_basic.err_general true l_unk "nexps not supported in instance declarations")
                               ) tnvar_list)
                             in
                             let cs =
@@ -680,7 +682,8 @@ let generate_coq_record_update_notation e =
                                             match var with
                                               | Typed_ast.Tn_A (_, var, _) ->
                                                   from_string @@ Ulib.Text.to_string var
-                                              | _ -> from_string "NOT SUPPORTED"
+                                              | _ ->
+                                                raise (Reporting_basic.err_general true l_unk "nexps not supported in instance declarations") 
                                           in
                                           let ident = Name.to_output Term_var (Ident.get_name id) in
                                             Output.flat [
@@ -717,7 +720,7 @@ let generate_coq_record_update_notation e =
       | Comment c ->
       	let ((def_aux, skips_opt), l, lenv) = c in
           Output.flat [
-      		  from_string "(* "; def callback inside_module def_aux; from_string " *)"
+      		  from_string "(* "; def inside_instance callback inside_module def_aux; from_string " *)"
           ]
       | Ident_rename _ -> from_string "\n(* [?]: removed rename statement. *)"
       | Lemma (skips, lemma_typ, targets, name_skips_opt, skips', e, skips'') ->
@@ -732,7 +735,7 @@ let generate_coq_record_update_notation e =
                 | Some ((name, l), skips) -> Name.to_output Term_var name
             in
               Output.flat [
-                ws skips; from_string "Lemma"; name; from_string ":"; ws skips'; exp e;
+                ws skips; from_string "Lemma"; name; from_string ":"; ws skips'; exp inside_instance e;
                 ws skips''; from_string "."
               ]
           else
@@ -743,48 +746,48 @@ let generate_coq_record_update_notation e =
           | Let_def (skips, targets, (p, name_map, topt, sk, e)) ->
               if in_target targets then
                 let bind = (Let_val (p, topt, sk, e), Ast.Unknown) in
-                let body = let_body true tv_set bind in
-                let defn =
+                let body = let_body inside_instance true tv_set bind in
+                let defn, ending =
                   if inside_instance then
-                    from_string ""
+                    from_string "", from_string ""
                   else
-                    from_string "Definition"
+                    from_string "Definition", from_string "."
                   in
                     Output.flat [
-                      ws skips; defn; body; from_string "."
+                      ws skips; defn; body; ending
                     ]
               else
                 ws skips ^ from_string "(* [?]: removed value definition intended for another target. *)"
           | Fun_def (skips, rec_flag, targets, funcl_skips_seplist) ->
               if in_target targets then
                 let skips' = match rec_flag with FR_non_rec -> None | FR_rec sk -> sk in
-                let header =
+                let header, ending =
                   if is_recursive then
                     if inside_instance then
-                      ws skips'
+                      ws skips', from_string ""
                     else
                       Output.flat [
                         from_string "Program"; ws skips'; from_string "Fixpoint"
-                      ]
+                      ], from_string "."
                   else
                     if inside_instance then
-                      from_string ""
+                      from_string "", from_string ""
                     else
                       Output.flat [
                         from_string "Definition";
-                      ]
+                      ], from_string "."
                 in
                 let funcls = Seplist.to_list funcl_skips_seplist in
-                let bodies = List.map (funcl tv_set) funcls in
+                let bodies = List.map (funcl inside_instance tv_set) funcls in
                 let formed = concat_str "\nwith" bodies in
                   Output.flat [
-                    ws skips; header; formed; from_string "."
+                    ws skips; header; formed; ending
                   ]
               else
                 from_string "\n(* [?]: removed recursive definition intended for another target. *)"
           | _ -> from_string "\n(* [?]: removed top-level value definition. *)"
       end
-    and clauses clause_list =
+    and clauses (inside_instance: bool) clause_list =
       let gather_names clause_list =
         let rec gather_names_aux buffer clauses =
           match clauses with
@@ -831,14 +834,15 @@ let generate_coq_record_update_notation e =
                       Output.flat [
                         from_string name; from_string "_"; from_string fresh
                       ]
-                  | Some name ->*) from_string (Name.to_string (Name.strip_lskip name_lskips_t))
+                  | Some name ->*)
+                  from_string (Name.to_string (Name.strip_lskip name_lskips_t))
               in
               let antecedent =
                 match exp_opt with
                   | None -> emp
                   | Some e ->
                       Output.flat [
-                        from_string "Prop_of_bool ("; exp e; from_string ")"
+                        from_string "Prop_of_bool ("; exp inside_instance e; from_string ")"
                       ]
               in
               (* Indrel TODO This does not match variables with type annotations *)
@@ -852,7 +856,7 @@ let generate_coq_record_update_notation e =
                   | [] -> emp, emp
                   | x::xs -> from_string "forall ", from_string ", "
               in
-              let indices = concat_str " " @@ List.map exp exp_list in
+              let indices = concat_str " " @@ List.map (exp inside_instance) exp_list in
               let index_free_vars = List.map (fun t -> Types.free_vars (Typed_ast.exp_to_typ t)) exp_list in
               let index_free_vars = List.fold_right Types.TNset.union index_free_vars Types.TNset.empty in
               let relation_name = from_string (Name.to_string name) in
@@ -886,7 +890,7 @@ let generate_coq_record_update_notation e =
         Output.flat [
           from_string "\nInductive "; concat_str "\nand " indrelns; from_string "."
         ]
-    and let_body top_level tv_set ((lb, _):letbind) =
+    and let_body inside_instance top_level tv_set ((lb, _):letbind) =
       match lb with
         | Let_val (p, topt, skips, e) ->
             let p = def_pattern p in
@@ -910,12 +914,12 @@ let generate_coq_record_update_notation e =
                       ws s; from_string ":"; pat_typ t
                     ]
             in
-            let e = exp e in
+            let e = exp inside_instance e in
               Output.flat [
                 p; tv_set_sep; tv_set; topt; ws skips; from_string " := "; e
               ]
-        | Let_fun (n, pats, typ_opt, skips, e) -> funcl_aux tv_set (n.term, pats, typ_opt, skips, e)
-    and funcl_aux tv_set (n, pats, typ_opt, skips, e) =
+        | Let_fun (n, pats, typ_opt, skips, e) -> funcl_aux inside_instance tv_set (n.term, pats, typ_opt, skips, e)
+    and funcl_aux inside_instance tv_set (n, pats, typ_opt, skips, e) =
       let name_skips = Name.get_lskip n in
       let name = get_function_ascii_alternative (Name.strip_lskip n) in
       let name = from_string (Ulib.Text.to_string (Name.to_rope name)) in
@@ -946,10 +950,10 @@ let generate_coq_record_update_notation e =
       in
         Output.flat [
           ws name_skips; name; tv_set_sep; tv_set; pat_skips;
-          fun_pattern_list pats; typ_opt; ws skips; from_string ":="; exp e
+          fun_pattern_list inside_instance pats; typ_opt; ws skips; from_string ":="; exp inside_instance e
         ]
-    and funcl tv_set ({term = n}, c, pats, typ_opt, skips, e) = funcl_aux tv_set (B.const_ref_to_name n c, pats, typ_opt, skips, e)      
-    and funcl_letfun tv_set ({term = n}, pats, typ_opt, skips, e) = funcl_aux tv_set (n, pats, typ_opt, skips, e)      
+    and funcl inside_instance tv_set ({term = n}, c, pats, typ_opt, skips, e) = funcl_aux inside_instance tv_set (B.const_ref_to_name n c, pats, typ_opt, skips, e)      
+    and funcl_letfun inside_instance tv_set ({term = n}, pats, typ_opt, skips, e) = funcl_aux inside_instance tv_set (n, pats, typ_opt, skips, e)      
     and let_type_variables top_level tv_set =
       if Types.TNset.is_empty tv_set || not top_level then
         emp
@@ -964,8 +968,8 @@ let generate_coq_record_update_notation e =
           emp
         else
           (from_string "{") ^ (concat_str " " tyvars) ^ (from_string " : Type}")
-    and coq_function_application_to_output l id args = B.function_application_to_output l exp id args
-    and exp e =
+    and coq_function_application_to_output inside_instance l id args = B.function_application_to_output l (exp inside_instance) id args
+    and exp inside_instance e =
       let is_user_exp = Typed_ast_syntax.is_pp_exp e in
         match C.exp_to_term e with
           | Var v ->
@@ -973,7 +977,7 @@ let generate_coq_record_update_notation e =
           | Lit l -> literal l
           | Do (skips, mod_descr_id, do_line_list, skips', e, skips'', type_int) -> assert false (* DPM: should have been removed by macros *)
           | App (e1, e2) ->
-              let trans e = block (Typed_ast_syntax.is_pp_exp e) 0 (exp e) in
+              let trans e = block (Typed_ast_syntax.is_pp_exp e) 0 (exp inside_instance e) in
               let sep = (break_hint_space 2) in
 
               let oL = begin
@@ -990,40 +994,40 @@ let generate_coq_record_update_notation e =
               block is_user_exp 0 o
           | Paren (skips, e, skips') ->
               Output.flat [
-                ws skips; from_string "("; exp e; ws skips'; from_string ")";
+                ws skips; from_string "("; exp inside_instance e; ws skips'; from_string ")";
               ]
           | Typed (skips, e, skips', t, skips'') ->
               Output.flat [
-                ws skips; from_string "("; exp e; from_string " :"; ws skips'; typ t; ws skips''; from_string ")";
+                ws skips; from_string "("; exp inside_instance e; from_string " :"; ws skips'; typ t; ws skips''; from_string ")";
               ]
           | Tup (skips, es, skips') ->
-              let tups = flat @@ Seplist.to_sep_list exp (sep (from_string ", ")) es in
+              let tups = flat @@ Seplist.to_sep_list (exp inside_instance) (sep (from_string ", ")) es in
                 Output.flat [
                   ws skips; from_string "("; tups; from_string ")"; ws skips'
                 ]
           | List (skips, es, skips') ->
-              let lists = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> from_string " ")) exp (sep @@ from_string "; ") es in
+              let lists = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> from_string " ")) (exp inside_instance) (sep @@ from_string "; ") es in
                 Output.flat [
                   ws skips; from_string "["; lists; from_string "]"; ws skips'
                 ]
           | Let (skips, bind, skips', e) ->
-              let body = let_body false Types.TNset.empty bind in
+              let body = let_body inside_instance false Types.TNset.empty bind in
                 Output.flat [
-                  ws skips; from_string "let"; body; ws skips'; from_string "in "; exp e;
+                  ws skips; from_string "let"; body; ws skips'; from_string "in "; exp inside_instance e;
                 ]
           | Constant const -> 
-            Output.concat emp (B.function_application_to_output (exp_to_locn e) exp false e const [] (use_ascii_rep_for_const const))
+            Output.concat emp (B.function_application_to_output (exp_to_locn e) (exp inside_instance) false e const [] (use_ascii_rep_for_const const))
           | Fun (skips, ps, skips', e) ->
-              let ps = fun_pattern_list ps in
+              let ps = fun_pattern_list inside_instance ps in
                 block_hov (Typed_ast_syntax.is_pp_exp e) 2 (
                   Output.flat [
-                    ws skips; from_string "fun"; ps; ws skips'; from_string "=>"; break_hint_space 0; exp e
+                    ws skips; from_string "fun"; ps; ws skips'; from_string "=>"; break_hint_space 0; exp inside_instance e
                   ])
           | Function _ ->
             (* DPM: should have been macro'd away *)
               print_and_fail (Typed_ast.exp_to_locn e) "illegal function in extraction, should have been previously macro'd away"
           | Set (skips, es, skips') ->
-            let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) exp (sep @@ from_string "; ") es in
+            let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) (exp inside_instance) (sep @@ from_string "; ") es in
             let skips =
               if skips = Typed_ast.no_lskips then
                 from_string " "
@@ -1041,21 +1045,21 @@ let generate_coq_record_update_notation e =
                   ])
           | Begin (skips, e, skips') ->
               Output.flat [
-                ws skips; from_string "(* begin block *)"; exp e; ws skips';
+                ws skips; from_string "(* begin block *)"; exp inside_instance e; ws skips';
                 from_string "(* end block *)"
               ]
           | Record (skips, fields, skips') ->
-            let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) field_update (sep @@ from_string ";") fields in
+            let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) (field_update inside_instance) (sep @@ from_string ";") fields in
               Output.flat [
                 ws skips; from_string "{|"; body; ws skips'; from_string "|}"
               ]
           | Field (e, skips, fd) ->
             let name = field_ident_to_output fd (use_ascii_rep_for_const fd) in
               Output.flat [
-                from_string "("; name; ws skips; exp e; from_string ")"
+                from_string "("; name; ws skips; exp inside_instance e; from_string ")"
               ]
           | Recup (skips, e, skips', fields, skips'') ->
-            let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) field_update (sep @@ from_string ";") fields in
+            let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) (field_update inside_instance) (sep @@ from_string ";") fields in
             let skips'' =
               if skips'' = Typed_ast.no_lskips then
                 from_string " "
@@ -1063,17 +1067,17 @@ let generate_coq_record_update_notation e =
                 ws skips''
             in
               Output.flat [
-                 ws skips; from_string "{["; exp e; ws skips'; from_string "with"; body; skips''; from_string " ]}"
+                 ws skips; from_string "{["; exp inside_instance e; ws skips'; from_string "with"; body; skips''; from_string " ]}"
               ]
           | Case (_, skips, e, skips', cases, skips'') ->
-            let body = flat @@ Seplist.to_sep_list_last Seplist.Optional case_line (sep (break_hint_space 2 ^ from_string "|")) cases in
+            let body = flat @@ Seplist.to_sep_list_last Seplist.Optional (case_line inside_instance) (sep (break_hint_space 2 ^ from_string "|")) cases in
               block is_user_exp 0 (
                 Output.flat [
-                  ws skips; from_string "match ("; exp e; from_string ")"; from_string " with"; ws skips';
+                  ws skips; from_string "match ("; exp inside_instance e; from_string ")"; from_string " with"; ws skips';
                   break_hint_space 4; body; ws skips''; break_hint_space 0; from_string "end"
                 ])
           | Infix (l, c, r) ->
-              let trans e = block (Typed_ast_syntax.is_pp_exp e) 0 (exp e) in
+              let trans e = block (Typed_ast_syntax.is_pp_exp e) 0 (exp inside_instance e) in
               let sep = (break_hint_space 0) in
               begin
                 match C.exp_to_term c with
@@ -1109,11 +1113,11 @@ let generate_coq_record_update_notation e =
           | If (skips, test, skips', t, skips'', f) ->
               block is_user_exp 0 (Output.flat [
                 ws skips; break_hint_cut; from_string "if";
-                block (Typed_ast_syntax.is_pp_exp test) 0 (exp test);
+                block (Typed_ast_syntax.is_pp_exp test) 0 (exp inside_instance test);
                 ws skips'; from_string "then"; break_hint_space 2;
-                block (Typed_ast_syntax.is_pp_exp t) 0 (exp t);
+                block (Typed_ast_syntax.is_pp_exp t) 0 (exp inside_instance t);
                 ws skips''; break_hint_space 0; from_string "else"; break_hint_space 2;
-                block (Typed_ast_syntax.is_pp_exp f) 0 (exp f)
+                block (Typed_ast_syntax.is_pp_exp f) 0 (exp inside_instance f)
               ])
           | Quant (_, _, _, _) -> from_string "(* XXX: quant *)"
           | Comp_binding (_, _, _, _, _, _, _, _, _) -> from_string "(* XXX: comp binding *)"
@@ -1125,15 +1129,15 @@ let generate_coq_record_update_notation e =
               ]
           | VectorAcc (e, skips, nexp, skips') ->
               Output.flat [
-                from_string "vector_index"; exp e; ws skips; src_nexp nexp; ws skips'
+                from_string "vector_index"; exp inside_instance e; ws skips; src_nexp nexp; ws skips'
               ]
           | VectorSub (e, skips, nexp, skips', nexp', skips'') ->
               Output.flat [
-                from_string "vector_slice"; exp e; ws skips; src_nexp nexp;
+                from_string "vector_slice"; exp inside_instance e; ws skips; src_nexp nexp;
                 ws skips'; src_nexp nexp'; ws skips'
               ]
           | Vector (skips, es, skips') ->
-            let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) exp (sep @@ from_string "; ") es in
+            let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) (exp inside_instance) (sep @@ from_string "; ") es in
             let skips =
               if skips = Typed_ast.no_lskips then
                 from_string " "
@@ -1172,14 +1176,14 @@ let generate_coq_record_update_notation e =
             Output.flat [
               ws skips; from_string "("; src_nexp nexp; ws skips'; from_string ")"
             ]
-    and case_line (p, skips, e, _) =
+    and case_line inside_instance (p, skips, e, _) =
         Output.flat [
-          def_pattern p; ws skips; from_string "=>"; break_hint_space 2; exp e
+          def_pattern p; ws skips; from_string "=>"; break_hint_space 2; exp inside_instance e
         ]
-    and field_update (fd, skips, e, _) =
+    and field_update inside_instance (fd, skips, e, _) =
       let name = field_ident_to_output fd (use_ascii_rep_for_const fd) in
         Output.flat [
-          name; ws skips; from_string ":="; exp e
+          name; ws skips; from_string ":="; exp inside_instance e
         ]
     and literal l =
       match l.term with
@@ -1198,7 +1202,16 @@ let generate_coq_record_update_notation e =
               ws skips; default_value src_t;
               from_string " (* "; from_string explanation; from_string " *)"
             ]
-    and fun_pattern_list ps = from_string " " ^ (concat_str " " @@ List.map fun_pattern ps)
+    and fun_pattern_list inside_instance ps =
+      let f =
+        if inside_instance then
+          def_pattern
+        else
+          fun_pattern
+      in
+        Output.flat [
+          from_string " "; (concat_str " " @@ List.map f ps)
+        ]
     and fun_pattern p =
       match p.term with
         | P_wild skips ->
@@ -1287,7 +1300,9 @@ let generate_coq_record_update_notation e =
             ]
         | P_typ (skips, p, _, t, skips') ->
             (* DPM: type restriction not allowed in Coq *)
-            ws skips ^ def_pattern p ^ ws skips'
+            Output.flat [
+              ws skips; def_pattern p; ws skips'
+            ]
         | P_tup (skips, ps, skips') ->
           let body = flat @@ Seplist.to_sep_list def_pattern (sep @@ from_string ", ") ps in
             Output.flat [
@@ -1622,7 +1637,7 @@ module CdsetE = Util.ExtraSet(Types.Cdset)
 module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
   struct
 
-    let rec defs inside_module (ds : def list) =
+    let rec defs inside_instance inside_module (ds : def list) =
       	List.fold_right (fun (((d, s), l, lenv):def) y ->
           let ue = add_def_entities (Target_no_ident Target_coq) true empty_used_entities ((d,s),l,lenv) in
 
@@ -1632,14 +1647,14 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
                 let env = {A.env with local_env = lenv};;
 		let ascii_rep_set = CdsetE.from_list ue.used_consts
              end) in
-          let callback = defs true in
+          let callback = defs false true in
           match s with
-            | None   -> C.def callback inside_module d ^ y
-            | Some s -> C.def callback inside_module d ^ ws s ^ y
+            | None   -> C.def inside_instance callback inside_module d ^ y
+            | Some s -> C.def inside_instance callback inside_module d ^ ws s ^ y
       	) ds emp
 
     let coq_defs ((ds : def list), end_lex_skips) =
-    	to_rope (r"\"") lex_skip need_space @@ defs false ds ^ ws end_lex_skips
+    	to_rope (r"\"") lex_skip need_space @@ defs false false ds ^ ws end_lex_skips
     ;;
 
 end
