@@ -284,7 +284,8 @@ let lookup_class_p (ctxt : defn_ctxt) (id : Ast.id) : Path.t * class_descr =
  * for an underscore/wildcard type (which should be allowed in type annotations,
  * but not in type definitions).  The do_tvar function is called on each type
  * variable in the type, for its side effect (e.g., to record the tvars that
- * occur in the type. *)
+ * occur in the type). 
+ *)
 
 let rec nexp_to_src_nexp (do_nvar : Nvar.t -> unit) (Ast.Length_l(nexp,l)) : src_nexp =
   match nexp with
@@ -1159,6 +1160,13 @@ module Make_checker(T : sig
             let exp = check_id l_e i in
               C.equate_types l "identifier use" ret_type (exp_to_typ exp);
               exp
+        | Ast.Backend(sk1,i,sk2) ->
+            let id = Ident.from_id i in
+            if ((sk1 <> None && sk2 <> Some [])) ||
+               (Ident.get_lskip id <> None && Ident.get_lskip id <> Some []) then
+              raise (Reporting_basic.err_type l "illegal whitespace in backend expression")
+            else
+              A.mk_backend l sk1 id ret_type
         | Ast.Nvar((sk,n)) -> 
             let nv = Nvar.from_rope(n) in
             C.add_nvar nv;
@@ -2172,27 +2180,6 @@ let check_val_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
      (sk1, (n,l'), v, sk2, (src_cp, src_t)))
 
 
-
-let check_declare_target_rep_term (ts : Targetset.t) (mod_path : Name.t list) (l : Ast.l) (ctxt : defn_ctxt) (comp : Ast.component) (id : Ast.id) (args : Ast.x_l list) (rhs : Ast.target_rep_rhs) : Typed_ast.def_aux option = begin
-  (* lookup the constant for the id *)
-  let c = begin
-    let Ast.Id(mp,xl,_) = id in
-    let e = path_lookup l ctxt.cur_env (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
-    let map = match comp with
-      | Ast.Component_function _ -> e.v_env
-      | Ast.Component_field _ -> e.f_env 
-      | _ ->  raise (Reporting_basic.err_type l "Invalid component at left-hand-side of term-target representation! Only fields and constants / constructors are allowed.")
-    in
-    match Nfmap.apply map (Name.strip_lskip (Name.from_x xl)) with
-      | None -> raise (Reporting_basic.err_type_pp l (Printf.sprintf "unbound name") Ident.pp (Ident.from_id id))
-      | Some c -> c
-  end in
-  let c_descr = c_env_lookup l ctxt.ctxt_c_env c in
-
-  None
-end
-
-
 (* Check a method definition in a type class.  mod_path is the path to the
  * enclosing module. class_p is the path to the enclosing type class, and tv is
  * its type parameter. *)
@@ -2299,6 +2286,7 @@ end
 
 let letbinds_to_funcl_aux_rec l ctxt (lbs : (_ Typed_ast.lskips_seplist)) : funcl_aux Typed_ast.lskips_seplist =
   let lbs' = Seplist.map (fun (nls, pL, ty_opt, sk, e) -> letbind_to_funcl_aux_dest ctxt (Let_fun (nls, pL, ty_opt, sk, e), l)) lbs in
+
   let var_subst = Seplist.fold_left (fun (nls, _, n_exp, _, _, _, _) subst -> Nfmap.insert subst (Name.strip_lskip nls.term, Sub n_exp)) Nfmap.empty lbs' in
   let sub = (TNfmap.empty, var_subst) in
   let module C = Exps_in_context(struct let env_opt = None let avoid = None end) in
@@ -2509,6 +2497,99 @@ let rec check_instance_type_shape (ctxt : defn_ctxt) (src_t : src_t)
     | Typ_paren(_,t,_) -> check_instance_type_shape ctxt t
 
 
+
+let check_declare_target_rep_term_rhs (l : Ast.l) ts (ctxt : defn_ctxt) args rhs_ty (rhs : Ast.target_rep_rhs) : Typed_ast.target_rep_rhs = 
+  let module T = struct 
+    let d = ctxt.all_tdefs 
+    let i = ctxt.all_instances 
+    let e = defn_ctxt_get_cur_env ctxt
+    let new_module_env = ctxt.new_defs
+    let targets = ts
+  end in 
+  let module Checker = Make_checker(T) in
+  match rhs with
+   | Ast.Target_rep_rhs_term_replacement e_org -> begin
+       let rhs_lex_env = List.fold_left (fun env ap -> add_binding env (ap.term, ap.locn) ap.typ) empty_lex_env args in
+       let (e, Tconstraints(tnvars, constraints,l_constraints)) = Checker.check_lem_exp rhs_lex_env l e_org rhs_ty in
+       let _ = unsat_constraint_err l constraints in
+       Target_rep_rhs_term_replacement e
+     end
+   | Ast.Target_rep_rhs_infix (sk, infix_decl, id) ->
+       raise (Reporting_basic.err_todo true l "unsupported rhs of term target representation declaration")
+   | Ast.Target_rep_rhs_type_replacement t ->
+       raise (Reporting_basic.err_todo true l "unsupported rhs of term target representation declaration")
+   | Ast.Target_rep_rhs_special (sk1, sk2, sp, args) ->
+       raise (Reporting_basic.err_todo true l "unsupported rhs of term target representation declaration")
+
+
+(* [check_declare_target_rep_term ts mod_path l ctxt comp id args rhs] checks
+   the statement
+
+   declare target_rep id args = rhs
+*)
+let check_declare_target_rep_term 
+   (ts : Targetset.t) 
+   (mod_path : Name.t list) 
+   (l : Ast.l) 
+   (ctxt : defn_ctxt) 
+   sk1
+   target
+   sk2
+   (comp : Ast.component) 
+   (id : Ast.id) 
+   (args : Ast.x_l list)
+   sk3
+   (rhs : Ast.target_rep_rhs) : 
+   (Typecheck_ctxt.defn_ctxt * Typed_ast.def_aux option) = 
+begin
+  (* lookup the constant for the id *)
+  let c = begin
+    let Ast.Id(mp,xl,_) = id in
+    let e = path_lookup l ctxt.cur_env (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
+    let map = match comp with
+      | Ast.Component_function _ -> e.v_env
+      | Ast.Component_field _ -> e.f_env 
+      | _ ->  raise (Reporting_basic.err_type l "Invalid component at left-hand-side of term-target representation! Only fields and constants / constructors are allowed.")
+    in
+    match Nfmap.apply map (Name.strip_lskip (Name.from_x xl)) with
+      | None -> raise (Reporting_basic.err_type_pp l "unbound name" Ident.pp (Ident.from_id id))
+      | Some c -> c
+  end in
+  let c_descr = c_env_lookup l ctxt.ctxt_c_env c in
+  let c_id = { id_path = Id_some (Ident.from_id id); 
+               id_locn = l; 
+               descr = c; 
+               instantiation = List.map tnvar_to_type c_descr.const_tparams } in
+
+  (* parse the arguments / get the correct type *)
+  let rec get_arg_types acc cur_ty args = match args with
+    | [] -> (cur_ty, List.rev acc)
+    | x_l :: args' ->
+      begin
+        match dest_fn_type (Some ctxt.all_tdefs) cur_ty with
+          | None -> raise (Reporting_basic.err_type_pp l "to many arguments given in target representation declaration" Ident.pp (Ident.from_id id))
+          | Some (ty_arg, ty_rest) -> begin
+              let processed_arg : name_lskips_annot = 
+                { term = Name.from_x x_l;
+                  locn = Ast.xl_to_l x_l;
+                  typ = ty_arg;
+                  rest = (); }
+              in
+              get_arg_types (processed_arg::acc) ty_rest args'
+          end
+      end
+  in
+  let ((rhs_ty : Types.t), (args_parsed : name_lskips_annot list)) = get_arg_types [] c_descr.const_type args in
+
+  (* now parse the rhs, this also updates the context *)
+  let rhs_parsed = check_declare_target_rep_term_rhs l ts ctxt args_parsed rhs_ty rhs in
+
+  let def_aux = Decl_target_rep_decl_term (sk1, target, sk2, comp, c_id, 
+                   args_parsed, sk3, rhs_parsed) in
+  (ctxt, Some (Declaration def_aux))
+end
+
+
 (***************************************)
 (* The main function for defs          *)
 (***************************************)
@@ -2601,10 +2682,9 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let _ = prerr_endline "termination argument decl encountered" in
             ctxt, None
       | Ast.Declaration(Ast.Decl_target_rep_decl (sk1, target, sk2, Ast.Target_rep_lhs_term(sk3, comp, id, args), sk4, rhs)) ->
-          let res = check_declare_target_rep_term backend_targets mod_path l ctxt comp id args rhs in
-            (ctxt, res)
-      | Ast.Declaration(Ast.Decl_target_rep_decl (_, _, _, _, _, _)) ->
-          let _ = prerr_endline "target rep declaration encountered" in
+          check_declare_target_rep_term backend_targets mod_path l ctxt sk1 target (Ast.combine_lex_skips sk2 sk3) comp id args sk4 rhs
+      | Ast.Declaration(Ast.Decl_target_rep_decl (_, _, _, Ast.Target_rep_lhs_type _, _, _)) ->
+          let _ = prerr_endline "target_rep_decl type declaration encountered" in
             ctxt, None
       | Ast.Declaration(Ast.Decl_set_flag_decl (_, _, _, _, _)) ->
           let _ = prerr_endline "set flag declaration encountered" in

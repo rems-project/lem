@@ -138,7 +138,7 @@ let inline_exp_macro (target : Target.non_ident_target) env e =
                   let tsubst = Types.TNfmap.from_list2 cd.const_tparams c_id.instantiation in
 
                   (* adapt whitespace before body *)
-                  let b = (fst (alter_init_lskips (fun _ -> (ident_get_first_lskip c_id, None)) body)) in
+                  let b = (fst (alter_init_lskips (fun _ -> (ident_get_lskip c_id, None)) body)) in
                   Some (inline_exp l_unk target env was_infix params b tsubst args)
               | _ -> None
           end
@@ -284,3 +284,12 @@ let const_ref_to_name n0 c =
   n'
 
 end
+
+let component_to_output t = 
+  let open Output in
+    let a = Output.Target in
+    match t with
+      | Ast.Component_type(s) -> ws s ^ id a (r"type")
+      | Ast.Component_field(s) -> ws s ^ id a (r"field")
+      | Ast.Component_module(s) -> ws s ^ id a (r"module")
+      | Ast.Component_function(s) -> ws s ^ id a (r"function")

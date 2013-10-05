@@ -201,6 +201,7 @@ and exp_subst =
 
 and exp_aux =
   | Var of Name.lskips_t
+  | Backend of lskips * Ident.t
   | Nvar_e of lskips * Nvar.t
   | Constant of const_descr_ref id
   | Fun of lskips * pat list * lskips * exp
@@ -332,7 +333,7 @@ target_rep_rhs =  (* right hand side of a target representation declaration *)
 
 type declare_def =  (* declarations *)
  | Decl_compile_message_decl of lskips * targets_opt * lskips * const_descr_ref id * lskips * lskips * string 
- | Decl_target_rep_decl_term of lskips * Target.target * lskips * Ast.component * const_descr_ref id * Name.t list * lskips * target_rep_rhs
+ | Decl_target_rep_decl_term of lskips * Ast.target * lskips * Ast.component * const_descr_ref id * name_lskips_annot list * lskips * target_rep_rhs
 
 (*
  | Decl_rename_decl of lskips * targets option * lskips * component * id * lskips * x_l
@@ -420,8 +421,8 @@ let rec nexp_alter_init_lskips(lskips_f : lskips -> lskips * lskips) (n: src_nex
 let id_alter_init_lskips lskips_f (id : 'a id) : 'a id * lskips =
   match id.id_path with
     | Id_some(id_path) ->
-        let (s_new, s_ret) = lskips_f (Ident.get_first_lskip id_path) in
-          ({id with id_path = Id_some (Ident.replace_first_lskip id_path s_new)}, s_ret)
+        let (s_new, s_ret) = lskips_f (Ident.get_lskip id_path) in
+          ({id with id_path = Id_some (Ident.replace_lskip id_path s_new)}, s_ret)
     | Id_none(sk) ->
         let (s_new, s_ret) = lskips_f sk in
           ({id with id_path = Id_none s_new}, s_ret)
@@ -544,6 +545,9 @@ let rec alter_init_lskips (lskips_f : lskips -> lskips * lskips) (e : exp) : exp
       | Var(n) ->
           let (s_new, s_ret) = lskips_f (Name.get_lskip n) in
             res (Var(Name.replace_lskip n s_new)) s_ret
+      | Backend(sk, i) ->
+          let (s_new, s_ret) = lskips_f sk in
+            res (Backend(s_new, i)) s_ret
       | Nvar_e(s,n) ->
           let (s_new, s_ret) = lskips_f s in
             res (Nvar_e(s_new,n)) s_ret 
@@ -1373,6 +1377,7 @@ module Exps_in_context(D : Exp_context) = struct
                 | Some(Sub(e')) -> 
                     exp_to_term (append_lskips (Name.get_lskip n) e')
             end
+        | Backend (s,i) -> Backend (s,i)
         | Nvar_e(s,v) -> Nvar_e(s,v)
         | Constant(c) -> 
             Constant(id_subst c)
@@ -1598,6 +1603,15 @@ module Exps_in_context(D : Exp_context) = struct
       rest =
         { free = sing_free_env (Name.strip_lskip n) t;
           subst = empty_sub; } }
+
+  let mk_backend l sk i t : exp =
+    { term = Backend(sk, i);
+      locn = l;
+      typ = t;
+      rest =
+        { free = empty_free_env;
+          subst = empty_sub; } }
+
 
   let mk_nvar_e l s n t : exp =
     { term = Nvar_e(s,n);
@@ -2217,12 +2231,12 @@ let class_path_to_dict_name c tv =
                        (* TODO KG & SO Should the tv distinguish ty vs nv *)
                        (List.map Name.to_rope pnames @ [Name.to_rope n; Types.tnvar_to_rope tv])))
 
-let ident_get_first_lskip id =
+let ident_get_lskip id =
   match id.id_path with
     | Id_none sk -> sk
-    | Id_some i -> Ident.get_first_lskip i
+    | Id_some i -> Ident.get_lskip i
 
-let ident_replace_first_lskip id sk =
+let ident_replace_lskip id sk =
   match id with
     | Id_none _ -> Id_none sk
-    | Id_some i -> Id_some (Ident.replace_first_lskip i sk)
+    | Id_some i -> Id_some (Ident.replace_lskip i sk)

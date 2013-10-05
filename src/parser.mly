@@ -879,15 +879,23 @@ targets_opt:
   | NegLcurly targets Rcurly
     { Some(Targets_neg_concrete($1,$2,$3)) }
 
-component :
-  | Module
-    { Component_module $1 }
+component_term :
   | Function_
     { Component_function $1 }
-  | Type
-    { Component_type $1 }
   | Field
     { Component_field $1 }
+
+component_type :
+  | Type
+    { Component_type $1 }
+
+component :
+  | component_term
+    { $1 }
+  | component_type
+    { $1 }
+  | Module_
+    { Component_module $1 }
 
 termination_setting :
   | Automatic
@@ -950,9 +958,9 @@ target_rep_rhs :
     { Target_rep_rhs_special($1, fst $2, snd $2, $3) }
 
 target_rep_lhs :
-  | TargetRep component id x_ls
+  | TargetRep component_term id x_ls
     { Target_rep_lhs_term ($1, $2, $3, $4) }
-  | TargetRep component typschm
+  | TargetRep component_type typschm
     { Target_rep_lhs_type ($1, $2, $3) }
 
 x_ls :

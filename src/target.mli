@@ -108,8 +108,8 @@ val target_to_string : target -> string
     [non_ident_target_to_string t]. However, it returns capitalised versions. *)
 val non_ident_target_to_mname : non_ident_target -> Name.t
 
-(** [target_to_output a t] returns output for a target [t] and id-annotation [a]. *)
-val target_to_output : Output.id_annot -> Ast.target -> Output.t
+(** [target_to_output t] returns output for a target [t]. *)
+val target_to_output : Ast.target -> Output.t
 
 (** [is_human_target targ] checks whether [targ] is a target intended to be read by humans
     and therefore needs preserving the original structure very closely. Examples for such targets are

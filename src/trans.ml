@@ -864,7 +864,7 @@ let remove_method e =
                                   let new_const_ref = lookup_inst_method_for_class_method l_unk instance c.descr in
                                   let new_const_descr = c_env_lookup l_unk env.c_env new_const_ref in
                                   let id = 
-                                    { id_path = Id_none (Typed_ast.ident_get_first_lskip c);
+                                    { id_path = Id_none (Typed_ast.ident_get_lskip c);
                                       id_locn = c.id_locn;
                                       descr = new_const_ref;
                                       instantiation = List.map (tnfmap_apply subst) new_const_descr.const_tparams; }
@@ -880,7 +880,7 @@ let remove_method e =
                                 in
                                 let cd = lookup_class_descr l_unk env c_path in
                                 let n = class_path_to_dict_name c_path tv in
-                                let n_sk = Name.add_pre_lskip (ident_get_first_lskip c) (Name.add_lskip n) in
+                                let n_sk = Name.add_pre_lskip (ident_get_lskip c) (Name.add_lskip n) in
                                 let t = class_descr_get_dict_type cd targ in
                                 let dict = C.mk_var l_unk n_sk t in
 

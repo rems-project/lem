@@ -289,6 +289,7 @@ and exp_subst =
 
 and exp_aux = private
   | Var of Name.lskips_t
+  | Backend of lskips * Ident.t (** An identifier that should be used literally by a backend. The identifier does not contain whitespace. Initial whitespace is represented explicitly. *)
   | Nvar_e of lskips * Nvar.t
   | Constant of const_descr_ref id
   | Fun of lskips * pat list * lskips * exp
@@ -460,7 +461,7 @@ type declare_def =  (** Declarations *)
  | Decl_compile_message_decl of lskips * targets_opt * lskips * const_descr_ref id * lskips * lskips * string 
    (** [Decl_compile_message_decl (sk1, targs, sk2, c, sk3, sk4, message)], declares printing waring message
        [message], if constant [c] is used for one of the targets in [targs] *)
- | Decl_target_rep_decl_term of lskips * Target.target * lskips * Ast.component * const_descr_ref id * Name.t list * lskips * target_rep_rhs
+ | Decl_target_rep_decl_term of lskips * Ast.target * lskips * Ast.component * const_descr_ref id * name_lskips_annot list * lskips * target_rep_rhs
    (** [Decl_target_rep_decl (sk1, targ, sk2, comp, c, args, sk3, rhs)] declares a targetrepresentation. for target [targ] and
        constant [const] with arguments [args]. Since fields and constant life in different namespaces, [comp] is used to declare
        wether a field or a constant is meant. The [rhs] constains details about the representation. *)
@@ -614,6 +615,7 @@ module Exps_in_context(C : Exp_context) : sig
 
   val mk_var : Ast.l -> Name.lskips_t -> Types.t -> exp
   val mk_nvar_e : Ast.l -> lskips -> Nvar.t -> Types.t -> exp
+  val mk_backend : Ast.l -> lskips -> Ident.t -> Types.t -> exp
   val mk_const : Ast.l -> const_descr_ref id -> Types.t option -> exp
   val mk_fun : Ast.l -> lskips -> pat list -> lskips -> exp -> Types.t option -> exp
   val mk_function : Ast.l -> lskips -> (pat * lskips * exp * Ast.l) lskips_seplist -> lskips -> Types.t option -> exp
@@ -681,5 +683,5 @@ val funcl_aux_seplist_group : funcl_aux lskips_seplist -> (bool * lskips option 
 val class_path_to_dict_name : Path.t -> Types.tnvar -> Name.t
 
 
-val ident_get_first_lskip : 'a id -> Ast.lex_skips
-val ident_replace_first_lskip : ident_option -> Ast.lex_skips -> ident_option
+val ident_get_lskip : 'a id -> Ast.lex_skips
+val ident_replace_lskip : ident_option -> Ast.lex_skips -> ident_option

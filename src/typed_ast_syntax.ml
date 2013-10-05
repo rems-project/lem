@@ -871,6 +871,7 @@ and add_exp_entities (ue : used_entities) (e : exp) : used_entities =
   match C.exp_to_term e with
     | Var(n) -> ue
     | Nvar_e _ -> ue
+    | Backend _ -> ue
     | Constant(c) -> used_entities_add_const ue c.descr
     | Fun(_,ps,_,e) ->        
          add_exp_entities (List.fold_left add_pat_entities ue ps) e

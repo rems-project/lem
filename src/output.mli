@@ -70,6 +70,7 @@ type id_annot =
   | Module_name
   | Class_name
   | Target
+  | Component
 
 (** {2 constructing output} *)
 

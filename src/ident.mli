@@ -70,9 +70,9 @@ val mk_ident_strings : string list -> string -> t
 
 val to_output_format : (Output.id_annot -> Ulib.Text.t -> Output.t) -> Output.id_annot -> Output.t -> t -> Output.t
 val to_output : Output.id_annot -> Output.t -> t -> Output.t
-val get_first_lskip: t -> Ast.lex_skips
+val get_lskip: t -> Ast.lex_skips
 
-val replace_first_lskip : t -> Ast.lex_skips -> t
+val replace_lskip : t -> Ast.lex_skips -> t
 val to_name_list : t -> Name.t list * Name.t
 
 (** [has_empty_path_prefix i] check whether the identifier [i] consists of just a single name without any

@@ -51,6 +51,9 @@ open Typed_ast
 (** [inline_exp_macro target env e] does the inlining of target specific constant definitions *)
 val inline_exp_macro : Target.non_ident_target -> env -> exp -> exp option
 
+(** [component_to_output c] formats component [c] as an output *)
+val component_to_output : Ast.component -> Output.t
+
 module Make(A : sig
   val env : env;; 
   val target : Target.target;;

@@ -63,6 +63,7 @@ type id_annot =  (* kind annotation for latex'd identifiers *)
   | Module_name
   | Class_name
   | Target
+  | Component
 
 type block_type =
     Block_type_hbox
@@ -200,6 +201,7 @@ let pp_raw_id_annot = function
   | Module_name        -> r"Module_name"      
   | Class_name         -> r"Class_name"       
   | Target             -> r"Target"           
+  | Component          -> r"Component"           
   | Nexpr_var          -> r"Nexpr_var"
 
 let pp_raw_bool = function
@@ -476,6 +478,7 @@ let tex_id_wrap = function
   | Module_name        -> r"\\" ^^ tex_sty_prefix ^^ r"ModuleName"       
   | Class_name         -> r"\\" ^^ tex_sty_prefix ^^ r"ClassName"        
   | Target             -> r"\\" ^^ tex_sty_prefix ^^ r"Target"            
+  | Component          -> r"\\" ^^ tex_sty_prefix ^^ r"Component"            
   | Nexpr_var          -> r"\\" ^^ tex_sty_prefix ^^ r"Nexpr_var"            
 
 let split_suffix s =

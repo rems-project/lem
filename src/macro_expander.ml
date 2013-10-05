@@ -276,6 +276,8 @@ let rec expand_exp ((r,typ_r,src_typ_r,pat_r):((exp -> exp option) * (Types.t ->
                   C.mk_const old_l c (Some new_t)
               | Var(n) ->
                   C.mk_var old_l n new_t
+              | Backend(sk, i) ->
+                  C.mk_backend old_l sk i new_t
               | Nvar_e(s,n) -> C.mk_nvar_e old_l s n new_t
               | Lit li  ->
                   C.mk_lit old_l  {li with Typed_ast.typ = new_t} (Some new_t)

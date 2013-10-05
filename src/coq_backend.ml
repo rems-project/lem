@@ -1007,6 +1007,9 @@ let generate_coq_record_update_notation e =
         match C.exp_to_term e with
           | Var v ->
               Name.to_output Term_var v
+          | Backend (sk, i) ->
+              ws sk ^
+              Ident.to_output Term_const path_sep i
           | Lit l -> literal l
           | Do (skips, mod_descr_id, do_line_list, skips', e, skips'', type_int) -> assert false (* DPM: should have been removed by macros *)
           | App (e1, e2) ->

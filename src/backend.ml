@@ -1416,7 +1416,12 @@ let is_user_exp = is_pp_exp e in
 match C.exp_to_term e with
   | Var(n) ->
       Name.to_output Term_var n
- 
+  | Backend(sk, i) ->
+      ws sk ^
+      (if T.target = Target_ident then meta "'" else emp) ^
+      Ident.to_output Term_const T.path_sep i ^
+      (if T.target = Target_ident then meta "'" else emp) 
+
   | Nvar_e(s,n) ->
       ws s ^ id Nexpr_var (Ulib.Text.(^^^) T.nexp_var (Nvar.to_rope n))
 
@@ -1964,7 +1969,7 @@ let targets_opt = function
   | Some((b,s1,targets,s2)) ->
       ws s1 ^
       (if b then kwd "~{" else kwd "{") ^
-      flat (Seplist.to_sep_list (target_to_output Target) (sep T.set_sep) targets) ^
+      flat (Seplist.to_sep_list target_to_output (sep T.set_sep) targets) ^
       ws s2 ^
       kwd "}"
 
@@ -2446,6 +2451,24 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
               specs) ^
       ws s4 ^
       kwd "end"
+  | Declaration (Decl_target_rep_decl_term (sk1, targ, sk2, comp, id, args, sk3, rhs)) ->
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        kwd "declaration" ^
+        (Target.target_to_output targ) ^
+        ws sk2 ^
+        kwd "target_rep" ^
+        component_to_output comp ^
+        (Ident.to_output Term_const T.path_sep (B.const_id_to_ident id true)) ^
+        (Output.concat emp (List.map (fun n -> Name.to_output Term_var n.term) args)) ^
+        ws sk3 ^
+        kwd "=" ^
+        (match rhs with
+          | Target_rep_rhs_term_replacement e -> exp e
+          | _ -> raise (Reporting_basic.err_todo true Ast.Unknown "declaration")
+        ) 
+      end
+  | Declaration (Decl_compile_message_decl _) -> raise (Reporting_basic.err_todo true Ast.Unknown "compile message declaration") 
   | Comment(d) ->
       let (d',sk) = def_alter_init_lskips (fun sk -> (None, sk)) d in
         ws sk ^ ws (Some([Ast.Com(Ast.Comment([Ast.Chars(X.comment_def d')]))]))

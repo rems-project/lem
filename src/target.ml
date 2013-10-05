@@ -131,8 +131,9 @@ let target_to_string = function
   | Target_ident -> "ident"
   | Target_no_ident t -> non_ident_target_to_string t
 
-let target_to_output a t = 
+let target_to_output t = 
   let open Output in
+    let a = Output.Target in
     match t with
       | Ast.Target_hol(s) -> ws s ^ id a (r"hol")
       | Ast.Target_ocaml(s) -> ws s ^ id a (r"ocaml")

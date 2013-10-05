@@ -105,8 +105,8 @@ let to_output_format ident_f a sep ((sk,ns,n):t) =
 
 let to_output = to_output_format Output.id
 
-let replace_first_lskip ((sk,ns,n):t) s = (s,ns,n)
-let get_first_lskip ((sk,ns,n):t) = sk                
+let replace_lskip ((sk,ns,n):t) s = (s,ns,n)
+let get_lskip ((sk,ns,n):t) = sk                
 let to_name_list ((sk,ns,n):t) = (ns, n)
 
 let has_empty_path_prefix ((sk,ns,n):t) = (List.length ns = 0)
