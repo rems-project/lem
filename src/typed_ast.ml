@@ -325,7 +325,7 @@ type indreln_name = RName of lskips* Name.lskips_t * const_descr_ref * lskips * 
 
 type 
 target_rep_rhs =  (* right hand side of a target representation declaration *)
-   Target_rep_rhs_infix of lskips * Ast.fixity_decl * Ident.t
+   Target_rep_rhs_infix of lskips * Ast.fixity_decl * lskips * Ident.t
  | Target_rep_rhs_term_replacement of exp
  | Target_rep_rhs_type_replacement of src_t
  | Target_rep_rhs_special of lskips * lskips * string * exp list

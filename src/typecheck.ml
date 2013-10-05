@@ -78,6 +78,9 @@ module DupTvs = Util.Duplicate(TNset)
 let anon_error l = 
   raise (Reporting_basic.err_type l "anonymous types not permitted here: _")
 
+let check_backend_quote l s =
+  let (sl, s) = Util.string_split '.' s in
+  Ident.mk_ident_strings sl s
 
 
 (***************************************)
@@ -1160,13 +1163,9 @@ module Make_checker(T : sig
             let exp = check_id l_e i in
               C.equate_types l "identifier use" ret_type (exp_to_typ exp);
               exp
-        | Ast.Backend(sk1,i,sk2) ->
-            let id = Ident.from_id i in
-            if ((sk1 <> None && sk2 <> Some [])) ||
-               (Ident.get_lskip id <> None && Ident.get_lskip id <> Some []) then
-              raise (Reporting_basic.err_type l "illegal whitespace in backend expression")
-            else
-              A.mk_backend l sk1 id ret_type
+        | Ast.Backend(sk,s) ->
+            let id = check_backend_quote l s in
+              A.mk_backend l sk id ret_type
         | Ast.Nvar((sk,n)) -> 
             let nv = Nvar.from_rope(n) in
             C.add_nvar nv;
@@ -2514,8 +2513,11 @@ let check_declare_target_rep_term_rhs (l : Ast.l) ts (ctxt : defn_ctxt) args rhs
        let _ = unsat_constraint_err l constraints in
        Target_rep_rhs_term_replacement e
      end
-   | Ast.Target_rep_rhs_infix (sk, infix_decl, id) ->
-       raise (Reporting_basic.err_todo true l "unsupported rhs of term target representation declaration")
+   | Ast.Target_rep_rhs_infix (sk1, infix_decl, sk2, id) ->
+       let _ = if (List.length args = 0) then () else
+                 raise (Reporting_basic.err_type l "infix target declaration with arguments") in
+       let i = check_backend_quote l id in
+       Target_rep_rhs_infix (sk1, infix_decl, sk2, i)
    | Ast.Target_rep_rhs_type_replacement t ->
        raise (Reporting_basic.err_todo true l "unsupported rhs of term target representation declaration")
    | Ast.Target_rep_rhs_special (sk1, sk2, sp, args) ->
@@ -2708,22 +2710,37 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           begin
             match component with
               | (Ast.Component_function _ | Ast.Component_field _) ->
-                  let const_descr_ref = begin
+                  let (const_descr_ref, ctxt') = begin
                     let env = match component with 
                       | Ast.Component_function _ -> current_env.v_env
                       | _ -> current_env.f_env
                     in
-                    match Nfmap.apply env source_name with
+                    let const_descr_ref = match Nfmap.apply env source_name with
                       | None ->
                           raise (Reporting_basic.err_type_pp l "unbound name" 
                             Name.pp source_name)
-                      | Some const_descr_ref -> const_descr_ref                           
+                      | Some const_descr_ref -> const_descr_ref
+                    in
+                    let env' = Nfmap.insert env (target_name, const_descr_ref) in                          
+                    let current_env' = match component with 
+                      | Ast.Component_function _ -> {current_env with v_env = env'}
+                      | _ -> {current_env with f_env = env'}
+                    in
+                    let ctxt' = match component with 
+                      | Ast.Component_function _ -> 
+                          add_v_to_ctxt ctxt (target_name, const_descr_ref) 
+                      | _ -> add_f_to_ctxt ctxt (target_name, const_descr_ref)
+                    in
+
+                    (const_descr_ref, ctxt')
                   end in
+
+
                   let const_descr = Typed_ast.c_env_lookup Ast.Unknown ctxt.ctxt_c_env const_descr_ref in
                   let const_descr = { const_descr with ascii_rep = Some target_name } in
                   let cenv = Typed_ast.c_env_update ctxt.ctxt_c_env const_descr_ref const_descr in
-                  let ctxt = { ctxt with ctxt_c_env = cenv } in
-                    ctxt, None
+                  let ctxt'' = { ctxt' with ctxt_c_env = cenv} in
+                    ctxt'', None
               | Ast.Component_module _ ->
                   let lenv = current_env.m_env in
                     raise (Reporting_basic.err_general true l "ascii representation for modules not implemented yet")

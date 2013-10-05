@@ -39,6 +39,13 @@ metavar string ::=
   {{ hol string }}
   {{ com String literals }}
 
+metavar quoted_string ::=
+  {{ phantom }}
+  {{ ocaml terminal * Ulib.UTF8.t }}
+  {{ lem (terminal * string) }}
+  {{ hol string }}
+  {{ com String literals }}
+
 metavar regexp ::=
   {{ phantom }}
   {{ ocaml terminal * string }}
@@ -415,7 +422,7 @@ exp_aux :: '' ::=
   {{ com Expressions }}
   | id							:: :: Ident
     {{ com Identifiers }}
-  | ` x_l ` 						:: :: Backend
+  | quoted_string 				        :: :: Backend
     {{ com identifier that should be literally used in output }}
   | N							:: :: Nvar
     {{ com Nexp var, has type num }}
@@ -759,10 +766,11 @@ fixity_decl :: 'Fixity_' ::=
   | right_assoc nat :: :: right_assoc
   | left_assoc  nat :: :: left_assoc
   | non_assoc   nat :: :: non_assoc
+  |                 :: :: default_assoc
 
 target_rep_rhs :: 'Target_rep_rhs_' ::=
   {{ com right hand side of a target representation declaration }}
-  | infix fixity_decl ` x_l `    :: :: infix
+  | infix fixity_decl quoted_string :: :: infix
   | exp                          :: :: term_replacement
   | typ                          :: :: type_replacement
   | special string exp1 ... expn :: :: special

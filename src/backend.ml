@@ -1410,6 +1410,11 @@ and patlist ps =
   | [p] -> pat p
   | p::((_::_) as ps') -> pat p ^ texspace ^ patlist ps'
 
+let backend sk i =
+  ws sk ^
+  (if T.target = Target_ident then meta "`" else emp) ^
+  Ident.to_output Term_const T.path_sep i ^
+  (if T.target = Target_ident then meta "`" else emp) 
 
 let rec exp e = 
 let is_user_exp = is_pp_exp e in
@@ -1417,11 +1422,7 @@ match C.exp_to_term e with
   | Var(n) ->
       Name.to_output Term_var n
   | Backend(sk, i) ->
-      ws sk ^
-      (if T.target = Target_ident then meta "'" else emp) ^
-      Ident.to_output Term_const T.path_sep i ^
-      (if T.target = Target_ident then meta "'" else emp) 
-
+      backend sk i
   | Nvar_e(s,n) ->
       ws s ^ id Nexpr_var (Ulib.Text.(^^^) T.nexp_var (Nvar.to_rope n))
 
@@ -2224,6 +2225,13 @@ let rec ocaml_def_extra gf d l : Output.t = match d with
   | _ -> emp
 
 
+let infix_decl = function
+  | Ast.Fixity_default_assoc -> emp
+  | Ast.Fixity_non_assoc (sk, n) -> ws sk ^ kwd "non_assoc" ^ num n
+  | Ast.Fixity_left_assoc (sk, n) -> ws sk ^ kwd "left_assoc" ^ num n
+  | Ast.Fixity_right_assoc (sk, n) -> ws sk ^ kwd "right_assoc" ^ num n
+
+
 let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = match d with
 
   (* A single type abbreviation *)
@@ -2454,7 +2462,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
   | Declaration (Decl_target_rep_decl_term (sk1, targ, sk2, comp, id, args, sk3, rhs)) ->
       if (not (Target.is_human_target T.target)) then emp else begin
         ws sk1 ^
-        kwd "declaration" ^
+        kwd "declare" ^
         (Target.target_to_output targ) ^
         ws sk2 ^
         kwd "target_rep" ^
@@ -2465,6 +2473,12 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         kwd "=" ^
         (match rhs with
           | Target_rep_rhs_term_replacement e -> exp e
+          | Target_rep_rhs_infix (sk1, decl, sk2, i) -> begin
+               ws sk1 ^
+               kwd "infix" ^
+               infix_decl decl ^
+               backend sk2 i
+            end
           | _ -> raise (Reporting_basic.err_todo true Ast.Unknown "declaration")
         ) 
       end

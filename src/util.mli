@@ -214,6 +214,10 @@ val string_for_all : (char -> bool) -> string -> bool
     and underscores. *)
 val is_simple_ident_string : string -> bool
 
+(** [string_split c string] splits the string into a list of strings on occurences of the char [c].
+    The last remaining string is handed out separately. This encodes, that the resulting string list
+    is never empty *)
+val string_split : char -> string -> (string list * string)
 
 (** [message_singular_plural (sing_message, multiple_message) l] is used
     to determine whether the singular or plural form should be used in messages. If the list [l] contains

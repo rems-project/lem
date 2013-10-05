@@ -142,7 +142,7 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 
 %}
 
-%token <Ast.terminal> Dot Lparen Rparen Comma Under Arrow As Colon NegLcurly Lcurly Rcurly Quote
+%token <Ast.terminal> Dot Lparen Rparen Comma Under Arrow As Colon NegLcurly Lcurly Rcurly 
 %token <Ast.terminal> Semi Lsquare Rsquare Fun_ Function_ Bar With Match Let_ And HashZero HashOne
 %token <Ast.terminal> In Of Rec Type Witness Check Rename Module_ Struct End Open_ SemiSemi Eof
 %token <Ast.terminal> True False Begin_ If_ Then Else Val
@@ -150,7 +150,7 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 %token <Ast.terminal * Ulib.Text.t> X Tyvar Nvar 
 %token <Ast.terminal * Ulib.Text.t> StarstarX StarX PlusX AtX EqualX GtEqX
 %token <Ast.terminal * int> Num
-%token <Ast.terminal * string> String Bin Hex
+%token <Ast.terminal * string> QuotedString String Bin Hex 
 
 %token <Ast.terminal> Indreln Forall EqEqGt Inline LtBar BarGt Exists EqGt BraceBar BarBrace DotBrace 
 %token <Ast.terminal> Assert Lemma Theorem 
@@ -422,8 +422,8 @@ atomic_exp:
     { eloc (Begin($1,$2,$3)) }
   | lit
     { eloc (Lit($1)) }
-  | Quote id Quote
-    { eloc (Backend($1,$2,$3)) }
+  | QuotedString 
+    { eloc (Backend (fst $1, snd $1)) }
   | Nvar
     { eloc (Nvar($1)) }
   | Lcurly exp Bar exp Rcurly
@@ -946,10 +946,12 @@ fixity_decl :
     { Fixity_left_assoc($1, snd $2) }
   | NonAssoc Num
     { Fixity_non_assoc($1, snd $2) }
+  |
+    { Fixity_default_assoc }
 
 target_rep_rhs :
-  | Infix fixity_decl id
-    { Target_rep_rhs_infix($1, $2, $3) }
+  | Infix fixity_decl QuotedString 
+    { Target_rep_rhs_infix($1, $2, fst $3, snd $3) }
   | exp
     { Target_rep_rhs_term_replacement($1) }
   | typ

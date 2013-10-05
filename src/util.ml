@@ -234,6 +234,14 @@ let string_to_list s =
     else aux (i-1) (s.[i] :: acc)
   in aux (String.length s - 1) []
 
+let string_split c s =
+  let rec aux acc start = try
+     let next = String.index_from s start c in
+     let acc' = (String.sub s start (next - start))::acc in
+     aux acc' (next+1)
+  with Not_found -> (List.rev acc, String.sub s start (String.length s - start)) 
+  in aux [] 0
+
 module IntSet = Set.Make( 
   struct
     let compare = Pervasives.compare

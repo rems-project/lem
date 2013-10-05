@@ -90,6 +90,7 @@ let kw_table =
      ("IN",                      (fun x -> IN(x,r"IN")));
      ("MEM",                     (fun x -> MEM(x,r"MEM")));
      ("declare",                 (fun x -> Declare(x)));
+     ("infix",                   (fun x -> Infix(x)));
      ("field"),                  (fun x -> Field(x));
      ("automatic"),              (fun x -> Automatic(x));
      ("manual"),                 (fun x -> Manual(x));
@@ -125,6 +126,7 @@ let hexdigit = ['0'-'9''A'-'F''a'-'f']
 let alphanum = letter|digit
 let startident = letter|'_'
 let ident = alphanum|['_''\'']
+let quote = [^' ''('')''\t''\n''`''"']
 let oper_char = ['!''$''%''&''*''+''-''.''/'':''<''=''>''?''@''^''|''~']
 let safe_com1 = [^'*''('')''\n']
 let safe_com2 = [^'*''(''\n']
@@ -163,7 +165,6 @@ rule token skips = parse
   | "::" as i                           { (ColonColon(Some(skips),Ulib.Text.of_latin1 i)) }
   | "&&" as i                           { (AmpAmp(Some(skips),Ulib.Text.of_latin1 i)) }
   | "||" as i                           { (BarBar(Some(skips),Ulib.Text.of_latin1 i)) }
-  | "'"                                 { (Quote(Some(skips))) }
   | "=>"                                { (EqGt(Some(skips))) }
 
   | "==>"                               { (EqEqGt(Some(skips))) }
@@ -194,6 +195,8 @@ rule token skips = parse
                                             X(Some(skips), Ulib.Text.of_latin1 i) }
 
   | "\\\\" ([^' ' '\t' '\n']+ as i)     { (X(Some(skips), Ulib.Text.of_latin1 i)) } 
+
+  | "`" (quote* as i) "`"              { QuotedString(Some skips, i) }
 
   | "'" (startident ident* as i)        { (Tyvar(Some(skips), Ulib.Text.of_latin1 i)) }
   | "''" (startident ident* as i)	{ (Nvar(Some(skips), Ulib.Text.of_latin1 i)) }
