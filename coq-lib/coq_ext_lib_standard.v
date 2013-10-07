@@ -83,6 +83,8 @@ Definition Prop_of_bool (b: bool): Prop :=
     | false => False
   end.
 
+Coercion Prop_of_bool : bool >-> Sortclass.
+
 Definition eq {a : Type}: a -> a -> bool :=
   fun left right =>
     bool_of_Prop (left = right).

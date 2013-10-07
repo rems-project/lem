@@ -846,7 +846,7 @@ let generate_coq_record_update_notation e =
               | (Rule(_,_, _, _, _, _, _, _, _, exp_list),_)::xs ->
                   List.map (fun t ->
                     Output.flat [
-                      from_string "("; field_typ @@ C.t_to_src_t (Typed_ast.exp_to_typ t); from_string ")"
+                      from_string "("; indreln_typ @@ C.t_to_src_t (Typed_ast.exp_to_typ t); from_string ")"
                     ]
                   ) exp_list
           in
@@ -869,7 +869,7 @@ let generate_coq_record_update_notation e =
                   | None -> emp
                   | Some e ->
                       Output.flat [
-                        from_string "Prop_of_bool ("; exp inside_instance e; from_string ")"
+                        from_string "("; exp inside_instance e; from_string ": Prop)"
                       ]
               in
               (* Indrel TODO This does not match variables with type annotations *)
@@ -1554,6 +1554,33 @@ let generate_coq_record_update_notation e =
             Output.flat [
               from_string " "; concat_str " " mapped
             ]
+    and indreln_typ t =
+      match t.term with
+        | Typ_wild skips -> ws skips ^ from_string "_"
+        | Typ_var (skips, v) -> id Type_var @@ Ulib.Text.(^^^) (r"") (Tyvar.to_rope v)
+        | Typ_fn (t1, skips, t2) ->
+          begin
+            match t2.term with
+              | Typ_app (p, []) ->
+                if p.descr = Path.boolpath then
+                  indreln_typ t1 ^ ws skips ^ from_string "->" ^ from_string "Prop"
+                else
+                  indreln_typ t1 ^ ws skips ^ from_string "->" ^ indreln_typ t2
+              | _ ->
+                indreln_typ t1 ^ ws skips ^ from_string "->" ^ indreln_typ t2
+          end
+        | Typ_tup ts ->
+            let body = flat @@ Seplist.to_sep_list indreln_typ (sep @@ from_string "*") ts in
+              from_string "(" ^ body ^ from_string ") % type"
+        | Typ_app (p, ts) ->
+          let args = concat_str " " @@ List.map indreln_typ ts in
+          let args_space = if List.length ts = 1 then from_string " " else emp in
+            Output.flat [
+              typ_ident_to_output p; args_space; args
+            ]
+        | Typ_paren(skips, t, skips') ->
+            ws skips ^ from_string "(" ^ indreln_typ t ^ from_string ")" ^ ws skips'
+        | Typ_len nexp -> src_nexp nexp
     and field_typ t =
       match t.term with
         | Typ_wild skips -> ws skips ^ from_string "_"
