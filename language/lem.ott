@@ -308,6 +308,8 @@ typ_aux :: 'Typ_' ::=
   {{ com As a typ to permit applications over Nexps, otherwise not accepted }}
   | id typ1 .. typn			:: :: app
   {{ com Type applications }}
+  | quoted_string typ1 .. typn			:: :: backend
+    {{ com Backend-Type applications }}
   | ( typ )					:: :: paren
 
 typ :: '' ::=
@@ -778,7 +780,7 @@ target_rep_rhs :: 'Target_rep_rhs_' ::=
 target_rep_lhs  :: 'Target_rep_lhs_' ::=
   {{ com left hand side of a target representation declaration }}
   | target_rep component id x_l1 .. x_ln :: :: term
-  | target_rep component typschm         :: :: type
+  | target_rep component id tnvars       :: :: type
 
 declare_def :: 'Decl_' ::= 
   {{ com declarations }}

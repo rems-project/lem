@@ -73,6 +73,7 @@ and t_aux =
   | Tfn of t * t
   | Ttup of t list
   | Tapp of t list * Path.t
+  | Tbackend of t list * Path.t (* a backend type that should be preserved litterally *)
   | Tne of nexp
   | Tuvar of t_uvar
 and nexp = { mutable nexp : nexp_aux }

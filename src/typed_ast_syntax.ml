@@ -799,6 +799,8 @@ let rec add_type_entities (ue : used_entities) (t : Types.t) : used_entities =
         List.fold_left add_type_entities ue ts
     | Tapp(ts,p) ->
         List.fold_left add_type_entities (used_entities_add_type ue p) ts
+    | Tbackend(ts,_) ->
+        List.fold_left add_type_entities ue ts
     | Tne _ -> ue
     | Tuvar _ -> ue
 
@@ -810,6 +812,7 @@ let rec add_src_t_entities (ue : used_entities) (t : Typed_ast.src_t) : used_ent
     | Typ_fn (t1, _, t2) -> add_src_t_entities (add_src_t_entities ue t1) t2
     | Typ_tup sp -> Seplist.fold_left (fun t ue -> add_src_t_entities ue t) ue sp
     | Typ_app (id, args) -> List.fold_left add_src_t_entities (used_entities_add_type ue id.descr) args
+    | Typ_backend (_, args) -> List.fold_left add_src_t_entities ue args
     | Typ_paren (_, t, _) -> add_src_t_entities ue t
 
 let rec add_pat_entities (ue : used_entities) (p : pat) : used_entities =

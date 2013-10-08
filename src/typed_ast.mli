@@ -126,6 +126,7 @@ and src_t_aux =
  | Typ_fn of src_t * lskips * src_t
  | Typ_tup of src_t lskips_seplist
  | Typ_app of Path.t id * src_t list
+ | Typ_backend of Path.t id * src_t list (** a backend type that should be used literally *)
  | Typ_paren of lskips * src_t * lskips
 
 and src_nexp =  { nterm : src_nexp_aux; nloc : Ast.l; nt : Types.nexp } 
@@ -462,9 +463,12 @@ type declare_def =  (** Declarations *)
    (** [Decl_compile_message_decl (sk1, targs, sk2, c, sk3, sk4, message)], declares printing waring message
        [message], if constant [c] is used for one of the targets in [targs] *)
  | Decl_target_rep_decl_term of lskips * Ast.target * lskips * Ast.component * const_descr_ref id * name_lskips_annot list * lskips * target_rep_rhs
-   (** [Decl_target_rep_decl (sk1, targ, sk2, comp, c, args, sk3, rhs)] declares a targetrepresentation. for target [targ] and
-       constant [const] with arguments [args]. Since fields and constant life in different namespaces, [comp] is used to declare
-       wether a field or a constant is meant. The [rhs] constains details about the representation. *)
+   (** [Decl_target_rep_decl_term (sk1, targ, sk2, comp, c, args, sk3, rhs)] declares a target-representation for target [targ] and
+       constant [c] with arguments [args]. Since fields and constant live in different namespaces, [comp] is used to declare
+       whether a field or a constant is meant. The [rhs] constains details about the representation. *)
+ | Decl_target_rep_decl_type of lskips * Ast.target * lskips * lskips * Path.t id * tnvar list * lskips * src_t
+   (** [Decl_target_rep_decl_type (sk1, targ, sk2, sk3, id, args, sk4, rhs)] declares a target-representation. for target [targ] and
+       type [id] with arguments [args]. *)
 
 type def_aux =
   | Type_def of lskips * (name_l * tnvar list * Path.t * texp * name_sect option) lskips_seplist

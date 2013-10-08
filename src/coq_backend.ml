@@ -163,6 +163,7 @@ let rec generate_coq_decidable_equality' t =
      | Typ_fn (src, _, dom) -> None
      | Typ_tup srct_skiplist -> assert false
      | Typ_app (id, typ) -> assert false
+     | Typ_backend (id, typ) -> assert false
      | Typ_paren (_, src, _) -> generate_coq_decidable_equality' src.term
 ;;
 
@@ -198,6 +199,9 @@ let rec src_t_to_string =
   function
     | Typ_app (p, ts) ->
       let (name_list, name) = Ident.to_name_list (B.type_id_to_ident p) in
+        from_string @@ Ulib.Text.to_string (Name.to_rope name)
+    | Typ_backend (p, ts) ->
+      let (name_list, name) = Path.to_name_list p.descr in
         from_string @@ Ulib.Text.to_string (Name.to_rope name)
     | Typ_var (_, v) ->
         id Type_var @@ Ulib.Text.(^^^) (r"") (Tyvar.to_rope v)
@@ -441,6 +445,7 @@ let generate_coq_record_update_notation e =
         | Typ_len src_nexp -> print_and_fail bod.locn "illegal vector length index appearing in abbreviation type"
         | Typ_fn (src_t, skips, src_t') -> from_string "(* XXX: equality on Typ_fn *)\n"
         | Typ_tup src_t_lskips_seplist -> from_string "(* XXX: equality on Typ_tup *)\n"
+        | Typ_backend (path_id, src_t_list) -> from_string "(* XXX: equality on Typ_backend *)\n"
         | Typ_app (path_id, src_t_list) ->
             let eq_name = typ_ident_to_output path_id in
             Output.flat [

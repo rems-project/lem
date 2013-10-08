@@ -226,7 +226,7 @@ let lookup_p msg (e : local_env) (Ast.Id(mp,xl,l) as i) : Path.t =
   let e = path_lookup l e (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
     match Nfmap.apply e.p_env (Name.strip_lskip (Name.from_x xl)) with
       | None ->
-          raise (Reporting_basic.err_type_pp l (Printf.sprintf "unbound type %s" msg)
+          raise (Reporting_basic.err_type_pp l (Printf.sprintf "unbound type%s" msg)
             Ident.pp (Ident.from_id i))
       | Some(p, _) -> p
 
@@ -268,7 +268,7 @@ let lookup_l (l_e : lex_env) mp n : (t * Ast.l * Name.lskips_t) option =
 (* Finds a type class's path, and its methods, in the current enviroment, given
  * its name. *)
 let lookup_class_p (ctxt : defn_ctxt) (id : Ast.id) : Path.t * class_descr = 
-  let p = lookup_p "class" ctxt.cur_env id in
+  let p = lookup_p " class" ctxt.cur_env id in
     match Pfmap.apply ctxt.all_tdefs p with
       | None -> raise (Reporting_basic.err_general true Ast.Unknown "invariant in finding type class path broken")
       | Some(Tc_class d) -> (p, d)
@@ -358,7 +358,7 @@ let rec typ_to_src_t (wild_f : Ast.l -> lskips -> src_t)
             typ = { t = Ttup(Seplist.to_list_map annot_to_typ sts) };
             rest = (); }
     | Ast.Typ_app(i,typs) ->
-        let p = lookup_p "constructor" e i in
+        let p = lookup_p " constructor" e i in
           begin
             match Pfmap.apply d p with
               | None ->
@@ -387,6 +387,19 @@ let rec typ_to_src_t (wild_f : Ast.l -> lskips -> src_t)
                   raise (Reporting_basic.err_type_pp l "type class used as type constructor" 
                     Ident.pp (Ident.from_id i))
           end
+    | Ast.Typ_backend(sk,q,typs) ->
+        let i = Ident.replace_lskip (check_backend_quote l q) sk in
+        let p = Path.from_id i in
+        let sts = List.map (typ_to_src_t wild_f do_tvar do_nvar d e) typs in
+        let id = {id_path = Id_some i; 
+                  id_locn = l;
+                  descr = p;
+                  instantiation = []; }
+        in
+          { term = Typ_backend(id,sts);
+            locn = l;
+            typ = { t = Tbackend(List.map annot_to_typ sts,p) };
+            rest = (); }
     | Ast.Typ_paren(sk1,typ,sk2) ->
         let st = typ_to_src_t wild_f do_tvar do_nvar d e typ in
         { term = Typ_paren(sk1,st,sk2); 
@@ -444,7 +457,7 @@ let typ_to_src_t_indreln wit (d : type_defs) (e : local_env) (typt : Types.t) ty
       match typ with
       | Ast.Typ_app(i, []) -> 
         let n, id = dest_id i in
-        let p = lookup_p "constructor" e i in
+        let p = lookup_p " constructor" e i in
         begin match wit with
           | _ when Path.compare p Path.unitpath = 0 -> ()
           | Some(wit_p) when Path.compare p wit_p = 0 -> ()
@@ -680,7 +693,7 @@ let rec check_free_tvs (tvs : TNset.t) (Ast.Typ_l(t,l)) : unit =
     | Ast.Typ_tup(ts) -> 
         List.iter (check_free_tvs tvs) (List.map fst ts)
     | Ast.Typ_Nexps(n) -> check_free_ns tvs n
-    | Ast.Typ_app(_,ts) -> 
+    | (Ast.Typ_app(_,ts) | Ast.Typ_backend (_, _, ts)) -> 
         List.iter (check_free_tvs tvs) ts
     | Ast.Typ_paren(_,t,_) -> 
         check_free_tvs tvs t
@@ -2518,10 +2531,8 @@ let check_declare_target_rep_term_rhs (l : Ast.l) ts (ctxt : defn_ctxt) args rhs
                  raise (Reporting_basic.err_type l "infix target declaration with arguments") in
        let i = check_backend_quote l id in
        Target_rep_rhs_infix (sk1, infix_decl, sk2, i)
-   | Ast.Target_rep_rhs_type_replacement t ->
-       raise (Reporting_basic.err_todo true l "unsupported rhs of term target representation declaration")
    | Ast.Target_rep_rhs_special (sk1, sk2, sp, args) ->
-       raise (Reporting_basic.err_todo true l "unsupported rhs of term target representation declaration")
+       raise (Reporting_basic.err_todo true l "unsupported rhs of term target special representation declaration")
 
 
 (* [check_declare_target_rep_term ts mod_path l ctxt comp id args rhs] checks
@@ -2588,6 +2599,48 @@ begin
 
   let def_aux = Decl_target_rep_decl_term (sk1, target, sk2, comp, c_id, 
                    args_parsed, sk3, rhs_parsed) in
+  (ctxt, Some (Declaration def_aux))
+end
+
+
+let check_declare_target_rep_type 
+   (ts : Targetset.t) 
+   (mod_path : Name.t list) 
+   (l : Ast.l) 
+   (ctxt : defn_ctxt) 
+   sk1
+   target
+   sk2
+   sk3
+   type_id
+   tnvars 
+   sk4
+   (rhs : Ast.typ) : 
+   (Typecheck_ctxt.defn_ctxt * Typed_ast.def_aux option) = 
+begin
+  let tvs_tast = List.map ast_tnvar_to_tnvar tnvars in
+  let tvs = List.map tnvar_to_types_tnvar tvs_tast in
+  let p = lookup_p "" ctxt.cur_env type_id in
+  let p_id = {id_path = Id_some (Ident.from_id type_id); 
+              id_locn = l;
+              descr = p;
+              instantiation = []; } in  
+
+  let td = match Pfmap.apply ctxt.all_tdefs p with
+            | None ->
+                raise (Reporting_basic.err_general true l "invariant in checking type broken")
+            | Some(Tc_type(td)) -> td in
+  let _ = if List.length td.type_tparams = List.length tvs then () else
+            raise (Reporting_basic.err_type_pp l (Printf.sprintf "type constructor expected %d type arguments, given %d" 
+                        (List.length td.type_tparams)
+                        (List.length tvs))
+                   Ident.pp (Ident.from_id type_id)) in
+
+  let _ = check_free_tvs (tvs_to_set tvs) rhs in
+  let rhs_src_t = typ_to_src_t anon_error ignore ignore ctxt.all_tdefs ctxt.cur_env rhs in 
+
+  let def_aux = Decl_target_rep_decl_type (sk1, target, sk2, sk3, p_id, tvs_tast, 
+                   sk4, rhs_src_t) in
   (ctxt, Some (Declaration def_aux))
 end
 
@@ -2685,9 +2738,10 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
             ctxt, None
       | Ast.Declaration(Ast.Decl_target_rep_decl (sk1, target, sk2, Ast.Target_rep_lhs_term(sk3, comp, id, args), sk4, rhs)) ->
           check_declare_target_rep_term backend_targets mod_path l ctxt sk1 target (Ast.combine_lex_skips sk2 sk3) comp id args sk4 rhs
-      | Ast.Declaration(Ast.Decl_target_rep_decl (_, _, _, Ast.Target_rep_lhs_type _, _, _)) ->
-          let _ = prerr_endline "target_rep_decl type declaration encountered" in
-            ctxt, None
+      | Ast.Declaration(Ast.Decl_target_rep_decl (sk1, target, sk2, Ast.Target_rep_lhs_type(sk3, Ast.Component_type sk4, x, tnvars), sk5, Ast.Target_rep_rhs_type_replacement typ)) ->
+          check_declare_target_rep_type backend_targets mod_path l ctxt sk1 target (Ast.combine_lex_skips sk2 sk3) sk4 x tnvars sk5 typ 
+      | Ast.Declaration(Ast.Decl_target_rep_decl _) ->
+          raise (Reporting_basic.err_type l "illformed target-representation declaration")
       | Ast.Declaration(Ast.Decl_set_flag_decl (_, _, _, _, _)) ->
           let _ = prerr_endline "set flag declaration encountered" in
             ctxt, None

@@ -6,8 +6,9 @@
 
 (* rename module to clash with existing list modules of targets
    problem: renaming from inside the module itself! *)
+(*
 declare rename module = lem_maybe
-
+*)
 
 (* ========================================================================== *)
 (* Basic stuff                                                                *)
@@ -17,20 +18,22 @@ type maybe 'a =
   | Nothing
   | Just of 'a
 
-declare targettype hol      maybe 'a = 'option' 'a
-declare targettype isabelle maybe 'a = 'option' 'a
-declare targettype coq      maybe 'a = 'option' 'a
-declare targettype ocaml    maybe 'a = 'option' 'a
+declare hol      target_rep type maybe 'a = `option` 'a 
+declare isabelle target_rep type maybe 'a = `option` 'a
+declare coq      target_rep type maybe 'a = `option` 'a
+declare ocaml    target_rep type maybe 'a = `option` 'a
 
-declare targetrep hol      Just = 'SOME'
-declare targetrep ocaml    Just = 'Some'
-declare targetrep isabelle Just = 'Some'
-declare targetrep coq      Just = 'Some'
 
-declare targetrep hol      Nothing = 'NONE'
-declare targetrep ocaml    Nothing = 'None'
-declare targetrep isabelle Nothing = 'None'
-declare targetrep coq      Nothing = 'None'
+
+declare hol      target_rep function Just = `SOME`
+declare ocaml    target_rep function Just = `Some`
+declare isabelle target_rep function Just = `Some`
+declare coq      target_rep function Just = `Some`
+
+declare hol      target_rep function Nothing = `NONE`
+declare ocaml    target_rep function Nothing = `None`
+declare isabelle target_rep function Nothing = `None`
+declare coq      target_rep function Nothing = `None`
 
 (* ----------------------- *)
 (* maybe                   *)
@@ -42,7 +45,7 @@ let maybe d f mb = match mb with
   | Nothing -> d
 end
 
-declare targetrep ocaml    maybe d f mb = 'Option.map_default' f d mb
+declare ocaml    target_rep function maybe d f mb = `Option.map_default` f d mb
 
 (* ----------------------- *)
 (* isJust / isNothing      *)
@@ -54,9 +57,10 @@ let isJust mb = match mb with
   | Nothing -> false
 end
 
-declare targetrep hol      isJust = 'IS_SOME'
-declare targetrep ocaml    isJust = 'is_some'
-declare targetrep isabelle isJust x = not (x = Nothing)
+declare hol      target_rep function isJust = `IS_SOME`
+declare ocaml    target_rep function isJust x = `is_some`
+declare isabelle target_rep function isJust x = not (x = Nothing)
+
 
 val isNothing : forall 'a. maybe 'a -> bool
 let isNothing mb = match mb with 
@@ -64,9 +68,9 @@ let isNothing mb = match mb with
   | Nothing -> true
 end
 
-declare targetrep hol      isNothing = 'IS_NONE'
-declare targetrep ocaml    isNothing = 'is_none'
-declare targetrep isabelle isNothing x = (x = Nothing)
+declare hol      target_rep function isNothing = `IS_NONE`
+declare ocaml    target_rep function isNothing = `is_none`
+declare isabelle target_rep function isNothing x = (x = Nothing)
 
 lemma isJustNothing: (
   (forall x. isNothing x = not (isJust x)) &&
@@ -80,11 +84,11 @@ lemma isJustNothing: (
 val fromJust : forall 'a. maybe 'a -> 'a
 let fromJust (Just v) = v
 declare termination_argument length = automatic
-declare compile_message fromJust = "fromJust is only defined on Just. Better use 'fromMaybe' or use explicit maching to handle the Nothing-case."
+declare compile_message fromJust = "fromJust is only defined on Just. Better use `fromMaybe` or use explicit maching to handle the Nothing-case."
 
-declare targetrep hol      fromJust = 'THE'
-declare targetrep ocaml    fromJust = 'Option.get'
-declare targetrep isabelle fromJust = 'the'
+declare hol      target_rep function fromJust = `THE`
+declare ocaml    target_rep function fromJust = `Option.get`
+declare isabelle target_rep function fromJust = `the`
 
 lemma fromJust: (forall v. fromJust (Just v) = v)
 
@@ -99,10 +103,10 @@ let fromMaybe d mb = match mb with
    | Nothing -> d
 end
 
-declare targetrep ocaml    fromMaybe = 'Option.default'
+declare ocaml    target_rep function fromMaybe = `Option.default`
 
 lemma fromMaybe: (
-  (forall d v. fromMaybe d (Just v) = v)
+  (forall d v. fromMaybe d (Just v) = v) &&
   (forall d. fromMaybe d Nothing = d))
 
 
@@ -113,9 +117,9 @@ lemma fromMaybe: (
 val map : forall 'a 'b. ('a -> 'b) -> maybe 'a -> maybe 'b 
 let map f = maybe Nothing (fun v -> Just (f v))
 
-declare targetrep hol      map = 'OPTION_MAP'
-declare targetrep ocaml    map = 'Option.map'
-declare targetrep isabelle map = 'Option.map'
+declare hol      target_rep function map = `OPTION_MAP`
+declare ocaml    target_rep function map = `Option.map`
+declare isabelle target_rep function map = `Option.map`
 
 lemma maybe_map: (
   (forall f. map f Nothing = Nothing) &&

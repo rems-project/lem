@@ -99,6 +99,7 @@ and src_t_aux =
  | Typ_fn of src_t * lskips * src_t
  | Typ_tup of src_t lskips_seplist
  | Typ_app of Path.t id * src_t list
+ | Typ_backend of Path.t id * src_t list
  | Typ_paren of lskips * src_t * lskips
 
 and src_nexp = { nterm : src_nexp_aux; nloc : Ast.l; nt : Types.nexp } (*(src_nexp_aux,unit) annot*)
@@ -334,6 +335,7 @@ target_rep_rhs =  (* right hand side of a target representation declaration *)
 type declare_def =  (* declarations *)
  | Decl_compile_message_decl of lskips * targets_opt * lskips * const_descr_ref id * lskips * lskips * string 
  | Decl_target_rep_decl_term of lskips * Ast.target * lskips * Ast.component * const_descr_ref id * name_lskips_annot list * lskips * target_rep_rhs
+ | Decl_target_rep_decl_type of lskips * Ast.target * lskips * lskips * Path.t id * tnvar list * lskips * src_t
 
 (*
  | Decl_rename_decl of lskips * targets option * lskips * component * id * lskips * x_l
@@ -450,6 +452,9 @@ let rec typ_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (t : src_t)
       | Typ_app(id,ts) ->
           let (id_new,s_ret) = id_alter_init_lskips lskips_f id in
             res (Typ_app(id_new,ts)) s_ret 
+      | Typ_backend(id,ts) ->
+          let (id_new,s_ret) = id_alter_init_lskips lskips_f id in
+            res (Typ_backend(id_new,ts)) s_ret 
       | Typ_paren(s1,t,s2) ->
           let (s_new,s_ret) = lskips_f s1 in
             res (Typ_paren(s_new,t,s2)) s_ret
@@ -2143,7 +2148,7 @@ module Exps_in_context(D : Exp_context) = struct
             mk_tparen Ast.Unknown None t None (Some(t.typ))
           else
             t
-      | Typ_app _ ->
+      | (Typ_app _ | Typ_backend _) ->
           if ctxt = TC_app then
             mk_tparen Ast.Unknown None t None (Some(t.typ))
           else 

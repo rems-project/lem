@@ -94,6 +94,7 @@ and t_aux =
   | Tfn of t * t
   | Ttup of t list
   | Tapp of t list * Path.t
+  | Tbackend of t list * Path.t
   | Tne of nexp
   | Tuvar of t_uvar
 and t_uvar = { index : int; mutable subst : t option }
@@ -121,6 +122,8 @@ let free_vars t =
       | Ttup(ts) -> 
           List.fold_left (fun acc t -> f t acc) acc ts
       | Tapp(ts,_) ->
+          List.fold_left (fun acc t -> f t acc) acc ts
+      | Tbackend(ts,_) ->
           List.fold_left (fun acc t -> f t acc) acc ts
       | Tne n -> f_n n acc
       | Tuvar _ -> assert false (*TVset.empty*)
@@ -216,6 +219,14 @@ let rec compare t1 t2 =
             c
     | (Tapp _, _) -> 1
     | (_, Tapp _) -> -1
+    | (Tbackend(ts1,p1), Tbackend(ts2,p2)) -> 
+        let c = Util.compare_list compare ts1 ts2 in
+          if c = 0 then
+            Path.compare p1 p2
+          else
+            c
+    | (Tbackend _, _) -> 1
+    | (_, Tbackend _) -> -1
     | (Tne(n1),Tne(n2)) -> compare_nexp n1 n2
     | (Tne _, _) -> 1
     | (_, Tne _) -> -1
@@ -280,6 +291,12 @@ let rec type_subst_aux (substs : t TNfmap.t) (t : t) =
             | Some(ts) -> Some({ t = Ttup(ts) })
         end
     | Tapp(ts,p) -> 
+        begin
+          match Util.map_changed (type_subst_aux substs) ts with
+            | None -> None
+            | Some(ts) -> Some({ t = Tapp(ts,p) })
+        end
+    | Tbackend(ts,p) -> 
         begin
           match Util.map_changed (type_subst_aux substs) ts with
             | None -> None
@@ -544,6 +561,16 @@ let rec pp_type ppf t =
          fprintf ppf "%a @[%a@]"
            Path.pp p
            (lst "@ " pp_type) ts
+     | Tbackend([],p) ->
+         Path.pp ppf p
+     | Tbackend([t],p) ->
+         fprintf ppf "%a@ %a"
+           Path.pp p
+           pp_type t
+     | Tbackend(ts,p) ->
+         fprintf ppf "%a @[%a@]"
+           Path.pp p
+           (lst "@ " pp_type) ts
      | Tne(n) -> fprintf ppf "%a" 
                    pp_nexp n
      | Tuvar(u) ->
@@ -623,6 +650,7 @@ let t_to_var_name t =
      | Tfn(t1,t2) -> "f"
      | Ttup(ts) -> "p"
      | Tapp(ts,p) -> Name.to_string (Path.get_name p)
+     | Tbackend(ts,p) -> Name.to_string (Path.get_name p)
      | Tne(n) -> "x"
      | Tuvar(u) -> "x"
   in 
@@ -1583,6 +1611,8 @@ and ftv (t : t) (acc : TNset.t) : TNset.t = match t.t with
   | Ttup(ts) -> 
       ftvs ts acc
   | Tapp(ts,_) ->
+      ftvs ts acc
+  | Tbackend(ts,_) ->
       ftvs ts acc
   | Tne(n) -> fnv n acc
   | Tuvar(_) -> 

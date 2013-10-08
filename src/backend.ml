@@ -1178,9 +1178,6 @@ let lit l t = match l.term with
   | L_one(s) -> ws s ^ T.const_bone
   | L_vector(s,p,b) -> ws s ^ kwd (String.concat "" [p;b])
 
-let typ_ident_to_output (p : Path.t id) =     
-  Ident.to_output Type_ctor T.path_sep (B.type_id_to_ident p)
-
 let nexp n =
   let rec nexp_int n = match n.nterm with
     | Nexp_var(s,v) ->
@@ -1207,18 +1204,25 @@ let rec typ t = match t.term with
       typ t2
   | Typ_tup(ts) ->
       flat (Seplist.to_sep_list typ (sep T.typ_tup_sep) ts) ^ T.typ_tup_section
-  | Typ_app(p, ts) ->
+  | (Typ_app(p, ts) | Typ_backend(p, ts)) ->
+      let p_out = begin 
+        let i = match t.term with
+          | Typ_app _ -> B.type_id_to_ident p
+          | Typ_backend _ -> B.type_id_to_ident_no_modify p
+        in
+        Ident.to_output Type_ctor T.path_sep i
+      end in
       if (T.type_params_pre) then
         if (T.nexp_params_vis) then
           bracket_many typ (T.tup_sep) (kwd "(") (kwd ")") ts ^
-          texspace ^ (typ_ident_to_output p)
+          texspace ^ p_out
         else 
           bracket_omit typ (fun t f s -> match t.term with 
                                         | Typ_len _ -> f t
                                         | _ -> f t ^ s) typ_alter_init_lskips (T.tup_sep) (kwd "(") (kwd ")") ts ^
-          texspace ^ (typ_ident_to_output p)
+          texspace ^ p_out
       else
-        (typ_ident_to_output p) ^
+        p_out ^
         texspace ^
         concat emp (List.map typ ts)
   | Typ_len(n) -> nexp n
@@ -2233,7 +2237,6 @@ let infix_decl = function
 
 
 let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = match d with
-
   (* A single type abbreviation *)
   | Type_def(s1, l) when is_abbrev l->
       begin
@@ -2343,7 +2346,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         ws s2 ^
         kwd "inline" ^
         targets_opt targets ^
-        Name.to_output Term_var (B.const_ref_to_name n.term c) ^
+        Name.to_output Term_var n.term ^
         flat (List.map (fun n -> Name.to_output Term_var n.term) args) ^ 
         ws s4 ^
         kwd "=" ^
@@ -2481,6 +2484,21 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
             end
           | _ -> raise (Reporting_basic.err_todo true Ast.Unknown "declaration")
         ) 
+      end
+  | Declaration (Decl_target_rep_decl_type (sk1, targ, sk2, sk3, id, args, sk4, rhs)) ->
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        kwd "declare" ^
+        (Target.target_to_output targ) ^
+        ws sk2 ^
+        kwd "target_rep" ^
+        ws sk3 ^
+        kwd "type" ^
+        (Ident.to_output Type_ctor T.path_sep (B.type_id_to_ident id)) ^
+        tdef_tvars true args ^
+        ws sk4 ^
+        kwd "=" ^
+        typ rhs
       end
   | Declaration (Decl_compile_message_decl _) -> raise (Reporting_basic.err_todo true Ast.Unknown "compile message declaration") 
   | Comment(d) ->

@@ -60,6 +60,7 @@ let rec has_decidable_equality_src_t (src_t : src_t) : bool =
         let seplist = Seplist.to_list src_ts in
           List.for_all has_decidable_equality_src_t seplist
     | Typ_app (_, src_ts) -> List.for_all has_decidable_equality_src_t src_ts
+    | Typ_backend (_, src_ts) -> List.for_all has_decidable_equality_src_t src_ts
     | Typ_paren (_, src_t, _) -> has_decidable_equality_src_t src_t
 ;;
 
@@ -143,6 +144,8 @@ let rec occurs_src_t (x : Name.t) (s : src_t) : bool =
             true
           else
             List.exists (occurs_src_t x) src_ts
+    | Typ_backend (_, src_ts) ->
+        List.exists (occurs_src_t x) src_ts
     | Typ_paren (_, src_t, _) -> occurs_src_t x src_t
 ;;
 
@@ -196,6 +199,8 @@ and occurs_strictly_positively (inductive_types : src_t list InductiveMap.t) (x 
               List.for_all (nested_positivity_condition inductive_types x) ctors
           else
             List.for_all (fun y -> not (occurs_src_t x y)) src_ts
+    | Typ_backend (path, src_ts) ->
+          List.for_all (fun y -> not (occurs_src_t x y)) src_ts
     | Typ_paren (_, src_t, _) -> occurs_strictly_positively inductive_types x src_t
 
 (**
@@ -217,7 +222,7 @@ and strict_positivity_condition (inductive_types : src_t list InductiveMap.t) (x
     | Typ_tup seplist -> true (* ??? how do you handle tuples in a ctor type?
         let src_ts = Seplist.to_list seplist in
           List.for_all (strict_positivity_condition x) src_ts *)
-    | Typ_app (path, src_ts) ->
+    | (Typ_app (_, src_ts) | Typ_backend (_, src_ts)) ->
         List.for_all (fun y -> not (occurs_src_t x y)) src_ts
     | Typ_paren (_, src_t, _) -> strict_positivity_condition inductive_types x src_t
 ;;

@@ -112,10 +112,18 @@ val const_ref_to_name : Name.lskips_t -> const_descr_ref -> Name.lskips_t
 val type_path_to_name : Name.lskips_t -> Path.t -> Name.lskips_t
 
 (** [type_id_to_ident ty_id] tries to format a type
-    [c_id] as an identifier for target [A.target] using the rules stored
+    [ty_id] as an identifier for target [A.target] using the rules stored
     in environment [A.env]. 
 *)
 val type_id_to_ident : Path.t id -> Ident.t
+
+(** [type_id_to_ident_no_modify ty_id] formats [ty_id] as an identifier.
+    In contrast to [type_id_to_ident] neither the target [A.target] nor the rules stored
+    in environment [A.env] are used. Instead the type is translated without any
+    modifications. This method is intended to be used for backend types, which
+    are already formatted.
+*)
+val type_id_to_ident_no_modify : Path.t id -> Ident.t
 
 (** [module_id_to_ident m_id] tries to format a module
     [m_id] as an identifier for target [A.target] using the rules stored

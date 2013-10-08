@@ -353,6 +353,8 @@ let rec fix_exp env get_prec e =
           C.mk_const old_l c old_t
       | Var(n) ->
           C.mk_var old_l n (exp_to_typ e) 
+      | Backend(sk,i) ->
+          C.mk_backend old_l sk i (exp_to_typ e) 
       | Lit _  | Nvar_e _ ->
           e
 

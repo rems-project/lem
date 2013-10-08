@@ -232,6 +232,8 @@ atomic_typ:
     { tloc (Typ_var(A_l((fst $1, snd $1), loc()))) }
   | id
     { tloc (Typ_app($1,[])) }
+  | QuotedString
+    { tloc (Typ_backend(fst $1,snd $1, [])) }
   | Lparen typ Rparen
     { tloc (Typ_paren($1,$2,$3)) }
 
@@ -252,6 +254,8 @@ app_typ:
     { $1 }
   | id atomic_typs
     { tloc (Typ_app($1,$2)) }
+  | QuotedString atomic_typs
+    { tloc (Typ_backend(fst $1,snd $1, $2)) }
   
 star_typ_list:
   | app_typ
@@ -949,21 +953,18 @@ fixity_decl :
   |
     { Fixity_default_assoc }
 
-target_rep_rhs :
+target_rep_rhs_term :
   | Infix fixity_decl QuotedString 
     { Target_rep_rhs_infix($1, $2, fst $3, snd $3) }
   | exp
     { Target_rep_rhs_term_replacement($1) }
-  | typ
-    { Target_rep_rhs_type_replacement($1) }
   | Special String exps
     { Target_rep_rhs_special($1, fst $2, snd $2, $3) }
 
-target_rep_lhs :
-  | TargetRep component_term id x_ls
-    { Target_rep_lhs_term ($1, $2, $3, $4) }
-  | TargetRep component_type typschm
-    { Target_rep_lhs_type ($1, $2, $3) }
+target_rep_rhs_type :
+  | typ
+    { $1 }
+
 
 x_ls :
   |
@@ -978,8 +979,10 @@ declaration :
     { Decl_rename_decl($1, $2, $3, $4, $5, fst $6, $7) }
   | Declare targets_opt AsciiRep component x Eq x
     { Decl_ascii_rep_decl($1, $2, $3, $4, $5, fst $6, $7) }
-  | Declare target target_rep_lhs Eq target_rep_rhs
-    { Decl_target_rep_decl($1, fst $2, snd $2, $3, fst $4, $5) }
+  | Declare target TargetRep component_term id x_ls Eq target_rep_rhs_term
+    { Decl_target_rep_decl($1, fst $2, snd $2, Target_rep_lhs_term ($3, $4, $5, $6), fst $7, $8) }
+  | Declare target TargetRep component_type id tnvs Eq target_rep_rhs_type
+    { Decl_target_rep_decl($1, fst $2, snd $2, Target_rep_lhs_type($3, $4, $5, $6), fst $7, Target_rep_rhs_type_replacement $8) }
   | Declare SetFlag x Eq x
     { Decl_set_flag_decl($1, $2, $3, fst $4, $5) }
   | Declare targets_opt TerminationArgument id Eq termination_setting

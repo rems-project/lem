@@ -270,6 +270,12 @@ let type_id_to_ident (p : Path.t id) =
    let i' = fix_module_prefix_ident A.env.local_env i in
    i'
 
+let type_id_to_ident_no_modify (p : Path.t id) =
+  let (ns, n) = Path.to_name_list p.descr in
+  let sk = ident_get_lskip p in
+  Ident.mk_ident sk ns n
+
+
 let module_id_to_ident (mod_descr : mod_descr id) : Ident.t =
 (*   let l = Ast.Trans ("module_id_to_ident", None) in *)
    let i = resolve_module_id_ident (A.env.local_env) mod_descr mod_descr.descr.mod_binding in
@@ -289,7 +295,7 @@ let component_to_output t =
   let open Output in
     let a = Output.Target in
     match t with
-      | Ast.Component_type(s) -> ws s ^ id a (r"type")
-      | Ast.Component_field(s) -> ws s ^ id a (r"field")
-      | Ast.Component_module(s) -> ws s ^ id a (r"module")
-      | Ast.Component_function(s) -> ws s ^ id a (r"function")
+      | Ast.Component_type s -> ws s ^ id a (r"type")
+      | Ast.Component_field s -> ws s ^ id a (r"field")
+      | Ast.Component_module s -> ws s ^ id a (r"module")
+      | Ast.Component_function s -> ws s ^ id a (r"function")
