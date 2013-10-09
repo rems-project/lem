@@ -2343,7 +2343,11 @@ let check_val_def (ts : Targetset.t) (mod_path : Name.t list) (l : Ast.l)
             (ctxt', e_v, (Fun_def(sk1,FR_rec sk2,target_opt,fauxs)), Tconstraints(tnvs,constraints,lconstraints))
       | Ast.Let_inline (sk1,sk2,_,lb) -> 
           let (lb,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_letbind None target_set_opt l lb in 
-          let _ = check_class_constraints_err "inlined functions with class contraints" l constraints in
+(* Thomas Tuerk, 8. Oct 2013,
+   I think we want to allow inlines with constraints. Not completely sure though. Therefore, 
+   I only comment it out for now. TODO: check carefully and delete 
+
+          let _ = check_class_constraints_err "inlined functions with class contraints" l constraints in *)
           let ctxt' = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) constraints lconstraints K_let target_set_opt e_v in
           let (nls, n_ref, _, pL, ty_opt, sk3, et) = letbind_to_funcl_aux_dest ctxt' lb in
           let args = match Util.map_all Pattern_syntax.pat_to_ext_name pL with

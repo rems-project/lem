@@ -2,6 +2,9 @@
 (* A library for common operations on functions                               *)
 (******************************************************************************)
 
+open Maybe 
+open Bool
+
 (* ----------------------- *)
 (* identity function       *)
 (* ----------------------- *)
@@ -21,8 +24,7 @@ let const x _ = x
 (* function composition    *)
 (* ----------------------- *)
 
-val (.) : forall 'a 'b 'c. ('b -> 'c) -> ('a -> 'b) -> ('a -> 'c)
-declare ascii_rep function (.) = comb
+val comb : forall 'a 'b 'c. ('b -> 'c) -> ('a -> 'b) -> ('a -> 'c)
 let comb f g = (fun x -> f (g x))
 
 
