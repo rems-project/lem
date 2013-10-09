@@ -96,6 +96,7 @@ let inline {ocaml} fold_left2 = Ocaml.List.fold_left2
 let inline {hol} fold_left2 = Hol.FOLDL2
 
 val fold_right2 : forall 'a 'b 'c. ('a -> 'b -> 'c -> 'c) -> list 'a -> list 'b -> 'c -> 'c
+let inline {ocaml} fold_right2 = Ocaml.List.fold_right2
 
 val for_all : forall 'a. ('a -> bool) -> list 'a -> bool
 let inline {hol} for_all = Hol.EVERY

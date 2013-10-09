@@ -80,6 +80,13 @@ must be compiled to link with
 \begin{verbatim}
 ocamlc -I path_to_lem/ocaml-lib/_build -o name extract.cma name1.ml
 \end{verbatim}
+%
+or, using \texttt{ocamlbuild} and \texttt{findlib}:
+%
+\begin{verbatim}
+export OCAMLPATH=/absolute/path/to/lem/ocaml-lib:$OCAMLPATH
+ocamlbuild -use-ocamlfind -pkg lem name.native
+\end{verbatim}
 
 If the \texttt{-tex} option is specified, then 
 for each input file \texttt{name.lem} the tool will create both a

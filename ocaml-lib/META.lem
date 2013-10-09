@@ -1,0 +1,8 @@
+description = "Lem"
+requires = "num"
+version = "0.3.1"
+
+directory="_build"
+archive(byte) = "extract.cma"
+archive(native) = "extract.cmxa"
+
