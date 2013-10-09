@@ -333,5 +333,9 @@ val pp_instance_defs: Format.formatter -> i_env -> unit
 
 val t_to_string : t -> string
 
+(** [print_debug_typ_raw s [ty0, ..., tn]] prints a debug message [s t0, ..., tn]
+    using [Reporting_basic.print_debug]. *)
+val print_debug_typ_raw : string -> t list -> unit
+
 (* converts the type into the default name of auto-generated variables of this type *)
 val t_to_var_name : t -> Name.t

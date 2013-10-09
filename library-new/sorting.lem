@@ -29,19 +29,16 @@ val isPermutation : forall 'a. Eq 'a => list 'a -> list 'a -> bool
 val isPermutationBy : forall 'a. ('a -> 'a -> bool) -> list 'a -> list 'a -> bool
 
 let isPermutation = isPermutationBy (=)
-
-(* TODO: Fix some bug in parsing matching 
-
-let rec isPermutationBy (eq : 'a -> 'a -> bool) (l1 : list 'a) (l2 : list 'a) = match l1 with
+let rec isPermutationBy eq l1 l2 = match l1 with
   | [] -> List.null l2
   | (x :: xs) -> begin
-      match List.deleteFirst (eq x) (l2 : list 'a) with
-        | ((Just (ys : list 'a)) : maybe (list 'a)) -> isPermutationBy eq (xs : list 'a) (ys : list 'a)
-        | (Nothing : maybe (list 'a)) -> false
+      match List.deleteFirst (eq x) l2 with
+        | Nothing -> false
+        | Just ys -> isPermutationBy eq xs ys
       end
     end
 end
-*)
+
 
 assert perm_1: (isPermutation [] [])
 assert perm_2: (not (isPermutation [2] []))

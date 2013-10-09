@@ -894,10 +894,9 @@ module Exps_in_context(D : Exp_context) = struct
     (** TODO: perhaps add check for right no of args again 
     if List.length ps <> List.length c.descr.constr_args
     then raise (Ident.No_type(l, "wrong number of arguments for constructor")); *)
-
       begin
           List.iter2
-            (fun t p -> type_eq l "mk_pconst" (type_subst subst t) p.typ)
+            (fun t p -> type_eq l "mk_pconst" t p.typ)
             c_tyL
             ps
       end in

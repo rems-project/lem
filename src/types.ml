@@ -644,6 +644,11 @@ let pp_instance_defs ppf ipf =
 let t_to_string t =
   pp_to_string (fun ppf -> pp_type ppf t)
 
+let print_debug_typ_raw s tl = 
+  let tl_sl = List.map t_to_string tl in
+  let tl_s = String.concat ", " tl_sl in
+  print_debug (s ^ " " ^ tl_s)
+
 let t_to_var_name t =
   let aux t = match t.t with
      | Tvar(tv) -> "x"
