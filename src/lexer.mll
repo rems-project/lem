@@ -126,7 +126,7 @@ let hexdigit = ['0'-'9''A'-'F''a'-'f']
 let alphanum = letter|digit
 let startident = letter|'_'
 let ident = alphanum|['_''\'']
-let quote = [^' ''('')''\t''\n''`''"']
+let quote = [^' ''\t''\n''`''"']
 let oper_char = ['!''$''%''&''*''+''-''.''/'':''<''=''>''?''@''^''|''~']
 let safe_com1 = [^'*''('')''\n']
 let safe_com2 = [^'*''(''\n']

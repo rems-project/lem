@@ -2,6 +2,9 @@
 (* A library for binary relations                                             *)
 (******************************************************************************)
 
+open Bool
+open Basic_classes
+open Set
 
 
 (* ========================================================================== *)
@@ -11,8 +14,9 @@
 
 (* rename module to clash with existing list modules of targets
    problem: renaming from inside the module itself! *)
+(*
 declare rename module = lem_relation
-
+*)
 
 (* ========================================================================== *)
 (* The type of relations                                                      *)
@@ -31,13 +35,20 @@ type rel_set 'a 'b = set ('a * 'b)
 
 type rel 'a 'b
 
-val relToSet : forall 'a. Ord 'a => Ord 'b => rel 'a 'b -> rel_set 'a 'b
-val relFromSet : forall 'a. Ord 'a => Ord 'b => rel_set 'a 'b -> rel 'a 'b
+val relToSet : forall 'a 'b. Ord 'a, Ord 'b => rel 'a 'b -> rel_set 'a 'b
+val relFromSet : forall 'a 'b. Ord 'a, Ord 'b => rel_set 'a 'b -> rel 'a 'b
+
+val relEq : forall 'a 'b. Ord 'a, Ord 'b => rel 'a 'b -> rel 'a 'b -> bool
+let relEq r1 r2 = (relToSet r1 = relToSet r2)
+
+instance forall 'a 'b. Ord 'a, Ord 'b => (Eq (rel 'a 'b))
+  let (=) = relEq
+end
 
 lemma relToSet_inv: (forall r. relFromSet (relToSet r) = r)
 
-val relToPred : forall 'a. Ord 'a => Ord 'b => rel 'a 'b -> rel_pred 'a 'b
-val relFromPred : forall 'a. Ord 'a => Ord 'b => rel_pred 'a 'b -> rel 'a 'b
+val relToPred : forall 'a 'b. Ord 'a, Ord 'b => rel 'a 'b -> rel_pred 'a 'b
+val relFromPred : forall 'a 'b. Ord 'a, Ord 'b => rel_pred 'a 'b -> rel 'a 'b
 
 lemma relToPred_inv: (forall r. relFromPred (relToPred r) = r)
 
@@ -50,9 +61,9 @@ lemma relToPred_inv: (forall r. relFromPred (relToPred r) = r)
 (* Identity relation       *)
 (* ----------------------- *)
 
-val inRel : forall 'a. Ord 'a => 'a -> 'a -> rel 'a -> bool
+val inRel : forall 'a 'b. Ord 'a, Ord 'b => 'a -> 'b -> rel 'a 'b -> bool
 
-lemma inRel_set : (forall s a b. inRel a b (relFromSet s) = (a, b) IN s)
+lemma inRel_set : (forall s a b. inRel a b (relFromSet s) = ((a, b) IN s))
 lemma inRel_pred : (forall p a b. inRel a b (relFromPred p) = p a b)
 
 
@@ -60,53 +71,53 @@ lemma inRel_pred : (forall p a b. inRel a b (relFromPred p) = p a b)
 (* empty relation          *)
 (* ----------------------- *)
 
-val relEmpty : forall 'a. Ord 'a => Ord 'b => rel 'a 'b
+val relEmpty : forall 'a 'b. Ord 'a, Ord 'b => rel 'a 'b
 let relEmpty = relFromSet {}
 
 (* ----------------------- *)
 (* add relation            *)
 (* ----------------------- *)
 
-val relAdd : forall 'a. Ord 'a => Ord 'b => 'a -> 'b -> rel 'a 'b -> rel 'a 'b
-let relAdd a b r = relFromSet (add (a,b) (relToSet r))
+val relAdd : forall 'a 'b. Ord 'a, Ord 'b => 'a -> 'b -> rel 'a 'b -> rel 'a 'b
+let relAdd a b r = relFromSet (insert (a,b) (relToSet r))
 
 
 (* ----------------------- *)
 (* Identity relation        *)
 (* ----------------------- *)
 
-val relIdOn : forall 'a. Ord 'a => set 'a => rel 'a 'a
-let relIdOn s = relFromPred (fun e1 e2. (e1 IN s) && (e2 IN s) && (e1 = e2))
+val relIdOn : forall 'a. Ord 'a, Eq 'a => set 'a -> rel 'a 'a
+let relIdOn s = relFromPred (fun e1 e2 -> (e1 IN s) && (e2 IN s) && (e1 = e2))
 
-val relId : forall 'a. Ord 'a => rel 'a 'a
+val relId : forall 'a. Ord 'a, Eq 'a => rel 'a 'a
 let relId = relFromPred (=)
 
-lemma relId_spec: (forall x y. (rel_in x y relId <-> (x = y)))
+lemma relId_spec: (forall x y. (inRel x y relId <-> (x = y)))
 
 
 (* ----------------------- *)
 (* relation union          *)
 (* ----------------------- *)
 
-val relUnion : forall 'a. Ord 'a => Ord 'b => rel 'a 'b -> rel 'a 'b -> rel 'a 'b
-let relUnion r1 r2 = relFromSet (fun e1 e2 -> ((rel_in e1 e2 r1) || (rel_in e1 e2 r2)))
+val relUnion : forall 'a 'b. Ord 'a, Ord 'b => rel 'a 'b -> rel 'a 'b -> rel 'a 'b
+let relUnion r1 r2 = relFromPred (fun e1 e2 -> ((inRel e1 e2 r1) || (inRel e1 e2 r2)))
 
 (* ----------------------- *)
 (* relation intersection   *)
 (* ----------------------- *)
 
-val relIntersection : forall 'a. Ord 'a => Ord 'b => rel 'a 'b -> rel 'a 'b -> rel 'a 'b
-let relIntersection r1 r2 = relFromSet (fun e1 e2 -> ((rel_in e1 e2 r1) && (rel_in e1 e2 r2)))
+val relIntersection : forall 'a 'b. Ord 'a, Ord 'b => rel 'a 'b -> rel 'a 'b -> rel 'a 'b
+let relIntersection r1 r2 = relFromPred (fun e1 e2 -> ((inRel e1 e2 r1) && (inRel e1 e2 r2)))
 
 
 (* ----------------------- *)
 (* Relation Composition    *)
 (* ----------------------- *)
 
-val relComp : forall 'a. Ord 'a => Ord 'b => Ord 'c => rel 'a 'b -> rel 'b 'c -> rel 'b 'c
+val relComp : forall 'a 'b 'c. Ord 'a, Ord 'b, Ord 'c => rel 'a 'b -> rel 'b 'c -> rel 'a 'c
 let relComp r1 r2 = relFromPred (fun e1 e3 -> exists e2. inRel e1 e2 r1 && inRel e2 e3 r2)
 
-lemma rel_comp_1 : (forall r1 r2 e1 e2 e3. (rel_in e1 e2 r1 && rel_in e2 e3 r2) --> rel_in e1 e3 (relComp r1 r2))
+lemma rel_comp_1 : (forall r1 r2 e1 e2 e3. (inRel e1 e2 r1 && inRel e2 e3 r2) --> inRel e1 e3 (relComp r1 r2))
 lemma rel_comp_2 : (forall r. (relComp r relId = r) && (relComp relId r = r))
 lemma rel_comp_3 : (forall r. (relComp r relEmpty = relEmpty) && (relComp relEmpty r = relEmpty))
 
@@ -122,29 +133,31 @@ let relRestrict r s = relFromSet ({ (a, b) | forall (a IN s) (b IN s) | inRel a 
 (* Converse                *)
 (* ----------------------- *)
 
-val converse : forall 'a. Ord 'a => Ord 'b => rel 'a 'b -> rel 'b 'a
+val converse : forall 'a 'b. Ord 'a, Ord 'b => rel 'a 'b -> rel 'b 'a
 let converse r = relFromPred (fun e1 e2 -> inRel e2 e1 r)
 
 (* ----------------------- *)
 (* domain                  *)
 (* ----------------------- *)
 
-val domain : forall 'a. Ord 'a => Ord 'b => rel 'a 'b -> set 'a
+val domain : forall 'a 'b. Ord 'a, Ord 'b => rel 'a 'b -> set 'a
 let domain r = { e1 | exists e2. inRel e1 e2 r }
 
 (* ----------------------- *)
 (* range                   *)
 (* ----------------------- *)
 
-val range : forall 'a. Ord 'a => Ord 'b => rel 'a 'b -> set 'b
-let range r = { e2 | exists e2. inRel e1 e2 r }
+val range : forall 'a 'b. Ord 'a, Ord 'b => rel 'a 'b -> set 'b
+let range r = { e2 | exists e1. inRel e1 e2 r }
 
 (* ----------------------- *)
-(* field                   *)
+(* field / definedOn       *)
+(*                         *)
+(* avoid the keyword field *)
 (* ----------------------- *)
 
-val field : forall 'a. Ord 'a => rel 'a 'a -> set 'a
-let field r = union (domain r) (range r)
+val definedOn : forall 'a. Ord 'a => rel 'a 'a -> set 'a
+let definedOn r = ((domain r) union (range r))
 
 (* ----------------------- *)
 (* apply a relation        *)
@@ -154,7 +167,7 @@ let field r = union (domain r) (range r)
    it returns the set of all value reachable via r form a value in s.
    This operation can be seen as a generalisation of function application. *)
    
-val relApply : forall 'a. Ord 'a => Ord 'b => rel 'a 'b -> set 'a -> set 'b
+val relApply : forall 'a 'b. Ord 'a, Ord 'b => rel 'a 'b -> set 'a -> set 'b
 let relApply r s = { y | exists (x IN s). inRel x y r }
 
 
@@ -167,30 +180,30 @@ let relApply r s = { y | exists (x IN s). inRel x y r }
 (* subrel                  *)
 (* ----------------------- *)
 
-val isSubrel : forall 'a 'b. Ord 'a =>  Ord 'b => rel 'a 'b -> rel 'a 'b -> bool
-let isSubrel r1 r2 = isSubset (relToSet r1) (relToSet r2)
+val isSubrel : forall 'a 'b. Ord 'a, Ord 'b, Eq 'a, Eq 'b => rel 'a 'b -> rel 'a 'b -> bool
+let isSubrel r1 r2 = isSubsetOf (relToSet r1) (relToSet r2)
 
 
 (* ----------------------- *)
 (* reflexivity             *)
 (* ----------------------- *)
 
-val isReflexivOn : forall 'a. Ord 'a => rel 'a -> set 'a -> bool
-let isReflexivOn r s = (forall (e IN s). inRel e e r)
+val isReflexiveOn : forall 'a. Ord 'a => rel 'a 'a -> set 'a -> bool
+let isReflexiveOn r s = (forall (e IN s). inRel e e r)
 
-val isReflexiv : forall 'a. Ord 'a => rel 'a -> bool
-let isReflexiv r = (forall e. inRel e e r)
+val isReflexive : forall 'a. Ord 'a => rel 'a 'a -> bool
+let isReflexive r = (forall e. inRel e e r)
 
 
 (* ----------------------- *)
 (* irreflexivity           *)
 (* ----------------------- *)
 
-val isIrreflexivOn : forall 'a. Ord 'a => rel 'a 'a -> set 'a -> bool
-let isIrreflexivOn r s = (forall (e IN s). not (inRel e e r))
+val isIrreflexiveOn : forall 'a. Ord 'a => rel 'a 'a -> set 'a -> bool
+let isIrreflexiveOn r s = (forall (e IN s). not (inRel e e r))
 
-val isIrreflexiv : forall 'a. Ord 'a => rel 'a 'a -> bool
-let isIrreflexiv r = (forall e. not (inRel e e r))
+val isIrreflexive : forall 'a. Ord 'a => rel 'a 'a -> bool
+let isIrreflexive r = (forall e. not (inRel e e r))
 
 
 (* ----------------------- *)
@@ -200,29 +213,29 @@ let isIrreflexiv r = (forall e. not (inRel e e r))
 val isSymmetricOn : forall 'a. Ord 'a => rel 'a 'a -> set 'a -> bool
 let isSymmetricOn r s = (forall (e1 IN s) (e2 IN s). (inRel e1 e2 r) --> (inRel e2 e1 r))
 
-val is_symmetric : forall 'a. Ord 'a => rel 'a 'a -> bool
-let is_symmetric r = (forall e1 e2. (inRel e1 e2 r) --> (inRel e2 e1 r))
+val isSymmetric : forall 'a. Ord 'a => rel 'a 'a -> bool
+let isSymmetric r = (forall e1 e2. (inRel e1 e2 r) --> (inRel e2 e1 r))
 
 (* ----------------------- *)
 (* antisymmetry            *)
 (* ----------------------- *)
 
-val isAntisymmetricOn : forall 'a. Ord 'a => rel 'a 'a -> set 'a -> bool
-let isAntisymmetricOn r s = (forall (e1 IN s) (e2 IN s). (inRel e1 e2 r) --> (inRel e2 e1 r) -> (e1 = e2))
+val isAntisymmetricOn : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> set 'a -> bool
+let isAntisymmetricOn r s = (forall (e1 IN s) (e2 IN s). (inRel e1 e2 r) --> (inRel e2 e1 r) --> (e1 = e2))
 
-val isAntisymmetric : forall 'a. Ord 'a => rel 'a 'a -> bool
-let isAntisymmetric r = (forall e1 e2. (inRel e1 e2 r) --> (inRel e2 e1 r) -> (e1 = e2))
+val isAntisymmetric : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
+let isAntisymmetric r = (forall e1 e2. (inRel e1 e2 r) --> (inRel e2 e1 r) --> (e1 = e2))
 
 
 (* ----------------------- *)
 (* transitivity            *)
 (* ----------------------- *)
 
-val isTransitiveOn : forall 'a. Ord 'a => rel 'a 'a -> set 'a -> bool
-let isTransitiveOn r s = (forall (e1 IN s) (e2 IN s) (e3 IN s). (inRel e1 e2 r) --> (inRel e2 e3 r) -> (inRel e1 e3 r))
+val isTransitiveOn : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> set 'a -> bool
+let isTransitiveOn r s = (forall (e1 IN s) (e2 IN s) (e3 IN s). (inRel e1 e2 r) --> (inRel e2 e3 r) --> (inRel e1 e3 r))
 
-val isTransitive : forall 'a. Ord 'a => rel 'a -> bool
-let isTransitive r = (forall e1 e2 e3. (inRel e1 e2 r) --> (inRel e2 e3 r) -> (inRel e1 e3 r))
+val isTransitive : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
+let isTransitive r = (forall e1 e2 e3. (inRel e1 e2 r) --> (inRel e2 e3 r) --> (inRel e1 e3 r))
 
 (* ----------------------- *)
 (* total                   *)
@@ -234,24 +247,24 @@ let isTotalOn r s = (forall (e1 IN s) (e2 IN s). (inRel e1 e2 r) || (inRel e2 e1
 val isTotal : forall 'a. Ord 'a => rel 'a 'a -> bool
 let isTotal r = (forall e1 e2. (inRel e1 e2 r) || (inRel e2 e1 r))
 
-val isTrichotomousOn : forall 'a. Ord 'a => rel 'a 'a -> set 'a -> bool
+val isTrichotomousOn : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> set 'a -> bool
 let isTrichotomousOn r s = (forall (e1 IN s) (e2 IN s). (inRel e1 e2 r) || (e1 = e2) || (inRel e2 e1 r))
 
-val isTrichotomous : forall 'a. Ord 'a => rel 'a 'a -> bool
+val isTrichotomous : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
 let isTrichotomous r = (forall e1 e2. (inRel e1 e2 r) || (e1 = e2) || (inRel e2 e1 r))
 
 
-declare targetrep isabelle isTrichotomousOn = 'total_on'
-declare targetrep isabelle isTrichotomous   = 'total'
-declare targetrep hol      isTrichotomous   = 'trichotomous'
-declare targetrep hol      isTotal          = 'total'
+declare isabelle target_rep function isTrichotomousOn = `total_on`
+declare isabelle target_rep function isTrichotomous   = `total`
+declare hol      target_rep function isTrichotomous   = `trichotomous`
+declare hol      target_rep function isTotal          = `total`
 
 
 (* ----------------------- *)
 (* is_single_valued        *)
 (* ----------------------- *)
 
-val isSingleValued : forall 'a 'b. Ord 'a => Ord 'b => rel 'a 'b -> bool
+val isSingleValued : forall 'a 'b. Ord 'a, Ord 'b, Eq 'b => rel 'a 'b -> bool
 let isSingleValued r = (forall e1 e2a e2b. ((inRel e1 e2a r) && (inRel e1 e2b r)) --> (e2a = e2b))
 
 
@@ -259,10 +272,10 @@ let isSingleValued r = (forall e1 e2a e2b. ((inRel e1 e2a r) && (inRel e1 e2b r)
 (* equivalence relation    *)
 (* ----------------------- *)
 
-val isEquivalenceOn : forall 'a. Ord 'a => rel 'a 'a -> set 'a -> bool
+val isEquivalenceOn : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> set 'a -> bool
 let isEquivalenceOn r s = isReflexiveOn r s && isSymmetricOn r s && isTransitiveOn r s
 
-val isEquivalence : forall 'a. Ord 'a => rel 'a 'a -> bool
+val isEquivalence : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
 let isEquivalence r = isReflexive r && isSymmetric r && isTransitive r
 
 
@@ -271,10 +284,10 @@ let isEquivalence r = isReflexive r && isSymmetric r && isTransitive r
 (* ----------------------- *)
 
 val isWellFounded : forall 'a. Ord 'a => rel 'a 'a -> bool
-let isWellFounded r = (forall P. (forall x. (forall y. inRel y x R --> P x) --> P x) --> (forall x. P x))
+let isWellFounded r = (forall P. (forall x. (forall y. inRel y x r --> P x) --> P x) --> (forall x. P x))
 
-declare targetrep isabelle isWellFounded = 'wf'
-declare targetrep hol      isWellFounded = 'WF'
+declare isabelle target_rep function isWellFounded = `wf`
+declare hol      target_rep function isWellFounded = `WF`
 
 
 (* ========================================================================== *)
@@ -286,50 +299,50 @@ declare targetrep hol      isWellFounded = 'WF'
 (* pre- or quasiorders     *)
 (* ----------------------- *)
 
-val isPreorderOn : forall 'a. Ord 'a => rel 'a 'a -> set 'a -> bool
-let isPreorderOn r s = isReflexivOn r s && isTransitiveOn r s
+val isPreorderOn : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> set 'a -> bool
+let isPreorderOn r s = isReflexiveOn r s && isTransitiveOn r s
 
-val isPreorder : forall 'a. Ord 'a => rel 'a 'a -> bool
-let isPreorder r = isReflexiv r && isTransitive r
+val isPreorder : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
+let isPreorder r = isReflexive r && isTransitive r
 
-declare targetrep isabelle isTrichotomousOn = 'total_on'
-declare targetrep isabelle isTrichotomous   = 'total'
-declare targetrep hol      isTrichotomous   = 'trichotomous'
-declare targetrep hol      isTotal          = 'total'
+declare isabelle target_rep function isTrichotomousOn = `total_on`
+declare isabelle target_rep function isTrichotomous   = `total`
+declare hol      target_rep function isTrichotomous   = `trichotomous`
+declare hol      target_rep function isTotal          = `total`
 
 
 (* ----------------------- *)
 (* partial orders          *)
 (* ----------------------- *)
 
-val isPartialOrderOn : forall 'a. Ord 'a => rel 'a 'a -> set 'a -> bool
-let isPartialOrderOn r s = isReflexivOn r s && isTransitiveOn r s && isAntisymmetricOn r s
+val isPartialOrderOn : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> set 'a -> bool
+let isPartialOrderOn r s = isReflexiveOn r s && isTransitiveOn r s && isAntisymmetricOn r s
 
-val isPartialOrder : forall 'a. Ord 'a => rel 'a 'a -> bool
-let isPartialOrder r = isReflexiv r && isTransitive r && isAntisymmetric r
+val isPartialOrder : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
+let isPartialOrder r = isReflexive r && isTransitive r && isAntisymmetric r
 
-val isStrictPartialOrderOn : forall 'a. Ord 'a => rel 'a 'a -> set 'a -> bool
-let isStrictPartialOrderOn r s = isIrreflexivOn r s && isTransitiveOn r s && isAntisymmetricOn r s
+val isStrictPartialOrderOn : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> set 'a -> bool
+let isStrictPartialOrderOn r s = isIrreflexiveOn r s && isTransitiveOn r s && isAntisymmetricOn r s
 
-val isStrictPartialOrder : forall 'a. Ord 'a => rel 'a 'a -> bool
-let isStrictPartialOrder r = isIrreflexiv r && isTransitive r && isAntisymmetric r
+val isStrictPartialOrder : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
+let isStrictPartialOrder r = isIrreflexive r && isTransitive r && isAntisymmetric r
 
 
 (* ----------------------- *)
 (* total / linear orders   *)
 (* ----------------------- *)
 
-val isTotalOrderOn : forall 'a. Ord 'a => rel 'a 'a -> set 'a -> bool
+val isTotalOrderOn : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> set 'a -> bool
 let isTotalOrderOn r s = isPartialOrderOn r s && isTotalOn r s
 
-val isTotalOrder : forall 'a. Ord 'a => rel 'a 'a -> bool
-let isTotalOrder r = isPartialOrder r && isTotal r s
+val isTotalOrder : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
+let isTotalOrder r = isPartialOrder r && isTotal r 
 
-val isStrictTotalOrderOn : forall 'a. Ord 'a => rel 'a 'a -> set 'a -> bool
+val isStrictTotalOrderOn : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> set 'a -> bool
 let isStrictTotalOrderOn r s = isStrictPartialOrderOn r s && isTrichotomousOn r s
 
-val isStrictTotalOrder : forall 'a. Ord 'a => rel 'a 'a -> bool
-let isStrictTotalOrder r = isStrictPartialOrder r && isTrichotomousOn r s
+val isStrictTotalOrder : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
+let isStrictTotalOrder r = isStrictPartialOrder r && isTrichotomous r 
 
 
 
@@ -341,30 +354,30 @@ let isStrictTotalOrder r = isStrictPartialOrder r && isTrichotomousOn r s
 (* transitive closure      *)
 (* ----------------------- *)
 
-let transitive_closure : forall 'a. Ord 'a => rel 'a 'a -> rel 'a 'a
-let transitive_closureByEq  : forall 'a. ('a -> 'a -> bool) -> rel 'a 'a -> rel 'a 'a
-let transitive_closureByCmp : forall 'a. ('a -> 'a -> ordering) -> rel 'a 'a -> rel 'a 'a
+val transitiveClosure : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> rel 'a 'a
+val transitiveClosureByEq  : forall 'a. ('a -> 'a -> bool) -> rel 'a 'a -> rel 'a 'a
+val transitiveClosureByCmp : forall 'a. ('a -> 'a -> ordering) -> rel 'a 'a -> rel 'a 'a
 
-let inline {coq} transitive_closure = transitive_closureByEq (=)
-let inline {ocaml} transitive_closure = transitive_closureByCmp compare
+let inline {coq} transitiveClosure = transitiveClosureByEq (=)
+let inline {ocaml} transitiveClosure = transitiveClosureByCmp compare
 
-declare targetrep ocaml    transitive_closureByCmp = 'Pset.tc'
-declare targetrep hol      transitive_closure = 'tc'
-declare targetrep isabelle transitive_closure = 'trancl'
-declare targetrep coq      transitive_closureByEq = 'set_tc'
+declare ocaml    target_rep function transitiveClosureByCmp = `Pset.tc`
+declare hol      target_rep function transitiveClosure = `tc`
+declare isabelle target_rep function transitiveClosure = `trancl`
+declare coq      target_rep function transitiveClosureByEq = `set_tc`
 
-lemma transitive_closure_spec1: (forall r. isSubrel r (transitive_closure r))
-lemma transitive_closure_spec2: (forall r. isTransitive (transitive_closure r))
-lemma transitive_closure_spec3: (forall r1 r2. ((isTransitive r2) && (isSubrel r1 r2)) --> isSubrel (transitive_closure r1) r2)
+lemma transitiveClosure_spec1: (forall r. isSubrel r (transitiveClosure r))
+lemma transitiveClosure_spec2: (forall r. isTransitive (transitiveClosure r))
+lemma transitiveClosure_spec3: (forall r1 r2. ((isTransitive r2) && (isSubrel r1 r2)) --> isSubrel (transitiveClosure r1) r2)
 
 
 (* ========================================================================== *)
 (* reflexiv closures                                                          *)
 (* ========================================================================== *)
 
-let reflexiv_transitive_closureOn : forall 'a. Ord 'a => rel 'a 'a -> set 'a -> -> rel 'a 'a
-let reflexiv_transitive_closureOn r s = transitive_closure (relUnion r (relIdOn s))
+val reflexivTransitiveClosureOn : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> set 'a -> rel 'a 'a
+let reflexivTransitiveClosureOn r s = transitiveClosure (relUnion r (relIdOn s))
 
-let reflexiv_transitive_closure : forall 'a. Ord 'a => rel 'a 'a -> rel 'a 'a
-let reflexiv_transitive_closure r = transitive_closure (relUnion r relId)
+val reflexivTransitiveClosure : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> rel 'a 'a
+let reflexivTransitiveClosure r = transitiveClosure (relUnion r relId)
 

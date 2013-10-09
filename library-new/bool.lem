@@ -73,3 +73,23 @@ declare isabelle target_rep function imp_b = infix `\<implies>`
 declare coq      target_rep function imp_b = infix `-->`
 
 let inline {ocaml} imp_b x y = ((not x) || y)
+
+
+(* ----------------------- *)
+(* equivalence             *)
+(* ----------------------- *)
+
+val (<->) : bool -> bool -> bool
+let (<->) b1 b2 = match (b1, b2) with
+  | (true, true) -> true
+  | (false, false) -> true
+  | _ -> false
+end
+declare ascii_rep function (<->) = equiv_b
+
+declare hol      target_rep function equiv_b = infix `<=>`
+declare isabelle target_rep function equiv_b = infix `\<equiv>`
+declare coq      target_rep function equiv_b = infix `<->`
+
+let inline {ocaml} equiv_b x y = (x = y)
+

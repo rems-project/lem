@@ -10,6 +10,8 @@
 declare rename module = lem_maybe
 *)
 
+open Basic_classes
+
 (* ========================================================================== *)
 (* Basic stuff                                                                *)
 (* ========================================================================== *)
@@ -23,8 +25,6 @@ declare isabelle target_rep type maybe 'a = `option` 'a
 declare coq      target_rep type maybe 'a = `option` 'a
 declare ocaml    target_rep type maybe 'a = `option` 'a
 
-
-
 declare hol      target_rep function Just = `SOME`
 declare ocaml    target_rep function Just = `Some`
 declare isabelle target_rep function Just = `Some`
@@ -34,6 +34,35 @@ declare hol      target_rep function Nothing = `NONE`
 declare ocaml    target_rep function Nothing = `None`
 declare isabelle target_rep function Nothing = `None`
 declare coq      target_rep function Nothing = `None`
+
+
+val maybeEq : forall 'a. Eq 'a => maybe 'a -> maybe 'a -> bool
+
+let maybeEq x y = match (x,y) with
+  | (Nothing, Nothing) -> true
+  | (Nothing, Just _) -> false
+  | (Just _, Nothing) -> false
+  | (Just x', Just y') -> (x' = y')
+end
+
+instance forall 'a. Eq 'a => (Eq (maybe 'a))
+  let (=) = maybeEq
+end
+
+
+val maybeCompare : forall 'a. Ord 'a => maybe 'a -> maybe 'a -> ordering
+let maybeCompare x y = match (x,y) with
+  | (Nothing, Nothing) -> EQ
+  | (Nothing, Just _) -> LT
+  | (Just _, Nothing) -> GT
+  | (Just x', Just y') -> compare x' y'
+end
+
+instance forall 'a. Ord 'a => (Ord (maybe 'a))
+  let compare = maybeCompare
+end
+
+
 
 (* ----------------------- *)
 (* maybe                   *)
@@ -59,8 +88,7 @@ end
 
 declare hol      target_rep function isJust = `IS_SOME`
 declare ocaml    target_rep function isJust x = `is_some`
-declare isabelle target_rep function isJust x = not (x = Nothing)
-
+declare isabelle target_rep function isJust x = not (unsafe_structural_equality x Nothing)
 
 val isNothing : forall 'a. maybe 'a -> bool
 let isNothing mb = match mb with 
@@ -70,7 +98,7 @@ end
 
 declare hol      target_rep function isNothing = `IS_NONE`
 declare ocaml    target_rep function isNothing = `is_none`
-declare isabelle target_rep function isNothing x = (x = Nothing)
+declare isabelle target_rep function isNothing x = (unsafe_structural_equality x Nothing)
 
 lemma isJustNothing: (
   (forall x. isNothing x = not (isJust x)) &&

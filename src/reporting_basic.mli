@@ -116,7 +116,7 @@ type error =
     calling a report-function. *)
 exception Fatal_error of error
 
-(** [err_todo b l m] is an abreviatiation for [Fatal_error (Err_todo (l, m))] *)
+(** [err_todo b l m] is an abreviatiation for [Fatal_error (Err_todo (b, l, m))] *)
 val err_todo : bool -> Ast.l -> string -> exn
 
 (** [err_general b l m] is an abreviatiation for [Fatal_error (Err_general (b, l, m))] *)
