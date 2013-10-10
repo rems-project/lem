@@ -998,7 +998,7 @@ and add_def_entities (t_opt : Target.target) (only_new : bool) (ue : used_entiti
         end
       | Ident_rename (_,_,_,_,_,_) ->
           (* TODO: replace Ident_rename with something more general *) ue
-      | Open(_,m) -> if only_new then ue else used_entities_add_module ue m.descr.mod_binding
+      | OpenImport(_,ms) -> if only_new then ue else List.fold_left (fun ue m -> used_entities_add_module ue m.descr.mod_binding) ue ms
       | Indreln(_,targ,names,rules) -> begin
           let add_rule (Rule (_,_,_,_,_,e_opt,_,_,n_ref,es),_) ue = begin
              let ue = used_entities_add_const ue n_ref in

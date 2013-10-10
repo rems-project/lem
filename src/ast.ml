@@ -102,14 +102,14 @@ nexp_constraint_aux =  (* Whether a vector is bounded or fixed size *)
 
 
 type 
-tnvar =  (* Union of type variables and Nexp type variables, with locations *)
-   Avl of a_l
- | Nvl of n_l
+id =  (* Long identifers *)
+   Id of ((x_l * terminal)) list * x_l * l
 
 
 type 
-id =  (* Long identifers *)
-   Id of ((x_l * terminal)) list * x_l * l
+tnvar =  (* Union of type variables and Nexp type variables, with locations *)
+   Avl of a_l
+ | Nvl of n_l
 
 
 type 
@@ -452,6 +452,13 @@ instschm =  (* Instance schemes *)
 
 
 type 
+open_import =  (* Open or import statements *)
+   OI_open of terminal
+ | OI_import of terminal
+ | OI_open_import of terminal * terminal
+
+
+type 
 lemma_decl =  (* Lemmata and Tests *)
    Lemma_named of lemma_typ * targets option * x_l * terminal * terminal * exp * terminal
  | Lemma_unnamed of lemma_typ * targets option * terminal * exp * terminal
@@ -507,7 +514,7 @@ def_aux =  (* Top-level definitions *)
  | Declaration of declare_def (* a declaration that modifies Lem's behaviour *)
  | Module of terminal * x_l * terminal * terminal * defs * terminal (* Module definitions *)
  | Rename of terminal * x_l * terminal * id (* Module renamings *)
- | Open of terminal * id (* Opening modules *)
+ | Open_Import of open_import * (id) list (* importing and/or opening modules *)
  | Indreln of terminal * targets option * (indreln_name * terminal) list * (rule * terminal) list (* Inductively defined relations *)
  | Spec_def of val_spec (* Top-level type constraints *)
  | Class of terminal * terminal * x_l * tnvar * terminal * ((terminal * x_l * terminal * typ * l)) list * terminal (* Typeclass definitions *)

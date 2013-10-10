@@ -90,17 +90,17 @@ val print_debug : string -> unit
     the original source corresponding to the location information should be looked up and printed.
 *)
 type error = 
-  (** General errors, used for multi purpose. If you are unsure, use this one. *)
   | Err_general of bool * Ast.l * string
+  (** General errors, used for multi purpose. If you are unsure, use this one. *)
 
+  | Err_unreachable of bool * Ast.l * string
   (** Unreachable errors should never be thrown. It means that some
       code was excuted that the programmer thought of as unreachable *)
-  | Err_unreachable of bool * Ast.l * string
 
+  | Err_todo of bool * Ast.l * string
   (** [Err_todo] indicates that some feature is unimplemented. Normally,
       it should be build using [err_todo] in order simplify searching
       for occorences in the source code. *)
-  | Err_todo of bool * Ast.l * string
 
   | Err_trans of Ast.l * string
   | Err_trans_header of Ast.l * string
@@ -111,6 +111,7 @@ type error =
     (** A typechecking error *)
   | Err_internal of Ast.l * string
   | Err_rename of Ast.l * string
+  | Err_cyclic_build of string (** resolving module dependencies detected a cyclic dependency of the given module *)
   
 (** Since errors are always fatal, they are reported by raising an [Fatal_error] exception instead of
     calling a report-function. *)

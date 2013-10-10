@@ -124,6 +124,10 @@ let check_prefix n p = match p with
   | Path_def(n2::_,_) ->
       Name.compare n n2 = 0
   | _ -> false
+
+let get_toplevel_name p = match (to_name_list p) with
+  | ([]  ,n) -> n
+  | (n::_,_) -> n
            
 let to_name p = match to_name_list p with
   | ([],n) -> n

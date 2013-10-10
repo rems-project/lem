@@ -293,6 +293,7 @@ module type Target = sig
   val module_struct : t
   val module_end : t
   val module_open : t
+  val module_import : t
 
 
 
@@ -495,6 +496,7 @@ module Identity : Target = struct
   let module_struct = kwd "struct"
   let module_end = kwd "end"
   let module_open = kwd "open"
+  let module_import = kwd "import"
 
   let some = Ident.mk_ident_strings [] "Some"
   let none = Ident.mk_ident_strings [] "None"
@@ -692,6 +694,7 @@ module Tex : Target = struct
   let module_struct = tkwdl "struct"
   let module_end = tkwdr "end"
   let module_open = tkwdl "open"
+  let module_import = tkwdl "import"
 
   let some = Ident.mk_ident_strings [] "Some"
   let none = Ident.mk_ident_strings [] "None"
@@ -1098,6 +1101,7 @@ module Hol : Target = struct
   let module_struct = kwd "struct"
   let module_end = kwd "end"
   let module_open = kwd "open"
+  let module_import = kwd "import"
 
   let some = Ident.mk_ident_strings [] "SOME"
   let none = Ident.mk_ident_strings [] "NONE"
@@ -1209,6 +1213,7 @@ let rec typ t = match t.term with
         let i = match t.term with
           | Typ_app _ -> B.type_id_to_ident p
           | Typ_backend _ -> B.type_id_to_ident_no_modify p
+          | _ -> raise (Reporting_basic.err_unreachable true Ast.Unknown "can't be reached because of previous match")
         in
         Ident.to_output Type_ctor T.path_sep i
       end in
@@ -2087,6 +2092,21 @@ let rec hol_strip_args_t type_names t = match t.term with
                 | _ -> 
                     { t with term = Typ_app(id, List.map (hol_strip_args_t type_names) ts) }
       end
+  | Typ_backend(id,ts) ->
+      begin
+        match id.id_path with
+          | Id_none sk -> 
+              { t with term = Typ_backend(id, List.map (hol_strip_args_t type_names) ts) }
+          | Id_some p ->
+              match Ident.to_name_list p with
+                | ([],n) ->
+                    if hol_strip_args_n type_names n ts then
+                      { t with term = Typ_backend(id,[]) }
+                    else
+                      { t with term = Typ_backend(id, List.map (hol_strip_args_t type_names) ts) }
+                | _ -> 
+                    { t with term = Typ_backend(id, List.map (hol_strip_args_t type_names) ts) }
+      end
   | Typ_paren(sk1,t,sk2) -> 
       { t with term = Typ_paren(sk1,hol_strip_args_t type_names t, sk2) }
 
@@ -2396,10 +2416,24 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
       ws s2 ^
       kwd "=" ^
       Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)
-  | Open(s,m) ->
+  | OpenImport(Ast.OI_open s,ms) ->
       ws s ^
       T.module_open ^
-      Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)
+      (Output.flat (List.map (fun m -> Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)) ms))
+  | OpenImport(Ast.OI_open_import (s1, s2),ms) ->
+      if (is_human_target T.target) then
+        ws s1 ^
+        T.module_open ^
+        ws s2 ^
+        T.module_import ^
+        (Output.flat (List.map (fun m -> Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)) ms))
+      else def_internal callback inside_module (OpenImport (Ast.OI_open (Ast.combine_lex_skips s1 s2), ms)) is_user_def
+  | OpenImport(Ast.OI_import s,ms) -> 
+      if (is_human_target T.target) then
+        ws s ^
+        T.module_import ^
+        (Output.flat (List.map (fun m -> Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)) ms))
+      else emp
   | Indreln(s,targets,names,clauses) ->
       if in_target targets then
         ws s ^
@@ -2888,8 +2922,9 @@ let header_defs ((defs:def list),(end_lex_skips : Typed_ast.lskips)) =
               Target_no_ident Target_isa -> 
                 begin 
                   match d with 
-                      Open(s,m) -> 
-                        kwd "\t \""^Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)^kwd "\""
+                      OpenImport((Ast.OI_open s | Ast.OI_open_import (s, _)),ms) -> 
+                        Output.flat (List.map (fun m ->                        
+                          kwd "\t \""^Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)^kwd "\"") ms)
                     | _ -> emp
                 end
 

@@ -66,6 +66,7 @@ module type Fmap = sig
   val domains_disjoint : 'a t list -> bool
   val iter : (k -> 'a -> unit) -> 'a t -> unit
   val fold : ('b -> k -> 'a -> 'b) -> 'b -> 'a t -> 'b
+  val filter : (k -> 'a -> bool) -> 'a t -> 'a t
   val remove : 'a t -> k -> 'a t
   val pp_map : (Format.formatter -> k -> unit) -> 
                (Format.formatter -> 'a -> unit) -> 
@@ -112,6 +113,7 @@ module Fmap_map(Key : Set.OrderedType) : Fmap
       None
   let iter f m = M.iter f m
   let fold f m base = M.fold (fun k v res -> f res k v) base m
+  let filter f m = M.filter f m
   let remove m k = M.remove k m
   let pp_map pp_key pp_val ppf m =
     let l = M.fold (fun k v l -> (k,v)::l) m [] in

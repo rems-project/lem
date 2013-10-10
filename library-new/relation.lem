@@ -2,9 +2,7 @@
 (* A library for binary relations                                             *)
 (******************************************************************************)
 
-open Bool
-open Basic_classes
-open Set
+open import Bool Basic_classes Set
 
 
 (* ========================================================================== *)

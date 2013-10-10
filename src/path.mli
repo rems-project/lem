@@ -65,6 +65,12 @@ val setpath : t
 val stringpath : t
 val unitpath : t
 val get_name : t -> Name.t
+
+(** [get_toplevel_name p] gets the outmost name of a path. This is important
+    when checking prefixes. For example, the result for path [module.submodule.name] is 
+    [module] and for [name] it is [name]. *)
+val get_toplevel_name: t -> Name.t
+
 val check_prefix : Name.t -> t -> bool
 val to_ident : Ast.lex_skips -> t -> Ident.t
 val to_name : t -> Name.t

@@ -122,6 +122,10 @@ let rec list_longer n l = match (l, n) with
   | (_::_, 0) -> true
   | (_::l', n) -> list_longer (n-1) l'
 
+let rec list_null l = match l with
+  | [] -> true
+  | _ -> false
+
 let list_dest_snoc l =  
   match l with
     | [] -> raise (Failure "list_dest_snoc")
@@ -129,6 +133,16 @@ let list_dest_snoc l =
       let l_rev = List.rev l in
       (List.rev (List.tl l_rev), List.hd l_rev)
     end 
+
+let list_pick p l = begin
+  let rec aux acc l = begin
+    match l with
+      | [] -> None
+      | x :: xs -> if p x then Some (x, List.rev acc @ xs) else
+                   aux (x::acc) xs
+  end in
+    aux [] l
+end
 
 let option_get_exn e = function
   | Some(o) -> o
@@ -258,6 +272,7 @@ module IntIntSet = Set.Make(
 module ExtraSet = functor (S : Set.S) ->
   struct 
     let add_list s l = List.fold_left (fun s x -> S.add x s) s l
+    let remove_list s l = List.fold_left (fun s x -> S.remove x s) s l
     let from_list l = add_list S.empty l
     let list_union l = List.fold_left S.union S.empty l
     let list_inter = function s :: l -> List.fold_left S.inter s l

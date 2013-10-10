@@ -145,7 +145,7 @@ let ast_def_to_target_opt : Ast.def_aux -> Ast.targets option = function
     | Ast.Type_def _ -> None
     | Ast.Declaration _ -> None
     | Ast.Module _ -> None
-    | Ast.Open _ -> None
+    | Ast.Open_Import _ -> None
     | Ast.Spec_def _ -> None
     | Ast.Class _ -> None
     | Ast.Rename _ -> None
@@ -2831,15 +2831,24 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                             id_locn = l;
                             descr = mod_descr;
                             instantiation = []; }))
-      | Ast.Open(sk,i) -> 
-          let mod_descr = lookup_mod ctxt.cur_env i in
-          let env = mod_descr.mod_env in
-            ({ ctxt with cur_env = local_env_union ctxt.cur_env env },
-             (Some (Open(sk,
-                   { id_path = Id_some (Ident.from_id i);
-                     id_locn = l;
-                     descr = mod_descr;
-                     instantiation = []; }))))
+      | Ast.Open_Import(oi,is) -> 
+          let mod_descr_ids = List.map (fun i -> (
+              let descr = lookup_mod ctxt.cur_env i in
+              { id_path = Id_some (Ident.from_id i);
+                id_locn = l;
+                descr = descr;
+                instantiation = []; })) is in
+
+          let do_open = match oi with
+            | Ast.OI_open _ -> true
+            | Ast.OI_import _ -> false
+            | Ast.OI_open_import _ -> true
+          in
+          let ctxt' = if do_open then 
+                        { ctxt with cur_env = List.fold_left (fun cur_env mod_descr_id -> local_env_union cur_env mod_descr_id.descr.mod_env) ctxt.cur_env mod_descr_ids} 
+                      else ctxt in
+
+          (ctxt', Some (OpenImport(oi, mod_descr_ids)))
       | Ast.Indreln(sk, target_opt, names, clauses) ->
           let module T = struct include T let targets = backend_targets end in
           let module Checker = Make_checker(T) in

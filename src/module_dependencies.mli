@@ -44,16 +44,8 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
-(** util over untyped AST (for comprehensions) *)
+(** module dependency resolution *)
 
-(** Infer the comprehension variables for a set comprehension without explicitly
-    listed comprehension variables.  The first argument should return true for
-    variables that are currently bound in the enclosing environment (such
-    variables cannot become comprehension variables) *)
-val setcomp_bindings : (Name.t -> bool) -> Ast.exp -> Set.Make(Name).t
+val process_files : (string * bool) list -> (string * string * (Ast.defs * Ast.lex_skips) * bool) list
 
-(** [get_imported_modules ast] returns a list of the modules imported by
-    the given definitions. These are modules that are explicitly openened
-    or imported via an [open] or [import] statement. The resulting list may 
-    contain duplicates and is not sorted in any way. *)
-val get_imported_modules : Ast.defs * Ast.lex_skips -> Path.t list
+

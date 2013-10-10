@@ -273,7 +273,7 @@ and f_env = const_descr_ref Nfmap.t
 and m_env = mod_descr Nfmap.t
 and c_env 
 and 
-  (** [local_env] represents local_environments, i.e. essentially maps form names to the entities they represent *)
+  (** [local_env] represents local_environments, i.e. essentially maps from names to the entities they represent *)
   local_env = { 
     m_env : m_env; (** module map *)
     p_env : p_env; (** type map *)
@@ -486,7 +486,8 @@ type def_aux =
   | Module of lskips * name_l * Path.t * lskips * lskips * def list * lskips
   | Rename of lskips * name_l * Path.t * lskips * mod_descr id
     (** Renaming an already defined module *)
-  | Open of lskips * mod_descr id
+  | OpenImport of Ast.open_import * (mod_descr id) list
+    (** open and/or import modules *)
   | Indreln of lskips * targets_opt * indreln_name lskips_seplist * indreln_rule lskips_seplist
     (** Inductive relations *)
   | Val_spec of val_spec

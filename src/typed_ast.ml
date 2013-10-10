@@ -353,7 +353,7 @@ and def_aux =
   | Ident_rename of lskips * targets_opt * Path.t * Ident.t * lskips * name_l
   | Module of lskips * name_l * Path.t * lskips * lskips * def list * lskips
   | Rename of lskips * name_l * Path.t * lskips * mod_descr id
-  | Open of lskips * mod_descr id
+  | OpenImport of Ast.open_import * (mod_descr id) list
   | Indreln of lskips * targets_opt * indreln_name lskips_seplist * indreln_rule lskips_seplist
   | Val_spec of val_spec
   | Class of lskips * lskips * name_l * tnvar * Path.t * lskips * class_val_spec list * lskips
@@ -393,8 +393,25 @@ let env_c_env_update env c_id c_d =
 
 let c_env_store_raw = cdmap_insert
 
+let restrict_m_env env mod_name local_env =
+begin
+   let m_env' = Nfmap.filter (fun _ md -> Path.check_prefix mod_name md.mod_binding) local_env.m_env in
+   let p_env' = Nfmap.filter (fun _ (p, _) -> Path.check_prefix mod_name p) local_env.p_env in
+
+   let const_filter _ c =
+     let cd = c_env_lookup Ast.Unknown env.c_env c in
+     Path.check_prefix mod_name cd.const_binding
+   in
+
+   let f_env' = Nfmap.filter const_filter local_env.f_env in
+   let v_env' = Nfmap.filter const_filter local_env.v_env in
+
+  { m_env = m_env'; p_env = p_env'; f_env = f_env'; v_env = v_env'}
+end
+
 let env_m_env_move env mod_name new_local =
-  let md = { mod_env = env.local_env; mod_binding = Path.mk_path [] mod_name } in
+  let md_local_env = restrict_m_env env mod_name env.local_env in
+  let md = { mod_env = md_local_env; mod_binding = Path.mk_path [] mod_name } in
   let new_local' = { new_local with m_env = Nfmap.insert new_local.m_env (mod_name,md) } in
   {env with local_env = new_local'}
 
@@ -671,9 +688,20 @@ let rec def_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (((d,s),l,l
       | Ident_rename (sk1,topt,p,i,sk2,nl) ->
           let (s_new, s_ret) = lskips_f sk1 in
             res (Ident_rename (s_new,topt,p,i,sk2,nl)) s_ret
-      | Open(sk,m) ->
-          let (s_new, s_ret) = lskips_f sk in
-            res (Open(s_new,m)) s_ret
+      | OpenImport(oi,m) -> begin     
+          let (oi', s_ret) = match oi with
+            | Ast.OI_open sk ->
+                let (s_new, s_ret) = lskips_f sk in
+                (Ast.OI_open s_new, s_ret)
+            | Ast.OI_import sk ->
+                let (s_new, s_ret) = lskips_f sk in
+                (Ast.OI_import s_new, s_ret)
+            | Ast.OI_open_import (sk, sk') ->
+                let (s_new, s_ret) = lskips_f sk in
+                (Ast.OI_open_import (s_new, sk'), s_ret)
+          in
+          res (OpenImport(oi',m)) s_ret
+        end
       | Indreln(sk,topt,names,rules) ->
           let (s_new, s_ret) = lskips_f sk in
             res (Indreln(s_new,topt,names,rules)) s_ret

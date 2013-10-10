@@ -26,10 +26,7 @@
 (* Header                                                                     *)
 (* ========================================================================== *)
 
-open Bool
-open Basic_classes
-open Maybe
-open Function
+open import Bool Basic_classes Maybe Function
 
 (*
 declare rename module = lem_set

@@ -118,7 +118,7 @@ let remove_indrelns _ env (((d,_),_,_) as def) =
 
 let remove_opens _ env (((d,_),_,_) as def) =
   match d with
-    | Open _ ->
+    | OpenImport _ ->
         Some (env, [comment_def def])
     | _ -> None
 

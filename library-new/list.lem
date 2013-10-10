@@ -16,9 +16,7 @@
 
 (* declare rename module = lem_list *)
 
-open Bool
-open Maybe
-open Basic_classes
+open import Bool Maybe Basic_classes
 
 
 (* ========================================================================== *)

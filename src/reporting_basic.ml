@@ -153,6 +153,7 @@ type error =
   | Err_type of Ast.l * string
   | Err_internal of Ast.l * string
   | Err_rename of Ast.l * string
+  | Err_cyclic_build of string 
 
 let dest_err = function
   | Err_general (b, l, m) -> ("Error", b, Loc l, m)
@@ -166,6 +167,7 @@ let dest_err = function
   | Err_internal (l, m) -> ("LEM internal error", false, Loc l, m)
   | Err_rename (l, m) -> ("Renaming error", false, Loc l, m)
   | Err_type (l, m) -> ("Type error", false, Loc l, m)
+  | Err_cyclic_build m -> ("Circular build detected", false, Loc Ast.Unknown, "module '" ^ m ^ "' depends on itself")
 
 exception Fatal_error of error
 

@@ -46,6 +46,7 @@
 
 open Process_file
 open Debug
+open Module_dependencies
 
 let backends = ref ([] : Target.target list)
 
@@ -268,28 +269,37 @@ let main () =
       (snd init)
   in
   let type_info : Typed_ast.env = fst init in
-  (* Parse and typecheck all of the .lem sources *)
+
+
+  (* We don't want to add the files in !lib to the resulting module ASTs,
+     because we don't want to put them throught the back end. So, they get an argument false, while all others get true. *)
+  let files_to_process =
+      (List.map (fun x -> (x, false)) (List.rev !lib) @ 
+       List.map (fun x -> (x, true)) !opt_file_arguments)
+  in
+  (* Parse all of the .lem sources and also parse depencies *)
+  let processed_files = Module_dependencies.process_files files_to_process in
+  
+  let backend_set = 
+    List.fold_right 
+      (fun x s ->
+         match Target.dest_human_target x with
+           | None -> s
+           | Some(t) -> Target.Targetset.add t s)
+       !backends
+    Target.Targetset.empty 
+  in
+
+  (* Typecheck all of the .lem sources *)
   let (modules, type_info, _) =
     List.fold_left
-      (fun (mods, env, previously_processed_modules) (f, add_to_modules) ->
-         let ast = parse_file f in
-         let f' = Filename.basename (Filename.chop_extension f) in
-         let mod_name = String.capitalize f' in
+      (fun (mods, env, previously_processed_modules) (mod_name, file_name, ast, add_to_modules) ->
          let mod_name_name = Name.from_rope (Ulib.Text.of_latin1 mod_name) in
-         let backend_set = 
-           List.fold_right 
-             (fun x s ->
-                match Target.dest_human_target x with
-                  | None -> s
-                  | Some(t) -> Target.Targetset.add t s)
-             !backends
-             Target.Targetset.empty 
-         in
          let (new_env,tast) = check_ast backend_set [mod_name_name] env ast in
 
          let e = Typed_ast.env_m_env_move new_env mod_name_name env.Typed_ast.local_env in
          let module_record = 
-           { Typed_ast.filename = f;
+           { Typed_ast.filename = file_name;
              Typed_ast.module_name = mod_name;
              Typed_ast.predecessor_modules = previously_processed_modules;
              Typed_ast.untyped_ast = ast;
@@ -301,7 +311,7 @@ let main () =
                Format.fprintf Format.std_formatter "%s@\nlibrary:@\n" f;
                Typed_ast.pp_env Format.std_formatter (snd type_info);
                 *)
-               Format.fprintf Format.std_formatter "%s@\nenvironment:@\n" f;
+               Format.fprintf Format.std_formatter "%s@\nenvironment:@\n" file_name;
                Typed_ast.pp_env Format.std_formatter new_env;
                Format.fprintf Format.std_formatter "@\n@\n"
              end;
@@ -313,8 +323,7 @@ let main () =
       ([],type_info,[])
       (* We don't want to add the files in !lib to the resulting module ASTs,
        * because we don't want to put them throught the back end *)
-      (List.map (fun x -> (x, false)) (List.rev !lib) @ 
-       List.map (fun x -> (x, true)) !opt_file_arguments)
+      processed_files
   in
 
   (* Check the parsed source and produce warnings for various things. Currently:

@@ -608,16 +608,24 @@ let generate_coq_record_update_notation e =
             body; from_string "\nEnd "; name; from_string "."; ws skips'''
           ]
       | Rename (skips, name, mod_binding, skips', mod_descr) -> from_string "Rename"
-      | Open (skips, mod_descr) ->
-          let mod_path = B.module_id_to_ident mod_descr in
-          let mod_name = Ident.get_name mod_path in
-          if (mod_name |> Name.strip_lskip |> Name.to_string) = "Vector" then
-            Output.flat []
-          else
-            let mod_name = Name.to_output Term_var mod_name in
-              Output.flat [
-                ws skips; from_string "Require Import "; mod_name; from_string ".\n"
-              ]
+      | OpenImport (oi, mod_descrs) ->                  
+          let (skips, is_pure_import) = match oi with
+            | Ast.OI_import sk -> (sk, true)
+            | Ast.OI_open sk -> (sk, false)
+            | Ast.OI_open_import (sk1, sk2) -> (Ast.combine_lex_skips sk1 sk2, false)
+          in
+          let handle_mod mod_descr = begin
+            let mod_path = B.module_id_to_ident mod_descr in
+            let mod_name = Ident.get_name mod_path in
+            if (mod_name |> Name.strip_lskip |> Name.to_string) = "Vector" then
+               Output.flat []
+            else
+              let mod_name = Name.to_output Term_var mod_name in
+                Output.flat [
+                  ws skips; from_string "Require Import "; mod_name; from_string ".\n"
+                ]
+          end in
+          if is_pure_import then emp else Output.flat (List.map handle_mod mod_descrs)
       | Indreln (skips, targets, names, cs) -> (*INDERL_TODO Only added the name declaration parameter here*)
           if in_target targets then
             let c = Seplist.to_list cs in

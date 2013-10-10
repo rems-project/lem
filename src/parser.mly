@@ -146,7 +146,7 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 
 %token <Ast.terminal> Dot Lparen Rparen Comma Under Arrow As Colon NegLcurly Lcurly Rcurly 
 %token <Ast.terminal> Semi Lsquare Rsquare Fun_ Function_ Bar With Match Let_ And HashZero HashOne
-%token <Ast.terminal> In Of Rec Type Witness Check Rename Module_ Struct End Open_ SemiSemi Eof
+%token <Ast.terminal> In Of Rec Type Witness Check Rename Module_ Struct End Open_ Import_ SemiSemi Eof
 %token <Ast.terminal> True False Begin_ If_ Then Else Val
 %token <Ast.terminal * Ulib.Text.t> AmpAmp BarBar ColonColon Star Plus Eq At GtEq 
 %token <Ast.terminal * Ulib.Text.t> X Tyvar Nvar 
@@ -1020,6 +1020,14 @@ val_defs:
   | val_def val_defs
     { ($1,loc ())::$2 }
 
+open_import:
+  | Open_ 
+    { OI_open($1) }
+  | Import_ 
+    { OI_import($1) }
+  | Open_ Import_ 
+    { OI_open_import($1, $2) }
+
 def:
   | Type tds
     { dloc (Type_def($1,$2)) }
@@ -1029,8 +1037,8 @@ def:
     { mod_cap $2; dloc (Module($1,$2,fst $3,$4,$5,$6)) }
   | Module_ x Eq id
     { mod_cap $2; dloc (Rename($1,$2,fst $3,$4)) }
-  | Open_ id
-    { dloc (Open($1,$2)) }
+  | open_import ids
+    { dloc (Open_Import($1,$2)) }
   | Indreln targets_opt and_indreln_names and_indreln_clauses
     { dloc (Indreln($1,$2,$3,$4)) }
   | val_spec
@@ -1103,6 +1111,13 @@ tds:
     { [($1,None)] }
   | td And tds
     { ($1,$2)::$3 }
+
+ids:
+  | id
+    { [$1] }
+  | id ids
+    { $1::$2 }
+
 
 defs_help:
   | def

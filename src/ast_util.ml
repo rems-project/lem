@@ -103,6 +103,7 @@ let rec setcomp_bindings not_shadowed (Expr_l(e,l)) =
   let scb_list = setcomp_bindings_list not_shadowed in
     match e with
       | Ident(id) -> id_vars not_shadowed id
+      | Backend _ -> NameSet.empty
       | Fun(_,Patsexp(ps,_,e,_)) ->
           NameSet.diff 
             (scb e)
@@ -194,3 +195,12 @@ and letbind_freevars not_shadowed = function
       (NameSet.diff (setcomp_bindings not_shadowed e) (pats_vars not_shadowed ps),
        NameSet.singleton (xl_to_name xl))
 
+
+let get_imported_modules_of_def_aux = function
+  | Open_Import ((OI_import _ | OI_open_import _), ids) ->
+      List.map (fun id -> Path.from_id (Ident.from_id id)) ids
+  | _ -> [] 
+  
+
+let get_imported_modules (Defs ds, _) =
+  List.flatten (List.map (fun (Def_l (d, _), _, _) -> get_imported_modules_of_def_aux d) ds)

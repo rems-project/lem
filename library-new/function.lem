@@ -2,8 +2,7 @@
 (* A library for common operations on functions                               *)
 (******************************************************************************)
 
-open Maybe 
-open Bool
+open import Bool Maybe 
 
 (* ----------------------- *)
 (* identity function       *)

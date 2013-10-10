@@ -111,6 +111,9 @@ val list_diff : 'a list -> 'a list -> 'a list
     when the limit is reached. *)
 val list_longer : int -> 'a list -> bool
 
+(** [list_null l] checks whether the list [l] is empty, i.e. if [l = []] holds. *)
+val list_null : 'a list -> bool
+
 (** [option_first f l] searches for the first element [x] of [l] such
     that the [f x] is not [None]. If such an element exists, [f x] is
     returned, otherwise [None]. *)
@@ -180,6 +183,12 @@ val list_dropn : int -> 'a list -> 'a list
     [Failure "list_dest_snoc"] exception, if the list [l] is empty. *)
 val list_dest_snoc : 'a list -> 'a list * 'a
 
+(** [list_pick p l] tries to pick the first element from [l] that satisfies predicate [p].
+    If such an element is found, it is returned together with the list [l] where this
+    element has been removed. *)
+val list_pick : ('a -> bool) -> 'a list -> ('a * 'a list) option
+
+
 val compare_list : ('a -> 'b -> int) -> 'a list -> 'b list -> int
 
 
@@ -236,6 +245,9 @@ module ExtraSet : functor (S : Set.S) ->
    sig
      (** Add a list of values to an existing set. *)
      val add_list : S.t -> S.elt list -> S.t
+
+     (** Removes a list of values to an existing set. *)
+     val remove_list : S.t -> S.elt list -> S.t
 
      (** Construct a set from a list. *)
      val from_list : S.elt list -> S.t
