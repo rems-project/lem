@@ -476,15 +476,9 @@ let remove_sets context e =
                 C.mk_list (exp_to_locn e) 
                   space es s2 { Types.t = Types.Tapp([t],Path.listpath) }
               in
-              let from_list_id = begin
-		let n1 = Name.add_lskip (Name.from_string "Pset") in
-		let n2 = Name.add_lskip (Name.from_string "from_list") in
-		let id = Ident.mk_ident [(n1, None)] n2 l_unk in
-                id
-              end in
               let from_list =
                 C.mk_const l_unk
-                  { id_path = Id_some from_list_id;
+                  { id_path = Id_none None;
                     id_locn = l_unk;
                     descr = fst (get_const env ["Ocaml"; "Pset"] "from_list");
                     instantiation = [t] }
