@@ -59,6 +59,8 @@ instance (NumAdd num)
   let (+) = natAdd
 end
 
+val suc : num -> num
+let suc n = n + 1
 
 val natMinus : num -> num -> num
 declare hol      target_rep function natMinus = infix `-`

@@ -88,36 +88,35 @@ val lookup_mod_descr : local_env -> Name.t list -> Name.t -> mod_descr
 
 (** [names_get_const env path n] looks up the constant with name [n] reachable via path [path] in
    the environment [env] *)
-val names_get_const : env -> Name.t list -> Name.t -> const_descr_ref * const_descr
+val names_get_const : env -> Name.t list -> Name.t -> const_descr_ref * const_descr 
 
-(** [get_const] is a wrapper around [names_get_const] that uses strings instead of names. *)
-val get_const : env -> string list -> string -> const_descr_ref * const_descr
+(** [strings_get_const] is a wrapper around [names_get_const] that uses strings instead of names. *)
+val strings_get_const : env -> string list -> string -> const_descr_ref * const_descr
+
+(** [get_const] is a wrapper around [labels_get_const] that maps a label to an actual constant description. *)
+val get_const : env -> string -> const_descr_ref * const_descr
 
 (** [names_get_const_ref env path n] looks up the constant with name [n] reachable via path [path] in
    the environment [env] *)
-val names_get_const_ref : env -> Name.t list -> Name.t -> const_descr_ref
-
-(** [get_const_ref] is a wrapper around [names_get_const_ref] that uses strings instead of names. *)
-val get_const_ref : env -> string list -> string -> const_descr_ref 
+(* val names_get_const_ref : env -> Name.t list -> Name.t -> const_descr_ref *)
 
 (** [const_descr_to_kind r d] assumes that [d] is the description associated with reference [r]. It
     then determines the kind of constant (field, constructor, constant) depending on the information
     stored in [d]. *)
 val const_descr_to_kind : const_descr_ref * const_descr -> name_kind
 
-(** [get_const_id env l path n inst] used [get_const env path n] to construct a [const_descr] and
+(** [strings_get_const_id env l path n inst] uses [get_const env path n] to construct a [const_descr] and
    then wraps it in an id using location [l] and instantiations [inst]. *)
-val get_const_id : env -> Ast.l -> string list -> string -> Types.t list -> (const_descr_ref id * const_descr)
+val strings_get_const_id : env -> Ast.l -> string list -> string -> Types.t list -> (const_descr_ref id * const_descr)
 
-(** [mk_const_exp] uses [get_const_id] to construct a constant expression. *)
-val mk_const_exp : env -> Ast.l -> string list -> string -> Types.t list -> exp
+(** [get_const_id env l label inst] uses [strings_get_const_id] with an indirection to look up a constant for a given label. *)
+val get_const_id : env -> Ast.l -> string -> Types.t list -> (const_descr_ref id * const_descr)
 
-(** [names_get_field env path n] looks up the field with name [n] reachable via path [path] in
-   the environment [env] *)
-val names_get_field : env -> Name.t list -> Name.t -> const_descr_ref * const_descr
+(** [strings_mk_const_exp] uses [get_const_id] to construct a constant expression. *)
+val strings_mk_const_exp : env -> Ast.l -> string list -> string -> Types.t list -> exp
 
-(** [get_field] is a wrapper around [names_get_field] that uses strings instead of names. *)
-val get_field : env -> string list -> string -> const_descr_ref * const_descr
+(** [mk_const_exp] uses [strings_mk_const_exp] with an indirection through a label. *)
+val mk_const_exp : env -> Ast.l -> string -> Types.t list -> exp
 
 (** [dest_field_types l env f] looks up the types of the field [f] in environment [env].
     It first gets the description [f_descr] of the field [f] in [env]. It then looks up
@@ -176,10 +175,6 @@ val const_target_rep_to_loc : const_target_rep -> Ast.l
     Only auto-generated target-reps should be redefinable by the user. *)
 val const_target_rep_allow_override : const_target_rep -> bool
 
-(** [set_target_const_rep env mp n target rep] sets the representation of the constant described by
-    module-path [mp] and name [n] for target [target] to [rep] in environment [env]. *)
-val set_target_const_rep : env -> string list -> string -> Target.non_ident_target -> const_target_rep -> env
-
 (** [constant_descr_to_name targ cd] looks up the representation for
     target [targ] in the constant description [cd]. It returns a tuple
     [(n_is_shown, n, n_ascii)]. The name [n] is the name of the
@@ -215,6 +210,9 @@ val type_defs_rename_type: Ast.l -> Types.type_defs -> Path.t -> Target.non_iden
 target [t]. This means that the whole module structure is lost and replace by the identifier. *)
 val type_defs_new_ident_type: Ast.l -> Types.type_defs -> Path.t -> Target.non_ident_target -> Ident.t -> Types.type_defs
 
+(** [const_descr_has_target_rep targ d] checks whether the description [d] contains
+    a target-representation for target [targ]. *)
+val const_descr_has_target_rep : Target.target -> Typed_ast.const_descr -> bool
 
 (** {2 Constructing, checking and destructing expressions} *)
 

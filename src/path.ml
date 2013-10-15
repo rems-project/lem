@@ -95,6 +95,9 @@ let pp ppf p =
           (lst "." Name.pp) vs
           Name.pp v
 
+let to_string p =
+  pp_to_string (fun ppf -> pp ppf p)
+
 let flat = function
   | [] -> r""
   | r2 -> Ulib.Text.concat (r"") r2

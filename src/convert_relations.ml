@@ -66,9 +66,9 @@ let mk_const_ref (env : env) l (c_ref : const_descr_ref) inst =
   C.mk_const l id (Some t)
 
 
-let and_const_ref env = get_const_ref env ["Pervasives"] "&&"
-let eq_const_ref env = get_const_ref env ["Pervasives"] "="
-let id_const_ref env = get_const_ref env ["Pervasives"] "id"
+let and_const_ref env = fst (get_const env "conjunction")
+let eq_const_ref env = fst (get_const env "equality")
+let id_const_ref env = fst (get_const env "identity")
 
 let mk_fun_ty args ret =
   List.fold_right (fun a b -> {t=Tfn(a,b)}) args ret
@@ -85,15 +85,15 @@ let path_to_string_list p =
   let (mp,n) = Path.to_name_list p in
   (List.map Name.to_string mp, Name.to_string n)
 
-let mk_pconst_pat env l mp n inst args = 
-  let (c, c_d) = get_const_id env l mp n inst in
+let mk_pconst_pat env l label inst args = 
+  let (c, c_d) = get_const_id env l label inst in
   let t = Types.type_subst
     (Types.TNfmap.from_list2 c_d.const_tparams c.instantiation)
     c_d.const_type in
   C.mk_pconst l c args (Some t)
 
-let mk_const_app env l mp n inst args = 
-  let c = mk_const_exp env l mp n inst in
+let mk_const_app env l label inst args = 
+  let c = mk_const_exp env l label inst in
   List.fold_left (fun u v -> mk_app l u v None) c args
 
 
@@ -109,10 +109,10 @@ let c_env_update_rel_info l c_env c_ref ri =
 
 module LemOptionMonad = struct
 
-  let mk_none env ty = mk_const_app env Ast.Unknown ["Pervasives"] "None" [ty] []
-  let mk_some env e = mk_const_app env Ast.Unknown ["Pervasives"] "Some" [exp_to_typ e] [e]
-  let mk_pnone env ty = mk_pconst_pat env Ast.Unknown ["Pervasives"] "None" [ty] []
-  let mk_psome env p = mk_pconst_pat env Ast.Unknown ["Pervasives"] "Some" [p.typ] [p]
+  let mk_none env ty = mk_const_app env Ast.Unknown "maybe_nothing" [ty] []
+  let mk_some env e = mk_const_app env Ast.Unknown "maybe_just" [exp_to_typ e] [e]
+  let mk_pnone env ty = mk_pconst_pat env Ast.Unknown "maybe_nothing" [ty] []
+  let mk_psome env p = mk_pconst_pat env Ast.Unknown "maybe_just" [p.typ] [p]
     
   let mk_bind env call pat code = 
     let l = Ast.Trans (true, "mk_bind", None) in
@@ -382,7 +382,7 @@ let is_constructor env t c_d =
         List.mem c_d cfd.constr_list
       ) td.type_constr
 
-let cons_ref env = get_const_ref env ["Pervasives"] "::"
+let cons_ref env = fst (get_const env "list_cons")
 
 
 let exp_to_pat env e check_rename transform_exp  =
@@ -479,13 +479,13 @@ module Context_list : COMPILATION_CONTEXT = struct
     let l = loc_trans "mk_list_map" l in
     match (exp_to_typ fn).t with
       | Types.Tfn(a,b) ->
-        mk_app l (mk_app l (mk_const_exp env l ["List"] "map" [a;b]) fn None) lst None
+        mk_app l (mk_app l (mk_const_exp env l "list_map" [a;b]) fn None) lst None
       | _ -> failwith "???"
         
   let mk_list_concat env l lst = 
     let t = remove_list (remove_list (exp_to_typ lst)) in
     let l = loc_trans "mk_list_concat" l in
-    mk_app l (mk_const_exp env l ["List"] "concat" [t]) lst None
+    mk_app l (mk_const_exp env l "list_concat" [t]) lst None
 
   let mk_return env l e =
     mk_list (loc_trans "mk_return" l) None (sep_no_skips [e]) None (mk_type (exp_to_typ e))
@@ -568,10 +568,10 @@ module Context_option_pre = struct
       | Types.Tapp([ty], _) -> ty
       | _ -> failwith "???"
 
-  let mk_none env l ty = mk_const_app env l ["Pervasives"] "None" [ty] [] 
-  let mk_some env l e = mk_const_app env l ["Pervasives"] "Some" [exp_to_typ e] [e]
-  let mk_pnone env l ty = mk_pconst_pat env l ["Pervasives"] "None" [ty] []
-  let mk_psome env l p = mk_pconst_pat env l ["Pervasives"] "Some" [p.typ] [p]
+  let mk_none env l ty = mk_const_app env l "maybe_nothing" [ty] [] 
+  let mk_some env l e = mk_const_app env l "maybe_just" [exp_to_typ e] [e]
+  let mk_pnone env l ty = mk_pconst_pat env l "maybe_nothing" [ty] []
+  let mk_psome env l p = mk_pconst_pat env l "maybe_just" [p.typ] [p]
 
   let mk_return env l e = mk_some env l e
 

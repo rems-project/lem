@@ -332,8 +332,7 @@ let class_constraint_to_parameter : def_macro = fun mod_path env ((d,s),l,lenv) 
 
               | Fun_def(sk,fr,topt,clauses) -> build_fun sk fr topt clauses
 
-              | Let_inline _ -> 
-                  raise (Reporting_basic.err_unreachable l "Inline functions should not have a class constraint. Typechecking should have complained.")
+              | Let_inline _ -> (* class constraint is dealt with after inlining, so do nothing *) None
 
          end
       | _ -> None

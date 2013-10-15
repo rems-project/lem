@@ -70,13 +70,13 @@ type trans =
     }
 
 (* The macros needed to implement the dictionary passing translations to remove type classes *)
-let dictionary_macros = 
+let dictionary_macros targ = 
   [
    Def_macros (fun env -> [M.class_to_record]);
    Def_macros (fun env -> [M.instance_to_module env]);
    Def_macros (fun env -> [M.class_constraint_to_parameter]);
    Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_method]);
-   Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_class_const])
+   Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_class_const targ])
   ]
 
 (* The macros needed to change number type variables (e.g., ''a) into function parameters *)
@@ -87,7 +87,7 @@ let nvar_macros =
 
 let ident () =
   { (* for debugging pattern compilation *)
-    macros = (if !ident_force_dictionary_passing then dictionary_macros else []) @ [ Def_macros (fun env -> if !ident_force_pattern_compile then [Patterns.compile_def Target_ident (Patterns.is_pattern_match_const false) env] else []);
+    macros = (if !ident_force_dictionary_passing then dictionary_macros Target_ident else []) @ [ Def_macros (fun env -> if !ident_force_pattern_compile then [Patterns.compile_def Target_ident (Patterns.is_pattern_match_const false) env] else []);
                Exp_macros (fun env -> if !ident_force_pattern_compile then [(Patterns.compile_exp Target_ident (Patterns.is_pattern_match_const false) env)] else [])];
     extra = []; }
 
@@ -96,7 +96,7 @@ let tex =
     extra = []; }
 
 let hol =
-  { macros = dictionary_macros @ 
+  { macros = dictionary_macros (Target_no_ident Target_hol) @ 
              nvar_macros @
              [Def_macros (fun env -> [  M.remove_vals;
                                         M.remove_classes; 
@@ -120,7 +120,7 @@ let hol =
              Rename_top_level.flatten_modules]; }
 
 let ocaml =
-  { macros = dictionary_macros @
+  { macros = dictionary_macros (Target_no_ident Target_ocaml) @
              nvar_macros @
              [Def_macros (fun env ->  
                             [M.remove_vals; 
@@ -144,6 +144,7 @@ let ocaml =
 
 let isa  =
   { macros =
+     dictionary_macros (Target_no_ident Target_isa) @
      [Def_macros (fun env ->
                     [M.remove_vals;
                      M.remove_opens;

@@ -44,50 +44,48 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
-(** internal canonical long identifiers *)
 
-(* t is the type of globally unique identifier paths to definitions *)
-type t
 
-val compare : t -> t -> int
-val pp : Format.formatter -> t -> unit
-val from_id : Ident.t -> t
-(*
-val get_name : t -> Name.t
- *)
-val mk_path : Name.t list -> Name.t -> t
-val numpath : t
-val listpath : t
-val vectorpath : t
-val boolpath : t
-val bitpath : t
-val setpath : t
-val stringpath : t
-val unitpath : t
-val get_name : t -> Name.t
+(* TODO: Implement this function in an external file and write a simple parser *)
+let constant_label_to_path_name (label : string) : (string list * string) =
+match label with
+  | "equality" -> (["Pervasives"], "=")
+  | "compare" -> (["Ocaml"], "compare")
+  | "identity" -> (["Pervasives"], "id")
 
-(** [get_toplevel_name p] gets the outmost name of a path. This is important
-    when checking prefixes. For example, the result for path [module.submodule.name] is 
-    [module] and for [name] it is [name]. *)
-val get_toplevel_name: t -> Name.t
+  | "conjunction" -> (["Pervasives"], "&&")
+  | "implication" -> (["Pervasives"], "-->")
 
-val check_prefix : Name.t -> t -> bool
-val to_ident : Ast.lex_skips -> t -> Ident.t
-val to_name : t -> Name.t
-val to_name_list : t -> Name.t list * Name.t
-val to_string : t -> string
+  | "addition" -> (["Pervasives"], "+")
+  | "multiplication" -> (["Pervasives"], "*")
+  | "subtraction" -> (["Pervasives"], "-")
+  | "less_equal" -> (["Pervasives"], "<=")
+  | "num_suc" -> (["Num"], "suc")
 
-(*
-val to_rope : (Ast.lex_skips -> Ulib.Text.t) -> Ulib.Text.t -> t -> Ulib.Text.t
-val get_lskip: t -> Ast.lex_skips
-val add_pre_lskip : Ast.lex_skips -> t -> t
-val drop_parens : t -> t
-val is_lower : t -> bool
-val is_upper : t -> bool
-val to_lower : t -> t
-val to_upper : t -> t
-val prefix_is_lower : t -> bool
-val prefix_is_upper : t -> bool
-val prefix_to_lower : t -> t
-val prefix_to_upper : t -> t
- *)
+  | "list_concat" -> (["List"], "concat")
+  | "list_cons" -> (["Pervasives"], "::")
+  | "list_exists" -> (["List"], "exists")
+  | "list_fold_right" -> (["List"], "fold_right")
+  | "list_forall" -> (["List"], "forall")
+  | "list_map" -> (["List"], "map")
+  | "list_member" -> (["List"], "mem")
+
+  | "maybe_just" -> (["Pervasives"], "just")
+  | "maybe_nothing" -> (["Pervasives"], "none")
+
+  | "nat_list_to_string" -> (["Pervasives"], "nat_list_to_string")
+
+  | "set_add" -> (["Set"], "add")
+  | "set_cross" -> (["Set"], "cross")
+  | "set_exists" -> (["Set"], "exists")
+  | "set_filter" -> (["Set"], "filter")
+  | "set_fold" -> (["Set"], "fold")
+  | "set_forall" -> (["Set"], "for_all")
+  | "set_from_list" -> (["Set"], "from_list")
+  | "set_image" -> (["Set"], "image")
+  | "set_member" -> (["Set"], "IN")
+  | "set_sigma" -> (["Set"], "set_sigma")
+
+  | "vector_access" -> (["Vector"], "vector_access")
+  | "vector_slice" -> (["Vector"], "vector_slice")
+

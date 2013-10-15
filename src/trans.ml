@@ -224,7 +224,7 @@ let string_lits_isa _ e =
       then (* no need to translate if all characters are representable *)
         None
       else begin
-        let f = mk_const_exp env l_unk ["Pervasives"] "nat_list_to_string" [] in
+        let f = mk_const_exp env l_unk "nat_list_to_string" [] in
         let nums = List.map mk_num_exp chars in
         let char_list = Seplist.from_list_default None nums in
         let char_list_exp = C.mk_list l_unk None char_list None { Types.t =
@@ -236,7 +236,7 @@ let string_lits_isa _ e =
 
 let peanoize_num_pats _ _ p =
   let l_unk = Ast.Trans(true, "peanoize_num_pats", Some p.locn) in 
-  let (suc, _) = get_const_id E.env l_unk ["Pervasives"] "SUC" [] in
+  let (suc, _) = get_const_id E.env l_unk "num_suc" [] in
   let pean_pat s i p = begin   
     let rec f i = if i = 0 then p else C.mk_pconst l_unk suc [f (i - 1)] None
     in Pattern_syntax.mk_opt_paren_pat (pat_append_lskips s (f i))
@@ -298,18 +298,18 @@ let remove_comprehension for_lst _ e =
       in
       let list_fold_const t =
         append_lskips space
-          (mk_const_exp env (l_unk 4) ["List" ] "fold_right" [t; result_type])
+          (mk_const_exp env (l_unk 4) "list_fold_right" [t; result_type])
       in
       let set_fold_const t =
         append_lskips space
-          (mk_const_exp env (l_unk 5) ["Set" ] "fold" [t; result_type])
+          (mk_const_exp env (l_unk 5) "set_fold" [t; result_type])
       in
       let f = 
         if is_lst then
-          let add_const =(mk_const_exp env (l_unk 8) [] "::" [exp_to_typ e1]) in
+          let add_const = (mk_const_exp env (l_unk 8) "list_cons" [exp_to_typ e1]) in
             C.mk_infix (l_unk 9) e1 add_const acc_var None
         else
-          let add_const = mk_const_exp env (l_unk 11) ["Set"] "add" [exp_to_typ e1] in
+          let add_const = mk_const_exp env (l_unk 11) "set_add" [exp_to_typ e1] in
           let f_app1 = 
             C.mk_app (l_unk 12) add_const e1 None
           in
@@ -448,22 +448,7 @@ let remove_setcomp _ e =
      end
   | _ -> None
 
-(* Remove set notation *)
-let special_type = 
-  { Types.t = Types.Tapp([], Path.mk_path [Name.from_rope (r"MachineDefTypes")] (Name.from_rope (r"instruction_instance"))) }
-
-let get_compare t = 
-  let l_unk = Ast.Trans(true, "get_compare", None) in
-  (* TODO: Remove this hack *)
-  if Types.compare (Types.head_norm d t) special_type = 0 then
-    mk_const_exp env l_unk ["MachineDefTypes"] "compare_instruction_instance" []
-  else
-  C.mk_const l_unk
-    { id_path = Id_none None;
-      id_locn = l_unk;
-      descr = fst (get_const env ["Ocaml"] "compare");
-      instantiation = [t] }
-    None
+let get_compare l t = mk_const_exp env l "compare" [t]
 
 let remove_sets context e = 
   let l_unk = Ast.Trans(true, "remove_sets", Some (exp_to_locn e)) in
@@ -476,15 +461,8 @@ let remove_sets context e =
                 C.mk_list (exp_to_locn e) 
                   space es s2 { Types.t = Types.Tapp([t],Path.listpath) }
               in
-              let from_list =
-                C.mk_const l_unk
-                  { id_path = Id_none None;
-                    id_locn = l_unk;
-                    descr = fst (get_const env ["Ocaml"; "Pset"] "from_list");
-                    instantiation = [t] }
-                  None
-              in
-              let cmp = get_compare t in
+              let from_list = mk_const_exp env l_unk "set_from_list" [t] in
+              let cmp = get_compare l_unk t in
               let app1 = C.mk_app l_unk from_list (append_lskips space cmp) None in
               let app = C.mk_app l_unk app1 lst None in
                 Some(app)
@@ -512,8 +490,8 @@ let strip_quant_lskips = function
 let get_quant_impl (env : Typed_ast.env) is_lst t : Ast.q -> exp = 
   let l_unk = Ast.Trans(true, "get_quant_impl", None) in
   let module C = Exps_in_context (struct let env_opt = Some env;; let avoid = None end) in
-  let f path name s =
-    let d = fst (get_const env path name) in
+  let f label s =
+    let d = fst (get_const env label) in
       append_lskips s
         (C.mk_const l_unk 
           { id_path = Id_none None;
@@ -525,14 +503,14 @@ let get_quant_impl (env : Typed_ast.env) is_lst t : Ast.q -> exp =
     function
       | Ast.Q_forall(s) ->
           if is_lst then
-            f ["List"] ("for_all") s
+            f "list_forall" s
           else
-            f ["Set"] ("for_all") s
+            f "set_forall" s
       | Ast.Q_exists(s) ->
           if is_lst then
-            f ["List"] ("exist") s
+            f "list_exist" s
           else
-            f ["Set"] ("exist") s
+            f "set_exist" s
 ;;
 
 (* Turn quantifiers into iteration, fails on unrestricted quantifications *)
@@ -603,7 +581,7 @@ let list_quant_to_set_quant _ e =
              | Qb_restr(is_lst,s2,p,s3,e,s4) when is_lst->
                  let lst_to_set = 
                    append_lskips space
-                     (mk_const_exp env l_unk ["Set"] "from_list" [p.typ])
+                     (mk_const_exp env l_unk "set_from_list" [p.typ])
                  in
                  let app = C.mk_app l_unk lst_to_set e None in
                    Some(Qb_restr(false,s2,p,s3,app,s4))
@@ -648,7 +626,7 @@ let rec pat_to_exp env p =
     | P_paren(lskips1,p,lskips2) ->
         C.mk_paren p.locn lskips1 (pat_to_exp env p) lskips2 None
     | P_cons(p1,lskips,p2) ->
-        let cons = Typed_ast_syntax.mk_const_exp env l_unk [] "::" [p1.typ] in
+        let cons = Typed_ast_syntax.mk_const_exp env l_unk "list_cons" [p1.typ] in
           C.mk_infix p.locn (pat_to_exp env p1) (append_lskips lskips cons) (pat_to_exp env p2) None
     | P_lit(l) ->
         C.mk_lit p.locn l None
@@ -675,9 +653,9 @@ let remove_set_restr_quant _ e =
       if List.for_all qb_OK qbs then
         None
       else
-        let and_const = mk_const_exp env l_unk [] "&&" [] in
-        let in_const t = mk_const_exp env l_unk [] "IN" [t] in
-        let mem_const t = mk_const_exp env l_unk ["List"] "mem" [t] in
+        let and_const = mk_const_exp env l_unk "conjunction" [] in
+        let in_const t = mk_const_exp env l_unk "set_member" [t] in
+        let mem_const t = mk_const_exp env l_unk "list_member" [t] in
         let pred_exp =
           List.fold_right 
             (fun qb res_e ->
@@ -790,11 +768,11 @@ let remove_restr_quant pat_OK _ e =
       if List.for_all qb_OK qbs then
         None
       else
-        let imp_const = mk_const_exp env l_unk [] "-->" [] in
-        let and_const = mk_const_exp env l_unk [] "&&" [] in
+        let imp_const = mk_const_exp env l_unk "implication" [] in
+        let and_const = mk_const_exp env l_unk "conjunction" [] in
         let comb_const = match q with Ast.Q_forall _ -> imp_const | Ast.Q_exists _ -> and_const in
-        let in_const t = mk_const_exp env l_unk [] "IN" [t] in
-        let mem_const t = mk_const_exp env l_unk ["List"] "mem" [t] in
+        let in_const t = mk_const_exp env l_unk "set_member" [t] in
+        let mem_const t = mk_const_exp env l_unk "list_member" [t] in
         let pred_exp =
           List.fold_right 
             (fun qb res_e ->
@@ -939,8 +917,9 @@ let remove_method _ e =
 
 (* remove class constraints from constants by adding explicit dictionary arguments. *)
 
-let remove_class_const_aux l_unk mk_exp c =
+let remove_class_const_aux l_unk targ mk_exp c =
   let c_descr = c_env_lookup l_unk env.c_env c.descr in
+  if const_descr_has_target_rep targ c_descr then (* if the constant is represented specially, don't touch it *) None else
   match (c_descr.const_class, c_descr.const_no_class) with
       | (([], _) | (_, None)) ->                 
           (* if there are no class constraints, there is nothing to do *)
@@ -985,13 +964,13 @@ let remove_class_const_aux l_unk mk_exp c =
             Some(new_e)
      
 
-let remove_class_const _ e =
+let remove_class_const targ _ e =
   let l_unk = Ast.Trans(true, "remove_class_const", Some (exp_to_locn e)) in
   match C.exp_to_term e with
     | Constant(c) ->
-        remove_class_const_aux l_unk (fun c' -> (C.mk_const l_unk c' None)) c
+        remove_class_const_aux l_unk targ (fun c' -> (C.mk_const l_unk c' None)) c
     | Field(e,sk,fd) ->
-        remove_class_const_aux l_unk (fun fd' -> (C.mk_field l_unk e sk fd' None)) fd
+        remove_class_const_aux l_unk targ (fun fd' -> (C.mk_field l_unk e sk fd' None)) fd
     | _ -> None
 
 
@@ -1006,11 +985,11 @@ let nexp_to_exp n =
       | Types.Nconst(i) -> let lit =  C.mk_lnum l_unk Typed_ast.no_lskips i (Some num_type) in
                            C.mk_lit l_unk lit (Some num_type)
       | Types.Nadd(n1,n2) -> 
-               let (plus_const_id, _) = get_const_id env l_unk ["Pervasives"] "+" [] in
+               let (plus_const_id, _) = get_const_id env l_unk "addition" [] in
                let plus = C.mk_const l_unk plus_const_id (Some bin_op_type) in
                C.mk_infix l_unk (to_exp n1) plus (to_exp n2) (Some num_type)
       | Types.Nmult(n1,n2) ->
-               let (mult_const_id, _) = get_const_id env l_unk ["Pervasives"] "*" [] in
+               let (mult_const_id, _) = get_const_id env l_unk "multiplication" [] in
                let mult = C.mk_const l_unk mult_const_id (Some bin_op_type) in
                C.mk_infix l_unk (to_exp n1) mult (to_exp n2) (Some num_type)
       | _ -> assert false
@@ -1070,7 +1049,7 @@ let remove_vector_access _ e =
       let num_type = { Types.t = Types.Tapp([],Path.numpath) } in
       let acc_typ1 = { Types.t = Types.Tfn(exp_to_typ v,exp_to_typ e) } in
       let acc_typ = { Types.t = Types.Tfn(num_type, acc_typ1) } in
-      let (f_id, _) = get_const_id env l_unk ["Vector"] "vector_access" [(exp_to_typ e); {Types.t = Types.Tne(i.nt)}; vlength ] in
+      let (f_id, _) = get_const_id env l_unk "vector_access" [(exp_to_typ e); {Types.t = Types.Tne(i.nt)}; vlength ] in
       let f = C.mk_const l_unk f_id (Some acc_typ) in
       let app1 = C.mk_app l_unk f (nexp_to_exp i.nt) (Some acc_typ1) in
       Some(C.mk_app l_unk app1 v (Some (exp_to_typ e)))
@@ -1087,7 +1066,7 @@ let remove_vector_sub _ e =
       let acc_typ1 = { Types.t = Types.Tfn(exp_to_typ v,exp_to_typ e) } in
       let acc_typ2 = { Types.t = Types.Tfn(num_type, acc_typ1) } in
       let acc_typ3 = { Types.t = Types.Tfn(num_type, acc_typ2) } in
-      let (f_id, _) = get_const_id env l_unk ["Vector"] "vector_slice" [a; { Types.t = Types.Tne(i1.nt)}; {Types.t = Types.Tne(i2.nt)}; vlength1; vlength2] in 
+      let (f_id, _) = get_const_id env l_unk "vector_slice" [a; { Types.t = Types.Tne(i1.nt)}; {Types.t = Types.Tne(i2.nt)}; vlength1; vlength2] in 
       let f = C.mk_const l_unk f_id (Some acc_typ3) in
       let app1 = C.mk_app l_unk f (nexp_to_exp i1.nt) (Some acc_typ2) in
       let app2 = C.mk_app l_unk app1 (nexp_to_exp i2.nt) (Some acc_typ1) in

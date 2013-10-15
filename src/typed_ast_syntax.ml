@@ -138,35 +138,28 @@ let rec lookup_mod_descr (e : local_env) (mp : Name.t list) (n : Name.t) : mod_d
 let rec lookup_mod_descr_opt (e : local_env) (mp : Name.t list) (n : Name.t) : mod_descr option = 
   Util.option_bind (fun e -> Nfmap.apply e.m_env n) (lookup_env_opt e mp)
 
-let names_get_const_ref (env : env) mp n = 
+let names_get_const_ref (env : env) mp n : const_descr_ref = 
   let l = Ast.Trans(false, "names_get_const_ref", None) in
-  let local_env = lookup_env env.local_env mp in
-  match Nfmap.apply local_env.v_env n with
-    | Some(d) -> d
-    | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "names_get_const_ref: env did not contain constant!")))
-
-let get_const_ref (env : env) mp n =
-  names_get_const_ref env (List.map (fun n -> (Name.from_rope (r n))) mp) (Name.from_rope (r n))
+  let local_env_opt = lookup_env_opt env.local_env mp in
+  let res_opt = Util.option_bind (fun local_env -> Nfmap.apply local_env.v_env n) local_env_opt in
+  match res_opt with 
+    | Some d -> d
+    | None ->
+      let const_ident = Ident.mk_ident None mp n in
+        raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "environment does not contain constant '" ^
+               Ident.to_string const_ident ^ "'")))
 
 let names_get_const (env : env) mp n =
   let c_ref = names_get_const_ref env mp n in
   let c_d = c_env_lookup Ast.Unknown env.c_env c_ref in
   (c_ref, c_d)
 
-let get_const (env : env) mp n =
+let strings_get_const (env : env) mp n =
   names_get_const env (List.map (fun n -> (Name.from_rope (r n))) mp) (Name.from_rope (r n))
 
-let rec names_get_field env mp n =
-  let l = Ast.Trans (false, "names_get_field", None) in
-  let local_env = lookup_env env.local_env mp in
-  let c_ref = match Nfmap.apply local_env.f_env n with
-      | Some(d) -> d
-      | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "names_get_field: env did not contain constant!"))) in
-  let c_d = c_env_lookup l env.c_env c_ref in
-  (c_ref, c_d)
-
-let get_field (env : env) mp n =
-  names_get_field env (List.map (fun n -> (Name.from_rope (r n))) mp) (Name.from_rope (r n))
+let get_const env label =
+  let (mp, n) = External_constants.constant_label_to_path_name label in
+  strings_get_const env mp n
 
 let dest_field_types l env (f : const_descr_ref) =
   let l = Ast.Trans(false, "dest_field_types", Some l) in 
@@ -311,6 +304,12 @@ let const_target_rep_allow_override = function
   | CR_simple (_, f, _, _) -> f
   | CR_special (_, f, _, _) -> f
 
+let const_descr_has_target_rep targ cd =
+  match targ with
+    | Target.Target_ident -> false
+    | Target.Target_no_ident t -> Target.Targetmap.in_dom t cd.target_rep
+
+
 let const_descr_to_kind (r, d) =
   match d.env_tag with
     | K_field -> Nk_field r
@@ -343,22 +342,17 @@ let env_apply (env : env) comp_opt n =
     | Some comp -> aux comp
     | None -> Util.option_first aux [Ast.Component_function None; Ast.Component_field None; Ast.Component_type None; Ast.Component_module None]
 
-let set_target_const_rep env path name target rep =
-  begin
-    let (c_ref, cd) = get_const env path name in
-    let new_tr = Target.Targetmap.insert cd.target_rep (target, rep) in
-    let new_c_env = c_env_update env.c_env c_ref {cd with target_rep = new_tr} in
-    {env with c_env = new_c_env}
-  end
-
-let get_const_id (env : env) l mp n inst =
-let (c_ref, c_d) = get_const env mp n in
+let strings_get_const_id (env : env) l mp n inst =
+let (c_ref, c_d) = strings_get_const env mp n in
 ({ id_path = Id_none None;
    id_locn = l;
    descr = c_ref;
    instantiation = inst },
  c_d)
 
+let get_const_id env l label inst =
+  let (mp, n) = External_constants.constant_label_to_path_name label in
+  strings_get_const_id env l mp n inst
 
 
 (* -------------------------------------------------------------------------- *)
@@ -504,12 +498,16 @@ let mk_undefined_exp l m ty = begin
    be fine.  *)
 let mk_dummy_exp ty = mk_undefined_exp Ast.Unknown "Dummy expression" ty
 
-let mk_const_exp (env : env) l mp n inst =
-  let (c, c_d) = (get_const_id env l mp n inst) in
+let strings_mk_const_exp (env : env) l mp n inst =
+  let (c, c_d) = (strings_get_const_id env l mp n inst) in
   let t = Types.type_subst 
              (Types.TNfmap.from_list2 c_d.const_tparams c.instantiation) 
              c_d.const_type in
   C.mk_const l c (Some t)
+
+let mk_const_exp (env : env) l label inst =
+  let (mp, n) = External_constants.constant_label_to_path_name label in
+  strings_mk_const_exp env l mp n inst
 
 let mk_eq_exp env (e1 : exp) (e2 : exp) : exp =
   let l = Ast.Trans (true, "mk_eq", None) in
@@ -518,11 +516,7 @@ let mk_eq_exp env (e1 : exp) (e2 : exp) : exp =
   let ty_0 = { Types.t = Types.Tfn (ty, bool_ty) } in
   let ty_1 = { Types.t = Types.Tfn (ty, ty_0) } in
 
-  let eq_id = { id_path = Id_some (Ident.mk_ident_strings [] "=");
-                id_locn = l;
-                descr = fst (get_const env ["Ocaml"; "Pervasives"] "=");
-                instantiation = [ty] } in
-
+  let (eq_id, _) = get_const_id env l "equality" [ty] in
   let eq_exp = C.mk_const l eq_id (Some ty_1) in
   let res = C.mk_infix l e1 eq_exp e2 (Some bool_ty) in
   res
@@ -532,11 +526,7 @@ let mk_and_exp env (e1 : exp) (e2 : exp) : exp =
   let ty_0 = { Types.t = Types.Tfn (bool_ty, bool_ty) } in
   let ty_1 = { Types.t = Types.Tfn (bool_ty, ty_0) } in
 
-  let and_id = { id_path = Id_some (Ident.mk_ident_strings [] "&&");
-                id_locn = l;
-                descr = fst (get_const env ["Pervasives"] "&&");
-                instantiation = [] } in
-
+  let (and_id, _) = get_const_id env l "conjunction" [] in
   let and_exp = C.mk_const l and_id (Some ty_1) in
   let res = C.mk_infix l e1 and_exp e2 (Some bool_ty) in
   res
@@ -546,10 +536,7 @@ let mk_le_exp env (e1 : exp) (e2 : exp) : exp =
   let ty_0 = { Types.t = Types.Tfn (num_ty, bool_ty) } in
   let ty_1 = { Types.t = Types.Tfn (num_ty, ty_0) } in
 
-  let le_id = { id_path = Id_some (Ident.mk_ident_strings [] "<=");
-                id_locn = l;
-                descr = fst (get_const env ["Pervasives"] "<=");
-                instantiation = [] } in
+  let (le_id, _) = get_const_id env l "less_equal" [num_ty] in
 
   let le_exp = C.mk_const l le_id (Some ty_1) in
   let res = C.mk_infix l e1 le_exp e2 (Some bool_ty) in
@@ -560,11 +547,7 @@ let mk_add_exp env (e1 : exp) (e2 : exp) : exp =
   let ty_0 = { Types.t = Types.Tfn (num_ty, num_ty) } in
   let ty_1 = { Types.t = Types.Tfn (num_ty, ty_0) } in
 
-  let add_id = { id_path = Id_some (Ident.mk_ident_strings [] "+");
-                id_locn = l;
-                descr = fst (get_const env ["Pervasives"] "+");
-                instantiation = [] } in
-
+  let (add_id, _) = get_const_id env l "addition" [] in
   let add_exp = C.mk_const l add_id (Some ty_1) in
   let res = C.mk_infix l e1 add_exp e2 (Some num_ty) in
   res
@@ -574,11 +557,7 @@ let mk_sub_exp env (e1 : exp) (e2 : exp) : exp =
   let ty_0 = { Types.t = Types.Tfn (num_ty, num_ty) } in
   let ty_1 = { Types.t = Types.Tfn (num_ty, ty_0) } in
 
-  let sub_id = { id_path = Id_some (Ident.mk_ident_strings [] "-");
-                id_locn = l;
-                descr = fst (get_const env ["Pervasives"] "-");
-                instantiation = [] } in
-
+  let (sub_id, _) = get_const_id env l "subtraction" [num_ty] in
   let sub_exp = C.mk_const l sub_id (Some ty_1) in
   let res = C.mk_infix l e1 sub_exp e2 (Some num_ty) in
   res
@@ -607,7 +586,7 @@ let mk_from_list_exp env (e : exp) : exp =
           | _ -> raise (Reporting_basic.err_unreachable l "e not of list-type") in
   let set_ty = { Types.t = Types.Tapp([base_ty],Path.setpath) } in
   
-  let from_list_exp = mk_const_exp env l ["Set"] "from_list" [base_ty] in
+  let from_list_exp = mk_const_exp env l "set_from_list" [base_ty] in
   let res = C.mk_app l from_list_exp e (Some set_ty) in
   res
 
@@ -624,7 +603,7 @@ let mk_cross_exp env (e1 : exp) (e2 : exp) : exp =
   let cross_ty = { Types.t = Types.Tapp([pair_ty],Path.setpath) } in
   let aux_ty = { Types.t = Types.Tfn (exp_to_typ e2, cross_ty) } in
   
-  let cross_exp = mk_const_exp env l ["Set"] "cross" [e1_ty; e2_ty] in
+  let cross_exp = mk_const_exp env l "set_cross" [e1_ty; e2_ty] in
   let res0 = C.mk_app l cross_exp e1 (Some aux_ty) in
   let res = C.mk_app l res0 e2 (Some cross_ty) in
   res
@@ -640,7 +619,7 @@ let mk_set_sigma_exp env (e1 : exp) (e2 : exp) : exp =
   let sigma_ty = { Types.t = Types.Tapp([pair_ty],Path.setpath) } in
   let aux_ty = { Types.t = Types.Tfn (exp_to_typ e2, sigma_ty) } in
   
-  let union_exp = mk_const_exp env l ["Set"] "set_sigma" [e1_ty; e2_ty] in
+  let union_exp = mk_const_exp env l "set_sigma" [e1_ty; e2_ty] in
   let res0 = C.mk_app l union_exp e1 (Some aux_ty) in
   let res = C.mk_app l res0 e2 (Some sigma_ty) in
   res
@@ -655,7 +634,7 @@ let mk_set_filter_exp env (e_P : exp) (e_s : exp) : exp =
   let res_ty = { Types.t = Types.Tapp([set_ty],Path.setpath) } in
   let aux_ty = { Types.t = Types.Tfn (exp_to_typ e_s, res_ty) } in
 
-  let filter_exp = mk_const_exp env l ["Set"] "filter" [set_ty] in
+  let filter_exp = mk_const_exp env l "Set_filter" [set_ty] in
   let res0 = C.mk_app l filter_exp e_P (Some aux_ty) in
   let res = C.mk_app l res0 e_s (Some res_ty) in
   res
@@ -671,7 +650,7 @@ let mk_set_image_exp env (e_f : exp) (e_s : exp) : exp =
   let res_ty = { Types.t = Types.Tapp([ty_b],Path.setpath) } in
   let aux_ty = { Types.t = Types.Tfn (exp_to_typ e_s, res_ty) } in
 
-  let image_exp = mk_const_exp env l ["Set"] "image" [ty_a; ty_b] in
+  let image_exp = mk_const_exp env l "set_image" [ty_a; ty_b] in
   let res0 = C.mk_app l image_exp e_f (Some aux_ty) in
   let res = C.mk_app l res0 e_s (Some res_ty) in
   res

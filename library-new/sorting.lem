@@ -24,7 +24,6 @@ open import Bool Basic_classes Maybe List Relation Num
 val isPermutation : forall 'a. Eq 'a => list 'a -> list 'a -> bool
 val isPermutationBy : forall 'a. ('a -> 'a -> bool) -> list 'a -> list 'a -> bool
 
-let isPermutation = isPermutationBy (=)
 let rec isPermutationBy eq l1 l2 = match l1 with
   | [] -> List.null l2
   | (x :: xs) -> begin
@@ -34,6 +33,7 @@ let rec isPermutationBy eq l1 l2 = match l1 with
       end
     end
 end
+let isPermutation = isPermutationBy (=)
 
 
 assert perm_1: (isPermutation [] [])
@@ -66,14 +66,12 @@ lemma isPermutation_3 : (forall l1 l2. isPermutation l1 l2 --> (forall x. elem x
 val isSorted : forall 'a. Ord 'a => list 'a -> bool
 val isSortedBy : forall 'a. ('a -> 'a -> bool) -> list 'a -> bool
 
-let isSorted = isSortedBy (<=)
-
 let rec isSortedBy cmp l = match l with
   | [] -> true
   | [x] -> true
   | x1 :: x2 :: xs -> (cmp x1 x2 && isSortedBy cmp (x2 :: xs))
 end
-
+let isSorted = isSortedBy (<=)
 
 assert isSorted_1: (isSorted [])
 assert isSorted_2: (isSorted [2])
@@ -93,15 +91,15 @@ val insertBy : forall 'a. ('a -> 'a -> bool) -> 'a -> list 'a -> list 'a
 val insertSort: forall 'a. Ord 'a => list 'a -> list 'a
 val insertSortBy: forall 'a. ('a -> 'a -> bool) -> list 'a -> list 'a
 
-let insert = insertBy (<=)
-let insertSort = insertSortBy (<=)
-
 let rec insertBy cmp e l = match l with
   | [] -> [e]
   | x :: xs -> if cmp x e then x :: (insertBy cmp e xs) else (e :: x :: xs)
 end
+let insert = insertBy (<=)
 
 let insertSortBy cmp l = List.foldl (fun l e -> insertBy cmp e l) [] l
+let insertSort = insertSortBy (<=)
+
 
 lemma insertBy_1: (forall l e cmp. (isTransitive (relFromPred cmp) && isSortedBy cmp l) --> isSortedBy cmp (insertBy cmp e l))
 lemma insertBy_2: (forall l e cmp. length (insertBy cmp e l) = length l + 1)
@@ -118,8 +116,8 @@ lemma insertSort_2: (forall l cmp. isSorted (insertSort l))
 val sort: forall 'a. Ord 'a => list 'a -> list 'a
 val sortBy: forall 'a. ('a -> 'a -> bool) -> list 'a -> list 'a
 
-let sort = sortBy (<=)
 let sortBy = insertSortBy
+let sort = sortBy (<=)
 
 lemma sort_1: (forall l cmp. isPermutation (sort l) l)
 lemma sort_2: (forall l cmp. isSorted (sort l))

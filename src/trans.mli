@@ -175,7 +175,7 @@ module Macros (E : sig val env : env end) : sig
 
   (** [remove_class_const] remove constants that have class constraints by adding
       explicit dictionary parameters. *)
-  val remove_class_const : exp macro
+  val remove_class_const : Target.target -> exp macro
 
   (** {2 Misc} *)
 
