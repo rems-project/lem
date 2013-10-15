@@ -2307,6 +2307,21 @@ let letbinds_to_funcl_aux_rec l ctxt (lbs : (_ Typed_ast.lskips_seplist)) : func
   let res = Seplist.map (fun (nls, n_ref, n_exp, pL, ty_opt, sk, e) -> (nls, n_ref, pL, ty_opt, sk, C.exp_subst sub e)) lbs' in
   res
 
+
+let lb_to_inline l ctxt' target_set_opt lb =
+    let (nls, n_ref, _, pL, ty_opt, sk3, et) = letbind_to_funcl_aux_dest ctxt' lb in
+    let args = match Util.map_all Pattern_syntax.pat_to_ext_name pL with
+                 | None -> raise (Reporting_basic.err_type l "non-variable pattern in inline")
+                 | Some a -> a in         
+    let all_targets = (match target_set_opt with None -> true | _ -> false) in
+    let new_tr = CR_inline (l, all_targets, args, et) in
+    let d = c_env_lookup l ctxt'.ctxt_c_env n_ref in
+    let ts = Util.option_default Target.all_targets target_set_opt in
+    let tr = Targetset.fold (fun t r -> Targetmap.insert r (t,new_tr)) ts d.target_rep in
+    let ctxt'' = {ctxt' with ctxt_c_env = c_env_update ctxt'.ctxt_c_env n_ref {d with target_rep = tr}} in
+    (ctxt'', args)
+
+
 (* check "let" definitions. ts is the set of targets for which all variables must be defined (i.e., the
  * current backends, not the set of targets that this definition if for) *)
 let check_val_def (ts : Targetset.t) (mod_path : Name.t list) (l : Ast.l) 
@@ -2351,16 +2366,9 @@ let check_val_def (ts : Targetset.t) (mod_path : Name.t list) (l : Ast.l)
 
           let _ = check_class_constraints_err "inlined functions with class contraints" l constraints in *)
           let ctxt' = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) constraints lconstraints K_let target_set_opt e_v in
-          let (nls, n_ref, _, pL, ty_opt, sk3, et) = letbind_to_funcl_aux_dest ctxt' lb in
-          let args = match Util.map_all Pattern_syntax.pat_to_ext_name pL with
-                       | None -> raise (Reporting_basic.err_type l "non-variable pattern in inline")
-                       | Some a -> a in         
-          let all_targets = (match target_set_opt with None -> true | _ -> false) in
-          let new_tr = CR_inline (l, all_targets, args, et) in
-          let d = c_env_lookup l ctxt'.ctxt_c_env n_ref in
-          let ts = Util.option_default Target.all_targets target_set_opt in
-          let tr = Targetset.fold (fun t r -> Targetmap.insert r (t,new_tr)) ts d.target_rep in
-          let ctxt'' = {ctxt' with ctxt_c_env = c_env_update ctxt'.ctxt_c_env n_ref {d with target_rep = tr}} in
+          let (nls, n_ref, _, _, _, sk3, et) = letbind_to_funcl_aux_dest ctxt' lb in
+          let (ctxt'', args) = lb_to_inline l ctxt' target_set_opt lb in
+
             (ctxt'', e_v, Let_inline(sk1,sk2,target_opt,nls,n_ref,args,sk3,et), Tconstraints(tnvs,constraints,lconstraints))
 
 
@@ -2409,16 +2417,19 @@ let check_val_def_instance (ts : Targetset.t) (mod_path : Name.t list) (instance
              | (Let_fun (_, pL, _, _, _), _) ->
                if (List.for_all Pattern_syntax.is_ext_var_pat pL) then () else 
                   raise (Reporting_basic.err_type l "instance method must not have non-variable arguments");
-             | _ -> () 
+             | (Let_val _, _) -> ()
           in
 
           let ctxt' = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) constraints lconstraints K_instance None e_v in
-          let (vd : val_def) = letbind_to_funcl_aux sk None ctxt' lb in
+          let (ctxt'', _) = lb_to_inline l ctxt' None lb in
+          let (ctxt'', _) = lb_to_inline l ctxt'' None lb in
+
+          let (vd : val_def) = letbind_to_funcl_aux sk None ctxt'' lb in
 
           (* instance methods should not refer to each other. Therefore, remove the bindings added by add_let_defs_to_ctxt from
              ctxt.cur_env. They are still in ctxt.new_defs *)
-          let ctxt'' = {ctxt' with cur_env = ctxt.cur_env} in
-          (ctxt'', e_v, vd, Tconstraints(tnvs,constraints,lconstraints))
+          let ctxt''' = {ctxt'' with cur_env = ctxt.cur_env} in
+          (ctxt''', e_v, vd, Tconstraints(tnvs,constraints,lconstraints))
 
       | _ -> raise (Reporting_basic.err_unreachable l "if vd is not a simple let, an exception should have already been raised.")
 

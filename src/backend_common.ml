@@ -202,24 +202,25 @@ let const_ref_to_name n0 use_ascii c =
 (* A version of const_id_to_ident that returns additionally, whether
    the ascii-alternative was used. This is handy for determining infix
    status. *)
-let const_id_to_ident_aux c_id ascii_alternative =
+let const_id_to_ident_aux c_id ascii_alternative given_id_opt =
   let l = Ast.Trans (false, "const_id_to_ident", None) in
   let c_descr = c_env_lookup l A.env.c_env c_id.descr in
   let org_ident = resolve_constant_id_ident A.env c_id in
   let (_, n, n_ascii_opt) = constant_descr_to_name A.target c_descr in
-  let (ascii_used, name') =    
-    match (n_ascii_opt, ascii_alternative) with
-      | (Some ascii, true) -> (true, ascii) 
-      | _  -> (false, n)
+  let (ascii_used, ident') =    
+    match (n_ascii_opt, ascii_alternative, given_id_opt) with
+      | (Some ascii, true, _) -> (true, Ident.rename org_ident ascii)
+      | (_, false, Some i) -> (false, Ident.replace_lskip i (Ident.get_lskip org_ident))
+      | _  -> (false, Ident.rename org_ident n)
   in
-  let ident = fix_module_prefix_ident (A.env.local_env) (Ident.rename org_ident name') in
+  let ident = fix_module_prefix_ident (A.env.local_env) ident' in
   (ascii_used, ident)
 ;;
 
-let const_id_to_ident c_id ascii_alternative = snd (const_id_to_ident_aux c_id ascii_alternative)
+let const_id_to_ident c_id ascii_alternative = snd (const_id_to_ident_aux c_id ascii_alternative None)
 
-let constant_application_to_output_simple is_infix_pos arg_f args c_id ascii_alternative = begin
-  let (ascii_used, i) = const_id_to_ident_aux c_id ascii_alternative in 
+let constant_application_to_output_simple is_infix_pos arg_f args c_id ascii_alternative given_id_opt = begin
+  let (ascii_used, i) = const_id_to_ident_aux c_id ascii_alternative given_id_opt in 
   let const_is_infix = not (ascii_used) && Precedence.is_infix (Precedence.get_prec A.target A.env c_id.descr) in 
   let is_infix = (is_infix_pos && const_is_infix && (Ident.has_empty_path_prefix i)) in
   let use_infix_notation = ((not is_infix) && const_is_infix) in
@@ -262,7 +263,8 @@ let function_application_to_output l (arg_f0 : exp -> Output.t) (is_infix_pos : 
          let new_exp = inline_exp l A.target A.env is_infix_pos params b tsubst args in
          [arg_f true new_exp]
        end
-     | _ -> constant_application_to_output_simple is_infix_pos arg_f args c_id ascii_alternative
+     | Some (CR_infix (_, _, _, i)) -> constant_application_to_output_simple is_infix_pos arg_f args c_id ascii_alternative (Some i)
+     | _ -> constant_application_to_output_simple is_infix_pos arg_f args c_id ascii_alternative None
 
 let pattern_application_to_output (arg_f0 : pat -> Output.t) (c_id : const_descr_ref id) (args : pat list) (ascii_alternative : bool) : Output.t list =
   let arg_f b p = if b then arg_f0 (Pattern_syntax.mk_opt_paren_pat p) else arg_f0 p in
@@ -274,7 +276,7 @@ let pattern_application_to_output (arg_f0 : pat -> Output.t) (c_id : const_descr
         end else begin
            constant_application_to_output_special c_id to_out (arg_f false) args vars 
         end
-     | _ -> constant_application_to_output_simple false arg_f args c_id ascii_alternative
+     | _ -> constant_application_to_output_simple false arg_f args c_id ascii_alternative None
 
 let type_path_to_name n0 (p : Path.t) : Name.lskips_t =
   let l = Ast.Trans (false, "type_path_to_name", None) in
