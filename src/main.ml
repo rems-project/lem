@@ -56,10 +56,6 @@ let opt_print_types = ref false
 let opt_print_version = ref false
 let opt_library = ref (Some (Build_directory.d^"/library"))
 let lib = ref []
-let ocaml_lib = ref []
-let hol_lib = ref []
-let coq_lib = ref []
-let isa_lib = ref []
 let isa_theory = ref None
 let opt_file_arguments = ref ([]:string list)
 
@@ -94,21 +90,9 @@ let options = Arg.align ([
   ( "-lib", 
     Arg.String (fun l -> opt_library := Some l),
     " library path"^match !opt_library with None->"" | Some s -> " (default "^s^")");
-  ( "-ocaml_lib", 
-    Arg.String (fun l -> ocaml_lib := l::!ocaml_lib),
-    " add to OCaml library");
-  ( "-hol_lib", 
-    Arg.String (fun l -> hol_lib := l::!hol_lib),
-    " add to HOL library");
-  ( "-isa_lib", 
-    Arg.String (fun l -> isa_lib := l::!isa_lib),
-    " add to Isabelle library");
   ( "-isa_theory", 
     Arg.String (fun l -> isa_theory := Some l),
     " Isabelle Lem theory");
-  ( "-coq_lib", 
-    Arg.String (fun l -> coq_lib := l::!coq_lib),
-    " add to Coq library");
   ( "-v",
     Arg.Unit (fun b -> opt_print_version := true),
     " print version");
@@ -169,8 +153,8 @@ let check_modules env modules =
 
 
 (* Do the transformations for a given target *)
-let per_target libpath isa_thy modules env consts alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum targ =
-  let consts = List.assoc targ consts in
+let per_target libpath isa_thy modules env alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum targ =
+  let consts = Initial_env.read_target_constants libpath targ in
   let module C = struct let env = env end in
 
   let trans = Target_trans.get_transformation targ in
@@ -229,15 +213,17 @@ let main () =
          with 
            | Invalid_argument _ -> 
              raise (Failure("Files must have .lem extension")))
-      (!opt_file_arguments @ !lib @ !ocaml_lib @ !hol_lib @ !isa_lib @ !coq_lib)
+      (!opt_file_arguments @ !lib)
   in
   let _ = 
     List.iter
       (fun f ->
          if not (Str.string_match (Str.regexp "[A-Za-z]") (Filename.basename f) 0) then
            raise (Failure(".lem filenames must start with a letter")))
-      (!opt_file_arguments @ !lib @ !ocaml_lib @ !hol_lib @ !isa_lib @ !coq_lib)
+      (!opt_file_arguments @ !lib)
   in
+  (* do not do caching just now, perhaps activate later again, but if we do, then in
+     Initial_env
   let init =
     try
       let inchannel = open_in (Filename.concat lib_path "lib_cache") in
@@ -251,24 +237,7 @@ let main () =
             output_value outchannel I.init;
             close_out outchannel;
             I.init
-  in
-  (* TODO: These should go into the sets of top-level constant names *)
-  let init = List.fold_right (Initial_env.add_to_init Target.Target_hol) !hol_lib init in
-  let init = List.fold_right (Initial_env.add_to_init Target.Target_ocaml) !ocaml_lib init in
-  let init = List.fold_right (Initial_env.add_to_init Target.Target_isa) !isa_lib init in
-  let init = List.fold_right (Initial_env.add_to_init Target.Target_coq) !coq_lib init in
-
-  let consts = 
-    List.map
-      (fun (targ,cL) ->        
-        let consts = List.fold_left
-              (fun s c -> Typed_ast.NameSet.add (Name.from_rope c) s)
-              Typed_ast.NameSet.empty
-              cL in
-         (targ,consts))
-      (snd init)
-  in
-  let type_info : Typed_ast.env = fst init in
+  in*)
 
 
   (* We don't want to add the files in !lib to the resulting module ASTs,
@@ -277,8 +246,9 @@ let main () =
       (List.map (fun x -> (x, false)) (List.rev !lib) @ 
        List.map (fun x -> (x, true)) !opt_file_arguments)
   in
+
   (* Parse all of the .lem sources and also parse depencies *)
-  let processed_files = Module_dependencies.process_files files_to_process in
+  let processed_files = Module_dependencies.process_files [] files_to_process in
   
   let backend_set = 
     List.fold_right 
@@ -291,10 +261,10 @@ let main () =
   in
 
   (* Typecheck all of the .lem sources *)
-  let (modules, type_info, _) =
+  let (modules, env, _) =
     List.fold_left
       (fun (mods, env, previously_processed_modules) (mod_name, file_name, ast, add_to_modules) ->
-         let mod_name_name = Name.from_rope (Ulib.Text.of_latin1 mod_name) in
+         let mod_name_name = Name.from_string mod_name in
          let (new_env,tast) = check_ast backend_set [mod_name_name] env ast in
 
          let e = Typed_ast.env_m_env_move new_env mod_name_name env.Typed_ast.local_env in
@@ -320,7 +290,7 @@ let main () =
                else
              mods), 
             e, mod_name::previously_processed_modules))
-      ([],type_info,[])
+      ([],Initial_env.initial_env,[])
       (* We don't want to add the files in !lib to the resulting module ASTs,
        * because we don't want to put them throught the back end *)
       processed_files
@@ -329,13 +299,13 @@ let main () =
   (* Check the parsed source and produce warnings for various things. Currently:
      - non-exhaustive and redundant patterns
   *)
-  let _ = check_modules type_info modules in
+  let _ = check_modules env modules in
 
   let alldoc_accum = ref ([] : Ulib.Text.t list) in
   let alldoc_inc_accum = ref ([] : Ulib.Text.t list) in
   let alldoc_inc_usage_accum = ref ([] : Ulib.Text.t list) in
-  let _ = List.fold_left (fun env -> (per_target lib_path isa_thy (List.rev modules) env consts alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum))
-    type_info !backends in
+  let _ = List.fold_left (fun env -> (per_target lib_path isa_thy (List.rev modules) env alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum))
+    env !backends in
   (if List.mem (Target.Target_no_ident Target.Target_tex) !backends then 
      output_alldoc "alldoc" (String.concat " " !opt_file_arguments) alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum)
 

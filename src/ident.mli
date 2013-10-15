@@ -53,6 +53,9 @@ type t
 (** Pretty print *)
 val pp : Format.formatter -> t -> unit
 
+(** [to_string i] formats [i] using [pp]. *)
+val to_string : t -> string
+
 val from_id : Ast.id -> t
 
 (** Return the last name in the ident, e.g., M.Y.x gives x *)

@@ -4,6 +4,7 @@
 
 (* The type for tuples (pairs) is hard-coded, so here only a few functions are used *)
 
+open import Bool Basic_classes
 
 (* ----------------------- *)
 (* fst                     *)
@@ -25,10 +26,10 @@ declare coq      target_rep function fst = `fst`
 val snd : forall 'a 'b. 'a * 'b -> 'b
 let snd (v1, v2) = v2
 
-declare hol      target_rep function fst = `SND`
-declare ocaml    target_rep function fst = `snd`
-declare isabelle target_rep function fst = `snd`
-declare coq      target_rep function fst = `snd`
+declare hol      target_rep function snd = `SND`
+declare ocaml    target_rep function snd = `snd`
+declare isabelle target_rep function snd = `snd`
+declare coq      target_rep function snd = `snd`
 
 lemma fst_snd: (forall v. v = (fst v, snd v))
 
@@ -54,8 +55,8 @@ let uncurry f v = f (fst v) (snd v)
 declare hol      target_rep function uncurry = `UNCURRY`
 declare isabelle target_rep function uncurry = `split`
 
-lemma curry_uncurry: (forall f. uncurry (curry f) = f)
-lemma uncurry_curry: (forall f. curry (uncurry f) = f)
+lemma curry_uncurry: (forall f xy. uncurry (curry f) xy = f xy)
+lemma uncurry_curry: (forall f x y. curry (uncurry f) x y = f x y)
 
 
 (* ----------------------- *)

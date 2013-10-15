@@ -44,29 +44,30 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
-module StringSet = Set.Make(
+module DepSet = Set.Make(
 struct 
-  type t = string
+  type t = (string * Ast.l)
   let compare = Pervasives.compare
 end)
 
-module StringSetExtra = Util.ExtraSet(StringSet)
+module DepSetExtra = Util.ExtraSet(DepSet)
 
 open Types
 
 type module_dependency = {
    module_name : string;
+   module_loc : Ast.l;
    module_filename : string;
    module_ast : Ast.defs * Ast.lex_skips;
-   missing_deps : StringSet.t;
+   missing_deps : DepSet.t;
    module_needs_output : bool
 }
   
 let module_dependency_is_resolved md =
-  StringSet.is_empty md.missing_deps 
+  DepSet.is_empty md.missing_deps 
 
 let module_dependency_is_cyclic md =
-  StringSet.mem md.module_name md.missing_deps 
+  DepSet.exists (fun (n, _) -> n = md.module_name) md.missing_deps 
 
 (** convert a filename to a module name by capitalising it and chopping the
     extension ".lem" *)
@@ -83,28 +84,37 @@ let modname_to_filename modname =
     This can be done arbitrarily clever, e.g. by searching a list of given
     directories.
 *)
-let search_module_file mod_name =
+let search_module_file l search_dirs mod_name =
   let filename = modname_to_filename mod_name in
 
-  (* TODO: be more clever here *)
-  let dir_prefix = "" in
+  let check_dir dir = begin
+    let filename' = Filename.concat dir filename in
+    if Sys.file_exists filename' then
+      Some filename'
+    else None 
+  end in
 
-  dir_prefix ^ filename
+  match Util.option_first check_dir search_dirs with
+    | Some f -> (* filename found :-) *) f
+    | None ->
+       Reporting_basic.report_error (Reporting_basic.Err_resolve_dependency (l, mod_name))
+        
 
 
 
-let load_module_file (filename, needs_output) =
+let load_module_file (filename, loc, needs_output, is_user_import) =
+  let _ = if (not is_user_import) then Reporting.report_warning_no_env (Reporting.Warn_import (loc, filename_to_modname filename, filename)) else () in
   let ast = Process_file.parse_file filename in
 
   let missing_deps = begin
     let needed_modules = Ast_util.get_imported_modules ast in
-    let needed_modules_top = List.map Path.get_toplevel_name needed_modules (* only top_level modules can be loaded by files *) in
-    let needed_module_strings = List.map (fun n -> String.capitalize (Name.to_string n)) needed_modules_top in
-    StringSetExtra.from_list needed_module_strings
+    let needed_modules_top = List.map (fun (n, l) -> ((Path.get_toplevel_name n), l)) needed_modules (* only top_level modules can be loaded by files *) in
+    let needed_module_strings = List.map (fun (n, l) -> (String.capitalize (Name.to_string n), l)) needed_modules_top in
+    DepSetExtra.from_list needed_module_strings
   end in
-
   { 
     module_name = filename_to_modname filename;
+    module_loc = loc;
     module_filename = filename;
     module_ast = ast;
     missing_deps = missing_deps;
@@ -113,15 +123,15 @@ let load_module_file (filename, needs_output) =
 
 
 (** [load_module tries to load the module with name [module_name] *)
-let load_module module_name =
-  let module_file_name = search_module_file module_name in
-  load_module_file (module_file_name, false)
+let load_module (l: Ast.l) (search_dirs : string list) (module_name : string) =
+  let module_file_name = search_module_file l search_dirs module_name in
+  load_module_file (module_file_name, l, false, false)
 
 
 (** [resolve_dependencies ordered_modules missing_modules] tries to solve dependencies by
     ordering the modules in [missing_modules]. The list [ordered_modules] have already
     been loaded. *)      
-let rec resolve_dependencies 
+let rec resolve_dependencies (lib_dirs : string list)
   (resolved_modules : module_dependency list)
   (missing_modules : module_dependency list) : module_dependency list =
 match missing_modules with
@@ -131,37 +141,39 @@ match missing_modules with
       (* remove already processed modules from the dependencies *)
       let md = begin
          let resolved_modules_list = List.map (fun md' -> md'.module_name) resolved_modules in
-         {md with missing_deps = StringSetExtra.remove_list md.missing_deps resolved_modules_list}
+         {md with missing_deps = DepSet.filter (fun (n, _) -> not (List.mem n resolved_modules_list)) md.missing_deps }
       end in
 
       if module_dependency_is_resolved md then          
         (* md is OK, we can typecheck it now *)
-        resolve_dependencies (md :: resolved_modules) missing_modules'
+        resolve_dependencies lib_dirs (md :: resolved_modules) missing_modules'
       else if module_dependency_is_cyclic md then
         (* a dependency cycle was detected *)
         Reporting_basic.report_error (Reporting_basic.Err_cyclic_build md.module_name)
       else begin
         (* choose an aribitray missing depency and process it *)
-        let missing_dep = StringSet.choose md.missing_deps in
+        let (missing_dep, dep_l) = DepSet.choose md.missing_deps in
         match Util.list_pick (fun md' -> md'.module_name = missing_dep) missing_modules' with
           | Some (md', missing_modules'') ->
               (* md depends on already parsed module md'. Therefore, process md' first and 
                  for cycle-detection make sure the depencies of md' are also dependencies of md. *)
-              let md = {md with missing_deps = StringSet.union md.missing_deps md'.missing_deps} in
-              resolve_dependencies resolved_modules (md' :: md :: missing_modules'')
+              let md = {md with missing_deps = DepSet.union md.missing_deps md'.missing_deps} in
+              resolve_dependencies lib_dirs resolved_modules (md' :: md :: missing_modules'')
           | None ->
               (* md depends on a module that has not been parsed yet. Try to find a file containing it
                  and load this file *)
-              let md' = load_module missing_dep in
-              resolve_dependencies resolved_modules (md' :: md :: missing_modules')
+              let search_dirs = (Filename.dirname md.module_filename) :: lib_dirs in
+              let md' = load_module dep_l search_dirs missing_dep in
+              resolve_dependencies lib_dirs resolved_modules (md' :: md :: missing_modules')
       end
     end  
 
 
-let process_files (files : (string * bool) list) =
+let process_files (lib_dirs : string list) (files : (string * bool) list) =
 begin
-  let missing_modules = List.map load_module_file files in
-  let resolved = resolve_dependencies [] missing_modules in
+  let files' = List.map (fun (n, i) ->  (n, Ast.Unknown, i, true)) files in
+  let missing_modules = List.map load_module_file files' in
+  let resolved = resolve_dependencies lib_dirs [] missing_modules in
 
   List.map (fun md -> (md.module_name, md.module_filename, md.module_ast, md.module_needs_output)) resolved
 end

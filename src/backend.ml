@@ -1213,7 +1213,7 @@ let rec typ t = match t.term with
         let i = match t.term with
           | Typ_app _ -> B.type_id_to_ident p
           | Typ_backend _ -> B.type_id_to_ident_no_modify p
-          | _ -> raise (Reporting_basic.err_unreachable true Ast.Unknown "can't be reached because of previous match")
+          | _ -> raise (Reporting_basic.err_unreachable (Ast.Trans (false, "Backend.typ", None)) "can't be reached because of previous match")
         in
         Ident.to_output Type_ctor T.path_sep i
       end in
@@ -1248,7 +1248,7 @@ let tyvar tv =
    | Tn_N(s,nv,l) -> ws s ^ id Nexpr_var (Ulib.Text.(^^^) T.nexp_var nv)
 
 let tyfield ((n,l),f_ref,s1,t) =
-  Name.to_output Term_field (B.const_ref_to_name n f_ref) ^
+  Name.to_output Term_field (B.const_ref_to_name n false f_ref) ^
   ws s1 ^
   block false 2 ( 
   T.typ_sep ^
@@ -1257,7 +1257,7 @@ let tyfield ((n,l),f_ref,s1,t) =
   T.typ_end)
 
 let tyconstr implicit n' tvs ((n,l),c_ref,s1,targs) =
-  Name.to_output Type_ctor (B.const_ref_to_name n c_ref) ^
+  Name.to_output Type_ctor (B.const_ref_to_name n false c_ref) ^
   ws s1 ^
   (if Seplist.length targs = 0 then
      T.ctor_typ_end n' tvs
@@ -1820,7 +1820,7 @@ and funcl_aux tvs (n, ps, topt, s1, e) =
   T.funcase_end
 
 and funcl tvs (({term = n}, c, ps, topt, s1, e):funcl_aux) =
-  funcl_aux tvs (B.const_ref_to_name n c, ps, topt, s1, e)    
+  funcl_aux tvs (B.const_ref_to_name n false c, ps, topt, s1, e)    
 
 and letbind tvs (lb, _) : Output.t = match lb with
   | Let_val(p,topt,s2,e) ->
@@ -1941,7 +1941,7 @@ let constraint_prefix (Cp_forall(s1,tvs,s2,constrs)) =
 let indreln_name (RName(s1,name,name_ref,s2,(constraint_pre,t),witness,checks,functions,s3)) =
   ws s1 ^
   T.reln_name_start ^ 
-  (Name.to_output Term_method (B.const_ref_to_name name name_ref)) ^ ws s2 ^
+  (Name.to_output Term_method (B.const_ref_to_name name false name_ref)) ^ ws s2 ^
   T.typ_sep ^
       begin
         match constraint_pre with
@@ -1970,7 +1970,7 @@ let indreln_clause (Rule(name, s0, s1, qnames, s2, e_opt, s3, rname, rname_ref, 
   (match e_opt with None -> ws s3 | Some e -> 
      exp (if T.reln_clause_add_paren then Typed_ast_syntax.mk_opt_paren_exp e else e) ^ 
      ws s3 ^ kwd "==>") ^
-  Name.to_output Term_var (B.const_ref_to_name rname.term rname_ref) ^
+  Name.to_output Term_var (B.const_ref_to_name rname.term false rname_ref) ^
   flat (interspace (List.map exp es)) ^
   T.reln_clause_end
 
@@ -2020,12 +2020,12 @@ let isa_is_simple_funcl_aux ((_, _, ps, _, _, _):funcl_aux) : bool =
    List.for_all (fun p -> (Pattern_syntax.is_var_wild_pat p)) ps
 
 let isa_funcl_header (({term = n}, c, ps, topt, s1, (e : Typed_ast.exp)):funcl_aux) =
-  isa_mk_typed_def_header (Name.to_output Term_var (B.const_ref_to_name n c), List.map Typed_ast.annot_to_typ ps, s1, exp_to_typ e)
+  isa_mk_typed_def_header (Name.to_output Term_var (B.const_ref_to_name n false c), List.map Typed_ast.annot_to_typ ps, s1, exp_to_typ e)
 
 let isa_funcl_header_seplist clause_sl =
   let clauseL = Seplist.to_list clause_sl in
   let (_, clauseL_filter) = List.fold_left (fun (ns, acc) (({term = n'}, n'_ref, _, _, _, _) as c) ->
-     let n = Name.strip_lskip (B.const_ref_to_name n' n'_ref) in if NameSet.mem n ns then (ns, acc) else (NameSet.add n ns, c :: acc)) (NameSet.empty, []) clauseL in
+     let n = Name.strip_lskip (B.const_ref_to_name n' false n'_ref) in if NameSet.mem n ns then (ns, acc) else (NameSet.add n ns, c :: acc)) (NameSet.empty, []) clauseL in
 
   let headerL = List.map isa_funcl_header clauseL_filter in
   (Output.concat (kwd "\n                   and") headerL) ^ (kwd "where \n    ")
@@ -2043,10 +2043,10 @@ let isa_funcl_header_indrel_seplist clause_sl =
 
 
 let isa_funcl_default eqsign (({term = n}, c, ps, topt, s1, (e : Typed_ast.exp)):funcl_aux) =
-  kwd "\"" ^ Name.to_output Term_var (B.const_ref_to_name n c) ^ flat (List.map pat ps)^ ws s1 ^ eqsign ^ kwd "(" ^ exp e ^ kwd ")\""
+  kwd "\"" ^ Name.to_output Term_var (B.const_ref_to_name n false c) ^ flat (List.map pat ps)^ ws s1 ^ eqsign ^ kwd "(" ^ exp e ^ kwd ")\""
 
 let isa_funcl_abs eqsign (({term = n}, c, ps, topt, s1, (e : Typed_ast.exp)):funcl_aux) =
-  kwd "\"" ^ Name.to_output Term_var (B.const_ref_to_name n c) ^ ws s1 ^ eqsign ^ kwd "(%" ^ flat (List.map pat ps) ^ kwd ". " ^ exp e ^ kwd ")\""
+  kwd "\"" ^ Name.to_output Term_var (B.const_ref_to_name n false c) ^ ws s1 ^ eqsign ^ kwd "(%" ^ flat (List.map pat ps) ^ kwd ". " ^ exp e ^ kwd ")\""
 
 let isa_funcl simple =
 (*  if simple then isa_funcl_abs (kwd "= ") else isa_funcl_default (kwd "= ") *)
@@ -2153,7 +2153,7 @@ let rec isa_def_extra (gf:extra_gen_flags) d l : Output.t = match d with
         let n = 
           match Seplist.to_list clauses with
             | [] -> assert false
-            | (n, c, _, _, _, _)::_ -> Name.strip_lskip (B.const_ref_to_name n.term c)
+            | (n, c, _, _, _, _)::_ -> Name.strip_lskip (B.const_ref_to_name n.term false c)
         in
           kwd "termination" ^ space ^ 
           kwd (Name.to_string n) ^ space ^
@@ -2191,7 +2191,7 @@ let rec hol_def_extra gf d l : Output.t = match d with
         let n = 
           match Seplist.to_list clauses with
             | [] -> assert false
-            | (n, c, _, _, _, _)::_ -> Name.to_string (Name.strip_lskip (B.const_ref_to_name n.term c))
+            | (n, c, _, _, _, _)::_ -> Name.to_string (Name.strip_lskip (B.const_ref_to_name n.term false c))
         in
         let goal_stack_setup_s = Format.sprintf "(* val gst = Defn.tgoal_no_defn (%s_def, %s_ind) *)\n" n n in
         let proof_s = Format.sprintf "val (%s_rw, %s_ind_rw) =\n  Defn.tprove_no_defn ((%s_def, %s_ind),\n    (* the termination proof *)\n  )\n" n n n n in
@@ -2347,7 +2347,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         let n = 
           match Seplist.to_list clauses with
             | [] -> assert false
-            | (n,n_ref, _, _, _, _)::_ -> Name.strip_lskip (B.const_ref_to_name n.term n_ref)
+            | (n,n_ref, _, _, _, _)::_ -> Name.strip_lskip (B.const_ref_to_name n.term false n_ref)
         in
           T.rec_def_header is_rec is_real_rec s1 s2 n ^
           (if T.target = Target_ident then
@@ -2387,17 +2387,6 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
        ws sk1 ^ kwd ":") ^
       ws sk1 ^ kwd "(" ^ exp e ^ ws sk2 ^ kwd ")")
     end
-  | Ident_rename(s1,targets,p,i,s2,(n_new, _)) ->
-      if (T.target = Target_ident) then
-        ws s1 ^
-        kwd "rename" ^
-        targets_opt targets ^
-        Ident.to_output Type_ctor T.path_sep i ^
-        ws s2 ^
-        kwd "= " ^
-        Name.to_output Term_var n_new
-      else
-        ws s1 ^ ws s2
   | Module(s1,(n,l),mod_bind,s2,s3,ds,s4) -> 
       ws s1 ^
       T.module_module ^

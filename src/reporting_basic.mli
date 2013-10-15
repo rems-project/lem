@@ -93,7 +93,7 @@ type error =
   | Err_general of bool * Ast.l * string
   (** General errors, used for multi purpose. If you are unsure, use this one. *)
 
-  | Err_unreachable of bool * Ast.l * string
+  | Err_unreachable of Ast.l * string
   (** Unreachable errors should never be thrown. It means that some
       code was excuted that the programmer thought of as unreachable *)
 
@@ -112,6 +112,7 @@ type error =
   | Err_internal of Ast.l * string
   | Err_rename of Ast.l * string
   | Err_cyclic_build of string (** resolving module dependencies detected a cyclic dependency of the given module *)
+  | Err_resolve_dependency of Ast.l * string  (** could not find a Module that should be imported *)
   
 (** Since errors are always fatal, they are reported by raising an [Fatal_error] exception instead of
     calling a report-function. *)
@@ -123,8 +124,8 @@ val err_todo : bool -> Ast.l -> string -> exn
 (** [err_general b l m] is an abreviatiation for [Fatal_error (Err_general (b, l, m))] *)
 val err_general : bool -> Ast.l -> string -> exn
 
-(** [err_unreachable b l m] is an abreviatiation for [Fatal_error (Err_unreachable (b, l, m))] *)
-val err_unreachable : bool -> Ast.l -> string -> exn
+(** [err_unreachable l m] is an abreviatiation for [Fatal_error (Err_unreachable (l, m))] *)
+val err_unreachable : Ast.l -> string -> exn
 
 (** [err_type l msg] is an abreviatiation for [Fatal_error (Err_type (l, m)], i.e. for a general type-checking error
     at location [l] with error message [msg]. *)

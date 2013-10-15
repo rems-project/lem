@@ -125,7 +125,7 @@ let sort_record_fields e =
       | Record(s1,fields,s2) -> if Seplist.length fields < 2 then None else
         begin
           let all_fields_opt = Util.option_bind (fun td -> td.Types.type_fields) (Types.type_defs_lookup_typ l_unk E.env.t_env (exp_to_typ e)) in
-          let all_fields = Util.option_get_exn (Reporting_basic.err_unreachable true l_unk "type of record is no record-type") all_fields_opt in
+          let all_fields = Util.option_get_exn (Reporting_basic.err_unreachable l_unk "type of record is no record-type") all_fields_opt in
           let (hd_sep_opt, fieldsL) = Seplist.to_pair_list None fields in
           let find_field_fun r ((field_descr_id, _, _, _),s) = (r = field_descr_id.descr) in
           let rec find_field n b = function
@@ -402,7 +402,7 @@ let remove_set_comprehension_image_filter allow_sigma e =
         let all_vars = NameSet.union (nfmap_domain (C.exp_to_free e1)) all_quant_vars in
         let (qbs_set_p, qbs_set_e, qbs_cond) = List.fold_right (fun qb (s_p, s_e, c) -> (
            match qb with 
-              Qb_var _ -> raise (Reporting_basic.err_unreachable true l_unk "previosly checked")
+              Qb_var _ -> raise (Reporting_basic.err_unreachable l_unk "previosly checked")
             | Qb_restr (is_lst, sk1, p, sk2, e, sk3) -> begin
                 let can_move = NameSet.is_empty (NameSet.inter all_vars (nfmap_domain p.rest.pvars)) in
                 if can_move then (s_p, s_e, qb::c) else (
@@ -726,7 +726,7 @@ let remove_set_comp_binding e =
         let e_vars = nfmap_domain (C.exp_to_free e1) in
         let b_vars = begin 
           let bound_vars = List.map (function Qb_var v -> Name.strip_lskip (v.term) | _ -> 
-               raise (Reporting_basic.err_unreachable false l_unk "Unreachable because of qb_OK check")) qbs in
+               raise (Reporting_basic.err_unreachable l_unk "Unreachable because of qb_OK check")) qbs in
           let module NameSetE = Util.ExtraSet(NameSet) in
           let bvs = NameSetE.from_list bound_vars in
           bvs
@@ -876,7 +876,7 @@ let remove_method e =
                                   match targ.Types.t with
                                     | Types.Tvar tv -> Types.Ty tv
                                     | Types.Tne { Types.nexp = Types.Nvar v } -> Types.Nv v
-                                    | _ -> raise (Reporting_basic.err_unreachable true l_unk "because there was no instance")
+                                    | _ -> raise (Reporting_basic.err_unreachable l_unk "because there was no instance")
                                 in
                                 let cd = lookup_class_descr l_unk env c_path in
                                 let n = class_path_to_dict_name c_path tv in
@@ -933,7 +933,7 @@ let remove_class_const_aux l_unk mk_exp c =
                       match t_inst.Types.t with
                         | Tvar tv -> Ty tv
                         | Tne { nexp = Nvar v } -> Nv v
-                        | _ -> raise (Reporting_basic.err_unreachable true l_unk "because there was no instance")
+                        | _ -> raise (Reporting_basic.err_unreachable l_unk "because there was no instance")
                     in
                     let cd = lookup_class_descr l_unk env c_path in
                     let t = class_descr_get_dict_type cd t_inst in

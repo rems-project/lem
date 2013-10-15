@@ -229,8 +229,10 @@ begin
 
   let add_avoid_const ns r = begin
     let c_d = c_env_lookup l env.c_env r in
-    let (n_is_shown, n) = constant_descr_to_name targ c_d in
-    if n_is_shown then NameSet.add n ns else ns
+    let (n_is_shown, n, n_ascii_opt) = constant_descr_to_name targ c_d in
+    if n_is_shown then 
+      NameSet.add n (Util.option_default_map n_ascii_opt ns (fun n_ascii -> NameSet.add n_ascii ns))
+    else ns
   end in
   let ns = if not avoid_consts then ns else List.fold_left add_avoid_const ns ue.used_consts in
 

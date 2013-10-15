@@ -125,6 +125,8 @@ let targets_to_set : Ast.targets -> Targetset.t = function
 
 let targets_opt_to_set_opt = Util.option_map targets_to_set 
 
+let targets_opt_to_set x = Util.option_default Target.all_targets (targets_opt_to_set_opt x)
+
 let check_target_opt : Ast.targets option -> Typed_ast.targets_opt = function
   | None -> None
   | Some(Ast.Targets_concrete(s1,targs,s2)) -> 
@@ -232,21 +234,10 @@ let lookup_p msg (e : local_env) (Ast.Id(mp,xl,l) as i) : Path.t =
 
 (* Assume that the names in mp must refer to modules. Looks up a name, not
    knowing what this name refers to. It might be a type, a constant, a module ... *)
-let lookup_name (e : env) (Ast.Id(mp,xl,l) as i) : (name_kind * Path.t) =
+let lookup_name (e : env) (comp_opt : Ast.component option) (Ast.Id(mp,xl,l) as i) : (name_kind * Path.t) =
   let e_l = path_lookup l e.local_env (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
   let e = {e with local_env = e_l} in
-    match env_apply e (Name.strip_lskip (Name.from_x xl)) with
-      | None ->
-          raise (Reporting_basic.err_type_pp l (Printf.sprintf "unbound name")
-            Ident.pp (Ident.from_id i))
-      | Some(nk, p, _) -> (nk, p)
-
-(* Assume that the names in mp must refer to modules. Looks up a name, not
-   knowing what this name refers to. It might be a type, a constant, a module ... *)
-let lookup_name (e : env) (Ast.Id(mp,xl,l) as i) : (name_kind * Path.t) =
-  let e_l = path_lookup l e.local_env (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
-  let e = {e with local_env = e_l} in
-    match env_apply e (Name.strip_lskip (Name.from_x xl)) with
+    match env_apply e comp_opt (Name.strip_lskip (Name.from_x xl)) with
       | None ->
           raise (Reporting_basic.err_type_pp l (Printf.sprintf "unbound name")
             Ident.pp (Ident.from_id i))
@@ -733,6 +724,7 @@ module type Expr_checker = sig
      * it should contain the type that the instance is at.  In this case the
      * returned constraints and type variables must be empty. *)
     t option ->
+    bool (* is it an inline letbind? *) ->
     (* The set of targets that this definition is for *)
     Targetset.t option ->
     Ast.l ->
@@ -1638,7 +1630,7 @@ module Make_checker(T : sig
    * def_targets is None if the definitions is not target specific, otherwise it
    * is the set of targets that the definition is for.  def_env is the name and
    * types of all of the variables defined *)
-  let apply_specs_for_def (def_targets : Targetset.t option) (l:Ast.l) 
+  let apply_specs_for_def is_inline (def_targets : Targetset.t option) (l:Ast.l) 
     (def_env :  (Types.t * Ast.l) Typed_ast.Nfmap.t)  =
     Nfmap.iter
       (fun n (t,l) ->
@@ -1668,7 +1660,7 @@ module Make_checker(T : sig
                             | None -> cd.const_targets
                             | Some dt -> Targetset.inter cd.const_targets dt) in
                          let relevant_duplicate_targets = Targetset.inter duplicate_targets T.targets in
-                         let _ = if not (Targetset.is_empty relevant_duplicate_targets) then
+                         let _ = if not (is_inline || Targetset.is_empty relevant_duplicate_targets) then
                              raise (Reporting_basic.err_type_pp l
                                (Printf.sprintf "defined variable '%s' is already defined for targets"  (Name.to_string n))
                                  (Pp.lst ", " (fun ppf t -> Pp.pp_str ppf (non_ident_target_to_string t)))
@@ -1723,15 +1715,15 @@ module Make_checker(T : sig
       unsat_constraint_err l constraints;
       Tconstraints(tnvars, [], l_constraints)
 
-  let apply_specs for_method (def_targets : Targetset.t option) l env = 
+  let apply_specs for_method is_inline (def_targets : Targetset.t option) l env = 
     match for_method with
-      | None -> apply_specs_for_def def_targets l env
+      | None -> apply_specs_for_def is_inline def_targets l env
       | Some(t) -> apply_specs_for_method def_targets l env t
 
   (* See Expr_checker signature above *)
-  let check_letbind for_method (def_targets : Targetset.t option) l lb =
+  let check_letbind for_method is_inline (def_targets : Targetset.t option) l lb =
     let (lb,pe) = check_letbind_internal empty_lex_env lb in
-    (lb, pe, apply_specs for_method def_targets l pe)
+    (lb, pe, apply_specs for_method is_inline def_targets l pe)
 
   (* See Expr_checker signature above *)
   let check_funs for_method (def_targets : Targetset.t option) l funcls =
@@ -1758,7 +1750,7 @@ module Make_checker(T : sig
                (n,a,b,c,d))
           funcls
       in
-        (funcls, env, apply_specs for_method def_targets l env)
+        (funcls, env, apply_specs for_method false def_targets l env)
 
 
   (* See Expr_checker signature above *)
@@ -1845,7 +1837,7 @@ module Make_checker(T : sig
               ets),l2))
         clauses
     in
-      (n,c,rec_env, apply_specs None def_targets l rec_env)
+      (n,c,rec_env, apply_specs None false def_targets l rec_env)
 
 end (* end of Expr_checker *)
 
@@ -1888,8 +1880,10 @@ let add_let_defs_to_ctxt
                       env_tag = env_tag;
                       const_targets = new_targs;
 		      relation_info = None;
+                      target_rename = Targetmap.empty;
                       target_rep = Targetmap.empty;
-                      ascii_rep = None } in
+                      target_ascii_rep = Targetmap.empty;
+                      compile_message = Targetmap.empty } in
               let (c_env', c) = c_env_save c_env None c_d in
               (c_env', Nfmap.insert new_env (n, c))
           | Some(c) -> 
@@ -2100,8 +2094,10 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
                    env_tag = K_field;
                    relation_info = None;
                    const_targets = all_targets;
+                   target_rename = Targetmap.empty;
                    target_rep = Targetmap.empty;
-                   ascii_rep = None })
+                   target_ascii_rep = Targetmap.empty;
+                   compile_message = Targetmap.empty })
               context
               (Seplist.map (fun (x,y,src_t) -> (x,y,src_t)) recs)
           in
@@ -2125,8 +2121,10 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
                    env_tag = K_constr;
                    relation_info = None;
                    const_targets = all_targets;
+                   target_rename = Targetmap.empty;
                    target_rep = Targetmap.empty;
-                   ascii_rep = None})
+                   target_ascii_rep = Targetmap.empty;
+                   compile_message = Targetmap.empty })
               tvs_set
               context
               ntyps
@@ -2183,8 +2181,10 @@ let check_val_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
       env_tag = K_let;
       const_targets = Targetset.empty;
       relation_info = None;
+      target_rename = Targetmap.empty;
       target_rep = Targetmap.empty;
-      ascii_rep = None }
+      target_ascii_rep = Targetmap.empty;
+      compile_message = Targetmap.empty }
   in
   let (c_env', v) = c_env_save ctxt.ctxt_c_env None v_d in
   let ctxt = { ctxt with ctxt_c_env = c_env' } in
@@ -2229,8 +2229,10 @@ let check_class_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
       env_tag = K_method;
       const_targets = all_targets;
       relation_info = None;
+      target_rename = Targetmap.empty;
       target_rep = Targetmap.empty;
-      ascii_rep = None }
+      target_ascii_rep = Targetmap.empty;
+      compile_message = Targetmap.empty }
   in
   let (c_env', v) = c_env_save ctxt.ctxt_c_env None v_d in
   let ctxt = { ctxt with ctxt_c_env = c_env' } in
@@ -2247,7 +2249,7 @@ let letbind_to_funcl_aux_dest (ctxt : defn_ctxt) (lb_aux, l) = begin
     let n = Name.strip_lskip nls.term in
     let n_ref =  match Nfmap.apply ctxt.cur_env.v_env n with
       | Some(r) -> r
-      | _ -> raise (Reporting_basic.err_unreachable true l "n should have been added just before") in
+      | _ -> raise (Reporting_basic.err_unreachable l "n should have been added just before") in
     let n_d = c_env_lookup l ctxt.ctxt_c_env n_ref in
     let id = { id_path = Id_some (Ident.mk_ident None [] n); id_locn = l; descr = n_ref; instantiation = List.map tnvar_to_type n_d.const_tparams } in
     let e = C.mk_const l id (Some (annot_to_typ nls)) in
@@ -2281,7 +2283,7 @@ let letbind_to_funcl_aux sk0 target_opt ctxt (lb : letbind) : val_def = begin
       let n = Name.strip_lskip nls.term in
       let n_ref =  match Nfmap.apply ctxt.cur_env.v_env n with
         | Some(r) -> r
-        | _ -> raise (Reporting_basic.err_unreachable true l "n should have been added just before") in
+        | _ -> raise (Reporting_basic.err_unreachable l "n should have been added just before") in
       (n, n_ref)
     end in
     let (p, ty_opt, sk, e) =
@@ -2331,7 +2333,7 @@ let check_val_def (ts : Targetset.t) (mod_path : Name.t list) (l : Ast.l)
   let module Checker = Make_checker(T) in
   match vd with
       | Ast.Let_def(sk,_,lb) ->
-          let (lb,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_letbind None target_set_opt l lb in 
+          let (lb,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_letbind None false target_set_opt l lb in 
           let ctxt' = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) constraints lconstraints K_let target_set_opt e_v in
           let (vd : val_def) = letbind_to_funcl_aux sk target_opt ctxt' lb in
           (ctxt', e_v, vd, Tconstraints(tnvs,constraints,lconstraints))
@@ -2342,7 +2344,7 @@ let check_val_def (ts : Targetset.t) (mod_path : Name.t list) (l : Ast.l)
           let fauxs = letbinds_to_funcl_aux_rec l ctxt' lbs in
             (ctxt', e_v, (Fun_def(sk1,FR_rec sk2,target_opt,fauxs)), Tconstraints(tnvs,constraints,lconstraints))
       | Ast.Let_inline (sk1,sk2,_,lb) -> 
-          let (lb,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_letbind None target_set_opt l lb in 
+          let (lb,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_letbind None true target_set_opt l lb in 
 (* Thomas Tuerk, 8. Oct 2013,
    I think we want to allow inlines with constraints. Not completely sure though. Therefore, 
    I only comment it out for now. TODO: check carefully and delete 
@@ -2353,7 +2355,8 @@ let check_val_def (ts : Targetset.t) (mod_path : Name.t list) (l : Ast.l)
           let args = match Util.map_all Pattern_syntax.pat_to_ext_name pL with
                        | None -> raise (Reporting_basic.err_type l "non-variable pattern in inline")
                        | Some a -> a in         
-          let new_tr = CR_inline (l, args, et) in
+          let all_targets = (match target_set_opt with None -> true | _ -> false) in
+          let new_tr = CR_inline (l, all_targets, args, et) in
           let d = c_env_lookup l ctxt'.ctxt_c_env n_ref in
           let ts = Util.option_default Target.all_targets target_set_opt in
           let tr = Targetset.fold (fun t r -> Targetmap.insert r (t,new_tr)) ts d.target_rep in
@@ -2397,7 +2400,7 @@ let check_val_def_instance (ts : Targetset.t) (mod_path : Name.t list) (instance
   let module Checker = Make_checker(T) in
   match vd with
       | Ast.Let_def(sk,_,lb) ->
-          let (lb,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_letbind (Some instance_type) None l lb in 
+          let (lb,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_letbind (Some instance_type) false None l lb in 
 
           (* check, whether contraints are satisfied and only simple variable arguments are used (in order to allow simple inlining of
              instance methods. *)
@@ -2417,7 +2420,7 @@ let check_val_def_instance (ts : Targetset.t) (mod_path : Name.t list) (instance
           let ctxt'' = {ctxt' with cur_env = ctxt.cur_env} in
           (ctxt'', e_v, vd, Tconstraints(tnvs,constraints,lconstraints))
 
-      | _ -> raise (Reporting_basic.err_unreachable true l "if vd is not a simple let, an exception should have already been raised.")
+      | _ -> raise (Reporting_basic.err_unreachable l "if vd is not a simple let, an exception should have already been raised.")
 
 
 let check_lemma l ts (ctxt : defn_ctxt) 
@@ -2514,7 +2517,7 @@ let rec check_instance_type_shape (ctxt : defn_ctxt) (src_t : src_t)
 
 
 
-let check_declare_target_rep_term_rhs (l : Ast.l) ts (ctxt : defn_ctxt) args rhs_ty (rhs : Ast.target_rep_rhs) : Typed_ast.target_rep_rhs = 
+let check_declare_target_rep_term_rhs (l : Ast.l) ts targ (ctxt : defn_ctxt) c id args rhs_ty (rhs : Ast.target_rep_rhs) : (defn_ctxt * Typed_ast.target_rep_rhs) = 
   let module T = struct 
     let d = ctxt.all_tdefs 
     let i = ctxt.all_instances 
@@ -2523,20 +2526,52 @@ let check_declare_target_rep_term_rhs (l : Ast.l) ts (ctxt : defn_ctxt) args rhs
     let targets = ts
   end in 
   let module Checker = Make_checker(T) in
-  match rhs with
+  let (rhs, new_rep) = match rhs with
    | Ast.Target_rep_rhs_term_replacement e_org -> begin
        let rhs_lex_env = List.fold_left (fun env ap -> add_binding env (ap.term, ap.locn) ap.typ) empty_lex_env args in
        let (e, Tconstraints(tnvars, constraints,l_constraints)) = Checker.check_lem_exp rhs_lex_env l e_org rhs_ty in
        let _ = unsat_constraint_err l constraints in
-       Target_rep_rhs_term_replacement e
+       (Target_rep_rhs_term_replacement e, CR_simple (l, false, args, e))
      end
    | Ast.Target_rep_rhs_infix (sk1, infix_decl, sk2, id) ->
        let _ = if (List.length args = 0) then () else
                  raise (Reporting_basic.err_type l "infix target declaration with arguments") in
        let i = check_backend_quote l id in
-       Target_rep_rhs_infix (sk1, infix_decl, sk2, i)
+       (Target_rep_rhs_infix (sk1, infix_decl, sk2, i), CR_infix(l, false, infix_decl, i))
    | Ast.Target_rep_rhs_special (sk1, sk2, sp, args) ->
-       raise (Reporting_basic.err_todo true l "unsupported rhs of term target special representation declaration")
+       raise (Reporting_basic.err_todo true l "unsupported rhs of term target special representation declaration") in
+  let (ctxt', old_rep_opt) = ctxt_c_env_set_target_rep l ctxt c targ new_rep in
+  let _ =  match old_rep_opt with
+      | None -> (* no representation present before, so OK *) ()
+      | Some old_rep -> if const_target_rep_allow_override old_rep then () else begin
+          let loc_s = Reporting_basic.loc_to_string true (const_target_rep_to_loc old_rep) in
+          let msg = Format.sprintf 
+                      "a %s target representation for '%s' has already been given at\n    %s" 
+                      (Target.non_ident_target_to_string targ) (Ident.to_string id) loc_s in
+          raise (Reporting_basic.err_type l msg)
+        end
+  in
+  (ctxt', rhs)
+
+
+let component_term_id_lookup (l : Ast.l) (ctxt : defn_ctxt) (comp : Ast.component) (id : Ast.id) =
+    let Ast.Id(mp,xl,_) = id in
+    let e = path_lookup l ctxt.cur_env (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
+    let map = match comp with
+      | Ast.Component_function _ -> e.v_env
+      | Ast.Component_field _ -> e.f_env 
+      | _ ->  raise (Reporting_basic.err_type l "Invalid component! Only fields and constants / constructors are allowed here.")
+    in
+    let c = match Nfmap.apply map (Name.strip_lskip (Name.from_x xl)) with
+      | None -> raise (Reporting_basic.err_type_pp l "unbound name" Ident.pp (Ident.from_id id))
+      | Some c -> c
+    in
+    let c_descr = c_env_lookup l ctxt.ctxt_c_env c in
+    let c_id = { id_path = Id_some (Ident.from_id id); 
+                 id_locn = l; 
+                 descr = c; 
+                 instantiation = List.map tnvar_to_type c_descr.const_tparams } in
+    (c_id, c_descr)
 
 
 (* [check_declare_target_rep_term ts mod_path l ctxt comp id args rhs] checks
@@ -2550,7 +2585,7 @@ let check_declare_target_rep_term
    (l : Ast.l) 
    (ctxt : defn_ctxt) 
    sk1
-   target
+   (target : Ast.target)
    sk2
    (comp : Ast.component) 
    (id : Ast.id) 
@@ -2560,23 +2595,7 @@ let check_declare_target_rep_term
    (Typecheck_ctxt.defn_ctxt * Typed_ast.def_aux option) = 
 begin
   (* lookup the constant for the id *)
-  let c = begin
-    let Ast.Id(mp,xl,_) = id in
-    let e = path_lookup l ctxt.cur_env (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
-    let map = match comp with
-      | Ast.Component_function _ -> e.v_env
-      | Ast.Component_field _ -> e.f_env 
-      | _ ->  raise (Reporting_basic.err_type l "Invalid component at left-hand-side of term-target representation! Only fields and constants / constructors are allowed.")
-    in
-    match Nfmap.apply map (Name.strip_lskip (Name.from_x xl)) with
-      | None -> raise (Reporting_basic.err_type_pp l "unbound name" Ident.pp (Ident.from_id id))
-      | Some c -> c
-  end in
-  let c_descr = c_env_lookup l ctxt.ctxt_c_env c in
-  let c_id = { id_path = Id_some (Ident.from_id id); 
-               id_locn = l; 
-               descr = c; 
-               instantiation = List.map tnvar_to_type c_descr.const_tparams } in
+  let (c_id, c_descr) = component_term_id_lookup l ctxt comp id in
 
   (* parse the arguments / get the correct type *)
   let rec get_arg_types acc cur_ty args = match args with
@@ -2599,11 +2618,11 @@ begin
   let ((rhs_ty : Types.t), (args_parsed : name_lskips_annot list)) = get_arg_types [] c_descr.const_type args in
 
   (* now parse the rhs, this also updates the context *)
-  let rhs_parsed = check_declare_target_rep_term_rhs l ts ctxt args_parsed rhs_ty rhs in
+  let (ctxt', rhs_parsed) = check_declare_target_rep_term_rhs l ts (Target.ast_target_to_target target) ctxt c_id.descr (Ident.from_id id) args_parsed rhs_ty rhs in
 
   let def_aux = Decl_target_rep_decl_term (sk1, target, sk2, comp, c_id, 
                    args_parsed, sk3, rhs_parsed) in
-  (ctxt, Some (Declaration def_aux))
+  (ctxt', Some (Declaration def_aux))
 end
 
 
@@ -2682,17 +2701,14 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
             let (ctxt', sk, lty, targs, name_opt, sk2, e, sk3) = check_lemma l backend_targets ctxt lem in
             (ctxt', Some (Lemma(sk, lty, targs, name_opt, sk2, e, sk3)))
       | Ast.Declaration(Ast.Decl_rename_decl(sk1, target_opt, sk2, component, id, sk3, xl')) ->
-          let l' = Ast.xl_to_l xl' in
           let n' = Name.from_x xl' in
-          let id' = Ident.from_id id in
           let targs = check_target_opt target_opt in
 
           (* do the renaming *)
-          let (nk, p) = lookup_name (defn_ctxt_get_cur_env ctxt) id in
-          let rename_component component nk ctxt =
-            match (component, nk) with
-              | (Ast.Component_field _, Nk_field c)
-              | (Ast.Component_function _, Nk_constr c) ->
+          let (nk, p) = lookup_name (defn_ctxt_get_cur_env ctxt) (Some component) id in
+          begin
+            match nk with
+              | (Nk_field c | Nk_constr c) ->
                   begin 
                     let cd = c_env_lookup l ctxt.ctxt_c_env c in
                     let cd' = List.fold_left (fun cd t -> 
@@ -2703,21 +2719,18 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                     in
                       let c_env' = c_env_update ctxt.ctxt_c_env c cd' in
                         {ctxt with ctxt_c_env = c_env'},
-                        Some (Ident_rename(sk1, targs,
-                          p, id', 
-                          sk2, (n', l')))
+                        (* TODO: add real declaration *)
+                        None
                   end
-              | (Ast.Component_type _, Nk_typeconstr p) -> 
+              | Nk_typeconstr p -> 
                 begin 
                   let td' = List.fold_left (fun td t -> type_defs_rename_type l td p t (Name.strip_lskip n'))
                      ctxt.all_tdefs (targets_opt_to_list targs)
                   in
                     {ctxt with all_tdefs = td'},
-                    Some (Ident_rename(sk1, targs,
-                     p, id', 
-                     sk2, (n', l')))
+                    None (* TODO: do it *)
                 end
-            | (Ast.Component_module _, Nk_module m) ->
+            | Nk_module m ->
                 let l' = Ast.xl_to_l xl' in
                 let n = Name.from_x xl' in 
                 let mod_descr = lookup_mod ctxt.cur_env id in
@@ -2730,10 +2743,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                               id_locn = l;
                               descr = mod_descr;
                               instantiation = []; }))
-            | (Ast.Component_type _, Nk_class) -> ctxt, None
-            | _, _ -> ctxt, None
-          in
-            rename_component component nk ctxt
+          end
       | Ast.Declaration(Ast.Decl_pattern_match_decl (_, _, _, _, _, _, _, _, _, _, _)) ->
           let _ = prerr_endline "pattern match decl encountered" in
             ctxt, None
@@ -2749,61 +2759,41 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
       | Ast.Declaration(Ast.Decl_set_flag_decl (_, _, _, _, _)) ->
           let _ = prerr_endline "set flag declaration encountered" in
             ctxt, None
-      | Ast.Declaration(Ast.Decl_compile_message_decl (_, targets_opt, _, l, _, _, msg)) ->
+      | Ast.Declaration(Ast.Decl_compile_message_decl (_, targets_opt, _, id, _, _, msg)) ->
         begin
-          let new_backend_targets = get_effective_backends backend_targets def in
-          if Targetset.is_empty new_backend_targets then
-             let _ = prerr_endline msg in
-             ctxt, None
-          else
-             let _ = prerr_endline msg in
-               ctxt, None
+          let (c_id, c_descr) = component_term_id_lookup l ctxt (Ast.Component_function None) id in
+
+          let ts = targets_opt_to_set targets_opt in
+          let tr = Targetset.fold (fun t r -> Targetmap.insert r (t, msg)) ts c_descr.compile_message in
+          let c_descr' = {c_descr with compile_message = tr} in
+          let ctxt' = {ctxt with ctxt_c_env = c_env_update ctxt.ctxt_c_env c_id.descr c_descr'} in
+          (ctxt', None)
         end
-      | Ast.Declaration(Ast.Decl_ascii_rep_decl(sk1, targets_opt, sk2, component, source_name, sk3, target_name)) ->
-          let source_name = Name.strip_lskip (Name.from_x source_name) in
+      | Ast.Declaration(Ast.Decl_ascii_rep_decl(sk1, targets_opt, sk2, component, source_id, sk3, target_name)) ->
           let target_name = Name.strip_lskip (Name.from_x target_name) in
+          
           let _ = (if Util.is_simple_ident_string (Name.to_string target_name) then () else
-                     raise (Reporting_basic.err_general true l "non-ascii ascii representation provided")) in
-          let current_env = ctxt.cur_env in
+                     raise (Reporting_basic.err_type l "non-ascii ascii representation provided")) in
+          let (nk, p) = lookup_name (defn_ctxt_get_cur_env ctxt) (Some component) source_id in
           begin
-            match component with
-              | (Ast.Component_function _ | Ast.Component_field _) ->
-                  let (const_descr_ref, ctxt') = begin
-                    let env = match component with 
-                      | Ast.Component_function _ -> current_env.v_env
-                      | _ -> current_env.f_env
-                    in
-                    let const_descr_ref = match Nfmap.apply env source_name with
-                      | None ->
-                          raise (Reporting_basic.err_type_pp l "unbound name" 
-                            Name.pp source_name)
-                      | Some const_descr_ref -> const_descr_ref
-                    in
-                    let env' = Nfmap.insert env (target_name, const_descr_ref) in                          
-                    let current_env' = match component with 
-                      | Ast.Component_function _ -> {current_env with v_env = env'}
-                      | _ -> {current_env with f_env = env'}
-                    in
-                    let ctxt' = match component with 
+            match nk with
+              | (Nk_field const_descr_ref | Nk_constr const_descr_ref | Nk_const const_descr_ref) ->
+                  let ctxt' = begin
+                    match component with 
                       | Ast.Component_function _ -> 
                           add_v_to_ctxt ctxt (target_name, const_descr_ref) 
                       | _ -> add_f_to_ctxt ctxt (target_name, const_descr_ref)
-                    in
-
-                    (const_descr_ref, ctxt')
                   end in
 
-
                   let const_descr = Typed_ast.c_env_lookup Ast.Unknown ctxt.ctxt_c_env const_descr_ref in
-                  let const_descr = { const_descr with ascii_rep = Some target_name } in
+                  let tr = Targetset.fold (fun t r -> Targetmap.insert r (t,(l, target_name))) (targets_opt_to_set targets_opt) const_descr.target_ascii_rep in
+                  let const_descr = { const_descr with target_ascii_rep = tr } in
                   let cenv = Typed_ast.c_env_update ctxt.ctxt_c_env const_descr_ref const_descr in
                   let ctxt'' = { ctxt' with ctxt_c_env = cenv} in
                     ctxt'', None
-              | Ast.Component_module _ ->
-                  let lenv = current_env.m_env in
+              | (Nk_module _) ->
                     raise (Reporting_basic.err_general true l "ascii representation for modules not implemented yet")
-              | Ast.Component_type _ ->
-                  let lenv = current_env.p_env in
+              | (Nk_typeconstr p | Nk_class p) ->
                     raise (Reporting_basic.err_general true l "ascii representation for types not implemented yet")
           end
       | Ast.Module(sk1,xl,sk2,sk3,Ast.Defs(defs),sk4) ->
@@ -2867,7 +2857,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
               let n = Name.strip_lskip rel_name in
               let n_ref =  match Nfmap.apply newctxt.cur_env.v_env n with
                  | Some(r) -> r
-                 | _ -> raise (Reporting_basic.err_unreachable true l "n should have been added just before") in
+                 | _ -> raise (Reporting_basic.err_unreachable l "n should have been added just before") in
              (RName(sk1, rel_name, n_ref, sk2, rel_type, witness_opt, check_opt, indfns_opt, sk3))
           end in 
           let ns' = Seplist.map add_const_ns ns in
@@ -2891,7 +2881,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
               let n = Name.strip_lskip rname.term in
               let n_ref =  match Nfmap.apply newctxt.cur_env.v_env n with
                  | Some(r) -> r
-                 | _ -> raise (Reporting_basic.err_unreachable true l "n should have been added just before") in
+                 | _ -> raise (Reporting_basic.err_unreachable l "n should have been added just before") in
               let e_opt' = Util.option_map (C.exp_subst sub) e_opt in
              (Rule (name_opt, s1, s1b, qnames, s2, e_opt', s3, rname, n_ref, es), l)
           end in 
@@ -2975,8 +2965,10 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                    env_tag = K_field;
                    const_targets = all_targets;
                    relation_info = None;
+                   target_rename = Targetmap.empty;
                    target_rep = Targetmap.empty;
-                   ascii_rep = None })
+                   target_ascii_rep = Targetmap.empty;
+                   compile_message = Targetmap.empty })
               ctxt''
               (Seplist.from_list (List.map 
                                     (fun ((n,l),_,src_t) -> 
@@ -2992,7 +2984,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
              class_tparam = tnvar_types;
              class_record = type_path; 
              class_methods = List.combine (List.rev_map (fun (_,r,_) -> r) methods) field_refs;
-             class_target_rep = Target.Targetmap.empty;
+             class_target_rep = Targetmap.empty;
           } in
 
           let ctxt''' = add_d_to_ctxt ctxt''' p (Tc_class class_d) in
@@ -3091,7 +3083,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                  let fix_def_in_ctxt (ctxt,v_env) n (t, l) = begin
                    let n_ref = match Nfmap.apply ctxt.new_defs.v_env n with
                      | Some r -> r
-                     | _ -> raise (Reporting_basic.err_unreachable true l "n should have been added by check_val_def_instance, it is in e_v' after all")
+                     | _ -> raise (Reporting_basic.err_unreachable l "n should have been added by check_val_def_instance, it is in e_v' after all")
                    in
                    let n_d = c_env_lookup l ctxt.ctxt_c_env n_ref in
 
@@ -3149,8 +3141,10 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
               spec_l = Ast.Trans(true, "instance_to_module", Some l);
               const_targets = Target.all_targets;
               relation_info = None;
+              target_rename = Targetmap.empty;
               target_rep = Targetmap.empty;
-              ascii_rep = None
+              target_ascii_rep = Targetmap.empty;
+              compile_message = Targetmap.empty;
             }
           in
           let (c_env',dict_ref) = Typed_ast_syntax.c_env_store ctxt_inst.ctxt_c_env dict_d in

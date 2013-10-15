@@ -251,7 +251,7 @@ let to_rope_single quote_char lex_skips_to_rope preserve_ws t : Ulib.Text.t =
     | Internalspace -> r" "
     | Break_hint _ -> r""
     | Ensure_newline -> r""
-    | _ -> raise (Reporting_basic.err_unreachable false Ast.Unknown "structured output in to_rope_single")
+    | _ -> raise (Reporting_basic.err_unreachable Ast.Unknown "structured output in to_rope_single")
 
 let rec is_drop_t preserve_ws t =
   match t with

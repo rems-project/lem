@@ -95,13 +95,14 @@ val pattern_application_to_output : (pat -> Output.t) -> const_descr_ref id -> p
 val const_id_to_ident : const_descr_ref id -> bool -> Ident.t 
 
 
-(** [const_ref_to_name n c] tries to format a constant
+(** [const_ref_to_name n use_ascii c] tries to format a constant
     [c] for target [A.target] using the rules stored
-    in environment [A.env]. It always returns a name [n']. If special formatting
+    in environment [A.env]. If [use_ascii] is set, the ascii-representation is
+    returned. [const_ref_to_name] always returns a name [n']. If special formatting
     rules are installed, this name might not be the one used by [function_application_to_output], though.
     The argument [n] is the name used in the original input. It's whitespace is used to
     format [n']. *)
-val const_ref_to_name : Name.lskips_t -> const_descr_ref -> Name.lskips_t
+val const_ref_to_name : Name.lskips_t -> bool -> const_descr_ref -> Name.lskips_t
 
 (** [type_path_to_name n p] tries to format a type-path
     [p] for target [A.target] using the rules stored

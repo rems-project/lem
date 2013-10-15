@@ -33,8 +33,14 @@ type rel_set 'a 'b = set ('a * 'b)
 
 type rel 'a 'b
 
+declare hol      target_rep type rel 'a 'b = ('a -> 'b -> bool)
+declare isabelle target_rep type rel 'a 'b = set ('a * 'b)
+
 val relToSet : forall 'a 'b. Ord 'a, Ord 'b => rel 'a 'b -> rel_set 'a 'b
 val relFromSet : forall 'a 'b. Ord 'a, Ord 'b => rel_set 'a 'b -> rel 'a 'b
+
+let relToSet = `TODO`
+let relFromSet = `TODO`
 
 val relEq : forall 'a 'b. Ord 'a, Ord 'b => rel 'a 'b -> rel 'a 'b -> bool
 let relEq r1 r2 = (relToSet r1 = relToSet r2)
@@ -48,6 +54,9 @@ lemma relToSet_inv: (forall r. relFromSet (relToSet r) = r)
 val relToPred : forall 'a 'b. Ord 'a, Ord 'b => rel 'a 'b -> rel_pred 'a 'b
 val relFromPred : forall 'a 'b. Ord 'a, Ord 'b => rel_pred 'a 'b -> rel 'a 'b
 
+let relToPred = `TODO`
+let relFromPred = `TODO`
+
 lemma relToPred_inv: (forall r. relFromPred (relToPred r) = r)
 
 
@@ -60,6 +69,8 @@ lemma relToPred_inv: (forall r. relFromPred (relToPred r) = r)
 (* ----------------------- *)
 
 val inRel : forall 'a 'b. Ord 'a, Ord 'b => 'a -> 'b -> rel 'a 'b -> bool
+
+let inRel a b rel = relToPred rel a b
 
 lemma inRel_set : (forall s a b. inRel a b (relFromSet s) = ((a, b) IN s))
 lemma inRel_pred : (forall p a b. inRel a b (relFromPred p) = p a b)
@@ -302,12 +313,6 @@ let isPreorderOn r s = isReflexiveOn r s && isTransitiveOn r s
 
 val isPreorder : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
 let isPreorder r = isReflexive r && isTransitive r
-
-declare isabelle target_rep function isTrichotomousOn = `total_on`
-declare isabelle target_rep function isTrichotomous   = `total`
-declare hol      target_rep function isTrichotomous   = `trichotomous`
-declare hol      target_rep function isTotal          = `total`
-
 
 (* ----------------------- *)
 (* partial orders          *)

@@ -222,20 +222,6 @@ let field_ident_to_output fd ascii_alternative =
 let const_name_to_output a n =
   Name.to_output Term_var n
 
-
-let get_function_ascii_alternative name =
-  let env = A.env in
-  let v_env = env.local_env.v_env in
-    match Nfmap.apply v_env name with
-      | None   -> name
-      | Some s ->
-        let c_env = env.c_env in
-        let const_descr = Typed_ast.c_env_lookup Ast.Unknown c_env s in
-          match const_descr.ascii_rep with
-            | None -> name
-            | Some n -> n
-;;
-
 let generate_coq_record_update_notation e =
   let notation_kwd = from_string "Notation" in
   let with_kwd = from_string "\'with\'" in
@@ -246,7 +232,7 @@ let generate_coq_record_update_notation e =
   in
   let aux all_fields x =
     let ((n0, l), c, s4, ty) = x in
-    let n = B.const_ref_to_name n0 c in
+    let n = B.const_ref_to_name n0 false c in
     let name = Name.to_string (Name.strip_lskip n) in
     let all_fields = List.filter (fun x -> Pervasives.compare name x <> 0) all_fields in
     let other_fields = concat (kwd "; ")
@@ -275,7 +261,7 @@ let generate_coq_record_update_notation e =
     match e with
       | Te_record (s1, s2, fields, s3) ->
           let all_fields = Seplist.to_list fields in
-          let all_fields_names = List.map (fun ((n0, l), c, s4, ty) -> Name.to_string (Name.strip_lskip (B.const_ref_to_name n0 c))) all_fields in
+          let all_fields_names = List.map (fun ((n0, l), c, s4, ty) -> Name.to_string (Name.strip_lskip (B.const_ref_to_name n0 false c))) all_fields in
           let field_entries = concat_str "\n" (List.map (aux all_fields_names) all_fields) in
           let terminator =
             if List.length all_fields = 0 then
@@ -373,7 +359,7 @@ let generate_coq_record_update_notation e =
         | Te_variant (_, name_l_src_t_lskips_seplist) ->
             let l = Seplist.to_list name_l_src_t_lskips_seplist in
             let cases = List.map (fun ((name0, _), c_ref, y, typs) ->
-              let name = B.const_ref_to_name name0 c_ref in
+              let name = B.const_ref_to_name name0 false c_ref in
               let typs = Seplist.to_list typs in
               let args = List.map (fun typ ->
                 begin
@@ -739,7 +725,6 @@ let generate_coq_record_update_notation e =
           Output.flat [
       		  from_string "(* "; def inside_instance callback inside_module def_aux; from_string " *)"
           ]
-      | Ident_rename _ -> from_string "\n(* [?]: removed rename statement. *)"
       | Lemma (skips, lemma_typ, targets, name_skips_opt, skips', e, skips'') ->
           if in_target targets then
             let name =
@@ -961,8 +946,7 @@ let generate_coq_record_update_notation e =
         | Let_fun (n, pats, typ_opt, skips, e) -> funcl_aux inside_instance (from_string "") tv_set (n.term, pats, typ_opt, skips, e)
     and funcl_aux inside_instance constraints tv_set (n, pats, typ_opt, skips, e) =
       let name_skips = Name.get_lskip n in
-      let name = get_function_ascii_alternative (Name.strip_lskip n) in
-      let name = from_string (Ulib.Text.to_string (Name.to_rope name)) in
+      let name = from_string (Name.to_string (Name.strip_lskip n)) in
       let pat_skips =
         match pats with
           | [] -> emp
@@ -998,8 +982,7 @@ let generate_coq_record_update_notation e =
           ws name_skips; name; tv_set_sep; tv_set; constraints_sep; constraints; pat_skips;
           fun_pattern_list inside_instance pats; typ_opt; ws skips; from_string ":="; exp inside_instance e
         ]
-    and funcl inside_instance constraints tv_set ({term = n}, c, pats, typ_opt, skips, e) = funcl_aux inside_instance constraints tv_set (B.const_ref_to_name n c, pats, typ_opt, skips, e)      
-    and funcl_letfun inside_instance tv_set ({term = n}, pats, typ_opt, skips, e) = funcl_aux inside_instance (from_string "") tv_set (n, pats, typ_opt, skips, e)      
+    and funcl inside_instance constraints tv_set ({term = n}, c, pats, typ_opt, skips, e) = funcl_aux inside_instance constraints tv_set (B.const_ref_to_name n true c, pats, typ_opt, skips, e)      
     and let_type_variables top_level tv_set =
       if Types.TNset.is_empty tv_set || not top_level then
         emp
@@ -1132,25 +1115,9 @@ let generate_coq_record_update_notation e =
                 match C.exp_to_term c with
                   | Constant cd ->
                     begin
-                      let env = A.env in
-                      let c_env = env.c_env in
-                      let const_descr_ref = cd.descr in
-                      let const_descr = Typed_ast.c_env_lookup Ast.Unknown c_env const_descr_ref in
-                      begin
-                        match const_descr.ascii_rep with
-                          | None ->
-                            let pieces = B.function_application_to_output (exp_to_locn e) trans true e cd [l; r] (use_ascii_rep_for_const cd) in
-                            let output = Output.concat sep pieces in
-                              block is_user_exp 0 output
-                          | Some ascii ->
-                            let name = from_string (Ulib.Text.to_string (Name.to_rope ascii)) in
-                            let output =
-                              Output.concat sep [
-                                name; trans l; trans r
-                              ]
-                            in
-                              block is_user_exp 0 output
-                      end
+                      let pieces = B.function_application_to_output (exp_to_locn e) trans true e cd [l; r] true in
+                      let output = Output.concat sep pieces in
+                        block is_user_exp 0 output
                     end
                   | _           ->
                     begin
@@ -1500,7 +1467,7 @@ let generate_coq_record_update_notation e =
               from_string ":="; ws skips; body
             ]
     and constructor ind_name ty_vars ((name0, _), c_ref, skips, args) =
-      let ctor_name = B.const_ref_to_name name0 c_ref in
+      let ctor_name = B.const_ref_to_name name0 false c_ref in
       let ctor_name = Name.to_output Type_ctor ctor_name in
       let body = flat @@ Seplist.to_sep_list abbreviation_typ (sep @@ from_string "-> ") args in
       let tail = Output.flat [from_string "->"; ind_name ] in
@@ -1613,7 +1580,7 @@ let generate_coq_record_update_notation e =
         | Typ_len nexp -> src_nexp nexp
     and field ((n, _), f_ref, skips, t) =
       Output.flat [
-          Name.to_output Term_field (B.const_ref_to_name n f_ref); 
+          Name.to_output Term_field (B.const_ref_to_name n false f_ref); 
           from_string ":"; ws skips; field_typ t
       ]
     and generate_default_value_texp (t: texp) =

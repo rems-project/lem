@@ -179,21 +179,23 @@ and cr_special_fun (** an indirection for target-representation output functions
   | CR_special_uncurry of int (** [CR_special_uncurry n] formats a function with [n] arguments curried, i.e. turn the arguments into a tupled argument, surrounded by parenthesis and separated by "," *)
 
 and const_target_rep =
-  | CR_rename of Ast.l * bool * Name.t
-    (** rename the constant to the given name, but keep Module structure. The flag indicates whether further renaming is allowed. *)
-  | CR_new_ident of Ast.l * bool * Ident.t               
-    (** rename the constant to the given identifier, breaking the module structure. The flag indicates whether further renaming is allowed. *)
-  | CR_inline of Ast.l * name_lskips_annot list * exp
-    (** [CR_inline (loc, vars, e)] means inlining the constant with the expression [e] and
-        replacing the variable [vars] inside [e] with the arguments of the constant. *)
-  | CR_special of Ast.l * bool * bool * Name.t * cr_special_fun * Name.t list
-    (** [CR_special (loc, allow_rename, name_in_output, name, to_out, vars)] describes special formating of this 
-        constant. The constant is renamed to [name]. This name (including path prefix) and all arguments are transformed to
+  | CR_inline of Ast.l * bool * name_lskips_annot list * exp
+    (** [CR_inline (loc, allow_override, vars, e)] means inlining the constant with the expression [e] and
+        replacing the variable [vars] inside [e] with the arguments of the constant. The flag [allow_override] signals whether
+        the declaration might be safely overriden. Automatically generated target-representations (e.g. for ocaml constructors) should
+        be changeable by the user, whereas multiple user-defined ones should cause a type error. *)
+  | CR_infix of Ast.l * bool * Ast.fixity_decl * Ident.t
+    (** [CR_infix (loc, allow_override, fixity, i)] declares infix notation for the constant with the giving identifier. *)
+  | CR_simple of Ast.l * bool * name_lskips_annot list * exp
+    (** [CR_simple (loc, allow_override, vars, e)] is similar to [CR_inline]. Instead of inlining during macro expansion and therefore allowing
+        further processing afterwards, [CR_simple] performs the inlining only during printing in the backend. *)
+  | CR_special of Ast.l * bool * cr_special_fun * Name.t list
+    (** [CR_special (loc, allow_override, to_out, vars)] describes special formating of this 
+        constant. The (renamed) constant (including path prefix) and all arguments are transformed to
         output. [to_out] represents a function that is then given the formatted name and the appropriate number of these
         outputs. The expected arguments are described by [vars]. If there are more arguments than variables,
         they are appended. If there are less, for expressions local functions are introduced. For patterns,
-        an exception is thrown.  The flag [name_in_output] states, whether [to_out] uses the formatted [name].
-        Since values of [const_target_rep] need to be written out to file via [output_value] in order to cache libraries,
+        an exception is thrown. Since values of [const_target_rep] need to be written out to file via [output_value] in order to cache libraries,
         it cannot be a function of type [Output.t list -> Output.t list] directly. Instead, the type [cr_special_fun] is used
         as an indirection.*)
 
@@ -261,11 +263,17 @@ and const_descr =
     (** The location for the first occurrence of a definition/specification of
         this constant. *)
     
+    target_rename : (Ast.l * bool * Name.t) Target.Targetmap.t;
+    (** Target-specific renames of for this constant. The boolean flag indicates, whether further renames are allowed. *)
+
+    target_ascii_rep : (Ast.l * Name.t) Target.Targetmap.t;
+    (** Optional ASCII representation for this constant. *)
+
     target_rep : const_target_rep Target.Targetmap.t; 
     (** Target-specific representation of for this constant *)
 
-    ascii_rep : Name.t option
-    (** Optional ASCII representation for this constant. *)
+    compile_message : string Target.Targetmap.t;
+    (** An optional warning message that should be printed, if the constant is used *)
   }
 
 and v_env = const_descr_ref Nfmap.t
@@ -396,6 +404,12 @@ type val_spec = lskips * name_l * const_descr_ref * lskips * typschm
 
 type class_val_spec = lskips * name_l * const_descr_ref * lskips * src_t
 
+(** [cr_special_fun_uses_name f] checks, whether [f] uses it's first argument,
+    i.e. whether it uses the formatted name of the constant. This information
+    is important to determine, whether the constant needs to be renamed. *)
+val cr_special_fun_uses_name : cr_special_fun -> bool
+
+
 (** targets_opt is represents a set of targets. There are 3 types of values   
 {ul
     {- `None` represents the universal set, i.e. all targets}
@@ -479,10 +493,6 @@ type def_aux =
     (** The TNset contains the type and length variables that the definition is parameterized
         over, and the list contains the class constraints on those variables *)
   | Lemma of lskips * Ast.lemma_typ * targets_opt * (name_l * lskips) option * lskips * exp * lskips
-  | Ident_rename of lskips * targets_opt * Path.t * Ident.t * lskips * name_l
-    (** Renaming for already defined constants and types, e.g., if you want to 
-        control how a name that isn't allowed in a particular back-end gets
-        changed *)
   | Module of lskips * name_l * Path.t * lskips * lskips * def list * lskips
   | Rename of lskips * name_l * Path.t * lskips * mod_descr id
     (** Renaming an already defined module *)
@@ -661,7 +671,7 @@ type name_kind =
   | Nk_constr of const_descr_ref
   | Nk_field of const_descr_ref
   | Nk_module of Path.t
-  | Nk_class
+  | Nk_class of Path.t
 
 (** Mutually recursive function definitions may contain multiple clauses for the
     same function. These can however appear interleaved with clauses for other functions. 

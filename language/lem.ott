@@ -768,7 +768,7 @@ exhaustivity_setting :: 'Exhaustivity_setting_' ::=
 elim_opt :: 'Elim_opt_' ::=
   {{ com optional terms used as eliminators for pattern matching }}
   |     :: :: none
-  | exp :: :: some
+  | id  :: :: some
 
 fixity_decl :: 'Fixity_' ::=
   {{ com fixity declarations for infix identifiers }}
@@ -791,13 +791,13 @@ target_rep_lhs  :: 'Target_rep_lhs_' ::=
 
 declare_def :: 'Decl_' ::= 
   {{ com declarations }}
-  | declare targets_opt compile_message x_l1 = string                                             :: :: compile_message_decl
-  | declare targets_opt rename component id = x_l2                                                :: :: rename_decl
-  | declare targets_opt ascii_rep component x_l1 = x_l2                                           :: :: ascii_rep_decl
+  | declare targets_opt compile_message id = string                                               :: :: compile_message_decl
+  | declare targets_opt rename component id = x_l                                                 :: :: rename_decl
+  | declare targets_opt ascii_rep component id = x_l                                              :: :: ascii_rep_decl
   | declare target target_rep target_rep_lhs = target_rep_rhs                                     :: :: target_rep_decl
   | declare set_flag x_l1 = x_l2                                                                  :: :: set_flag_decl
   | declare targets_opt termination_argument id = termination_setting                             :: :: termination_argument_decl
-  | declare targets_opt pattern_match exhaustivity_setting x_l tnvars = [ exp1 .. expn ] elim_opt :: :: pattern_match_decl
+  | declare targets_opt pattern_match exhaustivity_setting id tnvars = [ id1 .. idn ] elim_opt :: :: pattern_match_decl
 
 val_def :: '' ::= 
   {{ com Value definitions }}

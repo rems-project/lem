@@ -143,7 +143,7 @@ let print_err fatal verb_loc only_first l m1 m2 =
 
 type error = 
   | Err_general of bool * Ast.l * string
-  | Err_unreachable of bool * Ast.l * string
+  | Err_unreachable of Ast.l * string
   | Err_todo of bool * Ast.l * string
   | Err_trans of Ast.l * string
   | Err_trans_header of Ast.l * string
@@ -154,10 +154,11 @@ type error =
   | Err_internal of Ast.l * string
   | Err_rename of Ast.l * string
   | Err_cyclic_build of string 
+  | Err_resolve_dependency of Ast.l * string 
 
 let dest_err = function
   | Err_general (b, l, m) -> ("Error", b, Loc l, m)
-  | Err_unreachable (b, l, m) -> ("Unreachable code", b, Loc l, m)
+  | Err_unreachable (l, m) -> ("Unreachable code", true, Loc l, m)
   | Err_todo (b, l, m) -> ("LEM internal error", b, Loc l, "unimplemented feature "^m)
   | Err_trans (l, m) -> ("Translation error", false, Loc l, m)
   | Err_syntax (p, m) -> ("Syntax error", false, Pos p, m)
@@ -168,12 +169,13 @@ let dest_err = function
   | Err_rename (l, m) -> ("Renaming error", false, Loc l, m)
   | Err_type (l, m) -> ("Type error", false, Loc l, m)
   | Err_cyclic_build m -> ("Circular build detected", false, Loc Ast.Unknown, "module '" ^ m ^ "' depends on itself")
+  | Err_resolve_dependency (l, m) -> ("Unknown dependency", false, Loc l, ("unknown module '"^m^"'"))
 
 exception Fatal_error of error
 
 (* Abbreviations for the very common cases *)
 let err_todo b l m = Fatal_error (Err_todo (b, l, m))
-let err_unreachable b l m = Fatal_error (Err_unreachable (b, l, m))
+let err_unreachable l m = Fatal_error (Err_unreachable (l, m))
 let err_general b l m = Fatal_error (Err_general (b, l, m))
 
 let err_type l m = Fatal_error (Err_type (l, m))

@@ -81,6 +81,12 @@ let t_to_int = function
   | P_infix_left i -> i
   | P_infix_right i -> i
   
+let ast_fixity_decl_to_t = function
+ | Ast.Fixity_right_assoc   (_, i) -> P_infix_right i
+ | Ast.Fixity_left_assoc    (_, i) -> P_infix_left i
+ | Ast.Fixity_non_assoc     (_, i) -> P_infix i
+ | Ast.Fixity_default_assoc        -> P_infix 0
+
 
 type pat_context =
   | Plist
@@ -112,6 +118,7 @@ type exp_kind =
 
 let is_infix = function
   | P_prefix -> false
+  | P_special -> false
   | _ -> true
 
 let oper_char = "[-!$%&*+./:<=>?@^|~]"
@@ -125,7 +132,7 @@ let amp = regexp "^&&$"
 let bar_bar = regexp "^||$"
 let imp = regexp "^-->$"
 
-let get_prec s = 
+let get_ident_prec s = 
   let s = 
     match s with
       | Cons -> "::"
@@ -151,164 +158,6 @@ let get_prec s =
     (P_infix_right 9)
   else
     P_prefix
-
-
-let star_ocaml = regexp (Printf.sprintf "^\\([*/%%]%s*\\|mod\\|land\\|lor\\|lxor\\)$" oper_char)
-let plus_ocaml = regexp (Printf.sprintf "^\\([+-]%s*\\)$" oper_char)
-let eq_ocaml = regexp (Printf.sprintf "^\\([=<>|&$]%s*\\)$" oper_char)
-
-let get_prec_ocaml s = 
-  let s = 
-    match s with
-      | Cons -> "::"
-      | Op(s) -> s
-  in
-  if string_match star_star s 0 then
-    (P_infix_right 1)
-  else if string_match star_ocaml s 0 then
-    (P_infix_left 2)
-  else if string_match plus_ocaml s 0 then
-    (P_infix_left 3)
-  else if string_match cons s 0 then
-    (P_infix_right 4)
-  else if string_match at s 0 then
-    (P_infix_right 5)
-  else if string_match eq_ocaml s 0 then
-    (P_infix_left 6)
-  else if string_match amp s 0 then
-    (P_infix_right 7)
-  else if string_match bar_bar s 0 then
-    (P_infix_right 8)
-  else
-    P_prefix
-
-let hol_important_constants = 
-  ["let"; "in"; "and"; "\\"; "."; ";"; "=>"; "|"; "||"; ":"; ":="; "with";
-   "updated_by"; "case"; "of"; "LEAST"; "?!"; "?"; "!"; "@"; "::"; "->"; ",";
-   "if"; "then"; "else"; "with"; "/\\"; "\\/"; "T"; "F"; "|>"; "<|"; "==>";
-   "=";] 
-
-let get_prec_hol s = 
-  let s = 
-    match s with
-      | Cons -> "::"
-      | Op(s) -> s
-  in
-(*
-Field
-univ
-^= ^* ^+
-Application and '
-& - ~
- *)
-  if List.mem s ["O"; "o"] then
-    (P_infix_right 1)
-  else if List.mem s ["@@"; "**"; "EXP"; "int_exp"] then
-    (P_infix_right 2)
-  else if List.mem s ["#<<"; "#>>"; ">>>"; ">>"; "<<"] then
-    (P_infix_left 3)
-  else if List.mem s ["MOD"; "%"] then
-    (P_infix_left 4)
-  else if List.mem s ["*,"] then
-    (P_infix_right 5)
-  else if List.mem s ["tint_mul"; "quot"; "/"; "//"; "\\"; "|+"; "CROSS"; "INTER"; "DIV"; "*"; "RINTER"] then
-    (P_infix_left 6)
-  else if List.mem s ["int_sub"; "tint_add"; "fcp_index"; "UNION"; "f_o"; "o_f"; "f_o_f"; "|++"; "DELETE"; "DIFF"; "-"; "+"; "RUNION"] then
-    (P_infix_left 7)
-  else if List.mem s ["###"; "===>"; "-->"; "::"; "INSERT"; "LEX"; "##"] then
-    (P_infix_right 8)
-  else if List.mem s ["+++"; "++"] then
-    (P_infix_left 9)
-  else if List.mem s ["int_divides"; ">=+"; "<+"; ">+"; "<=+"; "=="; "SUBMAP"; "<<="; "PSUBSET"; "SUBSET"; ">="; "<="; ">"; "<"; "RSUBSET"; "<>"] then
-    (P_infix 10)
-  else if List.mem s ["equiv_on"; "NOTIN"; "IN"] then
-    (P_infix 11)
-  else if List.mem s ["&&"; "~&&"; "/\\"] then
-    (P_infix_right 12)
-  else if List.mem s ["---"; "><"; "--"; "''"; "~??"; "??"] then
-    (P_infix_right 13)
-  else if List.mem s [":+"] then
-    (P_infix_left 14)
-  else if List.mem s ["=+"] then
-    (P_infix 15)
-  else if List.mem s [":>"] then
-    (P_infix_left 16)
-  else if List.mem s ["!!"; "~!!"; "\\/"] then
-    (P_infix_right 17)
-  else if List.mem s ["==>"] then
-    (P_infix_right 18)
-  else if List.mem s ["<=/=>"; "<=>"; "="] then
-    (P_infix 19)
-  else if List.mem s [":-"] then
-    (P_infix 20)
-  else
-    P_prefix
-    
-
-let get_prec_isa s =
-  let s = 
-    match s with
-      | Cons -> "#"
-      | Op(s) -> s
-  in
-  (* 110 (isa prec) - map restric *)
-  if List.mem s ["|`"] then 
-    (P_infix_left 1)
-  (* 100 *)
-  else if List.mem s ["!"; "++"; "!!"] then 
-    (P_infix_left 2)
-  (* 95 - image and vimage ops *) 
-  else if List.mem s ["`"; "-`"] then 
-    (P_infix_right 3)
-  (* 90 *)
-  else if List.mem s ["BIT"] then 
-    (P_infix_left 4)
-  (* 80 *) 
-  else if List.mem s ["<*>"; "\\<times>"] then 
-    (P_infix_right 5)
-  (* 70 *)
-  else if List.mem s ["\\<inter>"; "div"; "mod"; "*"; "/"; "\\<sqinter>"] then 
-    (P_infix_left 6)
-  (* 70 - some ops from Imperative_HOL: noteq_array, noteq_ref *)
-  else if List.mem s ["=!!=!"; "=!="] then
-    (P_infix 6)
-  (* 65 *)
-  else if List.mem s ["\\<union>"; "-"; "+"; "\\<sqinter>"] then
-    (P_infix_left 7)
-  (* 65 *)
-  else if List.mem s ["#"; "@"] then 
-    (P_infix_right 7) (* Same precedence as union, but to the right, not to the left! *)
-  (* 60 *)
-  else if List.mem s ["\\<circ>>"; "\\<circ>\\<rightarrow>"] then 
-    (P_infix_left 8)
-  (* 55 *)
-  else if List.mem s ["o"; "\\<circ>"; "o'_m"; "\\<circ>\\<^sub>m"; "<<"; ">>"; ">>>"] then
-    (P_infix_left 9)
-  (* 50 *)
-  else if List.mem s ["=";"~=";"\\<noteq>";"udvd";"dvd"] then 
-    (P_infix_left 10)
-  (* 50 *)
-  else if List.mem s [">=";">";"<";"<=";"\\<ge>";"\\<le>";"\\<sqsubseteq>";"\\<sqsubset>"] then 
-    (P_infix 10)
-  (* 35 *)
-  else if List.mem s ["&";"\\<and>"] then 
-    (P_infix_right 11)
-  (* 30 *)
-  else if List.mem s ["|";"\\<or>"] then 
-    (P_infix_right 12)
-  (* 25 *)
-  else if List.mem s ["-->";"\\<longrightarrow>";"<->";"\\<longleftrightarrow>"] then 
-    (P_infix_right 13)
-  (* 20 - This is the product type * which is 'overloaded' Isabelle - what to do? *)
-  (*
-  else if List.mem s ["*"] then 
-    (P_infix_right 13) *)
-  (* 2 *) 
-  else if List.mem s ["=="; "\\<equiv>"] then
-    (P_infix_right 14)
-  else 
-    P_prefix
-
 
 let needs_parens context t =
   match (context,t) with
@@ -355,19 +204,14 @@ let get_prec targ env c =
   let l = Ast.Trans (false, "get_prec", None) in
   let c_descr = c_env_lookup l env.c_env c in
 
-(* TODO: Use the target_rep
-  let i = match Target.Targetmap.apply_opt c_descr.target_rep target_opt with
-     | None -> resolve_ident_path c_id c_descr.const_binding
-     | Some (CR_new_ident i) -> i
-     | Some (CR_rename n) -> rename_ident (resolve_ident_path c_id c_descr.const_binding) n
-     | Some (CR_inline _) -> (* TODO: handle inline here instead of macro *) assert false
-*)
-  
-  let n = Path.get_name c_descr.const_binding in
-  let p_fun = match targ with 
-    | Target.Target_no_ident Target.Target_ocaml -> get_prec_ocaml
-    | Target.Target_no_ident Target.Target_hol -> get_prec_hol
-    | Target.Target_no_ident Target.Target_isa -> get_prec_isa
-    | _ -> get_prec
-  in
-  p_fun (Op (Name.to_string n))
+  match targ with
+    | Target.Target_ident -> (* The precedences for the identity backend are hardcoded. *)
+        let n = Path.get_name c_descr.const_binding in
+        get_ident_prec (Op (Name.to_string n))
+    | Target.Target_no_ident targ' -> (* precedences for real targets are stored in the constant description *)
+      begin
+        match Target.Targetmap.apply c_descr.target_rep targ' with
+         | Some (CR_infix (_, _, fixity, _)) -> ast_fixity_decl_to_t fixity
+         | Some (CR_special _) -> P_special (* TODO: Thomas T.: uncertain, whether P_prefix would be better here, but it should not matter much I hope *)
+         | _ -> P_prefix
+      end

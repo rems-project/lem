@@ -53,6 +53,8 @@ let pp ppf (sk,ns,n) =
   fprintf ppf "%a" 
     (Pp.lst "." Name.pp) (ns @ [n])
 
+let to_string t =
+  pp_to_string (fun ppf -> pp ppf t)
 
 let error_pp_help ppf (n,sk) =
   fprintf ppf "%a%a" 

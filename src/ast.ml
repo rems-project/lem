@@ -285,6 +285,14 @@ targets =  (* Backend target name lists *)
 
 
 type 
+fixity_decl =  (* fixity declarations for infix identifiers *)
+   Fixity_right_assoc of terminal * int
+ | Fixity_left_assoc of terminal * int
+ | Fixity_non_assoc of terminal * int
+ | Fixity_default_assoc
+
+
+type 
 exp_aux =  (* Expressions *)
    Ident of id (* Identifiers *)
  | Backend of terminal * Ulib.UTF8.t (* identifier that should be literally used in output *)
@@ -348,14 +356,6 @@ and letbind =  (* Location-annotated let bindings *)
 
 
 type 
-fixity_decl =  (* fixity declarations for infix identifiers *)
-   Fixity_right_assoc of terminal * int
- | Fixity_left_assoc of terminal * int
- | Fixity_non_assoc of terminal * int
- | Fixity_default_assoc
-
-
-type 
 component =  (* components *)
    Component_module of terminal
  | Component_function of terminal
@@ -401,7 +401,7 @@ exhaustivity_setting =  (* exhaustivity settings *)
 type 
 elim_opt =  (* optional terms used as eliminators for pattern matching *)
    Elim_opt_none
- | Elim_opt_some of exp
+ | Elim_opt_some of id
 
 
 type 
@@ -466,13 +466,13 @@ lemma_decl =  (* Lemmata and Tests *)
 
 type 
 declare_def =  (* declarations *)
-   Decl_compile_message_decl of terminal * targets option * terminal * x_l * terminal * terminal * Ulib.UTF8.t
+   Decl_compile_message_decl of terminal * targets option * terminal * id * terminal * terminal * Ulib.UTF8.t
  | Decl_rename_decl of terminal * targets option * terminal * component * id * terminal * x_l
- | Decl_ascii_rep_decl of terminal * targets option * terminal * component * x_l * terminal * x_l
+ | Decl_ascii_rep_decl of terminal * targets option * terminal * component * id * terminal * x_l
  | Decl_target_rep_decl of terminal * target * terminal * target_rep_lhs * terminal * target_rep_rhs
  | Decl_set_flag_decl of terminal * terminal * x_l * terminal * x_l
  | Decl_termination_argument_decl of terminal * targets option * terminal * id * terminal * termination_setting
- | Decl_pattern_match_decl of terminal * targets option * terminal * exhaustivity_setting * x_l * tnvar list * terminal * terminal * (exp) list * terminal * elim_opt
+ | Decl_pattern_match_decl of terminal * targets option * terminal * exhaustivity_setting * id * tnvar list * terminal * terminal * (id) list * terminal * elim_opt
 
 
 type 

@@ -69,6 +69,7 @@ type warning =
   | Warn_fun_clauses_resorted of Ast.l * Target.target * string list * Typed_ast.def
   | Warn_record_resorted of Ast.l * Typed_ast.exp
   | Warn_no_decidable_equality of Ast.l * string
+  | Warn_import of Ast.l * string * string
 
 let warn_source_to_string exp def ws =
   match ws with 
@@ -81,21 +82,75 @@ let warn_source_to_string exp def ws =
    l: the source location
    m: the message to display
 *)
-let dest_warning (env : Typed_ast.env) (verbose: bool) (w : warning) : (bool * Ast.l * string) option = 
-  let module B = Backend.Make(struct
-    let avoid = (false, (fun _ -> true), Name.fresh);;
-    let env = env
-  end) in
+let dest_warning_common (verbose: bool) (w : warning) : (bool * Ast.l * string) option = 
   match w with
   | Warn_general (b, l, m) -> Some (b, l, m)
-
   | Warn_rename (l, n_org, n_via_opt, n_new, targ) ->
      let target_s = (Target.target_to_string targ) in
      let via_s = (Util.option_default "" (Util.option_map (fun (n, l') -> "\n  via '"^n^"' at " ^
                   loc_to_string true l') n_via_opt)) in
      let m = Format.sprintf "renaming '%s' to '%s' for target %s%s" n_org n_new target_s via_s in
      Some (false, l, m)
+  | Warn_unused_vars (l, sl, ws) -> 
+      let var_label = Util.message_singular_plural ("variable", "variables") sl in
+      let vsL = List.map (fun s -> ("'" ^ s ^ "'")) sl in
+      let vs = String.concat ", " vsL in
+      let m = Format.sprintf "unused %s: %s" var_label vs in
+      Some (true, l, m)
 
+  | Warn_fun_clauses_resorted (l, targ, nl, d) -> 
+      let fun_label = Util.message_singular_plural ("function ", "functions ") nl in
+      let fsL = List.map (fun s -> ("'" ^ s ^ "'")) nl in
+      let fs = String.concat ", " fsL in
+      let target_s = Target.target_to_string targ in
+      let m : string = Format.sprintf "function definition clauses of %s %s reordered for target %s" fun_label fs target_s in
+      Some (false, l, m)
+
+  | Warn_record_resorted (l, e) -> 
+      let m : string = "record fields reordered" in
+      Some (true, l, m)
+
+  | Warn_no_decidable_equality (l, n) -> 
+      let m : string = "type '" ^ n ^ "' does not have a decidable equality" in
+      Some (true, l, m)
+
+  | Warn_import (l, m_name, f_name) -> 
+      let m : string = "importing module '" ^ m_name ^ "' from file '" ^ f_name ^"'" in
+      Some (false, l, m)
+  | _ -> None
+
+let dest_warning_basic (verbose: bool) (w : warning) : (bool * Ast.l * string) option = 
+  match w with
+  | Warn_pattern_compilation_failed (l, pL, ws) -> 
+      Some (true, l, "could not compile some patterns")
+
+  | Warn_pattern_not_exhaustive (l, pLL) -> 
+      Some (true, l, "pattern-matching is not exhaustive")
+
+  | Warn_def_not_exhaustive (l, n, pLL) -> 
+      Some (true, l, "function '"^n^"' is defined by non-exhaustive pattern-matching")
+
+  | Warn_pattern_redundant (l, rL, e) -> 
+      Some (true, l, "redundant patterns")
+
+  | Warn_def_redundant (l, n, rL, d) ->  
+      let pat_label = Util.message_singular_plural ("pattern", "patterns") rL in
+      let m = Format.sprintf "redundant %s in definition of function '%s'" pat_label n in
+      Some (true, l, m)
+
+  | Warn_pattern_needs_compilation (l, targ, e_old, e_new) -> 
+      let target_s = Target.target_to_string targ in
+      let m = "pattern compilation used for target " ^ target_s in
+      Some (true, l, m)
+  | _ -> dest_warning_common verbose w
+
+
+let dest_warning_with_env (env : Typed_ast.env) (verbose: bool) (w : warning) : (bool * Ast.l * string) option = 
+  let module B = Backend.Make(struct
+    let avoid = (false, (fun _ -> true), Name.fresh);;
+    let env = env
+  end) in
+  match w with
   | Warn_pattern_compilation_failed (l, pL, ws) -> 
       let psL = List.map (fun p -> "'" ^ Ulib.Text.to_string (B.ident_pat p) ^ "'") pL in
       let ps = String.concat ", " psL in
@@ -139,38 +194,18 @@ let dest_warning (env : Typed_ast.env) (verbose: bool) (w : warning) : (bool * A
       end in
       let m = m_basic ^ m_verb in
       Some (true, l, m)
+  | _ -> dest_warning_common verbose w
 
-  | Warn_unused_vars (l, sl, ws) -> 
-      let var_label = Util.message_singular_plural ("variable", "variables") sl in
-      let vsL = List.map (fun s -> ("'" ^ s ^ "'")) sl in
-      let vs = String.concat ", " vsL in
-      let m = Format.sprintf "unused %s: %s" var_label vs in
-      Some (true, l, m)
 
-  | Warn_fun_clauses_resorted (l, targ, nl, d) -> 
-      let fun_label = Util.message_singular_plural ("function ", "functions ") nl in
-      let fsL = List.map (fun s -> ("'" ^ s ^ "'")) nl in
-      let fs = String.concat ", " fsL in
-      let target_s = Target.target_to_string targ in
-      let m : string = Format.sprintf "function definition clauses of %s %s reordered for target %s" fun_label fs target_s in
-      Some (false, l, m)
+let dest_warning (env_opt : Typed_ast.env option) (verbose: bool) (w : warning) : (bool * Ast.l * string) option = 
+match env_opt with
+  | None -> dest_warning_basic verbose w
+  | Some env -> dest_warning_with_env env verbose w
 
-  | Warn_record_resorted (l, e) -> 
-      let m : string = "record fields reordered" in
-      Some (true, l, m)
-
-  | Warn_no_decidable_equality (l, n) -> 
-      let m : string = "type '" ^ n ^ "' does not have a decidable equality" in
-      Some (true, l, m)
 
 (* Command line options that effect warnings *)
 
 type warn_level = Level_Ignore | Level_Warn | Level_Warn_Verbose | Level_Error
-
-let get_default_warn_level = function 
-    []      -> None
-  | [r]     -> Some (!r)
-  | (r::rs) -> let wl = !r in if (List.for_all (fun r' -> !r' = wl) rs) then Some wl else None
 
 (* define one reference per warning type *)
 let warn_ref_general          = ref Level_Warn;;
@@ -184,13 +219,14 @@ let warn_ref_pat_comp         = ref Level_Warn;;
 let warn_ref_unused_vars      = ref Level_Warn;;
 let warn_ref_fun_resort       = ref Level_Warn;;
 let warn_ref_rec_resort       = ref Level_Warn;;
-let warn_ref_no_decidable_eq  = ref Level_Warn;;
+let warn_ref_no_decidable_eq  = ref Level_Ignore;;
+let warn_ref_import           = ref Level_Ignore;;
 
 (* a list of all these references *)
 let warn_refL = [
   warn_ref_rename; warn_ref_pat_fail; warn_ref_pat_exh; warn_ref_pat_red; warn_ref_def_exh; 
   warn_ref_def_red; warn_ref_pat_comp; warn_ref_unused_vars; warn_ref_general; 
-  warn_ref_fun_resort; warn_ref_rec_resort; warn_ref_no_decidable_eq
+  warn_ref_fun_resort; warn_ref_rec_resort; warn_ref_no_decidable_eq; warn_ref_import;
 ]
 
 (* map a warning to it's reference *)
@@ -207,6 +243,7 @@ let warn_level = function
   | Warn_fun_clauses_resorted _ ->              !warn_ref_fun_resort
   | Warn_record_resorted _ ->                   !warn_ref_rec_resort
   | Warn_no_decidable_equality _ ->             !warn_ref_no_decidable_eq
+  | Warn_import _ ->                            !warn_ref_import
 
 let ignore_pat_compile_warnings () = (warn_ref_pat_comp := Level_Ignore)
 
@@ -226,7 +263,8 @@ let warn_opts_aux = [
    ("pat_comp",    [warn_ref_pat_comp],                        "pattern compilation");
    ("resort",      [warn_ref_fun_resort; warn_ref_rec_resort], "resorted record fields and function clauses");
    ("no_dec_eq",   [warn_ref_no_decidable_eq],                 "equality of type is undecidable");
-   ("gen",         [warn_ref_general],                         "miscellaneous warnings")];;
+   ("gen",         [warn_ref_general],                         "miscellaneous warnings");
+   ("auto_import", [warn_ref_import],                          "automatically imported modules")];;
 
 
 let warn_arg_fun (f : warn_level -> unit) = Arg.Symbol (["ign"; "warn"; "verb"; "err"], (function 
@@ -238,9 +276,25 @@ let warn_arg_fun (f : warn_level -> unit) = Arg.Symbol (["ign"; "warn"; "verb"; 
 
 let warn_arg_fun_full refL = warn_arg_fun (fun l ->  List.iter (fun r -> r := l) refL)
 
+let warn_level_to_string = function
+  | Level_Ignore -> "ign"
+  | Level_Warn -> "warn"
+  | Level_Warn_Verbose -> "verb"
+  | Level_Error -> "err"
+
+let get_default_warn_level = function 
+    []      -> None
+  | [r]     -> Some (!r)
+  | (r::rs) -> let wl = !r in if (List.for_all (fun r' -> !r' = wl) rs) then Some wl else None
+
+let get_default_warn_level_string rL =
+  match (get_default_warn_level rL) with
+    | None -> ""
+    | Some wl -> " (default " ^ warn_level_to_string wl ^ ")"
+
 (* Now process it to get the real thing that the Arg-Lib can handle *)
 let warn_opts = 
-  let prefix_doc refL d = " warning level of "^d in
+  let prefix_doc refL d = " warning level of "^d ^ (get_default_warn_level_string refL) in
   let process_option (p, refL, d) = 
     let real_arg = ("-wl_"^p) in
     let real_doc = prefix_doc refL d in
@@ -252,13 +306,18 @@ let warn_opts =
   in (all :: sopts)
 
 
-let report_warning env w =
+let report_warning_aux env_opt w =
   let level = warn_level w in  
   match level with
       Level_Ignore       -> ()
-    | Level_Warn         -> (match dest_warning env false w with None -> () | Some (b, l, m) -> print_err false false true  l "Warning" m)
-    | Level_Warn_Verbose -> (match dest_warning env true  w with None -> () | Some (b, l, m) -> print_err false b     false l "Verbose warning" m)
-    | Level_Error        -> (match dest_warning env true  w with None -> () | Some (b, l, m) -> print_err true  b     false l "Error"   m)
+    | Level_Warn         -> (match dest_warning env_opt false w with None -> () | Some (b, l, m) -> print_err false false true  l "Warning" m)
+    | Level_Warn_Verbose -> (match dest_warning env_opt true  w with None -> () | Some (b, l, m) -> print_err false b     false l "Verbose warning" m)
+    | Level_Error        -> (match dest_warning env_opt true  w with None -> () | Some (b, l, m) -> print_err true  b     false l "Error"   m)
+
+
+let report_warning env = report_warning_aux (Some env)
+let report_warning_no_env = report_warning_aux None
+
 
 (******************************************************************************)
 (* Debuging                                                                   *)

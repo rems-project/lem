@@ -69,10 +69,11 @@ val lookup_env_opt : local_env -> Name.t list -> local_env option
     [Reporting_basic] is used to report an internal error. *)
 val lookup_env : local_env -> Name.t list -> local_env
 
-(** [env_apply env n] looks up the name [n] in the environment [env], regardless of whether [n] is a
-   name of a type, field, constructor or constant and returns the
-   type of this name, it's full path and the location of the original definition *)
-val env_apply : env -> Name.t -> (name_kind * Path.t * Ast.l) option
+(** [env_apply env comp_opt n] looks up the name [n] in the environment [env]. If 
+    component [comp] is given, only this type of component is searched. Otherwise,
+    it checks whether [n] refers to a type, field, constructor or constant. [env_apply] returns the
+    kind of this name, it's full path and the location of the original definition. *)
+val env_apply : env -> Ast.component option -> Name.t -> (name_kind * Path.t * Ast.l) option
 
 
 (** [lookup_mod_descr_opt env path mod_name] is used to navigate inside an environment [env]. It returns
@@ -168,15 +169,25 @@ val c_env_save : c_env -> const_descr_ref option -> const_descr -> c_env * const
 
 (** {2 target-representations} *)
 
+(** [const_target_rep_to_loc rep] returns the location, at which [rep] is defined. *)
+val const_target_rep_to_loc : const_target_rep -> Ast.l
+
+(** [const_target_rep_allow_override rep] returns whether this representation can be redefined. 
+    Only auto-generated target-reps should be redefinable by the user. *)
+val const_target_rep_allow_override : const_target_rep -> bool
+
 (** [set_target_const_rep env mp n target rep] sets the representation of the constant described by
     module-path [mp] and name [n] for target [target] to [rep] in environment [env]. *)
 val set_target_const_rep : env -> string list -> string -> Target.non_ident_target -> const_target_rep -> env
 
-(** [constant_descr_to_name targ cd] looks up the representation for target [targ] in the constant
-    description [cd]. It returns a tuple [(n_is_shown, n)]. The name [n] is the name of the constant for this
-    target. [n_is_shown] indiciates, whether this name is actually printed. Special representations or inline representation
-    might have a name, that is not used for the output. *)
-val constant_descr_to_name : Target.target -> const_descr -> (bool * Name.t)
+(** [constant_descr_to_name targ cd] looks up the representation for
+    target [targ] in the constant description [cd]. It returns a tuple
+    [(n_is_shown, n, n_ascii)]. The name [n] is the name of the
+    constant for this target, [n_ascii] an optional ascii alternative.
+    [n_is_shown] indiciates, whether this name is actually
+    printed. Special representations or inline representation might
+    have a name, that is not used for the output. *)
+val constant_descr_to_name : Target.target -> const_descr -> (bool * Name.t * Name.t option)
 
 (** [type_descr_to_name targ ty td] looks up the representation for target [targ] in the type
     description [td]. Since in constrast to constant-description, type-descriptions don't contain the
@@ -186,8 +197,8 @@ val type_descr_to_name : Target.target -> Path.t -> Types.type_descr -> Name.t
 
 (** [const_descr_rename targ n' l' cd] looks up the representation for target [targ] in the constant
     description [cd]. It then updates this description by renaming to the new name [n'] and new location [l']. 
-    If this renaming is not possible, [None] is returned, otherwise the updated description is returned along with information of where the constant
-    was last renamed and to which name. *)
+    If this renaming is not possible, [None] is returned, otherwise the updated description is returned along 
+    with information of where the constant was last renamed and to which name. *)
 val constant_descr_rename : Target.non_ident_target -> Name.t -> Ast.l -> const_descr -> (const_descr * (Ast.l * Name.t) option) option
 
 (** [type_descr_rename targ n' l' td] looks up the representation for target [targ] in the type

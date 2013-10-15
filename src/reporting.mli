@@ -96,9 +96,17 @@ type warning =
   | Warn_no_decidable_equality of Ast.l * string 
     (** no decidable equality *)
 
-(** [report_warning w] reports a warning. Depending on the settings for the warning type this might mean,
+  | Warn_import of Ast.l * string * string
+    (** [Warn_import (l, module_name, file_name)] warns about auto-importing module [module_name] from [file_name]. *)
+
+(** [report_warning env w] reports a warning. Depending on the settings for the warning type this might mean,
     do nothing, print a warning message or print an error message and exit Lem *)
 val report_warning : Typed_ast.env -> warning -> unit
+
+(** [report_warning_no_env w] reports a warning, when no-environment is available. 
+    In contrast to [report_warning] the warning messages might be more basic, since 
+    no information can be extracted from the environment. *)
+val report_warning_no_env : warning -> unit
 
 (** {2 Auxiliary Functions } *)
 

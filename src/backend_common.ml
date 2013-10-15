@@ -96,13 +96,13 @@ let rec build_subst (params : name_lskips_annot list) (args : exp list)
         let (subst, x, y) = build_subst params args in
           (Nfmap.insert subst (Name.strip_lskip p.term, Sub(a)), x, y)
 
-let inline_exp l (target : Target.non_ident_target) env was_infix params body tsubst (args : exp list) =
+let inline_exp l (target : Target.target) env was_infix params body tsubst (args : exp list) =
   let module C = Exps_in_context(struct let env_opt = Some env;; let avoid = None end) in
   let loc = Ast.Trans(false, "inline_exp", Some l) in
   let (vsubst, leftover_params, leftover_args) = build_subst params args in
   let b = C.exp_subst (tsubst,vsubst) body in
   let stays_infix = match C.exp_to_term b with
-    | Constant id -> Precedence.is_infix (Precedence.get_prec (Target.Target_no_ident target) env id.descr)
+    | Constant id -> Precedence.is_infix (Precedence.get_prec target env id.descr)
     | _ -> false
   in
   if params = [] && was_infix && stays_infix then
@@ -110,7 +110,7 @@ let inline_exp l (target : Target.non_ident_target) env was_infix params body ts
     (* Turn infix operators into infix operators again *)
     match leftover_args with
       | [a1; a2] -> C.mk_infix loc a1 b a2 None
-      | _ -> raise (Reporting_basic.err_unreachable false Ast.Unknown "infix operator with not 2 arguments")
+      | _ -> raise (Reporting_basic.err_unreachable l "infix operator with not 2 arguments")
   end else 
   if leftover_params = [] then
     (* all parameters are instantiatated *)
@@ -125,24 +125,33 @@ let inline_exp l (target : Target.non_ident_target) env was_infix params body ts
          None b None)
 
 
-let inline_exp_macro (target : Target.non_ident_target) env e =
-  let l_unk = Ast.Trans(false, "do_substitutions", Some (exp_to_locn e)) in
+let generalised_inline_exp_macro (do_CR_simple : bool) (target : Target.target) env e =
+  let l_unk = Ast.Trans(false, "inline_exp_macro", Some (exp_to_locn e)) in
   let module C = Exps_in_context(struct let env_opt = Some env;; let avoid = None end) in
   let (f,args,was_infix) = strip_app_infix_exp e in
     match C.exp_to_term f with
       | Constant(c_id) ->
           let cd = c_env_lookup l_unk env.c_env c_id.descr in
-          begin            
-            match Target.Targetmap.apply cd.target_rep target with
-              | Some(CR_inline (_, params,body)) ->
-                  let tsubst = Types.TNfmap.from_list2 cd.const_tparams c_id.instantiation in
+          let do_it (params, body) : exp =
+            let tsubst = Types.TNfmap.from_list2 cd.const_tparams c_id.instantiation in
+   
+            (* adapt whitespace before body *)
+            let b = (fst (alter_init_lskips (fun _ -> (ident_get_lskip c_id, None)) body)) in
+            inline_exp l_unk target env was_infix params b tsubst args
+          in
 
-                  (* adapt whitespace before body *)
-                  let b = (fst (alter_init_lskips (fun _ -> (ident_get_lskip c_id, None)) body)) in
-                  Some (inline_exp l_unk target env was_infix params b tsubst args)
+          let subst_opt = begin            
+            match Target.Targetmap.apply_target cd.target_rep target with
+              | Some(CR_inline (_, _, params,body)) -> Some (params, body)
+              | Some(CR_simple (_, _, params,body)) when do_CR_simple -> Some (params, body)
               | _ -> None
-          end
+          end in
+          Util.option_map do_it subst_opt
       | _ -> None
+
+
+let inline_exp_macro (target : Target.non_ident_target) env e =
+  generalised_inline_exp_macro false (Target.Target_no_ident target) env e
 
 
 module Make(A : sig 
@@ -177,25 +186,34 @@ let ident_to_output use_infix =
   Ident.to_output_format (ident_f use_infix) Term_const sep
 
 
+let const_ref_to_name n0 use_ascii c =
+  let l = Ast.Trans (false, "const_ref_to_name", None) in
+  let c_descr = c_env_lookup l A.env.c_env c in
+  let (_, n_no_ascii, n_ascii_opt) = constant_descr_to_name A.target c_descr in
+  let n =    
+    match (n_ascii_opt, use_ascii) with
+      | (Some ascii, true) -> ascii
+      | _  -> n_no_ascii
+  in
+  let n' = Name.replace_lskip (Name.add_lskip n) (Name.get_lskip n0) in
+  n'
+
+
 (* A version of const_id_to_ident that returns additionally, whether
-   the ascii-alternative was used. This is handly for determining infix
+   the ascii-alternative was used. This is handy for determining infix
    status. *)
 let const_id_to_ident_aux c_id ascii_alternative =
   let l = Ast.Trans (false, "const_id_to_ident", None) in
   let c_descr = c_env_lookup l A.env.c_env c_id.descr in
   let org_ident = resolve_constant_id_ident A.env c_id in
-    match (c_descr.ascii_rep, ascii_alternative) with
-      | (Some ascii, true) -> (true, Ident.rename org_ident ascii) 
-      | _                  ->
-          let i = match Target.Targetmap.apply_target c_descr.target_rep A.target with
-             | None -> org_ident
-             | Some (CR_new_ident (_, _, i)) -> i
-             | Some (CR_rename (_, _, n)) -> Ident.rename org_ident n
-             | Some (CR_inline _) -> raise (Reporting_basic.err_unreachable false l "Inlining should have already been done by Macro")
-             | Some (CR_special (_, _, _, n, _, _)) -> Ident.rename org_ident n
-          in
-          let i' = fix_module_prefix_ident (A.env.local_env) i in
-          (false, i')
+  let (_, n, n_ascii_opt) = constant_descr_to_name A.target c_descr in
+  let (ascii_used, name') =    
+    match (n_ascii_opt, ascii_alternative) with
+      | (Some ascii, true) -> (true, ascii) 
+      | _  -> (false, n)
+  in
+  let ident = fix_module_prefix_ident (A.env.local_env) (Ident.rename org_ident name') in
+  (ascii_used, ident)
 ;;
 
 let const_id_to_ident c_id ascii_alternative = snd (const_id_to_ident_aux c_id ascii_alternative)
@@ -224,11 +242,11 @@ let constant_application_to_output_special c_id to_out arg_f args vars : Output.
 
 
 let function_application_to_output l (arg_f0 : exp -> Output.t) (is_infix_pos : bool) (full_exp : exp) (c_id : const_descr_ref id) (args : exp list) (ascii_alternative: bool) : Output.t list =
-  let _ = if is_infix_pos && not (List.length args = 2) then (raise (Reporting_basic.err_unreachable false Ast.Unknown "Infix position with wrong number of args")) else () in
+  let _ = if is_infix_pos && not (List.length args = 2) then (raise (Reporting_basic.err_unreachable l "Infix position with wrong number of args")) else () in
   let arg_f b e = if b then arg_f0 (mk_opt_paren_exp e) else arg_f0 e in
   let c_descr = c_env_lookup Ast.Unknown A.env.c_env c_id.descr in
   match Target.Targetmap.apply_target c_descr.target_rep A.target with
-     | Some (CR_special (_, _, _, _, to_out, vars)) when not ascii_alternative -> 
+     | Some (CR_special (_, _, to_out, vars)) when not ascii_alternative -> 
             if (List.length args < List.length vars) then begin
               (* eta expand and call recursively *)
               let remaining_vars = Util.list_dropn (List.length args) vars in
@@ -238,15 +256,21 @@ let function_application_to_output l (arg_f0 : exp -> Output.t) (is_infix_pos : 
             end else begin
               constant_application_to_output_special c_id to_out (arg_f false) args vars 
             end
+     | Some (CR_simple (_, _, params,body)) when not ascii_alternative -> begin
+         let tsubst = Types.TNfmap.from_list2 c_descr.const_tparams c_id.instantiation in
+         let b = (fst (alter_init_lskips (fun _ -> (ident_get_lskip c_id, None)) body)) in
+         let new_exp = inline_exp l A.target A.env is_infix_pos params b tsubst args in
+         [arg_f true new_exp]
+       end
      | _ -> constant_application_to_output_simple is_infix_pos arg_f args c_id ascii_alternative
 
 let pattern_application_to_output (arg_f0 : pat -> Output.t) (c_id : const_descr_ref id) (args : pat list) (ascii_alternative : bool) : Output.t list =
   let arg_f b p = if b then arg_f0 (Pattern_syntax.mk_opt_paren_pat p) else arg_f0 p in
   let c_descr = c_env_lookup Ast.Unknown A.env.c_env c_id.descr in
   match Target.Targetmap.apply_target c_descr.target_rep A.target with
-     | Some (CR_special (_, _, _, _, to_out, vars)) when not ascii_alternative -> 
+     | Some (CR_special (_, _, to_out, vars)) when not ascii_alternative -> 
         if (List.length args < List.length vars) then begin
-           raise (Reporting_basic.err_unreachable true Ast.Unknown "Constructor without enough arguments!")
+           raise (Reporting_basic.err_unreachable Ast.Unknown "Constructor without enough arguments!")
         end else begin
            constant_application_to_output_special c_id to_out (arg_f false) args vars 
         end
@@ -282,14 +306,9 @@ let module_id_to_ident (mod_descr : mod_descr id) : Ident.t =
    let i' = fix_module_prefix_ident (A.env.local_env) i in
    i'
 
-let const_ref_to_name n0 c =
-  let l = Ast.Trans (false, "const_ref_to_name", None) in
-  let c_descr = c_env_lookup l A.env.c_env c in
-  let (_, n) = constant_descr_to_name A.target c_descr in
-  let n' = Name.replace_lskip (Name.add_lskip n) (Name.get_lskip n0) in
-  n'
-
 end
+
+
 
 let component_to_output t = 
   let open Output in
@@ -299,3 +318,5 @@ let component_to_output t =
       | Ast.Component_field s -> ws s ^ id a (r"field")
       | Ast.Component_module s -> ws s ^ id a (r"module")
       | Ast.Component_function s -> ws s ^ id a (r"function")
+
+

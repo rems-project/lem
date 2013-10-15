@@ -98,7 +98,7 @@ let compute_ocaml_rename_constant_fun (nk : name_kind) (n : Name.t) : Name.t opt
     | Nk_constr _     -> Name.capitalize n
     | Nk_field _      -> Name.uncapitalize n
     | Nk_module _     -> Name.capitalize n
-    | Nk_class        -> None
+    | Nk_class _      -> None
 
 let compute_target_rename_constant_fun (targ : Target.non_ident_target) (nk : name_kind) (n : Name.t) : Name.t option =
   match targ with 
@@ -114,11 +114,9 @@ let rename_constant (targ : Target.non_ident_target) (consts : NameSet.t) (const
   (NameSet.t * env) = begin
   let l = Ast.Trans (false, "rename_constant", None) in
   let c_d = c_env_lookup l env.c_env c in
-  let (n_is_shown, n) = constant_descr_to_name (Target_no_ident targ) c_d in
+  let (is_shown, n, n_ascii_opt) = constant_descr_to_name (Target_no_ident targ) c_d in
 
-  (* if constant name is not printed (e.g. for some special syntax, don't rename it *)
-  if (not n_is_shown || prevent_lib_renames c_d.const_binding) then (consts_new, env) else
-  begin
+  let compute_new_name (n : Name.t) = begin
     (* apply target specific renaming *)
     let nk = const_descr_to_kind (c, c_d) in
     let n'_opt = compute_target_rename_constant_fun targ nk n in
@@ -130,24 +128,50 @@ let rename_constant (targ : Target.non_ident_target) (consts : NameSet.t) (const
        match get_fresh_name consts consts_new n' with
            None -> (false, n'_opt)
          | Some n'' -> (true, Some n'') in
-    
-    (** add name to the list of constants to avoid *)
+
     let n'' = Util.option_default n' n''_opt in
-    let consts_new' = NameSet.add n'' consts_new  in
 
-    match Util.option_bind (fun n'' -> constant_descr_rename targ n'' l c_d) n''_opt with
-      | None -> (* if no renaming is necessary or if renaming is not possible, do nothing *) (consts_new', env)
-      | Some (c_d', via_opt) -> begin
-          (* print warning *)
-          let n0 : string = Name.to_string (Path.get_name c_d.const_binding) in
-          let _ = (if (not is_auto_renamed) then () else 
-                  (Reporting.report_warning env (Reporting.Warn_rename (c_d.spec_l, n0, Util.option_map (fun (l, n) -> (Name.to_string n, l)) via_opt, Name.to_string n'', Target_no_ident targ))))
-          in
+    let is_renamed = match n''_opt with None -> false | _ -> true in
+    (is_auto_renamed, is_renamed, n'')
+  end in
 
-          (* update environment *)
-          let env' = env_c_env_update env c c_d' in
-          (consts_new', env')
+  (* rename constant name *)
+  let (consts_new, env) = if (not is_shown) then (consts_new, env) else begin
+    let (is_auto_renamed, is_renamed, n_new) = compute_new_name n in
+
+    (** add name to the list of constants to avoid *)
+    let consts_new' = NameSet.add n_new consts_new  in
+
+    if not (is_renamed) then (* do nothing *) (consts_new', env) else
+    begin
+      (* update environment *)
+      match constant_descr_rename targ n_new l c_d with
+        | None -> (* renaming not possible for some reason *) (consts_new', env)
+        | Some (c_d', via_opt) -> begin
+            (* print warning *)
+            let _ = (if (not is_auto_renamed) then () else 
+                    let n_org : string = Name.to_string (Path.get_name c_d.const_binding) in
+                    (Reporting.report_warning env (Reporting.Warn_rename (c_d.spec_l, n_org, Util.option_map (fun (l, n) -> (Name.to_string n, l)) via_opt, Name.to_string n_new, Target_no_ident targ))))
+            in
+            (consts_new', env_c_env_update env c c_d')
         end
+    end
+  end in
+
+  (* rename constant ascii-name *)
+  if (not is_shown) then (consts_new, env) else 
+  match n_ascii_opt with None -> (consts_new, env) | Some n_ascii ->
+  begin
+    let (is_auto_renamed, is_renamed, n_ascii_new) = compute_new_name n_ascii in
+
+    (** add name to the list of constants to avoid *)
+    let consts_new' = NameSet.add n_ascii_new consts_new  in
+
+    if not (is_renamed) then (* do nothing *) (consts_new', env) else
+    begin
+      let c_d' = {c_d with target_ascii_rep = Targetmap.insert c_d.target_ascii_rep (targ, (l, n_ascii_new))} in
+      (consts_new', env_c_env_update env c c_d')
+    end
   end
 end
 

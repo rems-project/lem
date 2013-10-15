@@ -44,10 +44,12 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
-open Types
-type t = Typed_ast.env * (Target.target * Ulib.Text.t list) list
-val add_to_init : Target.non_ident_target -> string -> t -> t
+(** The initial environment. It is empty except bindings for predefined things like [bool] *)
+val initial_env : Typed_ast.env
 
-module Initial_libs(P : sig val path : string end) : sig
-  val init : t
-end
+(** [read_target_constants lib_path target] reads the list of contants that should be
+    avoided for target [target]. These constants are read from a file [lib_path/{target}_constants].
+    If this file does not exists, the empty set is returned. *)
+val read_target_constants : string -> Target.target -> Typed_ast.NameSet.t
+
+

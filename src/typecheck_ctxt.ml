@@ -79,3 +79,16 @@ let add_instance_to_ctxt (ctxt : defn_ctxt) (i : instance)
       : defn_ctxt =
   { ctxt with all_instances = i_env_add ctxt.all_instances i;
               new_instances = i_env_add ctxt.new_instances i; }
+
+let ctxt_c_env_set_target_rep l (ctxt : defn_ctxt) (c : const_descr_ref) (targ : Target.non_ident_target) rep = begin
+  let c_descr = c_env_lookup l ctxt.ctxt_c_env c in
+  let old_rep = Target.Targetmap.apply c_descr.target_rep targ in
+  
+  let c_descr' = {c_descr with target_rep = Target.Targetmap.insert c_descr.target_rep (targ, rep);
+                               const_targets = Target.Targetset.add targ c_descr.const_targets} in
+  let ctxt' = {ctxt with ctxt_c_env = c_env_update ctxt.ctxt_c_env c c_descr'} in
+
+  (ctxt', old_rep)
+end
+
+

@@ -1,0 +1,92 @@
+(******************************************************************************)
+(* A library for numbers                                                      *)
+(*                                                                            *)
+(* It mainly follows the Haskell Maybe-library                                *)
+(******************************************************************************)
+
+(* rename module to clash with existing list modules of targets
+   problem: renaming from inside the module itself! *)
+(*
+declare rename module = lem_maybe
+*)
+
+open import Bool Basic_classes 
+
+(* ========================================================================== *)
+(* Syntactic type-classes for common operations                               *)
+(* ========================================================================== *)
+
+(* Typeclasses can be used as a mean to overload constants like "+", "-", etc *)
+
+class ( NumAdd 'a ) 
+  val (+) : 'a -> 'a -> 'a
+end
+declare ascii_rep function (+) = numAdd
+
+class ( NumMinus 'a ) 
+  val (-) : 'a -> 'a -> 'a
+end
+declare ascii_rep function (-) = numMinus
+
+class ( NumMult 'a ) 
+  val ( * ) : 'a -> 'a -> 'a
+end
+declare ascii_rep function ( * ) = numMult
+
+
+(* ========================================================================== *)
+(* Basic number types                                                         *)
+(* ========================================================================== *)
+
+(* ----------------------- *)
+(* num                     *)
+(* ----------------------- *)
+
+(* unbounded size natural numbers are hardcoded *)
+
+declare hol      target_rep type num = `num` 
+declare isabelle target_rep type num = `nat` 
+declare coq      target_rep type num = `num` 
+declare ocaml    target_rep type num = `int` 
+
+val natAdd : num -> num -> num
+declare hol      target_rep function natAdd = infix `+`
+declare ocaml    target_rep function natAdd = `Nat_num.(+)`
+declare isabelle target_rep function natAdd = infix `+`
+declare coq      target_rep function natAdd = infix `+`
+
+instance (NumAdd num)
+  let (+) = natAdd
+end
+
+
+val natMinus : num -> num -> num
+declare hol      target_rep function natMinus = infix `-`
+declare ocaml    target_rep function natMinus = `Nat_num.(-)`
+declare isabelle target_rep function natMinus = infix `-`
+declare coq      target_rep function natMinus = infix `-`
+
+instance (NumMinus num)
+  let (-) = natMinus
+end
+
+
+val natMult : num -> num -> num
+declare hol      target_rep function natMult = infix `-`
+declare ocaml    target_rep function natMult = `Nat_num.(-)`
+declare isabelle target_rep function natMult = infix `-`
+declare coq      target_rep function natMult = infix `-`
+
+instance (NumMult num)
+  let ( * ) = natMult
+end
+
+(* ----------------------- *)
+(* int                     *)
+(* ----------------------- *)
+
+(* unbounded size integers *)
+
+type int
+
+

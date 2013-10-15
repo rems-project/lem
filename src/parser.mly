@@ -772,7 +772,6 @@ indreln_name :
     { Name_l ( Inderln_name_Name ($1,$2,$3,$4,$5,$6,Functions_none,$7) ,loc ()) }
   | Lsquare x Colon typschm witness_clause check_clause functions_clause Rsquare
     { Name_l ( Inderln_name_Name ($1,$2,$3,$4,$5,$6,$7,$8) ,loc ()) }
-  
 
 and_indreln_names:
   | indreln_name
@@ -918,26 +917,8 @@ exhaustivity_setting :
 elim_opt :
   |
     { Elim_opt_none }
-  | exp
+  | id
     { Elim_opt_some($1) }
-
-elim_opt :
-  |
-    { Elim_opt_none }
-  | exp
-    { Elim_opt_some($1) }
-
-exp_list :
-  |
-    { [] }
-  | exp Comma exp_list
-    { $1::$3 }
-
-pat_list :
-  |
-    { [] }
-  | pat Comma pat_list
-    { $1::$3 }
 
 tnvar_list :
   |
@@ -975,11 +956,11 @@ x_ls :
     { (Ast.X_l ($1, loc()))::$2 }
 
 declaration :
-  | Declare targets_opt CompileMessage x Eq String
+  | Declare targets_opt CompileMessage id Eq String
     { Decl_compile_message_decl($1, $2, $3, $4, fst $5, fst $6, snd $6) }
   | Declare targets_opt Rename component id Eq x
     { Decl_rename_decl($1, $2, $3, $4, $5, fst $6, $7) }
-  | Declare targets_opt AsciiRep component x Eq x
+  | Declare targets_opt AsciiRep component id Eq x
     { Decl_ascii_rep_decl($1, $2, $3, $4, $5, fst $6, $7) }
   | Declare target TargetRep component_term id x_ls Eq target_rep_rhs_term
     { Decl_target_rep_decl($1, fst $2, snd $2, Target_rep_lhs_term ($3, $4, $5, $6), fst $7, $8) }
@@ -989,7 +970,7 @@ declaration :
     { Decl_set_flag_decl($1, $2, $3, fst $4, $5) }
   | Declare targets_opt TerminationArgument id Eq termination_setting
     { Decl_termination_argument_decl($1, $2, $3, $4, fst $5, $6) }
-  | Declare targets_opt PatternMatch exhaustivity_setting x tnvar_list Eq Lsquare exp_list Rsquare elim_opt
+  | Declare targets_opt PatternMatch exhaustivity_setting id tnvar_list Eq Lsquare ids Rsquare elim_opt
     { Decl_pattern_match_decl($1, $2, $3, $4, $5, $6, fst $7, $8, $9, $10, $11) }
 
 lemma_typ:
@@ -1117,7 +1098,6 @@ ids:
     { [$1] }
   | id ids
     { $1::$2 }
-
 
 defs_help:
   | def

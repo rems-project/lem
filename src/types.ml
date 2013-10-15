@@ -685,7 +685,7 @@ let rec head_norm (d : type_defs) (t : t) : t =
                  raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(Ast.Unknown, "head_norm: env did not contain type!")))
              | Some(Tc_type(dc)) -> Util.option_default_map dc.type_abbrev t (fun t -> head_norm d (type_subst (TNfmap.from_list2 dc.type_tparams ts) t))
              | Some(Tc_class _) ->
-                 raise (Reporting_basic.err_unreachable true Ast.Unknown "head_norm: called on a type-class!"))
+                 raise (Reporting_basic.err_unreachable Ast.Unknown "head_norm: called on a type-class!"))
       | _ -> 
           t
 
@@ -1554,7 +1554,7 @@ module Constraint (T : Global_defs) : Constraint = struct
                let new_cs = List.map (fun (p, tnv) -> (p, 
                      match TNfmap.apply subst tnv with
                              | Some(t) -> t
-                             | None -> raise (Reporting_basic.err_unreachable true i.inst_l "get_matching_instance does not provide proper substitution!")))
+                             | None -> raise (Reporting_basic.err_unreachable i.inst_l "get_matching_instance does not provide proper substitution!")))
                     i.inst_constraints
               in
               solve_constraints instances unsolvable (new_cs @ constraints)

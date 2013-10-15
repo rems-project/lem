@@ -149,7 +149,7 @@ type pat_matrix = exp list * pat_matrix_row list * (pat list -> pat list)
 
 
 let match_compile_unreachable m =
-  Reporting_basic.Fatal_error (Reporting_basic.Err_unreachable(false, Ast.Unknown, "pattern compilation: "^m))
+  Reporting_basic.Fatal_error (Reporting_basic.Err_unreachable(Ast.Unknown, "pattern compilation: "^m))
 
 
 (******************************************************************************)
@@ -1374,9 +1374,9 @@ let rec collapse_nested_matches_dest_pat_fun l (no_replace_set : NameSet.t) (ps 
     match Util.list_index (fun p -> not (Pattern_syntax.is_var_pat p)) ps with None ->
     begin
       (* the most basic case where all expressions and patterns are variables. So, one "only" needs to do matching *)
-      let es_n = List.map (fun e -> match dest_var_exp e with Some n -> n | None -> raise (Reporting_basic.err_unreachable false Ast.Unknown "Not reachable, because of check")) es in
+      let es_n = List.map (fun e -> match dest_var_exp e with Some n -> n | None -> raise (Reporting_basic.err_unreachable Ast.Unknown "Not reachable, because of check")) es in
       let get_pat_fun (p : pat) : (pat list -> pat option) = begin 
-        match Pattern_syntax.dest_var_pat p with None -> raise (Reporting_basic.err_unreachable false Ast.Unknown "Not reachable, because of check") | Some n -> (
+        match Pattern_syntax.dest_var_pat p with None -> raise (Reporting_basic.err_unreachable Ast.Unknown "Not reachable, because of check") | Some n -> (
         match (Util.list_index (fun n' -> Name.compare n n' = 0) es_n) with
           None -> (* variable does not occur, so let's keep the old one *) (fun _ -> Some p)
         | Some i -> 
@@ -1555,14 +1555,14 @@ let cleanup_match_exp env add_missing e =
     begin
       let (first_s_opt, rowL) = Seplist.to_pair_list None patexps in
       let middle_s = match rowL with 
-        | [] -> raise (Reporting_basic.err_unreachable true loc "cleanup_match_exp rowL empty")
+        | [] -> raise (Reporting_basic.err_unreachable loc "cleanup_match_exp rowL empty")
         | (_ :: (_, s) :: _) -> s 
 	| [(_, s)] -> s in
       let last_s = match List.rev rowL with
-        | [] -> raise (Reporting_basic.err_unreachable true loc "cleanup_match_exp rowL empty")
+        | [] -> raise (Reporting_basic.err_unreachable loc "cleanup_match_exp rowL empty")
 	| (_, s) :: _ -> s in      
       let fix_last_s rowL last_s = match List.rev rowL with
-        | [] -> raise (Reporting_basic.err_unreachable true loc "cleanup_match_exp rowL empty")
+        | [] -> raise (Reporting_basic.err_unreachable loc "cleanup_match_exp rowL empty")
 	| (x, s) :: xss -> List.rev ((x, last_s) :: xss) in
 
       (* remove redundant rows *)
@@ -1857,7 +1857,7 @@ let remove_toplevel_match targ mca env_global _ env_local (((d, s), l, lenv)) =
     let groupL = List.map (fun (_, x) -> x) group_nameL in
     let group_apply sl = if not (Seplist.length sl = 1) then None else   
     match Seplist.to_list sl with 
-      | ([] | _ :: _ :: _) -> raise (Reporting_basic.err_unreachable true l_unk "Not reachable, because of length check")
+      | ([] | _ :: _ :: _) -> raise (Reporting_basic.err_unreachable l_unk "Not reachable, because of length check")
       | [(n,c,ps,topt,s,e)] -> 
           let e0 = strip_paren_typ_exp e in
           let e1 = Util.option_default e0 (compile_match_exp targ mca env e0) in

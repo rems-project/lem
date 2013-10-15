@@ -219,13 +219,26 @@ let update_const_descr l up c env =
   let new_c_env = c_env_update env.c_env c new_cd in
   {env with c_env = new_c_env}
 
-let constant_descr_to_name (targ : Target.target) (cd : const_descr) : (bool * Name.t) = 
-  match Target.Targetmap.apply_target cd.target_rep targ with
-    | Some (CR_rename (l, _, n)) -> (true, n)
-    | Some (CR_new_ident (_, _, i)) -> (true, Name.strip_lskip (Ident.get_name i))
-    | Some (CR_inline _) -> (false, Path.get_name cd.const_binding)
-    | Some (CR_special (_, _, b, n, _, _)) -> (b, n)
-    | None -> (true, Path.get_name cd.const_binding)
+let constant_descr_to_name (targ : Target.target) (cd : const_descr) : (bool * Name.t * Name.t option) = 
+  let name_renamed = match Target.Targetmap.apply_target cd.target_rename targ with
+    | Some (_, _, n) -> n
+    | None -> Path.get_name cd.const_binding
+  in
+
+  let name_ascii = 
+     match Target.Targetmap.apply_target cd.target_ascii_rep targ with
+       | Some (_, n) -> Some n
+       | None -> None
+  in
+
+  let is_shown = match Target.Targetmap.apply_target cd.target_rep targ with
+    | Some (CR_inline _) -> false
+    | Some (CR_special (_, _, special_fun, _)) -> cr_special_fun_uses_name special_fun
+    | Some (CR_simple _) -> false
+    | Some (CR_infix _) -> false
+    | None -> true
+  in
+  (is_shown, name_renamed, name_ascii)
 
 let type_descr_to_name (targ : Target.target) (p : Path.t) (td : type_descr) : Name.t = 
   match Target.Targetmap.apply_target td.Types.type_target_rep targ with
@@ -235,19 +248,16 @@ let type_descr_to_name (targ : Target.target) (p : Path.t) (td : type_descr) : N
 
 
 let constant_descr_rename  (targ : Target.non_ident_target) (n':Name.t) (l' : Ast.l) (cd : const_descr) : (const_descr * (Ast.l * Name.t) option) option = 
-  let rep = Target.Targetmap.apply cd.target_rep targ in
-  let rep_info_opt = match rep with
-    | Some (CR_rename (l, true, n)) -> Some (CR_rename (l', true, n'), Some (l, n))
-    | Some (CR_new_ident (l, true, i)) -> Some (CR_new_ident (l', true, Ident.rename i n'), Some (l, Name.strip_lskip (Ident.get_name i)))
-    | Some (CR_special (l, true, sn, n, outf, nl)) -> Some (CR_special (l', true, sn, n', outf, nl) , Some (l, n))
-    | None -> Some (CR_rename (l', true, n'), None)
-    | _ -> None
+  let (allow_rename, old_info) = match Target.Targetmap.apply_target cd.target_rename (Target.Target_no_ident targ) with
+    | Some (l, allow_rename, n) -> (allow_rename, Some (l, n))
+    | None -> (true, None)
   in
-  let save_env (cr, d) = begin
-    let tr = Target.Targetmap.insert (cd.target_rep) (targ, cr) in
-    ({cd with target_rep = tr}, d)
-  end in
-  Util.option_map save_env rep_info_opt
+
+  if not (allow_rename) then
+    None
+  else
+    let tr = Target.Targetmap.insert (cd.target_rename) (targ, (l', true, n')) in
+    Some ({cd with target_rename = tr}, old_info)
 
 let type_descr_rename  (targ : Target.non_ident_target) (n':Name.t) (l' : Ast.l) (td : type_descr) : (type_descr * (Ast.l * Name.t) option) option = 
   let rep = Target.Targetmap.apply td.type_target_rep targ in
@@ -289,32 +299,49 @@ let type_defs_new_ident_type l (d : type_defs) (p : Path.t) (t: Target.non_ident
   let up td = type_descr_set_ident t i l td in
   Types.type_defs_update_tc_type l' d p up
 
+let const_target_rep_to_loc= function
+  | CR_inline (l, _, _, _) -> l
+  | CR_infix (l, _, _, _) -> l
+  | CR_simple (l, _, _, _) -> l
+  | CR_special (l, _, _, _) -> l
+
+let const_target_rep_allow_override = function
+  | CR_inline (_, f, _, _) -> f
+  | CR_infix (_, f, _, _) -> f
+  | CR_simple (_, f, _, _) -> f
+  | CR_special (_, f, _, _) -> f
+
 let const_descr_to_kind (r, d) =
   match d.env_tag with
     | K_field -> Nk_field r
     | K_constr -> Nk_constr r
     | _ -> Nk_const r
 
-let env_apply (env : env) n =
-  match Nfmap.apply env.local_env.p_env n with
-      Some (p, l) -> Some (Nk_typeconstr p, p, l)
-    | None ->
-  match Nfmap.apply env.local_env.f_env n with    
-      Some r -> 
+let env_apply_aux (env : env) n comp =
+  let case_fun map f =
+    Util.option_map f (Nfmap.apply map n)
+  in
+  match comp with
+    | Ast.Component_module _ ->
+        case_fun env.local_env.m_env (fun mod_descr ->
+          let p = mod_descr.mod_binding in
+          (Nk_module p, p, Ast.Unknown))
+    | Ast.Component_function _ ->
+        case_fun env.local_env.v_env (fun r ->
         let d = c_env_lookup (Ast.Trans (false, "env_apply", None)) env.c_env r in
-        Some (Nk_field r, d.const_binding, d.spec_l)
-    | None ->
-  match Nfmap.apply env.local_env.v_env n with
-      Some r -> 
+        (const_descr_to_kind (r, d), d.const_binding, d.spec_l))
+    | Ast.Component_type _ -> 
+        case_fun env.local_env.p_env (fun (p, l) -> (Nk_typeconstr p, p, l))
+    | Ast.Component_field _ ->
+        case_fun env.local_env.f_env (fun r ->
         let d = c_env_lookup (Ast.Trans (false, "env_apply", None)) env.c_env r in
-        Some (const_descr_to_kind (r, d), d.const_binding, d.spec_l)
-    | None -> 
-  match Nfmap.apply env.local_env.m_env n with
-      Some mod_descr -> 
-        let p = mod_descr.mod_binding in
-        Some (Nk_module p, p, Ast.Unknown)
-    | None -> None;;
-    
+        (const_descr_to_kind (r, d), d.const_binding, d.spec_l))
+
+let env_apply (env : env) comp_opt n =
+  let aux = env_apply_aux env n in
+  match comp_opt with
+    | Some comp -> aux comp
+    | None -> Util.option_first aux [Ast.Component_function None; Ast.Component_field None; Ast.Component_type None; Ast.Component_module None]
 
 let set_target_const_rep env path name target rep =
   begin
@@ -343,14 +370,11 @@ let fix_const_descr_ocaml_constr c_d =
     | K_constr -> true
     | _ -> false
   in if not is_constr then c_d else begin
-    let targ = Target.Target_no_ident Target.Target_ocaml in
-    let (_, name) = constant_descr_to_name targ c_d in
-
     (* get the argument types *)
     let (arg_tyL, _) = Types.strip_fn_type None c_d.const_type in
     let vars = List.map t_to_var_name arg_tyL in
 
-    let rep = CR_special (c_d.spec_l, true, true, name, CR_special_uncurry (List.length arg_tyL), vars) in
+    let rep = CR_special (c_d.spec_l, true, CR_special_uncurry (List.length arg_tyL), vars) in
     let new_tr = Target.Targetmap.insert c_d.target_rep (Target.Target_ocaml, rep) in
     
     { c_d with target_rep = new_tr }
@@ -580,7 +604,7 @@ let mk_from_list_exp env (e : exp) : exp =
   let list_ty = exp_to_typ e in
   let base_ty = match list_ty.Types.t with
           | Types.Tapp([t],_) -> t
-          | _ -> raise (Reporting_basic.err_unreachable true l "e not of list-type") in
+          | _ -> raise (Reporting_basic.err_unreachable l "e not of list-type") in
   let set_ty = { Types.t = Types.Tapp([base_ty],Path.setpath) } in
   
   let from_list_exp = mk_const_exp env l ["Set"] "from_list" [base_ty] in
@@ -592,7 +616,7 @@ let mk_cross_exp env (e1 : exp) (e2 : exp) : exp =
 
   let get_set_type e = match (exp_to_typ e).Types.t with
        | Types.Tapp([t],_) -> t
-       | _ -> raise (Reporting_basic.err_unreachable true l "e not of set-type") in
+       | _ -> raise (Reporting_basic.err_unreachable l "e not of set-type") in
 
   let e1_ty = get_set_type e1 in
   let e2_ty = get_set_type e2 in
@@ -610,7 +634,7 @@ let mk_set_sigma_exp env (e1 : exp) (e2 : exp) : exp =
 
   let (e1_ty, e2_ty) = match (exp_to_typ e2).Types.t with
        | Types.Tfn(e1_ty, {Types.t = Types.Tapp([e2_ty],_)}) -> (e1_ty, e2_ty)
-       | _ -> raise (Reporting_basic.err_unreachable true l "e2 not of type 'a -> set 'b") in
+       | _ -> raise (Reporting_basic.err_unreachable l "e2 not of type 'a -> set 'b") in
 
   let pair_ty = { Types.t = Types.Ttup [e1_ty; e2_ty] } in
   let sigma_ty = { Types.t = Types.Tapp([pair_ty],Path.setpath) } in
@@ -626,7 +650,7 @@ let mk_set_filter_exp env (e_P : exp) (e_s : exp) : exp =
 
   let set_ty = match (exp_to_typ e_P).Types.t with
        | Types.Tfn (ty_a, _) -> ty_a
-       | _ -> raise (Reporting_basic.err_unreachable true l "e_P not of predicate-type") in
+       | _ -> raise (Reporting_basic.err_unreachable l "e_P not of predicate-type") in
  
   let res_ty = { Types.t = Types.Tapp([set_ty],Path.setpath) } in
   let aux_ty = { Types.t = Types.Tfn (exp_to_typ e_s, res_ty) } in
@@ -642,7 +666,7 @@ let mk_set_image_exp env (e_f : exp) (e_s : exp) : exp =
 
   let (ty_a, ty_b) = match (exp_to_typ e_f).Types.t with
        | Types.Tfn (ty_a, ty_b) -> (ty_a, ty_b)
-       | _ -> raise (Reporting_basic.err_unreachable true l "e_f not of function-type") in
+       | _ -> raise (Reporting_basic.err_unreachable l "e_f not of function-type") in
  
   let res_ty = { Types.t = Types.Tapp([ty_b],Path.setpath) } in
   let aux_ty = { Types.t = Types.Tfn (exp_to_typ e_s, res_ty) } in
@@ -996,8 +1020,6 @@ and add_def_entities (t_opt : Target.target) (only_new : bool) (ue : used_entiti
           let ue = if only_new then ue else used_entities_add_module ue m.descr.mod_binding in
           ue
         end
-      | Ident_rename (_,_,_,_,_,_) ->
-          (* TODO: replace Ident_rename with something more general *) ue
       | OpenImport(_,ms) -> if only_new then ue else List.fold_left (fun ue m -> used_entities_add_module ue m.descr.mod_binding) ue ms
       | Indreln(_,targ,names,rules) -> begin
           let add_rule (Rule (_,_,_,_,_,e_opt,_,_,n_ref,es),_) ue = begin
@@ -1069,7 +1091,7 @@ begin
     let var = C.mk_var l (Name.add_lskip n) ty in
     let ty = match (dest_fn_type (Some t_env) (exp_to_typ e)) with
       | Some (_, ty) -> ty
-      | None -> raise (Reporting_basic.err_unreachable true l "fun type already checked above")
+      | None -> raise (Reporting_basic.err_unreachable l "fun type already checked above")
     in
     C.mk_app l e var (Some ty) 
   end in

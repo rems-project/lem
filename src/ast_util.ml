@@ -196,11 +196,11 @@ and letbind_freevars not_shadowed = function
        NameSet.singleton (xl_to_name xl))
 
 
-let get_imported_modules_of_def_aux = function
+let get_imported_modules_of_def_aux l = function
   | Open_Import ((OI_import _ | OI_open_import _), ids) ->
-      List.map (fun id -> Path.from_id (Ident.from_id id)) ids
+      List.map (fun id -> (Path.from_id (Ident.from_id id), l)) ids
   | _ -> [] 
   
 
 let get_imported_modules (Defs ds, _) =
-  List.flatten (List.map (fun (Def_l (d, _), _, _) -> get_imported_modules_of_def_aux d) ds)
+  List.flatten (List.map (fun (Def_l (d, l), _, _) -> get_imported_modules_of_def_aux l d) ds)

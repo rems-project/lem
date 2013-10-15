@@ -26,7 +26,7 @@
 (* Header                                                                     *)
 (* ========================================================================== *)
 
-open import Bool Basic_classes Maybe Function
+open import Bool Basic_classes Maybe Function Num
 
 (*
 declare rename module = lem_set
@@ -86,7 +86,7 @@ let memberBy eq e s = any (eq e) s
 
 declare coq      target_rep function memberBy eq e = `set_exists` (eq e)
 declare ocaml    target_rep function member = `Pset.mem`
-declare isabelle target_rep function member = `Set.member_struct`
+declare isabelle target_rep function member = `Set.member`
 declare hol      target_rep function member = infix `IN`
 
 assert in_1: (1 IN {2;3;1})
@@ -129,10 +129,8 @@ let null s = (s = {})
 declare ocaml    target_rep function null = `Pset.is_empty`
 declare coq      target_rep function null = `set_is_empty`
 
-assert is_empty_1: (Set.is_empty {})
-assert is_empty_2: (not (Set.is_empty {1}))
-lemma is_empty_lem: (forall s. (Set.is_empty s) --> (Set.cardinal s = 0))
-
+assert null_1: (null {})
+assert null_2: (not (null {1}))
 
 
 (* ----------------------- *)
@@ -151,6 +149,8 @@ assert size_2: (size {2} = 1)
 assert size_3: (size {1;1} = 1)
 assert size_4: (size {2;1;3} = 3)
 assert size_5: (size {2;1;3;9} = 4)
+
+lemma null_size: (forall s. (null s) --> (size s = 0))
 
 
 (* ----------------------- *)
@@ -246,8 +246,8 @@ declare coq target_rep function singleton = `set_singleton`
 val delete : forall 'a. Ord 'a, Eq 'a => 'a -> set 'a -> set 'a
 val deleteBy : forall 'a. ('a -> 'a -> bool) -> 'a -> set 'a -> set 'a
 
-let inline delete e s = deleteBy (=) e s
 let deleteBy eq e s = filter (fun e2 -> not (eq e e2)) s
+let inline delete e s = deleteBy (=) e s
 
 
 (* ------------------------ *)
@@ -319,10 +319,10 @@ val findMin : forall 'a.  Ord 'a, Eq 'a => set 'a -> maybe 'a
 val findMax : forall 'a.  Ord 'a, Eq 'a => set 'a -> maybe 'a 
 val findMinBy : forall 'a.  ('a -> 'a -> bool) -> ('a -> 'a -> bool) -> set 'a -> maybe 'a 
 
+let findMinBy le eq s = THE (fun e -> ((memberBy eq e s) && (forall (e2 IN s). le e e2)))
+
 let inline findMin = findMinBy (<=) (=)
 let inline findMax = findMinBy (>=) (=)
-
-let findMinBy le eq s = THE (fun e -> ((memberBy eq e s) && (forall (e2 IN s). le e e2)))
 
 
 (* ------------------------ *)

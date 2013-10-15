@@ -148,10 +148,10 @@ and cr_special_fun =
   | CR_special_uncurry of int
 
 and const_target_rep =
-  | CR_rename of Ast.l * bool * Name.t
-  | CR_new_ident of Ast.l * bool * Ident.t               
-  | CR_inline of Ast.l * (Name.lskips_t,unit) annot list * exp
-  | CR_special of Ast.l * bool * bool * Name.t * cr_special_fun * Name.t list
+  | CR_inline of Ast.l * bool * name_lskips_annot list * exp
+  | CR_infix of Ast.l * bool * Ast.fixity_decl * Ident.t
+  | CR_simple of Ast.l * bool * name_lskips_annot list * exp
+  | CR_special of Ast.l * bool * cr_special_fun * Name.t list
 
 and rel_io = Rel_mode_in | Rel_mode_out
 and rel_mode = rel_io list
@@ -172,8 +172,10 @@ and const_descr = { const_binding : Path.t;
                     env_tag : env_tag;
                     const_targets : Targetset.t;
                     spec_l : Ast.l;
+                    target_rename : (Ast.l * bool * Name.t) Targetmap.t;
+                    target_ascii_rep : (Ast.l * Name.t) Targetmap.t;
                     target_rep : const_target_rep Targetmap.t;
-                    ascii_rep : Name.t option }
+                    compile_message : string Target.Targetmap.t; }
 
 and v_env = const_descr_ref Nfmap.t
 and f_env = const_descr_ref Nfmap.t
@@ -256,6 +258,9 @@ and letbind_aux =
   | Let_val of pat * (lskips * src_t) option * lskips * exp
   | Let_fun of name_lskips_annot * pat list * (lskips * src_t) option * lskips * exp
 
+let cr_special_fun_uses_name = function
+  | (CR_special_uncurry _) -> true
+
 type tyvar = lskips * Ulib.Text.t * Ast.l
 type nvar = lskips * Ulib.Text.t * Ast.l
 
@@ -278,8 +283,6 @@ type constraints =
 
 type constraint_prefix =
   | Cp_forall of lskips * tnvar list * lskips * constraints option
-
-type rename_tag = | RT_field | RT_constr | RT_fun | RT_type
 
 type typschm = constraint_prefix option * src_t
 
@@ -350,7 +353,6 @@ and def_aux =
   | Type_def of lskips * (name_l * tnvar list * Path.t * texp * name_sect option) lskips_seplist
   | Val_def of val_def * TNset.t * (Path.t * Types.tnvar) list 
   | Lemma of lskips * Ast.lemma_typ * targets_opt * (name_l * lskips) option * lskips * exp * lskips
-  | Ident_rename of lskips * targets_opt * Path.t * Ident.t * lskips * name_l
   | Module of lskips * name_l * Path.t * lskips * lskips * def list * lskips
   | Rename of lskips * name_l * Path.t * lskips * mod_descr id
   | OpenImport of Ast.open_import * (mod_descr id) list
@@ -685,9 +687,6 @@ let rec def_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (((d,s),l,l
       | Rename(sk1, n, mod_bind, sk2, m) ->
           let (s_new, s_ret) = lskips_f sk1 in
             res (Rename(s_new, n, mod_bind, sk2, m)) s_ret
-      | Ident_rename (sk1,topt,p,i,sk2,nl) ->
-          let (s_new, s_ret) = lskips_f sk1 in
-            res (Ident_rename (s_new,topt,p,i,sk2,nl)) s_ret
       | OpenImport(oi,m) -> begin     
           let (oi', s_ret) = match oi with
             | Ast.OI_open sk ->
@@ -2230,7 +2229,7 @@ type name_kind =
   | Nk_constr of const_descr_ref
   | Nk_field of const_descr_ref
   | Nk_module of Path.t
-  | Nk_class
+  | Nk_class of Path.t
  
 
 let funcl_aux_seplist_group (sl : funcl_aux lskips_seplist) = begin

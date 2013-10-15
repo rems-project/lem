@@ -14,7 +14,7 @@
 declare rename module = lem_sorting
 *)
 
-open import Bool Basic_classes Maybe List Relation
+open import Bool Basic_classes Maybe List Relation Num
 
 
 (* ------------------------- *)
