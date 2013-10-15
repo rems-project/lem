@@ -49,7 +49,7 @@
 open Typed_ast
 
 (** [inline_exp_macro target env e] does the inlining of target specific constant definitions *)
-val inline_exp_macro : Target.non_ident_target -> env -> exp -> exp option
+val inline_exp_macro : Target.non_ident_target -> env -> Macro_expander.macro_context -> exp -> exp option
 
 (** [component_to_output c] formats component [c] as an output *)
 val component_to_output : Ast.component -> Output.t

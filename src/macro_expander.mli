@@ -55,20 +55,25 @@ type pat_pos =
   | Bind
   | Param
 
+type macro_context
+  = Ctxt_theorem
+  | Ctxt_other
+;;
+
 type pat_position = level * pat_pos
 
 module Expander(C : Exp_context) : sig
   val expand_defs :
-    def list -> ((exp -> exp option) * (Types.t -> Types.t) * (src_t -> src_t) * (pat_position -> pat -> pat option)) -> def list
+    def list -> ((macro_context -> exp -> exp option) * (Types.t -> Types.t) * (src_t -> src_t) * (pat_position -> macro_context -> pat -> pat option)) -> def list
 
   (* The first argument is true if the pattern is part of a top-level definition
   * and false otherwise.  This value is given as the first argument to eacn
   * macro *)
-  val expand_pat : pat_position -> pat -> ((Types.t -> Types.t) * (src_t -> src_t) * (pat_position -> pat -> pat option)) -> pat
+  val expand_pat : macro_context -> pat_position -> pat -> ((Types.t -> Types.t) * (src_t -> src_t) * (pat_position -> macro_context -> pat -> pat option)) -> pat
 
-  val expand_exp : ((exp -> exp option) * (Types.t -> Types.t) * (src_t -> src_t) * (pat_position -> pat -> pat option)) -> exp -> exp
+  val expand_exp : macro_context -> ((macro_context -> exp -> exp option) * (Types.t -> Types.t) * (src_t -> src_t) * (pat_position -> macro_context -> pat -> pat option)) -> exp -> exp
 end
 
-val list_to_mac : ('b -> 'c option) list -> 'b -> 'c option
-val list_to_bool_mac : (pat_position -> 'b -> 'c option) list -> pat_position -> 'b -> 'c option
+val list_to_mac : (macro_context -> 'b -> 'c option) list -> macro_context -> 'b -> 'c option
+val list_to_bool_mac : (pat_position -> macro_context -> 'b -> 'c option) list -> pat_position -> macro_context -> 'b -> 'c option
 

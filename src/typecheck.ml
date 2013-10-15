@@ -3243,8 +3243,8 @@ let check_id_restrict_p ctxt p = match p.term with
 let rec check_ids env ctxt defs = 
     let module Ctxt = struct let avoid = None let env_opt = None end in
     let module M = Macro_expander.Expander(Ctxt) in
-    let emac = (fun env -> (check_id_restrict_e ctxt)) in
-    let pmac = (fun env -> fun ppos -> (check_id_restrict_p ctxt)) in
+    let emac = (fun env _ -> (check_id_restrict_e ctxt)) in
+    let pmac = (fun env ppos _ -> (check_id_restrict_p ctxt)) in
     let defs = M.expand_defs defs
                      (Macro_expander.list_to_mac [(emac env)],
                       (fun ty -> ty),

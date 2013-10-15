@@ -1769,7 +1769,7 @@ let remove_comp_binding_pat_restr_quant env comp e =
   | _ -> None
 
 
-let compile_exp topt mca env e =  
+let compile_exp topt mca env ctxt e =  
  let cf_opt e = compile_match_exp topt mca env e in
  let cf e = Util.option_default e (cf_opt e) in
  match C.exp_to_term e with 

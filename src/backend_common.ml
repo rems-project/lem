@@ -125,7 +125,7 @@ let inline_exp l (target : Target.non_ident_target) env was_infix params body ts
          None b None)
 
 
-let inline_exp_macro (target : Target.non_ident_target) env e =
+let inline_exp_macro (target : Target.non_ident_target) env ctxt e =
   let l_unk = Ast.Trans(false, "do_substitutions", Some (exp_to_locn e)) in
   let module C = Exps_in_context(struct let env_opt = Some env;; let avoid = None end) in
   let (f,args,was_infix) = strip_app_infix_exp e in

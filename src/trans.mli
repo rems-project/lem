@@ -50,7 +50,7 @@ open Typed_ast
 
 exception Trans_error of Ast.l * string
 
-type 'a macro = 'a -> 'a option
+type 'a macro = Macro_expander.macro_context -> 'a -> 'a option
 type pat_macro = Macro_expander.pat_position -> pat macro
 
 module Macros (E : sig val env : env end) : sig 
@@ -144,6 +144,10 @@ module Macros (E : sig val env : env end) : sig
       [Set.forall X (fun x -> P x)]. It also works for existential quantification and quantification
       over lists. *)
   val remove_quant : exp macro
+
+  (** [remove_quant_coq] the same as above but does not apply in the body of lemma or theorem
+      statements.  Specific to the Coq backend. *)
+  val remove_quant_coq : exp macro
 
   (** {2 Pattern Macros} *)
 
