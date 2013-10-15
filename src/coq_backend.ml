@@ -1150,12 +1150,18 @@ let generate_coq_record_update_notation e =
                 List.map (fun quant_binding ->
                   match quant_binding with
                     | Typed_ast.Qb_var name_lskips_annot ->
+                      let name = name_lskips_annot.term in
+                      let skip = Name.get_lskip name in
+                      let name = Name.strip_lskip name in
+                      let name = Ulib.Text.to_string (Name.to_rope name) in
                         Output.flat [
-                          from_string "XXX VAR HERE"
+                          ws skip; from_string name
                         ]
-                    | Typed_ast.Qb_restr (bool, skips, pat, skips', exp, skips'') ->
+                    | Typed_ast.Qb_restr (bool, skips, pat, skips', e, skips'') ->
+                      let pat_out = fun_pattern pat in
                         Output.flat [
-                          from_string "XXX RESTR HERE"
+                          ws skips; pat_out; ws skips'; from_string " : ";
+                          exp inside_instance e; ws skips''
                         ]
                 ) quant_binding_list)
             in
