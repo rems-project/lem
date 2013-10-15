@@ -150,7 +150,7 @@ let generalised_inline_exp_macro (do_CR_simple : bool) (target : Target.target) 
       | _ -> None
 
 
-let inline_exp_macro (target : Target.non_ident_target) env e =
+let inline_exp_macro (target : Target.non_ident_target) env ctxt e =
   generalised_inline_exp_macro false (Target.Target_no_ident target) env e
 
 

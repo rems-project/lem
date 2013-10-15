@@ -737,7 +737,8 @@ let generate_coq_record_update_notation e =
                 | Some ((name, l), skips) -> Name.to_output Term_var name
             in
               Output.flat [
-                ws skips; from_string "Lemma"; name; from_string ":"; ws skips'; exp inside_instance e;
+                ws skips; from_string "Lemma"; name; from_string ":"; ws skips';
+                from_string "("; exp inside_instance e; from_string ": Prop)";
                 ws skips''; from_string "."
               ]
           else
@@ -1135,7 +1136,33 @@ let generate_coq_record_update_notation e =
                 ws skips''; break_hint_space 0; from_string "else"; break_hint_space 2;
                 block (Typed_ast_syntax.is_pp_exp f) 0 (exp inside_instance f)
               ])
-          | Quant (_, _, _, _) -> from_string "(* XXX: quant *)"
+          | Quant (quant, quant_binding_list, skips, e) ->
+            (* XXX: this should only appear in the context of a lemma or theorem statement,
+             *      and should have been macro'd away hopefully elsewhere.
+             *)
+            let quant =
+              match quant with
+                | Ast.Q_forall _ -> from_string "forall"
+                | Ast.Q_exists _ -> from_string "exists"
+            in
+            let bindings =
+              Output.concat (from_string " ") (
+                List.map (fun quant_binding ->
+                  match quant_binding with
+                    | Typed_ast.Qb_var name_lskips_annot ->
+                        Output.flat [
+                          from_string "XXX VAR HERE"
+                        ]
+                    | Typed_ast.Qb_restr (bool, skips, pat, skips', exp, skips'') ->
+                        Output.flat [
+                          from_string "XXX RESTR HERE"
+                        ]
+                ) quant_binding_list)
+            in
+              Output.flat [
+                quant; bindings; from_string ","; ws skips;
+                from_string "("; exp inside_instance e; from_string ": Prop)"
+              ]
           | Comp_binding (_, _, _, _, _, _, _, _, _) -> from_string "(* XXX: comp binding *)"
           | Setcomp (_, _, _, _, _, _) -> from_string "(* XXX: setcomp *)"
           | Nvar_e (skips, nvar) ->

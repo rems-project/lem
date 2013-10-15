@@ -7,7 +7,7 @@ let g x y = if a x y then 1 else 2
 let h x y = g x y
 
 instance (Cl num)
-  let a x y = x = y
+  let a x y = x <= y
 end
 
 (*
@@ -21,8 +21,15 @@ instance forall 'a. Cl 'a => (Cl (list 'a))
 end
 *)
 
-instance forall 'a 'b. Cl 'a, Cl 'b => (Cl ('a * 'b))
-  let a (x1,x2) (y1,y2) = a x1 y1 && a x2 y2
+module M = struct
+
+  instance forall 'a 'b. Cl 'a, Cl 'b => (Cl ('a * 'b))
+    let a x1y1 x2y2 =
+      match (x1y1, x2y2) with
+        | ((x1, y1), (x2, y2)) -> a x1 x2 && a y1 y2
+      end
+  end
+
 end
 
 let x1 = a 1 2

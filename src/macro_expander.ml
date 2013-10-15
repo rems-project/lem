@@ -54,24 +54,33 @@ type pat_pos =
   | Bind
   | Param
 
+type macro_context
+  (* Signals we have passed into the body of a theorem statement
+     and need to turn off various features in the Coq backend
+  *)
+  = Ctxt_theorem
+  (* Signals we should behave normally. *)
+  | Ctxt_other
+;;
+
 type pat_position = level * pat_pos
 
 let rec list_to_mac = function
-  | [] -> (fun e -> None)
+  | [] -> (fun ctxt e -> None)
   | m1::ms ->
       let ms_f = list_to_mac ms in
-        (fun e ->
-           match m1 e with
-             | None -> ms_f e
+        (fun ctxt e ->
+           match m1 ctxt e with
+             | None -> ms_f ctxt e
              | Some(e) -> Some(e))
 
 let rec list_to_bool_mac = function
-  | [] -> (fun b e -> None)
+  | [] -> (fun a ctxt e -> None)
   | m1::ms ->
       let ms_f = list_to_bool_mac ms in
-        (fun b e ->
-           match m1 b e with
-             | None -> ms_f b e
+        (fun a ctxt e ->
+           match m1 a ctxt e with
+             | None -> ms_f a ctxt e
              | Some(e) -> Some(e))
 
 
@@ -83,11 +92,11 @@ module C = Exps_in_context(C)
 let expand_annot_typ typ_r (a : ('a,'b) annot) = 
   let typ' = typ_r a.typ in { a with typ = typ' }
 
-let rec expand_pat pat_pos p (typ_r, src_typ_r, r) : pat = 
-  let trans p = expand_pat pat_pos p (typ_r, src_typ_r, r) in 
+let rec expand_pat (macro_ctxt : macro_context) pat_pos p (typ_r, src_typ_r, r) : pat = 
+  let trans p = expand_pat macro_ctxt pat_pos p (typ_r, src_typ_r, r) in 
   let new_t = typ_r p.typ in
   let old_l = p.locn in
-    match r pat_pos p with
+    match r pat_pos macro_ctxt p with
       | Some(p') -> trans p'
       | None ->
           match p.term with
@@ -130,12 +139,12 @@ let rec expand_pat pat_pos p (typ_r, src_typ_r, r) : pat =
                 { p with typ = new_t }
 
 
-let rec expand_exp ((r,typ_r,src_typ_r,pat_r):((exp -> exp option) * (Types.t -> Types.t) * (src_t -> src_t) * (pat_position -> pat -> pat option))) (e : exp) : exp = 
-  let trans = expand_exp (r,typ_r,src_typ_r,pat_r) in 
-  let transp b p = expand_pat (Nested, b) p (typ_r, src_typ_r, pat_r) in
+let rec expand_exp (macro_ctxt : macro_context) ((r,typ_r,src_typ_r,pat_r):((macro_context -> exp -> exp option) * (Types.t -> Types.t) * (src_t -> src_t) * (pat_position -> macro_context -> pat -> pat option))) (e : exp) : exp = 
+  let trans = expand_exp macro_ctxt (r,typ_r,src_typ_r,pat_r) in 
+  let transp b p = expand_pat macro_ctxt (Nested, b) p (typ_r, src_typ_r, pat_r) in
   let new_t = typ_r (exp_to_typ e) in
   let old_l = exp_to_locn e in
-    match r e with
+    match r macro_ctxt e with
       | Some(e') -> 
           begin
             C.type_eq old_l "expand_exp" (exp_to_typ e) (exp_to_typ e');
@@ -158,7 +167,7 @@ let rec expand_exp ((r,typ_r,src_typ_r,pat_r):((exp -> exp option) * (Types.t ->
                     (Some new_t)
               | App(e1,e2) ->
                   C.mk_app old_l
-                    (skip_apps (r,typ_r,src_typ_r,pat_r) e1)
+                    (skip_apps macro_ctxt (r,typ_r,src_typ_r,pat_r) e1)
                     (trans e2)
                     (Some new_t)
               | Infix(e1,e2,e3) ->
@@ -205,7 +214,7 @@ let rec expand_exp ((r,typ_r,src_typ_r,pat_r):((exp -> exp option) * (Types.t ->
                     (Some new_t)
               | Let(s1,letbind,s2,e) ->
                   C.mk_let old_l
-                    s1 (expand_letbind (Nested,Bind) (r,typ_r,src_typ_r,pat_r) letbind) s2 (trans e)
+                    s1 (expand_letbind macro_ctxt (Nested,Bind) (r,typ_r,src_typ_r,pat_r) letbind) s2 (trans e)
                     (Some new_t)
               | Tup(s1,es,s2) ->
                   C.mk_tup old_l
@@ -283,44 +292,44 @@ let rec expand_exp ((r,typ_r,src_typ_r,pat_r):((exp -> exp option) * (Types.t ->
                   C.mk_lit old_l  {li with Typed_ast.typ = new_t} (Some new_t)
           end
 
-and skip_apps (r,typ_r,src_typ_r,pat_r) e = match (C.exp_to_term e) with
+and skip_apps (macro_ctxt : macro_context) (r,typ_r,src_typ_r,pat_r) e = match (C.exp_to_term e) with
   | App(e1,e2) ->
       C.mk_app (exp_to_locn e)
-        (skip_apps (r,typ_r,src_typ_r,pat_r) e1)
-        (expand_exp (r,typ_r,src_typ_r,pat_r) e2)
+        (skip_apps macro_ctxt (r,typ_r,src_typ_r,pat_r) e1)
+        (expand_exp macro_ctxt (r,typ_r,src_typ_r,pat_r) e2)
         (Some(typ_r (exp_to_typ e)))
-  | _ -> expand_exp (r,typ_r,src_typ_r,pat_r) e
+  | _ -> expand_exp macro_ctxt (r,typ_r,src_typ_r,pat_r) e
 
-and expand_funcl_aux (level,_) (r,typ_r,src_typ_r,pat_r) ((nl,c,ps,topt,s3,e):funcl_aux) : funcl_aux = 
+and expand_funcl_aux (macro_ctxt : macro_context) (level,_) (r,typ_r,src_typ_r,pat_r) ((nl,c,ps,topt,s3,e):funcl_aux) : funcl_aux = 
   (expand_annot_typ typ_r nl, c,
-   List.map (fun p -> expand_pat (Top_level,Param) p (typ_r, src_typ_r, pat_r)) ps,
-   topt,s3,expand_exp (r,typ_r,src_typ_r,pat_r) e)
+   List.map (fun p -> expand_pat macro_ctxt (Top_level,Param) p (typ_r, src_typ_r, pat_r)) ps,
+   topt,s3,expand_exp macro_ctxt (r,typ_r,src_typ_r,pat_r) e)
 
-and expand_letbind (level,_) (r,typ_r,src_typ_r,pat_r) (lb,l) = match lb with
+and expand_letbind (macro_ctxt : macro_context) (level,_) (r,typ_r,src_typ_r,pat_r) (lb,l) = match lb with
   | Let_val(p,topt,s,e) ->
       let topt' = Util.option_map (fun (s, ty) -> (s, src_typ_r ty)) topt in
       C.mk_let_val l
-        (expand_pat (level,Bind) p (typ_r, src_typ_r, pat_r)) topt' s (expand_exp (r,typ_r, src_typ_r, pat_r) e)
+        (expand_pat macro_ctxt (level,Bind) p (typ_r, src_typ_r, pat_r)) topt' s (expand_exp macro_ctxt (r,typ_r, src_typ_r, pat_r) e)
   | Let_fun(n,ps,t,s1,e) -> 
       C.mk_let_fun l
         (expand_annot_typ typ_r n)
-        (List.map (fun p -> expand_pat (level,Param) p (typ_r, src_typ_r, pat_r)) ps) t s1 
-        (expand_exp (r,typ_r,src_typ_r,pat_r) e)
+        (List.map (fun p -> expand_pat macro_ctxt (level,Param) p (typ_r, src_typ_r, pat_r)) ps) t s1 
+        (expand_exp macro_ctxt (r,typ_r,src_typ_r,pat_r) e)
 
-let rec expand_defs defs ((r,typ_r,src_typ_r,pat_r):((exp -> exp option) * (Types.t -> Types.t) * (src_t -> src_t) * (pat_position -> pat -> pat option))) =
+let rec expand_defs defs ((r,typ_r,src_typ_r,pat_r): ((macro_context -> exp -> exp option) * (Types.t -> Types.t) * (src_t -> src_t) * (pat_position -> macro_context -> pat -> pat option))) =
   let expand_val_def = function
     | Let_def(s1,targets,(p, name_map, topt, sk, e)) ->
-        let lb = (expand_pat (Top_level,Param) p (typ_r, src_typ_r, pat_r), name_map, topt, sk, 
-                  expand_exp (r,typ_r,src_typ_r,pat_r) e) in
+        let lb = (expand_pat Ctxt_other (Top_level,Param) p (typ_r, src_typ_r, pat_r), name_map, topt, sk, 
+                  expand_exp Ctxt_other (r,typ_r,src_typ_r,pat_r) e) in
         Let_def(s1, targets, lb)
     | Fun_def(s1,s2_opt,targets,clauses) ->
-        Fun_def(s1, s2_opt, targets, Seplist.map (expand_funcl_aux (Top_level,Bind) (r, typ_r, src_typ_r, pat_r)) clauses)
+        Fun_def(s1, s2_opt, targets, Seplist.map (expand_funcl_aux Ctxt_other (Top_level,Bind) (r, typ_r, src_typ_r, pat_r)) clauses)
     | Let_inline(s1,s2,targets,n,c,ns,sk,e) -> Let_inline (s1, s2, targets, (expand_annot_typ typ_r n), c,
-        List.map (expand_annot_typ typ_r) ns, sk, (expand_exp (r,typ_r,src_typ_r,pat_r) e))
+        List.map (expand_annot_typ typ_r) ns, sk, (expand_exp Ctxt_other (r,typ_r,src_typ_r,pat_r) e))
   in
   let rec expand_def = function
     | Val_def(d,tnvs,class_constraints) -> Val_def(expand_val_def d,tnvs,class_constraints)
-    | Lemma(sk,lty,targets,n_opt,sk2,e,sk3) -> Lemma(sk,lty,targets,n_opt, sk2, expand_exp (r,typ_r,src_typ_r,pat_r) e, sk3)
+    | Lemma(sk,lty,targets,n_opt,sk2,e,sk3) -> Lemma(sk,lty,targets,n_opt, sk2, expand_exp Ctxt_theorem (r,typ_r,src_typ_r,pat_r) e, sk3)
     | Indreln(s1,targets,names,c) ->
         Indreln(s1,
                 targets,
@@ -332,10 +341,10 @@ let rec expand_defs defs ((r,typ_r,src_typ_r,pat_r):((exp -> exp option) * (Type
                       s1,
                       (List.map (fun n -> QName n) (List.map (expand_annot_typ typ_r) (List.map (fun (QName n) -> n) ns))), (*Need to map into type annotated vars as well*)
                       s2,
-                      Util.option_map (expand_exp (r,typ_r,src_typ_r,pat_r)) e_opt, s3, 
+                      Util.option_map (expand_exp Ctxt_other (r,typ_r,src_typ_r,pat_r)) e_opt, s3, 
                       expand_annot_typ typ_r n, 
                       n_ref,
-                      List.map (expand_exp (r,typ_r,src_typ_r,pat_r)) es),l))
+                      List.map (expand_exp Ctxt_other (r,typ_r,src_typ_r,pat_r)) es),l))
                   c)
     | Module(sk1, nl, mod_path, sk2, sk3, ds, sk4) ->
         Module(sk1, nl, mod_path, sk2, sk3, List.map (fun ((d,s),l,lenv) -> ((expand_def d,s),l,lenv)) ds, sk4)

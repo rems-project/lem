@@ -138,10 +138,10 @@ let check_modules env modules =
   (* Use the Macro_expander to execute these checks *)
   let module Ctxt = struct let avoid = None let env_opt = Some(env) end in
   let module M = Macro_expander.Expander(Ctxt) in
-  let exp_mac env = Macro_expander.list_to_mac (List.map (fun f e -> (let _ = f e in None)) (exp_checks env)) in
+  let exp_mac env = Macro_expander.list_to_mac (List.map (fun f _ e -> (let _ = f e in None)) (exp_checks env)) in
   let exp_ty env ty = ty in
   let exp_src_ty env src_t = src_t in
-  let exp_pat env = Macro_expander.list_to_bool_mac (List.map (fun f x p -> (let _ = f x p in None)) (pat_checks env)) in
+  let exp_pat env = Macro_expander.list_to_bool_mac (List.map (fun f _ x p -> (let _ = f x p in None)) (pat_checks env)) in
   let check_defs env defs = begin
     let _ = M.expand_defs (List.rev defs) (exp_mac env, exp_ty env, exp_src_ty env, exp_pat env) in
     let _ = List.map (fun d -> List.map (fun c -> c d) (def_checks env)) defs in

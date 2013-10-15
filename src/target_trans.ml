@@ -56,8 +56,8 @@ module M = Def_trans
 
 type which_macro =
   | Def_macros of (env -> Def_trans.def_macro list)
-  | Exp_macros of (env -> (exp -> exp option) list)
-  | Pat_macros of (env -> (Macro_expander.pat_position -> pat -> pat option) list)
+  | Exp_macros of (env -> (Macro_expander.macro_context -> exp -> exp option) list)
+  | Pat_macros of (env -> (Macro_expander.pat_position -> Macro_expander.macro_context -> pat -> pat option) list)
 
 type trans =
     { 
@@ -88,7 +88,7 @@ let nvar_macros =
 let ident () =
   { (* for debugging pattern compilation *)
     macros = (if !ident_force_dictionary_passing then dictionary_macros else []) @ [ Def_macros (fun env -> if !ident_force_pattern_compile then [Patterns.compile_def Target_ident (Patterns.is_pattern_match_const false) env] else []);
-               Exp_macros (fun env -> if !ident_force_pattern_compile then [Patterns.compile_exp Target_ident (Patterns.is_pattern_match_const false) env] else []) ];
+               Exp_macros (fun env -> if !ident_force_pattern_compile then [(Patterns.compile_exp Target_ident (Patterns.is_pattern_match_const false) env)] else [])];
     extra = []; }
 
 let tex =
@@ -183,7 +183,7 @@ let coq =
                         T.remove_multiple_record_updates;
                         T.remove_list_comprehension;
                         T.remove_set_comprehension;
-                        T.remove_quant;
+                        T.remove_quant_coq;
                         Backend_common.inline_exp_macro Target_coq env;
                         T.remove_do;
                         Patterns.compile_exp (Target_no_ident Target_coq) Patterns.is_coq_pattern_match env]);
