@@ -46,13 +46,13 @@
 
 open Typed_ast
 
-(** [resolve_module_path lenv sk m] tries to find the module-path [m] in local environment [lenv].
-    It returns a shortest suffix [m'] of [m] that resolves to the same module in [lenv], and adds the lskips [sk] to the returned ident. *)
-val resolve_module_path : local_env -> lskips -> Path.t -> Ident.t
+(** [resolve_module_path env sk m] tries to find the module-path [m] in environment [env].
+    It returns a shortest suffix [m'] of [m] that resolves to the same module in [env], and adds the lskips [sk] to the returned ident. *)
+val resolve_module_path : env -> lskips -> Path.t -> Ident.t
 
-(** [resolve_type_path lenv sk p] tries to find the type of (absolute) path [p] in local environment [lenv].
-    It returns a shortest suffix [p'] of [p] that resolves to the same type in [lenv], and adds the lskips [sk] to the returned ident. *)
-val resolve_type_path : local_env -> lskips -> Path.t -> Ident.t
+(** [resolve_type_path env sk p] tries to find the type of (absolute) path [p] in environment [env].
+    It returns a shortest suffix [p'] of [p] that resolves to the same type in [env], and adds the lskips [sk] to the returned ident. *)
+val resolve_type_path : env -> lskips -> Path.t -> Ident.t
 
 (** [resolve_const_ref env sk c_ref] tries to find the constant [c_ref] in environment [env].
     Let [p] be the absolute path for [c_ref].

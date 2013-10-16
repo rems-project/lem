@@ -110,37 +110,43 @@ let is_pp_def (((_, _), l, _) : def) =  is_pp_loc l
 (* navigating environments                                                    *)
 (* -------------------------------------------------------------------------- *)
 
-let lookup_env_step (m_env : m_env) (n : Name.t) : mod_descr =
-   match Nfmap.apply m_env n with
-    | None -> (
-        let nL = NameSet.elements (nfmap_domain m_env) in
-        let sL = List.map (fun n -> ("'" ^ (Name.to_string n) ^ "'")) nL in
-        let s = String.concat ", " sL in
-        (raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal (Ast.Unknown, 
-              "lookup_env failed to find '" ^ (Name.to_string n) ^"' in [" ^ s ^"]")))))
-    | Some(e) -> e
+let lookup_env_opt_aux (e_env : e_env) (e : local_env) (mp : Name.t list) : (local_env * mod_descr option) option = 
+  let rec aux (env : local_env) (last_descr : mod_descr option) mp =
+     match mp with
+      | [] -> Some (env, last_descr)
+      | n::nl ->
+         let p_opt = Nfmap.apply env.m_env n in
+         let md_opt = Util.option_bind (Pfmap.apply e_env) p_opt in
+         Util.option_bind (fun md -> aux md.mod_env (Some md) nl) md_opt
+  in
+  aux e None mp
 
+let lookup_env_opt (e : env) (mp : Name.t list) : local_env option = 
+  Util.option_map fst (lookup_env_opt_aux e.e_env e.local_env mp)
 
-let rec lookup_env (e : local_env) (mp : Name.t list) : local_env = match mp with
-  | [] -> e
-  | n::nl ->
-      let m_d = lookup_env_step e.m_env n in
-      lookup_env m_d.mod_env nl
+let rec lookup_env (e : env) (mp : Name.t list) : local_env = 
+match lookup_env_opt e mp with
+  | Some env -> env
+  | None ->
+        let mod_p = Path.mk_path_list mp in
+        raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal (Ast.Unknown, 
+              "lookup_env failed to find module '" ^ (Path.to_string mod_p) ^"'")))
 
-let rec lookup_env_opt (e : local_env) (mp : Name.t list) : local_env option = match mp with
-  | [] -> Some e
-  | n::nl ->
-      Util.option_bind (fun m_d -> lookup_env_opt m_d.mod_env nl) (Nfmap.apply e.m_env n)
+let rec lookup_mod_descr_opt (e : env) (mp : Name.t list) (n : Name.t) : mod_descr option = 
+  Util.option_bind snd (lookup_env_opt_aux e.e_env e.local_env (mp @ [n]))
 
-let rec lookup_mod_descr (e : local_env) (mp : Name.t list) (n : Name.t) : mod_descr = 
-  let e' = lookup_env e mp in lookup_env_step e'.m_env n
+let lookup_mod_descr (e : env) (mp : Name.t list) (n : Name.t) : mod_descr = 
+  match lookup_mod_descr_opt e mp n with
+    | Some md -> md
+    | None ->
+        let mod_p = Path.mk_path mp n in
+        raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal (Ast.Unknown, 
+              "lookup_mod_descr failed to find module '" ^ (Path.to_string mod_p) ^"'")))
 
-let rec lookup_mod_descr_opt (e : local_env) (mp : Name.t list) (n : Name.t) : mod_descr option = 
-  Util.option_bind (fun e -> Nfmap.apply e.m_env n) (lookup_env_opt e mp)
 
 let names_get_const_ref (env : env) mp n : const_descr_ref = 
   let l = Ast.Trans(false, "names_get_const_ref", None) in
-  let local_env_opt = lookup_env_opt env.local_env mp in
+  let local_env_opt = lookup_env_opt env mp in
   let res_opt = Util.option_bind (fun local_env -> Nfmap.apply local_env.v_env n) local_env_opt in
   match res_opt with 
     | Some d -> d
@@ -322,9 +328,8 @@ let env_apply_aux (env : env) n comp =
   in
   match comp with
     | Ast.Component_module _ ->
-        case_fun env.local_env.m_env (fun mod_descr ->
-          let p = mod_descr.mod_binding in
-          (Nk_module p, p, Ast.Unknown))
+        case_fun env.local_env.m_env (fun mod_path ->
+          (Nk_module mod_path, mod_path, Ast.Unknown))
     | Ast.Component_function _ ->
         case_fun env.local_env.v_env (fun r ->
         let d = c_env_lookup (Ast.Trans (false, "env_apply", None)) env.c_env r in

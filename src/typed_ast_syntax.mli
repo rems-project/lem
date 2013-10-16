@@ -59,15 +59,14 @@ val num_ty : Types.t
 
 (** {2 Navigating Environments} *)
 
-(** [lookup_env_opt env path] is used to navigate inside an environment [env]. It returns
-    the environment which is reachable via the path [path]. If no such environment exists,
+(** [lookup_env_opt env path] is used to navigate inside a environment [env]. It returns
+    the local environment which is reachable via the path [path]. If no such environment exists,
     [None] is returned. *)
-val lookup_env_opt : local_env -> Name.t list -> local_env option
+val lookup_env_opt : env -> Name.t list -> local_env option
 
-(** [lookup_env env path] is used to navigate inside an environment [env]. It opens
-    the environment which is reachable via the path [path].  If no such environment exists,
-    [Reporting_basic] is used to report an internal error. *)
-val lookup_env : local_env -> Name.t list -> local_env
+(** [lookup_env] is similar to [lookup_env_opt], but reports an internal
+    error instead of returning [None], if no environment can be found. *)
+val lookup_env : env -> Name.t list -> local_env
 
 (** [env_apply env comp_opt n] looks up the name [n] in the environment [env]. If 
     component [comp] is given, only this type of component is searched. Otherwise,
@@ -79,12 +78,12 @@ val env_apply : env -> Ast.component option -> Name.t -> (name_kind * Path.t * A
 (** [lookup_mod_descr_opt env path mod_name] is used to navigate inside an environment [env]. It returns
     the module with name [mod_name], which is reachable via the path [path]. If no such environment exists,
     [None] is returned.*)
-val lookup_mod_descr_opt : local_env -> Name.t list -> Name.t -> mod_descr option
+val lookup_mod_descr_opt : env -> Name.t list -> Name.t -> mod_descr option
 
 (** [lookup_mod_descr env path mod_name] is used to navigate inside an environment [env]. It returns
     the module with name [mod_name], which is reachable via the path [path]. If no such environment exists,
     [Reporting_basic] is used to report an internal error. *)
-val lookup_mod_descr : local_env -> Name.t list -> Name.t -> mod_descr
+val lookup_mod_descr : env -> Name.t list -> Name.t -> mod_descr
 
 (** [names_get_const env path n] looks up the constant with name [n] reachable via path [path] in
    the environment [env] *)

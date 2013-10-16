@@ -60,6 +60,11 @@ type t =
 
 let mk_path ns n = Path_def(ns,n)
 
+let mk_path_list names =
+  let (ns, n) = Util.list_dest_snoc names in
+  mk_path ns n
+
+
 let r = Ulib.Text.of_latin1
 
 let to_name_list p =  match p with 
@@ -79,12 +84,7 @@ let from_id id =
 
 let compare p1 p2 = 
   match (to_name_list p1,to_name_list p2) with
-      ((ns1,n1), (ns2,n2)) ->
-        let c = Name.compare n1 n2 in
-          if c = 0 then
-            Util.compare_list Name.compare ns1 ns2
-          else
-            c
+      ((ns1,n1), (ns2,n2)) -> Util.compare_list Name.compare (ns1@[n1]) (ns2@[n2])
 
 let pp ppf p =
   match (to_name_list p) with

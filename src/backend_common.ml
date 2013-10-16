@@ -288,7 +288,7 @@ let type_path_to_name n0 (p : Path.t) : Name.lskips_t =
 let type_id_to_ident (p : Path.t id) =
    let l = Ast.Trans (false, "type_id_to_ident", None) in
    let td = Types.type_defs_lookup l A.env.t_env p.descr in
-   let org_type = resolve_type_id_ident A.env.local_env p p.descr in
+   let org_type = resolve_type_id_ident A.env p p.descr in
    let i = match Target.Targetmap.apply_target td.Types.type_target_rep A.target with
      | None -> org_type
      | Some (Types.TR_new_ident (_, _, i)) -> i 
@@ -304,7 +304,7 @@ let type_id_to_ident_no_modify (p : Path.t id) =
 
 let module_id_to_ident (mod_descr : mod_descr id) : Ident.t =
 (*   let l = Ast.Trans ("module_id_to_ident", None) in *)
-   let i = resolve_module_id_ident (A.env.local_env) mod_descr mod_descr.descr.mod_binding in
+   let i = resolve_module_id_ident A.env mod_descr mod_descr.descr.mod_binding in
    let i' = fix_module_prefix_ident (A.env.local_env) i in
    i'
 

@@ -123,7 +123,7 @@ module Fmap_map(Key : Set.OrderedType) : Fmap
               Format.fprintf ppf "@[<2>%a@ |->@ %a@]"
                 pp_key k
                 pp_val v))
-        l
+        (List.rev l)
   let big_union l = List.fold_left union empty l
   let domains_disjoint maps =
     match D.duplicates (List.concat (List.map (fun m -> List.map fst (M.bindings m)) maps)) with

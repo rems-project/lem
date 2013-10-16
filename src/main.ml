@@ -155,7 +155,6 @@ let check_modules env modules =
 (* Do the transformations for a given target *)
 let per_target libpath isa_thy modules env alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum targ =
   let consts = Initial_env.read_target_constants libpath targ in
-  let module C = struct let env = env end in
 
   let trans = Target_trans.get_transformation targ in
   try
@@ -267,7 +266,7 @@ let main () =
          let mod_name_name = Name.from_string mod_name in
          let (new_env,tast) = check_ast backend_set [mod_name_name] env ast in
 
-         let e = Typed_ast.env_m_env_move new_env mod_name_name env.Typed_ast.local_env in
+         let (e : Typed_ast.env) = Typed_ast.env_m_env_move new_env [] mod_name_name env.Typed_ast.local_env in
          let module_record = 
            { Typed_ast.filename = file_name;
              Typed_ast.module_name = mod_name;

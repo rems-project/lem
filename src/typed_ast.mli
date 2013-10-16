@@ -278,7 +278,8 @@ and const_descr =
 
 and v_env = const_descr_ref Nfmap.t
 and f_env = const_descr_ref Nfmap.t
-and m_env = mod_descr Nfmap.t
+and m_env = Path.t Nfmap.t
+and e_env = mod_descr Types.Pfmap.t
 and c_env 
 and 
   (** [local_env] represents local_environments, i.e. essentially maps from names to the entities they represent *)
@@ -286,8 +287,15 @@ and
     m_env : m_env; (** module map *)
     p_env : p_env; (** type map *)
     f_env : f_env; (** field map *)
-    v_env : v_env  (** constructor and constant map *)}
-and env = { local_env : local_env; c_env : c_env; t_env : Types.type_defs; i_env : Types.i_env}
+    v_env : v_env  (** constructor and constant map *)
+}
+and env = { 
+    local_env : local_env;   (** the current local environment *)
+    c_env : c_env;           (** global map from constant references to the constant descriptions *)
+    t_env : Types.type_defs; (** global type-information *)
+    i_env : Types.i_env;     (** global instances information *)
+    e_env : e_env;           (** global map from module paths to the module descriptions *)
+ }
 
 and mod_descr = { mod_binding : Path.t; mod_env : local_env; }
 
@@ -540,10 +548,11 @@ val c_env_update : c_env -> const_descr_ref -> const_descr -> c_env
     [c_d] in environment [env]. *)
 val env_c_env_update : env -> const_descr_ref -> const_descr -> env
 
-(** [env_m_env_move env mod_name new_local] replaces the local environment of [env] with
-    [new_local] and adds a module with name [mod_name] and the content of the old local environment
+(** [env_m_env_move env mod_prefix mod_name new_local] replaces the local environment of [env] with
+    [new_local] and adds a module with name [mod_name] and path_prefix [mod_prefix]
+    and the content of the old local environment
     to the module map of the new environment. *)
-val env_m_env_move : env -> Name.t -> local_env -> env
+val env_m_env_move : env -> Name.t list -> Name.t -> local_env -> env
 
 val exp_to_locn : exp -> Ast.l
 val exp_to_typ : exp -> Types.t

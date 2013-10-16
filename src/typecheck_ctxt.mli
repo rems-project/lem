@@ -8,6 +8,9 @@ type defn_ctxt = {
   (* The global c_env *)
   ctxt_c_env : Typed_ast.c_env;
 
+  (* The global e_env (module environment) *)
+  ctxt_e_env : Typed_ast.mod_descr Types.Pfmap.t;
+
   (* All types defined in this sequence of definitions *)
   new_tdefs : Path.t list;
 
@@ -41,7 +44,9 @@ val add_m_to_ctxt : Ast.l -> defn_ctxt -> Name.t -> Typed_ast.mod_descr -> defn_
 val add_instance_to_ctxt : defn_ctxt -> Types.instance -> defn_ctxt
 val add_lemma_to_ctxt : defn_ctxt -> Name.t -> defn_ctxt
 
-val defn_ctxt_get_cur_env : defn_ctxt -> Typed_ast.env
+(** A definition context contains amoung other things an environment split up over several fields.
+    This functions extracts this environment. *)
+val defn_ctxt_to_env : defn_ctxt -> Typed_ast.env
 
 (** [ctxt_c_env_set_target_rep l ctxt c targ new_rep] updates the target-representation of
     constant [c] for target [targ] in context [ctxt] to [new_rep]. This results into a new

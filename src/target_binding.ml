@@ -55,12 +55,11 @@ open Typed_ast_syntax
 
    (* TODO: perhaps performance improvements *)
  *)
-
-let search_module_suffix env is_ok ns = 
+let search_module_suffix (env : Typed_ast.env) (is_ok : Typed_ast.env -> bool) (ns : Name.t list) = 
   let suffix_ok ns =
     let env_opt = lookup_env_opt env ns in
     match env_opt with
-      | Some env -> is_ok env
+      | Some lenv -> is_ok {env with local_env = lenv}
       | _ -> false
   in
   let rec aux acc ns = 
@@ -80,7 +79,7 @@ let search_module_suffix env is_ok ns =
 
 let resolve_module_path env sk (p : Path.t) =
   let (ns, n) = Path.to_name_list p in
-  let is_ok env =
+  let is_ok lenv =
     let md_opt = lookup_mod_descr_opt env [] n in
     match md_opt with
       | None -> false
@@ -92,7 +91,7 @@ let resolve_module_path env sk (p : Path.t) =
 let resolve_type_path env sk p = 
   let (ns, n) = Path.to_name_list p in
   let is_ok env =
-    let p_opt = Nfmap.apply env.p_env n in
+    let p_opt = Nfmap.apply env.local_env.p_env n in
     match p_opt with
       | None -> false
       | Some (p',_) -> Path.compare p p' = 0
@@ -105,7 +104,8 @@ let resolve_const_ref env sk c_ref =
   let c_kind = const_descr_to_kind (c_ref, c_descr) in
   let (ns, n) = Path.to_name_list c_descr.const_binding in
   
-  let is_ok lenv = 
+  let is_ok env = 
+    let lenv = env.local_env in
     let m = match c_kind with
               | Nk_field _ -> lenv.f_env 
               | _ -> lenv.v_env
@@ -119,7 +119,7 @@ let resolve_const_ref env sk c_ref =
           c_descr'.const_no_class = Some c_ref
         end)
   in
-  let ns' = search_module_suffix env.local_env is_ok ns in
+  let ns' = search_module_suffix env is_ok ns in
   Ident.mk_ident sk ns' n
 
 

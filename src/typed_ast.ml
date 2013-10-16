@@ -179,11 +179,12 @@ and const_descr = { const_binding : Path.t;
 
 and v_env = const_descr_ref Nfmap.t
 and f_env = const_descr_ref Nfmap.t
-and m_env = mod_descr Nfmap.t
+and m_env = Path.t Nfmap.t
 and c_env = const_descr cdmap
+and e_env = mod_descr Pfmap.t
 
 and local_env = { m_env : m_env; p_env : p_env; f_env : f_env; v_env : v_env}
-and env = { local_env : local_env; c_env : c_env; t_env : Types.type_defs; i_env : Types.i_env }
+and env = { local_env : local_env; c_env : c_env; t_env : Types.type_defs; i_env : Types.i_env; e_env : e_env}
 
 (* free_env represents the free variables in expression, with their types *)
 and free_env = t Nfmap.t
@@ -378,7 +379,8 @@ let empty_local_env = { m_env = Nfmap.empty;
 let empty_env = { local_env = empty_local_env;
                   c_env = cdmap_empty();
                   t_env = Pfmap.empty;
-                  i_env = Types.empty_i_env }
+                  i_env = Types.empty_i_env;
+                  e_env = Pfmap.empty }
 
 
 let c_env_lookup l m c = 
@@ -397,7 +399,7 @@ let c_env_store_raw = cdmap_insert
 
 let restrict_m_env env mod_name local_env =
 begin
-   let m_env' = Nfmap.filter (fun _ md -> Path.check_prefix mod_name md.mod_binding) local_env.m_env in
+   let m_env' = Nfmap.filter (fun _ mod_path -> Path.check_prefix mod_name mod_path) local_env.m_env in
    let p_env' = Nfmap.filter (fun _ (p, _) -> Path.check_prefix mod_name p) local_env.p_env in
 
    let const_filter _ c =
@@ -411,11 +413,13 @@ begin
   { m_env = m_env'; p_env = p_env'; f_env = f_env'; v_env = v_env'}
 end
 
-let env_m_env_move env mod_name new_local =
+let env_m_env_move env mod_path mod_name new_local =
   let md_local_env = restrict_m_env env mod_name env.local_env in
-  let md = { mod_env = md_local_env; mod_binding = Path.mk_path [] mod_name } in
-  let new_local' = { new_local with m_env = Nfmap.insert new_local.m_env (mod_name,md) } in
-  {env with local_env = new_local'}
+  let mod_binding = Path.mk_path mod_path mod_name in
+  let md = { mod_env = md_local_env; mod_binding = mod_binding } in
+  let new_local' = { new_local with m_env = Nfmap.insert new_local.m_env (mod_name,mod_binding) } in
+  let new_e_env = Pfmap.insert env.e_env (mod_binding, md) in
+  {env with local_env = new_local'; e_env = new_e_env}
 
 (* Applies lskips_f to the leftmost lskips in p, replacing it with lskips_f's
  * first result and returning lskips_f's second result *)
@@ -762,7 +766,7 @@ let rec pp_local_env ppf env =
   let empty_v = Nfmap.is_empty env.v_env in
   let empty_p = Nfmap.is_empty env.p_env in
   let empty_f = Nfmap.is_empty env.f_env in
-  (Nfmap.pp_map Name.pp pp_mod_descr) ppf env.m_env;
+  (Nfmap.pp_map Name.pp Path.pp) ppf env.m_env;
     if not empty_m && not empty_v then
       fprintf ppf "@\n";
   (Nfmap.pp_map Name.pp pp_const_ref) ppf env.v_env; 
@@ -793,7 +797,7 @@ and pp_env ppf env =
 *)
     pp_close_box ppf ()
 
-and pp_mod_descr ppf md = 
+and pp_mod_descr ppf (md : mod_descr) = 
   pp_local_env ppf md.mod_env
 
 let pp_instances = Pfmap.pp_map Path.pp (lst "@\n" pp_instance)

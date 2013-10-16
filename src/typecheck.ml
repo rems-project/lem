@@ -202,10 +202,10 @@ let add_binding (lex_e : lex_env) ((v : Name.lskips_t), (l : Ast.l)) (t : t) : l
 
 (* Assume that the names in mp must refer to modules.  Corresponds to judgment
  * look_m 'E1(x1..xn) gives E2' *)
-let rec path_lookup l (e : local_env) (mp : (Name.lskips_t * Ast.l) list) : local_env =   
+let rec path_lookup l (e : env) (mp : (Name.lskips_t * Ast.l) list) : local_env =   
   let mp_names = List.map (fun (n, _) -> Name.strip_lskip n) mp in
   match lookup_env_opt e mp_names with
-    | Some e -> e
+    | Some lenv -> lenv
     | None -> 
       let mp_rev = List.rev mp_names in
       let p = Path.mk_path (List.rev (List.tl mp_rev)) (List.hd mp_rev) in
@@ -213,7 +213,7 @@ let rec path_lookup l (e : local_env) (mp : (Name.lskips_t * Ast.l) list) : loca
 
 (* Assume that the names in mp must refer to modules. Corresponds to judgment
  * look_m_id 'E1(id) gives E2' *)
-let lookup_mod (e : local_env) (Ast.Id(mp,xl,l'')) : mod_descr = 
+let lookup_mod (e : env) (Ast.Id(mp,xl,l'')) : mod_descr = 
   let mp' = List.map (fun (xl,_) -> Name.strip_lskip (Name.from_x xl)) mp in
   let n = Name.strip_lskip (Name.from_x xl) in 
   match lookup_mod_descr_opt e mp' n with
@@ -224,8 +224,8 @@ let lookup_mod (e : local_env) (Ast.Id(mp,xl,l'')) : mod_descr =
 
 (* Assume that the names in mp must refer to modules. Corresponds to judgment
  * look_tc 'E(id) gives p' *)
-let lookup_p msg (e : local_env) (Ast.Id(mp,xl,l) as i) : Path.t =
-  let e = path_lookup l e (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
+let lookup_p msg (env : env) (Ast.Id(mp,xl,l) as i) : Path.t =
+  let e = path_lookup l env (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
     match Nfmap.apply e.p_env (Name.strip_lskip (Name.from_x xl)) with
       | None ->
           raise (Reporting_basic.err_type_pp l (Printf.sprintf "unbound type%s" msg)
@@ -235,7 +235,7 @@ let lookup_p msg (e : local_env) (Ast.Id(mp,xl,l) as i) : Path.t =
 (* Assume that the names in mp must refer to modules. Looks up a name, not
    knowing what this name refers to. It might be a type, a constant, a module ... *)
 let lookup_name (e : env) (comp_opt : Ast.component option) (Ast.Id(mp,xl,l) as i) : (name_kind * Path.t) =
-  let e_l = path_lookup l e.local_env (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
+  let e_l = path_lookup l e (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
   let e = {e with local_env = e_l} in
     match env_apply e comp_opt (Name.strip_lskip (Name.from_x xl)) with
       | None ->
@@ -258,9 +258,9 @@ let lookup_l (l_e : lex_env) mp n : (t * Ast.l * Name.lskips_t) option =
 
 (* Finds a type class's path, and its methods, in the current enviroment, given
  * its name. *)
-let lookup_class_p (ctxt : defn_ctxt) (id : Ast.id) : Path.t * class_descr = 
-  let p = lookup_p " class" ctxt.cur_env id in
-    match Pfmap.apply ctxt.all_tdefs p with
+let lookup_class_p (env : env) (id : Ast.id) : Path.t * class_descr = 
+  let p = lookup_p " class" env id in
+    match Pfmap.apply env.t_env p with
       | None -> raise (Reporting_basic.err_general true Ast.Unknown "invariant in finding type class path broken")
       | Some(Tc_class d) -> (p, d)
       | Some(Tc_type _) ->
@@ -323,7 +323,7 @@ let tnvar_app_check l i tnv (t: src_t) : unit =
    | Ty _ , _ -> ()
 
 let rec typ_to_src_t (wild_f : Ast.l -> lskips -> src_t) 
-      (do_tvar : Tyvar.t -> unit) (do_nvar : Nvar.t -> unit) (d : type_defs) (e : local_env) (Ast.Typ_l(typ,l)) 
+      (do_tvar : Tyvar.t -> unit) (do_nvar : Nvar.t -> unit) (e : env) (Ast.Typ_l(typ,l)) 
       : src_t = 
   match typ with
     | Ast.Typ_wild(sk) -> 
@@ -335,15 +335,15 @@ let rec typ_to_src_t (wild_f : Ast.l -> lskips -> src_t)
           typ = { t = Tvar(Tyvar.from_rope tv); }; 
           rest = (); }
     | Ast.Typ_fn(typ1, sk, typ2) ->
-        let st1 = typ_to_src_t wild_f do_tvar do_nvar d e typ1 in
-        let st2 = typ_to_src_t wild_f do_tvar do_nvar d e typ2 in
+        let st1 = typ_to_src_t wild_f do_tvar do_nvar e typ1 in
+        let st2 = typ_to_src_t wild_f do_tvar do_nvar e typ2 in
           { term = Typ_fn(st1, sk, st2);
             locn = l; 
             typ = { t = Tfn(st1.typ,st2.typ) };
             rest = (); }
     | Ast.Typ_tup(typs) ->
         let typs = Seplist.from_list typs in
-        let sts = Seplist.map (typ_to_src_t wild_f do_tvar do_nvar d e) typs in
+        let sts = Seplist.map (typ_to_src_t wild_f do_tvar do_nvar e) typs in
           { term = Typ_tup(sts); 
             locn = l; 
             typ = { t = Ttup(Seplist.to_list_map annot_to_typ sts) };
@@ -351,13 +351,13 @@ let rec typ_to_src_t (wild_f : Ast.l -> lskips -> src_t)
     | Ast.Typ_app(i,typs) ->
         let p = lookup_p " constructor" e i in
           begin
-            match Pfmap.apply d p with
+            match Pfmap.apply e.t_env p with
               | None ->
                   raise (Reporting_basic.err_general true l "invariant in checking type application broken")
               | Some(Tc_type(td)) ->
                   if List.length td.type_tparams = List.length typs then
                     let sts = 
-                      List.map (typ_to_src_t wild_f do_tvar do_nvar d e) typs 
+                      List.map (typ_to_src_t wild_f do_tvar do_nvar e) typs 
                     in
                     let id = {id_path = Id_some (Ident.from_id i); 
                               id_locn = (match i with Ast.Id(_,_,l) -> l);
@@ -381,7 +381,7 @@ let rec typ_to_src_t (wild_f : Ast.l -> lskips -> src_t)
     | Ast.Typ_backend(sk,q,typs) ->
         let i = Ident.replace_lskip (check_backend_quote l q) sk in
         let p = Path.from_id i in
-        let sts = List.map (typ_to_src_t wild_f do_tvar do_nvar d e) typs in
+        let sts = List.map (typ_to_src_t wild_f do_tvar do_nvar e) typs in
         let id = {id_path = Id_some i; 
                   id_locn = l;
                   descr = p;
@@ -392,7 +392,7 @@ let rec typ_to_src_t (wild_f : Ast.l -> lskips -> src_t)
             typ = { t = Tbackend(List.map annot_to_typ sts,p) };
             rest = (); }
     | Ast.Typ_paren(sk1,typ,sk2) ->
-        let st = typ_to_src_t wild_f do_tvar do_nvar d e typ in
+        let st = typ_to_src_t wild_f do_tvar do_nvar e typ in
         { term = Typ_paren(sk1,st,sk2); 
           locn = l; 
           typ = st.typ; 
@@ -410,7 +410,7 @@ let rec typ_to_src_t (wild_f : Ast.l -> lskips -> src_t)
   - either we are in the "spine" composed of in, out, ...
   - or we are in the last part, containing extra information
 *)
-let typ_to_src_t_indreln wit (d : type_defs) (e : local_env) (typt : Types.t) typ : src_t =
+let typ_to_src_t_indreln wit (d : type_defs) (e : env) (typt : Types.t) typ : src_t =
   let dest_id (Ast.Id(path,xl,l0) as i) =
     let n = Name.strip_lskip (Name.from_x xl) in
     (Name.to_string n,
@@ -498,7 +498,7 @@ begin
     (fun (Ast.C(id, tnv),sk) ->
     let tnv' = ast_tnvar_to_tnvar tnv in
     let (tnv'',l) = tnvar_to_types_tnvar tnv' in
-    let (p,_) = lookup_class_p ctxt id in
+    let (p,_) = lookup_class_p (defn_ctxt_to_env ctxt) id in
     begin
       if TNset.mem tnv'' env then
          ()
@@ -778,16 +778,16 @@ end
  * ensure that the id is one that would be returned by this function.  That
  * is, the id follows the module reference whenever there is ambiguity.  *)
 let rec get_id_mod_prefix (for_field : bool) (check_le : lex_env option) 
-      (env : local_env) (Ast.Id(mp,xl,l_add)) 
+      (env : env) (Ast.Id(mp,xl,l_add)) 
       (prefix_acc : (Ast.x_l * Ast.lex_skips) list) : Ast.id * (Ast.lex_skips * Ast.id) option =
   match mp with
     | [] -> 
         let n = Name.strip_lskip (Name.from_x xl) in
         let unbound = 
           if for_field then 
-            Nfmap.apply env.f_env n = None 
+            Nfmap.apply env.local_env.f_env n = None 
           else 
-            (Nfmap.apply env.v_env n = None &&
+            (Nfmap.apply env.local_env.v_env n = None &&
              (match check_le with 
                 | None -> true 
                 | Some(le) -> Nfmap.apply le n = None))
@@ -803,9 +803,9 @@ let rec get_id_mod_prefix (for_field : bool) (check_le : lex_env option)
         let n = Name.strip_lskip (Name.from_x xl') in
         let unbound = 
           if for_field then 
-            Nfmap.apply env.f_env n = None 
+            Nfmap.apply env.local_env.f_env n = None 
           else 
-            (Nfmap.apply env.v_env n = None &&
+            (Nfmap.apply env.local_env.v_env n = None &&
              (match check_le with 
                 | None -> true 
                 | Some(le) -> Nfmap.apply le n = None))
@@ -813,14 +813,16 @@ let rec get_id_mod_prefix (for_field : bool) (check_le : lex_env option)
         let id = Ast.Id(List.rev prefix_acc,xl',l_add) in
           if unbound then
             begin
-              match Nfmap.apply env.m_env n with
+              let mp_opt = Nfmap.apply env.local_env.m_env n in
+              let md_opt = Util.option_bind (Pfmap.apply env.e_env) mp_opt in
+              match md_opt with
                 | None ->
                     raise (Reporting_basic.err_type_pp (Ast.xl_to_l xl') 
                       ("unbound module name or " ^
                        if for_field then "field name" else "variable")
                       Ident.pp (Ident.from_id id))
                 | Some(md) ->
-                    get_id_mod_prefix for_field None md.mod_env
+                    get_id_mod_prefix for_field None {env with local_env = md.mod_env}
                       (Ast.Id(mp',xl,l_add)) 
                       ((xl',sk)::prefix_acc)
             end
@@ -830,7 +832,7 @@ let rec get_id_mod_prefix (for_field : bool) (check_le : lex_env option)
 
 (* Chop up an identifier into a list of record projections.  Each projection
  * can be an identifier with a non-empty module path *)
-let rec disambiguate_projections sk (env : local_env) (id : Ast.id) 
+let rec disambiguate_projections sk (env : env) (id : Ast.id) 
       : (Ast.lex_skips * Ast.id) list =
   match get_id_mod_prefix true None env id [] with
     | (id,None) -> [(sk,id)]
@@ -839,7 +841,7 @@ let rec disambiguate_projections sk (env : local_env) (id : Ast.id)
 (* Figures out which '.'s in an identifier are actually record projections.
  * This is ambiguous in the source since field names can be '.' separated
  * module paths *)
-let disambiguate_id (le : lex_env) (env : local_env) (id : Ast.id) 
+let disambiguate_id (le : lex_env) (env : env) (id : Ast.id) 
       : Ast.id * (Ast.lex_skips * Ast.id) list =
   match get_id_mod_prefix false (Some(le)) env id [] with
     | (id,None) -> (id, [])
@@ -856,10 +858,9 @@ module Make_checker(T : sig
                       val e : env 
                       (* The environment so-far of the module we're defining *)
                       val new_module_env : local_env
-                      include Global_defs 
                     end) : Expr_checker = struct
 
-  module C = Constraint(T)
+  module C = Constraint(struct let d = T.e.t_env let i = T.e.i_env end)
   module A = Exps_in_context(struct let env_opt = None let avoid = None end)
 
   (* An identifier instantiated to fresh type variables *)
@@ -878,7 +879,7 @@ module Make_checker(T : sig
    *)
   let check_field (Ast.Id(mp,xl,l) as i) 
         : (const_descr_ref id * Types.t) * Ast.l =
-    let env = path_lookup l T.e.local_env (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
+    let env = path_lookup l T.e (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
     match Nfmap.apply env.f_env (Name.strip_lskip (Name.from_x xl)) with
         | None ->
             begin
@@ -957,14 +958,14 @@ module Make_checker(T : sig
         | Ast.P_typ(sk1,p,sk2,typ,sk3) ->
             let (pat,pat_e) = check_pat l_e p acc in
             let src_t = 
-              typ_to_src_t build_wild C.add_tyvar C.add_nvar T.d T.e.local_env typ
+              typ_to_src_t build_wild C.add_tyvar C.add_nvar T.e typ
             in
               C.equate_types l "type-annotated pattern" src_t.typ pat.typ;
               C.equate_types l "type-annotated pattern" src_t.typ ret_type;
               (A.mk_ptyp l sk1 pat sk2 src_t sk3 rt, pat_e)
         | Ast.P_app(Ast.Id(mp,xl,l'') as i, ps) ->
             let l' = Ast.xl_to_l xl in
-            let e = path_lookup l' T.e.local_env (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
+            let e = path_lookup l' T.e (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
             let const_lookup_res = Nfmap.apply e.v_env (Name.strip_lskip (Name.from_x xl)) in
 
             (** Try to handle it as a construtor, if success, then return Some, otherwise None
@@ -978,7 +979,7 @@ module Make_checker(T : sig
 
                       let cd = c_env_lookup (snd (id_to_identl i)) T.e.c_env c in
                       let (arg_ts, base_t) = Types.strip_fn_type (Some T.e.t_env) cd.const_type in
-                      let is_constr = (List.length (type_defs_get_constr_families l' T.d base_t c) > 0) in
+                      let is_constr = (List.length (type_defs_get_constr_families l' T.e.t_env base_t c) > 0) in
                       let (pats,pat_e) = check_pats l_e acc ps in
                         if (List.length pats <> List.length arg_ts) || (not is_constr) then (
                           if (List.length pats == 0) then (*handle as var*) None else
@@ -1128,7 +1129,7 @@ module Make_checker(T : sig
       | None -> 
           (* check whether the name is bound to a constant (excluding fields) *)
           let mp' = List.map (fun (xl,_) -> xl_to_nl xl) mp in
-          let e = path_lookup l T.e.local_env mp' in
+          let e = path_lookup l T.e mp' in
             match Nfmap.apply e.v_env (Name.strip_lskip n) with
               | None    -> 
                   (* not bound to a constant either, so it's unbound *)
@@ -1155,7 +1156,7 @@ module Make_checker(T : sig
   let check_id (l_e : lex_env) (Ast.Id(mp,xl,l_add) as id) : exp =
     (* We could type check and disambiguate at the same time, but that would
      * have a more complicated implementation, so we don't *)
-    let (Ast.Id(mp,xl,l), fields) = disambiguate_id l_e T.e.local_env id in
+    let (Ast.Id(mp,xl,l), fields) = disambiguate_id l_e T.e id in
     let exp = check_val l_e mp (Name.from_x xl) l in
       check_all_fields exp fields
 
@@ -1233,7 +1234,7 @@ module Make_checker(T : sig
               A.mk_recup l sk1 exp sk2 res sk3 rt
         | Ast.Field(e,sk,fid) ->
             let exp = check_exp l_e e in
-            let fids = disambiguate_projections sk T.e.local_env fid in
+            let fids = disambiguate_projections sk T.e fid in
             let new_exp = check_all_fields exp fids in
               C.equate_types l "field expression 2" ret_type (exp_to_typ new_exp);
               new_exp
@@ -1253,7 +1254,7 @@ module Make_checker(T : sig
               A.mk_case false l sk1 exp sk2 res sk3 rt
         | Ast.Typed(sk1,e,sk2,typ,sk3) ->
             let exp = check_exp l_e e in
-            let src_t = typ_to_src_t build_wild C.add_tyvar C.add_nvar T.d T.e.local_env typ in
+            let src_t = typ_to_src_t build_wild C.add_tyvar C.add_nvar T.e typ in
               C.equate_types l "type-annotated expression" src_t.typ (exp_to_typ exp);
               C.equate_types l "type-annotated expression" src_t.typ ret_type;
               A.mk_typed l sk1 exp sk2 src_t sk3 rt
@@ -1386,7 +1387,7 @@ module Make_checker(T : sig
               A.mk_comp_binding l true sk1 exp1 sk2 sk5 
                 (List.rev qbs) sk3 exp2 sk4 rt
         | Ast.Do(sk1,mn,lns,sk2,e,sk3) ->
-            let mod_descr = lookup_mod T.e.local_env mn in
+            let mod_descr = lookup_mod T.e mn in
             let mod_env = mod_descr.mod_env in
             let mod_id = 
               { id_path = Id_some (Ident.from_id mn);
@@ -1404,7 +1405,7 @@ module Make_checker(T : sig
             let () =
               (* Check that the module contains an appropriate type "t" to be
                * the monad. *)
-              match Pfmap.apply T.d monad_type_ctor with
+              match Pfmap.apply T.e.t_env monad_type_ctor with
                 | None ->
                     raise (Reporting_basic.err_general true l "invariant in checking module contains monad structure broken")
                 | Some(Tc_class _) ->
@@ -1430,7 +1431,7 @@ module Make_checker(T : sig
               match return_tvs with
                 | [tv] ->
                     assert_equal mod_id.id_locn "do/return"
-                      T.d return_type 
+                      T.e.t_env return_type 
                       { t = Tfn({t = Tvar(tv)}, build_monad_type tv) }
                 | tvs ->
                     raise (Reporting_basic.err_type_pp mod_id.id_locn (Printf.sprintf "monad return function with %d type parameters" (List.length tvs))
@@ -1449,13 +1450,13 @@ module Make_checker(T : sig
                 | [tv1;tv2] ->
                     (try
                       assert_equal mod_id.id_locn "do/>>="
-                        T.d bind_type
+                        T.e.t_env bind_type
                         (build_bind_type tv1 tv2);
                       BTO_input_output
                     with
                       Reporting_basic.Fatal_error (Reporting_basic.Err_type _) ->
                         assert_equal mod_id.id_locn "do/>>="
-                          T.d bind_type
+                          T.e.t_env bind_type
                           (build_bind_type tv2 tv1);
                       BTO_output_input )
                 | tvs ->
@@ -1564,7 +1565,7 @@ module Make_checker(T : sig
         | Ast.Typ_annot_none -> 
             None
         | Ast.Typ_annot_some(sk',typ) ->
-            let src_t' = typ_to_src_t build_wild C.add_tyvar C.add_nvar T.d T.e.local_env typ in
+            let src_t' = typ_to_src_t build_wild C.add_tyvar C.add_nvar T.e typ in
               C.equate_types l "pattern/expression list" src_t'.typ (exp_to_typ body_exp);
               Some (sk',src_t')
     in
@@ -1601,7 +1602,7 @@ module Make_checker(T : sig
               | Ast.Typ_annot_none -> 
                   None
               | Ast.Typ_annot_some(sk',typ) ->
-                  let src_t' = typ_to_src_t build_wild C.add_tyvar C.add_nvar T.d T.e.local_env typ in
+                  let src_t' = typ_to_src_t build_wild C.add_tyvar C.add_nvar T.e typ in
                     C.equate_types l "let expression" src_t'.typ pat.typ;
                     Some (sk',src_t')
           in
@@ -1772,7 +1773,7 @@ module Make_checker(T : sig
          (fun (Ast.Name_l(Ast.Inderln_name_Name(s0,xl,s1,Ast.Ts(cp,typ),witness_opt,check_opt,functions_opt,s2), l1)) ->
             let (src_cp, tyvars, tnvarset, (sem_cp,sem_rp)) = check_constraint_prefix ctxt cp in 
             let () = check_free_tvs tnvarset typ in
-            let src_t = typ_to_src_t anon_error ignore ignore ctxt.all_tdefs ctxt.cur_env typ in
+            let src_t = typ_to_src_t anon_error ignore ignore (defn_ctxt_to_env ctxt) typ in
             let r_t = src_t.typ in
             (* Todo add checks and processing of witness_opt, check_opt, and funcitons_opt *)
             let witness,wit_path,ctxt  = (match witness_opt with
@@ -1788,7 +1789,7 @@ module Make_checker(T : sig
             let check = (match check_opt with 
                             | Ast.Check_none -> None
                             | Ast.Check_some(s0,xl,s1) -> Some(s0,Name.from_x xl,s1)) in
-            let to_src_t = typ_to_src_t_indreln wit_path ctxt.all_tdefs ctxt.cur_env r_t in
+            let to_src_t = typ_to_src_t_indreln wit_path ctxt.all_tdefs (defn_ctxt_to_env ctxt) r_t in
             let rec mk_functions fo =
                 match fo with
                   | Ast.Functions_none -> None
@@ -1936,7 +1937,7 @@ let build_type_def_help (mod_path : Name.t list) (context : defn_ctxt)
         | Some(typ) ->
             check_free_tvs (tvs_to_set tvs) typ;
             let src_t = 
-              typ_to_src_t anon_error ignore ignore context.all_tdefs context.cur_env typ 
+              typ_to_src_t anon_error ignore ignore (defn_ctxt_to_env context) typ 
             in
               if (regex = None)
                 then add_d_to_ctxt new_ctxt type_path 
@@ -1989,7 +1990,7 @@ let build_record tvs_set (ctxt : defn_ctxt)
        let l' = Ast.xl_to_l field_name in
        let fn = Name.from_x field_name in
        let src_t = 
-         typ_to_src_t anon_error ignore ignore ctxt.all_tdefs ctxt.cur_env typ 
+         typ_to_src_t anon_error ignore ignore (defn_ctxt_to_env ctxt) typ 
        in
          check_free_tvs tvs_set typ;
          ((fn,l'),sk1,src_t))
@@ -2027,7 +2028,7 @@ let rec build_variant build_descr tvs_set (ctxt : defn_ctxt)
        let src_ts =
          Seplist.map 
            (fun t ->
-              typ_to_src_t anon_error ignore ignore ctxt.all_tdefs ctxt.cur_env t) 
+              typ_to_src_t anon_error ignore ignore (defn_ctxt_to_env ctxt) t) 
            (Seplist.from_list typs)
         in
         let ctn = Name.from_x ctor_name in
@@ -2074,7 +2075,7 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
           (* Check and throw error if there's a regexp here *)
           (((tn,l), tnvs, type_path,
             Te_abbrev(sk3,
-                      typ_to_src_t anon_error ignore ignore context.all_tdefs context.cur_env t), None),
+                      typ_to_src_t anon_error ignore ignore (defn_ctxt_to_env context) t), None),
            context)
       | Some(sk3, Ast.Te_record(sk1',ntyps,sk2',semi,sk3')) ->
           let ntyps = Seplist.from_list_suffix ntyps sk2' semi in
@@ -2159,7 +2160,7 @@ let check_val_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
   let n' = Name.strip_lskip n in
   let (src_cp, tyvars, tnvarset, (sem_cp,sem_rp)) = check_constraint_prefix ctxt cp in 
   let () = check_free_tvs tnvarset typ in
-  let src_t = typ_to_src_t anon_error ignore ignore ctxt.all_tdefs ctxt.cur_env typ in
+  let src_t = typ_to_src_t anon_error ignore ignore (defn_ctxt_to_env ctxt) typ in
   let () = (* check that the name is really fresh *)
     match Nfmap.apply ctxt.new_defs.v_env n' with
       | None -> ()
@@ -2203,7 +2204,7 @@ let check_class_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
   let n' = Name.strip_lskip n in
   let tnvars = TNset.add tv TNset.empty in
   let () = check_free_tvs tnvars typ in
-  let src_t = typ_to_src_t anon_error ignore ignore ctxt.all_tdefs ctxt.cur_env typ in
+  let src_t = typ_to_src_t anon_error ignore ignore (defn_ctxt_to_env ctxt) typ in
   let () = 
     match Nfmap.apply ctxt.new_defs.v_env n' with
       | None -> ()
@@ -2334,9 +2335,7 @@ let check_val_def (ts : Targetset.t) (mod_path : Name.t list) (l : Ast.l)
         (* The type and length variables the definion is generalised over, and class constraints on the type variables, and length constraints on the length variables *)
         typ_constraints =
   let module T = struct 
-    let d = ctxt.all_tdefs 
-    let i = ctxt.all_instances 
-    let e = defn_ctxt_get_cur_env ctxt
+    let e = defn_ctxt_to_env ctxt
     let new_module_env = ctxt.new_defs
     let targets = ts
   end 
@@ -2399,7 +2398,7 @@ let check_val_def_instance (ts : Targetset.t) (mod_path : Name.t list) (instance
   let module T = struct 
     let d = ctxt.all_tdefs 
     let i = ctxt.all_instances 
-    let e = defn_ctxt_get_cur_env ctxt
+    let e = defn_ctxt_to_env ctxt
     let new_module_env = ctxt.new_defs
     let targets = ts
   end 
@@ -2445,7 +2444,7 @@ let check_lemma l ts (ctxt : defn_ctxt)
   let module T = struct 
     let d = ctxt.all_tdefs 
     let i = ctxt.all_instances 
-    let e = defn_ctxt_get_cur_env ctxt
+    let e = defn_ctxt_to_env ctxt
     let new_module_env = ctxt.new_defs
     let targets = ts
   end 
@@ -2532,7 +2531,7 @@ let check_declare_target_rep_term_rhs (l : Ast.l) ts targ (ctxt : defn_ctxt) c i
   let module T = struct 
     let d = ctxt.all_tdefs 
     let i = ctxt.all_instances 
-    let e = defn_ctxt_get_cur_env ctxt
+    let e = defn_ctxt_to_env ctxt
     let new_module_env = ctxt.new_defs
     let targets = ts
   end in 
@@ -2567,7 +2566,7 @@ let check_declare_target_rep_term_rhs (l : Ast.l) ts targ (ctxt : defn_ctxt) c i
 
 let component_term_id_lookup (l : Ast.l) (ctxt : defn_ctxt) (comp : Ast.component) (id : Ast.id) =
     let Ast.Id(mp,xl,_) = id in
-    let e = path_lookup l ctxt.cur_env (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
+    let e = path_lookup l (defn_ctxt_to_env ctxt) (List.map (fun (xl,_) -> xl_to_nl xl) mp) in
     let map = match comp with
       | Ast.Component_function _ -> e.v_env
       | Ast.Component_field _ -> e.f_env 
@@ -2654,7 +2653,7 @@ let check_declare_target_rep_type
 begin
   let tvs_tast = List.map ast_tnvar_to_tnvar tnvars in
   let tvs = List.map tnvar_to_types_tnvar tvs_tast in
-  let p = lookup_p "" ctxt.cur_env type_id in
+  let p = lookup_p "" (defn_ctxt_to_env ctxt) type_id in
   let p_id = {id_path = Id_some (Ident.from_id type_id); 
               id_locn = l;
               descr = p;
@@ -2671,7 +2670,7 @@ begin
                    Ident.pp (Ident.from_id type_id)) in
 
   let _ = check_free_tvs (tvs_to_set tvs) rhs in
-  let rhs_src_t = typ_to_src_t anon_error ignore ignore ctxt.all_tdefs ctxt.cur_env rhs in 
+  let rhs_src_t = typ_to_src_t anon_error ignore ignore (defn_ctxt_to_env ctxt) rhs in 
 
   let def_aux = Decl_target_rep_decl_type (sk1, target, sk2, sk3, p_id, tvs_tast, 
                    sk4, rhs_src_t) in
@@ -2693,7 +2692,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
     struct 
       let d = ctxt.all_tdefs 
       let i = ctxt.all_instances 
-      let e = defn_ctxt_get_cur_env ctxt
+      let e = defn_ctxt_to_env ctxt
       let new_module_env = ctxt.new_defs
     end 
   in
@@ -2716,7 +2715,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let targs = check_target_opt target_opt in
 
           (* do the renaming *)
-          let (nk, p) = lookup_name (defn_ctxt_get_cur_env ctxt) (Some component) id in
+          let (nk, p) = lookup_name (defn_ctxt_to_env ctxt) (Some component) id in
           begin
             match nk with
               | (Nk_field c | Nk_constr c) ->
@@ -2744,7 +2743,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
             | Nk_module m ->
                 let l' = Ast.xl_to_l xl' in
                 let n = Name.from_x xl' in 
-                let mod_descr = lookup_mod ctxt.cur_env id in
+                let mod_descr = lookup_mod (defn_ctxt_to_env ctxt) id in
                   add_m_to_ctxt l' ctxt (Name.strip_lskip n) mod_descr,
                     Some (Rename(sk1,
                             (n,l'), 
@@ -2785,7 +2784,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           
           let _ = (if Util.is_simple_ident_string (Name.to_string target_name) then () else
                      raise (Reporting_basic.err_type l "non-ascii ascii representation provided")) in
-          let (nk, p) = lookup_name (defn_ctxt_get_cur_env ctxt) (Some component) source_id in
+          let (nk, p) = lookup_name (defn_ctxt_to_env ctxt) (Some component) source_id in
           begin
             match nk with
               | (Nk_field const_descr_ref | Nk_constr const_descr_ref | Nk_const const_descr_ref) ->
@@ -2823,7 +2822,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
       | Ast.Rename(sk1, xl', sk2, id) ->
           let l' = Ast.xl_to_l xl' in
           let n = Name.from_x xl' in 
-          let mod_descr = lookup_mod ctxt.cur_env id in
+          let mod_descr = lookup_mod (defn_ctxt_to_env ctxt) id in
             add_m_to_ctxt l' ctxt (Name.strip_lskip n) mod_descr,
               Some (Rename(sk1,
                           (n,l'), 
@@ -2835,7 +2834,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                             instantiation = []; }))
       | Ast.Open_Import(oi,is) -> 
           let mod_descr_ids = List.map (fun i -> (
-              let descr = lookup_mod ctxt.cur_env i in
+              let descr = lookup_mod (defn_ctxt_to_env ctxt) i in
               { id_path = Id_some (Ident.from_id i);
                 id_locn = l;
                 descr = descr;
@@ -3010,7 +3009,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           in
           let () = check_free_tvs tnvarset typ in
           let src_t = 
-            typ_to_src_t anon_error ignore ignore ctxt.all_tdefs ctxt.cur_env typ
+            typ_to_src_t anon_error ignore ignore (defn_ctxt_to_env ctxt) typ
           in
           let (used_tvs, type_path) = check_instance_type_shape ctxt src_t in
           let unused_tvs = TNset.diff tnvarset used_tvs in
@@ -3019,7 +3018,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
               raise (Reporting_basic.err_type_pp l "instance type does not use all type variables"
                 TNset.pp unused_tvs)
           in
-          let (p, p_d) = lookup_class_p ctxt id in
+          let (p, p_d) = lookup_class_p (defn_ctxt_to_env ctxt) id in
           let class_methods = (* Instantiate the type of methods and get their name*)
             begin
               let subst = TNfmap.insert TNfmap.empty (p_d.class_tparam, src_t.typ) in
@@ -3290,10 +3289,11 @@ let check_defs backend_targets mod_path (env : env)
                cur_env = env.local_env;
                new_defs = empty_local_env;
                lemmata_labels = NameSet.empty;
-               ctxt_c_env = env.c_env }
+               ctxt_c_env = env.c_env;
+               ctxt_e_env = env.e_env }
   in
   let (ctxt,b) = check_defs_internal backend_targets mod_path ctxt defs in
-  let env' = { (defn_ctxt_get_cur_env ctxt) with local_env = ctxt.new_defs} in
+  let env' = { (defn_ctxt_to_env ctxt) with local_env = ctxt.new_defs} in
   let _ = List.map (Syntactic_tests.check_decidable_equality_def env') b in
   let _ = List.map Syntactic_tests.check_positivity_condition_def b in
     check_ids env' ctxt b;    

@@ -829,14 +829,6 @@ let register_types rel_loc ctxt mod_path tds =
     ctxt
   ) ctxt tds 
 
-let rec path_lookup (e : local_env) (mp : Name.t list) : local_env option = 
-  match mp with
-    | [] -> Some(e)
-    | n::ns ->
-        match Nfmap.apply e.m_env n with
-          | None -> None
-          | Some(e) -> path_lookup e.mod_env ns
-
 (* TODO : || -> either, && -> *, forall -> (->), exists -> ... *)
 let gen_witness_type_aux (env : env) mod_path l names rules warn_incomplete = 
   let rels = get_rels env l names rules in
@@ -903,7 +895,7 @@ let gen_witness_type_aux (env : env) mod_path l names rules warn_incomplete =
   tds
 
 let gen_witness_type_info l mod_path ctxt names rules = 
-  let env = defn_ctxt_get_cur_env ctxt in
+  let env = defn_ctxt_to_env ctxt in
   let tds = gen_witness_type_aux env mod_path l 
     names rules true in
   let newctxt = register_types l ctxt mod_path tds in
@@ -924,7 +916,7 @@ let ctxt_mod update ctxt =
   }
 
 let gen_witness_check_info l mod_path ctxt names rules =
-  let env = defn_ctxt_get_cur_env ctxt in
+  let env = defn_ctxt_to_env ctxt in
   let rels = get_rels env l names rules in
   let defs = Nfmap.fold (fun defs relname reldescr ->
     match reldescr.rel_check with
@@ -1237,7 +1229,7 @@ let join f a b =
   List.concat (List.map (fun x -> List.map (fun y -> f x y ) b) a)
 
 let gen_fns_info_aux l mod_path ctxt rels =
-  let env = defn_ctxt_get_cur_env ctxt in
+  let env = defn_ctxt_to_env ctxt in
   Nfmap.fold (fun ctxt relname reldescr ->
     let rel_ref = reldescr.rel_const_ref in
     List.fold_left (fun ctxt (name, mode) ->
@@ -1294,7 +1286,7 @@ let list_possible_modes mod_path ctxt rels =
   in
   let shrink_modeset rels =
     let ctxt = gen_fns_info_aux Ast.Unknown mod_path ctxt rels in
-    let env = defn_ctxt_get_cur_env ctxt in
+    let env = defn_ctxt_to_env ctxt in
     Nfmap.map (fun _ reldescr ->
       { reldescr with rel_indfns = List.filter (fun (_,mode) ->
         try
@@ -1319,7 +1311,7 @@ let list_possible_modes mod_path ctxt rels =
   modes
 
 let gen_fns_info l mod_path (ctxt : defn_ctxt) names rules =
-  let env = defn_ctxt_get_cur_env ctxt in
+  let env = defn_ctxt_to_env ctxt in
   let rels = get_rels env l names rules in
   let l = loc_trans "gen_fns_info" l in
 (*  list_possible_modes mod_path ctxt rels;  *)

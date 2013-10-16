@@ -4,6 +4,7 @@ open Typed_ast
 type defn_ctxt = { 
   all_tdefs : type_defs; 
   ctxt_c_env : c_env;
+  ctxt_e_env : mod_descr Pfmap.t;
   new_tdefs : Path.t list;
   all_instances : i_env;
   new_instances : i_env;
@@ -35,8 +36,8 @@ let add_d_to_ctxt (ctxt : defn_ctxt) (p : Path.t) (d : tc_def) =
               new_tdefs = p :: ctxt.new_tdefs }
 
 
-let defn_ctxt_get_cur_env (d : defn_ctxt) : env =
-  { local_env = d.cur_env; Typed_ast.c_env = d.ctxt_c_env; t_env = d.all_tdefs; i_env = d.all_instances }
+let defn_ctxt_to_env (d : defn_ctxt) : env =
+  { local_env = d.cur_env; Typed_ast.c_env = d.ctxt_c_env; t_env = d.all_tdefs; i_env = d.all_instances; e_env = d.ctxt_e_env }
 
 
 (* adds a type to p_env *)
@@ -66,8 +67,8 @@ let add_m_to_ctxt (l : Ast.l) (ctxt : defn_ctxt) (k : Name.t) (v : mod_descr)
       ctxt_add 
         (fun x -> x.m_env) 
         (fun x y -> { x with m_env = y }) 
-        ctxt 
-        (k,v)
+        {ctxt with ctxt_e_env = Pfmap.insert ctxt.ctxt_e_env (v.mod_binding, v)}
+        (k,v.mod_binding)
 
 (* Add a lemma name to the context *)
 let add_lemma_to_ctxt (ctxt : defn_ctxt) (n : Name.t)  

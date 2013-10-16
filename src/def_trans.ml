@@ -64,11 +64,7 @@ let rec list_to_mac = function
              | Some((e,d)) -> Some((e,d)))
 
 let rec process_defs path (trans : def_macro) mod_name (env : env) defs = 
-  let (sub_env : mod_descr) = 
-    match Nfmap.apply env.local_env.m_env mod_name with
-      | None -> assert false
-      | Some(x) -> x
-  in
+  let (sub_env : mod_descr) = lookup_mod_descr env [] mod_name in
   let rec p env defs =
     match defs with
       | [] -> (env,[])
@@ -92,9 +88,8 @@ let rec process_defs path (trans : def_macro) mod_name (env : env) defs =
           end
   in
   let (env',defs') = p {env with local_env = sub_env.mod_env} defs in
-  let m_env' = Nfmap.insert env.local_env.m_env (mod_name, {sub_env with mod_env = env'.local_env}) in
-  let local_env' = {env.local_env with m_env = m_env'} in
-    ({ env' with local_env = local_env' },
+  let e_env' = Pfmap.insert env.e_env (sub_env.mod_binding, {sub_env with mod_env = env'.local_env}) in
+    ({ env' with e_env = e_env'; local_env = env.local_env },
      defs')
 
 
@@ -211,7 +206,7 @@ let class_to_record mod_path env ((d,s),l,lenv) =
 
 (* turns an instance declaration into a module containing all the field declarations
    and a dictionary at the end *)
-let instance_to_module (global_env : env) mod_path (env : env) ((d,s),l,lenv) =
+let instance_to_module mod_path (env : env) ((d,s),l,lenv) =
   let l_unk n = Ast.Trans(true, "instance_to_module" ^ string_of_int n , Some l) in
   match d with
       | Instance(sk1, (prefix, sk2, id, class_path, t, sk3), vdefs, sk4) ->
@@ -263,7 +258,7 @@ let instance_to_module (global_env : env) mod_path (env : env) ((d,s),l,lenv) =
           end in
 
           (* environment inside the module *)
-          let lenv' = local_env_union lenv (lookup_mod_descr lenv [] inst_name).mod_env in
+          let lenv' = local_env_union lenv (lookup_mod_descr {env with local_env = lenv} [] inst_name).mod_env in
 
           (* finally, we get the module *)
           let tnvars_set = List.fold_right TNset.add id.inst_tyvars TNset.empty in

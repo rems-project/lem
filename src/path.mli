@@ -56,6 +56,11 @@ val from_id : Ident.t -> t
 val get_name : t -> Name.t
  *)
 val mk_path : Name.t list -> Name.t -> t
+
+(** [mk_path_list names] splits names into [ns @ [n]] and calls
+    [mk_path ns n]. It fails, if [names] is empty. *)
+val mk_path_list : Name.t list -> t
+
 val numpath : t
 val listpath : t
 val vectorpath : t

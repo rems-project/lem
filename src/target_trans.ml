@@ -73,7 +73,7 @@ type trans =
 let dictionary_macros targ = 
   [
    Def_macros (fun env -> [M.class_to_record]);
-   Def_macros (fun env -> [M.instance_to_module env]);
+   Def_macros (fun env -> [M.instance_to_module]);
    Def_macros (fun env -> [M.class_constraint_to_parameter]);
    Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_method]);
    Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_class_const targ])
@@ -296,7 +296,7 @@ let rename_def_params targ consts =
     List.map (fun (m:Typed_ast.checked_module) -> 
        {m with Typed_ast.typed_ast = (let (defs, end_lex_skips) = m.Typed_ast.typed_ast in (List.map rdp defs, end_lex_skips))})
 
-let trans (targ : Target.target) params env m =
+let trans (targ : Target.target) params env (m : checked_module) =
   let (defs, end_lex_skips) = m.typed_ast in
   let indreln_macros = 
     [
