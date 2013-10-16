@@ -206,12 +206,15 @@ let get_prec targ env c =
 
   match targ with
     | Target.Target_ident -> (* The precedences for the identity backend are hardcoded. *)
-        let n = Path.get_name c_descr.const_binding in
-        get_ident_prec (Op (Name.to_string n))
+        get_ident_prec (Op (Name.to_string (Path.get_name c_descr.const_binding)))
     | Target.Target_no_ident targ' -> (* precedences for real targets are stored in the constant description *)
       begin
         match Target.Targetmap.apply c_descr.target_rep targ' with
          | Some (CR_infix (_, _, fixity, _)) -> ast_fixity_decl_to_t fixity
          | Some (CR_special _) -> P_special (* TODO: Thomas T.: uncertain, whether P_prefix would be better here, but it should not matter much I hope *)
-         | _ -> P_prefix
+         | Some _ -> P_prefix
+         | None -> (* if not target definition is given then default to the one for the identity backend, if it is a human readable backend. *)
+                   if (Target.is_human_target targ) then 
+                      get_ident_prec (Op (Name.to_string (Path.get_name c_descr.const_binding)))
+                   else P_prefix
       end

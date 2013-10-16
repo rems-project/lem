@@ -337,12 +337,12 @@ target_rep_rhs =  (* right hand side of a target representation declaration *)
 
 type declare_def =  (* declarations *)
  | Decl_compile_message_decl of lskips * targets_opt * lskips * const_descr_ref id * lskips * lskips * string 
- | Decl_target_rep_decl_term of lskips * Ast.target * lskips * Ast.component * const_descr_ref id * name_lskips_annot list * lskips * target_rep_rhs
- | Decl_target_rep_decl_type of lskips * Ast.target * lskips * lskips * Path.t id * tnvar list * lskips * src_t
+ | Decl_target_rep_decl_term of lskips * Ast.target  * lskips * Ast.component * const_descr_ref id * name_lskips_annot list * lskips * target_rep_rhs
+ | Decl_target_rep_decl_type of lskips * Ast.target  * lskips * lskips * Path.t id * tnvar list * lskips * src_t
+ | Decl_ascii_rep_decl       of lskips * targets_opt * lskips * Ast.component * const_descr_ref id * lskips * Name.lskips_t
 
 (*
  | Decl_rename_decl of lskips * targets option * lskips * component * id * lskips * x_l
- | Decl_ascii_rep_decl of lskips * targets option * lskips * component * x_l * lskips * x_l
  | Decl_set_flag_decl of lskips * lskips * x_l * lskips * x_l
  | Decl_termination_argument_decl of lskips * targets option * lskips * id * lskips * termination_setting
  | Decl_pattern_match_decl of lskips * targets option * lskips * exhaustivity_setting * x_l * tnvar list * lskips * lskips * (exp) list * lskips * elim_opt

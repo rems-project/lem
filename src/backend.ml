@@ -184,6 +184,7 @@ module type Target = sig
   val const_bone : t
 
   (* Expressions *)
+  val backend_quote : t -> t
   val case_start : t
   val case_sep1 : t
   val case_sep2 : t
@@ -386,6 +387,7 @@ module Identity : Target = struct
   let const_bzero = kwd "#0"
   let const_bone = kwd "#1"
 
+  let backend_quote i = (meta "`") ^ i ^ (meta "`")
   let case_start = kwd "match"
   let case_sep1 = kwd "with"
   let case_sep2 = kwd "|"
@@ -588,6 +590,7 @@ module Tex : Target = struct
   let const_bzero = kwd "#0"
   let const_bone = kwd "#1"
 
+  let backend_quote i = (meta "`") ^ i ^ (meta "`")
   let case_start = tkwdl "match"
   let case_sep1 = tkwdm "with"
   let case_sep2 = kwd "|" ^ texspace
@@ -709,6 +712,7 @@ module Ocaml : Target = struct
   let target = Target_no_ident Target_ocaml
 
   let path_sep = kwd "."
+  let backend_quote i = i
 
   let typ_rec_start = kwd "{"
   let typ_rec_end = kwd "}"
@@ -768,6 +772,7 @@ module Isa : Target = struct
 
   let path_sep = kwd "."
   let list_sep = kwd ","
+  let backend_quote i = i
 
   let ctor_typ_end _ _ = emp
   let ctor_typ_end' _ _ _ = emp
@@ -948,6 +953,7 @@ module Hol : Target = struct
 
   let path_sep = meta "$"
   let list_sep = kwd ";"
+  let backend_quote i = i
 
   let ctor_typ_end _ _ = emp
   let ctor_typ_end' _ _ _ = emp
@@ -1421,9 +1427,7 @@ and patlist ps =
 
 let backend sk i =
   ws sk ^
-  (if T.target = Target_ident then meta "`" else emp) ^
-  Ident.to_output Term_const T.path_sep i ^
-  (if T.target = Target_ident then meta "`" else emp) 
+  T.backend_quote (Ident.to_output Term_const T.path_sep i)
 
 let rec exp e = 
 let is_user_exp = is_pp_exp e in

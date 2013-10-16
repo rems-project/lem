@@ -483,6 +483,8 @@ type declare_def =  (** Declarations *)
  | Decl_target_rep_decl_type of lskips * Ast.target * lskips * lskips * Path.t id * tnvar list * lskips * src_t
    (** [Decl_target_rep_decl_type (sk1, targ, sk2, sk3, id, args, sk4, rhs)] declares a target-representation. for target [targ] and
        type [id] with arguments [args]. *)
+ | Decl_ascii_rep_decl       of lskips * targets_opt * lskips * Ast.component * const_descr_ref id * lskips * Name.lskips_t
+
 
 type def_aux =
   | Type_def of lskips * (name_l * tnvar list * Path.t * texp * name_sect option) lskips_seplist

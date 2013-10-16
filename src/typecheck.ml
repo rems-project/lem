@@ -2801,6 +2801,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                   let const_descr = { const_descr with target_ascii_rep = tr } in
                   let cenv = Typed_ast.c_env_update ctxt.ctxt_c_env const_descr_ref const_descr in
                   let ctxt'' = { ctxt' with ctxt_c_env = cenv} in
+
                     ctxt'', None
               | (Nk_module _) ->
                     raise (Reporting_basic.err_general true l "ascii representation for modules not implemented yet")

@@ -106,4 +106,6 @@ let read_constants file =
 let read_target_constants lib_path targ =
   match targ with
     | Target_ident -> NameSet.empty
-    | Target_no_ident targ' -> read_constants (lib_path ^^ (non_ident_target_to_string targ' ^ "_constants"))
+    | Target_no_ident targ' -> (try 
+        read_constants (lib_path ^^ (non_ident_target_to_string targ' ^ "_constants"))
+      with _ -> NameSet.empty)
