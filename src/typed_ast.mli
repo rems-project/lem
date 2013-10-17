@@ -283,6 +283,9 @@ and const_descr =
 
     compile_message : string Target.Targetmap.t;
     (** An optional warning message that should be printed, if the constant is used *)
+
+    termination_setting: Ast.termination_setting Target.Targetmap.t;
+    (** Can termination be proved automatically by various backends? *)
   }
 
 and v_env = const_descr_ref Nfmap.t
@@ -515,7 +518,6 @@ type declare_def =  (** Declarations *)
 
 
  | Decl_termination_argument  of lskips * targets_opt * lskips * const_descr_ref id * lskips * Ast.termination_setting
- | Decl_set_flag              of lskips * lskips * Name.lskips_t * lskips * Name.lskips_t
 
 
 

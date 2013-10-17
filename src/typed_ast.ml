@@ -183,7 +183,8 @@ and const_descr = { const_binding : Path.t;
                     target_rename : (Ast.l * Name.t) Targetmap.t;
                     target_ascii_rep : (Ast.l * Name.t) Targetmap.t;
                     target_rep : const_target_rep Targetmap.t;
-                    compile_message : string Target.Targetmap.t; }
+                    compile_message : string Target.Targetmap.t;
+                    termination_setting: Ast.termination_setting Targetmap.t}
 
 and v_env = const_descr_ref Nfmap.t
 and f_env = const_descr_ref Nfmap.t
@@ -357,8 +358,8 @@ type declare_def =  (* declarations *)
  | Decl_rename                of lskips * targets_opt * lskips * Ast.component * name_kind id * lskips * Name.lskips_t
  | Decl_rename_current_module of lskips * targets_opt * lskips * lskips * lskips * Name.lskips_t
  | Decl_termination_argument  of lskips * targets_opt * lskips * const_descr_ref id * lskips * Ast.termination_setting
- | Decl_set_flag              of lskips * lskips * Name.lskips_t * lskips * Name.lskips_t
 (*
+ | Decl_set_flag              of lskips * lskips * Name.lskips_t * lskips * Name.lskips_t
  | Decl_pattern_match_decl of lskips * targets option * lskips * exhaustivity_setting * x_l * tnvar list * lskips * lskips * (exp) list * lskips * elim_opt
 *)
 

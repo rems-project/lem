@@ -111,7 +111,7 @@ lemma isJustNothing: (
 
 val fromJust : forall 'a. maybe 'a -> 'a
 let fromJust (Just v) = v
-declare termination_argument length = automatic
+declare termination_argument fromJust = automatic
 declare compile_message fromJust = "fromJust is only defined on Just. Better use `fromMaybe` or use explicit maching to handle the Nothing-case."
 
 declare hol      target_rep function fromJust = `THE`

@@ -1884,6 +1884,7 @@ let add_let_defs_to_ctxt
                       target_rename = Targetmap.empty;
                       target_rep = Targetmap.empty;
                       target_ascii_rep = Targetmap.empty;
+                      termination_setting = Target.Targetmap.empty;
                       compile_message = Targetmap.empty } in
               let (c_env', c) = c_env_save c_env None c_d in
               (c_env', Nfmap.insert new_env (n, c))
@@ -2098,6 +2099,7 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
                    target_rename = Targetmap.empty;
                    target_rep = Targetmap.empty;
                    target_ascii_rep = Targetmap.empty;
+                   termination_setting = Targetmap.empty;
                    compile_message = Targetmap.empty })
               context
               (Seplist.map (fun (x,y,src_t) -> (x,y,src_t)) recs)
@@ -2125,6 +2127,7 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
                    target_rename = Targetmap.empty;
                    target_rep = Targetmap.empty;
                    target_ascii_rep = Targetmap.empty;
+                   termination_setting = Targetmap.empty;
                    compile_message = Targetmap.empty })
               tvs_set
               context
@@ -2185,6 +2188,7 @@ let check_val_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
       target_rename = Targetmap.empty;
       target_rep = Targetmap.empty;
       target_ascii_rep = Targetmap.empty;
+      termination_setting = Targetmap.empty;
       compile_message = Targetmap.empty }
   in
   let (c_env', v) = c_env_save ctxt.ctxt_c_env None v_d in
@@ -2230,6 +2234,7 @@ let check_class_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
       env_tag = K_method;
       const_targets = all_targets;
       relation_info = None;
+      termination_setting = Target.Targetmap.empty;
       target_rename = Targetmap.empty;
       target_rep = Targetmap.empty;
       target_ascii_rep = Targetmap.empty;
@@ -2663,9 +2668,8 @@ begin
               instantiation = []; } in  
 
   let td = match Pfmap.apply ctxt.all_tdefs p with
-            | None ->
-                raise (Reporting_basic.err_general true l "invariant in checking type broken")
-            | Some(Tc_type(td)) -> td in
+            | Some(Tc_type(td)) -> td 
+            | _ -> raise (Reporting_basic.err_general true l "invariant in checking type broken") in
   let _ = if List.length td.type_tparams = List.length tvs then () else
             raise (Reporting_basic.err_type_pp l (Printf.sprintf "type constructor expected %d type arguments, given %d" 
                         (List.length td.type_tparams)
@@ -2749,7 +2753,6 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           (ctxt', def')
       | Ast.Declaration(Ast.Decl_rename_current_module_decl(sk1, target_opt, sk2, component_sk, sk3, xl')) ->
           let n' = Name.from_x xl' in
-          let l' = Ast.xl_to_l xl' in
           let targs = check_target_opt target_opt in
 
           let def' = Some (Declaration (Decl_rename_current_module (sk1, targs, sk2, component_sk, sk3, n'))) in
@@ -2758,9 +2761,16 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
       | Ast.Declaration(Ast.Decl_pattern_match_decl (_, _, _, _, _, _, _, _, _, _, _)) ->
           let _ = prerr_endline "pattern match decl encountered" in
             ctxt, None
-      | Ast.Declaration(Ast.Decl_termination_argument_decl (_, _, _, _, _, _)) ->
-          let _ = prerr_endline "termination argument decl encountered" in
-            ctxt, None
+      | Ast.Declaration(Ast.Decl_termination_argument_decl (sk1, target_opt, sk2, id, sk3, term_setting)) ->
+          let targs = check_target_opt target_opt in
+          let (c_id, c_descr) = component_term_id_lookup l ctxt (Ast.Component_function None) id in
+
+          let ts = targets_opt_to_set target_opt in
+          let tsm = Targetset.fold (fun t r -> Targetmap.insert r (t,term_setting)) ts c_descr.termination_setting in
+          let c_env' = c_env_update ctxt.ctxt_c_env c_id.descr {c_descr with termination_setting = tsm} in
+
+          let def' = Some (Declaration (Decl_termination_argument (sk1, targs, sk2, c_id, sk3, term_setting))) in
+          ({ctxt with ctxt_c_env = c_env'}, def') 
       | Ast.Declaration(Ast.Decl_target_rep_decl (sk1, target, sk2, Ast.Target_rep_lhs_term(sk3, comp, id, args), sk4, rhs)) ->
           check_declare_target_rep_term backend_targets mod_path l ctxt sk1 target (Ast.combine_lex_skips sk2 sk3) comp id args sk4 rhs
       | Ast.Declaration(Ast.Decl_target_rep_decl (sk1, target, sk2, Ast.Target_rep_lhs_type(sk3, Ast.Component_type sk4, x, tnvars), sk5, Ast.Target_rep_rhs_type_replacement typ)) ->
@@ -2984,6 +2994,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                    env_tag = K_field;
                    const_targets = all_targets;
                    relation_info = None;
+                   termination_setting = Targetmap.empty;
                    target_rename = Targetmap.empty;
                    target_rep = Targetmap.empty;
                    target_ascii_rep = Targetmap.empty;
@@ -3160,6 +3171,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
               spec_l = Ast.Trans(true, "instance_to_module", Some l);
               const_targets = Target.all_targets;
               relation_info = None;
+              termination_setting = Targetmap.empty;
               target_rename = Targetmap.empty;
               target_rep = Targetmap.empty;
               target_ascii_rep = Targetmap.empty;

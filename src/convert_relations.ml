@@ -786,6 +786,7 @@ let register_types rel_loc ctxt mod_path tds =
         target_rep = Target.Targetmap.empty;
         target_ascii_rep =  Target.Targetmap.empty;
         compile_message = Target.Targetmap.empty;
+        termination_setting = Target.Targetmap.empty;
       } in
       let (c_env, c_ref) = c_env_store c_env descr in
       (c_env, cname, c_ref)
@@ -952,6 +953,7 @@ let gen_witness_check_info l mod_path ctxt names rules =
       target_rep = Target.Targetmap.empty;
       target_ascii_rep =  Target.Targetmap.empty;
       compile_message = Target.Targetmap.empty;
+      termination_setting = Target.Targetmap.empty;
     } in
     let c_env, c_ref = c_env_store ctxt.ctxt_c_env c_descr in
     let ctxt = { ctxt with ctxt_c_env = c_env } in
@@ -1250,6 +1252,7 @@ let gen_fns_info_aux l mod_path ctxt rels =
         target_rename = Target.Targetmap.empty;
         target_ascii_rep =  Target.Targetmap.empty;
         compile_message = Target.Targetmap.empty;
+        termination_setting = Target.Targetmap.empty;
       } in
       let c_env, f_ref = c_env_store ctxt.ctxt_c_env f_descr in
       let ctxt = { ctxt with ctxt_c_env = c_env } in

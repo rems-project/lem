@@ -2584,6 +2584,21 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         ws sk4 ^
         str (Ulib.Text.of_string (T.string_escape msg))
       end
+  | Declaration (Decl_termination_argument (sk1, targets, sk2, c_id, sk3, term_arg)) -> 
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        kwd "declare" ^
+        targets_opt targets ^
+        ws sk2 ^
+        kwd "termination_argument" ^
+        (Ident.to_output Term_const T.path_sep (B.const_id_to_ident c_id true)) ^
+        ws sk3 ^
+        kwd "=" ^ (
+        match term_arg with
+          | Ast.Termination_setting_automatic sk -> (ws sk ^ kwd "automatic")
+          | Ast.Termination_setting_manual sk -> (ws sk ^ kwd "manual")
+        )          
+      end
   | Comment(d) ->
       let (d',sk) = def_alter_init_lskips (fun sk -> (None, sk)) d in
         ws sk ^ ws (Some([Ast.Com(Ast.Comment([Ast.Chars(X.comment_def d')]))]))
