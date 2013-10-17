@@ -1248,6 +1248,11 @@ let field_ident_to_output cd =
   Ident.to_output Term_field T.path_sep (B.const_id_to_ident cd (use_ascii_rep_for_const cd))
 ;;
 
+let nk_id_to_output (nk : name_kind id) = match nk.id_path with
+  | Id_none sk -> ws sk
+  | Id_some i -> (Ident.to_output Term_const T.path_sep i)
+
+
 let tyvar tv =
   match tv with
    | Tn_A(s,tv,l) -> ws s ^ id Type_var (Ulib.Text.(^^^) T.typ_var tv)
@@ -2489,7 +2494,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
               specs) ^
       ws s4 ^
       kwd "end"
-  | Declaration (Decl_target_rep_decl_term (sk1, targ, sk2, comp, id, args, sk3, rhs)) ->
+  | Declaration (Decl_target_rep_term (sk1, targ, sk2, comp, id, args, sk3, rhs)) ->
       if (not (Target.is_human_target T.target)) then emp else begin
         ws sk1 ^
         kwd "declare" ^
@@ -2512,7 +2517,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
           | _ -> raise (Reporting_basic.err_todo true Ast.Unknown "declaration")
         ) 
       end
-  | Declaration (Decl_target_rep_decl_type (sk1, targ, sk2, sk3, id, args, sk4, rhs)) ->
+  | Declaration (Decl_target_rep_type (sk1, targ, sk2, sk3, id, args, sk4, rhs)) ->
       if (not (Target.is_human_target T.target)) then emp else begin
         ws sk1 ^
         kwd "declare" ^
@@ -2527,7 +2532,58 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         kwd "=" ^
         typ rhs
       end
-  | Declaration (Decl_compile_message_decl _) -> raise (Reporting_basic.err_todo true Ast.Unknown "compile message declaration") 
+  | Declaration (Decl_ascii_rep (sk1, targets, sk2, comp, nk_id, sk3, n)) ->
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        kwd "declare" ^
+        targets_opt targets ^
+        ws sk2 ^
+        kwd "ascii_rep" ^
+        component_to_output comp ^
+        nk_id_to_output nk_id ^
+        ws sk3 ^
+        kwd "=" ^
+        (Name.to_output Term_const n)
+      end
+  | Declaration (Decl_rename (sk1, targets, sk2, comp, nk_id, sk3, n)) ->
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        kwd "declare" ^
+        targets_opt targets ^
+        ws sk2 ^
+        kwd "rename" ^
+        component_to_output comp ^
+        nk_id_to_output nk_id ^
+        ws sk3 ^
+        kwd "=" ^
+        (Name.to_output Term_const n)
+      end
+  | Declaration (Decl_rename_current_module (sk1, targets, sk2, sk3, sk4, n)) ->
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        kwd "declare" ^
+        targets_opt targets ^
+        ws sk2 ^
+        kwd "rename" ^
+        ws sk3 ^
+        kwd "module" ^
+        ws sk4 ^
+        kwd "=" ^
+        (Name.to_output Term_const n)
+      end
+  | Declaration (Decl_compile_message (sk1, targets, sk2, c_id, sk3, sk4, msg)) -> 
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        kwd "declare" ^
+        targets_opt targets ^
+        ws sk2 ^
+        kwd "compile_message" ^
+        (Ident.to_output Term_const T.path_sep (B.const_id_to_ident c_id true)) ^
+        ws sk3 ^
+        kwd "=" ^
+        ws sk4 ^
+        str (Ulib.Text.of_string (T.string_escape msg))
+      end
   | Comment(d) ->
       let (d',sk) = def_alter_init_lskips (fun sk -> (None, sk)) d in
         ws sk ^ ws (Some([Ast.Com(Ast.Comment([Ast.Chars(X.comment_def d')]))]))

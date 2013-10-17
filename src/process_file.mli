@@ -51,21 +51,6 @@ val parse_file : string -> Ast.defs * Ast.lex_skips
 
 type instances = Types.instance list Types.Pfmap.t
 
-val check_ast_as_module : 
-  Targetset.t ->
-  Name.t list ->
-  env ->
-  Ulib.Text.t ->
-  Ast.defs * Ast.lex_skips ->
-  env * (def list * Ast.lex_skips)
-
-val check_ast : 
-  Targetset.t ->
-  Name.t list ->
-  env ->
-  Ast.defs * Ast.lex_skips ->
-  env * (def list * Ast.lex_skips)
-
 val output :   
   string ->                           (* The path to the library *)
   string ->                           (* Isabelle Theory to be included *)

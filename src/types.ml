@@ -497,6 +497,17 @@ begin
     | None -> raise (env_no_update_exp l p)
 end
 
+let type_defs_update_tc_class (l : Ast.l) (d : type_defs) (p : Path.t) (up : class_descr -> class_descr option) : type_defs =
+begin
+  let cd = match (Pfmap.apply d p) with
+    | Some (Tc_class cd) -> cd
+    | _ -> raise (env_no_type_exp (Ast.Trans (false, "type_defs_update_tc_class", Some l)) p)
+  in
+  match up cd with
+    | Some cd' -> Pfmap.insert d (p, Tc_class cd')
+    | None -> raise (env_no_update_exp l p)
+end
+
 let type_defs_update_fields l (d : type_defs) (p : Path.t) (fl : const_descr_ref list) : type_defs =
   let l = Ast.Trans (false, "type_defs_update_fields", Some l) in
   type_defs_update_tc_type l d p (fun tc -> Some {tc with type_fields = Some fl})

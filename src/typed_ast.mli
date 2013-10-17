@@ -153,6 +153,15 @@ and lit_aux =
 
 type const_descr_ref = Types.const_descr_ref
 
+type name_kind =
+  | Nk_typeconstr of Path.t
+  | Nk_const of const_descr_ref
+  | Nk_constr of const_descr_ref
+  | Nk_field of const_descr_ref
+  | Nk_module of Path.t
+  | Nk_class of Path.t
+
+
 type pat = (pat_aux,pat_annot) annot
 and pat_annot = { pvars : Types.t Nfmap.t }
 
@@ -263,8 +272,8 @@ and const_descr =
     (** The location for the first occurrence of a definition/specification of
         this constant. *)
     
-    target_rename : (Ast.l * bool * Name.t) Target.Targetmap.t;
-    (** Target-specific renames of for this constant. The boolean flag indicates, whether further renames are allowed. *)
+    target_rename : (Ast.l * Name.t) Target.Targetmap.t;
+    (** Target-specific renames of for this constant. *)
 
     target_ascii_rep : (Ast.l * Name.t) Target.Targetmap.t;
     (** Optional ASCII representation for this constant. *)
@@ -297,7 +306,15 @@ and env = {
     e_env : e_env;           (** global map from module paths to the module descriptions *)
  }
 
-and mod_descr = { mod_binding : Path.t; mod_env : local_env; }
+and mod_target_rep =
+  | MR_rename of Ast.l * Name.t (** Rename the module *)
+  | MR_merge_with_parent (** Merge the module with it's parent module. Some modules only exist for certain backends. An example 
+      are modules for record fields. These only exists for certain backends, while other backends store the fields in the
+      module that contains the record field definition. *) 
+
+and mod_descr = { mod_binding : Path.t; (** The full path of this module *)
+                  mod_env : local_env;  (** The local environment of the module *)
+                  mod_target_rep : mod_target_rep Target.Targetmap.t; (** how to represent the module for different backends *)}
 
 and exp
 and exp_subst =
@@ -335,7 +352,7 @@ and exp_aux = private
   | Comp_binding of bool * lskips * exp * lskips * lskips * quant_binding list * lskips * exp * lskips
     (** [true] for list comprehensions, [false] for set comprehensions *)
   | Quant of Ast.q * quant_binding list * lskips * exp
-  | Do of lskips * mod_descr id * do_line list * lskips * exp * lskips * (Types.t * bind_tyargs_order)
+  | Do of lskips * Path.t id * do_line list * lskips * exp * lskips * (Types.t * bind_tyargs_order)
     (** The last argument is the type of the value in the monad *)
 
 and do_line = Do_line of (pat * lskips * exp * lskips)
@@ -481,17 +498,26 @@ type target_rep_rhs =  (** right hand side of a target representation declaratio
  | Target_rep_rhs_special of lskips * lskips * string * exp list (** fancy represenation of terms *)
 
 type declare_def =  (** Declarations *)
- | Decl_compile_message_decl of lskips * targets_opt * lskips * const_descr_ref id * lskips * lskips * string 
+ | Decl_compile_message of lskips * targets_opt * lskips * const_descr_ref id * lskips * lskips * string 
    (** [Decl_compile_message_decl (sk1, targs, sk2, c, sk3, sk4, message)], declares printing waring message
        [message], if constant [c] is used for one of the targets in [targs] *)
- | Decl_target_rep_decl_term of lskips * Ast.target * lskips * Ast.component * const_descr_ref id * name_lskips_annot list * lskips * target_rep_rhs
-   (** [Decl_target_rep_decl_term (sk1, targ, sk2, comp, c, args, sk3, rhs)] declares a target-representation for target [targ] and
+ | Decl_target_rep_term of lskips * Ast.target * lskips * Ast.component * const_descr_ref id * name_lskips_annot list * lskips * target_rep_rhs
+   (** [Decl_target_rep_term (sk1, targ, sk2, comp, c, args, sk3, rhs)] declares a target-representation for target [targ] and
        constant [c] with arguments [args]. Since fields and constant live in different namespaces, [comp] is used to declare
        whether a field or a constant is meant. The [rhs] constains details about the representation. *)
- | Decl_target_rep_decl_type of lskips * Ast.target * lskips * lskips * Path.t id * tnvar list * lskips * src_t
-   (** [Decl_target_rep_decl_type (sk1, targ, sk2, sk3, id, args, sk4, rhs)] declares a target-representation. for target [targ] and
+ | Decl_target_rep_type of lskips * Ast.target * lskips * lskips * Path.t id * tnvar list * lskips * src_t
+   (** [Decl_target_rep_type (sk1, targ, sk2, sk3, id, args, sk4, rhs)] declares a target-representation. for target [targ] and
        type [id] with arguments [args]. *)
- | Decl_ascii_rep_decl       of lskips * targets_opt * lskips * Ast.component * const_descr_ref id * lskips * Name.lskips_t
+
+ | Decl_ascii_rep             of lskips * targets_opt * lskips * Ast.component * name_kind id * lskips * Name.lskips_t
+ | Decl_rename                of lskips * targets_opt * lskips * Ast.component * name_kind id * lskips * Name.lskips_t
+ | Decl_rename_current_module of lskips * targets_opt * lskips * lskips * lskips * Name.lskips_t
+
+
+ | Decl_termination_argument  of lskips * targets_opt * lskips * const_descr_ref id * lskips * Ast.termination_setting
+ | Decl_set_flag              of lskips * lskips * Name.lskips_t * lskips * Name.lskips_t
+
+
 
 
 type def_aux =
@@ -504,9 +530,9 @@ type def_aux =
         over, and the list contains the class constraints on those variables *)
   | Lemma of lskips * Ast.lemma_typ * targets_opt * (name_l * lskips) option * lskips * exp * lskips
   | Module of lskips * name_l * Path.t * lskips * lskips * def list * lskips
-  | Rename of lskips * name_l * Path.t * lskips * mod_descr id
+  | Rename of lskips * name_l * Path.t * lskips * Path.t id
     (** Renaming an already defined module *)
-  | OpenImport of Ast.open_import * (mod_descr id) list
+  | OpenImport of Ast.open_import * (Path.t id) list
     (** open and/or import modules *)
   | Indreln of lskips * targets_opt * indreln_name lskips_seplist * indreln_rule lskips_seplist
     (** Inductive relations *)
@@ -528,6 +554,11 @@ val tnvar_to_types_tnvar : tnvar -> Types.tnvar * Ast.l
 val empty_local_env : local_env
 val empty_env : env
 
+(** [e_env_lookup l e_env p] looks up the module with path [p] in
+    environment [e_env] and returns the corresponding description. If this
+    lookup fails, a fatal error is thrown using location [l] for the error message. *)
+val e_env_lookup : Ast.l -> e_env -> Path.t -> mod_descr
+
 (** [c_env_lookup l c_env c_ref] looks up the constant reference [c_ref] in
     environment [c_env] and returns the corresponding description. If this
     lookup fails, a fatal error is thrown using location [l] for the error message. *)
@@ -548,11 +579,10 @@ val c_env_update : c_env -> const_descr_ref -> const_descr -> c_env
     [c_d] in environment [env]. *)
 val env_c_env_update : env -> const_descr_ref -> const_descr -> env
 
-(** [env_m_env_move env mod_prefix mod_name new_local] replaces the local environment of [env] with
-    [new_local] and adds a module with name [mod_name] and path_prefix [mod_prefix]
-    and the content of the old local environment
-    to the module map of the new environment. *)
-val env_m_env_move : env -> Name.t list -> Name.t -> local_env -> env
+(** [env_m_env_move env mod_prefix mod_name target_rep new_local] replaces the local environment of [env] with
+    [new_local] and adds a module with name [mod_name], path_prefix [mod_prefix], representation [target_rep]
+    and the content of the old local environment to the module map of the new environment. *)
+val env_m_env_move : env -> Name.t list -> Name.t -> mod_target_rep Target.Targetmap.t -> local_env -> env
 
 val exp_to_locn : exp -> Ast.l
 val exp_to_typ : exp -> Types.t
@@ -669,20 +699,12 @@ module Exps_in_context(C : Exp_context) : sig
   val mk_setcomp : Ast.l -> lskips -> exp -> lskips -> exp -> lskips -> NameSet.t -> Types.t option -> exp
   val mk_comp_binding : Ast.l -> bool -> lskips -> exp -> lskips -> lskips -> quant_binding list -> lskips -> exp -> lskips -> Types.t option -> exp
   val mk_quant : Ast.l -> Ast.q -> quant_binding list -> lskips -> exp -> Types.t option -> exp
-  val mk_do : Ast.l -> lskips -> mod_descr id -> do_line list -> lskips -> exp -> lskips -> (Types.t * bind_tyargs_order) -> Types.t option -> exp
+  val mk_do : Ast.l -> lskips -> Path.t id -> do_line list -> lskips -> exp -> lskips -> (Types.t * bind_tyargs_order) -> Types.t option -> exp
   val t_to_src_t : Types.t -> src_t
   val pat_subst : Types.t Types.TNfmap.t * Name.t Nfmap.t -> pat -> pat
 end
 
 val local_env_union : local_env -> local_env -> local_env
-
-type name_kind =
-  | Nk_typeconstr of Path.t
-  | Nk_const of const_descr_ref
-  | Nk_constr of const_descr_ref
-  | Nk_field of const_descr_ref
-  | Nk_module of Path.t
-  | Nk_class of Path.t
 
 (** Mutually recursive function definitions may contain multiple clauses for the
     same function. These can however appear interleaved with clauses for other functions. 

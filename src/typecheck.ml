@@ -634,9 +634,9 @@ let check_dup_field_names (c_env : c_env) (fns : (const_descr_ref * Ast.l) list)
 
 (* Ensures that a monad operator is bound to a value constant that has no
  * class or length constraints and that has no length type parameters *)
-let check_const_for_do (mid : mod_descr id) (c_env : c_env) (v_env : v_env) (name : string) : 
+let check_const_for_do (mid : Path.t id) (c_env : c_env) (v_env : v_env) (name : string) : 
   Tyvar.t list * t =
-  let error_path = mid.descr.mod_binding in    
+  let error_path = mid.descr in    
     match Nfmap.apply v_env (Name.from_rope (r name)) with
       | None ->
           raise (Reporting_basic.err_type_pp mid.id_locn (Printf.sprintf "monad module missing %s" name)
@@ -1392,7 +1392,7 @@ module Make_checker(T : sig
             let mod_id = 
               { id_path = Id_some (Ident.from_id mn);
                 id_locn = (match mn with Ast.Id(_,_,l) -> l);
-                descr = mod_descr;
+                descr = mod_descr.mod_binding;
                 instantiation = []; }
             in
             let monad_type_ctor = 
@@ -1435,7 +1435,7 @@ module Make_checker(T : sig
                       { t = Tfn({t = Tvar(tv)}, build_monad_type tv) }
                 | tvs ->
                     raise (Reporting_basic.err_type_pp mod_id.id_locn (Printf.sprintf "monad return function with %d type parameters" (List.length tvs))
-                      Path.pp mod_id.descr.mod_binding)
+                      Path.pp mod_id.descr)
             in
             let (bind_tvs, bind_type) = 
               check_const_for_do mod_id T.e.c_env mod_env.v_env "bind" in
@@ -1461,7 +1461,7 @@ module Make_checker(T : sig
                       BTO_output_input )
                 | tvs ->
                     raise (Reporting_basic.err_type_pp mod_id.id_locn (Printf.sprintf "monad >>= function with %d type parameters" (List.length tvs))
-                      Path.pp mod_id.descr.mod_binding)
+                      Path.pp mod_id.descr)
             in
             let (lns_env,lns) = check_lns l_e monad_type_ctor lns in
             let lns = List.rev lns in
@@ -2502,6 +2502,7 @@ let rec check_instance_type_shape (ctxt : defn_ctxt) (src_t : src_t)
         (tvs_to_set [to_tnvar t1; to_tnvar t2], r"fun")
     | Typ_tup(ts) ->
         (tvs_to_set (Seplist.to_list_map to_tnvar ts), r"tup")
+    | Typ_backend(p,_) -> raise (Reporting_basic.err_type p.id_locn "backend-type in class instance type")
     | Typ_app(p,ts) ->
         begin
           match Pfmap.apply ctxt.all_tdefs p.descr with
@@ -2543,6 +2544,8 @@ let check_declare_target_rep_term_rhs (l : Ast.l) ts targ (ctxt : defn_ctxt) c i
        let _ = unsat_constraint_err l constraints in
        (Target_rep_rhs_term_replacement e, CR_simple (l, false, args, e))
      end
+   | Ast.Target_rep_rhs_type_replacement _ ->
+       raise (Reporting_basic.err_unreachable l "check_declare_target_rep_***term***_rhs is only called with terms, not types")
    | Ast.Target_rep_rhs_infix (sk1, infix_decl, sk2, id) ->
        let _ = if (List.length args = 0) then () else
                  raise (Reporting_basic.err_type l "infix target declaration with arguments") in
@@ -2630,7 +2633,7 @@ begin
   (* now parse the rhs, this also updates the context *)
   let (ctxt', rhs_parsed) = check_declare_target_rep_term_rhs l ts (Target.ast_target_to_target target) ctxt c_id.descr (Ident.from_id id) args_parsed rhs_ty rhs in
 
-  let def_aux = Decl_target_rep_decl_term (sk1, target, sk2, comp, c_id, 
+  let def_aux = Decl_target_rep_term (sk1, target, sk2, comp, c_id, 
                    args_parsed, sk3, rhs_parsed) in
   (ctxt', Some (Declaration def_aux))
 end
@@ -2672,7 +2675,7 @@ begin
   let _ = check_free_tvs (tvs_to_set tvs) rhs in
   let rhs_src_t = typ_to_src_t anon_error ignore ignore (defn_ctxt_to_env ctxt) rhs in 
 
-  let def_aux = Decl_target_rep_decl_type (sk1, target, sk2, sk3, p_id, tvs_tast, 
+  let def_aux = Decl_target_rep_type (sk1, target, sk2, sk3, p_id, tvs_tast, 
                    sk4, rhs_src_t) in
   (ctxt, Some (Declaration def_aux))
 end
@@ -2716,44 +2719,42 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
 
           (* do the renaming *)
           let (nk, p) = lookup_name (defn_ctxt_to_env ctxt) (Some component) id in
-          begin
+          let nk_id = { id_path = Id_some (Ident.from_id id); 
+                        id_locn = l; 
+                        descr = nk; 
+                        instantiation = [] } in
+          let def' = Some (Declaration (Decl_rename (sk1, targs, sk2, component, nk_id, sk3, n'))) in
+          let ctxt' = begin
             match nk with
-              | (Nk_field c | Nk_constr c) ->
+              | (Nk_field c | Nk_constr c | Nk_const c) ->
                   begin 
                     let cd = c_env_lookup l ctxt.ctxt_c_env c in
-                    let cd' = List.fold_left (fun cd t -> 
-                      match constant_descr_rename t (Name.strip_lskip n') l cd with
-                        | Some (cd', _) -> cd'
-                        | None -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal (l, "could not rename constant. This is a bug and should not happen."))))
-                          cd (targets_opt_to_list targs)
-                    in
-                      let c_env' = c_env_update ctxt.ctxt_c_env c cd' in
-                        {ctxt with ctxt_c_env = c_env'},
-                        (* TODO: add real declaration *)
-                        None
+                    let cd' = List.fold_left (fun cd t -> fst (constant_descr_rename t (Name.strip_lskip n') l cd)) cd (targets_opt_to_list targs) in
+                    let c_env' = c_env_update ctxt.ctxt_c_env c cd' in
+                    {ctxt with ctxt_c_env = c_env'}
                   end
-              | Nk_typeconstr p -> 
+             | (Nk_typeconstr p | Nk_class p) -> 
                 begin 
                   let td' = List.fold_left (fun td t -> type_defs_rename_type l td p t (Name.strip_lskip n'))
                      ctxt.all_tdefs (targets_opt_to_list targs)
                   in
-                    {ctxt with all_tdefs = td'},
-                    None (* TODO: do it *)
+                  {ctxt with all_tdefs = td'}
                 end
             | Nk_module m ->
-                let l' = Ast.xl_to_l xl' in
-                let n = Name.from_x xl' in 
                 let mod_descr = lookup_mod (defn_ctxt_to_env ctxt) id in
-                  add_m_to_ctxt l' ctxt (Name.strip_lskip n) mod_descr,
-                    Some (Rename(sk1,
-                            (n,l'), 
-                            Path.mk_path mod_path (Name.strip_lskip n),
-                            sk2,
-                            { id_path = Id_some (Ident.from_id id);
-                              id_locn = l;
-                              descr = mod_descr;
-                              instantiation = []; }))
-          end
+                let tr' = List.fold_left (fun tr t -> fst (mod_target_rep_rename t (Name.strip_lskip n') l tr)) mod_descr.mod_target_rep (targets_opt_to_list targs) in
+                let e_env' = Pfmap.insert ctxt.ctxt_e_env (mod_descr.mod_binding, {mod_descr with mod_target_rep = tr'}) in
+                {ctxt with ctxt_e_env = e_env'}
+          end in
+          (ctxt', def')
+      | Ast.Declaration(Ast.Decl_rename_current_module_decl(sk1, target_opt, sk2, component_sk, sk3, xl')) ->
+          let n' = Name.from_x xl' in
+          let l' = Ast.xl_to_l xl' in
+          let targs = check_target_opt target_opt in
+
+          let def' = Some (Declaration (Decl_rename_current_module (sk1, targs, sk2, component_sk, sk3, n'))) in
+          let tr' = List.fold_left (fun tr t -> fst (mod_target_rep_rename t (Name.strip_lskip n') l tr)) ctxt.ctxt_mod_target_rep (targets_opt_to_list targs) in
+          ({ctxt with ctxt_mod_target_rep = tr'}, def') 
       | Ast.Declaration(Ast.Decl_pattern_match_decl (_, _, _, _, _, _, _, _, _, _, _)) ->
           let _ = prerr_endline "pattern match decl encountered" in
             ctxt, None
@@ -2769,7 +2770,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
       | Ast.Declaration(Ast.Decl_set_flag_decl (_, _, _, _, _)) ->
           let _ = prerr_endline "set flag declaration encountered" in
             ctxt, None
-      | Ast.Declaration(Ast.Decl_compile_message_decl (_, targets_opt, _, id, _, _, msg)) ->
+      | Ast.Declaration(Ast.Decl_compile_message_decl (sk1, targets_opt, sk2, id, sk3, sk4, msg)) ->
         begin
           let (c_id, c_descr) = component_term_id_lookup l ctxt (Ast.Component_function None) id in
 
@@ -2777,15 +2778,23 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let tr = Targetset.fold (fun t r -> Targetmap.insert r (t, msg)) ts c_descr.compile_message in
           let c_descr' = {c_descr with compile_message = tr} in
           let ctxt' = {ctxt with ctxt_c_env = c_env_update ctxt.ctxt_c_env c_id.descr c_descr'} in
-          (ctxt', None)
+
+          let def' = Declaration (Decl_compile_message (sk1, check_target_opt targets_opt, sk2, c_id, sk3, sk4, msg)) in
+          (ctxt', Some def')
         end
       | Ast.Declaration(Ast.Decl_ascii_rep_decl(sk1, targets_opt, sk2, component, source_id, sk3, target_name)) ->
-          let target_name = Name.strip_lskip (Name.from_x target_name) in
+          let target_name_lskip = Name.from_x target_name in
+          let target_name = Name.strip_lskip target_name_lskip in
           
           let _ = (if Util.is_simple_ident_string (Name.to_string target_name) then () else
                      raise (Reporting_basic.err_type l "non-ascii ascii representation provided")) in
           let (nk, p) = lookup_name (defn_ctxt_to_env ctxt) (Some component) source_id in
-          begin
+          let nk_id = { id_path = Id_some (Ident.from_id source_id); 
+                        id_locn = l; 
+                        descr = nk; 
+                        instantiation = [] } in
+          let def' = Declaration (Decl_ascii_rep (sk1, check_target_opt targets_opt, sk2, component, nk_id, sk3, target_name_lskip)) in
+          let ctxt' = (* update context *) begin
             match nk with
               | (Nk_field const_descr_ref | Nk_constr const_descr_ref | Nk_const const_descr_ref) ->
                   let ctxt' = begin
@@ -2799,46 +2808,45 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                   let tr = Targetset.fold (fun t r -> Targetmap.insert r (t,(l, target_name))) (targets_opt_to_set targets_opt) const_descr.target_ascii_rep in
                   let const_descr = { const_descr with target_ascii_rep = tr } in
                   let cenv = Typed_ast.c_env_update ctxt.ctxt_c_env const_descr_ref const_descr in
-                  let ctxt'' = { ctxt' with ctxt_c_env = cenv} in
+                  { ctxt' with ctxt_c_env = cenv} 
 
-                    ctxt'', None
               | (Nk_module _) ->
-                    raise (Reporting_basic.err_general true l "ascii representation for modules not implemented yet")
+                    raise (Reporting_basic.err_todo true l "ascii representation for modules not implemented yet")
               | (Nk_typeconstr p | Nk_class p) ->
-                    raise (Reporting_basic.err_general true l "ascii representation for types not implemented yet")
-          end
+                    raise (Reporting_basic.err_todo true l "ascii representation for types not implemented yet")
+          end in
+          (ctxt', Some def')
       | Ast.Module(sk1,xl,sk2,sk3,Ast.Defs(defs),sk4) ->
           let l' = Ast.xl_to_l xl in
-          let n = Name.from_x xl in 
-          let n' = Name.strip_lskip n in 
-          let ctxt1 = { ctxt with new_defs = empty_local_env } in
-          let (new_ctxt,ds) = 
-            check_defs_internal backend_targets (mod_path @ [Name.strip_lskip n]) ctxt1 defs 
-          in
-          let ctxt2 = {new_ctxt with new_defs = ctxt.new_defs; cur_env = ctxt.cur_env }
-          in
-            (add_m_to_ctxt l' ctxt2 (Name.strip_lskip n) { mod_binding = Path.mk_path mod_path n'; mod_env = new_ctxt.new_defs },
-             Some (Module(sk1,(n,l'),Path.mk_path mod_path n',sk2,sk3,ds,sk4)))
+          let n' = Name.from_x xl in
+          let n = Name.strip_lskip n' in 
+          let ctxt1 = ctxt_begin_submodule ctxt in
+          let (new_ctxt,ds) = check_defs_internal backend_targets (mod_path @ [n]) ctxt1 defs in
+          let ctxt2 = ctxt_end_submodule l' ctxt1 mod_path n new_ctxt in
+            (ctxt2,
+             Some (Module(sk1,(n',l'),Path.mk_path mod_path n,sk2,sk3,ds,sk4)))
       | Ast.Rename(sk1, xl', sk2, id) ->
           let l' = Ast.xl_to_l xl' in
           let n = Name.from_x xl' in 
           let mod_descr = lookup_mod (defn_ctxt_to_env ctxt) id in
-            add_m_to_ctxt l' ctxt (Name.strip_lskip n) mod_descr,
+          
+            add_m_alias_to_ctxt l' ctxt (Name.strip_lskip n) mod_descr.mod_binding,
               Some (Rename(sk1,
                           (n,l'), 
                           Path.mk_path mod_path (Name.strip_lskip n),
                           sk2,
                           { id_path = Id_some (Ident.from_id id);
                             id_locn = l;
-                            descr = mod_descr;
+                            descr = mod_descr.mod_binding;
                             instantiation = []; }))
       | Ast.Open_Import(oi,is) -> 
-          let mod_descr_ids = List.map (fun i -> (
-              let descr = lookup_mod (defn_ctxt_to_env ctxt) i in
+          let mod_descrs = List.map (lookup_mod (defn_ctxt_to_env ctxt)) is in
+
+          let mod_descr_ids = List.map2 (fun i descr -> (
               { id_path = Id_some (Ident.from_id i);
                 id_locn = l;
-                descr = descr;
-                instantiation = []; })) is in
+                descr = descr.mod_binding;
+                instantiation = []; })) is mod_descrs in
 
           let do_open = match oi with
             | Ast.OI_open _ -> true
@@ -2846,7 +2854,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
             | Ast.OI_open_import _ -> true
           in
           let ctxt' = if do_open then 
-                        { ctxt with cur_env = List.fold_left (fun cur_env mod_descr_id -> local_env_union cur_env mod_descr_id.descr.mod_env) ctxt.cur_env mod_descr_ids} 
+                        { ctxt with cur_env = List.fold_left (fun cur_env descr -> local_env_union cur_env descr.mod_env) ctxt.cur_env mod_descrs} 
                       else ctxt in
 
           (ctxt', Some (OpenImport(oi, mod_descr_ids)))
@@ -3166,7 +3174,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
              it afterwards becomes irrelevant thet ctxt_inst.new_defs contains more definitions than ctxt. *)
           let ctxt = begin
 	     let ctxt_clean_mod = {ctxt_inst with new_defs = ctxt.new_defs; cur_env = ctxt.cur_env; all_instances = ctxt.all_instances } in
-             add_m_to_ctxt l ctxt_clean_mod instance_name { mod_binding =  Path.mk_path mod_path instance_name; mod_env = ctxt_inst.new_defs }
+             add_m_to_ctxt l ctxt_clean_mod instance_name { mod_binding =  Path.mk_path mod_path instance_name; mod_env = ctxt_inst.new_defs; mod_target_rep = Targetmap.empty }
           end in
 
           (* store everything *)
@@ -3280,8 +3288,7 @@ let rec check_ids env ctxt defs =
 (* the interface                                                              *)
 (* -------------------------------------------------------------------------- *)
 
-let check_defs backend_targets mod_path (env : env)
-      (Ast.Defs(defs)) =
+let check_defs backend_targets mod_name (env : env) (Ast.Defs(defs), end_lex_skips) =
   let ctxt = { all_tdefs = env.t_env;
                new_tdefs = [];  
                all_instances = env.i_env;
@@ -3290,12 +3297,16 @@ let check_defs backend_targets mod_path (env : env)
                new_defs = empty_local_env;
                lemmata_labels = NameSet.empty;
                ctxt_c_env = env.c_env;
+               ctxt_mod_target_rep = Targetmap.empty;
                ctxt_e_env = env.e_env }
   in
-  let (ctxt,b) = check_defs_internal backend_targets mod_path ctxt defs in
+  let (ctxt,b) = check_defs_internal backend_targets [mod_name] ctxt defs in
   let env' = { (defn_ctxt_to_env ctxt) with local_env = ctxt.new_defs} in
   let _ = List.map (Syntactic_tests.check_decidable_equality_def env') b in
   let _ = List.map Syntactic_tests.check_positivity_condition_def b in
-    check_ids env' ctxt b;    
-    (env', b)
+  let _ = check_ids env' ctxt b in
+
+  let env'' = env_m_env_move env' [] mod_name ctxt.ctxt_mod_target_rep env.local_env in
+
+  (env'', (b, end_lex_skips))
 

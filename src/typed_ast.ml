@@ -79,6 +79,14 @@ let annot_to_typ a = a.typ
 
 type const_descr_ref = Types.const_descr_ref
 
+type name_kind =
+  | Nk_typeconstr of Path.t
+  | Nk_const of const_descr_ref
+  | Nk_constr of const_descr_ref
+  | Nk_field of const_descr_ref
+  | Nk_module of Path.t
+  | Nk_class of Path.t
+
 type p_env = (Path.t * Ast.l) Nfmap.t
 
 type ident_option =
@@ -172,7 +180,7 @@ and const_descr = { const_binding : Path.t;
                     env_tag : env_tag;
                     const_targets : Targetset.t;
                     spec_l : Ast.l;
-                    target_rename : (Ast.l * bool * Name.t) Targetmap.t;
+                    target_rename : (Ast.l * Name.t) Targetmap.t;
                     target_ascii_rep : (Ast.l * Name.t) Targetmap.t;
                     target_rep : const_target_rep Targetmap.t;
                     compile_message : string Target.Targetmap.t; }
@@ -189,8 +197,13 @@ and env = { local_env : local_env; c_env : c_env; t_env : Types.type_defs; i_env
 (* free_env represents the free variables in expression, with their types *)
 and free_env = t Nfmap.t
 
+and mod_target_rep =
+  | MR_rename of Ast.l * Name.t
+  | MR_merge_with_parent 
+
 and mod_descr = { mod_binding : Path.t;
-                  mod_env : local_env; }
+                  mod_env : local_env; 
+                  mod_target_rep : mod_target_rep Targetmap.t;}
 
 and exp = (exp_aux,exp_annot) annot
 (* We keep typ with the subst applied, and term and free without, we also only
@@ -234,7 +247,7 @@ and exp_aux =
   (* true for list comprehensions, false for set comprehensions *)
   | Comp_binding of bool * lskips * exp * lskips * lskips * quant_binding list * lskips * exp * lskips
   | Quant of Ast.q * quant_binding list * lskips * exp
-  | Do of lskips * mod_descr id * do_line list * lskips * exp * lskips * (Types.t * bind_tyargs_order)
+  | Do of lskips * Path.t id * do_line list * lskips * exp * lskips * (Types.t * bind_tyargs_order)
 
 and do_line = Do_line of (pat * lskips * exp * lskips)
 
@@ -337,15 +350,15 @@ target_rep_rhs =  (* right hand side of a target representation declaration *)
 
 
 type declare_def =  (* declarations *)
- | Decl_compile_message_decl of lskips * targets_opt * lskips * const_descr_ref id * lskips * lskips * string 
- | Decl_target_rep_decl_term of lskips * Ast.target  * lskips * Ast.component * const_descr_ref id * name_lskips_annot list * lskips * target_rep_rhs
- | Decl_target_rep_decl_type of lskips * Ast.target  * lskips * lskips * Path.t id * tnvar list * lskips * src_t
- | Decl_ascii_rep_decl       of lskips * targets_opt * lskips * Ast.component * const_descr_ref id * lskips * Name.lskips_t
-
+ | Decl_compile_message       of lskips * targets_opt * lskips * const_descr_ref id * lskips * lskips * string 
+ | Decl_target_rep_term       of lskips * Ast.target  * lskips * Ast.component * const_descr_ref id * name_lskips_annot list * lskips * target_rep_rhs
+ | Decl_target_rep_type       of lskips * Ast.target  * lskips * lskips * Path.t id * tnvar list * lskips * src_t
+ | Decl_ascii_rep             of lskips * targets_opt * lskips * Ast.component * name_kind id * lskips * Name.lskips_t
+ | Decl_rename                of lskips * targets_opt * lskips * Ast.component * name_kind id * lskips * Name.lskips_t
+ | Decl_rename_current_module of lskips * targets_opt * lskips * lskips * lskips * Name.lskips_t
+ | Decl_termination_argument  of lskips * targets_opt * lskips * const_descr_ref id * lskips * Ast.termination_setting
+ | Decl_set_flag              of lskips * lskips * Name.lskips_t * lskips * Name.lskips_t
 (*
- | Decl_rename_decl of lskips * targets option * lskips * component * id * lskips * x_l
- | Decl_set_flag_decl of lskips * lskips * x_l * lskips * x_l
- | Decl_termination_argument_decl of lskips * targets option * lskips * id * lskips * termination_setting
  | Decl_pattern_match_decl of lskips * targets option * lskips * exhaustivity_setting * x_l * tnvar list * lskips * lskips * (exp) list * lskips * elim_opt
 *)
 
@@ -355,8 +368,8 @@ and def_aux =
   | Val_def of val_def * TNset.t * (Path.t * Types.tnvar) list 
   | Lemma of lskips * Ast.lemma_typ * targets_opt * (name_l * lskips) option * lskips * exp * lskips
   | Module of lskips * name_l * Path.t * lskips * lskips * def list * lskips
-  | Rename of lskips * name_l * Path.t * lskips * mod_descr id
-  | OpenImport of Ast.open_import * (mod_descr id) list
+  | Rename of lskips * name_l * Path.t * lskips * Path.t id
+  | OpenImport of Ast.open_import * (Path.t id) list
   | Indreln of lskips * targets_opt * indreln_name lskips_seplist * indreln_rule lskips_seplist
   | Val_spec of val_spec
   | Class of lskips * lskips * name_l * tnvar * Path.t * lskips * class_val_spec list * lskips
@@ -390,6 +403,13 @@ let c_env_lookup l m c =
              raise (Reporting_basic.err_type l m)
            | Some(cd) -> cd
 
+let e_env_lookup l m p = 
+         match Pfmap.apply m p with
+           | None -> 
+             let m = Format.sprintf "module-description for module %s not present in environment" (Path.to_string p) in
+             raise (Reporting_basic.err_type l m)
+           | Some(md) -> md
+
 let c_env_update = cdmap_update 
 
 let env_c_env_update env c_id c_d =
@@ -413,10 +433,10 @@ begin
   { m_env = m_env'; p_env = p_env'; f_env = f_env'; v_env = v_env'}
 end
 
-let env_m_env_move env mod_path mod_name new_local =
+let env_m_env_move env mod_path mod_name mod_rep new_local =
   let md_local_env = restrict_m_env env mod_name env.local_env in
   let mod_binding = Path.mk_path mod_path mod_name in
-  let md = { mod_env = md_local_env; mod_binding = mod_binding } in
+  let md = { mod_env = md_local_env; mod_binding = mod_binding; mod_target_rep = mod_rep } in
   let new_local' = { new_local with m_env = Nfmap.insert new_local.m_env (mod_name,mod_binding) } in
   let new_e_env = Pfmap.insert env.e_env (mod_binding, md) in
   {env with local_env = new_local'; e_env = new_e_env}
@@ -2225,16 +2245,6 @@ let local_env_union e1 e2 =
     v_env = Nfmap.union e1.v_env e2.v_env; 
     f_env = Nfmap.union e1.f_env e2.f_env; }
 
-(* Lookup a name in an environment and report what type of name it is *)
-
-type name_kind =
-  | Nk_typeconstr of Path.t
-  | Nk_const of const_descr_ref
-  | Nk_constr of const_descr_ref
-  | Nk_field of const_descr_ref
-  | Nk_module of Path.t
-  | Nk_class of Path.t
- 
 
 let funcl_aux_seplist_group (sl : funcl_aux lskips_seplist) = begin
   let (first_s, pL) = Seplist.to_pair_list None sl in

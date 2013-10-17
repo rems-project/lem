@@ -209,6 +209,10 @@ type type_defs = tc_def Pfmap.t
     If there is no type [p] in [d] or if [up] returns [None], an exception is raised. *)
 val type_defs_update_tc_type : Ast.l -> type_defs -> Path.t -> (type_descr -> type_descr option) -> type_defs
 
+(** [type_defs_update_tc_class l d p up] updates the description of type [p] in [d] using the function [up].
+    If there is no type [p] in [d] or if [up] returns [None], an exception is raised. *)
+val type_defs_update_tc_class : Ast.l -> type_defs -> Path.t -> (class_descr -> class_descr option) -> type_defs
+
 (** [type_defs_update_fields l d p fl] updates the fields of type [p] in [d]. *)
 val type_defs_update_fields : Ast.l -> type_defs -> Path.t -> const_descr_ref list -> type_defs
 

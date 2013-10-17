@@ -1093,8 +1093,8 @@ let bind_id l = function
         Id_some (Ident.mk_ident None (n1 @ [n2]) (Name.from_rope (r "bind")))
 
 
-let bind_const l m i =
-  let (n1,n2) = Path.to_name_list m.descr.mod_binding in
+let bind_const l (m : Path.t id) i =
+  let (n1,n2) = Path.to_name_list m.descr in
   let (descr, _) = names_get_const E.env (n1@[n2]) (Name.from_rope (r"bind")) in
     C.mk_const l { id_path = bind_id l m.id_path; id_locn = l; descr = descr; instantiation = i } None
 

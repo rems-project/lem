@@ -11,6 +11,9 @@ type defn_ctxt = {
   (* The global e_env (module environment) *)
   ctxt_e_env : Typed_ast.mod_descr Types.Pfmap.t;
 
+  (* The target-reps of current top-level module. *)
+  ctxt_mod_target_rep: Typed_ast.mod_target_rep Target.Targetmap.t;
+
   (* All types defined in this sequence of definitions *)
   new_tdefs : Path.t list;
 
@@ -41,6 +44,7 @@ val add_p_to_ctxt : defn_ctxt -> Name.t * (Path.t * Ast.l) -> defn_ctxt
 val add_f_to_ctxt : defn_ctxt -> Name.t * Types.const_descr_ref -> defn_ctxt
 val add_v_to_ctxt : defn_ctxt -> Name.t * Types.const_descr_ref -> defn_ctxt
 val add_m_to_ctxt : Ast.l -> defn_ctxt -> Name.t -> Typed_ast.mod_descr -> defn_ctxt
+val add_m_alias_to_ctxt : Ast.l -> defn_ctxt -> Name.t -> Path.t -> defn_ctxt
 val add_instance_to_ctxt : defn_ctxt -> Types.instance -> defn_ctxt
 val add_lemma_to_ctxt : defn_ctxt -> Name.t -> defn_ctxt
 
@@ -53,3 +57,17 @@ val defn_ctxt_to_env : defn_ctxt -> Typed_ast.env
     environment. If an representation was already stored (and is now overridden), it is returned as well. *)
 val ctxt_c_env_set_target_rep : Ast.l -> defn_ctxt -> Typed_ast.const_descr_ref -> Target.non_ident_target ->
            Typed_ast.const_target_rep -> defn_ctxt * Typed_ast.const_target_rep option
+
+
+(** [ctxt_start_submodule ctxt] is used when a new submodule is processed. It resets all the
+    new-information like the field [new_defs], but keeps the other informations (including
+    the current environment) around. *)
+val ctxt_begin_submodule : defn_ctxt -> defn_ctxt
+
+(** [ctxt_end_submodule l ctxt_before mod_path mod_name ctxt_submodule] is used when a new submodule is no longer processed. 
+    It resets some information (like the local environment of [ctxt_submodule] back to the values
+    in [ctxt_before]. The context [ctxt_before] is supposed to be the one valid before
+    starting to process the submodule. The new definitions of the submodule are moved to
+    a new module [mod_name] at path [mod_path].*)
+val ctxt_end_submodule : Ast.l -> defn_ctxt -> Name.t list -> Name.t -> defn_ctxt -> defn_ctxt
+

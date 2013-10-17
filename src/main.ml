@@ -264,9 +264,8 @@ let main () =
     List.fold_left
       (fun (mods, env, previously_processed_modules) (mod_name, file_name, ast, add_to_modules) ->
          let mod_name_name = Name.from_string mod_name in
-         let (new_env,tast) = check_ast backend_set [mod_name_name] env ast in
+         let (e,tast) = Typecheck.check_defs backend_set mod_name_name env ast in
 
-         let (e : Typed_ast.env) = Typed_ast.env_m_env_move new_env [] mod_name_name env.Typed_ast.local_env in
          let module_record = 
            { Typed_ast.filename = file_name;
              Typed_ast.module_name = mod_name;
@@ -281,7 +280,7 @@ let main () =
                Typed_ast.pp_env Format.std_formatter (snd type_info);
                 *)
                Format.fprintf Format.std_formatter "%s@\nenvironment:@\n" file_name;
-               Typed_ast.pp_env Format.std_formatter new_env;
+               Typed_ast.pp_env Format.std_formatter e;
                Format.fprintf Format.std_formatter "@\n@\n"
              end;
            ((if add_to_modules then

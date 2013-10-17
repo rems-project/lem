@@ -5,6 +5,7 @@ type defn_ctxt = {
   all_tdefs : type_defs; 
   ctxt_c_env : c_env;
   ctxt_e_env : mod_descr Pfmap.t;
+  ctxt_mod_target_rep: Typed_ast.mod_target_rep Target.Targetmap.t;
   new_tdefs : Path.t list;
   all_instances : i_env;
   new_instances : i_env;
@@ -70,6 +71,17 @@ let add_m_to_ctxt (l : Ast.l) (ctxt : defn_ctxt) (k : Name.t) (v : mod_descr)
         {ctxt with ctxt_e_env = Pfmap.insert ctxt.ctxt_e_env (v.mod_binding, v)}
         (k,v.mod_binding)
 
+let add_m_alias_to_ctxt (l : Ast.l) (ctxt : defn_ctxt) (k : Name.t) (m : Path.t)
+      : defn_ctxt = 
+    if Nfmap.in_dom k ctxt.new_defs.m_env then
+      raise (Reporting_basic.err_type_pp l "duplicate module definition" Name.pp k)
+    else
+      ctxt_add 
+        (fun x -> x.m_env) 
+        (fun x y -> { x with m_env = y }) 
+        ctxt
+        (k,m)
+
 (* Add a lemma name to the context *)
 let add_lemma_to_ctxt (ctxt : defn_ctxt) (n : Name.t)  
       : defn_ctxt =
@@ -92,4 +104,21 @@ let ctxt_c_env_set_target_rep l (ctxt : defn_ctxt) (c : const_descr_ref) (targ :
   (ctxt', old_rep)
 end
 
+
+
+let ctxt_begin_submodule ctxt =
+    { ctxt with new_defs = empty_local_env;
+                new_tdefs = [];
+                new_instances = Types.empty_i_env;
+                ctxt_mod_target_rep = Target.Targetmap.empty} 
+
+
+let ctxt_end_submodule l ctxt_before mod_path n ctxt =
+  let ctxt' =
+     {ctxt with new_defs = ctxt_before.new_defs; 
+                cur_env = ctxt_before.cur_env;
+                new_tdefs = ctxt_before.new_tdefs;
+                new_instances = ctxt_before.new_instances;
+                ctxt_mod_target_rep = ctxt_before.ctxt_mod_target_rep } in
+  add_m_to_ctxt l ctxt' n { mod_binding = Path.mk_path mod_path n; mod_env = ctxt.new_defs; mod_target_rep = ctxt.ctxt_mod_target_rep }
 

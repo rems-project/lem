@@ -600,8 +600,8 @@ let generate_coq_record_update_notation e =
             | Ast.OI_open sk -> (sk, false)
             | Ast.OI_open_import (sk1, sk2) -> (Ast.combine_lex_skips sk1 sk2, false)
           in
-          let handle_mod mod_descr = begin
-            let mod_path = B.module_id_to_ident mod_descr in
+          let handle_mod mod_p = begin
+            let mod_path = B.module_id_to_ident mod_p in
             let mod_name = Ident.get_name mod_path in
             if (mod_name |> Name.strip_lskip |> Name.to_string) = "Vector" then
                Output.flat []

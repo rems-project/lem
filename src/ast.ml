@@ -467,6 +467,7 @@ lemma_decl =  (* Lemmata and Tests *)
 type 
 declare_def =  (* declarations *)
    Decl_compile_message_decl of terminal * targets option * terminal * id * terminal * terminal * Ulib.UTF8.t
+ | Decl_rename_current_module_decl of terminal * targets option * terminal * terminal * terminal * x_l
  | Decl_rename_decl of terminal * targets option * terminal * component * id * terminal * x_l
  | Decl_ascii_rep_decl of terminal * targets option * terminal * component * id * terminal * x_l
  | Decl_target_rep_decl of terminal * target * terminal * target_rep_lhs * terminal * target_rep_rhs

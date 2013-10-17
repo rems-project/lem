@@ -958,6 +958,8 @@ x_ls :
 declaration :
   | Declare targets_opt CompileMessage id Eq String
     { Decl_compile_message_decl($1, $2, $3, $4, fst $5, fst $6, snd $6) }
+  | Declare targets_opt Rename Module_ Eq x
+    { Decl_rename_current_module_decl($1, $2, $3, $4, fst $5, $6) }
   | Declare targets_opt Rename component id Eq x
     { Decl_rename_decl($1, $2, $3, $4, $5, fst $6, $7) }
   | Declare targets_opt AsciiRep component id Eq x

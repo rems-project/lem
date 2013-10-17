@@ -220,7 +220,7 @@ let update_const_descr l up c env =
 
 let constant_descr_to_name (targ : Target.target) (cd : const_descr) : (bool * Name.t * Name.t option) = 
   let name_renamed = match Target.Targetmap.apply_target cd.target_rename targ with
-    | Some (_, _, n) -> n
+    | Some (_, n) -> n
     | None -> Path.get_name cd.const_binding
   in
 
@@ -246,17 +246,24 @@ let type_descr_to_name (targ : Target.target) (p : Path.t) (td : type_descr) : N
      | Some (Types.TR_rename (_, _, n)) -> n
 
 
-let constant_descr_rename  (targ : Target.non_ident_target) (n':Name.t) (l' : Ast.l) (cd : const_descr) : (const_descr * (Ast.l * Name.t) option) option = 
-  let (allow_rename, old_info) = match Target.Targetmap.apply_target cd.target_rename (Target.Target_no_ident targ) with
-    | Some (l, allow_rename, n) -> (allow_rename, Some (l, n))
-    | None -> (true, None)
+let constant_descr_rename  (targ : Target.non_ident_target) (n':Name.t) (l' : Ast.l) (cd : const_descr) : (const_descr * (Ast.l * Name.t) option) = 
+  let old_info = Target.Targetmap.apply_target cd.target_rename (Target.Target_no_ident targ) in
+  let tr = Target.Targetmap.insert (cd.target_rename) (targ, (l', n')) in
+  ({cd with target_rename = tr}, old_info)
+
+let mod_target_rep_rename  (targ : Target.non_ident_target) (n':Name.t) (l' : Ast.l) (tr : mod_target_rep Target.Targetmap.t) : (mod_target_rep Target.Targetmap.t * (Ast.l * Name.t) option) = 
+  let (old_info, do_something) = match Target.Targetmap.apply_target tr (Target.Target_no_ident targ) with
+    | Some (MR_rename (l, n)) -> (Some (l, n), true)
+    | Some (MR_merge_with_parent) -> (None, false)
+    | None -> (None, true)
   in
 
-  if not (allow_rename) then
-    None
+  if not do_something then 
+    (tr, None) 
   else
-    let tr = Target.Targetmap.insert (cd.target_rename) (targ, (l', true, n')) in
-    Some ({cd with target_rename = tr}, old_info)
+    let tr' = Target.Targetmap.insert tr (targ, MR_rename (l', n')) in
+    (tr', old_info)
+
 
 let type_descr_rename  (targ : Target.non_ident_target) (n':Name.t) (l' : Ast.l) (td : type_descr) : (type_descr * (Ast.l * Name.t) option) option = 
   let rep = Target.Targetmap.apply td.type_target_rep targ in
@@ -931,7 +938,7 @@ and add_exp_entities (ue : used_entities) (e : exp) : used_entities =
       let ue = add_exp_entities ue e in
       ue
    | Do(_,mid,do_lines,_,e,_,_) ->
-      let ue = used_entities_add_module ue mid.descr.mod_binding in
+      let ue = used_entities_add_module ue mid.descr in
       let ue = List.fold_left add_do_lines_entities ue do_lines in
       let ue = add_exp_entities ue e in
       ue
@@ -1001,10 +1008,10 @@ and add_def_entities (t_opt : Target.target) (only_new : bool) (ue : used_entiti
         end
       | Rename(_, _, mod_path, _, m) -> begin
           let ue = used_entities_add_module ue mod_path in
-          let ue = if only_new then ue else used_entities_add_module ue m.descr.mod_binding in
+          let ue = if only_new then ue else used_entities_add_module ue m.descr in
           ue
         end
-      | OpenImport(_,ms) -> if only_new then ue else List.fold_left (fun ue m -> used_entities_add_module ue m.descr.mod_binding) ue ms
+      | OpenImport(_,ms) -> if only_new then ue else List.fold_left (fun ue m -> used_entities_add_module ue m.descr) ue ms
       | Indreln(_,targ,names,rules) -> begin
           let add_rule (Rule (_,_,_,_,_,e_opt,_,_,n_ref,es),_) ue = begin
              let ue = used_entities_add_const ue n_ref in

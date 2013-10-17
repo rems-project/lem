@@ -130,6 +130,6 @@ val type_id_to_ident_no_modify : Path.t id -> Ident.t
     [m_id] as an identifier for target [A.target] using the rules stored
     in environment [A.env]. 
 *)
-val module_id_to_ident : mod_descr id -> Ident.t
+val module_id_to_ident : Path.t id -> Ident.t
 
 end

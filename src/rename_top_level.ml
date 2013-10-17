@@ -144,17 +144,13 @@ let rename_constant (targ : Target.non_ident_target) (consts : NameSet.t) (const
 
     if not (is_renamed) then (* do nothing *) (consts_new', env) else
     begin
-      (* update environment *)
-      match constant_descr_rename targ n_new l c_d with
-        | None -> (* renaming not possible for some reason *) (consts_new', env)
-        | Some (c_d', via_opt) -> begin
-            (* print warning *)
-            let _ = (if (not is_auto_renamed) then () else 
-                    let n_org : string = Name.to_string (Path.get_name c_d.const_binding) in
-                    (Reporting.report_warning env (Reporting.Warn_rename (c_d.spec_l, n_org, Util.option_map (fun (l, n) -> (Name.to_string n, l)) via_opt, Name.to_string n_new, Target_no_ident targ))))
-            in
-            (consts_new', env_c_env_update env c c_d')
-        end
+      let (c_d', via_opt) = constant_descr_rename targ n_new l c_d in
+      (* print warning *)
+      let _ = (if (not is_auto_renamed) then () else 
+        let n_org : string = Name.to_string (Path.get_name c_d.const_binding) in
+        (Reporting.report_warning env (Reporting.Warn_rename (c_d.spec_l, n_org, Util.option_map (fun (l, n) -> (Name.to_string n, l)) via_opt, Name.to_string n_new, Target_no_ident targ))))
+      in
+      (consts_new', env_c_env_update env c c_d')
     end
   end in
 

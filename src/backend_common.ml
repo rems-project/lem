@@ -202,7 +202,7 @@ let const_ref_to_name n0 use_ascii c =
 (* A version of const_id_to_ident that returns additionally, whether
    the ascii-alternative was used. This is handy for determining infix
    status. *)
-let const_id_to_ident_aux c_id ascii_alternative given_id_opt =
+let const_id_to_ident_aux c_id ascii_alternative given_id_opt =   
   let l = Ast.Trans (false, "const_id_to_ident", None) in
   let c_descr = c_env_lookup l A.env.c_env c_id.descr in
   let org_ident = resolve_constant_id_ident A.env c_id in
@@ -302,9 +302,9 @@ let type_id_to_ident_no_modify (p : Path.t id) =
   Ident.mk_ident sk ns n
 
 
-let module_id_to_ident (mod_descr : mod_descr id) : Ident.t =
+let module_id_to_ident (mod_id : Path.t id) : Ident.t =
 (*   let l = Ast.Trans ("module_id_to_ident", None) in *)
-   let i = resolve_module_id_ident A.env mod_descr mod_descr.descr.mod_binding in
+   let i = resolve_module_id_ident A.env mod_id mod_id.descr in
    let i' = fix_module_prefix_ident (A.env.local_env) i in
    i'
 

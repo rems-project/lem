@@ -71,23 +71,6 @@ let parse_file (f : string) : (Ast.defs * Ast.lex_skips) =
 
 type instances = Types.instance list Types.Pfmap.t
 
-let check_ast (ts : Target.Targetset.t) (mod_path : Name.t list) 
-      (env : Typed_ast.env)
-      (ast, end_lex_skips)
-      : Typed_ast.env * (Typed_ast.def list * Ast.lex_skips) =
-    let (env,tast) = Typecheck.check_defs ts mod_path env ast in
-      (env,(tast,end_lex_skips))
-
-let check_ast_as_module (ts : Target.Targetset.t) (mod_path : Name.t list)
-      (e : Typed_ast.env) 
-      (mod_name : Ulib.Text.t) (ast, end_lex_skips)
-      : Typed_ast.env * (Typed_ast.def list * Ast.lex_skips) =
-  check_ast ts mod_path e
-    (Ast.Defs([(Ast.Def_l(Ast.Module(None, Ast.X_l((None,mod_name),Ast.Unknown), None, None, ast, None), Ast.Unknown), 
-                None,
-                false)]), end_lex_skips)
-
-
 let open_output_with_check dir file_name =
   let (temp_file_name, o) = Filename.open_temp_file "lem_temp" "" in
   (o, (o, temp_file_name, Filename.concat dir file_name)) 
