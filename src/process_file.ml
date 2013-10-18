@@ -137,6 +137,13 @@ let output1 env libpath isa_thy (targ : Target.target) avoid m alldoc_accum alld
       | Target.Target_ident ->
           let r = B.ident_defs m.typed_ast in
             Printf.printf "%s" (Ulib.Text.to_string r)
+      | Target.Target_no_ident (Target.Target_lem) -> 
+          begin
+            let r = B.lem_defs m.typed_ast in
+            let (o, ext_o) = open_output_with_check dir (f' ^ "-processed.lem") in
+              Printf.fprintf o "%s" (Ulib.Text.to_string r);
+              close_output_with_check ext_o
+          end
       | Target.Target_no_ident (Target.Target_html) -> 
           begin
             let r = B.html_defs m.typed_ast in

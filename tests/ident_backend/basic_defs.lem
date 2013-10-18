@@ -1,3 +1,6 @@
+open import Transform 
+open import Bool
+
 let test1 = 1
 let test2 : num = 1
 let test3 _ = 1 ;;

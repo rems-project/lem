@@ -77,6 +77,7 @@
  *)
 
 open Backend_common
+open Types
 open Typed_ast
 open Typed_ast_syntax
 open Output
@@ -295,6 +296,7 @@ module type Target = sig
   val module_end : t
   val module_open : t
   val module_import : t
+  val module_include : t
 
 
 
@@ -499,6 +501,7 @@ module Identity : Target = struct
   let module_end = kwd "end"
   let module_open = kwd "open"
   let module_import = kwd "import"
+  let module_include = kwd "include"
 
   let some = Ident.mk_ident_strings [] "Some"
   let none = Ident.mk_ident_strings [] "None"
@@ -521,6 +524,11 @@ module Html : Target = struct
   let reln_clause_add_paren = false
   let reln_clause_start = emp
 
+end
+
+module Lem : Target = struct
+  include Identity 
+  let target = Target_no_ident Target_lem
 end
 
 module Tex : Target = struct
@@ -698,6 +706,7 @@ module Tex : Target = struct
   let module_end = tkwdr "end"
   let module_open = tkwdl "open"
   let module_import = tkwdl "import"
+  let module_include = tkwdl "include"
 
   let some = Ident.mk_ident_strings [] "Some"
   let none = Ident.mk_ident_strings [] "None"
@@ -1108,6 +1117,7 @@ module Hol : Target = struct
   let module_end = kwd "end"
   let module_open = kwd "open"
   let module_import = kwd "import"
+  let module_include = kwd "include"
 
   let some = Ident.mk_ident_strings [] "SOME"
   let none = Ident.mk_ident_strings [] "NONE"
@@ -1215,27 +1225,28 @@ let rec typ t = match t.term with
   | Typ_tup(ts) ->
       flat (Seplist.to_sep_list typ (sep T.typ_tup_sep) ts) ^ T.typ_tup_section
   | (Typ_app(p, ts) | Typ_backend(p, ts)) ->
-      let p_out = begin 
-        let i = match t.term with
-          | Typ_app _ -> B.type_id_to_ident p
-          | Typ_backend _ -> B.type_id_to_ident_no_modify p
+      let (ts', p_out) = begin 
+        match t.term with
+          | Typ_app _ -> B.type_app_to_output typ p ts
+          | Typ_backend _ -> (ts, 
+	      let i = B.type_id_to_ident p in
+              ws (Ident.get_lskip i) ^
+              T.backend_quote (Ident.to_output Type_ctor T.path_sep (Ident.replace_lskip i None)))
           | _ -> raise (Reporting_basic.err_unreachable (Ast.Trans (false, "Backend.typ", None)) "can't be reached because of previous match")
-        in
-        Ident.to_output Type_ctor T.path_sep i
       end in
       if (T.type_params_pre) then
         if (T.nexp_params_vis) then
-          bracket_many typ (T.tup_sep) (kwd "(") (kwd ")") ts ^
+          bracket_many typ (T.tup_sep) (kwd "(") (kwd ")") ts' ^
           texspace ^ p_out
         else 
           bracket_omit typ (fun t f s -> match t.term with 
                                         | Typ_len _ -> f t
-                                        | _ -> f t ^ s) typ_alter_init_lskips (T.tup_sep) (kwd "(") (kwd ")") ts ^
+                                        | _ -> f t ^ s) typ_alter_init_lskips (T.tup_sep) (kwd "(") (kwd ")") ts' ^
           texspace ^ p_out
       else
         p_out ^
         texspace ^
-        concat emp (List.map typ ts)
+        concat emp (List.map typ ts')
   | Typ_len(n) -> nexp n
   | Typ_paren(s1,t,s2) ->
       ws s1 ^
@@ -1920,8 +1931,8 @@ let tdef ((n0,l), tvs, t_path, texp, regexp) =
     tdef_tctor false tvs n regexp ^ tyexp true n' tvs' texp 
 
 let range = function
-  | GtEq(_,n1,s,n2) -> nexp n1 ^ ws s ^ kwd ">=" ^ nexp n2
-  | Eq(_,n1,s,n2) -> nexp n1 ^ ws s ^ kwd "=" ^ nexp n2
+  | Typed_ast.GtEq(_,n1,s,n2) -> nexp n1 ^ ws s ^ kwd ">=" ^ nexp n2
+  | Typed_ast.Eq(_,n1,s,n2) -> nexp n1 ^ ws s ^ kwd "=" ^ nexp n2
 
 let constraints = function
   | None -> emp
@@ -2029,7 +2040,7 @@ let isa_is_simple_funcl_aux ((_, _, ps, _, _, _):funcl_aux) : bool =
    List.for_all (fun p -> (Pattern_syntax.is_var_wild_pat p)) ps
 
 let isa_funcl_header (({term = n}, c, ps, topt, s1, (e : Typed_ast.exp)):funcl_aux) =
-  isa_mk_typed_def_header (Name.to_output Term_var (B.const_ref_to_name n false c), List.map Typed_ast.annot_to_typ ps, s1, exp_to_typ e)
+  isa_mk_typed_def_header (Name.to_output Term_var (B.const_ref_to_name n false c), List.map Types.annot_to_typ ps, s1, exp_to_typ e)
 
 let isa_funcl_header_seplist clause_sl =
   let clauseL = Seplist.to_list clause_sl in
@@ -2047,7 +2058,7 @@ let isa_funcl_header_indrel_seplist clause_sl =
       if NameSet.mem n ns then (ns, acc) else (NameSet.add n ns, rname :: acc)) (NameSet.empty, []) clauseL in
   let headerL = List.map (fun rname -> 
         isa_mk_typed_def_header(Name.to_output Term_var rname.term,[], None,
-                Typed_ast.annot_to_typ rname)) clauseL_filter in
+                Types.annot_to_typ rname)) clauseL_filter in
   (Output.concat (kwd "\n      and") headerL) ^ (kwd "where")        
 
 
@@ -2418,10 +2429,22 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
       ws s ^
       T.module_open ^
       (Output.flat (List.map (fun m -> Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)) ms))
+  | OpenImport(Ast.OI_include s,ms) ->
+      ws s ^
+      T.module_include ^
+      (Output.flat (List.map (fun m -> Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)) ms))
   | OpenImport(Ast.OI_open_import (s1, s2),ms) ->
       if (is_human_target T.target) then
         ws s1 ^
         T.module_open ^
+        ws s2 ^
+        T.module_import ^
+        (Output.flat (List.map (fun m -> Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)) ms))
+      else def_internal callback inside_module (OpenImport (Ast.OI_open (Ast.combine_lex_skips s1 s2), ms)) is_user_def
+  | OpenImport(Ast.OI_include_import (s1, s2),ms) ->
+      if (is_human_target T.target) then
+        ws s1 ^
+        T.module_include ^
         ws s2 ^
         T.module_import ^
         (Output.flat (List.map (fun m -> Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)) ms))
@@ -3006,6 +3029,10 @@ module Make(A : sig val avoid : var_avoid_f;; val env : env end) = struct
 
   let ident_defs defs =
     let module B = F(Identity)(C)(Dummy) in
+      B.defs_to_rope defs
+
+  let lem_defs defs =
+    let module B = F(Lem)(C)(Dummy) in
       B.defs_to_rope defs
 
   let html_defs defs =

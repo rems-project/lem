@@ -54,7 +54,7 @@ let add_backend b () : unit = if not (List.mem b !backends) then (backends := b:
 
 let opt_print_types = ref false
 let opt_print_version = ref false
-let opt_library = ref (Some (Build_directory.d^"/library"))
+let opt_library = ref None
 let lib = ref []
 let isa_theory = ref None
 let opt_file_arguments = ref ([]:string list)
@@ -81,6 +81,9 @@ let options = Arg.align ([
   ( "-coq",
     Arg.Unit (add_backend (Target.Target_no_ident Target.Target_coq)),
     " generate Coq");
+  ( "-lem",
+    Arg.Unit (add_backend (Target.Target_no_ident Target.Target_lem)),
+    " generate Lem output after simple transformations");
   ( "-ident",
     Arg.Unit (add_backend Target.Target_ident),
     " generate input on stdout");
@@ -191,7 +194,7 @@ let main () =
                 then Filename.concat (Sys.getcwd ()) lp
                 else lp
             with 
-                | Not_found -> raise (Failure("must specify a -lib argument or have a LEMLIB environment variable")))
+                | Not_found -> Build_directory.d^"/library")
       | Some lp -> 
           if Filename.is_relative lp then
             Filename.concat (Sys.getcwd ()) lp
@@ -247,7 +250,7 @@ let main () =
   in
 
   (* Parse all of the .lem sources and also parse depencies *)
-  let processed_files = Module_dependencies.process_files [] files_to_process in
+  let processed_files = Module_dependencies.process_files [lib_path] files_to_process in
   
   let backend_set = 
     List.fold_right 

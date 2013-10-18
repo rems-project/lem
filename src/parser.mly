@@ -111,6 +111,8 @@ let get_target (s1,n) =
     Target_tex(s1)
   else if Ulib.Text.compare n (r"html") = 0 then
     Target_html(s1)
+  else if Ulib.Text.compare n (r"lem") = 0 then
+    Target_lem(s1)
   else
     raise (Parse_error_locn(loc (),"Expected substitution target in {hol; isabelle; ocaml; coq; tex; html}, given " ^ Ulib.Text.to_string n))
 
@@ -146,7 +148,7 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 
 %token <Ast.terminal> Dot Lparen Rparen Comma Under Arrow As Colon NegLcurly Lcurly Rcurly 
 %token <Ast.terminal> Semi Lsquare Rsquare Fun_ Function_ Bar With Match Let_ And HashZero HashOne
-%token <Ast.terminal> In Of Rec Type Witness Check Rename Module_ Struct End Open_ Import_ SemiSemi Eof
+%token <Ast.terminal> In Of Rec Type Witness Check Rename Module_ Struct End Open_ Import_ Include_ SemiSemi Eof
 %token <Ast.terminal> True False Begin_ If_ Then Else Val
 %token <Ast.terminal * Ulib.Text.t> AmpAmp BarBar ColonColon Star Plus Eq At GtEq 
 %token <Ast.terminal * Ulib.Text.t> X Tyvar Nvar 
@@ -1006,10 +1008,14 @@ val_defs:
 open_import:
   | Open_ 
     { OI_open($1) }
+  | Include_ 
+    { OI_include($1) }
   | Import_ 
     { OI_import($1) }
   | Open_ Import_ 
     { OI_open_import($1, $2) }
+  | Include_ Import_
+    { OI_include_import($1, $2) }
 
 def:
   | Type tds

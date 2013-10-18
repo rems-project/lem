@@ -58,6 +58,12 @@ val defn_ctxt_to_env : defn_ctxt -> Typed_ast.env
 val ctxt_c_env_set_target_rep : Ast.l -> defn_ctxt -> Typed_ast.const_descr_ref -> Target.non_ident_target ->
            Typed_ast.const_target_rep -> defn_ctxt * Typed_ast.const_target_rep option
 
+(** [ctxt_all_tdefs_set_target_rep l ctxt ty targ new_rep] updates the target-representation of
+    type [ty] for target [targ] in context [ctxt] to [new_rep]. This results into a new
+    environment. If an representation was already stored (and is now overridden), it is returned as well. *)
+val ctxt_all_tdefs_set_target_rep : Ast.l -> defn_ctxt -> Path.t -> Target.non_ident_target ->
+           Types.type_target_rep -> defn_ctxt * Types.type_target_rep option
+
 
 (** [ctxt_start_submodule ctxt] is used when a new submodule is processed. It resets all the
     new-information like the field [new_defs], but keeps the other informations (including

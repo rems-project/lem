@@ -387,6 +387,155 @@ let rec resolve_nexp_subst (n : nexp) : nexp = match n.nexp with
 
 type const_descr_ref = int
 
+type ('a,'b) annot = { term : 'a; locn : Ast.l; typ : t; rest : 'b }
+let annot_to_typ a = a.typ
+
+type ident_option =
+  | Id_none of Ast.lex_skips
+  | Id_some of Ident.t
+
+type 'a id = { id_path : ident_option;
+               id_locn : Ast.l;
+               descr : 'a; 
+               instantiation : t list; }
+
+and src_t = (src_t_aux,unit) annot
+
+and src_t_aux = 
+ | Typ_wild of Ast.lex_skips
+ | Typ_var of Ast.lex_skips * Tyvar.t
+ | Typ_len of src_nexp
+ | Typ_fn of src_t * Ast.lex_skips * src_t
+ | Typ_tup of (src_t, Ast.lex_skips) Seplist.t
+ | Typ_app of Path.t id * src_t list
+ | Typ_backend of Path.t id * src_t list
+ | Typ_paren of Ast.lex_skips * src_t * Ast.lex_skips
+
+and src_nexp =  { nterm : src_nexp_aux; nloc : Ast.l; nt : nexp } 
+
+and src_nexp_aux =
+ | Nexp_var of Ast.lex_skips * Nvar.t 
+ | Nexp_const of Ast.lex_skips * int
+ | Nexp_mult of src_nexp * Ast.lex_skips * src_nexp (** One will always be const *)
+ | Nexp_add of src_nexp * Ast.lex_skips * src_nexp 
+ | Nexp_paren of Ast.lex_skips * src_nexp * Ast.lex_skips
+
+
+let src_t_to_t src_t = src_t.typ
+
+let rec nexp_alter_init_lskips(lskips_f : Ast.lex_skips -> Ast.lex_skips * Ast.lex_skips) (n: src_nexp) : src_nexp * Ast.lex_skips =
+  let res n' s = ({ n with nterm = n'}, s) in
+    match n.nterm with
+      | Nexp_var(s, nv) ->
+          let (s_new,s_ret) = lskips_f s in
+            res (Nexp_var(s_new,nv)) s_ret
+      | Nexp_const(s, i) ->
+          let (s_new,s_ret) = lskips_f s in
+            res (Nexp_const(s_new,i)) s_ret
+      | Nexp_mult(n1, s, n2) ->
+          let (n1_new,s_ret) = nexp_alter_init_lskips lskips_f n1 in
+            res (Nexp_mult(n1_new,s,n2)) s_ret
+      | Nexp_add(n1, s, n2) ->
+          let (n1_new,s_ret) = nexp_alter_init_lskips lskips_f n1 in
+            res (Nexp_add(n1_new,s,n2)) s_ret
+      | Nexp_paren(s1, n, s2) ->
+         let (s_new,s_ret) = lskips_f s1 in
+            res (Nexp_paren(s_new,n,s2)) s_ret
+
+let id_alter_init_lskips lskips_f (id : 'a id) : 'a id * Ast.lex_skips =
+  match id.id_path with
+    | Id_some(id_path) ->
+        let (s_new, s_ret) = lskips_f (Ident.get_lskip id_path) in
+          ({id with id_path = Id_some (Ident.replace_lskip id_path s_new)}, s_ret)
+    | Id_none(sk) ->
+        let (s_new, s_ret) = lskips_f sk in
+          ({id with id_path = Id_none s_new}, s_ret)
+
+let rec typ_alter_init_lskips (lskips_f : Ast.lex_skips -> Ast.lex_skips * Ast.lex_skips) (t : src_t) : src_t * Ast.lex_skips = 
+  let res t' s = ({ t with term = t'}, s) in
+    match t.term with
+      | Typ_wild(s) ->
+          let (s_new,s_ret) = lskips_f s in
+            res (Typ_wild(s_new)) s_ret
+      | Typ_var(s,tv) ->
+          let (s_new,s_ret) = lskips_f s in
+            res (Typ_var(s_new,tv)) s_ret
+      | Typ_len(nexp) -> 
+          let (nexp_new,s_ret) = nexp_alter_init_lskips lskips_f nexp in
+             res (Typ_len(nexp_new)) s_ret
+      | Typ_fn(t1,s,t2) ->
+          let (t_new, s_ret) = typ_alter_init_lskips lskips_f t1 in
+            res (Typ_fn(t_new, s, t2)) s_ret
+      | Typ_tup(ts) ->
+          let t = Seplist.hd ts in
+          let ts' = Seplist.tl ts in
+          let (t_new, s_ret) = typ_alter_init_lskips lskips_f t in
+            res (Typ_tup(Seplist.cons_entry t_new ts')) s_ret
+      | Typ_app(id,ts) ->
+          let (id_new,s_ret) = id_alter_init_lskips lskips_f id in
+            res (Typ_app(id_new,ts)) s_ret 
+      | Typ_backend(id,ts) ->
+          let (id_new,s_ret) = id_alter_init_lskips lskips_f id in
+            res (Typ_backend(id_new,ts)) s_ret 
+      | Typ_paren(s1,t,s2) ->
+          let (s_new,s_ret) = lskips_f s1 in
+            res (Typ_paren(s_new,t,s2)) s_ret
+
+let typ_append_lskips sk t =
+  fst (typ_alter_init_lskips (fun s -> (Ast.combine_lex_skips sk s, None)) t)
+
+
+let rec src_type_subst_aux (substs : src_t TNfmap.t) (t : src_t) : src_t option = 
+  let fix_result (aux, ty) = Some {t with term = aux; typ = ty} in
+  match t.term with
+    | Typ_wild _ -> None
+    | Typ_var(sk, s) ->
+        (match TNfmap.apply substs (Ty s) with
+           | Some(t) -> Some t
+           | None -> None) 
+    | Typ_fn(t1,sk,t2) -> 
+        begin
+          match (src_type_subst_aux substs t1, src_type_subst_aux substs t2) with
+            | (None,None) -> None
+            | (Some(t1'),None) -> fix_result (Typ_fn(t1', sk, t2), {t = Tfn(t1'.typ, t2.typ) })
+            | (None,Some(t2')) -> fix_result (Typ_fn(t1, sk, t2'), {t = Tfn(t1.typ, t2'.typ) })
+            | (Some(t1'),Some(t2')) -> fix_result (Typ_fn(t1', sk, t2'), {t = Tfn(t1'.typ, t2'.typ) })
+        end
+    | Typ_tup(ts) -> 
+        begin
+          match Seplist.map_changed (src_type_subst_aux substs) ts with
+            | None -> None
+            | Some(ts) -> fix_result (Typ_tup(ts), { t = Ttup(Seplist.to_list_map src_t_to_t ts) })
+        end
+    | Typ_app(p, ts) -> 
+        begin
+          match Util.map_changed (src_type_subst_aux substs) ts with
+            | None -> None
+            | Some(ts) -> fix_result (Typ_app(p, ts), { t = Tapp(List.map src_t_to_t ts, p.descr) })
+        end
+    | Typ_backend(p, ts) -> 
+        begin
+          match Util.map_changed (src_type_subst_aux substs) ts with
+            | None -> None
+            | Some(ts) -> fix_result (Typ_backend(p, ts), { t = Tbackend(List.map src_t_to_t ts, p.descr) })
+        end
+    | Typ_paren(sk1, t, sk2) -> 
+        begin
+          match src_type_subst_aux substs t with
+            | None -> None
+            | Some(t') -> fix_result (Typ_paren(sk1, t', sk2), src_t_to_t t')
+        end
+    | Typ_len _ -> None
+
+let src_type_subst (substs : src_t TNfmap.t) (t : src_t) : src_t = 
+  if TNfmap.is_empty substs then
+    t
+  else
+    match src_type_subst_aux substs t with
+      | None -> t
+      | Some(t) -> t
+
+
 let string_of_const_descr_ref = string_of_int
 
 let nil_const_descr_ref = 0
@@ -430,8 +579,8 @@ type constr_family_descr = {
 }
 
 type type_target_rep =
-  | TR_rename of Ast.l * bool * Name.t
-  | TR_new_ident of Ast.l * bool * Ident.t
+  | TYR_simple of Ast.l *  bool * Ident.t
+  | TYR_subst of Ast.l *  bool * tnvar list * src_t 
 
 type type_descr = { 
   type_tparams : tnvar list;
@@ -439,7 +588,8 @@ type type_descr = {
   type_varname_regexp : string option;
   type_fields : (const_descr_ref list) option;
   type_constr : constr_family_descr list;
-  type_target_rep : type_target_rep Target.Targetmap.t
+  type_rename : (Ast.l * Name.t) Target.Targetmap.t;
+  type_target_rep : type_target_rep Target.Targetmap.t;
 }
 
 
@@ -447,6 +597,7 @@ type class_descr = {
   class_tparam : tnvar;
   class_record : Path.t; 
   class_methods : (const_descr_ref * const_descr_ref) list;
+  class_rename : (Ast.l * Name.t) Target.Targetmap.t;
   class_target_rep : type_target_rep Target.Targetmap.t
 }
 
@@ -460,6 +611,7 @@ let mk_tc_type_abbrev vars abbrev = Tc_type {
   type_varname_regexp = None;
   type_fields = None;
   type_constr = [];
+  type_rename = Target.Targetmap.empty;
   type_target_rep = Target.Targetmap.empty
 }
 
@@ -469,6 +621,7 @@ let mk_tc_type vars reg = Tc_type {
   type_varname_regexp = reg;
   type_fields = None;
   type_constr = [];
+  type_rename = Target.Targetmap.empty;
   type_target_rep = Target.Targetmap.empty
 }
 

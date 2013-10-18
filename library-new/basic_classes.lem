@@ -109,16 +109,6 @@ let min x y = match compare x y with
   | GT -> y
 end
 
-(* DUMMY, TODO: remove and move proper versions into num *)
-instance (Eq num)
-  let (=) = unsafe_structural_equality
-end
-
-instance (Ord num)
-  let compare = (fun x y -> EQ)
-end
-
-
 
 (* ========================================================================== *)
 (* Instantiations                                                             *)

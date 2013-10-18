@@ -47,6 +47,7 @@
 open Typed_ast
 open Syntactic_tests
 open Pcombinators
+open Types
 
 let rope_of_string (s : string) : Ulib.Text.t =
   Ulib.Text.of_string s

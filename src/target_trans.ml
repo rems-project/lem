@@ -91,6 +91,8 @@ let ident () =
                Exp_macros (fun env -> if !ident_force_pattern_compile then [(Patterns.compile_exp Target_ident (Patterns.is_pattern_match_const false) env)] else [])];
     extra = []; }
 
+let lem () = ident ()
+
 let tex =
   { macros = [];
     extra = []; }
@@ -373,6 +375,7 @@ let get_transformation targ =
     | Target_no_ident Target_coq   -> coq
     | Target_no_ident Target_isa   -> isa
     | Target_no_ident Target_tex   -> tex
+    | Target_no_ident Target_lem   -> lem ()
     | Target_no_ident Target_html  -> ident ()
     | Target_ident                 -> ident ()
   in

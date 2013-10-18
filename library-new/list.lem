@@ -57,7 +57,7 @@ assert null_simple_3: (not (null [2]))
 (* Length                  *)
 (* ----------------------- *)
 
-val length : forall 'a. list 'a -> num
+val length : forall 'a. list 'a -> nat
 let rec length l = match l with
                      | [] -> 0
                      | x :: xs -> length xs + 1
@@ -132,8 +132,9 @@ let rec (++) xs ys = match xs with
                      | [] -> ys
                      | x :: xs' -> x :: (xs' ++ ys)
                    end
-declare termination_argument append = automatic
+
 declare ascii_rep function (++) = append
+declare termination_argument append = automatic
 
 declare hol      target_rep function append = infix `++`
 declare ocaml    target_rep function append = `List.append`
@@ -354,7 +355,7 @@ lemma any_cons_thm: (forall P e l. any P (e::l) = (P e || any P l))
 (* index / nth with maybe   *)
 (* ------------------------- *)
 
-val index : forall 'a. list 'a -> num -> maybe 'a
+val index : forall 'a. list 'a -> nat -> maybe 'a
 
 let rec index l n = match l with 
   | []      -> Nothing
@@ -381,7 +382,7 @@ lemma index_list_eq: (forall l1 l2. ((forall n. index l1 n = index l2 n) <-> (l1
 
 (* [findIndices P l] returns the indices of all elements of list [l] that satisfy predicate [P]. 
    Counting starts with 0, the result list is sorted ascendingly *)
-val findIndices : forall 'a. ('a -> bool) -> list 'a -> list num
+val findIndices : forall 'a. ('a -> bool) -> list 'a -> list nat
 
 let rec findIndices_aux i P l =
   match l with
@@ -401,7 +402,7 @@ assert findIndices_3: (findIndices (fun n -> n > 3) [1;5;3;1;2;6] = [1;5])
 (* ------------------------- *)
 
 (* findIndex returns the first index of a list that satisfies a given predicate. *)
-val findIndex : forall 'a. ('a -> bool) -> list 'a -> maybe num
+val findIndex : forall 'a. ('a -> bool) -> list 'a -> maybe nat
 let findIndex P l = match findIndices P l with
   | [] -> Nothing
   | x :: _ -> Just x
@@ -411,14 +412,14 @@ end
 (* elemIndices               *)
 (* ------------------------- *)
 
-val elemIndices : forall 'a. Eq 'a => 'a -> list 'a -> list num
+val elemIndices : forall 'a. Eq 'a => 'a -> list 'a -> list nat
 let elemIndices e l = findIndices (isEqual e) l
 
 (* ------------------------- *)
 (* elemIndex                 *)
 (* ------------------------- *)
 
-val elemIndex : forall 'a. Eq 'a => 'a -> list 'a -> maybe num
+val elemIndex : forall 'a. Eq 'a => 'a -> list 'a -> maybe nat
 let elemIndex e l = findIndex ((=) e) l
 
 
@@ -432,7 +433,7 @@ let elemIndex e l = findIndex ((=) e) l
 (* ------------------------- *)
 
 (* [genlist f n] generates the list [f 0; f 1; ... (f (n-1))] *)
-val genlist : forall 'a. (num -> 'a) -> num -> list 'a
+val genlist : forall 'a. (nat -> 'a) -> nat -> list 'a
 
 
 let rec genlist f n = if n = 0 then [] else snoc (f (n-1)) (genlist f (n-1))
@@ -453,7 +454,7 @@ declare hol target_rep function genlist = `GENLIST`
 (* replicate                 *)
 (* ------------------------- *)
 
-val replicate : forall 'a. num -> 'a -> list 'a
+val replicate : forall 'a. nat -> 'a -> list 'a
 let rec replicate n x = if n = 0 then [] else x :: replicate (n-1) x
 declare termination_argument replicate = automatic
 
@@ -478,7 +479,7 @@ lemma replicate_index: (forall n x i. i < n --> index (replicate n x) i = Just x
 (* [splitAt n xs] returns a tuple (xs1, xs2), with "append xs1 xs2 = xs" and 
    "length xs1 = n". If there are not enough elements 
    in [xs], the original list and the empty one are returned. *)
-val splitAt : forall 'a. num -> list 'a -> (list 'a * list 'a)
+val splitAt : forall 'a. nat -> list 'a -> (list 'a * list 'a)
 let rec splitAt n l = 
   match l with
     | []    -> ([], [])
@@ -509,7 +510,7 @@ lemma splitAt_length: (forall n xs.
 (* ------------------------- *)
 
 (* take n xs returns the prefix of xs of length n, or xs itself if n > length xs *)
-val take : forall 'a. num -> list 'a -> list 'a
+val take : forall 'a. nat -> list 'a -> list 'a
 let take n l = fst (splitAt n l)
 
 declare hol      target_rep function take = `TAKE`
@@ -526,7 +527,7 @@ assert take_3: (take 100 [1;2;3;4;5;6] = [1;2;3;4;5;6])
 (* ------------------------- *)
 
 (* [drop n xs] drops the first [n] elements of [xs]. It returns the empty list, if [n] > [length xs]. *)
-val drop : forall 'a. num -> list 'a -> list 'a
+val drop : forall 'a. nat -> list 'a -> list 'a
 let drop n l = snd (splitAt n l)
 
 declare hol      target_rep function drop = `DROP`
@@ -542,7 +543,7 @@ lemma splitAt_take_drop: (forall n xs. splitAt n xs = (take n xs, drop n xs))
 (* ------------------------- *)
 (* update                    *)
 (* ------------------------- *)
-val update : forall 'a. list 'a -> num -> 'a -> list 'a
+val update : forall 'a. list 'a -> nat -> 'a -> list 'a
 let rec update l n e = 
   match l with
     | []      -> []

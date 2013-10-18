@@ -44,6 +44,7 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
+open Types
 open Typed_ast
 open Coq_backend_utils
 

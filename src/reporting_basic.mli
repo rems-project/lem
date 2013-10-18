@@ -112,7 +112,7 @@ type error =
   | Err_internal of Ast.l * string
   | Err_rename of Ast.l * string
   | Err_cyclic_build of string (** resolving module dependencies detected a cyclic dependency of the given module *)
-  | Err_resolve_dependency of Ast.l * string  (** could not find a Module that should be imported *)
+  | Err_resolve_dependency of Ast.l * string list * string  (** could not find a Module that should be imported in given list of directories *)
   
 (** Since errors are always fatal, they are reported by raising an [Fatal_error] exception instead of
     calling a report-function. *)

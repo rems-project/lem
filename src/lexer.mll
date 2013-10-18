@@ -75,6 +75,7 @@ let kw_table =
      ("end",                     (fun x -> End(x)));
      ("open",                    (fun x -> Open_(x)));
      ("import",                  (fun x -> Import_(x)));
+     ("include",                 (fun x -> Include_(x)));
      ("true",                    (fun x -> True(x)));
      ("false",                   (fun x -> False(x)));
      ("begin",                   (fun x -> Begin_(x)));

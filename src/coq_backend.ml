@@ -50,6 +50,7 @@ open Output
 open Typed_ast
 open Typed_ast_syntax
 open Target
+open Types
 
 let print_and_fail l s =
   raise (Reporting_basic.err_general true l s)

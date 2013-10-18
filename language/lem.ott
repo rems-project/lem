@@ -695,12 +695,15 @@ target :: 'Target_' ::=
   | coq								:: :: coq
   | tex								:: :: tex
   | html							:: :: html
+  | lem 							:: :: lem
 
 open_import  :: 'OI_' ::=
   {{ com Open or import statements }}
   | open							:: :: open
   | import							:: :: import
   | open import							:: :: open_import
+  | include							:: :: include
+  | include import						:: :: include_import
 
 
 targets {{ tex \ensuremath{\tau} }} :: 'Targets_' ::=		{{ hol target list }}

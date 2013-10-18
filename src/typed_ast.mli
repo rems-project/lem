@@ -44,6 +44,8 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
+open Types
+
 (** Sets of Names *)
 module NameSet : Set.S with type elt = Name.t and type t = Set.Make(Name).t
 
@@ -80,65 +82,12 @@ type env_tag =
   | K_method   (** A class method *)
   | K_instance (** A method instance *)
 
-
-type ('a,'b) annot = { term : 'a; locn : Ast.l; typ : Types.t; rest : 'b }
-val annot_to_typ : ('a,'b) annot -> Types.t
-
 (** Maps a type name to the unique path representing that type and 
     the first location this type is defined
 *)
 type p_env = (Path.t * Ast.l) Nfmap.t
 
-type ident_option =
-  | Id_none of Ast.lex_skips
-  | Id_some of Ident.t
-
-
-(** Represents a usage of an 'a (usually in constr_descr, field_descr,
-    const_descr) *)
-type 'a id = 
-    { 
-      id_path : ident_option; 
-      (** The identifier as written at the usage point.  None if it is generated
-          internally, and therefore has no original source *)
-
-      id_locn : Ast.l;
-      (** The location of the usage point *)
-
-      descr : 'a; 
-      (** A description of the binding that the usage refers to *)
-
-      instantiation : Types.t list;
-      (** The usage site instantiation of the type parameters of the definition *)
-    }
-
-
-(* The AST.  lskips appear in the types wherever concrete syntactic elements
- * would appear (e.g., a keyword), and represent the comments and whitespace
- * that preceded that concrete element.  They do not represent the element
- * itself *)
-and src_t = (src_t_aux,unit) annot
-
-and src_t_aux = 
- | Typ_wild of lskips
- | Typ_var of lskips * Tyvar.t
- | Typ_len of src_nexp
- | Typ_fn of src_t * lskips * src_t
- | Typ_tup of src_t lskips_seplist
- | Typ_app of Path.t id * src_t list
- | Typ_backend of Path.t id * src_t list (** a backend type that should be used literally *)
- | Typ_paren of lskips * src_t * lskips
-
-and src_nexp =  { nterm : src_nexp_aux; nloc : Ast.l; nt : Types.nexp } 
-
-and src_nexp_aux =
- | Nexp_var of lskips * Nvar.t 
- | Nexp_const of lskips * int
- | Nexp_mult of src_nexp * lskips * src_nexp (** One will always be const *)
- | Nexp_add of src_nexp * lskips * src_nexp 
- | Nexp_paren of lskips * src_nexp * lskips
-
-type lit = (lit_aux,unit) annot
+type lit = (lit_aux,unit) Types.annot
 
 and lit_aux =
   | L_true of lskips
@@ -161,8 +110,7 @@ type name_kind =
   | Nk_module of Path.t
   | Nk_class of Path.t
 
-
-type pat = (pat_aux,pat_annot) annot
+type pat = (pat_aux,pat_annot) Types.annot
 and pat_annot = { pvars : Types.t Nfmap.t }
 
 and pat_aux = 
@@ -311,9 +259,6 @@ and env = {
 
 and mod_target_rep =
   | MR_rename of Ast.l * Name.t (** Rename the module *)
-  | MR_merge_with_parent (** Merge the module with it's parent module. Some modules only exist for certain backends. An example 
-      are modules for record fields. These only exists for certain backends, while other backends store the fields in the
-      module that contains the record field definition. *) 
 
 and mod_descr = { mod_binding : Path.t; (** The full path of this module *)
                   mod_env : local_env;  (** The local environment of the module *)
@@ -601,8 +546,6 @@ val pat_append_lskips : lskips -> pat -> pat
     function's result, and the snd of the function's result is returned from
     alter_init_lskips *)
 val alter_init_lskips : (lskips -> lskips * lskips) -> exp -> exp * lskips
-val typ_alter_init_lskips : (lskips -> lskips * lskips) -> src_t -> src_t * lskips 
-val nexp_alter_init_lskips : (lskips -> lskips * lskips) -> src_nexp -> src_nexp * lskips
 val pat_alter_init_lskips : (lskips -> lskips * lskips) -> pat -> pat * lskips
 val def_alter_init_lskips : (lskips -> lskips * lskips) -> def -> def * lskips
 

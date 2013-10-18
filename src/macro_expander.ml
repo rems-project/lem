@@ -45,6 +45,7 @@
 (**************************************************************************)
 
 open Typed_ast
+open Types
 
 type level = 
   | Top_level
@@ -289,7 +290,7 @@ let rec expand_exp (macro_ctxt : macro_context) ((r,typ_r,src_typ_r,pat_r):((mac
                   C.mk_backend old_l sk i new_t
               | Nvar_e(s,n) -> C.mk_nvar_e old_l s n new_t
               | Lit li  ->
-                  C.mk_lit old_l  {li with Typed_ast.typ = new_t} (Some new_t)
+                  C.mk_lit old_l  {li with typ = new_t} (Some new_t)
           end
 
 and skip_apps (macro_ctxt : macro_context) (r,typ_r,src_typ_r,pat_r) e = match (C.exp_to_term e) with

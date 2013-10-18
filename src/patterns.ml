@@ -44,6 +44,7 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
+open Types
 open Typed_ast
 open Typed_ast_syntax
 open Target
@@ -399,7 +400,7 @@ let pat_matrix_simp_pat l_org ((input, rows, pf) : pat_matrix) : pat_matrix opti
       | P_vectorC _ -> None
       | P_tup _ -> None
       | P_list _ -> None
-      | P_num_add ((n,_), _, _, i) -> if i > 0 then None else Some (C.mk_pvar l n num_ty, ee)
+      | P_num_add ((n,_), _, _, i) -> if i > 0 then None else Some (C.mk_pvar l n nat_ty, ee)
       | P_paren(_,p,_) ->  Some (p, ee)
       | P_cons _ -> None
       | P_lit(li) ->
@@ -866,7 +867,7 @@ let record_matrix_compile_fun (env : env) (gen : var_name_generator) (m_ty : Typ
   let record_var_name = gen None p_ty in
   let record_var = matrix_compile_mk_var record_var_name p_ty in
 
-  let id_process_fun ((fi : Typed_ast.const_descr_ref Typed_ast.id), (f_d : Typed_ast.const_descr)) = begin
+  let id_process_fun ((fi : const_descr_ref id), (f_d : const_descr)) = begin
     let subst = Types.TNfmap.from_list2 f_d.const_tparams fi.instantiation in
     let ty_field = match Types.dest_fn_type (Some env.t_env) (Types.type_subst subst f_d.const_type) with
       | Some (_, ty) -> ty
@@ -971,7 +972,7 @@ let cases_matrix_compile_fun dest_pat make_lit (gen_match : bool) env (gen : var
 
 let num_matrix_compile_fun =
   let l = Ast.Trans (true, "num_matrix_compile_fun", None) in
-  cases_matrix_compile_fun (dest_num_pat) (fun c -> (C.mk_lnum l None c (Some num_ty), num_ty))
+  cases_matrix_compile_fun (dest_num_pat) (fun c -> (C.mk_lnum l None c (Some nat_ty), nat_ty))
 
 let string_matrix_compile_fun =
   let l = Ast.Trans (true, "string_matrix_compile_fun", None) in
@@ -994,8 +995,8 @@ let num_add_matrix_compile_fun_simple env (gen : var_name_generator) (m_ty : Typ
   let loc = Ast.Trans (true, "num_add_matrix_compile_fun_simple", Some l_org) in
   
   (* Build top-fun *)
-  let abb_n = gen None num_ty in
-  let abb_v = matrix_compile_mk_var abb_n num_ty in
+  let abb_n = gen None nat_ty in
+  let abb_v = matrix_compile_mk_var abb_n nat_ty in
   let top_fun : matrix_compile_top_fun  = fun i eL -> match eL with [e1; e2] ->
      begin
        let (i', _) = alter_init_lskips remove_init_ws i in
@@ -1013,9 +1014,9 @@ let num_add_matrix_compile_fun_simple env (gen : var_name_generator) (m_ty : Typ
     | _ -> raise (match_compile_unreachable "list_matrix_compile_fun wrong no of args to rest_pat_else")
   in
 
-  let new_n = gen None num_ty in
-  let new_v = matrix_compile_mk_pvar new_n num_ty in
-  let new_w = matrix_compile_mk_pwild num_ty in
+  let new_n = gen None nat_ty in
+  let new_v = matrix_compile_mk_pvar new_n nat_ty in
+  let new_w = matrix_compile_mk_pwild nat_ty in
 
   (* build functions for the only case *)
   let case_fun_0 p ee = 
@@ -1063,17 +1064,17 @@ let num_add_matrix_compile_fun (gen_match : bool) (use_split : int -> bool) env 
   in
   let top_fun_case last_used last_n : matrix_compile_top_fun  = fun i eL -> 
      let _ = matrix_compile_fun_check (List.length eL = (min_inc + 1)) in
-     let pL = (List.map mk_num_pat cL) @ [if last_used then matrix_compile_mk_pvar last_n num_ty else matrix_compile_mk_pwild num_ty] in
+     let pL = (List.map mk_num_pat cL) @ [if last_used then matrix_compile_mk_pvar last_n nat_ty else matrix_compile_mk_pwild nat_ty] in
      mk_case_exp true loc i (List.combine pL eL) m_ty
   in
-  let abb_n = gen min_name_opt num_ty in
-  let abb_v = matrix_compile_mk_var abb_n num_ty in
+  let abb_n = gen min_name_opt nat_ty in
+  let abb_v = matrix_compile_mk_var abb_n nat_ty in
   let top_fun_split (i : exp) (eL : exp list) = begin
     let (eL0, eL1) = Util.split_after (List.length eL - 1) eL in
     let (i', _) = alter_init_lskips remove_init_ws i in
 
-    let last_n = gen None num_ty in
-    let last_e = if gen_match then matrix_compile_mk_var last_n num_ty else i' in
+    let last_n = gen None nat_ty in
+    let last_e = if gen_match then matrix_compile_mk_var last_n nat_ty else i' in
 
     let e_last : exp = List.hd eL1 in
     let (last_used, e_last') = mk_opt_let_exp loc (abb_n, mk_sub_exp env last_e (mk_num_exp min_inc)) e_last in
@@ -1104,7 +1105,7 @@ let num_add_matrix_compile_fun (gen_match : bool) (use_split : int -> bool) env 
     | _ -> raise (match_compile_unreachable "list_matrix_compile_fun wrong no of args to rest_pat_le")
   in
 
-  let new_w = matrix_compile_mk_pwild num_ty in
+  let new_w = matrix_compile_mk_pwild nat_ty in
 
   let pat_cases f_i f_a f_w p =
       Util.option_cases (dest_num_pat p) f_i (fun () ->

@@ -1,3 +1,5 @@
+open import Transform
+
 type t1 = num
 type t2 'a = 'a * t1
 type t3 'a 'b = 'a * 'b

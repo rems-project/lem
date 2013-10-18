@@ -1,0 +1,12 @@
+(* This library is used to map old lem
+   developments to the new library *)
+
+open import Pervasives_non_pure
+
+declare rename module = Pervasives_non_pure
+
+type num = nat
+declare lem target_rep type num = `nat`
+
+val (+) : nat -> nat -> nat
+declare lem target_rep function (+) = Num.natAdd

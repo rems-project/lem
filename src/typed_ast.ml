@@ -73,10 +73,6 @@ type env_tag =
   | K_method
   | K_instance
 
-type ('a,'b) annot = { term : 'a; locn : Ast.l; typ : t; rest : 'b }
-
-let annot_to_typ a = a.typ
-
 type const_descr_ref = Types.const_descr_ref
 
 type name_kind =
@@ -88,36 +84,6 @@ type name_kind =
   | Nk_class of Path.t
 
 type p_env = (Path.t * Ast.l) Nfmap.t
-
-type ident_option =
-  | Id_none of Ast.lex_skips
-  | Id_some of Ident.t
-
-type 'a id = { id_path : ident_option;
-               id_locn : Ast.l;
-               descr : 'a; 
-               instantiation : t list; }
-
-and src_t = (src_t_aux,unit) annot
-
-and src_t_aux = 
- | Typ_wild of lskips
- | Typ_var of lskips * Tyvar.t
- | Typ_len of src_nexp
- | Typ_fn of src_t * lskips * src_t
- | Typ_tup of src_t lskips_seplist
- | Typ_app of Path.t id * src_t list
- | Typ_backend of Path.t id * src_t list
- | Typ_paren of lskips * src_t * lskips
-
-and src_nexp = { nterm : src_nexp_aux; nloc : Ast.l; nt : Types.nexp } (*(src_nexp_aux,unit) annot*)
-
-and src_nexp_aux =
- | Nexp_var of lskips * Nvar.t 
- | Nexp_const of lskips * int
- | Nexp_mult of src_nexp * lskips * src_nexp (* One will always be const *)
- | Nexp_add of src_nexp * lskips * src_nexp 
- | Nexp_paren of lskips * src_nexp * lskips
 
 type lit = (lit_aux,unit) annot
 
@@ -200,7 +166,6 @@ and free_env = t Nfmap.t
 
 and mod_target_rep =
   | MR_rename of Ast.l * Name.t
-  | MR_merge_with_parent 
 
 and mod_descr = { mod_binding : Path.t;
                   mod_env : local_env; 
@@ -418,7 +383,7 @@ let env_c_env_update env c_id c_d =
 
 let c_env_store_raw = cdmap_insert
 
-let restrict_m_env env mod_name local_env =
+(*let restrict_m_env env mod_name local_env =
 begin
    let m_env' = Nfmap.filter (fun _ mod_path -> Path.check_prefix mod_name mod_path) local_env.m_env in
    let p_env' = Nfmap.filter (fun _ (p, _) -> Path.check_prefix mod_name p) local_env.p_env in
@@ -432,10 +397,10 @@ begin
    let v_env' = Nfmap.filter const_filter local_env.v_env in
 
   { m_env = m_env'; p_env = p_env'; f_env = f_env'; v_env = v_env'}
-end
+end*)
 
 let env_m_env_move env mod_path mod_name mod_rep new_local =
-  let md_local_env = restrict_m_env env mod_name env.local_env in
+  let md_local_env = (* restrict_m_env env mod_name *) env.local_env in
   let mod_binding = Path.mk_path mod_path mod_name in
   let md = { mod_env = md_local_env; mod_binding = mod_binding; mod_target_rep = mod_rep } in
   let new_local' = { new_local with m_env = Nfmap.insert new_local.m_env (mod_name,mod_binding) } in
@@ -445,63 +410,6 @@ let env_m_env_move env mod_path mod_name mod_rep new_local =
 (* Applies lskips_f to the leftmost lskips in p, replacing it with lskips_f's
  * first result and returning lskips_f's second result *)
 
-let rec nexp_alter_init_lskips(lskips_f : lskips -> lskips * lskips) (n: src_nexp) : src_nexp * lskips =
-  let res n' s = ({ n with nterm = n'}, s) in
-    match n.nterm with
-      | Nexp_var(s, nv) ->
-          let (s_new,s_ret) = lskips_f s in
-            res (Nexp_var(s_new,nv)) s_ret
-      | Nexp_const(s, i) ->
-          let (s_new,s_ret) = lskips_f s in
-            res (Nexp_const(s_new,i)) s_ret
-      | Nexp_mult(n1, s, n2) ->
-          let (n1_new,s_ret) = nexp_alter_init_lskips lskips_f n1 in
-            res (Nexp_mult(n1_new,s,n2)) s_ret
-      | Nexp_add(n1, s, n2) ->
-          let (n1_new,s_ret) = nexp_alter_init_lskips lskips_f n1 in
-            res (Nexp_add(n1_new,s,n2)) s_ret
-      | Nexp_paren(s1, n, s2) ->
-         let (s_new,s_ret) = lskips_f s1 in
-            res (Nexp_paren(s_new,n,s2)) s_ret
-
-let id_alter_init_lskips lskips_f (id : 'a id) : 'a id * lskips =
-  match id.id_path with
-    | Id_some(id_path) ->
-        let (s_new, s_ret) = lskips_f (Ident.get_lskip id_path) in
-          ({id with id_path = Id_some (Ident.replace_lskip id_path s_new)}, s_ret)
-    | Id_none(sk) ->
-        let (s_new, s_ret) = lskips_f sk in
-          ({id with id_path = Id_none s_new}, s_ret)
-
-let rec typ_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (t : src_t) : src_t * lskips = 
-  let res t' s = ({ t with term = t'}, s) in
-    match t.term with
-      | Typ_wild(s) ->
-          let (s_new,s_ret) = lskips_f s in
-            res (Typ_wild(s_new)) s_ret
-      | Typ_var(s,tv) ->
-          let (s_new,s_ret) = lskips_f s in
-            res (Typ_var(s_new,tv)) s_ret
-      | Typ_len(nexp) -> 
-          let (nexp_new,s_ret) = nexp_alter_init_lskips lskips_f nexp in
-             res (Typ_len(nexp_new)) s_ret
-      | Typ_fn(t1,s,t2) ->
-          let (t_new, s_ret) = typ_alter_init_lskips lskips_f t1 in
-            res (Typ_fn(t_new, s, t2)) s_ret
-      | Typ_tup(ts) ->
-          let t = Seplist.hd ts in
-          let ts' = Seplist.tl ts in
-          let (t_new, s_ret) = typ_alter_init_lskips lskips_f t in
-            res (Typ_tup(Seplist.cons_entry t_new ts')) s_ret
-      | Typ_app(id,ts) ->
-          let (id_new,s_ret) = id_alter_init_lskips lskips_f id in
-            res (Typ_app(id_new,ts)) s_ret 
-      | Typ_backend(id,ts) ->
-          let (id_new,s_ret) = id_alter_init_lskips lskips_f id in
-            res (Typ_backend(id_new,ts)) s_ret 
-      | Typ_paren(s1,t,s2) ->
-          let (s_new,s_ret) = lskips_f s1 in
-            res (Typ_paren(s_new,t,s2)) s_ret
 
 let lit_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (l : lit) : lit * lskips = 
   let res t s = ({ l with term = t }, s) in
@@ -741,6 +649,33 @@ let rec def_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (((d,s),l,l
       | Comment(d) ->
           let (d',s_ret) = def_alter_init_lskips lskips_f d in
             res (Comment(d')) s_ret
+      | Declaration d -> begin     
+          let (d', s_ret) = match d with
+            | Decl_compile_message (sk1, targs, sk2, id, sk3, sk4, msg) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_compile_message (sk1', targs, sk2, id, sk3, sk4, msg), s_ret)
+            | Decl_target_rep_term (sk1, targ, sk2, comp, id, args, sk3, rhs) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_target_rep_term (sk1', targ, sk2, comp, id, args, sk3, rhs), s_ret)
+            | Decl_target_rep_type (sk1, targ, sk2, sk3, id, args, sk4, rhs) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_target_rep_type (sk1', targ, sk2, sk3, id, args, sk4, rhs), s_ret)
+            | Decl_ascii_rep (sk1, targs, sk2, comp, id, sk3, n) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_ascii_rep (sk1, targs, sk2, comp, id, sk3, n), s_ret)
+            | Decl_rename (sk1, targs, sk2, comp, id, sk3, n) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_rename (sk1, targs, sk2, comp, id, sk3, n), s_ret)
+            | Decl_rename_current_module (sk1, targs, sk2, sk3, sk4, n) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_rename_current_module (sk1, targs, sk2, sk3, sk4, n), s_ret)
+            | Decl_termination_argument (sk1, targs, sk2, id, sk3, ts) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_termination_argument (sk1, targs, sk2, id, sk3, ts), s_ret)
+          in
+          res (Declaration d') s_ret
+        end
+
 
 let exp_to_locn e = e.locn
 let exp_to_typ e = e.typ
@@ -1039,7 +974,7 @@ module Exps_in_context(D : Exp_context) = struct
         rest = { pvars = merge_free_env true l [p1.rest.pvars; p2.rest.pvars]; }; }
 
   let mk_pnum_add l xl s1 s2 i t =
-    let t = check_typ l "mk_pnum_add" t (fun d -> Some { t = Tapp([], Path.numpath) }) in
+    let t = check_typ l "mk_pnum_add" t (fun d -> Some { t = Tapp([], Path.natpath) }) in
       { term = P_num_add(xl,s1,s2,i);
         locn = l;
         typ = t; 
@@ -1573,7 +1508,7 @@ module Exps_in_context(D : Exp_context) = struct
    *)
 
   let mk_lnum l s i t = 
-    let t = check_typ l "mk_lnum" t (fun d -> Some { t = Tapp([],Path.numpath) }) in
+    let t = check_typ l "mk_lnum" t (fun d -> Some { t = Tapp([],Path.natpath) }) in
     { term = L_num(s,i);
       locn = l;
       typ = t;

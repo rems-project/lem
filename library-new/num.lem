@@ -39,47 +39,55 @@ declare ascii_rep function ( * ) = numMult
 (* ========================================================================== *)
 
 (* ----------------------- *)
-(* num                     *)
+(* nat                     *)
 (* ----------------------- *)
 
 (* unbounded size natural numbers are hardcoded *)
 
-declare hol      target_rep type num = `num` 
-declare isabelle target_rep type num = `nat` 
-declare coq      target_rep type num = `num` 
-declare ocaml    target_rep type num = `int` 
+declare hol      target_rep type nat = `num` 
+declare isabelle target_rep type nat = `nat` 
+declare coq      target_rep type nat = `num` 
+declare ocaml    target_rep type nat = `int` 
 
-val natAdd : num -> num -> num
+val natAdd : nat -> nat -> nat
 declare hol      target_rep function natAdd = infix `+`
 declare ocaml    target_rep function natAdd = `Nat_num.(+)`
 declare isabelle target_rep function natAdd = infix `+`
 declare coq      target_rep function natAdd = infix `+`
 
-instance (NumAdd num)
+instance (Eq nat)
+  let (=) = unsafe_structural_equality
+end
+
+instance (Ord nat)
+  let compare = (fun x y -> EQ)
+end
+
+instance (NumAdd nat)
   let (+) = natAdd
 end
 
-val suc : num -> num
+val suc : nat -> nat
 let suc n = n + 1
 
-val natMinus : num -> num -> num
+val natMinus : nat -> nat -> nat
 declare hol      target_rep function natMinus = infix `-`
 declare ocaml    target_rep function natMinus = `Nat_num.(-)`
 declare isabelle target_rep function natMinus = infix `-`
 declare coq      target_rep function natMinus = infix `-`
 
-instance (NumMinus num)
+instance (NumMinus nat)
   let (-) = natMinus
 end
 
 
-val natMult : num -> num -> num
-declare hol      target_rep function natMult = infix `-`
-declare ocaml    target_rep function natMult = `Nat_num.(-)`
-declare isabelle target_rep function natMult = infix `-`
-declare coq      target_rep function natMult = infix `-`
+val natMult : nat -> nat -> nat
+declare hol      target_rep function natMult = infix `*`
+declare ocaml    target_rep function natMult = `Nat_num.(*)`
+declare isabelle target_rep function natMult = infix `*`
+declare coq      target_rep function natMult = infix `*`
 
-instance (NumMult num)
+instance (NumMult nat)
   let ( * ) = natMult
 end
 

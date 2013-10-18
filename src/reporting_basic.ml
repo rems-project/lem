@@ -154,7 +154,7 @@ type error =
   | Err_internal of Ast.l * string
   | Err_rename of Ast.l * string
   | Err_cyclic_build of string 
-  | Err_resolve_dependency of Ast.l * string 
+  | Err_resolve_dependency of Ast.l * string list * string 
 
 let dest_err = function
   | Err_general (b, l, m) -> ("Error", b, Loc l, m)
@@ -169,7 +169,7 @@ let dest_err = function
   | Err_rename (l, m) -> ("Renaming error", false, Loc l, m)
   | Err_type (l, m) -> ("Type error", false, Loc l, m)
   | Err_cyclic_build m -> ("Circular build detected", false, Loc Ast.Unknown, "module '" ^ m ^ "' depends on itself")
-  | Err_resolve_dependency (l, m) -> ("Unknown dependency", false, Loc l, ("unknown module '"^m^"'"))
+  | Err_resolve_dependency (l, dirs, m) -> ("Unknown dependency", false, Loc l, ("could not find module '"^m^"' in directories " ^ (String.concat ", " (List.map (fun s -> "'" ^ s ^ "'") dirs))))
 
 exception Fatal_error of error
 

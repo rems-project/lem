@@ -60,7 +60,7 @@ let new_line = Some [Ast.Ws (r"\n")]
 module C = Exps_in_context(struct let env_opt = None let avoid = None end)
 
 let bool_ty = { Types.t = Types.Tapp ([], Path.boolpath) }
-let num_ty  = { Types.t = Types.Tapp ([], Path.numpath)  }
+let nat_ty  = { Types.t = Types.Tapp ([], Path.natpath)  }
 
 let mk_name_lskips_annot l n ty : name_lskips_annot = 
   { term = n;
@@ -240,10 +240,9 @@ let constant_descr_to_name (targ : Target.target) (cd : const_descr) : (bool * N
   (is_shown, name_renamed, name_ascii)
 
 let type_descr_to_name (targ : Target.target) (p : Path.t) (td : type_descr) : Name.t = 
-  match Target.Targetmap.apply_target td.Types.type_target_rep targ with
-     | None -> Path.get_name p 
-     | Some (Types.TR_new_ident (_, _, i)) -> Name.strip_lskip (Ident.get_name i)
-     | Some (Types.TR_rename (_, _, n)) -> n
+  match Target.Targetmap.apply_target td.Types.type_rename targ with
+     | None -> Path.get_name p        
+     | Some (_, n) -> n
 
 
 let constant_descr_rename  (targ : Target.non_ident_target) (n':Name.t) (l' : Ast.l) (cd : const_descr) : (const_descr * (Ast.l * Name.t) option) = 
@@ -254,7 +253,6 @@ let constant_descr_rename  (targ : Target.non_ident_target) (n':Name.t) (l' : As
 let mod_target_rep_rename  (targ : Target.non_ident_target) (n':Name.t) (l' : Ast.l) (tr : mod_target_rep Target.Targetmap.t) : (mod_target_rep Target.Targetmap.t * (Ast.l * Name.t) option) = 
   let (old_info, do_something) = match Target.Targetmap.apply_target tr (Target.Target_no_ident targ) with
     | Some (MR_rename (l, n)) -> (Some (l, n), true)
-    | Some (MR_merge_with_parent) -> (None, false)
     | None -> (None, true)
   in
 
@@ -265,44 +263,17 @@ let mod_target_rep_rename  (targ : Target.non_ident_target) (n':Name.t) (l' : As
     (tr', old_info)
 
 
-let type_descr_rename  (targ : Target.non_ident_target) (n':Name.t) (l' : Ast.l) (td : type_descr) : (type_descr * (Ast.l * Name.t) option) option = 
-  let rep = Target.Targetmap.apply td.type_target_rep targ in
-  let rep_info_opt = match rep with
-    | Some (TR_rename (l, true, n)) -> Some (TR_rename (l', true, n'), Some (l, n))
-    | Some (TR_new_ident (l, true, i)) -> Some (TR_new_ident (l', true, Ident.rename i n'), Some (l, Name.strip_lskip (Ident.get_name i)))
-    | None -> Some (TR_rename (l', true, n'), None)
-    | _ -> None
-  in
-  let save_env (tr, d) = begin
-    let targ_rep = Target.Targetmap.insert (td.type_target_rep) (targ, tr) in
-    ({td with type_target_rep = targ_rep}, d)
-  end in
-  Util.option_map save_env rep_info_opt
-
-let type_descr_set_ident  (targ : Target.non_ident_target) (i:Ident.t) (l' : Ast.l) (td : type_descr) : type_descr option = 
-  let rep = Target.Targetmap.apply td.type_target_rep targ in
-  let rep_info_opt = match rep with
-    | (Some (TR_rename (_, true, _)) | Some (TR_new_ident (_, true, _)) | None) -> 
-         Some (TR_new_ident (l', true, i))
-    | _ -> None
-  in
-  let save_env tr = begin
-    let targ_rep = Target.Targetmap.insert (td.type_target_rep) (targ, tr) in
-    ({td with type_target_rep = targ_rep})
-  end in
-  Util.option_map save_env rep_info_opt
+let type_descr_rename  (targ : Target.non_ident_target) (n':Name.t) (l' : Ast.l) (td : type_descr) : type_descr * (Ast.l * Name.t) option = 
+  let old_rep = Target.Targetmap.apply td.type_rename targ in
+  let tr = Target.Targetmap.insert td.type_rename (targ, (l', n')) in
+  ({td with type_rename = tr}, old_rep)
 
 let type_defs_rename_type l (d : type_defs) (p : Path.t) (t: Target.non_ident_target) (n : Name.t) : type_defs =
   let l' = Ast.Trans (false, "type_defs_rename_type", Some l) in
   let up td = begin
-    let res_opt = type_descr_rename t n l td in
-    Util.option_map (fun (td, _) -> td) res_opt
+    let (res, _) = type_descr_rename t n l td in
+    Some res
   end in
-  Types.type_defs_update_tc_type l' d p up
-
-let type_defs_new_ident_type l (d : type_defs) (p : Path.t) (t: Target.non_ident_target) (i : Ident.t) : type_defs =
-  let l' = Ast.Trans (false, "type_defs_target_type", Some l) in
-  let up td = type_descr_set_ident t i l td in
   Types.type_defs_update_tc_type l' d p up
 
 let const_target_rep_to_loc= function
@@ -316,6 +287,15 @@ let const_target_rep_allow_override = function
   | CR_infix (_, f, _, _) -> f
   | CR_simple (_, f, _, _) -> f
   | CR_special (_, f, _, _) -> f
+
+let type_target_rep_to_loc= function
+  | TYR_simple (l, _, _) -> l
+  | TYR_subst (l, _, _, _) -> l
+
+let type_target_rep_allow_override = function
+  | TYR_simple (_, b, _) -> b
+  | TYR_subst (_, b, _, _) -> b
+
 
 let const_descr_has_target_rep targ cd =
   match targ with
@@ -448,8 +428,8 @@ let is_num_exp e = not (dest_tf_exp e = None)
 
 let mk_num_exp i = 
   let l = Ast.Trans (false, "mk_num_exp", None) in
-  let lit = C.mk_lnum l None i (Some num_ty) in
-  C.mk_lit l lit (Some num_ty)
+  let lit = C.mk_lnum l None i (Some nat_ty) in
+  C.mk_lit l lit (Some nat_ty)
 
 let mk_paren_exp e =
      let (e', ws) = alter_init_lskips remove_init_ws e in
@@ -545,10 +525,10 @@ let mk_and_exp env (e1 : exp) (e2 : exp) : exp =
 
 let mk_le_exp env (e1 : exp) (e2 : exp) : exp =
   let l = Ast.Trans (true, "mk_le_exp", None) in
-  let ty_0 = { Types.t = Types.Tfn (num_ty, bool_ty) } in
-  let ty_1 = { Types.t = Types.Tfn (num_ty, ty_0) } in
+  let ty_0 = { Types.t = Types.Tfn (nat_ty, bool_ty) } in
+  let ty_1 = { Types.t = Types.Tfn (nat_ty, ty_0) } in
 
-  let (le_id, _) = get_const_id env l "less_equal" [num_ty] in
+  let (le_id, _) = get_const_id env l "less_equal" [nat_ty] in
 
   let le_exp = C.mk_const l le_id (Some ty_1) in
   let res = C.mk_infix l e1 le_exp e2 (Some bool_ty) in
@@ -556,34 +536,34 @@ let mk_le_exp env (e1 : exp) (e2 : exp) : exp =
 
 let mk_add_exp env (e1 : exp) (e2 : exp) : exp =
   let l = Ast.Trans (true, "matrix_compile_mk_add", None) in
-  let ty_0 = { Types.t = Types.Tfn (num_ty, num_ty) } in
-  let ty_1 = { Types.t = Types.Tfn (num_ty, ty_0) } in
+  let ty_0 = { Types.t = Types.Tfn (nat_ty, nat_ty) } in
+  let ty_1 = { Types.t = Types.Tfn (nat_ty, ty_0) } in
 
   let (add_id, _) = get_const_id env l "addition" [] in
   let add_exp = C.mk_const l add_id (Some ty_1) in
-  let res = C.mk_infix l e1 add_exp e2 (Some num_ty) in
+  let res = C.mk_infix l e1 add_exp e2 (Some nat_ty) in
   res
 
 let mk_sub_exp env (e1 : exp) (e2 : exp) : exp =
   let l = Ast.Trans (true, "matrix_compile_mk_sub", None) in
-  let ty_0 = { Types.t = Types.Tfn (num_ty, num_ty) } in
-  let ty_1 = { Types.t = Types.Tfn (num_ty, ty_0) } in
+  let ty_0 = { Types.t = Types.Tfn (nat_ty, nat_ty) } in
+  let ty_1 = { Types.t = Types.Tfn (nat_ty, ty_0) } in
 
-  let (sub_id, _) = get_const_id env l "subtraction" [num_ty] in
+  let (sub_id, _) = get_const_id env l "subtraction" [nat_ty] in
   let sub_exp = C.mk_const l sub_id (Some ty_1) in
-  let res = C.mk_infix l e1 sub_exp e2 (Some num_ty) in
+  let res = C.mk_infix l e1 sub_exp e2 (Some nat_ty) in
   res
 
 let mk_num_add_exp env n i = 
   let l = Ast.Trans (true, "mk_num_add_exp", None) in
-  let e1 = C.mk_var l (Name.add_lskip n) num_ty in
+  let e1 = C.mk_var l (Name.add_lskip n) nat_ty in
   let e2 = mk_num_exp i in
   let ee = mk_add_exp env e1 e2 in
   mk_opt_paren_exp ee
 
 let mk_num_sub_exp env n i = 
   let l = Ast.Trans (true, "mk_num_sub_exp", None) in
-  let e1 = C.mk_var l  (Name.add_lskip n) num_ty in
+  let e1 = C.mk_var l  (Name.add_lskip n) nat_ty in
   let e2 = mk_num_exp i in
   let ee = mk_sub_exp env e1 e2 in
   mk_opt_paren_exp ee
@@ -819,7 +799,7 @@ let rec add_type_entities (ue : used_entities) (t : Types.t) : used_entities =
     | Tne _ -> ue
     | Tuvar _ -> ue
 
-let rec add_src_t_entities (ue : used_entities) (t : Typed_ast.src_t) : used_entities =
+let rec add_src_t_entities (ue : used_entities) (t : Types.src_t) : used_entities =
   match t.term with
     | Typ_wild _ -> ue
     | Typ_var _ -> ue

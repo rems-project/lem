@@ -333,7 +333,7 @@ let class_constraint_to_parameter : def_macro = fun mod_path env ((d,s),l,lenv) 
       | _ -> None
 
 let nvar_to_parameter : def_macro = fun mod_path env ((d,s),l,_) ->
-  let l_unk = Ast.Trans(true, "nvar_to_parameter", Some l) in
+(*  let l_unk = Ast.Trans(true, "nvar_to_parameter", Some l) in *)
     match d with
       | Val_def(lb, tnvs, class_constraints) ->
         if (Types.TNset.is_empty tnvs) then None
@@ -341,11 +341,11 @@ let nvar_to_parameter : def_macro = fun mod_path env ((d,s),l,_) ->
         let (nvars, tvars) = Types.tnvar_split (Types.TNset.elements tnvs) in
         if ([] = nvars) then None
         else
-        let new_pats = List.map (fun n -> C.mk_pvar l_unk (Name.add_lskip (Types.tnvar_to_name n))
-                                                          { Types.t = Types.Tapp([],Path.numpath) })
+(*      let new_pats = List.map (fun n -> C.mk_pvar l_unk (Name.add_lskip (Types.tnvar_to_name n))
+                                                          nat_ty)
                                 nvars in
 
-        let tnvs' = List.fold_left (fun s t -> Types.TNset.add t s) Types.TNset.empty tvars in
+        let tnvs' = List.fold_left (fun s t -> Types.TNset.add t s) Types.TNset.empty tvars in 
 
         let build_funcl_aux ((sk1, c, ps, topt, sk2, e):funcl_aux) : (env * funcl_aux) = 
         begin
@@ -354,7 +354,7 @@ let nvar_to_parameter : def_macro = fun mod_path env ((d,s),l,_) ->
             let c_new_d = ({ c_d with const_type = t' } ) in
             let env' = env_c_env_update env c c_new_d in
             (env', ((sk1,c,new_pats@ps,topt,sk2,e):funcl_aux))
-        end in
+        end in*)
             begin
               match lb with 
               | Let_def(_,_,_) -> None

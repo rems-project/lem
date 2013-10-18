@@ -124,4 +124,4 @@ val print_debug_exp : Typed_ast.env -> string -> Typed_ast.exp list -> unit
 val print_debug_def : Typed_ast.env -> string -> Typed_ast.def list -> unit
 val print_debug_pat : Typed_ast.env -> string -> Typed_ast.pat list -> unit
 val print_debug_typ : Typed_ast.env -> string -> Types.t list -> unit
-val print_debug_src_t : Typed_ast.env -> string -> Typed_ast.src_t list -> unit
+val print_debug_src_t : Typed_ast.env -> string -> Types.src_t list -> unit

@@ -46,7 +46,8 @@
 
 (** Functions used by multiple backends *)
 
-open Typed_ast
+open Typed_ast 
+open Types
 
 (** [inline_exp_macro target env e] does the inlining of target specific constant definitions *)
 val inline_exp_macro : Target.non_ident_target -> env -> Macro_expander.macro_context -> exp -> exp option
@@ -125,6 +126,8 @@ val type_id_to_ident : Path.t id -> Ident.t
     are already formatted.
 *)
 val type_id_to_ident_no_modify : Path.t id -> Ident.t
+
+val type_app_to_output : (src_t -> Output.t) -> Path.t id -> src_t list -> (src_t list * Output.t)
 
 (** [module_id_to_ident m_id] tries to format a module
     [m_id] as an identifier for target [A.target] using the rules stored

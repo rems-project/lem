@@ -97,7 +97,7 @@ let search_module_file l search_dirs mod_name =
   match Util.option_first check_dir search_dirs with
     | Some f -> (* filename found :-) *) f
     | None ->
-       Reporting_basic.report_error (Reporting_basic.Err_resolve_dependency (l, mod_name))
+       Reporting_basic.report_error (Reporting_basic.Err_resolve_dependency (l, search_dirs, mod_name))
         
 
 

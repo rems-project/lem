@@ -600,7 +600,7 @@ let check_lit (Ast.Lit_l(lit,l)) =
   match lit with
     | Ast.L_true(sk) -> annot (L_true(sk)) { t = Tapp([], Path.boolpath) }
     | Ast.L_false(sk) -> annot (L_false(sk)) { t = Tapp([], Path.boolpath) }
-    | Ast.L_num(sk,i) -> annot (L_num(sk,i)) { t = Tapp([], Path.numpath) }
+    | Ast.L_num(sk,i) -> annot (L_num(sk,i)) { t = Tapp([], Path.natpath) }
     | Ast.L_string(sk,i) ->
         annot (L_string(sk,i)) { t = Tapp([], Path.stringpath) }
     | Ast.L_unit(sk1,sk2) ->
@@ -1083,7 +1083,7 @@ module Make_checker(T : sig
         | Ast.P_num_add(xl,sk1,sk2,i) ->
             let nl = xl_to_nl xl in
             let ax = C.new_type () in
-            C.equate_types l "addition pattern" ret_type { t = Tapp([], Path.numpath) };
+            C.equate_types l "addition pattern" ret_type { t = Tapp([], Path.natpath) };
             C.equate_types (snd nl) "addition pattern" ax ret_type;
           (A.mk_pnum_add l nl sk1 sk2 i rt, add_binding acc nl ax)
         | Ast.P_lit(lit) ->
@@ -1175,7 +1175,7 @@ module Make_checker(T : sig
         | Ast.Nvar((sk,n)) -> 
             let nv = Nvar.from_rope(n) in
             C.add_nvar nv;
-            A.mk_nvar_e l sk nv  { t = Tapp([], Path.numpath) }
+            A.mk_nvar_e l sk nv  { t = Tapp([], Path.natpath) }
         | Ast.Fun(sk,pse) -> 
             let (param_pats,sk',body_exp,t) = check_psexp l_e pse in
               C.equate_types l "fun expression" t ret_type;
@@ -2678,10 +2678,30 @@ begin
 
   let _ = check_free_tvs (tvs_to_set tvs) rhs in
   let rhs_src_t = typ_to_src_t anon_error ignore ignore (defn_ctxt_to_env ctxt) rhs in 
-
-  let def_aux = Decl_target_rep_type (sk1, target, sk2, sk3, p_id, tvs_tast, 
+ 
+  let decl_def = Decl_target_rep_type (sk1, target, sk2, sk3, p_id, tvs_tast, 
                    sk4, rhs_src_t) in
-  (ctxt, Some (Declaration def_aux))
+
+  let new_rep = match (tvs, rhs_src_t.term) with
+     | ([], Typ_backend (p, [])) -> TYR_simple(l, true, Path.to_ident None p.descr)
+     | _ -> if (List.length td.type_tparams = List.length tvs) then
+              TYR_subst (l, true, List.map fst tvs, rhs_src_t) 
+            else 
+              raise (Reporting_basic.err_type l 
+                   "mismatching no. of type arguments given")
+  in 
+  let targ = (Target.ast_target_to_target target) in
+  let (ctxt', old_rep_opt) = ctxt_all_tdefs_set_target_rep l ctxt p targ new_rep in
+  let _ =  match old_rep_opt with
+      | None -> (* no representation present before, so OK *) ()
+      | Some old_rep -> if type_target_rep_allow_override old_rep then () else begin
+          let loc_s = Reporting_basic.loc_to_string true (type_target_rep_to_loc old_rep) in
+          let msg = Format.sprintf 
+                      "a %s target representation for type '%s' has already been given at\n    %s" 
+                      (Target.non_ident_target_to_string targ) (Path.to_string p) loc_s in
+          raise (Reporting_basic.err_type l msg)
+      end in
+  (ctxt', Some (Declaration decl_def))
 end
 
 
@@ -2858,16 +2878,21 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                 descr = descr.mod_binding;
                 instantiation = []; })) is mod_descrs in
 
-          let do_open = match oi with
-            | Ast.OI_open _ -> true
-            | Ast.OI_import _ -> false
-            | Ast.OI_open_import _ -> true
+          let (do_open, do_include) = match oi with
+            | Ast.OI_open _ -> (true, false)
+            | Ast.OI_import _ -> (false, false)
+            | Ast.OI_open_import _ -> (true, false)
+            | Ast.OI_include _ -> (true, true)
+            | Ast.OI_include_import _ -> (true, true)
           in
           let ctxt' = if do_open then 
                         { ctxt with cur_env = List.fold_left (fun cur_env descr -> local_env_union cur_env descr.mod_env) ctxt.cur_env mod_descrs} 
                       else ctxt in
+          let ctxt'' = if do_include then 
+                        { ctxt' with new_defs = List.fold_left (fun cur_env descr -> local_env_union cur_env descr.mod_env) ctxt'.new_defs mod_descrs} 
+                      else ctxt' in
 
-          (ctxt', Some (OpenImport(oi, mod_descr_ids)))
+          (ctxt'', Some (OpenImport(oi, mod_descr_ids)))
       | Ast.Indreln(sk, target_opt, names, clauses) ->
           let module T = struct include T let targets = backend_targets end in
           let module Checker = Make_checker(T) in
@@ -3014,6 +3039,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
              class_tparam = tnvar_types;
              class_record = type_path; 
              class_methods = List.combine (List.rev_map (fun (_,r,_) -> r) methods) field_refs;
+             class_rename = Targetmap.empty;
              class_target_rep = Targetmap.empty;
           } in
 
@@ -3313,7 +3339,7 @@ let check_defs backend_targets mod_name (env : env) (Ast.Defs(defs), end_lex_ski
                ctxt_e_env = env.e_env }
   in
   let (ctxt,b) = check_defs_internal backend_targets [mod_name] ctxt defs in
-  let env' = { (defn_ctxt_to_env ctxt) with local_env = ctxt.new_defs} in
+  let env' = { (defn_ctxt_to_env ctxt) with local_env = ctxt.new_defs} in 
   let _ = List.map (Syntactic_tests.check_decidable_equality_def env') b in
   let _ = List.map Syntactic_tests.check_positivity_condition_def b in
   let _ = check_ids env' ctxt b in

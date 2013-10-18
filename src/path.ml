@@ -51,7 +51,7 @@ type t =
   | Path_def of Name.t list * Name.t
   | Path_list
   | Path_bool
-  | Path_num 
+  | Path_nat 
   | Path_bit
   | Path_set
   | Path_vector
@@ -72,7 +72,7 @@ let to_name_list p =  match p with
     | Path_list ->  ([], Name.from_rope (r"list"))
     | Path_bool ->  ([], Name.from_rope (r"bool"))
     | Path_bit ->   ([], Name.from_rope (r"bit"))
-    | Path_num ->   ([], Name.from_rope (r"num"))
+    | Path_nat ->   ([], Name.from_rope (r"nat"))
     | Path_set ->   ([], Name.from_rope (r"set"))
     | Path_vector ->([], Name.from_rope (r"vector"))
     | Path_string ->([], Name.from_rope (r"string"))
@@ -107,7 +107,7 @@ let (^) = Ulib.Text.(^^^)
 let to_ident sk p =  match to_name_list p with 
      (vs,v) -> Ident.mk_ident sk vs v
 
-let numpath = Path_num
+let natpath = Path_nat
 
 let boolpath = Path_bool
 

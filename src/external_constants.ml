@@ -53,8 +53,8 @@ match label with
   | "compare" -> (["Ocaml"], "compare")
   | "identity" -> (["Pervasives"], "id")
 
-  | "conjunction" -> (["Pervasives"], "&&")
-  | "implication" -> (["Pervasives"], "-->")
+  | "conjunction" -> (["Bool"], "&&")
+  | "implication" -> (["Bool"], "-->")
 
   | "addition" -> (["Pervasives"], "+")
   | "multiplication" -> (["Pervasives"], "*")
@@ -88,4 +88,10 @@ match label with
 
   | "vector_access" -> (["Vector"], "vector_access")
   | "vector_slice" -> (["Vector"], "vector_slice")
+  | s -> Reporting_basic.report_error (Reporting_basic.Err_general (true,				     
+            (Ast.Trans (false, "constant_label_to_path_name", None)),
+            ("Unknown label '" ^ s ^ "'")))
+
+
+
 

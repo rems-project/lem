@@ -152,6 +152,64 @@ val nil_const_descr_ref : const_descr_ref
 (** [is_nil_const_descr_ref r] checks whether [r] is the nil reference. *)
 val is_nil_const_descr_ref : const_descr_ref -> bool
 
+type ('a,'b) annot = { term : 'a; locn : Ast.l; typ : t; rest : 'b }
+val annot_to_typ : ('a,'b) annot -> t
+
+type ident_option =
+  | Id_none of Ast.lex_skips
+  | Id_some of Ident.t
+
+
+(** Represents a usage of an 'a (usually in constr_descr, field_descr,
+    const_descr) *)
+type 'a id = 
+    { 
+      id_path : ident_option; 
+      (** The identifier as written at the usage point.  None if it is generated
+          internally, and therefore has no original source *)
+
+      id_locn : Ast.l;
+      (** The location of the usage point *)
+
+      descr : 'a; 
+      (** A description of the binding that the usage refers to *)
+
+      instantiation : t list;
+      (** The usage site instantiation of the type parameters of the definition *)
+    }
+
+
+(* The AST.  Ast.lex_skips appear in the types wherever concrete syntactic elements
+ * would appear (e.g., a keyword), and represent the comments and whitespace
+ * that preceded that concrete element.  They do not represent the element
+ * itself *)
+and src_t = (src_t_aux,unit) annot
+
+and src_t_aux = 
+ | Typ_wild of Ast.lex_skips
+ | Typ_var of Ast.lex_skips * Tyvar.t
+ | Typ_len of src_nexp
+ | Typ_fn of src_t * Ast.lex_skips * src_t
+ | Typ_tup of (src_t, Ast.lex_skips) Seplist.t
+ | Typ_app of Path.t id * src_t list
+ | Typ_backend of Path.t id * src_t list (** a backend type that should be used literally *)
+ | Typ_paren of Ast.lex_skips * src_t * Ast.lex_skips
+
+and src_nexp = { nterm : src_nexp_aux; nloc : Ast.l; nt : nexp } (*(src_nexp_aux,unit) annot*)
+
+and src_nexp_aux =
+ | Nexp_var of Ast.lex_skips * Nvar.t 
+ | Nexp_const of Ast.lex_skips * int
+ | Nexp_mult of src_nexp * Ast.lex_skips * src_nexp (* One will always be const *)
+ | Nexp_add of src_nexp * Ast.lex_skips * src_nexp 
+ | Nexp_paren of Ast.lex_skips * src_nexp * Ast.lex_skips
+
+val src_t_to_t : src_t -> t
+val src_type_subst : src_t TNfmap.t -> src_t -> src_t
+
+val id_alter_init_lskips : (Ast.lex_skips -> Ast.lex_skips * Ast.lex_skips) -> 'a id -> 'a id * Ast.lex_skips
+val typ_alter_init_lskips : (Ast.lex_skips -> Ast.lex_skips * Ast.lex_skips) -> src_t -> src_t * Ast.lex_skips 
+val nexp_alter_init_lskips : (Ast.lex_skips -> Ast.lex_skips * Ast.lex_skips) -> src_nexp -> src_nexp * Ast.lex_skips
 
 type constr_family_descr = { 
    constr_list : const_descr_ref list; 
@@ -166,8 +224,8 @@ type constr_family_descr = {
 
 (** the target representation of a type *)
 type type_target_rep =
-  | TR_rename of Ast.l *  bool * Name.t (** Rename the type to the given name. This means keeping the module structure unchanged and just modifying the name *)
-  | TR_new_ident of Ast.l *  bool * Ident.t (** Replace the type identifier with the given one. Module prefixes are thrown away and replaced *)
+  | TYR_simple of Ast.l *  bool * Ident.t
+  | TYR_subst of Ast.l *  bool * tnvar list * src_t 
 
 (** a type description  **)
 type type_descr = { 
@@ -186,7 +244,10 @@ type type_descr = {
   type_constr : constr_family_descr list;
   (** the constructors of this type *)
   
-  type_target_rep : type_target_rep Target.Targetmap.t
+  type_rename : (Ast.l * Name.t) Target.Targetmap.t;
+  (** target representation of the type *)
+
+  type_target_rep : type_target_rep Target.Targetmap.t;
   (** target representation of the type *)
 }
 
@@ -196,7 +257,8 @@ type class_descr = {
   class_methods : (const_descr_ref * const_descr_ref) list; 
    (** The methods of the class. For each method there is a corresponding record field. Therefore, methods are represented by pairs
        (method_ref, field_ref). Details like the names and types can be looked up in the environment. *)
-  class_target_rep : type_target_rep Target.Targetmap.t
+  class_rename : (Ast.l * Name.t) Target.Targetmap.t;
+  class_target_rep : type_target_rep Target.Targetmap.t;
 }
 
 type tc_def = 

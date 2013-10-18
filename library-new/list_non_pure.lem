@@ -107,7 +107,7 @@ declare compile_message foldr1 = "foldr1 is only defined on non-empty lists. Bet
 (* ------------------------- *)
 
 (* get the nth element of a list *)
-val nth : forall 'a. list 'a -> num -> 'a
+val nth : forall 'a. list 'a -> nat -> 'a
 let nth l n = match index l n with Just e -> e end
 declare compile_message foldl1 = "nth is undefined for too large indices, use carefully"
 

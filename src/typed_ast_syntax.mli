@@ -47,6 +47,7 @@
 (** syntax functions for typed_ast *)
 
 open Typed_ast
+open Types
 
 (** {2 Types} *)
 
@@ -54,7 +55,7 @@ open Typed_ast
 val bool_ty : Types.t
 
 (** The natural number type *)
-val num_ty : Types.t
+val nat_ty : Types.t
 
 
 (** {2 Navigating Environments} *)
@@ -174,6 +175,13 @@ val const_target_rep_to_loc : const_target_rep -> Ast.l
     Only auto-generated target-reps should be redefinable by the user. *)
 val const_target_rep_allow_override : const_target_rep -> bool
 
+(** [type_target_rep_to_loc rep] returns the location, at which [rep] is defined. *)
+val type_target_rep_to_loc : type_target_rep -> Ast.l
+
+(** [type_target_rep_allow_override rep] returns whether this representation can be redefined. 
+    Only auto-generated target-reps should be redefinable by the user. *)
+val type_target_rep_allow_override : type_target_rep -> bool
+
 (** [constant_descr_to_name targ cd] looks up the representation for
     target [targ] in the constant description [cd]. It returns a tuple
     [(n_is_shown, n, n_ascii)]. The name [n] is the name of the
@@ -201,17 +209,13 @@ val mod_target_rep_rename : Target.non_ident_target -> Name.t -> Ast.l -> mod_ta
 
 (** [type_descr_rename targ n' l' td] looks up the representation for target [targ] in the type
     description [td]. It then updates this description by renaming to the new name [n'] and new location [l']. 
-    If this renaming is not possible, [None] is returned, otherwise the updated description is returned along with information of where the type
+    The updated description is returned along with information of where the type
     was last renamed and to which name. *)
-val type_descr_rename : Target.non_ident_target -> Name.t -> Ast.l -> Types.type_descr -> (Types.type_descr * (Ast.l * Name.t) option) option
+val type_descr_rename : Target.non_ident_target -> Name.t -> Ast.l -> Types.type_descr -> Types.type_descr * (Ast.l * Name.t) option
 
 (** [type_def_rename_type l d p t n] renames the type with path [p] in the defs [d] to the name [n] for
 target [t]. Renaming means that the module structure is kept. Only the name is changed. *)
 val type_defs_rename_type: Ast.l -> Types.type_defs -> Path.t -> Target.non_ident_target -> Name.t -> Types.type_defs
-
-(** [type_def_new_ident_type l d p t i] changes the representation of the type with path [p] in the defs [d] to the identifier [i] for
-target [t]. This means that the whole module structure is lost and replace by the identifier. *)
-val type_defs_new_ident_type: Ast.l -> Types.type_defs -> Path.t -> Target.non_ident_target -> Ident.t -> Types.type_defs
 
 (** [const_descr_has_target_rep targ d] checks whether the description [d] contains
     a target-representation for target [targ]. *)

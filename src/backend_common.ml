@@ -48,6 +48,7 @@ open Output
 open Typed_ast
 open Typed_ast_syntax
 open Target_binding
+open Types
 
 let r = Ulib.Text.of_latin1
 let marker_lex_skip : Ast.lex_skips = (Some [Ast.Ws (Ulib.Text.of_latin1 "***marker***")])
@@ -161,25 +162,32 @@ module Make(A : sig
  end) = struct
 
 
+let get_module_name path mod_name =  begin
+  let md = lookup_mod_descr A.env path mod_name in
+  match Target.Targetmap.apply_target md.mod_target_rep A.target with
+    | Some (MR_rename (_, n)) -> n
+    | _ -> mod_name
+end
 
-(** An auxiliary, temporary function to strip the artifacts of the library structure.
-    Hopefully, this won't be necessary much longer, when the library gets redesigned. *)
-let strip_library_prefix =
-  match A.target with
-    | Target.Target_ident -> (fun i -> i)
-    | Target.Target_no_ident t -> 
-         let n_t = Target.non_ident_target_to_mname t in
-      fun i -> begin
-         let i = Ident.strip_path n_t i in  
-         i
-      end
+let fix_module_name_list nl = begin
+  let rec aux acc path rest = match rest with
+    | [] -> List.rev acc
+    | m :: rest' ->
+        aux ((get_module_name path m)::acc) (path @ [m]) rest'
+  in
+  aux [] [] nl
+end
 
+let fix_module_prefix_ident (i : Ident.t) =
+  let (ns, n) = Ident.to_name_list i in
+  let ns' = fix_module_name_list ns in
+  Ident.mk_ident (Ident.get_lskip i) ns' n
 
-(** TODO: add renaming of modules here later.
-          remove intermediate stripping of library prefix *)
-let fix_module_prefix_ident env i =
-  strip_library_prefix i
-
+let fix_module_ident (i : Ident.t) =
+  let (ns, n) = Ident.to_name_list i in
+  let ns' = fix_module_name_list ns in
+  let n' = get_module_name ns n in
+  Ident.mk_ident (Ident.get_lskip i) ns' n'
 
 let ident_to_output use_infix =
   let (ident_f, sep) = A.id_format_args in 
@@ -213,7 +221,7 @@ let const_id_to_ident_aux c_id ascii_alternative given_id_opt =
       | (_, false, Some i) -> (false, Ident.replace_lskip i (Ident.get_lskip org_ident))
       | _  -> (false, Ident.rename org_ident n)
   in
-  let ident = fix_module_prefix_ident (A.env.local_env) ident' in
+  let ident = fix_module_prefix_ident ident' in
   (ascii_used, ident)
 ;;
 
@@ -289,12 +297,13 @@ let type_id_to_ident (p : Path.t id) =
    let l = Ast.Trans (false, "type_id_to_ident", None) in
    let td = Types.type_defs_lookup l A.env.t_env p.descr in
    let org_type = resolve_type_id_ident A.env p p.descr in
-   let i = match Target.Targetmap.apply_target td.Types.type_target_rep A.target with
-     | None -> org_type
-     | Some (Types.TR_new_ident (_, _, i)) -> i 
-     | Some (Types.TR_rename (_, _, n)) -> Ident.rename org_type n in
-   let i' = fix_module_prefix_ident A.env.local_env i in
-   i'
+   match Target.Targetmap.apply_target td.Types.type_rename A.target with
+     | Some (_, n) -> fix_module_prefix_ident (Ident.rename org_type n)
+     | None -> begin
+         match Target.Targetmap.apply_target td.Types.type_target_rep A.target with
+           | Some (TYR_simple (_, _, i)) -> i
+           | _ -> fix_module_prefix_ident org_type
+       end
 
 let type_id_to_ident_no_modify (p : Path.t id) =
   let (ns, n) = Path.to_name_list p.descr in
@@ -302,10 +311,25 @@ let type_id_to_ident_no_modify (p : Path.t id) =
   Ident.mk_ident sk ns n
 
 
+let type_app_to_output format p ts =
+  let l = Ast.Trans (false, "type_app_to_output", None) in
+  let (_, path_sep) = A.id_format_args in 
+  let td = Types.type_defs_lookup l A.env.t_env p.descr in
+  let sk = ident_get_lskip p in
+  match Target.Targetmap.apply_target td.Types.type_target_rep A.target with
+     | None -> (ts, Ident.to_output Type_ctor path_sep (type_id_to_ident p))
+     | Some (TYR_simple (_, _, i)) -> (ts, ws sk ^ Ident.to_output Type_ctor path_sep i)
+     | Some (TYR_subst (_, _, tnvars, t')) -> begin    
+         let _ = Reporting_basic.print_debug "YY\n" in
+         let subst = Types.TNfmap.from_list2 tnvars ts in
+         let t'' = src_type_subst subst t' in
+         ([], ws sk ^ format t'')
+  end
+
 let module_id_to_ident (mod_id : Path.t id) : Ident.t =
 (*   let l = Ast.Trans ("module_id_to_ident", None) in *)
    let i = resolve_module_id_ident A.env mod_id mod_id.descr in
-   let i' = fix_module_prefix_ident (A.env.local_env) i in
+   let i' = fix_module_ident i in
    i'
 
 end

@@ -53,6 +53,7 @@ type non_ident_target =
   | Target_coq
   | Target_tex
   | Target_html
+  | Target_lem
 
 type target =
   | Target_no_ident of non_ident_target 
@@ -64,7 +65,8 @@ let all_targets_list = [
   Target_isa; 
   Target_coq; 
   Target_tex; 
-  Target_html] 
+  Target_html;
+  Target_lem] 
 
 let ast_target_to_target t = match t with
   | Ast.Target_hol   _ -> Target_hol 
@@ -73,6 +75,7 @@ let ast_target_to_target t = match t with
   | Ast.Target_coq   _ -> Target_coq
   | Ast.Target_tex   _ -> Target_tex
   | Ast.Target_html  _ -> Target_html
+  | Ast.Target_lem   _ -> Target_lem
 
 let target_to_ast_target t = match t with
   | Target_hol   -> Ast.Target_hol None
@@ -81,16 +84,18 @@ let target_to_ast_target t = match t with
   | Target_coq   -> Ast.Target_coq None
   | Target_tex   -> Ast.Target_tex None
   | Target_html  -> Ast.Target_html None
+  | Target_lem   -> Ast.Target_lem None
 
 let target_compare = Pervasives.compare
 
 let ast_target_to_int = function
-  | Ast.Target_hol _ -> 6
+  | Ast.Target_lem _   -> 7
+  | Ast.Target_hol _   -> 6
   | Ast.Target_ocaml _ -> 5
-  | Ast.Target_isa _ -> 4
-  | Ast.Target_coq _ -> 3
-  | Ast.Target_tex _ -> 2
-  | Ast.Target_html _ -> 1
+  | Ast.Target_isa _   -> 4
+  | Ast.Target_coq _   -> 3
+  | Ast.Target_tex _   -> 2
+  | Ast.Target_html _  -> 1
 
 let ast_target_compare x y = Pervasives.compare (ast_target_to_int x) (ast_target_to_int y)
 
@@ -126,6 +131,7 @@ let non_ident_target_to_string = function
   | Target_coq -> "coq"
   | Target_tex -> "tex"
   | Target_html -> "html"
+  | Target_lem -> "lem"
 
 let target_to_string = function
   | Target_ident -> "ident"
@@ -141,6 +147,7 @@ let target_to_output t =
       | Ast.Target_coq(s) -> ws s ^ id a (r"coq")
       | Ast.Target_tex(s) -> ws s ^ id a (r"tex")
       | Ast.Target_html(s) -> ws s ^ id a (r"html")
+      | Ast.Target_lem(s) -> ws s ^ id a (r"lem")
 
 let non_ident_target_to_mname = function
   | Target_hol -> Name.from_rope (r"Hol")
@@ -149,6 +156,7 @@ let non_ident_target_to_mname = function
   | Target_coq -> Name.from_rope (r"Coq")
   | Target_tex -> Name.from_rope (r"Tex")
   | Target_html -> Name.from_rope (r"Html")
+  | Target_lem -> Name.from_rope (r"Lem")
 
 
 let is_human_target = function
@@ -159,6 +167,7 @@ let is_human_target = function
   | Target_no_ident Target_ocaml -> false
   | Target_no_ident Target_html  -> true
   | Target_no_ident Target_tex   -> true
+  | Target_no_ident Target_lem   -> true
 
 
 let dest_human_target = function

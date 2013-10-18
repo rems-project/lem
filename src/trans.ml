@@ -228,7 +228,7 @@ let string_lits_isa _ e =
         let nums = List.map mk_num_exp chars in
         let char_list = Seplist.from_list_default None nums in
         let char_list_exp = C.mk_list l_unk None char_list None { Types.t =
-          Types.Tapp([num_ty], Path.listpath) } in
+          Types.Tapp([nat_ty], Path.listpath) } in
         Some(append_lskips lskips (C.mk_app l_unk f char_list_exp None))
       end
   | _ -> None
@@ -248,11 +248,11 @@ let peanoize_num_pats _ _ p =
         let com_ws = (Ast.combine_lex_skips s (string_to_comment (string_of_int i))) in
         Some(pean_pat com_ws i pat0)
     | P_num_add ((n,l), s1, s2, 0) -> 
-        let pat0 = C.mk_pvar l_unk n { Types.t = Types.Tapp([], Path.numpath) } in
+        let pat0 = C.mk_pvar l_unk n nat_ty in
         let com_ws = Ast.combine_lex_skips s1 s2 in
         Some(pat_append_lskips com_ws pat0)
     | P_num_add ((n,l), s1, s2, i) -> 
-        let pat0 = C.mk_pvar l_unk n  { Types.t = Types.Tapp([], Path.numpath) } in
+        let pat0 = C.mk_pvar l_unk n nat_ty in
         let com_ws = Ast.combine_lex_skips s1 (Ast.combine_lex_skips s2 (string_to_comment ("_ + " ^ string_of_int i))) in
         Some(pean_pat com_ws i pat0)
     | _ -> None
@@ -977,7 +977,7 @@ let remove_class_const targ _ e =
 (*Convert nexpressions to expressions *)
 let nexp_to_exp n =
    let l_unk = Ast.Trans (true, "nexp_to_exp", None) in
-   let num_type = { Types.t = Types.Tapp([],Path.numpath) } in
+   let num_type = nat_ty in
    let bin_op_type = { Types.t = Types.Tfn(num_type,num_type) } in
    let rec to_exp n =
       match n.Types.nexp with
@@ -1046,7 +1046,7 @@ let remove_vector_access _ e =
   match C.exp_to_term e with
     | VectorAcc(v, sk1, i, sk2) -> 
       let vlength = match (exp_to_typ v).Types.t with | Types.Tapp([n;a],_) -> n | _ -> assert false in
-      let num_type = { Types.t = Types.Tapp([],Path.numpath) } in
+      let num_type = nat_ty in
       let acc_typ1 = { Types.t = Types.Tfn(exp_to_typ v,exp_to_typ e) } in
       let acc_typ = { Types.t = Types.Tfn(num_type, acc_typ1) } in
       let (f_id, _) = get_const_id env l_unk "vector_access" [(exp_to_typ e); {Types.t = Types.Tne(i.nt)}; vlength ] in
@@ -1062,7 +1062,7 @@ let remove_vector_sub _ e =
     | VectorSub(v, sk1, i1, sk2, i2, sk3) -> 
       let (vlength1,a) = match (exp_to_typ v).Types.t with | Types.Tapp([n;a],_) -> (n,a) | _ -> assert false in
       let vlength2 = match (exp_to_typ e).Types.t with | Types.Tapp([n;a],_) -> n | _ -> assert false in
-      let num_type = { Types.t = Types.Tapp([],Path.numpath) } in
+      let num_type = nat_ty in
       let acc_typ1 = { Types.t = Types.Tfn(exp_to_typ v,exp_to_typ e) } in
       let acc_typ2 = { Types.t = Types.Tfn(num_type, acc_typ1) } in
       let acc_typ3 = { Types.t = Types.Tfn(num_type, acc_typ2) } in

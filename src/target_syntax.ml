@@ -48,6 +48,7 @@
 
 (* Traversing expressions to resolve any target parsing problems that will arise
  * from infix and missing parentheses *)
+open Types
 open Typed_ast
 
 module M = Macro_expander.Expander(struct let avoid = None let env_opt = None end)

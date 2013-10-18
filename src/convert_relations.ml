@@ -767,8 +767,8 @@ let register_types rel_loc ctxt mod_path tds =
     in
     let ctxt = ctxt_add (fun x -> x.p_env) (fun x y -> { x with p_env = y })
       ctxt (tname, (type_path,l)) in
-    let cnames = List.fold_left (fun s (_,cname,_) -> NameSet.add cname s) 
-      NameSet.empty tconstrs in
+(*    let cnames = List.fold_left (fun s (_,cname,_) -> NameSet.add cname s) 
+      NameSet.empty tconstrs in *)
     let mk_descr c_env cname cargs =
       let ty = mk_fun_ty cargs {t=Tapp([],type_path)} in
       let descr = {
@@ -823,6 +823,7 @@ let register_types rel_loc ctxt mod_path tds =
                    type_varname_regexp = None;
                    type_fields = None;
                    type_constr = [constrset];
+                   type_rename = Target.Targetmap.empty;
                    type_target_rep = Target.Targetmap.empty
                  }
     in

@@ -45,6 +45,7 @@
 (**************************************************************************)
 
 open Typed_ast
+open Types
 module C = Exps_in_context(struct let env_opt = None let avoid = None end)
 
 let rec is_var_wild_pat (p : pat) : bool =
@@ -164,7 +165,7 @@ let is_num_pat p = not (dest_num_pat p = None)
 
 let mk_num_pat i = 
   let l = Ast.Trans (false, "mk_num_pat", None) in
-  let num_ty = { Types.t = Types.Tapp ([], Path.numpath)} in
+  let num_ty = { Types.t = Types.Tapp ([], Path.natpath)} in
   let lit = C.mk_lnum l None i (Some num_ty) in
   C.mk_plit l lit (Some num_ty)
 
@@ -179,7 +180,7 @@ let is_num_add_pat p = not (dest_num_add_pat p = None)
 
 let mk_num_add_pat n i = 
   let l = Ast.Trans (false, "mk_num_add_pat", None) in
-  let num_ty = { Types.t = Types.Tapp ([], Path.numpath)} in
+  let num_ty = { Types.t = Types.Tapp ([], Path.natpath)} in
   mk_paren_pat (C.mk_pnum_add l (Name.add_lskip n,l) space space i (Some num_ty))
 
 let num_ty_pat_cases f_v f_i f_a f_w f_else p =

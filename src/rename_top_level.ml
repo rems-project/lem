@@ -191,7 +191,7 @@ let rename_type (targ : Target.non_ident_target) (consts : NameSet.t) (consts_ne
   let n'' = Util.option_default n' n''_opt in
   let consts_new' = NameSet.add n'' consts_new  in
 
-  match Util.option_bind (fun n'' -> type_descr_rename targ n'' l td) n''_opt with
+  match Util.option_map (fun n'' -> type_descr_rename targ n'' l td) n''_opt with
       | None -> (* if no renaming is necessary or if renaming is not possible, do nothing *) (consts_new', env)
       | Some (td', via_opt) -> begin
           (* print warning *)

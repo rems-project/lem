@@ -1,4 +1,4 @@
-open import Bool Maybe Basic_classes Num Tuple Function Set List
+include import Bool Maybe Basic_classes Num Tuple Function Set List
 import Sorting Relation
 
 

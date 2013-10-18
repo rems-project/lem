@@ -55,6 +55,7 @@ type non_ident_target =
   | Target_coq
   | Target_tex
   | Target_html
+  | Target_lem
 
 (** [target] for the typechecked ast is either a real target as in the AST or
     the identity target *)

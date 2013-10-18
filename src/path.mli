@@ -61,7 +61,7 @@ val mk_path : Name.t list -> Name.t -> t
     [mk_path ns n]. It fails, if [names] is empty. *)
 val mk_path_list : Name.t list -> t
 
-val numpath : t
+val natpath : t
 val listpath : t
 val vectorpath : t
 val boolpath : t

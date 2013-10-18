@@ -59,7 +59,7 @@ let tds =
   [(Path.listpath, mk_tc_type [Ty(Tyvar.from_rope (r"a"))] None);
    (Path.setpath, mk_tc_type [Ty(Tyvar.from_rope (r"a"))] None);
    (Path.vectorpath, mk_tc_type [Ty(Tyvar.from_rope (r"b"));Nv(Nvar.from_rope (r"a"))] None);
-   (Path.numpath, mk_tc_type [] None);
+   (Path.natpath, mk_tc_type [] None);
    (Path.stringpath, mk_tc_type [] None);
    (Path.boolpath, mk_tc_type [] None);
    (Path.bitpath, mk_tc_type [] None);
@@ -67,8 +67,6 @@ let tds =
 
 let initial_d : Types.type_defs = 
   List.fold_right (fun x y -> Types.Pfmap.insert y x) tds Types.Pfmap.empty
-
-let initial_d = Typed_ast_syntax.type_defs_new_ident_type Ast.Unknown initial_d Path.numpath Target.Target_isa (Ident.mk_ident_strings [] "nat")
 
 let initial_local_env : Typed_ast.local_env =
   { empty_local_env with
@@ -80,7 +78,7 @@ let initial_local_env : Typed_ast.local_env =
                (Name.from_rope (r"list"), (Path.listpath, Ast.Unknown));
                (Name.from_rope (r"string"), (Path.stringpath, Ast.Unknown));
                (Name.from_rope (r"unit"), (Path.unitpath, Ast.Unknown));
-               (Name.from_rope (r"num"), (Path.numpath, Ast.Unknown))] }
+               (Name.from_rope (r"nat"), (Path.natpath, Ast.Unknown))] }
 
 
 let initial_env : Typed_ast.env =
