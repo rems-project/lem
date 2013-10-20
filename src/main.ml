@@ -134,9 +134,11 @@ let _ =
 
 let check_modules env modules =
   (* The checks. Modify these lists to add more. *)
-  let exp_checks env = [Patterns.check_match_exp_warn env] in
-  let pat_checks env = [] in
-  let def_checks env = [Patterns.check_match_def_warn env] in
+  let exp_checks env = [Patterns.check_match_exp_warn env; Syntactic_tests.check_id_restrict_e env] in
+  let pat_checks env = [Syntactic_tests.check_id_restrict_p env] in
+  let def_checks env = [Patterns.check_match_def_warn env;
+                        Syntactic_tests.check_decidable_equality_def env;
+		        Syntactic_tests.check_positivity_condition_def] in
 
   (* Use the Macro_expander to execute these checks *)
   let module Ctxt = struct let avoid = None let env_opt = Some(env) end in
@@ -144,7 +146,7 @@ let check_modules env modules =
   let exp_mac env = Macro_expander.list_to_mac (List.map (fun f _ e -> (let _ = f e in None)) (exp_checks env)) in
   let exp_ty env ty = ty in
   let exp_src_ty env src_t = src_t in
-  let exp_pat env = Macro_expander.list_to_bool_mac (List.map (fun f _ x p -> (let _ = f x p in None)) (pat_checks env)) in
+  let exp_pat env = Macro_expander.list_to_bool_mac (List.map (fun f _ _ p -> (let _ = f p in None)) (pat_checks env)) in
   let check_defs env defs = begin
     let _ = M.expand_defs (List.rev defs) (exp_mac env, exp_ty env, exp_src_ty env, exp_pat env) in
     let _ = List.map (fun d -> List.map (fun c -> c d) (def_checks env)) defs in
@@ -194,7 +196,7 @@ let main () =
                 then Filename.concat (Sys.getcwd ()) lp
                 else lp
             with 
-                | Not_found -> Build_directory.d^"/library")
+                | Not_found -> Build_directory.d^"/library-new")
       | Some lp -> 
           if Filename.is_relative lp then
             Filename.concat (Sys.getcwd ()) lp

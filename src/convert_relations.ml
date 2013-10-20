@@ -765,8 +765,7 @@ let register_types rel_loc ctxt mod_path tds =
                   Name.pp tname
           end
     in
-    let ctxt = ctxt_add (fun x -> x.p_env) (fun x y -> { x with p_env = y })
-      ctxt (tname, (type_path,l)) in
+    let ctxt = add_p_to_ctxt ctxt (tname, (type_path,l)) in
 (*    let cnames = List.fold_left (fun s (_,cname,_) -> NameSet.add cname s) 
       NameSet.empty tconstrs in *)
     let mk_descr c_env cname cargs =
@@ -809,8 +808,7 @@ let register_types rel_loc ctxt mod_path tds =
           | None -> ()
           | Some(_) -> raise_error l "Name already used" Name.pp cname
       in
-      let ctxt = ctxt_add (fun x -> x.v_env) (fun x y -> { x with v_env = y }) 
-        ctxt (cname, c_ref) in
+      let ctxt = add_v_to_ctxt ctxt (cname, c_ref) in
       ctxt
     ) ctxt constrs in
     let constrset = {
@@ -958,8 +956,7 @@ let gen_witness_check_info l mod_path ctxt names rules =
     } in
     let c_env, c_ref = c_env_store ctxt.ctxt_c_env c_descr in
     let ctxt = { ctxt with ctxt_c_env = c_env } in
-    let ctxt = ctxt_add (fun x -> x.v_env) (fun x y -> {x with v_env = y})
-      ctxt (cname, c_ref) in
+    let ctxt = add_v_to_ctxt ctxt (cname, c_ref) in
     let r_info = c_env_lookup_rel_info l ctxt.ctxt_c_env rel_ref in
     let r_info = {r_info with ri_check = Some c_ref} in
     {ctxt with ctxt_c_env = c_env_update_rel_info l ctxt.ctxt_c_env rel_ref r_info }
@@ -1257,8 +1254,7 @@ let gen_fns_info_aux l mod_path ctxt rels =
       } in
       let c_env, f_ref = c_env_store ctxt.ctxt_c_env f_descr in
       let ctxt = { ctxt with ctxt_c_env = c_env } in
-      let ctxt = ctxt_add (fun x -> x.v_env) (fun x y -> {x with v_env = y})
-        ctxt (name, f_ref) in
+      let ctxt = add_v_to_ctxt ctxt (name, f_ref) in
       let r_info = c_env_lookup_rel_info l ctxt.ctxt_c_env rel_ref in
       let r_info = {r_info with ri_fns = (mode, f_ref)::r_info.ri_fns} in
       {ctxt with ctxt_c_env = c_env_update_rel_info l ctxt.ctxt_c_env rel_ref r_info }

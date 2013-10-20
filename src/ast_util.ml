@@ -197,7 +197,7 @@ and letbind_freevars not_shadowed = function
 
 
 let get_imported_modules_of_def_aux l = function
-  | Open_Import ((OI_import _ | OI_open_import _), ids) ->
+  | Open_Import ((OI_import _ | OI_open_import _ | OI_include_import _), ids) ->
       List.map (fun id -> (Path.from_id (Ident.from_id id), l)) ids
   | _ -> [] 
   

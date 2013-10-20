@@ -91,7 +91,10 @@ let ident () =
                Exp_macros (fun env -> if !ident_force_pattern_compile then [(Patterns.compile_exp Target_ident (Patterns.is_pattern_match_const false) env)] else [])];
     extra = []; }
 
-let lem () = ident ()
+let lem () = 
+  { macros = [Exp_macros (fun env -> [Backend_common.inline_exp_macro Target_lem env])];
+    extra = []; }
+
 
 let tex =
   { macros = [];

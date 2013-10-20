@@ -48,6 +48,55 @@ open Types
 open Typed_ast
 open Coq_backend_utils
 
+
+
+(* -------------------------------------------------------------------------- *)
+(* check names of ids                                                         *)
+(* -------------------------------------------------------------------------- *)
+
+(* Code to check that identifiers in type checked program conform to regular expressions specified in type definitions *)
+let check_id_restrict_e env (e : Typed_ast.exp) : unit =
+ let module C = Exps_in_context(struct let env_opt = Some env let avoid = None end) in
+  match C.exp_to_term e with
+  | Var(n) -> let id = Name.to_string (Name.strip_lskip n) in
+              let head_norm_type = Types.head_norm env.t_env (exp_to_typ e) in
+              begin
+              match head_norm_type.t with
+                 | Tapp(_,p) -> (match Pfmap.apply env.t_env p with
+                    | None | Some(Tc_class _) ->
+                        raise (Reporting_basic.err_general true Ast.Unknown "invariant in typechecking identifier broken")
+                    | Some(Tc_type { type_varname_regexp = None }) -> ()
+                    | Some(Tc_type { type_varname_regexp = Some(restrict) }) -> 
+                       if (Str.string_match (Str.regexp restrict) id 0) 
+                         then ()
+                         else  raise (Reporting_basic.err_type_pp (exp_to_locn e) 
+                               ("variables with type " ^ t_to_string (exp_to_typ e) ^ " are restricted to names matching the regular expression " ^ restrict)
+                               Name.pp (Name.strip_lskip n)))
+                 | _ -> ()
+              end
+  | _ -> ()
+
+
+let check_id_restrict_p env p = match p.term with
+  | P_var(n) -> let id = Name.to_string (Name.strip_lskip n) in
+              let head_norm_type = Types.head_norm env.t_env p.typ in
+              begin
+              match head_norm_type.t with
+                 | Tapp(_,path) -> (match Pfmap.apply env.t_env path with
+                    | None | Some(Tc_class _) -> raise (Reporting_basic.err_general true Ast.Unknown "invariant broken when checking id_restrict_p")
+                    | Some(Tc_type { type_varname_regexp = None }) -> ()
+                    | Some(Tc_type { type_varname_regexp = Some(restrict) }) -> 
+                       if (Str.string_match (Str.regexp restrict) id 0) 
+                         then ()
+                         else  raise (Reporting_basic.err_type_pp p.locn 
+                               ("variables with type " ^t_to_string p.typ ^ " are restricted to names matching the regular expression " ^ restrict)
+                               Name.pp (Name.strip_lskip n) ))
+                 | _ -> ()
+              end
+  | _ -> ()
+
+
+
 (** Checks whether a src_t has a decidable equality.  Function types are
     the only types which do not.
  *)

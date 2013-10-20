@@ -30,19 +30,25 @@ type defn_ctxt = {
    * definitions *)
   new_defs : Typed_ast.local_env;
 
+  (* The value/function/module/field/type_name environment to export *)
+  export_env : Typed_ast.local_env;
+
   (* The names of all assertions / lemmata defined. Used only to avoid using names multiple times. *)
   lemmata_labels : Typed_ast.NameSet.t; 
 }
-
-val ctxt_add :
-  (Typed_ast.local_env -> 'a Typed_ast.Nfmap.t) ->
-  (Typed_ast.local_env -> 'a Typed_ast.Nfmap.t -> Typed_ast.local_env) ->
-  defn_ctxt -> Name.t * 'a -> defn_ctxt
-
+(** The distinction between [cur_env], [new_defs] and [export_env] is interesting.
+    [cur_env] contains the local environment as seen by a function inside the module.
+    [new_defs] in contrast contains only the definitions made inside the module. It is
+    used to check for duplicate definitions. [export_env] is the outside view of the module.
+    It contains all definitions made inside the module (i.e. [new_defs]) as well as
+    the included modules (see command [include]). *)
 val add_d_to_ctxt : defn_ctxt -> Path.t -> Types.tc_def -> defn_ctxt
 val add_p_to_ctxt : defn_ctxt -> Name.t * (Path.t * Ast.l) -> defn_ctxt
 val add_f_to_ctxt : defn_ctxt -> Name.t * Types.const_descr_ref -> defn_ctxt
 val add_v_to_ctxt : defn_ctxt -> Name.t * Types.const_descr_ref -> defn_ctxt
+val union_v_ctxt  : defn_ctxt -> Typed_ast.const_descr_ref Typed_ast.Nfmap.t -> defn_ctxt
+
+
 val add_m_to_ctxt : Ast.l -> defn_ctxt -> Name.t -> Typed_ast.mod_descr -> defn_ctxt
 val add_m_alias_to_ctxt : Ast.l -> defn_ctxt -> Name.t -> Path.t -> defn_ctxt
 val add_instance_to_ctxt : defn_ctxt -> Types.instance -> defn_ctxt

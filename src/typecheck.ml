@@ -2852,7 +2852,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let n = Name.strip_lskip n' in 
           let ctxt1 = ctxt_begin_submodule ctxt in
           let (new_ctxt,ds) = check_defs_internal backend_targets (mod_path @ [n]) ctxt1 defs in
-          let ctxt2 = ctxt_end_submodule l' ctxt1 mod_path n new_ctxt in
+          let ctxt2 = ctxt_end_submodule l' ctxt mod_path n new_ctxt in
             (ctxt2,
              Some (Module(sk1,(n',l'),Path.mk_path mod_path n,sk2,sk3,ds,sk4)))
       | Ast.Rename(sk1, xl', sk2, id) ->
@@ -2889,7 +2889,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                         { ctxt with cur_env = List.fold_left (fun cur_env descr -> local_env_union cur_env descr.mod_env) ctxt.cur_env mod_descrs} 
                       else ctxt in
           let ctxt'' = if do_include then 
-                        { ctxt' with new_defs = List.fold_left (fun cur_env descr -> local_env_union cur_env descr.mod_env) ctxt'.new_defs mod_descrs} 
+                        { ctxt' with export_env = List.fold_left (fun cur_env descr -> local_env_union cur_env descr.mod_env) ctxt'.export_env mod_descrs} 
                       else ctxt' in
 
           (ctxt'', Some (OpenImport(oi, mod_descr_ids)))
@@ -3248,81 +3248,6 @@ and check_defs_internal (backend_targets : Targetset.t) (mod_path : Name.t list)
 
 
 (* -------------------------------------------------------------------------- *)
-(* check names of ids                                                         *)
-(* -------------------------------------------------------------------------- *)
-
-(* Code to check that identifiers in type checked program conform to regular expressions specified in type definitions *)
-let check_id_restrict_e ctxt (e : Typed_ast.exp) : Typed_ast.exp option =
- let module C = Exps_in_context(struct let env_opt = None let avoid = None end) in
-  match C.exp_to_term e with
-  | Var(n) -> let id = Name.to_string (Name.strip_lskip n) in
-              let head_norm_type = Types.head_norm ctxt.all_tdefs (exp_to_typ e) in
-              begin
-              match head_norm_type.t with
-                 | Tapp(_,p) -> (match Pfmap.apply ctxt.all_tdefs p with
-                    | None | Some(Tc_class _) ->
-                        raise (Reporting_basic.err_general true Ast.Unknown "invariant in typechecking identifier broken")
-                    | Some(Tc_type { type_varname_regexp = None }) -> None
-                    | Some(Tc_type { type_varname_regexp = Some(restrict) }) -> 
-                       if (Str.string_match (Str.regexp restrict) id 0) 
-                         then None
-                         else  raise (Reporting_basic.err_type_pp (exp_to_locn e) 
-                               ("variables with type " ^ t_to_string (exp_to_typ e) ^ " are restricted to names matching the regular expression " ^ restrict)
-                               Name.pp (Name.strip_lskip n)))
-                 | _ -> None
-              end
-  | _ -> None
-
-let check_id_restrict_p ctxt p = match p.term with
-  | P_var(n) -> let id = Name.to_string (Name.strip_lskip n) in
-              let head_norm_type = Types.head_norm ctxt.all_tdefs p.typ in
-              begin
-              match head_norm_type.t with
-                 | Tapp(_,path) -> (match Pfmap.apply ctxt.all_tdefs path with
-                    | None | Some(Tc_class _) -> raise (Reporting_basic.err_general true Ast.Unknown "invariant broken when checking id_restrict_p")
-                    | Some(Tc_type { type_varname_regexp = None }) -> None
-                    | Some(Tc_type { type_varname_regexp = Some(restrict) }) -> 
-                       if (Str.string_match (Str.regexp restrict) id 0) 
-                         then None
-                         else  raise (Reporting_basic.err_type_pp p.locn 
-                               ("variables with type " ^t_to_string p.typ ^ " are restricted to names matching the regular expression " ^ restrict)
-                               Name.pp (Name.strip_lskip n) ))
-                 | _ -> None
-              end
-  | _ -> None
-
-let rec check_ids env ctxt defs = 
-    let module Ctxt = struct let avoid = None let env_opt = None end in
-    let module M = Macro_expander.Expander(Ctxt) in
-    let emac = (fun env _ -> (check_id_restrict_e ctxt)) in
-    let pmac = (fun env ppos _ -> (check_id_restrict_p ctxt)) in
-    let defs = M.expand_defs defs
-                     (Macro_expander.list_to_mac [(emac env)],
-                      (fun ty -> ty),
-                      (fun ty -> ty),
-                      Macro_expander.list_to_bool_mac []) in
-     let _ = M.expand_defs defs
-                     (Macro_expander.list_to_mac [],
-                      (fun ty -> ty),
-                      (fun ty -> ty),
-                      Macro_expander.list_to_bool_mac [(pmac env)])
-    in ()
-
-(*  List.iter (fun d -> match d with
-               | ((Val_def(Let_def(_,_,letbind),tnvs,consts), _),_) -> () (*TODO check in letbind*)
-               | ((Val_def(Rec_def(_,_,_,funcdefs),tnvs,consts),_),_) -> () (*TODO check in funcdefs*)
-               | ((Module(_,name,_,_,defs,_), _),_) -> check_ids ctxt defs
-(*Indreln of lskips * targets_opt * 
-               (Name.lskips_t option * lskips * name_lskips_annot list * lskips * exp option * lskips * name_lskips_annot * exp list) lskips_seplist*)
-               | ((Indreln(_,_,reltns),_),_) -> () (*TODO check in reltns *)
-               | ((Val_spec v,_),_) -> () (* TODO check in v *)
-               | ((Class(_,_,_,_,_,spec_list,_),_),_) -> () (*TODO check in spec_list*)
-               | _ -> ())
-            defs
-*)
-
-
-(* -------------------------------------------------------------------------- *)
 (* the interface                                                              *)
 (* -------------------------------------------------------------------------- *)
 
@@ -3333,18 +3258,29 @@ let check_defs backend_targets mod_name (env : env) (Ast.Defs(defs), end_lex_ski
                new_instances = Types.empty_i_env;
                cur_env = env.local_env;
                new_defs = empty_local_env;
+               export_env = empty_local_env;
                lemmata_labels = NameSet.empty;
                ctxt_c_env = env.c_env;
                ctxt_mod_target_rep = Targetmap.empty;
                ctxt_e_env = env.e_env }
   in
-  let (ctxt,b) = check_defs_internal backend_targets [mod_name] ctxt defs in
-  let env' = { (defn_ctxt_to_env ctxt) with local_env = ctxt.new_defs} in 
-  let _ = List.map (Syntactic_tests.check_decidable_equality_def env') b in
-  let _ = List.map Syntactic_tests.check_positivity_condition_def b in
-  let _ = check_ids env' ctxt b in
+  let (ctxt,checked_defs) = check_defs_internal backend_targets [mod_name] ctxt defs in
 
-  let env'' = env_m_env_move env' [] mod_name ctxt.ctxt_mod_target_rep env.local_env in
+  let new_env = begin
+    (* let ctxt only modify the gloabl environment *)
+    let env' = { (defn_ctxt_to_env ctxt) with local_env = env.local_env} in 
 
-  (env'', (b, end_lex_skips))
+    (* put the local environment into a new module *)
+    let mod_binding = Path.mk_path [] mod_name in
+    let md = { mod_env = ctxt.export_env; 
+               mod_binding = mod_binding; 
+               mod_target_rep = ctxt.ctxt_mod_target_rep } in
+
+    (* add the module *)
+    let new_e_env = Pfmap.insert env'.e_env (mod_binding, md) in
+    let new_local' = { env'.local_env with m_env = Nfmap.insert env'.local_env.m_env (mod_name,mod_binding) } in
+    {env' with local_env = new_local'; e_env = new_e_env}
+  end in
+
+  (new_env, (checked_defs, end_lex_skips))
 

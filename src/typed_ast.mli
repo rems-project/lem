@@ -526,11 +526,6 @@ val c_env_update : c_env -> const_descr_ref -> const_descr -> c_env
     [c_d] in environment [env]. *)
 val env_c_env_update : env -> const_descr_ref -> const_descr -> env
 
-(** [env_m_env_move env mod_prefix mod_name target_rep new_local] replaces the local environment of [env] with
-    [new_local] and adds a module with name [mod_name], path_prefix [mod_prefix], representation [target_rep]
-    and the content of the old local environment to the module map of the new environment. *)
-val env_m_env_move : env -> Name.t list -> Name.t -> mod_target_rep Target.Targetmap.t -> local_env -> env
-
 val exp_to_locn : exp -> Ast.l
 val exp_to_typ : exp -> Types.t
 

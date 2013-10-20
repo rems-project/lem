@@ -1,12 +1,157 @@
-(* This library is used to map old lem
-   developments to the new library *)
+(******************************************************************************)
+(* Transformation library                                                     *)
+(*                                                                            *)
+(* This library is used to transfrom old lem. To use it do the following:     *)
+(* - add "open import Transform" at the head of your file                     *)
+(* - run "lem -lem filename.lem" on your file                                 *)
+(* - manually check resulting "filename-processed.lem" and ajust              *)
+(******************************************************************************)
 
-open import Pervasives_non_pure
 
+include import Pervasives_non_pure
+
+(* get rid of transform at beginning *)
 declare rename module = Pervasives_non_pure
+
+
+(* ========================================================================== *)
+(* Pervasives                                                                 *)
+(* ========================================================================== *)
 
 type num = nat
 declare lem target_rep type num = `nat`
 
-val (+) : nat -> nat -> nat
-declare lem target_rep function (+) = Num.natAdd
+let inline (@) = (++) (* List append *)
+let inline (subset) = isSubsetOf
+let inline (inter) = intersection 
+
+let inline (\) = difference
+
+val empty : forall 'a. set 'a
+
+(* transitive closure now works on relations, not sets of pairs,
+   best ajust the types manually or add wrappers 'relFromSet' and 
+   'relToSet' as appropriate. *)
+val tc : forall 'a. set ('a * 'a) -> set ('a * 'a)
+declare lem target_rep function tc = `transitiveClosure`
+
+
+
+type option 'a = maybe 'a
+
+let inline None = Nothing
+let inline Some = Just
+
+(* existing and fully supported 
+val not : bool -> bool
+val (&&) : bool -> bool -> bool
+val (||) : bool -> bool -> bool
+val (-->) : bool -> bool -> bool
+
+val fst : forall 'a 'b. 'a * 'b -> 'a
+val snd : forall 'a 'b. 'a * 'b -> 'b
+val (::) : forall 'a. 'a -> list 'a -> list 'a
+*)
+
+(* Present, but now with type-class constraints 
+val (=) : forall 'a. 'a -> 'a -> bool
+val (<>) : forall 'a. 'a -> 'a -> bool
+val (<) : num -> num -> bool
+val (>) : num -> num -> bool
+val (<=) : num -> num -> bool
+val (>=) : num -> num -> bool
+
+val (IN) : forall 'a. 'a -> set 'a -> bool
+val (union) : forall 'a. set 'a -> set 'a -> set 'a
+*)
+
+(* Not implemented, yet 
+val (land) : num -> num -> num
+val (lor) : num -> num -> num
+val (lxor) : num -> num -> num
+val lnot : num -> num
+val (lsl) : num -> num -> num
+val (lsr) : num -> num -> num
+val (asr) : num -> num -> num
+*)
+
+
+val (+) : num -> num -> num
+val (-) : num -> num -> num
+val ( * ) : num -> num -> num
+val ( ** ) : num -> num -> num
+val (/) : num -> num -> num
+val (mod) : num -> num -> num
+
+val SUC : num -> num
+
+
+
+(* TODO: unsupported, so far 
+val bigunion = forall 'a. set (set 'a) -> set 'a
+val biginter : forall 'a. set (set 'a) -> set 'a
+
+val (^) : string -> string -> string
+let inline {hol} (^) x y = Hol.STRCAT x y
+let inline {ocaml} (^) = Ocaml.(^)
+
+
+type sum 'a 'b = 
+  | Inl of 'a
+  | Inr of 'b
+
+val isl : forall 'a 'b. sum 'a 'b -> bool
+let inline {hol;ocaml;coq;isabelle} isl s = match s with Inl _ -> true | Inr _ -> false end
+
+val isr : forall 'a 'b. sum 'a 'b -> bool
+let inline {hol;ocaml;coq;isabelle} isr s = match s with Inl _ -> false | Inr _ -> true end
+
+val outl : forall 'a 'b. sum 'a 'b -> 'a
+let inline {hol;ocaml;coq;isabelle} outl s = match s with Inl a -> a end
+
+val outr : forall 'a 'b. sum 'a 'b -> 'b
+let inline {hol;ocaml;coq;isabelle} outr s = match s with Inr b -> b end
+  
+val string_of_num : num -> string
+let inline {ocaml} string_of_num = Ocaml.Nat_num.string_of_num
+let inline {isabelle} string_of_num = Isabelle.nat_to_string
+
+val nat_list_to_string : list num -> string
+let inline {isabelle} nat_list_to_string = Isabelle.nat_list_to_string
+
+*)
+
+(* ========================================================================== *)
+(* Set                                                                        *)
+(* ========================================================================== *)
+
+module Set = struct
+  include Set (* include the new set module *)
+
+  let inline add = insert
+  let inline for_all = all
+  let inline existys = any
+  let inline cardinal = size
+  let inline from_list = fromList
+  let inline is_empty = null
+  let inline image = map
+  let inline set_sigma = sigma
+  let inline equal = setEqual
+
+(* suppored except type class constraints 
+  val singleton : forall 'a. 'a -> set 'a
+  val finite : forall 'a. set 'a -> bool
+  val filter : forall 'a. ('a -> bool) -> set 'a -> set 'a
+  val cross : forall 'a 'b. set 'a -> set 'b -> set ('a * 'b)
+  val (=) : forall 'a. set 'a -> set 'a -> bool
+  val map : forall 'a 'b. ('a -> 'b) -> set 'a -> set 'b
+
+  TODO: unsupported so far:
+  val to_list : forall 'a. set 'a -> list 'a
+  val choose : forall 'a. set 'a -> 'a -> 'a
+  val fold : forall 'a 'b. ('a -> 'b -> 'b) -> set 'a -> 'b -> 'b
+  val monotone : forall 'a. (set 'a -> set 'a) -> bool
+  val lfp : forall 'a. set 'a -> (set 'a -> set 'a) -> set 'a
+*)
+
+end

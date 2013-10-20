@@ -11,6 +11,7 @@ type defn_ctxt = {
   new_instances : i_env;
   cur_env : local_env;
   new_defs : local_env;
+  export_env : local_env;
   lemmata_labels : NameSet.t; 
 }
 
@@ -23,13 +24,16 @@ type defn_ctxt = {
  * operations are performed. With this contract, the function ctxt really only
  * adds a module, constant, field, ... to the context.
  *)
-let ctxt_add (select : local_env -> 'a Nfmap.t) (set : local_env -> 'a Nfmap.t -> local_env) 
-      (ctxt : defn_ctxt) (m : Name.t * 'a)
+let ctxt_local_update (select : local_env -> 'a Nfmap.t) (set : local_env -> 'a Nfmap.t -> local_env) 
+      (ctxt : defn_ctxt) (f : 'a Nfmap.t -> 'a Nfmap.t)
       : defn_ctxt =
   { ctxt with 
-        cur_env = set ctxt.cur_env (Nfmap.insert (select ctxt.cur_env) m);
-        new_defs = set ctxt.new_defs (Nfmap.insert (select ctxt.new_defs) m); } 
+        cur_env = set ctxt.cur_env (f (select ctxt.cur_env));
+        new_defs = set ctxt.new_defs (f (select ctxt.new_defs));
+        export_env = set ctxt.export_env (f (select ctxt.export_env)); } 
 
+let ctxt_local_add select set ctxt m =
+  ctxt_local_update select set ctxt (fun s -> Nfmap.insert s m)
 
 (* Add a new type definition to the global and local contexts *)
 let add_d_to_ctxt (ctxt : defn_ctxt) (p : Path.t) (d : tc_def) =
@@ -46,15 +50,20 @@ let add_p_to_ctxt ctxt ((n:Name.t), ((ty_p:Path.t), (ty_l:Ast.l))) =
    if Nfmap.in_dom n ctxt.new_defs.p_env then
      raise (Reporting_basic.err_type_pp ty_l "duplicate type definition" Name.pp n)
    else
-     ctxt_add (fun x -> x.p_env) (fun x y -> { x with p_env = y }) ctxt (n, (ty_p, ty_l))
+     ctxt_local_add (fun x -> x.p_env) (fun x y -> { x with p_env = y }) ctxt (n, (ty_p, ty_l))
 
 (* adds a field to f_env *)
 let add_f_to_ctxt ctxt ((n:Name.t), (r:const_descr_ref)) =
-     ctxt_add (fun x -> x.f_env) (fun x y -> { x with f_env = y }) ctxt (n, r)
+     ctxt_local_add (fun x -> x.f_env) (fun x y -> { x with f_env = y }) ctxt (n, r)
 
 (* adds a constant to v_env *)
 let add_v_to_ctxt ctxt ((n:Name.t), (r:const_descr_ref)) =
-     ctxt_add (fun x -> x.v_env) (fun x y -> { x with v_env = y }) ctxt (n, r)
+     ctxt_local_add (fun x -> x.v_env) (fun x y -> { x with v_env = y }) ctxt (n, r)
+
+let union_v_ctxt ctxt map  =
+  ctxt_local_update (fun x -> x.v_env) (fun x y -> { x with v_env = y }) 
+                    ctxt (fun m -> Nfmap.union m map) 
+
 
 (* Update new and cumulative enviroments with a new module definition, after
  * first checking that its name doesn't clash with another module definition in
@@ -65,7 +74,7 @@ let add_m_to_ctxt (l : Ast.l) (ctxt : defn_ctxt) (k : Name.t) (v : mod_descr)
     if Nfmap.in_dom k ctxt.new_defs.m_env then
       raise (Reporting_basic.err_type_pp l "duplicate module definition" Name.pp k)
     else
-      ctxt_add 
+      ctxt_local_add 
         (fun x -> x.m_env) 
         (fun x y -> { x with m_env = y }) 
         {ctxt with ctxt_e_env = Pfmap.insert ctxt.ctxt_e_env (v.mod_binding, v)}
@@ -76,7 +85,7 @@ let add_m_alias_to_ctxt (l : Ast.l) (ctxt : defn_ctxt) (k : Name.t) (m : Path.t)
     if Nfmap.in_dom k ctxt.new_defs.m_env then
       raise (Reporting_basic.err_type_pp l "duplicate module definition" Name.pp k)
     else
-      ctxt_add 
+      ctxt_local_add 
         (fun x -> x.m_env) 
         (fun x y -> { x with m_env = y }) 
         ctxt
@@ -119,6 +128,7 @@ end
 
 let ctxt_begin_submodule ctxt =
     { ctxt with new_defs = empty_local_env;
+                export_env = empty_local_env;
                 new_tdefs = [];
                 new_instances = Types.empty_i_env;
                 ctxt_mod_target_rep = Target.Targetmap.empty} 
@@ -127,6 +137,7 @@ let ctxt_begin_submodule ctxt =
 let ctxt_end_submodule l ctxt_before mod_path n ctxt =
   let ctxt' =
      {ctxt with new_defs = ctxt_before.new_defs; 
+                export_env = ctxt_before.export_env;
                 cur_env = ctxt_before.cur_env;
                 new_tdefs = ctxt_before.new_tdefs;
                 new_instances = ctxt_before.new_instances;

@@ -383,34 +383,8 @@ let env_c_env_update env c_id c_d =
 
 let c_env_store_raw = cdmap_insert
 
-(*let restrict_m_env env mod_name local_env =
-begin
-   let m_env' = Nfmap.filter (fun _ mod_path -> Path.check_prefix mod_name mod_path) local_env.m_env in
-   let p_env' = Nfmap.filter (fun _ (p, _) -> Path.check_prefix mod_name p) local_env.p_env in
-
-   let const_filter _ c =
-     let cd = c_env_lookup Ast.Unknown env.c_env c in
-     Path.check_prefix mod_name cd.const_binding
-   in
-
-   let f_env' = Nfmap.filter const_filter local_env.f_env in
-   let v_env' = Nfmap.filter const_filter local_env.v_env in
-
-  { m_env = m_env'; p_env = p_env'; f_env = f_env'; v_env = v_env'}
-end*)
-
-let env_m_env_move env mod_path mod_name mod_rep new_local =
-  let md_local_env = (* restrict_m_env env mod_name *) env.local_env in
-  let mod_binding = Path.mk_path mod_path mod_name in
-  let md = { mod_env = md_local_env; mod_binding = mod_binding; mod_target_rep = mod_rep } in
-  let new_local' = { new_local with m_env = Nfmap.insert new_local.m_env (mod_name,mod_binding) } in
-  let new_e_env = Pfmap.insert env.e_env (mod_binding, md) in
-  {env with local_env = new_local'; e_env = new_e_env}
-
 (* Applies lskips_f to the leftmost lskips in p, replacing it with lskips_f's
  * first result and returning lskips_f's second result *)
-
-
 let lit_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (l : lit) : lit * lskips = 
   let res t s = ({ l with term = t }, s) in
     match l.term with
@@ -631,6 +605,12 @@ let rec def_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (((d,s),l,l
             | Ast.OI_open_import (sk, sk') ->
                 let (s_new, s_ret) = lskips_f sk in
                 (Ast.OI_open_import (s_new, sk'), s_ret)
+            | Ast.OI_include sk ->
+                let (s_new, s_ret) = lskips_f sk in
+                (Ast.OI_include s_new, s_ret)
+            | Ast.OI_include_import (sk, sk') ->
+                let (s_new, s_ret) = lskips_f sk in
+                (Ast.OI_include_import (s_new, sk'), s_ret)
           in
           res (OpenImport(oi',m)) s_ret
         end
@@ -1470,42 +1450,6 @@ module Exps_in_context(D : Exp_context) = struct
         | Do(s1,mid,do_lines,s2,e,s3,t) ->
             let (new_do_lines,e) = push_do_lines_subst subst do_lines e in
               Do(s1,mid,new_do_lines,s2, List.hd e, s3,t)
-
-
-  (*
-  let val_descr_eq l id vd1 vd2 = 
-    if check then
-      match (vd1,vd2) with
-        | (Constr(c1), Constr(c2)) when Path.compare c1.constr_binding c2.constr_binding = 0 ->
-            ()
-        | (Val(c1), Val(c2)) when Path.compare c1.const_binding c2.const_binding = 0 ->
-            ()
-        | (Fld(f1), Fld(f2)) when Path.compare f1.field_binding f2.field_binding = 0 ->
-            ()
-        | _ ->
-            raise (Ident.No_type(l,"Incompatible assumptions over " ^ 
-                             Pp.pp_to_string (fun ppf -> Path.pp ppf id) ^
-                             "\n" ^
-                             Pp.pp_to_string (fun ppf -> pp_val_descr ppf vd1) ^
-                             "\n" ^
-                             Pp.pp_to_string (fun ppf -> pp_val_descr ppf vd2)))
-
-  let merge_p_env l envs =
-    List.fold_left
-      (fun e_res (e,_) ->
-         Pfmap.merge
-           (fun k v1 v2 ->
-              match (v1,v2) with
-                | (None,_) -> v2
-                | (_,None) -> v1
-                | (Some(v),Some(v')) ->
-                    val_descr_eq l k v v';
-                    v1)
-           e
-           e_res)
-      Pfmap.empty
-      envs
-   *)
 
   let mk_lnum l s i t = 
     let t = check_typ l "mk_lnum" t (fun d -> Some { t = Tapp([],Path.natpath) }) in

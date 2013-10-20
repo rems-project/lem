@@ -46,3 +46,6 @@
 
 val check_positivity_condition_def : Typed_ast.def -> unit
 val check_decidable_equality_def : Typed_ast.env -> Typed_ast.def -> unit
+
+val check_id_restrict_e : Typed_ast.env -> Typed_ast.exp -> unit
+val check_id_restrict_p : Typed_ast.env -> Typed_ast.pat -> unit
