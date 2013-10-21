@@ -529,6 +529,8 @@ end
 module Lem : Target = struct
   include Identity 
   let target = Target_no_ident Target_lem
+
+  let backend_quote i = i
 end
 
 module Tex : Target = struct
@@ -1229,7 +1231,7 @@ let rec typ t = match t.term with
         match t.term with
           | Typ_app _ -> B.type_app_to_output typ p ts
           | Typ_backend _ -> (ts, 
-	      let i = B.type_id_to_ident p in
+	      let i = Path.to_ident (ident_get_lskip p) p.descr in
               ws (Ident.get_lskip i) ^
               T.backend_quote (Ident.to_output Type_ctor T.path_sep (Ident.replace_lskip i None)))
           | _ -> raise (Reporting_basic.err_unreachable (Ast.Trans (false, "Backend.typ", None)) "can't be reached because of previous match")
@@ -1454,7 +1456,6 @@ match C.exp_to_term e with
       backend sk i
   | Nvar_e(s,n) ->
       ws s ^ id Nexpr_var (Ulib.Text.(^^^) T.nexp_var (Nvar.to_rope n))
-
   | Constant(cd) ->
       Output.concat emp (B.function_application_to_output (exp_to_locn e) exp false e cd [] (use_ascii_rep_for_const cd))
 

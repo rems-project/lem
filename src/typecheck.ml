@@ -2663,14 +2663,11 @@ begin
   let td = match Pfmap.apply ctxt.all_tdefs p with
             | Some(Tc_type(td)) -> td 
             | _ -> raise (Reporting_basic.err_general true l "invariant in checking type broken") in
-  let _ = if List.length td.type_tparams = List.length tvs then () else
-            raise (Reporting_basic.err_type_pp l (Printf.sprintf "type constructor expected %d type arguments, given %d" 
-                        (List.length td.type_tparams)
-                        (List.length tvs))
-                   Ident.pp (Ident.from_id type_id)) in
 
   let _ = check_free_tvs (tvs_to_set tvs) rhs in
   let rhs_src_t = typ_to_src_t anon_error ignore ignore (defn_ctxt_to_env ctxt) rhs in 
+  let (rhs_src_t, _) = typ_alter_init_lskips remove_init_ws rhs_src_t in
+
  
   let decl_def = Decl_target_rep_type (sk1, target, sk2, sk3, p_id, tvs_tast, 
                    sk4, rhs_src_t) in
@@ -2680,8 +2677,10 @@ begin
      | _ -> if (List.length td.type_tparams = List.length tvs) then
               TYR_subst (l, true, List.map fst tvs, rhs_src_t) 
             else 
-              raise (Reporting_basic.err_type l 
-                   "mismatching no. of type arguments given")
+              raise (Reporting_basic.err_type_pp l (Printf.sprintf "type constructor expected %d type arguments, given %d" 
+                          (List.length td.type_tparams)
+                          (List.length tvs))
+                     Ident.pp (Ident.from_id type_id))
   in 
   let targ = (Target.ast_target_to_target target) in
   let (ctxt', old_rep_opt) = ctxt_all_tdefs_set_target_rep l ctxt p targ new_rep in

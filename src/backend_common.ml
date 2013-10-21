@@ -320,7 +320,6 @@ let type_app_to_output format p ts =
      | None -> (ts, Ident.to_output Type_ctor path_sep (type_id_to_ident p))
      | Some (TYR_simple (_, _, i)) -> (ts, ws sk ^ Ident.to_output Type_ctor path_sep i)
      | Some (TYR_subst (_, _, tnvars, t')) -> begin    
-         let _ = Reporting_basic.print_debug "YY\n" in
          let subst = Types.TNfmap.from_list2 tnvars ts in
          let t'' = src_type_subst subst t' in
          ([], ws sk ^ format t'')

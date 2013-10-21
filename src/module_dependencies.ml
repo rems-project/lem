@@ -96,8 +96,8 @@ let search_module_file l search_dirs mod_name =
 
   match Util.option_first check_dir search_dirs with
     | Some f -> (* filename found :-) *) f
-    | None ->
-       Reporting_basic.report_error (Reporting_basic.Err_resolve_dependency (l, search_dirs, mod_name))
+    | None -> raise (
+       Reporting_basic.Fatal_error (Reporting_basic.Err_resolve_dependency (l, search_dirs, mod_name)))
         
 
 
@@ -149,7 +149,7 @@ match missing_modules with
         resolve_dependencies lib_dirs (md :: resolved_modules) missing_modules'
       else if module_dependency_is_cyclic md then
         (* a dependency cycle was detected *)
-        Reporting_basic.report_error (Reporting_basic.Err_cyclic_build md.module_name)
+        raise (Reporting_basic.Fatal_error (Reporting_basic.Err_cyclic_build md.module_name))
       else begin
         (* choose an aribitray missing depency and process it *)
         let (missing_dep, dep_l) = DepSet.choose md.missing_deps in

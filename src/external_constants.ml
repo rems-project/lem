@@ -88,9 +88,9 @@ match label with
 
   | "vector_access" -> (["Vector"], "vector_access")
   | "vector_slice" -> (["Vector"], "vector_slice")
-  | s -> Reporting_basic.report_error (Reporting_basic.Err_general (true,				     
+  | s -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_general (true,				     
             (Ast.Trans (false, "constant_label_to_path_name", None)),
-            ("Unknown label '" ^ s ^ "'")))
+            ("Unknown label '" ^ s ^ "'"))))
 
 
 
