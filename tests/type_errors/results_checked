@@ -2,67 +2,67 @@
 (* ------------------------------------------------------------------------- *)
 (* ------------------------------------------------------------------------- *)
 
-module M = struct type t = <| f : num |> end
+module M = struct type t = <| f : nat |> end
 let _ = <| M .f = 1 |>
 
 --------------------------------------------------------------------------------
-File "test.lem", line 6, character 12 to line 6, character 15
+File "test.lem", line 8, character 12 to line 8, character 15
   Type error: illegal whitespace in identifier:  M .f
 ================================================================================
-module M = struct module N = struct type t = <| f : num |> end end
+module M = struct module N = struct type t = <| f : nat |> end end
 let _ = <| M .N.f = 1 |>
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 12 to line 2, character 17
+File "test.lem", line 4, character 12 to line 4, character 17
   Type error: illegal whitespace in identifier:  M .N.f
 ================================================================================
-module M = struct module N = struct type t = <| f : num |> end end
+module M = struct module N = struct type t = <| f : nat |> end end
 let _ = <| M. N.f = 1 |>
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 12 to line 2, character 17
+File "test.lem", line 4, character 12 to line 4, character 17
   Type error: illegal whitespace in identifier:  M. N.f
 ================================================================================
-module M = struct module N = struct type t = <| f : num |> end end
+module M = struct module N = struct type t = <| f : nat |> end end
 let _ = <| M.N .f = 1 |>
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 12 to line 2, character 17
+File "test.lem", line 4, character 12 to line 4, character 17
   Type error: illegal whitespace in identifier:  M.N .f
 ================================================================================
-module M = struct module N = struct type t = <| f : num |> end end
+module M = struct module N = struct type t = <| f : nat |> end end
 let _ = <| M.N. f = 1 |>
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 12 to line 2, character 17
+File "test.lem", line 4, character 12 to line 4, character 17
   Type error: illegal whitespace in identifier:  M.N. f
 ================================================================================
 module M = struct let x = 1 end
 let _ = M .x
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 9 to line 2, character 12
+File "test.lem", line 4, character 9 to line 4, character 12
   Type error: illegal whitespace in identifier:  M .x
 ================================================================================
 module M = struct module N = struct let x = 1 end end
 let _ = M .N.x
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 9 to line 2, character 14
+File "test.lem", line 4, character 9 to line 4, character 14
   Type error: illegal whitespace in identifier:  M .N.x
 ================================================================================
 module M = struct module N = struct let x = 1 end end
 let _ = M. N.x
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 9 to line 2, character 14
+File "test.lem", line 4, character 9 to line 4, character 14
   Type error: illegal whitespace in identifier:  M. N.x
 ================================================================================
 module M = struct module N = struct let x = 1 end end
 let _ = M.N .x
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 9 to line 2, character 14
+File "test.lem", line 4, character 9 to line 4, character 14
   Type error: illegal whitespace in identifier:  M.N .x
 ================================================================================
 module M = struct module N = struct let x = 1 end end
@@ -70,7 +70,7 @@ let _ = M.N. x
 
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 9 to line 2, character 14
+File "test.lem", line 4, character 9 to line 4, character 14
   Type error: illegal whitespace in identifier:  M.N. x
 ================================================================================
 (* --------------------------- Type tests ---------------------------------- *)
@@ -80,27 +80,27 @@ File "test.lem", line 2, character 9 to line 2, character 14
 type t = u
 
 --------------------------------------------------------------------------------
-File "test.lem", line 5, character 10 to line 5, character 10
+File "test.lem", line 7, character 10 to line 7, character 10
   Type error: unbound type constructor: u
 ================================================================================
-type t = num num
+type t = nat nat
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 10 to line 1, character 16
-  Type error: type constructor expected 0 type arguments, given 1: num
+File "test.lem", line 3, character 10 to line 3, character 16
+  Type error: type constructor expected 0 type arguments, given 1: nat
 ================================================================================
 type t 'a = c of 'a
 type u = t
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 10 to line 2, character 10
+File "test.lem", line 4, character 10 to line 4, character 10
   Type error: type constructor expected 1 type arguments, given 0: t
 ================================================================================
 class (c 'a) val f : 'a end
 type t = c
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 10 to line 2, character 10
+File "test.lem", line 4, character 10 to line 4, character 10
   Type error: type class used as type constructor: c
 ================================================================================
 (* ------------------------ Pattern tests ---------------------------------- *)
@@ -111,94 +111,94 @@ type x = | X
 let f (X a) = 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 6, character 8 to line 6, character 8
+File "test.lem", line 8, character 8 to line 8, character 8
   Type error: constructor pattern expected 0 arguments, given 1: X
 ================================================================================
 type x = | X of bool
 let f (X a b) = 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 8 to line 2, character 8
+File "test.lem", line 4, character 8 to line 4, character 8
   Type error: constructor pattern expected 1 arguments, given 2: X
 ================================================================================
 module M = struct type t = | Y end
 let f (M.X y) = 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 10 to line 2, character 10
+File "test.lem", line 4, character 10 to line 4, character 10
   Type error: non-constructor pattern has a module path: M.X
 ================================================================================
 let f (M.X y) = 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 10 to line 1, character 10
+File "test.lem", line 3, character 10 to line 3, character 10
   Type error: unknown module: M
 ================================================================================
-type t = <| X : num |>
+type t = <| X : nat |>
 let f (X y) = 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 8 to line 2, character 8
+File "test.lem", line 4, character 8 to line 4, character 8
   Type error: non-constructor pattern given arguments: X
 ================================================================================
 let f (X y) = 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 8 to line 1, character 8
+File "test.lem", line 3, character 8 to line 3, character 8
   Type error: non-constructor pattern given arguments: X
 ================================================================================
-type t = | X of num
+type t = | X of nat
 let f (_ as X) = match 1 with | (X 1) -> 1 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 34 to line 2, character 34
+File "test.lem", line 4, character 34 to line 4, character 34
   Type error: non-constructor pattern given arguments: X
 ================================================================================
 let f <| fld = 1 |> = 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 10 to line 1, character 12
+File "test.lem", line 3, character 10 to line 3, character 12
   Type error: unbound field name: fld
 ================================================================================
 type t = | fld
 let f <| fld = 1 |> = 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 10 to line 2, character 12
+File "test.lem", line 4, character 10 to line 4, character 12
   Type error: constructor name used as a field name: fld
 ================================================================================
 let fld = 1
 let f <| fld = 1 |> = 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 10 to line 2, character 12
+File "test.lem", line 4, character 10 to line 4, character 12
   Type error: top level variable binding used as a field name: fld
 ================================================================================
-class (c 'a) val fld : num end
+class (c 'a) val fld : nat end
 let f <| fld = 1 |> = 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 10 to line 2, character 12
+File "test.lem", line 4, character 10 to line 4, character 12
   Type error: method name used as a field name: fld
 ================================================================================
 type t = <| fld : bool |>
 let f <| fld = true; fld2 = false |> = 0
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 22 to line 2, character 25
+File "test.lem", line 4, character 22 to line 4, character 25
   Type error: unbound field name: fld2
 ================================================================================
 type t = <| fld : bool |>
 let f <| fld = true; fld = true |> = 0
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 22 to line 2, character 24
+File "test.lem", line 4, character 22 to line 4, character 24
   Type error: duplicate field name: fld
 ================================================================================
 let f (x,x) = 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 10 to line 1, character 10
+File "test.lem", line 3, character 10 to line 3, character 10
   Type error: duplicate binding: x
 ================================================================================
 (* ------------------------ Expression tests ------------------------------- *)
@@ -208,87 +208,87 @@ File "test.lem", line 1, character 10 to line 1, character 10
 let _ = x
 
 --------------------------------------------------------------------------------
-File "test.lem", line 5, character 9 to line 5, character 9
+File "test.lem", line 7, character 9 to line 7, character 9
   Type error: unbound variable: x
 ================================================================================
 let f x = x +++ x
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 13 to line 1, character 15
+File "test.lem", line 3, character 13 to line 3, character 15
   Type error: unbound variable: +++
 ================================================================================
 let _ = M.x
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 9 to line 1, character 9
+File "test.lem", line 3, character 9 to line 3, character 9
   Type error: unbound module name or variable: M
 ================================================================================
 module M = struct let y = 10 end
 let _ = M.x
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 11 to line 2, character 11
+File "test.lem", line 4, character 11 to line 4, character 11
   Type error: unbound variable: M.x
 ================================================================================
 module M = struct let y = 10 end
 let _ = M.N.x
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 11 to line 2, character 11
+File "test.lem", line 4, character 11 to line 4, character 11
   Type error: unbound module name or variable: M.N
 ================================================================================
 type t = <| x : bool |>
 let _ = x
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 9 to line 2, character 9
+File "test.lem", line 4, character 9 to line 4, character 9
   Type error: unbound variable: x
 ================================================================================
 let _ = fun x x -> x
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 13 to line 1, character 13
+File "test.lem", line 3, character 13 to line 3, character 13
   Type error: duplicate binding: x
 ================================================================================
 let _ = <| fld = 1 |>
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 12 to line 1, character 14
+File "test.lem", line 3, character 12 to line 3, character 14
   Type error: unbound field name: fld
 ================================================================================
 type t = | fld
 let _ = <| fld = 1 |>
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 12 to line 2, character 14
+File "test.lem", line 4, character 12 to line 4, character 14
   Type error: constructor name used as a field name: fld
 ================================================================================
 let fld = 1
 let _ = <| fld = 1 |>
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 12 to line 2, character 14
+File "test.lem", line 4, character 12 to line 4, character 14
   Type error: top level variable binding used as a field name: fld
 ================================================================================
 type t = <| fld : bool |>
 let _ = <| fld = true; fld2 = false |>
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 24 to line 2, character 27
+File "test.lem", line 4, character 24 to line 4, character 27
   Type error: unbound field name: fld2
 ================================================================================
 type t = <| fld : bool |>
 let _ = <| fld = true; fld = true |>
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 24 to line 2, character 26
+File "test.lem", line 4, character 24 to line 4, character 26
   Type error: duplicate field name: fld
 ================================================================================
 type t = <| fld1 : bool; fld2 : bool |>
 let _ = <| fld1 = true |>
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 9 to line 2, character 25
+File "test.lem", line 4, character 9 to line 4, character 25
   Type error: missing field: fld2
 ================================================================================
 let _ = 
@@ -296,7 +296,7 @@ let _ =
     x
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 11 to line 2, character 11
+File "test.lem", line 4, character 11 to line 4, character 11
   Type error: unbound variable: x
 ================================================================================
 let _ = 
@@ -304,7 +304,7 @@ let _ =
     f
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 13 to line 2, character 13
+File "test.lem", line 4, character 13 to line 4, character 13
   Type error: unbound variable: f
 ================================================================================
 let _ = 
@@ -312,49 +312,49 @@ let _ =
     x
 
 --------------------------------------------------------------------------------
-File "test.lem", line 3, character 5 to line 3, character 5
+File "test.lem", line 5, character 5 to line 5, character 5
   Type error: unbound variable: x
 ================================================================================
 let _ = { x | forall y | x }
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 11 to line 1, character 11
+File "test.lem", line 3, character 11 to line 3, character 11
   Type error: unbound variable: x
 ================================================================================
 let _ = { x | forall (x IN x) | x }
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 28 to line 1, character 28
+File "test.lem", line 3, character 28 to line 3, character 28
   Type error: unbound variable: x
 ================================================================================
 let _ = { x | forall (x IN {}) (x IN {}) | x }
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 33 to line 1, character 33
+File "test.lem", line 3, character 33 to line 3, character 33
   Type error: duplicate binding: x
 ================================================================================
 let _ = [ x | forall (x IN {}) | x ]
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 23 to line 1, character 23
+File "test.lem", line 3, character 23 to line 3, character 23
   Type error: set-restricted quantifier in list comprehension: 
 ================================================================================
 let _ = [ x | forall x | x ]
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 22 to line 1, character 22
+File "test.lem", line 3, character 22 to line 3, character 22
   Type error: unrestricted quantifier in list comprehension: x
 ================================================================================
 let _ = forall (x IN x). true
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 22 to line 1, character 22
+File "test.lem", line 3, character 22 to line 3, character 22
   Type error: unbound variable: x
 ================================================================================
 let _ = forall (x IN {}) (x IN {}). true
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 27 to line 1, character 27
+File "test.lem", line 3, character 27 to line 3, character 27
   Type error: duplicate binding: x
 ================================================================================
 
@@ -369,11 +369,11 @@ let _ =
   end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 7, character 6 to line 7, character 6
+File "test.lem", line 9, character 6 to line 9, character 6
   Type error: unknown module: M
 ================================================================================
 module M = struct
-  type x = num
+  type x = nat
 end
 let _ =
   do M
@@ -382,11 +382,11 @@ let _ =
 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 5, character 6 to line 5, character 6
+File "test.lem", line 7, character 6 to line 7, character 6
   Type error: monad module missing type t: M
 ================================================================================
 module M = struct
-  type t 'a = option 'a
+  type t 'a = maybe 'a
 end
 let _ =
   do M
@@ -395,12 +395,12 @@ let _ =
 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 5, character 6 to line 5, character 6
+File "test.lem", line 7, character 6 to line 7, character 6
   Type error: monad module missing return: Test.M
 ================================================================================
 module M = struct
-  type t 'a = option 'a
-  let return x = Some x
+  type t 'a = maybe 'a
+  let return x = Just x
 end
 let _ =
   do M
@@ -409,12 +409,12 @@ let _ =
 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 6, character 6 to line 6, character 6
+File "test.lem", line 8, character 6 to line 8, character 6
   Type error: monad module missing bind: Test.M
 ================================================================================
 module M = struct
-  type t 'a = option 'a
-  let bind x y = match x with None -> None | Some x -> y x end
+  type t 'a = maybe 'a
+  let bind x y = match x with None -> None | Just x -> y x end
 end
 let _ =
   do M
@@ -423,12 +423,12 @@ let _ =
 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 6, character 6 to line 6, character 6
+File "test.lem", line 8, character 6 to line 8, character 6
   Type error: monad module missing return: Test.M
 ================================================================================
 module M = struct
-  let return x = Some x
-  let bind x y = match x with None -> None | Some x -> y x end
+  let return x = Just x
+  let bind x y = match x with None -> None | Just x -> y x end
 end
 let _ =
   do M
@@ -437,7 +437,7 @@ let _ =
 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 6, character 6 to line 6, character 6
+File "test.lem", line 8, character 6 to line 8, character 6
   Type error: monad module missing type t: M
 ================================================================================
 module M = struct
@@ -452,13 +452,13 @@ let _ =
 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 7, character 6 to line 7, character 6
+File "test.lem", line 9, character 6 to line 9, character 6
   Type error: monad module return bound to constructor: Test.M
 ================================================================================
 module M = struct
-  type t 'a = option 'a
-  let return x = Some x
-  let bind x y = match x with None -> None | Some x -> y x end
+  type t 'a = maybe 'a
+  let return x = Just x
+  let bind x y = match x with Nothing -> Nothing | Just x -> y x end
 end
 let _ =
   do M
@@ -468,16 +468,16 @@ let _ =
 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 8, character 10 to line 8, character 10
+File "test.lem", line 10, character 10 to line 10, character 10
   Type error: type mismatch: do expression
-num
+nat
 and
-Pervasives.option _
+Maybe.maybe _
 ================================================================================
 module M = struct
-  type t 'a = option 'a
+  type t 'a = maybe 'a
   let return x = x
-  let bind x y = match x with None -> None | Some x -> y x end
+  let bind x y = match x with None -> None | Just x -> y x end
 end
 let _ =
   do M
@@ -486,34 +486,34 @@ let _ =
 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 7, character 6 to line 7, character 6
+File "test.lem", line 9, character 6 to line 9, character 6
   Type error: type mismatch: do/return
 'a
 and
-Pervasives.option 'a
+Maybe.maybe 'a
 ================================================================================
 module M = struct
-  type t 'a = option 'a
-  let return x = Some x
-  let bind x y = match x with None -> None | Some x -> x end
+  type t 'a = maybe 'a
+  let return x = Just x
+  let bind x y = match x with Nothing -> Nothing | Just x -> x end
 end
 let _ =
   do M
   in
-    None 
+    Nothing 
 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 7, character 6 to line 7, character 6
+File "test.lem", line 9, character 6 to line 9, character 6
   Type error: type mismatch: do/>>=
-Pervasives.option 'a
+Maybe.maybe 'a
 and
 'b
 ================================================================================
 module M = struct
-  type t 'a = option 'a
-  let return x = Some x
-  let bind x y = match x with None -> None | Some x -> y x end
+  type t 'a = maybe 'a
+  let return x = Just x
+  let bind x y = match x with Nothing -> Nothing | Just x -> y x end
 end
 let _ =
   do M
@@ -522,71 +522,71 @@ let _ =
 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 7, character 3 to line 10, character 3
+File "test.lem", line 9, character 3 to line 12, character 3
   Type error: type mismatch: do expression
-num
+nat
 and
-Pervasives.option _
+Maybe.maybe _
 ================================================================================
 module M = struct
-  type t = option num 
-  let return x = Some x
-  let bind x y = match x with None -> None | Some x -> y x end
+  type t = maybe nat 
+  let return x = Just x
+  let bind x y = match x with Nothing -> Nothing | Just x -> y x end
 end
 let _ =
   do M
   in
-    None 
+    Nothing 
 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 7, character 6 to line 7, character 6
+File "test.lem", line 9, character 6 to line 9, character 6
   Type error: monad type constructor with 0 parameters: Test.M.t
 ================================================================================
 module M = struct
-  type t 'a 'b = option 'a 
-  let return x = Some x
-  let bind x y = match x with None -> None | Some x -> y x end
+  type t 'a 'b = maybe 'a 
+  let return x = Just x
+  let bind x y = match x with Nothing -> Nothing | Just x -> y x end
 end
 let _ =
   do M
   in
-    None
+    Nothing
 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 7, character 6 to line 7, character 6
+File "test.lem", line 9, character 6 to line 9, character 6
   Type error: monad type constructor with 2 parameters: Test.M.t
 ================================================================================
 module M = struct
-  type t 'a = option 'a 
-  let return (x,y) = Some x
-  let bind x y = match x with None -> None | Some x -> y x end
+  type t 'a = maybe 'a 
+  let return (x,y) = Just x
+  let bind x y = match x with Nothing -> Nothing | Just x -> y x end
 end
 let _ =
   do M
   in
-    None
+    Nothing
 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 7, character 6 to line 7, character 6
+File "test.lem", line 9, character 6 to line 9, character 6
   Type error: monad return function with 2 type parameters: Test.M
 ================================================================================
 module M = struct
-  type t 'a = option 'a 
-  let return x = Some x
+  type t 'a = maybe 'a 
+  let return x = Just x
   val bind : forall 'a. t 'a -> ('a -> t 'a) -> t 'a
-  let bind x y = match x with None -> None | Some x -> y x end
+  let bind x y = match x with Nothing -> Nothing | Just x -> y x end
 end
 let _ =
   do M
   in
-    None 
+    Nothing 
 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 8, character 6 to line 8, character 6
+File "test.lem", line 10, character 6 to line 10, character 6
   Type error: monad >>= function with 1 type parameters: Test.M
 ================================================================================
 
@@ -594,139 +594,139 @@ File "test.lem", line 8, character 6 to line 8, character 6
 (* ------------------------------------------------------------------------- *)
 (* ------------------------------------------------------------------------- *)
 
-type t = num and t = bool
+type t = nat and t = bool
 
 --------------------------------------------------------------------------------
-File "test.lem", line 6, character 18 to line 6, character 18
+File "test.lem", line 8, character 18 to line 8, character 18
   Type error: duplicate type constructor definition: t
 ================================================================================
-type t = num
-type t = num
+type t = nat
+type t = nat
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 6 to line 2, character 6
+File "test.lem", line 4, character 6 to line 4, character 6
   Type error: duplicate type constructor definition: t
 ================================================================================
 class (c 'a) val f : 'a end
-type c = num
+type c = nat
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 6 to line 2, character 6
+File "test.lem", line 4, character 6 to line 4, character 6
   Type error: type constructor already defined as a type class: c
 ================================================================================
-type t 'a 'a = num
+type t 'a 'a = nat
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 8 to line 1, character 9
+File "test.lem", line 3, character 8 to line 3, character 9
   Type error: duplicate type variable: 'a
 ================================================================================
 type t = <| f : bool; f : bool |>
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 23 to line 1, character 23
+File "test.lem", line 3, character 23 to line 3, character 23
   Type error: duplicate field name definition: f
 ================================================================================
 type t = <| f : bool |>
 type u = <| f : bool |>
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 13 to line 2, character 13
+File "test.lem", line 4, character 13 to line 4, character 13
   Type error: duplicate field name definition: f
 ================================================================================
 type t = <| f : bool |> and u = <| f : bool |>
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 36 to line 1, character 36
+File "test.lem", line 3, character 36 to line 3, character 36
   Type error: duplicate field name definition: f
 ================================================================================
 type t = u and u = bool
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 10 to line 1, character 10
+File "test.lem", line 3, character 10 to line 3, character 10
   Type error: unbound type constructor: u
 ================================================================================
 type t = | C | C
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 16 to line 1, character 16
+File "test.lem", line 3, character 16 to line 3, character 16
   Type error: duplicate constructor definition: C
 ================================================================================
 type t = | C and u = | C
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 24 to line 1, character 24
+File "test.lem", line 3, character 24 to line 3, character 24
   Type error: duplicate constructor definition: C
 ================================================================================
 type t = | C
 type u = | C
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 12 to line 2, character 12
+File "test.lem", line 4, character 12 to line 4, character 12
   Type error: duplicate constructor definition: C
 ================================================================================
 let C = 1
 type u = | C
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 12 to line 2, character 12
+File "test.lem", line 4, character 12 to line 4, character 12
   Type error: constructor already defined as a top-level variable binding: C
 ================================================================================
-class (c 'a) val C : num end
+class (c 'a) val C : nat end
 type u = | C
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 12 to line 2, character 12
+File "test.lem", line 4, character 12 to line 4, character 12
   Type error: constructor already defined as a class method: C
 ================================================================================
 type u 'a = 'a and t = list 'a
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 29 to line 1, character 30
+File "test.lem", line 3, character 29 to line 3, character 30
   Type error: unbound type variable: 'a
 ================================================================================
 type u 'a = 'a and t = C of 'a
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 29 to line 1, character 30
+File "test.lem", line 3, character 29 to line 3, character 30
   Type error: unbound type variable: 'a
 ================================================================================
 type u 'a = 'a and t = <| f : 'a |>
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 31 to line 1, character 32
+File "test.lem", line 3, character 31 to line 3, character 32
   Type error: unbound type variable: 'a
 ================================================================================
 type t 'a
 type u 'b = t
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 13 to line 2, character 13
+File "test.lem", line 4, character 13 to line 4, character 13
   Type error: type constructor expected 1 type arguments, given 0: t
 ================================================================================
 type t
 type u 'b = t 'b
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 13 to line 2, character 16
+File "test.lem", line 4, character 13 to line 4, character 16
   Type error: type constructor expected 0 type arguments, given 1: t
 ================================================================================
 type t 'a 'b 
 type u 'b = t 'b
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 13 to line 2, character 16
+File "test.lem", line 4, character 13 to line 4, character 16
   Type error: type constructor expected 2 type arguments, given 1: t
 ================================================================================
 type t = _
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 10 to line 1, character 10
+File "test.lem", line 3, character 10 to line 3, character 10
   Type error: anonymous types not permitted here: _
 ================================================================================
 type t = C of _
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 15 to line 1, character 15
+File "test.lem", line 3, character 15 to line 3, character 15
   Type error: anonymous types not permitted here: _
 ================================================================================
 
@@ -735,186 +735,162 @@ File "test.lem", line 1, character 15 to line 1, character 15
 (* ------------------------------------------------------------------------- *)
 
 (* Has a type error, unless not using any backends (except for tex) *)
-val x : num
+val x : nat
 let _ = x
 
 --------------------------------------------------------------------------------
-File "test.lem", line 8, character 9 to line 8, character 9
+File "test.lem", line 10, character 9 to line 10, character 9
   Type error: unbound variable for targets {hol;ocaml}: x
 ================================================================================
 val x : 'a
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 9 to line 1, character 10
+File "test.lem", line 3, character 9 to line 3, character 10
   Type error: unbound type variable: 'a
 ================================================================================
-val x : forall 'a 'b 'a. num
+val x : forall 'a 'b 'a. nat
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 16 to line 1, character 17
+File "test.lem", line 3, character 16 to line 3, character 17
   Type error: duplicate type variable: 'a
 ================================================================================
 val x : _
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 9 to line 1, character 9
+File "test.lem", line 3, character 9 to line 3, character 9
   Type error: anonymous types not permitted here: _
 ================================================================================
-val x : forall 'a. c 'a => num
+val x : forall 'a. c 'a => nat
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 20 to line 1, character 20
+File "test.lem", line 3, character 20 to line 3, character 20
   Type error: unbound type class: c
 ================================================================================
-class (c 'a) val f : num end
-val x : forall 'a. c 'b => num
+class (c 'a) val f : nat end
+val x : forall 'a. c 'b => nat
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 22 to line 2, character 23
+File "test.lem", line 4, character 22 to line 4, character 23
   Type error: unbound type variable: 'b
 ================================================================================
-val x : num
-val x : num
+val x : nat
+val x : nat
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 5 to line 2, character 5
+File "test.lem", line 4, character 5 to line 4, character 5
   Type error: specified variable already defined as a top-level variable binding: x
 ================================================================================
 type t = |x
-val x : num
+val x : nat
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 5 to line 2, character 5
+File "test.lem", line 4, character 5 to line 4, character 5
   Type error: specified variable already defined as a constructor: x
 ================================================================================
-class (c 'a) val x : num end
-val x : num
+class (c 'a) val x : nat end
+val x : nat
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 5 to line 2, character 5
+File "test.lem", line 4, character 5 to line 4, character 5
   Type error: specified variable already defined as a class method: x
 ================================================================================
 let x = 10
-val x : num
+val x : nat
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 5 to line 2, character 5
+File "test.lem", line 4, character 5 to line 4, character 5
   Type error: specified variable already defined as a top-level variable binding: x
 ================================================================================
 let {hol} x = 10
-val x : num
+val x : nat
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 11 to line 1, character 11
+File "test.lem", line 3, character 11 to line 3, character 11
   Type error: target-specific definition without preceding 'val' specification: x
 ================================================================================
 let x = 1
 let x = 2
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 5 to line 2, character 5
+File "test.lem", line 4, character 5 to line 4, character 5
   Type error: defined variable 'x' is already defined for targets: hol, ocaml
 ================================================================================
-class (c 'a) val x : num end
+class (c 'a) val x : nat end
 let x = 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 5 to line 2, character 5
+File "test.lem", line 4, character 5 to line 4, character 5
   Type error: defined variable is already defined as a class method: x
 ================================================================================
 type t = |x
 let x y = 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 5 to line 2, character 5
+File "test.lem", line 4, character 5 to line 4, character 5
   Type error: defined variable is already defined as a constructor: x
 ================================================================================
-val x : num
+val x : nat
 let {hol} x = 1
 let {isabelle;hol} x = 2
 
 --------------------------------------------------------------------------------
-File "test.lem", line 3, character 20 to line 3, character 20
+File "test.lem", line 5, character 20 to line 5, character 20
   Type error: defined variable 'x' is already defined for targets: hol
 ================================================================================
 let {hol} x = 1
 let x = 2
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 11 to line 1, character 11
+File "test.lem", line 3, character 11 to line 3, character 11
   Type error: target-specific definition without preceding 'val' specification: x
 ================================================================================
 let x = 1
 let rec y 1 = 1 and x 1 = 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 21 to line 2, character 21
+File "test.lem", line 4, character 21 to line 4, character 21
   Type error: defined variable 'x' is already defined for targets: hol, ocaml
 ================================================================================
 let x = 1
 indreln [ x : forall 'a. 'a -> bool ] arm : forall y. true ==> x y
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 11 to line 2, character 11
+File "test.lem", line 4, character 11 to line 4, character 11
   Type error: defined variable 'x' is already defined for targets: hol, ocaml
 ================================================================================
-let x = 1
-let inline {hol} x = 1
-
---------------------------------------------------------------------------------
-File "test.lem", line 2, character 18 to line 2, character 18
-  Type error: defined variable 'x' is already defined for targets: hol
-================================================================================
-val x : num
+val x : nat
 let inline {hol} x = 1
 let inline {hol} x = 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 3, character 18 to line 3, character 18
-  Type error: defined variable 'x' is already defined for targets: hol
+File "test.lem", line 5, character 1 to line 5, character 22
+  Type error: a hol target representation for 'Test.x' has already been given at
+    File "test.lem", line 4, character 1 to line 4, character 22
 ================================================================================
-val x : num
-let {hol} x = 1
-let inline {hol} x = 1
-
---------------------------------------------------------------------------------
-File "test.lem", line 3, character 18 to line 3, character 18
-  Type error: defined variable 'x' is already defined for targets: hol
-================================================================================
-val x : num
-let inline {hol} x = 1
-let {hol} x = 1
-
---------------------------------------------------------------------------------
-File "test.lem", line 3, character 11 to line 3, character 11
-  Type error: defined variable 'x' is already defined for targets: hol
-================================================================================
-val x : num
+val x : nat
 let {ocaml} x = 1
 let _ = x
 
 --------------------------------------------------------------------------------
-File "test.lem", line 3, character 9 to line 3, character 9
+File "test.lem", line 5, character 9 to line 5, character 9
   Type error: unbound variable for targets {hol}: x
 ================================================================================
-val x : num
+val x : nat
 let {ocaml} x = 1
 let {hol} _ = x
 
 --------------------------------------------------------------------------------
-File "test.lem", line 3, character 15 to line 3, character 15
+File "test.lem", line 5, character 15 to line 5, character 15
   Type error: unbound variable for targets {hol}: x
 ================================================================================
-(* TODO: should have type error
-val x : num
+val x : nat
 let x = 1
 let _ = x
 let {hol} x = 1
-*)
 
 --------------------------------------------------------------------------------
-File "test.lem", line 8, character 0:
-  Syntax error
+File "test.lem", line 6, character 11 to line 6, character 11
+  Type error: defined variable 'x' is already defined for targets: hol
 ================================================================================
 (* ------------------------ Modules ---------------------------------------- *)
 (* ------------------------------------------------------------------------- *)
@@ -924,7 +900,7 @@ module X = struct let y = 1 end
 module X = struct let z = 1 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 6, character 8 to line 6, character 8
+File "test.lem", line 8, character 8 to line 8, character 8
   Type error: duplicate module definition: X
 ================================================================================
 module X = struct let Y = 1 end
@@ -932,7 +908,7 @@ module Y = X
 module Y = X
 
 --------------------------------------------------------------------------------
-File "test.lem", line 3, character 8 to line 3, character 8
+File "test.lem", line 5, character 8 to line 5, character 8
   Type error: duplicate module definition: Y
 ================================================================================
 module X = struct let Y = 1 end
@@ -940,34 +916,34 @@ module Y = struct let Z = 1 end
 module X = Y
 
 --------------------------------------------------------------------------------
-File "test.lem", line 3, character 8 to line 3, character 8
+File "test.lem", line 5, character 8 to line 5, character 8
   Type error: duplicate module definition: X
 ================================================================================
 module X = Y
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 12 to line 1, character 12
+File "test.lem", line 3, character 12 to line 3, character 12
   Type error: unknown module: Y
 ================================================================================
 open x
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 6 to line 1, character 6
+File "test.lem", line 3, character 6 to line 3, character 6
   Type error: unknown module: x
 ================================================================================
 module X = struct let X = 1 let X = 1 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 33 to line 1, character 33
+File "test.lem", line 3, character 33 to line 3, character 33
   Type error: defined variable 'X' is already defined for targets: hol, ocaml
 ================================================================================
 module X = struct let C = 1 end
-type t = | C of num
+type t = | C of nat
 open X
 let f (C 1) = 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 4, character 8 to line 4, character 8
+File "test.lem", line 6, character 8 to line 6, character 8
   Type error: non-constructor pattern given arguments: C
 ================================================================================
 
@@ -978,61 +954,61 @@ File "test.lem", line 4, character 8 to line 4, character 8
 class (c 'a) val x : 'b end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 6, character 22 to line 6, character 23
+File "test.lem", line 8, character 22 to line 8, character 23
   Type error: unbound type variable: 'b
 ================================================================================
 class (c 'a) val x : 'a end
 class (c 'a) val y : 'a end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 8 to line 2, character 8
+File "test.lem", line 4, character 8 to line 4, character 8
   Type error: duplicate type class definition: c
 ================================================================================
-type c = num
+type c = nat
 class (c 'a) val x : 'a end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 8 to line 2, character 8
+File "test.lem", line 4, character 8 to line 4, character 8
   Type error: type class already defined as a type constructor: c
 ================================================================================
 class (c 'a) val x : 'a end
 class (d 'a) val x : 'a end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 18 to line 2, character 18
+File "test.lem", line 4, character 18 to line 4, character 18
   Type error: duplicate class method definition: x
 ================================================================================
 class (c 'a) val x : 'a val x : 'a end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 29 to line 1, character 29
+File "test.lem", line 3, character 29 to line 3, character 29
   Type error: duplicate class method definition: x
 ================================================================================
 let x = 1
 class (c 'a) val x : 'a end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 18 to line 2, character 18
+File "test.lem", line 4, character 18 to line 4, character 18
   Type error: class method already defined as a top-level variable binding: x
 ================================================================================
-val x : num
+val x : nat
 class (c 'a) val x : 'a end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 18 to line 2, character 18
+File "test.lem", line 4, character 18 to line 4, character 18
   Type error: class method already defined as a top-level variable binding: x
 ================================================================================
 type t = | x
 class (c 'a) val x : 'a end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 18 to line 2, character 18
+File "test.lem", line 4, character 18 to line 4, character 18
   Type error: class method already defined as a constructor: x
 ================================================================================
 class (c 'a) val x : _ end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 22 to line 1, character 22
+File "test.lem", line 3, character 22 to line 3, character 22
   Type error: anonymous types not permitted here: _
 ================================================================================
 
@@ -1041,142 +1017,137 @@ File "test.lem", line 1, character 22 to line 1, character 22
 (* ------------------------------------------------------------------------- *)
 
 class (c 'a) val y : 'a end
-instance (c num) let x = 1 end
+instance (c nat) let x = 1 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 7, character 22 to line 7, character 22
+File "test.lem", line 9, character 22 to line 9, character 22
   Type error: instance method not bound to class method: x
 ================================================================================
 class (c 'a) val x : 'a end
 module M = struct let x = 10 end
 open M
-instance (c num) let x = 10 end
+instance (c nat) let x = 10 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 4, character 22 to line 4, character 22
+File "test.lem", line 6, character 22 to line 6, character 22
   Type error: instance method not bound to class method: x
 ================================================================================
-class (d 'a) val x : num end
-instance (c num) let x = 1 end
+class (d 'a) val x : nat end
+instance (c nat) let x = 1 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 11 to line 2, character 11
+File "test.lem", line 4, character 11 to line 4, character 11
   Type error: unbound type class: c
 ================================================================================
 class (c 'a) val x : 'a val y : 'a end
-instance (c num) let x = 1 end
+instance (c nat) let x = 1 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 1 to line 2, character 30
+File "test.lem", line 4, character 1 to line 4, character 30
   Type error: missing class method: y
 ================================================================================
-(* TODO: This should fail
-
 class (c 'a) val x : 'a end
 class (d 'a) val y : 'a end
-instance (c num) let x = 1 let y = 2 end
-*)
+instance (c nat) let x = 1 let y = 2 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 8, character 0:
-  Syntax error
+File "test.lem", line 5, character 32 to line 5, character 32
+  Type error: unknown class method: y
 ================================================================================
 class (c 'a) val x : 'a end
 type t 'a = list 'a
-instance (c t num) let x = [] end
+instance (c t nat) let x = [] end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 3, character 13 to line 3, character 13
+File "test.lem", line 5, character 13 to line 5, character 13
   Type error: type abbreviation in class instance type: t
 ================================================================================
 class (c 'a) val x : 'a end
-instance (c list num) let x = [] end
+instance (c list nat) let x = [] end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 13 to line 2, character 20
+File "test.lem", line 4, character 13 to line 4, character 20
   Type error: class instance type must be a type constructor applied to type variables: 
-list num
+list nat
 ================================================================================
 class (c 'a) val x : 'a end
-instance (c (num*num)) let x = (1,1) end
+instance (c (nat*nat)) let x = (1,1) end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 14 to line 2, character 20
+File "test.lem", line 4, character 14 to line 4, character 20
   Type error: class instance type must be a type constructor applied to type variables: 
-(num * num)
+(nat * nat)
 ================================================================================
 class (c 'a) val x : 'a end
 instance forall 'a. c 'a => (c ('a*'a)) let x = (x,x) end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 33 to line 2, character 34
+File "test.lem", line 4, character 33 to line 4, character 34
   Type error: duplicate type variable: 'a
 ================================================================================
-class (c 'a) val x : num end
+class (c 'a) val x : nat end
 instance (c 'a) let x = 1 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 13 to line 2, character 14
+File "test.lem", line 4, character 13 to line 4, character 14
   Type error: unbound type variable: 'a
 ================================================================================
-class (c 'a) val x : num end
+class (c 'a) val x : nat end
 instance forall 'a. c 'b => (c 'a) let x = 1 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 23 to line 2, character 24
+File "test.lem", line 4, character 23 to line 4, character 24
   Type error: unbound type variable: 'b
 ================================================================================
-class (c 'a) val x : num end
+class (c 'a) val x : nat end
 instance forall 'a. d 'd => (c 'a) let x = 1 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 21 to line 2, character 21
+File "test.lem", line 4, character 21 to line 4, character 21
   Type error: unbound type class: d
 ================================================================================
-class (c 'a) val x : num end
+class (c 'a) val x : nat end
 instance forall 'a 'b. (c 'a) let x = 1 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 1 to line 2, character 43
+File "test.lem", line 4, character 1 to line 4, character 43
   Type error: instance type does not use all type variables: {'b}
 ================================================================================
 class (c 'a) val x : 'a end
-instance (c num) let x = 1 let x = 1 end
+instance (c nat) let x = 1 let x = 1 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 32 to line 2, character 32
+File "test.lem", line 4, character 32 to line 4, character 32
   Type error: duplicate definition in an instance: x
 ================================================================================
-class (d 'a) val x : num end
-type c = num
-instance (c num) let x = 10 end
+class (d 'a) val x : nat end
+type c = nat
+instance (c nat) let x = 10 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 3, character 11 to line 3, character 11
+File "test.lem", line 5, character 11 to line 5, character 11
   Type error: type constructor used as type class: c
 ================================================================================
-class (c 'a) val x : num end
-instance (c num) let {hol} x = 10 end
+class (c 'a) val x : nat end
+instance (c nat) let {hol} x = 10 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 18 to line 2, character 33
+File "test.lem", line 4, character 18 to line 4, character 33
   Type error: instance method must not be target specific
 ================================================================================
-class (c 'a) val x : num end
+class (c 'a) val x : nat end
 instance forall 'a 'a. (c 'a) let x = 10 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 17 to line 2, character 18
+File "test.lem", line 4, character 17 to line 4, character 18
   Type error: duplicate type variable: 'a
 ================================================================================
-(* TODO : should have type error
 class (c 'a) val x : 'a end
 instance forall 'a. c 'a => (c 'a list) let x = x end
 instance forall 'b. c 'b => (c 'b list) let x = x end
-*)
 
 --------------------------------------------------------------------------------
-File "test.lem", line 7, character 0:
+File "test.lem", line 4, character 34:
   Syntax error
 ================================================================================
 
@@ -1188,9 +1159,9 @@ class (c 'a) val x : 'a end
 let _ = x::[4]
 
 --------------------------------------------------------------------------------
-File "test.lem", line 7, character 1 to line 7, character 14
+File "test.lem", line 9, character 1 to line 9, character 14
   Type error: unsatisfied type class constraint:
-    (Test.c num)
+    (Test.c nat)
 ================================================================================
 (* TODO: error message should include (test.c 'a list) *)
 class (c 'a) val x : 'a end
@@ -1198,41 +1169,14 @@ class (d 'a) val y : 'a val z : list 'a end
 instance forall 'a. (d 'a) let y = x let z = x end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 4, character 28 to line 4, character 46
+File "test.lem", line 6, character 28 to line 6, character 46
   Type error: unsatisfied type class constraint:
     (Test.c 'a)
 ================================================================================
 class (c 'a) val x : 'a end
-val f : num -> num
-let inline {hol} f y = x
-
---------------------------------------------------------------------------------
-File "test.lem", line 3, character 1 to line 3, character 24
-  Type error: unsatisfied type class constraint:
-    (Test.c num)
-================================================================================
-class (c 'a) val x : 'a end
-val f : forall 'b. 'b -> 'b
-let inline {hol} f y = x
-
---------------------------------------------------------------------------------
-File "test.lem", line 3, character 1 to line 3, character 24
-  Type error: unsatisfied type class constraint:
-    (Test.c 'b)
-================================================================================
-class (c 'a) val x : 'a end
-val f : forall 'b. c 'b => 'b -> 'b
-let inline {hol} f y = x
-
---------------------------------------------------------------------------------
-File "test.lem", line 3, character 1 to line 3, character 24
-  Type error: inlined functions with class contraints:
-    (Test.c 'b)
-================================================================================
-class (c 'a) val x : 'a end
 class (d 'a) val y : 'a end
 instance forall 'a 'b. c 'a , d 'b => (c ('a*'b)) let x = (x, y) end
-val a : num
+val a : nat
 let a = match x with (a,b) -> 1 end
 
 --------------------------------------------------------------------------------
@@ -1245,7 +1189,7 @@ File "test.lem", line 5, character 1 to line 5, character 35
 class (c 'a) val x : 'a end
 class (d 'a) val y : 'a end
 instance forall 'a 'b. c 'a, d 'b => (c ('a*'b)) let x = (x, y) end
-val a : forall 'a. 'a -> num
+val a : forall 'a. 'a -> nat
 let inline {hol} a y = match x with (a,b) -> 1 end
 
 --------------------------------------------------------------------------------
@@ -1263,47 +1207,47 @@ File "test.lem", line 5, character 1 to line 5, character 50
 let f (1 : bool) = 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 6, character 7 to line 6, character 16
+File "test.lem", line 8, character 7 to line 8, character 16
   Type error: type mismatch: type-annotated pattern
 bool
 and
-num
+nat
 ================================================================================
 type x = | X of bool
 let f (X 1) = 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 8 to line 2, character 8
+File "test.lem", line 4, character 8 to line 4, character 8
   Type error: type mismatch: constructor pattern
 bool
 and
-num
+nat
 ================================================================================
 type t = <| fld : bool |>
 let f <| fld = 1 |> = 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 10 to line 2, character 16
+File "test.lem", line 4, character 10 to line 4, character 16
   Type error: type mismatch: field pattern
 bool
 and
-num
+nat
 ================================================================================
 let f [1;true] = 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 7 to line 1, character 14
+File "test.lem", line 3, character 7 to line 3, character 14
   Type error: type mismatch: list pattern
-num
+nat
 and
 bool
 ================================================================================
 let f (1::[true]) = 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 8 to line 1, character 16
+File "test.lem", line 3, character 8 to line 3, character 16
   Type error: type mismatch: :: pattern
-num
+nat
 and
 bool
 ================================================================================
@@ -1311,28 +1255,28 @@ let x = true
 let _ = x + 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 9 to line 2, character 13
+File "test.lem", line 4, character 9 to line 4, character 13
   Type error: type mismatch: infix expression
-bool
+nat
 and
-num
+bool
 ================================================================================
 let f (x : bool) = x + 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 20 to line 1, character 24
+File "test.lem", line 3, character 20 to line 3, character 24
   Type error: type mismatch: infix expression
-bool
+nat
 and
-num
+bool
 ================================================================================
 type t = | X
 let _ = X 1 
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 9 to line 2, character 11
+File "test.lem", line 4, character 9 to line 4, character 11
   Type error: type mismatch: application expression
-(num) -> _
+(nat) -> _
 and
 Test.t
 ================================================================================
@@ -1340,9 +1284,9 @@ type t = | X of bool
 let _ = X 1 
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 9 to line 2, character 11
+File "test.lem", line 4, character 9 to line 4, character 11
   Type error: type mismatch: application expression
-num
+nat
 and
 bool
 ================================================================================
@@ -1350,121 +1294,121 @@ type t = | X of bool
 let _ = X true 1 
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 9 to line 2, character 16
+File "test.lem", line 4, character 9 to line 4, character 16
   Type error: type mismatch: application expression
-(num) -> _
+(nat) -> _
 and
 Test.t
 ================================================================================
 let _ = fun (x : bool) -> x + 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 27 to line 1, character 31
+File "test.lem", line 3, character 27 to line 3, character 31
   Type error: type mismatch: infix expression
-bool
+nat
 and
-num
+bool
 ================================================================================
 type x = | X of bool
 let _ = fun (X x) -> x + 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 22 to line 2, character 26
+File "test.lem", line 4, character 22 to line 4, character 26
   Type error: type mismatch: infix expression
-bool
+nat
 and
-num
+bool
 ================================================================================
 type x = <| fld : bool |>
 let _ = fun <| fld = x |> -> x + 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 30 to line 2, character 34
+File "test.lem", line 4, character 30 to line 4, character 34
   Type error: type mismatch: infix expression
-bool
+nat
 and
-num
+bool
 ================================================================================
 let _ = function | true -> 1 | 1 -> 1 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 9 to line 1, character 41
+File "test.lem", line 3, character 9 to line 3, character 41
   Type error: type mismatch: function expression
 bool
 and
-num
+nat
 ================================================================================
 let _ = function | _ -> 1 | _ -> true end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 9 to line 1, character 41
+File "test.lem", line 3, character 9 to line 3, character 41
   Type error: type mismatch: function expression
-num
+nat
 and
 bool
 ================================================================================
 let _ = 1 2
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 9 to line 1, character 11
+File "test.lem", line 3, character 9 to line 3, character 11
   Type error: type mismatch: application expression
-(num) -> _
+(nat) -> _
 and
-num
+nat
 ================================================================================
 let _ = (fun 1 -> 1) true
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 9 to line 1, character 25
+File "test.lem", line 3, character 9 to line 3, character 25
   Type error: type mismatch: application expression
 bool
 and
-num
+nat
 ================================================================================
 let _ = (function | 1 -> 1 end) true
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 9 to line 1, character 36
+File "test.lem", line 3, character 9 to line 3, character 36
   Type error: type mismatch: application expression
 bool
 and
-num
+nat
 ================================================================================
 let _ = (fun x -> x) 1 2
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 9 to line 1, character 24
+File "test.lem", line 3, character 9 to line 3, character 24
   Type error: type mismatch: application expression
-(num) -> _
+(nat) -> _
 and
-num
+nat
 ================================================================================
 let _ = true + 1
 
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 9 to line 1, character 16
+File "test.lem", line 3, character 9 to line 3, character 16
   Type error: type mismatch: infix expression
-bool
+nat
 and
-num
+bool
 ================================================================================
 type t5 [name = "nv*"] = NV of bool | NVC of int
 let test17 = fun (x : t5) -> x
 
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 19 to line 2, character 19
+File "test.lem", line 4, character 19 to line 4, character 19
   Type error: variables with type Test.t5 are restricted to names matching the regular expression nv*: x
 ================================================================================
 type t5 [nme = "nv*"] = NV of bool | NVC of int
 
 --------------------------------------------------------------------------------
-File "test.lem", line 1, character 10 to line 1, character 12
+File "test.lem", line 3, character 10 to line 3, character 12
   Type error: Type name restrictions must begin with 'name': nme
 ================================================================================
 type t5 = NV of bool | NVC of int
 type t6 [name = "nv*"] = t5
 --------------------------------------------------------------------------------
-File "test.lem", line 2, character 6 to line 2, character 7
+File "test.lem", line 4, character 6 to line 4, character 7
   Type error: Type abbreviations may not restrict identifier names: t6
 ================================================================================

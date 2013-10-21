@@ -54,12 +54,14 @@ end
 val empty : forall 'a. Ord 'a => set 'a 
 val emptyBy : forall 'a. ('a -> 'a -> ordering) -> set 'a 
 
+
+declare ocaml    target_rep function emptyBy = `Pset.empty`
 let inline {ocaml} empty = emptyBy compare
+
 declare coq      target_rep function empty   = `set_empty`
 declare hol      target_rep function empty   = `EMPTY`
 declare isabelle target_rep function empty   = `empty`
 
-declare ocaml    target_rep function emptyBy = `Pset.empty`
 
 
 (* ----------------------- *)
@@ -203,7 +205,7 @@ val isSubsetOf : forall 'a. Ord 'a, Eq 'a => set 'a -> set 'a -> bool
 let inline {coq} isSubsetOf s1 s2 = isSubsetOfBy (=) s1 s2
 
 val isProperSubsetOf : forall 'a. Ord 'a, Eq 'a => set 'a -> set 'a -> bool
-let inline {coq} isProperSubsetOf s1 s2 = isProperSubsetOfBy (=) s1 s2
+let inline isProperSubsetOf s1 s2 = isProperSubsetOfBy (=) s1 s2
 
 declare ocaml    target_rep function isSubsetOf = infix `subset`
 declare hol      target_rep function isSubsetOf = infix `SUBSET`
@@ -305,8 +307,9 @@ let map f s = { f e | forall (e IN s) | true }
 
 val mapBy : forall 'a 'b. ('b -> 'b -> ordering) -> ('a -> 'b) -> set 'a -> set 'b 
 
-let inline {ocaml} map = mapBy compare
 declare ocaml    target_rep function mapBy = `Pset.map` 
+
+let inline {ocaml} map = mapBy compare
 declare hol      target_rep function map = `IMAGE`
 declare isabelle target_rep function map = `Set.image`
 
@@ -332,8 +335,8 @@ let inline findMax = findMinBy (>=) (=)
 val fromList : forall 'a.  Ord 'a => list 'a -> set 'a (* before from_list *)
 val fromListBy : forall 'a.  ('a -> 'a -> ordering) ->  list 'a -> set 'a 
 
-let inline {ocaml} fromList = fromListBy compare
 declare ocaml    target_rep function fromListBy = `Pset.from_list` 
+let inline {ocaml} fromList = fromListBy compare
 declare hol      target_rep function fromList = `LIST_TO_SET`
 declare isabelle target_rep function fromList = `List.set`
 declare coq      target_rep function fromList = `set_from_list`

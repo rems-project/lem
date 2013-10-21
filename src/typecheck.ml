@@ -2316,8 +2316,8 @@ let lb_to_inline l ctxt' target_set_opt lb =
     let new_tr = CR_inline (l, all_targets, args, et) in
     let d = c_env_lookup l ctxt'.ctxt_c_env n_ref in
     let ts = Util.option_default Target.all_targets target_set_opt in
-    let tr = Targetset.fold (fun t r -> Targetmap.insert r (t,new_tr)) ts d.target_rep in
-    let ctxt'' = {ctxt' with ctxt_c_env = c_env_update ctxt'.ctxt_c_env n_ref {d with target_rep = tr}} in
+
+    let ctxt'' = Targetset.fold (fun t ctxt -> fst (ctxt_c_env_set_target_rep l ctxt n_ref t new_tr)) ts ctxt' in
     (ctxt'', args)
 
 
@@ -2357,11 +2357,6 @@ let check_val_def (ts : Targetset.t) (mod_path : Name.t list) (l : Ast.l)
             (ctxt', e_v, (Fun_def(sk1,FR_rec sk2,target_opt,fauxs)), Tconstraints(tnvs,constraints,lconstraints))
       | Ast.Let_inline (sk1,sk2,_,lb) -> 
           let (lb,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_letbind None true target_set_opt l lb in 
-(* Thomas Tuerk, 8. Oct 2013,
-   I think we want to allow inlines with constraints. Not completely sure though. Therefore, 
-   I only comment it out for now. TODO: check carefully and delete 
-
-          let _ = check_class_constraints_err "inlined functions with class contraints" l constraints in *)
           let ctxt' = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) constraints lconstraints K_let target_set_opt e_v in
           let (nls, n_ref, _, _, _, sk3, et) = letbind_to_funcl_aux_dest ctxt' lb in
           let (ctxt'', args) = lb_to_inline l ctxt' target_set_opt lb in
@@ -2551,17 +2546,7 @@ let check_declare_target_rep_term_rhs (l : Ast.l) ts targ (ctxt : defn_ctxt) c i
        (Target_rep_rhs_infix (sk1, infix_decl, sk2, i), CR_infix(l, false, infix_decl, i))
    | Ast.Target_rep_rhs_special (sk1, sk2, sp, args) ->
        raise (Reporting_basic.err_todo true l "unsupported rhs of term target special representation declaration") in
-  let (ctxt', old_rep_opt) = ctxt_c_env_set_target_rep l ctxt c targ new_rep in
-  let _ =  match old_rep_opt with
-      | None -> (* no representation present before, so OK *) ()
-      | Some old_rep -> if const_target_rep_allow_override old_rep then () else begin
-          let loc_s = Reporting_basic.loc_to_string true (const_target_rep_to_loc old_rep) in
-          let msg = Format.sprintf 
-                      "a %s target representation for '%s' has already been given at\n    %s" 
-                      (Target.non_ident_target_to_string targ) (Ident.to_string id) loc_s in
-          raise (Reporting_basic.err_type l msg)
-        end
-  in
+  let (ctxt', _) = ctxt_c_env_set_target_rep l ctxt c targ new_rep in
   (ctxt', rhs)
 
 

@@ -16,9 +16,10 @@ let get_tests () =
 
 let do_test o test =
   let o' = open_out "test.lem" in
+    output_string o' "open import Pervasives_non_pure\n\n";
     output_string o' test;
     close_out o';
-    let (std, inp, err) = open_process_full "../../lem -hol -ocaml -lib ../../library test.lem" [||] in
+    let (std, inp, err) = open_process_full "../../lem -hol -ocaml -lib ../../library-new test.lem" [||] in
     let msg = read_in std in
     let msg_err = read_in err in
     let stat = close_process_full (std, inp, err) in

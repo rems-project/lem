@@ -108,13 +108,23 @@ let add_instance_to_ctxt (ctxt : defn_ctxt) (i : instance)  : (defn_ctxt * insta
 
 let ctxt_c_env_set_target_rep l (ctxt : defn_ctxt) (c : const_descr_ref) (targ : Target.non_ident_target) rep = begin
   let c_descr = c_env_lookup l ctxt.ctxt_c_env c in
-  let old_rep = Target.Targetmap.apply c_descr.target_rep targ in
-  
+
+  let old_rep_opt = Target.Targetmap.apply c_descr.target_rep targ in
+  let _ =  match  old_rep_opt with
+      | None -> (* no representation present before, so OK *) ()
+      | Some old_rep -> if Typed_ast_syntax.const_target_rep_allow_override old_rep then () else begin
+          let loc_s = Reporting_basic.loc_to_string true (Typed_ast_syntax.const_target_rep_to_loc old_rep) in
+          let msg = Format.sprintf 
+                      "a %s target representation for '%s' has already been given at\n    %s" 
+                      (Target.non_ident_target_to_string targ) (Path.to_string c_descr.const_binding) loc_s in
+          raise (Reporting_basic.err_type l msg)
+        end
+  in 
   let c_descr' = {c_descr with target_rep = Target.Targetmap.insert c_descr.target_rep (targ, rep);
                                const_targets = Target.Targetset.add targ c_descr.const_targets} in
   let ctxt' = {ctxt with ctxt_c_env = c_env_update ctxt.ctxt_c_env c c_descr'} in
 
-  (ctxt', old_rep)
+  (ctxt', old_rep_opt)
 end
 
 let ctxt_all_tdefs_set_target_rep l (ctxt : defn_ctxt) (p : Path.t) (targ : Target.non_ident_target) rep = begin

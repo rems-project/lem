@@ -361,13 +361,14 @@ val transitiveClosure : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> rel 'a 'a
 val transitiveClosureByEq  : forall 'a. ('a -> 'a -> bool) -> rel 'a 'a -> rel 'a 'a
 val transitiveClosureByCmp : forall 'a. ('a -> 'a -> ordering) -> rel 'a 'a -> rel 'a 'a
 
-let inline {coq} transitiveClosure = transitiveClosureByEq (=)
-let inline {ocaml} transitiveClosure = transitiveClosureByCmp compare
-
 declare ocaml    target_rep function transitiveClosureByCmp = `Pset.tc`
 declare hol      target_rep function transitiveClosure = `tc`
 declare isabelle target_rep function transitiveClosure = `trancl`
 declare coq      target_rep function transitiveClosureByEq = `set_tc`
+
+let inline {coq} transitiveClosure = transitiveClosureByEq (=)
+let inline {ocaml} transitiveClosure = transitiveClosureByCmp compare
+
 
 lemma transitiveClosure_spec1: (forall r. isSubrel r (transitiveClosure r))
 lemma transitiveClosure_spec2: (forall r. isTransitive (transitiveClosure r))
