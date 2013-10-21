@@ -3109,7 +3109,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let tmp_all_inst = 
             List.fold_left 
               (fun instances (p, tv) -> 
-                 i_env_add instances (mk_temp_instance p tv))
+                 fst (i_env_add instances (mk_temp_instance p tv)))
               ctxt.all_instances
               sem_cs in
           let ctxt_inst0 = { ctxt with new_defs = empty_local_env; all_instances = tmp_all_inst } in
@@ -3221,8 +3221,9 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
 	      inst_methods = inst_methods;
 	      inst_dict = dict_ref;
      	  } in
-            (add_instance_to_ctxt ctxt inst,
-             Some (Instance(sk1,(src_cs,sk2,Ident.from_id id, p, src_t, sk3), List.rev vdefs, sk4)))
+          let (ctxt', i_ref) = add_instance_to_ctxt ctxt inst in
+            (ctxt',
+             Some (Instance(sk1,i_ref,(src_cs,sk2,Ident.from_id id, p, src_t, sk3), List.rev vdefs, sk4)))
 
 
 and check_defs_internal (backend_targets : Targetset.t) (mod_path : Name.t list)
@@ -3250,7 +3251,7 @@ let check_defs backend_targets mod_name (env : env) (Ast.Defs(defs), end_lex_ski
   let ctxt = { all_tdefs = env.t_env;
                new_tdefs = [];  
                all_instances = env.i_env;
-               new_instances = Types.empty_i_env;
+               new_instances = [];
                cur_env = env.local_env;
                new_defs = empty_local_env;
                export_env = empty_local_env;

@@ -11,17 +11,14 @@ type defn_ctxt = {
   (* The global e_env (module environment) *)
   ctxt_e_env : Typed_ast.mod_descr Types.Pfmap.t;
 
-  (* The target-reps of current top-level module. *)
-  ctxt_mod_target_rep: Typed_ast.mod_target_rep Target.Targetmap.t;
-
-  (* All types defined in this sequence of definitions *)
-  new_tdefs : Path.t list;
-
   (* All class instances ever seen *)
   all_instances : Types.i_env;
 
-  (* All class instances defined in this sequence of definitions *)
-  new_instances : Types.i_env;
+  (* The names of all assertions / lemmata defined. Used only to avoid using names multiple times. *)
+  lemmata_labels : Typed_ast.NameSet.t; 
+
+  (* The target-reps of current top-level module. *)
+  ctxt_mod_target_rep: Typed_ast.mod_target_rep Target.Targetmap.t;
 
   (* The current value/function/module/field/type_name environment *)
   cur_env : Typed_ast.local_env;
@@ -33,9 +30,13 @@ type defn_ctxt = {
   (* The value/function/module/field/type_name environment to export *)
   export_env : Typed_ast.local_env;
 
-  (* The names of all assertions / lemmata defined. Used only to avoid using names multiple times. *)
-  lemmata_labels : Typed_ast.NameSet.t; 
+  (* All types defined in this sequence of definitions *)
+  new_tdefs : Path.t list;
+
+  (* All class instances defined in this sequence of definitions *)
+  new_instances : Types.instance_ref list;
 }
+
 (** The distinction between [cur_env], [new_defs] and [export_env] is interesting.
     [cur_env] contains the local environment as seen by a function inside the module.
     [new_defs] in contrast contains only the definitions made inside the module. It is
@@ -51,7 +52,7 @@ val union_v_ctxt  : defn_ctxt -> Typed_ast.const_descr_ref Typed_ast.Nfmap.t -> 
 
 val add_m_to_ctxt : Ast.l -> defn_ctxt -> Name.t -> Typed_ast.mod_descr -> defn_ctxt
 val add_m_alias_to_ctxt : Ast.l -> defn_ctxt -> Name.t -> Path.t -> defn_ctxt
-val add_instance_to_ctxt : defn_ctxt -> Types.instance -> defn_ctxt
+val add_instance_to_ctxt : defn_ctxt -> Types.instance -> defn_ctxt * Types.instance_ref
 val add_lemma_to_ctxt : defn_ctxt -> Name.t -> defn_ctxt
 
 (** A definition context contains amoung other things an environment split up over several fields.

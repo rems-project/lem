@@ -209,13 +209,9 @@ let class_to_record mod_path env ((d,s),l,lenv) =
 let instance_to_module mod_path (env : env) ((d,s),l,lenv) =
   let l_unk n = Ast.Trans(true, "instance_to_module" ^ string_of_int n , Some l) in
   match d with
-      | Instance(sk1, (prefix, sk2, id, class_path, t, sk3), vdefs, sk4) ->
+      | Instance(sk1, i_ref, (prefix, sk2, id, class_path, t, sk3), vdefs, sk4) ->
           (* lookup instance and class description *)
-          let id_opt = get_matching_instance env.t_env (class_path, t.typ) env.i_env in 
-          let id = match id_opt with
-                     | Some (id, subst) -> id
-                     | None -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal (l, "instance has not been added properly to the environment during typechecking.")))
-          in      
+          let id = i_env_lookup (l_unk 10) env.i_env i_ref in
           let cd = lookup_class_descr (l_unk 0) env id.inst_class in
 
           let (inst_path, inst_name) = Path.to_name_list id.inst_binding in

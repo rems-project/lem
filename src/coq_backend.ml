@@ -646,7 +646,7 @@ let generate_coq_record_update_notation e =
           ; ws skips''; body
           ; from_string "\n}."; ws skips'''
           ]
-      | Instance (skips, inst, vals, skips') ->
+      | Instance (skips, i_ref, inst, vals, skips') ->
         let l_unk = Ast.Unknown in
           let prefix =
             match inst with

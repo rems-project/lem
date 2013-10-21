@@ -2480,7 +2480,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
           | Some(cp) -> constraint_prefix cp
       end ^
       typ t
-  | Instance(s1,(cp,s2,id,class_path,t,s3),methods,s4) ->
+  | Instance(s1,i_ref,(cp,s2,id,class_path,t,s3),methods,s4) ->
       ws s1 ^
       kwd "instance" ^
       begin

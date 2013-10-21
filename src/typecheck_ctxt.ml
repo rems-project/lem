@@ -5,14 +5,17 @@ type defn_ctxt = {
   all_tdefs : type_defs; 
   ctxt_c_env : c_env;
   ctxt_e_env : mod_descr Pfmap.t;
-  ctxt_mod_target_rep: Typed_ast.mod_target_rep Target.Targetmap.t;
-  new_tdefs : Path.t list;
   all_instances : i_env;
-  new_instances : i_env;
+
+  lemmata_labels : NameSet.t; 
+  ctxt_mod_target_rep: Typed_ast.mod_target_rep Target.Targetmap.t;
+
   cur_env : local_env;
   new_defs : local_env;
   export_env : local_env;
-  lemmata_labels : NameSet.t; 
+
+  new_tdefs : Path.t list;
+  new_instances : instance_ref list;
 }
 
 
@@ -97,10 +100,11 @@ let add_lemma_to_ctxt (ctxt : defn_ctxt) (n : Name.t)
   { ctxt with lemmata_labels = NameSet.add n ctxt.lemmata_labels; }
 
 (* Add a new instance the the new instances and the global instances *)
-let add_instance_to_ctxt (ctxt : defn_ctxt) (i : instance) 
-      : defn_ctxt =
-  { ctxt with all_instances = i_env_add ctxt.all_instances i;
-              new_instances = i_env_add ctxt.new_instances i; }
+let add_instance_to_ctxt (ctxt : defn_ctxt) (i : instance)  : (defn_ctxt * instance_ref) =
+  let (all_instances', new_ref) = i_env_add ctxt.all_instances i in
+  let ctxt' = { ctxt with all_instances = all_instances';
+                          new_instances = new_ref::ctxt.new_instances; } in
+  (ctxt', new_ref)
 
 let ctxt_c_env_set_target_rep l (ctxt : defn_ctxt) (c : const_descr_ref) (targ : Target.non_ident_target) rep = begin
   let c_descr = c_env_lookup l ctxt.ctxt_c_env c in
@@ -130,7 +134,7 @@ let ctxt_begin_submodule ctxt =
     { ctxt with new_defs = empty_local_env;
                 export_env = empty_local_env;
                 new_tdefs = [];
-                new_instances = Types.empty_i_env;
+                new_instances = [];
                 ctxt_mod_target_rep = Target.Targetmap.empty} 
 
 

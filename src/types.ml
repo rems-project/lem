@@ -802,8 +802,10 @@ let pp_instance ppf inst =
     pp_type inst.inst_type 
     Path.pp inst.inst_binding
 
-let pp_instance_defs ppf ipf =
+(*
+let pp_instance_defs ppf ((ipf, _, _):i_env) =
   Pfmap.pp_map Path.pp (lst ",@," pp_instance) ppf ipf
+*)
 
 let t_to_string t =
   pp_to_string (fun ppf -> pp_type ppf t)
@@ -913,15 +915,39 @@ let do_type_match t_pat t =
     | _ -> assert false
 
 
-type i_env = (instance list) Pfmap.t 
-let empty_i_env = Pfmap.empty
+type instance_ref = int
+module Instmap = Finite_map.Fmap_map(
+struct 
+  type t = instance_ref
+  let compare = Pervasives.compare
+end)
 
-let i_env_add (m : i_env) (i : instance)  : i_env =
-  let other_insts =  match Pfmap.apply m i.inst_class with
+let string_of_instance_ref = string_of_int
+
+
+type i_env = (instance_ref list) Pfmap.t * (instance Instmap.t) * instance_ref
+              
+let empty_i_env = (Pfmap.empty, Instmap.empty, 0)
+
+let i_env_add ((class_map, inst_map, max_inst_ref) : i_env) (i : instance) =
+  let new_inst_ref = max_inst_ref + 1 in
+  let inst_map' = Instmap.insert inst_map (new_inst_ref, i) in
+
+  let other_class_insts =  match Pfmap.apply class_map i.inst_class with
     | None -> []
     | Some(l) -> l
   in
-  Pfmap.insert m (i.inst_class,i::other_insts)
+  let class_map' = Pfmap.insert class_map (i.inst_class,new_inst_ref::other_class_insts) in
+  ((class_map', inst_map', new_inst_ref), new_inst_ref)
+
+
+let i_env_lookup l i_env i_ref = 
+  let (_, i_map, _) = i_env in
+  match Instmap.apply i_map i_ref with
+    | None -> 
+        let m = Format.sprintf "instance reference %s not present in environment" (string_of_instance_ref i_ref) in
+        raise (Reporting_basic.err_type l m)
+    | Some(i) -> i
 
 
 (*
@@ -940,8 +966,10 @@ let rec get_matching_instance_aux (t_env : type_defs) (i_env : i_env) (remaining
 
 exception Unsolveable_matching_instance_contraint;;
 
-let get_matching_instance d (p,t) (instances : (instance list) Pfmap.t) : (instance * t TNfmap.t) option = 
+let get_matching_instance d (p,t) (instances : i_env) : (instance * t TNfmap.t) option = 
 begin
+  let l_unk = Ast.Trans (false, "get_matching_instance", None) in
+
   (* ignore variable bindings, since they can never be satisfied. *)
   let ignore_type_for_search (t : t) = match t.t with
     | Tvar _ -> true
@@ -962,9 +990,11 @@ begin
           | Some(i,subst) -> try_solve ((get_new_constraints i subst) @ constraints)
   and get_matching_aux (p,(t:t))  = begin
     let t = head_norm d t in 
-    match Pfmap.apply instances p with
+    let (class_map, _, _) = instances in
+    match Pfmap.apply class_map p with
       | None -> None
-      | Some(possibilities) -> begin
+      | Some(possibilitie_refs) -> begin
+          let possibilities = List.map (i_env_lookup l_unk instances) possibilitie_refs in
           let possibilities' = List.filter (fun i -> types_match i.inst_type t) possibilities in
           Util.option_first (fun i ->
             let subst = do_type_match i.inst_type t in
@@ -1257,7 +1287,7 @@ end
 
 module type Global_defs = sig
   val d : type_defs 
-  val i : (instance list) Pfmap.t 
+  val i : i_env 
 end 
 
 module Constraint (T : Global_defs) : Constraint = struct

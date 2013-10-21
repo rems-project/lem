@@ -1010,7 +1010,7 @@ and add_def_entities (t_opt : Target.target) (only_new : bool) (ue : used_entiti
           ue
         end
       | Class(_,_,n,tvar,_,_,body,_) -> (* TODO: classes broken, needs fixing in typechecking and AST *) ue
-      | Instance(_,_,_,_) -> (* TODO: broken, needs fixing in typechecking and AST *) ue
+      | Instance(_,_,_,_,_) -> (* TODO: broken, needs fixing in typechecking and AST *) ue
       | Declaration(_) -> ue
       | Comment _ -> ue
 

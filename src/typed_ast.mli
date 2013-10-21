@@ -485,7 +485,7 @@ type def_aux =
     (** Inductive relations *)
   | Val_spec of val_spec
   | Class of lskips * lskips * name_l * tnvar * Path.t * lskips * class_val_spec list * lskips
-  | Instance of lskips * instschm * val_def list * lskips
+  | Instance of lskips * Types.instance_ref * instschm * val_def list * lskips
     (** [Instance (sk, instance_scheme, methods, sk2)] *)
   | Comment of def
     (** Does not appear in the source, used to comment out definitions for certain backends *)

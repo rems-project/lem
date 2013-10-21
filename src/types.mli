@@ -119,7 +119,7 @@ val tnvar_split : tnvar list -> (tnvar list * tnvar list)
     can contain a list of constructor descriptions. *)
 type const_descr_ref 
 
-(** [const_descr_ref_to_string] formats a reference in a human readable form.
+(** [string_of_const_descr_ref] formats a reference in a human readable form.
     No other guarentees are given. This function should only be used for debugging 
     and reporting internal errors. Its implementation can change at any point to 
     something completely different and should not be relied on. *)
@@ -314,6 +314,7 @@ type instance = {
   inst_dict : const_descr_ref (** a dictionary for the instance *)
 }
 
+
 (* A type for contraints collected during type checking. TNset contains the variables the term ranges over, the second are remaining class constraints, and the third remaining length constraints *)
 type typ_constraints = Tconstraints of TNset.t * (Path.t * tnvar) list * range list
 
@@ -346,14 +347,28 @@ val assert_equal : Ast.l -> string -> type_defs -> t -> t -> unit
 val compare_expand : type_defs -> t -> t -> int
 
 
+(** A reference to an instance. *)
+type instance_ref 
+
+(** [string_of_instance_ref] formats a reference in a human readable form.
+    No other guarentees are given. This function should only be used for debugging 
+    and reporting internal errors. Its implementation can change at any point to 
+    something completely different and should not be relied on. *)
+val string_of_instance_ref : instance_ref -> string
+
 (** an instance environment carries information about all defined instances *)
 type i_env 
 
 (** an empty instance environment *)
 val empty_i_env : i_env 
 
-(** [i_env_add i_env i] adds an additional instance [i] to the instance environment. *)
-val i_env_add : i_env -> instance -> i_env
+(** [i_env_add i_env i] adds an additional instance [i] to the instance environment.
+    It returns the modified environment as well as the reference of the added instance. *)
+val i_env_add : i_env -> instance -> (i_env * instance_ref)
+
+(** [i_env_lookup l i_env ref] looks up the reference in environment [i_env].
+    If this reference is not present, an exception is raised. *)
+val i_env_lookup : Ast.l -> i_env -> instance_ref -> instance
 
 (** [get_matching_instance type_env (class, ty) i_env] searches for an
     instantiation of type class [class] instantianted with type [ty]
@@ -396,7 +411,10 @@ val pp_nexp : Format.formatter -> nexp -> unit
 val pp_range : Format.formatter -> range -> unit
 val pp_class_constraint : Format.formatter -> Path.t * tnvar -> unit
 val pp_instance : Format.formatter -> instance -> unit
+
+(*
 val pp_instance_defs: Format.formatter -> i_env -> unit
+*)
 
 val t_to_string : t -> string
 
