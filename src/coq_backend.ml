@@ -194,7 +194,9 @@ module CoqBackendAux (A : sig val avoid : var_avoid_f option;; val env : env;; v
       end)
     ;;
 
-let use_ascii_rep_for_const (cd : const_descr_ref id) : bool = Types.Cdset.mem cd.descr A.ascii_rep_set
+let use_ascii_rep_for_const (cd : const_descr_ref) : bool =
+  Types.Cdset.mem cd A.ascii_rep_set
+;;
 
 let rec src_t_to_string =
   function
@@ -586,7 +588,7 @@ let generate_coq_record_update_notation e =
               generate_default_values def;
             ]
       | Val_def (def, tv_set, class_constraints) ->
-          val_def false (snd (Typed_ast_syntax.is_recursive_def m)) def tv_set class_constraints
+          val_def false None (snd (Typed_ast_syntax.is_recursive_def m)) def tv_set class_constraints
       | Module (skips, (name, l), mod_binding, skips', skips'', defs, skips''') ->
         let name = lskips_t_to_output name in
         let body = callback defs in
@@ -636,9 +638,11 @@ let generate_coq_record_update_notation e =
           in
           let body =
             Output.concat (from_string ";") (List.map (fun (skips, (name, l), const_descr_ref, skips', src_t) ->
-              Output.flat [
-                ws skips; Name.to_output Term_var name; from_string ":"; ws skips'; typ src_t
-              ]
+              let name = B.const_ref_to_name name true const_descr_ref in
+              let name = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip name)) in
+                Output.flat [
+                  ws skips; from_string name; from_string ":"; ws skips'; typ src_t
+                ]
             ) body)
           in
           Output.flat [
@@ -714,7 +718,7 @@ let generate_coq_record_update_notation e =
                   ]
           in
           let body =
-            Output.concat (from_string "\n") (List.map (fun d -> val_def true false d Types.TNset.empty []) vals)
+            Output.concat (from_string "\n") (List.map (fun d -> val_def true (Some i_ref) false d Types.TNset.empty []) vals)
           in
             Output.flat [
               ws skips; from_string "Instance"; prefix; from_string ":= {";
@@ -744,7 +748,8 @@ let generate_coq_record_update_notation e =
               ]
           else
             from_string "(* [?]: removed lemma intended for another backend. *)"
-    and val_def inside_instance is_recursive def tv_set class_constraints =
+      | Declaration declare -> from_string "" (* XXX: declarations empty for Coq backend *)
+    and val_def inside_instance i_ref_opt is_recursive def tv_set class_constraints =
       begin
         let constraints =
           let body =
@@ -773,7 +778,7 @@ let generate_coq_record_update_notation e =
           | Let_def (skips, targets, (p, name_map, topt, sk, e)) ->
               if in_target targets then
                 let bind = (Let_val (p, topt, sk, e), Ast.Unknown) in
-                let body = let_body inside_instance true tv_set bind in
+                let body = let_body inside_instance i_ref_opt true tv_set bind in
                 let defn, ending =
                   if inside_instance then
                     from_string "", from_string ""
@@ -805,7 +810,7 @@ let generate_coq_record_update_notation e =
                       ], from_string "."
                 in
                 let funcls = Seplist.to_list funcl_skips_seplist in
-                let bodies = List.map (funcl inside_instance constraints tv_set) funcls in
+                let bodies = List.map (funcl inside_instance i_ref_opt constraints tv_set) funcls in
                 let formed = concat_str "\nwith" bodies in
                   Output.flat [
                     ws skips; header; formed; ending
@@ -917,7 +922,7 @@ let generate_coq_record_update_notation e =
         Output.flat [
           from_string "\nInductive "; concat_str "\nand " indrelns; from_string "."
         ]
-    and let_body inside_instance top_level tv_set ((lb, _):letbind) =
+    and let_body inside_instance i_ref_opt top_level tv_set ((lb, _):letbind) =
       match lb with
         | Let_val (p, topt, skips, e) ->
             let p = def_pattern p in
@@ -945,8 +950,9 @@ let generate_coq_record_update_notation e =
               Output.flat [
                 p; tv_set_sep; tv_set; topt; ws skips; from_string " := "; e
               ]
-        | Let_fun (n, pats, typ_opt, skips, e) -> funcl_aux inside_instance (from_string "") tv_set (n.term, pats, typ_opt, skips, e)
-    and funcl_aux inside_instance constraints tv_set (n, pats, typ_opt, skips, e) =
+        | Let_fun (n, pats, typ_opt, skips, e) ->
+          funcl_aux inside_instance i_ref_opt (from_string "") tv_set (n.term, pats, typ_opt, skips, e)
+    and funcl_aux inside_instance i_ref_opt constraints tv_set (n, pats, typ_opt, skips, e) =
       let name_skips = Name.get_lskip n in
       let name = from_string (Name.to_string (Name.strip_lskip n)) in
       let pat_skips =
@@ -982,9 +988,25 @@ let generate_coq_record_update_notation e =
       in
         Output.flat [
           ws name_skips; name; tv_set_sep; tv_set; constraints_sep; constraints; pat_skips;
-          fun_pattern_list inside_instance pats; typ_opt; ws skips; from_string ":="; exp inside_instance e
+          fun_pattern_list inside_instance pats; typ_opt; ws skips; from_string ":= "; exp inside_instance e
         ]
-    and funcl inside_instance constraints tv_set ({term = n}, c, pats, typ_opt, skips, e) = funcl_aux inside_instance constraints tv_set (B.const_ref_to_name n true c, pats, typ_opt, skips, e)      
+    and funcl inside_instance i_ref_opt constraints tv_set ({term = n}, c, pats, typ_opt, skips, e) =
+      let n =
+        if inside_instance then
+          match i_ref_opt with
+            | None -> B.const_ref_to_name n true c
+            | Some i_ref ->
+              begin
+                let instance = Types.i_env_lookup Ast.Unknown A.env.i_env i_ref in
+                let filtered = List.filter (fun x -> snd x = c) instance.inst_methods in
+                  match filtered with
+                    | x::xs -> B.const_ref_to_name n true (fst x)
+                    | _   -> assert false
+              end
+        else
+          B.const_ref_to_name n true c
+      in
+        funcl_aux inside_instance i_ref_opt constraints tv_set (n, pats, typ_opt, skips, e)
     and let_type_variables top_level tv_set =
       if Types.TNset.is_empty tv_set || not top_level then
         emp
@@ -1020,7 +1042,7 @@ let generate_coq_record_update_notation e =
                 match C.exp_to_term e0 with
                   | Constant cd -> 
                     (* constant, so use special formatting *)
-                    B.function_application_to_output (exp_to_locn e) trans false e cd args (use_ascii_rep_for_const cd)
+                    B.function_application_to_output (exp_to_locn e) trans false e cd args (use_ascii_rep_for_const cd.descr)
                   | _ -> (* no constant, so use standard one *)
                     List.map trans (e0 :: args)
               end in
@@ -1045,12 +1067,12 @@ let generate_coq_record_update_notation e =
                   ws skips; from_string "["; lists; from_string "]"; ws skips'
                 ]
           | Let (skips, bind, skips', e) ->
-              let body = let_body inside_instance false Types.TNset.empty bind in
+              let body = let_body inside_instance None false Types.TNset.empty bind in
                 Output.flat [
                   ws skips; from_string "let"; body; ws skips'; from_string "in "; exp inside_instance e;
                 ]
           | Constant const -> 
-            Output.concat emp (B.function_application_to_output (exp_to_locn e) (exp inside_instance) false e const [] (use_ascii_rep_for_const const))
+            Output.concat emp (B.function_application_to_output (exp_to_locn e) (exp inside_instance) false e const [] (use_ascii_rep_for_const const.descr))
           | Fun (skips, ps, skips', e) ->
               let ps = fun_pattern_list inside_instance ps in
                 block_hov (Typed_ast_syntax.is_pp_exp e) 2 (
@@ -1088,7 +1110,7 @@ let generate_coq_record_update_notation e =
                 ws skips; from_string "{|"; body; ws skips'; from_string "|}"
               ]
           | Field (e, skips, fd) ->
-            let name = field_ident_to_output fd (use_ascii_rep_for_const fd) in
+            let name = field_ident_to_output fd (use_ascii_rep_for_const fd.descr) in
               Output.flat [
                 from_string "("; name; ws skips; exp inside_instance e; from_string ")"
               ]
@@ -1168,7 +1190,7 @@ let generate_coq_record_update_notation e =
             in
               Output.flat [
                 quant; bindings; from_string ","; ws skips;
-                from_string "("; exp inside_instance e; from_string ": Prop)"
+                from_string "("; exp inside_instance e; from_string " : Prop)"
               ]
           | Comp_binding (_, _, _, _, _, _, _, _, _) -> from_string "(* XXX: comp binding *)"
           | Setcomp (_, _, _, _, _, _) -> from_string "(* XXX: setcomp *)"
@@ -1231,7 +1253,7 @@ let generate_coq_record_update_notation e =
           def_pattern p; ws skips; from_string "=>"; break_hint_space 2; exp inside_instance e
         ]
     and field_update inside_instance (fd, skips, e, _) =
-      let name = field_ident_to_output fd (use_ascii_rep_for_const fd) in
+      let name = field_ident_to_output fd (use_ascii_rep_for_const fd.descr) in
         Output.flat [
           name; ws skips; from_string ":="; exp inside_instance e
         ]
@@ -1319,7 +1341,7 @@ let generate_coq_record_update_notation e =
               ws skips; from_string "("; fun_pattern p; ws skips'; from_string ")"
             ]
         | P_const(cd, ps) ->
-            let oL = B.pattern_application_to_output fun_pattern cd ps (use_ascii_rep_for_const cd) in
+            let oL = B.pattern_application_to_output fun_pattern cd ps (use_ascii_rep_for_const cd.descr) in
             concat emp oL
         | P_num_add ((name, l), skips, skips', k) ->
             let succs = Output.flat @@ Util.replicate k (from_string "S (") in
@@ -1378,7 +1400,7 @@ let generate_coq_record_update_notation e =
               from_string "("; ws skips; def_pattern p; ws skips'; from_string ")"
             ]
         | P_const(cd, ps) ->
-            let oL = B.pattern_application_to_output def_pattern cd ps (use_ascii_rep_for_const cd) in
+            let oL = B.pattern_application_to_output def_pattern cd ps (use_ascii_rep_for_const cd.descr) in
             concat emp oL
         | P_num_add ((name, l), skips, skips', k) ->
             let succs = Output.flat @@ Util.replicate k (from_string "S (") in
@@ -1722,7 +1744,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
              struct
                 let avoid = A.avoid;;
                 let env = {A.env with local_env = lenv};;
-		let ascii_rep_set = CdsetE.from_list ue.used_consts
+		            let ascii_rep_set = CdsetE.from_list ue.used_consts
              end) in
           let callback = defs false true in
           match s with
