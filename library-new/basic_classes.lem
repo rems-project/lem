@@ -26,7 +26,6 @@ declare ascii_rep function (/=) = isUnequal
 val (<>) : forall 'a. Eq 'a => 'a -> 'a -> bool
 let (<>) = isUnequal
 
-
 (* (=) should for all instances be an equivalence relation 
    The isEquivalence predicate of relations could be used here.
    However, this would lead to a cyclic dependency. *)
@@ -53,6 +52,13 @@ declare hol      target_rep function unsafe_structural_equality = infix `=`
 declare ocaml    target_rep function unsafe_structural_equality = infix `=`
 declare isabelle target_rep function unsafe_structural_equality = infix `=`
 declare coq      target_rep function unsafe_structural_equality = infix `=`
+
+(* The default for equality is the unsafe structural one. It can 
+   (and should) be overriden for concrete types later. *)
+instance forall 'a. (Eq 'a) 
+  let (=) = unsafe_structural_equality
+end
+
 
 (* ========================================================================== *)
 (* Orderings                                                                  *)

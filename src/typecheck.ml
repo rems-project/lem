@@ -3080,13 +3080,8 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           (* check that there is no instance already *)
           let _ =  match Types.get_matching_instance ctxt.all_tdefs (p, src_t.typ) ctxt.all_instances  with
                      | Some (i, _) -> begin
-                        let class_name =  Pp.pp_to_string (fun ppf -> Path.pp ppf p) in
-                        let type_name = Types.t_to_string src_t.typ in
-                        let loc_org = Reporting_basic.loc_to_string false i.inst_l in
-                        let msg = Format.sprintf 
-                                    "duplicate instance declaration: class '%s' has already been instantated for type '%s' at\n    %s" 
-                                    class_name type_name loc_org in
-                        raise (Reporting_basic.err_type l msg)
+                        let _ = Reporting.report_warning (defn_ctxt_to_env ctxt) (Reporting.Warn_overriden_instance (l, src_t, i)) in
+                        ()
                      end
                      | None -> ()
           in

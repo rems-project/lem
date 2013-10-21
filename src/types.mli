@@ -359,13 +359,14 @@ val i_env_add : i_env -> instance -> i_env
     instantiation of type class [class] instantianted with type [ty]
     in the type invironment [i_env]. The type environment [type_env]
     is necessary to match [ty] against other instantiations of
-    [class].  An instance can itself have free typevariables. If a
+    [class].  An instance can itself have free type variables. If a
     matching instance is found, it is returned to together with the
     substition, which needs to be applied to the free type variables
     of the instance in order to match type [t] excactly.  The
     typevariables of an instances might have attached type
     constraints. It is not (!) checked, that the found substitution
-    satisfies these constraints.
+    satisfies these constraints. However, they are taken into account
+    to rule out impossible instances, if there are multiple options. 
 *)
 val get_matching_instance : type_defs -> (Path.t * t) -> i_env -> (instance * t TNfmap.t) option
 

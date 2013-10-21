@@ -923,17 +923,61 @@ let i_env_add (m : i_env) (i : instance)  : i_env =
   in
   Pfmap.insert m (i.inst_class,i::other_insts)
 
-let rec get_matching_instance d (p,t) (instances : (instance list) Pfmap.t) : (instance * t TNfmap.t) option = 
+
+(*
+let rec get_matching_instance_aux (t_env : type_defs) (i_env : i_env) (remaining_checks : (Path.t * t * instance list) list) : (instance * t TNfmap.t) option = 
   let t = head_norm d t in 
     match Pfmap.apply instances p with
       | None -> None
       | Some(possibilities) ->
-          try
+          let possible_substs
             let i = List.find (fun i -> types_match i.inst_type t) possibilities in
             let subst = do_type_match i.inst_type t in
               Some(i, subst)
           with
               Not_found -> None
+*)
+
+exception Unsolveable_matching_instance_contraint;;
+
+let get_matching_instance d (p,t) (instances : (instance list) Pfmap.t) : (instance * t TNfmap.t) option = 
+begin
+  (* ignore variable bindings, since they can never be satisfied. *)
+  let ignore_type_for_search (t : t) = match t.t with
+    | Tvar _ -> true
+    | _ -> false
+  in
+  let get_new_constraints i subst = 
+     List.map (fun (p, tnv) -> (p, 
+       match TNfmap.apply subst tnv with
+         | Some(t) -> t
+         | None -> raise (Reporting_basic.err_unreachable i.inst_l "get_matching_instance does not provide proper substitution!")))
+       i.inst_constraints
+  in
+  let rec try_solve = function
+    | [] -> ()
+    | (p,t) :: constraints -> if (ignore_type_for_search t) then try_solve constraints else
+        match get_matching_aux (p,t) with
+          | None -> raise Unsolveable_matching_instance_contraint
+          | Some(i,subst) -> try_solve ((get_new_constraints i subst) @ constraints)
+  and get_matching_aux (p,(t:t))  = begin
+    let t = head_norm d t in 
+    match Pfmap.apply instances p with
+      | None -> None
+      | Some(possibilities) -> begin
+          let possibilities' = List.filter (fun i -> types_match i.inst_type t) possibilities in
+          Util.option_first (fun i ->
+            let subst = do_type_match i.inst_type t in
+            let new_cs = get_new_constraints i subst in
+            try
+              let _ = try_solve new_cs in
+              Some(i, subst)
+            with Unsolveable_matching_instance_contraint -> None) 
+          possibilities'
+        end
+  end in
+  get_matching_aux (p, t)
+end
 
 let type_mismatch l m t1 t2 = 
   let t1 = t_to_string t1 in
@@ -1707,12 +1751,12 @@ module Constraint (T : Global_defs) : Constraint = struct
        then ()
        else raise (err_type l ("Constraint " ^ range_to_string c ^ " is required by let definition but not implied by val specification\n"))
 
-  let rec solve_constraints (instances : (instance list) Pfmap.t) (unsolvable : PTset.t) = function
+  let rec solve_constraints (unsolvable : PTset.t) = function
     | [] -> unsolvable 
     | (p,t) :: constraints ->
-        match get_matching_instance T.d (p,t) instances with
+        match get_matching_instance T.d (p,t) T.i with
           | None ->
-              solve_constraints instances (PTset.add (p,t) unsolvable) constraints
+              solve_constraints (PTset.add (p,t) unsolvable) constraints
           | Some(i,subst) ->
                (** apply subst to constraints of instance *)
                let new_cs = List.map (fun (p, tnv) -> (p, 
@@ -1721,7 +1765,7 @@ module Constraint (T : Global_defs) : Constraint = struct
                              | None -> raise (Reporting_basic.err_unreachable i.inst_l "get_matching_instance does not provide proper substitution!")))
                     i.inst_constraints
               in
-              solve_constraints instances unsolvable (new_cs @ constraints)
+              solve_constraints unsolvable (new_cs @ constraints)
 
   let check_constraint l (p,t) =
     match t.t with
@@ -1762,7 +1806,7 @@ module Constraint (T : Global_defs) : Constraint = struct
       let ns = solve_numeric_constraints [] !length_constraints in
       List.iter inst (!uvars);
       List.iter inst_n (!nuvars);
-      let cs = solve_constraints T.i PTset.empty !class_constraints in
+      let cs = solve_constraints PTset.empty !class_constraints in
         Tconstraints(TNset.union (TNset.union !tvars !used_tvs) 
                                  (TNset.union !nvars !used_nvs), 
                      List.map (check_constraint l) (PTset.elements cs),

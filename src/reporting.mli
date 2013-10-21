@@ -99,6 +99,10 @@ type warning =
   | Warn_import of Ast.l * string * string
     (** [Warn_import (l, module_name, file_name)] warns about auto-importing module [module_name] from [file_name]. *)
 
+  | Warn_overriden_instance of Ast.l * Types.src_t * Types.instance
+    (** [Warn_overriden_instance (l, ty, i)] warns that the instance [i] that has already been defined is
+        overriden for type [ty] at location [l]. *)
+
 (** [report_warning env w] reports a warning. Depending on the settings for the warning type this might mean,
     do nothing, print a warning message or print an error message and exit Lem *)
 val report_warning : Typed_ast.env -> warning -> unit

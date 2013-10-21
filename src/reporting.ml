@@ -70,6 +70,7 @@ type warning =
   | Warn_record_resorted of Ast.l * Typed_ast.exp
   | Warn_no_decidable_equality of Ast.l * string
   | Warn_import of Ast.l * string * string
+  | Warn_overriden_instance of Ast.l * Types.src_t * Types.instance
 
 let warn_source_to_string exp def ws =
   match ws with 
@@ -117,6 +118,15 @@ let dest_warning_common (verbose: bool) (w : warning) : (bool * Ast.l * string) 
   | Warn_import (l, m_name, f_name) -> 
       let m : string = "importing module '" ^ m_name ^ "' from file '" ^ f_name ^"'" in
       Some (false, l, m)
+
+  | Warn_overriden_instance (l, ty, i) -> 
+      let class_name =  Path.to_string i.Types.inst_class in
+      let type_name = Types.t_to_string ty.Types.typ in
+      let loc_org = Reporting_basic.loc_to_string false i.Types.inst_l in
+      let msg = Format.sprintf 
+                  "class '%s' has already been instantiated for type '%s' at\n    %s" 
+                  class_name type_name loc_org in
+      Some (true, l, msg)
   | _ -> None
 
 let dest_warning_basic (verbose: bool) (w : warning) : (bool * Ast.l * string) option = 
@@ -221,12 +231,14 @@ let warn_ref_fun_resort       = ref Level_Warn;;
 let warn_ref_rec_resort       = ref Level_Warn;;
 let warn_ref_no_decidable_eq  = ref Level_Ignore;;
 let warn_ref_import           = ref Level_Ignore;;
+let warn_ref_inst_override    = ref Level_Ignore;;
 
 (* a list of all these references *)
 let warn_refL = [
   warn_ref_rename; warn_ref_pat_fail; warn_ref_pat_exh; warn_ref_pat_red; warn_ref_def_exh; 
   warn_ref_def_red; warn_ref_pat_comp; warn_ref_unused_vars; warn_ref_general; 
   warn_ref_fun_resort; warn_ref_rec_resort; warn_ref_no_decidable_eq; warn_ref_import;
+  warn_ref_inst_override;
 ]
 
 (* map a warning to it's reference *)
@@ -244,6 +256,7 @@ let warn_level = function
   | Warn_record_resorted _ ->                   !warn_ref_rec_resort
   | Warn_no_decidable_equality _ ->             !warn_ref_no_decidable_eq
   | Warn_import _ ->                            !warn_ref_import
+  | Warn_overriden_instance _ ->                !warn_ref_inst_override
 
 let ignore_pat_compile_warnings () = (warn_ref_pat_comp := Level_Ignore)
 
@@ -263,8 +276,9 @@ let warn_opts_aux = [
    ("pat_comp",    [warn_ref_pat_comp],                        "pattern compilation");
    ("resort",      [warn_ref_fun_resort; warn_ref_rec_resort], "resorted record fields and function clauses");
    ("no_dec_eq",   [warn_ref_no_decidable_eq],                 "equality of type is undecidable");
-   ("gen",         [warn_ref_general],                         "miscellaneous warnings");
-   ("auto_import", [warn_ref_import],                          "automatically imported modules")];;
+   ("auto_import", [warn_ref_import],                          "automatically imported modules");
+   ("inst_over",   [warn_ref_inst_override],                   "overriden instance declarations");
+   ("gen",         [warn_ref_general],                         "miscellaneous warnings")];;
 
 
 let warn_arg_fun (f : warn_level -> unit) = Arg.Symbol (["ign"; "warn"; "verb"; "err"], (function 
