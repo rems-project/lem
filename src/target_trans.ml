@@ -223,11 +223,13 @@ begin
 
   let avoid_consts =  match targ with
                         | Target_ident -> false
+                        | Target_no_ident Target_lem -> false
                         | Target_no_ident Target_hol -> false 
                         | _ -> true
   in
   let avoid_types = match targ with
                       | Target_ident -> false
+                      | Target_no_ident Target_lem -> false
                       | Target_no_ident Target_isa -> false
                       | Target_no_ident Target_hol -> false
                       | _ -> true in

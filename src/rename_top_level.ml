@@ -211,6 +211,7 @@ end
 let rename_defs_target (targ : Target.target) ue consts env = 
   match targ with
     | Target_ident -> env
+    | Target_no_ident Target_lem -> (* never do something for the lem target *) env 
     | Target_no_ident targ_ni ->
   begin 
     let (new_types', env) = List.fold_left (fun (consts_new, env) t -> rename_type targ_ni consts consts_new env t) (NameSet.empty, env) 

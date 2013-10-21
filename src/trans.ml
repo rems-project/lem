@@ -813,9 +813,6 @@ let remove_restr_quant pat_OK _ e =
   with Pat_to_exp_unsupported (l, m) -> 
     (Reporting.report_warning env (Reporting.Warn_general (true, exp_to_locn e, m^" in restricted set comprehension")); None) (* it can still be handled by pattern compilation *)
 
-
-let eq_path = Path.mk_path [Name.from_rope (r"Ocaml"); Name.from_rope (r"Pervasives")] (Name.from_rope (r"="))
-
 (* TODO: Fix it? Replace with Type-classes?
 let hack e = 
   let l_unk = Ast.Trans("hack", Some (exp_to_locn e)) in
