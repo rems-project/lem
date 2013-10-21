@@ -1,12 +1,14 @@
-type t1 = C1 | C2 of num | C3 of num * num
-type t2 = <| fn1 : num|>
-type t3 = <|fn2 : num ; fn3 : num|>
+open import Pervasives_non_pure
+
+type t1 = C1 | C2 of nat | C3 of nat * nat
+type t2 = <| fn1 : nat|>
+type t3 = <|fn2 : nat ; fn3 : nat|>
 
 let test1 _ = 1
 
 let test2 ( x as y ) = x + y
 
-let test3 ( x : num ) = x
+let test3 ( x : nat ) = x
 
 let test4 C1 = C1
 let test5 ( C2 x ) = x

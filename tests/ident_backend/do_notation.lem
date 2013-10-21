@@ -1,12 +1,14 @@
+open import Pervasives_non_pure
+
 module M = struct
-  type t 'a = option 'a
-  val return : forall 'a. 'a -> option 'a
-  val bind : forall 'a 'b. option 'a -> ('a -> option 'b) -> option 'b
-  let return x = Some x
+  type t 'a = maybe 'a
+  val return : forall 'a. 'a -> maybe 'a
+  val bind : forall 'a 'b. maybe 'a -> ('a -> maybe 'b) -> maybe 'b
+  let return x = Just x
   let bind x f =
     match x with
-      | None -> None
-      | Some y -> f y
+      | Nothing -> Nothing
+      | Just y -> f y
     end
 end
 
@@ -19,14 +21,14 @@ let test1 =
 let test2 =
   do M
     x <- M.return 1 ;
-    y <- None ;
+    y <- Nothing ;
   in
     y
 end
 
 let test3 =
   do M
-    y <- None ;
+    y <- Nothing ;
     x <- M.return 1 ;
   in
     y
@@ -48,7 +50,7 @@ let test5 =
     1 <- M.return y ;
   in
     M.return (x,y,z) 
-  end : option (num * num * num))
+  end : maybe (nat * nat * nat))
 
 let test6 f x =
   do M

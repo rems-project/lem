@@ -27,8 +27,6 @@ let inline (inter) = intersection
 
 let inline (\) = difference
 
-val empty : forall 'a. set 'a
-
 (* transitive closure now works on relations, not sets of pairs,
    best ajust the types manually or add wrappers 'relFromSet' and 
    'relToSet' as appropriate. *)
@@ -38,6 +36,7 @@ declare lem target_rep function tc = `transitiveClosure`
 
 
 type option 'a = maybe 'a
+declare lem target_rep type option = `maybe` 
 
 let inline None = Nothing
 let inline Some = Just

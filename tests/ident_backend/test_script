@@ -1,7 +1,7 @@
 #!/bin/sh
 
 ./add_comments.byte < $1
-../../lem -lib ../../library -wl ign -ident test.lem | diff test.lem - &&\
+../../lem -lib ../../library-new -wl ign -ident test.lem | diff test.lem - &&\
 echo $1 ok #&&\
 #sed -Ef sed_script < $1 | grep -E '([*][^ `]+[*])' > $1.tmp | true &&\
 #echo $1 comments &&\

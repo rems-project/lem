@@ -1,3 +1,5 @@
+open import Pervasives
+
 type t 'a 'b = C of 'a * 'b
 
 type t2 'a ''b = D of 'a 

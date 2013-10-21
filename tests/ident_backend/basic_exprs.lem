@@ -1,7 +1,9 @@
+open import Pervasives_non_pure
+
 module M = struct let v = 1 end
-type t = | C1 | C2 of num | C3 of num * num | C4 of num * num * num * num
-type t2= <| fn1 : num|>
-type t3 = <|fn2 : num ; fn3 : num|>
+type t = | C1 | C2 of nat | C3 of nat * nat | C4 of nat * nat * nat * nat
+type t2= <| fn1 : nat|>
+type t3 = <|fn2 : nat ; fn3 : nat|>
 
 let f x = x
 
@@ -49,14 +51,14 @@ let test26 = match [1] with [] -> []
 let test27 = match [] with | [] -> []
  | [1] -> [1] end
 
-let test28 = ( 1 : num )
+let test28 = ( 1 : nat )
 
 let test29 = let x = 1 in x
-let test30 = let x : num = 1 in x
+let test30 = let x : nat = 1 in x
 
 let test31 = let x _ = 1 in x
 let test32 = let x _ x = 1 in x
-let test63 = let x _ : num = 1 in x
+let test63 = let x _ : nat = 1 in x
 
 let test33 = ( 1, 2 )
 let test34 = ( 1, 2, 3 )
@@ -102,6 +104,8 @@ let test65 r = r.fn1
 
 let test66 = { r.fn1 | r = <| fn1 = 2 |> }
 
+(* not implemented yet 
+
 (*Vectors*)
 let test67 = [| true; false; |]
 let test68 = [| 0; 1; 2; 3 |] 
@@ -130,5 +134,6 @@ val test81 : forall ''x ''y . ''x >= ''y => vector bit ''x -> vector bit ''y -> 
 let test81 v _ = v.[''y]
 
 let test82 = test81 0b01010101 0b00
+*)
 
 let test83 = 3 >= 2

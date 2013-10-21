@@ -1,6 +1,7 @@
+open import Pervasives_non_pure
 
-type t = <| fn : num |>
-type t2 = <| X : num |>
+type t = <| fn : nat |>
+type t2 = <| X : nat |>
 
 let X = <| fn = 2 |>
 
@@ -10,7 +11,7 @@ module X = struct
   let Y = 1
 end
 
-let _ = X . fn
+let _ = X . fn 
 
 module Y = struct
   let Z = 1
@@ -21,7 +22,7 @@ let _ = Y.Z
 let F Y = Y . fn
 
 module Z = struct
-  type m = <| F : num |>
+  type m = <| F : nat |>
   type t = <| fn : m |>
   let x1 = <| fn = <| F = 2 |> |>
   module F = struct

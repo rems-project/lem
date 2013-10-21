@@ -1,19 +1,18 @@
-open import Transform 
-open import Bool
+open import Pervasives_non_pure 
 
 let test1 = 1
-let test2 : num = 1
+let test2 : nat = 1
 let test3 _ = 1 ;;
-let test4 _ x = test2
+let test4 _ x0 = test2
 
 let rec test5 [] = true 
-and test5 ( x :: y ) : bool = test6 y
+and test5 ( x0 :: y0 ) : bool = test6 y0
 and test6 [] = false 
-and test6 ( x :: y ) = test5 y
+and test6 ( x0 :: y0 ) = test5 y0
 
-let rec test7 x = 10
+let rec test7 x0 = 10
 
-val test8 : num
+val test8 : nat
 let test8 = 1
 
 indreln 
@@ -56,17 +55,17 @@ class ( C 'a )
 end
 
 class ( D 'b )
-  val test22 : 'b -> num
-  val test23 : num -> 'b
+  val test22 : 'b -> nat
+  val test23 : nat -> 'b
 end
 
-val test15 : num
+val test15 : nat
 val test16 : forall 'a . 'a
 val test17 : forall 'a 'b . 'a -> 'b
 val test18 : forall 'a . C 'a => 'a
 val test19 : forall 'a 'b . C 'b , C 'a => 'a -> 'b
 
-instance ( C num ) 
+instance ( C nat ) 
   let test20 = 1
 end
 
