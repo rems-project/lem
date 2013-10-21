@@ -36,7 +36,6 @@
 (*  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE    *)
 (*  ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY       *)
 (*  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL    *)
-
 (*  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE     *)
 (*  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS         *)
 (*  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER  *)
@@ -1898,13 +1897,7 @@ let add_let_defs_to_ctxt
               (c_env', Nfmap.insert new_env (n, c)))
       (ctxt.ctxt_c_env, Nfmap.empty) l_env
   in  
-  { ctxt with 
-        ctxt_c_env = c_env;
-        cur_env = 
-          { ctxt.cur_env with v_env = Nfmap.union ctxt.cur_env.v_env new_env };
-        new_defs = 
-          { ctxt.new_defs with 
-                v_env = Nfmap.union ctxt.new_defs.v_env new_env } }
+  union_v_ctxt { ctxt with ctxt_c_env = c_env } new_env
 
 (* Check a type definition and add it to the context.  mod_path is the path to
  * the enclosing module.  Ignores any constructors or fields, just handles the
@@ -3114,7 +3107,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
               sem_cs in
           let ctxt_inst0 = { ctxt with new_defs = empty_local_env; all_instances = tmp_all_inst } in
 
-          (* tycheck the inside of the instance declaration *)
+          (* typecheck the inside of the instance declaration *)
           let (v_env_inst,ctxt_inst,vdefs) = 
             List.fold_left
               (fun (v_env_inst,ctxt,vs) (v,l) ->
@@ -3200,15 +3193,11 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
             }
           in
           let (c_env',dict_ref) = Typed_ast_syntax.c_env_store ctxt_inst.ctxt_c_env dict_d in
-          let v_env' = Nfmap.insert ctxt_inst.new_defs.v_env (dict_name, dict_ref) in
-          let ctxt_inst = {ctxt_inst with ctxt_c_env = c_env'; new_defs = { ctxt_inst.new_defs with v_env = v_env'}} in
+          let ctxt_inst = add_v_to_ctxt {ctxt_inst with ctxt_c_env = c_env'} (dict_name, dict_ref) in
  
           (* move new definitions into special module, since here the old context is thrown away and ctxt.new_defs is used,
              it afterwards becomes irrelevant thet ctxt_inst.new_defs contains more definitions than ctxt. *)
-          let ctxt = begin
-	     let ctxt_clean_mod = {ctxt_inst with new_defs = ctxt.new_defs; cur_env = ctxt.cur_env; all_instances = ctxt.all_instances } in
-             add_m_to_ctxt l ctxt_clean_mod instance_name { mod_binding =  Path.mk_path mod_path instance_name; mod_env = ctxt_inst.new_defs; mod_target_rep = Targetmap.empty }
-          end in
+          let ctxt = ctxt_end_submodule l ctxt mod_path instance_name ctxt_inst in
 
           (* store everything *)
           let inst = {
