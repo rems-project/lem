@@ -1,3 +1,5 @@
+open import Pervasives
+
 type C
   = C1 of unit
   | C2 of bool

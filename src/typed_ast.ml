@@ -274,7 +274,7 @@ type class_val_spec = lskips * name_l * const_descr_ref * lskips * src_t
 
 type targets_opt = (bool * lskips * Ast.target lskips_seplist * lskips) option
 
-let in_targets_opt (targ : Target.target) (targets_opt : targets_opt) : bool = match targ with
+let in_targets_opt_raw (targ : Target.target) (targets_opt : targets_opt) : bool = match targ with
     Target_ident   -> true
   | Target_no_ident t -> (match targets_opt with 
                  None -> true
@@ -282,8 +282,11 @@ let in_targets_opt (targ : Target.target) (targets_opt : targets_opt) : bool = m
                  let is_in = Seplist.exists (fun t' -> ast_target_compare (target_to_ast_target t) t' = 0) targets in
                  if neg then not is_in else is_in)
 
+let in_targets_opt (targ : Target.target) (targets_opt : targets_opt) : bool = 
+   if is_human_target targ then true else in_targets_opt_raw targ targets_opt
+
 let targets_opt_to_list (targets_opt : targets_opt) : Target.non_ident_target list =
-   List.filter (fun t -> in_targets_opt (Target_no_ident t) targets_opt) Target.all_targets_list
+   List.filter (fun t -> in_targets_opt_raw (Target_no_ident t) targets_opt) Target.all_targets_list
                          
 type fun_def_rec_flag =
   | FR_non_rec

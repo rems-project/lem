@@ -864,9 +864,6 @@ val fold_left2 : forall 'a 'b 'c. ('a -> 'b -> 'c -> 'a) -> 'a -> list 'b -> lis
 val fold_right2 : forall 'a 'b 'c. ('a -> 'b -> 'c -> 'c) -> list 'a -> list 'b -> 'c -> 'c
 
 
-(* now maybe result *)
-val find : forall 'a. ('a -> bool) -> list 'a -> 'a 
-
 (* now maybe result and called lookup *)
 val assoc : forall 'a 'b. 'a -> list ('a * 'b) -> 'b
 let inline {ocaml} assoc = Ocaml.List.assoc

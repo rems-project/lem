@@ -1,10 +1,12 @@
+open import Pervasives_non_pure
+
 (* Fix the type of pred1 and pred2 via a val-statement.
    This typing information is lost during translation to
    HOL and therefore causes an error in HOL. *)
-val pred1 : (num * num) -> bool
+val pred1 : (nat * nat) -> bool
 let pred1 (x, _) = (x = 0)
 
-val pred2 : (num * num) -> bool
+val pred2 : (nat * nat) -> bool
 let pred2 (x, _) = (x = 1)
 
 let test = (forall (xy IN {}). pred1 xy --> not (pred2 xy))

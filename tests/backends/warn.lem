@@ -1,3 +1,5 @@
+open import Pervasives_non_pure
+
 (* not checked, yet
   Warn_fun_clauses_resorted of Ast.l * Typed_ast.target option * string list * Typed_ast.def
 *)
@@ -5,14 +7,14 @@
 (* This Lem file should trigger every warning message *)
 
 (* General warning / pattern compilation *)
-type t3 = <| f1 : num; f2 : bool |>
+type t3 = <| f1 : nat; f2 : bool |>
 let test0 = forall (<| f1 = x |> IN {}). x < 2
 
 (* Renaming for Target Isabelle *)
 let op x = x
 
 (* Renaming with via for Target Isabelle *)
-rename {isabelle} test0 = op0
+declare {isabelle} rename function test0 = op0
 
 (* Unused variables, redundant patterns, non-exhaustive patterns *)
 let test1 a = 
@@ -22,7 +24,7 @@ let test1 a =
   end
 
 let rec test3 (x, _, 2) = x
-    and test2 (y:num) = 0
+    and test2 (y:nat) = 0
     and test3 (_, y, 2) = 2
 
 let rec test4 2 = 1

@@ -1,9 +1,11 @@
+open import Pervasives_non_pure
+
 class ( Count 'a ) 
-  val to_num : 'a -> num
+  val to_num : 'a -> nat
 end
 
 
-instance (Count num)
+instance (Count nat)
   let to_num x = x
 end
 
@@ -27,14 +29,14 @@ instance forall 'a. Count 'a => (Count (bintree 'a))
 end
 
 
-type my_pair = My_pair of (num * bintree bool * bool)
+type my_pair = My_pair of (nat * bintree bool * bool)
 let to_num_my_pair (My_pair (n, t, b)) = to_num n + to_num t + to_num b
 
 instance (Count my_pair)
   let to_num = to_num_my_pair
 end
 
-type my_pair2 = My_pair2 of (num * bintree bool * bool)
+type my_pair2 = My_pair2 of (nat * bintree bool * bool)
 
 instance (Count my_pair2)
   let to_num x = match x with

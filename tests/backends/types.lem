@@ -1,24 +1,24 @@
-open import Transform
+open import Pervasives_non_pure
 
-type t1 = num
+type t1 = nat
 type t2 'a = 'a * t1
 type t3 'a 'b = 'a * 'b
 
 let v1 = (1 : t1)
-let v2 = ((1,2) : t2 num)
-let v3 = ((1,false) : t3 num  bool)
+let v2 = ((1,2) : t2 nat)
+let v3 = ((1,false) : t3 nat  bool)
 
-type t4 = <| f1 : num; f2 : bool |>
+type t4 = <| f1 : nat; f2 : bool |>
 type t5 'a = <| f3 : 'a; f4 : bool |>
 type t6 'a 'asdf = <| f5 : 'a; f6 : 'asdf |>
 
 let v4 = (<| f1 = 1; f2 = true |> : t4)
-let v5 = (<| f3 = (1,true); f4 = false |> : t5 (num * bool))
+let v5 = (<| f3 = (1,true); f4 = false |> : t5 (nat * bool))
 let v6 = (<| f5 = (fun x -> x); f6 = <| f3 = 1; f4 = true |> |> : 
-          t6 ('a->'a) (t5 num)) 
+          t6 ('a->'a) (t5 nat)) 
 
 type t7 = 
-  | C1 of num
+  | C1 of nat
   | C2 of t8
 and t8 = 
   | C3

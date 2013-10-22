@@ -1,3 +1,5 @@
+open import Pervasives_non_pure
+
 type op = 
   | Add | Sub 
 

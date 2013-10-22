@@ -1,3 +1,5 @@
+open import Pervasives_non_pure
+
 type nat = Z | S of nat
 
 indreln 

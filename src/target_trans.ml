@@ -320,7 +320,7 @@ let trans (targ : Target.target) params env (m : checked_module) =
 
   let module_name = Name.from_rope (Ulib.Text.of_latin1 m.module_name) in
   (* TODO: Move this to a definition macro, and remove the targ argument *)
-  let defs =
+  let defs = if (Target.is_human_target targ) then defs else
     match targ with 
       | Target_ident -> defs
       | Target_no_ident t -> Def_trans.prune_target_bindings t defs 

@@ -126,3 +126,13 @@ assert nth_5: (nth [0;1;2;3;4;5] 5 = 5)
 lemma nth_index: (forall l n e. n < length l --> index l n = Just (nth l n))
 
 
+(* ------------------------- *)
+(* Find_non_pure             *)
+(* ------------------------- *)
+val find_non_pure : forall 'a. ('a -> bool) -> list 'a -> 'a 
+let find_non_pure P l = match (find P l) with 
+  | Just e      -> e
+end
+
+declare compile_message find_non_pure = "find_non_pure is undefined, if no element with the property is in the list. Better use find."
+

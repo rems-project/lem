@@ -1,5 +1,7 @@
-type t 'a = CC1 | CC2 of num | CC3 of 'a
-type t2 = <| f1 : num; f2 : bool |>
+open import Pervasives_non_pure
+
+type t 'a = CC1 | CC2 of nat | CC3 of 'a
+type t2 = <| f1 : nat; f2 : bool |>
 
 (* Simple tuple test, the first line catches all *)
 let test_simple z = 
@@ -76,8 +78,8 @@ let test_inc2 x y z =
 
 let test_inc3 xy =
   match xy with
-    | (Some x, Some y) -> Some (x, y)
-    | _ -> None
+    | (Just x, Just y) -> Just (x, y)
+    | _ -> Nothing
   end
 
 let test_inc4 (x:t2) =

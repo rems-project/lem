@@ -1,3 +1,5 @@
+(* TODO: Ints are not supported yet *)
+
 let test_minus = (Int.(-) (Int.int 10) (Int.int 20) = Int.neg (Int.int 10))
 let test_plus = (Int.(+) (Int.int 10) (Int.neg (Int.int 20)) = Int.neg (Int.int 10))
 

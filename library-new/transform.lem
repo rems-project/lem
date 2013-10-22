@@ -41,7 +41,13 @@ declare lem target_rep type option = `maybe`
 let inline None = Nothing
 let inline Some = Just
 
-(* existing and fully supported 
+let inline SUC = suc
+
+(* ----------------------- *)
+(* fully supported         *)
+(* ----------------------- *)
+
+(*  
 val not : bool -> bool
 val (&&) : bool -> bool -> bool
 val (||) : bool -> bool -> bool
@@ -52,7 +58,12 @@ val snd : forall 'a 'b. 'a * 'b -> 'b
 val (::) : forall 'a. 'a -> list 'a -> list 'a
 *)
 
-(* Present, but now with type-class constraints 
+
+(* ----------------------- *)
+(* with class constraints  *)
+(* ----------------------- *)
+
+(* 
 val (=) : forall 'a. 'a -> 'a -> bool
 val (<>) : forall 'a. 'a -> 'a -> bool
 val (<) : num -> num -> bool
@@ -62,18 +73,6 @@ val (>=) : num -> num -> bool
 
 val (IN) : forall 'a. 'a -> set 'a -> bool
 val (union) : forall 'a. set 'a -> set 'a -> set 'a
-*)
-
-(* Not implemented, yet 
-val (land) : num -> num -> num
-val (lor) : num -> num -> num
-val (lxor) : num -> num -> num
-val lnot : num -> num
-val (lsl) : num -> num -> num
-val (lsr) : num -> num -> num
-val (asr) : num -> num -> num
-*)
-
 
 val (+) : num -> num -> num
 val (-) : num -> num -> num
@@ -81,12 +80,20 @@ val ( * ) : num -> num -> num
 val ( ** ) : num -> num -> num
 val (/) : num -> num -> num
 val (mod) : num -> num -> num
+*)
 
-val SUC : num -> num
+(* ----------------------- *)
+(* TODO: still missing     *)
+(* ----------------------- *)
+(*
+val (land) : num -> num -> num
+val (lor) : num -> num -> num
+val (lxor) : num -> num -> num
+val lnot : num -> num
+val (lsl) : num -> num -> num
+val (lsr) : num -> num -> num
+val (asr) : num -> num -> num
 
-
-
-(* TODO: unsupported, so far 
 val bigunion = forall 'a. set (set 'a) -> set 'a
 val biginter : forall 'a. set (set 'a) -> set 'a
 
@@ -117,15 +124,15 @@ let inline {isabelle} string_of_num = Isabelle.nat_to_string
 
 val nat_list_to_string : list num -> string
 let inline {isabelle} nat_list_to_string = Isabelle.nat_list_to_string
-
 *)
+
 
 (* ========================================================================== *)
 (* Set                                                                        *)
 (* ========================================================================== *)
 
 module Set = struct
-  include Set (* include the new set module *)
+  include Set_non_pure (* include the new set module *)
 
   let inline add = insert
   let inline for_all = all
@@ -137,20 +144,87 @@ module Set = struct
   let inline set_sigma = sigma
   let inline equal = setEqual
 
-(* suppored except type class constraints 
+
+  (* ----------------------- *)
+  (* with class constraints  *)
+  (* ----------------------- *)
+  (*
   val singleton : forall 'a. 'a -> set 'a
   val finite : forall 'a. set 'a -> bool
   val filter : forall 'a. ('a -> bool) -> set 'a -> set 'a
   val cross : forall 'a 'b. set 'a -> set 'b -> set ('a * 'b)
   val (=) : forall 'a. set 'a -> set 'a -> bool
   val map : forall 'a 'b. ('a -> 'b) -> set 'a -> set 'b
-
-  TODO: unsupported so far:
-  val to_list : forall 'a. set 'a -> list 'a
   val choose : forall 'a. set 'a -> 'a -> 'a
   val fold : forall 'a 'b. ('a -> 'b -> 'b) -> set 'a -> 'b -> 'b
+  *)
+
+  (* ----------------------- *)
+  (* TODO: still missing     *)
+  (* ----------------------- *)
+  (*
+  TODO: unsupported so far:
+  val to_list : forall 'a. set 'a -> list 'a
   val monotone : forall 'a. (set 'a -> set 'a) -> bool
   val lfp : forall 'a. set 'a -> (set 'a -> set 'a) -> set 'a
-*)
+  *)
+end
+
+(* ========================================================================== *)
+(* List                                                                       *)
+(* ========================================================================== *)
+
+module List = struct
+  include List_non_pure (* include the new set module *)
+
+  let inline hd = head
+  let inline tl = tail
+  let inline rev = reverse
+  let inline rev_append = reverseAppend
+  let inline flatten = concat
+  let inline rev_map = reverseMap
+  let inline fold_left = foldl
+  let inline fold_right f l e = foldr f e l
+  let inline for_all = all
+  let inline exist = any
+  let inline mem = elem
+  let inline find = find_non_pure
+  let inline find_all = filter
+  let inline assoc = lookup
+  let inline split = unzip
+  let inline combine = zip
+
+  let inline sort = Sorting.sort
+  let inline stable_sort = Sorting.sort
+  let inline fast_sort = Sorting.sort
+
+  (* ----------------------- *)
+  (* supported               *)
+  (* ----------------------- *)
+  (*
+  val length : forall 'a. list 'a -> num
+  val nth : forall 'a. list 'a -> num -> 'a
+  val append : forall 'a. list 'a -> list 'a -> list 'a
+  val concat : forall 'a. list (list 'a) -> list 'a
+  val map : forall 'a 'b. ('a -> 'b) -> list 'a -> list 'b
+  val filter : forall 'a. ('a -> bool) -> list 'a -> list 'a
+  val partition : forall 'a. ('a -> bool) -> list 'a -> list 'a * list 'a
+  *)
+
+  (* ----------------------- *)
+  (* TODO: still missing     *)
+  (* ----------------------- *)
+  (*
+  val map2 : forall 'a 'b 'c. ('a -> 'b -> 'c) -> list 'a -> list 'b -> list 'c 
+  val rev_map2 : forall 'a 'b 'c. ('a -> 'b -> 'c) -> list 'a -> list 'b -> list 'c
+  val fold_left2 : forall 'a 'b 'c. ('a -> 'b -> 'c -> 'a) -> 'a -> list 'b -> list 'c -> 'a
+  val fold_right2 : forall 'a 'b 'c. ('a -> 'b -> 'c -> 'c) -> list 'a -> list 'b -> 'c -> 'c
+  val for_all2 : forall 'a 'b. ('a -> 'b -> bool) -> list 'a -> list 'b -> bool
+  val exists2 : forall 'a 'b. ('a -> 'b -> bool) -> list 'a -> list 'b -> bool
+  val mem_assoc : forall 'a 'b. 'a -> list ('a * 'b) -> bool
+  val remove_assoc : forall 'a 'b. 'a -> list ('a * 'b) -> list ('a * 'b)
+  val merge : forall 'a. ('a -> 'a -> num) -> list 'a -> list 'a -> list 'a
+  val intersect : forall 'a. list 'a -> list 'a -> list 'a
+  *)
 
 end

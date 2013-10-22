@@ -1,4 +1,6 @@
-type t = | C of num
+open import Pervasives_non_pure
+
+type t = | C of nat
 
 let test1 =
   match 1 with
@@ -24,7 +26,7 @@ let test3 =
 
 let test4 =
   match (1,[2;3], C 5, 2) with
-    (o, (MEM)::[LAST; (FCARD:num)], C FLAT, o0) -> 
+    (o, (MEM)::[LAST; (FCARD:nat)], C FLAT, o0) -> 
       o + (MEM) + LAST + FCARD + FLAT + o0
   end
 
@@ -50,14 +52,14 @@ let test13 = fun LAST -> forall LAST0. LAST = LAST0
 
 let test10 o = o
 
-val test15 : num
-let {isabelle} test15 = 3
-let test15 = 1
+val test15 : nat
+let ~{hol; isabelle} test15 = 1
 let {hol} test15 = 2
+let {isabelle} test15 = 3
 
-val test16 : num -> num
+val test16 : nat -> nat
 let {hol} test16 x = x + 2
-let test16 x = x + 1
+let ~{hol;isabelle} test16 x = x + 1
 let {isabelle} test16 x = x + 3
 
 (* TODO: Fix

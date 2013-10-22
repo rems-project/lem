@@ -18,8 +18,6 @@ let not b = match b with
   | false -> true
 end
 
-declare rename function not = lem_not
-
 declare hol      target_rep function not = `~`
 declare ocaml    target_rep function not = `not`
 declare isabelle target_rep function not = `~`

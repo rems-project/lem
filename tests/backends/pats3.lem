@@ -1,3 +1,5 @@
+open import Pervasives_non_pure
+
 (* Trivial match with unit that should disappear *)
 let test1 = 
   match () with
@@ -127,13 +129,13 @@ let test17 x =
 
 let test18 x =
   match x with
-    | Some x -> x
+    | Just x -> x
   end
 
 let test19 xy =
   match xy with
-    | (Some x, Some y) -> Some (x, y)
-    | _ -> None
+    | (Just x, Just y) -> Just (x, y)
+    | _ -> Nothing
   end
 
 (* Integer patterns *)
@@ -159,25 +161,25 @@ let test21 x =
 (* Constructor patters *)
 (* Simple case without free type variables *)
 
-type t1 = C1 | C2 of num | C3 of num * num
+type t1 = C1 | C2 of nat | C3 of nat * nat
 
 let test22 xx = 
   match xx with
     | C1 -> 1
     | C2 x -> x
-    | C3 (x:num) y -> x + y
+    | C3 (x:nat) y -> x + y
   end
 
 let test23 xx = 
   match xx with
     | C2 x -> x
-    | C3 (x:num) y -> x + y
+    | C3 (x:nat) y -> x + y
   end
 
 
 (* with nesting and type instantiation *)
 
-type t2 'a = CC1 | CC2 of num | CC3 of 'a
+type t2 'a = CC1 | CC2 of nat | CC3 of 'a
 
 let test24 xx = 
   match xx with
@@ -198,16 +200,16 @@ let test25 xx =
 (* Fun test *)
 let test26 = fun x -> x
 let test27 = fun (x, y) -> x + y
-let test28 = fun (x, (0:num)) -> x
+let test28 = fun (x, (0:nat)) -> x
 
 (* Function test *)
-let test29 = function (_, 0) -> 0 | (1, _) -> 1 | ((x:num), y) -> x + y end
-let test30 = function (_, (0:num)) -> 0 end
-let test31 = function _ -> 1 | (_, (0:num)) -> 0 end
+let test29 = function (_, 0) -> 0 | (1, _) -> 1 | ((x:nat), y) -> x + y end
+let test30 = function (_, (0:nat)) -> 0 end
+let test31 = function _ -> 1 | (_, (0:nat)) -> 0 end
 
 (* Let val tests *)
 let test32 = let x = 2 in x + x
-let test33 = let [x] = [(2:num)] in x + x
+let test33 = let [x] = [(2:nat)] in x + x
 let test34 = let (x, y) = (2, 3) in x + y
 
 (* Let fun tests *)
@@ -238,13 +240,13 @@ let inline {isabelle;hol} test46 x y z = x
 (* Tests for set comprehension *)
 
 (* should not be touched at all *)
-let test47 = forall ((x:num) IN {}). x < 2
+let test47 = forall ((x:nat) IN {}). x < 2
 
 (* Use pattern to expression *)
 let test48 = forall ((C2 x) IN {}). x < 2
 
 (* Use pattern to expression *)
-type t3 = <| f1 : num; f2 : bool |>
+type t3 = <| f1 : nat; f2 : bool |>
 
 (* Pattern compilation *)
 let test49 = forall (<| f1 = x |> IN {}). x < 2

@@ -1,4 +1,6 @@
-type t = C1 | C2 of num | C3 of num * num
+open import Pervasives_non_pure
+
+type t = C1 | C2 of nat | C3 of nat * nat
 
 let test0 (x:(t*(t*t))) = 
   match x with
@@ -8,11 +10,11 @@ end
 
 let test2 (x:t) = 
   match x with
-  | (C2 (y:num)) -> y
+  | (C2 (y:nat)) -> y
   | _ -> 0
 end
 
-type t4 = <| f1 : num; f2 : bool |>
+type t4 = <| f1 : nat; f2 : bool |>
 
 let test1 (x:t4) = 
   match x with

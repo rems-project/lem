@@ -72,14 +72,14 @@ Inductive bool0 : Type :=
 | False: bool0.
 Definition bool_default: bool := True  .
 
-Inductive nat0 : Type := 
-  Zero: nat0
-| Succ: nat0 -> nat0.
-Definition nat_default: nat := Zero  .
+Inductive mynat : Type := 
+  Zero: mynat
+| Succ: mynat -> mynat.
+Definition mynat_default: mynat := Zero  .
 
 Inductive heap {a : Type} : Type := 
   Nil: heap
-| Node: nat0 -> heap a -> a -> heap a -> heap.
+| Node: mynat -> heap a -> a -> heap a -> heap.
 Definition heap_default{a: Type} : heap := Nil  (a:=a).
 
 Inductive u {a : Type} : Type :=  I: a -> u.
@@ -90,7 +90,7 @@ Inductive v {a : Type} {b : Type} {c : Type} : Type :=
   | K: b -> v
   | L:  (w c) -> v
 with w {a : Type} : Type := 
-  | M:  (a ->a) -> v nat0 nat0 nat0 -> w.
+  | M:  (a ->a) -> v num num num -> w.
 Definition v_default {a: Type} {b: Type} {c: Type} : v := J DAEMON (a:=a) (b:=b) (c:=c).
 Definition w_default{a: Type} : w := M (fun (x0 : a) => DAEMON) v_default (a:=a).
 

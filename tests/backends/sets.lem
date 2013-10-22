@@ -1,3 +1,5 @@
+open import Pervasives_non_pure
+
 (* empty set *)
 let s1 = {}
 
@@ -5,16 +7,11 @@ let s1 = {}
 let s2 = {1;2;3}
 
 (* unrestrict set comprehension *)
-val s3 : set num
-let {isabelle; hol} s3 = { x | x > 2 }  
-val s4 : set (num * num)
-let {isabelle; hol} s4 = { (x, y) | x > y }  
-val s5 : set num
-let {isabelle; hol} s5 = { x + y | x < y }  
-val s4a : set (num * num)
-let {isabelle; hol} s4a = let x = 2 in { (x, y) | x > y }  
-val s4b : set (num * num)
-let {isabelle; hol} s4b = let x = 2 in { (x, y) | forall y | x > y }
+val s3 : set nat  
+val s4 : set (nat * nat)  
+val s5 : set nat  
+val s4a : set (nat * nat)  
+val s4b : set (nat * nat)
 
 (* simple restricted set comprehension *)
 let s6 = { x | forall (x IN s2) | x > 2 }  
@@ -31,13 +28,10 @@ let s9b = {j | forall (i IN s2) (j IN inc2_set i) | i < j}
 
 (* unbounded set checks *)
 
-val s10 : set (num * num * num)
-let {isabelle; hol} s10 = { (x, y, z) | x < y }
+val s10 : set (nat * nat * nat)
 
-val s11 : set (num * num)
-let {isabelle; hol} s11 = let y = 2 in { (x, y) | x < y }
+val s11 : set (nat * nat)
 
-val s12 : set (num * num)
-let {isabelle; hol} s12 = let y = 2 in { (x, z) | x < y }
+val s12 : set (nat * nat)
 
 

@@ -1,3 +1,5 @@
+open import Pervasives_non_pure
+
 class (Cl 'a)
   val a : 'a -> 'a -> bool
 end
@@ -6,7 +8,7 @@ let f x y = a x y
 let g x y = if a x y then 1 else 2
 let h x y = g x y
 
-instance (Cl num)
+instance (Cl nat)
   let a x y = x <= y
 end
 

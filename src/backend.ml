@@ -2352,7 +2352,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
       if in_target targets then
         ws s1 ^
         T.def_start ^
-        (if T.target = Target_ident then
+        (if Target.is_human_target T.target then
            targets_opt targets 
          else
            emp) ^
@@ -2371,7 +2371,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
             | (n,n_ref, _, _, _, _)::_ -> Name.strip_lskip (B.const_ref_to_name n.term false n_ref)
         in
           T.rec_def_header is_rec is_real_rec s1 s2 n ^
-          (if T.target = Target_ident then
+          (if Target.is_human_target T.target then
              targets_opt targets 
            else
              emp) ^
@@ -2381,7 +2381,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
           else
         emp
   | Val_def(Let_inline(s1,s2,targets,n,c,args,s4,body),tnvs,class_constraints) ->
-      if (T.target = Target_ident) then
+      if (is_human_target T.target) then
         ws s1 ^
         kwd "let" ^
         ws s2 ^
@@ -2460,7 +2460,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
       if in_target targets then
         ws s ^
         T.reln_start ^
-        (if T.target = Target_ident then
+        (if Target.is_human_target T.target then
            targets_opt targets 
          else
            emp) ^
@@ -2803,7 +2803,7 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
       let is_simple = true in
       if in_target targets then 
         ws s1 ^ kwd (if is_simple then "definition" else "fun") ^ 
-        (if T.target = Target_ident then
+        (if Target.is_human_target T.target then
            targets_opt targets 
          else
            emp) ^
@@ -2823,7 +2823,7 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
         in
         let s2 = match rec_flag with FR_non_rec -> None | FR_rec sk -> sk in
         ws s1 ^ kwd (if is_rec then "function (sequential)" else (if is_simple then "definition" else "fun")) ^ ws s2 ^
-        (if T.target = Target_ident then
+        (if Target.is_human_target T.target then
            targets_opt targets 
          else
            emp) ^
@@ -2844,7 +2844,7 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
       if in_target targets then
         ws s ^
         T.reln_start ^
-        (if T.target = Target_ident then
+        (if Target.is_human_target T.target then
            targets_opt targets 
          else
            emp) ^

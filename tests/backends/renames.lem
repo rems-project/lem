@@ -1,3 +1,5 @@
+open import Transform
+
 let rec (++) left right =
   match left with
     | [] -> right
@@ -7,65 +9,62 @@ let rec (++) left right =
 
 declare {coq} ascii_rep function (++) = append
 
-(*
-
-(* fix is bound and should be renamed *)
+(* fix is bound and should be declared *)
 type value = A | B | fix | EVEN | STRCAT
-declare {coq} rename constant fix = coq_fix 
+declare {coq} rename function fix = coq_fix 
 declare {coq} rename type value = value0
 
 (* Test again whether renaming really works *)
-declare {coq} rename constant A = value_A
+declare {coq} rename function A = value_A
 let my_val_test a (b:value) = match a with (A:value) -> b | B -> (B:value) end
 let my_val_test2 (a : value) = ([A] : list value)
 let my_val_test3 (a : value) = [A]
 let my_val_test4 a = (if a = A then [A] else [B])
 
-(* where is bound and should be renamed automatically,
+(* where is bound and should be declared automatically,
    producing a warning *)
 type my_record 'a = <| field_one : 'a; where : value |>
 
 declare {coq} rename field where = field_two
 
-(*
 
-(* op should be renamed, but assume is no good choice *)
+(* op should be declared, but assume is no good choice *)
 let op x = List.rev x
-rename {isabelle} op = assume
-rename {coq} op = assume
+declare {isabelle} rename function op = assume
+declare {coq} rename function op = assume
 
 (* multiple renamings to the same name are catched as well *)
 let bad_name = 1
 let bad_name2 = 2
-rename {isabelle} bad_name = x
-rename {isabelle} bad_name2 = x
-rename {coq} bad_name = x
-rename {coq} bad_name2 = x
+declare {isabelle} rename function bad_name = x
+declare {isabelle} rename function bad_name2 = x
+declare {coq} rename function bad_name = x
+declare {coq} rename function bad_name2 = x
 
 (* Test recursive definition *)
 let rec my_rec a = match a with [] -> 0 | (x::xs) -> x + (my_rec xs) end
-rename {isabelle; coq; hol} my_rec = my_rec_renamed
+declare {isabelle; coq; hol} rename function my_rec = my_rec_declared
 
 (* and mutually recursive definition *)
 let rec my_mrec_a a = (match a with [] -> 0 | (x::xs) -> x + (my_mrec_b xs) end) 
     and my_mrec_b b = (match b with [] -> 1 | (x::xs) -> x + (my_mrec_a xs) end)
 
-rename {isabelle; coq; hol} my_mrec_a = my_mrec_a_renamed
-rename {isabelle; coq; hol} my_mrec_b = my_mrec_b_renamed
+declare {isabelle; coq; hol} rename function my_mrec_a = my_mrec_a_declared
+declare {isabelle; coq; hol} rename function my_mrec_b = my_mrec_b_declared
 
 
 (* second renaming should raise an error *)
-rename {isabelle} my_val_test = isa_test
-rename {hol} my_val_test = hol_test
-(* rename {isabelle} my_val_test = isa_test2 *)
+declare {isabelle} rename function my_val_test = isa_test
+declare {hol} rename function my_val_test = hol_test
+(* declare {isabelle} my_val_test = isa_test2 *)
 
 
 (* Testing whether automatic variable renaming works. 
-   Variables are renamed without any warning, since the
+   Variables are declared without any warning, since the
    change is local *)
 
 let bad_name3 good_arg = (0:num)
-rename {isabelle} bad_name3 = good_arg
+declare {isabelle} rename function bad_name3 = good_arg
 
 let my_dummy op assume isa_add isa_add0 isa_add1 x = op
 
@@ -83,5 +82,3 @@ let my_dummy7 assume = { assume0 | assume0 > 10 }
 
 let my_dummy8 x = { assume | assume > 10 }
 
-*)
-*)
