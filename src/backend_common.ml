@@ -54,19 +54,19 @@ let r = Ulib.Text.of_latin1
 let marker_lex_skip : Ast.lex_skips = (Some [Ast.Ws (Ulib.Text.of_latin1 "***marker***")])
 
 (* Resolve a const identifier stored inside a id, with a full one in case of Id_none *)
-let resolve_constant_id_ident env id : Ident.t =
+let resolve_constant_id_ident l env id : Ident.t =
   match id.id_path with 
-      | Id_none sk -> resolve_const_ref env sk id.descr
+      | Id_none sk -> resolve_const_ref l env sk id.descr
       | Id_some id -> id
 
-let resolve_type_id_ident env id path : Ident.t =
+let resolve_type_id_ident l env id path : Ident.t =
   match id.id_path with 
-      | Id_none sk -> resolve_type_path env sk path
+      | Id_none sk -> resolve_type_path l env sk path
       | Id_some id -> id
 
-let resolve_module_id_ident env id path : Ident.t =
+let resolve_module_id_ident l env id path : Ident.t =
   match id.id_path with 
-      | Id_none sk -> resolve_module_path env sk path
+      | Id_none sk -> resolve_module_path l env sk path
       | Id_some id -> id
 
 
@@ -213,7 +213,7 @@ let const_ref_to_name n0 use_ascii c =
 let const_id_to_ident_aux c_id ascii_alternative given_id_opt =   
   let l = Ast.Trans (false, "const_id_to_ident", None) in
   let c_descr = c_env_lookup l A.env.c_env c_id.descr in
-  let org_ident = resolve_constant_id_ident A.env c_id in
+  let org_ident = resolve_constant_id_ident l A.env c_id in
   let (_, n, n_ascii_opt) = constant_descr_to_name A.target c_descr in
   let (ascii_used, ident') =    
     match (n_ascii_opt, ascii_alternative, given_id_opt) with
@@ -296,7 +296,7 @@ let type_path_to_name n0 (p : Path.t) : Name.lskips_t =
 let type_id_to_ident (p : Path.t id) =
    let l = Ast.Trans (false, "type_id_to_ident", None) in
    let td = Types.type_defs_lookup l A.env.t_env p.descr in
-   let org_type = resolve_type_id_ident A.env p p.descr in
+   let org_type = resolve_type_id_ident l A.env p p.descr in
    match Target.Targetmap.apply_target td.Types.type_rename A.target with
      | Some (_, n) -> fix_module_prefix_ident (Ident.rename org_type n)
      | None -> begin
@@ -326,8 +326,8 @@ let type_app_to_output format p ts =
   end
 
 let module_id_to_ident (mod_id : Path.t id) : Ident.t =
-(*   let l = Ast.Trans ("module_id_to_ident", None) in *)
-   let i = resolve_module_id_ident A.env mod_id mod_id.descr in
+   let l = Ast.Trans (true, "module_id_to_ident", None) in 
+   let i = resolve_module_id_ident l A.env mod_id mod_id.descr in
    let i' = fix_module_ident i in
    i'
 

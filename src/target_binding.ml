@@ -52,8 +52,6 @@ open Typed_ast_syntax
    [search_module_suffix eq_fun env [m1, ... , mn]] finds the minimum module prefix
    needed to describe [name]. The function [is_ok] must return [true] if the
    entity can be found in the local environment of a given module.
-
-   (* TODO: perhaps performance improvements *)
  *)
 let search_module_suffix (env : Typed_ast.env) (is_ok : Typed_ast.env -> bool) (ns : Name.t list) = 
   let suffix_ok ns =
@@ -68,16 +66,10 @@ let search_module_suffix (env : Typed_ast.env) (is_ok : Typed_ast.env -> bool) (
       | [] -> acc
       | n::ns -> aux acc ns
   in
-  match aux None ns with
-    | None -> 
-
-      raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal
-          (Ast.Unknown, "search_module_suffix failed to find a path"))) 
-(*      (Name.from_string "----not_found----") :: ns *)
-    | Some x -> x
+  aux None ns
 
 
-let resolve_module_path env sk (p : Path.t) =
+let resolve_module_path l env sk (p : Path.t) =
   let (ns, n) = Path.to_name_list p in
   let is_ok lenv =
     let md_opt = lookup_mod_descr_opt env [] n in
@@ -85,10 +77,13 @@ let resolve_module_path env sk (p : Path.t) =
       | None -> false
       | Some md -> Path.compare md.mod_binding p  = 0
   in
-  let ns' = search_module_suffix env is_ok ns in
-  Ident.mk_ident sk ns' n
+  match search_module_suffix env is_ok ns with
+    | Some ns' -> Ident.mk_ident sk ns' n
+    | None ->
+      raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal
+          (l, "could not resolve module path " ^ Path.to_string p))) 
 
-let resolve_type_path env sk p = 
+let resolve_type_path l env sk p = 
   let (ns, n) = Path.to_name_list p in
   let is_ok env =
     let p_opt = Nfmap.apply env.local_env.p_env n in
@@ -96,10 +91,13 @@ let resolve_type_path env sk p =
       | None -> false
       | Some (p',_) -> Path.compare p p' = 0
   in
-  let ns' = search_module_suffix env is_ok ns in
-  Ident.mk_ident sk ns' n
+  match search_module_suffix env is_ok ns with
+    | Some ns' -> Ident.mk_ident sk ns' n
+    | None ->
+      raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal
+          (l, "could not resolve type path " ^ Path.to_string p))) 
 
-let resolve_const_ref env sk c_ref = 
+let resolve_const_ref l env sk c_ref = 
   let c_descr = c_env_lookup Ast.Unknown env.c_env c_ref in
   let c_kind = const_descr_to_kind (c_ref, c_descr) in
   let (ns, n) = Path.to_name_list c_descr.const_binding in
@@ -119,8 +117,11 @@ let resolve_const_ref env sk c_ref =
           c_descr'.const_no_class = Some c_ref
         end)
   in
-  let ns' = search_module_suffix env is_ok ns in
-  Ident.mk_ident sk ns' n
+  match search_module_suffix env is_ok ns with
+    | Some ns' -> Ident.mk_ident sk ns' n
+    | None ->
+      raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal
+          (l, "could not resolve constant path " ^ Path.to_string c_descr.const_binding))) 
 
 
 

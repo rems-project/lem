@@ -3208,12 +3208,12 @@ and check_defs_internal (backend_targets : Targetset.t) (mod_path : Name.t list)
     | (Ast.Def_l(d_aux,l) as d,sk,semi)::ds ->
         let s = if semi then Some(sk) else None in
         let new_backend_targets = get_effective_backends backend_targets d_aux in 
-        let (ctxt,d) = check_def new_backend_targets mod_path ctxt d sk semi in
-        let (ctxt,ds) = check_defs_internal backend_targets mod_path ctxt ds in
+        let (ctxt',d) = check_def new_backend_targets mod_path ctxt d sk semi in
+        let (ctxt'',ds) = check_defs_internal backend_targets mod_path ctxt' ds in
         begin
           match d with
-            | None -> (ctxt, ds)
-            | Some d -> (ctxt, ((d,s),l,ctxt.cur_env)::ds)
+            | None -> (ctxt'', ds)
+            | Some d -> (ctxt'', ((d,s),l,ctxt'.cur_env)::ds)
         end
 
 
