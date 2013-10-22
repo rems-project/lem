@@ -411,6 +411,7 @@ val pp_nexp : Format.formatter -> nexp -> unit
 val pp_range : Format.formatter -> range -> unit
 val pp_class_constraint : Format.formatter -> Path.t * tnvar -> unit
 val pp_instance : Format.formatter -> instance -> unit
+val pp_typschm : Format.formatter -> tnvar list -> (Path.t * tnvar) list -> t -> unit
 
 (*
 val pp_instance_defs: Format.formatter -> i_env -> unit

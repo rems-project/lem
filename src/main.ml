@@ -52,7 +52,7 @@ let backends = ref ([] : Target.target list)
 
 let add_backend b () : unit = if not (List.mem b !backends) then (backends := b::!backends)
 
-let opt_print_types = ref false
+let opt_print_env = ref false
 let opt_print_version = ref false
 let opt_library = ref None
 let lib = ref []
@@ -87,9 +87,9 @@ let options = Arg.align ([
   ( "-ident",
     Arg.Unit (add_backend Target.Target_ident),
     " generate input on stdout");
-  ( "-print_types",
-    Arg.Unit (fun b -> opt_print_types := true),
-    " print types on stdout");
+  ( "-print_env",
+    Arg.Unit (fun b -> opt_print_env := true),
+    " print the environment signature on stdout");
   ( "-lib", 
     Arg.String (fun l -> opt_library := Some l),
     " library path"^match !opt_library with None->"" | Some s -> " (default "^s^")");
@@ -278,16 +278,6 @@ let main () =
              Typed_ast.untyped_ast = ast;
              Typed_ast.typed_ast = tast; }
          in
-           if !opt_print_types then
-             begin
-               (*
-               Format.fprintf Format.std_formatter "%s@\nlibrary:@\n" f;
-               Typed_ast.pp_env Format.std_formatter (snd type_info);
-                *)
-               Format.fprintf Format.std_formatter "%s@\nenvironment:@\n" file_name;
-               Typed_ast.pp_env Format.std_formatter e;
-               Format.fprintf Format.std_formatter "@\n@\n"
-             end;
            ((if add_to_modules then
              module_record::mods
                else
@@ -303,6 +293,13 @@ let main () =
      - non-exhaustive and redundant patterns
   *)
   let _ = check_modules env modules in
+
+
+  let _ = if !opt_print_env then
+             begin
+               Process_file.output_sig Format.std_formatter env
+             end in
+
 
   let alldoc_accum = ref ([] : Ulib.Text.t list) in
   let alldoc_inc_accum = ref ([] : Ulib.Text.t list) in

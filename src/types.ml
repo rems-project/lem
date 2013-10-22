@@ -703,50 +703,7 @@ module IM = Map.Make(struct type t = int let compare = Pervasives.compare end)
 open Format
 open Pp
 
-let rec pp_type ppf t =
-  pp_open_box ppf 0;
-  (match t.t with
-     | Tvar(tv) ->
-         Tyvar.pp ppf tv
-     | Tfn(t1,t2) ->
-         fprintf ppf "(@[%a@])@ ->@ %a"
-           pp_type t1
-           pp_type t2
-     | Ttup(ts) ->
-         fprintf ppf "(@[%a@])"
-           (lst "@ *@ " pp_type) ts
-     | Tapp([],p) ->
-         Path.pp ppf p
-     | Tapp([t],p) ->
-         fprintf ppf "%a@ %a"
-           Path.pp p
-           pp_type t
-     | Tapp(ts,p) ->
-         fprintf ppf "%a @[%a@]"
-           Path.pp p
-           (lst "@ " pp_type) ts
-     | Tbackend([],p) ->
-         Path.pp ppf p
-     | Tbackend([t],p) ->
-         fprintf ppf "%a@ %a"
-           Path.pp p
-           pp_type t
-     | Tbackend(ts,p) ->
-         fprintf ppf "%a @[%a@]"
-           Path.pp p
-           (lst "@ " pp_type) ts
-     | Tne(n) -> fprintf ppf "%a" 
-                   pp_nexp n
-     | Tuvar(u) ->
-         fprintf ppf "_");
-         
-         (*fprintf ppf "<@[%d,@ %a@]>" 
-           u.index
-           (opt pp_type) u.subst);*)
-          
-  pp_close_box ppf ()
-and
- pp_nexp ppf n =
+let rec pp_nexp ppf n =
   pp_open_box ppf 0;
   (match n.nexp with
      | Nuvar nu -> fprintf ppf "_" (*   fprintf ppf "_ (%d)" nu.nindex *)
@@ -764,7 +721,49 @@ and
             pp_nexp j
      | Nneg(n) -> fprintf ppf "- %a"
             pp_nexp n);
-  pp_close_box ppf ()
+  pp_close_box ppf ();;
+
+let rec pp_type_aux paren ppf t =
+  pp_open_box ppf 0;
+  (match t.t with
+     | Tvar(tv) ->
+         Tyvar.pp ppf tv
+     | Tfn(t1,t2) ->
+         if paren then pp_print_string ppf "(";
+         pp_type_aux true ppf t1;
+         pp_print_string ppf " -> ";
+         pp_type_aux false ppf t2;
+         if paren then pp_print_string ppf ")";
+     | Ttup(ts) ->
+         fprintf ppf "(@[%a@])"
+           (lst "@ *@ " (pp_type_aux true)) ts
+     | Tapp([],p) ->
+         Path.pp ppf p
+     | Tapp(ts,p) ->
+         if paren then pp_print_string ppf "(";
+         fprintf ppf "%a @[%a@]"
+           Path.pp p
+           (lst "@ " (pp_type_aux true)) ts;
+         if paren then pp_print_string ppf ")";
+     | Tbackend([],p) ->
+         Path.pp ppf p
+     | Tbackend(ts,p) ->
+         if paren then pp_print_string ppf "(";
+         fprintf ppf "%a @[%a@]"
+           Path.pp p
+           (lst "@ " (pp_type_aux true)) ts;
+         if paren then pp_print_string ppf ")";
+     | Tne(n) -> fprintf ppf "%a" 
+                   pp_nexp n
+     | Tuvar(u) ->
+         fprintf ppf "_");
+         
+         (*fprintf ppf "<@[%d,@ %a@]>" 
+           u.index
+           (opt pp_type) u.subst);*)          
+  pp_close_box ppf ();;
+
+let pp_type = pp_type_aux false;;
 
 let pp_range ppf = function
   | GtEq(_,n) -> fprintf ppf "%a >= 0" pp_nexp n
@@ -794,6 +793,25 @@ let pp_instance_constraint ppf (p, t) =
   fprintf ppf "(@[%a@ %a@])"
     Path.pp p
     pp_type t
+
+let pp_typschm ppf tyvars constr ty = begin
+  pp_open_box ppf 2;
+  if (List.length tyvars > 0) then begin
+    pp_print_string ppf "forall ";
+    lst "@ " pp_tnvar ppf tyvars;
+    pp_print_string ppf ". ";
+  end;
+  pp_print_cut ppf ();
+  pp_open_box ppf 2;
+  if (List.length constr > 0) then begin
+    lst "@ " pp_class_constraint ppf constr;
+    pp_print_string ppf " => ";
+  end;
+  pp_print_cut ppf ();
+  pp_type ppf ty;
+  pp_close_box ppf ();
+  pp_close_box ppf ();
+end
 
 let pp_instance ppf inst =
   fprintf ppf "@[<2>forall@ (@[%a@]).@ @[%a@]@ =>@ %a@]@ (%a)"

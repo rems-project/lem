@@ -44,6 +44,9 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
+open Format
+open Typed_ast
+
 (* XXX: for debugging the developing code: open Coq_ast *)
 
 let r = Ulib.Text.of_latin1
@@ -340,3 +343,66 @@ let output_alldoc f' fs alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum =
   Printf.fprintf o "%s" (Ulib.Text.to_string (Ulib.Text.concat (r"") rs));
   close_output_with_check ext_o
 
+
+
+let ident_step i = i ^ "  "
+
+
+(*  fprintf ppf "@[<2>forall@ (@[%a@]).@ @[%a@]@ =>@ %a@]"
+    (lst ",@," pp_tnvar) tyvars
+    (lst "@ " pp_class_constraint) constr
+    pp_type ty 
+*)
+
+
+
+
+let output_sig_const_descr o env ident n cd =
+begin
+  pp_print_string o (ident ^ "val " ^ Name.to_string n ^ " : ");
+  Types.pp_typschm o cd.const_tparams cd.const_class cd.const_type;
+  pp_print_newline o (); 
+end
+
+let output_sig_type o env ident n p =
+begin
+  let ty_or_cl = match Types.Pfmap.apply env.t_env p with
+    | Some(Types.Tc_class _) -> "class"
+    | _ -> "type" in
+
+  pp_print_string o (ident ^ ty_or_cl ^ " " ^ Name.to_string n);
+  pp_print_newline o (); 
+end
+
+let rec output_sig_local_env o env ident lenv =
+begin  
+  Nfmap.iter (fun n (p, _) -> 
+    output_sig_type o env ident n p) lenv.p_env;
+  pp_print_newline o ();
+
+  Nfmap.iter (fun n r -> 
+    let cd = c_env_lookup Ast.Unknown env.c_env r in
+    output_sig_const_descr o env ident n cd) lenv.v_env;
+  pp_print_newline o ();
+
+  (* print submodules *)
+  Nfmap.iter (fun n r -> 
+    let md = e_env_lookup Ast.Unknown env.e_env r in
+    output_sig_module o env ident md)  lenv.m_env;
+end 
+
+and output_sig_module o env ident md =
+begin
+  let (_, mod_name) = Path.to_name_list md.mod_binding in
+
+  pp_print_string o (ident ^ "module " ^ Name.to_string mod_name ^ " = struct");
+  pp_print_newline o ();
+  output_sig_local_env o env (ident_step ident) md.mod_env;
+  pp_print_string o (ident ^ "end");
+  pp_print_newline o ();
+  pp_print_newline o ();
+end
+
+
+let output_sig o env  =
+  output_sig_local_env o env "" env.local_env;

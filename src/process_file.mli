@@ -72,3 +72,5 @@ val output_alldoc : string -> string -> Ulib.Text.t list ref -> Ulib.Text.t list
     backends like OCaml, HOL, Isabelle, this is benefitial, since it prevents them
     from reprocessing these unchanged files. *)
 val always_replace_files : bool ref
+
+val output_sig : Format.formatter -> Typed_ast.env -> unit
