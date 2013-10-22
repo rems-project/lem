@@ -16,31 +16,31 @@ isabelletests: isatests/Pats.thy isatests/Types.thy isatests/Exps.thy
 	isabelle make isatests
 
 %.ml: %.lem ../../lem
-	../../lem -lib ../../library -wl ign -ocaml $<
+	../../lem -wl ign -ocaml $<
 
 TypesScript.sml: types.lem ../../lem
-	../../lem -lib ../../library -wl ign -hol $<
+	../../lem -wl ign -hol $<
 
 PatsScript.sml: pats.lem ../../lem
-	../../lem -lib ../../library -wl ign -hol $<
+	../../lem -wl ign -hol $<
 
 ExpsScript.sml: exps.lem ../../lem
-	../../lem -lib ../../library -wl ign -hol $<
+	../../lem -wl ign -hol $<
 
 HoltestScript.sml: holtest.lem ../../lem
-	../../lem -lib ../../library -wl ign -hol $<
+	../../lem -wl ign -hol $<
 
 %.v: %.lem ../../lem
-	../../lem -lib ../../library -wl ign -coq $<
+	../../lem -wl ign -coq $<
 
 Types.thy: types.lem ../../lem
-	../../lem -lib ../../library -wl ign -isa $<
+	../../lem -wl ign -isa $<
 
 Pats.thy: pats.lem ../../lem
-	../../lem -lib ../../library -wl ign -isa $<
+	../../lem -wl ign -isa $<
 
 Exps.thy: exps.lem ../../lem
-	../../lem -lib ../../library -wl ign -isa $<
+	../../lem -wl ign -isa $<
 
 %Theory.uo: %Script.sml hol_preload
 	Holmake --poly ./hol_preload --qof --quiet $@

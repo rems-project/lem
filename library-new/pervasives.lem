@@ -1,7 +1,3 @@
 include import Bool Maybe Basic_classes Num Tuple Function Set List
-import Sorting Relation
+import Sorting Relation 
 
-
-(* 
-import convert
-*)

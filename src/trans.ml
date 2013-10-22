@@ -323,7 +323,7 @@ let remove_comprehension for_lst _ e =
             let param_pat = C.mk_pvar (l_unk 16) param_name p.typ in
             let res = helper qbs in
             let s = lskips_only_comments [s1';s2';s3'] in
-            let arg1 = 
+            let arg_fun = 
               if Pattern_syntax.single_pat_exhaustive p then
                 C.mk_fun (l_unk 17) s [p; acc_pat] space res None
               else
@@ -337,6 +337,7 @@ let remove_comprehension for_lst _ e =
                      None)
                   None
             in
+            let (arg1, arg2, arg3) = if is_lst then (arg_fun, acc_var, e) else (arg_fun, e, acc_var) in
             let app1 = 
               C.mk_app (l_unk 23) 
                 (if is_lst then
@@ -346,8 +347,8 @@ let remove_comprehension for_lst _ e =
                 arg1 
                 None
             in
-            let app2 = C.mk_app (l_unk 24) app1 e None in
-              C.mk_app (l_unk 25) app2 acc_var None
+            let app2 = C.mk_app (l_unk 24) app1 arg2 None in
+              C.mk_app (l_unk 25) app2 arg3 None
       in
       let t = 
         { Types.t = 
@@ -448,8 +449,6 @@ let remove_setcomp _ e =
      end
   | _ -> None
 
-let get_compare l t = mk_const_exp env l "compare" [t]
-
 let remove_sets context e = 
   let l_unk = Ast.Trans(true, "remove_sets", Some (exp_to_locn e)) in
   match C.exp_to_term e with
@@ -462,9 +461,7 @@ let remove_sets context e =
                   space es s2 { Types.t = Types.Tapp([t],Path.listpath) }
               in
               let from_list = mk_const_exp env l_unk "set_from_list" [t] in
-              let cmp = get_compare l_unk t in
-              let app1 = C.mk_app l_unk from_list (append_lskips space cmp) None in
-              let app = C.mk_app l_unk app1 lst None in
+              let app = C.mk_app l_unk from_list lst None in
                 Some(app)
           | _ -> 
               assert false
@@ -508,9 +505,9 @@ let get_quant_impl (env : Typed_ast.env) is_lst t : Ast.q -> exp =
             f "set_forall" s
       | Ast.Q_exists(s) ->
           if is_lst then
-            f "list_exist" s
+            f "list_exists" s
           else
-            f "set_exist" s
+            f "set_exists" s
 ;;
 
 (* Turn quantifiers into iteration, fails on unrestricted quantifications *)

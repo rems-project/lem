@@ -50,7 +50,6 @@
 let constant_label_to_path_name (label : string) : (string list * string) =
 match label with
   | "equality" -> (["Pervasives"], "=")
-  | "compare" -> (["Ocaml"], "compare")
   | "identity" -> (["Pervasives"], "id")
 
   | "conjunction" -> (["Bool"], "&&")
@@ -64,27 +63,27 @@ match label with
 
   | "list_concat" -> (["List"], "concat")
   | "list_cons" -> (["Pervasives"], "::")
-  | "list_exists" -> (["List"], "exists")
-  | "list_fold_right" -> (["List"], "fold_right")
-  | "list_forall" -> (["List"], "forall")
+  | "list_exists" -> (["List"], "any")
+  | "list_fold_right" -> (["List"], "foldr")
+  | "list_forall" -> (["List"], "all")
   | "list_map" -> (["List"], "map")
-  | "list_member" -> (["List"], "mem")
+  | "list_member" -> (["List"], "elem")
 
   | "maybe_just" -> (["Pervasives"], "just")
   | "maybe_nothing" -> (["Pervasives"], "none")
 
   | "nat_list_to_string" -> (["Pervasives"], "nat_list_to_string")
 
-  | "set_add" -> (["Set"], "add")
+  | "set_add" -> (["Set"], "insert")
   | "set_cross" -> (["Set"], "cross")
-  | "set_exists" -> (["Set"], "exists")
+  | "set_exists" -> (["Set"], "any")
   | "set_filter" -> (["Set"], "filter")
-  | "set_fold" -> (["Set"], "fold")
-  | "set_forall" -> (["Set"], "for_all")
-  | "set_from_list" -> (["Set"], "from_list")
-  | "set_image" -> (["Set"], "image")
+  | "set_fold" -> (["Set_non_pure"], "fold")
+  | "set_forall" -> (["Set"], "all")
+  | "set_from_list" -> (["Set"], "fromList")
+  | "set_image" -> (["Set"], "map")
   | "set_member" -> (["Set"], "IN")
-  | "set_sigma" -> (["Set"], "set_sigma")
+  | "set_sigma" -> (["Set"], "sigma")
 
   | "vector_access" -> (["Vector"], "vector_access")
   | "vector_slice" -> (["Vector"], "vector_slice")

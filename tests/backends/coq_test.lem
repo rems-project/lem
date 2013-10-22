@@ -1,32 +1,34 @@
-type a = num
+open import Pervasives_non_pure
+
+type a = nat
 type b 'a = 'a * a
 type c 'a 'b = 'a * 'b
 
 let d = (1 : a)
-let e = ((1, 2) : b num)
-let f = ((1, false) : c num bool)
+let e = ((1, 2) : b nat)
+let f = ((1, false) : c nat bool)
 
-type g = <| field_one : num; field_two : bool |>
+type g = <| field_one : nat; field_two : bool |>
 type h 'a = <| field_three : 'a; field_four : bool |>
 type i 'a 'b = <| field_five : 'a; field_six : 'b |>
 type j = <| field_seven : g |>
 
 let k = (<| field_one = 1; field_two = true |> : g)
-let l = (<| field_three = (1, true); field_four = false |> : h (num * bool))
+let l = (<| field_three = (1, true); field_four = false |> : h (nat * bool))
 let m = (<| field_seven = <| field_one = 1; field_two = true |> |>)
 
 let n = (<| field_five = (fun x -> x); field_six =
-           <| field_three = 1; field_four = true |> |> :  i ('a -> 'a) (h num))
+           <| field_three = 1; field_four = true |> |> :  i ('a -> 'a) (h nat))
 
 type o = A of a
 
 type p
   = B of a
-  | C of (b num)
+  | C of (b nat)
   | D of g
 
 type q
-  = E of num
+  = E of nat
   | F of i g (h a)
   | G of r
 and r
@@ -39,13 +41,13 @@ type bool =
   True
 | False
 
-type nat =
+type mynat =
   Zero
-| Succ of nat
+| Succ of mynat
 
 type heap 'a =
   Nil
-| Node of nat * heap 'a * 'a * heap 'a
+| Node of mynat * heap 'a * 'a * heap 'a
 
 type u 'a = I of 'a
 
@@ -54,7 +56,7 @@ type v 'a 'b 'c
   | K of 'b
   | L of (w 'c)
 and w 'a =
-  | M of ('a -> 'a) * v num num num
+  | M of ('a -> 'a) * v nat nat nat
 
 type x 'a =
   | N of y 'a

@@ -1,11 +1,11 @@
-open import Transform
+open import Pervasives_non_pure
 
 (* A (* Nested *)
      comment *)
 
-type t = C1 | C2 of num | C3 of bool * num
-type t2 = <| f1 : num ; f2: bool |>
-type t3 = C4 of num
+type t = C1 | C2 of nat | C3 of bool * nat
+type t2 = <| f1 : nat ; f2: bool |>
+type t3 = C4 of nat
 
 let test1 = fun x -> x
 
@@ -13,7 +13,7 @@ let test2 = fun (x,y) z -> x + y + z
 
 let test61 = fun (C4 x) -> x
 let test62 = fun (x,C4 y) -> x+y
-let test64 = fun ((x, (y:num)), (z)) -> x
+let test64 = fun ((x, (y:nat)), (z)) -> x
 
 let test65 = (*1*)fun (*2*)x (*3*)(C4 y) (*4*)z (*5*)a (*6*)(C4 b) (*7*)(C4 c) (*8*)-> (*9*)x
 
@@ -22,12 +22,12 @@ let test3 = function
 end
 
 let test4 = function
-    ((2:num),y) -> y
-  | (x,(3:num)) -> x
+    ((2:nat),y) -> y
+  | (x,(3:nat)) -> x
   | _ -> 10
 end
 
-let test5 = (test1 : num -> num)
+let test5 = (test1 : nat -> nat)
 let test6 = C2 1
 let test7 = C3 true 1
 
@@ -46,10 +46,10 @@ let test18 = if true then 4 else 5
 
 let test19 = let x = 2 in x
 let test20 = let (x,y) = (2,3) in x+y
-let test21 = let f x = (x,x+1,x+3) in f 1
+let test21 = let f x = (x,(x+1),(x+3)) in f 1
 let test22 = let f (x,y) z = x + y + z in f (1,2) 3
-let test66 = let x : num = 2 in x
-let test67 = let f x : num = 2 in f 1
+let test66 = let x : nat = 2 in x
+let test67 = let f x : nat = 2 in f 1
 
 let test23 = {1; 2; 3; }
 let test24 = {1; 2; 3 }
@@ -66,13 +66,13 @@ let test32 = { x | forall (C2 x IN { C2 1; C3 true 3 }) | x < 2 }
 let test42 = { x | forall (x::y IN { []; }) | x < 2 }
 let test43 = { x | forall (x IN {}) ([] IN { []; [1]}) | x < 2 }
 let test44 = { x | forall ([x;y] IN { []; [1]}) | x < 2 }
-let test45 = { x | forall ((x:num) IN {}) | x < 2 }
+let test45 = { x | forall ((x:nat) IN {}) | x < 2 }
 let test52 = [ x | forall ((x,y) MEM [ (1,2);(2,1) ]) | x < y ]
 let test53 = [ x | forall (C2 x MEM [ C2 1; C3 true 3 ]) | x < 2 ]
 let test54 = [ x | forall (x::y MEM [ []; ]) | x < 2 ]
 let test55 = [ x | forall (x MEM []) ([] MEM [ []; [1]]) | x < 2 ]
 let test56 = [ x | forall ([x;y] MEM [ []; [1]]) | x < 2 ]
-let test57 = [ x | forall ((x:num) MEM []) | x < 2 ]
+let test57 = [ x | forall ((x:nat) MEM []) | x < 2 ]
 let test33 = { x | forall ((x,y) IN { (1,2);(2,1) }) | x < y }
 let test58 = [ x | forall (C4 x MEM []) | x > 10 ]
 let test59 = { x | forall (C4 x IN {}) | x > 10 }
@@ -93,7 +93,7 @@ let test79 = exists (x IN {}) ([] IN { []; [1]}). x < 2
 let test80 = exists (_ IN { [2]; [3]}) ((x,y) IN {(1,3)}) (_ IN { []; [1]}). x < 2
 let test48 = forall ([x;y] IN { []; [1]}). x < 2
 let test60 = forall (C4 x MEM []). x > 10
-let test49 = forall ((x:num) IN {}). x < 2
+let test49 = forall ((x:nat) IN {}). x < 2
 let test41 = forall ((x,y) IN { (1,2);(2,1) }). x < y
 
 let test68 x y = x && y
@@ -104,7 +104,7 @@ let test72 = ()
 let test73 = C3 true
 let test74 = (C3 true) 1
 
-type u 'a = C5 of 'a * num
+type u 'a = C5 of 'a * nat
 let test75 = C5 true
 
 (*
@@ -120,5 +120,5 @@ let test85 = ()
 let test86 = ( )
 let test87 = ( (* Comment *) )
 
-let test88 s1 s2 = Set.equal s1 s2
-let test89 s = Set.is_empty s
+let test88 s1 s2 = setEqual s1 s2
+let test89 s = null s

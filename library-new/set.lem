@@ -39,7 +39,7 @@ declare rename module = lem_set
 (* ----------------------- *)
 
 val setEqual : forall 'a. Ord 'a => set 'a -> set 'a -> bool
-let inline {hol; isabelle} setEqual = unsafe_structural_equality 
+let inline {coq; hol; isabelle} setEqual = unsafe_structural_equality 
 declare ocaml    target_rep function setEqual = `Pset.equal`
 
 instance forall 'a. Ord 'a => (Eq (set 'a))
@@ -83,13 +83,13 @@ val (IN) : forall 'a. Ord 'a, Eq 'a => 'a -> set 'a -> bool
 declare ascii_rep function (IN) = member (* Haskell notation *)
 
 val memberBy : forall 'a. ('a -> 'a -> bool) -> 'a -> set 'a -> bool 
-let inline {coq} member = memberBy (=)
 let memberBy eq e s = any (eq e) s
 
 declare coq      target_rep function memberBy eq e = `set_exists` (eq e)
 declare ocaml    target_rep function member = `Pset.mem`
 declare isabelle target_rep function member = `Set.member`
 declare hol      target_rep function member = infix `IN`
+let inline {coq} member = memberBy (=)
 
 assert in_1: (1 IN {2;3;1})
 assert in_2: (not (1 IN {2;3;4}))
@@ -287,12 +287,12 @@ lemma difference_in: (forall e s1 s2. e IN (difference s1 s2) <-> (e IN s1 && no
 val intersection : forall 'a. Ord 'a, Eq 'a => set 'a -> set 'a -> set 'a
 val intersectionBy : forall 'a. ('a -> 'a -> bool) -> set 'a -> set 'a -> set 'a
 
-let inline {coq} intersection = intersectionBy (=)
-
 declare ocaml    target_rep function intersection = `Pset.inter`
 declare hol      target_rep function intersection = `INTER`
 declare isabelle target_rep function intersection = `inter`
 declare coq      target_rep function intersectionBy = `set_inter` 
+
+let inline {coq} intersection = intersectionBy (=)
 
 assert intersection_1: (difference {1;2;3} {3;2;4} = {2;3})
 lemma intersection_in: (forall e s1 s2. e IN (intersection s1 s2) <-> (e IN s1 && e IN s2))

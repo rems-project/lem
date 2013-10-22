@@ -626,7 +626,7 @@ let mk_set_filter_exp env (e_P : exp) (e_s : exp) : exp =
   let res_ty = { Types.t = Types.Tapp([set_ty],Path.setpath) } in
   let aux_ty = { Types.t = Types.Tfn (exp_to_typ e_s, res_ty) } in
 
-  let filter_exp = mk_const_exp env l "Set_filter" [set_ty] in
+  let filter_exp = mk_const_exp env l "set_filter" [set_ty] in
   let res0 = C.mk_app l filter_exp e_P (Some aux_ty) in
   let res = C.mk_app l res0 e_s (Some res_ty) in
   res
