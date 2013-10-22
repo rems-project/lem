@@ -1180,7 +1180,7 @@ val a : nat
 let a = match x with (a,b) -> 1 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 5, character 1 to line 5, character 35
+File "test.lem", line 7, character 1 to line 7, character 35
   Type error: unsatisfied type class constraints:
     (Test.c 'b)
   and
@@ -1193,7 +1193,7 @@ val a : forall 'a. 'a -> nat
 let inline {hol} a y = match x with (a,b) -> 1 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 5, character 1 to line 5, character 50
+File "test.lem", line 7, character 1 to line 7, character 50
   Type error: unsatisfied type class constraints:
     (Test.c 'b)
   and

@@ -3079,7 +3079,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
 	     inst_tyvars = [];
 	     inst_constraints = [];
 	     inst_class = p;
-	     inst_methods = (* this violates the invariant that instances should implement all the methods of their parent class. However, this should not matter much, since it is only temporary and used during typechecking*) [];
+	     inst_methods = (* this violates the invariant that instances should implement all the methods of their parent class. However, this should not matter much, since it is only temporary and used during typechecking*) [(nil_const_descr_ref, nil_const_descr_ref)];
 	     inst_type = tnvar_to_type tv;
 	     inst_dict = nil_const_descr_ref (* only temporary *);
           } in
@@ -3146,6 +3146,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
               (Nfmap.empty, ctxt_inst0,[])              
               vals
           in
+          let ctxt_inst = {ctxt_inst with all_instances = ctxt.all_instances} in
           let inst_methods = (* All methods present? If not, raise an exception. As well build a associative list that maps class methods to instance ones. *)
             List.map (fun (cm_ref,n,_) ->
                  match Nfmap.apply v_env_inst n with
