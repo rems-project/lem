@@ -33,7 +33,7 @@ open import Bool Maybe Basic_classes Tuple Num
 
 val (::) : forall 'a. 'a -> list 'a -> list 'a
 
-declare ascii_rep function (::) = cons
+declare ascii_rep function (::) = `cons`
 declare hol      target_rep function cons = infix `::`
 declare ocaml    target_rep function cons = infix `::`
 declare isabelle target_rep function cons = infix `#`
@@ -133,7 +133,7 @@ let rec (++) xs ys = match xs with
                      | x :: xs' -> x :: (xs' ++ ys)
                    end
 
-declare ascii_rep function (++) = append
+declare ascii_rep function (++) = `append`
 declare termination_argument append = automatic
 
 declare hol      target_rep function append = infix `++`

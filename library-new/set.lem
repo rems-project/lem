@@ -80,7 +80,7 @@ let all P s = (forall (e IN s). P e)
 (* ----------------------- *)
 
 val (IN) : forall 'a. Ord 'a, Eq 'a => 'a -> set 'a -> bool 
-declare ascii_rep function (IN) = member (* Haskell notation *)
+declare ascii_rep function (IN) = `member` (* Haskell notation *)
 
 val memberBy : forall 'a. ('a -> 'a -> bool) -> 'a -> set 'a -> bool 
 let memberBy eq e s = any (eq e) s

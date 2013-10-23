@@ -17,14 +17,18 @@ open import Bool
 class ( Eq 'a ) 
   val (=) : 'a -> 'a -> bool
 end
-declare ascii_rep function (=) = isEqual
+declare ascii_rep function (=) = `isEqual`
+declare coq target_rep function isEqual = infix `=`
 
-val (/=) : forall 'a. Eq 'a => 'a -> 'a -> bool
+(* val (/=) : forall 'a. Eq 'a => 'a -> 'a -> bool *)
 let (/=) x y = not (x = y)
-declare ascii_rep function (/=) = isUnequal
+declare ascii_rep function (/=) = `isUnequal`
 
+(*
 val (<>) : forall 'a. Eq 'a => 'a -> 'a -> bool
 let (<>) = isUnequal
+declare ascii_rep function (<>) = `isUnequal`
+*)
 
 (* (=) should for all instances be an equivalence relation 
    The isEquivalence predicate of relations could be used here.
@@ -77,19 +81,19 @@ end
 
 val (<) : forall 'a. Ord 'a => 'a -> 'a -> bool
 let (<) x y = (compare x y = LT)
-declare ascii_rep function (<) = isLess
+declare ascii_rep function (<) = `isLess`
 
 val (<=) : forall 'a. Ord 'a => 'a -> 'a -> bool
 let (<=) x y = let r = compare x y in (r = LT || r = EQ)
-declare ascii_rep function (<=) = isLessEqual
+declare ascii_rep function (<=) = `isLessEqual`
 
 val (>) : forall 'a. Ord 'a => 'a -> 'a -> bool
 let (>) x y = (compare x y = GT)
-declare ascii_rep function (>) = isGreater
+declare ascii_rep function (>) = `isGreater`
 
 val (>=) : forall 'a. Ord 'a => 'a -> 'a -> bool
 let (>=) x y = let r = compare x y in (r = GT || r = EQ)
-declare ascii_rep function (>=) = isGreaterEqual
+declare ascii_rep function (>=) = `isGreaterEqual`
 
 (* compare should really be a total order *)
 lemma ord_OK_1: (
@@ -121,7 +125,7 @@ end
 (* ========================================================================== *)
 
 instance (Eq bool)
-  let (=) = equiv_b
+  let (=) = equiv
 end
 
 let boolCompare b1 b2 = match (b1, b2) with

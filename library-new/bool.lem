@@ -4,7 +4,7 @@
 
 (* rename module to clash with existing list modules of targets *)
 
-declare rename module = lem_bool
+(* declare rename module = lem_bool *)
 
 (* The type bool is hard-coded, so are true and false *)
 
@@ -21,7 +21,7 @@ end
 declare hol      target_rep function not = `~`
 declare ocaml    target_rep function not = `not`
 declare isabelle target_rep function not = `~`
-declare coq      target_rep function not = `not_b`
+declare coq      target_rep function not = `not`
 
 
 (* ----------------------- *)
@@ -35,12 +35,11 @@ let (&&) b1 b2 = match (b1, b2) with
 end
 
 
-declare ascii_rep function (&&) = and_b
+declare ascii_rep function (&&) = `and`
 
-declare hol      target_rep function and_b = infix `/\`
-declare ocaml    target_rep function and_b = infix `&&`
-declare isabelle target_rep function and_b = infix `\<and>`
-declare coq      target_rep function and_b = infix `&&`
+declare hol      target_rep function (&&) = infix `/\`
+declare ocaml    target_rep function (&&) = infix `&&`
+declare isabelle target_rep function (&&) = infix `\<and>`
 
 
 
@@ -53,12 +52,12 @@ let (||) b1 b2 = match (b1, b2) with
   | (false, false) -> false
   | _ -> true
 end
-declare ascii_rep function (||) = or_b
+declare ascii_rep function (||) = `or`
 
-declare hol      target_rep function or_b = infix `\/`
-declare ocaml    target_rep function or_b = infix `||`
-declare isabelle target_rep function or_b = infix `\<or>`
-declare coq      target_rep function or_b = infix `||`
+declare hol      target_rep function (||) = infix `\/`
+declare ocaml    target_rep function (||) = infix `||`
+declare isabelle target_rep function (||) = infix `\<or>`
+declare coq      target_rep function (||) = infix `||`
 
 
 (* ----------------------- *)
@@ -70,13 +69,13 @@ let (-->) b1 b2 = match (b1, b2) with
   | (true, false) -> false
   | _ -> true
 end
-declare ascii_rep function (-->) = imp_b
+declare ascii_rep function (-->) = `imp`
 
-declare hol      target_rep function imp_b = infix `==>`
-declare isabelle target_rep function imp_b = infix `\<implies>`
-declare coq      target_rep function imp_b = infix `-->`
+declare hol      target_rep function (-->) = infix `==>`
+declare isabelle target_rep function (-->) = infix `\<implies>`
+declare coq      target_rep function (-->) = infix `-->`
 
-let inline {ocaml} imp_b x y = ((not x) || y)
+let inline {ocaml} imp x y = ((not x) || y)
 
 
 (* ----------------------- *)
@@ -89,11 +88,11 @@ let (<->) b1 b2 = match (b1, b2) with
   | (false, false) -> true
   | _ -> false
 end
-declare ascii_rep function (<->) = equiv_b
+declare ascii_rep function (<->) = `equiv`
 
-declare hol      target_rep function equiv_b = infix `<=>`
-declare isabelle target_rep function equiv_b = infix `\<equiv>`
-declare coq      target_rep function equiv_b = infix `<->`
-declare ocaml    target_rep function equiv_b = infix `=`
+declare hol      target_rep function (<->) = infix `<=>`
+declare isabelle target_rep function (<->) = infix `\<equiv>`
+declare coq      target_rep function (<->) = infix `<->`
+declare ocaml    target_rep function (<->) = infix `=`
 
 

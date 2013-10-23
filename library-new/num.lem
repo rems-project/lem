@@ -21,17 +21,17 @@ open import Bool Basic_classes
 class ( NumAdd 'a ) 
   val (+) : 'a -> 'a -> 'a
 end
-declare ascii_rep function (+) = numAdd
+declare ascii_rep function (+) = `numAdd`
 
 class ( NumMinus 'a ) 
   val (-) : 'a -> 'a -> 'a
 end
-declare ascii_rep function (-) = numMinus
+declare ascii_rep function (-) = `numMinus`
 
 class ( NumMult 'a ) 
   val ( * ) : 'a -> 'a -> 'a
 end
-declare ascii_rep function ( * ) = numMult
+declare ascii_rep function ( * ) = `numMult`
 
 
 (* ========================================================================== *)

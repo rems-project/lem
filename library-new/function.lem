@@ -32,7 +32,7 @@ let comb f g = (fun x -> f (g x))
 (* ----------------------- *)
 
 val ($) : forall 'a 'b. ('a -> 'b) -> ('a -> 'b)
-declare ascii_rep function ($) = apply
+declare ascii_rep function ($) = `apply`
 let apply f = (fun x -> f x)
 
 
