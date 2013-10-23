@@ -587,7 +587,9 @@ let generate_coq_record_update_notation e =
               ws skips; funcl def;
               generate_default_values def;
             ]
-      | Val_def (def, tv_set, class_constraints) ->
+      | Val_def (def) ->
+          let class_constraints =val_def_get_class_constraints A.env def in
+          let tv_set = val_def_get_free_tnvars A.env def in
           val_def false None (snd (Typed_ast_syntax.is_recursive_def m)) def tv_set class_constraints
       | Module (skips, (name, l), mod_binding, skips', skips'', defs, skips''') ->
         let name = lskips_t_to_output name in
@@ -598,8 +600,10 @@ let generate_coq_record_update_notation e =
           ]
       | Rename (skips, name, mod_binding, skips', mod_descr) -> from_string "Rename"
       | OpenImport (oi, mod_descrs) ->                  
-          let (skips, is_pure_import) = match oi with
+          let (skips, can_drop) = match oi with
             | Ast.OI_import sk -> (sk, true)
+            | Ast.OI_include sk -> (sk, false)
+            | Ast.OI_include_import (sk1, sk2) -> (Ast.combine_lex_skips sk1 sk2, false)
             | Ast.OI_open sk -> (sk, false)
             | Ast.OI_open_import (sk1, sk2) -> (Ast.combine_lex_skips sk1 sk2, false)
           in
@@ -614,7 +618,7 @@ let generate_coq_record_update_notation e =
                   ws skips; from_string "Require Import "; mod_name; from_string ".\n"
                 ]
           end in
-          if is_pure_import then emp else Output.flat (List.map handle_mod mod_descrs)
+          if can_drop then emp else Output.flat (List.map handle_mod mod_descrs)
       | Indreln (skips, targets, names, cs) -> (*INDERL_TODO Only added the name declaration parameter here*)
           if in_target targets then
             let c = Seplist.to_list cs in

@@ -587,34 +587,6 @@ let check_constraint_subset l cs1 cs2 =
        cs1)
 
 
-(* -------------------------------------------------------------------------- *)
-(* checking literals                                                          *)
-(* -------------------------------------------------------------------------- *)
-
-(* Corresponds to judgment check_lit '|- lit : t' *)
-let check_lit (Ast.Lit_l(lit,l)) =
-  let annot (lit : lit_aux) (t : t) : lit = 
-    { term = lit; locn = l; typ = t; rest = (); } 
-  in 
-  match lit with
-    | Ast.L_true(sk) -> annot (L_true(sk)) { t = Tapp([], Path.boolpath) }
-    | Ast.L_false(sk) -> annot (L_false(sk)) { t = Tapp([], Path.boolpath) }
-    | Ast.L_num(sk,i) -> annot (L_num(sk,i)) { t = Tapp([], Path.natpath) }
-    | Ast.L_string(sk,i) ->
-        annot (L_string(sk,i)) { t = Tapp([], Path.stringpath) }
-    | Ast.L_unit(sk1,sk2) ->
-        annot (L_unit(sk1,sk2)) { t = Tapp([], Path.unitpath) }
-    | Ast.L_bin(sk,i) ->
-        let bit = { t = Tapp([], Path.bitpath) } in
-        let len = { t = Tne( { nexp = Nconst(String.length i)} ) } in
-        annot (L_vector(sk,"0b",i)) { t = Tapp([bit;len], Path.vectorpath) }
-    | Ast.L_hex(sk,i) ->
-        let bit = { t = Tapp([], Path.bitpath) } in
-        let len = { t = Tne( { nexp = Nconst(String.length i * 4)} ) } in
-        annot (L_vector(sk, "0x", i)) { t = Tapp([bit;len], Path.vectorpath) }
-    | Ast.L_zero(sk) -> annot (L_zero(sk)) { t = Tapp([], Path.bitpath) }
-    | Ast.L_one(sk) -> annot (L_one(sk)) { t = Tapp([], Path.bitpath) }
-
 
 (* -------------------------------------------------------------------------- *)
 (* sanity checks                                                              *)
@@ -862,6 +834,38 @@ module Make_checker(T : sig
   module C = Constraint(struct let d = T.e.t_env let i = T.e.i_env end)
   module A = Exps_in_context(struct let env_opt = None let avoid = None end)
 
+
+  (* -------------------------------------------------------------------------- *)
+  (* checking literals                                                          *)
+  (* -------------------------------------------------------------------------- *)
+
+  (* Corresponds to judgment check_lit '|- lit : t' *)
+  let check_lit t_ret (Ast.Lit_l(lit,l)) =
+    let annot (lit : lit_aux) (t : t) : lit = 
+      { term = lit; locn = l; typ = t; rest = (); } 
+    in 
+    match lit with
+      | Ast.L_true(sk) -> annot (L_true(sk)) { t = Tapp([], Path.boolpath) }
+      | Ast.L_false(sk) -> annot (L_false(sk)) { t = Tapp([], Path.boolpath) }
+      | Ast.L_num(sk,i) -> 
+          C.add_constraint (External_constants.class_label_to_path "class_numeral") t_ret;
+          annot (L_num(sk,i)) t_ret 
+      | Ast.L_string(sk,i) ->
+          annot (L_string(sk,i)) { t = Tapp([], Path.stringpath) }
+      | Ast.L_unit(sk1,sk2) ->
+          annot (L_unit(sk1,sk2)) { t = Tapp([], Path.unitpath) }
+      | Ast.L_bin(sk,i) ->
+          let bit = { t = Tapp([], Path.bitpath) } in
+          let len = { t = Tne( { nexp = Nconst(String.length i)} ) } in
+          annot (L_vector(sk,"0b",i)) { t = Tapp([bit;len], Path.vectorpath) }
+      | Ast.L_hex(sk,i) ->
+          let bit = { t = Tapp([], Path.bitpath) } in
+          let len = { t = Tne( { nexp = Nconst(String.length i * 4)} ) } in
+          annot (L_vector(sk, "0x", i)) { t = Tapp([bit;len], Path.vectorpath) }
+      | Ast.L_zero(sk) -> annot (L_zero(sk)) { t = Tapp([], Path.bitpath) }
+      | Ast.L_one(sk) -> annot (L_one(sk)) { t = Tapp([], Path.bitpath) }
+
+
   (* An identifier instantiated to fresh type variables *)
   let make_new_id ((id : Ident.t), l) (tvs : Types.tnvar list) (descr : 'a) : 'a id =
     let ts_inst = List.map (fun v -> match v with | Ty _ -> C.new_type () | Nv _ -> {t = Tne(C.new_nexp ())}) tvs in
@@ -1086,7 +1090,7 @@ module Make_checker(T : sig
             C.equate_types (snd nl) "addition pattern" ax ret_type;
           (A.mk_pnum_add l nl sk1 sk2 i rt, add_binding acc nl ax)
         | Ast.P_lit(lit) ->
-            let lit = check_lit lit in
+            let lit = check_lit { t = Tapp([], Path.natpath) } lit in
               C.equate_types l "literal pattern" ret_type lit.typ;
               (A.mk_plit l lit rt, acc)
 
@@ -1327,7 +1331,7 @@ module Make_checker(T : sig
               C.equate_types l ":: expression" ret_type (exp_to_typ e);
               e
         | Ast.Lit(lit) ->
-            let lit = check_lit lit in
+            let lit = check_lit ret_type lit in
               C.equate_types l "literal expression" ret_type lit.typ;
               A.mk_lit l lit rt
         | Ast.Set(sk1,es,sk2,semi,sk3) -> 
@@ -2707,10 +2711,10 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let (res,new_ctxt) = build_ctor_defs mod_path new_ctxt tdefs in
             (new_ctxt, Some (Type_def(sk,res)))
       | Ast.Val_def(val_def) ->
-          let (ctxt',_,vd,Tconstraints(tnvs,constraints,lconstraints)) = 
+          let (ctxt',c,vd,Tconstraints(_,constraints,lconstraints)) = 
             check_val_def backend_targets mod_path l ctxt val_def 
           in
-            (ctxt', Some (Val_def(vd,tnvs, constraints)))
+            (ctxt', Some (Val_def vd))
       | Ast.Lemma(lem) ->
             let (ctxt', sk, lty, targs, name_opt, sk2, e, sk3) = check_lemma l backend_targets ctxt lem in
             (ctxt', Some (Lemma(sk, lty, targs, name_opt, sk2, e, sk3)))

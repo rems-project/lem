@@ -185,7 +185,7 @@ rule token skips = parse
   | "inter" as i                        { (StarX(Some(skips),Ulib.Text.of_latin1 i)) }
   | "subset" | "\\" as i                { (EqualX(Some(skips),Ulib.Text.of_latin1 i)) }
   | "lsl" | "lsr" | "asr" as i          { (StarstarX(Some(skips), Ulib.Text.of_latin1 i)) }
-  | "mod" | "land" | "lor" | "lxor" as i  { (StarX(Some(skips), Ulib.Text.of_latin1 i)) }
+  | "mod" | "div" | "land" | "lor" | "lxor" as i  { (StarX(Some(skips), Ulib.Text.of_latin1 i)) }
 
 
   | "(*"                           

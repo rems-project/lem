@@ -63,6 +63,8 @@ let tds =
    (Path.stringpath, mk_tc_type [] None);
    (Path.boolpath, mk_tc_type [] None);
    (Path.bitpath, mk_tc_type [] None);
+   (Path.charpath, mk_tc_type [] None);
+   (Path.numeralpath, mk_tc_type [] None);
    (Path.unitpath, mk_tc_type [] None)]
 
 let initial_d : Types.type_defs = 
@@ -77,6 +79,8 @@ let initial_local_env : Typed_ast.local_env =
                (Name.from_rope (r"set"), (Path.setpath, Ast.Unknown));
                (Name.from_rope (r"list"), (Path.listpath, Ast.Unknown));
                (Name.from_rope (r"string"), (Path.stringpath, Ast.Unknown));
+               (Name.from_rope (r"char"), (Path.charpath, Ast.Unknown));
+               (Name.from_rope (r"numeral"), (Path.numeralpath, Ast.Unknown));
                (Name.from_rope (r"unit"), (Path.unitpath, Ast.Unknown));
                (Name.from_rope (r"nat"), (Path.natpath, Ast.Unknown))] }
 

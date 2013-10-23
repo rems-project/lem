@@ -94,7 +94,9 @@ and lit_aux =
   | L_false of lskips
   | L_zero of lskips (** This is a bit, not a num *)
   | L_one of lskips  (** see above *)
-  | L_num of lskips * int
+  | L_numeral of lskips * int (** A numeral literal, it has fixed type "numeral" and is used in patterns and after translating L_num to it. *)
+  | L_num of lskips * int (** A number literal. This is like a numeral one wrapped with the "from_numeral" function *)
+  | L_char of lskips * char
   | L_string of lskips * string
   | L_unit of lskips * lskips
   | L_vector of lskips * string * string  (** For vectors of bits, specified with hex or binary, first string is either 0b or 0x, second is the binary or hex number as a string *)
@@ -472,9 +474,8 @@ type def_aux =
     (** [Type_def (sk, sl)] defines one or more types. The entries of [sl] are the type definitions.
         They contain a name of the type, the full path of the defined type, the free type variables, the main type definiton and 
         restrictions on variable names of this type *)
-  | Val_def of val_def * Types.TNset.t * (Path.t * Types.tnvar) list 
-    (** The TNset contains the type and length variables that the definition is parameterized
-        over, and the list contains the class constraints on those variables *)
+  | Val_def of val_def 
+    (** The list contains the class constraints on those variables *)
   | Lemma of lskips * Ast.lemma_typ * targets_opt * (name_l * lskips) option * lskips * exp * lskips
   | Module of lskips * name_l * Path.t * lskips * lskips * def list * lskips
   | Rename of lskips * name_l * Path.t * lskips * Path.t id
@@ -581,7 +582,8 @@ module Exps_in_context(C : Exp_context) : sig
   val exp_to_term : exp -> exp_aux
   val exp_to_free : exp -> Types.t Nfmap.t
   val type_eq : Ast.l -> string -> Types.t -> Types.t -> unit
-  val mk_lnum : Ast.l -> lskips -> int -> Types.t option -> lit
+  val mk_lnumeral : Ast.l -> lskips -> int -> Types.t option -> lit
+  val mk_lnum : Ast.l -> lskips -> int -> Types.t -> lit 
   val mk_lbool : Ast.l -> lskips -> bool -> Types.t option -> lit
   val mk_lbit : Ast.l -> lskips -> int -> Types.t option -> lit
   val mk_lundef : Ast.l -> lskips -> string -> Types.t -> lit

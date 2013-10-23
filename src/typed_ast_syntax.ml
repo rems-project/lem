@@ -428,7 +428,7 @@ let is_num_exp e = not (dest_tf_exp e = None)
 
 let mk_num_exp i = 
   let l = Ast.Trans (false, "mk_num_exp", None) in
-  let lit = C.mk_lnum l None i (Some nat_ty) in
+  let lit = C.mk_lnum l None i nat_ty in
   C.mk_lit l lit (Some nat_ty)
 
 let mk_paren_exp e =
@@ -721,17 +721,40 @@ let strip_app_infix_exp (e : exp) : exp * exp list * bool =
 (* -------------------------------------------------------------------------- *)
 
 let val_def_get_name d : Name.t option = match d with
-  | Val_def (Fun_def (_, _, _, clauses),_,_) -> 
+  | (Fun_def (_, _, _, clauses)) -> 
     begin
       match Seplist.to_list clauses with
          | [] -> None
          | (n, _, _, _, _, _)::_ -> Some (Name.strip_lskip n.term)
     end
-  | Val_def (Let_def (_, _, (p,_,_,_,_)),_,_) -> 
+  | (Let_def (_, _, (p,_,_,_,_))) -> 
       (match p.term with
          | P_var ns -> Some (Name.strip_lskip ns)
          | _ -> None)
   | _ -> None
+
+
+let val_def_get_const_descr_refs = function
+  | Let_def(_, _, (_, nm, _, _, _)) -> 
+      List.map snd nm
+  | Let_inline(_,_,_,_,c,_,_,_) -> [c]
+  | Fun_def(_, _, _, funs) -> 
+     Seplist.to_list_map (fun ((_, c, _, _, _, _):funcl_aux) -> c) funs
+
+let val_def_get_class_constraints env d = begin
+  let l_unk = Ast.Trans (true, "val_def_get_class_constraints", None) in
+  let cs = val_def_get_const_descr_refs d in
+  let cds = List.map (c_env_lookup l_unk env.c_env) cs in
+  List.flatten (List.map (fun cd -> cd.const_class) cds)
+end
+
+let val_def_get_free_tnvars env d = begin
+  let l_unk = Ast.Trans (true, "val_def_get_free_tnvars", None) in
+  let cs = val_def_get_const_descr_refs d in
+  let cds = List.map (c_env_lookup l_unk env.c_env) cs in
+  let tnvars = List.flatten (List.map (fun cd -> cd.const_tparams) cds) in
+  List.fold_left (fun s x -> TNset.add x s) TNset.empty tnvars
+end
 
 let is_type_def_abbrev (((d, _), _, _):def) = 
   match d with
@@ -956,7 +979,7 @@ and add_def_entities (t_opt : Target.target) (only_new : bool) (ue : used_entiti
            let ue = if only_new then ue else add_texp_entities ue texp in
            ue
          end) ue tds
-      | Val_def(Let_def(_, targs, (p, nm, src_t_opt, _, e)), _, _) -> 
+      | Val_def(Let_def(_, targs, (p, nm, src_t_opt, _, e))) -> 
          if (not (in_targets_opt t_opt targs)) then ue else begin
            let ue = List.fold_left (fun ue  (_, c) -> used_entities_add_const ue c) ue nm in
            if only_new then ue else begin
@@ -969,11 +992,11 @@ and add_def_entities (t_opt : Target.target) (only_new : bool) (ue : used_entiti
              ue
            end
          end
-      | (Val_def(Fun_def(_, _, targs, funs),_,_)) -> 
+      | (Val_def(Fun_def(_, _, targs, funs))) -> 
          if (in_targets_opt t_opt targs) then 
            Seplist.fold_left (fun clause ue -> add_funcl_aux_entities ue only_new clause) ue funs 
          else ue
-      | Val_def(Let_inline(_,_,targs,_,c,_,_,e), tnvs, class_constraints) ->
+      | Val_def(Let_inline(_,_,targs,_,c,_,_,e)) ->
          if (in_targets_opt t_opt targs) && not only_new then begin
            let ue = used_entities_add_const ue c in
            let ue = add_exp_entities ue e in
@@ -1026,7 +1049,7 @@ let get_checked_modules_entities (t_opt : Target.target) only_new (ml : checked_
 (* check whether a definition is recursive using entities *)
 let is_recursive_def (d:def_aux) =  
  match d with
-  |  Val_def ((Fun_def (_, FR_rec _, _, sl)), tnvs,class_constraints) -> begin 
+  |  Val_def ((Fun_def (_, FR_rec _, _, sl))) -> begin 
        let (_, pL) = Seplist.to_pair_list None sl in
 
        (* get the names of all newly defined functions *)

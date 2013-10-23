@@ -150,13 +150,13 @@ let generate_srt_t_opt src_opt e =
              
 let type_annotate_definitions _ env ((d,s),l,lenv) =
   match d with
-    | Val_def(Let_def(sk1,topt,(p, name_map, src_t_opt, sk2, e)),tnvs,class_constraints) -> begin
+    | Val_def(Let_def(sk1,topt,(p, name_map, src_t_opt, sk2, e))) -> begin
         match generate_srt_t_opt src_t_opt e with
           | None -> None
           | Some t -> Some (env,
-               [((Val_def(Let_def(sk1, topt,(p, name_map, Some t, sk2, e)), tnvs, class_constraints), s), l, lenv)])
+               [((Val_def(Let_def(sk1, topt,(p, name_map, Some t, sk2, e))), s), l, lenv)])
       end
-    | Val_def(Fun_def(sk1,sk2,topt,funs),tnvs,class_constraints) -> begin
+    | Val_def(Fun_def(sk1,sk2,topt,funs)) -> begin
         let fix_funcl_aux (n, n_c, pL, src_t_opt, sk, e) = begin
           let src_t_opt' = generate_srt_t_opt src_t_opt e 
           in match src_t_opt' with 
@@ -167,7 +167,7 @@ let type_annotate_definitions _ env ((d,s),l,lenv) =
         match funs'_opt with 
           | None -> None
           | Some funs' -> Some (env,
-               [((Val_def(Fun_def(sk1,sk2,topt,funs'), tnvs, class_constraints), s), l, lenv)])
+               [((Val_def(Fun_def(sk1,sk2,topt,funs')), s), l, lenv)])
       end
     | _ -> None
 
@@ -257,11 +257,10 @@ let instance_to_module mod_path (env : env) ((d,s),l,lenv) =
           let lenv' = local_env_union lenv (lookup_mod_descr {env with local_env = lenv} [] inst_name).mod_env in
 
           (* finally, we get the module *)
-          let tnvars_set = List.fold_right TNset.add id.inst_tyvars TNset.empty in
           let m = 
             Module(sk1, (Name.add_lskip inst_name, l_unk 9), 
                    id.inst_binding, sk2, None, 
-                   List.map (fun d -> ((Val_def(d,tnvars_set,id.inst_constraints),None), l_unk 10, lenv')) 
+                   List.map (fun d -> ((Val_def d,None), l_unk 10, lenv')) 
                             (vdefs @ [dict]), 
                    sk4)
           in
@@ -274,9 +273,10 @@ let class_constraint_to_parameter : def_macro = fun mod_path env ((d,s),l,lenv) 
   let l_unk = Ast.Trans(true, "class_constraint_to_parameter", Some l) in
   (* TODO : avoid shouldn't be None *)
     match d with
-      | Val_def(_, tnvs, []) -> None
-      | Val_def(lb,tnvs,class_constraints) ->
-          let new_pats =
+      | Val_def(lb) ->
+         let class_constraints = val_def_get_class_constraints env lb in
+         if (class_constraints = []) then None else (
+         let new_pats =
             List.map
               (fun (c,tnv) ->
                  let n = Typed_ast.class_path_to_dict_name c tnv in
@@ -314,7 +314,7 @@ let class_constraint_to_parameter : def_macro = fun mod_path env ((d,s),l,lenv) 
             env.c_env clauses in
 
             Some({ env with c_env = c_env'},
-                 [((Val_def(Fun_def(sk1,fr,targs,clauses'),tnvs,[]),s),l,lenv)])
+                 [((Val_def(Fun_def(sk1,fr,targs,clauses')),s),l,lenv)])
           in
           begin
             match lb with
@@ -325,15 +325,15 @@ let class_constraint_to_parameter : def_macro = fun mod_path env ((d,s),l,lenv) 
 
               | Let_inline _ -> (* class constraint is dealt with after inlining, so do nothing *) None
 
-         end
+          end)
       | _ -> None
 
-let nvar_to_parameter : def_macro = fun mod_path env ((d,s),l,_) ->
+let nvar_to_parameter : def_macro = fun mod_path env ((d,s),l,_) -> 
 (*  let l_unk = Ast.Trans(true, "nvar_to_parameter", Some l) in *)
     match d with
-      | Val_def(lb, tnvs, class_constraints) ->
-        if (Types.TNset.is_empty tnvs) then None
-        else
+      | Val_def(lb) ->
+        let tnvs = val_def_get_free_tnvars env lb in
+        if (Types.TNset.is_empty tnvs) then None else begin
         let (nvars, tvars) = Types.tnvar_split (Types.TNset.elements tnvs) in
         if ([] = nvars) then None
         else
@@ -359,8 +359,8 @@ let nvar_to_parameter : def_macro = fun mod_path env ((d,s),l,_) ->
               | Let_inline _ ->
                   assert false
             end
+         end
       | _ -> None
-
 
 let get_name def l = match def with
 
@@ -372,7 +372,7 @@ let get_name def l = match def with
     | ((Rule(_,_,_,_,_,_,_,name,_,_),_)::cs) -> Name.strip_lskip name.term
     )
   
-  | Val_def(Fun_def(_,_,_,clauses),ntvs,_) -> (match Seplist.to_list clauses with
+  | Val_def(Fun_def(_,_,_,clauses)) -> (match Seplist.to_list clauses with
 
     (* in a Rec_def, the constant names of all clauses should be the same, so we
      * check only the first TODO: check! *)
@@ -383,12 +383,12 @@ let get_name def l = match def with
     | ((name,_,_,_,_,_)::cs) -> Name.strip_lskip name.term     
     )
 
-  | Val_def(Let_def(_,_,(p,_,_,_,_)),tnvs,_) -> begin
+  | Val_def(Let_def(_,_,(p,_,_,_,_))) -> begin
       match Pattern_syntax.pat_to_ext_name p with
         | Some nls -> Name.strip_lskip nls.term 
         | None -> raise (Reporting_basic.err_todo false l "Error while pruning target definitions: unmatched Let_val case in get_name [debug]")
     end
-  | Val_def(Let_inline(_,_,_,name,_,_,_,_), _,_) -> Name.strip_lskip name.term
+  | Val_def(Let_inline(_,_,_,name,_,_,_,_)) -> Name.strip_lskip name.term
   | _ -> 
     raise (Reporting_basic.err_todo false l "Error while pruning target definitions: unmatched top-level case in get_name [debug]")
 
@@ -424,8 +424,8 @@ let prune_target_bindings target (defs : def list) : def list =
 
     | ((def,s),l,lenv)::defs -> begin
       match def with
-        | (Val_def(Let_def(_,topt,_),_,_) |
-          Val_def(Fun_def(_,_,topt,_),_,_) |
+        | (Val_def(Let_def(_,topt,_)) |
+          Val_def(Fun_def(_,_,topt,_)) |
           Indreln(_,topt,_,_) ) as d -> 
           if Typed_ast.in_targets_opt (Target_no_ident target) topt then 
               let name = get_name d l in

@@ -74,7 +74,7 @@ let dictionary_macros targ =
   [
    Def_macros (fun env -> [M.class_to_record]);
    Def_macros (fun env -> [M.instance_to_module]);
-   Def_macros (fun env -> [M.class_constraint_to_parameter]);
+   Def_macros (fun env -> [M.class_constraint_to_parameter]); 
    Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_method]);
    Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_class_const targ])
   ]
@@ -83,6 +83,16 @@ let dictionary_macros targ =
 let nvar_macros =
   [Def_macros (fun env -> [M.nvar_to_parameter]);
    Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.add_nexp_param_in_const])
+  ]
+
+let indreln_macros = 
+  [
+    Def_macros (fun env ->   
+      let module Ctxt = struct let avoid = None let env_opt = Some(env) end in
+      let module Conv = Convert_relations.Converter(Ctxt) in
+      [ Conv.gen_witness_type_macro env;
+        Conv.gen_witness_check_macro env;
+        Conv.gen_fns_macro env;]); 
   ]
 
 let ident () =
@@ -101,7 +111,8 @@ let tex =
     extra = []; }
 
 let hol =
-  { macros = dictionary_macros (Target_no_ident Target_hol) @ 
+  { macros = indreln_macros @
+             dictionary_macros (Target_no_ident Target_hol) @ 
              nvar_macros @
              [Def_macros (fun env -> [  M.remove_vals;
                                         M.remove_classes; 
@@ -112,6 +123,7 @@ let hol =
                               [T.remove_list_comprehension;
                                T.list_quant_to_set_quant;
                     	       T.remove_setcomp;
+                               T.remove_num_lit;
                                T.remove_set_restr_quant;
                                T.remove_restr_quant Pattern_syntax.is_var_tup_pat;
                                Backend_common.inline_exp_macro Target_hol env;
@@ -124,8 +136,11 @@ let hol =
              (fun n -> Rename_top_level.rename_defs_target (Some Target_hol) consts fixed_renames [n]);*)
              Rename_top_level.flatten_modules]; }
 
+
+
 let ocaml =
-  { macros = dictionary_macros (Target_no_ident Target_ocaml) @
+  { macros = indreln_macros @ 
+             dictionary_macros (Target_no_ident Target_ocaml) @
              nvar_macros @
              [Def_macros (fun env ->  
                             [M.remove_vals; 
@@ -137,6 +152,7 @@ let ocaml =
                                (* TODO: add again or implement otherwise                    T.tup_ctor (fun e -> e) Seplist.empty; *)
                                Backend_common.inline_exp_macro Target_ocaml env;
                                T.remove_sets;
+                               T.remove_num_lit;
                                T.remove_list_comprehension;
                                T.remove_quant;
                                T.remove_vector_access;
@@ -149,6 +165,7 @@ let ocaml =
 
 let isa  =
   { macros =
+     indreln_macros @
      dictionary_macros (Target_no_ident Target_isa) @
      [Def_macros (fun env ->
                     [M.remove_vals;
@@ -161,6 +178,7 @@ let isa  =
                        T.remove_list_comprehension;
                        T.cleanup_set_quant;
                        T.remove_set_comprehension_image_filter true;
+                       T.remove_num_lit;
                        T.remove_set_restr_quant;
                        T.remove_restr_quant Pattern_syntax.is_var_wild_tup_pat;
                        T.remove_set_comp_binding;
@@ -178,7 +196,7 @@ let isa  =
   }
 
 let coq =
-  { macros =
+  { macros = indreln_macros @
       [Def_macros (fun env -> 
                     [M.type_annotate_definitions;
                      Patterns.compile_def (Target_no_ident Target_coq) Patterns.is_coq_pattern_match env
@@ -188,6 +206,7 @@ let coq =
                        [T.remove_singleton_record_updates;
                         T.remove_multiple_record_updates;
                         T.remove_list_comprehension;
+                        T.remove_num_lit;
                         T.remove_set_comprehension;
                         T.remove_quant_coq;
                         Backend_common.inline_exp_macro Target_coq env;
@@ -274,7 +293,7 @@ let rename_def_params_aux targ consts =
     fun ((d,lex_skips),l,lenv) ->
       let d = 
         match d with
-          | Val_def(Fun_def(s1,s2_opt,topt,clauses),tnvs,class_constraints) ->
+          | Val_def(Fun_def(s1,s2_opt,topt,clauses)) ->
               let clauses = 
                 Seplist.map
                   (fun (n,c,ps,topt,s,e) ->
@@ -284,7 +303,7 @@ let rename_def_params_aux targ consts =
                        (n,c,ps,topt,s,e))
                   clauses
               in
-                Val_def(Fun_def(s1,s2_opt,topt,clauses),tnvs,class_constraints)
+                Val_def(Fun_def(s1,s2_opt,topt,clauses))
           | Indreln(s1,topt,names,clauses) ->
               let clauses =
                 Seplist.map
@@ -305,18 +324,10 @@ let rename_def_params targ consts =
 
 let trans (targ : Target.target) params env (m : checked_module) =
   let (defs, end_lex_skips) = m.typed_ast in
-  let indreln_macros = 
-    [
-      Def_macros (fun env ->   
-        let module Ctxt = struct let avoid = None let env_opt = Some(env) end in
-        let module Conv = Convert_relations.Converter(Ctxt) in
-      [
-      Conv.gen_witness_type_macro env;
-      Conv.gen_witness_check_macro env;
-      Conv.gen_fns_macro env;]); 
-    ]
-  in
-  let params = {params with macros = indreln_macros @ params.macros } in
+
+  (* TODO: Macros are only applied in the order they are given. Fix this! As a workaround, just apply all
+           macros several times. *)
+  let params = { params with macros = params.macros @ params.macros @ params.macros @ params.macros } in
 
   let module_name = Name.from_rope (Ulib.Text.of_latin1 m.module_name) in
   (* TODO: Move this to a definition macro, and remove the targ argument *)

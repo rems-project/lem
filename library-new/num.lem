@@ -12,11 +12,17 @@ declare rename module = lem_maybe
 
 open import Bool Basic_classes 
 
+
 (* ========================================================================== *)
 (* Syntactic type-classes for common operations                               *)
 (* ========================================================================== *)
 
 (* Typeclasses can be used as a mean to overload constants like "+", "-", etc *)
+
+class ( NumNegate 'a ) 
+  val neg : 'a -> 'a 
+end
+declare ascii_rep function neg = numNegate
 
 class ( NumAdd 'a ) 
   val (+) : 'a -> 'a -> 'a
@@ -33,6 +39,29 @@ class ( NumMult 'a )
 end
 declare ascii_rep function ( * ) = numMult
 
+class ( NumPow 'a ) 
+  val ( ** ) : 'a -> 'a -> 'a
+end
+declare ascii_rep function ( ** ) = numPow
+
+class ( NumDivision 'a ) 
+  val (/) : 'a -> 'a -> 'a
+end
+declare ascii_rep function (/) = numDivision
+
+class ( NumIntegerDivision 'a ) 
+  val (div) : 'a -> 'a -> nat
+end
+declare ascii_rep function (div) = numIntegerDivision
+
+class ( NumRemainder 'a ) 
+  val (mod) : 'a -> 'a -> 'a
+end
+declare ascii_rep function (mod) = numRemainder
+
+class ( Numeral 'a ) 
+  val fromNumeral : numeral -> 'a 
+end
 
 (* ========================================================================== *)
 (* Basic number types                                                         *)
@@ -47,7 +76,74 @@ declare ascii_rep function ( * ) = numMult
 declare hol      target_rep type nat = `num` 
 declare isabelle target_rep type nat = `nat` 
 declare coq      target_rep type nat = `num` 
-declare ocaml    target_rep type nat = `int` 
+declare ocaml    target_rep type nat = `Big_int.big_int` 
+
+
+(* ----------------------- *)
+(* integer                 *)
+(* ----------------------- *)
+
+(* unbounded size integers *)
+
+type int 
+declare ocaml    target_rep type int = `Big_int.big_int` 
+
+
+(* ----------------------- *)
+(* bint                    *)
+(* ----------------------- *)
+
+(* 32 bit integers *)
+type int32 
+declare ocaml    target_rep type int32 = `int32` 
+
+(* 64 bit integers *)
+type int64
+declare ocaml    target_rep type int64 = `int64` 
+
+
+(* ----------------------- *)
+(* rational                *)
+(* ----------------------- *)
+
+(* unbounded size and precision rational numbers *)
+
+type rational
+declare ocaml    target_rep type rational = `Num.num` 
+
+
+(* ----------------------- *)
+(* double                  *)
+(* ----------------------- *)
+
+(* double precision floating point (64 bits) *)
+
+type float64
+declare ocaml    target_rep type float64 = `double` 
+
+type float32
+declare ocaml    target_rep type float32 = `float` 
+
+
+(* ========================================================================== *)
+(* Binding the standard operations for the number types                       *)
+(* ========================================================================== *)
+
+
+(* ----------------------- *)
+(* nat                     *)
+(* ----------------------- *)
+
+val natFromNumeral : numeral -> nat
+declare hol      target_rep function natFromNumeral = `num_to_nat`
+declare ocaml    target_rep function natFromNumeral = `num_to_nat`
+declare isabelle target_rep function natFromNumeral = `num_to_nat`
+declare coq      target_rep function natFromNumeral = `num_to_nat`
+
+instance (Numeral nat)
+  let fromNumeral = natFromNumeral
+end
+
 
 val natAdd : nat -> nat -> nat
 declare hol      target_rep function natAdd = infix `+`
@@ -91,12 +187,5 @@ instance (NumMult nat)
   let ( * ) = natMult
 end
 
-(* ----------------------- *)
-(* int                     *)
-(* ----------------------- *)
-
-(* unbounded size integers *)
-
-type int
 
 
