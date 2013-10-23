@@ -50,20 +50,6 @@ instance forall 'a. Eq 'a => (Eq (maybe 'a))
 end
 
 
-val maybeCompare : forall 'a. Ord 'a => maybe 'a -> maybe 'a -> ordering
-let maybeCompare x y = match (x,y) with
-  | (Nothing, Nothing) -> EQ
-  | (Nothing, Just _) -> LT
-  | (Just _, Nothing) -> GT
-  | (Just x', Just y') -> compare x' y'
-end
-
-instance forall 'a. Ord 'a => (Ord (maybe 'a))
-  let compare = maybeCompare
-end
-
-
-
 (* ----------------------- *)
 (* maybe                   *)
 (* ----------------------- *)

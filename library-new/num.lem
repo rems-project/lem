@@ -14,15 +14,32 @@ open import Bool Basic_classes
 
 
 (* ========================================================================== *)
+(* Numerals                                                                   *)
+(* ========================================================================== *)
+
+(* Numerals like 0, 1, 2, 42, 4543 are build-in. That's the only use
+   of numerals. The following type-class is used to convert numerals into
+   verious number types. The type of numerals differs form backend to backend.
+   Essentially they are just printed as "0", "1", ... and the backend decides
+   then. For Ocaml, they are integers. For HOL of type "num". Isabelle thinks
+   they are "nat"s. ...
+*)
+
+class ( Numeral 'a ) 
+  val fromNumeral : numeral -> 'a 
+end
+
+
+(* ========================================================================== *)
 (* Syntactic type-classes for common operations                               *)
 (* ========================================================================== *)
 
 (* Typeclasses can be used as a mean to overload constants like "+", "-", etc *)
 
 class ( NumNegate 'a ) 
-  val neg : 'a -> 'a 
+  val ~ : 'a -> 'a 
 end
-declare ascii_rep function neg = `numNegate`
+declare ascii_rep function ~ = `numNegate`
 
 class ( NumAdd 'a ) 
   val (+) : 'a -> 'a -> 'a
@@ -58,10 +75,6 @@ class ( NumRemainder 'a )
   val (mod) : 'a -> 'a -> 'a
 end
 declare ascii_rep function (mod) = `numRemainder`
-
-class ( Numeral 'a ) 
-  val fromNumeral : numeral -> 'a 
-end
 
 (* ========================================================================== *)
 (* Basic number types                                                         *)
@@ -135,40 +148,75 @@ declare ocaml    target_rep type float32 = `float`
 (* ----------------------- *)
 
 val natFromNumeral : numeral -> nat
-declare hol      target_rep function natFromNumeral = `num_to_nat`
-declare ocaml    target_rep function natFromNumeral = `num_to_nat`
-declare isabelle target_rep function natFromNumeral = `num_to_nat`
-declare coq      target_rep function natFromNumeral = `num_to_nat`
+declare hol      target_rep function natFromNumeral = `` (* remove natFromNumeral, as it is the identify function *)
+declare ocaml    target_rep function natFromNumeral = `Big_int.big_int_of_int`
+declare isabelle target_rep function natFromNumeral = ``
+declare coq      target_rep function natFromNumeral = `TODO`
 
 instance (Numeral nat)
   let fromNumeral = natFromNumeral
 end
 
+val natCompare : nat -> nat -> ordering
+let inline natCompare = defaultCompare
+declare ocaml    target_rep function natCompare = `Big_int.compare_big_int`
+instance (OrdCompare nat)
+  let compare = natCompare
+end
+
+val natEq : nat -> nat -> bool
+let inline natEq = unsafe_structural_equality
+declare ocaml    target_rep function natEq = `Big_int.eq_big_int`
+instance (Eq nat)
+  let (=) = natEq
+end
+
+val natLess : nat -> nat -> bool
+val natLessEqual : nat -> nat -> bool
+val natGreater : nat -> nat -> bool
+val natGreaterEqual : nat -> nat -> bool
+
+declare hol      target_rep function natLess = infix `<` 
+declare ocaml    target_rep function natLess = `Big_int.lt_big_int`
+declare isabelle target_rep function natLess = infix `<`
+declare coq      target_rep function natLess = infix `<`
+
+declare hol      target_rep function natLessEqual = infix `<=` 
+declare ocaml    target_rep function natLessEqual = `Big_int.le_big_int`
+declare isabelle target_rep function natLessEqual = infix `<=`
+declare coq      target_rep function natLessEqual = infix `<=`
+
+declare hol      target_rep function natGreater = infix `>` 
+declare ocaml    target_rep function natGreater = `Big_int.gt_big_int`
+declare isabelle target_rep function natGreater = infix `>`
+declare coq      target_rep function natGreater = infix `>`
+
+declare hol      target_rep function natGreaterEqual = infix `>=` 
+declare ocaml    target_rep function natGreaterEqual = `Big_int.ge_big_int`
+declare isabelle target_rep function natGreaterEqual = infix `>=`
+declare coq      target_rep function natGreaterEqual = infix `>=`
+
+instance (Ord nat)
+  let (<) = natLess
+  let (<=) = natLessEqual
+  let (>) = natGreater
+  let (>=) = natGreaterEqual
+end
+
 
 val natAdd : nat -> nat -> nat
 declare hol      target_rep function natAdd = infix `+`
-declare ocaml    target_rep function natAdd = `Nat_num.(+)`
+declare ocaml    target_rep function natAdd = `Big_int.add_big_int`
 declare isabelle target_rep function natAdd = infix `+`
 declare coq      target_rep function natAdd = infix `+`
-
-instance (Eq nat)
-  let (=) = unsafe_structural_equality
-end
-
-instance (Ord nat)
-  let compare = (fun x y -> EQ)
-end
 
 instance (NumAdd nat)
   let (+) = natAdd
 end
 
-val suc : nat -> nat
-let suc n = n + 1
-
 val natMinus : nat -> nat -> nat
 declare hol      target_rep function natMinus = infix `-`
-declare ocaml    target_rep function natMinus = `Nat_num.(-)`
+declare ocaml    target_rep function natMinus = `Nat_num.monus_big_int`
 declare isabelle target_rep function natMinus = infix `-`
 declare coq      target_rep function natMinus = infix `-`
 
@@ -176,16 +224,85 @@ instance (NumMinus nat)
   let (-) = natMinus
 end
 
+val suc : nat -> nat
+let suc n = n + 1
+
+declare hol      target_rep function suc = `SUC`
+declare isabelle target_rep function suc = `Suc`
+declare ocaml    target_rep function suc = `Big_int.succ_big_int`
+
+val pre : nat -> nat
+let pre n = n - 1
+
+declare hol      target_rep function pre = `PRE`
+declare isabelle target_rep function pre = `Pre`
+declare ocaml    target_rep function pre = `Big_int.pred_big_int`
+
 
 val natMult : nat -> nat -> nat
 declare hol      target_rep function natMult = infix `*`
-declare ocaml    target_rep function natMult = `Nat_num.(*)`
+declare ocaml    target_rep function natMult = `Big_int.mult_big_int`
 declare isabelle target_rep function natMult = infix `*`
 declare coq      target_rep function natMult = infix `*`
 
 instance (NumMult nat)
   let ( * ) = natMult
 end
+
+
+val natPow : nat -> nat -> nat
+declare hol      target_rep function natPow = infix `**`
+declare ocaml    target_rep function natPow = `Big_int.power_big_int_positive_big_int`
+declare isabelle target_rep function natPow = `nat_exp`
+declare coq      target_rep function natPow = `TODO`
+
+instance ( NumPow nat ) 
+  let ( ** ) = natPow
+end
+
+val natDiv : nat -> nat -> nat
+declare hol      target_rep function natDiv = `DIV`
+declare ocaml    target_rep function natDiv = `Big_int.div_big_int`
+declare isabelle target_rep function natDiv = `div`
+declare coq      target_rep function natDiv = `TODO`
+
+instance ( NumIntegerDivision nat ) 
+  let (div) = natDiv
+end
+
+instance ( NumDivision nat ) 
+  let (/) = natDiv
+end
+
+val natMod : nat -> nat -> nat
+declare hol      target_rep function natMod = `MOD`
+declare ocaml    target_rep function natMod = `Big_int.mod_big_int`
+declare isabelle target_rep function natMod = `nat_mod`
+declare coq      target_rep function natMod = `TODO`
+
+instance ( NumRemainder nat ) 
+  let (mod) = natMod
+end
+
+val natMin : nat -> nat -> nat
+let inline natMin = defaultMin
+declare ocaml    target_rep function natMin = `Big_int.min_big_int`
+
+val natMax : nat -> nat -> nat
+let inline natMax = defaultMax
+declare ocaml    target_rep function natMax = `Big_int.max_big_int`
+
+instance ( OrdMaxMin nat ) 
+  let max = natMax
+  let min = natMin
+end
+
+
+
+
+
+
+
 
 
 

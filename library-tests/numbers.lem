@@ -1,0 +1,28 @@
+open import Pervasives
+
+type my_num = nat
+
+assert test1 : (2 + (5 : my_num) = 7)
+assert test2 : (8 - (7 : my_num) = 1)
+assert test3 : (7 - (8 : my_num) = 0)
+assert test4 : (7 * (8 : my_num) = 56)
+assert test5 : (7 ** (2 : my_num) = 49)
+assert test6 : (11 div (4 : my_num) = 2)
+assert test7 : (11 / (4 : my_num) = 2)
+assert test8 : (11 mod (4 : my_num) = 3)
+assert test9 : (11 < (12 : my_num))
+assert test10 : (11 <= (12 : my_num))
+assert test11 : (12 <= (12 : my_num))
+assert test12 : (not (12 < (12 : my_num)))
+assert test13 : (12 > (11 : my_num))
+assert test14 : (12 >= (11 : my_num))
+assert test15 : (12 >= (12 : my_num))
+assert test16 : (not (12 > (12 : my_num)))
+assert test17 : (min 12 (12 : my_num) = 12)
+assert test18 : (min 10 (12 : my_num) = 10)
+assert test19 : (min 12 (10 : my_num) = 10)
+assert test20 : (max 12 (12 : my_num) = 12)
+assert test21 : (max 10 (12 : my_num) = 12)
+assert test22 : (max 12 (10 : my_num) = 12)
+
+

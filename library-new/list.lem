@@ -117,11 +117,6 @@ let rec lexicographicCompareBy cmp l1 l2 = match (l1,l2) with
 end
 let lexicographicCompare = lexicographicCompareBy compare
 
-instance forall 'a. Ord 'a => (Ord (list 'a))
-  let compare = lexicographicCompare
-end
-
-
 
 (* ----------------------- *)
 (* Append                  *)

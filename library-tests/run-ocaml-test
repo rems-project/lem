@@ -4,9 +4,10 @@ file=`basename $1 .lem`
 dir=.builddir---$file---`date +%Y-%m-%d---%H-%M-%S`---ocaml
 mkdir $dir
 cd $dir
-lem -ocaml ../$file.lem
+cp ../$file.lem .
+lem -ocaml $file.lem
 ln -s ../../ocaml-lib .
-ocamlbuild -I ocaml-lib ${file}Extra.native
+ocamlbuild -libs nums -I ocaml-lib ${file}Extra.native
 ./${file}Extra.native
 cd ..
 

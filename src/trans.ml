@@ -817,7 +817,7 @@ let tnfmap_apply m k =
     | Some x -> x
 
 let remove_num_lit _ e =
-  let l = Ast.Trans(true, "remove_num_lit", Some (exp_to_locn e)) in
+  let l = Ast.Trans(false, "remove_num_lit", Some (exp_to_locn e)) in
   match C.exp_to_term e with
     | Lit lit -> begin
         match lit.term with 

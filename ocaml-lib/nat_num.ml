@@ -1,29 +1,19 @@
-type num = int
-let (<) = (<)
-let (<=) = (<=)
-let (>) = (>)
-let (>=) = (>=)
-let (+) = (+)
-let (-) x y =
+let monus_int x y =
   let d = x - y in
     if d < 0 then
       0
     else
       d
-let ( * ) = ( * )
-let (/) = (/)
-let (mod) = (mod)
-let (land) = (land)
-let (lor) = (lor)
-let (lxor) = (lxor)
-let lnot = lnot
-let (lsl) = (lsl)
-let (lsr) = (lsr)
-let (asr) = (asr)
-let num_of_string n = int_of_string n
-let string_of_num n = string_of_int n
-let int i = i
-let neg i = -i
+
+let monus_big_int x y =
+    (if Big_int.le_big_int x y then
+      Big_int.zero_big_int
+    else
+      (Big_int.sub_big_int x y))
+
+
+
+
 
 let exp b e = 
   let rec aux a b e =

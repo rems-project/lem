@@ -20,15 +20,9 @@ end
 declare ascii_rep function (=) = `isEqual`
 declare coq target_rep function isEqual = infix `=`
 
-(* val (/=) : forall 'a. Eq 'a => 'a -> 'a -> bool *)
 let (/=) x y = not (x = y)
 declare ascii_rep function (/=) = `isUnequal`
 
-(*
-val (<>) : forall 'a. Eq 'a => 'a -> 'a -> bool
-let (<>) = isUnequal
-declare ascii_rep function (<>) = `isUnequal`
-*)
 
 (* (=) should for all instances be an equivalence relation 
    The isEquivalence predicate of relations could be used here.
@@ -71,29 +65,42 @@ end
 (* The type-class Ord represents total orders (also called linear orders) *)
 type ordering = LT | EQ | GT
 
+declare ocaml target_rep type ordering = `int`
+declare ocaml target_rep function LT = `~1`
+declare ocaml target_rep function EQ = `0`
+declare ocaml target_rep function GT = `1`
+
 instance (Eq ordering)
   let (=) = unsafe_structural_equality
 end
 
-class ( Ord 'a ) 
+val defaultCompare : forall 'a. 'a -> 'a -> ordering
+declare ocaml target_rep function defaultCompare = `compare`
+
+class ( OrdCompare 'a ) 
   val compare : 'a -> 'a -> ordering
 end
 
-val (<) : forall 'a. Ord 'a => 'a -> 'a -> bool
-let (<) x y = (compare x y = LT)
-declare ascii_rep function (<) = `isLess`
+instance forall 'a. ( OrdCompare 'a ) 
+  let compare = defaultCompare
+end
 
-val (<=) : forall 'a. Ord 'a => 'a -> 'a -> bool
-let (<=) x y = let r = compare x y in (r = LT || r = EQ)
+class ( Ord 'a ) 
+  val (<)  : 'a -> 'a -> bool
+  val (<=) : 'a -> 'a -> bool
+  val (>)  : 'a -> 'a -> bool
+  val (>=) : 'a -> 'a -> bool 
+end
+
+declare ascii_rep function (<)  = `isLess`
 declare ascii_rep function (<=) = `isLessEqual`
-
-val (>) : forall 'a. Ord 'a => 'a -> 'a -> bool
-let (>) x y = (compare x y = GT)
-declare ascii_rep function (>) = `isGreater`
-
-val (>=) : forall 'a. Ord 'a => 'a -> 'a -> bool
-let (>=) x y = let r = compare x y in (r = GT || r = EQ)
+declare ascii_rep function (>)  = `isGreater`
 declare ascii_rep function (>=) = `isGreaterEqual`
+
+lemma isLess_alt_def        : (forall x y. (x < y) = (let r = compare x y in (r = LT || r = EQ)))
+lemma isLessEqual_alt_def   : (forall x y. (x <= y) = (compare x y = LT))
+lemma isGreater_alt_def     : (forall x y. (x > y) = (y < x))
+lemma isGreaterEqual_alt_def: (forall x y. (x >= y) = (y <= x))
 
 (* compare should really be a total order *)
 lemma ord_OK_1: (
@@ -105,18 +112,26 @@ lemma ord_OK_2: (
   (forall x y. (x <= y) || (y <= x))
 )
 
-val max : forall 'a. Ord 'a => 'a -> 'a -> 'a
-let max x y = match compare x y with
-  | LT -> y
-  | EQ -> x
-  | GT -> x
+instance forall 'a. OrdCompare 'a => ( Ord 'a) 
+  let (<) x y = (let r = compare x y in (r = LT))
+  let (<=) x y = (let r = compare x y in (r = LT || r = EQ))
+  let (>) x y = (let r = compare x y in (r = GT))
+  let (>=) x y = (let r = compare x y in (r = GT || r = EQ))
 end
 
-val min : forall 'a. Ord 'a => 'a -> 'a -> 'a
-let min x y = match compare x y with
-  | LT -> x
-  | EQ -> x
-  | GT -> y
+class ( OrdMaxMin 'a ) 
+  val max : 'a -> 'a -> 'a
+  val min : 'a -> 'a -> 'a
+end
+
+val defaultMin : forall 'a. Ord 'a => 'a -> 'a -> 'a
+let defaultMin x y = if (x <= y) then x else y
+val defaultMax : forall 'a. Ord 'a => 'a -> 'a -> 'a
+let defaultMax x y = if (y <= x) then x else y
+
+instance forall 'a. Ord 'a => ( OrdMaxMin 'a) 
+  let max = defaultMax
+  let min = defaultMin
 end
 
 
@@ -135,10 +150,9 @@ let boolCompare b1 b2 = match (b1, b2) with
   | (false, false) -> EQ
 end
 
-instance (Ord bool)
+instance (OrdCompare bool)
   let compare = boolCompare
 end
-
 
 let pairEq (a1, b1) (a2, b2) =
   (a1 = a2) && (b1 = b2)
@@ -147,17 +161,10 @@ instance forall 'a 'b. Eq 'a, Eq 'b => (Eq ('a * 'b))
   let (=) = pairEq
 end
 
-
 let pairCompare (a1, b1) (a2, b2) =
   match compare a1 a2 with
     | LT -> LT
     | GT -> GT
     | EQ -> compare b1 b2
   end
-
-instance forall 'a 'b. Ord 'a, Ord 'b => (Ord ('a * 'b))
-  let compare = pairCompare
-end
-
-
 
