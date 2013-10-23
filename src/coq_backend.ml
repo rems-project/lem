@@ -636,19 +636,41 @@ let generate_coq_record_update_notation e =
                     from_string "NOT SUPPORTED"
             end
           in
-          let body =
-            Output.concat (from_string ";") (List.map (fun (skips, (name, l), const_descr_ref, skips', src_t) ->
-              let name = B.const_ref_to_name name true const_descr_ref in
-              let name = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip name)) in
+          let body_notations =
+            List.map (fun (skips, (name, l), const_descr_ref, skips', src_t) ->
+              let name' = B.const_ref_to_name name true const_descr_ref in
+              let notation =
+                if name = name' then
+                  []
+                else
+                  [name, name']
+              in
+              let name = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip name')) in
                 Output.flat [
                   ws skips; from_string name; from_string ":"; ws skips'; typ src_t
-                ]
-            ) body)
+                ], notation
+            ) body
           in
+          let notations = List.flatten (List.map snd body_notations) in
+          let rec generate_notations notations =
+            match notations with
+              | [] -> from_string ""
+              | (infix, name)::xs ->
+                let tail = generate_notations xs in
+                let name = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip name)) in
+                let infix = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip infix)) in
+                Output.flat [
+                  from_string "Notation \" X \'"; from_string infix; from_string "\' Y\" := ("
+                ; from_string name; from_string " X Y)."
+                ; from_string "\n"; tail
+                ]
+          in
+          let body = Output.concat (from_string "\n") (List.map fst body_notations) in
           Output.flat [
             ws skips; from_string "Class"; ws skips'; name; from_string " ("; tv; from_string ": Type): Type := {"
           ; ws skips''; body
           ; from_string "\n}."; ws skips'''
+          ; generate_notations notations
           ]
       | Instance (skips, i_ref, inst, vals, skips') ->
         let l_unk = Ast.Unknown in

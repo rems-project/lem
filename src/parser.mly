@@ -964,8 +964,8 @@ declaration :
     { Decl_rename_current_module_decl($1, $2, $3, $4, fst $5, $6) }
   | Declare targets_opt Rename component id Eq x
     { Decl_rename_decl($1, $2, $3, $4, $5, fst $6, $7) }
-  | Declare targets_opt AsciiRep component id Eq x
-    { Decl_ascii_rep_decl($1, $2, $3, $4, $5, fst $6, $7) }
+  | Declare targets_opt AsciiRep component id Eq QuotedString
+    { Decl_ascii_rep_decl($1, $2, $3, $4, $5, fst $6, fst $7, snd $7) }
   | Declare target TargetRep component_term id x_ls Eq target_rep_rhs_term
     { Decl_target_rep_decl($1, fst $2, snd $2, Target_rep_lhs_term ($3, $4, $5, $6), fst $7, $8) }
   | Declare target TargetRep component_type id tnvs Eq target_rep_rhs_type

@@ -39,7 +39,7 @@ metavar string ::=
   {{ hol string }}
   {{ com String literals }}
 
-metavar quoted_string ::=
+metavar backtick_string ::=
   {{ phantom }}
   {{ ocaml terminal * Ulib.UTF8.t }}
   {{ lem (terminal * string) }}
@@ -308,7 +308,7 @@ typ_aux :: 'Typ_' ::=
   {{ com As a typ to permit applications over Nexps, otherwise not accepted }}
   | id typ1 .. typn			:: :: app
   {{ com Type applications }}
-  | quoted_string typ1 .. typn			:: :: backend
+  | backtick_string typ1 .. typn			:: :: backend
     {{ com Backend-Type applications }}
   | ( typ )					:: :: paren
 
@@ -424,7 +424,7 @@ exp_aux :: '' ::=
   {{ com Expressions }}
   | id							:: :: Ident
     {{ com Identifiers }}
-  | quoted_string 				        :: :: Backend
+  | backtick_string 				        :: :: Backend
     {{ com identifier that should be literally used in output }}
   | N							:: :: Nvar
     {{ com Nexp var, has type num }}
@@ -782,7 +782,7 @@ fixity_decl :: 'Fixity_' ::=
 
 target_rep_rhs :: 'Target_rep_rhs_' ::=
   {{ com right hand side of a target representation declaration }}
-  | infix fixity_decl quoted_string :: :: infix
+  | infix fixity_decl backtick_string :: :: infix
   | exp                          :: :: term_replacement
   | typ                          :: :: type_replacement
   | special string exp1 ... expn :: :: special
@@ -797,7 +797,7 @@ declare_def :: 'Decl_' ::=
   | declare targets_opt compile_message id = string                                               :: :: compile_message_decl
   | declare targets_opt rename module = x_l                                                       :: :: rename_current_module_decl
   | declare targets_opt rename component id = x_l                                                 :: :: rename_decl
-  | declare targets_opt ascii_rep component id = x_l                                              :: :: ascii_rep_decl
+  | declare targets_opt ascii_rep component id = backtick_string                                              :: :: ascii_rep_decl
   | declare target target_rep target_rep_lhs = target_rep_rhs                                     :: :: target_rep_decl
   | declare set_flag x_l1 = x_l2                                                                  :: :: set_flag_decl
   | declare targets_opt termination_argument id = termination_setting                             :: :: termination_argument_decl

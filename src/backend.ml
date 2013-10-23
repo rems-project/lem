@@ -2556,7 +2556,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         kwd "=" ^
         typ rhs
       end
-  | Declaration (Decl_ascii_rep (sk1, targets, sk2, comp, nk_id, sk3, n)) ->
+  | Declaration (Decl_ascii_rep (sk1, targets, sk2, comp, nk_id, sk3, sk4, n)) ->
       if (not (Target.is_human_target T.target)) then emp else begin
         ws sk1 ^
         kwd "declare" ^
@@ -2567,7 +2567,8 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         nk_id_to_output nk_id ^
         ws sk3 ^
         kwd "=" ^
-        (Name.to_output Term_const n)
+        ws sk4 ^
+        (Name.to_output Term_const (Name.add_pre_lskip sk4 (Name.add_lskip n)))
       end
   | Declaration (Decl_rename (sk1, targets, sk2, comp, nk_id, sk3, n)) ->
       if (not (Target.is_human_target T.target)) then emp else begin

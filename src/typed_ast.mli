@@ -457,7 +457,7 @@ type declare_def =  (** Declarations *)
    (** [Decl_target_rep_type (sk1, targ, sk2, sk3, id, args, sk4, rhs)] declares a target-representation. for target [targ] and
        type [id] with arguments [args]. *)
 
- | Decl_ascii_rep             of lskips * targets_opt * lskips * Ast.component * name_kind id * lskips * Name.lskips_t
+ | Decl_ascii_rep             of lskips * targets_opt * lskips * Ast.component * name_kind id * lskips * lskips * Name.t
  | Decl_rename                of lskips * targets_opt * lskips * Ast.component * name_kind id * lskips * Name.lskips_t
  | Decl_rename_current_module of lskips * targets_opt * lskips * lskips * lskips * Name.lskips_t
 

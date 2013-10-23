@@ -2789,9 +2789,8 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let def' = Declaration (Decl_compile_message (sk1, check_target_opt targets_opt, sk2, c_id, sk3, sk4, msg)) in
           (ctxt', Some def')
         end
-      | Ast.Declaration(Ast.Decl_ascii_rep_decl(sk1, targets_opt, sk2, component, source_id, sk3, target_name)) ->
-          let target_name_lskip = Name.from_x target_name in
-          let target_name = Name.strip_lskip target_name_lskip in
+      | Ast.Declaration(Ast.Decl_ascii_rep_decl(sk1, targets_opt, sk2, component, source_id, sk3, sk4, target_name)) ->
+          let target_name = Name.from_string target_name in
           
           let _ = (if Util.is_simple_ident_string (Name.to_string target_name) then () else
                      raise (Reporting_basic.err_type l "non-ascii ascii representation provided")) in
@@ -2800,7 +2799,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                         id_locn = l; 
                         descr = nk; 
                         instantiation = [] } in
-          let def' = Declaration (Decl_ascii_rep (sk1, check_target_opt targets_opt, sk2, component, nk_id, sk3, target_name_lskip)) in
+          let def' = Declaration (Decl_ascii_rep (sk1, check_target_opt targets_opt, sk2, component, nk_id, sk3, sk4, target_name)) in
           let ctxt' = (* update context *) begin
             match nk with
               | (Nk_field const_descr_ref | Nk_constr const_descr_ref | Nk_const const_descr_ref) ->
