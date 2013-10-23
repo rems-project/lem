@@ -993,17 +993,19 @@ let generate_coq_record_update_notation e =
           from_string " "
       in
       let tv_set_sep, tv_set =
-        if Types.TNset.cardinal tv_set = 0 then
-          let typ = Typed_ast.exp_to_typ e in
-          let tv_set = Types.free_vars typ in
-            if Types.TNset.cardinal tv_set = 0 then
-              emp, tv_set
-            else
-              from_string " ", tv_set
+        if inside_instance then
+          from_string "", from_string ""
         else
-          from_string " ", tv_set
+          if Types.TNset.cardinal tv_set = 0 then
+            let typ = Typed_ast.exp_to_typ e in
+            let tv_set = Types.free_vars typ in
+              if Types.TNset.cardinal tv_set = 0 then
+                emp, let_type_variables true tv_set
+              else
+                from_string " ", let_type_variables true tv_set
+          else
+            from_string " ", let_type_variables true tv_set
       in
-      let tv_set = let_type_variables true tv_set in
       let typ_opt =
         match typ_opt with
           | None -> emp
@@ -1165,7 +1167,7 @@ let generate_coq_record_update_notation e =
                 match C.exp_to_term c with
                   | Constant cd ->
                     begin
-                      let pieces = B.function_application_to_output (exp_to_locn e) trans true e cd [l; r] true in
+                      let pieces = B.function_application_to_output (exp_to_locn e) trans true e cd [l; r] (use_ascii_rep_for_const cd.descr) in
                       let output = Output.concat sep pieces in
                         block is_user_exp 0 output
                     end

@@ -40,6 +40,7 @@ declare ascii_rep function (&&) = `and`
 declare hol      target_rep function (&&) = infix `/\`
 declare ocaml    target_rep function (&&) = infix `&&`
 declare isabelle target_rep function (&&) = infix `\<and>`
+declare coq      target_rep function (&&) = `and`
 
 
 
@@ -57,7 +58,7 @@ declare ascii_rep function (||) = `or`
 declare hol      target_rep function (||) = infix `\/`
 declare ocaml    target_rep function (||) = infix `||`
 declare isabelle target_rep function (||) = infix `\<or>`
-declare coq      target_rep function (||) = infix `||`
+declare coq      target_rep function (||) = infix `or`
 
 
 (* ----------------------- *)
@@ -73,7 +74,7 @@ declare ascii_rep function (-->) = `imp`
 
 declare hol      target_rep function (-->) = infix `==>`
 declare isabelle target_rep function (-->) = infix `\<implies>`
-declare coq      target_rep function (-->) = infix `-->`
+declare coq      target_rep function (-->) = `implies`
 
 let inline {ocaml} imp x y = ((not x) || y)
 
@@ -92,7 +93,7 @@ declare ascii_rep function (<->) = `equiv`
 
 declare hol      target_rep function (<->) = infix `<=>`
 declare isabelle target_rep function (<->) = infix `\<equiv>`
-declare coq      target_rep function (<->) = infix `<->`
+declare coq      target_rep function (<->) = infix `eqb`
 declare ocaml    target_rep function (<->) = infix `=`
 
 
