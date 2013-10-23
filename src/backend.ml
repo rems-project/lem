@@ -180,6 +180,7 @@ module type Target = sig
   val string_quote : Ulib.Text.t
   val string_escape : Ulib.UTF8.t -> Ulib.UTF8.t
   val const_num : int -> t
+  val const_char : char -> t
   val const_undefined : Types.t -> string -> t
   val const_bzero : t
   val const_bone : t
@@ -385,6 +386,7 @@ module Identity : Target = struct
   let string_quote = r"\""
   let string_escape = String.escaped
   let const_num = num
+  let const_char c = err "TODO: char literal"
   let const_undefined t m = (kwd "Undef") (* ^ (comment m) *)
   let const_bzero = kwd "#0"
   let const_bone = kwd "#1"
@@ -596,6 +598,7 @@ module Tex : Target = struct
   let string_quote = r"\""
   let string_escape = String.escaped
   let const_num = num
+  let const_char c = err "TODO: char literal"
   let const_undefined t m = (tkwd "undefined")
   let const_bzero = kwd "#0"
   let const_bone = kwd "#1"
@@ -809,6 +812,7 @@ module Isa : Target = struct
   let string_quote = r"''"
   let string_escape = string_escape_isa
   let const_num i = kwd "(" ^  num i ^ kwd ":: nat)"
+  let const_char c = err "TODO: char literal"
   let const_unit s = kwd "() " ^ ws s
   let const_empty s = kwd "{} " ^ ws s
   let const_undefined t m = (kwd "undefined")
@@ -1000,6 +1004,7 @@ module Hol : Target = struct
   let string_quote = r"\""
   let string_escape = string_escape_hol
   let const_num = num
+  let const_char c = err "TODO: char literal"
   let const_undefined t m = (kwd "ARB") 
   let const_bzero = emp
   let const_bone = emp
@@ -1194,6 +1199,8 @@ let lit l t = match l.term with
   | L_false(s) -> ws s ^ T.const_false
   | L_undefined(s,m) -> ws s ^ T.const_undefined t m
   | L_num(s,i) -> ws s ^ T.const_num i
+  | L_numeral(s,i) -> ws s ^ T.const_num i
+  | L_char(s,c) -> ws s ^ T.const_char c
   | L_string(s,i) -> ws s ^ str (Ulib.Text.of_string (T.string_escape i))
   | L_unit(s1,s2) -> ws s1 ^ T.const_unit s2
   | L_zero(s) -> ws s ^ T.const_bzero 
@@ -1583,7 +1590,7 @@ match C.exp_to_term e with
       block is_user_exp 0 (
       ws s1 ^
       T.let_start ^
-      block is_user_exp 0 (letbind Types.TNset.empty bind) ^
+      block is_user_exp 0 (letbind bind) ^
       ws s2 ^
       T.let_in ^
       break_hint_space 0 ^
@@ -1806,28 +1813,10 @@ and case_line (p,s1,e,_) =
   T.case_line_sep ^
   block (is_pp_exp e) 2 (exp e)
 
-and tyvar_binding tvs = emp
-(*
-  if T.target = Some (Ast.Target_coq None) then
-    let tyvars = intercalate (kwd " ")
-        (List.map (
-          fun tv ->
-            id Type_var (Ulib.Text.(^^^) T.typ_var (Tyvar.to_rope tv))
-        ) (Types.TVset.elements tvs))
-    in
-      if List.length tyvars = 0 then
-        emp
-      else
-        kwd "{" ^ flat tyvars ^ kwd " : Type}"
-  else 
-    emp
-*)
-
-and funcl_aux tvs (n, ps, topt, s1, e) =
+and funcl_aux (n, ps, topt, s1, e) =
   ws (Name.get_lskip n) ^ 
   T.funcase_start ^
   Name.to_output Term_var (Name.replace_lskip n None) ^
-  tyvar_binding tvs ^
   (match ps with [] -> emp | _ -> texspace) ^
   patlist ps ^
   begin
@@ -1840,13 +1829,12 @@ and funcl_aux tvs (n, ps, topt, s1, e) =
   exp (if is_human_target T.target then e else mk_opt_paren_exp e) ^
   T.funcase_end
 
-and funcl tvs (({term = n}, c, ps, topt, s1, e):funcl_aux) =
-  funcl_aux tvs (B.const_ref_to_name n false c, ps, topt, s1, e)    
+and funcl (({term = n}, c, ps, topt, s1, e):funcl_aux) =
+  funcl_aux (B.const_ref_to_name n false c, ps, topt, s1, e)    
 
-and letbind tvs (lb, _) : Output.t = match lb with
+and letbind (lb, _) : Output.t = match lb with
   | Let_val(p,topt,s2,e) ->
       pat p ^
-      tyvar_binding tvs ^ 
       begin
         match topt with
           | None -> emp 
@@ -1854,7 +1842,7 @@ and letbind tvs (lb, _) : Output.t = match lb with
       end ^
       ws s2 ^ T.def_binding ^ exp (if is_human_target T.target then e else mk_opt_paren_exp e)
   | Let_fun (n, ps, topt, s1, e) ->
-      funcl_aux tvs (n.term, ps, topt, s1, e)
+      funcl_aux (n.term, ps, topt, s1, e)
 
 
 (* In Isabelle we have to handle the following three cases for type definitions
@@ -2166,7 +2154,7 @@ let is_rec l =
     | _ -> false
 
 let rec isa_def_extra (gf:extra_gen_flags) d l : Output.t = match d with
-  | Val_def(Fun_def(s1, s2_opt, targets, clauses),tnvs, class_constraints) 
+  | Val_def(Fun_def(s1, s2_opt, targets, clauses)) 
       when gf.extra_gen_termination -> 
       let (_, is_rec) = Typed_ast_syntax.is_recursive_def d in
       if (in_target targets && is_rec) then
@@ -2204,7 +2192,7 @@ let rec isa_def_extra (gf:extra_gen_flags) d l : Output.t = match d with
   | _ -> emp
 
 let rec hol_def_extra gf d l : Output.t = match d with
-  | Val_def(Fun_def(s1, s2_opt, targets, clauses),tnvs, class_constraints) 
+  | Val_def(Fun_def(s1, s2_opt, targets, clauses)) 
       when gf.extra_gen_termination -> 
       let (_, is_rec) = Typed_ast_syntax.is_recursive_def d in
       if (in_target targets && is_rec) then
@@ -2347,7 +2335,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         else
           emp *)
 
-  | Val_def(Let_def(s1, targets,(p, name_map, topt, sk, e)),tnvs,class_constraints) -> 
+  | Val_def(Let_def(s1, targets,(p, name_map, topt, sk, e))) -> 
       (* TODO: use name_map to do proper renaming *)
       if in_target targets then
         ws s1 ^
@@ -2356,12 +2344,12 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
            targets_opt targets 
          else
            emp) ^
-        letbind tnvs (Let_val (p, topt, sk, e), Ast.Unknown) ^
+        letbind (Let_val (p, topt, sk, e), Ast.Unknown) ^
         break_hint_space 0 ^
         T.def_end
       else
         emp
-  | Val_def(Fun_def(s1, rec_flag, targets, clauses),tnvs, class_constraints) -> 
+  | Val_def(Fun_def(s1, rec_flag, targets, clauses)) -> 
       if in_target targets then
         let (is_rec, is_real_rec) = Typed_ast_syntax.is_recursive_def d in
         let s2 = match rec_flag with FR_non_rec -> None | FR_rec sk -> sk in
@@ -2375,12 +2363,12 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
              targets_opt targets 
            else
              emp) ^
-          flat (Seplist.to_sep_list (funcl tnvs) (sep T.def_sep) clauses) ^
+          flat (Seplist.to_sep_list funcl (sep T.def_sep) clauses) ^
           T.def_end ^
           T.rec_def_footer is_rec is_real_rec n
           else
         emp
-  | Val_def(Let_inline(s1,s2,targets,n,c,args,s4,body),tnvs,class_constraints) ->
+  | Val_def(Let_inline(s1,s2,targets,n,c,args,s4,body)) ->
       if (is_human_target T.target) then
         ws s1 ^
         kwd "let" ^
@@ -2495,7 +2483,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
       typ t ^
       ws s3 ^
       kwd ")" ^
-      flat (List.map (fun d -> def callback true (Val_def(d,Types.TNset.empty,[])) is_user_def) methods) ^
+      flat (List.map (fun d -> def callback true (Val_def(d)) is_user_def) methods) ^
       ws s4 ^
       kwd "end"
   | Class(s1,s2,(n,l), tv, class_path, s3, specs, s4) -> 
@@ -2742,7 +2730,7 @@ and tex_inc_letbind (p, name_map, topt, sk, e) lhs_keyword =
 
 
 and def_tex_inc d : (Ulib.Text.t*Ulib.Text.t) list = match d with
-  | Val_def(Let_def(s1, targets,bind),tnvs,class_constraints) ->
+  | Val_def(Let_def(s1, targets,bind)) ->
       if in_target targets then
         let lhs_keyword = tex_of_output (ws s1 ^ T.def_start) in
         [tex_inc_letbind bind lhs_keyword]
@@ -2758,7 +2746,7 @@ and html_source_name_letbind (p, _, _, _, _) =
       | [] -> None
 
 and html_source_name_def (d : def_aux) = match d with
-  | Val_def(Let_def(s1, targets,bind),tnvs,class_constraints) ->
+  | Val_def(Let_def(s1, targets,bind)) ->
       html_source_name_letbind bind
   | _ -> None
 
@@ -2800,7 +2788,7 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
           | _ -> assert false
       end
 
-  | Val_def (Let_def(s1, targets,(p, name_map, topt,sk, e)),tnvs,class_constraints) ->
+  | Val_def ((Let_def(s1, targets,(p, name_map, topt,sk, e)) as def)) ->
       let is_simple = true in
       if in_target targets then 
         ws s1 ^ kwd (if is_simple then "definition" else "fun") ^ 
@@ -2810,12 +2798,12 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
            emp) ^
         isa_mk_typed_def_header (pat p, [], sk, exp_to_typ e) ^
         kwd "where \n\"" ^ pat p ^ ws sk ^ kwd "= (" ^ exp e ^ kwd ")\"" ^ T.def_end ^
-        (match val_def_get_name d with None -> emp | Some n ->
+        (match val_def_get_name def with None -> emp | Some n ->
           (if is_simple then emp else 
                           (kwd (String.concat "" ["\ndeclare "; Name.to_string n; ".simps [simp del]"]))))
       else emp
   
-  | Val_def (Fun_def (s1, rec_flag, targets, clauses),tnvs,class_constraints) ->
+  | Val_def ((Fun_def (s1, rec_flag, targets, clauses) as def)) ->
       let (_, is_rec) = Typed_ast_syntax.is_recursive_def d in
       if in_target targets then 
         let is_simple = not is_rec && (match Seplist.to_list clauses with
@@ -2831,7 +2819,7 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
         (isa_funcl_header_seplist clauses) ^
         flat (Seplist.to_sep_list (isa_funcl_default (kwd "= ")) (sep T.def_sep) clauses) ^
         (if is_rec then (kwd "\nby pat_completeness auto") else emp) ^
-        (match val_def_get_name d with None -> emp | Some n ->
+        (match val_def_get_name def with None -> emp | Some n ->
           (if is_rec || is_simple then emp else 
                 (kwd (String.concat "" ["\ndeclare "; Name.to_string n; ".simps [simp del]"])))) ^
         new_line

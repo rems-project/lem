@@ -52,9 +52,11 @@ type t =
   | Path_list
   | Path_bool
   | Path_nat 
+  | Path_numeral
   | Path_bit
   | Path_set
   | Path_vector
+  | Path_char
   | Path_string
   | Path_unit
 
@@ -69,14 +71,16 @@ let r = Ulib.Text.of_latin1
 
 let to_name_list p =  match p with 
     | Path_def(vs,v) -> (vs, v)
-    | Path_list ->  ([], Name.from_rope (r"list"))
-    | Path_bool ->  ([], Name.from_rope (r"bool"))
-    | Path_bit ->   ([], Name.from_rope (r"bit"))
-    | Path_nat ->   ([], Name.from_rope (r"nat"))
-    | Path_set ->   ([], Name.from_rope (r"set"))
-    | Path_vector ->([], Name.from_rope (r"vector"))
-    | Path_string ->([], Name.from_rope (r"string"))
-    | Path_unit ->  ([], Name.from_rope (r"unit"))
+    | Path_list    -> ([], Name.from_rope (r"list"))
+    | Path_bool    -> ([], Name.from_rope (r"bool"))
+    | Path_bit     -> ([], Name.from_rope (r"bit"))
+    | Path_nat     -> ([], Name.from_rope (r"nat"))
+    | Path_set     -> ([], Name.from_rope (r"set"))
+    | Path_vector  -> ([], Name.from_rope (r"vector"))
+    | Path_string  -> ([], Name.from_rope (r"string"))
+    | Path_unit    -> ([], Name.from_rope (r"unit"))
+    | Path_char    -> ([], Name.from_rope (r"char"))
+    | Path_numeral -> ([], Name.from_rope (r"numeral"))
 
 let from_id id = 
   let (x,y) = Ident.to_name_list id in 
@@ -108,20 +112,15 @@ let to_ident sk p =  match to_name_list p with
      (vs,v) -> Ident.mk_ident sk vs v
 
 let natpath = Path_nat
-
 let boolpath = Path_bool
-
 let bitpath = Path_bit
-
 let listpath = Path_list
-
 let setpath = Path_set
-
 let vectorpath = Path_vector
-
 let stringpath = Path_string
-
 let unitpath = Path_unit
+let charpath = Path_char
+let numeralpath = Path_numeral
 
 let check_prefix n p = match p with
   | Path_def(n2::_,_) ->

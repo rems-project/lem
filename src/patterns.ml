@@ -275,12 +275,12 @@ let letbind_to_defname ((lb, l):letbind) =
            | None -> Name.from_rope (r "_")
 
 let def_to_pat_matrix_list (((d, _), l,_) : def) : (Name.t * (bool * pat_matrix) * Ast.l) list = match  d with 
-  |  Val_def ((Fun_def (_, _, _, sl)), _,_) -> begin 
+  |  Val_def ((Fun_def (_, _, _, sl))) -> begin 
        let (_, _, sll) = funcl_aux_seplist_group sl in
        let to_m (n, (sl:funcl_aux lskips_seplist)) = (n, (false, funcl_aux_list_to_pat_matrix (Seplist.to_list sl)), l) in
        List.map to_m sll       
      end
-  |  Val_def (Let_inline (_, _, _, nsa, _, nl, _, e), _,_) -> begin 
+  |  Val_def (Let_inline (_, _, _, nsa, _, nl, _, e)) -> begin 
        let n = Name.strip_lskip (nsa.term) in
        let nsa_to_pvar nsa =
          let ty = annot_to_typ nsa in
@@ -972,7 +972,7 @@ let cases_matrix_compile_fun dest_pat make_lit (gen_match : bool) env (gen : var
 
 let num_matrix_compile_fun =
   let l = Ast.Trans (true, "num_matrix_compile_fun", None) in
-  cases_matrix_compile_fun (dest_num_pat) (fun c -> (C.mk_lnum l None c (Some nat_ty), nat_ty))
+  cases_matrix_compile_fun (dest_num_pat) (fun c -> (C.mk_lnum l None c nat_ty, nat_ty))
 
 let string_matrix_compile_fun =
   let l = Ast.Trans (true, "string_matrix_compile_fun", None) in
@@ -1829,14 +1829,14 @@ let compile_def t mca env_global (_:Name.t list) env_local (((d, s), l, lenv) as
  let env = env_global in
  let cf_opt e = compile_match_exp t mca env e in
  let cf e = Util.option_default e (cf_opt e) in
- let constr topt tnvs class_constraints s1 s2 sl =       
-       Util.option_map (fun d -> (env_local, [(((Val_def (d, tnvs,class_constraints),s), l, lenv):def)]))
+ let constr topt s1 s2 sl =       
+       Util.option_map (fun d -> (env_local, [(((Val_def d,s), l, lenv):def)]))
          (compile_faux_seplist l env cf s1 s2 t topt org_d sl) in
  if mca.def_OK env org_d then None else
  match d with
-  |  Val_def (Fun_def (s1, s2_opt, topt, sl), tnvs,class_constraints) -> begin 
+  |  Val_def (Fun_def (s1, s2_opt, topt, sl)) -> begin 
        if not (in_targets_opt t topt) then None else 
-       constr topt tnvs class_constraints s1 s2_opt sl
+       constr topt s1 s2_opt sl
      end
   |  _ -> None
 ;;
@@ -1853,7 +1853,7 @@ let compile_def t mca env_global (_:Name.t list) env_local (((d, s), l, lenv) as
 let remove_toplevel_match targ mca env_global _ env_local (((d, s), l, lenv)) =
   let l_unk = Ast.Trans (true, "remove_toplevel_match", Some l) in
   let env = env_global in
-  let aux sk1 sk2_opt topt sl tnvs class_constraints = begin
+  let aux sk1 sk2_opt topt sl = begin
     let (_, sk_first_opt, group_nameL) = funcl_aux_seplist_group sl in
     let groupL = List.map (fun (_, x) -> x) group_nameL in
     let group_apply sl = if not (Seplist.length sl = 1) then None else   
@@ -1877,12 +1877,12 @@ let remove_toplevel_match targ mca env_global _ env_local (((d, s), l, lenv)) =
           | _ -> None) in
     match (Util.map_changed group_apply groupL) with None -> None | Some sll' ->
       let sl' = Seplist.flatten space sll' in
-      let new_d = ((Val_def ((Fun_def (sk1, sk2_opt, topt, sl')), tnvs, class_constraints), s), l, lenv) in
+      let new_d = ((Val_def ((Fun_def (sk1, sk2_opt, topt, sl'))), s), l, lenv) in
       if mca.def_OK env new_d then Some (env_local, [new_d]) else None
   end in
   match d with 
-  |  Val_def ((Fun_def (sk1, sk2_opt, topt, sl)), tnvs, class_constraints) -> begin 
-       aux sk1 sk2_opt topt sl tnvs class_constraints
+  |  Val_def ((Fun_def (sk1, sk2_opt, topt, sl))) -> begin 
+       aux sk1 sk2_opt topt sl 
      end
   | _ -> None
 ;;

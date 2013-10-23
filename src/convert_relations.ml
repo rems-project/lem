@@ -714,7 +714,7 @@ let compile_to_typed_ast env prog =
   ) prog in
   let defs = sep_newline (Nfmap.fold (fun l _ c -> c@l) [] defs) in
   let fdefs = Fun_def(None, FR_rec None, None, defs) in
-  ((Val_def(fdefs, Types.TNset.empty, []), None), l)
+  ((Val_def fdefs, None), l)
 
 module Compile_list = Compile(Context_list)
 module Compile_pure = Compile(Context_pure)
@@ -1061,7 +1061,7 @@ let gen_witness_check_def env l mpath localenv names rules local =
   let defs = map_filter id (Nfmap.fold (fun l _ v -> v::l) [] defs) in
   let def = Fun_def(newline, FR_rec None, None, sep_newline defs) in
   if defs = [] then []
-  else [((Val_def(def, Types.TNset.empty, []), None), l, local)]
+  else [((Val_def def, None), l, local)]
 
 let pp_mode ppf (io, wit, out) = 
   List.iter (function 

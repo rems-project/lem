@@ -461,7 +461,11 @@ val is_pp_exp : exp -> bool
 val is_pp_def : def -> bool
 
 (** [val_def_get_name d] tries to extract the name of the defined function. *)
-val val_def_get_name : def_aux -> Name.t option 
+val val_def_get_name : val_def -> Name.t option 
+
+val val_def_get_class_constraints : env -> val_def -> (Path.t * Types.tnvar) list
+
+val val_def_get_free_tnvars : env -> val_def -> Types.TNset.t
 
 (** [env_tag_to_string tag] formats [tag] as a string. This functions should only be used
     for human-readable output in e.g. error-messages. *)

@@ -93,7 +93,7 @@ module C = Exps_in_context(C)
 let expand_annot_typ typ_r (a : ('a,'b) annot) = 
   let typ' = typ_r a.typ in { a with typ = typ' }
 
-let rec expand_pat (macro_ctxt : macro_context) pat_pos p (typ_r, src_typ_r, r) : pat = 
+let rec expand_pat (macro_ctxt : macro_context) pat_pos p (typ_r, src_typ_r, r) : pat  = 
   let trans p = expand_pat macro_ctxt pat_pos p (typ_r, src_typ_r, r) in 
   let new_t = typ_r p.typ in
   let old_l = p.locn in
@@ -329,7 +329,7 @@ let rec expand_defs defs ((r,typ_r,src_typ_r,pat_r): ((macro_context -> exp -> e
         List.map (expand_annot_typ typ_r) ns, sk, (expand_exp Ctxt_other (r,typ_r,src_typ_r,pat_r) e))
   in
   let rec expand_def = function
-    | Val_def(d,tnvs,class_constraints) -> Val_def(expand_val_def d,tnvs,class_constraints)
+    | Val_def(d) -> Val_def(expand_val_def d)
     | Lemma(sk,lty,targets,n_opt,sk2,e,sk3) -> Lemma(sk,lty,targets,n_opt, sk2, expand_exp Ctxt_theorem (r,typ_r,src_typ_r,pat_r) e, sk3)
     | Indreln(s1,targets,names,c) ->
         Indreln(s1,

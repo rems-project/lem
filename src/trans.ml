@@ -244,7 +244,7 @@ let peanoize_num_pats _ _ p =
   let string_to_comment s = Some([Ast.Com(Ast.Comment([Ast.Chars(Ulib.Text.of_latin1 s)]))]) in
   match p.term with
     | P_lit({ term = L_num(s,i)}) when i > 0 ->
-        let pat0 = C.mk_plit l_unk (C.mk_lnum l_unk None 0 None) None in
+        let pat0 = C.mk_plit l_unk (C.mk_lnum l_unk None 0 nat_ty) None in
         let com_ws = (Ast.combine_lex_skips s (string_to_comment (string_of_int i))) in
         Some(pean_pat com_ws i pat0)
     | P_num_add ((n,l), s1, s2, 0) -> 
@@ -810,44 +810,33 @@ let remove_restr_quant pat_OK _ e =
   with Pat_to_exp_unsupported (l, m) -> 
     (Reporting.report_warning env (Reporting.Warn_general (true, exp_to_locn e, m^" in restricted set comprehension")); None) (* it can still be handled by pattern compilation *)
 
-(* TODO: Fix it? Replace with Type-classes?
-let hack e = 
-  let l_unk = Ast.Trans("hack", Some (exp_to_locn e)) in
-  match C.exp_to_term e with
-  | Constant(c) ->
-      let c_d = c_env_lookup l_unk env.c_env c.descr in
-      if Path.compare c_d.const_binding eq_path = 0 then
-        begin
-          match c.instantiation with
-            | [t] when Types.compare (Types.head_norm d t) special_type = 0 ->
-                Some
-                  (C.mk_const l_unk
-                    { id_path = Id_none None;
-                      id_locn = l_unk;
-                      descr = { const_tag = CT_const;
-                                 const_binding = Path.mk_path [Name.from_rope (r"")] (Name.from_rope (r"eq_instruction_instance"));
-                                 const_tparams = [];
-                                 const_class = [];
-                                 const_ranges = [];
-                                 const_type = Types.multi_fun [special_type; special_type] 
-                                                { Types.t = Types.Tapp([], Path.mk_path [] (Name.from_rope (r"num"))) };
-                                 env_tag = K_target(true,Targetset.empty);
-                                 spec_l = l_unk;
-                                 target_rep = Targetmap.empty };
-                       instantiation = [] }
-                     None)
-            | _ -> None
-        end
-      else
-        None
-  | _ -> None
-*)
-
 
 let tnfmap_apply m k =
   match Types.TNfmap.apply m k with
     | None -> assert false
     | Some x -> x
+
+let remove_num_lit _ e =
+  let l = Ast.Trans(true, "remove_num_lit", Some (exp_to_locn e)) in
+  match C.exp_to_term e with
+    | Lit lit -> begin
+        match lit.term with 
+          | L_num (sk, i) -> begin
+              let (fromNumeral_id, _) = get_const_id env l "fromNumeral" [exp_to_typ e] in
+              let numeral_ty  = { Types.t = Types.Tapp ([], Path.numeralpath)  } in
+              let ty_0 = { Types.t = Types.Tfn (numeral_ty, exp_to_typ e) } in
+
+              let exp0 = C.mk_const l fromNumeral_id (Some ty_0) in
+              let lit1 = C.mk_lnumeral l sk i (Some numeral_ty) in
+              let exp1 = C.mk_lit l lit1 (Some numeral_ty) in
+              let exp2 = C.mk_app l exp0 exp1 (Some (exp_to_typ e)) in
+              Some exp2
+            end
+          | _ -> None
+      end
+    | _ -> None
+
+
 
 
 (* remove a class-method and replace it either with the instance method or add a dictionary style passing argument *)
@@ -976,7 +965,7 @@ let nexp_to_exp n =
    let rec to_exp n =
       match n.Types.nexp with
       | Types.Nvar(n) -> C.mk_nvar_e l_unk Typed_ast.no_lskips n num_type
-      | Types.Nconst(i) -> let lit =  C.mk_lnum l_unk Typed_ast.no_lskips i (Some num_type) in
+      | Types.Nconst(i) -> let lit =  C.mk_lnum l_unk Typed_ast.no_lskips i num_type in
                            C.mk_lit l_unk lit (Some num_type)
       | Types.Nadd(n1,n2) -> 
                let (plus_const_id, _) = get_const_id env l_unk "addition" [] in

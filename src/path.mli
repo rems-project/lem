@@ -69,6 +69,8 @@ val bitpath : t
 val setpath : t
 val stringpath : t
 val unitpath : t
+val charpath : t
+val numeralpath : t
 val get_name : t -> Name.t
 
 (** [get_toplevel_name p] gets the outmost name of a path. This is important

@@ -46,9 +46,22 @@
 
 
 
+let class_label_to_path (label : string) : Path.t =
+  let (ns, n) = begin
+  match label with
+    | "class_numeral" -> (["Num"], "Numeral")
+    | s -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_general (true,				     
+              (Ast.Trans (false, "class_label_to_path", None)),
+              ("Unknown label '" ^ s ^ "'"))))
+  end in
+  Path.mk_path (List.map Name.from_string ns) (Name.from_string n)
+
+
 (* TODO: Implement this function in an external file and write a simple parser *)
 let constant_label_to_path_name (label : string) : (string list * string) =
 match label with
+  | "fromNumeral" -> (["Num"], "fromNumeral")
+
   | "equality" -> (["Pervasives"], "=")
   | "identity" -> (["Pervasives"], "id")
 

@@ -92,7 +92,9 @@ and lit_aux =
   | L_false of lskips
   | L_zero of lskips
   | L_one of lskips
+  | L_numeral of lskips * int
   | L_num of lskips * int
+  | L_char of lskips * char
   | L_string of lskips * string
   | L_unit of lskips * lskips
   | L_vector of lskips * string * string 
@@ -334,7 +336,7 @@ type declare_def =  (* declarations *)
 type def = (def_aux * lskips option) * Ast.l * local_env
 and def_aux =
   | Type_def of lskips * (name_l * tnvar list * Path.t * texp * name_sect option) lskips_seplist
-  | Val_def of val_def * TNset.t * (Path.t * Types.tnvar) list 
+  | Val_def of val_def 
   | Lemma of lskips * Ast.lemma_typ * targets_opt * (name_l * lskips) option * lskips * exp * lskips
   | Module of lskips * name_l * Path.t * lskips * lskips * def list * lskips
   | Rename of lskips * name_l * Path.t * lskips * Path.t id
@@ -409,6 +411,12 @@ let lit_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (l : lit) : lit
       | L_num(s,n) ->
           let (s_new,s_ret) = lskips_f s in
             res (L_num(s_new,n)) s_ret
+      | L_numeral(s,n) ->
+          let (s_new,s_ret) = lskips_f s in
+            res (L_numeral(s_new,n)) s_ret
+      | L_char(s,c) ->
+          let (s_new,s_ret) = lskips_f s in
+            res (L_char(s_new,c)) s_ret
       | L_string(s,n) ->
           let (s_new,s_ret) = lskips_f s in
             res (L_string(s_new,n)) s_ret
@@ -579,15 +587,15 @@ let rec def_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (((d,s),l,l
       | Type_def(sk, tds) ->
           let (s_new, s_ret) = lskips_f sk in
             res (Type_def(s_new,tds)) s_ret
-      | Val_def(Let_def(sk, topt, lb),tnvs, class_constraints) -> 
+      | Val_def(Let_def(sk, topt, lb)) -> 
           let (s_new, s_ret) = lskips_f sk in
-            res (Val_def(Let_def(s_new,topt,lb),tnvs, class_constraints)) s_ret
-      | Val_def(Fun_def(sk1, sk2, topt, funs),tnvs, class_constraints) -> 
+            res (Val_def(Let_def(s_new,topt,lb))) s_ret
+      | Val_def(Fun_def(sk1, sk2, topt, funs)) -> 
           let (s_new, s_ret) = lskips_f sk1 in
-            res (Val_def(Fun_def(s_new, sk2, topt, funs),tnvs, class_constraints)) s_ret
-      | Val_def(Let_inline(sk1,sk2,targ,n,c,ns,sk4,e), tnvs, class_constraints) ->
+            res (Val_def(Fun_def(s_new, sk2, topt, funs))) s_ret
+      | Val_def(Let_inline(sk1,sk2,targ,n,c,ns,sk4,e)) ->
           let (s_new, s_ret) = lskips_f sk1 in
-            res (Val_def(Let_inline(s_new,sk2,targ,n,c,ns,sk4,e), tnvs, class_constraints)) s_ret
+            res (Val_def(Let_inline(s_new,sk2,targ,n,c,ns,sk4,e))) s_ret
       | Lemma(sk1, lty, targ, n_opt, sk2, e, sk3) ->
           let (s_new, s_ret) = lskips_f sk1 in
             res (Lemma(s_new, lty, targ, n_opt,sk2, e, sk3)) s_ret
@@ -1454,8 +1462,14 @@ module Exps_in_context(D : Exp_context) = struct
             let (new_do_lines,e) = push_do_lines_subst subst do_lines e in
               Do(s1,mid,new_do_lines,s2, List.hd e, s3,t)
 
+  let mk_lnumeral l s i t = 
+    let t = check_typ l "mk_lnumeral" t (fun d -> Some { t = Tapp([],Path.numeralpath) }) in
+    { term = L_numeral(s,i);
+      locn = l;
+      typ = t;
+      rest = (); }
+
   let mk_lnum l s i t = 
-    let t = check_typ l "mk_lnum" t (fun d -> Some { t = Tapp([],Path.natpath) }) in
     { term = L_num(s,i);
       locn = l;
       typ = t;

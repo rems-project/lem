@@ -165,9 +165,9 @@ let is_num_pat p = not (dest_num_pat p = None)
 
 let mk_num_pat i = 
   let l = Ast.Trans (false, "mk_num_pat", None) in
-  let num_ty = { Types.t = Types.Tapp ([], Path.natpath)} in
-  let lit = C.mk_lnum l None i (Some num_ty) in
-  C.mk_plit l lit (Some num_ty)
+  let nat_ty = { Types.t = Types.Tapp ([], Path.natpath)} in
+  let lit = C.mk_lnum l None i nat_ty in
+  C.mk_plit l lit (Some nat_ty)
 
 let rec dest_num_add_pat (p :pat) : (Name.t * int) option =
   match p.term with

@@ -173,6 +173,11 @@ module Macros (E : sig val env : env end) : sig
        has type class constraints. *)
   val remove_method : exp macro
 
+
+   (** [remove_num_lit] replaces [L_num (sk, i)] with [fromNumeral (L_numeral (sk, i))].
+       This is the first step into using type classes to handle numerals.  *)
+  val remove_num_lit : exp macro
+
   (** [remove_class_const] remove constants that have class constraints by adding
       explicit dictionary parameters. *)
   val remove_class_const : Target.target -> exp macro
