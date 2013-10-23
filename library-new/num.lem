@@ -22,7 +22,7 @@ open import Bool Basic_classes
 class ( NumNegate 'a ) 
   val neg : 'a -> 'a 
 end
-declare ascii_rep function neg = numNegate
+declare ascii_rep function neg = `numNegate`
 
 class ( NumAdd 'a ) 
   val (+) : 'a -> 'a -> 'a
@@ -42,22 +42,22 @@ declare ascii_rep function ( * ) = `numMult`
 class ( NumPow 'a ) 
   val ( ** ) : 'a -> 'a -> 'a
 end
-declare ascii_rep function ( ** ) = numPow
+declare ascii_rep function ( ** ) = `numPow`
 
 class ( NumDivision 'a ) 
   val (/) : 'a -> 'a -> 'a
 end
-declare ascii_rep function (/) = numDivision
+declare ascii_rep function (/) = `numDivision`
 
 class ( NumIntegerDivision 'a ) 
   val (div) : 'a -> 'a -> nat
 end
-declare ascii_rep function (div) = numIntegerDivision
+declare ascii_rep function (div) = `numIntegerDivision`
 
 class ( NumRemainder 'a ) 
   val (mod) : 'a -> 'a -> 'a
 end
-declare ascii_rep function (mod) = numRemainder
+declare ascii_rep function (mod) = `numRemainder`
 
 class ( Numeral 'a ) 
   val fromNumeral : numeral -> 'a 

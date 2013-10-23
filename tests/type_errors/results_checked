@@ -37,35 +37,35 @@ let _ = <| M.N. f = 1 |>
 File "test.lem", line 4, character 12 to line 4, character 17
   Type error: illegal whitespace in identifier:  M.N. f
 ================================================================================
-module M = struct let x = 1 end
+module M = struct let x = (1 : nat) end
 let _ = M .x
 
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 9 to line 4, character 12
   Type error: illegal whitespace in identifier:  M .x
 ================================================================================
-module M = struct module N = struct let x = 1 end end
+module M = struct module N = struct let x = (1 : nat) end end
 let _ = M .N.x
 
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 9 to line 4, character 14
   Type error: illegal whitespace in identifier:  M .N.x
 ================================================================================
-module M = struct module N = struct let x = 1 end end
+module M = struct module N = struct let x = (1 : nat) end end
 let _ = M. N.x
 
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 9 to line 4, character 14
   Type error: illegal whitespace in identifier:  M. N.x
 ================================================================================
-module M = struct module N = struct let x = 1 end end
+module M = struct module N = struct let x = (1 : nat) end end
 let _ = M.N .x
 
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 9 to line 4, character 14
   Type error: illegal whitespace in identifier:  M.N .x
 ================================================================================
-module M = struct module N = struct let x = 1 end end
+module M = struct module N = struct let x = (1 : nat) end end
 let _ = M.N. x
 
 
@@ -108,14 +108,14 @@ File "test.lem", line 4, character 10 to line 4, character 10
 (* ------------------------------------------------------------------------- *)
 
 type x = | X
-let f (X a) = 1
+let f (X a) = (1 : nat)
 
 --------------------------------------------------------------------------------
 File "test.lem", line 8, character 8 to line 8, character 8
   Type error: constructor pattern expected 0 arguments, given 1: X
 ================================================================================
 type x = | X of bool
-let f (X a b) = 1
+let f (X a b) = (1 : nat)
 
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 8 to line 4, character 8
@@ -128,14 +128,14 @@ let f (M.X y) = 1
 File "test.lem", line 4, character 10 to line 4, character 10
   Type error: non-constructor pattern has a module path: M.X
 ================================================================================
-let f (M.X y) = 1
+let f (M.X y) = (1 : nat)
 
 --------------------------------------------------------------------------------
 File "test.lem", line 3, character 10 to line 3, character 10
   Type error: unknown module: M
 ================================================================================
 type t = <| X : nat |>
-let f (X y) = 1
+let f (X y) = (1 : nat)
 
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 8 to line 4, character 8
@@ -365,7 +365,7 @@ File "test.lem", line 3, character 27 to line 3, character 27
 let _ = 
   do M
   in
-    [4]
+    [(4 : nat)]
   end
 
 --------------------------------------------------------------------------------
@@ -378,7 +378,7 @@ end
 let _ =
   do M
   in
-    None 
+    Nothing 
 end
 
 --------------------------------------------------------------------------------
@@ -391,7 +391,7 @@ end
 let _ =
   do M
   in
-    None 
+    Nothing 
 end
 
 --------------------------------------------------------------------------------
@@ -405,7 +405,7 @@ end
 let _ =
   do M
   in
-    None 
+    Nothing 
 end
 
 --------------------------------------------------------------------------------
@@ -414,12 +414,12 @@ File "test.lem", line 8, character 6 to line 8, character 6
 ================================================================================
 module M = struct
   type t 'a = maybe 'a
-  let bind x y = match x with None -> None | Just x -> y x end
+  let bind x y = match x with Nothing -> Nothing | Just x -> y x end
 end
 let _ =
   do M
   in
-    None 
+    Nothing 
 end
 
 --------------------------------------------------------------------------------
@@ -428,12 +428,12 @@ File "test.lem", line 8, character 6 to line 8, character 6
 ================================================================================
 module M = struct
   let return x = Just x
-  let bind x y = match x with None -> None | Just x -> y x end
+  let bind x y = match x with Nothing -> Nothing | Just x -> y x end
 end
 let _ =
   do M
   in
-    None 
+    Nothing 
 end
 
 --------------------------------------------------------------------------------
@@ -448,7 +448,7 @@ end
 let _ =
   do M
   in
-    M.return 1 
+    M.return (1 : nat) 
 end
 
 --------------------------------------------------------------------------------
@@ -462,13 +462,13 @@ module M = struct
 end
 let _ =
   do M
-    x <- 1;
+    x <- (1 : nat);
   in
-    None 
+    Nothing 
 end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 10, character 10 to line 10, character 10
+File "test.lem", line 10, character 10 to line 10, character 18
   Type error: type mismatch: do expression
 nat
 and
@@ -477,12 +477,12 @@ Maybe.maybe _
 module M = struct
   type t 'a = maybe 'a
   let return x = x
-  let bind x y = match x with None -> None | Just x -> y x end
+  let bind x y = match x with Nothing -> Nothing | Just x -> y x end
 end
 let _ =
   do M
   in
-    None 
+    Nothing 
 end
 
 --------------------------------------------------------------------------------
@@ -518,7 +518,7 @@ end
 let _ =
   do M
   in
-    1 
+    (1 : nat) 
 end
 
 --------------------------------------------------------------------------------
@@ -896,14 +896,14 @@ File "test.lem", line 6, character 11 to line 6, character 11
 (* ------------------------------------------------------------------------- *)
 (* ------------------------------------------------------------------------- *)
 
-module X = struct let y = 1 end
-module X = struct let z = 1 end
+module X = struct let y = (1 : nat) end
+module X = struct let z = (1 : nat) end
 
 --------------------------------------------------------------------------------
 File "test.lem", line 8, character 8 to line 8, character 8
   Type error: duplicate module definition: X
 ================================================================================
-module X = struct let Y = 1 end
+module X = struct let Y = (1 : nat) end
 module Y = X
 module Y = X
 
@@ -931,16 +931,16 @@ open x
 File "test.lem", line 3, character 6 to line 3, character 6
   Type error: unknown module: x
 ================================================================================
-module X = struct let X = 1 let X = 1 end
+module X = struct let X = (1 : nat) let X = (1 : nat) end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 3, character 33 to line 3, character 33
+File "test.lem", line 3, character 41 to line 3, character 41
   Type error: defined variable 'X' is already defined for targets: hol, ocaml
 ================================================================================
-module X = struct let C = 1 end
+module X = struct let C = (1 : nat) end
 type t = | C of nat
 open X
-let f (C 1) = 1
+let f (C 1) = (1 : nat)
 
 --------------------------------------------------------------------------------
 File "test.lem", line 6, character 8 to line 6, character 8
@@ -1024,9 +1024,9 @@ File "test.lem", line 9, character 22 to line 9, character 22
   Type error: instance method not bound to class method: x
 ================================================================================
 class (c 'a) val x : 'a end
-module M = struct let x = 10 end
+module M = struct let x = (10 : nat) end
 open M
-instance (c nat) let x = 10 end
+instance (c nat) let x = (10 : nat) end
 
 --------------------------------------------------------------------------------
 File "test.lem", line 6, character 22 to line 6, character 22
@@ -1156,10 +1156,10 @@ File "test.lem", line 4, character 34:
 (* ------------------------------------------------------------------------- *)
 
 class (c 'a) val x : 'a end
-let _ = x::[4]
+let _ = x::[(4:nat)]
 
 --------------------------------------------------------------------------------
-File "test.lem", line 9, character 1 to line 9, character 14
+File "test.lem", line 9, character 1 to line 9, character 20
   Type error: unsatisfied type class constraint:
     (Test.c nat)
 ================================================================================
@@ -1177,10 +1177,10 @@ class (c 'a) val x : 'a end
 class (d 'a) val y : 'a end
 instance forall 'a 'b. c 'a , d 'b => (c ('a*'b)) let x = (x, y) end
 val a : nat
-let a = match x with (a,b) -> 1 end
+let a = match x with (a,b) -> (1 : nat) end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 7, character 1 to line 7, character 35
+File "test.lem", line 7, character 1 to line 7, character 43
   Type error: unsatisfied type class constraints:
     (Test.c 'b)
   and
@@ -1204,7 +1204,7 @@ File "test.lem", line 7, character 1 to line 7, character 50
 (* ------------------------------------------------------------------------- *)
 (* ------------------------------------------------------------------------- *)
 
-let f (1 : bool) = 1
+let f (1 : bool) = (1 : nat)
 
 --------------------------------------------------------------------------------
 File "test.lem", line 8, character 7 to line 8, character 16
@@ -1214,7 +1214,7 @@ and
 nat
 ================================================================================
 type x = | X of bool
-let f (X 1) = 1
+let f (X 1) = (1 : nat)
 
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 8 to line 4, character 8
@@ -1224,7 +1224,7 @@ and
 nat
 ================================================================================
 type t = <| fld : bool |>
-let f <| fld = 1 |> = 1
+let f <| fld = 1 |> = (1 : nat)
 
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 10 to line 4, character 16
@@ -1233,7 +1233,7 @@ bool
 and
 nat
 ================================================================================
-let f [1;true] = 1
+let f [1;true] = (1 : nat)
 
 --------------------------------------------------------------------------------
 File "test.lem", line 3, character 7 to line 3, character 14
@@ -1242,7 +1242,7 @@ nat
 and
 bool
 ================================================================================
-let f (1::[true]) = 1
+let f (1::[true]) = (1 : nat)
 
 --------------------------------------------------------------------------------
 File "test.lem", line 3, character 8 to line 3, character 16
@@ -1252,10 +1252,10 @@ and
 bool
 ================================================================================
 let x = true
-let _ = x + 1
+let _ = x + (1 : nat)
 
 --------------------------------------------------------------------------------
-File "test.lem", line 4, character 9 to line 4, character 13
+File "test.lem", line 4, character 9 to line 4, character 21
   Type error: type mismatch: infix expression
 nat
 and
@@ -1264,75 +1264,73 @@ bool
 let f (x : bool) = x + 1
 
 --------------------------------------------------------------------------------
-File "test.lem", line 3, character 20 to line 3, character 24
-  Type error: type mismatch: infix expression
-nat
-and
-bool
+File "test.lem", line 3, character 1 to line 3, character 24
+  Type error: unsatisfied type class constraint:
+    (Num.NumAdd bool)
 ================================================================================
 type t = | X
-let _ = X 1 
+let _ = X (1 : nat) 
 
 --------------------------------------------------------------------------------
-File "test.lem", line 4, character 9 to line 4, character 11
+File "test.lem", line 4, character 9 to line 4, character 19
   Type error: type mismatch: application expression
-(nat) -> _
+nat -> _
 and
 Test.t
 ================================================================================
 type t = | X of bool
-let _ = X 1 
+let _ = X (1 : nat) 
 
 --------------------------------------------------------------------------------
-File "test.lem", line 4, character 9 to line 4, character 11
+File "test.lem", line 4, character 9 to line 4, character 19
   Type error: type mismatch: application expression
 nat
 and
 bool
 ================================================================================
 type t = | X of bool
-let _ = X true 1 
+let _ = X true (1 : nat) 
 
 --------------------------------------------------------------------------------
-File "test.lem", line 4, character 9 to line 4, character 16
+File "test.lem", line 4, character 9 to line 4, character 24
   Type error: type mismatch: application expression
-(nat) -> _
+nat -> _
 and
 Test.t
 ================================================================================
-let _ = fun (x : bool) -> x + 1
+let _ = fun (x : bool) -> x + (1 : nat)
 
 --------------------------------------------------------------------------------
-File "test.lem", line 3, character 27 to line 3, character 31
+File "test.lem", line 3, character 27 to line 3, character 39
   Type error: type mismatch: infix expression
 nat
 and
 bool
 ================================================================================
 type x = | X of bool
-let _ = fun (X x) -> x + 1
+let _ = fun (X x) -> x + (1 : nat)
 
 --------------------------------------------------------------------------------
-File "test.lem", line 4, character 22 to line 4, character 26
+File "test.lem", line 4, character 22 to line 4, character 34
   Type error: type mismatch: infix expression
 nat
 and
 bool
 ================================================================================
 type x = <| fld : bool |>
-let _ = fun <| fld = x |> -> x + 1
+let _ = fun <| fld = x |> -> x + (1 : nat)
 
 --------------------------------------------------------------------------------
-File "test.lem", line 4, character 30 to line 4, character 34
+File "test.lem", line 4, character 30 to line 4, character 42
   Type error: type mismatch: infix expression
 nat
 and
 bool
 ================================================================================
-let _ = function | true -> 1 | 1 -> 1 end
+let _ = function | true -> 1 | (1 : nat) -> (1 : nat) end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 3, character 9 to line 3, character 41
+File "test.lem", line 3, character 9 to line 3, character 57
   Type error: type mismatch: function expression
 bool
 and
@@ -1341,53 +1339,51 @@ nat
 let _ = function | _ -> 1 | _ -> true end
 
 --------------------------------------------------------------------------------
-File "test.lem", line 3, character 9 to line 3, character 41
-  Type error: type mismatch: function expression
-nat
-and
-bool
+File "test.lem", line 3, character 1 to line 3, character 41
+  Type error: unsatisfied type class constraint:
+    (Num.Numeral bool)
 ================================================================================
-let _ = 1 2
+let _ = (1 : nat) (2 : nat)
 
 --------------------------------------------------------------------------------
-File "test.lem", line 3, character 9 to line 3, character 11
+File "test.lem", line 3, character 9 to line 3, character 27
   Type error: type mismatch: application expression
-(nat) -> _
+nat -> _
 and
 nat
 ================================================================================
-let _ = (fun 1 -> 1) true
+let _ = (fun (1:nat) -> (1:nat)) true
 
 --------------------------------------------------------------------------------
-File "test.lem", line 3, character 9 to line 3, character 25
+File "test.lem", line 3, character 9 to line 3, character 37
   Type error: type mismatch: application expression
 bool
 and
 nat
 ================================================================================
-let _ = (function | 1 -> 1 end) true
+let _ = (function | 1 -> (1 : nat) end) true
 
 --------------------------------------------------------------------------------
-File "test.lem", line 3, character 9 to line 3, character 36
+File "test.lem", line 3, character 9 to line 3, character 44
   Type error: type mismatch: application expression
 bool
 and
 nat
 ================================================================================
-let _ = (fun x -> x) 1 2
+let _ = (fun x -> x) (1 : nat) (2 : nat)
+
+--------------------------------------------------------------------------------
+File "test.lem", line 3, character 9 to line 3, character 40
+  Type error: type mismatch: application expression
+nat -> _
+and
+nat
+================================================================================
+let _ = true + (1 : nat)
+
 
 --------------------------------------------------------------------------------
 File "test.lem", line 3, character 9 to line 3, character 24
-  Type error: type mismatch: application expression
-(nat) -> _
-and
-nat
-================================================================================
-let _ = true + 1
-
-
---------------------------------------------------------------------------------
-File "test.lem", line 3, character 9 to line 3, character 16
   Type error: type mismatch: infix expression
 nat
 and
