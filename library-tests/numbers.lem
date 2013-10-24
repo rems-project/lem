@@ -24,5 +24,9 @@ assert test19 : (min 12 (10 : my_num) = 10)
 assert test20 : (max 12 (12 : my_num) = 12)
 assert test21 : (max 10 (12 : my_num) = 12)
 assert test22 : (max 12 (10 : my_num) = 12)
+assert test23 : (succ 12 = (13 : my_num))
+assert test24 : (succ 0 = (1 : my_num))
+assert test25 : (pred 12 = (11 : my_num))
+assert test26 : (pred 0 = (0 : my_num))
 
 

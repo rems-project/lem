@@ -22,8 +22,11 @@ open import Bool Basic_classes
    verious number types. The type of numerals differs form backend to backend.
    Essentially they are just printed as "0", "1", ... and the backend decides
    then. For Ocaml, they are integers. For HOL of type "num". Isabelle thinks
-   they are "nat"s. ...
+   they are polymorphic. ...
 *)
+
+declare hol      target_rep type numeral = `num` 
+declare ocaml    target_rep type numeral = `int` 
 
 class ( Numeral 'a ) 
   val fromNumeral : numeral -> 'a 
@@ -67,7 +70,7 @@ end
 declare ascii_rep function (/) = `numDivision`
 
 class ( NumIntegerDivision 'a ) 
-  val (div) : 'a -> 'a -> nat
+  val (div) : 'a -> 'a -> 'a
 end
 declare ascii_rep function (div) = `numIntegerDivision`
 
@@ -75,6 +78,22 @@ class ( NumRemainder 'a )
   val (mod) : 'a -> 'a -> 'a
 end
 declare ascii_rep function (mod) = `numRemainder`
+
+class ( NumSucc 'a ) 
+  val succ : 'a -> 'a
+end
+
+instance forall 'a. Numeral 'a, NumAdd 'a => (NumSucc 'a) 
+  let succ n = n + 1
+end
+
+class ( NumPred 'a ) 
+  val pred : 'a -> 'a
+end
+
+instance forall 'a. Numeral 'a, NumMinus 'a => (NumPred 'a) 
+  let pred n = n - 1
+end
 
 (* ========================================================================== *)
 (* Basic number types                                                         *)
@@ -84,12 +103,33 @@ declare ascii_rep function (mod) = `numRemainder`
 (* nat                     *)
 (* ----------------------- *)
 
-(* unbounded size natural numbers are hardcoded *)
+(* bounded size natural numbers, i.e. positive integers *)
+
+(* "nat" is the old type "num". It represents natural numbers. 
+   These numbers might be bounded, however no checks of the boundedness are
+   provided. The theorem prover backends map nat to unbounded size 
+   natural numbers. However, OCaml uses the type "int", which is bounded.
+   Using "int" allows using many functions like "List.length" without wrappers.
+   This leeds to nice readable code, but a slightly fuzzy concept what
+   "nat" represents. If you want to use unbounded natural numbers, use "natural"
+   instead. *)
 
 declare hol      target_rep type nat = `num` 
 declare isabelle target_rep type nat = `nat` 
 declare coq      target_rep type nat = `num` 
-declare ocaml    target_rep type nat = `Big_int.big_int` 
+declare ocaml    target_rep type nat = `int` 
+
+
+(* ----------------------- *)
+(* natural                 *)
+(* ----------------------- *)
+
+(* unbounded size natural numbers *)
+type natural
+declare hol      target_rep type natural = `num` 
+declare isabelle target_rep type natural = `nat` 
+declare coq      target_rep type natural = `num` 
+declare ocaml    target_rep type natural = `Big_int.big_int` 
 
 
 (* ----------------------- *)
@@ -98,8 +138,8 @@ declare ocaml    target_rep type nat = `Big_int.big_int`
 
 (* unbounded size integers *)
 
-type int 
-declare ocaml    target_rep type int = `Big_int.big_int` 
+type integer
+declare ocaml    target_rep type integer = `Big_int.big_int` 
 
 
 (* ----------------------- *)
@@ -139,6 +179,24 @@ declare ocaml    target_rep type float32 = `float`
 
 
 (* ========================================================================== *)
+(* Translation between number types                                           *)
+(* ========================================================================== *)
+
+val naturalFromNat : nat -> natural
+declare hol      target_rep function naturalFromNat = `` (* remove natFromNumeral, as it is the identify function *)
+declare ocaml    target_rep function naturalFromNat = `Big_int.big_int_of_int`
+declare isabelle target_rep function naturalFromNat = ``
+declare coq      target_rep function naturalFromNat = `TODO`
+
+val natFromNatural : natural -> nat
+declare hol      target_rep function natFromNatural = `` (* remove natFromNumeral, as it is the identify function *)
+declare ocaml    target_rep function natFromNatural = `Big_int.int_of_big_int`
+declare isabelle target_rep function natFromNatural = ``
+declare coq      target_rep function natFromNatural = `TODO`
+
+
+
+(* ========================================================================== *)
 (* Binding the standard operations for the number types                       *)
 (* ========================================================================== *)
 
@@ -149,7 +207,7 @@ declare ocaml    target_rep type float32 = `float`
 
 val natFromNumeral : numeral -> nat
 declare hol      target_rep function natFromNumeral = `` (* remove natFromNumeral, as it is the identify function *)
-declare ocaml    target_rep function natFromNumeral = `Big_int.big_int_of_int`
+declare ocaml    target_rep function natFromNumeral = ``
 declare isabelle target_rep function natFromNumeral = ``
 declare coq      target_rep function natFromNumeral = `TODO`
 
@@ -159,14 +217,12 @@ end
 
 val natCompare : nat -> nat -> ordering
 let inline natCompare = defaultCompare
-declare ocaml    target_rep function natCompare = `Big_int.compare_big_int`
 instance (OrdCompare nat)
   let compare = natCompare
 end
 
 val natEq : nat -> nat -> bool
 let inline natEq = unsafe_structural_equality
-declare ocaml    target_rep function natEq = `Big_int.eq_big_int`
 instance (Eq nat)
   let (=) = natEq
 end
@@ -177,22 +233,22 @@ val natGreater : nat -> nat -> bool
 val natGreaterEqual : nat -> nat -> bool
 
 declare hol      target_rep function natLess = infix `<` 
-declare ocaml    target_rep function natLess = `Big_int.lt_big_int`
+declare ocaml    target_rep function natLess = infix `<`
 declare isabelle target_rep function natLess = infix `<`
 declare coq      target_rep function natLess = infix `<`
 
 declare hol      target_rep function natLessEqual = infix `<=` 
-declare ocaml    target_rep function natLessEqual = `Big_int.le_big_int`
+declare ocaml    target_rep function natLessEqual = infix `<=`
 declare isabelle target_rep function natLessEqual = infix `<=`
 declare coq      target_rep function natLessEqual = infix `<=`
 
 declare hol      target_rep function natGreater = infix `>` 
-declare ocaml    target_rep function natGreater = `Big_int.gt_big_int`
+declare ocaml    target_rep function natGreater = infix `>`
 declare isabelle target_rep function natGreater = infix `>`
 declare coq      target_rep function natGreater = infix `>`
 
 declare hol      target_rep function natGreaterEqual = infix `>=` 
-declare ocaml    target_rep function natGreaterEqual = `Big_int.ge_big_int`
+declare ocaml    target_rep function natGreaterEqual = infix `>=`
 declare isabelle target_rep function natGreaterEqual = infix `>=`
 declare coq      target_rep function natGreaterEqual = infix `>=`
 
@@ -206,7 +262,7 @@ end
 
 val natAdd : nat -> nat -> nat
 declare hol      target_rep function natAdd = infix `+`
-declare ocaml    target_rep function natAdd = `Big_int.add_big_int`
+declare ocaml    target_rep function natAdd = infix `+`
 declare isabelle target_rep function natAdd = infix `+`
 declare coq      target_rep function natAdd = infix `+`
 
@@ -216,7 +272,7 @@ end
 
 val natMinus : nat -> nat -> nat
 declare hol      target_rep function natMinus = infix `-`
-declare ocaml    target_rep function natMinus = `Nat_num.monus_big_int`
+declare ocaml    target_rep function natMinus = `Nat_num.nat_monus`
 declare isabelle target_rep function natMinus = infix `-`
 declare coq      target_rep function natMinus = infix `-`
 
@@ -224,24 +280,27 @@ instance (NumMinus nat)
   let (-) = natMinus
 end
 
-val suc : nat -> nat
-let suc n = n + 1
+val natSucc : nat -> nat
+let natSucc n = n + 1
+declare hol      target_rep function natSucc = `SUC`
+declare isabelle target_rep function natSucc = `Suc`
+declare ocaml    target_rep function natSucc = `succ`
+instance (NumSucc nat)
+  let succ = natSucc
+end
 
-declare hol      target_rep function suc = `SUC`
-declare isabelle target_rep function suc = `Suc`
-declare ocaml    target_rep function suc = `Big_int.succ_big_int`
-
-val pre : nat -> nat
-let pre n = n - 1
-
-declare hol      target_rep function pre = `PRE`
-declare isabelle target_rep function pre = `Pre`
-declare ocaml    target_rep function pre = `Big_int.pred_big_int`
-
+val natPred : nat -> nat
+let natPred n = n - 1
+declare hol      target_rep function natPred = `PRE`
+declare isabelle target_rep function natPred = `Pre`
+declare ocaml    target_rep function natPred = `Nat_num.nat_pred`
+instance (NumPred nat)
+  let pred = natPred
+end
 
 val natMult : nat -> nat -> nat
 declare hol      target_rep function natMult = infix `*`
-declare ocaml    target_rep function natMult = `Big_int.mult_big_int`
+declare ocaml    target_rep function natMult = infix `*`
 declare isabelle target_rep function natMult = infix `*`
 declare coq      target_rep function natMult = infix `*`
 
@@ -252,7 +311,7 @@ end
 
 val natPow : nat -> nat -> nat
 declare hol      target_rep function natPow = infix `**`
-declare ocaml    target_rep function natPow = `Big_int.power_big_int_positive_big_int`
+declare ocaml    target_rep function natPow = `Nat_num.nat_pow`
 declare isabelle target_rep function natPow = `nat_exp`
 declare coq      target_rep function natPow = `TODO`
 
@@ -262,7 +321,7 @@ end
 
 val natDiv : nat -> nat -> nat
 declare hol      target_rep function natDiv = `DIV`
-declare ocaml    target_rep function natDiv = `Big_int.div_big_int`
+declare ocaml    target_rep function natDiv = infix `/`
 declare isabelle target_rep function natDiv = `div`
 declare coq      target_rep function natDiv = `TODO`
 
@@ -276,7 +335,7 @@ end
 
 val natMod : nat -> nat -> nat
 declare hol      target_rep function natMod = `MOD`
-declare ocaml    target_rep function natMod = `Big_int.mod_big_int`
+declare ocaml    target_rep function natMod = infix `mod`
 declare isabelle target_rep function natMod = `nat_mod`
 declare coq      target_rep function natMod = `TODO`
 
@@ -286,15 +345,173 @@ end
 
 val natMin : nat -> nat -> nat
 let inline natMin = defaultMin
-declare ocaml    target_rep function natMin = `Big_int.min_big_int`
+declare ocaml    target_rep function natMin = `min`
 
 val natMax : nat -> nat -> nat
 let inline natMax = defaultMax
-declare ocaml    target_rep function natMax = `Big_int.max_big_int`
+declare ocaml    target_rep function natMax = `max`
 
 instance ( OrdMaxMin nat ) 
   let max = natMax
   let min = natMin
+end
+
+
+(* ----------------------- *)
+(* natural                 *)
+(* ----------------------- *)
+
+val naturalFromNumeral : numeral -> natural
+declare hol      target_rep function naturalFromNumeral = `` (* remove naturalFromNumeral, as it is the identify function *)
+declare ocaml    target_rep function naturalFromNumeral = `Big_int.big_int_of_int`
+declare isabelle target_rep function naturalFromNumeral = ``
+declare coq      target_rep function naturalFromNumeral = `TODO`
+
+instance (Numeral natural)
+  let fromNumeral = naturalFromNumeral
+end
+
+val naturalCompare : natural -> natural -> ordering
+let inline naturalCompare = defaultCompare
+declare ocaml    target_rep function naturalCompare = `Big_int.compare_big_int`
+instance (OrdCompare natural)
+  let compare = naturalCompare
+end
+
+val naturalEq : natural -> natural -> bool
+let inline naturalEq = unsafe_structural_equality
+declare ocaml    target_rep function naturalEq = `Big_int.eq_big_int`
+instance (Eq natural)
+  let (=) = naturalEq
+end
+
+val naturalLess : natural -> natural -> bool
+val naturalLessEqual : natural -> natural -> bool
+val naturalGreater : natural -> natural -> bool
+val naturalGreaterEqual : natural -> natural -> bool
+
+declare hol      target_rep function naturalLess = infix `<` 
+declare ocaml    target_rep function naturalLess = `Big_int.lt_big_int`
+declare isabelle target_rep function naturalLess = infix `<`
+declare coq      target_rep function naturalLess = infix `<`
+
+declare hol      target_rep function naturalLessEqual = infix `<=` 
+declare ocaml    target_rep function naturalLessEqual = `Big_int.le_big_int`
+declare isabelle target_rep function naturalLessEqual = infix `<=`
+declare coq      target_rep function naturalLessEqual = infix `<=`
+
+declare hol      target_rep function naturalGreater = infix `>` 
+declare ocaml    target_rep function naturalGreater = `Big_int.gt_big_int`
+declare isabelle target_rep function naturalGreater = infix `>`
+declare coq      target_rep function naturalGreater = infix `>`
+
+declare hol      target_rep function naturalGreaterEqual = infix `>=` 
+declare ocaml    target_rep function naturalGreaterEqual = `Big_int.ge_big_int`
+declare isabelle target_rep function naturalGreaterEqual = infix `>=`
+declare coq      target_rep function naturalGreaterEqual = infix `>=`
+
+instance (Ord natural)
+  let (<) = naturalLess
+  let (<=) = naturalLessEqual
+  let (>) = naturalGreater
+  let (>=) = naturalGreaterEqual
+end
+
+
+val naturalAdd : natural -> natural -> natural
+declare hol      target_rep function naturalAdd = infix `+`
+declare ocaml    target_rep function naturalAdd = `Big_int.add_big_int`
+declare isabelle target_rep function naturalAdd = infix `+`
+declare coq      target_rep function naturalAdd = infix `+`
+
+instance (NumAdd natural)
+  let (+) = naturalAdd
+end
+
+val naturalMinus : natural -> natural -> natural
+declare hol      target_rep function naturalMinus = infix `-`
+declare ocaml    target_rep function naturalMinus = `Nat_num.natural_monus`
+declare isabelle target_rep function naturalMinus = infix `-`
+declare coq      target_rep function naturalMinus = infix `-`
+
+instance (NumMinus natural)
+  let (-) = naturalMinus
+end
+
+val naturalSucc : natural -> natural
+let naturalSucc n = n + 1
+declare hol      target_rep function naturalSucc = `SUC`
+declare isabelle target_rep function naturalSucc = `Suc`
+declare ocaml    target_rep function naturalSucc = `Big_int.succ_big_int`
+instance (NumSucc natural)
+  let succ = naturalSucc
+end
+
+val naturalPred : natural -> natural
+let naturalPred n = n - 1
+declare hol      target_rep function naturalPred = `PRE`
+declare isabelle target_rep function naturalPred = `Pre`
+declare ocaml    target_rep function naturalPred = `Nat_num.natural_pred`
+instance (NumPred natural)
+  let pred = naturalPred
+end
+
+val naturalMult : natural -> natural -> natural
+declare hol      target_rep function naturalMult = infix `*`
+declare ocaml    target_rep function naturalMult = `Big_int.mult_big_int`
+declare isabelle target_rep function naturalMult = infix `*`
+declare coq      target_rep function naturalMult = infix `*`
+
+instance (NumMult natural)
+  let ( * ) = naturalMult
+end
+
+
+val naturalPow : natural -> natural -> natural
+declare hol      target_rep function naturalPow = infix `**`
+declare ocaml    target_rep function naturalPow = `Big_int.power_big_int_positive_big_int`
+declare isabelle target_rep function naturalPow = `natural_exp`
+declare coq      target_rep function naturalPow = `TODO`
+
+instance ( NumPow natural ) 
+  let ( ** ) = naturalPow
+end
+
+val naturalDiv : natural -> natural -> natural
+declare hol      target_rep function naturalDiv = `DIV`
+declare ocaml    target_rep function naturalDiv = `Big_int.div_big_int`
+declare isabelle target_rep function naturalDiv = `div`
+declare coq      target_rep function naturalDiv = `TODO`
+
+instance ( NumIntegerDivision natural ) 
+  let (div) = naturalDiv
+end
+
+instance ( NumDivision natural ) 
+  let (/) = naturalDiv
+end
+
+val naturalMod : natural -> natural -> natural
+declare hol      target_rep function naturalMod = `MOD`
+declare ocaml    target_rep function naturalMod = `Big_int.mod_big_int`
+declare isabelle target_rep function naturalMod = `natural_mod`
+declare coq      target_rep function naturalMod = `TODO`
+
+instance ( NumRemainder natural ) 
+  let (mod) = naturalMod
+end
+
+val naturalMin : natural -> natural -> natural
+let inline naturalMin = defaultMin
+declare ocaml    target_rep function naturalMin = `Big_int.min_big_int`
+
+val naturalMax : natural -> natural -> natural
+let inline naturalMax = defaultMax
+declare ocaml    target_rep function naturalMax = `Big_int.max_big_int`
+
+instance ( OrdMaxMin natural ) 
+  let max = naturalMax
+  let min = naturalMin
 end
 
 

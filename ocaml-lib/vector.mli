@@ -1,7 +1,6 @@
 open Nat_num
 
 type 'a vector = Vector of  'a array
-type nat = Big_int.big_int 
 
 val vconcat : 'a vector -> 'a vector -> 'a vector 
 
