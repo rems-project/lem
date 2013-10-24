@@ -8,10 +8,10 @@
 (******************************************************************************)
 
 
-include import Pervasives_non_pure
+include import Pervasives_suspicious
 
 (* get rid of transform at beginning *)
-declare rename module = Pervasives_non_pure
+declare rename module = Pervasives_suspicious
 
 
 (* ========================================================================== *)
@@ -41,7 +41,7 @@ declare lem target_rep type option = `maybe`
 let inline None = Nothing
 let inline Some = Just
 
-let inline SUC = suc
+let inline SUC = natSucc
 
 (* ----------------------- *)
 (* fully supported         *)
@@ -132,17 +132,18 @@ let inline {isabelle} nat_list_to_string = Isabelle.nat_list_to_string
 (* ========================================================================== *)
 
 module Set = struct
-  include Set_non_pure (* include the new set module *)
+  include Set_suspicious (* include the new set module *)
 
-  let inline add = insert
+(*  let inline add = insert
   let inline for_all = all
-  let inline existys = any
+  let inline exist = any
   let inline cardinal = size
   let inline from_list = fromList
   let inline is_empty = null
   let inline image = map
   let inline set_sigma = sigma
   let inline equal = setEqual
+  let inline finite = Set.finite
 
 
   (* ----------------------- *)
@@ -168,6 +169,8 @@ module Set = struct
   val monotone : forall 'a. (set 'a -> set 'a) -> bool
   val lfp : forall 'a. set 'a -> (set 'a -> set 'a) -> set 'a
   *)
+
+*)
 end
 
 (* ========================================================================== *)
@@ -175,7 +178,7 @@ end
 (* ========================================================================== *)
 
 module List = struct
-  include List_non_pure (* include the new set module *)
+  include List_suspicious (* include the new set module *)
 
   let inline hd = head
   let inline tl = tail
@@ -185,8 +188,8 @@ module List = struct
   let inline rev_map = reverseMap
   let inline fold_left = foldl
   let inline fold_right f l e = foldr f e l
-  let inline for_all = all
-  let inline exist = any
+  let inline for_all = List.all
+  let inline exist = List.any
   let inline mem = elem
   let inline find = find_non_pure
   let inline find_all = filter
@@ -201,6 +204,11 @@ module List = struct
   (* ----------------------- *)
   (* supported               *)
   (* ----------------------- *)
+
+  let inline length = List.length
+  let inline nth = List_suspicious.nth
+  let inline append = List.append
+
   (*
   val length : forall 'a. list 'a -> num
   val nth : forall 'a. list 'a -> num -> 'a
