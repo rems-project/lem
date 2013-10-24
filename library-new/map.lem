@@ -1,4 +1,4 @@
-open import Bool Basic_classes Maybe Function Num
+open import Bool Basic_classes Function Maybe List Num
 
 type map 'k 'v
 
