@@ -1,4 +1,4 @@
-open import Pervasives_non_pure
+open import Pervasives_suspicious
 
 let rec counter n =
 	match n with

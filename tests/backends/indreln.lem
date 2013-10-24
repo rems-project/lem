@@ -1,4 +1,4 @@
-open import Pervasives_non_pure
+open import Pervasives_suspicious
 
 indreln [reflexive : forall 'a. ('a * 'a) -> bool]
   reflexive_intro: forall r x. r (x, x) ==> reflexive r

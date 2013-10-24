@@ -1,4 +1,4 @@
-open import Pervasives_non_pure
+open import Pervasives_suspicious
 
 class ( Count 'a ) 
   val to_num : 'a -> nat

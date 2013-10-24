@@ -1,4 +1,4 @@
-open import Pervasives_non_pure
+open import Pervasives_suspicious
 
 (* Fix the type of pred1 and pred2 via a val-statement.
    This typing information is lost during translation to

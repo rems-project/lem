@@ -1389,20 +1389,20 @@ nat
 and
 bool
 ================================================================================
-type t5 [name = "nv*"] = NV of bool | NVC of int
+type t5 [name = "nv*"] = NV of bool | NVC of nat
 let test17 = fun (x : t5) -> x
 
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 19 to line 4, character 19
   Type error: variables with type Test.t5 are restricted to names matching the regular expression nv*: x
 ================================================================================
-type t5 [nme = "nv*"] = NV of bool | NVC of int
+type t5 [nme = "nv*"] = NV of bool | NVC of nat
 
 --------------------------------------------------------------------------------
 File "test.lem", line 3, character 10 to line 3, character 12
   Type error: Type name restrictions must begin with 'name': nme
 ================================================================================
-type t5 = NV of bool | NVC of int
+type t5 = NV of bool | NVC of nat
 type t6 [name = "nv*"] = t5
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 6 to line 4, character 7

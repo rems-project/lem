@@ -1,4 +1,4 @@
-open import Pervasives_non_pure
+open import Pervasives_suspicious
 
 type r = <| field_one : bool |>
 type s 'a = <| field_three : bool; field_two : 'a; field_four : bool |>
