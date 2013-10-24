@@ -1,4 +1,4 @@
-open import Basic_classes List String
+open import Basic_classes List
 
 type either 'a 'b
   = Left  of 'a
