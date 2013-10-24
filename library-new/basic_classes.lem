@@ -75,6 +75,7 @@ instance (Eq ordering)
 end
 
 val defaultCompare : forall 'a. 'a -> 'a -> ordering
+let defaultCompare x y = EQ
 declare ocaml target_rep function defaultCompare = `compare`
 
 class ( OrdCompare 'a ) 
@@ -119,6 +120,13 @@ instance forall 'a. OrdCompare 'a => ( Ord 'a)
   let (>=) x y = (let r = compare x y in (r = GT || r = EQ))
 end
 
+(* let's derive a compare function from the Ord type-class *)
+val ordCompare : forall 'a. Ord 'a => 'a -> 'a -> ordering
+let ordCompare x y =
+  if (x < y) then LT else
+  if (x = y) then EQ else GT
+  
+
 class ( OrdMaxMin 'a ) 
   val max : 'a -> 'a -> 'a
   val min : 'a -> 'a -> 'a
@@ -126,8 +134,15 @@ end
 
 val defaultMin : forall 'a. Ord 'a => 'a -> 'a -> 'a
 let defaultMin x y = if (x <= y) then x else y
+declare isabelle target_rep function defaultMin = `min`
+declare ocaml    target_rep function defaultMin = `min`
+
 val defaultMax : forall 'a. Ord 'a => 'a -> 'a -> 'a
 let defaultMax x y = if (y <= x) then x else y
+declare isabelle target_rep function defaultMax = `max`
+declare ocaml    target_rep function defaultMax = `max`
+
+
 
 instance forall 'a. Ord 'a => ( OrdMaxMin 'a) 
   let max = defaultMax

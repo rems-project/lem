@@ -223,6 +223,9 @@ end
 
 val natEq : nat -> nat -> bool
 let inline natEq = unsafe_structural_equality
+declare isabelle target_rep function natEq = infix `=`
+declare ocaml    target_rep function natEq = infix `=`
+declare hol      target_rep function natEq = infix `=`
 instance (Eq nat)
   let (=) = natEq
 end
@@ -290,9 +293,8 @@ instance (NumSucc nat)
 end
 
 val natPred : nat -> nat
-let natPred n = n - 1
+let inline natPred n = n - 1
 declare hol      target_rep function natPred = `PRE`
-declare isabelle target_rep function natPred = `Pre`
 declare ocaml    target_rep function natPred = `Nat_num.nat_pred`
 instance (NumPred nat)
   let pred = natPred
@@ -320,9 +322,9 @@ instance ( NumPow nat )
 end
 
 val natDiv : nat -> nat -> nat
-declare hol      target_rep function natDiv = `DIV`
+declare hol      target_rep function natDiv = infix `DIV`
 declare ocaml    target_rep function natDiv = infix `/`
-declare isabelle target_rep function natDiv = `div`
+declare isabelle target_rep function natDiv = infix `div`
 declare coq      target_rep function natDiv = `TODO`
 
 instance ( NumIntegerDivision nat ) 
@@ -334,7 +336,7 @@ instance ( NumDivision nat )
 end
 
 val natMod : nat -> nat -> nat
-declare hol      target_rep function natMod = `MOD`
+declare hol      target_rep function natMod = infix `MOD`
 declare ocaml    target_rep function natMod = infix `mod`
 declare isabelle target_rep function natMod = `nat_mod`
 declare coq      target_rep function natMod = `TODO`
@@ -346,10 +348,12 @@ end
 val natMin : nat -> nat -> nat
 let inline natMin = defaultMin
 declare ocaml    target_rep function natMin = `min`
+declare hol      target_rep function natMin = `MIN`
 
 val natMax : nat -> nat -> nat
 let inline natMax = defaultMax
 declare ocaml    target_rep function natMax = `max`
+declare hol      target_rep function natMax = `MAX`
 
 instance ( OrdMaxMin nat ) 
   let max = natMax
@@ -381,6 +385,8 @@ end
 val naturalEq : natural -> natural -> bool
 let inline naturalEq = unsafe_structural_equality
 declare ocaml    target_rep function naturalEq = `Big_int.eq_big_int`
+declare hol      target_rep function naturalEq = infix `=`
+declare isabelle target_rep function naturalEq = infix `=`
 instance (Eq natural)
   let (=) = naturalEq
 end
@@ -448,9 +454,8 @@ instance (NumSucc natural)
 end
 
 val naturalPred : natural -> natural
-let naturalPred n = n - 1
+let inline naturalPred n = n - 1
 declare hol      target_rep function naturalPred = `PRE`
-declare isabelle target_rep function naturalPred = `Pre`
 declare ocaml    target_rep function naturalPred = `Nat_num.natural_pred`
 instance (NumPred natural)
   let pred = naturalPred
@@ -478,9 +483,9 @@ instance ( NumPow natural )
 end
 
 val naturalDiv : natural -> natural -> natural
-declare hol      target_rep function naturalDiv = `DIV`
+declare hol      target_rep function naturalDiv = infix `DIV`
 declare ocaml    target_rep function naturalDiv = `Big_int.div_big_int`
-declare isabelle target_rep function naturalDiv = `div`
+declare isabelle target_rep function naturalDiv = infix `div`
 declare coq      target_rep function naturalDiv = `TODO`
 
 instance ( NumIntegerDivision natural ) 
@@ -492,7 +497,7 @@ instance ( NumDivision natural )
 end
 
 val naturalMod : natural -> natural -> natural
-declare hol      target_rep function naturalMod = `MOD`
+declare hol      target_rep function naturalMod = infix `MOD`
 declare ocaml    target_rep function naturalMod = `Big_int.mod_big_int`
 declare isabelle target_rep function naturalMod = `natural_mod`
 declare coq      target_rep function naturalMod = `TODO`
@@ -504,10 +509,12 @@ end
 val naturalMin : natural -> natural -> natural
 let inline naturalMin = defaultMin
 declare ocaml    target_rep function naturalMin = `Big_int.min_big_int`
+declare hol      target_rep function naturalMin = `MIN`
 
 val naturalMax : natural -> natural -> natural
 let inline naturalMax = defaultMax
 declare ocaml    target_rep function naturalMax = `Big_int.max_big_int`
+declare hol      target_rep function naturalMax = `MAX`
 
 instance ( OrdMaxMin natural ) 
   let max = naturalMax

@@ -167,7 +167,7 @@ let output1 env libpath isa_thy (targ : Target.target) avoid m alldoc_accum alld
               Printf.fprintf o "open integerTheory set_relationTheory sortingTheory stringTheory wordsTheory\n\n";
               Printf.fprintf o "val _ = numLib.prefer_num();\n\n";
               Printf.fprintf o "\n\n";
-              begin
+(*              begin
                 if m.predecessor_modules <> [] then
                   begin
                     Printf.fprintf o "open";
@@ -178,7 +178,7 @@ let output1 env libpath isa_thy (targ : Target.target) avoid m alldoc_accum alld
                   end
                 else 
                   ()
-              end
+              end*)
             end in
             let _ = begin
               let (o, ext_o) = open_output_with_check dir (m.module_name ^ "Script.sml") in
@@ -269,7 +269,7 @@ let output1 env libpath isa_thy (targ : Target.target) avoid m alldoc_accum alld
                 Printf.fprintf o "imports \n \t \"%s/num_type\" \n" libpath;
                  *)
                 Printf.fprintf o "%s" (Ulib.Text.to_string r1);
-
+                (*
                 begin 
                   if m.predecessor_modules <> [] then 
                     begin
@@ -277,6 +277,7 @@ let output1 env libpath isa_thy (targ : Target.target) avoid m alldoc_accum alld
                     end
                   else ()
                 end;
+                *)
 
                 Printf.fprintf o "\nbegin \n\n";
                 Printf.fprintf o "%s" (Ulib.Text.to_string r_main);
