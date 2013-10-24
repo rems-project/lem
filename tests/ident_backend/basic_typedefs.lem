@@ -1,4 +1,4 @@
-open import Pervasives_non_pure
+open import Pervasives_suspicious
 
 type t27 = bool
 type t2 'a = t27 * 'a 

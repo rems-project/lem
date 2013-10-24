@@ -1,4 +1,4 @@
-open import Pervasives_non_pure
+open import Pervasives_suspicious
 
 type t 'a = CC1 | CC2 of nat | CC3 of 'a
 type t2 = <| f1 : nat; f2 : bool |>

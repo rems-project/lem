@@ -1,4 +1,4 @@
-open import Pervasives_non_pure
+open import Pervasives_suspicious
 
 type t = C1 | C2 of nat | C3 of nat * nat
 

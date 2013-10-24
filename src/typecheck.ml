@@ -3092,7 +3092,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                  fst (i_env_add instances (mk_temp_instance p tv)))
               ctxt.all_instances
               sem_cs in
-          let ctxt_inst0 = { ctxt with new_defs = empty_local_env; all_instances = tmp_all_inst } in
+          let ctxt_inst0 = { (ctxt_begin_submodule ctxt) with all_instances = tmp_all_inst } in
 
           (* typecheck the inside of the instance declaration *)
           let (v_env_inst,ctxt_inst,vdefs) = 
