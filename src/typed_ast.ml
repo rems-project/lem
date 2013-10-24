@@ -754,7 +754,7 @@ let pp_instances = Pfmap.pp_map Path.pp (lst "@\n" pp_instance)
 
 type checked_module =
     { filename : string;
-      module_name : string;
+      module_path : Path.t;
       predecessor_modules : string list;
       untyped_ast : Ast.defs * Ast.lex_skips;
       typed_ast : def list * Ast.lex_skips; }

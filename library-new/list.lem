@@ -11,10 +11,7 @@
 (* ========================================================================== *)
 
 
-(* rename module to clash with existing list modules of targets
-   problem: renaming from inside the module itself! *)
-
-(* declare rename module = lem_list *)
+declare rename module = Lem_list
 
 open import Bool Maybe Basic_classes Tuple Num
 
@@ -48,10 +45,11 @@ val null : forall 'a. list 'a -> bool
 let null l = match l with [] -> true | _ -> false end
 
 declare hol target_rep function null = `NULL`
+let inline {isabelle} null l = (l = [])
 
 assert null_simple_1: (null [])
-assert null_simple_2: (not (null [2;3;4]))
-assert null_simple_3: (not (null [2]))
+assert null_simple_2: (not (null [(2:nat);3;4]))
+assert null_simple_3: (not (null [(2:nat)]))
 
 (* ----------------------- *)
 (* Length                  *)
@@ -70,9 +68,9 @@ declare ocaml    target_rep function length = `List.length`
 declare isabelle target_rep function length = `List.length`
 declare coq      target_rep function length = `List.length`
 
-assert length_0: (length [] = 0)
-assert length_1: (length [2] = 1)
-assert length_2: (length [2;3] = 2)
+assert length_0: (length ([]:list nat) = 0)
+assert length_1: (length ([2]:list nat) = 1)
+assert length_2: (length ([2;3]:list nat) = 2)
 
 lemma length_spec: ((length [] = 0) && (forall x xs. length (x :: xs) = length xs + 1))
 
@@ -80,19 +78,24 @@ lemma length_spec: ((length [] = 0) && (forall x xs. length (x :: xs) = length x
 (* Equality                *)
 (* ----------------------- *)
 
-val listEq : forall 'a. Eq 'a => list 'a -> list 'a -> bool
-val listEqBy : forall 'a. ('a -> 'a -> bool) -> list 'a -> list 'a -> bool
+val listEqual : forall 'a. Eq 'a => list 'a -> list 'a -> bool
+val listEqualBy : forall 'a. ('a -> 'a -> bool) -> list 'a -> list 'a -> bool
 
-let rec listEqBy eq l1 l2 = match (l1,l2) with
+let rec listEqualBy eq l1 l2 = match (l1,l2) with
   | ([], []) -> true
   | ([], (_::_)) -> false
   | ((_::_), []) -> false
-  | (x::xs, y :: ys) -> (eq x y && listEqBy eq xs ys)
+  | (x::xs, y :: ys) -> (eq x y && listEqualBy eq xs ys)
 end
-let listEq = listEqBy (=)
+declare termination_argument listEqualBy = automatic
+
+
+let inline listEqual = listEqualBy (=)
+declare hol      target_rep function listEqual = infix `=`
+declare isabelle target_rep function listEqual = infix `=`
 
 instance forall 'a. Eq 'a => (Eq (list 'a))
-  let (=) = listEq
+  let (=) = listEqual
 end
 
 
@@ -115,6 +118,8 @@ let rec lexicographicCompareBy cmp l1 l2 = match (l1,l2) with
       end
     end
 end
+declare termination_argument lexicographicCompareBy = automatic
+
 let lexicographicCompare = lexicographicCompareBy compare
 
 
@@ -136,7 +141,7 @@ declare ocaml    target_rep function append = `List.append`
 declare isabelle target_rep function append = infix `@`
 declare coq      target_rep function append = `List.app`
 
-assert append_1: ([0;1;2;3] ++ [4;5] = [0;1;2;3;4;5])
+assert append_1: ([0;1;2;3] ++ [4;5] = [(0:nat);1;2;3;4;5])
 lemma append_nil_1: (forall l. l ++ [] = l)
 lemma append_nil_2: (forall l. [] ++ l = l)
 
@@ -166,9 +171,9 @@ declare ocaml    target_rep function map = `List.map`
 declare isabelle target_rep function map = `List.map`
 declare coq      target_rep function map = `List.map`
 
-assert map_nil: (map (fun x -> x + 1) [] = [])
-assert map_1: (map (fun x -> x + 1) [0] = [1])
-assert map_4: (map (fun x -> x + 1) [0;1;2;3] = [1;2;3;4])
+assert map_nil: (map (fun x -> x + (1:nat)) [] = [])
+assert map_1: (map (fun x -> x + (1:nat)) [0] = [1])
+assert map_4: (map (fun x -> x + (1:nat)) [0;1;2;3] = [1;2;3;4])
 
 (* ----------------------- *)
 (* Reverse                 *)
@@ -189,7 +194,7 @@ declare termination_argument reverseAppend = automatic
 declare hol      target_rep function reverseAppend = `REV`
 declare ocaml    target_rep function reverseAppend = `List.rev_append`
 
-assert reverseAppend_1: (reverseAppend [0;1;2;3] [4;5] = [3;2;1;0;4;5])
+assert reverseAppend_1: (reverseAppend [(0:nat);1;2;3] [4;5] = [3;2;1;0;4;5])
 
 (* Reversing a list *)
 val reverse : forall 'a. list 'a -> list 'a (* originally named rev *)
@@ -201,11 +206,12 @@ declare isabelle target_rep function reverse = `List.rev`
 declare coq      target_rep function reverse = `List.rev`
 
 assert reverse_nil: (reverse [] = [])
-assert reverse_1: (reverse [1] = [1])
-assert reverse_2: (reverse [1;2] = [2;1])
-assert reverse_5: (reverse [1;2;3;4;5] = [5;4;3;2;1])
+assert reverse_1: (reverse [(1:nat)] = [1])
+assert reverse_2: (reverse [(1:nat);2] = [2;1])
+assert reverse_5: (reverse [(1:nat);2;3;4;5] = [5;4;3;2;1])
 
 lemma reverseAppend: (forall l1 l2. reverseAppend l1 l2 = append (reverse l1) l2)
+let inline {isabelle} reverseAppend l1 l2 = ((reverse l1) ++ l2)
 
 
 (* ----------------------- *)
@@ -213,7 +219,7 @@ lemma reverseAppend: (forall l1 l2. reverseAppend l1 l2 = append (reverse l1) l2
 (* ----------------------- *)
 
 val reverseMap : forall 'a 'b. ('a -> 'b) -> list 'a -> list 'b
-let reverseMap f l = reverse (map f l)
+let inline reverseMap f l = reverse (map f l)
 
 declare ocaml target_rep function reverseMap = `List.rev_map`
 
@@ -240,9 +246,9 @@ declare ocaml    target_rep function foldl = `List.fold_left`
 declare isabelle target_rep function foldl = `List.foldl`
 declare coq      target_rep function foldl f e l = `List.fold_left` f l e
 
-assert foldl_0: (foldl (+) 0 [] = 0)
-assert foldl_1: (foldl (+) 0 [4] = 4)
-assert foldl_4: (foldl (fun l e -> e::l) [] [1;2;3;4] = [4;3;2;1])
+assert foldl_0: (foldl (+) (0:nat) [] = 0)
+assert foldl_1: (foldl (+) (0:nat) [4] = 4)
+assert foldl_4: (foldl (fun l e -> e::l) [] [(1:nat);2;3;4] = [4;3;2;1])
 
 
 (* ----------------------- *)
@@ -261,9 +267,9 @@ declare ocaml    target_rep function foldr f b l = `List.fold_right` f l b
 declare isabelle target_rep function foldr f b l = `List.foldr` f l b
 declare coq      target_rep function foldr = `List.fold_right` 
 
-assert fold_right_0: (foldr (+) 0 [] = 0)
-assert fold_right_1: (foldr (+) 1 [4] = 5)
-assert fold_right_4: (foldr (fun e l -> e::l) [] [1;2;3;4] = [1;2;3;4])
+assert foldr_0: (foldr (+) (0:nat) [] = 0)
+assert foldr_1: (foldr (+) 1 [(4:nat)] = 5)
+assert foldr_4: (foldr (fun e l -> e::l) [] [(1:nat);2;3;4] = [1;2;3;4])
 
 
 (* ----------------------- *)
@@ -279,9 +285,9 @@ declare isabelle target_rep function concat = `List.concat`
 declare coq      target_rep function concat = `List.flat_map` (fun x -> x)
 
 assert concat_nil: (concat [] = [])
-assert concat_1: (concat [[1]] = [1])
-assert concat_2: (concat [[1];[2]] = [1;2])
-assert concat_3: (concat [[1];[];[2]] = [1;2])
+assert concat_1: (concat [[(1:nat)]] = [1])
+assert concat_2: (concat [[(1:nat)];[2]] = [1;2])
+assert concat_3: (concat [[(1:nat)];[];[2]] = [1;2])
 
 lemma concat_emp_thm: (concat [] = [])
 lemma concat_cons_thm: (forall l ll. (concat (l::ll) = append l (concat ll)))
@@ -292,13 +298,14 @@ lemma concat_cons_thm: (forall l ll. (concat (l::ll) = append l (concat ll)))
 (* -------------------------- *)
 
 val concatMap : forall 'a 'b. ('a -> list 'b) -> list 'a -> list 'b
-let concatMap f = foldr (fun l ll -> f l ++ ll) []
+let inline concatMap f l = concat (map f l)
 
-assert concatMap_nil: (concatMap (fun x -> [x;x]) [] = [])
-assert concatMap_1: (concatMap (fun x -> [x;x]) [1] = [1;1])
-assert concatMap_2: (concatMap (fun x -> [x;x]) [1;2] = [1;1;2;2])
-assert concatMap_3: (concatMap (fun x -> [x;x]) [1;2;3] = [1;1;2;2;3;3])
+assert concatMap_nil: (concatMap (fun (x:nat) -> [x;x]) [] = [])
+assert concatMap_1: (concatMap (fun x -> [x;x]) [(1:nat)] = [1;1])
+assert concatMap_2: (concatMap (fun x -> [x;x]) [(1:nat);2] = [1;1;2;2])
+assert concatMap_3: (concatMap (fun x -> [x;x]) [(1:nat);2;3] = [1;1;2;2;3;3])
 lemma concatMap_concat: (forall ll. concat ll = concatMap (fun l -> l) ll)
+lemma concatMap_alt_def: (forall f l. concatMap f l = foldr (fun l ll -> f l ++ ll) [] l)
 
 
 (* ------------------------- *)
@@ -313,9 +320,9 @@ declare ocaml    target_rep function all = `List.all`
 declare isabelle target_rep function all P l = (forall (x IN (`set` l)). P x)
 declare coq      target_rep function all = `List.forallb` 
 
-assert all_0: (all (fun x -> x > 2) [])
-assert all_4: (all (fun x -> x > 2) [4;5;6;7])
-assert all_4_neg: (not (all (fun x -> x > 2) [4;5;2;7]))
+assert all_0: (all (fun x -> x > (2:nat)) [])
+assert all_4: (all (fun x -> x > (2:nat)) [4;5;6;7])
+assert all_4_neg: (not (all (fun x -> x > (2:nat)) [4;5;2;7]))
 
 lemma all_nil_thm: (forall P. all P [])
 lemma all_cons_thm: (forall P e l. all P (e::l) = (P e && all P l))
@@ -334,9 +341,9 @@ declare ocaml    target_rep function any = `List.exists`
 declare isabelle target_rep function any P l = (exists (x IN (`set` l)). P x)
 declare coq      target_rep function any = `List.existsb` 
 
-assert any_0: (not (any (fun x -> (x < 3)) []))
-assert any_4: (not (any (fun x -> (x < 3)) [4;5;6;7]))
-assert any_4_neg: (any (fun x -> (x < 3)) [4;5;2;7])
+assert any_0: (not (any (fun x -> (x < (3:nat))) []))
+assert any_4: (not (any (fun x -> (x < (3:nat))) [4;5;6;7]))
+assert any_4_neg: (any (fun x -> (x < (3:nat))) [4;5;2;7])
 
 lemma any_nil_thm: (forall P. not (any P []))
 lemma any_cons_thm: (forall P e l. any P (e::l) = (P e || any P l))
@@ -360,13 +367,13 @@ end
 
 declare termination_argument index = automatic
 
-assert index_0: (index [0;1;2;3;4;5] 0 = Just 0)
-assert index_1: (index [0;1;2;3;4;5] 1 = Just 1)
-assert index_2: (index [0;1;2;3;4;5] 2 = Just 2)
-assert index_3: (index [0;1;2;3;4;5] 3 = Just 3)
-assert index_4: (index [0;1;2;3;4;5] 4 = Just 4)
-assert index_5: (index [0;1;2;3;4;5] 5 = Just 5)
-assert index_6: (index [0;1;2;3;4;5] 6 = Nothing)
+assert index_0: (index [(0:nat);1;2;3;4;5] 0 = Just 0)
+assert index_1: (index [(0:nat);1;2;3;4;5] 1 = Just 1)
+assert index_2: (index [(0:nat);1;2;3;4;5] 2 = Just 2)
+assert index_3: (index [(0:nat);1;2;3;4;5] 3 = Just 3)
+assert index_4: (index [(0:nat);1;2;3;4;5] 4 = Just 4)
+assert index_5: (index [(0:nat);1;2;3;4;5] 5 = Just 5)
+assert index_6: (index [(0:nat);1;2;3;4;5] 6 = Nothing)
 
 lemma index_is_none: (forall l n. (index l n = Nothing) <-> (n >= length l))
 lemma index_list_eq: (forall l1 l2. ((forall n. index l1 n = index l2 n) <-> (l1 = l2)))
@@ -379,16 +386,17 @@ lemma index_list_eq: (forall l1 l2. ((forall n. index l1 n = index l2 n) <-> (l1
    Counting starts with 0, the result list is sorted ascendingly *)
 val findIndices : forall 'a. ('a -> bool) -> list 'a -> list nat
 
-let rec findIndices_aux i P l =
+let rec findIndices_aux (i:nat) P l =
   match l with
     | []      -> []
     | x :: xs -> if P x then i :: findIndices_aux (i + 1) P xs else findIndices_aux (i + 1) P xs
  end
 let findIndices = findIndices_aux 0
+declare termination_argument findIndices_aux = automatic
 
-assert findIndices_1: (findIndices (fun n -> n > 3) [] = [])
-assert findIndices_2: (findIndices (fun n -> n > 3) [4] = [0])
-assert findIndices_3: (findIndices (fun n -> n > 3) [1;5;3;1;2;6] = [1;5])
+assert findIndices_1: (findIndices (fun (n:nat) -> n > 3) [] = [])
+assert findIndices_2: (findIndices (fun (n:nat) -> n > 3) [4] = [0])
+assert findIndices_3: (findIndices (fun (n:nat) -> n > 3) [1;5;3;1;2;6] = [1;5])
 
 
 
@@ -454,11 +462,12 @@ let rec replicate n x = if n = 0 then [] else x :: replicate (n-1) x
 declare termination_argument replicate = automatic
 
 declare isabelle target_rep function replicate = `List.replicate`
+declare hol      target_rep function replicate = `REPLICATE`
 
-assert replicate_0: (replicate 0 2 = [])
-assert replicate_1: (replicate 1 2 = [2])
-assert replicate_2: (replicate 2 2 = [2;2])
-assert replicate_3: (replicate 3 2 = [2;2;2])
+assert replicate_0: (replicate 0 (2:nat) = [])
+assert replicate_1: (replicate 1 (2:nat) = [2])
+assert replicate_2: (replicate 2 (2:nat) = [2;2])
+assert replicate_3: (replicate 3 (2:nat) = [2;2;2])
 lemma replicate_length: (forall n x. (length (replicate n x) = n))
 lemma replicate_index: (forall n x i. i < n --> index (replicate n x) i = Just x)
 
@@ -485,10 +494,11 @@ let rec splitAt n l =
          (x::l1, l2)
        end    
   end
+declare termination_argument splitAt = automatic
 
-assert splitAt_1: (splitAt 0   [1;2;3;4;5;6] = ([], [1;2;3;4;5;6]))
-assert splitAt_2: (splitAt 2   [1;2;3;4;5;6] = ([1;2], [3;4;5;6]))
-assert splitAt_3: (splitAt 100 [1;2;3;4;5;6] = ([1;2;3;4;5;6], []))
+assert splitAt_1: (splitAt 0   [(1:nat);2;3;4;5;6] = ([], [1;2;3;4;5;6]))
+assert splitAt_2: (splitAt 2   [(1:nat);2;3;4;5;6] = ([1;2], [3;4;5;6]))
+assert splitAt_3: (splitAt 100 [(1:nat);2;3;4;5;6] = ([1;2;3;4;5;6], []))
 
 lemma splitAt_append: (forall n xs.
   let (xs1, xs2) = splitAt n xs in 
@@ -511,9 +521,9 @@ let take n l = fst (splitAt n l)
 declare hol      target_rep function take = `TAKE`
 declare isabelle target_rep function take = `List.take`
 
-assert take_1: (take 0   [1;2;3;4;5;6] = [])
-assert take_2: (take 2   [1;2;3;4;5;6] = [1;2])
-assert take_3: (take 100 [1;2;3;4;5;6] = [1;2;3;4;5;6])
+assert take_1: (take 0   [(1:nat);2;3;4;5;6] = [])
+assert take_2: (take 2   [(1:nat);2;3;4;5;6] = [1;2])
+assert take_3: (take 100 [(1:nat);2;3;4;5;6] = [1;2;3;4;5;6])
 
 
 
@@ -528,11 +538,14 @@ let drop n l = snd (splitAt n l)
 declare hol      target_rep function drop = `DROP`
 declare isabelle target_rep function drop = `List.drop`
 
-assert drop_1: (drop 0   [1;2;3;4;5;6] = [1;2;3;4;5;6])
-assert drop_2: (drop 2   [1;2;3;4;5;6] = [3;4;5;6])
-assert drop_3: (drop 100 [1;2;3;4;5;6] = [])
+assert drop_1: (drop 0   [(1:nat);2;3;4;5;6] = [1;2;3;4;5;6])
+assert drop_2: (drop 2   [(1:nat);2;3;4;5;6] = [3;4;5;6])
+assert drop_3: (drop 100 [(1:nat);2;3;4;5;6] = [])
 
 lemma splitAt_take_drop: (forall n xs. splitAt n xs = (take n xs, drop n xs))
+
+
+let inline {hol} splitAt n xs = (take n xs, drop n xs)
 
 
 (* ------------------------- *)
@@ -544,15 +557,16 @@ let rec update l n e =
     | []      -> []
     | x :: xs -> if n = 0 then e :: xs else x :: (update xs (n - 1) e)
 end
+declare termination_argument update = automatic
 
 declare isabelle target_rep function update = `List.list_update`
 declare hol      target_rep function update l n e = `LUPDATE` e n l
 
-assert list_update_1: (update [] 2 3 = [])
-assert list_update_2: (update [1;2;3;4;5] 0 0 = [0;2;3;4;5])
-assert list_update_3: (update [1;2;3;4;5] 1 0 = [1;0;3;4;5])
-assert list_update_4: (update [1;2;3;4;5] 2 0 = [1;2;0;4;5])
-assert list_update_5: (update [1;2;3;4;5] 5 0 = [1;2;3;4;5])
+assert list_update_1: (update [] 2 (3:nat) = [])
+assert list_update_2: (update [1;2;3;4;5] 0 (0:nat) = [0;2;3;4;5])
+assert list_update_3: (update [1;2;3;4;5] 1 (0:nat) = [1;0;3;4;5])
+assert list_update_4: (update [1;2;3;4;5] 2 (0:nat) = [1;2;0;4;5])
+assert list_update_5: (update [1;2;3;4;5] 5 (0:nat) = [1;2;3;4;5])
 
 lemma list_update_length: (forall l n e. length (update l n e) = length l)
 lemma list_update_index: (forall i l n e. 
@@ -596,10 +610,10 @@ declare ocaml    target_rep function elem = `List.mem`
 declare isabelle target_rep function elem e l = `Set.member` e (`set` l)
 declare coq      target_rep function elem = `List.forallb` 
 
-assert elem_1: (elem 2 [3;1;2;4])
-assert elem_2: (elem 3 [3;1;2;4])
-assert elem_3: (elem 4 [3;1;2;4])
-assert elem_4: (not (elem 5 [3;1;2;4]))
+assert elem_1: (elem (2:nat) [3;1;2;4])
+assert elem_2: (elem (3:nat) [3;1;2;4])
+assert elem_3: (elem (4:nat) [3;1;2;4])
+assert elem_4: (not (elem (5:nat) [3;1;2;4]))
 
 lemma elem_spec: ((forall e. not (elem e [])) &&
                   (forall e x xs. (elem e (x :: xs)) = ((e = x) || (elem e xs))))
@@ -612,13 +626,14 @@ let rec find P l = match l with
   | []      -> Nothing
   | x :: xs -> if P x then Just x else find P xs
 end
+declare termination_argument find = automatic
 
 declare isabelle target_rep function find = `List.find`
 
-assert find_1: ((find (fun n -> n > 3) []) = Nothing)
-assert find_2: ((find (fun n -> n > 3) [2;1;3]) = Nothing)
-assert find_3: ((find (fun n -> n > 3) [2;1;5;4]) = Just 5)
-assert find_4: ((find (fun n -> n > 3) [2;1;4;5;4]) = Just 4)
+assert find_1: ((find (fun n -> n > (3:nat)) []) = Nothing)
+assert find_2: ((find (fun n -> n > (3:nat)) [2;1;3]) = Nothing)
+assert find_3: ((find (fun n -> n > (3:nat)) [2;1;5;4]) = Just 5)
+assert find_4: ((find (fun n -> n > (3:nat)) [2;1;4;5;4]) = Just 4)
 
 lemma find_in: (forall P l x. (find P l = Just x) --> P x && elem x l)
 lemma find_not_in: (forall P l. (find P l = Nothing) = (not (any P l)))
@@ -649,8 +664,8 @@ declare ocaml    target_rep function filter = `List.filter`
 declare isabelle target_rep function filter = `List.filter`
 declare coq      target_rep function filter = `List.filter`
 
-assert filter_0: (filter (fun x -> x > 4) [] = [])
-assert filter_1: (filter (fun x -> x > 4) [1;2;4;5;2;7;6] = [5;7;6])
+assert filter_0: (filter (fun x -> x > (4:nat)) [] = [])
+assert filter_1: (filter (fun x -> x > (4:nat)) [1;2;4;5;2;7;6] = [5;7;6])
 lemma filter_nil_thm: (forall P. filter P [] = [])
 lemma filter_cons_thm: (forall P x xs. filter P (x::xs) = (let l' = filter P xs in (if (P x) then x :: l' else l')))
 
@@ -665,12 +680,12 @@ val reversePartition : forall 'a. ('a -> bool) -> list 'a -> list 'a * list 'a
 let reversePartition P l = partition P (reverse l)
 
 let inline {hol} partition P l = reversePartition P (reverse l)
-declare hol      target_rep function reversePartition p l = `PARTITION`
+declare hol      target_rep function reversePartition = `PARTITION`
 declare ocaml    target_rep function partition = `List.partition`
 declare isabelle target_rep function partition = `List.partition`
 
-assert partition_0: (partition (fun x -> x > 4) [] = ([], []))
-assert partition_1: (partition (fun x -> x > 4) [1;2;4;5;2;7;6] = ([5;7;6], [1;2;4;2]))
+assert partition_0: (partition (fun x -> x > (4:nat)) [] = ([], []))
+assert partition_1: (partition (fun x -> x > (4:nat)) [1;2;4;5;2;7;6] = ([5;7;6], [1;2;4;2]))
 lemma partition_fst: (forall P l. fst (partition P l) = filter P l)
 lemma partition_snd: (forall P l. snd (partition P l) = filter (fun x -> not (P x)) l)
 
@@ -687,21 +702,21 @@ let rec deleteFirst P l = match l with
                           end
 declare termination_argument deleteFirst = automatic
 
-assert deleteFirst_1: (deleteFirst (fun x -> x > 5) [3;6;7;1] = Just [3;7;1])
-assert deleteFirst_2: (deleteFirst (fun x -> x > 15) [3;6;7;1] = Nothing)
-assert deleteFirst_3: (deleteFirst (fun x -> x > 2) [3;6;7;1] = Just [6;7;1])
+assert deleteFirst_1: (deleteFirst (fun x -> x > (5:nat)) [3;6;7;1] = Just [3;7;1])
+assert deleteFirst_2: (deleteFirst (fun x -> x > (15:nat)) [3;6;7;1] = Nothing)
+assert deleteFirst_3: (deleteFirst (fun x -> x > (2:nat)) [3;6;7;1] = Just [6;7;1])
 
 
 val delete : forall 'a. Eq 'a => 'a -> list 'a -> list 'a
 val deleteBy : forall 'a. ('a -> 'a -> bool) -> 'a -> list 'a -> list 'a
 
 let deleteBy eq x l = fromMaybe l (deleteFirst (eq x) l)
-let delete = deleteBy (=)
+let inline delete = deleteBy (=)
 
-assert delete_1: (delete 6 [3;6;7;1] = [3;7;1])
-assert delete_2: (delete 4 [3;6;7;1] = [3;6;7;1])
-assert delete_3: (delete 3 [3;6;7;1] = [6;7;1])
-assert delete_4: (delete 3 [3;3;6;7;1] = [3;6;7;1])
+assert delete_1: (delete (6:nat) [(3:nat);6;7;1] = [3;7;1])
+assert delete_2: (delete (4:nat) [(3:nat);6;7;1] = [3;6;7;1])
+assert delete_3: (delete (3:nat) [(3:nat);6;7;1] = [6;7;1])
+assert delete_4: (delete (3:nat) [(3:nat);3;6;7;1] = [3;6;7;1])
 
 
 (* ========================================================================== *)
@@ -718,6 +733,7 @@ let rec zip l1 l2 = match (l1, l2) with
   | (x :: xs, y :: ys) -> (x, y) :: zip xs ys
   | _ -> []
 end
+declare termination_argument zip = automatic
 
 declare hol      target_rep function zip l1 l2 = `ZIP` (l1, l2)
 declare isabelle target_rep function zip = `List.zip`
@@ -731,6 +747,7 @@ let rec unzip l = match l with
   | [] -> ([], [])
   | (x, y) :: xys -> let (xs, ys) = unzip xys in (x :: xs, y :: ys)
 end
+declare termination_argument unzip = automatic
 
 
 (* ========================================================================== *)

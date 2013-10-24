@@ -259,7 +259,7 @@ let mod_target_rep_rename  (targ : Target.non_ident_target) (n':Name.t) (l' : As
   if not do_something then 
     (tr, None) 
   else
-    let tr' = Target.Targetmap.insert tr (targ, MR_rename (l', n')) in
+    let tr' = Target.Targetmap.insert tr (targ, MR_rename (l', Util.option_default n' (Name.capitalize n'))) in
     (tr', old_info)
 
 
@@ -1063,6 +1063,33 @@ let is_recursive_def (d:def_aux) =
        (true, is_real_rec)
      end
   |  _ -> (false, false)
+
+(* check whether a definition is recursive using entities *)
+let try_termination_proof targ c_env (d:def_aux) =  
+ let l_unk = Ast.Trans (true, "try_termination_proof", None) in
+ match d with
+  |  Val_def ((Fun_def (_, FR_rec _, _, sl))) -> begin 
+       let (is_rec, is_real_rec) = is_recursive_def d in
+       let try_term = if (not is_real_rec) then true else begin
+         let (_, pL) = Seplist.to_pair_list None sl in
+
+         (* get the names of all newly defined functions *)
+         let add_fun_ref s ((((_, c, _, _, _, _) : funcl_aux), _)) = if (List.mem c s) then s else c::s in
+         let all_consts = List.fold_left add_fun_ref [] pL in
+
+         let check_terminate c = begin
+           let cd = c_env_lookup l_unk c_env c in
+           match Target.Targetmap.apply_target cd.termination_setting targ with
+             | None -> false
+             | Some (Ast.Termination_setting_manual _) -> false
+             | Some (Ast.Termination_setting_automatic _) -> true
+         end in
+          
+         List.for_all check_terminate all_consts
+       end in
+       (is_rec, is_real_rec, try_term)
+     end
+  |  _ -> (false, false, true)
 
 
 let mk_eta_expansion_exp t_env (vars : Name.t list) (e : exp) : exp =

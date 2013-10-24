@@ -549,7 +549,7 @@ val pp_instances : Format.formatter -> Types.instance list Types.Pfmap.t -> unit
 
 type checked_module =
     { filename : string;
-      module_name : string;
+      module_path : Path.t;
       predecessor_modules : string list;
       untyped_ast : Ast.defs * Ast.lex_skips;
       typed_ast : def list * Ast.lex_skips; }

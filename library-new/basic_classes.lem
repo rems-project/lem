@@ -174,11 +174,11 @@ instance (OrdCompare bool)
   let compare = boolCompare
 end
 
-let pairEq (a1, b1) (a2, b2) =
-  (a1 = a2) && (b1 = b2)
+let pairEqual (a1, b1) (a2, b2) = (a1 = a2) && (b1 = b2)
+let inline {hol;isabelle;coq} pairEqual = unsafe_structural_equality
 
 instance forall 'a 'b. Eq 'a, Eq 'b => (Eq ('a * 'b))
-  let (=) = pairEq
+  let (=) = pairEqual
 end
 
 let pairCompare (a1, b1) (a2, b2) =

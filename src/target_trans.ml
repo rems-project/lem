@@ -66,7 +66,7 @@ type trans =
       macros : which_macro list;
 
       (* Perform the extra translations after the above, left-to-right *)
-      extra : (Name.t -> env -> def list -> def list) list
+      extra : (Path.t -> env -> def list -> def list) list
     }
 
 (* The macros needed to implement the dictionary passing translations to remove type classes *)
@@ -329,7 +329,9 @@ let trans (targ : Target.target) params env (m : checked_module) =
            macros several times. *)
   let params = { params with macros = params.macros @ params.macros @ params.macros @ params.macros } in
 
-  let module_name = Name.from_rope (Ulib.Text.of_latin1 m.module_name) in
+  let (module_path, module_name) = Path.to_name_list m.module_path in
+  let rev_module_path = List.rev module_path in
+
   (* TODO: Move this to a definition macro, and remove the targ argument *)
   let defs = if (Target.is_human_target targ) then defs else
     match targ with 
@@ -342,7 +344,7 @@ let trans (targ : Target.target) params env (m : checked_module) =
          match mac with
            | Def_macros dtrans ->
                Def_trans.process_defs 
-                 []
+                 rev_module_path
                  (Def_trans.list_to_mac (dtrans env))
                  module_name
                  env
@@ -374,7 +376,7 @@ let trans (targ : Target.target) params env (m : checked_module) =
   in
   let defs =
     List.fold_left
-      (fun defs e -> e (Name.from_rope (Ulib.Text.of_latin1 m.module_name)) env defs)
+      (fun defs e -> e m.module_path env defs)
       defs
       params.extra
   in

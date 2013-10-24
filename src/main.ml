@@ -273,7 +273,7 @@ let main () =
 
          let module_record = 
            { Typed_ast.filename = file_name;
-             Typed_ast.module_name = mod_name;
+             Typed_ast.module_path = Path.mk_path [] mod_name_name;
              Typed_ast.predecessor_modules = previously_processed_modules;
              Typed_ast.untyped_ast = ast;
              Typed_ast.typed_ast = tast; }

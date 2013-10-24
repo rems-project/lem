@@ -134,7 +134,10 @@ let output1 env libpath isa_thy (targ : Target.target) avoid m alldoc_accum alld
   in
   let module B = Backend.Make(C) in
   let open Typed_ast in
-  let f' = Filename.basename (Filename.chop_extension m.filename) in
+  
+  let (mod_path, mod_name) = Path.to_name_list m.module_path in
+  let module_name = Name.to_string (Backend_common.get_module_name env targ mod_path mod_name) in
+  let module_name_lower = String.uncapitalize module_name in
   let dir = Filename.dirname m.filename in
     match targ with
       | Target.Target_ident ->
@@ -143,16 +146,16 @@ let output1 env libpath isa_thy (targ : Target.target) avoid m alldoc_accum alld
       | Target.Target_no_ident (Target.Target_lem) -> 
           begin
             let r = B.lem_defs m.typed_ast in
-            let (o, ext_o) = open_output_with_check dir (f' ^ "-processed.lem") in
+            let (o, ext_o) = open_output_with_check dir (module_name_lower ^ "-processed.lem") in
               Printf.fprintf o "%s" (Ulib.Text.to_string r);
               close_output_with_check ext_o
           end
       | Target.Target_no_ident (Target.Target_html) -> 
           begin
             let r = B.html_defs m.typed_ast in
-            let (o, ext_o) = open_output_with_check dir (f' ^ ".html") in
+            let (o, ext_o) = open_output_with_check dir (module_name_lower ^ ".html") in
               Printf.fprintf o "<!-- %s -->\n" (generated_line m.filename);
-              Printf.fprintf o "%s" (html_preamble m.module_name);
+              Printf.fprintf o "%s" (html_preamble module_name);
               Printf.fprintf o "%s" (Ulib.Text.to_string r);
               Printf.fprintf o "%s" html_postamble;
               close_output_with_check ext_o
@@ -181,19 +184,19 @@ let output1 env libpath isa_thy (targ : Target.target) avoid m alldoc_accum alld
               end*)
             end in
             let _ = begin
-              let (o, ext_o) = open_output_with_check dir (m.module_name ^ "Script.sml") in
+              let (o, ext_o) = open_output_with_check dir (module_name ^ "Script.sml") in
               hol_header o;
-              Printf.fprintf o "val _ = new_theory \"%s\"\n\n" m.module_name;
+              Printf.fprintf o "val _ = new_theory \"%s\"\n\n" module_name;
               Printf.fprintf o "%s" (Ulib.Text.to_string r_main);
               Printf.fprintf o "val _ = export_theory()\n\n";
               close_output_with_check ext_o;
             end in
             let _ = match r_extra_opt with None -> () | Some r_extra ->
               begin
-                let (o,ext_o) = open_output_with_check dir (m.module_name ^ "ExtraScript.sml") in
+                let (o,ext_o) = open_output_with_check dir (module_name ^ "ExtraScript.sml") in
                 hol_header o;
-                Printf.fprintf o "open %sTheory\n\n" m.module_name;
-                Printf.fprintf o "val _ = new_theory \"%sExtra\"\n\n" m.module_name;
+                Printf.fprintf o "open %sTheory\n\n" module_name;
+                Printf.fprintf o "val _ = new_theory \"%sExtra\"\n\n" module_name;
                 Printf.fprintf o "%s" (Ulib.Text.to_string r_extra);
                 Printf.fprintf o "val _ = export_theory()\n\n";
                 close_output_with_check ext_o
@@ -204,9 +207,9 @@ let output1 env libpath isa_thy (targ : Target.target) avoid m alldoc_accum alld
             let rr = B.tex_defs m.typed_ast in
             (* complete tex document, wrapped in tex_preamble and tex_postamble *)
             let (^^^^) = Ulib.Text.(^^^) in
-            let r' = r"\\section{" ^^^^ Output.tex_escape (Ulib.Text.of_string f') ^^^^ r"}\n" ^^^^ rr in
+            let r' = r"\\section{" ^^^^ Output.tex_escape (Ulib.Text.of_string module_name) ^^^^ r"}\n" ^^^^ rr in
               alldoc_accum := (!alldoc_accum) @ [r'];
-              let (o, ext_o) = open_output_with_check dir (f' ^ ".tex") in
+              let (o, ext_o) = open_output_with_check dir (module_name_lower ^ ".tex") in
                 Printf.fprintf o "%%%s\n" (generated_line m.filename);
                 Printf.fprintf o "%s" tex_preamble;
                 Printf.fprintf o "%s" (Ulib.Text.to_string rr);
@@ -218,11 +221,11 @@ let output1 env libpath isa_thy (targ : Target.target) avoid m alldoc_accum alld
                 let (r,r_usage) = (header ^^^^ r, header ^^^^ r_usage) in
                   alldoc_inc_accum := (!alldoc_inc_accum) @ [r];
                   alldoc_inc_usage_accum := (!alldoc_inc_usage_accum) @ [r_usage];
-                  let (o,ext_o) = open_output_with_check dir (f' ^ "-inc.tex") in
+                  let (o,ext_o) = open_output_with_check dir (module_name_lower ^ "-inc.tex") in
                     Printf.fprintf o "%%%s\n" (generated_line m.filename);
                     Printf.fprintf o "%s" (Ulib.Text.to_string r);
                     close_output_with_check ext_o;
-                  let (o, ext_o) = open_output_with_check dir (f' ^ "-use_inc.tex") in
+                  let (o, ext_o) = open_output_with_check dir (module_name_lower ^ "-use_inc.tex") in
                     Printf.fprintf o "%%%s\n" (generated_line m.filename);
                     Printf.fprintf o "%s" (Ulib.Text.to_string r_usage);
                     close_output_with_check ext_o
@@ -231,7 +234,7 @@ let output1 env libpath isa_thy (targ : Target.target) avoid m alldoc_accum alld
           begin
             let (r_main, r_extra_opt) = B.ocaml_defs m.typed_ast in
             let _ = begin
-              let (o, ext_o) = open_output_with_check dir (f' ^ ".ml") in
+              let (o, ext_o) = open_output_with_check dir (module_name_lower ^ ".ml") in
               Printf.fprintf o "(*%s*)\n" (generated_line m.filename);
               Printf.fprintf o "open Nat_num\n\n";
               Printf.fprintf o "open Sum\n\n";
@@ -241,10 +244,10 @@ let output1 env libpath isa_thy (targ : Target.target) avoid m alldoc_accum alld
             end in
             let _ = match r_extra_opt with None -> () | Some r_extra ->
               begin
-                let (o, ext_o) = open_output_with_check dir (f' ^ "Extra.ml") in
+                let (o, ext_o) = open_output_with_check dir (module_name_lower ^ "Extra.ml") in
                 Printf.fprintf o "(*%s*)\n" (generated_line m.filename);
                 Printf.fprintf o "open Nat_num\n";
-                Printf.fprintf o "open %s\n\n" m.module_name;
+                Printf.fprintf o "open %s\n\n" module_name;
                 Printf.fprintf o "type 'a set = 'a Pset.set\n\n";
   
                 Printf.fprintf o "%s" "let run_test n loc b =\n  if b then (Format.printf \"%s : ok\\n\" n) else (Format.printf \"%s : FAILED\\n  %s\\n\\n\" n loc);;\n\n";
@@ -260,9 +263,9 @@ let output1 env libpath isa_thy (targ : Target.target) avoid m alldoc_accum alld
             let r1 = B.isa_header_defs m.typed_ast in
             let _ = 
             begin
-                let (o, ext_o) = open_output_with_check dir (m.module_name ^ ".thy") in 
+                let (o, ext_o) = open_output_with_check dir (module_name ^ ".thy") in 
                 Printf.fprintf o "header{*%s*}\n\n" (generated_line m.filename);
-                Printf.fprintf o "theory \"%s\" \n\n" m.module_name;
+                Printf.fprintf o "theory \"%s\" \n\n" module_name;
                 Printf.fprintf o "imports \n \t Main\n";
                 Printf.fprintf o "\t \"%s\"\n" isa_thy;
                 (*
@@ -287,10 +290,10 @@ let output1 env libpath isa_thy (targ : Target.target) avoid m alldoc_accum alld
 
               let _ = match r_extra_opt with None -> () | Some r_extra ->
               begin
-                let (o, ext_o) = open_output_with_check dir (m.module_name ^ "Extra.thy") in              
+                let (o, ext_o) = open_output_with_check dir (module_name ^ "Extra.thy") in              
                 Printf.fprintf o "header{*%s*}\n\n" (generated_line m.filename);
-                Printf.fprintf o "theory \"%sExtra\" \n\n" m.module_name;
-                Printf.fprintf o "imports \n \t Main \"~~/src/HOL/Library/Efficient_Nat\" \"%s\"\n" m.module_name;
+                Printf.fprintf o "theory \"%sExtra\" \n\n" module_name;
+                Printf.fprintf o "imports \n \t Main \"~~/src/HOL/Library/Efficient_Nat\" \"%s\"\n" module_name;
                 Printf.fprintf o "\nbegin \n\n";
                 Printf.fprintf o "%s" (Ulib.Text.to_string r_extra);
                 Printf.fprintf o "end\n";
@@ -304,7 +307,7 @@ let output1 env libpath isa_thy (targ : Target.target) avoid m alldoc_accum alld
       | Target.Target_no_ident(Target.Target_coq) -> 
           begin
             let r = B.coq_defs m.typed_ast in
-            let (o, ext_o) = open_output_with_check dir (f' ^ ".v") in
+            let (o, ext_o) = open_output_with_check dir (module_name_lower ^ ".v") in
               Printf.fprintf o "(* %s *)\n\n" (generated_line m.filename);
               Printf.fprintf o "Require Import Arith.\n";
               Printf.fprintf o "Require Import Bool.\n";

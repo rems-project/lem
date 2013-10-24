@@ -86,8 +86,9 @@ let flatten_modules_macro path env ((d,s),l,lenv) =
             Some((env,com::ds))
       | _ -> None
 
-let flatten_modules n e d = 
-  snd (Def_trans.process_defs [] flatten_modules_macro n e d)
+let flatten_modules mod_path e d = 
+  let (module_path, module_name) = Path.to_name_list mod_path in
+  snd (Def_trans.process_defs (List.rev module_path) flatten_modules_macro module_name e d)
 
 
 

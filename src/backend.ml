@@ -246,11 +246,12 @@ module type Target = sig
   val def_sep : t
   val name_start : t
   val name_end : t
-  val rec_def_header : bool -> bool -> lskips -> lskips -> Name.t -> t
-    (** [rec_def_header is_rec is_real_rec sk1 sk2 n] formats [let sk1 rec? sk2 n]. 
+  val rec_def_header : bool -> bool -> bool -> lskips -> lskips -> Name.t -> t
+    (** [rec_def_header is_rec is_real_rec try_term sk1 sk2 n] formats [let sk1 rec? sk2 n]. 
         The flag [is_rec] denotes whether the keyword [rec] occours in the input, while
-        [is_real_rec] denotes whether the definition is really recursive. *)
-  val rec_def_footer : bool -> bool -> Name.t -> t
+        [is_real_rec] denotes whether the definition is really recursive. [try_term] signals, whether
+        an automatic termination proof should be attempted*)
+  val rec_def_footer : bool -> bool -> bool -> Name.t -> t
   val funcase_start : t
   val funcase_end : t
   val reln_start : t
@@ -458,8 +459,8 @@ module Identity : Target = struct
   let def_sep = kwd "and"
   let name_start = kwd "["
   let name_end = kwd "]"
-  let rec_def_header rr rrr sk1 sk2 _ =  ws sk1 ^ kwd "let" ^ ws sk2 ^ (if (rr || rrr) then kwd "rec" else emp)
-  let rec_def_footer _ _ n = emp
+  let rec_def_header rr rrr _ sk1 sk2 _ =  ws sk1 ^ kwd "let" ^ ws sk2 ^ (if (rr || rrr) then kwd "rec" else emp)
+  let rec_def_footer _ _ _ n = emp
   let funcase_start = emp
   let funcase_end = emp
   let reln_start = kwd "indreln"
@@ -665,8 +666,8 @@ module Tex : Target = struct
   let name_start = kwd "["
   let name_end = kwd "]"
   let def_sep = kwd "|"
-  let rec_def_header _ rrr sk1 sk2 _ = ws sk1 ^ tkwdm "let" ^ ws sk2 ^ (if rrr then tkwdm "rec" else emp)
-  let rec_def_footer _ _ n = emp
+  let rec_def_header _ rrr _ sk1 sk2 _ = ws sk1 ^ tkwdm "let" ^ ws sk2 ^ (if rrr then tkwdm "rec" else emp)
+  let rec_def_footer _ _ _ n = emp
   let funcase_start = emp
   let funcase_end = emp
   let reln_start = tkwdl "indreln"
@@ -872,8 +873,8 @@ module Isa : Target = struct
   let def_end = emp
 
   let def_sep = kwd "|"
-  let rec_def_header _ rr sk1 sk2 _ = (if rr then kwd "function (sequential)" else kwd "fun") ^ ws sk1 ^ ws sk2
-  let rec_def_footer _ rr n = if rr then kwd "by pat_completeness auto" else emp
+  let rec_def_header _ rr try_term sk1 sk2 _ = (if (rr && not try_term) then kwd "function (sequential)" else kwd "fun") ^ ws sk1 ^ ws sk2
+  let rec_def_footer _ rr try_term n = if (rr && not try_term) then kwd "by pat_completeness auto" else emp
   
   let funcase_start = emp
   let funcase_end = emp
@@ -1067,15 +1068,15 @@ module Hol : Target = struct
   let def_sep = kwd "/\\"
   let name_start = kwd "(*"
   let name_end = kwd "*)"
-  let rec_def_header _ rrr sk1 sk2 n = 
+  let rec_def_header _ rrr try_term sk1 sk2 n = 
     ws sk1 ^ ws sk2 ^   
     let n = Ulib.Text.to_string (Name.to_rope n) in 
-      if rrr then
+      if (rrr && not try_term) then
         meta (Format.sprintf "val %s_defn = Hol_defn \"%s\" `\n" n n)
       else
         meta (Format.sprintf "val _ = Define `\n")
-  let rec_def_footer _ rrr n =
-     if rrr then
+  let rec_def_footer _ rrr try_term n =
+     if (rrr && not try_term) then
        meta (Format.sprintf "\nval _ = Lib.with_flag (computeLib.auto_import_definitions, false) Defn.save_defn %s_defn;" 
             (Ulib.Text.to_string (Name.to_rope n)))
      else emp
@@ -2156,8 +2157,8 @@ let is_rec l =
 let rec isa_def_extra (gf:extra_gen_flags) d l : Output.t = match d with
   | Val_def(Fun_def(s1, s2_opt, targets, clauses)) 
       when gf.extra_gen_termination -> 
-      let (_, is_rec) = Typed_ast_syntax.is_recursive_def d in
-      if (in_target targets && is_rec) then
+      let (_, is_rec, try_term) = Typed_ast_syntax.try_termination_proof T.target A.env.c_env d in
+      if (in_target targets && is_rec && not try_term) then
       begin
         let n = 
           match Seplist.to_list clauses with
@@ -2194,8 +2195,8 @@ let rec isa_def_extra (gf:extra_gen_flags) d l : Output.t = match d with
 let rec hol_def_extra gf d l : Output.t = match d with
   | Val_def(Fun_def(s1, s2_opt, targets, clauses)) 
       when gf.extra_gen_termination -> 
-      let (_, is_rec) = Typed_ast_syntax.is_recursive_def d in
-      if (in_target targets && is_rec) then
+      let (_, is_rec, try_term) = Typed_ast_syntax.try_termination_proof T.target A.env.c_env d in
+      if (in_target targets && is_rec && not try_term) then
       begin
         let n = 
           match Seplist.to_list clauses with
@@ -2351,21 +2352,21 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         emp
   | Val_def(Fun_def(s1, rec_flag, targets, clauses)) -> 
       if in_target targets then
-        let (is_rec, is_real_rec) = Typed_ast_syntax.is_recursive_def d in
+        let (is_rec, is_real_rec, try_term) = Typed_ast_syntax.try_termination_proof T.target A.env.c_env d in
         let s2 = match rec_flag with FR_non_rec -> None | FR_rec sk -> sk in
         let n = 
           match Seplist.to_list clauses with
             | [] -> assert false
             | (n,n_ref, _, _, _, _)::_ -> Name.strip_lskip (B.const_ref_to_name n.term false n_ref)
         in
-          T.rec_def_header is_rec is_real_rec s1 s2 n ^
+          T.rec_def_header is_rec is_real_rec try_term s1 s2 n ^
           (if Target.is_human_target T.target then
              targets_opt targets 
            else
              emp) ^
           flat (Seplist.to_sep_list funcl (sep T.def_sep) clauses) ^
           T.def_end ^
-          T.rec_def_footer is_rec is_real_rec n
+          T.rec_def_footer is_rec is_real_rec try_term n
           else
         emp
   | Val_def(Let_inline(s1,s2,targets,n,c,args,s4,body)) ->
@@ -2830,23 +2831,23 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
       else emp
   
   | Val_def ((Fun_def (s1, rec_flag, targets, clauses) as def)) ->
-      let (_, is_rec) = Typed_ast_syntax.is_recursive_def d in
+      let (is_rec, is_real_rec, try_term) = Typed_ast_syntax.try_termination_proof T.target A.env.c_env d in
       if in_target targets then 
         let is_simple = not is_rec && (match Seplist.to_list clauses with
           | [(_, _, ps, _, _, _)] -> List.for_all (fun p -> (Pattern_syntax.is_var_wild_pat p)) ps
           | _ -> false) 
         in
         let s2 = match rec_flag with FR_non_rec -> None | FR_rec sk -> sk in
-        ws s1 ^ kwd (if is_rec then "function (sequential)" else (if is_simple then "definition" else "fun")) ^ ws s2 ^
+        ws s1 ^ kwd (if (is_rec && not try_term) then "function (sequential)" else (if is_simple then "definition" else "fun")) ^ ws s2 ^
         (if Target.is_human_target T.target then
            targets_opt targets 
          else
            emp) ^
         (isa_funcl_header_seplist clauses) ^
         flat (Seplist.to_sep_list (isa_funcl_default (kwd "= ")) (sep T.def_sep) clauses) ^
-        (if is_rec then (kwd "\nby pat_completeness auto") else emp) ^
+        (if (is_rec && not try_term) then (kwd "\nby pat_completeness auto") else emp) ^
         (match val_def_get_name def with None -> emp | Some n ->
-          (if is_rec || is_simple then emp else 
+          (if (is_rec && not try_term) || is_simple then emp else 
                 (kwd (String.concat "" ["\ndeclare "; Name.to_string n; ".simps [simp del]"])))) ^
         new_line
       else emp

@@ -46,9 +46,9 @@
 
 (** renaming and module flattening for some targets *)
 
-(* val rename_nested_module : Name.t list -> Typed_ast.env -> Typed_ast.def list -> Typed_ast.def list *)
-val flatten_modules : Name.t -> Typed_ast.env -> Typed_ast.def list -> Typed_ast.def list
 
+
+val flatten_modules : Path.t -> Typed_ast.env -> Typed_ast.def list -> Typed_ast.def list
 
 (** [rename_target topt ue consts e] processes the entities (constants, constructors, types, modules ...) stored in [ue] and
     renames them for target [topt]. This renaming is target specific. It avoids the names in set [consts] and modifies the descriptions

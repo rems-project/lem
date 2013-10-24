@@ -152,25 +152,24 @@ let inline_exp_macro (target : Target.non_ident_target) env ctxt e =
   generalised_inline_exp_macro false (Target.Target_no_ident target) env e
 
 
+let get_module_name env target path mod_name =  begin
+  let md = lookup_mod_descr env path mod_name in
+  match Target.Targetmap.apply_target md.mod_target_rep target with
+    | Some (MR_rename (_, n)) -> n
+    | _ -> mod_name
+end
+
 module Make(A : sig 
   val env : env;; 
   val target : Target.target;;
   val id_format_args : (bool -> Output.id_annot -> Ulib.Text.t -> Output.t) * Output.t
  end) = struct
 
-
-let get_module_name path mod_name =  begin
-  let md = lookup_mod_descr A.env path mod_name in
-  match Target.Targetmap.apply_target md.mod_target_rep A.target with
-    | Some (MR_rename (_, n)) -> n
-    | _ -> mod_name
-end
-
 let fix_module_name_list nl = begin
   let rec aux acc path rest = match rest with
     | [] -> List.rev acc
     | m :: rest' ->
-        aux ((get_module_name path m)::acc) (path @ [m]) rest'
+        aux ((get_module_name A.env A.target path m)::acc) (path @ [m]) rest'
   in
   aux [] [] nl
 end
@@ -183,7 +182,7 @@ let fix_module_prefix_ident (i : Ident.t) =
 let fix_module_ident (i : Ident.t) =
   let (ns, n) = Ident.to_name_list i in
   let ns' = fix_module_name_list ns in
-  let n' = get_module_name ns n in
+  let n' = get_module_name A.env A.target ns n in
   Ident.mk_ident (Ident.get_lskip i) ns' n'
 
 let ident_to_output use_infix =

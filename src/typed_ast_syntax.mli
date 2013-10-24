@@ -452,6 +452,10 @@ val strip_paren_typ_exp : exp -> exp
     whether the function actually appears inside its own definition. *)
 val is_recursive_def : def_aux -> bool * bool
 
+(** [try_termination_proof targ c_env d] calls [is_recursive_def d]. It further checks, whether a termination proof for target [targ] should be tried by
+    checking the termination settings of all involved constants. It returns a triple [(is_syntactic_rec, is_real_rec, try_auto_termination)]. *)
+val try_termination_proof : Target.target -> c_env -> def_aux -> bool * bool * bool
+
 (** [is_pp_loc l] checks whether [l] is of the form [Ast.Trans (true, _, _)]. This means
     that the entity marked with [l] should be formated using a pretty printer that calculates whitespaces new instead
     of using the ones provided by the user.  *)

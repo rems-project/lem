@@ -55,6 +55,10 @@ val inline_exp_macro : Target.non_ident_target -> env -> Macro_expander.macro_co
 (** [component_to_output c] formats component [c] as an output *)
 val component_to_output : Ast.component -> Output.t
 
+(** [get_module_name env targ mod_path mod_name] looks up the name of module [mod_path.mod_name] in environment [env] for
+    target [targ].*)
+val get_module_name : env -> Target.target -> Name.t list -> Name.t -> Name.t
+
 module Make(A : sig
   val env : env;; 
   val target : Target.target;;

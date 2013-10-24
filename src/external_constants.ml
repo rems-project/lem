@@ -72,7 +72,7 @@ match label with
   | "multiplication" -> (["Pervasives"], "*")
   | "subtraction" -> (["Pervasives"], "-")
   | "less_equal" -> (["Pervasives"], "<=")
-  | "num_suc" -> (["Num"], "suc")
+  | "num_suc" -> (["Num"], "natSucc")
 
   | "list_concat" -> (["List"], "concat")
   | "list_cons" -> (["Pervasives"], "::")
