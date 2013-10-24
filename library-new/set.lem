@@ -256,15 +256,15 @@ let inline delete e s = deleteBy (=) e s
 (* union                    *)
 (* ------------------------ *)
 
-val (union) : forall 'a. Ord 'a => set 'a -> set 'a -> set 'a
-declare ocaml    target_rep function (union) = `Pset.(union)`
-declare hol      target_rep function (union) = `UNION`
-declare isabelle target_rep function (union) = `Set.union`
-declare coq      target_rep function (union) = `set_union` 
+val union : forall 'a. Ord 'a => set 'a -> set 'a -> set 'a
+declare ocaml    target_rep function union = `Pset.(union)`
+declare hol      target_rep function union = `UNION`
+declare isabelle target_rep function union = `Set.union`
+declare coq      target_rep function union = `set_union` 
 
 
-assert union_1: ({1;2;3} union {3;2;4} = {1;2;3;4})
-lemma union_in: (forall e s1 s2. e IN (s1 union s2) <-> (e IN s1 || e IN s2))
+assert union_1: (union {1;2;3} {3;2;4} = {1;2;3;4})
+lemma union_in: (forall e s1 s2. e IN (union s1 s2) <-> (e IN s1 || e IN s2))
 
 
 (* ------------------------ *)

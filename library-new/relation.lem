@@ -166,7 +166,7 @@ let range r = { e2 | exists e1. inRel e1 e2 r }
 (* ----------------------- *)
 
 val definedOn : forall 'a. Ord 'a => rel 'a 'a -> set 'a
-let definedOn r = ((domain r) union (range r))
+let definedOn r = (union (domain r) (range r))
 
 (* ----------------------- *)
 (* apply a relation        *)
