@@ -1,0 +1,16 @@
+open import Basic_classes Maybe
+
+(* ----------------------- *)
+(* fromJust                *)
+(* ----------------------- *)
+
+val fromJust : forall 'a. maybe 'a -> 'a
+let fromJust (Just v) = v
+declare termination_argument fromJust = automatic
+declare compile_message fromJust = "fromJust is only defined on Just. Better use `fromMaybe` or use explicit maching to handle the Nothing-case."
+
+declare hol      target_rep function fromJust = `THE`
+declare ocaml    target_rep function fromJust = `Option.get`
+declare isabelle target_rep function fromJust = `the`
+
+lemma fromJust: (forall v. fromJust (Just v) = v)

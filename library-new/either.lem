@@ -1,0 +1,29 @@
+open import Basic_classes List String
+
+type either 'a 'b
+  = Left  of 'a
+  | Right of 'b
+
+(* -------------------------------------------------------------------------- *)
+(* Equality.                                                                  *)
+(* -------------------------------------------------------------------------- *)
+
+let eitherEqual (left: either 'a 'b) (right: either 'a 'b) =
+  match (left, right) with
+    | (Left l, Left l') -> l = l'
+    | (Right r, Right r') -> r = r'
+    | _ -> false
+  end
+
+instance forall 'a 'b. Eq 'a, Eq 'b => (Eq (either 'a 'b))
+  let (=) = eitherEqual
+end
+
+(* -------------------------------------------------------------------------- *)
+(* Utility functions.                                                         *)
+(* -------------------------------------------------------------------------- *)
+
+val either : forall 'a 'b 'c. ('a -> 'c) -> ('b -> 'c) -> either 'a 'b -> 'c
+val lefts : forall 'a 'b. list (either 'a 'b) -> list 'a
+val rights : forall 'a 'b. list (either 'a 'b) -> list 'b
+val partitionEither : forall 'a 'b. list (either 'a 'b) -> (list 'a * list 'b)

@@ -1,4 +1,4 @@
-include import Basic_classes Bool Function List Map Maybe Num Set String Tuple
+include import Basic_classes Bool Either Function List Map Maybe Num Set String Tuple
 
 import Sorting Relation
 
