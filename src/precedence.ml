@@ -200,7 +200,7 @@ let pat_needs_parens context t =
     | (Pcons_right,_) -> false
 
 
-let get_prec targ env c =
+let rec get_prec targ env c =
   let l = Ast.Trans (false, "get_prec", None) in
   let c_descr = c_env_lookup l env.c_env c in
 
@@ -212,9 +212,20 @@ let get_prec targ env c =
         match Target.Targetmap.apply c_descr.target_rep targ' with
          | Some (CR_infix (_, _, fixity, _)) -> ast_fixity_decl_to_t fixity
          | Some (CR_special _) -> P_special (* TODO: Thomas T.: uncertain, whether P_prefix would be better here, but it should not matter much I hope *)
+         | Some (CR_inline (_, _, [], e)) -> get_prec_exp targ env e
+         | Some (CR_simple (_, _, [], e)) -> get_prec_exp targ env e
          | Some _ -> P_prefix
          | None -> (* if not target definition is given then default to the one for the identity backend, if it is a human readable backend. *)
                    if (Target.is_human_target targ) then 
                       get_ident_prec (Op (Name.to_string (Path.get_name c_descr.const_binding)))
                    else P_prefix
       end
+
+and get_prec_exp targ env e =
+  let module C = Exps_in_context(struct let env_opt = Some env;; let avoid = None end) in
+  match C.exp_to_term e with
+    | Constant id -> get_prec targ env id.Types.descr
+    | Paren (_, e, _) -> get_prec_exp targ env e
+    | Typed (_, e, _, _, _) -> get_prec_exp targ env e
+    | _ -> P_prefix
+  

@@ -84,5 +84,11 @@ val needs_parens : context -> exp_kind -> bool
 val pat_needs_parens : pat_context -> pat_kind -> bool
 
 (** [get_prec target env c] looks up the precedence of constant [c] in environment [env]
-    for the target [target]. *)
+    for the target [target]. Thereby, it follows target-representations of this constant.*)
 val get_prec : Target.target -> Typed_ast.env -> Typed_ast.const_descr_ref -> t
+
+(** [get_prec target env e] looks up the precedence of expression [e] in environment [env]
+    for the target [target]. If the expression is essentially a constant (i.e. a constant
+    with perhaps parenthesis or types added), the precedence of this constant is returned
+    using [get_prec]. Otherwise [P_prefix] is returned. *)
+val get_prec_exp : Target.target -> Typed_ast.env -> Typed_ast.exp -> t

@@ -102,10 +102,7 @@ let inline_exp l (target : Target.target) env was_infix params body tsubst (args
   let loc = Ast.Trans(false, "inline_exp", Some l) in
   let (vsubst, leftover_params, leftover_args) = build_subst params args in
   let b = C.exp_subst (tsubst,vsubst) body in
-  let stays_infix = match C.exp_to_term b with
-    | Constant id -> Precedence.is_infix (Precedence.get_prec target env id.descr)
-    | _ -> false
-  in
+  let stays_infix = Precedence.is_infix (Precedence.get_prec_exp target env b) in
   if params = [] && was_infix && stays_infix then
   begin
     (* Turn infix operators into infix operators again *)

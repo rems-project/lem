@@ -8,7 +8,7 @@ type t3 ''a = E of vector bool ''a
 
 type t4 ''a = F of t3 ''a
 
-type t5 [name = "nv*"] = NV of bool | NVC of int
+type t5 [name = "nv*"] = NV of bool | NVC of nat
 
 let test1 ( x : _ ) = x
 
