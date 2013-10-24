@@ -26,6 +26,7 @@ let inline (subset) = isSubsetOf
 let inline (inter) = intersection 
 
 let inline (\) = difference
+let inline (<>) = (/=)
 
 (* transitive closure now works on relations, not sets of pairs,
    best ajust the types manually or add wrappers 'relFromSet' and 
@@ -40,6 +41,8 @@ declare lem target_rep type option = `maybe`
 
 let inline None = Nothing
 let inline Some = Just
+
+declare pattern_match exhaustive maybe 'a = [ None; Some ; ]  
 
 let inline SUC = natSucc
 
@@ -65,7 +68,6 @@ val (::) : forall 'a. 'a -> list 'a -> list 'a
 
 (* 
 val (=) : forall 'a. 'a -> 'a -> bool
-val (<>) : forall 'a. 'a -> 'a -> bool
 val (<) : num -> num -> bool
 val (>) : num -> num -> bool
 val (<=) : num -> num -> bool
@@ -134,7 +136,7 @@ let inline {isabelle} nat_list_to_string = Isabelle.nat_list_to_string
 module Set = struct
   include Set_suspicious (* include the new set module *)
 
-(*  let inline add = insert
+  let inline add = insert
   let inline for_all = all
   let inline exist = any
   let inline cardinal = size
@@ -169,8 +171,6 @@ module Set = struct
   val monotone : forall 'a. (set 'a -> set 'a) -> bool
   val lfp : forall 'a. set 'a -> (set 'a -> set 'a) -> set 'a
   *)
-
-*)
 end
 
 (* ========================================================================== *)

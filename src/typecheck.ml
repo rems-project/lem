@@ -2759,9 +2759,37 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let def' = Some (Declaration (Decl_rename_current_module (sk1, targs, sk2, component_sk, sk3, n'))) in
           let tr' = List.fold_left (fun tr t -> fst (mod_target_rep_rename t (Name.strip_lskip n') l tr)) ctxt.ctxt_mod_target_rep (targets_opt_to_list targs) in
           ({ctxt with ctxt_mod_target_rep = tr'}, def') 
-      | Ast.Declaration(Ast.Decl_pattern_match_decl (_, _, _, _, _, _, _, _, _, _, _)) ->
-          let _ = prerr_endline "pattern match decl encountered" in
-            ctxt, None
+      | Ast.Declaration(Ast.Decl_pattern_match_decl (sk1, target_opt, sk2, ex_set, type_id, tnvars, sk3, sk4, constrs, sk5, semi, sk6, elim_opt)) ->
+          let targs = check_target_opt target_opt in
+          let tvs_tast = List.map ast_tnvar_to_tnvar tnvars in
+          let tvs = List.map tnvar_to_types_tnvar tvs_tast in
+          let p = lookup_p "" (defn_ctxt_to_env ctxt) type_id in
+          let p_id = {id_path = Id_some (Ident.from_id type_id); 
+              id_locn = l;
+              descr = p;
+              instantiation = []; } in  
+          let td = match Pfmap.apply ctxt.all_tdefs p with
+            | Some(Tc_type(td)) -> td 
+            | _ -> raise (Reporting_basic.err_type l "type refers to type-class") in
+
+          let constr_ids = List.map (fun (id, sk) -> (fst (component_term_id_lookup l ctxt (Ast.Component_function None) id), sk)) constrs in
+          let constr_ids_seplist = Seplist.from_list_suffix constr_ids sk5 semi in
+
+          let elim_id_opt = begin match elim_opt with 
+              Ast.Elim_opt_none     -> None
+            | Ast.Elim_opt_some(id) -> Some (fst (component_term_id_lookup l ctxt (Ast.Component_function None) id))
+          end in
+          let def' = Some (Declaration (Decl_pattern_match_decl (sk1, targs, sk2, ex_set, p_id, tvs_tast, sk3, sk4, constr_ids_seplist, sk6, elim_id_opt))) in
+
+          let constr_family = {
+            constr_list = List.map (fun (id, _) -> id.descr) constr_ids;
+            constr_case_fun = Util.option_map (fun id -> id.descr) elim_id_opt;
+            constr_exhaustive = match ex_set with
+              | Ast.Exhaustivity_setting_exhaustive   _ -> true
+              | Ast.Exhaustivity_setting_inexhaustive _ -> false
+          } in
+          let ctxt' = {ctxt with all_tdefs = type_defs_add_constr_family l ctxt.all_tdefs p constr_family} in 
+          (ctxt', def')	  
       | Ast.Declaration(Ast.Decl_termination_argument_decl (sk1, target_opt, sk2, id, sk3, term_setting)) ->
           let targs = check_target_opt target_opt in
           let (c_id, c_descr) = component_term_id_lookup l ctxt (Ast.Component_function None) id in

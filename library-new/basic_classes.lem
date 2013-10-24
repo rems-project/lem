@@ -18,10 +18,11 @@ class ( Eq 'a )
   val (=) : 'a -> 'a -> bool
 end
 declare ascii_rep function (=) = `isEqual`
-declare coq target_rep function isEqual = infix `=`
 
-let (/=) x y = not (x = y)
-declare ascii_rep function (/=) = `isUnequal`
+class ( Ineq 'a ) 
+  val (/=) : 'a -> 'a -> bool
+end
+declare ascii_rep function (/=) = `isInequal`
 
 
 (* (=) should for all instances be an equivalence relation 
@@ -55,6 +56,10 @@ declare coq      target_rep function unsafe_structural_equality = `classical_boo
    (and should) be overriden for concrete types later. *)
 instance forall 'a. (Eq 'a) 
   let (=) = unsafe_structural_equality
+end
+
+instance forall 'a. Eq 'a => (Ineq 'a) 
+  let (/=) x y = not (x = y)
 end
 
 

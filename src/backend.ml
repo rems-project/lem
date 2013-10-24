@@ -2612,6 +2612,32 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
           | Ast.Termination_setting_manual sk -> (ws sk ^ kwd "manual")
         )          
       end
+  | Declaration (Decl_pattern_match_decl (sk1, targs, sk2, ex_set, p_id, args, sk3, sk4, constr_ids, sk5, elim_id_opt)) ->
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        kwd "declare" ^
+        targets_opt targs ^
+        ws sk2 ^
+        kwd "pattern_match" ^
+        (match ex_set with
+           | Ast.Exhaustivity_setting_exhaustive   sk -> ws sk ^ kwd "exhaustive"
+           | Ast.Exhaustivity_setting_inexhaustive sk -> ws sk ^ kwd "inexhaustive"
+        ) ^
+        (Ident.to_output Type_ctor T.path_sep (B.type_id_to_ident p_id)) ^
+        tdef_tvars true args ^
+        ws sk3 ^
+        kwd "=" ^ 
+        ws sk4 ^
+        kwd "[" ^
+        flat
+          (Seplist.to_sep_list_last Seplist.Optional (fun id ->
+             (Ident.to_output Term_const T.path_sep (B.const_id_to_ident id true)) 
+           ) (sep (kwd ";")) constr_ids) ^
+        ws sk5 ^
+        kwd "]" ^
+        Util.option_default_map elim_id_opt emp (fun id ->
+          (Ident.to_output Term_const T.path_sep (B.const_id_to_ident id true)))
+      end
   | Comment(d) ->
       let (d',sk) = def_alter_init_lskips (fun sk -> (None, sk)) d in
         ws sk ^ ws (Some([Ast.Com(Ast.Comment([Ast.Chars(X.comment_def d')]))]))

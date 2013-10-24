@@ -328,9 +328,9 @@ type declare_def =  (* declarations *)
  | Decl_rename                of lskips * targets_opt * lskips * Ast.component * name_kind id * lskips * Name.lskips_t
  | Decl_rename_current_module of lskips * targets_opt * lskips * lskips * lskips * Name.lskips_t
  | Decl_termination_argument  of lskips * targets_opt * lskips * const_descr_ref id * lskips * Ast.termination_setting
+ | Decl_pattern_match_decl    of lskips * targets_opt * lskips * Ast.exhaustivity_setting * Path.t id * tnvar list * lskips * lskips * (const_descr_ref id) lskips_seplist * lskips * (const_descr_ref id) option
 (*
  | Decl_set_flag              of lskips * lskips * Name.lskips_t * lskips * Name.lskips_t
- | Decl_pattern_match_decl of lskips * targets option * lskips * exhaustivity_setting * x_l * tnvar list * lskips * lskips * (exp) list * lskips * elim_opt
 *)
 
 type def = (def_aux * lskips option) * Ast.l * local_env
@@ -653,16 +653,19 @@ let rec def_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (((d,s),l,l
                 (Decl_target_rep_type (sk1', targ, sk2, sk3, id, args, sk4, rhs), s_ret)
             | Decl_ascii_rep (sk1, targs, sk2, comp, id, sk3, sk4, n) ->
                 let (sk1', s_ret) = lskips_f sk1 in
-                (Decl_ascii_rep (sk1, targs, sk2, comp, id, sk3, sk4, n), s_ret)
+                (Decl_ascii_rep (sk1', targs, sk2, comp, id, sk3, sk4, n), s_ret)
             | Decl_rename (sk1, targs, sk2, comp, id, sk3, n) ->
                 let (sk1', s_ret) = lskips_f sk1 in
-                (Decl_rename (sk1, targs, sk2, comp, id, sk3, n), s_ret)
+                (Decl_rename (sk1', targs, sk2, comp, id, sk3, n), s_ret)
             | Decl_rename_current_module (sk1, targs, sk2, sk3, sk4, n) ->
                 let (sk1', s_ret) = lskips_f sk1 in
-                (Decl_rename_current_module (sk1, targs, sk2, sk3, sk4, n), s_ret)
+                (Decl_rename_current_module (sk1', targs, sk2, sk3, sk4, n), s_ret)
             | Decl_termination_argument (sk1, targs, sk2, id, sk3, ts) ->
                 let (sk1', s_ret) = lskips_f sk1 in
-                (Decl_termination_argument (sk1, targs, sk2, id, sk3, ts), s_ret)
+                (Decl_termination_argument (sk1', targs, sk2, id, sk3, ts), s_ret)
+            | Decl_pattern_match_decl (sk1, targs, sk2, ex_set, p_id, args, sk3, sk4, constr_ids, sk5, elim_id_opt) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_pattern_match_decl (sk1', targs, sk2, ex_set, p_id, args, sk3, sk4, constr_ids, sk5, elim_id_opt), s_ret)
           in
           res (Declaration d') s_ret
         end

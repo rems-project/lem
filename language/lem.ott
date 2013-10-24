@@ -801,7 +801,7 @@ declare_def :: 'Decl_' ::=
   | declare target target_rep target_rep_lhs = target_rep_rhs                                     :: :: target_rep_decl
   | declare set_flag x_l1 = x_l2                                                                  :: :: set_flag_decl
   | declare targets_opt termination_argument id = termination_setting                             :: :: termination_argument_decl
-  | declare targets_opt pattern_match exhaustivity_setting id tnvars = [ id1 .. idn ] elim_opt :: :: pattern_match_decl
+  | declare targets_opt pattern_match exhaustivity_setting id tnvars = [ id1 ; ... ; idn semi_opt ] elim_opt :: :: pattern_match_decl
 
 val_def :: '' ::= 
   {{ com Value definitions }}

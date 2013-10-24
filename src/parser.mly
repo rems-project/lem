@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*                        Lem                                             */
+/*                       em                                             */
 /*                                                                        */
 /*          Dominic Mulligan, University of Cambridge                     */
 /*          Francesco Zappa Nardelli, INRIA Paris-Rocquencourt            */
@@ -974,8 +974,8 @@ declaration :
     { Decl_set_flag_decl($1, $2, $3, fst $4, $5) }
   | Declare targets_opt TerminationArgument id Eq termination_setting
     { Decl_termination_argument_decl($1, $2, $3, $4, fst $5, $6) }
-  | Declare targets_opt PatternMatch exhaustivity_setting id tnvar_list Eq Lsquare ids Rsquare elim_opt
-    { Decl_pattern_match_decl($1, $2, $3, $4, $5, $6, fst $7, $8, $9, $10, $11) }
+  | Declare targets_opt PatternMatch exhaustivity_setting id tnvar_list Eq Lsquare semi_ids Rsquare elim_opt
+    { Decl_pattern_match_decl($1, $2, $3, $4, $5, $6, fst $7, $8, fst $9, fst (snd $9),snd (snd $9), $10, $11) }
 
 lemma_typ:
   | Lemma
@@ -1101,11 +1101,25 @@ tds:
   | td And tds
     { ($1,$2)::$3 }
 
+semi_ids_help:
+  | id
+    { ([($1,None)], (None,false)) }
+  | id Semi
+    { ([($1,None)], ($2,true)) }
+  | id Semi semi_ids_help
+    { (($1,$2)::fst $3, snd $3) }
+
+semi_ids:
+  |
+    { ([], (None, false)) }
+  | semi_ids_help
+    { $1 }
+
 ids:
   | id
     { [$1] }
   | id ids
-    { $1::$2 }
+    { $1 :: $2 }
 
 defs_help:
   | def
