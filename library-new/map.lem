@@ -1,0 +1,111 @@
+open import Bool Basic_classes Maybe Function Num
+
+type map 'k 'v
+
+(* -------------------------------------------------------------------------- *)
+(* Map equality.                                                              *)
+(* -------------------------------------------------------------------------- *)
+
+val mapEqual : forall 'k 'v. map 'k 'v -> map 'k 'v -> bool
+
+instance forall 'k 'v. Eq 'k, Eq 'v => (Eq (map 'k 'v))
+  let (=) = mapEqual
+end
+
+(* -------------------------------------------------------------------------- *)
+(* Basic maps and tests.                                                      *)
+(* -------------------------------------------------------------------------- *)
+
+val empty : forall 'k 'v. Ord 'k => map 'k 'v
+val null  : forall 'k 'v. Ord 'k => map 'k 'v -> bool
+val size  : forall 'k 'v. Ord 'k => map 'k 'v -> nat
+
+(* -------------------------------------------------------------------------- *)
+(* Insertion.                                                                 *)
+(* -------------------------------------------------------------------------- *)
+
+val singleton : forall 'k 'v. Ord 'k => 'k -> 'v -> map 'k 'v
+val insert    : forall 'k 'v. Ord 'k => 'k -> 'v -> map 'k 'v -> map 'k 'v
+
+(* -------------------------------------------------------------------------- *)
+(* Membership and lookup.                                                     *)
+(* -------------------------------------------------------------------------- *)
+
+val lookup          : forall 'k 'v. Ord 'k => map 'k 'v -> 'k -> 'v
+
+val member          : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> bool
+val notMember       : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> bool
+
+val find            : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> maybe 'v
+val findWithDefault : forall 'k 'v. Ord 'k => 'k -> 'v -> map 'k 'v -> 'v
+
+(* -------------------------------------------------------------------------- *)
+(* Set-like operations.                                                       *)
+(* -------------------------------------------------------------------------- *)
+
+val delete           : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> map 'k 'v
+
+val difference       : forall 'k 'v 'w. Ord 'k => map 'k 'v -> map 'k 'w -> map 'k 'v
+
+val intersection     : forall 'k 'v. Ord 'k => map 'k 'v -> map 'k 'v -> map 'k 'v
+
+val union            : forall 'k 'v. Ord 'k => map 'k 'v -> map 'k 'v -> map 'k 'v
+val unions           : forall 'k 'v. Ord 'k => list (map 'k 'v) -> map 'k 'v
+
+val isSubmapOf       : forall 'k 'v. Ord 'k, Eq 'v => map 'k 'v -> map 'k 'v -> bool
+val isProperSubmapOf : forall 'k 'v. Ord 'k, Eq 'v => map 'k 'v -> map 'k 'v -> bool
+
+(* -------------------------------------------------------------------------- *)
+(* Maps (in the functor sense).                                               *)
+(* -------------------------------------------------------------------------- *)
+
+val map             : forall 'k 'v 'w. Ord 'k => ('v -> 'w) -> map 'k 'v -> map 'k 'w
+
+val mapMaybe        : forall 'k 'v. Ord 'k => ('v -> maybe 'v) -> map 'k 'v -> map 'k 'v
+val mapMaybeWithKey : forall 'k 'v. Ord 'k => ('k -> 'v -> maybe 'v) -> map 'k 'v -> map 'k 'v
+
+val adjust          : forall 'k 'v. Ord 'k => ('v -> 'v) -> 'k -> map 'k 'v -> map 'k 'v
+val adjustWithKey   : forall 'k 'v. Ord 'k => ('k -> 'v -> 'v) -> 'k -> map 'k 'v -> map 'k 'v
+
+val update          : forall 'k 'v. Ord 'k => ('v -> maybe 'v) -> map 'k 'v -> map 'k 'v
+val updateWithKey   : forall 'k 'v. Ord 'k => ('k -> 'v -> maybe 'v) -> map 'k 'v -> map 'k 'v
+
+(* -------------------------------------------------------------------------- *)
+(* Splitting, filtering and partitioning.                                     *)
+(* -------------------------------------------------------------------------- *)
+
+val filter           : forall 'k 'v. Ord 'k => ('v -> bool) -> map 'k 'v -> map 'k 'v
+val filterWithKey    : forall 'k 'v. Ord 'k => ('k -> 'v -> bool) -> map 'k 'v -> map 'k 'v
+
+val partition        : forall 'k 'v. Ord 'k => ('v -> bool) -> map 'k 'v -> maybe (map 'k 'v * map 'k 'v)
+val partitionWithKey : forall 'k 'v. Ord 'k => ('k -> 'v -> bool) -> map 'k 'v -> maybe (map 'k 'v * map 'k 'v)
+
+val split            : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> maybe (map 'k 'v * map 'k 'v)
+
+(* -------------------------------------------------------------------------- *)
+(* Folds.                                                                     *)
+(* -------------------------------------------------------------------------- *)
+
+val fold         : forall 'k 'v 'w. Ord 'k => ('v -> 'w -> 'w) -> 'w -> map 'k 'v -> 'w
+val foldWithKey  : forall 'k 'v 'w. Ord 'k => ('k -> 'v -> 'w -> 'w) -> 'w -> map 'k 'v -> 'w
+val foldrWithKey : forall 'k 'v 'w. Ord 'k => ('k -> 'v -> 'w -> 'w) -> 'w -> map 'k 'v -> 'w
+val foldlWithKey : forall 'k 'v 'w. Ord 'k => ('w -> 'k -> 'v -> 'w) -> 'w -> map 'k 'v -> 'w
+
+(* -------------------------------------------------------------------------- *)
+(* To and from lists.                                                         *)
+(* -------------------------------------------------------------------------- *)
+
+val keysAsc   : forall 'k 'v. Ord 'k => map 'k 'v -> list 'k
+val elemsAsc  : forall 'k 'v. Ord 'k => map 'k 'v -> list 'v
+val toAscList : forall 'k 'v. Ord 'k => map 'k 'v -> list ('k * 'v)
+
+val fromList  : forall 'k 'v. Ord 'k => list ('k * 'v) -> map 'k 'v
+
+(* -------------------------------------------------------------------------- *)
+(* Minimum and maximum.                                                       *)
+(* -------------------------------------------------------------------------- *)
+
+val findMin   : forall 'k 'v. Ord 'k => map 'k 'v -> maybe ('k * 'v)
+val findMax   : forall 'k 'v. Ord 'k => map 'k 'v -> maybe ('k * 'v)
+val deleteMin : forall 'k 'v. Ord 'k => map 'k 'v -> map 'k 'v
+val deleteMax : forall 'k 'v. Ord 'k => map 'k 'v -> map 'k 'v

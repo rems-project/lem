@@ -181,11 +181,8 @@ rule token skips = parse
   | "#0"				{ (HashZero(Some(skips))) }
   | "#1"				{ (HashOne(Some(skips))) }
   | "<-"                                { (LeftArrow(Some(skips))) }
-  | "union" as i                        { (PlusX(Some(skips),Ulib.Text.of_latin1 i)) }
-  | "inter" as i                        { (StarX(Some(skips),Ulib.Text.of_latin1 i)) }
-  | "subset" | "\\" as i                { (EqualX(Some(skips),Ulib.Text.of_latin1 i)) }
-  | "lsl" | "lsr" | "asr" as i          { (StarstarX(Some(skips), Ulib.Text.of_latin1 i)) }
-  | "mod" | "div" | "land" | "lor" | "lxor" as i  { (StarX(Some(skips), Ulib.Text.of_latin1 i)) }
+  | "\\"                                { (EqualX(Some(skips),Ulib.Text.of_latin1 "\\")) }
+  | "mod" | "div" as i                  { (StarX(Some(skips), Ulib.Text.of_latin1 i)) }
 
 
   | "(*"                           
