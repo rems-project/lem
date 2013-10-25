@@ -247,6 +247,7 @@ let direct_subpats (p : pat) : pat list =
     | P_typ (_,p,_,_,_) -> [p] 
     | P_paren(_,p,_) -> [p]
     | P_const(_,ps) -> ps
+    | P_backend(_,_,_,ps) -> ps
     | P_as (_, p, _, _, _) -> [p]
     | P_cons(p1,_,p2) -> [p1;p2]
     | P_tup(_,ps,_) -> Seplist.to_list ps
@@ -266,7 +267,7 @@ let rec for_all_subpat (cf : pat -> bool) (p : pat) : bool =
   cf p && List.for_all (for_all_subpat cf) (direct_subpats p)
 
 let rec is_var_tup_pat p : bool = match p.term with
-    | (P_wild _ | P_as _ | P_const _ | P_record _ | P_list _ | P_cons _  | P_lit _) -> false
+    | (P_wild _ | P_as _ | P_const _ | P_backend _ | P_record _ | P_list _ | P_cons _  | P_lit _) -> false
     | P_paren(_,p,_) -> is_var_tup_pat p
     | P_var _ | P_var_annot _ -> true
     | P_typ(_,p,_,_,_) -> is_var_tup_pat p
@@ -295,6 +296,7 @@ let rec single_pat_exhaustive (p : pat) : bool =
         (* TODO *) false (*
         NameSet.cardinal c.descr.constr_names = 1 &&
         List.for_all single_pat_exhaustive ps *)
+    | P_backend _ -> false
     | P_record(_,fes,_) ->
         Seplist.for_all
           (fun (_,_,p) -> single_pat_exhaustive p)

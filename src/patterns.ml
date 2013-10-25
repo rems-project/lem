@@ -395,6 +395,7 @@ let pat_matrix_simp_pat l_org ((input, rows, pf) : pat_matrix) : pat_matrix opti
       | P_var(n) -> Some (C.mk_pwild l None (annot_to_typ p), add_to_ext_exp ee (Name.strip_lskip n) i)
       | P_var_annot(n,t) ->  Some (C.mk_pvar l n (annot_to_typ p), ee)
       | P_const _ -> None
+      | P_backend _ -> None
       | P_record _ -> None
       | P_vector _ -> None
       | P_vectorC _ -> None
@@ -1403,6 +1404,7 @@ let rec collapse_nested_matches_dest_pat_fun l (no_replace_set : NameSet.t) (ps 
         | P_as (s1,p,s2,(n,l),s3) -> ([], (fun pL -> C.mk_pas l s1 (List.hd pL) s2 (n, l) s3 (Some p_ty)), [Name.strip_lskip n])
         | P_typ (s1,p,s2,src_t,s3) -> ([p], (fun pL -> C.mk_ptyp l s1 (List.hd pL) s2 src_t s3 (Some p_ty)), [])
         | P_const (id, pL) -> (pL, (fun pL' -> C.mk_pconst l id pL' (Some p_ty)), [])
+        | P_backend (sk, i, ty, pL) -> (pL, (fun pL' -> C.mk_pbackend l sk i ty pL' (Some p_ty)), [])
         | P_tup (s1,ps,s2) -> (Seplist.to_list ps, (fun pL -> C.mk_ptup l' s1 (Seplist.from_list_default None pL) s2 (Some p_ty)), [])
         | P_list (s1,ps,s2) -> (Seplist.to_list ps, (fun pL -> C.mk_plist l' s1 (Seplist.from_list_default None pL) s2 p_ty), [])
         | P_paren (s1, p, s2) -> ([p], (fun pL -> C.mk_pparen l s1 (List.hd pL) s2 (Some p_ty)), [])

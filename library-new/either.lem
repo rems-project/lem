@@ -8,7 +8,7 @@
 
 declare rename module = Lem_either
 
-open import Basic_classes List
+open import Basic_classes List Tuple
 
 type either 'a 'b
   = Left  of 'a
@@ -50,9 +50,10 @@ let rec partitionEither l = match l with
         | Right r -> (ll, r::rl)
       end
     end
+end
 
 val lefts : forall 'a 'b. list (either 'a 'b) -> list 'a
 let lefts l = fst (partitionEither l)
 
 val rights : forall 'a 'b. list (either 'a 'b) -> list 'b
-let rights = snd (partitionEither l)
+let rights l = snd (partitionEither l)

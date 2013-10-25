@@ -75,7 +75,8 @@ let dictionary_macros targ =
    Def_macros (fun env -> [M.class_to_record]);
    Def_macros (fun env -> [M.instance_to_module]);
    Def_macros (fun env -> [M.class_constraint_to_parameter]); 
-   Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_method]);
+   Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_method true]);
+   Pat_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_method_pat]);
    Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_class_const targ])
   ]
 
@@ -102,7 +103,8 @@ let ident () =
     extra = []; }
 
 let lem () = 
-  { macros = [Exp_macros (fun env -> [Backend_common.inline_exp_macro Target_lem env])];
+  { macros = [Exp_macros (fun env -> [Backend_common.inline_exp_macro Target_lem env]);
+              Pat_macros (fun env -> [Backend_common.inline_pat_macro Target_lem env])];
     extra = []; }
 
 
@@ -118,6 +120,7 @@ let hol =
                                         M.remove_classes; 
                                         M.remove_opens;
                                         Patterns.compile_def (Target_no_ident Target_hol) Patterns.is_hol_pattern_match env;]);
+              Pat_macros (fun env -> [Backend_common.inline_pat_macro Target_hol env]);
               Exp_macros (fun env ->
                             let module T = T(struct let env = env end) in
                               [T.remove_list_comprehension;
@@ -146,6 +149,7 @@ let ocaml =
                             [M.remove_vals; 
                              M.remove_indrelns;
                              Patterns.compile_def (Target_no_ident Target_ocaml) Patterns.is_ocaml_pattern_match env]);
+              Pat_macros (fun env -> [Backend_common.inline_pat_macro Target_ocaml env]);
               Exp_macros (fun env ->
                             let module T = T(struct let env = env end) in
                               [(* TODO: figure out what it does and perhaps add it again    T.hack; *)
@@ -172,6 +176,7 @@ let isa  =
                      M.remove_opens;
                      M.remove_indrelns_true_lhs;
                      Patterns.compile_def (Target_no_ident Target_isa) Patterns.is_isabelle_pattern_match env;] );
+      Pat_macros (fun env -> [Backend_common.inline_pat_macro Target_isa env]);
       Exp_macros (fun env ->
                     let module T = T(struct let env = env end) in
                       [T.list_quant_to_set_quant;
@@ -201,6 +206,7 @@ let coq =
                     [M.type_annotate_definitions;
                      Patterns.compile_def (Target_no_ident Target_coq) Patterns.is_coq_pattern_match env
                     ]); 
+       Pat_macros (fun env -> [Backend_common.inline_pat_macro Target_coq env]);
        Exp_macros (fun env -> 
                      let module T = T(struct let env = env end) in
                        [T.remove_singleton_record_updates;

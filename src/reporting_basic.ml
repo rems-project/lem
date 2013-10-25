@@ -155,6 +155,7 @@ type error =
   | Err_rename of Ast.l * string
   | Err_cyclic_build of string 
   | Err_resolve_dependency of Ast.l * string list * string 
+  | Err_fancy_pattern_constant of Ast.l * string 
 
 let dest_err = function
   | Err_general (b, l, m) -> ("Error", b, Loc l, m)
@@ -168,6 +169,7 @@ let dest_err = function
   | Err_internal (l, m) -> ("LEM internal error", false, Loc l, m)
   | Err_rename (l, m) -> ("Renaming error", false, Loc l, m)
   | Err_type (l, m) -> ("Type error", false, Loc l, m)
+  | Err_fancy_pattern_constant (l, m) -> ("Unsupported pattern", false, Loc l, m)
   | Err_cyclic_build m -> ("Circular build detected", false, Loc Ast.Unknown, "module '" ^ m ^ "' depends on itself")
   | Err_resolve_dependency (l, dirs, m) -> ("Unknown dependency", false, Loc l, ("could not find module '"^m^"' in directories " ^ (String.concat ", " (List.map (fun s -> "'" ^ s ^ "'") dirs))))
 

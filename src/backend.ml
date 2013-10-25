@@ -1343,7 +1343,10 @@ let tyexp implicit n tvs = function
               (sep (texspace ^ kwd "|" ^ texspace))
               constrs))
 
-  
+let backend sk i =
+  ws sk ^
+  T.backend_quote (Ident.to_output Term_const T.path_sep i) 
+
 let rec pat p = match p.term with
   | P_wild(s) ->
       ws s ^
@@ -1371,6 +1374,9 @@ let rec pat p = match p.term with
   | P_const(cd,ps) ->
       let oL = B.pattern_application_to_output pat cd ps (use_ascii_rep_for_const cd) in
       concat texspace oL
+  | P_backend(sk,i,_,ps) ->
+      backend sk i ^
+      concat texspace (List.map pat ps)
   | P_record(s1,fields,s2) ->
       ws s1 ^
       T.pat_rec_start ^
@@ -1450,10 +1456,6 @@ and patlist ps =
   | [] -> emp
   | [p] -> pat p
   | p::((_::_) as ps') -> pat p ^ texspace ^ patlist ps'
-
-let backend sk i =
-  ws sk ^
-  T.backend_quote (Ident.to_output Term_const T.path_sep i)
 
 let rec exp e = 
 let is_user_exp = is_pp_exp e in
@@ -2704,7 +2706,12 @@ and names_of_pat p : (Ulib.Text.t * Ulib.Text.t * Ast.l) list = match p.term wit
   | P_const(cd,ps) ->
       let n = Ident.get_name (B.const_id_to_ident cd (*XXX: change*) true) in
       let n' = Name.strip_lskip n in 
-      [(Name.to_rope n', Name.to_rope_tex Term_ctor n', p.locn)]
+      [(Name.to_rope n', Name.to_rope_tex Term_ctor n', p.locn)] @
+      List.flatten (List.map names_of_pat ps)
+  | P_backend(sk,i,_,ps) ->
+      let n = Name.strip_lskip (Ident.get_name i) in
+      [(Name.to_rope n, Name.to_rope_tex Term_ctor n, p.locn)] @
+      List.flatten (List.map names_of_pat ps)
   | P_record(s1,fields,s2) ->
       List.flatten (List.map (function (_,_,p) -> names_of_pat p) (Seplist.to_list fields))
   | P_tup(s1,ps,s2) ->

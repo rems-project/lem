@@ -113,6 +113,7 @@ type error =
   | Err_rename of Ast.l * string
   | Err_cyclic_build of string (** resolving module dependencies detected a cyclic dependency of the given module *)
   | Err_resolve_dependency of Ast.l * string list * string  (** could not find a Module that should be imported in given list of directories *)
+  | Err_fancy_pattern_constant of Ast.l * string (** a constant occouring in a pattern has a fancy target-representation, that cannot be dealt with for patterns *)
   
 (** Since errors are always fatal, they are reported by raising an [Fatal_error] exception instead of
     calling a report-function. *)

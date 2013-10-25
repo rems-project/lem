@@ -80,6 +80,7 @@ let delimit_pat (c : P.pat_context) (p : pat) : pat =
     | P_as _ -> P.Pas
     | P_cons _ -> P.Pcons
     | P_const _ -> P.Papp
+    | P_backend _ -> P.Papp
     | P_num_add _ -> P.Pas
   in
     if P.pat_needs_parens c k then
@@ -156,6 +157,12 @@ let rec fix_pat env get_prec p =
       | P_const(c,ps) -> 
             (C.mk_pconst old_l 
                c 
+               (List.map 
+                  (fun p -> delimit_pat P.Plist (trans p)) 
+                  ps)
+               old_t)
+      | P_backend(sk,i,ty,ps) -> 
+            (C.mk_pbackend old_l sk i ty 
                (List.map 
                   (fun p -> delimit_pat P.Plist (trans p)) 
                   ps)

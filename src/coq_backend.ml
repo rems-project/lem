@@ -1371,6 +1371,10 @@ let generate_coq_record_update_notation e =
         | P_const(cd, ps) ->
             let oL = B.pattern_application_to_output fun_pattern cd ps (use_ascii_rep_for_const cd.descr) in
             concat emp oL
+        | P_backend(sk, i, _, ps) ->
+            ws sk ^
+            Ident.to_output Term_const path_sep i ^
+            concat texspace (List.map fun_pattern ps)
         | P_num_add ((name, l), skips, skips', k) ->
             let succs = Output.flat @@ Util.replicate k (from_string "S (") in
             let close = Output.flat @@ Util.replicate k (from_string ")") in
@@ -1430,6 +1434,10 @@ let generate_coq_record_update_notation e =
         | P_const(cd, ps) ->
             let oL = B.pattern_application_to_output def_pattern cd ps (use_ascii_rep_for_const cd.descr) in
             concat emp oL
+        | P_backend(sk, i, _, ps) ->
+            ws sk ^
+            Ident.to_output Term_const path_sep i ^
+            concat texspace (List.map def_pattern ps)
         | P_num_add ((name, l), skips, skips', k) ->
             let succs = Output.flat @@ Util.replicate k (from_string "S (") in
             let close = Output.flat @@ Util.replicate k (from_string ")") in

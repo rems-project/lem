@@ -844,6 +844,8 @@ let rec add_pat_entities (ue : used_entities) (p : pat) : used_entities =
     | P_const(c,ps) -> 
         let ue = used_entities_add_const ue c.descr in
         List.fold_left add_pat_entities ue ps
+    | P_backend(_,_,_,ps) -> 
+        List.fold_left add_pat_entities ue ps
     | P_record(_,fieldpats,_) -> Seplist.fold_left (fun (id, _, p) ue -> 
          add_pat_entities (used_entities_add_const ue id.descr)  p) ue fieldpats
     | P_vector(_,vectorpats,_) -> Seplist.fold_left (fun p ue -> add_pat_entities ue p) ue vectorpats

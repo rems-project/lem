@@ -109,6 +109,7 @@ and pat_aux =
   | P_typ of lskips * pat * lskips * src_t * lskips
   | P_var of Name.lskips_t
   | P_const of const_descr_ref id * pat list
+  | P_backend of lskips * Ident.t * Types.t * pat list
   | P_record of lskips * (const_descr_ref id * lskips * pat) lskips_seplist * lskips
   | P_vector of lskips * pat lskips_seplist * lskips
   | P_vectorC of lskips * pat list * lskips
@@ -445,6 +446,9 @@ let rec pat_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (p : pat) :
       | P_const(c,ps) -> 
           let (id_new, s_ret) = id_alter_init_lskips lskips_f c in
             res (P_const(id_new,ps)) s_ret
+      | P_backend(sk,i,ty,ps) -> 
+          let (s_new, s_ret) = lskips_f sk in
+            res (P_backend(s_new, i, ty, ps)) s_ret
       | P_record(s1,fieldpats,s2) -> 
           let (s_new, s_ret) = lskips_f s1 in
             res (P_record(s_new, fieldpats, s2)) s_ret
@@ -891,6 +895,31 @@ module Exps_in_context(D : Exp_context) = struct
       typ = t;
       rest = { pvars = merge_free_env true l (List.map (fun p -> p.rest.pvars) ps); }; }
 
+  let mk_pbackend l sk i ty ps t =
+    (* only perform checks, if environment is provided *)
+    let c_base_ty_opt = Util.option_map (fun env -> begin
+      let new_c_ty = ty in
+      let (c_tyL, c_base_ty) = Types.strip_fn_type (Some env.t_env) new_c_ty in
+      let _ = if check then
+    (** TODO: perhaps add check for right no of args again 
+    if List.length ps <> List.length c.descr.constr_args
+    then raise (Ident.No_type(l, "wrong number of arguments for constructor")); *)
+      begin
+          List.iter2
+            (fun t p -> type_eq l "mk_pconst" t p.typ)
+            c_tyL
+            ps
+      end in
+      c_base_ty
+    end) D.env_opt in
+    let t = 
+      check_typ l "mk_pconst" t (fun d -> c_base_ty_opt)
+    in
+    { term = P_backend(sk,i,ty,ps);
+      locn = l;
+      typ = t;
+      rest = { pvars = merge_free_env true l (List.map (fun p -> p.rest.pvars) ps); }; }
+
   let mk_precord l s1 fps s2 t =
     let f_rec_ty_opt = Util.option_bind (fun env -> begin
       let (f,_,p) = Seplist.hd fps in
@@ -1015,6 +1044,8 @@ module Exps_in_context(D : Exp_context) = struct
                 List.map (type_subst tsubst) c.instantiation }
           in
             mk_pconst l c (List.map (pat_subst sub) ps) (Some new_typ)
+      | P_backend(sk,i,ty,ps) -> 
+          mk_pbackend l sk i (type_subst tsubst ty) (List.map (pat_subst sub) ps) (Some new_typ)
       | P_record(s1,fieldpats,s2) ->
           mk_precord l
             s1 

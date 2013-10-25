@@ -610,6 +610,11 @@ let rec pat_to_exp env p =
           (fun e p -> C.mk_app l_unk e (pat_to_exp env p) None)
           (C.mk_const p.locn c None)
           ps
+    | P_backend(sk,i,ty,ps) ->
+        List.fold_left
+          (fun e p -> C.mk_app l_unk e (pat_to_exp env p) None)
+          (C.mk_backend p.locn sk i ty)
+          ps
     | P_record(_,fieldpats,_) ->
         raise (Pat_to_exp_unsupported(p.locn, "record pattern"))
     | P_tup(lskips1,ps,lskips2) ->
@@ -840,7 +845,7 @@ let remove_num_lit _ e =
 
 
 (* remove a class-method and replace it either with the instance method or add a dictionary style passing argument *)
-let remove_method _ e =
+let remove_method try_dict _ e =
   let l_unk = Ast.Trans(true, "remove_method", Some (exp_to_locn e)) in
   match C.exp_to_term e with
     | Constant(c) ->
@@ -867,7 +872,7 @@ let remove_method _ e =
                                   in
                                   let new_e = C.mk_const l_unk id None in Some(new_e)
                                 end
-                            | None ->
+                            | None -> if not try_dict then None else (
                                 let tv = 
                                   match targ.Types.t with
                                     | Types.Tvar tv -> Types.Ty tv
@@ -889,7 +894,44 @@ let remove_method _ e =
                                 let new_e = 
                                   C.mk_field l_unk dict None field (Some (exp_to_typ e))
                                 in
-                                    Some(new_e)
+                                    Some(new_e))
+                        end
+                    | _ -> assert false
+                end
+            | _ -> None
+        end
+    | _ -> None
+
+
+let remove_method_pat _ _ p =
+  let l_unk = Ast.Trans(true, "remove_method_pat", Some (p.locn)) in
+  match p.term with
+    | P_const(c, ps) ->
+        begin
+          let c_descr = c_env_lookup l_unk env.c_env c.descr in
+          match c_descr.env_tag with
+            | K_method ->
+                begin 
+                  match (c_descr.const_class, c.instantiation) with
+                    | ([(c_path,tparam)],[targ]) -> 
+                        begin
+                          match Types.get_matching_instance d (c_path, targ) inst with
+                            | Some (instance, subst) ->
+                                (* There is an instance for this method at this type, so
+                                 * we directly call the instance *)
+                                begin
+                                  let new_const_ref = lookup_inst_method_for_class_method l_unk instance c.descr in
+                                  let new_const_descr = c_env_lookup l_unk env.c_env new_const_ref in
+                                  let id = 
+                                    { id_path = Id_none (Typed_ast.ident_get_lskip c);
+                                      id_locn = c.id_locn;
+                                      descr = new_const_ref;
+                                      instantiation = List.map (tnfmap_apply subst) new_const_descr.const_tparams; }
+                                  in
+                                  let new_e = C.mk_pconst l_unk id ps None in Some(new_e)
+                                end
+                            | None -> None (* no instance, so don't do a thing. Perhaps something else
+                                              takes care of this constant *)
                         end
                     | _ -> assert false
                 end

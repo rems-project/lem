@@ -163,16 +163,20 @@ module Macros (E : sig val env : env end) : sig
 
   (** {2 Type Class Macros } *)
 
-   (** [remove_method] is used to remove occurrences of class methods. 
-       It is assumed to be used together with [Def_trans.class_constraint_to_parameter].
+   (** [remove_method add_dict] is used to remove occurrences of class methods. 
        If a class method is encountered, the [remove_method] macro first tries to 
        resolve the type-class instantiation statically and replace the method with it's
-       instantiation. If this static resolving attempt fails, the method is replaced with
-       the lookup in a dictionary. This dictionary is added by the
+       instantiation. If this static resolving attempt fails and the flag [add_dict] is set, 
+       the method is replaced with a lookup in a dictionary. This dictionary is added by the
        [Def_trans.class_constraint_to_parameter] to the arguments of each definition that
        has type class constraints. *)
-  val remove_method : exp macro
+  val remove_method : bool -> exp macro
 
+   (** [remove_method_pat] is used to remove occurrences of class methods. 
+       If a class method is encountered, [remove_method_pat] macro tries to 
+       resolve the type-class instantiation statically and replace the method with it's
+       instantiation. *)
+  val remove_method_pat : pat_macro
 
    (** [remove_num_lit] replaces [L_num (sk, i)] with [fromNumeral (L_numeral (sk, i))].
        This is the first step into using type classes to handle numerals.  *)

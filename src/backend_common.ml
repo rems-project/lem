@@ -148,8 +148,60 @@ let generalised_inline_exp_macro (do_CR_simple : bool) (target : Target.target) 
       | _ -> None
 
 
-let inline_exp_macro (target : Target.non_ident_target) env ctxt e =
+let inline_exp_macro (target : Target.non_ident_target) env _ e =
   generalised_inline_exp_macro false (Target.Target_no_ident target) env e
+
+
+let inline_pat_err l c_path target cr_l =
+  let m = String.concat "" ["constant "; Path.to_string (c_path);
+                            "cannot be used in a pattern.\n  It as has too complicated ";
+                            "target representation for target "; Target.target_to_string target;
+                            ".\n  This is defined at\n    ";
+                            (Reporting_basic.loc_to_string true cr_l)] in
+  raise (Reporting_basic.Fatal_error (Reporting_basic.Err_fancy_pattern_constant (l, m)))
+
+
+let inline_pat l_unk env cd c_id ps (params, body) =
+   let module C = Exps_in_context(struct let env_opt = Some env;; let avoid = None end) in
+   let tsubst = Types.TNfmap.from_list2 cd.const_tparams c_id.instantiation in
+   
+   (* adapt whitespace before body *)
+   let b = (fst (alter_init_lskips (fun _ -> (ident_get_lskip c_id, None)) body)) in
+   let b = C.exp_subst (tsubst,Nfmap.empty) b in
+            
+   match (params, C.exp_to_term b) with
+     | ([], Constant c_id') -> Some (C.mk_pconst l_unk c_id' ps None)
+     | ([], Backend (sk, i)) -> 
+          let ty = Types.type_subst tsubst cd.const_type in
+          Some (C.mk_pbackend l_unk sk i ty ps None)
+     | _ -> None
+
+
+let generalised_inline_pat_macro (do_CR_simple : bool) (target : Target.target) env p =
+  let l_unk = Ast.Trans(false, "inline_pat_macro", Some p.locn) in
+    match p.term with
+      | P_const(c_id, ps) ->
+          let cd = c_env_lookup l_unk env.c_env c_id.descr in
+          let res_opt = begin            
+            match Target.Targetmap.apply_target cd.target_rep target with
+              | Some(CR_inline (l, _, params,body)) -> (Some l, inline_pat l_unk env cd c_id ps (params, body))
+              | Some(CR_simple (l, _, params,body)) -> 
+                if do_CR_simple then
+                  (Some l, inline_pat l_unk env cd c_id ps (params, body))
+                else
+                  (None, None)
+              | _ -> (None, None)
+          end in begin
+            match res_opt with
+              | (_,  Some p) -> Some p
+              | (None, None) -> None
+              | (Some l, None) -> inline_pat_err p.locn cd.const_binding target l
+          end
+      | _ -> None
+
+
+let inline_pat_macro (target : Target.non_ident_target) env _ _ p =
+  generalised_inline_pat_macro false (Target.Target_no_ident target) env p
 
 
 let get_module_name env target path mod_name =  begin
@@ -280,6 +332,12 @@ let pattern_application_to_output (arg_f0 : pat -> Output.t) (c_id : const_descr
         end else begin
            constant_application_to_output_special c_id to_out (arg_f false) args vars 
         end
+     | Some (CR_simple (l, _, params,body)) when not ascii_alternative -> begin
+         let res_opt = inline_pat Ast.Unknown A.env c_descr c_id args (params, body) in
+         match res_opt with
+           | None -> inline_pat_err Ast.Unknown c_descr.const_binding A.target l 
+           | Some p' -> [arg_f true p']
+       end
      | _ -> constant_application_to_output_simple false arg_f args c_id ascii_alternative None
 
 let type_path_to_name n0 (p : Path.t) : Name.lskips_t =

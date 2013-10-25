@@ -121,6 +121,7 @@ and pat_aux =
   | P_typ of lskips * pat * lskips * src_t * lskips
   | P_var of Name.lskips_t
   | P_const of const_descr_ref id * pat list
+  | P_backend of lskips * Ident.t * Types.t * pat list
   | P_record of lskips * (const_descr_ref id * lskips * pat) lskips_seplist * lskips
   | P_vector of lskips * pat lskips_seplist * lskips
   | P_vectorC of lskips * pat list * lskips
@@ -596,6 +597,7 @@ module Exps_in_context(C : Exp_context) : sig
   val mk_ptyp : Ast.l -> lskips -> pat -> lskips -> src_t -> lskips -> Types.t option -> pat
   val mk_pvar : Ast.l -> Name.lskips_t -> Types.t -> pat
   val mk_pconst : Ast.l -> const_descr_ref id -> pat list -> Types.t option -> pat
+  val mk_pbackend : Ast.l -> lskips -> Ident.t -> Types.t -> pat list -> Types.t option -> pat
   val mk_precord : Ast.l -> lskips -> (const_descr_ref id * lskips * pat) lskips_seplist -> lskips -> Types.t option -> pat
   val mk_ptup : Ast.l -> lskips -> pat lskips_seplist -> lskips -> Types.t option -> pat
   val mk_plist : Ast.l -> lskips -> pat lskips_seplist -> lskips -> Types.t -> pat

@@ -110,6 +110,11 @@ let rec expand_pat (macro_ctxt : macro_context) pat_pos p (typ_r, src_typ_r, r) 
                   c 
                   (List.map (fun p -> (trans p)) ps)
                   (Some new_t)
+            | P_backend(sk,i,ty,ps) -> 
+                C.mk_pbackend old_l sk i
+                  (typ_r ty)
+                  (List.map (fun p -> (trans p)) ps)
+                  (Some new_t)
             | P_record(s1,fieldpats,s2) ->
                 C.mk_precord old_l
                   s1 

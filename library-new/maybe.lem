@@ -6,7 +6,7 @@
 
 declare rename module = lem_maybe
 
-open import Bool Basic_classes 
+open import Bool Basic_classes Num
 
 (* ========================================================================== *)
 (* Basic stuff                                                                *)
