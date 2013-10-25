@@ -1,3 +1,13 @@
+(******************************************************************************)
+(* A library for sum types                                                    *)
+(******************************************************************************)
+
+(* ========================================================================== *)
+(* Header                                                                     *)
+(* ========================================================================== *)
+
+declare rename module = Lem_either
+
 open import Basic_classes List
 
 type either 'a 'b
@@ -14,6 +24,7 @@ let eitherEqual (left: either 'a 'b) (right: either 'a 'b) =
     | (Right r, Right r') -> r = r'
     | _ -> false
   end
+let inline {hol;isabelle;coq} eitherEqual = unsafe_structural_equality
 
 instance forall 'a 'b. Eq 'a, Eq 'b => (Eq (either 'a 'b))
   let (=) = eitherEqual
@@ -24,6 +35,24 @@ end
 (* -------------------------------------------------------------------------- *)
 
 val either : forall 'a 'b 'c. ('a -> 'c) -> ('b -> 'c) -> either 'a 'b -> 'c
-val lefts : forall 'a 'b. list (either 'a 'b) -> list 'a
-val rights : forall 'a 'b. list (either 'a 'b) -> list 'b
+let either fa fb x = match x with
+  | Left a -> fa a
+  | Right b -> fb b
+end
+
 val partitionEither : forall 'a 'b. list (either 'a 'b) -> (list 'a * list 'b)
+let rec partitionEither l = match l with
+  | [] -> ([], [])
+  | x :: xs -> begin
+      let (ll, rl) = partitionEither xs in
+      match x with 
+        | Left l -> (l::ll, rl)
+        | Right r -> (ll, r::rl)
+      end
+    end
+
+val lefts : forall 'a 'b. list (either 'a 'b) -> list 'a
+let lefts l = fst (partitionEither l)
+
+val rights : forall 'a 'b. list (either 'a 'b) -> list 'b
+let rights = snd (partitionEither l)

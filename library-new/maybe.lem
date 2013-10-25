@@ -32,19 +32,19 @@ declare isabelle target_rep function Nothing = `None`
 declare coq      target_rep function Nothing = `None`
 
 
-val maybeEq : forall 'a. Eq 'a => maybe 'a -> maybe 'a -> bool
+val maybeEqual : forall 'a. Eq 'a => maybe 'a -> maybe 'a -> bool
 
-let maybeEq x y = match (x,y) with
+let maybeEqual x y = match (x,y) with
   | (Nothing, Nothing) -> true
   | (Nothing, Just _) -> false
   | (Just _, Nothing) -> false
   | (Just x', Just y') -> (x' = y')
 end
 
-let inline {hol;isabelle;coq} maybeEq = unsafe_structural_equality
+let inline {hol;isabelle;coq} maybeEqual = unsafe_structural_equality
 
 instance forall 'a. Eq 'a => (Eq (maybe 'a))
-  let (=) = maybeEq
+  let (=) = maybeEqual
 end
 
 

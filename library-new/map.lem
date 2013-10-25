@@ -1,3 +1,13 @@
+(******************************************************************************)
+(* A library for finite maps                                                  *)
+(******************************************************************************)
+
+(* ========================================================================== *)
+(* Header                                                                     *)
+(* ========================================================================== *)
+
+declare rename module = Lem_maps
+
 open import Bool Basic_classes Function Maybe List Num
 
 type map 'k 'v
@@ -7,6 +17,7 @@ type map 'k 'v
 (* -------------------------------------------------------------------------- *)
 
 val mapEqual : forall 'k 'v. map 'k 'v -> map 'k 'v -> bool
+let inline mapEqual = unsafe_structural_equality
 
 instance forall 'k 'v. Eq 'k, Eq 'v => (Eq (map 'k 'v))
   let (=) = mapEqual
@@ -18,26 +29,45 @@ end
 
 val empty : forall 'k 'v. Ord 'k => map 'k 'v
 val null  : forall 'k 'v. Ord 'k => map 'k 'v -> bool
+let null m = (m = empty)
+
 val size  : forall 'k 'v. Ord 'k => map 'k 'v -> nat
+
+assert empty_null: (null empty)
+assert empty_size: (size empty = 0)
+
 
 (* -------------------------------------------------------------------------- *)
 (* Insertion.                                                                 *)
 (* -------------------------------------------------------------------------- *)
 
-val singleton : forall 'k 'v. Ord 'k => 'k -> 'v -> map 'k 'v
 val insert    : forall 'k 'v. Ord 'k => 'k -> 'v -> map 'k 'v -> map 'k 'v
+
+val singleton : forall 'k 'v. Ord 'k => 'k -> 'v -> map 'k 'v
+let singleton k v = insert k v empty
 
 (* -------------------------------------------------------------------------- *)
 (* Membership and lookup.                                                     *)
 (* -------------------------------------------------------------------------- *)
 
 val lookup          : forall 'k 'v. Ord 'k => map 'k 'v -> 'k -> 'v
-
 val member          : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> bool
 val notMember       : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> bool
+let inline notMember k m = not (member k m)
 
 val find            : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> maybe 'v
 val findWithDefault : forall 'k 'v. Ord 'k => 'k -> 'v -> map 'k 'v -> 'v
+let inline findWithDefault k v m = fromMaybe v (find k m)
+
+lemma find_empty : (forall k. find k empty = Nothing)
+lemma find_insert: (forall k k' v m. find k (insert k' v m) = (if (k = k') then Just v else find k m))
+
+let member k m = isJust (find k m)
+lemma member_empty : (forall k. not (member k empty))
+lemma member_insert: (forall k k' v m. member k (insert k' v m) = ((k = k') || member k m))
+
+ 
+ 
 
 (* -------------------------------------------------------------------------- *)
 (* Set-like operations.                                                       *)
@@ -63,12 +93,19 @@ val map             : forall 'k 'v 'w. Ord 'k => ('v -> 'w) -> map 'k 'v -> map 
 
 val mapMaybe        : forall 'k 'v. Ord 'k => ('v -> maybe 'v) -> map 'k 'v -> map 'k 'v
 val mapMaybeWithKey : forall 'k 'v. Ord 'k => ('k -> 'v -> maybe 'v) -> map 'k 'v -> map 'k 'v
+let mapMaybe f m = mapMaybeWithKey (fun k v -> f v) m
 
 val adjust          : forall 'k 'v. Ord 'k => ('v -> 'v) -> 'k -> map 'k 'v -> map 'k 'v
 val adjustWithKey   : forall 'k 'v. Ord 'k => ('k -> 'v -> 'v) -> 'k -> map 'k 'v -> map 'k 'v
+let adjust f m = adjustWithKey (fun k v -> f v) m
 
-val update          : forall 'k 'v. Ord 'k => ('v -> maybe 'v) -> map 'k 'v -> map 'k 'v
-val updateWithKey   : forall 'k 'v. Ord 'k => ('k -> 'v -> maybe 'v) -> map 'k 'v -> map 'k 'v
+val update          : forall 'k 'v. Ord 'k => ('v -> maybe 'v) -> 'k -> map 'k 'v -> map 'k 'v
+val updateWithKey   : forall 'k 'v. Ord 'k => ('k -> 'v -> maybe 'v) -> 'k -> map 'k 'v -> map 'k 'v
+let update f m = updateWithKey (fun k v -> f v) m
+
+let ajust f k m = update (fun v -> Just (f v)) k m
+let delete k m = update (fun v -> Nothing) k m
+
 
 (* -------------------------------------------------------------------------- *)
 (* Splitting, filtering and partitioning.                                     *)
@@ -76,6 +113,9 @@ val updateWithKey   : forall 'k 'v. Ord 'k => ('k -> 'v -> maybe 'v) -> map 'k '
 
 val filter           : forall 'k 'v. Ord 'k => ('v -> bool) -> map 'k 'v -> map 'k 'v
 val filterWithKey    : forall 'k 'v. Ord 'k => ('k -> 'v -> bool) -> map 'k 'v -> map 'k 'v
+
+let filterWithKey p m = mapMaybeWithKey (fun k v -> if (p k v) then Just v else Nothing) m
+let filter p m = filterWithKey (fun k v -> p v) m
 
 val partition        : forall 'k 'v. Ord 'k => ('v -> bool) -> map 'k 'v -> maybe (map 'k 'v * map 'k 'v)
 val partitionWithKey : forall 'k 'v. Ord 'k => ('k -> 'v -> bool) -> map 'k 'v -> maybe (map 'k 'v * map 'k 'v)
