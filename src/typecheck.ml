@@ -3115,7 +3115,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           in
 
           (* check that there is no instance already *)
-          let _ =  match Types.get_matching_instance ctxt.all_tdefs (p, src_t.typ) ctxt.all_instances  with
+          let _ =  match Types.get_matching_instance ctxt.all_tdefs false (p, src_t.typ) ctxt.all_instances  with
                      | Some (i, _) -> begin
                         let _ = Reporting.report_warning (defn_ctxt_to_env ctxt) (Reporting.Warn_overriden_instance (l, src_t, i)) in
                         ()

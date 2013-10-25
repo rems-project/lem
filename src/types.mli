@@ -106,6 +106,7 @@ val multi_fun : t list -> t -> t
 val type_subst : t TNfmap.t -> t -> t
 val nexp_subst : t TNfmap.t -> nexp -> nexp
 val free_vars : t -> TNset.t
+val is_var_type : t -> bool
 
 val tnvar_to_name : tnvar -> Name.t
 val tnvar_to_type : tnvar -> t
@@ -370,7 +371,7 @@ val i_env_add : i_env -> instance -> (i_env * instance_ref)
     If this reference is not present, an exception is raised. *)
 val i_env_lookup : Ast.l -> i_env -> instance_ref -> instance
 
-(** [get_matching_instance type_env (class, ty) i_env] searches for an
+(** [get_matching_instance type_env no_default (class, ty) i_env] searches for an
     instantiation of type class [class] instantianted with type [ty]
     in the type invironment [i_env]. The type environment [type_env]
     is necessary to match [ty] against other instantiations of
@@ -383,7 +384,7 @@ val i_env_lookup : Ast.l -> i_env -> instance_ref -> instance
     satisfies these constraints. However, they are taken into account
     to rule out impossible instances, if there are multiple options. 
 *)
-val get_matching_instance : type_defs -> (Path.t * t) -> i_env -> (instance * t TNfmap.t) option
+val get_matching_instance : type_defs -> bool -> (Path.t * t) -> i_env -> (instance * t TNfmap.t) option
 
 (* Convert a list of nexp into a binary sumation *)
 val nexp_from_list : nexp list -> nexp

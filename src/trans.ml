@@ -857,7 +857,7 @@ let remove_method try_dict _ e =
                   match (c_descr.const_class, c.instantiation) with
                     | ([(c_path,tparam)],[targ]) -> 
                         begin
-                          match Types.get_matching_instance d (c_path, targ) inst with
+                          match Types.get_matching_instance d true (c_path, targ) inst with
                             | Some (instance, subst) ->
                                 (* There is an instance for this method at this type, so
                                  * we directly call the instance *)
@@ -915,7 +915,7 @@ let remove_method_pat _ _ p =
                   match (c_descr.const_class, c.instantiation) with
                     | ([(c_path,tparam)],[targ]) -> 
                         begin
-                          match Types.get_matching_instance d (c_path, targ) inst with
+                          match Types.get_matching_instance d true (c_path, targ) inst with
                             | Some (instance, subst) ->
                                 (* There is an instance for this method at this type, so
                                  * we directly call the instance *)
@@ -954,7 +954,7 @@ let remove_class_const_aux l_unk targ mk_exp c =
           let class_constraint_to_arg (c_path, tv) =
 	    begin
               let t_inst = tnfmap_apply subst tv in
-              match Types.get_matching_instance d (c_path, t_inst) inst with
+              match Types.get_matching_instance d true (c_path, t_inst) inst with
                 | Some(inst, subst) -> 
                   begin
                      (* if there is a matching instance, we know which dictionary to attach*)                                 

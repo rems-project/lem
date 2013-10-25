@@ -114,6 +114,10 @@ type range =
   | Eq of Ast.l * nexp
   | GtEq of Ast.l * nexp
 
+let is_var_type t = match t.t with
+  | Tvar _ -> true
+  | _ -> false
+
 let free_vars t =
   let rec f t acc =
     match t.t with
@@ -968,23 +972,10 @@ let i_env_lookup l i_env i_ref =
     | Some(i) -> i
 
 
-(*
-let rec get_matching_instance_aux (t_env : type_defs) (i_env : i_env) (remaining_checks : (Path.t * t * instance list) list) : (instance * t TNfmap.t) option = 
-  let t = head_norm d t in 
-    match Pfmap.apply instances p with
-      | None -> None
-      | Some(possibilities) ->
-          let possible_substs
-            let i = List.find (fun i -> types_match i.inst_type t) possibilities in
-            let subst = do_type_match i.inst_type t in
-              Some(i, subst)
-          with
-              Not_found -> None
-*)
 
 exception Unsolveable_matching_instance_contraint;;
 
-let get_matching_instance d (p,t) (instances : i_env) : (instance * t TNfmap.t) option = 
+let get_matching_instance d no_default (p,t) (instances : i_env) : (instance * t TNfmap.t) option = 
 begin
   let l_unk = Ast.Trans (false, "get_matching_instance", None) in
 
@@ -1013,7 +1004,9 @@ begin
       | None -> None
       | Some(possibilitie_refs) -> begin
           let possibilities = List.map (i_env_lookup l_unk instances) possibilitie_refs in
-          let possibilities' = List.filter (fun i -> types_match i.inst_type t) possibilities in
+          let possibilities' = List.filter 
+              (fun i -> (not (no_default && is_var_type i.inst_type)) && types_match i.inst_type t) 
+              possibilities in
           Util.option_first (fun i ->
             let subst = do_type_match i.inst_type t in
             let new_cs = get_new_constraints i subst in
@@ -1802,7 +1795,7 @@ module Constraint (T : Global_defs) : Constraint = struct
   let rec solve_constraints (unsolvable : PTset.t) = function
     | [] -> unsolvable 
     | (p,t) :: constraints ->
-        match get_matching_instance T.d (p,t) T.i with
+        match get_matching_instance T.d false (p,t) T.i with
           | None ->
               solve_constraints (PTset.add (p,t) unsolvable) constraints
           | Some(i,subst) ->
