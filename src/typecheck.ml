@@ -1663,13 +1663,15 @@ module Make_checker(T : sig
                          let duplicate_targets = (match def_targets with
                             | None -> cd.const_targets
                             | Some dt -> Targetset.inter cd.const_targets dt) in
-                         let relevant_duplicate_targets = Targetset.inter duplicate_targets T.targets in
-                         let _ = if not (is_inline || Targetset.is_empty relevant_duplicate_targets) then
-                             raise (Reporting_basic.err_type_pp l
-                               (Printf.sprintf "defined variable '%s' is already defined for targets"  (Name.to_string n))
-                                 (Pp.lst ", " (fun ppf t -> Pp.pp_str ppf (non_ident_target_to_string t)))
-                                 (Targetset.elements relevant_duplicate_targets)) in
-                         
+                         let _ = if not (is_inline || Targetset.is_empty duplicate_targets) then
+                             if Targetset.subset Target.all_targets duplicate_targets then
+                               raise (Reporting_basic.err_type l
+                                 (Printf.sprintf "defined variable '%s' is already defined for all targets"  (Name.to_string n))) 
+                             else
+                               raise (Reporting_basic.err_type_pp l
+                                 (Printf.sprintf "defined variable '%s' is already defined for targets"  (Name.to_string n))
+                                   (Pp.lst ", " (fun ppf t -> Pp.pp_str ppf (non_ident_target_to_string t)))
+                                   (Targetset.elements duplicate_targets)) in                        
                          (* enforce that the already defined constant and the new one have the same type. *)
                          let a = C.new_type () in begin
                            C.equate_types cd.spec_l "applying val specification" a cd.const_type;
@@ -2318,7 +2320,6 @@ let lb_to_inline l ctxt' target_set_opt lb =
                  | Some a -> a in         
     let all_targets = (match target_set_opt with None -> true | _ -> false) in
     let new_tr = CR_inline (l, all_targets, args, et) in
-    let d = c_env_lookup l ctxt'.ctxt_c_env n_ref in
     let ts = Util.option_default Target.all_targets target_set_opt in
 
     let ctxt'' = Targetset.fold (fun t ctxt -> fst (ctxt_c_env_set_target_rep l ctxt n_ref t new_tr)) ts ctxt' in
@@ -2762,16 +2763,11 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
       | Ast.Declaration(Ast.Decl_pattern_match_decl (sk1, target_opt, sk2, ex_set, type_id, tnvars, sk3, sk4, constrs, sk5, semi, sk6, elim_opt)) ->
           let targs = check_target_opt target_opt in
           let tvs_tast = List.map ast_tnvar_to_tnvar tnvars in
-          let tvs = List.map tnvar_to_types_tnvar tvs_tast in
           let p = lookup_p "" (defn_ctxt_to_env ctxt) type_id in
           let p_id = {id_path = Id_some (Ident.from_id type_id); 
               id_locn = l;
               descr = p;
               instantiation = []; } in  
-          let td = match Pfmap.apply ctxt.all_tdefs p with
-            | Some(Tc_type(td)) -> td 
-            | _ -> raise (Reporting_basic.err_type l "type refers to type-class") in
-
           let constr_ids = List.map (fun (id, sk) -> (fst (component_term_id_lookup l ctxt (Ast.Component_function None) id), sk)) constrs in
           let constr_ids_seplist = Seplist.from_list_suffix constr_ids sk5 semi in
 

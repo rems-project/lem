@@ -269,7 +269,8 @@ let main () =
     List.fold_left
       (fun (mods, env, previously_processed_modules) (mod_name, file_name, ast, add_to_modules) ->
          let mod_name_name = Name.from_string mod_name in
-         let (e,tast) = Typecheck.check_defs backend_set mod_name_name env ast in
+         let backend_set' = if add_to_modules then backend_set else Target.Targetset.empty in
+         let (e,tast) = Typecheck.check_defs backend_set' mod_name_name env ast in
 
          let module_record = 
            { Typed_ast.filename = file_name;

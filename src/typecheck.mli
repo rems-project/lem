@@ -47,9 +47,10 @@
 open Types
 
 (** [check_defs backend_targets mod_name env ast] typescheck the parsed module 
-    [ast] in environment [env]. It is assumed that only the backends
+    [ast] in environment [env]. It is assumed that mainly the backends
     [backend_targets] will be used later, i.e. only for these backends 
-    problems like missing definitions are reported. The new definitions are added 
+    problems like missing definitions are reported. However,
+    information for all targets is still  The new definitions are added 
     to the environment as new module [mod_name]. The result is a new
     environment as well as the type-checked ast of the module. *)
 val check_defs : 
