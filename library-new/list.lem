@@ -47,7 +47,7 @@ let null l = match l with [] -> true | _ -> false end
 declare hol target_rep function null = `NULL`
 let inline {isabelle} null l = (l = [])
 
-assert null_simple_1: (null [])
+assert null_simple_1: (null ([]:list nat))
 assert null_simple_2: (not (null [(2:nat);3;4]))
 assert null_simple_3: (not (null [(2:nat)]))
 
@@ -205,7 +205,7 @@ declare ocaml    target_rep function reverse = `List.rev`
 declare isabelle target_rep function reverse = `List.rev`
 declare coq      target_rep function reverse = `List.rev`
 
-assert reverse_nil: (reverse [] = [])
+assert reverse_nil: (reverse ([]:list nat) = [])
 assert reverse_1: (reverse [(1:nat)] = [1])
 assert reverse_2: (reverse [(1:nat);2] = [2;1])
 assert reverse_5: (reverse [(1:nat);2;3;4;5] = [5;4;3;2;1])
@@ -284,7 +284,7 @@ declare ocaml    target_rep function concat = `List.concat`
 declare isabelle target_rep function concat = `List.concat`
 declare coq      target_rep function concat = `List.flat_map` (fun x -> x)
 
-assert concat_nil: (concat [] = [])
+assert concat_nil: (concat ([]:list (list nat)) = [])
 assert concat_1: (concat [[(1:nat)]] = [1])
 assert concat_2: (concat [[(1:nat)];[2]] = [1;2])
 assert concat_3: (concat [[(1:nat)];[];[2]] = [1;2])

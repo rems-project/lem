@@ -787,14 +787,15 @@ let is_type_def_record  (((d, _), _, _):def) =
    used_entities is using lists, because the order in which entities occur might be important for renaming.
    However, each list contains only distinct elements
 *)
-type used_entities = { used_consts : const_descr_ref list; used_types : Path.t list; used_modules : Path.t list }
+type used_entities = { used_consts : const_descr_ref list; used_types : Path.t list; used_modules : Path.t list; used_tnvars : TNset.t }
 
 let reverse_used_entities ue =
   { used_consts  = List.rev ue.used_consts; 
     used_types   = List.rev ue.used_types;
-    used_modules = List.rev ue.used_modules }
+    used_modules = List.rev ue.used_modules;
+    used_tnvars  = ue.used_tnvars }
 
-let empty_used_entities = { used_consts = []; used_types = []; used_modules = [] }
+let empty_used_entities = { used_consts = []; used_types = []; used_modules = []; used_tnvars = TNset.empty }
 
 let used_entities_add_const ue c =
   if (List.mem c ue.used_consts) then ue else
@@ -808,19 +809,26 @@ let used_entities_add_module ue p =
   if (List.mem p ue.used_modules) then ue else
   {ue with used_modules = p :: ue.used_modules}
 
+let used_entities_add_tnvars ue tnvars =
+  {ue with used_tnvars = TNset.union tnvars ue.used_tnvars}
 
-let rec add_type_entities (ue : used_entities) (t : Types.t) : used_entities =
+
+let rec add_type_entities_aux (ue : used_entities) (t : Types.t) : used_entities =
   match t.t with
     | Tvar _ -> ue
-    | Tfn(t1,t2) -> add_type_entities (add_type_entities ue t1) t2
+    | Tfn(t1,t2) -> add_type_entities_aux (add_type_entities_aux ue t1) t2
     | Ttup(ts) -> 
-        List.fold_left add_type_entities ue ts
+        List.fold_left add_type_entities_aux ue ts
     | Tapp(ts,p) ->
-        List.fold_left add_type_entities (used_entities_add_type ue p) ts
+        List.fold_left add_type_entities_aux (used_entities_add_type ue p) ts
     | Tbackend(ts,_) ->
-        List.fold_left add_type_entities ue ts
+        List.fold_left add_type_entities_aux ue ts
     | Tne _ -> ue
     | Tuvar _ -> ue
+
+let add_type_entities (ue : used_entities) (t : Types.t) : used_entities =
+  let ue = used_entities_add_tnvars ue (Types.free_vars t) in
+  add_type_entities_aux ue t
 
 let rec add_src_t_entities (ue : used_entities) (t : Types.src_t) : used_entities =
   match t.term with
@@ -1125,4 +1133,10 @@ begin
 
   e''
 end
+
+
+
+
+
+
 

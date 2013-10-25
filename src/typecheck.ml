@@ -2453,18 +2453,32 @@ let check_lemma l ts (ctxt : defn_ctxt)
     | Ast.Lemma_theorem sk -> (sk, Ast.Lemma_theorem None)
     | Ast.Lemma_assert sk -> (sk, Ast.Lemma_assert None)
     | Ast.Lemma_lemma sk -> (sk, Ast.Lemma_lemma None) in
+  let aux (lty, target_opt, e) =
+     let module C = Exps_in_context(struct let env_opt = (Some T.e) let avoid = None end) in
+     let (exp,constraints) = Checker.check_lem_exp empty_lex_env l e bool_ty in
+     let (sk0, lty') = lty_get_sk lty in
+     let target_opt = check_target_opt target_opt in
+     let _ = match lty with
+       | Ast.Lemma_assert _ -> begin 
+           let free_vars = C.exp_to_free exp in
+           if (Nfmap.is_empty free_vars) then () else
+              raise (Reporting_basic.err_type l "assertion contains free variables");
+
+           let free_tnvars = (add_exp_entities empty_used_entities exp).used_tnvars in
+           if (TNset.is_empty free_tnvars) then () else
+             raise (Reporting_basic.err_type l "assertion contains free type variables")
+           end
+       | _ -> ()
+     in
+     (sk0, lty', target_opt, exp) 
+  in
   let module C = Constraint(T) in
     function
       | Ast.Lemma_unnamed (lty, target_opt, sk1, e, sk2) ->
-          let (exp,constraints) = Checker.check_lem_exp empty_lex_env l e bool_ty in
-          let (sk0, lty') = lty_get_sk lty in
-          let target_opt = check_target_opt target_opt in
-              (ctxt, sk0, lty', target_opt, None, sk1, exp, sk2) 
+          let (sk0, lty', target_opt, exp) = aux (lty, target_opt, e) in
+          (ctxt, sk0, lty', target_opt, None, sk1, exp, sk2) 
       | Ast.Lemma_named (lty, target_opt, name, sk1, sk2, e, sk3) ->
-          let (exp,Tconstraints(tnvars,constraints,lconstraints)) = Checker.check_lem_exp empty_lex_env l e bool_ty in
-          (* TODO It's ok for tnvars to have variables (polymorphic lemma), but typed ast should keep them perhaps? Not sure if it's ok for constraints to be unconstrained or if we need length constraints kept *)
-          let target_opt = check_target_opt target_opt in
-          let (sk0, lty') = lty_get_sk lty in
+          let (sk0, lty', target_opt, exp) = aux (lty, target_opt, e) in
           let (n, l) = xl_to_nl name in
           let n_s = Name.strip_lskip n in
           let _ = if (NameSet.mem n_s ctxt.lemmata_labels) then 

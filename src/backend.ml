@@ -527,6 +527,7 @@ module Html : Target = struct
   let reln_clause_add_paren = false
   let reln_clause_start = emp
 
+  let backend_quote i = i
 end
 
 module Lem : Target = struct

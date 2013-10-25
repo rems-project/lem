@@ -405,7 +405,11 @@ val is_type_def_record : def -> bool
 (** The type [used_entities] collects lists of used constant references, modules and types of some expression, definition, pattern ... 
    used_entities is using lists, because the order in which entities occur might be important for renaming.
    However, these lists should not contain duplicates. *)
-type used_entities = { used_consts : const_descr_ref list; used_types : Path.t list; used_modules : Path.t list }
+type used_entities = { 
+   used_consts : const_descr_ref list; 
+   used_types : Path.t list; 
+   used_modules : Path.t list;
+   used_tnvars : TNset.t }
 
 (** An empty collection of entities *)
 val empty_used_entities : used_entities
