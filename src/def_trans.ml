@@ -183,7 +183,7 @@ let class_to_record mod_path env ((d,s),l,lenv) =
           let cd = lookup_class_descr l_unk env class_path in
 
           (* turn the methods specs into pairs of sk + field spec *)
-          let process_method_spec (sk1, (method_name, l), method_ref, sk2, src_t) =
+          let process_method_spec (sk1, (method_name, l), method_ref, _, sk2, src_t) =
           begin
             let field_ref = lookup_field_for_class_method l cd method_ref in
             let fd = c_env_lookup l env.c_env field_ref in
@@ -261,7 +261,7 @@ let instance_to_module mod_path (env : env) ((d,s),l,lenv) =
             Module(sk1, (Name.add_lskip inst_name, l_unk 9), 
                    id.inst_binding, sk2, None, 
                    List.map (fun d -> ((Val_def d,None), l_unk 10, lenv')) 
-                            (vdefs @ [dict]), 
+                            ((*vdefs @*) [dict]), 
                    sk4)
           in
             Some(env,[((m,s),l,lenv)])

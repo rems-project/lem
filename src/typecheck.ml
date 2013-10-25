@@ -2153,10 +2153,21 @@ let rec build_ctor_defs (mod_path : Name.t list) (ctxt : defn_ctxt)
     ctxt
     tds  
 
+let check_ascii_rep_opt l = function
+  | Ast.Ascii_opt_none -> (Targetmap.empty, None)
+  | Ast.Ascii_opt_some (_, _, s, _) -> begin
+       let _ = if (Util.is_simple_ident_string s) then () else
+            raise (Reporting_basic.err_type l "invalid ascii-representation") in
+       let n = Name.from_string s in
+       (List.fold_left (fun tm t -> 
+           Targetmap.insert tm (t, (l, n))) Targetmap.empty Target.all_targets_list,
+        Some n) 
+    end
+
 (* Check a "val" declaration. The name must not be already defined in the
  * current sequence of definitions (e.g., module body) *)
 let check_val_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
-      (Ast.Val_spec(sk1, xl, sk2, Ast.Ts(cp,typ))) =
+      (Ast.Val_spec(sk1, xl, ascii_rep_opt, sk2, Ast.Ts(cp,typ))) =
   let l' = Ast.xl_to_l xl in
   let n = Name.from_x xl in
   let n' = Name.strip_lskip n in
@@ -2173,6 +2184,7 @@ let check_val_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
             raise (Reporting_basic.err_type_pp l' err_message Name.pp n')
           end
   in
+  let (ascii_rep_map, ascii_name_opt) = check_ascii_rep_opt l ascii_rep_opt in
   let v_d =
     { const_binding = Path.mk_path mod_path n';
       const_tparams = tyvars;
@@ -2186,21 +2198,23 @@ let check_val_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
       relation_info = None;
       target_rename = Targetmap.empty;
       target_rep = Targetmap.empty;
-      target_ascii_rep = Targetmap.empty;
+      target_ascii_rep = ascii_rep_map;
       termination_setting = Targetmap.empty;
       compile_message = Targetmap.empty }
   in
   let (c_env', v) = c_env_save ctxt.ctxt_c_env None v_d in
   let ctxt = { ctxt with ctxt_c_env = c_env' } in
-    (add_v_to_ctxt ctxt (n',v),
-     (sk1, (n,l'), v, sk2, (src_cp, src_t)))
+  let ctxt = add_v_to_ctxt ctxt (n',v) in
+  let ctxt = Util.option_default_map ascii_name_opt ctxt 
+        (fun an -> add_v_to_ctxt ctxt (an,v)) in
+    (ctxt, (sk1, (n,l'), v, ascii_rep_opt, sk2, (src_cp, src_t)))
 
 
 (* Check a method definition in a type class.  mod_path is the path to the
  * enclosing module. class_p is the path to the enclosing type class, and tv is
  * its type parameter. *)
 let check_class_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
-      (class_p : Path.t) (tv : Types.tnvar) (sk1,xl,sk2,typ) 
+      (class_p : Path.t) (tv : Types.tnvar) (sk1,xl,ascii_rep_opt,sk2,typ) 
       : const_descr_ref * const_descr * defn_ctxt * src_t * _ =
   let l' = Ast.xl_to_l xl in
   let n = Name.from_x xl in
@@ -2222,6 +2236,7 @@ let check_class_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
             raise (Reporting_basic.err_type_pp l' err_message Name.pp n')
           end
   in
+  let (ascii_rep_map, ascii_name_opt) = check_ascii_rep_opt l ascii_rep_opt in
   let v_d =
     { const_binding = Path.mk_path mod_path n';
       const_tparams = [tv];
@@ -2236,14 +2251,16 @@ let check_class_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
       termination_setting = Target.Targetmap.empty;
       target_rename = Targetmap.empty;
       target_rep = Targetmap.empty;
-      target_ascii_rep = Targetmap.empty;
+      target_ascii_rep = ascii_rep_map;
       compile_message = Targetmap.empty }
   in
   let (c_env', v) = c_env_save ctxt.ctxt_c_env None v_d in
   let ctxt = { ctxt with ctxt_c_env = c_env' } in
-  let ctxt = add_v_to_ctxt ctxt (n',v)
+  let ctxt = add_v_to_ctxt ctxt (n',v) in
+  let ctxt = Util.option_default_map ascii_name_opt ctxt 
+        (fun an -> add_v_to_ctxt ctxt (an,v)) 
   in
-    (v, v_d, ctxt, src_t, (sk1, (n,l'), v, sk2, src_t))
+    (v, v_d, ctxt, src_t, (sk1, (n,l'), v, ascii_rep_opt, sk2, src_t))
 
 
 
@@ -2845,12 +2862,12 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let ctxt' = (* update context *) begin
             match nk with
               | (Nk_field const_descr_ref | Nk_constr const_descr_ref | Nk_const const_descr_ref) ->
-                  let ctxt' = begin
+                  let ctxt' = if (targets_opt = None) then begin
                     match component with 
                       | Ast.Component_function _ -> 
                           add_v_to_ctxt ctxt (target_name, const_descr_ref) 
                       | _ -> add_f_to_ctxt ctxt (target_name, const_descr_ref)
-                  end in
+                  end else ctxt in
 
                   let const_descr = Typed_ast.c_env_lookup Ast.Unknown ctxt.ctxt_c_env const_descr_ref in
                   let tr = Targetset.fold (fun t r -> Targetmap.insert r (t,(l, target_name))) (targets_opt_to_set targets_opt) const_descr.target_ascii_rep in
@@ -2997,8 +3014,8 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           (* typecheck the methods inside the type class declaration *)
           let (ctxt',vspecs,methods) = 
             List.fold_left
-              (fun (ctxt,vs,methods) (a,b,c,d,l) ->
-                 let (tc,tc_d,ctxt,src_t,v) = check_class_spec l mod_path ctxt p tnvar_types (a,b,c,d)
+              (fun (ctxt,vs,methods) (a,b,c,d,e,l) ->
+                 let (tc,tc_d,ctxt,src_t,v) = check_class_spec l mod_path ctxt p tnvar_types (a,b,c,d,e)
                  in
                    (ctxt,
                     v::vs,
@@ -3016,7 +3033,9 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           (* just does not exist, when the renaming is processed.                                 *)
           (****************************************************************************************)
 
-          let build_field_name n = Name.rename (fun x -> Ulib.Text.(^^^) x (r"_method")) n in
+          let build_field_name_name n = Name.rename (fun x -> Ulib.Text.(^^^) x (r"_method")) n in
+          let build_field_name c = build_field_name_name (const_descr_ref_to_ascii_name ctxt'.ctxt_c_env c) in
+
           let dict_type_name = (Name.lskip_rename (fun x -> Ulib.Text.(^^^) x (r"_class")) cn) in
          
           let tparams = [tnvar_types] in
@@ -3044,8 +3063,8 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                    compile_message = Targetmap.empty })
               ctxt''
               (Seplist.from_list (List.map 
-                                    (fun ((n,l),_,src_t) -> 
-                                       (((Name.add_lskip (build_field_name n),l), None, src_t),None)) 
+                                    (fun ((n,l),c,src_t) -> 
+                                       (((Name.add_lskip (build_field_name c),l), None, src_t),None)) 
                                     methods))
           in
           let field_refs = Seplist.to_list_map (fun (_, f, _, _) -> f) recs' in

@@ -271,9 +271,9 @@ type typschm = constraint_prefix option * src_t
 
 type instschm = constraint_prefix option * lskips * Ident.t * Path.t * src_t * lskips
 
-type val_spec = lskips * name_l * const_descr_ref * lskips * typschm
+type val_spec = lskips * name_l * const_descr_ref * Ast.ascii_opt * lskips * typschm
 
-type class_val_spec = lskips * name_l * const_descr_ref * lskips * src_t
+type class_val_spec = lskips * name_l * const_descr_ref * Ast.ascii_opt * lskips * src_t
 
 type targets_opt = (bool * lskips * Ast.target lskips_seplist * lskips) option
 
@@ -632,9 +632,9 @@ let rec def_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (((d,s),l,l
       | Indreln(sk,topt,names,rules) ->
           let (s_new, s_ret) = lskips_f sk in
             res (Indreln(s_new,topt,names,rules)) s_ret
-      | Val_spec(sk1,n,n_ref,sk2,ts) ->
+      | Val_spec(sk1,n,n_ref,ao,sk2,ts) ->
           let (s_new, s_ret) = lskips_f sk1 in
-            res (Val_spec(s_new,n,n_ref,sk2,ts)) s_ret
+            res (Val_spec(s_new,n,n_ref,ao,sk2,ts)) s_ret
       | Class(sk1,sk2,n,tvar,class_ty,sk3,body,sk4) ->
           let (s_new, s_ret) = lskips_f sk1 in
             res (Class(s_new,sk2,n,tvar,class_ty,sk3,body,sk4)) s_ret

@@ -376,9 +376,9 @@ type typschm = constraint_prefix option * src_t
 (** Instance Scheme, constraint prefix, sk, class-ident as printed, resolved class-path the id points to, instantiation type, sk *) 
 type instschm = constraint_prefix option * lskips * Ident.t * Path.t * src_t * lskips
 
-type val_spec = lskips * name_l * const_descr_ref * lskips * typschm
+type val_spec = lskips * name_l * const_descr_ref * Ast.ascii_opt * lskips * typschm
 
-type class_val_spec = lskips * name_l * const_descr_ref * lskips * src_t
+type class_val_spec = lskips * name_l * const_descr_ref * Ast.ascii_opt * lskips * src_t
 
 (** [cr_special_fun_uses_name f] checks, whether [f] uses it's first argument,
     i.e. whether it uses the formatted name of the constant. This information

@@ -641,7 +641,7 @@ let generate_coq_record_update_notation e =
             end
           in
           let body_notations =
-            List.map (fun (skips, (name, l), const_descr_ref, skips', src_t) ->
+            List.map (fun (skips, (name, l), const_descr_ref, ascii_rep_opt, skips', src_t) ->
               let name' = B.const_ref_to_name name true const_descr_ref in
               let notation =
                 if name = name' then

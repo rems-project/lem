@@ -797,7 +797,7 @@ declare_def :: 'Decl_' ::=
   | declare targets_opt compile_message id = string                                               :: :: compile_message_decl
   | declare targets_opt rename module = x_l                                                       :: :: rename_current_module_decl
   | declare targets_opt rename component id = x_l                                                 :: :: rename_decl
-  | declare targets_opt ascii_rep component id = backtick_string                                              :: :: ascii_rep_decl
+  | declare targets_opt ascii_rep component id = backtick_string                                  :: :: ascii_rep_decl
   | declare target target_rep target_rep_lhs = target_rep_rhs                                     :: :: target_rep_decl
   | declare set_flag x_l1 = x_l2                                                                  :: :: set_flag_decl
   | declare targets_opt termination_argument id = termination_setting                             :: :: termination_argument_decl
@@ -812,9 +812,14 @@ val_def :: '' ::=
   | let inline targets_opt letbind 				:: :: Let_inline
     {{ com Function definitions to be inlined }}
 
+ascii_opt :: 'Ascii_opt_' ::= 
+  {{ com an optional ascii representation }}
+  |                                                             :: :: none
+  | [ backtick_string ]                                         :: :: some
+   
 val_spec :: '' ::=
   {{ com Value type specifications }} 
-  | val x_l : typschm						:: :: Val_spec
+  | val x_l ascii_opt : typschm					:: :: Val_spec
 
 def_aux :: '' ::=
   {{ com Top-level definitions }}
@@ -838,7 +843,7 @@ def_aux :: '' ::=
     {{ com Inductively defined relations }}
   | val_spec 							:: :: Spec_def
     {{ com Top-level type constraints }}
-  | class ( x_l tnvar ) val x_l1 : typ1 l1 ... val x_ln : typn ln end	:: :: Class
+  | class ( x_l tnvar ) val x_l1 ascii_opt1 : typ1 l1 ... val x_ln ascii_optn : typn ln end	:: :: Class
     {{ com Typeclass definitions }}
   | instance instschm val_def1 l1 ... val_defn ln end 		:: :: Instance
     {{ com Typeclass instantiations }}

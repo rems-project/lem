@@ -91,7 +91,7 @@ match label with
   | "set_cross" -> (["Set"], "cross")
   | "set_exists" -> (["Set"], "any")
   | "set_filter" -> (["Set"], "filter")
-  | "set_fold" -> (["Set_non_pure"], "fold")
+  | "set_fold" -> (["Set"], "fold")
   | "set_forall" -> (["Set"], "all")
   | "set_from_list" -> (["Set"], "fromList")
   | "set_image" -> (["Set"], "map")

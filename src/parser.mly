@@ -854,17 +854,21 @@ instschm:
 
 val_spec:
   | Val x Colon typschm
-    { Val_spec($1,$2,$3,$4) }
+    { Val_spec($1,$2,Ascii_opt_none,$3,$4) }
+  | Val x Lsquare QuotedString Rsquare Colon typschm
+    { Val_spec($1,$2,Ascii_opt_some($3,fst $4, snd $4,$5),$6,$7) }
 
 class_val_spec:
   | Val x Colon typ
-    { ($1,$2,$3,$4) }
+    { ($1,$2,Ascii_opt_none,$3,$4) }
+  | Val x Lsquare QuotedString Rsquare Colon typ
+    { ($1,$2,Ascii_opt_some($3,fst $4, snd $4,$5),$6,$7) }
 
 class_val_specs:
   | class_val_spec
-    { [(fun (a,b,c,d) -> (a,b,c,d,loc())) $1] }
+    { [(fun (a,b,c,d,e) -> (a,b,c,d,e,loc())) $1] }
   | class_val_spec class_val_specs
-    { ((fun (a,b,c,d) -> (a,b,c,d,loc())) $1)::$2 }
+    { ((fun (a,b,c,d,e) -> (a,b,c,d,e,loc())) $1)::$2 }
 
 target :
   | X

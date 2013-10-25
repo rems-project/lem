@@ -239,6 +239,31 @@ let constant_descr_to_name (targ : Target.target) (cd : const_descr) : (bool * N
   in
   (is_shown, name_renamed, name_ascii)
 
+let const_descr_ref_to_ascii_name_counter = ref 0
+let const_descr_ref_to_ascii_name c_env c : Name.t =
+begin
+  let l = Ast.Trans (false, "const_ref_to_name", None) in
+  let c_descr = c_env_lookup l c_env c in
+
+  let name_ok n = Util.is_simple_ident_string (Name.to_string n) in
+
+  let name0 = Path.get_name c_descr.const_binding in
+  if (name_ok name0) then name0 else 
+  begin
+    let check_target targ = begin
+       let (_, n_no_ascii, n_ascii_opt) = constant_descr_to_name (Target.Target_no_ident targ) c_descr in
+       if name_ok n_no_ascii then Some n_no_ascii else
+       Util.option_bind (fun n -> if name_ok n then Some n else None) n_ascii_opt
+    end in
+    match Util.option_first check_target Target.all_targets_list with
+      | None -> (* really could not find anything, so make something up *) 
+                (const_descr_ref_to_ascii_name_counter := !const_descr_ref_to_ascii_name_counter + 1;
+                 Name.from_string ("please_define_ascii_alternative" ^ 
+                   (string_of_int !const_descr_ref_to_ascii_name_counter)))
+      | Some n -> n
+  end
+end
+
 let type_descr_to_name (targ : Target.target) (p : Path.t) (td : type_descr) : Name.t = 
   match Target.Targetmap.apply_target td.Types.type_rename targ with
      | None -> Path.get_name p        
@@ -1037,7 +1062,7 @@ and add_def_entities (t_opt : Target.target) (only_new : bool) (ue : used_entiti
           (* TODO: consider what to do about names *)
           Seplist.fold_left add_rule ue rules
         end
-      | Val_spec(_,_,n_ref,_,(_, src_t)) ->begin
+      | Val_spec(_,_,n_ref,_,_,(_, src_t)) ->begin
           let ue = used_entities_add_const ue n_ref in
           let ue = if only_new then ue else add_src_t_entities ue src_t in
           ue

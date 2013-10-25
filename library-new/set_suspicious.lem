@@ -30,15 +30,3 @@ declare coq      target_rep function choose = `set_choose`
 lemma choose_sing: (forall x. choose {x} = x)
 lemma choose_in: (forall s. not (Set.null s) --> ((choose s) IN s))
 
-(* ------------------------ *)
-(* fold                     *)
-(* ------------------------ *)
-
-val fold : forall 'a 'b. ('a -> 'b -> 'b) -> set 'a -> 'b -> 'b
-declare compile_message choose = "fold is non-deterministic because the order of the iteration is unclear. It's result may differ between different backends. It may even not be a logical function, because the result may depend on the low-level representation of sets and be different for two representations of the same set."
-
-declare hol      target_rep function fold = `ITSET`
-declare isabelle target_rep function fold f A q = `Finite_Set.fold` f q A
-declare ocaml    target_rep function fold = `Pset.fold`
-declare coq      target_rep function fold = `set_fold`
-

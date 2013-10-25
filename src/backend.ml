@@ -2262,6 +2262,14 @@ let rec ocaml_def_extra gf d l : Output.t = match d with
   | _ -> emp
 
 
+let val_ascii_opt = function
+  | Ast.Ascii_opt_none -> emp
+  | Ast.Ascii_opt_some (sk1, sk2, q, sk3) -> 
+     if (is_human_target T.target) then begin
+        let i = Ident.mk_ident_strings [] q in
+        ws sk1 ^ kwd "[" ^ backend sk2 i ^ ws sk3 ^ kwd "]" 
+     end else emp
+
 let infix_decl = function
   | Ast.Fixity_default_assoc -> emp
   | Ast.Fixity_non_assoc (sk, n) -> ws sk ^ kwd "non_assoc" ^ num n
@@ -2461,10 +2469,11 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         T.reln_end
       else
         emp
-  | Val_spec(s1,(n,l),n_ref,s2,(constraint_pre,t)) ->
+  | Val_spec(s1,(n,l),n_ref,ascii_opt,s2,(constraint_pre,t)) ->
       ws s1 ^
       T.val_start ^
       Name.to_output Term_var n ^
+      val_ascii_opt ascii_opt ^
       ws s2 ^
       T.typ_sep ^
       begin
@@ -2500,10 +2509,11 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
       ws s3 ^
       kwd ")" ^
       flat (List.map 
-              (fun (s1,(n,l),f_ref,s2,t) ->
+              (fun (s1,(n,l),f_ref,ascii_rep_opt,s2,t) ->
                 ws s1 ^
                 T.val_start ^
                 Name.to_output Term_method n ^
+                val_ascii_opt ascii_rep_opt ^
                 ws s2 ^
                 kwd ":" ^
                 typ t)
@@ -2860,7 +2870,7 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
         new_line
       else emp
       
-  | Val_spec(s1,(n,l),n_ref,s2,t) ->
+  | Val_spec(s1,(n,l),n_ref,_,s2,t) ->
       raise (Reporting_basic.err_todo false l "Isabelle: Top-level type constraints omited; should not occur at the moment")
 
   (* TODO INDRELN THe names should be output *)

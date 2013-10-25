@@ -483,8 +483,10 @@ let comprehension7 cmp f p s1 s2 s3 s4 s5 s6 s7 =
 let bigunion c xss =
   fold union xss (empty c)
 
-let cross c xs ys = 
-  fold (fun x xys -> fold (fun y xys -> add (x,y) xys) ys xys) xs (empty c)
+let sigma c xs ys = 
+  fold (fun x xys -> fold (fun y xys -> add (x,y) xys) (ys x) xys) xs (empty c)
+
+let cross c xs ys = sigma c xs (fun _ -> ys)
 
 let rec lfp s f =
   let s' = f s in

@@ -191,6 +191,13 @@ val type_target_rep_allow_override : type_target_rep -> bool
     have a name, that is not used for the output. *)
 val constant_descr_to_name : Target.target -> const_descr -> (bool * Name.t * Name.t option)
 
+
+(** [const_descr_ref_to_ascii_name env c] tries to find a simple 
+    identifier for constant [c]. The exact identifier does not matter, but should somehow
+    be familiar to the user. It looks up the constant names, ascii-representations and
+    renamings for various backends. If everything fails, it just makes a name up. *) 
+val const_descr_ref_to_ascii_name : c_env -> const_descr_ref -> Name.t
+
 (** [type_descr_to_name targ ty td] looks up the representation for target [targ] in the type
     description [td]. Since in constrast to constant-description, type-descriptions don't contain the
     full type-name, but only renamings, the orginal type-name is passed as argument [ty]. It is assumed that

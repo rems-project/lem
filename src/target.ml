@@ -60,13 +60,13 @@ type target =
   | Target_ident
 
 let all_targets_list = [
+  Target_ocaml;
+  Target_lem; 
   Target_hol; 
-  Target_ocaml; 
   Target_isa; 
   Target_coq; 
   Target_tex; 
-  Target_html;
-  Target_lem] 
+  Target_html;] 
 
 let ast_target_to_target t = match t with
   | Ast.Target_hol   _ -> Target_hol 
