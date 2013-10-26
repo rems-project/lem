@@ -66,10 +66,21 @@ declare html     target_rep function empty = `&empty;`
 (* ----------------------- *)
 
 val any : forall 'a. ('a -> bool) -> set 'a -> bool 
-let any P s = (exists (e IN s). P e)
+let inline any P s = (exists (e IN s). P e)
+
+declare coq      target_rep function any = `set_exists`
+declare hol      target_rep function any P s = `EXISTS` P (`SET_TO_LIST` s)
+declare isabelle target_rep function any P s = `Set.Bex` s P
+declare ocaml    target_rep function any = `Pset.exists`
 
 val all : forall 'a. ('a -> bool) -> set 'a -> bool 
-let all P s = (forall (e IN s). P e)
+let inline all P s = (forall (e IN s). P e)
+
+declare coq      target_rep function all = `set_for_all`
+declare hol      target_rep function all P s = `EVERY` P (`SET_TO_LIST` s)
+declare isabelle target_rep function all P s = `Set.Ball` s P
+declare ocaml    target_rep function all = `Pset.for_all`
+
 
 
 (* ----------------------- *)

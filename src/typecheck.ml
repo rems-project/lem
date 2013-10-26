@@ -3239,11 +3239,12 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
             }
           in
           let (c_env',dict_ref) = Typed_ast_syntax.c_env_store ctxt_inst.ctxt_c_env dict_d in
-          let ctxt_inst = add_v_to_ctxt {ctxt_inst with ctxt_c_env = c_env'} (dict_name, dict_ref) in
+          let ctxt_inst = {ctxt_inst with ctxt_c_env = c_env'} in
  
           (* move new definitions into special module, since here the old context is thrown away and ctxt.new_defs is used,
              it afterwards becomes irrelevant thet ctxt_inst.new_defs contains more definitions than ctxt. *)
           let ctxt = ctxt_end_submodule l ctxt mod_path instance_name ctxt_inst in
+          let ctxt = add_v_to_ctxt ctxt (dict_name, dict_ref) in
 
           (* store everything *)
           let inst = {

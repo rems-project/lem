@@ -87,6 +87,7 @@ val remove_vals : def_macro
 val remove_indrelns : def_macro
 val remove_indrelns_true_lhs : def_macro
 val remove_opens : def_macro
+val opens_to_single : def_macro
 val remove_classes : def_macro
 val instance_to_dict : def_macro
 val type_annotate_definitions : def_macro

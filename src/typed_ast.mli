@@ -70,6 +70,10 @@ val space : lskips
 (** Get only the comments (and a trailing space) *)
 val lskips_only_comments : lskips list -> lskips
 
+(** Get the first lskip of the list and only comments from the rest *)
+val lskips_only_comments_first : lskips list -> lskips
+
+
 (** [env_tag] is used by [const_descr] to describe the type of constant. Constants can be defined in multiple ways:
     the most common way is via a [let]-statement. Record-type definitions introduce fields-accessor 
     functions and variant types introduce constructors. There are methods, instances and relations as well.
@@ -541,6 +545,7 @@ val pat_append_lskips : lskips -> pat -> pat
 val alter_init_lskips : (lskips -> lskips * lskips) -> exp -> exp * lskips
 val pat_alter_init_lskips : (lskips -> lskips * lskips) -> pat -> pat * lskips
 val def_alter_init_lskips : (lskips -> lskips * lskips) -> def -> def * lskips
+val oi_alter_init_lskips : (lskips -> lskips * lskips) -> Ast.open_import -> Ast.open_import * lskips 
 
 val pp_const_descr : Format.formatter -> const_descr -> unit
 val pp_env : Format.formatter -> env -> unit

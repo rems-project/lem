@@ -57,6 +57,17 @@ let r = Ulib.Text.of_latin1
 let no_lskips = None
 let space = Some([Ast.Ws(r" ")])
 
+let lskips_only_comments_first coms = 
+  match coms with
+    | [] -> None
+    | c::cs -> begin
+        match List.fold_right Ast.combine_lex_skips cs None with
+         | None -> c
+         | Some(l) ->
+             Ast.combine_lex_skips c 
+               (Some(List.filter (function | Ast.Com _ -> true | _ -> false) l))
+      end
+
 let lskips_only_comments coms = 
   match List.fold_right Ast.combine_lex_skips coms None with
     | None -> space
@@ -585,6 +596,24 @@ let append_lskips lskips (p : exp) : exp =
   let (e, _) = alter_init_lskips (fun s -> (Ast.combine_lex_skips lskips s, None)) p in
     e
 
+let oi_alter_init_lskips lskips_f (oi : Ast.open_import) : (Ast.open_import * lskips) = 
+  match oi with
+    | Ast.OI_open sk ->
+        let (s_new, s_ret) = lskips_f sk in
+        (Ast.OI_open s_new, s_ret)
+    | Ast.OI_import sk ->
+        let (s_new, s_ret) = lskips_f sk in
+        (Ast.OI_import s_new, s_ret)
+    | Ast.OI_open_import (sk, sk') ->
+        let (s_new, s_ret) = lskips_f sk in
+        (Ast.OI_open_import (s_new, sk'), s_ret)
+    | Ast.OI_include sk ->
+        let (s_new, s_ret) = lskips_f sk in
+        (Ast.OI_include s_new, s_ret)
+    | Ast.OI_include_import (sk, sk') ->
+        let (s_new, s_ret) = lskips_f sk in
+        (Ast.OI_include_import (s_new, sk'), s_ret)
+
 let rec def_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (((d,s),l,lenv) : def) : def * lskips = 
   let res x y = (((x,s),l,lenv),y) in
     match d with
@@ -610,23 +639,7 @@ let rec def_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (((d,s),l,l
           let (s_new, s_ret) = lskips_f sk1 in
             res (Rename(s_new, n, mod_bind, sk2, m)) s_ret
       | OpenImport(oi,m) -> begin     
-          let (oi', s_ret) = match oi with
-            | Ast.OI_open sk ->
-                let (s_new, s_ret) = lskips_f sk in
-                (Ast.OI_open s_new, s_ret)
-            | Ast.OI_import sk ->
-                let (s_new, s_ret) = lskips_f sk in
-                (Ast.OI_import s_new, s_ret)
-            | Ast.OI_open_import (sk, sk') ->
-                let (s_new, s_ret) = lskips_f sk in
-                (Ast.OI_open_import (s_new, sk'), s_ret)
-            | Ast.OI_include sk ->
-                let (s_new, s_ret) = lskips_f sk in
-                (Ast.OI_include s_new, s_ret)
-            | Ast.OI_include_import (sk, sk') ->
-                let (s_new, s_ret) = lskips_f sk in
-                (Ast.OI_include_import (s_new, sk'), s_ret)
-          in
+          let (oi', s_ret) = oi_alter_init_lskips lskips_f oi in
           res (OpenImport(oi',m)) s_ret
         end
       | Indreln(sk,topt,names,rules) ->

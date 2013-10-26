@@ -980,10 +980,7 @@ begin
   let l_unk = Ast.Trans (false, "get_matching_instance", None) in
 
   (* ignore variable bindings, since they can never be satisfied. *)
-  let ignore_type_for_search (t : t) = match t.t with
-    | Tvar _ -> true
-    | _ -> false
-  in
+  let ignore_type_for_search (t : t) = is_var_type t in
   let get_new_constraints i subst = 
      List.map (fun (p, tnv) -> (p, 
        match TNfmap.apply subst tnv with
@@ -1002,11 +999,9 @@ begin
     let (class_map, _, _) = instances in
     match Pfmap.apply class_map p with
       | None -> None
-      | Some(possibilitie_refs) -> begin
-          let possibilities = List.map (i_env_lookup l_unk instances) possibilitie_refs in
-          let possibilities' = List.filter 
-              (fun i -> (not (no_default && is_var_type i.inst_type)) && types_match i.inst_type t) 
-              possibilities in
+      | Some(possibilities_refs) -> begin
+          let possibilities = List.map (i_env_lookup l_unk instances) possibilities_refs in
+          let possibilities' = List.filter (fun i -> types_match i.inst_type t) possibilities in
           Util.option_first (fun i ->
             let subst = do_type_match i.inst_type t in
             let new_cs = get_new_constraints i subst in
@@ -1017,6 +1012,8 @@ begin
           possibilities'
         end
   end in
+
+  if (is_var_type t && no_default) then None else
   get_matching_aux (p, t)
 end
 

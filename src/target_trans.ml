@@ -147,6 +147,7 @@ let ocaml =
              nvar_macros @
              [Def_macros (fun env ->  
                             [M.remove_vals; 
+                             M.opens_to_single;
                              M.remove_indrelns;
                              Patterns.compile_def (Target_no_ident Target_ocaml) Patterns.is_ocaml_pattern_match env]);
               Pat_macros (fun env -> [Backend_common.inline_pat_macro Target_ocaml env]);

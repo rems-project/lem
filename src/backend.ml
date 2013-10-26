@@ -2441,7 +2441,8 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         ws s2 ^
         T.module_import ^
         (Output.flat (List.map (fun m -> Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)) ms))
-      else def_internal callback inside_module (OpenImport (Ast.OI_open (Ast.combine_lex_skips s1 s2), ms)) is_user_def
+      else def_internal callback inside_module (OpenImport (Ast.OI_open 
+          (lskips_only_comments_first [s1;s2]), ms)) is_user_def
   | OpenImport(Ast.OI_include_import (s1, s2),ms) ->
       if (is_human_target T.target) then
         ws s1 ^
@@ -2449,7 +2450,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         ws s2 ^
         T.module_import ^
         (Output.flat (List.map (fun m -> Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)) ms))
-      else def_internal callback inside_module (OpenImport (Ast.OI_open (Ast.combine_lex_skips s1 s2), ms)) is_user_def
+      else def_internal callback inside_module (OpenImport (Ast.OI_open (lskips_only_comments_first [s1;s2]), ms)) is_user_def
   | OpenImport(Ast.OI_import s,ms) -> 
       if (is_human_target T.target) then
         ws s ^

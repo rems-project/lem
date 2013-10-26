@@ -877,7 +877,11 @@ let remove_method try_dict _ e =
                                   match targ.Types.t with
                                     | Types.Tvar tv -> Types.Ty tv
                                     | Types.Tne { Types.nexp = Types.Nvar v } -> Types.Nv v
-                                    | _ -> raise (Reporting_basic.err_unreachable l_unk "because there was no instance")
+                                    | _ -> 
+                                      (* there is no instance, yet typechecking did not detect an
+                                         unsatisfiable type-class constraint. This means that the
+                                         constraint is on a type-variable. *)
+                                      raise (Reporting_basic.err_unreachable l_unk "because there was no instance")
                                 in
                                 let cd = lookup_class_descr l_unk env c_path in
                                 let n = class_path_to_dict_name c_path tv in
