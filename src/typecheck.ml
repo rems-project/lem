@@ -3216,11 +3216,12 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
 
 
           (* add a dictionary constant *)
-          let dict_name = Name.from_string "dict" in
+          let dict_name = Name.from_string (Name.to_string instance_name ^ "_dict") in
+
           let dict_type = class_descr_get_dict_type p_d src_t.typ in
 
           let dict_d =
-            { const_binding = Path.mk_path instance_path dict_name;
+            { const_binding = Path.mk_path mod_path dict_name;
               const_tparams = tyvars;
               const_class = sem_cs;
               const_no_class = None;

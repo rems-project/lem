@@ -1,6 +1,6 @@
 all:
-#	ocamlbuild -cflag -g main.native
-	ocamlbuild main.native
+	ocamlbuild -cflag -g main.native
+#	ocamlbuild main.native
 
 doc:
 	mkdir -p html-doc

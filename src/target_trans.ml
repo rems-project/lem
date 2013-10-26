@@ -73,7 +73,7 @@ type trans =
 let dictionary_macros targ = 
   [
    Def_macros (fun env -> [M.class_to_record]);
-   Def_macros (fun env -> [M.instance_to_module]);
+   Def_macros (fun env -> [M.instance_to_dict]);
    Def_macros (fun env -> [M.class_constraint_to_parameter]); 
    Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_method true]);
    Pat_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_method_pat]);
