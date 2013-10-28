@@ -61,14 +61,13 @@ declare coq      target_rep function unsafe_structural_equality = `classical_boo
 
 (* The default for equality is the unsafe structural one. It can 
    (and should) be overriden for concrete types later. *)
-instance forall 'a. (Eq 'a) 
+default_instance forall 'a. (Eq 'a) 
   let (=) = unsafe_structural_equality
 end
 
-instance forall 'a. Eq 'a => (Ineq 'a) 
+default_instance forall 'a. Eq 'a => (Ineq 'a) 
   let (/=) x y = not (x = y)
 end
-
 
 (* ========================================================================== *)
 (* Orderings                                                                  *)
@@ -90,15 +89,8 @@ val defaultCompare : forall 'a. 'a -> 'a -> ordering
 let defaultCompare x y = EQ
 declare ocaml target_rep function defaultCompare = `compare`
 
-class ( OrdCompare 'a ) 
-  val compare : 'a -> 'a -> ordering
-end
-
-instance forall 'a. ( OrdCompare 'a ) 
-  let compare = defaultCompare
-end
-
 class ( Ord 'a ) 
+  val compare                 : 'a -> 'a -> ordering
   val (<)  [`isLess`]         : 'a -> 'a -> bool
   val (<=) [`isLessEqual`]    : 'a -> 'a -> bool
   val (>)  [`isGreater`]      : 'a -> 'a -> bool
@@ -125,19 +117,11 @@ lemma ord_OK_2: (
   (forall x y. (x <= y) || (y <= x))
 )
 
-instance forall 'a. OrdCompare 'a => ( Ord 'a) 
-  let (<) x y = (let r = compare x y in (r = LT))
-  let (<=) x y = (let r = compare x y in (r = LT || r = EQ))
-  let (>) x y = (let r = compare x y in (r = GT))
-  let (>=) x y = (let r = compare x y in (r = GT || r = EQ))
-end
-
 (* let's derive a compare function from the Ord type-class *)
-val ordCompare : forall 'a. Ord 'a => 'a -> 'a -> ordering
+val ordCompare : forall 'a. Eq 'a, Ord 'a => 'a -> 'a -> ordering
 let ordCompare x y =
   if (x < y) then LT else
   if (x = y) then EQ else GT
-  
 
 class ( OrdMaxMin 'a ) 
   val max : 'a -> 'a -> 'a
@@ -155,8 +139,7 @@ declare isabelle target_rep function defaultMax = `max`
 declare ocaml    target_rep function defaultMax = `max`
 
 
-
-instance forall 'a. Ord 'a => ( OrdMaxMin 'a) 
+default_instance forall 'a. Ord 'a => ( OrdMaxMin 'a) 
   let max = defaultMax
   let min = defaultMin
 end
@@ -177,8 +160,12 @@ let boolCompare b1 b2 = match (b1, b2) with
   | (false, false) -> EQ
 end
 
-instance (OrdCompare bool)
+instance (Ord bool)
   let compare = boolCompare
+  let (<) x y = (not x && y)
+  let (<=) x y = (x --> y)
+  let (>) x y = (not y && x)
+  let (>=) x y = (y --> x)
 end
 
 let pairEqual (a1, b1) (a2, b2) = (a1 = a2) && (b1 = b2)
@@ -195,3 +182,16 @@ let pairCompare (a1, b1) (a2, b2) =
     | EQ -> compare b1 b2
   end
 
+let pairLess (x1, x2) (y1, y2) = (x1 < y1) || ((x1 <= y1) && (x2 < y2))
+let pairLessEq (x1, x2) (y1, y2) = (x1 < y1) || ((x1 <= y1) && (x2 < y2))
+
+let pairGreater x12 y12 = pairLess y12 x12
+let pairGreaterEq x12 y12 = pairLessEq y12 x12
+
+instance forall 'a 'b. Ord 'a, Ord 'b => (Ord ('a * 'b))
+  let compare = pairCompare
+  let (<)  = pairLess
+  let (<=) = pairLessEq
+  let (>)  = pairGreater
+  let (>=) = pairGreaterEq
+end

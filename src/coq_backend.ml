@@ -670,7 +670,9 @@ let generate_coq_record_update_notation e =
           ; from_string "\n}."; ws skips'''
           ; generate_notations notations
           ]
-      | Instance (skips, i_ref, inst, vals, skips') ->
+      | Instance (Ast.Inst_default skips, i_ref, inst, vals, skips') -> emp
+           (* Don't generate default instances, they are only used for explicit inlining by Lem *)
+      | Instance (Ast.Inst_decl skips, i_ref, inst, vals, skips') ->
         let l_unk = Ast.Unknown in
           let prefix =
             match inst with

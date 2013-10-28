@@ -29,7 +29,7 @@ end
 
 val empty : forall 'k 'v. Ord 'k => map 'k 'v
 val null  : forall 'k 'v. Ord 'k => map 'k 'v -> bool
-let null m = (m = empty)
+lemma null_empty: (forall m. null m = (m = empty))
 
 val size  : forall 'k 'v. Ord 'k => map 'k 'v -> nat
 

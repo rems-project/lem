@@ -147,6 +147,7 @@ let ast_def_to_target_opt : Ast.def_aux -> Ast.targets option = function
     | Ast.Declaration _ -> None
     | Ast.Module _ -> None
     | Ast.Open_import _ -> None
+    | Ast.Open_import_target(_, target_opt, _) -> target_opt
     | Ast.Spec_def _ -> None
     | Ast.Class _ -> None
     | Ast.Rename _ -> None
@@ -3099,7 +3100,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
 
           (* all done, return the result *)
           (ctxt''', Some (Class(sk1,sk2,(cn,l'),tnvar,p,sk4,List.rev vspecs,sk5)))
-      | Ast.Instance(sk1,Ast.Is(cs,sk2,id,typ,sk3),vals,sk4) ->
+      | Ast.Instance(inst_decl,Ast.Is(cs,sk2,id,typ,sk3),vals,sk4) ->
           let (src_cs, tyvars, tnvarset, (sem_cs,sem_rs)) =
             check_constraint_prefix ctxt cs 
           in
@@ -3107,6 +3108,8 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let src_t = 
             typ_to_src_t anon_error ignore ignore (defn_ctxt_to_env ctxt) typ
           in
+
+
           let (used_tvs, type_path) = check_instance_type_shape ctxt src_t in
           let unused_tvs = TNset.diff tnvarset used_tvs in
           let _ = 
@@ -3128,11 +3131,23 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
             end
           in
 
+          (* consistency checks for default instances *)
+          let is_default_inst = (match inst_decl with Ast.Inst_default _ -> true | Ast.Inst_decl _ -> false) in
+          let is_default_inst_real = is_var_type (src_t_to_t src_t) in
+          let is_allowed_instance = is_var_type (src_t_to_t src_t) || is_simple_app_type (src_t_to_t src_t) in
+
+          let _ = if (is_default_inst && (not is_default_inst_real)) then
+                    raise (Reporting_basic.err_type l "instance not general enough for a default instance") else () in
+          let _ = if ((not is_default_inst) && is_default_inst_real) then
+                    raise (Reporting_basic.err_type l "instance too general; consider declaring as default instance") else () in
+          let _ = if (not is_allowed_instance) then
+                    raise (Reporting_basic.err_type l "instance type too special") else () in
+
           (* check that there is no instance already *)
-          let _ =  match Types.get_matching_instance ctxt.all_tdefs false (p, src_t.typ) ctxt.all_instances  with
+          let _ =  match Types.get_matching_instance ctxt.all_tdefs (p, src_t.typ) ctxt.all_instances  with
                      | Some (i, _) -> begin
-                        let _ = Reporting.report_warning (defn_ctxt_to_env ctxt) (Reporting.Warn_overriden_instance (l, src_t, i)) in
-                        ()
+                        if i.inst_is_default then () else
+                        (Reporting.report_warning (defn_ctxt_to_env ctxt) (Reporting.Warn_overriden_instance (l, src_t, i)))
                      end
                      | None -> ()
           in
@@ -3150,6 +3165,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let mk_temp_instance p tv = {
              inst_l = Ast.Trans (false, "Internal Instance", Some l);
              inst_binding = Path.mk_path instance_path (Name.from_string "temp");
+             inst_is_default = false;
 	     inst_tyvars = [];
 	     inst_constraints = [];
 	     inst_class = p;
@@ -3264,6 +3280,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let inst = {
 	      inst_l = l;
 	      inst_binding = Path.mk_path mod_path instance_name;
+              inst_is_default = is_default_inst;
 	      inst_class = p;
 	      inst_type = src_t.typ;
 	      inst_tyvars = tyvars;
@@ -3273,7 +3290,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
      	  } in
           let (ctxt', i_ref) = add_instance_to_ctxt ctxt inst in
             (ctxt',
-             Some (Instance(sk1,i_ref,(src_cs,sk2,Ident.from_id id, p, src_t, sk3), List.rev vdefs, sk4)))
+             Some (Instance(inst_decl,i_ref,(src_cs,sk2,Ident.from_id id, p, src_t, sk3), List.rev vdefs, sk4)))
 
 
 and check_defs_internal (backend_targets : Targetset.t) (mod_path : Name.t list)

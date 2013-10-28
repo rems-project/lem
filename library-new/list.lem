@@ -123,6 +123,41 @@ declare termination_argument lexicographicCompareBy = automatic
 let lexicographicCompare = lexicographicCompareBy compare
 
 
+val lexicographicLess : forall 'a. Ord 'a => list 'a -> list 'a -> bool
+val lexicographicLessBy : forall 'a. ('a -> 'a -> bool) -> ('a -> 'a -> bool) -> list 'a -> list 'a -> bool
+let rec lexicographicLessBy less less_eq l1 l2 = match (l1,l2) with
+  | ([], []) -> false
+  | ([], _::_) -> true
+  | (_::_, []) -> false
+  | (x::xs, y::ys) -> ((less x y) || ((less_eq x y) && (lexicographicLessBy less less_eq xs ys)))
+end
+declare termination_argument lexicographicLessBy = automatic
+
+let lexicographicLess = lexicographicLessBy isLess isLessEqual
+
+val lexicographicLessEq : forall 'a. Ord 'a => list 'a -> list 'a -> bool
+val lexicographicLessEqBy : forall 'a. ('a -> 'a -> bool) -> ('a -> 'a -> bool) -> list 'a -> list 'a -> bool
+let rec lexicographicLessEqBy less less_eq l1 l2 = match (l1,l2) with
+  | ([], []) -> true
+  | ([], _::_) -> true
+  | (_::_, []) -> false
+  | (x::xs, y::ys) -> (less x y || (less_eq x y && lexicographicLessEqBy less less_eq xs ys))
+end
+declare termination_argument lexicographicLessEqBy = automatic
+
+let lexicographicEqLess = lexicographicLessEqBy isLess isLessEqual
+
+
+instance forall 'a. Ord 'a => (Ord (list 'a))
+  let compare = lexicographicCompare
+  let (<) = lexicographicLess
+  let (<=) = lexicographicLessEq
+  let (>) x y = lexicographicLess y x
+  let (>=) x y = lexicographicLessEq y x
+end
+
+
+
 (* ----------------------- *)
 (* Append                  *)
 (* ----------------------- *)

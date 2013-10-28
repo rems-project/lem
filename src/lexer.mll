@@ -85,6 +85,7 @@ let kw_table =
      ("val",                     (fun x -> Val(x)));
      ("class",                   (fun x -> Class_(x)));
      ("instance",                (fun x -> Inst(x)));
+     ("default_instance",        (fun x -> Inst_default(x)));
      ("indreln",                 (fun x -> Indreln(x)));
      ("forall",                  (fun x -> Forall(x)));
      ("exists",                  (fun x -> Exists(x)));

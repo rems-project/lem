@@ -118,6 +118,12 @@ let is_var_type t = match t.t with
   | Tvar _ -> true
   | _ -> false
 
+let is_simple_app_type t = match t.t with
+  | Tapp (ts, _) -> List.for_all is_var_type ts
+  | Ttup (ts) -> List.for_all is_var_type ts
+  | Tfn (t1,t2) -> is_var_type t1 && is_var_type t2
+  | _ -> false
+
 let free_vars t =
   let rec f t acc =
     match t.t with
@@ -694,6 +700,7 @@ let type_defs_get_constr_families l (d : type_defs) (t : t) (c : const_descr_ref
 
 type instance = {
   inst_l : Ast.l;
+  inst_is_default : bool;
   inst_binding : Path.t; 
   inst_class : Path.t;
   inst_type : t;
@@ -975,7 +982,7 @@ let i_env_lookup l i_env i_ref =
 
 exception Unsolveable_matching_instance_contraint;;
 
-let get_matching_instance d no_default (p,t) (instances : i_env) : (instance * t TNfmap.t) option = 
+let get_matching_instance d (p,t) (instances : i_env) : (instance * t TNfmap.t) option = 
 begin
   let l_unk = Ast.Trans (false, "get_matching_instance", None) in
 
@@ -1001,7 +1008,9 @@ begin
       | None -> None
       | Some(possibilities_refs) -> begin
           let possibilities = List.map (i_env_lookup l_unk instances) possibilities_refs in
-          let possibilities' = List.filter (fun i -> types_match i.inst_type t) possibilities in
+          let possibilities' = if not (is_var_type t) then possibilities else (* don't use default instances for type variables *)
+                                        List.filter (fun i -> not i.inst_is_default) possibilities in
+          let possibilities'' = List.filter (fun i -> types_match i.inst_type t) possibilities' in
           Util.option_first (fun i ->
             let subst = do_type_match i.inst_type t in
             let new_cs = get_new_constraints i subst in
@@ -1009,11 +1018,10 @@ begin
               let _ = try_solve new_cs in
               Some(i, subst)
             with Unsolveable_matching_instance_contraint -> None) 
-          possibilities'
+          possibilities''
         end
   end in
 
-  if (is_var_type t && no_default) then None else
   get_matching_aux (p, t)
 end
 
@@ -1792,16 +1800,16 @@ module Constraint (T : Global_defs) : Constraint = struct
   let rec solve_constraints (unsolvable : PTset.t) = function
     | [] -> unsolvable 
     | (p,t) :: constraints ->
-        match get_matching_instance T.d false (p,t) T.i with
+        match get_matching_instance T.d (p,t) T.i with
           | None ->
               solve_constraints (PTset.add (p,t) unsolvable) constraints
           | Some(i,subst) ->
-               (** apply subst to constraints of instance *)
-               let new_cs = List.map (fun (p, tnv) -> (p, 
-                     match TNfmap.apply subst tnv with
-                             | Some(t) -> t
-                             | None -> raise (Reporting_basic.err_unreachable i.inst_l "get_matching_instance does not provide proper substitution!")))
-                    i.inst_constraints
+              (** apply subst to constraints of instance *)
+              let new_cs = List.map (fun (p, tnv) -> (p, 
+                    match TNfmap.apply subst tnv with
+                            | Some(t) -> t
+                            | None -> raise (Reporting_basic.err_unreachable i.inst_l "get_matching_instance does not provide proper substitution!")))
+                   i.inst_constraints
               in
               solve_constraints unsolvable (new_cs @ constraints)
 

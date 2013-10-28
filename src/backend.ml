@@ -2485,9 +2485,11 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
           | Some(cp) -> constraint_prefix cp
       end ^
       typ t
-  | Instance(s1,i_ref,(cp,s2,id,class_path,t,s3),methods,s4) ->
-      ws s1 ^
-      kwd "instance" ^
+  | Instance(inst_decl,i_ref,(cp,s2,id,class_path,t,s3),methods,s4) ->
+      (match inst_decl with
+        | Ast.Inst_decl s1 -> (ws s1 ^ kwd "instance")
+        | Ast.Inst_default s1 -> (ws s1 ^ kwd "default_instance")
+      ) ^
       begin
         match cp with
           | None -> emp

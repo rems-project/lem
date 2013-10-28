@@ -360,7 +360,7 @@ and def_aux =
   | Val_spec of val_spec
   | Class of lskips * lskips * name_l * tnvar * Path.t * lskips * class_val_spec list * lskips
   (* The v_env, name and Path/tyvar list are for converting the instance into a module. *)
-  | Instance of lskips * Types.instance_ref * instschm * val_def list * lskips 
+  | Instance of Ast.instance_decl * Types.instance_ref * instschm * val_def list * lskips 
   | Comment of def
   | Declaration of declare_def
 
@@ -658,9 +658,12 @@ let rec def_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (((d,s),l,l
       | Class(sk1,sk2,n,tvar,class_ty,sk3,body,sk4) ->
           let (s_new, s_ret) = lskips_f sk1 in
             res (Class(s_new,sk2,n,tvar,class_ty,sk3,body,sk4)) s_ret
-      | Instance(sk1,i_ref,is,ds,sk2) ->
+      | Instance(Ast.Inst_decl sk1,i_ref,is,ds,sk2) ->
           let (s_new, s_ret) = lskips_f sk1 in
-            res (Instance(s_new,i_ref,is,ds,sk2)) s_ret
+            res (Instance(Ast.Inst_decl s_new,i_ref,is,ds,sk2)) s_ret
+      | Instance(Ast.Inst_default sk1,i_ref,is,ds,sk2) ->
+          let (s_new, s_ret) = lskips_f sk1 in
+            res (Instance(Ast.Inst_default s_new,i_ref,is,ds,sk2)) s_ret
       | Comment(d) ->
           let (d',s_ret) = def_alter_init_lskips lskips_f d in
             res (Comment(d')) s_ret

@@ -244,7 +244,9 @@ let class_to_record mod_path env ((d,s),l,lenv) =
 let instance_to_dict mod_path (env : env) ((d,s),l,lenv) =
   let l_unk n = Ast.Trans(false, "instance_to_module" ^ string_of_int n , Some l) in
   match d with
-      | Instance(sk1, i_ref, (prefix, sk2, id, class_path, t, sk3), vdefs, sk4) ->
+      | Instance(Ast.Inst_default sk1, i_ref, (prefix, sk2, id, class_path, t, sk3), vdefs, sk4) ->
+            Some(env,[])
+      | Instance(Ast.Inst_decl sk1, i_ref, (prefix, sk2, id, class_path, t, sk3), vdefs, sk4) ->
           (* lookup instance and class description *)
           let id = i_env_lookup (l_unk 10) env.i_env i_ref in
           let cd = lookup_class_descr (l_unk 0) env id.inst_class in

@@ -160,7 +160,8 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 %token <Ast.terminal> Assert Lemma Theorem 
 %token <Ast.terminal> Declare TargetType TargetConst
 %token <Ast.terminal * Ulib.Text.t> IN MEM MinusMinusGt
-%token <Ast.terminal> Class_ Inst Do LeftArrow
+%token <Ast.terminal> Class_ Do LeftArrow
+%token <Ast.terminal> Inst Inst_default
 %token <Ast.terminal> Module CompileMessage Field Type Automatic Manual Exhaustive Inexhaustive AsciiRep SetFlag TerminationArgument PatternMatch
 %token <Ast.terminal> RightAssoc LeftAssoc NonAssoc Infix Special TargetRep
 
@@ -1047,7 +1048,9 @@ def:
   | Class_ Lparen x tnvar Rparen class_val_specs End
     { dloc (Class($1,$2,$3,$4,$5,$6,$7)) }
   | Inst instschm val_defs End
-    { dloc (Instance($1,$2,$3,$4)) }
+    { dloc (Instance(Inst_decl $1,$2,$3,$4)) }
+  | Inst_default instschm val_defs End
+    { dloc (Instance(Inst_default $1,$2,$3,$4)) }
   | lemma
     { dloc (Lemma $1) }
   | declaration

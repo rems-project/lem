@@ -83,17 +83,21 @@ class ( NumSucc 'a )
   val succ : 'a -> 'a
 end
 
+(*
 instance forall 'a. Numeral 'a, NumAdd 'a => (NumSucc 'a) 
   let succ n = n + 1
 end
+*)
 
 class ( NumPred 'a ) 
   val pred : 'a -> 'a
 end
 
+(*
 instance forall 'a. Numeral 'a, NumMinus 'a => (NumPred 'a) 
   let pred n = n - 1
 end
+*)
 
 (* ========================================================================== *)
 (* Basic number types                                                         *)
@@ -217,9 +221,6 @@ end
 
 val natCompare : nat -> nat -> ordering
 let inline natCompare = defaultCompare
-instance (OrdCompare nat)
-  let compare = natCompare
-end
 
 val natEq : nat -> nat -> bool
 let inline natEq = unsafe_structural_equality
@@ -253,6 +254,7 @@ declare isabelle target_rep function natGreaterEqual = infix `>=`
 declare coq      target_rep function natGreaterEqual = infix `>=`
 
 instance (Ord nat)
+  let compare = natCompare
   let (<) = natLess
   let (<=) = natLessEqual
   let (>) = natGreater
@@ -375,9 +377,6 @@ end
 val naturalCompare : natural -> natural -> ordering
 let inline naturalCompare = defaultCompare
 declare ocaml    target_rep function naturalCompare = `Big_int.compare_big_int`
-instance (OrdCompare natural)
-  let compare = naturalCompare
-end
 
 val naturalEq : natural -> natural -> bool
 let inline naturalEq = unsafe_structural_equality
@@ -412,6 +411,7 @@ declare isabelle target_rep function naturalGreaterEqual = infix `>=`
 declare coq      target_rep function naturalGreaterEqual = infix `>=`
 
 instance (Ord natural)
+  let compare = naturalCompare
   let (<) = naturalLess
   let (<=) = naturalLessEqual
   let (>) = naturalGreater

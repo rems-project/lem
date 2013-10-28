@@ -242,7 +242,7 @@ let output1 env libpath isa_thy out_dir (targ : Target.target) avoid m alldoc_ac
                 let (o, ext_o) = open_output_with_check dir (module_name_lower ^ "Extra.ml") in
                 Printf.fprintf o "(*%s*)\n" (generated_line m.filename);
                 Printf.fprintf o "open Nat_num\n";
-                List.map (fun s -> Printf.fprintf o "open %s\n\n" s) extra_imported_modules;
+                List.iter (fun s -> Printf.fprintf o "open %s\n\n" s) extra_imported_modules;
                 Printf.fprintf o "type 'a set = 'a Pset.set\n\n";
   
                 Printf.fprintf o "%s" "let run_test n loc b =\n  if b then (Format.printf \"%s : ok\\n\" n) else (Format.printf \"%s : FAILED\\n  %s\\n\\n\" n loc);;\n\n";

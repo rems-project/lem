@@ -822,6 +822,12 @@ ascii_opt :: 'Ascii_opt_' ::=
   {{ com an optional ascii representation }}
   |                                                             :: :: none
   | [ backtick_string ]                                         :: :: some
+
+instance_decl :: '' ::= 
+  {{ com is it an instance or the default instance? }}
+  | instance                                                    :: :: Inst_decl
+  | default_instance                                            :: :: Inst_default
+
    
 val_spec :: '' ::=
   {{ com Value type specifications }} 
@@ -851,7 +857,7 @@ def_aux :: '' ::=
     {{ com Top-level type constraints }}
   | class ( x_l tnvar ) val x_l1 ascii_opt1 : typ1 l1 ... val x_ln ascii_optn : typn ln end	:: :: Class
     {{ com Typeclass definitions }}
-  | instance instschm val_def1 l1 ... val_defn ln end 		:: :: Instance
+  | instance_decl instschm val_def1 l1 ... val_defn ln end 		:: :: Instance
     {{ com Typeclass instantiations }}
 
 def :: '' ::=
