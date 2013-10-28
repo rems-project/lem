@@ -3,7 +3,7 @@
 (******************************************************************************)
 
 open import Bool
-declare {hol;isabelle;coq} rename module = lem_basic_classes []
+declare {hol;isabelle} rename module = lem_basic_classes []
 declare {ocaml} rename module = lem_basic_classes
 
 (* ========================================================================== *)
@@ -20,9 +20,13 @@ class ( Eq 'a )
   val (=) [`isEqual`] : 'a -> 'a -> bool
 end
 
+declare coq target_rep function isEqual = infix `=`
+
 class ( Ineq 'a ) 
   val (/=) [`isInequal`] : 'a -> 'a -> bool
 end
+
+declare coq target_rep function isInequal = infix `/=`
 
 
 (* (=) should for all instances be an equivalence relation 
@@ -97,6 +101,11 @@ class ( Ord 'a )
   val (>)  [`isGreater`]      : 'a -> 'a -> bool
   val (>=) [`isGreaterEqual`] : 'a -> 'a -> bool 
 end
+
+declare coq target_rep function isLess = infix `<`
+declare coq target_rep function isLessEqual = infix `<=`
+declare coq target_rep function isGreater = infix `>`
+declare coq target_rep function isGreaterEqual = infix `>=`
 
 lemma isLess_alt_def        : (forall x y. (x < y) = (let r = compare x y in (r = LT || r = EQ)))
 lemma isLessEqual_alt_def   : (forall x y. (x <= y) = (compare x y = LT))

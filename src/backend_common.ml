@@ -215,7 +215,7 @@ end
 let get_module_open_string env target mod_path =
 begin
   let transform_name mod_string = match target with
-(*    | Target.Target_no_ident (Target.Target_hol) -> String.uncapitalize mod_string *)
+    | Target.Target_no_ident (Target.Target_coq) -> String.uncapitalize mod_string
     | _ -> mod_string
   in
   let md = e_env_lookup Ast.Unknown env.e_env mod_path in

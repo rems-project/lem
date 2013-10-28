@@ -123,11 +123,11 @@ let coq_infix_op a x =
   ]
 ;;
 
-let coq_format_op use_infix =
+let coq_format_op use_infix a x =
   if use_infix then
-    coq_infix_op
+    coq_infix_op a x
   else
-    id
+    id a x
 
 let none = Ident.mk_ident_strings [] "None";;
 let some = Ident.mk_ident_strings [] "Some";;
@@ -768,7 +768,7 @@ let generate_coq_record_update_notation e =
               ]
           else
             from_string "(* [?]: removed lemma intended for another backend. *)"
-      | Declaration declare ->
+      | Declaration declare -> from_string "" (*
         begin
           match declare with
             | Decl_target_rep_term (skips, target, skips', component, const_descr_ref_id, name_lskips_annot_list, skips''', target_rep_rhs) ->
@@ -829,7 +829,7 @@ let generate_coq_record_update_notation e =
                   | _ -> from_string ""
               end
             | _ -> from_string "" (* All other declarations empty in the Coq backend *)
-        end
+        end *)
     and val_def inside_instance i_ref_opt is_recursive def tv_set class_constraints =
       begin
         let constraints =

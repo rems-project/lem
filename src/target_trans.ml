@@ -80,6 +80,12 @@ let dictionary_macros targ =
    Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_class_const targ])
   ]
 
+let coq_typeclass_resolution_macros targ =
+  [
+    Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_method false]);
+    Pat_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_method_pat])
+  ]
+
 (* The macros needed to change number type variables (e.g., ''a) into function parameters *)
 let nvar_macros =
   [Def_macros (fun env -> [M.nvar_to_parameter]);
@@ -204,6 +210,7 @@ let isa  =
 
 let coq =
   { macros = indreln_macros @
+      coq_typeclass_resolution_macros (Target_no_ident Target_coq) @
       [Def_macros (fun env -> 
                     [M.type_annotate_definitions;
                      M.remove_import_include;
