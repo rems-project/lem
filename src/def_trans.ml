@@ -115,16 +115,40 @@ let remove_opens _ env (((d,_),_,_) as def) =
   match d with
     | OpenImport _ ->
         Some (env, [comment_def def])
+    | OpenImportTarget _ ->
+        Some (env, [comment_def def])
+    | _ -> None
+
+let remove_import_include _ env (((d,s),l,lenv) as def) =
+  let aux mk_f = function
+    | Ast.OI_open sk -> None
+    | Ast.OI_import sk -> Some (env, [comment_def def])
+    | Ast.OI_include sk -> Some (env, [((mk_f (Ast.OI_open sk), s), l, lenv)])
+    | (Ast.OI_open_import (sk1, sk2) | Ast.OI_include_import (sk1, sk2)) -> 
+       Some (env, [((mk_f (Ast.OI_open (lskips_only_comments_first [sk1;sk2])), s), l, lenv)])
+  in
+  match d with
+    | OpenImport (oi, ids) ->        
+        aux (fun oi' -> OpenImport (oi', ids)) oi
+    | OpenImportTarget (oi, targets, ids) ->
+        aux (fun oi' -> OpenImportTarget (oi', targets, ids)) oi
     | _ -> None
 
 let opens_to_single _ env ((d,s),l,l_env) =
   match d with
-    | OpenImport (oi, []) -> Some (env, [])
+    | OpenImport (_, []) -> Some (env, [])
     | OpenImport (_, [_]) -> None
     | OpenImport (oi, id::ids) ->
       let d1 = ((OpenImport (oi, [id]), s), l, l_env) in
       let (oi', _) = oi_alter_init_lskips (fun sk -> (new_line, sk)) oi in
       let ds = List.map (fun id -> ((OpenImport (oi', [id]), s), l, l_env)) ids in      
+        Some (env, List.rev (d1::ds))
+    | OpenImportTarget (_, _, []) -> Some (env, [])
+    | OpenImportTarget (_, _, [_]) -> None
+    | OpenImportTarget (oi, targs, m::ms) ->
+      let d1 = ((OpenImportTarget (oi, targs, [m]), s), l, l_env) in
+      let (oi', _) = oi_alter_init_lskips (fun sk -> (new_line, sk)) oi in
+      let ds = List.map (fun m -> ((OpenImportTarget (oi', targs, [m]), s), l, l_env)) ms in      
         Some (env, List.rev (d1::ds))
     | _ -> None
 

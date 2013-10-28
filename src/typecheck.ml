@@ -146,7 +146,7 @@ let ast_def_to_target_opt : Ast.def_aux -> Ast.targets option = function
     | Ast.Type_def _ -> None
     | Ast.Declaration _ -> None
     | Ast.Module _ -> None
-    | Ast.Open_Import _ -> None
+    | Ast.Open_import _ -> None
     | Ast.Spec_def _ -> None
     | Ast.Class _ -> None
     | Ast.Rename _ -> None
@@ -2779,17 +2779,28 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                 end
             | Nk_module m ->
                 let mod_descr = lookup_mod (defn_ctxt_to_env ctxt) id in
-                let tr' = List.fold_left (fun tr t -> fst (mod_target_rep_rename t (Name.strip_lskip n') l tr)) mod_descr.mod_target_rep (targets_opt_to_list targs) in
+                let mod_name = Path.to_string mod_descr.mod_binding in
+                let tr' = List.fold_left (fun tr t -> mod_target_rep_rename t mod_name (Name.strip_lskip n') None l tr) mod_descr.mod_target_rep (targets_opt_to_list targs) in
                 let e_env' = Pfmap.insert ctxt.ctxt_e_env (mod_descr.mod_binding, {mod_descr with mod_target_rep = tr'}) in
                 {ctxt with ctxt_e_env = e_env'}
           end in
           (ctxt', def')
-      | Ast.Declaration(Ast.Decl_rename_current_module_decl(sk1, target_opt, sk2, component_sk, sk3, xl')) ->
+      | Ast.Declaration(Ast.Decl_rename_current_module_decl(sk1, target_opt, sk2, component_sk, sk3, xl', target_mod_opt)) ->
           let n' = Name.from_x xl' in
           let targs = check_target_opt target_opt in
 
-          let def' = Some (Declaration (Decl_rename_current_module (sk1, targs, sk2, component_sk, sk3, n'))) in
-          let tr' = List.fold_left (fun tr t -> fst (mod_target_rep_rename t (Name.strip_lskip n') l tr)) ctxt.ctxt_mod_target_rep (targets_opt_to_list targs) in
+          let (targets_mod_opt_checked, mod_opt_list) = match target_mod_opt with
+            | Ast.Target_mod_opt_none -> (None, None)
+            | Ast.Target_mod_opt_some (sk4, bl, sk5, semi, sk6) -> 
+              begin
+                 let seplist = Seplist.from_list_suffix 
+                      (List.map (fun (sk1, s, sk2) -> ((sk1, s), sk2)) bl) sk5 semi in
+                 (Some (sk4, seplist, sk6), Some (List.map (fun (_, s, _) -> s) bl))
+              end
+          in
+          let def' = Some (Declaration (Decl_rename_current_module (sk1, targs, sk2, component_sk, sk3, n', targets_mod_opt_checked))) in
+          let mod_name = Path.to_string (Path.mk_path_list (List.rev mod_path)) in
+          let tr' = List.fold_left (fun tr t -> mod_target_rep_rename t mod_name (Name.strip_lskip n') mod_opt_list l tr) ctxt.ctxt_mod_target_rep (targets_opt_to_list targs) in
           ({ctxt with ctxt_mod_target_rep = tr'}, def') 
       | Ast.Declaration(Ast.Decl_pattern_match_decl (sk1, target_opt, sk2, ex_set, type_id, tnvars, sk3, sk4, constrs, sk5, semi, sk6, elim_opt)) ->
           let targs = check_target_opt target_opt in
@@ -2904,7 +2915,10 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                             id_locn = l;
                             descr = mod_descr.mod_binding;
                             instantiation = []; }))
-      | Ast.Open_Import(oi,is) -> 
+      | Ast.Open_import_target(oi,target_opt, ml) ->  
+          let targs = check_target_opt target_opt in
+          (ctxt, Some (OpenImportTarget(oi, targs, ml)))
+      | Ast.Open_import(oi,is) -> 
           let mod_descrs = List.map (lookup_mod (defn_ctxt_to_env ctxt)) is in
 
           let mod_descr_ids = List.map2 (fun i descr -> (

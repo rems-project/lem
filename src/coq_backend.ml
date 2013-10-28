@@ -599,26 +599,20 @@ let generate_coq_record_update_notation e =
             body; from_string "\nEnd "; name; from_string "."; ws skips'''
           ]
       | Rename (skips, name, mod_binding, skips', mod_descr) -> from_string "Rename"
-      | OpenImport (oi, mod_descrs) ->                  
-          let (skips, can_drop) = match oi with
-            | Ast.OI_import sk -> (sk, true)
-            | Ast.OI_include sk -> (sk, false)
-            | Ast.OI_include_import (sk1, sk2) -> (Ast.combine_lex_skips sk1 sk2, false)
-            | Ast.OI_open sk -> (sk, false)
-            | Ast.OI_open_import (sk1, sk2) -> (Ast.combine_lex_skips sk1 sk2, false)
-          in
-          let handle_mod mod_p = begin
-            let mod_path = B.module_id_to_ident mod_p in
-            let mod_name = Ident.get_name mod_path in
-            if (mod_name |> Name.strip_lskip |> Name.to_string) = "Vector" then
-               Output.flat []
-            else
-              let mod_name = Name.to_output Term_var mod_name in
+      | OpenImport (oi, ms) ->                  
+          let (ms', sk) = B.open_to_open_target ms in 
+          let d' = OpenImportTarget(oi, None, ms') in
+          def inside_instance callback inside_module d' ^ ws sk
+      | OpenImportTarget(oi, _, []) -> ws (oi_get_lskip oi)
+      | OpenImportTarget (Ast.OI_open skips, targets, mod_descrs) ->                 
+          let handle_mod (sk, md) = begin
                 Output.flat [
-                  ws skips; from_string "Require Import "; mod_name; from_string ".\n"
+                  ws skips; from_string "Require Import "; ws sk; from_string (format_module_open_string 
+                      (Target.Target_no_ident Target.Target_coq) md); from_string ".\n"
                 ]
           end in
-          if can_drop then emp else Output.flat (List.map handle_mod mod_descrs)
+          if (not (in_target targets)) then emp else Output.flat (List.map handle_mod mod_descrs)
+      | OpenImportTarget _ -> emp
       | Indreln (skips, targets, names, cs) -> (*INDERL_TODO Only added the name declaration parameter here*)
           if in_target targets then
             let c = Seplist.to_list cs in

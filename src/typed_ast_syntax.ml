@@ -275,17 +275,25 @@ let constant_descr_rename  (targ : Target.non_ident_target) (n':Name.t) (l' : As
   let tr = Target.Targetmap.insert (cd.target_rename) (targ, (l', n')) in
   ({cd with target_rename = tr}, old_info)
 
-let mod_target_rep_rename  (targ : Target.non_ident_target) (n':Name.t) (l' : Ast.l) (tr : mod_target_rep Target.Targetmap.t) : (mod_target_rep Target.Targetmap.t * (Ast.l * Name.t) option) = 
-  let (old_info, do_something) = match Target.Targetmap.apply_target tr (Target.Target_no_ident targ) with
-    | Some (MR_rename (l, n)) -> (Some (l, n), true)
-    | None -> (None, true)
+let mod_target_rep_rename  (targ : Target.non_ident_target) mod_string (n':Name.t) (target_mods_opt : (string list) option) (l' : Ast.l) (tr : mod_target_rep Target.Targetmap.t) : mod_target_rep Target.Targetmap.t = 
+  let _ = match (Target.Targetmap.apply_target tr (Target.Target_no_ident targ)) with
+    | (Some (MR_rename (l, _) | MR_target_modules (l, _, _))) ->
+      begin
+        let loc_s = Reporting_basic.loc_to_string true l in
+        let msg = Format.sprintf 
+           "a %s target representation for module '%s' has already been given at\n    %s" 
+           (Target.non_ident_target_to_string targ) mod_string loc_s in
+        raise (Reporting_basic.err_type l' msg)
+      end
+    | None -> ()
   in
-
-  if not do_something then 
-    (tr, None) 
-  else
-    let tr' = Target.Targetmap.insert tr (targ, MR_rename (l', Util.option_default n' (Name.capitalize n'))) in
-    (tr', old_info)
+  let new_name = Util.option_default n' (Name.capitalize n') in
+  let new_info = match target_mods_opt with
+    | None -> MR_rename (l', new_name)
+    | Some target_mods -> MR_target_modules (l', new_name, target_mods)
+  in
+  let tr' = Target.Targetmap.insert tr (targ, new_info) in
+  tr'
 
 
 let type_descr_rename  (targ : Target.non_ident_target) (n':Name.t) (l' : Ast.l) (td : type_descr) : type_descr * (Ast.l * Name.t) option = 
@@ -1050,6 +1058,7 @@ and add_def_entities (t_opt : Target.target) (only_new : bool) (ue : used_entiti
           ue
         end
       | OpenImport(_,ms) -> if only_new then ue else List.fold_left (fun ue m -> used_entities_add_module ue m.descr) ue ms
+      | OpenImportTarget _ -> ue
       | Indreln(_,targ,names,rules) -> begin
           let add_rule (Rule (_,_,_,_,_,e_opt,_,_,n_ref,es),_) ue = begin
              let ue = used_entities_add_const ue n_ref in

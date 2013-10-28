@@ -195,7 +195,7 @@ rule token skips = parse
 
   | "\\\\" ([^' ' '\t' '\n']+ as i)     { (X(Some(skips), Ulib.Text.of_latin1 i)) } 
 
-  | "`" (quote* as i) "`"              { QuotedString(Some skips, i) }
+  | "`" (quote* as i) "`"              { BacktickString(Some skips, i) }
 
   | "'" (startident ident* as i)        { (Tyvar(Some(skips), Ulib.Text.of_latin1 i)) }
   | "''" (startident ident* as i)	{ (Nvar(Some(skips), Ulib.Text.of_latin1 i)) }

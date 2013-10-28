@@ -53,8 +53,14 @@ module Duplicate(S : Set.S) : sig
 end
 
 (** [remove_duplicates l] removes duplicate elements from
-    the list l. As a side-effect, the list might be reordered. *)
+    the list l. The elements keep there original order. The first
+    occurence of an element is kept, all others deleted. *)
 val remove_duplicates : 'a list -> 'a list
+
+(** [remove_duplicates_gen p l] removes duplicate elements from
+    the list l. It is a generalised version of [remove_duplicates] where
+    the equality check is performed by [p]. *)
+val remove_duplicates_gen : ('a -> 'a -> bool) -> 'a list -> 'a list
 
 (** {2 Option Functions} *)
 

@@ -266,10 +266,13 @@ and env = {
 
 and mod_target_rep =
   | MR_rename of Ast.l * Name.t (** Rename the module *)
+  | MR_target_modules of Ast.l * Name.t * string list (** Rename the module and add some target modules to open
+      instead *)
 
 and mod_descr = { mod_binding : Path.t; (** The full path of this module *)
                   mod_env : local_env;  (** The local environment of the module *)
-                  mod_target_rep : mod_target_rep Target.Targetmap.t; (** how to represent the module for different backends *)}
+                  mod_target_rep : mod_target_rep Target.Targetmap.t; (** how to represent the module for different backends *)
+}
 
 and exp
 and exp_subst =
@@ -466,7 +469,7 @@ type declare_def =  (** Declarations *)
 
  | Decl_ascii_rep             of lskips * targets_opt * lskips * Ast.component * name_kind id * lskips * lskips * Name.t
  | Decl_rename                of lskips * targets_opt * lskips * Ast.component * name_kind id * lskips * Name.lskips_t
- | Decl_rename_current_module of lskips * targets_opt * lskips * lskips * lskips * Name.lskips_t
+ | Decl_rename_current_module of lskips * targets_opt * lskips * lskips * lskips * Name.lskips_t * (lskips * (lskips * string) lskips_seplist * lskips) option
  | Decl_termination_argument  of lskips * targets_opt * lskips * const_descr_ref id * lskips * Ast.termination_setting
  | Decl_pattern_match_decl    of lskips * targets_opt * lskips * Ast.exhaustivity_setting * Path.t id * tnvar list * lskips * lskips * (const_descr_ref id)  lskips_seplist * lskips * (const_descr_ref id) option
 
@@ -483,6 +486,8 @@ type def_aux =
     (** Renaming an already defined module *)
   | OpenImport of Ast.open_import * (Path.t id) list
     (** open and/or import modules *)
+  | OpenImportTarget of Ast.open_import * targets_opt * (lskips * string) list
+    (** open and/or import modules only for specific targets *)
   | Indreln of lskips * targets_opt * indreln_name lskips_seplist * indreln_rule lskips_seplist
     (** Inductive relations *)
   | Val_spec of val_spec
@@ -678,3 +683,4 @@ val class_path_to_dict_name : Path.t -> Types.tnvar -> Name.t
 
 val ident_get_lskip : 'a id -> Ast.lex_skips
 val ident_replace_lskip : ident_option -> Ast.lex_skips -> ident_option
+val oi_get_lskip : Ast.open_import -> Ast.lex_skips

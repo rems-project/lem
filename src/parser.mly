@@ -154,7 +154,7 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 %token <Ast.terminal * Ulib.Text.t> X Tyvar Nvar 
 %token <Ast.terminal * Ulib.Text.t> StarstarX StarX PlusX AtX EqualX GtEqX
 %token <Ast.terminal * int> Num
-%token <Ast.terminal * string> QuotedString String Bin Hex 
+%token <Ast.terminal * string> BacktickString String Bin Hex 
 
 %token <Ast.terminal> Indreln Forall EqEqGt Inline LtBar BarGt Exists EqGt BraceBar BarBrace DotBrace 
 %token <Ast.terminal> Assert Lemma Theorem 
@@ -236,7 +236,7 @@ atomic_typ:
     { tloc (Typ_var(A_l((fst $1, snd $1), loc()))) }
   | id
     { tloc (Typ_app($1,[])) }
-  | QuotedString
+  | BacktickString
     { tloc (Typ_backend(fst $1,snd $1, [])) }
   | Lparen typ Rparen
     { tloc (Typ_paren($1,$2,$3)) }
@@ -258,7 +258,7 @@ app_typ:
     { $1 }
   | id atomic_typs
     { tloc (Typ_app($1,$2)) }
-  | QuotedString atomic_typs
+  | BacktickString atomic_typs
     { tloc (Typ_backend(fst $1,snd $1, $2)) }
   
 star_typ_list:
@@ -430,7 +430,7 @@ atomic_exp:
     { eloc (Begin($1,$2,$3)) }
   | lit
     { eloc (Lit($1)) }
-  | QuotedString 
+  | BacktickString 
     { eloc (Backend (fst $1, snd $1)) }
   | Nvar
     { eloc (Nvar($1)) }
@@ -855,13 +855,13 @@ instschm:
 val_spec:
   | Val x Colon typschm
     { Val_spec($1,$2,Ascii_opt_none,$3,$4) }
-  | Val x Lsquare QuotedString Rsquare Colon typschm
+  | Val x Lsquare BacktickString Rsquare Colon typschm
     { Val_spec($1,$2,Ascii_opt_some($3,fst $4, snd $4,$5),$6,$7) }
 
 class_val_spec:
   | Val x Colon typ
     { ($1,$2,Ascii_opt_none,$3,$4) }
-  | Val x Lsquare QuotedString Rsquare Colon typ
+  | Val x Lsquare BacktickString Rsquare Colon typ
     { ($1,$2,Ascii_opt_some($3,fst $4, snd $4,$5),$6,$7) }
 
 class_val_specs:
@@ -943,7 +943,7 @@ fixity_decl :
     { Fixity_default_assoc }
 
 target_rep_rhs_term :
-  | Infix fixity_decl QuotedString 
+  | Infix fixity_decl BacktickString 
     { Target_rep_rhs_infix($1, $2, fst $3, snd $3) }
   | exp
     { Target_rep_rhs_term_replacement($1) }
@@ -961,14 +961,20 @@ x_ls :
   | X x_ls
     { (Ast.X_l ($1, loc()))::$2 }
 
+targets_mod_opt :
+  | 
+    { Ast.Target_mod_opt_none }
+  | Lsquare semi_backtickstrings Rsquare
+    { Ast.Target_mod_opt_some ($1, fst $2, fst(snd $2), (snd (snd $2)), $3) }
+
 declaration :
   | Declare targets_opt CompileMessage id Eq String
     { Decl_compile_message_decl($1, $2, $3, $4, fst $5, fst $6, snd $6) }
-  | Declare targets_opt Rename Module_ Eq x
-    { Decl_rename_current_module_decl($1, $2, $3, $4, fst $5, $6) }
+  | Declare targets_opt Rename Module_ Eq x targets_mod_opt 
+    { Decl_rename_current_module_decl($1, $2, $3, $4, fst $5, $6, $7) }
   | Declare targets_opt Rename component id Eq x
     { Decl_rename_decl($1, $2, $3, $4, $5, fst $6, $7) }
-  | Declare targets_opt AsciiRep component id Eq QuotedString
+  | Declare targets_opt AsciiRep component id Eq BacktickString
     { Decl_ascii_rep_decl($1, $2, $3, $4, $5, fst $6, fst $7, snd $7) }
   | Declare target TargetRep component_term id x_ls Eq target_rep_rhs_term
     { Decl_target_rep_decl($1, fst $2, snd $2, Target_rep_lhs_term ($3, $4, $5, $6), fst $7, $8) }
@@ -1030,8 +1036,10 @@ def:
     { mod_cap $2; dloc (Module($1,$2,fst $3,$4,$5,$6)) }
   | Module_ x Eq id
     { mod_cap $2; dloc (Rename($1,$2,fst $3,$4)) }
+  | open_import targets_opt backtickstrings
+    { dloc (Open_import_target($1,$2,$3)) }
   | open_import ids
-    { dloc (Open_Import($1,$2)) }
+    { dloc (Open_import($1,$2)) }
   | Indreln targets_opt and_indreln_names and_indreln_clauses
     { dloc (Indreln($1,$2,$3,$4)) }
   | val_spec
@@ -1119,10 +1127,30 @@ semi_ids:
   | semi_ids_help
     { $1 }
 
+semi_backtickstrings_help:
+  | BacktickString
+    { ([(fst $1,snd $1,None)], (None,false)) }
+  | BacktickString Semi
+    { ([(fst $1,snd $1,None)], ($2,true)) }
+  | BacktickString Semi semi_backtickstrings_help
+    { ((fst $1,snd $1,$2)::fst $3, snd $3) }
+
+semi_backtickstrings:
+  |
+    { ([], (None, false)) }
+  | semi_backtickstrings_help
+    { $1 }
+
 ids:
   | id
     { [$1] }
   | id ids
+    { $1 :: $2 }
+
+backtickstrings:
+  | BacktickString
+    { [$1] }
+  | BacktickString backtickstrings
     { $1 :: $2 }
 
 defs_help:

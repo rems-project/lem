@@ -62,14 +62,14 @@ let duplicates (x : S.elt list) : dups =
     f x S.empty
 end
 
-let remove_duplicates l =
-  let l' = List.sort Pervasives.compare l in
-  let rec aux acc l = match (acc, l) with
-      (_, []) -> List.rev acc 
-    | ([], x :: xs) -> aux [x] xs
-    | (y::ys, x :: xs) -> if (x = y) then aux (y::ys) xs else aux (x::y::ys) xs
+let remove_duplicates_gen p l =
+  let rec aux acc l = match l with
+      [] -> List.rev acc  
+    | (x :: xs) -> if (List.exists (p x) acc) then (aux acc xs) else aux (x::acc) xs
   in
-  aux [] l'
+  aux [] l
+
+let remove_duplicates l = remove_duplicates_gen (fun x y -> x = y) l
 
 let rec compare_list f l1 l2 = 
   match (l1,l2) with

@@ -420,6 +420,12 @@ target_rep_lhs =  (* left hand side of a target representation declaration *)
 
 
 type 
+target_modules_opt =  (* target modules to open instead of the current one *)
+   Target_mod_opt_none
+ | Target_mod_opt_some of terminal * (terminal * Ulib.UTF8.t * terminal) list * terminal * bool * terminal
+
+
+type 
 ascii_opt =  (* an optional ascii representation *)
    Ascii_opt_none
  | Ascii_opt_some of terminal * terminal * Ulib.UTF8.t * terminal
@@ -476,7 +482,7 @@ lemma_decl =  (* Lemmata and Tests *)
 type 
 declare_def =  (* declarations *)
    Decl_compile_message_decl of terminal * targets option * terminal * id * terminal * terminal * Ulib.UTF8.t
- | Decl_rename_current_module_decl of terminal * targets option * terminal * terminal * terminal * x_l
+ | Decl_rename_current_module_decl of terminal * targets option * terminal * terminal * terminal * x_l * target_modules_opt
  | Decl_rename_decl of terminal * targets option * terminal * component * id * terminal * x_l
  | Decl_ascii_rep_decl of terminal * targets option * terminal * component * id * terminal * terminal * Ulib.UTF8.t
  | Decl_target_rep_decl of terminal * target * terminal * target_rep_lhs * terminal * target_rep_rhs
@@ -524,7 +530,8 @@ def_aux =  (* Top-level definitions *)
  | Declaration of declare_def (* a declaration that modifies Lem's behaviour *)
  | Module of terminal * x_l * terminal * terminal * defs * terminal (* Module definitions *)
  | Rename of terminal * x_l * terminal * id (* Module renamings *)
- | Open_Import of open_import * (id) list (* importing and/or opening modules *)
+ | Open_import of open_import * (id) list (* importing and/or opening modules *)
+ | Open_import_target of open_import * targets option * (terminal * Ulib.UTF8.t) list (* importing and/or opening only for a target / it does not influence the Lem state *)
  | Indreln of terminal * targets option * (indreln_name * terminal) list * (rule * terminal) list (* Inductively defined relations *)
  | Spec_def of val_spec (* Top-level type constraints *)
  | Class of terminal * terminal * x_l * tnvar * terminal * ((terminal * x_l * ascii_opt * terminal * typ * l)) list * terminal (* Typeclass definitions *)
@@ -569,14 +576,14 @@ env_tag =  (* Tags for the (non-constructor) value descriptions *)
 
 
 type 
-f_desc = 
-   F_field of terminal * terminal * tnv list * terminal * p * terminal * t * terminal * terminal * x * terminal * Set.Make(String).t * terminal * terminal (* Fields *)
-
-
-type 
 v_desc =  (* Value descriptions *)
    V_constr of terminal * terminal * tnv list * terminal * t list * terminal * p * terminal * terminal * x * terminal * Set.Make(String).t * terminal * terminal (* Constructors *)
  | V_val of terminal * terminal * tnv list * terminal * semC * terminal * t * terminal * env_tag * terminal (* Values *)
+
+
+type 
+f_desc = 
+   F_field of terminal * terminal * tnv list * terminal * p * terminal * t * terminal * terminal * x * terminal * Set.Make(String).t * terminal * terminal (* Fields *)
 
 
 type 

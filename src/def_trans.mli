@@ -81,17 +81,32 @@ val process_defs : Name.t list -> def_macro -> Name.t -> env -> def list -> (env
     dictionary passing. *)
 val class_to_record : def_macro
 
+(** [instance_to_dict] turns instance declarations into definition of a dictionary record *)
+val instance_to_dict : def_macro
+
+val class_constraint_to_parameter : def_macro
+
+
+(** {2 Open / Include / Import} *)
+
+(** [remove_opens] removes all open / include and import statements *)
+val remove_opens : def_macro
+
+(** [remove_import_include] removes all import and include statements. Imports are deleted and
+    includes turned into open statements. *)
+val remove_import_include : def_macro
+
+(** open statements can open multiple modules at once. For backends that don't support this,
+    [opens_to_single] turns one open/import/include statement into multiple ones that all mention
+    exactly one module. *)
+val opens_to_single : def_macro
 
 (** {2 Misc} *)
 val remove_vals : def_macro
 val remove_indrelns : def_macro
 val remove_indrelns_true_lhs : def_macro
-val remove_opens : def_macro
-val opens_to_single : def_macro
 val remove_classes : def_macro
-val instance_to_dict : def_macro
 val type_annotate_definitions : def_macro
-val class_constraint_to_parameter : def_macro
 val nvar_to_parameter : def_macro
 
 val prune_target_bindings : Target.non_ident_target -> def list -> def list

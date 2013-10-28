@@ -62,11 +62,21 @@ val component_to_output : Ast.component -> Output.t
     target [targ].*)
 val get_module_name : env -> Target.target -> Name.t list -> Name.t -> Name.t
 
+(** [get_module_open_string l env targ mod_id] looks up how to represent this module in import / open statements. The module might
+    well be replaced with a whole list of other modules or nothing. It returns a preceeding skip plus a list of strings. *)
+val get_module_open_string : env -> Target.target -> Path.t id -> lskips * string list
+
+(** [format_module_open_string targ s] formats the open string [s] for target [targ]. For HOL the suffix "Theory" is for example
+    added. *)
+val format_module_open_string : Target.target -> string -> string
+
 module Make(A : sig
   val env : env;; 
   val target : Target.target;;
   val id_format_args : (bool -> Output.id_annot -> Ulib.Text.t -> Output.t) * Output.t
  end) : sig
+
+val open_to_open_target : (Path.t id) list -> (lskips * string) list * lskips
 
 (** [function_application_to_output l exp inf full_exp c_id args] tries to format
     a function application as output. It gets an expression [full_ex] of the from

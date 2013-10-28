@@ -2277,6 +2277,24 @@ let infix_decl = function
   | Ast.Fixity_right_assoc (sk, n) -> ws sk ^ kwd "right_assoc" ^ num n
 
 
+let open_import_to_output = function
+  | Ast.OI_open s ->
+      ws s ^ T.module_open
+  | Ast.OI_include s ->
+      ws s ^ T.module_include
+  | Ast.OI_import s ->
+      ws s ^ T.module_import
+  | Ast.OI_open_import (s1, s2) ->
+      ws s1 ^
+      T.module_open ^
+      ws s2 ^
+      T.module_import
+  | Ast.OI_include_import (s1, s2) ->
+      ws s1 ^
+      T.module_include ^
+      ws s2 ^
+      T.module_import
+
 let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = match d with
   (* A single type abbreviation *)
   | Type_def(s1, l) when is_abbrev l->
@@ -2426,36 +2444,20 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
       ws s2 ^
       kwd "=" ^
       Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)
-  | OpenImport(Ast.OI_open s,ms) ->
-      ws s ^
-      T.module_open ^
-      (Output.flat (List.map (fun m -> Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)) ms))
-  | OpenImport(Ast.OI_include s,ms) ->
-      ws s ^
-      T.module_include ^
-      (Output.flat (List.map (fun m -> Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)) ms))
-  | OpenImport(Ast.OI_open_import (s1, s2),ms) ->
-      if (is_human_target T.target) then
-        ws s1 ^
-        T.module_open ^
-        ws s2 ^
-        T.module_import ^
-        (Output.flat (List.map (fun m -> Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)) ms))
-      else def_internal callback inside_module (OpenImport (Ast.OI_open 
-          (lskips_only_comments_first [s1;s2]), ms)) is_user_def
-  | OpenImport(Ast.OI_include_import (s1, s2),ms) ->
-      if (is_human_target T.target) then
-        ws s1 ^
-        T.module_include ^
-        ws s2 ^
-        T.module_import ^
-        (Output.flat (List.map (fun m -> Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)) ms))
-      else def_internal callback inside_module (OpenImport (Ast.OI_open (lskips_only_comments_first [s1;s2]), ms)) is_user_def
-  | OpenImport(Ast.OI_import s,ms) -> 
-      if (is_human_target T.target) then
-        ws s ^
-        T.module_import ^
-        (Output.flat (List.map (fun m -> Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)) ms))
+  | OpenImport (oi, ms) ->
+      let (ms', sk) = B.open_to_open_target ms in 
+      let d' = OpenImportTarget(oi, None, ms') in
+      def_internal callback inside_module d' is_user_def ^ ws sk
+  | OpenImportTarget(oi, _, []) -> ws (oi_get_lskip oi)
+  | OpenImportTarget(oi,targets, ms) ->
+      if in_target targets then
+        open_import_to_output oi ^
+        (if Target.is_human_target T.target then
+           targets_opt targets 
+         else
+           emp) ^
+        (Output.flat (List.map (fun (sk, m) -> 
+           ws sk ^ T.backend_quote (kwd (format_module_open_string T.target m))) ms))
       else emp
   | Indreln(s,targets,names,clauses) ->
       if in_target targets then
@@ -2586,7 +2588,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         kwd "=" ^
         (Name.to_output Term_const n)
       end
-  | Declaration (Decl_rename_current_module (sk1, targets, sk2, sk3, sk4, n)) ->
+  | Declaration (Decl_rename_current_module (sk1, targets, sk2, sk3, sk4, n, mn_opt)) ->
       if (not (Target.is_human_target T.target)) then emp else begin
         ws sk1 ^
         kwd "declare" ^
@@ -2597,7 +2599,16 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         kwd "module" ^
         ws sk4 ^
         kwd "=" ^
-        (Name.to_output Term_const n)
+        (Name.to_output Term_const n) ^
+        Util.option_default_map mn_opt emp (fun (sk5, mn, sk6) ->
+          ws sk5 ^
+          kwd "[" ^
+          flat
+            (Seplist.to_sep_list_last Seplist.Optional (fun (sk, s) ->
+                ws sk ^ T.backend_quote (kwd s)
+             ) (sep (kwd ";")) mn) ^
+          ws sk6 ^
+          kwd "]")
       end
   | Declaration (Decl_compile_message (sk1, targets, sk2, c_id, sk3, sk4, msg)) -> 
       if (not (Target.is_human_target T.target)) then emp else begin

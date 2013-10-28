@@ -208,14 +208,53 @@ let get_module_name env target path mod_name =  begin
   let md = lookup_mod_descr env path mod_name in
   match Target.Targetmap.apply_target md.mod_target_rep target with
     | Some (MR_rename (_, n)) -> n
+    | Some (MR_target_modules (_, n, _)) -> n
     | _ -> mod_name
 end
+
+let get_module_open_string env target id =
+begin
+  let transform_name mod_string = match target with
+(*    | Target.Target_no_ident (Target.Target_hol) -> String.uncapitalize mod_string *)
+    | _ -> mod_string
+  in
+  let md = e_env_lookup Ast.Unknown env.e_env id.descr in
+  let modules_list = match Target.Targetmap.apply_target md.mod_target_rep target with
+    | Some (MR_rename (_, n)) -> [transform_name (Name.to_string n)]
+    | Some (MR_target_modules (_, _, targ_reps)) -> targ_reps
+    | _ -> [transform_name (Name.to_string (Path.get_name id.descr))]
+  in
+  (ident_get_lskip id, modules_list)
+end
+
+let format_module_open_string target s =
+  match target with
+    | Target.Target_no_ident Target.Target_hol -> (String.concat "" [s; "Theory"])
+    | _ -> s
 
 module Make(A : sig 
   val env : env;; 
   val target : Target.target;;
   val id_format_args : (bool -> Output.id_annot -> Ulib.Text.t -> Output.t) * Output.t
  end) = struct
+
+
+let open_to_open_target ms =
+begin
+  let sk_sl_list = List.map (get_module_open_string A.env A.target) ms in
+  let rec concat_skip_lists acc sk = function
+    | [] -> (List.rev acc, sk)
+    | (sk', sl) :: skip_list -> begin
+        let sl' = List.filter (fun s -> not (List.exists (fun (_, s') -> s = s') acc)) sl in
+        match sl' with
+          | [] -> concat_skip_lists acc (Ast.combine_lex_skips sk sk') skip_list
+          | (s :: sl) -> 
+               let acc = List.rev_append (List.map (fun s -> (space, s)) sl) ((Ast.combine_lex_skips sk sk', s) :: acc) in
+               concat_skip_lists acc None skip_list
+      end 
+  in concat_skip_lists [] None sk_sl_list
+end
+
 
 let fix_module_name_list nl = begin
   let rec aux acc path rest = match rest with

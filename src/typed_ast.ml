@@ -180,10 +180,11 @@ and free_env = t Nfmap.t
 
 and mod_target_rep =
   | MR_rename of Ast.l * Name.t
+  | MR_target_modules of Ast.l * Name.t * string list
 
 and mod_descr = { mod_binding : Path.t;
                   mod_env : local_env; 
-                  mod_target_rep : mod_target_rep Targetmap.t;}
+                  mod_target_rep : mod_target_rep Targetmap.t; }
 
 and exp = (exp_aux,exp_annot) annot
 (* We keep typ with the subst applied, and term and free without, we also only
@@ -338,7 +339,8 @@ type declare_def =  (* declarations *)
  | Decl_target_rep_type       of lskips * Ast.target  * lskips * lskips * Path.t id * tnvar list * lskips * src_t
  | Decl_ascii_rep             of lskips * targets_opt * lskips * Ast.component * name_kind id * lskips * lskips * Name.t
  | Decl_rename                of lskips * targets_opt * lskips * Ast.component * name_kind id * lskips * Name.lskips_t
- | Decl_rename_current_module of lskips * targets_opt * lskips * lskips * lskips * Name.lskips_t
+ | Decl_rename_current_module of lskips * targets_opt * lskips * lskips * lskips * Name.lskips_t * 
+            (lskips * (lskips * string) lskips_seplist * lskips) option
  | Decl_termination_argument  of lskips * targets_opt * lskips * const_descr_ref id * lskips * Ast.termination_setting
  | Decl_pattern_match_decl    of lskips * targets_opt * lskips * Ast.exhaustivity_setting * Path.t id * tnvar list * lskips * lskips * (const_descr_ref id) lskips_seplist * lskips * (const_descr_ref id) option
 (*
@@ -353,6 +355,7 @@ and def_aux =
   | Module of lskips * name_l * Path.t * lskips * lskips * def list * lskips
   | Rename of lskips * name_l * Path.t * lskips * Path.t id
   | OpenImport of Ast.open_import * (Path.t id) list
+  | OpenImportTarget of Ast.open_import * targets_opt * (lskips * string) list
   | Indreln of lskips * targets_opt * indreln_name lskips_seplist * indreln_rule lskips_seplist
   | Val_spec of val_spec
   | Class of lskips * lskips * name_l * tnvar * Path.t * lskips * class_val_spec list * lskips
@@ -642,6 +645,10 @@ let rec def_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (((d,s),l,l
           let (oi', s_ret) = oi_alter_init_lskips lskips_f oi in
           res (OpenImport(oi',m)) s_ret
         end
+      | OpenImportTarget(oi,targets,m) -> begin     
+          let (oi', s_ret) = oi_alter_init_lskips lskips_f oi in
+          res (OpenImportTarget(oi',targets,m)) s_ret
+        end
       | Indreln(sk,topt,names,rules) ->
           let (s_new, s_ret) = lskips_f sk in
             res (Indreln(s_new,topt,names,rules)) s_ret
@@ -674,9 +681,9 @@ let rec def_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (((d,s),l,l
             | Decl_rename (sk1, targs, sk2, comp, id, sk3, n) ->
                 let (sk1', s_ret) = lskips_f sk1 in
                 (Decl_rename (sk1', targs, sk2, comp, id, sk3, n), s_ret)
-            | Decl_rename_current_module (sk1, targs, sk2, sk3, sk4, n) ->
+            | Decl_rename_current_module (sk1, targs, sk2, sk3, sk4, n, mr) ->
                 let (sk1', s_ret) = lskips_f sk1 in
-                (Decl_rename_current_module (sk1', targs, sk2, sk3, sk4, n), s_ret)
+                (Decl_rename_current_module (sk1', targs, sk2, sk3, sk4, n, mr), s_ret)
             | Decl_termination_argument (sk1, targs, sk2, id, sk3, ts) ->
                 let (sk1', s_ret) = lskips_f sk1 in
                 (Decl_termination_argument (sk1', targs, sk2, id, sk3, ts), s_ret)
@@ -2229,3 +2236,7 @@ let ident_replace_lskip id sk =
   match id with
     | Id_none _ -> Id_none sk
     | Id_some i -> Id_some (Ident.replace_lskip i sk)
+
+let oi_get_lskip oi =
+  let (_, sk) = oi_alter_init_lskips (fun sk -> (sk, sk)) oi in
+  sk

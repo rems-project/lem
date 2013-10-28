@@ -145,7 +145,7 @@ let ctxt_begin_submodule ctxt =
                 export_env = empty_local_env;
                 new_tdefs = [];
                 new_instances = [];
-                ctxt_mod_target_rep = Target.Targetmap.empty} 
+                ctxt_mod_target_rep = Target.Targetmap.empty; } 
 
 
 let ctxt_end_submodule l ctxt_before mod_path n ctxt =

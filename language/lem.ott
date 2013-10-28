@@ -792,15 +792,21 @@ target_rep_lhs  :: 'Target_rep_lhs_' ::=
   | target_rep component id x_l1 .. x_ln :: :: term
   | target_rep component id tnvars       :: :: type
 
+
+target_modules_opt  :: 'Target_mod_opt_' ::=
+  {{ com target modules to open instead of the current one }}
+  |                                                        :: :: none    
+  | [ backtick_string1 ; ... ; backtick_stringn semi_opt ] :: :: some
+
 declare_def :: 'Decl_' ::= 
   {{ com declarations }}
-  | declare targets_opt compile_message id = string                                               :: :: compile_message_decl
-  | declare targets_opt rename module = x_l                                                       :: :: rename_current_module_decl
-  | declare targets_opt rename component id = x_l                                                 :: :: rename_decl
-  | declare targets_opt ascii_rep component id = backtick_string                                  :: :: ascii_rep_decl
-  | declare target target_rep target_rep_lhs = target_rep_rhs                                     :: :: target_rep_decl
-  | declare set_flag x_l1 = x_l2                                                                  :: :: set_flag_decl
-  | declare targets_opt termination_argument id = termination_setting                             :: :: termination_argument_decl
+  | declare targets_opt compile_message id = string                                                :: :: compile_message_decl
+  | declare targets_opt rename module = x_l target_modules_opt                                     :: :: rename_current_module_decl
+  | declare targets_opt rename component id = x_l                                                  :: :: rename_decl
+  | declare targets_opt ascii_rep component id = backtick_string                                   :: :: ascii_rep_decl
+  | declare target target_rep target_rep_lhs = target_rep_rhs                                      :: :: target_rep_decl
+  | declare set_flag x_l1 = x_l2                                                                   :: :: set_flag_decl
+  | declare targets_opt termination_argument id = termination_setting                              :: :: termination_argument_decl
   | declare targets_opt pattern_match exhaustivity_setting id tnvars = [ id1 ; ... ; idn semi_opt ] elim_opt :: :: pattern_match_decl
 
 val_def :: '' ::= 
@@ -835,10 +841,10 @@ def_aux :: '' ::=
     {{ com Module definitions }}
   | module x_l = id						:: :: Rename
     {{ com Module renamings }}
-  | open_import id1 ... idn					:: :: Open_Import
+  | open_import id1 ... idn					:: :: Open_import
     {{ com importing and/or opening modules }}
-%  | include id							:: :: Include
-%    {{ com Including modules }}
+  | open_import targets_opt backtick_string1 ... backtick_stringn :: :: Open_import_target
+    {{ com importing and/or opening only for a target / it does not influence the Lem state }}
   | indreln targets_opt indreln_name1 and ... and indreln_namei rule1 and ... and rulen			:: :: Indreln
     {{ com Inductively defined relations }}
   | val_spec 							:: :: Spec_def
