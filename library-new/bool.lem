@@ -23,19 +23,18 @@ declare ocaml    target_rep function not = `not`
 declare isabelle target_rep function not = `~`
 declare html     target_rep function not = `&not;`
 
+assert not_1 : (not (not true))
+assert not_2 : (not false)
 
 (* ----------------------- *)
 (* and                     *)
 (* ----------------------- *)
 
-val (&&) : bool -> bool -> bool
+val (&&) [`and`] : bool -> bool -> bool
 let (&&) b1 b2 = match (b1, b2) with
   | (true, true) -> true
   | _ -> false
 end
-
-
-declare ascii_rep function (&&) = `and`
 
 declare hol      target_rep function (&&) = infix `/\`
 declare ocaml    target_rep function (&&) = infix `&&`
@@ -43,18 +42,21 @@ declare isabelle target_rep function (&&) = infix `\<and>`
 declare coq      target_rep function (&&) = `and`
 declare html     target_rep function (&&) = infix `&and;`
 
+assert and_1 : (not (true && false))
+assert and_2 : (not (false && true))
+assert and_3 : (not (false && false))
+assert and_4 : (true && true)
 
 
 (* ----------------------- *)
 (* or                      *)
 (* ----------------------- *)
 
-val (||) : bool -> bool -> bool
+val (||) [`or`] : bool -> bool -> bool
 let (||) b1 b2 = match (b1, b2) with
   | (false, false) -> false
   | _ -> true
 end
-declare ascii_rep function (||) = `or`
 
 declare hol      target_rep function (||) = infix `\/`
 declare ocaml    target_rep function (||) = infix `||`
@@ -62,42 +64,53 @@ declare isabelle target_rep function (||) = infix `\<or>`
 declare coq      target_rep function (||) = `or`
 declare html     target_rep function (||) = infix `&or;`
 
+assert or_1 : (true || false)
+assert or_2 : (false || true)
+assert or_3 : (true || true)
+assert or_4 : (not (false || false))
+
 
 (* ----------------------- *)
 (* implication             *)
 (* ----------------------- *)
 
-val (-->) : bool -> bool -> bool
+val (-->) [`imp`] : bool -> bool -> bool
 let (-->) b1 b2 = match (b1, b2) with
   | (true, false) -> false
   | _ -> true
 end
-declare ascii_rep function (-->) = `imp`
 
 declare hol      target_rep function (-->) = infix `==>`
-declare isabelle target_rep function (-->) = infix `\<implies>`
-declare html     target_rep function (-->) = infix `&rarr;`
+declare isabelle target_rep function (-->) = infix `\<longrightarrow>`
 declare coq      target_rep function (-->) = `imp`
+declare html     target_rep function (-->) = infix `&rarr;`
 
 let inline {ocaml} imp x y = ((not x) || y)
+
+assert imp_1 : (not (true --> false))
+assert imp_2 : (false --> true)
+assert imp_3 : (false --> false)
+assert imp_4 : (true --> true)
 
 
 (* ----------------------- *)
 (* equivalence             *)
 (* ----------------------- *)
 
-val (<->) : bool -> bool -> bool
+val (<->) [`equiv`] : bool -> bool -> bool
 let (<->) b1 b2 = match (b1, b2) with
   | (true, true) -> true
   | (false, false) -> true
   | _ -> false
 end
-declare ascii_rep function (<->) = `equiv`
 
 declare hol      target_rep function (<->) = infix `<=>`
-declare isabelle target_rep function (<->) = infix `\<equiv>`
-declare coq      target_rep function (<->) = `eqb`
+declare isabelle target_rep function (<->) = infix `\<longleftrightarrow>`
+declare coq      target_rep function (<->) = infix `eqb`
 declare ocaml    target_rep function (<->) = infix `=`
 declare html     target_rep function (<->) = infix `&harr;`
 
-
+assert equiv_1 : (not (true <-> false))
+assert equiv_2 : (not (false <-> true))
+assert equiv_3 : (false <-> false)
+assert equiv_4 : (true <-> true)

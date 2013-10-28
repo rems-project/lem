@@ -191,7 +191,6 @@ let output1 env libpath isa_thy out_dir (targ : Target.target) avoid m alldoc_ac
               begin
                 let (o,ext_o) = open_output_with_check dir (module_name ^ "ExtraScript.sml") in
                 hol_header extra_imported_modules o;
-                Printf.fprintf o "open %sTheory\n\n" module_name;
                 Printf.fprintf o "val _ = new_theory \"%sExtra\"\n\n" module_name;
                 Printf.fprintf o "%s" (Ulib.Text.to_string r_extra);
                 Printf.fprintf o "val _ = export_theory()\n\n";
