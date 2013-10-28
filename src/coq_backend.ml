@@ -768,68 +768,7 @@ let generate_coq_record_update_notation e =
               ]
           else
             from_string "(* [?]: removed lemma intended for another backend. *)"
-      | Declaration declare -> from_string "" (*
-        begin
-          match declare with
-            | Decl_target_rep_term (skips, target, skips', component, const_descr_ref_id, name_lskips_annot_list, skips''', target_rep_rhs) ->
-              begin
-                match target with
-                  | Ast.Target_coq _ ->
-                    let const_descr_ref = const_descr_ref_id.descr in
-                    let const_descr = Typed_ast.c_env_lookup Ast.Unknown A.env.c_env const_descr_ref in
-                    let original =
-                      let path = const_descr.const_binding in
-                        from_string (Ulib.Text.to_string (Name.to_rope (snd (Path.to_name_list path))))
-                    in
-                    let go =
-                      begin
-                        match target_rep_rhs with
-                          | Target_rep_rhs_infix (skips, fixity_decl, skips', ident) ->
-                            let ident = from_string (Ident.to_string ident) in
-                            let assoc_decl =
-                              begin
-                                match fixity_decl with
-                                  | Ast.Fixity_right_assoc (_, prec) ->
-                                    let prec = from_string (string_of_int prec) in
-                                      Output.flat [
-                                        from_string " (at level "; prec; from_string ", right associativity)."
-                                      ]
-                                  | Ast.Fixity_left_assoc (_, prec) ->
-                                    let prec = from_string (string_of_int prec) in
-                                      Output.flat [
-                                        from_string " (at level "; prec; from_string ", left associativity)."
-                                      ]
-                                  | Ast.Fixity_non_assoc (_, prec) ->
-                                    let prec = from_string (string_of_int prec) in
-                                      Output.flat [
-                                        from_string " (at level "; prec; from_string ", no associativity)."
-                                      ]
-                                  | Ast.Fixity_default_assoc ->
-                                      Output.flat [
-                                        from_string " (at level 70, no associativity)."
-                                      ]
-                              end
-                            in
-                              Output.flat [
-                                from_string "\nNotation \"X \'"; ident; from_string "\' Y\" := "
-                              ; from_string "("; ident; from_string " X Y)"; assoc_decl
-                              ]
-                          | Target_rep_rhs_term_replacement e ->
-                            let e = exp false e in
-                              Output.flat [
-                                from_string "\nNotation \"X \'"; original; from_string "\' Y\" := "
-                              ; from_string "("; e; from_string " X Y) (at level 70, no associativity)."
-                              ]
-
-                          | Target_rep_rhs_type_replacement src_t -> assert false
-                          | Target_rep_rhs_special (skips, skips', str, exp_list) -> assert false
-                      end
-                    in
-                      go
-                  | _ -> from_string ""
-              end
-            | _ -> from_string "" (* All other declarations empty in the Coq backend *)
-        end *)
+      | Declaration declare -> from_string ""
     and val_def inside_instance i_ref_opt is_recursive def tv_set class_constraints =
       begin
         let constraints =
