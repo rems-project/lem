@@ -62,13 +62,19 @@ val component_to_output : Ast.component -> Output.t
     target [targ].*)
 val get_module_name : env -> Target.target -> Name.t list -> Name.t -> Name.t
 
-(** [get_module_open_string l env targ mod_id] looks up how to represent this module in import / open statements. The module might
-    well be replaced with a whole list of other modules or nothing. It returns a preceeding skip plus a list of strings. *)
-val get_module_open_string : env -> Target.target -> Path.t id -> lskips * string list
+(** [get_module_open_string l env targ mod_path] looks up how to represent this module in import / open statements. The module might
+    well be replaced with a whole list of other modules or nothing. *)
+val get_module_open_string : env -> Target.target -> Path.t -> string list
 
 (** [format_module_open_string targ s] formats the open string [s] for target [targ]. For HOL the suffix "Theory" is for example
     added. *)
 val format_module_open_string : Target.target -> string -> string
+
+
+(** [get_imported_target_modules env targ defs] extracts a list of target module names that should be
+    imported for this target. *)
+val get_imported_target_modules : env -> Target.target -> Typed_ast.def list * Ast.lex_skips -> string list
+
 
 module Make(A : sig
   val env : env;; 

@@ -3,6 +3,8 @@
 (******************************************************************************)
 
 open import Bool
+declare {hol;isabelle;coq} rename module = lem_basic_classes []
+declare {ocaml} rename module = lem_basic_classes
 
 (* ========================================================================== *)
 (* Equality                                                                   *)

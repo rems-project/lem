@@ -4,9 +4,8 @@
 (* It mainly follows the Haskell Maybe-library                                *)
 (******************************************************************************)
 
-declare rename module = lem_maybe
-
-open import Bool Basic_classes Num
+declare rename module = lem_maybe []
+open import Bool Basic_classes 
 
 (* ========================================================================== *)
 (* Basic stuff                                                                *)

@@ -212,25 +212,48 @@ let get_module_name env target path mod_name =  begin
     | _ -> mod_name
 end
 
-let get_module_open_string env target id =
+let get_module_open_string env target mod_path =
 begin
   let transform_name mod_string = match target with
 (*    | Target.Target_no_ident (Target.Target_hol) -> String.uncapitalize mod_string *)
     | _ -> mod_string
   in
-  let md = e_env_lookup Ast.Unknown env.e_env id.descr in
+  let md = e_env_lookup Ast.Unknown env.e_env mod_path in
   let modules_list = match Target.Targetmap.apply_target md.mod_target_rep target with
     | Some (MR_rename (_, n)) -> [transform_name (Name.to_string n)]
     | Some (MR_target_modules (_, _, targ_reps)) -> targ_reps
-    | _ -> [transform_name (Name.to_string (Path.get_name id.descr))]
+    | _ -> [transform_name (Name.to_string (Path.get_name mod_path))]
   in
-  (ident_get_lskip id, modules_list)
+    modules_list
 end
 
 let format_module_open_string target s =
   match target with
     | Target.Target_no_ident Target.Target_hol -> (String.concat "" [s; "Theory"])
     | _ -> s
+
+let rec concat_skip_lists acc sk = function
+  | [] -> (List.rev acc, sk)
+  | (sk', sl) :: skip_list -> begin
+      let sl' = List.filter (fun s -> not (List.exists (fun (_, s') -> s = s') acc)) sl in
+      match sl' with
+        | [] -> concat_skip_lists acc (Ast.combine_lex_skips sk sk') skip_list
+        | (s :: sl) -> 
+             let acc = List.rev_append (List.map (fun s -> (space, s)) sl) ((Ast.combine_lex_skips sk sk', s) :: acc) in
+             concat_skip_lists acc None skip_list
+    end 
+
+let get_imported_target_modules_of_def_aux env target = function
+  | OpenImport ((Ast.OI_import _ | Ast.OI_open_import _ | Ast.OI_include_import _), ids) ->      
+      List.flatten (List.map (fun id -> get_module_open_string env target id.descr) ids)
+  | OpenImportTarget ((Ast.OI_import _ | Ast.OI_open_import _ | Ast.OI_include_import _), _, ts) ->      
+      List.map snd ts
+  | _ -> [] 
+
+let get_imported_target_modules env target ((ds, _) : Typed_ast.def list * Ast.lex_skips)  =
+  let ms = List.flatten (List.map (fun ((d, _), _, _) -> get_imported_target_modules_of_def_aux env target d) ds) in
+  Util.remove_duplicates ms
+
 
 module Make(A : sig 
   val env : env;; 
@@ -241,20 +264,9 @@ module Make(A : sig
 
 let open_to_open_target ms =
 begin
-  let sk_sl_list = List.map (get_module_open_string A.env A.target) ms in
-  let rec concat_skip_lists acc sk = function
-    | [] -> (List.rev acc, sk)
-    | (sk', sl) :: skip_list -> begin
-        let sl' = List.filter (fun s -> not (List.exists (fun (_, s') -> s = s') acc)) sl in
-        match sl' with
-          | [] -> concat_skip_lists acc (Ast.combine_lex_skips sk sk') skip_list
-          | (s :: sl) -> 
-               let acc = List.rev_append (List.map (fun s -> (space, s)) sl) ((Ast.combine_lex_skips sk sk', s) :: acc) in
-               concat_skip_lists acc None skip_list
-      end 
-  in concat_skip_lists [] None sk_sl_list
+  let sk_sl_list = List.map (fun id -> (ident_get_lskip id, get_module_open_string A.env A.target id.descr)) ms in
+  concat_skip_lists [] None sk_sl_list
 end
-
 
 let fix_module_name_list nl = begin
   let rec aux acc path rest = match rest with

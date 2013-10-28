@@ -135,6 +135,8 @@ let output1 env libpath isa_thy (targ : Target.target) avoid m alldoc_accum alld
   let module B = Backend.Make(C) in
   let open Typed_ast in
   
+  let imported_modules = List.map (Backend_common.format_module_open_string targ) (Backend_common.get_imported_target_modules env targ m.typed_ast) in
+  let extra_imported_modules = List.map (Backend_common.format_module_open_string targ) (Backend_common.get_module_open_string env targ m.module_path) in
   let (mod_path, mod_name) = Path.to_name_list m.module_path in
   let module_name = Name.to_string (Backend_common.get_module_name env targ mod_path mod_name) in
   let module_name_lower = String.uncapitalize module_name in
@@ -163,29 +165,22 @@ let output1 env libpath isa_thy (targ : Target.target) avoid m alldoc_accum alld
       | Target.Target_no_ident (Target.Target_hol) ->
           begin
             let (r_main, r_extra_opt) = B.hol_defs m.typed_ast in
-            let hol_header o = begin
+            let hol_header load_mods o = begin
               Printf.fprintf o "(*%s*)\n" (generated_line m.filename);
-              Printf.fprintf o "open bossLib Theory Parse res_quanTheory\n";
-              Printf.fprintf o "open fixedPointTheory finite_mapTheory listTheory pairTheory pred_setTheory\n";
-              Printf.fprintf o "open integerTheory set_relationTheory sortingTheory stringTheory wordsTheory\n\n";
+              Printf.fprintf o "open HolKernel Parse boolLib bossLib;\n";
+              if (List.length load_mods > 0) then begin
+                Printf.fprintf o "open %s;\n\n" (String.concat " " load_mods)
+              end;
+
+(*              Printf.fprintf o "open fixedPointTheory finite_mapTheory listTheory pairTheory pred_setTheory\n";
+              Printf.fprintf o "open integerTheory set_relationTheory sortingTheory stringTheory wordsTheory\n\n"; *)
+
               Printf.fprintf o "val _ = numLib.prefer_num();\n\n";
               Printf.fprintf o "\n\n";
-(*              begin
-                if m.predecessor_modules <> [] then
-                  begin
-                    Printf.fprintf o "open";
-                    List.iter
-                      (fun f -> Printf.fprintf o " %s" f; Printf.fprintf o "Theory")
-                      m.predecessor_modules;
-                    Printf.fprintf o "\n\n"
-                  end
-                else 
-                  ()
-              end*)
             end in
             let _ = begin
               let (o, ext_o) = open_output_with_check dir (module_name ^ "Script.sml") in
-              hol_header o;
+              hol_header imported_modules o;
               Printf.fprintf o "val _ = new_theory \"%s\"\n\n" module_name;
               Printf.fprintf o "%s" (Ulib.Text.to_string r_main);
               Printf.fprintf o "val _ = export_theory()\n\n";
@@ -194,7 +189,7 @@ let output1 env libpath isa_thy (targ : Target.target) avoid m alldoc_accum alld
             let _ = match r_extra_opt with None -> () | Some r_extra ->
               begin
                 let (o,ext_o) = open_output_with_check dir (module_name ^ "ExtraScript.sml") in
-                hol_header o;
+                hol_header extra_imported_modules o;
                 Printf.fprintf o "open %sTheory\n\n" module_name;
                 Printf.fprintf o "val _ = new_theory \"%sExtra\"\n\n" module_name;
                 Printf.fprintf o "%s" (Ulib.Text.to_string r_extra);
@@ -247,7 +242,7 @@ let output1 env libpath isa_thy (targ : Target.target) avoid m alldoc_accum alld
                 let (o, ext_o) = open_output_with_check dir (module_name_lower ^ "Extra.ml") in
                 Printf.fprintf o "(*%s*)\n" (generated_line m.filename);
                 Printf.fprintf o "open Nat_num\n";
-                Printf.fprintf o "open %s\n\n" module_name;
+                List.map (fun s -> Printf.fprintf o "open %s\n\n" s) extra_imported_modules;
                 Printf.fprintf o "type 'a set = 'a Pset.set\n\n";
   
                 Printf.fprintf o "%s" "let run_test n loc b =\n  if b then (Format.printf \"%s : ok\\n\" n) else (Format.printf \"%s : FAILED\\n  %s\\n\\n\" n loc);;\n\n";
@@ -272,15 +267,12 @@ let output1 env libpath isa_thy (targ : Target.target) avoid m alldoc_accum alld
                 Printf.fprintf o "imports \n \t \"%s/num_type\" \n" libpath;
                  *)
                 Printf.fprintf o "%s" (Ulib.Text.to_string r1);
-                (*
                 begin 
                   if m.predecessor_modules <> [] then 
                     begin
-                      List.iter (fun f -> Printf.fprintf o "\t \"%s\" \n" f) m.predecessor_modules;
-                    end
-                  else ()
+                      List.iter (fun f -> Printf.fprintf o "\t \"%s\" \n" f) imported_modules
+                    end;
                 end;
-                *)
 
                 Printf.fprintf o "\nbegin \n\n";
                 Printf.fprintf o "%s" (Ulib.Text.to_string r_main);
@@ -293,7 +285,13 @@ let output1 env libpath isa_thy (targ : Target.target) avoid m alldoc_accum alld
                 let (o, ext_o) = open_output_with_check dir (module_name ^ "Extra.thy") in              
                 Printf.fprintf o "header{*%s*}\n\n" (generated_line m.filename);
                 Printf.fprintf o "theory \"%sExtra\" \n\n" module_name;
-                Printf.fprintf o "imports \n \t Main \"~~/src/HOL/Library/Efficient_Nat\" \"%s\"\n" module_name;
+                Printf.fprintf o "imports \n \t Main \"~~/src/HOL/Library/Efficient_Nat\"";
+                begin 
+                  if m.predecessor_modules <> [] then 
+                    begin
+                      List.iter (fun f -> Printf.fprintf o "\t \"%s\" \n" f) extra_imported_modules
+                    end;
+                end;
                 Printf.fprintf o "\nbegin \n\n";
                 Printf.fprintf o "%s" (Ulib.Text.to_string r_extra);
                 Printf.fprintf o "end\n";
@@ -320,7 +318,7 @@ let output1 env libpath isa_thy (targ : Target.target) avoid m alldoc_accum alld
               close_output_with_check ext_o
           end
 
-let output libpath isa_thy (targ : Target.target) consts env mods alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum =
+let output libpath isa_thy(targ : Target.target) consts env mods alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum =
   List.iter
     (fun m ->
        output1 env libpath isa_thy targ consts m alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum)
