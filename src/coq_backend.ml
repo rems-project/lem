@@ -600,9 +600,13 @@ let generate_coq_record_update_notation e =
           ]
       | Rename (skips, name, mod_binding, skips', mod_descr) -> from_string "Rename"
       | OpenImport (oi, ms) ->                  
-          let (ms', sk) = B.open_to_open_target ms in 
-          let d' = OpenImportTarget(oi, None, ms') in
-          def inside_instance callback inside_module d' ^ ws sk
+          let (ms', sk) = B.open_to_open_target ms in
+          if (ms' = []) then
+             ws (oi_get_lskip oi)
+          else (
+            let d' = OpenImportTarget(oi, None, ms') in
+            def inside_instance callback inside_module d' ^ ws sk
+          )
       | OpenImportTarget(oi, _, []) -> ws (oi_get_lskip oi)
       | OpenImportTarget (Ast.OI_open skips, targets, mod_descrs) ->                 
           let handle_mod (sk, md) = begin

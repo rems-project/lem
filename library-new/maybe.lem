@@ -4,7 +4,10 @@
 (* It mainly follows the Haskell Maybe-library                                *)
 (******************************************************************************)
 
-declare rename module = lem_maybe []
+declare ~{hol;ocaml} rename module = lem_maybe []
+declare {hol} rename module = lem_maybe [`optionTheory`]
+declare {ocaml} rename module = lem_maybe 
+
 open import Bool Basic_classes 
 
 (* ========================================================================== *)
@@ -46,6 +49,11 @@ instance forall 'a. Eq 'a => (Eq (maybe 'a))
   let (=) = maybeEqual
 end
 
+assert maybe_eq_1: ((Nothing : maybe bool) = Nothing)  
+assert maybe_eq_2: ((Just true) /= Nothing)
+assert maybe_eq_3: ((Just false) /= (Just true))  
+assert maybe_eq_4: ((Just false) = (Just false))  
+
 
 (* ----------------------- *)
 (* maybe                   *)
@@ -58,6 +66,13 @@ let maybe d f mb = match mb with
 end
 
 declare ocaml    target_rep function maybe d f mb = `Option.map_default` f d mb
+declare isabelle target_rep function maybe = `option_case`
+declare hol      target_rep function maybe d f mb = `option_CASE` mb d f
+
+assert maybe_1: (maybe true not Nothing = true)
+assert maybe_2: (maybe false not Nothing = false)
+assert maybe_3: (maybe true not (Just true) = false)
+assert maybe_4: (maybe true not (Just false) = true)
 
 (* ----------------------- *)
 (* isJust / isNothing      *)
@@ -73,6 +88,9 @@ declare hol      target_rep function isJust = `IS_SOME`
 declare ocaml    target_rep function isJust x = `is_some`
 declare isabelle target_rep function isJust x = not (unsafe_structural_equality x Nothing)
 
+assert isJust_1: (isJust (Just true))
+assert isJust_2: (not (isJust (Nothing : maybe bool)))
+
 val isNothing : forall 'a. maybe 'a -> bool
 let isNothing mb = match mb with 
   | Just _ -> false
@@ -82,6 +100,9 @@ end
 declare hol      target_rep function isNothing = `IS_NONE`
 declare ocaml    target_rep function isNothing = `is_none`
 declare isabelle target_rep function isNothing x = (unsafe_structural_equality x Nothing)
+
+assert isNothing_1: (not (isNothing (Just true)))
+assert isNothing_2: (isNothing (Nothing : maybe bool))
 
 lemma isJustNothing: (
   (forall x. isNothing x = not (isJust x)) &&
@@ -100,10 +121,17 @@ let fromMaybe d mb = match mb with
 end
 
 declare ocaml    target_rep function fromMaybe = `Option.default`
+let inline {isabelle} fromMaybe d = maybe d `id`
+let inline {hol} fromMaybe d = maybe d `I`
 
 lemma fromMaybe: (
   (forall d v. fromMaybe d (Just v) = v) &&
   (forall d. fromMaybe d Nothing = d))
+
+assert fromMaybe_1: (fromMaybe true Nothing = true)
+assert fromMaybe_2: (fromMaybe false Nothing = false)
+assert fromMaybe_3: (fromMaybe true (Just true) = true)
+assert fromMaybe_4: (fromMaybe true (Just false) = false)
 
 
 (* ----------------------- *)
@@ -121,3 +149,26 @@ lemma maybe_map: (
   (forall f. map f Nothing = Nothing) &&
   (forall f v. map f (Just v) = Just (f v)))
 
+assert map_1: (map not Nothing = Nothing)
+assert map_2: (map not (Just true) = Just false)
+assert map_3: (map not (Just false) = Just true)
+
+
+(* ----------------------- *)
+(* bind                    *)
+(* ----------------------- *)
+
+val bind : forall 'a 'b. ('a -> maybe 'b) -> maybe 'a -> maybe 'b 
+let bind f = maybe Nothing f
+
+declare isabelle target_rep function bind f mb = `Option.bind` mb f
+declare hol      target_rep function bind f mb = `OPTION_BIND` mb f
+
+lemma maybe_bind: (
+  (forall f. bind f Nothing = Nothing) &&
+  (forall f v. bind f (Just v) = (f v)))
+
+assert bind_1: (bind (fun b -> Just (not b)) Nothing = Nothing)
+assert bind_2: (bind (fun b -> Just (not b)) (Just true) = Just false)
+assert bind_3: (bind (fun b -> Just (not b)) (Just false) = Just true)
+assert bind_4: (bind (fun b -> (Nothing : maybe bool)) (Just false) = Nothing)

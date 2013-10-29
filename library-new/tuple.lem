@@ -46,10 +46,11 @@ assert snd_2 : (snd (false, true) = true)
 (* ----------------------- *)
 
 val curry : forall 'a 'b 'c. ('a * 'b -> 'c) -> ('a -> 'b -> 'c)
-let curry f v1 v2 = f (v1, v2)
+let inline curry f v1 v2 = f (v1, v2)
 
 declare hol      target_rep function curry = `CURRY`
 declare isabelle target_rep function curry = `curry`
+declare ocaml    target_rep function curry = `Lem.curry`
 
 assert curry_1 : (curry (fun (x,y) -> x && y) true false = false)
 
@@ -58,10 +59,11 @@ assert curry_1 : (curry (fun (x,y) -> x && y) true false = false)
 (* ----------------------- *)
 
 val uncurry : forall 'a 'b 'c. ('a -> 'b -> 'c) -> ('a * 'b -> 'c) 
-let uncurry f v = f (fst v) (snd v)
+let inline uncurry f = (fun (v1, v2) -> f v1 v2)
 
 declare hol      target_rep function uncurry = `UNCURRY`
 declare isabelle target_rep function uncurry = `split`
+declare ocaml    target_rep function uncurry = `Lem.uncurry`
 
 lemma curry_uncurry: (forall f xy. uncurry (curry f) xy = f xy)
 lemma uncurry_curry: (forall f x y. curry (uncurry f) x y = f x y)
@@ -78,6 +80,7 @@ let swap (v1, v2) = (v2, v1)
 
 let inline {isabelle} swap = (fun (v1, v2) -> (v2, v1))
 declare hol      target_rep function swap = `SWAP`
+declare ocaml    target_rep function swap = `Lem.pair_swap`
 
 assert swap_1 : (swap (false, true) = (true, false))
 

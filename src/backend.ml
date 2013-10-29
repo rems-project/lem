@@ -2446,6 +2446,9 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
       Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)
   | OpenImport (oi, ms) ->
       let (ms', sk) = B.open_to_open_target ms in 
+      if (ms' = []) then
+        ws (oi_get_lskip oi)
+      else
         open_import_to_output oi ^
         (Output.flat (List.map (fun (sk, m) -> 
            ws sk ^ kwd m) ms')) ^

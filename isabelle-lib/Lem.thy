@@ -79,25 +79,7 @@ abbreviation (input) "set_biginter S \<equiv> \<Inter> S"
 
 subsection{* Natural numbers *}
 
-abbreviation (input) "nat_exp (n1::nat) (n2::nat) \<equiv>  n1 ^ n2"
-abbreviation (input) "nat_mod (n1::nat) (n2::nat) \<equiv>  n1 mod n2"
-
-
 subsection{* Integers *}
-
-abbreviation (input) "int_add (i1::int) (i2::int) \<equiv> i1 + i2"
-abbreviation (input) "int_sub (i1::int) (i2::int) \<equiv> i1 - i2"
-abbreviation (input) "int_mul (i1::int) (i2::int) \<equiv> i1 * i2"
-abbreviation (input) "int_div (i1::int) (i2::int) \<equiv> i1 div i2"
-abbreviation (input) "int_mod (i1::int) (i2::int) \<equiv> i1 mod i2"
-abbreviation (input) "int_exp (i::int) (n::nat) \<equiv>  i ^ n"
-
-abbreviation (input) "int_lt (i1::int) (i2::int) \<equiv> i1 < i2"
-abbreviation (input) "int_le (i1::int) (i2::int) \<equiv> i1 \<le> i2"
-abbreviation (input) "int_gt (i1::int) (i2::int) \<equiv> i1 > i2"
-abbreviation (input) "int_ge (i1::int) (i2::int) \<equiv> i1 \<ge> i2"
-
-abbreviation (input) "int_neg (i::int) \<equiv> -i"
 
 
 subsection {* Dummy *}

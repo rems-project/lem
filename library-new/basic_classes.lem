@@ -82,7 +82,7 @@ let inline {hol;isabelle} (/=) = unsafe_structural_inequality
 type ordering = LT | EQ | GT
 
 declare ocaml target_rep type ordering = `int`
-declare ocaml target_rep function LT = `~1`
+declare ocaml target_rep function LT = `-1`
 declare ocaml target_rep function EQ = `0`
 declare ocaml target_rep function GT = `1`
 
@@ -173,8 +173,15 @@ instance (Ord bool)
   let (>=) x y = (y --> x)
 end
 
+val pairEqual : forall 'a 'b. Eq 'a, Eq 'b => ('a * 'b) -> ('a * 'b) -> bool
 let pairEqual (a1, b1) (a2, b2) = (a1 = a2) && (b1 = b2)
+
+val pairEqualBy : forall 'a 'b. ('a -> 'a -> bool) -> ('b -> 'b -> bool) -> ('a * 'b) -> ('a * 'b) -> bool
+declare ocaml    target_rep function pairEqualBy = `Lem.pair_equal`
+
+
 let inline {hol;isabelle;coq} pairEqual = unsafe_structural_equality
+let inline {ocaml} pairEqual = pairEqualBy isEqual isEqual
 
 instance forall 'a 'b. Eq 'a, Eq 'b => (Eq ('a * 'b))
   let (=) = pairEqual
