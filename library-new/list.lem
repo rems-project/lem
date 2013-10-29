@@ -145,7 +145,7 @@ let rec lexicographicLessEqBy less less_eq l1 l2 = match (l1,l2) with
 end
 declare termination_argument lexicographicLessEqBy = automatic
 
-let lexicographicEqLess = lexicographicLessEqBy isLess isLessEqual
+let lexicographicLessEq = lexicographicLessEqBy isLess isLessEqual
 
 
 instance forall 'a. Ord 'a => (Ord (list 'a))
