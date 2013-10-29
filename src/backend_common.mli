@@ -66,10 +66,6 @@ val get_module_name : env -> Target.target -> Name.t list -> Name.t -> Name.t
     well be replaced with a whole list of other modules or nothing. *)
 val get_module_open_string : env -> Target.target -> Path.t -> string list
 
-(** [format_module_open_string targ s] formats the open string [s] for target [targ]. For HOL the suffix "Theory" is for example
-    added. *)
-val format_module_open_string : Target.target -> string -> string
-
 (** [get_imported_target_modules env targ defs] extracts a list of module that should be imported.
     The exact names of these modules depend on the environment and the target. Therefore, they get extracted in
     an abstract from and converted (after possible changes to the environment) by

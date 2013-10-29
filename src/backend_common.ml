@@ -216,6 +216,7 @@ let get_module_open_string env target mod_path =
 begin
   let transform_name mod_string = match target with
     | Target.Target_no_ident (Target.Target_coq) -> String.uncapitalize mod_string
+    | Target.Target_no_ident (Target.Target_hol) -> String.concat "" [mod_string; "Theory"]
     | _ -> mod_string
   in
   let md = e_env_lookup Ast.Unknown env.e_env mod_path in
@@ -227,10 +228,6 @@ begin
     modules_list
 end
 
-let format_module_open_string target s =
-  match target with
-    | Target.Target_no_ident Target.Target_hol -> (String.concat "" [s; "Theory"])
-    | _ -> s
 
 let rec concat_skip_lists acc sk = function
   | [] -> (List.rev acc, sk)

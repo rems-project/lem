@@ -813,7 +813,7 @@ module Isa : Target = struct
   let const_false = kwd "False"
   let string_quote = r"''"
   let string_escape = string_escape_isa
-  let const_num i = kwd "(" ^  num i ^ kwd ":: nat)"
+  let const_num i = num i
   let const_char c = err "TODO: char literal"
   let const_unit s = kwd "() " ^ ws s
   let const_empty s = kwd "\\<emptyset>" ^ ws s
@@ -2446,8 +2446,10 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
       Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)
   | OpenImport (oi, ms) ->
       let (ms', sk) = B.open_to_open_target ms in 
-      let d' = OpenImportTarget(oi, None, ms') in
-      def_internal callback inside_module d' is_user_def ^ ws sk
+        open_import_to_output oi ^
+        (Output.flat (List.map (fun (sk, m) -> 
+           ws sk ^ kwd m) ms')) ^
+        ws sk
   | OpenImportTarget(oi, _, []) -> ws (oi_get_lskip oi)
   | OpenImportTarget(oi,targets, ms) ->
       if in_target targets then
@@ -2457,7 +2459,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
          else
            emp) ^
         (Output.flat (List.map (fun (sk, m) -> 
-           ws sk ^ T.backend_quote (kwd (format_module_open_string T.target m))) ms))
+           ws sk ^ T.backend_quote (kwd m)) ms))
       else emp
   | Indreln(s,targets,names,clauses) ->
       if in_target targets then

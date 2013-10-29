@@ -607,8 +607,7 @@ let generate_coq_record_update_notation e =
       | OpenImportTarget (Ast.OI_open skips, targets, mod_descrs) ->                 
           let handle_mod (sk, md) = begin
             Output.flat [
-              ws skips; from_string "Require Import "; ws sk; from_string (format_module_open_string 
-              (Target.Target_no_ident Target.Target_coq) md); from_string ".\n"
+              ws skips; from_string "Require Import "; ws sk; from_string md; from_string ".\n"
             ]
           end in
           if (not (in_target targets)) then emp else Output.flat (List.map handle_mod mod_descrs)

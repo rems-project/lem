@@ -135,9 +135,8 @@ let output1 env libpath isa_thy out_dir (targ : Target.target) avoid m alldoc_ac
   let module B = Backend.Make(C) in
   let open Typed_ast in
   
-  let imported_modules = List.map (Backend_common.format_module_open_string targ) 
-      (Backend_common.imported_modules_to_strings env targ m.imported_modules) in
-  let extra_imported_modules = List.map (Backend_common.format_module_open_string targ) (Backend_common.get_module_open_string env targ m.module_path) in
+  let imported_modules = Backend_common.imported_modules_to_strings env targ m.imported_modules in
+  let extra_imported_modules = Backend_common.get_module_open_string env targ m.module_path in
   let (mod_path, mod_name) = Path.to_name_list m.module_path in
   let module_name = Name.to_string (Backend_common.get_module_name env targ mod_path mod_name) in
   let module_name_lower = String.uncapitalize module_name in
