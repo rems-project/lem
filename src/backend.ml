@@ -798,7 +798,7 @@ module Isa : Target = struct
   let typ_tup_sep = kwd "*"
   let typ_tup_section = emp
   let typ_sep = kwd "::"
-  let typ_fun_sep = kwd " => "
+  let typ_fun_sep = kwd "\\<Rightarrow>"
   let typ_rec_start = kwd "\n"
   let typ_rec_end = kwd "\n"
   let typ_rec_sep = kwd "\n"
@@ -816,7 +816,7 @@ module Isa : Target = struct
   let const_num i = kwd "(" ^  num i ^ kwd ":: nat)"
   let const_char c = err "TODO: char literal"
   let const_unit s = kwd "() " ^ ws s
-  let const_empty s = kwd "{} " ^ ws s
+  let const_empty s = kwd "\\<emptyset>" ^ ws s
   let const_undefined t m = (kwd "undefined")
   let const_bzero = emp
   let const_bone = emp
@@ -830,10 +830,10 @@ module Isa : Target = struct
   let field_access_start = emp
   let field_access_end = kwd " "
   
-  let fun_start = kwd "("
-  let fun_end = kwd ")"
-  let fun_kwd = kwd "%"
-  let fun_sep = kwd ". "
+  let fun_start = emp
+  let fun_end = emp
+  let fun_kwd = meta "\\<lambda>"
+  let fun_sep = meta "."
 
   let record_assign = kwd "="
   let recup_start = emp
@@ -848,8 +848,8 @@ module Isa : Target = struct
   let begin_kwd = kwd "("
   let end_kwd = kwd ")"
   
-  let forall = kwd "ALL"
-  let exists = kwd "EX"
+  let forall = kwd "\\<forall>"
+  let exists = kwd "\\<exists>"
 
   let set_quant_binding = kwd ":"
   let quant_binding_start = emp
@@ -885,7 +885,7 @@ module Isa : Target = struct
   let reln_name_start = emp (*TODO Indreln fix up for isabelle*)
   let reln_name_end = emp
   let reln_clause_start = kwd "\""
-  let reln_clause_quant = kwd "!!"
+  let reln_clause_quant = kwd "\\<And>"
   let reln_clause_show_empty_quant = false
   let reln_clause_show_name = true
   let reln_clause_quote_name = true
@@ -2002,7 +2002,7 @@ let in_target targs = Typed_ast.in_targets_opt T.target targs
 (****** Isabelle ******)
 
 let isa_op_typ texp = match texp.term with
-  | Typ_fn(_,_,_) -> kwd "[" ^ typ texp ^ kwd "]"
+  | Typ_fn(_,_,_) -> kwd "(" ^ typ texp ^ kwd ")" ^ texspace
   | _ -> typ texp
 
 
@@ -2033,12 +2033,12 @@ let isa_is_simple_funcl_aux ((_, _, ps, _, _, _):funcl_aux) : bool =
    List.for_all (fun p -> (Pattern_syntax.is_var_wild_pat p)) ps
 
 let isa_funcl_header (({term = n}, c, ps, topt, s1, (e : Typed_ast.exp)):funcl_aux) =
-  isa_mk_typed_def_header (Name.to_output Term_var (B.const_ref_to_name n false c), List.map Types.annot_to_typ ps, s1, exp_to_typ e)
+  isa_mk_typed_def_header (Name.to_output Term_var (B.const_ref_to_name n true c), List.map Types.annot_to_typ ps, s1, exp_to_typ e)
 
 let isa_funcl_header_seplist clause_sl =
   let clauseL = Seplist.to_list clause_sl in
   let (_, clauseL_filter) = List.fold_left (fun (ns, acc) (({term = n'}, n'_ref, _, _, _, _) as c) ->
-     let n = Name.strip_lskip (B.const_ref_to_name n' false n'_ref) in if NameSet.mem n ns then (ns, acc) else (NameSet.add n ns, c :: acc)) (NameSet.empty, []) clauseL in
+     let n = Name.strip_lskip (B.const_ref_to_name n' true n'_ref) in if NameSet.mem n ns then (ns, acc) else (NameSet.add n ns, c :: acc)) (NameSet.empty, []) clauseL in
 
   let headerL = List.map isa_funcl_header clauseL_filter in
   (Output.concat (kwd "\n                   and") headerL) ^ (kwd "where \n    ")
@@ -2056,10 +2056,10 @@ let isa_funcl_header_indrel_seplist clause_sl =
 
 
 let isa_funcl_default eqsign (({term = n}, c, ps, topt, s1, (e : Typed_ast.exp)):funcl_aux) =
-  kwd "\"" ^ Name.to_output Term_var (B.const_ref_to_name n false c) ^ flat (List.map pat ps)^ ws s1 ^ eqsign ^ kwd "(" ^ exp e ^ kwd ")\""
+  kwd "\"" ^ Name.to_output Term_var (B.const_ref_to_name n true c) ^ flat (List.map pat ps)^ ws s1 ^ eqsign ^ kwd "(" ^ exp e ^ kwd ")\""
 
 let isa_funcl_abs eqsign (({term = n}, c, ps, topt, s1, (e : Typed_ast.exp)):funcl_aux) =
-  kwd "\"" ^ Name.to_output Term_var (B.const_ref_to_name n false c) ^ ws s1 ^ eqsign ^ kwd "(%" ^ flat (List.map pat ps) ^ kwd ". " ^ exp e ^ kwd ")\""
+  kwd "\"" ^ Name.to_output Term_var (B.const_ref_to_name n true c) ^ ws s1 ^ eqsign ^ kwd "(%" ^ flat (List.map pat ps) ^ kwd ". " ^ exp e ^ kwd ")\""
 
 let isa_funcl simple =
 (*  if simple then isa_funcl_abs (kwd "= ") else isa_funcl_default (kwd "= ") *)

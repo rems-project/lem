@@ -163,14 +163,15 @@ module Macros (E : sig val env : env end) : sig
 
   (** {2 Type Class Macros } *)
 
-   (** [remove_method add_dict] is used to remove occurrences of class methods. 
+   (** [remove_method target add_dict] is used to remove occurrences of class methods. 
        If a class method is encountered, the [remove_method] macro first tries to 
        resolve the type-class instantiation statically and replace the method with it's
-       instantiation. If this static resolving attempt fails and the flag [add_dict] is set, 
+       instantiation. If this static resolving attempt fails, it is checked, whether the method
+       is inlined for this target. If this is not the case and the flag [add_dict] is set, 
        the method is replaced with a lookup in a dictionary. This dictionary is added by the
        [Def_trans.class_constraint_to_parameter] to the arguments of each definition that
        has type class constraints. *)
-  val remove_method : bool -> exp macro
+  val remove_method : Target.target -> bool -> exp macro
 
    (** [remove_method_pat] is used to remove occurrences of class methods. 
        If a class method is encountered, [remove_method_pat] macro tries to 

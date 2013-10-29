@@ -1658,7 +1658,7 @@ module Make_checker(T : sig
                  let cd = c_env_lookup l T.e.c_env c in
                  begin
                    match cd.env_tag with
-                     | K_let ->
+                     | (K_let | K_method) ->
                          (* only let's (and vals) can aquire more targets,
                             check whether only new targets are added *)
                          let duplicate_targets = (match def_targets with

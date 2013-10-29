@@ -492,4 +492,35 @@ by (metis nat_to_string_11
           string_to_nat_def 
           string_to_nat_inv)
 
+definition The_opt where
+  "The_opt p = (if (\<exists>!x. p x) then Some (The p) else None)"
+
+lemma The_opt_eq_some [simp] :
+"((The_opt p) = (Some x)) \<longleftrightarrow> ((p x) \<and> ((\<forall> y.  p y \<longrightarrow> (x = y))))"
+    (is "?lhs = ?rhs")
+proof (cases "\<exists>!x. p x")
+  case True 
+  note exists_unique = this
+  then obtain x where p_x: "p x" by auto
+
+  from the1_equality[of p x] exists_unique p_x 
+  have the_opt_eq: "The_opt p = Some x"
+    unfolding The_opt_def by simp
+  
+  from exists_unique the_opt_eq p_x show ?thesis
+    by auto
+next
+  case False 
+  note not_unique = this
+
+  hence "The_opt p = None"
+    unfolding The_opt_def by simp
+  with not_unique show ?thesis by auto
+qed  
+
+lemma The_opt_eq_none [simp] :
+"((The_opt p) = None) \<longleftrightarrow> \<not>(\<exists>!x. p x)"
+unfolding The_opt_def by auto
+
+
 end

@@ -855,7 +855,7 @@ let remove_num_lit _ e =
 
 
 (* remove a class-method and replace it either with the instance method or add a dictionary style passing argument *)
-let remove_method try_dict _ e =
+let remove_method (target : Target.target) try_dict _ e =
   let l_unk = Ast.Trans(true, "remove_method", Some (exp_to_locn e)) in
   match C.exp_to_term e with
     | Constant(c) ->
@@ -882,7 +882,12 @@ let remove_method try_dict _ e =
                                   in
                                   let new_e = C.mk_const l_unk id None in Some(new_e)
                                 end
-                            | None -> if not try_dict then None else (
+                            | None -> 
+                                let is_inlined = match Targetmap.apply_target c_descr.target_rep target with
+                                  | Some (CR_inline _) -> true
+                                  | _ -> false
+                                in
+                                if is_inlined || (not try_dict) then None else (
                                 let tv = 
                                   match targ.Types.t with
                                     | Types.Tvar tv -> Types.Ty tv

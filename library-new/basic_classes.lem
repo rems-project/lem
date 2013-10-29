@@ -59,6 +59,10 @@ declare ocaml    target_rep function unsafe_structural_equality = infix `=`
 declare isabelle target_rep function unsafe_structural_equality = infix `=`
 declare coq      target_rep function unsafe_structural_equality = `classical_boolean_equivalence`
 
+val unsafe_structural_inequality : forall 'a. 'a -> 'a -> bool
+let unsafe_structural_inequality x y = not (unsafe_structural_equality x y)
+declare isabelle target_rep function unsafe_structural_inequality = infix `\<not_eq>`
+
 (* The default for equality is the unsafe structural one. It can 
    (and should) be overriden for concrete types later. *)
 default_instance forall 'a. (Eq 'a) 
@@ -68,6 +72,12 @@ end
 default_instance forall 'a. Eq 'a => (Ineq 'a) 
   let (/=) x y = not (x = y)
 end
+
+(* for HOL and Isabelle, be even stronger and always(!) use
+   standard equality *)
+let inline {hol;isabelle} (=)  = unsafe_structural_equality
+let inline {hol;isabelle} (/=) = unsafe_structural_inequality
+
 
 (* ========================================================================== *)
 (* Orderings                                                                  *)
