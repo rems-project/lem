@@ -87,6 +87,7 @@ module TNset = struct
 end
 
 module Pfmap = Finite_map.Fmap_map(Path)
+module Pset = Set.Make(Path)
 
 type t = { mutable t : t_aux }
 and t_aux =

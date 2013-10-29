@@ -59,6 +59,7 @@ module TNvar : sig
 end
 
 module Pfmap : Finite_map.Fmap with type k = Path.t
+module Pset: Set.S with type elt = Path.t
 module TNfmap : Finite_map.Fmap with type k = TNvar.t
 module TNset : sig
   include Set.S with type elt = TNvar.t

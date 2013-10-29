@@ -820,27 +820,47 @@ let is_type_def_record  (((d, _), _, _):def) =
    used_entities is using lists, because the order in which entities occur might be important for renaming.
    However, each list contains only distinct elements
 *)
-type used_entities = { used_consts : const_descr_ref list; used_types : Path.t list; used_modules : Path.t list; used_tnvars : TNset.t }
+type used_entities = { 
+   used_consts : const_descr_ref list; 
+   used_consts_set : Cdset.t;
+   used_types : Path.t list; 
+   used_types_set : Pset.t;
+   used_modules : Path.t list; 
+   used_modules_set : Pset.t;
+   used_tnvars : TNset.t }
 
 let reverse_used_entities ue =
   { used_consts  = List.rev ue.used_consts; 
+    used_consts_set = ue.used_consts_set;
     used_types   = List.rev ue.used_types;
+    used_types_set = ue.used_types_set;
     used_modules = List.rev ue.used_modules;
+    used_modules_set = ue.used_modules_set;
     used_tnvars  = ue.used_tnvars }
 
-let empty_used_entities = { used_consts = []; used_types = []; used_modules = []; used_tnvars = TNset.empty }
+let empty_used_entities = { 
+    used_consts = []; 
+    used_consts_set = Cdset.empty;
+    used_types = []; 
+    used_types_set = Pset.empty;
+    used_modules = []; 
+    used_modules_set = Pset.empty;
+    used_tnvars = TNset.empty }
 
 let used_entities_add_const ue c =
-  if (List.mem c ue.used_consts) then ue else
-  {ue with used_consts = c :: ue.used_consts}
+  if (Cdset.mem c ue.used_consts_set) then ue else
+  {ue with used_consts = c :: ue.used_consts;
+           used_consts_set = Cdset.add c ue.used_consts_set}
 
 let used_entities_add_type ue p =
-  if (List.mem p ue.used_types) then ue else
-  {ue with used_types = p :: ue.used_types}
+  if (Pset.mem p ue.used_types_set) then ue else
+  {ue with used_types = p :: ue.used_types;
+           used_types_set = Pset.add p ue.used_types_set}
 
 let used_entities_add_module ue p =
-  if (List.mem p ue.used_modules) then ue else
-  {ue with used_modules = p :: ue.used_modules}
+  if (Pset.mem p ue.used_modules_set) then ue else
+  {ue with used_modules = p :: ue.used_modules;
+           used_modules_set = Pset.add p ue.used_modules_set}
 
 let used_entities_add_tnvars ue tnvars =
   {ue with used_tnvars = TNset.union tnvars ue.used_tnvars}

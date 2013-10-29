@@ -415,8 +415,11 @@ val is_type_def_record : def -> bool
    However, these lists should not contain duplicates. *)
 type used_entities = { 
    used_consts : const_descr_ref list; 
+   used_consts_set : Cdset.t;
    used_types : Path.t list; 
-   used_modules : Path.t list;
+   used_types_set : Pset.t;
+   used_modules : Path.t list; 
+   used_modules_set : Pset.t;
    used_tnvars : TNset.t }
 
 (** An empty collection of entities *)
