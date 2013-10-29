@@ -779,9 +779,14 @@ and pp_mod_descr ppf (md : mod_descr) =
 
 let pp_instances = Pfmap.pp_map Path.pp (lst "@\n" pp_instance)
 
+type imported_modules =
+  | IM_paths of Path.t list
+  | IM_targets of targets_opt * string list
+
 type checked_module =
     { filename : string;
       module_path : Path.t;
+      imported_modules : imported_modules list;
       predecessor_modules : string list;
       untyped_ast : Ast.defs * Ast.lex_skips;
       typed_ast : def list * Ast.lex_skips; }

@@ -150,14 +150,14 @@ let converse r = relFromPred (fun e1 e2 -> inRel e2 e1 r)
 (* ----------------------- *)
 
 val domain : forall 'a 'b. Ord 'a, Ord 'b => rel 'a 'b -> set 'a
-let domain r = { e1 | forall ((e1, _) IN (relToSet r)) | true}
+let domain r = { e1 | forall ((e1, e2) IN (relToSet r)) | true}
 
 (* ----------------------- *)
 (* range                   *)
 (* ----------------------- *)
 
 val range : forall 'a 'b. Ord 'a, Ord 'b => rel 'a 'b -> set 'b
-let range r = { e2 | forall ((_, e2) IN (relToSet r)) | true}
+let range r = { e2 | forall ((e1, e2) IN (relToSet r)) | true}
 
 (* ----------------------- *)
 (* field / definedOn       *)

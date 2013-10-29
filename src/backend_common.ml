@@ -243,17 +243,25 @@ let rec concat_skip_lists acc sk = function
              concat_skip_lists acc None skip_list
     end 
 
-let get_imported_target_modules_of_def_aux env target = function
+let imported_module_to_strings env target = function
+  | IM_paths ids -> List.flatten (List.map (get_module_open_string env target) ids)
+  | IM_targets (targs, strings) -> 
+      if (Typed_ast.in_targets_opt target targs) then strings else []
+
+
+
+let get_imported_target_modules_of_def_aux = function
   | OpenImport ((Ast.OI_import _ | Ast.OI_open_import _ | Ast.OI_include_import _), ids) ->      
-      List.flatten (List.map (fun id -> get_module_open_string env target id.descr) ids)
-  | OpenImportTarget ((Ast.OI_import _ | Ast.OI_open_import _ | Ast.OI_include_import _), _, ts) ->      
-      List.map snd ts
-  | _ -> [] 
+      Some (IM_paths (List.map (fun id -> id.descr) ids))
+  | OpenImportTarget ((Ast.OI_import _ | Ast.OI_open_import _ | Ast.OI_include_import _), targs, ts) ->      
+      Some (IM_targets (targs, (List.map snd ts)))
+  | _ -> None
 
-let get_imported_target_modules env target ((ds, _) : Typed_ast.def list * Ast.lex_skips)  =
-  let ms = List.flatten (List.map (fun ((d, _), _, _) -> get_imported_target_modules_of_def_aux env target d) ds) in
-  Util.remove_duplicates ms
+let get_imported_target_modules ((ds, _) : Typed_ast.def list * Ast.lex_skips)  =
+  Util.map_filter (fun ((d, _), _, _) -> get_imported_target_modules_of_def_aux d) ds 
 
+let imported_modules_to_strings env target iml =
+  Util.remove_duplicates (List.flatten (List.map (imported_module_to_strings env target) iml));;
 
 module Make(A : sig 
   val env : env;; 

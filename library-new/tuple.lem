@@ -4,6 +4,8 @@
 
 (* The type for tuples (pairs) is hard-coded, so here only a few functions are used *)
 
+declare rename module = lem_tuple []
+
 open import Bool Basic_classes
 
 (* ----------------------- *)
@@ -18,6 +20,8 @@ declare ocaml    target_rep function fst = `fst`
 declare isabelle target_rep function fst = `fst`
 declare coq      target_rep function fst = `fst`
 
+assert fst_1 : (fst (true, false) = true) 
+assert fst_2 : (fst (false, true) = false)
 
 (* ----------------------- *)
 (* snd                     *)
@@ -33,6 +37,9 @@ declare coq      target_rep function snd = `snd`
 
 lemma fst_snd: (forall v. v = (fst v, snd v))
 
+assert snd_1 : (snd (true, false) = false) 
+assert snd_2 : (snd (false, true) = true)
+
 
 (* ----------------------- *)
 (* curry                   *)
@@ -44,6 +51,7 @@ let curry f v1 v2 = f (v1, v2)
 declare hol      target_rep function curry = `CURRY`
 declare isabelle target_rep function curry = `curry`
 
+assert curry_1 : (curry (fun (x,y) -> x && y) true false = false)
 
 (* ----------------------- *)
 (* uncurry                 *)
@@ -58,6 +66,8 @@ declare isabelle target_rep function uncurry = `split`
 lemma curry_uncurry: (forall f xy. uncurry (curry f) xy = f xy)
 lemma uncurry_curry: (forall f x y. curry (uncurry f) x y = f x y)
 
+assert uncurry_1 : (uncurry (fun x y -> x && y) (true, false) = false)
+
 
 (* ----------------------- *)
 (* swap                    *)
@@ -66,6 +76,8 @@ lemma uncurry_curry: (forall f x y. curry (uncurry f) x y = f x y)
 val swap : forall 'a 'b. ('a * 'b) -> ('b * 'a) 
 let swap (v1, v2) = (v2, v1)
 
+let inline {isabelle} swap = (fun (v1, v2) -> (v2, v1))
 declare hol      target_rep function swap = `SWAP`
 
+assert swap_1 : (swap (false, true) = (true, false))
 

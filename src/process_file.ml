@@ -135,7 +135,8 @@ let output1 env libpath isa_thy out_dir (targ : Target.target) avoid m alldoc_ac
   let module B = Backend.Make(C) in
   let open Typed_ast in
   
-  let imported_modules = List.map (Backend_common.format_module_open_string targ) (Backend_common.get_imported_target_modules env targ m.typed_ast) in
+  let imported_modules = List.map (Backend_common.format_module_open_string targ) 
+      (Backend_common.imported_modules_to_strings env targ m.imported_modules) in
   let extra_imported_modules = List.map (Backend_common.format_module_open_string targ) (Backend_common.get_module_open_string env targ m.module_path) in
   let (mod_path, mod_name) = Path.to_name_list m.module_path in
   let module_name = Name.to_string (Backend_common.get_module_name env targ mod_path mod_name) in
@@ -268,7 +269,7 @@ let output1 env libpath isa_thy out_dir (targ : Target.target) avoid m alldoc_ac
                  *)
                 Printf.fprintf o "%s" (Ulib.Text.to_string r1);
                 begin 
-                  if m.predecessor_modules <> [] then 
+                  if imported_modules <> [] then 
                     begin
                       List.iter (fun f -> Printf.fprintf o "\t \"%s\" \n" f) imported_modules
                     end;
@@ -285,9 +286,10 @@ let output1 env libpath isa_thy out_dir (targ : Target.target) avoid m alldoc_ac
                 let (o, ext_o) = open_output_with_check dir (module_name ^ "Extra.thy") in              
                 Printf.fprintf o "header{*%s*}\n\n" (generated_line m.filename);
                 Printf.fprintf o "theory \"%sExtra\" \n\n" module_name;
-                Printf.fprintf o "imports \n \t Main \"~~/src/HOL/Library/Efficient_Nat\"";
+                Printf.fprintf o "imports \n \t Main \"~~/src/HOL/Library/Efficient_Nat\"\n";
+                Printf.fprintf o "\t \"%s\"\n" isa_thy;
                 begin 
-                  if m.predecessor_modules <> [] then 
+                  if extra_imported_modules <> [] then 
                     begin
                       List.iter (fun f -> Printf.fprintf o "\t \"%s\" \n" f) extra_imported_modules
                     end;

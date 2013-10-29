@@ -70,10 +70,14 @@ val get_module_open_string : env -> Target.target -> Path.t -> string list
     added. *)
 val format_module_open_string : Target.target -> string -> string
 
+(** [get_imported_target_modules env targ defs] extracts a list of module that should be imported.
+    The exact names of these modules depend on the environment and the target. Therefore, they get extracted in
+    an abstract from and converted (after possible changes to the environment) by
+    [imported_modules_to_strings].*)
+val get_imported_target_modules : Typed_ast.def list * Ast.lex_skips -> imported_modules list
 
-(** [get_imported_target_modules env targ defs] extracts a list of target module names that should be
-    imported for this target. *)
-val get_imported_target_modules : env -> Target.target -> Typed_ast.def list * Ast.lex_skips -> string list
+(** [imported_modules_to_strings] is used together with [get_imported_target_modules]. Please see there. *)
+val imported_modules_to_strings : env -> Target.target -> (imported_modules list) -> string list
 
 
 module Make(A : sig

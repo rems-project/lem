@@ -3,11 +3,6 @@
 (******************************************************************************)
 
 open import Bool
-declare {hol;isabelle} rename module = lem_basic_classes []
-
-(* for Ocaml, keep the old name 
-declare {ocaml;coq} rename module = basic_classes 
-*)
 
 (* ========================================================================== *)
 (* Equality                                                                   *)

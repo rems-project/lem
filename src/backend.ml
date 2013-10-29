@@ -851,7 +851,7 @@ module Isa : Target = struct
   let forall = kwd "\\<forall>"
   let exists = kwd "\\<exists>"
 
-  let set_quant_binding = kwd ":"
+  let set_quant_binding = kwd "\\<in>"
   let quant_binding_start = emp
   let quant_binding_end = emp
 

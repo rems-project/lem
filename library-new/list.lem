@@ -12,6 +12,7 @@
 
 
 declare {hol} rename module = Lem_list [`List`; `Bool`]
+declare {isabelle} rename module = Lem_list []
 
 open import Bool Maybe Basic_classes Tuple Num
 
