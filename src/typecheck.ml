@@ -3090,7 +3090,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let class_d = { 
              class_tparam = tnvar_types;
              class_record = type_path; 
-             class_methods = List.combine (List.rev_map (fun (_,r,_) -> r) methods) field_refs;
+             class_methods = List.combine (List.map (fun (_,r,_) -> r) methods) field_refs;
              class_rename = Targetmap.empty;
              class_target_rep = Targetmap.empty;
           } in

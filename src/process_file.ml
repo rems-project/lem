@@ -366,13 +366,37 @@ begin
   pp_print_newline o (); 
 end
 
-let output_sig_type o env ident n p =
-begin
-  let ty_or_cl = match Types.Pfmap.apply env.t_env p with
-    | Some(Types.Tc_class _) -> "class"
-    | _ -> "type" in
-
-  pp_print_string o (ident ^ ty_or_cl ^ " " ^ Name.to_string n);
+let output_sig_type o env indent n p = begin
+  (match Types.Pfmap.apply env.t_env p with
+    | Some(Types.Tc_class _) ->   pp_print_string o (indent ^ "class " ^ Name.to_string n);
+    | Some(Types.Tc_type td) -> begin
+        pp_print_string o (indent ^ "type " ^ Name.to_string n);
+        List.iter (fun tv -> pp_print_string o " "; Types.pp_tnvar o tv) td.Types.type_tparams;
+        begin match td.Types.type_abbrev with
+          | None -> ();
+          | Some t -> begin
+               pp_print_string o " = ";
+               Types.pp_type o t;
+            end
+        end;
+        begin match td.Types.type_fields with
+          | None -> ();
+          | Some field_list -> 
+               let indent' = "    " ^ indent in 
+               let format_field f = begin
+                 let fd = c_env_lookup Ast.Unknown env.c_env f in begin
+                   output_sig_const_descr o env indent' (Path.get_name fd.const_binding) fd;
+                   pp_print_newline o ();
+                 end
+               end in begin
+               pp_print_string o " = {";
+               pp_print_newline o ();
+               List.iter format_field field_list;
+               pp_print_string o (indent ^ "}");
+            end
+        end;
+      end
+    | _ -> ());
   pp_print_newline o (); 
 end
 
