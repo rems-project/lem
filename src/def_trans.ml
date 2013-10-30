@@ -158,6 +158,25 @@ let remove_classes _ env (((d,_),_,_) as def) =
         Some(env, [comment_def def])
     | _ -> None
 
+let remove_types_with_target_rep targ _ env (((d,_),l,_) as def) =
+  match d with
+    | Type_def (sk, sl) -> begin
+        let type_has_target_rep (type_path : Path.t) = 
+        begin
+          let type_descr = type_defs_lookup l env.t_env type_path in
+          match Target.Targetmap.apply_target type_descr.type_target_rep targ with
+            | Some _ -> true
+            | None -> false
+        end in
+        let remove_type_def = Seplist.for_all (fun (_, _, ty, _, _) -> type_has_target_rep ty) sl in
+        if remove_type_def then
+          Some(env, [comment_def def])
+        else 
+          None      
+      end
+    | _ -> None
+
+
 let remove_indrelns_true_lhs _ env ((d,s),l,lenv) =
   let l_unk = Ast.Trans (true, "remove_indrelns_true_lhs", Some l) in
   match d with

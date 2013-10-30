@@ -125,6 +125,7 @@ let hol =
              [Def_macros (fun env -> [  M.remove_vals;
                                         M.remove_classes; 
                                         M.remove_opens;
+                                        M.remove_types_with_target_rep (Target_no_ident Target_hol);
                                         Patterns.compile_def (Target_no_ident Target_hol) Patterns.is_hol_pattern_match env;]);
               Pat_macros (fun env -> [Backend_common.inline_pat_macro Target_hol env]);
               Exp_macros (fun env ->
@@ -156,6 +157,7 @@ let ocaml =
                              M.remove_import_include;
                              M.opens_to_single;
                              M.remove_indrelns;
+                             M.remove_types_with_target_rep (Target_no_ident Target_ocaml);
                              Patterns.compile_def (Target_no_ident Target_ocaml) Patterns.is_ocaml_pattern_match env]);
               Pat_macros (fun env -> [Backend_common.inline_pat_macro Target_ocaml env]);
               Exp_macros (fun env ->
@@ -183,6 +185,7 @@ let isa  =
                     [M.remove_vals;
                      M.remove_opens;
                      M.remove_indrelns_true_lhs;
+                     M.remove_types_with_target_rep (Target_no_ident Target_isa);
                      Patterns.compile_def (Target_no_ident Target_isa) Patterns.is_isabelle_pattern_match env;] );
       Pat_macros (fun env -> [Backend_common.inline_pat_macro Target_isa env]);
       Exp_macros (fun env ->
@@ -215,6 +218,7 @@ let coq =
                     [M.type_annotate_definitions;
                      M.remove_import_include;
                      M.opens_to_single;
+                     M.remove_types_with_target_rep (Target_no_ident Target_coq);
                      Patterns.compile_def (Target_no_ident Target_coq) Patterns.is_coq_pattern_match env
                     ]); 
        Pat_macros (fun env -> [Backend_common.inline_pat_macro Target_coq env]);

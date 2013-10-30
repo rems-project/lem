@@ -102,6 +102,11 @@ val remove_import_include : def_macro
 val opens_to_single : def_macro
 
 (** {2 Misc} *)
+
+(** If a target representation for a type is given, the original type definition is commented out.
+    Notice that target-specific renamings are not target representations. *)
+val remove_types_with_target_rep : Target.target -> def_macro
+
 val remove_vals : def_macro
 val remove_indrelns : def_macro
 val remove_indrelns_true_lhs : def_macro
