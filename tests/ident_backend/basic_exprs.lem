@@ -1,4 +1,4 @@
-open import Pervasives_suspicious
+open import Pervasives_extra
 
 module M = struct let v = 1 end
 type t = | C1 | C2 of nat | C3 of nat * nat | C4 of nat * nat * nat * nat

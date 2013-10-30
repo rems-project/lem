@@ -1,4 +1,4 @@
-open import Pervasives_suspicious 
+open import Pervasives_extra 
 
 let test1 = 1
 let test2 : nat = 1

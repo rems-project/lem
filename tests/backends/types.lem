@@ -1,4 +1,4 @@
-open import Pervasives_suspicious
+open import Pervasives_extra
 
 type t1 = nat
 type t2 'a = 'a * t1

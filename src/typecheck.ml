@@ -3135,7 +3135,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           (* consistency checks for default instances *)
           let is_default_inst = (match inst_decl with Ast.Inst_default _ -> true | Ast.Inst_decl _ -> false) in
           let is_default_inst_real = is_var_type (src_t_to_t src_t) in
-          let is_allowed_instance = is_var_type (src_t_to_t src_t) || is_simple_app_type (src_t_to_t src_t) in
+          let is_allowed_instance = is_var_type (src_t_to_t src_t) || is_instance_type (src_t_to_t src_t) in
 
           let _ = if (is_default_inst && (not is_default_inst_real)) then
                     raise (Reporting_basic.err_type l "instance not general enough for a default instance") else () in

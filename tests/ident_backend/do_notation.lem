@@ -1,4 +1,4 @@
-open import Pervasives_suspicious
+open import Pervasives_extra
 
 module M = struct
   type t 'a = maybe 'a

@@ -119,10 +119,15 @@ let is_var_type t = match t.t with
   | Tvar _ -> true
   | _ -> false
 
-let is_simple_app_type t = match t.t with
+let is_instance_type t = match t.t with
   | Tapp (ts, _) -> List.for_all is_var_type ts
   | Ttup (ts) -> List.for_all is_var_type ts
   | Tfn (t1,t2) -> is_var_type t1 && is_var_type t2
+  | Tne ne -> begin
+      match ne.nexp with
+        | Nconst _ -> true
+        | _ -> false
+    end
   | _ -> false
 
 let free_vars t =

@@ -1,4 +1,4 @@
-open import Pervasives_suspicious
+open import Pervasives_extra
 
 (* not checked, yet
   Warn_fun_clauses_resorted of Ast.l * Typed_ast.target option * string list * Typed_ast.def

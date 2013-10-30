@@ -108,7 +108,9 @@ val type_subst : t TNfmap.t -> t -> t
 val nexp_subst : t TNfmap.t -> nexp -> nexp
 val free_vars : t -> TNset.t
 val is_var_type : t -> bool
-val is_simple_app_type : t -> bool
+
+(** is the type ok to be used in an non-default type-class instantiation? *)
+val is_instance_type : t -> bool
 
 val tnvar_to_name : tnvar -> Name.t
 val tnvar_to_type : tnvar -> t

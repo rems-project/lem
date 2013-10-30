@@ -718,7 +718,7 @@ let _ = x::[(4:nat)]
 (* TODO: error message should include (test.c 'a list) *)
 class (c 'a) val x : 'a end
 class (d 'a) val y : 'a val z : list 'a end
-instance forall 'a. (d 'a) let y = x let z = x end
+default_instance forall 'a. (d 'a) let y = x let z = x end
 
 ===============================================================================
 class (c 'a) val x : 'a end

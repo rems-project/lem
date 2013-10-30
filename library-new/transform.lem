@@ -8,10 +8,10 @@
 (******************************************************************************)
 
 
-include import Pervasives_suspicious
+include import Pervasives_extra
 
 (* get rid of transform at beginning *)
-declare rename module = Pervasives_suspicious
+declare rename module = Pervasives_extra
 
 
 (* ========================================================================== *)
@@ -130,7 +130,7 @@ let inline {isabelle} nat_list_to_string = Isabelle.nat_list_to_string
 (* ========================================================================== *)
 
 module Set = struct
-  include Set_suspicious (* include the new set module *)
+  include Set_extra (* include the new set module *)
 
   let inline add = insert
   let inline for_all = all
@@ -174,7 +174,7 @@ end
 (* ========================================================================== *)
 
 module List = struct
-  include List_suspicious (* include the new set module *)
+  include List_extra (* include the new set module *)
 
   let inline hd = head
   let inline tl = tail
@@ -202,7 +202,7 @@ module List = struct
   (* ----------------------- *)
 
   let inline length = List.length
-  let inline nth = List_suspicious.nth
+  let inline nth = List_extra.nth
   let inline append = List.append
 
   (*
