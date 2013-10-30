@@ -573,7 +573,28 @@ let generate_coq_record_update_notation e =
       DefaultMap.find k !initial_default_map
     ;;
 
-    let rec def (inside_instance: bool) (callback : def list -> Output.t) (inside_module : bool) (m : def_aux) =
+    let rec def_extra (inside_instance: bool) (callback: def list -> Output.t) (inside_module: bool) (m: def_aux) =
+      match m with
+        | Lemma (skips, lemma_typ, targets, name_skips_opt, skips', e, skips'') ->
+          if in_target targets then
+            let name =
+              match name_skips_opt with
+                | None ->
+                  let fresh = generate_fresh_name () in
+                  Output.flat [
+                    from_string " lemma_"; from_string fresh
+                  ]
+                | Some ((name, l), skips) -> Name.to_output Term_var name
+            in
+              Output.flat [
+                ws skips; from_string "Lemma"; name; from_string ":"; ws skips';
+                from_string "("; exp inside_instance e; from_string ": Prop)";
+                ws skips''; from_string "."
+              ]
+          else
+            from_string "(* [?]: removed lemma intended for another backend. *)"
+        | _ -> emp
+    and def (inside_instance: bool) (callback : def list -> Output.t) (inside_module : bool) (m : def_aux) =
       match m with
       | Type_def (skips, def) ->
           let funcl =	if is_abbreviation def then
@@ -759,25 +780,7 @@ let generate_coq_record_update_notation e =
           Output.flat [
       		  from_string "(* "; def inside_instance callback inside_module def_aux; from_string " *)"
           ]
-      | Lemma (skips, lemma_typ, targets, name_skips_opt, skips', e, skips'') ->
-          if in_target targets then
-            let name =
-              match name_skips_opt with
-                | None ->
-                  let fresh = generate_fresh_name () in
-                  Output.flat [
-                    from_string " lemma_"; from_string fresh
-                  ]
-                | Some ((name, l), skips) -> Name.to_output Term_var name
-            in
-              Output.flat [
-                ws skips; from_string "Lemma"; name; from_string ":"; ws skips';
-                from_string "("; exp inside_instance e; from_string ": Prop)";
-                ws skips''; from_string "."
-              ]
-          else
-            from_string "(* [?]: removed lemma intended for another backend. *)"
-      | Declaration declare -> from_string ""
+      | _ -> emp
     and val_def inside_instance i_ref_opt is_recursive def tv_set class_constraints =
       begin
         let constraints =
@@ -1776,21 +1779,39 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
     let rec defs inside_instance inside_module (ds : def list) =
       	List.fold_right (fun (((d, s), l, lenv):def) y ->
           let ue = add_def_entities (Target_no_ident Target_coq) true empty_used_entities ((d,s),l,lenv) in
-
-          let module C = CoqBackendAux (
-             struct
-                let avoid = A.avoid;;
-                let env = {A.env with local_env = lenv};;
-		            let ascii_rep_set = CdsetE.from_list ue.used_consts
-             end) in
           let callback = defs false true in
+          let module C = CoqBackendAux (
+            struct
+              let avoid = A.avoid;;
+              let env = {A.env with local_env = lenv};;
+              let ascii_rep_set = CdsetE.from_list ue.used_consts
+            end)
+          in
           match s with
             | None   -> C.def inside_instance callback inside_module d ^ y
             | Some s -> C.def inside_instance callback inside_module d ^ ws s ^ y
       	) ds emp
-
-    let coq_defs ((ds : def list), end_lex_skips) =
-    	to_rope (r"\"") lex_skip need_space @@ defs false false ds ^ ws end_lex_skips
+    and defs_extra inside_instance inside_module (ds: def list) =
+        List.fold_right (fun (((d, s), l, lenv):def) y ->
+          let ue = add_def_entities (Target_no_ident Target_coq) true empty_used_entities ((d,s),l,lenv) in
+          let module C = CoqBackendAux (
+            struct
+              let avoid = A.avoid;;
+              let env = {A.env with local_env = lenv};;
+              let ascii_rep_set = CdsetE.from_list ue.used_consts
+            end)
+          in
+          let callback = defs false true in
+          match s with
+            | None   -> C.def_extra inside_instance callback inside_module d ^ y
+            | Some s -> C.def_extra inside_instance callback inside_module d ^ ws s ^ y
+        ) ds emp
     ;;
 
-end
+    let coq_defs ((ds : def list), end_lex_skips) =
+      let coq_defs = defs false false ds in
+      let coq_defs_extra = defs_extra false false ds in
+    	  ((to_rope (r"\"") lex_skip need_space @@ coq_defs ^ ws end_lex_skips),
+          to_rope (r"\"") lex_skip need_space @@ coq_defs_extra ^ ws end_lex_skips)
+    ;;
+  end

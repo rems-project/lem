@@ -304,20 +304,42 @@ let output1 env libpath isa_thy out_dir (targ : Target.target) avoid m alldoc_ac
           end
 
       | Target.Target_no_ident(Target.Target_coq) -> 
-          begin
-            let r = B.coq_defs m.typed_ast in
-            let (o, ext_o) = open_output_with_check dir (module_name_lower ^ ".v") in
-              Printf.fprintf o "(* %s *)\n\n" (generated_line m.filename);
-              Printf.fprintf o "Require Import Arith.\n";
-              Printf.fprintf o "Require Import Bool.\n";
-              Printf.fprintf o "Require Import List.\n";
-              Printf.fprintf o "Require Import String.\n";
-              Printf.fprintf o "Require Import Program.Wf.\n\n";
-              Printf.fprintf o "Open Scope nat_scope.\n";
-              Printf.fprintf o "Open Scope string_scope.\n\n";
-              Printf.fprintf o "%s" (Ulib.Text.to_string r);
-              close_output_with_check ext_o
+          try begin
+            let (r, r_extra) = B.coq_defs m.typed_ast in
+            let _ =
+              begin
+                let (o, ext_o) = open_output_with_check dir (module_name_lower ^ ".v") in
+                  Printf.fprintf o "(* %s *)\n\n" (generated_line m.filename);
+                  Printf.fprintf o "Require Import Arith.\n";
+                  Printf.fprintf o "Require Import Bool.\n";
+                  Printf.fprintf o "Require Import List.\n";
+                  Printf.fprintf o "Require Import String.\n";
+                  Printf.fprintf o "Require Import Program.Wf.\n\n";
+                  Printf.fprintf o "Open Scope nat_scope.\n";
+                  Printf.fprintf o "Open Scope string_scope.\n\n";
+                  Printf.fprintf o "%s" (Ulib.Text.to_string r);
+                  close_output_with_check ext_o
+              end
+            in
+
+            let _ =
+              begin
+                let (o, ext_o) = open_output_with_check dir (module_name_lower ^ "_extras.v") in
+                  Printf.fprintf o "(* %s *)\n\n" (generated_line m.filename);
+                  Printf.fprintf o "Require Import Arith.\n";
+                  Printf.fprintf o "Require Import Bool.\n";
+                  Printf.fprintf o "Require Import List.\n";
+                  Printf.fprintf o "Require Import String.\n";
+                  Printf.fprintf o "Require Import Program.Wf.\n\n";
+                  Printf.fprintf o "Open Scope nat_scope.\n";
+                  Printf.fprintf o "Open Scope string_scope.\n\n";
+                  Printf.fprintf o "%s" (Ulib.Text.to_string r_extra);
+                  close_output_with_check ext_o
+              end in ()
           end
+            with
+              | Trans.Trans_error(l,msg) ->
+                  raise (Reporting_basic.Fatal_error (Reporting_basic.Err_trans_header (l, msg)))
 
 let output libpath isa_thy out_dir (targ : Target.target) consts env mods alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum =
   List.iter
