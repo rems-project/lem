@@ -676,7 +676,7 @@ let generate_coq_record_update_notation e =
           let notations = List.flatten (List.map snd body_notations) in
           let rec generate_notations notations =
             match notations with
-              | [] -> from_string ""
+              | [] -> emp
               | (infix, name)::xs ->
                 let tail = generate_notations xs in
                 let name = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip name)) in
@@ -704,7 +704,7 @@ let generate_coq_record_update_notation e =
                 let tyvars, c =
                   begin
                   match constraint_prefix_opt with
-                    | None -> from_string "", from_string ""
+                    | None -> emp, emp
                     | Some c ->
                       begin
                       match c with
@@ -721,7 +721,7 @@ let generate_coq_record_update_notation e =
                             let cs =
                               begin
                               match constraints_opt with
-                                | None -> from_string ""
+                                | None -> emp
                                 | Some cs ->
                                   match cs with
                                     | Cs_list (ident_var_seplist, skips_opt, range_seplist, skips') ->
@@ -758,13 +758,16 @@ let generate_coq_record_update_notation e =
                   ]
                 in
                 let tyvars_typeset =
-                  Output.flat [
-                    from_string "{"; tyvars; from_string ": Type}"
-                  ]
+                  if tyvars = emp then
+                    emp
+                  else
+                    Output.flat [
+                      from_string "{"; tyvars; from_string ": Type}"
+                    ]
                 in
                   Output.flat [
                     ws skips; instance_id; tyvars_typeset; from_string " "; c; from_string ": "; id
-                  ; from_string " ("; typ src_t ; from_string " "; tyvars; from_string ") "
+                  ; typ src_t
                   ]
           in
           let body =
@@ -795,16 +798,14 @@ let generate_coq_record_update_notation e =
                       raise (Reporting_basic.err_general true Ast.Unknown "nexps not supported in type class constraints")
               in 
                 Output.flat [
-                  name; from_string " "; var
+                  from_string "`{"; name; from_string " "; var; from_string "}"
                 ]
             ) class_constraints)
           in
           if List.length class_constraints = 0 then
-            from_string ""
+            emp
           else
-            Output.flat [
-              from_string "`{"; body; from_string "}"
-            ]
+            body
         in
         match def with
           | Let_def (skips, targets, (p, name_map, topt, sk, e)) ->
@@ -813,7 +814,7 @@ let generate_coq_record_update_notation e =
                 let body = let_body inside_instance i_ref_opt true tv_set bind in
                 let defn, ending =
                   if inside_instance then
-                    from_string "", from_string ""
+                    emp, emp
                   else
                     from_string "Definition", from_string "."
                   in
@@ -828,14 +829,14 @@ let generate_coq_record_update_notation e =
                 let header, ending =
                   if is_recursive then
                     if inside_instance then
-                      ws skips', from_string ""
+                      ws skips', emp
                     else
                       Output.flat [
                         from_string "Program"; ws skips'; from_string "Fixpoint"
                       ], from_string "."
                   else
                     if inside_instance then
-                      from_string "", from_string ""
+                      emp, emp
                     else
                       Output.flat [
                         from_string "Definition";
@@ -900,8 +901,10 @@ let generate_coq_record_update_notation e =
               in
               (* Indrel TODO This does not match variables with type annotations *)
               let bound_variables =
-                concat_str " " @@ List.map (fun (QName n) ->
-                  from_string (Name.to_string (Name.strip_lskip n.term))
+                concat_str " " @@ List.map (fun b ->
+                  match b with
+                    | QName n -> from_string (Name.to_string (Name.strip_lskip n.term))
+                    | _ -> assert false
                 ) name_lskips_annot_list
               in
               let binder, binder_sep =
@@ -973,7 +976,7 @@ let generate_coq_record_update_notation e =
                 p; tv_set_sep; tv_set; topt; ws skips; from_string " := "; e
               ]
         | Let_fun (n, pats, typ_opt, skips, e) ->
-          funcl_aux inside_instance i_ref_opt (from_string "") tv_set (n.term, pats, typ_opt, skips, e)
+          funcl_aux inside_instance i_ref_opt emp tv_set (n.term, pats, typ_opt, skips, e)
     and funcl_aux inside_instance i_ref_opt constraints tv_set (n, pats, typ_opt, skips, e) =
       let name_skips = Name.get_lskip n in
       let name = from_string (Name.to_string (Name.strip_lskip n)) in
@@ -983,14 +986,14 @@ let generate_coq_record_update_notation e =
           | _  -> from_string " "
       in
       let constraints_sep =
-        if constraints = from_string "" then
-          from_string ""
+        if constraints = emp then
+          emp
         else
           from_string " "
       in
       let tv_set_sep, tv_set =
         if inside_instance then
-          from_string "", from_string ""
+          emp, emp
         else
           if Types.TNset.cardinal tv_set = 0 then
             let typ = Typed_ast.exp_to_typ e in
@@ -1291,6 +1294,25 @@ let generate_coq_record_update_notation e =
             let escaped = Str.global_replace (Str.regexp "\"") "\"\"" s in
             ws skips ^ str (Ulib.Text.of_string escaped)
         | L_unit (skips, skips') -> ws skips ^ from_string "tt" ^ ws skips'
+        | L_zero s ->
+          Output.flat [
+            ws s; from_string "false"
+          ]
+        | L_one s ->
+          Output.flat [
+            ws s; from_string "true"
+          ]
+        | L_char (s, c) ->
+          let c = from_string @@ Char.escaped c in
+          Output.flat [
+            ws s; c
+          ]
+        | L_numeral (skips, i) ->
+          let i = from_string @@ string_of_int i in
+            Output.flat [
+              ws skips; i
+            ]
+        | L_vector (s, v, v') -> assert false
         | L_undefined (skips, explanation) ->
           let typ = l.typ in
           let src_t = C.t_to_src_t typ in
@@ -1476,6 +1498,7 @@ let generate_coq_record_update_notation e =
               ws skips; from_string "("; abbreviation_typ t; from_string ")"; ws skips'
             ]
         | Typ_len nexp -> src_nexp nexp
+        | _ -> assert false
     and type_def_record def =
     	match Seplist.hd def with
       	| (n, tyvars, _, (Te_record (skips, skips', fields, skips'') as r),_) ->
@@ -1601,6 +1624,7 @@ let generate_coq_record_update_notation e =
         | Typ_paren(skips, t, skips') ->
             ws skips ^ from_string "(" ^ pat_typ t ^ ws skips' ^ from_string ")"
         | Typ_len nexp -> src_nexp nexp
+        | _ -> assert false
     and typ t =
     	match t.term with
       	| Typ_wild skips -> ws skips ^ from_string "_"
@@ -1614,6 +1638,7 @@ let generate_coq_record_update_notation e =
       	| Typ_paren (skips, t, skips') ->
           	ws skips ^ from_string "(" ^ typ t ^ from_string ")" ^ ws skips'
         | Typ_len nexp -> src_nexp nexp
+        | _ -> assert false
     and type_def_type_variables tvs =
       match tvs with
         | [] -> emp
@@ -1661,6 +1686,7 @@ let generate_coq_record_update_notation e =
         | Typ_paren(skips, t, skips') ->
             ws skips ^ from_string "(" ^ indreln_typ t ^ from_string ")" ^ ws skips'
         | Typ_len nexp -> src_nexp nexp
+        | _ -> assert false
     and field_typ t =
       match t.term with
         | Typ_wild skips -> ws skips ^ from_string "_"
@@ -1678,6 +1704,7 @@ let generate_coq_record_update_notation e =
         | Typ_paren(skips, t, skips') ->
             ws skips ^ from_string "(" ^ typ t ^ from_string ")" ^ ws skips'
         | Typ_len nexp -> src_nexp nexp
+        | _ -> assert false
     and field ((n, _), f_ref, skips, t) =
       Output.flat [
           Name.to_output Term_field (B.const_ref_to_name n false f_ref); 
@@ -1762,6 +1789,7 @@ let generate_coq_record_update_notation e =
                   from_string "(fun ("; from_string v; from_string " : "; pat_typ dom;
                   from_string ") => "; default_value rng; from_string ")"
                 ]
+          | _ -> assert false
       and generate_default_values ts : Output.t =
         let ts = Seplist.to_list ts in
         let mapped = List.map generate_default_value ts in
