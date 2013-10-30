@@ -237,6 +237,8 @@ let isProperSubsetOfBy eq s1 s2 = (isSubsetOfBy eq s1 s2 && not (isSubsetOfBy eq
 val isSubsetOf : forall 'a. Ord 'a, Eq 'a => set 'a -> set 'a -> bool
 let inline {coq} isSubsetOf s1 s2 = isSubsetOfBy (=) s1 s2
 
+let inline (subset) = isSubsetOf
+
 val isProperSubsetOf : forall 'a. Ord 'a, Eq 'a => set 'a -> set 'a -> bool
 let inline isProperSubsetOf s1 s2 = isProperSubsetOfBy (=) s1 s2
 
@@ -291,15 +293,15 @@ let inline delete e s = deleteBy (=) e s
 (* union                    *)
 (* ------------------------ *)
 
-val union : forall 'a. Ord 'a => set 'a -> set 'a -> set 'a
-declare ocaml    target_rep function union = `Pset.(union)`
-declare hol      target_rep function union = `UNION`
-declare isabelle target_rep function union = `Set.union`
-declare coq      target_rep function union = `set_union` 
+val (union) : forall 'a. Ord 'a => set 'a -> set 'a -> set 'a
+declare ocaml    target_rep function (union) = `Pset.(union)`
+declare hol      target_rep function (union) = `UNION`
+declare isabelle target_rep function (union) = `Set.union`
+declare coq      target_rep function (union) = `set_union` 
 
 
-assert union_1: (union {(1:nat);2;3} {3;2;4} = {1;2;3;4})
-lemma union_in: (forall e s1 s2. e IN (union s1 s2) <-> (e IN s1 || e IN s2))
+assert union_1: ({(1:nat);2;3} union {3;2;4} = {1;2;3;4})
+lemma union_in: (forall e s1 s2. e IN (s1 union s2) <-> (e IN s1 || e IN s2))
 
 
 (* ------------------------ *)
@@ -312,6 +314,8 @@ declare hol      target_rep function difference = `DIFF`
 declare isabelle target_rep function difference = `set_diff`
 declare coq      target_rep function difference = `set_diff` 
 
+let inline (\) = difference
+
 assert difference_1: (difference {(1:nat);2;3} {3;2;4} = {1})
 lemma difference_in: (forall e s1 s2. e IN (difference s1 s2) <-> (e IN s1 && not (e IN s2)))
 
@@ -321,6 +325,8 @@ lemma difference_in: (forall e s1 s2. e IN (difference s1 s2) <-> (e IN s1 && no
 
 val intersection : forall 'a. Ord 'a, Eq 'a => set 'a -> set 'a -> set 'a
 val intersectionBy : forall 'a. ('a -> 'a -> bool) -> set 'a -> set 'a -> set 'a
+
+let inline (inter) = intersection
 
 declare ocaml    target_rep function intersection = `Pset.inter`
 declare hol      target_rep function intersection = `INTER`

@@ -22,10 +22,6 @@ type num = nat
 declare lem target_rep type num = `nat`
 
 let inline (@) = (++) (* List append *)
-let inline (subset) = isSubsetOf
-let inline (inter) = intersection 
-
-let inline (\) = difference
 let inline (<>) = (/=)
 
 (* transitive closure now works on relations, not sets of pairs,

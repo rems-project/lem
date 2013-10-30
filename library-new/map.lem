@@ -79,7 +79,7 @@ val difference       : forall 'k 'v 'w. Ord 'k => map 'k 'v -> map 'k 'w -> map 
 
 val intersection     : forall 'k 'v. Ord 'k => map 'k 'v -> map 'k 'v -> map 'k 'v
 
-val union            : forall 'k 'v. Ord 'k => map 'k 'v -> map 'k 'v -> map 'k 'v
+val (union)          : forall 'k 'v. Ord 'k => map 'k 'v -> map 'k 'v -> map 'k 'v
 val unions           : forall 'k 'v. Ord 'k => list (map 'k 'v) -> map 'k 'v
 
 val isSubmapOf       : forall 'k 'v. Ord 'k, Eq 'v => map 'k 'v -> map 'k 'v -> bool
@@ -103,7 +103,6 @@ val update          : forall 'k 'v. Ord 'k => ('v -> maybe 'v) -> 'k -> map 'k '
 val updateWithKey   : forall 'k 'v. Ord 'k => ('k -> 'v -> maybe 'v) -> 'k -> map 'k 'v -> map 'k 'v
 let update f m = updateWithKey (fun k v -> f v) m
 
-let ajust f k m = update (fun v -> Just (f v)) k m
 let delete k m = update (fun v -> Nothing) k m
 
 
