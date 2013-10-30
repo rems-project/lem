@@ -616,7 +616,7 @@ let generate_coq_record_update_notation e =
           end in
           if (not (in_target targets)) then emp else Output.flat (List.map handle_mod mod_descrs)
       | OpenImportTarget _ -> emp
-      | Indreln (skips, targets, names, cs) -> (*INDERL_TODO Only added the name declaration parameter here*)
+      | Indreln (skips, targets, names, cs) ->
           if in_target targets then
             let c = Seplist.to_list cs in
               clauses inside_instance c
@@ -722,9 +722,7 @@ let generate_coq_record_update_notation e =
                                         ident_var_list
                               end
                             in
-                              Output.flat [
-                                ws skips; from_string "{"; tnvars; from_string ": Type}";
-                              ],
+                              tnvars,
                               Output.flat [
                                 ws skips'; cs
                               ]
@@ -738,8 +736,14 @@ let generate_coq_record_update_notation e =
                      from_string fresh; from_string "_"; id
                   ]
                 in
+                let tyvars_typeset =
                   Output.flat [
-                    ws skips; instance_id; tyvars; from_string " "; c; from_string ": "; id; typ src_t
+                    from_string "{"; tyvars; from_string ": Type}"
+                  ]
+                in
+                  Output.flat [
+                    ws skips; instance_id; tyvars_typeset; from_string " "; c; from_string ": "; id
+                  ; from_string " ("; typ src_t ; from_string " "; tyvars; from_string ") "
                   ]
           in
           let body =
@@ -881,19 +885,8 @@ let generate_coq_record_update_notation e =
                   ) exp_list
           in
           let bodies =
-            Util.list_mapi (fun counter -> fun (Rule(name_lskips_t, skips0, skips, name_lskips_annot_list, skips', exp_opt, skips'', name_lskips_annot, c, exp_list),_) ->
-              let constructor_name =
-              (* Note, now that names are not optional, this code is likely unneccessary, and an extra skip is added*)
-(*                match name_lskips_t_opt with
-                  | None ->
-                    let fresh = string_of_int counter in
-                    let name = Name.to_string name in
-                      Output.flat [
-                        from_string name; from_string "_"; from_string fresh
-                      ]
-                  | Some name ->*)
-                  from_string (Name.to_string (Name.strip_lskip name_lskips_t))
-              in
+            List.map (fun (Rule(name_lskips_t, skips0, skips, name_lskips_annot_list, skips', exp_opt, skips'', name_lskips_annot, c, exp_list),_) ->
+              let constructor_name = from_string (Name.to_string (Name.strip_lskip name_lskips_t)) in
               let antecedent =
                 match exp_opt with
                   | None -> emp
@@ -916,20 +909,21 @@ let generate_coq_record_update_notation e =
               let indices = concat_str " " @@ List.map (exp inside_instance) exp_list in
               let index_free_vars = List.map (fun t -> Types.free_vars (Typed_ast.exp_to_typ t)) exp_list in
               let index_free_vars = List.fold_right Types.TNset.union index_free_vars Types.TNset.empty in
+              let index_free_vars_typeset = concat_str " " @@ List.map (fun v -> from_string (Name.to_string (Types.tnvar_to_name v))) (Types.TNset.elements index_free_vars) in
               let relation_name = from_string (Name.to_string name) in
                 Output.flat [
                   constructor_name; from_string ": ";
                   binder; bound_variables; binder_sep; antecedent; from_string " -> ";
-                  relation_name; from_string " "; indices
+                  relation_name; from_string " "; index_free_vars_typeset; from_string " "; indices
                 ], index_free_vars
             ) bodies
           in
           let free_vars = List.map (fun (x, y) -> y) bodies in
           let free_vars = Types.TNset.elements @@ List.fold_right Types.TNset.union free_vars Types.TNset.empty in
-          let free_vars =
+          let free_vars_typeset =
             concat_str " " @@ List.map (fun v ->
               Output.flat [
-                from_string " {"; from_string (Name.to_string (Types.tnvar_to_name v)); from_string ": Type}"
+                from_string " ("; from_string (Name.to_string (Types.tnvar_to_name v)); from_string ": Type)"
               ]) free_vars
           in
           let index_types =
@@ -939,7 +933,7 @@ let generate_coq_record_update_notation e =
           in
           let bodies = concat_str "\n  | " @@ List.map (fun (x, y) -> x) bodies in
           Output.flat [
-            from_string name_string; free_vars; from_string ": "; index_types; from_string " :=\n  | ";
+            from_string name_string; free_vars_typeset; from_string ": "; index_types; from_string " :=\n  | ";
             bodies
           ]
         ) gathered
@@ -1539,11 +1533,11 @@ let generate_coq_record_update_notation e =
           match v with
             | Tyvar x ->
               Output.flat [
-                from_string "{"; x; from_string " : Type}"
+                from_string "("; x; from_string " : Type)"
               ]
             | Nvar x ->
               Output.flat [
-                from_string "{"; x; from_string " : num}"
+                from_string "("; x; from_string " : num)"
               ]) vars
       in
         concat_str " " mapped
@@ -1557,14 +1551,26 @@ let generate_coq_record_update_notation e =
             Output.flat [
               from_string ":="; ws skips; body
             ]
-    and constructor ind_name ty_vars ((name0, _), c_ref, skips, args) =
+    and constructor ind_name (ty_vars : variable list) ((name0, _), c_ref, skips, args) =
       let ctor_name = B.const_ref_to_name name0 false c_ref in
       let ctor_name = Name.to_output Type_ctor ctor_name in
       let body = flat @@ Seplist.to_sep_list abbreviation_typ (sep @@ from_string "-> ") args in
-      let tail = Output.flat [from_string "->"; ind_name ] in
+      let ty_vars_typeset =
+        concat_str " " @@ List.map (fun v ->
+          match v with
+            | Tyvar out -> out
+            | Nvar out -> out
+        ) ty_vars
+      in
+      let tail =
+        Output.flat [
+          from_string "->"; ind_name; from_string " "; ty_vars_typeset
+        ]
+      in
         if Seplist.length args = 0 then
           Output.flat [
             ctor_name; from_string ":"; ws skips; ind_name
+          ; from_string " "; ty_vars_typeset
           ]
         else
           Output.flat [
@@ -1716,18 +1722,14 @@ let generate_coq_record_update_notation e =
         let default = generate_default_value_texp t in
         let mapped = concat_str " " @@ List.map (fun x ->
           match x with
-            | Typed_ast.Tn_A (_, x, _)->
-              let x = Ulib.Text.to_string x in
-              Output.flat [
-                from_string "("; from_string x; from_string ":=";
-                from_string x; from_string ")"
-              ]
-              | _ -> from_string "BUG"
+            | Typed_ast.Tn_A (_, x, _)-> from_string (Ulib.Text.to_string x)
+            | _ -> from_string "BUG"
           ) tnvar_list
         in
           Output.flat [
             from_string "Definition "; o; from_string "_default";
             tnvar_list'; tnvar_list_sep; from_string ": "; o;
+            from_string " "; mapped;
             from_string " := "; default; from_string " ";
             mapped; from_string "."
           ]

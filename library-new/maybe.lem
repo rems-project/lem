@@ -20,18 +20,18 @@ type maybe 'a =
 
 declare hol      target_rep type maybe 'a = `option` 'a 
 declare isabelle target_rep type maybe 'a = `option` 'a
-declare coq      target_rep type maybe 'a = `option` 'a
+(* declare coq      target_rep type maybe 'a = `option` 'a *)
 declare ocaml    target_rep type maybe 'a = `option` 'a
 
 declare hol      target_rep function Just = `SOME`
 declare ocaml    target_rep function Just = `Some`
 declare isabelle target_rep function Just = `Some`
-declare coq      target_rep function Just = `Some`
+(* declare coq      target_rep function Just = `Some` *)
 
 declare hol      target_rep function Nothing = `NONE`
 declare ocaml    target_rep function Nothing = `None`
 declare isabelle target_rep function Nothing = `None`
-declare coq      target_rep function Nothing = `None`
+(* declare coq      target_rep function Nothing = `None` *)
 
 
 val maybeEqual : forall 'a. Eq 'a => maybe 'a -> maybe 'a -> bool
