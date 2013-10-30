@@ -215,10 +215,8 @@ let rec get_prec targ env c =
          | Some (CR_inline (_, _, [], e)) -> get_prec_exp targ env e
          | Some (CR_simple (_, _, [], e)) -> get_prec_exp targ env e
          | Some _ -> P_prefix
-         | None -> (* if not target definition is given then default to the one for the identity backend, if it is a human readable backend. *)
-                   if (Target.is_human_target targ) then 
-                      get_ident_prec (Op (Name.to_string (Path.get_name c_descr.const_binding)))
-                   else P_prefix
+         | None ->
+            get_ident_prec (Op (Name.to_string (Path.get_name c_descr.const_binding)))
       end
 
 and get_prec_exp targ env e =
