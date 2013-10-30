@@ -92,10 +92,6 @@ instance (Eq ordering)
   let (=) = unsafe_structural_equality
 end
 
-val defaultCompare : forall 'a. 'a -> 'a -> ordering
-let defaultCompare x y = EQ
-declare ocaml target_rep function defaultCompare = `compare`
-
 class ( Ord 'a ) 
   val compare                 : 'a -> 'a -> ordering
   val (<)  [`isLess`]         : 'a -> 'a -> bool
@@ -108,6 +104,38 @@ declare coq target_rep function isLess = infix `<`
 declare coq target_rep function isLessEqual = infix `<=`
 declare coq target_rep function isGreater = infix `>`
 declare coq target_rep function isGreaterEqual = infix `>=`
+
+
+(* Ocaml provides default, polymorphic compare functions. Let's use them
+   as the default. However, because used in a typeclass they must be 
+   defined for all targets. So, use a dummy instantiation for other tragets *)
+val defaultCompare   : forall 'a. 'a -> 'a -> ordering
+val defaultLess      : forall 'a. 'a -> 'a -> bool
+val defaultLessEq    : forall 'a. 'a -> 'a -> bool
+val defaultGreater   : forall 'a. 'a -> 'a -> bool
+val defaultGreaterEq : forall 'a. 'a -> 'a -> bool
+
+let defaultCompare   = `***defaultCompare***`
+let defaultLess      = `***defaultLess***`
+let defaultLessEq    = `***defaultLessEq***`
+let defaultGreater   = `***defaultGreater***`
+let defaultGreaterEq = `***defaultGreaterEq***`
+
+declare ocaml target_rep function defaultCompare   = `compare`
+declare ocaml target_rep function defaultLess      = `<`
+declare ocaml target_rep function defaultLessEq    = `<=`
+declare ocaml target_rep function defaultGreater   = `>`
+declare ocaml target_rep function defaultGreaterEq = `>=`
+
+
+default_instance forall 'a. ( Ord 'a )
+  let compare = defaultCompare
+  let (<=) = defaultLessEq
+  let (>=) = defaultGreaterEq
+  let (<) = defaultLess
+  let (>) = defaultGreater
+end
+
 
 (* TODO: add later 
 lemma isLess_alt_def        : (forall x y. (x < y) = (let r = compare x y in (r = LT || r = EQ)))
