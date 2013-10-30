@@ -30,10 +30,12 @@ declare coq target_rep function isInequal = infix `/=`
 (* (=) should for all instances be an equivalence relation 
    The isEquivalence predicate of relations could be used here.
    However, this would lead to a cyclic dependency. *)
+
+(* TODO: add later, once lemmata can be assigned to classes 
 lemma eq_equiv: ((forall x. (x = x)) &&
                  (forall x y. (x = y) <-> (y = x)) &&
                  (forall x y z. ((x = y) && (y = z)) --> (x = z)))
-
+*)
 
 (* Structural equality *)
 
@@ -107,6 +109,7 @@ declare coq target_rep function isLessEqual = infix `<=`
 declare coq target_rep function isGreater = infix `>`
 declare coq target_rep function isGreaterEqual = infix `>=`
 
+(* TODO: add later 
 lemma isLess_alt_def        : (forall x y. (x < y) = (let r = compare x y in (r = LT || r = EQ)))
 lemma isLessEqual_alt_def   : (forall x y. (x <= y) = (compare x y = LT))
 lemma isGreater_alt_def     : (forall x y. (x > y) = (y < x))
@@ -121,6 +124,7 @@ lemma ord_OK_2: (
   (forall x y z. (x <= y) && (y <= z) --> (x <= z)) &&
   (forall x y. (x <= y) || (y <= x))
 )
+*)
 
 (* let's derive a compare function from the Ord type-class *)
 val ordCompare : forall 'a. Eq 'a, Ord 'a => 'a -> 'a -> ordering

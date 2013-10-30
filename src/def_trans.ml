@@ -260,7 +260,7 @@ let class_to_record mod_path env ((d,s),l,lenv) =
 
 (* turns an instance declaration into a module containing all the field declarations
    and a dictionary at the end *)
-let instance_to_dict mod_path (env : env) ((d,s),l,lenv) =
+let instance_to_dict targ mod_path (env : env) ((d,s),l,lenv) =
   let l_unk n = Ast.Trans(false, "instance_to_module" ^ string_of_int n , Some l) in
   match d with
       | Instance(Ast.Inst_default sk1, i_ref, (prefix, sk2, id, class_path, t, sk3), vdefs, sk4) ->
@@ -272,7 +272,7 @@ let instance_to_dict mod_path (env : env) ((d,s),l,lenv) =
           let new_line_dict = Some [Ast.Ws (r"\n\n  ")] in
 
           (* now generate the definition of the record dict *)
-          let dict = begin
+          let (dict_def, env') = begin
             let mk_field_entry (class_method_ref, inst_method_ref) =
               begin
                 let field_ref = lookup_field_for_class_method l cd class_method_ref in
@@ -294,8 +294,9 @@ let instance_to_dict mod_path (env : env) ((d,s),l,lenv) =
             let fields = List.map mk_field_entry id.inst_methods in
             let dict_type = class_descr_get_dict_type cd t.typ in
             let dict_d = c_env_lookup (l_unk 7) env.c_env id.inst_dict in
-            let dict_body = C.mk_record (l_unk 5) None (Seplist.from_list fields) None (Some dict_type)
-            in
+            let dict_body = C.mk_record (l_unk 5) None (Seplist.from_list fields) None (Some dict_type) in
+            let dict_d' = {dict_d with target_rep = Target.Targetmap.insert_target dict_d.target_rep (targ, CR_inline (l, true, [], dict_body))} in
+            let env' = {env with c_env = c_env_update env.c_env id.inst_dict dict_d'} in
             let dict_name =
               { term = Name.add_lskip (Path.get_name dict_d.const_binding);
                 typ = dict_type;
@@ -303,9 +304,11 @@ let instance_to_dict mod_path (env : env) ((d,s),l,lenv) =
                 rest = ();
               }
             in
+
+            
             let dict' = ((dict_name, id.inst_dict, [], None, space, dict_body):funcl_aux) in
             let dict = Fun_def(sk1,FR_non_rec,None,Seplist.cons_entry dict' Seplist.empty) in
-            dict
+            (dict, env')
           end in
 
           (* Generate full module as before. 
@@ -325,9 +328,9 @@ let instance_to_dict mod_path (env : env) ((d,s),l,lenv) =
           *)
 
           (* finally, we the dictionary *)
-          let m = Val_def dict
+          let m = Val_def dict_def
           in
-            Some(env,[((m,s),l,lenv)])
+            Some(env',[((m,s),l,lenv)])
       | _ ->
           None
 

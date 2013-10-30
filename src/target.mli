@@ -81,11 +81,17 @@ val target_compare : non_ident_target -> non_ident_target -> int
 module Targetmap : sig
    include Finite_map.Fmap with type k = non_ident_target
 
-   (** [apply_drop_ident m targ] looks up the [targ] in map [m]. 
+   (** [apply_target m targ] looks up the [targ] in map [m]. 
        Target-maps only store information for real targets, not the identity one.
-       If therefore [targ_opt] is [Target_ident], i.e. represents the identity backend,
+       If therefore [targ] is [Target_ident], i.e. represents the identity backend,
        [None] is returned. *)
    val apply_target : 'a t -> target -> 'a option
+
+   (** [insert_target m (targ, v)] inserts value [v] for [targ] in map [m]. 
+       Target-maps only store information for real targets, not the identity one.
+       If therefore [targ] is [Target_ident], i.e. represents the identity backend,
+       the map is not(!) updated. *)
+   val insert_target : 'a t -> (target * 'a) -> 'a t
 end
 
 (** target sets *)

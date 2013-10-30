@@ -139,6 +139,28 @@ proof (rule someI_ex)
   qed
 qed
 
+subsection {* sum *}
+
+find_consts "'a list => ('a list * _)"
+
+fun sum_partition :: "('a + 'b) list \<Rightarrow> 'a list * 'b list"  where 
+  "sum_partition [] = ([], [])"
+| "sum_partition ((Inl l) # lrs) =
+     (let (ll, rl) = sum_partition lrs in
+     (l # ll, rl))"
+| "sum_partition ((Inr r) # lrs) =
+     (let (ll, rl) = sum_partition lrs in
+     (ll, r # rl))"
+
+lemma sum_partition_length :
+  "List.length lrs = List.length (fst (sum_partition lrs)) + List.length (snd (sum_partition lrs))"
+proof (induct lrs)
+  case Nil thus ?case by simp
+next
+  case (Cons lr lrs) thus ?case
+    by (cases lr) (auto split: prod.split)
+qed  
+
 subsection {* num to string conversions *}
 
 definition nat_list_to_string :: "nat list \<Rightarrow> string" where

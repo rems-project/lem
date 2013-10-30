@@ -2473,7 +2473,8 @@ let check_lemma l ts (ctxt : defn_ctxt)
     | Ast.Lemma_lemma sk -> (sk, Ast.Lemma_lemma None) in
   let aux (lty, target_opt, e) =
      let module C = Exps_in_context(struct let env_opt = (Some T.e) let avoid = None end) in
-     let (exp,constraints) = Checker.check_lem_exp empty_lex_env l e bool_ty in
+     let (exp,Tconstraints(_, constraints,_)) = Checker.check_lem_exp empty_lex_env l e bool_ty in
+(*   let _ = unsat_constraint_err l constraints in  *)
      let (sk0, lty') = lty_get_sk lty in
      let target_opt = check_target_opt target_opt in
      let _ = match lty with
@@ -3246,7 +3247,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
 
 
           (* add a dictionary constant *)
-          let dict_name = Name.from_string (Name.to_string instance_name ^ "_dict") in
+          let dict_name = Name.from_string (String.uncapitalize (Name.to_string instance_name) ^ "_dict") in
 
           let dict_type = class_descr_get_dict_type p_d src_t.typ in
 

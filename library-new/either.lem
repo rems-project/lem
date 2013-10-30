@@ -6,39 +6,108 @@
 (* Header                                                                     *)
 (* ========================================================================== *)
 
-declare rename module = Lem_either
+declare ~{ocaml;hol} rename module = Lem_either []
 
-open import Basic_classes List Tuple
+declare {ocaml} rename module = Lem_either [`Either`]
+declare {hol} rename module = Lem_either [`sumTheory`; `lem_eitherTheory`]
+
+open import Bool Basic_classes List Tuple
+open import {hol} `sumTheory`
 
 type either 'a 'b
   = Left  of 'a
   | Right of 'b
 
+declare ocaml    target_rep type either = `either`
+declare isabelle target_rep type either = `sum`
+declare hol      target_rep type either = `sum`
+
+declare isabelle target_rep function Left  = `Inl`
+declare isabelle target_rep function Right = `Inr`
+declare ocaml    target_rep function Left  = `Left`
+declare ocaml    target_rep function Right = `Right`
+declare hol      target_rep function Left  = `INL`
+declare hol      target_rep function Right = `INR`
+
+
 (* -------------------------------------------------------------------------- *)
 (* Equality.                                                                  *)
 (* -------------------------------------------------------------------------- *)
 
-let eitherEqual (left: either 'a 'b) (right: either 'a 'b) =
+val eitherEqual : forall 'a 'b. Eq 'a, Eq 'b => (either 'a 'b) -> (either 'a 'b) -> bool
+val eitherEqualBy : forall 'a 'b. ('a -> 'a -> bool) -> ('b -> 'b -> bool) -> (either 'a 'b) -> (either 'a 'b) -> bool
+
+let eitherEqualBy eql eqr (left: either 'a 'b) (right: either 'a 'b) =
   match (left, right) with
-    | (Left l, Left l') -> l = l'
-    | (Right r, Right r') -> r = r'
+    | (Left l, Left l') -> eql l l'
+    | (Right r, Right r') -> eqr r r'
     | _ -> false
   end
+
 let inline {hol;isabelle;coq} eitherEqual = unsafe_structural_equality
+let inline {ocaml} eitherEqual = eitherEqualBy (=) (=)
+declare ocaml target_rep function eitherEqualBy = `Either.eitherEqualBy`
 
 instance forall 'a 'b. Eq 'a, Eq 'b => (Eq (either 'a 'b))
   let (=) = eitherEqual
 end
 
+assert either_equal_1: (((Left false) : either bool bool) = Left false)
+assert either_equal_2: (((Left true) : either bool bool) /= Left false)
+assert either_equal_3: (((Left true) : either bool bool)  = Left true)
+assert either_equal_4: (((Right false) : either bool bool) = Right false)
+assert either_equal_5: (((Right false) : either bool bool) /= Right true)
+assert either_equal_6: (((Right true) : either bool bool) /= Left true)
+assert either_equal_7: (((Left true) : either bool bool) /= Right true)
+
+assert either_pattern_1: (match (Left true) with Left x -> x | Right y -> not y end)
+assert either_pattern_2: (match (Right false) with Left x -> x | Right y -> not y end)
+assert either_pattern_3: (not (match (Left false) with Left x -> x | Right y -> not y end))
+assert either_pattern_4: (not (match (Right true) with Left x -> x | Right y -> not y end))
+                           
+
 (* -------------------------------------------------------------------------- *)
 (* Utility functions.                                                         *)
 (* -------------------------------------------------------------------------- *)
+
+val isLeft : forall 'a 'b. either 'a 'b -> bool
+let inline isLeft = function
+  | Left _ -> true
+  | Right _ -> false
+end
+
+declare hol target_rep function isLeft = `ISL`
+
+assert isLeft_1 : (isLeft ((Left true): either bool bool))
+assert isLeft_2 : (not (isLeft ((Right true): either bool bool)))
+
+val isRight : forall 'a 'b. either 'a 'b -> bool
+let inline isRight = function
+  | Right _ -> true
+  | Left _ -> false
+end
+
+declare hol target_rep function isRight = `ISR`
+
+assert isRight_1 : (isRight ((Right true): either bool bool))
+assert isRight_2 : (not (isRight ((Left true): either bool bool)))
+
 
 val either : forall 'a 'b 'c. ('a -> 'c) -> ('b -> 'c) -> either 'a 'b -> 'c
 let either fa fb x = match x with
   | Left a -> fa a
   | Right b -> fb b
 end
+
+declare ocaml    target_rep function either = `Either.either_case`
+declare isabelle target_rep function either = `sum_case`
+declare hol      target_rep function either fa fb x = `sum_CASE` x fa fb
+
+assert either_1: (either (not) (fun b -> b) (Left true) = false)
+assert either_2: (either (not) (fun b -> b) (Left false) = true)
+assert either_3: (either (not) (fun b -> b) (Right true) = true)
+assert either_4: (either (not) (fun b -> b) (Right false) = false)
+
 
 val partitionEither : forall 'a 'b. list (either 'a 'b) -> (list 'a * list 'b)
 let rec partitionEither l = match l with
@@ -51,9 +120,25 @@ let rec partitionEither l = match l with
       end
     end
 end
+declare termination_argument partitionEither = automatic
+declare {hol} rename function partitionEither = SUM_PARTITION
+
+declare isabelle target_rep function partitionEither = `sum_partition`
+declare ocaml    target_rep function partitionEither = `Either.either_partition`
+
+assert partitionEither_1: (partitionEither [Left true; Right false; Right false;  Left false; Right true] = ([true;false], [false;false;true]))
+
 
 val lefts : forall 'a 'b. list (either 'a 'b) -> list 'a
-let lefts l = fst (partitionEither l)
+let inline lefts l = fst (partitionEither l)
+
+assert lefts_1: ((lefts [Left true; Right false; Right false;  Left false; Right true]) = [true;false])
+
 
 val rights : forall 'a 'b. list (either 'a 'b) -> list 'b
-let rights l = snd (partitionEither l)
+let inline rights l = snd (partitionEither l)
+
+
+assert rights_1: (rights [Left true; Right false; Right false;  Left false; Right true] = [false;false;true])
+
+

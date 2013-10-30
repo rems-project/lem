@@ -136,7 +136,7 @@ let output1 env libpath isa_thy out_dir (targ : Target.target) avoid m alldoc_ac
   let open Typed_ast in
   
   let imported_modules = Backend_common.imported_modules_to_strings env targ m.imported_modules in
-  let extra_imported_modules = Backend_common.get_module_open_string env targ m.module_path in
+  let extra_imported_modules = Util.remove_duplicates (imported_modules @ Backend_common.get_module_open_string env targ m.module_path) in
   let (mod_path, mod_name) = Path.to_name_list m.module_path in
   let module_name = Name.to_string (Backend_common.get_module_name env targ mod_path mod_name) in
   let module_name_lower = String.uncapitalize module_name in
@@ -180,18 +180,18 @@ let output1 env libpath isa_thy out_dir (targ : Target.target) avoid m alldoc_ac
               Printf.fprintf o "\n\n";
             end in
             let _ = begin
-              let (o, ext_o) = open_output_with_check dir (module_name ^ "Script.sml") in
+              let (o, ext_o) = open_output_with_check dir (module_name_lower ^ "Script.sml") in
               hol_header imported_modules o;
-              Printf.fprintf o "val _ = new_theory \"%s\"\n\n" module_name;
+              Printf.fprintf o "val _ = new_theory \"%s\"\n\n" module_name_lower;
               Printf.fprintf o "%s" (Ulib.Text.to_string r_main);
               Printf.fprintf o "val _ = export_theory()\n\n";
               close_output_with_check ext_o;
             end in
             let _ = match r_extra_opt with None -> () | Some r_extra ->
               begin
-                let (o,ext_o) = open_output_with_check dir (module_name ^ "ExtraScript.sml") in
+                let (o,ext_o) = open_output_with_check dir (module_name_lower ^ "ExtraScript.sml") in
                 hol_header extra_imported_modules o;
-                Printf.fprintf o "val _ = new_theory \"%sExtra\"\n\n" module_name;
+                Printf.fprintf o "val _ = new_theory \"%sExtra\"\n\n" module_name_lower;
                 Printf.fprintf o "%s" (Ulib.Text.to_string r_extra);
                 Printf.fprintf o "val _ = export_theory()\n\n";
                 close_output_with_check ext_o

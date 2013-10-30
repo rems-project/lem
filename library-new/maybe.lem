@@ -65,7 +65,7 @@ let maybe d f mb = match mb with
   | Nothing -> d
 end
 
-declare ocaml    target_rep function maybe d f mb = `Option.map_default` f d mb
+declare ocaml    target_rep function maybe = `Lem.option_case`
 declare isabelle target_rep function maybe = `option_case`
 declare hol      target_rep function maybe d f mb = `option_CASE` mb d f
 
@@ -85,7 +85,7 @@ let isJust mb = match mb with
 end
 
 declare hol      target_rep function isJust = `IS_SOME`
-declare ocaml    target_rep function isJust x = `is_some`
+declare ocaml    target_rep function isJust = `Lem.is_some`
 declare isabelle target_rep function isJust x = not (unsafe_structural_equality x Nothing)
 
 assert isJust_1: (isJust (Just true))
@@ -98,7 +98,7 @@ let isNothing mb = match mb with
 end
 
 declare hol      target_rep function isNothing = `IS_NONE`
-declare ocaml    target_rep function isNothing = `is_none`
+declare ocaml    target_rep function isNothing = `Lem.is_none`
 declare isabelle target_rep function isNothing x = (unsafe_structural_equality x Nothing)
 
 assert isNothing_1: (not (isNothing (Just true)))
@@ -108,7 +108,6 @@ lemma isJustNothing: (
   (forall x. isNothing x = not (isJust x)) &&
   (forall v. isJust (Just v)) &&
   (isNothing Nothing))
-
 
 (* ----------------------- *)
 (* fromMaybe               *)
@@ -120,7 +119,7 @@ let fromMaybe d mb = match mb with
    | Nothing -> d
 end
 
-declare ocaml    target_rep function fromMaybe = `Option.default`
+declare ocaml    target_rep function fromMaybe = `Lem.option_default`
 let inline {isabelle} fromMaybe d = maybe d `id`
 let inline {hol} fromMaybe d = maybe d `I`
 
@@ -142,7 +141,7 @@ val map : forall 'a 'b. ('a -> 'b) -> maybe 'a -> maybe 'b
 let map f = maybe Nothing (fun v -> Just (f v))
 
 declare hol      target_rep function map = `OPTION_MAP`
-declare ocaml    target_rep function map = `Option.map`
+declare ocaml    target_rep function map = `Lem.option_map`
 declare isabelle target_rep function map = `Option.map`
 
 lemma maybe_map: (
@@ -162,6 +161,7 @@ val bind : forall 'a 'b. ('a -> maybe 'b) -> maybe 'a -> maybe 'b
 let bind f = maybe Nothing f
 
 declare isabelle target_rep function bind f mb = `Option.bind` mb f
+declare ocaml    target_rep function bind = `Lem.option_bind`
 declare hol      target_rep function bind f mb = `OPTION_BIND` mb f
 
 lemma maybe_bind: (

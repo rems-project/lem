@@ -82,7 +82,7 @@ val process_defs : Name.t list -> def_macro -> Name.t -> env -> def list -> (env
 val class_to_record : def_macro
 
 (** [instance_to_dict] turns instance declarations into definition of a dictionary record *)
-val instance_to_dict : def_macro
+val instance_to_dict : Target.target -> def_macro
 
 val class_constraint_to_parameter : def_macro
 

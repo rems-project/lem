@@ -114,6 +114,11 @@ module Targetmap = struct
       | Target_ident -> None (* No entry for identity backend *)
       | Target_no_ident t -> apply m t
 
+  let insert_target m (targ, v) = 
+    match targ with
+      | Target_ident -> m
+      | Target_no_ident t -> insert m (t, v)
+
 end
 
 module Targetset = Set.Make(

@@ -54,11 +54,20 @@ let add_backend b () : unit = if not (List.mem b !backends) then (backends := b:
 
 let opt_print_env = ref false
 let opt_print_version = ref false
-let opt_library = ref None
 let lib = ref []
 let isa_theory = ref None
 let out_dir = ref None
 let opt_file_arguments = ref ([]:string list)
+
+let opt_library = ref (
+   try 
+     let lp = Sys.getenv("LEMLIB") in
+     if Filename.is_relative lp 
+     then Filename.concat (Sys.getcwd ()) lp
+     else lp
+   with 
+     | Not_found -> Build_directory.d^"/library-new"
+)
 
 let options = Arg.align ([
   ( "-i", 
@@ -92,8 +101,8 @@ let options = Arg.align ([
     Arg.Unit (fun b -> opt_print_env := true),
     " print the environment signature on stdout");
   ( "-lib", 
-    Arg.String (fun l -> opt_library := Some l),
-    " library path"^match !opt_library with None->"" | Some s -> " (default "^s^")");
+    Arg.String (fun l -> opt_library := l),
+    " library path (default "^(!opt_library)^"); set LEMLIB environment variable to change default");
   ( "-isa_theory", 
     Arg.String (fun l -> isa_theory := Some l),
     " Isabelle Lem theory");
@@ -194,14 +203,7 @@ let main () =
   let _ = if !opt_print_version then print_string ("Lem " ^ Version.v ^ "\n") in
   let lib_path = 
     match !opt_library with
-      | None -> (try 
-                let lp = Sys.getenv("LEMLIB") in
-                if Filename.is_relative lp 
-                then Filename.concat (Sys.getcwd ()) lp
-                else lp
-            with 
-                | Not_found -> Build_directory.d^"/library-new")
-      | Some lp -> 
+      | lp -> 
           if Filename.is_relative lp then
             Filename.concat (Sys.getcwd ()) lp
           else
