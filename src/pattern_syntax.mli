@@ -218,3 +218,10 @@ val pat_extract_lskips : pat -> Ast.lex_skips
 (** [split_var_annot_pat p] splits annotated variable patterns in variable patterns + type annotation.
     All other patterns are returned unchanged. *)
 val split_var_annot_pat : pat -> pat
+
+exception Pat_to_exp_unsupported of Ast.l * string
+
+(** [pat_to_exp env p] tries to convert [p] into a corresponding expression. This might fail,
+    e.g. if [p] contains wildcard patterns. If it fails a [pat_to_exp_unsupported] exception is raised. *)
+val pat_to_exp : env -> pat -> exp
+

@@ -775,7 +775,7 @@ let constr_matrix_compile_fun (simp_input: bool) (env : env) (gen : var_name_gen
           let f_id =   { id_path = Id_none None; id_locn = loc; descr = f; instantiation = inst } in
           C.mk_const loc f_id (Some f_ty)
         end in
-        mk_list_app_exp (env.t_env) f_exp (i::pl')
+        mk_list_app_exp loc (env.t_env) f_exp (i::pl')
      end
 
      in fun i eL -> begin

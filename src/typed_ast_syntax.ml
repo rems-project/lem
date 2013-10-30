@@ -556,6 +556,14 @@ let mk_and_exp env (e1 : exp) (e2 : exp) : exp =
   let res = C.mk_infix l e1 and_exp e2 (Some bool_ty) in
   res
 
+let rec mk_and_exps env el : exp =
+  match el with
+    | [] -> mk_tf_exp true
+    | [e] -> e
+    | e1 :: e2 :: es ->
+      mk_and_exp env e1 (mk_and_exps env (e2 :: es))
+
+
 let mk_le_exp env (e1 : exp) (e2 : exp) : exp =
   let l = Ast.Trans (true, "mk_le_exp", None) in
   let ty_0 = { Types.t = Types.Tfn (nat_ty, bool_ty) } in
@@ -690,18 +698,18 @@ let mk_fun_exp (pL : pat list) (e_s : exp) : exp =
 let mk_opt_fun_exp pL e_s =
   if (Util.list_longer 0 pL) then mk_fun_exp pL e_s else e_s
 
-let mk_app_exp d e1 e2 =
-  let l = Ast.Trans (true, "mk_app_exp", None) in
+let mk_app_exp l d e1 e2 =
+  let l = Ast.Trans (true, "mk_app_exp", Some l) in
   let b_ty = match Types.dest_fn_type (Some d) (exp_to_typ e1) with
                | None -> raise (Reporting_basic.err_type l "non-function in application")
                | Some (_, b_ty) -> b_ty
   in
   C.mk_app l e1 e2 (Some b_ty)
 
-let rec mk_list_app_exp d f aL =
+let rec mk_list_app_exp l d f aL =
   match aL with 
     | [] -> f
-    | a :: aL' -> mk_list_app_exp d (mk_app_exp d f a) aL'
+    | a :: aL' -> mk_list_app_exp l d (mk_app_exp l d f a) aL'
 
 let rec strip_paren_typ_exp (e :exp) : exp =
   match C.exp_to_term e with
@@ -773,6 +781,15 @@ let val_def_get_const_descr_refs = function
   | Let_inline(_,_,_,_,c,_,_,_) -> [c]
   | Fun_def(_, _, _, funs) -> 
      Seplist.to_list_map (fun ((_, c, _, _, _, _):funcl_aux) -> c) funs
+
+let val_def_get_class_constraints_no_target_rep env targ d = begin
+  let l_unk = Ast.Trans (true, "val_def_get_class_constraints", None) in
+  let cs = val_def_get_const_descr_refs d in
+  let cds = List.map (c_env_lookup l_unk env.c_env) cs in
+  List.flatten (List.map (fun cd -> 
+       match Target.Targetmap.apply_target cd.target_rep targ with
+         | None -> cd.const_class | Some _ -> []) cds)
+end
 
 let val_def_get_class_constraints env d = begin
   let l_unk = Ast.Trans (true, "val_def_get_class_constraints", None) in

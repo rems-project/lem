@@ -74,7 +74,7 @@ let dictionary_macros targ =
   [
    Def_macros (fun env -> [M.class_to_record]);
    Def_macros (fun env -> [M.instance_to_dict targ]);
-   Def_macros (fun env -> [M.class_constraint_to_parameter]); 
+   Def_macros (fun env -> [M.class_constraint_to_parameter targ]);  
    Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_method targ true]);
    Pat_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_method_pat]);
    Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_class_const targ])
@@ -126,6 +126,7 @@ let hol =
                                         M.remove_classes; 
                                         M.remove_opens;
                                         M.remove_types_with_target_rep (Target_no_ident Target_hol);
+                                        M.defs_with_target_rep_to_lemma env (Target_no_ident Target_hol);
                                         Patterns.compile_def (Target_no_ident Target_hol) Patterns.is_hol_pattern_match env;]);
               Pat_macros (fun env -> [Backend_common.inline_pat_macro Target_hol env]);
               Exp_macros (fun env ->
@@ -158,6 +159,7 @@ let ocaml =
                              M.opens_to_single;
                              M.remove_indrelns;
                              M.remove_types_with_target_rep (Target_no_ident Target_ocaml);
+                             M.defs_with_target_rep_to_lemma env (Target_no_ident Target_ocaml);
                              Patterns.compile_def (Target_no_ident Target_ocaml) Patterns.is_ocaml_pattern_match env]);
               Pat_macros (fun env -> [Backend_common.inline_pat_macro Target_ocaml env]);
               Exp_macros (fun env ->
@@ -186,6 +188,7 @@ let isa  =
                      M.remove_opens;
                      M.remove_indrelns_true_lhs;
                      M.remove_types_with_target_rep (Target_no_ident Target_isa);
+                     M.defs_with_target_rep_to_lemma env (Target_no_ident Target_isa);
                      Patterns.compile_def (Target_no_ident Target_isa) Patterns.is_isabelle_pattern_match env;] );
       Pat_macros (fun env -> [Backend_common.inline_pat_macro Target_isa env]);
       Exp_macros (fun env ->
@@ -219,6 +222,7 @@ let coq =
                      M.remove_import_include;
                      M.opens_to_single;
                      M.remove_types_with_target_rep (Target_no_ident Target_coq);
+                     M.defs_with_target_rep_to_lemma env (Target_no_ident Target_coq);
                      Patterns.compile_def (Target_no_ident Target_coq) Patterns.is_coq_pattern_match env
                     ]); 
        Pat_macros (fun env -> [Backend_common.inline_pat_macro Target_coq env]);

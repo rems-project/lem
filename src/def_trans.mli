@@ -84,7 +84,7 @@ val class_to_record : def_macro
 (** [instance_to_dict] turns instance declarations into definition of a dictionary record *)
 val instance_to_dict : Target.target -> def_macro
 
-val class_constraint_to_parameter : def_macro
+val class_constraint_to_parameter : Target.target -> def_macro
 
 
 (** {2 Open / Include / Import} *)
@@ -106,6 +106,11 @@ val opens_to_single : def_macro
 (** If a target representation for a type is given, the original type definition is commented out.
     Notice that target-specific renamings are not target representations. *)
 val remove_types_with_target_rep : Target.target -> def_macro
+
+(** If a target representation for a constant is given, the original definition is not needed.
+    However, turn this definition into a lemma to ensure that the target representation is sensible. *)
+val defs_with_target_rep_to_lemma : env -> Target.target -> def_macro
+
 
 val remove_vals : def_macro
 val remove_indrelns : def_macro

@@ -177,6 +177,64 @@ let remove_types_with_target_rep targ _ env (((d,_),l,_) as def) =
     | _ -> None
 
 
+let const_has_target_rep_and_is_let l env targ c = 
+begin
+  let c_descr = c_env_lookup l env.c_env c in
+  match Target.Targetmap.apply_target c_descr.target_rep targ with
+    | None -> false
+    | Some _ -> begin
+        match c_descr.env_tag with
+          | K_let -> true
+          | _ -> false
+      end
+end 
+
+
+let funcl_aux_to_exp  env  (n, c, args, _, _, e) = begin
+  let module C = Exps_in_context(struct let env_opt = Some env let avoid = None end) in
+  let l_unk = Ast.Trans (true, "funcl_aux_to_exp", Some n.locn) in
+  let c_descr = c_env_lookup n.locn env.c_env c in
+  let c_id = { id_path = Id_some (Ident.from_name n.term); 
+               id_locn = n.locn; 
+               descr = c; 
+               instantiation = List.map tnvar_to_type c_descr.const_tparams } in
+
+  let c_exp = C.mk_const l_unk c_id (Some c_descr.const_type) in
+  let args' = List.map (Pattern_syntax.pat_to_exp env) args in
+  let lhs = mk_list_app_exp l_unk env.t_env c_exp args' in
+  let body = mk_eq_exp env e lhs in
+  let free_var_map = C.exp_to_free body in
+  let qbs = Nfmap.fold (fun acc n ty ->
+     (Qb_var (mk_name_lskips_annot l_unk (Name.add_lskip n) ty)) :: acc) [] free_var_map in
+  let qbody = C.mk_quant l_unk (Ast.Q_forall None) qbs None body None in
+  mk_paren_exp qbody
+end
+
+
+let defs_with_target_rep_to_lemma env targ _ env0 (((d,sk_d),l,lenv) as def) =
+  match d with
+    | Val_def (Let_inline _) -> None (* Inline statements should be removed anyhow by other means *)
+    | Val_def (Let_def _) -> None (* Simple let_defs are turned into Fun_def by other means, others can't be handled :-(. However,
+         most likely the backend will complain during output for these anyhow. *)
+    | Val_def(Fun_def(sk1, rec_flag, topt, funs)) -> 
+        if (not (Typed_ast.in_targets_opt targ topt)) then (* do nothing for this target *) None else
+        if (not (Seplist.for_all (fun (_, c, _, _, _, _) -> const_has_target_rep_and_is_let l env targ c) funs)) then None
+        else
+        begin
+          let fun_eqs = Seplist.to_list_map (funcl_aux_to_exp env) funs in
+          let body = mk_and_exps env fun_eqs in
+          let lemma_const_name = match Seplist.to_list funs with
+            | [] -> assert false
+            | (_, c, _, _, _, _)::_ -> const_descr_ref_to_ascii_name env.c_env c in
+          let lemma_name = Name.add_lskip (Name.from_string ((Name.to_string lemma_const_name) ^ "_def_lemma")) in
+
+          let d' = Lemma (sk1, Ast.Lemma_lemma None, topt, Some ((lemma_name, l), None), None, body, None) in
+          Some(env0, [comment_def def; ((d', sk_d), l, lenv)])            
+        end
+    | _ -> None
+
+ 
+
 let remove_indrelns_true_lhs _ env ((d,s),l,lenv) =
   let l_unk = Ast.Trans (true, "remove_indrelns_true_lhs", Some l) in
   match d with
@@ -305,9 +363,12 @@ let instance_to_dict targ mod_path (env : env) ((d,s),l,lenv) =
               }
             in
 
-            
+(*            
             let dict' = ((dict_name, id.inst_dict, [], None, space, dict_body):funcl_aux) in
             let dict = Fun_def(sk1,FR_non_rec,None,Seplist.cons_entry dict' Seplist.empty) in
+*)
+            let dict = Let_inline (sk1, None, None, dict_name, id.inst_dict, [], space, dict_body) in
+
             (dict, env')
           end in
 
@@ -335,12 +396,12 @@ let instance_to_dict targ mod_path (env : env) ((d,s),l,lenv) =
           None
 
 (* for dictionary passing turn class constriants into additional arguments *) 
-let class_constraint_to_parameter : def_macro = fun mod_path env ((d,s),l,lenv) ->
+let class_constraint_to_parameter targ : def_macro = fun mod_path env ((d,s),l,lenv) ->
   let l_unk = Ast.Trans(true, "class_constraint_to_parameter", Some l) in
   (* TODO : avoid shouldn't be None *)
     match d with
       | Val_def(lb) ->
-         let class_constraints = val_def_get_class_constraints env lb in
+         let class_constraints = val_def_get_class_constraints_no_target_rep env targ lb in
          if (class_constraints = []) then None else (
          let new_pats =
             List.map
@@ -365,7 +426,7 @@ let class_constraint_to_parameter : def_macro = fun mod_path env ((d,s),l,lenv) 
                     begin            
                       let t' = Types.multi_fun (List.map (fun x -> x.typ) new_pats) c_d.const_type in
 
-                      let c_d' = ({ c_d with const_class = []; const_type = t' }) in
+                      let c_d' = ({ c_d with const_class = []; const_type = t'; target_rep = Targetmap.empty }) in
                       let (c_env', c') = c_env_store_raw c_env c_d' in 
 
                       let c_d_new = { c_d with const_no_class = Some c' } in

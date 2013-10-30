@@ -603,51 +603,6 @@ let list_quant_to_set_quant _ e =
   | _ -> None
 
 
-exception Pat_to_exp_unsupported of Ast.l * string
-let rec pat_to_exp env p = 
-  let l_unk = Ast.Trans(true, "pat_to_exp", Some p.locn) in
-  match p.term with
-    | P_wild(lskips) -> 
-        raise (Pat_to_exp_unsupported(p.locn, "_ pattern"))
-    | P_as(_,p,_,(n,_),_) ->
-        raise (Pat_to_exp_unsupported(p.locn, "as pattern"))
-    | P_typ(lskips1,p,lskips2,t,lskips3) ->
-        C.mk_typed p.locn lskips1 (pat_to_exp env p) lskips2 t lskips3 None
-    | P_var(n) ->
-        C.mk_var p.locn n p.typ
-    | P_const(c,ps) ->
-        List.fold_left
-          (fun e p -> C.mk_app l_unk e (pat_to_exp env p) None)
-          (C.mk_const p.locn c None)
-          ps
-    | P_backend(sk,i,ty,ps) ->
-        List.fold_left
-          (fun e p -> C.mk_app l_unk e (pat_to_exp env p) None)
-          (C.mk_backend p.locn sk i ty)
-          ps
-    | P_record(_,fieldpats,_) ->
-        raise (Pat_to_exp_unsupported(p.locn, "record pattern"))
-    | P_tup(lskips1,ps,lskips2) ->
-        C.mk_tup p.locn lskips1 (Seplist.map (pat_to_exp env) ps) lskips2 None
-    | P_list(lskips1,ps,lskips2) ->
-        C.mk_list p.locn lskips1 (Seplist.map (pat_to_exp env) ps) lskips2 p.typ
-    | P_vector(lskips1,ps,lskips2) ->
-        C.mk_vector p.locn lskips1 (Seplist.map (pat_to_exp env) ps) lskips2 p.typ
-    | P_vectorC(lskips1,ps,lskips2) ->
-        raise (Pat_to_exp_unsupported(p.locn, "vector concat pattern")) (* NOTE Would it be good enough to expand this into n calls to Vector.vconcat *)
-    | P_paren(lskips1,p,lskips2) ->
-        C.mk_paren p.locn lskips1 (pat_to_exp env p) lskips2 None
-    | P_cons(p1,lskips,p2) ->
-        let cons = Typed_ast_syntax.mk_const_exp env l_unk "list_cons" [p1.typ] in
-          C.mk_infix p.locn (pat_to_exp env p1) (append_lskips lskips cons) (pat_to_exp env p2) None
-    | P_lit(l) ->
-        C.mk_lit p.locn l None
-    | P_num_add _ -> 
-        raise (Pat_to_exp_unsupported(p.locn, "add_const pattern"))
-    | P_var_annot(n,t) ->
-        C.mk_typed p.locn None (C.mk_var p.locn n p.typ) None t None None
-
-
 (* Turn restricted quantification into unrestricted quantification:
  * { f x | forall (p IN e) | P x } goes to
  * { f x | FV(p) | forall FV(p). p IN e /\ P x } 

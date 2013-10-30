@@ -89,6 +89,8 @@ let mk_ident_ast m n l : t =
 
 let mk_ident sk m n = ((sk, m, n) : t)
 
+let from_name n = (Name.get_lskip n, [], Name.strip_lskip n)
+
 let mk_ident_strings l i =
   mk_ident None (List.map (fun n -> Name.from_string n) l) (Name.from_string i) 
 

@@ -62,7 +62,7 @@ let constant_label_to_path_name (label : string) : (string list * string) =
 match label with
   | "fromNumeral" -> (["Num"], "fromNumeral")
 
-  | "equality" -> (["Pervasives"], "=")
+  | "equality" -> (["Basic_classes"], "isEqual")
   | "identity" -> (["Pervasives"], "id")
 
   | "conjunction" -> (["Bool"], "&&")

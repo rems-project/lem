@@ -284,6 +284,10 @@ val mk_eq_exp : env -> exp -> exp -> exp
     to lookup the conjunction constant. *)
 val mk_and_exp : env -> exp -> exp -> exp
 
+(** [mk_and_exps env es] constructs the conjunction of all expressions in es. The environment [env] is needed
+    to lookup the conjunction constant. *)
+val mk_and_exps : env -> exp list -> exp
+
 (** [mk_le_exp env e1 e2] constructs the expression [e1 <= e2]. The environment [env] is needed
     to lookup the less-equal constant. *)
 val mk_le_exp : env -> exp -> exp -> exp
@@ -332,10 +336,10 @@ val mk_opt_fun_exp : pat list -> exp -> exp
 
 (** [mk_app_exp d e1 e2] constructs the expression [e1 e2]. The type definitions [d] are needed
     for typechecking. *)
-val mk_app_exp : Types.type_defs -> exp -> exp -> exp
+val mk_app_exp : Ast.l -> Types.type_defs -> exp -> exp -> exp
 
 (** [mk_list_app_exp d f [a1 ... an]] constructs the expression [f a1 ... an] by repeatedly calling [mk_app_exp]. *)
-val mk_list_app_exp : Types.type_defs -> exp -> exp list -> exp
+val mk_list_app_exp : Ast.l -> Types.type_defs -> exp -> exp list -> exp
 
 (** [mk_eta_expansion_exp d vars e] for variables [vars = [x1, ..., xn]] tries to build the expression
     [fun x1 ... xn -> (e x1 ... xn)]. The variable names might be changed to ensure that they are distinct to
@@ -482,6 +486,7 @@ val is_pp_def : def -> bool
 (** [val_def_get_name d] tries to extract the name of the defined function. *)
 val val_def_get_name : val_def -> Name.t option 
 
+val val_def_get_class_constraints_no_target_rep : env -> Target.target -> val_def -> (Path.t * Types.tnvar) list
 val val_def_get_class_constraints : env -> val_def -> (Path.t * Types.tnvar) list
 
 val val_def_get_free_tnvars : env -> val_def -> Types.TNset.t

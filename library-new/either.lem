@@ -43,6 +43,7 @@ let eitherEqualBy eql eqr (left: either 'a 'b) (right: either 'a 'b) =
     | (Right r, Right r') -> eqr r r'
     | _ -> false
   end
+let eitherEqual = eitherEqualBy (=) (=)
 
 let inline {hol;isabelle;coq} eitherEqual = unsafe_structural_equality
 let inline {ocaml} eitherEqual = eitherEqualBy (=) (=)

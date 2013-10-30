@@ -57,6 +57,7 @@ val pp : Format.formatter -> t -> unit
 val to_string : t -> string
 
 val from_id : Ast.id -> t
+val from_name : Name.lskips_t -> t
 
 (** Return the last name in the ident, e.g., M.Y.x gives x *)
 val get_name : t -> Name.lskips_t
