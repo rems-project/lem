@@ -163,7 +163,9 @@ module Set = struct
   (* ----------------------- *)
   (*
   TODO: unsupported so far:
+  *)
   val to_list : forall 'a. set 'a -> list 'a
+  (*
   val monotone : forall 'a. (set 'a -> set 'a) -> bool
   val lfp : forall 'a. set 'a -> (set 'a -> set 'a) -> set 'a
   *)
