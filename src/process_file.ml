@@ -231,8 +231,6 @@ let output1 env libpath isa_thy out_dir (targ : Target.target) avoid m alldoc_ac
             let _ = begin
               let (o, ext_o) = open_output_with_check dir (module_name_lower ^ ".ml") in
               Printf.fprintf o "(*%s*)\n" (generated_line m.filename);
-              Printf.fprintf o "open Nat_num\n\n";
-              Printf.fprintf o "open Sum\n\n";
               Printf.fprintf o "type 'a set = 'a Pset.set\n\n";
               Printf.fprintf o "%s" (Ulib.Text.to_string r_main);
               close_output_with_check ext_o

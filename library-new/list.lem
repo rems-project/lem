@@ -11,8 +11,9 @@
 (* ========================================================================== *)
 
 
+declare ~{hol;ocaml} rename module = Lem_list []
+declare {ocaml} rename module = Lem_list 
 declare {hol} rename module = Lem_list [`listTheory`; `rich_listTheory`]
-declare {isabelle} rename module = Lem_list []
 
 open import Bool Maybe Basic_classes Tuple Num
 
@@ -45,7 +46,8 @@ declare coq      target_rep function cons = infix `::`
 val null : forall 'a. list 'a -> bool
 let null l = match l with [] -> true | _ -> false end
 
-declare hol target_rep function null = `NULL`
+declare hol   target_rep function null = `NULL`
+declare {ocaml} rename function null = list_null
 let inline {isabelle} null l = (l = [])
 
 assert null_simple_1: (null ([]:list nat))
@@ -122,7 +124,8 @@ let rec lexicographicCompareBy cmp l1 l2 = match (l1,l2) with
 end
 declare termination_argument lexicographicCompareBy = automatic
 
-let lexicographicCompare = lexicographicCompareBy compare
+let inline lexicographicCompare = lexicographicCompareBy compare
+declare {ocaml} rename function lexicographicCompareBy = lexicographic_compare
 
 val lexicographicLess : forall 'a. Ord 'a => list 'a -> list 'a -> bool
 val lexicographicLessBy : forall 'a. ('a -> 'a -> bool) -> ('a -> 'a -> bool) -> list 'a -> list 'a -> bool
@@ -134,7 +137,8 @@ let rec lexicographicLessBy less less_eq l1 l2 = match (l1,l2) with
 end
 declare termination_argument lexicographicLessBy = automatic
 
-let lexicographicLess = lexicographicLessBy isLess isLessEqual
+let inline lexicographicLess = lexicographicLessBy isLess isLessEqual
+declare {ocaml} rename function lexicographicLessBy = lexicographic_less
 
 val lexicographicLessEq : forall 'a. Ord 'a => list 'a -> list 'a -> bool
 val lexicographicLessEqBy : forall 'a. ('a -> 'a -> bool) -> ('a -> 'a -> bool) -> list 'a -> list 'a -> bool
@@ -146,7 +150,8 @@ let rec lexicographicLessEqBy less less_eq l1 l2 = match (l1,l2) with
 end
 declare termination_argument lexicographicLessEqBy = automatic
 
-let lexicographicLessEq = lexicographicLessEqBy isLess isLessEqual
+let inline lexicographicLessEq = lexicographicLessEqBy isLess isLessEqual
+declare {ocaml} rename function lexicographicLessEqBy = lexicographic_less_eq
 
 
 instance forall 'a. Ord 'a => (Ord (list 'a))
@@ -362,7 +367,7 @@ val all : forall 'a. ('a -> bool) -> list 'a -> bool (* originally for_all *)
 let all P l = foldl (fun r e -> P e && r) true l
 
 declare hol      target_rep function all = `EVERY`
-declare ocaml    target_rep function all = `List.all`
+declare ocaml    target_rep function all = `List.for_all`
 declare isabelle target_rep function all P l = (forall (x IN (`set` l)). P x)
 declare coq      target_rep function all = `List.forallb` 
 
@@ -410,8 +415,10 @@ let rec index l n = match l with
   | x :: xs -> if n = 0 then Just x else index xs (n-1)
 end
 
-
 declare termination_argument index = automatic
+
+declare isabelle target_rep function index = `index`
+declare {ocaml} rename function index = list_index
 
 assert index_0: (index [(0:nat);1;2;3;4;5] 0 = Just 0)
 assert index_1: (index [(0:nat);1;2;3;4;5] 1 = Just 1)
@@ -437,10 +444,12 @@ let rec findIndices_aux (i:nat) P l =
     | []      -> []
     | x :: xs -> if P x then i :: findIndices_aux (i + 1) P xs else findIndices_aux (i + 1) P xs
  end
-let findIndices = findIndices_aux 0
+let findIndices P l = findIndices_aux 0 P l
 declare termination_argument findIndices_aux = automatic
 
 declare isabelle target_rep function findIndices = `find_indices`
+declare {ocaml} rename function findIndices = find_indices
+declare {ocaml} rename function findIndices_aux = find_indices_aux
 
 assert findIndices_1: (findIndices (fun (n:nat) -> n > 3) [] = [])
 assert findIndices_2: (findIndices (fun (n:nat) -> n > 3) [4] = [0])
@@ -460,6 +469,7 @@ let findIndex P l = match findIndices P l with
 end
 
 declare isabelle target_rep function findIndex = `find_index`
+declare {ocaml} rename function findIndex = find_index
 
 assert find_index0 : (findIndex (fun (n:nat) -> n > 3) [1;2] = Nothing)
 assert find_index1 : (findIndex (fun (n:nat) -> n > 3) [1;2;4] = Just 2)
@@ -552,13 +562,14 @@ let rec splitAt n l =
     | x::xs -> 
        if n <= 0 then ([], l) else
        begin
-         let (l1, l2) = splitAt (n-1) l in
+         let (l1, l2) = splitAt (n-1) xs in
          (x::l1, l2)
        end    
   end
 declare termination_argument splitAt = automatic
 
 declare isabelle target_rep function splitAt = `split_at`
+declare {ocaml} rename function splitAt = split_at
 
 
 assert splitAt_1: (splitAt 0   [(1:nat);2;3;4;5;6] = ([], [1;2;3;4;5;6]))
@@ -625,6 +636,7 @@ declare termination_argument update = automatic
 
 declare isabelle target_rep function update = `List.list_update`
 declare hol      target_rep function update l n e = `LUPDATE` e n l
+declare {ocaml} rename function update = list_update
 
 assert list_update_1: (update [] 2 (3:nat) = [])
 assert list_update_2: (update [1;2;3;4;5] 0 (0:nat) = [0;2;3;4;5])
@@ -693,6 +705,7 @@ end
 declare termination_argument find = automatic
 
 declare isabelle target_rep function find = `List.find`
+declare {ocaml} rename function find = list_find_opt
 
 assert find_1: ((find (fun n -> n > (3:nat)) []) = Nothing)
 assert find_2: ((find (fun n -> n > (3:nat)) [2;1;3]) = Nothing)
@@ -713,6 +726,7 @@ let lookupBy eq k m = Maybe.map snd (find (fun (k', _) -> eq k k') m)
 let inline lookup = lookupBy (=)
 
 declare isabelle target_rep function lookup x l = `Map.map_of` l x
+declare {ocaml} rename function lookup = list_assoc_opt
 
 assert lookup_1 : (lookup (3:nat) ([(4, (5:nat)); (3, 4); (1,2); (3, 5)]) = Just 4)
 assert lookup_2 : (lookup (8:nat) ([(4, (5:nat)); (3, 4); (1,2); (3, 5)]) = Nothing)
@@ -772,6 +786,7 @@ let rec deleteFirst P l = match l with
 declare termination_argument deleteFirst = automatic
 
 declare isabelle target_rep function deleteFirst = `delete_first`
+declare {ocaml} rename function deleteFirst = list_delete_first
 
 assert deleteFirst_1: (deleteFirst (fun x -> x > (5:nat)) [3;6;7;1] = Just [3;7;1])
 assert deleteFirst_2: (deleteFirst (fun x -> x > (15:nat)) [3;6;7;1] = Nothing)
@@ -785,6 +800,7 @@ let deleteBy eq x l = fromMaybe l (deleteFirst (eq x) l)
 let inline delete = deleteBy (=)
 
 declare isabelle target_rep function delete = `remove1`
+declare {ocaml} rename function delete = list_delete
 
 assert delete_1: (delete (6:nat) [(3:nat);6;7;1] = [3;7;1])
 assert delete_2: (delete (4:nat) [(3:nat);6;7;1] = [3;6;7;1])
@@ -810,6 +826,12 @@ declare termination_argument zip = automatic
 
 declare hol      target_rep function zip l1 l2 = `ZIP` (l1, l2)
 declare isabelle target_rep function zip = `List.zip`
+declare {ocaml} rename function zip = list_combine
+
+assert zip_1 : (zip [(1:nat); 2;3;4;5] [(2:nat); 3;4;5;6] = [(1,2);(2,3);(3,4);(4,5);(5,6)])
+
+(* this test rules out List.combine for ocaml *)
+assert zip_2 : (zip [(1:nat); 2;3] [(2:nat); 3;4;5;6] = [(1,2);(2,3);(3,4)])
 
 (* ------------------------- *)
 (* unzip                     *)
@@ -821,6 +843,13 @@ let rec unzip l = match l with
   | (x, y) :: xys -> let (xs, ys) = unzip xys in (x :: xs, y :: ys)
 end
 declare termination_argument unzip = automatic
+
+declare hol      target_rep function unzip = `UNZIP` 
+declare isabelle target_rep function unzip = `List.unzip`
+declare ocaml    target_rep function unzip = `List.split`
+
+assert unzip_1 : (unzip ([] : list (nat * nat)) = ([], []))
+assert unzip_2 : (unzip [((1:nat),(2:nat));(2,3);(3,4)] = ([1;2;3], [2;3;4]))
 
 
 (* ========================================================================== *)
