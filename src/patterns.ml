@@ -813,7 +813,11 @@ let constr_matrix_compile_fun (targ : Target.target) (simp_input: bool) (env : e
   end in
   
 
-  let restr_pat (id, _) pL = C.mk_pconst loc id (List.map mk_opt_paren_pat pL) (Some p_ty) in
+  let restr_pat (id, _) pL = begin
+      let res = C.mk_pconst loc id (List.map mk_opt_paren_pat pL) None in
+      let _ = Constraint.equate_types loc "restr_pat" res.typ p_ty in
+      res
+  end in
   let restr_pat_else _ = matrix_compile_mk_pwild p_ty in
 
   let case_fun (id, argL) p ee = match p.term with
