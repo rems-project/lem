@@ -315,7 +315,7 @@ let const_ref_to_name n0 use_ascii c =
    the ascii-alternative was used. This is handy for determining infix
    status. *)
 let const_id_to_ident_aux c_id ascii_alternative given_id_opt =   
-  let l = Ast.Trans (false, "const_id_to_ident", None) in
+  let l = Ast.Trans (false, "const_id_to_ident", (Some c_id.id_locn)) in
   let c_descr = c_env_lookup l A.env.c_env c_id.descr in
   let org_ident = resolve_constant_id_ident l A.env c_id in
   let (_, n, n_ascii_opt) = constant_descr_to_name A.target c_descr in

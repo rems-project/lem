@@ -119,9 +119,12 @@ let resolve_const_ref l env sk c_ref =
   in
   match search_module_suffix env is_ok ns with
     | Some ns' -> Ident.mk_ident sk ns' n
-    | None ->
+    | None -> let m = String.concat "\n    "  [
+        "could not resolve constant path " ^ Path.to_string c_descr.const_binding;
+        "This is usally is caused by using transformations like inlining, target representations or special pattern matching";
+        "to introduce a contant in code, where it is not defined yet."] in
       raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal
-          (l, "could not resolve constant path " ^ Path.to_string c_descr.const_binding))) 
+          (l, m)))
 
 
 
