@@ -169,6 +169,34 @@ module Set = struct
   *)
 end
 
+module Pmap = struct
+  include Map (* include the new map module *)
+
+  let inline add = insert
+  let inline mem = member
+
+  (* 
+  find is a suspicious function.
+  *)
+  val find : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> 'v
+  let inline find k m = 
+      match Map.find k m with
+      | Just x -> x
+      end
+
+  (* All elements satisfy predicate p iff filtering all elements _not_
+     satisfying p yields the empty map, similarly for exists. *)
+  let inline for_all p m = null (filterWithKey (fun k v -> not (p k v)) m)
+  let inline exist p m = not (null (filterWithKey p m))
+
+  let inline remove = delete
+  let inline bindings = toAscList
+
+  let inline domain m = Set.fromList (List.map fst (toAscList m))
+  let inline range  m = Set.fromList (List.map snd (toAscList m))
+end
+
+
 (* ========================================================================== *)
 (* List                                                                       *)
 (* ========================================================================== *)

@@ -36,6 +36,7 @@ val size  : forall 'k 'v. Ord 'k => map 'k 'v -> nat
 assert empty_null: (null (empty : map nat bool))
 assert empty_size: (size (empty : map nat bool) = 0)
 
+assert equal_1: (mapEqual (empty : map nat bool) empty)
 
 (* -------------------------------------------------------------------------- *)
 (* Insertion.                                                                 *)
@@ -46,18 +47,40 @@ val insert    : forall 'k 'v. Ord 'k => 'k -> 'v -> map 'k 'v -> map 'k 'v
 val singleton : forall 'k 'v. Ord 'k => 'k -> 'v -> map 'k 'v
 let singleton k v = insert k v empty
 
+assert insert_equal_singleton: (mapEqual (insert (42 : nat) false empty) 
+                                         (singleton 42 false))
+assert commutative_insert_1: (mapEqual 
+                              (insert (8 : nat) true  (insert 5 false empty))
+                              (insert  5        false (insert 8 true empty)))
+assert commutative_insert_2: (not (mapEqual
+                              (insert (8 : nat) true  (insert 8 false empty))
+                              (insert  8        false (insert 8 true empty))))
+
 (* -------------------------------------------------------------------------- *)
 (* Membership and lookup.                                                     *)
 (* -------------------------------------------------------------------------- *)
 
 val lookup          : forall 'k 'v. Ord 'k => map 'k 'v -> 'k -> 'v
+
+assert lookup_insert_1: (lookup (insert (16 : nat) true empty) 16 )
+assert lookup_insert_3: (lookup (insert 36 false (insert (16 : nat) true empty)) 16 )
+
 val member          : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> bool
+
+assert member_insert_1: (member 16 (insert (16 : nat) true empty))
+assert member_insert_2: (not (member 25 (insert (16 : nat) true empty)))
+assert member_insert_3: (member 16 (insert 36 false (insert (16 : nat) true empty)))
+
 val notMember       : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> bool
 let inline notMember k m = not (member k m)
 
 val find            : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> maybe 'v
 val findWithDefault : forall 'k 'v. Ord 'k => 'k -> 'v -> map 'k 'v -> 'v
 let inline findWithDefault k v m = fromMaybe v (find k m)
+
+assert find_empty_0: (find 25 (empty : map nat bool)  = Nothing)
+assert find_insert_0:(find 16 (insert (16 : nat) true empty) = Just true)
+
 
 lemma find_empty : (forall k. find k empty = Nothing)
 lemma find_insert: (forall k k' v m. find k (insert k' v m) = (if (k = k') then Just v else find k m))
@@ -74,6 +97,10 @@ lemma member_insert: (forall k k' v m. member k (insert k' v m) = ((k = k') || m
 (* -------------------------------------------------------------------------- *)
 
 val delete           : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> map 'k 'v
+
+assert delete_insert_1: (not (member (5 : nat) (delete 5 (insert 5 true empty))))
+assert delete_insert_2:      (member (7 : nat) (delete 5 (insert 5 true empty)))
+assert delete_delete: (null (delete (5 : nat) (delete (5 : nat) (insert 5 true empty))))
 
 val difference       : forall 'k 'v 'w. Ord 'k => map 'k 'v -> map 'k 'w -> map 'k 'v
 
@@ -148,3 +175,20 @@ val findMin   : forall 'k 'v. Ord 'k => map 'k 'v -> maybe ('k * 'v)
 val findMax   : forall 'k 'v. Ord 'k => map 'k 'v -> maybe ('k * 'v)
 val deleteMin : forall 'k 'v. Ord 'k => map 'k 'v -> map 'k 'v
 val deleteMax : forall 'k 'v. Ord 'k => map 'k 'v -> map 'k 'v
+
+assert to_and_from_assoc_list_1: (mapEqual (fromList (toAscList (insert (5:nat) true (insert 42 false empty))))
+                                           (fromList [(42 , false); (5, true)]))
+
+assert to_and_from_assoc_list_2: (mapEqual (fromList (toAscList (insert (5:nat) true (insert 42 false empty))))
+                                           (fromList [(5, true); (42 , false)]))
+
+assert mapMaybeWithKey_0: (mapEqual (mapMaybeWithKey (fun (k:nat) b -> if (k mod 2 = 1) then Just (not b) else Nothing)
+                                                     (fromList [(1,true); (2,false); (3,true)]))
+                                    (fromList [(1, false); (3,true)]))
+assert mapMaybeWithKey_1: (mapEqual (mapMaybeWithKey (fun (k:nat) b -> Just b)
+                                                     (fromList [(1,true); (2,false); (3,true)]))
+                                    (fromList [(1,true); (2,false); (3,true)]))
+assert mapMaybeWithKey_2: (null (mapMaybeWithKey (fun (k:nat) b -> Nothing)
+                                   (fromList [(1,true); (2,false); (3,true)])))
+
+
