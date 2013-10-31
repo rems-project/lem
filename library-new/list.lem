@@ -13,7 +13,7 @@
 
 declare ~{hol;ocaml} rename module = Lem_list []
 declare {ocaml} rename module = Lem_list 
-declare {hol} rename module = Lem_list [`listTheory`; `rich_listTheory`]
+declare {hol} rename module = Lem_list [`listTheory`; `rich_listTheory`; `lem_listTheory`; `lem_numTheory`; `sortingTheory`]
 
 open import Bool Maybe Basic_classes Tuple Num
 
@@ -125,7 +125,7 @@ end
 declare termination_argument lexicographicCompareBy = automatic
 
 let inline lexicographicCompare = lexicographicCompareBy compare
-declare {ocaml} rename function lexicographicCompareBy = lexicographic_compare
+declare {ocaml;hol} rename function lexicographicCompareBy = lexicographic_compare
 
 val lexicographicLess : forall 'a. Ord 'a => list 'a -> list 'a -> bool
 val lexicographicLessBy : forall 'a. ('a -> 'a -> bool) -> ('a -> 'a -> bool) -> list 'a -> list 'a -> bool
@@ -138,7 +138,7 @@ end
 declare termination_argument lexicographicLessBy = automatic
 
 let inline lexicographicLess = lexicographicLessBy isLess isLessEqual
-declare {ocaml} rename function lexicographicLessBy = lexicographic_less
+declare {ocaml;hol} rename function lexicographicLessBy = lexicographic_less
 
 val lexicographicLessEq : forall 'a. Ord 'a => list 'a -> list 'a -> bool
 val lexicographicLessEqBy : forall 'a. ('a -> 'a -> bool) -> ('a -> 'a -> bool) -> list 'a -> list 'a -> bool
@@ -151,7 +151,7 @@ end
 declare termination_argument lexicographicLessEqBy = automatic
 
 let inline lexicographicLessEq = lexicographicLessEqBy isLess isLessEqual
-declare {ocaml} rename function lexicographicLessEqBy = lexicographic_less_eq
+declare {ocaml;hol} rename function lexicographicLessEqBy = lexicographic_less_eq
 
 
 instance forall 'a. Ord 'a => (Ord (list 'a))
@@ -418,7 +418,7 @@ end
 declare termination_argument index = automatic
 
 declare isabelle target_rep function index = `index`
-declare {ocaml} rename function index = list_index
+declare {ocaml;hol} rename function index = list_index
 
 assert index_0: (index [(0:nat);1;2;3;4;5] 0 = Just 0)
 assert index_1: (index [(0:nat);1;2;3;4;5] 1 = Just 1)
@@ -448,8 +448,8 @@ let findIndices P l = findIndices_aux 0 P l
 declare termination_argument findIndices_aux = automatic
 
 declare isabelle target_rep function findIndices = `find_indices`
-declare {ocaml} rename function findIndices = find_indices
-declare {ocaml} rename function findIndices_aux = find_indices_aux
+declare {ocaml;hol} rename function findIndices = find_indices
+declare {ocaml;hol} rename function findIndices_aux = find_indices_aux
 
 assert findIndices_1: (findIndices (fun (n:nat) -> n > 3) [] = [])
 assert findIndices_2: (findIndices (fun (n:nat) -> n > 3) [4] = [0])
@@ -469,7 +469,7 @@ let findIndex P l = match findIndices P l with
 end
 
 declare isabelle target_rep function findIndex = `find_index`
-declare {ocaml} rename function findIndex = find_index
+declare {ocaml;hol} rename function findIndex = find_index
 
 assert find_index0 : (findIndex (fun (n:nat) -> n > 3) [1;2] = Nothing)
 assert find_index1 : (findIndex (fun (n:nat) -> n > 3) [1;2;4] = Just 2)
@@ -569,7 +569,7 @@ let rec splitAt n l =
 declare termination_argument splitAt = automatic
 
 declare isabelle target_rep function splitAt = `split_at`
-declare {ocaml} rename function splitAt = split_at
+declare {ocaml;hol} rename function splitAt = split_at
 
 
 assert splitAt_1: (splitAt 0   [(1:nat);2;3;4;5;6] = ([], [1;2;3;4;5;6]))
@@ -705,7 +705,7 @@ end
 declare termination_argument find = automatic
 
 declare isabelle target_rep function find = `List.find`
-declare {ocaml} rename function find = list_find_opt
+declare {ocaml;hol} rename function find = list_find_opt
 
 assert find_1: ((find (fun n -> n > (3:nat)) []) = Nothing)
 assert find_2: ((find (fun n -> n > (3:nat)) [2;1;3]) = Nothing)
@@ -726,7 +726,7 @@ let lookupBy eq k m = Maybe.map snd (find (fun (k', _) -> eq k k') m)
 let inline lookup = lookupBy (=)
 
 declare isabelle target_rep function lookup x l = `Map.map_of` l x
-declare {ocaml} rename function lookup = list_assoc_opt
+declare {ocaml;hol} rename function lookup = list_assoc_opt
 
 assert lookup_1 : (lookup (3:nat) ([(4, (5:nat)); (3, 4); (1,2); (3, 5)]) = Just 4)
 assert lookup_2 : (lookup (8:nat) ([(4, (5:nat)); (3, 4); (1,2); (3, 5)]) = Nothing)
@@ -786,7 +786,7 @@ let rec deleteFirst P l = match l with
 declare termination_argument deleteFirst = automatic
 
 declare isabelle target_rep function deleteFirst = `delete_first`
-declare {ocaml} rename function deleteFirst = list_delete_first
+declare {ocaml;hol} rename function deleteFirst = list_delete_first
 
 assert deleteFirst_1: (deleteFirst (fun x -> x > (5:nat)) [3;6;7;1] = Just [3;7;1])
 assert deleteFirst_2: (deleteFirst (fun x -> x > (15:nat)) [3;6;7;1] = Nothing)
@@ -800,7 +800,8 @@ let deleteBy eq x l = fromMaybe l (deleteFirst (eq x) l)
 let inline delete = deleteBy (=)
 
 declare isabelle target_rep function delete = `remove1`
-declare {ocaml} rename function delete = list_delete
+declare {ocaml;hol} rename function delete = list_remove1
+declare {ocaml;hol} rename function deleteBy = list_delete
 
 assert delete_1: (delete (6:nat) [(3:nat);6;7;1] = [3;7;1])
 assert delete_2: (delete (4:nat) [(3:nat);6;7;1] = [3;6;7;1])
@@ -824,13 +825,12 @@ let rec zip l1 l2 = match (l1, l2) with
 end
 declare termination_argument zip = automatic
 
-declare hol      target_rep function zip l1 l2 = `ZIP` (l1, l2)
 declare isabelle target_rep function zip = `List.zip`
-declare {ocaml} rename function zip = list_combine
+declare {ocaml;hol} rename function zip = list_combine
 
 assert zip_1 : (zip [(1:nat); 2;3;4;5] [(2:nat); 3;4;5;6] = [(1,2);(2,3);(3,4);(4,5);(5,6)])
 
-(* this test rules out List.combine for ocaml *)
+(* this test rules out List.combine for ocaml and ZIP for HOL, but it's needed to make it a total function *)
 assert zip_2 : (zip [(1:nat); 2;3] [(2:nat); 3;4;5;6] = [(1,2);(2,3);(3,4)])
 
 (* ------------------------- *)
