@@ -211,6 +211,12 @@ let funcl_aux_to_exp  env  (n, c, args, _, _, e) = begin
 end
 
 
+let target_supports_lemma_type target lty =
+  match (target, lty) with
+    | (Target.Target_no_ident Target.Target_ocaml, Ast.Lemma_theorem _) -> false
+    | (Target.Target_no_ident Target.Target_ocaml, Ast.Lemma_lemma _) -> false
+    | (_, _) -> true
+
 let defs_with_target_rep_to_lemma env targ _ env0 (((d,sk_d),l,lenv) as def) =
   match d with
     | Val_def (Let_inline _) -> None (* Inline statements should be removed anyhow by other means *)
@@ -218,8 +224,10 @@ let defs_with_target_rep_to_lemma env targ _ env0 (((d,sk_d),l,lenv) as def) =
          most likely the backend will complain during output for these anyhow. *)
     | Val_def(Fun_def(sk1, rec_flag, topt, funs)) -> 
         if (not (Typed_ast.in_targets_opt targ topt)) then (* do nothing for this target *) None else
-        if (not (Seplist.for_all (fun (_, c, _, _, _, _) -> const_has_target_rep_and_is_let l env targ c) funs)) then None
-        else
+        if (not (Seplist.for_all (fun (_, c, _, _, _, _) -> const_has_target_rep_and_is_let l env targ c) funs)) then None else
+        if (not (target_supports_lemma_type targ (Ast.Lemma_theorem None))) then
+          Some(env0, [comment_def def])            
+        else 
         begin
           let fun_eqs = Seplist.to_list_map (funcl_aux_to_exp env) funs in
           let body = mk_and_exps env fun_eqs in
@@ -519,13 +527,6 @@ let get_name def l = match def with
   | _ -> 
     raise (Reporting_basic.err_todo false l "Error while pruning target definitions: unmatched top-level case in get_name [debug]")
 
-
-let target_supports_lemma_type target lty =
-  match (target, lty) with
-    | (Target.Target_ocaml, Ast.Lemma_theorem _) -> false
-    | (Target.Target_ocaml, Ast.Lemma_lemma _) -> false
-    | (_, _) -> true
-
 let prune_target_bindings target (defs : def list) : def list =
 
   (* given a list constant name and a list of definition, rem_dups removes all
@@ -564,7 +565,7 @@ let prune_target_bindings target (defs : def list) : def list =
       
        | Lemma(_,lty,targets,_,_,_,_) as d ->
          let targ_OK = Typed_ast.in_targets_opt (Target_no_ident target) targets in
-         if (target_supports_lemma_type target lty && targ_OK) then
+         if (target_supports_lemma_type (Target.Target_no_ident target) lty && targ_OK) then
             def_walker target (((d,s),l,lenv) :: acc) defs
          else
             def_walker target acc defs

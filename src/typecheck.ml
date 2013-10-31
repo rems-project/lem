@@ -983,7 +983,7 @@ module Make_checker(T : sig
 
                       let cd = c_env_lookup (snd (id_to_identl i)) T.e.c_env c in
                       let (arg_ts, base_t) = Types.strip_fn_type (Some T.e.t_env) cd.const_type in
-                      let is_constr = (List.length (type_defs_get_constr_families l' T.e.t_env base_t c) > 0) in
+                      let is_constr = Pattern_syntax.is_constructor l' T.e Target.Target_ident c in
                       let (pats,pat_e) = check_pats l_e acc ps in
                         if (List.length pats <> List.length arg_ts) || (not is_constr) then (
                           if (List.length pats == 0) then (*handle as var*) None else
@@ -2133,7 +2133,7 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
               context
               ntyps
           in
-          let constr_family = {constr_list = cl; constr_case_fun = None; constr_exhaustive = true} in
+          let constr_family = {constr_list = cl; constr_case_fun = None; constr_exhaustive = true; constr_default = true; constr_targets = Target.all_targets} in
           let ctxt = {ctxt with all_tdefs = type_defs_add_constr_family l ctxt.all_tdefs type_path constr_family} in 
             (((tn,l),tnvs, type_path, Te_variant(sk3,vars), regexp), ctxt)
   end;;
@@ -2824,9 +2824,11 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let constr_family = {
             constr_list = List.map (fun (id, _) -> id.descr) constr_ids;
             constr_case_fun = Util.option_map (fun id -> id.descr) elim_id_opt;
-            constr_exhaustive = match ex_set with
+            constr_exhaustive = (match ex_set with
               | Ast.Exhaustivity_setting_exhaustive   _ -> true
-              | Ast.Exhaustivity_setting_inexhaustive _ -> false
+              | Ast.Exhaustivity_setting_inexhaustive _ -> false);
+            constr_default = false;
+            constr_targets = targets_opt_to_set target_opt;
           } in
           let ctxt' = {ctxt with all_tdefs = type_defs_add_constr_family l ctxt.all_tdefs p constr_family} in 
           (ctxt', def')	  

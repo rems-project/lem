@@ -107,14 +107,14 @@ val is_ocaml_pattern_match : match_check_arg
 val is_pattern_match_const : bool -> match_check_arg
 
 (** {2 Other pattern functions } *)
-(** [remove_function d case_f e] replaces the function expression [e] with with [fun x -> match x with ...].
+(** [remove_function env case_f e] replaces the function expression [e] with with [fun x -> match x with ...].
     The function [case_f] is then applied to the new match-expression. *)
-val remove_function : Types.type_defs -> (exp -> exp) -> exp -> exp option
+val remove_function : env -> (exp -> exp) -> exp -> exp option
 
-(** [remove_fun case_f e] replaces the fun-expression [e]. If [e] is of the form [fun p0 ... pn -> e'] such that
+(** [remove_fun env case_f e] replaces the fun-expression [e]. If [e] is of the form [fun p0 ... pn -> e'] such that
     not all patterns [pi] are variable patterns, it is replaced with [fun x0 ... xn -> match (x0, ..., xn) with (p0, ..., pn) -> e'].
     The function [case_f] is then applied to the new match-expression. *)
-val remove_fun : (exp -> exp) -> exp -> exp option
+val remove_fun : env -> (exp -> exp) -> exp -> exp option
 
 (** [remove_toplevel_match] tries to introduce matching directly in the function definition by
     eliminating match-expressions in the body. *)

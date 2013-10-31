@@ -218,13 +218,10 @@ val nexp_alter_init_lskips : (Ast.lex_skips -> Ast.lex_skips * Ast.lex_skips) ->
 
 type constr_family_descr = { 
    constr_list : const_descr_ref list; 
-   (** a list of all the constructors *)
-
    constr_exhaustive : bool;
-   (** is this family of constructors exhaustive, or does a special catch-other case needs adding? *)
-
-   constr_case_fun : const_descr_ref option 
-   (** the case split function for this constructor list, [None] means that pattern matching is used. *)
+   constr_case_fun : const_descr_ref option;
+   constr_default : bool;
+   constr_targets : Target.Targetset.t;
 }
 
 (** the target representation of a type *)
@@ -285,9 +282,9 @@ val type_defs_update_fields : Ast.l -> type_defs -> Path.t -> const_descr_ref li
 
 val type_defs_add_constr_family : Ast.l -> type_defs -> Path.t -> constr_family_descr -> type_defs
 
-(** [type_defs_get_constr_families l d t c] gets all constructor family descriptions for type [t] in
-    type environment [d], which contain the constant [c]. *)
-val type_defs_get_constr_families : Ast.l -> type_defs -> t -> const_descr_ref -> constr_family_descr list
+(** [type_defs_get_constr_families l d targ t c] gets all constructor family descriptions for type [t] 
+    for target [targ] in type environment [d], which contain the constant [c]. *)
+val type_defs_get_constr_families : Ast.l -> type_defs -> Target.target -> t -> const_descr_ref -> constr_family_descr list
 
 (** [type_defs_lookup_typ l d t] looks up the description of type [t] in defs [d]. *)
 val type_defs_lookup_typ : Ast.l -> type_defs -> t -> type_descr option

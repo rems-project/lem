@@ -815,6 +815,8 @@ let register_types rel_loc ctxt mod_path tds =
       constr_list = List.map (fun (_,_,u) -> u) constrs;
       constr_exhaustive = true;
       constr_case_fun = None;
+      constr_default = true;
+      constr_targets = Target.all_targets;
     } in
     let tdescr = { type_tparams = []; 
                    type_abbrev = None;

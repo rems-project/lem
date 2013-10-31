@@ -1,3 +1,12 @@
+(******************************************************************************)
+(* extra functions for maybe / option                                         *)
+(*                                                                            *)
+(******************************************************************************)
+
+declare ~{hol;ocaml} rename module = lem_maybe_extra []
+declare {hol} rename module = lem_maybe_extra [`optionTheory`]
+declare {ocaml} rename module = lem_maybe_extra [`Lem_maybe`]
+
 open import Basic_classes Maybe
 
 (* ----------------------- *)
@@ -13,4 +22,3 @@ declare hol      target_rep function fromJust = `THE`
 declare ocaml    target_rep function fromJust = `Option.get`
 declare isabelle target_rep function fromJust = `the`
 
-lemma fromJust: (forall v. fromJust (Just v) = v)

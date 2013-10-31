@@ -410,3 +410,13 @@ let rec pat_to_exp env p =
         raise (Pat_to_exp_unsupported(p.locn, "add_const pattern"))
     | P_var_annot(n,t) ->
         C.mk_typed p.locn None (C.mk_var p.locn n p.typ) None t None None
+
+
+
+let is_constructor l env (targ: Target.target) (c : const_descr_ref) =
+  let cd = c_env_lookup l env.c_env c in
+  (List.length (type_defs_get_constr_families l env.t_env targ cd.const_type c) > 0)
+
+let is_native_constructor l env (targ: Target.target) (c : const_descr_ref) =
+  let cd = c_env_lookup l env.c_env c in
+  List.exists (fun cf -> cf.constr_case_fun = None) (type_defs_get_constr_families l env.t_env targ cd.const_type c);;

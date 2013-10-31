@@ -187,6 +187,19 @@ val is_record_pat : pat -> bool
 
 (** {2 Classification of Patterns } *)
 
+(** [is_constructor l env targ c] checks whether [c] is a constructor
+    for target [targ] in environment [env].  If you want to know
+    whether it is for any target, use the identity target.
+    Internally, it checks whether [type_defs_get_constr_families]
+    returns a non-empty list. *)
+val is_constructor : Ast.l -> env -> Target.target -> const_descr_ref -> bool
+
+(** [is_native_constructor l env targ c] checks whether [c] is a
+    native constructor for target [targ] in environment [env]. Native
+    constructors are constructors, which the target pattern
+    compilation can handle. *)
+val is_native_constructor : Ast.l -> env -> Target.target -> const_descr_ref -> bool
+
 (** [direct_subpats p] returns a list of all the direct subpatterns of [p]. *)
 val direct_subpats : pat -> pat list
 

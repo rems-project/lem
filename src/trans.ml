@@ -148,7 +148,7 @@ let sort_record_fields _ e =
 
 (* Turn function | pat1 -> exp1 ... | patn -> expn end into
  * fun x -> match x with | pat1 -> exp1 ... | patn -> expn end *)
-let remove_function _ e = Patterns.remove_function d (fun e -> e) e
+let remove_function _ e = Patterns.remove_function E.env (fun e -> e) e
 
 (* Remove patterns from (fun ps -> ...), except for variable and 
  * (optionally) tuple patterns *)

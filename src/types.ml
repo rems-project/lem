@@ -590,8 +590,14 @@ type constr_family_descr = {
    constr_exhaustive : bool;
    (** is this family of constructors exhaustive, or does a special catch-other case needs adding? *)
 
-   constr_case_fun : const_descr_ref option 
+   constr_case_fun : const_descr_ref option;
    (** the case split function for this constructor list, [None] means that pattern matching is used. *)
+
+   constr_default : bool;
+   (** has this family been defined automatically and should be removed as soon as a custom one is added? *)
+
+   constr_targets : Target.Targetset.t
+   (** for which targets does this family work? *)
 }
 
 type type_target_rep =
@@ -681,9 +687,16 @@ let type_defs_update_fields l (d : type_defs) (p : Path.t) (fl : const_descr_ref
   let l = Ast.Trans (false, "type_defs_update_fields", Some l) in
   type_defs_update_tc_type l d p (fun tc -> Some {tc with type_fields = Some fl})
 
-let type_defs_add_constr_family l (d : type_defs) (p : Path.t) (cf : constr_family_descr) : type_defs =
+let type_defs_add_constr_family l (d : type_defs) (p : Path.t) (cf_new : constr_family_descr) : type_defs =
   let l = Ast.Trans (false, "type_defs_add_constr_family", Some l) in
-  type_defs_update_tc_type l d p (fun tc -> Some {tc with type_constr = cf :: tc.type_constr})
+  let update_family cf = begin
+     if cf.constr_default then begin
+       let cts = Target.Targetset.diff cf.constr_targets cf_new.constr_targets in
+       Some {cf with constr_targets = cts}
+     end else Some cf
+  end in
+  let update_families l = cf_new :: (Util.map_filter update_family l) in    
+  type_defs_update_tc_type l d p (fun tc -> Some {tc with type_constr = update_families tc.type_constr});;
 
 let type_defs_lookup l (d : type_defs) (p : Path.t) =
     let l = Ast.Trans (false, "type_defs_lookup", Some l) in
@@ -699,10 +712,16 @@ let type_defs_lookup_typ l (d : type_defs) (t : t) =
       | { t = Tapp(_, p) } -> Some (type_defs_lookup l d p)
       | _ -> None
 
-let type_defs_get_constr_families l (d : type_defs) (t : t) (c : const_descr_ref) : constr_family_descr list =
+let type_defs_get_constr_families l (d : type_defs) (targ: Target.target) (t : t) (c : const_descr_ref) : constr_family_descr list =
+  let family_matches cf = begin
+    List.mem c cf.constr_list &&
+    (match targ with
+      | Target.Target_ident -> true
+      | Target.Target_no_ident t -> Target.Targetset.mem t cf.constr_targets)
+  end in
   match type_defs_lookup_typ l d t with 
     | None -> []
-    | Some td -> List.filter (fun fs -> List.mem c fs.constr_list) td.type_constr
+    | Some td -> List.filter family_matches td.type_constr
 
 type instance = {
   inst_l : Ast.l;

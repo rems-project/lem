@@ -58,7 +58,7 @@ declare coq      target_rep function unsafe_structural_equality = `classical_boo
 
 val unsafe_structural_inequality : forall 'a. 'a -> 'a -> bool
 let unsafe_structural_inequality x y = not (unsafe_structural_equality x y)
-declare isabelle target_rep function unsafe_structural_inequality = infix `\<not_eq>`
+declare isabelle target_rep function unsafe_structural_inequality = infix `\<noteq>`
 
 (* The default for equality is the unsafe structural one. It can 
    (and should) be overriden for concrete types later. *)
@@ -88,9 +88,32 @@ declare ocaml target_rep function LT = `-1`
 declare ocaml target_rep function EQ = `0`
 declare ocaml target_rep function GT = `1`
 
-instance (Eq ordering)
-  let (=) = unsafe_structural_equality
-end
+let orderingIsLess r    = (match r with LT -> true | _ -> false end)
+let orderingIsGreater r = (match r with GT -> true | _ -> false end)
+let orderingIsEqual r   = (match r with EQ -> true | _ -> false end)
+
+let ordering_cases r lt eq gt =
+  if orderingIsLess r then lt else
+  if orderingIsEqual r then eq else gt
+
+declare ocaml target_rep function orderingIsLess    = `Lem.orderingIsLess` 
+declare ocaml target_rep function orderingIsGreater = `Lem.orderingIsGreater`
+declare ocaml target_rep function orderingIsEqual   = `Lem.orderingIsEqual`
+
+declare ocaml target_rep function ordering_cases = `Lem.ordering_cases` 
+
+declare {ocaml} pattern_match exhaustive ordering = [ LT; EQ ; GT ] ordering_cases
+
+assert ordering_cases_0 : (ordering_cases LT true false false)
+assert ordering_cases_1 : (ordering_cases EQ false true false)
+assert ordering_cases_2 : (ordering_cases GT false false true)
+assert ordering_match_1 : (match LT with GT -> false && false | _ -> true end)
+assert ordering_match_2 : (match EQ with GT -> false | _ -> true end)
+assert ordering_match_3 : (match GT with GT -> true && true | _ -> false end)
+assert ordering_match_4 : ((fun r -> (match r with GT -> false | _ -> true end)) LT)
+assert ordering_match_5 : ((fun r -> (match r with GT -> false | _ -> true end)) EQ)
+assert ordering_match_6 : ((fun r -> (match r with GT -> true && true | _ -> false end)) GT)
+
 
 class ( Ord 'a ) 
   val compare                 : 'a -> 'a -> ordering
@@ -115,11 +138,11 @@ val defaultLessEq    : forall 'a. 'a -> 'a -> bool
 val defaultGreater   : forall 'a. 'a -> 'a -> bool
 val defaultGreaterEq : forall 'a. 'a -> 'a -> bool
 
-let defaultCompare   = `***defaultCompare***`
-let defaultLess      = `***defaultLess***`
-let defaultLessEq    = `***defaultLessEq***`
-let defaultGreater   = `***defaultGreater***`
-let defaultGreaterEq = `***defaultGreaterEq***`
+let inline defaultCompare   = `***defaultCompare***`
+let inline defaultLess      = `***defaultLess***`
+let inline defaultLessEq    = `***defaultLessEq***`
+let inline defaultGreater   = `***defaultGreater***`
+let inline defaultGreaterEq = `***defaultGreaterEq***`
 
 declare ocaml target_rep function defaultCompare   = `compare`
 declare ocaml target_rep function defaultLess      = `<`
