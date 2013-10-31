@@ -98,7 +98,6 @@ lemma length_find_indices :
   "length (find_indices P l) \<le> length l"
 by (induct l) auto
 
-
 lemma sorted_map_suc :
   "sorted l \<Longrightarrow> sorted (map Suc l)"
 by (induct l) (simp_all add: sorted_Cons)
@@ -138,6 +137,69 @@ definition find_index where
       []    \<Rightarrow> None
     | i # _ \<Rightarrow> Some i)"
 
+lemma find_index_eq_some [simp] :
+  "(find_index P xs = Some ii) \<longleftrightarrow> (ii < length xs \<and> P (xs ! ii) \<and> (\<forall>i' < ii. \<not>(P (xs ! i'))))"
+  (is "?lhs = ?rhs")
+proof (cases "find_indices P xs")
+  case Nil
+  with find_indices_set[of P xs] 
+  show ?thesis 
+    unfolding find_index_def by auto
+next
+  case (Cons i il) note find_indices_eq = this
+
+  from sorted_find_indices[of P xs] find_indices_eq
+  have "sorted (i # il)" by simp
+  hence i_leq: "\<And>i'. i' \<in> set (i # il) \<Longrightarrow> i \<le> i'" unfolding sorted_Cons by auto
+
+  from find_indices_set[of P xs, unfolded find_indices_eq] 
+  have set_i_il_eq:"\<And>i'. i' \<in> set (i # il) = (i' < length xs \<and> P (xs ! i'))"
+    by simp
+
+  have lhs_eq: "find_index P xs = Some i"
+    unfolding find_index_def find_indices_eq by simp
+
+  show ?thesis
+  proof (intro iffI)
+    assume ?lhs
+    with lhs_eq have ii_eq[simp]: "ii = i" by simp
+
+    from set_i_il_eq[of i] i_leq[unfolded set_i_il_eq]
+    show ?rhs by auto (metis leD less_trans)
+  next
+    assume ?rhs
+    with set_i_il_eq[of ii] 
+    have "ii \<in> set (i # il) \<and> (ii \<le> i)" 
+      by (metis leI length_pos_if_in_set nth_Cons_0 nth_mem set_i_il_eq)
+
+    with i_leq [of ii] have "i = ii" by simp
+    thus ?lhs unfolding lhs_eq by simp
+  qed
+qed
+
+lemma find_index_eq_none [simp] :
+  "(find_index P xs = None) \<longleftrightarrow> (\<forall>x \<in> set xs. \<not>(P x))" (is "?lhs = ?rhs")
+proof (rule iffD1[OF Not_eq_iff], intro iffI) 
+  assume "\<not> ?lhs"
+  then obtain i where "find_index P xs = Some i" by auto
+  hence "i < length xs \<and> P (xs ! i)" by simp 
+  thus "\<not> ?rhs" by auto
+next
+  let ?p = "(\<lambda>i. i < length xs \<and> P(xs ! i))"
+
+  assume "\<not> ?rhs"
+  then obtain i where "?p i" 
+    by (metis in_set_conv_nth)
+
+  from LeastI [of ?p, OF `?p i`]
+  have "?p (Least ?p)" .
+
+  with not_less_Least [where ?P = ?p]
+  have "find_index P xs = Some (Least ?p)"
+    by (simp)    
+  thus "\<not> ?lhs" by auto
+qed
+
 definition genlist where
   "genlist f n = map f (upt 0 n)"
 
@@ -173,6 +235,18 @@ abbreviation (input) "set_choose s \<equiv> (SOME x. (x \<in> s))"
 lemma set_choose_thm[simp]:
   "s \<noteq> {} \<Longrightarrow> (set_choose s) \<in> s"
 by (rule someI_ex) auto
+
+definition set_case where
+  "set_case s c_empty c_sing c_else =
+    (if (card s = 0) then c_empty else
+    (if (card s = 1) then c_sing (set_choose s) else
+       c_else s))"
+
+lemma set_case_simps [simp] :
+  "set_case {} c_empty c_sing c_else = c_empty"
+  "set_case {x} c_empty c_sing c_else = c_sing x"
+  "card s > 1 \<Longrightarrow> set_case s c_empty c_sing c_else = c_else s"
+unfolding set_case_def by simp_all
 
 definition set_lfp:: "'a set \<Rightarrow> ('a set \<Rightarrow> 'a set) \<Rightarrow> 'a set" where
   "set_lfp s f = lfp (\<lambda>s'. f s' \<union> s)"
