@@ -115,6 +115,14 @@ assert ordering_match_5 : ((fun r -> (match r with GT -> false | _ -> true end))
 assert ordering_match_6 : ((fun r -> (match r with GT -> true && true | _ -> false end)) GT)
 
 
+val orderingEqual : ordering -> ordering -> bool
+let inline ~{ocaml} orderingEqual = unsafe_structural_equality
+declare ocaml target_rep function orderingEqual = `Lem.orderingEqual`
+
+instance (Eq ordering) 
+  let (=) = orderingEqual
+end
+
 class ( Ord 'a ) 
   val compare                 : 'a -> 'a -> ordering
   val (<)  [`isLess`]         : 'a -> 'a -> bool

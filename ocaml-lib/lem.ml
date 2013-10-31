@@ -20,9 +20,14 @@ let uncurry f (v1, v2) = f v1 v2
 let orderingIsLess r = (r < 0)
 let orderingIsGreater r = (r > 0)
 let orderingIsEqual r = (r = 0)
+
 let ordering_cases r lt eq gt =  
   (if (r < 0) then lt else
    if (r = 0) then eq else gt)
+
+let orderingEqual r1 r2 = 
+  ordering_cases r1 (orderingIsLess r2) (orderingIsEqual r2) (orderingIsGreater r2)
+
 
 
 (* ========================================================================== *)

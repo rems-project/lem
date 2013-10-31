@@ -94,7 +94,6 @@ declare termination_argument listEqualBy = automatic
 let inline listEqual = listEqualBy (=)
 declare hol      target_rep function listEqual = infix `=`
 declare isabelle target_rep function listEqual = infix `=`
-
 declare ocaml    target_rep function listEqualBy = `List.for_all2`
 
 instance forall 'a. Eq 'a => (Eq (list 'a))
@@ -124,7 +123,6 @@ end
 declare termination_argument lexicographicCompareBy = automatic
 
 let lexicographicCompare = lexicographicCompareBy compare
-
 
 val lexicographicLess : forall 'a. Ord 'a => list 'a -> list 'a -> bool
 val lexicographicLessBy : forall 'a. ('a -> 'a -> bool) -> ('a -> 'a -> bool) -> list 'a -> list 'a -> bool
@@ -159,6 +157,16 @@ instance forall 'a. Ord 'a => (Ord (list 'a))
   let (>=) x y = lexicographicLessEq y x
 end
 
+
+assert list_ord_1 : ([] < [(2:nat)])
+assert list_ord_2 : ([] <= [(2:nat)])
+assert list_ord_3 : ([1] <= [(2:nat)])
+assert list_ord_4 : ([2] <= [(2:nat)])
+assert list_ord_5 : ([2;3] > [(2:nat)])
+assert list_ord_6 : ([2;3;4;5] > [(2:nat)])
+assert list_ord_7 : ([2;3;4] > [(2:nat);1;5;67])
+assert list_ord_8 : ([4] > [(3:nat);56])
+assert list_ord_9 : ([5] >= [(5:nat)])
 
 
 (* ----------------------- *)
@@ -432,6 +440,8 @@ let rec findIndices_aux (i:nat) P l =
 let findIndices = findIndices_aux 0
 declare termination_argument findIndices_aux = automatic
 
+declare isabelle target_rep function findIndices = `find_indices`
+
 assert findIndices_1: (findIndices (fun (n:nat) -> n > 3) [] = [])
 assert findIndices_2: (findIndices (fun (n:nat) -> n > 3) [4] = [0])
 assert findIndices_3: (findIndices (fun (n:nat) -> n > 3) [1;5;3;1;2;6] = [1;5])
@@ -449,20 +459,33 @@ let findIndex P l = match findIndices P l with
   | x :: _ -> Just x
 end
 
+declare isabelle target_rep function findIndex = `find_index`
+
+assert find_index0 : (findIndex (fun (n:nat) -> n > 3) [1;2] = Nothing)
+assert find_index1 : (findIndex (fun (n:nat) -> n > 3) [1;2;4] = Just 2)
+assert find_index2 : (findIndex (fun (n:nat) -> n > 3) [1;2;4;5;67;1] = Just 2)
+
 (* ------------------------- *)
 (* elemIndices               *)
 (* ------------------------- *)
 
 val elemIndices : forall 'a. Eq 'a => 'a -> list 'a -> list nat
-let elemIndices e l = findIndices (isEqual e) l
+let inline elemIndices e l = findIndices (isEqual e) l
+
+assert elemIndices_0 : (elemIndices (2:nat) [] = [])
+assert elemIndices_1 : (elemIndices (2:nat) [2] = [0])
+assert elemIndices_2 : (elemIndices (2:nat) [2;3;4;2;4;2] = [0;3;5])
 
 (* ------------------------- *)
 (* elemIndex                 *)
 (* ------------------------- *)
 
 val elemIndex : forall 'a. Eq 'a => 'a -> list 'a -> maybe nat
-let elemIndex e l = findIndex ((=) e) l
+let inline elemIndex e l = findIndex ((=) e) l
 
+assert elemIndex_0 : (elemIndex (2:nat) [] = Nothing)
+assert elemIndex_1 : (elemIndex (2:nat) [2] = Just 0)
+assert elemIndex_2 : (elemIndex (2:nat) [3;4;2;4;2] = Just 2)
 
 
 (* ========================================================================== *)
@@ -488,7 +511,8 @@ lemma genlist_length: (forall f n. (length (genlist f n) = n))
 lemma genlist_index: (forall f n i. i < n --> index (genlist f n) i = Just (f i))
 
 
-declare hol target_rep function genlist = `GENLIST`
+declare hol      target_rep function genlist = `GENLIST`
+declare isabelle target_rep function genlist = `genlist`
 
 
 (* ------------------------- *)
@@ -533,6 +557,9 @@ let rec splitAt n l =
        end    
   end
 declare termination_argument splitAt = automatic
+
+declare isabelle target_rep function splitAt = `split_at`
+
 
 assert splitAt_1: (splitAt 0   [(1:nat);2;3;4;5;6] = ([], [1;2;3;4;5;6]))
 assert splitAt_2: (splitAt 2   [(1:nat);2;3;4;5;6] = ([1;2], [3;4;5;6]))
@@ -581,7 +608,6 @@ assert drop_2: (drop 2   [(1:nat);2;3;4;5;6] = [3;4;5;6])
 assert drop_3: (drop 100 [(1:nat);2;3;4;5;6] = [])
 
 lemma splitAt_take_drop: (forall n xs. splitAt n xs = (take n xs, drop n xs))
-
 
 let inline {hol} splitAt n xs = (take n xs, drop n xs)
 
@@ -686,6 +712,11 @@ val lookupBy : forall 'a 'b. ('a -> 'a -> bool) -> 'a -> list ('a * 'b) -> maybe
 let lookupBy eq k m = Maybe.map snd (find (fun (k', _) -> eq k k') m)
 let inline lookup = lookupBy (=)
 
+declare isabelle target_rep function lookup x l = `Map.map_of` l x
+
+assert lookup_1 : (lookup (3:nat) ([(4, (5:nat)); (3, 4); (1,2); (3, 5)]) = Just 4)
+assert lookup_2 : (lookup (8:nat) ([(4, (5:nat)); (3, 4); (1,2); (3, 5)]) = Nothing)
+assert lookup_3 : (lookup (1:nat) ([(4, (5:nat)); (3, 4); (1,2); (3, 5)]) = Just 2)
 
 (* ------------------------- *)
 (* filter                    *)
@@ -740,6 +771,8 @@ let rec deleteFirst P l = match l with
                           end
 declare termination_argument deleteFirst = automatic
 
+declare isabelle target_rep function deleteFirst = `delete_first`
+
 assert deleteFirst_1: (deleteFirst (fun x -> x > (5:nat)) [3;6;7;1] = Just [3;7;1])
 assert deleteFirst_2: (deleteFirst (fun x -> x > (15:nat)) [3;6;7;1] = Nothing)
 assert deleteFirst_3: (deleteFirst (fun x -> x > (2:nat)) [3;6;7;1] = Just [6;7;1])
@@ -750,6 +783,8 @@ val deleteBy : forall 'a. ('a -> 'a -> bool) -> 'a -> list 'a -> list 'a
 
 let deleteBy eq x l = fromMaybe l (deleteFirst (eq x) l)
 let inline delete = deleteBy (=)
+
+declare isabelle target_rep function delete = `remove1`
 
 assert delete_1: (delete (6:nat) [(3:nat);6;7;1] = [3;7;1])
 assert delete_2: (delete (4:nat) [(3:nat);6;7;1] = [3;6;7;1])

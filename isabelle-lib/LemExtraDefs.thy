@@ -56,6 +56,116 @@ imports
 
 begin 
 
+subsection{* Index *}
+
+fun index :: " 'a list \<Rightarrow> nat \<Rightarrow> 'a option "  where 
+   "index [] n = None"
+ | "index (x # xs) 0 = Some x"
+ | "index (x # xs) (Suc n) = index xs n" 
+
+lemma index_eq_some [simp]:
+   "index l n = Some x \<longleftrightarrow> (n < length l \<and> (x = l ! n))"
+proof (induct l arbitrary: n x)
+  case Nil thus ?case by simp
+next
+  case (Cons e es n x)
+  note ind_hyp = this
+
+  show ?case 
+  proof (cases n)
+    case 0 thus ?thesis by auto
+  next
+    case (Suc n') 
+    with ind_hyp show ?thesis by simp
+  qed
+qed
+
+lemma index_eq_none [simp]:
+   "index l n = None \<longleftrightarrow> length l \<le> n"
+by (rule iffD1[OF Not_eq_iff]) auto
+
+
+lemma index_simps [simp]:
+   "length l \<le> n \<Longrightarrow> index l n = None"
+   "n < length l \<Longrightarrow> index l n = Some (l ! n)"
+by (simp_all)
+
+fun find_indices :: "('a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> nat list" where
+   "find_indices P [] = []" 
+ | "find_indices P (x # xs) = (if P x then 0 # (map Suc (find_indices P xs)) else (map Suc (find_indices P xs)))" 
+
+lemma length_find_indices : 
+  "length (find_indices P l) \<le> length l"
+by (induct l) auto
+
+
+lemma sorted_map_suc :
+  "sorted l \<Longrightarrow> sorted (map Suc l)"
+by (induct l) (simp_all add: sorted_Cons)
+
+lemma sorted_find_indices : 
+  "sorted (find_indices P xs)"
+proof (induct xs)
+  case Nil thus ?case by simp
+next
+  case (Cons x xs)
+  from sorted_map_suc[OF this]
+  show ?case
+    by (simp add: sorted_Cons)
+qed
+
+lemma find_indices_set [simp] : 
+  "set (find_indices P l) = {i. i < length l \<and> P (l ! i)}"
+proof (intro set_eqI)
+  fix i
+  show "i \<in> set (find_indices P l) \<longleftrightarrow> (i \<in> {i. i < length l \<and> P (l ! i)})"
+  proof (induct l arbitrary: i)
+    case Nil thus ?case by simp
+  next
+    case (Cons x l' i)
+    note ind_hyp = this
+    show ?case 
+    proof (cases i)
+      case 0 thus ?thesis by auto
+    next
+      case (Suc i') with ind_hyp[of i'] show ?thesis by auto
+    qed
+  qed
+qed
+
+definition find_index where
+  "find_index P xs = (case find_indices P xs of
+      []    \<Rightarrow> None
+    | i # _ \<Rightarrow> Some i)"
+
+definition genlist where
+  "genlist f n = map f (upt 0 n)"
+
+lemma genlist_length [simp] :
+  "length (genlist f n) = n"
+unfolding genlist_def by simp
+
+lemma genlist_simps [simp]:
+   "genlist f 0 = []"
+   "genlist f (Suc n) = genlist f n @ [f n]"
+unfolding genlist_def by auto
+
+definition split_at where
+  "split_at n l = (take n l, drop n l)"
+
+fun delete_first :: "('a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> ('a list) option "  where 
+    "delete_first P [] = None"
+  | "delete_first P (x # xs) =
+     (if (P x) then Some xs else
+      Option.map (\<lambda>xs'. x # xs') (delete_first P xs))" 
+declare delete_first.simps [simp del]
+
+lemma delete_first_simps [simp] :
+   "delete_first P [] = None"
+   "P x \<Longrightarrow> delete_first P (x # xs) = Some xs"
+   "\<not>(P x) \<Longrightarrow> delete_first P (x # xs) = Option.map (\<lambda>xs'. x # xs') (delete_first P xs)"
+unfolding delete_first.simps by auto
+
 subsection{* Sets *}
 
 abbreviation (input) "set_choose s \<equiv> (SOME x. (x \<in> s))"

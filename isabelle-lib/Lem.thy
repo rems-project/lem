@@ -56,6 +56,8 @@ imports
 
 begin 
 
+type_synonym numeral = nat
+
 subsection{* Finite Maps *}
 
 abbreviation (input) "map_find k m \<equiv> the (m k)"
