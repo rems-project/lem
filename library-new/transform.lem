@@ -154,7 +154,10 @@ module Set = struct
   val cross : forall 'a 'b. set 'a -> set 'b -> set ('a * 'b)
   val (=) : forall 'a. set 'a -> set 'a -> bool
   val map : forall 'a 'b. ('a -> 'b) -> set 'a -> set 'b
+  *)
+  (* This old-lem signature for choose is incompatible with List_extra.choose. *)
   val choose : forall 'a. set 'a -> 'a -> 'a
+  (*
   val fold : forall 'a 'b. ('a -> 'b -> 'b) -> set 'a -> 'b -> 'b
   *)
 
