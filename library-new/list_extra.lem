@@ -16,7 +16,8 @@
 
 (* declare rename module = lem_list_non_pure *)
 
-open import Bool Maybe Basic_classes Tuple Num List
+open import Bool Maybe Basic_classes Tuple Num 
+include import List
 
 (* ------------------------- *)
 (* head of non-empty list    *)
