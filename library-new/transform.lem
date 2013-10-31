@@ -83,7 +83,7 @@ val (mod) : num -> num -> num
 (* ----------------------- *)
 (* TODO: still missing     *)
 (* ----------------------- *)
-(*
+(**)
 val (land) : num -> num -> num
 val (lor) : num -> num -> num
 val (lxor) : num -> num -> num
@@ -91,7 +91,7 @@ val lnot : num -> num
 val (lsl) : num -> num -> num
 val (lsr) : num -> num -> num
 val (asr) : num -> num -> num
-
+(*
 val bigunion = forall 'a. set (set 'a) -> set 'a
 val biginter : forall 'a. set (set 'a) -> set 'a
 
