@@ -322,7 +322,7 @@ let output1 env libpath isa_thy out_dir (targ : Target.target) avoid m alldoc_ac
 
             let _ =
               begin
-                let (o, ext_o) = open_output_with_check dir (module_name_lower ^ "_extras.v") in
+                let (o, ext_o) = open_output_with_check dir (module_name_lower ^ "_ancillaries.v") in
                   Printf.fprintf o "(* %s *)\n\n" (generated_line m.filename);
                   Printf.fprintf o "Require Import Arith.\n";
                   Printf.fprintf o "Require Import Bool.\n";
