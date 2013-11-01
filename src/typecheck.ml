@@ -2133,6 +2133,8 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
               ntyps
           in
           let constr_family = {constr_list = cl; constr_case_fun = None; constr_exhaustive = true; constr_default = true; constr_targets = Target.all_targets} in
+          let _ = if not (check_constr_family l (defn_ctxt_to_env ctxt) { t = Tapp (tparams_t, type_path) } constr_family) then
+            raise (Reporting_basic.err_type l "invalid constructor family") else () in
           let ctxt = {ctxt with all_tdefs = type_defs_add_constr_family l ctxt.all_tdefs type_path constr_family} in 
             (((tn,l),tnvs, type_path, Te_variant(sk3,vars), regexp), ctxt)
   end;;
@@ -2803,6 +2805,8 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
       | Ast.Declaration(Ast.Decl_pattern_match_decl (sk1, target_opt, sk2, ex_set, type_id, tnvars, sk3, sk4, constrs, sk5, semi, sk6, elim_opt)) ->
           let targs = check_target_opt target_opt in
           let tvs_tast = List.map ast_tnvar_to_tnvar tnvars in
+          let tparams_t = List.map (fun tnv -> tnvar_to_type (fst (tnvar_to_types_tnvar tnv))) tvs_tast in
+
           let p = lookup_p "" (defn_ctxt_to_env ctxt) type_id in
           let p_id = {id_path = Id_some (Ident.from_id type_id); 
               id_locn = l;
@@ -2826,6 +2830,8 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
             constr_default = false;
             constr_targets = targets_opt_to_set target_opt;
           } in
+          let _ = if not (check_constr_family l (defn_ctxt_to_env ctxt) { t = Tapp (tparams_t, p) } constr_family) then
+            raise (Reporting_basic.err_type l "invalid constructor family") else () in
           let ctxt' = {ctxt with all_tdefs = type_defs_add_constr_family l ctxt.all_tdefs p constr_family} in 
           (ctxt', def')	  
       | Ast.Declaration(Ast.Decl_termination_argument_decl (sk1, target_opt, sk2, id, sk3, term_setting)) ->

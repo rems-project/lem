@@ -303,6 +303,11 @@ val mk_tc_type_abbrev : tnvar list -> t -> tc_def
     the names of variables of this type. *)
 val mk_tc_type : tnvar list -> string option -> tc_def
 
+(** [match_types t_pat t] tries to match type [t_pat] against type [t].
+    If it succeeds, it returns a substitution [sub] that applied to [t_pat] returns [t]. 
+    This function is rather simple. It does not use type synonyms or other fancy features. *)
+val match_types : t -> t -> (t TNfmap.t) option
+
 (** an instance of a type class *)
 type instance = {
   inst_l : Ast.l; (** The location, the instance was declared *)

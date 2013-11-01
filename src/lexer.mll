@@ -229,7 +229,8 @@ and comment = parse
   | com_body "("* "\n" as i             { Lexing.new_line lexbuf; 
                                           (Ast.Chars(Ulib.Text.of_latin1 i) :: comment lexbuf) }
   | _  as c                             { raise (LexError(c, Lexing.lexeme_start_p lexbuf)) }
-  | eof                                 { [] }
+  | eof                                 { raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax (Lexing.lexeme_start_p lexbuf,
+                                            "Comment not terminated"))) }
 
 and string pos b = parse
   | ([^'"''\n''\\']*'\n' as i)          { Lexing.new_line lexbuf;

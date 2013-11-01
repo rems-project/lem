@@ -969,6 +969,9 @@ let do_type_match t_pat t =
     | _ -> assert false
 
 
+let match_types t_pat t =
+  if types_match t_pat t then Some (do_type_match t_pat t) else None
+
 type instance_ref = int
 module Instmap = Finite_map.Fmap_map(
 struct 

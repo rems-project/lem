@@ -498,3 +498,7 @@ val val_def_get_free_tnvars : env -> val_def -> Types.TNset.t
 (** [env_tag_to_string tag] formats [tag] as a string. This functions should only be used
     for human-readable output in e.g. error-messages. *)
 val env_tag_to_string : env_tag -> string
+
+
+val constr_family_to_id : Ast.l -> env -> Types.t -> constr_family_descr -> ((const_descr_ref id) list * (t -> (const_descr_ref id)) option) option
+val check_constr_family : Ast.l -> env -> Types.t -> constr_family_descr -> bool

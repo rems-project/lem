@@ -375,6 +375,7 @@ let env_apply (env : env) comp_opt n =
     | Some comp -> aux comp
     | None -> Util.option_first aux [Ast.Component_function None; Ast.Component_field None; Ast.Component_type None; Ast.Component_module None]
 
+
 let strings_get_const_id (env : env) l mp n inst =
 let (c_ref, c_d) = strings_get_const env mp n in
 ({ id_path = Id_none None;
@@ -1213,9 +1214,62 @@ begin
   e''
 end
 
+exception Constr_family_to_id_exn;;
+let constr_family_to_id l env (inst_type : t) (cf : constr_family_descr) : ((const_descr_ref id) list * (t -> (const_descr_ref id)) option) option =
+try
+  (* check the constructors *)
+  let check_constr c = begin
+    let cd = c_env_lookup l env.c_env c in
+    let (t_args, t_base) = strip_fn_type (Some env.t_env) cd.const_type in
+    let _ = if (TNset.subset (free_vars cd.const_type) (free_vars t_base)) then () else raise Constr_family_to_id_exn in
+    let subst = Util.option_get_exn Constr_family_to_id_exn (match_types t_base inst_type) in
+    let inst = List.map (fun v -> Util.option_get_exn Constr_family_to_id_exn (TNfmap.apply subst v)) cd.const_tparams in
+
+    let c_id = 
+      { id_path = Id_none None;
+        id_locn = l;
+        descr = c;
+        instantiation = inst } in
+    let t_args' = List.map (type_subst subst) t_args in
+    (c_id, t_args')   
+  end in
+
+  let constr_resl = List.map check_constr cf.constr_list in
+
+  let bf = match cf.constr_case_fun with
+    | None -> None
+    | Some case_c -> begin
+        let case_cd = c_env_lookup l env.c_env case_c in
+        let (t_args, ret_ty) = strip_fn_type (Some env.t_env) case_cd.const_type in
+        let ret_ty_var = match ret_ty.t with
+          | Tvar v -> Ty v
+          | _ -> raise Constr_family_to_id_exn
+        in
+        let subst = (* get the substitution for the arguments as well as the return type variable *) begin
+           match t_args with
+             | [] -> raise Constr_family_to_id_exn
+             | ty :: _ -> 
+                 let _ = if (TNset.mem ret_ty_var (free_vars ty)) then raise Constr_family_to_id_exn in
+                 Util.option_get_exn Constr_family_to_id_exn (match_types ty inst_type)
+        end in
+        (* TODO: check all the arguments *)
+
+        Some (fun ret_ty_inst -> begin
+          let subst' = TNfmap.insert subst (ret_ty_var, ret_ty_inst) in
+          let inst = List.map (fun v -> Util.option_get_exn Constr_family_to_id_exn (TNfmap.apply subst' v)) case_cd.const_tparams in
+          { id_path = Id_none None;
+            id_locn = l;
+            descr = case_c;
+            instantiation = inst }           
+        end)
+    end
+  in
+  Some (List.map fst constr_resl, bf)
+with Constr_family_to_id_exn -> None
 
 
-
-
-
+let check_constr_family l env inst_type cf =
+  match constr_family_to_id l env inst_type cf with
+    | None -> false
+    | Some _ -> true
 
