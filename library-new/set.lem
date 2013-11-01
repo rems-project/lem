@@ -272,6 +272,33 @@ assert set_patterns_7: (
   end
 ) = 3
 
+assert set_patterns_8: (
+  match (({3;4;5} : set nat), false) with
+    | (empty, true) -> 0
+    | (singleton x, _) -> 1
+    | (s, true) -> size s
+    | _ -> 5
+  end
+) = 5
+
+assert set_patterns_9: (
+  match ({5} : set nat) with
+    | empty -> 0
+    | singleton 2 -> 0
+    | singleton (x + 3) -> x
+    | _ -> 1
+  end
+) = 2
+
+assert set_patterns_10: (
+  match ({2} : set nat) with
+    | empty -> 0
+    | singleton 2 -> 0
+    | singleton (x + 3) -> x
+    | _ -> 1
+  end
+) = 0
+
 
 (* ----------------------- *)
 (* filter                  *)
