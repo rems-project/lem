@@ -475,8 +475,7 @@ open_import =  (* Open or import statements *)
 
 type 
 lemma_decl =  (* Lemmata and Tests *)
-   Lemma_named of lemma_typ * targets option * x_l * terminal * terminal * exp * terminal
- | Lemma_unnamed of lemma_typ * targets option * terminal * exp * terminal
+   Lemma_named of lemma_typ * targets option * x_l * terminal * exp
 
 
 type 

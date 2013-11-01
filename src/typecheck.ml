@@ -141,8 +141,7 @@ let ast_def_to_target_opt : Ast.def_aux -> Ast.targets option = function
                   Ast.Let_inline(_,_,target_opt,_) |
                   Ast.Let_rec(_,_,target_opt,_)) -> target_opt
     | Ast.Indreln(_,target_opt,_,_) -> target_opt
-    | Ast.Lemma(Ast.Lemma_unnamed(_,target_opt,_,_,_)) -> target_opt
-    | Ast.Lemma(Ast.Lemma_named(_,target_opt,_,_,_,_,_)) -> target_opt
+    | Ast.Lemma(Ast.Lemma_named(_,target_opt,_,_,_)) -> target_opt
     | Ast.Type_def _ -> None
     | Ast.Declaration _ -> None
     | Ast.Module _ -> None
@@ -2455,8 +2454,8 @@ let check_lemma l ts (ctxt : defn_ctxt)
         lskips *
         Ast.lemma_typ * 
         targets_opt *
-        (name_l * lskips) option * 
-        lskips * exp * lskips =
+        name_l * 
+        lskips * exp =
   let module T = struct 
     let d = ctxt.all_tdefs 
     let i = ctxt.all_instances 
@@ -2493,10 +2492,7 @@ let check_lemma l ts (ctxt : defn_ctxt)
   in
   let module C = Constraint(T) in
     function
-      | Ast.Lemma_unnamed (lty, target_opt, sk1, e, sk2) ->
-          let (sk0, lty', target_opt, exp) = aux (lty, target_opt, e) in
-          (ctxt, sk0, lty', target_opt, None, sk1, exp, sk2) 
-      | Ast.Lemma_named (lty, target_opt, name, sk1, sk2, e, sk3) ->
+      | Ast.Lemma_named (lty, target_opt, name, sk1, e) ->
           let (sk0, lty', target_opt, exp) = aux (lty, target_opt, e) in
           let (n, l) = xl_to_nl name in
           let n_s = Name.strip_lskip n in
@@ -2505,7 +2501,7 @@ let check_lemma l ts (ctxt : defn_ctxt)
                         "lemmata-label already used"
                          Name.pp n_s)
                    else () in
-          (add_lemma_to_ctxt ctxt n_s,  sk0, lty', target_opt, Some ((n,l), sk1), sk2, exp, sk3)
+          (add_lemma_to_ctxt ctxt n_s,  sk0, lty', target_opt, (n,l), sk1, exp)
 
 (* Check that a type can be an instance.  That is, it can be a type variable, a
  * function between type variables, a tuple of type variables or the application
@@ -2750,8 +2746,8 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           in
             (ctxt', Some (Val_def vd))
       | Ast.Lemma(lem) ->
-            let (ctxt', sk, lty, targs, name_opt, sk2, e, sk3) = check_lemma l backend_targets ctxt lem in
-            (ctxt', Some (Lemma(sk, lty, targs, name_opt, sk2, e, sk3)))
+            let (ctxt', sk, lty, targs, name, sk2, e) = check_lemma l backend_targets ctxt lem in
+            (ctxt', Some (Lemma(sk, lty, targs, name, sk2, e)))
       | Ast.Declaration(Ast.Decl_rename_decl(sk1, target_opt, sk2, component, id, sk3, xl')) ->
           let n' = Name.from_x xl' in
           let targs = check_target_opt target_opt in

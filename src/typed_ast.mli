@@ -480,7 +480,7 @@ type def_aux =
         restrictions on variable names of this type *)
   | Val_def of val_def 
     (** The list contains the class constraints on those variables *)
-  | Lemma of lskips * Ast.lemma_typ * targets_opt * (name_l * lskips) option * lskips * exp * lskips
+  | Lemma of lskips * Ast.lemma_typ * targets_opt * name_l * lskips * exp 
   | Module of lskips * name_l * Path.t * lskips * lskips * def list * lskips
   | Rename of lskips * name_l * Path.t * lskips * Path.t id
     (** Renaming an already defined module *)

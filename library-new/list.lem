@@ -50,7 +50,7 @@ declare hol   target_rep function null = `NULL`
 declare {ocaml} rename function null = list_null
 let inline {isabelle} null l = (l = [])
 
-assert null_simple_1: (null ([]:list nat))
+assert null_simple_1: null ([]:list nat)
 assert null_simple_2: (not (null [(2:nat);3;4]))
 assert null_simple_3: (not (null [(2:nat)]))
 

@@ -61,6 +61,9 @@ declare hol      target_rep function empty = `EMPTY`
 declare isabelle target_rep function empty = `empty`
 declare html     target_rep function empty = `&empty;`
 
+
+assert empty_0: (empty : set bool = {})
+
 (* ----------------------- *)
 (* any / all               *)
 (* ----------------------- *)
@@ -80,8 +83,6 @@ declare coq      target_rep function all = `set_for_all`
 declare hol      target_rep function all P s = `EVERY` P (`SET_TO_LIST` s)
 declare isabelle target_rep function all P s = `Set.Ball` s P
 declare ocaml    target_rep function all = `Pset.for_all`
-
-
 
 (* ----------------------- *)
 (* (IN)                    *)

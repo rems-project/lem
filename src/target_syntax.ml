@@ -402,7 +402,7 @@ let rec fix_infix_and_parens env target_opt defs =
   in
   let rec fix_def = function
     | Val_def d -> Val_def(fix_val_def d)
-    | Lemma(sk,lty,targets,n_opt,sk2,e,sk3) -> Lemma(sk,lty,targets,n_opt,sk2,fix_exp env get_prec e,sk3)
+    | Lemma(sk,lty,targets,n,sk2,e) -> Lemma(sk,lty,targets,n,sk2,fix_exp env get_prec e)
     | Indreln(s1,targets,names,c) ->
         Indreln(s1,
                 targets,

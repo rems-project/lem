@@ -335,7 +335,7 @@ let rec expand_defs defs ((r,typ_r,src_typ_r,pat_r): ((macro_context -> exp -> e
   in
   let rec expand_def = function
     | Val_def(d) -> Val_def(expand_val_def d)
-    | Lemma(sk,lty,targets,n_opt,sk2,e,sk3) -> Lemma(sk,lty,targets,n_opt, sk2, expand_exp Ctxt_theorem (r,typ_r,src_typ_r,pat_r) e, sk3)
+    | Lemma(sk,lty,targets,n,sk2,e) -> Lemma(sk,lty,targets,n, sk2, expand_exp Ctxt_theorem (r,typ_r,src_typ_r,pat_r) e)
     | Indreln(s1,targets,names,c) ->
         Indreln(s1,
                 targets,

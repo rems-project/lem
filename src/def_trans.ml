@@ -236,7 +236,7 @@ let defs_with_target_rep_to_lemma env targ _ env0 (((d,sk_d),l,lenv) as def) =
             | (_, c, _, _, _, _)::_ -> const_descr_ref_to_ascii_name env.c_env c in
           let lemma_name = Name.add_lskip (Name.from_string ((Name.to_string lemma_const_name) ^ "_def_lemma")) in
 
-          let d' = Lemma (sk1, Ast.Lemma_lemma None, topt, Some ((lemma_name, l), None), None, body, None) in
+          let d' = Lemma (sk1, Ast.Lemma_lemma None, topt, (lemma_name, l), None, body) in
           Some(env0, [comment_def def; ((d', sk_d), l, lenv)])            
         end
     | _ -> None
@@ -563,7 +563,7 @@ let prune_target_bindings target (defs : def list) : def list =
           else
             def_walker target acc defs
       
-       | Lemma(_,lty,targets,_,_,_,_) as d ->
+       | Lemma(_,lty,targets,_,_,_) as d ->
          let targ_OK = Typed_ast.in_targets_opt (Target_no_ident target) targets in
          if (target_supports_lemma_type (Target.Target_no_ident target) lty && targ_OK) then
             def_walker target (((d,s),l,lenv) :: acc) defs

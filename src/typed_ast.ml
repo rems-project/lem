@@ -351,7 +351,7 @@ type def = (def_aux * lskips option) * Ast.l * local_env
 and def_aux =
   | Type_def of lskips * (name_l * tnvar list * Path.t * texp * name_sect option) lskips_seplist
   | Val_def of val_def 
-  | Lemma of lskips * Ast.lemma_typ * targets_opt * (name_l * lskips) option * lskips * exp * lskips
+  | Lemma of lskips * Ast.lemma_typ * targets_opt * name_l * lskips * exp 
   | Module of lskips * name_l * Path.t * lskips * lskips * def list * lskips
   | Rename of lskips * name_l * Path.t * lskips * Path.t id
   | OpenImport of Ast.open_import * (Path.t id) list
@@ -632,9 +632,9 @@ let rec def_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (((d,s),l,l
       | Val_def(Let_inline(sk1,sk2,targ,n,c,ns,sk4,e)) ->
           let (s_new, s_ret) = lskips_f sk1 in
             res (Val_def(Let_inline(s_new,sk2,targ,n,c,ns,sk4,e))) s_ret
-      | Lemma(sk1, lty, targ, n_opt, sk2, e, sk3) ->
+      | Lemma(sk1, lty, targ, n, sk2, e) ->
           let (s_new, s_ret) = lskips_f sk1 in
-            res (Lemma(s_new, lty, targ, n_opt,sk2, e, sk3)) s_ret
+            res (Lemma(s_new, lty, targ, n,sk2, e)) s_ret
       | Module(sk1, n, mod_bind, sk2, sk3, ds, sk4) ->
           let (s_new, s_ret) = lskips_f sk1 in
             res (Module(s_new, n, mod_bind, sk2, sk3, ds, sk4)) s_ret

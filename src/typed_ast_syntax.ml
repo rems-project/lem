@@ -1082,7 +1082,7 @@ and add_def_entities (t_opt : Target.target) (only_new : bool) (ue : used_entiti
            let ue = add_exp_entities ue e in
            ue
          end else ue
-      | Lemma(_, _, targs, _, _, e, _) ->
+      | Lemma(_, _, targs, _, _, e) ->
           if (in_targets_opt t_opt targs) && (not only_new) then add_exp_entities ue e else ue
       | Module(_, _, mod_path, _, _, ds, _) -> begin
           let ue = used_entities_add_module ue mod_path in

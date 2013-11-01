@@ -2174,7 +2174,7 @@ let rec isa_def_extra (gf:extra_gen_flags) d l : Output.t = match d with
           new_line ^ new_line 
       end
       else emp
-  | Lemma (_, lty, targets, n_opt, sk1, e, sk2) when (extra_gen_flags_gen_lty gf lty && in_target targets) -> begin
+  | Lemma (_, lty, targets, (n, _), sk1, e) when (extra_gen_flags_gen_lty gf lty && in_target targets) -> begin
       let lem_st = match lty with
                      | Ast.Lemma_theorem _ -> "theorem"
                      | _ -> "lemma" in
@@ -2182,11 +2182,10 @@ let rec isa_def_extra (gf:extra_gen_flags) d l : Output.t = match d with
                      | Ast.Lemma_assert _ -> "by eval"
                      | _ -> "(* try *) by auto" in
       (kwd lem_st ^ space ^
-      (match n_opt with None -> emp | Some ((n, _), sk1) -> kwd (Name.to_string (Name.strip_lskip n)) ^ ws sk1 ^ kwd ":") ^
+      kwd (Name.to_string (Name.strip_lskip n)) ^ ws sk1 ^ kwd ":" ^
       new_line ^
       kwd "\"" ^
       exp e ^
-      ws sk2 ^
       kwd "\"" ^
       new_line ^
       kwd solve ^
@@ -2212,10 +2211,8 @@ let rec hol_def_extra gf d l : Output.t = match d with
         meta (String.concat "" [goal_stack_setup_s; proof_s; store_s; "\n\n"])
       end
       else emp
-  | Lemma (sk0, lty, targets, n_opt, sk1, e, sk2) when (extra_gen_flags_gen_lty gf lty && in_target targets) -> begin
-      let start = match n_opt with 
-          None -> "val _ = prove(\n" | 
-          Some ((n, _), _) -> begin
+  | Lemma (sk0, lty, targets, (n, _), sk1, e) when (extra_gen_flags_gen_lty gf lty && in_target targets) -> begin
+      let start = begin
             let n_s = (Name.to_string (Name.strip_lskip n)) in
             match lty with
                      | Ast.Lemma_assert _ -> Format.sprintf "val %s = prove(\n" n_s
@@ -2241,17 +2238,13 @@ let rec hol_def_extra gf d l : Output.t = match d with
   | _ -> emp
 
 let rec ocaml_def_extra gf d l : Output.t = match d with
-  | Lemma (sk0, lty, targets, n_opt, sk1, e, sk2) when (extra_gen_flags_gen_lty gf lty && in_target targets) -> begin
+  | Lemma (sk0, lty, targets, (n, _), _, e) when (extra_gen_flags_gen_lty gf lty && in_target targets) -> begin
       let is_assert = match lty with
                      | Ast.Lemma_assert _ -> true
                      | _ -> false in
       if not (is_assert) then emp else 
       begin
-        let n_s = match n_opt with 
-          | None -> "\"-\"" 
-          | Some ((n, _), _) -> 
-              Format.sprintf "\"%s\"" (String.escaped (Name.to_string (Name.strip_lskip n)))
-        in
+        let n_s = Format.sprintf "\"%s\"" (String.escaped (Name.to_string (Name.strip_lskip n))) in
         let loc_s = Format.sprintf "\"%s\\n\"" (String.escaped (Reporting_basic.loc_to_string true l)) in 
         let (e', _) = alter_init_lskips (fun _ -> (None, None)) e in
         meta (Format.sprintf "let _ = run_test %s %s (\n  " n_s loc_s) ^
@@ -2412,7 +2405,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         exp body
       else
         emp
-  | Lemma (sk0, lty, targets, n_opt, sk1, e, sk2) -> 
+  | Lemma (sk0, lty, targets, (n, _), sk1, e) -> 
       if (not (is_human_target T.target)) then emp else
       begin
       let lem_st = match lty with
@@ -2421,10 +2414,9 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
                      | Ast.Lemma_lemma sk -> "lemma" in
       (ws sk0 ^ kwd lem_st ^ 
        targets_opt targets ^
-      (match n_opt with None -> emp | Some ((n, l), sk1) -> 
        Name.to_output Term_var n ^
-       ws sk1 ^ kwd ":") ^
-      ws sk1 ^ kwd "(" ^ exp e ^ ws sk2 ^ kwd ")")
+       ws sk1 ^ kwd ":" ^
+       exp e)
     end
   | Module(s1,(n,l),mod_bind,s2,s3,ds,s4) -> 
       ws s1 ^

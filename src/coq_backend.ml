@@ -575,21 +575,14 @@ let generate_coq_record_update_notation e =
 
     let rec def_extra (inside_instance: bool) (callback: def list -> Output.t) (inside_module: bool) (m: def_aux) =
       match m with
-        | Lemma (skips, lemma_typ, targets, name_skips_opt, skips', e, skips'') ->
+        | Lemma (skips, lemma_typ, targets, (name, _), skips', e) ->
           if in_target targets then
-            let name =
-              match name_skips_opt with
-                | None ->
-                  let fresh = generate_fresh_name () in
-                  Output.flat [
-                    from_string " lemma_"; from_string fresh
-                  ]
-                | Some ((name, l), skips) -> Name.to_output Term_var name
+            let name = Name.to_output Term_var name
             in
               Output.flat [
-                ws skips; from_string "Lemma"; name; from_string ":"; ws skips';
-                from_string "("; exp inside_instance e; from_string ": Prop)";
-                ws skips''; from_string "."
+                ws skips; from_string "Lemma"; name; ws skips'; from_string ":"; 
+                from_string "("; exp inside_instance e; from_string ": Prop) ";
+                from_string "."
               ]
           else
             from_string "(* [?]: removed lemma intended for another backend. *)"
