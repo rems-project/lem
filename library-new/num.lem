@@ -564,22 +564,22 @@ val integerGreaterEqual : integer -> integer -> bool
 declare hol      target_rep function integerLess = infix `<` 
 declare ocaml    target_rep function integerLess = `Big_int.lt_big_int`
 declare isabelle target_rep function integerLess = infix `<`
-declare coq      target_rep function integerLess = infix `<`
+declare coq      target_rep function integerLess = `int_ltb`
 
 declare hol      target_rep function integerLessEqual = infix `<=` 
 declare ocaml    target_rep function integerLessEqual = `Big_int.le_big_int`
 declare isabelle target_rep function integerLessEqual = infix `\<le>`
-declare coq      target_rep function integerLessEqual = infix `<=`
+declare coq      target_rep function integerLessEqual = `int_lteb`
 
 declare hol      target_rep function integerGreater = infix `>` 
 declare ocaml    target_rep function integerGreater = `Big_int.gt_big_int`
 declare isabelle target_rep function integerGreater = infix `>`
-declare coq      target_rep function integerGreater = infix `>`
+declare coq      target_rep function integerGreater = `int_gtb`
 
 declare hol      target_rep function integerGreaterEqual = infix `>=` 
 declare ocaml    target_rep function integerGreaterEqual = `Big_int.ge_big_int`
 declare isabelle target_rep function integerGreaterEqual = infix `\<ge>`
-declare coq      target_rep function integerGreaterEqual = infix `>=`
+declare coq      target_rep function integerGreaterEqual = `int_gteb`
 
 val integerCompare : integer -> integer -> ordering
 let inline integerCompare = defaultCompare
@@ -600,7 +600,7 @@ val integerNegate : integer -> integer
 declare hol      target_rep function integerNegate = `~` 
 declare ocaml    target_rep function integerNegate = `Big_int.minus_big_int`
 declare isabelle target_rep function integerNegate = `-`
-declare coq      target_rep function integerNegate = `-`
+declare coq      target_rep function integerNegate i = (`Coq.ZArith.BinInt.Zminus` `Z0` i)
 
 instance (NumNegate integer)
   let ~ = integerNegate
@@ -611,7 +611,7 @@ val integerAdd : integer -> integer -> integer
 declare hol      target_rep function integerAdd = infix `+`
 declare ocaml    target_rep function integerAdd = `Big_int.add_big_int`
 declare isabelle target_rep function integerAdd = infix `+`
-declare coq      target_rep function integerAdd = infix `+`
+declare coq      target_rep function integerAdd = `Coq.ZArith.BinInt.Zplus`
 
 instance (NumAdd integer)
   let (+) = integerAdd
@@ -621,7 +621,7 @@ val integerMinus : integer -> integer -> integer
 declare hol      target_rep function integerMinus = infix `-`
 declare ocaml    target_rep function integerMinus = `Big_int.sub_big_int`
 declare isabelle target_rep function integerMinus = infix `-`
-declare coq      target_rep function integerMinus = infix `-`
+declare coq      target_rep function integerMinus = `Coq.ZArith.BinInt.Zminus`
 
 instance (NumMinus integer)
   let (-) = integerMinus
@@ -645,7 +645,7 @@ val integerMult : integer -> integer -> integer
 declare hol      target_rep function integerMult = infix `*`
 declare ocaml    target_rep function integerMult = `Big_int.mult_big_int`
 declare isabelle target_rep function integerMult = infix `*`
-declare coq      target_rep function integerMult = infix `*`
+declare coq      target_rep function integerMult = `Coq.ZArith.BinInt.Zmult`
 
 instance (NumMult integer)
   let ( * ) = integerMult
@@ -656,7 +656,7 @@ val integerPow : integer -> nat -> integer
 declare hol      target_rep function integerPow = infix `**`
 declare ocaml    target_rep function integerPow = `Big_int.power_big_int_positive_int`
 declare isabelle target_rep function integerPow = infix `^`
-declare coq      target_rep function integerPow = `power`
+declare coq      target_rep function integerPow = `Coq.ZArith.BinInt.Zpower_nat`
 
 instance ( NumPow integer ) 
   let ( ** ) = integerPow
@@ -666,7 +666,7 @@ val integerDiv : integer -> integer -> integer
 declare hol      target_rep function integerDiv = infix `/`
 declare ocaml    target_rep function integerDiv = `Big_int.div_big_int`
 declare isabelle target_rep function integerDiv = infix `div`
-declare coq      target_rep function integerDiv = `div`
+declare coq      target_rep function integerDiv = `Coq.ZArith.BinInt.Zdiv`
 
 instance ( NumIntegerDivision integer ) 
   let (div) = integerDiv
@@ -680,7 +680,7 @@ val integerMod : integer -> integer -> integer
 declare hol      target_rep function integerMod = infix `%`
 declare ocaml    target_rep function integerMod = `Big_int.mod_big_int`
 declare isabelle target_rep function integerMod = infix `mod`
-declare coq      target_rep function integerMod = `mod`
+declare coq      target_rep function integerMod = `Coq.ZArith.BinInt.Zmod`
 
 instance ( NumRemainder integer ) 
   let (mod) = integerMod
@@ -690,11 +690,13 @@ val integerMin : integer -> integer -> integer
 let inline integerMin = defaultMin
 declare ocaml    target_rep function integerMin = `Big_int.min_big_int`
 declare hol      target_rep function integerMin = `int_min`
+declare coq      target_rep function integerMin = `Coq.ZArith.BinInt.Zmin`
 
 val integerMax : integer -> integer -> integer
 let inline integerMax = defaultMax
 declare ocaml    target_rep function integerMax = `Big_int.max_big_int`
 declare hol      target_rep function integerMax = `int_max`
+declare coq      target_rep function integerMax = `Coq.ZArith.BinInt.Zmax`
 
 instance ( OrdMaxMin integer ) 
   let max = integerMax

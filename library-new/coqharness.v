@@ -1,13 +1,15 @@
+Require Import Coq.ZArith.BinInt.
+Require Import Coq.ZArith.Zorder.
 Require Import ClassicalDescription.
 
-Definition Prop_of_bool (P : Prop) : bool :=
+Definition bool_of_Prop (P : Prop) : bool :=
    if excluded_middle_informative P then
      true
    else
      false.
 
 Definition classical_boolean_equivalence {a : Type} (l r : a) : bool :=
-  Prop_of_bool (l = r).
+  bool_of_Prop (l = r).
 
 Fixpoint nat_power (base exp: nat): nat :=
   match exp with
@@ -53,7 +55,14 @@ Fixpoint nat_ltb (m n: nat): bool :=
   end.
 
 Definition nat_lteb (m n: nat): bool := nat_ltb (S m) n.
-
 Definition nat_gtb (m n: nat): bool := nat_ltb n m.
-
 Definition nat_gteb (m n: nat): bool := nat_lteb n m.
+
+Definition int_ltb (i j: Z): bool :=
+  bool_of_Prop (Zlt i j).
+Definition int_gtb (i j: Z): bool :=
+  bool_of_Prop (Zgt i j).
+Definition int_lteb (i j: Z): bool :=
+  bool_of_Prop (Zle i j).
+Definition int_gteb (i j: Z): bool :=
+  bool_of_Prop (Zge i j).
