@@ -86,7 +86,7 @@ declare isabelle target_rep function (-->) = infix `\<longrightarrow>`
 (* declare coq      target_rep function (-->) = `imp` *)
 declare html     target_rep function (-->) = infix `&rarr;`
 
-let inline {ocaml} imp x y = ((not x) || y)
+let inline {ocaml; coq} imp x y = ((not x) || y)
 
 assert imp_1 : (not (true --> false))
 assert imp_2 : (false --> true)

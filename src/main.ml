@@ -121,13 +121,13 @@ let options = Arg.align ([
   ( "-only_changed_output",
     Arg.Unit (fun b -> Process_file.always_replace_files := false),
     " generate only output files, whose content really changed compared to the existing file");
-  ( "-extra_level", 
+  ( "-auxiliary_level", 
     Arg.Symbol (["none"; "auto"; "all"], (fun s ->
      Backend.gen_extra_level := (match s with
        | "none" -> 0
        | "auto" -> 1
        | _ -> 2))),
-    " generate no (none) extra-information, only extras that can be handled automatically (auto) or all (all) extra information");
+    " generate no (none) auxiliary-information, only auxiliaries that can be handled automatically (auto) or all (all) auxiliary information");
   ( "-debug",
     Arg.Unit (fun b -> Printexc.record_backtrace true),
     " print a backtrace for all errors (lem needs to be compiled in debug mode)")

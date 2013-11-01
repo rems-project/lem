@@ -189,7 +189,7 @@ let output1 env libpath isa_thy out_dir (targ : Target.target) avoid m alldoc_ac
             end in
             let _ = match r_extra_opt with None -> () | Some r_extra ->
               begin
-                let (o,ext_o) = open_output_with_check dir (module_name_lower ^ "ExtraScript.sml") in
+                let (o,ext_o) = open_output_with_check dir (module_name_lower ^ "AuxiliaryScript.sml") in
                 hol_header extra_imported_modules o;
                 Printf.fprintf o "val _ = new_theory \"%sExtra\"\n\n" module_name_lower;
                 Printf.fprintf o "%s" (Ulib.Text.to_string r_extra);
@@ -237,7 +237,7 @@ let output1 env libpath isa_thy out_dir (targ : Target.target) avoid m alldoc_ac
             end in
             let _ = match r_extra_opt with None -> () | Some r_extra ->
               begin
-                let (o, ext_o) = open_output_with_check dir (module_name_lower ^ "Extra.ml") in
+                let (o, ext_o) = open_output_with_check dir (module_name_lower ^ "Auxiliary.ml") in
                 Printf.fprintf o "(*%s*)\n" (generated_line m.filename);
                 Printf.fprintf o "open Nat_num\n";
                 List.iter (fun s -> Printf.fprintf o "open %s\n\n" s) extra_imported_modules;
@@ -280,7 +280,7 @@ let output1 env libpath isa_thy out_dir (targ : Target.target) avoid m alldoc_ac
 
               let _ = match r_extra_opt with None -> () | Some r_extra ->
               begin
-                let (o, ext_o) = open_output_with_check dir (module_name ^ "Extra.thy") in              
+                let (o, ext_o) = open_output_with_check dir (module_name ^ "Auxiliary.thy") in              
                 Printf.fprintf o "header{*%s*}\n\n" (generated_line m.filename);
                 Printf.fprintf o "theory \"%sExtra\" \n\n" module_name;
                 Printf.fprintf o "imports \n \t Main \"~~/src/HOL/Library/Efficient_Nat\"\n";
@@ -322,7 +322,7 @@ let output1 env libpath isa_thy out_dir (targ : Target.target) avoid m alldoc_ac
 
             let _ =
               begin
-                let (o, ext_o) = open_output_with_check dir (module_name_lower ^ "_ancillaries.v") in
+                let (o, ext_o) = open_output_with_check dir (module_name_lower ^ "_auxiliary.v") in
                   Printf.fprintf o "(* %s *)\n\n" (generated_line m.filename);
                   Printf.fprintf o "Require Import Arith.\n";
                   Printf.fprintf o "Require Import Bool.\n";
