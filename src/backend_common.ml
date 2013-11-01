@@ -154,7 +154,7 @@ let inline_exp_macro (target : Target.non_ident_target) env _ e =
 
 let inline_pat_err l c_path target cr_l =
   let m = String.concat "" ["constant "; Path.to_string (c_path);
-                            "cannot be used in a pattern.\n  It as has too complicated ";
+                            " cannot be used in a pattern.\n  It as has too complicated ";
                             "target representation for target "; Target.target_to_string target;
                             ".\n  This is defined at\n    ";
                             (Reporting_basic.loc_to_string true cr_l)] in
@@ -181,21 +181,25 @@ let generalised_inline_pat_macro (do_CR_simple : bool) (target : Target.target) 
   let l_unk = Ast.Trans(false, "inline_pat_macro", Some p.locn) in
     match p.term with
       | P_const(c_id, ps) ->
-          let cd = c_env_lookup l_unk env.c_env c_id.descr in
-          let res_opt = begin            
-            match Target.Targetmap.apply_target cd.target_rep target with
-              | Some(CR_inline (l, _, params,body)) -> (Some l, inline_pat l_unk env cd c_id ps (params, body))
-              | Some(CR_simple (l, _, params,body)) -> 
-                if do_CR_simple then
-                  (Some l, inline_pat l_unk env cd c_id ps (params, body))
-                else
-                  (None, None)
-              | _ -> (None, None)
-          end in begin
-            match res_opt with
-              | (_,  Some p) -> Some p
-              | (None, None) -> None
-              | (Some l, None) -> inline_pat_err p.locn cd.const_binding target l
+          if (Pattern_syntax.is_not_buildin_constructor l_unk env target c_id.descr) then 
+            (* let pattern matching handle constructors *) None 
+          else begin
+            let cd = c_env_lookup l_unk env.c_env c_id.descr in
+            let res_opt = begin            
+              match Target.Targetmap.apply_target cd.target_rep target with
+                | Some(CR_inline (l, _, params,body)) -> (Some l, inline_pat l_unk env cd c_id ps (params, body))
+                | Some(CR_simple (l, _, params,body)) -> 
+                  if do_CR_simple then
+                    (Some l, inline_pat l_unk env cd c_id ps (params, body))
+                  else
+                    (None, None)
+                | _ -> (None, None)
+            end in begin
+              match res_opt with
+                | (_,  Some p) -> Some p
+                | (None, None) -> None
+                | (Some l, None) -> inline_pat_err p.locn cd.const_binding target l
+            end
           end
       | _ -> None
 

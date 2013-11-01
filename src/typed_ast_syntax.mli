@@ -93,8 +93,12 @@ val names_get_const : env -> Name.t list -> Name.t -> const_descr_ref * const_de
 (** [strings_get_const] is a wrapper around [names_get_const] that uses strings instead of names. *)
 val strings_get_const : env -> string list -> string -> const_descr_ref * const_descr
 
-(** [get_const] is a wrapper around [labels_get_const] that maps a label to an actual constant description. *)
+(** [get_const env label] is a wrapper around [string_get_const] that maps a label to an actual constant description. *)
 val get_const : env -> string -> const_descr_ref * const_descr
+
+(** [const_exists env label] checks, whether the constant with label [label] is available in the environment [env]. If
+    it is [get_const env label] succeeds, otherwise it fails. *)
+val const_exists : env -> string -> bool
 
 (** [names_get_const_ref env path n] looks up the constant with name [n] reachable via path [path] in
    the environment [env] *)

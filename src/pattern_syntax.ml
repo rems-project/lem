@@ -418,7 +418,12 @@ let is_constructor l env (targ: Target.target) (c : const_descr_ref) =
   let (_, base_ty) = strip_fn_type (Some env.t_env) cd.const_type in
   (List.length (type_defs_get_constr_families l env.t_env targ base_ty c) > 0)
 
-let is_native_constructor l env (targ: Target.target) (c : const_descr_ref) =
+let is_buildin_constructor l env (targ: Target.target) (c : const_descr_ref) =
   let cd = c_env_lookup l env.c_env c in
   let (_, base_ty) = strip_fn_type (Some env.t_env) cd.const_type in
   List.exists (fun cf -> cf.constr_case_fun = None) (type_defs_get_constr_families l env.t_env targ base_ty c);;
+
+let is_not_buildin_constructor l env (targ: Target.target) (c : const_descr_ref) =
+  let cd = c_env_lookup l env.c_env c in
+  let (_, base_ty) = strip_fn_type (Some env.t_env) cd.const_type in
+  List.exists (fun cf -> not (cf.constr_case_fun = None)) (type_defs_get_constr_families l env.t_env targ base_ty c);;

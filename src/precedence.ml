@@ -127,7 +127,7 @@ let star = regexp (Printf.sprintf "^\\([*/%%]%s*\\|inter\\|mod\\|land\\|lor\\|lx
 let plus = regexp (Printf.sprintf "^\\([+-]%s*\\|union\\)$" oper_char)
 let cons = regexp "^::$"
 let at = regexp (Printf.sprintf "^[@^]%s*$" oper_char)
-let eq = regexp (Printf.sprintf "^\\([=<>|&$]%s*\\|IN\\|MEM\\|subset\\|[\\]\\)$" oper_char)
+let eq = regexp (Printf.sprintf "^\\([=<>|&$]%s*\\|IN\\|NIN\\|MEM\\|subset\\|[\\]\\)$" oper_char)
 let amp = regexp "^&&$"
 let bar_bar = regexp "^||$"
 let imp = regexp "^-->$"

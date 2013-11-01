@@ -1943,7 +1943,7 @@ let is_isabelle_pat_direct env (p : pat) : bool =
     | P_as _ -> false
     | P_record _ -> false
     | (P_vector _ | P_vectorC _) -> false
-    | P_const (c, _) -> is_native_constructor Ast.Unknown env (Target.Target_no_ident Target.Target_isa) c.descr
+    | P_const (c, _) -> is_buildin_constructor Ast.Unknown env (Target.Target_no_ident Target.Target_isa) c.descr
     | P_lit li -> 
       begin
          match li.term with 
@@ -2004,7 +2004,7 @@ let is_hol_pat_direct env (p : pat) : bool =
     | P_as _ -> false
     | P_record _ -> false
     | (P_vector _ | P_vectorC _) -> false
-    | P_const (c, _) -> is_native_constructor Ast.Unknown env (Target.Target_no_ident Target.Target_hol) c.descr
+    | P_const (c, _) -> is_buildin_constructor Ast.Unknown env (Target.Target_no_ident Target.Target_hol) c.descr
     | _ -> true
 let is_hol_pat env = for_all_subpat (is_hol_pat_direct env)
 
@@ -2031,7 +2031,7 @@ let is_ocaml_pat_direct env (p : pat) : bool =
   match p.term with
     | P_num_add _ -> false
     | (P_vector _ | P_vectorC _) -> false
-    | P_const (c, _) -> is_native_constructor Ast.Unknown env (Target.Target_no_ident Target.Target_ocaml) c.descr
+    | P_const (c, _) -> is_buildin_constructor Ast.Unknown env (Target.Target_no_ident Target.Target_ocaml) c.descr
     | _ -> true
 
 let is_ocaml_pat env = for_all_subpat (is_ocaml_pat_direct env)
@@ -2062,7 +2062,7 @@ let is_coq_pat_direct (toplevel : bool) env (p : pat) : bool =
     | P_record _ -> false
     | P_tup _ -> not toplevel
     | (P_vector _ | P_vectorC _) -> false
-    | P_const (c, _) -> is_native_constructor Ast.Unknown env (Target.Target_no_ident Target.Target_coq) c.descr
+    | P_const (c, _) -> is_buildin_constructor Ast.Unknown env (Target.Target_no_ident Target.Target_coq) c.descr
     | _ -> true
 
 let rec is_coq_exp env (e : exp) : bool = 
