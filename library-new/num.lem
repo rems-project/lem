@@ -7,7 +7,7 @@
 (* rename module to clash with existing list modules of targets
    problem: renaming from inside the module itself! *)
 
-declare ~{hol} rename module = lem_num 
+declare ~{hol; coq} rename module = lem_num
 declare {hol} rename module = lem_num [`integerTheory`; `intReduce`; `lem_numTheory`]
 
 open import Bool Basic_classes 
@@ -25,7 +25,8 @@ open import {hol} `integerTheory` `intReduce`
    they are polymorphic. ...
 *)
 
-declare hol      target_rep type numeral = `num` 
+declare hol      target_rep type numeral = `num`
+declare coq      target_rep type numeral = `nat`
 declare ocaml    target_rep type numeral = `int` 
 
 class ( Numeral 'a ) 
@@ -109,7 +110,7 @@ end
 
 declare hol      target_rep type nat = `num` 
 declare isabelle target_rep type nat = `nat` 
-declare coq      target_rep type nat = `num` 
+declare coq      target_rep type nat = `nat` 
 declare ocaml    target_rep type nat = `int` 
 
 
@@ -121,7 +122,7 @@ declare ocaml    target_rep type nat = `int`
 type natural
 declare hol      target_rep type natural = `num` 
 declare isabelle target_rep type natural = `nat` 
-declare coq      target_rep type natural = `num` 
+declare coq      target_rep type natural = `nat`
 declare ocaml    target_rep type natural = `Big_int.big_int` 
 
 
@@ -134,16 +135,18 @@ declare ocaml    target_rep type natural = `Big_int.big_int`
 type integer
 declare ocaml    target_rep type integer = `Big_int.big_int` 
 declare isabelle target_rep type integer = `int` 
-declare hol      target_rep type integer = `int` 
+declare hol      target_rep type integer = `int`
+declare coq      target_rep type integer = `Z`
 
 (*
 (* ----------------------- *)
 (* bint                    *)
 (* ----------------------- *)
 
+(*
 (* 32 bit integers *)
 type int32 
-declare ocaml    target_rep type int32 = `int32` 
+declare ocaml    target_rep type int32 = `int32`
 
 (* 64 bit integers *)
 type int64
@@ -181,13 +184,13 @@ val naturalFromNat : nat -> natural
 declare hol      target_rep function naturalFromNat = `` (* remove natFromNumeral, as it is the identify function *)
 declare ocaml    target_rep function naturalFromNat = `Big_int.big_int_of_int`
 declare isabelle target_rep function naturalFromNat = ``
-declare coq      target_rep function naturalFromNat = `TODO`
+declare coq      target_rep function naturalFromNat = ``
 
 val natFromNatural : natural -> nat
 declare hol      target_rep function natFromNatural = `` (* remove natFromNumeral, as it is the identify function *)
 declare ocaml    target_rep function natFromNatural = `Big_int.int_of_big_int`
 declare isabelle target_rep function natFromNatural = ``
-declare coq      target_rep function natFromNatural = `TODO`
+declare coq      target_rep function natFromNatural = ``
 
 
 
@@ -204,7 +207,7 @@ val natFromNumeral : numeral -> nat
 declare hol      target_rep function natFromNumeral = `` (* remove natFromNumeral, as it is the identify function *)
 declare ocaml    target_rep function natFromNumeral = ``
 declare isabelle target_rep function natFromNumeral n = (``n : nat)
-declare coq      target_rep function natFromNumeral = `TODO`
+declare coq      target_rep function natFromNumeral = ``
 
 instance (Numeral nat)
   let fromNumeral = natFromNumeral
@@ -305,7 +308,7 @@ val natPow : nat -> nat -> nat
 declare hol      target_rep function natPow = infix `**`
 declare ocaml    target_rep function natPow = `Nat_num.nat_pow`
 declare isabelle target_rep function natPow = infix `^`
-declare coq      target_rep function natPow = `TODO`
+declare coq      target_rep function natPow = `power`
 
 instance ( NumPow nat ) 
   let ( ** ) = natPow
@@ -315,7 +318,7 @@ val natDiv : nat -> nat -> nat
 declare hol      target_rep function natDiv = infix `DIV`
 declare ocaml    target_rep function natDiv = infix `/`
 declare isabelle target_rep function natDiv = infix `div`
-declare coq      target_rep function natDiv = `TODO`
+declare coq      target_rep function natDiv = `div`
 
 instance ( NumIntegerDivision nat ) 
   let (div) = natDiv
@@ -329,7 +332,7 @@ val natMod : nat -> nat -> nat
 declare hol      target_rep function natMod = infix `MOD`
 declare ocaml    target_rep function natMod = infix `mod`
 declare isabelle target_rep function natMod = infix `mod`
-declare coq      target_rep function natMod = `TODO`
+declare coq      target_rep function natMod = `mod`
 
 instance ( NumRemainder nat ) 
   let (mod) = natMod
@@ -339,11 +342,13 @@ val natMin : nat -> nat -> nat
 let inline natMin = defaultMin
 declare ocaml    target_rep function natMin = `min`
 declare hol      target_rep function natMin = `MIN`
+declare coq      target_rep function natMin = `min`
 
 val natMax : nat -> nat -> nat
 let inline natMax = defaultMax
 declare ocaml    target_rep function natMax = `max`
 declare hol      target_rep function natMax = `MAX`
+declare coq      target_rep function natMax = `max`
 
 instance ( OrdMaxMin nat ) 
   let max = natMax
@@ -359,7 +364,7 @@ val naturalFromNumeral : numeral -> natural
 declare hol      target_rep function naturalFromNumeral = `` (* remove naturalFromNumeral, as it is the identify function *)
 declare ocaml    target_rep function naturalFromNumeral = `Big_int.big_int_of_int`
 declare isabelle target_rep function naturalFromNumeral n = (``n : natural)
-declare coq      target_rep function naturalFromNumeral = `TODO`
+declare coq      target_rep function naturalFromNumeral = ``
 
 instance (Numeral natural)
   let fromNumeral = naturalFromNumeral
@@ -435,6 +440,7 @@ let naturalSucc n = n + 1
 declare hol      target_rep function naturalSucc = `SUC`
 declare isabelle target_rep function naturalSucc = `Suc`
 declare ocaml    target_rep function naturalSucc = `Big_int.succ_big_int`
+declare coq      target_rep function naturalSucc = `S`
 instance (NumSucc natural)
   let succ = naturalSucc
 end
@@ -443,6 +449,7 @@ val naturalPred : natural -> natural
 let inline naturalPred n = n - 1
 declare hol      target_rep function naturalPred = `PRE`
 declare ocaml    target_rep function naturalPred = `Nat_num.natural_pred`
+declare coq      target_rep function naturalPred = `pred`
 instance (NumPred natural)
   let pred = naturalPred
 end
@@ -462,7 +469,7 @@ val naturalPow : natural -> nat -> natural
 declare hol      target_rep function naturalPow = infix `**`
 declare ocaml    target_rep function naturalPow = `Big_int.power_big_int_positive_int`
 declare isabelle target_rep function naturalPow = infix `^`
-declare coq      target_rep function naturalPow = `TODO`
+declare coq      target_rep function naturalPow = `power`
 
 instance ( NumPow natural ) 
   let ( ** ) = naturalPow
@@ -472,7 +479,7 @@ val naturalDiv : natural -> natural -> natural
 declare hol      target_rep function naturalDiv = infix `DIV`
 declare ocaml    target_rep function naturalDiv = `Big_int.div_big_int`
 declare isabelle target_rep function naturalDiv = infix `div`
-declare coq      target_rep function naturalDiv = `TODO`
+declare coq      target_rep function naturalDiv = `div`
 
 instance ( NumIntegerDivision natural ) 
   let (div) = naturalDiv
@@ -486,7 +493,7 @@ val naturalMod : natural -> natural -> natural
 declare hol      target_rep function naturalMod = infix `MOD`
 declare ocaml    target_rep function naturalMod = `Big_int.mod_big_int`
 declare isabelle target_rep function naturalMod = infix `mod`
-declare coq      target_rep function naturalMod = `TODO`
+declare coq      target_rep function naturalMod = `mod`
 
 instance ( NumRemainder natural ) 
   let (mod) = naturalMod
@@ -496,11 +503,13 @@ val naturalMin : natural -> natural -> natural
 let inline naturalMin = defaultMin
 declare ocaml    target_rep function naturalMin = `Big_int.min_big_int`
 declare hol      target_rep function naturalMin = `MIN`
+declare coq      target_rep function naturalMin = `min`
 
 val naturalMax : natural -> natural -> natural
 let inline naturalMax = defaultMax
 declare ocaml    target_rep function naturalMax = `Big_int.max_big_int`
 declare hol      target_rep function naturalMax = `MAX`
+declare coq      target_rep function naturalMax = `max`
 
 instance ( OrdMaxMin natural ) 
   let max = naturalMax
@@ -518,7 +527,7 @@ val integerFromNumeral : numeral -> integer
 declare ocaml    target_rep function integerFromNumeral = `Big_int.big_int_of_int`
 declare isabelle target_rep function integerFromNumeral n = (``n : integer)
 declare hol      target_rep function integerFromNumeral n = (``n : integer)
-declare coq      target_rep function integerFromNumeral = `TODO`
+declare coq      target_rep function integerFromNumeral n = (``n : integer)
 
 instance (Numeral integer)
   let fromNumeral = integerFromNumeral
@@ -574,7 +583,7 @@ val integerNegate : integer -> integer
 declare hol      target_rep function integerNegate = `~` 
 declare ocaml    target_rep function integerNegate = `Big_int.minus_big_int`
 declare isabelle target_rep function integerNegate = `-`
-declare coq      target_rep function integerNegate = `TODO`
+declare coq      target_rep function integerNegate = `-`
 
 instance (NumNegate integer)
   let ~ = integerNegate
@@ -630,7 +639,7 @@ val integerPow : integer -> nat -> integer
 declare hol      target_rep function integerPow = infix `**`
 declare ocaml    target_rep function integerPow = `Big_int.power_big_int_positive_int`
 declare isabelle target_rep function integerPow = infix `^`
-declare coq      target_rep function integerPow = `TODO`
+declare coq      target_rep function integerPow = `power`
 
 instance ( NumPow integer ) 
   let ( ** ) = integerPow
@@ -640,7 +649,7 @@ val integerDiv : integer -> integer -> integer
 declare hol      target_rep function integerDiv = infix `/`
 declare ocaml    target_rep function integerDiv = `Big_int.div_big_int`
 declare isabelle target_rep function integerDiv = infix `div`
-declare coq      target_rep function integerDiv = `TODO`
+declare coq      target_rep function integerDiv = `div`
 
 instance ( NumIntegerDivision integer ) 
   let (div) = integerDiv
@@ -654,7 +663,7 @@ val integerMod : integer -> integer -> integer
 declare hol      target_rep function integerMod = infix `%`
 declare ocaml    target_rep function integerMod = `Big_int.mod_big_int`
 declare isabelle target_rep function integerMod = infix `mod`
-declare coq      target_rep function integerMod = `TODO`
+declare coq      target_rep function integerMod = `mod`
 
 instance ( NumRemainder integer ) 
   let (mod) = integerMod
