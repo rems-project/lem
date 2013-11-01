@@ -194,11 +194,16 @@ val is_record_pat : pat -> bool
     returns a non-empty list. *)
 val is_constructor : Ast.l -> env -> Target.target -> const_descr_ref -> bool
 
-(** [is_native_constructor l env targ c] checks whether [c] is a
-    native constructor for target [targ] in environment [env]. Native
+(** [is_buildin_constructor l env targ c] checks whether [c] is a
+    build-in constructor for target [targ] in environment [env]. Build-in
     constructors are constructors, which the target pattern
     compilation can handle. *)
-val is_native_constructor : Ast.l -> env -> Target.target -> const_descr_ref -> bool
+val is_buildin_constructor : Ast.l -> env -> Target.target -> const_descr_ref -> bool
+
+(** [is_not_buildin_constructor l env targ c] checks whether [c] is a 
+    constructor for target [targ] in environment [env], but not a build-in one. Not build-in
+    constructors get compiled away during pattern compilation. *)
+val is_not_buildin_constructor : Ast.l -> env -> Target.target -> const_descr_ref -> bool
 
 (** [direct_subpats p] returns a list of all the direct subpatterns of [p]. *)
 val direct_subpats : pat -> pat list

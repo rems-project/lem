@@ -217,8 +217,7 @@ let target_supports_lemma_type target lty =
     | (Target.Target_no_ident Target.Target_ocaml, Ast.Lemma_lemma _) -> false
     | (_, _) -> true
 
-let defs_with_target_rep_to_lemma env targ _ env0 (((d,sk_d),l,lenv) as def) = None
-(*
+let defs_with_target_rep_to_lemma env targ _ env0 (((d,sk_d),l,lenv) as def) = 
   match d with
     | Val_def (Let_inline _) -> None (* Inline statements should be removed anyhow by other means *)
     | Val_def (Let_def _) -> None (* Simple let_defs are turned into Fun_def by other means, others can't be handled :-(. However,
@@ -226,7 +225,8 @@ let defs_with_target_rep_to_lemma env targ _ env0 (((d,sk_d),l,lenv) as def) = N
     | Val_def(Fun_def(sk1, rec_flag, topt, funs)) -> 
         if (not (Typed_ast.in_targets_opt targ topt)) then (* do nothing for this target *) None else
         if (not (Seplist.for_all (fun (_, c, _, _, _, _) -> const_has_target_rep_and_is_let l env targ c) funs)) then None else
-        if (not (target_supports_lemma_type targ (Ast.Lemma_theorem None))) then
+        if (not (target_supports_lemma_type targ (Ast.Lemma_theorem None)) ||
+            not (const_exists env "equality")) then
           Some(env0, [comment_def def])            
         else 
         begin
@@ -241,7 +241,7 @@ let defs_with_target_rep_to_lemma env targ _ env0 (((d,sk_d),l,lenv) as def) = N
           Some(env0, [comment_def def; ((d', sk_d), l, lenv)])            
         end
     | _ -> None
-*)
+
  
 
 let remove_indrelns_true_lhs _ env ((d,s),l,lenv) =

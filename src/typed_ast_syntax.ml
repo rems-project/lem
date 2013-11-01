@@ -167,6 +167,14 @@ let get_const env label =
   let (mp, n) = External_constants.constant_label_to_path_name label in
   strings_get_const env mp n
 
+let const_exists env label =
+  let (mp, n) = External_constants.constant_label_to_path_name label in
+  let local_env_opt = lookup_env_opt env (List.map Name.from_string mp) in
+  let res_opt = Util.option_bind (fun local_env -> Nfmap.apply local_env.v_env (Name.from_string n)) local_env_opt in
+  match res_opt with
+    | None -> false
+    | Some _ -> true
+
 let dest_field_types l env (f : const_descr_ref) =
   let l = Ast.Trans(false, "dest_field_types", Some l) in 
   let f_d = c_env_lookup l env.c_env f in
