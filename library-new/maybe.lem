@@ -4,7 +4,7 @@
 (* It mainly follows the Haskell Maybe-library                                *)
 (******************************************************************************)
 
-declare ~{hol;ocaml} rename module = lem_maybe []
+declare ~{hol;ocaml;coq} rename module = lem_maybe []
 declare {hol} rename module = lem_maybe [`optionTheory`]
 declare {ocaml} rename module = lem_maybe []
 
@@ -20,18 +20,18 @@ type maybe 'a =
 
 declare hol      target_rep type maybe 'a = `option` 'a 
 declare isabelle target_rep type maybe 'a = `option` 'a
-(* declare coq      target_rep type maybe 'a = `option` 'a *)
+declare coq      target_rep type maybe 'a = `option` 'a
 declare ocaml    target_rep type maybe 'a = `option` 'a
 
 declare hol      target_rep function Just = `SOME`
 declare ocaml    target_rep function Just = `Some`
 declare isabelle target_rep function Just = `Some`
-(* declare coq      target_rep function Just = `Some` *)
+declare coq      target_rep function Just = `Some`
 
 declare hol      target_rep function Nothing = `NONE`
 declare ocaml    target_rep function Nothing = `None`
 declare isabelle target_rep function Nothing = `None`
-(* declare coq      target_rep function Nothing = `None` *)
+declare coq      target_rep function Nothing = `None`
 
 
 val maybeEqual : forall 'a. Eq 'a => maybe 'a -> maybe 'a -> bool
@@ -56,7 +56,6 @@ assert maybe_eq_1: ((Nothing : maybe bool) = Nothing)
 assert maybe_eq_2: ((Just true) /= Nothing)
 assert maybe_eq_3: ((Just false) /= (Just true))  
 assert maybe_eq_4: ((Just false) = (Just false))  
-
 
 (* ----------------------- *)
 (* maybe                   *)
@@ -134,7 +133,6 @@ assert fromMaybe_1: (fromMaybe true Nothing = true)
 assert fromMaybe_2: (fromMaybe false Nothing = false)
 assert fromMaybe_3: (fromMaybe true (Just true) = true)
 assert fromMaybe_4: (fromMaybe true (Just false) = false)
-
 
 (* ----------------------- *)
 (* map                     *)

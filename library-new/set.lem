@@ -28,7 +28,7 @@
 
 open import Bool Basic_classes Maybe Function Num
 
-declare ~{html;tex} rename module = lem_set
+declare ~{html;tex;coq} rename module = lem_set
 
 (* Type of sets and set comprehensions are hard-coded *)
 

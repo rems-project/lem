@@ -760,7 +760,7 @@ let generate_coq_record_update_notation e =
                 in
                   Output.flat [
                     ws skips; instance_id; tyvars_typeset; from_string " "; c; from_string ": "; id
-                  ; typ src_t
+                  ; pat_typ src_t
                   ]
           in
           let body =
@@ -1609,15 +1609,18 @@ let generate_coq_record_update_notation e =
         | Typ_tup ts ->
             let body = flat @@ Seplist.to_sep_list pat_typ (sep @@ from_string "*") ts in
               from_string "(" ^ body ^ from_string ") % type"
-        | Typ_app (p, ts) ->                    
-            Output.flat [
-              typ_ident_to_output p; from_string " ";
-              concat_str " " (List.map pat_typ ts)
-            ]
+        | Typ_app (p, ts) ->
+            snd @@ B.type_app_to_output pat_typ p ts
         | Typ_paren(skips, t, skips') ->
             ws skips ^ from_string "(" ^ pat_typ t ^ ws skips' ^ from_string ")"
         | Typ_len nexp -> src_nexp nexp
-        | _ -> assert false
+        | Typ_backend (p, ts) ->
+          let i = Path.to_ident (ident_get_lskip p) p.descr in
+          let i = Ident.to_output Type_ctor path_sep i in
+          let ts = concat emp @@ List.map typ ts in
+            Output.flat [
+              i; from_string " "; ts
+            ]
     and typ t =
     	match t.term with
       	| Typ_wild skips -> ws skips ^ from_string "_"

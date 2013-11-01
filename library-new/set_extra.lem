@@ -11,7 +11,7 @@
 open import Bool Basic_classes Maybe Function Num 
 include import Set
 
-declare rename module = lem_non_pure_set
+declare ~{coq} rename module = lem_non_pure_set
 
 
 (* ------------------------ *)

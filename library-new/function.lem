@@ -11,6 +11,8 @@ open import Bool Maybe Basic_classes
 val id : forall 'a. 'a -> 'a
 let id x = x
 
+declare coq target_rep function id = `id`
+
 (* ----------------------- *)
 (* constant function       *)
 (* ----------------------- *)
