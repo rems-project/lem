@@ -63,27 +63,27 @@ match label with
   | "fromNumeral" -> (["Num"], "fromNumeral")
 
   | "equality" -> (["Basic_classes"], "isEqual")
-  | "identity" -> (["Pervasives"], "id")
+  | "identity" -> (["Function"], "id")
 
   | "conjunction" -> (["Bool"], "&&")
   | "implication" -> (["Bool"], "-->")
 
-  | "addition" -> (["Pervasives"], "+")
-  | "multiplication" -> (["Pervasives"], "*")
-  | "subtraction" -> (["Pervasives"], "-")
-  | "less_equal" -> (["Pervasives"], "<=")
+  | "addition" -> (["Num"], "+")
+  | "multiplication" -> (["Num"], "*")
+  | "subtraction" -> (["Num"], "-")
+  | "less_equal" -> (["Num"], "<=")
   | "num_suc" -> (["Num"], "natSucc")
 
   | "list_concat" -> (["List"], "concat")
-  | "list_cons" -> (["Pervasives"], "::")
+  | "list_cons" -> (["List"], "::")
   | "list_exists" -> (["List"], "any")
   | "list_fold_right" -> (["List"], "foldr")
   | "list_forall" -> (["List"], "all")
   | "list_map" -> (["List"], "map")
   | "list_member" -> (["List"], "elem")
 
-  | "maybe_just" -> (["Pervasives"], "just")
-  | "maybe_nothing" -> (["Pervasives"], "none")
+  | "maybe_just" -> (["Maybe"], "Just")
+  | "maybe_nothing" -> (["Maybe"], "None")
 
   | "nat_list_to_string" -> (["Pervasives"], "nat_list_to_string")
 

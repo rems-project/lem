@@ -217,7 +217,8 @@ let target_supports_lemma_type target lty =
     | (Target.Target_no_ident Target.Target_ocaml, Ast.Lemma_lemma _) -> false
     | (_, _) -> true
 
-let defs_with_target_rep_to_lemma env targ _ env0 (((d,sk_d),l,lenv) as def) =
+let defs_with_target_rep_to_lemma env targ _ env0 (((d,sk_d),l,lenv) as def) = None
+(*
   match d with
     | Val_def (Let_inline _) -> None (* Inline statements should be removed anyhow by other means *)
     | Val_def (Let_def _) -> None (* Simple let_defs are turned into Fun_def by other means, others can't be handled :-(. However,
@@ -240,7 +241,7 @@ let defs_with_target_rep_to_lemma env targ _ env0 (((d,sk_d),l,lenv) as def) =
           Some(env0, [comment_def def; ((d', sk_d), l, lenv)])            
         end
     | _ -> None
-
+*)
  
 
 let remove_indrelns_true_lhs _ env ((d,s),l,lenv) =

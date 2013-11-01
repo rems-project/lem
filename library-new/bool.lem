@@ -22,6 +22,7 @@ declare hol      target_rep function not = `~`
 declare ocaml    target_rep function not = `not`
 declare isabelle target_rep function not x = `\<not>` x
 declare html     target_rep function not = `&not;`
+declare coq      target_rep function not = `negb`
 
 assert not_1 : (not (not true))
 assert not_2 : (not false)
@@ -39,7 +40,7 @@ end
 declare hol      target_rep function (&&) = infix `/\`
 declare ocaml    target_rep function (&&) = infix `&&`
 declare isabelle target_rep function (&&) = infix `\<and>`
-declare coq      target_rep function (&&) = `and`
+declare coq      target_rep function (&&) = infix `&&`
 declare html     target_rep function (&&) = infix `&and;`
 
 assert and_1 : (not (true && false))
@@ -61,7 +62,7 @@ end
 declare hol      target_rep function (||) = infix `\/`
 declare ocaml    target_rep function (||) = infix `||`
 declare isabelle target_rep function (||) = infix `\<or>`
-declare coq      target_rep function (||) = `or`
+declare coq      target_rep function (||) = infix `||`
 declare html     target_rep function (||) = infix `&or;`
 
 assert or_1 : (true || false)
@@ -82,7 +83,7 @@ end
 
 declare hol      target_rep function (-->) = infix `==>`
 declare isabelle target_rep function (-->) = infix `\<longrightarrow>`
-declare coq      target_rep function (-->) = `imp`
+(* declare coq      target_rep function (-->) = `imp` *)
 declare html     target_rep function (-->) = infix `&rarr;`
 
 let inline {ocaml} imp x y = ((not x) || y)
