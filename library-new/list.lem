@@ -11,7 +11,7 @@
 (* ========================================================================== *)
 
 
-declare ~{hol;ocaml} rename module = Lem_list []
+declare ~{hol;ocaml;coq} rename module = Lem_list []
 declare {ocaml} rename module = Lem_list 
 declare {hol} rename module = Lem_list [`listTheory`; `rich_listTheory`; `lem_listTheory`; `lem_numTheory`; `sortingTheory`]
 
@@ -59,10 +59,11 @@ assert null_simple_3: (not (null [(2:nat)]))
 (* ----------------------- *)
 
 val length : forall 'a. list 'a -> nat
-let rec length l = match l with
-                     | [] -> 0
-                     | x :: xs -> length xs + 1
-                   end
+let rec length l =
+  match l with
+    | [] -> 0
+    | x :: xs -> length xs + 1
+  end
 
 declare termination_argument length = automatic
 
@@ -190,7 +191,7 @@ declare termination_argument append = automatic
 declare hol      target_rep function append = infix `++`
 declare ocaml    target_rep function append = `List.append`
 declare isabelle target_rep function append = infix `@`
-declare coq      target_rep function append = `List.app`
+declare coq      target_rep function append = infix `++`
 
 assert append_1: ([0;1;2;3] ++ [4;5] = [(0:nat);1;2;3;4;5])
 lemma append_nil_1: (forall l. l ++ [] = l)

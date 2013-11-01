@@ -11,14 +11,16 @@ open import Bool Maybe Basic_classes
 val id : forall 'a. 'a -> 'a
 let id x = x
 
-declare coq target_rep function id = `id`
+let inline {coq} id x = x
 
 (* ----------------------- *)
 (* constant function       *)
 (* ----------------------- *)
 
 val const : forall 'a 'b. 'a -> 'b -> 'a
-let const x _ = x
+let const x y = x
+
+declare coq target_rep function const = `const`
 
 
 (* ----------------------- *)
@@ -27,6 +29,8 @@ let const x _ = x
 
 val comb : forall 'a 'b 'c. ('b -> 'c) -> ('a -> 'b) -> ('a -> 'c)
 let comb f g = (fun x -> f (g x))
+
+declare coq target_rep function comb = `compose`
 
 
 (* ----------------------- *)
@@ -37,6 +41,8 @@ val ($) : forall 'a 'b. ('a -> 'b) -> ('a -> 'b)
 declare ascii_rep function ($) = `apply`
 let apply f = (fun x -> f x)
 
+declare coq target_rep function apply = `apply`
+
 
 (* ----------------------- *)
 (* flipping argument order *)
@@ -44,3 +50,5 @@ let apply f = (fun x -> f x)
 
 val flip : forall 'a 'b 'c. ('a -> 'b -> 'c) -> ('b -> 'a -> 'c)
 let flip f = (fun x y -> f y x)
+
+declare coq target_rep function flip = `flip`

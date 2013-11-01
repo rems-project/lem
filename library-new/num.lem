@@ -12,6 +12,7 @@ declare {hol} rename module = lem_num [`integerTheory`; `intReduce`; `lem_numThe
 
 open import Bool Basic_classes 
 open import {hol} `integerTheory` `intReduce`
+open import {coq} `Coq.ZArith.BinInt`
 
 (* ========================================================================== *)
 (* Numerals                                                                   *)
@@ -138,19 +139,19 @@ declare isabelle target_rep type integer = `int`
 declare hol      target_rep type integer = `int`
 declare coq      target_rep type integer = `Z`
 
-(*
 (* ----------------------- *)
 (* bint                    *)
 (* ----------------------- *)
 
-(*
 (* 32 bit integers *)
 type int32 
 declare ocaml    target_rep type int32 = `int32`
+declare coq      target_rep type int32 = `Z` (* ???: better type for this in Coq? *)
 
 (* 64 bit integers *)
 type int64
 declare ocaml    target_rep type int64 = `int64` 
+declare coq      target_rep type int64 = `Z` (* ???: better type for this in Coq? *)
 
 
 (* ----------------------- *)
@@ -160,7 +161,8 @@ declare ocaml    target_rep type int64 = `int64`
 (* unbounded size and precision rational numbers *)
 
 type rational
-declare ocaml    target_rep type rational = `Num.num` 
+declare ocaml    target_rep type rational = `Num.num`
+declare coq      target_rep type rational = `Q` (* ???: better type for this in Coq? *)
 
 
 (* ----------------------- *)
@@ -170,11 +172,12 @@ declare ocaml    target_rep type rational = `Num.num`
 (* double precision floating point (64 bits) *)
 
 type float64
-declare ocaml    target_rep type float64 = `double` 
+declare ocaml    target_rep type float64 = `double`
+declare coq      target_rep type float64 = `Q` (* ???: better type for this in Coq? *)
 
 type float32
-declare ocaml    target_rep type float32 = `float` 
-*)
+declare ocaml    target_rep type float32 = `float`
+declare coq      target_rep type float32 = `Q` (* ???: better type for this in Coq? *)
 
 (* ========================================================================== *)
 (* Translation between number types                                           *)
@@ -184,13 +187,13 @@ val naturalFromNat : nat -> natural
 declare hol      target_rep function naturalFromNat = `` (* remove natFromNumeral, as it is the identify function *)
 declare ocaml    target_rep function naturalFromNat = `Big_int.big_int_of_int`
 declare isabelle target_rep function naturalFromNat = ``
-declare coq      target_rep function naturalFromNat = ``
+declare coq      target_rep function naturalFromNat = `id`
 
 val natFromNatural : natural -> nat
 declare hol      target_rep function natFromNatural = `` (* remove natFromNumeral, as it is the identify function *)
 declare ocaml    target_rep function natFromNatural = `Big_int.int_of_big_int`
 declare isabelle target_rep function natFromNatural = ``
-declare coq      target_rep function natFromNatural = ``
+declare coq      target_rep function natFromNatural = `id`
 
 
 
@@ -203,18 +206,24 @@ declare coq      target_rep function natFromNatural = ``
 (* nat                     *)
 (* ----------------------- *)
 
+let genericCompare (less: 'a -> 'a -> bool) (equal: 'a -> 'a -> bool) (x : 'a) (y : 'a) =
+  if less x y then
+    LT
+  else if equal x y then
+    EQ
+  else
+    GT
+;;
+
 val natFromNumeral : numeral -> nat
 declare hol      target_rep function natFromNumeral = `` (* remove natFromNumeral, as it is the identify function *)
 declare ocaml    target_rep function natFromNumeral = ``
 declare isabelle target_rep function natFromNumeral n = (``n : nat)
-declare coq      target_rep function natFromNumeral = ``
+declare coq      target_rep function natFromNumeral = `id`
 
 instance (Numeral nat)
   let fromNumeral = natFromNumeral
 end
-
-val natCompare : nat -> nat -> ordering
-let inline natCompare = defaultCompare
 
 val natEq : nat -> nat -> bool
 let inline natEq = unsafe_structural_equality
@@ -230,22 +239,26 @@ val natGreaterEqual : nat -> nat -> bool
 declare hol      target_rep function natLess = infix `<` 
 declare ocaml    target_rep function natLess = infix `<`
 declare isabelle target_rep function natLess = infix `<`
-declare coq      target_rep function natLess = infix `<`
+declare coq      target_rep function natLess = `nat_ltb`
 
 declare hol      target_rep function natLessEqual = infix `<=` 
 declare ocaml    target_rep function natLessEqual = infix `<=`
 declare isabelle target_rep function natLessEqual = infix `\<le>`
-declare coq      target_rep function natLessEqual = infix `<=`
+declare coq      target_rep function natLessEqual = `nat_lteb`
 
 declare hol      target_rep function natGreater = infix `>` 
 declare ocaml    target_rep function natGreater = infix `>`
 declare isabelle target_rep function natGreater = infix `>`
-declare coq      target_rep function natGreater = infix `>`
+declare coq      target_rep function natGreater = `nat_gtb`
 
 declare hol      target_rep function natGreaterEqual = infix `>=` 
 declare ocaml    target_rep function natGreaterEqual = infix `>=`
 declare isabelle target_rep function natGreaterEqual = infix `\<ge>`
-declare coq      target_rep function natGreaterEqual = infix `>=`
+declare coq      target_rep function natGreaterEqual = `nat_gteb`
+
+val natCompare : nat -> nat -> ordering
+let inline natCompare = defaultCompare
+let inline {coq; hol; isabelle} natCompare = genericCompare natLess natEq
 
 instance (Ord nat)
   let compare = natCompare
@@ -260,7 +273,7 @@ val natAdd : nat -> nat -> nat
 declare hol      target_rep function natAdd = infix `+`
 declare ocaml    target_rep function natAdd = infix `+`
 declare isabelle target_rep function natAdd = infix `+`
-declare coq      target_rep function natAdd = infix `+`
+declare coq      target_rep function natAdd = `Coq.Init.Peano.plus`
 
 instance (NumAdd nat)
   let (+) = natAdd
@@ -270,7 +283,7 @@ val natMinus : nat -> nat -> nat
 declare hol      target_rep function natMinus = infix `-`
 declare ocaml    target_rep function natMinus = `Nat_num.nat_monus`
 declare isabelle target_rep function natMinus = infix `-`
-declare coq      target_rep function natMinus = infix `-`
+declare coq      target_rep function natMinus = `Coq.Init.Peano.minus`
 
 instance (NumMinus nat)
   let (-) = natMinus
@@ -281,6 +294,7 @@ let natSucc n = n + 1
 declare hol      target_rep function natSucc = `SUC`
 declare isabelle target_rep function natSucc = `Suc`
 declare ocaml    target_rep function natSucc = `succ`
+declare coq      target_rep function natSucc = `S`
 instance (NumSucc nat)
   let succ = natSucc
 end
@@ -289,6 +303,7 @@ val natPred : nat -> nat
 let inline natPred n = n - 1
 declare hol      target_rep function natPred = `PRE`
 declare ocaml    target_rep function natPred = `Nat_num.nat_pred`
+declare coq      target_rep function natPred = `Coq.Init.Peano.pred`
 instance (NumPred nat)
   let pred = natPred
 end
@@ -297,7 +312,7 @@ val natMult : nat -> nat -> nat
 declare hol      target_rep function natMult = infix `*`
 declare ocaml    target_rep function natMult = infix `*`
 declare isabelle target_rep function natMult = infix `*`
-declare coq      target_rep function natMult = infix `*`
+declare coq      target_rep function natMult = `Coq.Init.Peano.mult`
 
 instance (NumMult nat)
   let ( * ) = natMult
@@ -308,7 +323,7 @@ val natPow : nat -> nat -> nat
 declare hol      target_rep function natPow = infix `**`
 declare ocaml    target_rep function natPow = `Nat_num.nat_pow`
 declare isabelle target_rep function natPow = infix `^`
-declare coq      target_rep function natPow = `power`
+declare coq      target_rep function natPow = `nat_power`
 
 instance ( NumPow nat ) 
   let ( ** ) = natPow
@@ -318,7 +333,7 @@ val natDiv : nat -> nat -> nat
 declare hol      target_rep function natDiv = infix `DIV`
 declare ocaml    target_rep function natDiv = infix `/`
 declare isabelle target_rep function natDiv = infix `div`
-declare coq      target_rep function natDiv = `div`
+declare coq      target_rep function natDiv = `nat_div`
 
 instance ( NumIntegerDivision nat ) 
   let (div) = natDiv
@@ -332,7 +347,7 @@ val natMod : nat -> nat -> nat
 declare hol      target_rep function natMod = infix `MOD`
 declare ocaml    target_rep function natMod = infix `mod`
 declare isabelle target_rep function natMod = infix `mod`
-declare coq      target_rep function natMod = `mod`
+declare coq      target_rep function natMod = `nat_mod`
 
 instance ( NumRemainder nat ) 
   let (mod) = natMod
@@ -342,13 +357,13 @@ val natMin : nat -> nat -> nat
 let inline natMin = defaultMin
 declare ocaml    target_rep function natMin = `min`
 declare hol      target_rep function natMin = `MIN`
-declare coq      target_rep function natMin = `min`
+declare coq      target_rep function natMin = `nat_min`
 
 val natMax : nat -> nat -> nat
 let inline natMax = defaultMax
 declare ocaml    target_rep function natMax = `max`
 declare hol      target_rep function natMax = `MAX`
-declare coq      target_rep function natMax = `max`
+declare coq      target_rep function natMax = `nat_max`
 
 instance ( OrdMaxMin nat ) 
   let max = natMax
@@ -364,15 +379,11 @@ val naturalFromNumeral : numeral -> natural
 declare hol      target_rep function naturalFromNumeral = `` (* remove naturalFromNumeral, as it is the identify function *)
 declare ocaml    target_rep function naturalFromNumeral = `Big_int.big_int_of_int`
 declare isabelle target_rep function naturalFromNumeral n = (``n : natural)
-declare coq      target_rep function naturalFromNumeral = ``
+declare coq      target_rep function naturalFromNumeral = `id`
 
 instance (Numeral natural)
   let fromNumeral = naturalFromNumeral
 end
-
-val naturalCompare : natural -> natural -> ordering
-let inline naturalCompare = defaultCompare
-declare ocaml    target_rep function naturalCompare = `Big_int.compare_big_int`
 
 val naturalEq : natural -> natural -> bool
 let inline naturalEq = unsafe_structural_equality
@@ -389,22 +400,27 @@ val naturalGreaterEqual : natural -> natural -> bool
 declare hol      target_rep function naturalLess = infix `<` 
 declare ocaml    target_rep function naturalLess = `Big_int.lt_big_int`
 declare isabelle target_rep function naturalLess = infix `<`
-declare coq      target_rep function naturalLess = infix `<`
+declare coq      target_rep function naturalLess = `nat_ltb`
 
 declare hol      target_rep function naturalLessEqual = infix `<=` 
 declare ocaml    target_rep function naturalLessEqual = `Big_int.le_big_int`
 declare isabelle target_rep function naturalLessEqual = infix `\<le>`
-declare coq      target_rep function naturalLessEqual = infix `<=`
+declare coq      target_rep function naturalLessEqual = `nat_lteb`
 
 declare hol      target_rep function naturalGreater = infix `>` 
 declare ocaml    target_rep function naturalGreater = `Big_int.gt_big_int`
 declare isabelle target_rep function naturalGreater = infix `>`
-declare coq      target_rep function naturalGreater = infix `>`
+declare coq      target_rep function naturalGreater = `nat_gtb`
 
 declare hol      target_rep function naturalGreaterEqual = infix `>=` 
 declare ocaml    target_rep function naturalGreaterEqual = `Big_int.ge_big_int`
 declare isabelle target_rep function naturalGreaterEqual = infix `\<ge>`
-declare coq      target_rep function naturalGreaterEqual = infix `>=`
+declare coq      target_rep function naturalGreaterEqual = `nat_gteb`
+
+val naturalCompare : natural -> natural -> ordering
+let inline naturalCompare = defaultCompare
+let inline {coq; isabelle; hol} naturalCompare = genericCompare naturalLess naturalEq
+declare ocaml    target_rep function naturalCompare = `Big_int.compare_big_int`
 
 instance (Ord natural)
   let compare = naturalCompare
@@ -419,7 +435,7 @@ val naturalAdd : natural -> natural -> natural
 declare hol      target_rep function naturalAdd = infix `+`
 declare ocaml    target_rep function naturalAdd = `Big_int.add_big_int`
 declare isabelle target_rep function naturalAdd = infix `+`
-declare coq      target_rep function naturalAdd = infix `+`
+declare coq      target_rep function naturalAdd = `Coq.Init.Peano.plus`
 
 instance (NumAdd natural)
   let (+) = naturalAdd
@@ -429,7 +445,7 @@ val naturalMinus : natural -> natural -> natural
 declare hol      target_rep function naturalMinus = infix `-`
 declare ocaml    target_rep function naturalMinus = `Nat_num.natural_monus`
 declare isabelle target_rep function naturalMinus = infix `-`
-declare coq      target_rep function naturalMinus = infix `-`
+declare coq      target_rep function naturalMinus = `Coq.Init.Peano.minus`
 
 instance (NumMinus natural)
   let (-) = naturalMinus
@@ -449,7 +465,7 @@ val naturalPred : natural -> natural
 let inline naturalPred n = n - 1
 declare hol      target_rep function naturalPred = `PRE`
 declare ocaml    target_rep function naturalPred = `Nat_num.natural_pred`
-declare coq      target_rep function naturalPred = `pred`
+declare coq      target_rep function naturalPred = `Coq.Init.Peano.pred`
 instance (NumPred natural)
   let pred = naturalPred
 end
@@ -458,7 +474,7 @@ val naturalMult : natural -> natural -> natural
 declare hol      target_rep function naturalMult = infix `*`
 declare ocaml    target_rep function naturalMult = `Big_int.mult_big_int`
 declare isabelle target_rep function naturalMult = infix `*`
-declare coq      target_rep function naturalMult = infix `*`
+declare coq      target_rep function naturalMult = `Coq.Init.Peano.mult`
 
 instance (NumMult natural)
   let ( * ) = naturalMult
@@ -469,7 +485,7 @@ val naturalPow : natural -> nat -> natural
 declare hol      target_rep function naturalPow = infix `**`
 declare ocaml    target_rep function naturalPow = `Big_int.power_big_int_positive_int`
 declare isabelle target_rep function naturalPow = infix `^`
-declare coq      target_rep function naturalPow = `power`
+declare coq      target_rep function naturalPow = `nat_power`
 
 instance ( NumPow natural ) 
   let ( ** ) = naturalPow
@@ -479,7 +495,7 @@ val naturalDiv : natural -> natural -> natural
 declare hol      target_rep function naturalDiv = infix `DIV`
 declare ocaml    target_rep function naturalDiv = `Big_int.div_big_int`
 declare isabelle target_rep function naturalDiv = infix `div`
-declare coq      target_rep function naturalDiv = `div`
+declare coq      target_rep function naturalDiv = `nat_div`
 
 instance ( NumIntegerDivision natural ) 
   let (div) = naturalDiv
@@ -493,7 +509,7 @@ val naturalMod : natural -> natural -> natural
 declare hol      target_rep function naturalMod = infix `MOD`
 declare ocaml    target_rep function naturalMod = `Big_int.mod_big_int`
 declare isabelle target_rep function naturalMod = infix `mod`
-declare coq      target_rep function naturalMod = `mod`
+declare coq      target_rep function naturalMod = `nat_mod`
 
 instance ( NumRemainder natural ) 
   let (mod) = naturalMod
@@ -503,13 +519,13 @@ val naturalMin : natural -> natural -> natural
 let inline naturalMin = defaultMin
 declare ocaml    target_rep function naturalMin = `Big_int.min_big_int`
 declare hol      target_rep function naturalMin = `MIN`
-declare coq      target_rep function naturalMin = `min`
+declare coq      target_rep function naturalMin = `nat_min`
 
 val naturalMax : natural -> natural -> natural
 let inline naturalMax = defaultMax
 declare ocaml    target_rep function naturalMax = `Big_int.max_big_int`
 declare hol      target_rep function naturalMax = `MAX`
-declare coq      target_rep function naturalMax = `max`
+declare coq      target_rep function naturalMax = `nat_max`
 
 instance ( OrdMaxMin natural ) 
   let max = naturalMax
@@ -527,15 +543,11 @@ val integerFromNumeral : numeral -> integer
 declare ocaml    target_rep function integerFromNumeral = `Big_int.big_int_of_int`
 declare isabelle target_rep function integerFromNumeral n = (``n : integer)
 declare hol      target_rep function integerFromNumeral n = (``n : integer)
-declare coq      target_rep function integerFromNumeral n = (``n : integer)
+declare coq      target_rep function integerFromNumeral n = (`Zpos` (`P_of_succ_nat` n))
 
 instance (Numeral integer)
   let fromNumeral = integerFromNumeral
 end
-
-val integerCompare : integer -> integer -> ordering
-let inline integerCompare = defaultCompare
-declare ocaml    target_rep function integerCompare = `Big_int.compare_big_int`
 
 val integerEq : integer -> integer -> bool
 let inline integerEq = unsafe_structural_equality
@@ -568,6 +580,11 @@ declare hol      target_rep function integerGreaterEqual = infix `>=`
 declare ocaml    target_rep function integerGreaterEqual = `Big_int.ge_big_int`
 declare isabelle target_rep function integerGreaterEqual = infix `\<ge>`
 declare coq      target_rep function integerGreaterEqual = infix `>=`
+
+val integerCompare : integer -> integer -> ordering
+let inline integerCompare = defaultCompare
+let inline {coq; isabelle; hol} integerCompare = genericCompare integerLess integerEq
+declare ocaml    target_rep function integerCompare = `Big_int.compare_big_int`
 
 instance (Ord integer)
   let compare = integerCompare

@@ -21,6 +21,7 @@ type either 'a 'b
 declare ocaml    target_rep type either = `either`
 declare isabelle target_rep type either = `sum`
 declare hol      target_rep type either = `sum`
+declare coq      target_rep type either = `sum`
 
 declare isabelle target_rep function Left  = `Inl`
 declare isabelle target_rep function Right = `Inr`
@@ -28,6 +29,8 @@ declare ocaml    target_rep function Left  = `Left`
 declare ocaml    target_rep function Right = `Right`
 declare hol      target_rep function Left  = `INL`
 declare hol      target_rep function Right = `INR`
+declare coq      target_rep function Left  = `inl`
+declare coq      target_rep function Right = `inr`
 
 
 (* -------------------------------------------------------------------------- *)

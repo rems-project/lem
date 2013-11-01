@@ -52,7 +52,6 @@ end
 val empty : forall 'a. Ord 'a => set 'a 
 val emptyBy : forall 'a. ('a -> 'a -> ordering) -> set 'a 
 
-
 declare ocaml    target_rep function emptyBy = `Pset.empty`
 let inline {ocaml} empty = emptyBy compare
 
@@ -60,7 +59,6 @@ declare coq      target_rep function empty = `set_empty`
 declare hol      target_rep function empty = `EMPTY`
 declare isabelle target_rep function empty = `empty`
 declare html     target_rep function empty = `&empty;`
-
 
 assert empty_0: (empty : set bool = {})
 
