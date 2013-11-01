@@ -118,6 +118,12 @@ val max_elt: 'a set -> 'a
 (** Same as {!Set.S.min_elt}, but returns the largest element of the
   given set. *)
 
+val min_elt_opt: 'a set -> 'a option
+(** an optional version of [min_elt] *)
+
+val max_elt_opt: 'a set -> 'a option
+(** an optional version of [max_elt] *)
+
 val choose: 'a set -> 'a
 (** Return one element of the given set, or raise [Not_found] if
   the set is empty. Which element is chosen is unspecified,

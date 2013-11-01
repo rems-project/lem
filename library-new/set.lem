@@ -60,7 +60,10 @@ declare hol      target_rep function empty = `EMPTY`
 declare isabelle target_rep function empty = `empty`
 declare html     target_rep function empty = `&empty;`
 
-assert empty_0: (empty : set bool = {})
+assert empty_0: (empty : set bool) = {}
+assert empty_1: (empty : set nat) = {}
+assert empty_2: (empty : set (list nat)) = {}
+assert empty_3: (empty : set (set nat)) = {}
 
 (* ----------------------- *)
 (* any / all               *)
@@ -82,13 +85,12 @@ declare hol      target_rep function all P s = `EVERY` P (`SET_TO_LIST` s)
 declare isabelle target_rep function all P s = `Set.Ball` s P
 declare ocaml    target_rep function all = `Pset.for_all`
 
+
 (* ----------------------- *)
 (* (IN)                    *)
 (* ----------------------- *)
 
-val (IN) : forall 'a. Ord 'a, Eq 'a => 'a -> set 'a -> bool 
-declare ascii_rep function (IN) = `member` (* Haskell notation *)
-
+val (IN) [`member`] : forall 'a. Ord 'a, Eq 'a => 'a -> set 'a -> bool 
 val memberBy : forall 'a. ('a -> 'a -> bool) -> 'a -> set 'a -> bool 
 let memberBy eq e s = any (eq e) s
 
@@ -100,19 +102,23 @@ declare html     target_rep function member = infix `&isin;`
 
 let inline {coq} member = memberBy (=)
 
-assert in_1: ((1:nat) IN {2;3;1})
+assert in_1: ((1:nat) IN {(2:nat);3;1})
 assert in_2: (not ((1:nat) IN {2;3;4}))
 assert in_3: (not ((1:nat) IN {}))
 assert in_4: ((1:nat) IN {1;2;1;3;1;4})
-
 
 (* ----------------------- *)
 (* not (IN)                *)
 (* ----------------------- *)
 
-val notMember : forall 'a. Ord 'a, Eq 'a => 'a -> set 'a -> bool 
+val (NIN) [`notMember`] : forall 'a. Ord 'a, Eq 'a => 'a -> set 'a -> bool 
 let inline notMember e s = not (member e s)
 declare html     target_rep function notMember = infix `&notin;`
+
+assert nin_1: not ((1:nat) NIN {2;3;1})
+assert nin_2: ((1:nat) NIN {2;3;4})
+assert nin_3: ((1:nat) NIN {})
+assert nin_4: not ((1:nat) NIN {1;2;1;3;1;4})
 
 
 (* ----------------------- *)
@@ -146,32 +152,25 @@ assert null_2: (not (null {(1:nat)}))
 
 
 (* ------------------------ *)
-(* fold                     *)
+(* singleton                *)
 (* ------------------------ *)
 
-(* fold is suspicious, because if given a function, for which
-   the order, in which the arguments are given, matters, it's
-   results are undefined. On the other hand, it is very handy to
-   define other - non suspicious functions. 
+val singleton : forall 'a. Ord 'a => 'a -> set 'a
+let inline singleton x = {x}
 
-   Moreover, fold is central for OCaml, size it is used to
-   compile set comprehensions *)
+declare coq target_rep function singleton = `set_singleton`
 
-val fold : forall 'a 'b. ('a -> 'b -> 'b) -> set 'a -> 'b -> 'b
-declare compile_message fold = "fold is non-deterministic because the order of the iteration is unclear. It's result may differ between different backends. It may even not be a logical function, because the result may depend on the low-level representation of sets and be different for two representations of the same set."
-
-declare hol      target_rep function fold = `ITSET`
-declare isabelle target_rep function fold f A q = `Finite_Set.fold` f q A
-declare ocaml    target_rep function fold = `Pset.fold`
-declare coq      target_rep function fold = `set_fold`
-
+assert singleton_1 : singleton (2:nat) = {2}
+assert singleton_2 : not (null (singleton (2:nat)))
+assert singleton_3 : 2 IN (singleton (2:nat))
+assert singleton_4 : 3 NIN (singleton (2:nat))
 
 
 (* ----------------------- *)
 (* size                    *)
 (* ----------------------- *)
 
-val size : forall 'a. Ord 'a => set 'a -> nat (* before cardinal *)
+val size : forall 'a. Ord 'a => set 'a -> nat 
 
 declare ocaml    target_rep function size = `Pset.cardinal`
 declare coq      target_rep function size = `set_cardinal`
@@ -185,6 +184,92 @@ assert size_4: (size {(2:nat);1;3} = 3)
 assert size_5: (size {(2:nat);1;3;9} = 4)
 
 lemma null_size: (forall s. (null s) --> (size s = 0))
+lemma null_singleton: (forall x. (size (singleton x) = 1))
+
+
+(* ----------------------------*)
+(* setting up pattern matching *)
+(* --------------------------- *)
+
+val set_cases : forall 'a 'b. Ord 'a => set 'a -> 'b -> ('a -> 'b) -> (set 'a -> 'b) -> 'b
+
+(* please provide target bindings, since choose is defined only in extra 
+   and not the right thing to use here anyhow. 
+
+let set_cases s c_empty c_sing c_else =
+  if (null s) then c_empty else
+  if (size s = 1) then c_sing (choose s)
+  else c_else s
+
+*)
+
+declare hol      target_rep function set_cases = `TODO_set_cases`
+declare isabelle target_rep function set_cases = `TODO_set_cases`
+declare coq      target_rep function set_cases = `TODO_set_cases`
+declare ocaml    target_rep function set_cases = `TODO_set_cases`
+
+declare pattern_match inexhaustive set 'a = [ empty; singleton ] set_cases
+
+assert set_patterns_0: (
+  match ({} : set nat) with
+    | empty -> true
+    | _ -> false
+  end
+)
+
+assert set_patterns_1: not (
+  match {(2:nat)} with
+    | empty -> true
+    | _ -> false
+  end
+)
+
+assert set_patterns_2: not (
+  match {(3 : nat); 4} with
+    | empty -> true
+    | _ -> false
+  end
+)
+
+assert set_patterns_3: (
+  match ({2} : set nat) with
+    | empty -> 0
+    | singleton x -> x
+    | _ -> 1
+  end
+) = 2
+
+assert set_patterns_4: (
+  match ({} : set nat) with
+    | empty -> 0
+    | singleton x -> x
+    | _ -> 1
+  end
+) = 0
+
+assert set_patterns_5: (
+  match ({3;4;5} : set nat) with
+    | empty -> 0
+    | singleton x -> x
+    | _ -> 1
+  end
+) = 1
+
+assert set_patterns_6: (
+  match ({3;3;3} : set nat) with
+    | empty -> 0
+    | singleton x -> x
+    | _ -> 1
+  end
+) = 3
+
+assert set_patterns_7: (
+  match ({3;4;5} : set nat) with
+    | empty -> 0
+    | singleton x -> 1
+    | s -> size s
+  end
+) = 3
 
 
 (* ----------------------- *)
@@ -236,8 +321,6 @@ let isProperSubsetOfBy eq s1 s2 = (isSubsetOfBy eq s1 s2 && not (isSubsetOfBy eq
 val isSubsetOf : forall 'a. Ord 'a, Eq 'a => set 'a -> set 'a -> bool
 let inline {coq} isSubsetOf s1 s2 = isSubsetOfBy (=) s1 s2
 
-let inline (subset) = isSubsetOf
-
 val isProperSubsetOf : forall 'a. Ord 'a, Eq 'a => set 'a -> set 'a -> bool
 let inline isProperSubsetOf s1 s2 = isProperSubsetOfBy (=) s1 s2
 
@@ -250,6 +333,8 @@ declare coq      target_rep function isSubsetOfBy eq s1 s2 = `set_subset` eq s1 
 declare hol      target_rep function isProperSubsetOf = infix `PSUBSET`
 declare isabelle target_rep function isProperSubsetOf = `Set.subset`
 declare html     target_rep function isProperSubsetOf = infix `&sub;`
+
+let inline (subset) = isSubsetOf
 
 
 assert isSubsetOf_1: (isSubsetOf ({}:set nat) {})
@@ -267,15 +352,6 @@ lemma isProperSubsetOf_irrefl: (forall s. not (isProperSubsetOf s s))
 lemma isProperSubsetOf_card: (forall s1 s2. isProperSubsetOf s1 s2 --> (size s1 < size s2))
 lemma isProperSubsetOf_def: (forall s1 s2. (isSubsetOf s1 s2) && not (isSubsetOf s2 s1))
 
-
-(* ------------------------ *)
-(* singleton                *)
-(* ------------------------ *)
-
-val singleton : forall 'a. Ord 'a => 'a -> set 'a
-let inline singleton x = {x}
-
-declare coq target_rep function singleton = `set_singleton`
 
 (* ------------------------ *)
 (* delete                   *)
@@ -325,14 +401,16 @@ lemma difference_in: (forall e s1 s2. e IN (difference s1 s2) <-> (e IN s1 && no
 val intersection : forall 'a. Ord 'a, Eq 'a => set 'a -> set 'a -> set 'a
 val intersectionBy : forall 'a. ('a -> 'a -> bool) -> set 'a -> set 'a -> set 'a
 
-let inline (inter) = intersection
-
 declare ocaml    target_rep function intersection = `Pset.inter`
 declare hol      target_rep function intersection = `INTER`
 declare isabelle target_rep function intersection = `inter`
 declare coq      target_rep function intersectionBy = `set_inter` 
 
 let inline {coq} intersection = intersectionBy (=)
+
+let inline (inter) = intersection
+
+
 
 assert intersection_1: (difference {1;2;3} {(3:nat);2;4} = {2;3})
 lemma intersection_in: (forall e s1 s2. e IN (intersection s1 s2) <-> (e IN s1 && e IN s2))
@@ -360,12 +438,18 @@ declare isabelle target_rep function map = `Set.image`
 
 val findMin : forall 'a.  Ord 'a, Eq 'a => set 'a -> maybe 'a 
 val findMax : forall 'a.  Ord 'a, Eq 'a => set 'a -> maybe 'a 
-val findMinBy : forall 'a.  ('a -> 'a -> bool) -> ('a -> 'a -> bool) -> set 'a -> maybe 'a 
 
+(* Informal, since THE is not supported by all backends
+val findMinBy : forall 'a.  ('a -> 'a -> bool) -> ('a -> 'a -> bool) -> set 'a -> maybe 'a 
 let findMinBy le eq s = THE (fun e -> ((memberBy eq e s) && (forall (e2 IN s). le e e2)))
 
 let inline findMin = findMinBy (<=) (=)
 let inline findMax = findMinBy (>=) (=)
+*)
+
+declare ocaml target_rep function findMin = `Pset.min_elt_opt` 
+declare ocaml target_rep function findMax = `Pset.max_elt_opt` 
+
 
 
 (* ------------------------ *)
