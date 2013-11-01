@@ -9,31 +9,8 @@
 (* ========================================================================== *)
 
 open import Bool Basic_classes Maybe Function Num 
-include import Set
 
-declare ~{coq} rename module = lem_set_extra
-
-
-(* ------------------------ *)
-(* fold                     *)
-(* ------------------------ *)
-
-(* fold is suspicious, because if given a function, for which
-   the order, in which the arguments are given, matters, it's
-   results are undefined. On the other hand, it is very handy to
-   define other - non suspicious functions. 
-
-   Moreover, fold is central for OCaml, size it is used to
-   compile set comprehensions *)
-
-val fold : forall 'a 'b. ('a -> 'b -> 'b) -> set 'a -> 'b -> 'b
-declare compile_message fold = "fold is non-deterministic because the order of the iteration is unclear. It's result may differ between different backends. It may even not be a logical function, because the result may depend on the low-level representation of sets and be different for two representations of the same set."
-
-declare hol      target_rep function fold = `ITSET`
-declare isabelle target_rep function fold f A q = `Finite_Set.fold` f q A
-declare ocaml    target_rep function fold = `Pset.fold`
-declare coq      target_rep function fold = `set_fold`
-
+declare ~{coq} rename module = lem_set_extra[]
 
 
 (* ----------------------------*)

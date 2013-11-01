@@ -26,7 +26,7 @@
 (* Header                                                                     *)
 (* ========================================================================== *)
 
-open import Bool Basic_classes Maybe Function Num
+open import Bool Basic_classes Maybe Function Num Set_helpers
 
 declare ~{html;tex;coq} rename module = lem_set
 
@@ -57,7 +57,7 @@ let inline {ocaml} empty = emptyBy compare
 
 declare coq      target_rep function empty = `set_empty`
 declare hol      target_rep function empty = `EMPTY`
-declare isabelle target_rep function empty = `empty`
+declare isabelle target_rep function empty = `{}`
 declare html     target_rep function empty = `&empty;`
 
 assert empty_0: (empty : set bool) = {}
@@ -96,7 +96,7 @@ let memberBy eq e s = any (eq e) s
 
 declare coq      target_rep function memberBy eq e = `set_exists` (eq e)
 declare ocaml    target_rep function member = `Pset.mem`
-declare isabelle target_rep function member = `Set.member`
+declare isabelle target_rep function member = infix `\<in>`
 declare hol      target_rep function member = infix `IN`
 declare html     target_rep function member = infix `&isin;`
 
@@ -114,6 +114,7 @@ assert in_4: ((1:nat) IN {1;2;1;3;1;4})
 val (NIN) [`notMember`] : forall 'a. Ord 'a, Eq 'a => 'a -> set 'a -> bool 
 let inline notMember e s = not (member e s)
 declare html     target_rep function notMember = infix `&notin;`
+declare isabelle target_rep function notMember = infix `\<notin>`
 
 assert nin_1: not ((1:nat) NIN {2;3;1})
 assert nin_2: ((1:nat) NIN {2;3;4})
@@ -142,7 +143,7 @@ assert insert_3: ((insert (3:nat) {}) = {3})
 (* ----------------------- *)
 
 val null : forall 'a. Ord 'a => set 'a -> bool (* before is_empty *)
-let null s = (s = {})
+let inline null s = (s = {})
 
 declare ocaml    target_rep function null = `Pset.is_empty`
 declare coq      target_rep function null = `set_is_empty`
@@ -191,24 +192,24 @@ lemma null_singleton: (forall x. (size (singleton x) = 1))
 (* setting up pattern matching *)
 (* --------------------------- *)
 
-val set_cases : forall 'a 'b. Ord 'a => set 'a -> 'b -> ('a -> 'b) -> (set 'a -> 'b) -> 'b
+val set_case : forall 'a 'b. Ord 'a => set 'a -> 'b -> ('a -> 'b) -> 'b -> 'b
 
 (* please provide target bindings, since choose is defined only in extra 
    and not the right thing to use here anyhow. 
 
-let set_cases s c_empty c_sing c_else =
+let set_case s c_empty c_sing c_else =
   if (null s) then c_empty else
   if (size s = 1) then c_sing (choose s)
-  else c_else s
-
+  else c_else
 *)
 
-declare hol      target_rep function set_cases = `TODO_set_cases`
-declare isabelle target_rep function set_cases = `TODO_set_cases`
-declare coq      target_rep function set_cases = `TODO_set_cases`
-declare ocaml    target_rep function set_cases = `TODO_set_cases`
 
-declare pattern_match inexhaustive set 'a = [ empty; singleton ] set_cases
+declare hol      target_rep function set_case = `TODO_set_cases`
+declare isabelle target_rep function set_case = `set_case`
+declare coq      target_rep function set_case = `TODO_set_cases`
+declare ocaml    target_rep function set_case = `TODO_set_cases`
+
+declare pattern_match inexhaustive set 'a = [ empty; singleton ] set_case
 
 assert set_patterns_0: (
   match ({} : set nat) with
@@ -326,22 +327,20 @@ let inline isProperSubsetOf s1 s2 = isProperSubsetOfBy (=) s1 s2
 
 declare ocaml    target_rep function isSubsetOf = infix `subset`
 declare hol      target_rep function isSubsetOf = infix `SUBSET`
-declare isabelle target_rep function isSubsetOf = `Set.subset_eq`
+declare isabelle target_rep function isSubsetOf = infix `\<subseteq>`
 declare html     target_rep function isSubsetOf = infix `&sube;`
 declare coq      target_rep function isSubsetOfBy eq s1 s2 = `set_subset` eq s1 s2
 
 declare hol      target_rep function isProperSubsetOf = infix `PSUBSET`
-declare isabelle target_rep function isProperSubsetOf = `Set.subset`
+declare isabelle target_rep function isProperSubsetOf = infix `\<subset>`
 declare html     target_rep function isProperSubsetOf = infix `&sub;`
 
 let inline (subset) = isSubsetOf
-
 
 assert isSubsetOf_1: (isSubsetOf ({}:set nat) {})
 assert isSubsetOf_2: (isSubsetOf {(1:nat);2;3} {1;2;3})
 assert isSubsetOf_3: (isSubsetOf {(1:nat);2} {3;2;1})
 lemma isSubsetOf_refl: (forall s. isSubsetOf s s)
-lemma isSubsetOf_card: (forall s1 s2. isSubsetOf s1 s2 --> (size s1 <= size s2))
 lemma isSubsetOf_def: (forall s1 s2. isSubsetOf s1 s2 = (forall e. e IN s1 --> e IN s2))
 lemma isSubsetOf_eq: (forall s1 s2. (s1 = s2) <-> ((isSubsetOf s1 s2) && (isSubsetOf s2 s1)))
 
@@ -349,8 +348,7 @@ assert isProperSubsetOf_1: (not (isProperSubsetOf ({}:set nat) {}))
 assert isProperSubsetOf_2: (not (isProperSubsetOf {(1:nat);2;3} {1;2;3}))
 assert isProperSubsetOf_3: (isProperSubsetOf {(1:nat);2} {3;2;1})
 lemma isProperSubsetOf_irrefl: (forall s. not (isProperSubsetOf s s))
-lemma isProperSubsetOf_card: (forall s1 s2. isProperSubsetOf s1 s2 --> (size s1 < size s2))
-lemma isProperSubsetOf_def: (forall s1 s2. (isSubsetOf s1 s2) && not (isSubsetOf s2 s1))
+lemma isProperSubsetOf_def: (forall s1 s2. isProperSubsetOf s1 s2 <-> ((isSubsetOf s1 s2) && not (isSubsetOf s2 s1)))
 
 
 (* ------------------------ *)
@@ -371,7 +369,7 @@ let inline delete e s = deleteBy (=) e s
 val (union) : forall 'a. Ord 'a => set 'a -> set 'a -> set 'a
 declare ocaml    target_rep function (union) = `Pset.(union)`
 declare hol      target_rep function (union) = `UNION`
-declare isabelle target_rep function (union) = `Set.union`
+declare isabelle target_rep function (union) = infix `\<union>`
 declare coq      target_rep function (union) = `set_union` 
 
 
@@ -386,7 +384,7 @@ lemma union_in: (forall e s1 s2. e IN (s1 union s2) <-> (e IN s1 || e IN s2))
 val difference : forall 'a. Ord 'a => set 'a -> set 'a -> set 'a
 declare ocaml    target_rep function difference = `Pset.diff`
 declare hol      target_rep function difference = `DIFF`
-declare isabelle target_rep function difference = `set_diff`
+declare isabelle target_rep function difference = infix `-`
 declare coq      target_rep function difference = `set_diff` 
 
 let inline (\) = difference
@@ -403,16 +401,14 @@ val intersectionBy : forall 'a. ('a -> 'a -> bool) -> set 'a -> set 'a -> set 'a
 
 declare ocaml    target_rep function intersection = `Pset.inter`
 declare hol      target_rep function intersection = `INTER`
-declare isabelle target_rep function intersection = `inter`
+declare isabelle target_rep function intersection = infix `\<inter>`
 declare coq      target_rep function intersectionBy = `set_inter` 
 
 let inline {coq} intersection = intersectionBy (=)
 
 let inline (inter) = intersection
 
-
-
-assert intersection_1: (difference {1;2;3} {(3:nat);2;4} = {2;3})
+assert intersection_1: (intersection {1;2;3} {(3:nat);2;4} = {2;3})
 lemma intersection_in: (forall e s1 s2. e IN (intersection s1 s2) <-> (e IN s1 && e IN s2))
 
 
@@ -430,6 +426,9 @@ declare ocaml    target_rep function mapBy = `Pset.map`
 let inline {ocaml} map = mapBy compare
 declare hol      target_rep function map = `IMAGE`
 declare isabelle target_rep function map = `Set.image`
+
+assert map_1: (map succ {(2:nat);3;4} = {5;4;3}) 
+assert map_2: (map (fun n -> n * 3) {(2:nat);3;4} = {6;9;12}) 
 
 
 (* ------------------------ *)
@@ -466,6 +465,11 @@ declare isabelle target_rep function fromList = `List.set`
 declare coq      target_rep function fromList = `set_from_list`
 
 
+assert fromList_1: (fromList [(2:nat);4;3] = {2;3;4}) 
+assert fromList_2: (fromList [(2:nat);2;3;2;4] = {2;3;4}) 
+assert fromList_3: (fromList ([] : list nat) = {}) 
+
+
 (* ------------------------ *)
 (* Sigma                    *)
 (* ------------------------ *)
@@ -487,8 +491,10 @@ lemma Sigma_2: (forall sa sb a b. ((a, b) IN sigma sa sb) <-> ((a IN sa) && (b I
 val cross : forall 'a 'b. Ord 'a, Ord 'b => set 'a -> set 'b -> set ('a * 'b)
 let cross s1 s2 = { (e1, e2) | forall (e1 IN s1) (e2 IN s2) | true }
 
-declare isabelle target_rep function cross = `set_cross`
+declare isabelle target_rep function cross = infix `\<times>`
 declare hol      target_rep function cross = `CROSS`
+
+assert cross_1 : (cross {(2:nat);3} {true; false} = {(2,true);(3,true); (2,false); (3,false)})
 
 
 (* ------------------------ *)

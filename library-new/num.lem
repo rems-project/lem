@@ -146,12 +146,14 @@ declare coq      target_rep type integer = `Z`
 (* 32 bit integers *)
 type int32 
 declare ocaml    target_rep type int32 = `int32`
-declare coq      target_rep type int32 = `Z` (* ???: better type for this in Coq? *)
+declare coq      target_rep type int32 = `Z`   (* ???: better type for this in Coq? *)
+declare isabelle target_rep type int32 = `int` (* ???: better type for this in Isa? *)
 
 (* 64 bit integers *)
 type int64
 declare ocaml    target_rep type int64 = `int64` 
 declare coq      target_rep type int64 = `Z` (* ???: better type for this in Coq? *)
+declare isabelle target_rep type int64 = `int` (* ???: better type for this in Isa? *)
 
 
 (* ----------------------- *)
@@ -163,6 +165,7 @@ declare coq      target_rep type int64 = `Z` (* ???: better type for this in Coq
 type rational
 declare ocaml    target_rep type rational = `Num.num`
 declare coq      target_rep type rational = `Q` (* ???: better type for this in Coq? *)
+declare isabelle target_rep type rational = `rat` (* ???: better type for this in Isa? *)
 
 
 (* ----------------------- *)
@@ -174,10 +177,12 @@ declare coq      target_rep type rational = `Q` (* ???: better type for this in 
 type float64
 declare ocaml    target_rep type float64 = `double`
 declare coq      target_rep type float64 = `Q` (* ???: better type for this in Coq? *)
+declare isabelle target_rep type float64 = `???` (* ???: better type for this in Isa? *)
 
 type float32
 declare ocaml    target_rep type float32 = `float`
 declare coq      target_rep type float32 = `Q` (* ???: better type for this in Coq? *)
+declare isabelle target_rep type float32 = `???` (* ???: better type for this in Isa? *)
 
 (* ========================================================================== *)
 (* Translation between number types                                           *)

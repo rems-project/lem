@@ -238,15 +238,40 @@ by (rule someI_ex) auto
 
 definition set_case where
   "set_case s c_empty c_sing c_else =
-    (if (card s = 0) then c_empty else
+    (if (s = {}) then c_empty else
     (if (card s = 1) then c_sing (set_choose s) else
-       c_else s))"
+       c_else))"
 
 lemma set_case_simps [simp] :
   "set_case {} c_empty c_sing c_else = c_empty"
   "set_case {x} c_empty c_sing c_else = c_sing x"
-  "card s > 1 \<Longrightarrow> set_case s c_empty c_sing c_else = c_else s"
-unfolding set_case_def by simp_all
+  "card s > 1 \<Longrightarrow> set_case s c_empty c_sing c_else = c_else"
+  "\<not>(finite s) \<Longrightarrow> set_case s c_empty c_sing c_else = c_else"
+unfolding set_case_def by auto
+
+lemma set_case_simp_insert2 [simp] :
+assumes x12_neq: "x1 \<noteq> x2"
+shows "set_case (insert x1 (insert x2 xs))  c_empty c_sing c_else = c_else"
+proof (cases "finite xs")
+  case False thus ?thesis by (simp)
+next
+  case True note fin_xs = this
+
+  have "card {x1,x2} \<le> card (insert x1 (insert x2 xs))" 
+    by (rule card_mono) (auto simp add: fin_xs)
+  with x12_neq have "1 < card (insert x1 (insert x2 xs))" by simp
+  thus ?thesis by auto
+qed
+
+lemma set_case_code [code] :
+  "set_case (set []) c_empty c_sing c_else = c_empty" (is ?g1)
+  "set_case (set [x]) c_empty c_sing c_else = c_sing x" (is ?g2)
+  "set_case (set (x1 # x2 # xs)) c_empty c_sing c_else = 
+   (if (x1 = x2) then
+     set_case (set (x2 # xs)) c_empty c_sing c_else
+   else
+     c_else)" (is ?g3)
+by auto
 
 definition set_lfp:: "'a set \<Rightarrow> ('a set \<Rightarrow> 'a set) \<Rightarrow> 'a set" where
   "set_lfp s f = lfp (\<lambda>s'. f s' \<union> s)"

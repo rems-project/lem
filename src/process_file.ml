@@ -191,7 +191,7 @@ let output1 env libpath isa_thy out_dir (targ : Target.target) avoid m alldoc_ac
               begin
                 let (o,ext_o) = open_output_with_check dir (module_name_lower ^ "AuxiliaryScript.sml") in
                 hol_header extra_imported_modules o;
-                Printf.fprintf o "val _ = new_theory \"%sExtra\"\n\n" module_name_lower;
+                Printf.fprintf o "val _ = new_theory \"%sAuxiliary\"\n\n" module_name_lower;
                 Printf.fprintf o "%s" (Ulib.Text.to_string r_extra);
                 Printf.fprintf o "val _ = export_theory()\n\n";
                 close_output_with_check ext_o
@@ -282,7 +282,7 @@ let output1 env libpath isa_thy out_dir (targ : Target.target) avoid m alldoc_ac
               begin
                 let (o, ext_o) = open_output_with_check dir (module_name ^ "Auxiliary.thy") in              
                 Printf.fprintf o "header{*%s*}\n\n" (generated_line m.filename);
-                Printf.fprintf o "theory \"%sExtra\" \n\n" module_name;
+                Printf.fprintf o "theory \"%sAuxiliary\" \n\n" module_name;
                 Printf.fprintf o "imports \n \t Main \"~~/src/HOL/Library/Efficient_Nat\"\n";
                 Printf.fprintf o "\t \"%s\"\n" isa_thy;
                 begin 

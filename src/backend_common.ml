@@ -338,7 +338,10 @@ let const_id_to_ident c_id ascii_alternative = snd (const_id_to_ident_aux c_id a
 let constant_application_to_output_simple is_infix_pos arg_f args c_id ascii_alternative given_id_opt = begin
   let (ascii_used, i) = const_id_to_ident_aux c_id ascii_alternative given_id_opt in 
   let const_is_infix = not (ascii_used) && Precedence.is_infix (Precedence.get_prec A.target A.env c_id.descr) in 
-  let is_infix = (is_infix_pos && const_is_infix && (Ident.has_empty_path_prefix i)) in
+(* old check: things might become prefix, but only original infix positions might become infix 
+  let is_infix = (is_infix_pos && const_is_infix && (Ident.has_empty_path_prefix i)) in *)
+
+  let is_infix = (const_is_infix && (Ident.has_empty_path_prefix i) && (List.length args = 2)) in           
   let use_infix_notation = ((not is_infix) && const_is_infix) in
   let name = ident_to_output use_infix_notation i in
   let args_out = List.map (arg_f use_infix_notation) args in

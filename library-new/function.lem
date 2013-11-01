@@ -3,6 +3,7 @@
 (******************************************************************************)
 
 open import Bool Maybe Basic_classes
+declare rename module = lem_function
 
 (* ----------------------- *)
 (* identity function       *)
@@ -12,15 +13,18 @@ val id : forall 'a. 'a -> 'a
 let id x = x
 
 let inline {coq} id x = x
+declare isabelle target_rep function id = `id`
+declare hol      target_rep function id = `I`
 
 (* ----------------------- *)
 (* constant function       *)
 (* ----------------------- *)
 
 val const : forall 'a 'b. 'a -> 'b -> 'a
-let const x y = x
+let inline const x y = x
 
 declare coq target_rep function const = `const`
+declare hol      target_rep function const = `K`
 
 
 (* ----------------------- *)
@@ -31,17 +35,18 @@ val comb : forall 'a 'b 'c. ('b -> 'c) -> ('a -> 'b) -> ('a -> 'c)
 let comb f g = (fun x -> f (g x))
 
 declare coq target_rep function comb = `compose`
+declare isabelle target_rep function comb = infix `o`
 
 
 (* ----------------------- *)
 (* function application    *)
 (* ----------------------- *)
 
-val ($) : forall 'a 'b. ('a -> 'b) -> ('a -> 'b)
-declare ascii_rep function ($) = `apply`
+val ($) [`apply`] : forall 'a 'b. ('a -> 'b) -> ('a -> 'b)
 let apply f = (fun x -> f x)
 
 declare coq target_rep function apply = `apply`
+let inline {isabelle} apply f x = f x
 
 
 (* ----------------------- *)
@@ -52,3 +57,4 @@ val flip : forall 'a 'b 'c. ('a -> 'b -> 'c) -> ('b -> 'a -> 'c)
 let flip f = (fun x y -> f y x)
 
 declare coq target_rep function flip = `flip`
+let inline {isabelle} flip f x y = f y x

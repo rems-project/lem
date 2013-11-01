@@ -190,7 +190,7 @@ rule token skips = parse
 
 
   | "(*"                           
-    { token (Ast.Com(Ast.Comment(comment lexbuf))::skips) lexbuf }
+    { token (Ast.Com(Ast.Comment(comment (Lexing.lexeme_start_p lexbuf) lexbuf))::skips) lexbuf }
 
   | startident ident* as i              { if M.mem i kw_table then
                                             (M.find i kw_table) (Some(skips))
@@ -221,15 +221,15 @@ rule token skips = parse
   | _  as c                             { raise (LexError(c, Lexing.lexeme_start_p lexbuf)) }
 
 
-and comment = parse
-  | (com_body "("* as i) "(*"           { let c1 = comment lexbuf in
-                                          let c2 = comment lexbuf in
+and comment pos = parse
+  | (com_body "("* as i) "(*"           { let c1 = comment pos lexbuf in
+                                          let c2 = comment pos lexbuf in
                                             Ast.Chars(Ulib.Text.of_latin1 i) :: Ast.Comment(c1) :: c2}
   | (com_body as i) "*)"                { [Ast.Chars(Ulib.Text.of_latin1 i)] }
   | com_body "("* "\n" as i             { Lexing.new_line lexbuf; 
-                                          (Ast.Chars(Ulib.Text.of_latin1 i) :: comment lexbuf) }
+                                          (Ast.Chars(Ulib.Text.of_latin1 i) :: comment pos lexbuf) }
   | _  as c                             { raise (LexError(c, Lexing.lexeme_start_p lexbuf)) }
-  | eof                                 { raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax (Lexing.lexeme_start_p lexbuf,
+  | eof                                 { raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax (pos,
                                             "Comment not terminated"))) }
 
 and string pos b = parse

@@ -706,13 +706,11 @@ let make_id (mp: Name.t list option) (n : Name.t) inst (c:const_descr_ref) : (co
 
 let constr_matrix_compile_fun (targ : Target.target) (simp_input: bool) (env : env) (gen : var_name_generator) (m_ty : Types.t) l_org : matrix_compile_fun = fun pL ->
   let module C = Exps_in_context(struct let env_opt = Some env let avoid = None end) in
-  let module Constraint = Constraint(struct let d = env.t_env let i = env.i_env end) in
 
   let ((p : pat), p_id) = matrix_compile_fun_get (Util.option_first (fun p -> Util.option_map (fun (id, _) -> (p, id)) (dest_const_pat p)) pL) in
   let _ = matrix_compile_fun_check (List.for_all (fun p -> (is_const_pat p || is_wild_pat p)) pL) in
   let loc = Ast.Trans (true, "constr_matrix_compile_fun", Some l_org) in
   let p_ty = annot_to_typ p in  
-  let module_path_opt : Name.t list option = match p_id.id_path with Id_none _ -> None | Id_some i -> Some (fst (Ident.to_name_list i)) in
 
   (* get the family of constructors to match against *)
   let cfam = begin 
@@ -722,19 +720,19 @@ let constr_matrix_compile_fun (targ : Target.target) (simp_input: bool) (env : e
     matrix_compile_fun_get (Util.option_first (fun cfam -> if cfam_ok cfam then Some cfam else None) cfam_canditates)
   end in
 
+  (* instantiate the family for the matrix type *)
+  let (constr_ids, top_fun_opt) = Util.option_get_exn Pat_Matrix_Compile_Fun_Failed (constr_family_to_id loc env p_ty cfam) in
 
   (* OK, we have the family now, now let's get the instantiation and the right arguments *)
   let all_args = begin
-    let build_args (c : const_descr_ref) =
-      let cd = c_env_lookup loc env.c_env c in   
-      let inst = List.map (fun v -> match v with | Ty _ -> Constraint.new_type () | Nv _ -> {t = Tne(Constraint.new_nexp ())}) cd.const_tparams in
-      let subst = Types.TNfmap.from_list2 cd.const_tparams inst in
+    let build_args (c_id : const_descr_ref id) =
+      let cd = c_env_lookup loc env.c_env c_id.descr in   
+      let subst = Types.TNfmap.from_list2 cd.const_tparams c_id.instantiation in
       let c_type = Types.type_subst subst cd.const_type in
       let (arg_tyL, _) = Types.strip_fn_type None c_type in
       let resL = List.map (fun ty -> (ty, gen None ty, matrix_compile_mk_pwild ty)) arg_tyL in
-      let c_id =  make_id module_path_opt (Path.get_name cd.const_binding) inst c in
       (c_id, resL)
-    in List.map build_args cfam.Types.constr_list
+    in List.map build_args constr_ids
   end in
 
   (* Build top-fun *)
@@ -753,26 +751,22 @@ let constr_matrix_compile_fun (targ : Target.target) (simp_input: bool) (env : e
           let vs = nfmap_domain (C.exp_to_free ee) in
           let build_arg (ty, n, _) = (let (_, p) = matrix_compile_mk_pvar_pwild vs n ty in p) in
           let arg_pL = List.map build_arg argL in
-          let full_pat = C.mk_pconst loc c arg_pL None in
-          let _ = Constraint.equate_types loc "top_fun_default" full_pat.typ p_ty in
-          let _ = Constraint.equate_types loc "top_fun_default" (exp_to_typ ee) m_ty in
+          let full_pat = C.mk_pconst loc c arg_pL (Some p_ty) in
           (full_pat, ee)
         end in
 
         let pl = List.map2 build_row all_args eL in
         let pl' = match ed_opt with None -> pl | Some ee ->(pl @ [(matrix_compile_mk_pwild p_ty, ee)]) in
-        let _ = Constraint.equate_types loc "top_fun_default" (exp_to_typ i) p_ty in
         mk_case_exp true loc i pl' m_ty
      in
 
-     let top_fun_special f i eL ed_opt = begin
+     let top_fun_special f_id i eL ed_opt = begin
         let build_exp (c, argL) ee = 
         begin
           let vs = nfmap_domain (C.exp_to_free ee) in
           let build_arg (ty, n, _) = (let (_, p) = matrix_compile_mk_pvar_pwild vs n ty in p) in
           let arg_pL = List.map build_arg argL in
           let fun_ee = if (Util.list_null arg_pL) then ee else (C.mk_fun loc None arg_pL None ee None) in
-          let _ = Constraint.equate_types loc "top_fun_special" (exp_to_typ ee) m_ty in
           fun_ee
         end in
 
@@ -780,19 +774,14 @@ let constr_matrix_compile_fun (targ : Target.target) (simp_input: bool) (env : e
         let pl' = match ed_opt with None -> pl | Some ee ->(pl @ [ee]) in
 
         let f_exp = begin
-          let fd = c_env_lookup loc env.c_env f in
-          let inst = List.map (fun v -> match v with | Ty _ -> Constraint.new_type () | Nv _ -> {t = Tne(Constraint.new_nexp ())}) fd.const_tparams in
-          let f_ty = Types.type_subst (Types.TNfmap.from_list2 fd.const_tparams inst) fd.const_type in
-          let f_id =   { id_path = Id_none None; id_locn = loc; descr = f; instantiation = inst } in
+          let fd = c_env_lookup loc env.c_env f_id.descr in
+          let f_ty = Types.type_subst (Types.TNfmap.from_list2 fd.const_tparams f_id.instantiation) fd.const_type in
           C.mk_const loc f_id (Some f_ty)
         end in
         let mk_app_exp e1 e2 = begin
            let b_ty = match Types.dest_fn_type (Some env.t_env) (exp_to_typ e1) with
              | None -> raise (Reporting_basic.err_type loc "non-function in application")
-             | Some (arg_ty, b_ty) -> begin
-                  Constraint.equate_types loc "top_fun_special - mk_app_exp" (exp_to_typ e2) arg_ty;
-                  b_ty
-               end                 
+             | Some (arg_ty, b_ty) -> b_ty
            in
            C.mk_app loc e1 e2 (Some b_ty)
         end in
@@ -806,18 +795,14 @@ let constr_matrix_compile_fun (targ : Target.target) (simp_input: bool) (env : e
 
      in fun i eL -> begin
         let (eL, ed_opt) = dest_eL eL in
-        match cfam.Types.constr_case_fun with
+        match top_fun_opt with
           | None -> top_fun_default i eL ed_opt
-          | Some f -> top_fun_special f i eL ed_opt
+          | Some f_fun -> top_fun_special (f_fun m_ty) i eL ed_opt
      end
   end in
   
 
-  let restr_pat (id, _) pL = begin
-      let res = C.mk_pconst loc id (List.map mk_opt_paren_pat pL) None in
-      let _ = Constraint.equate_types loc "restr_pat" res.typ p_ty in
-      res
-  end in
+  let restr_pat (id, _) pL = C.mk_pconst loc id (List.map mk_opt_paren_pat pL) (Some p_ty) in
   let restr_pat_else _ = matrix_compile_mk_pwild p_ty in
 
   let case_fun (id, argL) p ee = match p.term with
