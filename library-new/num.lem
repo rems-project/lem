@@ -110,7 +110,7 @@ end
 
 declare hol      target_rep type nat = `num` 
 declare isabelle target_rep type nat = `nat` 
-declare coq      target_rep type nat = `nat` 
+declare coq      target_rep type nat = `nat`  
 declare ocaml    target_rep type nat = `int` 
 
 
@@ -138,7 +138,7 @@ declare isabelle target_rep type integer = `int`
 declare hol      target_rep type integer = `int`
 declare coq      target_rep type integer = `Z`
 
-(*
+
 (* ----------------------- *)
 (* bint                    *)
 (* ----------------------- *)

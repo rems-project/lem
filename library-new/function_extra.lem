@@ -1,4 +1,4 @@
-open import Maybe Bool
+open import Maybe Bool Basic_classes
 
 (* ----------------------- *)
 (* getting a unique value  *)

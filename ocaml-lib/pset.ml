@@ -340,7 +340,11 @@ let elements s = elements s.s
 
 let min_elt s = min_elt s.s
 
+let min_elt_opt s = try Some (min_elt s) with Not_found -> None
+
 let max_elt s = max_elt s.s
+
+let max_elt_opt s = try Some (max_elt s) with Not_found -> None
 
 let choose s = choose s.s
 
