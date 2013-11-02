@@ -1214,16 +1214,18 @@ begin
   e''
 end
 
-exception Constr_family_to_id_exn;;
-let constr_family_to_id l env (inst_type : t) (cf : constr_family_descr) : ((const_descr_ref id) list * (t -> (const_descr_ref id)) option) option =
-try
+exception Constr_family_to_id_exn of string;;
+let constr_family_to_id_aux l env (inst_type : t) (cf : constr_family_descr) : ((const_descr_ref id) list * (t -> (const_descr_ref id)) option) =
   (* check the constructors *)
   let check_constr c = begin
     let cd = c_env_lookup l env.c_env c in
+    let c_string = Path.to_string cd.const_binding in
     let (t_args, t_base) = strip_fn_type (Some env.t_env) cd.const_type in
-    let _ = if (TNset.subset (free_vars cd.const_type) (free_vars t_base)) then () else raise Constr_family_to_id_exn in
-    let subst = Util.option_get_exn Constr_family_to_id_exn (match_types t_base inst_type) in
-    let inst = List.map (fun v -> Util.option_get_exn Constr_family_to_id_exn (TNfmap.apply subst v)) cd.const_tparams in
+    let _ = if (TNset.subset (free_vars cd.const_type) (free_vars t_base)) then () else raise 
+       (Constr_family_to_id_exn ("function " ^ c_string ^ " has type-variables not appearing in result type")) in
+    let subst = Util.option_get_exn (Constr_family_to_id_exn ("function "^ c_string ^" has wrong result type")) (match_types t_base inst_type) in
+    let inst = List.map (fun v -> Util.option_get_exn 
+        (Constr_family_to_id_exn ("problem with " ^ c_string)) (TNfmap.apply subst v)) cd.const_tparams in
 
     let c_id = 
       { id_path = Id_none None;
@@ -1240,23 +1242,44 @@ try
     | None -> None
     | Some case_c -> begin
         let case_cd = c_env_lookup l env.c_env case_c in
+        let case_string = Path.to_string case_cd.const_binding in
         let (t_args, ret_ty) = strip_fn_type (Some env.t_env) case_cd.const_type in
         let ret_ty_var = match ret_ty.t with
           | Tvar v -> Ty v
-          | _ -> raise Constr_family_to_id_exn
+          | _ -> raise (Constr_family_to_id_exn ("return type of " ^ case_string ^ " is too special"))
         in
+
+        let constr_args_list = if not cf.constr_exhaustive then (List.map snd constr_resl) @ [[]] else (List.map snd constr_resl) in
+        let _ = if List.length constr_args_list + 1 = List.length t_args then () else 
+           raise (Constr_family_to_id_exn ("number of given constructors and number of arguments of " ^ case_string ^ " don't match")) in
+
         let subst = (* get the substitution for the arguments as well as the return type variable *) begin
            match t_args with
-             | [] -> raise Constr_family_to_id_exn
+             | [] -> raise (Reporting_basic.err_unreachable l "checked length before")
              | ty :: _ -> 
-                 let _ = if (TNset.mem ret_ty_var (free_vars ty)) then raise Constr_family_to_id_exn in
-                 Util.option_get_exn Constr_family_to_id_exn (match_types ty inst_type)
+                 let _ = if (TNset.mem ret_ty_var (free_vars ty)) then raise 
+                 (Constr_family_to_id_exn ("return type of " ^ case_string ^ " is too special")) in
+                 Util.option_get_exn (Constr_family_to_id_exn ("type of first argument of " ^ case_string ^ " does not match pattern type")) 
+                     (match_types ty inst_type)
         end in
-        (* TODO: check all the arguments *)
 
+
+        (* check that the argument type conincite with the types of the constructors *)
+        let exn = Constr_family_to_id_exn ("type of arguments of " ^ case_string ^ " does not coincide with types of constructors") in
+        let _ = List.iter2 (fun targ constr_args ->
+          begin
+            let (targ_args, targ_base) = strip_fn_type (Some env.t_env) targ in
+            let _ = if (Types.check_equal env.t_env targ_base ret_ty) then () else raise exn in
+            let _ = if (List.length targ_args = List.length constr_args) then () else raise exn in
+            let _ = List.iter2 (fun targ_arg constr_arg ->
+               if (Types.check_equal env.t_env (type_subst subst targ_arg) constr_arg) then () else raise exn
+            ) targ_args constr_args in
+            ()
+          end) (List.tl t_args) constr_args_list
+        in
         Some (fun ret_ty_inst -> begin
           let subst' = TNfmap.insert subst (ret_ty_var, ret_ty_inst) in
-          let inst = List.map (fun v -> Util.option_get_exn Constr_family_to_id_exn (TNfmap.apply subst' v)) case_cd.const_tparams in
+          let inst = List.map (fun v -> Util.option_get_exn (Constr_family_to_id_exn "") (TNfmap.apply subst' v)) case_cd.const_tparams in
           { id_path = Id_none None;
             id_locn = l;
             descr = case_c;
@@ -1264,12 +1287,21 @@ try
         end)
     end
   in
-  Some (List.map fst constr_resl, bf)
-with Constr_family_to_id_exn -> None
+  (List.map fst constr_resl, bf)
+
+
+let constr_family_to_id l env (inst_type : t) (cf : constr_family_descr) : ((const_descr_ref id) list * (t -> (const_descr_ref id)) option) option =
+try
+   Some (constr_family_to_id_aux l env inst_type cf)
+with Constr_family_to_id_exn _ -> None
 
 
 let check_constr_family l env inst_type cf =
-  match constr_family_to_id l env inst_type cf with
-    | None -> false
-    | Some _ -> true
+  try
+    let _ = constr_family_to_id_aux l env inst_type cf in
+    ()
+  with Constr_family_to_id_exn s -> 
+     raise (Reporting_basic.err_type l ("invalid constructor family: " ^ s))
+
+
 

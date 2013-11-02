@@ -71,6 +71,15 @@ let remove_duplicates_gen p l =
 
 let remove_duplicates l = remove_duplicates_gen (fun x y -> x = y) l
 
+let get_duplicates_gen p l = 
+  let rec aux acc l = match l with
+      [] -> List.rev acc  
+    | (x :: xs) -> if ((List.exists (p x) xs) && not (List.exists (p x) acc)) then (aux (x::acc) xs) else aux acc xs
+  in
+  aux [] l
+
+let get_duplicates l = get_duplicates_gen (fun x y -> x = y) l
+
 let rec compare_list f l1 l2 = 
   match (l1,l2) with
     | ([],[]) -> 0

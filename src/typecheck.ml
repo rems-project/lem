@@ -493,8 +493,8 @@ let check_constraint_prefix (ctxt : defn_ctxt)
         ((Path.t * Types.tnvar) list * Types.range list) = 
 begin
   let check_class_constraints c env =
-   List.map
-    (fun (Ast.C(id, tnv),sk) ->
+   List.fold_right 
+    (fun (Ast.C(id, tnv),sk) result ->
     let tnv' = ast_tnvar_to_tnvar tnv in
     let (tnv'',l) = tnvar_to_types_tnvar tnv' in
     let (p,_) = lookup_class_p (defn_ctxt_to_env ctxt) id in
@@ -504,9 +504,14 @@ begin
       else
          raise (Reporting_basic.err_type_pp l "unbound type variable" pp_tnvar tnv'')
     end;
-      (((Ident.from_id id, tnv'), sk),
-       (p, tnv'')))
-    c
+    begin
+      if List.mem (p, tnv'') (List.map snd result) then 
+         raise (Reporting_basic.err_type_pp l "duplicate constraint" Types.pp_class_constraint (p,tnv''))
+      else ()
+    end;
+      ((((Ident.from_id id, tnv'), sk),
+       (p, tnv'')) :: result))
+    c []
   in
   let check_range_constraints rs env =
    List.map (fun (Ast.Range_l(r,l),sk) -> 
@@ -525,7 +530,6 @@ begin
     | Ast.C_pre_forall(sk1,tvs,sk2,Ast.Cs_empty) ->
         let tnvars = List.map ast_tnvar_to_tnvar tvs in
         let tnvars_types = List.map tnvar_to_types_tnvar tnvars in
-
           (Some(Cp_forall(sk1, 
                           tnvars, 
                           sk2, 
@@ -543,18 +547,18 @@ begin
                              | Ast.Cs_classes(c,sk3) -> c,None,[],sk3
                              | Ast.Cs_lengths(r,sk3) -> [], None, r, sk3
                              | Ast.Cs_both(c,sk3,r,sk4) -> c, Some sk3, r, sk4 in
-        let constraints = 
+        let (constraints_tast, constraints) = 
           let cs = check_class_constraints c tnvarset in
           let rs = check_range_constraints r tnvarset in
-            (Cs_list(Seplist.from_list (List.map fst cs),sk3,Seplist.from_list (List.map fst rs),sk4), (List.map snd cs, List.map snd rs))
+            (Cs_list(Seplist.from_list (List.map fst cs),sk3,Seplist.from_list (List.map fst rs),sk4), (List.map snd cs, List.map snd rs)) 
         in
           (Some(Cp_forall(sk1, 
                           tnvars, 
                           sk2, 
-                          Some(fst constraints))),
+                          Some(constraints_tast))),
            List.map fst tnvars_types,
            tnvarset,
-           snd constraints)
+           constraints)
 end
 
 
@@ -2133,8 +2137,7 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
               ntyps
           in
           let constr_family = {constr_list = cl; constr_case_fun = None; constr_exhaustive = true; constr_default = true; constr_targets = Target.all_targets} in
-          let _ = if not (check_constr_family l (defn_ctxt_to_env ctxt) { t = Tapp (tparams_t, type_path) } constr_family) then
-            raise (Reporting_basic.err_type l "invalid constructor family") else () in
+          let _ = check_constr_family l (defn_ctxt_to_env ctxt) { t = Tapp (tparams_t, type_path) } constr_family in
           let ctxt = {ctxt with all_tdefs = type_defs_add_constr_family l ctxt.all_tdefs type_path constr_family} in 
             (((tn,l),tnvs, type_path, Te_variant(sk3,vars), regexp), ctxt)
   end;;
@@ -2830,8 +2833,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
             constr_default = false;
             constr_targets = targets_opt_to_set target_opt;
           } in
-          let _ = if not (check_constr_family l (defn_ctxt_to_env ctxt) { t = Tapp (tparams_t, p) } constr_family) then
-            raise (Reporting_basic.err_type l "invalid constructor family") else () in
+          let _ = check_constr_family l (defn_ctxt_to_env ctxt) { t = Tapp (tparams_t, p) } constr_family in
           let ctxt' = {ctxt with all_tdefs = type_defs_add_constr_family l ctxt.all_tdefs p constr_family} in 
           (ctxt', def')	  
       | Ast.Declaration(Ast.Decl_termination_argument_decl (sk1, target_opt, sk2, id, sk3, term_setting)) ->

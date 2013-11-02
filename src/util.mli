@@ -62,6 +62,16 @@ val remove_duplicates : 'a list -> 'a list
     the equality check is performed by [p]. *)
 val remove_duplicates_gen : ('a -> 'a -> bool) -> 'a list -> 'a list
 
+(** [get_duplicates l] returns the elements that appear multiple times
+    in the list l. *)
+val get_duplicates : 'a list -> 'a list
+
+(** [get_duplicates_gen p l] returns the elements that appear multiple times
+    in the list l. It is a generalised version of [get_duplicates] where
+    the equality check is performed by [p]. *)
+val get_duplicates_gen : ('a -> 'a -> bool) -> 'a list -> 'a list
+
+
 (** {2 Option Functions} *)
 
 (** [option_map f None] returns [None], whereas

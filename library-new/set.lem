@@ -329,7 +329,7 @@ let partition P s = (filter P s, filter (fun e -> not (P e)) s)
 (* split                   *)
 (* ----------------------- *)
 
-val split : forall 'a. Ord 'a, Ord 'a => 'a -> set 'a -> set 'a * set 'a
+val split : forall 'a. Ord 'a => 'a -> set 'a -> set 'a * set 'a
 let split p s = (filter ((<) p) s, filter ((>) p) s)
 
 val splitMember : forall 'a. Ord 'a, Eq 'a => 'a -> set 'a -> set 'a * bool * set 'a
