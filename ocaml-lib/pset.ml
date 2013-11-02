@@ -317,6 +317,7 @@ let compare s1 s2 = compare s1.cmp s1.s s2.s
 let equal s1 s2 = equal s1.cmp s1.s s2.s
 
 let subset s1 s2 = subset s1.cmp s1.s s2.s
+let subset_proper s1 s2 = (subset s1 s2) && not (equal s1 s2)
 
 let iter f s = iter f s.s
 
@@ -347,6 +348,11 @@ let max_elt s = max_elt s.s
 let max_elt_opt s = try Some (max_elt s) with Not_found -> None
 
 let choose s = choose s.s
+
+let set_case s c_emp c_sing c_else = match s.s with
+    Empty -> c_emp
+  | Node(Empty, v, Empty, _) -> c_sing v
+  | _ -> c_else
 
 let split x s =
   let (l,present,r) = split s.cmp x s.s in

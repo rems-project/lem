@@ -204,10 +204,10 @@ let set_case s c_empty c_sing c_else =
 *)
 
 
-declare hol      target_rep function set_case = `TODO_set_cases`
+declare hol      target_rep function set_case = `TODO_set_case`
 declare isabelle target_rep function set_case = `set_case`
-declare coq      target_rep function set_case = `TODO_set_cases`
-declare ocaml    target_rep function set_case = `TODO_set_cases`
+declare coq      target_rep function set_case = `TODO_set_case`
+declare ocaml    target_rep function set_case = `Pset.set_case`
 
 declare pattern_match inexhaustive set 'a = [ empty; singleton ] set_case
 
@@ -352,12 +352,13 @@ let inline {coq} isSubsetOf s1 s2 = isSubsetOfBy (=) s1 s2
 val isProperSubsetOf : forall 'a. Ord 'a, Eq 'a => set 'a -> set 'a -> bool
 let inline isProperSubsetOf s1 s2 = isProperSubsetOfBy (=) s1 s2
 
-declare ocaml    target_rep function isSubsetOf = infix `subset`
+declare ocaml    target_rep function isSubsetOf = `Pset.subset`
 declare hol      target_rep function isSubsetOf = infix `SUBSET`
 declare isabelle target_rep function isSubsetOf = infix `\<subseteq>`
 declare html     target_rep function isSubsetOf = infix `&sube;`
 declare coq      target_rep function isSubsetOfBy eq s1 s2 = `set_subset` eq s1 s2
 
+declare ocaml    target_rep function isProperSubsetOf = `Pset.subset_proper`
 declare hol      target_rep function isProperSubsetOf = infix `PSUBSET`
 declare isabelle target_rep function isProperSubsetOf = infix `\<subset>`
 declare html     target_rep function isProperSubsetOf = infix `&sub;`
@@ -504,10 +505,13 @@ assert fromList_3: (fromList ([] : list nat) = {})
 val sigma : forall 'a 'b. Ord 'a, Ord 'b, Eq 'a, Eq 'b => set 'a -> ('a -> set 'b) -> set ('a * 'b)
 let ~{ocaml} sigma sa sb = { (a, b) | a IN sa && b IN sb a }
 
-declare ocaml    target_rep function sigma = `Pset.sigma`
+val sigmaBy : forall 'a 'b. (('a * 'b) -> ('a * 'b) -> ordering) -> set 'a -> ('a -> set 'b) -> set ('a * 'b)
+declare ocaml    target_rep function sigmaBy = `Pset.sigma`
+let inline {ocaml} sigma = sigmaBy compare
 declare isabelle target_rep function sigma = `Sigma`
 
-assert Sigma_1: (sigma {(2:nat);3} (fun n -> {n*2; n * 3}) = {(2,4); (2,6); (3,6); (3,9)})
+(* TODO: fix dictionary inlining *)
+assert ~{ocaml} Sigma_1: (sigma {(2:nat);3} (fun n -> {n*2; n * 3}) = {(2,4); (2,6); (3,6); (3,9)})
 lemma Sigma_2: (forall sa sb a b. ((a, b) IN sigma sa sb) <-> ((a IN sa) && (b IN sb a)))
 
 
@@ -520,8 +524,10 @@ let cross s1 s2 = { (e1, e2) | forall (e1 IN s1) (e2 IN s2) | true }
 
 declare isabelle target_rep function cross = infix `\<times>`
 declare hol      target_rep function cross = `CROSS`
+declare ocaml    target_rep function cross = `Pset.cross`
 
-assert cross_1 : (cross {(2:nat);3} {true; false} = {(2,true);(3,true); (2,false); (3,false)})
+(* TODO fix *)
+assert ~{ocaml} cross_1 : (cross {(2:nat);3} {true; false} = {(2,true);(3,true); (2,false); (3,false)})
 
 
 (* ------------------------ *)

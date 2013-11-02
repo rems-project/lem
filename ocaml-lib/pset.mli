@@ -69,6 +69,10 @@ val equal: 'a set -> 'a set -> bool
 
 val subset: 'a set -> 'a set -> bool
 (** [subset s1 s2] tests whether the set [s1] is a subset of
+  the set [s2]. This includes the case where [s1] and [s2] are equal. *)
+
+val subset_proper : 'a set -> 'a set -> bool
+(** [subset_proper s1 s2] tests whether the set [s1] is a proper subset of
   the set [s2]. *)
 
 val iter: ('a -> unit) -> 'a set -> unit
@@ -128,6 +132,9 @@ val choose: 'a set -> 'a
 (** Return one element of the given set, or raise [Not_found] if
   the set is empty. Which element is chosen is unspecified,
   but equal elements will be chosen for equal sets. *)
+
+val set_case: 'a set -> 'b -> ('a -> 'b) -> 'b -> 'b
+(** case-split function for sets *)
 
 val split: 'a -> 'a set -> 'a set * bool * 'a set
     (** [split x s] returns a triple [(l, present, r)], where
