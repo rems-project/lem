@@ -103,6 +103,10 @@ type warning =
     (** [Warn_overriden_instance (l, ty, i)] warns that the instance [i] that has already been defined is
         overriden for type [ty] at location [l]. *)
 
+(** if the flag [warnings_active] is set, warning messages are printed, otherwise
+    they are thrown away. *)
+val warnings_active : bool ref
+
 (** [report_warning env w] reports a warning. Depending on the settings for the warning type this might mean,
     do nothing, print a warning message or print an error message and exit Lem *)
 val report_warning : Typed_ast.env -> warning -> unit

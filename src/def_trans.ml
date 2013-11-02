@@ -327,7 +327,7 @@ let class_to_record mod_path env ((d,s),l,lenv) =
 
 (* turns an instance declaration into a module containing all the field declarations
    and a dictionary at the end *)
-let instance_to_dict targ mod_path (env : env) ((d,s),l,lenv) =
+let instance_to_dict create_inline targ mod_path (env : env) ((d,s),l,lenv) =
   let l_unk n = Ast.Trans(false, "instance_to_module" ^ string_of_int n , Some l) in
   match d with
       | Instance(Ast.Inst_default sk1, i_ref, (prefix, sk2, id, class_path, t, sk3), vdefs, sk4) ->
@@ -362,8 +362,11 @@ let instance_to_dict targ mod_path (env : env) ((d,s),l,lenv) =
             let dict_type = class_descr_get_dict_type cd t.typ in
             let dict_d = c_env_lookup (l_unk 7) env.c_env id.inst_dict in
             let dict_body = C.mk_record (l_unk 5) None (Seplist.from_list fields) None (Some dict_type) in
-            let dict_d' = {dict_d with target_rep = Target.Targetmap.insert_target dict_d.target_rep (targ, CR_inline (l, true, [], dict_body))} in
-            let env' = {env with c_env = c_env_update env.c_env id.inst_dict dict_d'} in
+
+            let env' = if not create_inline then env else begin
+               let dict_d' = {dict_d with target_rep = Target.Targetmap.insert_target dict_d.target_rep (targ, CR_inline (l, true, [], dict_body))} in
+              {env with c_env = c_env_update env.c_env id.inst_dict dict_d'} 
+            end in
             let dict_name =
               { term = Name.add_lskip (Path.get_name dict_d.const_binding);
                 typ = dict_type;
@@ -372,12 +375,12 @@ let instance_to_dict targ mod_path (env : env) ((d,s),l,lenv) =
               }
             in
 
-(*            
-            let dict' = ((dict_name, id.inst_dict, [], None, space, dict_body):funcl_aux) in
-            let dict = Fun_def(sk1,FR_non_rec,None,Seplist.cons_entry dict' Seplist.empty) in
-*)
-            let dict = Let_inline (sk1, None, None, dict_name, id.inst_dict, [], space, dict_body) in
-
+            let dict = if not create_inline then begin            
+                  let dict' = ((dict_name, id.inst_dict, [], None, space, dict_body):funcl_aux) in
+                  Fun_def(sk1,FR_non_rec,None,Seplist.cons_entry dict' Seplist.empty) 
+                end else 
+                  Let_inline (sk1, None, None, dict_name, id.inst_dict, [], space, dict_body) 
+            in
             (dict, env')
           end in
 
@@ -425,28 +428,36 @@ let class_constraint_to_parameter targ : def_macro = fun mod_path env ((d,s),l,l
             (* update the constant description *)
             let (clauses', c_env') = Seplist.map_acc_left (fun ((n, c, ps, topt, sk2, e):funcl_aux) c_env -> 
               begin
-              let c_d = c_env_lookup l_unk c_env c  in
-	      let (c', t', c_env') = 
-                match c_d.const_no_class with
-		  | Some c' -> 
-                      let c_d' = c_env_lookup l_unk c_env c' in
-                      (c', c_d'.const_type, c_env)
-		  | None -> 
-                    begin            
-                      let t' = Types.multi_fun (List.map (fun x -> x.typ) new_pats) c_d.const_type in
+                let c_d = c_env_lookup l_unk c_env c  in
+  	        let (c', t', c_env') = 
+                  match c_d.const_no_class with
+		    | Some c' -> 
+                        let c_d' = c_env_lookup l_unk c_env c' in
+                        (c', c_d'.const_type, c_env)
+  		    | None -> 
+                      begin            
+                        let t' = Types.multi_fun (List.map (fun x -> x.typ) new_pats) c_d.const_type in
 
-                      let c_d' = ({ c_d with const_class = []; const_type = t'; target_rep = Targetmap.empty }) in
-                      let (c_env', c') = c_env_store_raw c_env c_d' in 
+                        (* for debug 
+                        let new_bind = begin
+                           let (pn, n) = Path.to_name_list c_d.const_binding in
+                           let n' = Name.from_string ((Name.to_string n) ^ "_no_consts") in
+                           Path.mk_path pn n'
+                        end in
+                        *)
+                        let c_d' = ({ c_d with const_class = []; const_type = t'; target_rep = Targetmap.empty }) in  
+                        let (c_env', c') = c_env_store_raw c_env c_d' in 
+  
+                        let c_d_new = { c_d with const_no_class = Some c' } in
+                        let c_env' = c_env_update c_env' c c_d_new in 
 
-                      let c_d_new = { c_d with const_no_class = Some c' } in
-                      let c_env' = c_env_update c_env' c c_d_new in 
-
-                      (c',t', c_env')
-                   end
-              in
-              let n'' = { n with typ = t' } in
-              let (clause':funcl_aux) = (n'',c',new_pats@ps,topt,sk2,e) in
-              (clause', c_env') end)
+                        (c',t', c_env')
+                      end
+                in
+                let n'' = { n with typ = t' } in
+                let (clause':funcl_aux) = (n'',c',new_pats@ps,topt,sk2,e) in
+                (clause', c_env') 
+              end)
             env.c_env clauses in
 
             Some({ env with c_env = c_env'},

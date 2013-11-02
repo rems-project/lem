@@ -126,7 +126,7 @@ let html_postamble =
 "  </body>\n" ^
 "</html>\n"
 
-let output1 env libpath isa_thy out_dir (targ : Target.target) avoid m alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum =
+let output1 env libpath isa_thy (out_dir : string option) (targ : Target.target) avoid m alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum =
   let module C = struct
     let avoid = avoid
     let env = env
@@ -140,8 +140,7 @@ let output1 env libpath isa_thy out_dir (targ : Target.target) avoid m alldoc_ac
   let (mod_path, mod_name) = Path.to_name_list m.module_path in
   let module_name = Name.to_string (Backend_common.get_module_name env targ mod_path mod_name) in
   let module_name_lower = String.uncapitalize module_name in
-(*  let dir = Filename.dirname m.filename in *)
-  let dir = out_dir in
+  let dir = Util.option_default (Filename.dirname m.filename) out_dir in
     match targ with
       | Target.Target_ident ->
           let r = B.ident_defs m.typed_ast in
@@ -339,9 +338,10 @@ let output1 env libpath isa_thy out_dir (targ : Target.target) avoid m alldoc_ac
               | Trans.Trans_error(l,msg) ->
                   raise (Reporting_basic.Fatal_error (Reporting_basic.Err_trans_header (l, msg)))
 
-let output libpath isa_thy out_dir (targ : Target.target) consts env mods alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum =
+let output libpath isa_thy (out_dir : string option) (targ : Target.target) consts env mods alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum =
   List.iter
     (fun m ->
+       if m.generate_output then
        output1 env libpath isa_thy out_dir targ consts m alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum)
     mods
 

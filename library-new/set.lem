@@ -267,7 +267,7 @@ assert set_patterns_6: (
 assert set_patterns_7: (
   match ({3;4;5} : set nat) with
     | empty -> 0
-    | singleton x -> 1
+    | singleton _ -> 1
     | s -> size s
   end
 ) = 3
@@ -275,7 +275,7 @@ assert set_patterns_7: (
 assert set_patterns_8: (
   match (({3;4;5} : set nat), false) with
     | (empty, true) -> 0
-    | (singleton x, _) -> 1
+    | (singleton _, _) -> 1
     | (s, true) -> size s
     | _ -> 5
   end
@@ -503,15 +503,15 @@ assert fromList_3: (fromList ([] : list nat) = {})
 (* ------------------------ *)
 
 val sigma : forall 'a 'b. Ord 'a, Ord 'b, Eq 'a, Eq 'b => set 'a -> ('a -> set 'b) -> set ('a * 'b)
-let ~{ocaml} sigma sa sb = { (a, b) | a IN sa && b IN sb a }
-
 val sigmaBy : forall 'a 'b. (('a * 'b) -> ('a * 'b) -> ordering) -> set 'a -> ('a -> set 'b) -> set ('a * 'b)
+
 declare ocaml    target_rep function sigmaBy = `Pset.sigma`
+
+let sigma sa sb = { (a, b) | a IN sa && b IN sb a }
 let inline {ocaml} sigma = sigmaBy compare
 declare isabelle target_rep function sigma = `Sigma`
 
-(* TODO: fix dictionary inlining *)
-assert ~{ocaml} Sigma_1: (sigma {(2:nat);3} (fun n -> {n*2; n * 3}) = {(2,4); (2,6); (3,6); (3,9)})
+assert Sigma_1: (sigma {(2:nat);3} (fun n -> {n*2; n * 3}) = {(2,4); (2,6); (3,6); (3,9)})
 lemma Sigma_2: (forall sa sb a b. ((a, b) IN sigma sa sb) <-> ((a IN sa) && (b IN sb a)))
 
 
@@ -520,14 +520,17 @@ lemma Sigma_2: (forall sa sb a b. ((a, b) IN sigma sa sb) <-> ((a IN sa) && (b I
 (* ------------------------ *)
 
 val cross : forall 'a 'b. Ord 'a, Ord 'b => set 'a -> set 'b -> set ('a * 'b)
+val crossBy : forall 'a 'b. (('a * 'b) -> ('a * 'b) -> ordering) -> set 'a -> set 'b -> set ('a * 'b)
+
+declare ocaml    target_rep function crossBy = `Pset.cross`
+
 let cross s1 s2 = { (e1, e2) | forall (e1 IN s1) (e2 IN s2) | true }
 
 declare isabelle target_rep function cross = infix `\<times>`
 declare hol      target_rep function cross = `CROSS`
-declare ocaml    target_rep function cross = `Pset.cross`
+let inline {ocaml} cross = crossBy compare
 
-(* TODO fix *)
-assert ~{ocaml} cross_1 : (cross {(2:nat);3} {true; false} = {(2,true);(3,true); (2,false); (3,false)})
+assert cross_1 : (cross {(2:nat);3} {true; false} = {(2,true);(3,true); (2,false); (3,false)})
 
 
 (* ------------------------ *)
@@ -536,7 +539,7 @@ assert ~{ocaml} cross_1 : (cross {(2:nat);3} {true; false} = {(2,true);(3,true);
 
 val finite : forall 'a. Ord 'a => set 'a -> bool
 
-let inline {ocaml;coq} finite s = true
+let inline {ocaml;coq} finite _s = true
 declare hol      target_rep function finite = `FINITE`
 declare isabelle target_rep function finite = `finite`
 

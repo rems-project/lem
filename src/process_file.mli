@@ -52,9 +52,9 @@ val parse_file : string -> Ast.defs * Ast.lex_skips
 type instances = Types.instance list Types.Pfmap.t
 
 val output :   
-  string ->                           (* The path to the library *)
+  string ->                           (* The path to the main library *)
   string ->                           (* Isabelle Theory to be included *)
-  string ->                           (* output directory *)
+  string option ->                    (* output directory option *)
   target ->                           (* Backend name *) 
   Typed_ast.var_avoid_f ->
   Typed_ast.env ->                    (* The full environment built after all typechecking, and transforming *)

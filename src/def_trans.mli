@@ -81,8 +81,9 @@ val process_defs : Name.t list -> def_macro -> Name.t -> env -> def list -> (env
     dictionary passing. *)
 val class_to_record : def_macro
 
-(** [instance_to_dict] turns instance declarations into definition of a dictionary record *)
-val instance_to_dict : Target.target -> def_macro
+(** [instance_to_dict do_inline targ] turns instance declarations into a definition of a dictionary record.
+    If [do_inline] is set, this definition will be inlined (for this the target argument is needed). *)
+val instance_to_dict : bool -> Target.target -> def_macro
 
 val class_constraint_to_parameter : Target.target -> def_macro
 

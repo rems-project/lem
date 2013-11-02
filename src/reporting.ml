@@ -319,8 +319,10 @@ let warn_opts =
   let all = ("-wl", warn_arg_fun_full warn_refL, prefix_doc warn_refL "all warnings")
   in (all :: sopts)
 
+let warnings_active = ref true
 
 let report_warning_aux env_opt w =
+  if not !warnings_active then () else
   let level = warn_level w in  
   match level with
       Level_Ignore       -> ()

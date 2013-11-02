@@ -789,7 +789,8 @@ type checked_module =
       imported_modules : imported_modules list;
       predecessor_modules : string list;
       untyped_ast : Ast.defs * Ast.lex_skips;
-      typed_ast : def list * Ast.lex_skips; }
+      typed_ast : def list * Ast.lex_skips;
+      generate_output : bool }
 
 type var_avoid_f = bool * (Name.t -> bool) * (Ulib.Text.t -> (Name.t -> bool) -> Name.t)
 

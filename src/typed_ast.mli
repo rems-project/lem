@@ -568,7 +568,8 @@ type checked_module =
       imported_modules : imported_modules list;
       predecessor_modules : string list;
       untyped_ast : Ast.defs * Ast.lex_skips;
-      typed_ast : def list * Ast.lex_skips; }
+      typed_ast : def list * Ast.lex_skips; 
+      generate_output : bool}
 
 (** [var_avoid_f] is a type of a tuple [(avoid_ty_vars, name_ok, do_rename)]. 
     The flag [avoid_ty_vars] states, whether clashes with type variables should be avoided.

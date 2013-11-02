@@ -227,7 +227,7 @@ declare isabelle target_rep function natFromNumeral n = (``n : nat)
 declare coq      target_rep function natFromNumeral = `id`
 
 instance (Numeral nat)
-  let fromNumeral = natFromNumeral
+  let fromNumeral n = natFromNumeral n
 end
 
 val natEq : nat -> nat -> bool
@@ -387,7 +387,7 @@ declare isabelle target_rep function naturalFromNumeral n = (``n : natural)
 declare coq      target_rep function naturalFromNumeral = `id`
 
 instance (Numeral natural)
-  let fromNumeral = naturalFromNumeral
+  let fromNumeral n = naturalFromNumeral n
 end
 
 val naturalEq : natural -> natural -> bool
@@ -551,7 +551,7 @@ declare hol      target_rep function integerFromNumeral n = (``n : integer)
 declare coq      target_rep function integerFromNumeral n = (`Zpos` (`P_of_succ_nat` n))
 
 instance (Numeral integer)
-  let fromNumeral = integerFromNumeral
+  let fromNumeral n = integerFromNumeral n
 end
 
 val integerEq : integer -> integer -> bool

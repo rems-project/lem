@@ -59,7 +59,7 @@ let isa_theory = ref None
 let out_dir = ref None
 let opt_file_arguments = ref ([]:string list)
 
-let opt_library = ref (
+let default_library = 
    try 
      let lp = Sys.getenv("LEMLIB") in
      if Filename.is_relative lp 
@@ -67,7 +67,8 @@ let opt_library = ref (
      else lp
    with 
      | Not_found -> Build_directory.d^"/library-new"
-)
+
+let lib_paths_ref = ref ([] : string list)
 
 let options = Arg.align ([
   ( "-i", 
@@ -101,8 +102,8 @@ let options = Arg.align ([
     Arg.Unit (fun b -> opt_print_env := true),
     " print the environment signature on stdout");
   ( "-lib", 
-    Arg.String (fun l -> opt_library := l),
-    " library path (default "^(!opt_library)^"); set LEMLIB environment variable to change default");
+    Arg.String (fun l -> lib_paths_ref := l :: (!lib_paths_ref)),
+    " add path to library path; if no lib is given the default '"^(default_library)^")' is used. Set LEMLIB environment variable to change this default.");
   ( "-isa_theory", 
     Arg.String (fun l -> isa_theory := Some l),
     " Isabelle Lem theory");
@@ -165,13 +166,14 @@ let check_modules env modules =
     let _ = List.map (fun d -> List.map (fun c -> c d) (def_checks env)) defs in
     ()
   end in
-  let check_module m = (let (defs, _) = m.Typed_ast.typed_ast in check_defs env defs) in
+  let check_module m = (if m.Typed_ast.generate_output then 
+    (let (defs, _) = m.Typed_ast.typed_ast in check_defs env defs)) in
   let _ = List.map check_module modules in
   ()
 
 
 (* Do the transformations for a given target *)
-let per_target libpath isa_thy out_dir modules env alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum targ =
+let per_target libpath isa_thy (out_dir : string option) modules env alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum targ =
   let consts = Initial_env.read_target_constants libpath targ in
 
   let trans = Target_trans.get_transformation targ in
@@ -179,12 +181,15 @@ let per_target libpath isa_thy out_dir modules env alldoc_accum alldoc_inc_accum
     let (env',transformed_m) = 
       List.fold_left 
         (fun (env,new_mods) old_mod -> 
+           let _ = Reporting.warnings_active := old_mod.Typed_ast.generate_output in
            let (env,m) = trans env old_mod in
              (env,m::new_mods))
         (env,[])
         modules
     in     
  
+    let _ = Reporting.warnings_active := true in
+
     (* perform renamings *)
     let used_entities = Typed_ast_syntax.get_checked_modules_entities targ false transformed_m in
     let env'' = Rename_top_level.rename_defs_target targ used_entities consts env' in
@@ -201,17 +206,18 @@ let per_target libpath isa_thy out_dir modules env alldoc_accum alldoc_inc_accum
 
 let main () =
   let _ = if !opt_print_version then print_string ("Lem " ^ Version.v ^ "\n") in
-  let lib_path = 
-    match !opt_library with
-      | lp -> 
+  let lib_path = begin
+    let l = List.rev !lib_paths_ref in
+    let l' = default_library :: l in
+    List.map (fun lp ->
           if Filename.is_relative lp then
             Filename.concat (Sys.getcwd ()) lp
           else
-            lp
-  in
+            lp) l'
+  end in
   let isa_thy = 
     match !isa_theory with
-      | None -> Filename.concat lib_path "../isabelle-lib/Lem"
+      | None -> Filename.concat default_library "../isabelle-lib/Lem"
       | Some thy -> thy
   in
   let _ = 
@@ -252,16 +258,17 @@ let main () =
 
   (* check whether all the files are in one directory *)
   let out_dir_compute = match !opt_file_arguments with
-    | [] -> Filename.current_dir_name
+    | [] -> Some (Filename.current_dir_name)
     | f :: fs -> begin
         let d = Filename.dirname f in
-        let _ = if (List.exists (fun f -> not (Filename.dirname f = d)) fs) then
-                  raise (Reporting_basic.Fatal_error (Reporting_basic.Err_general (false, Ast.Unknown, "all files given as arguments to Lem need to be in the same directory")));
-        in d
+        if (List.exists (fun f -> not (Filename.dirname f = d)) fs) 
+          then None else Some d
       end
   in
-  let out_dir = Util.option_default out_dir_compute (!out_dir) in
-
+  let out_dir = match (!out_dir, out_dir_compute) with
+    | (Some _, None) -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_general (false, Ast.Unknown, "in order to use '-outdir' all files given as arguments to Lem need to be in the same directory")));
+    | (x, _) -> x
+  in
 
   (* We don't want to add the files in !lib to the resulting module ASTs,
      because we don't want to put them throught the back end. So, they get an argument false, while all others get true. *)
@@ -270,9 +277,8 @@ let main () =
        List.map (fun x -> (x, true)) !opt_file_arguments)
   in
 
-
   (* Parse all of the .lem sources and also parse depencies *)
-  let processed_files = Module_dependencies.process_files [lib_path] files_to_process in
+  let processed_files = Module_dependencies.process_files lib_path files_to_process in
   
   let backend_set = 
     List.fold_right 
@@ -298,13 +304,10 @@ let main () =
              Typed_ast.imported_modules = Backend_common.get_imported_target_modules tast;
              Typed_ast.predecessor_modules = previously_processed_modules;
              Typed_ast.untyped_ast = ast;
-             Typed_ast.typed_ast = tast; }
+             Typed_ast.typed_ast = tast;
+             Typed_ast.generate_output = add_to_modules }
          in
-           ((if add_to_modules then
-             module_record::mods
-               else
-             mods), 
-            e, mod_name::previously_processed_modules))
+            (module_record::mods, e, mod_name::previously_processed_modules))
       ([],Initial_env.initial_env,[])
       (* We don't want to add the files in !lib to the resulting module ASTs,
        * because we don't want to put them throught the back end *)
@@ -316,7 +319,6 @@ let main () =
   *)
   let _ = check_modules env modules in
 
-
   let _ = if !opt_print_env then
              begin
                Process_file.output_sig Format.std_formatter env
@@ -326,7 +328,7 @@ let main () =
   let alldoc_accum = ref ([] : Ulib.Text.t list) in
   let alldoc_inc_accum = ref ([] : Ulib.Text.t list) in
   let alldoc_inc_usage_accum = ref ([] : Ulib.Text.t list) in
-  let _ = List.fold_left (fun env -> (per_target lib_path isa_thy out_dir (List.rev modules) env alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum))
+  let _ = List.fold_left (fun env -> (per_target default_library isa_thy out_dir (List.rev modules) env alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum))
     env !backends in
   (if List.mem (Target.Target_no_ident Target.Target_tex) !backends then 
      output_alldoc "alldoc" (String.concat " " !opt_file_arguments) alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum)
