@@ -53,10 +53,11 @@ imports
    "~~/src/HOL/Map"
  	 "~~/src/HOL/Library/Efficient_Nat"
  	 "~~/src/HOL/Library/Char_nat"
+ 	 "~~/src/HOL/Library/Permutation"
 
 begin 
 
-subsection{* Index *}
+subsection{* Lists *}
 
 fun index :: " 'a list \<Rightarrow> nat \<Rightarrow> 'a option "  where 
    "index [] n = None"
@@ -228,6 +229,123 @@ lemma delete_first_simps [simp] :
    "\<not>(P x) \<Longrightarrow> delete_first P (x # xs) = Option.map (\<lambda>xs'. x # xs') (delete_first P xs)"
 unfolding delete_first.simps by auto
 
+lemmas delete_first_unroll = delete_first.simps(2)
+
+
+lemma delete_first_eq_none [simp] :
+  "delete_first P l = None \<longleftrightarrow> (\<forall>x \<in> set l. \<not> (P x))"
+by (induct l) (auto simp add: delete_first_unroll)
+
+lemma delete_first_eq_some :
+  "delete_first P l = (Some l') \<longleftrightarrow> (\<exists>l1 x l2. P x \<and> (\<forall>x \<in> set l1. \<not>(P x)) \<and> (l = l1 @ (x # l2)) \<and> (l' = l1 @ l2))"
+  (is "?lhs l l' = (\<exists>l1 x l2. ?rhs_body l1 x l2 l l')")
+proof (induct l arbitrary: l')
+  case Nil thus ?case by simp
+next
+  case (Cons e l l')
+  note ind_hyp = this
+
+  show ?case
+  proof (cases "P e")
+    case True 
+    show ?thesis
+    proof (rule iffI)
+      assume "?lhs (e # l) l'"
+      with `P e` have "l = l'" by simp
+      with `P e` have "?rhs_body [] e l' (e # l) l'" by simp
+      thus "\<exists>l1 x l2. ?rhs_body l1 x l2 (e # l) l'" by blast
+    next
+      assume "\<exists>l1 x l2. ?rhs_body l1 x l2 (e # l) l'"
+      then obtain l1 x l2 where body_ok: "?rhs_body l1 x l2 (e # l) l'" by blast
+
+      from body_ok `P e` have l1_eq[simp]: "l = l'" 
+        by (cases l1) (simp_all)
+      with `P e` show "?lhs (e # l) l'" by simp
+    qed
+  next
+    case False
+    def rhs_pred \<equiv> "\<lambda>l1 x l2 l l'. ?rhs_body l1 x l2 l l'"
+    have rhs_fold: "\<And>l1 x l2 l l'. ?rhs_body l1 x l2 l l' = rhs_pred l1 x l2 l l'"
+       unfolding rhs_pred_def by simp
+
+    have "(\<exists>z l1 x l2. rhs_pred l1 x l2 l z \<and> e # z = l') = (\<exists>l1 x l2. rhs_pred l1 x l2 (e # l) l')"       
+    proof (intro iffI)
+      assume "\<exists>z l1 x l2. rhs_pred l1 x l2 l z \<and> e # z = l'"
+      then obtain z l1 x l2 where "rhs_pred l1 x l2 l z" and l'_eq: "l' = e # z" by auto
+      with `\<not>(P e)` have "rhs_pred (e # l1) x l2 (e # l) l'" 
+        unfolding rhs_pred_def by simp
+      thus "\<exists>l1 x l2. rhs_pred l1 x l2 (e # l) l'" by blast
+    next
+      assume "\<exists>l1 x l2. rhs_pred l1 x l2 (e # l) l'" 
+      then obtain l1 x l2 where "rhs_pred l1 x l2 (e # l) l'" by blast
+      with `\<not> (P e)` obtain l1' where l1_eq[simp]: "l1 = e # l1'"
+        unfolding rhs_pred_def by (cases l1) (auto)
+
+      with `rhs_pred l1 x l2 (e # l) l'`
+      have "rhs_pred l1' x l2 l (l1' @ l2) \<and> e # (l1' @ l2) = l'"
+        unfolding rhs_pred_def by (simp)
+      thus "\<exists>z l1 x l2. rhs_pred l1 x l2 l z \<and> e # z = l'" by blast
+    qed
+    with `\<not> P e` show ?thesis
+      unfolding rhs_fold 
+      by (simp add: ind_hyp[unfolded rhs_fold])
+  qed
+qed
+
+
+lemma perm_eval [code] :
+  "perm [] l \<longleftrightarrow> l = []" (is ?g1)
+  "perm (x # xs) l \<longleftrightarrow> (case delete_first (\<lambda>e. e = x) l of
+       None => False
+     | Some l' => perm xs l')" (is ?g2)
+proof -
+  show ?g1 by auto
+next
+  show ?g2
+  proof (cases "delete_first (\<lambda>e. e = x) l")
+    case None note del_eq = this
+    hence "x \<notin> set l" by auto
+    with perm_set_eq [of "x # xs" l]
+    have "\<not> perm (x # xs) l" by auto
+    thus ?thesis unfolding del_eq by simp
+  next
+    case (Some l') note del_eq = this
+
+    from del_eq[unfolded delete_first_eq_some] 
+    obtain l1 l2 where l_eq: "l = l1 @ [x] @ l2" and l'_eq: "l' = l1 @ l2" by auto
+
+    have "(x # xs <~~> l1 @ x # l2) = (xs <~~> l1 @ l2)"
+    proof -
+      from perm_append_swap [of l1 "[x]"]
+           perm_append2 [of "l1 @ [x]" "x # l1" l2]
+      have "l1 @ x # l2 <~~> x # (l1 @ l2)" by simp
+      hence "x # xs <~~> l1 @ x # l2 \<longleftrightarrow> x # xs <~~> x # (l1 @ l2)" 
+        by (metis perm.trans perm_sym)
+      thus ?thesis by simp
+    qed
+    with del_eq l_eq l'_eq show ?thesis by simp
+  qed
+qed
+
+
+fun sorted_by  :: "('a \<Rightarrow> 'a \<Rightarrow> bool)\<Rightarrow> 'a list \<Rightarrow> bool "  where 
+   "sorted_by cmp [] = True"
+ | "sorted_by cmp [_] = True"
+ | "sorted_by cmp (x1 # x2 # xs) = ((cmp x1 x2) \<and> sorted_by cmp (x2 # xs))" 
+
+lemma sorted_by_lesseq [simp] :
+  "sorted_by ((op \<le>) :: ('a::{linorder}) => 'a => bool) = sorted"
+proof (rule ext)
+  fix l :: "'a list"
+  show "sorted_by (op \<le>) l = sorted l"
+  proof (induct l)
+    case Nil thus ?case by simp
+  next
+    case (Cons x xs)
+    thus ?case by (cases xs) (simp_all)
+  qed
+qed
+
 subsection{* Sets *}
 
 abbreviation (input) "set_choose s \<equiv> (SOME x. (x \<in> s))"
@@ -369,6 +487,10 @@ next
   case (Cons lr lrs) thus ?case
     by (cases lr) (auto split: prod.split)
 qed  
+
+subsection {* sorting *}
+
+term remove1
 
 subsection {* num to string conversions *}
 

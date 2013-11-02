@@ -602,9 +602,9 @@ end
 
 
 val integerNegate : integer -> integer
-declare hol      target_rep function integerNegate = `~` 
+declare hol      target_rep function integerNegate i = `~` i
 declare ocaml    target_rep function integerNegate = `Big_int.minus_big_int`
-declare isabelle target_rep function integerNegate = `-`
+declare isabelle target_rep function integerNegate i = `-` i
 declare coq      target_rep function integerNegate i = (`Coq.ZArith.BinInt.Zminus` `Z0` i)
 
 instance (NumNegate integer)

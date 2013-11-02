@@ -10,12 +10,11 @@
 (* Header                                                                     *)
 (* ========================================================================== *)
 
-(*
 declare rename module = lem_sorting
-*)
 
-open import Bool Basic_classes Maybe List Relation Num
+open import Bool Basic_classes Maybe List Num
 
+open import {isabelle} `~~/src/HOL/Library/Permutation`
 
 (* ------------------------- *)
 (* permutations              *)
@@ -33,8 +32,11 @@ let rec isPermutationBy eq l1 l2 = match l1 with
       end
     end
 end
+declare termination_argument isPermutationBy = automatic
+
 let isPermutation = isPermutationBy (=)
 
+declare isabelle target_rep function isPermutation = infix `<~~>`
 
 assert perm_1: (isPermutation ([]:list nat) [])
 assert perm_2: (not (isPermutation [(2:nat)] []))
@@ -43,9 +45,11 @@ assert perm_4: (not (isPermutation [(2:nat);3;3;5;4] [1;2;3;4;5]))
 assert perm_5: (not (isPermutation [(2:nat);1;3;5;4;3] [1;2;3;4;5]))
 assert perm_6: (isPermutation [(2:nat);1;3;5;4;3] [1;2;3;3;4;5])
 
-lemma ~{ocaml;coq} isPermutation_1 : (isEquivalence (relFromPred isPermutation))
-lemma isPermutation_2 : (forall l1 l2. isPermutation l1 l2 --> (length l1 = length l2))
-lemma isPermutation_3 : (forall l1 l2. isPermutation l1 l2 --> (forall x. elem x l1 = elem x l2))
+lemma isPermutation_1 : (forall l. isPermutation l l)
+lemma isPermutation_2 : (forall l1 l2. isPermutation l1 l2 <-> isPermutation l2 l1)
+lemma isPermutation_3 : (forall l1 l2 l3. isPermutation l1 l2 --> isPermutation l2 l3 --> isPermutation l1 l3)
+lemma isPermutation_4 : (forall l1 l2. isPermutation l1 l2 --> (length l1 = length l2))
+lemma isPermutation_5 : (forall l1 l2. isPermutation l1 l2 --> (forall x. elem x l1 = elem x l2))
 
 
 
@@ -68,10 +72,14 @@ val isSortedBy : forall 'a. ('a -> 'a -> bool) -> list 'a -> bool
 
 let rec isSortedBy cmp l = match l with
   | [] -> true
-  | [x] -> true
+  | [_] -> true
   | x1 :: x2 :: xs -> (cmp x1 x2 && isSortedBy cmp (x2 :: xs))
 end
-let isSorted = isSortedBy (<=)
+declare termination_argument isSortedBy = automatic
+
+let inline isSorted = isSortedBy (<=)
+
+declare isabelle target_rep function isSortedBy = `sorted_by`
 
 assert isSorted_1: (isSorted ([]:list nat))
 assert isSorted_2: (isSorted [(2:nat)])
@@ -95,13 +103,15 @@ let rec insertBy cmp e l = match l with
   | [] -> [e]
   | x :: xs -> if cmp x e then x :: (insertBy cmp e xs) else (e :: x :: xs)
 end
+declare termination_argument insertBy = automatic
+
 let insert = insertBy (<=)
 
 let insertSortBy cmp l = List.foldl (fun l e -> insertBy cmp e l) [] l
 let insertSort = insertSortBy (<=)
 
 
-lemma insertBy_1: (forall l e cmp. (isTransitive (relFromPred cmp) && isSortedBy cmp l) --> isSortedBy cmp (insertBy cmp e l))
+lemma insertBy_1: (forall l e cmp. ((forall x y z. cmp x y && cmp y z --> cmp x z) && isSortedBy cmp l) --> isSortedBy cmp (insertBy cmp e l))
 lemma insertBy_2: (forall l e cmp. length (insertBy cmp e l) = length l + 1)
 lemma insertBy_3: (forall l e1 e2 cmp. elem e1 (insertBy cmp e2 l) = ((e1 = e2) || elem e1 l))
 
