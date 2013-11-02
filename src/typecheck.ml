@@ -3090,7 +3090,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                                     methods))
           in
           let field_refs = Seplist.to_list_map (fun (_, f, _, _) -> f) recs' in
-          let ctxt''' = {ctxt'' with all_tdefs = type_defs_update_fields l ctxt''.all_tdefs type_path field_refs} in 
+          let ctxt''' = {ctxt'' with all_tdefs = type_defs_update_fields l ctxt''.all_tdefs type_path (List.rev field_refs)} in 
 
 
           (* add the class as a type to the local environment *)

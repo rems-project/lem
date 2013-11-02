@@ -358,7 +358,7 @@ let instance_to_dict create_inline targ mod_path (env : env) ((d,s),l,lenv) =
                 ((field_id, space, inst_method_const, (l_unk 4)),
                  None)
               end in
-            let fields = List.map mk_field_entry id.inst_methods in
+            let fields = List.rev_map mk_field_entry id.inst_methods in
             let dict_type = class_descr_get_dict_type cd t.typ in
             let dict_d = c_env_lookup (l_unk 7) env.c_env id.inst_dict in
             let dict_body = C.mk_record (l_unk 5) None (Seplist.from_list fields) None (Some dict_type) in
