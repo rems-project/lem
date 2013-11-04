@@ -110,6 +110,8 @@ let insert = insertBy (<=)
 let insertSortBy cmp l = List.foldl (fun l e -> insertBy cmp e l) [] l
 let insertSort = insertSortBy (<=)
 
+declare isabelle target_rep function insertBy = `insert_sort_insert_by`
+declare isabelle target_rep function insertSortBy = `insert_sort_by`
 
 lemma insertBy_1: (forall l e cmp. ((forall x y z. cmp x y && cmp y z --> cmp x z) && isSortedBy cmp l) --> isSortedBy cmp (insertBy cmp e l))
 lemma insertBy_2: (forall l e cmp. length (insertBy cmp e l) = length l + 1)
@@ -126,9 +128,16 @@ lemma insertSort_2: (forall l cmp. isSorted (insertSort l))
 val sort: forall 'a. Ord 'a => list 'a -> list 'a
 val sortBy: forall 'a. ('a -> 'a -> bool) -> list 'a -> list 'a
 
-let sortBy = insertSortBy
-let sort = sortBy (<=)
+let inline sortBy = insertSortBy
+let inline sort = sortBy (<=)
 
-lemma sort_1: (forall l cmp. isPermutation (sort l) l)
-lemma sort_2: (forall l cmp. isSorted (sort l))
+declare isabelle target_rep function sortBy = `sort_by`
+
+assert sort_1 : (sort ([] : list nat) = [])
+assert sort_2 : (sort ([6;4;3;8;1;2] : list nat) = [1;2;3;4;6;8])
+assert sort_3 : (sort ([5;4;5;2;4] : list nat) = [2;4;4;5;5])
+
+lemma sort_4: (forall l cmp. isPermutation (sort l) l)
+lemma sort_5: (forall l cmp. isSorted (sort l))
+
 

@@ -189,7 +189,8 @@ let isa  =
                      M.remove_indrelns_true_lhs;
                      M.remove_types_with_target_rep (Target_no_ident Target_isa);
                      M.defs_with_target_rep_to_lemma env (Target_no_ident Target_isa);
-                     Patterns.compile_def (Target_no_ident Target_isa) Patterns.is_isabelle_pattern_match env;] );
+                     Patterns.compile_def (Target_no_ident Target_isa) Patterns.is_isabelle_pattern_match env;
+                     Patterns.remove_toplevel_match (Target_no_ident Target_isa) Patterns.is_isabelle_pattern_match env;] );
       Pat_macros (fun env -> [Backend_common.inline_pat_macro Target_isa env]);
       Exp_macros (fun env ->
                     let module T = T(struct let env = env end) in

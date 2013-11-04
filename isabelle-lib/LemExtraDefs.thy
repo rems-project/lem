@@ -346,6 +346,145 @@ proof (rule ext)
   qed
 qed
 
+lemma sorted_by_cons_imp :
+  "sorted_by cmp (x # xs) \<Longrightarrow> sorted_by cmp xs"
+by (cases xs) simp_all
+
+lemma sorted_by_cons_trans :
+  assumes trans_cmp: "transp cmp"
+  shows "sorted_by cmp (x # xs) = ((\<forall>x' \<in> set xs . cmp x x') \<and> sorted_by cmp xs)"
+proof (induct xs arbitrary: x) 
+  case Nil thus ?case by simp
+next
+  case (Cons x2 xs x1)
+  note ind_hyp = this
+
+  from trans_cmp
+  show ?case
+    by (auto simp add: ind_hyp transp_def)
+qed
+
+
+fun insert_sort_insert_by  :: "('a \<Rightarrow> 'a \<Rightarrow> bool)\<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> 'a list "  where 
+  "insert_sort_insert_by cmp e ([]) = ( [e])"
+| "insert_sort_insert_by cmp e (x # xs) = ( if cmp e x then (e # (x # xs)) else x # (insert_sort_insert_by cmp e xs))" 
+
+
+lemma insert_sort_insert_by_length [simp] :
+  "length (insert_sort_insert_by cmp e l) = Suc (length l)"
+by (induct l) auto
+
+lemma insert_sort_insert_by_set [simp] :
+  "set (insert_sort_insert_by cmp e l) = insert e (set l)"
+by (induct l) auto
+
+lemma insert_sort_insert_by_perm :
+  "(insert_sort_insert_by cmp e l) <~~> (e # l)"
+proof (induct l)
+  case Nil thus ?case by simp
+next
+  case (Cons e2 l') 
+  note ind_hyp = this
+
+  have "e2 # e # l' <~~> e # e2 # l'" by (rule perm.swap)
+  hence "e2 # insert_sort_insert_by cmp e l' <~~> e # e2 # l'" 
+    using ind_hyp by (metis cons_perm_eq perm.trans)
+  thus ?case by simp
+qed
+
+
+lemma insert_sort_insert_by_sorted_by :
+assumes cmp_cases: "\<And>y. y \<in> set l \<Longrightarrow> \<not> (cmp e y) \<Longrightarrow> cmp y e"
+assumes cmp_trans: "transp cmp"
+shows "sorted_by cmp l \<Longrightarrow> sorted_by cmp (insert_sort_insert_by cmp e l)"
+using cmp_cases
+proof (induct l)
+  case Nil thus ?case by simp
+next
+  case (Cons x1 l')
+  note ind_hyp = Cons(1)
+  note sorted_x1_l' = Cons(2)
+  note cmp_cases = Cons(3)
+
+  show ?case
+  proof (cases l')
+    case Nil with cmp_cases show ?thesis by simp
+  next
+    case (Cons x2 l'') note l'_eq = this
+
+    from l'_eq sorted_x1_l' have "cmp x1 x2" "sorted_by cmp l'" by simp_all
+
+    show ?thesis 
+    proof (cases "cmp e x1")
+      case True 
+      with `cmp x1 x2` `sorted_by cmp l'`
+      have "sorted_by cmp (x1 # l')" 
+        unfolding l'_eq by (simp)
+      with `cmp e x1`
+      show ?thesis by simp
+    next
+      case False
+
+      with cmp_cases have "cmp x1 e" by simp
+      have "\<And>x'.  x' \<in> set l' \<Longrightarrow> cmp x1 x'" 
+      proof -
+        fix x'
+        assume "x' \<in> set l'"
+        hence "x' = x2 \<or> cmp x2 x'"
+          using `sorted_by cmp l'` l'_eq sorted_by_cons_trans [OF cmp_trans, of x2 l'']
+          by auto
+        with transpD[OF cmp_trans, of x1 x2 x'] `cmp x1 x2`
+        show "cmp x1 x'" by blast
+      qed
+      hence "sorted_by cmp (x1 # insert_sort_insert_by cmp e l')" 
+        using ind_hyp [OF `sorted_by cmp l'`] `cmp x1 e` cmp_cases
+        unfolding sorted_by_cons_trans[OF cmp_trans]
+        by simp
+      with `\<not>(cmp e x1)`
+      show ?thesis by simp
+    qed
+  qed
+qed
+
+
+
+fun insert_sort_by :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> 'a list "  where 
+    "insert_sort_by cmp [] = []"
+  | "insert_sort_by cmp (x # xs) = insert_sort_insert_by cmp x (insert_sort_by cmp xs)"
+
+
+lemma insert_sort_by_perm :
+  "(insert_sort_by cmp l) <~~> l"
+proof (induct l)
+  case Nil thus ?case by simp
+next
+  case (Cons x l)
+  thus ?case    
+   by simp (metis cons_perm_eq insert_sort_insert_by_perm perm.trans)
+qed
+
+lemma insert_sort_by_length [simp]:
+  "length (insert_sort_by cmp l) = length l"
+by (induct l) auto
+
+lemma insert_sort_by_set [simp]:
+  "set (insert_sort_by cmp l) = set l"
+by (induct l) auto
+
+definition sort_by where
+  "sort_by = insert_sort_by"
+
+lemma sort_by_simps [simp]:
+  "length (sort_by cmp l) = length l"
+  "set (sort_by cmp l) = set l"
+unfolding sort_by_def by simp_all
+
+lemma sort_by_perm :
+  "sort_by cmp l <~~> l"
+unfolding sort_by_def
+by (simp add: insert_sort_by_perm)
+
+
 subsection{* Sets *}
 
 abbreviation (input) "set_choose s \<equiv> (SOME x. (x \<in> s))"
