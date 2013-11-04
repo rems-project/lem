@@ -25,9 +25,9 @@ val isPermutation : forall 'a. Eq 'a => list 'a -> list 'a -> bool
 val isPermutationBy : forall 'a. ('a -> 'a -> bool) -> list 'a -> list 'a -> bool
 
 let rec isPermutationBy eq l1 l2 = match l1 with
-  | [] -> List.null l2
+  | [] -> null l2
   | (x :: xs) -> begin
-      match List.deleteFirst (eq x) l2 with
+      match deleteFirst (eq x) l2 with
         | Nothing -> false
         | Just ys -> isPermutationBy eq xs ys
       end

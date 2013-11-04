@@ -11,7 +11,7 @@
 (* ========================================================================== *)
 
 
-declare ~{hol;ocaml;coq} rename module = Lem_list []
+declare ~{hol;ocaml;coq} rename module = Lem_list 
 declare {ocaml} rename module = Lem_list 
 declare {hol} rename module = Lem_list [`listTheory`; `rich_listTheory`; `lem_listTheory`; `lem_numTheory`; `sortingTheory`]
 
@@ -49,7 +49,7 @@ let null l = match l with [] -> true | _ -> false end
 
 declare hol   target_rep function null = `NULL`
 declare {ocaml} rename function null = list_null
-let inline {isabelle} null l = (l = [])
+(* let inline {isabelle} null l = (l = []) *)
 
 assert null_simple_1: (null ([]:list nat))
 assert null_simple_2: (not (null [(2:nat);3;4]))
