@@ -130,7 +130,9 @@ let inline {isabelle} nat_list_to_string = Isabelle.nat_list_to_string
 (* ========================================================================== *)
 
 module Set = struct
-  include Set_extra (* include the new set module *)
+  (* include the new set module and helpers *)
+  include Set_extra 
+  include Set_helpers 
 
   let inline add = insert
   let inline for_all = all
