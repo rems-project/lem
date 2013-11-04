@@ -487,12 +487,34 @@ by (simp add: insert_sort_by_perm)
 
 subsection{* Sets *}
 
-abbreviation (input) "set_choose s \<equiv> (SOME x. (x \<in> s))"
+definition "set_choose s \<equiv> (SOME x. (x \<in> s))"
 
 lemma set_choose_thm[simp]:
   "s \<noteq> {} \<Longrightarrow> (set_choose s) \<in> s"
+unfolding set_choose_def
 by (rule someI_ex) auto
 
+lemma set_choose_sing [simp]:
+  "set_choose {x} = x" 
+  unfolding set_choose_def  
+  by auto
+
+lemma set_choose_code [code]:
+  "set_choose (set [x]) = x"
+by auto
+
+lemma set_choose_in [intro] :
+  assumes "s \<noteq> {}"
+  shows "set_choose s \<in> s"
+proof -
+  from `s \<noteq> {}`
+  obtain x where "x \<in> s" by auto
+  thus ?thesis
+    unfolding set_choose_def 
+    by (rule someI)
+qed
+
+  
 definition set_case where
   "set_case s c_empty c_sing c_else =
     (if (s = {}) then c_empty else
@@ -521,13 +543,13 @@ next
 qed
 
 lemma set_case_code [code] :
-  "set_case (set []) c_empty c_sing c_else = c_empty" (is ?g1)
-  "set_case (set [x]) c_empty c_sing c_else = c_sing x" (is ?g2)
+  "set_case (set []) c_empty c_sing c_else = c_empty" 
+  "set_case (set [x]) c_empty c_sing c_else = c_sing x" 
   "set_case (set (x1 # x2 # xs)) c_empty c_sing c_else = 
    (if (x1 = x2) then
      set_case (set (x2 # xs)) c_empty c_sing c_else
    else
-     c_else)" (is ?g3)
+     c_else)" 
 by auto
 
 definition set_lfp:: "'a set \<Rightarrow> ('a set \<Rightarrow> 'a set) \<Rightarrow> 'a set" where
@@ -581,20 +603,134 @@ lemma set_lfp_simps [simp] :
 by (metis set_lfp_tail_rec_def)+
 
 
+fun insert_in_list_at_arbitrary_pos where
+   "insert_in_list_at_arbitrary_pos x [] = {[x]}"
+ | "insert_in_list_at_arbitrary_pos x (y # ys) = 
+    insert (x # y # ys) ((\<lambda>l. y # l) ` (insert_in_list_at_arbitrary_pos x ys))"
+   
+lemma insert_in_list_at_arbitrary_pos_thm :
+  "xl \<in> insert_in_list_at_arbitrary_pos x l \<longleftrightarrow>
+   (\<exists>l1 l2. l = l1 @ l2 \<and> xl = l1 @ [x] @ l2)"
+proof (induct l arbitrary: xl)    
+  case Nil thus ?case by simp
+next
+  case (Cons y l xyl)
+  note ind_hyp = this
+  
+  show ?case
+  proof (rule iffI)
+    assume xyl_in: "xyl \<in> insert_in_list_at_arbitrary_pos x (y # l)"
+    show "\<exists>l1 l2. y # l = l1 @ l2 \<and> xyl = l1 @ [x] @ l2"
+    proof (cases "xyl = x # y # l")
+      case True
+      hence "y # l = [] @ (y # l) \<and> xyl = [] @ [x] @ (y # l)" by simp
+      thus ?thesis by blast
+    next
+      case False
+      with xyl_in have "xyl \<in> op # y ` insert_in_list_at_arbitrary_pos x l" by simp
+      with ind_hyp obtain l1 l2 where "l = l1 @ l2 \<and> xyl = y # l1 @ x # l2" 
+         by (auto simp add: image_def Bex_def)
+      hence "y # l = (y # l1) @ l2 \<and> xyl = (y # l1) @ [x] @ l2" by simp
+      thus ?thesis by blast
+    qed
+  next
+    assume "\<exists>l1 l2. y # l = l1 @ l2 \<and> xyl = l1 @ [x] @ l2"
+    then obtain l1 l2 where yl_eq: "y # l = l1 @ l2" and xyl_eq: "xyl = l1 @ [x] @ l2" by blast
+    show "xyl \<in> insert_in_list_at_arbitrary_pos x (y # l)"
+    proof (cases l1)
+      case Nil 
+      with yl_eq xyl_eq 
+      have "xyl = x # y # l" by simp
+      thus ?thesis by simp
+    next
+      case (Cons y' l1')
+      with yl_eq have l1_eq: "l1 = y # l1'" and l_eq: "l = l1' @ l2" by simp_all
+         
+      have "\<exists>l1'' l2''. l = l1'' @ l2'' \<and> l1' @ [x] @ l2 = l1'' @ [x] @ l2''"
+        apply (rule_tac exI[where x = l1'])
+        apply (rule_tac exI [where x = l2])
+        apply (simp add: l_eq)
+      done
+      hence "(l1' @ [x] @ l2) \<in> insert_in_list_at_arbitrary_pos x l"
+        unfolding ind_hyp by blast
+      hence "\<exists>l'. l' \<in> insert_in_list_at_arbitrary_pos x l \<and> l1 @ x # l2 = y # l'"
+        by (rule_tac exI [where x = "l1' @ [x] @ l2"]) (simp add: l1_eq)
+      thus ?thesis
+        by (simp add: image_def Bex_def xyl_eq)
+    qed
+  qed
+qed        
+  
+definition list_of_set_set :: "'a set \<Rightarrow> ('a list) set" where
+"list_of_set_set s = { l . (set l = s) \<and> distinct l }"
 
-definition list_of_set :: "'a set \<Rightarrow> 'a list" where
-   "list_of_set s = (SOME l. (set l = s \<and> distinct l))"
+lemma list_of_set_set_empty [simp]:
+  "list_of_set_set {} = {[]}"
+unfolding list_of_set_set_def by auto
 
-lemma list_of_set [simp] : 
-  assumes fin_s: "finite s"
-  shows "(set (list_of_set s) = s \<and> distinct (list_of_set s))"
-unfolding list_of_set_def
-proof (rule someI_ex)
-  show "\<exists>l. set l = s \<and> distinct l" using fin_s
-  proof (induct s)
-    case empty
+lemma list_of_set_set_insert [simp] :
+  "list_of_set_set (insert x s) = 
+     \<Union> ((insert_in_list_at_arbitrary_pos x) ` (list_of_set_set (s - {x})))"
+   (is "?lhs = ?rhs")
+proof (intro set_eqI)
+  fix l
+  
+  have "(set l = insert x s \<and> distinct l) \<longleftrightarrow> (\<exists>l1 l2. set (l1 @ l2) = s - {x} \<and> distinct (l1 @ l2) \<and> l = l1 @ x # l2)"
+  proof (intro iffI)
+    assume "set l = insert x s \<and> distinct l"
+    hence set_l_eq: "set l = insert x s" and "distinct l" by simp_all
+
+    from `set l = insert x s` 
+    have "x \<in> set l" by simp
+    then obtain l1 l2 where l_eq: "l = l1 @ x # l2"
+      unfolding in_set_conv_decomp by blast
+      
+    from `distinct l`  l_eq 
+    have "distinct (l1 @ l2)" and x_nin: "x \<notin> set (l1 @ l2)"
+      by auto
+    
+    from x_nin set_l_eq[unfolded l_eq]
+    have set_l12_eq: "set (l1 @ l2) = s - {x}" 
+      by auto 
+    
+    from `distinct (l1 @ l2)` l_eq set_l12_eq
+    show "\<exists>l1 l2. set (l1 @ l2) = s - {x} \<and> distinct (l1 @ l2) \<and> l = l1 @ x # l2"
+      by blast
+  next
+    assume "\<exists>l1 l2. set (l1 @ l2) = s - {x} \<and> distinct (l1 @ l2) \<and> l = l1 @ x # l2"
+    then obtain l1 l2 where "set (l1 @ l2) = s - {x}"  "distinct (l1 @ l2)" "l = l1 @ x # l2"
+      by blast
+    thus "set l = insert x s \<and> distinct l"
+       by auto
+  qed
+
+  thus "l \<in> list_of_set_set (insert x s) \<longleftrightarrow> l \<in> (\<Union> ((insert_in_list_at_arbitrary_pos x) ` (list_of_set_set (s - {x}))))"
+     unfolding list_of_set_set_def 
+     by (simp add: insert_in_list_at_arbitrary_pos_thm ex_simps[symmetric] del: ex_simps)
+qed    
+
+lemma list_of_set_set_code [code]:
+  "list_of_set_set (set []) = {[]}"
+  "list_of_set_set (set (x # xs)) = 
+     \<Union> ((insert_in_list_at_arbitrary_pos x) ` (list_of_set_set ((set xs) - {x})))"
+by simp_all
+
+lemma list_of_set_set_is_empty :
+  "list_of_set_set s = {} \<longleftrightarrow> \<not> (finite s)"
+proof -
+  have "finite s \<longleftrightarrow> (\<exists>l. set l = s \<and> distinct l)"
+  proof (rule iffI)
+    assume "\<exists>l. set l = s \<and> distinct l" then
+    obtain l where "s = set l" by blast
+    thus "finite s" by simp
+  next
+    assume "finite s"
+    thus "\<exists>l. set l = s \<and> distinct l"
+    proof (induct s)
+      case empty
       show ?case by auto
-    case (insert e s)
+    next
+      case (insert e s)
       note e_nin_s = insert(2)
       from insert(3) obtain l where set_l: "set l = s" and dist_l: "distinct l" by blast
 
@@ -602,8 +738,37 @@ proof (rule someI_ex)
       from dist_l set_l e_nin_s have dist_el: "distinct (e # l)" by simp
 
       from set_el dist_el show ?case by blast
+    qed
   qed
+  thus ?thesis 
+    unfolding list_of_set_set_def by simp
 qed
+  
+definition list_of_set :: "'a set \<Rightarrow> 'a list" where
+   "list_of_set s = set_choose (list_of_set_set s)"
+
+lemma list_of_set [simp] : 
+  assumes fin_s: "finite s"
+  shows "set (list_of_set s) = s" 
+        "distinct (list_of_set s)"
+proof -
+  from fin_s list_of_set_set_is_empty[of s]
+  have "\<not> (list_of_set_set s = {})" by simp
+  hence "list_of_set s \<in> list_of_set_set s"
+    unfolding list_of_set_def
+    by (rule set_choose_thm)
+  thus "set (list_of_set s) = s" 
+       "distinct (list_of_set s)" unfolding list_of_set_set_def
+  by simp_all
+qed  
+
+lemma list_of_set_in:
+  "finite s \<Longrightarrow> list_of_set s \<in> list_of_set_set s"
+unfolding list_of_set_def
+by (metis list_of_set_set_is_empty set_choose_thm)
+
+definition ordered_list_of_set where
+  "ordered_list_of_set cmp s = set_choose (sort_by cmp ` list_of_set_set s)"
 
 subsection {* sum *}
 

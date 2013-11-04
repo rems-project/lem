@@ -620,7 +620,8 @@ type class_descr = {
   class_record : Path.t; 
   class_methods : (const_descr_ref * const_descr_ref) list;
   class_rename : (Ast.l * Name.t) Target.Targetmap.t;
-  class_target_rep : type_target_rep Target.Targetmap.t
+  class_target_rep : type_target_rep Target.Targetmap.t;
+  class_is_inline : bool;
 }
 
 type tc_def = 

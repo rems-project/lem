@@ -544,6 +544,11 @@ declare hol      target_rep function finite = `FINITE`
 declare isabelle target_rep function finite = `finite`
 
 
+(* ------------------------ *)
+(* finite                   *)
+(* ------------------------ *)
+
+
 (* NOT DONE AFTER THIS POINT, PLEASE IGNORE 
 
 val to_list : forall 'a. set 'a -> list 'a
@@ -551,19 +556,6 @@ let inline {ocaml} to_list = Ocaml.Pset.elements
 let inline {hol} to_list = Hol.SET_TO_LIST
 let inline {coq} to_list = Coq.set_to_list
 let inline {isabelle} to_list = Isabelle.list_of_set
-
-(* DPM: remember to change this so that the default value is returned for the other backends *)
-val choose : forall 'a. set 'a -> 'a -> 'a
-let inline {ocaml} choose s d = Ocaml.Pset.choose s
-let inline {hol} choose s d = Hol.CHOICE s
-let inline {isabelle} choose s d = Isabelle.set_choose s
-let inline {coq} choose = Coq.set_choose
-
-val fold : forall 'a 'b. ('a -> 'b -> 'b) -> set 'a -> 'b -> 'b
-let inline {coq} fold = Coq.set_fold
-let inline {ocaml} fold = Ocaml.Pset.fold
-let inline {hol} fold = Hol.ITSET
-let inline {isabelle} fold f A q = Isabelle.Finite_Set.fold f q A
 
 val compare: forall 'a. set 'a -> set 'a -> nat
 let inline {coq} compare = Coq.set_compare

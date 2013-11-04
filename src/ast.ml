@@ -113,16 +113,6 @@ tnvar =  (* Union of type variables and Nexp type variables, with locations *)
 
 
 type 
-nexp_constraint =  (* Location-annotated Nexp range *)
-   Range_l of nexp_constraint_aux * l
-
-
-type 
-c =  (* Typeclass constraints *)
-   C of id * tnvar
-
-
-type 
 lit_aux =  (* Literal constants *)
    L_true of terminal
  | L_false of terminal
@@ -133,6 +123,16 @@ lit_aux =  (* Literal constants *)
  | L_unit of terminal * terminal
  | L_zero of terminal (* bitzero and bitone are constant bits, if commonly used we will consider overloading 0 and 1 *)
  | L_one of terminal
+
+
+type 
+nexp_constraint =  (* Location-annotated Nexp range *)
+   Range_l of nexp_constraint_aux * l
+
+
+type 
+c =  (* Typeclass constraints *)
+   C of id * tnvar
 
 
 type 
@@ -158,14 +158,6 @@ ne =  (* internal numeric expressions *)
 
 
 type 
-cs =  (* Typeclass and length constraint lists *)
-   Cs_empty
- | Cs_classes of (c * terminal) list * terminal (* Must have $>0$ constraints *)
- | Cs_lengths of (nexp_constraint * terminal) list * terminal (* Must have $>0$ constraints *)
- | Cs_both of (c * terminal) list * terminal * (nexp_constraint * terminal) list * terminal (* Must have $>0$ of both form of constraints *)
-
-
-type 
 typ_aux =  (* Types *)
    Typ_wild of terminal (* Unspecified type *)
  | Typ_var of a_l (* Type variables *)
@@ -186,9 +178,11 @@ lit =
 
 
 type 
-tnv =  (* Union of type variables and Nexp type variables, without locations *)
-   Av of a
- | Nv of n
+cs =  (* Typeclass and length constraint lists *)
+   Cs_empty
+ | Cs_classes of (c * terminal) list * terminal (* Must have $>0$ constraints *)
+ | Cs_lengths of (nexp_constraint * terminal) list * terminal (* Must have $>0$ constraints *)
+ | Cs_both of (c * terminal) list * terminal * (nexp_constraint * terminal) list * terminal (* Must have $>0$ of both form of constraints *)
 
 
 type 
@@ -204,20 +198,9 @@ and t_args =  (* Lists of types *)
 
 
 type 
-c_pre =  (* Type and instance scheme prefixes *)
-   C_pre_empty
- | C_pre_forall of terminal * (tnvar) list * terminal * cs (* Must have $>0$ type variables *)
-
-
-type 
-target =  (* Backend target names *)
-   Target_hol of terminal
- | Target_isa of terminal
- | Target_ocaml of terminal
- | Target_coq of terminal
- | Target_tex of terminal
- | Target_html of terminal
- | Target_lem of terminal
+tnv =  (* Union of type variables and Nexp type variables, without locations *)
+   Av of a
+ | Nv of n
 
 
 type 
@@ -256,41 +239,20 @@ tannot_opt =  (* Optional type annotations *)
 
 
 type 
-witness_opt =  (* Optional witness type name declaration. Must be present for a witness type to be generated. *)
-   Witness_none
- | Witness_some of terminal * terminal * x_l * terminal
+target =  (* Backend target names *)
+   Target_hol of terminal
+ | Target_isa of terminal
+ | Target_ocaml of terminal
+ | Target_coq of terminal
+ | Target_tex of terminal
+ | Target_html of terminal
+ | Target_lem of terminal
 
 
 type 
-check_opt =  (* Option check name declaration *)
-   Check_none
- | Check_some of terminal * x_l * terminal
-
-
-type 
-functions_opt =  (* Optional names and types for functions to be generated. Types should use only in, out, unit, or the witness type *)
-   Functions_none
- | Functions_one of x_l * terminal * typ
- | Functions_some of x_l * terminal * typ * terminal * functions_opt
-
-
-type 
-typschm =  (* Type schemes *)
-   Ts of c_pre * typ
-
-
-type 
-targets =  (* Backend target name lists *)
-   Targets_concrete of terminal * (target * terminal) list * terminal
- | Targets_neg_concrete of terminal * (target * terminal) list * terminal (* all targets except the listed ones *)
-
-
-type 
-fixity_decl =  (* fixity declarations for infix identifiers *)
-   Fixity_right_assoc of terminal * int
- | Fixity_left_assoc of terminal * int
- | Fixity_non_assoc of terminal * int
- | Fixity_default_assoc
+c_pre =  (* Type and instance scheme prefixes *)
+   C_pre_empty
+ | C_pre_forall of terminal * (tnvar) list * terminal * cs (* Must have $>0$ type variables *)
 
 
 type 
@@ -357,6 +319,44 @@ and letbind =  (* Location-annotated let bindings *)
 
 
 type 
+targets =  (* Backend target name lists *)
+   Targets_concrete of terminal * (target * terminal) list * terminal
+ | Targets_neg_concrete of terminal * (target * terminal) list * terminal (* all targets except the listed ones *)
+
+
+type 
+witness_opt =  (* Optional witness type name declaration. Must be present for a witness type to be generated. *)
+   Witness_none
+ | Witness_some of terminal * terminal * x_l * terminal
+
+
+type 
+check_opt =  (* Option check name declaration *)
+   Check_none
+ | Check_some of terminal * x_l * terminal
+
+
+type 
+functions_opt =  (* Optional names and types for functions to be generated. Types should use only in, out, unit, or the witness type *)
+   Functions_none
+ | Functions_one of x_l * terminal * typ
+ | Functions_some of x_l * terminal * typ * terminal * functions_opt
+
+
+type 
+typschm =  (* Type schemes *)
+   Ts of c_pre * typ
+
+
+type 
+fixity_decl =  (* fixity declarations for infix identifiers *)
+   Fixity_right_assoc of terminal * int
+ | Fixity_left_assoc of terminal * int
+ | Fixity_non_assoc of terminal * int
+ | Fixity_default_assoc
+
+
+type 
 component =  (* components *)
    Component_module of terminal
  | Component_function of terminal
@@ -373,6 +373,11 @@ name_t =  (* Name or name with type for inductively defined relation clauses *)
 type 
 ctor_def =  (* Datatype definition clauses *)
    Cte of x_l * terminal * (typ * terminal) list
+
+
+type 
+funcl =  (* Location-annotated function clauses *)
+   Rec_l of funcl_aux * l
 
 
 type 
@@ -450,8 +455,10 @@ name_opt =  (* Optional name specification for variables of defined type *)
 
 
 type 
-funcl =  (* Location-annotated function clauses *)
-   Rec_l of funcl_aux * l
+val_def =  (* Value definitions *)
+   Let_def of terminal * targets option * letbind (* Non-recursive value definitions *)
+ | Let_rec of terminal * terminal * targets option * (funcl * terminal) list (* Recursive function definitions *)
+ | Let_inline of terminal * terminal * targets option * letbind (* Function definitions to be inlined *)
 
 
 type 
@@ -497,6 +504,12 @@ instance_decl =  (* is it an instance or the default instance? *)
 
 
 type 
+class_decl =  (* is a class an inlined one? *)
+   Class_decl of terminal
+ | Class_inline_decl of terminal * terminal
+
+
+type 
 val_spec =  (* Value type specifications *)
    Val_spec of terminal * x_l * ascii_opt * terminal * typschm
 
@@ -510,13 +523,6 @@ type
 td =  (* Type definitions *)
    Td of x_l * tnvar list * name_opt * terminal * texp
  | Td_opaque of x_l * tnvar list * name_opt (* Definitions of opaque types *)
-
-
-type 
-val_def =  (* Value definitions *)
-   Let_def of terminal * targets option * letbind (* Non-recursive value definitions *)
- | Let_rec of terminal * terminal * targets option * (funcl * terminal) list (* Recursive function definitions *)
- | Let_inline of terminal * terminal * targets option * letbind (* Function definitions to be inlined *)
 
 
 type 
@@ -539,7 +545,7 @@ def_aux =  (* Top-level definitions *)
  | Open_import_target of open_import * targets option * (terminal * Ulib.UTF8.t) list (* importing and/or opening only for a target / it does not influence the Lem state *)
  | Indreln of terminal * targets option * (indreln_name * terminal) list * (rule * terminal) list (* Inductively defined relations *)
  | Spec_def of val_spec (* Top-level type constraints *)
- | Class of terminal * terminal * x_l * tnvar * terminal * ((terminal * x_l * ascii_opt * terminal * typ * l)) list * terminal (* Typeclass definitions *)
+ | Class of class_decl * terminal * x_l * tnvar * terminal * ((terminal * x_l * ascii_opt * terminal * typ * l)) list * terminal (* Typeclass definitions *)
  | Instance of instance_decl * instschm * ((val_def * l)) list * terminal (* Typeclass instantiations *)
 
 and def =  (* Location-annotated definitions *)

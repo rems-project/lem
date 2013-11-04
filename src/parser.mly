@@ -1044,7 +1044,9 @@ def:
   | val_spec
     { dloc (Spec_def($1)) }
   | Class_ Lparen x tnvar Rparen class_val_specs End
-    { dloc (Class($1,$2,$3,$4,$5,$6,$7)) }
+    { dloc (Class(Class_decl $1,$2,$3,$4,$5,$6,$7)) }
+  | Class_ Inline Lparen x tnvar Rparen class_val_specs End
+    { dloc (Class(Class_inline_decl ($1,$2),$3,$4,$5,$6,$7,$8)) }
   | Inst instschm val_defs End
     { dloc (Instance(Inst_decl $1,$2,$3,$4)) }
   | Inst_default instschm val_defs End

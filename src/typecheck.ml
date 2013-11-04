@@ -480,7 +480,7 @@ let typ_to_src_t_indreln wit (d : type_defs) (e : env) (typt : Types.t) typ : sr
 
 
 (* -------------------------------------------------------------------------- *)
-(* checking constrainst                                                       *)
+(* checking constraints                                                       *)
 (* -------------------------------------------------------------------------- *)
 
 (* Process the "forall 'a. (C 'a) =>" part of a type,  Returns the bound
@@ -498,6 +498,12 @@ begin
     let tnv' = ast_tnvar_to_tnvar tnv in
     let (tnv'',l) = tnvar_to_types_tnvar tnv' in
     let (p,_) = lookup_class_p (defn_ctxt_to_env ctxt) id in
+    begin
+      match (Pfmap.apply ctxt.all_tdefs p) with
+        | (None | Some (Tc_type _)) -> raise (Reporting_basic.err_unreachable l "not a class constraint")
+        | Some (Tc_class cd) -> if cd.class_is_inline then
+            raise (Reporting_basic.err_type_pp l "inline class used as explicit constraint" Types.pp_class_constraint (p,tnv''))
+    end;
     begin
       if TNset.mem tnv'' env then
          ()
@@ -589,6 +595,20 @@ let check_constraint_subset l cs1 cs2 =
                     Path.compare p p' = 0 && tnvar_compare tv tv' = 0)
                  cs2))
        cs1)
+
+(* checks, whether [cs] contains no inline contraints *)
+let check_constraint_no_inline l env cs = 
+  let cs' =  
+    (List.filter
+       (fun (p,_) ->
+          match (Pfmap.apply env.t_env p) with
+            | (None | Some (Tc_type _)) -> raise (Reporting_basic.err_unreachable l "not a class constraint")
+            | Some (Tc_class cd) -> cd.class_is_inline)
+       cs) in
+  let m = Util.message_singular_plural ("constraint", "constraints") cs' in
+  check_class_constraints_err ("unresolved inlined class constraint " ^ m) l cs'
+
+
 
 
 
@@ -1689,6 +1709,7 @@ module Make_checker(T : sig
                  end
       ) def_env;
     let Tconstraints(tnvars, constraints,l_constraints) = C.inst_leftover_uvars l in
+      check_constraint_no_inline l T.e constraints;
       Nfmap.iter
         (fun n (_,l') ->
            match Nfmap.apply T.e.local_env.v_env n with
@@ -3005,7 +3026,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
       | Ast.Spec_def(val_spec) ->
           let (ctxt,vs) = check_val_spec l mod_path ctxt val_spec in
             (ctxt, Some (Val_spec(vs)))
-      | Ast.Class(sk1,sk2,xl,tnv,sk4,specs,sk5) ->
+      | Ast.Class(class_decl,sk2,xl,tnv,sk4,specs,sk5) ->
           (* extract class_name cn / cn', the free type variable tv, location l' and full class path p *)
           let l' = Ast.xl_to_l xl in
           let tnvar = ast_tnvar_to_tnvar tnv in 
@@ -3100,13 +3121,16 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
              class_methods = List.combine (List.map (fun (_,r,_) -> r) methods) field_refs;
              class_rename = Targetmap.empty;
              class_target_rep = Targetmap.empty;
+     	     class_is_inline = (match class_decl with
+                                 | Ast.Class_decl _ -> false
+                                 | Ast.Class_inline_decl _ -> true)
           } in
 
           let ctxt''' = add_d_to_ctxt ctxt''' p (Tc_class class_d) in
           let ctxt''' = add_p_to_ctxt ctxt''' (cn', (p, l')) in
 
           (* all done, return the result *)
-          (ctxt''', Some (Class(sk1,sk2,(cn,l'),tnvar,p,sk4,List.rev vspecs,sk5)))
+          (ctxt''', Some (Class(class_decl,sk2,(cn,l'),tnvar,p,sk4,List.rev vspecs,sk5)))
       | Ast.Instance(inst_decl,Ast.Is(cs,sk2,id,typ,sk3),vals,sk4) ->
           let (src_cs, tyvars, tnvarset, (sem_cs,sem_rs)) =
             check_constraint_prefix ctxt cs 

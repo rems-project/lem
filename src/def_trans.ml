@@ -296,10 +296,10 @@ let type_annotate_definitions _ env ((d,s),l,lenv) =
 (* Turn a class definition into a record one for dictionary passing.
    The type definition of the record and the definition of its fields has 
    already been done during type-checking. *)
-let class_to_record mod_path env ((d,s),l,lenv) =
+let class_to_record mod_path env (((d,s),l,lenv) as def) =
     let l_unk = Ast.Trans(true, "class_to_record", Some l) in 
     match d with
-      | Class(sk1,sk2,(n,l),tnvar,class_path,sk3,specs,sk4) ->
+      | Class(Ast.Class_decl sk1,sk2,(n,l),tnvar,class_path,sk3,specs,sk4) ->
           (* lookup class-description *)
           let cd = lookup_class_descr l_unk env class_path in
 
@@ -322,6 +322,7 @@ let class_to_record mod_path env ((d,s),l,lenv) =
                       Seplist.from_list_default None [((rec_name, l), [tnvar], rec_path, Te_record(None, sk3, fields, sk4), None)])
           in
             Some (env, [((rec_def, s), l, lenv)])
+      | Class(Ast.Class_inline_decl _,_,_,_,_,_,_,_) -> Some (env, [comment_def def])
       | _ -> None
 
 
@@ -336,74 +337,76 @@ let instance_to_dict create_inline targ mod_path (env : env) ((d,s),l,lenv) =
           (* lookup instance and class description *)
           let id = i_env_lookup (l_unk 10) env.i_env i_ref in
           let cd = lookup_class_descr (l_unk 0) env id.inst_class in
-          let new_line_dict = Some [Ast.Ws (r"\n\n  ")] in
+          if cd.class_is_inline then Some(env,[]) else begin
+            let new_line_dict = Some [Ast.Ws (r"\n\n  ")] in
 
-          (* now generate the definition of the record dict *)
-          let (dict_def, env') = begin
-            let mk_field_entry (class_method_ref, inst_method_ref) =
-              begin
-                let field_ref = lookup_field_for_class_method l cd class_method_ref in
-                let field_id = { id_path = Id_none new_line_dict;
-                                 id_locn = l_unk 1;
-                                 descr = field_ref;
-                                 instantiation = [t.typ]; } in
+            (* now generate the definition of the record dict *)
+            let (dict_def, env') = begin
+              let mk_field_entry (class_method_ref, inst_method_ref) =
+                begin
+                  let field_ref = lookup_field_for_class_method l cd class_method_ref in
+                  let field_id = { id_path = Id_none new_line_dict;
+                                   id_locn = l_unk 1;
+                                   descr = field_ref;
+                                   instantiation = [t.typ]; } in
 
-                let inst_method_d = c_env_lookup l env.c_env inst_method_ref in
-                let inst_method_id = { id_path = Id_none space;
-                                       id_locn = l_unk 3;
-                                       descr = inst_method_ref;
-                                       instantiation = List.map Types.tnvar_to_type inst_method_d.const_tparams; } in
-                let inst_method_const = C.mk_const (l_unk 2) inst_method_id (Some inst_method_d.const_type) in
+                  let inst_method_d = c_env_lookup l env.c_env inst_method_ref in
+                  let inst_method_id = { id_path = Id_none space;
+                                         id_locn = l_unk 3;
+                                         descr = inst_method_ref;
+                                         instantiation = List.map Types.tnvar_to_type inst_method_d.const_tparams; } in
+                  let inst_method_const = C.mk_const (l_unk 2) inst_method_id (Some inst_method_d.const_type) in
 
-                ((field_id, space, inst_method_const, (l_unk 4)),
-                 None)
+                  ((field_id, space, inst_method_const, (l_unk 4)),
+                   None)
+                end in
+              let fields = List.rev_map mk_field_entry id.inst_methods in
+              let dict_type = class_descr_get_dict_type cd t.typ in
+              let dict_d = c_env_lookup (l_unk 7) env.c_env id.inst_dict in
+              let dict_body = C.mk_record (l_unk 5) None (Seplist.from_list fields) None (Some dict_type) in
+
+              let env' = if not create_inline then env else begin
+                let dict_d' = {dict_d with target_rep = Target.Targetmap.insert_target dict_d.target_rep (targ, CR_inline (l, true, [], dict_body))} in
+                {env with c_env = c_env_update env.c_env id.inst_dict dict_d'} 
               end in
-            let fields = List.rev_map mk_field_entry id.inst_methods in
-            let dict_type = class_descr_get_dict_type cd t.typ in
-            let dict_d = c_env_lookup (l_unk 7) env.c_env id.inst_dict in
-            let dict_body = C.mk_record (l_unk 5) None (Seplist.from_list fields) None (Some dict_type) in
+              let dict_name =
+                { term = Name.add_lskip (Path.get_name dict_d.const_binding);
+                  typ = dict_type;
+                  locn = l_unk 6;
+                  rest = ();
+                }
+              in
 
-            let env' = if not create_inline then env else begin
-               let dict_d' = {dict_d with target_rep = Target.Targetmap.insert_target dict_d.target_rep (targ, CR_inline (l, true, [], dict_body))} in
-              {env with c_env = c_env_update env.c_env id.inst_dict dict_d'} 
+              let dict = if not create_inline then begin            
+                    let dict' = ((dict_name, id.inst_dict, [], None, space, dict_body):funcl_aux) in
+                    Fun_def(sk1,FR_non_rec,None,Seplist.cons_entry dict' Seplist.empty) 
+                  end else 
+                    Let_inline (sk1, None, None, dict_name, id.inst_dict, [], space, dict_body) 
+              in
+              (dict, env')
             end in
-            let dict_name =
-              { term = Name.add_lskip (Path.get_name dict_d.const_binding);
-                typ = dict_type;
-                locn = l_unk 6;
-                rest = ();
-              }
+
+            (* Generate full module as before. 
+               If you chnage this back, then also adapt dict path in typecheck
+
+            environment inside the module 
+            let lenv' = local_env_union lenv (lookup_mod_descr {env with local_env = lenv} [] inst_name).mod_env in 
+            let (inst_path, inst_name) = Path.to_name_list id.inst_binding in
+
+            let m = Val_def dict 
+              Module(sk1, (Name.add_lskip inst_name, l_unk 9), 
+                     id.inst_binding, sk2, None, 
+                     List.map (fun d -> ((Val_def d,None), l_unk 10, lenv')) 
+                              (vdefs @ [dict]), 
+                     sk4)
+
+            *)
+
+            (* finally, we the dictionary *)
+            let m = Val_def dict_def
             in
-
-            let dict = if not create_inline then begin            
-                  let dict' = ((dict_name, id.inst_dict, [], None, space, dict_body):funcl_aux) in
-                  Fun_def(sk1,FR_non_rec,None,Seplist.cons_entry dict' Seplist.empty) 
-                end else 
-                  Let_inline (sk1, None, None, dict_name, id.inst_dict, [], space, dict_body) 
-            in
-            (dict, env')
-          end in
-
-          (* Generate full module as before. 
-             If you chnage this back, then also adapt dict path in typecheck
-
-          environment inside the module 
-          let lenv' = local_env_union lenv (lookup_mod_descr {env with local_env = lenv} [] inst_name).mod_env in 
-          let (inst_path, inst_name) = Path.to_name_list id.inst_binding in
-
-          let m = Val_def dict 
-            Module(sk1, (Name.add_lskip inst_name, l_unk 9), 
-                   id.inst_binding, sk2, None, 
-                   List.map (fun d -> ((Val_def d,None), l_unk 10, lenv')) 
-                            (vdefs @ [dict]), 
-                   sk4)
-
-          *)
-
-          (* finally, we the dictionary *)
-          let m = Val_def dict_def
-          in
-            Some(env',[((m,s),l,lenv)])
+              Some(env',[((m,s),l,lenv)])
+          end
       | _ ->
           None
 

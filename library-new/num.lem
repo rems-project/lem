@@ -30,7 +30,7 @@ declare hol      target_rep type numeral = `num`
 declare coq      target_rep type numeral = `nat`
 declare ocaml    target_rep type numeral = `int` 
 
-class ( Numeral 'a ) 
+class inline ( Numeral 'a ) 
   val fromNumeral : numeral -> 'a 
 end
 
@@ -78,16 +78,8 @@ class ( NumSucc 'a )
   val succ : 'a -> 'a
 end
 
-default_instance forall 'a. Numeral 'a, NumAdd 'a => (NumSucc 'a) 
-  let succ n = n + 1
-end
-
 class ( NumPred 'a ) 
   val pred : 'a -> 'a
-end
-
-default_instance forall 'a. Numeral 'a, NumMinus 'a => (NumPred 'a) 
-  let pred n = n - 1
 end
 
 (* ========================================================================== *)

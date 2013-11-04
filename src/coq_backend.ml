@@ -640,7 +640,8 @@ let generate_coq_record_update_notation e =
                 ws skips; clauses inside_instance cs
               ]
       | Val_spec val_spec -> from_string "\n(* [?]: removed value specification. *)\n"
-      | Class (skips, skips', (name, l), tv, p, skips'', body, skips''') ->
+      | Class (Ast.Class_inline_decl (skips, _), _, _, _, _,_, _, _) -> ws skips
+      | Class (Ast.Class_decl skips, skips', (name, l), tv, p, skips'', body, skips''') ->
           let name = Name.to_output Term_var name in
           let tv =
             begin

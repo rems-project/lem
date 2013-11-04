@@ -491,7 +491,7 @@ type def_aux =
   | Indreln of lskips * targets_opt * indreln_name lskips_seplist * indreln_rule lskips_seplist
     (** Inductive relations *)
   | Val_spec of val_spec
-  | Class of lskips * lskips * name_l * tnvar * Path.t * lskips * class_val_spec list * lskips
+  | Class of Ast.class_decl * lskips * name_l * tnvar * Path.t * lskips * class_val_spec list * lskips
   | Instance of Ast.instance_decl * Types.instance_ref * instschm * val_def list * lskips
     (** [Instance (default?, instance_scheme, methods, sk2)] *)
   | Comment of def

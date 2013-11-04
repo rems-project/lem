@@ -2501,9 +2501,11 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
       flat (List.map (fun d -> def callback true (Val_def(d)) is_user_def) methods) ^
       ws s4 ^
       kwd "end"
-  | Class(s1,s2,(n,l), tv, class_path, s3, specs, s4) -> 
-      ws s1 ^
-      kwd "class" ^
+  | Class(cd,s2,(n,l), tv, class_path, s3, specs, s4) -> 
+      (match cd with
+	| Ast.Class_decl s1 -> (ws s1 ^ kwd "class")
+	| Ast.Class_inline_decl (s1a, s1b)  -> (ws s1a ^ kwd "class" ^ ws s1b ^ kwd "inline")
+      ) ^
       ws s2 ^
       kwd "(" ^
       Name.to_output Class_name n ^

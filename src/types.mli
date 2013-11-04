@@ -261,6 +261,7 @@ type class_descr = {
        (method_ref, field_ref). Details like the names and types can be looked up in the environment. *)
   class_rename : (Ast.l * Name.t) Target.Targetmap.t;
   class_target_rep : type_target_rep Target.Targetmap.t;
+  class_is_inline : bool
 }
 
 type tc_def = 
