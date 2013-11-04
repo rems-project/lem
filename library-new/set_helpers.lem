@@ -16,7 +16,7 @@
 
 open import Bool Basic_classes Maybe Function Num 
 
-declare ~{coq} rename module = lem_set_helper []
+declare {isabelle;hol;ocaml} rename module = lem_set_helpers []
 
 
 (* ------------------------ *)

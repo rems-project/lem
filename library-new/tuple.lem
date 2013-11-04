@@ -4,7 +4,7 @@
 
 (* The type for tuples (pairs) is hard-coded, so here only a few functions are used *)
 
-declare ~{coq} rename module = lem_tuple []
+declare {isabelle;hol;ocaml} rename module = lem_tuple []
 
 open import Bool Basic_classes
 

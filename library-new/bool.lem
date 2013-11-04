@@ -4,7 +4,7 @@
 
 (* rename module to clash with existing list modules of targets *)
 
-declare ~{coq} rename module = lem_bool []
+declare {isabelle;hol;ocaml} rename module = lem_bool 
 
 (* The type bool is hard-coded, so are true and false *)
 

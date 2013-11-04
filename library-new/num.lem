@@ -7,7 +7,7 @@
 (* rename module to clash with existing list modules of targets
    problem: renaming from inside the module itself! *)
 
-declare ~{hol; coq} rename module = lem_num
+declare {isabelle;ocaml} rename module = lem_num
 declare {hol} rename module = lem_num [`integerTheory`; `intReduce`; `lem_numTheory`]
 
 open import Bool Basic_classes 

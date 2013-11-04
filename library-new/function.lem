@@ -3,7 +3,8 @@
 (******************************************************************************)
 
 open import Bool Maybe Basic_classes
-declare rename module = lem_function
+
+declare {isabelle;hol;ocaml} rename module = lem_function
 
 (* ----------------------- *)
 (* identity function       *)

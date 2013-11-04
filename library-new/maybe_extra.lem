@@ -3,7 +3,7 @@
 (*                                                                            *)
 (******************************************************************************)
 
-declare ~{hol;ocaml} rename module = lem_maybe_extra []
+declare {isabelle} rename module = lem_maybe_extra []
 declare {hol} rename module = lem_maybe_extra [`optionTheory`]
 declare {ocaml} rename module = lem_maybe_extra [`Lem_maybe`]
 

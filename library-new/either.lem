@@ -6,7 +6,7 @@
 (* Header                                                                     *)
 (* ========================================================================== *)
 
-declare ~{ocaml;hol;coq} rename module = Lem_either []
+declare {isabelle} rename module = Lem_either []
 
 declare {ocaml} rename module = Lem_either [`Either`]
 declare {hol} rename module = Lem_either [`sumTheory`; `lem_eitherTheory`]

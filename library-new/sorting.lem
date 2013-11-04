@@ -10,7 +10,7 @@
 (* Header                                                                     *)
 (* ========================================================================== *)
 
-declare ~{coq} rename module = lem_sorting
+declare {isabelle;hol;ocaml} rename module = lem_sorting
 
 open import Bool Basic_classes Maybe List Num
 

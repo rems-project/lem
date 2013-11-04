@@ -11,8 +11,7 @@
 (* ========================================================================== *)
 
 
-declare ~{hol;ocaml;coq} rename module = Lem_list 
-declare {ocaml} rename module = Lem_list 
+declare {isabelle;ocaml} rename module = Lem_list 
 declare {hol} rename module = Lem_list [`listTheory`; `rich_listTheory`; `lem_listTheory`; `lem_numTheory`; `sortingTheory`]
 
 open import Bool Maybe Basic_classes Tuple Num
