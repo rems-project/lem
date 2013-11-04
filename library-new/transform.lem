@@ -28,7 +28,7 @@ let inline (<>) = (/=)
    best ajust the types manually or add wrappers 'relFromSet' and 
    'relToSet' as appropriate. *)
 val tc : forall 'a. set ('a * 'a) -> set ('a * 'a)
-declare lem target_rep function tc = `transitiveClosure`
+declare lem target_rep function tc = `Relation.transitiveClosure`
 
 
 
@@ -130,9 +130,7 @@ let inline {isabelle} nat_list_to_string = Isabelle.nat_list_to_string
 (* ========================================================================== *)
 
 module Set = struct
-  (* include the new set module and helpers *)
-  include Set_extra 
-  include Set_helpers 
+  include Set_extra   (* include the new set module *)
 
   let inline add = insert
   let inline for_all = all
@@ -144,6 +142,7 @@ module Set = struct
   let inline set_sigma = sigma
   let inline equal = setEqual
   let inline finite = Set.finite
+  let inline fold = Set_helpers.fold
 
 
   (* ----------------------- *)
