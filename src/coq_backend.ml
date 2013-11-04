@@ -1009,7 +1009,7 @@ let generate_coq_record_update_notation e =
       in
         Output.flat [
           ws name_skips; name; tv_set_sep; tv_set; constraints_sep; constraints; pat_skips;
-          fun_pattern_list inside_instance pats; typ_opt; ws skips; from_string ":= "; exp inside_instance e
+          fun_pattern_list inside_instance pats; ws skips; typ_opt; from_string ":= "; exp inside_instance e
         ]
     and funcl inside_instance i_ref_opt constraints tv_set ({term = n}, c, pats, typ_opt, skips, e) =
       let n =
@@ -1611,14 +1611,18 @@ let generate_coq_record_update_notation e =
             let body = flat @@ Seplist.to_sep_list pat_typ (sep @@ from_string "*") ts in
               from_string "(" ^ body ^ from_string ") % type"
         | Typ_app (p, ts) ->
-            snd @@ B.type_app_to_output pat_typ p ts
+            let (ts, head) = B.type_app_to_output pat_typ p ts in
+            let ts = concat_str " " @@ List.map pat_typ ts in
+              Output.flat [
+                head; from_string " "; ts
+              ]
         | Typ_paren(skips, t, skips') ->
             ws skips ^ from_string "(" ^ pat_typ t ^ ws skips' ^ from_string ")"
         | Typ_len nexp -> src_nexp nexp
         | Typ_backend (p, ts) ->
           let i = Path.to_ident (ident_get_lskip p) p.descr in
           let i = Ident.to_output Type_ctor path_sep i in
-          let ts = concat emp @@ List.map typ ts in
+          let ts = concat emp @@ List.map pat_typ ts in
             Output.flat [
               i; from_string " "; ts
             ]

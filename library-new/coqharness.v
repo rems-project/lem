@@ -11,6 +11,10 @@ Definition bool_of_Prop (P : Prop) : bool :=
 Definition classical_boolean_equivalence {a : Type} (l r : a) : bool :=
   bool_of_Prop (l = r).
 
+Notation " [] " := nil.
+Notation " [ x ] " := (cons x nil).
+Notation " [ x ; .. ; y ] " := (cons x .. (cons y nil) ..).
+
 Fixpoint nat_power (base exp: nat): nat :=
   match exp with
     | O => 1

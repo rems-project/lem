@@ -10,11 +10,12 @@
 (* Header                                                                     *)
 (* ========================================================================== *)
 
-declare rename module = lem_sorting
+declare ~{coq} rename module = lem_sorting
 
 open import Bool Basic_classes Maybe List Num
 
 open import {isabelle} `~~/src/HOL/Library/Permutation`
+open import {coq} `Coq.Lists.TheoryList`
 
 (* ------------------------- *)
 (* permutations              *)
@@ -70,10 +71,14 @@ lemma isPermutation_5 : (forall l1 l2. isPermutation l1 l2 --> (forall x. elem x
 val isSorted : forall 'a. Ord 'a => list 'a -> bool
 val isSortedBy : forall 'a. ('a -> 'a -> bool) -> list 'a -> bool
 
+(* DPM: rejigged the definition with a nested match to get past Coq's termination checker. *)
 let rec isSortedBy cmp l = match l with
   | [] -> true
-  | [_] -> true
-  | x1 :: x2 :: xs -> (cmp x1 x2 && isSortedBy cmp (x2 :: xs))
+  | x1 :: xs ->
+    match xs with
+      | [] -> true
+      | x2 :: _ -> (cmp x1 x2 && isSortedBy cmp xs)
+    end
 end
 declare termination_argument isSortedBy = automatic
 

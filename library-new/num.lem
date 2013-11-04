@@ -12,7 +12,7 @@ declare {hol} rename module = lem_num [`integerTheory`; `intReduce`; `lem_numThe
 
 open import Bool Basic_classes 
 open import {hol} `integerTheory` `intReduce`
-open import {coq} `Coq.ZArith.BinInt`
+open import {coq} `Coq.ZArith.BinInt` `Coq.ZArith.Zpower` `Coq.ZArith.Zdiv` `Coq.ZArith.Zmax`
 
 (* ========================================================================== *)
 (* Numerals                                                                   *)
@@ -653,7 +653,7 @@ val integerPow : integer -> nat -> integer
 declare hol      target_rep function integerPow = infix `**`
 declare ocaml    target_rep function integerPow = `Big_int.power_big_int_positive_int`
 declare isabelle target_rep function integerPow = infix `^`
-declare coq      target_rep function integerPow = `Coq.ZArith.BinInt.Zpower_nat`
+declare coq      target_rep function integerPow = `Coq.ZArith.Zpower.Zpower_nat`
 
 instance ( NumPow integer ) 
   let ( ** ) = integerPow
@@ -663,7 +663,7 @@ val integerDiv : integer -> integer -> integer
 declare hol      target_rep function integerDiv = infix `/`
 declare ocaml    target_rep function integerDiv = `Big_int.div_big_int`
 declare isabelle target_rep function integerDiv = infix `div`
-declare coq      target_rep function integerDiv = `Coq.ZArith.BinInt.Zdiv`
+declare coq      target_rep function integerDiv = `Coq.ZArith.Zdiv.Zdiv`
 
 instance ( NumIntegerDivision integer ) 
   let (div) = integerDiv
@@ -677,7 +677,7 @@ val integerMod : integer -> integer -> integer
 declare hol      target_rep function integerMod = infix `%`
 declare ocaml    target_rep function integerMod = `Big_int.mod_big_int`
 declare isabelle target_rep function integerMod = infix `mod`
-declare coq      target_rep function integerMod = `Coq.ZArith.BinInt.Zmod`
+declare coq      target_rep function integerMod = `Coq.ZArith.Zdiv.Zmod`
 
 instance ( NumRemainder integer ) 
   let (mod) = integerMod
@@ -687,13 +687,13 @@ val integerMin : integer -> integer -> integer
 let inline integerMin = defaultMin
 declare ocaml    target_rep function integerMin = `Big_int.min_big_int`
 declare hol      target_rep function integerMin = `int_min`
-declare coq      target_rep function integerMin = `Coq.ZArith.BinInt.Zmin`
+declare coq      target_rep function integerMin = `Zmin`
 
 val integerMax : integer -> integer -> integer
 let inline integerMax = defaultMax
 declare ocaml    target_rep function integerMax = `Big_int.max_big_int`
 declare hol      target_rep function integerMax = `int_max`
-declare coq      target_rep function integerMax = `Coq.ZArith.BinInt.Zmax`
+declare coq      target_rep function integerMax = `Zmax`
 
 instance ( OrdMaxMin integer ) 
   let max = integerMax

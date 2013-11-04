@@ -17,6 +17,7 @@ declare {hol} rename module = Lem_list [`listTheory`; `rich_listTheory`; `lem_li
 
 open import Bool Maybe Basic_classes Tuple Num
 
+open import {coq} `Coq.Lists.TheoryList`
 
 (* ========================================================================== *)
 (* Basic list functions                                                       *)
@@ -70,7 +71,7 @@ declare termination_argument length = automatic
 declare hol      target_rep function length = `LENGTH`
 declare ocaml    target_rep function length = `List.length`
 declare isabelle target_rep function length = `List.length`
-declare coq      target_rep function length = `List.length`
+declare coq      target_rep function length = `Length_l`
 
 assert length_0: (length ([]:list nat) = 0)
 assert length_1: (length ([2]:list nat) = 1)
@@ -191,7 +192,7 @@ declare termination_argument append = automatic
 declare hol      target_rep function append = infix `++`
 declare ocaml    target_rep function append = `List.append`
 declare isabelle target_rep function append = infix `@`
-declare coq      target_rep function append = infix `++`
+declare coq      target_rep function append = `app`
 
 assert append_1: ([0;1;2;3] ++ [4;5] = [(0:nat);1;2;3;4;5])
 lemma append_nil_1: (forall l. l ++ [] = l)
@@ -511,7 +512,11 @@ assert elemIndex_2 : (elemIndex (2:nat) [3;4;2;4;2] = Just 2)
 val genlist : forall 'a. (nat -> 'a) -> nat -> list 'a
 
 
-let rec genlist f n = if n = 0 then [] else snoc (f (n-1)) (genlist f (n-1))
+let rec genlist f n =
+  match n with
+    | 0 -> []
+    | n' + 1 -> snoc (f n') (genlist f n')
+  end
 declare termination_argument genlist = automatic
 
 assert genlist_0: (genlist (fun n -> n) 0 = [])
@@ -531,7 +536,11 @@ declare isabelle target_rep function genlist = `genlist`
 (* ------------------------- *)
 
 val replicate : forall 'a. nat -> 'a -> list 'a
-let rec replicate n x = if n = 0 then [] else x :: replicate (n-1) x
+let rec replicate n x =
+  match n with
+    | 0 -> []
+    | n' + 1 -> x :: replicate n' x
+  end
 declare termination_argument replicate = automatic
 
 declare isabelle target_rep function replicate = `List.replicate`
@@ -723,7 +732,8 @@ lemma find_not_in: (forall P l. (find P l = Nothing) = (not (any P l)))
 val lookup   : forall 'a 'b. Eq 'a              => 'a -> list ('a * 'b) -> maybe 'b
 val lookupBy : forall 'a 'b. ('a -> 'a -> bool) -> 'a -> list ('a * 'b) -> maybe 'b
 
-let lookupBy eq k m = Maybe.map snd (find (fun (k', _) -> eq k k') m)
+(* DPM: eta-expansion for Coq backend type-inference. *)
+let lookupBy eq k m = Maybe.map (fun x -> snd x) (find (fun (k', _) -> eq k k') m)
 let inline lookup = lookupBy (=)
 
 declare isabelle target_rep function lookup x l = `Map.map_of` l x
