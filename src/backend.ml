@@ -135,6 +135,14 @@ let string_escape_isa s =
   in
   String.iter check_char s; s
 
+let pat_add_op_suc suc n s1 s2 i = 
+  let rec suc_aux j = begin match j with
+        | 0 -> n
+        | _ -> kwd "(" ^ suc ^ suc_aux (j-1) ^ kwd ")"
+  end in
+  ws s1 ^ ws s2 ^ (suc_aux i)
+
+
 module type Target = sig
   val lex_skip : Ast.lex_skip -> Ulib.Text.t
   val need_space : Output.t' -> Output.t' -> bool
@@ -180,6 +188,7 @@ module type Target = sig
   val string_quote : Ulib.Text.t
   val string_escape : Ulib.UTF8.t -> Ulib.UTF8.t
   val const_num : int -> t
+  val const_num_pat : int -> t
   val const_char : char -> t
   val const_undefined : Types.t -> string -> t
   val const_bzero : t
@@ -227,7 +236,7 @@ module type Target = sig
   val setcomp_binding_middle : t
   val setcomp_sep : t
   val cons_op : t
-  val pat_add_op : t
+  val pat_add_op : t -> Ast.lex_skips -> Ast.lex_skips -> int -> t
   val set_sep : t
   val list_begin : t
   val list_end : t
@@ -387,6 +396,7 @@ module Identity : Target = struct
   let string_quote = r"\""
   let string_escape = String.escaped
   let const_num = num
+  let const_num_pat = num
   let const_char c = err "TODO: char literal"
   let const_undefined t m = (kwd "Undef") (* ^ (comment m) *)
   let const_bzero = kwd "#0"
@@ -433,7 +443,7 @@ module Identity : Target = struct
   let setcomp_binding_middle = kwd "|"
   let setcomp_sep = kwd "|"
   let cons_op = kwd "::"
-  let pat_add_op = kwd "+"
+  let pat_add_op n s1 s2 i =  n ^ ws s1 ^ (kwd "+") ^ ws s2 ^ const_num i
   let set_sep = kwd ";"
   let list_begin = kwd "["
   let list_end = kwd "]"
@@ -600,6 +610,7 @@ module Tex : Target = struct
   let string_quote = r"\""
   let string_escape = String.escaped
   let const_num = num
+  let const_num_pat = num
   let const_char c = err "TODO: char literal"
   let const_undefined t m = (tkwd "undefined")
   let const_bzero = kwd "#0"
@@ -650,7 +661,7 @@ module Tex : Target = struct
   let setcomp_binding_middle = texspace ^ kwd "|" ^ texspace
   let setcomp_sep = texspace ^ kwd "|" ^ texspace
   let cons_op = kwd "::"
-  let pat_add_op = kwd "+"
+  let pat_add_op n s1 s2 i =  n ^ ws s1 ^ kwd "+" ^ ws s2 ^ const_num i
   let set_sep = kwd ";\\,"
   let list_begin = kwd "["
   let list_end = kwd "]"
@@ -743,7 +754,7 @@ module Ocaml : Target = struct
   let pat_rec_end = kwd "}"
   let pat_wildcard = kwd "_"
 
-  let pat_add_op = err "add pattern in Ocaml"
+  let pat_add_op n s1 s2 i = err "add pattern in Ocaml"
 
   let function_start = kwd "(" ^ kwd "function"
   let function_end = kwd ")"
@@ -814,6 +825,7 @@ module Isa : Target = struct
   let string_quote = r"''"
   let string_escape = string_escape_isa
   let const_num i = num i
+  let const_num_pat i = pat_add_op_suc (kwd "Suc") (kwd "0") None None i
   let const_char c = err "TODO: char literal"
   let const_unit s = kwd "() " ^ ws s
   let const_empty s = kwd "{}" ^ ws s
@@ -866,7 +878,7 @@ module Isa : Target = struct
 
   let op_format use_infix = if use_infix then infix_op_format else id
 
-  let pat_add_op = err "add pattern in Isabelle"
+  let pat_add_op n s1 s2 i = pat_add_op_suc (kwd "Suc") n s1 s2 i
   let cons_op = kwd "#"
   let set_sep = kwd ","
 
@@ -1006,6 +1018,7 @@ module Hol : Target = struct
   let string_quote = r"\""
   let string_escape = string_escape_hol
   let const_num = num
+  let const_num_pat i = pat_add_op_suc (kwd "SUC") (kwd "0") None None i
   let const_char c = err "TODO: char literal"
   let const_undefined t m = (kwd "ARB") 
   let const_bzero = emp
@@ -1050,7 +1063,7 @@ module Hol : Target = struct
   let setcomp_binding_sep = kwd ","
   let setcomp_binding_middle = kwd "|"
   let setcomp_sep = kwd "|"
-  let pat_add_op = err "add pattern in Hol"
+  let pat_add_op n s1 s2 i = pat_add_op_suc (kwd "SUC") n s1 s2 i
   let cons_op = kwd "::"
   let set_sep = kwd ";"
   let list_begin = kwd "["
@@ -1196,12 +1209,12 @@ let bracket_many f s b1 b2 l =
         let (t', sk) = typ_alter_init_lskips (fun (s) -> (None,s)) t in
           ws sk ^ b1 ^ concat s (List.map f (t'::ts))  ^ b2
 
-let lit l t = match l.term with
+let lit l is_pat t = match l.term with
   | L_true(s) -> ws s ^ T.const_true
   | L_false(s) -> ws s ^ T.const_false
   | L_undefined(s,m) -> ws s ^ T.const_undefined t m
-  | L_num(s,i) -> ws s ^ T.const_num i
-  | L_numeral(s,i) -> ws s ^ T.const_num i
+  | L_num(s,i) -> ws s ^ (if is_pat then T.const_num_pat i else T.const_num i)
+  | L_numeral(s,i) -> ws s ^ (if is_pat then T.const_num_pat i else T.const_num i)
   | L_char(s,c) -> ws s ^ T.const_char c
   | L_string(s,i) -> ws s ^ str (Ulib.Text.of_string (T.string_escape i))
   | L_unit(s1,s2) -> ws s1 ^ T.const_unit s2
@@ -1430,14 +1443,9 @@ let rec pat p = match p.term with
       pat p2
 
   | P_num_add ((n, _),s1,s2,i) ->
-      (Name.to_output Term_var n) ^
-      ws s1 ^
-      T.pat_add_op ^
-      ws s2 ^
-      T.const_num i
-
+      T.pat_add_op ((Name.to_output Term_var n)) s1 s2 i
   | P_lit(l) ->
-      lit l (annot_to_typ p)
+      lit l true (annot_to_typ p)
 
   | P_var_annot(n,t) ->
       kwd "(" ^
@@ -1662,7 +1670,7 @@ match C.exp_to_term e with
       block (is_pp_exp e3) 0 (exp e3))
 
   | Lit(l) ->
-      lit l (exp_to_typ e)
+      lit l false (exp_to_typ e)
 
   | Set(s1,es,s2) -> 
       block is_user_exp 0 (

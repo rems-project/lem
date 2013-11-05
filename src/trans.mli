@@ -154,9 +154,6 @@ module Macros (E : sig val env : env end) : sig
   (** [remove_unit_pats] replaces unit-patterns [()] with wildcard ones [_]. *)
   val remove_unit_pats : pat_macro
 
-  (** Transforms num-patterns of the form [n] or [x + n] into [SUC (SUC ...)]. *)
-  val peanoize_num_pats : pat_macro 
-
   (** Add type annotations to pattern variables whose type contains a type variable
      (only add for arguments to top-level functions) *)
   val coq_type_annot_pat_vars : pat_macro

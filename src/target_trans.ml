@@ -141,7 +141,7 @@ let hol =
                                Patterns.compile_exp (Target_no_ident Target_hol) Patterns.is_hol_pattern_match env]);
               Pat_macros (fun env ->
                             let module T = T(struct let env = env end) in
-                              [T.peanoize_num_pats])
+                              [])
              ];
     extra = [(* (fun n -> Rename_top_level.rename_nested_module [n]);  
              (fun n -> Rename_top_level.rename_defs_target (Some Target_hol) consts fixed_renames [n]);*)
@@ -208,7 +208,7 @@ let isa  =
                        Patterns.compile_exp (Target_no_ident Target_isa) Patterns.is_isabelle_pattern_match env]);
       Pat_macros (fun env ->
                     let module T = T(struct let env = env end) in
-                      [T.peanoize_num_pats; T.remove_unit_pats])
+                      [T.remove_unit_pats])
      ];
     extra = [(* (fun n -> Rename_top_level.rename_nested_module [n]);
              Rename_top_level.flatten_modules; 

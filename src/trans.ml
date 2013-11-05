@@ -234,40 +234,6 @@ let string_lits_isa _ e =
   | _ -> None
 
 
-
-let suc_id_ref = ref None
-let get_suc_id l_unk =
-  match !suc_id_ref with
-    | Some suc -> suc
-    | None -> begin
-        let (suc, _) = get_const_id E.env l_unk "num_suc" [] in
-        let _ = suc_id_ref := Some suc in
-        suc
-      end
-
-let peanoize_num_pats _ _ p =
-  let l_unk = Ast.Trans(true, "peanoize_num_pats", Some p.locn) in 
-  let pean_pat s i p = begin   
-    let rec f i = if i = 0 then p else C.mk_pconst l_unk (get_suc_id l_unk) [f (i - 1)] None
-    in Pattern_syntax.mk_opt_paren_pat (pat_append_lskips s (f i))
-  end in
-  let string_to_comment s = Some([Ast.Com(Ast.Comment([Ast.Chars(Ulib.Text.of_latin1 s)]))]) in
-  match p.term with
-    | P_lit({ term = L_num(s,i)}) when i > 0 ->
-        let pat0 = C.mk_plit l_unk (C.mk_lnum l_unk None 0 nat_ty) None in
-        let com_ws = (Ast.combine_lex_skips s (string_to_comment (string_of_int i))) in
-        Some(pean_pat com_ws i pat0)
-    | P_num_add ((n,l), s1, s2, 0) -> 
-        let pat0 = C.mk_pvar l_unk n nat_ty in
-        let com_ws = Ast.combine_lex_skips s1 s2 in
-        Some(pat_append_lskips com_ws pat0)
-    | P_num_add ((n,l), s1, s2, i) -> 
-        let pat0 = C.mk_pvar l_unk n nat_ty in
-        let com_ws = Ast.combine_lex_skips s1 (Ast.combine_lex_skips s2 (string_to_comment ("_ + " ^ string_of_int i))) in
-        Some(pean_pat com_ws i pat0)
-    | _ -> None
-
-
 let remove_unit_pats _ _ p =
   let l_unk = Ast.Trans(true, "remove_unit_pats", Some p.locn) in
   match p.term with
