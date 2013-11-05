@@ -4,7 +4,7 @@
 (* It mainly follows the Haskell Maybe-library                                *)
 (******************************************************************************)
 
-declare ~{hol;ocaml} rename module = lem_maybe 
+declare ~{hol;ocaml;coq} rename module = lem_maybe 
 declare {hol} rename module = lem_maybe [`optionTheory`]
 declare {ocaml} rename module = lem_maybe []
 

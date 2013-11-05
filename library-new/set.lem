@@ -30,6 +30,11 @@ open import Bool Basic_classes Maybe Function Num Set_helpers
 
 declare {isabelle;hol;ocaml} rename module = lem_set
 
+(* DPM: sets currently implemented as lists due to mismatch between Coq type
+ * class hierarchy and the hierarchy implemented in Lem.
+ *)
+open import {coq} `Coq.Lists.TheoryList`
+
 (* Type of sets and set comprehensions are hard-coded *)
 
 (* ----------------------- *)
@@ -129,7 +134,7 @@ assert nin_4: not ((1:nat) NIN {1;2;1;3;1;4})
 val insert : forall 'a. Ord 'a => 'a -> set 'a -> set 'a (* before add *)
 
 declare ocaml    target_rep function insert = `Pset.add`
-declare coq      target_rep function insert = `set_insert`
+declare coq      target_rep function insert = `set_add`
 declare hol      target_rep function insert = `INSERT`
 declare isabelle target_rep function insert = `Set.insert`
 
@@ -510,6 +515,7 @@ declare ocaml    target_rep function sigmaBy = `Pset.sigma`
 let sigma sa sb = { (a, b) | a IN sa && b IN sb a }
 let inline {ocaml} sigma = sigmaBy compare
 declare isabelle target_rep function sigma = `Sigma`
+declare coq      target_rep function sigma = `set_sigma`
 
 assert Sigma_1: (sigma {(2:nat);3} (fun n -> {n*2; n * 3}) = {(2,4); (2,6); (3,6); (3,9)})
 lemma Sigma_2: (forall sa sb a b. ((a, b) IN sigma sa sb) <-> ((a IN sa) && (b IN sb a)))

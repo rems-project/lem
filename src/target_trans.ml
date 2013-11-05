@@ -220,6 +220,7 @@ let coq =
       coq_typeclass_resolution_macros (Target_no_ident Target_coq) @
       [Def_macros (fun env -> 
                     [M.type_annotate_definitions;
+                     M.comment_out_inline_instances;
                      M.remove_import_include;
                      M.opens_to_single;
                      M.remove_types_with_target_rep (Target_no_ident Target_coq);

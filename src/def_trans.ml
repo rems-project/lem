@@ -325,6 +325,17 @@ let class_to_record mod_path env (((d,s),l,lenv) as def) =
       | Class(Ast.Class_inline_decl _,_,_,_,_,_,_,_) -> Some (env, [comment_def def])
       | _ -> None
 
+let comment_out_inline_instances mod_path (env : env) ((d,s),l,lenv) =
+  let l_unk = Ast.Trans(false, "comment_out_inline_instances", Some l) in
+  match d with
+      | Instance(Ast.Inst_default sk1, i_ref, (prefix, sk2, id, class_path, t, sk3), vdefs, sk4) ->
+            Some(env,[])
+      | Instance(Ast.Inst_decl sk1, i_ref, (prefix, sk2, id, class_path, t, sk3), vdefs, sk4) ->
+          let id = i_env_lookup l_unk env.i_env i_ref in
+          let cd = lookup_class_descr l_unk env id.inst_class in
+          if cd.class_is_inline then Some(env,[]) else None
+      | _ -> None
+;;
 
 (* turns an instance declaration into a module containing all the field declarations
    and a dictionary at the end *)

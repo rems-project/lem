@@ -13,7 +13,7 @@ open import Bool Basic_classes Set
 (* rename module to clash with existing list modules of targets
    problem: renaming from inside the module itself! *)
 (*
-declare rename module = lem_relation
+declarerename module = lem_relation
 *)
 
 (* ========================================================================== *)
@@ -34,6 +34,7 @@ type rel_set 'a 'b = set ('a * 'b)
 type rel 'a 'b
 
 declare hol      target_rep type rel 'a 'b = ('a -> 'b -> bool)
+declare coq      target_rep type rel 'a 'b = ('a -> 'b -> bool)
 declare isabelle target_rep type rel 'a 'b = set ('a * 'b)
 
 val relToSet : forall 'a 'b. Ord 'a, Ord 'b => rel 'a 'b -> rel_set 'a 'b
