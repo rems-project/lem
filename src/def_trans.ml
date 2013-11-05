@@ -427,9 +427,9 @@ let class_constraint_to_parameter targ : def_macro = fun mod_path env ((d,s),l,l
   (* TODO : avoid shouldn't be None *)
     match d with
       | Val_def(lb) ->
-         let class_constraints = val_def_get_class_constraints_no_target_rep env targ lb in
-         if (class_constraints = []) then None else (
-         let new_pats =
+         let class_constraints_global = val_def_get_class_constraints_no_target_rep env targ lb in
+         if (class_constraints_global = []) then None else (
+         let pats_from_constraints class_constraints =
             List.map
               (fun (c,tnv) ->
                  let n = Typed_ast.class_path_to_dict_name c tnv in
@@ -442,7 +442,8 @@ let class_constraint_to_parameter targ : def_macro = fun mod_path env ((d,s),l,l
             (* update the constant description *)
             let (clauses', c_env') = Seplist.map_acc_left (fun ((n, c, ps, topt, sk2, e):funcl_aux) c_env -> 
               begin
-                let c_d = c_env_lookup l_unk c_env c  in
+                let c_d = c_env_lookup l_unk c_env c in
+                let new_pats = pats_from_constraints c_d.const_class in
   	        let (c', t', c_env') = 
                   match c_d.const_no_class with
 		    | Some c' -> 
