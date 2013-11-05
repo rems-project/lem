@@ -29,17 +29,17 @@ end
 
 val empty : forall 'k 'v. Ord 'k => map 'k 'v
 
-declare target_rep coq function empty = `map_empty`
+declare coq target_rep function empty = `map_empty`
 
 val null  : forall 'k 'v. Ord 'k => map 'k 'v -> bool
 
-declare target_rep coq function null = `map_is_empty`
+declare coq target_rep function null = `map_is_empty`
 
 lemma null_empty: (forall m. null m = (m = empty))
 
 val size  : forall 'k 'v. Ord 'k => map 'k 'v -> nat
 
-declare target_rep coq function size = `map_size`
+declare coq target_rep function size = `map_size`
 
 assert empty_null: (null (empty : map nat bool))
 assert empty_size: (size (empty : map nat bool) = 0)
@@ -52,7 +52,7 @@ assert equal_1: (mapEqual (empty : map nat bool) empty)
 
 val insert    : forall 'k 'v. Ord 'k => 'k -> 'v -> map 'k 'v -> map 'k 'v
 
-declare target_rep coq function insert = `map_add`
+declare coq target_rep function insert = `map_add`
 
 val singleton : forall 'k 'v. Ord 'k => 'k -> 'v -> map 'k 'v
 let singleton k v = insert k v empty
@@ -72,25 +72,19 @@ assert commutative_insert_2: (not (mapEqual
 
 val lookup          : forall 'k 'v. Ord 'k => map 'k 'v -> 'k -> maybe 'v
 
-declare target_rep coq function lookup = `map_lookup`
+declare coq target_rep function lookup = `map_lookup`
 
-assert lookup_insert_1: (lookup (insert (16 : nat) true empty) 16 )
-assert lookup_insert_3: (lookup (insert 36 false (insert (16 : nat) true empty)) 16 )
+assert lookup_insert_1: (lookup (insert (16 : nat) true empty) 16 = Just true)
+assert lookup_insert_3: (lookup (insert 36 false (insert (16 : nat) true empty)) 16 = Just false )
 
 val member          : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> bool
-
-declare target_rep coq function member = `map_member`
-
-assert member_insert_1: (member 16 (insert (16 : nat) true empty))
-assert member_insert_2: (not (member 25 (insert (16 : nat) true empty)))
-assert member_insert_3: (member 16 (insert 36 false (insert (16 : nat) true empty)))
 
 val notMember       : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> bool
 let inline notMember k m = not (member k m)
 
 val find            : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> maybe 'v
 
-declare target_rep coq function find = `map_find`
+declare coq target_rep function find = `map_find`
 
 val findWithDefault : forall 'k 'v. Ord 'k => 'k -> 'v -> map 'k 'v -> 'v
 let inline findWithDefault k v m = fromMaybe v (find k m)
@@ -106,6 +100,10 @@ let member k m = isJust (find k m)
 lemma member_empty : (forall k. not (member k empty))
 lemma member_insert: (forall k k' v m. member k (insert k' v m) = ((k = k') || member k m))
 
+declare coq target_rep function member = `map_member`
+assert member_insert_1: (member 16 (insert (16 : nat) true empty))
+assert member_insert_2: (not (member 25 (insert (16 : nat) true empty)))
+assert member_insert_3: (member 16 (insert 36 false (insert (16 : nat) true empty)))
  
  
 
@@ -115,34 +113,28 @@ lemma member_insert: (forall k k' v m. member k (insert k' v m) = ((k = k') || m
 
 val delete           : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> map 'k 'v
 
-declare target_rep coq function delete = `map_delete`
-
-assert delete_insert_1: (not (member (5 : nat) (delete 5 (insert 5 true empty))))
-assert delete_insert_2:      (member (7 : nat) (delete 5 (insert 5 true empty)))
-assert delete_delete: (null (delete (5 : nat) (delete (5 : nat) (insert 5 true empty))))
-
 val difference       : forall 'k 'v 'w. Ord 'k => map 'k 'v -> map 'k 'w -> map 'k 'v
 
-declare target_rep coq function difference = `map_difference`
+declare coq target_rep function difference = `map_difference`
 
 val intersection     : forall 'k 'v. Ord 'k => map 'k 'v -> map 'k 'v -> map 'k 'v
 
-declare target_rep coq function intersection = `map_intersection`
+declare coq target_rep function intersection = `map_intersection`
 
 val (union)          : forall 'k 'v. Ord 'k => map 'k 'v -> map 'k 'v -> map 'k 'v
 
-declare target_rep coq function (union) = `map_union`
+declare coq target_rep function (union) = `map_union`
 
 val unions           : forall 'k 'v. Ord 'k => list (map 'k 'v) -> map 'k 'v
-let inline unions = fold_right union map_empty
+let inline unions = foldr (union) empty
 
 val isSubmapOf       : forall 'k 'v. Ord 'k, Eq 'v => map 'k 'v -> map 'k 'v -> bool
 
-declare target_rep coq function isSubmapOf = `map_submap`
+declare coq target_rep function isSubmapOf = `map_submap`
 
 val isProperSubmapOf : forall 'k 'v. Ord 'k, Eq 'v => map 'k 'v -> map 'k 'v -> bool
 
-declare target_rep coq function difference = `map_proper_submap`
+declare coq target_rep function isProperSubmapOf = `map_proper_submap`
 
 (* -------------------------------------------------------------------------- *)
 (* Maps (in the functor sense).                                               *)
@@ -150,7 +142,7 @@ declare target_rep coq function difference = `map_proper_submap`
 
 val map             : forall 'k 'v 'w. Ord 'k => ('v -> 'w) -> map 'k 'v -> map 'k 'w
 
-declare target_rep coq function map = `map_map`
+declare coq target_rep function map = `map_map`
 
 val mapMaybe        : forall 'k 'v. Ord 'k => ('v -> maybe 'v) -> map 'k 'v -> map 'k 'v
 val mapMaybeWithKey : forall 'k 'v. Ord 'k => ('k -> 'v -> maybe 'v) -> map 'k 'v -> map 'k 'v
@@ -165,6 +157,12 @@ val updateWithKey   : forall 'k 'v. Ord 'k => ('k -> 'v -> maybe 'v) -> 'k -> ma
 let update f m = updateWithKey (fun k v -> f v) m
 
 let delete k m = update (fun v -> Nothing) k m
+
+declare coq target_rep function delete = `map_delete`
+
+assert delete_insert_1: (not (member (5 : nat) (delete 5 (insert 5 true empty))))
+assert delete_insert_2:      (member (7 : nat) (delete 5 (insert 5 true empty)))
+assert delete_delete: (null (delete (5 : nat) (delete (5 : nat) (insert 5 true empty))))
 
 
 (* -------------------------------------------------------------------------- *)
