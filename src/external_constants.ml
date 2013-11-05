@@ -71,7 +71,7 @@ match label with
   | "addition" -> (["Num"], "+")
   | "multiplication" -> (["Num"], "*")
   | "subtraction" -> (["Num"], "-")
-  | "less_equal" -> (["Num"], "<=")
+  | "less_equal" -> (["Basic_classes"], "<=")
   | "num_suc" -> (["Num"], "natSucc")
 
   | "list_concat" -> (["List"], "concat")

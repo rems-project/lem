@@ -171,6 +171,20 @@ let check_modules env modules =
   let _ = List.map check_module modules in
   ()
 
+let print_compile_messages env targ modules = begin
+  let modules' = List.filter (fun m -> m.Typed_ast.generate_output) modules in
+  let used_entities = Typed_ast_syntax.get_checked_modules_entities targ false modules' in
+
+  let print_const_ref c = begin
+    let cd = Typed_ast.c_env_lookup Ast.Unknown env.Typed_ast.c_env c in
+    match Target.Targetmap.apply_target cd.Typed_ast.compile_message targ with
+      | None -> ()
+      | Some m -> Reporting.report_warning env (Reporting.Warn_compile_message 
+          (cd.Typed_ast.spec_l, targ, cd.Typed_ast.const_binding, m))
+  end in
+  List.iter print_const_ref used_entities.Typed_ast_syntax.used_consts
+end
+
 
 (* Do the transformations for a given target *)
 let per_target libpath isa_thy (out_dir : string option) modules env alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum targ =
@@ -189,6 +203,8 @@ let per_target libpath isa_thy (out_dir : string option) modules env alldoc_accu
     in     
  
     let _ = Reporting.warnings_active := true in
+
+    let _ = print_compile_messages env targ modules in
 
     (* perform renamings *)
     let used_entities = Typed_ast_syntax.get_checked_modules_entities targ false transformed_m in

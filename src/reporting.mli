@@ -96,6 +96,9 @@ type warning =
   | Warn_no_decidable_equality of Ast.l * string 
     (** no decidable equality *)
 
+  | Warn_compile_message of Ast.l * Target.target * Path.t * string
+    (** [Warn_compile_message (l, target, c, m)] warns using constant [c] form target [target]. *)
+
   | Warn_import of Ast.l * string * string
     (** [Warn_import (l, module_name, file_name)] warns about auto-importing module [module_name] from [file_name]. *)
 

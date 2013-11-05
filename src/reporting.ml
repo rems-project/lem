@@ -69,6 +69,7 @@ type warning =
   | Warn_fun_clauses_resorted of Ast.l * Target.target * string list * Typed_ast.def
   | Warn_record_resorted of Ast.l * Typed_ast.exp
   | Warn_no_decidable_equality of Ast.l * string
+  | Warn_compile_message of Ast.l * Target.target * Path.t * string
   | Warn_import of Ast.l * string * string
   | Warn_overriden_instance of Ast.l * Types.src_t * Types.instance
 
@@ -127,6 +128,14 @@ let dest_warning_common (verbose: bool) (w : warning) : (bool * Ast.l * string) 
                   "class '%s' has already been instantiated for type '%s' at\n    %s" 
                   class_name type_name loc_org in
       Some (true, l, msg)
+
+  | Warn_compile_message (l, targ, c, m) -> 
+      let const_name =  Path.to_string c in
+      let target_s = (Target.target_to_string targ) in
+      let msg = Format.sprintf 
+                  "compile message for constant '%s' and target '%s'\n    %s" 
+                  const_name target_s m in
+      Some (false, l, msg)
   | _ -> None
 
 let dest_warning_basic (verbose: bool) (w : warning) : (bool * Ast.l * string) option = 
@@ -232,6 +241,7 @@ let warn_ref_rec_resort       = ref Level_Warn;;
 let warn_ref_no_decidable_eq  = ref Level_Ignore;;
 let warn_ref_import           = ref Level_Ignore;;
 let warn_ref_inst_override    = ref Level_Ignore;;
+let warn_ref_compile_message  = ref Level_Warn;;
 
 (* a list of all these references *)
 let warn_refL = [
@@ -257,6 +267,7 @@ let warn_level = function
   | Warn_no_decidable_equality _ ->             !warn_ref_no_decidable_eq
   | Warn_import _ ->                            !warn_ref_import
   | Warn_overriden_instance _ ->                !warn_ref_inst_override
+  | Warn_compile_message _ ->                   !warn_ref_compile_message
 
 let ignore_pat_compile_warnings () = (warn_ref_pat_comp := Level_Ignore)
 
@@ -275,6 +286,7 @@ let warn_opts_aux = [
    ("pat_red",     [warn_ref_pat_red; warn_ref_def_red],       "redundant patterns");
    ("pat_comp",    [warn_ref_pat_comp],                        "pattern compilation");
    ("resort",      [warn_ref_fun_resort; warn_ref_rec_resort], "resorted record fields and function clauses");
+   ("comp_message",[warn_ref_compile_message],                 "compile messages");
    ("no_dec_eq",   [warn_ref_no_decidable_eq],                 "equality of type is undecidable");
    ("auto_import", [warn_ref_import],                          "automatically imported modules");
    ("inst_over",   [warn_ref_inst_override],                   "overriden instance declarations");
