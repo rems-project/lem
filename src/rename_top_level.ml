@@ -136,6 +136,12 @@ let rename_constant (targ : Target.non_ident_target) (consts : NameSet.t) (const
     (is_auto_renamed, is_renamed, n'')
   end in
 
+  let check_module_in_output () = begin
+     match (Path.get_module_path c_d.const_binding) with
+       | None -> true
+       | Some mp -> (e_env_lookup l env.e_env mp).mod_in_output
+  end in
+
   (* rename constant name *)
   let (consts_new, env) = if (not is_shown) then (consts_new, env) else begin
     let (is_auto_renamed, is_renamed, n_new) = compute_new_name n in
@@ -147,7 +153,7 @@ let rename_constant (targ : Target.non_ident_target) (consts : NameSet.t) (const
     begin
       let (c_d', via_opt) = constant_descr_rename targ n_new l c_d in
       (* print warning *)
-      let _ = (if (not is_auto_renamed) then () else 
+      let _ = (if (not is_auto_renamed) || not (check_module_in_output ()) then () else 
         let n_org : string = Name.to_string (Path.get_name c_d.const_binding) in
         (Reporting.report_warning env (Reporting.Warn_rename (c_d.spec_l, n_org, Util.option_map (fun (l, n) -> (Name.to_string n, l)) via_opt, Name.to_string n_new, Target_no_ident targ))))
       in

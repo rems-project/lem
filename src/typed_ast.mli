@@ -269,9 +269,10 @@ and mod_target_rep =
   | MR_target_modules of Ast.l * Name.t * string list (** Rename the module and add some target modules to open
       instead *)
 
-and mod_descr = { mod_binding : Path.t; (** The full path of this module *)
-                  mod_env : local_env;  (** The local environment of the module *)
+and mod_descr = { mod_binding    : Path.t; (** The full path of this module *)
+                  mod_env        : local_env;  (** The local environment of the module *)
                   mod_target_rep : mod_target_rep Target.Targetmap.t; (** how to represent the module for different backends *)
+                  mod_in_output  : bool (** is this module written to a file (true) or an existing file used (false) ? *) 
 }
 
 and exp

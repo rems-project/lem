@@ -3,18 +3,18 @@ open import Pervasives_extra
 type t = <| fn : nat |>
 type t2 = <| X : nat |>
 
-let X = <| fn = 2 |>
+let X = <| fn = (2:nat) |>
 
 type u = | fn
 
 module X = struct 
-  let Y = 1
+  let Y = (1:nat)
 end
 
 let _ = X . fn 
 
 module Y = struct
-  let Z = 1
+  let Z = (1:nat)
 end
 
 let _ = Y.Z
@@ -24,9 +24,9 @@ let F Y = Y . fn
 module Z = struct
   type m = <| F : nat |>
   type t = <| fn : m |>
-  let x1 = <| fn = <| F = 2 |> |>
+  let x1 = <| fn = <| F = (2:nat) |> |>
   module F = struct
-    let _ = 1
+    let _ = (1:nat)
   end
 end
 

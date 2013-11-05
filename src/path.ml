@@ -139,5 +139,8 @@ let to_name p = match to_name_list p with
 
 let get_name p = match to_name_list p with (_,x) -> x
 
-
+let get_module_path p =
+  let (ms, _) = to_name_list p in
+  if (Util.list_null ms) then None else
+  Some (mk_path_list ms)
 

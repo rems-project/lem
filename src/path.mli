@@ -61,6 +61,12 @@ val mk_path : Name.t list -> Name.t -> t
     [mk_path ns n]. It fails, if [names] is empty. *)
 val mk_path_list : Name.t list -> t
 
+(** [get_module_path p] returns the module path of path [p]. If
+    if is a path of an identifier [m0. ... . mn . f], then [get_module]
+    returns the module path [m0. ... . mn]. If the path does not have
+    a module prefix, i.e. if it is a single name [f], [None] is returned. *)
+val get_module_path : t -> t option
+
 val natpath : t
 val listpath : t
 val vectorpath : t

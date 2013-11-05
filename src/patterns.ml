@@ -378,6 +378,7 @@ let trivial_pat_matrix_to_exp (m : pat_matrix) : exp =
         extended_exp_to_exp ee'  
   | _ -> raise (match_compile_unreachable "trivial matrix is empty")
 
+
 (******************************************************************************)
 (* Simplifications of the matrix                                              *)
 (******************************************************************************)
@@ -1552,20 +1553,13 @@ let rec collapse_nested_matches mca env exp =
 (* Do the compilation for matches                                             *)
 (******************************************************************************)
 
-let rec pat_matrix_compile (l : Ast.l) (undef_exp : exp) (cf : matrix_compile_fun) (m : pat_matrix) : exp =
-  (* simplify matrix *)
-  let m_simp = pat_matrix_simps l m in
-
-  if (is_empty_pat_matrix m_simp) then
-     undef_exp
-  else if (is_trivial_pat_matrix m_simp) then
-     trivial_pat_matrix_to_exp m_simp
-  else begin
-    let col_no = pat_matrix_compile_find_col m_simp in
-    let (top_fun, mL) = pat_matrix_compile_step cf col_no m_simp in
-    let eL = List.map (fun (_, m) -> pat_matrix_compile l undef_exp cf m) mL in
-    top_fun eL
-  end
+let is_supported_pat_matrix loc mca env m = 
+  (List.for_all (mca.pat_OK env) (pat_matrix_pats m)) &&  
+    (match check_match_exp env (pat_matrix_to_exp loc env m) with None -> false | Some mp -> begin
+    (List.for_all (mca.pat_OK env) (List.flatten mp.missing_pats)) &&
+    (mp.is_exhaustive || mca.allow_non_exhaustive) &&
+    (mp.redundant_pats = [] || mca.allow_redundant)
+  end)
 
 let cleanup_match_exp env add_missing e = 
   let l = exp_to_locn e in 
@@ -1612,6 +1606,22 @@ let cleanup_match_exp env add_missing e =
   | _ -> None
 
 
+let rec pat_matrix_compile (l : Ast.l) mca env (undef_exp : exp) (cf : matrix_compile_fun) (m : pat_matrix) : exp =
+  (* simplify matrix *)
+  let m_simp = pat_matrix_simps l m in
+  if (is_empty_pat_matrix m_simp) then
+     undef_exp
+  else if (is_trivial_pat_matrix m_simp) then
+     trivial_pat_matrix_to_exp m_simp
+  else if (is_supported_pat_matrix l mca env m_simp) then
+     pat_matrix_to_exp l env m_simp
+  else begin
+    let col_no = pat_matrix_compile_find_col m_simp in
+    let (top_fun, mL) = pat_matrix_compile_step cf col_no m_simp in
+    let eL = List.map (fun (_, m) -> pat_matrix_compile l mca env undef_exp cf m) mL in
+    top_fun eL
+  end
+
 let compile_match_exp topt mca env e = 
   let cfL = List.map (fun cf -> cf true env) (get_target_compile_funs topt) in
   let loc = exp_to_locn e in
@@ -1634,7 +1644,7 @@ let compile_match_exp topt mca env e =
           let loc' = Ast.Trans (true, "pat_matrix_compile", Some loc) in
           mk_undefined_exp loc' mes matrix_ty 
         end in
-        let e' = pat_matrix_compile loc undef_exp cf m in
+        let e' = pat_matrix_compile loc mca env undef_exp cf m in
         let e'' = Util.option_default e' (collapse_nested_matches mca env e') in
         let com = lskips_only_comments [case_exp_extract_lskips e] in
         let e''' = append_lskips com e'' in

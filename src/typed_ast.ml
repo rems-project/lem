@@ -182,9 +182,10 @@ and mod_target_rep =
   | MR_rename of Ast.l * Name.t
   | MR_target_modules of Ast.l * Name.t * string list
 
-and mod_descr = { mod_binding : Path.t;
-                  mod_env : local_env; 
-                  mod_target_rep : mod_target_rep Targetmap.t; }
+and mod_descr = { mod_binding    : Path.t;
+                  mod_env        : local_env; 
+                  mod_target_rep : mod_target_rep Targetmap.t;
+                  mod_in_output  : bool }
 
 and exp = (exp_aux,exp_annot) annot
 (* We keep typ with the subst applied, and term and free without, we also only

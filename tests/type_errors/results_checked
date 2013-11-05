@@ -154,28 +154,28 @@ let f (_ as X) = match 1 with | (X 1) -> 1 end
 File "test.lem", line 4, character 34 to line 4, character 34
   Type error: non-constructor pattern given arguments: X
 ================================================================================
-let f <| fld = 1 |> = 1
+let f <| fld = (1:nat) |> = (1:nat)
 
 --------------------------------------------------------------------------------
 File "test.lem", line 3, character 10 to line 3, character 12
   Type error: unbound field name: fld
 ================================================================================
 type t = | fld
-let f <| fld = 1 |> = 1
+let f <| fld = (1:nat) |> = (1:nat)
 
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 10 to line 4, character 12
   Type error: constructor name used as a field name: fld
 ================================================================================
-let fld = 1
-let f <| fld = 1 |> = 1
+let fld = (1:nat)
+let f <| fld = (1:nat) |> = (1:nat)
 
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 10 to line 4, character 12
   Type error: top level variable binding used as a field name: fld
 ================================================================================
 class (c 'a) val fld : nat end
-let f <| fld = 1 |> = 1
+let f <| fld = (1:nat) |> = (1:nat)
 
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 10 to line 4, character 12
@@ -223,14 +223,14 @@ let _ = M.x
 File "test.lem", line 3, character 9 to line 3, character 9
   Type error: unbound module name or variable: M
 ================================================================================
-module M = struct let y = 10 end
+module M = struct let y = (10:nat) end
 let _ = M.x
 
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 11 to line 4, character 11
   Type error: unbound variable: M.x
 ================================================================================
-module M = struct let y = 10 end
+module M = struct let y = (10:nat) end
 let _ = M.N.x
 
 --------------------------------------------------------------------------------
@@ -250,21 +250,21 @@ let _ = fun x x -> x
 File "test.lem", line 3, character 13 to line 3, character 13
   Type error: duplicate binding: x
 ================================================================================
-let _ = <| fld = 1 |>
+let _ = <| fld = (1:nat) |>
 
 --------------------------------------------------------------------------------
 File "test.lem", line 3, character 12 to line 3, character 14
   Type error: unbound field name: fld
 ================================================================================
 type t = | fld
-let _ = <| fld = 1 |>
+let _ = <| fld = (1:nat) |>
 
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 12 to line 4, character 14
   Type error: constructor name used as a field name: fld
 ================================================================================
-let fld = 1
-let _ = <| fld = 1 |>
+let fld = (1 : nat)
+let _ = <| fld = (1:nat) |>
 
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 12 to line 4, character 14
@@ -664,7 +664,7 @@ type u = | C
 File "test.lem", line 4, character 12 to line 4, character 12
   Type error: duplicate constructor definition: C
 ================================================================================
-let C = 1
+let C = (1:nat)
 type u = | C
 
 --------------------------------------------------------------------------------
@@ -794,36 +794,36 @@ val x : nat
 File "test.lem", line 4, character 5 to line 4, character 5
   Type error: specified variable already defined as a class method: x
 ================================================================================
-let x = 10
+let x = (10 : nat)
 val x : nat
 
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 5 to line 4, character 5
   Type error: specified variable already defined as a top-level variable binding: x
 ================================================================================
-let {hol} x = 10
+let {hol} x = (10 : nat)
 val x : nat
 
 --------------------------------------------------------------------------------
 File "test.lem", line 3, character 11 to line 3, character 11
   Type error: target-specific definition without preceding 'val' specification: x
 ================================================================================
-let x = 1
-let x = 2
+let x = (1 : nat)
+let x = (2 : nat)
 
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 5 to line 4, character 5
   Type error: defined variable 'x' is already defined for all targets
 ================================================================================
 class (c 'a) val x : nat end
-let x = 1
+let x = (1 : nat)
 
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 5 to line 4, character 5
   Type error: defined variable 'x' is already defined for all targets
 ================================================================================
 type t = |x
-let x y = 1
+let x y = (1 : nat)
 
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 5 to line 4, character 5
@@ -844,14 +844,14 @@ let x = 2
 File "test.lem", line 3, character 11 to line 3, character 11
   Type error: target-specific definition without preceding 'val' specification: x
 ================================================================================
-let x = 1
-let rec y 1 = 1 and x 1 = 1
+let x = (1 : nat)
+let rec y (1 : nat) = (1 : nat) and x (1:nat) = (1:nat)
 
 --------------------------------------------------------------------------------
-File "test.lem", line 4, character 21 to line 4, character 21
+File "test.lem", line 4, character 37 to line 4, character 37
   Type error: defined variable 'x' is already defined for all targets
 ================================================================================
-let x = 1
+let x = (1:nat)
 indreln [ x : forall 'a. 'a -> bool ] arm : forall y. true ==> x y
 
 --------------------------------------------------------------------------------
@@ -911,8 +911,8 @@ module Y = X
 File "test.lem", line 5, character 8 to line 5, character 8
   Type error: duplicate module definition: Y
 ================================================================================
-module X = struct let Y = 1 end
-module Y = struct let Z = 1 end
+module X = struct let Y = (1:nat) end
+module Y = struct let Z = (1:nat) end
 module X = Y
 
 --------------------------------------------------------------------------------
@@ -984,7 +984,7 @@ class (c 'a) val x : 'a val x : 'a end
 File "test.lem", line 3, character 29 to line 3, character 29
   Type error: duplicate class method definition: x
 ================================================================================
-let x = 1
+let x = (1:nat)
 class (c 'a) val x : 'a end
 
 --------------------------------------------------------------------------------

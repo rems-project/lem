@@ -1,6 +1,6 @@
 open import Pervasives_extra
 
-module M = struct let v = 1 end
+module M = struct let v = (1:nat) end
 type t = | C1 | C2 of nat | C3 of nat * nat | C4 of nat * nat * nat * nat
 type t2= <| fn1 : nat|>
 type t3 = <|fn2 : nat ; fn3 : nat|>
@@ -20,17 +20,17 @@ let test8 = fun y -> y
 
 let test9 = fun y z -> y z
 
-let test10 = function [1] -> [1]
+let test10 = function [(1:nat)] -> [1]
  | [x] -> [x]
  | x -> x 
 end
 
-let test11 = function | [1] -> 1 end 
+let test11 = function | [(1:nat)] -> (1:nat) end 
 
-let test12 = f 1
+let test12 = f (1:nat)
 
-let test13 = 1 + 1
-let test14 = (+) 1 2
+let test13 = (1:nat) + 1
+let test14 = (1:nat) + 2
 
 let test15 = <| fn1 = 1 |>
 let test16 = <| fn1 = 2 ; |>
@@ -44,42 +44,42 @@ let test22 = <| test17 with fn2 = 5 ; fn3 = 6 |>
 
 let test23 = test15 . fn1
 
-let test24 = match [1] with [] -> [] end
-let test25 = match [1] with [] -> [] end
-let test26 = match [1] with [] -> [] 
- | [1] -> [1] end
+let test24 = match [(1:nat)] with [] -> [] end
+let test25 = match [(1:nat)] with [] -> [] end
+let test26 = match [(1:nat)] with [] -> [] 
+ | [1] -> [(1:nat)] end
 let test27 = match [] with | [] -> []
- | [1] -> [1] end
+ | [(1:nat)] -> [(1:nat)] end
 
 let test28 = ( 1 : nat )
 
-let test29 = let x = 1 in x
+let test29 = let x = (1:nat) in x
 let test30 = let x : nat = 1 in x
 
-let test31 = let x _ = 1 in x
-let test32 = let x _ x = 1 in x
-let test63 = let x _ : nat = 1 in x
+let test31 = let x _ = (1:nat) in x
+let test32 = let x _ x = (1:nat) in x
+let test63 = let x _ : nat = (1:nat) in x
 
-let test33 = ( 1, 2 )
-let test34 = ( 1, 2, 3 )
+let test33 = ( (1:nat), (2:nat) )
+let test34 = ( (1:nat), (2:nat), (3:nat) )
 
 let test35 = []
-let test36 = [1]
-let test37 = [1 ; ]
-let test38 = [1 ; 2]
-let test39 = [1 ; 2 ; ]
+let test36 = [(1:nat)]
+let test37 = [(1:nat) ; ]
+let test38 = [1 ; (2:nat)]
+let test39 = [(1:nat) ; 2 ; ]
 
-let test40 = ( 1 )
+let test40 = ( (1:nat) )
 
-let test41 = begin 1 end
+let test41 = begin (1:nat) end
 
-let test42 = if true then 1 else 2
+let test42 = if true then (1:nat) else 2
 
-let test43 = 1 :: [ ]
+let test43 = (1:nat) :: [ ]
 
 let test44 = true
 let test45 = false
-let test46 = 1
+let test46 = (1:nat)
 let test47 = "123"
 let test64 = ( )
 
@@ -88,11 +88,11 @@ let test49 = { x | forall x | true }
 let test50 = { ( x,y ) | forall x y | true }
 let test51 s1 s2 = { ( x,y ) | forall ( x IN s1 ) ( y MEM s2 ) | true }
 
-let test52 = { 1 ; 2 }
+let test52 = { 1 ; (2:nat) }
 let test53 = { }
-let test54 = { 1 ; }
-let test55 = { 1 }
-let test56 = { 1 ; 2 ; }
+let test54 = { (1:nat) ; }
+let test55 = { (1:nat) }
+let test56 = { (1:nat) ; 2 ; }
 
 let test57 = forall x . x
 let test58 = exists x y . x 
@@ -136,4 +136,4 @@ let test81 v _ = v.[''y]
 let test82 = test81 0b01010101 0b00
 *)
 
-let test83 = 3 >= 2
+let test83 = 3 >= (2:nat)

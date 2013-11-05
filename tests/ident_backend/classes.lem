@@ -55,7 +55,7 @@ module Y = struct
 end
 
 module Z = struct
-  let f x = X.equal 1 x
+  let f x = X.equal (1:nat) x
 end
 
 class (V ''n)

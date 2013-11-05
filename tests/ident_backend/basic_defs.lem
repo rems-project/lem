@@ -1,8 +1,8 @@
 open import Pervasives_extra 
 
-let test1 = 1
+let test1 = (1:nat)
 let test2 : nat = 1
-let test3 _ = 1 ;;
+let test3 _ = (1:nat) ;;
 let test4 _ x0 = test2
 
 let rec test5 [] = true 
@@ -10,7 +10,7 @@ and test5 ( x0 :: y0 ) : bool = test6 y0
 and test6 [] = false 
 and test6 ( x0 :: y0 ) = test5 y0
 
-let rec test7 x0 = 10
+let rec test7 x0 = (10:nat)
 
 val test8 : nat
 let test8 = 1
@@ -30,9 +30,9 @@ call : forall x r .
 r x x ==> tc2 r x x
 
 module M = struct
-  let x = 1
+  let x = (1:nat)
   module N = struct
-    let y = x + 1
+    let y = x + (1:nat)
   end
 
   let z = x + N.y

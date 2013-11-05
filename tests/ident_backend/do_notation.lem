@@ -15,12 +15,12 @@ end
 let test1 = 
   do M
   in
-    M.return 4
+    M.return (4:nat)
   end
 
 let test2 =
   do M
-    x <- M.return 1 ;
+    x <- M.return (1:nat) ;
     y <- Nothing ;
   in
     y
@@ -29,14 +29,14 @@ end
 let test3 =
   do M
     y <- Nothing ;
-    x <- M.return 1 ;
+    x <- M.return (1:nat) ;
   in
     y
 end
 
 let test4 = 
   do M
-    x <- M.return 1 ;
+    x <- M.return (1:nat) ;
     y <- M.return (x + 1) ;
   in 
     M.return (x + y)
@@ -55,7 +55,7 @@ let test5 =
 let test6 f x =
   do M
     x <- f x ;
-    y <- f (x + 4) ;
+    y <- f (x + (4:nat)) ;
   in
     f (x + y)
   end

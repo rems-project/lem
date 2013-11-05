@@ -20,6 +20,9 @@ type defn_ctxt = {
   (* The target-reps of current top-level module. *)
   ctxt_mod_target_rep: Typed_ast.mod_target_rep Target.Targetmap.t;
 
+  (* does the module apear in output ? *)
+  ctxt_mod_in_output : bool;
+
   (* The current value/function/module/field/type_name environment *)
   cur_env : Typed_ast.local_env;
 
