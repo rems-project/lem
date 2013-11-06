@@ -3013,7 +3013,7 @@ let defs_to_extra_aux gf (ds:def list) =
            | Target_no_ident Target_ocaml -> F'.ocaml_def_extra gf d l 
            | _ -> emp
          end 
-       y)
+       )
       ds 
     emp 
 
