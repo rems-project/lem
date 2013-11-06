@@ -88,9 +88,11 @@ declare ocaml target_rep function LT = `-1`
 declare ocaml target_rep function EQ = `0`
 declare ocaml target_rep function GT = `1`
 
-let orderingIsLess r    = (match r with LT -> true | _ -> false end)
-let orderingIsGreater r = (match r with GT -> true | _ -> false end)
-let orderingIsEqual r   = (match r with EQ -> true | _ -> false end)
+let orderingIsLess r       = (match r with LT -> true | _ -> false end)
+let orderingIsGreater r    = (match r with GT -> true | _ -> false end)
+let orderingIsEqual r      = (match r with EQ -> true | _ -> false end)
+let inline orderingIsLessEqual r  = not (orderingIsGreater r)
+let inline orderingIsGreaterEqual r  = not (orderingIsLess r)
 
 let ordering_cases r lt eq gt =
   if orderingIsLess r then lt else

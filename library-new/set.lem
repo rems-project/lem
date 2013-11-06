@@ -26,7 +26,7 @@
 (* Header                                                                     *)
 (* ========================================================================== *)
 
-open import Bool Basic_classes Maybe Function Num Set_helpers
+open import Bool Basic_classes Maybe Function Num List Set_helpers
 
 declare {isabelle;hol;ocaml} rename module = lem_set
 
@@ -49,6 +49,26 @@ declare ocaml    target_rep function setEqual = `Pset.equal`
 instance forall 'a. Ord 'a => (Eq (set 'a))
   let (=) = setEqual
 end
+
+
+
+(* ----------------------- *)
+(* compare                 *)
+(* ----------------------- *)
+
+val setCompare : forall 'a. Ord 'a => set 'a -> set 'a -> ordering
+
+let ~{ocaml} setCompare = defaultCompare
+declare ocaml target_rep function setCompare = `Pset.compare`
+
+instance forall 'a. Ord 'a => (Ord (set 'a))
+  let compare = setCompare
+  let (<) x y  = orderingIsLess (setCompare x y)
+  let (<=) x y = orderingIsLessEqual (setCompare x y)
+  let (>) x y  = orderingIsGreater (setCompare x y)
+  let (>=) x y = orderingIsGreaterEqual (setCompare x y)
+end
+
 
 
 (* ----------------------- *)
@@ -412,6 +432,28 @@ assert union_1: ({(1:nat);2;3} union {3;2;4} = {1;2;3;4})
 lemma union_in: (forall e s1 s2. e IN (s1 union s2) <-> (e IN s1 || e IN s2))
 
 
+
+(* ------------------------ *)
+(* bigunion                 *)
+(* ------------------------ *)
+
+val bigunion : forall 'a. Ord 'a => set (set 'a) -> set 'a
+val bigunionBy : forall 'a. ('a -> 'a -> ordering) -> set (set 'a) -> set 'a
+
+let bigunion bs = {x | forall (s IN bs) (x IN s) | true}
+
+declare ocaml    target_rep function bigunionBy = `Pset.bigunion`
+let inline {ocaml} bigunion = bigunionBy compare
+declare hol      target_rep function bigunion = `BIGUNION`
+declare isabelle target_rep function bigunion = `\<Union>`
+
+assert bigunion_0: (bigunion {{(1:nat)}} = {1})
+assert bigunion_1: (bigunion {{(1:nat);2;3} ; {3;2;4}} = {1;2;3;4})
+assert bigunion_2: (bigunion {{(1:nat);2;3} ; {3;2;4}; {}} = {1;2;3;4})
+assert bigunion_3: (bigunion {{(1:nat);2;3} ; {3;2;4}; {5}} = {1;2;3;4;5})
+lemma bigunion_in: (forall e bs. e IN bigunion bs <-> (exists s. s IN bs && e IN s))
+
+
 (* ------------------------ *)
 (* difference               *)
 (* ------------------------ *)
@@ -552,54 +594,3 @@ let inline {ocaml;coq} finite _s = true
 declare hol      target_rep function finite = `FINITE`
 declare isabelle target_rep function finite = `finite`
 
-
-(* ------------------------ *)
-(* finite                   *)
-(* ------------------------ *)
-
-
-(* NOT DONE AFTER THIS POINT, PLEASE IGNORE 
-
-val to_list : forall 'a. set 'a -> list 'a
-let inline {ocaml} to_list = Ocaml.Pset.elements
-let inline {hol} to_list = Hol.SET_TO_LIST
-let inline {coq} to_list = Coq.set_to_list
-let inline {isabelle} to_list = Isabelle.list_of_set
-
-val compare: forall 'a. set 'a -> set 'a -> nat
-let inline {coq} compare = Coq.set_compare
-
-(* least fix point. The operation 
-   lfp s f applies to f and gets a set s`.
-   If s` contains new elements they are added to s and
-   the process repeats. Otherwise s is returned.
-*)
-val monotone : forall 'a. (set 'a -> set 'a) -> bool
-let inline {coq} monotone f = (forall s1 s2. s1 subset s2 --> f s1 subset f s2)
-let inline {isabelle} monotone = Isabelle.mono
-let inline {hol} monotone = Hol.monotone
-
-val lfp : forall 'a. set 'a -> (set 'a -> set 'a) -> set 'a
-let inline {ocaml} lfp = Ocaml.Pset.lfp
-let inline {isabelle} lfp = Isabelle.set_lfp
-let inline {hol} lfp s f = Hol.lfp (fun s` -> f s` union s)
-
-
-
-
-
-skipped
-
-lookupLT :: Ord a => a -> Set a -> Maybe aSource
-lookupGT :: Ord a => a -> Set a -> Maybe aSource
-lookupLE :: Ord a => a -> Set a -> Maybe aSource
-lookupGE :: Ord a => a -> Set a -> Maybe aSource
-
-lookupIndex :: Ord a => a -> Set a -> Maybe IntSource
-findIndex :: Ord a => a -> Set a -> IntSource
-elemAt :: Int -> Set a -> aSource
-deleteAt :: Int -> Set a -> Set a
-mapMonotonic :: (a -> b) -> Set a -> Set b
-
-
-*)
