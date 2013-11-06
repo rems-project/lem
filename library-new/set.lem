@@ -34,6 +34,7 @@ declare {isabelle;hol;ocaml} rename module = lem_set
  * class hierarchy and the hierarchy implemented in Lem.
  *)
 open import {coq} `Coq.Lists.TheoryList`
+open import {hol} `lemTheory`
 
 (* Type of sets and set comprehensions are hard-coded *)
 
@@ -117,7 +118,7 @@ assert in_4: ((1:nat) IN {1;2;1;3;1;4})
 (* ----------------------- *)
 
 val (NIN) [`notMember`] : forall 'a. Ord 'a, Eq 'a => 'a -> set 'a -> bool 
-let inline notMember e s = not (member e s)
+let inline notMember e s = not (e IN s)
 declare html     target_rep function notMember = infix `&notin;`
 declare isabelle target_rep function notMember = infix `\<notin>`
 
@@ -135,7 +136,7 @@ val insert : forall 'a. Ord 'a => 'a -> set 'a -> set 'a (* before add *)
 
 declare ocaml    target_rep function insert = `Pset.add`
 declare coq      target_rep function insert = `set_add`
-declare hol      target_rep function insert = `INSERT`
+declare hol      target_rep function insert = infix `INSERT`
 declare isabelle target_rep function insert = `Set.insert`
 
 assert insert_1: ((insert (2:nat) {3;4}) = {2;3;4})
@@ -208,8 +209,7 @@ let set_case s c_empty c_sing c_else =
   else c_else
 *)
 
-
-declare hol      target_rep function set_case = `TODO_set_case`
+declare hol      target_rep function set_case = `set_CASE`
 declare isabelle target_rep function set_case = `set_case`
 declare coq      target_rep function set_case = `TODO_set_case`
 declare ocaml    target_rep function set_case = `Pset.set_case`
@@ -314,6 +314,7 @@ let filter P s = {e | forall (e IN s) | P e}
 
 declare ocaml    target_rep function filter = `Pset.filter`
 declare isabelle target_rep function filter = `set_filter`
+declare hol      target_rep function filter = `SET_FILTER`
 
 assert filter_1: (filter (fun n -> (n > 2)) {(1:nat);2;3;4} = {3;4})
 assert filter_2: (filter (fun n -> n > (2:nat)) {} = {})
@@ -328,7 +329,7 @@ lemma filter_insert: (forall e s P. (filter P (insert e s)) =
 
 val partition : forall 'a. ('a -> bool) -> set 'a -> set 'a * set 'a
 let partition P s = (filter P s, filter (fun e -> not (P e)) s)
-
+declare {hol} rename function partition = SET_PARTITION
 
 (* ----------------------- *)
 (* split                   *)
@@ -336,6 +337,7 @@ let partition P s = (filter P s, filter (fun e -> not (P e)) s)
 
 val split : forall 'a. Ord 'a => 'a -> set 'a -> set 'a * set 'a
 let split p s = (filter ((<) p) s, filter ((>) p) s)
+declare {hol} rename function split = SET_SPLIT
 
 val splitMember : forall 'a. Ord 'a, Eq 'a => 'a -> set 'a -> set 'a * bool * set 'a
 let splitMember p s = (filter ((<) p) s, p IN s, filter ((>) p) s)
@@ -401,7 +403,7 @@ let inline delete e s = deleteBy (=) e s
 
 val (union) : forall 'a. Ord 'a => set 'a -> set 'a -> set 'a
 declare ocaml    target_rep function (union) = `Pset.(union)`
-declare hol      target_rep function (union) = `UNION`
+declare hol      target_rep function (union) = infix `UNION`
 declare isabelle target_rep function (union) = infix `\<union>`
 declare coq      target_rep function (union) = `set_union` 
 
@@ -416,7 +418,7 @@ lemma union_in: (forall e s1 s2. e IN (s1 union s2) <-> (e IN s1 || e IN s2))
 
 val difference : forall 'a. Ord 'a => set 'a -> set 'a -> set 'a
 declare ocaml    target_rep function difference = `Pset.diff`
-declare hol      target_rep function difference = `DIFF`
+declare hol      target_rep function difference = infix `DIFF`
 declare isabelle target_rep function difference = infix `-`
 declare coq      target_rep function difference = `set_diff` 
 
@@ -433,7 +435,7 @@ val intersection : forall 'a. Ord 'a, Eq 'a => set 'a -> set 'a -> set 'a
 val intersectionBy : forall 'a. ('a -> 'a -> bool) -> set 'a -> set 'a -> set 'a
 
 declare ocaml    target_rep function intersection = `Pset.inter`
-declare hol      target_rep function intersection = `INTER`
+declare hol      target_rep function intersection = infix `INTER`
 declare isabelle target_rep function intersection = infix `\<inter>`
 declare coq      target_rep function intersectionBy = `set_inter` 
 
@@ -516,6 +518,7 @@ let sigma sa sb = { (a, b) | a IN sa && b IN sb a }
 let inline {ocaml} sigma = sigmaBy compare
 declare isabelle target_rep function sigma = `Sigma`
 declare coq      target_rep function sigma = `set_sigma`
+declare hol      target_rep function sigma = `SET_SIGMA`
 
 assert Sigma_1: (sigma {(2:nat);3} (fun n -> {n*2; n * 3}) = {(2,4); (2,6); (3,6); (3,9)})
 lemma Sigma_2: (forall sa sb a b. ((a, b) IN sigma sa sb) <-> ((a IN sa) && (b IN sb a)))
@@ -533,7 +536,7 @@ declare ocaml    target_rep function crossBy = `Pset.cross`
 let cross s1 s2 = { (e1, e2) | forall (e1 IN s1) (e2 IN s2) | true }
 
 declare isabelle target_rep function cross = infix `\<times>`
-declare hol      target_rep function cross = `CROSS`
+declare hol      target_rep function cross = infix `CROSS`
 let inline {ocaml} cross = crossBy compare
 
 assert cross_1 : (cross {(2:nat);3} {true; false} = {(2,true);(3,true); (2,false); (3,false)})
