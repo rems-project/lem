@@ -60,6 +60,12 @@ val merge:
         @since 3.12.0
      *)
 
+val union: ('key,'a) map -> ('key,'a) map -> ('key,'a) map
+    (** [union m1 m2] computes a map whose keys is a subset of keys of [m1]
+        and of [m2]. The bindings in m2 take precedence.
+        @since 3.12.0
+     *)
+
 val compare: ('a -> 'a -> int) -> ('key,'a) map -> ('key,'a) map -> int
     (** Total ordering between maps.  The first argument is a total ordering
         used to compare data associated with equal keys in the two maps. *)
@@ -112,7 +118,7 @@ val cardinal: ('key,'a) map -> int
         @since 3.12.0
      *)
 
-val bindings: ('key,'a) map -> ('key * 'a) list
+val bindings_list: ('key,'a) map -> ('key * 'a) list
     (** Return the list of all bindings of the given map.
        The returned list is sorted in increasing order with respect
        to the ordering [Ord.compare], where [Ord] is the argument
@@ -120,13 +126,16 @@ val bindings: ('key,'a) map -> ('key * 'a) list
         @since 3.12.0
      *)
 
+val bindings: (('key * 'a) -> ('key * 'a) -> int) -> ('key,'a) map -> ('key * 'a) Pset.set
+    (** Return a set of all bindings of the given map. *)
+
 (** [domain m] returns the domain of the map [m], i.e. the
     set of keys of this map. *)
 val domain : ('key,'a) map -> 'key Pset.set
 
 (** [range m] returns the range of the map [m], i.e. the
     set of all values stored in this map. *)
-val range : ('key,'a) map -> 'a Pset.set
+val range : ('a -> 'a -> int) -> ('key,'a) map -> 'a Pset.set
 
 val min_binding: ('key,'a) map -> ('key * 'a)
     (** Return the smallest binding of the given map
@@ -162,6 +171,10 @@ val split: 'key -> ('key,'a) map -> ('key,'a) map * 'a option * ('key,'a) map
 val find: 'key -> ('key,'a) map -> 'a
     (** [find x m] returns the current binding of [x] in [m],
        or raises [Not_found] if no such binding exists. *)
+
+val lookup: 'key -> ('key,'a) map -> 'a option
+    (** [lookup x m] returns the current binding of [x] in [m]. In contrast to [find],
+       it returns [None] instead of raising an exception, if no such binding exists. *)
 
 val map: ('a -> 'b) -> ('key,'a) map -> ('key,'b) map
     (** [map f m] returns a map with same domain as [m], where the

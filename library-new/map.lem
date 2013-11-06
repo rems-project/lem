@@ -6,56 +6,66 @@
 (* Header                                                                     *)
 (* ========================================================================== *)
 
-declare ~{coq} rename module = Lem_maps
+declare {isabelle;ocaml;hol} rename module = lem_map
 
-open import Bool Basic_classes Function Maybe List Num
+open import Bool Basic_classes Function Maybe List Set Num
 
 type map 'k 'v
+declare ocaml    target_rep type map = `Pmap.map` 
+declare isabelle target_rep type map = `map` 
+declare hol      target_rep type map = `map` 
+
+
 
 (* -------------------------------------------------------------------------- *)
 (* Map equality.                                                              *)
 (* -------------------------------------------------------------------------- *)
 
-val mapEqual : forall 'k 'v. map 'k 'v -> map 'k 'v -> bool
-let inline mapEqual = unsafe_structural_equality
+val mapEqual : forall 'k 'v. Eq 'k, Eq 'v => map 'k 'v -> map 'k 'v -> bool
+val mapEqualBy : forall 'k 'v. ('v -> 'v -> bool) -> map 'k 'v -> map 'k 'v -> bool
+
+declare ocaml target_rep function mapEqualBy = `Pmap.equal`
+let inline ~{hol;coq;isabelle} mapEqual = mapEqualBy (=)
+let inline {hol;coq;isabelle} mapEqual = unsafe_structural_equality
 
 instance forall 'k 'v. Eq 'k, Eq 'v => (Eq (map 'k 'v))
   let (=) = mapEqual
 end
 
+
 (* -------------------------------------------------------------------------- *)
-(* Basic maps and tests.                                                      *)
+(* Empty maps                                                                 *)
 (* -------------------------------------------------------------------------- *)
 
 val empty : forall 'k 'v. Ord 'k => map 'k 'v
+val emptyBy : forall 'k 'v. ('k -> 'k -> ordering) -> map 'k 'v
 
+declare ocaml target_rep function emptyBy = `Pmap.empty`
+
+let inline {ocaml} empty = emptyBy compare
 declare coq target_rep function empty = `map_empty`
+declare hol target_rep function empty = `FEMPTY`
+declare isabelle target_rep function empty = `Map.empty`
 
-val null  : forall 'k 'v. Ord 'k => map 'k 'v -> bool
-
-declare coq target_rep function null = `map_is_empty`
-
-lemma null_empty: (forall m. null m = (m = empty))
-
-val size  : forall 'k 'v. Ord 'k => map 'k 'v -> nat
-
-declare coq target_rep function size = `map_size`
-
-assert empty_null: (null (empty : map nat bool))
-assert empty_size: (size (empty : map nat bool) = 0)
-
-assert equal_1: (mapEqual (empty : map nat bool) empty)
 
 (* -------------------------------------------------------------------------- *)
-(* Insertion.                                                                 *)
+(* Insertion                                                                  *)
 (* -------------------------------------------------------------------------- *)
 
 val insert    : forall 'k 'v. Ord 'k => 'k -> 'v -> map 'k 'v -> map 'k 'v
 
-declare coq target_rep function insert = `map_add`
+declare coq      target_rep function insert = `map_add`
+declare ocaml    target_rep function insert = `Pmap.add`
+declare hol      target_rep function insert k v m = `FUPDATE` m (k,v)
+declare isabelle target_rep function insert = `map_update`
+
+
+(* -------------------------------------------------------------------------- *)
+(* Singleton                                                                  *)
+(* -------------------------------------------------------------------------- *)
 
 val singleton : forall 'k 'v. Ord 'k => 'k -> 'v -> map 'k 'v
-let singleton k v = insert k v empty
+let inline singleton k v = insert k v empty
 
 assert insert_equal_singleton: (mapEqual (insert (42 : nat) false empty) 
                                          (singleton 42 false))
@@ -66,161 +76,164 @@ assert commutative_insert_2: (not (mapEqual
                               (insert (8 : nat) true  (insert 8 false empty))
                               (insert  8        false (insert 8 true empty))))
 
+
+
 (* -------------------------------------------------------------------------- *)
-(* Membership and lookup.                                                     *)
+(* Emptyness check                                                            *)
 (* -------------------------------------------------------------------------- *)
 
-val lookup          : forall 'k 'v. Ord 'k => map 'k 'v -> 'k -> maybe 'v
+val null  : forall 'k 'v. Ord 'k, Eq 'k, Eq 'v => map 'k 'v -> bool
+let inline null m = (m = empty)
 
-declare coq target_rep function lookup = `map_lookup`
+declare coq target_rep function null = `map_is_empty`
+declare ocaml target_rep function null = `Pmap.is_empty`
 
-assert lookup_insert_1: (lookup (insert (16 : nat) true empty) 16 = Just true)
-assert lookup_insert_3: (lookup (insert 36 false (insert (16 : nat) true empty)) 16 = Just false )
+assert empty_null: (null (empty : map nat bool))
+
+
+
+(* -------------------------------------------------------------------------- *)
+(* Cardinality                                                                *)
+(* -------------------------------------------------------------------------- *)
+val size  : forall 'k 'v. Ord 'k => map 'k 'v -> nat
+
+declare coq target_rep function size = `map_size`
+declare ocaml target_rep function size = `Pmap.cardinal`
+declare isabelle target_rep function size = `XXXX`
+declare hol target_rep function size = `XXXX`
+
+assert empty_size: (size (empty : map nat bool) = 0)
+assert singleton_size: (size (singleton (2:nat) (3:nat)) = 1)
+
+ 
+(* -------------------------------------------------------------------------- *)
+(* lookup                                                                     *)
+(* -------------------------------------------------------------------------- *)
+
+val lookup          : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> maybe 'v
+declare coq      target_rep function lookup = `map_find`
+declare isabelle target_rep function lookup = `map_find`
+declare hol      target_rep function lookup = `map_find`
+declare ocaml    target_rep function lookup = `Pmap.lookup`
+
+assert lookup_insert_1: (lookup 16 (insert (16 : nat) true empty) = Just true)
+assert lookup_insert_2: (lookup 16 (insert 36 false (insert (16 : nat) true empty)) = Just true )
+assert lookup_insert_3: (lookup 36 (insert 36 false (insert (16 : nat) true empty)) = Just false )
+
+assert lookup_empty_0: (lookup 25 (empty : map nat bool) = Nothing)
+assert find_insert_0: (lookup 16 (insert (16 : nat) true empty) = Just true)
+
+lemma lookup_empty : (forall k. lookup k empty = Nothing)
+lemma lookup_insert: (forall k k' v m. lookup k (insert k' v m) = (if (k = k') then Just v else lookup k m))
+
+(* -------------------------------------------------------------------------- *)
+(* findWithDefault                                                            *)
+(* -------------------------------------------------------------------------- *)
+
+val findWithDefault : forall 'k 'v. Ord 'k => 'k -> 'v -> map 'k 'v -> 'v
+let inline findWithDefault k v m = fromMaybe v (lookup k m)
+
+(* -------------------------------------------------------------------------- *)
+(* member                                                                     *)
+(* -------------------------------------------------------------------------- *)
 
 val member          : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> bool
+let inline member k m = isJust (lookup k m)
+declare coq target_rep function member = `map_member`
 
 val notMember       : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> bool
 let inline notMember k m = not (member k m)
 
-val find            : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> maybe 'v
-
-declare coq target_rep function find = `map_find`
-
-val findWithDefault : forall 'k 'v. Ord 'k => 'k -> 'v -> map 'k 'v -> 'v
-let inline findWithDefault k v m = fromMaybe v (find k m)
-
-assert find_empty_0: (find 25 (empty : map nat bool)  = Nothing)
-assert find_insert_0:(find 16 (insert (16 : nat) true empty) = Just true)
-
-
-lemma find_empty : (forall k. find k empty = Nothing)
-lemma find_insert: (forall k k' v m. find k (insert k' v m) = (if (k = k') then Just v else find k m))
-
-let member k m = isJust (find k m)
-lemma member_empty : (forall k. not (member k empty))
-lemma member_insert: (forall k k' v m. member k (insert k' v m) = ((k = k') || member k m))
-
-declare coq target_rep function member = `map_member`
 assert member_insert_1: (member 16 (insert (16 : nat) true empty))
 assert member_insert_2: (not (member 25 (insert (16 : nat) true empty)))
 assert member_insert_3: (member 16 (insert 36 false (insert (16 : nat) true empty)))
- 
- 
+
+lemma member_empty : (forall k. not (member k empty))
+lemma member_insert: (forall k k' v m. member k (insert k' v m) = ((k = k') || member k m))
+
 
 (* -------------------------------------------------------------------------- *)
 (* Set-like operations.                                                       *)
 (* -------------------------------------------------------------------------- *)
-
 val delete           : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> map 'k 'v
+declare coq      target_rep function delete = `map_delete`
+declare ocaml    target_rep function delete = `Pmap.remove`
+declare isabelle target_rep function delete = `map_remove`
 
-val difference       : forall 'k 'v 'w. Ord 'k => map 'k 'v -> map 'k 'w -> map 'k 'v
-
-declare coq target_rep function difference = `map_difference`
-
-val intersection     : forall 'k 'v. Ord 'k => map 'k 'v -> map 'k 'v -> map 'k 'v
-
-declare coq target_rep function intersection = `map_intersection`
+assert delete_insert_1: (not (member (5 : nat) (delete 5 (insert 5 true empty))))
+assert delete_insert_2:      (member (7 : nat) (delete 5 (insert 7 true empty)))
+assert delete_delete: (null (delete (5 : nat) (delete (5 : nat) (insert 5 true empty))))
 
 val (union)          : forall 'k 'v. Ord 'k => map 'k 'v -> map 'k 'v -> map 'k 'v
-
-declare coq target_rep function (union) = `map_union`
+declare coq   target_rep function (union) = `map_union`
+declare ocaml target_rep function (union) = `Pmap.union`
 
 val unions           : forall 'k 'v. Ord 'k => list (map 'k 'v) -> map 'k 'v
 let inline unions = foldr (union) empty
 
-val isSubmapOf       : forall 'k 'v. Ord 'k, Eq 'v => map 'k 'v -> map 'k 'v -> bool
-
-declare coq target_rep function isSubmapOf = `map_submap`
-
-val isProperSubmapOf : forall 'k 'v. Ord 'k, Eq 'v => map 'k 'v -> map 'k 'v -> bool
-
-declare coq target_rep function isProperSubmapOf = `map_proper_submap`
 
 (* -------------------------------------------------------------------------- *)
 (* Maps (in the functor sense).                                               *)
 (* -------------------------------------------------------------------------- *)
 
 val map             : forall 'k 'v 'w. Ord 'k => ('v -> 'w) -> map 'k 'v -> map 'k 'w
+declare coq   target_rep function map = `map_map`
+declare ocaml target_rep function map = `Pmap.map`
 
-declare coq target_rep function map = `map_map`
-
-val mapMaybe        : forall 'k 'v. Ord 'k => ('v -> maybe 'v) -> map 'k 'v -> map 'k 'v
-val mapMaybeWithKey : forall 'k 'v. Ord 'k => ('k -> 'v -> maybe 'v) -> map 'k 'v -> map 'k 'v
-let mapMaybe f m = mapMaybeWithKey (fun k v -> f v) m
-
-val adjust          : forall 'k 'v. Ord 'k => ('v -> 'v) -> 'k -> map 'k 'v -> map 'k 'v
-val adjustWithKey   : forall 'k 'v. Ord 'k => ('k -> 'v -> 'v) -> 'k -> map 'k 'v -> map 'k 'v
-let adjust f m = adjustWithKey (fun k v -> f v) m
-
-val update          : forall 'k 'v. Ord 'k => ('v -> maybe 'v) -> 'k -> map 'k 'v -> map 'k 'v
-val updateWithKey   : forall 'k 'v. Ord 'k => ('k -> 'v -> maybe 'v) -> 'k -> map 'k 'v -> map 'k 'v
-let update f m = updateWithKey (fun k v -> f v) m
-
-let delete k m = update (fun v -> Nothing) k m
-
-declare coq target_rep function delete = `map_delete`
-
-assert delete_insert_1: (not (member (5 : nat) (delete 5 (insert 5 true empty))))
-assert delete_insert_2:      (member (7 : nat) (delete 5 (insert 5 true empty)))
-assert delete_delete: (null (delete (5 : nat) (delete (5 : nat) (insert 5 true empty))))
-
+assert map_0 : (map (fun b -> not b) (insert (2:nat) true (insert (3:nat) false empty)) =
+                insert (2:nat) false (insert (3:nat) true empty))
 
 (* -------------------------------------------------------------------------- *)
-(* Splitting, filtering and partitioning.                                     *)
+(* from lists                                                                 *)
 (* -------------------------------------------------------------------------- *)
-
-val filter           : forall 'k 'v. Ord 'k => ('v -> bool) -> map 'k 'v -> map 'k 'v
-val filterWithKey    : forall 'k 'v. Ord 'k => ('k -> 'v -> bool) -> map 'k 'v -> map 'k 'v
-
-let filterWithKey p m = mapMaybeWithKey (fun k v -> if (p k v) then Just v else Nothing) m
-let filter p m = filterWithKey (fun k v -> p v) m
-
-val partition        : forall 'k 'v. Ord 'k => ('v -> bool) -> map 'k 'v -> maybe (map 'k 'v * map 'k 'v)
-val partitionWithKey : forall 'k 'v. Ord 'k => ('k -> 'v -> bool) -> map 'k 'v -> maybe (map 'k 'v * map 'k 'v)
-
-val split            : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> maybe (map 'k 'v * map 'k 'v)
-
-(* -------------------------------------------------------------------------- *)
-(* Folds.                                                                     *)
-(* -------------------------------------------------------------------------- *)
-
-val fold         : forall 'k 'v 'w. Ord 'k => ('v -> 'w -> 'w) -> 'w -> map 'k 'v -> 'w
-val foldWithKey  : forall 'k 'v 'w. Ord 'k => ('k -> 'v -> 'w -> 'w) -> 'w -> map 'k 'v -> 'w
-val foldrWithKey : forall 'k 'v 'w. Ord 'k => ('k -> 'v -> 'w -> 'w) -> 'w -> map 'k 'v -> 'w
-val foldlWithKey : forall 'k 'v 'w. Ord 'k => ('w -> 'k -> 'v -> 'w) -> 'w -> map 'k 'v -> 'w
-
-(* -------------------------------------------------------------------------- *)
-(* To and from lists.                                                         *)
-(* -------------------------------------------------------------------------- *)
-
-val keysAsc   : forall 'k 'v. Ord 'k => map 'k 'v -> list 'k
-val elemsAsc  : forall 'k 'v. Ord 'k => map 'k 'v -> list 'v
-val toAscList : forall 'k 'v. Ord 'k => map 'k 'v -> list ('k * 'v)
 
 val fromList  : forall 'k 'v. Ord 'k => list ('k * 'v) -> map 'k 'v
+let fromList l = foldl (fun m (k,v) -> insert k v m) empty l
+
+assert fromList_0: (fromList [((2:nat), true);((3:nat), true);((4:nat), false)] =
+                    fromList [((4:nat), false);((3:nat), true);((2:nat), true)])
+(* later entries have priority *)
+assert fromList_1: (fromList [((2:nat), true);((2:nat),false);((3:nat), true);((4:nat), false)] =
+                    fromList [((4:nat), false);((3:nat), true);((2:nat), false)])
+
 
 (* -------------------------------------------------------------------------- *)
-(* Minimum and maximum.                                                       *)
+(* to sets / domain / range                                                   *)
 (* -------------------------------------------------------------------------- *)
 
-val findMin   : forall 'k 'v. Ord 'k => map 'k 'v -> maybe ('k * 'v)
-val findMax   : forall 'k 'v. Ord 'k => map 'k 'v -> maybe ('k * 'v)
-val deleteMin : forall 'k 'v. Ord 'k => map 'k 'v -> map 'k 'v
-val deleteMax : forall 'k 'v. Ord 'k => map 'k 'v -> map 'k 'v
+val toSet : forall 'k 'v. Ord 'k, Ord 'v => map 'k 'v -> set ('k * 'v) 
+val toSetBy : forall 'k 'v. (('k * 'v) -> ('k * 'v) -> ordering) -> map 'k 'v -> set ('k * 'v) 
 
-assert to_and_from_assoc_list_1: (mapEqual (fromList (toAscList (insert (5:nat) true (insert 42 false empty))))
-                                           (fromList [(42 , false); (5, true)]))
+declare ocaml    target_rep function toSetBy = `Pmap.bindings`
+let inline {ocaml} toSet = toSetBy compare
 
-assert to_and_from_assoc_list_2: (mapEqual (fromList (toAscList (insert (5:nat) true (insert 42 false empty))))
-                                           (fromList [(5, true); (42 , false)]))
+assert toSet_0: (toSet (empty : map nat bool) = {})
+assert toSet_1: (toSet (fromList [((2:nat), true);(3, true);(4, false)]) = 
+                 {(2,true); (3, true); (4, false)})
+assert toSet_2: (toSet (fromList [((2:nat), true);(3, true);(2,false); (4, false)]) = 
+                 {(2,false); (3, true); (4, false)})
 
-assert mapMaybeWithKey_0: (mapEqual (mapMaybeWithKey (fun (k:nat) b -> if (k mod 2 = 1) then Just (not b) else Nothing)
-                                                     (fromList [(1,true); (2,false); (3,true)]))
-                                    (fromList [(1, false); (3,true)]))
-assert mapMaybeWithKey_1: (mapEqual (mapMaybeWithKey (fun (k:nat) b -> Just b)
-                                                     (fromList [(1,true); (2,false); (3,true)]))
-                                    (fromList [(1,true); (2,false); (3,true)]))
-assert mapMaybeWithKey_2: (null (mapMaybeWithKey (fun (k:nat) b -> Nothing)
-                                   (fromList [(1,true); (2,false); (3,true)])))
 
+val domain : forall 'k 'v. Ord 'k => map 'k 'v -> set 'k
+declare ocaml    target_rep function domain = `Pmap.domain`
+declare isabelle target_rep function domain = `Map.dom`
+
+assert domain_0: (domain (empty : map nat bool) = {})
+assert domain_1: (domain (fromList [((2:nat), true);(3, true);(4, false)]) = 
+                 {2; 3; 4})
+assert domain_2: (domain (fromList [((2:nat), true);(3, true);(2,false); (4, false)]) = 
+                 {2; 3; 4})
+
+
+val range : forall 'k 'v. Ord 'v => map 'k 'v -> set 'v
+val rangeBy : forall 'k 'v. ('v -> 'v -> ordering) -> map 'k 'v -> set 'v
+
+declare ocaml    target_rep function rangeBy = `Pmap.range`
+declare isabelle target_rep function range = `Map.ran`
+let inline {ocaml} range = rangeBy compare
+
+assert range_0: (range (empty : map nat bool) = {})
+assert range_1: (range (fromList [((2:nat), true);(3, true);(4, false)]) = 
+                 {true; false})
+assert range_2: (range (fromList [((2:nat), true);(3, true);(4, true)]) = {true})
 

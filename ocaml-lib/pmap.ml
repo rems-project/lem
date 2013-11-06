@@ -287,7 +287,12 @@ let singleton cmp k a = {cmp = cmp; m = singleton k a}
 let remove k m = {m with m = remove m.cmp k m.m}
 let merge f a b = {cmp = a.cmp; (* does not matter, a and b should have the same comparison function *)
 		   m = merge a.cmp f a.m b.m;}
-let compare f a b = compare a.cmp f a.m b.m
+let union a b = merge (fun k o1 o2 ->
+  match (o1, o2) with
+    | (_, Some v) -> Some v
+    | (Some v, _) -> Some v
+    | (_, _) -> None) a b
+ let compare f a b = compare a.cmp f a.m b.m
 let equal f a b = equal a.cmp f a.m b.m
 let iter f m = iter f m.m
 let fold f m b = fold f m.m b
@@ -299,9 +304,9 @@ let partition f m =
   ({m with m = m1},{m with m = m2})
 let cardinal m = cardinal m.m
 let domain m = Pset.from_list m.cmp (List.map fst (bindings m.m))
-let range m = Pset.from_list Pervasives.compare (List.map snd (bindings m.m))
-
-let bindings m = bindings m.m
+let range cmp m = Pset.from_list cmp (List.map snd (bindings m.m))
+let bindings_list m = bindings m.m
+let bindings cmp m = Pset.from_list cmp (bindings m.m)
 let min_binding m = min_binding m.m
 let max_binding m = max_binding m.m
 let choose m = choose m.m
@@ -309,5 +314,6 @@ let split k m =
   let (m1,opt,m2) = split m.cmp k m.m in
   ({m with m = m1},opt,{m with m = m2})
 let find k m = find m.cmp k m.m
+let lookup k m = try Some (find k m) with Not_found -> None
 let map f m = {m with m = map f m.m}
 let mapi f m = {m with m = mapi f m.m}
