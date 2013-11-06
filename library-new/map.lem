@@ -139,7 +139,8 @@ let inline findWithDefault k v m = fromMaybe v (lookup k m)
 
 val member          : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> bool
 let inline member k m = isJust (lookup k m)
-declare coq target_rep function member = `map_member`
+declare coq   target_rep function member = `map_member`
+declare ocaml target_rep function member = `Pmap.mem`
 
 val notMember       : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> bool
 let inline notMember k m = not (member k m)
@@ -150,6 +151,29 @@ assert member_insert_3: (member 16 (insert 36 false (insert (16 : nat) true empt
 
 lemma member_empty : (forall k. not (member k empty))
 lemma member_insert: (forall k k' v m. member k (insert k' v m) = ((k = k') || member k m))
+
+(* -------------------------------------------------------------------------- *)
+(* Quantification                                                             *)
+(* -------------------------------------------------------------------------- *)
+
+val any : forall 'k 'v. Ord 'k, Eq 'v => ('k -> 'v -> bool) -> map 'k 'v -> bool 
+val all : forall 'k 'v. Ord 'k, Eq 'v => ('k -> 'v -> bool) -> map 'k 'v -> bool 
+
+let any P m = (exists k v. (P k v && (lookup k m = Just v)))
+let all P m = (exists k v. (P k v && (lookup k m = Just v)))
+
+declare ocaml target_rep function any = `Pmap.exist`
+declare ocaml target_rep function all = `Pmap.for_all`
+
+assert any_0: (any (fun k v -> v) (insert 36 false (insert (16 : nat) true empty)))
+assert any_1: (not (any (fun k v -> v) (insert 36 false (insert (16 : nat) false empty))))
+assert any_2: (any (fun k v -> not v) (insert 36 false (insert (16 : nat) true empty)))
+assert any_3: (not (any (fun k v -> not v) (insert 36 true (insert (16 : nat) true empty))))
+
+assert all_0: (all (fun k v -> v) (insert 36 true (insert (16 : nat) true empty)))
+assert all_1: (not (all (fun k v -> v) (insert 36 true (insert (16 : nat) false empty))))
+assert all_2: (all (fun k v -> not v) (insert 36 false (insert (16 : nat) false empty)))
+assert all_3: (not (all (fun k v -> not v) (insert 36 false (insert (16 : nat) true empty))))
 
 
 (* -------------------------------------------------------------------------- *)

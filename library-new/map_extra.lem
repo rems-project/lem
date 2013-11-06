@@ -16,12 +16,12 @@ include import Map
 (* -------------------------------------------------------------------------- *)
 
 val find : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> 'v
-let find k m = match Map.find k m with | Just x -> x end
+let find k m = match (lookup k m) with Just x -> x end
 
 declare ocaml    target_rep function find = `Pmap.find`
 
 declare compile_message find = "find is only defined if the key is found. Use lookup instead and handle the not-found case explicitly."
 
-assert find_insert_1: (lookup 16 (insert (16 : nat) true empty) = true)
-assert find_insert_3: (lookup 16 (insert 36 false (insert (16 : nat) true empty)) = false )
+assert find_insert_1: (find 16 (insert (16 : nat) true empty) = true)
+assert find_insert_2: (find 36 (insert 36 false (insert (16 : nat) true empty)) = false )
 
