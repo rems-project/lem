@@ -2,19 +2,14 @@
 (* A library for binary relations                                             *)
 (******************************************************************************)
 
-open import Bool Basic_classes Set
-
-
 (* ========================================================================== *)
 (* Header                                                                     *)
 (* ========================================================================== *)
 
+declare {isabelle;ocaml;hol;coq} rename module = lem_relation
 
-(* rename module to clash with existing list modules of targets
-   problem: renaming from inside the module itself! *)
-(*
-declarerename module = lem_relation
-*)
+open import Bool Basic_classes Set
+
 
 (* ========================================================================== *)
 (* The type of relations                                                      *)
@@ -125,7 +120,7 @@ let relIntersection r1 r2 = relFromPred (fun e1 e2 -> ((inRel e1 e2 r1) && (inRe
 (* ----------------------- *)
 
 val relComp : forall 'a 'b 'c. Ord 'a, Ord 'b, Ord 'c, Eq 'b => rel 'a 'b -> rel 'b 'c -> rel 'a 'c
- let relComp r1 r2 = relFromSet {(e1, e3) | forall ((e1,e2) IN (relToSet r1)) ((e2',e3) IN (relToSet r2)) | e2 = e2'}
+let relComp r1 r2 = relFromSet {(e1, e3) | forall ((e1,e2) IN (relToSet r1)) ((e2',e3) IN (relToSet r2)) | e2 = e2'}
 
 lemma rel_comp_1 : (forall r1 r2 e1 e2 e3. (inRel e1 e2 r1 && inRel e2 e3 r2) --> inRel e1 e3 (relComp r1 r2))
 lemma rel_comp_2 : (forall r. (relComp r relId = r) && (relComp relId r = r))

@@ -16,6 +16,7 @@ open import Bool Basic_classes Maybe List Num
 
 open import {isabelle} `~~/src/HOL/Library/Permutation`
 open import {coq} `Coq.Lists.TheoryList`
+open import {hol} `sortingTheory` `permLib`
 
 (* ------------------------- *)
 (* permutations              *)
@@ -34,10 +35,12 @@ let rec isPermutationBy eq l1 l2 = match l1 with
     end
 end
 declare termination_argument isPermutationBy = automatic
+declare {hol} rename function isPermutationBy = PERM_BY
 
-let isPermutation = isPermutationBy (=)
+let inline isPermutation = isPermutationBy (=)
 
 declare isabelle target_rep function isPermutation = infix `<~~>`
+declare hol      target_rep function isPermutation = `PERM`
 
 assert perm_1: (isPermutation ([]:list nat) [])
 assert perm_2: (not (isPermutation [(2:nat)] []))
@@ -85,6 +88,7 @@ declare termination_argument isSortedBy = automatic
 let inline isSorted = isSortedBy (<=)
 
 declare isabelle target_rep function isSortedBy = `sorted_by`
+declare hol      target_rep function isSortedBy = `SORTED`
 
 assert isSorted_1: (isSorted ([]:list nat))
 assert isSorted_2: (isSorted [(2:nat)])
@@ -110,13 +114,16 @@ let rec insertBy cmp e l = match l with
 end
 declare termination_argument insertBy = automatic
 
-let insert = insertBy (<=)
+let inline insert = insertBy (<=)
 
 let insertSortBy cmp l = List.foldl (fun l e -> insertBy cmp e l) [] l
-let insertSort = insertSortBy (<=)
+let inline insertSort = insertSortBy (<=)
 
 declare isabelle target_rep function insertBy = `insert_sort_insert_by`
 declare isabelle target_rep function insertSortBy = `insert_sort_by`
+
+declare {hol} rename function insertBy = INSERT_SORT_INSERT
+declare {hol} rename function insertSortBy = INSERT_SORT
 
 lemma insertBy_1: (forall l e cmp. ((forall x y z. cmp x y && cmp y z --> cmp x z) && isSortedBy cmp l) --> isSortedBy cmp (insertBy cmp e l))
 lemma insertBy_2: (forall l e cmp. length (insertBy cmp e l) = length l + 1)
@@ -137,6 +144,7 @@ let inline sortBy = insertSortBy
 let inline sort = sortBy (<=)
 
 declare isabelle target_rep function sortBy = `sort_by`
+declare hol      target_rep function sortBy = `QSORT`
 
 assert sort_1 : (sort ([] : list nat) = [])
 assert sort_2 : (sort ([6;4;3;8;1;2] : list nat) = [1;2;3;4;6;8])
