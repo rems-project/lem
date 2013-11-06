@@ -63,6 +63,8 @@ subsection{* Finite Maps *}
 abbreviation (input) "map_find k m \<equiv> the (m k)"
 abbreviation (input) "map_update k v m \<equiv> m (k \<mapsto> v)"
 abbreviation (input) "map_remove k m \<equiv> m |` (- {k})"
+abbreviation (input) "map_any P m \<equiv> \<exists> (k, v) \<in> map_to_set m. P k v"
+abbreviation (input) "map_all P m \<equiv> \<forall> (k, v) \<in> map_to_set m. P k v"
 
 subsection{* Lists *}
 

@@ -44,8 +44,10 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (*========================================================================*)
 
+open finite_mapTheory finite_mapLib
 open HolKernel Parse boolLib bossLib;
 open pred_setSimps pred_setTheory
+open finite_mapTheory
 
 val _ = numLib.prefer_num();
 
@@ -169,5 +171,30 @@ val _ = computeLib.add_persistent_funs ["SET_SIGMA_INSERT_LEFT"]
 
 
 val _ = computeLib.add_persistent_funs ["list.LIST_TO_SET"]
+
+
+val FMAP_TO_SET_def = zDefine 
+  `FMAP_TO_SET m = IMAGE (\k. (k, FAPPLY m k)) (FDOM m)`;
+
+val FMAP_TO_SET_FEMPTY = store_thm ("FMAP_TO_SET_FEMPTY",
+  ``FMAP_TO_SET FEMPTY = {}``,
+SIMP_TAC std_ss [FMAP_TO_SET_def, FDOM_FEMPTY, IMAGE_EMPTY]);
+val _ = export_rewrites ["FMAP_TO_SET_FEMPTY"]
+val _ = computeLib.add_persistent_funs ["FMAP_TO_SET_FEMPTY"]
+
+val FMAP_TO_SET_FUPDATE = store_thm ("FMAP_TO_SET_FUPDATE",
+  ``FMAP_TO_SET (FUPDATE m (k, v)) = (k, v) INSERT (FMAP_TO_SET (m \\ k))``,
+SIMP_TAC (std_ss ++ PRED_SET_ss) [FMAP_TO_SET_def, FDOM_FUPDATE, FAPPLY_FUPDATE_THM, EXTENSION,
+  FDOM_DOMSUB, DOMSUB_FAPPLY_THM] THEN
+METIS_TAC[]);
+val _ = export_rewrites ["FMAP_TO_SET_FUPDATE"]
+val _ = computeLib.add_persistent_funs ["FMAP_TO_SET_FUPDATE"]
+
+
+val IN_FMAP_TO_SET = store_thm ("IN_FMAP_TO_SET",
+  ``(k, v) IN FMAP_TO_SET m = (FLOOKUP m k = SOME v)``,
+SIMP_TAC (std_ss++PRED_SET_ss) [FMAP_TO_SET_def, FLOOKUP_DEF] THEN
+METIS_TAC[optionTheory.option_CLAUSES])
+
 
 val _ = export_theory()

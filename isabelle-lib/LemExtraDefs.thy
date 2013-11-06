@@ -484,6 +484,42 @@ lemma sort_by_perm :
 unfolding sort_by_def
 by (simp add: insert_sort_by_perm)
 
+subsection{* Maps *}
+
+definition map_image :: "('v \<Rightarrow> 'w) \<Rightarrow> ('k, 'v) map \<Rightarrow> ('k, 'w) map" where
+  "map_image f m = (\<lambda>k. Option.map f (m k))"
+
+lemma map_image_simps [simp]:
+  "(map_image f m) k = None \<longleftrightarrow> m k = None"
+  "(map_image f m) k = Some x \<longleftrightarrow> (\<exists>x'. (m k = Some x') \<and> (x = f x'))"
+  "(map_image f Map.empty) = Map.empty"
+  "(map_image f (m (k \<mapsto> v)) = (map_image f m) (k \<mapsto> f v))"
+unfolding map_image_def by auto
+
+lemma map_image_dom_ran [simp]:
+  "dom (map_image f m) = dom m" 
+  "ran (map_image f m) = f ` (ran m)" 
+unfolding dom_def ran_def by auto
+
+definition map_to_set :: "('k, 'v) map \<Rightarrow> ('k * 'v) set" where
+  "map_to_set m = { (k, v) . m k = Some v }"
+
+lemma map_to_set_simps [simp] :
+  "map_to_set Map.empty = {}"  (is ?g1)
+  "map_to_set (m ((k::'k) \<mapsto> (v::'v))) = (insert (k, v) (map_to_set (m |` (- {k}))))" (is ?g2)
+proof -
+  show ?g1 unfolding map_to_set_def by simp
+next  
+  show ?g2 
+  proof (rule set_eqI) 
+    fix kv :: "('k * 'v)"
+    obtain k' v' where kv_eq[simp]: "kv = (k', v')" by (rule prod.exhaust)
+
+    show "(kv \<in> map_to_set (m(k \<mapsto> v))) = (kv \<in> insert (k, v) (map_to_set (m |` (- {k}))))"
+      by (auto simp add: map_to_set_def)
+  qed
+qed
+
 
 subsection{* Sets *}
 
