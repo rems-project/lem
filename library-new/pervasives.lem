@@ -1,4 +1,6 @@
-include import Basic_classes Bool Either Function List Map Maybe Num Set Tuple
+declare {isabelle;ocaml;coq;hol} rename module = Lem_pervasives 
+
+include import Basic_classes Bool Tuple Maybe Either Function Num List Map Set 
 
 import Sorting Relation
 

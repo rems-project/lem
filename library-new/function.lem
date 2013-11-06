@@ -47,7 +47,7 @@ val ($) [`apply`] : forall 'a 'b. ('a -> 'b) -> ('a -> 'b)
 let apply f = (fun x -> f x)
 
 declare coq target_rep function apply = `apply`
-let inline {isabelle;ocaml} apply f x = f x
+let inline {isabelle;ocaml;hol} apply f x = f x
 
 
 (* ----------------------- *)

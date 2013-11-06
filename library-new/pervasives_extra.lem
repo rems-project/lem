@@ -1,3 +1,5 @@
+declare {isabelle;ocaml;coq;hol} rename module = Lem_pervasives_extra 
+
 include import Pervasives 
 
 include import Function_extra Maybe_extra List_extra Set_extra Set_helpers

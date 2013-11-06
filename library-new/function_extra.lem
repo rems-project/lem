@@ -1,3 +1,5 @@
+declare {isabelle;hol;ocaml} rename module = lem_function_extra
+
 open import Maybe Bool Basic_classes
 
 (* ----------------------- *)

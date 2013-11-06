@@ -1071,7 +1071,14 @@ module Hol : Target = struct
   let vector_begin = emp
   let vector_end = emp
   let first_case_sep = Seplist.Forbid(fun sk -> ws sk ^ meta " ")
-  let infix_op_format a x = match a with (Term_var | Term_var_toplevel) -> id a x | _ -> kwd "(" ^ (id a x) ^ kwd ")"
+  let star = Ulib.Text.of_latin1 "*"
+  let space = Output.ws (Some [Ast.Ws (Ulib.Text.of_latin1 " ")])
+  let infix_op_format a x = match a with (Term_var | Term_var_toplevel) -> id a x | _ -> begin
+     if (Ulib.Text.left x 1 = star || Ulib.Text.right x 1 = star) then
+       kwd "(" ^ space ^ id a x ^ space ^ kwd ")"
+     else
+       kwd "(" ^ id a x ^ kwd ")"
+  end
   let op_format use_infix = if use_infix then infix_op_format else id
 
   let tup_sep = kwd ","
@@ -3005,15 +3012,7 @@ let defs_to_extra_aux gf (ds:def list) =
            | Target_no_ident Target_hol   -> F'.hol_def_extra gf d l 
            | Target_no_ident Target_ocaml -> F'.ocaml_def_extra gf d l 
            | _ -> emp
-         end ^
-
-         begin
-           match s with
-             | None ->
-                 emp
-             | Some(s) -> 
-                 ws s 
-         end ^
+         end 
        y)
       ds 
     emp 
