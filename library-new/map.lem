@@ -213,6 +213,8 @@ let inline any P m = not (all (fun k v -> not (P k v)) m)
 
 declare ocaml target_rep function any = `Pmap.exist`
 declare ocaml target_rep function all = `Pmap.for_all`
+declare coq      target_rep function any = `map_any`
+declare coq      target_rep function all = `map_all`
 declare isabelle target_rep function any = `map_any`
 declare isabelle target_rep function all = `map_all`
 declare hol target_rep function all P = `FEVERY` (uncurry P)

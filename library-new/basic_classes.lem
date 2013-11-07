@@ -59,6 +59,7 @@ declare coq      target_rep function unsafe_structural_equality = `classical_boo
 val unsafe_structural_inequality : forall 'a. 'a -> 'a -> bool
 let unsafe_structural_inequality x y = not (unsafe_structural_equality x y)
 declare isabelle target_rep function unsafe_structural_inequality = infix `\<noteq>`
+declare hol      target_rep function unsafe_structural_inequality = infix `<>`
 
 (* The default for equality is the unsafe structural one. It can 
    (and should) be overriden for concrete types later. *)

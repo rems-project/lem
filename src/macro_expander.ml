@@ -148,6 +148,12 @@ let rec expand_pat (macro_ctxt : macro_context) pat_pos p (typ_r, src_typ_r, r) 
 let rec expand_exp (macro_ctxt : macro_context) ((r,typ_r,src_typ_r,pat_r):((macro_context -> exp -> exp option) * (Types.t -> Types.t) * (src_t -> src_t) * (pat_position -> macro_context -> pat -> pat option))) (e : exp) : exp = 
   let trans = expand_exp macro_ctxt (r,typ_r,src_typ_r,pat_r) in 
   let transp b p = expand_pat macro_ctxt (Nested, b) p (typ_r, src_typ_r, pat_r) in
+  let trans_bindings qb =
+    match qb with
+      | Typed_ast.Qb_var name_lskips_annot -> Typed_ast.Qb_var name_lskips_annot
+      | Typed_ast.Qb_restr (flag, skips, p, skips', e, skips'') ->
+          Typed_ast.Qb_restr (flag, skips, transp Bind p, skips', trans e, skips'')
+  in
   let new_t = typ_r (exp_to_typ e) in
   let old_l = exp_to_locn e in
     match r macro_ctxt e with
@@ -260,7 +266,7 @@ let rec expand_exp (macro_ctxt : macro_context) ((r,typ_r,src_typ_r,pat_r):((mac
                     (Some new_t)
               | Comp_binding(is_lst,s1,e1,s2,s3,qbs,s4,e2,s5) ->
                   C.mk_comp_binding old_l
-                    is_lst s1 (trans e1) s2 s3 qbs s4 (trans e2) s5
+                    is_lst s1 (trans e1) s2 s3 (List.map trans_bindings qbs) s4 (trans e2) s5
                     (Some new_t)
               | Quant(q,qbs,s,e) ->
                   C.mk_quant old_l
