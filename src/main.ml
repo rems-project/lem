@@ -201,7 +201,8 @@ let per_target libpath isa_thy (out_dir : string option) modules env alldoc_accu
         (env,[])
         modules
     in     
- 
+    let transformed_m = List.rev transformed_m in 
+
     let _ = Reporting.warnings_active := true in
 
     let _ = print_compile_messages env targ modules in
@@ -214,7 +215,7 @@ let per_target libpath isa_thy (out_dir : string option) modules env alldoc_accu
     let transformed_m' = Target_trans.rename_def_params targ consts' transformed_m in
 
     let avoid = Target_trans.get_avoid_f targ consts' in
-    let _ = output libpath isa_thy out_dir targ avoid env'' (List.rev transformed_m') alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum in
+    let _ = output libpath isa_thy out_dir targ avoid env'' transformed_m' alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum in
     env''
   with
       | Trans.Trans_error(l,msg) ->
