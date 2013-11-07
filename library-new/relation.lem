@@ -116,7 +116,7 @@ let inline relIntersection r1 r2 = relFromSet ((relToSet r1) inter (relToSet r2)
 (* Relation Composition    *)
 (* ----------------------- *)
 
-val relComp : forall 'a 'b 'c. Ord 'a, Ord 'b, Ord 'c, Eq 'b => rel 'a 'b -> rel 'b 'c -> rel 'a 'c
+val relComp : forall 'a 'b 'c. Ord 'a, Ord 'b, Ord 'c, Eq 'a, Eq 'b => rel 'a 'b -> rel 'b 'c -> rel 'a 'c
 let relComp r1 r2 = relFromSet {(e1, e3) | forall ((e1,e2) IN (relToSet r1)) ((e2',e3) IN (relToSet r2)) | e2 = e2'}
 
 declare hol target_rep function relComp = `rcomp`

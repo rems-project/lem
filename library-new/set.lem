@@ -329,7 +329,7 @@ assert set_patterns_10: (
 (* filter                  *)
 (* ----------------------- *)
 
-val filter : forall 'a. ('a -> bool) -> set 'a -> set 'a 
+val filter : forall 'a. Ord 'a => ('a -> bool) -> set 'a -> set 'a 
 let filter P s = {e | forall (e IN s) | P e}
 
 declare ocaml    target_rep function filter = `Pset.filter`
@@ -347,7 +347,7 @@ lemma filter_insert: (forall e s P. (filter P (insert e s)) =
 (* partition               *)
 (* ----------------------- *)
 
-val partition : forall 'a. ('a -> bool) -> set 'a -> set 'a * set 'a
+val partition : forall 'a. Ord 'a => ('a -> bool) -> set 'a -> set 'a * set 'a
 let partition P s = (filter P s, filter (fun e -> not (P e)) s)
 declare {hol} rename function partition = SET_PARTITION
 
@@ -411,7 +411,7 @@ lemma isProperSubsetOf_def: (forall s1 s2. isProperSubsetOf s1 s2 <-> ((isSubset
 (* ------------------------ *)
 
 val delete : forall 'a. Ord 'a, Eq 'a => 'a -> set 'a -> set 'a
-val deleteBy : forall 'a. ('a -> 'a -> bool) -> 'a -> set 'a -> set 'a
+val deleteBy : forall 'a. Ord 'a => ('a -> 'a -> bool) -> 'a -> set 'a -> set 'a
 
 let deleteBy eq e s = filter (fun e2 -> not (eq e e2)) s
 let inline delete e s = deleteBy (=) e s

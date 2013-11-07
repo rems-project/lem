@@ -1363,6 +1363,7 @@ module Make_checker(T : sig
             let es = Seplist.from_list_suffix es sk2 semi in
             let exps = Seplist.map (check_exp l_e) es in
             let a = C.new_type () in
+              C.add_constraint (External_constants.class_label_to_path "class_ord") a;
               Seplist.iter (fun exp -> C.equate_types l "set expression" a (exp_to_typ exp)) exps;
               C.equate_types l "set expression" ret_type { t = Tapp([a], Path.setpath) };
               A.mk_set l sk1 exps sk3 ret_type
@@ -1384,6 +1385,7 @@ module Make_checker(T : sig
             let a = C.new_type () in
               C.equate_types l "set comprehension expression" (exp_to_typ exp2) { t = Tapp([], Path.boolpath) };
               C.equate_types l "set comprehension expression" (exp_to_typ exp1) a;
+              C.add_constraint (External_constants.class_label_to_path "class_ord") a;
               C.equate_types l "set comprehension expression" ret_type { t = Tapp([a], Path.setpath) };
               A.mk_setcomp l sk1 exp1 sk2 exp2 sk3 vars rt
         | Ast.Setcomp_binding(sk1,e1,sk2,sk5,qbs,sk3,e2,sk4) ->
@@ -1394,6 +1396,7 @@ module Make_checker(T : sig
             let a = C.new_type () in
               C.equate_types l "set comprehension expression" (exp_to_typ exp2) { t = Tapp([], Path.boolpath) };
               C.equate_types l "set comprehension expression" (exp_to_typ exp1) a;
+              C.add_constraint (External_constants.class_label_to_path "class_ord") a;
               C.equate_types l "set comprehension expression" ret_type { t = Tapp([a], Path.setpath) };
               A.mk_comp_binding l false sk1 exp1 sk2 sk5 
                 (List.rev qbs) sk3 exp2 sk4 rt
@@ -1555,7 +1558,7 @@ module Make_checker(T : sig
                let (pt,p_env) = check_pat (Nfmap.union l_e env) p env in
                let a = C.new_type () in
                  C.equate_types pt.locn "quantifier binding" pt.typ a;
-                 C.equate_types (exp_to_locn et) "quantifier binding" (exp_to_typ et) 
+                 C.equate_types (exp_to_locn et) "quantifier binding" (exp_to_typ et)
                    { t = Tapp([a], Path.setpath) };
                  (p_env,
                   Qb_restr(false,s1, pt, s2, et, s3)::lst))

@@ -50,6 +50,7 @@ let class_label_to_path (label : string) : Path.t =
   let (ns, n) = begin
   match label with
     | "class_numeral" -> (["Num"], "Numeral")
+    | "class_ord" -> (["Basic_classes"], "Ord")
     | s -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_general (true,				     
               (Ast.Trans (false, "class_label_to_path", None)),
               ("Unknown label '" ^ s ^ "'"))))
