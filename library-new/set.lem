@@ -38,6 +38,8 @@ open import {hol} `lemTheory`
 
 (* Type of sets and set comprehensions are hard-coded *)
 
+declare ocaml target_rep type set = `Pset.set`
+
 (* ----------------------- *)
 (* Equality check          *)
 (* ----------------------- *)
