@@ -54,9 +54,9 @@ let r = Ulib.Text.of_latin1
 let marker_lex_skip : Ast.lex_skips = (Some [Ast.Ws (Ulib.Text.of_latin1 "***marker***")])
 
 (* Resolve a const identifier stored inside a id, with a full one in case of Id_none *)
-let resolve_constant_id_ident l env id : Ident.t =
+let resolve_constant_id_ident l env targ id : Ident.t =
   match id.id_path with 
-      | Id_none sk -> resolve_const_ref l env sk id.descr
+      | Id_none sk -> resolve_const_ref l env targ sk id.descr
       | Id_some id -> id
 
 let resolve_type_id_ident l env id path : Ident.t =
@@ -321,7 +321,7 @@ let const_ref_to_name n0 use_ascii c =
 let const_id_to_ident_aux c_id ascii_alternative given_id_opt =   
   let l = Ast.Trans (false, "const_id_to_ident", (Some c_id.id_locn)) in
   let c_descr = c_env_lookup l A.env.c_env c_id.descr in
-  let org_ident = resolve_constant_id_ident l A.env c_id in
+  let org_ident = resolve_constant_id_ident l A.env A.target c_id in
   let (_, n, n_ascii_opt) = constant_descr_to_name A.target c_descr in
   let (ascii_used, ident') =    
     match (n_ascii_opt, ascii_alternative, given_id_opt) with

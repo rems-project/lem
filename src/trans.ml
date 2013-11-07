@@ -887,7 +887,7 @@ let remove_class_const_aux l_unk targ mk_exp c =
   if const_descr_has_target_rep targ c_descr then (* if the constant is represented specially, don't touch it *) None else
   let const_constraints = List.filter (fun (c, _) -> not (class_all_methods_inlined_for_target l_unk env targ c)) c_descr.const_class in
 
-  match (const_constraints, c_descr.const_no_class) with
+  match (const_constraints, Targetmap.apply_target c_descr.const_no_class targ) with
       | (([], _) | (_, None)) ->                 
           (* if there are no class constraints, there is nothing to do *)
           None

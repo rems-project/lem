@@ -1905,7 +1905,7 @@ let add_let_defs_to_ctxt
                     { const_binding = Path.mk_path mod_path n;
                       const_tparams = tnvars;
                       const_class = constraints;
-                      const_no_class = None;
+                      const_no_class = Targetmap.empty;
                       const_ranges = lconstraints;
                       const_type = t;
                       spec_l = l;
@@ -2114,7 +2114,7 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
                  { const_binding = Path.mk_path mod_path fname;
                    const_tparams = tparams;
                    const_class = [];
-                   const_no_class = None;
+                   const_no_class = Targetmap.empty;
                    const_ranges = [];
                    const_type = { t = Tfn ({ t = Tapp (tparams_t, type_path) }, t) };
                    spec_l = l;
@@ -2142,7 +2142,7 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
                  { const_binding = Path.mk_path mod_path cname;
                    const_tparams = tparams;
                    const_class = [];
-                   const_no_class = None;
+                   const_no_class = Targetmap.empty;
                    const_ranges = [];
                    const_type = multi_fun (Seplist.to_list_map (fun t -> annot_to_typ t) ts) { t = Tapp (tparams_t, type_path) };
                    spec_l = l;
@@ -2216,7 +2216,7 @@ let check_val_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
     { const_binding = Path.mk_path mod_path n';
       const_tparams = tyvars;
       const_class = sem_cp;
-      const_no_class = None;
+      const_no_class = Targetmap.empty;
       const_ranges = sem_rp;
       const_type = src_t.typ;
       spec_l = l;
@@ -2268,7 +2268,7 @@ let check_class_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
     { const_binding = Path.mk_path mod_path n';
       const_tparams = [tv];
       const_class = [(class_p, tv)];
-      const_no_class = None;
+      const_no_class = Targetmap.empty;
       const_ranges = [];
       const_type = src_t.typ;
       spec_l = l;
@@ -3093,7 +3093,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                  { const_binding = Path.mk_path mod_path fname;
                    const_tparams = tparams;
                    const_class = [];
-                   const_no_class = None;
+                   const_no_class = Targetmap.empty;
                    const_ranges = [];
                    const_type = { t = Tfn ({ t = Tapp (tparams_t, type_path) }, t) };
                    spec_l = l;
@@ -3286,7 +3286,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
             { const_binding = Path.mk_path mod_path dict_name;
               const_tparams = tyvars;
               const_class = sem_cs;
-              const_no_class = None;
+              const_no_class = Targetmap.empty;
               const_ranges = [];
               const_type = dict_type;
               env_tag = K_let;

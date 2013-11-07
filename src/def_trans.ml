@@ -446,7 +446,7 @@ let class_constraint_to_parameter targ : def_macro = fun mod_path env ((d,s),l,l
                 let c_d = c_env_lookup l_unk c_env c in
                 let new_pats = pats_from_constraints (filter_constraints c_d.const_class) in
   	        let (c', t', c_env') = 
-                  match c_d.const_no_class with
+                  match Targetmap.apply_target c_d.const_no_class targ with
 		    | Some c' -> 
                         let c_d' = c_env_lookup l_unk c_env c' in
                         (c', c_d'.const_type, c_env)
@@ -464,7 +464,7 @@ let class_constraint_to_parameter targ : def_macro = fun mod_path env ((d,s),l,l
                         let c_d' = ({ c_d with const_class = []; const_type = t'; target_rep = Targetmap.empty }) in  
                         let (c_env', c') = c_env_store_raw c_env c_d' in 
   
-                        let c_d_new = { c_d with const_no_class = Some c' } in
+                        let c_d_new = { c_d with const_no_class = Targetmap.insert_target c_d.const_no_class (targ, c') } in
                         let c_env' = c_env_update c_env' c c_d_new in 
 
                         (c',t', c_env')

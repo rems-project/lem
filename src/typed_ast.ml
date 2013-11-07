@@ -153,7 +153,7 @@ and rel_info = {
 and const_descr = { const_binding : Path.t;
                     const_tparams : Types.tnvar list;
                     const_class : (Path.t * Types.tnvar) list;
-                    const_no_class : const_descr_ref option;
+                    const_no_class : const_descr_ref Targetmap.t;
                     const_ranges : Types.range list;
                     const_type : t; 
 		    relation_info: rel_info option;

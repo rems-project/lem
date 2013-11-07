@@ -97,7 +97,7 @@ let resolve_type_path l env sk p =
       raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal
           (l, "could not resolve type path " ^ Path.to_string p))) 
 
-let resolve_const_ref l env sk c_ref = 
+let resolve_const_ref l env targ sk c_ref = 
   let c_descr = c_env_lookup Ast.Unknown env.c_env c_ref in
   let c_kind = const_descr_to_kind (c_ref, c_descr) in
   let (ns, n) = Path.to_name_list c_descr.const_binding in
@@ -114,7 +114,7 @@ let resolve_const_ref l env sk c_ref =
       | Some c_ref' -> ((c_ref = c_ref') ||
         begin
           let c_descr' = c_env_lookup Ast.Unknown env.c_env c_ref' in
-          c_descr'.const_no_class = Some c_ref
+          Target.Targetmap.apply_target c_descr'.const_no_class targ = Some c_ref
         end)
   in
   match search_module_suffix env is_ok ns with

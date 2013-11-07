@@ -202,7 +202,7 @@ and const_descr =
     (** Its class constraints (must refer to above type parameters).  Must have
         length 1 for class methods *)
 
-    const_no_class : const_descr_ref option;
+    const_no_class : const_descr_ref Target.Targetmap.t;
     (** If the constant has constraints, i.e. const_class is not empty, we need another constant without
         constraints for dictionary passing. This field stores the reference to this constant, if one such constant
         has aready been generated. *)
