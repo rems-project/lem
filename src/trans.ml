@@ -885,7 +885,9 @@ let remove_method_pat _ _ p =
 let remove_class_const_aux l_unk targ mk_exp c =
   let c_descr = c_env_lookup l_unk env.c_env c.descr in
   if const_descr_has_target_rep targ c_descr then (* if the constant is represented specially, don't touch it *) None else
-  match (c_descr.const_class, c_descr.const_no_class) with
+  let const_constraints = List.filter (fun (c, _) -> not (class_all_methods_inlined_for_target l_unk env targ c)) c_descr.const_class in
+
+  match (const_constraints, c_descr.const_no_class) with
       | (([], _) | (_, None)) ->                 
           (* if there are no class constraints, there is nothing to do *)
           None
@@ -919,7 +921,7 @@ let remove_class_const_aux l_unk targ mk_exp c =
                         C.mk_var l_unk (Name.add_lskip (class_path_to_dict_name c_path tv)) t
             end
           in
-          let args = List.map class_constraint_to_arg c_descr.const_class in          
+          let args = List.map class_constraint_to_arg const_constraints in          
           let new_e = 
             List.fold_left
               (fun e arg -> C.mk_app l_unk e arg None)
