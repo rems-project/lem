@@ -157,6 +157,14 @@ val lookup_inst_method_for_class_method : Ast.l -> Types.instance -> const_descr
     the type of the dictionary for the class and argument type. *)
 val class_descr_get_dict_type : Types.class_descr -> Types.t -> Types.t
 
+(** Some targets may choose to not use type-classes to implement certain functions. An example is the equality type-class,
+    which is implemented using just the build-in equality of HOL, Coq and Isabelle instead of one determined by
+    the type-class. If all methods of a type-class are specially treated like this, the type-class does not need to
+    be generated at all. This involves not generating the record definition, not generating instances and not 
+    using dictionary style passing for the class. The function [class_all_methods_inlined_for_target l env targ class_path] checks,
+    wether all methods of [class_path] are inlined for target [targ]. *)
+val class_all_methods_inlined_for_target : Ast.l -> env -> Target.target -> Path.t -> bool
+
 (** [update_const_descr l up c env] updates the description of the constant [c] in environment [env] using
     the function [up]. *)
 val update_const_descr : Ast.l -> (const_descr -> const_descr) -> const_descr_ref -> env -> env

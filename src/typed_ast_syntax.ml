@@ -218,6 +218,20 @@ let lookup_inst_method_for_class_method l id method_ref =
 let class_descr_get_dict_type cd arg =
     { Types.t = Types.Tapp([arg], cd.class_record) }
 
+let class_all_methods_inlined_for_target l env target (class_path : Path.t) =
+  let l = Ast.Trans(false, "class_all_methods_inlined_for_target", Some l) in 
+  let class_d = lookup_class_descr l env class_path in
+  let method_refs = List.map fst class_d.class_methods in
+
+  let method_is_inlined c = begin
+    let cd = c_env_lookup l env.c_env c in
+    match (Target.Targetmap.apply_target cd.target_rep target) with
+      | Some (CR_inline _) -> true
+      | _ -> false 
+  end in
+
+  List.for_all method_is_inlined method_refs
+
 
 let update_const_descr l up c env =
   let l = Ast.Trans(false, "update_const_descr", Some l) in 
