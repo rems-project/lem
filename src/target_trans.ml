@@ -407,7 +407,7 @@ let trans (targ : Target.target) params env (m : checked_module) =
       defs
       params.extra
   in
-  let defs = Target_syntax.fix_infix_and_parens env targ defs in
+  let defs = if (is_human_target targ) then defs else Target_syntax.fix_infix_and_parens env targ defs in 
     (* Note: this is the environment from the macro translations, ignoring the
      * extra translations *)
     (env,

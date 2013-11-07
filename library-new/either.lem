@@ -57,12 +57,12 @@ instance forall 'a 'b. Eq 'a, Eq 'b => (Eq (either 'a 'b))
 end
 
 assert either_equal_1: (((Left false) : either bool bool) = Left false)
-assert either_equal_2: (((Left true) : either bool bool) /= Left false)
+assert either_equal_2: (((Left true) : either bool bool) <> Left false)
 assert either_equal_3: (((Left true) : either bool bool)  = Left true)
 assert either_equal_4: (((Right false) : either bool bool) = Right false)
-assert either_equal_5: (((Right false) : either bool bool) /= Right true)
-assert either_equal_6: (((Right true) : either bool bool) /= Left true)
-assert either_equal_7: (((Left true) : either bool bool) /= Right true)
+assert either_equal_5: (((Right false) : either bool bool) <> Right true)
+assert either_equal_6: (((Right true) : either bool bool) <> Left true)
+assert either_equal_7: (((Left true) : either bool bool) <> Right true)
 
 assert either_pattern_1: (match (Left true) with Left x -> x | Right y -> not y end)
 assert either_pattern_2: (match (Right false) with Left x -> x | Right y -> not y end)

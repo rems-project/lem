@@ -22,7 +22,6 @@ type num = nat
 declare lem target_rep type num = `nat`
 
 let lem_transform (@) = (++) (* List append *)
-let lem_transform (<>) = (/=)
 
 (* transitive closure now works on relations, not sets of pairs,
    best ajust the types manually or add wrappers 'relFromSet' and 
@@ -132,14 +131,14 @@ let lem_transform {isabelle} nat_list_to_string = Isabelle.nat_list_to_string
 module Set = struct
   include Set_extra   (* include the new set module *)
 
-  let lem_transform add = insert
-  let lem_transform for_all = all
-  let lem_transform exist = any
-  let lem_transform cardinal = size
-  let lem_transform from_list = fromList
-  let lem_transform is_empty = null
-  let lem_transform image = map
-  let lem_transform set_sigma = sigma
+  let lem_transform add = Set.insert
+  let lem_transform for_all = Set.all
+  let lem_transform exist = Set.any
+  let lem_transform cardinal = Set.size
+  let lem_transform from_list = Set.fromList
+  let lem_transform is_empty = Set.null
+  let lem_transform image = Set.map
+  let lem_transform set_sigma = Set.sigma
   let lem_transform equal = setEqual
   let lem_transform finite = Set.finite
   let lem_transform fold = Set_helpers.fold

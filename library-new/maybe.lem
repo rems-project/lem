@@ -53,8 +53,8 @@ instance forall 'a. Eq 'a => (Eq (maybe 'a))
 end
 
 assert maybe_eq_1: ((Nothing : maybe bool) = Nothing)  
-assert maybe_eq_2: ((Just true) /= Nothing)
-assert maybe_eq_3: ((Just false) /= (Just true))  
+assert maybe_eq_2: ((Just true) <> Nothing)
+assert maybe_eq_3: ((Just false) <> (Just true))  
 assert maybe_eq_4: ((Just false) = (Just false))  
 
 (* ----------------------- *)

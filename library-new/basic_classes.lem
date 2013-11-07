@@ -21,7 +21,7 @@ end
 declare coq target_rep function isEqual = infix `=`
 
 class ( Ineq 'a ) 
-  val (/=) [`isInequal`] : 'a -> 'a -> bool
+  val (<>) [`isInequal`] : 'a -> 'a -> bool
 end
 
 declare coq target_rep function isInequal = infix `/=`
@@ -67,13 +67,13 @@ default_instance forall 'a. (Eq 'a)
 end
 
 default_instance forall 'a. Eq 'a => (Ineq 'a) 
-  let (/=) x y = not (x = y)
+  let (<>) x y = not (x = y)
 end
 
 (* for HOL and Isabelle, be even stronger and always(!) use
    standard equality *)
 let inline {hol;isabelle} (=)  = unsafe_structural_equality
-let inline {hol;isabelle} (/=) = unsafe_structural_inequality
+let inline {hol;isabelle} (<>) = unsafe_structural_inequality
 
 
 (* ========================================================================== *)
