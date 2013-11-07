@@ -167,7 +167,7 @@ module Set = struct
   (*
   TODO: unsupported so far:
   *)
-  val to_list : forall 'a. set 'a -> list 'a
+  let lem_transform to_list = Set_extra.toList
   (*
   val monotone : forall 'a. (set 'a -> set 'a) -> bool
   val lfp : forall 'a. set 'a -> (set 'a -> set 'a) -> set 'a
@@ -175,7 +175,9 @@ module Set = struct
 end
 
 module Pmap = struct
-  include Map (* include the new map module *)
+  (* include the new map module *)
+  include Map 
+  declare {lem} rename module = Map
 
   let lem_transform add = Map.insert
   let lem_transform mem = Map.member
@@ -191,7 +193,6 @@ module Pmap = struct
   let lem_transform remove = delete
   let lem_transform bindings m = Set_extra.toList (toSet m)
 end
-declare {lem} rename module Pmap = Map
 
 (* ========================================================================== *)
 (* List                                                                       *)

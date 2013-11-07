@@ -11,7 +11,7 @@
 open import Bool Basic_classes Maybe Function Num List Sorting
 include import Set
 
-declare ~{coq} rename module = lem_set_extra[]
+declare ~{lem;coq} rename module = lem_set_extra[]
 
 
 (* ----------------------------*)
@@ -40,7 +40,7 @@ assert choose_3: choose {(6:nat);1;2} IN {6;1;2}
 (* --------------------------- *)
 
 val toList        : forall 'a. Ord 'a => set 'a -> list 'a
-declare compile_message toList = "toOrderedList is only defined on finite sets"
+declare compile_message toList = "toList is only defined on finite sets and the order of the resulting list is unspecified and therefore might differ for diffrent backend implementations."
 
 declare ocaml    target_rep function toList = `Pset.elements`
 declare isabelle target_rep function toList = `list_of_set`
