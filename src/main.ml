@@ -238,13 +238,8 @@ let main () =
   in
   let _ = 
     List.iter
-      (fun f ->
-         try
-           if String.compare ".lem" (String.sub f (String.length f - 4) 4) <> 0 then
-             raise (Failure("Files must have .lem extension"))
-         with 
-           | Invalid_argument _ -> 
-             raise (Failure("Files must have .lem extension")))
+      (fun f -> if not (Filename.check_suffix f ".lem")
+      then raise (Failure "Files must have .lem extension"))
       (!opt_file_arguments @ !lib)
   in
   let _ = 
