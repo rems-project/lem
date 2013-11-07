@@ -120,11 +120,11 @@ let targets_to_set : Ast.targets -> Targetset.t = function
       (List.fold_right
              (fun (t,_) ks -> Targetset.remove (ast_target_to_target t) ks)
              targs
-             all_targets)
+             all_targets_non_explicit)
 
 let targets_opt_to_set_opt = Util.option_map targets_to_set 
 
-let targets_opt_to_set x = Util.option_default Target.all_targets (targets_opt_to_set_opt x)
+let targets_opt_to_set x = Util.option_default Target.all_targets_non_explicit (targets_opt_to_set_opt x)
 
 let check_target_opt : Ast.targets option -> Typed_ast.targets_opt = function
   | None -> None
@@ -139,6 +139,7 @@ let check_target_opt : Ast.targets option -> Typed_ast.targets_opt = function
 let ast_def_to_target_opt : Ast.def_aux -> Ast.targets option = function
     | Ast.Val_def(Ast.Let_def(_,target_opt,_) |
                   Ast.Let_inline(_,_,target_opt,_) |
+                  Ast.Let_transform(_,_,target_opt,_) |
                   Ast.Let_rec(_,_,target_opt,_)) -> target_opt
     | Ast.Indreln(_,target_opt,_,_) -> target_opt
     | Ast.Lemma(Ast.Lemma_named(_,target_opt,_,_,_)) -> target_opt
@@ -1688,7 +1689,7 @@ module Make_checker(T : sig
                             | None -> cd.const_targets
                             | Some dt -> Targetset.inter cd.const_targets dt) in
                          let _ = if not (is_inline || Targetset.is_empty duplicate_targets) then
-                             if Targetset.subset Target.all_targets duplicate_targets then
+                             if Targetset.subset Target.all_targets_non_explicit duplicate_targets then
                                raise (Reporting_basic.err_type l
                                  (Printf.sprintf "defined variable '%s' is already defined for all targets"  (Name.to_string n))) 
                              else
@@ -1893,7 +1894,7 @@ let add_let_defs_to_ctxt
       (new_targs_opt : Targetset.t option) 
       (l_env : lex_env) 
       : defn_ctxt =
-  let new_targs = Util.option_default all_targets new_targs_opt in
+  let new_targs = Util.option_default all_targets_non_explicit new_targs_opt in
   let (c_env, new_env) =
     Nfmap.fold
       (fun (c_env, new_env) n (t,l) ->
@@ -2356,14 +2357,14 @@ let letbinds_to_funcl_aux_rec l ctxt (lbs : (_ Typed_ast.lskips_seplist)) : func
   res
 
 
-let lb_to_inline l ctxt' target_set_opt lb =
+let lb_to_inline l ctxt' is_transform target_set_opt lb =
     let (nls, n_ref, _, pL, ty_opt, sk3, et) = letbind_to_funcl_aux_dest ctxt' lb in
     let args = match Util.map_all Pattern_syntax.pat_to_ext_name pL with
                  | None -> raise (Reporting_basic.err_type l "non-variable pattern in inline")
                  | Some a -> a in         
     let all_targets = (match target_set_opt with None -> true | _ -> false) in
     let new_tr = CR_inline (l, all_targets, args, et) in
-    let ts = Util.option_default Target.all_targets target_set_opt in
+    let ts = Util.option_default (if is_transform then Target.all_targets else Target.all_targets_non_explicit) target_set_opt in
 
     let ctxt'' = Targetset.fold (fun t ctxt -> fst (ctxt_c_env_set_target_rep l ctxt n_ref t new_tr)) ts ctxt' in
     (ctxt'', args)
@@ -2403,12 +2404,12 @@ let check_val_def (ts : Targetset.t) (mod_path : Name.t list) (l : Ast.l)
           let ctxt' = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) constraints lconstraints K_let target_set_opt e_v in
           let fauxs = letbinds_to_funcl_aux_rec l ctxt' lbs in
             (ctxt', e_v, (Fun_def(sk1,FR_rec sk2,target_opt,fauxs)), Tconstraints(tnvs,constraints,lconstraints))
-      | Ast.Let_inline (sk1,sk2,_,lb) -> 
+      | (Ast.Let_inline (sk1,sk2,_,lb) | Ast.Let_transform (sk1,sk2,_,lb)) -> 
           let (lb,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_letbind None true target_set_opt l lb in 
           let ctxt' = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) constraints lconstraints K_let target_set_opt e_v in
           let (nls, n_ref, _, _, _, sk3, et) = letbind_to_funcl_aux_dest ctxt' lb in
-          let (ctxt'', args) = lb_to_inline l ctxt' target_set_opt lb in
-
+          let is_transform = match vd with Ast.Let_transform _ -> true | _ -> false in
+          let (ctxt'', args) = lb_to_inline l ctxt' is_transform target_set_opt lb in
             (ctxt'', e_v, Let_inline(sk1,sk2,target_opt,nls,n_ref,args,sk3,et), Tconstraints(tnvs,constraints,lconstraints))
 
 
@@ -2433,6 +2434,7 @@ let check_val_def_instance (ts : Targetset.t) (mod_path : Name.t list) (instance
       | Ast.Let_def(_,Some _,_) -> raise (Reporting_basic.err_type l "instance method must not be target specific");
       | Ast.Let_rec(_,_,_,_) -> raise (Reporting_basic.err_type l "instance method must not be recursive");
       | Ast.Let_inline (_,_,target_opt,_) -> raise (Reporting_basic.err_type l "instance method must not be inlined");
+      | Ast.Let_transform (_,_,target_opt,_) -> raise (Reporting_basic.err_type l "instance method must not be transformed");
   in
 
   (* Instantiate the checker. In contrast to check_val_def *)
@@ -2461,8 +2463,7 @@ let check_val_def_instance (ts : Targetset.t) (mod_path : Name.t list) (instance
           in
 
           let ctxt' = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) constraints lconstraints K_instance None e_v in
-          let (ctxt'', _) = lb_to_inline l ctxt' None lb in
-          let (ctxt'', _) = lb_to_inline l ctxt'' None lb in
+          let (ctxt'', _) = lb_to_inline l ctxt' false None lb in
 
           let (vd : val_def) = letbind_to_funcl_aux sk None ctxt'' lb in
 

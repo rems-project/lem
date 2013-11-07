@@ -815,6 +815,8 @@ val_def :: '' ::=
     {{ com Recursive function definitions }}
   | let inline targets_opt letbind 				:: :: Let_inline
     {{ com Function definitions to be inlined }}
+  | let lem_transform targets_opt letbind 		        :: :: Let_transform
+    {{ com Function definitions to be transformed }}
 
 ascii_opt :: 'Ascii_opt_' ::= 
   {{ com an optional ascii representation }}

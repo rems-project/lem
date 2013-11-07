@@ -21,8 +21,8 @@ declare rename module = Pervasives_extra
 type num = nat
 declare lem target_rep type num = `nat`
 
-let inline (@) = (++) (* List append *)
-let inline (<>) = (/=)
+let lem_transform (@) = (++) (* List append *)
+let lem_transform (<>) = (/=)
 
 (* transitive closure now works on relations, not sets of pairs,
    best ajust the types manually or add wrappers 'relFromSet' and 
@@ -35,12 +35,12 @@ declare lem target_rep function tc = `Relation.transitiveClosure`
 type option 'a = maybe 'a
 declare lem target_rep type option = `maybe` 
 
-let inline None = Nothing
-let inline Some = Just
+let lem_transform None = Nothing
+let lem_transform Some = Just
 
 declare pattern_match exhaustive maybe 'a = [ None; Some ; ]  
 
-let inline SUC = natSucc
+let lem_transform SUC = natSucc
 
 (* ----------------------- *)
 (* fully supported         *)
@@ -96,8 +96,8 @@ val bigunion = forall 'a. set (set 'a) -> set 'a
 val biginter : forall 'a. set (set 'a) -> set 'a
 
 val (^) : string -> string -> string
-let inline {hol} (^) x y = Hol.STRCAT x y
-let inline {ocaml} (^) = Ocaml.(^)
+let lem_transform {hol} (^) x y = Hol.STRCAT x y
+let lem_transform {ocaml} (^) = Ocaml.(^)
 
 
 type sum 'a 'b = 
@@ -105,23 +105,23 @@ type sum 'a 'b =
   | Inr of 'b
 
 val isl : forall 'a 'b. sum 'a 'b -> bool
-let inline {hol;ocaml;coq;isabelle} isl s = match s with Inl _ -> true | Inr _ -> false end
+let lem_transform {hol;ocaml;coq;isabelle} isl s = match s with Inl _ -> true | Inr _ -> false end
 
 val isr : forall 'a 'b. sum 'a 'b -> bool
-let inline {hol;ocaml;coq;isabelle} isr s = match s with Inl _ -> false | Inr _ -> true end
+let lem_transform {hol;ocaml;coq;isabelle} isr s = match s with Inl _ -> false | Inr _ -> true end
 
 val outl : forall 'a 'b. sum 'a 'b -> 'a
-let inline {hol;ocaml;coq;isabelle} outl s = match s with Inl a -> a end
+let lem_transform {hol;ocaml;coq;isabelle} outl s = match s with Inl a -> a end
 
 val outr : forall 'a 'b. sum 'a 'b -> 'b
-let inline {hol;ocaml;coq;isabelle} outr s = match s with Inr b -> b end
+let lem_transform {hol;ocaml;coq;isabelle} outr s = match s with Inr b -> b end
   
 val string_of_num : num -> string
-let inline {ocaml} string_of_num = Ocaml.Nat_num.string_of_num
-let inline {isabelle} string_of_num = Isabelle.nat_to_string
+let lem_transform {ocaml} string_of_num = Ocaml.Nat_num.string_of_num
+let lem_transform {isabelle} string_of_num = Isabelle.nat_to_string
 
 val nat_list_to_string : list num -> string
-let inline {isabelle} nat_list_to_string = Isabelle.nat_list_to_string
+let lem_transform {isabelle} nat_list_to_string = Isabelle.nat_list_to_string
 *)
 
 
@@ -132,17 +132,17 @@ let inline {isabelle} nat_list_to_string = Isabelle.nat_list_to_string
 module Set = struct
   include Set_extra   (* include the new set module *)
 
-  let inline add = insert
-  let inline for_all = all
-  let inline exist = any
-  let inline cardinal = size
-  let inline from_list = fromList
-  let inline is_empty = null
-  let inline image = map
-  let inline set_sigma = sigma
-  let inline equal = setEqual
-  let inline finite = Set.finite
-  let inline fold = Set_helpers.fold
+  let lem_transform add = insert
+  let lem_transform for_all = all
+  let lem_transform exist = any
+  let lem_transform cardinal = size
+  let lem_transform from_list = fromList
+  let lem_transform is_empty = null
+  let lem_transform image = map
+  let lem_transform set_sigma = sigma
+  let lem_transform equal = setEqual
+  let lem_transform finite = Set.finite
+  let lem_transform fold = Set_helpers.fold
 
 
   (* ----------------------- *)
@@ -178,28 +178,19 @@ end
 module Pmap = struct
   include Map (* include the new map module *)
 
-  let inline add = insert
-  let inline mem = member
+  let lem_transform add = insert
+  let lem_transform mem = member
 
-  (* 
-  find is a suspicious function.
-  *)
   val find : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> 'v
-  let inline find k m = 
-      match Map.find k m with
-      | Just x -> x
-      end
+  let lem_transform find = Map_extra.find
 
   (* All elements satisfy predicate p iff filtering all elements _not_
      satisfying p yields the empty map, similarly for exists. *)
-  let inline for_all p m = null (filterWithKey (fun k v -> not (p k v)) m)
-  let inline exist p m = not (null (filterWithKey p m))
+  let lem_transform for_all = all
+  let lem_transform exist p m = any
 
-  let inline remove = delete
-  let inline bindings = toAscList
-
-  let inline domain m = Set.fromList (List.map fst (toAscList m))
-  let inline range  m = Set.fromList (List.map snd (toAscList m))
+  let lem_transform remove = delete
+  let lem_transform bindings m = Set_extra.toList (toSet m)
 end
 
 
@@ -210,34 +201,34 @@ end
 module List = struct
   include List_extra (* include the new set module *)
 
-  let inline hd = head
-  let inline tl = tail
-  let inline rev = reverse
-  let inline rev_append = reverseAppend
-  let inline flatten = concat
-  let inline rev_map = reverseMap
-  let inline fold_left = foldl
-  let inline fold_right f l e = foldr f e l
-  let inline for_all = List.all
-  let inline exist = List.any
-  let inline mem = elem
-  let inline find = find_non_pure
-  let inline find_all = filter
-  let inline assoc = lookup
-  let inline split = unzip
-  let inline combine = zip
+  let lem_transform hd = head
+  let lem_transform tl = tail
+  let lem_transform rev = reverse
+  let lem_transform rev_append = reverseAppend
+  let lem_transform flatten = concat
+  let lem_transform rev_map = reverseMap
+  let lem_transform fold_left = foldl
+  let lem_transform fold_right f l e = foldr f e l
+  let lem_transform for_all = List.all
+  let lem_transform exist = List.any
+  let lem_transform mem = elem
+  let lem_transform find = find_non_pure
+  let lem_transform find_all = filter
+  let lem_transform assoc = lookup
+  let lem_transform split = unzip
+  let lem_transform combine = zip
 
-  let inline sort = Sorting.sort
-  let inline stable_sort = Sorting.sort
-  let inline fast_sort = Sorting.sort
+  let lem_transform sort = Sorting.sort
+  let lem_transform stable_sort = Sorting.sort
+  let lem_transform fast_sort = Sorting.sort
 
   (* ----------------------- *)
   (* supported               *)
   (* ----------------------- *)
 
-  let inline length = List.length
-  let inline nth = List_extra.nth
-  let inline append = List.append
+  let lem_transform length = List.length
+  let lem_transform nth = List_extra.nth
+  let lem_transform append = List.append
 
   (*
   val length : forall 'a. list 'a -> num

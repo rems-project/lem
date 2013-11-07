@@ -129,6 +129,8 @@ end)
 
 let all_targets = List.fold_right Targetset.add all_targets_list Targetset.empty
 
+let all_targets_non_explicit = Targetset.remove Target_lem all_targets
+
 let non_ident_target_to_string = function
   | Target_hol -> "hol"
   | Target_ocaml -> "ocaml"

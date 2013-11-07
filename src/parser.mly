@@ -156,7 +156,7 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 %token <Ast.terminal * int> Num
 %token <Ast.terminal * string> BacktickString String Bin Hex 
 
-%token <Ast.terminal> Indreln Forall EqEqGt Inline LtBar BarGt Exists EqGt BraceBar BarBrace DotBrace 
+%token <Ast.terminal> Indreln Forall EqEqGt Inline Lem_transform LtBar BarGt Exists EqGt BraceBar BarBrace DotBrace 
 %token <Ast.terminal> Assert Lemma Theorem 
 %token <Ast.terminal> Declare TargetType TargetConst
 %token <Ast.terminal * Ulib.Text.t> IN MEM MinusMinusGt
@@ -1007,6 +1007,8 @@ val_def:
     { Let_rec($1,$2,$3,$4) }
   | Let_ Inline targets_opt letbind
     { Let_inline($1,$2,$3,$4) }
+  | Let_ Lem_transform targets_opt letbind
+    { Let_transform($1,$2,$3,$4) }
 
 val_defs:
   | val_def

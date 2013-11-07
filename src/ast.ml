@@ -459,6 +459,7 @@ val_def =  (* Value definitions *)
    Let_def of terminal * targets option * letbind (* Non-recursive value definitions *)
  | Let_rec of terminal * terminal * targets option * (funcl * terminal) list (* Recursive function definitions *)
  | Let_inline of terminal * terminal * targets option * letbind (* Function definitions to be inlined *)
+ | Let_transform of terminal * terminal * targets option * letbind (* Function definitions to be transformed *)
 
 
 type 

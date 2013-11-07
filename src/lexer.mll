@@ -90,6 +90,7 @@ let kw_table =
      ("forall",                  (fun x -> Forall(x)));
      ("exists",                  (fun x -> Exists(x)));
      ("inline",                  (fun x -> Inline(x)));
+     ("lem_transform",           (fun x -> Lem_transform(x)));
      ("IN",                      (fun x -> IN(x,r"IN")));
      ("MEM",                     (fun x -> MEM(x,r"MEM")));
      ("declare",                 (fun x -> Declare(x)));

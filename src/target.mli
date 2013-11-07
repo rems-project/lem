@@ -103,6 +103,9 @@ val all_targets_list : non_ident_target list
 (** The set of all the targets. *)
 val all_targets : Targetset.t
 
+(** The set of targets used when negating or no mentioning explicit targets. Targets like Lem are excluded by default. *)
+val all_targets_non_explicit : Targetset.t
+
 (** [non_ident_target_to_string t] returns a string description of a target [t]. *)
 val non_ident_target_to_string : non_ident_target -> string
 
