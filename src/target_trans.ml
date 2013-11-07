@@ -155,7 +155,7 @@ let ocaml =
              nvar_macros @
              [Def_macros (fun env ->  
                             [M.remove_vals; 
-                             M.remove_import_include;
+                             M.remove_import;
                              M.opens_to_single;
                              M.remove_indrelns;
                              M.remove_types_with_target_rep (Target_no_ident Target_ocaml);

@@ -230,7 +230,6 @@ let output1 env libpath isa_thy (out_dir : string option) (targ : Target.target)
             let _ = begin
               let (o, ext_o) = open_output_with_check dir (module_name_lower ^ ".ml") in
               Printf.fprintf o "(*%s*)\n" (generated_line m.filename);
-              Printf.fprintf o "type 'a set = 'a Pset.set\n\n";
               Printf.fprintf o "%s" (Ulib.Text.to_string r_main);
               close_output_with_check ext_o
             end in
@@ -238,9 +237,7 @@ let output1 env libpath isa_thy (out_dir : string option) (targ : Target.target)
               begin
                 let (o, ext_o) = open_output_with_check dir (module_name_lower ^ "Auxiliary.ml") in
                 Printf.fprintf o "(*%s*)\n" (generated_line m.filename);
-                Printf.fprintf o "open Nat_num\n";
                 List.iter (fun s -> Printf.fprintf o "open %s\n\n" s) extra_imported_modules;
-                Printf.fprintf o "type 'a set = 'a Pset.set\n\n";
   
                 Printf.fprintf o "%s" "let run_test n loc b =\n  if b then (Format.printf \"%s : ok\\n\" n) else (Format.printf \"%s : FAILED\\n  %s\\n\\n\" n loc);;\n\n";
 

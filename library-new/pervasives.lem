@@ -2,5 +2,5 @@ declare {isabelle;ocaml;coq;hol} rename module = Lem_pervasives
 
 include import Basic_classes Bool Tuple Maybe Either Function Num Map Set List
 
-import Sorting 
+import Sorting Relation
 

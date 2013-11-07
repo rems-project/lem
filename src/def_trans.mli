@@ -100,6 +100,9 @@ val remove_opens : def_macro
     includes turned into open statements. *)
 val remove_import_include : def_macro
 
+(** [remove_import] removes all import statements. *)
+val remove_import : def_macro
+
 (** open statements can open multiple modules at once. For backends that don't support this,
     [opens_to_single] turns one open/import/include statement into multiple ones that all mention
     exactly one module. *)

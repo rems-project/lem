@@ -372,7 +372,7 @@ let ~{ocaml;coq} isStrictTotalOrder r = isStrictPartialOrder r && isTrichotomous
 
 val transitiveClosure : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> rel 'a 'a
 val transitiveClosureByEq  : forall 'a. ('a -> 'a -> bool) -> rel 'a 'a -> rel 'a 'a
-val transitiveClosureByCmp : forall 'a. ('a -> 'a -> ordering) -> rel 'a 'a -> rel 'a 'a
+val transitiveClosureByCmp : forall 'a. ('a * 'a -> 'a * 'a -> ordering) -> rel 'a 'a -> rel 'a 'a
 
 declare ocaml    target_rep function transitiveClosureByCmp = `Pset.tc`
 declare hol      target_rep function transitiveClosure = `tc`

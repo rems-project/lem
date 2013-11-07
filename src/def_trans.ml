@@ -134,6 +134,23 @@ let remove_import_include _ env (((d,s),l,lenv) as def) =
         aux (fun oi' -> OpenImportTarget (oi', targets, ids)) oi
     | _ -> None
 
+let remove_import _ env (((d,s),l,lenv) as def) =
+  let aux mk_f = function
+    | Ast.OI_open sk -> None
+    | Ast.OI_import sk -> Some (env, [comment_def def])
+    | Ast.OI_include sk -> None
+    | Ast.OI_open_import (sk1, sk2) -> 
+       Some (env, [((mk_f (Ast.OI_open (lskips_only_comments_first [sk1;sk2])), s), l, lenv)])
+    | Ast.OI_include_import (sk1, sk2) -> 
+       Some (env, [((mk_f (Ast.OI_include (lskips_only_comments_first [sk1;sk2])), s), l, lenv)])
+  in
+  match d with
+    | OpenImport (oi, ids) ->        
+        aux (fun oi' -> OpenImport (oi', ids)) oi
+    | OpenImportTarget (oi, targets, ids) ->
+        aux (fun oi' -> OpenImportTarget (oi', targets, ids)) oi
+    | _ -> None
+
 let opens_to_single _ env ((d,s),l,l_env) =
   match d with
     | OpenImport (_, []) -> Some (env, [])

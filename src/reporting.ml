@@ -248,7 +248,7 @@ let warn_refL = [
   warn_ref_rename; warn_ref_pat_fail; warn_ref_pat_exh; warn_ref_pat_red; warn_ref_def_exh; 
   warn_ref_def_red; warn_ref_pat_comp; warn_ref_unused_vars; warn_ref_general; 
   warn_ref_fun_resort; warn_ref_rec_resort; warn_ref_no_decidable_eq; warn_ref_import;
-  warn_ref_inst_override;
+  warn_ref_inst_override;warn_ref_compile_message;
 ]
 
 (* map a warning to it's reference *)

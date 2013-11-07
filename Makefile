@@ -16,6 +16,9 @@ lem_dep.tex: lem_dep.ott
 lem_dep.pdf: lem_dep.tex
 	pdflatex lem_dep.tex
 
+build-libs: 
+	make -C library-new
+
 test-other: test-ppcmem test-cpp test-cppppc
 
 test-ppc:
