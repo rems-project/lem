@@ -11,13 +11,14 @@ files = [ 'bool'
         , 'sorting'
         , 'set_helpers'
         , 'set'
-        , 'relation'
+        # , 'relation'
         , 'map'
+        , 'pervasives'
         ]
 
 lem_executable = '/home/dpm/Documents/Projects/Cambridge/bitbucket/lem/lem'
 coq_executable = 'coqc'
-rebuild_lem_sources = false
+rebuild_lem_sources = False
 
 for file in files:
   lem_file = ''.join([file, '.lem'])

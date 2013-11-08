@@ -48,7 +48,7 @@ let eitherEqualBy eql eqr (left: either 'a 'b) (right: either 'a 'b) =
   end
 let eitherEqual = eitherEqualBy (=) (=)
 
-let inline {hol;isabelle;coq} eitherEqual = unsafe_structural_equality
+let inline {hol;isabelle} eitherEqual = unsafe_structural_equality
 let inline {ocaml} eitherEqual = eitherEqualBy (=) (=)
 declare ocaml target_rep function eitherEqualBy = `Either.eitherEqualBy`
 

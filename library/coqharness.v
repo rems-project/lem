@@ -4,6 +4,8 @@ Require Import ClassicalDescription.
 
 (* Logic *)
 
+Axiom DAEMON: forall {a: Type}, a.
+
 Definition bool_of_Prop (P : Prop) : bool :=
    if excluded_middle_informative P then
      true
@@ -19,6 +21,48 @@ Notation " [] " := nil.
 Notation " [ x ] " := (cons x nil).
 Notation " x '::' xs " := (cons x xs).
 Notation " [ x ; .. ; y ] " := (cons x .. (cons y nil) ..).
+
+Fixpoint list_equal_by
+  {elt: Type} (elteq: elt -> elt -> bool) (left right: list elt): bool :=
+    match left with
+      | [] =>
+        match right with
+          | [] => true
+          | _  => false
+        end
+      | x::xs =>
+        match right with
+          | []    => false
+          | y::ys => andb (elteq x y) (list_equal_by elteq xs ys)
+        end
+    end.
+
+Fixpoint list_member_by
+  {elt: Type} (elteq: elt -> elt -> bool) (e: elt) (l: list elt) :=
+    match l with
+      | [] => false
+      | x::xs =>
+          if elteq x e then
+            true
+          else
+            list_member_by elteq e xs
+    end.
+
+(* Comparisons *)
+
+Inductive ordering: Type :=
+  | LT: ordering
+  | EQ: ordering
+  | GT: ordering.
+
+(* Tuples. *)
+
+Definition tuple_equal_by
+  {elt elt': Type} (elteq: elt -> elt -> bool) (elteq': elt' -> elt' -> bool)
+  (left right: elt * elt'): bool :=
+    let (lleft, lright) := left in
+    let (rleft, rright) := right in
+      andb (elteq lleft rleft) (elteq' lright rright).
 
 (* Nats *)
 
@@ -83,7 +127,41 @@ Definition int_gteb (i j: Z): bool :=
 (* Sets *)
 
 Definition set := list.
+
 Notation "X 'union' Y" := (app X Y) (at level 60, right associativity).
+
+Fixpoint set_equal_by
+  {elt: Type} (eltord: elt -> elt -> ordering) (left right: set elt): bool :=
+    match left with
+      | [] =>
+        match right with
+          | [] => true
+          | _  => false
+        end
+      | x::xs =>
+        match right with
+          | y::ys =>
+            match eltord x y with
+              | EQ => set_equal_by eltord xs right
+              | _  => false
+            end
+          | _ => false
+        end
+    end.
+
+Fixpoint set_member_by
+  {elt : Type} (eltord: elt -> elt -> ordering) (e : elt) (s : set elt) : bool :=
+    match s with
+      | [] => false
+      | x::xs =>
+        match eltord x e with
+          | EQ => true
+          | _  => set_member_by eltord e xs
+        end
+    end.
+
+Axiom set_compare_by:
+  forall {elt: Type}, (elt -> elt -> ordering) -> set elt -> set elt -> ordering.
 
 Definition set_empty {a : Type} : set a := [].
 
@@ -109,44 +187,49 @@ Definition set_cardinal
   {elt: Type} (s: set elt): nat :=
     List.length s. 
 
-Definition set_exists
+Definition set_any
   {elt : Type} (p : elt -> bool) (s : set elt) : bool :=
     List.existsb p s.
-
-Definition set_member
-  {elt : Type} (e : elt) (s : set elt) : bool :=
-    set_exists (fun x => classical_boolean_equivalence e x) s.
 
 Definition set_for_all
   {elt : Type} (p : elt -> bool) (s : set elt) : bool :=
     List.forallb p s.
 
-Fixpoint set_inter
-  {elt : Type} (eq : elt -> elt -> bool)
+Fixpoint set_inter_by
+  {elt : Type} (eltord : elt -> elt -> ordering)
   (left : set elt) (right : set elt) : set elt :=
     match left with
       | []    => []
       | x::xs =>
-        if set_exists (eq x) right then
-          x::set_inter eq xs right
+        if set_member_by eltord x right then
+          x::set_inter_by eltord xs right
         else
-          set_inter eq xs right
+          set_inter_by eltord xs right
     end.
 
-Definition set_union
-  {elt : Type} (left : set elt) (right : set elt) :=
-    List.app left right.
-
-Fixpoint set_diff
-  {elt : Type} (left : set elt) (right : set elt) : set elt :=
+Fixpoint set_union_by
+  {elt : Type} (eltord: elt -> elt -> ordering)
+  (left right : set elt): set elt :=
     match left with
-      | []    => []
+      | [] => right
       | x::xs =>
-          if set_member x right then
-            set_diff xs right
+        if set_member_by eltord x right then
+          set_union_by eltord xs right
+        else
+          x::set_union_by eltord xs right
+    end.
+
+Fixpoint set_diff_by
+  {elt : Type} (eltord: elt -> elt -> ordering)
+  (left right : set elt): set elt :=
+    match left with
+      | [] => []
+      | x::xs =>
+          if set_member_by eltord x right then
+            set_diff_by eltord xs right
           else
-            x::set_diff xs right
-     end.
+            x::set_diff_by eltord xs right
+    end.
 
 Fixpoint set_fold
   {elt b : Type} (f : elt -> b -> b) (s : set elt) (e : b) : b :=
@@ -166,14 +249,14 @@ Fixpoint set_select_subset
           set_select_subset p xs
     end.
 
-Fixpoint set_subset
-  {elt : Type} (eq : elt -> elt -> bool)
-  (left : set elt) (right : set elt) :=
+Fixpoint set_subset_by
+  {elt : Type} (eltord : elt -> elt -> ordering)
+  (left right : set elt): bool :=
     match left with
       | []    => true
       | x::xs =>
-        if set_exists (eq x) right then
-          set_subset eq xs right
+        if set_member_by eltord x right then
+          set_subset_by eltord xs right
         else
           false
     end.
@@ -187,9 +270,111 @@ Definition set_to_list
 Definition set_sigma
   {elt elt': Type} (sa: set elt) (f: elt -> set elt'): set (elt * elt') :=
     List.fold_right (fun x xys => List.fold_right (fun y xys => set_add (x, y) xys) xys (f x)) set_empty sa.
+
+Program Definition set_choose_dependent
+  {elt: Type} (s: set elt) (p: 0 < length s): elt :=
+    match s return forall x, s = x -> 0 < length x -> elt with
+      | [] => fun x => fun eq => fun p => _
+      | x::xs => fun _ => fun _ => fun _ => x
+    end s (eq_refl s) p.
+  Obligation 1.
+    compute in p0.
+    case (Coq.Arith.Le.le_Sn_0 0).
+    assumption.
+  Defined.
     
+(* XXX: made general enough so that when we swap from lists we can use the
+        same function with minor editing.  Same above.  Also, try to remain
+        close to the Lem implementation.
+*)
+Program Definition set_case_by
+  {elt elt': Type} (eltord: elt -> elt -> ordering) (s: set elt)
+  (empty: elt') (single: elt -> elt') (otherwise: elt'): elt' :=
+    match s return forall x, s = x -> length s = length x -> elt' with
+      | [] => fun _ _ _ => empty
+      | [e] => fun x srefl lrefl => single (set_choose_dependent [e] _)
+      | _  => fun _ _ _ => otherwise
+    end s (eq_refl s) (eq_refl (length s)).
+
 Axiom set_tc :
   forall {elt : Type},
   forall eq : elt -> elt -> bool,
   forall s : set (elt * elt),
     set (elt * elt).
+
+(* Maps *)
+
+Definition fmap (k v: Type) := list (k * v).
+
+Fixpoint fmap_equal_by
+  {k v: Type} (keq: k -> k -> bool) (veq: v -> v -> bool)
+    (left right: fmap k v): bool :=
+  match left with
+    | [] =>
+      match right with
+        | [] => true
+        | _  => false
+      end
+    | x::xs =>
+        if list_member_by (fun kv kv' =>
+          match kv, kv' with
+            | (k, v), (k', v') => andb (keq k k') (veq v v')
+          end) x right then
+         fmap_equal_by keq veq xs right
+        else
+          false
+  end.
+
+Definition fmap_empty {k v: Type}: fmap k v := [].
+
+Definition fmap_add {k v: Type} (key: k) (value: v) (map: fmap k v): fmap k v :=
+  (key, value)::map.
+
+Definition fmap_is_empty {k v: Type} (map: fmap k v): bool :=
+  match map with
+    | [] => true
+    | _  => false
+  end.
+
+Fixpoint fmap_lookup_by
+  {k v: Type} (kord: k -> k -> ordering) (key: k) (map: fmap k v): option v :=
+    match map with
+      | []    => None
+      | keyvalue::xs =>
+        let (key', value) := keyvalue in
+        match kord key key' with
+          | EQ => Some value
+          | _  => fmap_lookup_by kord key xs
+        end
+    end.
+
+Fixpoint fmap_all
+  {k v: Type} (P: k -> v -> bool) (map: fmap k v): bool :=
+    match map with
+      | [] => true
+      | x::xs =>
+        let (key, value) := x in
+          andb (P key value) (fmap_all P xs)
+    end.
+
+Fixpoint fmap_delete_by
+  {k v: Type} (kord: k -> k -> ordering) (key: k) (map: fmap k v): fmap k v :=
+    match map with
+      | [] => []
+      | x::xs =>
+        let (key', value) := x in
+        match kord key key' with
+          | EQ => fmap_delete_by kord key xs
+          | _  => x::fmap_delete_by kord key xs
+        end
+    end.
+
+Fixpoint fmap_map
+  {k v w: Type} (f: v -> w) (map: fmap k v): fmap k w :=
+    match map with
+      | [] => []
+      | x::xs =>
+        let (key, value) := x in
+          (key, f value)::fmap_map f xs
+    end.
+          

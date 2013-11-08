@@ -46,7 +46,7 @@ end
 let inline maybeEqual = maybeEqualBy (=)
 
 declare ocaml target_rep function maybeEqualBy = `Lem.option_equal`
-let inline {hol;isabelle;coq} maybeEqual = unsafe_structural_equality
+let inline {hol;isabelle} maybeEqual = unsafe_structural_equality
 
 instance forall 'a. Eq 'a => (Eq (maybe 'a))
   let (=) = maybeEqual

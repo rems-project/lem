@@ -91,6 +91,11 @@ declare ocaml target_rep function LT = `-1`
 declare ocaml target_rep function EQ = `0`
 declare ocaml target_rep function GT = `1`
 
+declare coq target_rep type ordering = `ordering`
+declare coq target_rep function LT = `LT`
+declare coq target_rep function EQ = `EQ`
+declare coq target_rep function GT = `GT`
+
 let orderingIsLess r       = (match r with LT -> true | _ -> false end)
 let orderingIsGreater r    = (match r with GT -> true | _ -> false end)
 let orderingIsEqual r      = (match r with EQ -> true | _ -> false end)
@@ -136,10 +141,10 @@ class ( Ord 'a )
   val (>=) [`isGreaterEqual`] : 'a -> 'a -> bool 
 end
 
-declare coq target_rep function isLess = infix `<`
-declare coq target_rep function isLessEqual = infix `<=`
-declare coq target_rep function isGreater = infix `>`
-declare coq target_rep function isGreaterEqual = infix `>=`
+declare coq target_rep function isLess = `isLess`
+declare coq target_rep function isLessEqual = `isLessEqual`
+declare coq target_rep function isGreater = `isGreater`
+declare coq target_rep function isGreaterEqual = `isGreaterEqual`
 
 
 (* Ocaml provides default, polymorphic compare functions. Let's use them
@@ -248,10 +253,10 @@ let pairEqual (a1, b1) (a2, b2) = (a1 = a2) && (b1 = b2)
 
 val pairEqualBy : forall 'a 'b. ('a -> 'a -> bool) -> ('b -> 'b -> bool) -> ('a * 'b) -> ('a * 'b) -> bool
 declare ocaml    target_rep function pairEqualBy = `Lem.pair_equal`
+declare coq      target_rep function pairEqualBy = `tuple_equal_by`
 
-
-let inline {hol;isabelle;coq} pairEqual = unsafe_structural_equality
-let inline {ocaml} pairEqual = pairEqualBy isEqual isEqual
+let inline {hol;isabelle} pairEqual = unsafe_structural_equality
+let inline {ocaml;coq} pairEqual = pairEqualBy isEqual isEqual
 
 instance forall 'a 'b. Eq 'a, Eq 'b => (Eq ('a * 'b))
   let (=) = pairEqual
