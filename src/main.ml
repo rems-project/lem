@@ -66,7 +66,7 @@ let default_library =
      then Filename.concat (Sys.getcwd ()) lp
      else lp
    with 
-     | Not_found -> Build_directory.d^"/library-new"
+     | Not_found -> Build_directory.d^"/library"
 
 let lib_paths_ref = ref ([] : string list)
 
