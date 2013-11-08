@@ -221,7 +221,7 @@ let isIrreflexiveOn r s = (forall (e IN s). not (inRel e e r))
 declare hol target_rep function isIrreflexiveOn = `irreflexive`
 
 val isIrreflexive : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
-let ~{ocaml;coq} isIrreflexive r = (forall e. not (inRel e e r))
+let isIrreflexive r = (forall ((e1, e2) IN (relToSet r)). not (e1 = e2))
 
 
 (* ----------------------- *)
@@ -336,10 +336,10 @@ val isPartialOrderOn : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> set 'a -> bool
 let isPartialOrderOn r s = isReflexiveOn r s && isTransitiveOn r s && isAntisymmetricOn r s
 
 val isStrictPartialOrderOn : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> set 'a -> bool
-let isStrictPartialOrderOn r s = isIrreflexiveOn r s && isTransitiveOn r s && isAntisymmetricOn r s
+let isStrictPartialOrderOn r s = isIrreflexiveOn r s && isTransitiveOn r s
 
 val isStrictPartialOrder : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
-let ~{ocaml;coq} isStrictPartialOrder r = isIrreflexive r && isTransitive r && isAntisymmetric r
+let isStrictPartialOrder r = isIrreflexive r && isTransitive r 
 
 val isPartialOrder : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
 let ~{ocaml;coq} isPartialOrder r = isReflexive r && isTransitive r && isAntisymmetric r
