@@ -478,7 +478,7 @@ let class_constraint_to_parameter targ : def_macro = fun mod_path env ((d,s),l,l
                            Path.mk_path pn n'
                         end in
                         *)
-                        let c_d' = ({ c_d with const_class = []; const_type = t'; target_rep = Targetmap.empty }) in  
+                        let c_d' = ({ c_d with const_class = []; const_type = t'; target_rep = Targetmap.empty; const_no_class = Targetmap.empty }) in  
                         let (c_env', c') = c_env_store_raw c_env c_d' in 
   
                         let c_d_new = { c_d with const_no_class = Targetmap.insert_target c_d.const_no_class (targ, c') } in

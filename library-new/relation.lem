@@ -139,27 +139,26 @@ declare hol target_rep function relRestrict = `rrestrict`
 (* Converse                *)
 (* ----------------------- *)
 
-val converse : forall 'a 'b. Ord 'a, Ord 'b => rel 'a 'b -> rel 'b 'a
-let converse r = relFromSet (Set.map swap (relToSet r))
+val relConverse : forall 'a 'b. Ord 'a, Ord 'b => rel 'a 'b -> rel 'b 'a
+let relConverse r = relFromSet (Set.map swap (relToSet r))
 
 (* ----------------------- *)
 (* domain                  *)
 (* ----------------------- *)
 
-val domain : forall 'a 'b. Ord 'a, Ord 'b => rel 'a 'b -> set 'a
-let domain r = Set.map fst (relToSet r)
+val relDomain : forall 'a 'b. Ord 'a, Ord 'b => rel 'a 'b -> set 'a
+let relDomain r = Set.map fst (relToSet r)
 
-declare hol target_rep function domain = `domain`
-
+declare hol target_rep function relDomain = `domain`
 
 (* ----------------------- *)
 (* range                   *)
 (* ----------------------- *)
 
-val range : forall 'a 'b. Ord 'a, Ord 'b => rel 'a 'b -> set 'b
-let range r = Set.map snd (relToSet r)
+val relRange : forall 'a 'b. Ord 'a, Ord 'b => rel 'a 'b -> set 'b
+let relRange r = Set.map snd (relToSet r)
 
-declare hol target_rep function range = `range`
+declare hol target_rep function relRange = `range`
 
 
 (* ----------------------- *)
@@ -168,10 +167,10 @@ declare hol target_rep function range = `range`
 (* avoid the keyword field *)
 (* ----------------------- *)
 
-val definedOn : forall 'a. Ord 'a => rel 'a 'a -> set 'a
-let definedOn r = ((domain r) union (range r))
+val relDefinedOn : forall 'a. Ord 'a => rel 'a 'a -> set 'a
+let inline relDefinedOn r = ((relDomain r) union (relRange r))
 
-declare {hol} rename function definedOn = defined_on
+declare {hol} rename function relDefinedOn = rdefined_on
 
 
 (* ----------------------- *)

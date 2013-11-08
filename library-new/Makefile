@@ -5,13 +5,13 @@ markdown_targets := $(patsubst %.markdown,%.html,$(wildcard *.markdown))
 libs : ocaml-libs hol-libs isa-libs 
 
 hol-libs:
-	../lem -hol -outdir ../hol-lib -wl ign -wl_auto_import err ${LIBS} -auxiliary_level none -only_changed_output
+	../lem -hol -outdir ../hol-lib -wl ign -wl_auto_import err -wl_rename err ${LIBS} -auxiliary_level none -only_changed_output
 
 ocaml-libs:
-	../lem -ocaml -outdir ../ocaml-lib -wl ign -wl_auto_import err ${LIBS} -auxiliary_level none -only_changed_output
+	../lem -ocaml -outdir ../ocaml-lib -wl ign -wl_auto_import err -wl_rename err ${LIBS} -auxiliary_level none -only_changed_output
 
 isa-libs:
-	../lem -isa -outdir ../isabelle-lib -wl ign -wl_auto_import err ${LIBS} -auxiliary_level none -only_changed_output
+	../lem -isa -outdir ../isabelle-lib -wl ign -wl_auto_import err -wl_rename err ${LIBS} -auxiliary_level none -only_changed_output
 
 coq-libs:
 	make -C ..

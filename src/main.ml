@@ -204,7 +204,6 @@ let per_target libpath isa_thy (out_dir : string option) modules env alldoc_accu
     let transformed_m = List.rev transformed_m in 
 
     let _ = Reporting.warnings_active := true in
-
     let _ = print_compile_messages env targ modules in
 
     (* perform renamings *)

@@ -124,7 +124,9 @@ let resolve_const_ref l env targ i_opt c_ref =
       | Some c_ref' -> ((c_ref = c_ref') ||
         begin
           let c_descr' = c_env_lookup Ast.Unknown env.c_env c_ref' in
-          Target.Targetmap.apply_target c_descr'.const_no_class targ = Some c_ref
+          (Path.compare c_descr.const_binding c_descr'.const_binding = 0)
+(* TODO: figure out why the following is is not working / bug in dictionary passing ?
+   Target.Targetmap.apply_target c_descr'.const_no_class targ = Some c_ref *)
         end)
   in
   match search_module_suffix env is_ok default_ns ns with

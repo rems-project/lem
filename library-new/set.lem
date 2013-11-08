@@ -415,8 +415,10 @@ lemma isProperSubsetOf_def: (forall s1 s2. isProperSubsetOf s1 s2 <-> ((isSubset
 val delete : forall 'a. Ord 'a, Eq 'a => 'a -> set 'a -> set 'a
 val deleteBy : forall 'a. Ord 'a => ('a -> 'a -> bool) -> 'a -> set 'a -> set 'a
 
-let deleteBy eq e s = filter (fun e2 -> not (eq e e2)) s
+let inline deleteBy eq e s = filter (fun e2 -> not (eq e e2)) s
 let inline delete e s = deleteBy (=) e s
+
+
 
 
 (* ------------------------ *)

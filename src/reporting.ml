@@ -281,6 +281,7 @@ let ignore_pat_compile_warnings () = (warn_ref_pat_comp := Level_Ignore)
 
 let warn_opts_aux = [
    ("unused_vars", [warn_ref_unused_vars],                     "unused variables");
+   ("rename",      [warn_ref_rename],                          "automatic renamings");
    ("pat_fail",    [warn_ref_pat_fail],                        "failed pattern compilation");
    ("pat_exh",     [warn_ref_pat_exh; warn_ref_def_exh],       "non-exhaustive pattern matches");
    ("pat_red",     [warn_ref_pat_red; warn_ref_def_red],       "redundant patterns");
