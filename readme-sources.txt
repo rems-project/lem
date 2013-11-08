@@ -20,7 +20,7 @@ manual/       the Lem user reference manual (pretty sketchy)
 ocaml-lib/    OCaml implementations of bits of the Lem standard library
 coq-lib/      Coq implementations of bits of the Lem standard library
 isabelle-lib/ OCaml implementations of bits of the Lem standard library
-library-test/ tests and documentation of the standard library
+hol-lib/      HOL 4 implementations of bits of the Lem standard library
 tex-lib/      lem.sty
 tests/        the test suites and plumbing for them
 src/          the Lem sources, i.e. .ml and .mli files

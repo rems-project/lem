@@ -25,6 +25,7 @@ hol-libs:
 
 ocaml-libs: 
 	make -C library-new ocaml-libs
+	make -C ocaml-lib all
 
 isa-libs: 
 	make -C library-new isa-libs
@@ -118,8 +119,6 @@ debug: src/ast.ml src/version.ml src/build_directory.ml
 
 
 build-lem: src/ast.ml src/version.ml src/build_directory.ml
-	rm -f library/lib_cache
-	make -C ocaml-lib all
 	make -C src all
 	ln -sf src/main.native lem
 
