@@ -149,11 +149,13 @@ val defaultLessEq    : forall 'a. 'a -> 'a -> bool
 val defaultGreater   : forall 'a. 'a -> 'a -> bool
 val defaultGreaterEq : forall 'a. 'a -> 'a -> bool
 
-let inline defaultCompare   = `***defaultCompare***`
-let inline defaultLess      = `***defaultLess***`
-let inline defaultLessEq    = `***defaultLessEq***`
-let inline defaultGreater   = `***defaultGreater***`
-let inline defaultGreaterEq = `***defaultGreaterEq***`
+(* DUMMY INSTANTIATIONS, which prevent trouble, but don't make sense,
+   this is a hack to get things working quickly. *)
+let inline defaultCompare   x y = EQ
+let inline defaultLess      x y = true
+let inline defaultLessEq    x y = true
+let inline defaultGreater   x y = true
+let inline defaultGreaterEq x y = true
 
 declare ocaml target_rep function defaultCompare   = `compare`
 declare ocaml target_rep function defaultLess      = `<`

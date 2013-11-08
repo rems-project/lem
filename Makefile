@@ -16,8 +16,18 @@ lem_dep.tex: lem_dep.ott
 lem_dep.pdf: lem_dep.tex
 	pdflatex lem_dep.tex
 
-build-libs: 
+libs: 
 	make -C library-new
+
+hol-libs: 
+	make -C library-new hol-libs
+	cd hol-lib; Holmake --qof -k
+
+ocaml-libs: 
+	make -C library-new ocaml-libs
+
+isa-libs: 
+	make -C library-new isa-libs
 
 test-other: test-ppcmem test-cpp test-cppppc
 

@@ -244,7 +244,7 @@ let isAntisymmetricOn r s = (forall (e1 IN s) (e2 IN s). (inRel e1 e2 r) --> (in
 val isAntisymmetric : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
 let isAntisymmetric r = (forall ((e1, e2) IN relToSet r). (inRel e2 e1 r) --> (e1 = e2))
 
-declare hol target_rep function isAntisymmetric = `antisymmetric`
+(* declare hol target_rep function isAntisymmetric = `antisymmetric` *)
 
 
 (* ----------------------- *)
@@ -267,7 +267,7 @@ declare hol target_rep function isTransitive = `transitive`
 val isTotalOn : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> set 'a -> bool
 let isTotalOn r s = (forall (e1 IN s) (e2 IN s). (inRel e1 e2 r) || (inRel e2 e1 r))
 
-declare hol target_rep function isTotalOn = `chain`
+(* declare hol target_rep function isTotalOn = `chain` *)
 
 
 val isTotal : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
