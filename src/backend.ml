@@ -1375,11 +1375,13 @@ let rec pat p = match p.term with
 
   | P_as(s1,p,s2,(n,l),s3) ->
       ws s1 ^ 
+      kwd "(" ^
       pat p ^
       ws s2 ^ 
       T.pat_as ^
       Name.to_output Term_var n ^
-      ws s3
+      ws s3 ^
+      kwd ")"
 
   | P_typ(s1,p,s2,t,s3) ->
       ws s1 ^

@@ -77,7 +77,7 @@ let resolve_module_path l env i_opt (p : Path.t) =
     | Types.Id_none sk -> (None, sk)
     | Types.Id_some i -> (Some (fst (Ident.to_name_list i)), Ident.get_lskip i) in
   let is_ok lenv =
-    let md_opt = lookup_mod_descr_opt env [] n in
+    let md_opt = lookup_mod_descr_opt lenv [] n in
     match md_opt with
       | None -> false
       | Some md -> Path.compare md.mod_binding p  = 0
