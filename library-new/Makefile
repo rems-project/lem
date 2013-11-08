@@ -1,5 +1,8 @@
 LIBS=pervasives_extra.lem pervasives.lem basic_classes.lem either.lem function.lem list.lem map.lem maybe.lem relation.lem set_helpers.lem sorting.lem tuple.lem function_extra.lem bool.lem list_extra.lem num.lem map_extra.lem set.lem set_extra.lem maybe_extra.lem
 
+NOW=$(shell date +%Y-%m-%d---%H-%M-%S)
+OCAML_BUILD_DIR=ocaml-build-dir---${NOW}
+
 markdown_targets := $(patsubst %.markdown,%.html,$(wildcard *.markdown))
 
 libs : ocaml-libs hol-libs isa-libs 
@@ -17,6 +20,10 @@ coq-libs:
 	make -C ..
 	../lem -coq -outdir ../coq-lib -wl ign -wl_auto_import err ${LIBS} -auxiliary_level none -only_changed_output
 
+ocaml-lib-tests:
+	mkdir -p ${OCAML_BUILD_DIR}
+	../lem -ocaml -outdir ${OCAML_BUILD_DIR} -wl ign -wl_auto_import err -wl_rename err ${LIBS} -only_changed_output
+	./run-ocaml-tests.sh ${OCAML_BUILD_DIR}
 
 markdown: $(markdown_targets)
 
