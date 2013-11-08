@@ -48,13 +48,13 @@ open Typed_ast
 
 (** [resolve_module_path l env sk m] tries to find the module-path [m] in environment [env].
     It returns a shortest suffix [m'] of [m] that resolves to the same module in [env], and adds the lskips [sk] to the returned ident. *)
-val resolve_module_path : Ast.l -> env -> lskips -> Path.t -> Ident.t
+val resolve_module_path : Ast.l -> env -> Types.ident_option -> Path.t -> Ident.t
 
 (** [resolve_type_path l env sk p] tries to find the type of (absolute) path [p] in environment [env].
     It returns a shortest suffix [p'] of [p] that resolves to the same type in [env], and adds the lskips [sk] to the returned ident. *)
-val resolve_type_path : Ast.l -> env -> lskips -> Path.t -> Ident.t
+val resolve_type_path : Ast.l -> env -> Types.ident_option -> Path.t -> Ident.t
 
-(** [resolve_const_ref l env target sk c_ref] tries to find the constant [c_ref] in environment [env].
-    Let [p] be the absolute path for [c_ref].
-    It returns a shortest suffix [p'] of [p] that resolves to the same constant in [lenv], and adds the lskips [sk] to the returned ident. *)
-val resolve_const_ref : Ast.l -> env -> Target.target -> lskips -> const_descr_ref -> Ident.t
+(** [resolve_const_ref l env target io c_ref] tries to find the constant [c_ref] in environment [env].
+    Let [p] be the absolute path for [c_ref]. If tries [io] as default, if given. If that fails,
+    it returns a shortest suffix [p'] of [p] that resolves to the same constant in [lenv], and adds the lskips from [io] to the returned ident. *)
+val resolve_const_ref : Ast.l -> env -> Target.target -> Types.ident_option -> const_descr_ref -> Ident.t

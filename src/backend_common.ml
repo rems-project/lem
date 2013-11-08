@@ -55,19 +55,13 @@ let marker_lex_skip : Ast.lex_skips = (Some [Ast.Ws (Ulib.Text.of_latin1 "***mar
 
 (* Resolve a const identifier stored inside a id, with a full one in case of Id_none *)
 let resolve_constant_id_ident l env targ id : Ident.t =
-  match id.id_path with 
-      | Id_none sk -> resolve_const_ref l env targ sk id.descr
-      | Id_some id -> id
+  resolve_const_ref l env targ id.id_path id.descr
 
 let resolve_type_id_ident l env id path : Ident.t =
-  match id.id_path with 
-      | Id_none sk -> resolve_type_path l env sk path
-      | Id_some id -> id
+  resolve_type_path l env id.id_path path
 
 let resolve_module_id_ident l env id path : Ident.t =
-  match id.id_path with 
-      | Id_none sk -> resolve_module_path l env sk path
-      | Id_some id -> id
+  resolve_module_path l env id.id_path path
 
 
 let cr_special_uncurry_fun n oL = begin
