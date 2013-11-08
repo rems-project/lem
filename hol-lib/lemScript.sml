@@ -48,6 +48,7 @@ open finite_mapTheory finite_mapLib
 open HolKernel Parse boolLib bossLib;
 open pred_setSimps pred_setTheory
 open finite_mapTheory
+open set_relationTheory
 
 val _ = numLib.prefer_num();
 
@@ -196,5 +197,42 @@ val IN_FMAP_TO_SET = store_thm ("IN_FMAP_TO_SET",
 SIMP_TAC (std_ss++PRED_SET_ss) [FMAP_TO_SET_def, FLOOKUP_DEF] THEN
 METIS_TAC[optionTheory.option_CLAUSES])
 
+
+
+
+
+(******************************************************************************)
+(* Relations                                                                  *)
+(******************************************************************************)
+
+
+val rel_over_def = Define `rel_over r s = (! ((a,b) :: r). (a IN s) /\ (b IN s))`;
+val rapply_def = Define `rapply r s = { y | x, y | (x, y) IN r /\ (x IN s) }`;
+val transitive_on_def = Define `transitive_on  r s = (! (e1 :: s) (e2 :: s) (e3 :: s). (e1, e2) IN r ==> (e2, e3) IN r ==> (e1, e3) IN r)`;
+
+val _ = Define `lem_is_reflexive r = (!e. (e, e) IN r)`;
+val _ = Define `lem_is_reflexive_on r s = (!( e :: s). (e, e) IN r)`;
+val _ = Define `lem_is_irreflexive r = (! ((e1, e2) :: ( r)). (~ (e1 = e2)))`;
+val _ = Define `lem_is_symmetric_on r s = (! (e1 :: s) (e2 :: s). (e1, e2) IN r ==> (e2, e1) IN r)`;
+val _ = Define `lem_is_symmetric r = (! e1 e2. (e1, e2) IN r ==> (e2, e1) IN r)`;
+val _ = Define `lem_is_antisymmetric_on r s = (! (e1 :: s) (e2 :: s). ((e1, e2) IN r ==> (e2, e1) IN r ==> (e1 = e2)))`;
+val _ = Define `lem_is_total_on r s = (!(e1 :: s) (e2 :: s). ((e1, e2) IN r \/ (e2, e1) IN r))`;
+val _ = Define `lem_is_total r = (!e1 e2. ((e1, e2) IN r \/ (e2, e1) IN r))`;
+val _ = Define `lem_is_trichotomous_on r s = (!(e1 :: s) (e2 :: s). ((e1, e2) IN r \/ (e1 = e2) \/ (e2, e1) IN r))`;
+val _ = Define `lem_is_trichotomous r = (!e1 e2. ((e1, e2) IN r \/ (e1 = e2) \/ (e2, e1) IN r))`;
+
+val _ = Define `lem_is_single_valued r = (!((e1a, e2a) ::  r) ((e1b, e2b) :: r). (e1a = e1b) ==> (e2a = e2b))`;
+val _ = Define `lem_is_equivalence_on r s = ((lem_is_reflexive_on r s) /\ ((lem_is_symmetric_on r s) /\ (transitive_on r s)))`;
+val _ = Define `lem_is_equivalence r s = ((lem_is_reflexive r) /\ ((lem_is_symmetric r) /\ (transitive r)))`;
+val _ = Define `lem_is_preorder_on r s = ((reflexive r s) /\ (transitive_on r s))`;
+val _ = Define `lem_is_preorder r = ((lem_is_reflexive r) /\ (transitive r))`;
+val _ = Define `lem_is_partial_order_on r s = ((reflexive r s) /\ ((transitive_on r s) /\ (lem_is_antisymmetric_on r s)))`;
+val _ = Define `lem_is_strict_partial_order_on r s = ((irreflexive r s) /\ (transitive_on r s))`;
+val _ = Define `lem_is_strict_partial_order r = ((lem_is_irreflexive r) /\ (transitive r))`;
+val _ = Define `lem_is_partial_order r = ((lem_is_reflexive r) /\ ((transitive r) /\ (antisym r)))`;
+val _ = Define `lem_is_total_order_on r s = (lem_is_partial_order_on r s /\ (lem_is_total_on r s))`;
+val _ = Define `lem_is_strict_total_order_on r s = (lem_is_strict_partial_order_on r s /\ (lem_is_total_on r s))`;
+val _ = Define `lem_is_total_order r = (lem_is_partial_order r /\ (lem_is_total r))`;
+val _ = Define `lem_is_strict_total_order r = (lem_is_strict_partial_order r /\ (lem_is_total r))`;
 
 val _ = export_theory()

@@ -53,7 +53,6 @@ let relToPred r = (fun x y -> (x, y) IN relToSet r)
 let relFromPred xs ys p = { (x, y) | forall (x IN xs) (y IN ys) | p x y }
 
 
-
 (* ========================================================================== *)
 (* Basic Operations                                                           *)
 (* ========================================================================== *)
@@ -63,7 +62,7 @@ let relFromPred xs ys p = { (x, y) | forall (x IN xs) (y IN ys) | p x y }
 (* ----------------------- *)
 
 val inRel : forall 'a 'b. Ord 'a, Ord 'b, Eq 'a, Eq 'b => 'a -> 'b -> rel 'a 'b -> bool
-let inRel a b rel = (a, b) IN relToSet rel
+let inline inRel a b rel = (a, b) IN relToSet rel
 
 lemma inRel_set : (forall s a b. inRel a b (relFromSet s) = ((a, b) IN s))
 lemma inRel_pred : (forall p a b sa sb. inRel a b (relFromPred sa sb p) = p a b && a IN sa && b IN sb)
@@ -174,6 +173,18 @@ declare {hol} rename function relDefinedOn = rdefined_on
 
 
 (* ----------------------- *)
+(* relOver                 *)
+(*                         *)
+(* avoid the keyword field *)
+(* ----------------------- *)
+
+val relOver : forall 'a. Ord 'a => rel 'a 'a -> set 'a -> bool
+let inline relOver r s = (forall ((a,b) IN r). a IN s && b IN s)
+
+declare hol target_rep function relOver = `rel_over`
+
+
+(* ----------------------- *)
 (* apply a relation        *)
 (* ----------------------- *)
 
@@ -183,8 +194,7 @@ declare {hol} rename function relDefinedOn = rdefined_on
    
 val relApply : forall 'a 'b. Ord 'a, Ord 'b, Eq 'a => rel 'a 'b -> set 'a -> set 'b
 let relApply r s = { y | forall ((x, y) IN (relToSet r)) | x IN s }
-
-declare {hol} rename function relApply = rapply
+declare hol target_rep function relApply = `rapply`
 
 
 (* ========================================================================== *)
@@ -206,10 +216,13 @@ let inline isSubrel r1 r2 = isSubsetOf (relToSet r1) (relToSet r2)
 val isReflexiveOn : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> set 'a -> bool
 let isReflexiveOn r s = (forall (e IN s). inRel e e r)
 
-declare hol target_rep function isReflexiveOn = `reflexive`
+declare hol target_rep function isReflexiveOn = `lem_is_reflexive_on`
 
 val isReflexive : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
 let ~{ocaml;coq} isReflexive r = (forall e. inRel e e r)
+
+declare hol target_rep function isReflexive = `lem_is_reflexive`
+
 
 (* ----------------------- *)
 (* irreflexivity           *)
@@ -223,6 +236,8 @@ declare hol target_rep function isIrreflexiveOn = `irreflexive`
 val isIrreflexive : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
 let isIrreflexive r = (forall ((e1, e2) IN (relToSet r)). not (e1 = e2))
 
+declare hol target_rep function isIrreflexive = `lem_is_irreflexive`
+
 
 (* ----------------------- *)
 (* symmetry                *)
@@ -231,8 +246,13 @@ let isIrreflexive r = (forall ((e1, e2) IN (relToSet r)). not (e1 = e2))
 val isSymmetricOn : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> set 'a -> bool
 let isSymmetricOn r s = (forall (e1 IN s) (e2 IN s). (inRel e1 e2 r) --> (inRel e2 e1 r))
 
+declare hol target_rep function isSymmetricOn = `lem_is_symmetric_on`
+
 val isSymmetric : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
 let isSymmetric r = (forall ((e1, e2) IN relToSet r). inRel e2 e1 r)
+
+declare hol target_rep function isSymmetric = `lem_is_symmetric`
+
 
 (* ----------------------- *)
 (* antisymmetry            *)
@@ -241,10 +261,12 @@ let isSymmetric r = (forall ((e1, e2) IN relToSet r). inRel e2 e1 r)
 val isAntisymmetricOn : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> set 'a -> bool
 let isAntisymmetricOn r s = (forall (e1 IN s) (e2 IN s). (inRel e1 e2 r) --> (inRel e2 e1 r) --> (e1 = e2))
 
+declare hol target_rep function isAntisymmetricOn = `lem_is_antisymmetric_on`
+
 val isAntisymmetric : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
 let isAntisymmetric r = (forall ((e1, e2) IN relToSet r). (inRel e2 e1 r) --> (e1 = e2))
 
-(* declare hol target_rep function isAntisymmetric = `antisymmetric` *)
+declare hol target_rep function isAntisymmetric = `antisym`
 
 
 (* ----------------------- *)
@@ -253,6 +275,8 @@ let isAntisymmetric r = (forall ((e1, e2) IN relToSet r). (inRel e2 e1 r) --> (e
 
 val isTransitiveOn : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> set 'a -> bool
 let isTransitiveOn r s = (forall (e1 IN s) (e2 IN s) (e3 IN s). (inRel e1 e2 r) --> (inRel e2 e3 r) --> (inRel e1 e3 r))
+
+declare hol target_rep function isTransitiveOn = `transitive_on`
 
 val isTransitive : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
 let isTransitive r = (forall ((e1, e2) IN relToSet r) (e3 IN relApply r {e2}). inRel e1 e3 r)
@@ -267,19 +291,23 @@ declare hol target_rep function isTransitive = `transitive`
 val isTotalOn : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> set 'a -> bool
 let isTotalOn r s = (forall (e1 IN s) (e2 IN s). (inRel e1 e2 r) || (inRel e2 e1 r))
 
-(* declare hol target_rep function isTotalOn = `chain` *)
+declare hol target_rep function isTotalOn = `lem_is_total_on`
 
 
 val isTotal : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
 let ~{ocaml;coq} isTotal r = (forall e1 e2. (inRel e1 e2 r) || (inRel e2 e1 r))
-let inline {hol} isTotal r = isTotalOn r `UNIV`
+declare hol target_rep function isTotal = `lem_is_total`
 
 
 val isTrichotomousOn : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> set 'a -> bool
 let isTrichotomousOn r s = (forall (e1 IN s) (e2 IN s). (inRel e1 e2 r) || (e1 = e2) || (inRel e2 e1 r))
 
+declare hol target_rep function isTrichotomousOn = `lem_is_trichotomous_on`
+
 val isTrichotomous : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
 let ~{ocaml;coq} isTrichotomous r = (forall e1 e2. (inRel e1 e2 r) || (e1 = e2) || (inRel e2 e1 r))
+
+declare hol target_rep function isTrichotomous = `lem_is_trichotomous_on`
 
 
 (* ----------------------- *)
@@ -299,8 +327,13 @@ declare {hol} rename function isSingleValued = is_single_valued
 val isEquivalenceOn : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> set 'a -> bool
 let isEquivalenceOn r s = isReflexiveOn r s && isSymmetricOn r s && isTransitiveOn r s
 
+declare hol target_rep function isEquivalenceOn = `lem_is_equivalence_on`
+
+
 val isEquivalence : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
 let ~{ocaml;coq} isEquivalence r = isReflexive r && isSymmetric r && isTransitive r
+
+declare hol target_rep function isEquivalence = `lem_is_equivalence`
 
 
 (* ----------------------- *)
@@ -325,8 +358,13 @@ declare hol      target_rep function isWellFounded r = `WF` (`reln_to_rel` r)
 val isPreorderOn : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> set 'a -> bool
 let isPreorderOn r s = isReflexiveOn r s && isTransitiveOn r s
 
+declare hol target_rep function isPreorderOn = `lem_is_preorder_on`
+
 val isPreorder : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
 let ~{ocaml;coq} isPreorder r = isReflexive r && isTransitive r
+
+declare hol target_rep function isPreorder = `lem_is_preorder`
+
 
 (* ----------------------- *)
 (* partial orders          *)
@@ -335,14 +373,22 @@ let ~{ocaml;coq} isPreorder r = isReflexive r && isTransitive r
 val isPartialOrderOn : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> set 'a -> bool
 let isPartialOrderOn r s = isReflexiveOn r s && isTransitiveOn r s && isAntisymmetricOn r s
 
+declare hol target_rep function isPartialOrderOn = `lem_is_partial_order_on`
+
 val isStrictPartialOrderOn : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> set 'a -> bool
 let isStrictPartialOrderOn r s = isIrreflexiveOn r s && isTransitiveOn r s
+
+declare hol target_rep function isStrictPartialOrderOn = `lem_is_strict_partial_order_on`
 
 val isStrictPartialOrder : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
 let isStrictPartialOrder r = isIrreflexive r && isTransitive r 
 
+declare hol target_rep function isStrictPartialOrder = `lem_is_strict_partial_order`
+
 val isPartialOrder : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
 let ~{ocaml;coq} isPartialOrder r = isReflexive r && isTransitive r && isAntisymmetric r
+
+declare hol target_rep function isPartialOrder = `lem_is_partial_order`
 
 (* ----------------------- *)
 (* total / linear orders   *)
@@ -351,14 +397,23 @@ let ~{ocaml;coq} isPartialOrder r = isReflexive r && isTransitive r && isAntisym
 val isTotalOrderOn : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> set 'a -> bool
 let isTotalOrderOn r s = isPartialOrderOn r s && isTotalOn r s
 
+declare hol target_rep function isTotalOrderOn = `lem_is_total_order_on`
+
 val isStrictTotalOrderOn : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> set 'a -> bool
 let isStrictTotalOrderOn r s = isStrictPartialOrderOn r s && isTrichotomousOn r s
+
+declare hol target_rep function isStrictTotalOrderOn = `lem_is_strict_total_order_on`
 
 val isTotalOrder : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
 let ~{ocaml;coq} isTotalOrder r = isPartialOrder r && isTotal r 
 
+declare hol target_rep function isTotalOrder = `lem_is_total_order`
+
 val isStrictTotalOrder : forall 'a. Ord 'a, Eq 'a => rel 'a 'a -> bool
 let ~{ocaml;coq} isStrictTotalOrder r = isStrictPartialOrder r && isTrichotomous r 
+
+declare hol target_rep function isStrictTotalOrder = `lem_is_strict_total_order`
+
 
 
 (* ========================================================================== *)

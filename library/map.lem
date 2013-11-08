@@ -26,7 +26,7 @@ declare coq      target_rep type map = `fmap`
 val mapEqual : forall 'k 'v. Eq 'k, Eq 'v => map 'k 'v -> map 'k 'v -> bool
 val mapEqualBy : forall 'k 'v. ('k -> 'k -> bool) -> ('v -> 'v -> bool) -> map 'k 'v -> map 'k 'v -> bool
 
-declare ocaml target_rep function mapEqualBy = `Pmap.equal`
+declare ocaml target_rep function mapEqualBy eq_k eq_v = `Pmap.equal` eq_k
 declare coq target_rep function mapEqualBy = `fmap_equal_by`
 let inline ~{hol;isabelle} mapEqual = mapEqualBy (=) (=)
 let inline {hol;isabelle} mapEqual = unsafe_structural_equality
