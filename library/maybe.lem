@@ -50,6 +50,7 @@ let inline {hol;isabelle} maybeEqual = unsafe_structural_equality
 
 instance forall 'a. Eq 'a => (Eq (maybe 'a))
   let (=) = maybeEqual
+  let (<>) x y = not (maybeEqual x y)
 end
 
 assert maybe_eq_1: ((Nothing : maybe bool) = Nothing)  

@@ -18,15 +18,11 @@ declare {isabelle;ocaml;hol} rename module = lem_basic_classes
 
 class ( Eq 'a ) 
   val (=) [`isEqual`] : 'a -> 'a -> bool
-end
-
-declare coq target_rep function isEqual = infix `=`
-
-class ( Ineq 'a ) 
   val (<>) [`isInequal`] : 'a -> 'a -> bool
 end
 
-declare coq target_rep function isInequal = infix `/=`
+declare coq target_rep function isEqual = infix `=`
+declare coq target_rep function isInequal = infix `<>`
 
 
 (* (=) should for all instances be an equivalence relation 
@@ -67,10 +63,7 @@ declare hol      target_rep function unsafe_structural_inequality = infix `<>`
    (and should) be overriden for concrete types later. *)
 default_instance forall 'a. (Eq 'a) 
   let (=) = unsafe_structural_equality
-end
-
-default_instance forall 'a. Eq 'a => (Ineq 'a) 
-  let (<>) x y = not (x = y)
+  let (<>) = unsafe_structural_inequality
 end
 
 (* for HOL and Isabelle, be even stronger and always(!) use
@@ -131,6 +124,7 @@ declare ocaml target_rep function orderingEqual = `Lem.orderingEqual`
 
 instance (Eq ordering) 
   let (=) = orderingEqual
+  let (<>) x y = not (orderingEqual x y)
 end
 
 class ( Ord 'a ) 
@@ -231,6 +225,7 @@ end
 
 instance (Eq bool)
   let (=) = equiv
+  let (<>) x y = not (equiv x y)
 end
 
 let boolCompare b1 b2 = match (b1, b2) with
@@ -260,6 +255,7 @@ let inline {ocaml;coq} pairEqual = pairEqualBy isEqual isEqual
 
 instance forall 'a 'b. Eq 'a, Eq 'b => (Eq ('a * 'b))
   let (=) = pairEqual
+  let (<>) x y = not (pairEqual x y)
 end
 
 let pairCompare (a1, b1) (a2, b2) =

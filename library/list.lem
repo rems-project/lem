@@ -102,6 +102,7 @@ declare coq      target_rep function listEqualBy = `list_equal_by`
 
 instance forall 'a. Eq 'a => (Eq (list 'a))
   let (=) = listEqual
+  let (<>) l1 l2 = not (listEqual l1 l2)
 end
 
 

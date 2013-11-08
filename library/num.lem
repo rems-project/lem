@@ -231,6 +231,7 @@ val natEq : nat -> nat -> bool
 let inline natEq = unsafe_structural_equality
 instance (Eq nat)
   let (=) = natEq
+  let (<>) n1 n2 = not (natEq n1 n2)
 end
 
 val natLess : nat -> nat -> bool
@@ -392,6 +393,7 @@ let inline naturalEq = unsafe_structural_equality
 declare ocaml    target_rep function naturalEq = `Big_int.eq_big_int`
 instance (Eq natural)
   let (=) = naturalEq
+  let (<>) n1 n2 = not (naturalEq n1 n2)
 end
 
 val naturalLess : natural -> natural -> bool
@@ -556,6 +558,7 @@ let inline integerEq = unsafe_structural_equality
 declare ocaml    target_rep function integerEq = `Big_int.eq_big_int`
 instance (Eq integer)
   let (=) = integerEq
+  let (<>) n1 n2 = not (integerEq n1 n2)
 end
 
 val integerLess : integer -> integer -> bool

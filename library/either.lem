@@ -54,6 +54,7 @@ declare ocaml target_rep function eitherEqualBy = `Either.eitherEqualBy`
 
 instance forall 'a 'b. Eq 'a, Eq 'b => (Eq (either 'a 'b))
   let (=) = eitherEqual
+  let (<>) x y = not (eitherEqual x y)
 end
 
 assert either_equal_1: (((Left false) : either bool bool) = Left false)

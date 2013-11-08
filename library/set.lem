@@ -54,6 +54,7 @@ declare ocaml    target_rep function setEqual = `Pset.equal`
 
 instance forall 'a. Ord 'a => (Eq (set 'a))
   let (=) = setEqual
+  let (<>) s1 s2 = not (setEqual s1 s2)
 end
 
 

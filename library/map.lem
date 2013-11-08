@@ -33,6 +33,7 @@ let inline {hol;isabelle} mapEqual = unsafe_structural_equality
 
 instance forall 'k 'v. Eq 'k, Eq 'v => (Eq (map 'k 'v))
   let (=) = mapEqual
+  let (<>) m1 m2 = not (mapEqual m1 m2)
 end
 
 
