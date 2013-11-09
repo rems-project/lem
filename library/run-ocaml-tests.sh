@@ -16,9 +16,11 @@ done
 
 for file in _build/*.native 
 do
+  file_name=`basename $file`
+  file_name=${file_name/Auxiliary.native/}
   echo -e "\n\n\n"
   echo -e "***************************************************"
-  echo -e "* Testing ${file}"
+  echo -e "* Testing ${file_name}"
   echo -e "***************************************************\n"
   ./$file
 done

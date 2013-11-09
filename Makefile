@@ -26,6 +26,7 @@ hol-libs:
 ocaml-libs: 
 	make -C library ocaml-libs
 	make -C ocaml-lib all
+	make -C library ocaml-lib-tests
 
 isa-libs: 
 	make -C library isa-libs
