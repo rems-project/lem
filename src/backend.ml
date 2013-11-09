@@ -264,6 +264,7 @@ module type Target = sig
   val funcase_start : t
   val funcase_end : t
   val reln_start : t
+  val reln_show_types : bool
   val reln_end : t
   val reln_sep : t
   val reln_name_start : t
@@ -474,6 +475,7 @@ module Identity : Target = struct
   let funcase_start = emp
   let funcase_end = emp
   let reln_start = kwd "indreln"
+  let reln_show_types = true
   let reln_end = emp
   let reln_sep = kwd "and"
   let reln_name_start = kwd "["
@@ -683,6 +685,7 @@ module Tex : Target = struct
   let funcase_start = emp
   let funcase_end = emp
   let reln_start = tkwdl "indreln"
+  let reln_show_types = true
   let reln_end = emp
   let reln_sep = tkwdm "and"
   let reln_name_start = kwd "["
@@ -892,6 +895,7 @@ module Isa : Target = struct
   let funcase_start = emp
   let funcase_end = emp
   let reln_start = kwd "inductive"
+  let reln_show_types = true
   let reln_end = emp
   let reln_sep = kwd "|"
   let reln_name_start = emp (*TODO Indreln fix up for isabelle*)
@@ -1105,6 +1109,7 @@ module Hol : Target = struct
   let funcase_start = kwd "("
   let funcase_end = kwd ")"
   let reln_start = meta "val _ = Hol_reln `"
+  let reln_show_types = false
   let reln_end = meta "`;"
   let reln_sep = kwd "/\\"
   let reln_name_start = emp (*TODO Inderln fixup for Hol*)
@@ -2481,7 +2486,10 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
            targets_opt targets 
          else
            emp) ^
-        flat (Seplist.to_sep_list indreln_name (sep T.reln_sep) names) ^
+        (if T.reln_show_types then
+           flat (Seplist.to_sep_list indreln_name (sep T.reln_sep) names) 
+         else
+           emp) ^
         flat (Seplist.to_sep_list indreln_clause (sep T.reln_sep) clauses) ^
         T.reln_end
       else
