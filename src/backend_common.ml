@@ -203,11 +203,22 @@ let inline_pat_macro (target : Target.non_ident_target) env _ _ p =
 
 
 let get_module_name env target path mod_name =  begin
+  let transform_name n = match target with
+    | Target.Target_no_ident (Target.Target_coq)
+    | Target.Target_no_ident (Target.Target_hol) -> 
+        if Name.starts_with_upper_letter n then
+          match Name.uncapitalize n with
+            | Some n' -> n'
+            | None -> assert false
+        else
+          n
+    | _ -> n
+  in
   let md = lookup_mod_descr env path mod_name in
   match Target.Targetmap.apply_target md.mod_target_rep target with
-    | Some (MR_rename (_, n)) -> n
-    | Some (MR_target_modules (_, n, _)) -> n
-    | _ -> mod_name
+    | Some (MR_rename (_, n)) -> transform_name n
+    | Some (MR_target_modules (_, n, _)) -> transform_name n
+    | _ -> transform_name mod_name
 end
 
 let get_module_open_string env target mod_path =
