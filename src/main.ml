@@ -122,6 +122,9 @@ let options = Arg.align ([
   ( "-only_changed_output",
     Arg.Unit (fun b -> Process_file.always_replace_files := false),
     " generate only output files, whose content really changed compared to the existing file");
+  ( "-only_auxiliary",
+    Arg.Unit (fun b -> Process_file.only_auxiliary := true),
+    " generate only auxiliary output files");
   ( "-auxiliary_level", 
     Arg.Symbol (["none"; "auto"; "all"], (fun s ->
      Backend.gen_extra_level := (match s with

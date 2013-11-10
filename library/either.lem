@@ -6,13 +6,12 @@
 (* Header                                                                     *)
 (* ========================================================================== *)
 
-declare {isabelle} rename module = Lem_either []
-
-declare {ocaml} rename module = Lem_either [`Either`]
-declare {hol} rename module = Lem_either [`sumTheory`; `lem_eitherTheory`]
+declare {isabelle; hol} rename module = Lem_either 
+declare {ocaml} rename module = Lem_either [`Either`; `Lem_either`]
 
 open import Bool Basic_classes List Tuple
 open import {hol} `sumTheory`
+open import {ocaml} `Either`
 
 type either 'a 'b
   = Left  of 'a

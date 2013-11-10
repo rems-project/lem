@@ -74,4 +74,7 @@ val output_alldoc : string -> string -> Ulib.Text.t list ref -> Ulib.Text.t list
     from reprocessing these unchanged files. *)
 val always_replace_files : bool ref
 
+(** [only_auxiliary] determines whether Lem generates only auxiliary files *)
+val only_auxiliary : bool ref
+
 val output_sig : Format.formatter -> Typed_ast.env -> unit

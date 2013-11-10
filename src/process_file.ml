@@ -79,6 +79,7 @@ let open_output_with_check dir file_name =
   (o, (o, temp_file_name, Filename.concat dir file_name)) 
 
 let always_replace_files = ref true 
+let only_auxiliary = ref false
 
 let close_output_with_check (o, temp_file_name, file_name) =
   let _ = close_out o in
@@ -178,7 +179,7 @@ let output1 env libpath isa_thy (out_dir : string option) (targ : Target.target)
               Printf.fprintf o "val _ = numLib.prefer_num();\n\n";
               Printf.fprintf o "\n\n";
             end in
-            let _ = begin
+            let _ = if (!only_auxiliary) then () else begin
               let (o, ext_o) = open_output_with_check dir (module_name_lower ^ "Script.sml") in
               hol_header imported_modules o;
               Printf.fprintf o "val _ = new_theory \"%s\"\n\n" module_name_lower;
@@ -227,7 +228,7 @@ let output1 env libpath isa_thy (out_dir : string option) (targ : Target.target)
       | Target.Target_no_ident(Target.Target_ocaml) -> 
           begin
             let (r_main, r_extra_opt) = B.ocaml_defs m.typed_ast in
-            let _ = begin
+            let _ = if (!only_auxiliary) then () else begin
               let (o, ext_o) = open_output_with_check dir (module_name_lower ^ ".ml") in
               Printf.fprintf o "(*%s*)\n" (generated_line m.filename);
               Printf.fprintf o "%s" (Ulib.Text.to_string r_main);
@@ -249,10 +250,10 @@ let output1 env libpath isa_thy (out_dir : string option) (targ : Target.target)
           begin
           try begin
             let (r_main, r_extra_opt) = B.isa_defs m.typed_ast in
-            let r1 = B.isa_header_defs m.typed_ast in
-            let _ = 
-            begin
+            let _ = if (!only_auxiliary) then () else 
+              begin
                 let (o, ext_o) = open_output_with_check dir (module_name ^ ".thy") in 
+                let r1 = B.isa_header_defs m.typed_ast in
                 Printf.fprintf o "header{*%s*}\n\n" (generated_line m.filename);
                 Printf.fprintf o "theory \"%s\" \n\n" module_name;
                 Printf.fprintf o "imports \n \t Main\n";
@@ -300,7 +301,7 @@ let output1 env libpath isa_thy (out_dir : string option) (targ : Target.target)
       | Target.Target_no_ident(Target.Target_coq) -> 
           try begin
             let (r, r_extra) = B.coq_defs m.typed_ast in
-            let _ =
+            let _ = if (!only_auxiliary) then () else 
               begin
                 let (o, ext_o) = open_output_with_check dir (module_name_lower ^ ".v") in
                   Printf.fprintf o "(* %s *)\n\n" (generated_line m.filename);

@@ -15,7 +15,7 @@
 (* ========================================================================== *)
 
 open import Bool Basic_classes Maybe Function Num 
-declare {isabelle;hol;ocaml} rename module = lem_set_helpers []
+declare {isabelle;hol;ocaml} rename module = lem_set_helpers 
 
 open import {coq} `Coq.Lists.TheoryList`
 

@@ -1,0 +1,2 @@
+OPTIONS = QUIT_ON_FAILURE
+HOLHEAP = ../../hol-lib/lemheap
