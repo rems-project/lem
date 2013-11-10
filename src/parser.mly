@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*                       em                                             */
+/*                        Lem                                             */
 /*                                                                        */
 /*          Dominic Mulligan, University of Cambridge                     */
 /*          Francesco Zappa Nardelli, INRIA Paris-Rocquencourt            */
@@ -163,7 +163,7 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 %token <Ast.terminal> Class_ Do LeftArrow
 %token <Ast.terminal> Inst Inst_default
 %token <Ast.terminal> Module CompileMessage Field Type Automatic Manual Exhaustive Inexhaustive AsciiRep SetFlag TerminationArgument PatternMatch
-%token <Ast.terminal> RightAssoc LeftAssoc NonAssoc Infix Special TargetRep
+%token <Ast.terminal> RightAssoc LeftAssoc NonAssoc Infix Infix_swap Undefined Special TargetRep
 
 %start file
 %type <Ast.defs> defs
@@ -705,7 +705,7 @@ fexps_help:
 letbind:
   | pat opt_typ_annot Eq exp
     { match pat_dest_id_app $1 with
-        | Some((v,pats)) when (pats <> []) ->
+        | Some((v,pats)) ->
             lbloc (Let_fun(Funcl(v,pats,$2,fst $3,$4)))
         | _ -> lbloc (Let_val($1,$2,fst $3,$4)) }
 
@@ -860,16 +860,16 @@ val_spec:
     { Val_spec($1,$2,Ascii_opt_some($3,fst $4, snd $4,$5),$6,$7) }
 
 class_val_spec:
-  | Val x Colon typ
-    { ($1,$2,Ascii_opt_none,$3,$4) }
-  | Val x Lsquare BacktickString Rsquare Colon typ
-    { ($1,$2,Ascii_opt_some($3,fst $4, snd $4,$5),$6,$7) }
+  | Val targets_opt x Colon typ
+    { ($1,$2,$3,Ascii_opt_none,$4,$5) }
+  | Val targets_opt x Lsquare BacktickString Rsquare Colon typ
+    { ($1,$2,$3,Ascii_opt_some($4,fst $5, snd $5,$6),$7,$8) }
 
 class_val_specs:
   | class_val_spec
-    { [(fun (a,b,c,d,e) -> (a,b,c,d,e,loc())) $1] }
+    { [(fun (a,b,c,d,e,f) -> (a,b,c,d,e,f,loc())) $1] }
   | class_val_spec class_val_specs
-    { ((fun (a,b,c,d,e) -> (a,b,c,d,e,loc())) $1)::$2 }
+    { ((fun (a,b,c,d,e,f) -> (a,b,c,d,e,f,loc())) $1)::$2 }
 
 target :
   | X
@@ -946,10 +946,14 @@ fixity_decl :
 target_rep_rhs_term :
   | Infix fixity_decl BacktickString 
     { Target_rep_rhs_infix($1, $2, fst $3, snd $3) }
+  | Infix_swap fixity_decl BacktickString 
+    { Target_rep_rhs_infix_swap($1, $2, fst $3, snd $3) }
   | exp
     { Target_rep_rhs_term_replacement($1) }
   | Special String exps
     { Target_rep_rhs_special($1, fst $2, snd $2, $3) }
+  | Undefined
+    { Target_rep_rhs_undefined($1) }
 
 target_rep_rhs_type :
   | typ

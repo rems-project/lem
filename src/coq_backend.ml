@@ -653,7 +653,7 @@ let generate_coq_record_update_notation e =
             end
           in
           let body_notations =
-            List.map (fun (skips, (name, l), const_descr_ref, ascii_rep_opt, skips', src_t) ->
+            List.map (fun (skips, targets_opt, (name, l), const_descr_ref, ascii_rep_opt, skips', src_t) ->
               let name' = B.const_ref_to_name name true const_descr_ref in
               let notation =
                 if name = name' then
@@ -1381,7 +1381,7 @@ let generate_coq_record_update_notation e =
               ws skips; from_string "("; fun_pattern p; ws skips'; from_string ")"
             ]
         | P_const(cd, ps) ->
-            let oL = B.pattern_application_to_output fun_pattern cd ps (use_ascii_rep_for_const cd.descr) in
+            let oL = B.pattern_application_to_output p.locn fun_pattern cd ps (use_ascii_rep_for_const cd.descr) in
             concat emp oL
         | P_backend(sk, i, _, ps) ->
             ws sk ^
@@ -1444,7 +1444,7 @@ let generate_coq_record_update_notation e =
               from_string "("; ws skips; def_pattern p; ws skips'; from_string ")"
             ]
         | P_const(cd, ps) ->
-            let oL = B.pattern_application_to_output def_pattern cd ps (use_ascii_rep_for_const cd.descr) in
+            let oL = B.pattern_application_to_output p.locn def_pattern cd ps (use_ascii_rep_for_const cd.descr) in
             concat emp oL
         | P_backend(sk, i, _, ps) ->
             ws sk ^

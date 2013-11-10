@@ -16,8 +16,7 @@
 
 declare {isabelle;hol;ocaml} rename module = lem_list_extra
 
-open import Bool Maybe Basic_classes Tuple Num 
-include import List
+open import Bool Maybe Basic_classes Tuple Num List
 
 (* ------------------------- *)
 (* head of non-empty list    *)

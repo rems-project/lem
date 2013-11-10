@@ -81,9 +81,9 @@ let t_to_int = function
   | P_infix_left i -> i
   | P_infix_right i -> i
   
-let ast_fixity_decl_to_t = function
- | Ast.Fixity_right_assoc   (_, i) -> P_infix_right i
- | Ast.Fixity_left_assoc    (_, i) -> P_infix_left i
+let ast_fixity_decl_to_t swap = function
+ | Ast.Fixity_right_assoc   (_, i) -> if swap then P_infix_left i else P_infix_right i
+ | Ast.Fixity_left_assoc    (_, i) -> if swap then P_infix_right i else P_infix_left i
  | Ast.Fixity_non_assoc     (_, i) -> P_infix i
  | Ast.Fixity_default_assoc        -> P_infix 0
 
@@ -210,7 +210,7 @@ let rec get_prec targ env c =
     | Target.Target_no_ident targ' -> (* precedences for real targets are stored in the constant description *)
       begin
         match Target.Targetmap.apply c_descr.target_rep targ' with
-         | Some (CR_infix (_, _, fixity, _)) -> ast_fixity_decl_to_t fixity
+         | Some (CR_infix (_, _, swap, fixity, _)) -> ast_fixity_decl_to_t swap fixity
          | Some (CR_special _) -> P_special (* TODO: Thomas T.: uncertain, whether P_prefix would be better here, but it should not matter much I hope *)
          | Some (CR_inline (_, _, [], e)) -> get_prec_exp targ env e
          | Some (CR_simple (_, _, [], e)) -> get_prec_exp targ env e

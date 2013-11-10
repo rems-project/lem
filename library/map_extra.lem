@@ -8,14 +8,13 @@
 
 declare {isabelle;hol;ocaml} rename module = lem_map_extra
 
-open import Bool Basic_classes Function Maybe List Num
-include import Map
+open import Bool Basic_classes Function Maybe List Num Map
 
 (* -------------------------------------------------------------------------- *)
 (* find                                                                       *)
 (* -------------------------------------------------------------------------- *)
 
-val find : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> 'v
+val find : forall 'k 'v. MapKeyType 'k => 'k -> map 'k 'v -> 'v
 let find k m = match (lookup k m) with Just x -> x end
 
 declare ocaml    target_rep function find = `Pmap.find`

@@ -1,0 +1,22 @@
+open import Pervasives_extra
+
+class ( TargetSpecific 'a ) 
+  val method_all : 'a -> nat
+  val {hol}      method_hol : 'a -> nat
+  val {isabelle} method_isa : 'a -> nat
+  val {coq}      method_coq : 'a -> nat
+end
+
+val inst_hol : bool -> nat
+let {hol} inst_hol _ = 2
+
+val inst_coq : bool -> nat
+declare coq target_rep function inst_coq = `XXXX`
+
+instance (TargetSpecific bool)
+  let method_all _n = 0
+  let method_hol = inst_hol
+  let method_coq = inst_coq
+  let method_isa _x = 1
+end
+

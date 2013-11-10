@@ -142,44 +142,43 @@ declare coq target_rep function isGreaterEqual = `isGreaterEqual`
 
 
 (* Ocaml provides default, polymorphic compare functions. Let's use them
-   as the default. However, because used in a typeclass they must be 
-   defined for all targets. So, use a dummy instantiation for other tragets *)
+   as the default. However, because used perhaps in a typeclass they must be 
+   defined for all targets. So, explicitly declare them as undefined for
+   all other targets. If explictly declare undefined, the type-checker won't complain and
+   an error will only be raised when trying to actually output the function for a certain
+   target. *)
 val defaultCompare   : forall 'a. 'a -> 'a -> ordering
 val defaultLess      : forall 'a. 'a -> 'a -> bool
 val defaultLessEq    : forall 'a. 'a -> 'a -> bool
 val defaultGreater   : forall 'a. 'a -> 'a -> bool
 val defaultGreaterEq : forall 'a. 'a -> 'a -> bool
 
-(* DUMMY INSTANTIATIONS, which prevent trouble, but don't make sense,
-   this is a hack to get things working quickly. *)
-let inline defaultCompare   x y = EQ
-let inline defaultLess      x y = true
-let inline defaultLessEq    x y = true
-let inline defaultGreater   x y = true
-let inline defaultGreaterEq x y = true
+declare ocaml    target_rep function defaultCompare = `compare`
+declare hol      target_rep function defaultCompare = undefined
+declare isabelle target_rep function defaultCompare = undefined
+declare coq      target_rep function defaultCompare x y = EQ
 
-declare ocaml target_rep function defaultCompare   = `compare`
-declare ocaml target_rep function defaultLess      = `<`
-declare ocaml target_rep function defaultLessEq    = `<=`
-declare ocaml target_rep function defaultGreater   = `>`
-declare ocaml target_rep function defaultGreaterEq = `>=`
+declare ocaml    target_rep function defaultLess = infix `<`
+declare hol      target_rep function defaultLess = undefined
+declare isabelle target_rep function defaultLess = undefined
+declare coq      target_rep function defaultLess = undefined
 
+declare ocaml    target_rep function defaultLessEq = infix `<=`
+declare hol      target_rep function defaultLessEq = undefined
+declare isabelle target_rep function defaultLessEq = undefined
+declare coq      target_rep function defaultLessEq = undefined
 
-default_instance forall 'a. ( Ord 'a )
-  let compare = defaultCompare
-  let (<=) = defaultLessEq
-  let (>=) = defaultGreaterEq
-  let (<) = defaultLess
-  let (>) = defaultGreater
-end
+declare ocaml    target_rep function defaultGreater = infix `>`
+declare hol      target_rep function defaultGreater = undefined
+declare isabelle target_rep function defaultGreater = undefined
+declare coq      target_rep function defaultGreater = undefined
 
+declare ocaml    target_rep function defaultGreaterEq = infix `>=`
+declare hol      target_rep function defaultGreaterEq = undefined
+declare isabelle target_rep function defaultGreaterEq = undefined
+declare coq      target_rep function defaultGreaterEq = undefined
 
-(* TODO: add later 
-lemma isLess_alt_def        : (forall x y. (x < y) = (let r = compare x y in (r = LT || r = EQ)))
-lemma isLessEqual_alt_def   : (forall x y. (x <= y) = (compare x y = LT))
-lemma isGreater_alt_def     : (forall x y. (x > y) = (y < x))
-lemma isGreaterEqual_alt_def: (forall x y. (x >= y) = (y <= x))
-
+(*
 (* compare should really be a total order *)
 lemma ord_OK_1: (
   (forall x y. (compare x y = EQ) <-> (compare y x = EQ)) &&
@@ -220,6 +219,25 @@ end
 
 
 (* ========================================================================== *)
+(* SetTypes                                                                   *)
+(* ========================================================================== *)
+
+(* Set implementations use often an order on the elements. This allows the OCaml implementation
+   to use trees for implementing them. At least, one needs to be able to check equality on sets.
+   One could use the Ord type-class for sets. However, defining a special typeclass is cleaner
+   and allows more flexibility. One can make e.g. sure, that this type-class is ignored for
+   backends like HOL or Isabelle, which don't need it. Moreover, one is not forced to also instantiate
+   the functions "<", "<=" ... *)
+
+class ( SetType 'a ) 
+  val {ocaml;coq} setElemCompare : 'a -> 'a -> ordering
+end
+
+default_instance forall 'a. ( SetType 'a ) 
+  let setElemCompare = defaultCompare
+end
+
+(* ========================================================================== *)
 (* Instantiations                                                             *)
 (* ========================================================================== *)
 
@@ -235,12 +253,8 @@ let boolCompare b1 b2 = match (b1, b2) with
   | (false, false) -> EQ
 end
 
-instance (Ord bool)
-  let compare = boolCompare
-  let (<) x y = (not x && y)
-  let (<=) x y = (x --> y)
-  let (>) x y = (not y && x)
-  let (>=) x y = (y --> x)
+instance (SetType bool)
+  let setElemCompare = boolCompare
 end
 
 val pairEqual : forall 'a 'b. Eq 'a, Eq 'b => ('a * 'b) -> ('a * 'b) -> bool
@@ -258,11 +272,12 @@ instance forall 'a 'b. Eq 'a, Eq 'b => (Eq ('a * 'b))
   let (<>) x y = not (pairEqual x y)
 end
 
-let pairCompare (a1, b1) (a2, b2) =
-  match compare a1 a2 with
+val pairCompare : forall 'a 'b. ('a -> 'a -> ordering) -> ('b -> 'b -> ordering) -> ('a * 'b) -> ('a * 'b) -> ordering
+let pairCompare cmpa cmpb (a1, b1) (a2, b2) =
+  match cmpa a1 a2 with
     | LT -> LT
     | GT -> GT
-    | EQ -> compare b1 b2
+    | EQ -> cmpb b1 b2
   end
 
 let pairLess (x1, x2) (y1, y2) = (x1 < y1) || ((x1 <= y1) && (x2 < y2))
@@ -272,9 +287,17 @@ let pairGreater x12 y12 = pairLess y12 x12
 let pairGreaterEq x12 y12 = pairLessEq y12 x12
 
 instance forall 'a 'b. Ord 'a, Ord 'b => (Ord ('a * 'b))
-  let compare = pairCompare
+  let compare = pairCompare compare compare
   let (<)  = pairLess
   let (<=) = pairLessEq
   let (>)  = pairGreater
   let (>=) = pairGreaterEq
+end
+
+val test : forall 'a 'b. SetType 'a, SetType 'b => ('a * 'b) -> ('a * 'b) -> ordering
+let {ocaml} test = pairCompare setElemCompare setElemCompare
+
+
+instance forall 'a 'b. SetType 'a, SetType 'b => (SetType ('a * 'b))
+  let setElemCompare = pairCompare setElemCompare setElemCompare
 end

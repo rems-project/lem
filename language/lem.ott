@@ -781,9 +781,11 @@ fixity_decl :: 'Fixity_' ::=
 target_rep_rhs :: 'Target_rep_rhs_' ::=
   {{ com right hand side of a target representation declaration }}
   | infix fixity_decl backtick_string :: :: infix
+  | infix_swap fixity_decl backtick_string :: :: infix_swap
   | exp                          :: :: term_replacement
   | typ                          :: :: type_replacement
   | special string exp1 ... expn :: :: special
+  | undefined                    :: :: undefined
 
 target_rep_lhs  :: 'Target_rep_lhs_' ::=
   {{ com left hand side of a target representation declaration }}
@@ -860,7 +862,7 @@ def_aux :: '' ::=
     {{ com Inductively defined relations }}
   | val_spec 							:: :: Spec_def
     {{ com Top-level type constraints }}
-  | class_decl ( x_l tnvar ) val x_l1 ascii_opt1 : typ1 l1 ... val x_ln ascii_optn : typn ln end	:: :: Class
+  | class_decl ( x_l tnvar ) val targets_opt1 x_l1 ascii_opt1 : typ1 l1 ... val targets_optn x_ln ascii_optn : typn ln end	:: :: Class
     {{ com Typeclass definitions }}
   | instance_decl instschm val_def1 l1 ... val_defn ln end 		:: :: Instance
     {{ com Typeclass instantiations }}

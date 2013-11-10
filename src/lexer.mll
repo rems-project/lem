@@ -95,6 +95,8 @@ let kw_table =
      ("MEM",                     (fun x -> MEM(x,r"MEM")));
      ("declare",                 (fun x -> Declare(x)));
      ("infix",                   (fun x -> Infix(x)));
+     ("infix_swap",              (fun x -> Infix_swap(x)));
+     ("undefined",               (fun x -> Undefined(x)));
      ("field"),                  (fun x -> Field(x));
      ("automatic"),              (fun x -> Automatic(x));
      ("manual"),                 (fun x -> Manual(x));

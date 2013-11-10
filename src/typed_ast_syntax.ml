@@ -225,9 +225,10 @@ let class_all_methods_inlined_for_target l env target (class_path : Path.t) =
 
   let method_is_inlined c = begin
     let cd = c_env_lookup l env.c_env c in
-    match (Target.Targetmap.apply_target cd.target_rep target) with
-      | Some (CR_inline _) -> true
-      | _ -> false 
+    not (in_target_set target cd.const_targets) ||
+    (match (Target.Targetmap.apply_target cd.target_rep target) with
+      | Some _ -> true
+      | _ -> false)
   end in
 
   List.for_all method_is_inlined method_refs
@@ -257,6 +258,7 @@ let constant_descr_to_name (targ : Target.target) (cd : const_descr) : (bool * N
     | Some (CR_special (_, _, special_fun, _)) -> cr_special_fun_uses_name special_fun
     | Some (CR_simple _) -> false
     | Some (CR_infix _) -> false
+    | Some (CR_undefined _) -> false
     | None -> true
   in
   (is_shown, name_renamed, name_ascii)
@@ -333,15 +335,17 @@ let type_defs_rename_type l (d : type_defs) (p : Path.t) (t: Target.non_ident_ta
 
 let const_target_rep_to_loc= function
   | CR_inline (l, _, _, _) -> l
-  | CR_infix (l, _, _, _) -> l
+  | CR_infix (l, _, _, _, _) -> l
   | CR_simple (l, _, _, _) -> l
   | CR_special (l, _, _, _) -> l
+  | CR_undefined (l, _) -> l
 
 let const_target_rep_allow_override = function
   | CR_inline (_, f, _, _) -> f
-  | CR_infix (_, f, _, _) -> f
+  | CR_infix (_, f, _, _, _) -> f
   | CR_simple (_, f, _, _) -> f
   | CR_special (_, f, _, _) -> f
+  | CR_undefined (_, f) -> f
 
 let type_target_rep_to_loc= function
   | TYR_simple (l, _, _) -> l

@@ -104,12 +104,12 @@ val open_to_open_target : (Path.t id) list -> (lskips * string) list * lskips
 *)
 val function_application_to_output : Ast.l -> (exp -> Output.t) -> bool -> exp -> const_descr_ref id -> exp list -> bool -> Output.t list
 
-(** [pattern_application_to_output pat c_id args] tries to
+(** [pattern_application_to_output l pat c_id args] tries to
     format a function application in a pattern as output. It does otherwise the same as
     function_application_to_output. However, since there are no infix patterns, the
     parameter [inf] is always set to [false]. 
 *)
-val pattern_application_to_output : (pat -> Output.t) -> const_descr_ref id -> pat list -> bool -> Output.t list
+val pattern_application_to_output : Ast.l -> (pat -> Output.t) -> const_descr_ref id -> pat list -> bool -> Output.t list
 
 (** [const_id_to_ident c_id use_ascii] tries to format a constant, constructor or field
     [c_id] as an identifier for target [A.target] using the rules stored

@@ -1400,7 +1400,7 @@ let rec pat p = match p.term with
   | P_var(n) ->
       Name.to_output Term_var n
   | P_const(cd,ps) ->
-      let oL = B.pattern_application_to_output pat cd ps (use_ascii_rep_for_const cd) in
+      let oL = B.pattern_application_to_output p.locn pat cd ps (use_ascii_rep_for_const cd) in
       concat texspace oL
   | P_backend(sk,i,_,ps) ->
       backend sk i ^
@@ -2013,10 +2013,10 @@ let targets_opt = function
   | None -> emp
   | Some((b,s1,targets,s2)) ->
       ws s1 ^
-      (if b then kwd "~{" else kwd "{") ^
+      (if b then meta "~{" else meta "{") ^
       flat (Seplist.to_sep_list target_to_output (sep T.set_sep) targets) ^
       ws s2 ^
-      kwd "}"
+      meta "}"
 
 let in_target targs = Typed_ast.in_targets_opt T.target targs
 
@@ -2538,9 +2538,13 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
       ws s3 ^
       kwd ")" ^
       flat (List.map 
-              (fun (s1,(n,l),f_ref,ascii_rep_opt,s2,t) ->
+              (fun (s1,targets,(n,l),f_ref,ascii_rep_opt,s2,t) ->
                 ws s1 ^
                 T.val_start ^
+                (if Target.is_human_target T.target then
+                   targets_opt targets 
+                 else
+                   emp) ^
                 Name.to_output Term_method n ^
                 val_ascii_opt ascii_rep_opt ^
                 ws s2 ^
@@ -2563,9 +2567,10 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         kwd "=" ^
         (match rhs with
           | Target_rep_rhs_term_replacement e -> exp e
-          | Target_rep_rhs_infix (sk1, decl, sk2, i) -> begin
+          | Target_rep_rhs_undefined sk -> ws sk ^ kwd "undefined"
+          | Target_rep_rhs_infix (sk1, swap, decl, sk2, i) -> begin
                ws sk1 ^
-               kwd "infix" ^
+               (if swap then kwd "infix_swap" else kwd "infix") ^
                infix_decl decl ^
                backend sk2 i
             end

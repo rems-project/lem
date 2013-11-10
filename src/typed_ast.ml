@@ -137,7 +137,8 @@ and cr_special_fun =
 
 and const_target_rep =
   | CR_inline of Ast.l * bool * name_lskips_annot list * exp
-  | CR_infix of Ast.l * bool * Ast.fixity_decl * Ident.t
+  | CR_infix of Ast.l * bool * bool * Ast.fixity_decl * Ident.t
+  | CR_undefined of Ast.l * bool 
   | CR_simple of Ast.l * bool * name_lskips_annot list * exp
   | CR_special of Ast.l * bool * cr_special_fun * Name.t list
 
@@ -284,10 +285,6 @@ type typschm = constraint_prefix option * src_t
 
 type instschm = constraint_prefix option * lskips * Ident.t * Path.t * src_t * lskips
 
-type val_spec = lskips * name_l * const_descr_ref * Ast.ascii_opt * lskips * typschm
-
-type class_val_spec = lskips * name_l * const_descr_ref * Ast.ascii_opt * lskips * src_t
-
 type targets_opt = (bool * lskips * Ast.target lskips_seplist * lskips) option
 
 let in_targets_opt_raw (targ : Target.target) (targets_opt : targets_opt) : bool = match targ with
@@ -304,6 +301,15 @@ let in_targets_opt (targ : Target.target) (targets_opt : targets_opt) : bool =
 let targets_opt_to_list (targets_opt : targets_opt) : Target.non_ident_target list =
    List.filter (fun t -> in_targets_opt_raw (Target_no_ident t) targets_opt) Target.all_targets_list
                          
+let in_target_set (targ : Target.target) (targetset : Target.Targetset.t) : bool = 
+  match dest_human_target targ with
+    | None   -> true
+    | Some t -> Target.Targetset.mem t targetset 
+
+
+type val_spec       = lskips *               name_l * const_descr_ref * Ast.ascii_opt * lskips * typschm
+type class_val_spec = lskips * targets_opt * name_l * const_descr_ref * Ast.ascii_opt * lskips * src_t
+
 type fun_def_rec_flag =
   | FR_non_rec
   | FR_rec of lskips
@@ -328,10 +334,11 @@ type indreln_name = RName of lskips* Name.lskips_t * const_descr_ref * lskips * 
 
 type 
 target_rep_rhs =  (* right hand side of a target representation declaration *)
-   Target_rep_rhs_infix of lskips * Ast.fixity_decl * lskips * Ident.t
+   Target_rep_rhs_infix of lskips * bool * Ast.fixity_decl * lskips * Ident.t
  | Target_rep_rhs_term_replacement of exp
  | Target_rep_rhs_type_replacement of src_t
  | Target_rep_rhs_special of lskips * lskips * string * exp list
+ | Target_rep_rhs_undefined of lskips 
 
 
 type declare_def =  (* declarations *)

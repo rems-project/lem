@@ -148,8 +148,10 @@ and const_target_rep =
         replacing the variable [vars] inside [e] with the arguments of the constant. The flag [allow_override] signals whether
         the declaration might be safely overriden. Automatically generated target-representations (e.g. for ocaml constructors) should
         be changeable by the user, whereas multiple user-defined ones should cause a type error. *)
-  | CR_infix of Ast.l * bool * Ast.fixity_decl * Ident.t
-    (** [CR_infix (loc, allow_override, fixity, i)] declares infix notation for the constant with the giving identifier. *)
+  | CR_infix of Ast.l * bool * bool * Ast.fixity_decl * Ident.t
+    (** [CR_infix (loc, allow_override, do_swap, fixity, i)] declares infix notation for the constant with the giving identifier. *)
+  | CR_undefined of Ast.l * bool 
+    (** [CR_undefined (loc, allow_override)] declares undefined constant. *)
   | CR_simple of Ast.l * bool * name_lskips_annot list * exp
     (** [CR_simple (loc, allow_override, vars, e)] is similar to [CR_inline]. Instead of inlining during macro expansion and therefore allowing
         further processing afterwards, [CR_simple] performs the inlining only during printing in the backend. *)
@@ -384,10 +386,6 @@ type typschm = constraint_prefix option * src_t
 (** Instance Scheme, constraint prefix, sk, class-ident as printed, resolved class-path the id points to, instantiation type, sk *) 
 type instschm = constraint_prefix option * lskips * Ident.t * Path.t * src_t * lskips
 
-type val_spec = lskips * name_l * const_descr_ref * Ast.ascii_opt * lskips * typschm
-
-type class_val_spec = lskips * name_l * const_descr_ref * Ast.ascii_opt * lskips * src_t
-
 (** [cr_special_fun_uses_name f] checks, whether [f] uses it's first argument,
     i.e. whether it uses the formatted name of the constant. This information
     is important to determine, whether the constant needs to be renamed. *)
@@ -405,12 +403,20 @@ type targets_opt = (bool * lskips * Ast.target lskips_seplist * lskips) option
 
 
 (** [in_targets_opt targ targets_opt] checks whether the target `targ` is in the set of targets represented by
-    `targets_opt`. [targets_opt] contains only AST-targets, i.e. it can't explicitly contain
-     the identity target. If `targ` is the identity backend, `true` is returned for all [targets_opt]. *)
+    `targets_opt`. If [targ] is the a human readable target, [true] is returned. *)
 val in_targets_opt : Target.target -> targets_opt -> bool
+
+(** [in_target_set targ targetset] checks whether the target `targ` is in the set of targets 
+    [targetset]. It is intended for checking whether to output certain parts of the TAST. 
+    Therefore, [in_target_set] returns true for all human readable targets and only checks for others. *)
+val in_target_set : Target.target -> Target.Targetset.t -> bool 
 
 (** [target_opt_to_list targets_opt] returns a distinct list of all the targets in the option. *)
 val targets_opt_to_list : targets_opt -> Target.non_ident_target list
+
+type val_spec = lskips * name_l * const_descr_ref * Ast.ascii_opt * lskips * typschm
+
+type class_val_spec = lskips * targets_opt * name_l * const_descr_ref * Ast.ascii_opt * lskips * src_t
 
 (** [fun_def_rec_flag] is used to encode, whether a [Fun_def] is recursive. The recursive one carries some whitespace for
     printing after the rec-keyword. *)
@@ -451,10 +457,11 @@ type indreln_name = RName of lskips* Name.lskips_t * const_descr_ref * lskips * 
                              (indreln_indfn list) option * lskips
 
 type target_rep_rhs =  (** right hand side of a target representation declaration *)
-   Target_rep_rhs_infix of lskips * Ast.fixity_decl * lskips * Ident.t (** Declaration of an infix constant *)
+   Target_rep_rhs_infix of lskips * bool * Ast.fixity_decl * lskips * Ident.t (** Declaration of an infix constant *)
  | Target_rep_rhs_term_replacement of exp (** the standard term replacement, replace with the exp for the given backend *)
  | Target_rep_rhs_type_replacement of src_t (** the standard term replacement, replace with the type for the given backend *)
  | Target_rep_rhs_special of lskips * lskips * string * exp list (** fancy represenation of terms *)
+ | Target_rep_rhs_undefined of lskips (** undefined, don't throw a problem during typeching, but during output *)
 
 type declare_def =  (** Declarations *)
  | Decl_compile_message of lskips * targets_opt * lskips * const_descr_ref id * lskips * lskips * string 

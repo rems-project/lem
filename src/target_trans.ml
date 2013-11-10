@@ -72,7 +72,7 @@ type trans =
 (* The macros needed to implement the dictionary passing translations to remove type classes *)
 let dictionary_macros targ = 
   [
-   Def_macros (fun env -> [M.class_to_record]);
+   Def_macros (fun env -> [M.class_to_record targ]);
    Def_macros (fun env -> [M.instance_to_dict false targ]);
    Def_macros (fun env -> [M.class_constraint_to_parameter targ]);  
    Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_method targ true]);
@@ -220,7 +220,7 @@ let coq =
       coq_typeclass_resolution_macros (Target_no_ident Target_coq) @
       [Def_macros (fun env -> 
                     [M.type_annotate_definitions;
-                     M.comment_out_inline_instances;
+                     M.comment_out_inline_instances_and_classes (Target_no_ident Target_coq);
                      M.remove_import_include;
                      M.opens_to_single;
                      M.remove_types_with_target_rep (Target_no_ident Target_coq);

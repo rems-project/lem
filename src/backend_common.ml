@@ -203,22 +203,19 @@ let inline_pat_macro (target : Target.non_ident_target) env _ _ p =
 
 
 let get_module_name env target path mod_name =  begin
-  let transform_name n = match target with
+  let transform_name_for_target n = match target with
     | Target.Target_no_ident (Target.Target_coq)
     | Target.Target_no_ident (Target.Target_hol) -> 
-        if Name.starts_with_upper_letter n then
-          match Name.uncapitalize n with
-            | Some n' -> n'
-            | None -> assert false
-        else
-          n
+        Util.option_default n (Name.uncapitalize n)
     | _ -> n
   in
   let md = lookup_mod_descr env path mod_name in
-  match Target.Targetmap.apply_target md.mod_target_rep target with
-    | Some (MR_rename (_, n)) -> transform_name n
-    | Some (MR_target_modules (_, n, _)) -> transform_name n
-    | _ -> transform_name mod_name
+  let lem_mod_name = match Target.Targetmap.apply_target md.mod_target_rep target with
+    | Some (MR_rename (_, n)) -> n
+    | Some (MR_target_modules (_, n, _)) -> n
+    | _ -> mod_name
+  in
+  transform_name_for_target lem_mod_name
 end
 
 let get_module_open_string env target mod_path =
@@ -389,10 +386,18 @@ let function_application_to_output l (arg_f0 : exp -> Output.t) (is_infix_pos : 
          let new_exp = inline_exp l A.target A.env is_infix_pos params b tsubst args in
          [arg_f true new_exp]
        end
-     | Some (CR_infix (_, _, _, i)) -> constant_application_to_output_simple is_infix_pos arg_f args c_id ascii_alternative (Some i)
+     | Some (CR_infix (_, _, _, _, i)) -> constant_application_to_output_simple is_infix_pos arg_f args c_id ascii_alternative (Some i)
+     | Some (CR_undefined (l', _)) -> 
+       begin 
+         let (^) = Pervasives.(^) in
+         let m0 = "constant '" ^ Path.to_string c_descr.const_binding ^ "' is explicitly declared undefined for target " ^ (Target.target_to_string A.target) ^ " at\n    " in
+         let loc_s = Reporting_basic.loc_to_string false l' in 
+         raise (Reporting_basic.Fatal_error (Reporting_basic.Err_type (l, 
+           (m0 ^ loc_s))))
+       end
      | _ -> constant_application_to_output_simple is_infix_pos arg_f args c_id ascii_alternative None
 
-let pattern_application_to_output (arg_f0 : pat -> Output.t) (c_id : const_descr_ref id) (args : pat list) (ascii_alternative : bool) : Output.t list =
+let pattern_application_to_output l (arg_f0 : pat -> Output.t) (c_id : const_descr_ref id) (args : pat list) (ascii_alternative : bool) : Output.t list =
   let arg_f b p = if b then arg_f0 (Pattern_syntax.mk_opt_paren_pat p) else arg_f0 p in
   let c_descr = c_env_lookup Ast.Unknown A.env.c_env c_id.descr in
   match Target.Targetmap.apply_target c_descr.target_rep A.target with
@@ -407,6 +412,14 @@ let pattern_application_to_output (arg_f0 : pat -> Output.t) (c_id : const_descr
          match res_opt with
            | None -> inline_pat_err Ast.Unknown c_descr.const_binding A.target l 
            | Some p' -> [arg_f true p']
+       end
+     | Some (CR_undefined (l', _)) -> 
+       begin 
+         let (^) = Pervasives.(^) in
+         let m0 = "constant '" ^ Path.to_string c_descr.const_binding ^ "' is explicitly declared undefined for target " ^ (Target.target_to_string A.target) ^ " at\n    " in
+         let loc_s = Reporting_basic.loc_to_string false l' in 
+         raise (Reporting_basic.Fatal_error (Reporting_basic.Err_type (l, 
+           (m0 ^ loc_s))))
        end
      | _ -> constant_application_to_output_simple false arg_f args c_id ascii_alternative None
 

@@ -313,23 +313,25 @@ let type_annotate_definitions _ env ((d,s),l,lenv) =
 (* Turn a class definition into a record one for dictionary passing.
    The type definition of the record and the definition of its fields has 
    already been done during type-checking. *)
-let class_to_record mod_path env (((d,s),l,lenv) as def) =
+let class_to_record targ mod_path env (((d,s),l,lenv) as def) =
     let l_unk = Ast.Trans(true, "class_to_record", Some l) in 
     match d with
       | Class(Ast.Class_decl sk1,sk2,(n,l),tnvar,class_path,sk3,specs,sk4) ->
           (* lookup class-description *)
           let cd = lookup_class_descr l_unk env class_path in
+          if cd.class_is_inline || class_all_methods_inlined_for_target l env targ class_path then Some(env,[comment_def def]) else begin
 
           (* turn the methods specs into pairs of sk + field spec *)
-          let process_method_spec (sk1, (method_name, l), method_ref, _, sk2, src_t) =
+          let process_method_spec (sk1, targs, (method_name, l), method_ref, _, sk2, src_t) =
           begin
             let field_ref = lookup_field_for_class_method l cd method_ref in
             let fd = c_env_lookup l env.c_env field_ref in
-            let field_name = Name.add_pre_lskip sk1 (Name.add_lskip (Path.get_name fd.const_binding)) in
-              
-	    ((field_name, l), field_ref, sk2, src_t)
+            if not (in_target_set targ fd.const_targets) then None else begin
+              let field_name = Name.add_pre_lskip sk1 (Name.add_lskip (Path.get_name fd.const_binding)) in
+              Some ((field_name, l), field_ref, sk2, src_t)
+            end
           end in   
-          let fields = Seplist.from_list_default None (List.map process_method_spec specs) in
+          let fields = Seplist.from_list_default None (Util.map_filter process_method_spec specs) in
           let (sk_fields, fields) = Seplist.drop_first_sep fields in
 
           let rec_path = cd.class_record in
@@ -339,18 +341,21 @@ let class_to_record mod_path env (((d,s),l,lenv) as def) =
                       Seplist.from_list_default None [((rec_name, l), [tnvar], rec_path, Te_record(None, sk3, fields, sk4), None)])
           in
             Some (env, [((rec_def, s), l, lenv)])
+          end
       | Class(Ast.Class_inline_decl _,_,_,_,_,_,_,_) -> Some (env, [comment_def def])
       | _ -> None
 
-let comment_out_inline_instances mod_path (env : env) ((d,s),l,lenv) =
+let comment_out_inline_instances_and_classes targ mod_path (env : env) (((d,s),l,lenv) as def) =
   let l_unk = Ast.Trans(false, "comment_out_inline_instances", Some l) in
   match d with
       | Instance(Ast.Inst_default sk1, i_ref, (prefix, sk2, id, class_path, t, sk3), vdefs, sk4) ->
-            Some(env,[])
+            Some(env,[comment_def def])
       | Instance(Ast.Inst_decl sk1, i_ref, (prefix, sk2, id, class_path, t, sk3), vdefs, sk4) ->
-          let id = i_env_lookup l_unk env.i_env i_ref in
-          let cd = lookup_class_descr l_unk env id.inst_class in
-          if cd.class_is_inline then Some(env,[]) else None
+          let cd = lookup_class_descr l_unk env class_path in
+          if cd.class_is_inline || class_all_methods_inlined_for_target l env targ class_path then Some(env,[comment_def def]) else None
+      | Class(_,_,_,_,class_path,_,_,_) ->
+          let cd = lookup_class_descr l_unk env class_path in
+          if cd.class_is_inline || class_all_methods_inlined_for_target l env targ class_path then Some(env,[comment_def def]) else None
       | _ -> None
 ;;
 
@@ -359,13 +364,16 @@ let comment_out_inline_instances mod_path (env : env) ((d,s),l,lenv) =
 let instance_to_dict create_inline targ mod_path (env : env) ((d,s),l,lenv) =
   let l_unk n = Ast.Trans(false, "instance_to_module" ^ string_of_int n , Some l) in
   match d with
-      | Instance(Ast.Inst_default sk1, i_ref, (prefix, sk2, id, class_path, t, sk3), vdefs, sk4) ->
-            Some(env,[])
-      | Instance(Ast.Inst_decl sk1, i_ref, (prefix, sk2, id, class_path, t, sk3), vdefs, sk4) ->
+      | Instance(inst_decl, i_ref, (prefix, sk2, id, class_path, t, sk3), vdefs, sk4) ->
+          let sk1 = match inst_decl with
+            | Ast.Inst_default sk -> sk
+            | Ast.Inst_decl sk -> sk 
+          in
+
           (* lookup instance and class description *)
           let id = i_env_lookup (l_unk 10) env.i_env i_ref in
           let cd = lookup_class_descr (l_unk 0) env id.inst_class in
-          if cd.class_is_inline then Some(env,[]) else begin
+          if cd.class_is_inline || class_all_methods_inlined_for_target l env targ id.inst_class then Some(env,[]) else begin
             let new_line_dict = Some [Ast.Ws (r"\n\n  ")] in
 
             (* now generate the definition of the record dict *)
@@ -373,22 +381,24 @@ let instance_to_dict create_inline targ mod_path (env : env) ((d,s),l,lenv) =
               let mk_field_entry (class_method_ref, inst_method_ref) =
                 begin
                   let field_ref = lookup_field_for_class_method l cd class_method_ref in
-                  let field_id = { id_path = Id_none new_line_dict;
-                                   id_locn = l_unk 1;
-                                   descr = field_ref;
-                                   instantiation = [t.typ]; } in
+                  let field_d = c_env_lookup l env.c_env field_ref in
+                  if not (in_target_set targ field_d.const_targets) then None else begin
+                    let field_id = { id_path = Id_none new_line_dict;
+                                     id_locn = l_unk 1;
+                                     descr = field_ref;
+                                     instantiation = [t.typ]; } in
 
-                  let inst_method_d = c_env_lookup l env.c_env inst_method_ref in
-                  let inst_method_id = { id_path = Id_none space;
-                                         id_locn = l_unk 3;
-                                         descr = inst_method_ref;
-                                         instantiation = List.map Types.tnvar_to_type inst_method_d.const_tparams; } in
-                  let inst_method_const = C.mk_const (l_unk 2) inst_method_id (Some inst_method_d.const_type) in
+                    let inst_method_d = c_env_lookup l env.c_env inst_method_ref in
+                    let inst_method_id = { id_path = Id_none space;
+                                           id_locn = l_unk 3;
+                                           descr = inst_method_ref;
+                                           instantiation = List.map Types.tnvar_to_type inst_method_d.const_tparams; } in
+                    let inst_method_const = C.mk_const (l_unk 2) inst_method_id (Some inst_method_d.const_type) in
 
-                  ((field_id, space, inst_method_const, (l_unk 4)),
-                   None)
+                    Some ((field_id, space, inst_method_const, (l_unk 4)), None)
+                  end
                 end in
-              let fields = List.rev_map mk_field_entry id.inst_methods in
+              let fields = List.rev (Util.map_filter mk_field_entry id.inst_methods) in
               let dict_type = class_descr_get_dict_type cd t.typ in
               let dict_d = c_env_lookup (l_unk 7) env.c_env id.inst_dict in
               let dict_body = C.mk_record (l_unk 5) None (Seplist.from_list fields) None (Some dict_type) in

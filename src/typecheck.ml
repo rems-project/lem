@@ -1363,7 +1363,7 @@ module Make_checker(T : sig
             let es = Seplist.from_list_suffix es sk2 semi in
             let exps = Seplist.map (check_exp l_e) es in
             let a = C.new_type () in
-              C.add_constraint (External_constants.class_label_to_path "class_ord") a;
+              C.add_constraint (External_constants.class_label_to_path "class_set_type") a;
               Seplist.iter (fun exp -> C.equate_types l "set expression" a (exp_to_typ exp)) exps;
               C.equate_types l "set expression" ret_type { t = Tapp([a], Path.setpath) };
               A.mk_set l sk1 exps sk3 ret_type
@@ -1385,7 +1385,7 @@ module Make_checker(T : sig
             let a = C.new_type () in
               C.equate_types l "set comprehension expression" (exp_to_typ exp2) { t = Tapp([], Path.boolpath) };
               C.equate_types l "set comprehension expression" (exp_to_typ exp1) a;
-              C.add_constraint (External_constants.class_label_to_path "class_ord") a;
+              C.add_constraint (External_constants.class_label_to_path "class_set_type") a;
               C.equate_types l "set comprehension expression" ret_type { t = Tapp([a], Path.setpath) };
               A.mk_setcomp l sk1 exp1 sk2 exp2 sk3 vars rt
         | Ast.Setcomp_binding(sk1,e1,sk2,sk5,qbs,sk3,e2,sk4) ->
@@ -1396,7 +1396,7 @@ module Make_checker(T : sig
             let a = C.new_type () in
               C.equate_types l "set comprehension expression" (exp_to_typ exp2) { t = Tapp([], Path.boolpath) };
               C.equate_types l "set comprehension expression" (exp_to_typ exp1) a;
-              C.add_constraint (External_constants.class_label_to_path "class_ord") a;
+              C.add_constraint (External_constants.class_label_to_path "class_set_type") a;
               C.equate_types l "set comprehension expression" ret_type { t = Tapp([a], Path.setpath) };
               A.mk_comp_binding l false sk1 exp1 sk2 sk5 
                 (List.rev qbs) sk3 exp2 sk4 rt
@@ -1728,9 +1728,6 @@ module Make_checker(T : sig
   let apply_specs_for_method def_targets l def_env inst_type =
     Nfmap.iter
       (fun n (t,l) ->
-         if not (def_targets = None) then
-           raise (Reporting_basic.err_type_pp l "instance method must not be target specific"
-             Name.pp n);
          let const_ref = Nfmap.apply T.e.local_env.v_env n in
          let const_data = Util.option_map (fun c -> c_env_lookup l T.e.c_env c) const_ref in
          match const_data with
@@ -1752,7 +1749,7 @@ module Make_checker(T : sig
 
   let apply_specs for_method is_inline (def_targets : Targetset.t option) l env = 
     match for_method with
-      | None -> apply_specs_for_def is_inline def_targets l env
+      | None ->    apply_specs_for_def is_inline def_targets l env
       | Some(t) -> apply_specs_for_method def_targets l env t
 
   (* See Expr_checker signature above *)
@@ -2026,12 +2023,12 @@ let build_record tvs_set (ctxt : defn_ctxt)
     recs
 
 let add_record_to_ctxt build_descr (ctxt : defn_ctxt) 
-      (recs : (name_l * lskips * src_t) lskips_seplist) 
+      (recs : (name_l * lskips * src_t * Targetset.t) lskips_seplist) 
       : ((name_l * const_descr_ref * lskips * src_t) lskips_seplist * defn_ctxt)  =
    Seplist.map_acc_left
-      (fun ((fn,l'),sk1,src_t) ctxt ->
+      (fun ((fn,l'),sk1,src_t,targs) ctxt ->
          let fn' = Name.strip_lskip fn in
-         let field_descr = build_descr fn' l' src_t.typ in
+         let field_descr = build_descr fn' l' src_t.typ targs in
          let () = 
            match Nfmap.apply ctxt.new_defs.f_env fn' with
              | None -> ()
@@ -2113,7 +2110,7 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
           let tparams_t = List.map tnvar_to_type tparams in
           let (recs', ctxt) =
             add_record_to_ctxt 
-              (fun fname l t ->
+              (fun fname l t targs ->
                  { const_binding = Path.mk_path mod_path fname;
                    const_tparams = tparams;
                    const_class = [];
@@ -2123,14 +2120,14 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
                    spec_l = l;
                    env_tag = K_field;
                    relation_info = None;
-                   const_targets = all_targets;
+                   const_targets = targs;
                    target_rename = Targetmap.empty;
                    target_rep = Targetmap.empty;
                    target_ascii_rep = Targetmap.empty;
                    termination_setting = Targetmap.empty;
                    compile_message = Targetmap.empty })
               context
-              (Seplist.map (fun (x,y,src_t) -> (x,y,src_t)) recs)
+              (Seplist.map (fun (x,y,src_t) -> (x,y,src_t,all_targets)) recs)
           in
           let field_refs = Seplist.to_list_map (fun (_, f, _, _) -> f) recs' in
           let ctxt = {ctxt with all_tdefs = type_defs_update_fields l ctxt.all_tdefs type_path field_refs} in 
@@ -2244,11 +2241,13 @@ let check_val_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
  * enclosing module. class_p is the path to the enclosing type class, and tv is
  * its type parameter. *)
 let check_class_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
-      (class_p : Path.t) (tv : Types.tnvar) (sk1,xl,ascii_rep_opt,sk2,typ) 
-      : const_descr_ref * const_descr * defn_ctxt * src_t * _ =
+      (class_p : Path.t) (tv : Types.tnvar) (sk1,targs,xl,ascii_rep_opt,sk2,typ) 
+      : const_descr_ref * const_descr * defn_ctxt * src_t * Targetset.t * class_val_spec =
   let l' = Ast.xl_to_l xl in
   let n = Name.from_x xl in
   let n' = Name.strip_lskip n in
+  let target_opt = check_target_opt targs in
+  let target_set = targets_opt_to_set targs in
   let tnvars = TNset.add tv TNset.empty in
   let () = check_free_tvs tnvars typ in
   let src_t = typ_to_src_t anon_error ignore ignore (defn_ctxt_to_env ctxt) typ in
@@ -2276,7 +2275,7 @@ let check_class_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
       const_type = src_t.typ;
       spec_l = l;
       env_tag = K_method;
-      const_targets = all_targets;
+      const_targets = target_set;
       relation_info = None;
       termination_setting = Target.Targetmap.empty;
       target_rename = Targetmap.empty;
@@ -2290,7 +2289,7 @@ let check_class_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
   let ctxt = Util.option_default_map ascii_name_opt ctxt 
         (fun an -> add_v_to_ctxt ctxt (an,v)) 
   in
-    (v, v_d, ctxt, src_t, (sk1, (n,l'), v, ascii_rep_opt, sk2, src_t))
+    (v, v_d, ctxt, src_t, target_set, (sk1, target_opt, (n,l'), v, ascii_rep_opt, sk2, src_t))
 
 
 
@@ -2432,8 +2431,24 @@ let check_val_def_instance (ts : Targetset.t) (mod_path : Name.t list) (instance
         typ_constraints =
 
   (* check whether the definition is allowed inside an instance. Only simple, non-target specific let expressions are allowed. *)
-  let _ = match vd with
-      | Ast.Let_def(_,None,_) -> ()
+  let ts' = match vd with
+      | Ast.Let_def(_,None,Ast.Letbind(lb,_)) -> 
+        (* try to find the method defined and if successful perhaps restrict the target_set *)
+        begin
+          let xl_opt =      
+            match lb with
+              | Ast.Let_fun (Ast.Funcl (xl, _, _, _, _)) -> Some xl
+              | _ -> None
+          in
+          let c_opt = Util.option_bind (fun xl ->  
+             Nfmap.apply ctxt.cur_env.v_env (Name.strip_lskip (Name.from_x xl))) xl_opt in
+          match c_opt with
+            | None -> ts
+            | Some c -> begin
+              let cd = c_env_lookup l ctxt.ctxt_c_env c in
+              Targetset.inter ts cd.const_targets
+          end
+        end 
       | Ast.Let_def(_,Some _,_) -> raise (Reporting_basic.err_type l "instance method must not be target specific");
       | Ast.Let_rec(_,_,_,_) -> raise (Reporting_basic.err_type l "instance method must not be recursive");
       | Ast.Let_inline (_,_,target_opt,_) -> raise (Reporting_basic.err_type l "instance method must not be inlined");
@@ -2442,18 +2457,16 @@ let check_val_def_instance (ts : Targetset.t) (mod_path : Name.t list) (instance
 
   (* Instantiate the checker. In contrast to check_val_def *)
   let module T = struct 
-    let d = ctxt.all_tdefs 
-    let i = ctxt.all_instances 
     let e = defn_ctxt_to_env ctxt
     let new_module_env = ctxt.new_defs
-    let targets = ts
+    let targets = ts'
   end 
   in
 
   let module Checker = Make_checker(T) in
   match vd with
       | Ast.Let_def(sk,_,lb) ->
-          let (lb,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_letbind (Some instance_type) false None l lb in 
+          let (lb,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_letbind (Some instance_type) false (Some Targetset.empty) l lb in 
 
           (* check, whether contraints are satisfied and only simple variable arguments are used (in order to allow simple inlining of
              instance methods. *)
@@ -2607,7 +2620,14 @@ let check_declare_target_rep_term_rhs (l : Ast.l) ts targ (ctxt : defn_ctxt) c i
        let _ = if (List.length args = 0) then () else
                  raise (Reporting_basic.err_type l "infix target declaration with arguments") in
        let i = check_backend_quote l id in
-       (Target_rep_rhs_infix (sk1, infix_decl, sk2, i), CR_infix(l, false, infix_decl, i))
+       (Target_rep_rhs_infix (sk1, false, infix_decl, sk2, i), CR_infix(l, false, false, infix_decl, i))
+   | Ast.Target_rep_rhs_infix_swap (sk1, infix_decl, sk2, id) ->
+       let _ = if (List.length args = 0) then () else
+                 raise (Reporting_basic.err_type l "infix target declaration with arguments") in
+       let i = check_backend_quote l id in
+       (Target_rep_rhs_infix (sk1, true, infix_decl, sk2, i), CR_infix(l, false, true, infix_decl, i))
+   | Ast.Target_rep_rhs_undefined sk ->
+       (Target_rep_rhs_undefined sk, CR_undefined (l, false))
    | Ast.Target_rep_rhs_special (sk1, sk2, sp, args) ->
        raise (Reporting_basic.err_todo true l "unsupported rhs of term target special representation declaration") in
   let (ctxt', _) = ctxt_c_env_set_target_rep l ctxt c targ new_rep in
@@ -3061,12 +3081,12 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           (* typecheck the methods inside the type class declaration *)
           let (ctxt',vspecs,methods) = 
             List.fold_left
-              (fun (ctxt,vs,methods) (a,b,c,d,e,l) ->
-                 let (tc,tc_d,ctxt,src_t,v) = check_class_spec l mod_path ctxt p tnvar_types (a,b,c,d,e)
+              (fun (ctxt,vs,methods) (a,b,c,d,e,f,l) ->
+                 let (tc,tc_d,ctxt,src_t,targs,v) = check_class_spec l mod_path ctxt p tnvar_types (a,b,c,d,e,f)
                  in
                    (ctxt,
                     v::vs,
-                    ((Path.get_name tc_d.const_binding, l), tc, src_t)::methods))
+                    ((Path.get_name tc_d.const_binding, l), tc, src_t, targs)::methods))
               (ctxt,[],[])
               specs
           in
@@ -3092,7 +3112,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let ctxt'' = build_type_def_help mod_path ctxt' [tnv] (dict_type_name, l') None None in
           let (recs', ctxt'') =
             add_record_to_ctxt 
-              (fun fname l t ->
+              (fun fname l t targs ->
                  { const_binding = Path.mk_path mod_path fname;
                    const_tparams = tparams;
                    const_class = [];
@@ -3101,7 +3121,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                    const_type = { t = Tfn ({ t = Tapp (tparams_t, type_path) }, t) };
                    spec_l = l;
                    env_tag = K_field;
-                   const_targets = all_targets;
+                   const_targets = targs;
                    relation_info = None;
                    termination_setting = Targetmap.empty;
                    target_rename = Targetmap.empty;
@@ -3110,8 +3130,8 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                    compile_message = Targetmap.empty })
               ctxt''
               (Seplist.from_list (List.map 
-                                    (fun ((n,l),c,src_t) -> 
-                                       (((Name.add_lskip (build_field_name c),l), None, src_t),None)) 
+                                    (fun ((n,l),c,src_t,targs) -> 
+                                       (((Name.add_lskip (build_field_name c),l), None, src_t, targs),None)) 
                                     methods))
           in
           let field_refs = Seplist.to_list_map (fun (_, f, _, _) -> f) recs' in
@@ -3122,7 +3142,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let class_d = { 
              class_tparam = tnvar_types;
              class_record = type_path; 
-             class_methods = List.combine (List.map (fun (_,r,_) -> r) methods) field_refs;
+             class_methods = List.combine (List.map (fun (_,r,_,_) -> r) methods) field_refs;
              class_rename = Targetmap.empty;
              class_target_rep = Targetmap.empty;
      	     class_is_inline = (match class_decl with

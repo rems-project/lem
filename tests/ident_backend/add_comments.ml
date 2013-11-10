@@ -1,6 +1,6 @@
 open Str
 
-let space = regexp "[ \t\n{},`]"
+let space = regexp "[ \t\n,`]"
 
 
 let counter = ref 0

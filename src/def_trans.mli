@@ -79,10 +79,10 @@ val process_defs : Name.t list -> def_macro -> Name.t -> env -> def list -> (env
     definition of a type class and turns it into a definition of a record type. The methods of the
     class become field of the record. This record can then be used as the dictionary type for the
     dictionary passing. *)
-val class_to_record : def_macro
+val class_to_record : Target.target -> def_macro
 
 (** Removes inline instances for backends that employ typeclasses. *)
-val comment_out_inline_instances : def_macro
+val comment_out_inline_instances_and_classes : Target.target -> def_macro
 
 (** [instance_to_dict do_inline targ] turns instance declarations into a definition of a dictionary record.
     If [do_inline] is set, this definition will be inlined (for this the target argument is needed). *)

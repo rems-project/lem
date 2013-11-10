@@ -8,8 +8,7 @@
 (* Header                                                                     *)
 (* ========================================================================== *)
 
-open import Bool Basic_classes Maybe Function Num List Sorting
-include import Set
+open import Bool Basic_classes Maybe Function Num List Sorting Set
 
 declare ~{lem;coq} rename module = lem_set_extra[]
 
@@ -18,27 +17,27 @@ declare ~{lem;coq} rename module = lem_set_extra[]
 (* set choose (be careful !)   *)
 (* --------------------------- *)
 
-val choose : forall 'a. Ord 'a => set 'a -> 'a
+val choose : forall 'a. SetType 'a => set 'a -> 'a
 declare compile_message choose = "choose is non-deterministic and only defined for non-empty sets. It's result may differ between different backends. It may even not be a logical function, because the result may depend on the low-level representation of sets and be different for two representations of the same set."
 
 declare hol      target_rep function choose = `CHOICE`
 declare isabelle target_rep function choose = `set_choose`
 declare ocaml    target_rep function choose = `Pset.choose`
 
-lemma choose_sing: (forall x. choose {x} = x)
-lemma choose_in: (forall s. not (null s) --> ((choose s) IN s))
+lemma ~{coq} choose_sing: (forall x. choose {x} = x)
+lemma ~{coq} choose_in: (forall s. not (null s) --> ((choose s) IN s))
 
-assert choose_0: choose {(2:nat)} = 2
-assert choose_1: choose {(5:nat)} = 5
-assert choose_2: choose {(6:nat)} = 6
-assert choose_3: choose {(6:nat);1;2} IN {6;1;2}
+assert ~{coq} choose_0: choose {(2:nat)} = 2
+assert ~{coq} choose_1: choose {(5:nat)} = 5
+assert ~{coq} choose_2: choose {(6:nat)} = 6
+assert ~{coq} choose_3: choose {(6:nat);1;2} IN {6;1;2}
 
 
 (* ----------------------------*)
 (* toList                      *)
 (* --------------------------- *)
 
-val toList        : forall 'a. Ord 'a => set 'a -> list 'a
+val toList        : forall 'a. SetType 'a => set 'a -> list 'a
 declare compile_message toList = "toList is only defined on finite sets and the order of the resulting list is unspecified and therefore might differ for diffrent backend implementations."
 
 declare ocaml    target_rep function toList = `Pset.elements`
@@ -64,7 +63,7 @@ assert toList_2: toList ({(2:nat)} : set nat) = [2]
 val toOrderedListBy : forall 'a. ('a -> 'a -> bool) -> set 'a -> list 'a
 declare isabelle target_rep function toOrderedListBy = `ordered_list_of_set`
 
-val toOrderedList : forall 'a. Ord 'a => set 'a -> list 'a
+val toOrderedList : forall 'a. SetType 'a, Ord 'a => set 'a -> list 'a
 let inline ~{isabelle;ocaml} toOrderedList l = sort (toList l)
 let inline {isabelle} toOrderedList = toOrderedListBy (<=)
 declare ocaml    target_rep function toOrderedList = `Pset.elements`

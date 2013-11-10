@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 dir=$1
 file=list

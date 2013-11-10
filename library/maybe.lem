@@ -58,6 +58,19 @@ assert maybe_eq_2: ((Just true) <> Nothing)
 assert maybe_eq_3: ((Just false) <> (Just true))  
 assert maybe_eq_4: ((Just false) = (Just false))  
 
+
+let maybeCompare cmp x y = match (x,y) with
+  | (Nothing, Nothing) -> EQ
+  | (Nothing, Just _) -> LT
+  | (Just _, Nothing) -> GT
+  | (Just x', Just y') -> cmp x' y'
+end
+
+instance forall 'a. SetType 'a => (SetType (maybe 'a))
+  let setElemCompare = maybeCompare setElemCompare
+end
+
+
 (* ----------------------- *)
 (* maybe                   *)
 (* ----------------------- *)

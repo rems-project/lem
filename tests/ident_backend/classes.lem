@@ -1,7 +1,7 @@
 open import Pervasives_extra
 
 class ( Count 'a ) 
-  val to_num : 'a -> nat
+  val ~{coq} to_num : 'a -> nat
 end
 
 instance (Count nat)
