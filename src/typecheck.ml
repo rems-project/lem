@@ -1787,7 +1787,8 @@ module Make_checker(T : sig
 
   (* See Expr_checker signature above *)
   let check_indrels (ctxt : defn_ctxt) (mod_path : Name.t list) (def_targets : Targetset.t option) l names clauses =
-    let rec_env =
+(* This is the old call to build rec_env that doesn't add the type information, so likely not necessary due to name information available below. However, left here at Nov 10 in case a type variable is actually needed instead *)
+(*    let rec_env =
       List.fold_left
         (fun l_e (Ast.Name_l (Ast.Inderln_name_Name(_,x_l,_,_,_,_,_,_),_),_) ->
           let n = Name.strip_lskip (Name.from_x x_l) in
@@ -1797,7 +1798,7 @@ module Make_checker(T : sig
                 add_binding l_e (xl_to_nl x_l) (C.new_type ())) 
          empty_lex_env
          names
-    in
+    in *)
     let names = Seplist.from_list names in
     let n = 
       Seplist.map 
@@ -1829,9 +1830,21 @@ module Make_checker(T : sig
                      (match (mk_functions fs) with
                       | None -> Some([Indreln_fn(Name.from_x xl, s1, to_src_t t, Some s2)])
                       | Some fs -> Some((Indreln_fn(Name.from_x xl,s1, to_src_t t, Some s2))::fs)) in
-            RName(s0,Name.from_x xl,nil_const_descr_ref,s1,(src_cp,src_t),witness, check, mk_functions functions_opt,s2))
+            (xl,RName(s0,Name.from_x xl,nil_const_descr_ref,s1,(src_cp,src_t),witness, check, mk_functions functions_opt,s2)))
          names 
     in
+    let rec_env =
+      List.fold_left
+        (fun l_e (xl,(RName(_,x,_,_,(src_cp,src_t),_,_,_,_))) ->
+          let n = Name.strip_lskip x in
+              if Nfmap.in_dom n l_e then 
+                raise (Reporting_basic.err_general true l "invariant in checking duplicate definition in indrelns broken")
+              else
+                add_binding l_e (xl_to_nl xl) (src_t.typ)) 
+         empty_lex_env
+         (Seplist.to_list n)
+    in 
+    let n = Seplist.map snd n in
     let clauses = Seplist.from_list clauses in
     let c =
       Seplist.map
