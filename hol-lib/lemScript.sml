@@ -49,6 +49,7 @@ open HolKernel Parse boolLib bossLib;
 open pred_setSimps pred_setTheory
 open finite_mapTheory
 open set_relationTheory
+open integerTheory intReduce;
 
 val _ = numLib.prefer_num();
 

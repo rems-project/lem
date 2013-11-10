@@ -136,3 +136,21 @@ end
 
 declare compile_message find_non_pure = "find_non_pure is undefined, if no element with the property is in the list. Better use find."
 
+
+(* ------------------------- *)
+(* zip same length           *)
+(* ------------------------- *)
+
+val zip_same_length : forall 'a 'b. list 'a -> list 'b -> list ('a * 'b) 
+let inline zip_same_length = List.zip
+
+declare compile_message zip_same_length = "zip_same_length is undefined, if the two lists have different lengths"
+
+declare hol target_rep function zip_same_length l1 l2 = `ZIP` (l1, l2)
+declare ocaml target_rep function zip_same_length = `List.combine` 
+
+assert zip_same_length_1 : (zip_same_length [(1:nat); 2;3;4;5] [(2:nat); 3;4;5;6] = [(1,2);(2,3);(3,4);(4,5);(5,6)])
+
+
+
+
