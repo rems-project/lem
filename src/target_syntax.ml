@@ -64,13 +64,13 @@ let exp_to_prec get_prec (exp : exp) : P.t =
     | _ -> assert false
 
 let delimit_exp get_prec (c : P.context) (e : exp) : exp =
-  let k = match C.exp_to_term e with
-    | App _ -> P.App
+  let rec get_context e = match C.exp_to_term e with
+    | App (e2, e3) -> if Typed_ast_syntax.is_empty_backend_exp e2 then get_context e3 else P.App
     | Infix(_,e2,_) -> P.Infix(exp_to_prec get_prec e2)
     | Fun _ | Let _ | If _ | Quant _ -> P.Let
     | _ -> P.Atomic
   in
-    if P.needs_parens c k then Typed_ast_syntax.mk_paren_exp e else e
+    if P.needs_parens c (get_context e) then Typed_ast_syntax.mk_paren_exp e else e
 
 let delimit_pat (c : P.pat_context) (p : pat) : pat =
   let k = match p.term with
@@ -161,8 +161,8 @@ let rec fix_pat env get_prec p =
                   (fun p -> delimit_pat P.Plist (trans p)) 
                   ps)
                old_t)
-      | P_backend(sk,i,ty,ps) -> 
-            (C.mk_pbackend old_l sk i ty 
+      | P_backend(b,sk,i,ty,ps) -> 
+            (C.mk_pbackend old_l b sk i ty 
                (List.map 
                   (fun p -> delimit_pat P.Plist (trans p)) 
                   ps)
@@ -361,8 +361,8 @@ let rec fix_exp env get_prec e =
           C.mk_const old_l c old_t
       | Var(n) ->
           C.mk_var old_l n (exp_to_typ e) 
-      | Backend(sk,i) ->
-          C.mk_backend old_l sk i (exp_to_typ e) 
+      | Backend(b,sk,i) ->
+          C.mk_backend old_l b sk i (exp_to_typ e) 
       | Lit _  | Nvar_e _ ->
           e
 

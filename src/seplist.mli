@@ -167,3 +167,4 @@ val find : 's -> ('a -> bool) -> ('a,'s) t -> ('a * 's)
 
 val pp : (Format.formatter -> 'a -> unit) -> (Format.formatter -> 'b -> unit) -> Format.formatter -> ('a,'b) t -> unit
                                                                            
+val replace_all_seps : ('s -> 's) -> ('a, 's) t -> ('a, 's) t

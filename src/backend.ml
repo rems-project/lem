@@ -539,14 +539,14 @@ module Html : Target = struct
   let reln_clause_add_paren = false
   let reln_clause_start = emp
 
-  let backend_quote i = i
+  let backend_quote i = (meta "`") ^ i ^ (meta "`")
 end
 
 module Lem : Target = struct
   include Identity 
   let target = Target_no_ident Target_lem
 
-  let backend_quote i = i
+  let backend_quote i = (meta "`") ^ i ^ (meta "`")
 end
 
 module Tex : Target = struct
@@ -742,7 +742,7 @@ module Ocaml : Target = struct
   let target = Target_no_ident Target_ocaml
 
   let path_sep = kwd "."
-  let backend_quote i = i
+  let backend_quote i = (meta "`") ^ i ^ (meta "`")
 
   let typ_rec_start = kwd "{"
   let typ_rec_end = kwd "}"
@@ -802,7 +802,7 @@ module Isa : Target = struct
 
   let path_sep = kwd "."
   let list_sep = kwd ","
-  let backend_quote i = i
+  let backend_quote i = (meta "`") ^ i ^ (meta "`")
 
   let ctor_typ_end _ _ = emp
   let ctor_typ_end' _ _ _ = emp
@@ -986,7 +986,7 @@ module Hol : Target = struct
 
   let path_sep = meta "$"
   let list_sep = kwd ";"
-  let backend_quote i = i
+  let backend_quote i = (meta "`") ^ i ^ (meta "`")
 
   let ctor_typ_end _ _ = emp
   let ctor_typ_end' _ _ _ = emp
@@ -1266,8 +1266,11 @@ let rec typ t = match t.term with
           | Typ_app _ -> B.type_app_to_output typ p ts
           | Typ_backend _ -> (ts, 
 	      let i = Path.to_ident (ident_get_lskip p) p.descr in
+              let i_out = (Ident.to_output Type_ctor T.path_sep (Ident.replace_lskip i None)) in
               ws (Ident.get_lskip i) ^
-              T.backend_quote (Ident.to_output Type_ctor T.path_sep (Ident.replace_lskip i None)))
+              if (T.target = Target.Target_ident) then
+                T.backend_quote i_out
+              else i_out)
           | _ -> raise (Reporting_basic.err_unreachable (Ast.Trans (false, "Backend.typ", None)) "can't be reached because of previous match")
       end in
       if (T.type_params_pre) then
@@ -1369,9 +1372,12 @@ let tyexp implicit n tvs = function
               (sep (texspace ^ kwd "|" ^ texspace))
               constrs))
 
-let backend sk i =
+let backend inlined sk i =
   ws sk ^
-  T.backend_quote (Ident.to_output Term_const T.path_sep i) 
+  if inlined then
+    Ident.to_output Term_const T.path_sep i
+  else
+    T.backend_quote (Ident.to_output Term_const T.path_sep i) 
 
 let rec pat p = match p.term with
   | P_wild(s) ->
@@ -1402,8 +1408,8 @@ let rec pat p = match p.term with
   | P_const(cd,ps) ->
       let oL = B.pattern_application_to_output p.locn pat cd ps (use_ascii_rep_for_const cd) in
       concat texspace oL
-  | P_backend(sk,i,_,ps) ->
-      backend sk i ^
+  | P_backend(inlined, sk,i,_,ps) ->
+      backend inlined sk i ^
       concat texspace (List.map pat ps)
   | P_record(s1,fields,s2) ->
       ws s1 ^
@@ -1485,13 +1491,12 @@ let is_user_exp = is_pp_exp e in
 match C.exp_to_term e with
   | Var(n) ->
       Name.to_output Term_var n
-  | Backend(sk, i) ->
-      backend sk i
+  | Backend(inlined, sk, i) ->
+      backend inlined sk i
   | Nvar_e(s,n) ->
       ws s ^ id Nexpr_var (Ulib.Text.(^^^) T.nexp_var (Nvar.to_rope n))
   | Constant(cd) ->
       Output.concat emp (B.function_application_to_output (exp_to_locn e) exp false e cd [] (use_ascii_rep_for_const cd))
-
   | Fun(s1,ps,s2,e) ->
       ws s1 ^
       T.fun_start ^
@@ -2282,7 +2287,7 @@ let val_ascii_opt = function
   | Ast.Ascii_opt_some (sk1, sk2, q, sk3) -> 
      if (is_human_target T.target) then begin
         let i = Ident.mk_ident_strings [] q in
-        ws sk1 ^ kwd "[" ^ backend sk2 i ^ ws sk3 ^ kwd "]" 
+        ws sk1 ^ kwd "[" ^ backend false sk2 i ^ ws sk3 ^ kwd "]" 
      end else emp
 
 let infix_decl = function
@@ -2567,12 +2572,12 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         kwd "=" ^
         (match rhs with
           | Target_rep_rhs_term_replacement e -> exp e
-          | Target_rep_rhs_undefined sk -> ws sk ^ kwd "undefined"
-          | Target_rep_rhs_infix (sk1, swap, decl, sk2, i) -> begin
+          | Target_rep_rhs_undefined -> emp
+          | Target_rep_rhs_infix (sk1, decl, sk2, i) -> begin
                ws sk1 ^
-               (if swap then kwd "infix_swap" else kwd "infix") ^
+               kwd "infix" ^
                infix_decl decl ^
-               backend sk2 i
+               backend false sk2 i
             end
           | _ -> raise (Reporting_basic.err_todo true Ast.Unknown "declaration")
         ) 
@@ -2762,7 +2767,7 @@ and names_of_pat p : (Ulib.Text.t * Ulib.Text.t * Ast.l) list = match p.term wit
       let n' = Name.strip_lskip n in 
       [(Name.to_rope n', Name.to_rope_tex Term_ctor n', p.locn)] @
       List.flatten (List.map names_of_pat ps)
-  | P_backend(sk,i,_,ps) ->
+  | P_backend(_,_,i,_,ps) ->
       let n = Name.strip_lskip (Ident.get_name i) in
       [(Name.to_rope n, Name.to_rope_tex Term_ctor n, p.locn)] @
       List.flatten (List.map names_of_pat ps)

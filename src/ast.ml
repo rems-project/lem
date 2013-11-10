@@ -413,11 +413,10 @@ elim_opt =  (* optional terms used as eliminators for pattern matching *)
 type 
 target_rep_rhs =  (* right hand side of a target representation declaration *)
    Target_rep_rhs_infix of terminal * fixity_decl * terminal * Ulib.UTF8.t
- | Target_rep_rhs_infix_swap of terminal * fixity_decl * terminal * Ulib.UTF8.t
  | Target_rep_rhs_term_replacement of exp
  | Target_rep_rhs_type_replacement of typ
  | Target_rep_rhs_special of terminal * terminal * Ulib.UTF8.t * (exp) list
- | Target_rep_rhs_undefined of terminal
+ | Target_rep_rhs_undefined
 
 
 type 

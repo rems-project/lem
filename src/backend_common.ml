@@ -53,6 +53,27 @@ open Types
 let r = Ulib.Text.of_latin1
 let marker_lex_skip : Ast.lex_skips = (Some [Ast.Ws (Ulib.Text.of_latin1 "***marker***")])
 
+let mark_backend_exp_for_inline _ e = 
+  let old_l = exp_to_locn e in
+  let old_t = exp_to_typ e in
+  let module C = Exps_in_context(struct let env_opt = None;; let avoid = None end) in
+  match (C.exp_to_term e) with
+    | Backend(false, sk, i) ->
+        Some (C.mk_backend old_l true sk i old_t)
+    | _ -> None
+
+
+let cleanup_for_inline env e : exp = begin 
+   let module Ctxt = struct let avoid = None let env_opt = (Some env) end in
+   let module M = Macro_expander.Expander(Ctxt) in
+   M.expand_exp Macro_expander.Ctxt_other 
+                (Macro_expander.list_to_mac [mark_backend_exp_for_inline],
+                (fun ty -> ty),
+                (fun ty -> ty),
+                Macro_expander.list_to_bool_mac []) e
+ end
+
+
 (* Resolve a const identifier stored inside a id, with a full one in case of Id_none *)
 let resolve_constant_id_ident l env targ id : Ident.t =
   resolve_const_ref l env targ id.id_path id.descr
@@ -89,13 +110,18 @@ let rec build_subst (params : name_lskips_annot list) (args : exp list)
     | (params, []) -> (Nfmap.empty, params, [])
     | (p::params, a::args) ->
         let (subst, x, y) = build_subst params args in
-          (Nfmap.insert subst (Name.strip_lskip p.term, Sub(a)), x, y)
+        let (a', _) = alter_init_lskips remove_init_ws a in
+          (Nfmap.insert subst (Name.strip_lskip p.term, Sub(a')), x, y)
 
-let inline_exp l (target : Target.target) env was_infix params body tsubst (args : exp list) =
+let inline_exp l (target : Target.target) env was_infix params body_sk body tsubst (args : exp list) =
   let module C = Exps_in_context(struct let env_opt = Some env;; let avoid = None end) in
   let loc = Ast.Trans(false, "inline_exp", Some l) in
   let (vsubst, leftover_params, leftover_args) = build_subst params args in
-  let b = C.exp_subst (tsubst,vsubst) body in
+
+  (* adapt whitespace before body *)
+  let b = cleanup_for_inline env body in
+  let b = (fst (alter_init_lskips (fun _ -> (body_sk, None)) b)) in
+  let b = C.exp_subst (tsubst,vsubst) b in
   let stays_infix = Precedence.is_infix (Precedence.get_prec_exp target env b) in
   if params = [] && was_infix && stays_infix then
   begin
@@ -126,10 +152,7 @@ let generalised_inline_exp_macro (do_CR_simple : bool) (target : Target.target) 
           let cd = c_env_lookup l_unk env.c_env c_id.descr in
           let do_it (params, body) : exp =
             let tsubst = Types.TNfmap.from_list2 cd.const_tparams c_id.instantiation in
-   
-            (* adapt whitespace before body *)
-            let b = (fst (alter_init_lskips (fun _ -> (ident_get_lskip c_id, None)) body)) in
-            inline_exp l_unk target env was_infix params b tsubst args
+            inline_exp l_unk target env was_infix params (ident_get_lskip c_id) body tsubst args
           in
 
           let subst_opt = begin            
@@ -165,9 +188,9 @@ let inline_pat l_unk env cd c_id ps (params, body) =
             
    match (params, C.exp_to_term b) with
      | ([], Constant c_id') -> Some (C.mk_pconst l_unk c_id' ps None)
-     | ([], Backend (sk, i)) -> 
+     | ([], Backend (_, sk, i)) -> 
           let ty = Types.type_subst tsubst cd.const_type in
-          Some (C.mk_pbackend l_unk sk i ty ps None)
+          Some (C.mk_pbackend l_unk true sk i ty ps None)
      | _ -> None
 
 
@@ -337,18 +360,29 @@ let const_id_to_ident_aux c_id ascii_alternative given_id_opt =
 
 let const_id_to_ident c_id ascii_alternative = snd (const_id_to_ident_aux c_id ascii_alternative None)
 
-let constant_application_to_output_simple is_infix_pos arg_f args c_id ascii_alternative given_id_opt = begin
+let constant_application_to_output_simple is_infix_pos arg_f alter_sk_f args c_id ascii_alternative given_id_opt = begin
   let (ascii_used, i) = const_id_to_ident_aux c_id ascii_alternative given_id_opt in 
   let const_is_infix = not (ascii_used) && Precedence.is_infix (Precedence.get_prec A.target A.env c_id.descr) in 
   let const_is_infix_input = Precedence.is_infix (Precedence.get_prec Target.Target_ident A.env c_id.descr) in
-(* old check: things might become prefix, but only original infix positions might become infix 
-  let is_infix = (is_infix_pos && const_is_infix && (Ident.has_empty_path_prefix i)) in *)
-
   let is_infix = (const_is_infix && (Ident.has_empty_path_prefix i) && (List.length args = 2) &&
                   (is_infix_pos || not const_is_infix_input)) in           
   let use_infix_notation = ((not is_infix) && const_is_infix) in
+
+  (* adapt whitespace *)
+  let (i, args) = if (is_infix && not is_infix_pos) || (not is_infix && is_infix_pos) then
+      begin (* print "f arg1 arg2" as "arg1 f arg2" or vise versa, so swap space of arg1 and f *)
+        match args with
+          | [arg1; arg2] -> 
+              let (arg1', arg1_sk) = alter_sk_f (fun sk -> (Ident.get_lskip i, sk)) arg1 in
+              let i' = Ident.replace_lskip i arg1_sk in
+              (i', [arg1'; arg2])
+          | _ -> (i, args)
+      end
+    else (i, args)
+  in
   let name = ident_to_output use_infix_notation i in
   let args_out = List.map (arg_f use_infix_notation) args in
+
   if (not is_infix) then
      (name :: args_out) 
   else 
@@ -382,11 +416,10 @@ let function_application_to_output l (arg_f0 : exp -> Output.t) (is_infix_pos : 
             end
      | Some (CR_simple (_, _, params,body)) when not ascii_alternative -> begin
          let tsubst = Types.TNfmap.from_list2 c_descr.const_tparams c_id.instantiation in
-         let b = (fst (alter_init_lskips (fun _ -> (ident_get_lskip c_id, None)) body)) in
-         let new_exp = inline_exp l A.target A.env is_infix_pos params b tsubst args in
+         let new_exp = inline_exp l A.target A.env is_infix_pos params (ident_get_lskip c_id) body tsubst args in
          [arg_f true new_exp]
        end
-     | Some (CR_infix (_, _, _, _, i)) -> constant_application_to_output_simple is_infix_pos arg_f args c_id ascii_alternative (Some i)
+     | Some (CR_infix (_, _, _, i)) -> constant_application_to_output_simple is_infix_pos arg_f alter_init_lskips args c_id ascii_alternative (Some i)
      | Some (CR_undefined (l', _)) -> 
        begin 
          let (^) = Pervasives.(^) in
@@ -395,7 +428,7 @@ let function_application_to_output l (arg_f0 : exp -> Output.t) (is_infix_pos : 
          raise (Reporting_basic.Fatal_error (Reporting_basic.Err_type (l, 
            (m0 ^ loc_s))))
        end
-     | _ -> constant_application_to_output_simple is_infix_pos arg_f args c_id ascii_alternative None
+     | _ -> constant_application_to_output_simple is_infix_pos arg_f alter_init_lskips args c_id ascii_alternative None
 
 let pattern_application_to_output l (arg_f0 : pat -> Output.t) (c_id : const_descr_ref id) (args : pat list) (ascii_alternative : bool) : Output.t list =
   let arg_f b p = if b then arg_f0 (Pattern_syntax.mk_opt_paren_pat p) else arg_f0 p in
@@ -421,7 +454,7 @@ let pattern_application_to_output l (arg_f0 : pat -> Output.t) (c_id : const_des
          raise (Reporting_basic.Fatal_error (Reporting_basic.Err_type (l, 
            (m0 ^ loc_s))))
        end
-     | _ -> constant_application_to_output_simple false arg_f args c_id ascii_alternative None
+     | _ -> constant_application_to_output_simple false arg_f pat_alter_init_lskips args c_id ascii_alternative None
 
 let type_path_to_name n0 (p : Path.t) : Name.lskips_t =
   let l = Ast.Trans (false, "type_path_to_name", None) in

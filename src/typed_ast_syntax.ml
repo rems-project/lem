@@ -335,14 +335,14 @@ let type_defs_rename_type l (d : type_defs) (p : Path.t) (t: Target.non_ident_ta
 
 let const_target_rep_to_loc= function
   | CR_inline (l, _, _, _) -> l
-  | CR_infix (l, _, _, _, _) -> l
+  | CR_infix (l, _, _, _) -> l
   | CR_simple (l, _, _, _) -> l
   | CR_special (l, _, _, _) -> l
   | CR_undefined (l, _) -> l
 
 let const_target_rep_allow_override = function
   | CR_inline (_, f, _, _) -> f
-  | CR_infix (_, f, _, _, _) -> f
+  | CR_infix (_, f, _, _) -> f
   | CR_simple (_, f, _, _) -> f
   | CR_special (_, f, _, _) -> f
   | CR_undefined (_, f) -> f
@@ -495,14 +495,27 @@ let mk_paren_exp e =
      let (e', ws) = alter_init_lskips remove_init_ws e in
      C.mk_paren (exp_to_locn e) ws e' None (Some (exp_to_typ e))
 
-let mk_opt_paren_exp (e :exp) : exp =
+
+let is_empty_backend_exp e =
+  match C.exp_to_term e with
+   | Backend(_,_,i) -> (Ident.to_string i = "") 
+   | _ -> false
+
+
+let rec mk_opt_paren_exp (e :exp) : exp = 
   match C.exp_to_term e with
     | Var _ -> e
     | Constant _ -> e
+    | Backend _ -> e
     | Tup _ -> e
     | Paren _ -> e
     | Lit _ -> e
-    | _ -> mk_paren_exp e
+    | App (e1, e2) -> 
+      if is_empty_backend_exp e1 then
+        C.mk_app (exp_to_locn e) e1 (mk_opt_paren_exp e2) (Some (exp_to_typ e)) 
+      else
+        mk_paren_exp e
+    | _ -> mk_paren_exp e 
 
 
 let dest_const_exp (e : exp) : const_descr_ref id option =
@@ -949,7 +962,7 @@ let rec add_pat_entities (ue : used_entities) (p : pat) : used_entities =
     | P_const(c,ps) -> 
         let ue = used_entities_add_const ue c.descr in
         List.fold_left add_pat_entities ue ps
-    | P_backend(_,_,_,ps) -> 
+    | P_backend(_,_,_,_,ps) -> 
         List.fold_left add_pat_entities ue ps
     | P_record(_,fieldpats,_) -> Seplist.fold_left (fun (id, _, p) ue -> 
          add_pat_entities (used_entities_add_const ue id.descr)  p) ue fieldpats

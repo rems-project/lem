@@ -288,6 +288,9 @@ val is_num_exp : exp -> bool
 (** [mk_num_exp] creates a number literal expression. *)
 val mk_num_exp : int -> exp
 
+(** [is_empty_backend_exp] checks whether the expression is [``] *)
+val is_empty_backend_exp : exp -> bool
+
 (** [mk_eq_exp env e1 e2] constructs the expression [e1 = e2]. The environment [env] is needed
     to lookup the equality constant. *)
 val mk_eq_exp : env -> exp -> exp -> exp

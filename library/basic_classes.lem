@@ -80,7 +80,7 @@ let inline {hol;isabelle} (<>) = unsafe_structural_inequality
 type ordering = LT | EQ | GT
 
 declare ocaml target_rep type ordering = `int`
-declare ocaml target_rep function LT = `-1`
+declare ocaml target_rep function LT = `(-1)`
 declare ocaml target_rep function EQ = `0`
 declare ocaml target_rep function GT = `1`
 
@@ -154,29 +154,29 @@ val defaultGreater   : forall 'a. 'a -> 'a -> bool
 val defaultGreaterEq : forall 'a. 'a -> 'a -> bool
 
 declare ocaml    target_rep function defaultCompare = `compare`
-declare hol      target_rep function defaultCompare = undefined
-declare isabelle target_rep function defaultCompare = undefined
+declare hol      target_rep function defaultCompare = 
+declare isabelle target_rep function defaultCompare = 
 declare coq      target_rep function defaultCompare x y = EQ
 
 declare ocaml    target_rep function defaultLess = infix `<`
-declare hol      target_rep function defaultLess = undefined
-declare isabelle target_rep function defaultLess = undefined
-declare coq      target_rep function defaultLess = undefined
+declare hol      target_rep function defaultLess = 
+declare isabelle target_rep function defaultLess = 
+declare coq      target_rep function defaultLess = 
 
 declare ocaml    target_rep function defaultLessEq = infix `<=`
-declare hol      target_rep function defaultLessEq = undefined
-declare isabelle target_rep function defaultLessEq = undefined
-declare coq      target_rep function defaultLessEq = undefined
+declare hol      target_rep function defaultLessEq = 
+declare isabelle target_rep function defaultLessEq = 
+declare coq      target_rep function defaultLessEq = 
 
 declare ocaml    target_rep function defaultGreater = infix `>`
-declare hol      target_rep function defaultGreater = undefined
-declare isabelle target_rep function defaultGreater = undefined
-declare coq      target_rep function defaultGreater = undefined
+declare hol      target_rep function defaultGreater = 
+declare isabelle target_rep function defaultGreater = 
+declare coq      target_rep function defaultGreater = 
 
 declare ocaml    target_rep function defaultGreaterEq = infix `>=`
-declare hol      target_rep function defaultGreaterEq = undefined
-declare isabelle target_rep function defaultGreaterEq = undefined
-declare coq      target_rep function defaultGreaterEq = undefined
+declare hol      target_rep function defaultGreaterEq = 
+declare isabelle target_rep function defaultGreaterEq = 
+declare coq      target_rep function defaultGreaterEq = 
 
 (*
 (* compare should really be a total order *)

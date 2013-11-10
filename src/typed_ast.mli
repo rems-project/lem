@@ -125,7 +125,7 @@ and pat_aux =
   | P_typ of lskips * pat * lskips * src_t * lskips
   | P_var of Name.lskips_t
   | P_const of const_descr_ref id * pat list
-  | P_backend of lskips * Ident.t * Types.t * pat list
+  | P_backend of bool * lskips * Ident.t * Types.t * pat list
   | P_record of lskips * (const_descr_ref id * lskips * pat) lskips_seplist * lskips
   | P_vector of lskips * pat lskips_seplist * lskips
   | P_vectorC of lskips * pat list * lskips
@@ -148,8 +148,8 @@ and const_target_rep =
         replacing the variable [vars] inside [e] with the arguments of the constant. The flag [allow_override] signals whether
         the declaration might be safely overriden. Automatically generated target-representations (e.g. for ocaml constructors) should
         be changeable by the user, whereas multiple user-defined ones should cause a type error. *)
-  | CR_infix of Ast.l * bool * bool * Ast.fixity_decl * Ident.t
-    (** [CR_infix (loc, allow_override, do_swap, fixity, i)] declares infix notation for the constant with the giving identifier. *)
+  | CR_infix of Ast.l * bool * Ast.fixity_decl * Ident.t
+    (** [CR_infix (loc, allow_override, fixity, i)] declares infix notation for the constant with the giving identifier. *)
   | CR_undefined of Ast.l * bool 
     (** [CR_undefined (loc, allow_override)] declares undefined constant. *)
   | CR_simple of Ast.l * bool * name_lskips_annot list * exp
@@ -284,7 +284,7 @@ and exp_subst =
 
 and exp_aux = private
   | Var of Name.lskips_t
-  | Backend of lskips * Ident.t (** An identifier that should be used literally by a backend. The identifier does not contain whitespace. Initial whitespace is represented explicitly. *)
+  | Backend of bool * lskips * Ident.t (** An identifier that should be used literally by a backend. The identifier does not contain whitespace. Initial whitespace is represented explicitly. *)
   | Nvar_e of lskips * Nvar.t
   | Constant of const_descr_ref id
   | Fun of lskips * pat list * lskips * exp
@@ -457,11 +457,11 @@ type indreln_name = RName of lskips* Name.lskips_t * const_descr_ref * lskips * 
                              (indreln_indfn list) option * lskips
 
 type target_rep_rhs =  (** right hand side of a target representation declaration *)
-   Target_rep_rhs_infix of lskips * bool * Ast.fixity_decl * lskips * Ident.t (** Declaration of an infix constant *)
+   Target_rep_rhs_infix of lskips * Ast.fixity_decl * lskips * Ident.t (** Declaration of an infix constant *)
  | Target_rep_rhs_term_replacement of exp (** the standard term replacement, replace with the exp for the given backend *)
  | Target_rep_rhs_type_replacement of src_t (** the standard term replacement, replace with the type for the given backend *)
  | Target_rep_rhs_special of lskips * lskips * string * exp list (** fancy represenation of terms *)
- | Target_rep_rhs_undefined of lskips (** undefined, don't throw a problem during typeching, but during output *)
+ | Target_rep_rhs_undefined (** undefined, don't throw a problem during typeching, but during output *)
 
 type declare_def =  (** Declarations *)
  | Decl_compile_message of lskips * targets_opt * lskips * const_descr_ref id * lskips * lskips * string 
@@ -621,7 +621,7 @@ module Exps_in_context(C : Exp_context) : sig
   val mk_ptyp : Ast.l -> lskips -> pat -> lskips -> src_t -> lskips -> Types.t option -> pat
   val mk_pvar : Ast.l -> Name.lskips_t -> Types.t -> pat
   val mk_pconst : Ast.l -> const_descr_ref id -> pat list -> Types.t option -> pat
-  val mk_pbackend : Ast.l -> lskips -> Ident.t -> Types.t -> pat list -> Types.t option -> pat
+  val mk_pbackend : Ast.l -> bool -> lskips -> Ident.t -> Types.t -> pat list -> Types.t option -> pat
   val mk_precord : Ast.l -> lskips -> (const_descr_ref id * lskips * pat) lskips_seplist -> lskips -> Types.t option -> pat
   val mk_ptup : Ast.l -> lskips -> pat lskips_seplist -> lskips -> Types.t option -> pat
   val mk_plist : Ast.l -> lskips -> pat lskips_seplist -> lskips -> Types.t -> pat
@@ -635,7 +635,7 @@ module Exps_in_context(C : Exp_context) : sig
 
   val mk_var : Ast.l -> Name.lskips_t -> Types.t -> exp
   val mk_nvar_e : Ast.l -> lskips -> Nvar.t -> Types.t -> exp
-  val mk_backend : Ast.l -> lskips -> Ident.t -> Types.t -> exp
+  val mk_backend : Ast.l -> bool -> lskips -> Ident.t -> Types.t -> exp
   val mk_const : Ast.l -> const_descr_ref id -> Types.t option -> exp
   val mk_fun : Ast.l -> lskips -> pat list -> lskips -> exp -> Types.t option -> exp
   val mk_function : Ast.l -> lskips -> (pat * lskips * exp * Ast.l) lskips_seplist -> lskips -> Types.t option -> exp

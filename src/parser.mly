@@ -163,7 +163,7 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 %token <Ast.terminal> Class_ Do LeftArrow
 %token <Ast.terminal> Inst Inst_default
 %token <Ast.terminal> Module CompileMessage Field Type Automatic Manual Exhaustive Inexhaustive AsciiRep SetFlag TerminationArgument PatternMatch
-%token <Ast.terminal> RightAssoc LeftAssoc NonAssoc Infix Infix_swap Undefined Special TargetRep
+%token <Ast.terminal> RightAssoc LeftAssoc NonAssoc Infix Special TargetRep
 
 %start file
 %type <Ast.defs> defs
@@ -944,16 +944,14 @@ fixity_decl :
     { Fixity_default_assoc }
 
 target_rep_rhs_term :
+  | 
+    { Target_rep_rhs_undefined }
   | Infix fixity_decl BacktickString 
     { Target_rep_rhs_infix($1, $2, fst $3, snd $3) }
-  | Infix_swap fixity_decl BacktickString 
-    { Target_rep_rhs_infix_swap($1, $2, fst $3, snd $3) }
   | exp
     { Target_rep_rhs_term_replacement($1) }
   | Special String exps
     { Target_rep_rhs_special($1, fst $2, snd $2, $3) }
-  | Undefined
-    { Target_rep_rhs_undefined($1) }
 
 target_rep_rhs_type :
   | typ

@@ -1199,7 +1199,7 @@ module Make_checker(T : sig
               exp
         | Ast.Backend(sk,s) ->
             let id = check_backend_quote l s in
-              A.mk_backend l sk id ret_type
+              A.mk_backend l false sk id ret_type
         | Ast.Nvar((sk,n)) -> 
             let nv = Nvar.from_rope(n) in
             C.add_nvar nv;
@@ -2620,14 +2620,9 @@ let check_declare_target_rep_term_rhs (l : Ast.l) ts targ (ctxt : defn_ctxt) c i
        let _ = if (List.length args = 0) then () else
                  raise (Reporting_basic.err_type l "infix target declaration with arguments") in
        let i = check_backend_quote l id in
-       (Target_rep_rhs_infix (sk1, false, infix_decl, sk2, i), CR_infix(l, false, false, infix_decl, i))
-   | Ast.Target_rep_rhs_infix_swap (sk1, infix_decl, sk2, id) ->
-       let _ = if (List.length args = 0) then () else
-                 raise (Reporting_basic.err_type l "infix target declaration with arguments") in
-       let i = check_backend_quote l id in
-       (Target_rep_rhs_infix (sk1, true, infix_decl, sk2, i), CR_infix(l, false, true, infix_decl, i))
-   | Ast.Target_rep_rhs_undefined sk ->
-       (Target_rep_rhs_undefined sk, CR_undefined (l, false))
+       (Target_rep_rhs_infix (sk1, infix_decl, sk2, i), CR_infix(l, false, infix_decl, i))
+   | Ast.Target_rep_rhs_undefined ->
+       (Target_rep_rhs_undefined, CR_undefined (l, false))
    | Ast.Target_rep_rhs_special (sk1, sk2, sp, args) ->
        raise (Reporting_basic.err_todo true l "unsupported rhs of term target special representation declaration") in
   let (ctxt', _) = ctxt_c_env_set_target_rep l ctxt c targ new_rep in

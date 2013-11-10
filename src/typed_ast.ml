@@ -120,7 +120,7 @@ and pat_aux =
   | P_typ of lskips * pat * lskips * src_t * lskips
   | P_var of Name.lskips_t
   | P_const of const_descr_ref id * pat list
-  | P_backend of lskips * Ident.t * Types.t * pat list
+  | P_backend of bool * lskips * Ident.t * Types.t * pat list
   | P_record of lskips * (const_descr_ref id * lskips * pat) lskips_seplist * lskips
   | P_vector of lskips * pat lskips_seplist * lskips
   | P_vectorC of lskips * pat list * lskips
@@ -137,7 +137,7 @@ and cr_special_fun =
 
 and const_target_rep =
   | CR_inline of Ast.l * bool * name_lskips_annot list * exp
-  | CR_infix of Ast.l * bool * bool * Ast.fixity_decl * Ident.t
+  | CR_infix of Ast.l * bool * Ast.fixity_decl * Ident.t
   | CR_undefined of Ast.l * bool 
   | CR_simple of Ast.l * bool * name_lskips_annot list * exp
   | CR_special of Ast.l * bool * cr_special_fun * Name.t list
@@ -201,7 +201,7 @@ and exp_subst =
 
 and exp_aux =
   | Var of Name.lskips_t
-  | Backend of lskips * Ident.t
+  | Backend of bool * lskips * Ident.t
   | Nvar_e of lskips * Nvar.t
   | Constant of const_descr_ref id
   | Fun of lskips * pat list * lskips * exp
@@ -334,11 +334,11 @@ type indreln_name = RName of lskips* Name.lskips_t * const_descr_ref * lskips * 
 
 type 
 target_rep_rhs =  (* right hand side of a target representation declaration *)
-   Target_rep_rhs_infix of lskips * bool * Ast.fixity_decl * lskips * Ident.t
+   Target_rep_rhs_infix of lskips * Ast.fixity_decl * lskips * Ident.t
  | Target_rep_rhs_term_replacement of exp
  | Target_rep_rhs_type_replacement of src_t
  | Target_rep_rhs_special of lskips * lskips * string * exp list
- | Target_rep_rhs_undefined of lskips 
+ | Target_rep_rhs_undefined  
 
 
 type declare_def =  (* declarations *)
@@ -468,9 +468,9 @@ let rec pat_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (p : pat) :
       | P_const(c,ps) -> 
           let (id_new, s_ret) = id_alter_init_lskips lskips_f c in
             res (P_const(id_new,ps)) s_ret
-      | P_backend(sk,i,ty,ps) -> 
+      | P_backend(b,sk,i,ty,ps) -> 
           let (s_new, s_ret) = lskips_f sk in
-            res (P_backend(s_new, i, ty, ps)) s_ret
+            res (P_backend(b, s_new, i, ty, ps)) s_ret
       | P_record(s1,fieldpats,s2) -> 
           let (s_new, s_ret) = lskips_f s1 in
             res (P_record(s_new, fieldpats, s2)) s_ret
@@ -513,9 +513,9 @@ let rec alter_init_lskips (lskips_f : lskips -> lskips * lskips) (e : exp) : exp
       | Var(n) ->
           let (s_new, s_ret) = lskips_f (Name.get_lskip n) in
             res (Var(Name.replace_lskip n s_new)) s_ret
-      | Backend(sk, i) ->
+      | Backend(b, sk, i) ->
           let (s_new, s_ret) = lskips_f sk in
-            res (Backend(s_new, i)) s_ret
+            res (Backend(b, s_new, i)) s_ret
       | Nvar_e(s,n) ->
           let (s_new, s_ret) = lskips_f s in
             res (Nvar_e(s_new,n)) s_ret 
@@ -935,7 +935,7 @@ module Exps_in_context(D : Exp_context) = struct
       typ = t;
       rest = { pvars = merge_free_env true l (List.map (fun p -> p.rest.pvars) ps); }; }
 
-  let mk_pbackend l sk i ty ps t =
+  let mk_pbackend l b sk i ty ps t =
     (* only perform checks, if environment is provided *)
     let c_base_ty_opt = Util.option_map (fun env -> begin
       let new_c_ty = ty in
@@ -955,7 +955,7 @@ module Exps_in_context(D : Exp_context) = struct
     let t = 
       check_typ l "mk_pconst" t (fun d -> c_base_ty_opt)
     in
-    { term = P_backend(sk,i,ty,ps);
+    { term = P_backend(b,sk,i,ty,ps);
       locn = l;
       typ = t;
       rest = { pvars = merge_free_env true l (List.map (fun p -> p.rest.pvars) ps); }; }
@@ -1084,8 +1084,8 @@ module Exps_in_context(D : Exp_context) = struct
                 List.map (type_subst tsubst) c.instantiation }
           in
             mk_pconst l c (List.map (pat_subst sub) ps) (Some new_typ)
-      | P_backend(sk,i,ty,ps) -> 
-          mk_pbackend l sk i (type_subst tsubst ty) (List.map (pat_subst sub) ps) (Some new_typ)
+      | P_backend(b,sk,i,ty,ps) -> 
+          mk_pbackend l b sk i (type_subst tsubst ty) (List.map (pat_subst sub) ps) (Some new_typ)
       | P_record(s1,fieldpats,s2) ->
           mk_precord l
             s1 
@@ -1433,7 +1433,7 @@ module Exps_in_context(D : Exp_context) = struct
                 | Some(Sub(e')) -> 
                     exp_to_term (append_lskips (Name.get_lskip n) e')
             end
-        | Backend (s,i) -> Backend (s,i)
+        | Backend (b,s,i) -> Backend (b,s,i)
         | Nvar_e(s,v) -> Nvar_e(s,v)
         | Constant(c) -> 
             Constant(id_subst c)
@@ -1630,8 +1630,8 @@ module Exps_in_context(D : Exp_context) = struct
         { free = sing_free_env (Name.strip_lskip n) t;
           subst = empty_sub; } }
 
-  let mk_backend l sk i t : exp =
-    { term = Backend(sk, i);
+  let mk_backend l b sk i t : exp =
+    { term = Backend(b, sk, i);
       locn = l;
       typ = t;
       rest =

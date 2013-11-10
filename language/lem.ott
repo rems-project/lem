@@ -781,11 +781,10 @@ fixity_decl :: 'Fixity_' ::=
 target_rep_rhs :: 'Target_rep_rhs_' ::=
   {{ com right hand side of a target representation declaration }}
   | infix fixity_decl backtick_string :: :: infix
-  | infix_swap fixity_decl backtick_string :: :: infix_swap
   | exp                          :: :: term_replacement
   | typ                          :: :: type_replacement
   | special string exp1 ... expn :: :: special
-  | undefined                    :: :: undefined
+  |                              :: :: undefined
 
 target_rep_lhs  :: 'Target_rep_lhs_' ::=
   {{ com left hand side of a target representation declaration }}

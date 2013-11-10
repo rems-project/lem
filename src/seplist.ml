@@ -86,6 +86,9 @@ let tl_sep l = match l with
       (None,l,e)
   | _ -> raise (Failure "Seplist.tl_sep")
 
+let replace_all_seps ns (so, l, e) = 
+  (Util.option_map ns so, List.map (fun (x, s) -> (x, ns s)) l, e)
+
 let append d l1 l2 = match (l1, l2) with
   | ((o11, l1, None), (_, l2, o22)) ->
     (o11, l1 @ l2, o22)
