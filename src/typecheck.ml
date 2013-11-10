@@ -2438,10 +2438,10 @@ let check_val_def_instance (ts : Targetset.t) (mod_path : Name.t list) (instance
           let xl_opt =      
             match lb with
               | Ast.Let_fun (Ast.Funcl (xl, _, _, _, _)) -> Some xl
+              | Ast.Let_val (Ast.Pat_l(Ast.P_app(Ast.Id([],xl,_), []), _), _, _, _) -> Some xl
               | _ -> None
           in
-          let c_opt = Util.option_bind (fun xl ->  
-             Nfmap.apply ctxt.cur_env.v_env (Name.strip_lskip (Name.from_x xl))) xl_opt in
+          let c_opt = Util.option_bind (fun xl -> Nfmap.apply ctxt.cur_env.v_env (Name.strip_lskip (Name.from_x xl))) xl_opt in
           match c_opt with
             | None -> ts
             | Some c -> begin

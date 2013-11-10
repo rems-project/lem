@@ -705,7 +705,7 @@ fexps_help:
 letbind:
   | pat opt_typ_annot Eq exp
     { match pat_dest_id_app $1 with
-        | Some((v,pats)) ->
+        | Some((v,pats)) when pats <> [] ->
             lbloc (Let_fun(Funcl(v,pats,$2,fst $3,$4)))
         | _ -> lbloc (Let_val($1,$2,fst $3,$4)) }
 
