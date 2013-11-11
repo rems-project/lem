@@ -310,6 +310,7 @@ module type Target = sig
   val module_import : t
   val module_include : t
 
+  val expand_open_import : bool
 
 
   (* TODO: remove some and none *)
@@ -517,6 +518,7 @@ module Identity : Target = struct
   let module_open = kwd "open"
   let module_import = kwd "import"
   let module_include = kwd "include"
+  let expand_open_import = false
 
   let some = Ident.mk_ident_strings [] "Some"
   let none = Ident.mk_ident_strings [] "None"
@@ -728,6 +730,7 @@ module Tex : Target = struct
   let module_open = tkwdl "open"
   let module_import = tkwdl "import"
   let module_include = tkwdl "include"
+  let expand_open_import = false
 
   let some = Ident.mk_ident_strings [] "Some"
   let none = Ident.mk_ident_strings [] "None"
@@ -742,7 +745,7 @@ module Ocaml : Target = struct
   let target = Target_no_ident Target_ocaml
 
   let path_sep = kwd "."
-  let backend_quote i = (meta "`") ^ i ^ (meta "`")
+  let backend_quote i = i
 
   let typ_rec_start = kwd "{"
   let typ_rec_end = kwd "}"
@@ -779,6 +782,8 @@ module Ocaml : Target = struct
   let type_params_pre = true
   let nexp_params_vis = false
   
+  let expand_open_import = true
+
   let inl = Ident.mk_ident_strings [] "Inl"
   let inr = Ident.mk_ident_strings [] "Inr"
 end
@@ -1152,6 +1157,7 @@ module Hol : Target = struct
   let module_open = kwd "open"
   let module_import = kwd "import"
   let module_include = kwd "include"
+  let expand_open_import = false
 
   let some = Ident.mk_ident_strings [] "SOME"
   let none = Ident.mk_ident_strings [] "NONE"
@@ -2315,6 +2321,13 @@ let open_import_to_output = function
       ws s2 ^
       T.module_import
 
+let target_expand_open_import open_import target_opts ois =
+  let oi_target = open_import_to_output open_import in
+  if T.expand_open_import then
+    Output.flat (List.map (fun oi -> oi_target ^ target_opts ^ oi) ois)
+  else
+    oi_target ^ target_opts ^ (Output.flat ois)
+
 let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = match d with
   (* A single type abbreviation *)
   | Type_def(s1, l) when is_abbrev l->
@@ -2468,20 +2481,20 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
       if (ms' = []) then
         ws (oi_get_lskip oi)
       else
-        open_import_to_output oi ^
-        (Output.flat (List.map (fun (sk, m) -> 
-           ws sk ^ kwd m) ms')) ^
+        (target_expand_open_import oi emp
+          (List.map (fun (sk, m) -> ws sk ^ kwd m) ms')) ^
         ws sk
   | OpenImportTarget(oi, _, []) -> ws (oi_get_lskip oi)
   | OpenImportTarget(oi,targets, ms) ->
       if in_target targets then
-        open_import_to_output oi ^
-        (if Target.is_human_target T.target then
-           targets_opt targets 
-         else
-           emp) ^
-        (Output.flat (List.map (fun (sk, m) -> 
-           ws sk ^ T.backend_quote (kwd m)) ms))
+        target_expand_open_import
+          oi
+          (if Target.is_human_target T.target then
+             targets_opt targets
+           else
+             emp)
+          (List.map (fun (sk, m) ->
+             ws sk ^ T.backend_quote (kwd m)) ms)
       else emp
   | Indreln(s,targets,names,clauses) ->
       if in_target targets then
