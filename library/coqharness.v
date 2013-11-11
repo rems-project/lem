@@ -261,6 +261,11 @@ Fixpoint set_subset_by
           false
     end.
 
+Definition set_proper_subset_by
+  {elt: Type} (eltord: elt -> elt -> ordering)
+  (left right: set elt): bool :=
+    andb (set_subset_by eltord left right) (negb (set_equal_by eltord left right)).
+
 Definition set_from_list
   {elt: Type} (s: set elt): list elt := s.
 
@@ -377,4 +382,11 @@ Fixpoint fmap_map
         let (key, value) := x in
           (key, f value)::fmap_map f xs
     end.
-          
+
+(* Default values for incomplete pattern matching. *)
+
+Definition bool_default: bool := false.
+Definition nat_default: nat := 0.
+Definition list_default {elt: Type}: list elt := [].
+Definition set_default {elt: Type}: set elt := [].
+Definition fmap_default {key value: Type}: fmap key value := [].

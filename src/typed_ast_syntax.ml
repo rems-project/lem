@@ -227,7 +227,7 @@ let class_all_methods_inlined_for_target l env target (class_path : Path.t) =
     let cd = c_env_lookup l env.c_env c in
     not (in_target_set target cd.const_targets) ||
     (match (Target.Targetmap.apply_target cd.target_rep target) with
-      | Some _ -> true
+      | Some (CR_inline _) -> true
       | _ -> false)
   end in
 
