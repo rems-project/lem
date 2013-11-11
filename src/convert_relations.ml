@@ -74,7 +74,7 @@ let mk_fun_ty args ret =
   List.fold_right (fun a b -> {t=Tfn(a,b)}) args ret
 
 let mk_option ty = 
-  { Types.t = Types.Tapp([ty], mk_string_path ["Pervasives"] "option") } 
+  { Types.t = Types.Tapp([ty], mk_string_path ["Pervasives"] "maybe") } 
 
 let remove_option ty = 
   match ty.t with
@@ -561,7 +561,7 @@ end
 module Context_option_pre = struct
 
   let mk_type ty = 
-    { Types.t = Types.Tapp([ty], mk_string_path ["Pervasives"] "option") } 
+    { Types.t = Types.Tapp([ty], mk_string_path ["Pervasives"] "maybe") } 
 
   let remove_type ty = 
     match ty.t with
@@ -1074,7 +1074,7 @@ let pp_mode ppf (io, wit, out) =
     (match out with
       | Out_pure -> ""
       | Out_list -> "list"
-      | Out_option -> "option"
+      | Out_option -> "maybe"
       | Out_unique -> "unique"
     );
   if wit then Format.fprintf ppf " witness"

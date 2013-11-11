@@ -85,7 +85,7 @@ match label with
   | "list_member" -> (["List"], "elem")
 
   | "maybe_just" -> (["Maybe"], "Just")
-  | "maybe_nothing" -> (["Maybe"], "None")
+  | "maybe_nothing" -> (["Maybe"], "Nothing")
 
   | "nat_list_to_string" -> (["Pervasives"], "nat_list_to_string")
 
