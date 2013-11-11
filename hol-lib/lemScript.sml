@@ -198,5 +198,39 @@ val IN_FMAP_TO_SET = store_thm ("IN_FMAP_TO_SET",
 SIMP_TAC (std_ss++PRED_SET_ss) [FMAP_TO_SET_def, FLOOKUP_DEF] THEN
 METIS_TAC[optionTheory.option_CLAUSES])
 
+val FUPDATE_NEQ_FEMPTY = store_thm ("FUPDATE_NEQ_FEMPTY", ``(FUPDATE m (k, v) = FEMPTY) = F``,
+  SIMP_TAC (std_ss++PRED_SET_ss) [fmap_EXT, FDOM_FUPDATE, FDOM_FEMPTY])
+val _ = export_rewrites ["FUPDATE_NEQ_FEMPTY"]
+val _ = computeLib.add_persistent_funs ["FUPDATE_NEQ_FEMPTY"]
+
+val FUPDATE_EQ_FUPDATE = store_thm ("FUPDATE_EQ_FUPDATE", 
+  ``(FUPDATE m (k, v) = FUPDATE m' (k', v')) = 
+    (k IN FDOM (FUPDATE m' (k', v')) /\
+     (FUPDATE m' (k', v') ' k = v) /\
+     (m \\ k = (FUPDATE m' (k', v') \\ k))) ``,
+
+  EQ_TAC THEN STRIP_TAC THEN1 (
+     POP_ASSUM (ASSUME_TAC o GSYM) THEN
+     ASM_REWRITE_TAC [] THEN
+     SIMP_TAC std_ss [FDOM_FUPDATE, IN_INSERT, FAPPLY_FUPDATE, DOMSUB_FUPDATE]
+  ) THEN
+  FULL_SIMP_TAC std_ss [fmap_EXT, EXTENSION, FDOM_DOMSUB, IN_DELETE, FDOM_FUPDATE, IN_INSERT,
+     DOMSUB_FAPPLY_THM, FAPPLY_FUPDATE_THM] THEN
+  METIS_TAC[]
+)
+
+val _ = export_rewrites ["FUPDATE_EQ_FUPDATE"]
+val _ = computeLib.add_persistent_funs ["FUPDATE_EQ_FUPDATE"]
+
+
+val FEVERY_FUPDATE_DOMSUB = store_thm ("FEVERY_FUPDATE_DOMSUB",
+  ``(FEVERY P (FUPDATE m (k, v))) = (P (k, v) /\ FEVERY P (m \\ k))``,
+SIMP_TAC std_ss [FEVERY_FUPDATE, fmap_domsub]);
+
+val _ = computeLib.add_persistent_funs ["finite_map.FRANGE_FEMPTY", "finite_map.FRANGE_FUPDATE_DOMSUB", 
+  "finite_map.FEVERY_FEMPTY", "FEVERY_FUPDATE_DOMSUB"]
+
+val _ = computeLib.add_persistent_funs ["finite_map.o_f_FUPDATE", "finite_map.o_f_FEMPTY", 
+   "finite_map.FCARD_FEMPTY", "finite_map.FCARD_FUPDATE"]
 
 val _ = export_theory()

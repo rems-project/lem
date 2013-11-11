@@ -53,7 +53,7 @@ open lemTheory intReduce;
 
 val run_interactive = ref false
 val lem_conv_eval = computeLib.EVAL_CONV
-val lem_conv_simp = SIMP_CONV (srw_ss()) [] 
+val lem_conv_simp = SIMP_CONV (srw_ss()++permLib.PERM_ss) [] 
 
 
 fun lem_run_test t = Lib.exists (fn f => can (fn t => EQT_ELIM (f t)) t) [lem_conv_eval, lem_conv_simp]
