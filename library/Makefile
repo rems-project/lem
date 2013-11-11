@@ -23,13 +23,19 @@ coq-libs:
 
 ocaml-lib-tests:
 	mkdir -p ${OCAML_BUILD_DIR}
+	rm -f ocaml-build-dir
+	ln -s ${OCAML_BUILD_DIR} ocaml-build-dir       
 	../lem -ocaml -outdir ${OCAML_BUILD_DIR} -wl ign -wl_auto_import err -wl_rename err ${LIBS} -only_auxiliary -only_changed_output
 	./run-ocaml-tests.sh ${OCAML_BUILD_DIR}
 
 hol-lib-tests:
 	mkdir -p ${HOL_BUILD_DIR}
+	rm -f hol-build-dir
+	ln -s ${HOL_BUILD_DIR} hol-build-dir       
 	../lem -hol -outdir ${HOL_BUILD_DIR} -wl ign -wl_auto_import err -wl_rename err ${LIBS} -only_auxiliary -auxiliary_level auto -only_changed_output
 	cp Holmakefile ${HOL_BUILD_DIR}
+	cd ${HOL_BUILD_DIR}; Holmake 
+
 markdown: $(markdown_targets)
 
 %.html : %.markdown

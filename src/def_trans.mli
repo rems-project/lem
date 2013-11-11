@@ -103,11 +103,6 @@ val remove_import_include : def_macro
 (** [remove_import] removes all import statements. *)
 val remove_import : def_macro
 
-(** open statements can open multiple modules at once. For backends that don't support this,
-    [opens_to_single] turns one open/import/include statement into multiple ones that all mention
-    exactly one module. *)
-val opens_to_single : def_macro
-
 (** {2 Misc} *)
 
 (** If a target representation for a type is given, the original type definition is commented out.

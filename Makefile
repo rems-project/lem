@@ -22,6 +22,7 @@ libs:
 hol-libs: 
 	make -C library hol-libs
 	cd hol-lib; Holmake --qof -k
+	make -C library hol-lib-tests
 
 ocaml-libs: 
 	make -C library ocaml-libs

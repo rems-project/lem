@@ -18,7 +18,7 @@ let not b = match b with
   | false -> true
 end
 
-declare hol      target_rep function not = `~`
+declare hol      target_rep function not x = `~` x
 declare ocaml    target_rep function not = `not`
 declare isabelle target_rep function not x = `\<not>` x
 declare html     target_rep function not = `&not;`

@@ -172,10 +172,6 @@ let output1 env libpath isa_thy (out_dir : string option) (targ : Target.target)
               if (List.length load_mods > 0) then begin
                 Printf.fprintf o "open %s;\n\n" (String.concat " " load_mods)
               end;
-
-(*              Printf.fprintf o "open fixedPointTheory finite_mapTheory listTheory pairTheory pred_setTheory\n";
-              Printf.fprintf o "open integerTheory set_relationTheory sortingTheory stringTheory wordsTheory\n\n"; *)
-
               Printf.fprintf o "val _ = numLib.prefer_num();\n\n";
               Printf.fprintf o "\n\n";
             end in
@@ -183,6 +179,7 @@ let output1 env libpath isa_thy (out_dir : string option) (targ : Target.target)
               let (o, ext_o) = open_output_with_check dir (module_name_lower ^ "Script.sml") in
               hol_header imported_modules o;
               Printf.fprintf o "val _ = new_theory \"%s\"\n\n" module_name_lower;
+       
               Printf.fprintf o "%s" (Ulib.Text.to_string r_main);
               Printf.fprintf o "val _ = export_theory()\n\n";
               close_output_with_check ext_o;
@@ -191,6 +188,8 @@ let output1 env libpath isa_thy (out_dir : string option) (targ : Target.target)
               begin
                 let (o,ext_o) = open_output_with_check dir (module_name_lower ^ "AuxiliaryScript.sml") in
                 hol_header extra_imported_modules o;
+                Printf.fprintf o "open lemLib;\n";
+                Printf.fprintf o "(* val _ = lemLib.run_interactive := true; *)\n";
                 Printf.fprintf o "val _ = new_theory \"%sAuxiliary\"\n\n" module_name_lower;
                 Printf.fprintf o "%s" (Ulib.Text.to_string r_extra);
                 Printf.fprintf o "val _ = export_theory()\n\n";

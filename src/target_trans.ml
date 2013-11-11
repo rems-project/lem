@@ -156,7 +156,6 @@ let ocaml =
              [Def_macros (fun env ->  
                             [M.remove_vals; 
                              M.remove_import;
-                             M.opens_to_single;
                              M.remove_indrelns;
                              M.remove_types_with_target_rep (Target_no_ident Target_ocaml);
                              M.defs_with_target_rep_to_lemma env (Target_no_ident Target_ocaml);
@@ -222,7 +221,6 @@ let coq =
                     [M.type_annotate_definitions;
                      M.comment_out_inline_instances_and_classes (Target_no_ident Target_coq);
                      M.remove_import_include;
-                     M.opens_to_single;
                      M.remove_types_with_target_rep (Target_no_ident Target_coq);
                      M.defs_with_target_rep_to_lemma env (Target_no_ident Target_coq);
                      Patterns.compile_def (Target_no_ident Target_coq) Patterns.is_coq_pattern_match env

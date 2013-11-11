@@ -309,7 +309,7 @@ module type Target = sig
   val module_open : t
   val module_import : t
   val module_include : t
-
+  val module_only_single_open : bool
 
 
   (* TODO: remove some and none *)
@@ -517,6 +517,7 @@ module Identity : Target = struct
   let module_open = kwd "open"
   let module_import = kwd "import"
   let module_include = kwd "include"
+  let module_only_single_open = false
 
   let some = Ident.mk_ident_strings [] "Some"
   let none = Ident.mk_ident_strings [] "None"
@@ -728,6 +729,7 @@ module Tex : Target = struct
   let module_open = tkwdl "open"
   let module_import = tkwdl "import"
   let module_include = tkwdl "include"
+  let module_only_single_open = false
 
   let some = Ident.mk_ident_strings [] "Some"
   let none = Ident.mk_ident_strings [] "None"
@@ -781,6 +783,8 @@ module Ocaml : Target = struct
   
   let inl = Ident.mk_ident_strings [] "Inl"
   let inr = Ident.mk_ident_strings [] "Inr"
+
+  let module_only_single_open = true
 end
 
 let back_tick = List.hd (Ulib.Text.explode (r"`"))
@@ -931,7 +935,7 @@ module Isa : Target = struct
 
   let type_params_pre = true
   let nexp_params_vis = false
-
+  let module_only_single_open = false
 end
 
 module Hol : Target = struct
@@ -1152,6 +1156,7 @@ module Hol : Target = struct
   let module_open = kwd "open"
   let module_import = kwd "import"
   let module_include = kwd "include"
+  let module_only_single_open = false
 
   let some = Ident.mk_ident_strings [] "SOME"
   let none = Ident.mk_ident_strings [] "NONE"
@@ -2239,28 +2244,33 @@ let rec hol_def_extra gf d l : Output.t = match d with
       end
       else emp
   | Lemma (sk0, lty, targets, (n, _), sk1, e) when (extra_gen_flags_gen_lty gf lty && in_target targets) -> begin
-      let start = begin
-            let n_s = (Name.to_string (Name.strip_lskip n)) in
-            match lty with
-                     | Ast.Lemma_assert _ -> Format.sprintf "val %s = prove(\n" n_s
-                     | _ -> Format.sprintf "val %s = store_thm(\"%s\",\n" n_s n_s 
-          end
-      in
-      let tactic_s = match lty with
-                     | Ast.Lemma_assert _ -> "  EVAL_TAC"
-                     | _ -> "  (* your proof *)"
-      in
       let (e', _) = alter_init_lskips (fun _ -> (None, None)) e in
-      kwd start ^
-      kwd "``" ^
-      exp e' ^
-      kwd "``," ^
-      new_line ^
-      meta tactic_s ^
-      new_line ^
-      kwd ");" ^
-      new_line ^
-      new_line
+      match lty with
+         | Ast.Lemma_assert _ -> begin
+             let n_s = (Name.to_string (Name.strip_lskip n)) in
+             let start = Format.sprintf "val _ = lem_assertion \"%s\" ``" n_s in
+             meta start ^
+             exp e' ^
+             meta "``;" ^
+             new_line ^
+             new_line
+           end
+         | _ -> begin 
+             let start = begin
+               let n_s = (Name.to_string (Name.strip_lskip n)) in
+               Format.sprintf "val %s = store_thm(\"%s\",\n" n_s n_s 
+             end in
+             kwd start ^
+             kwd "``" ^
+             exp e' ^
+             kwd "``," ^
+             new_line ^
+             meta "  (* your proof *) ALL_TAC" ^
+             new_line ^
+             kwd ");" ^
+             new_line ^
+             new_line
+          end
     end
   | _ -> emp
 
@@ -2465,23 +2475,33 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
       Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)
   | OpenImport (oi, ms) ->
       let (ms', sk) = B.open_to_open_target ms in 
-      if (ms' = []) then
-        ws (oi_get_lskip oi)
-      else
-        open_import_to_output oi ^
-        (Output.flat (List.map (fun (sk, m) -> 
-           ws sk ^ kwd m) ms')) ^
-        ws sk
+      (def_internal callback inside_module (OpenImportTarget (oi, None, ms')) is_user_def) ^ 
+      ws sk
   | OpenImportTarget(oi, _, []) -> ws (oi_get_lskip oi)
   | OpenImportTarget(oi,targets, ms) ->
       if in_target targets then
-        open_import_to_output oi ^
-        (if Target.is_human_target T.target then
-           targets_opt targets 
-         else
-           emp) ^
-        (Output.flat (List.map (fun (sk, m) -> 
-           ws sk ^ T.backend_quote (kwd m)) ms))
+        if (Target.is_human_target T.target || not (T.module_only_single_open) || List.length ms < 2) then 
+        begin
+          open_import_to_output oi ^
+          (if Target.is_human_target T.target then
+             targets_opt targets 
+           else
+             emp) ^
+          (Output.flat (List.map (fun (sk, m) -> 
+             ws sk ^ kwd m) ms))
+        end else begin
+          match ms with 
+            | (sk, m) :: sk_ms' -> begin
+                let (oi', _) = oi_alter_init_lskips (fun _ -> (Some [Ast.Ws (r"\n")], None)) oi in
+                open_import_to_output oi ^
+                ws sk ^ kwd m ^
+
+               (Output.flat (List.map (fun (sk, m) -> 
+                  open_import_to_output oi' ^
+                  ws sk ^ kwd m) sk_ms'))
+              end
+            | _ -> emp (* covert by other case already *)
+        end
       else emp
   | Indreln(s,targets,names,clauses) ->
       if in_target targets then
