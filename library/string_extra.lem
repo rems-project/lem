@@ -1,0 +1,34 @@
+(******************************************************************************)
+(* String functions                                                           *)
+(******************************************************************************)
+
+open import Basic_classes
+open import {hol} `stringLib`
+
+declare {isabelle;ocaml;hol} rename module = lem_string_extra
+
+val stringCompare : string -> string -> ordering
+
+(* TODO: *)
+let inline stringCompare x y = EQ
+let inline {ocaml} stringCompare = defaultCompare
+
+declare compile_message stringCompare = "It is highly unclear, what string comparison should do. Do we have abc < ABC < bbc or abc < bbc < Abc? How about A with various accents? We don't make any guarentees on what stringCompare does for the different backends."
+
+let stringLess x y = orderingIsLess (stringCompare x y)
+let stringLessEq x y = orderingIsLessEqual (stringCompare x y)
+let stringGreater x y = stringLess y x
+let stringGreaterEq x y = stringLessEq y x
+
+instance (Ord string)
+  let compare = stringCompare
+  let (<) = stringLess
+  let (<=) = stringLessEq
+  let (>) = stringGreater
+  let (>=) = stringGreaterEq
+end
+ 
+assert string_compare_1: "abc" < "bbc"
+assert string_compare_2: "abc" <= "abc"
+assert string_compare_3: "abc" > "ab"
+ 
