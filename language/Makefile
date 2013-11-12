@@ -11,8 +11,13 @@ lemTheory.uo: lemScript.sml
 
 lem.tex ../src/ast.ml lemScript.sml: lem.ott
 	rm -f ../src/ast.ml
-	ott -ocaml_include_terminals true -o lem.tex -o ../src/ast.ml -o lemScript.sml -picky_multiple_parses true lem.ott
+	ott  -ocaml_include_terminals true -o lem.tex -o ../src/ast.ml -o lemScript.sml -picky_multiple_parses true lem.ott
 	chmod a-w ../src/ast.ml
+
+lem-inc.tex: lem.ott Makefile
+	ott  -ocaml_include_terminals true -o lem-inc.pre.tex -tex_wrap false -picky_multiple_parses true lem.ott
+	sed 's/\\_aux//g' lem-inc.pre.tex > lem-inc.tex
+
 
 lem.lem: lem.ott
 	ott -o lem.lem -picky_multiple_parses true lem.ott
