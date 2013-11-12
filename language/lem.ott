@@ -161,7 +161,8 @@ metavar ix ::=
 
 grammar
 
-l :: '' ::=					{{ phantom }}
+l %PLDIlHACK
+ :: '' ::=					{{ phantom }}
 						{{ ocaml l }}
 						{{ lem l }}
 						{{ hol unit }}
@@ -304,8 +305,8 @@ typ_aux :: 'Typ_' ::=
     {{ com Function types }}
   | typ1 * .... * typn				:: :: tup
     {{ com Tuple types }}
-  | Nexp					:: :: Nexps 
-  {{ com As a typ to permit applications over Nexps, otherwise not accepted }}
+  | Nexp					:: :: Nexps %NOPLDI
+  {{ com As a typ to permit applications over Nexps, otherwise not accepted }}%NOPLDI
   | id typ1 .. typn			:: :: app
   {{ com Type applications }}
   | backtick_string typ1 .. typn			:: :: backend
@@ -374,11 +375,11 @@ pat_aux :: 'P_' ::=
     {{ com Record patterns }}
 %Patterns for vectors
 
-  | [| pat1 ; .. ; patn semi_opt |]			:: :: vector
-   {{ com Vector patterns }}
-
-  | [| pat1 .. patn |]	  	 			:: :: vectorC
-  {{ com Concatenated vector patterns }} 
+  | [| pat1 ; .. ; patn semi_opt |]			:: :: vector   %NOPLDI
+   {{ com Vector patterns }}                                           %NOPLDI
+                                                                       %NOPLDI
+  | [| pat1 .. patn |]	  	 			:: :: vectorC  %NOPLDI
+  {{ com Concatenated vector patterns }}                               %NOPLDI
 
   | ( pat1 , .... , patn )				:: :: tup
     {{ com Tuple patterns }}
@@ -426,8 +427,8 @@ exp_aux :: '' ::=
     {{ com Identifiers }}
   | backtick_string 				        :: :: Backend
     {{ com identifier that should be literally used in output }}
-  | N							:: :: Nvar
-    {{ com Nexp var, has type num }}
+  | N							:: :: Nvar %NOPLDI
+    {{ com Nexp var, has type num }}                               %NOPLDI
   | fun psexp						:: :: Fun 
     {{ com Curried functions }}
   | function bar_opt pexp1 '|' ... '|' pexpn end	:: :: Function
@@ -444,15 +445,15 @@ exp_aux :: '' ::=
     {{ com Field projection for records }}
 
 %Expressions for creating and accessing vectors
-  | [| exp1 ; ..  ; expn semi_opt |]			:: :: Vector
-  {{ com Vector instantiation }}
+  | [| exp1 ; ..  ; expn semi_opt |]			:: :: Vector %NOPLDI
+  {{ com Vector instantiation }}                                     %NOPLDI
 
-  | exp .( Nexp ) 					:: :: VAccess
-  {{ com Vector access }}
+  | exp .( Nexp ) 					:: :: VAccess%NOPLDI
+  {{ com Vector access }}                                            %NOPLDI
 
 % PS '..' or . . ?
-  | exp .( Nexp1 '..' Nexp2 )      		:: :: VAccessR
-  {{ com Subvector extraction }}
+  | exp .( Nexp1 '..' Nexp2 )      		:: :: VAccessR       %NOPLDI
+  {{ com Subvector extraction }}                                     %NOPLDI
 
 
 %  map : forall 'x 'y ''N.  ('x -> 'y) -> vector ''N 'x -> vector ''N 'y
@@ -1315,6 +1316,9 @@ terminals :: '' ::=
   | ->					:: :: arrow
     {{ tex \ensuremath{\rightarrow} }}
     {{ com \texttt{->} }}
+  | <-					:: :: leftarrow
+    {{ tex \ensuremath{\leftarrow} }}
+    {{ com \texttt{<-} }}
   | ==> 				:: :: Longrightarrow
     {{ tex \ensuremath{\Longrightarrow} }}
     {{ com \texttt{==>} }}

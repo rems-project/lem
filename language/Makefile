@@ -14,10 +14,12 @@ lem.tex ../src/ast.ml lemScript.sml: lem.ott
 	ott  -ocaml_include_terminals true -o lem.tex -o ../src/ast.ml -o lemScript.sml -picky_multiple_parses true lem.ott
 	chmod a-w ../src/ast.ml
 
-lem-inc.tex: lem.ott Makefile
-	ott  -ocaml_include_terminals true -o lem-inc.pre.tex -tex_wrap false -picky_multiple_parses true lem.ott
+lem-inc.tex: lem.hacked.ott Makefile
+	ott  -ocaml_include_terminals true -o lem-inc.pre.tex -tex_wrap false -picky_multiple_parses true lem.hacked.ott
 	sed 's/\\_aux//g' lem-inc.pre.tex > lem-inc.tex
 
+lem.hacked.ott: lem.ott Makefile
+	grep -v NOPLDI lem.ott | sed 's/%PLDIlHACK/{{ tex }}/g' | sed 's/\^{l}//g' > lem.hacked.ott
 
 lem.lem: lem.ott
 	ott -o lem.lem -picky_multiple_parses true lem.ott
@@ -25,6 +27,6 @@ lem.lem: lem.ott
 
 clean:
 	rm -rf *~
-	-rm -rf *.uo *.ui lemTheory.sig lemTheory.sml lem.tex lemScript.sml lem.aux lem.log lem.dvi lem.ps lem_unwrapped.tex .HOLMK 
+	-rm -rf *.uo *.ui lemTheory.sig lemTheory.sml lem.tex lemScript.sml lem.aux lem.log lem.dvi lem.ps lem_unwrapped.tex .HOLMK lem-inc.tex lem.hacked.ott
 #lem.sys lem library/lib_cache
 
