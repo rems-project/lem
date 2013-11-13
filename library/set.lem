@@ -35,6 +35,7 @@ declare {isabelle;hol;ocaml} rename module = lem_set
  *)
 open import {coq} `Coq.Lists.TheoryList`
 open import {hol} `lemTheory`
+open import {isabelle} `Lem`
 
 (* Type of sets and set comprehensions are hard-coded *)
 

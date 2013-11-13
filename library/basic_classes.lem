@@ -203,12 +203,10 @@ end
 
 val defaultMin : forall 'a. Ord 'a => 'a -> 'a -> 'a
 let defaultMin x y = if (x <= y) then x else y
-declare isabelle target_rep function defaultMin = `min`
 declare ocaml    target_rep function defaultMin = `min`
 
 val defaultMax : forall 'a. Ord 'a => 'a -> 'a -> 'a
 let defaultMax x y = if (y <= x) then x else y
-declare isabelle target_rep function defaultMax = `max`
 declare ocaml    target_rep function defaultMax = `max`
 
 

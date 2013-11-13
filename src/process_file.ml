@@ -256,7 +256,7 @@ let output1 env libpath isa_thy (out_dir : string option) (targ : Target.target)
                 Printf.fprintf o "header{*%s*}\n\n" (generated_line m.filename);
                 Printf.fprintf o "theory \"%s\" \n\n" module_name;
                 Printf.fprintf o "imports \n \t Main\n";
-                Printf.fprintf o "\t \"%s\"\n" isa_thy;
+(*                Printf.fprintf o "\t \"%s\"\n" isa_thy; *)
                 (*
                 Printf.fprintf o "imports \n \t \"%s/num_type\" \n" libpath;
                  *)
@@ -280,7 +280,7 @@ let output1 env libpath isa_thy (out_dir : string option) (targ : Target.target)
                 Printf.fprintf o "header{*%s*}\n\n" (generated_line m.filename);
                 Printf.fprintf o "theory \"%sAuxiliary\" \n\n" module_name;
                 Printf.fprintf o "imports \n \t Main \"~~/src/HOL/Library/Efficient_Nat\"\n";
-                Printf.fprintf o "\t \"%s\"\n" isa_thy;
+(*                Printf.fprintf o "\t \"%s\"\n" isa_thy; *)
                 begin 
                   if extra_imported_modules <> [] then 
                     begin

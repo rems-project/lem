@@ -17,6 +17,7 @@ declare {hol} rename module = Lem_list [`listTheory`; `rich_listTheory`; `lem_li
 open import Bool Maybe Basic_classes Tuple Num
 
 open import {coq} `Coq.Lists.TheoryList`
+open import {isabelle} `Lem`
 
 (* ========================================================================== *)
 (* Basic list functions                                                       *)
