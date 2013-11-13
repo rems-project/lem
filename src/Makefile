@@ -20,6 +20,7 @@ debug:
 
 clean:
 	-ocamlbuild -clean
+	-rm -rf main.native
 	-rm -rf _build
 	-rm -rf html-doc
 	-rm -rf tex-doc
