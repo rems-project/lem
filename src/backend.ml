@@ -771,6 +771,7 @@ module Ocaml : Target = struct
   let vector_end = kwd "|]" ^ kwd ")"
   let const_bzero = kwd "Bit.Zero"
   let const_bone = kwd "Bit.One"
+  let const_undefined t m = (kwd "failwith ") ^ (str (r m))
 
   let rec_start = kwd "{"
   let rec_end = kwd "}"
