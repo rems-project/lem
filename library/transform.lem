@@ -176,7 +176,7 @@ module Pmap = struct
   let lem_transform add = Map.insert
   let lem_transform mem = Map.member
 
-  val find : forall 'k 'v. Ord 'k => 'k -> map 'k 'v -> 'v
+  val find : forall 'k 'v. MapKeyType 'k => 'k -> map 'k 'v -> 'v
   let lem_transform find = Map_extra.find
 
   (* All elements satisfy predicate p iff filtering all elements _not_
