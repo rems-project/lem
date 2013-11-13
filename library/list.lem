@@ -213,6 +213,8 @@ let inline {isabelle;coq} snoc e l = l ++ [e]
 assert snoc_1 : snoc (2:nat) [] = [2]
 assert snoc_2 : snoc (2:nat) [3;4] = [3;4;2]
 assert snoc_3 : snoc (2:nat) [1] = [1;2]
+lemma snoc_length : forall e l. length (snoc e l) = succ (length l)
+lemma snoc_append : forall e l1 l2. (snoc e (l1 ++ l2) = l1 ++ (snoc e l2))
 
 
 (* ----------------------- *)
