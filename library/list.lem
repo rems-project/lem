@@ -210,6 +210,11 @@ let snoc e l = l ++ [e]
 declare hol      target_rep function snoc = `SNOC`
 let inline {isabelle;coq} snoc e l = l ++ [e]
 
+assert snoc_1 : snoc (2:nat) [] = [2]
+assert snoc_2 : snoc (2:nat) [3;4] = [3;4;2]
+assert snoc_3 : snoc (2:nat) [1] = [1;2]
+
+
 (* ----------------------- *)
 (* Map                     *)
 (* ----------------------- *)
