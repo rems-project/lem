@@ -864,12 +864,11 @@ end
 declare termination_argument unzip = automatic
 
 declare hol      target_rep function unzip = `UNZIP` 
-declare isabelle target_rep function unzip = `List.unzip`
+declare isabelle target_rep function unzip = `list_unzip`
 declare ocaml    target_rep function unzip = `List.split`
 
 assert unzip_1 : (unzip ([] : list (nat * nat)) = ([], []))
 assert unzip_2 : (unzip [((1:nat),(2:nat));(2,3);(3,4)] = ([1;2;3], [2;3;4]))
-
 
 (* ========================================================================== *)
 (* Comments (not clean yet, please ignore the rest of the file)               *)
