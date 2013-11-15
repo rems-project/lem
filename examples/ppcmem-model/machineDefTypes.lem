@@ -1,0 +1,533 @@
+open import Pervasives_extra
+
+(*========================================================================*)
+(*                                                                        *)
+(*                ppcmem executable model                                 *)
+(*                                                                        *)
+(*          Susmit Sarkar, University of Cambridge                        *)
+(*          Peter Sewell, University of Cambridge                         *)
+(*          Jade Alglave, Oxford University                               *)
+(*          Luc Maranget, INRIA Rocquencourt                              *)
+(*                                                                        *)
+(*  This file is copyright 2010,2011 Institut National de Recherche en    *)
+(*  Informatique et en Automatique (INRIA), and Susmit Sarkar, Peter      *)
+(*  Sewell, and Jade Alglave.                                             *)
+(*                                                                        *)
+(*  All rights reserved.                                                  *)
+(*                                                                        *)
+(*                                                                        *)
+(*                                                                        *)
+(*                                                                        *)
+(*                                                                        *)
+(*========================================================================*)
+
+(* emacs fontification -*-caml-*- *)
+
+(* naming convention: load and store are used for instructions; read
+and write for memory actions.  Unqualifed load/store/read/write do not
+include any reserve/conditional or acquire/release variants *)
+
+
+open MachineDefUtils
+open MachineDefFreshIds
+open MachineDefValue
+
+(*: \section{The Core/Storage Subsystem Interface} :*) 
+
+type thread_id = nat
+type barrier_type = Sync | LwSync | Eieio 
+ | DMB | DMB_ST | DMB_LD | DSB 
+(* NB: 
+- the PLDI-style ppcmem PPC model uses Sync, LwSync, and Eieio
+- the PLDI-style ppcmem ARM model uses Sync for the ARM DMB and does not support DMB_ST, DMB_LD, or DSB (it translates those to Sync microops)
+- the flowing-things ppcmem ARM model does not use Sync, LwSync and Eieio, and does support DSB, DMB, DMB_ST, DMB_LD *)
+  
+type address = value
+
+(* execution instance ids, w_eiid, r_eiid, and b_eiid, are treated
+abstractly in the model (they are compared with equality but their
+fields are not accessed) but constructed deterministically rather
+than being gensym'd *)
+
+type w_eiid = <| weiid_thread:thread_id; weiid_ioid:ioid; weiid_addr:address;weiid_value:value |>
+
+type r_eiid = <| reiid_thread:thread_id; reiid_ioid:ioid; reiid_addr:address |> 
+
+type b_eiid = <| beiid_thread:thread_id; beiid_ioid:ioid |>
+
+type write = <| w_thread:thread_id; w_ioid:ioid; weiid: w_eiid ; w_addr:address; w_value:value ; w_isrelease:bool |> (* w *)
+type write_conditional_request = <| wc_w:write; wc_wprev:maybe write|> (* wcr *)
+
+type barrier = <| b_thread:thread_id; b_ioid:ioid; beiid: b_eiid; b_barrier_type:barrier_type |> (* b *)
+type barrier_ack = <| br_thread:thread_id; br_ioid:ioid; br_eiid: b_eiid |> (* br *)
+
+type read_request =  <| r_thread:thread_id; r_ioid:ioid; reiid: r_eiid ; r_addr:address; r_write_lower_bound: set write; r_write_upper_bound: set write |> (* r *)
+
+type read_response = <| rr_thread:thread_id; rr_ioid:ioid; rr_eiid:r_eiid; rr_write:write |> (* rr *)
+
+type message =
+        (* write request from thread*)
+       | Wreq of write
+
+        (* write-conditional request from thread *)
+       | WCreq of write_conditional_request
+
+        (* write-conditional response to thread *)
+       | WCresp of bool
+
+         (* barrier request from thread*)
+       | Breq of barrier
+
+         (* barrier ack sent to thread for sync *)
+       | Back of barrier_ack
+
+	 (* read request from thread *)
+       | Rreq of read_request
+
+         (* read response to thread *)
+       | Rresp of read_response
+
+         (* notification of coherence boundary to thread *)
+       | Coherence_last of set write
+
+(*: \section{The Storage Subsystem Model} :*) 
+
+(*: \subsection{Storage Subsystem States} :*) 
+
+type tracked_event =
+       | SWrite of write
+       | SBarrier of barrier
+
+type storage_subsystem_state = 
+     <|
+  (*: the set of thread ids that exist in the system :*)
+     threads : set thread_id;
+    
+    writes_seen : set write;
+
+  (*: for each address, a strict partial order over the writes to
+      that address that the storage subsystem has received from the
+      threads, giving the current constraints on the coherence
+      order over those writes. We record the union of those
+      orders. We encode the
+      partial order as a set of pairs of writes. :*)
+    coherence : Relation.rel write write;
+    
+    (*: the set of writes that have reached their coherence points. :*)
+    writes_past_coherence_point : set write ;
+    
+    (*: for each thread, the writes that have been propagated to it by the
+      storage subsystem, together with the barriers that have been
+      propagated to that thread. These are all placed in a
+      linear (per-thread) order corresponding to that thread's view of
+      time, most recent at the end of the list.  :*)
+    events_propagated_to : thread_id -> list tracked_event;
+      
+    (*: the set of [[sync]] barriers that have not yet been acknowledged
+        back to their originating thread :*)
+    unacknowledged_sync_requests : set barrier;
+|>
+  
+
+(*: \subsection{Instructions and their semantics} :*)
+
+(*: \subsubsection{Assembly instruction abstract syntax} :*)
+
+(*: Registers :*)
+
+type ireg =
+  | GPR0 | GPR1 | GPR2 | GPR3
+  | GPR4 | GPR5 | GPR6 | GPR7
+  | GPR8 | GPR9 | GPR10 | GPR11
+  | GPR12 | GPR13 | GPR14 | GPR15
+  | GPR16 | GPR17 | GPR18 | GPR19
+  | GPR20 | GPR21 | GPR22 | GPR23
+  | GPR24 | GPR25 | GPR26 | GPR27
+  | GPR28 | GPR29 | GPR30 | GPR31
+
+type ppc_reg = 
+  | Ireg of ireg (* integer registers *)
+  | PC
+  | CRBit of nat (* from [0..31] *)
+
+type arm_reg = 
+  | R0 | R1 | R2 | R3
+  | R4 | R5 | R6 | R7
+  | R8 | R9 | R10 | R11
+  | R12 
+  | SP | LR | ARM_PC
+  | Z  (* condition flags *)
+
+type reg = 
+  | PPC_reg of ppc_reg
+  | ARM_reg of arm_reg
+
+(*: Instructions :*)
+
+type k = nat
+type lbl = string
+
+(*: PPC Instructions :*)
+
+type idx = nat
+
+type cond =
+  | Eq | Ne
+  | Lt | Ge
+  | Gt | Le
+
+type crfindex = nat
+
+type setcr0 = SetCR0 | DontSetCR0
+
+(* TODO: some of the following uses of reg should be ireg, e.g. for arithmetic instructions *)
+type ppc_instruction =
+
+(* a pseudoinstruction *)
+  | Plabel of lbl  
+
+(* These instructions have two forms, setting cr0 or not *)
+  | Padd of setcr0*reg*reg*reg
+  | Psub of setcr0*reg*reg*reg
+  | Psubf of setcr0*reg*reg*reg
+  | Por of setcr0*reg*reg*reg
+  | Pand of setcr0*reg*reg*reg
+  | Pxor of setcr0*reg*reg*reg
+  | Pmull of setcr0*reg*reg*reg
+  | Pdiv of setcr0*reg*reg*reg
+
+(* For these cr0 seting is implicit *)
+  | Paddi of reg*reg*k (* no *)
+  | Pandi of reg*reg*k (* yes *)
+  | Pori of reg*reg*k  (* no *)
+  | Pxori of reg*reg*k (* no *)
+  | Pmulli of  reg*reg*k (* no *)
+
+  | Pli of reg*k
+  | Pb of lbl
+  | Pbcc of cond * lbl
+  | Pcmpwi of crfindex * reg*k
+  | Pcmpw of crfindex * reg*reg
+  | Plwz of reg*idx*reg (* load 32-bit int; lwzx: same, with 2 index regs, hidden in addressing mode *)
+  | Plwzx of reg*reg*reg
+  | Pmr of reg * reg
+  | Pstw of reg*idx*reg (* store 32-bit int; stwx: same, with 2 index regs, hidden in addressing mode *)
+  | Pstwx of reg*reg*reg
+  | Plwarx of reg*reg*reg (* load word and reserve indexed *)
+  | Pstwcx of reg*reg*reg (* store word conditional indexed *)
+(* 64bit load & store, needed by litmus, memevents will consider
+   those as lwz/stw, so avoid in presented examples *)
+  | Pstd of  reg*idx*reg
+  | Pstdx of reg*reg*reg
+  | Pld of  reg*idx*reg
+  | Pldx of reg*reg*reg
+(* Fence instructions *)
+  | Psync
+  | Peieio
+  | Pisync
+  | Plwsync
+(* Extra, is a nop in memevents *)
+  | Pdcbf of reg*reg
+(* New acquire/release instructions *)
+  | Plwzx_acq of reg * reg * reg
+  | Pstwx_rel of reg * reg * reg
+(* extra for Richard Bornat *)
+  | Pnor of setcr0*reg*reg*reg
+  | Pneg of setcr0*reg*reg
+  | Pslw  of setcr0*reg*reg*reg
+  | Psrawi  of setcr0*reg*reg*k
+  | Psraw  of setcr0*reg*reg*reg
+  | Pbl of lbl
+  | Pblr
+  | Pmtlr of reg
+  | Pmflr of reg
+  | Pcomment of string
+
+(*: ARM Instructions :*)
+
+type setflags = SetFlags | DontSetFlags
+
+type condition = NE | EQ | AL (* ALWAYS *)
+
+type arm_instruction =
+  | I_ADD of setflags * reg * reg * k
+  | I_ADD3 of setflags * reg * reg * reg
+  | I_SUB of setflags * reg * reg * k
+  | I_SUB3 of setflags * reg * reg * reg
+  | I_AND of setflags * reg * reg * k
+  | I_B of lbl
+  | I_BEQ of lbl 
+  | I_BNE of lbl (* Was maybeVal ??? *)
+  | I_CMPI of reg * k
+  | I_CMP of reg * reg
+  | I_LDR of reg * reg * condition
+  | I_LDREX of reg * reg
+  | I_STREX of reg * reg
+  | I_LDR3 of reg * reg * reg * condition
+  | I_STR of reg * reg * condition
+  | I_STR3 of reg * reg * reg * condition
+  | I_MOVI of reg * k * condition
+  | I_MOV of reg * reg * condition
+  | I_XOR of setflags * reg * reg * reg
+  | I_DMB
+  | I_DMB_ST
+  | I_DMB_LD
+  | I_DSB
+  | I_ISB
+
+type instruction = 
+  | PPC_ins of ppc_instruction
+  | ARM_ins of arm_instruction
+
+
+(*: \subsubsection{Assembly instruction `abstract microcode' abstract syntax} :*)
+
+(*: The state of a running instruction instance is a list of actions together with the current valuation for flexible variables. :*)
+
+(* We later (in can_transition) suppose that there are no Read_reg, Read_mem, Binop, or Unop after any other action *)
+
+type action = 
+  | Read_reg of reg * value
+  | Write_reg of reg * value
+  | Read_mem of address * value
+  | Write_mem of address * value
+  | Read_mem_reserve of address * value
+  | Write_mem_conditional of address * value * value (* If Wcond a v1 succeeds, set v2 *)
+  | Read_mem_acq of address * value
+  | Write_mem_rel of address * value
+  | Binop of value * op_bin * value * value
+  | Unop of value * op_un * value
+  | Barrier of barrier_type
+  | Isync
+  | Jump of cst
+  | Cond_branch of value * cst
+
+type sem_state =
+    <| remaining : list action;
+     val_soln : solution
+  |>
+
+type reaches_by =
+  | Always
+  | IfZero of value
+  | IfNonZero of value
+
+type next_instr =
+    (* continue in sequence *)
+  | Next
+      (* jump to arg *)
+  | Jump_to of cst
+	(* if v is one, jump to address, otherwise continue in sequence *)
+  | Cond_branch_to of value * cst
+
+
+type instruction_instance =
+       <| instance_ioid : ioid; (*: Chosen to make every instance unique :*)
+          behaviour : sem_state;  (*: The current state of the instruction evaluation. This component
+                                      evolves through time, as the instruction consumes values from
+                                      register and memory reads, performs computations, and produces
+                                      values for register or memory writes, or possibly makes requests for
+                                      barrier operations. :*)
+          regs_in : set reg;         (*: The input registers, for ease of dependency calculation :*)
+          regs_out : set reg;        (*: The output registers, for ease of dependency calculation :*)
+
+(*           is_memory_read : bool;     (\*: These are easy to calculate from the instruction and its initial behaviour. Remember for convenience :*\) *)
+(*           is_memory_write : bool; *)
+          is_load : bool;     (*: These are easy to calculate from the instruction and its initial behaviour. Remember for convenience :*)
+          is_store : bool;
+          is_load_reserve : bool;
+          is_store_conditional : bool; 
+          is_load_acquire : bool;
+          is_store_release : bool; 
+
+          is_isync : bool;
+          is_lwsync : bool; 
+          is_eieio : bool; 
+          is_sync : bool;
+
+          is_isb : bool;    (* for flowing-things model only *)
+          is_dsb : bool;    (* for flowing-things model only *)
+          is_dmb : bool;    (* for flowing-things model only *)
+          is_dmb_ld : bool; (* for flowing-things model only *)
+          is_dmb_st : bool; (* for flowing-things model only *)
+
+          is_branch : bool;
+          is_cond_branch : bool;
+
+          (* flag about whether some computation has occurred, for efficient restarts *)
+          has_done_computation : bool;
+ 
+          read_responses : set read_response ; (*: Read responses :*)
+          writes_upper_bound : set write; (*: For reads: tracks program-order-later writes (to any address) that have committed (before this instruction commits). Any read done by this instruction has to read strictly-coherence-before those of those writes that are to the same address :*)
+          writes_lower_bound : set write; (*: PLACEHOLDER: IN FUTURE WE MIGHT USE AS FOLLOWS: For reads: tracks lower bound on coherence. Any read done by this instruction have to read coherence-after-or-equal those writes :*)
+
+          writes_read_from : set write;  (*: Tracking writes read from, to determine restart candidates at invalidates. This component starts out empty and evolves through time. :*)
+          program_loc : address;     (*: record fetched address for convenience :*)
+          instance_instruction : instruction; (*: record actual instruction, for convenience :*)
+          prev : maybe (ioid * reaches_by) (*: pointer to program-order-previous instruction instance, NONE for start :*)
+    |>
+
+val compare_instruction_instance : instruction_instance -> instruction_instance -> ordering
+(*
+  TODO: Port the following
+  let inline {ocaml} compare_instruction_instance = (fun i1 i2 -> Ocaml.Pervasives.compare i1.instance_ioid i2.instance_ioid)
+*)
+
+type thread_state = <|
+       thread : thread_id ;                                         (* the id of this thread, for reference *)
+       initial_register_state : reg -> value ;                (* Map from registers to values *)
+       committed_instructions : set instruction_instance;     (* instructions that have been committed *)
+       in_flight_instructions : set instruction_instance;     (* instructions in flight *)
+       unacknowledged_syncs : set barrier;                    (* Barrier acknowledgements not yet received *)
+       outstanding_read_requests : set read_request;               (* Outstanding reads that have not yet received a response (for flowing-things model only) *)
+    |>
+
+type coherence_commit_params = 
+  | Partial_CC
+  | Late_CC
+
+type propagate_write_params = 
+  | Only_at_end
+  | Possibly_in_middle
+
+type ss_params =
+  <| coherence_commit : coherence_commit_params;
+     pcc_deadlock_avoid : bool;
+     coherence_points : bool;
+     pw : propagate_write_params;
+  |>
+
+
+type thread_loose_tight_params =
+  | Thread_loose
+  | Thread_tight
+
+type thread_lwsync_params =
+  | Lwsync_read_restart
+  | Lwsync_read_block
+
+type thread_restart_forwarded_params =
+  | Restart_forwarded_reads
+  | Dont_restart_forwarded_reads
+
+type thread_flowing_same_address_params =
+  | Flowing_same_address_strict
+  | Flowing_same_address_aggressive
+
+type thread_restrict_write_commit_params =
+  | Forbid_prev_uncommitted_read_type0
+  | Allow_prev_uncommitted_determined_addr_read_type1
+  | Allow_prev_uncommitted_undetermined_addr_read_type2
+
+type thread_restart_read_params =
+  | Restart_on_commit
+  | Restart_on_read_satisfy
+
+type instruction_semantics_mode (* ism *) =
+  | ARM_PLDI
+  | ARM_FLOWING
+
+type thread_params =
+ <| thread_loose_tight : thread_loose_tight_params;
+    thread_restart_forwarded : thread_restart_forwarded_params;
+    thread_lwsync : thread_lwsync_params; 
+    thread_fsa : thread_flowing_same_address_params;
+    thread_ism : instruction_semantics_mode;
+    thread_rwc : thread_restrict_write_commit_params;
+    thread_rr : thread_restart_read_params;
+  |>
+
+
+type model_params =
+  <| ss : ss_params;
+     t  : thread_params 
+  |> 
+
+
+type system_state =
+       <| thread_states : thread_id -> thread_state;
+          storage_subsystem : storage_subsystem_state;
+	  idstate : id_state;
+          model : model_params;
+       |>
+
+
+(* transitions *)
+type ss_trans =
+   | SS_Accept_write_request of write 
+   | SS_Accept_successful_write_conditional_request of write_conditional_request
+   | SS_Accept_failing_write_conditional_request of write_conditional_request
+   | SS_Partial_coherence_commit of write * write
+   | SS_Propagate_write_to_thread of write * thread_id
+   | SS_Propagate_write_between_coherence of write * thread_id * nat
+   | SS_Write_reaches_coherence_point of write
+   | SS_Send_read_response of thread_id * read_request * write
+   | SS_Accept_barrier_request of barrier
+   | SS_Propagate_barrier_to_thread of barrier * thread_id
+   | SS_Acknowledge_sync_barrier of barrier
+ 
+type thread_trans =
+   | T_Fetch of instruction_instance
+   | T_Commit_write of instruction_instance * set write 
+   | T_Commit_write_conditional of instruction_instance * write_conditional_request * bool
+   | T_Commit_barrier of instruction_instance * set barrier
+   | T_Commit_read of instruction_instance * set read_response
+   | T_Commit_reg_or_branch of instruction_instance
+   | T_Accept_sync_ack of barrier_ack
+   | T_Satisfy_read_from_storage of instruction_instance * read_request * write
+   | T_Satisfy_read_from_forwarded_write of instruction_instance * write * instruction_instance
+   | T_Satisfy_read_reserve of instruction_instance * read_request * write
+   | T_Register_read_from_previous_write of instruction_instance * reg * value * instruction_instance
+   | T_Register_read_from_initial of instruction_instance * reg * value
+   | T_Partial_evaluate of instruction_instance
+   | T_Restart of instruction_instance
+   | T_Abort of instruction_instance
+
+
+
+type flowing_event =
+       | FWrite of write
+       | FRead of read_request
+       | FBarrier of barrier
+(*       | FWC of write_conditional_request  ??? *)
+type segment = nat (* seg *)
+
+
+
+(* P are transitions used in the PLDI model; F are transitions of the flowing-things model *)
+type trans =
+(* PF *)   | Fetch of thread_id * instruction_instance
+(* PF *)   | Commit_write of thread_id * instruction_instance * set write * set write
+(* PF *)   | Commit_barrier of thread_id * instruction_instance * barrier
+(* PF *)   | Commit_write_conditional of thread_id * instruction_instance * write_conditional_request * bool
+(* PF *)   | Commit_read of thread_id * instruction_instance * set read_response
+(* PF *)   | Commit_reg_or_branch of thread_id * instruction_instance
+(* P  *)   | Write_propagate_to_thread of write * thread_id
+(* P  *)   | Write_propagate_between_coherence of write * thread_id * nat
+(* P  *)   | Barrier_propagate_to_thread of barrier * thread_id 
+(* P  *)   | Read_from_storage_subsystem of thread_id * instruction_instance * write
+(* PF *)   | Write_forward_to_read of thread_id * instruction_instance * write * instruction_instance
+(* P  *)   | Acknowledge_sync of barrier
+(* P  *)   | Partial_coherence_commit of write * write
+(* P  *)   | Write_reaching_coherence_point of write
+(* PF *)   | Register_read_prev of thread_id * instruction_instance * reg * instruction_instance
+(* PF *)   | Register_read_initial of thread_id * instruction_instance * reg
+(* PF *)   | Partial_evaluate of thread_id * instruction_instance
+(* PF?*)   | Restart_instruction_instance of thread_id * instruction_instance
+(* PF?*)   | Abort_instruction_instance of thread_id * instruction_instance
+
+(*  F *)   | Issue_read_request of thread_id * instruction_instance * read_request
+               (* FSS:flowing_accept_event   FTS: flowing_memory_read_request *)
+(*  F *)   | Reorder of flowing_event * flowing_event
+               (* FSS: flowing_reorder_events   FTS: n/a                      *)
+(*  F *)   | Flow of flowing_event * segment * segment
+               (* FSS: flowing_flow_event       FTS: n/a                      *)
+(*  F *)   | Read_from_segment of thread_id * read_request * write
+               (* FSS: flowing_satisfy_read_from_segment   FTS: flowing_memory_read_storage *)
+(*  F *)   | Read_from_memory of thread_id * read_request * write 
+               (* FSS: flowing_satisfy_read_from_memory    FTS: flowing_memory_read_storage *)
+(*  F *)   | Write_to_memory of thread_id * write
+               (* FSS: flowing_write_to_memory             FTS: n/a                        *)
+(*  F *)   | Barrier_to_memory of thread_id * barrier
+               (* FSS: barrier_to_memory                   FTS: if DSB, some rule to receive the DSB ack - as before  *)
+

@@ -1,0 +1,223 @@
+open import Pervasives_extra
+
+(*========================================================================*)
+(*                                                                        *)
+(*                ppcmem executable model                                 *)
+(*                                                                        *)
+(*          Susmit Sarkar, University of Cambridge                        *)
+(*          Peter Sewell, University of Cambridge                         *)
+(*          Jade Alglave, Oxford University                               *)
+(*          Luc Maranget, INRIA Rocquencourt                              *)
+(*                                                                        *)
+(*  This file is copyright 2010,2011 Institut National de Recherche en    *)
+(*  Informatique et en Automatique (INRIA), and Susmit Sarkar, Peter      *)
+(*  Sewell, and Jade Alglave.                                             *)
+(*                                                                        *)
+(*  All rights reserved.                                                  *)
+(*                                                                        *)
+(*                                                                        *)
+(*                                                                        *)
+(*                                                                        *)
+(*                                                                        *)
+(*========================================================================*)
+
+(* Help emacs fontification -*-caml-*- *)
+
+(*: \section{Utility Definitions} :*)
+
+(* type unit = | Unit *)
+
+(*: \subsection{Option types} :*)
+(*
+type 'a option = 
+  | Some of 'a
+  | None
+*)
+
+let set_option_map f xs =
+  { match f x with Just y -> y end | forall (x IN xs) | match f x with Just _ ->
+true | Nothing -> false end }
+
+(* Any particular reason not to use the following? 
+
+let set_option_map f xs = 
+   Set.fold (fun x ys -> match f x with Some y -> Set.insert y ys | None -> ys end)
+            {} xs
+*)
+
+
+let rec opt_map (f:'a -> maybe 'b) (al : list 'a) : list 'b=
+  match al with
+  | [] -> []
+  | a :: al' ->
+      let fal' = opt_map f al' in
+      match f a with
+      | Just a' -> a' :: fal'
+      | Nothing -> fal'
+      end
+  end
+
+(*: Map-like functions and Sets :*)
+let funupd f x y = fun x' -> if x'=x then y else f x'
+
+let set_filter f xs =
+  Set_helpers.fold
+    (fun x k ->
+      if f x then Set.insert x k else k)
+    xs {}
+
+(*: \subsection{Relations} :*)
+import Relation
+val domain : forall 'a 'b. SetType 'a,SetType 'b => Relation.rel 'a 'b -> set 'a
+let domain = Relation.relDomain
+
+val range : forall 'a 'b. SetType 'a, SetType 'b => Relation.rel 'a 'b -> set 'b
+let range  = Relation.relRange
+
+let maximal_elements xs r =
+    {x | forall (x IN xs) | (forall (x' IN xs). if (x, x') IN r then (x = x') else true)}
+
+let minimal_elements xs r =
+    {x | forall (x IN xs) | (forall (x' IN xs). if (x', x) IN r then (x = x') else true)}
+
+(* unbounded versions
+let rec tc r =
+  let d = domain r union range r in
+  let one_step =
+    {(x,z) | forall (x IN d) (z IN d) |
+        exists  (y IN d). (x,y) IN r && (y,z) IN r} in
+  if one_step subset r then r else
+  tc (one_step union r)
+
+let rec fix (f : set 'a -> set 'a) (x : set 'a) : set 'a =
+   let fx = f x in
+   if fx subset x then x
+   else fix f (fx union x)
+*)
+
+let rec fix (bound : nat) (f : set 'a -> set 'a) (x : set 'a) : set 'a =
+  match bound with
+  | 0 ->  x
+  | bound' + 1 -> 
+      let fx = f x in
+      if fx subset x then x
+      else fix bound' f (fx union x)
+  end
+
+let immediate_predecessors r x =
+  { x' | forall (x' IN domain r) | Relation.inRel x' x r }
+
+let down_closure r x =
+  let bound = Set.size (domain r union range r) in
+  fix bound (fun xs -> 
+    {x' | forall (x' IN domain r) | 
+    exists (x IN xs). x' IN immediate_predecessors r x })
+    ({x})
+
+let is_reflexive   r = Relation.isReflexiveOn   r (domain r union range r)
+
+let is_irreflexive r = Relation.isIrreflexiveOn r (domain r union range r)
+
+let is_transitive  r = Relation.isTransitiveOn  r (domain r union range r)
+
+let is_antisymmetric = Relation.isAntisymmetric
+
+let is_strict_order r =
+  is_transitive r &&
+  is_irreflexive r
+
+let is_order r = 
+  is_transitive r &&
+  is_antisymmetric r &&
+  is_reflexive r
+
+let is_linear_order r =
+  let dr = domain r union range r in
+  (is_order r) && 
+  (forall (x IN dr) (y IN dr). (Relation.inRel x y r || Relation.inRel y x r))
+
+let is_strict_linear_order r =
+  let dr = domain r union range r in
+  (is_strict_order r) && 
+  (forall (x IN dr) (y IN dr). ((x = y) || Relation.inRel x y r || Relation.inRel y x r))
+
+let restrict r xs =
+  Relation.relFromSet (set_filter (fun (x,y) -> x IN xs && y IN xs) (Relation.relToSet r))
+
+let acyclic (r : Relation.rel _ _) =
+  let tcr = Relation.transitiveClosure r in
+  is_irreflexive tcr
+
+(*: \subsection{Lists as FIFO's} :*)
+let add_event l e =
+      List.(++) l ([e])
+
+let add_events l es =
+      List.(++) l es
+
+let rec pos_in' l e (acc : nat) =
+       match l with
+       | [] -> Nothing
+       | e1::l' -> if e = e1 then Just acc else pos_in' l' e (acc+1)
+       end
+
+let pos_in l e =
+       pos_in' l e 0
+
+let pos_before l e n = 
+    match pos_in l e with
+    | Just m -> m < n
+    | Nothing -> false
+    end
+
+let pos_after l e n = 
+    match pos_in l e with
+    | Just m -> m >= n
+    | Nothing -> false
+    end
+
+let ordered_before_in l e1 e2 =
+       match (pos_in l e1,pos_in l e2) with
+       | (Just n1,Just n2) -> n1 < n2
+       | _ -> false
+       end
+
+let ordered_between_in l e3 e1 e2 =
+       match (pos_in l e3,pos_in l e1,pos_in l e2) with
+       | (Just n3,Just n1,Just n2) -> n1 < n3 && n3 < n2
+       | _ -> false
+       end
+
+let rec take (n : nat) l acc = 
+  if n = 0 then (reverse acc, l) else
+  match l with 
+  | [] -> (reverse acc, l)
+  | h :: t -> take (n - 1) t (h :: acc)
+  end
+
+let insert_at_nth l n e =
+  let len = length l in
+  if len <= n then List.(++) l ([e]) 
+  else let (fst,snd) = take n l [] in
+  List.(++) fst (e :: snd)
+
+(*: \subsection{Comparisons} :*)
+type comparison = ordering
+declare lem target_rep type ordering =ordering 
+
+let compare_num n1 n2 = 
+ if n1 < n2 then LT
+ else if n1 > n2 then GT
+ else EQ
+
+let compare_string (s1 : string) (s2 : string) = 
+  (* Warning: not an order, only good for equality testing *)
+ if s1 = s2 then EQ else LT
+
+let lexicographic_compare (f : 'a -> 'a -> ordering) (g : 'b -> 'b -> ordering) (x : 'a) (y : 'a) (z : 'b) (w : 'b) : ordering = 
+  let c = f x y in
+  match c with
+  | EQ -> g z w
+  | _ -> c
+  end
+

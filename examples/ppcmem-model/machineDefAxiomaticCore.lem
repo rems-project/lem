@@ -1,0 +1,172 @@
+open import Pervasives_extra
+
+(* emacs fontification -*-caml-*- *)
+
+(* a generic notion of axiomatic-model candidate execution, over
+abstract instructions, used in the ppcmem candidates.ml *)
+
+open MachineDefUtils
+open MachineDefFreshIds
+open MachineDefValue
+open MachineDefTypes
+(* open MachineDefInstructionSemantics *)
+
+type rd_eiid = <| rdeiid_thread:thread_id; rdeiid_ioid:ioid; rdeiid_addr:address;rdeiid_value:value |>
+
+type read = <| rd_thread:thread_id; rd_ioid:ioid; rdeiid:rd_eiid; rd_addr:address; rd_value:value (*; rd_isacquire:bool*) |>  (* rd *) 
+
+type other = <| o_thread:thread_id; o_ioid:ioid |>  (* o *) 
+
+type axiomatic_instruction = 
+  | AI_Write_memory of write 
+  | AI_Read_memory of read
+  | AI_Barrier of barrier
+  | AI_Isync of other
+  | AI_Branch of other  (* for conditional branches. Perhaps we'd like the branch outcome here? *)
+  | AI_Other of other
+
+let thread_of_axiomatic_instruction i = 
+  match i with
+  | AI_Write_memory w -> w.w_thread
+  | AI_Read_memory rd -> rd.rd_thread
+  | AI_Barrier b -> b.b_thread
+  | AI_Isync o -> o.o_thread
+  | AI_Branch o -> o.o_thread
+  | AI_Other o -> o.o_thread
+  end  
+
+let ioid_of_axiomatic_instruction i = 
+  match i with
+  | AI_Write_memory w -> w.w_ioid
+  | AI_Read_memory rd -> rd.rd_ioid
+  | AI_Barrier b -> b.b_ioid
+  | AI_Isync o -> o.o_ioid
+  | AI_Branch o -> o.o_ioid
+  | AI_Other o -> o.o_ioid
+  end  
+
+
+type axiomatic_candidate_execution =
+    <| 
+    ace_threads : set thread_id;
+    ace_instructions : set axiomatic_instruction;
+    ace_ins_source : list (ioid * instruction);
+    ace_initial_memory_state : set write;
+    ace_initial_register_state : thread_id -> reg -> value ;  
+    ace_final_register_state : thread_id -> reg -> maybe value;  
+    ace_po      : set (axiomatic_instruction * axiomatic_instruction); 
+    ace_rf      : set (axiomatic_instruction * axiomatic_instruction);
+    ace_rf_init : set (axiomatic_instruction * axiomatic_instruction);
+    ace_co      : set (axiomatic_instruction * axiomatic_instruction);
+    ace_datadep : set (axiomatic_instruction * axiomatic_instruction);  
+    ace_addrdep : set (axiomatic_instruction * axiomatic_instruction);
+    ace_ctrldep : set (axiomatic_instruction * axiomatic_instruction);
+  |>
+
+(* 
+
+ace_po:  strict linear order per-thread
+ace_rf:  pairs (AI_Write_memory of write w, AI_Read_memory rd) with the same address and value,
+          at most one such per read
+ace_co:  strict linear order per-address
+
+Remark: for the relations in axiomatic_candidate_execution, one has to
+choose between making them be over ioids or over
+axiomatic_instructions.  Neither is fully satisfactory.
+
+*)
+
+
+(* restrict rel to s *)
+let restrict_relation_set rel s = 
+  { (x,x') | forall ((x,x') IN rel) | x IN s && x' IN s }
+
+(*
+(* restrict rel to not s *)
+let anti_restrict_relation_set rel s = 
+  { (x,x') | forall ((x,x') IN rel) | not (x IN s) && not (x' IN s) }
+
+
+(* restrict rel to s and add in pairs related by transitivity through not-s *)
+let restrict_relation_tran_set rel s =
+  let tc_rel = tc (anti_restrict_relation_set rel s) in
+  { (x,x') | forall ((x,x') IN rel) | x IN s && x' IN s } union
+  { (x,x''') | forall ((x,x') IN rel) ((x'',x''') IN rel) | 
+  (x IN s) && not(x' IN s) && not(x'' IN s) && (x''' IN s) &&
+  (x'=x''  || (x',x'') IN tc_rel) }
+*)
+
+
+let restrict_axiomatic_candidate_execution ace is =
+  <|
+  ace_threads = ace.ace_threads;
+  ace_instructions = ace.ace_instructions inter is;
+  ace_ins_source = List.filter (fun (ioid,ins) -> exists (i IN is). ioid_of_axiomatic_instruction i = ioid) ace.ace_ins_source;
+  ace_initial_memory_state = ace.ace_initial_memory_state;
+  ace_initial_register_state  = ace.ace_initial_register_state;
+  ace_final_register_state  = ace.ace_final_register_state;
+  ace_po      = restrict_relation_set ace.ace_po      is; 
+  ace_rf      = restrict_relation_set ace.ace_rf      is;
+  ace_rf_init = restrict_relation_set ace.ace_rf_init is;
+  ace_co      = restrict_relation_set ace.ace_co      is;
+  ace_datadep = restrict_relation_set ace.ace_datadep is;  
+  ace_addrdep = restrict_relation_set ace.ace_addrdep is;
+  ace_ctrldep = restrict_relation_set ace.ace_ctrldep is;
+|>
+
+let de_other ace = 
+  restrict_axiomatic_candidate_execution ace 
+  { i | forall (i IN ace.ace_instructions) |
+        match i with 
+        | AI_Other o -> false
+        | _ -> true
+        end
+  }
+
+
+let is_read i = match i with 
+| AI_Read_memory _ -> true
+| _ -> false 
+end
+
+let is_write i = match i with 
+| AI_Write_memory _ -> true
+| _ -> false 
+end
+
+let is_isync i = match i with 
+| AI_Isync _ -> true
+| _ -> false 
+end
+
+(* "There is a control+isync dependency (ctrlisync) from a
+read to another memory read if there is such a dataflow
+path from the first read to the test of a conditional branch
+that program-order-precedes an isync instruction before
+the second read.".   
+
+Looks like we currently construct primitive ctrldep from read to isync - perhaps more tasteful to do datadep from read to branch?  *)
+let ctrlisync_of ace = 
+  { (ir1,ir2) 
+  | forall (ir1 IN ace.ace_instructions) (iis IN ace.ace_instructions) (ir2 IN ace.ace_instructions) 
+  | is_read ir1 && (ir1,iis) IN ace.ace_ctrldep && (iis,ir2) IN ace.ace_po &&  is_read ir2 }
+
+(* sometimes one might want to restrict the control dependency relation to just the RW pairs *)
+let ctrlRW_of ace = 
+  { (ir,iw) 
+  | forall (ir IN ace.ace_instructions) (iw IN ace.ace_instructions)  
+  | is_read ir && (ir,iw) IN ace.ace_ctrldep && is_write iw }
+
+
+let de_isync ace = 
+  let ace' = 
+    restrict_axiomatic_candidate_execution 
+      ace 
+      { i | forall (i IN ace.ace_instructions) 
+          | match i with 
+            | AI_Isync o -> false
+            | AI_Branch o -> false
+            | _ -> true
+            end } in
+  ace' 
+
