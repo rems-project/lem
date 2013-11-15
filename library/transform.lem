@@ -129,6 +129,7 @@ let lem_transform {isabelle} nat_list_to_string = Isabelle.nat_list_to_string
 (* ========================================================================== *)
 
 module Set = struct
+  include Set
   include Set_extra   (* include the new set module *)
 
   let lem_transform add = Set.insert
