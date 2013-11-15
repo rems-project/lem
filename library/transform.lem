@@ -193,6 +193,7 @@ end
 (* ========================================================================== *)
 
 module List = struct
+  include List
   include List_extra (* include the new set module *)
 
   let lem_transform hd = head
