@@ -9,10 +9,10 @@ It is also intended as an intermediate language for generating
 definitions from domain-specific tools, and for porting definitions
 between interactive theorem proving systems.
 
-This is the development version of Lem, which is not yet feature complete, but
-is already useful for many applications.  It is made available under the BSD
-3-clause license, with the exception of a few files derived from the OCaml,
-which are under the GNU Library GPL.
+Although Lem is under active development, it has already been used in several
+applications.  It is made available under the BSD 3-clause license, with the
+exception of a few files derived from the OCaml, which are under the GNU
+Library GPL.
 
 Lem depends on [OCaml](http://caml.inria.fr/). Lem is tested against OCaml
 3.12.1. and 4.00.0. Other versions might or might not work.
@@ -27,3 +27,9 @@ The source language grammar and type system are defined in language/lem.ott,
 available in a typeset form in language/lem.pdf.  There is also a very
 preliminary manual (not currently up to date) at
 http://www.cl.cam.ac.uk/~so294/lem/.
+
+
+Some projects that use Lem:
+
+CakeML (https://cakeml.org)
+Relaxed-memory concurrency modelling (http://www.cl.cam.ac.uk/~pes20/weakmemory/index.html)
