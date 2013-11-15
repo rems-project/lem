@@ -16,5 +16,6 @@ machineDefAxiomaticCore.lem
 
 all: $(MACHINEFILES)
 	$(TOOLDIR)/lem -ocaml -tex -lib $(TOOLDIR)/library bitwiseCompatibility.lem $(MACHINEFILES)
+	mkdir -p generated
 	mv *.ml generated/
 	mv *.tex generated/
