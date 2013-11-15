@@ -1,0 +1,889 @@
+open import Pervasives_extra
+
+(*========================================================================*)
+(*                                                                        *)
+(*                ppcmem executable model                                 *)
+(*                                                                        *)
+(*          Susmit Sarkar, University of Cambridge                        *)
+(*          Peter Sewell, University of Cambridge                         *)
+(*          Jade Alglave, Oxford University                               *)
+(*          Luc Maranget, INRIA Rocquencourt                              *)
+(*                                                                        *)
+(*  This file is copyright 2010,2011 Institut National de Recherche en    *)
+(*  Informatique et en Automatique (INRIA), and Susmit Sarkar, Peter      *)
+(*  Sewell, and Jade Alglave.                                             *)
+(*                                                                        *)
+(*  All rights reserved.                                                  *)
+(*                                                                        *)
+(*                                                                        *)
+(*                                                                        *)
+(*                                                                        *)
+(*                                                                        *)
+(*========================================================================*)
+
+(* emacs fontification -*-caml-*- *)
+
+
+(*: \section{Thread Transitions} :*) 
+
+open MachineDefUtils
+open MachineDefFreshIds
+open MachineDefValue
+open MachineDefTypes
+open MachineDefInstructionSemantics
+
+(*: \subsection{Auxiliary Definitions} :*) 
+
+let equal_instruction_instance i1 i2 =
+  i1.instance_ioid = i2.instance_ioid
+
+let initial_thread_state tid irv iws =
+  <| thread = tid;
+  initial_register_state = irv;
+  in_flight_instructions = {};
+  committed_instructions = {};
+  unacknowledged_syncs = {};
+  outstanding_read_requests = {};
+|>
+
+let all_instruction_instances c = c.in_flight_instructions union c.committed_instructions
+
+let program_order_prefix t i =
+  let all_instruction_instances = all_instruction_instances t in
+  let bound = Set.size all_instruction_instances in
+  fix bound (fun x -> { i' | forall (i' IN all_instruction_instances) |
+    Set.any (fun i ->
+      match (i.prev) with
+      | Just (ip,r) -> (ip = i'.instance_ioid)
+      | _ -> false
+      end) 
+    x })
+    ({i})
+
+let strict_program_order_prefix t i =
+  (program_order_prefix t i) \ {i}
+
+let program_order_suffix t i =
+  let all_instruction_instances = all_instruction_instances t in
+  let bound = Set.size all_instruction_instances in
+  fix bound (fun x -> {i' | forall (i' IN all_instruction_instances) |
+    Set.any (fun i->
+      match i'.prev with
+      | Just (ip,r) -> (ip = i.instance_ioid)
+      | _ -> false
+      end)
+    x})
+    ({i})
+    
+let strict_program_order_suffix t i =
+  (program_order_suffix t i) \ {i}
+
+let dependent_suffix (m:thread_params) (t:thread_state) (i:instruction_instance) : set instruction_instance =
+  let all_instruction_instance_cands = { i | forall (i IN all_instruction_instances t) | true } in
+  let bound = Set.size all_instruction_instance_cands in
+  fix bound (fun x -> {i' | forall (i' IN all_instruction_instance_cands) |
+    exists (i IN x).
+      (exists (r IN i.regs_out).
+       (i' IN program_order_suffix t i) && (r IN i'.regs_in) &&
+       (not (exists (i'' IN ((strict_program_order_suffix t i) inter (strict_program_order_prefix t i'))).
+                              (r IN i''.regs_out)))) ||
+      (match m.thread_restart_forwarded with
+      | Restart_forwarded_reads -> (exists (w IN i'.writes_read_from). write_possibly_done_by t.thread i.behaviour w)
+      | Dont_restart_forwarded_reads -> false
+      end)
+               })
+    ({i})
+
+let dependent_suffixes (m:thread_params) (t:thread_state) (is:set instruction_instance) : set instruction_instance =
+  let all_instruction_instance_cands = { i | forall (i IN all_instruction_instances t) | true } in
+  let bound = Set.size all_instruction_instance_cands in
+  fix bound (fun x -> {i' | forall (i' IN all_instruction_instance_cands) |
+    exists (i IN x).
+      (exists (r IN i.regs_out).
+       (i' IN program_order_suffix t i) && (r IN i'.regs_in) &&
+       (not (exists (i'' IN ((strict_program_order_suffix t i) inter (strict_program_order_prefix t i'))).
+                              (r IN i''.regs_out)))) ||
+      (match m.thread_restart_forwarded with
+      | Restart_forwarded_reads -> (exists (w IN i'.writes_read_from). write_possibly_done_by t.thread i.behaviour w)
+      | Dont_restart_forwarded_reads -> false
+      end)
+               })
+    (is)
+
+let strict_dependent_suffix m t i =
+  (dependent_suffix m t i) \ {i}
+    
+let starting_inst_instance m new_ioid inst loc prev_inst ws_lower ws_upper ist =
+       let (isem,ist') = sem_of_instruction m inst ist in
+       let r_in = regs_in_of_sem isem in
+       let r_out = regs_out_of_sem isem in
+       (<|instance_ioid = new_ioid;
+         behaviour = isem;
+         regs_in = r_in;
+         regs_out = r_out;
+(*          is_memory_read = will_mem_read isem (\*|| will_mem_load_reserve isem *\); *)
+(*          is_memory_write = will_mem_write isem (\* || will_mem_store_conditional isem *\); *)
+         is_load = will_mem_read isem (*|| will_mem_load_reserve isem *);
+         is_store = will_mem_write isem (* || will_mem_store_conditional isem *);
+         is_load_reserve = will_mem_read_reserve isem;
+         is_store_conditional = will_mem_write_conditional isem;
+         is_load_acquire = will_mem_read_acquire isem;
+         is_store_release = will_mem_write_release isem;
+         is_branch = will_branch isem;
+         is_cond_branch = will_cond_branch isem;
+         is_isync = will_isync isem;
+         is_sync = will_sync isem ;
+         is_lwsync = will_lwsync isem;
+         is_eieio = will_eieio isem;
+         is_dmb = will_dmb isem;
+         is_dmb_ld = will_dmb_ld isem;
+         is_dmb_st = will_dmb_st isem;
+         is_dsb = will_dsb isem;
+         is_isb = will_isync isem;
+         has_done_computation = false (* TODO: check all steps *) ;
+         read_responses = {};
+         writes_upper_bound = ws_upper;
+         writes_lower_bound = ws_lower;
+         writes_read_from = {};
+         program_loc = loc;
+         instance_instruction = inst;
+         prev = prev_inst;
+       |>,ist')
+
+let abort_subtree t i =
+       let all_is = program_order_suffix t i in
+       <| t with in_flight_instructions = t.in_flight_instructions \ all_is |>
+
+let abort_subtrees t is =
+       let all_is = { i' |  forall (i IN is) (i' IN program_order_suffix t i) | true } in
+       <| t with in_flight_instructions = t.in_flight_instructions \ all_is |>
+     
+let restart_dependent_subtree m t i ist =
+       let all_is = dependent_suffix m t i in
+       let (new_is,ist') = 
+	 Set_helpers.fold
+	   (fun i (isk,istk) ->
+	     let (isnew,istk') =
+               (* only if it has done computation *)
+               if i.has_done_computation then
+               (* Preserve ioid, writes-lower-bound, and writes-upper-bound across restarts *)
+                  starting_inst_instance m i.instance_ioid i.instance_instruction i.program_loc i.prev i.writes_lower_bound i.writes_upper_bound istk 
+                  else (i, istk) in
+	     (Set.insert isnew isk,istk'))
+	   all_is ({},ist) in
+       (<| t with in_flight_instructions = (t.in_flight_instructions \ all_is) union new_is |>,
+	 ist')
+
+
+let restart_dependent_subtrees m t is ist =
+       (* let all_is = { i' |  forall (i IN is) (i' IN dependent_suffix m t i) | true } in *)
+       let all_is = dependent_suffixes m t is in
+       let (new_is,ist') = 
+	 Set_helpers.fold
+	   (fun i (isk,istk) ->
+	     let (isnew,istk') = 
+               (* only if it has done computation *)
+               if i.has_done_computation then
+               (* Preserve ioid, writes-lower-bound, and writes-upper-bound across restarts *)
+	          starting_inst_instance m i.instance_ioid i.instance_instruction i.program_loc i.prev i.writes_lower_bound i.writes_upper_bound istk 
+                  else (i,istk) in
+	     (Set.insert isnew isk,istk'))
+	   all_is ({},ist) in
+       (<| t with in_flight_instructions = (t.in_flight_instructions \ all_is) union new_is |>,ist')
+
+let dep_from m ts i1 i2 =
+  (i2 IN dependent_suffix m ts i1) &&
+  (i1.is_load)
+
+let datadep_to ts i1 i2 =
+  (i2 IN strict_program_order_suffix ts i1) &&
+  (exists (r IN i1.regs_out).
+     (r IN ((regs_feeding_cond_branch i2.behaviour) union (regs_feeding_memory_data i2.behaviour))) &&
+     (not (exists (i3 IN ((strict_program_order_suffix ts i1) inter (strict_program_order_prefix ts i2))).
+             r IN i3.regs_out)))
+
+let addrdep_to ts i1 i2 =
+  (i2 IN strict_program_order_suffix ts i1) &&
+  (exists (r IN i1.regs_out).
+     (r IN regs_feeding_addresses i2.behaviour) &&
+     (not (exists (i3 IN ((strict_program_order_suffix ts i1) inter (strict_program_order_prefix ts i2))).
+             r IN i3.regs_out)))
+
+let ctrldep_to ts i1 i2 =
+  (exists (i3 IN ((strict_program_order_suffix ts i1) inter (strict_program_order_prefix ts i2))).
+     will_cond_branch i3.behaviour &&
+   (exists (r IN i1.regs_out).
+     (r IN regs_feeding_cond_branch i3.behaviour) &&
+     (not (exists (i4 IN ((strict_program_order_suffix ts i1) inter (strict_program_order_prefix ts i3))).
+             r IN i4.regs_out))))
+
+
+let datadep_reln_of m ts =
+   let all_instrs = ts.committed_instructions union ts.in_flight_instructions in
+   { (i1,i2) | forall (i1 IN all_instrs) (i2 IN all_instrs) | 
+      exists (i3 IN all_instrs). 
+        dep_from m ts i1 i3 && datadep_to ts i3 i2 }
+
+let addrdep_reln_of m ts =
+   let all_instrs = ts.committed_instructions union ts.in_flight_instructions in
+   { (i1,i2) | forall (i1 IN all_instrs) (i2 IN all_instrs) | 
+      exists (i3 IN all_instrs).
+        dep_from m ts i1 i3 && addrdep_to ts i3 i2 }
+
+let ctrldep_reln_of m ts =
+   let all_instrs = ts.committed_instructions union ts.in_flight_instructions in
+   { (i1,i2) | forall (i1 IN all_instrs) (i2 IN all_instrs) | 
+     exists (i3 IN all_instrs).
+       dep_from m ts i1 i3 && ctrldep_to ts i3 i2 }
+
+let is_memory_access_instruction i = 
+  i.is_load || i.is_store ||
+  i.is_load_reserve || i.is_store_conditional ||
+  i.is_load_acquire || i.is_store_release
+
+let is_memory_write_instruction i = 
+  i.is_store ||
+  (i.is_store_conditional ||
+  i.is_store_release)
+
+let is_memory_read_instruction i = 
+  i.is_load || 
+  (i.is_load_reserve || 
+  i.is_load_acquire) 
+
+let is_memory_barrier i =
+  i.is_sync || i.is_lwsync || i.is_eieio
+
+let is_arm_flowing_memory_barrier i =
+  i.is_dsb || i.is_dmb || i.is_dmb_ld || i.is_dmb_st
+
+let previous_writes_for_write_conditional t i wc = 
+   let po_preds = strict_program_order_prefix t i in
+   {w | forall (il IN po_preds) (w IN il.writes_read_from) | 
+           il.is_load_reserve && 
+           (not (exists (iother IN po_preds). 
+                    (iother.is_load_reserve || iother.is_store_conditional) &&
+                    iother IN strict_program_order_suffix t il))} 
+   
+
+(*: \subsection{Thread Transition Preconditions and Actions} :*) 
+
+(*: \subsubsection{Fetch instruction} :*) 
+
+let fetch_cand program t iprevopt a inst =
+  match iprevopt with
+  | Just iprev ->
+       let next_fetch_addresses = 
+         let addr_next = succeeding_instruction_address iprev.program_loc in
+          match next_fetch_addr iprev.behaviour with
+          | Next -> {addr_next}
+          | Jump_to c -> {Rigid c}
+          | Cond_branch_to v c -> {addr_next; Rigid c} 
+          end in
+       (iprev IN t.committed_instructions union t.in_flight_instructions) &&
+       (a IN next_fetch_addresses) &&
+       (program a = Just inst)
+  | Nothing ->
+       (a = initial_instruction_address t) &&
+       (program a = Just inst)
+   end
+
+let fetched_instruction_instance m next_ioid iprevopt inst a ist =
+       let prev =		 
+         match iprevopt with
+         | Just iprev -> 
+             let prev_reaches_by		=
+               match next_fetch_addr iprev.behaviour with
+               | Next -> Always
+               | Jump_to c -> Always
+               | Cond_branch_to v c -> if a = (Rigid c) then (IfNonZero v) else (IfZero v)
+               end
+             in Just (iprev.instance_ioid,prev_reaches_by)
+          | Nothing -> Nothing
+          end 
+       in
+       starting_inst_instance m next_ioid inst a prev ist 
+
+let fetch_action t i ist' = 
+       (<| t with in_flight_instructions =
+          t.in_flight_instructions union {i} |>,ist')
+
+(*: \subsubsection{Commit in-flight instruction} :*) 
+
+let commit_cand_loose m t i =
+       (i IN t.in_flight_instructions) &&
+       (* commitPend *)
+       (not (can_transition i.behaviour)) &&
+       (* commitDataflow *)
+       (forall (r IN i.regs_in).
+         forall (ideps IN strict_program_order_prefix t i). 
+           if r IN ideps.regs_out && 
+              (not (exists (ideps' IN ((strict_program_order_suffix t ideps) inter (strict_program_order_prefix t i))).
+                          (r IN ideps'.regs_out))) 
+           then ideps IN t.committed_instructions else true) &&
+       (* commitControlflow *)
+       (forall (iprev IN strict_program_order_prefix t i). 
+	  if iprev.is_cond_branch  
+	  then iprev IN t.committed_instructions
+	  else true) &&
+       (* commitPrevMightSameAddress *)
+       (match m.thread_rwc with
+       | Forbid_prev_uncommitted_read_type0 ->
+           (if is_memory_access_instruction i then
+	     let i_addresses = 
+	       {w.w_addr | forall (w IN i.writes_read_from) | true } union (mem_all_read_addresses i.behaviour union mem_all_write_addresses i.behaviour) in
+             forall (iprev IN strict_program_order_prefix t i). 
+             if (is_memory_access_instruction iprev) &&
+               (exists (a IN i_addresses). possibly_reads_from_address iprev.behaviour a || possibly_writes_to_address iprev.behaviour a || (exists (w IN iprev.writes_read_from). w.w_addr = a))
+             then iprev IN t.committed_instructions else true
+           else true)
+(*       | Allow_prev_uncommitted_determined_addr_read_type1
+       | Allow_prev_uncommitted_undetermined_addr_read_type2 -> *)
+       | _ ->
+           (m.thread_rwc = Allow_prev_uncommitted_determined_addr_read_type1 || 
+            m.thread_rwc = Allow_prev_uncommitted_undetermined_addr_read_type2) &&
+           (if is_memory_read_instruction i then
+	     let i_addresses = 
+	       {w.w_addr | forall (w IN i.writes_read_from) | true } union (mem_all_read_addresses i.behaviour union mem_all_write_addresses i.behaviour) in
+             forall (iprev IN strict_program_order_prefix t i). 
+             if (is_memory_access_instruction iprev) &&
+               (exists (a IN i_addresses). possibly_reads_from_address iprev.behaviour a || possibly_writes_to_address iprev.behaviour a || (exists (w IN iprev.writes_read_from). w.w_addr = a)) &&
+               (not (exists (iprev' IN (strict_program_order_prefix t i) inter (strict_program_order_suffix t iprev)) (a IN i_addresses).
+(* XX shouldn't the protecting thing be required to be a write, not a read-or-write, and required to be definitely to the same address? *)
+                             possibly_reads_from_address iprev'.behaviour a || possibly_writes_to_address iprev'.behaviour a || (exists (w IN iprev'.writes_read_from). w.w_addr = a)))
+             then iprev IN t.committed_instructions else true
+           else if is_memory_write_instruction i then
+	     let i_addresses = mem_all_write_addresses i.behaviour in
+             forall (iprev IN strict_program_order_prefix t i). 
+           if (is_memory_write_instruction iprev) &&
+             (exists (a IN i_addresses). possibly_writes_to_address iprev.behaviour a )
+           then iprev IN t.committed_instructions else true
+           else true)
+       end) &&
+       (* commitPrevMightSameAddressII *)
+       (* Any previous memory instruction has dependency-to-address committed (will not change) *)
+       (match m.thread_rwc with
+       | Allow_prev_uncommitted_undetermined_addr_read_type2 ->
+           (if is_memory_read_instruction i then
+             forall (iprev IN strict_program_order_prefix t i).
+             if (is_memory_access_instruction iprev) 
+             then forall (r IN regs_feeding_addresses (fst (sem_of_instruction m iprev.instance_instruction initial_id_state))).
+                 forall (ideps IN strict_program_order_prefix t iprev). 
+               if r IN ideps.regs_out && 
+                 (not (exists (ideps' IN ((strict_program_order_suffix t ideps) inter (strict_program_order_prefix t iprev))).
+                         (r IN ideps'.regs_out))) 
+               then ideps IN t.committed_instructions else true                        
+             else true
+           else if is_memory_write_instruction i then
+             forall (iprev IN strict_program_order_prefix t i).
+             if (is_memory_write_instruction iprev) 
+             then forall (r IN regs_feeding_addresses (fst (sem_of_instruction m iprev.instance_instruction initial_id_state))).
+                 forall (ideps IN strict_program_order_prefix t iprev). 
+               if r IN ideps.regs_out && 
+                 (not (exists (ideps' IN ((strict_program_order_suffix t ideps) inter (strict_program_order_prefix t iprev))).
+                         (r IN ideps'.regs_out))) 
+               then ideps IN t.committed_instructions else true                        
+             else true 
+          else true)
+(*     | Allow_prev_uncommitted_determined_addr_read_type1
+       | Forbid_prev_uncommitted_read_type0 -> *)
+       | _ ->
+           (if is_memory_access_instruction i then
+             forall (iprev IN strict_program_order_prefix t i).
+             if (is_memory_access_instruction iprev) 
+             then forall (r IN regs_feeding_addresses (fst (sem_of_instruction m iprev.instance_instruction initial_id_state))).
+                 forall (ideps IN strict_program_order_prefix t iprev). 
+               if r IN ideps.regs_out && 
+                 (not (exists (ideps' IN ((strict_program_order_suffix t ideps) inter (strict_program_order_prefix t iprev))).
+                         (r IN ideps'.regs_out))) 
+               then ideps IN t.committed_instructions else true                        
+             else true
+           else true)
+       end) &&
+       (* commitPrevBarrLS *)
+       (if is_memory_access_instruction i then
+          (forall (iprev IN strict_program_order_prefix t i). 
+             if (iprev.is_sync || iprev.is_lwsync || iprev.is_isync)
+             then iprev IN t.committed_instructions else true) &&
+          (Set.null t.unacknowledged_syncs) else true) &&
+       (* commitPrevBarrSEIEIO *)
+       (if i.is_store || i.is_store_conditional || i.is_store_release then
+          (forall (iprev IN strict_program_order_prefix t i). 
+             if (iprev.is_eieio)
+             then iprev IN t.committed_instructions else true) else true) &&
+       (* commitPrevBarrB *)
+       (if is_memory_barrier i || i.is_isync then
+          (forall (iprev IN strict_program_order_prefix t i). 
+             if (is_memory_barrier iprev || iprev.is_isync)
+             then iprev IN t.committed_instructions else true) &&
+          (Set.null t.unacknowledged_syncs) else true) &&
+       (* commitMemoryAccessBeforeBarrier *)
+       (if i.is_sync || i.is_lwsync
+       then 
+         forall (iprev IN strict_program_order_prefix t i).
+           if is_memory_access_instruction iprev
+           then iprev IN t.committed_instructions else true
+       else true) &&
+       (* commitMemoryAccessBeforeBarrierEIEIO *)
+       (if i.is_eieio
+       then 
+         forall (iprev IN strict_program_order_prefix t i).
+           if iprev.is_store || iprev.is_store_conditional || iprev.is_store_release
+           then iprev IN t.committed_instructions else true
+       else true) &&
+       (* commitAddressesBeforeIsyncDetermined *)
+       (if i.is_isync
+       then 
+	 forall (iprev IN strict_program_order_prefix t i).
+	   known_memory_addresses i.behaviour
+       else true) &&
+       (* commitPrevLoadAcquire *)
+       (if i.is_store || i.is_store_conditional || i.is_store_release
+       then 
+	 forall (iprev IN strict_program_order_prefix t i).
+	   if iprev.is_load_acquire 
+	   then iprev IN t.committed_instructions else true
+       else true) &&
+       (* commitStoreRelease *)
+       (if i.is_store_release
+       then 
+	 forall (iprev IN strict_program_order_prefix t i).
+	   if is_memory_access_instruction iprev
+	   then iprev IN t.committed_instructions else true
+       else true) &&
+       (* commitLRSC *)
+       (if i.is_load_reserve || i.is_store_conditional 
+       then 
+         forall (iprev IN strict_program_order_prefix t i).
+           if iprev.is_load_reserve || iprev.is_store_conditional 
+           then iprev IN t.committed_instructions else true
+           else true) 
+
+
+let commit_action_loose m t i wreqs breqs wcreqs wcsuccs wcohlasts ist =
+       let irestarts = 
+         (* commitWriteRestarts *)
+	 if i.is_store || i.is_store_conditional || i.is_store_release
+	 then 
+	   let addrs = mem_all_write_addresses i.behaviour in
+	   {ir | forall (ir IN strict_program_order_suffix t i) | 
+	   exists (w' IN ir.writes_read_from). 
+             exists (a IN addrs). 
+             (w'.w_addr = a) && 
+(* TODO: The conjunct below is somewhat opaque, and not in clear correspondence to the text.  Wouldn't it be clearer to require w' <> the_write_of_i and have an explicit "unless there is a program-order-intervening write to the same address" (the below and write_possibly_done_by doesn't check that the other write i' is program-order-before the read). *)
+           (not (exists (i' IN t.in_flight_instructions). 
+                   write_possibly_done_by t.thread i'.behaviour w')) }        
+         (* commitReadRestarts *)
+	 else if Set.size i.writes_read_from > 0 && 
+         (match m.thread_rr with 
+          | Restart_on_commit -> true
+          | Restart_on_read_satisfy -> false
+         end) then
+(* probably defunct
+           { isucc | forall (isucc IN t.in_flight_instructions) 
+                   | ((isucc IN (program_order_suffix t i)) && 
+                      (not (equal_instruction_instance isucc i)) &&
+            (exists (w' IN isucc.writes_read_from) (w IN i.writes_read_from). 
+              (((w'.w_addr = w.w_addr) && not (w' = w) &&
+*)
+           { isucc | forall (isucc IN strict_program_order_suffix t i) | 
+             (exists (w' IN isucc.writes_read_from) (w IN i.writes_read_from). 
+                (w'.w_addr = w.w_addr) && not (w' = w) &&
+                (not (exists (i' IN t.in_flight_instructions).
+(* TODO: again, correspondence between text (which here doesn't say "(where the read was not forwarded)") and the use of write_possibly_done_by below isn't terribly clear *)
+                        write_possibly_done_by t.thread i'.behaviour w'))) || 
+              (match m.thread_lwsync with
+              | Lwsync_read_restart -> 
+                  (exists (ibar IN t.in_flight_instructions).
+                     is_memory_barrier ibar && ibar IN (program_order_prefix t isucc) && ibar IN (program_order_suffix t i))
+              | Lwsync_read_block -> false 
+              end)
+           }
+	 else {} 
+       in
+       let (t',ist') = restart_dependent_subtrees m t irestarts ist in
+       (* commitBranchAborts *)
+       let iaborts = 
+         if i.is_cond_branch
+         then
+           { i_others | forall (i_others IN t'.in_flight_instructions) |
+             match i_others.prev with 
+             | Just (iioid,r) -> (iioid = i.instance_ioid)  &&
+             (not (possible_target i.behaviour i_others.program_loc r))
+             | Nothing -> false
+             end }
+         else {} in
+       let t'' = abort_subtrees t' iaborts in
+       (* Mark any write to preceding uncommitted reads *)
+       let t''' =
+         match m.thread_rwc with
+         | Forbid_prev_uncommitted_read_type0 -> t''
+(*       | Allow_prev_uncommitted_determined_addr_read_type1
+       | Allow_prev_uncommitted_undetermined_addr_read_type2 -> *)
+         | _ ->
+         if i.is_store 
+         then
+	   let waddrs = mem_all_write_addresses i.behaviour in
+           let iprevreads = { i' | forall (i' IN program_order_prefix t i) | i'.is_load && i' IN t''.in_flight_instructions } in
+           let wdones = { w | forall ((Wreq w) IN wreqs) | true } in
+           let wcohlast = { w | forall (w IN wcohlasts) | w.w_addr IN waddrs } in
+           let iprevreads' = { <| i' with writes_upper_bound = i'.writes_upper_bound union wdones; writes_lower_bound = wcohlast |> | forall (i' IN iprevreads) | true } in
+           <| t'' with in_flight_instructions = (t''.in_flight_instructions \ iprevreads) union iprevreads' |>  
+         else t'' 
+       end in
+        (* XX if we're committing a write, the moral *lower* bound for any po-preceding reads that end up reading the same address is the most recent write that's hit our events-propagated-to in the storage subsystem just before this commit.  To record that would need extra thread/ss traffic which we evade by doing work in the read-satisfy storage subsystem rule *)
+       (* commitSendBarriersAndWrites - this code just calculates the resulting state; the actual sending is elsewhere*)
+       let new_barriers = set_option_map (function | Breq b -> if b.b_barrier_type = Sync then Just b else Nothing | _ -> Nothing end) breqs in
+       (* TODO: The below is not quite right for multiple write_conditional in one instruction. Forbid that case? *)
+       let wcsucc_bools =
+         Set_helpers.fold (fun m k -> 
+           match m with
+           | WCresp b -> Set.insert b k end) wcsuccs {} in
+       let i' = 
+         <| i with 
+                behaviour =
+                 Set_helpers.fold
+                   (fun succ k ->
+                       mem_accept_wcond_action k succ)
+                   wcsucc_bools i.behaviour |> in
+       (<| t''' with in_flight_instructions = t'''.in_flight_instructions \ {i};
+          committed_instructions = t'''.committed_instructions union {i'} ;
+           unacknowledged_syncs = new_barriers union t'''.unacknowledged_syncs|>,
+	 ist')
+
+let commit_cand_tight m t i =
+       (i IN t.in_flight_instructions) &&
+       (not (can_transition i.behaviour)) &&
+       (forall (iprev IN strict_program_order_prefix t i). 
+          iprev IN t.committed_instructions) &&
+       (Set.null t.unacknowledged_syncs)
+
+let commit_action_tight m t i wreqs breqs wcreqs wcsuccs wcohlasts ist =
+       let irestarts = 
+	 if i.is_store || i.is_store_conditional || i.is_store_release
+	 then 
+	   let addrs = mem_all_write_addresses i.behaviour in
+	   {ir | forall (ir IN t.in_flight_instructions) | 
+	   exists (w' IN ir.writes_read_from). 
+             exists (a IN addrs). 
+             (w'.w_addr = a) && 
+           (not (exists (i' IN t.in_flight_instructions). 
+                   write_possibly_done_by t.thread i'.behaviour w')) }        
+	 else if Set.size i.writes_read_from > 0 then
+           { isucc | forall (isucc IN t.in_flight_instructions) 
+         | (exists (w' IN isucc.writes_read_from) (w IN i.writes_read_from). 
+              (((w'.w_addr = w.w_addr) && not (w' = w) &&
+                (not (exists (i' IN t.in_flight_instructions).
+                        write_possibly_done_by t.thread i'.behaviour w'))) || 
+              (exists (ibar IN t.in_flight_instructions).
+                 ibar.is_lwsync && ibar IN (strict_program_order_prefix t isucc) && ibar IN (strict_program_order_suffix t i))) && 
+            (isucc IN (strict_program_order_suffix t i)))}
+	 else {} 
+       in
+       let (t',ist') = restart_dependent_subtrees m t irestarts ist in
+       let iaborts = 
+         if i.is_cond_branch 
+         then
+           { i_others | forall (i_others IN t'.in_flight_instructions) |
+             match i_others.prev with 
+             | Just (iioid,r) -> (iioid = i.instance_ioid)  &&
+             (not (possible_target i.behaviour i_others.program_loc r))
+             | Nothing -> false
+             end }
+         else {} in
+       let t'' = abort_subtrees t' iaborts in
+       let new_barriers = set_option_map (function | Breq b -> if b.b_barrier_type = Sync then Just b else Nothing | _ -> Nothing end) breqs in
+       (* TODO: The below is not quite right for multiple write_conditional in one instruction. Forbid that case? *)
+       let wcsucc_bools =
+         Set_helpers.fold (fun m k -> 
+           match m with
+           | WCresp b -> Set.insert b k end) wcsuccs {} in
+       let i' = 
+         <| i with 
+                behaviour =
+                 Set_helpers.fold
+                   (fun succ k ->
+                       mem_accept_wcond_action k succ)
+                   wcsucc_bools i.behaviour |> in
+       (<| t'' with in_flight_instructions = t''.in_flight_instructions \ {i};
+          committed_instructions = t''.committed_instructions union {i'} ;
+          unacknowledged_syncs = new_barriers union t''.unacknowledged_syncs|>,
+	 ist')
+
+let commit_cand m t i =
+  match m.thread_loose_tight with
+  | Thread_loose -> commit_cand_loose m t i
+  | Thread_tight -> commit_cand_tight m t i
+  end
+
+let commit_label_of i wreqs breqs wcreqs wcsuccs  =
+  if Set.size wreqs > 0 then T_Commit_write i {w | forall (Wreq w IN wreqs) | true }
+  else if Set.size breqs > 0 then T_Commit_barrier i {b | forall (Breq b IN breqs) | true }
+  else if Set.size i.writes_read_from > 0 then T_Commit_read i i.read_responses
+(* SS: Hacky. Make it clearer elsewhere that there is only one write-cond per instruction *)
+  else if Set.size wcreqs > 0 then
+    let w_eiid_default = <| weiid_thread = 0; weiid_ioid = 0; weiid_addr = Rigid (Concrete 0); weiid_value = Rigid (Concrete 0) |> in
+    let write_default = <| w_thread = 0; w_ioid = 0; weiid = w_eiid_default ; w_addr = Rigid (Concrete 0); w_value = Rigid (Concrete 0) ; w_isrelease = false |>  in
+    let wcr_default = <| wc_w = write_default ; wc_wprev = Nothing |> in
+    let bool_default = false in
+      T_Commit_write_conditional i
+            (Set_extra.choose {w | forall (WCreq w IN wcreqs) | true }) 
+            (Set_extra.choose {b | forall (WCresp b IN wcsuccs) | true})
+  else T_Commit_reg_or_branch i
+
+let commit_action m t i wreqs breqs wcreqs wcsuccs wcohlasts ist =
+  match m.thread_loose_tight with
+  | Thread_loose -> commit_action_loose m t i wreqs breqs wcreqs wcsuccs wcohlasts ist
+  | Thread_tight -> commit_action_tight m t i wreqs breqs wcreqs wcsuccs wcohlasts ist
+  end
+
+(*: \subsection{Accept sync barrier acknowledgement} :*) 
+
+let accept_sync_barrier_ack_cand t br = true
+
+let accept_sync_barrier_ack_action m t br ist =
+  let b_eiid_default = <| beiid_thread = 0; beiid_ioid = 0 |> in
+  let barrier_default = <| b_thread = 0; b_ioid = 0; beiid = b_eiid_default; b_barrier_type = Sync |> in
+  let b = Set_extra.choose { b | forall (b IN t.unacknowledged_syncs) | (b.beiid = br.br_eiid)} in
+  (<| t with unacknowledged_syncs = t.unacknowledged_syncs \ {b} |>,ist)
+
+(*: \subsection{Satisfy memory read from write received from storage subsystem} :*) 
+
+let memory_read_storage_cand m t i a = 
+  (i IN t.in_flight_instructions) &&
+  (mem_read_cand i.behaviour) &&
+  (is_determined (mem_loc_to_read i.behaviour)) &&
+  (a = mem_loc_to_read i.behaviour) &&
+  (forall (iprev IN strict_program_order_prefix t i). 
+    if iprev.is_sync || iprev.is_isync || (match m.thread_lwsync with Lwsync_read_block -> iprev.is_lwsync | Lwsync_read_restart -> false end)
+    then iprev IN t.committed_instructions else true) &&
+  (Set.null t.unacknowledged_syncs)
+
+(*: \subsection{Satisfy memory read reserve from write received from storage subsystem} :*) 
+
+let memory_read_reserve_storage_cand m t i a = 
+  (i IN t.in_flight_instructions) &&
+  (mem_read_reserve_cand i.behaviour) &&
+  (is_determined (mem_loc_to_read i.behaviour)) &&
+  (a = mem_loc_to_read i.behaviour) &&
+  (forall (iprev IN strict_program_order_prefix t i). 
+    if iprev.is_sync || iprev.is_isync || (match m.thread_lwsync with Lwsync_read_block -> iprev.is_lwsync | Lwsync_read_restart -> false end) (* || iprev.is_load_reserve || iprev.is_store_conditional *)
+    then iprev IN t.committed_instructions else true) &&
+  (Set.null t.unacknowledged_syncs) &&
+  (forall (iprev IN strict_program_order_prefix t i).
+   if iprev.is_load_reserve || iprev.is_store_conditional 
+   then iprev IN t.committed_instructions else true)
+
+
+(*: \subsubsection{Memory read action} :*) 
+
+let memory_read_action m t i r w ist =
+       let irestarts = 
+         (* satisfyReadRestarts *)
+         if
+           (match m.thread_rr with 
+           | Restart_on_commit -> false
+           | Restart_on_read_satisfy -> true
+           end) then
+           { isucc | forall (isucc IN strict_program_order_suffix t i) | 
+           (exists (w' IN isucc.writes_read_from). 
+              (w'.w_addr = w.w_addr) && not (w' = w) &&
+            (not (exists (i' IN t.in_flight_instructions).
+(* TODO: again, correspondence between text (which here doesn't say "(where the read was not forwarded)") and the use of write_possibly_done_by below isn't terribly clear *)
+                    write_possibly_done_by t.thread i'.behaviour w'))) || 
+(* TODO: think again about this... SS suspects lwsync_read_restarts are not going to arise, and anyway is a defunct model, so this disjunct will not add anything *)
+              (match m.thread_lwsync with
+              | Lwsync_read_restart -> 
+                  (exists (ibar IN t.in_flight_instructions).
+                     is_memory_barrier ibar && ibar IN (program_order_prefix t isucc) && ibar IN (program_order_suffix t i))
+              | Lwsync_read_block -> false 
+              end)
+           }
+	 else {} 
+       in
+       let (t',ist') = restart_dependent_subtrees m t irestarts ist in
+       let isem = i.behaviour in
+       let isem' = mem_read_action isem w.w_value in
+       let i' = <| i with behaviour = isem'; read_responses = i.read_responses union {<| rr_thread = r.r_thread; rr_ioid = r.r_ioid; rr_eiid = r.reiid; rr_write = w |>}; writes_read_from = i.writes_read_from union {w} ; has_done_computation = true |> in
+       let t'' = <| t' with in_flight_instructions = (t'.in_flight_instructions union {i'}) \ {i} |> in
+       (t'',ist')
+
+(*: \subsection{Satisfy memory read by forwarding in-flight write directly to reading instruction} :*) 
+
+let memory_read_forward_cand m t i w iprev =
+  (i IN t.in_flight_instructions) &&
+  (mem_read_cand i.behaviour) &&  (* note that that does not cover mem_read_reserve_cand *)
+  (is_determined (mem_loc_to_read i.behaviour)) &&
+  (w.w_addr = (mem_loc_to_read i.behaviour)) &&
+  (is_determined w.w_value) &&
+  (iprev IN strict_program_order_prefix t i) &&
+  (iprev IN t.in_flight_instructions) &&
+  (write_possibly_done_by t.thread iprev.behaviour w) &&
+  (not iprev.is_store_conditional) &&
+  (not iprev.is_store_release) &&
+  (forall (iprev' IN strict_program_order_prefix t i).
+   if possibly_writes_to_address iprev'.behaviour (mem_loc_to_read i.behaviour)
+   then (equal_instruction_instance iprev iprev') || iprev' IN program_order_prefix t iprev 
+   else true) &&
+  (forall (iprev IN strict_program_order_prefix t i). 
+   if iprev.is_sync || iprev.is_isync
+   then iprev IN t.committed_instructions else true) &&
+  (Set.null t.unacknowledged_syncs)
+
+
+
+(*: \subsection{Register read from previous register write} :*) 
+
+let register_read_prev_cand t i r iread =
+       (i IN t.in_flight_instructions) &&
+       (reg_read_cand i.behaviour) &&
+       (r = reg_to_read i.behaviour) &&
+       (iread IN strict_program_order_prefix t i) &&
+       (r IN iread.regs_out) &&
+       (is_determined (val_written_to_register iread.behaviour r)) &&
+       (forall (iprev' IN strict_program_order_prefix t i).
+         if r IN iprev'.regs_out 
+         then (equal_instruction_instance iread iprev') || iprev' IN program_order_prefix t iread 
+         else true)
+
+let register_read_action t i w =
+       let isem = i.behaviour in
+       let isem' = reg_read_action isem w in
+       let i' = <| i with behaviour = isem'; has_done_computation = true |> in
+       <| t with in_flight_instructions = (t.in_flight_instructions union {i'}) \ {i} |>
+
+(*: \subsection{Register read from initial register state} :*) 
+
+let initial_register_read_cand t i r =
+       (i IN t.in_flight_instructions) &&
+       (reg_read_cand i.behaviour) &&
+       (r = reg_to_read i.behaviour) &&
+       (forall (iprev IN strict_program_order_prefix t i).
+         not (r IN iprev.regs_out))
+
+(*: \subsection{Partially evaluate an instruction} :*) 
+
+let partial_evaluate_cand t i =
+       let isem = i.behaviour in
+       (i IN t.in_flight_instructions) &&
+       (internal_transition_cand isem) 
+   
+let partial_evaluate_action t i =
+       let isem = i.behaviour in
+       let isem' = internal_transition_action isem in
+       let i' = <| i with behaviour = isem'; has_done_computation = true |> in
+       <| t with in_flight_instructions =
+                    (t.in_flight_instructions union {i'}) \ {i} |>
+
+(*: \subsection{Restart in-flight instruction} :*) 
+
+let restart_cand t i = 
+       (i IN t.in_flight_instructions)
+
+let restart_action t i =
+       restart_dependent_subtree t i
+
+(*: \subsection{Abort in-flight instruction} :*) 
+
+let abort_cand t i =
+       (i IN t.in_flight_instructions) &&
+       (forall (i' IN program_order_suffix t i). not (i IN t.committed_instructions))
+
+let abort_action t i =
+       abort_subtree t i
+
+
+(*: \subsubsection{The Collected Core Transitions} :*) 
+
+indreln [thread_trans: MachineDefTypes.thread_params -> (MachineDefValue.value -> Maybe.maybe MachineDefTypes.instruction) 
+                    -> (MachineDefTypes.thread_state * MachineDefFreshIds.id_state) -> (set MachineDefTypes.message) 
+                    -> (set MachineDefTypes.message) -> MachineDefTypes.thread_trans 
+                    -> (MachineDefTypes.thread_state * MachineDefFreshIds.id_state) 
+                    -> bool] 
+(*: \textbf{Fetch instruction} :*)
+fetch: forall m program t ist ist' ioid a iprevopt inst i.
+    ((ioid,ist') = gen_ioid ist) &&
+    (fetch_cand program t iprevopt a inst) &&
+    ((i,ist') = fetched_instruction_instance m ioid iprevopt inst a {} {} ist)
+    ==>
+    thread_trans m program (t,ist) {} {} (T_Fetch i) (fetch_action t i ist')
+and
+(*: \textbf{Commit in-flight instruction} :*)
+commit: forall m program t i wreqs breqs wcreqs ssresps wcsuccs wcohlasts ist.
+    (commit_cand m t i) &&
+    (wreqs = Set_helpers.fold (fun w k -> Set.insert (Wreq w) k) (mem_writes_of t.thread i.instance_ioid i.behaviour) {}) &&
+    (breqs = Set_helpers.fold (fun b k -> Set.insert (Breq b) k) (barriers_of t.thread i.instance_ioid i.behaviour) {}) &&
+    (wcohlasts = { w | forall (Coherence_last ws IN ssresps) (w IN ws) | true }) &&
+    (let w_eiid_default = <| weiid_thread = 0; weiid_ioid = 0; weiid_addr = Rigid (Concrete 0); weiid_value = Rigid (Concrete 0) |> in
+     let write_default = <| w_thread = 0; w_ioid = 0; weiid = w_eiid_default ; w_addr = Rigid (Concrete 0); w_value = Rigid (Concrete 0) ; w_isrelease = false |> in
+     let (wcrs,imm_fail) = 
+        Set_helpers.fold 
+         (fun wcr (k,imm_fail) -> 
+             let wprev_set = previous_writes_for_write_conditional t i wcr in
+             if (Set.size wprev_set = 1) then 
+               ((Set.insert (WCreq (<|wc_w=wcr;wc_wprev=Just (Set_extra.choose wprev_set)|>)) k),imm_fail)
+             else ((Set.insert (WCreq (<|wc_w=wcr;wc_wprev=Nothing|>)) k),true))
+         (mem_write_conditionals_of t.thread i.instance_ioid i.behaviour) ({},false)
+      in 
+      if imm_fail then wcreqs = {} && wcsuccs = {(WCresp false)}
+      else wcreqs = wcrs && wcsuccs = {r | forall (r IN ssresps) | match r with WCresp _ -> true | _ -> false end}) 
+    ==>
+    thread_trans m program (t,ist) (wreqs union breqs union wcreqs) ssresps (commit_label_of i wreqs breqs wcreqs wcsuccs) (commit_action m t i wreqs breqs wcreqs wcsuccs wcohlasts ist)
+and
+(*: \textbf{Accept sync barrier acknowledgement} :*)
+accept_sync_barrier_ack: forall m program t br ist.
+       (accept_sync_barrier_ack_cand t br)
+       ==>
+       thread_trans m program (t,ist) {} {Back br} (T_Accept_sync_ack br) (accept_sync_barrier_ack_action m t br ist)
+and
+(*: \textbf{Satisfy memory read from writes received from storage subsystem} :*)
+memory_read_storage: forall m program t i r rr ist.
+       ((r = read_request_of t.thread i.instance_ioid i.behaviour i.writes_lower_bound i.writes_upper_bound) &&
+       (memory_read_storage_cand m t i r.r_addr))
+        ==>
+        thread_trans m program (t,ist) {Rreq r} {Rresp rr} (T_Satisfy_read_from_storage i r rr.rr_write) (memory_read_action m t i r rr.rr_write ist)
+and
+(*: \textbf{Satisfy memory read by forwarding in-flight write directly to reading instruction} :*)
+memory_read_forward: forall m program t i w iprev ist.
+        (memory_read_forward_cand m t i w iprev)
+        ==>
+        thread_trans m program (t,ist) {} {} (T_Satisfy_read_from_forwarded_write i w iprev) (memory_read_action m t i (read_request_of t.thread i.instance_ioid i.behaviour i.writes_lower_bound i.writes_upper_bound) w ist)
+and
+(*: \textbf{Satisfy memory read reserve from writes received from storage subsystem} :*)
+memory_read_reserve_storage: forall m program t i r rr ist.
+       ((r = read_reserve_request_of t.thread i.instance_ioid i.behaviour i.writes_lower_bound i.writes_upper_bound) &&
+       (memory_read_reserve_storage_cand m t i r.r_addr))
+        ==>
+        thread_trans m program (t,ist) {Rreq r} {Rresp rr} (T_Satisfy_read_from_storage (*T_Satisfy_read_reserve*) i r rr.rr_write) (memory_read_action m t i r rr.rr_write ist)
+and
+(*: \textbf{Register read from previous register write} :*)
+register_read_prev: forall m program t i r iprev v ist.
+       (register_read_prev_cand t i r iprev) &&
+       (v = val_written_to_register iprev.behaviour r)
+       ==>
+       thread_trans m program (t,ist) {} {} (T_Register_read_from_previous_write i r v iprev) (register_read_action t i v,ist)
+and
+(*: \textbf{Register read from initial state} :*)
+initial_register_read: forall m program t i r v ist.
+       (initial_register_read_cand t i r) &&
+       (v = t.initial_register_state r)
+       ==>
+       thread_trans m program (t,ist) {} {} (T_Register_read_from_initial i r v) (register_read_action t i v,ist)
+and
+(*: \textbf{Partially evaluate an instruction} :*)
+partial_evaluate: forall m program t i ist.
+       (partial_evaluate_cand t i)
+       ==>
+       thread_trans m program (t,ist) {} {} (T_Partial_evaluate i) (partial_evaluate_action t i,ist)
+and
+(*: \textbf{Restart in-flight instruction} :*)
+restart: forall m program t i ist.
+       (restart_cand t i)
+       ==>
+       thread_trans m program (t,ist) {} {} (T_Restart i) (restart_action m t i ist)
+and
+(*: \textbf{Abort in-flight instruction} :*)
+abort: forall m program t i ist.
+       (abort_cand t i)
+       ==>
+       thread_trans m program (t,ist) {} {} (T_Abort i) (abort_action t i,ist)

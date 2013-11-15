@@ -1,0 +1,537 @@
+open import Pervasives_extra
+
+(*========================================================================*)
+(*                                                                        *)
+(*                ppcmem executable model                                 *)
+(*                                                                        *)
+(*          Susmit Sarkar, University of Cambridge                        *)
+(*          Peter Sewell, University of Cambridge                         *)
+(*          Jade Alglave, Oxford University                               *)
+(*          Luc Maranget, INRIA Rocquencourt                              *)
+(*                                                                        *)
+(*  This file is copyright 2010,2011 Institut National de Recherche en    *)
+(*  Informatique et en Automatique (INRIA), and Susmit Sarkar, Peter      *)
+(*  Sewell, and Jade Alglave.                                             *)
+(*                                                                        *)
+(*  All rights reserved.                                                  *)
+(*                                                                        *)
+(*                                                                        *)
+(*                                                                        *)
+(*                                                                        *)
+(*                                                                        *)
+(*========================================================================*)
+
+(* emacs fontification -*-caml-*- *)
+
+(*: \section{Storage Subsystem Transitions} :*) 
+
+open MachineDefUtils
+open MachineDefTypes
+open MachineDefValue
+
+let initial_storage_subsystem_state m itds (iws:list write) =
+       <| threads = itds;
+          writes_seen = Set.fromList iws;
+          coherence = Relation.relEmpty;
+          writes_past_coherence_point = if m.coherence_points then Set.fromList iws else {};
+          events_propagated_to = (fun tid -> List.map (fun w -> SWrite w) iws);
+          unacknowledged_sync_requests = {};
+       |>
+
+(*: \subsection{Auxiliary Definitions} :*) 
+
+let addresses_seen s =
+  { w.w_addr | forall (w IN s.writes_seen) | true }
+
+let writes_at_addr s a =
+  { w | forall (w IN s.writes_seen) | (w.w_addr = a) }
+
+let barriers_seen s = 
+       let barrier_of_opt te = 
+         match te with
+         | SWrite _ -> Nothing
+         | SBarrier b -> Just b
+         end
+       in
+       let barriers_sent_to tid = opt_map barrier_of_opt (s.events_propagated_to tid) in
+       Set_helpers.fold (fun tid k -> Set.fromList (barriers_sent_to tid) union k)
+               s.threads {}
+
+let writes_not_past_coherence s = 
+     (s.writes_seen) \ (s.writes_past_coherence_point) 
+
+let group_A_writes s b = 
+     {w | forall (w IN s.writes_seen) | 
+      ordered_before_in (s.events_propagated_to (b.b_thread)) (SWrite w) (SBarrier b)}
+
+let not_yet_done_maximal_group_A_writes s tid b =
+   { w | forall (w IN maximal_elements (group_A_writes s b) (Relation.relToSet s.coherence)) |
+         not (elem (SWrite w) (s.events_propagated_to tid) ||
+               (exists (w' IN s.writes_seen). 
+                   (elem (SWrite w') (s.events_propagated_to tid)) && 
+                  Relation.inRel w w' s.coherence)) } 
+
+let barrier_ack_of (b:barrier) = 
+       Back <| br_thread= b.b_thread; br_ioid = b.b_ioid; br_eiid = b.beiid |>
+
+let read_response_of r w =
+       Rresp <| rr_thread = r.r_thread; rr_ioid = r.r_ioid; rr_eiid = r.reiid; rr_write = w; |>
+
+let coherence_lasts s tid =
+  let propagated_writes = { w | forall (w IN s.writes_seen) | elem (SWrite w) (s.events_propagated_to tid) } in
+  { w | forall (w IN maximal_elements propagated_writes (Relation.relToSet s.coherence)) | true }
+       
+    
+(*: \subsection{Storage Subsystem Transition Preconditions and Actions} :*) 
+
+(*: \subsubsection{Accept write request} :*)  
+
+let accept_local_write_cand m s w = true
+
+let accept_local_write_action m s w =
+       let writes_seen' = Set.insert w s.writes_seen in
+       let events_propagated_to' = 
+         funupd s.events_propagated_to (w.w_thread) (add_event (s.events_propagated_to w.w_thread) (SWrite w)) in
+       let coherence' =            
+         Relation.relUnion s.coherence 
+           (Relation.relFromSet 
+             {(wold,w) | forall (wold IN s.writes_seen)  | 
+                        (wold.w_addr = w.w_addr) && 
+                        (elem (SWrite wold) (s.events_propagated_to w.w_thread) ||
+                         (if m.coherence_points then 
+                            wold IN s.writes_past_coherence_point
+                          else false))}) in
+       <| s with coherence = coherence';
+                 events_propagated_to = events_propagated_to';
+                 writes_seen = writes_seen' |> 
+
+(*: \subsubsection{Partial coherence commitment} :*)
+
+let coherence_commitment_cand m s w1 w2 =
+  match m.coherence_commit with
+  | Late_CC -> false
+  | Partial_CC ->
+      begin
+(*: put w1 < w2 (and transitive edges wherever required) in coherence :*)
+        (w1 IN s.writes_seen) &&
+        (w2 IN s.writes_seen) &&
+        (w1.w_addr = w2.w_addr) &&
+        not (Relation.inRel w1 w2 s.coherence) &&
+        not (Relation.inRel w2 w1 s.coherence) &&
+        (let coherence' = Relation.transitiveClosure (Relation.relAdd w1 w2 s.coherence) in
+	let addtnl_edges =
+	  if m.pcc_deadlock_avoid then
+	  	   {(wbefore,wafter) | forall (wbefore IN s.writes_seen) (wafter IN s.writes_seen) |
+	   exists (b IN barriers_seen s).
+	     ((ordered_before_in (s.events_propagated_to wafter.w_thread) (SBarrier b) (SWrite wafter)) &&
+	      (ordered_before_in (s.events_propagated_to wafter.w_thread) (SWrite wbefore) (SBarrier b)))}
+	  else {} 
+	in
+        acyclic (Relation.relUnion coherence' (Relation.relFromSet addtnl_edges)) &&
+        (let new_coh_edges = (Relation.relToSet coherence') \ (Relation.relToSet s.coherence) in
+        if m.coherence_points then 
+          (forall (c IN new_coh_edges).
+             not ((snd c) IN s.writes_past_coherence_point))
+        else
+          true))
+      end
+  end
+
+let coherence_commitment_action s w1 w2 =
+  let coherence' =
+    Relation.transitiveClosure (Relation.relAdd w1 w2 s.coherence) in
+  <| s with coherence = coherence' |>
+
+(*: \subsubsection{Accept a successful write-conditional request} :*)
+let accept_wcond_success_cand s wcr =
+  match wcr.wc_wprev with
+  | Nothing -> false   (* this rule also handles the fail case in which no wprev is provided by the thread semantics *)
+  | Just wprev ->
+     let w = wcr.wc_w in
+     (* ACWCRa *)
+     (w.w_addr = wprev.w_addr) &&
+     (* ACWCRb *)
+     (wprev IN s.writes_past_coherence_point) &&
+     (* ACWCRc *)
+     (forall (w' IN s.writes_seen). (w'.w_thread<>w.w_thread && Relation.inRel wprev w' s.coherence) --> not (w' IN s.writes_past_coherence_point)) && 
+     (* ACWCRd *)
+     (forall (w' IN s.writes_seen). (w'.w_thread<>w.w_thread && Relation.inRel wprev w' s.coherence) --> not (elem (SWrite w') (s.events_propagated_to w.w_thread))) &&
+     (* ACWCRe *)
+     (forall (w' IN s.writes_seen). (w'.w_thread=w.w_thread && w'.w_addr=wprev.w_addr) --> (w' IN s.writes_past_coherence_point))
+  end
+
+  (*      (s.coherence union *)
+  (*         (\* w becomes after any write to the same address that has already reached coherence *\) *)
+  (*         ({(wold, w) | forall (wold IN s.writes_past_coherence_point) | *)
+  (*                 (wold.w_addr = w.w_addr)} union *)
+  (*         (\* w becomes before any write to the same address that has not reached coherence point *\)  *)
+  (*         ({(w,wn) | forall (wn IN writes_not_past_coherence s) |  *)
+  (*                 (w.w_addr = wn.w_addr) } union *)
+  (*         (\* and after any write to the same address from the same thread *\) *)
+  (*          {(wold,w) | forall (wold IN s.writes_seen)  |  *)
+  (*                   (wold.w_addr = w.w_addr) &&  *)
+  (*          List.mem (SWrite wold) (s.events_propagated_to w.w_thread)}))) in *)
+  (*  let new_coh_edges = coherence' \ s.coherence in *)
+  (*  is_strict_order coherence' && *)
+  (*  (forall (c IN new_coh_edges). *)
+  (*     not ((snd c) IN s.writes_past_coherence_point)))) *)
+            
+let accept_wcond_success_action s wcr =
+  match wcr.wc_wprev with 
+  | Nothing -> s
+  | Just wprev -> 
+  let w = wcr.wc_w in
+  let writes_seen' = Set.insert w s.writes_seen in
+  (* AWCRdone *)
+  let events_propagated_to' = 
+    funupd s.events_propagated_to (w.w_thread) (add_event (s.events_propagated_to w.w_thread) (SWrite w)) in
+  let writes_past_coherence_point' =
+    s.writes_past_coherence_point union {w} in
+  let coherence' = (* tc *)
+      (Relation.relUnion s.coherence 
+         (* w becomes after any write to the same address that has already reached coherence *)
+         (Relation.relFromSet (
+           {(wold, w) | forall (wold IN s.writes_past_coherence_point) |
+                 (wold.w_addr = w.w_addr)} union
+         (* w becomes before any write to the same address that has not reached coherence point *) 
+            {(w,wn) | forall (wn IN writes_not_past_coherence s) | 
+                 (w.w_addr = wn.w_addr) }))) in
+         (* and after any write to the same address propagated to the same thread *)
+         (* {(wold,w) | forall (wold IN s.writes_seen)  | 
+                   (wold.w_addr = w.w_addr) && 
+               List.mem (SWrite wold) (s.events_propagated_to w.w_thread)}))*) 
+  <| s with coherence = coherence';
+            events_propagated_to = events_propagated_to';
+            writes_seen = writes_seen';
+            writes_past_coherence_point = writes_past_coherence_point' |> 
+  end
+
+let accept_wcond_failure_cand s wcr =
+  true (* Always allowed to fail *)
+
+let accept_wcond_failure_action s wcr =
+  s
+
+
+(*: \subsubsection{Write reaches its coherence point} :*)  
+
+let write_reaching_coherence_point_cand m s w =
+  if not m.coherence_points then 
+    false
+  else
+    (w IN (writes_not_past_coherence s)) &&
+    (forall (wold IN s.writes_seen). 
+     if (Relation.inRel wold w s.coherence) then wold IN s.writes_past_coherence_point else true) &&
+    (forall (b IN barriers_seen s) (wold IN s.writes_seen). 
+     if (b.b_thread = w.w_thread) && 
+       (ordered_before_in (s.events_propagated_to w.w_thread) (SWrite wold) (SBarrier b)) &&
+       (ordered_before_in (s.events_propagated_to w.w_thread) (SBarrier b) (SWrite w))
+     then (wold IN s.writes_past_coherence_point) else true)
+
+let write_reaching_coherence_point_action m s w = 
+  (* record write as past coherence point *)
+  let writes_past_coherence_point' =
+    s.writes_past_coherence_point union {w} in
+  (* make write before all other writes to this address not past coherence *)
+  let coherence' = Relation.relUnion s.coherence 
+      (Relation.relFromSet { (w,wother) | forall (wother IN (writes_not_past_coherence s)) 
+      | (not (wother = w)) && (wother.w_addr = w.w_addr)})  in
+  <| s with coherence = coherence';
+            writes_past_coherence_point = writes_past_coherence_point' |> 
+
+(*: \subsubsection{Propagate write to another thread} :*) 
+
+let write_announce_cand m s w tid' =
+  match m.coherence_commit with
+  | Late_CC -> false
+  | Partial_CC ->
+      begin
+       (w IN s.writes_seen) &&
+       (tid' IN s.threads) &&
+       (not (elem (SWrite w) (s.events_propagated_to tid'))) &&
+       (forall (w' IN s.writes_seen). 
+         if elem (SWrite w') (s.events_propagated_to tid') && w.w_addr = w'.w_addr 
+         then Relation.inRel w' w s.coherence 
+         else true) &&
+       (forall (b IN barriers_seen s). 
+         if (ordered_before_in (s.events_propagated_to w.w_thread) (SBarrier b) (SWrite w)) 
+         then elem (SBarrier b) (s.events_propagated_to tid') else true)
+      end
+  end
+
+let write_announce_action s w tid' =
+       let events_propagated_to' = funupd s.events_propagated_to tid' (add_event (s.events_propagated_to tid') (SWrite w)) in
+       <| s with events_propagated_to = events_propagated_to' |>
+
+(*: \subsubsection{Propagate write with an already-propagated coherence-later write to another thread} :*)
+
+let write_propagate_between_coherence_cand m s w tid' n =
+  match m.pw with
+  | Only_at_end -> false
+  | Possibly_in_middle ->
+  (w IN s.writes_seen) &&
+  (tid' IN s.threads) &&
+  (not (elem (SWrite w) (s.events_propagated_to tid'))) &&
+  (forall (w' IN s.writes_seen). 
+   if elem (SWrite w') (s.events_propagated_to tid') && w.w_addr = w'.w_addr &&
+     pos_before (s.events_propagated_to tid') (SWrite w') n
+   then Relation.inRel w' w s.coherence 
+   else true) &&
+  (forall (w' IN s.writes_seen). 
+   if elem (SWrite w') (s.events_propagated_to tid') && w.w_addr = w'.w_addr &&
+     pos_after (s.events_propagated_to tid') (SWrite w') n
+   then Relation.inRel w w' s.coherence 
+   else true) &&
+  (forall (b IN barriers_seen s). 
+   if (ordered_before_in (s.events_propagated_to w.w_thread) (SBarrier b) (SWrite w)) 
+   then pos_before (s.events_propagated_to tid') (SBarrier b) n else true)
+   end
+
+let write_propagate_between_coherence_action s w tid' n =
+       let events_propagated_to' = funupd s.events_propagated_to tid' (insert_at_nth (s.events_propagated_to tid') n (SWrite w)) in
+       <| s with events_propagated_to = events_propagated_to' |>
+
+(*: \subsubsection{Send a read response to a thread} :*)
+
+(* PCC...*)
+
+(* XX case: write_upper_bound is empty.  We do the same thing as in PLDI - and indeed, inb Forbid_prev_uncommitted_read_type0, it always will be empty, so we'll always be in this case *)
+
+let send_read_response_cand_loose_empty s tid r w =
+  (w IN s.writes_seen) &&
+  (r.r_addr = w.w_addr) &&
+  (Set.null r.r_write_upper_bound) &&
+  (elem (SWrite w) (s.events_propagated_to tid)) &&
+  (forall (w' IN s.writes_seen).
+     not ( (w'.w_addr = w.w_addr) && elem (SWrite w') (s.events_propagated_to tid) && (ordered_before_in (s.events_propagated_to tid) (SWrite w) (SWrite w'))))
+
+(* XX case: write_upper_bound is nonempty. We pay attention to it, and to the given lower bound *)
+
+let send_read_response_cand_loose_nonempty s tid r w =
+  (w IN s.writes_seen) &&
+  (r.r_addr = w.w_addr) &&
+  (not (Set.null r.r_write_upper_bound)) &&
+  (forall (w' IN r.r_write_upper_bound).
+     if (w'.w_addr = w.w_addr) 
+     then Relation.inRel w w' s.coherence
+     else true) &&
+  (forall (w' IN r.r_write_lower_bound).
+     if (w'.w_addr = w.w_addr) 
+     then (w' = w || Relation.inRel w w' s.coherence)
+     else true) 
+
+let send_read_response_cand_loose s tid r w =
+  send_read_response_cand_loose_empty s tid r w ||
+  send_read_response_cand_loose_nonempty s tid r w
+
+
+let send_read_response_action_loose s tid' r w =
+    s
+
+(* LCC... *)
+
+(* the text tid'  is this   tid'
+            tid   is this   w.w_thread *)
+let send_read_response_cand_tight s tid' r w =
+  (w IN s.writes_seen) &&
+  (r.r_addr = w.w_addr) &&
+  (forall (w' IN s.writes_seen).
+     if (w.w_addr = w'.w_addr) && elem (SWrite w') (s.events_propagated_to tid')
+     then not (Relation.inRel w w' s.coherence) 
+     else true) &&
+  (forall (b IN barriers_seen s).
+     if (ordered_before_in (s.events_propagated_to w.w_thread) (SBarrier b) (SWrite w))
+     then elem (SBarrier b) (s.events_propagated_to tid')
+     else true) 
+
+let send_read_response_action_tight s tid' r w =
+  if not (elem (SWrite w) (s.events_propagated_to tid'))
+  then 
+    let events_propagated_to' = funupd s.events_propagated_to tid'
+        (add_event (s.events_propagated_to tid') (SWrite w)) in
+    let coherence' = 
+        Relation.transitiveClosure (Relation.relUnion s.coherence  
+            (Relation.relFromSet {(wold,w) | forall (wold IN s.writes_seen) |
+              elem (SWrite wold) (s.events_propagated_to tid') &&
+              (wold.w_addr = w.w_addr)})) in
+    <| s with events_propagated_to = events_propagated_to';
+          coherence = coherence' |>
+  else 
+    s
+
+(* PCC and LCC... *)
+
+let send_read_response_cand m s tid' r w =
+  match m.coherence_commit with
+  | Partial_CC -> send_read_response_cand_loose s tid' r w
+  | Late_CC -> send_read_response_cand_tight s tid' r w
+  end
+
+let send_read_response_action m s tid' r w =
+  match m.coherence_commit with
+  | Partial_CC -> send_read_response_action_loose s tid' r w
+  | Late_CC -> send_read_response_action_tight s tid' r w
+  end
+
+
+(*: \subsubsection{Accept a barrier request from a thread} :*)  
+
+let accept_local_barrier_cand s b = true
+
+let accept_local_barrier_action s b = 
+       let events_propagated_to' = 
+         funupd s.events_propagated_to (b.b_thread) (add_event (s.events_propagated_to b.b_thread) (SBarrier b)) in
+       let unacknowledged_sync_requests' = 
+         s.unacknowledged_sync_requests union (if b.b_barrier_type = Sync then {b} else {}) in
+       <| s with unacknowledged_sync_requests = unacknowledged_sync_requests';
+            events_propagated_to = events_propagated_to' |>
+
+(*: \subsubsection{Propagate barrier, recording it as done w.r.t.~another thread} :*) 
+
+(* PCC *)
+
+let barrier_propagation_cand_loose s b tid =
+  (b IN barriers_seen s) && 
+  (tid IN s.threads) &&
+  (not (elem (SBarrier b) (s.events_propagated_to tid))) &&
+  (forall (w IN group_A_writes s b).
+     (elem (SWrite w) (s.events_propagated_to tid)) 
+     ||
+     (exists (w' IN s.writes_seen).
+        Relation.inRel w w' s.coherence &&
+        elem (SWrite w') (s.events_propagated_to tid))
+  )
+ 
+let barrier_propagation_action_loose s b tid =
+  let events_propagated_to' = funupd s.events_propagated_to tid
+      (add_event (s.events_propagated_to tid) (SBarrier b)) in
+  <| s with events_propagated_to = events_propagated_to' |>
+
+(* LCC *)
+
+let barrier_propagation_cand_tight s b tid =
+  (b IN barriers_seen s) && 
+  (tid IN s.threads) &&
+  (not (elem (SBarrier b) (s.events_propagated_to tid))) 
+ 
+let barrier_propagation_action_tight s b tid =
+  let wanns = not_yet_done_maximal_group_A_writes s tid b in
+  let new_write_events = List.map (fun w -> (SWrite w)) (Set_extra.toList wanns) in
+  let events_propagated_to' = funupd s.events_propagated_to tid
+      (add_event (add_events (s.events_propagated_to tid) new_write_events) (SBarrier b)) in
+  let coherence' = Relation.transitiveClosure
+      (Relation.relFromSet (Set_helpers.fold
+         (fun w k ->
+           k union
+             {(wold,w) | forall (wold IN s.writes_seen)  | 
+             (wold.w_addr = w.w_addr) && 
+             elem (SWrite wold) (s.events_propagated_to tid)})
+      wanns (Relation.relToSet s.coherence))) in
+  <| s with events_propagated_to = events_propagated_to';
+            coherence = coherence' |>
+
+(* PCC and LCC *)
+
+let barrier_propagation_cand m s b tid =
+  match m.coherence_commit with
+  | Partial_CC -> barrier_propagation_cand_loose s b tid
+  | Late_CC -> barrier_propagation_cand_tight s b tid
+  end
+
+let barrier_propagation_action m s b tid =
+  match m.coherence_commit with
+  | Partial_CC -> barrier_propagation_action_loose s b tid
+  | Late_CC -> barrier_propagation_action_tight s b tid
+  end
+
+
+(*: \subsubsection{Acknowledge sync barrier} :*) 
+
+let acknowledge_sync_barrier_cand m s b = 
+       (b IN s.unacknowledged_sync_requests) &&
+       (forall (t IN s.threads). elem (SBarrier b) (s.events_propagated_to t)) &&
+       (if m.coherence_points then 
+         (forall (w IN group_A_writes s b).
+            w IN (s.writes_past_coherence_point))
+       else
+         true)
+
+let acknowledge_sync_barrier_action m s b =
+       let unacknowledged_sync_requests' = s.unacknowledged_sync_requests \ {b} in
+       <| s with unacknowledged_sync_requests = unacknowledged_sync_requests' |>
+
+
+(*: \subsubsection{The Collected Storage Subsystem Transitions} :*)
+
+indreln [ ssmachine_trans : MachineDefTypes.ss_params -> MachineDefTypes.storage_subsystem_state -> 
+                        (set MachineDefTypes.message) -> (set MachineDefTypes.message) -> MachineDefTypes.ss_trans -> 
+                        MachineDefTypes.storage_subsystem_state -> bool  ](* :storage_subsystem_state -> ss_trans -> storage_substem_state *)
+
+(*: \textbf{accept write request} :*)
+accept_write_request: forall m s w ws.
+       (accept_local_write_cand m s w) &&
+       (ws = coherence_lasts s w.w_thread)
+       ==>
+       ssmachine_trans m s {Wreq w} {Coherence_last ws} (SS_Accept_write_request w) (accept_local_write_action m s w)
+and
+(*: \textbf{accept write-conditional request (and succeed)} :*)
+accept_wcond_success: forall m s wcr.
+       (accept_wcond_success_cand s wcr)
+       ==>
+       ssmachine_trans m s {WCreq wcr} {WCresp true} (SS_Accept_successful_write_conditional_request wcr) (accept_wcond_success_action s wcr)
+and
+(*: \textbf{accept write-conditional request (and fail)} :*)
+accept_wcond_failure: forall m s wcr.
+       (accept_wcond_failure_cand s wcr)
+       ==>
+       ssmachine_trans m s {WCreq wcr} {WCresp false} (SS_Accept_failing_write_conditional_request wcr) (accept_wcond_failure_action s wcr)
+and
+(*: \textbf{make a coherence commitment} :*)
+coherence_commitment: forall m s w1 w2.
+       (coherence_commitment_cand m s w1 w2)
+       ==>
+       ssmachine_trans m s {} {} (SS_Partial_coherence_commit w1 w2) (coherence_commitment_action s w1 w2)
+and
+(*: \textbf{propagate write to thread (process a core-back invalidate)} :*)
+write_propagate: forall m s w tid.
+       (write_announce_cand m s w tid)
+       ==>
+       ssmachine_trans m s {} {} (SS_Propagate_write_to_thread w tid) (write_announce_action s w tid)
+and
+(*: \textbf{propagate write to thread when coherence successors have possibly been already propagated} :*)
+write_propagate_between_coherence: forall m s w tid n.
+       (write_propagate_between_coherence_cand m s w tid n)
+       ==>
+       ssmachine_trans m s {} {} (SS_Propagate_write_between_coherence w tid n) (write_propagate_between_coherence_action s w tid n)
+and
+(*: \textbf{write reaches coherence point} :*)
+write_reaching_coherence_point: forall m s w.
+       write_reaching_coherence_point_cand m s w 
+       ==>
+       ssmachine_trans m s {} {} (SS_Write_reaches_coherence_point w) (write_reaching_coherence_point_action m s w)
+and
+(*: \textbf{send a read response to a thread} :*)
+send_read_response: forall m s tid r w.
+       (send_read_response_cand m s tid r w)
+       ==>
+       ssmachine_trans m s {Rreq r} {read_response_of r w} (SS_Send_read_response tid r w) (send_read_response_action m s tid r w)
+and
+(*: \textbf{accept a barrier request from a thread}  :*)
+accept_local_barrier: forall m s b.
+       true
+       ==>
+       ssmachine_trans m s   {Breq b} {} (SS_Accept_barrier_request b) (accept_local_barrier_action s b)
+and
+(*: \textbf{propagate barrier, recording it as done w.r.t.~another thread}  :*)
+barrier_propagate: forall m s b tid.
+       (barrier_propagation_cand m s b tid)
+       ==>
+       ssmachine_trans m s {} {} (SS_Propagate_barrier_to_thread b tid) (barrier_propagation_action m s b tid)
+and
+(*: \textbf{acknowledge sync barrier} :*)
+acknowledge_sync_barrier: forall m s b.
+       acknowledge_sync_barrier_cand m s b
+       ==>
+       ssmachine_trans m s  {} {barrier_ack_of b} (SS_Acknowledge_sync_barrier b) (acknowledge_sync_barrier_action m s b)
+
+

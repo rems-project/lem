@@ -1,0 +1,39 @@
+(*=============================================================*)
+(*               ppcmem executable model                       *)
+(*                                                             *)
+(*         Ohad Kammar, University of Cambridge                *)
+(*                                                             *)
+(*                                                             *)
+(*  This is a temporary solution: these bindings should        *)
+(*  maintain the original ppcmem behaviour. However, once      *)
+(*  the port completes and it passes regression tests, these   *)
+(*  bindings should be turned into more accurate description of*)
+(*  bitwise, e.g., by hard-coding word size somewhere.         *)
+(*=============================================================*)
+
+open import Pervasives_extra
+
+
+val (land) : nat -> nat -> nat
+let inline {ocaml} (land) = `(land)`
+
+val (lor) : nat -> nat -> nat
+let inline {ocaml} (lor) = `(lor)`
+
+val (lxor) : nat -> nat -> nat
+let inline {ocaml} (lxor) = `(lxor)`
+
+val lnot : nat -> nat
+let inline {ocaml} lnot = `lnot`
+
+val (lsl) : nat -> nat -> nat
+let inline {ocaml} (lsl) = `(lsl)`
+
+val (lsr) : nat -> nat -> nat
+let inline {ocaml} (lsr) = `(lsr)`
+
+val (asr) : nat -> nat -> nat
+let inline {ocaml} (asr) = `(asr)`
+
+
+

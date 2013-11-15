@@ -1,0 +1,257 @@
+open import Pervasives_extra
+
+(*========================================================================*)
+(*                                                                        *)
+(*                ppcmem executable model                                 *)
+(*                                                                        *)
+(*          Susmit Sarkar, University of Cambridge                        *)
+(*          Peter Sewell, University of Cambridge                         *)
+(*          Jade Alglave, Oxford University                               *)
+(*          Luc Maranget, INRIA Rocquencourt                              *)
+(*                                                                        *)
+(*  This file is copyright 2010,2011 Institut National de Recherche en    *)
+(*  Informatique et en Automatique (INRIA), and Susmit Sarkar, Peter      *)
+(*  Sewell, and Jade Alglave.                                             *)
+(*                                                                        *)
+(*  All rights reserved.                                                  *)
+(*                                                                        *)
+(*                                                                        *)
+(*                                                                        *)
+(*                                                                        *)
+(*                                                                        *)
+(*========================================================================*)
+
+(* emacs fontification -*-caml-*- *)
+
+(*: \section{The Whole System Behaviour} :*)
+
+open MachineDefFreshIds
+open MachineDefValue
+open MachineDefTypes
+open MachineDefStorageSubsystem
+open MachineDefThreadSubsystem
+
+(* the initial writes should be a list of one write for each address that the program will use *)
+let initial_system_state (tids : set thread_id) (irvs: thread_id -> reg -> value) (iws : list write) (m:model_params) =
+       <| thread_states = (fun tid -> initial_thread_state tid (irvs tid) iws);
+          storage_subsystem = initial_storage_subsystem_state m.ss tids iws;
+          idstate = initial_id_state;
+          model = m;
+       |>
+
+indreln [ssmachine_multitrans: MachineDefTypes.ss_params -> MachineDefTypes.storage_subsystem_state 
+                            -> set MachineDefTypes.message -> set MachineDefTypes.message 
+                            -> MachineDefTypes.storage_subsystem_state 
+                            -> bool]
+
+trans: forall m s s' l reqs resps.
+       (ssmachine_trans m s reqs resps l s')
+       ==>
+       ssmachine_multitrans m s reqs resps s'
+
+and
+
+compose: forall m s s' s'' l reqs reqs' resps resps'.
+       (ssmachine_trans m s reqs resps l s' &&
+        ssmachine_multitrans m s' reqs' resps' s'')
+       ==>
+       ssmachine_multitrans m s (reqs union reqs') (resps union resps') s''
+
+indreln [system_trans: MachineDefTypes.system_state -> (MachineDefValue.value -> Maybe.maybe MachineDefTypes.instruction) 
+                    -> MachineDefTypes.system_state 
+                    -> bool]
+(*: One of the threads makes a Thread transition (adding requests and taking responses), and the Storage Subsystem makes one or more transitions (adding responses and taking requests) :*)
+system: forall program s s' tl tid reqs resps.
+       ((ssmachine_multitrans s.model.ss s.storage_subsystem reqs resps s'.storage_subsystem) &&
+       (thread_trans s.model.t program (s.thread_states tid,s.idstate) reqs resps tl (s'.thread_states tid,s'.idstate)))
+       ==>
+       system_trans s program s'
+
+indreln [system_trans_label: (MachineDefValue.value -> Maybe.maybe MachineDefTypes.instruction) 
+                           -> MachineDefTypes.system_state -> (set MachineDefTypes.message) 
+                           -> MachineDefTypes.system_state 
+                           -> bool]
+(*: One of the threads makes a Thread transition (adding requests and taking responses), and the Storage Subsystem makes one or more transitions (adding responses and taking requests) :*)
+system: forall program s s' tl tid reqs resps.
+       ((ssmachine_multitrans s.model.ss s.storage_subsystem reqs resps s'.storage_subsystem) &&
+       (thread_trans s.model.t program (s.thread_states tid,s.idstate) reqs resps tl (s'.thread_states tid,s'.idstate)))
+       ==>
+       system_trans_label program s (reqs union resps) s'
+
+indreln [system_multitrans: MachineDefTypes.system_state -> (MachineDefValue.value -> Maybe.maybe MachineDefTypes.instruction) 
+                         -> MachineDefTypes.system_state 
+                         -> bool]
+
+trans: forall program s s'.
+       (system_trans s program s')
+       ==>
+       system_multitrans s program s'
+
+and
+
+compose: forall program s s' s''.
+       (system_trans s program s' &&
+        system_multitrans s' program s'')
+       ==>
+       system_multitrans s program s''
+
+indreln [system_label_trans: (MachineDefValue.value -> Maybe.maybe MachineDefTypes.instruction) 
+                          ->  MachineDefTypes.system_state -> MachineDefTypes.trans -> MachineDefTypes.system_state 
+                          ->  bool]
+
+fetch: forall program s s' tid i.
+       (thread_trans s.model.t program (s.thread_states tid,s.idstate) {} {} (T_Fetch i) (s'.thread_states tid,s'.idstate)) &&
+       (s.storage_subsystem = s'.storage_subsystem)
+       ==>
+       system_label_trans program s (Fetch tid i) s'
+
+and 
+
+commit_write: forall program s s' tid i w ws.
+       (thread_trans s.model.t program (s.thread_states tid,s.idstate) {Wreq w} {Coherence_last ws} (T_Commit_write i {w}) (s'.thread_states tid,s'.idstate)) &&
+       (ssmachine_trans s.model.ss s.storage_subsystem {Wreq w} {Coherence_last ws} (SS_Accept_write_request w) s'.storage_subsystem)
+       ==>
+       system_label_trans program s (Commit_write tid i {w} ws) s'
+
+and
+
+commit_barrier: forall program s s' tid i b.
+       (thread_trans s.model.t program (s.thread_states tid,s.idstate) {Breq b} {} (T_Commit_barrier i {b}) (s'.thread_states tid,s'.idstate)) &&
+       (ssmachine_trans s.model.ss s.storage_subsystem {Breq b} {} (SS_Accept_barrier_request b) s'.storage_subsystem)
+       ==>
+       system_label_trans program s (Commit_barrier tid i b) s'
+
+and
+
+commit_read: forall program s s' tid i rws.
+       (thread_trans s.model.t program (s.thread_states tid,s.idstate) {} {} (T_Commit_read i rws) (s'.thread_states tid,s'.idstate)) &&
+       (s.storage_subsystem = s'.storage_subsystem)
+       ==>
+       system_label_trans program s (Commit_read tid i rws) s'
+
+and
+
+commit_reg_or_branch: forall program s s' tid i.
+       (thread_trans s.model.t program (s.thread_states tid,s.idstate) {} {} (T_Commit_reg_or_branch i) (s'.thread_states tid,s'.idstate)) &&
+       (s.storage_subsystem = s'.storage_subsystem)
+       ==>
+       system_label_trans program s (Commit_reg_or_branch tid i) s'
+
+and
+
+read_reserve_from_storage_subsystem: forall program s s' tid r rr w i.
+       (ssmachine_trans s.model.ss s.storage_subsystem {Rreq r} {Rresp rr} (SS_Send_read_response tid r w) s'.storage_subsystem) &&
+       (thread_trans s.model.t program (s.thread_states tid,s.idstate) {Rreq r} {Rresp rr} (T_Satisfy_read_reserve i r w) (s'.thread_states tid,s'.idstate))
+       ==>
+       system_label_trans program s (Read_from_storage_subsystem tid i w) s'
+
+and
+
+read_from_storage_subsystem: forall program s s' tid r rr w i.
+       (ssmachine_trans s.model.ss s.storage_subsystem {Rreq r} {Rresp rr} (SS_Send_read_response tid r w) s'.storage_subsystem) &&
+       (thread_trans s.model.t program (s.thread_states tid,s.idstate) {Rreq r} {Rresp rr} (T_Satisfy_read_from_storage i r w) (s'.thread_states tid,s'.idstate))
+       ==>
+       system_label_trans program s (Read_from_storage_subsystem tid i w) s'
+
+and
+
+write_forward_to_read: forall program s s' tid i w iprev.
+       (thread_trans s.model.t program (s.thread_states tid,s.idstate) {} {} (T_Satisfy_read_from_forwarded_write i w iprev) (s'.thread_states tid,s'.idstate)) &&
+       (s.storage_subsystem = s'.storage_subsystem)
+       ==>
+       system_label_trans program s (Write_forward_to_read tid i w iprev) s'
+
+and 
+
+write_propagate_to_thread: forall program s s' w tid.
+       (ssmachine_trans s.model.ss s.storage_subsystem {} {} (SS_Propagate_write_to_thread w tid) s'.storage_subsystem) &&
+       (s.thread_states = s'.thread_states) &&
+       (s.idstate = s'.idstate)
+       ==>
+       system_label_trans program s (Write_propagate_to_thread w tid) s'
+
+and
+
+write_propagate_between_coherence: forall program s s' w tid n.
+       (ssmachine_trans s.model.ss s.storage_subsystem {} {} (SS_Propagate_write_between_coherence w tid n) s'.storage_subsystem) &&
+       (s.thread_states = s'.thread_states) &&
+       (s.idstate = s'.idstate)
+       ==>
+       system_label_trans program s (Write_propagate_between_coherence w tid n) s'
+
+and
+
+barrier_propagate_to_thread: forall program s s' b tid.
+       (ssmachine_trans s.model.ss s.storage_subsystem {} {} (SS_Propagate_barrier_to_thread b tid) s'.storage_subsystem) &&
+       (s.thread_states = s'.thread_states) &&
+       (s.idstate = s'.idstate)
+       ==>
+       system_label_trans program s (Barrier_propagate_to_thread b tid) s'
+
+and
+
+acknowledge_sync: forall program s s' tid b br.
+       (ssmachine_trans s.model.ss s.storage_subsystem {} {Back br} (SS_Acknowledge_sync_barrier b) s'.storage_subsystem) &&
+       (Back br = barrier_ack_of b) &&
+       (tid = b.b_thread) &&
+       (thread_trans s.model.t program (s.thread_states tid,s.idstate) {} {Back br} (T_Accept_sync_ack br) (s'.thread_states tid,s'.idstate))
+       ==>
+       system_label_trans program s (Acknowledge_sync b) s'
+
+and 
+  
+partial_coherence_commit: forall program s s' w1 w2.
+       (ssmachine_trans s.model.ss s.storage_subsystem {} {} (SS_Partial_coherence_commit w1 w2) s'.storage_subsystem) &&
+       (s.thread_states = s'.thread_states) &&
+       (s.idstate = s'.idstate)
+       ==>
+       system_label_trans program s (Partial_coherence_commit w1 w2) s'
+
+and
+
+write_reaching_coherence_point: forall program s s' w.
+       (ssmachine_trans s.model.ss s.storage_subsystem {} {} (SS_Write_reaches_coherence_point w) s'.storage_subsystem) &&
+       (s.thread_states = s'.thread_states) &&
+       (s.idstate = s'.idstate)
+       ==>
+       system_label_trans program s (Write_reaching_coherence_point w) s'
+
+and
+
+register_read_previous: forall program s s' tid i r v iprev.
+       (thread_trans s.model.t program (s.thread_states tid,s.idstate) {} {} (T_Register_read_from_previous_write i r v iprev) (s'.thread_states tid,s'.idstate)) &&
+       (s.storage_subsystem = s'.storage_subsystem)
+       ==>
+       system_label_trans program s (Register_read_prev tid i r iprev) s'
+
+and 
+
+register_read_initial: forall program s s' tid i r v.
+       (thread_trans s.model.t program (s.thread_states tid,s.idstate) {} {} (T_Register_read_from_initial i r v) (s'.thread_states tid,s'.idstate)) &&
+       (s.storage_subsystem = s'.storage_subsystem)
+       ==>
+       system_label_trans program s (Register_read_initial tid i r) s'
+
+and 
+
+partial_evaluate: forall program s s' tid i.
+       (thread_trans s.model.t program (s.thread_states tid,s.idstate) {} {} (T_Partial_evaluate i) (s'.thread_states tid,s'.idstate)) &&
+       (s.storage_subsystem = s'.storage_subsystem)
+       ==>
+       system_label_trans program s (Partial_evaluate tid i) s'
+
+and 
+
+restart_instruction_instance: forall program s s' tid i.
+       (thread_trans s.model.t program (s.thread_states tid,s.idstate) {} {} (T_Restart i) (s'.thread_states tid,s'.idstate)) &&
+       (s.storage_subsystem = s'.storage_subsystem)
+       ==>
+       system_label_trans program s (Restart_instruction_instance tid i) s'
+
+and 
+
+abort_instruction_instance: forall program s s' tid i.
+       (thread_trans s.model.t program (s.thread_states tid,s.idstate) {} {} (T_Abort i) (s'.thread_states tid,s'.idstate)) &&
+       (s.storage_subsystem = s'.storage_subsystem)
+       ==>
+       system_label_trans program s (Abort_instruction_instance tid i) s'

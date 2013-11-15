@@ -1,0 +1,182 @@
+open import Pervasives_extra
+
+(*========================================================================*)
+(*                                                                        *)
+(*                ppcmem executable model                                 *)
+(*                                                                        *)
+(*          Susmit Sarkar, University of Cambridge                        *)
+(*          Peter Sewell, University of Cambridge                         *)
+(*          Jade Alglave, Oxford University                               *)
+(*          Luc Maranget, INRIA Rocquencourt                              *)
+(*                                                                        *)
+(*  This file is copyright 2010,2011 Institut National de Recherche en    *)
+(*  Informatique et en Automatique (INRIA), and Susmit Sarkar, Peter      *)
+(*  Sewell, and Jade Alglave.                                             *)
+(*                                                                        *)
+(*  All rights reserved.                                                  *)
+(*                                                                        *)
+(*                                                                        *)
+(*                                                                        *)
+(*                                                                        *)
+(*                                                                        *)
+(*========================================================================*)
+
+(* emacs fontification -*-caml-*- *)
+
+(*: \section{Possibly-Symbolic Values} :*)
+
+(*: Including the identities X+0 = 0 and X xor X = 0, for expressing
+artificial dependencies, and the evaluation of operations on concrete
+values, but no other equations involving symbolic values. :*)
+
+
+open import BitwiseCompatibility
+open MachineDefUtils
+open MachineDefFreshIds
+
+type cst = 
+  | Concrete of nat
+  | Symbolic of string
+
+let compare_cst c1 c2 =
+  match (c1,c2) with
+  | (Concrete _, Symbolic _) -> GT
+  | (Symbolic _, Concrete _) -> LT
+  | (Symbolic s1, Symbolic s2) -> compare s1 s2
+  | (Concrete i1, Concrete i2) -> compare i1 i2
+  end
+
+let intToCst i = Concrete i
+let nameToCst s = Symbolic s
+
+type value =
+  | Rigid of cst
+  | Flexible of flexsym
+
+let fresh_var () ist =
+  let (f,ist') = gen_flexsym ist in
+  (Flexible f,ist')
+
+let compare_value v1 v2 =
+  match (v1,v2) with
+  | (Rigid _, Flexible _) -> GT
+  | (Flexible _, Rigid _) -> LT
+  | (Flexible f1, Flexible f2) -> compare_flexsym f1 f2
+  | (Rigid c1, Rigid c2) -> compare_cst c1 c2
+  end
+
+let intToV i = Rigid (Concrete i)
+let zero = intToV 0
+let one = intToV 1
+
+let equalityPossible v1 v2 =
+  match (v1,v2) with
+  | (Rigid c1,Rigid c2) -> (compare_cst c1 c2 = EQ)
+  | (_,_) -> true
+  end
+ 
+(* Operands *)
+type op_bin = 
+  | Add | Sub | Mul | Div 
+  | And | Or | Xor
+  | EqOp | LtOp | GtOp
+  | Nor | Lsl | Asr
+
+type op_un =
+  | Not | Neg
+
+let unop op v1 = match v1 with
+| Rigid (Concrete i1) -> Rigid (Concrete (op i1))
+(* | Rigid (Symbolic s1) -> *)
+(*     Warn.user_error "illegal operation on %s" s1 *)
+(* | Var _ -> raise Undetermined *)
+end
+
+let binop op_op op v1 v2 = match (v1,v2) with
+| (Rigid (Concrete i1),Rigid (Concrete i2)) -> Rigid (Concrete (op i1 i2))
+(* | (Rigid (Concrete _),Rigid (Symbolic _)) *)
+(* | (Rigid (Symbolic _),Rigid (Concrete _)) *)
+(* | (Rigid (Symbolic _),Rigid (Symbolic _)) -> *)
+(*     Warn.user_error *)
+(*       "illegal operation %s on constants %s and %s" *)
+(*       (Op.pp_op op_op) (pp_v v1) (pp_v v2) *)
+(* | _,_ -> raise Undetermined *)
+end
+
+let add v1 v2 = match (v1,v2) with
+| (Rigid (Concrete 0),v) -> v
+| (v,Rigid (Concrete 0)) -> v (* Important for symbolic constants *)
+| (_,_) -> binop Add (+) v1 v2
+end
+
+let xor v1 v2 = 
+  if compare_value v1 v2 = EQ then zero else binop Xor (lxor) v1 v2
+
+let bool_to_int f v1 v2 : nat = match f v1 v2 with
+  | false -> 0
+  | true -> 1
+end
+
+let eq v1 v2 = match (v1,v2) with
+| (Flexible i1,Flexible i2) -> if compare_flexsym i1 i2 = EQ then one else zero
+| (Rigid (Symbolic s1),Rigid (Symbolic s2)) ->
+    if compare_string s1 s2 = EQ then one else zero
+| (Rigid (Concrete i1),Rigid (Concrete i2)) ->
+    if compare_num i1 i2 = EQ then one else zero
+| (Rigid (Symbolic _), Rigid (Concrete 0)) -> zero
+| (Rigid (Concrete 0), Rigid (Symbolic _)) -> zero
+| (_,_) -> zero
+end
+
+let lt v1 v2 = match (v1,v2) with
+| (Rigid (Concrete i1),Rigid (Concrete i2)) ->
+    intToV (bool_to_int (<) i1 i2)
+| (_,_) -> zero
+end
+
+let gt v1 v2 = match (v1,v2) with
+| (Rigid (Concrete i1),Rigid (Concrete i2)) ->
+    intToV (bool_to_int (>) i1 i2)
+| (_,_) -> zero
+end
+
+let op1 op = match op with
+| Not ->
+    unop (fun i -> match i with 0 -> 1 | _ -> 0 end)
+| Neg ->
+    unop (fun i -> (0 - i)) (* Official definition in manual: bitwise negate(i) + 1, which is equivalent *)
+end
+
+let op op = match op with
+| Add -> add
+| Sub -> binop op (-)
+| Mul -> binop op ( * )
+| Div -> binop op (/)
+| And -> binop op (land)
+| Or -> binop op (lor)
+| Xor -> xor
+| LtOp -> lt
+| GtOp -> gt
+| EqOp -> eq
+| Nor -> binop op (fun i1 i2 -> lnot (i1 lor i2))
+| Lsl -> binop op (lsl) 
+| Asr -> binop op (asr) 
+end
+
+type solution = Map.map flexsym value
+
+let is_determined v = 
+  match v with
+  | Rigid _ -> true
+  | Flexible _ -> false
+  end
+
+let subst_var (soln : solution) (v : value) : value = 
+  match v with
+  | Rigid _ -> v
+  | Flexible c -> if Map.member c soln 
+                  then match Map.lookup c soln with 
+                       | Just x -> x 
+                       end
+                  else v
+  end

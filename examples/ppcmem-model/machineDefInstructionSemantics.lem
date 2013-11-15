@@ -1,0 +1,1306 @@
+open import Pervasives_extra
+
+(*========================================================================*)
+(*                                                                        *)
+(*                ppcmem executable model                                 *)
+(*                                                                        *)
+(*          Susmit Sarkar, University of Cambridge                        *)
+(*          Peter Sewell, University of Cambridge                         *)
+(*          Jade Alglave, Oxford University                               *)
+(*          Luc Maranget, INRIA Rocquencourt                              *)
+(*                                                                        *)
+(*  This file is copyright 2010,2011 Institut National de Recherche en    *)
+(*  Informatique et en Automatique (INRIA), and Susmit Sarkar, Peter      *)
+(*  Sewell, and Jade Alglave.                                             *)
+(*                                                                        *)
+(*  All rights reserved.                                                  *)
+(*                                                                        *)
+(*                                                                        *)
+(*                                                                        *)
+(*                                                                        *)
+(*                                                                        *)
+(*========================================================================*)
+
+(* Help emacs fontification -*-caml-*- *)
+
+(* PS2: what's the Scott-language prover-output story for these missing pattern match cases? *)
+
+
+open MachineDefUtils
+open MachineDefFreshIds
+open MachineDefValue
+open MachineDefTypes
+
+let make_write_event tid ioid a v =
+  let new_eiid = <| weiid_thread = tid; weiid_ioid = ioid; weiid_addr = a; weiid_value = v |> in
+  <|w_thread = tid; w_ioid = ioid; weiid = new_eiid;w_addr = a;w_value = v; w_isrelease = false |>
+
+let make_write_release_event tid ioid a v =
+  let new_eiid = <| weiid_thread = tid; weiid_ioid = ioid; weiid_addr = a; weiid_value = v |> in
+  <|w_thread = tid; w_ioid = ioid; weiid = new_eiid;w_addr = a;w_value = v; w_isrelease = true |>
+
+let make_barrier_event tid ioid b =
+  let new_eiid = <| beiid_thread = tid; beiid_ioid = ioid |> in
+  <|b_thread = tid; b_ioid = ioid; beiid = new_eiid;b_barrier_type = b|>
+
+
+let make_read_request_event tid ioid a ws_lower ws_upper =
+  let new_eiid = <| reiid_thread = tid; reiid_ioid = ioid; reiid_addr = a |> in
+  (* <|r_thread = tid; r_ioid = ioid; reiid = new_eiid;r_addr = a; r_write_lower_bound = ws_lower; r_write_upper_bound = ws_upper |> *)
+(* no need to filter like this: *)
+  <|r_thread = tid; r_ioid = ioid; reiid = new_eiid;r_addr = a; r_write_lower_bound = ({w | forall (w IN ws_lower) | w.w_addr = a}); r_write_upper_bound = ({w | forall (w IN ws_upper) | w.w_addr = a})|>
+
+(*
+let make_read_reserve_request_event tid ioid a =
+  let new_eiid = <| reiid_thread = tid; reiid_ioid = ioid; reiid_addr = a |> in
+  <|r_thread = tid; reiid = new_eiid;r_addr = a; r_isreadreserve = true|>
+*)
+
+let internal_transition_cand s =
+  match s.remaining with
+  | (Binop _ _ _ _) :: _ -> true
+  | (Unop _ _ _) :: _ -> true
+  | _ -> false
+  end
+        
+let internal_transition_action s =
+  match s.remaining with
+  | Binop v1 bop v2 v3 :: rem' ->
+      let v2' = subst_var s.val_soln v2 in
+      let v3' = subst_var s.val_soln v3 in
+      let v1' = op bop v2' v3' in
+      match v1 with
+        | Flexible uv1 ->
+	    <| remaining = rem';
+	    val_soln = Map.insert uv1 v1' s.val_soln |>
+(*	| Rigid _ -> user_error "Binop assigning to rigid variable" *)
+      end
+  | Unop  v1 uop v2 :: rem' ->
+      let v2' = subst_var s.val_soln v2 in
+      let v1' = op1 uop v2' in
+      match v1 with
+	| Flexible uv1 ->
+	    <| remaining = rem';
+            val_soln = Map.insert uv1 v1' s.val_soln |>
+(* 	| Rigid _ -> user_error "Unop assigning to rigid variable" *)
+      end 
+(*   | _ -> user_error "Internal transition attempted for non-candidate" *)
+  end
+        
+    let reg_read_cand s =
+      match s.remaining with
+      | Read_reg _  _ :: _ -> true
+      | _ -> false
+      end
+
+    let reg_to_read s =
+      match s.remaining with
+      | Read_reg r v  :: _ -> r
+(*       | _ -> Warn.user_error "Not a register to read" *)
+      end
+
+    let reg_read_action s vr =
+      match s.remaining with
+      | Read_reg r v :: rem' ->
+          match v with
+	    | Flexible uv ->
+		<| remaining = rem';
+		 val_soln = Map.insert uv vr s.val_soln |>
+(* 	    | Rigid _ -> Warn.user_error "Register read to rigid variable" *)
+	  end
+(*       | _ -> Warn.user_error "Register-read transition attempted for non-candidate" *)
+      end
+
+    let mem_read_cand s =
+      match s.remaining with
+      | Read_mem _ _ :: _ -> true
+      | _ -> false
+      end
+
+    let mem_loc_to_read s =
+      match s.remaining with
+      | Read_mem a v :: _ -> subst_var s.val_soln a
+      | Read_mem_reserve a v :: _ -> subst_var s.val_soln a
+(*       | _ -> Warn.user_error "Not a memory location to read" *)
+      end
+
+    let mem_read_action s vr =
+      match s.remaining with
+      | Read_mem a v :: rem' ->
+	  match v with
+	    | Flexible uv ->
+		<| remaining = rem';
+		 val_soln = Map.insert uv vr s.val_soln |>
+(* 	    | Rigid _ -> Warn.user_error "Memory read to rigid variable" *)
+	  end
+      | Read_mem_reserve a v :: rem' ->
+	  match v with
+	    | Flexible uv ->
+		<| remaining = rem';
+		 val_soln = Map.insert uv vr s.val_soln |>
+(* 	    | Rigid _ -> Warn.user_error "Memory read to rigid variable" *)
+	  end
+(*       | _ -> Warn.user_error "Memory-read transition attempted for non-candidate" *)
+      end
+
+    let mem_read_reserve_cand s =
+      match s.remaining with
+      | Read_mem_reserve _ _ :: _ -> true
+      | _ -> false
+      end
+
+    let determined_branch s =
+      List.all
+	(fun a ->
+	  match a with
+	  | Cond_branch v _ -> is_determined (subst_var s.val_soln v)
+	  | _ -> true
+          end)
+	s.remaining
+
+    let possible_target s addr r =
+      List.any
+	(fun a ->
+	  match a with
+	  | Jump cst -> equalityPossible addr (Rigid cst)
+	  | Cond_branch v cst1 ->
+	      let vn = subst_var s.val_soln v in
+	      match r with
+		(* Should check vn and the variable under ifzero/nonzero is the same *)
+	      | IfZero _ -> equalityPossible vn zero
+	      | IfNonZero _ -> not (equalityPossible vn zero)
+	      | Always -> false
+              end
+	  | _ -> false
+          end)
+	s.remaining
+
+(*PS2: the following has a misleading name - should alpha...    *)
+    let can_transition s =
+      match s.remaining with
+      | [] -> false
+      | Read_reg _ _ :: _ -> true
+      | Read_mem _ _ :: _ -> true
+      | Read_mem_reserve _ _ :: _ -> true
+      | Read_mem_acq _ _ :: _ -> true
+      | Binop _ _ _ _ :: _-> true
+      | Unop _ _ _ :: _ -> true
+      | _ -> false
+      end
+
+    let will_barrier s =
+      List.any
+    	(fun a ->
+    	  match a with
+    	  | Barrier _ -> true
+    	  | _ -> false
+          end)
+    	s.remaining
+
+    let will_barrier_bt s bt =
+      List.any
+    	(fun a ->
+    	  match a with
+    	  | Barrier bt' -> bt=bt'
+    	  | _ -> false
+          end)
+    	s.remaining
+
+
+    let will_sync s    = (will_barrier_bt s Sync)
+    let will_lwsync s  = (will_barrier_bt s LwSync)
+    let will_eieio s   = (will_barrier_bt s Eieio)
+                                      
+    let will_dmb s     = (will_barrier_bt s DMB)
+    let will_dmb_ld s  = (will_barrier_bt s DMB_LD)
+    let will_dmb_st s  = (will_barrier_bt s DMB_ST)
+    let will_dsb s     = (will_barrier_bt s DSB)
+
+    let will_isync s =
+      List.any
+	(fun a ->
+	  match a with
+	  | Isync -> true
+	  | _ -> false
+          end)
+	s.remaining
+	
+    let will_mem_read s =
+      List.any
+    	(fun a ->
+    	  match a with
+    	  | Read_mem _ _ -> true
+(* 	  | Read_mem_reserve _ _ -> true *)
+(* 	  | Read_mem_acq _ _ -> true *)
+    	  | _ -> false
+          end)
+    	s.remaining
+	
+    let will_mem_write s =
+      List.any
+    	(fun a ->
+    	  match a with
+    	  | Write_mem _ _ -> true
+(* 	  | Write_mem_conditional _ _ _ -> true *)
+(* 	  | Write_mem_rel _ _ -> true *)
+    	  | _ -> false
+          end)
+    	s.remaining
+
+    let will_mem_read_reserve s = 
+      List.any
+    	(fun a ->
+    	  match a with
+    	  | Read_mem_reserve _ _ -> true
+    	  | _ -> false
+          end)
+    	s.remaining      
+
+    let will_mem_write_conditional s =
+      List.any
+    	(fun a ->
+    	  match a with
+    	  | Write_mem_conditional _ _ _ -> true
+    	  | _ -> false
+          end)
+    	s.remaining
+
+    let will_mem_read_acquire s =
+      List.any
+    	(fun a ->
+    	  match a with
+	  | Read_mem_acq _ _ -> true
+    	  | _ -> false
+          end)
+    	s.remaining
+
+    let will_mem_write_release s =
+      List.any
+    	(fun a ->
+    	  match a with
+	  | Write_mem_rel _ _ -> true
+    	  | _ -> false
+          end)
+    	s.remaining
+
+    let will_mem s = 
+       will_mem_read s         || will_mem_write s 
+    || will_mem_read_acquire s || will_mem_write_release s 
+    || will_mem_read_reserve s || will_mem_write_conditional s 
+
+    let will_branch s =
+      List.any
+    	(fun a ->
+    	  match a with
+    	  | Cond_branch _ _ -> true
+	  | Jump _ -> true
+    	  | _ -> false
+          end)
+    	s.remaining
+
+    let will_cond_branch s =
+      List.any
+    	(fun a ->
+    	  match a with
+    	  | Cond_branch _ _ -> true
+    	  | _ -> false
+          end)
+    	s.remaining
+
+    let regs_in_of_sem s =
+      foldl
+    	(fun k a ->
+    	  match a with
+    	  | Read_reg r _ -> Set.insert r k
+    	  | _ -> k
+          end)
+    	{} s.remaining
+
+    let regs_out_of_sem s =
+      foldl
+    	(fun k a ->
+    	  match a with
+    	  | Write_reg r _ -> Set.insert r k
+    	  | _ -> k
+          end)
+    	{} s.remaining
+
+     let regs_feeding_addresses s =
+       let address_values =
+         foldl
+          (fun k act ->
+            match act with
+            | Read_mem a v -> Set.insert a k
+            | Write_mem a v -> Set.insert a k
+            | Read_mem_reserve a v -> Set.insert a k
+            | Write_mem_conditional a v1 v2 -> Set.insert a k
+            | Read_mem_acq a v -> Set.insert a k
+            | Write_mem_rel a v -> Set.insert a k
+            | _ -> k
+            end)
+           {} s.remaining in
+       let target_values =
+         foldl
+          (fun k act ->
+            match act with
+            | Binop v1 op v2 v3 -> if v1 IN k then {v2;v3} union k else k
+            | Unop v1 op v2 -> if v1 IN k then Set.insert v2 k else k
+            | _ -> k
+            end)
+          address_values s.remaining in
+         foldl
+          (fun k act ->
+            match act with
+            | Read_reg r a -> if a IN target_values then Set.insert r k else k
+            | _ -> k
+            end)
+           {} s.remaining
+
+     let regs_feeding_memory_data s =
+       let data_values =
+         foldl
+          (fun k act ->
+            match act with
+            | Read_mem a v -> Set.insert v k
+            | Write_mem a v -> Set.insert v k
+            | Read_mem_reserve a v -> Set.insert v k
+            | Write_mem_conditional a v1 v2 -> Set.insert v1 k
+            | Read_mem_acq a v -> Set.insert v k
+            | Write_mem_rel a v -> Set.insert v k
+            | _ -> k
+            end)
+           {} s.remaining in
+       let target_values =
+         foldl
+          (fun k act ->
+            match act with
+            | Binop v1 op v2 v3 -> if v1 IN k then {v2;v3} union k else k
+            | Unop v1 op v2 -> if v1 IN k then Set.insert v2 k else k
+            | _ -> k
+            end)
+          data_values s.remaining in
+         foldl
+          (fun k act ->
+            match act with
+            | Read_reg r a -> if a IN target_values then Set.insert r k else k
+            | _ -> k
+            end)
+           {} s.remaining
+
+     let regs_feeding_cond_branch s =
+       let branch_values =
+         foldl
+          (fun k act ->
+            match act with
+            | Cond_branch v c -> Set.insert v k
+            | _ -> k
+            end)
+           {} s.remaining in
+       let target_values =
+         foldl
+          (fun k act ->
+            match act with
+            | Binop v1 op v2 v3 -> if v1 IN k then {v2;v3} union k else k
+            | Unop v1 op v2 -> if v1 IN k then Set.insert v2 k else k
+            | _ -> k
+            end)
+          branch_values s.remaining in
+         foldl
+          (fun k act ->
+            match act with
+            | Read_reg r a -> if a IN target_values then Set.insert r k else k
+            | _ -> k
+            end)
+           {} s.remaining
+
+      let cond_branch_on_values s =
+         foldl
+          (fun k act ->
+            match act with
+            | Cond_branch v c -> Set.insert v k
+            | _ -> k
+            end)
+           {} s.remaining 
+
+      let rec find_r s r =
+	match s with
+(*	| [] -> Warn.user_error "Does not write to this register" *)
+	| Write_reg  r1 v1  :: s ->
+	    if r1 = r then v1 else find_r s r
+	| _ :: s -> find_r s r
+        end
+
+    let val_written_to_register s r =
+      subst_var s.val_soln (find_r s.remaining r)
+
+    let mem_all_read_addresses s =
+      foldl
+	(fun k a ->
+	  match a with
+	  | Read_mem  a v  -> Set.insert (subst_var s.val_soln a) k
+	  | Read_mem_reserve  a v  -> Set.insert (subst_var s.val_soln a) k
+	  | Read_mem_acq  a v  -> Set.insert (subst_var s.val_soln a) k
+	  | _ -> k
+          end)
+	{} s.remaining
+
+    let mem_all_write_addresses s =
+      foldl
+	(fun k a ->
+	  match a with
+	  | Write_mem  a v  -> Set.insert (subst_var s.val_soln a) k
+	  | Write_mem_conditional  a v1 v2 -> Set.insert (subst_var s.val_soln a) k
+	  | Write_mem_rel  a v  -> Set.insert (subst_var s.val_soln a) k
+	  | _ -> k
+          end)
+	{} s.remaining
+
+    let possibly_reads_from_address s a =
+      let addrs = mem_all_read_addresses s in
+      Set.any
+	(fun addr ->   equalityPossible addr a)
+	addrs
+
+    let possibly_writes_to_address s a =
+      let addrs = mem_all_write_addresses s in
+      Set.any
+	(fun addr ->   equalityPossible addr a)
+	addrs
+
+    let reads_from_address s a =
+      let addrs = mem_all_read_addresses s in
+      Set.any
+	(fun addr ->   compare_value addr a = Basic_classes.EQ)
+	addrs
+
+    let writes_to_address s a =
+      let addrs = mem_all_write_addresses s in
+      Set.any
+	(fun addr ->   compare_value addr a = Basic_classes.EQ)
+	addrs
+
+    (* true if w (a write-read-from by some read) is by thread tid and has the same address and value as some write in the behaviour s *)
+    let write_possibly_done_by tid s w =
+      List.any
+	(fun a ->
+	  match a with
+	  | Write_mem  a v -> 
+	      tid = w.w_thread &&
+	        subst_var s.val_soln a = w.w_addr &&
+	        subst_var s.val_soln v = w.w_value
+	  | Write_mem_rel a v ->
+	      tid = w.w_thread &&
+	        subst_var s.val_soln a = w.w_addr &&
+	        subst_var s.val_soln v = w.w_value
+	  | Write_mem_conditional a v1 v2 ->
+	      tid = w.w_thread &&
+	        subst_var s.val_soln a = w.w_addr &&
+	        subst_var s.val_soln v1 = w.w_value
+	  | _ -> false
+          end)
+	s.remaining
+
+    let mem_writes_of tid ioid s =
+      foldr (fun a wk ->
+	  match a with
+	  | Write_mem  a v  ->
+	      let wn =
+		make_write_event tid ioid
+		  (subst_var s.val_soln a)
+		  (subst_var s.val_soln v) 
+		  in
+	      Set.insert wn wk
+(* 	  | Write_mem_rel  a v  -> *)
+(* 	      let wn = *)
+(* 		make_write_release_event tid ioid *)
+(* 		  (subst_var s.val_soln a) *)
+(* 		  (subst_var s.val_soln v)  *)
+(* 		  in *)
+(* 	      Set.add wn wk *)
+(* 	  | Write_mem_conditional a v1 v2 -> *)
+(* 	      let wn = *)
+(* 		make_write_release_event tid ioid *)
+(* 		  (subst_var s.val_soln a) *)
+(* 		  (subst_var s.val_soln v1) *)
+(* 		  in *)
+(* 	      Set.add wn wk *)
+	  | _ -> wk
+          end) empty s.remaining
+
+    let mem_write_conditionals_of tid ioid s =
+      foldr (fun a wk ->
+	  match a with
+	  | Write_mem_conditional  a v succ ->
+	      let wn =
+		make_write_event tid ioid
+		  (subst_var s.val_soln a)
+		  (subst_var s.val_soln v) 
+		  in
+	      Set.insert wn wk
+	  | _ -> wk
+          end) empty s.remaining
+
+    let barriers_of tid ioid s =
+      foldr (fun a bk ->
+	  match a with
+	  | Barrier b ->
+	      let bn = make_barrier_event tid ioid b in
+	      Set.insert bn bk
+	  | _ -> bk
+          end) empty s.remaining
+
+    let mem_accept_wcond_action s succ =
+      let vint = if succ then one else zero in
+      match s.remaining with
+      | Write_mem_conditional a v vsucc :: rem' ->
+	  match vsucc with
+	    | Flexible uv ->
+		<| s with 
+		 val_soln = Map.insert uv vint s.val_soln |>
+(* 	    | Rigid _ -> Warn.user_error "Memory read to rigid variable" *)
+	  end
+      end
+
+    let read_request_of tid ioid s =
+      match s.remaining with
+      | (Read_mem a v) :: _ -> make_read_request_event tid ioid (subst_var s.val_soln a)
+      | (Read_mem_reserve a v) :: _ -> make_read_request_event tid ioid (subst_var s.val_soln a)
+      end
+
+    let read_reserve_request_of tid ioid s =
+      match s.remaining with
+      | (Read_mem_reserve a v) :: _ -> make_read_request_event tid ioid (subst_var s.val_soln a)
+      end
+
+let known_memory_addresses s =
+  List.all
+    (fun a ->
+      match a with
+      | Read_mem a v -> is_determined (subst_var s.val_soln a)
+      | Read_mem_reserve a v -> is_determined (subst_var s.val_soln a)
+      | Read_mem_acq a v -> is_determined (subst_var s.val_soln a)
+      | Write_mem a v -> is_determined (subst_var s.val_soln a)
+      | Write_mem_conditional a v succ -> is_determined (subst_var s.val_soln a)
+      | Write_mem_rel a v -> is_determined (subst_var s.val_soln a)
+      | _ -> true
+      end)
+    s.remaining
+
+let next_fetch_addr s =
+  foldl
+    (fun k a ->
+      match a with
+      | Jump cst -> Jump_to cst
+      | Cond_branch v cst -> Cond_branch_to v cst
+      | _ -> k
+      end)
+    Next s.remaining
+    
+let bit_lt : nat = 0
+let bit_gt : nat = 1
+let bit_eq : nat = 2
+    
+let ppc_bitreg cr bit = PPC_reg (CRBit (32+4*cr+bit))
+
+let empty_sem = <|remaining = [];val_soln = Map.empty|> 
+
+let op3regs op set rD rA rB ist = 
+  let (vA,ist') = fresh_var () ist in
+  let (vB,ist'') = fresh_var () ist' in
+  let (v,ist''') = fresh_var () ist'' in
+  match set with
+  | DontSetCR0 ->
+      (<|empty_sem with
+       remaining = [Read_reg rA vA ;
+		    Read_reg rB vB ;
+		    Binop  v op vA vB ;
+		    Write_reg rD v ]|>,
+	ist''')
+  | SetCR0 ->
+      let (vLt,ist'''') = fresh_var () ist''' in
+      let (vGt,ist''''') = fresh_var () ist'''' in
+      let (vEq,ist'''''') = fresh_var () ist''''' in
+      (<|empty_sem with
+       remaining = [Read_reg rA vA ;
+		    Read_reg rB vB ;
+		    Binop  v op vA vB ;
+		    Binop  vLt     LtOp  v    zero ;
+ 		    Binop  vGt     GtOp  v    zero ; 
+ 		    Binop  vEq     EqOp  v    zero ; 
+		    Write_reg  (ppc_bitreg 0 bit_lt)  vLt ; 
+		    Write_reg  (ppc_bitreg 0 bit_gt)  vGt ; 
+		    Write_reg  (ppc_bitreg 0 bit_eq)  vEq ;
+		    Write_reg rD v ]|>,
+	ist'''''')
+  end
+
+
+let op2regs op set rD rA ist = 
+  let (vA,ist') = fresh_var () ist in
+  let (v,ist''') = fresh_var () ist' in
+  match set with
+  | DontSetCR0 ->
+      (<|empty_sem with
+       remaining = [Read_reg rA vA ;
+		    Unop  v op vA ;
+		    Write_reg rD v ]|>,
+	ist''')
+  | SetCR0 ->
+      let (vLt,ist'''') = fresh_var () ist''' in
+      let (vGt,ist''''') = fresh_var () ist'''' in
+      let (vEq,ist'''''') = fresh_var () ist''''' in
+      (<|empty_sem with
+       remaining = [Read_reg rA vA ;
+		    Unop  v op vA ;
+		    Binop  vLt     LtOp  v    zero ;
+ 		    Binop  vGt     GtOp  v    zero ; 
+ 		    Binop  vEq     EqOp  v    zero ; 
+		    Write_reg  (ppc_bitreg 0 bit_lt)  vLt ; 
+		    Write_reg  (ppc_bitreg 0 bit_gt)  vGt ; 
+		    Write_reg  (ppc_bitreg 0 bit_eq)  vEq ;
+		    Write_reg rD v ]|>,
+	ist'''''')
+  end
+
+
+let op2regi op set rD rA vimm ist = 
+  let (vA,ist') = fresh_var () ist in
+  let (v,ist'') = fresh_var () ist' in
+  match set with
+  | DontSetCR0 ->
+      (<|empty_sem with
+       remaining = [Read_reg rA vA ;
+		    Binop  v op vA vimm ;
+		    Write_reg rD v ]|>,
+	ist'')
+  | SetCR0 ->
+      let (vLt,ist''') = fresh_var () ist'' in
+      let (vGt,ist'''') = fresh_var () ist''' in
+      let (vEq,ist''''') = fresh_var () ist'''' in
+      (<|empty_sem with
+       remaining = [Read_reg rA vA ;
+		    Binop  v op vA vimm ;
+		    Binop  vLt     LtOp  v    zero ;
+		    Binop  vGt     GtOp  v    zero ;
+		    Binop  vEq     EqOp  v    zero ;
+		    Write_reg  (ppc_bitreg 0 bit_lt)  vLt ; 
+		    Write_reg  (ppc_bitreg 0 bit_gt)  vGt ; 
+		    Write_reg  (ppc_bitreg 0 bit_eq)  vEq ;
+		    Write_reg rD v ]|>,
+	ist''''')
+  end
+
+	
+
+let ppc_sem_of_instruction i ist =
+  match i with
+  | Padd  set rD rA rB  ->
+      op3regs    Add set rD rA rB ist
+  | Psub  set rD rA rB  ->
+      op3regs    Sub set rD rA rB ist 
+  | Psubf  set rD rA rB  ->
+      op3regs    Sub set rD rB rA ist (* subtract from -> swap args *)
+  | Por  set rD rA rB  ->
+      op3regs    Or set rD rA rB ist
+  | Pand  set rD rA rB  ->
+      op3regs    And set rD rA rB ist
+  | Pxor  set rD rA rB  ->
+      op3regs    Xor set rD rA rB ist
+  | Pmull  set rD rA rB  ->
+      op3regs    Mul set rD rA rB ist
+  | Pdiv  set rD rA rB  ->
+      op3regs    Div set rD rA rB ist
+
+  | Pmr  rD rS  ->
+      let (v,ist') = fresh_var () ist in
+      (<|empty_sem with 
+       remaining = [Read_reg rS v ;
+		    Write_reg rD v ]|>,
+	ist')
+
+  | Pli  rD v  ->
+      (<|empty_sem with
+       remaining = [Write_reg rD (  intToV v) ]|>,
+	ist)
+
+  | Paddi  rD (PPC_reg(Ireg GPR0)) v  ->
+      (<|empty_sem with
+       remaining = [Write_reg rD (  intToV v) ]|>,
+	ist)
+
+  | Paddi  rD rA simm  ->
+      op2regi    Add DontSetCR0 rD rA (  intToV simm) ist
+  | Pori  rD rA simm  ->
+      op2regi    Or DontSetCR0 rD rA (  intToV simm) ist
+  | Pxori  rD rA simm  ->
+      op2regi    Xor DontSetCR0 rD rA (  intToV simm) ist
+  | Pandi  rD rA simm  ->
+      (* ISA p. 75: CR0 is set *)
+      op2regi    And SetCR0 rD rA (  intToV simm) ist
+  | Pmulli  rD rA simm  ->
+      op2regi    Mul DontSetCR0 rD rA (  intToV simm) ist
+	
+  | Pb lbl -> (<|empty_sem with remaining = [Jump (Symbolic lbl)]|>,ist)
+
+  | Pbcc  Lt lbl  ->
+      let (v,ist') = fresh_var () ist in
+      (<|empty_sem with
+       remaining = [Read_reg (ppc_bitreg 0 bit_lt) v ;
+		    Cond_branch  v (Symbolic lbl)]|>,
+	ist')
+  | Pbcc  Ge lbl  ->
+      let (v,ist') = fresh_var () ist in
+      let (vn,ist'') = fresh_var () ist' in
+      (<|empty_sem with
+       remaining = [Read_reg (ppc_bitreg 0 bit_lt) v ;
+		    Unop  vn    Not v ;
+		    Cond_branch  vn (Symbolic lbl)]|>,
+	ist'')
+  | Pbcc  Gt lbl  ->
+      let (v,ist') = fresh_var () ist in
+      (<|empty_sem with
+       remaining = [Read_reg (ppc_bitreg 0 bit_gt) v ;
+		    Cond_branch  v (Symbolic lbl)]|>,
+	ist')
+  | Pbcc  Le lbl  ->
+      let (v,ist') = fresh_var () ist in
+      let (vn,ist'') = fresh_var () ist' in
+      (<|empty_sem with
+       remaining = [Read_reg (ppc_bitreg 0 bit_gt) v ;
+		    Unop  vn    Not v ;
+		    Cond_branch  vn (Symbolic lbl)]|>,
+	ist'')
+  | Pbcc  Eq lbl  ->
+      let (v,ist') = fresh_var () ist in
+      (<|empty_sem with
+       remaining = [Read_reg (ppc_bitreg 0 bit_eq) v ;
+		    Cond_branch  v (Symbolic lbl)]|>,
+	ist')
+  | Pbcc  Ne lbl  ->
+      let (v,ist') = fresh_var () ist in
+      let (vn,ist'') = fresh_var () ist' in
+      (<|empty_sem with
+       remaining = [Read_reg (ppc_bitreg 0 bit_eq) v ;
+		    Unop  vn    Not v ;
+		    Cond_branch  vn (Symbolic lbl)]|>,
+	ist'')
+
+  | Pcmpwi  cr rA v  ->
+      let (vA,ist') = fresh_var () ist in
+      let (vLt,ist'') = fresh_var () ist' in
+      let (vGt,ist''') = fresh_var () ist'' in
+      let (vEq,ist'''') = fresh_var () ist''' in
+      (<|empty_sem with
+       remaining = [Read_reg  rA  vA ;
+		    Binop  vLt     LtOp  vA  (  intToV v) ;
+		    Binop  vGt     GtOp  vA  (  intToV v) ;
+		    Binop  vEq     EqOp  vA  (  intToV v) ;
+		    Write_reg  (ppc_bitreg cr bit_lt)  vLt ;  (*TODO*)
+		    Write_reg  (ppc_bitreg cr bit_gt)  vGt ;
+		    Write_reg  (ppc_bitreg cr bit_eq)  vEq ]|>,
+	ist'''')
+  | Pcmpw  cr rA rB  ->
+      let (vA,ist') = fresh_var () ist in
+      let (vB,ist'') = fresh_var () ist' in
+      let (vLt,ist''') = fresh_var () ist'' in
+      let (vGt,ist'''') = fresh_var () ist''' in
+      let (vEq,ist''''') = fresh_var () ist'''' in
+      (<|empty_sem with
+       remaining = [Read_reg  rA  vA ;
+		    Read_reg  rB  vB ;
+		    Binop  vLt     LtOp  vA  vB ;
+		    Binop  vGt     GtOp  vA  vB ;
+		    Binop  vEq     EqOp  vA  vB ;
+		    Write_reg  (ppc_bitreg cr bit_lt)  vLt ;
+		    Write_reg  (ppc_bitreg cr bit_gt)  vGt ;
+		    Write_reg  (ppc_bitreg cr bit_eq)  vEq ]|>,
+	ist''''')
+
+  | Plwz rD d rA  ->
+      let (aA,ist') = fresh_var () ist in
+      let (a,ist'') = fresh_var () ist' in
+      let (v,ist''') = fresh_var () ist'' in
+      (<|empty_sem with
+       remaining = [Read_reg rA aA ;
+		    Binop  a    Add aA (  intToV d) ;
+		    Read_mem a v ;
+		    Write_reg  rD v ]|>,
+	ist''')
+  | Pld rD d rA  ->
+      let (aA,ist') = fresh_var () ist in
+      let (a,ist'') = fresh_var () ist' in
+      let (v,ist''') = fresh_var () ist'' in
+      (<|empty_sem with
+       remaining = [Read_reg rA aA ;
+		    Binop  a    Add aA (  intToV d) ;
+		    Read_mem a v ;
+		    Write_reg  rD v ]|>,
+	ist''')
+  | Plwzx rD (PPC_reg(Ireg GPR0)) rB  ->
+      let (aB,ist') = fresh_var () ist in
+      let (a,ist'') = fresh_var () ist' in
+      let (v,ist''') = fresh_var () ist'' in
+      (<|empty_sem with
+       remaining = [Read_reg rB aB ;
+		    Binop  a    Add aB (  intToV 0) ; (* Can be optimized *)
+		    Read_mem a v ;
+		    Write_reg  rD v ]|>,
+	ist''')
+
+  | Pldx rD (PPC_reg(Ireg GPR0)) rB  ->
+      let (aB,ist') = fresh_var () ist in
+      let (a,ist'') = fresh_var () ist' in
+      let (v,ist''') = fresh_var () ist'' in
+      (<|empty_sem with
+       remaining = [Read_reg rB aB ;
+		    Binop  a    Add aB (  intToV 0) ; (* Can be optimized *)
+		    Read_mem a v ;
+		    Write_reg  rD v ]|>,
+	ist''')
+  | Plwzx rD rA rB  ->
+      let (aA,ist') = fresh_var () ist in
+      let (aB,ist'') = fresh_var () ist' in
+      let (a,ist''') = fresh_var () ist'' in
+      let (v,ist'''') = fresh_var () ist''' in
+      (<|empty_sem with
+       remaining = [Read_reg rA aA ;
+		    Read_reg rB aB ;
+		    Binop  a    Add aA aB ;
+		    Read_mem a v ;
+		    Write_reg  rD v ]|>,
+	ist'''')
+  | Pldx rD rA rB  ->
+      let (aA,ist') = fresh_var () ist in
+      let (aB,ist'') = fresh_var () ist' in
+      let (a,ist''') = fresh_var () ist'' in
+      let (v,ist'''') = fresh_var () ist''' in
+      (<|empty_sem with
+       remaining = [Read_reg rA aA ;
+		    Read_reg rB aB ;
+		    Binop  a    Add aA aB ;
+		    Read_mem a v ;
+		    Write_reg  rD v ]|>,
+	ist'''')
+
+  | Pstw rS d rA  ->
+      let (vS,ist') = fresh_var () ist in
+      let (aA,ist'') = fresh_var () ist' in
+      let (a,ist''') = fresh_var () ist'' in
+      (<|empty_sem with
+       remaining = [Read_reg rA aA ;
+		    Binop  a    Add aA (  intToV d) ;
+		    Read_reg rS vS ;
+		    Write_mem a vS ]|>,
+	ist''')
+  | Pstd rS d rA  ->
+      let (vS,ist') = fresh_var () ist in
+      let (aA,ist'') = fresh_var () ist' in
+      let (a,ist''') = fresh_var () ist'' in
+      (<|empty_sem with
+       remaining = [Read_reg rA aA ;
+		    Binop  a    Add aA (  intToV d) ;
+		    Read_reg rS vS ;
+		    Write_mem a vS ]|>,
+	ist''')
+
+
+  | Pstwx rS (PPC_reg(Ireg GPR0)) rB  ->
+      let (vS,ist') = fresh_var () ist in
+      let (aB,ist'') = fresh_var () ist' in
+      let (a,ist''') = fresh_var () ist'' in
+      (<|empty_sem with
+       remaining = [Read_reg rB aB ;
+		    Binop  a    Add aB (  intToV 0) ; (* Can be optimized *)
+		    Read_reg rS vS ;
+		    Write_mem a vS ]|>,
+	ist''')
+  | Pstdx rS (PPC_reg(Ireg GPR0)) rB  ->
+      let (vS,ist') = fresh_var () ist in
+      let (aB,ist'') = fresh_var () ist' in
+      let (a,ist''') = fresh_var () ist'' in
+      (<|empty_sem with
+       remaining = [Read_reg rB aB ;
+		    Binop  a    Add aB (  intToV 0) ; (* Can be optimized *)
+		    Read_reg rS vS ;
+		    Write_mem a vS ]|>,
+	ist''')
+  | Pstwx rS rA rB  ->
+      let (vS,ist') = fresh_var () ist in
+      let (aA,ist'') = fresh_var () ist' in
+      let (aB,ist''') = fresh_var () ist'' in
+      let (a,ist'''') = fresh_var () ist''' in
+      (<|empty_sem with
+       remaining = [Read_reg rA aA ;
+		    Read_reg rB aB ;
+		    Binop  a    Add aA aB ;
+		    Read_reg rS vS ;
+		    Write_mem a vS ]|>,
+	ist'''')
+  | Pstdx rS rA rB  ->
+      let (vS,ist') = fresh_var () ist in
+      let (aA,ist'') = fresh_var () ist' in
+      let (aB,ist''') = fresh_var () ist'' in
+      let (a,ist'''') = fresh_var () ist''' in
+      (<|empty_sem with
+       remaining = [Read_reg rA aA ;
+		    Read_reg rB aB ;
+		    Binop  a    Add aA aB ;
+		    Read_reg rS vS ;
+		    Write_mem a vS ]|>,
+	ist'''')
+	
+  | Plwarx rD (PPC_reg(Ireg GPR0)) rB -> 
+      let (aB,ist') = fresh_var () ist in
+      let (a,ist'') = fresh_var () ist' in
+      let (v,ist''') = fresh_var () ist'' in
+      (<|empty_sem with
+       remaining = [Read_reg rB aB ;
+		    Binop  a    Add aB (  intToV 0) ; (* Can be optimized *)
+		    Read_mem_reserve a v ;
+		    Write_reg  rD v ]|>,
+	ist''')
+  | Plwarx rD rA rB  ->
+      let (aA,ist') = fresh_var () ist in
+      let (aB,ist'') = fresh_var () ist' in
+      let (a,ist''') = fresh_var () ist'' in
+      let (v,ist'''') = fresh_var () ist''' in
+      (<|empty_sem with
+       remaining = [Read_reg rA aA ;
+		    Read_reg rB aB ;
+		    Binop  a    Add aA aB ;
+		    Read_mem_reserve a v ;
+		    Write_reg  rD v ]|>,
+	ist'''')
+  | Pstwcx rS (PPC_reg(Ireg GPR0)) rB  ->
+      let (vS,ist') = fresh_var () ist in
+      let (aB,ist'') = fresh_var () ist' in
+      let (a,ist''') = fresh_var () ist'' in
+      let (succ,ist'''') = fresh_var () ist''' in
+      (<|empty_sem with
+       remaining = [Read_reg rB aB ;
+		    Binop  a    Add aB (  intToV 0) ; (* Can be optimized *)
+		    Read_reg rS vS ;
+		    Write_mem_conditional a vS succ;
+		    Write_reg  (ppc_bitreg 0 bit_lt)  (intToV 0) ; 
+		    Write_reg  (ppc_bitreg 0 bit_gt)  (intToV 0) ; 
+		    Write_reg  (ppc_bitreg 0 bit_eq)  succ ]|>,
+	ist'''')
+  | Pstwcx rS rA rB -> 
+      let (vS,ist') = fresh_var () ist in
+      let (aA,ist'') = fresh_var () ist' in
+      let (aB,ist''') = fresh_var () ist'' in
+      let (a,ist'''') = fresh_var () ist''' in
+      let (succ,ist''''') = fresh_var () ist'''' in
+      (<|empty_sem with
+       remaining = [Read_reg rA aA ;
+		    Read_reg rB aB ;
+		    Binop  a    Add aA aB ;
+		    Read_reg rS vS ;
+		    Write_mem_conditional a vS succ;
+		    Write_reg  (ppc_bitreg 0 bit_lt)  (intToV 0) ; 
+		    Write_reg  (ppc_bitreg 0 bit_gt)  (intToV 0) ; 
+		    Write_reg  (ppc_bitreg 0 bit_eq)  succ ]|>,
+	ist''''')
+
+  | Psync -> (<|empty_sem with remaining = [Barrier Sync]|>,ist)
+  | Pisync -> (<|empty_sem with remaining = [Isync]|>,ist)
+  | Plwsync -> (<|empty_sem with remaining = [Barrier LwSync]|>,ist)
+  | Peieio -> (<|empty_sem with remaining = [Barrier Eieio]|>,ist)
+  | Pdcbf _ _ -> (empty_sem,ist)
+
+  | Pnor  set rD rA rB  ->
+      op3regs    Nor set rD rA rB ist
+  | Pneg  set rD rA ->
+      op2regs    Neg set rD rA ist
+  | Pslw  set rD rA rB  ->
+      op3regs    Lsl set rD rA rB ist
+  | Psrawi set rD rA simm  ->
+      op2regi    Asr set rD rA (  intToV simm) ist
+  | Psraw set rD rA rB  ->
+      op3regs    Asr set rD rA rB ist
+  | Pbl lbl -> (<|empty_sem with remaining = [(* todo: write link register = next instruction *) Jump (Symbolic lbl)]|>,ist)
+  | Pblr -> (empty_sem, ist)
+  | Pmtlr reg -> (empty_sem, ist)
+  | Pmflr reg -> (empty_sem, ist)
+  | Pcomment s -> (empty_sem, ist)
+
+ 
+
+(*   | Plwzx rD (PPC_reg(Ireg GPR0)) rB  -> *)
+(*       let (aB,ist') = fresh_var () ist in *)
+(*       let (a,ist'') = fresh_var () ist' in *)
+(*       let (v,ist''') = fresh_var () ist'' in *)
+(*       (<|empty_sem with *)
+(*        remaining = [Read_reg rB aB ; *)
+(* 		    Binop  a    Add aB (  intToV 0) ; (\* Can be optimized *\) *)
+(* 		    Read_mem_acq a v ; *)
+(* 		    Write_reg  rD v ]|>, *)
+(* 	ist''') *)
+(*   | Plwzx rD rA rB  -> *)
+(*       let (aA,ist') = fresh_var () ist in *)
+(*       let (aB,ist'') = fresh_var () ist' in *)
+(*       let (a,ist''') = fresh_var () ist'' in *)
+(*       let (v,ist'''') = fresh_var () ist''' in *)
+(*       (<|empty_sem with *)
+(*        remaining = [Read_reg rA aA ; *)
+(* 		    Read_reg rB aB ; *)
+(* 		    Binop  a    Add aA aB ; *)
+(* 		    Read_mem_acq a v ; *)
+(* 		    Write_reg  rD v ]|>, *)
+(* 	ist'''') *)
+
+(* (\* huh? why are these Write_mem_rel?  And isn't Lem supposed to complain at duplicate cases? *\) *)
+
+(*   | Pstwx rS (PPC_reg(Ireg GPR0)) rB  -> *)
+(*       let (vS,ist') = fresh_var () ist in *)
+(*       let (aB,ist'') = fresh_var () ist' in *)
+(*       let (a,ist''') = fresh_var () ist'' in *)
+(*       (<|empty_sem with *)
+(*        remaining = [Read_reg rB aB ; *)
+(* 		    Binop  a    Add aB (  intToV 0) ; (\* Can be optimized *\) *)
+(* 		    Read_reg rS vS ; *)
+(* 		    Write_mem_rel a vS ]|>, *)
+(* 	ist''') *)
+(*   | Pstwx rS rA rB  -> *)
+(*       let (vS,ist') = fresh_var () ist in *)
+(*       let (aA,ist'') = fresh_var () ist' in *)
+(*       let (aB,ist''') = fresh_var () ist'' in *)
+(*       let (a,ist'''') = fresh_var () ist''' in *)
+(*       (<|empty_sem with *)
+(*        remaining = [Read_reg rA aA ; *)
+(* 		    Read_reg rB aB ; *)
+(* 		    Binop  a    Add aA aB ; *)
+(* 		    Read_reg rS vS ; *)
+(* 		    Write_mem_rel a vS ]|>, *)
+(* 	ist'''') *)
+  end
+
+
+(*: arm instruction semantics *)
+
+let arm_bitreg_eq = ARM_reg (Z)            (* hack: use Z register for EQ bit *)
+
+let arm_op3regs op set rD rA rB ist = 
+  let (vA,ist') = fresh_var () ist in
+  let (vB,ist'') = fresh_var () ist' in
+  let (v,ist''') = fresh_var () ist'' in
+  match set with
+  | DontSetFlags ->
+      (<|empty_sem with
+       remaining = [Read_reg rA vA ;
+		    Read_reg rB vB ;
+		    Binop  v op vA vB ;
+		    Write_reg rD v ]|>,
+	ist''')
+  | SetFlags ->
+(*       let (vLt,ist'''') = fresh_var () ist''' in *)
+(*       let (vGt,ist''''') = fresh_var () ist'''' in *)
+      let (vEq,ist'''') = fresh_var () ist''' in
+      (<|empty_sem with
+       remaining = [Read_reg rA vA ;
+		    Read_reg rB vB ;
+		    Binop  v op vA vB ;
+(* 		    Binop  vLt     LtOp  v    zero ; *)
+(*  		    Binop  vGt     GtOp  v    zero ;  *)
+ 		    Binop  vEq     EqOp  v    zero ; 
+(* 		    Write_reg  (ppc_bitreg 0 bit_lt)  vLt ;  *)
+(* 		    Write_reg  (ppc_bitreg 0 bit_gt)  vGt ;  *)
+		    Write_reg  (arm_bitreg_eq)  vEq ;            
+		    Write_reg rD v ]|>,
+	ist'''')
+  end
+
+let arm_op2regi op set rD rA vimm ist = 
+  let (vA,ist') = fresh_var () ist in
+  let (v,ist'') = fresh_var () ist' in
+  match set with
+  | DontSetFlags ->
+      (<|empty_sem with
+       remaining = [Read_reg rA vA ;
+		    Binop  v op vA vimm ;
+		    Write_reg rD v ]|>,
+	ist'')
+  | SetFlags ->
+(*       let (vLt,ist''') = fresh_var () ist'' in *)
+(*       let (vGt,ist'''') = fresh_var () ist''' in *)
+      let (vEq,ist''') = fresh_var () ist'' in
+      (<|empty_sem with
+       remaining = [Read_reg rA vA ;
+		    Binop  v op vA vimm ;
+(* 		    Binop  vLt     LtOp  v    zero ; *)
+(* 		    Binop  vGt     GtOp  v    zero ; *)
+		    Binop  vEq     EqOp  v    zero ;
+(* 		    Write_reg  (ppc_bitreg 0 bit_lt)  vLt ;  *)
+(* 		    Write_reg  (ppc_bitreg 0 bit_gt)  vGt ;  *)
+		    Write_reg  (arm_bitreg_eq)  vEq ;
+		    Write_reg rD v ]|>,
+	ist''')
+  end
+
+
+let arm_sem_of_instruction m i ist =
+  let ism = m.thread_ism in
+  match i with
+  | I_ADD3  set rD rA rB  ->
+      arm_op3regs    Add set rD rA rB ist
+  | I_SUB3  set rD rA rB  ->
+      arm_op3regs    Sub set rD rB rA ist (* subtract from -> swap args *)
+  | I_XOR  set rD rA rB  ->
+      arm_op3regs    Xor set rD rA rB ist
+  | I_MOV  rD rS c ->                                (* TODO: CONDITION *)
+      let (v,ist') = fresh_var () ist in
+      (<|empty_sem with 
+       remaining = [Read_reg rS v ;
+		    Write_reg rD v ]|>,
+	ist')
+  | I_MOVI  rD v c  ->                                (* TODO: CONDITION *)
+      (<|empty_sem with
+       remaining = [Write_reg rD (  intToV v) ]|>,
+	ist)
+
+  | I_ADD set rD rA simm  ->
+      arm_op2regi    Add set rD rA (  intToV simm) ist
+  | I_SUB set rD rA simm  ->
+      arm_op2regi    Sub set rD rA (  intToV simm) ist
+  | I_AND set rD rA simm  ->
+      arm_op2regi    And set rD rA (  intToV simm) ist
+	
+  | I_B lbl -> (<|empty_sem with remaining = [Jump (Symbolic lbl)]|>,ist)
+
+  | I_BEQ lbl  ->
+      let (v,ist') = fresh_var () ist in
+      (<|empty_sem with
+       remaining = [Read_reg (arm_bitreg_eq) v ;
+		    Cond_branch  v (Symbolic lbl)]|>,
+	ist')
+  | I_BNE lbl  ->
+      let (v,ist') = fresh_var () ist in
+      let (vn,ist'') = fresh_var () ist' in
+      (<|empty_sem with
+       remaining = [Read_reg (arm_bitreg_eq) v ;
+		    Unop  vn    Not v ;
+		    Cond_branch  vn (Symbolic lbl)]|>,
+	ist'')
+
+  | I_CMPI rA v  ->
+      let (vA,ist') = fresh_var () ist in
+(*       let (vLt,ist'') = fresh_var () ist' in *)
+(*       let (vGt,ist''') = fresh_var () ist'' in *)
+      let (vEq,ist'''') = fresh_var () ist' in
+      (<|empty_sem with
+       remaining = [Read_reg  rA  vA ;
+(* 		    Binop  vLt     LtOp  vA  (  intToV v) ; *)
+(* 		    Binop  vGt     GtOp  vA  (  intToV v) ; *)
+		    Binop  vEq     EqOp  vA  (  intToV v) ;
+(* 		    Write_reg  (ppc_bitreg cr bit_lt)  vLt ; *)
+(* 		    Write_reg  (ppc_bitreg cr bit_gt)  vGt ; *)
+		    Write_reg  (arm_bitreg_eq)  vEq ]|>,
+	ist'''')
+  | I_CMP  rA rB  ->
+      let (vA,ist') = fresh_var () ist in
+      let (vB,ist'') = fresh_var () ist' in
+(*       let (vLt,ist''') = fresh_var () ist'' in *)
+(*       let (vGt,ist'''') = fresh_var () ist''' in *)
+      let (vEq,ist''''') = fresh_var () ist'' in
+      (<|empty_sem with
+       remaining = [Read_reg  rA  vA ;
+		    Read_reg  rB  vB ;
+(* 		    Binop  vLt     LtOp  vA  vB ; *)
+(* 		    Binop  vGt     GtOp  vA  vB ; *)
+		    Binop  vEq     EqOp  vA  vB ;
+(* 		    Write_reg  (ppc_bitreg cr bit_lt)  vLt ; *)
+(* 		    Write_reg  (ppc_bitreg cr bit_gt)  vGt ; *)
+		    Write_reg  (arm_bitreg_eq)  vEq ]|>,
+	ist''''')
+
+  | I_LDR3 rD rB rA c ->
+      let (aA,ist') = fresh_var () ist in
+      let (aB,ist'') = fresh_var () ist' in
+      let (a,ist''') = fresh_var () ist'' in
+      let (v,ist'''') = fresh_var () ist''' in
+      (<|empty_sem with
+       remaining = [Read_reg rA aA ;
+                    Read_reg rB aB ;
+		    Binop  a    Add aA aB ;
+		    Read_mem a v ;
+		    Write_reg  rD v ]|>,
+	ist'''')
+  | I_LDR rD rA c ->
+      let (aA,ist') = fresh_var () ist in
+(*       let (a,ist'') = fresh_var () ist' in *)
+      let (v,ist''') = fresh_var () ist' in
+      (<|empty_sem with
+       remaining = [Read_reg rA aA ;
+		    (*Binop  a    Add aA (  intToV d) ;*)
+		    Read_mem aA v ;
+		    Write_reg  rD v ]|>,
+	ist''')
+
+  | I_STR3 rS rB rA c ->                                  (* TODO CONDITION *)
+      let (vS,ist') = fresh_var () ist in
+      let (aA,ist'') = fresh_var () ist' in
+      let (aB,ist''') = fresh_var () ist'' in
+      let (a,ist'''') = fresh_var () ist''' in
+      (<|empty_sem with
+       remaining = [Read_reg rA aA ;
+		    Read_reg rB aB ;
+		    Binop  a    Add aA aB ;
+                    Read_reg rS vS ;
+		    Write_mem a vS ]|>,
+	ist'''')
+  | I_STR rS rA c ->                                    (* TODO CONDITION *)
+      let (vS,ist') = fresh_var () ist in
+      let (aA,ist'') = fresh_var () ist' in
+(*       let (a,ist''') = fresh_var () ist'' in *)
+      (<|empty_sem with
+       remaining = [Read_reg rA aA ;
+(* 		    Binop  a    Add aA (  intToV d) ; *)
+		    Read_reg rS vS ;
+		    Write_mem aA vS ]|>,
+	ist'')
+
+  | I_LDREX rD rB -> 
+      let (aB,ist') = fresh_var () ist in
+      let (a,ist'') = fresh_var () ist' in
+      let (v,ist''') = fresh_var () ist'' in
+      (<|empty_sem with
+       remaining = [Read_reg rB aB ;
+		    Binop  a    Add aB (  intToV 0) ; (* Can be optimized *)
+		    Read_mem_reserve a v ;
+		    Write_reg  rD v ]|>,
+	ist''')
+
+  | I_STREX rS rB  ->
+      let (vS,ist') = fresh_var () ist in
+      let (aB,ist'') = fresh_var () ist' in
+      let (a,ist''') = fresh_var () ist'' in
+      let (succ,ist'''') = fresh_var () ist''' in
+      (<|empty_sem with
+       remaining = [Read_reg rB aB ;
+		    Binop  a    Add aB (  intToV 0) ; (* Can be optimized *)
+		    Read_reg rS vS ;
+		    Write_mem_conditional a vS succ;
+(* 		    Write_reg  (ppc_bitreg 0 bit_lt)  (intToV 0) ;  *)
+(* 		    Write_reg  (ppc_bitreg 0 bit_gt)  (intToV 0) ;  *)
+		    Write_reg  (arm_bitreg_eq)  succ ]|>,
+	ist'''')
+
+  | I_DSB -> (<|empty_sem with remaining = [Barrier (match ism with ARM_PLDI -> Sync | ARM_FLOWING -> DSB end)]|>,ist) 
+  | I_DMB -> (<|empty_sem with remaining = [Barrier (match ism with ARM_PLDI -> Sync | ARM_FLOWING -> DMB end)]|>,ist) 
+  | I_DMB_LD -> (<|empty_sem with remaining = [Barrier (match ism with ARM_PLDI -> Sync | ARM_FLOWING -> DMB_LD end)]|>,ist) 
+  | I_DMB_ST -> (<|empty_sem with remaining = [Barrier (match ism with ARM_PLDI -> Sync | ARM_FLOWING -> DMB_ST end)]|>,ist) 
+  | I_ISB -> (<|empty_sem with remaining = [Isync]|>,ist)
+
+  end
+
+let sem_of_instruction m i ist = 
+  match i with
+  | PPC_ins i' -> ppc_sem_of_instruction i' ist
+  | ARM_ins i' -> arm_sem_of_instruction m i' ist
+  end
+
+(* Assume each instruction is 4 bytes *)
+let succeeding_instruction_address a = op Add a (intToV 4)
+(* Pick a starting instruction address for a thread: 
+   In reality it will differ by thread *)
+let initial_instruction_address t = zero
