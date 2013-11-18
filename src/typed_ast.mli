@@ -541,6 +541,9 @@ val c_env_update : c_env -> const_descr_ref -> const_descr -> c_env
     [c_d] in environment [env]. *)
 val env_c_env_update : env -> const_descr_ref -> const_descr -> env
 
+(** [c_env_all_consts c_env] returns the constants defined in [c_env] *)
+val c_env_all_consts : c_env -> const_descr_ref list
+
 val exp_to_locn : exp -> Ast.l
 val exp_to_typ : exp -> Types.t
 

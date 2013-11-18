@@ -188,10 +188,18 @@ let print_compile_messages env targ modules = begin
   List.iter print_const_ref used_entities.Typed_ast_syntax.used_consts
 end
 
+(* check that the environment is OK for the target. Perhaps throw warnings or raise exceptions. *)
+let check_env_for_target targ env : unit =
+begin
+  let _ = Typed_ast_syntax.check_for_inline_cycles targ env.Typed_ast.c_env in
+  ()
+end
 
 (* Do the transformations for a given target *)
 let per_target libpath isa_thy (out_dir : string option) modules env alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum targ =
   let consts = Initial_env.read_target_constants libpath targ in
+
+  let _ = check_env_for_target targ env in
 
   let trans = Target_trans.get_transformation targ in
   try

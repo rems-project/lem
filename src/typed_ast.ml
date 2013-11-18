@@ -411,6 +411,10 @@ let env_c_env_update env c_id c_d =
 
 let c_env_store_raw = cdmap_insert
 
+let c_env_all_consts = cdmap_domain
+
+
+
 (* Applies lskips_f to the leftmost lskips in p, replacing it with lskips_f's
  * first result and returning lskips_f's second result *)
 let lit_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (l : lit) : lit * lskips = 

@@ -150,6 +150,9 @@ val cdmap_update : 'a cdmap -> const_descr_ref -> 'a -> 'a cdmap
     is generated for [v] and returned together with the modifed map. *)
 val cdmap_insert : 'a cdmap -> 'a -> ('a cdmap * const_descr_ref)
 
+(** [cdmap_domain m] returns the list of all const description references in the map *)
+val cdmap_domain : 'a cdmap -> const_descr_ref list
+
 (** [nil_const_descr_ref] is a nil reference, i.e. a reference that will never be bound
     by any cdmap. *)
 val nil_const_descr_ref : const_descr_ref

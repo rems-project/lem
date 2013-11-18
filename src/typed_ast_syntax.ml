@@ -1335,4 +1335,47 @@ let check_constr_family l env inst_type cf =
      raise (Reporting_basic.err_type l ("invalid constructor family: " ^ s))
 
 
+let check_for_inline_cycles (targ : Target.target) (c_env : c_env) : unit = begin
+  let l = Ast.Trans (false, "check_for_inline_cycles", None) in
+  let report_error c = begin
+    let cd = c_env_lookup l c_env c in
+    let tr = match Target.Targetmap.apply_target cd.target_rep targ with
+      | Some tr ->tr 
+      | None -> raise (Reporting_basic.err_unreachable Ast.Unknown "since the target_rep is cyclic, it must exist")
+    in
+    let tr_l = const_target_rep_to_loc tr in
+    raise (Reporting_basic.Fatal_error (Reporting_basic.Err_cyclic_inline (tr_l, Target.target_to_string targ, Path.to_string cd.const_binding)))
+  end in
+
+
+  let get_used_consts_exp (e : exp) : const_descr_ref list =
+    let ue = add_exp_entities empty_used_entities e in
+    ue.used_consts
+  in
+
+  let get_directly_used_consts (c : const_descr_ref) : const_descr_ref list  =
+    let cd = c_env_lookup l c_env c in
+    match Target.Targetmap.apply_target cd.target_rep targ with
+    | Some (CR_inline (_, _, _, e)) -> get_used_consts_exp e
+    | Some (CR_special (_, _, _, _)) -> []
+    | Some (CR_simple (_,_,_,e)) -> get_used_consts_exp e
+    | Some (CR_infix _) -> []
+    | Some (CR_undefined _) -> []
+    | None -> []
+  in
+
+  let rec check_for_inline_cycle_aux c_before c =
+  begin
+    if (List.mem c c_before) then report_error c else
+    begin
+      let sc = get_directly_used_consts c in
+      let c_before' = c :: c_before in
+      List.iter (check_for_inline_cycle_aux c_before') sc
+    end
+  end in
+
+  let _ = List.iter (check_for_inline_cycle_aux []) (c_env_all_consts c_env) in
+  ()
+end
+
 

@@ -581,6 +581,8 @@ let cdmap_insert (c_env_count, c_env_map) c_d =
 
 let cdmap_empty () = (nil_const_descr_ref + 1, Cdmap.empty)
 
+let cdmap_domain (_, c_env_map) =
+  Cdmap.fold (fun l k _ -> (k :: l)) [] c_env_map
 
 
 type constr_family_descr = { 

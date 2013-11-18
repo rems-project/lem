@@ -511,5 +511,18 @@ val val_def_get_free_tnvars : env -> val_def -> Types.TNset.t
 val env_tag_to_string : env_tag -> string
 
 
+(** [constr_family_to_id l env ty cf] tries to instantiate the constructor family [cf] to be used
+    on a match statement where the matched type is [ty]. If it succeeeds the properly instantiated 
+    construtor ids + the instantiated case split function is returned. However, returning the case-split
+    function is a bit complicated. It depends on the return type of match expression as well. Moreover, it
+    might not be there at all, if the targets build-in pattern matching should be used to construct one.
+    Therefore, an optional function from a type (the return type) to an id is returned for the case-split function. *)
 val constr_family_to_id : Ast.l -> env -> Types.t -> constr_family_descr -> ((const_descr_ref id) list * (t -> (const_descr_ref id)) option) option
+
+(** [check_constr_family] is similar to [constr_family_to_id]. It does not return the instantiations though, but 
+    produces a nicely formatted error, in case no such instantiations could be found. *)
 val check_constr_family : Ast.l -> env -> Types.t -> constr_family_descr -> unit
+
+(** [check_for_inline_cycles targ env] checks whether any constant in [env] would be inlined (possible over several steps) onto
+    itself. If this happens, an exception is thrown. *)
+val check_for_inline_cycles : Target.target -> c_env -> unit
