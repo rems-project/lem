@@ -49,7 +49,7 @@ open HolKernel Parse boolLib bossLib;
 open pred_setSimps pred_setTheory
 open finite_mapTheory
 open set_relationTheory
-open integerTheory intReduce;
+open integerTheory intReduce quantHeuristicsLib;
 
 val _ = numLib.prefer_num();
 
@@ -232,5 +232,42 @@ val _ = computeLib.add_persistent_funs ["finite_map.FRANGE_FEMPTY", "finite_map.
 
 val _ = computeLib.add_persistent_funs ["finite_map.o_f_FUPDATE", "finite_map.o_f_FEMPTY", 
    "finite_map.FCARD_FEMPTY", "finite_map.FCARD_FUPDATE"]
+
+
+
+
+
+val rcomp_empty_1 = store_thm ("rcomp_empty_1",
+  ``({} OO r) = {}``,
+SIMP_TAC (std_ss++pred_setSimps.PRED_SET_ss) [rcomp_def, EXTENSION])
+
+val rcomp_empty_2 = store_thm ("rcomp_empty_2",
+  ``(r OO {}) = {}``,
+SIMP_TAC (std_ss++pred_setSimps.PRED_SET_ss) [rcomp_def, EXTENSION])
+
+val rcomp_insert_compute = store_thm ("rcomp_insert_compute",
+  ``(r1 OO ((x, y) INSERT r2)) = ((r1 OO r2) UNION (IMAGE (\ xy'. (FST xy', y)) (SET_FILTER (\ xy'. SND xy' = x) r1)))``,
+SIMP_TAC (std_ss++pred_setSimps.PRED_SET_ss++quantHeuristicsLib.QUANT_INST_ss [std_qp]) [rcomp_def, EXTENSION, SET_FILTER_def] THEN
+METIS_TAC[])
+
+val _ = computeLib.add_persistent_funs ["rcomp_insert_compute", "rcomp_empty_1", "rcomp_empty_2"]
+
+
+val rrestrict_eval = store_thm ("rrestrict_eval",
+  ``rrestrict r s = SET_FILTER (\ (x, y). x IN s /\ y IN s) r``,
+SIMP_TAC (std_ss++pred_setSimps.PRED_SET_ss++quantHeuristicsLib.QUANT_INST_ss [std_qp]) [rrestrict_def, EXTENSION, SET_FILTER_def])
+
+val domain_eval = store_thm ("domain_eval",
+  ``domain r = IMAGE FST r``,
+SIMP_TAC (std_ss++pred_setSimps.PRED_SET_ss++QUANT_INST_ss [std_qp]) [domain_def, EXTENSION])
+
+val range_eval = store_thm ("range_eval",
+  ``range r = IMAGE SND r``,
+SIMP_TAC (std_ss++pred_setSimps.PRED_SET_ss++QUANT_INST_ss [std_qp]) [range_def, EXTENSION])
+
+val _ = computeLib.add_persistent_funs ["rrestrict_eval", "domain_eval", "range_eval"]
+
+
+
 
 val _ = export_theory()
