@@ -1057,7 +1057,13 @@ end
 let type_mismatch l m t1 t2 = 
   let t1 = t_to_string t1 in
   let t2 = t_to_string t2 in
-    raise (err_type l ("type mismatch: " ^ m ^ "\n" ^ t1 ^ "\nand\n" ^ t2))
+    raise (err_type l ("type mismatch: " ^ m ^ "\n    " ^ t1 ^ "\n  and\n    " ^ t2))
+
+let type_mismatch_occur_check l m t_occ t1 t2 = 
+  let t1 = t_to_string t1 in
+  let t2 = t_to_string t2 in
+  let t_occ = t_to_string t_occ in
+    raise (err_type l ("type mismatch: " ^ m ^ "\n    " ^ t1 ^ "\n  and\n    " ^ t2 ^ "\n  failed occurs check for\n    "^t_occ))
 
 let nexp_mismatch l n1 n2 =
   let n1 = nexp_to_string n1 in
@@ -1372,10 +1378,11 @@ module Constraint (T : Global_defs) : Constraint = struct
   let add_nvar (nv : Nvar.t) : unit = 
     nvars := TNset.add (Nv nv) (!nvars)
 
+  exception Occurs_exn of t
   let rec occurs_check (t_box : t) (t : t) : unit =
     let t = resolve_subst t in
       if t_box == t then
-        raise (err_type Ast.Unknown "Failed occurs check")
+        raise (Occurs_exn t)
       else
         match t.t with
           | Tfn(t1,t2) ->
@@ -1386,18 +1393,6 @@ module Constraint (T : Global_defs) : Constraint = struct
           | Tapp(ts,_) ->
               List.iter (occurs_check t_box) ts
           | _ -> ()
-
-  let rec occurs_nexp_check (n_box : nexp) (n : nexp) : unit =
-     let n = resolve_nexp_subst n in 
-       if n_box == n then
-          raise (err_type Ast.Unknown "Nexpressions failed occurs check")
-       else
-          match n.nexp with
-            | Nadd(n1,n2) | Nmult(n1,n2) -> 
-                occurs_nexp_check n_box n1;
-                occurs_nexp_check n_box n2;
-            | Nneg(n) -> occurs_nexp_check n_box n;
-            | _ -> ()
 
   let prim_equate_types (t_box : t) (t : t) : unit =
     let t = resolve_subst t in
@@ -1416,6 +1411,7 @@ module Constraint (T : Global_defs) : Constraint = struct
                t_box.t <- t.t)
 
   let rec equate_types (l : Ast.l) m (t1 : t) (t2 : t) : unit =
+  try 
     if t1 == t2 then
       ()
     else
@@ -1448,39 +1444,10 @@ module Constraint (T : Global_defs) : Constraint = struct
            equate_nexps l n1 n2;
         | _ -> 
             type_mismatch l m t1 t2
+  with Occurs_exn t_occ -> type_mismatch_occur_check l m t_occ t1 t2
 
   and equate_type_lists l m ts1 ts2 =
     List.iter2 (equate_types l m) ts1 ts2
-
-  (* Should go *)
-  and prim_equate_nexps (n_box : nexp) (n : nexp) : unit =
-    let n = resolve_nexp_subst n in 
-      if n_box == n then
-        ()
-      else
-        (occurs_nexp_check n_box n; 
-         match n.nexp with
-           | Nuvar(_) ->
-               (match n_box.nexp with
-                  | Nuvar(u) ->
-                      u.nsubst <- Some(n)
-                  | _ ->
-                      assert false)
-           | _ ->
-               n_box.nexp <- n.nexp)
-
-  (*Should go*)
-  and equate_nexps_help l nexp1 nexp2 =
-     match (nexp1.nexp,nexp2.nexp) with
-       | (Nuvar _, _) -> prim_equate_nexps nexp1 nexp2
-       | (_, Nuvar _) -> prim_equate_nexps nexp2 nexp1
-       | Nvar(nv1),Nvar(nv2) -> if (Nvar.compare nv1 nv2) = 0 then () else nexp_mismatch l nexp1 nexp2
-       | Nconst(i),Nconst(j) -> if i=j then () else nexp_mismatch l nexp1 nexp2
-       | Nmult(nl1,nl2),Nmult(nr1,nr2) | Nadd(nl1,nl2),Nadd(nr1,nr2) ->
-           equate_nexps_help l nl1 nr1;
-           equate_nexps_help l nl2 nr2;
-       | (Nneg(n1),Nneg(n2)) -> equate_nexps_help l n1 n2;
-       | _ -> nexp_mismatch l nexp1 nexp2
 
   and equate_nexps l nexp1 nexp2 =
     if nexp1 == nexp2
