@@ -437,7 +437,7 @@ let class_constraint_to_parameter targ : def_macro = fun mod_path env ((d,s),l,l
     match d with
       | Val_def(lb) ->
          let filter_constraints cl = List.filter (fun (c, _) -> not (class_all_methods_inlined_for_target l env targ c)) cl in
-         let class_constraints_global = filter_constraints (val_def_get_class_constraints_no_target_rep env targ lb) in
+         let class_constraints_global = filter_constraints (val_def_get_class_constraints env lb) in
          if (class_constraints_global = []) then None else (
          let pats_from_constraints class_constraints =
             List.map

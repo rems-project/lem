@@ -153,7 +153,7 @@ val lookup_field_for_class_method : Ast.l -> Types.class_descr -> const_descr_re
     If the reference does not point to a method of this instance, an exception is raised. *)
 val lookup_inst_method_for_class_method : Ast.l -> Types.instance -> const_descr_ref -> const_descr_ref
 
-(** [Given a class-description [cd] and an argument type [arg], the function [class_descr_get_dict_type cd arg] generates
+(** Given a class-description [cd] and an argument type [arg], the function [class_descr_get_dict_type cd arg] generates
     the type of the dictionary for the class and argument type. *)
 val class_descr_get_dict_type : Types.class_descr -> Types.t -> Types.t
 
@@ -501,9 +501,11 @@ val is_pp_def : def -> bool
 (** [val_def_get_name d] tries to extract the name of the defined function. *)
 val val_def_get_name : val_def -> Name.t option 
 
-val val_def_get_class_constraints_no_target_rep : env -> Target.target -> val_def -> (Path.t * Types.tnvar) list
+(** [val_def_get_class_constraints env vd] collects the class constraints of all top-level function definitions
+    in [vd]. Warning: contraints may appear multiple times in the resulting list *)
 val val_def_get_class_constraints : env -> val_def -> (Path.t * Types.tnvar) list
 
+(** [val_def_get_free_tnvars env vd] returns the set of all free type-variables used by [vd]. *)
 val val_def_get_free_tnvars : env -> val_def -> Types.TNset.t
 
 (** [env_tag_to_string tag] formats [tag] as a string. This functions should only be used

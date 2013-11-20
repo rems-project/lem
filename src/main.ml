@@ -55,7 +55,6 @@ let add_backend b () : unit = if not (List.mem b !backends) then (backends := b:
 let opt_print_env = ref false
 let opt_print_version = ref false
 let lib = ref []
-let isa_theory = ref None
 let out_dir = ref None
 let opt_file_arguments = ref ([]:string list)
 
@@ -104,9 +103,6 @@ let options = Arg.align ([
   ( "-lib", 
     Arg.String (fun l -> lib_paths_ref := l :: (!lib_paths_ref)),
     " add path to library path; if no lib is given the default '"^(default_library)^")' is used. Set LEMLIB environment variable to change this default.");
-  ( "-isa_theory", 
-    Arg.String (fun l -> isa_theory := Some l),
-    " Isabelle Lem theory");
   ( "-outdir", 
     Arg.String (fun l -> out_dir := Some l),
     " the output directory (the default is the dir the files reside in)");
@@ -196,7 +192,7 @@ begin
 end
 
 (* Do the transformations for a given target *)
-let per_target libpath isa_thy (out_dir : string option) modules env alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum targ =
+let per_target libpath (out_dir : string option) modules env alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum targ =
   let consts = Initial_env.read_target_constants libpath targ in
 
   let _ = check_env_for_target targ env in
@@ -225,7 +221,7 @@ let per_target libpath isa_thy (out_dir : string option) modules env alldoc_accu
     let transformed_m' = Target_trans.rename_def_params targ consts' transformed_m in
 
     let avoid = Target_trans.get_avoid_f targ consts' in
-    let _ = output libpath isa_thy out_dir targ avoid env'' transformed_m' alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum in
+    let _ = output libpath out_dir targ avoid env'' transformed_m' alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum in
     env''
   with
       | Trans.Trans_error(l,msg) ->
@@ -242,11 +238,6 @@ let main () =
           else
             lp) l'
   end in
-  let isa_thy = 
-    match !isa_theory with
-      | None -> Filename.concat default_library "../isabelle-lib/Lem"
-      | Some thy -> thy
-  in
   let _ = 
     List.iter
       (fun f -> if not (Filename.check_suffix f ".lem")
@@ -350,7 +341,7 @@ let main () =
   let alldoc_accum = ref ([] : Ulib.Text.t list) in
   let alldoc_inc_accum = ref ([] : Ulib.Text.t list) in
   let alldoc_inc_usage_accum = ref ([] : Ulib.Text.t list) in
-  let _ = List.fold_left (fun env -> (per_target default_library isa_thy out_dir (List.rev modules) env alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum))
+  let _ = List.fold_left (fun env -> (per_target default_library out_dir (List.rev modules) env alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum))
     env !backends in
   (if List.mem (Target.Target_no_ident Target.Target_tex) !backends then 
      output_alldoc "alldoc" (String.concat " " !opt_file_arguments) alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum)

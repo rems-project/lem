@@ -53,7 +53,6 @@ type instances = Types.instance list Types.Pfmap.t
 
 val output :   
   string ->                           (* The path to the main library *)
-  string ->                           (* Isabelle Theory to be included *)
   string option ->                    (* output directory option *)
   target ->                           (* Backend name *) 
   Typed_ast.var_avoid_f ->

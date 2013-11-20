@@ -127,7 +127,7 @@ let html_postamble =
 "  </body>\n" ^
 "</html>\n"
 
-let output1 env libpath isa_thy (out_dir : string option) (targ : Target.target) avoid m alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum =
+let output1 env libpath (out_dir : string option) (targ : Target.target) avoid m alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum =
   let module C = struct
     let avoid = avoid
     let env = env
@@ -335,11 +335,11 @@ let output1 env libpath isa_thy (out_dir : string option) (targ : Target.target)
               | Trans.Trans_error(l,msg) ->
                   raise (Reporting_basic.Fatal_error (Reporting_basic.Err_trans_header (l, msg)))
 
-let output libpath isa_thy (out_dir : string option) (targ : Target.target) consts env mods alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum =
+let output libpath (out_dir : string option) (targ : Target.target) consts env mods alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum =
   List.iter
     (fun m ->
        if m.generate_output then
-       output1 env libpath isa_thy out_dir targ consts m alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum)
+       output1 env libpath out_dir targ consts m alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum)
     mods
 
 
