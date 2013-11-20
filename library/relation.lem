@@ -6,7 +6,7 @@
 (* Header                                                                     *)
 (* ========================================================================== *)
 
-declare {isabelle;ocaml;hol;coq} rename module = lem_relation
+declare {isabelle;ocaml;hol} rename module = lem_relation
 
 open import Bool Basic_classes Tuple Set Num
 open import {hol} `set_relationTheory`
@@ -202,7 +202,7 @@ lemma rel_converse_converse : forall r. relConverse (relConverse r) = r
 (* ----------------------- *)
 
 val relDomain : forall 'a 'b. SetType 'a, SetType 'b => rel 'a 'b -> set 'a
-let relDomain r = Set.map fst (relToSet r)
+let relDomain r = Set.map (fun x -> fst x) (relToSet r)
 
 declare hol target_rep function relDomain = `domain`
 
@@ -215,7 +215,7 @@ assert rel_domain_2: relDomain (relFromSet {((3:nat), (3:nat)); (3, 4); (4,5)}) 
 (* ----------------------- *)
 
 val relRange : forall 'a 'b. SetType 'a, SetType 'b => rel 'a 'b -> set 'b
-let relRange r = Set.map snd (relToSet r)
+let relRange r = Set.map (fun x -> snd x) (relToSet r)
 
 declare hol target_rep function relRange = `range`
 

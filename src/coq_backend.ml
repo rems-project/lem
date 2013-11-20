@@ -775,8 +775,9 @@ let generate_coq_record_update_notation e =
             ]
       | Comment c ->
       	let ((def_aux, skips_opt), l, lenv) = c in
+        let skips = match skips_opt with None -> emp | Some s -> ws s in
           Output.flat [
-      		  from_string "(* "; def inside_instance callback inside_module def_aux; from_string " *)"
+      		  skips; from_string "(* "; def inside_instance callback inside_module def_aux; from_string " *)"
           ]
       | _ -> emp
     and val_def inside_instance i_ref_opt is_recursive def tv_set class_constraints =
@@ -1644,18 +1645,18 @@ let generate_coq_record_update_notation e =
     and type_def_type_variables tvs =
       match tvs with
         | [] -> emp
-        | [Typed_ast.Tn_A tv] -> from_string "{" ^ tyvar tv ^ from_string ": Type}"
+        | [Typed_ast.Tn_A tv] -> from_string "(" ^ tyvar tv ^ from_string ": Type)"
         | tvs ->
           let mapped = List.map (fun t ->
             match t with
               | Typed_ast.Tn_A (_, tv, _) ->
                 let tv = from_string @@ Ulib.Text.to_string tv in
                   Output.flat [
-                    from_string "{"; tv; from_string ": Type}"
+                    from_string "("; tv; from_string ": Type)"
                   ]
               | Typed_ast.Tn_N nv ->
                   Output.flat [
-                    from_string "{"; from_string "nv: num}"
+                    from_string "("; from_string "nv: nat)"
                   ]) tvs
           in
             Output.flat [
@@ -1762,8 +1763,7 @@ let generate_coq_record_update_notation e =
             from_string "Definition "; o; from_string "_default";
             tnvar_list'; tnvar_list_sep; from_string ": "; o;
             from_string " "; mapped;
-            from_string " := "; default; from_string " ";
-            mapped; from_string "."
+            from_string " := "; default; from_string ".";
           ]
       and default_value (s : src_t) : Output.t =
         match s.term with

@@ -55,6 +55,15 @@ Inductive ordering: Type :=
   | EQ: ordering
   | GT: ordering.
 
+Definition ordering_equal
+  (left right: ordering): bool :=
+    match left, right with
+      | LT, LT => true
+      | EQ, EQ => true
+      | GT, GT => true
+      | _, _ => false
+    end.
+
 (* Tuples. *)
 
 Definition tuple_equal_by
