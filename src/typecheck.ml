@@ -322,7 +322,11 @@ let tnvar_app_check l i tnv (t: src_t) : unit =
          Ident.pp (Ident.from_id i))
    | Ty _ , _ -> ()
 
-let rec typ_to_src_t (wild_f : Ast.l -> lskips -> src_t) 
+let check_backend_allowed allowed l =
+    if allowed then () else
+    raise (Reporting_basic.err_type l "backend-quotation not permitted here")
+
+let rec typ_to_src_t backend_quot_allowed (wild_f : Ast.l -> lskips -> src_t) 
       (do_tvar : Tyvar.t -> unit) (do_nvar : Nvar.t -> unit) (e : env) (Ast.Typ_l(typ,l)) 
       : src_t = 
   match typ with
@@ -335,15 +339,15 @@ let rec typ_to_src_t (wild_f : Ast.l -> lskips -> src_t)
           typ = { t = Tvar(Tyvar.from_rope tv); }; 
           rest = (); }
     | Ast.Typ_fn(typ1, sk, typ2) ->
-        let st1 = typ_to_src_t wild_f do_tvar do_nvar e typ1 in
-        let st2 = typ_to_src_t wild_f do_tvar do_nvar e typ2 in
+        let st1 = typ_to_src_t backend_quot_allowed wild_f do_tvar do_nvar e typ1 in
+        let st2 = typ_to_src_t backend_quot_allowed wild_f do_tvar do_nvar e typ2 in
           { term = Typ_fn(st1, sk, st2);
             locn = l; 
             typ = { t = Tfn(st1.typ,st2.typ) };
             rest = (); }
     | Ast.Typ_tup(typs) ->
         let typs = Seplist.from_list typs in
-        let sts = Seplist.map (typ_to_src_t wild_f do_tvar do_nvar e) typs in
+        let sts = Seplist.map (typ_to_src_t backend_quot_allowed wild_f do_tvar do_nvar e) typs in
           { term = Typ_tup(sts); 
             locn = l; 
             typ = { t = Ttup(Seplist.to_list_map annot_to_typ sts) };
@@ -357,7 +361,7 @@ let rec typ_to_src_t (wild_f : Ast.l -> lskips -> src_t)
               | Some(Tc_type(td)) ->
                   if List.length td.type_tparams = List.length typs then
                     let sts = 
-                      List.map (typ_to_src_t wild_f do_tvar do_nvar e) typs 
+                      List.map (typ_to_src_t backend_quot_allowed wild_f do_tvar do_nvar e) typs 
                     in
                     let id = {id_path = Id_some (Ident.from_id i); 
                               id_locn = (match i with Ast.Id(_,_,l) -> l);
@@ -379,9 +383,10 @@ let rec typ_to_src_t (wild_f : Ast.l -> lskips -> src_t)
                     Ident.pp (Ident.from_id i))
           end
     | Ast.Typ_backend(sk,q,typs) ->
+        let _ = check_backend_allowed backend_quot_allowed l in
         let i = Ident.replace_lskip (check_backend_quote l q) sk in
         let p = Path.from_id i in
-        let sts = List.map (typ_to_src_t wild_f do_tvar do_nvar e) typs in
+        let sts = List.map (typ_to_src_t backend_quot_allowed wild_f do_tvar do_nvar e) typs in
         let id = {id_path = Id_some i; 
                   id_locn = l;
                   descr = p;
@@ -392,7 +397,7 @@ let rec typ_to_src_t (wild_f : Ast.l -> lskips -> src_t)
             typ = { t = Tbackend(List.map annot_to_typ sts,p) };
             rest = (); }
     | Ast.Typ_paren(sk1,typ,sk2) ->
-        let st = typ_to_src_t wild_f do_tvar do_nvar e typ in
+        let st = typ_to_src_t backend_quot_allowed wild_f do_tvar do_nvar e typ in
         { term = Typ_paren(sk1,st,sk2); 
           locn = l; 
           typ = st.typ; 
@@ -869,6 +874,9 @@ module Make_checker(T : sig
                       val e : env 
                       (* The environment so-far of the module we're defining *)
                       val new_module_env : local_env
+
+                      (* allow backticked expressions, patterns and types in the checked places *)
+                      val allow_backend_quots : bool
                     end) : Expr_checker = struct
 
   module C = Constraint(struct let d = T.e.t_env let i = T.e.i_env end)
@@ -1001,7 +1009,7 @@ module Make_checker(T : sig
         | Ast.P_typ(sk1,p,sk2,typ,sk3) ->
             let (pat,pat_e) = check_pat l_e p acc in
             let src_t = 
-              typ_to_src_t build_wild C.add_tyvar C.add_nvar T.e typ
+              typ_to_src_t T.allow_backend_quots build_wild C.add_tyvar C.add_nvar T.e typ
             in
               C.equate_types l "type-annotated pattern" src_t.typ pat.typ;
               C.equate_types l "type-annotated pattern" src_t.typ ret_type;
@@ -1213,6 +1221,7 @@ module Make_checker(T : sig
               C.equate_types l "identifier use" ret_type (exp_to_typ exp);
               exp
         | Ast.Backend(sk,s) ->
+            let _ = check_backend_allowed T.allow_backend_quots l in
             let id = check_backend_quote l s in
               A.mk_backend l false sk id ret_type
         | Ast.Nvar((sk,n)) -> 
@@ -1297,7 +1306,7 @@ module Make_checker(T : sig
               A.mk_case false l sk1 exp sk2 res sk3 rt
         | Ast.Typed(sk1,e,sk2,typ,sk3) ->
             let exp = check_exp l_e e in
-            let src_t = typ_to_src_t build_wild C.add_tyvar C.add_nvar T.e typ in
+            let src_t = typ_to_src_t T.allow_backend_quots build_wild C.add_tyvar C.add_nvar T.e typ in
               C.equate_types l "type-annotated expression" src_t.typ (exp_to_typ exp);
               C.equate_types l "type-annotated expression" src_t.typ ret_type;
               A.mk_typed l sk1 exp sk2 src_t sk3 rt
@@ -1611,7 +1620,7 @@ module Make_checker(T : sig
         | Ast.Typ_annot_none -> 
             None
         | Ast.Typ_annot_some(sk',typ) ->
-            let src_t' = typ_to_src_t build_wild C.add_tyvar C.add_nvar T.e typ in
+            let src_t' = typ_to_src_t T.allow_backend_quots build_wild C.add_tyvar C.add_nvar T.e typ in
               C.equate_types l "pattern/expression list" src_t'.typ (exp_to_typ body_exp);
               Some (sk',src_t')
     in
@@ -1648,7 +1657,7 @@ module Make_checker(T : sig
               | Ast.Typ_annot_none -> 
                   None
               | Ast.Typ_annot_some(sk',typ) ->
-                  let src_t' = typ_to_src_t build_wild C.add_tyvar C.add_nvar T.e typ in
+                  let src_t' = typ_to_src_t T.allow_backend_quots build_wild C.add_tyvar C.add_nvar T.e typ in
                     C.equate_types l "let expression" src_t'.typ pat.typ;
                     Some (sk',src_t')
           in
@@ -1820,7 +1829,7 @@ module Make_checker(T : sig
          (fun (Ast.Name_l(Ast.Inderln_name_Name(s0,xl,s1,Ast.Ts(cp,typ),witness_opt,check_opt,functions_opt,s2), l1)) ->
             let (src_cp, tyvars, tnvarset, (sem_cp,sem_rp)) = check_constraint_prefix ctxt cp in 
             let () = check_free_tvs tnvarset typ in
-            let src_t = typ_to_src_t anon_error ignore ignore (defn_ctxt_to_env ctxt) typ in
+            let src_t = typ_to_src_t T.allow_backend_quots anon_error ignore ignore (defn_ctxt_to_env ctxt) typ in
             let r_t = src_t.typ in
             (* Todo add checks and processing of witness_opt, check_opt, and funcitons_opt *)
             let witness,wit_path,ctxt  = (match witness_opt with
@@ -1991,7 +2000,7 @@ let build_type_def_help (mod_path : Name.t list) (context : defn_ctxt)
         | Some(typ) ->
             check_free_tvs (tvs_to_set tvs) typ;
             let src_t = 
-              typ_to_src_t anon_error ignore ignore (defn_ctxt_to_env context) typ 
+              typ_to_src_t false anon_error ignore ignore (defn_ctxt_to_env context) typ 
             in
               if (regex = None)
                 then add_d_to_ctxt new_ctxt type_path 
@@ -2044,7 +2053,7 @@ let build_record tvs_set (ctxt : defn_ctxt)
        let l' = Ast.xl_to_l field_name in
        let fn = Name.from_x field_name in
        let src_t = 
-         typ_to_src_t anon_error ignore ignore (defn_ctxt_to_env ctxt) typ 
+         typ_to_src_t false anon_error ignore ignore (defn_ctxt_to_env ctxt) typ 
        in
          check_free_tvs tvs_set typ;
          ((fn,l'),sk1,src_t))
@@ -2082,7 +2091,7 @@ let rec build_variant build_descr tvs_set (ctxt : defn_ctxt)
        let src_ts =
          Seplist.map 
            (fun t ->
-              typ_to_src_t anon_error ignore ignore (defn_ctxt_to_env ctxt) t) 
+              typ_to_src_t false anon_error ignore ignore (defn_ctxt_to_env ctxt) t) 
            (Seplist.from_list typs)
         in
         let ctn = Name.from_x ctor_name in
@@ -2129,7 +2138,7 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
           (* Check and throw error if there's a regexp here *)
           (((tn,l), tnvs, type_path,
             Te_abbrev(sk3,
-                      typ_to_src_t anon_error ignore ignore (defn_ctxt_to_env context) t), None),
+                      typ_to_src_t false anon_error ignore ignore (defn_ctxt_to_env context) t), None),
            context)
       | Some(sk3, Ast.Te_record(sk1',ntyps,sk2',semi,sk3')) ->
           let ntyps = Seplist.from_list_suffix ntyps sk2' semi in
@@ -2228,7 +2237,7 @@ let check_val_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
   let n' = Name.strip_lskip n in
   let (src_cp, tyvars, tnvarset, (sem_cp,sem_rp)) = check_constraint_prefix ctxt cp in 
   let () = check_free_tvs tnvarset typ in
-  let src_t = typ_to_src_t anon_error ignore ignore (defn_ctxt_to_env ctxt) typ in
+  let src_t = typ_to_src_t false anon_error ignore ignore (defn_ctxt_to_env ctxt) typ in
   let () = (* check that the name is really fresh *)
     match Nfmap.apply ctxt.new_defs.v_env n' with
       | None -> ()
@@ -2278,7 +2287,7 @@ let check_class_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
   let target_set = targets_opt_to_set targs in
   let tnvars = TNset.add tv TNset.empty in
   let () = check_free_tvs tnvars typ in
-  let src_t = typ_to_src_t anon_error ignore ignore (defn_ctxt_to_env ctxt) typ in
+  let src_t = typ_to_src_t false anon_error ignore ignore (defn_ctxt_to_env ctxt) typ in
   let () = 
     match Nfmap.apply ctxt.new_defs.v_env n' with
       | None -> ()
@@ -2415,13 +2424,13 @@ let check_val_def (ts : Targetset.t) (mod_path : Name.t list) (l : Ast.l)
     let e = defn_ctxt_to_env ctxt
     let new_module_env = ctxt.new_defs
     let targets = ts
-  end 
-  in
+    let allow_backend_quots = false
+  end in
+  let module Checker = Make_checker(T) in
   let target_opt_ast = ast_def_to_target_opt (Ast.Val_def vd) in
   let target_set_opt = targets_opt_to_set_opt target_opt_ast in
   let target_opt = check_target_opt target_opt_ast in
 
-  let module Checker = Make_checker(T) in
   match vd with
       | Ast.Let_def(sk,_,lb) ->
           let (lb,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_letbind None false target_set_opt l lb in 
@@ -2442,6 +2451,10 @@ let check_val_def (ts : Targetset.t) (mod_path : Name.t list) (l : Ast.l)
           let ctxt' = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) constraints lconstraints K_let target_set_opt e_v in
           let (nls, n_ref, _, _, _, sk3, et) = letbind_to_funcl_aux_dest ctxt' lb in
           let is_transform = match vd with Ast.Let_transform _ -> true | _ -> false in
+          let _ = match (is_transform, target_opt) with
+              | (false, _) -> ()
+              | (_, None) -> ()
+              | _ ->   raise (Reporting_basic.err_type l "lem_transform does not permit target-options") in
           let (ctxt'', args) = lb_to_inline l ctxt' is_transform target_set_opt lb in
             (ctxt'', e_v, Let_inline(sk1,sk2,target_opt,nls,n_ref,args,sk3,et), Tconstraints(tnvs,constraints,lconstraints))
 
@@ -2491,6 +2504,7 @@ let check_val_def_instance (ts : Targetset.t) (mod_path : Name.t list) (instance
     let e = defn_ctxt_to_env ctxt
     let new_module_env = ctxt.new_defs
     let targets = ts'
+    let allow_backend_quots = false
   end 
   in
 
@@ -2536,6 +2550,7 @@ let check_lemma l ts (ctxt : defn_ctxt)
     let e = defn_ctxt_to_env ctxt
     let new_module_env = ctxt.new_defs
     let targets = ts
+    let allow_backend_quots = false
   end 
   in
   let bool_ty = { Types.t = Types.Tapp ([], Path.boolpath) } in
@@ -2636,6 +2651,7 @@ let check_declare_target_rep_term_rhs (l : Ast.l) ts targ (ctxt : defn_ctxt) c i
     let e = defn_ctxt_to_env ctxt
     let new_module_env = ctxt.new_defs
     let targets = ts
+    let allow_backend_quots = true
   end in 
   let module Checker = Make_checker(T) in
   let (rhs, new_rep) = match rhs with
@@ -2760,7 +2776,7 @@ begin
             | _ -> raise (Reporting_basic.err_general true l "invariant in checking type broken") in
 
   let _ = check_free_tvs (tvs_to_set tvs) rhs in
-  let rhs_src_t = typ_to_src_t anon_error ignore ignore (defn_ctxt_to_env ctxt) rhs in 
+  let rhs_src_t = typ_to_src_t true anon_error ignore ignore (defn_ctxt_to_env ctxt) rhs in 
   let (rhs_src_t, _) = typ_alter_init_lskips remove_init_ws rhs_src_t in
 
  
@@ -2808,6 +2824,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
       let i = ctxt.all_instances 
       let e = defn_ctxt_to_env ctxt
       let new_module_env = ctxt.new_defs
+      let allow_backend_quots = false
     end 
   in
     match def with
@@ -3187,7 +3204,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           in
           let () = check_free_tvs tnvarset typ in
           let src_t = 
-            typ_to_src_t anon_error ignore ignore (defn_ctxt_to_env ctxt) typ
+            typ_to_src_t false anon_error ignore ignore (defn_ctxt_to_env ctxt) typ
           in
 
 

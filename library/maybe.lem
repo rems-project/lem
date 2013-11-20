@@ -6,7 +6,7 @@
 
 declare {hol;isabelle;ocaml} rename module = lem_maybe 
 
-open import Bool Basic_classes 
+open import Bool Basic_classes Function
 
 (* ========================================================================== *)
 (* Basic stuff                                                                *)
@@ -134,8 +134,7 @@ let fromMaybe d mb = match mb with
 end
 
 declare ocaml    target_rep function fromMaybe = `Lem.option_default`
-let inline {isabelle} fromMaybe d = maybe d `id`
-let inline {hol} fromMaybe d = maybe d `I`
+let inline {isabelle;hol} fromMaybe d = maybe d id
 
 lemma fromMaybe: (
   (forall d v. fromMaybe d (Just v) = v) &&

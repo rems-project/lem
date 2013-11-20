@@ -2,7 +2,7 @@
 (* A library for common operations on functions                               *)
 (******************************************************************************)
 
-open import Bool Maybe Basic_classes
+open import Bool Basic_classes
 
 declare {isabelle;hol;ocaml} rename module = lem_function
 
@@ -16,6 +16,7 @@ let id x = x
 let inline {coq} id x = x
 declare isabelle target_rep function id = `id`
 declare hol      target_rep function id = `I`
+
 
 (* ----------------------- *)
 (* constant function       *)
@@ -37,6 +38,7 @@ let comb f g = (fun x -> f (g x))
 
 declare coq target_rep function comb = `compose`
 declare isabelle target_rep function comb = infix `o`
+declare hol      target_rep function comb = infix `o`
 
 
 (* ----------------------- *)
@@ -49,7 +51,6 @@ let apply f = (fun x -> f x)
 declare coq target_rep function apply = `apply`
 let inline {isabelle;ocaml;hol} apply f x = f x
 
-
 (* ----------------------- *)
 (* flipping argument order *)
 (* ----------------------- *)
@@ -59,3 +60,5 @@ let flip f = (fun x y -> f y x)
 
 declare coq target_rep function flip = `flip`
 let inline {isabelle} flip f x y = f y x
+declare hol      target_rep function flip = `combin$C`
+

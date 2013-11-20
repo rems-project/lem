@@ -1,6 +1,32 @@
 declare {isabelle;hol;ocaml} rename module = lem_function_extra
 
-open import Maybe Bool Basic_classes
+open import Maybe Bool Basic_classes Num Function
+
+(* ----------------------- *)
+(* Tests for function      *)
+(* ----------------------- *)
+
+(* These tests are not written in function itself, because the nat type
+   is not available there, yet *)
+
+assert id_0: id (2:nat) = 2
+assert id_1: id (5:nat) = 5
+assert id_2: id (2:nat) = 2
+
+assert const_0: (const (2:nat)) true = 2
+assert const_1: (const (5:nat)) false = 5
+assert const_2: (const (2:nat)) (3:nat) = 2
+
+assert comb_0: (comb (fun (x:nat) -> 3 * x) succ 2 = 9)
+assert comb_1: (comb succ (fun (x:nat) -> 3 * x) 2 = 7)
+
+assert apply_0: apply (fun (x:nat) -> 3 * x) 2 = 6
+assert apply_1: (fun (x:nat) -> 3 * x) $ 2 = 6
+
+assert flip_0: flip (fun (x:nat) y -> x - y) 3 5 = 2
+assert flip_1: flip (fun (x:nat) y -> x - y) 5 3 = 0
+
+
 
 (* ----------------------- *)
 (* getting a unique value  *)
