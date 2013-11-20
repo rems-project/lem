@@ -822,6 +822,15 @@ let val_def_get_const_descr_refs = function
   | Fun_def(_, _, _, funs) -> 
      Seplist.to_list_map (fun ((_, c, _, _, _, _):funcl_aux) -> c) funs
 
+let val_def_get_class_constraints_no_target_rep env targ d = begin
+  let l_unk = Ast.Trans (true, "val_def_get_class_constraints", None) in
+  let cs = val_def_get_const_descr_refs d in
+  let cds = List.map (c_env_lookup l_unk env.c_env) cs in
+  List.flatten (List.map (fun cd -> 
+       match Target.Targetmap.apply_target cd.target_rep targ with
+         | None -> cd.const_class | Some _ -> []) cds)
+end
+
 let val_def_get_class_constraints env d = begin
   let l_unk = Ast.Trans (true, "val_def_get_class_constraints", None) in
   let cs = val_def_get_const_descr_refs d in
