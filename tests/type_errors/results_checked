@@ -470,9 +470,9 @@ end
 --------------------------------------------------------------------------------
 File "test.lem", line 10, character 10 to line 10, character 18
   Type error: type mismatch: do expression
-nat
-and
-Maybe.maybe _
+    nat
+  and
+    Maybe.maybe _
 ================================================================================
 module M = struct
   type t 'a = maybe 'a
@@ -488,9 +488,9 @@ end
 --------------------------------------------------------------------------------
 File "test.lem", line 9, character 6 to line 9, character 6
   Type error: type mismatch: do/return
-'a
-and
-Maybe.maybe 'a
+    'a
+  and
+    Maybe.maybe 'a
 ================================================================================
 module M = struct
   type t 'a = maybe 'a
@@ -506,9 +506,9 @@ end
 --------------------------------------------------------------------------------
 File "test.lem", line 9, character 6 to line 9, character 6
   Type error: type mismatch: do/>>=
-Maybe.maybe 'a
-and
-'b
+    Maybe.maybe 'a
+  and
+    'b
 ================================================================================
 module M = struct
   type t 'a = maybe 'a
@@ -524,9 +524,9 @@ end
 --------------------------------------------------------------------------------
 File "test.lem", line 9, character 3 to line 12, character 3
   Type error: type mismatch: do expression
-nat
-and
-Maybe.maybe _
+    nat
+  and
+    Maybe.maybe _
 ================================================================================
 module M = struct
   type t = maybe nat 
@@ -1209,9 +1209,9 @@ let f (1 : bool) = (1 : nat)
 --------------------------------------------------------------------------------
 File "test.lem", line 8, character 7 to line 8, character 16
   Type error: type mismatch: type-annotated pattern
-bool
-and
-nat
+    bool
+  and
+    nat
 ================================================================================
 type x = | X of bool
 let f (X 1) = (1 : nat)
@@ -1219,9 +1219,9 @@ let f (X 1) = (1 : nat)
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 8 to line 4, character 8
   Type error: type mismatch: constructor pattern
-bool
-and
-nat
+    bool
+  and
+    nat
 ================================================================================
 type t = <| fld : bool |>
 let f <| fld = 1 |> = (1 : nat)
@@ -1229,27 +1229,27 @@ let f <| fld = 1 |> = (1 : nat)
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 10 to line 4, character 16
   Type error: type mismatch: field pattern
-bool
-and
-nat
+    bool
+  and
+    nat
 ================================================================================
 let f [1;true] = (1 : nat)
 
 --------------------------------------------------------------------------------
 File "test.lem", line 3, character 7 to line 3, character 14
   Type error: type mismatch: list pattern
-nat
-and
-bool
+    nat
+  and
+    bool
 ================================================================================
 let f (1::[true]) = (1 : nat)
 
 --------------------------------------------------------------------------------
 File "test.lem", line 3, character 8 to line 3, character 16
   Type error: type mismatch: :: pattern
-nat
-and
-bool
+    nat
+  and
+    bool
 ================================================================================
 let x = true
 let _ = x + (1 : nat)
@@ -1257,9 +1257,9 @@ let _ = x + (1 : nat)
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 9 to line 4, character 21
   Type error: type mismatch: infix expression
-nat
-and
-bool
+    nat
+  and
+    bool
 ================================================================================
 let f (x : bool) = x + 1
 
@@ -1274,9 +1274,9 @@ let _ = X (1 : nat)
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 9 to line 4, character 19
   Type error: type mismatch: application expression
-nat -> _
-and
-Test.t
+    nat -> _
+  and
+    Test.t
 ================================================================================
 type t = | X of bool
 let _ = X (1 : nat) 
@@ -1284,9 +1284,9 @@ let _ = X (1 : nat)
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 9 to line 4, character 19
   Type error: type mismatch: application expression
-nat
-and
-bool
+    nat
+  and
+    bool
 ================================================================================
 type t = | X of bool
 let _ = X true (1 : nat) 
@@ -1294,18 +1294,18 @@ let _ = X true (1 : nat)
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 9 to line 4, character 24
   Type error: type mismatch: application expression
-nat -> _
-and
-Test.t
+    nat -> _
+  and
+    Test.t
 ================================================================================
 let _ = fun (x : bool) -> x + (1 : nat)
 
 --------------------------------------------------------------------------------
 File "test.lem", line 3, character 27 to line 3, character 39
   Type error: type mismatch: infix expression
-nat
-and
-bool
+    nat
+  and
+    bool
 ================================================================================
 type x = | X of bool
 let _ = fun (X x) -> x + (1 : nat)
@@ -1313,9 +1313,9 @@ let _ = fun (X x) -> x + (1 : nat)
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 22 to line 4, character 34
   Type error: type mismatch: infix expression
-nat
-and
-bool
+    nat
+  and
+    bool
 ================================================================================
 type x = <| fld : bool |>
 let _ = fun <| fld = x |> -> x + (1 : nat)
@@ -1323,18 +1323,18 @@ let _ = fun <| fld = x |> -> x + (1 : nat)
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 30 to line 4, character 42
   Type error: type mismatch: infix expression
-nat
-and
-bool
+    nat
+  and
+    bool
 ================================================================================
 let _ = function | true -> 1 | (1 : nat) -> (1 : nat) end
 
 --------------------------------------------------------------------------------
 File "test.lem", line 3, character 9 to line 3, character 57
   Type error: type mismatch: function expression
-bool
-and
-nat
+    bool
+  and
+    nat
 ================================================================================
 let _ = function | _ -> 1 | _ -> true end
 
@@ -1348,36 +1348,36 @@ let _ = (1 : nat) (2 : nat)
 --------------------------------------------------------------------------------
 File "test.lem", line 3, character 9 to line 3, character 27
   Type error: type mismatch: application expression
-nat -> _
-and
-nat
+    nat -> _
+  and
+    nat
 ================================================================================
 let _ = (fun (1:nat) -> (1:nat)) true
 
 --------------------------------------------------------------------------------
 File "test.lem", line 3, character 9 to line 3, character 37
   Type error: type mismatch: application expression
-bool
-and
-nat
+    bool
+  and
+    nat
 ================================================================================
 let _ = (function | 1 -> (1 : nat) end) true
 
 --------------------------------------------------------------------------------
 File "test.lem", line 3, character 9 to line 3, character 44
   Type error: type mismatch: application expression
-bool
-and
-nat
+    bool
+  and
+    nat
 ================================================================================
 let _ = (fun x -> x) (1 : nat) (2 : nat)
 
 --------------------------------------------------------------------------------
 File "test.lem", line 3, character 9 to line 3, character 40
   Type error: type mismatch: application expression
-nat -> _
-and
-nat
+    nat -> _
+  and
+    nat
 ================================================================================
 let _ = true + (1 : nat)
 
@@ -1385,9 +1385,9 @@ let _ = true + (1 : nat)
 --------------------------------------------------------------------------------
 File "test.lem", line 3, character 9 to line 3, character 24
   Type error: type mismatch: infix expression
-nat
-and
-bool
+    nat
+  and
+    bool
 ================================================================================
 type t5 [name = "nv*"] = NV of bool | NVC of nat
 let test17 = fun (x : t5) -> x

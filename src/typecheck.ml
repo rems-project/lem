@@ -696,7 +696,22 @@ and check_free_ns (nvs: TNset.t) (Ast.Length_l(nexp,l)) : unit =
    | Ast.Nexp_sum(n1,_,n2) | Ast.Nexp_times(n1,_,n2) -> check_free_ns nvs n1 ; check_free_ns nvs n2
    | Ast.Nexp_paren(_,n,_) -> check_free_ns nvs n
 
+(* [check_free_tvs_exp tvs e] check that all the type-variables used in expression [e]
+   are part of the set [tvs]. If not, an appropriate type-error is raised. *)
+let check_free_tvs_exp l (tvs : TNset.t) e : unit =
+  let free_tnvars = (add_exp_entities empty_used_entities e).used_tnvars in
+  let unbound_tnvars = TNset.diff free_tnvars tvs in
+  if (TNset.is_empty unbound_tnvars) then () else begin
+     raise (Reporting_basic.err_type_pp l "unbound type variables"
+               (Pp.lst ";" Types.pp_tnvar) (TNset.elements unbound_tnvars))
+  end
 
+let check_free_tvs_letbind (lb : Typed_ast.letbind) : unit =
+  match lb with
+    | (Let_val(pat,_,_,exp), l) ->
+        check_free_tvs_exp l (Types.free_vars pat.typ) exp
+    | (Let_fun (na, _, _, _, exp), l) ->
+        check_free_tvs_exp l (Types.free_vars (annot_to_typ na)) exp
 
 
 (* -------------------------------------------------------------------------- *)
@@ -1637,7 +1652,7 @@ module Make_checker(T : sig
                     C.equate_types l "let expression" src_t'.typ pat.typ;
                     Some (sk',src_t')
           in
-            C.equate_types l "let expression" pat.typ (exp_to_typ exp);
+          let _ = C.equate_types l "let expression" pat.typ (exp_to_typ exp) in
             ((Let_val(pat,annot,sk',exp),l), lex_env)
       | Ast.Let_fun(funcl) ->
           let (xl, (a,b,c,d,t)) = check_funcl l_e funcl l in
@@ -2410,17 +2425,20 @@ let check_val_def (ts : Targetset.t) (mod_path : Name.t list) (l : Ast.l)
   match vd with
       | Ast.Let_def(sk,_,lb) ->
           let (lb,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_letbind None false target_set_opt l lb in 
+          let _ = check_free_tvs_letbind lb in
           let ctxt' = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) constraints lconstraints K_let target_set_opt e_v in
           let (vd : val_def) = letbind_to_funcl_aux sk target_opt ctxt' lb in
           (ctxt', e_v, vd, Tconstraints(tnvs,constraints,lconstraints))
       | Ast.Let_rec(sk1,sk2,_,funcls) ->
           let funcls = Seplist.from_list funcls in
           let (lbs,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_funs None target_set_opt l funcls in 
+          let _ = Seplist.iter (fun (a,b,c,d,e) -> check_free_tvs_letbind (Let_fun (a,b,c,d,e), l)) lbs in
           let ctxt' = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) constraints lconstraints K_let target_set_opt e_v in
           let fauxs = letbinds_to_funcl_aux_rec l ctxt' lbs in
             (ctxt', e_v, (Fun_def(sk1,FR_rec sk2,target_opt,fauxs)), Tconstraints(tnvs,constraints,lconstraints))
       | (Ast.Let_inline (sk1,sk2,_,lb) | Ast.Let_transform (sk1,sk2,_,lb)) -> 
           let (lb,e_v,Tconstraints(tnvs,constraints,lconstraints)) = Checker.check_letbind None true target_set_opt l lb in 
+          let _ = check_free_tvs_letbind lb in
           let ctxt' = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) constraints lconstraints K_let target_set_opt e_v in
           let (nls, n_ref, _, _, _, sk3, et) = letbind_to_funcl_aux_dest ctxt' lb in
           let is_transform = match vd with Ast.Let_transform _ -> true | _ -> false in

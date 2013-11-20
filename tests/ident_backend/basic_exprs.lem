@@ -97,7 +97,8 @@ let test56 = { (1:nat) ; 2 ; }
 let test57 = forall x . x
 let test58 = exists x y . x 
 let test59 = forall ( x IN {} ) . x
-let test60 = forall ( x IN {} ) ( y MEM [ ] ) . x
+let test60 = forall ( y MEM [ ] ) . y
+let test61 = forall ( x IN {} ) ( y MEM [ ] ) . x && y
 
 let test62 s1 s2 = [ y | forall ( ( x,y ) MEM s2 ) | true ]
 let test65 r = r.fn1
