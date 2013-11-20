@@ -239,7 +239,7 @@ let output1 env libpath (out_dir : string option) (targ : Target.target) avoid m
                 Printf.fprintf o "(*%s*)\n" (generated_line m.filename);
                 List.iter (fun s -> Printf.fprintf o "open %s\n\n" s) extra_imported_modules;
   
-                Printf.fprintf o "%s" "let run_test n loc b =\n  if b then (Format.printf \"%s : ok\\n\" n) else (Format.printf \"%s : FAILED\\n  %s\\n\\n\" n loc);;\n\n";
+                Printf.fprintf o "%s" "let run_test n loc b =\n  if b then (Format.printf \"%s: ok\\n\" n) else ((Format.printf \"%s: FAILED\\n  %s\\n\\n\" n loc); exit 1);;\n\n";
 
                 Printf.fprintf o "%s" (Ulib.Text.to_string r_extra);
                 close_output_with_check ext_o

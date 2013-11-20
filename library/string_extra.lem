@@ -27,8 +27,8 @@ instance (Ord string)
   let (>) = stringGreater
   let (>=) = stringGreaterEq
 end
- 
-assert string_compare_1: "abc" < "bbc"
-assert string_compare_2: "abc" <= "abc"
-assert string_compare_3: "abc" > "ab"
+
+assert {ocaml} string_compare_1: "abc" < "bbc"
+assert {ocaml} string_compare_2: "abc" <= "abc"
+assert {ocaml} string_compare_3: "abc" > "ab"
  

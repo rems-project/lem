@@ -56,7 +56,29 @@ val lem_conv_eval = computeLib.EVAL_CONV
 val lem_conv_simp = SIMP_CONV (srw_ss()++permLib.PERM_ss) [] 
 
 
-fun lem_run_test t = Lib.exists (fn f => can (fn t => EQT_ELIM (f t)) t) [lem_conv_eval, lem_conv_simp]
+val lem_convs = [lem_conv_eval, lem_conv_simp];
+
+
+datatype test_result =
+    Success
+  | Fail
+  | Unknown of term
+
+
+fun lem_run_single_test (t:term) conv = 
+case total conv t of
+    NONE => NONE
+  | SOME thm => 
+      if (can EQT_ELIM thm) then SOME Success else
+      if (can EQF_ELIM thm) then SOME Fail else
+      NONE
+;
+
+fun lem_run_test t = 
+  case Lib.get_first (lem_run_single_test t) lem_convs of
+      NONE => Unknown (rhs (concl (EVAL t)))
+    | SOME r => r
+
 
 fun lem_assertion s t =
 let
@@ -67,18 +89,18 @@ let
     val _ = terminal_print [FG LightBlue] s;
     val _ = print ": ``";
     val _ = print_term t;
-    val _ = print ("``\n   ");
-    val ok = lem_run_test t;
-    val _ = if ok then
-               terminal_print [FG Green] "OK\n\n"
-            else 
-               terminal_print [FG OrangeRed] "FAILED\n\n";
-(*    val _ = if (not ok andalso not (!run_interactive)) then Process.exit Process.failure else ();   *)
+    val _ = print ("`` ");
+    val result = lem_run_test t;
+    val _ = case result of
+                Success => terminal_print [FG Green] "OK\n"
+              | Fail => (terminal_print [FG OrangeRed] "FAILED\n";
+                         if (not (!run_interactive)) then Process.exit Process.failure else ())
+              | Unknown t => (terminal_print [FG Yellow] "evaluation failed\n")
+(*                            print_term t;
+                              print "\n\n"*) 
 in
     ()
 end;
-
-
 
 
 end
