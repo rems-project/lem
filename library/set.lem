@@ -560,8 +560,9 @@ val sigmaBy : forall 'a 'b. (('a * 'b) -> ('a * 'b) -> ordering) -> set 'a -> ('
 
 declare ocaml    target_rep function sigmaBy = `Pset.sigma`
 
-let sigma sa sb = { (a, b) | a IN sa && b IN sb a }
+let sigma sa sb = { (a, b) | forall (a IN sa) (b IN sb a) | true }
 let inline {ocaml} sigma = sigmaBy setElemCompare
+
 declare isabelle target_rep function sigma = `Sigma`
 declare coq      target_rep function sigmaBy = `set_sigma_by`
 let inline {coq} sigma = sigmaBy setElemCompare
@@ -586,6 +587,7 @@ declare isabelle target_rep function cross = infix `\<times>`
 declare hol      target_rep function cross = infix `CROSS`
 let inline {ocaml} cross = crossBy setElemCompare
 
+lemma cross_by_sigma : forall s1 s2. cross s1 s2 = sigma s1 (const s2)
 assert cross_1 : (cross {(2:nat);3} {true; false} = {(2,true);(3,true); (2,false); (3,false)})
 
 
