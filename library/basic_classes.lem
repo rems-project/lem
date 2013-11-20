@@ -177,6 +177,16 @@ declare ocaml    target_rep function defaultGreaterEq = infix `>=`
 declare hol      target_rep function defaultGreaterEq = 
 declare isabelle target_rep function defaultGreaterEq = 
 declare coq      target_rep function defaultGreaterEq = 
+;;
+
+let genericCompare (less: 'a -> 'a -> bool) (equal: 'a -> 'a -> bool) (x : 'a) (y : 'a) =
+  if less x y then
+    LT
+  else if equal x y then
+    EQ
+  else
+    GT
+
 
 (*
 (* compare should really be a total order *)

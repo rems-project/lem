@@ -26,3 +26,13 @@ let nat_pow b e =
   in     
   if e < 0 then raise (Failure "negative exponent") else 
   if (e = 0) then 1 else aux 1 b e
+
+let int_pow b e = nat_pow b e;;
+ 
+let int_mod i n = 
+  let r = i mod n in
+  if (r < 0) then r + n else r
+
+let int_div i n = 
+  let r = i / n in
+  if (i mod n < 0) then r - 1 else r
