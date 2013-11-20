@@ -21,6 +21,10 @@ let inline {ocaml} ( ** ) = Ocaml.Num.power_num
 val (/) : int -> int -> int
 let inline {ocaml} (/) = Ocaml.Num.div_num
 
+(* Euclidian division *)
+val div : int -> int -> int
+let inline {ocaml} div = Ocaml.Num.quo_num
+
 (* Modulo *)
 val (%) : int -> int -> int
 let inline {ocaml} (%) = Ocaml.Num.mod_num

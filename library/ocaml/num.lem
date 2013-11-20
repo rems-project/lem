@@ -5,6 +5,7 @@ val sub_num : ocaml_num -> ocaml_num -> ocaml_num
 val mult_num : ocaml_num -> ocaml_num -> ocaml_num
 val power_num : ocaml_num -> ocaml_num -> ocaml_num
 val div_num : ocaml_num -> ocaml_num -> ocaml_num
+val quo_num : ocaml_num -> ocaml_num -> ocaml_num
 val mod_num : ocaml_num -> ocaml_num -> ocaml_num
 val lt_num : ocaml_num -> ocaml_num -> bool
 val le_num : ocaml_num -> ocaml_num -> bool

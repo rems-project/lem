@@ -3,6 +3,7 @@ let sub_num = Num.sub_num
 let mult_num = Num.mult_num
 let power_num = Num.power_num
 let div_num = Num.div_num
+let quo_num = Num.quo_num
 let mod_num = Num.mod_num
 let lt_num = Num.lt_num
 let le_num = Num.le_num
