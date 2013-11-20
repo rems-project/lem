@@ -1014,6 +1014,7 @@ assert nat_from_natural_2: natFromNatural 2 = 2
 val intFromNat : nat -> int
 declare hol      target_rep function intFromNat = `int_of_num` 
 declare ocaml    target_rep function intFromNat n = ``n
+declare isabelle target_rep function intFromNat = `int`
 declare coq      target_rep function intFromNat n = (`Zpos` (`P_of_succ_nat` n))
 
 assert int_from_nat_0: intFromNat 0 = 0
@@ -1024,6 +1025,7 @@ val natFromInt : int -> nat
 declare hol      target_rep function natFromInt i = `Num` (`ABS` i) 
 declare ocaml    target_rep function natFromInt = `abs`
 declare coq      target_rep function natFromInt = `Zabs_nat`
+declare isabelle target_rep function natFromInt i = `nat` (`abs` i)
 
 assert nat_from_int_0: natFromInt 0 = 0
 assert nat_from_int_1: natFromInt 1 = 1
