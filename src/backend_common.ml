@@ -53,6 +53,19 @@ open Types
 let r = Ulib.Text.of_latin1
 let marker_lex_skip : Ast.lex_skips = (Some [Ast.Ws (Ulib.Text.of_latin1 "***marker***")])
 
+
+let def_add_location_comment_flag = ref false
+
+let def_add_location_comment (((d,s),l,lenv) : def) =
+  if not (!def_add_location_comment_flag) then (emp, d) else
+  begin
+    let (((d', _), _, _), sk) = def_alter_init_lskips (fun sk -> (None, sk)) ((d,s),l,lenv) in
+    let c = String.concat "" [" "; Reporting_basic.loc_to_string true l; " "] in
+    let out_before = ws sk ^ comment c ^ new_line in
+    (out_before, d')
+  end
+
+
 let mark_backend_exp_for_inline _ e = 
   let old_l = exp_to_locn e in
   let old_t = exp_to_typ e in

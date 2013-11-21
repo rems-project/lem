@@ -1817,9 +1817,11 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
               let ascii_rep_set = CdsetE.from_list ue.used_consts
             end)
           in
+          let (before_out, d') = Backend_common.def_add_location_comment ((d,s),l,lenv) in
+          before_out ^ 
           match s with
-            | None   -> C.def inside_instance callback inside_module d ^ y
-            | Some s -> C.def inside_instance callback inside_module d ^ ws s ^ y
+            | None   -> C.def inside_instance callback inside_module d' ^ y
+            | Some s -> C.def inside_instance callback inside_module d' ^ ws s ^ y
       	) ds emp
     and defs_extra inside_instance inside_module (ds: def list) =
         List.fold_right (fun (((d, s), l, lenv):def) y ->

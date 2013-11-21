@@ -106,6 +106,9 @@ let options = Arg.align ([
   ( "-outdir", 
     Arg.String (fun l -> out_dir := Some l),
     " the output directory (the default is the dir the files reside in)");
+  ( "-add_loc_annots", 
+    Arg.Unit (fun b -> Backend_common.def_add_location_comment_flag := true),
+    " add location annotations to the output");
   ( "-v",
     Arg.Unit (fun b -> opt_print_version := true),
     " print version");

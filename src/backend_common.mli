@@ -49,6 +49,15 @@
 open Typed_ast 
 open Types
 
+(** [def_add_location_comment_flag] controls whether [def_add_location_comment]. *)
+val def_add_location_comment_flag : bool ref 
+
+(** If [def_add_location_comment_flag] is set, [def_add_location_comment d] adds a comment with location information
+    before definition [d]. This may require changing the initial whitespace before the definition. Therefore, the 
+    [def_aux] of [d] with changed whitespace as well as the output that should be added before [d] is returned. *)
+val def_add_location_comment : Typed_ast.def -> Output.t * Typed_ast.def_aux
+
+
 (** [inline_exp_macro target env] does the inlining of target specific constant definitions *)
 val inline_exp_macro : Target.non_ident_target -> env -> Macro_expander.macro_context -> exp -> exp option
 

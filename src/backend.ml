@@ -3016,7 +3016,8 @@ let rec defs (ds:def list) =
         let ue = add_def_entities T.target true empty_used_entities ((d,s),l,lenv) in
         let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = lenv };;
 					let ascii_rep_set = CdsetE.from_list ue.used_consts end)(X) in
-        F'.def defs false d (is_pp_loc l)
+        let (before_out, d') = Backend_common.def_add_location_comment ((d,s),l,lenv) in
+        before_out ^ F'.def defs false d' (is_pp_loc l)
        end ^
 
        begin
