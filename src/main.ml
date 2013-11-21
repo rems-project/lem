@@ -68,6 +68,7 @@ let default_library =
      | Not_found -> Build_directory.d^"/library"
 
 let lib_paths_ref = ref ([] : string list)
+let allow_reorder_modules = ref true
 
 let options = Arg.align ([
   ( "-i", 
@@ -106,21 +107,9 @@ let options = Arg.align ([
   ( "-outdir", 
     Arg.String (fun l -> out_dir := Some l),
     " the output directory (the default is the dir the files reside in)");
-  ( "-add_loc_annots", 
-    Arg.Unit (fun b -> Backend_common.def_add_location_comment_flag := true),
-    " add location annotations to the output");
   ( "-v",
     Arg.Unit (fun b -> opt_print_version := true),
     " print version");
-  ( "-ident_pat_compile",
-    Arg.Unit (fun b -> Target_trans.ident_force_pattern_compile := true; Reporting.ignore_pat_compile_warnings()),
-    " activates pattern compilation for the identity backend. This is used for debugging.");
-  ( "-ident_dict_passing",
-    Arg.Unit (fun b -> Target_trans.ident_force_dictionary_passing := true),
-    " activates dictionary passing transformations for the identity backend. This is used for debugging.");
-  ( "-only_changed_output",
-    Arg.Unit (fun b -> Process_file.always_replace_files := false),
-    " generate only output files, whose content really changed compared to the existing file");
   ( "-only_auxiliary",
     Arg.Unit (fun b -> Process_file.only_auxiliary := true),
     " generate only auxiliary output files");
@@ -131,6 +120,21 @@ let options = Arg.align ([
        | "auto" -> 1
        | _ -> 2))),
     " generate no (none) auxiliary-information, only auxiliaries that can be handled automatically (auto) or all (all) auxiliary information");
+  ( "-add_loc_annots", 
+    Arg.Unit (fun b -> Backend_common.def_add_location_comment_flag := true),
+    " add location annotations to the output");
+  ( "-no_dep_reorder", 
+    Arg.Unit (fun b -> allow_reorder_modules := false),
+    " prohibit reordering modules given to lem as explicit arguments in order during dependency resolution");
+  ( "-ident_pat_compile",
+    Arg.Unit (fun b -> Target_trans.ident_force_pattern_compile := true; Reporting.ignore_pat_compile_warnings()),
+    " activates pattern compilation for the identity backend. This is used for debugging.");
+  ( "-ident_dict_passing",
+    Arg.Unit (fun b -> Target_trans.ident_force_dictionary_passing := true),
+    " activates dictionary passing transformations for the identity backend. This is used for debugging.");
+  ( "-only_changed_output",
+    Arg.Unit (fun b -> Process_file.always_replace_files := false),
+    " generate only output files, whose content really changed compared to the existing file");
   ( "-debug",
     Arg.Unit (fun b -> Printexc.record_backtrace true),
     " print a backtrace for all errors (lem needs to be compiled in debug mode)")
@@ -294,7 +298,7 @@ let main () =
   in
 
   (* Parse all of the .lem sources and also parse depencies *)
-  let processed_files = Module_dependencies.process_files lib_path files_to_process in
+  let processed_files = Module_dependencies.process_files (!allow_reorder_modules) lib_path files_to_process in
   
   let backend_set = 
     List.fold_right 

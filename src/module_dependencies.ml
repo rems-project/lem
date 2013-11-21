@@ -60,7 +60,8 @@ type module_dependency = {
    module_filename : string;
    module_ast : Ast.defs * Ast.lex_skips;
    missing_deps : DepSet.t;
-   module_needs_output : bool
+   module_needs_output : bool;
+   module_given_by_user : bool
 }
   
 let module_dependency_is_resolved md =
@@ -119,6 +120,7 @@ let load_module_file (filename, loc, needs_output, is_user_import) =
     module_ast = ast;
     missing_deps = missing_deps;
     module_needs_output = needs_output;
+    module_given_by_user = is_user_import;
   }
 
 
@@ -131,7 +133,7 @@ let load_module (l: Ast.l) (search_dirs : string list) (module_name : string) =
 (** [resolve_dependencies ordered_modules missing_modules] tries to solve dependencies by
     ordering the modules in [missing_modules]. The list [ordered_modules] have already
     been loaded. *)      
-let rec resolve_dependencies (lib_dirs : string list)
+let rec resolve_dependencies allow_input_reorder (lib_dirs : string list)
   (resolved_modules : module_dependency list)
   (missing_modules : module_dependency list) : module_dependency list =
 match missing_modules with
@@ -146,7 +148,7 @@ match missing_modules with
 
       if module_dependency_is_resolved md then          
         (* md is OK, we can typecheck it now *)
-        resolve_dependencies lib_dirs (md :: resolved_modules) missing_modules'
+        resolve_dependencies allow_input_reorder lib_dirs (md :: resolved_modules) missing_modules'
       else if module_dependency_is_cyclic md then
         (* a dependency cycle was detected *)
         raise (Reporting_basic.Fatal_error (Reporting_basic.Err_cyclic_build md.module_name))
@@ -154,26 +156,31 @@ match missing_modules with
         (* choose an aribitray missing depency and process it *)
         let (missing_dep, dep_l) = DepSet.choose md.missing_deps in
         match Util.list_pick (fun md' -> md'.module_name = missing_dep) missing_modules' with
-          | Some (md', missing_modules'') ->
+          | Some (md', missing_modules'') ->              
               (* md depends on already parsed module md'. Therefore, process md' first and 
                  for cycle-detection make sure the depencies of md' are also dependencies of md. *)
+
+              let _ = if not ((not allow_input_reorder) && md'.module_given_by_user) then () else begin
+                raise (Reporting_basic.Fatal_error (Reporting_basic.Err_reorder_dependency (dep_l, md'.module_name)))
+              end in
+                 
               let md = {md with missing_deps = DepSet.union md.missing_deps md'.missing_deps} in
-              resolve_dependencies lib_dirs resolved_modules (md' :: md :: missing_modules'')
+              resolve_dependencies allow_input_reorder lib_dirs resolved_modules (md' :: md :: missing_modules'')
           | None ->
               (* md depends on a module that has not been parsed yet. Try to find a file containing it
                  and load this file *)
               let search_dirs = (Filename.dirname md.module_filename) :: lib_dirs in
               let md' = load_module dep_l search_dirs missing_dep in
-              resolve_dependencies lib_dirs resolved_modules (md' :: md :: missing_modules')
+              resolve_dependencies allow_input_reorder lib_dirs resolved_modules (md' :: md :: missing_modules')
       end
     end  
 
 
-let process_files (lib_dirs : string list) (files : (string * bool) list) =
+let process_files allow_input_reorder (lib_dirs : string list) (files : (string * bool) list) =
 begin
   let files' = List.map (fun (n, i) ->  (n, Ast.Unknown, i, true)) files in
   let missing_modules = List.map load_module_file files' in
-  let resolved = resolve_dependencies lib_dirs [] missing_modules in
+  let resolved = resolve_dependencies allow_input_reorder lib_dirs [] missing_modules in
 
   List.map (fun md -> (md.module_name, md.module_filename, md.module_ast, md.module_needs_output)) resolved
 end

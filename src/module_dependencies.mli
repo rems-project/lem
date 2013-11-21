@@ -46,10 +46,10 @@
 
 (** module dependency resolution *)
 
-(** [process_files lib_dirs files] parses the files in list [files]. 
+(** [process_files allow_reorder lib_dirs files] parses the files in list [files]. 
     It checks for [import] statements and tries to automatically load
     the needed files for those as well. Therefore, files are searched in
-    the directories [lib_dirs]. I may also reorder the order of
+    the directories [lib_dirs]. If [allow_reorder] is set, it may also reorder the order of
     file in [files] to satisfy dependencies.   
 
     The result is a list of tuples
@@ -59,7 +59,7 @@
     might to also want to add library modules manually, the input 
     [files] is a list of file names and need-output flags as well.
 *)
-val process_files : string list -> (string * bool) list -> 
+val process_files : bool -> string list -> (string * bool) list -> 
    (string * string * (Ast.defs * Ast.lex_skips) * bool) list
 
 

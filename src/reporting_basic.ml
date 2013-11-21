@@ -156,6 +156,7 @@ type error =
   | Err_cyclic_build of string 
   | Err_cyclic_inline of Ast.l * string * string
   | Err_resolve_dependency of Ast.l * string list * string 
+  | Err_reorder_dependency of Ast.l * string
   | Err_fancy_pattern_constant of Ast.l * string 
 
 let dest_err = function
@@ -174,6 +175,7 @@ let dest_err = function
   | Err_cyclic_build m -> ("Circular build detected", false, Loc Ast.Unknown, "module '" ^ m ^ "' depends on itself")
   | Err_cyclic_inline (l, targ, c) -> ("Circular target definition", false, Loc l, "the definition of " ^ c ^ " for target " ^ targ ^ " depends on itself")
   | Err_resolve_dependency (l, dirs, m) -> ("Unknown dependency", false, Loc l, ("could not find module '"^m^"' in directories " ^ (String.concat ", " (List.map (fun s -> "'" ^ s ^ "'") dirs))))
+  | Err_reorder_dependency (l, m) -> ("Reordering dependency", false, Loc l, ("module '"^m^"' is needed earlier, but it reordering is not allowed"))
 
 exception Fatal_error of error
 
