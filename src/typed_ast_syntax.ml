@@ -299,9 +299,9 @@ let constant_descr_rename  (targ : Target.non_ident_target) (n':Name.t) (l' : As
   let tr = Target.Targetmap.insert (cd.target_rename) (targ, (l', n')) in
   ({cd with target_rename = tr}, old_info)
 
-let mod_target_rep_rename  (targ : Target.non_ident_target) mod_string (n':Name.t) (target_mods_opt : (string list) option) (l' : Ast.l) (tr : mod_target_rep Target.Targetmap.t) : mod_target_rep Target.Targetmap.t = 
+let mod_target_rep_rename  (targ : Target.non_ident_target) mod_string (n':Name.t) (l' : Ast.l) (tr : mod_target_rep Target.Targetmap.t) : mod_target_rep Target.Targetmap.t = 
   let _ = match (Target.Targetmap.apply_target tr (Target.Target_no_ident targ)) with
-    | (Some (MR_rename (l, _) | MR_target_modules (l, _, _))) ->
+    | (Some (MR_rename (l, _))) ->
       begin
         let loc_s = Reporting_basic.loc_to_string true l in
         let msg = Format.sprintf 
@@ -312,10 +312,7 @@ let mod_target_rep_rename  (targ : Target.non_ident_target) mod_string (n':Name.
     | None -> ()
   in
   let new_name = Util.option_default n' (Name.capitalize n') in
-  let new_info = match target_mods_opt with
-    | None -> MR_rename (l', new_name)
-    | Some target_mods -> MR_target_modules (l', new_name, target_mods)
-  in
+  let new_info = MR_rename (l', new_name) in
   let tr' = Target.Targetmap.insert tr (targ, new_info) in
   tr'
 

@@ -2645,7 +2645,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         kwd "=" ^
         (Name.to_output Term_const n)
       end
-  | Declaration (Decl_rename_current_module (sk1, targets, sk2, sk3, sk4, n, mn_opt)) ->
+  | Declaration (Decl_rename_current_module (sk1, targets, sk2, sk3, sk4, n)) ->
       if (not (Target.is_human_target T.target)) then emp else begin
         ws sk1 ^
         kwd "declare" ^
@@ -2656,16 +2656,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         kwd "module" ^
         ws sk4 ^
         kwd "=" ^
-        (Name.to_output Term_const n) ^
-        Util.option_default_map mn_opt emp (fun (sk5, mn, sk6) ->
-          ws sk5 ^
-          kwd "[" ^
-          flat
-            (Seplist.to_sep_list_last Seplist.Optional (fun (sk, s) ->
-                ws sk ^ T.backend_quote (kwd s)
-             ) (sep (kwd ";")) mn) ^
-          ws sk6 ^
-          kwd "]")
+        (Name.to_output Term_const n)
       end
   | Declaration (Decl_compile_message (sk1, targets, sk2, c_id, sk3, sk4, msg)) -> 
       if (not (Target.is_human_target T.target)) then emp else begin

@@ -181,7 +181,6 @@ and free_env = t Nfmap.t
 
 and mod_target_rep =
   | MR_rename of Ast.l * Name.t
-  | MR_target_modules of Ast.l * Name.t * string list
 
 and mod_descr = { mod_binding    : Path.t;
                   mod_env        : local_env; 
@@ -347,8 +346,7 @@ type declare_def =  (* declarations *)
  | Decl_target_rep_type       of lskips * Ast.target  * lskips * lskips * Path.t id * tnvar list * lskips * src_t
  | Decl_ascii_rep             of lskips * targets_opt * lskips * Ast.component * name_kind id * lskips * lskips * Name.t
  | Decl_rename                of lskips * targets_opt * lskips * Ast.component * name_kind id * lskips * Name.lskips_t
- | Decl_rename_current_module of lskips * targets_opt * lskips * lskips * lskips * Name.lskips_t * 
-            (lskips * (lskips * string) lskips_seplist * lskips) option
+ | Decl_rename_current_module of lskips * targets_opt * lskips * lskips * lskips * Name.lskips_t 
  | Decl_termination_argument  of lskips * targets_opt * lskips * const_descr_ref id * lskips * Ast.termination_setting
  | Decl_pattern_match_decl    of lskips * targets_opt * lskips * Ast.exhaustivity_setting * Path.t id * tnvar list * lskips * lskips * (const_descr_ref id) lskips_seplist * lskips * (const_descr_ref id) option
 (*
@@ -699,9 +697,9 @@ let rec def_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (((d,s),l,l
             | Decl_rename (sk1, targs, sk2, comp, id, sk3, n) ->
                 let (sk1', s_ret) = lskips_f sk1 in
                 (Decl_rename (sk1', targs, sk2, comp, id, sk3, n), s_ret)
-            | Decl_rename_current_module (sk1, targs, sk2, sk3, sk4, n, mr) ->
+            | Decl_rename_current_module (sk1, targs, sk2, sk3, sk4, n) ->
                 let (sk1', s_ret) = lskips_f sk1 in
-                (Decl_rename_current_module (sk1', targs, sk2, sk3, sk4, n, mr), s_ret)
+                (Decl_rename_current_module (sk1', targs, sk2, sk3, sk4, n), s_ret)
             | Decl_termination_argument (sk1, targs, sk2, id, sk3, ts) ->
                 let (sk1', s_ret) = lskips_f sk1 in
                 (Decl_termination_argument (sk1', targs, sk2, id, sk3, ts), s_ret)

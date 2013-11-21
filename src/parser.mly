@@ -964,17 +964,11 @@ x_ls :
   | X x_ls
     { (Ast.X_l ($1, loc()))::$2 }
 
-targets_mod_opt :
-  | 
-    { Ast.Target_mod_opt_none }
-  | Lsquare semi_backtickstrings Rsquare
-    { Ast.Target_mod_opt_some ($1, fst $2, fst(snd $2), (snd (snd $2)), $3) }
-
 declaration :
   | Declare targets_opt CompileMessage id Eq String
     { Decl_compile_message_decl($1, $2, $3, $4, fst $5, fst $6, snd $6) }
-  | Declare targets_opt Rename Module_ Eq x targets_mod_opt 
-    { Decl_rename_current_module_decl($1, $2, $3, $4, fst $5, $6, $7) }
+  | Declare targets_opt Rename Module_ Eq x 
+    { Decl_rename_current_module_decl($1, $2, $3, $4, fst $5, $6) }
   | Declare targets_opt Rename component id Eq x
     { Decl_rename_decl($1, $2, $3, $4, $5, fst $6, $7) }
   | Declare targets_opt AsciiRep component id Eq BacktickString

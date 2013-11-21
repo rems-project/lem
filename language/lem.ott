@@ -792,16 +792,10 @@ target_rep_lhs  :: 'Target_rep_lhs_' ::=
   | target_rep component id x_l1 .. x_ln :: :: term
   | target_rep component id tnvars       :: :: type
 
-
-target_modules_opt  :: 'Target_mod_opt_' ::=
-  {{ com target modules to open instead of the current one }}
-  |                                                        :: :: none    
-  | [ backtick_string1 ; ... ; backtick_stringn semi_opt ] :: :: some
-
 declare_def :: 'Decl_' ::= 
   {{ com declarations }}
   | declare targets_opt compile_message id = string                                                :: :: compile_message_decl
-  | declare targets_opt rename module = x_l target_modules_opt                                     :: :: rename_current_module_decl
+  | declare targets_opt rename module = x_l                                                        :: :: rename_current_module_decl
   | declare targets_opt rename component id = x_l                                                  :: :: rename_decl
   | declare targets_opt ascii_rep component id = backtick_string                                   :: :: ascii_rep_decl
   | declare target target_rep target_rep_lhs = target_rep_rhs                                      :: :: target_rep_decl

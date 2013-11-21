@@ -221,11 +221,10 @@ val type_descr_to_name : Target.target -> Path.t -> Types.type_descr -> Name.t
     The updated description is returned along with information of where the constant was last renamed and to which name. *)
 val constant_descr_rename : Target.non_ident_target -> Name.t -> Ast.l -> const_descr -> (const_descr * (Ast.l * Name.t) option)
 
-(** [mod_descr_rename targ mod_name n' tmods l' md] updates the representation for target [targ] in the module
+(** [mod_descr_rename targ mod_name n' l' md] updates the representation for target [targ] in the module
     description [md] by renaming to the new name [n'] and new location [l'].
-    If [tmods] represents which modules to replace the module with in a given backend.
     In case a target representation was already present, a type-check error is raised. *)
-val mod_target_rep_rename : Target.non_ident_target -> string -> Name.t -> (string list) option -> Ast.l -> mod_target_rep Target.Targetmap.t -> mod_target_rep Target.Targetmap.t
+val mod_target_rep_rename : Target.non_ident_target -> string -> Name.t -> Ast.l -> mod_target_rep Target.Targetmap.t -> mod_target_rep Target.Targetmap.t
 
 (** [type_descr_rename targ n' l' td] looks up the representation for target [targ] in the type
     description [td]. It then updates this description by renaming to the new name [n'] and new location [l']. 

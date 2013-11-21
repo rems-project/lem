@@ -248,7 +248,6 @@ let get_module_name env target path mod_name =  begin
   let md = lookup_mod_descr env path mod_name in
   let lem_mod_name = match Target.Targetmap.apply_target md.mod_target_rep target with
     | Some (MR_rename (_, n)) -> n
-    | Some (MR_target_modules (_, n, _)) -> n
     | _ -> mod_name
   in
   transform_name_for_target lem_mod_name
@@ -264,7 +263,6 @@ begin
   let md = e_env_lookup Ast.Unknown env.e_env mod_path in
   let modules_list = match Target.Targetmap.apply_target md.mod_target_rep target with
     | Some (MR_rename (_, n)) -> [transform_name (Name.to_string n)]
-    | Some (MR_target_modules (_, _, targ_reps)) -> targ_reps
     | _ -> [transform_name (Name.to_string (Path.get_name mod_path))]
   in
     modules_list

@@ -268,8 +268,6 @@ and env = {
 
 and mod_target_rep =
   | MR_rename of Ast.l * Name.t (** Rename the module *)
-  | MR_target_modules of Ast.l * Name.t * string list (** Rename the module and add some target modules to open
-      instead *)
 
 and mod_descr = { mod_binding    : Path.t; (** The full path of this module *)
                   mod_env        : local_env;  (** The local environment of the module *)
@@ -477,7 +475,7 @@ type declare_def =  (** Declarations *)
 
  | Decl_ascii_rep             of lskips * targets_opt * lskips * Ast.component * name_kind id * lskips * lskips * Name.t
  | Decl_rename                of lskips * targets_opt * lskips * Ast.component * name_kind id * lskips * Name.lskips_t
- | Decl_rename_current_module of lskips * targets_opt * lskips * lskips * lskips * Name.lskips_t * (lskips * (lskips * string) lskips_seplist * lskips) option
+ | Decl_rename_current_module of lskips * targets_opt * lskips * lskips * lskips * Name.lskips_t 
  | Decl_termination_argument  of lskips * targets_opt * lskips * const_descr_ref id * lskips * Ast.termination_setting
  | Decl_pattern_match_decl    of lskips * targets_opt * lskips * Ast.exhaustivity_setting * Path.t id * tnvar list * lskips * lskips * (const_descr_ref id)  lskips_seplist * lskips * (const_descr_ref id) option
 
