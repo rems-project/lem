@@ -71,9 +71,8 @@ val component_to_output : Ast.component -> Output.t
     target [targ].*)
 val get_module_name : env -> Target.target -> Name.t list -> Name.t -> Name.t
 
-(** [get_module_open_string l env targ mod_path] looks up how to represent this module in import / open statements. The module might
-    well be replaced with a whole list of other modules or nothing. *)
-val get_module_open_string : env -> Target.target -> Path.t -> string list
+(** [get_module_open_string l env targ mod_path] looks up how to represent this module in import / open statements. *)
+val get_module_open_string : env -> Target.target -> Path.t -> string 
 
 (** [get_imported_target_modules env targ defs] extracts a list of module that should be imported.
     The exact names of these modules depend on the environment and the target. Therefore, they get extracted in

@@ -265,6 +265,39 @@ let string_split c s =
   with Not_found -> (List.rev acc, String.sub s start (String.length s - start)) 
   in aux [] 0
 
+let uncapitalize_prefix = 
+  let uncapitalize_pos (x:string) (p:int) : bool =     
+    if not (p < String.length x) then false else
+    begin
+      let c = String.get x p in
+      if Str.string_match (Str.regexp "[A-Z]") (String.make 1 c) 0 then
+        let c' = Char.lowercase c in
+        let _ = String.set x p c' in
+        true
+      else
+        false
+    end
+  in
+  let rec aux x p = begin
+    if uncapitalize_pos x p then aux x (p+1) else x
+  end in
+  fun x -> aux (String.copy x) 0
+
+let string_map f s_input =
+  let s = String.copy s_input in
+  let rec aux p = begin
+    if p > 0 then
+      begin 
+        let p' = p - 1 in
+        let _ = String.set s p' (f (String.get s p')) in
+        aux p'
+      end
+    else ()
+  end in
+  let _ = aux (String.length s) in
+  s
+
+
 module IntSet = Set.Make( 
   struct
     let compare = Pervasives.compare

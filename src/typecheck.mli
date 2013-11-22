@@ -46,8 +46,8 @@
 
 open Types
 
-(** [check_defs backend_targets mod_name mod_in_output env ast] typescheck the parsed module 
-    [ast] in environment [env]. It is assumed that mainly the backends
+(** [check_defs backend_targets mod_name filename mod_in_output env ast] typescheck the parsed module 
+    [ast] from file [filename] in environment [env]. It is assumed that mainly the backends
     [backend_targets] will be used later, i.e. only for these backends 
     problems like missing definitions are reported. However,
     information for all targets is still  The new definitions are added 
@@ -58,6 +58,7 @@ open Types
 val check_defs : 
   Target.Targetset.t ->
   Name.t ->
+  string ->
   bool ->
   Typed_ast.env ->
   (Ast.defs * Ast.lex_skips) ->

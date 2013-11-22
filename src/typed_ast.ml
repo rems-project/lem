@@ -185,6 +185,7 @@ and mod_target_rep =
 and mod_descr = { mod_binding    : Path.t;
                   mod_env        : local_env; 
                   mod_target_rep : mod_target_rep Targetmap.t;
+		  mod_filename   : string option;
                   mod_in_output  : bool }
 
 and exp = (exp_aux,exp_annot) annot
@@ -800,7 +801,7 @@ type checked_module =
     { filename : string;
       module_path : Path.t;
       imported_modules : imported_modules list;
-      predecessor_modules : string list;
+      imported_modules_rec : imported_modules list;
       untyped_ast : Ast.defs * Ast.lex_skips;
       typed_ast : def list * Ast.lex_skips;
       generate_output : bool }

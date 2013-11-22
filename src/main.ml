@@ -47,6 +47,7 @@
 open Process_file
 open Debug
 open Module_dependencies
+open Typed_ast
 
 let backends = ref ([] : Target.target list)
 
@@ -311,24 +312,43 @@ let main () =
   in
 
   (* Typecheck all of the .lem sources *)
-  let (modules, env, _) =
+  let (modules, env) =
     List.fold_left
-      (fun (mods, env, previously_processed_modules) (mod_name, file_name, ast, add_to_modules) ->
+      (fun (mods, env) (mod_name, file_name, ast, add_to_modules) ->
          let mod_name_name = Name.from_string mod_name in
-         let backend_set' = if add_to_modules then backend_set else Target.Targetset.empty in
-         let (e,tast) = Typecheck.check_defs backend_set' mod_name_name add_to_modules env ast in
 
+         let im : Path.t list = begin 
+           let im_direct = Ast_util.get_imported_modules ast in
+           let get_rec_deps (p, _) = begin p :: (match Util.option_first (fun mr -> if (Path.compare mr.module_path p = 0) then Some mr.imported_modules_rec else None) mods with
+             | None -> []
+             | Some imr -> List.flatten (List.map (function IM_targets _ -> [] | IM_paths ps -> ps) imr))
+           end in
+           List.flatten (List.map get_rec_deps im_direct)
+         end in
+
+         let m_env' = Nfmap.filter (fun mod_name mod_path -> List.exists (fun p -> Path.compare mod_path p = 0) im) env.local_env.m_env in
+         let env' = {env with local_env = {env.local_env with m_env = m_env'}} in
+         let (e,tast) = Typecheck.check_defs backend_set mod_name_name file_name add_to_modules env' ast in
+         let e = {e with local_env = {e.local_env with m_env = Nfmap.union env.local_env.m_env e.local_env.m_env}} in
+
+         let imported_mods = Backend_common.get_imported_target_modules tast in
+         let get_rec_imported_mods = function 
+           | IM_targets _ -> []
+           | IM_paths ps -> List.flatten (List.map (fun p -> begin
+               Util.option_default [] (Util.option_first (fun mr -> if (Path.compare mr.module_path p = 0) then Some mr.imported_modules_rec else None) mods)
+             end) ps)
+         in
          let module_record = 
            { Typed_ast.filename = file_name;
              Typed_ast.module_path = Path.mk_path [] mod_name_name;
-             Typed_ast.imported_modules = Backend_common.get_imported_target_modules tast;
-             Typed_ast.predecessor_modules = previously_processed_modules;
+             Typed_ast.imported_modules = imported_mods;
+             Typed_ast.imported_modules_rec = imported_mods @ List.flatten (List.map get_rec_imported_mods imported_mods);
              Typed_ast.untyped_ast = ast;
              Typed_ast.typed_ast = tast;
              Typed_ast.generate_output = add_to_modules }
          in
-            (module_record::mods, e, mod_name::previously_processed_modules))
-      ([],Initial_env.initial_env,[])
+            (module_record::mods, e))
+      ([],Initial_env.initial_env)
       (* We don't want to add the files in !lib to the resulting module ASTs,
        * because we don't want to put them throught the back end *)
       processed_files

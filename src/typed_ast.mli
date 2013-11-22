@@ -269,10 +269,11 @@ and env = {
 and mod_target_rep =
   | MR_rename of Ast.l * Name.t (** Rename the module *)
 
-and mod_descr = { mod_binding    : Path.t; (** The full path of this module *)
-                  mod_env        : local_env;  (** The local environment of the module *)
-                  mod_target_rep : mod_target_rep Target.Targetmap.t; (** how to represent the module for different backends *)
-                  mod_in_output  : bool (** is this module written to a file (true) or an existing file used (false) ? *) 
+and mod_descr = { mod_binding     : Path.t; (** The full path of this module *)
+                  mod_env         : local_env;  (** The local environment of the module *)
+                  mod_target_rep  : mod_target_rep Target.Targetmap.t; (** how to represent the module for different backends *)
+		  mod_filename   : string option; (** the filename the module is defined in (if it is a top-level module) *)
+                  mod_in_output   : bool; (** is this module written to a file (true) or an existing file used (false) ? *) 
 }
 
 and exp
@@ -572,10 +573,10 @@ type imported_modules =
   | IM_targets of targets_opt * string list
 
 type checked_module =
-    { filename : string;
+    { filename : string; 
       module_path : Path.t;
-      imported_modules : imported_modules list;
-      predecessor_modules : string list;
+      imported_modules : imported_modules list; 
+      imported_modules_rec : imported_modules list;
       untyped_ast : Ast.defs * Ast.lex_skips;
       typed_ast : def list * Ast.lex_skips; 
       generate_output : bool}

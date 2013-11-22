@@ -238,34 +238,32 @@ let inline_pat_macro (target : Target.non_ident_target) env _ _ p =
   generalised_inline_pat_macro false (Target.Target_no_ident target) env p
 
 
-let get_module_name env target path mod_name =  begin
+let get_module_name_from_descr md extra_rename target = begin
   let transform_name_for_target n = match target with
-    | Target.Target_no_ident (Target.Target_coq)
-    | Target.Target_no_ident (Target.Target_hol) -> 
-        Util.option_default n (Name.uncapitalize n)
+    | Target.Target_no_ident (Target.Target_coq) -> Util.uncapitalize_prefix n
+    | Target.Target_no_ident (Target.Target_hol) -> Util.string_map (fun c -> if c = '-' then  '_' else c) (Util.uncapitalize_prefix n)
     | _ -> n
   in
-  let md = lookup_mod_descr env path mod_name in
   let lem_mod_name = match Target.Targetmap.apply_target md.mod_target_rep target with
     | Some (MR_rename (_, n)) -> n
-    | _ -> mod_name
+    | _ -> Path.get_name md.mod_binding
   in
-  transform_name_for_target lem_mod_name
+  extra_rename (transform_name_for_target (Name.to_string lem_mod_name))
+end
+
+let get_module_name env target path mod_name =  begin
+  let md = lookup_mod_descr env path mod_name in
+  Name.from_string (get_module_name_from_descr md (fun s -> s) target)
 end
 
 let get_module_open_string env target mod_path =
 begin
   let transform_name mod_string = match target with
-    | Target.Target_no_ident (Target.Target_coq) -> String.uncapitalize mod_string
-    | Target.Target_no_ident (Target.Target_hol) -> String.concat "" [String.uncapitalize mod_string; "Theory"]
+    | Target.Target_no_ident (Target.Target_hol) -> String.concat "" [mod_string; "Theory"]
     | _ -> mod_string
   in
   let md = e_env_lookup Ast.Unknown env.e_env mod_path in
-  let modules_list = match Target.Targetmap.apply_target md.mod_target_rep target with
-    | Some (MR_rename (_, n)) -> [transform_name (Name.to_string n)]
-    | _ -> [transform_name (Name.to_string (Path.get_name mod_path))]
-  in
-    modules_list
+  get_module_name_from_descr md transform_name target
 end
 
 
@@ -281,11 +279,9 @@ let rec concat_skip_lists acc sk = function
     end 
 
 let imported_module_to_strings env target = function
-  | IM_paths ids -> List.flatten (List.map (get_module_open_string env target) ids)
+  | IM_paths ids -> List.map (get_module_open_string env target) ids
   | IM_targets (targs, strings) -> 
       if (Typed_ast.in_targets_opt target targs) then strings else []
-
-
 
 let get_imported_target_modules_of_def_aux = function
   | OpenImport ((Ast.OI_import _ | Ast.OI_open_import _ | Ast.OI_include_import _), ids) ->      
@@ -309,7 +305,7 @@ module Make(A : sig
 
 let open_to_open_target ms =
 begin
-  let sk_sl_list = List.map (fun id -> (ident_get_lskip id, get_module_open_string A.env A.target id.descr)) ms in
+  let sk_sl_list = List.map (fun id -> (ident_get_lskip id, [get_module_open_string A.env A.target id.descr])) ms in
   concat_skip_lists [] None sk_sl_list
 end
 

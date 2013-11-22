@@ -244,6 +244,18 @@ val is_simple_ident_string : string -> bool
     is never empty *)
 val string_split : char -> string -> (string list * string)
 
+(** [uncapitalize_prefix n] tries to uncapitalize the first few letters of [n].
+    In contrast to [uncapitalize], it continues with the next letter,
+    till a non-uppercase letter is found. The idea is to produce nicer looking names when
+    uncaptalizing. Turning [UTF8.lem] into [uTF8Script.sml] for example is strange and
+    [utf8Script.sml] looks nicer. *)
+val uncapitalize_prefix : string -> string
+
+(** [string_map f s] maps [f] over all characters of a copy of [s]. It corresponds to [String.map], which
+    is unluckily only available for OCaml 4 *)
+val string_map : (char -> char) -> string -> string
+
+
 (** [message_singular_plural (sing_message, multiple_message) l] is used
     to determine whether the singular or plural form should be used in messages. If the list [l] contains
     no elements or exactly one element, [sing_message] is returned. Otherwise, i.e. for multiple elements,

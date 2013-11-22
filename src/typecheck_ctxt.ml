@@ -157,5 +157,5 @@ let ctxt_end_submodule l ctxt_before mod_path n ctxt =
                 new_tdefs = ctxt_before.new_tdefs;
                 new_instances = ctxt_before.new_instances;
                 ctxt_mod_target_rep = ctxt_before.ctxt_mod_target_rep } in
-  add_m_to_ctxt l ctxt' n { mod_binding = Path.mk_path mod_path n; mod_env = ctxt.export_env; mod_target_rep = ctxt.ctxt_mod_target_rep; mod_in_output = ctxt.ctxt_mod_in_output }
+  add_m_to_ctxt l ctxt' n { mod_binding = Path.mk_path mod_path n; mod_env = ctxt.export_env; mod_target_rep = ctxt.ctxt_mod_target_rep; mod_in_output = ctxt.ctxt_mod_in_output; mod_filename = None }
 
