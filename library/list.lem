@@ -16,7 +16,7 @@ declare {isabelle;ocaml;hol} rename module = Lem_list
 open import Bool Maybe Basic_classes Tuple Num
 
 open import {coq} `Coq.Lists.TheoryList`
-open import {isabelle} `Lem`
+open import {isabelle} `$LIB_DIR/Lem`
 open import {hol} `listTheory` `rich_listTheory` `sortingTheory`
 
 (* ========================================================================== *)

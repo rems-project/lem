@@ -234,18 +234,25 @@ let get_module_name env target path mod_name =  begin
   Name.from_string (get_module_name_from_descr md mod_name (fun s -> s) target)
 end
 
-let adapt_isabelle_library_dir =
-  let abs_lib_dir_opt = Util.absolute_dir (Filename.concat Build_directory.d "library") in
-  fun dir -> begin
-      let abs_dir_opt = Util.absolute_dir dir in
-      match (abs_lib_dir_opt, abs_dir_opt) with
-        | (Some d1, Some d2) ->
-            if (String.compare d1 d2 = 0) then
-               Filename.concat Build_directory.d "isabelle-lib"
-            else
-               dir
-        | _ -> dir
-  end
+let adapt_isabelle_library_dir dir =
+  if (Util.dir_eq (Filename.concat Build_directory.d "library") dir) then
+     Filename.concat Build_directory.d "isabelle-lib"
+  else 
+     dir
+
+(* this function modifies target specific imports. It's main purpose is to replace
+   variables in these imports. "$LIB_DIR/" gets replaced with either "" if we are
+   outputting in the library-directory or the full path to it otherwise. *)
+let get_module_open_string_target =
+ let abs_lib_dir = Util.option_default Filename.current_dir_name 
+   (Util.absolute_dir (Filename.concat Build_directory.d "isabelle-lib")) in
+
+ fun target dir mod_string ->
+ match target with
+    | Target.Target_no_ident (Target.Target_isa) -> 
+        let new_dir = if Util.dir_eq dir abs_lib_dir then "" else (String.concat "" [abs_lib_dir; "/"]) in
+        Str.global_replace (Str.regexp_string "$LIB_DIR/") new_dir mod_string 
+    | _ -> mod_string
 
 
 let get_module_open_string env target dir mod_path =
@@ -288,7 +295,7 @@ let rec concat_skip_lists acc sk = function
 let imported_module_to_strings env target dir = function
   | IM_paths ids -> List.map (get_module_open_string env target dir) ids
   | IM_targets (targs, strings) -> 
-      if (Typed_ast.in_targets_opt target targs) then strings else []
+      if (Typed_ast.in_targets_opt target targs) then List.map (get_module_open_string_target target dir) strings else []
 
 let get_imported_target_modules_of_def_aux = function
   | OpenImport ((Ast.OI_import _ | Ast.OI_open_import _ | Ast.OI_include_import _), ids) ->      

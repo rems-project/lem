@@ -229,6 +229,9 @@ val same_content_files : string -> string -> bool
     because [dir] does not exist), [None] is returned. *)
 val absolute_dir : string -> string option
 
+(** [dir_eq d1 d2] uses [absolute_dir] to check whether the two directories are equal. *)
+val dir_eq : string -> string -> bool
+
 (** {2 Strings} *)
 
 (** [string_to_list l] translates the string [l] to the list of its characters. *)

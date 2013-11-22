@@ -367,7 +367,12 @@ let absolute_dir dir =
   let _ = Sys.chdir old_dir in
   abs_dir
 
-
+let dir_eq d1 d2 =
+  let abs_d1_opt = absolute_dir d1 in
+  let abs_d2_opt = absolute_dir d2 in
+  match (abs_d1_opt, abs_d2_opt) with
+    | (Some d1', Some d2') -> (String.compare d1' d2' = 0) 
+    | _ -> false
 
 let string_for_all p s = List.for_all p (string_to_list s)
 

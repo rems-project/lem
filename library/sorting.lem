@@ -17,7 +17,7 @@ open import Bool Basic_classes Maybe List Num
 open import {isabelle} `~~/src/HOL/Library/Permutation`
 open import {coq} `Coq.Lists.TheoryList`
 open import {hol} `sortingTheory` `permLib`
-open import {isabelle} `Lem`
+open import {isabelle} `$LIB_DIR/Lem`
 
 (* ------------------------- *)
 (* permutations              *)
