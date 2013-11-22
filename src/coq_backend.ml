@@ -177,7 +177,7 @@ let lskips_t_to_string name =
     kwd (Ulib.Text.to_string @@ Name.to_rope (Name.strip_lskip lskips_t))
 ;;
 
-module CoqBackendAux (A : sig val avoid : var_avoid_f option;; val env : env;; val ascii_rep_set : Types.Cdset.t end) =
+module CoqBackendAux (A : sig val avoid : var_avoid_f option;; val env : env;; val dir : string;; val ascii_rep_set : Types.Cdset.t end) =
   struct
 
     module B = Backend_common.Make (
@@ -185,6 +185,7 @@ module CoqBackendAux (A : sig val avoid : var_avoid_f option;; val env : env;; v
         let env = A.env
         let target = Target_no_ident Target_coq
         let id_format_args = (coq_format_op, path_sep)
+        let dir = A.dir
       end);;
 
     module C = Exps_in_context (
@@ -1803,7 +1804,7 @@ end
 
 module CdsetE = Util.ExtraSet(Types.Cdset)
 
-module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
+module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env;; val dir : string end) =
   struct
 
     let rec defs inside_instance inside_module (ds : def list) =
@@ -1814,7 +1815,8 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
             struct
               let avoid = A.avoid;;
               let env = {A.env with local_env = lenv};;
-              let ascii_rep_set = CdsetE.from_list ue.used_consts
+              let ascii_rep_set = CdsetE.from_list ue.used_consts;;
+              let dir = A.dir;;
             end)
           in
           let (before_out, d') = Backend_common.def_add_location_comment ((d,s),l,lenv) in
@@ -1830,7 +1832,8 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env end) =
             struct
               let avoid = A.avoid;;
               let env = {A.env with local_env = lenv};;
-              let ascii_rep_set = CdsetE.from_list ue.used_consts
+              let ascii_rep_set = CdsetE.from_list ue.used_consts;;
+              let dir = A.dir;;
             end)
           in
           let callback = defs false true in

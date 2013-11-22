@@ -45,8 +45,7 @@ isa-lib-tests:
 	@rm -f isa-build-dir
 	@ln -s ${ISA_BUILD_DIR} isa-build-dir       
 	@../lem -isa -outdir ${ISA_BUILD_DIR} -wl ign -wl_auto_import err -wl_rename err ${LIBS} -only_auxiliary -auxiliary_level auto -only_changed_output
-	@cp ../isabelle-lib/* ${ISA_BUILD_DIR}
-	@./gen-isa-tests.sh ${ISA_BUILD_DIR}
+	@./gen-isa-tests.sh ${ISA_BUILD_DIR} 
 	@echo "please run\n   isabelle jedit ${ISA_BUILD_DIR}/LemTests.thy"
 
 

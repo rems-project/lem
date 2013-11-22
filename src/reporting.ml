@@ -170,6 +170,7 @@ let dest_warning_with_env (env : Typed_ast.env) (verbose: bool) (w : warning) : 
   let module B = Backend.Make(struct
     let avoid = (false, (fun _ -> true), Name.fresh);;
     let env = env
+    let dir = Filename.current_dir_name
   end) in
   match w with
   | Warn_pattern_compilation_failed (l, pL, ws) -> 
@@ -365,6 +366,7 @@ let print_debug_exp env =
   let module B = Backend.Make(struct
     let avoid = (false, (fun _ -> true), Name.fresh);;
     let env = env
+    let dir = Filename.current_dir_name
   end) in
   print_debug_data B.ident_exp
 
@@ -372,6 +374,7 @@ let print_debug_pat env =
   let module B = Backend.Make(struct
     let avoid = (false, (fun _ -> true), Name.fresh);;
     let env = env
+    let dir = Filename.current_dir_name
   end) in
   print_debug_data B.ident_pat
 
@@ -379,6 +382,7 @@ let print_debug_def env =
   let module B = Backend.Make(struct
     let avoid = (false, (fun _ -> true), Name.fresh);;
     let env = env
+    let dir = Filename.current_dir_name
   end) in
   print_debug_data B.ident_def
 
@@ -386,6 +390,7 @@ let print_debug_typ env =
   let module B = Backend.Make(struct
     let avoid = (false, (fun _ -> true), Name.fresh);;
     let env = env
+    let dir = Filename.current_dir_name
   end) in
   print_debug_data B.ident_typ
 
@@ -393,6 +398,7 @@ let print_debug_src_t env =
   let module B = Backend.Make(struct
     let avoid = (false, (fun _ -> true), Name.fresh);;
     let env = env
+    let dir = Filename.current_dir_name
   end) in
   print_debug_data B.ident_src_t
 

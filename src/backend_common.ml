@@ -256,14 +256,43 @@ let get_module_name env target path mod_name =  begin
   Name.from_string (get_module_name_from_descr md mod_name (fun s -> s) target)
 end
 
-let get_module_open_string env target mod_path =
+let adapt_isabelle_library_dir =
+  let abs_lib_dir_opt = Util.absolute_dir (Filename.concat Build_directory.d "library") in
+  fun dir -> begin
+      let abs_dir_opt = Util.absolute_dir dir in
+      match (abs_lib_dir_opt, abs_dir_opt) with
+        | (Some d1, Some d2) ->
+            if (String.compare d1 d2 = 0) then
+               Filename.concat Build_directory.d "isabelle-lib"
+            else
+               dir
+        | _ -> dir
+  end
+
+
+let get_module_open_string env target dir mod_path =
 begin
-  let transform_name mod_string = match target with
+  let transform_name md mod_string = match target with
     | Target.Target_no_ident (Target.Target_hol) -> String.concat "" [mod_string; "Theory"]
+    | Target.Target_no_ident (Target.Target_isa) -> begin
+        match md.mod_filename with
+          | None -> mod_string
+          | Some fn -> begin
+              let mod_dir_opt = Util.absolute_dir (adapt_isabelle_library_dir (Filename.dirname fn)) in
+              let out_dir_opt = Util.absolute_dir dir in
+              match (mod_dir_opt, out_dir_opt) with
+                | (Some mod_dir, Some out_dir) ->
+                     if (String.compare mod_dir out_dir = 0) then
+                       mod_string 
+                     else
+                       Filename.concat mod_dir mod_string
+                | _ -> mod_string
+            end
+      end 
     | _ -> mod_string
   in
   let md = e_env_lookup Ast.Unknown env.e_env mod_path in
-  get_module_name_from_descr md (Path.get_name mod_path) transform_name target
+  get_module_name_from_descr md (Path.get_name mod_path) (transform_name md) target
 end
 
 
@@ -278,8 +307,8 @@ let rec concat_skip_lists acc sk = function
              concat_skip_lists acc None skip_list
     end 
 
-let imported_module_to_strings env target = function
-  | IM_paths ids -> List.map (get_module_open_string env target) ids
+let imported_module_to_strings env target dir = function
+  | IM_paths ids -> List.map (get_module_open_string env target dir) ids
   | IM_targets (targs, strings) -> 
       if (Typed_ast.in_targets_opt target targs) then strings else []
 
@@ -293,19 +322,20 @@ let get_imported_target_modules_of_def_aux = function
 let get_imported_target_modules ((ds, _) : Typed_ast.def list * Ast.lex_skips)  =
   Util.map_filter (fun ((d, _), _, _) -> get_imported_target_modules_of_def_aux d) ds 
 
-let imported_modules_to_strings env target iml =
-  Util.remove_duplicates (List.flatten (List.map (imported_module_to_strings env target) iml));;
+let imported_modules_to_strings env target dir iml =
+  Util.remove_duplicates (List.flatten (List.map (imported_module_to_strings env target dir) iml));;
 
 module Make(A : sig 
   val env : env;; 
   val target : Target.target;;
+  val dir : string;;
   val id_format_args : (bool -> Output.id_annot -> Ulib.Text.t -> Output.t) * Output.t
  end) = struct
 
 
 let open_to_open_target ms =
 begin
-  let sk_sl_list = List.map (fun id -> (ident_get_lskip id, [get_module_open_string A.env A.target id.descr])) ms in
+  let sk_sl_list = List.map (fun id -> (ident_get_lskip id, [get_module_open_string A.env A.target A.dir id.descr])) ms in
   concat_skip_lists [] None sk_sl_list
 end
 

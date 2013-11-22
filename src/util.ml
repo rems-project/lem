@@ -358,6 +358,16 @@ let same_content_files file1 file2 : bool =
     with Stream.Failure -> stream_is_empty s1 && stream_is_empty s2
   end
 
+let absolute_dir dir =
+  let old_dir = Sys.getcwd () in
+  let abs_dir = try
+      let _ = Sys.chdir dir in
+      Some (Sys.getcwd ())
+    with Sys_error _ -> None in
+  let _ = Sys.chdir old_dir in
+  abs_dir
+
+
 
 let string_for_all p s = List.for_all p (string_to_list s)
 

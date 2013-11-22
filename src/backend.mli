@@ -50,7 +50,8 @@
 val gen_extra_level : int ref
 
 (** The various backends that generate text from typed asts *)
-module Make(C : sig val avoid : Typed_ast.var_avoid_f;; val env : Typed_ast.env end) : sig
+module Make(C : sig val avoid : Typed_ast.var_avoid_f;; val env : Typed_ast.env;; 
+                val dir : string (** the directory the output will be stored. This is important for setting relative paths to import other modules *) end) : sig
   val ident_defs      : Typed_ast.def list * Ast.lex_skips -> Ulib.Text.t
   val lem_defs        : Typed_ast.def list * Ast.lex_skips -> Ulib.Text.t
   val hol_defs        : Typed_ast.def list * Ast.lex_skips -> (Ulib.Text.t * Ulib.Text.t option)

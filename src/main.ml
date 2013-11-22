@@ -66,7 +66,7 @@ let default_library =
      then Filename.concat (Sys.getcwd ()) lp
      else lp
    with 
-     | Not_found -> Build_directory.d^"/library"
+     | Not_found -> Filename.concat Build_directory.d "library"
 
 let lib_paths_ref = ref ([] : string list)
 let allow_reorder_modules = ref true

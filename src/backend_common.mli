@@ -71,8 +71,8 @@ val component_to_output : Ast.component -> Output.t
     target [targ].*)
 val get_module_name : env -> Target.target -> Name.t list -> Name.t -> Name.t
 
-(** [get_module_open_string l env targ mod_path] looks up how to represent this module in import / open statements. *)
-val get_module_open_string : env -> Target.target -> Path.t -> string 
+(** [get_module_open_string l env targ dir mod_path] looks up how to represent this module in import / open statements. *)
+val get_module_open_string : env -> Target.target -> string -> Path.t -> string 
 
 (** [get_imported_target_modules env targ defs] extracts a list of module that should be imported.
     The exact names of these modules depend on the environment and the target. Therefore, they get extracted in
@@ -80,13 +80,14 @@ val get_module_open_string : env -> Target.target -> Path.t -> string
     [imported_modules_to_strings].*)
 val get_imported_target_modules : Typed_ast.def list * Ast.lex_skips -> imported_modules list
 
-(** [imported_modules_to_strings] is used together with [get_imported_target_modules]. Please see there. *)
-val imported_modules_to_strings : env -> Target.target -> (imported_modules list) -> string list
+(** [imported_modules_to_strings env targ dir imported_mods] is used together with [get_imported_target_modules]. Please see there. *)
+val imported_modules_to_strings : env -> Target.target -> string -> imported_modules list -> string list
 
 
 module Make(A : sig
   val env : env;; 
   val target : Target.target;;
+  val dir : string;;
   val id_format_args : (bool -> Output.id_annot -> Ulib.Text.t -> Output.t) * Output.t
  end) : sig
 

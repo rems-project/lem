@@ -1180,12 +1180,13 @@ let extra_gen_flags_gen_lty (gf : extra_gen_flags) = function
   | Ast.Lemma_assert _ -> gf.extra_gen_asserts
 
 
-module F_Aux(T : Target)(A : sig val avoid : var_avoid_f option;; val env : env;; val ascii_rep_set : Types.Cdset.t end)(X : sig val comment_def : def -> Ulib.Text.t end) = struct
+module F_Aux(T : Target)(A : sig val avoid : var_avoid_f option;; val env : env;; val ascii_rep_set : Types.Cdset.t;; val dir : string end)(X : sig val comment_def : def -> Ulib.Text.t end) = struct
 
 module B = Backend_common.Make (struct
   let env = A.env
   let target = T.target
   let id_format_args =  (T.op_format, T.path_sep)    
+  let dir = A.dir
 end);;
 
 module C = Exps_in_context (struct
@@ -2962,13 +2963,13 @@ and def callback (inside_module : bool) d is_user_def =
 end
 
 
-module F(T : Target)(A : sig val avoid : var_avoid_f option;; val env : env end)(X : sig val comment_def : def -> Ulib.Text.t end) = struct
+module F(T : Target)(A : sig val avoid : var_avoid_f option;; val env : env;; val dir : string end)(X : sig val comment_def : def -> Ulib.Text.t end) = struct
 
 let (^^^^) = Ulib.Text.(^^^)
 
 let output_to_rope out = to_rope T.string_quote T.lex_skip T.need_space out
 
-module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = A.env;; let ascii_rep_set = Types.Cdset.empty end)(X)
+module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = A.env;; let ascii_rep_set = Types.Cdset.empty;; let dir = A.dir end)(X)
 
 module C = Exps_in_context (struct
   let env_opt = Some A.env
@@ -2994,6 +2995,7 @@ let defs_inc ((ds:def list),end_lex_skips) =
       batrope_pair_concat (List.map (function ((d,s),l,lenv) -> 
         let ue = add_def_entities T.target true empty_used_entities ((d,s),l,lenv) in
         let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = lenv };;
+   				        let dir = A.dir;;
 					let ascii_rep_set = CdsetE.from_list ue.used_consts end)(X) in
         batrope_pair_concat (F'.def_tex_inc d)) ds)
   | _ ->
@@ -3005,7 +3007,7 @@ let rec defs (ds:def list) =
     (fun ((d,s),l,lenv) y -> 
        begin
         let ue = add_def_entities T.target true empty_used_entities ((d,s),l,lenv) in
-        let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = lenv };;
+        let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = lenv };; let dir = A.dir;;
 					let ascii_rep_set = CdsetE.from_list ue.used_consts end)(X) in
         let (before_out, d') = Backend_common.def_add_location_comment ((d,s),l,lenv) in
         before_out ^ F'.def defs false d' (is_pp_loc l)
@@ -3038,7 +3040,7 @@ let defs_to_extra_aux gf (ds:def list) =
       (fun ((d,s),l,lenv) y -> 
          begin
            let ue = add_def_entities T.target true empty_used_entities ((d,s),l,lenv) in
-           let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = lenv };;
+           let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = lenv };; let dir = A.dir;;
                                            let ascii_rep_set = CdsetE.from_list ue.used_consts end)(X) in
            match T.target with 
            | Target_no_ident Target_isa   -> F'.isa_def_extra gf d l 
@@ -3091,6 +3093,7 @@ let header_defs ((defs:def list),(end_lex_skips : Typed_ast.lskips)) =
             let env = { A.env with local_env = lenv }
             let target = T.target
             let id_format_args =  (T.op_format, T.path_sep)    
+            let dir = A.dir
           end) in
           begin match T.target with
 
@@ -3110,10 +3113,11 @@ let header_defs ((defs:def list),(end_lex_skips : Typed_ast.lskips)) =
        emp)
 end
 
-module Make(A : sig val avoid : var_avoid_f;; val env : env end) = struct
+module Make(A : sig val avoid : var_avoid_f;; val env : env;; val dir : string end) = struct
   module Dummy = struct let comment_def d = assert false end
 
-  module C = struct let env = A.env;; let avoid = Some(A.avoid) end
+  module C = struct let env = A.env;; let avoid = Some(A.avoid)
+            let dir = A.dir end
 
   let ident_defs defs =
     let module B = F(Identity)(C)(Dummy) in
