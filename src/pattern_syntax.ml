@@ -144,7 +144,7 @@ let mk_opt_paren_pat (p :pat) : pat =
       | P_tup _ -> false
       | P_lit _ -> false
       | P_const (_, pL) -> not (pL = [])
-      | P_backend (_, _, _, _, pL) -> not (pL = [])
+      | P_backend (_, _, _, pL) -> not (pL = [])
       | _ -> true
   in 
   if (needs_parens) then 
@@ -248,7 +248,7 @@ let direct_subpats (p : pat) : pat list =
     | P_typ (_,p,_,_,_) -> [p] 
     | P_paren(_,p,_) -> [p]
     | P_const(_,ps) -> ps
-    | P_backend(_,_,_,_,ps) -> ps
+    | P_backend(_,_,_,ps) -> ps
     | P_as (_, p, _, _, _) -> [p]
     | P_cons(p1,_,p2) -> [p1;p2]
     | P_tup(_,ps,_) -> Seplist.to_list ps
@@ -385,10 +385,10 @@ let rec pat_to_exp env p =
           (fun e p -> C.mk_app l_unk e (pat_to_exp env p) None)
           (C.mk_const p.locn c None)
           ps
-    | P_backend(b,sk,i,ty,ps) ->
+    | P_backend(sk,i,ty,ps) ->
         List.fold_left
           (fun e p -> C.mk_app l_unk e (pat_to_exp env p) None)
-          (C.mk_backend p.locn b sk i ty)
+          (C.mk_backend p.locn sk i ty)
           ps
     | P_record(_,fieldpats,_) ->
         raise (Pat_to_exp_unsupported(p.locn, "record pattern"))

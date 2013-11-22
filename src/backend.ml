@@ -1255,49 +1255,49 @@ let nexp n =
         ws s1 ^ kwd "(" ^ nexp_int n ^ ws s2 ^ kwd ")"
   in T.nexp_start ^ nexp_int n ^ T.nexp_end
 
-let rec typ t = match t.term with
+let rec typ print_backend t = match t.term with
   | Typ_wild(s) ->
       ws s ^ kwd "_"
   | Typ_var(s,v) ->
       ws s ^ id Type_var (Ulib.Text.(^^^) T.typ_var (Tyvar.to_rope v))
   | Typ_fn(t1,s,t2) ->
-      typ t1 ^
+      typ print_backend t1 ^
       ws s ^
       T.typ_fun_sep ^
-      typ t2
+      typ print_backend t2
   | Typ_tup(ts) ->
-      flat (Seplist.to_sep_list typ (sep T.typ_tup_sep) ts) ^ T.typ_tup_section
+      flat (Seplist.to_sep_list (typ print_backend) (sep T.typ_tup_sep) ts) ^ T.typ_tup_section
   | (Typ_app(p, ts) | Typ_backend(p, ts)) ->
       let (ts', p_out) = begin 
         match t.term with
-          | Typ_app _ -> B.type_app_to_output typ p ts
+          | Typ_app _ -> B.type_app_to_output (typ print_backend) p ts
           | Typ_backend _ -> (ts, 
 	      let i = Path.to_ident (ident_get_lskip p) p.descr in
               let i_out = (Ident.to_output Type_ctor T.path_sep (Ident.replace_lskip i None)) in
               ws (Ident.get_lskip i) ^
-              if (T.target = Target.Target_ident) then
+              if print_backend then
                 T.backend_quote i_out
               else i_out)
           | _ -> raise (Reporting_basic.err_unreachable (Ast.Trans (false, "Backend.typ", None)) "can't be reached because of previous match")
       end in
       if (T.type_params_pre) then
         if (T.nexp_params_vis) then
-          bracket_many typ (T.tup_sep) (kwd "(") (kwd ")") ts' ^
+          bracket_many (typ print_backend) (T.tup_sep) (kwd "(") (kwd ")") ts' ^
           texspace ^ p_out
         else 
-          bracket_omit typ (fun t f s -> match t.term with 
+          bracket_omit (typ print_backend) (fun t f s -> match t.term with 
                                         | Typ_len _ -> f t
                                         | _ -> f t ^ s) typ_alter_init_lskips (T.tup_sep) (kwd "(") (kwd ")") ts' ^
           texspace ^ p_out
       else
         p_out ^
         texspace ^
-        concat emp (List.map typ ts')
+        concat emp (List.map (typ print_backend) ts')
   | Typ_len(n) -> nexp n
   | Typ_paren(s1,t,s2) ->
       ws s1 ^
       kwd "(" ^
-      typ t ^
+      typ print_backend t ^
       ws s2 ^
       kwd ")"
 
@@ -1315,13 +1315,13 @@ let tyvar tv =
    | Tn_A(s,tv,l) -> ws s ^ id Type_var (Ulib.Text.(^^^) T.typ_var tv)
    | Tn_N(s,nv,l) -> ws s ^ id Nexpr_var (Ulib.Text.(^^^) T.nexp_var nv)
 
-let tyfield ((n,l),f_ref,s1,t) =
+let tyfield print_backend ((n,l),f_ref,s1,t) =
   Name.to_output Term_field (B.const_ref_to_name n false f_ref) ^
   ws s1 ^
   block false 2 ( 
   T.typ_sep ^
   T.typ_start ^
-  block false 0 (typ t) ^
+  block false 0 (typ print_backend t) ^
   T.typ_end)
 
 let tyconstr implicit n' tvs ((n,l),c_ref,s1,targs) =
@@ -1332,7 +1332,7 @@ let tyconstr implicit n' tvs ((n,l),c_ref,s1,targs) =
    else
      T.typ_constr_sep ^
      T.typ_start ^
-     flat (Seplist.to_sep_list typ (sep T.constr_sep) targs) ^
+     flat (Seplist.to_sep_list (typ false) (sep T.constr_sep) targs) ^
      T.ctor_typ_end' implicit n' tvs ^
      T.typ_end ^
      break_hint_space 0 )
@@ -1341,7 +1341,7 @@ let tyexp_abbrev s4 t =
   ws s4 ^
   T.type_abbrev_sep ^
   T.typ_start ^
-  typ t ^
+  typ false t ^
   T.typ_end
 
 let tyexp_rec s4 s5 fields s6 =
@@ -1354,7 +1354,7 @@ let tyexp_rec s4 s5 fields s6 =
   block_hv false 0 (
   flat (Seplist.to_sep_list_last 
           T.last_rec_sep 
-          tyfield (sep (T.typ_rec_sep ^ break_hint_space 0)) fields) ^
+          (tyfield false) (sep (T.typ_rec_sep ^ break_hint_space 0)) fields) ^
   ws s6) ^ 
   T.typ_rec_end)
 
@@ -1379,14 +1379,15 @@ let tyexp implicit n tvs = function
               (sep (texspace ^ kwd "|" ^ texspace))
               constrs))
 
-let backend inlined sk i =
-  ws sk ^
-  if inlined then
-    Ident.to_output Term_const T.path_sep i
-  else
-    T.backend_quote (Ident.to_output Term_const T.path_sep i) 
+let backend_quote_cond use_quotes o =
+  if not use_quotes then o else T.backend_quote o
 
-let rec pat p = match p.term with
+let backend use_quotes sk i =
+  ws sk ^
+  backend_quote_cond use_quotes (
+    Ident.to_output Term_const T.path_sep i)
+
+let rec pat print_backend p = match p.term with
   | P_wild(s) ->
       ws s ^
       T.pat_wildcard 
@@ -1394,7 +1395,7 @@ let rec pat p = match p.term with
   | P_as(s1,p,s2,(n,l),s3) ->
       ws s1 ^ 
       kwd "(" ^
-      pat p ^
+      pat print_backend p ^
       ws s2 ^ 
       T.pat_as ^
       Name.to_output Term_var n ^
@@ -1404,31 +1405,31 @@ let rec pat p = match p.term with
   | P_typ(s1,p,s2,t,s3) ->
       ws s1 ^
       kwd "(" ^
-      pat p ^
+      pat print_backend p ^
       ws s2 ^
       T.typ_sep ^
-      typ t ^
+      typ print_backend t ^
       ws s3 ^
       kwd ")"
   | P_var(n) ->
       Name.to_output Term_var n
   | P_const(cd,ps) ->
-      let oL = B.pattern_application_to_output p.locn pat cd ps (use_ascii_rep_for_const cd) in
+      let oL = B.pattern_application_to_output p.locn (pat print_backend) cd ps (use_ascii_rep_for_const cd) in
       concat texspace oL
-  | P_backend(inlined, sk,i,_,ps) ->
-      backend inlined sk i ^
-      concat texspace (List.map pat ps)
+  | P_backend(sk,i,_,ps) ->
+      backend print_backend sk i ^
+      concat texspace (List.map (pat print_backend) ps)
   | P_record(s1,fields,s2) ->
       ws s1 ^
       T.pat_rec_start ^
-      flat (Seplist.to_sep_list patfield (sep T.rec_sep) fields) ^
+      flat (Seplist.to_sep_list (patfield print_backend) (sep T.rec_sep) fields) ^
       ws s2 ^
       T.pat_rec_end
 
   | P_tup(s1,ps,s2) ->
       ws s1 ^
       kwd "(" ^
-      flat (Seplist.to_sep_list pat (sep T.tup_sep) ps) ^
+      flat (Seplist.to_sep_list (pat print_backend) (sep T.tup_sep) ps) ^
       ws s2 ^
       kwd ")"
 
@@ -1437,7 +1438,7 @@ let rec pat p = match p.term with
       T.list_begin ^
       flat 
         (Seplist.to_sep_list_last T.last_list_sep 
-           pat (sep T.list_sep) ps) ^
+           (pat print_backend) (sep T.list_sep) ps) ^
       ws s2 ^
       T.list_end
 
@@ -1445,29 +1446,29 @@ let rec pat p = match p.term with
       ws s1 ^
       T.vector_begin ^
       flat
-        (Seplist.to_sep_list_last Seplist.Optional pat (sep (kwd ";")) ps) ^
+        (Seplist.to_sep_list_last Seplist.Optional (pat print_backend) (sep (kwd ";")) ps) ^
       ws s2 ^
       T.vector_end
 
   | P_vectorC(s1,ps,s2) ->
       ws s1 ^
       kwd "[|" ^
-      flat (List.map pat ps) ^
+      flat (List.map (pat print_backend) ps) ^
       ws s2 ^
       kwd "|]"
 
   | P_paren(s1,p,s2) ->
       ws s1 ^
       kwd "(" ^
-      pat p ^
+      pat print_backend p ^
       ws s2 ^
       kwd ")"
 
   | P_cons(p1,s,p2) ->
-      pat p1 ^ 
+      pat print_backend p1 ^ 
       ws s ^
       T.cons_op ^
-      pat p2
+      pat print_backend p2
 
   | P_num_add ((n, _),s1,s2,i) ->
       T.pat_add_op ((Name.to_output Term_var n)) s1 s2 i
@@ -1478,40 +1479,40 @@ let rec pat p = match p.term with
       kwd "(" ^
       Name.to_output Term_var n ^
       T.typ_sep ^
-      typ t ^
+      typ print_backend t ^
       kwd ")"
 
-and patfield (fd,s1,p) =
+and patfield print_backend (fd,s1,p) =
   field_ident_to_output fd ^
   ws s1 ^
   kwd "=" ^
-  pat p
+  pat print_backend p
 
-and patlist ps = 
+and patlist print_backend ps = 
   match ps with
   | [] -> emp
-  | [p] -> pat p
-  | p::((_::_) as ps') -> pat p ^ texspace ^ patlist ps'
+  | [p] -> pat print_backend p
+  | p::((_::_) as ps') -> pat print_backend p ^ texspace ^ patlist print_backend ps'
 
-let rec exp e = 
+let rec exp print_backend e = 
 let is_user_exp = is_pp_exp e in
 match C.exp_to_term e with
   | Var(n) ->
       Name.to_output Term_var n
-  | Backend(inlined, sk, i) ->
-      backend inlined sk i
+  | Backend(sk, i) ->
+      backend print_backend sk i
   | Nvar_e(s,n) ->
       ws s ^ id Nexpr_var (Ulib.Text.(^^^) T.nexp_var (Nvar.to_rope n))
   | Constant(cd) ->
-      Output.concat emp (B.function_application_to_output (exp_to_locn e) exp false e cd [] (use_ascii_rep_for_const cd))
+      Output.concat emp (B.function_application_to_output (exp_to_locn e) (exp print_backend) false e cd [] (use_ascii_rep_for_const cd))
   | Fun(s1,ps,s2,e) ->
       ws s1 ^
       T.fun_start ^
       T.fun_kwd ^
-      patlist ps ^
+      patlist print_backend ps ^
       ws s2 ^
       T.fun_sep ^
-      exp e ^
+      exp print_backend e ^
       T.fun_end
 
   | Function(s1,f,s2) ->
@@ -1519,17 +1520,17 @@ match C.exp_to_term e with
       T.function_start ^
       flat (Seplist.to_sep_list 
               (fun (p,s1,e,l) ->
-                 pat p ^
+                 pat print_backend p ^
                  ws s1 ^
                  T.fun_sep ^
-                 exp e) 
+                 exp print_backend e) 
               (sep (kwd "|"))
               f) ^
         ws s2 ^
       T.function_end
 
   | App(e1,e2) ->
-      let trans e = block (is_pp_exp e) 0 (exp e) in
+      let trans e = block (is_pp_exp e) 0 (exp print_backend e) in
       let sep = (texspace ^ break_hint_space 2) in
 
       let oL = begin
@@ -1546,7 +1547,7 @@ match C.exp_to_term e with
       block is_user_exp 0 o
 
   | Infix(e1,e2,e3) ->      
-      let trans e = block (is_pp_exp e) 0 (exp e) in
+      let trans e = block (is_pp_exp e) 0 (exp print_backend e) in
       let sep = (texspace ^ break_hint_space 2) in
 
       let oL = begin
@@ -1567,20 +1568,20 @@ match C.exp_to_term e with
       flat 
         (Seplist.to_sep_list_last 
            T.last_rec_sep 
-           expfield (sep T.rec_sep) fields) ^
+           (expfield print_backend) (sep T.rec_sep) fields) ^
       ws s2 ^
       T.rec_end
 
   | Recup(s1,e,s2,fields,s3) ->
         ws s1 ^
         T.recup_start ^
-        exp e ^
+        exp print_backend e ^
         ws s2 ^
         T.recup_middle ^ 
         flat 
           (Seplist.to_sep_list_last 
              T.last_rec_sep 
-             expfieldup (sep T.rec_sep) fields) ^
+             (expfieldup print_backend) (sep T.rec_sep) fields) ^
         ws s3 ^
         T.recup_end
   | Field(e,s,fd) ->
@@ -1588,10 +1589,10 @@ match C.exp_to_term e with
         kwd "(" ^ T.field_access_start ^ 
         field_ident_to_output fd ^
         T.field_access_end ^ 
-        exp e ^ kwd ")" ^
+        exp print_backend e ^ kwd ")" ^
         ws s
       else 
-        exp e ^
+        exp print_backend e ^
         ws s ^
         T.field_access_start ^
         field_ident_to_output fd ^
@@ -1601,13 +1602,13 @@ match C.exp_to_term e with
       block_hv is_user_exp 0 (
       ws s1 ^
       T.case_start ^
-      exp e ^
+      exp print_backend e ^
       ws s2 ^
       T.case_sep1 ^
       break_hint_space 4 ^
       flat 
         (Seplist.to_sep_list_first 
-           T.first_case_sep case_line 
+           T.first_case_sep (case_line print_backend)
            (sep (break_hint_space 2 ^ T.case_sep2))
            cases) ^
       ws s3 ^
@@ -1617,10 +1618,10 @@ match C.exp_to_term e with
   | Typed(s1,e,s2,t,s3) ->
       ws s1 ^
       kwd "(" ^
-      exp e ^
+      exp print_backend e ^
       ws s2 ^
       T.typ_sep ^
-      typ t ^
+      typ print_backend t ^
       ws s3 ^
       kwd ")"
 
@@ -1628,18 +1629,18 @@ match C.exp_to_term e with
       block is_user_exp 0 (
       ws s1 ^
       T.let_start ^
-      block is_user_exp 0 (letbind bind) ^
+      block is_user_exp 0 (letbind print_backend bind) ^
       ws s2 ^
       T.let_in ^
       break_hint_space 0 ^
-      exp e ^
+      exp print_backend e ^
       T.let_end)
 
   | Tup(s1,es,s2) ->
       block is_user_exp 0 (  
       ws s1 ^
       kwd "(" ^
-      flat (Seplist.to_sep_list exp (sep T.tup_sep) es) ^
+      flat (Seplist.to_sep_list (exp print_backend) (sep T.tup_sep) es) ^
       ws s2 ^
       kwd ")")
   | List(s1,es,s2) ->
@@ -1648,7 +1649,7 @@ match C.exp_to_term e with
       T.list_begin ^
       flat 
         (Seplist.to_sep_list_last T.last_list_sep 
-           exp (sep T.list_sep) es) ^
+           (exp print_backend) (sep T.list_sep) es) ^
       ws s2 ^
       T.list_end)
   | Vector(s1,es,s2) ->
@@ -1657,43 +1658,43 @@ match C.exp_to_term e with
       T.vector_begin ^
       flat
          (Seplist.to_sep_list_last T.last_list_sep
-            exp (sep T.list_sep) es) ^ (* TODO KG Probably shouldn't be relying on the list sep operator here *)
+            (exp print_backend) (sep T.list_sep) es) ^ (* TODO KG Probably shouldn't be relying on the list sep operator here *)
       ws s2 ^
       T.vector_end)
 
   | VectorAcc(e,s1,n,s2) ->
-      exp e ^ ws s1 ^
+      exp print_backend e ^ ws s1 ^
       kwd "." ^ kwd "[" ^ (* NOTE KG: Splitting .[ because need space in ident backend is not sophisticated enough to recognize this case *)
       nexp n ^
       ws s2 ^ kwd "]" 
 
   | VectorSub(e,s1,n1,s2,n2,s3) ->
-      exp e ^ ws s1 ^
+      exp print_backend e ^ ws s1 ^
       kwd "." ^ kwd "[" ^ (* NOTE KG: see above *)
       nexp n1 ^ ws s2 ^ kwd ".." ^
       nexp n2 ^ ws s3 ^ kwd "]"
 
   | Paren(s1,e,s2) ->
-      block is_user_exp 0 (ws s1 ^ kwd "(" ^ block is_user_exp 0 (exp e ^ ws s2) ^ kwd ")")
+      block is_user_exp 0 (ws s1 ^ kwd "(" ^ block is_user_exp 0 (exp print_backend e ^ ws s2) ^ kwd ")")
 
   | Begin(s1,e,s2) ->
-      ws s1 ^ T.begin_kwd ^ exp e ^ ws s2 ^ T.end_kwd
+      ws s1 ^ T.begin_kwd ^ exp print_backend e ^ ws s2 ^ T.end_kwd
 
   | If(s1,e1,s2,e2,s3,e3) ->
       block is_user_exp 0 (
       ws s1 ^
       break_hint_cut ^
       T.cond_if ^
-      block (is_pp_exp e1) 0 (exp e1) ^
+      block (is_pp_exp e1) 0 (exp print_backend e1) ^
       ws s2 ^
       T.cond_then ^
       break_hint_space 2 ^
-      block (is_pp_exp e2) 0 (exp e2) ^
+      block (is_pp_exp e2) 0 (exp print_backend e2) ^
       ws s3 ^
       break_hint_space 0 ^
       T.cond_else ^
       break_hint_space 2 ^
-      block (is_pp_exp e3) 0 (exp e3))
+      block (is_pp_exp e3) 0 (exp print_backend e3))
 
   | Lit(l) ->
       lit l false (exp_to_typ e)
@@ -1708,7 +1709,7 @@ match C.exp_to_term e with
          flat 
            (Seplist.to_sep_list_last 
            T.last_set_sep 
-           exp (sep T.set_sep) es) ^
+           (exp print_backend) (sep T.set_sep) es) ^
          ws s2 ^
          T.set_end)
       ))
@@ -1716,7 +1717,7 @@ match C.exp_to_term e with
   | Setcomp(s1,e1,s2,e2,s3,vars) ->
       ws s1 ^
       T.set_start ^
-      exp e1 ^
+      exp print_backend e1 ^
       ws s2 ^
       (if T.target = Target_no_ident Target_isa then 
          (if (is_var_tup_exp e1 && NameSet.equal vars (nfmap_domain (C.exp_to_free e1))) then kwd "." else 
@@ -1725,7 +1726,7 @@ match C.exp_to_term e with
           T.setcomp_binding_middle)
        else 
          T.setcomp_sep) ^
-      exp e2 ^
+      exp print_backend e2 ^
       ws s3 ^
       T.set_end
 
@@ -1733,15 +1734,15 @@ match C.exp_to_term e with
   | Comp_binding(true,s1,e1,s2,s5,qbs,s3,e2,s4) ->
       ws s1 ^
       kwd "[" ^
-      exp e1 ^
+      exp print_backend e1 ^
       ws s2 ^
       kwd "|" ^
       ws s5 ^
       T.setcomp_binding_start ^
-      concat T.setcomp_binding_sep (List.map quant_binding qbs) ^
+      concat T.setcomp_binding_sep (List.map (quant_binding print_backend) qbs) ^
       ws s3 ^
       T.setcomp_binding_middle ^ 
-      exp e2 ^
+      exp print_backend e2 ^
       ws s4 ^
       kwd "]"
 
@@ -1749,15 +1750,15 @@ match C.exp_to_term e with
   | Comp_binding(false,s1,e1,s2,s5,qbs,s3,e2,s4) ->
       ws s1 ^
       T.set_start ^
-      exp e1 ^
+      exp print_backend e1 ^
       ws s2 ^
       kwd "|" ^
       ws s5 ^
       T.setcomp_binding_start ^
-      concat T.setcomp_binding_sep (List.map quant_binding qbs) ^
+      concat T.setcomp_binding_sep (List.map (quant_binding print_backend) qbs) ^
       ws s3 ^
       T.setcomp_binding_middle ^ 
-      exp e2 ^
+      exp print_backend e2 ^
       ws s4 ^
       T.set_end
 
@@ -1766,10 +1767,10 @@ match C.exp_to_term e with
       if (T.target = Target_no_ident Target_isa) then 
         block is_user_exp 0 (
         kwd "(" ^ 
-        flat (List.map (isa_quant q) qbs) ^
+        flat (List.map (isa_quant print_backend q) qbs) ^
         break_hint_space 2 ^
         block (is_pp_exp e) 0 (
-        ws s2 ^ exp e) ^
+        ws s2 ^ exp print_backend e) ^
         kwd ")")
       else 
         block is_user_exp 0 (
@@ -1780,107 +1781,103 @@ match C.exp_to_term e with
           | Ast.Q_exists(s1) ->
               ws s1 ^ T.exists
         end ^
-        flat (interspace (List.map quant_binding qbs)) ^
+        flat (interspace (List.map (quant_binding print_backend) qbs)) ^
         ws s2 ^
         kwd "." ^
         texspace ^
         break_hint_space 2 ^
         block is_user_exp 0 (
-        exp e))
+        exp print_backend e))
 
   | Do(s1,m,do_lns,s2,e,s3,_) ->
       ws s1 ^
       kwd "do" ^
       Ident.to_output Module_name T.path_sep (B.module_id_to_ident m) ^
-      do_lines do_lns ^
+      do_lines print_backend do_lns ^
       ws s2 ^
       kwd "in" ^
-      exp e ^
+      exp print_backend e ^
       ws s3 ^
       kwd "end"
           
-and do_lines = function
+and do_lines print_backend = function
   | [] -> emp
   | (Do_line(p,s1,e,s2)::lns) ->
-      pat p ^
+      pat print_backend p ^
       ws s1 ^
       kwd "<-" ^
-      exp e ^
+      exp print_backend e ^
       ws s2 ^
       kwd ";" ^
-      do_lines lns
+      do_lines print_backend lns
 
-and quant_binding = function
+and quant_binding print_backend = function
   | Qb_var(n) -> 
       Name.to_output Term_var n.term
   | Qb_restr(is_lst,s1,p,s2,e,s3) ->
       ws s1 ^
       T.quant_binding_start ^
-      pat p ^
+      pat print_backend p ^
       ws s2 ^
       (if is_lst then T.list_quant_binding else T.set_quant_binding) ^
-      exp e ^
+      exp print_backend e ^
       ws s3 ^
       T.quant_binding_end
 
-and isa_quant q qb = match q with
+and isa_quant print_backend q qb = match q with
   | Ast.Q_forall(s1) -> 
-      ws s1 ^ T.forall ^ (quant_binding qb) ^ kwd "." ^ space
+      ws s1 ^ T.forall ^ (quant_binding print_backend qb) ^ kwd "." ^ space
   | Ast.Q_exists(s1) ->
-      ws s1 ^ T.exists ^ (quant_binding qb) ^ kwd "." ^ space
+      ws s1 ^ T.exists ^ (quant_binding print_backend qb) ^ kwd "." ^ space
 
-and expfield (fd,s1,e,_) =
+and expfield print_backend (fd,s1,e,_) =
   field_ident_to_output fd ^
   ws s1 ^
   T.record_assign ^
-  exp e
+  exp print_backend e
 
-and expfield_coq (fd,s1,e,_) =
-  ws s1 ^ kwd "(" ^
-  exp e ^ kwd ")"
-
-and expfieldup (fd,s1,e,_) =
+and expfieldup print_backend (fd,s1,e,_) =
   field_ident_to_output fd ^
   ws s1 ^
   T.recup_assign ^
-  exp e
+  exp print_backend e
 
-and case_line (p,s1,e,_) =
-  pat p ^
+and case_line print_backend (p,s1,e,_) =
+  pat print_backend p ^
   ws s1 ^
   T.case_line_sep ^
-  block (is_pp_exp e) 2 (exp e)
+  block (is_pp_exp e) 2 (exp print_backend e)
 
-and funcl_aux (n, ps, topt, s1, e) =
+and funcl_aux print_backend (n, ps, topt, s1, e) =
   ws (Name.get_lskip n) ^ 
   T.funcase_start ^
   Name.to_output Term_var (Name.replace_lskip n None) ^
   (match ps with [] -> emp | _ -> texspace) ^
-  patlist ps ^
+  patlist print_backend ps ^
   begin
     match topt with
       | None -> emp 
-      | Some(s,t) -> ws s ^ T.typ_sep ^ typ t
+      | Some(s,t) -> ws s ^ T.typ_sep ^ typ print_backend t
   end ^
   ws s1 ^
   T.def_binding ^
-  exp (if is_human_target T.target then e else mk_opt_paren_exp e) ^
+  exp print_backend (if is_human_target T.target then e else mk_opt_paren_exp e) ^
   T.funcase_end
 
-and funcl (({term = n}, c, ps, topt, s1, e):funcl_aux) =
-  funcl_aux (B.const_ref_to_name n false c, ps, topt, s1, e)    
+and funcl print_backend (({term = n}, c, ps, topt, s1, e):funcl_aux) =
+  funcl_aux print_backend (B.const_ref_to_name n false c, ps, topt, s1, e)    
 
-and letbind (lb, _) : Output.t = match lb with
+and letbind print_backend (lb, _) : Output.t = match lb with
   | Let_val(p,topt,s2,e) ->
-      pat p ^
+      pat print_backend p ^
       begin
         match topt with
           | None -> emp 
-          | Some(s,t) -> ws s ^ T.typ_sep ^ typ t
+          | Some(s,t) -> ws s ^ T.typ_sep ^ typ print_backend t
       end ^
-      ws s2 ^ T.def_binding ^ exp (if is_human_target T.target then e else mk_opt_paren_exp e)
+      ws s2 ^ T.def_binding ^ exp print_backend (if is_human_target T.target then e else mk_opt_paren_exp e)
   | Let_fun (n, ps, topt, s1, e) ->
-      funcl_aux (n.term, ps, topt, s1, e)
+      funcl_aux print_backend (n.term, ps, topt, s1, e)
 
 
 (* In Isabelle we have to handle the following three cases for type definitions
@@ -1995,7 +1992,7 @@ let indreln_name (RName(s1,name,name_ref,s2,(constraint_pre,t),witness,checks,fu
           | None -> emp
           | Some(cp) -> constraint_prefix cp
       end ^
-      typ t ^  
+      typ false t ^  
   ws s3 ^
   T.reln_name_end
 
@@ -2015,10 +2012,10 @@ let indreln_clause (Rule(name, s0, s1, qnames, s2, e_opt, s3, rname, rname_ref, 
     kwd "."
   ) else emp) ^
   (match e_opt with None -> ws s3 | Some e -> 
-     exp (if T.reln_clause_add_paren then Typed_ast_syntax.mk_opt_paren_exp e else e) ^ 
+     exp false (if T.reln_clause_add_paren then Typed_ast_syntax.mk_opt_paren_exp e else e) ^ 
      ws s3 ^ kwd "==>") ^
   Name.to_output Term_var (B.const_ref_to_name rname.term false rname_ref) ^
-  flat (interspace (List.map exp es)) ^
+  flat (interspace (List.map (exp false) es)) ^
   T.reln_clause_end
 
 let targets_opt = function
@@ -2036,8 +2033,8 @@ let in_target targs = Typed_ast.in_targets_opt T.target targs
 (****** Isabelle ******)
 
 let isa_op_typ texp = match texp.term with
-  | Typ_fn(_,_,_) -> kwd "(" ^ typ texp ^ kwd ")" ^ texspace
-  | _ -> typ texp
+  | Typ_fn(_,_,_) -> kwd "(" ^ typ false texp ^ kwd ")" ^ texspace
+  | _ -> typ false texp
 
 
 (* let quote_ident name = match (name : Output.t) with 
@@ -2054,7 +2051,7 @@ let isa_op_typ texp = match texp.term with
 let isa_mk_typed_def_header (name, ptyps, s, etyp) : Output.t = 
   name ^ kwd " " ^ T.typ_sep ^ kwd " \"" ^ 
   flat (List.map (function x -> isa_op_typ (C.t_to_src_t x) ^ T.typ_fun_sep) ptyps) ^
-  typ (C.t_to_src_t etyp) ^ 
+  typ false (C.t_to_src_t etyp) ^ 
   kwd "\" " ^ ws s 
 
 (*
@@ -2090,10 +2087,10 @@ let isa_funcl_header_indrel_seplist clause_sl =
 
 
 let isa_funcl_default eqsign (({term = n}, c, ps, topt, s1, (e : Typed_ast.exp)):funcl_aux) =
-  kwd "\"" ^ Name.to_output Term_var (B.const_ref_to_name n true c) ^ flat (List.map pat ps)^ ws s1 ^ eqsign ^ kwd "(" ^ exp e ^ kwd ")\""
+  kwd "\"" ^ Name.to_output Term_var (B.const_ref_to_name n true c) ^ flat (List.map (pat false) ps)^ ws s1 ^ eqsign ^ kwd "(" ^ exp false e ^ kwd ")\""
 
 let isa_funcl_abs eqsign (({term = n}, c, ps, topt, s1, (e : Typed_ast.exp)):funcl_aux) =
-  kwd "\"" ^ Name.to_output Term_var (B.const_ref_to_name n true c) ^ ws s1 ^ eqsign ^ kwd "(%" ^ flat (List.map pat ps) ^ kwd ". " ^ exp e ^ kwd ")\""
+  kwd "\"" ^ Name.to_output Term_var (B.const_ref_to_name n true c) ^ ws s1 ^ eqsign ^ kwd "(%" ^ flat (List.map (pat false) ps) ^ kwd ". " ^ exp false e ^ kwd ")\""
 
 let isa_funcl simple =
 (*  if simple then isa_funcl_abs (kwd "= ") else isa_funcl_default (kwd "= ") *)
@@ -2219,7 +2216,7 @@ let rec isa_def_extra (gf:extra_gen_flags) d l : Output.t = match d with
       kwd (Name.to_string (Name.strip_lskip n)) ^ ws sk1 ^ kwd ":" ^
       new_line ^
       kwd "\"" ^
-      exp e ^
+      exp false e ^
       kwd "\"" ^
       new_line ^
       kwd solve ^
@@ -2252,7 +2249,7 @@ let rec hol_def_extra gf d l : Output.t = match d with
              let n_s = (Name.to_string (Name.strip_lskip n)) in
              let start = Format.sprintf "val _ = lem_assertion \"%s\" ``" n_s in
              meta start ^
-             exp e' ^
+             exp false e' ^
              meta "``;" ^
              new_line ^
              new_line
@@ -2264,7 +2261,7 @@ let rec hol_def_extra gf d l : Output.t = match d with
              end in
              kwd start ^
              kwd "``" ^
-             exp e' ^
+             exp false e' ^
              kwd "``," ^
              new_line ^
              meta "  (* your proof *) ALL_TAC" ^
@@ -2287,7 +2284,7 @@ let rec ocaml_def_extra gf d l : Output.t = match d with
         let loc_s = Format.sprintf "\"%s\\n\"" (String.escaped (Reporting_basic.loc_to_string true l)) in 
         let (e', _) = alter_init_lskips (fun _ -> (None, None)) e in
         meta (Format.sprintf "let _ = run_test %s %s (\n  " n_s loc_s) ^
-        exp e' ^
+        exp false e' ^
         meta "\n)\n\n"
       end
     end
@@ -2326,6 +2323,33 @@ let open_import_to_output = function
       T.module_include ^
       ws s2 ^
       T.module_import
+
+let open_import_def_to_output print_backend oi targets ms =
+      if in_target targets then
+        if (Target.is_human_target T.target || not (T.module_only_single_open) || List.length ms < 2) then 
+        begin
+          open_import_to_output oi ^
+          (if Target.is_human_target T.target then
+             targets_opt targets 
+           else
+             emp) ^
+          (Output.flat (List.map (fun (sk, m) -> 
+             ws sk ^ backend_quote_cond print_backend (kwd m)) ms))
+        end else begin
+          match ms with 
+            | (sk, m) :: sk_ms' -> begin
+                let (oi', _) = oi_alter_init_lskips (fun _ -> (Some [Ast.Ws (r"\n")], None)) oi in
+                open_import_to_output oi ^
+                ws sk ^ kwd m ^
+
+               (Output.flat (List.map (fun (sk, m) -> 
+                  open_import_to_output oi' ^
+                  ws sk ^ backend_quote_cond print_backend (kwd m)) sk_ms'))
+              end
+            | _ -> emp (* covert by other case already *)
+        end
+      else emp
+
 
 let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = match d with
   (* A single type abbreviation *)
@@ -2406,7 +2430,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
            targets_opt targets 
          else
            emp) ^
-        letbind (Let_val (p, topt, sk, e), Ast.Unknown) ^
+        letbind false (Let_val (p, topt, sk, e), Ast.Unknown) ^
         break_hint_space 0 ^
         T.def_end
       else
@@ -2425,7 +2449,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
              targets_opt targets 
            else
              emp) ^
-          flat (Seplist.to_sep_list funcl (sep T.def_sep) clauses) ^
+          flat (Seplist.to_sep_list (funcl false) (sep T.def_sep) clauses) ^
           T.def_end ^
           T.rec_def_footer is_rec is_real_rec try_term n
           else
@@ -2441,7 +2465,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         flat (List.map (fun n -> Name.to_output Term_var n.term) args) ^ 
         ws s4 ^
         kwd "=" ^
-        exp body
+        exp false body
       else
         emp
   | Lemma (sk0, lty, targets, (n, _), sk1, e) -> 
@@ -2455,7 +2479,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
        targets_opt targets ^
        Name.to_output Term_var n ^
        ws sk1 ^ kwd ":" ^
-       exp e)
+       exp false e)
     end
   | Module(s1,(n,l),mod_bind,s2,s3,ds,s4) -> 
       ws s1 ^
@@ -2477,34 +2501,11 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
       Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)
   | OpenImport (oi, ms) ->
       let (ms', sk) = B.open_to_open_target ms in 
-      (def_internal callback inside_module (OpenImportTarget (oi, None, ms')) is_user_def) ^ 
+      open_import_def_to_output false oi None ms' ^
       ws sk
   | OpenImportTarget(oi, _, []) -> ws (oi_get_lskip oi)
   | OpenImportTarget(oi,targets, ms) ->
-      if in_target targets then
-        if (Target.is_human_target T.target || not (T.module_only_single_open) || List.length ms < 2) then 
-        begin
-          open_import_to_output oi ^
-          (if Target.is_human_target T.target then
-             targets_opt targets 
-           else
-             emp) ^
-          (Output.flat (List.map (fun (sk, m) -> 
-             ws sk ^ kwd m) ms))
-        end else begin
-          match ms with 
-            | (sk, m) :: sk_ms' -> begin
-                let (oi', _) = oi_alter_init_lskips (fun _ -> (Some [Ast.Ws (r"\n")], None)) oi in
-                open_import_to_output oi ^
-                ws sk ^ kwd m ^
-
-               (Output.flat (List.map (fun (sk, m) -> 
-                  open_import_to_output oi' ^
-                  ws sk ^ kwd m) sk_ms'))
-              end
-            | _ -> emp (* covert by other case already *)
-        end
-      else emp
+      open_import_def_to_output (is_human_target T.target) oi targets ms
   | Indreln(s,targets,names,clauses) ->
       if in_target targets then
         ws s ^
@@ -2533,7 +2534,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
           | None -> emp
           | Some(cp) -> constraint_prefix cp
       end ^
-      typ t
+      typ false t
   | Instance(inst_decl,i_ref,(cp,s2,id,class_path,t,s3),methods,s4) ->
       (match inst_decl with
         | Ast.Inst_decl s1 -> (ws s1 ^ kwd "instance")
@@ -2547,7 +2548,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
       ws s2 ^
       kwd "(" ^
       Ident.to_output Term_method T.path_sep id ^
-      typ t ^
+      typ false t ^
       ws s3 ^
       kwd ")" ^
       flat (List.map (fun d -> def callback true (Val_def(d)) is_user_def) methods) ^
@@ -2576,7 +2577,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
                 val_ascii_opt ascii_rep_opt ^
                 ws s2 ^
                 kwd ":" ^
-                typ t)
+                typ false t)
               specs) ^
       ws s4 ^
       kwd "end"
@@ -2593,13 +2594,13 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         ws sk3 ^
         kwd "=" ^
         (match rhs with
-          | Target_rep_rhs_term_replacement e -> exp e
+          | Target_rep_rhs_term_replacement e -> exp true e
           | Target_rep_rhs_undefined -> emp
           | Target_rep_rhs_infix (sk1, decl, sk2, i) -> begin
                ws sk1 ^
                kwd "infix" ^
                infix_decl decl ^
-               backend false sk2 i
+               backend true sk2 i
             end
           | _ -> raise (Reporting_basic.err_todo true Ast.Unknown "declaration")
         ) 
@@ -2617,7 +2618,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         tdef_tvars true args ^
         ws sk4 ^
         kwd "=" ^
-        typ rhs
+        typ true rhs
       end
   | Declaration (Decl_ascii_rep (sk1, targets, sk2, comp, nk_id, sk3, sk4, n)) ->
       if (not (Target.is_human_target T.target)) then emp else begin
@@ -2780,7 +2781,7 @@ and names_of_pat p : (Ulib.Text.t * Ulib.Text.t * Ast.l) list = match p.term wit
       let n' = Name.strip_lskip n in 
       [(Name.to_rope n', Name.to_rope_tex Term_ctor n', p.locn)] @
       List.flatten (List.map names_of_pat ps)
-  | P_backend(_,_,i,_,ps) ->
+  | P_backend(_,i,_,ps) ->
       let n = Name.strip_lskip (Ident.get_name i) in
       [(Name.to_rope n, Name.to_rope_tex Term_ctor n, p.locn)] @
       List.flatten (List.map names_of_pat ps)
@@ -2822,13 +2823,13 @@ and tex_inc_letbind (p, name_map, topt, sk, e) lhs_keyword =
       let post_comment = r"" (* PLACEHOLDER *) in      
       let lhs_output = 
         begin
-          pat p ^ 
+          pat false p ^ 
           match topt with
           | None -> emp 
-          | Some(s,t) -> ws s ^ T.typ_sep ^ typ t
+          | Some(s,t) -> ws s ^ T.typ_sep ^ typ false t
         end ^
         ws sk ^ T.def_binding in
-      let rhs_output = exp e in
+      let rhs_output = exp false e in
 
       let lhs = tex_of_output lhs_output in
       let rhs = tex_of_output rhs_output in
@@ -2902,8 +2903,8 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
            targets_opt targets 
          else
            emp) ^
-        isa_mk_typed_def_header (pat p, [], sk, exp_to_typ e) ^
-        kwd "where \n\"" ^ pat p ^ ws sk ^ kwd "= (" ^ exp e ^ kwd ")\"" ^ T.def_end ^
+        isa_mk_typed_def_header (pat false p, [], sk, exp_to_typ e) ^
+        kwd "where \n\"" ^ pat false p ^ ws sk ^ kwd "= (" ^ exp false e ^ kwd ")\"" ^ T.def_end ^
         (match val_def_get_name def with None -> emp | Some n ->
           (if is_simple then emp else 
                           (kwd (String.concat "" ["\ndeclare "; Name.to_string n; ".simps [simp del]"]))))
@@ -2918,10 +2919,6 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
         in
         let s2 = match rec_flag with FR_non_rec -> None | FR_rec sk -> sk in
         ws s1 ^ kwd (if (is_rec && not try_term) then "function (sequential)" else (if is_simple then "definition" else "fun")) ^ ws s2 ^
-        (if Target.is_human_target T.target then
-           targets_opt targets 
-         else
-           emp) ^
         (isa_funcl_header_seplist clauses) ^
         flat (Seplist.to_sep_list (isa_funcl_default (kwd "= ")) (sep T.def_sep) clauses) ^
         (if (is_rec && not try_term) then (kwd "\nby pat_completeness auto") else emp) ^
@@ -2939,10 +2936,6 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
       if in_target targets then
         ws s ^
         T.reln_start ^
-        (if Target.is_human_target T.target then
-           targets_opt targets 
-         else
-           emp) ^
         isa_funcl_header_indrel_seplist clauses ^
         flat (Seplist.to_sep_list indreln_clause (sep T.reln_sep) clauses) ^
         T.reln_end
@@ -2978,9 +2971,9 @@ end);;
 
 module CdsetE = Util.ExtraSet(Types.Cdset)
 
-let exp_to_rope e = output_to_rope (F'.exp e)
-let pat_to_rope p = output_to_rope (F'.pat p)
-let src_t_to_rope t = output_to_rope (F'.typ t)
+let exp_to_rope e = output_to_rope (F'.exp false e)
+let pat_to_rope p = output_to_rope (F'.pat false p)
+let src_t_to_rope t = output_to_rope (F'.typ false t)
 let typ_to_rope t = src_t_to_rope (C.t_to_src_t t)
 
 let rec batrope_pair_concat : (Ulib.Text.t * Ulib.Text.t) list -> (Ulib.Text.t * Ulib.Text.t)

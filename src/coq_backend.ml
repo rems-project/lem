@@ -1051,7 +1051,7 @@ let generate_coq_record_update_notation e =
         match C.exp_to_term e with
           | Var v ->
               Name.to_output Term_var v
-          | Backend (_, sk, i) ->
+          | Backend (sk, i) ->
               ws sk ^
               Ident.to_output Term_const path_sep i
           | Lit l -> literal l
@@ -1386,7 +1386,7 @@ let generate_coq_record_update_notation e =
         | P_const(cd, ps) ->
             let oL = B.pattern_application_to_output p.locn fun_pattern cd ps (use_ascii_rep_for_const cd.descr) in
             concat emp oL
-        | P_backend(_, sk, i, _, ps) ->
+        | P_backend(sk, i, _, ps) ->
             ws sk ^
             Ident.to_output Term_const path_sep i ^
             concat texspace (List.map fun_pattern ps)
@@ -1449,7 +1449,7 @@ let generate_coq_record_update_notation e =
         | P_const(cd, ps) ->
             let oL = B.pattern_application_to_output p.locn def_pattern cd ps (use_ascii_rep_for_const cd.descr) in
             concat emp oL
-        | P_backend(_, sk, i, _, ps) ->
+        | P_backend(sk, i, _, ps) ->
             ws sk ^
             Ident.to_output Term_const path_sep i ^
             concat texspace (List.map def_pattern ps)

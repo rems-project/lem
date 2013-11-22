@@ -65,28 +65,6 @@ let def_add_location_comment (((d,s),l,lenv) : def) =
     (out_before, d')
   end
 
-
-let mark_backend_exp_for_inline _ e = 
-  let old_l = exp_to_locn e in
-  let old_t = exp_to_typ e in
-  let module C = Exps_in_context(struct let env_opt = None;; let avoid = None end) in
-  match (C.exp_to_term e) with
-    | Backend(false, sk, i) ->
-        Some (C.mk_backend old_l true sk i old_t)
-    | _ -> None
-
-
-let cleanup_for_inline env e : exp = begin 
-   let module Ctxt = struct let avoid = None let env_opt = (Some env) end in
-   let module M = Macro_expander.Expander(Ctxt) in
-   M.expand_exp Macro_expander.Ctxt_other 
-                (Macro_expander.list_to_mac [mark_backend_exp_for_inline],
-                (fun ty -> ty),
-                (fun ty -> ty),
-                Macro_expander.list_to_bool_mac []) e
- end
-
-
 (* Resolve a const identifier stored inside a id, with a full one in case of Id_none *)
 let resolve_constant_id_ident l env targ id : Ident.t =
   resolve_const_ref l env targ id.id_path id.descr
@@ -132,7 +110,7 @@ let inline_exp l (target : Target.target) env was_infix params body_sk body tsub
   let (vsubst, leftover_params, leftover_args) = build_subst params args in
 
   (* adapt whitespace before body *)
-  let b = cleanup_for_inline env body in
+  let b = body in
   let b = (fst (alter_init_lskips (fun _ -> (body_sk, None)) b)) in
   let b = C.exp_subst (tsubst,vsubst) b in
   let stays_infix = Precedence.is_infix (Precedence.get_prec_exp target env b) in
@@ -201,9 +179,9 @@ let inline_pat l_unk env cd c_id ps (params, body) =
             
    match (params, C.exp_to_term b) with
      | ([], Constant c_id') -> Some (C.mk_pconst l_unk c_id' ps None)
-     | ([], Backend (_, sk, i)) -> 
+     | ([], Backend (sk, i)) -> 
           let ty = Types.type_subst tsubst cd.const_type in
-          Some (C.mk_pbackend l_unk true sk i ty ps None)
+          Some (C.mk_pbackend l_unk sk i ty ps None)
      | _ -> None
 
 

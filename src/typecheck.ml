@@ -1223,7 +1223,7 @@ module Make_checker(T : sig
         | Ast.Backend(sk,s) ->
             let _ = check_backend_allowed T.allow_backend_quots l in
             let id = check_backend_quote l s in
-              A.mk_backend l false sk id ret_type
+              A.mk_backend l sk id ret_type
         | Ast.Nvar((sk,n)) -> 
             let nv = Nvar.from_rope(n) in
             C.add_nvar nv;

@@ -110,8 +110,8 @@ let rec expand_pat (macro_ctxt : macro_context) pat_pos p (typ_r, src_typ_r, r) 
                   c 
                   (List.map (fun p -> (trans p)) ps)
                   (Some new_t)
-            | P_backend(b,sk,i,ty,ps) -> 
-                C.mk_pbackend old_l b sk i
+            | P_backend(sk,i,ty,ps) -> 
+                C.mk_pbackend old_l sk i
                   (typ_r ty)
                   (List.map (fun p -> (trans p)) ps)
                   (Some new_t)
@@ -297,8 +297,8 @@ let rec expand_exp (macro_ctxt : macro_context) ((r,typ_r,src_typ_r,pat_r):((mac
                   C.mk_const old_l c (Some new_t)
               | Var(n) ->
                   C.mk_var old_l n new_t
-              | Backend(b, sk, i) ->
-                  C.mk_backend old_l b sk i new_t
+              | Backend(sk, i) ->
+                  C.mk_backend old_l sk i new_t
               | Nvar_e(s,n) -> C.mk_nvar_e old_l s n new_t
               | Lit li  ->
                   C.mk_lit old_l  {li with typ = new_t} (Some new_t)

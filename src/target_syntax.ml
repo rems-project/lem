@@ -161,8 +161,8 @@ let rec fix_pat env get_prec p =
                   (fun p -> delimit_pat P.Plist (trans p)) 
                   ps)
                old_t)
-      | P_backend(b,sk,i,ty,ps) -> 
-            (C.mk_pbackend old_l b sk i ty 
+      | P_backend(sk,i,ty,ps) -> 
+            (C.mk_pbackend old_l sk i ty 
                (List.map 
                   (fun p -> delimit_pat P.Plist (trans p)) 
                   ps)
@@ -361,8 +361,8 @@ let rec fix_exp env get_prec e =
           C.mk_const old_l c old_t
       | Var(n) ->
           C.mk_var old_l n (exp_to_typ e) 
-      | Backend(b,sk,i) ->
-          C.mk_backend old_l b sk i (exp_to_typ e) 
+      | Backend(sk,i) ->
+          C.mk_backend old_l sk i (exp_to_typ e) 
       | Lit _  | Nvar_e _ ->
           e
 

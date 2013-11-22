@@ -125,7 +125,7 @@ and pat_aux =
   | P_typ of lskips * pat * lskips * src_t * lskips
   | P_var of Name.lskips_t
   | P_const of const_descr_ref id * pat list
-  | P_backend of bool * lskips * Ident.t * Types.t * pat list
+  | P_backend of lskips * Ident.t * Types.t * pat list
   | P_record of lskips * (const_descr_ref id * lskips * pat) lskips_seplist * lskips
   | P_vector of lskips * pat lskips_seplist * lskips
   | P_vectorC of lskips * pat list * lskips
@@ -283,7 +283,7 @@ and exp_subst =
 
 and exp_aux = private
   | Var of Name.lskips_t
-  | Backend of bool * lskips * Ident.t (** An identifier that should be used literally by a backend. The identifier does not contain whitespace. Initial whitespace is represented explicitly. *)
+  | Backend of lskips * Ident.t (** An identifier that should be used literally by a backend. The identifier does not contain whitespace. Initial whitespace is represented explicitly. *)
   | Nvar_e of lskips * Nvar.t
   | Constant of const_descr_ref id
   | Fun of lskips * pat list * lskips * exp
@@ -623,7 +623,7 @@ module Exps_in_context(C : Exp_context) : sig
   val mk_ptyp : Ast.l -> lskips -> pat -> lskips -> src_t -> lskips -> Types.t option -> pat
   val mk_pvar : Ast.l -> Name.lskips_t -> Types.t -> pat
   val mk_pconst : Ast.l -> const_descr_ref id -> pat list -> Types.t option -> pat
-  val mk_pbackend : Ast.l -> bool -> lskips -> Ident.t -> Types.t -> pat list -> Types.t option -> pat
+  val mk_pbackend : Ast.l -> lskips -> Ident.t -> Types.t -> pat list -> Types.t option -> pat
   val mk_precord : Ast.l -> lskips -> (const_descr_ref id * lskips * pat) lskips_seplist -> lskips -> Types.t option -> pat
   val mk_ptup : Ast.l -> lskips -> pat lskips_seplist -> lskips -> Types.t option -> pat
   val mk_plist : Ast.l -> lskips -> pat lskips_seplist -> lskips -> Types.t -> pat
@@ -637,7 +637,7 @@ module Exps_in_context(C : Exp_context) : sig
 
   val mk_var : Ast.l -> Name.lskips_t -> Types.t -> exp
   val mk_nvar_e : Ast.l -> lskips -> Nvar.t -> Types.t -> exp
-  val mk_backend : Ast.l -> bool -> lskips -> Ident.t -> Types.t -> exp
+  val mk_backend : Ast.l -> lskips -> Ident.t -> Types.t -> exp
   val mk_const : Ast.l -> const_descr_ref id -> Types.t option -> exp
   val mk_fun : Ast.l -> lskips -> pat list -> lskips -> exp -> Types.t option -> exp
   val mk_function : Ast.l -> lskips -> (pat * lskips * exp * Ast.l) lskips_seplist -> lskips -> Types.t option -> exp
