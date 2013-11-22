@@ -72,6 +72,7 @@ type warning =
   | Warn_compile_message of Ast.l * Target.target * Path.t * string
   | Warn_import of Ast.l * string * string
   | Warn_overriden_instance of Ast.l * Types.src_t * Types.instance
+  | Warn_ambiguous_code of Ast.l * string
 
 let warn_source_to_string exp def ws =
   match ws with 
@@ -136,6 +137,7 @@ let dest_warning_common (verbose: bool) (w : warning) : (bool * Ast.l * string) 
                   "compile message for constant '%s' and target '%s'\n    %s" 
                   const_name target_s m in
       Some (false, l, msg)
+  | Warn_ambiguous_code (l, m) -> Some (true, l, m)
   | _ -> None
 
 let dest_warning_basic (verbose: bool) (w : warning) : (bool * Ast.l * string) option = 
@@ -242,13 +244,14 @@ let warn_ref_no_decidable_eq  = ref Level_Ignore;;
 let warn_ref_import           = ref Level_Ignore;;
 let warn_ref_inst_override    = ref Level_Ignore;;
 let warn_ref_compile_message  = ref Level_Warn;;
+let warn_ref_ambiguous_code   = ref Level_Warn;;
 
 (* a list of all these references *)
 let warn_refL = [
   warn_ref_rename; warn_ref_pat_fail; warn_ref_pat_exh; warn_ref_pat_red; warn_ref_def_exh; 
   warn_ref_def_red; warn_ref_pat_comp; warn_ref_unused_vars; warn_ref_general; 
   warn_ref_fun_resort; warn_ref_rec_resort; warn_ref_no_decidable_eq; warn_ref_import;
-  warn_ref_inst_override;warn_ref_compile_message;
+  warn_ref_inst_override;warn_ref_compile_message; warn_ref_ambiguous_code
 ]
 
 (* map a warning to it's reference *)
@@ -268,6 +271,7 @@ let warn_level = function
   | Warn_import _ ->                            !warn_ref_import
   | Warn_overriden_instance _ ->                !warn_ref_inst_override
   | Warn_compile_message _ ->                   !warn_ref_compile_message
+  | Warn_ambiguous_code _ ->                    !warn_ref_ambiguous_code
 
 let ignore_pat_compile_warnings () = (warn_ref_pat_comp := Level_Ignore)
 
@@ -291,6 +295,7 @@ let warn_opts_aux = [
    ("no_dec_eq",   [warn_ref_no_decidable_eq],                 "equality of type is undecidable");
    ("auto_import", [warn_ref_import],                          "automatically imported modules");
    ("inst_over",   [warn_ref_inst_override],                   "overriden instance declarations");
+   ("amb_code",    [warn_ref_ambiguous_code],                  "ambiguous code");
    ("gen",         [warn_ref_general],                         "miscellaneous warnings")];;
 
 

@@ -106,6 +106,10 @@ type warning =
     (** [Warn_overriden_instance (l, ty, i)] warns that the instance [i] that has already been defined is
         overriden for type [ty] at location [l]. *)
 
+  | Warn_ambiguous_code of Ast.l * string
+    (** warn about ambiguous code that could be parsed in several ways and that therefore might confuse users *)
+
+
 (** if the flag [warnings_active] is set, warning messages are printed, otherwise
     they are thrown away. *)
 val warnings_active : bool ref

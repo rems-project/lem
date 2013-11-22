@@ -238,7 +238,7 @@ let inline_pat_macro (target : Target.non_ident_target) env _ _ p =
   generalised_inline_pat_macro false (Target.Target_no_ident target) env p
 
 
-let get_module_name_from_descr md extra_rename target = begin
+let get_module_name_from_descr md mod_name extra_rename target = begin
   let transform_name_for_target n = match target with
     | Target.Target_no_ident (Target.Target_coq) -> Util.uncapitalize_prefix n
     | Target.Target_no_ident (Target.Target_hol) -> Util.string_map (fun c -> if c = '-' then  '_' else c) (Util.uncapitalize_prefix n)
@@ -246,14 +246,14 @@ let get_module_name_from_descr md extra_rename target = begin
   in
   let lem_mod_name = match Target.Targetmap.apply_target md.mod_target_rep target with
     | Some (MR_rename (_, n)) -> n
-    | _ -> Path.get_name md.mod_binding
+    | _ -> mod_name
   in
   extra_rename (transform_name_for_target (Name.to_string lem_mod_name))
 end
 
 let get_module_name env target path mod_name =  begin
   let md = lookup_mod_descr env path mod_name in
-  Name.from_string (get_module_name_from_descr md (fun s -> s) target)
+  Name.from_string (get_module_name_from_descr md mod_name (fun s -> s) target)
 end
 
 let get_module_open_string env target mod_path =
@@ -263,7 +263,7 @@ begin
     | _ -> mod_string
   in
   let md = e_env_lookup Ast.Unknown env.e_env mod_path in
-  get_module_name_from_descr md transform_name target
+  get_module_name_from_descr md (Path.get_name mod_path) transform_name target
 end
 
 

@@ -827,7 +827,7 @@ let x y = (1 : nat)
 
 --------------------------------------------------------------------------------
 File "test.lem", line 4, character 5 to line 4, character 5
-  Type error: defined variable is already defined as a constructor: x
+  Type error: constructor pattern expected 0 arguments, given 1: x
 ================================================================================
 val x : nat
 let {hol} x = 1

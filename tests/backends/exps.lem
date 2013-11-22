@@ -50,6 +50,7 @@ let test21 = let f (x:nat) = (x,(x+1),(x+3)) in f 1
 let test22 = let f (x,y) z = x + y + z in f (1,2) (3:nat)
 let test66 = let x : nat = 2 in x
 let test67 = let f (x : nat) = (2:nat) in f 1
+let test67a = let Just (x : nat) = Just (2:nat) in x
 
 let test23 = {1; (2:nat); 3; }
 let test24 = {1; (2:nat); 3 }
@@ -122,4 +123,3 @@ let test87 = ( (* Comment *) )
 
 let test88 s1 s2 = setEqual s1 s2
 let test89 s = null s
-let test90 : bool = (forall (x MEM []). true)

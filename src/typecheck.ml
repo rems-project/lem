@@ -1663,10 +1663,29 @@ module Make_checker(T : sig
           in
           let _ = C.equate_types l "let expression" pat.typ (exp_to_typ exp) in
             ((Let_val(pat,annot,sk',exp),l), lex_env)
-      | Ast.Let_fun(funcl) ->
-          let (xl, (a,b,c,d,t)) = check_funcl l_e funcl l in
-            ((Let_fun(xl,a,b,c,d),l),
-             add_binding empty_lex_env (xl.term, xl.locn) t)
+      | Ast.Let_fun(Ast.Funcl(xl,ps,topt,sk,e)) ->
+          (* This might be a pattern match or a local function definition. So check, whether
+             xl is already bound to a constructor in the context *)
+          let l' = Ast.xl_to_l xl in
+          let xl_is_constructor = begin
+            let const_lookup_res = Nfmap.apply T.e.local_env.v_env (Name.strip_lskip (Name.from_x xl)) in
+              match const_lookup_res with
+                | None -> false
+                | Some c ->
+                    Pattern_syntax.is_constructor l' T.e Target.Target_ident c
+          end in
+          if not (xl_is_constructor) then begin
+            (** add a new local function *)
+            let (xl, (a,b,c,d,t)) = check_funcl l_e (Ast.Funcl(xl,ps,topt,sk,e)) l in
+              ((Let_fun(xl,a,b,c,d),l),
+               add_binding empty_lex_env (xl.term, xl.locn) t)
+          end else begin
+            (* Pattern match *)
+            let _ = Reporting.report_warning T.e (Reporting.Warn_ambiguous_code (l, "let-pattern uses same syntax as function definition; consider adding parenthesis")) in
+            let p = Ast.Pat_l (Ast.P_app (Ast.Id([],xl,l'), ps), l) in
+            let lb' = Ast.Let_val(p,topt,sk,e) in
+            check_letbind_internal (l_e : lex_env) (Ast.Letbind(lb',l)) 
+          end
 
   (* Check lemmata expressions that must have type ret, which is expected to be bool but 
      for flexibility can be provided.
