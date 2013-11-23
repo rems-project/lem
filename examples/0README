@@ -1,0 +1,21 @@
+This directory contains snapshots of some substantial uses of Lem:
+
+ppcmem-model    The operational model for Power/ARM multiprocessor
+                concurrency by Sarkar et al., as described in
+                PLDI11 and extended in POPL12, PLDI12
+
+cpp             The C/C++11 axiomatic concurrency model by Batty et al., as
+                described in POPL11 and extended in the above two
+                POPL12 and PLDI12 papers
+
+ocaml_light     The OCaml_light semantics by Owens, as described in ESOP2008
+
+
+The NetSem models for the TCP/IP network protocols and Sockets API by
+Bishop et al., as described in TACS01, ESOP02, SIGCOMM 2005, POPL
+2006, FM08, are available from the github repository 
+(https://github.com/PeterSewell/netsem), ported into Lem from the
+original HOL4.
+
+The CakeML development by Kumar et al., described in ICFP12, ITP13,
+and POPL14, is available via its web page (https://cakeml.org).
