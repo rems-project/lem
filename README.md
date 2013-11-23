@@ -17,8 +17,8 @@ Library GPL.
 Lem depends on [OCaml](http://caml.inria.fr/). Lem is tested against OCaml
 3.12.1. and 4.00.0. Other versions might or might not work.
 
-To build Lem run make in the top-level directory. This builds the
-executable lem, and places a symbolic link to it in that directory. 
+To build Lem run 'make' in the top-level directory. This builds the
+executable 'lem', and places a symbolic link to it in that directory. 
 
 A high-level description of Lem is in the paper in `doc/lem-draft.pdf`.
 The source language grammar and type system are defined in language/lem.ott,
