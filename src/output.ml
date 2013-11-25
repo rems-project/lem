@@ -505,7 +505,7 @@ let split_suffix s =
      prime_suffix ^
      remaining_suffix)       
   else
-    raise (Failure "split_suffix")
+    (s, "")
 
 let split_suffix_rope r = 
   let (s1,s2) = split_suffix (Ulib.Text.to_string r) in
