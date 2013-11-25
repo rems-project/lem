@@ -50,14 +50,14 @@ let (^^) = Ulib.Text.(^^^)
 let r = Ulib.Text.of_latin1
 
 type id_annot =  (* kind annotation for latex'd identifiers *)
-  | Term_const
+  | Term_const of bool
   | Term_ctor
   | Term_field 
   | Term_method 
   | Term_var 
   | Term_var_toplevel
   | Term_spec 
-  | Type_ctor
+  | Type_ctor of bool
   | Type_var
   | Nexpr_var
   | Module_name
@@ -189,14 +189,14 @@ let ns need_space t1 t2 =
 (* ******** *)
 
 let pp_raw_id_annot = function
-  | Term_const         -> r"Term_const"       
+  | Term_const _       -> r"Term_const"       
   | Term_ctor          -> r"Term_ctor"        
   | Term_field         -> r"Term_field"       
   | Term_method        -> r"Term_method"      
   | Term_var           -> r"Term_var"         
   | Term_var_toplevel  -> r"Term_var_toplevel"
   | Term_spec          -> r"Term_spec"        
-  | Type_ctor          -> r"Type_ctor"        
+  | Type_ctor _        -> r"Type_ctor"        
   | Type_var           -> r"Type_var"         
   | Module_name        -> r"Module_name"      
   | Class_name         -> r"Class_name"       
@@ -457,8 +457,8 @@ let tex_escape rr =
          if c=Ulib.UChar.of_char '^'  then r"\\mbox{$\\uparrow$}" else 
          if c=Ulib.UChar.of_char '{'  then r"\\{" else 
          if c=Ulib.UChar.of_char '}'  then r"\\}" else 
-         if c=Ulib.UChar.of_char '<'  then r"\\mbox{$<$} " else 
-         if c=Ulib.UChar.of_char '>'  then r"\\mbox{$>$} " else 
+         if c=Ulib.UChar.of_char '<'  then r"\\mbox{$<$}" else 
+         if c=Ulib.UChar.of_char '>'  then r"\\mbox{$>$}" else 
          if c=Ulib.UChar.of_char '&'  then r"\\&" else 
          if c=Ulib.UChar.of_char '\\' then r"\\mbox{$\\backslash{}$}" else 
          if c=Ulib.UChar.of_char '|'  then r"\\mbox{$\\mid$}" else 
@@ -466,20 +466,25 @@ let tex_escape rr =
        (Ulib.Text.explode rr))
 
 let tex_id_wrap = function
-  | Term_const         -> r"\\" ^^ tex_sty_prefix ^^ r"TermConst"        
+  | Term_const _       -> r"\\" ^^ tex_sty_prefix ^^ r"TermConst"        
   | Term_ctor          -> r"\\" ^^ tex_sty_prefix ^^ r"TermCtor"         
   | Term_field         -> r"\\" ^^ tex_sty_prefix ^^ r"TermField"        
   | Term_method        -> r"\\" ^^ tex_sty_prefix ^^ r"TermMethod"       
   | Term_var           -> r"\\" ^^ tex_sty_prefix ^^ r"TermVar"          
   | Term_var_toplevel  -> r"\\" ^^ tex_sty_prefix ^^ r"TermVarToplevel" 
   | Term_spec          -> r"\\" ^^ tex_sty_prefix ^^ r"TermSpec"         
-  | Type_ctor          -> r"\\" ^^ tex_sty_prefix ^^ r"TypeCtor"         
+  | Type_ctor _        -> r"\\" ^^ tex_sty_prefix ^^ r"TypeCtor"         
   | Type_var           -> r"\\" ^^ tex_sty_prefix ^^ r"TypeVar"          
   | Module_name        -> r"\\" ^^ tex_sty_prefix ^^ r"ModuleName"       
   | Class_name         -> r"\\" ^^ tex_sty_prefix ^^ r"ClassName"        
   | Target             -> r"\\" ^^ tex_sty_prefix ^^ r"Target"            
   | Component          -> r"\\" ^^ tex_sty_prefix ^^ r"Component"            
   | Nexpr_var          -> r"\\" ^^ tex_sty_prefix ^^ r"Nexpr_var"            
+
+let tex_id_wrap_no_escape = function
+  | Term_const e       -> e
+  | Type_ctor e        -> e
+  | _ -> false
 
 let split_suffix s =
   let regexp = Str.regexp "\\(.*[^'0-9]\\)\\([0-9]*\\)\\('*\\)\\(.*\\)" in
@@ -526,7 +531,7 @@ let debug = false
 
 let to_rope_tex_ident a rr =
   let (r1,r2) = split_suffix_rope rr in
-  tex_id_wrap a ^^ r"{" ^^ tex_escape r1 ^^ r"}" ^^ r2
+  tex_id_wrap a ^^ r"{" ^^ (if tex_id_wrap_no_escape a then r1 else tex_escape r1) ^^ r"}" ^^ r2
 
 let rec to_rope_tex_single t = 
   match t with
@@ -535,12 +540,12 @@ let rec to_rope_tex_single t =
   | Ident(a,r) -> to_rope_tex_ident a r
   | Num(i) ->  Ulib.Text.of_latin1 (string_of_int i)
   | Inter(Ast.Com(rr)) -> r"\\tsholcomm{" ^^ tex_escape (ml_comment_to_rope rr)  ^^ r"}" 
-  | Inter(Ast.Ws(rr)) -> rr
+  | Inter(Ast.Ws(rr)) -> if Ulib.Text.length rr > 0 then r"\\ " ^^ rr else rr
   | Inter(Ast.Nl) -> raise (Failure "Nl in to_rope_tex")
   | Str(s) ->  quote_string (r"\"") s
   | Err(s) -> raise (Backend(s))
   | Meta(s) -> Ulib.Text.of_latin1 s
-  | Texspace -> r"\\ "   
+  | Texspace -> r""   
   | Break_hint _ -> r""   
   | Ensure_newline -> r""   
   | Internalspace -> r""   

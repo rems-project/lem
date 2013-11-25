@@ -57,14 +57,14 @@ type t' =
 
 (** kind annotation for latex'd identifiers *)
 type id_annot =  
-  | Term_const
+  | Term_const of bool (** is it a quatation one that needs no escaping ?*)
   | Term_ctor
   | Term_field 
   | Term_method 
   | Term_var 
   | Term_var_toplevel
   | Term_spec 
-  | Type_ctor
+  | Type_ctor of bool (** is it a quatation one that needs no escaping ?*)
   | Type_var
   | Nexpr_var
   | Module_name
