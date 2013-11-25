@@ -90,6 +90,7 @@ declare coq      target_rep function empty = `set_empty`
 declare hol      target_rep function empty = `EMPTY`
 declare isabelle target_rep function empty = `{}`
 declare html     target_rep function empty = `&empty;`
+declare tex      target_rep function empty = `$\emptyset$`
 
 assert empty_0: (empty : set bool) = {}
 assert empty_1: (empty : set nat) = {}
@@ -108,13 +109,19 @@ declare hol      target_rep function any P s = `EXISTS` P (`SET_TO_LIST` s)
 declare isabelle target_rep function any P s = `Set.Bex` s P
 declare ocaml    target_rep function any = `Pset.exists`
 
-val all : forall 'a. SetType 'a => ('a -> bool) -> set 'a -> bool 
+assert any_0 : any (fun (x:nat) -> x > 5) {3;4;6}
+assert any_1 : not (any (fun (x:nat) -> x > 10) {3;4;6})
+
+val all : forall 'a. SetType 'a => ('a -> bool) -> set 'a -> bool
 let inline all P s = (forall (e IN s). P e)
 
 declare coq      target_rep function all = `set_for_all`
 declare hol      target_rep function all P s = `EVERY` P (`SET_TO_LIST` s)
 declare isabelle target_rep function all P s = `Set.Ball` s P
 declare ocaml    target_rep function all = `Pset.for_all`
+
+assert all_0 : all (fun (x:nat) -> x > 2) {3;4;6}
+assert all_1 : not (all (fun (x:nat) -> x > 2) {3;4;6;1})
 
 
 (* ----------------------- *)
@@ -130,6 +137,7 @@ declare ocaml    target_rep function member = `Pset.mem`
 declare isabelle target_rep function member = infix `\<in>`
 declare hol      target_rep function member = infix `IN`
 declare html     target_rep function member = infix `&isin;`
+declare tex      target_rep function member = infix `$\in$`
 
 assert in_1: ((1:nat) IN {(2:nat);3;1})
 assert in_2: (not ((1:nat) IN {2;3;4}))
@@ -144,6 +152,7 @@ val (NIN) [`notMember`] : forall 'a. SetType 'a => 'a -> set 'a -> bool
 let inline notMember e s = not (e IN s)
 declare html     target_rep function notMember = infix `&notin;`
 declare isabelle target_rep function notMember = infix `\<notin>`
+declare tex      target_rep function notMember = infix `$\not\in$`
 
 assert nin_1: not ((1:nat) NIN {2;3;1})
 assert nin_2: ((1:nat) NIN {2;3;4})
@@ -381,6 +390,7 @@ declare ocaml    target_rep function isSubsetOf = `Pset.subset`
 declare hol      target_rep function isSubsetOf = infix `SUBSET`
 declare isabelle target_rep function isSubsetOf = infix `\<subseteq>`
 declare html     target_rep function isSubsetOf = infix `&sube;`
+declare tex      target_rep function isSubsetOf = infix `$\subseteq$`
 declare coq      target_rep function isSubsetOfBy = `set_subset_by`
 let inline {coq} isSubsetOf = isSubsetOfBy setElemCompare
 
@@ -388,10 +398,12 @@ declare ocaml    target_rep function isProperSubsetOf = `Pset.subset_proper`
 declare hol      target_rep function isProperSubsetOf = infix `PSUBSET`
 declare isabelle target_rep function isProperSubsetOf = infix `\<subset>`
 declare html     target_rep function isProperSubsetOf = infix `&sub;`
+declare tex      target_rep function isProperSubsetOf = infix `$\subset$`
 declare coq      target_rep function isProperSubsetOfBy = `set_proper_subset_by`
 let inline {coq} isProperSubsetOf = isProperSubsetOfBy setElemCompare 
 
 let inline (subset) = isSubsetOf
+declare tex      target_rep function (subset) = infix `$\subseteq$`
 
 assert isSubsetOf_1: (isSubsetOf ({}:set nat) {})
 assert isSubsetOf_2: (isSubsetOf {(1:nat);2;3} {1;2;3})
@@ -428,6 +440,7 @@ declare ocaml    target_rep function (union) = `Pset.(union)`
 declare hol      target_rep function (union) = infix `UNION`
 declare isabelle target_rep function (union) = infix `\<union>`
 declare coq      target_rep function unionBy = `set_union_by`
+declare tex      target_rep function (union) = infix `$\cup$`
 let inline {coq} (union) = unionBy setElemCompare
 
 
@@ -449,6 +462,7 @@ declare ocaml    target_rep function bigunionBy = `Pset.bigunion`
 let inline {ocaml} bigunion = bigunionBy setElemCompare
 declare hol      target_rep function bigunion = `BIGUNION`
 declare isabelle target_rep function bigunion = `\<Union>`
+declare tex      target_rep function bigunion = `$\bigcup$`
 
 assert bigunion_0: (bigunion {{(1:nat)}} = {1})
 assert bigunion_1: (bigunion {{(1:nat);2;3} ; {3;2;4}} = {1;2;3;4})
@@ -485,8 +499,10 @@ declare ocaml    target_rep function intersection = `Pset.inter`
 declare hol      target_rep function intersection = infix `INTER`
 declare isabelle target_rep function intersection = infix `\<inter>`
 declare coq      target_rep function intersectionBy = `set_inter_by`
+declare tex      target_rep function intersection = infix `$\cap$`
 let inline {coq} intersection = intersectionBy setElemCompare
 let inline (inter) = intersection
+declare tex      target_rep function (inter) = infix `$\cap$`
 
 assert intersection_1: (intersection {1;2;3} {(3:nat);2;4} = {2;3})
 lemma intersection_in: (forall e s1 s2. e IN (intersection s1 s2) <-> (e IN s1 && e IN s2))
@@ -585,6 +601,7 @@ let cross s1 s2 = { (e1, e2) | forall (e1 IN s1) (e2 IN s2) | true }
 
 declare isabelle target_rep function cross = infix `\<times>`
 declare hol      target_rep function cross = infix `CROSS`
+declare tex      target_rep function cross = infix `$\times$`
 let inline {ocaml} cross = crossBy setElemCompare
 
 lemma cross_by_sigma : forall s1 s2. cross s1 s2 = sigma s1 (const s2)
