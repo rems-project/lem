@@ -444,11 +444,13 @@ let tex_command_name rr = r"\\" ^^ tex_command_prefix ^^ tex_command_escape rr
 let tex_command_label rr =  tex_label_prefix ^^ tex_command_escape rr 
 
 (* escaping of Lem source identifiers to appear in LaTeX *)
-let tex_escape rr = 
+let tex_escape_aux with_space rr = 
   Ulib.Text.concat
     Ulib.Text.empty
     (List.map
        (fun c ->  
+         if (with_space && c=Ulib.UChar.of_char ' ')  then r"\\ " else 
+         if (with_space && c=Ulib.UChar.of_char '\n')  then r"\\\\\\hspace*{0em}%\n" else 
          if c=Ulib.UChar.of_char '_'  then r"\\_" else 
          if c=Ulib.UChar.of_char '%'  then r"\\%" else 
          if c=Ulib.UChar.of_char '$'  then r"\\$" else 
@@ -464,6 +466,9 @@ let tex_escape rr =
          if c=Ulib.UChar.of_char '|'  then r"\\mbox{$\\mid$}" else 
          Ulib.Text.of_uchar c)
        (Ulib.Text.explode rr))
+
+let tex_escape rr = tex_escape_aux false rr
+let tex_escape_with_space rr = tex_escape_aux true rr
 
 let tex_id_wrap = function
   | Term_const _       -> r"\\" ^^ tex_sty_prefix ^^ r"TermConst"        
@@ -487,7 +492,7 @@ let tex_id_wrap_no_escape = function
   | _ -> false
 
 let split_suffix s =
-  let regexp = Str.regexp "\\(.*[^'0-9]\\)\\([0-9]*\\)\\('*\\)\\(.*\\)" in
+  let regexp = Str.regexp "\\(.*[^'0-9_]\\)_*\\([0-9]*\\)\\('*\\)\\(.*\\)" in
   if Str.string_match regexp s 0 then
     (Str.matched_group 1 s, 
      let (^) = Pervasives.(^) in
@@ -539,7 +544,7 @@ let rec to_rope_tex_single t =
   | Kwd(s) ->  Ulib.Text.of_latin1 s
   | Ident(a,r) -> to_rope_tex_ident a r
   | Num(i) ->  Ulib.Text.of_latin1 (string_of_int i)
-  | Inter(Ast.Com(rr)) -> r"\\tsholcomm{" ^^ tex_escape (ml_comment_to_rope rr)  ^^ r"}" 
+  | Inter(Ast.Com(rr)) -> r"\\tsholcomm{" ^^ tex_escape_with_space (ml_comment_to_rope rr)  ^^ r"}" 
   | Inter(Ast.Ws(rr)) -> if Ulib.Text.length rr > 0 then r"\\ " ^^ rr else rr
   | Inter(Ast.Nl) -> raise (Failure "Nl in to_rope_tex")
   | Str(s) ->  quote_string (r"\"") s

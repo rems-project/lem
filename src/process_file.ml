@@ -100,7 +100,7 @@ let tex_preamble =
   "\\usepackage{lem}\n" ^
   "\\geometry{a4paper,dvips,twoside,left=22.5mm,right=22.5mm,top=20mm,bottom=30mm}\n" ^
   "\\begin{document}\n"^
-  "\\tableofcontents\n\\newpage\n"
+  "\\tableofcontents\n\\newpage\\noindent\n"
   
 let tex_postamble = 
   "\\end{document}\n"

@@ -88,8 +88,11 @@
 %\newcommand{\tabbingtsholcomm}[1]{$\linebreak[2]\ifltsm@gicalign\=\@tabbingcomm\linewidth\advance\@tabbingcomm -\dimen\@curtab\else\@tabbingcomm\linewidth\fi\parbox[t]{\@tabbingcomm}{\rrsmall(*#1\nolinebreak\mbox{*)}}\linebreak[2]$\displaystyle}   % overridden in rrfoo
 
 % versions of the above without (* *)
-\newcommand{\tsholcomm}[1]{$\linebreak[2]\parbox[t]{\linewidth}{\rrsmall#1\nolinebreak\mbox{}}\linebreak[2]$\displaystyle}   % overridden in rrfoo
+%\newcommand{\tsholcomm}[1]{$\linebreak[2]\parbox[t]{\linewidth}{\rrsmall#1\nolinebreak\mbox{}}\linebreak[2]$\displaystyle}   % overridden in rrfoo
 \newcommand{\tabbingtsholcomm}[1]{$\linebreak[2]\ifltsm@gicalign\=\@tabbingcomm\linewidth\advance\@tabbingcomm -\dimen\@curtab\else\@tabbingcomm\linewidth\fi\parbox[t]{\@tabbingcomm}{\rrsmall#1\nolinebreak\mbox{}}\linebreak[2]$\displaystyle}   % overridden in rrfoo
+
+%simple tt version
+\newcommand{\tsholcomm}[1]{$\tt #1$\displaystyle}   % overridden in rrfoo
 
 % % experimental alltt versions
 % \renewcommand{\tsholcomm}[1]{$\linebreak[2]\parbox[t]{\linewidth}{\rrsmall\begin{alldoc}#1\end{alldoc}\nolinebreak\mbox{}}\linebreak[2]$\displaystyle}   % overridden in rrfoo
@@ -117,7 +120,8 @@
 \newcommand{\lemModuleName}[1]{\mathit{#1}}       
 \newcommand{\lemClassName}[1]{\mathit{#1}}        
 \newcommand{\lemTarget}[1]{\mathit{#1}}            
-\newcommand{\lemdef}[1]{\rrenside{#1}}
+\newcommand{\lemdef}[1]{$\displaystyle #1$}
+%\newcommand{\lemdef}[1]{\rrenside{#1}}
 
 % Definition scope is only a single cell inside a tabbing, so we
 % have to be clever.  \\ is defined to be \@tabcr, so we redef that.

@@ -464,8 +464,8 @@ module Identity : Target = struct
   let first_case_sep = Seplist.Optional
 
   let tup_sep = kwd ","
-  let targets_opt_start = meta "~{"
-  let targets_opt_start_neg = meta "{"
+  let targets_opt_start = meta "{"
+  let targets_opt_start_neg = meta "~{"
   let targets_opt_end = meta "}"
 
   let star = Ulib.Text.of_latin1 "*"
@@ -683,8 +683,8 @@ module Tex : Target = struct
   let op_format = Identity.op_format
 
   let tup_sep = kwd ",\\,"
-  let targets_opt_start = meta "~\\{"
-  let targets_opt_start_neg = meta "\\{"
+  let targets_opt_start = meta "\\{"
+  let targets_opt_start_neg = meta "\\sim\\!\\{"
   let targets_opt_end = meta "\\}"
 
   let def_start = bkwd "let"
@@ -1099,8 +1099,8 @@ module Hol : Target = struct
   let op_format use_infix = if use_infix then infix_op_format else id
 
   let tup_sep = kwd ","
-  let targets_opt_start = meta "~{"
-  let targets_opt_start_neg = meta "{"
+  let targets_opt_start = meta "{"
+  let targets_opt_start_neg = meta "~{"
   let targets_opt_end = meta "}"
 
   let def_start = meta "val _ = Define `\n"
@@ -2956,8 +2956,8 @@ and def callback (inside_module : bool) d is_user_def =
         if inside_module then 
            def_internal callback inside_module d is_user_def
         else begin
-          let (d', _) = def_aux_alter_init_lskips lskips_drop_initial_newline d in
-          meta "\\lemdef{" ^  def_internal callback inside_module d' is_user_def ^ meta "}\n" 
+(*          let (d', _) = def_aux_alter_init_lskips lskips_drop_initial_newline d in*)
+          meta "\\lemdef{" ^  def_internal callback inside_module d is_user_def ^ meta "}\n" 
         end
    | Target_no_ident Target_html -> html_link_def d ^ def_internal callback inside_module d is_user_def
    | _ -> def_internal callback inside_module d is_user_def
