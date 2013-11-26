@@ -147,6 +147,9 @@ module Set = struct
   let lem_transform to_list = Set_extra.toList
 
 
+  val lfp : forall 'a. SetType 'a => set 'a -> (set 'a -> set 'a) -> set 'a
+  let lem_transform lfp x f = Set_extra.leastFixedPointUnbounded f x
+
   (* ----------------------- *)
   (* with class constraints  *)
   (* ----------------------- *)
@@ -165,7 +168,6 @@ module Set = struct
   (* ----------------------- *)
   (*
   val monotone : forall 'a. (set 'a -> set 'a) -> bool
-  val lfp : forall 'a. set 'a -> (set 'a -> set 'a) -> set 'a
   *)
 end
 

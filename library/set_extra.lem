@@ -89,3 +89,19 @@ assert toOrderedList_0: toOrderedList ({} : set nat) = []
 assert toOrderedList_1: toOrderedList {(6:nat); 1; 2} = [1;2;6]
 assert toOrderedList_2: toOrderedList ({(2:nat)} : set nat) = [2]
 
+(* ----------------------------*)
+(* unbounded fixed point       *)
+(* --------------------------- *)
+
+(* Is NOT supported by the coq backend! *)
+val leastFixedPointUnbounded : forall 'a. SetType 'a => (set 'a -> set 'a) -> set 'a -> set 'a
+let rec leastFixedPointUnbounded f x =
+   let fx = f x in
+   if fx subset x then x
+   else leastFixedPointUnbounded f (fx union x)
+
+declare compile_message toOrderedList = "leastFixedPointUnbounded is deprecated as it is not supported by all backends (e.g. coq). Use Set.leastFixedPoint instead."
+
+assert lfp_empty: leastFixedPointUnbounded (map (fun x -> x)) ({} : set nat) = {}
+assert lfp_saturate_neg: leastFixedPointUnbounded (map (fun x -> ~x)) ({1; 2; 3} : set int) = {~3; ~2; ~1; 1; 2; 3}
+assert lfp_saturate_mod: leastFixedPointUnbounded (map (fun x -> (2*x) mod 5)) ({1} : set nat) = {1; 2; 3; 4}
