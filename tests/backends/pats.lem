@@ -24,30 +24,30 @@ let test3 =
 
 let test4 =
   match [] with
-    | [true] -> 1
+    | [true] -> (1:nat)
     | [false] -> 0
     | _ -> 2
   end
 
 let test5 = 
-  match (1,true) with
-    (_,_) -> 1
+  match ((1:nat),true) with
+    (_,_) -> (1:nat)
   end
 
 let test6 = 
-  match (1,true,1) with
-    (x,_,(1:nat)) -> 1
+  match ((1:nat),true,1) with
+    (x,_,(1:nat)) -> (1:nat)
   | (_,x,_) -> 1
   end
 
-let test7 = 
+let test7 : nat = 
   match "123" with
     "" -> 1
   | "123" -> 2
   | _ -> 3
   end
 
-let test8 = 
+let test8 : nat = 
   match () with
     | () -> 1
   end
