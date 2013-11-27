@@ -624,13 +624,14 @@ declare isabelle target_rep function finite = `finite`
 (* --------------------------- *)
 
 val leastFixedPoint : forall 'a. SetType 'a 
-  => natural -> (set 'a -> set 'a) -> set 'a -> set 'a
+  => nat -> (set 'a -> set 'a) -> set 'a -> set 'a
 let rec leastFixedPoint bound f x =
-  if (bound = 0) 
-  then x
-  else let fx = f x in
-       if fx subset x then x
-       else leastFixedPoint bound f (fx union x)
+  match bound with
+  | 0 -> x
+  | bound'+1 -> let fx = f x in
+                  if fx subset x then x
+                  else leastFixedPoint bound' f (fx union x)
+  end
 
 assert lfp_empty_0: leastFixedPoint 0 (map (fun x -> x)) ({} : set nat) = {}
 assert lfp_empty_1: leastFixedPoint 1 (map (fun x -> x)) ({} : set nat) = {}
@@ -639,4 +640,4 @@ assert lfp_saturate_neg_2: leastFixedPoint 2 (map (fun x -> ~x)) ({1; 2; 3} : se
 assert lfp_saturate_mod_3: leastFixedPoint 3 (map (fun x -> (2*x) mod 5)) ({1} : set nat) = {1; 2; 3; 4}
 assert lfp_saturate_mod_4: leastFixedPoint 4 (map (fun x -> (2*x) mod 5)) ({1} : set nat) = {1; 2; 3; 4}
 assert lfp_saturate_mod_5: leastFixedPoint 5 (map (fun x -> (2*x) mod 5)) ({1} : set nat) = {1; 2; 3; 4}
-assert lfp_termination: {1; 2; 4; 8; 16} subset leastFixedPoint 5 (map (fun x -> 2*x)) {(1 : nat)} 
+assert lfp_termination: {1; 3; 5; 7; 9} subset leastFixedPoint 5 (map (fun x -> 2+x)) {(1 : nat)} 
