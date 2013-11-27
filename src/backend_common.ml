@@ -344,9 +344,9 @@ let fix_module_ident (i : Ident.t) =
   let n' = get_module_name A.env A.target ns n in
   Ident.mk_ident (Ident.get_lskip i) ns' n'
 
-let ident_to_output use_infix =
+let ident_to_output use_infix backend_used =
   let (ident_f, sep) = A.id_format_args in 
-  Ident.to_output_format (ident_f use_infix) Term_const sep
+  Ident.to_output_format (ident_f use_infix) (Term_const backend_used) sep
 
 
 let const_ref_to_name n0 use_ascii c =
@@ -370,20 +370,20 @@ let const_id_to_ident_aux c_id ascii_alternative given_id_opt =
   let c_descr = c_env_lookup l A.env.c_env c_id.descr in
   let org_ident = resolve_constant_id_ident l A.env A.target c_id in
   let (_, n, n_ascii_opt) = constant_descr_to_name A.target c_descr in
-  let (ascii_used, ident') =    
+  let (ascii_used, given_used, ident')  =    
     match (n_ascii_opt, ascii_alternative, given_id_opt) with
-      | (Some ascii, true, _) -> (true, Ident.rename org_ident ascii)
-      | (_, false, Some i) -> (false, Ident.replace_lskip i (Ident.get_lskip org_ident))
-      | _  -> (false, Ident.rename org_ident n)
+      | (Some ascii, true, _) -> (true, false, Ident.rename org_ident ascii)
+      | (_, false, Some i) -> (false, true, Ident.replace_lskip i (Ident.get_lskip org_ident))
+      | _  -> (false, false, Ident.rename org_ident n)
   in
   let ident = fix_module_prefix_ident ident' in
-  (ascii_used, ident)
+  (ascii_used, given_used, ident)
 ;;
 
-let const_id_to_ident c_id ascii_alternative = snd (const_id_to_ident_aux c_id ascii_alternative None)
+let const_id_to_ident c_id ascii_alternative = (let (_, _, i) = const_id_to_ident_aux c_id ascii_alternative None in i)
 
 let constant_application_to_output_simple is_infix_pos arg_f alter_sk_f args c_id ascii_alternative given_id_opt = begin
-  let (ascii_used, i) = const_id_to_ident_aux c_id ascii_alternative given_id_opt in 
+  let (ascii_used, given_id_used, i) = const_id_to_ident_aux c_id ascii_alternative given_id_opt in 
   let const_is_infix = not (ascii_used) && Precedence.is_infix (Precedence.get_prec A.target A.env c_id.descr) in 
   let const_is_infix_input = Precedence.is_infix (Precedence.get_prec Target.Target_ident A.env c_id.descr) in
   let is_infix = (const_is_infix && (Ident.has_empty_path_prefix i) && (List.length args = 2) &&
@@ -402,7 +402,7 @@ let constant_application_to_output_simple is_infix_pos arg_f alter_sk_f args c_i
       end
     else (i, args)
   in
-  let name = ident_to_output use_infix_notation i in
+  let name = ident_to_output use_infix_notation given_id_used i in
   let args_out = List.map (arg_f use_infix_notation) args in
 
   if (not is_infix) then
@@ -414,7 +414,7 @@ end
 (* assumes that there are enough arguments, otherwise list_split_after will fail *)
 let constant_application_to_output_special c_id to_out arg_f args vars : Output.t list =
   let i = const_id_to_ident c_id false in
-  let name = ident_to_output false i in
+  let name = ident_to_output false false i in
   let args_output = List.map arg_f args in
   let (o_vars, o_rest) = Util.split_after (List.length vars) args_output (* assume there are enough elements *) in
   let o_fun = (cr_special_fun_to_fun to_out) (name :: o_vars) in
@@ -509,8 +509,8 @@ let type_app_to_output format p ts =
   let td = Types.type_defs_lookup l A.env.t_env p.descr in
   let sk = ident_get_lskip p in
   match Target.Targetmap.apply_target td.Types.type_target_rep A.target with
-     | None -> (ts, Ident.to_output Type_ctor path_sep (type_id_to_ident p))
-     | Some (TYR_simple (_, _, i)) -> (ts, ws sk ^ Ident.to_output Type_ctor path_sep i)
+     | None -> (ts, Ident.to_output (Type_ctor false) path_sep (type_id_to_ident p))
+     | Some (TYR_simple (_, _, i)) -> (ts, ws sk ^ Ident.to_output (Type_ctor false) path_sep i)
      | Some (TYR_subst (_, _, tnvars, t')) -> begin    
          let subst = Types.TNfmap.from_list2 tnvars ts in
          let t'' = src_type_subst subst t' in
@@ -529,7 +529,7 @@ end
 
 let component_to_output t = 
   let open Output in
-    let a = Output.Target in
+    let a = Output.Component in
     match t with
       | Ast.Component_type s -> ws s ^ id a (r"type")
       | Ast.Component_field s -> ws s ^ id a (r"field")

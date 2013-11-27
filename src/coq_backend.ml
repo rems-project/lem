@@ -217,7 +217,7 @@ let rec src_t_to_string =
         from_string "(" ^ src_t_to_string src_t.term ^ from_string ")"
 ;;
 let typ_ident_to_output (p : Path.t id) =     
-  Ident.to_output Type_ctor path_sep (B.type_id_to_ident p)
+  Ident.to_output (Type_ctor false) path_sep (B.type_id_to_ident p)
 
 let field_ident_to_output fd ascii_alternative = 
   Ident.to_output Term_field path_sep (B.const_id_to_ident fd ascii_alternative)
@@ -413,12 +413,12 @@ let generate_coq_record_update_notation e =
               let right_hand_side =
                 Output.flat [
                   from_string "match r with\n        |";
-                  Name.to_output Type_ctor name; arg_space; right_args_list;
+                  Name.to_output (Type_ctor false) name; arg_space; right_args_list;
                   from_string " => "; equality_test; catch_all; from_string "\n      end"
                 ]
               in
                 Output.flat [
-                  from_string "|"; Name.to_output Type_ctor name; arg_space;
+                  from_string "|"; Name.to_output (Type_ctor false) name; arg_space;
                   names_list; from_string " =>\n      "; right_hand_side;
                 ]) l
             in
@@ -1053,7 +1053,7 @@ let generate_coq_record_update_notation e =
               Name.to_output Term_var v
           | Backend (sk, i) ->
               ws sk ^
-              Ident.to_output Term_const path_sep i
+              Ident.to_output (Term_const false) path_sep i
           | Lit l -> literal l
           | Do (skips, mod_descr_id, do_line_list, skips', e, skips'', type_int) -> assert false (* DPM: should have been removed by macros *)
           | App (e1, e2) ->
@@ -1388,7 +1388,7 @@ let generate_coq_record_update_notation e =
             concat emp oL
         | P_backend(sk, i, _, ps) ->
             ws sk ^
-            Ident.to_output Term_const path_sep i ^
+            Ident.to_output (Term_const true) path_sep i ^
             concat texspace (List.map fun_pattern ps)
         | P_num_add ((name, l), skips, skips', k) ->
             let succs = Output.flat @@ Util.replicate k (from_string "S (") in
@@ -1451,7 +1451,7 @@ let generate_coq_record_update_notation e =
             concat emp oL
         | P_backend(sk, i, _, ps) ->
             ws sk ^
-            Ident.to_output Term_const path_sep i ^
+            Ident.to_output (Term_const true) path_sep i ^
             concat texspace (List.map def_pattern ps)
         | P_num_add ((name, l), skips, skips', k) ->
             let succs = Output.flat @@ Util.replicate k (from_string "S (") in
@@ -1464,7 +1464,7 @@ let generate_coq_record_update_notation e =
     and type_def_abbreviation def =
     	match Seplist.hd def with
     		| ((n, _), tyvars, _, Te_abbrev (skips, t),_) ->
-    				let name = Name.to_output Type_ctor n in
+    				let name = Name.to_output (Type_ctor false) n in
             let tyvars' = type_def_type_variables tyvars in
     				let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
             let body = abbreviation_typ t in
@@ -1500,7 +1500,7 @@ let generate_coq_record_update_notation e =
     	match Seplist.hd def with
       	| (n, tyvars, _, (Te_record (skips, skips', fields, skips'') as r),_) ->
             let (n', _) = n in
-            let name = Name.to_output Type_ctor n' in
+            let name = Name.to_output (Type_ctor false) n' in
             let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) field (sep @@ from_string ";") fields in
       	    let tyvars' = type_def_type_variables tyvars in
             let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
@@ -1527,7 +1527,7 @@ let generate_coq_record_update_notation e =
         ]
     and type_def' ((n0, l), ty_vars, t_path, ty, _) =
       let n = B.type_path_to_name n0 t_path in 
-      let name = Name.to_output Type_ctor n in
+      let name = Name.to_output (Type_ctor false) n in
       let ty_vars =
         List.map (
           function
@@ -1547,7 +1547,7 @@ let generate_coq_record_update_notation e =
     and inductive ty_vars name =
       let ty_var_sep = if List.length ty_vars = 0 then emp else from_string " " in
       let ty_vars = inductive_type_variables ty_vars in
-      let name = Name.to_output Type_ctor name in
+      let name = Name.to_output (Type_ctor false) name in
         Output.flat [
           name; ty_var_sep; ty_vars; from_string " : Type "
         ]
@@ -1576,7 +1576,7 @@ let generate_coq_record_update_notation e =
             ]
     and constructor ind_name (ty_vars : variable list) ((name0, _), c_ref, skips, args) =
       let ctor_name = B.const_ref_to_name name0 false c_ref in
-      let ctor_name = Name.to_output Type_ctor ctor_name in
+      let ctor_name = Name.to_output (Type_ctor false) ctor_name in
       let body = flat @@ Seplist.to_sep_list abbreviation_typ (sep @@ from_string "-> ") args in
       let ty_vars_typeset =
         concat_str " " @@ List.map (fun v ->
@@ -1624,7 +1624,7 @@ let generate_coq_record_update_notation e =
         | Typ_len nexp -> src_nexp nexp
         | Typ_backend (p, ts) ->
           let i = Path.to_ident (ident_get_lskip p) p.descr in
-          let i = Ident.to_output Type_ctor path_sep i in
+          let i = Ident.to_output (Type_ctor true) path_sep i in
           let ts = concat emp @@ List.map pat_typ ts in
             Output.flat [
               i; from_string " "; ts

@@ -140,6 +140,10 @@ declare coq target_rep function isLess = `isLess`
 declare coq target_rep function isLessEqual = `isLessEqual`
 declare coq target_rep function isGreater = `isGreater`
 declare coq target_rep function isGreaterEqual = `isGreaterEqual`
+declare tex target_rep function isLess = infix `$<$`
+declare tex target_rep function isLessEqual = infix `$\le$`
+declare tex target_rep function isGreater = infix `$>$`
+declare tex target_rep function isGreaterEqual = infix `$\ge$`
 
 
 (* Ocaml provides default, polymorphic compare functions. Let's use them

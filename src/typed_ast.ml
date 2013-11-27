@@ -628,8 +628,8 @@ let oi_alter_init_lskips lskips_f (oi : Ast.open_import) : (Ast.open_import * ls
         let (s_new, s_ret) = lskips_f sk in
         (Ast.OI_include_import (s_new, sk'), s_ret)
 
-let rec def_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (((d,s),l,lenv) : def) : def * lskips = 
-  let res x y = (((x,s),l,lenv),y) in
+let rec def_aux_alter_init_lskips (lskips_f : lskips -> lskips * lskips) d : def_aux * lskips = 
+  let res x y = (x,y) in
     match d with
       | Type_def(sk, tds) ->
           let (s_new, s_ret) = lskips_f sk in
@@ -710,7 +710,9 @@ let rec def_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (((d,s),l,l
           in
           res (Declaration d') s_ret
         end
-
+and def_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (((d,s),l,lenv) : def) : def * lskips = 
+  let (d', y) = def_aux_alter_init_lskips lskips_f d in
+  (((d',s),l,lenv),y)
 
 let exp_to_locn e = e.locn
 let exp_to_typ e = e.typ

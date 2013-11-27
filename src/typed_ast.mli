@@ -559,6 +559,7 @@ val pat_append_lskips : lskips -> pat -> pat
     alter_init_lskips *)
 val alter_init_lskips : (lskips -> lskips * lskips) -> exp -> exp * lskips
 val pat_alter_init_lskips : (lskips -> lskips * lskips) -> pat -> pat * lskips
+val def_aux_alter_init_lskips : (lskips -> lskips * lskips) -> def_aux -> def_aux * lskips
 val def_alter_init_lskips : (lskips -> lskips * lskips) -> def -> def * lskips
 val oi_alter_init_lskips : (lskips -> lskips * lskips) -> Ast.open_import -> Ast.open_import * lskips 
 
