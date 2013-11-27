@@ -52,18 +52,21 @@ val parse_file : string -> Ast.defs * Ast.lex_skips
 type instances = Types.instance list Types.Pfmap.t
 
 val output :   
-  string ->                           (* The path to the main library *)
-  string option ->                    (* output directory option *)
-  target ->                           (* Backend name *) 
+  Typed_ast.env ->                    (** The full environment built after all typechecking, and transforming *)
   Typed_ast.var_avoid_f ->
-  Typed_ast.env ->                    (* The full environment built after all typechecking, and transforming *)
-  checked_module list ->              (* The typechecked modules *)
-  Ulib.Text.t list ref ->             (* alldoc accumulator *)
-  Ulib.Text.t list ref ->             (* alldoc-inc accumulator *)
-  Ulib.Text.t list ref ->             (* alldoc-use_inc accumulator *)
+  target ->                           (** Backend name *) 
+  string option ->                    (** output directory option *)
+  checked_module list ->              (** The typechecked modules *)
   unit
 
-val output_alldoc : string -> string -> Ulib.Text.t list ref -> Ulib.Text.t list ref -> Ulib.Text.t list ref -> unit
+(** output_alltexdoc produces the latex output for all modules in a single file *)
+val output_alltexdoc : 
+  Typed_ast.env ->                    (** The full environment built after all typechecking, and transforming *)
+  Typed_ast.var_avoid_f ->
+  string ->                           (** output directory *)
+  string ->                           (** filename (just the base without extension) *)
+  checked_module list ->              (** The typechecked modules *)
+  unit
 
 (** [always_replace_files] determines whether Lem only updates modified files.
     If it is set to [true], all output files are written, regardless of whether the

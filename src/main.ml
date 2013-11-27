@@ -57,6 +57,7 @@ let opt_print_env = ref false
 let opt_print_version = ref false
 let lib = ref []
 let out_dir = ref None
+let tex_all_filename_opt = ref None
 let opt_file_arguments = ref ([]:string list)
 
 let default_library = 
@@ -77,7 +78,10 @@ let options = Arg.align ([
     " treat the file as input only and generate no output for it");
   ( "-tex", 
     Arg.Unit (add_backend (Target.Target_no_ident Target.Target_tex)),
-    " generate LaTeX");
+    " generate LaTeX for each module separatly");
+  ( "-tex_all", 
+    Arg.String (fun fn -> tex_all_filename_opt := Some fn),
+    " generate LaTeX in a single file");
   ( "-html", 
     Arg.Unit (add_backend (Target.Target_no_ident Target.Target_html)),
     " generate Html");
@@ -199,8 +203,7 @@ begin
   ()
 end
 
-(* Do the transformations for a given target *)
-let per_target libpath (out_dir : string option) modules env alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum targ =
+let transform_for_target libpath modules env targ =
   let consts = Initial_env.read_target_constants libpath targ in
 
   let _ = check_env_for_target targ env in
@@ -229,11 +232,23 @@ let per_target libpath (out_dir : string option) modules env alldoc_accum alldoc
     let transformed_m' = Target_trans.rename_def_params targ consts' transformed_m in
 
     let avoid = Target_trans.get_avoid_f targ consts' in
-    let _ = output libpath out_dir targ avoid env'' transformed_m' alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum in
-    env''
+    (env'', avoid, transformed_m')
   with
       | Trans.Trans_error(l,msg) ->
           raise (Reporting_basic.Fatal_error (Reporting_basic.Err_trans (l, msg)))
+
+let per_target libpath tex_all_opt (out_dir : string option) modules env targ =
+  let (env', avoid, transformed_mods) = transform_for_target libpath modules env targ in
+  (if (targ = Target.Target_no_ident Target.Target_tex) then begin
+     match tex_all_opt with
+       | None -> output env' avoid targ out_dir transformed_mods
+       | Some (dir, filename, gen_single) ->
+            if gen_single then output env' avoid targ out_dir transformed_mods;
+            output_alltexdoc env' avoid dir filename transformed_mods
+   end else
+     output env' avoid targ out_dir transformed_mods);
+  env'
+
 
 let main () =
   let _ = if !opt_print_version then print_string ("Lem " ^ Version.v ^ "\n") in
@@ -290,6 +305,20 @@ let main () =
     | (Some _, None) -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_general (false, Ast.Unknown, "in order to use '-outdir' all files given as arguments to Lem need to be in the same directory")));
     | (x, _) -> x
   in
+
+  let tex_all_opt = begin
+     match (!tex_all_filename_opt) with
+       | None -> None
+       | Some fn -> begin
+           let dir0 = Filename.dirname fn in
+           let dir = if dir0 = "" then Filename.current_dir_name else dir0 in
+           let filename0 = Filename.basename fn in
+           let filename = if (Filename.check_suffix filename0 ".tex") then Filename.chop_extension filename0 else filename0 in
+           let generate_single_tex = List.mem (Target.Target_no_ident Target.Target_tex) !backends in
+           let _ = add_backend (Target.Target_no_ident Target.Target_tex) () in
+           Some (dir, filename, generate_single_tex)
+       end
+  end in
 
   (* We don't want to add the files in !lib to the resulting module ASTs,
      because we don't want to put them throught the back end. So, they get an argument false, while all others get true. *)
@@ -365,13 +394,10 @@ let main () =
              end in
 
 
-  let alldoc_accum = ref ([] : Ulib.Text.t list) in
-  let alldoc_inc_accum = ref ([] : Ulib.Text.t list) in
-  let alldoc_inc_usage_accum = ref ([] : Ulib.Text.t list) in
-  let _ = List.fold_left (fun env -> (per_target default_library out_dir (List.rev modules) env alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum))
+  let _ = List.fold_left (fun env -> (per_target default_library tex_all_opt out_dir (List.rev modules) env))
     env !backends in
-  (if List.mem (Target.Target_no_ident Target.Target_tex) !backends then 
-     output_alldoc "alldoc" (String.concat " " !opt_file_arguments) alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum)
+  ()
+
 
 let _ = 
   try 

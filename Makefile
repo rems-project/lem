@@ -32,6 +32,11 @@ ocaml-libs:
 isa-libs: 
 	make -C library isa-libs
 
+tex-libs: 
+	make -C library tex-libs
+	cd tex-lib; pdflatex lem-libs.tex
+	cd tex-lib; pdflatex lem-libs.tex
+
 test-other: test-ppcmem test-cpp test-cppppc
 
 test-ppc:

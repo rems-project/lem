@@ -25,6 +25,10 @@ coq-libs:
 	make -C ..
 	../lem -coq -outdir ../coq-lib -wl ign -wl_auto_import err ${LIBS} -auxiliary_level none -only_changed_output
 
+tex-libs:
+	make -C ..
+	../lem -tex_all ../tex-lib/lem-libs.tex -wl ign -wl_auto_import err ${LIBS} 
+
 ocaml-lib-tests: 
 	@mkdir -p ${OCAML_BUILD_DIR}
 	@rm -f ocaml-build-dir
@@ -54,3 +58,7 @@ markdown: $(markdown_targets)
 %.html : %.markdown
 	markdown $< > $@
 
+clean:
+	rm -rf ocaml-build-dir*
+	rm -rf hol-build-dir*
+	rm -rf isa-build-dir*
