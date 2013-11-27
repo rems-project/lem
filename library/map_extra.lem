@@ -8,7 +8,7 @@
 
 declare {isabelle;hol;ocaml} rename module = lem_map_extra
 
-open import Bool Basic_classes Function Maybe List Num Map
+open import Bool Basic_classes Function Maybe List Num Set Map
 
 (* -------------------------------------------------------------------------- *)
 (* find                                                                       *)
@@ -25,4 +25,22 @@ declare compile_message find = "find is only defined if the key is found. Use lo
 
 assert find_insert_1: (find 16 (insert (16 : nat) true empty) = true)
 assert find_insert_2: (find 36 (insert 36 false (insert (16 : nat) true empty)) = false )
+
+
+
+(* -------------------------------------------------------------------------- *)
+(* from sets / domain / range                                                 *)
+(* -------------------------------------------------------------------------- *)
+
+
+val fromSet : forall 'k 'v. MapKeyType 'k => ('k -> 'v) -> set 'k -> map 'k 'v
+let fromSet f s = Set_helpers.fold (fun k m -> Map.insert k (f k) m) s Map.empty
+
+declare compile_message fromSet = "fromSet only works for finite sets, use carefully."
+
+declare ocaml    target_rep function fromSet = `Pmap.from_set`
+
+assert fromSet_0: (fromSet succ (Set.empty : set nat) = Map.empty)
+assert fromSet_1: (fromSet succ {(2:nat); 3; 4}) = Map.fromList [(2,3); (3, 4); (4, 5)]
+
 

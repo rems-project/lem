@@ -510,3 +510,5 @@ let tc c r =
      if y = y' then add (x,z) xs else xs) r xs) r (empty c) in
   lfp r one_step
 
+
+let get_elem_compare s = s.cmp

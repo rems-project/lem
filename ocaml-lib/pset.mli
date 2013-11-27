@@ -161,3 +161,5 @@ val tc : ('a * 'a -> 'a * 'a -> int) -> ('a * 'a) set -> ('a * 'a) set
 
 val sigma : ('a * 'b -> 'a * 'b -> int) -> 'a set -> ('a -> 'b set) -> ('a * 'b) set
 val cross : ('a * 'b -> 'a * 'b -> int) -> 'a set -> 'b set -> ('a * 'b) set
+
+val get_elem_compare : 'a set -> ('a -> 'a -> int)

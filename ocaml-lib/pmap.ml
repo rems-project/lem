@@ -317,3 +317,5 @@ let find k m = find m.cmp k m.m
 let lookup k m = try Some (find k m) with Not_found -> None
 let map f m = {m with m = map f m.m}
 let mapi f m = {m with m = mapi f m.m}
+
+let from_set f s = Pset.fold (fun k m -> (add k (f k) m)) s (empty (Pset.get_elem_compare s))
