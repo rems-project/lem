@@ -3024,9 +3024,9 @@ let defs_to_rope ((ds:def list),end_lex_skips) =
   | Target_no_ident Target_tex -> 
       (to_rope_tex (defs ds) ^^^^
       (match to_rope_option_tex ((* add empty stuff before last comment to prevent stripping of empty lines *) kwd "" ^ ws end_lex_skips) with None -> r"" | Some rr -> 
-        r"\\lemdef{\n" ^^^^
+        r"\\lemdef{%\n" ^^^^
         rr  ^^^^
-        r"\n}\n"
+        r"%\n}\n"
       ))
   | _ -> output_to_rope (defs ds ^ ws end_lex_skips)
 
