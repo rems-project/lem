@@ -470,7 +470,7 @@ let tex_escape_aux with_space rr =
 let tex_escape rr = tex_escape_aux false rr
 let tex_escape_with_space rr = tex_escape_aux true rr
 
-let tex_id_wrap = function
+let tex_id_wrap_command = function
   | Term_const _       -> r"\\" ^^ tex_sty_prefix ^^ r"TermConst"        
   | Term_ctor          -> r"\\" ^^ tex_sty_prefix ^^ r"TermCtor"         
   | Term_field         -> r"\\" ^^ tex_sty_prefix ^^ r"TermField"        
@@ -486,10 +486,21 @@ let tex_id_wrap = function
   | Component          -> r"\\" ^^ tex_sty_prefix ^^ r"Component"            
   | Nexpr_var          -> r"\\" ^^ tex_sty_prefix ^^ r"Nexpr_var"            
 
-let tex_id_wrap_no_escape = function
-  | Term_const e       -> e
-  | Type_ctor e        -> e
-  | _ -> false
+let tex_type_var_format to_greek rr =
+  if (to_greek && (rr = r"a")) then r "\\alpha" else
+  if (to_greek && (rr = r"b")) then r "\\beta" else
+  if (to_greek && (rr = r"c")) then r "\\gamma" else
+  if (to_greek && (rr = r"d")) then r "\\delta" else
+  r "'\\!" ^^ tex_escape rr
+
+let tex_id_wrap_exp r1 = function
+  | Term_const e       -> if e then r1 else tex_escape r1
+  | Type_ctor e        -> if e then r1 else tex_escape r1
+  | Type_var           -> tex_type_var_format true r1
+  | _ -> tex_escape r1
+
+let tex_id_wrap a r1 =
+  (tex_id_wrap_command a, tex_id_wrap_exp r1 a)
 
 let split_suffix s =
   let regexp = Str.regexp "\\(.*[^'0-9_]\\)_*\\([0-9]*\\)\\('*\\)\\(.*\\)" in
@@ -536,7 +547,8 @@ let debug = false
 
 let to_rope_tex_ident a rr =
   let (r1,r2) = split_suffix_rope rr in
-  tex_id_wrap a ^^ r"{" ^^ (if tex_id_wrap_no_escape a then r1 else tex_escape r1) ^^ r"}" ^^ r2
+  let (tex_wrapper, r1') = tex_id_wrap a r1 in
+  tex_wrapper ^^ r"{" ^^ r1' ^^ r"}" ^^ r2
 
 let rec to_rope_tex_single t = 
   match t with

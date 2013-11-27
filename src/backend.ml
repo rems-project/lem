@@ -87,17 +87,6 @@ let gen_extra_level = ref 3
 
 let r = Ulib.Text.of_latin1
 
-let lskips_drop_initial_newline (sk : lskips) : (lskips * lskips) =
-  let rec aux x = begin match x with
-    | [] -> None
-    | Ast.Nl :: sk -> Some sk
-    | Ast.Ws _ :: sk -> aux sk
-  end in   
-    match sk with
-      | None -> (None, None)
-      | Some sk -> (aux sk, None)
-  
-
 let gensym_tex_command =
   let n = ref 0 in
   function () ->
@@ -176,6 +165,7 @@ module type Target = sig
   val typ_rec_sep : t
   val typ_constr_sep : t
   val typ_var : Ulib.Text.t
+  val typ_class_constraint_prefix_end : t 
 
   (* Length specifications *)
   val nexp_start : t
@@ -389,6 +379,7 @@ module Identity : Target = struct
   let typ_rec_sep = kwd ";"
   let typ_constr_sep = kwd "of"
   let typ_var = r"'"
+  let typ_class_constraint_prefix_end = kwd "=>"
 
   let nexp_start = emp
   let nexp_end = emp
@@ -604,7 +595,8 @@ module Tex : Target = struct
   let typ_rec_end = kwd "\\Mmagicrrec "
   let typ_rec_sep = kwd ";\\,"
   let typ_constr_sep = bkwd "of"
-  let typ_var = r"'"
+  let typ_var = r""
+  let typ_class_constraint_prefix_end = kwd "\\Rightarrow"
   
   let nexp_start = emp
   let nexp_end = emp
@@ -830,6 +822,7 @@ module Isa : Target = struct
   let typ_rec_sep = kwd "\n"
   let typ_constr_sep = emp
   let typ_var = r"'"
+  let typ_class_constraint_prefix_end = kwd "=>"
 
   let pat_as = err "as pattern in Isabelle"
   let pat_rec_start = err "record pattern in Isabelle"
@@ -1015,6 +1008,7 @@ module Hol : Target = struct
   let typ_rec_sep = kwd ";"
   let typ_constr_sep = kwd "of"
   let typ_var = r"'"
+  let typ_class_constraint_prefix_end = kwd "=>"
 
   let nexp_start = kwd "(*"
   let nexp_end = kwd "*)"
@@ -1969,7 +1963,7 @@ let constraints = function
   | Some(Cs_list(l_c,op_s,l_r,s)) ->
       flat (Seplist.to_sep_list
               (fun (id,tv) ->
-                 Ident.to_output Type_var T.path_sep id ^
+                 Ident.to_output Class_name T.path_sep id ^
                  tyvar tv)
               (sep (kwd","))
               l_c) ^
@@ -1978,7 +1972,8 @@ let constraints = function
         | Some s1 -> ws s1 ^ kwd ";") ^
       flat (Seplist.to_sep_list range (sep (kwd",")) l_r) ^
       ws s ^
-      kwd "=>"
+      T.typ_class_constraint_prefix_end 
+
 
 let constraint_prefix (Cp_forall(s1,tvs,s2,constrs)) =
   ws s1 ^
@@ -2552,7 +2547,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
       end ^
       ws s2 ^
       kwd "(" ^
-      Ident.to_output Term_method T.path_sep id ^
+      Ident.to_output Class_name T.path_sep id ^
       typ false t ^
       ws s3 ^
       kwd ")" ^
@@ -2956,7 +2951,6 @@ and def callback (inside_module : bool) d is_user_def =
         if inside_module then 
            def_internal callback inside_module d is_user_def
         else begin
-(*          let (d', _) = def_aux_alter_init_lskips lskips_drop_initial_newline d in*)
           meta "\\lemdef{" ^  def_internal callback inside_module d is_user_def ^ meta "}\n" 
         end
    | Target_no_ident Target_html -> html_link_def d ^ def_internal callback inside_module d is_user_def
@@ -3029,7 +3023,7 @@ let defs_to_rope ((ds:def list),end_lex_skips) =
   match T.target with
   | Target_no_ident Target_tex -> 
       (to_rope_tex (defs ds) ^^^^
-      (match to_rope_option_tex (ws end_lex_skips) with None -> r"" | Some rr -> 
+      (match to_rope_option_tex ((* add empty stuff before last comment to prevent stripping of empty lines *) kwd "" ^ ws end_lex_skips) with None -> r"" | Some rr -> 
         r"\\lemdef{\n" ^^^^
         rr  ^^^^
         r"\n}\n"

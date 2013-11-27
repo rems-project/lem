@@ -99,9 +99,9 @@ let tex_preamble single_module =
   "\\usepackage{alltt}\n" ^
   "\\usepackage{lem}\n" ^
   "\\geometry{a4paper,dvips,twoside,left=22.5mm,right=22.5mm,top=20mm,bottom=30mm}\n" ^
+  "\\setlength{\\parindent}{0pt}\n" ^
   "\\begin{document}\n"^
-  (if single_module then "" else "\\tableofcontents\\newpage\n") ^
-  "\\noindent\n"
+  (if single_module then "" else "\\tableofcontents\n")
   
 let tex_postamble = 
   "\\end{document}\n"
@@ -362,7 +362,7 @@ let output_alltexdoc env avoid dir f mods =
 
      let (mod_path, mod_name) = Path.to_name_list m.module_path in
      let module_name = Name.to_string (Backend_common.get_module_name env (Target.Target_no_ident (Target.Target_tex)) mod_path mod_name) in
-     (r"\\section{" ^^^^ Output.tex_escape (Ulib.Text.of_string module_name) ^^^^ r"}\n" ^^^^ r_main' ^^^^ r_main, 
+     (r"\\clearpage\n\n\\section{" ^^^^ Output.tex_escape (Ulib.Text.of_string module_name) ^^^^ r"}\n" ^^^^ r_main' ^^^^ r_main, 
       r_inc' ^^^^ r_inc,
       r_usage' ^^^^ r_usage)
     end) (r"", r"", r"") (List.rev mods) in
