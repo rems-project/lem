@@ -257,6 +257,9 @@ instance (Ord nat)
   let (>=) = natGreaterEqual
 end
 
+instance (SetType nat)
+  let setElemCompare = natCompare
+end
 
 val natAdd : nat -> nat -> nat
 declare hol      target_rep function natAdd = infix `+`
@@ -420,6 +423,9 @@ instance (Ord natural)
   let (>=) = naturalGreaterEqual
 end
 
+instance (SetType natural)
+  let setElemCompare = naturalCompare
+end
 
 val naturalAdd : natural -> natural -> natural
 declare hol      target_rep function naturalAdd = infix `+`
@@ -582,7 +588,9 @@ instance (Ord int)
   let (>=) = intGreaterEqual
 end
 
-
+instance (SetType int)
+  let setElemCompare = intCompare
+end
 
 val intNegate : int -> int
 declare hol      target_rep function intNegate i = `~` i
@@ -752,7 +760,9 @@ instance (Ord integer)
   let (>=) = integerGreaterEqual
 end
 
-
+instance (SetType integer)
+  let setElemCompare = integerCompare
+end
 
 val integerNegate : integer -> integer
 declare hol      target_rep function integerNegate i = `~` i

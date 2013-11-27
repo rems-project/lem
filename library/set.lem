@@ -640,4 +640,4 @@ assert lfp_saturate_neg_2: leastFixedPoint 2 (map (fun x -> ~x)) ({1; 2; 3} : se
 assert lfp_saturate_mod_3: leastFixedPoint 3 (map (fun x -> (2*x) mod 5)) ({1} : set nat) = {1; 2; 3; 4}
 assert lfp_saturate_mod_4: leastFixedPoint 4 (map (fun x -> (2*x) mod 5)) ({1} : set nat) = {1; 2; 3; 4}
 assert lfp_saturate_mod_5: leastFixedPoint 5 (map (fun x -> (2*x) mod 5)) ({1} : set nat) = {1; 2; 3; 4}
-assert lfp_termination: {1; 3; 5; 7; 9} subset leastFixedPoint 5 (map (fun x -> 2+x)) {(1 : nat)} 
+assert lfp_termination: {1; 3; 5; 7; 9} subset leastFixedPoint 5 (map (fun x -> 2+x)) {(1 : natural)} 
