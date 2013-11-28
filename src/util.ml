@@ -404,3 +404,42 @@ let message_singular_plural (s, p) = function
   | [_] -> s
   | _   -> p
 
+
+
+
+let fresh_string_start ok start s =
+  let rec f (n:int) =
+    let name = s ^ (string_of_int n) in
+      if ok name then 
+        name
+      else
+        f (n + 1)
+  in
+    match start with
+      | None ->
+          if ok s then
+            s
+          else
+            f 0
+      | Some(i) ->
+          f i
+
+module StringSet = Set.Make( 
+  struct
+    let compare = String.compare
+    type t = string
+  end )
+
+
+let fresh_string_aux my_ref s =
+  let ok x = not (StringSet.mem x !my_ref) in
+  let res = fresh_string_start ok None s in
+  let _ = my_ref := StringSet.add res (!my_ref) in
+  res
+
+let fresh_string forbidden = begin
+  let initial_set = List.fold_left (fun s x -> StringSet.add x s) StringSet.empty forbidden in
+  let my_ref = ref initial_set in
+  fresh_string_aux my_ref
+end 
+

@@ -153,6 +153,17 @@ val block_hv : bool -> int -> t -> t
 val block_hov : bool -> int -> t -> t
 
 
+(** [core out] is a marker for marking the most important part of some output. It marks for example the
+    rhs of a definition. Together with [extract_core] this is used to sometimes only print the most essential part
+    of some output *)
+val core : t -> t
+
+(** [remove_core o] removes all occurences of core form [t] by replacing [core o'] with just [o']. *)
+val remove_core : t -> t
+
+(** [extract_core o] extracts all top-level cores from output [o]. *)
+val extract_core : t -> t list
+
 (** {3 Spacing} *) 
 
 (** [break_hint add_space ind] is a general hint for a line-break. If [add_space] is set

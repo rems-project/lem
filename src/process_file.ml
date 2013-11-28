@@ -144,7 +144,10 @@ let output_tex_files single_module gen_string r_main r_inc r_usage dir filename 
    close_output_with_check ext_o;
    let (o, ext_o) = open_output_with_check dir (filename ^ "-use_inc.tex") in
      Printf.fprintf o "%s" gen_string;
+     Printf.fprintf o "%s" (tex_preamble single_module);
+     Printf.fprintf o "\\include{%s}\n" (filename ^ "-inc");
      Printf.fprintf o "%s" (Ulib.Text.to_string r_usage);
+     Printf.fprintf o "%s" tex_postamble;
    close_output_with_check ext_o
 
 
@@ -362,10 +365,11 @@ let output_alltexdoc env avoid dir f mods =
 
      let (mod_path, mod_name) = Path.to_name_list m.module_path in
      let module_name = Name.to_string (Backend_common.get_module_name env (Target.Target_no_ident (Target.Target_tex)) mod_path mod_name) in
-     (r"\\clearpage\n\n\\section{" ^^^^ Output.tex_escape (Ulib.Text.of_string module_name) ^^^^ r"}\n" ^^^^ r_main' ^^^^ r_main, 
-      r_inc' ^^^^ r_inc,
-      r_usage' ^^^^ r_usage)
-    end) (r"", r"", r"") (List.rev mods) in
+     let sect_header = r"\\clearpage\n\n\\section{" ^^^^ Output.tex_escape (Ulib.Text.of_string module_name) ^^^^ r"}\n" in
+     (r_main ^^^^ sect_header ^^^^ r_main', 
+      r_inc ^^^^ r_inc',
+      r_usage ^^^^ sect_header ^^^^ r_usage')
+    end) (r"", r"", r"") mods in
 
   let fs = String.concat " " (List.map (fun m -> m.filename) mods) in
   let gen_string = Printf.sprintf "%%%s\n" (generated_line fs) in

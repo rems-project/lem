@@ -445,10 +445,13 @@ val empty_used_entities : used_entities
 
 val add_exp_entities : used_entities -> exp -> used_entities
 
-(** [add_def_entities targ only_new ue def] adds all the modules, types, constants ... used by definition [def] for target 
+(** [add_def_aux_entities targ only_new ue def] adds all the modules, types, constants ... used by definition [def] for target 
     [targ] to [ue]. If the flag [only_new] is set, only the newly defined are added. 
     Notice, that the identity backend won't throw parts of modules away. Therefore the result for the identiy backend
     is the union of the results for all other backends. *)
+val add_def_aux_entities : Target.target -> bool -> used_entities -> Typed_ast.def_aux -> used_entities
+
+(** [add_def_entities] is called [add_def_aux_entities] after extracting the appropriate [def_aux]. *)
 val add_def_entities : Target.target -> bool -> used_entities -> Typed_ast.def -> used_entities
 
 (** [get_checked_module_entities targ only_new ml] gets all the modules, types, constants ... used by modules [ml] for target 

@@ -91,7 +91,8 @@ type t =
   | Ensure_newline                 (* enters a newline if not already at beginning of line *)
   | Cons of t * t                  (* Cons *)
   | Block of bool * block_type * t (* Block either autoformated or not *)
-  | Break_hint of bool * int        (* Possible line break with indentation *)
+  | Break_hint of bool * int       (* Possible line break with indentation *)
+  | Core of t                      (* The most important part of an output, e.g. the right hand side of a function definiton. It is a marker that can be used to throw everything else away *)
 
 type t' =
   | Kwd' of string
@@ -182,7 +183,27 @@ let ns need_space t1 t2 =
     | ((Empty | Inter _ | Str _ | Err _ | Meta _ | Texspace | Internalspace | Ensure_newline | Break_hint _), _) -> false
     | (_, (Empty | Inter _ | Str _ | Err _ | Meta _ | Texspace | Internalspace | Ensure_newline | Break_hint _)) -> false
     | _ -> need_space (conv t1) (conv t2)
-    
+
+
+(* ******** *)
+(* Core     *)
+(* ******** *)
+
+let core t = Core t 
+
+let rec remove_core = function
+  | Cons(t1,t2) -> Cons (remove_core t1, remove_core t2)
+  | Block(b,d,t) -> Block (b, d, remove_core t)
+  | Core t -> remove_core t
+  | t -> t
+
+let rec extract_core = function
+  | Cons(t1,t2) -> extract_core t1 @ extract_core t2
+  | Block(_,_,t) -> extract_core t
+  | Core t -> [remove_core t]
+  | t -> []
+
+
 
 (* ******** *)
 (* Debug pp *)
@@ -230,7 +251,8 @@ let rec pp_raw_t t =
   | Block(b,d,t) -> r"Block(" ^^ pp_raw_bool b ^^ r"," ^^ pp_raw_t t ^^ r")"
   | Break_hint _ -> r"Breakhint"
   | Internalspace -> r"Internalspace"
-
+  | Core t -> r"Core(" ^^ pp_raw_t t ^^ r")"
+ 
 
 (* turns a single, unstructered Output.t into a string *)
 let to_rope_single quote_char lex_skips_to_rope preserve_ws t : Ulib.Text.t = 
@@ -470,37 +492,31 @@ let tex_escape_aux with_space rr =
 let tex_escape rr = tex_escape_aux false rr
 let tex_escape_with_space rr = tex_escape_aux true rr
 
-let tex_id_wrap_command = function
-  | Term_const _       -> r"\\" ^^ tex_sty_prefix ^^ r"TermConst"        
-  | Term_ctor          -> r"\\" ^^ tex_sty_prefix ^^ r"TermCtor"         
-  | Term_field         -> r"\\" ^^ tex_sty_prefix ^^ r"TermField"        
-  | Term_method        -> r"\\" ^^ tex_sty_prefix ^^ r"TermMethod"       
-  | Term_var           -> r"\\" ^^ tex_sty_prefix ^^ r"TermVar"          
-  | Term_var_toplevel  -> r"\\" ^^ tex_sty_prefix ^^ r"TermVarToplevel" 
-  | Term_spec          -> r"\\" ^^ tex_sty_prefix ^^ r"TermSpec"         
-  | Type_ctor _        -> r"\\" ^^ tex_sty_prefix ^^ r"TypeCtor"         
-  | Type_var           -> r"\\" ^^ tex_sty_prefix ^^ r"TypeVar"          
-  | Module_name        -> r"\\" ^^ tex_sty_prefix ^^ r"ModuleName"       
-  | Class_name         -> r"\\" ^^ tex_sty_prefix ^^ r"ClassName"        
-  | Target             -> r"\\" ^^ tex_sty_prefix ^^ r"Target"            
-  | Component          -> r"\\" ^^ tex_sty_prefix ^^ r"Component"            
-  | Nexpr_var          -> r"\\" ^^ tex_sty_prefix ^^ r"Nexpr_var"            
-
-let tex_type_var_format to_greek rr =
-  if (to_greek && (rr = r"a")) then r "\\alpha" else
-  if (to_greek && (rr = r"b")) then r "\\beta" else
-  if (to_greek && (rr = r"c")) then r "\\gamma" else
-  if (to_greek && (rr = r"d")) then r "\\delta" else
-  r "'\\!" ^^ tex_escape rr
-
-let tex_id_wrap_exp r1 = function
-  | Term_const e       -> if e then r1 else tex_escape r1
-  | Type_ctor e        -> if e then r1 else tex_escape r1
-  | Type_var           -> tex_type_var_format true r1
-  | _ -> tex_escape r1
-
-let tex_id_wrap a r1 =
-  (tex_id_wrap_command a, tex_id_wrap_exp r1 a)
+let tex_id_wrap a r1 = 
+  let res no_escape command_name =
+     (r"\\" ^^ tex_sty_prefix ^^ r command_name, (if no_escape then r1 else tex_escape r1)) in
+  match a with
+  | Term_const no_esc  -> res no_esc "TermConst"        
+  | Term_ctor          -> res false "TermCtor"         
+  | Term_field         -> res false "TermField"        
+  | Term_method        -> res false "TermMethod"       
+  | Term_var           -> res false "TermVar"          
+  | Term_var_toplevel  -> res false "TermVarToplevel" 
+  | Term_spec          -> res false "TermSpec"         
+  | Type_ctor no_esc   -> res no_esc "TypeCtor"         
+  | Module_name        -> res false "ModuleName"       
+  | Class_name         -> res false "ClassName"        
+  | Target             -> res false "Target"            
+  | Component          -> res false "Component"            
+  | Nexpr_var          -> res false "Nexpr_var"            
+  | Type_var           -> begin 
+      let res_special_tyvar x = (r"\\" ^^ tex_sty_prefix ^^ r "TypeVar" ^^ r x, r "") in
+      if (r1 = r"a") then res_special_tyvar "A" else
+      if (r1 = r"b") then res_special_tyvar "B" else
+      if (r1 = r"c") then res_special_tyvar "C" else
+      if (r1 = r"d") then res_special_tyvar "D" else
+      res false "TypeVar"          
+    end
 
 let split_suffix s =
   let regexp = Str.regexp "\\(.*[^'0-9_]\\)_*\\([0-9]*\\)\\('*\\)\\(.*\\)" in
@@ -568,6 +584,7 @@ let rec to_rope_tex_single t =
   | Internalspace -> r""   
   | Cons(t1,t2) -> raise (Failure "Cons in to_rope_tex") 
   | Block _ -> raise (Failure "Block in to_rope_tex") 
+  | Core _ -> raise (Failure "Core in to_rope_tex") 
 
 (** [make_indent r] returns a text consisting only of spaces of the same length as [r] *)
 let make_indent (r : Ulib.Text.t) : Ulib.Text.t = 

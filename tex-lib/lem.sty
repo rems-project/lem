@@ -92,7 +92,7 @@
 \newcommand{\tabbingtsholcomm}[1]{$\linebreak[2]\ifltsm@gicalign\=\@tabbingcomm\linewidth\advance\@tabbingcomm -\dimen\@curtab\else\@tabbingcomm\linewidth\fi\parbox[t]{\@tabbingcomm}{\rrsmall#1\nolinebreak\mbox{}}\linebreak[2]$\displaystyle}   % overridden in rrfoo
 
 %simple tt version
-\newcommand{\tsholcomm}[1]{$\tt #1$\displaystyle}   % overridden in rrfoo
+\newcommand{\tsholcomm}[1]{${\tt #1}$\displaystyle}   % overridden in rrfoo
 
 % % experimental alltt versions
 % \renewcommand{\tsholcomm}[1]{$\linebreak[2]\parbox[t]{\linewidth}{\rrsmall\begin{alldoc}#1\end{alldoc}\nolinebreak\mbox{}}\linebreak[2]$\displaystyle}   % overridden in rrfoo
@@ -116,12 +116,26 @@
 \newcommand{\lemTermVarToplevel}[1]{\mathit{#1}} 
 \newcommand{\lemTermSpec}[1]{\mathit{#1}}         
 \newcommand{\lemTypeCtor}[1]{\textsc{#1}}         
-\newcommand{\lemTypeVar}[1]{\mathit{#1}}          
 \newcommand{\lemModuleName}[1]{\mathit{#1}}       
 \newcommand{\lemClassName}[1]{\mathit{#1}}        
 \newcommand{\lemTarget}[1]{\mathit{#1}}            
-\newcommand{\lemdef}[1]{$\displaystyle #1$}
+
+\newcommand{\lemTypeVar}[1]{\mathit{'\!#1}}          
+
+\newcommand{\lemTypeVarA}{\lemTypeVar{a}}          
+\newcommand{\lemTypeVarB}{\lemTypeVar{b}}          
+\newcommand{\lemTypeVarC}{\lemTypeVar{c}}          
+\newcommand{\lemTypeVarD}{\lemTypeVar{d}}
+
+% comment the following re-definintion out, if you prefer 'a instead of \alpha ...
+\renewcommand{\lemTypeVarA}{\alpha}
+\renewcommand{\lemTypeVarB}{\beta}          
+\renewcommand{\lemTypeVarC}{\gamma}          
+\renewcommand{\lemTypeVarD}{\delta}
+
+%\newcommand{\lemdef}[1]{$\displaystyle #1$}
 %\newcommand{\lemdef}[1]{\rrenside{#1}}
+\newcommand{\lemdef}[1]{$\displaystyle #1$}
 
 % Definition scope is only a single cell inside a tabbing, so we
 % have to be clever.  \\ is defined to be \@tabcr, so we redef that.
@@ -137,7 +151,13 @@
 }
 
 
-\newcommand{\lemdefn}[7]{\label{#1}\lemdef{#4#5#6}}
+% #1 latex label
+% #2 typeset name (eg to go in index and contents line) 
+% #3 immediately-preceding comment
+% #4 full def
+% #5 core
+% #6 immediately-following comment
+\newcommand{\lemdefn}[6]{\label{#1}\lemdef{#3\\#4\\#6}}
 
 \newcommand{\lemshow}[1]{#1}
 

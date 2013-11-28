@@ -1088,7 +1088,7 @@ and add_funcl_aux_entities (ue : used_entities) only_new ((_, c, ps, src_t_opt, 
   end
 end
 
-and add_def_entities (t_opt : Target.target) (only_new : bool) (ue : used_entities) (((d, _), _, _) : def) : used_entities = 
+and add_def_aux_entities (t_opt : Target.target) (only_new : bool) (ue : used_entities) (d : def_aux) : used_entities = 
   match d with
       | Type_def(sk, tds) ->
          Seplist.fold_left (fun (_, _, type_path, texp, _) ue -> begin
@@ -1154,6 +1154,9 @@ and add_def_entities (t_opt : Target.target) (only_new : bool) (ue : used_entiti
       | Instance(_,_,_,_,_) -> (* TODO: broken, needs fixing in typechecking and AST *) ue
       | Declaration(_) -> ue
       | Comment _ -> ue
+
+and add_def_entities (t_opt : Target.target) (only_new : bool) (ue : used_entities) (((d, _), _, _) : def) : used_entities = 
+  add_def_aux_entities t_opt only_new ue d
 
 
 let add_checked_module_entities (t_opt : Target.target) only_new (ue : used_entities) (m : checked_module): used_entities = 
