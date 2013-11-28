@@ -602,8 +602,8 @@ module Tex : Target = struct
   let typ_tup_section = emp
   let typ_sep = kwd ":"
   let typ_fun_sep = kwd "\\rightarrow "
-  let typ_rec_start = kwd "\\Mmagiclrec"
-  let typ_rec_end = kwd "\\Mmagicrrec "
+  let typ_rec_start = kwd "\\Mlrec "
+  let typ_rec_end = kwd "\\Mrrec "
   let typ_rec_sep = kwd ";\\,"
   let typ_constr_sep = bkwd "of"
   let typ_var = r""
@@ -616,8 +616,8 @@ module Tex : Target = struct
   let nexp_times = kwd "*"
 
   let pat_as = bkwd "as"
-  let pat_rec_start = kwd "\\Mmagiclrec"
-  let pat_rec_end = kwd "\\Mmagicrrec"
+  let pat_rec_start = kwd "\\Mlrec"
+  let pat_rec_end = kwd "\\Mrrec"
   let pat_wildcard = kwd "\\_"
 
   let const_true = bkwd "true"
@@ -650,11 +650,11 @@ module Tex : Target = struct
   let function_end = bkwd "end"
   let record_assign = kwd "="
   let recup_start = kwd "\\Mlrec"
-  let recup_middle = texspace ^ kwd "\\Mmagicwith" ^ texspace 
-  let recup_end = kwd "\\Mmagicrrec"
+  let recup_middle = bkwd "with"
+  let recup_end = kwd "\\Mrrec"
   let recup_assign = kwd "="
-  let rec_literal_start = kwd "\\Mmagiclrec"
-  let rec_literal_end = kwd "\\Mmagicrrec "
+  let rec_literal_start = kwd "\\Mlrec"
+  let rec_literal_end = kwd "\\Mrrec "
   let rec_literal_sep = kwd ";\\,"
   let rec_literal_assign = kwd "="
   let val_start = bkwd "val"
@@ -721,8 +721,8 @@ module Tex : Target = struct
   let typedefrec_start = bkwd "type"
   let typedefrec_end = emp
   let typedefrec_implicits _ = emp
-  let rec_start = kwd "\\Mmagiclrec"
-  let rec_end = kwd "\\Mmagicrrec"
+  let rec_start = kwd "\\Mlrec"
+  let rec_end = kwd "\\Mrrec"
   let rec_sep = kwd ";"
   let constr_sep = kwd "*"
   let before_tyvars = emp
