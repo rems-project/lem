@@ -2303,15 +2303,15 @@ let rec ocaml_def_extra gf d l : Output.t = match d with
     end
   | _ -> emp
 
-let def_to_label_formated_name d : (string * Output.t) = begin match d with
+let def_to_label_formated_name d : (bool * string * Output.t) = begin match d with
   (* A single type abbreviation *)
   | Type_def(_, defs) ->
       begin
         match Seplist.to_list defs with
           | [((n, _),_,t_p,_,_)] ->
-              ("Type_" ^^ Name.to_string (Name.strip_lskip n), 
+              (true, "Type_" ^^ Name.to_string (Name.strip_lskip n), 
                Name.to_output (Type_ctor false) (B.type_path_to_name n t_p))
-          | _ -> ("type", emp)
+          | _ -> (false, "type", emp)
       end
   | (Indreln _ | Val_def _ | Val_spec _) -> begin
        let prefix = begin match d with
@@ -2324,36 +2324,39 @@ let def_to_label_formated_name d : (string * Output.t) = begin match d with
        match ue.used_consts with
          | [c] -> begin
              let c_name = B.const_ref_to_name (Name.add_lskip (Name.from_string "dummy")) true c in
-             (prefix ^^ Name.to_string (Name.strip_lskip c_name),
+             (true, prefix ^^ Name.to_string (Name.strip_lskip c_name),
               Name.to_output Term_field c_name)
            end
-         | _ -> ("const", emp)
+         | _ -> (false, "const", emp)
     end
   | Lemma (_, lty, _, (n, _), _, _) -> begin
       let lem_st = match lty with
                      | Ast.Lemma_theorem sk -> "theorem"
                      | Ast.Lemma_assert sk -> "assert"
                      | Ast.Lemma_lemma sk -> "lemma" in
-      (String.concat "" [lem_st; "_"; Name.to_string (Name.strip_lskip n)],
+      (true, 
+       String.concat "" [lem_st; "_"; Name.to_string (Name.strip_lskip n)],
        Name.to_output Term_var n)
     end
   | Module _ -> 
-      ("module", emp)
+      (false, "module", emp)
   | Rename _ ->      
-      ("rename", emp)
+      (false, "rename", emp)
   | (OpenImport _ | OpenImportTarget _) ->
-      ("open", emp)
+      (false, "open", emp)
   | Instance _ ->
-      ("instance", emp)
+      (false, "instance", emp)
   | Class _ -> 
-      ("class", emp)
+      (false, "class", emp)
   | Declaration _ ->
-      ("declaration", emp)
+      (false, "declaration", emp)
   | Comment(d) ->
-      ("comment", emp)
+      (false, "comment", emp)
 end
 
-let html_source_name_def (d : def_aux) = None
+let html_source_name_def (d : def_aux) = 
+  let (real_label, label, _) = def_to_label_formated_name d in
+  if real_label then Some (r label) else None
 
 let html_link_def d = 
   match html_source_name_def d with
@@ -2859,7 +2862,7 @@ begin
   let full_output = remove_core output_org in
   let core_output = concat space (extract_core output_org) in
 
-  let (label_s, name_out) = def_to_label_formated_name d' in
+  let (_, label_s, name_out) = def_to_label_formated_name d' in
   let label = r (latex_fresh_labels label_s) in
   let typeset_name = to_rope_tex name_out in
 

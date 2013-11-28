@@ -116,6 +116,7 @@ declare hol      target_rep type natural = `num`
 declare isabelle target_rep type natural = `nat` 
 declare coq      target_rep type natural = `nat`
 declare ocaml    target_rep type natural = `Big_int.big_int` 
+declare tex      target_rep type natural = `$\mathbb{N}$`
 
 
 (* ----------------------- *)
@@ -142,6 +143,7 @@ declare ocaml    target_rep type integer = `Big_int.big_int`
 declare isabelle target_rep type integer = `int` 
 declare hol      target_rep type integer = `int`
 declare coq      target_rep type integer = `Z`
+declare tex      target_rep type integer = `$\mathbb{Z}$`
 
 (* ----------------------- *)
 (* bint                    *)

@@ -216,8 +216,7 @@ let rec src_t_to_string =
     | Typ_paren (skips, src_t, skips') ->
         from_string "(" ^ src_t_to_string src_t.term ^ from_string ")"
 ;;
-let typ_ident_to_output (p : Path.t id) =     
-  Ident.to_output (Type_ctor false) path_sep (B.type_id_to_ident p)
+let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
 
 let field_ident_to_output fd ascii_alternative = 
   Ident.to_output Term_field path_sep (B.const_id_to_ident fd ascii_alternative)

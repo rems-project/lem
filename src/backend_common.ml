@@ -485,17 +485,24 @@ let type_path_to_name n0 (p : Path.t) : Name.lskips_t =
   let n' = Name.replace_lskip (Name.add_lskip n) (Name.get_lskip n0) in
   n'
 
-let type_id_to_ident (p : Path.t id) =
+let type_id_to_ident_aux (p : Path.t id) =
    let l = Ast.Trans (false, "type_id_to_ident", None) in
    let td = Types.type_defs_lookup l A.env.t_env p.descr in
    let org_type = resolve_type_id_ident l A.env p p.descr in
    match Target.Targetmap.apply_target td.Types.type_rename A.target with
-     | Some (_, n) -> fix_module_prefix_ident (Ident.rename org_type n)
+     | Some (_, n) -> (false, fix_module_prefix_ident (Ident.rename org_type n))
      | None -> begin
          match Target.Targetmap.apply_target td.Types.type_target_rep A.target with
-           | Some (TYR_simple (_, _, i)) -> i
-           | _ -> fix_module_prefix_ident org_type
+           | Some (TYR_simple (_, _, i)) -> (true, i)
+           | _ -> (false, fix_module_prefix_ident org_type)
        end
+
+let type_id_to_ident (p : Path.t id) = snd (type_id_to_ident_aux p)
+
+let type_id_to_output (p : Path.t id) =
+  let (needs_no_escape, i) = type_id_to_ident_aux p in
+  let (_, path_sep) = A.id_format_args in 
+  Ident.to_output (Type_ctor needs_no_escape) path_sep i
 
 let type_id_to_ident_no_modify (p : Path.t id) =
   let (ns, n) = Path.to_name_list p.descr in
@@ -510,7 +517,7 @@ let type_app_to_output format p ts =
   let sk = ident_get_lskip p in
   match Target.Targetmap.apply_target td.Types.type_target_rep A.target with
      | None -> (ts, Ident.to_output (Type_ctor false) path_sep (type_id_to_ident p))
-     | Some (TYR_simple (_, _, i)) -> (ts, ws sk ^ Ident.to_output (Type_ctor false) path_sep i)
+     | Some (TYR_simple (_, _, i)) -> (ts, ws sk ^ Ident.to_output (Type_ctor true) path_sep i)
      | Some (TYR_subst (_, _, tnvars, t')) -> begin    
          let subst = Types.TNfmap.from_list2 tnvars ts in
          let t'' = src_type_subst subst t' in
