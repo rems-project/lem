@@ -86,6 +86,7 @@ open Target
 let gen_extra_level = ref 3
 
 let r = Ulib.Text.of_latin1
+let (^^) = Pervasives.(^)
 
 let gensym_tex_command =
   let n = ref 0 in
@@ -602,8 +603,8 @@ module Tex : Target = struct
   let typ_tup_section = emp
   let typ_sep = kwd ":"
   let typ_fun_sep = kwd "\\rightarrow "
-  let typ_rec_start = kwd "\\Mlrec "
-  let typ_rec_end = kwd "\\Mrrec "
+  let typ_rec_start = kwd "\\lemlrec "
+  let typ_rec_end = kwd "\\lemrrec "
   let typ_rec_sep = kwd ";\\,"
   let typ_constr_sep = bkwd "of"
   let typ_var = r""
@@ -616,8 +617,8 @@ module Tex : Target = struct
   let nexp_times = kwd "*"
 
   let pat_as = bkwd "as"
-  let pat_rec_start = kwd "\\Mlrec"
-  let pat_rec_end = kwd "\\Mrrec"
+  let pat_rec_start = kwd "\\lemlrec"
+  let pat_rec_end = kwd "\\lemrrec"
   let pat_wildcard = kwd "\\_"
 
   let const_true = bkwd "true"
@@ -649,12 +650,12 @@ module Tex : Target = struct
   let function_start = bkwd "function"
   let function_end = bkwd "end"
   let record_assign = kwd "="
-  let recup_start = kwd "\\Mlrec"
+  let recup_start = kwd "\\lemlrec"
   let recup_middle = bkwd "with"
-  let recup_end = kwd "\\Mrrec"
+  let recup_end = kwd "\\lemrrec"
   let recup_assign = kwd "="
-  let rec_literal_start = kwd "\\Mlrec"
-  let rec_literal_end = kwd "\\Mrrec "
+  let rec_literal_start = kwd "\\lemlrec"
+  let rec_literal_end = kwd "\\lemrrec "
   let rec_literal_sep = kwd ";\\,"
   let rec_literal_assign = kwd "="
   let val_start = bkwd "val"
@@ -721,8 +722,8 @@ module Tex : Target = struct
   let typedefrec_start = bkwd "type"
   let typedefrec_end = emp
   let typedefrec_implicits _ = emp
-  let rec_start = kwd "\\Mlrec"
-  let rec_end = kwd "\\Mrrec"
+  let rec_start = kwd "\\lemlrec"
+  let rec_end = kwd "\\lemrrec"
   let rec_sep = kwd ";"
   let constr_sep = kwd "*"
   let before_tyvars = emp
@@ -2308,16 +2309,22 @@ let def_to_label_formated_name d : (string * Output.t) = begin match d with
       begin
         match Seplist.to_list defs with
           | [((n, _),_,t_p,_,_)] ->
-              (Name.to_string (Name.strip_lskip n), 
+              ("Type_" ^^ Name.to_string (Name.strip_lskip n), 
                Name.to_output (Type_ctor false) (B.type_path_to_name n t_p))
           | _ -> ("type", emp)
       end
   | (Indreln _ | Val_def _ | Val_spec _) -> begin
+       let prefix = begin match d with
+         | Indreln _ -> "Indrel_"
+         | Val_def _ -> ""
+         | Val_spec _ -> "Valspec_"
+         | _ -> ""
+       end in
        let ue = add_def_aux_entities Target.Target_ident true empty_used_entities d in
        match ue.used_consts with
          | [c] -> begin
              let c_name = B.const_ref_to_name (Name.add_lskip (Name.from_string "dummy")) true c in
-             (Name.to_string (Name.strip_lskip c_name),
+             (prefix ^^ Name.to_string (Name.strip_lskip c_name),
               Name.to_output Term_field c_name)
            end
          | _ -> ("const", emp)

@@ -48,8 +48,8 @@
 \usepackage{ifthen}
 
 %auxiliary definitions for records
-\newcommand{\Mlrec}{\langle\!\mid}
-\newcommand{\Mrrec}{\mid\!\rangle}
+\newcommand{\lemlrec}{\langle\!\mid}
+\newcommand{\lemrrec}{\mid\!\rangle}
 
 
 %formatting for various Lem entities
@@ -82,7 +82,7 @@
 
 
 %comments and defs
-\newcommand{\tsholcomm}[1]{${\tt #1}$\displaystyle}   
+\newcommand{\lemcomm}[1]{${\tt #1}$\displaystyle}
 \newcommand{\lemdef}[1]{$\displaystyle #1$}
 
 % inc macros that allow choosing what exactly to print
@@ -96,7 +96,7 @@
 \newcommand{\newlineAfter}[1]{\ifthenelse{\equal{#1}{}}{}{#1\\}}
 \newcommand{\lemdefn}[7]{
 \IfEqCase{#1}{%
-  {default}{\label{#2}\lemdef{\newlineAfter{#4}\newlineAfter{#5}}}
+  {default}{\label{#2}\lemdef{#5}}
   {defWithComment}{\label{#2}\lemdef{\newlineAfter{#4}\newlineAfter{#5}}}
   {def}{\label{#2}\lemdef{#5}}
   {comment}{\lemdef{#4}}

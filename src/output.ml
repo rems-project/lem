@@ -572,7 +572,7 @@ let rec to_rope_tex_single t =
   | Kwd(s) ->  Ulib.Text.of_latin1 s
   | Ident(a,r) -> to_rope_tex_ident a r
   | Num(i) ->  Ulib.Text.of_latin1 (string_of_int i)
-  | Inter(Ast.Com(rr)) -> r"\\tsholcomm{" ^^ tex_escape_with_space (ml_comment_to_rope rr)  ^^ r"}" 
+  | Inter(Ast.Com(rr)) -> r"\\lemcomm{" ^^ tex_escape_with_space (ml_comment_to_rope rr)  ^^ r"}" 
   | Inter(Ast.Ws(rr)) -> if Ulib.Text.length rr > 0 then r"\\ " ^^ rr else rr
   | Inter(Ast.Nl) -> raise (Failure "Nl in to_rope_tex")
   | Str(s) ->  quote_string (r"\"") s
