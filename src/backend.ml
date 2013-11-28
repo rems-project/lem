@@ -569,24 +569,10 @@ module Tex : Target = struct
 
   module S = Set.Make(String)
 
-  let delim_regexp = regexp "^\\([][`;,(){}]\\|;;\\)$"
-
-  let symbolic_regexp = regexp "^[-!$%&*+./:<=>?@^|~]+$"
-
-  let is_delim s = 
-    string_match delim_regexp s 0
-
-  let is_symbolic s = 
-    string_match symbolic_regexp s 0
-
-  let need_space x y = false
-
+  let need_space = Identity.need_space
   let target = Target_no_ident Target_tex
 
   let bkwd s = kwd (String.concat "" ["\\lemkw{"; Ulib.Text.to_string (tex_escape (Ulib.Text.of_string s));  "}"])
-(*  let tkwdl s = kwd (String.concat "" ["\\lemkw{"; s;  "}"]) ^ texspace
-  let tkwdr s = texspace ^ kwd (String.concat "" ["\\lemkw{"; s;  "}"]) 
-  let tkwdm s = texspace ^ kwd (String.concat "" ["\\lemkw{"; s;  "}"]) ^ texspace*)
 
   let path_sep = kwd "." (* "`" *)
   let list_sep = kwd ";"
@@ -1061,8 +1047,8 @@ module Hol : Target = struct
   let field_access_end = emp
   let fun_start = emp
   let fun_end = emp
-  let fun_kwd = kwd "\\"
-  let fun_sep = kwd "."
+  let fun_kwd = meta "\\"
+  let fun_sep = meta ". "
   let record_assign = kwd ":="
   let recup_start = kwd "("
   let recup_middle = kwd "with" ^ kwd "<|"
@@ -2552,7 +2538,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
       (ws sk0 ^ T.bkwd lem_st ^ 
        targets_opt targets ^
        Name.to_output Term_var n ^
-       ws sk1 ^ kwd ":" ^
+       ws sk1 ^ kwd ":" ^ 
        core (exp false e))
     end
   | Module(s1,(n,l),mod_bind,s2,s3,ds,s4) -> 
@@ -2688,7 +2674,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         T.bkwd "target_rep" ^
         ws sk3 ^
         T.bkwd "type" ^
-        (Ident.to_output (Type_ctor false) T.path_sep (B.type_id_to_ident id)) ^
+        B.type_id_to_output id ^
         tdef_tvars true args ^
         ws sk4 ^
         kwd "=" ^
@@ -2773,7 +2759,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
            | Ast.Exhaustivity_setting_exhaustive   sk -> ws sk ^ T.bkwd "exhaustive"
            | Ast.Exhaustivity_setting_inexhaustive sk -> ws sk ^ T.bkwd "inexhaustive"
         ) ^
-        (Ident.to_output (Type_ctor false) T.path_sep (B.type_id_to_ident p_id)) ^
+        B.type_id_to_output p_id ^
         tdef_tvars true args ^
         ws sk3 ^
         kwd "=" ^ 

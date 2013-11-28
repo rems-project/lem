@@ -104,7 +104,7 @@ let rec build_subst (params : name_lskips_annot list) (args : exp list)
         let (a', _) = alter_init_lskips remove_init_ws a in
           (Nfmap.insert subst (Name.strip_lskip p.term, Sub(a')), x, y)
 
-let inline_exp l (target : Target.target) env was_infix params body_sk body tsubst (args : exp list) =
+let inline_exp l (target : Target.target) env was_infix params body_sk body tsubst (args : exp list) : exp =
   let module C = Exps_in_context(struct let env_opt = Some env;; let avoid = None end) in
   let loc = Ast.Trans(false, "inline_exp", Some l) in
   let (vsubst, leftover_params, leftover_args) = build_subst params args in
@@ -122,16 +122,20 @@ let inline_exp l (target : Target.target) env was_infix params body_sk body tsub
       | _ -> raise (Reporting_basic.err_unreachable l "infix operator with not 2 arguments")
   end else 
   if leftover_params = [] then
-    (* all parameters are instantiatated *)
+    let res = (* all parameters are instantiatated *)
     (List.fold_left 
        (fun e e' -> C.mk_app loc e e' None)
        b
-       leftover_args)
-   else
-     (C.mk_fun loc
-         None (List.map (fun n -> C.mk_pvar n.locn n.term (Types.type_subst tsubst n.typ))
+       leftover_args) in
+    (* was b something lengthy or fancy, while before we had a single function? Then add parens *)
+    if (may_need_paren b && params = []) then mk_opt_paren_exp res else res
+  else
+    (* begin get rid of the space in front of b and move it to the beginning *)
+    let (b, b_sk) = alter_init_lskips (fun sk -> (None, sk)) b in
+    append_lskips b_sk (mk_opt_paren_exp (C.mk_fun loc None
+         (List.map (fun n -> C.mk_pvar n.locn n.term (Types.type_subst tsubst n.typ))
                                   leftover_params) 
-         None b None)
+         None b None))
 
 
 let generalised_inline_exp_macro (do_CR_simple : bool) (target : Target.target) env e =
@@ -439,7 +443,7 @@ let function_application_to_output l (arg_f0 : exp -> Output.t) (is_infix_pos : 
      | Some (CR_simple (_, _, params,body)) when not ascii_alternative -> begin
          let tsubst = Types.TNfmap.from_list2 c_descr.const_tparams c_id.instantiation in
          let new_exp = inline_exp l A.target A.env is_infix_pos params (ident_get_lskip c_id) body tsubst args in
-         [arg_f true new_exp]
+         [arg_f false new_exp]
        end
      | Some (CR_infix (_, _, _, i)) -> constant_application_to_output_simple is_infix_pos arg_f alter_init_lskips args c_id ascii_alternative (Some i)
      | Some (CR_undefined (l', _)) -> 
@@ -466,7 +470,7 @@ let pattern_application_to_output l (arg_f0 : pat -> Output.t) (c_id : const_des
          let res_opt = inline_pat Ast.Unknown A.env c_descr c_id args (params, body) in
          match res_opt with
            | None -> inline_pat_err Ast.Unknown c_descr.const_binding A.target l 
-           | Some p' -> [arg_f true p']
+           | Some p' -> [arg_f false p']
        end
      | Some (CR_undefined (l', _)) -> 
        begin 
@@ -493,7 +497,7 @@ let type_id_to_ident_aux (p : Path.t id) =
      | Some (_, n) -> (false, fix_module_prefix_ident (Ident.rename org_type n))
      | None -> begin
          match Target.Targetmap.apply_target td.Types.type_target_rep A.target with
-           | Some (TYR_simple (_, _, i)) -> (true, i)
+           | Some (TYR_simple (_, _, i)) -> (true, Ident.replace_lskip i (Ident.get_lskip org_type))
            | _ -> (false, fix_module_prefix_ident org_type)
        end
 

@@ -368,6 +368,10 @@ val mk_paren_exp : exp -> exp
     For parenthesis, variable expressions and tuples, the parenthesis are skipped, though. *)
 val mk_opt_paren_exp : exp -> exp
 
+(** [may_need_paren e] checks, whether [e] might need parenthesis. If returns, whether [mk_opt_paren_exp e]
+    would modify the expression. *)
+val may_need_paren : exp -> bool
+
 (** [mk_case_exp final l e rows ty] constructs a case (match) expression. In contrast to
     [Typed_ast.mk_case] it uses standard spacing and adds parenthesis. *)
 val mk_case_exp : bool -> Ast.l -> exp -> (pat * exp) list -> Types.t -> exp 

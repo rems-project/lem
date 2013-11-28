@@ -514,6 +514,16 @@ let rec mk_opt_paren_exp (e :exp) : exp =
         mk_paren_exp e
     | _ -> mk_paren_exp e 
 
+let rec may_need_paren (e :exp) : bool = 
+  match C.exp_to_term e with
+    | Var _ -> false
+    | Constant _ -> false
+    | Backend _ -> false
+    | Tup _ -> false
+    | Paren _ -> false
+    | Lit _ -> false
+    | App (e1, e2) -> (not (is_empty_backend_exp e1)) || may_need_paren e2
+    | _ -> true
 
 let dest_const_exp (e : exp) : const_descr_ref id option =
   match C.exp_to_term e with

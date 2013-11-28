@@ -39,6 +39,7 @@ let fromSet f s = Set_helpers.fold (fun k m -> Map.insert k (f k) m) s Map.empty
 declare compile_message fromSet = "fromSet only works for finite sets, use carefully."
 
 declare ocaml    target_rep function fromSet = `Pmap.from_set`
+declare hol      target_rep function fromSet = `FUN_FMAP`
 
 assert fromSet_0: (fromSet succ (Set.empty : set nat) = Map.empty)
 assert fromSet_1: (fromSet succ {(2:nat); 3; 4}) = Map.fromList [(2,3); (3, 4); (4, 5)]
