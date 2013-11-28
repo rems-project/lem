@@ -2813,8 +2813,9 @@ The concatentation of the lhs keyword, the lhs, and the rhs should be exactly wh
 and (^^^^) = Ulib.Text.(^^^)
 
 and make_lemdefn latex_name latex_label typeset_name pre_comment full core post_comment = 
-  (r"\\newcommand{" ^^^^ latex_name ^^^^ r"}{%\n" ^^^^
+  (r"\\newcommand{" ^^^^ latex_name ^^^^ r"}[1][default]{%\n" ^^^^
   r"\\lemdefn\n" ^^^^ 
+  r"{#1}\n" ^^^^
   r"{" ^^^^ latex_label ^^^^ r"}\n" ^^^^
   r"{" ^^^^ typeset_name ^^^^ r"}\n" ^^^^ 
   r"{" ^^^^ pre_comment ^^^^ r"}\n" ^^^^
