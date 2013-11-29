@@ -103,6 +103,9 @@ val remove_import_include : def_macro
 (** [remove_import] removes all import statements. *)
 val remove_import : def_macro
 
+(** [remove_module_renames] removes all module rename statements. *)
+val remove_module_renames : def_macro
+
 (** {2 Misc} *)
 
 (** If a target representation for a type is given, the original type definition is commented out.

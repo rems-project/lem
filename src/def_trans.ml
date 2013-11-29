@@ -151,6 +151,12 @@ let remove_import _ env (((d,s),l,lenv) as def) =
         aux (fun oi' -> OpenImportTarget (oi', targets, ids)) oi
     | _ -> None
 
+let remove_module_renames _ env (((d,_),_,_) as def) =
+  match d with
+    | Rename _ ->
+        Some(env, [comment_def def])
+    | _ -> None
+
 let remove_classes _ env (((d,_),_,_) as def) =
   match d with
     | Class _ ->
