@@ -241,9 +241,17 @@ let pp_raw_bool = function
   | true  -> r"true"
   | false -> r"false"
 
+let addparenstar x = r"(*" ^^ x ^^ r"*)"
+
 let rec ml_comment_to_rope = function
   | Ast.Chars(r) -> r
-  | Ast.Comment(coms) -> r"(*" ^^ Ulib.Text.concat (r"") (List.map ml_comment_to_rope coms) ^^ r"*)"
+  | Ast.Comment(coms) -> 
+      Ulib.Text.concat (r"") (List.map ml_comment_to_rope coms)
+
+let ml_comment_to_rope' = function
+  | Ast.Chars(r) -> r
+  | Ast.Comment(coms) -> 
+      Ulib.Text.concat (r"") (List.map ml_comment_to_rope coms)
 
 let rec pp_raw_t t = 
   match t with
@@ -584,7 +592,20 @@ let rec to_rope_tex_single t =
   | Kwd(s) ->  Ulib.Text.of_latin1 s
   | Ident(a,r) -> to_rope_tex_ident a r
   | Num(i) ->  Ulib.Text.of_latin1 (string_of_int i)
-  | Inter(Ast.Com(rr)) -> r"\\lemcomm{" ^^ tex_escape_with_space (ml_comment_to_rope rr)  ^^ r"}" 
+  | Inter(Ast.Com(rr)) -> 
+(* experiment in making (*tex Foo Bar*) just dump Foo Bar into the tex output *)
+(* To make this tidy, one should also 
+    - suppress such comments altogether in non-identity other backends
+    - do likewise for other targets
+    - do something for toplevel such comments so that they don't get put into a \lemdef
+   If we were still using a lemdef that introduces tabbing, then this
+   could be used to create and move to tab stops, eg with (*tex \=*)
+*)
+      let body_rope = ml_comment_to_rope' rr in
+      if Ulib.Text.starts_with body_rope (r"tex ") then
+        Ulib.Text.tail body_rope 4
+      else
+        r"\\lemcomm{" ^^ tex_escape_with_space (addparenstar body_rope) ^^ r"}" 
   | Inter(Ast.Ws(rr)) -> if Ulib.Text.length rr > 0 then r"\\ " ^^ rr else rr
   | Inter(Ast.Nl) -> raise (Failure "Nl in to_rope_tex")
   | Str(s) ->  quote_string (r"\"") (tex_escape s)
