@@ -239,6 +239,13 @@ let rec intercalate sep =
     | x::xs -> x::sep::intercalate sep xs
 ;;
 
+let rec interleave l1 l2 =
+  match (l1, l2) with
+    | ([], _) -> l2
+    | (_, []) -> l1
+    | (x::xs, y::ys) -> x::y::(interleave xs ys)
+;;
+
 let rec replicate n e =
   match n with
     | 0 -> []

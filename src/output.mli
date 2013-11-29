@@ -57,14 +57,13 @@ type t' =
 
 (** kind annotation for latex'd identifiers *)
 type id_annot =  
-  | Term_const of bool (** is it a quatation one that needs no escaping ?*)
-  | Term_ctor
-  | Term_field 
+  | Term_const of bool * bool (** [Term_const(is_quotation, needs_escaping)] *)
+  | Term_field
   | Term_method 
   | Term_var 
   | Term_var_toplevel
   | Term_spec 
-  | Type_ctor of bool (** is it a quatation one that needs no escaping ?*)
+  | Type_ctor of bool * bool  (** [Term_ctor(is_quotation, needs_escaping)] *)
   | Type_var
   | Nexpr_var
   | Module_name
@@ -165,6 +164,9 @@ val remove_core : t -> t
 val extract_core : t -> t list
 
 (** {3 Spacing} *) 
+
+(** [removes intial whitespace (including comments) from output] *)
+val remove_initial_ws : t -> t
 
 (** [break_hint add_space ind] is a general hint for a line-break. If [add_space] is set
     a space is added in case no line-break is needed. Otherwise a line-break with the given 

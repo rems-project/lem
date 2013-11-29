@@ -733,7 +733,7 @@ let check_free_tvs_letbind (lb : Typed_ast.letbind) : unit =
  * instead of passing them around as the formal type system does *)
 
 module type Expr_checker = sig
-  val check_lem_exp : lex_env -> Ast.l -> Ast.exp -> Types.t -> (exp * typ_constraints)
+  val check_lem_exp : lex_env -> Ast.l -> Ast.exp -> Types.t option -> (exp * typ_constraints)
 
   val check_letbind : 
     (* Should be None, unless checking a method definition in an instance.  Then
@@ -1690,9 +1690,11 @@ module Make_checker(T : sig
   (* Check lemmata expressions that must have type ret, which is expected to be bool but 
      for flexibility can be provided.
    *)
-  let check_lem_exp (l_e : lex_env) l e ret =
+  let check_lem_exp (l_e : lex_env) l e ret_opt =
     let exp = check_exp l_e e in
-    C.equate_types l "top-level expression" ret (exp_to_typ exp);
+    (match ret_opt with
+      | None -> ()
+      | Some ret -> C.equate_types l "top-level expression" ret (exp_to_typ exp));
     let Tconstraints(tnvars,constraints,length_constraints) = C.inst_leftover_uvars l in
     (exp,Tconstraints(tnvars,constraints,length_constraints))
 
@@ -2580,7 +2582,7 @@ let check_lemma l ts (ctxt : defn_ctxt)
     | Ast.Lemma_lemma sk -> (sk, Ast.Lemma_lemma None) in
   let aux (lty, target_opt, e) =
      let module C = Exps_in_context(struct let env_opt = (Some T.e) let avoid = None end) in
-     let (exp,Tconstraints(_, constraints,_)) = Checker.check_lem_exp empty_lex_env l e bool_ty in
+     let (exp,Tconstraints(_, constraints,_)) = Checker.check_lem_exp empty_lex_env l e (Some bool_ty) in
 (*   let _ = unsat_constraint_err l constraints in  *)
      let (sk0, lty') = lty_get_sk lty in
      let target_opt = check_target_opt target_opt in
@@ -2663,7 +2665,7 @@ let rec check_instance_type_shape (ctxt : defn_ctxt) (src_t : src_t)
 
 
 
-let check_declare_target_rep_term_rhs (l : Ast.l) ts targ (ctxt : defn_ctxt) c id args rhs_ty (rhs : Ast.target_rep_rhs) : (defn_ctxt * Typed_ast.target_rep_rhs) = 
+let check_declare_target_rep_term_rhs (l : Ast.l) ts targ (ctxt : defn_ctxt) c id args (rhs_ty : Types.t) (rhs : Ast.target_rep_rhs) : (defn_ctxt * Typed_ast.target_rep_rhs) = 
   let module T = struct 
     let d = ctxt.all_tdefs 
     let i = ctxt.all_instances 
@@ -2676,7 +2678,7 @@ let check_declare_target_rep_term_rhs (l : Ast.l) ts targ (ctxt : defn_ctxt) c i
   let (rhs, new_rep) = match rhs with
    | Ast.Target_rep_rhs_term_replacement e_org -> begin
        let rhs_lex_env = List.fold_left (fun env ap -> add_binding env (ap.term, ap.locn) ap.typ) empty_lex_env args in
-       let (e, Tconstraints(tnvars, constraints,l_constraints)) = Checker.check_lem_exp rhs_lex_env l e_org rhs_ty in
+       let (e, Tconstraints(tnvars, constraints,l_constraints)) = Checker.check_lem_exp rhs_lex_env l e_org (Some rhs_ty) in
        let _ = unsat_constraint_err l constraints in
        (Target_rep_rhs_term_replacement e, CR_simple (l, false, args, e))
      end
@@ -2689,8 +2691,22 @@ let check_declare_target_rep_term_rhs (l : Ast.l) ts targ (ctxt : defn_ctxt) c i
        (Target_rep_rhs_infix (sk1, infix_decl, sk2, i), CR_infix(l, false, infix_decl, i))
    | Ast.Target_rep_rhs_undefined ->
        (Target_rep_rhs_undefined, CR_undefined (l, false))
-   | Ast.Target_rep_rhs_special (sk1, sk2, sp, args) ->
-       raise (Reporting_basic.err_todo true l "unsupported rhs of term target special representation declaration") in
+   | Ast.Target_rep_rhs_special (sk1, sk2, sp, sargs) ->      
+       let rhs_lex_env = List.fold_left (fun env ap -> add_binding env (ap.term, ap.locn) ap.typ) empty_lex_env args in
+       let sargs' = List.map (fun sarg_org -> 
+          let (e, Tconstraints(tnvars, constraints,l_constraints)) = Checker.check_lem_exp rhs_lex_env l sarg_org None in
+          let _ = unsat_constraint_err l constraints in
+          e) sargs
+       in
+       
+       (* split sp into chunks with the whole in the middle *)
+       let sp_list = Str.split_delim (Str.regexp_string "%e") sp in
+       let _ = if not (List.length sp_list = List.length sargs + 1) then
+           raise (Reporting_basic.err_type l "number of arguments and holes do not match in target representation")
+	 else ()
+       in
+       (Target_rep_rhs_special(sk1, sk2, sp, sargs'), CR_special (l, false, CR_special_rep (sp_list, sargs'), args)) 
+  in
   let (ctxt', _) = ctxt_c_env_set_target_rep l ctxt c targ new_rep in
   (ctxt', rhs)
 

@@ -43,22 +43,27 @@ end
 class ( NumNegate 'a ) 
   val ~ [`numNegate`] : 'a -> 'a 
 end
+declare tex target_rep function numNegate = `$-$`
 
 class ( NumAdd 'a ) 
   val (+) [`numAdd`] : 'a -> 'a -> 'a
 end
+declare tex target_rep function numAdd = infix `$+$`
 
 class ( NumMinus 'a ) 
   val (-) [`numMinus`] : 'a -> 'a -> 'a
 end
+declare tex target_rep function numMinus = infix `$-$`
 
 class ( NumMult 'a ) 
   val ( * ) [`numMult`] : 'a -> 'a -> 'a
 end
+declare tex target_rep function numMult = infix `$*$`
 
 class ( NumPow 'a ) 
   val ( ** ) [`numPow`] : 'a -> nat -> 'a
 end
+declare tex target_rep function numPow n m = special "{%e}^{%e}" n m
 
 class ( NumDivision 'a ) 
   val (/) [`numDivision`] : 'a -> 'a -> 'a

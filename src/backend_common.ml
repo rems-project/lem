@@ -76,24 +76,20 @@ let resolve_module_id_ident l env id path : Ident.t =
   resolve_module_path l env id.id_path path
 
 
-let cr_special_uncurry_fun n oL = begin
-  if not (List.length oL = n + 1) then
+let cr_special_uncurry_fun n arg_f name vars argsL = begin
+  if not (List.length argsL = n) then
      raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal (Ast.Unknown, "target presentation of OCaml constructor got the wrong number of args")))
-  else if (n = 0) then oL else
+  else if (n = 0) then [name] else
   if (n = 1) then
-     [List.nth oL 0; texspace; List.nth oL 1]
+     [name; texspace; arg_f (List.nth argsL 0)]
   else
-     [List.hd oL; texspace; meta "("] @
-      Util.intercalate (meta ",") (List.tl oL) @
+     [name; texspace; meta "("] @
+      Util.intercalate (meta ",") (List.map arg_f argsL) @
      [meta ")"]
   end
 
 
-let cr_special_fun_to_fun = function
-  CR_special_uncurry n -> cr_special_uncurry_fun n
-
-
-(** Axiliary function for [inline_exp] *)
+(** Axiliary function for [inline_exp] and [cr_special_rep_fun] *)
 let rec build_subst (params : name_lskips_annot list) (args : exp list) 
       : exp_subst Nfmap.t * name_lskips_annot list * exp list =
   match (params, args) with
@@ -103,6 +99,33 @@ let rec build_subst (params : name_lskips_annot list) (args : exp list)
         let (subst, x, y) = build_subst params args in
         let (a', _) = alter_init_lskips remove_init_ws a in
           (Nfmap.insert subst (Name.strip_lskip p.term, Sub(a')), x, y)
+
+
+let cr_special_rep_fun srepl rep_args env tsubst arg_f name vars (vargsL : exp list) = begin
+  let _ = if ((List.length vargsL = List.length vars) &&
+              (List.length srepl = List.length rep_args + 1)) then () else 
+     raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal (Ast.Unknown, 
+       "special target presentation of OCaml got wrong numer of args")))
+  in 
+  let module C = Exps_in_context(struct let env_opt = Some env;; let avoid = None end) in
+  let (vsubst, _, _) = build_subst vars vargsL in
+  let rep_args' = List.map (C.exp_subst (tsubst,vsubst)) rep_args in
+
+  let args_o = List.map (fun a -> Output.remove_initial_ws (arg_f a)) rep_args' in
+  let srepl_o = List.map meta srepl in
+
+  Util.interleave srepl_o args_o
+end
+
+
+let cr_special_fun_to_fun_pat err = function
+  | CR_special_uncurry n -> cr_special_uncurry_fun n
+  | CR_special_rep _ -> err ()
+
+let cr_special_fun_to_fun_exp env tsubst = function
+  | CR_special_uncurry n -> cr_special_uncurry_fun n
+  | CR_special_rep (srepl, exps) -> cr_special_rep_fun srepl exps env tsubst 
+
 
 let inline_exp l (target : Target.target) env was_infix params body_sk body tsubst (args : exp list) : exp =
   let module C = Exps_in_context(struct let env_opt = Some env;; let avoid = None end) in
@@ -318,7 +341,7 @@ module Make(A : sig
   val env : env;; 
   val target : Target.target;;
   val dir : string;;
-  val id_format_args : (bool -> Output.id_annot -> Ulib.Text.t -> Output.t) * Output.t
+  val id_format_args : (bool -> Output.id_annot -> Ulib.Text.t -> Output.t) * Ulib.Text.t
  end) = struct
 
 
@@ -348,9 +371,9 @@ let fix_module_ident (i : Ident.t) =
   let n' = get_module_name A.env A.target ns n in
   Ident.mk_ident (Ident.get_lskip i) ns' n'
 
-let ident_to_output use_infix backend_used =
+let ident_to_output use_infix from_backend =
   let (ident_f, sep) = A.id_format_args in 
-  Ident.to_output_format (ident_f use_infix) (Term_const backend_used) sep
+  Ident.to_output_format (ident_f use_infix) (Term_const (false, from_backend)) sep
 
 
 let const_ref_to_name n0 use_ascii c =
@@ -416,13 +439,13 @@ let constant_application_to_output_simple is_infix_pos arg_f alter_sk_f args c_i
 end
 
 (* assumes that there are enough arguments, otherwise list_split_after will fail *)
-let constant_application_to_output_special c_id to_out arg_f args vars : Output.t list =
+let constant_application_to_output_special c_id to_out cr_to_fun arg_f args vars : Output.t list =
   let i = const_id_to_ident c_id false in
   let name = ident_to_output false false i in
-  let args_output = List.map arg_f args in
-  let (o_vars, o_rest) = Util.split_after (List.length vars) args_output (* assume there are enough elements *) in
-  let o_fun = (cr_special_fun_to_fun to_out) (name :: o_vars) in
-  o_fun @ o_rest
+  let (a_vars, a_rest) = Util.split_after (List.length vars) args (* assume there are enough elements, because of call discipline *) in
+  let o_fun = (cr_to_fun to_out) arg_f name vars a_vars in
+  o_fun @ List.map arg_f a_rest
+
 
 
 let function_application_to_output l (arg_f0 : exp -> Output.t) (is_infix_pos : bool) (full_exp : exp) (c_id : const_descr_ref id) (args : exp list) (ascii_alternative: bool) : Output.t list =
@@ -433,12 +456,13 @@ let function_application_to_output l (arg_f0 : exp -> Output.t) (is_infix_pos : 
      | Some (CR_special (_, _, to_out, vars)) when not ascii_alternative -> 
             if (List.length args < List.length vars) then begin
               (* eta expand and call recursively *)
-              let remaining_vars = Util.list_dropn (List.length args) vars in
+              let remaining_vars = List.map (fun n -> Name.strip_lskip n.term) (Util.list_dropn (List.length args) vars) in
               let eta_exp = mk_eta_expansion_exp (A.env.t_env) remaining_vars full_exp in
               [arg_f true eta_exp]
               
             end else begin
-              constant_application_to_output_special c_id to_out (arg_f false) args vars 
+              let tsubst = Types.TNfmap.from_list2 c_descr.const_tparams c_id.instantiation in
+              constant_application_to_output_special c_id to_out (cr_special_fun_to_fun_exp A.env tsubst) (arg_f false) args vars 
             end
      | Some (CR_simple (_, _, params,body)) when not ascii_alternative -> begin
          let tsubst = Types.TNfmap.from_list2 c_descr.const_tparams c_id.instantiation in
@@ -464,7 +488,9 @@ let pattern_application_to_output l (arg_f0 : pat -> Output.t) (c_id : const_des
         if (List.length args < List.length vars) then begin
            raise (Reporting_basic.err_unreachable Ast.Unknown "Constructor without enough arguments!")
         end else begin
-           constant_application_to_output_special c_id to_out (arg_f false) args vars 
+           constant_application_to_output_special c_id to_out 
+             (cr_special_fun_to_fun_pat (fun () -> inline_pat_err Ast.Unknown c_descr.const_binding A.target l)) 
+             (arg_f false) args vars 
         end
      | Some (CR_simple (l, _, params,body)) when not ascii_alternative -> begin
          let res_opt = inline_pat Ast.Unknown A.env c_descr c_id args (params, body) in
@@ -506,7 +532,7 @@ let type_id_to_ident (p : Path.t id) = snd (type_id_to_ident_aux p)
 let type_id_to_output (p : Path.t id) =
   let (needs_no_escape, i) = type_id_to_ident_aux p in
   let (_, path_sep) = A.id_format_args in 
-  Ident.to_output (Type_ctor needs_no_escape) path_sep i
+  Ident.to_output (Type_ctor (false, not needs_no_escape)) path_sep i
 
 let type_id_to_ident_no_modify (p : Path.t id) =
   let (ns, n) = Path.to_name_list p.descr in
@@ -520,8 +546,8 @@ let type_app_to_output format p ts =
   let td = Types.type_defs_lookup l A.env.t_env p.descr in
   let sk = ident_get_lskip p in
   match Target.Targetmap.apply_target td.Types.type_target_rep A.target with
-     | None -> (ts, Ident.to_output (Type_ctor false) path_sep (type_id_to_ident p))
-     | Some (TYR_simple (_, _, i)) -> (ts, ws sk ^ Ident.to_output (Type_ctor true) path_sep i)
+     | None -> (ts, Ident.to_output (Type_ctor (false, false)) path_sep (type_id_to_ident p))
+     | Some (TYR_simple (_, _, i)) -> (ts, ws sk ^ Ident.to_output (Type_ctor (false, true)) path_sep i)
      | Some (TYR_subst (_, _, tnvars, t')) -> begin    
          let subst = Types.TNfmap.from_list2 tnvars ts in
          let t'' = src_type_subst subst t' in

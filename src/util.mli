@@ -162,6 +162,10 @@ val list_iter_sep : (unit -> unit) -> ('a -> unit) -> 'a list -> unit
      [a1; sep; ... sep ; an]. *)
 val intercalate : 'a -> 'a list -> 'a list
 
+(** [interleave l1 l2] interleaves lists [l1] and [l2], by alternatingly taking an element of l1 and l2 
+    till one of the lists is empty. Then the remaining elements are added. The first element is from [l1]. *) 
+val interleave : 'a list -> 'a list -> 'a list
+
 (** [replicate n e] creates a list that contains [n] times the element [e]. *)
 val replicate : int -> 'a -> 'a list
 

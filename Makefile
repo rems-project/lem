@@ -32,6 +32,9 @@ ocaml-libs:
 isa-libs: 
 	make -C library isa-libs
 
+coq-libs: 
+	make -C library coq-libs
+
 tex-libs: 
 	make -C library tex-libs
 	cd tex-lib; pdflatex lem-libs.tex

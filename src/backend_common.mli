@@ -88,7 +88,7 @@ module Make(A : sig
   val env : env;; 
   val target : Target.target;;
   val dir : string;;
-  val id_format_args : (bool -> Output.id_annot -> Ulib.Text.t -> Output.t) * Output.t
+  val id_format_args : (bool -> Output.id_annot -> Ulib.Text.t -> Output.t) * Ulib.Text.t
  end) : sig
 
 val open_to_open_target : (Path.t id) list -> (lskips * string) list * lskips

@@ -104,8 +104,10 @@ let get_name (_,_,x) = Name.add_lskip x
 
 let (^) = Output.(^)
 
-let to_output_format ident_f a sep ((sk,ns,n):t) = 
-  Output.ws sk ^ Output.concat sep ((List.map (fun n -> Name.to_output a (Name.add_lskip n)) ns) @ [Name.to_output_format ident_f a (Name.add_lskip n)])
+let to_output_format ident_f a sep ((sk,ns,n):t) =
+  let name_ropes = List.map Name.to_rope (ns @ [n]) in
+  let o = ident_f a (Ulib.Text.concat sep name_ropes) in
+  Output.ws sk ^ o
 
 let to_output = to_output_format Output.id
 

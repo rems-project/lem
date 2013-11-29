@@ -55,29 +55,30 @@
 %formatting for various Lem entities
 \newcommand{\lemkw}[1]{\textsf{#1}}
 
-\newcommand{\lemTermConst}[1]{\textrm{#1}}        
-\newcommand{\lemTermCtor}[1]{\textsc{#1}}         
-\newcommand{\lemComponent}[1]{\textsf{#1}}         
-\newcommand{\lemTermField}[1]{\mathit{#1}}        
-\newcommand{\lemTermMethod}[1]{\mathit{#1}}       
-\newcommand{\lemTermVar}[1]{\mathit{#1}}          
-\newcommand{\lemTermVarToplevel}[1]{\mathit{#1}} 
-\newcommand{\lemTermSpec}[1]{\mathit{#1}}         
-\newcommand{\lemTypeCtor}[1]{\textsc{#1}}         
-\newcommand{\lemModuleName}[1]{\mathit{#1}}       
-\newcommand{\lemClassName}[1]{\mathit{#1}}        
-\newcommand{\lemTarget}[1]{\mathit{#1}}            
+\newcommand{\lemTermConst}[1]{\textrm{#1}}
+\newcommand{\lemTermConstQuote}[1]{\texttt{'#1'}}
+\newcommand{\lemComponent}[1]{\textsf{#1}}
+\newcommand{\lemTermField}[1]{\mathit{#1}}
+\newcommand{\lemTermMethod}[1]{\mathit{#1}}
+\newcommand{\lemTermVar}[1]{\mathit{#1}}
+\newcommand{\lemTermVarToplevel}[1]{\mathit{#1}}
+\newcommand{\lemTermSpec}[1]{\mathit{#1}}
+\newcommand{\lemTypeCtor}[1]{\textsc{#1}}
+\newcommand{\lemTypeCtorQuote}[1]{\texttt{'#1'}}
+\newcommand{\lemModuleName}[1]{\mathit{#1}}
+\newcommand{\lemClassName}[1]{\mathit{#1}}
+\newcommand{\lemTarget}[1]{\mathit{#1}}
 
-\newcommand{\lemTypeVar}[1]{\mathit{'\!#1}}          
-\newcommand{\lemTypeVarA}{\lemTypeVar{a}}          
-\newcommand{\lemTypeVarB}{\lemTypeVar{b}}          
-\newcommand{\lemTypeVarC}{\lemTypeVar{c}}          
+\newcommand{\lemTypeVar}[1]{\mathit{'\!#1}}
+\newcommand{\lemTypeVarA}{\lemTypeVar{a}}
+\newcommand{\lemTypeVarB}{\lemTypeVar{b}}
+\newcommand{\lemTypeVarC}{\lemTypeVar{c}}
 \newcommand{\lemTypeVarD}{\lemTypeVar{d}}
 
 % comment the following re-definintion out, if you prefer 'a instead of \alpha ...
 \renewcommand{\lemTypeVarA}{\alpha}
-\renewcommand{\lemTypeVarB}{\beta}          
-\renewcommand{\lemTypeVarC}{\gamma}          
+\renewcommand{\lemTypeVarB}{\beta}
+\renewcommand{\lemTypeVarC}{\gamma}
 \renewcommand{\lemTypeVarD}{\delta}
 
 
@@ -88,7 +89,7 @@
 % inc macros that allow choosing what exactly to print
 % #1 what to print
 % #2 latex label
-% #3 typeset name (eg to go in index and contents line) 
+% #3 typeset name (eg to go in index and contents line)
 % #4 immediately-preceding comment
 % #5 full def
 % #6 core
@@ -106,4 +107,3 @@
   {label}{#2}
   {name}{#3}}%
   [UNKNOWN ARGUMENT TO lemdefn]}
-

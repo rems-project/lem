@@ -50,14 +50,13 @@ let (^^) = Ulib.Text.(^^^)
 let r = Ulib.Text.of_latin1
 
 type id_annot =  (* kind annotation for latex'd identifiers *)
-  | Term_const of bool
-  | Term_ctor
+  | Term_const of bool * bool
   | Term_field 
   | Term_method 
   | Term_var 
   | Term_var_toplevel
   | Term_spec 
-  | Type_ctor of bool
+  | Type_ctor of bool * bool
   | Type_var
   | Nexpr_var
   | Module_name
@@ -203,6 +202,20 @@ let rec extract_core = function
   | Core t -> [remove_core t]
   | t -> []
 
+let rec remove_initial_ws = function
+  | Inter _ -> Empty
+  | Meta "" -> Empty
+  | Kwd "" -> Empty
+  | Texspace -> Empty
+  | Cons(t1,t2) -> begin
+      match remove_initial_ws t1 with
+        | Empty -> remove_initial_ws t2
+        | t1' -> Cons (t1', t2)
+    end
+  | Block(b,bty,t) -> Block (b, bty, remove_initial_ws t)
+  | Core t -> Core (remove_initial_ws t)
+  | t -> t
+
 
 
 (* ******** *)
@@ -211,7 +224,6 @@ let rec extract_core = function
 
 let pp_raw_id_annot = function
   | Term_const _       -> r"Term_const"       
-  | Term_ctor          -> r"Term_ctor"        
   | Term_field         -> r"Term_field"       
   | Term_method        -> r"Term_method"      
   | Term_var           -> r"Term_var"         
@@ -484,6 +496,7 @@ let tex_escape_aux with_space rr =
          if c=Ulib.UChar.of_char '<'  then r"\\mbox{$<$}" else 
          if c=Ulib.UChar.of_char '>'  then r"\\mbox{$>$}" else 
          if c=Ulib.UChar.of_char '&'  then r"\\&" else 
+         if c=Ulib.UChar.of_char '~'  then r"\\mbox{$\\sim$}" else 
          if c=Ulib.UChar.of_char '\\' then r"\\mbox{$\\backslash{}$}" else 
          if c=Ulib.UChar.of_char '|'  then r"\\mbox{$\\mid$}" else 
          Ulib.Text.of_uchar c)
@@ -496,14 +509,13 @@ let tex_id_wrap a r1 =
   let res no_escape command_name =
      (r"\\" ^^ tex_sty_prefix ^^ r command_name, (if no_escape then r1 else tex_escape r1)) in
   match a with
-  | Term_const no_esc  -> res no_esc "TermConst"        
-  | Term_ctor          -> res false "TermCtor"         
-  | Term_field         -> res false "TermField"        
+  | Term_const (is_quot, is_backend) -> res ((not is_quot) && is_backend) (if is_quot then "TermConstQuote" else "TermConst")          
+  | Term_field         -> res false "TermField"
   | Term_method        -> res false "TermMethod"       
   | Term_var           -> res false "TermVar"          
   | Term_var_toplevel  -> res false "TermVarToplevel" 
   | Term_spec          -> res false "TermSpec"         
-  | Type_ctor no_esc   -> res no_esc "TypeCtor"         
+  | Type_ctor (is_quot, is_backend)  -> res ((not is_quot) && is_backend) (if is_quot then "TypeCtorQuote" else "TypeCtor")          
   | Module_name        -> res false "ModuleName"       
   | Class_name         -> res false "ClassName"        
   | Target             -> res false "Target"            
@@ -575,7 +587,7 @@ let rec to_rope_tex_single t =
   | Inter(Ast.Com(rr)) -> r"\\lemcomm{" ^^ tex_escape_with_space (ml_comment_to_rope rr)  ^^ r"}" 
   | Inter(Ast.Ws(rr)) -> if Ulib.Text.length rr > 0 then r"\\ " ^^ rr else rr
   | Inter(Ast.Nl) -> raise (Failure "Nl in to_rope_tex")
-  | Str(s) ->  quote_string (r"\"") s
+  | Str(s) ->  quote_string (r"\"") (tex_escape s)
   | Err(s) -> raise (Backend(s))
   | Meta(s) -> Ulib.Text.of_latin1 s
   | Texspace -> r""   

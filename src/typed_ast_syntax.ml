@@ -415,7 +415,11 @@ let fix_const_descr_ocaml_constr c_d =
   in if not is_constr then c_d else begin
     (* get the argument types *)
     let (arg_tyL, _) = Types.strip_fn_type None c_d.const_type in
-    let vars = List.map t_to_var_name arg_tyL in
+    let vars = List.map (fun ty ->
+      { term = Name.add_lskip (t_to_var_name ty);
+        locn = Ast.Unknown;
+        typ = ty;
+        rest = (); }) arg_tyL in
 
     let rep = CR_special (c_d.spec_l, true, CR_special_uncurry (List.length arg_tyL), vars) in
     let new_tr = Target.Targetmap.insert c_d.target_rep (Target.Target_ocaml, rep) in
@@ -513,6 +517,7 @@ let rec mk_opt_paren_exp (e :exp) : exp =
       else
         mk_paren_exp e
     | _ -> mk_paren_exp e 
+
 
 let rec may_need_paren (e :exp) : bool = 
   match C.exp_to_term e with

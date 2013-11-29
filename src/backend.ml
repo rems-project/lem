@@ -162,7 +162,7 @@ module type Target = sig
 
   val target : Target.target
 
-  val path_sep : t
+  val path_sep : Ulib.Text.t
   val list_sep : t
 
   (* Types *)
@@ -374,7 +374,7 @@ module Identity : Target = struct
 
   let target = Target_ident
 
-  let path_sep = kwd "."
+  let path_sep = r "."
   let list_sep = kwd ";"
 
   let ctor_typ_end _ _ = emp
@@ -574,7 +574,7 @@ module Tex : Target = struct
 
   let bkwd s = kwd (String.concat "" ["\\lemkw{"; Ulib.Text.to_string (tex_escape (Ulib.Text.of_string s));  "}"])
 
-  let path_sep = kwd "." (* "`" *)
+  let path_sep = r "." (* "`" *)
   let list_sep = kwd ";"
 
   let const_unit s = kwd "(" ^ ws s ^ kwd ")"
@@ -618,7 +618,7 @@ module Tex : Target = struct
   let const_bzero = kwd "#0"
   let const_bone = kwd "#1"
 
-  let backend_quote i = (meta "`") ^ i ^ (meta "`")
+  let backend_quote i = i (* quotation done by latex-macro *)
   let case_start = bkwd "match"
   let case_sep1 = bkwd "with"
   let case_sep2 = kwd "|" ^ texspace
@@ -740,7 +740,7 @@ module Ocaml : Target = struct
 
   let target = Target_no_ident Target_ocaml
 
-  let path_sep = kwd "."
+  let path_sep = r "."
   let backend_quote i = (meta "`") ^ i ^ (meta "`")
 
   let typ_rec_start = kwd "{"
@@ -802,7 +802,7 @@ module Isa : Target = struct
 
   (* TODO : write need_space *)
 
-  let path_sep = kwd "."
+  let path_sep = r "."
   let list_sep = kwd ","
   let backend_quote i = (meta "`") ^ i ^ (meta "`")
 
@@ -988,7 +988,7 @@ module Hol : Target = struct
 
   let target = Target_no_ident Target_hol
 
-  let path_sep = meta "$"
+  let path_sep = r "$"
   let list_sep = kwd ";"
   let backend_quote i = (meta "`") ^ i ^ (meta "`")
 
@@ -1271,7 +1271,7 @@ let rec typ print_backend t = match t.term with
           | Typ_app _ -> B.type_app_to_output (typ print_backend) p ts
           | Typ_backend _ -> (ts, 
 	      let i = Path.to_ident (ident_get_lskip p) p.descr in
-              let i_out = (Ident.to_output (Type_ctor (not print_backend)) T.path_sep (Ident.replace_lskip i None)) in
+              let i_out = (Ident.to_output (Type_ctor (print_backend, true)) T.path_sep (Ident.replace_lskip i None)) in
               ws (Ident.get_lskip i) ^
               if print_backend then
                 T.backend_quote i_out
@@ -1305,7 +1305,7 @@ let field_ident_to_output cd =
 
 let nk_id_to_output (nk : name_kind id) = match nk.id_path with
   | Id_none sk -> ws sk
-  | Id_some i -> (Ident.to_output (Term_const false) T.path_sep i)
+  | Id_some i -> (Ident.to_output (Term_const (false, false)) T.path_sep i)
 
 
 let tyvar tv =
@@ -1323,7 +1323,7 @@ let tyfield print_backend ((n,l),f_ref,s1,t) =
   T.typ_end)
 
 let tyconstr implicit n' tvs ((n,l),c_ref,s1,targs) =
-  Name.to_output (Type_ctor false) (B.const_ref_to_name n false c_ref) ^
+  Name.to_output (Type_ctor (false, false)) (B.const_ref_to_name n false c_ref) ^
   ws s1 ^
   (if Seplist.length targs = 0 then
      T.ctor_typ_end n' tvs
@@ -1383,7 +1383,7 @@ let backend_quote_cond use_quotes o =
 let backend use_quotes sk i =
   ws sk ^
   backend_quote_cond use_quotes (
-    Ident.to_output (Term_const (not use_quotes)) T.path_sep i)
+    Ident.to_output (Term_const (use_quotes, true)) T.path_sep i)
 
 let rec pat print_backend p = match p.term with
   | P_wild(s) ->
@@ -1928,7 +1928,7 @@ let tdef_tvars ml_style tvs =
 
 let tdef_tctor quoted_name tvs n regexp =
   let nout = 
-    if quoted_name then Name.to_output_quoted "\"" "\"" (Type_ctor false) n else Name.to_output (Type_ctor false) n 
+    if quoted_name then Name.to_output_quoted "\"" "\"" (Type_ctor (false, false)) n else Name.to_output (Type_ctor (false, false)) n 
   in
   let regexp_out = 
     match regexp with | None -> emp
@@ -1947,7 +1947,7 @@ let tdef_tctor quoted_name tvs n regexp =
 
 let tdef ((n0,l), tvs, t_path, texp, regexp) =
   let n = B.type_path_to_name n0 t_path in 
-  let n' = Name.to_output (Type_ctor false) n in
+  let n' = Name.to_output (Type_ctor (false, false)) n in
   let tvs' = List.map (fun tn -> (match tn with | Tn_A (x, y, z) -> kwd (Ulib.Text.to_string y)
                                                 | Tn_N (x, y, z) -> kwd (Ulib.Text.to_string y))) tvs in
     tdef_tctor false tvs n regexp ^ tyexp true n' tvs' texp 
@@ -2296,7 +2296,7 @@ let def_to_label_formated_name d : (bool * string * Output.t) = begin match d wi
         match Seplist.to_list defs with
           | [((n, _),_,t_p,_,_)] ->
               (true, "Type_" ^^ Name.to_string (Name.strip_lskip n), 
-               Name.to_output (Type_ctor false) (B.type_path_to_name n t_p))
+               Name.to_output (Type_ctor (false, false)) (B.type_path_to_name n t_p))
           | _ -> (false, "type", emp)
       end
   | (Indreln _ | Val_def _ | Val_spec _) -> begin
@@ -2649,7 +2649,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         ws sk2 ^
         T.bkwd "target_rep" ^
         component_to_output comp ^
-        (Ident.to_output (Term_const false) T.path_sep (B.const_id_to_ident id true)) ^
+        (Ident.to_output (Term_const (false, false)) T.path_sep (B.const_id_to_ident id true)) ^
         (Output.concat emp (List.map (fun n -> Name.to_output Term_var n.term) args)) ^
         ws sk3 ^
         kwd "=" ^ core
@@ -2661,6 +2661,13 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
                T.bkwd "infix" ^
                infix_decl decl ^
                backend true sk2 i
+            end
+          | Target_rep_rhs_special (sk1, sk2, st, eL) -> begin
+               ws sk1 ^
+               T.bkwd "special" ^
+               ws sk2 ^
+               str (Ulib.Text.of_string (T.string_escape st)) ^
+               Output.concat emp (List.map (exp false) eL)
             end
           | _ -> raise (Reporting_basic.err_todo true Ast.Unknown "declaration")
         ) 
@@ -2692,7 +2699,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         ws sk3 ^
         kwd "=" ^
         ws sk4 ^
-        core ((Name.to_output (Term_const false) (Name.add_pre_lskip sk4 (Name.add_lskip n))))
+        core ((Name.to_output (Term_const (false, false)) (Name.add_pre_lskip sk4 (Name.add_lskip n))))
       end
   | Declaration (Decl_rename (sk1, targets, sk2, comp, nk_id, sk3, n)) ->
       if (not (Target.is_human_target T.target)) then emp else begin
@@ -2705,7 +2712,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         nk_id_to_output nk_id ^
         ws sk3 ^
         kwd "=" ^
-        core (Name.to_output (Term_const false) n)
+        core (Name.to_output (Term_const (false, false)) n)
       end
   | Declaration (Decl_rename_current_module (sk1, targets, sk2, sk3, sk4, n)) ->
       if (not (Target.is_human_target T.target)) then emp else begin
@@ -2718,7 +2725,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         T.bkwd "module" ^
         ws sk4 ^
         kwd "=" ^
-        core (Name.to_output (Term_const false) n)
+        core (Name.to_output (Term_const (false, false)) n)
       end
   | Declaration (Decl_compile_message (sk1, targets, sk2, c_id, sk3, sk4, msg)) -> 
       if (not (Target.is_human_target T.target)) then emp else begin
@@ -2727,7 +2734,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         targets_opt targets ^
         ws sk2 ^
         T.bkwd "compile_message" ^
-        (Ident.to_output (Term_const false) T.path_sep (B.const_id_to_ident c_id true)) ^
+        (Ident.to_output (Term_const (false, false)) T.path_sep (B.const_id_to_ident c_id true)) ^
         ws sk3 ^
         kwd "=" ^
         ws sk4 ^
@@ -2740,7 +2747,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         targets_opt targets ^
         ws sk2 ^
         T.bkwd "termination_argument" ^
-        (Ident.to_output (Term_const false) T.path_sep (B.const_id_to_ident c_id true)) ^
+        (Ident.to_output (Term_const (false, false)) T.path_sep (B.const_id_to_ident c_id true)) ^
         ws sk3 ^
         kwd "=" ^ core (
         match term_arg with
@@ -2767,12 +2774,12 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         kwd "[" ^
         flat
           (Seplist.to_sep_list_last Seplist.Optional (fun id ->
-             (Ident.to_output (Term_const false) T.path_sep (B.const_id_to_ident id true)) 
+             (Ident.to_output (Term_const (false, false)) T.path_sep (B.const_id_to_ident id true)) 
            ) (sep (kwd ";")) constr_ids) ^
         ws sk5 ^
         kwd "]" ^
         Util.option_default_map elim_id_opt emp (fun id ->
-          (Ident.to_output (Term_const false) T.path_sep (B.const_id_to_ident id true)))
+          (Ident.to_output (Term_const (false, false)) T.path_sep (B.const_id_to_ident id true)))
       end
   | Comment(d) ->
       let (d',sk) = def_alter_init_lskips (fun sk -> (None, sk)) d in
@@ -2943,7 +2950,7 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
 
 and def callback (inside_module : bool) d is_user_def =
   match T.target with 
-   | Target_no_ident Target_isa  -> isa_def callback inside_module d is_user_def
+   | Target_no_ident Target_isa  -> remove_core (isa_def callback inside_module d is_user_def)
    | Target_no_ident Target_tex  -> 
         if inside_module then 
            remove_core (def_internal callback inside_module d is_user_def)
