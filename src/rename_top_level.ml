@@ -83,7 +83,7 @@ let flatten_modules_macro path env ((d,s),l,lenv) =
       | Module(sk1,n,mod_path,sk2,sk3,ds,sk4) ->
           let mod_shell = ((Module(sk1,n,mod_path,sk2,sk3,[],sk4),s),l,lenv) in
           let com = ((Comment(mod_shell),None),l_unk,lenv) in
-            Some((env,com::ds))
+            Some((env,List.rev (com::ds)))
       | _ -> None
 
 let flatten_modules mod_path e d = 
