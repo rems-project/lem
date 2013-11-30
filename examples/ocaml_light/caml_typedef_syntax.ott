@@ -172,10 +172,6 @@ local open integerTheory sortingTheory floatTheory integer_wordTheory in end;
 val _ = wordsLib.mk_word_size 31;
 }}
 
-{{ lem
-open import Pervasives
-}}
-
 
 {{ tex
 \section{Syntax}

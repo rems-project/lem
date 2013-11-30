@@ -366,7 +366,7 @@ defns
 JTeq :: JT ::=
 
 defn
-E |- typexpr == typexpr' :: :: eq :: eq_ {{ com Type equivalence }} by
+E |- typexpr == typexpr' :: :: eq :: eq_ {{ com Type equivalence }} {{ lemwcf  witness type JTeq_witness; check JTeq_check; }} by
 
 {{ com
 Checks whether two types are related (potentially indirectly) by the type
@@ -415,7 +415,7 @@ defns
 JTidxsub :: JT ::=
 
 defn
-'<<' typexpr1 , .. , typexprn '>>' typexpr' gives typexpr'' :: :: idxsub :: inxsub_ {{ com de Bruin type substitution }} by
+'<<' typexpr1 , .. , typexprn '>>' typexpr' gives typexpr'' :: :: idxsub :: inxsub_ {{ com de Bruin type substitution }} {{ lemwcf  witness type JTidxsub_witness; check JTidxsub_check; }} by
 
 {{ com
 Replaces index 0 position $n$ with the $n$th type in the list, and reduces all
@@ -458,7 +458,7 @@ defns
 JTinst :: JT ::=
 
 defn
-E |- typexpr <= typescheme :: :: inst :: inst_ {{ com de Bruijn type scheme instantiation }} by
+E |- typexpr <= typescheme :: :: inst :: inst_ {{ com de Bruijn type scheme instantiation }} {{ lemwcf  witness type JTinst_witness; check JTinst_check; }} by
 
 {{ com
 Replaces all of the bound variables of a type scheme.
@@ -474,7 +474,7 @@ defns
 JTinst_named :: JT ::=
 
 defn
-E |- typexpr <= forall type_params_opt , typexpr' :: :: inst_named :: inst_named_ {{ com Named type scheme instantiation }} by
+E |- typexpr <= forall type_params_opt , typexpr' :: :: inst_named :: inst_named_ {{ com Named type scheme instantiation }} {{ lemwcf  witness type JTinst_named_witness; check JTinst_named_check; }} by
 
 {{ com
 Replaces all of the bound variables of a named type scheme.
@@ -489,7 +489,7 @@ defns
 JTinst_any :: JT ::=
 
 defn
-E |- typexpr <= typexpr' :: :: inst_any :: inst_any_ {{ com Wildcard type instantiation }} by
+E |- typexpr <= typexpr' :: :: inst_any :: inst_any_ {{ com Wildcard type instantiation }} {{ lemwcf  witness type JTinst_any_witness; check JTinst_any_check; }} by
 
 {{ com
 Replaces $\ottkw{\_}$ type variables with arbitrary types.
@@ -523,7 +523,7 @@ defns
 JTval :: JT ::=
 
 defn
-E |- value_name : typexpr :: :: value_name :: value_name_ {{ com Variable typing }} by
+E |- value_name : typexpr :: :: value_name :: value_name_ {{ com Variable typing }} {{ lemwcf  witness type JTval_witness; check JTval_check; }} by
 
 {{ com
 Determines if a variable can have a specified type.
@@ -540,7 +540,7 @@ E |- value_name:t
 defns
 JTfield :: JT ::=
 defn
-E |- field_name : typexpr -> typexpr' :: :: field :: field_ {{ com Field name typing }} by
+E |- field_name : typexpr -> typexpr' :: :: field :: field_ {{ com Field name typing }} {{ lemwcf  witness type JTfield_witness; check JTfield_check; }} by
 
 {{ com
 Determines the type constructor associated with a given field name.  Since
@@ -560,7 +560,7 @@ defns
 JTconstr_p :: JT ::=
 
 defn
-E |- constr : typexpr1 ... typexprn -> typexpr' :: :: constr_p :: constr_p_ {{ com Non-constant constructor typing }} by
+E |- constr : typexpr1 ... typexprn -> typexpr' :: :: constr_p :: constr_p_ {{ com Non-constant constructor typing }} {{ lemwcf  witness type JTconstr_p_witness; check JTconstr_p_check; }} by
 
 {{ com
 Determines the type constructor associated with a given value constructor.
@@ -587,7 +587,7 @@ defns
 JTconstr_c :: JT ::=
 
 defn
-E |- constr : typexpr :: :: constr_c :: constr_c_ {{ com Constant constructor typing }} by
+E |- constr : typexpr :: :: constr_c :: constr_c_ {{ com Constant constructor typing }} {{ lemwcf  witness type JTconstr_c_witness; check JTconstr_c_check; }} by
 
 {{ com
 Constant constructors are typed like non-constant constructors without
@@ -639,7 +639,7 @@ defns
 JTconst :: JT ::=
 
 defn
-E |- constant : typexpr :: :: const :: const_ {{ com Constant typing }} by
+E |- constant : typexpr :: :: const :: const_ {{ com Constant typing }} {{ lemwcf  witness type JTconst_witness; check JTconst_check; }} by
 
 {{ com
 Determines the type of a constant.
@@ -685,7 +685,7 @@ defns
 JTpat :: JT ::=
 
 defn
-Tsigma & E |- pattern : typexpr gives E' :: :: pat :: pat_ {{ com Pattern typing and binding collection }} by
+Tsigma & E |- pattern : typexpr gives E' :: :: pat :: pat_ {{ com Pattern typing and binding collection }} {{ lemwcf  witness type JTpat_witness; check JTpat_check; }} by
 
 {{ com
 Determines if a pattern matches a value of a certain type, and calculates the
@@ -766,7 +766,7 @@ defns
 JTuprim :: JT ::=
 
 defn
-E |- unary_prim : typexpr :: :: uprim :: uprim_ {{ com Unary primitive typing }} by
+E |- unary_prim : typexpr :: :: uprim :: uprim_ {{ com Unary primitive typing }} {{ lemwcf  witness type JTuprim_witness; check JTuprim_check; }} by
 
 {{ com
 Determines if a unary primitive has a given type.
@@ -798,7 +798,7 @@ defns
 JTbprim :: JT ::=
 
 defn
-E |- binary_prim : typexpr :: :: bprim :: bprim_ {{ com Binary primitive typing }} by
+E |- binary_prim : typexpr :: :: bprim :: bprim_ {{ com Binary primitive typing }} {{ lemwcf  witness type JTbprim_witness; check JTbprim_check; }} by
 
 {{ com
 Determines if a binary primitive has a given type.
@@ -834,7 +834,7 @@ defns
 JTe :: JT ::=
 
 defn
-Tsigma & E |- expr : typexpr :: :: e :: e_ {{ com Expression typing }} by
+Tsigma & E |- expr : typexpr :: :: e :: e_ {{ com Expression typing }} {{ lemwcf  witness type JTe_witness; check JTe_check; }} by
 
 {{ com
 Detremines if an expression has a given type.  Note that
@@ -1029,7 +1029,7 @@ Tsigma & E |- location : t'
 
 
 defn
-Tsigma & E |- pattern_matching : typexpr -> typexpr' :: :: pat_matching :: pat_matching_ {{ com Pattern matching/expression pair typing }} by
+Tsigma & E |- pattern_matching : typexpr -> typexpr' :: :: pat_matching :: pat_matching_ {{ com Pattern matching/expression pair typing }} {{ lemwcf  witness type JTepat_witness; check JTepat_check; }} by
 
 {{ com
 Determines the function type of a sequence of pattern/expression pairs.  The
@@ -1046,7 +1046,7 @@ length (pattern1)...(patternn) >= 1
 Tsigma & E |-  pattern1  -> e1 | ... | patternn  -> en    : t -> t'
 
 defn
-Tsigma & E |- let_binding gives E' :: :: let_binding :: let_binding_ {{ com Let binding typing }} by
+Tsigma & E |- let_binding gives E' :: :: let_binding :: let_binding_ {{ com Let binding typing }} {{ lemwcf  witness type JTeletb_witness; check JTeletb_check; }} by
 
 {{ com
 Determines the types bound by a let bindings pattern.
@@ -1059,7 +1059,7 @@ Tsigma & E |- pattern = expr gives (x1:t1), .., (xn:tn)
 
 
 defn
-Tsigma & E |- letrec_bindings gives E' :: :: letrec_binding :: letrec_binding_ {{ com Recursive let binding typing }} by
+Tsigma & E |- letrec_bindings gives E' :: :: letrec_binding :: letrec_binding_ {{ com Recursive let binding typing }} {{ lemwcf  witness type JTelrb_witness; check JTelrb_check; }} by
 
 {{ com
 Determines the types bound by a recursive let's patterns (which are always just variables).
@@ -1087,7 +1087,7 @@ defns
 JTconstr_decl :: JT ::=
 
 defn
-type_params_opt typeconstr |- constr_decl gives EB :: :: constr_decl :: constr_decl_ {{ com Variant constructor declaration }} by
+type_params_opt typeconstr |- constr_decl gives EB :: :: constr_decl :: constr_decl_ {{ com Variant constructor declaration }} {{ lemwcf  witness type JTconstr_decl_witness; check JTconstr_decl_check; }} by
 
 {{ com
 Collects the constructors of a variant type declaration using named type
@@ -1106,7 +1106,7 @@ defns
 JTfield_decl :: JT ::=
 
 defn
-type_params_opt typeconstr_name |- field_decl gives EB :: :: field_decl :: field_decl_ {{ com Record field declaration }} by
+type_params_opt typeconstr_name |- field_decl gives EB :: :: field_decl :: field_decl_ {{ com Record field declaration }} {{ lemwcf  witness type JTfield_decl_witness; check JTfield_decl_check; }} by
 
 
 {{ com
@@ -1123,7 +1123,7 @@ defns
 JTtypedef :: JT ::=
 
 defn
-|- typedef1 and .. and typedefn gives E' and E'' and E''' :: :: typedef :: typedef_ {{ com Type definitions collection }} by
+|- typedef1 and .. and typedefn gives E' and E'' and E''' :: :: typedef :: typedef_ {{ com Type definitions collection }} {{ lemwcf  witness type JTtypedef_witness; check JTtypedef_check; }} by
 
 {{ com
 A type definition declares several sorts of names: type constructors
@@ -1205,7 +1205,7 @@ defns
 JTtype_definition :: JT ::=
 
 defn
-E |- type_definition gives E' :: :: type_definition :: type_definition_ {{ com Type definition well-formedness and binding collection }} by
+E |- type_definition gives E' :: :: type_definition :: type_definition_ {{ com Type definition well-formedness and binding collection }} {{ lemwcf  witness type JTtype_definition_witness; check JTtype_definition_check; }} by
 
 {{ com 
 Collects the bindings of a type definition and ensures that they are
@@ -1241,7 +1241,7 @@ defns
 JTdefinition :: JT ::=
 
 defn
-E |- definition : E' :: :: definition :: definition_ {{ com Definition typing }} by
+E |- definition : E' :: :: definition :: definition_ {{ com Definition typing }} {{ lemwcf  witness type JTdefinition_witness; check JTdefinition_check; }} by
 
 
 {{ com
@@ -1277,7 +1277,7 @@ defns
 JTdefinitions :: JT ::=
 
 defn
-E |- definitions : E' :: :: definitions :: definitions_ {{ com Definition sequence typing }} by
+E |- definitions : E' :: :: definitions :: definitions_ {{ com Definition sequence typing }} {{ lemwcf  witness type JTdefinitions_witness; check JTdefinitions_check; }} by
 
 {{ com
 Collects the bindings of a definition and ensures that they are well-typed.
@@ -1296,7 +1296,7 @@ defns
 JTprog :: JT ::=
 
 defn
-E |- program : E' :: :: prog :: prog_ {{ com Program typing }} by
+E |- program : E' :: :: prog :: prog_ {{ com Program typing }} {{ lemwcf  witness type JTprog_witness; check JTprog_check; }} by
 
 {{ com
 Checks a progam.
@@ -1317,7 +1317,7 @@ defns
 JTstore :: JT ::=
 
 defn
-E |- store : E' :: :: store :: store_ {{ com Store typing }} by
+E |- store : E' :: :: store :: store_ {{ com Store typing }} {{ lemwcf  witness type JTstore_witness; check JTstore_check; }} by
 
 {{ com
 Checks that the values in a store have types.
@@ -1339,7 +1339,7 @@ JTtop :: JT ::=
 
 defn
 E |- < program , store > : E' :: :: top :: top_ {{ com Top-level typing }} 
-{{ tex [[E]] \vdash \langle [[program]], [[store]] \rangle }} by
+{{ tex [[E]] \vdash \langle [[program]], [[store]] \rangle }} {{ lemwcf  witness type JTtop_witness; check JTtop_check; }} by
 
 {{ com
 Checks the combination of a program with a store.  The store is typed in an
@@ -1359,7 +1359,7 @@ E |- <program, store> : E'@E''
 defns
 JTLin :: JT ::=
 defn
-Tsigma & E |- L      	:: :: Lin :: Lin_ {{ com Label-to-environment extraction }} by
+Tsigma & E |- L      	:: :: Lin :: Lin_ {{ com Label-to-environment extraction }} {{ lemwcf  witness type JTLin_witness; check JTLin_check; }} by
 
 {{ com
 Used in the proof only
@@ -1384,7 +1384,7 @@ Tsigma & E |- location := v
 defns
 JTLout :: JT ::=
 defn
-Tsigma & E |- L gives E'	:: :: Lout :: Lout_ {{ com Label-to-environment extraction }} by
+Tsigma & E |- L gives E'	:: :: Lout :: Lout_ {{ com Label-to-environment extraction }} {{ lemwcf  witness type JTLout_witness; check JTLout_check; }} by
 
 {{ com
 Used in the proof only

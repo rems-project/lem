@@ -241,9 +241,15 @@ let pp_raw_bool = function
   | true  -> r"true"
   | false -> r"false"
 
+let wrap_paren_star x = r"(*" ^^ x ^^ r"*)"
+
 let rec ml_comment_to_rope = function
   | Ast.Chars(r) -> r
-  | Ast.Comment(coms) -> r"(*" ^^ Ulib.Text.concat (r"") (List.map ml_comment_to_rope coms) ^^ r"*)"
+  | Ast.Comment(coms) -> wrap_paren_star (Ulib.Text.concat (r"") (List.map ml_comment_to_rope coms))
+
+let ml_comment_to_rope' = function
+  | Ast.Chars(r) -> r
+  | Ast.Comment(coms) -> Ulib.Text.concat (r"") (List.map ml_comment_to_rope coms)
 
 let rec pp_raw_t t = 
   match t with
@@ -584,7 +590,43 @@ let rec to_rope_tex_single t =
   | Kwd(s) ->  Ulib.Text.of_latin1 s
   | Ident(a,r) -> to_rope_tex_ident a r
   | Num(i) ->  Ulib.Text.of_latin1 (string_of_int i)
-  | Inter(Ast.Com(rr)) -> r"\\lemcomm{" ^^ tex_escape_with_space (ml_comment_to_rope rr)  ^^ r"}" 
+  | Inter(Ast.Com(rr)) -> 
+      (* experiment in supporting
+         -  (*tex FOO*) to inline FOO directly in latex backend 
+         -  (*--- FOO*) to suppress the comment altogether in latex backend
+
+         To test, make in tests/backends/textests and compare 
+         out10.lem and Out10.pdf.
+
+         Within a top-level item it appears to work.
+
+         At top-level it doesn't - we have to identify the top-level
+         comments which should not be associated to the preceding or
+         following definitions (eg if they are separated by a blank
+         line from them). IIRC Thomas removed some old code and a
+         constructor recently that used to do something like that?
+
+         This commit also doesn't:
+         - cope with the possibility of an Ast.Chars that isn't
+            wrapped in an Ast.Comment (I don't know whether that can
+            occur)
+         - suppress (*tex *) and (*--- *) comments in other backends
+         - support analogous (*coq *), (*hol *), (*isa *), or (*html *)
+
+         If we still had the tabbing version of \lemdefn (which maybe
+         also dealt with long lines better than we do now? - see
+         out10.lem for that too) then one could use (*tex \=*) and
+         suchlike to manually control tabstops where necessary.
+       *)
+      let x = ml_comment_to_rope' rr in
+      let texprefix = r"tex " in
+      let suppressprefix = r"--- " in
+      if Ulib.Text.starts_with x texprefix then
+        Ulib.Text.tail x (Ulib.Text.length texprefix)
+      else if Ulib.Text.starts_with x suppressprefix then
+        r"" 
+      else
+        r"\\lemcomm{" ^^ tex_escape_with_space (wrap_paren_star x)  ^^ r"}" 
   | Inter(Ast.Ws(rr)) -> if Ulib.Text.length rr > 0 then r"\\ " ^^ rr else rr
   | Inter(Ast.Nl) -> raise (Failure "Nl in to_rope_tex")
   | Str(s) ->  quote_string (r"\"") (tex_escape s)
