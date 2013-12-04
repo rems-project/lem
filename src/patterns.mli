@@ -107,6 +107,11 @@ val is_ocaml_pattern_match : match_check_arg
 val is_pattern_match_const : bool -> match_check_arg
 
 (** {2 Other pattern functions } *)
+
+(** [checked_number_patterns env p] checks that all number patterns which are part of [p] are
+    of type nat or natural. *)
+val check_number_patterns : env -> pat -> unit
+
 (** [remove_function env case_f e] replaces the function expression [e] with with [fun x -> match x with ...].
     The function [case_f] is then applied to the new match-expression. *)
 val remove_function : env -> (exp -> exp) -> exp -> exp option

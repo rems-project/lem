@@ -274,20 +274,20 @@ let test56 (x:t3) =
 end
 
 let test57 x =
-  match x with
+  match (x:nat) with
     | 1 -> (2 : nat)
     | 3 -> 4
   end
 
 let test58 x =
-  match x with
+  match (x:nat) with
     | 1 -> (2 : nat)
     | 3 -> 4
     | 3 -> 5
   end
 
 let test59 x =
-  match x with
+  match (x:nat) with
     | n + 3 -> (2 : nat)
     | 2 -> 1
     | n + 4 -> 5
@@ -295,13 +295,24 @@ let test59 x =
   end
 
 let test60 x =
-  match x with
+  match (x:nat) with
     | n + 31 -> "31 <= x"
     | n + 29 -> "29 <= x < 31"
   end
 
 let test61 x =
-  match x with
+  match (x:nat) with
+    | n + 50 -> "50 <= x"
+    | 40 -> "x = 40"
+    | n + 31 -> "x <> 40 && 31 <= x < 50"
+    | 29 -> "x = 29"
+    | n + 30 -> "x = 30"
+    | 4 -> "x = 4"
+    | _ -> "x <> 4 && x <> 29 && x < 30"
+  end
+
+let test61a x =
+  match (x:natural) with
     | n + 50 -> "50 <= x"
     | 40 -> "x = 40"
     | n + 31 -> "x <> 40 && 31 <= x < 50"

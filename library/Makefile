@@ -29,6 +29,10 @@ tex-libs:
 	make -C ..
 	../lem -tex_all ../tex-lib/lem-libs.tex -wl ign -wl_auto_import err ${LIBS} 
 
+html-libs:
+	make -C ..
+	../lem -html -outdir ../html-lib -wl ign -wl_auto_import err ${LIBS} 
+
 ocaml-lib-tests: 
 	@mkdir -p ${OCAML_BUILD_DIR}
 	@rm -f ocaml-build-dir

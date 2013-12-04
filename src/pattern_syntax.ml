@@ -164,11 +164,10 @@ let rec dest_num_pat (p :pat) : int option =
 
 let is_num_pat p = not (dest_num_pat p = None)
 
-let mk_num_pat i = 
+let mk_num_pat num_ty i = 
   let l = Ast.Trans (false, "mk_num_pat", None) in
-  let nat_ty = { Types.t = Types.Tapp ([], Path.natpath)} in
-  let lit = C.mk_lnum l None i nat_ty in
-  C.mk_plit l lit (Some nat_ty)
+  let lit = C.mk_lnum l None i num_ty in
+  C.mk_plit l lit (Some num_ty)
 
 let rec dest_num_add_pat (p :pat) : (Name.t * int) option =
   match p.term with
@@ -177,11 +176,11 @@ let rec dest_num_add_pat (p :pat) : (Name.t * int) option =
   | P_typ(_,p,_,_,_) -> dest_num_add_pat p
   | _ -> None
 
-let is_num_add_pat p = not (dest_num_add_pat p = None)
+let is_num_add_pat p = 
+  not (dest_num_add_pat p = None)
 
-let mk_num_add_pat n i = 
+let mk_num_add_pat num_ty n i = 
   let l = Ast.Trans (false, "mk_num_add_pat", None) in
-  let num_ty = { Types.t = Types.Tapp ([], Path.natpath)} in
   mk_paren_pat (C.mk_pnum_add l (Name.add_lskip n,l) space space i (Some num_ty))
 
 let num_ty_pat_cases f_v f_i f_a f_w f_else p =

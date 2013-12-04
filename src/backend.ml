@@ -851,7 +851,7 @@ module Isa : Target = struct
   let fun_start = emp
   let fun_end = emp
   let fun_kwd = meta "\\<lambda>"
-  let fun_sep = meta "."
+  let fun_sep = meta ". "
 
   let record_assign = kwd "="
   let recup_start = emp

@@ -160,7 +160,7 @@ let _ =
 let check_modules env modules =
   (* The checks. Modify these lists to add more. *)
   let exp_checks env = [Patterns.check_match_exp_warn env; Syntactic_tests.check_id_restrict_e env] in
-  let pat_checks env = [Syntactic_tests.check_id_restrict_p env] in
+  let pat_checks env = [Syntactic_tests.check_id_restrict_p env; Patterns.check_number_patterns env] in
   let def_checks env = [Patterns.check_match_def_warn env;
                         Syntactic_tests.check_decidable_equality_def env;
 		        Syntactic_tests.check_positivity_condition_def] in
