@@ -1,4 +1,4 @@
-7(**************************************************************************)
+(**************************************************************************)
 (*                        Lem                                             *)
 (*                                                                        *)
 (*          Dominic Mulligan, University of Cambridge                     *)
@@ -315,9 +315,13 @@ let pat_matrix_to_exp org_l env ((input, rows, _) : pat_matrix) : exp =
   let mk_tup_ty (tyL: Types.t list) : Types.t option = Some ({ Types.t = (Types.Ttup tyL); }) in
 
   let from_list xL = Seplist.from_list (List.map (fun x -> (x, None)) xL) in
-  let in_e = C.mk_tup l None (from_list input) None (mk_tup_ty (List.map exp_to_typ  input))  in
+  let in_e = match input with
+    | [i'] -> i'
+    | _ -> C.mk_tup l None (from_list input) None (mk_tup_ty (List.map exp_to_typ  input))  in
   let row_to_pat_exp ((_, pL, ee) : pat_matrix_row)  =
-    let p = C.mk_ptup l None (from_list pL) None (mk_tup_ty (List.map annot_to_typ pL)) in
+    let p = match pL with
+      | [p'] -> p'
+      | _ -> C.mk_ptup l None (from_list pL) None (mk_tup_ty (List.map annot_to_typ pL)) in
     let e = extended_exp_to_exp ee in
     (p, e) in
   let rows' = List.map row_to_pat_exp rows  in
@@ -1554,12 +1558,12 @@ let rec collapse_nested_matches mca env exp =
 (******************************************************************************)
 
 let is_supported_pat_matrix loc mca env m = 
-  (List.for_all (mca.pat_OK env) (pat_matrix_pats m)) &&  
+  (List.for_all (mca.pat_OK env) (pat_matrix_pats m)) (* check not necessary thanks to following cleanup &&  
     (match check_match_exp env (pat_matrix_to_exp loc env m) with None -> false | Some mp -> begin
     (List.for_all (mca.pat_OK env) (List.flatten mp.missing_pats)) &&
     (mp.is_exhaustive || mca.allow_non_exhaustive) &&
     (mp.redundant_pats = [] || mca.allow_redundant)
-  end)
+  end)*)
 
 let cleanup_match_exp env add_missing e = 
   let l = exp_to_locn e in 
@@ -1614,7 +1618,8 @@ let rec pat_matrix_compile (l : Ast.l) mca env (undef_exp : exp) (cf : matrix_co
   else if (is_trivial_pat_matrix m_simp) then
      trivial_pat_matrix_to_exp m_simp
   else if (is_supported_pat_matrix l mca env m_simp) then
-     pat_matrix_to_exp l env m_simp
+     let res = pat_matrix_to_exp l env m_simp in
+     Util.option_default res (cleanup_match_exp env (not mca.allow_non_exhaustive) res)
   else begin
     let col_no = pat_matrix_compile_find_col m_simp in
     let (top_fun, mL) = pat_matrix_compile_step cf col_no m_simp in
