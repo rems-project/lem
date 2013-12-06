@@ -24,8 +24,8 @@ declare coq      target_rep type either = `sum`
 
 declare isabelle target_rep function Left  = `Inl`
 declare isabelle target_rep function Right = `Inr`
-declare ocaml    target_rep function Left  = `Left`
-declare ocaml    target_rep function Right = `Right`
+declare ocaml    target_rep function Left  l = `Left` l
+declare ocaml    target_rep function Right r = `Right` r
 declare hol      target_rep function Left  = `INL`
 declare hol      target_rep function Right = `INR`
 declare coq      target_rep function Left  = `inl`

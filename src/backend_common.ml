@@ -75,7 +75,6 @@ let resolve_type_id_ident l env id path : Ident.t =
 let resolve_module_id_ident l env id path : Ident.t =
   resolve_module_path l env id.id_path path
 
-
 let cr_special_uncurry_fun n arg_f name vars argsL = begin
   if not (List.length argsL = n) then
      raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal (Ast.Unknown, "target presentation of OCaml constructor got the wrong number of args")))
@@ -87,7 +86,6 @@ let cr_special_uncurry_fun n arg_f name vars argsL = begin
       Util.intercalate (meta ",") (List.map arg_f argsL) @
      [meta ")"]
   end
-
 
 (** Axiliary function for [inline_exp] and [cr_special_rep_fun] *)
 let rec build_subst (params : name_lskips_annot list) (args : exp list) 

@@ -9,16 +9,16 @@ The command-line-option `-tex` generates separate LaTeX files for each input fil
 
 
 ### LaTeX Macro Names
-The `...-inc` files contain macros that allow type-setting single definitions from the original input. As far as possible, the names of the macros are derived from the name of the defined entity. We have
+The `...-inc.tex` files contain macros that allow type-setting single definitions from the original input. As far as possible, the names of the macros are derived from the name of the defined entity. We have
 
 - the definition of a function `myfun` generates a macro `\LEMmyfun`
 - the definition of a type `mytype` generates a macro `\LEMTypeMytype`
 - the definition of a relation `myrel` generates a macro `\LEMmyrel`
 - val-specification of a function `myfun` generates a macro `\LEMValspecMyfun`
 
-Other entities like declarations, class definitions etc. do not get predictable names currently. 
+Other entities like declarations, class definitions etc. do not get predictable names currently. Please have a look at the content of the `...-use_inc.tex` or `...-inc.tex` file to figure out the generated name for these.
 
-If the names of macros derived by the scheme above clash, a number is added at the end. Because LaTeX does not allow digets in macro names, these numbers are expressed as English words. Name clashes happen, if there are several definitions of a function, which sometimes happens since you might prefer a different definition depending on the target. If having a val-specification for a function `myfun`, as well as a OCaml specific, a HOL and Isabelle specific and Coq specific one, these generates the macros `\LEMValspecMyfun`, `\LEMmyfun`, `\LEMm yfunZero`, `\LEMmyfunOne`, `\LEMmyfunTwo`. 
+If the names of macros derived by the scheme above clash, a number is added at the end. Because LaTeX does not allow digets in macro names, these numbers are expressed as English words. Name clashes happen, if there are several definitions of a function, which sometimes happens since you might prefer a different definition depending on the target. If having a val-specification for a function `myfun`, as well as a OCaml specific, a HOL and Isabelle specific and Coq specific one, these generates the macros `\LEMValspecMyfun`, `\LEMmyfun`, `\LEMmyfunZero`, `\LEMmyfunOne`, `\LEMmyfunTwo`. 
 
 
 ### LaTeX Macro Usage
@@ -36,4 +36,7 @@ There are the following arguments available:
 - `label` print the label that is used by `def` and `defWithComment`.
 
 If you want to learn about details or add your own argument values, please have a look at the definition of macro `\lemdefn` in file `tex-lib/lem.sty`.
+
+### Libraries
+Running `make tex-libs` in Lem's main directory generates LaTeX output for Lem's library. By running Pdflatex on this output a file `tex-lib/lem-libs.pdf` is generated, which can be used as library documentation. Moreover, there are also `lem-libs.tex`, `lem-libs-inc.tex` and `lem-libs-use_inc.tex`, which can be used as described above.
 

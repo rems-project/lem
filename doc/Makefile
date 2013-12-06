@@ -9,7 +9,8 @@ INPUT_FILES := \
     backend_isa.md \
     backend_coq.md \
     backend_tex.md \
-    backend_html.md 
+    backend_html.md \
+  library.md \
 
 all: lem-manual.html lem-manual.pdf
 
