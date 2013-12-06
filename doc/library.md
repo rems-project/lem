@@ -11,3 +11,4 @@ Lem leaves the choice to the user, whether the main library or the extended libr
 ## Library documentation
 For an overview of the Lem library, please generate the pdf-file
 `tex-lib/lem-libs.pdf` by running `make tex-libs`. If you are just interested in the interface, consider running `lem -print_env library/pervasives_extra.lem`.
+
