@@ -225,7 +225,7 @@ let string_lits_isa _ e =
         None
       else begin
         let f = mk_const_exp env l_unk "nat_list_to_string" [] in
-        let nums = List.map mk_num_exp chars in
+        let nums = List.map (mk_num_exp nat_ty) chars in
         let char_list = Seplist.from_list_default None nums in
         let char_list_exp = C.mk_list l_unk None char_list None { Types.t =
           Types.Tapp([nat_ty], Path.listpath) } in

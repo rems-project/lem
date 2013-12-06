@@ -137,14 +137,14 @@ val dest_num_pat : pat -> int option
 (** [is_num_pat p] checks whether [p] is a number pattern. *)
 val is_num_pat : pat -> bool
 
-(** [mk_num_pat i] makes a number pattern. *)
-val mk_num_pat : int -> pat
+(** [mk_num_pat num_ty i] makes a number pattern. *)
+val mk_num_pat : Types.t -> int -> pat
 
 (** [dest_num_add_pat p] destructs number addition literal patterns *)
 val dest_num_add_pat : pat -> (Name.t * int) option
 
-(** [mk_num_add_pat i] makes a number addition pattern. *)
-val mk_num_add_pat : Name.t -> int -> pat
+(** [mk_num_add_pat num_ty i] makes a number addition pattern. *)
+val mk_num_add_pat : Types.t -> Name.t -> int -> pat
 
 (** [is_num_add_pat p] checks whether [p] is a number addition pattern. *)
 val is_num_add_pat : pat -> bool

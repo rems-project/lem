@@ -487,10 +487,10 @@ let dest_num_exp e =
 
 let is_num_exp e = not (dest_tf_exp e = None)
 
-let mk_num_exp i = 
+let mk_num_exp num_ty i = 
   let l = Ast.Trans (false, "mk_num_exp", None) in
-  let lit = C.mk_lnum l None i nat_ty in
-  C.mk_lit l lit (Some nat_ty)
+  let lit = C.mk_lnum l None i num_ty in
+  C.mk_lit l lit (Some num_ty)
 
 let mk_paren_exp e =
      let (e', ws) = alter_init_lskips remove_init_ws e in
@@ -615,52 +615,28 @@ let rec mk_and_exps env el : exp =
     | e1 :: e2 :: es ->
       mk_and_exp env e1 (mk_and_exps env (e2 :: es))
 
-
 let mk_le_exp env (e1 : exp) (e2 : exp) : exp =
-  let l = Ast.Trans (true, "mk_le_exp", None) in
-  let ty_0 = { Types.t = Types.Tfn (nat_ty, bool_ty) } in
-  let ty_1 = { Types.t = Types.Tfn (nat_ty, ty_0) } in
+  let l = Ast.Trans (true, "mk_le_exp", None) in  
+  let num_ty = exp_to_typ e1 in
+  let ty_0 = { Types.t = Types.Tfn (num_ty, bool_ty) } in
+  let ty_1 = { Types.t = Types.Tfn (num_ty, ty_0) } in
 
-  let (le_id, _) = get_const_id env l "less_equal" [nat_ty] in
+  let (le_id, _) = get_const_id env l "less_equal" [num_ty] in
 
   let le_exp = C.mk_const l le_id (Some ty_1) in
   let res = C.mk_infix l e1 le_exp e2 (Some bool_ty) in
   res
 
-let mk_add_exp env (e1 : exp) (e2 : exp) : exp =
-  let l = Ast.Trans (true, "matrix_compile_mk_add", None) in
-  let ty_0 = { Types.t = Types.Tfn (nat_ty, nat_ty) } in
-  let ty_1 = { Types.t = Types.Tfn (nat_ty, ty_0) } in
-
-  let (add_id, _) = get_const_id env l "addition" [] in
-  let add_exp = C.mk_const l add_id (Some ty_1) in
-  let res = C.mk_infix l e1 add_exp e2 (Some nat_ty) in
-  res
-
 let mk_sub_exp env (e1 : exp) (e2 : exp) : exp =
   let l = Ast.Trans (true, "matrix_compile_mk_sub", None) in
-  let ty_0 = { Types.t = Types.Tfn (nat_ty, nat_ty) } in
-  let ty_1 = { Types.t = Types.Tfn (nat_ty, ty_0) } in
+  let num_ty = exp_to_typ e1 in
+  let ty_0 = { Types.t = Types.Tfn (num_ty, num_ty) } in
+  let ty_1 = { Types.t = Types.Tfn (num_ty, ty_0) } in
 
-  let (sub_id, _) = get_const_id env l "subtraction" [nat_ty] in
+  let (sub_id, _) = get_const_id env l "subtraction" [num_ty] in
   let sub_exp = C.mk_const l sub_id (Some ty_1) in
-  let res = C.mk_infix l e1 sub_exp e2 (Some nat_ty) in
+  let res = C.mk_infix l e1 sub_exp e2 (Some num_ty) in
   res
-
-let mk_num_add_exp env n i = 
-  let l = Ast.Trans (true, "mk_num_add_exp", None) in
-  let e1 = C.mk_var l (Name.add_lskip n) nat_ty in
-  let e2 = mk_num_exp i in
-  let ee = mk_add_exp env e1 e2 in
-  mk_opt_paren_exp ee
-
-let mk_num_sub_exp env n i = 
-  let l = Ast.Trans (true, "mk_num_sub_exp", None) in
-  let e1 = C.mk_var l  (Name.add_lskip n) nat_ty in
-  let e2 = mk_num_exp i in
-  let ee = mk_sub_exp env e1 e2 in
-  mk_opt_paren_exp ee
-
 
 let mk_from_list_exp env (e : exp) : exp =
   let l = Ast.Trans (true, "mk_from_list_exp", None) in

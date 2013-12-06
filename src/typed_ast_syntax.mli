@@ -285,7 +285,7 @@ val dest_num_exp : exp -> int option
 val is_num_exp : exp -> bool
 
 (** [mk_num_exp] creates a number literal expression. *)
-val mk_num_exp : int -> exp
+val mk_num_exp : Types.t -> int -> exp
 
 (** [is_empty_backend_exp] checks whether the expression is [``] *)
 val is_empty_backend_exp : exp -> bool
@@ -306,21 +306,9 @@ val mk_and_exps : env -> exp list -> exp
     to lookup the less-equal constant. *)
 val mk_le_exp : env -> exp -> exp -> exp
 
-(** [mk_add_exp env e1 e2] constructs the expression [e1 + e2]. The environment [env] is needed
-    to lookup the add constant. *)
-val mk_add_exp : env -> exp -> exp -> exp
-
 (** [mk_sub_exp env e1 e2] constructs the expression [e1 - e2]. The environment [env] is needed
     to lookup the subtraction constant. *)
 val mk_sub_exp : env -> exp -> exp -> exp
-
-(** [mk_num_add_exp env n i] constructs the expression [(n + i)]. The environment [env] is needed
-    to lookup the add constant. *)
-val mk_num_add_exp : env -> Name.t -> int -> exp
-
-(** [mk_num_sub_exp env n i] constructs the expression [(n - i)]. The environment [env] is needed
-    to lookup the sub constant. *)
-val mk_num_sub_exp : env -> Name.t -> int -> exp
 
 (** [mk_from_list_exp env e] constructs the expression [Set.from_list e]. The environment [env] is needed
     to lookup the from-list constant. *)

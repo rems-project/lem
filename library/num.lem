@@ -33,7 +33,6 @@ class inline ( Numeral 'a )
   val fromNumeral : numeral -> 'a 
 end
 
-
 (* ========================================================================== *)
 (* Syntactic type-classes for common operations                               *)
 (* ========================================================================== *)
@@ -355,11 +354,13 @@ end
 val natMin : nat -> nat -> nat
 let inline natMin = defaultMin
 declare ocaml    target_rep function natMin = `min`
+declare isabelle target_rep function natMin = `min`
 declare hol      target_rep function natMin = `MIN`
 declare coq      target_rep function natMin = `nat_min`
 
 val natMax : nat -> nat -> nat
 let inline natMax = defaultMax
+declare isabelle target_rep function natMax = `max`
 declare ocaml    target_rep function natMax = `max`
 declare hol      target_rep function natMax = `MAX`
 declare coq      target_rep function natMax = `nat_max`
@@ -520,12 +521,14 @@ end
 
 val naturalMin : natural -> natural -> natural
 let inline naturalMin = defaultMin
+declare isabelle target_rep function naturalMin = `min`
 declare ocaml    target_rep function naturalMin = `Big_int.min_big_int`
 declare hol      target_rep function naturalMin = `MIN`
 declare coq      target_rep function naturalMin = `nat_min`
 
 val naturalMax : natural -> natural -> natural
 let inline naturalMax = defaultMax
+declare isabelle target_rep function naturalMax = `max`
 declare ocaml    target_rep function naturalMax = `Big_int.max_big_int`
 declare hol      target_rep function naturalMax = `MAX`
 declare coq      target_rep function naturalMax = `nat_max`
@@ -691,12 +694,14 @@ end
 
 val intMin : int -> int -> int
 let inline intMin = defaultMin
+declare isabelle target_rep function intMin = `min`
 declare ocaml    target_rep function intMin = `min`
 declare hol      target_rep function intMin = `int_min`
 declare coq      target_rep function intMin = `Zmin`
 
 val intMax : int -> int -> int
 let inline intMax = defaultMax
+declare isabelle target_rep function intMax = `max`
 declare ocaml    target_rep function intMax = `max`
 declare hol      target_rep function intMax = `int_max`
 declare coq      target_rep function intMax = `Zmax`
@@ -863,12 +868,14 @@ end
 
 val integerMin : integer -> integer -> integer
 let inline integerMin = defaultMin
+declare isabelle target_rep function integerMin = `min`
 declare ocaml    target_rep function integerMin = `Big_int.min_big_int`
 declare hol      target_rep function integerMin = `int_min`
 declare coq      target_rep function integerMin = `Zmin`
 
 val integerMax : integer -> integer -> integer
 let inline integerMax = defaultMax
+declare isabelle target_rep function integerMax = `max`
 declare ocaml    target_rep function integerMax = `Big_int.max_big_int`
 declare hol      target_rep function integerMax = `int_max`
 declare coq      target_rep function integerMax = `Zmax`
@@ -910,6 +917,29 @@ assert nat_test23 : (succ 12 = (13 : nat))
 assert nat_test24 : (succ 0 = (1 : nat))
 assert nat_test25 : (pred 12 = (11 : nat))
 assert nat_test26 : (pred 0 = (0 : nat))
+assert nat_test27 : (match (27:nat) with
+    | 0 -> false
+    | x + 2 -> (x = 25)
+    | x + 1 -> (x = 26)
+  end)
+assert nat_test28a : (match (27:nat) with
+    | n + 50 -> "50 <= x"
+    | 40 -> "x = 40"
+    | n + 31 -> "x <> 40 && 31 <= x < 50"
+    | 29 -> "x = 29"
+    | n + 30 -> "x = 30"
+    | 4 -> "x = 4"
+    | _ -> "x <> 4 && x <> 29 && x < 30"
+  end = "x <> 4 && x <> 29 && x < 30")
+assert nat_test28b : (match (30:nat) with
+    | n + 50 -> "50 <= x"
+    | 40 -> "x = 40"
+    | n + 31 -> "x <> 40 && 31 <= x < 50"
+    | 29 -> "x = 29"
+    | n + 30 -> "x = 30"
+    | 4 -> "x = 4"
+    | _ -> "x <> 4 && x <> 29 && x < 30"
+  end = "x = 30")
 
 
 
@@ -939,6 +969,29 @@ assert natural_test23 : (succ 12 = (13 : natural))
 assert natural_test24 : (succ 0 = (1 : natural))
 assert natural_test25 : (pred 12 = (11 : natural))
 assert natural_test26 : (pred 0 = (0 : natural))
+assert natural_test27 : (match (27:natural) with
+    | 0 -> false
+    | x + 2 -> (x = 25)
+    | x + 1 -> (x = 26)
+  end)
+assert natural_test28a : (match (27:natural) with
+    | n + 50 -> "50 <= x"
+    | 40 -> "x = 40"
+    | n + 31 -> "x <> 40 && 31 <= x < 50"
+    | 29 -> "x = 29"
+    | n + 30 -> "x = 30"
+    | 4 -> "x = 4"
+    | _ -> "x <> 4 && x <> 29 && x < 30"
+  end = "x <> 4 && x <> 29 && x < 30")
+assert natural_test28b : (match (30:natural) with
+    | n + 50 -> "50 <= x"
+    | 40 -> "x = 40"
+    | n + 31 -> "x <> 40 && 31 <= x < 50"
+    | 29 -> "x = 29"
+    | n + 30 -> "x = 30"
+    | 4 -> "x = 4"
+    | _ -> "x <> 4 && x <> 29 && x < 30"
+  end = "x = 30")
 
 
 assert int_test1 : (2 + (5 : int) = 7)

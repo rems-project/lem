@@ -888,7 +888,7 @@ module Make_checker(T : sig
   (* -------------------------------------------------------------------------- *)
 
   (* Corresponds to judgment check_lit '|- lit : t' *)
-  let check_lit t_ret (Ast.Lit_l(lit,l)) =
+  let check_lit is_pattern t_ret (Ast.Lit_l(lit,l)) =
     let annot (lit : lit_aux) (t : t) : lit = 
       { term = lit; locn = l; typ = t; rest = (); } 
     in 
@@ -897,6 +897,8 @@ module Make_checker(T : sig
       | Ast.L_false(sk) -> annot (L_false(sk)) { t = Tapp([], Path.boolpath) }
       | Ast.L_num(sk,i) -> 
           C.add_constraint (External_constants.class_label_to_path "class_numeral") t_ret;
+          if is_pattern then C.add_constraint (External_constants.class_label_to_path "class_ord") t_ret else ();
+          if is_pattern then C.add_constraint (External_constants.class_label_to_path "class_num_minus") t_ret else ();
           annot (L_num(sk,i)) t_ret 
       | Ast.L_string(sk,i) ->
           annot (L_string(sk,i)) { t = Tapp([], Path.stringpath) }
@@ -1133,12 +1135,12 @@ module Make_checker(T : sig
               (A.mk_pcons l pat1 sk pat2 rt, pat_e)
         | Ast.P_num_add(xl,sk1,sk2,i) ->
             let nl = xl_to_nl xl in
-            let ax = C.new_type () in
-            C.equate_types l "addition pattern" ret_type { t = Tapp([], Path.natpath) };
-            C.equate_types (snd nl) "addition pattern" ax ret_type;
-          (A.mk_pnum_add l nl sk1 sk2 i rt, add_binding acc nl ax)
+            let _ = C.add_constraint (External_constants.class_label_to_path "class_numeral") ret_type in
+            let _ = C.add_constraint (External_constants.class_label_to_path "class_ord") ret_type in
+            let _ = C.add_constraint (External_constants.class_label_to_path "class_num_minus") ret_type in
+          (A.mk_pnum_add l nl sk1 sk2 i rt, add_binding acc nl ret_type)
         | Ast.P_lit(lit) ->
-            let lit = check_lit { t = Tapp([], Path.natpath) } lit in
+            let lit = check_lit true ret_type lit in
               C.equate_types l "literal pattern" ret_type lit.typ;
               (A.mk_plit l lit rt, acc)
 
@@ -1380,7 +1382,7 @@ module Make_checker(T : sig
               C.equate_types l ":: expression" ret_type (exp_to_typ e);
               e
         | Ast.Lit(lit) ->
-            let lit = check_lit ret_type lit in
+            let lit = check_lit false ret_type lit in
               C.equate_types l "literal expression" ret_type lit.typ;
               A.mk_lit l lit rt
         | Ast.Set(sk1,es,sk2,semi,sk3) -> 
