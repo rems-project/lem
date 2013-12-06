@@ -73,9 +73,9 @@ let lib_paths_ref = ref ([] : string list)
 let allow_reorder_modules = ref true
 
 let options = Arg.align ([
-  ( "-i", 
-    Arg.String (fun l -> lib := l::!lib),
-    " treat the file as input only and generate no output for it");
+  ( "-ocaml", 
+    Arg.Unit (add_backend (Target.Target_no_ident Target.Target_ocaml)),
+    " generate OCaml");
   ( "-tex", 
     Arg.Unit (add_backend (Target.Target_no_ident Target.Target_tex)),
     " generate LaTeX for each module separatly");
@@ -88,9 +88,6 @@ let options = Arg.align ([
   ( "-hol", 
     Arg.Unit (add_backend (Target.Target_no_ident Target.Target_hol)),
     " generate HOL");
-  ( "-ocaml", 
-    Arg.Unit (add_backend (Target.Target_no_ident Target.Target_ocaml)),
-    " generate OCaml");
   ( "-isa",
     Arg.Unit (add_backend (Target.Target_no_ident Target.Target_isa)),
     " generate Isabelle");
@@ -102,19 +99,24 @@ let options = Arg.align ([
     " generate Lem output after simple transformations");
   ( "-ident",
     Arg.Unit (add_backend Target.Target_ident),
-    " generate input on stdout");
-  ( "-print_env",
-    Arg.Unit (fun b -> opt_print_env := true),
-    " print the environment signature on stdout");
+    " generate input on stdout\n\n");
+
   ( "-lib", 
     Arg.String (fun l -> lib_paths_ref := l :: (!lib_paths_ref)),
     " add path to library path; if no lib is given the default '"^(default_library)^")' is used. Set LEMLIB environment variable to change this default.");
+  ( "-no_dep_reorder", 
+    Arg.Unit (fun b -> allow_reorder_modules := false),
+    " prohibit reordering modules given to lem as explicit arguments in order during dependency resolution\n\n");
+
   ( "-outdir", 
     Arg.String (fun l -> out_dir := Some l),
     " the output directory (the default is the dir the files reside in)");
-  ( "-v",
-    Arg.Unit (fun b -> opt_print_version := true),
-    " print version");
+  ( "-i", 
+    Arg.String (fun l -> lib := l::!lib),
+    " treat the file as input only and generate no output for it");
+  ( "-only_changed_output",
+    Arg.Unit (fun b -> Process_file.always_replace_files := false),
+    " generate only output files, whose content really changed compared to the existing file");
   ( "-only_auxiliary",
     Arg.Unit (fun b -> Process_file.only_auxiliary := true),
     " generate only auxiliary output files");
@@ -124,30 +126,31 @@ let options = Arg.align ([
        | "none" -> 0
        | "auto" -> 1
        | _ -> 2))),
-    " generate no (none) auxiliary-information, only auxiliaries that can be handled automatically (auto) or all (all) auxiliary information");
+    " generate no (none) auxiliary-information, only auxiliaries that can be handled automatically (auto) or all (all) auxiliary information\n\n");
+
+  ( "-debug",
+    Arg.Unit (fun b -> Printexc.record_backtrace true),
+    " print a backtrace for all errors (lem needs to be compiled in debug mode)");
+  ( "-print_env",
+    Arg.Unit (fun b -> opt_print_env := true),
+    " print the environment signature on stdout");
   ( "-add_loc_annots", 
     Arg.Unit (fun b -> Backend_common.def_add_location_comment_flag := true),
     " add location annotations to the output");
-  ( "-no_dep_reorder", 
-    Arg.Unit (fun b -> allow_reorder_modules := false),
-    " prohibit reordering modules given to lem as explicit arguments in order during dependency resolution");
+  ( "-v",
+    Arg.Unit (fun b -> opt_print_version := true),
+    " print version");
   ( "-ident_pat_compile",
     Arg.Unit (fun b -> Target_trans.ident_force_pattern_compile := true; Reporting.ignore_pat_compile_warnings()),
     " activates pattern compilation for the identity backend. This is used for debugging.");
   ( "-ident_dict_passing",
     Arg.Unit (fun b -> Target_trans.ident_force_dictionary_passing := true),
-    " activates dictionary passing transformations for the identity backend. This is used for debugging.");
-  ( "-only_changed_output",
-    Arg.Unit (fun b -> Process_file.always_replace_files := false),
-    " generate only output files, whose content really changed compared to the existing file");
-  ( "-debug",
-    Arg.Unit (fun b -> Printexc.record_backtrace true),
-    " print a backtrace for all errors (lem needs to be compiled in debug mode)")
+    " activates dictionary passing transformations for the identity backend. This is used for debugging.\n\n");
 ] @ Reporting.warn_opts)
 
 let usage_msg = 
     ("Lem " ^ Version.v ^ "\n"
-     ^ "example usage:       lem -hol -ocaml -lib ../lem/library test.lem\n" 
+     ^ "example usage:       lem -hol -ocaml test.lem\n" 
     )
 
 let _ = 
