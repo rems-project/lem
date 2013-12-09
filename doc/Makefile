@@ -12,6 +12,7 @@ INPUT_FILES := \
     backend_html.md \
   library.md \
   own_lem_files.md \
+  language.md \
   backend_linking.md \
   typeclasses.md \
   refactoring.md \
