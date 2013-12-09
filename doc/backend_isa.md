@@ -4,7 +4,7 @@ The command line option `-isa` instructs Lem to generate Isabelle/HOL output. A 
 
 ### Generating Isabelle Library
 Lem-generated Isabelle theories depend on some Lem-specific Isabelle theories as well as Isabelle versions of the Lem library. Calling `make isa-libs` in Lem's main directory generates these files in subdirectory `isa_lib`. In contrast to the HOL and OCaml libraries 
-the generation of the libraries does not trigger automatic tests. If you want to check the sanity of the library, please use run 
+the generation of these libraries does not trigger automatic tests. If you want to check the sanity of the library, please use 
 `make isa-lib-tests` in subdirectory library. This creates a directory
 `library/isa-build-dir` and the library auxiliary files within this directory. Moreover, there is a file `LemTests.thy`, which imports all other files and is therefore useful for testing all these files in Isabelle. 
 

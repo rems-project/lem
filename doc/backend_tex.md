@@ -14,15 +14,15 @@ The `...-inc.tex` files contain macros that allow type-setting single definition
 - the definition of a function `myfun` generates a macro `\LEMmyfun`
 - the definition of a type `mytype` generates a macro `\LEMTypeMytype`
 - the definition of a relation `myrel` generates a macro `\LEMmyrel`
-- val-specification of a function `myfun` generates a macro `\LEMValspecMyfun`
+- a val-specification of a function `myfun` generates a macro `\LEMValspecMyfun`
 
-Other entities like declarations, class definitions etc. do not get predictable names currently. Please have a look at the content of the `...-use_inc.tex` or `...-inc.tex` file to figure out the generated name for these.
+Other entities like declarations, class definitions etc. do not currently get predictable names. Please have a look at the content of the `...-use_inc.tex` or `...-inc.tex` file to figure out the generated name for these.
 
-If the names of macros derived by the scheme above clash, a number is added at the end. Because LaTeX does not allow digets in macro names, these numbers are expressed as English words. Name clashes happen, if there are several definitions of a function, which sometimes happens since you might prefer a different definition depending on the target. If having a val-specification for a function `myfun`, as well as a OCaml specific, a HOL and Isabelle specific and Coq specific one, these generates the macros `\LEMValspecMyfun`, `\LEMmyfun`, `\LEMmyfunZero`, `\LEMmyfunOne`, `\LEMmyfunTwo`. 
+If the names of macros derived by the scheme above clash, a number is added at the end. Because LaTeX does not allow digets in macro names, these numbers are expressed as English words. Name clashes happen if there are several definitions of a function, which sometimes happens since you might prefer a different definition depending on the target. If there is a val-specification for a function `myfun`, as well as an OCaml-specific, a HOL and Isabelle-specific and Coq-specific one, these generates the macros `\LEMValspecMyfun`, `\LEMmyfun`, `\LEMmyfunZero`, `\LEMmyfunOne`, `\LEMmyfunTwo`. 
 
 
 ### LaTeX Macro Usage
-By default, macros print there full definition without any preceding comment, but with a LaTeX `label` that allows referring to that definition. The generated LaTeX macros accept an optional argument though, that changes this behaviour. So, for example `\LEMmyfun` prints the definition of the function `myfun`, whereas `\LEMmyfun[name]` prints only the type-set name of `myfun`. 
+By default, macros print their full definition without any preceding comment, but with a LaTeX `label` that allows referring to that definition. The generated LaTeX macros accept an optional argument that changes this behaviour. So, for example `\LEMmyfun` prints the definition of the function `myfun`, whereas `\LEMmyfun[name]` prints only the type-set name of `myfun`. 
 There are the following arguments available:
 
 - `default` same as not providing an argument, alias for `def`

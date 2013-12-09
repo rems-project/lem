@@ -1,18 +1,18 @@
-# Writing your own Lem-files
+# Writing your own Lem files
 
-Lem's syntax broadly follows OCaml syntax, the libraries follow the Haskell libraries. Here, only a few selected points of Lem's syntax and its features are discussed. To learn more about its syntax, please have a look at the file `language/lem.pdf`. Another possibility is having a look at the Lem-library in the `library`-directory or at the tests in directory `tests`, especially `tests/backends`.
+Lem's syntax broadly follows OCaml syntax, while the libraries follow the Haskell libraries. Here, only a few selected points of Lem's syntax and its features are discussed. To learn more about its syntax, please have a look at the file `doc/lem.pdf`. Another possibility is having a look at the Lem-library in the `library`-directory or at the tests in directory `tests`, especially `tests/backends`.
 
 ## Header
 
 ### Importing Library
-A lem-file usually starts with importing the appropriate library. Without such an import, even very simple operations like boolean conjunction are not available. The user has the choice of either importing the main library or the extended library. The main library 
+A Lem file usually starts with importing the appropriate library. Without such an import, even very simple operations like boolean conjunction are not available. The user thus has the choice of either importing the main library or the extended library. The main library 
 contains total, terminating functions that we believe are well-specified enough to be portable across all backends. All other functions are placed in the extended library. 
 
 The main library is imported by
 
     open import Pervasives
 
-the extended one by
+and the extended one by
 
     open import Pervasives_extra
 	
@@ -69,7 +69,7 @@ Lem allows inlined constant definitions. These definitions are essentially macro
 
     let inline isEmptyList l = (l = [])
 	
-It is an as simple, straightforward definition, that you might want to generate special target definitions for it. An `inline` definition
+It is a simple, straightforward definition, that you might not want to generate special target definitions for. An `inline` definition
 allows using the function `isEmptyList` in Lem. It is also used in the HTML, Latex, Identity and Refactoring backends. All other backends replace it with the right hand side though. So, Lem would not define HOL4 function for `isEmptyList`, but replace every occurrence of it with the definition.
 
 In order to allow this inlining, the definition has to be simple. Arguments are just allowed to be variables and inlined definition may not be recursive. Moreover, they may not have any type-class constraints attached. 
@@ -98,7 +98,7 @@ Recursive definitions require termination (or well-foundedness) proofs in the th
 
 
 ## Assertions / Lemmata / Theorems
-Lem allows the user to write assertions, lemmata and theorems. These are named boolean expressions, which the user assumes to be true. For the append function on lists, one could for example write:
+Lem allows the user to write assertions, lemmata and theorems. These are named boolean expressions, which the user desires to be true. For the append function on lists, one could for example write:
 
     assert append_test_1: [(2:nat); 3] ++ [4;5] = [2;3;4;5]
     lemma append_spec: (forall l. [] ++ l = l) && (forall x xs ys. (x :: xs) ++ ys = x :: (xs ++ ys))
@@ -112,7 +112,7 @@ Writing assertions allows an easy way to unit-test specifications. Lemmata and t
 
 
 ## Renaming
-The naming conventions of our backends differ. Therefore, it might be benefitial to use different names depending on the backend. Renaming can also be used to avoid name clashes with existing backend functions or just to avoid confusion when similar names already are used for the backend. For example, there is already a HOL4 function `symmetric`. To avoid confusion with the Lem function `isSymmetric` the Lem one can easily be renamed:
+The naming conventions of our backends differ. Therefore, it might be beneficial to use different names depending on the backend. Renaming can also be used to avoid name clashes with existing backend functions or just to avoid confusion when similar names already are used for the backend. For example, there is already a HOL4 function `symmetric`. To avoid confusion with the Lem function `isSymmetric` the Lem one can easily be renamed:
 
     declare {hol} rename function isSymmetric = lem_is_symmetric
 

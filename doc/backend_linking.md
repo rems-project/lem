@@ -1,17 +1,17 @@
 # Linking to existing Backend Libraries
 
-Lem allows to use existing backend libraries from your Lem-development. This is done by target-specific imports and target-specific representations.
+Lem allows one to use existing backend libraries from your Lem-development. This is done by target-specific imports and target-specific representations.
 
 ## Target specific imports
-Before using an existing target library, it usually needs to be loaded. There are target-specific `open`, `import` and `include` statements that allow instructing Lem to generate output that loads an existing backend library. These statements are very similar to the corresponding statements for Lem modules. However, they allow specifying targets and the modules are quoted. While -- generalising the Lem staments - many possible combinations are allowed, in practise only `open import` statements are used. 
+Before using an existing target library, it usually needs to be loaded. There are target-specific `open`, `import` and `include` statements that allow instructing Lem to generate output that loads an existing backend library. These statements are very similar to the corresponding statements for Lem modules. However, they allow specifying targets and the modules are quoted. While - generalising the Lem staments - many possible combinations are allowed, in practice only `open import` statements are used. 
 
-As an example, consider Lem's relation library. It wants to map some of it's existing definintion to HOL functions defined in the HOL4 theory `set_relation`. To load this theory for HOL, Lem's relation library contains the statement
+As an example, consider Lem's relation library. Some of its existing definitions should be mapped to HOL functions defined in the HOL4 theory `set_relation`. To load this theory for HOL, Lem's relation library contains the statement
 
     open import {hol} `set_relationTheory`
 	
 
 ## Simple Target Representations
-A `target_rep` declaration allows specifing, which _existing_ target function should be used for a Lem-specific one. The boolean conjunction operator is for example mapped as follows
+A `target_rep` declaration allows specifing which _existing_ target function should be used for a Lem-specific one. The boolean conjunction operator is for example mapped as follows
     
     val not : bool -> bool
     let not b = match b with

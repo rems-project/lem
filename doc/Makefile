@@ -31,3 +31,5 @@ lem-manual.html : lem-manual.md
 lem-manual.pdf : lem-manual.md
 	pandoc -s --number-sections --toc lem-manual.md -o lem-manual.pdf
 
+lem.pdf: 
+	make -C ../language && cp ../language/lem.pdf .

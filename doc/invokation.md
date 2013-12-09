@@ -4,11 +4,11 @@ The most basic usage of Lem is running a command like
 
     lem input1.lem ... inputn.lem -target
 
-This command loads the lem files `input1.lem` till `inputn.lem` and outputs their translation to target `target` in the same directory as the input files. Multiple target arguments are possible. For example
+This command loads the lem files `input1.lem` through `inputn.lem` and outputs their translation to target `target` in the same directory as the input files. Multiple target arguments are possible. For example
 
     lem name1.lem name2.lem -ocaml -hol -isa -coq 
 
-creates the following files (assuming there are no type errors, no explicit renaming in the source files):
+creates the following files (assuming there are no type errors, and no explicit renaming in the source files):
   
   - `name1.ml` and `name2.ml` for target `ocaml`
   - `name1Script.sml`, `name2Script.sml` for target `hol`
@@ -17,11 +17,11 @@ creates the following files (assuming there are no type errors, no explicit rena
 
 There are auxiliary files generated as well, which are discussed later.
 
-Lem has many command line options to configure it's behaviour. Running `lem --help` provides a short documentation of these options. The most common ones are explained below.
+Lem has many command line options to configure its behaviour. Running `lem --help` provides a short documentation of these options. The most common ones are explained below.
 
 
 ## Backends
-The following command line options tell Lem to generate output for certain backends. They are discussed in more detail in the corresponding backend section later. Notice that multiple backend options can be given in order to generate output for more than one backend.
+The following command line options tell Lem to generate output for certain backends. They are discussed in more detail in the corresponding backend sections later. Notice that multiple backend options can be given in order to generate output for more than one backend.
 
 - `-ocaml` generate OCaml output
 - `-hol`  generate HOL4 output
@@ -30,7 +30,7 @@ The following command line options tell Lem to generate output for certain backe
 
 - `-tex`  generate LaTeX output for each module separately. This means that for each input file, a separate output `.tex` file is created. These files contain the pretty-printed input.
 
-- `-tex_all output_filename.tex` generate LaTeX output in a single file. All input files are added as separate sections to the file `output_filename.tex` and a TOC is added before.
+- `-tex_all output_filename.tex` generate LaTeX output in a single file. All input files are added as separate sections to the file `output_filename.tex` and a table of contents is added before.
 
 - `-html` generate HTML output for each module separately
 
@@ -40,20 +40,20 @@ The following command line options tell Lem to generate output for certain backe
 ## Dependency Resolution / Libraries
 Lem by default searches the given input files for explicit *import* statements. It then tries to load the imported modules from either the directory of the files importing them or from one of the library directories. Lem only generates output for the files given explicitly as arguments. No output is generated for automatically imported files.
 
-By default Lem uses the directory `library` as its library directory. This can be changed by either setting the environment-variable `LEMLIB` or by using the command-line argument `-lib`. Multiple usages of `-lib` allow using more than one library directory. Sometimes, users might be interested when a module is imported and from which file. Setting the warning-level of auto-imports to `warn` via the command-line option `-wl_auto_import warn` allows to keep track of auto-imports. Setting it to `err` via `-wl_auto_import err` turns off automatic imports and therefore requires the user to explicitly provide all needed input files on the command line. Notice however, that still dependency resolution happens between these explicitly given files and they might be processed in a different order than specified. To turn of resorting the explicit inputs, one can use the command-line flag `-no_dep_reorder`. When providing all inputs explicitly, it might be interesting to turn off output for some of them via the command-line argument `-i`.
+By default Lem uses the directory `library` as its library directory. This can be changed by either setting the environment-variable `LEMLIB` or by using the command-line argument `-lib`. Multiple usages of `-lib` allow using more than one library directory. Sometimes, users might be interested when a module is imported and from which file. Setting the warning-level of auto-imports to `warn` via the command-line option `-wl_auto_import warn` allows to keep track of auto-imports. Setting it to `err` via `-wl_auto_import err` turns off automatic imports and therefore requires the user to explicitly provide all needed input files on the command line. Notice however, that dependency resolution still happens between these explicitly given files and they might be processed in a different order than specified. To turn off resorting the explicit inputs, one can use the command-line flag `-no_dep_reorder`. When providing all inputs explicitly, it might be useful to turn off output for some of them via the command-line argument `-i`.
 
 
 ## Output Directory
-By default output files are generated in the same directory as the corresponding input file. This is even the case, if input files life in multiple directories. For example
+By default, output files are generated in the same directory as the corresponding input file. This remains the case even if input files come from multiple directories. For example
 
     lem -tex dir1/file1.lem dir2/file2.lem
 
-generates the files `dir1/File1.tex` and `dir2/File2.tex`. The command line option `-outdir` allows to specify a different output directory. When using `-outdir` 
-all explicitly given input files need to live in the same directory.
+generates the files `dir1/File1.tex` and `dir2/File2.tex`. The command line option `-outdir` allows one to specify a different output directory. When using `-outdir` 
+all explicitly, the given input files need to live in the same directory.
 
 
 ## Auxiliary Output
-Lem generates two kinds of output files, the main output and *auxiliary* outputs. Auxiliary outputs do not contain the main specification, but some related content that might be useful to the user. Examples for such auxiliary output are templates for termination proofs of recursive functions. Other are proof obligations generated by explicit lemmata as well as automatic consistency checks. This kind of auxiliary output should be copied by the user manually to some other files and be used there in whatever way the user thinks best. However, there is also auxiliary output that can be processed completely automatically. Examples are assertions, which for the Ocaml and HOL backends generate executable tests.
+Lem generates two kinds of output files, the main output and *auxiliary* outputs. Auxiliary outputs do not contain the main specification, but some related content that might be useful to the user. Examples of such auxiliary output are templates for termination proofs of recursive functions. Other are proof obligations generated by explicit lemmata as well as automatic consistency checks. This kind of auxiliary output should be copied by the user manually to some other files and be used there in whatever way the user thinks best. However, there is also auxiliary output that can be processed completely automatically. Examples are assertions, which for the Ocaml and HOL backends generate executable tests.
 
 By default Lem generates all available auxiliary output. The command-line option `-auxiliary_level` can be used to control this behaviour. By default it is set to `full`. The command line option
 `-auxiliary_level auto` causes only automatically processable output like testing code of assertions to be generated. `-auxiliary_level none` turns off the generation of auxiliary files. One can also turn off the generation of the main files and only generate the auxiliary ones using `-only_auxiliary`. 
@@ -69,7 +69,7 @@ Lem can print warning messages about various things. Common warnings are about u
 - `verb` print a verbose warning message and continue
 - `err` stop with a verbose error message
   
-The option `-wl` controls all warning messages at once. This is useful to turn off e.g. all warning messages off (`-wl ign`). It can also be used to first turn all messages off and then activate selected ones again to concentrate on certain problems with the input. `-wl ign -wl_rename warn` causes - for example - Lem to print only warnings about renamings of constants. So, the user can look the renamings up and provide manual renamings, which generally look better than the auto-generated ones. Later, when there should be no auto-renamings any more, one could enforce this property by using `-wl_rename err`. 
+The option `-wl` controls all warning messages at once. This is useful to turn off all warning messages (`-wl ign`). It can also be used to first turn all messages off and then activate selected ones again to concentrate on certain problems with the input. `-wl ign -wl_rename warn` causes - for example - Lem to print only warnings about renamings of constants. So, the user can look the renamings up and provide manual renamings, which generally look better than the auto-generated ones. Later, when there should be no auto-renamings any more, one could enforce this property by using `-wl_rename err`. 
 
 There are currently the following warnings. Since this list changes frequently, it is recommended to check the warning-options for your version of Lem via `lem --help`. This also prints the default setting for these warning options.
 
@@ -87,7 +87,7 @@ There are currently the following warnings. Since this list changes frequently, 
 
 - `-wl_no_dec_eq` warning level of equality of type is undecidable
 
-- `-wl_pat_comp` warning level of pattern compilation. This causes a warning message, if certain patterns are not natively supported by a backend and therefore need pattern compilation. Since pattern compilation changes the input significantly, sometimes users might prefer to write the pattern match in a style supported by the backend.
+- `-wl_pat_comp` warning level of pattern compilation. This causes a warning message if certain patterns are not natively supported by a backend and therefore need pattern compilation. Since pattern compilation changes the input significantly, sometimes users might prefer to write the pattern match in a style supported by the backend.
 
 - `-wl_pat_exh` warning level of non-exhaustive pattern matches 
 
@@ -97,23 +97,25 @@ There are currently the following warnings. Since this list changes frequently, 
 
 - `-wl_rename` warning level of automatic renamings 
 
-- `-wl_resort` warning level of resorted record fields and function clauses. Some backends require the fields of a record to be given in the same order as in the definition of the record type. Lem is more relaxed but warns if it needs to resort. Similarly some backends require the clauses of mutually recursive function definitions to be grouped together, which might require resorting.
+- `-wl_resort` warning level of re-sorted record fields and function clauses. Some backends require the fields of a record to be given in the same order as in the definition of the record type. Lem is more relaxed but warns if it needs to re-sort. Similarly, some backends require the clauses of mutually recursive function definitions to be grouped together, which might require resorting.
 
-- `-wl_unused_vars` warning level of unused variables. To turn of this warning of a certain variable change the variable name to start with an underscore. So for a variable `_x` for example no warning is issued.
-
-
+- `-wl_unused_vars` warning level of unused variables. To turn off this warning of a certain variable, one can change the variable name to start with an underscore. For example, for a variable `_x` no warning is issued.
 
 
-## Miscellaneous Command-Line-Options
 
-- `-ident` generate the input on stdout. This is used for debugging Lem.
-- `-debug` print a backtrace for all errors. This is used for debugging Lem. In order for it to work, Lem needs to be compiled in debug mode (which is done by default). 
+
+## Miscellaneous Command-Line Options
 
 - `-print_env` print the environment signature on stdout. This feature gives a very brief overview of the current state and allows for example to get a short list of all the types and functions defined in a certain module.
 
 - `-add_loc_annots` add location annotations to the output. 
 
 - `-v` print Lem's version
+
+## Command-line Options for Debugging
+
+- `-ident` generate the input on stdout. This is used for debugging Lem.
+- `-debug` print a backtrace for all errors. This is used for debugging Lem. In order for it to work, Lem needs to be compiled in debug mode (which is done by default). 
 
 - `-ident_pat_compile` activates pattern compilation for the identity backend. This is used for debugging.
 
