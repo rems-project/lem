@@ -811,7 +811,7 @@ let generate_coq_record_update_notation e =
             ]
       | Comment c ->
       	let ((def_aux, skips_opt), l, lenv) = c in
-        let skips = match skips_opt with None -> emp | Some s -> ws s in
+        let skips = match skips_opt with None -> from_string "\n" | Some s -> ws s in
           Output.flat [
       		  skips; from_string "(* "; def inside_instance callback inside_module def_aux; from_string " *)"
           ]
