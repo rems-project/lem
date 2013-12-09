@@ -22,7 +22,7 @@ declare coq      target_rep type maybe 'a = `option` 'a
 declare ocaml    target_rep type maybe 'a = `option` 'a
 
 declare hol      target_rep function Just = `SOME`
-declare ocaml    target_rep function Just x = `Some` x
+declare ocaml    target_rep function Just = `Some`
 declare isabelle target_rep function Just = `Some`
 declare coq      target_rep function Just = `Some`
 
