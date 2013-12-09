@@ -14,6 +14,11 @@ lem.tex ../src/ast.ml lemScript.sml: lem.ott
 	ott  -ocaml_include_terminals true -o lem.tex -o ../src/ast.ml -o lemScript.sml -picky_multiple_parses true lem.ott
 	chmod a-w ../src/ast.ml
 
+# for ascii grammar
+foo:
+	ott  -alltt out.tex -showraw true -picky_multiple_parses true lem.ott
+
+
 lem-inc.tex: lem.hacked.ott Makefile
 	ott  -ocaml_include_terminals true -o lem-inc.pre.tex -tex_wrap false -picky_multiple_parses true lem.hacked.ott
 	sed 's/\\_aux//g' lem-inc.pre.tex > lem-inc.tex
