@@ -573,6 +573,15 @@ let generate_coq_record_update_notation e =
       DefaultMap.find k !initial_default_map
     ;;
 
+    type assoc
+      = NoAssoc
+      | LeftAssoc
+      | RightAssoc
+    ;;
+
+    module AssocMap = Map.Make (struct type t = string let compare = Pervasives.compare end)
+    ;;
+
     let rec def_extra (inside_instance: bool) (callback: def list -> Output.t) (inside_module: bool) (m: def_aux) =
       match m with
         | Lemma (skips, lemma_typ, targets, (name, _), skips', e) ->
@@ -627,6 +636,8 @@ let generate_coq_record_update_notation e =
           let handle_mod (sk, md) = begin
             Output.flat [
               from_string "Require Import "; ws sk; from_string md; from_string ".\n"
+              (* XXX: as Lem assumes files imported in one file are implicitly exported too. *)
+            ; from_string "Require Export "; ws sk; from_string md; from_string ".\n"
             ]
           end in
           if (not (in_target targets)) then emp else Output.flat (List.map handle_mod mod_descrs)
@@ -669,25 +680,50 @@ let generate_coq_record_update_notation e =
             ) body
           in
           let notations = List.flatten (List.map snd body_notations) in
-          let rec generate_notations notations =
+          let assoc_map =
+            List.fold_right (fun (x, y) -> AssocMap.add x y) [
+              ("mod", (40, NoAssoc))
+            ; ("+", (50, LeftAssoc))
+            ; ("-", (50, LeftAssoc))
+            ; ("*", (40, LeftAssoc))
+            ; ("/", (40, LeftAssoc))
+            ] AssocMap.empty
+          in
+          let rec generate_notations assoc_map notations =
             match notations with
               | [] -> emp
               | (infix, name)::xs ->
-                let tail = generate_notations xs in
+                let tail = generate_notations assoc_map xs in
                 let name = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip name)) in
                 let infix = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip infix)) in
-                Output.flat [
-                  from_string "Notation \" X \'"; from_string infix; from_string "\' Y\" := ("
-                ; from_string name; from_string " X Y) (at level 70, no associativity)."
-                ; from_string "\n"; tail
-                ]
+                let associativity =
+                  try
+                    let (level, assoc) = AssocMap.find infix assoc_map in
+                    let assoc =
+                      match assoc with
+                        | NoAssoc -> from_string "no associativity"
+                        | LeftAssoc -> from_string "left associativity"
+                        | RightAssoc -> from_string "right associativity"
+                    in
+                      Output.flat [
+                        from_string "(at level "; from_string (string_of_int level)
+                      ; from_string ", "; assoc; from_string ")"
+                      ]
+                  with Not_found ->
+                    from_string "(at level 70, no associativity)"
+                in
+                  Output.flat [
+                    from_string "Notation \" X \'"; from_string infix; from_string "\' Y\" := ("
+                  ; from_string name; from_string " X Y) "; associativity
+                  ; from_string ".\n"; tail
+                  ]
           in
           let body = Output.concat (from_string ";") (List.map fst body_notations) in
           Output.flat [
             ws skips; from_string "Class"; ws skips'; name; from_string " ("; tv; from_string ": Type): Type := {"
           ; ws skips''; body
           ; from_string "\n}."; ws skips'''
-          ; generate_notations notations
+          ; generate_notations assoc_map notations
           ]
       | Instance (Ast.Inst_default skips, i_ref, inst, vals, skips') -> emp
            (* Don't generate default instances, they are only used for explicit inlining by Lem *)
