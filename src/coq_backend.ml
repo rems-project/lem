@@ -1595,7 +1595,7 @@ let generate_coq_record_update_notation e =
               ]
             | Nvar x ->
               Output.flat [
-                from_string "("; x; from_string " : num)"
+                from_string "("; x; from_string " : nat)"
               ]) vars
       in
         concat_str " " mapped
@@ -1698,6 +1698,26 @@ let generate_coq_record_update_notation e =
             Output.flat [
               from_string " "; concat_str " " mapped
             ]
+    and default_type_variables tvs =
+      match tvs with
+        | [] -> emp
+        | [Typed_ast.Tn_A tv] -> from_string "{" ^ tyvar tv ^ from_string ": Type}"
+        | tvs ->
+          let mapped = List.map (fun t ->
+            match t with
+              | Typed_ast.Tn_A (_, tv, _) ->
+                let tv = from_string @@ Ulib.Text.to_string tv in
+                  Output.flat [
+                    from_string "{"; tv; from_string ": Type}"
+                  ]
+              | Typed_ast.Tn_N nv ->
+                  Output.flat [
+                    from_string "{"; from_string "nv: nat}"
+                  ]) tvs
+          in
+            Output.flat [
+              from_string " "; concat_str " " mapped
+            ]
     and indreln_typ t =
       match t.term with
         | Typ_wild skips -> ws skips ^ from_string "_"
@@ -1787,7 +1807,7 @@ let generate_coq_record_update_notation e =
           else
             from_string " "
         in
-        let tnvar_list' = type_def_type_variables tnvar_list in
+        let tnvar_list' = default_type_variables tnvar_list in
         let default = generate_default_value_texp t in
         let mapped = concat_str " " @@ List.map (fun x ->
           match x with
