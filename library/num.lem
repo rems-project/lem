@@ -158,14 +158,14 @@ type int32
 declare ocaml    target_rep type int32 = `int32`
 declare coq      target_rep type int32 = `Z`       (* ???: better type for this in Coq? *)
 declare isabelle target_rep type int32 = `int`     (* ???: better type for this in Isa? *)
-declare hol      target_rep type int32 = `integer` (* ???: better type for this in HOL? *)
+declare hol      target_rep type int32 = `int`     (* ???: better type for this in HOL? *)
 
 (* 64 bit integers *)
 type int64
 declare ocaml    target_rep type int64 = `int64` 
 declare coq      target_rep type int64 = `Z` (* ???: better type for this in Coq? *)
 declare isabelle target_rep type int64 = `int` (* ???: better type for this in Isa? *)
-declare hol      target_rep type int64 = `integer` (* ???: better type for this in HOL? *)
+declare hol      target_rep type int64 = `int` (* ???: better type for this in HOL? *)
 
 
 (* ----------------------- *)
