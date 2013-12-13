@@ -9,7 +9,7 @@
 <body>
 <div id="header">
 <h1 class="title">Lem Manual</h1>
-<h3 class="date">6th Dec. 2013</h3>
+<h3 class="date">Dominic Mulligan, Thomas Tuerk, Scott Owens, Kathryn E. Gray, Peter Sewell</h3>
 </div>
 <div id="TOC">
 <ul>
@@ -18,12 +18,12 @@
 <li><a href="#lem-binary"><span class="toc-section-number">2.1</span> Lem binary</a></li>
 <li><a href="#backend-libraries"><span class="toc-section-number">2.2</span> Backend libraries</a></li>
 <li><a href="#documentation"><span class="toc-section-number">2.3</span> Documentation</a><ul>
-<li><a href="#library-documentation"><span class="toc-section-number">2.3.1</span> Library documentation</a></li>
-<li><a href="#syntax"><span class="toc-section-number">2.3.2</span> Syntax</a></li>
-<li><a href="#papers"><span class="toc-section-number">2.3.3</span> Papers</a></li>
-<li><a href="#manual"><span class="toc-section-number">2.3.4</span> Manual</a></li>
-<li><a href="#old-manual"><span class="toc-section-number">2.3.5</span> Old Manual</a></li>
-<li><a href="#source-code-documentation"><span class="toc-section-number">2.3.6</span> Source code documentation</a></li>
+<li><a href="#papers"><span class="toc-section-number">2.3.1</span> Papers</a></li>
+<li><a href="#manual"><span class="toc-section-number">2.3.2</span> Manual</a></li>
+<li><a href="#library-documentation"><span class="toc-section-number">2.3.3</span> Library documentation</a></li>
+<li><a href="#syntax"><span class="toc-section-number">2.3.4</span> Syntax</a></li>
+<li><a href="#source-code-documentation"><span class="toc-section-number">2.3.5</span> Source code documentation</a></li>
+<li><a href="#old-manual"><span class="toc-section-number">2.3.6</span> Old Manual</a></li>
 </ul></li>
 </ul></li>
 <li><a href="#invoking-lem"><span class="toc-section-number">3</span> Invoking Lem</a><ul>
@@ -134,24 +134,24 @@ for Isabelle: make isa-libs
 for Coq     : make coq-libs</code></pre>
 <p>These targets depend on the corresponding tool being installed, because they might run some automated tests or compile the Lem generated files. If you just want to generate the input which Lem gives to these tools, please run <code>make libs</code>.</p>
 <h2 id="documentation"><a href="#TOC"><span class="header-section-number">2.3</span> Documentation</a></h2>
-<h3 id="library-documentation"><a href="#TOC"><span class="header-section-number">2.3.1</span> Library documentation</a></h3>
-<p>Similar to generating backend libraries, one can also generate documentation for the libraries by running <code>make tex-libs</code>. This generates a file <code>tex-lib/lem-libs.pdf</code>. In order to not pretty print the whole library, but just get interface information, one can use Lem's command line argument <code>print_env</code>. Running <code>lem -print_env library/pervasives_extra.lem</code> loads all of the libraries and afterwards prints the environment in a concise form.</p>
-<h3 id="syntax"><a href="#TOC"><span class="header-section-number">2.3.2</span> Syntax</a></h3>
-<p>The input syntax of Lem is defined using the <a href="http://www.cl.cam.ac.uk/~pes20/ott/">Ott tool</a>. The language definition can be found in file <code>language/lem.ott</code>. You don't need Ott to compile or use Lem. However, if Ott is installed, the makefile in directory <code>language</code> can be used to generate a PDF documenting the syntax of Lem. A snapshot of that is in <code>doc/lem.pdf</code>.</p>
-<h3 id="papers"><a href="#TOC"><span class="header-section-number">2.3.3</span> Papers</a></h3>
+<h3 id="papers"><a href="#TOC"><span class="header-section-number">2.3.1</span> Papers</a></h3>
 <p>In subdirectory <code>doc</code>, a draft version of a conference submission describing Lem can be found, <code>lem-draft.pdf</code>.</p>
-<h3 id="manual"><a href="#TOC"><span class="header-section-number">2.3.4</span> Manual</a></h3>
+<h3 id="manual"><a href="#TOC"><span class="header-section-number">2.3.2</span> Manual</a></h3>
 <p>Lem's manual can be found in subdirectory <code>doc</code>. It's written in <em>Markdown</em> and tested with <a href="http://johnmacfarlane.net/pandoc/">Pandoc</a> 1.9.1.1. However, it tries to avoid Pandoc specific extensions of Markdown.</p>
 <p>Running <code>make</code> in subdirectory <code>doc</code> invokes Pandoc to generate html- and pdf-versions of the manual. Since the manual is written in Markdown, you can easily read it with the text-editor of your choice as well.</p>
-<h3 id="old-manual"><a href="#TOC"><span class="header-section-number">2.3.5</span> Old Manual</a></h3>
-<p>Lem's old manual can be found in subdirectory <code>manual</code>. It is out of date, though.</p>
-<h3 id="source-code-documentation"><a href="#TOC"><span class="header-section-number">2.3.6</span> Source code documentation</a></h3>
+<h3 id="library-documentation"><a href="#TOC"><span class="header-section-number">2.3.3</span> Library documentation</a></h3>
+<p>Similar to generating backend libraries, one can also generate documentation for the libraries by running <code>make tex-libs</code>. This generates a file <code>tex-lib/lem-libs.pdf</code>. In order to not pretty print the whole library, but just get interface information, one can use Lem's command line argument <code>print_env</code>. Running <code>lem -print_env library/pervasives_extra.lem</code> loads all of the libraries and afterwards prints the environment in a concise form.</p>
+<h3 id="syntax"><a href="#TOC"><span class="header-section-number">2.3.4</span> Syntax</a></h3>
+<p>The input syntax of Lem is described later in this document. The syntax is defined using the <a href="http://www.cl.cam.ac.uk/~pes20/ott/">Ott tool</a>, and the language definition can be found in file <code>language/lem.ott</code>. You don't need Ott to compile or use Lem. However, if Ott is installed, the makefile in directory <code>language</code> can be used to generate a PDF documenting the syntax of Lem. A snapshot of that is in <code>doc/lem.pdf</code>.</p>
+<h3 id="source-code-documentation"><a href="#TOC"><span class="header-section-number">2.3.5</span> Source code documentation</a></h3>
 <p>The makefile in Lem's root directory contains targets to generate Ocamldoc documentation for Lem's sources. Running <code>make lem-doc</code> generates</p>
 <ul>
 <li>directory <code>html-doc</code> (the source documentation as HTML)</li>
 <li>file <code>lem-doc.pdf</code> (the source documentation as PDF)</li>
 <li>file <code>lem-doc-dep.pdf</code> (a dependency graph as PDF)</li>
 </ul>
+<h3 id="old-manual"><a href="#TOC"><span class="header-section-number">2.3.6</span> Old Manual</a></h3>
+<p>Lem's old manual can be found in subdirectory <code>manual</code>. It is now out of date, though.</p>
 <h1 id="invoking-lem"><a href="#TOC"><span class="header-section-number">3</span> Invoking Lem</a></h1>
 <p>The most basic usage of Lem is running a command like</p>
 <pre><code>lem input1.lem ... inputn.lem -target</code></pre>
@@ -312,7 +312,7 @@ ocamlbuild -libs nums -use-ocamlfind -pkg lem name.native</code></pre>
 <h2 id="library-documentation-1"><a href="#TOC"><span class="header-section-number">5.2</span> Library documentation</a></h2>
 <p>For an overview of the Lem library, please generate the pdf-file <code>tex-lib/lem-libs.pdf</code> by running <code>make tex-libs</code>. If you are just interested in the interface, consider running <code>lem -print_env library/pervasives_extra.lem</code>.</p>
 <h1 id="writing-your-own-lem-files"><a href="#TOC"><span class="header-section-number">6</span> Writing your own Lem files</a></h1>
-<p>Lem's syntax broadly follows OCaml syntax, while the libraries follow the Haskell libraries. Here, only a few selected points of Lem's syntax and its features are discussed. To learn more about its syntax, please have a look at the file <code>doc/lem.pdf</code>. Another possibility is having a look at the Lem-library in the <code>library</code>-directory or at the tests in directory <code>tests</code>, especially <code>tests/backends</code>.</p>
+<p>Lem's syntax broadly follows OCaml syntax, while the libraries follow the Haskell libraries. Here, only a few selected points of Lem's syntax and its features are discussed. To learn more about its syntax, please have a look at the next section and at the file <code>doc/lem.pdf</code>. Another possibility is having a look at the Lem-library in the <code>library</code>-directory or at the tests in directory <code>tests</code>, especially <code>tests/backends</code>.</p>
 <h2 id="header"><a href="#TOC"><span class="header-section-number">6.1</span> Header</a></h2>
 <h3 id="importing-library"><a href="#TOC"><span class="header-section-number">6.1.1</span> Importing Library</a></h3>
 <p>A Lem file usually starts with importing the appropriate library. Without such an import, even very simple operations like boolean conjunction are not available. The user thus has the choice of either importing the main library or the extended library. The main library contains total, terminating functions that we believe are well-specified enough to be portable across all backends. All other functions are placed in the extended library.</p>

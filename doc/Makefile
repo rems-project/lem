@@ -13,8 +13,8 @@ all:
 # library documentation
 	make -C .. tex-libs
 	ln -sf ../tex-lib/lem-libs.pdf .
-	lem -print_env ../library/pervasives.lem > lem-libs-pervasives.txt  
-	lem -print_env ../library/pervasives_extra.lem > lem-libs-pervasives-extra.txt
+	../lem -print_env ../library/pervasives.lem > lem-libs-pervasives.txt  
+	../lem -print_env ../library/pervasives_extra.lem > lem-libs-pervasives-extra.txt
 # source documentation
 	make -C ../src .
 	ln -sf ../src/html-doc .
@@ -33,12 +33,18 @@ snapshot:
 	cp lem-libs.pdf $(TARGET)
 	cp lem-libs-pervasives.txt $(TARGET)
 	cp lem-libs-pervasives-extra.txt $(TARGET)
-	cp -rL html-doc $(TARGET)
 	cp lem-doc.pdf $(TARGET)
 	cp dep.pdf $(TARGET)
 	cp lem-draft.pdf $(TARGET)
 
+# not building?
+#	cp -rL html-doc $(TARGET)
 
+INSTALL_TARGET=~/public_html/lem
+install:
+	cp index.html $(INSTALL_TARGET)
+	cp style.css $(INSTALL_TARGET)
+	cp -r built-doc $(INSTALL_TARGET)
 
 clean:
 	rm -rf dep.pdf html-doc doc-dep.pdf doc.pdf lem.pdf lem-libs.pdf lem-manual.html lem-manual.pdf lem-doc.pdf

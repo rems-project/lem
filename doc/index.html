@@ -1,0 +1,257 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html><head>
+<title>Lem</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" href="style.css" type="text/css"> 
+</head>
+
+<body>
+
+  <h2>Lem, a tool for lightweight executable mathematics</h2>
+  <p>
+<!--  </p><h3><a href="https://bitbucket.org/Peter_Sewell/lem/">Lem is
+  hosted on Bitbucket here</a></h3>-->
+
+
+Lem is a lightweight tool for writing, managing, and publishing large scale
+semantic definitions. It is also intended as an intermediate language for
+generating definitions from domain-specific tools, and for porting definitions
+between interactive theorem proving systems (such as Coq, HOL4, and Isabelle).
+
+<p>
+The language combines features familiar from functional programming
+languages with logical constructs.  From functional programming
+languages we take pure higher-order functions, general recursion,
+recursive algebraic datatypes, records, lists, pattern matching,
+parametric polymorphism, a simple type class mechanism for
+overloading, and a simple module system.  To these we add logical
+constructs familar in provers: universal and existential
+quantification, sets (including set comprehensions), relations, finite
+maps, inductive relation definitions, and lemma statements.  Then
+there are facilities to let the user tune how Lem definitions are
+mapped into the various targets (by declaring target representations
+and controlling notation, renaming, inlining, and type classes), to
+generate witness types and executable functions from inductive
+relations, and for assertions.
+<p>
+
+Lem typechecks its input and can generate executable OCaml, theorem
+prover definitions in <a href="http://coq.inria.fr/">Coq</a>, <a href="http://hol.sourceforge.net/">HOL4</a>,
+  and <a href="http://www.cl.cam.ac.uk/research/hvg/Isabelle/">Isabelle</a>, typeset definitions
+in LaTeX, and simple HTML.
+
+It supports a program-like development cycle, with fast type
+checking of Lem source files.
+
+
+
+  </p>
+
+<!--
+<p>
+  The following example is taken from a <a href="http://www.cl.cam.ac.uk/%7Epes20/ppc-supplemental/">model of the POWER
+	  multiprocessor architecture</a> that was developed using Lem.
+
+  </p><p> 
+  <code>
+	  let write_reaching_coherence_point_action m s w =<br> 
+	  &nbsp;&nbsp;let writes_past_coherence_point' =<br>
+	  &nbsp;&nbsp;&nbsp;&nbsp;s.writes_past_coherence_point union {w} in<br>
+	  &nbsp;&nbsp;let coherence' = s.coherence union<br>
+	  &nbsp;&nbsp;&nbsp;&nbsp;{ (w,wother) | forall (wother IN (writes_not_past_coherence s)) |<br>
+	  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(not (wother = w)) &amp;&amp; (wother.w_addr = w.w_addr) } in<br>
+	  &nbsp;&nbsp;&lt;| s with coherence = coherence';<br>
+	  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;writes_past_coherence_point
+ = writes_past_coherence_point' |&gt; <br><br>
+	  let sem_of_instruction i ist =<br>
+	  &nbsp;&nbsp;match i with<br>
+	  &nbsp;&nbsp;| Padd  set rD rA rB -&gt; op3regs Add set rD rA rB ist<br>
+	  &nbsp;&nbsp;| Pandi rD rA simm   -&gt; op2regi And SetCR0 rD rA (intToV simm) ist<br>
+	  &nbsp;&nbsp;end
+	  
+  </code>
+-->
+
+
+
+<!--
+Lem translates source constructs that are unsupported by a
+	  particular target into ones that are (e.g., comprehensions into nested
+	  folds when generating OCaml).
+
+The generated OCaml, Coq, HOL4, and Isabelle code is faithful to
+	  the source files, preserving comments, line breaks, and
+	  indentation.</li>
+	  <li></li>
+	  <li>Lem tries to generate code that avoids annoying theorem prover specific
+	  restrictions.</li> 
+  </ul>
+-->
+
+
+
+
+
+<h3>Papers</h3>
+
+<ul>
+
+
+<li> <a href="lem-draft.pdf">Lem: reusable engineering of real-world
+    semantics</a>.  
+  Dominic P. Mulligan,
+  Thomas Tuerk,
+  Scott Owens,
+  Kathryn E. Gray,
+  Tom Ridge, and 
+  Peter Sewell.  Draft.
+
+
+
+	  <li> <a href="http://www.cs.kent.ac.uk/people/staff/sao/lem/lem-itp-paper.pdf">Lem: A Lightweight Tool for Heavyweight Semantics</a>.
+Scott Owens, Peter Boehm, Francesco Zappa Nardelli, and Peter Sewell.
+An <a href="http://itp2011.cs.ru.nl/">ITP 2011</a> "rough diamond"
+            paper. 6pp.
+
+<!--
+	  <b>Abstract.</b> 
+	  Many ITP developments exist in the context of a single prover, and
+	  are dominated by proof effort.  In contrast, when applying rigorous
+	  semantic techniques to realistic computer systems, engineering the
+	  definitions becomes a major activity in its own right.  Proof is then
+	  only one task among many: testing, simulation, communication,
+	  community review, etc.  Moreover, the effort invested in establishing
+	  such definitions should be re-usable and, where possible,
+	  irrespective of the local proof-assistant culture.  For example, in
+	  recent work on processor and programming language concurrency (x86,
+	  Power, ARM, C++0x, CompCertTSO), we have used Coq, HOL4,
+	  Isabelle/HOL, and Ott - often using multiple provers simultaneously,
+	  to exploit existing definitions or local expertise.   
+	  </p><p>
+	  In this paper we describe Lem, a prototype system specifically
+	  designed to support pragmatic engineering of such definitions.  It
+	  has a carefully designed source language, of a familiar higher-order
+	  logic with datatype definitions, inductively defined relations, and
+	  so on.  This is typechecked and translated to a variety of
+	  programming languages and proof assistants, preserving the original
+	  source structure (layout,  comments, etc.) so that the result is
+	  readable and usable.  We have already found this invaluable in our
+	  work on Power, ARM and C++0x concurrency.
+
+	  </p>
+-->
+</li>
+
+</ul>
+
+<h3>Code</h3>
+<p>
+Lem is hosted on
+  Bitbucket <a href="https://bitbucket.org/Peter_Sewell/lem/">here</a>. 
+Use <a href="http://git-scm.com/">git</a> to download the latest source code with the command:
+ <code>git clone https://bitbucket.org/Peter_Sewell/lem.git</code>
+
+
+<h3>Documentation</h3>
+<ul>
+<li> the <a href="built-doc/lem-manual.html">manual (in html)</a> and
+  <a href="built-doc/lem-manual.pdf">in pdf</a>.
+</li>
+<li> a typeset version of the <a href="built-doc/lem.pdf">Ott grammar
+    and type system for Lem source</a> 	  (generated with <a href="http://www.cl.cam.ac.uk/%7Epes20/ott/">Ott</a>)
+</li>
+<li> the Lem <a href="built-doc/lem-libs.pdf">library
+    documentation</a>
+<ul><li> the type signatures of
+  the <a href="built-doc/lem-libs-pervasives.txt">pervasives</a> and 
+<a href="built-doc/lem-libs-pervasives-extra.txt">pervasives-extra</a>
+libraries.
+</li>
+</ul>
+</li>
+<li> <a href="built-doc/html-doc">source documentation (in html)</a>
+  and 
+<a href="built-doc/lem-doc.pdf">in pdf</a>.
+</li>
+<li> a <a href="built-doc/dep.pdf">dependency diagram</a> of the source modules
+</li>
+</ul>
+
+<h3>Examples</h3>
+<p>
+The <code>examples</code> directory in the repository contains or
+points to several major examples of Lem usage:
+<ul>
+<li>  The operational model for Power/ARM multiprocessor
+                concurrency by Sarkar et al., as described in
+                PLDI11 and extended in POPL12, PLDI12 (<code>ppcmem-model</code>)
+</li>
+<li>             The C/C++11 axiomatic concurrency model by Batty et al., as
+                described in POPL11 and extended in the above two
+                POPL12 and PLDI12 papers (<code>cpp</code>)
+
+</li>
+<li>     The OCaml_light semantics by Owens, as described in ESOP2008
+(<code>ocaml_light</code>)
+
+<li>
+The NetSem models for the TCP/IP network protocols and Sockets API by
+Bishop et al., as described in TACS01, ESOP02, SIGCOMM 2005, POPL
+2006, FM08, are available from the github repository 
+<a href="https://github.com/PeterSewell/netsem"><code>https://github.com/PeterSewell/netsem</code></a>, ported into Lem from the
+original HOL4.
+
+<li>
+The CakeML development by Kumar et al., described in ICFP12, ITP13,
+and POPL14, is available via its web page: <a href="https://cakeml.org"><code>https://cakeml.org</code></a>.
+</li>
+</ul>
+
+
+  <h3>Development team</h3>
+  <p>
+	  <a href="http://www.cl.cam.ac.uk/%7Ekeg29/">Kathy Gray</a>,
+	  <a href="http://www.cl.cam.ac.uk/%7Egk338/">Gabriel Kerneis</a>
+	  <a href="http://dominic-mulligan.co.uk/">Dominic Mulligan</a>,
+	  <a href="http://www.cs.kent.ac.uk/%7Esao/">Scott Owens</a>,
+	  <a href="http://www.cl.cam.ac.uk/%7Epes20/">Peter Sewell</a>,
+	  <a href="http://www.cl.cam.ac.uk/%7Ett291/">Thomas
+            Tuerk</a>.
+	  </p><p>
+	  Past contributors:
+	  Peter Boehm, Thomas Williams,
+	  <a href="http://moscova.inria.fr/%7Ezappa/">Francesco Zappa Nardelli</a>.
+
+
+  </p><h4>Lem and Ott</h4>
+  <p>
+  Lem shares many of the goals of our <a href="http://www.cl.cam.ac.uk/%7Epes20/ott/">Ott</a> tool: both
+  emphasize source readability, and multi-prover compatibility.  However, Lem is
+  a general-purpose specification language, whereas Ott is a domain-specific
+  language for writing specifications of programming languages (i.e., inductive
+  relations over syntax).  Thus, Ott supports rich user-defined syntaxes,
+  whereas Lem supports functional programming idioms.
+The two can be used together in some cases: Ott can now generate Lem specifications.
+  </p>
+
+
+  </p><h4>History</h4>
+  <ul>
+          <li>2013-12-13: updated with links to current documentation
+          and examples</li>
+	  <li>2013-03-14: Moved page to Kent, removed 0.3 release, and updated for open source development on Bitbucket</li>
+	  <li>2011-12-02: Lem 0.3 posted (minor changes from 0.2)</li>
+	  <li>2011-08-22: Lem 0.2 posted, manual added</li>
+	  <li>2011-05-25: ITP 2011 paper added</li>
+	  <li>2011-04-11: Lem 0.1 posted</li>
+	  <li>2011-03-24: Page created</li>
+  </ul>
+
+  <p>
+  <a href="http://validator.w3.org/check?uri=referer"> Validate HTML 4.01 Strict</a>
+  </p>
+
+
+
+</body></html>

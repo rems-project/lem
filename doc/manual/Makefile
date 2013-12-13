@@ -30,9 +30,9 @@ lem-manual.html : lem-manual.md
 	pandoc -s --number-sections --toc lem-manual.md -o lem-manual.html
 
 lem-manual.pdf : lem-manual.md
-	pandoc -s --number-sections --toc lem-manual.md -o lem-manual.pdf
+	pandoc  --template my-pandoc-latex-template.latex -s --number-sections --toc lem-manual.md -o lem-manual.pdf
 
-# --template my-pandoc-latex-template.latex
+
 
 #lem-language.pdf: 
 #	make -C ../language && cp ../language/lem-language.pdf .
