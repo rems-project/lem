@@ -1,0 +1,263 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Pp.html">
+<link rel="next" href="Process_file.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of exceptions" rel=Appendix href="index_exceptions.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Ast_util" rel="Chapter" href="Ast_util.html">
+<link title="Backend" rel="Chapter" href="Backend.html">
+<link title="Backend_common" rel="Chapter" href="Backend_common.html">
+<link title="Coq_decidable_equality" rel="Chapter" href="Coq_decidable_equality.html">
+<link title="Def_trans" rel="Chapter" href="Def_trans.html">
+<link title="Finite_map" rel="Chapter" href="Finite_map.html">
+<link title="Ident" rel="Chapter" href="Ident.html">
+<link title="Initial_env" rel="Chapter" href="Initial_env.html">
+<link title="Macro_expander" rel="Chapter" href="Macro_expander.html">
+<link title="Main" rel="Chapter" href="Main.html">
+<link title="Module_dependencies" rel="Chapter" href="Module_dependencies.html">
+<link title="Name" rel="Chapter" href="Name.html">
+<link title="Nvar" rel="Chapter" href="Nvar.html">
+<link title="Output" rel="Chapter" href="Output.html">
+<link title="Path" rel="Chapter" href="Path.html">
+<link title="Pattern_syntax" rel="Chapter" href="Pattern_syntax.html">
+<link title="Patterns" rel="Chapter" href="Patterns.html">
+<link title="Pcombinators" rel="Chapter" href="Pcombinators.html">
+<link title="Pp" rel="Chapter" href="Pp.html">
+<link title="Precedence" rel="Chapter" href="Precedence.html">
+<link title="Process_file" rel="Chapter" href="Process_file.html">
+<link title="Rename_top_level" rel="Chapter" href="Rename_top_level.html">
+<link title="Reporting" rel="Chapter" href="Reporting.html">
+<link title="Reporting_basic" rel="Chapter" href="Reporting_basic.html">
+<link title="Seplist" rel="Chapter" href="Seplist.html">
+<link title="Syntactic_tests" rel="Chapter" href="Syntactic_tests.html">
+<link title="Target" rel="Chapter" href="Target.html">
+<link title="Target_binding" rel="Chapter" href="Target_binding.html">
+<link title="Target_syntax" rel="Chapter" href="Target_syntax.html">
+<link title="Target_trans" rel="Chapter" href="Target_trans.html">
+<link title="Trans" rel="Chapter" href="Trans.html">
+<link title="Typecheck" rel="Chapter" href="Typecheck.html">
+<link title="Typecheck_ctxt" rel="Chapter" href="Typecheck_ctxt.html">
+<link title="Typed_ast" rel="Chapter" href="Typed_ast.html">
+<link title="Typed_ast_syntax" rel="Chapter" href="Typed_ast_syntax.html">
+<link title="Types" rel="Chapter" href="Types.html">
+<link title="Tyvar" rel="Chapter" href="Tyvar.html">
+<link title="Util" rel="Chapter" href="Util.html"><title>Precedence</title>
+</head>
+<body>
+<div class="navbar"><a href="Pp.html">Previous</a>
+&nbsp;<a href="index.html">Up</a>
+&nbsp;<a href="Process_file.html">Next</a>
+</div>
+<center><h1>Module <a href="type_Precedence.html">Precedence</a></h1></center>
+<br>
+<pre><span class="keyword">module</span> Precedence: <code class="code">sig</code> <a href="Precedence.html">..</a> <code class="code">end</code></pre>a prefix operation<br>
+<hr width="100%">
+<br><code><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">P_prefix</span></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >a prefix operation</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">P_infix</span> <span class="keyword">of</span> <code class="type">int</code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >a non-associative infix operation of the given precedence, higher precenced bind stronger</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">P_infix_left</span> <span class="keyword">of</span> <code class="type">int</code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >a left-associative infix operation</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">P_infix_right</span> <span class="keyword">of</span> <code class="type">int</code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >a right-associative infix operation</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">P_special</span></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >an operation with special syntax (e.g. if-then-else)</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+
+
+<br><code><span id="TYPEcontext"><span class="keyword">type</span> <code class="type"></code>context</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Field</span></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">App_right</span></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">App_left</span></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Infix_left</span> <span class="keyword">of</span> <code class="type"><a href="Precedence.html#TYPEt">t</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Infix_right</span> <span class="keyword">of</span> <code class="type"><a href="Precedence.html#TYPEt">t</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Delimited</span></code></td>
+
+</tr></table>
+
+
+<br><code><span id="TYPEexp_kind"><span class="keyword">type</span> <code class="type"></code>exp_kind</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">App</span></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Infix</span> <span class="keyword">of</span> <code class="type"><a href="Precedence.html#TYPEt">t</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Let</span></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Atomic</span></code></td>
+
+</tr></table>
+
+
+<br><code><span id="TYPEpat_context"><span class="keyword">type</span> <code class="type"></code>pat_context</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Plist</span></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Pas_left</span></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Pcons_left</span></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Pcons_right</span></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Pdelimited</span></code></td>
+
+</tr></table>
+
+
+<br><code><span id="TYPEpat_kind"><span class="keyword">type</span> <code class="type"></code>pat_kind</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Papp</span></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Pas</span></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Padd</span></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Pcons</span></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Patomic</span></code></td>
+
+</tr></table>
+
+
+<pre><span id="VALis_infix"><span class="keyword">val</span> is_infix</span> : <code class="type"><a href="Precedence.html#TYPEt">t</a> -> bool</code></pre><pre><span id="VALneeds_parens"><span class="keyword">val</span> needs_parens</span> : <code class="type"><a href="Precedence.html#TYPEcontext">context</a> -> <a href="Precedence.html#TYPEexp_kind">exp_kind</a> -> bool</code></pre><pre><span id="VALpat_needs_parens"><span class="keyword">val</span> pat_needs_parens</span> : <code class="type"><a href="Precedence.html#TYPEpat_context">pat_context</a> -> <a href="Precedence.html#TYPEpat_kind">pat_kind</a> -> bool</code></pre><pre><span id="VALget_prec"><span class="keyword">val</span> get_prec</span> : <code class="type"><a href="Target.html#TYPEtarget">Target.target</a> -> <a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Typed_ast.html#TYPEconst_descr_ref">Typed_ast.const_descr_ref</a> -> <a href="Precedence.html#TYPEt">t</a></code></pre><div class="info">
+<code class="code">get_prec target env c</code> looks up the precedence of constant <code class="code">c</code> in environment <code class="code">env</code>
+    for the target <code class="code">target</code>. Thereby, it follows target-representations of this constant.<br>
+</div>
+<pre><span id="VALget_prec_exp"><span class="keyword">val</span> get_prec_exp</span> : <code class="type"><a href="Target.html#TYPEtarget">Target.target</a> -> <a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Precedence.html#TYPEt">t</a></code></pre><div class="info">
+<code class="code">get_prec target env e</code> looks up the precedence of expression <code class="code">e</code> in environment <code class="code">env</code>
+    for the target <code class="code">target</code>. If the expression is essentially a constant (i.e. a constant
+    with perhaps parenthesis or types added), the precedence of this constant is returned
+    using <code class="code">get_prec</code>. Otherwise <code class="code">P_prefix</code> is returned.<br>
+</div>
+</body></html>

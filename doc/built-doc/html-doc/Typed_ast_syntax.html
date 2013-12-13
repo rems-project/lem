@@ -1,0 +1,580 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Typed_ast.html">
+<link rel="next" href="Types.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of exceptions" rel=Appendix href="index_exceptions.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Ast_util" rel="Chapter" href="Ast_util.html">
+<link title="Backend" rel="Chapter" href="Backend.html">
+<link title="Backend_common" rel="Chapter" href="Backend_common.html">
+<link title="Coq_decidable_equality" rel="Chapter" href="Coq_decidable_equality.html">
+<link title="Def_trans" rel="Chapter" href="Def_trans.html">
+<link title="Finite_map" rel="Chapter" href="Finite_map.html">
+<link title="Ident" rel="Chapter" href="Ident.html">
+<link title="Initial_env" rel="Chapter" href="Initial_env.html">
+<link title="Macro_expander" rel="Chapter" href="Macro_expander.html">
+<link title="Main" rel="Chapter" href="Main.html">
+<link title="Module_dependencies" rel="Chapter" href="Module_dependencies.html">
+<link title="Name" rel="Chapter" href="Name.html">
+<link title="Nvar" rel="Chapter" href="Nvar.html">
+<link title="Output" rel="Chapter" href="Output.html">
+<link title="Path" rel="Chapter" href="Path.html">
+<link title="Pattern_syntax" rel="Chapter" href="Pattern_syntax.html">
+<link title="Patterns" rel="Chapter" href="Patterns.html">
+<link title="Pcombinators" rel="Chapter" href="Pcombinators.html">
+<link title="Pp" rel="Chapter" href="Pp.html">
+<link title="Precedence" rel="Chapter" href="Precedence.html">
+<link title="Process_file" rel="Chapter" href="Process_file.html">
+<link title="Rename_top_level" rel="Chapter" href="Rename_top_level.html">
+<link title="Reporting" rel="Chapter" href="Reporting.html">
+<link title="Reporting_basic" rel="Chapter" href="Reporting_basic.html">
+<link title="Seplist" rel="Chapter" href="Seplist.html">
+<link title="Syntactic_tests" rel="Chapter" href="Syntactic_tests.html">
+<link title="Target" rel="Chapter" href="Target.html">
+<link title="Target_binding" rel="Chapter" href="Target_binding.html">
+<link title="Target_syntax" rel="Chapter" href="Target_syntax.html">
+<link title="Target_trans" rel="Chapter" href="Target_trans.html">
+<link title="Trans" rel="Chapter" href="Trans.html">
+<link title="Typecheck" rel="Chapter" href="Typecheck.html">
+<link title="Typecheck_ctxt" rel="Chapter" href="Typecheck_ctxt.html">
+<link title="Typed_ast" rel="Chapter" href="Typed_ast.html">
+<link title="Typed_ast_syntax" rel="Chapter" href="Typed_ast_syntax.html">
+<link title="Types" rel="Chapter" href="Types.html">
+<link title="Tyvar" rel="Chapter" href="Tyvar.html">
+<link title="Util" rel="Chapter" href="Util.html"><link title="Types" rel="Section" href="#2_Types">
+<link title="Navigating Environments" rel="Section" href="#2_NavigatingEnvironments">
+<link title="target-representations" rel="Section" href="#2_targetrepresentations">
+<link title="Constructing, checking and destructing expressions" rel="Section" href="#2_Constructingcheckinganddestructingexpressions">
+<link title="Constructing, checking and destructing definitions" rel="Section" href="#2_Constructingcheckinganddestructingdefinitions">
+<link title="Collecting information about uses constants, types, modules ..." rel="Section" href="#2_Collectinginformationaboutusesconstantstypesmodules">
+<link title="Miscellaneous" rel="Section" href="#2_Miscellaneous">
+<title>Typed_ast_syntax</title>
+</head>
+<body>
+<div class="navbar"><a href="Typed_ast.html">Previous</a>
+&nbsp;<a href="index.html">Up</a>
+&nbsp;<a href="Types.html">Next</a>
+</div>
+<center><h1>Module <a href="type_Typed_ast_syntax.html">Typed_ast_syntax</a></h1></center>
+<br>
+<pre><span class="keyword">module</span> Typed_ast_syntax: <code class="code">sig</code> <a href="Typed_ast_syntax.html">..</a> <code class="code">end</code></pre>syntax functions for typed_ast<br>
+<hr width="100%">
+<br>
+<span id="2_Types"><h2>Types</h2></span><br>
+<pre><span id="VALbool_ty"><span class="keyword">val</span> bool_ty</span> : <code class="type"><a href="Types.html#TYPEt">Types.t</a></code></pre><div class="info">
+The boolean type<br>
+</div>
+<pre><span id="VALnat_ty"><span class="keyword">val</span> nat_ty</span> : <code class="type"><a href="Types.html#TYPEt">Types.t</a></code></pre><div class="info">
+The natural number type<br>
+</div>
+<br>
+<span id="2_NavigatingEnvironments"><h2>Navigating Environments</h2></span><br>
+<pre><span id="VALlookup_env_opt"><span class="keyword">val</span> lookup_env_opt</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Name.html#TYPEt">Name.t</a> list -> <a href="Typed_ast.html#TYPElocal_env">Typed_ast.local_env</a> option</code></pre><div class="info">
+<code class="code">lookup_env_opt env path</code> is used to navigate inside a environment <code class="code">env</code>. It returns
+    the local environment which is reachable via the path <code class="code">path</code>. If no such environment exists,
+    <code class="code">None</code> is returned.<br>
+</div>
+<pre><span id="VALlookup_env"><span class="keyword">val</span> lookup_env</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Name.html#TYPEt">Name.t</a> list -> <a href="Typed_ast.html#TYPElocal_env">Typed_ast.local_env</a></code></pre><div class="info">
+<code class="code">lookup_env</code> is similar to <code class="code">lookup_env_opt</code>, but reports an internal
+    error instead of returning <code class="code">None</code>, if no environment can be found.<br>
+</div>
+<pre><span id="VALenv_apply"><span class="keyword">val</span> env_apply</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -><br>       Ast.component option -><br>       <a href="Name.html#TYPEt">Name.t</a> -> (<a href="Typed_ast.html#TYPEname_kind">Typed_ast.name_kind</a> * <a href="Path.html#TYPEt">Path.t</a> * Ast.l) option</code></pre><div class="info">
+<code class="code">env_apply env comp_opt n</code> looks up the name <code class="code">n</code> in the environment <code class="code">env</code>. If 
+    component <code class="code">comp</code> is given, only this type of component is searched. Otherwise,
+    it checks whether <code class="code">n</code> refers to a type, field, constructor or constant. <code class="code">env_apply</code> returns the
+    kind of this name, it's full path and the location of the original definition.<br>
+</div>
+<pre><span id="VALlookup_mod_descr_opt"><span class="keyword">val</span> lookup_mod_descr_opt</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Name.html#TYPEt">Name.t</a> list -> <a href="Name.html#TYPEt">Name.t</a> -> <a href="Typed_ast.html#TYPEmod_descr">Typed_ast.mod_descr</a> option</code></pre><div class="info">
+<code class="code">lookup_mod_descr_opt env path mod_name</code> is used to navigate inside an environment <code class="code">env</code>. It returns
+    the module with name <code class="code">mod_name</code>, which is reachable via the path <code class="code">path</code>. If no such environment exists,
+    <code class="code">None</code> is returned.<br>
+</div>
+<pre><span id="VALlookup_mod_descr"><span class="keyword">val</span> lookup_mod_descr</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Name.html#TYPEt">Name.t</a> list -> <a href="Name.html#TYPEt">Name.t</a> -> <a href="Typed_ast.html#TYPEmod_descr">Typed_ast.mod_descr</a></code></pre><div class="info">
+<code class="code">lookup_mod_descr env path mod_name</code> is used to navigate inside an environment <code class="code">env</code>. It returns
+    the module with name <code class="code">mod_name</code>, which is reachable via the path <code class="code">path</code>. If no such environment exists,
+    <code class="code">Reporting_basic</code> is used to report an internal error.<br>
+</div>
+<pre><span id="VALnames_get_const"><span class="keyword">val</span> names_get_const</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -><br>       <a href="Name.html#TYPEt">Name.t</a> list -> <a href="Name.html#TYPEt">Name.t</a> -> <a href="Types.html#TYPEconst_descr_ref">Types.const_descr_ref</a> * <a href="Typed_ast.html#TYPEconst_descr">Typed_ast.const_descr</a></code></pre><div class="info">
+<code class="code">names_get_const env path n</code> looks up the constant with name <code class="code">n</code> reachable via path <code class="code">path</code> in
+   the environment <code class="code">env</code><br>
+</div>
+<pre><span id="VALstrings_get_const"><span class="keyword">val</span> strings_get_const</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -><br>       string list -> string -> <a href="Types.html#TYPEconst_descr_ref">Types.const_descr_ref</a> * <a href="Typed_ast.html#TYPEconst_descr">Typed_ast.const_descr</a></code></pre><div class="info">
+<code class="code">strings_get_const</code> is a wrapper around <code class="code">names_get_const</code> that uses strings instead of names.<br>
+</div>
+<pre><span id="VALget_const"><span class="keyword">val</span> get_const</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> string -> <a href="Types.html#TYPEconst_descr_ref">Types.const_descr_ref</a> * <a href="Typed_ast.html#TYPEconst_descr">Typed_ast.const_descr</a></code></pre><div class="info">
+<code class="code">get_const env label</code> is a wrapper around <code class="code">string_get_const</code> that maps a label to an actual constant description.<br>
+</div>
+<pre><span id="VALconst_exists"><span class="keyword">val</span> const_exists</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> string -> bool</code></pre><div class="info">
+<code class="code">const_exists env label</code> checks, whether the constant with label <code class="code">label</code> is available in the environment <code class="code">env</code>. If
+    it is <code class="code">get_const env label</code> succeeds, otherwise it fails.<br>
+</div>
+<br>
+<code class="code">names_get_const_ref env path n</code> looks up the constant with name <code class="code">n</code> reachable via path <code class="code">path</code> in
+   the environment <code class="code">env</code><br>
+<pre><span id="VALconst_descr_to_kind"><span class="keyword">val</span> const_descr_to_kind</span> : <code class="type"><a href="Types.html#TYPEconst_descr_ref">Types.const_descr_ref</a> * <a href="Typed_ast.html#TYPEconst_descr">Typed_ast.const_descr</a> -> <a href="Typed_ast.html#TYPEname_kind">Typed_ast.name_kind</a></code></pre><div class="info">
+<code class="code">const_descr_to_kind r d</code> assumes that <code class="code">d</code> is the description associated with reference <code class="code">r</code>. It
+    then determines the kind of constant (field, constructor, constant) depending on the information
+    stored in <code class="code">d</code>.<br>
+</div>
+<pre><span id="VALstrings_get_const_id"><span class="keyword">val</span> strings_get_const_id</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -><br>       Ast.l -><br>       string list -><br>       string -><br>       <a href="Types.html#TYPEt">Types.t</a> list -> <a href="Types.html#TYPEconst_descr_ref">Types.const_descr_ref</a> <a href="Types.html#TYPEid">Types.id</a> * <a href="Typed_ast.html#TYPEconst_descr">Typed_ast.const_descr</a></code></pre><div class="info">
+<code class="code">strings_get_const_id env l path n inst</code> uses <code class="code">get_const env path n</code> to construct a <code class="code">const_descr</code> and
+   then wraps it in an id using location <code class="code">l</code> and instantiations <code class="code">inst</code>.<br>
+</div>
+<pre><span id="VALget_const_id"><span class="keyword">val</span> get_const_id</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -><br>       Ast.l -><br>       string -><br>       <a href="Types.html#TYPEt">Types.t</a> list -> <a href="Types.html#TYPEconst_descr_ref">Types.const_descr_ref</a> <a href="Types.html#TYPEid">Types.id</a> * <a href="Typed_ast.html#TYPEconst_descr">Typed_ast.const_descr</a></code></pre><div class="info">
+<code class="code">get_const_id env l label inst</code> uses <code class="code">strings_get_const_id</code> with an indirection to look up a constant for a given label.<br>
+</div>
+<pre><span id="VALstrings_mk_const_exp"><span class="keyword">val</span> strings_mk_const_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -><br>       Ast.l -> string list -> string -> <a href="Types.html#TYPEt">Types.t</a> list -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">strings_mk_const_exp</code> uses <code class="code">get_const_id</code> to construct a constant expression.<br>
+</div>
+<pre><span id="VALmk_const_exp"><span class="keyword">val</span> mk_const_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> Ast.l -> string -> <a href="Types.html#TYPEt">Types.t</a> list -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">mk_const_exp</code> uses <code class="code">strings_mk_const_exp</code> with an indirection through a label.<br>
+</div>
+<pre><span id="VALdest_field_types"><span class="keyword">val</span> dest_field_types</span> : <code class="type">Ast.l -><br>       <a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -><br>       <a href="Types.html#TYPEconst_descr_ref">Types.const_descr_ref</a> -> <a href="Types.html#TYPEt">Types.t</a> * <a href="Path.html#TYPEt">Path.t</a> * <a href="Typed_ast.html#TYPEconst_descr">Typed_ast.const_descr</a></code></pre><div class="info">
+<code class="code">dest_field_types l env f</code> looks up the types of the field <code class="code">f</code> in environment <code class="code">env</code>.
+    It first gets the description <code class="code">f_descr</code> of the field <code class="code">f</code> in <code class="code">env</code>. It then looks up
+    the type of <code class="code">f</code>. For fields, this type is always of the form <code class="code">field_type --&gt; (free_vars) rec_ty_path</code>.
+    <code class="code">dest_field_types</code> checks that <code class="code">free_vars</code> corresponds with the free typevariables of <code class="code">f_descr</code>. 
+    If the type of <code class="code">f</code> is not of the described from, or if <code class="code">free_vars</code> does not correspond, 
+    the constant did not describe a proper field. In this case, <code class="code">dest_field_types</code> fails. Otherwise,
+    it returns <code class="code">(field_type, rec_ty_path, f_descr)</code>.<br>
+</div>
+<pre><span id="VALget_field_type_descr"><span class="keyword">val</span> get_field_type_descr</span> : <code class="type">Ast.l -> <a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Types.html#TYPEconst_descr_ref">Types.const_descr_ref</a> -> <a href="Types.html#TYPEtype_descr">Types.type_descr</a></code></pre><div class="info">
+<code class="code">get_field_type_descr l env f</code> uses <code class="code">dest_field_types l env f</code> to get the base type of the
+    field <code class="code">f</code>. It then looks up the description of this type in the environment.<br>
+</div>
+<pre><span id="VALget_field_all_fields"><span class="keyword">val</span> get_field_all_fields</span> : <code class="type">Ast.l -> <a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Types.html#TYPEconst_descr_ref">Types.const_descr_ref</a> -> <a href="Types.html#TYPEconst_descr_ref">Types.const_descr_ref</a> list</code></pre><div class="info">
+<code class="code">get_field_all_fields l env f</code> uses <code class="code">get_field_type_descr l env f</code> to look up the type description of
+    the record type of the field <code class="code">f</code>. It then returns a list of all the other fields of this record.<br>
+</div>
+<pre><span id="VALlookup_class_descr"><span class="keyword">val</span> lookup_class_descr</span> : <code class="type">Ast.l -> <a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Path.html#TYPEt">Path.t</a> -> <a href="Types.html#TYPEclass_descr">Types.class_descr</a></code></pre><div class="info">
+<code class="code">lookup_class_descr l env c_path</code> looks up the description of type-class <code class="code">c_path</code> in environment <code class="code">env</code>. 
+    If <code class="code">c_path</code> is no valid type-class, an exception is raised.<br>
+</div>
+<pre><span id="VALlookup_field_for_class_method"><span class="keyword">val</span> lookup_field_for_class_method</span> : <code class="type">Ast.l -> <a href="Types.html#TYPEclass_descr">Types.class_descr</a> -> <a href="Types.html#TYPEconst_descr_ref">Types.const_descr_ref</a> -> <a href="Types.html#TYPEconst_descr_ref">Types.const_descr_ref</a></code></pre><div class="info">
+<code class="code">lookup_field_for_class_method l cd method_ref</code> looks up the field reference corresponding to 
+    the method identified by <code class="code">method_ref</code> in the description <code class="code">cd</code> of a type class.
+    If the reference does not point to a method of this type-class, an exception is raised.<br>
+</div>
+<pre><span id="VALlookup_inst_method_for_class_method"><span class="keyword">val</span> lookup_inst_method_for_class_method</span> : <code class="type">Ast.l -> <a href="Types.html#TYPEinstance">Types.instance</a> -> <a href="Types.html#TYPEconst_descr_ref">Types.const_descr_ref</a> -> <a href="Types.html#TYPEconst_descr_ref">Types.const_descr_ref</a></code></pre><div class="info">
+<code class="code">lookup_inst_method_for_class_method l i method_ref</code> looks up the instance method reference corresponding to 
+    the method identified by <code class="code">method_ref</code> in the instance <code class="code">i</code>.
+    If the reference does not point to a method of this instance, an exception is raised.<br>
+</div>
+<pre><span id="VALclass_descr_get_dict_type"><span class="keyword">val</span> class_descr_get_dict_type</span> : <code class="type"><a href="Types.html#TYPEclass_descr">Types.class_descr</a> -> <a href="Types.html#TYPEt">Types.t</a> -> <a href="Types.html#TYPEt">Types.t</a></code></pre><div class="info">
+Given a class-description <code class="code">cd</code> and an argument type <code class="code">arg</code>, the function <code class="code">class_descr_get_dict_type cd arg</code> generates
+    the type of the dictionary for the class and argument type.<br>
+</div>
+<pre><span id="VALclass_all_methods_inlined_for_target"><span class="keyword">val</span> class_all_methods_inlined_for_target</span> : <code class="type">Ast.l -> <a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Target.html#TYPEtarget">Target.target</a> -> <a href="Path.html#TYPEt">Path.t</a> -> bool</code></pre><div class="info">
+Some targets may choose to not use type-classes to implement certain functions. An example is the equality type-class,
+    which is implemented using just the build-in equality of HOL, Coq and Isabelle instead of one determined by
+    the type-class. If all methods of a type-class are specially treated like this, the type-class does not need to
+    be generated at all. This involves not generating the record definition, not generating instances and not 
+    using dictionary style passing for the class. The function <code class="code">class_all_methods_inlined_for_target l env targ class_path</code> checks,
+    wether all methods of <code class="code">class_path</code> are inlined for target <code class="code">targ</code>.<br>
+</div>
+<pre><span id="VALupdate_const_descr"><span class="keyword">val</span> update_const_descr</span> : <code class="type">Ast.l -><br>       (<a href="Typed_ast.html#TYPEconst_descr">Typed_ast.const_descr</a> -> <a href="Typed_ast.html#TYPEconst_descr">Typed_ast.const_descr</a>) -><br>       <a href="Types.html#TYPEconst_descr_ref">Types.const_descr_ref</a> -> <a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Typed_ast.html#TYPEenv">Typed_ast.env</a></code></pre><div class="info">
+<code class="code">update_const_descr l up c env</code> updates the description of the constant <code class="code">c</code> in environment <code class="code">env</code> using
+    the function <code class="code">up</code>.<br>
+</div>
+<pre><span id="VALc_env_store"><span class="keyword">val</span> c_env_store</span> : <code class="type"><a href="Typed_ast.html#TYPEc_env">Typed_ast.c_env</a> -><br>       <a href="Typed_ast.html#TYPEconst_descr">Typed_ast.const_descr</a> -> <a href="Typed_ast.html#TYPEc_env">Typed_ast.c_env</a> * <a href="Types.html#TYPEconst_descr_ref">Types.const_descr_ref</a></code></pre><div class="info">
+<code class="code">c_env_store c_env c_d</code> stores the description <code class="code">c_d</code> 
+    environment <code class="code">c_env</code>. Thereby, a new unique reference is generated and returned
+    along with the modified environment.<br>
+</div>
+<pre><span id="VALc_env_save"><span class="keyword">val</span> c_env_save</span> : <code class="type"><a href="Typed_ast.html#TYPEc_env">Typed_ast.c_env</a> -><br>       <a href="Types.html#TYPEconst_descr_ref">Types.const_descr_ref</a> option -><br>       <a href="Typed_ast.html#TYPEconst_descr">Typed_ast.const_descr</a> -> <a href="Typed_ast.html#TYPEc_env">Typed_ast.c_env</a> * <a href="Types.html#TYPEconst_descr_ref">Types.const_descr_ref</a></code></pre><div class="info">
+<code class="code">c_env_save c_env c_ref_opt c_d</code> is a combination of <code class="code">c_env_update</code> and <code class="code">c_env_store</code>.
+    If <code class="code">c_ref_opt</code> is given, <code class="code">c_env_update</code> is called, otherwise <code class="code">c_env_store</code>.<br>
+</div>
+<br>
+<span id="2_targetrepresentations"><h2>target-representations</h2></span><br>
+<pre><span id="VALconst_target_rep_to_loc"><span class="keyword">val</span> const_target_rep_to_loc</span> : <code class="type"><a href="Typed_ast.html#TYPEconst_target_rep">Typed_ast.const_target_rep</a> -> Ast.l</code></pre><div class="info">
+<code class="code">const_target_rep_to_loc rep</code> returns the location, at which <code class="code">rep</code> is defined.<br>
+</div>
+<pre><span id="VALconst_target_rep_allow_override"><span class="keyword">val</span> const_target_rep_allow_override</span> : <code class="type"><a href="Typed_ast.html#TYPEconst_target_rep">Typed_ast.const_target_rep</a> -> bool</code></pre><div class="info">
+<code class="code">const_target_rep_allow_override rep</code> returns whether this representation can be redefined. 
+    Only auto-generated target-reps should be redefinable by the user.<br>
+</div>
+<pre><span id="VALtype_target_rep_to_loc"><span class="keyword">val</span> type_target_rep_to_loc</span> : <code class="type"><a href="Types.html#TYPEtype_target_rep">Types.type_target_rep</a> -> Ast.l</code></pre><div class="info">
+<code class="code">type_target_rep_to_loc rep</code> returns the location, at which <code class="code">rep</code> is defined.<br>
+</div>
+<pre><span id="VALtype_target_rep_allow_override"><span class="keyword">val</span> type_target_rep_allow_override</span> : <code class="type"><a href="Types.html#TYPEtype_target_rep">Types.type_target_rep</a> -> bool</code></pre><div class="info">
+<code class="code">type_target_rep_allow_override rep</code> returns whether this representation can be redefined. 
+    Only auto-generated target-reps should be redefinable by the user.<br>
+</div>
+<pre><span id="VALconstant_descr_to_name"><span class="keyword">val</span> constant_descr_to_name</span> : <code class="type"><a href="Target.html#TYPEtarget">Target.target</a> -> <a href="Typed_ast.html#TYPEconst_descr">Typed_ast.const_descr</a> -> bool * <a href="Name.html#TYPEt">Name.t</a> * <a href="Name.html#TYPEt">Name.t</a> option</code></pre><div class="info">
+<code class="code">constant_descr_to_name targ cd</code> looks up the representation for
+    target <code class="code">targ</code> in the constant description <code class="code">cd</code>. It returns a tuple
+    <code class="code">(n_is_shown, n, n_ascii)</code>. The name <code class="code">n</code> is the name of the
+    constant for this target, <code class="code">n_ascii</code> an optional ascii alternative.
+    <code class="code">n_is_shown</code> indiciates, whether this name is actually
+    printed. Special representations or inline representation might
+    have a name, that is not used for the output.<br>
+</div>
+<pre><span id="VALconst_descr_ref_to_ascii_name"><span class="keyword">val</span> const_descr_ref_to_ascii_name</span> : <code class="type"><a href="Typed_ast.html#TYPEc_env">Typed_ast.c_env</a> -> <a href="Types.html#TYPEconst_descr_ref">Types.const_descr_ref</a> -> <a href="Name.html#TYPEt">Name.t</a></code></pre><div class="info">
+<code class="code">const_descr_ref_to_ascii_name env c</code> tries to find a simple 
+    identifier for constant <code class="code">c</code>. The exact identifier does not matter, but should somehow
+    be familiar to the user. It looks up the constant names, ascii-representations and
+    renamings for various backends. If everything fails, it just makes a name up.<br>
+</div>
+<pre><span id="VALtype_descr_to_name"><span class="keyword">val</span> type_descr_to_name</span> : <code class="type"><a href="Target.html#TYPEtarget">Target.target</a> -> <a href="Path.html#TYPEt">Path.t</a> -> <a href="Types.html#TYPEtype_descr">Types.type_descr</a> -> <a href="Name.html#TYPEt">Name.t</a></code></pre><div class="info">
+<code class="code">type_descr_to_name targ ty td</code> looks up the representation for target <code class="code">targ</code> in the type
+    description <code class="code">td</code>. Since in constrast to constant-description, type-descriptions don't contain the
+    full type-name, but only renamings, the orginal type-name is passed as argument <code class="code">ty</code>. It is assumed that
+    <code class="code">td</code> really belongs to <code class="code">ty</code>.<br>
+</div>
+<pre><span id="VALconstant_descr_rename"><span class="keyword">val</span> constant_descr_rename</span> : <code class="type"><a href="Target.html#TYPEnon_ident_target">Target.non_ident_target</a> -><br>       <a href="Name.html#TYPEt">Name.t</a> -><br>       Ast.l -><br>       <a href="Typed_ast.html#TYPEconst_descr">Typed_ast.const_descr</a> -> <a href="Typed_ast.html#TYPEconst_descr">Typed_ast.const_descr</a> * (Ast.l * <a href="Name.html#TYPEt">Name.t</a>) option</code></pre><div class="info">
+<code class="code">const_descr_rename targ n' l' cd</code> looks up the representation for target <code class="code">targ</code> in the constant
+    description <code class="code">cd</code>. It then updates this description by renaming to the new name <code class="code">n'</code> and new location <code class="code">l'</code>. 
+    The updated description is returned along with information of where the constant was last renamed and to which name.<br>
+</div>
+<pre><span id="VALmod_target_rep_rename"><span class="keyword">val</span> mod_target_rep_rename</span> : <code class="type"><a href="Target.html#TYPEnon_ident_target">Target.non_ident_target</a> -><br>       string -><br>       <a href="Name.html#TYPEt">Name.t</a> -><br>       Ast.l -><br>       <a href="Typed_ast.html#TYPEmod_target_rep">Typed_ast.mod_target_rep</a> Target.Targetmap.t -><br>       <a href="Typed_ast.html#TYPEmod_target_rep">Typed_ast.mod_target_rep</a> Target.Targetmap.t</code></pre><div class="info">
+<code class="code">mod_descr_rename targ mod_name n' l' md</code> updates the representation for target <code class="code">targ</code> in the module
+    description <code class="code">md</code> by renaming to the new name <code class="code">n'</code> and new location <code class="code">l'</code>.
+    In case a target representation was already present, a type-check error is raised.<br>
+</div>
+<pre><span id="VALtype_descr_rename"><span class="keyword">val</span> type_descr_rename</span> : <code class="type"><a href="Target.html#TYPEnon_ident_target">Target.non_ident_target</a> -><br>       <a href="Name.html#TYPEt">Name.t</a> -><br>       Ast.l -> <a href="Types.html#TYPEtype_descr">Types.type_descr</a> -> <a href="Types.html#TYPEtype_descr">Types.type_descr</a> * (Ast.l * <a href="Name.html#TYPEt">Name.t</a>) option</code></pre><div class="info">
+<code class="code">type_descr_rename targ n' l' td</code> looks up the representation for target <code class="code">targ</code> in the type
+    description <code class="code">td</code>. It then updates this description by renaming to the new name <code class="code">n'</code> and new location <code class="code">l'</code>. 
+    The updated description is returned along with information of where the type
+    was last renamed and to which name.<br>
+</div>
+<pre><span id="VALtype_defs_rename_type"><span class="keyword">val</span> type_defs_rename_type</span> : <code class="type">Ast.l -><br>       <a href="Types.html#TYPEtype_defs">Types.type_defs</a> -><br>       <a href="Path.html#TYPEt">Path.t</a> -> <a href="Target.html#TYPEnon_ident_target">Target.non_ident_target</a> -> <a href="Name.html#TYPEt">Name.t</a> -> <a href="Types.html#TYPEtype_defs">Types.type_defs</a></code></pre><div class="info">
+<code class="code">type_def_rename_type l d p t n</code> renames the type with path <code class="code">p</code> in the defs <code class="code">d</code> to the name <code class="code">n</code> for
+target <code class="code">t</code>. Renaming means that the module structure is kept. Only the name is changed.<br>
+</div>
+<pre><span id="VALconst_descr_has_target_rep"><span class="keyword">val</span> const_descr_has_target_rep</span> : <code class="type"><a href="Target.html#TYPEtarget">Target.target</a> -> <a href="Typed_ast.html#TYPEconst_descr">Typed_ast.const_descr</a> -> bool</code></pre><div class="info">
+<code class="code">const_descr_has_target_rep targ d</code> checks whether the description <code class="code">d</code> contains
+    a target-representation for target <code class="code">targ</code>.<br>
+</div>
+<br>
+<span id="2_Constructingcheckinganddestructingexpressions"><h2>Constructing, checking and destructing expressions</h2></span><br>
+<pre><span id="VALmk_name_lskips_annot"><span class="keyword">val</span> mk_name_lskips_annot</span> : <code class="type">Ast.l -> <a href="Name.html#TYPElskips_t">Name.lskips_t</a> -> <a href="Types.html#TYPEt">Types.t</a> -> <a href="Typed_ast.html#TYPEname_lskips_annot">Typed_ast.name_lskips_annot</a></code></pre><div class="info">
+<code class="code">mk_name_lskips_annot</code> creates an annoted name<br>
+</div>
+<pre><span id="VALdest_var_exp"><span class="keyword">val</span> dest_var_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Name.html#TYPEt">Name.t</a> option</code></pre><div class="info">
+Destructor for variable expressions<br>
+</div>
+<pre><span id="VALis_var_exp"><span class="keyword">val</span> is_var_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> bool</code></pre><div class="info">
+<code class="code">is_var_exp e</code> checks whether <code class="code">e</code> is a variable expression<br>
+</div>
+<pre><span id="VALdest_tup_exp"><span class="keyword">val</span> dest_tup_exp</span> : <code class="type">int option -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> list option</code></pre><div class="info">
+Destructor for tuple expressions. Similar to pattern destructors for tuples
+    an optional argument to check the number of elements of the tuple.<br>
+</div>
+<pre><span id="VALis_tup_exp"><span class="keyword">val</span> is_tup_exp</span> : <code class="type">int option -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> bool</code></pre><div class="info">
+<code class="code">is_tup_exp s_opt e</code> checks whether <code class="code">e</code> is a tuple of size <code class="code">s_opt</code>.<br>
+</div>
+<pre><span id="VALis_var_tup_exp"><span class="keyword">val</span> is_var_tup_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> bool</code></pre><div class="info">
+<code class="code">is_var_tup_exp e</code> checks, whether <code class="code">e</code> is an expression consisting only of
+    variables and tuples. I.e. simple variable expressions, tuples containing
+    only variables and tuples containing other variable-tuples are accepted.<br>
+</div>
+<pre><span id="VALmk_tf_exp"><span class="keyword">val</span> mk_tf_exp</span> : <code class="type">bool -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">mk_tf_exp</code> creates <code class="code">true</code> and <code class="code">false</code> expressions.<br>
+</div>
+<pre><span id="VALdest_tf_exp"><span class="keyword">val</span> dest_tf_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> bool option</code></pre><div class="info">
+<code class="code">dest_tf_exp</code> destructs <code class="code">true</code> and <code class="code">false</code> expressions.<br>
+</div>
+<pre><span id="VALis_tf_exp"><span class="keyword">val</span> is_tf_exp</span> : <code class="type">bool -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> bool</code></pre><div class="info">
+<code class="code">is_tf_exp v e</code> checks whether <code class="code">e</code> is a <code class="code">true</code> or <code class="code">false</code> expression.<br>
+</div>
+<pre><span id="VALdest_const_exp"><span class="keyword">val</span> dest_const_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Types.html#TYPEconst_descr_ref">Types.const_descr_ref</a> <a href="Types.html#TYPEid">Types.id</a> option</code></pre><div class="info">
+Destructor for constants expressions<br>
+</div>
+<pre><span id="VALis_const_exp"><span class="keyword">val</span> is_const_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> bool</code></pre><div class="info">
+<code class="code">is_const_exp e</code> checks whether <code class="code">e</code> is a constant expression<br>
+</div>
+<pre><span id="VALdest_num_exp"><span class="keyword">val</span> dest_num_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> int option</code></pre><div class="info">
+<code class="code">dest_num_exp e</code> destructs a number literal expression.<br>
+</div>
+<pre><span id="VALis_num_exp"><span class="keyword">val</span> is_num_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> bool</code></pre><div class="info">
+<code class="code">is_num_exp</code> checks whether <code class="code">e</code> is a number literal expression.<br>
+</div>
+<pre><span id="VALmk_num_exp"><span class="keyword">val</span> mk_num_exp</span> : <code class="type"><a href="Types.html#TYPEt">Types.t</a> -> int -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">mk_num_exp</code> creates a number literal expression.<br>
+</div>
+<pre><span id="VALis_empty_backend_exp"><span class="keyword">val</span> is_empty_backend_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> bool</code></pre><div class="info">
+<code class="code">is_empty_backend_exp</code> checks whether the expression is <code class="code">``</code><br>
+</div>
+<pre><span id="VALmk_eq_exp"><span class="keyword">val</span> mk_eq_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">mk_eq_exp env e1 e2</code> constructs the expression <code class="code">e1 = e2</code>. The environment <code class="code">env</code> is needed
+    to lookup the equality constant.<br>
+</div>
+<pre><span id="VALmk_and_exp"><span class="keyword">val</span> mk_and_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">mk_and_exp env e1 e2</code> constructs the expression <code class="code">e1 &amp;&amp; e2</code>. The environment <code class="code">env</code> is needed
+    to lookup the conjunction constant.<br>
+</div>
+<pre><span id="VALmk_and_exps"><span class="keyword">val</span> mk_and_exps</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> list -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">mk_and_exps env es</code> constructs the conjunction of all expressions in es. The environment <code class="code">env</code> is needed
+    to lookup the conjunction constant.<br>
+</div>
+<pre><span id="VALmk_le_exp"><span class="keyword">val</span> mk_le_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">mk_le_exp env e1 e2</code> constructs the expression <code class="code">e1 &lt;= e2</code>. The environment <code class="code">env</code> is needed
+    to lookup the less-equal constant.<br>
+</div>
+<pre><span id="VALmk_sub_exp"><span class="keyword">val</span> mk_sub_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">mk_sub_exp env e1 e2</code> constructs the expression <code class="code">e1 - e2</code>. The environment <code class="code">env</code> is needed
+    to lookup the subtraction constant.<br>
+</div>
+<pre><span id="VALmk_from_list_exp"><span class="keyword">val</span> mk_from_list_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">mk_from_list_exp env e</code> constructs the expression <code class="code">Set.from_list e</code>. The environment <code class="code">env</code> is needed
+    to lookup the from-list constant.<br>
+</div>
+<pre><span id="VALmk_cross_exp"><span class="keyword">val</span> mk_cross_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">mk_cross_exp env e1 e2</code> constructs the expression <code class="code">cross e1 e2</code>. The environment <code class="code">env</code> is needed
+    to lookup the cross constant.<br>
+</div>
+<pre><span id="VALmk_set_sigma_exp"><span class="keyword">val</span> mk_set_sigma_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">mk_set_sigma_exp env e1 e2</code> constructs the expression <code class="code">set_sigma e1 e2</code>. The environment <code class="code">env</code> is needed
+    to lookup the sigma constant.<br>
+</div>
+<pre><span id="VALmk_set_filter_exp"><span class="keyword">val</span> mk_set_filter_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">mk_set_filter_exp env e_P e_s</code> constructs the expression <code class="code">Set.filter e_P e_s</code>. The environment <code class="code">env</code> is needed
+    to lookup the constant.<br>
+</div>
+<pre><span id="VALmk_set_image_exp"><span class="keyword">val</span> mk_set_image_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">mk_set_image_exp env e_f e_s</code> constructs the expression <code class="code">Set.image e_f e_s</code>. The environment <code class="code">env</code> is needed
+    to lookup the constant.<br>
+</div>
+<pre><span id="VALmk_fun_exp"><span class="keyword">val</span> mk_fun_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> list -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">mk_fun_exp [p1, ..., pn] e</code> constructs the expression <code class="code">fun p1 ... pn -&gt; e</code>.<br>
+</div>
+<pre><span id="VALmk_opt_fun_exp"><span class="keyword">val</span> mk_opt_fun_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> list -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">mk_opt_fun_exp pL e</code> returns <code class="code">mk_fun_exp pL e</code> if <code class="code">pL</code> is not empty and <code class="code">e</code> otherwise.<br>
+</div>
+<pre><span id="VALmk_app_exp"><span class="keyword">val</span> mk_app_exp</span> : <code class="type">Ast.l -> <a href="Types.html#TYPEtype_defs">Types.type_defs</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">mk_app_exp d e1 e2</code> constructs the expression <code class="code">e1 e2</code>. The type definitions <code class="code">d</code> are needed
+    for typechecking.<br>
+</div>
+<pre><span id="VALmk_list_app_exp"><span class="keyword">val</span> mk_list_app_exp</span> : <code class="type">Ast.l -><br>       <a href="Types.html#TYPEtype_defs">Types.type_defs</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> list -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">mk_list_app_exp d f [a1 ... an]</code> constructs the expression <code class="code">f a1 ... an</code> by repeatedly calling <code class="code">mk_app_exp</code>.<br>
+</div>
+<pre><span id="VALmk_eta_expansion_exp"><span class="keyword">val</span> mk_eta_expansion_exp</span> : <code class="type"><a href="Types.html#TYPEtype_defs">Types.type_defs</a> -> <a href="Name.html#TYPEt">Name.t</a> list -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">mk_eta_expansion_exp d vars e</code> for variables <code class="code">vars = [x1, ..., xn]</code> tries to build the expression
+    <code class="code">fun x1 ... xn -&gt; (e x1 ... xn)</code>. The variable names might be changed to ensure that they are distinct to
+    each other and all variables already present in <code class="code">e</code>.<br>
+</div>
+<pre><span id="VALmk_paren_exp"><span class="keyword">val</span> mk_paren_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">mk_paren_exp e</code> adds parenthesis around expression <code class="code">e</code>. Standard whitespaces are applied. This
+    means that whitespace (except comments) are deleted before expression <code class="code">e</code>.<br>
+</div>
+<pre><span id="VALmk_opt_paren_exp"><span class="keyword">val</span> mk_opt_paren_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">mk_opt_paren_exp e</code> adds parenthesis around expression <code class="code">e</code> if it seems sensible. 
+    For parenthesis, variable expressions and tuples, the parenthesis are skipped, though.<br>
+</div>
+<pre><span id="VALmay_need_paren"><span class="keyword">val</span> may_need_paren</span> : <code class="type"><a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> bool</code></pre><div class="info">
+<code class="code">may_need_paren e</code> checks, whether <code class="code">e</code> might need parenthesis. If returns, whether <code class="code">mk_opt_paren_exp e</code>
+    would modify the expression.<br>
+</div>
+<pre><span id="VALmk_case_exp"><span class="keyword">val</span> mk_case_exp</span> : <code class="type">bool -><br>       Ast.l -><br>       <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -><br>       (<a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> * <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a>) list -> <a href="Types.html#TYPEt">Types.t</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">mk_case_exp final l e rows ty</code> constructs a case (match) expression. In contrast to
+    <code class="code">Typed_ast.mk_case</code> it uses standard spacing and adds parenthesis.<br>
+</div>
+<pre><span id="VALmk_let_exp"><span class="keyword">val</span> mk_let_exp</span> : <code class="type">Ast.l -> <a href="Name.html#TYPEt">Name.t</a> * <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">mk_let_exp l (n, e1) e2</code> constructs the expression <code class="code">let n = e1 in e2</code> using
+    default spacing.<br>
+</div>
+<pre><span id="VALmk_if_exp"><span class="keyword">val</span> mk_if_exp</span> : <code class="type">Ast.l -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">mk_if_exp l c e_t e_f</code> constructs the expression <code class="code">if c then e_t else e_f</code> using
+    default spacing.<br>
+</div>
+<pre><span id="VALmk_undefined_exp"><span class="keyword">val</span> mk_undefined_exp</span> : <code class="type">Ast.l -> string -> <a href="Types.html#TYPEt">Types.t</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">mk_undefined_exp l m ty</code> constructs an undefined expression of type <code class="code">ty</code> with message <code class="code">m</code>.<br>
+</div>
+<pre><span id="VALmk_dummy_exp"><span class="keyword">val</span> mk_dummy_exp</span> : <code class="type"><a href="Types.html#TYPEt">Types.t</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">mk_dummy_exp ty</code> constructs a dummy expression of type <code class="code">ty</code>. This is an expression that should
+    never be looked at. It is only guaranteed to be an expression of this type.<br>
+</div>
+<pre><span id="VALdest_app_exp"><span class="keyword">val</span> dest_app_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> (<a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> * <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a>) option</code></pre><div class="info">
+<code class="code">dest_app_exp e</code> tries to destruct an function application expression <code class="code">e</code>.<br>
+</div>
+<pre><span id="VALstrip_app_exp"><span class="keyword">val</span> strip_app_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> * <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> list</code></pre><div class="info">
+<code class="code">strip_app_exp e</code> tries to destruct multiple function applications. It returns a pair
+    <code class="code">(base_fun, arg_list)</code> such that <code class="code">e</code> is of the form <code class="code">base_fun arg_list_1 ... arg_list_n</code>.
+    If <code class="code">e</code> is not a function application expression, the list <code class="code">arg_list</code> is empty.<br>
+</div>
+<pre><span id="VALdest_infix_exp"><span class="keyword">val</span> dest_infix_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> (<a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> * <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> * <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a>) option</code></pre><div class="info">
+<code class="code">dest_infix_exp e</code> tries to destruct an infix expression <code class="code">e</code>. If <code class="code">e</code> is of the form
+    <code class="code">l infix_op r</code> then <code class="code">Some (l, infix_op, r)</code> is returned, otherwise <code class="code">None</code>.<br>
+</div>
+<pre><span id="VALis_infix_exp"><span class="keyword">val</span> is_infix_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> bool</code></pre><div class="info">
+<code class="code">is_infix_exp e</code> checks whether <code class="code">e</code> is an infix operation<br>
+</div>
+<pre><span id="VALstrip_infix_exp"><span class="keyword">val</span> strip_infix_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> * <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> list</code></pre><div class="info">
+<code class="code">strip_infix_exp e</code> is similar to <code class="code">dest_infix_exp</code>, but returns the result in the same way as
+    <code class="code">strip_app_exp</code>. If <code class="code">e</code> is of the form
+    <code class="code">l infix_op r</code> then <code class="code">(infix_op, [l;r])</code> is returned, otherwise <code class="code">(e, [])</code>.<br>
+</div>
+<pre><span id="VALstrip_app_infix_exp"><span class="keyword">val</span> strip_app_infix_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> * <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> list * bool</code></pre><div class="info">
+<code class="code">strip_app_infix_exp e</code> is a combination of <code class="code">strip_infix_exp</code> and <code class="code">strip_app_exp</code>. 
+    The additional boolean result states, whether <code class="code">e</code> is an infix operation. 
+    If <code class="code">e</code> is an infix operation <code class="code">strip_infix_exp</code> is called and the additional boolean result
+    is <code class="code">true</code>. Otherwise <code class="code">strip_app_exp</code> is called and the result is set to <code class="code">false</code>.<br>
+</div>
+<br>
+<span id="2_Constructingcheckinganddestructingdefinitions"><h2>Constructing, checking and destructing definitions</h2></span><br>
+<pre><span id="VALis_type_def_abbrev"><span class="keyword">val</span> is_type_def_abbrev</span> : <code class="type"><a href="Typed_ast.html#TYPEdef">Typed_ast.def</a> -> bool</code></pre><div class="info">
+<code class="code">is_type_def_abbrev d</code> checks whether the definition <code class="code">d</code> is a 
+    type-abbreviation definition.<br>
+</div>
+<pre><span id="VALis_type_def_record"><span class="keyword">val</span> is_type_def_record</span> : <code class="type"><a href="Typed_ast.html#TYPEdef">Typed_ast.def</a> -> bool</code></pre><div class="info">
+<code class="code">is_type_def_abbrev d</code> checks whether the definition <code class="code">d</code> is a 
+    definition of a record_type.<br>
+</div>
+<br>
+<span id="2_Collectinginformationaboutusesconstantstypesmodules"><h2>Collecting information about uses constants, types, modules ...</h2></span><br>
+<br><code><span id="TYPEused_entities"><span class="keyword">type</span> <code class="type"></code>used_entities</span> = {</code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>used_consts&nbsp;: <code class="type"><a href="Types.html#TYPEconst_descr_ref">Types.const_descr_ref</a> list</code>;</code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>used_consts_set&nbsp;: <code class="type">Types.Cdset.t</code>;</code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>used_types&nbsp;: <code class="type"><a href="Path.html#TYPEt">Path.t</a> list</code>;</code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>used_types_set&nbsp;: <code class="type">Types.Pset.t</code>;</code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>used_modules&nbsp;: <code class="type"><a href="Path.html#TYPEt">Path.t</a> list</code>;</code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>used_modules_set&nbsp;: <code class="type">Types.Pset.t</code>;</code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>used_tnvars&nbsp;: <code class="type">Types.TNset.t</code>;</code></td>
+
+</tr></table>
+}
+
+<div class="info">
+The type <code class="code">used_entities</code> collects lists of used constant references, modules and types of some expression, definition, pattern ... 
+   used_entities is using lists, because the order in which entities occur might be important for renaming.
+   However, these lists should not contain duplicates.<br>
+</div>
+
+<pre><span id="VALempty_used_entities"><span class="keyword">val</span> empty_used_entities</span> : <code class="type"><a href="Typed_ast_syntax.html#TYPEused_entities">used_entities</a></code></pre><div class="info">
+An empty collection of entities<br>
+</div>
+<pre><span id="VALadd_exp_entities"><span class="keyword">val</span> add_exp_entities</span> : <code class="type"><a href="Typed_ast_syntax.html#TYPEused_entities">used_entities</a> -><br>       <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast_syntax.html#TYPEused_entities">used_entities</a></code></pre><pre><span id="VALadd_def_aux_entities"><span class="keyword">val</span> add_def_aux_entities</span> : <code class="type"><a href="Target.html#TYPEtarget">Target.target</a> -><br>       bool -><br>       <a href="Typed_ast_syntax.html#TYPEused_entities">used_entities</a> -><br>       <a href="Typed_ast.html#TYPEdef_aux">Typed_ast.def_aux</a> -> <a href="Typed_ast_syntax.html#TYPEused_entities">used_entities</a></code></pre><div class="info">
+<code class="code">add_def_aux_entities targ only_new ue def</code> adds all the modules, types, constants ... used by definition <code class="code">def</code> for target 
+    <code class="code">targ</code> to <code class="code">ue</code>. If the flag <code class="code">only_new</code> is set, only the newly defined are added. 
+    Notice, that the identity backend won't throw parts of modules away. Therefore the result for the identiy backend
+    is the union of the results for all other backends.<br>
+</div>
+<pre><span id="VALadd_def_entities"><span class="keyword">val</span> add_def_entities</span> : <code class="type"><a href="Target.html#TYPEtarget">Target.target</a> -><br>       bool -><br>       <a href="Typed_ast_syntax.html#TYPEused_entities">used_entities</a> -><br>       <a href="Typed_ast.html#TYPEdef">Typed_ast.def</a> -> <a href="Typed_ast_syntax.html#TYPEused_entities">used_entities</a></code></pre><div class="info">
+<code class="code">add_def_entities</code> is called <code class="code">add_def_aux_entities</code> after extracting the appropriate <code class="code">def_aux</code>.<br>
+</div>
+<pre><span id="VALget_checked_modules_entities"><span class="keyword">val</span> get_checked_modules_entities</span> : <code class="type"><a href="Target.html#TYPEtarget">Target.target</a> -><br>       bool -> <a href="Typed_ast.html#TYPEchecked_module">Typed_ast.checked_module</a> list -> <a href="Typed_ast_syntax.html#TYPEused_entities">used_entities</a></code></pre><div class="info">
+<code class="code">get_checked_module_entities targ only_new ml</code> gets all the modules, types, constants ... used by modules <code class="code">ml</code> for target 
+    <code class="code">targ</code>. If the flag <code class="code">only_new</code> is set, only the newly defined are returned. 
+    Notice, that the identity backend won't throw parts of modules away. Therefore the result for the identiy backend
+    is the union of the results for all other backends.<br>
+</div>
+<br>
+<span id="2_Miscellaneous"><h2>Miscellaneous</h2></span><br>
+<pre><span id="VALremove_init_ws"><span class="keyword">val</span> remove_init_ws</span> : <code class="type">Ast.lex_skips -> Ast.lex_skips * Ast.lex_skips</code></pre><div class="info">
+<code class="code">remove_init_ws</code> should be used with function like <code class="code">Typed_ast.alter_init_lskips</code>. It removes
+    whitespace expect comments.<br>
+</div>
+<pre><span id="VALdrop_init_ws"><span class="keyword">val</span> drop_init_ws</span> : <code class="type">Ast.lex_skips -> Ast.lex_skips * Ast.lex_skips</code></pre><div class="info">
+<code class="code">drop_init_ws</code> should be used with function like <code class="code">Typed_ast.alter_init_lskips</code>. It removes
+    whitespace including comments.<br>
+</div>
+<pre><span id="VALspace_init_ws"><span class="keyword">val</span> space_init_ws</span> : <code class="type">Ast.lex_skips -> Ast.lex_skips * Ast.lex_skips</code></pre><div class="info">
+<code class="code">space_init_ws</code> should be used with function like <code class="code">Typed_ast.alter_init_lskips</code>. It replaces
+    whitespace including comments with a single space.<br>
+</div>
+<pre><span id="VALspace_com_init_ws"><span class="keyword">val</span> space_com_init_ws</span> : <code class="type">Ast.lex_skips -> Ast.lex_skips * Ast.lex_skips</code></pre><div class="info">
+<code class="code">space_com_init_ws</code> should be used with function like <code class="code">Typed_ast.alter_init_lskips</code>. It replaces
+    whitespace except comments with a single space.<br>
+</div>
+<pre><span id="VALstrip_paren_typ_exp"><span class="keyword">val</span> strip_paren_typ_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">strip_paren_typ_exp e</code> strips parenthesis and type-annotations form expression <code class="code">e</code>.
+    Warning: This might delete white-space!<br>
+</div>
+<pre><span id="VALis_recursive_def"><span class="keyword">val</span> is_recursive_def</span> : <code class="type"><a href="Typed_ast.html#TYPEdef_aux">Typed_ast.def_aux</a> -> bool * bool</code></pre><div class="info">
+<code class="code">is_recursive_def d</code> checks whether <code class="code">d</code> is recursive. It returns a pair of booleans <code class="code">(is_syntactic_rec, is_real_rec)</code>.
+    The flag <code class="code">is_syntactic_rec</code> states, whether the definition was made using the <code class="code">rec</code>-keyword. The flag <code class="code">is_real_rec</code> states,
+    whether the function actually appears inside its own definition.<br>
+</div>
+<pre><span id="VALtry_termination_proof"><span class="keyword">val</span> try_termination_proof</span> : <code class="type"><a href="Target.html#TYPEtarget">Target.target</a> -> <a href="Typed_ast.html#TYPEc_env">Typed_ast.c_env</a> -> <a href="Typed_ast.html#TYPEdef_aux">Typed_ast.def_aux</a> -> bool * bool * bool</code></pre><div class="info">
+<code class="code">try_termination_proof targ c_env d</code> calls <code class="code">is_recursive_def d</code>. It further checks, whether a termination proof for target <code class="code">targ</code> should be tried by
+    checking the termination settings of all involved constants. It returns a triple <code class="code">(is_syntactic_rec, is_real_rec, try_auto_termination)</code>.<br>
+</div>
+<pre><span id="VALis_pp_loc"><span class="keyword">val</span> is_pp_loc</span> : <code class="type">Ast.l -> bool</code></pre><div class="info">
+<code class="code">is_pp_loc l</code> checks whether <code class="code">l</code> is of the form <code class="code">Ast.Trans (true, _, _)</code>. This means
+    that the entity marked with <code class="code">l</code> should be formated using a pretty printer that calculates whitespaces new instead
+    of using the ones provided by the user.<br>
+</div>
+<pre><span id="VALis_pp_exp"><span class="keyword">val</span> is_pp_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a> -> bool</code></pre><pre><span id="VALis_pp_def"><span class="keyword">val</span> is_pp_def</span> : <code class="type"><a href="Typed_ast.html#TYPEdef">Typed_ast.def</a> -> bool</code></pre><pre><span id="VALval_def_get_name"><span class="keyword">val</span> val_def_get_name</span> : <code class="type"><a href="Typed_ast.html#TYPEval_def">Typed_ast.val_def</a> -> <a href="Name.html#TYPEt">Name.t</a> option</code></pre><div class="info">
+<code class="code">val_def_get_name d</code> tries to extract the name of the defined function.<br>
+</div>
+<pre><span id="VALval_def_get_class_constraints_no_target_rep"><span class="keyword">val</span> val_def_get_class_constraints_no_target_rep</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -><br>       <a href="Target.html#TYPEtarget">Target.target</a> -> <a href="Typed_ast.html#TYPEval_def">Typed_ast.val_def</a> -> (<a href="Path.html#TYPEt">Path.t</a> * <a href="Types.html#TYPEtnvar">Types.tnvar</a>) list</code></pre><div class="info">
+<code class="code">val_def_get_class_constraints_no_target_rep env targ vd</code> collects the class constraints of all top-level function definitions
+    in <code class="code">vd</code>, which don't have a target-specific representation for target <code class="code">targ</code>. Warning: contraints may appear multiple times in the resulting list<br>
+</div>
+<pre><span id="VALval_def_get_class_constraints"><span class="keyword">val</span> val_def_get_class_constraints</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Typed_ast.html#TYPEval_def">Typed_ast.val_def</a> -> (<a href="Path.html#TYPEt">Path.t</a> * <a href="Types.html#TYPEtnvar">Types.tnvar</a>) list</code></pre><div class="info">
+<code class="code">val_def_get_class_constraints env vd</code> collects the class constraints of all top-level function definitions
+    in <code class="code">vd</code>. Warning: contraints may appear multiple times in the resulting list<br>
+</div>
+<pre><span id="VALval_def_get_free_tnvars"><span class="keyword">val</span> val_def_get_free_tnvars</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Typed_ast.html#TYPEval_def">Typed_ast.val_def</a> -> Types.TNset.t</code></pre><div class="info">
+<code class="code">val_def_get_free_tnvars env vd</code> returns the set of all free type-variables used by <code class="code">vd</code>.<br>
+</div>
+<pre><span id="VALenv_tag_to_string"><span class="keyword">val</span> env_tag_to_string</span> : <code class="type"><a href="Typed_ast.html#TYPEenv_tag">Typed_ast.env_tag</a> -> string</code></pre><div class="info">
+<code class="code">env_tag_to_string tag</code> formats <code class="code">tag</code> as a string. This functions should only be used
+    for human-readable output in e.g. error-messages.<br>
+</div>
+<pre><span id="VALconstr_family_to_id"><span class="keyword">val</span> constr_family_to_id</span> : <code class="type">Ast.l -><br>       <a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -><br>       <a href="Types.html#TYPEt">Types.t</a> -><br>       <a href="Types.html#TYPEconstr_family_descr">Types.constr_family_descr</a> -><br>       (<a href="Types.html#TYPEconst_descr_ref">Types.const_descr_ref</a> <a href="Types.html#TYPEid">Types.id</a> list *<br>        (<a href="Types.html#TYPEt">Types.t</a> -> <a href="Types.html#TYPEconst_descr_ref">Types.const_descr_ref</a> <a href="Types.html#TYPEid">Types.id</a>) option)<br>       option</code></pre><div class="info">
+<code class="code">constr_family_to_id l env ty cf</code> tries to instantiate the constructor family <code class="code">cf</code> to be used
+    on a match statement where the matched type is <code class="code">ty</code>. If it succeeeds the properly instantiated 
+    construtor ids + the instantiated case split function is returned. However, returning the case-split
+    function is a bit complicated. It depends on the return type of match expression as well. Moreover, it
+    might not be there at all, if the targets build-in pattern matching should be used to construct one.
+    Therefore, an optional function from a type (the return type) to an id is returned for the case-split function.<br>
+</div>
+<pre><span id="VALcheck_constr_family"><span class="keyword">val</span> check_constr_family</span> : <code class="type">Ast.l -> <a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Types.html#TYPEt">Types.t</a> -> <a href="Types.html#TYPEconstr_family_descr">Types.constr_family_descr</a> -> unit</code></pre><div class="info">
+<code class="code">check_constr_family</code> is similar to <code class="code">constr_family_to_id</code>. It does not return the instantiations though, but 
+    produces a nicely formatted error, in case no such instantiations could be found.<br>
+</div>
+<pre><span id="VALcheck_for_inline_cycles"><span class="keyword">val</span> check_for_inline_cycles</span> : <code class="type"><a href="Target.html#TYPEtarget">Target.target</a> -> <a href="Typed_ast.html#TYPEc_env">Typed_ast.c_env</a> -> unit</code></pre><div class="info">
+<code class="code">check_for_inline_cycles targ env</code> checks whether any constant in <code class="code">env</code> would be inlined (possible over several steps) onto
+    itself. If this happens, an exception is thrown.<br>
+</div>
+</body></html>

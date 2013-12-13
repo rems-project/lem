@@ -1,0 +1,773 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title>Lem Manual</title>
+</head>
+<body>
+<div id="header">
+<h1 class="title">Lem Manual</h1>
+<h3 class="date">6th Dec. 2013</h3>
+</div>
+<div id="TOC">
+<ul>
+<li><a href="#introduction"><span class="toc-section-number">1</span> Introduction</a></li>
+<li><a href="#installation"><span class="toc-section-number">2</span> Installation</a><ul>
+<li><a href="#lem-binary"><span class="toc-section-number">2.1</span> Lem binary</a></li>
+<li><a href="#backend-libraries"><span class="toc-section-number">2.2</span> Backend libraries</a></li>
+<li><a href="#documentation"><span class="toc-section-number">2.3</span> Documentation</a><ul>
+<li><a href="#library-documentation"><span class="toc-section-number">2.3.1</span> Library documentation</a></li>
+<li><a href="#syntax"><span class="toc-section-number">2.3.2</span> Syntax</a></li>
+<li><a href="#papers"><span class="toc-section-number">2.3.3</span> Papers</a></li>
+<li><a href="#manual"><span class="toc-section-number">2.3.4</span> Manual</a></li>
+<li><a href="#old-manual"><span class="toc-section-number">2.3.5</span> Old Manual</a></li>
+<li><a href="#source-code-documentation"><span class="toc-section-number">2.3.6</span> Source code documentation</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#invoking-lem"><span class="toc-section-number">3</span> Invoking Lem</a><ul>
+<li><a href="#backends"><span class="toc-section-number">3.1</span> Backends</a></li>
+<li><a href="#dependency-resolution-libraries"><span class="toc-section-number">3.2</span> Dependency Resolution / Libraries</a></li>
+<li><a href="#output-directory"><span class="toc-section-number">3.3</span> Output Directory</a></li>
+<li><a href="#auxiliary-output"><span class="toc-section-number">3.4</span> Auxiliary Output</a></li>
+<li><a href="#updating-existing-output"><span class="toc-section-number">3.5</span> Updating Existing Output</a></li>
+<li><a href="#warnings"><span class="toc-section-number">3.6</span> Warnings</a></li>
+<li><a href="#miscellaneous-command-line-options"><span class="toc-section-number">3.7</span> Miscellaneous Command-Line Options</a></li>
+<li><a href="#command-line-options-for-debugging"><span class="toc-section-number">3.8</span> Command-line Options for Debugging</a></li>
+</ul></li>
+<li><a href="#backends-1"><span class="toc-section-number">4</span> Backends</a><ul>
+<li><a href="#ocaml"><span class="toc-section-number">4.1</span> OCaml</a><ul>
+<li><a href="#compilation"><span class="toc-section-number">4.1.1</span> Compilation</a></li>
+<li><a href="#auxiliary-files"><span class="toc-section-number">4.1.2</span> Auxiliary Files</a></li>
+</ul></li>
+<li><a href="#hol4"><span class="toc-section-number">4.2</span> HOL4</a><ul>
+<li><a href="#compilation-1"><span class="toc-section-number">4.2.1</span> Compilation</a></li>
+<li><a href="#auxiliary-files-1"><span class="toc-section-number">4.2.2</span> Auxiliary Files</a></li>
+</ul></li>
+<li><a href="#isabellehol"><span class="toc-section-number">4.3</span> Isabelle/HOL</a><ul>
+<li><a href="#generating-isabelle-library"><span class="toc-section-number">4.3.1</span> Generating Isabelle Library</a></li>
+<li><a href="#adapting-isabelle-imports"><span class="toc-section-number">4.3.2</span> Adapting Isabelle Imports</a></li>
+<li><a href="#auxiliary-files-2"><span class="toc-section-number">4.3.3</span> Auxiliary Files</a></li>
+<li><a href="#automatic-proof-tools-counter-example-generation"><span class="toc-section-number">4.3.4</span> Automatic Proof Tools / Counter Example Generation</a></li>
+</ul></li>
+<li><a href="#coq"><span class="toc-section-number">4.4</span> Coq</a></li>
+<li><a href="#latex"><span class="toc-section-number">4.5</span> LaTeX</a><ul>
+<li><a href="#latex-macro-names"><span class="toc-section-number">4.5.1</span> LaTeX Macro Names</a></li>
+<li><a href="#latex-macro-usage"><span class="toc-section-number">4.5.2</span> LaTeX Macro Usage</a></li>
+<li><a href="#libraries"><span class="toc-section-number">4.5.3</span> Libraries</a></li>
+</ul></li>
+<li><a href="#html"><span class="toc-section-number">4.6</span> HTML</a></li>
+</ul></li>
+<li><a href="#lem-library"><span class="toc-section-number">5</span> Lem-library</a><ul>
+<li><a href="#general-design"><span class="toc-section-number">5.1</span> General Design</a></li>
+<li><a href="#library-documentation-1"><span class="toc-section-number">5.2</span> Library documentation</a></li>
+</ul></li>
+<li><a href="#writing-your-own-lem-files"><span class="toc-section-number">6</span> Writing your own Lem files</a><ul>
+<li><a href="#header"><span class="toc-section-number">6.1</span> Header</a><ul>
+<li><a href="#importing-library"><span class="toc-section-number">6.1.1</span> Importing Library</a></li>
+<li><a href="#setting-module-name"><span class="toc-section-number">6.1.2</span> Setting Module Name</a></li>
+<li><a href="#importing-modules"><span class="toc-section-number">6.1.3</span> Importing Modules</a></li>
+<li><a href="#opening-including-modules"><span class="toc-section-number">6.1.4</span> Opening / Including Modules</a></li>
+</ul></li>
+<li><a href="#constant-definitions"><span class="toc-section-number">6.2</span> Constant definitions</a><ul>
+<li><a href="#simple-definitions"><span class="toc-section-number">6.2.1</span> Simple definitions</a></li>
+<li><a href="#target-specific-definitions"><span class="toc-section-number">6.2.2</span> Target specific definitions</a></li>
+<li><a href="#inlining"><span class="toc-section-number">6.2.3</span> Inlining</a></li>
+<li><a href="#recursive-definitions"><span class="toc-section-number">6.2.4</span> Recursive Definitions</a></li>
+<li><a href="#termination-proofs"><span class="toc-section-number">6.2.5</span> Termination Proofs</a></li>
+</ul></li>
+<li><a href="#type-definitions"><span class="toc-section-number">6.3</span> Type definitions</a></li>
+<li><a href="#assertions-lemmata-theorems"><span class="toc-section-number">6.4</span> Assertions / Lemmata / Theorems</a></li>
+<li><a href="#renaming"><span class="toc-section-number">6.5</span> Renaming</a></li>
+</ul></li>
+<li><a href="#the-lem-language"><span class="toc-section-number">7</span> The Lem Language</a><ul>
+<li><a href="#metavariables-and-identifiers"><span class="toc-section-number">7.1</span> Metavariables and Identifiers</a></li>
+<li><a href="#literals"><span class="toc-section-number">7.2</span> Literals</a></li>
+<li><a href="#types"><span class="toc-section-number">7.3</span> Types</a></li>
+<li><a href="#patterns"><span class="toc-section-number">7.4</span> Patterns</a></li>
+<li><a href="#expressions"><span class="toc-section-number">7.5</span> Expressions</a></li>
+<li><a href="#inductive-relation-definitions"><span class="toc-section-number">7.6</span> Inductive Relation Definitions</a></li>
+<li><a href="#type-definitions-1"><span class="toc-section-number">7.7</span> Type Definitions</a></li>
+<li><a href="#type-schemes"><span class="toc-section-number">7.8</span> Type Schemes</a></li>
+<li><a href="#target-descriptions"><span class="toc-section-number">7.9</span> Target Descriptions</a></li>
+<li><a href="#import-open-and-include"><span class="toc-section-number">7.10</span> Import, Open, and Include</a></li>
+<li><a href="#lemmas-assertions-and-theorems"><span class="toc-section-number">7.11</span> Lemmas, Assertions, and Theorems</a></li>
+<li><a href="#unused"><span class="toc-section-number">7.12</span> Unused?</a></li>
+<li><a href="#target-representation-declarations"><span class="toc-section-number">7.13</span> Target Representation Declarations</a></li>
+<li><a href="#value-definitions"><span class="toc-section-number">7.14</span> Value Definitions</a></li>
+<li><a href="#class-and-instance-declarations"><span class="toc-section-number">7.15</span> Class and Instance Declarations</a></li>
+<li><a href="#value-type-specifications"><span class="toc-section-number">7.16</span> Value Type Specifications</a></li>
+<li><a href="#top-level-definitions"><span class="toc-section-number">7.17</span> Top-level Definitions</a></li>
+</ul></li>
+<li><a href="#linking-to-existing-backend-libraries"><span class="toc-section-number">8</span> Linking to existing Backend Libraries</a><ul>
+<li><a href="#target-specific-imports"><span class="toc-section-number">8.1</span> Target specific imports</a></li>
+<li><a href="#simple-target-representations"><span class="toc-section-number">8.2</span> Simple Target Representations</a></li>
+<li><a href="#target-representations-of-types"><span class="toc-section-number">8.3</span> Target Representations of Types</a></li>
+<li><a href="#infix-operations"><span class="toc-section-number">8.4</span> Infix Operations</a></li>
+<li><a href="#special-target-representations"><span class="toc-section-number">8.5</span> Special Target Representations</a></li>
+</ul></li>
+<li><a href="#typeclasses"><span class="toc-section-number">9</span> Typeclasses</a><ul>
+<li><a href="#type-classes-for-sets-and-maps"><span class="toc-section-number">9.1</span> Type-classes for Sets and Maps</a></li>
+</ul></li>
+<li><a href="#refactoring"><span class="toc-section-number">10</span> Refactoring</a><ul>
+<li><a href="#types-1"><span class="toc-section-number">10.1</span> Types</a></li>
+<li><a href="#functions-fields"><span class="toc-section-number">10.2</span> Functions / Fields</a></li>
+<li><a href="#modules"><span class="toc-section-number">10.3</span> Modules</a></li>
+</ul></li>
+</ul>
+</div>
+<link href="http://kevinburke.bitbucket.org/markdowncss/markdown.css" rel="stylesheet"></link>
+<h1 id="introduction"><a href="#TOC"><span class="header-section-number">1</span> Introduction</a></h1>
+<p>Lem is a lightweight tool for writing, managing, and publishing large scale semantic definitions. It is also intended as an intermediate language for generating definitions from domain-specific tools, and for porting definitions between interactive theorem proving systems (such as Coq, HOL4, and Isabelle).</p>
+<p>The language combines features familiar from functional programming languages with logical constructs. From functional programming languages we take pure higher-order functions, general recursion, recursive algebraic datatypes, records, lists, pattern matching, parametric polymorphism, a simple type class mechanism for overloading, and a simple module system. To these we add logical constructs familar in provers: universal and existential quantification, sets (including set comprehensions), relations, finite maps, inductive relation definitions, and lemma statements. Then there are facilities to let the user tune how Lem definitions are mapped into the various targets (by declaring target representations and controlling notation, renaming, inlining, and type classes), to generate witness types and executable functions from inductive relations, and for assertions.</p>
+<p>Lem typechecks its input and can generate executable OCaml, theorem prover definitions in Coq, HOL4 and Isabelle/HOL, typeset definitions in LaTeX, and simple HTML.</p>
+<h1 id="installation"><a href="#TOC"><span class="header-section-number">2</span> Installation</a></h1>
+<h2 id="lem-binary"><a href="#TOC"><span class="header-section-number">2.1</span> Lem binary</a></h2>
+<p>To build Lem run <code>make</code> in the top-level directory. This builds the executable <code>lem</code>, and places a symbolic link to it in that directory. Lem depends on <a href="http://caml.inria.fr/">OCaml</a>. Lem is tested against OCaml 3.12.1. and 4.00.0. Other versions might or might not work.</p>
+<p>Lem needs to access its library, which is by default stored in <code>PATH_TO_LEM/library</code>. If you want to use a different library directory, please either set the environment variable <code>LEMLIB</code> or pass the command-line argument <code>-lib YOUR_LIB_DIR</code> to Lem when running it.</p>
+<h2 id="backend-libraries"><a href="#TOC"><span class="header-section-number">2.2</span> Backend libraries</a></h2>
+<p>Running <code>make</code> only generates Lem itself. It does not generate the libraries needed to use Lem's output for certain backends. To generate the libraries for a specific backend, please run</p>
+<pre><code>for OCaml   : make ocaml-libs
+for HOL 4   : make hol-libs
+for Isabelle: make isa-libs
+for Coq     : make coq-libs</code></pre>
+<p>These targets depend on the corresponding tool being installed, because they might run some automated tests or compile the Lem generated files. If you just want to generate the input which Lem gives to these tools, please run <code>make libs</code>.</p>
+<h2 id="documentation"><a href="#TOC"><span class="header-section-number">2.3</span> Documentation</a></h2>
+<h3 id="library-documentation"><a href="#TOC"><span class="header-section-number">2.3.1</span> Library documentation</a></h3>
+<p>Similar to generating backend libraries, one can also generate documentation for the libraries by running <code>make tex-libs</code>. This generates a file <code>tex-lib/lem-libs.pdf</code>. In order to not pretty print the whole library, but just get interface information, one can use Lem's command line argument <code>print_env</code>. Running <code>lem -print_env library/pervasives_extra.lem</code> loads all of the libraries and afterwards prints the environment in a concise form.</p>
+<h3 id="syntax"><a href="#TOC"><span class="header-section-number">2.3.2</span> Syntax</a></h3>
+<p>The input syntax of Lem is defined using the <a href="http://www.cl.cam.ac.uk/~pes20/ott/">Ott tool</a>. The language definition can be found in file <code>language/lem.ott</code>. You don't need Ott to compile or use Lem. However, if Ott is installed, the makefile in directory <code>language</code> can be used to generate a PDF documenting the syntax of Lem. A snapshot of that is in <code>doc/lem.pdf</code>.</p>
+<h3 id="papers"><a href="#TOC"><span class="header-section-number">2.3.3</span> Papers</a></h3>
+<p>In subdirectory <code>doc</code>, a draft version of a conference submission describing Lem can be found, <code>lem-draft.pdf</code>.</p>
+<h3 id="manual"><a href="#TOC"><span class="header-section-number">2.3.4</span> Manual</a></h3>
+<p>Lem's manual can be found in subdirectory <code>doc</code>. It's written in <em>Markdown</em> and tested with <a href="http://johnmacfarlane.net/pandoc/">Pandoc</a> 1.9.1.1. However, it tries to avoid Pandoc specific extensions of Markdown.</p>
+<p>Running <code>make</code> in subdirectory <code>doc</code> invokes Pandoc to generate html- and pdf-versions of the manual. Since the manual is written in Markdown, you can easily read it with the text-editor of your choice as well.</p>
+<h3 id="old-manual"><a href="#TOC"><span class="header-section-number">2.3.5</span> Old Manual</a></h3>
+<p>Lem's old manual can be found in subdirectory <code>manual</code>. It is out of date, though.</p>
+<h3 id="source-code-documentation"><a href="#TOC"><span class="header-section-number">2.3.6</span> Source code documentation</a></h3>
+<p>The makefile in Lem's root directory contains targets to generate Ocamldoc documentation for Lem's sources. Running <code>make lem-doc</code> generates</p>
+<ul>
+<li>directory <code>html-doc</code> (the source documentation as HTML)</li>
+<li>file <code>lem-doc.pdf</code> (the source documentation as PDF)</li>
+<li>file <code>lem-doc-dep.pdf</code> (a dependency graph as PDF)</li>
+</ul>
+<h1 id="invoking-lem"><a href="#TOC"><span class="header-section-number">3</span> Invoking Lem</a></h1>
+<p>The most basic usage of Lem is running a command like</p>
+<pre><code>lem input1.lem ... inputn.lem -target</code></pre>
+<p>This command loads the lem files <code>input1.lem</code> through <code>inputn.lem</code> and outputs their translation to target <code>target</code> in the same directory as the input files. Multiple target arguments are possible. For example</p>
+<pre><code>lem name1.lem name2.lem -ocaml -hol -isa -coq </code></pre>
+<p>creates the following files (assuming there are no type errors, and no explicit renaming in the source files):</p>
+<ul>
+<li><code>name1.ml</code> and <code>name2.ml</code> for target <code>ocaml</code></li>
+<li><code>name1Script.sml</code>, <code>name2Script.sml</code> for target <code>hol</code></li>
+<li><code>Name1.thy</code>, <code>Name2.thy</code> for target <code>isa</code></li>
+<li><code>name1.v</code>, <code>name2.v</code> for target <code>coq</code></li>
+</ul>
+<p>There are auxiliary files generated as well, which are discussed later.</p>
+<p>Lem has many command line options to configure its behaviour. Running <code>lem --help</code> provides a short documentation of these options. The most common ones are explained below.</p>
+<h2 id="backends"><a href="#TOC"><span class="header-section-number">3.1</span> Backends</a></h2>
+<p>The following command line options tell Lem to generate output for certain backends. They are discussed in more detail in the corresponding backend sections later. Notice that multiple backend options can be given in order to generate output for more than one backend.</p>
+<ul>
+<li><code>-ocaml</code> generate OCaml output</li>
+<li><code>-hol</code> generate HOL4 output</li>
+<li><code>-isa</code> generate Isabelle/HOL output</li>
+<li><p><code>-coq</code> generate Coq output</p></li>
+<li><p><code>-tex</code> generate LaTeX output for each module separately. This means that for each input file, a separate output <code>.tex</code> file is created. These files contain the pretty-printed input.</p></li>
+<li><p><code>-tex_all output_filename.tex</code> generate LaTeX output in a single file. All input files are added as separate sections to the file <code>output_filename.tex</code> and a table of contents is added before.</p></li>
+<li><p><code>-html</code> generate HTML output for each module separately</p></li>
+<li><p><code>-lem</code> generate Lem output after simple transformations. This is used for refactoring Lem developments.</p></li>
+</ul>
+<h2 id="dependency-resolution-libraries"><a href="#TOC"><span class="header-section-number">3.2</span> Dependency Resolution / Libraries</a></h2>
+<p>Lem by default searches the given input files for explicit <em>import</em> statements. It then tries to load the imported modules from either the directory of the files importing them or from one of the library directories. Lem only generates output for the files given explicitly as arguments. No output is generated for automatically imported files.</p>
+<p>By default Lem uses the directory <code>library</code> as its library directory. This can be changed by either setting the environment-variable <code>LEMLIB</code> or by using the command-line argument <code>-lib</code>. Multiple usages of <code>-lib</code> allow using more than one library directory. Sometimes, users might be interested when a module is imported and from which file. Setting the warning-level of auto-imports to <code>warn</code> via the command-line option <code>-wl_auto_import warn</code> allows to keep track of auto-imports. Setting it to <code>err</code> via <code>-wl_auto_import err</code> turns off automatic imports and therefore requires the user to explicitly provide all needed input files on the command line. Notice however, that dependency resolution still happens between these explicitly given files and they might be processed in a different order than specified. To turn off resorting the explicit inputs, one can use the command-line flag <code>-no_dep_reorder</code>. When providing all inputs explicitly, it might be useful to turn off output for some of them via the command-line argument <code>-i</code>.</p>
+<h2 id="output-directory"><a href="#TOC"><span class="header-section-number">3.3</span> Output Directory</a></h2>
+<p>By default, output files are generated in the same directory as the corresponding input file. This remains the case even if input files come from multiple directories. For example</p>
+<pre><code>lem -tex dir1/file1.lem dir2/file2.lem</code></pre>
+<p>generates the files <code>dir1/File1.tex</code> and <code>dir2/File2.tex</code>. The command line option <code>-outdir</code> allows one to specify a different output directory. When using <code>-outdir</code> all explicitly, the given input files need to live in the same directory.</p>
+<h2 id="auxiliary-output"><a href="#TOC"><span class="header-section-number">3.4</span> Auxiliary Output</a></h2>
+<p>Lem generates two kinds of output files, the main output and <em>auxiliary</em> outputs. Auxiliary outputs do not contain the main specification, but some related content that might be useful to the user. Examples of such auxiliary output are templates for termination proofs of recursive functions. Other are proof obligations generated by explicit lemmata as well as automatic consistency checks. This kind of auxiliary output should be copied by the user manually to some other files and be used there in whatever way the user thinks best. However, there is also auxiliary output that can be processed completely automatically. Examples are assertions, which for the Ocaml and HOL backends generate executable tests.</p>
+<p>By default Lem generates all available auxiliary output. The command-line option <code>-auxiliary_level</code> can be used to control this behaviour. By default it is set to <code>full</code>. The command line option <code>-auxiliary_level auto</code> causes only automatically processable output like testing code of assertions to be generated. <code>-auxiliary_level none</code> turns off the generation of auxiliary files. One can also turn off the generation of the main files and only generate the auxiliary ones using <code>-only_auxiliary</code>.</p>
+<h2 id="updating-existing-output"><a href="#TOC"><span class="header-section-number">3.5</span> Updating Existing Output</a></h2>
+<p>When using multi-file Lem developments, it might be handy to only update the output files that really changed. This allows the build-tools of backends like OCaml, HOL, Isabelle or Coq to only recompile files that really need to. Lem supports this via the command line option <code>-only_changed_output</code>.</p>
+<h2 id="warnings"><a href="#TOC"><span class="header-section-number">3.6</span> Warnings</a></h2>
+<p>Lem can print warning messages about various things. Common warnings are about unused variables, name clashes that required automatic renaming of some entities or the need for pattern compilation, but there are many more. Warning options start with the prefix <code>wl</code>. They can be set to 4 different values</p>
+<ul>
+<li><code>ign</code> ignore this warning and do nothing</li>
+<li><code>warn</code> print a normal warning message and continue. This is the default for most options.</li>
+<li><code>verb</code> print a verbose warning message and continue</li>
+<li><code>err</code> stop with a verbose error message</li>
+</ul>
+<p>The option <code>-wl</code> controls all warning messages at once. This is useful to turn off all warning messages (<code>-wl ign</code>). It can also be used to first turn all messages off and then activate selected ones again to concentrate on certain problems with the input. <code>-wl ign -wl_rename warn</code> causes - for example - Lem to print only warnings about renamings of constants. So, the user can look the renamings up and provide manual renamings, which generally look better than the auto-generated ones. Later, when there should be no auto-renamings any more, one could enforce this property by using <code>-wl_rename err</code>.</p>
+<p>There are currently the following warnings. Since this list changes frequently, it is recommended to check the warning-options for your version of Lem via <code>lem --help</code>. This also prints the default setting for these warning options.</p>
+<ul>
+<li><p><code>-wl</code> warning level of all warnings</p></li>
+<li><p><code>-wl_gen</code> warning level of miscellaneous warnings</p></li>
+<li><p><code>-wl_amb_code</code> warning level of ambiguous code. This means code that is can easily confuse users and should perhaps be written more clearly.</p></li>
+<li><p><code>-wl_auto_import</code> warning level of automatically imported modules. Setting this option to <code>err</code> is used to turn off automatic imports. Together with `<code>-no_dep_reorder</code> it effectively turns off dependency resolution.</p></li>
+<li><p><code>-wl_comp_message</code> warning level of compile messages. Compile messages are messages associated with certain functions. They contain information for the user how to use these functions. Such messages might point out that a function is not supported by certain backends or that its semantics might be underspecified of deliberately different for different backends.</p></li>
+<li><p><code>-wl_inst_over</code> warning level of overridden instance declarations</p></li>
+<li><p><code>-wl_no_dec_eq</code> warning level of equality of type is undecidable</p></li>
+<li><p><code>-wl_pat_comp</code> warning level of pattern compilation. This causes a warning message if certain patterns are not natively supported by a backend and therefore need pattern compilation. Since pattern compilation changes the input significantly, sometimes users might prefer to write the pattern match in a style supported by the backend.</p></li>
+<li><p><code>-wl_pat_exh</code> warning level of non-exhaustive pattern matches</p></li>
+<li><p><code>-wl_pat_fail</code> warning level of failed pattern compilation</p></li>
+<li><p><code>-wl_pat_red</code> warning level of redundant patterns</p></li>
+<li><p><code>-wl_rename</code> warning level of automatic renamings</p></li>
+<li><p><code>-wl_resort</code> warning level of re-sorted record fields and function clauses. Some backends require the fields of a record to be given in the same order as in the definition of the record type. Lem is more relaxed but warns if it needs to re-sort. Similarly, some backends require the clauses of mutually recursive function definitions to be grouped together, which might require resorting.</p></li>
+<li><p><code>-wl_unused_vars</code> warning level of unused variables. To turn off this warning of a certain variable, one can change the variable name to start with an underscore. For example, for a variable <code>_x</code> no warning is issued.</p></li>
+</ul>
+<h2 id="miscellaneous-command-line-options"><a href="#TOC"><span class="header-section-number">3.7</span> Miscellaneous Command-Line Options</a></h2>
+<ul>
+<li><p><code>-print_env</code> print the environment signature on stdout. This feature gives a very brief overview of the current state and allows for example to get a short list of all the types and functions defined in a certain module.</p></li>
+<li><p><code>-add_loc_annots</code> add location annotations to the output.</p></li>
+<li><p><code>-v</code> print Lem's version</p></li>
+</ul>
+<h2 id="command-line-options-for-debugging"><a href="#TOC"><span class="header-section-number">3.8</span> Command-line Options for Debugging</a></h2>
+<ul>
+<li><code>-ident</code> generate the input on stdout. This is used for debugging Lem.</li>
+<li><p><code>-debug</code> print a backtrace for all errors. This is used for debugging Lem. In order for it to work, Lem needs to be compiled in debug mode (which is done by default).</p></li>
+<li><p><code>-ident_pat_compile</code> activates pattern compilation for the identity backend. This is used for debugging.</p></li>
+<li><p><code>-ident_dict_passing</code> activates dictionary passing transformations for the identity backend. This is used for debugging.</p></li>
+</ul>
+<h1 id="backends-1"><a href="#TOC"><span class="header-section-number">4</span> Backends</a></h1>
+<h2 id="ocaml"><a href="#TOC"><span class="header-section-number">4.1</span> OCaml</a></h2>
+<p>The command line option <code>-ocaml</code> instructs Lem to generate OCaml output. A module with name <code>Mymodule</code> generates a file <code>mymodule.ml</code> and possibly <code>mymoduleAuxiliary.lem</code>.</p>
+<h3 id="compilation"><a href="#TOC"><span class="header-section-number">4.1.1</span> Compilation</a></h3>
+<p>Lem-generated OCaml relies on some Lem-specific OCaml code as well as OCaml versions of the Lem library. Calling <code>make ocaml-libs</code> in Lem's main directory generates these files in subdirectory <code>ocaml_lib</code> and compiles them.</p>
+<p>When compiling Lem-generated OCaml-code, it needs to be linked with the files in directory <code>ocaml_lib</code>. To make this simpler, an OCaml-package <code>Lem</code> (using <code>extract.cma</code>) is defined in this directory. One can for example compile a file <code>name1.ml</code> by</p>
+<pre><code>ocamlc -I path_to_lem/ocaml-lib/_build -o name extract.cma name1.ml</code></pre>
+<p>or, using <em>ocamlbuild</em> and <em>findlib</em>, by</p>
+<pre><code>export OCAMLPATH=/absolute/path/to/lem/ocaml-lib:$OCAMLPATH
+ocamlbuild -libs nums -use-ocamlfind -pkg lem name.native</code></pre>
+<h3 id="auxiliary-files"><a href="#TOC"><span class="header-section-number">4.1.2</span> Auxiliary Files</a></h3>
+<p>OCaml auxiliary files do not need modifications by the user. They contain tests generated from <em>assertions</em> in the input files. When compiled as described above and run as standalone programs, OCaml auxiliary files execute the tests and print the results.</p>
+<h2 id="hol4"><a href="#TOC"><span class="header-section-number">4.2</span> HOL4</a></h2>
+<p>The command line option <code>-hol</code> instructs Lem to generate HOL4 output. A module with name <code>Mymodule</code> generates a file <code>mymoduleScript.sml</code> and possibly <code>mymoduleAuxiliaryScript.sml</code>.</p>
+<h3 id="compilation-1"><a href="#TOC"><span class="header-section-number">4.2.1</span> Compilation</a></h3>
+<p>Lem-generated HOL theories depend on some Lem-specific HOL4 code as well as HOL4 versions of the Lem library. Calling <code>make hol-libs</code> in Lem's main directory generates these files in subdirectory <code>hol_lib</code> and compiles them using <code>Holmake</code>. During this compilation process a heap with name <code>lemheap</code> is generated. It is recommended to use this heap for your own HOL4 development based on Lem-generated files. Using the generated files in <code>hol-libs</code> directly is possible as well, though. In order to use the heap, add the following line to the <code>Holmakefile</code> of the directory, where your HOL4-files are stored:</p>
+<pre><code>HOLHEAP = path_to_lem/hol-lib/lemheap</code></pre>
+<p>A template <code>Holmakefile</code> file using other useful options as well can be found in directory <code>library</code>.</p>
+<h3 id="auxiliary-files-1"><a href="#TOC"><span class="header-section-number">4.2.2</span> Auxiliary Files</a></h3>
+<p>HOL4 auxiliary files contain both executable tests generated from assertions as well as templates for termination proofs and lemmata that need manual labour by the user. The command line option <code>-auxiliary_level auto</code> allows to generate only the executable tests.</p>
+<h2 id="isabellehol"><a href="#TOC"><span class="header-section-number">4.3</span> Isabelle/HOL</a></h2>
+<p>The command line option <code>-isa</code> instructs Lem to generate Isabelle/HOL output. A module with name <code>Mymodule</code> generates a files <code>Mymodule.thy</code> and possibly <code>MymoduleAuxiliary.thy</code>.</p>
+<h3 id="generating-isabelle-library"><a href="#TOC"><span class="header-section-number">4.3.1</span> Generating Isabelle Library</a></h3>
+<p>Lem-generated Isabelle theories depend on some Lem-specific Isabelle theories as well as Isabelle versions of the Lem library. Calling <code>make isa-libs</code> in Lem's main directory generates these files in subdirectory <code>isa_lib</code>. In contrast to the HOL and OCaml libraries the generation of these libraries does not trigger automatic tests. If you want to check the sanity of the library, please use <code>make isa-lib-tests</code> in subdirectory library. This creates a directory <code>library/isa-build-dir</code> and the library auxiliary files within this directory. Moreover, there is a file <code>LemTests.thy</code>, which imports all other files and is therefore useful for testing all these files in Isabelle.</p>
+<h3 id="adapting-isabelle-imports"><a href="#TOC"><span class="header-section-number">4.3.2</span> Adapting Isabelle Imports</a></h3>
+<p>The theory import-statement in the header of generated Isabelle files contains the absolute path to Lem's library directory. If you move the library directory, this path needs adapting. If you want to use a backend specific <code>import</code> statement in your own Lem development, that imports some theory in the library directory, you can use the variable <code>$LIB_DIR</code> as in the following example</p>
+<pre><code>open import {isabelle} `$LIB_DIR/Lem`</code></pre>
+<h3 id="auxiliary-files-2"><a href="#TOC"><span class="header-section-number">4.3.3</span> Auxiliary Files</a></h3>
+<p>Isabelle auxiliary contain both executable tests generated from assertions as well as templates for termination proofs and lemmata that need manual labour by the user. In contrast to the auxiliary output of HOL, the templates for lemmata and termination proofs make use of Isabelle's automation and therefore often succeed without user intervention. Therefore, using the command line option <code>-auxiliary_level auto</code> in order to generate only code for assertions is possible but not imperative.</p>
+<h3 id="automatic-proof-tools-counter-example-generation"><a href="#TOC"><span class="header-section-number">4.3.4</span> Automatic Proof Tools / Counter Example Generation</a></h3>
+<p>The auxiliary files contain templates for lemmata that use Isabelle's automation. Therefore these templates might be useful even for users not familiar with Isabelle, who want to use tools like automatic counter example generation.</p>
+<p>The Lem-lemma</p>
+<pre><code>lemma unzip_zip:
+   forall l1 l2. unzip (zip l1 l2) = (l1, l2)</code></pre>
+<p>is for example translated to the following Isabelle code:</p>
+<pre><code>lemma unzip_zip:
+   &quot;! l1 l2. list_unzip (zip l1 l2) = (l1, l2)&quot;
+   (* try *) by auto</code></pre>
+<p>The automated proof attempt by the <code>auto</code> method fails. If the user removes the comment around <code>try</code>, various automated methods are run to either prove the lemma or find a counterexample. These methods include running external SMT and first order provers, internal natural deduction tools as well as a sophisticated counter example generator. In this example, Isabelle quickly finds a counterexample:</p>
+<pre><code>Nitpick found a counterexample for card &#39;a = 2 and card &#39;b = 2:
+  Skolem constants: l1 = [a1], l2 = []</code></pre>
+<p>While this is a trivial example, counterexamples and proofs are also found for more interesting cases. So, writing lemmata in Lem and translating them to Isabelle might be useful, even if you are not familiar with Isabelle.</p>
+<h2 id="coq"><a href="#TOC"><span class="header-section-number">4.4</span> Coq</a></h2>
+<h2 id="latex"><a href="#TOC"><span class="header-section-number">4.5</span> LaTeX</a></h2>
+<p>The command line option <code>-tex</code> instructs Lem to generate LaTeX output. A module with name <code>Mymodule</code> generates a files <code>Mymodule.tex</code>, <code>Mymodule-inc.tex</code> and <code>Mymodule-use_inc.tex</code>. No auxiliary files are generated. The generated LaTeX output depends on the style-file <code>lem.sty</code> in directory <code>tex-lib</code>.</p>
+<p>The file <code>Mymodule.tex</code> contains a pretty-printed version of the original input file. <code>Mymodule-inc.tex</code> defines LaTeX macros that can be used to type-set single definitions inside your own developments. <code>Mymodule-use_inc.tex</code> uses these macros to mimic the behaviour of <code>Mymodule.tex</code>. It is useful, since it essentially is a list of all the defined macros in the order they appear in the input file.</p>
+<p>The command-line-option <code>-tex</code> generates separate LaTeX files for each input file. If using the option <code>-tex_all my_output</code>, Lem generates the files <code>my_output.tex</code>, <code>my_output-inc.tex</code> and <code>my_output-use_inc.tex</code>, which contain representations / macros for all input files.</p>
+<h3 id="latex-macro-names"><a href="#TOC"><span class="header-section-number">4.5.1</span> LaTeX Macro Names</a></h3>
+<p>The <code>...-inc.tex</code> files contain macros that allow type-setting single definitions from the original input. As far as possible, the names of the macros are derived from the name of the defined entity. We have</p>
+<ul>
+<li>the definition of a function <code>myfun</code> generates a macro <code>\LEMmyfun</code></li>
+<li>the definition of a type <code>mytype</code> generates a macro <code>\LEMTypeMytype</code></li>
+<li>the definition of a relation <code>myrel</code> generates a macro <code>\LEMmyrel</code></li>
+<li>a val-specification of a function <code>myfun</code> generates a macro <code>\LEMValspecMyfun</code></li>
+</ul>
+<p>Other entities like declarations, class definitions etc. do not currently get predictable names. Please have a look at the content of the <code>...-use_inc.tex</code> or <code>...-inc.tex</code> file to figure out the generated name for these.</p>
+<p>If the names of macros derived by the scheme above clash, a number is added at the end. Because LaTeX does not allow digets in macro names, these numbers are expressed as English words. Name clashes happen if there are several definitions of a function, which sometimes happens since you might prefer a different definition depending on the target. If there is a val-specification for a function <code>myfun</code>, as well as an OCaml-specific, a HOL and Isabelle-specific and Coq-specific one, these generates the macros <code>\LEMValspecMyfun</code>, <code>\LEMmyfun</code>, <code>\LEMmyfunZero</code>, <code>\LEMmyfunOne</code>, <code>\LEMmyfunTwo</code>.</p>
+<h3 id="latex-macro-usage"><a href="#TOC"><span class="header-section-number">4.5.2</span> LaTeX Macro Usage</a></h3>
+<p>By default, macros print their full definition without any preceding comment, but with a LaTeX <code>label</code> that allows referring to that definition. The generated LaTeX macros accept an optional argument that changes this behaviour. So, for example <code>\LEMmyfun</code> prints the definition of the function <code>myfun</code>, whereas <code>\LEMmyfun[name]</code> prints only the type-set name of <code>myfun</code>. There are the following arguments available:</p>
+<ul>
+<li><code>default</code> same as not providing an argument, alias for <code>def</code></li>
+<li><code>def</code> print a label followed by the full definition excluding the preceding comment</li>
+<li><code>defWithComment</code> print a label followed by the full definition including the preceding comment</li>
+<li><code>name</code> print the typeset name of the definition. For definitions defining more than one constant of type, as well as for Lem statements not defining anything, this is empty</li>
+<li><code>comment</code> print the preceding comment</li>
+<li><code>commentPre</code> alias for <code>comment</code></li>
+<li><code>commentPost</code> print the comment directly after the definition (usually empty)</li>
+<li><code>core</code> print the <em>core</em> of a definition. Usually that's the right hand side of the definition, but might vary depending on the type of Lem-statement that generated the macro</li>
+<li><code>label</code> print the label that is used by <code>def</code> and <code>defWithComment</code>.</li>
+</ul>
+<p>If you want to learn about details or add your own argument values, please have a look at the definition of macro <code>\lemdefn</code> in file <code>tex-lib/lem.sty</code>.</p>
+<h3 id="libraries"><a href="#TOC"><span class="header-section-number">4.5.3</span> Libraries</a></h3>
+<p>Running <code>make tex-libs</code> in Lem's main directory generates LaTeX output for Lem's library. By running Pdflatex on this output a file <code>tex-lib/lem-libs.pdf</code> is generated, which can be used as library documentation. Moreover, there are also <code>lem-libs.tex</code>, <code>lem-libs-inc.tex</code> and <code>lem-libs-use_inc.tex</code>, which can be used as described above.</p>
+<h2 id="html"><a href="#TOC"><span class="header-section-number">4.6</span> HTML</a></h2>
+<p>The command line option <code>-html</code> instructs Lem to generate HTML output. A module with name <code>Mymodule</code> generates a file <code>Mymodule.html</code>. No auxiliary files are generated.</p>
+<h1 id="lem-library"><a href="#TOC"><span class="header-section-number">5</span> Lem-library</a></h1>
+<p>Lem comes with a default library of types and constants. This library can be found in directory <code>library</code>. It contains collections such as lists, sets and maps, basic data types such as disjoint sums, optional types, booleans and tuples, useful combinators on functions, and a library for working with relations.</p>
+<h2 id="general-design"><a href="#TOC"><span class="header-section-number">5.1</span> General Design</a></h2>
+<p>The library follows Haskell's library in terms of names of constants, types and modules. The library is separated into two sets of modules: the <em>main</em> and <em>extra</em> modules. The main hierarchy of files contain total, terminating functions that we believe are well-specified enough to be portable across all backends. All other functions are are placed in the extra modules. For example, the library file <code>function.lem</code> includes various useful combinators such as <code>flip</code> and <code>const</code>. The <code>function_extra.lem</code> file, on the other hand, contains the constant <code>THE</code> with type <code>forall 'a. ('a --&gt; bool) --&gt; maybe 'a</code>, inexpressible in Coq.</p>
+<p>Lem leaves the choice of using the main library or the extended library to the user. The module <code>Pervasives</code> contains the main part of the library, <code>Pervasives_extra</code> the extra part. The first line of a common Lem file is usually <code>open import Pervasives</code> or <code>open import Pervasives_extra</code>, which imports and opens either the main or the extra library.</p>
+<h2 id="library-documentation-1"><a href="#TOC"><span class="header-section-number">5.2</span> Library documentation</a></h2>
+<p>For an overview of the Lem library, please generate the pdf-file <code>tex-lib/lem-libs.pdf</code> by running <code>make tex-libs</code>. If you are just interested in the interface, consider running <code>lem -print_env library/pervasives_extra.lem</code>.</p>
+<h1 id="writing-your-own-lem-files"><a href="#TOC"><span class="header-section-number">6</span> Writing your own Lem files</a></h1>
+<p>Lem's syntax broadly follows OCaml syntax, while the libraries follow the Haskell libraries. Here, only a few selected points of Lem's syntax and its features are discussed. To learn more about its syntax, please have a look at the file <code>doc/lem.pdf</code>. Another possibility is having a look at the Lem-library in the <code>library</code>-directory or at the tests in directory <code>tests</code>, especially <code>tests/backends</code>.</p>
+<h2 id="header"><a href="#TOC"><span class="header-section-number">6.1</span> Header</a></h2>
+<h3 id="importing-library"><a href="#TOC"><span class="header-section-number">6.1.1</span> Importing Library</a></h3>
+<p>A Lem file usually starts with importing the appropriate library. Without such an import, even very simple operations like boolean conjunction are not available. The user thus has the choice of either importing the main library or the extended library. The main library contains total, terminating functions that we believe are well-specified enough to be portable across all backends. All other functions are placed in the extended library.</p>
+<p>The main library is imported by</p>
+<pre><code>open import Pervasives</code></pre>
+<p>and the extended one by</p>
+<pre><code>open import Pervasives_extra</code></pre>
+<h3 id="setting-module-name"><a href="#TOC"><span class="header-section-number">6.1.2</span> Setting Module Name</a></h3>
+<p>Each Lem file defines a top-level module. A file with name <code>mymodule.lem</code> creates a Lem module <code>Mymodule</code>. By default this is also the name of the module for all backends. It is however possible (and sometimes necessary) to rename modules for backends. For example, Lem's library contains a file <code>set.lem</code>, which defines the Lem module <code>Set</code>. In order to avoid clashes with the existing HOL and Isabelle theories called set, it is however renamed to <code>lem_set</code> for these backends. This is done via the command</p>
+<pre><code>declare {isabelle;hol} rename module = lem_set</code></pre>
+<p>Notice that in contrast to renaming functions, no module name is used behind the keyword <code>module</code>. This causes the current module to be renamed. It is also possible to rename other modules. However, this should only be used for submodules defined in the same file as the renaming, because otherwise the module might have different names in different files referring to it.</p>
+<h3 id="importing-modules"><a href="#TOC"><span class="header-section-number">6.1.3</span> Importing Modules</a></h3>
+<p>Lem provides dependency resolution, but only for explicitly imported modules. Using a statement like</p>
+<pre><code>import Mymodule</code></pre>
+<p>causes Lem to search for a file <code>mymodule.lem</code> in the current directory as well as in a list of given library directories. If such a file is found, it is automatically processed by Lem and it's contents are used to generate a Lem module <code>Mymodule</code>. Import statements do not need to, but are usually placed at the top of Lem files.</p>
+<h3 id="opening-including-modules"><a href="#TOC"><span class="header-section-number">6.1.4</span> Opening / Including Modules</a></h3>
+<p>A function <code>myfun</code> from a module <code>Mymod</code> is usually accessible by <code>Mymod.myfun</code>. Lem allows explicitly opening modules via <code>open Mymod</code>. After such a statement <code>myfun</code> can be used instead of <code>Mymod.myfun</code>.</p>
+<p>When using <code>open Mymod</code> inside a module <code>Mymod2</code>, it only affects the state inside this current module <code>Mymod2</code>. It does not change the outside view of <code>Mymod2</code>. If you want to be all functions <code>Mymod.myfun</code> also available as <code>Mymod2.myfun</code>, one can use <code>include</code> instead of <code>open</code>. Including is mostly useful for writing libraries.</p>
+<p>Often one wants to import and open a module at the same time. Therefore <code>open import Mymodule</code> and <code>include import Mymodule</code> are hands for first importing and then opening / including a module. Similarly, Lem allows opening/including/importing multiple modules with just one statement.</p>
+<h2 id="constant-definitions"><a href="#TOC"><span class="header-section-number">6.2</span> Constant definitions</a></h2>
+<h3 id="simple-definitions"><a href="#TOC"><span class="header-section-number">6.2.1</span> Simple definitions</a></h3>
+<p>A simple function definition is Lem is very similar to an OCaml top-level definition. It is of the form</p>
+<pre><code>let fun_name arg1 ... argn = rhs_exp </code></pre>
+<p>The arguments are allowed to be arbitrary Lem-patterns. The right-hand side an arbitrary expression that uses the variables bound by the arguments.</p>
+<h3 id="target-specific-definitions"><a href="#TOC"><span class="header-section-number">6.2.2</span> Target specific definitions</a></h3>
+<p>Sometimes you might want to use different definitions for different targets. In order to do that the functions needs to be introduced via a val-specification first:</p>
+<pre><code>val fun_name : type-scheme </code></pre>
+<p>After this specification multiple target-specific definitions of the form</p>
+<pre><code>let {target1; ...; targetn} fun_name arg1 ... argn  = rhs_exp</code></pre>
+<p>or let ~{target1; ...; targetn} fun_name arg1 ... argn = rhs_exp</p>
+<p>are allowed. Thereby <code>{target1; ...; targetn}</code> represents the set of the given targets, whereas <code>~{target1; ...; targetn}</code> represents the set of all targets except the given ones. The targets intended to just typeset the Lem input file, i.e. the LaTeX and HTML do not require definitions and providing one does not change their behaviour. All other targets for which the function should be used, require a definition.</p>
+<h3 id="inlining"><a href="#TOC"><span class="header-section-number">6.2.3</span> Inlining</a></h3>
+<p>Lem allows inlined constant definitions. These definitions are essentially macro expansions. For example consider an emptiness check for List.</p>
+<pre><code>let inline isEmptyList l = (l = [])</code></pre>
+<p>It is a simple, straightforward definition, that you might not want to generate special target definitions for. An <code>inline</code> definition allows using the function <code>isEmptyList</code> in Lem. It is also used in the HTML, Latex, Identity and Refactoring backends. All other backends replace it with the right hand side though. So, Lem would not define HOL4 function for <code>isEmptyList</code>, but replace every occurrence of it with the definition.</p>
+<p>In order to allow this inlining, the definition has to be simple. Arguments are just allowed to be variables and inlined definition may not be recursive. Moreover, they may not have any type-class constraints attached.</p>
+<p>If a val-specification is provided first, it is possible to inline constants only for certain targets and generate proper definitions for other targets. For this, syntax similar to the following example is used:</p>
+<pre><code>let inline {hol} isEmptyList l = (l = [])</code></pre>
+<h3 id="recursive-definitions"><a href="#TOC"><span class="header-section-number">6.2.4</span> Recursive Definitions</a></h3>
+<p>Lem allows to define recursive and even mutually recursive functions by using the keyword <code>let rec</code>. For example to define (stupidly) functions <code>even</code> and <code>odd</code>, one can use</p>
+<pre><code>let rec even (0:nat) = true
+    and odd  0 = false
+    and even (n + 1) = not (odd n)
+    and odd (n + 1) = not (even n)</code></pre>
+<h3 id="termination-proofs"><a href="#TOC"><span class="header-section-number">6.2.5</span> Termination Proofs</a></h3>
+<p>Recursive definitions require termination (or well-foundedness) proofs in the theorem prover backends. Isabelle and HOL4 are able to delay these proofs. The user has to fill in these proofs then, before using the defined functions. For simple functions like the ones in the example, this can be annoying. A <code>termination_argument</code> declaration can therefore be used to tell Isabelle and HOL to try automatic termination proofs. If multiple functions are defined in a single, mutually recursive definition, an automatic termination proof is only attempted, if automatic termination is declared for all defined functions.</p>
+<pre><code>declare {hol; isabelle} termination_argument even = automatic
+declare {hol; isabelle} termination_argument odd = automatic</code></pre>
+<h2 id="type-definitions"><a href="#TOC"><span class="header-section-number">6.3</span> Type definitions</a></h2>
+<h2 id="assertions-lemmata-theorems"><a href="#TOC"><span class="header-section-number">6.4</span> Assertions / Lemmata / Theorems</a></h2>
+<p>Lem allows the user to write assertions, lemmata and theorems. These are named boolean expressions, which the user desires to be true. For the append function on lists, one could for example write:</p>
+<pre><code>assert append_test_1: [(2:nat); 3] ++ [4;5] = [2;3;4;5]
+lemma append_spec: (forall l. [] ++ l = l) &amp;&amp; (forall x xs ys. (x :: xs) ++ ys = x :: (xs ++ ys))
+theorem append_empty: forall l. l ++ [] = l</code></pre>
+<p><em>Assertions</em> should be executable. They are intended to be used for unit-testing your Lem specifications. For OCaml and HOL4 they generate executable tests.</p>
+<p><em>Lemmata</em> are non-executable properties. They are used to document properties that are non-executable. They can be used for documentation purposes to write down properties the user had in mind, when defining a function. They generate proof obligation in the auxiliary files. Therefore, they can also be used to express important high-level properties about the whole model, which the user wants to proof correct. <em>Theorems</em> are lemmata that the user wants to mark as important.</p>
+<p>Writing assertions allows an easy way to unit-test specifications. Lemmata and theorems are beneficial for documentation purposes. The automated translation to Isabelle also allows to use Isabelle's sophisticated automation without knowing much about Isabelle. With that mechanism it is for example very easily possible to search for counter-examples.</p>
+<h2 id="renaming"><a href="#TOC"><span class="header-section-number">6.5</span> Renaming</a></h2>
+<p>The naming conventions of our backends differ. Therefore, it might be beneficial to use different names depending on the backend. Renaming can also be used to avoid name clashes with existing backend functions or just to avoid confusion when similar names already are used for the backend. For example, there is already a HOL4 function <code>symmetric</code>. To avoid confusion with the Lem function <code>isSymmetric</code> the Lem one can easily be renamed:</p>
+<pre><code>declare {hol} rename function isSymmetric = lem_is_symmetric</code></pre>
+<p>Besides <code>function</code>s, it is also possible to rename <code>type</code>s, <code>field</code>s and <code>module</code>s.</p>
+<h1 id="the-lem-language"><a href="#TOC"><span class="header-section-number">7</span> The Lem Language</a></h1>
+<h2 id="metavariables-and-identifiers"><a href="#TOC"><span class="header-section-number">7.1</span> Metavariables and Identifiers</a></h2>
+<pre><code>indexvar n , i , j , k   {{ Index variables for meta-lists }}
+metavar num              {{ Numeric literal }}
+metavar string           {{ String literal }}
+metavar backtick_string  {{ String literal preceded by &#39; }}
+metavar regexp           {{ Regular expresion, as a string literal }}
+metavar l                {{ Source location }}
+metavar x                {{ Name }}
+metavar ix               {{ Infix name }}
+
+id  ::= {{ Long identifers }}
+  | x1 . .. xn . x l        
+
+a  ::=  {{ Type variables }}
+  | &#39; x                     </code></pre>
+<h2 id="literals"><a href="#TOC"><span class="header-section-number">7.2</span> Literals</a></h2>
+<pre><code>lit  ::=  {{ Literal constants }}
+  | true 
+  | false
+  | num     
+  | hex     
+  | bin     
+  | string
+  | ( )                     </code></pre>
+<h2 id="types"><a href="#TOC"><span class="header-section-number">7.3</span> Types</a></h2>
+<pre><code>typ  ::=  {{ Types }}
+  | _                                   {{ Unspecified type }}
+  | a                                   {{ Type variables }}
+  | typ1 -&gt; typ2                        {{ Function types }}
+  | typ1 * .... * typn                  {{ Tuple types }}
+  | id typ1 .. typn                     {{ Type applications }}
+  | backtick_string typ1 .. typn        {{ Backend-Type applications }}
+  | ( typ )                         </code></pre>
+<h2 id="patterns"><a href="#TOC"><span class="header-section-number">7.4</span> Patterns</a></h2>
+<pre><code>pat ::=   {{ Patterns }}
+  | _                                   {{ Wildcards }}
+  | ( pat as x )                        {{ Named patterns }}
+  | ( pat : typ )                       {{ Typed patterns }}
+  | id pat1 .. patn                     {{ Single variable and constructor patterns }}
+  | &lt;| fpat1 ; ... ; fpatn semi_opt |&gt;  {{ Record patterns }}
+  | ( pat1 , .... , patn )              {{ Tuple patterns }}
+  | [ pat1 ; .. ; patn semi_opt ]       {{ List patterns }}
+  | ( pat )                         
+  | pat1 :: pat2                      {{ Cons patterns }}
+  | x + num                           {{ constant addition patterns }}
+  | lit                                 {{ Literal constant patterns }}
+
+
+fpat ::=  {{ Field patterns }}
+  | id = pat l      
+
+bar_opt  ::=          {{ Optional bars }}
+  |                         
+  | &#39;|&#39;                     
+
+semi_opt  ::=        {{ Optional semi-colons }}
+  |                 
+  | ;             </code></pre>
+<h2 id="expressions"><a href="#TOC"><span class="header-section-number">7.5</span> Expressions</a></h2>
+<pre><code>exp ::=  {{ Expressions }}
+  | id                                                 {{ Identifiers }}
+  | backtick_string                                    {{ identifier that should be literally used in output }}
+  | fun psexp                                          {{ Curried functions }}
+  | function bar_opt pexp1 &#39;|&#39; ... &#39;|&#39; pexpn end       {{ Functions with pattern matching }}
+  | exp1 exp2                                          {{ Function applications }}
+  | exp1 ix exp2                                       {{ Infix applications }}
+  | &lt;| fexps |&gt;                                        {{ Records }}
+  | &lt;| exp with fexps |&gt;                               {{ Functional update for records }}
+  | exp . id                                           {{ Field projection for records }}
+  | match exp with bar_opt pexp1 &#39;|&#39; ... &#39;|&#39; pexpn l end     {{ Pattern matching expressions }}
+  | ( exp : typ )                                      {{ Type-annotated expressions }}
+  | let letbind in exp                                 {{ Let expressions }}
+  | ( exp1 , .... , expn )                             {{ Tuples }}
+  | [ exp1 ; .. ; expn semi_opt ]                      {{ Lists }}
+  | ( exp )                                         
+  | begin exp end                                      {{ Alternate syntax for (exp) }}
+  | if exp1 then exp2 else exp3                        {{ Conditionals }}
+  | exp1 :: exp2                                     {{ Cons expressions }}
+  | lit                                                {{ Literal constants }}
+  | { exp1 | exp2 }                                    {{ Set comprehensions }}
+  | { exp1 | forall qbind1 .. qbindn | exp2 }          {{ Set comprehensions with explicit binding }}
+  | { exp1 ; .. ; expn semi_opt }                      {{ Sets }}
+  | q qbind1 ... qbindn . exp                          {{ Logical quantifications }}
+  | [ exp1 | forall qbind1 .. qbindn | exp2 ]          {{ List comprehensions (all binders must be quantified) }}
+  | do id pat1 &lt;- exp1 ; .. patn &lt;- expn ; in exp end  {{ Do notation for monads }}
+
+q ::=  {{ Quantifiers }}
+  | forall  
+  | exists  
+
+qbind  ::= {{ Bindings for quantifiers}}
+  | x                                                       
+  | ( pat IN exp )                                    {{ Restricted quantifications over sets}}
+  | ( pat MEM exp )                                     {{ Restricted quantifications over lists }}
+
+fexp  ::=  {{ Field-expressions }}
+  | id = exp l                      
+
+fexps ::=  {{ Field-expression lists }}
+  | fexp1 ; ... ; fexpn semi_opt l  
+
+pexp ::=  {{ Pattern matches }}
+  | pat -&gt; exp l                    
+
+psexp ::=  {{ Multi-pattern matches }}
+  | pat1 ... patn -&gt; exp l          
+
+tannot_opt ::=  {{ Optional type annotations }}
+  |                 
+  | : typ   
+
+funcl  ::=  {{ Function clauses }}
+  | x pat1 ... patn tannot_opt = exp        
+
+letbind  ::= {{ Let bindings }}
+  | pat tannot_opt = exp        {{ Value bindings }}
+  | funcl                       {{ Function bindings }}</code></pre>
+<h2 id="inductive-relation-definitions"><a href="#TOC"><span class="header-section-number">7.6</span> Inductive Relation Definitions</a></h2>
+<pre><code>name_t ::=  {{ Name or name with type for inductively defined relation clauses }}
+  | x                
+  | ( x : typ )
+
+name_ts ::=  {{ Names with optional types for inductively defined relation clauses }}
+  | name_t0 .. name_tn 
+
+rule ::=  {{ Inductively defined relation clauses }}
+  | x : forall name_t1 .. name_ti . exp ==&gt; x1 exp1 .. expn 
+
+witness_opt  ::= {{ Optional witness type name declaration. Must be present for a witness type to be generated. }}  
+  |                  
+  | witness type x ; 
+
+check_opt  ::=  {{ Option check name declaration }}
+  |                 
+  | check x ;       
+
+functions_opt  ::=  {{ Optional names and types for functions to be generated. Types should use only in, out, unit, or the witness type }}
+  |                   
+  | x : typ 
+  | x : typ ; functions_opt
+
+indreln_name ::=  {{ Name for inductively defined relation }}
+  | [ x : typschm witness_opt check_opt functions_opt ] </code></pre>
+<h2 id="type-definitions-1"><a href="#TOC"><span class="header-section-number">7.7</span> Type Definitions</a></h2>
+<pre><code>typs ::=      {{ Type lists }}
+  | typ1 * ... * typn       
+
+ctor_def ::= {{ Datatype definition clauses }}
+  | x of typs
+  | x                {{ Constant constructors }}
+
+texp ::=  {{ Type definition bodies }}
+  | typ                                                 {{ Type abbreviations }}
+  | &lt;| x1 : typ1 ; ... ; xn : typn semi_opt |&gt;          {{ Record types }}
+  | bar_opt ctor_def1 &#39;|&#39; ... &#39;|&#39; ctor_defn             {{ Variant types }}
+
+name_opt ::=  {{ Optional name specification for variables of defined type }} 
+  |                       
+  | [ name = regexp ] 
+
+td ::= {{ Type definitions }}
+  | x tnvars name_opt = texp                                
+  | x       tnvars name_opt                             {{ Definitions of opaque types }}</code></pre>
+<h2 id="type-schemes"><a href="#TOC"><span class="header-section-number">7.8</span> Type Schemes</a></h2>
+<pre><code>c ::=  {{ Typeclass constraints }}
+  | id tnvar
+
+cs ::=  {{ Typeclass constraint lists }}
+  |                                                         
+  | c1 , .. , ci =&gt;                                             {{ Must have &gt;0 constraints }}
+
+c_pre ::=  {{ Type and instance scheme prefixes }}
+  |                                                         
+  | forall tnvar1 .. tnvarn . cs                                {{ Must have &gt;0 type variables }}
+
+typschm ::=    {{ Type schemes }}
+  | c_pre typ                       
+
+instschm ::=  {{ Instance schemes }}
+  | c_pre ( id typ )                                                </code></pre>
+<h2 id="target-descriptions"><a href="#TOC"><span class="header-section-number">7.9</span> Target Descriptions</a></h2>
+<pre><code>target ::=  {{ Backend target names }}
+  | hol             
+  | isabelle        
+  | ocaml   
+  | coq             
+  | tex             
+  | html    
+  | lem     
+
+targets  ::=  {{ Backend target name lists }}
+  | { target1 ; .. ; targetn }              
+  | ~{ target1 ; .. ; targetn }               {{ all targets except the listed ones }}
+
+targets_opt ::=    {{ Optional targets }}
+  |                                                         
+  | targets                                                 </code></pre>
+<h2 id="import-open-and-include"><a href="#TOC"><span class="header-section-number">7.10</span> Import, Open, and Include</a></h2>
+<pre><code>open_import  ::=  {{ Open or import statements }}
+  | open                                                    
+  | import                                                  
+  | open import                                                     
+  | include                                                 
+  | include import                                          </code></pre>
+<h2 id="lemmas-assertions-and-theorems"><a href="#TOC"><span class="header-section-number">7.11</span> Lemmas, Assertions, and Theorems</a></h2>
+<pre><code>lemma_typ ::= {{ Types of Lemmata }}
+  | assert                                                  
+  | lemma                                                           
+  | theorem                                                         
+
+lemma_decl ::=   {{ Lemmata and Tests }}
+  | lemma_typ targets_opt x : exp                           </code></pre>
+<h2 id="unused"><a href="#TOC"><span class="header-section-number">7.12</span> Unused?</a></h2>
+<pre><code>dexp ::=  {{ declaration field-expressions }}
+  | name_s = string l                                               
+  | format = string l                                               
+  | arguments = exp1 ... expn l                                     
+  | targuments = texp1 ... texpn l                          
+
+declare_arg ::=   {{ arguments to a declaration }}
+  | string                                                  
+  | &lt;| dexp1 ; ... ; dexpn semi_opt l |&gt;                    </code></pre>
+<h2 id="target-representation-declarations"><a href="#TOC"><span class="header-section-number">7.13</span> Target Representation Declarations</a></h2>
+<pre><code>component  ::= {{ components }}
+  | module   
+  | function 
+  | type     
+  | field    
+
+termination_setting ::= {{ termination settings }}
+  | automatic 
+  | manual    
+
+exhaustivity_setting  ::= {{ exhaustivity settings }}
+  | exhaustive   
+  | inexhaustive 
+
+elim_opt ::=  {{ optional terms used as eliminators for pattern matching }}
+  |     
+  | id  
+
+fixity_decl ::= {{ fixity declarations for infix identifiers }}
+  | right_assoc nat 
+  | left_assoc  nat 
+  | non_assoc   nat 
+  |                 
+
+target_rep_rhs ::=  {{ right hand side of a target representation declaration }}
+  | infix fixity_decl backtick_string 
+  | exp                          
+  | typ                          
+  | special string exp1 ... expn 
+  |                              
+
+target_rep_lhs  ::= {{ left hand side of a target representation declaration }}
+  | target_rep component id x1 .. xn 
+  | target_rep component id tnvars       
+
+declare_def  ::=   {{ declarations }}
+  | declare targets_opt compile_message id = string                    {{ compile_message_decl       }}
+  | declare targets_opt rename module = x                              {{ rename_current_module_decl }}
+  | declare targets_opt rename component id = x                        {{ rename_decl                }}
+  | declare targets_opt ascii_rep component id = backtick_string       {{ ascii_rep_decl             }}
+  | declare target target_rep target_rep_lhs = target_rep_rhs          {{ target_rep_decl            }}
+  | declare set_flag x1 = x2                                           {{ set_flag_decl              }}
+  | declare targets_opt termination_argument id = termination_setting  {{ termination_argument_decl  }}
+  | declare targets_opt pattern_match exhaustivity_setting id tnvars = [ id1 ; ... ; idn semi_opt ] elim_opt {{ pattern_match_decl }}</code></pre>
+<h2 id="value-definitions"><a href="#TOC"><span class="header-section-number">7.14</span> Value Definitions</a></h2>
+<pre><code>val_def ::=  {{ Value definitions }}
+  | let targets_opt letbind                             {{ Non-recursive value definitions }}
+  | let rec targets_opt funcl1 and ... and funcln       {{ Recursive function definitions }}
+  | let inline targets_opt letbind                      {{ Function definitions to be inlined }}
+  | let lem_transform targets_opt letbind               {{ Function definitions to be transformed }}
+
+ascii_opt ::=   {{ an optional ascii representation }}
+  |                     
+  | [ backtick_string ]</code></pre>
+<h2 id="class-and-instance-declarations"><a href="#TOC"><span class="header-section-number">7.15</span> Class and Instance Declarations</a></h2>
+<pre><code>instance_decl ::=   {{ is it an instance or the default instance? }}
+  | instance         
+  | default_instance 
+
+class_decl ::=   {{ is a class an inlined one? }}
+  | class        
+  | class inline </code></pre>
+<h2 id="value-type-specifications"><a href="#TOC"><span class="header-section-number">7.16</span> Value Type Specifications</a></h2>
+<pre><code>val_spec ::=  {{ Value type specifications }} 
+  | val x ascii_opt : typschm       </code></pre>
+<h2 id="top-level-definitions"><a href="#TOC"><span class="header-section-number">7.17</span> Top-level Definitions</a></h2>
+<pre><code>semisemi_opt ::=  {{ Optional double-semi-colon }}
+  |                                                         
+  | ;;                                                      
+
+def  ::=  {{ Top-level definitions }}
+  | type td1 and ... and tdn                                    {{ Type definitions }}
+  | val_spec                                                    {{ Top-level type constraints }}
+  | val_def                                                     {{ Value definitions }}
+  | lemma_decl                                                  {{ Lemmata }}
+  | module x = struct defs end                                  {{ Module definitions }}
+  | module x = id                                               {{ Module renamings }}
+  | open_import id1 ... idn                                     {{ importing and/or opening modules }}
+  | open_import targets_opt backtick_string1 ... backtick_stringn   
+       {{ importing and/or opening only for a target / it does not influence the Lem state }}
+  | indreln targets_opt indreln_name1 and ... and indreln_namei rule1 and ... and rulen                 
+       {{ Inductively defined relations }}
+  | class_decl ( x tnvar ) val targets_opt1 x1 ascii_opt1 : typ1 l1 ... val targets_optn xn ascii_optn : typn ln end    
+       {{ Typeclass definitions }}
+  | instance_decl instschm val_def1 l1 ... val_defn ln end              
+       {{ Typeclass instantiations }}
+  | declare_def                                                 {{ modify Lem behaviour }}
+
+
+defs ::=  {{ Definition sequences }}
+  | def1 semisemi_opt1 .. defn semisemi_optn</code></pre>
+<h1 id="linking-to-existing-backend-libraries"><a href="#TOC"><span class="header-section-number">8</span> Linking to existing Backend Libraries</a></h1>
+<p>Lem allows one to use existing backend libraries from your Lem-development. This is done by target-specific imports and target-specific representations.</p>
+<h2 id="target-specific-imports"><a href="#TOC"><span class="header-section-number">8.1</span> Target specific imports</a></h2>
+<p>Before using an existing target library, it usually needs to be loaded. There are target-specific <code>open</code>, <code>import</code> and <code>include</code> statements that allow instructing Lem to generate output that loads an existing backend library. These statements are very similar to the corresponding statements for Lem modules. However, they allow specifying targets and the modules are quoted. While - generalising the Lem staments - many possible combinations are allowed, in practice only <code>open import</code> statements are used.</p>
+<p>As an example, consider Lem's relation library. Some of its existing definitions should be mapped to HOL functions defined in the HOL4 theory <code>set_relation</code>. To load this theory for HOL, Lem's relation library contains the statement</p>
+<pre><code>open import {hol} `set_relationTheory`</code></pre>
+<h2 id="simple-target-representations"><a href="#TOC"><span class="header-section-number">8.2</span> Simple Target Representations</a></h2>
+<p>A <code>target_rep</code> declaration allows specifing which <em>existing</em> target function should be used for a Lem-specific one. The boolean conjunction operator is for example mapped as follows</p>
+<pre><code>val not : bool -&gt; bool
+let not b = match b with
+  | true -&gt; false
+  | false -&gt; true
+end
+
+declare ocaml    target_rep function not = `not`
+declare hol      target_rep function not x = `~` x
+declare isabelle target_rep function not x = `\&lt;not&gt;` x
+declare coq      target_rep function not = `negb`
+
+declare html     target_rep function not = `&amp;not;`
+declare tex      target_rep function not b = `$\neg$` b</code></pre>
+<ul>
+<li>definition + target rep useful for documentation</li>
+<li>however, only val-spec + target rep needed</li>
+<li>definition gets turned into lemma when target-rep is present</li>
+<li>rhs of target_reps can be expression containing quotations</li>
+<li>if arguments are given, they have to be variables</li>
+<li>if not all arguments are present, eta-expansion is used</li>
+<li>eta-expansion necessary sometimes, see <code>not</code> for Isabelle and HOL</li>
+</ul>
+<h2 id="target-representations-of-types"><a href="#TOC"><span class="header-section-number">8.3</span> Target Representations of Types</a></h2>
+<pre><code>type map &#39;k &#39;v
+declare ocaml    target_rep type map = `Pmap.map` 
+declare isabelle target_rep type map = `Map.map` 
+declare hol      target_rep type map = `fmap`
+declare coq      target_rep type map = `fmap`</code></pre>
+<h2 id="infix-operations"><a href="#TOC"><span class="header-section-number">8.4</span> Infix Operations</a></h2>
+<pre><code>val (&amp;&amp;) [`and`] : bool -&gt; bool -&gt; bool
+let (&amp;&amp;) b1 b2 = match (b1, b2) with
+  | (true, true) -&gt; true
+  | _ -&gt; false
+end
+
+declare hol      target_rep function (&amp;&amp;) = infix `/\`
+declare ocaml    target_rep function (&amp;&amp;) = infix `&amp;&amp;`
+declare isabelle target_rep function (&amp;&amp;) = infix `\&lt;and&gt;`
+declare coq      target_rep function (&amp;&amp;) = infix `&amp;&amp;`
+declare html     target_rep function (&amp;&amp;) = infix `&amp;and;`
+declare tex      target_rep function (&amp;&amp;) = infix `$\wedge$`</code></pre>
+<h2 id="special-target-representations"><a href="#TOC"><span class="header-section-number">8.5</span> Special Target Representations</a></h2>
+<pre><code>class ( NumPow &#39;a ) 
+  val ( ** ) [`numPow`] : &#39;a -&gt; nat -&gt; &#39;a
+end
+declare tex target_rep function numPow n m = special &quot;{%e}^{%e}&quot; n m</code></pre>
+<h1 id="typeclasses"><a href="#TOC"><span class="header-section-number">9</span> Typeclasses</a></h1>
+<h2 id="type-classes-for-sets-and-maps"><a href="#TOC"><span class="header-section-number">9.1</span> Type-classes for Sets and Maps</a></h2>
+<ul>
+<li>Sets and Maps require comparison operation in OCaml and Coq</li>
+<li><code>SetType</code> and <code>MapType</code> used to provide this comparison function</li>
+<li>default instantiation of <code>SetType</code> is by OCaml's <code>compare</code></li>
+<li>for types, where this fails user needs to provide instantion, otherwise OCaml run-time error</li>
+<li><code>MapType</code> uses <code>SetType</code> as default implementation</li>
+</ul>
+<h1 id="refactoring"><a href="#TOC"><span class="header-section-number">10</span> Refactoring</a></h1>
+<ul>
+<li>backend <code>lem</code> used for refactoring</li>
+<li>use command-line option <code>-lem</code></li>
+<li>file <code>myfile.lem</code> translated to <code>myfile-processed.lem</code></li>
+<li>compare files, modify <code>myfile-processed.lem</code>, when ready rename back to <code>myfile.lem</code></li>
+</ul>
+<h2 id="types-1"><a href="#TOC"><span class="header-section-number">10.1</span> Types</a></h2>
+<pre><code>declare {lem} rename type nat = NAT
+declare lem target_rep type set &#39;a = `SET` &#39;a &#39;a</code></pre>
+<h2 id="functions-fields"><a href="#TOC"><span class="header-section-number">10.2</span> Functions / Fields</a></h2>
+<pre><code>declare {lem} rename function my_fun = my_fun&#39;
+declare lem target_rep function my_fun x y z = `my_fun&#39;` (x, y) true z</code></pre>
+<p>Also possible <code>lem_transform</code>. However, better use <code>declare lem target_rep</code> instead of <code>lem_transform</code>. TODO: remove <code>lem_transform</code></p>
+<pre><code>let lem_transform my_fun x y z = other_existing_function y z </code></pre>
+<h2 id="modules"><a href="#TOC"><span class="header-section-number">10.3</span> Modules</a></h2>
+<pre><code>declare {lem} rename module my_mod = my_mod_new_name</code></pre>
+</body>
+</html>
