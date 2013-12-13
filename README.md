@@ -24,6 +24,7 @@ Instructions on building the libraries for particular targets are in the
 manual.
 
 Documentation can be found in `doc/built-doc`, including:
+
 * a high-level description of Lem in the draft paper `lem-draft.pdf`.
 * the manual, in `lem-manual.html` and `lem-manual.pdf`
 * the Ott grammar and type system for Lem, in `lem.pdf`, built from the definition in language/lem.ott
