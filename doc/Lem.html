@@ -1,0 +1,167 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html><head>
+<title>Lem</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</head>
+
+<body>
+
+  <h2>Lem, a tool for lightweight executable mathematics</h2>
+  <p>
+  </p><h3><a href="https://bitbucket.org/Peter_Sewell/lem/">Lem is hosted on Bitbucket here</a></h3>
+
+  Lem is a lightweight tool for writing, managing, and publishing
+  large-scale semantic definitions in a portable fashion.  It is also
+  intended as an intermediate language for generating definitions from
+  domain-specific tools, and for porting definitions between
+  interactive theorem proving systems.
+  <p>
+  
+  Lem combines the constructs of a pure functional programming
+  language, including top-level parametric polymorphism, datatypes,
+  records, higher-order functions, and pattern matching, with common
+  logical mechanisms including list and set comprehensions, universal
+  and existential quantifiers, and inductively defined relations.
+  From this, Lem generates typeset definitions in LaTeX, executable
+  OCaml code, and theorem prover definitions
+  in <a href="http://coq.inria.fr/">Coq</a>, <a href="http://hol.sourceforge.net/">HOL4</a>,
+  and <a href="http://www.cl.cam.ac.uk/research/hvg/Isabelle/">Isabelle</a>.
+
+  </p>
+
+<!--
+<p>
+  The following example is taken from a <a href="http://www.cl.cam.ac.uk/%7Epes20/ppc-supplemental/">model of the POWER
+	  multiprocessor architecture</a> that was developed using Lem.
+
+  </p><p> 
+  <code>
+	  let write_reaching_coherence_point_action m s w =<br> 
+	  &nbsp;&nbsp;let writes_past_coherence_point' =<br>
+	  &nbsp;&nbsp;&nbsp;&nbsp;s.writes_past_coherence_point union {w} in<br>
+	  &nbsp;&nbsp;let coherence' = s.coherence union<br>
+	  &nbsp;&nbsp;&nbsp;&nbsp;{ (w,wother) | forall (wother IN (writes_not_past_coherence s)) |<br>
+	  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(not (wother = w)) &amp;&amp; (wother.w_addr = w.w_addr) } in<br>
+	  &nbsp;&nbsp;&lt;| s with coherence = coherence';<br>
+	  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;writes_past_coherence_point
+ = writes_past_coherence_point' |&gt; <br><br>
+	  let sem_of_instruction i ist =<br>
+	  &nbsp;&nbsp;match i with<br>
+	  &nbsp;&nbsp;| Padd  set rD rA rB -&gt; op3regs Add set rD rA rB ist<br>
+	  &nbsp;&nbsp;| Pandi rD rA simm   -&gt; op2regi And SetCR0 rD rA (intToV simm) ist<br>
+	  &nbsp;&nbsp;end
+	  
+  </code>
+-->
+
+	  It supports a program-like development cycle, with fast type
+	  checking of Lem source files.
+
+<!--
+Lem translates source constructs that are unsupported by a
+	  particular target into ones that are (e.g., comprehensions into nested
+	  folds when generating OCaml).
+
+The generated OCaml, Coq, HOL4, and Isabelle code is faithful to
+	  the source files, preserving comments, line breaks, and
+	  indentation.</li>
+	  <li></li>
+	  <li>Lem tries to generate code that avoids annoying theorem prover specific
+	  restrictions.</li> 
+  </ul>
+-->
+
+  </p><h3>Documents and code</h3>
+  <ul>
+	  </li><li>Lem is hosted on Bitbucket <a href="https://bitbucket.org/Peter_Sewell/lem/">here</a></li>
+	  <li>Use <a href="http://git-scm.com/">git</a> to download the latest source code with the following command:
+	  <code>git clone https://bitbucket.org/Peter_Sewell/lem.git</code>
+
+
+
+	  <li>An <a href="http://itp2011.cs.ru.nl/">ITP 2011</a> "rough diamond" paper <a href="http://www.cs.kent.ac.uk/people/staff/sao/lem/lem-itp-paper.pdf"><i>Lem: A Lightweight Tool
+			  for Heavyweight Semantics</i></a>.
+	  <p>
+<!--
+	  <b>Abstract.</b> 
+	  Many ITP developments exist in the context of a single prover, and
+	  are dominated by proof effort.  In contrast, when applying rigorous
+	  semantic techniques to realistic computer systems, engineering the
+	  definitions becomes a major activity in its own right.  Proof is then
+	  only one task among many: testing, simulation, communication,
+	  community review, etc.  Moreover, the effort invested in establishing
+	  such definitions should be re-usable and, where possible,
+	  irrespective of the local proof-assistant culture.  For example, in
+	  recent work on processor and programming language concurrency (x86,
+	  Power, ARM, C++0x, CompCertTSO), we have used Coq, HOL4,
+	  Isabelle/HOL, and Ott---often using multiple provers simultaneously,
+	  to exploit existing definitions or local expertise.   
+	  </p><p>
+	  In this paper we describe Lem, a prototype system specifically
+	  designed to support pragmatic engineering of such definitions.  It
+	  has a carefully designed source language, of a familiar higher-order
+	  logic with datatype definitions, inductively defined relations, and
+	  so on.  This is typechecked and translated to a variety of
+	  programming languages and proof assistants, preserving the original
+	  source structure (layout,  comments, etc.) so that the result is
+	  readable and usable.  We have already found this invaluable in our
+	  work on Power, ARM and C++0x concurrency.
+
+	  </p>
+-->
+</li>
+
+	  <li>Lem's <a href="http://www.cs.kent.ac.uk/people/staff/sao/lem/lem-formal.pdf">formal syntax and type system</a>
+	  (generated with <a href="http://www.cl.cam.ac.uk/%7Epes20/ott/">Ott</a>).</li>
+
+  </ul>
+
+  <h3>Development team</h3>
+  <p>
+	  <a href="http://www.cl.cam.ac.uk/%7Ekeg29/">Kathy Gray</a>,
+	  <a href="http://www.cl.cam.ac.uk/%7Egk338/">Gabriel Kerneis</a>
+	  <a href="http://dominic-mulligan.co.uk/">Dominic Mulligan</a>,
+	  <a href="http://www.cs.kent.ac.uk/%7Esao/">Scott Owens</a>,
+	  <a href="http://www.cl.cam.ac.uk/%7Epes20/">Peter Sewell</a>,
+	  <a href="http://www.cl.cam.ac.uk/%7Ett291/">Thomas
+            Tuerk</a>, and
+Thomas Williams.
+	  </p><p>
+	  Past contributors:
+	  Peter Boehm and 
+	  <a href="http://moscova.inria.fr/%7Ezappa/">Francesco Zappa Nardelli</a>.
+
+
+  </p><h4>Lem and Ott</h4>
+  <p>
+  Lem shares many of the goals of our <a href="http://www.cl.cam.ac.uk/%7Epes20/ott/">Ott</a> tool: both
+  emphasize source readability, and multi-prover compatibility.  However, Lem is
+  a general-purpose specification language, whereas Ott is a domain-specific
+  language for writing specifications of programming languages (i.e., inductive
+  relations over syntax).  Thus, Ott supports rich user-defined syntaxes,
+  whereas Lem supports functional programming idioms.
+
+  </p><p>
+  Lem and Ott are complementary; we eventually hope to merge the two projects by
+  having Ott generate Lem specifications, instead of Coq, HOL4, and Isabelle
+  itself.
+
+
+  </p><h4>History</h4>
+  <ul>
+	  <li>2013-03-14: Moved page to Kent, removed 0.3 release, and updated for open source development on Bitbucket</li>
+	  <li>2011-12-02: Lem 0.3 posted (minor changes from 0.2)</li>
+	  <li>2011-08-22: Lem 0.2 posted, manual added</li>
+	  <li>2011-05-25: ITP 2011 paper added</li>
+	  <li>2011-04-11: Lem 0.1 posted</li>
+	  <li>2011-03-24: Page created</li>
+  </ul>
+
+  <p>
+  <a href="http://validator.w3.org/check?uri=referer"> Validate HTML 4.01 Strict</a>
+  </p>
+
+
+
+</body></html>

@@ -1,0 +1,193 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Syntactic_tests.html">
+<link rel="next" href="Target_binding.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of exceptions" rel=Appendix href="index_exceptions.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Ast_util" rel="Chapter" href="Ast_util.html">
+<link title="Backend" rel="Chapter" href="Backend.html">
+<link title="Backend_common" rel="Chapter" href="Backend_common.html">
+<link title="Coq_decidable_equality" rel="Chapter" href="Coq_decidable_equality.html">
+<link title="Def_trans" rel="Chapter" href="Def_trans.html">
+<link title="Finite_map" rel="Chapter" href="Finite_map.html">
+<link title="Ident" rel="Chapter" href="Ident.html">
+<link title="Initial_env" rel="Chapter" href="Initial_env.html">
+<link title="Macro_expander" rel="Chapter" href="Macro_expander.html">
+<link title="Main" rel="Chapter" href="Main.html">
+<link title="Module_dependencies" rel="Chapter" href="Module_dependencies.html">
+<link title="Name" rel="Chapter" href="Name.html">
+<link title="Nvar" rel="Chapter" href="Nvar.html">
+<link title="Output" rel="Chapter" href="Output.html">
+<link title="Path" rel="Chapter" href="Path.html">
+<link title="Pattern_syntax" rel="Chapter" href="Pattern_syntax.html">
+<link title="Patterns" rel="Chapter" href="Patterns.html">
+<link title="Pcombinators" rel="Chapter" href="Pcombinators.html">
+<link title="Pp" rel="Chapter" href="Pp.html">
+<link title="Precedence" rel="Chapter" href="Precedence.html">
+<link title="Process_file" rel="Chapter" href="Process_file.html">
+<link title="Rename_top_level" rel="Chapter" href="Rename_top_level.html">
+<link title="Reporting" rel="Chapter" href="Reporting.html">
+<link title="Reporting_basic" rel="Chapter" href="Reporting_basic.html">
+<link title="Seplist" rel="Chapter" href="Seplist.html">
+<link title="Syntactic_tests" rel="Chapter" href="Syntactic_tests.html">
+<link title="Target" rel="Chapter" href="Target.html">
+<link title="Target_binding" rel="Chapter" href="Target_binding.html">
+<link title="Target_syntax" rel="Chapter" href="Target_syntax.html">
+<link title="Target_trans" rel="Chapter" href="Target_trans.html">
+<link title="Trans" rel="Chapter" href="Trans.html">
+<link title="Typecheck" rel="Chapter" href="Typecheck.html">
+<link title="Typecheck_ctxt" rel="Chapter" href="Typecheck_ctxt.html">
+<link title="Typed_ast" rel="Chapter" href="Typed_ast.html">
+<link title="Typed_ast_syntax" rel="Chapter" href="Typed_ast_syntax.html">
+<link title="Types" rel="Chapter" href="Types.html">
+<link title="Tyvar" rel="Chapter" href="Tyvar.html">
+<link title="Util" rel="Chapter" href="Util.html"><title>Target</title>
+</head>
+<body>
+<div class="navbar"><a href="Syntactic_tests.html">Previous</a>
+&nbsp;<a href="index.html">Up</a>
+&nbsp;<a href="Target_binding.html">Next</a>
+</div>
+<center><h1>Module <a href="type_Target.html">Target</a></h1></center>
+<br>
+<pre><span class="keyword">module</span> Target: <code class="code">sig</code> <a href="Target.html">..</a> <code class="code">end</code></pre>Datatype and Function for Targets<br>
+<hr width="100%">
+<br><code><span id="TYPEnon_ident_target"><span class="keyword">type</span> <code class="type"></code>non_ident_target</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Target_hol</span></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Target_ocaml</span></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Target_isa</span></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Target_coq</span></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Target_tex</span></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Target_html</span></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Target_lem</span></code></td>
+
+</tr></table>
+
+<div class="info">
+A datatype for Targets. In contrast to the one in
+    <code class="code">ast.ml</code> this one does not carry white-space information.<br>
+</div>
+
+<br><code><span id="TYPEtarget"><span class="keyword">type</span> <code class="type"></code>target</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Target_no_ident</span> <span class="keyword">of</span> <code class="type"><a href="Target.html#TYPEnon_ident_target">non_ident_target</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Target_ident</span></code></td>
+
+</tr></table>
+
+<div class="info">
+<code class="code">target</code> for the typechecked ast is either a real target as in the AST or
+    the identity target<br>
+</div>
+
+<pre><span id="VALast_target_to_target"><span class="keyword">val</span> ast_target_to_target</span> : <code class="type">Ast.target -> <a href="Target.html#TYPEnon_ident_target">non_ident_target</a></code></pre><div class="info">
+<code class="code">ast_target_to_target t</code> converts an ast-target to a
+    target. This essentially means dropping the white-space information.<br>
+</div>
+<pre><span id="VALtarget_to_ast_target"><span class="keyword">val</span> target_to_ast_target</span> : <code class="type"><a href="Target.html#TYPEnon_ident_target">non_ident_target</a> -> Ast.target</code></pre><div class="info">
+<code class="code">target_to_ast_target t</code> converts a target <code class="code">t</code> to an
+    ast_target. This essentially means adding empty white-space information.<br>
+</div>
+<pre><span id="VALast_target_compare"><span class="keyword">val</span> ast_target_compare</span> : <code class="type">Ast.target -> Ast.target -> int</code></pre><div class="info">
+<code class="code">ast_target_compare</code> is a comparison function for ast-targets.<br>
+</div>
+<pre><span id="VALtarget_compare"><span class="keyword">val</span> target_compare</span> : <code class="type"><a href="Target.html#TYPEnon_ident_target">non_ident_target</a> -> <a href="Target.html#TYPEnon_ident_target">non_ident_target</a> -> int</code></pre><div class="info">
+<code class="code">target_compare</code> is a comparison function for targets.<br>
+</div>
+<pre><span class="keyword">module</span> <a href="Target.Targetmap.html">Targetmap</a>: <code class="code">sig</code> <a href="Target.Targetmap.html">..</a> <code class="code">end</code></pre><div class="info">
+target keyed finite maps
+</div>
+<pre><span class="keyword">module</span> <a href="Target.Targetset.html">Targetset</a>: <code class="type">Set.S</code><code class="type">  with type elt = non_ident_target</code></pre><div class="info">
+target sets
+</div>
+<pre><span id="VALall_targets_list"><span class="keyword">val</span> all_targets_list</span> : <code class="type"><a href="Target.html#TYPEnon_ident_target">non_ident_target</a> list</code></pre><div class="info">
+A list of all the targets.<br>
+</div>
+<pre><span id="VALall_targets"><span class="keyword">val</span> all_targets</span> : <code class="type">Targetset.t</code></pre><div class="info">
+The set of all the targets.<br>
+</div>
+<pre><span id="VALall_targets_non_explicit"><span class="keyword">val</span> all_targets_non_explicit</span> : <code class="type">Targetset.t</code></pre><div class="info">
+The set of targets used when negating or no mentioning explicit targets. Targets like Lem are excluded by default.<br>
+</div>
+<pre><span id="VALnon_ident_target_to_string"><span class="keyword">val</span> non_ident_target_to_string</span> : <code class="type"><a href="Target.html#TYPEnon_ident_target">non_ident_target</a> -> string</code></pre><div class="info">
+<code class="code">non_ident_target_to_string t</code> returns a string description of a target <code class="code">t</code>.<br>
+</div>
+<pre><span id="VALtarget_to_string"><span class="keyword">val</span> target_to_string</span> : <code class="type"><a href="Target.html#TYPEtarget">target</a> -> string</code></pre><div class="info">
+<code class="code">target_to_string t_opt</code> returns a string description of a target.
+    If some target is given, it does the same as <code class="code">target_to_string</code>. Otherwise,
+    it returns a string description of the identity backend.<br>
+</div>
+<pre><span id="VALnon_ident_target_to_mname"><span class="keyword">val</span> non_ident_target_to_mname</span> : <code class="type"><a href="Target.html#TYPEnon_ident_target">non_ident_target</a> -> <a href="Name.html#TYPEt">Name.t</a></code></pre><div class="info">
+<code class="code">non_ident_target_to_mname t</code> returns a name for a target. It is similar to
+    <code class="code">non_ident_target_to_string t</code>. However, it returns capitalised versions.<br>
+</div>
+<pre><span id="VALtarget_to_output"><span class="keyword">val</span> target_to_output</span> : <code class="type">Ast.target -> <a href="Output.html#TYPEt">Output.t</a></code></pre><div class="info">
+<code class="code">target_to_output t</code> returns output for a target <code class="code">t</code>.<br>
+</div>
+<pre><span id="VALis_human_target"><span class="keyword">val</span> is_human_target</span> : <code class="type"><a href="Target.html#TYPEtarget">target</a> -> bool</code></pre><div class="info">
+<code class="code">is_human_target targ</code> checks whether <code class="code">targ</code> is a target intended to be read by humans
+    and therefore needs preserving the original structure very closely. Examples for such targets are
+    the tex-, html- and identity-targets.<br>
+</div>
+<pre><span id="VALdest_human_target"><span class="keyword">val</span> dest_human_target</span> : <code class="type"><a href="Target.html#TYPEtarget">target</a> -> <a href="Target.html#TYPEnon_ident_target">non_ident_target</a> option</code></pre><div class="info">
+<code class="code">dest_human_target targ</code> destructs <code class="code">targ</code> to get the non-identity target. If it s a human-target, 
+    <code class="code">None</code> is returned, otherwise the non-identity target.<br>
+</div>
+</body></html>

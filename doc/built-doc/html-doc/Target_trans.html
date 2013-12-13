@@ -1,0 +1,87 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Target_syntax.html">
+<link rel="next" href="Trans.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of exceptions" rel=Appendix href="index_exceptions.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Ast_util" rel="Chapter" href="Ast_util.html">
+<link title="Backend" rel="Chapter" href="Backend.html">
+<link title="Backend_common" rel="Chapter" href="Backend_common.html">
+<link title="Coq_decidable_equality" rel="Chapter" href="Coq_decidable_equality.html">
+<link title="Def_trans" rel="Chapter" href="Def_trans.html">
+<link title="Finite_map" rel="Chapter" href="Finite_map.html">
+<link title="Ident" rel="Chapter" href="Ident.html">
+<link title="Initial_env" rel="Chapter" href="Initial_env.html">
+<link title="Macro_expander" rel="Chapter" href="Macro_expander.html">
+<link title="Main" rel="Chapter" href="Main.html">
+<link title="Module_dependencies" rel="Chapter" href="Module_dependencies.html">
+<link title="Name" rel="Chapter" href="Name.html">
+<link title="Nvar" rel="Chapter" href="Nvar.html">
+<link title="Output" rel="Chapter" href="Output.html">
+<link title="Path" rel="Chapter" href="Path.html">
+<link title="Pattern_syntax" rel="Chapter" href="Pattern_syntax.html">
+<link title="Patterns" rel="Chapter" href="Patterns.html">
+<link title="Pcombinators" rel="Chapter" href="Pcombinators.html">
+<link title="Pp" rel="Chapter" href="Pp.html">
+<link title="Precedence" rel="Chapter" href="Precedence.html">
+<link title="Process_file" rel="Chapter" href="Process_file.html">
+<link title="Rename_top_level" rel="Chapter" href="Rename_top_level.html">
+<link title="Reporting" rel="Chapter" href="Reporting.html">
+<link title="Reporting_basic" rel="Chapter" href="Reporting_basic.html">
+<link title="Seplist" rel="Chapter" href="Seplist.html">
+<link title="Syntactic_tests" rel="Chapter" href="Syntactic_tests.html">
+<link title="Target" rel="Chapter" href="Target.html">
+<link title="Target_binding" rel="Chapter" href="Target_binding.html">
+<link title="Target_syntax" rel="Chapter" href="Target_syntax.html">
+<link title="Target_trans" rel="Chapter" href="Target_trans.html">
+<link title="Trans" rel="Chapter" href="Trans.html">
+<link title="Typecheck" rel="Chapter" href="Typecheck.html">
+<link title="Typecheck_ctxt" rel="Chapter" href="Typecheck_ctxt.html">
+<link title="Typed_ast" rel="Chapter" href="Typed_ast.html">
+<link title="Typed_ast_syntax" rel="Chapter" href="Typed_ast_syntax.html">
+<link title="Types" rel="Chapter" href="Types.html">
+<link title="Tyvar" rel="Chapter" href="Tyvar.html">
+<link title="Util" rel="Chapter" href="Util.html"><title>Target_trans</title>
+</head>
+<body>
+<div class="navbar"><a href="Target_syntax.html">Previous</a>
+&nbsp;<a href="index.html">Up</a>
+&nbsp;<a href="Trans.html">Next</a>
+</div>
+<center><h1>Module <a href="type_Target_trans.html">Target_trans</a></h1></center>
+<br>
+<pre><span class="keyword">module</span> Target_trans: <code class="code">sig</code> <a href="Target_trans.html">..</a> <code class="code">end</code></pre><code class="code">get_transformation targ</code> returns the (pre-backend) transformation function for target <code class="code">targ</code><br>
+<hr width="100%">
+<pre><span id="VALget_transformation"><span class="keyword">val</span> get_transformation</span> : <code class="type"><a href="Target.html#TYPEtarget">Target.target</a> -><br>       <a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -><br>       <a href="Typed_ast.html#TYPEchecked_module">Typed_ast.checked_module</a> -> <a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> * <a href="Typed_ast.html#TYPEchecked_module">Typed_ast.checked_module</a></code></pre><div class="info">
+<code class="code">get_transformation targ</code> returns the (pre-backend) transformation function for target <code class="code">targ</code><br>
+</div>
+<pre><span id="VALget_avoid_f"><span class="keyword">val</span> get_avoid_f</span> : <code class="type"><a href="Target.html#TYPEtarget">Target.target</a> -> Typed_ast.NameSet.t -> <a href="Typed_ast.html#TYPEvar_avoid_f">Typed_ast.var_avoid_f</a></code></pre><div class="info">
+<code class="code">get_avoid_f targ</code> returns the target specific variable avoid function. Before this function
+    can be used, it needs to get the set of constants to avoid.<br>
+</div>
+<pre><span id="VALadd_used_entities_to_avoid_names"><span class="keyword">val</span> add_used_entities_to_avoid_names</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -><br>       <a href="Target.html#TYPEtarget">Target.target</a> -><br>       <a href="Typed_ast_syntax.html#TYPEused_entities">Typed_ast_syntax.used_entities</a> -> Typed_ast.NameSet.t -> Typed_ast.NameSet.t</code></pre><div class="info">
+<code class="code">add_used_entities_to_avoid_names env targ ue ns</code> adds the used entities in <code class="code">ue</code> to the name-set
+    <code class="code">ns</code>. This nameset is intended to contain the names to avoid when using <code class="code">get_avoid_f</code> or <code class="code">rename_def_params</code>.
+    Since for each target different names need to be avoided, the intended target is required as well. Finally,
+    the environment is needed to look-up target representations.<br>
+</div>
+<pre><span id="VALrename_def_params"><span class="keyword">val</span> rename_def_params</span> : <code class="type"><a href="Target.html#TYPEtarget">Target.target</a> -><br>       Typed_ast.NameSet.t -><br>       <a href="Typed_ast.html#TYPEchecked_module">Typed_ast.checked_module</a> list -> <a href="Typed_ast.html#TYPEchecked_module">Typed_ast.checked_module</a> list</code></pre><div class="info">
+Rename the arguments to definitions, if they clash with constants in a given set of constants.
+   This was previously part of the transformation returned by get_transformation. It got moved
+   out in order to see all the renamings of definitions before changing their arguments.<br>
+</div>
+<pre><span id="VALident_force_pattern_compile"><span class="keyword">val</span> ident_force_pattern_compile</span> : <code class="type">bool Pervasives.ref</code></pre><div class="info">
+This flag enables pattern compilation for the identity backend. Used for debugging.<br>
+</div>
+<pre><span id="VALident_force_dictionary_passing"><span class="keyword">val</span> ident_force_dictionary_passing</span> : <code class="type">bool Pervasives.ref</code></pre><div class="info">
+This flag enables dictionary passing transfromations for the identity backend. Used for debugging.<br>
+</div>
+</body></html>

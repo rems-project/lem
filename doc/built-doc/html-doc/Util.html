@@ -1,0 +1,293 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Tyvar.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of exceptions" rel=Appendix href="index_exceptions.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Ast_util" rel="Chapter" href="Ast_util.html">
+<link title="Backend" rel="Chapter" href="Backend.html">
+<link title="Backend_common" rel="Chapter" href="Backend_common.html">
+<link title="Coq_decidable_equality" rel="Chapter" href="Coq_decidable_equality.html">
+<link title="Def_trans" rel="Chapter" href="Def_trans.html">
+<link title="Finite_map" rel="Chapter" href="Finite_map.html">
+<link title="Ident" rel="Chapter" href="Ident.html">
+<link title="Initial_env" rel="Chapter" href="Initial_env.html">
+<link title="Macro_expander" rel="Chapter" href="Macro_expander.html">
+<link title="Main" rel="Chapter" href="Main.html">
+<link title="Module_dependencies" rel="Chapter" href="Module_dependencies.html">
+<link title="Name" rel="Chapter" href="Name.html">
+<link title="Nvar" rel="Chapter" href="Nvar.html">
+<link title="Output" rel="Chapter" href="Output.html">
+<link title="Path" rel="Chapter" href="Path.html">
+<link title="Pattern_syntax" rel="Chapter" href="Pattern_syntax.html">
+<link title="Patterns" rel="Chapter" href="Patterns.html">
+<link title="Pcombinators" rel="Chapter" href="Pcombinators.html">
+<link title="Pp" rel="Chapter" href="Pp.html">
+<link title="Precedence" rel="Chapter" href="Precedence.html">
+<link title="Process_file" rel="Chapter" href="Process_file.html">
+<link title="Rename_top_level" rel="Chapter" href="Rename_top_level.html">
+<link title="Reporting" rel="Chapter" href="Reporting.html">
+<link title="Reporting_basic" rel="Chapter" href="Reporting_basic.html">
+<link title="Seplist" rel="Chapter" href="Seplist.html">
+<link title="Syntactic_tests" rel="Chapter" href="Syntactic_tests.html">
+<link title="Target" rel="Chapter" href="Target.html">
+<link title="Target_binding" rel="Chapter" href="Target_binding.html">
+<link title="Target_syntax" rel="Chapter" href="Target_syntax.html">
+<link title="Target_trans" rel="Chapter" href="Target_trans.html">
+<link title="Trans" rel="Chapter" href="Trans.html">
+<link title="Typecheck" rel="Chapter" href="Typecheck.html">
+<link title="Typecheck_ctxt" rel="Chapter" href="Typecheck_ctxt.html">
+<link title="Typed_ast" rel="Chapter" href="Typed_ast.html">
+<link title="Typed_ast_syntax" rel="Chapter" href="Typed_ast_syntax.html">
+<link title="Types" rel="Chapter" href="Types.html">
+<link title="Tyvar" rel="Chapter" href="Tyvar.html">
+<link title="Util" rel="Chapter" href="Util.html"><link title="Option Functions" rel="Section" href="#2_OptionFunctions">
+<link title="List Functions" rel="Section" href="#2_ListFunctions">
+<link title="Files" rel="Section" href="#2_Files">
+<link title="Strings" rel="Section" href="#2_Strings">
+<link title="Useful Sets" rel="Section" href="#2_UsefulSets">
+<title>Util</title>
+</head>
+<body>
+<div class="navbar"><a href="Tyvar.html">Previous</a>
+&nbsp;<a href="index.html">Up</a>
+&nbsp;</div>
+<center><h1>Module <a href="type_Util.html">Util</a></h1></center>
+<br>
+<pre><span class="keyword">module</span> Util: <code class="code">sig</code> <a href="Util.html">..</a> <code class="code">end</code></pre>Mixed useful things<br>
+<hr width="100%">
+<pre><span class="keyword">module</span> <a href="Util.Duplicate.html">Duplicate</a>: <div class="sig_block"><code class="code">functor (</code><code class="code">S</code><code class="code"> : </code><code class="type">Set.S</code><code class="code">) -&gt; </code><code class="code">sig</code> <a href="Util.Duplicate.html">..</a> <code class="code">end</code></div></pre><pre><span id="VALremove_duplicates"><span class="keyword">val</span> remove_duplicates</span> : <code class="type">'a list -> 'a list</code></pre><div class="info">
+<code class="code">remove_duplicates l</code> removes duplicate elements from
+    the list l. The elements keep there original order. The first
+    occurence of an element is kept, all others deleted.<br>
+</div>
+<pre><span id="VALremove_duplicates_gen"><span class="keyword">val</span> remove_duplicates_gen</span> : <code class="type">('a -> 'a -> bool) -> 'a list -> 'a list</code></pre><div class="info">
+<code class="code">remove_duplicates_gen p l</code> removes duplicate elements from
+    the list l. It is a generalised version of <code class="code">remove_duplicates</code> where
+    the equality check is performed by <code class="code">p</code>.<br>
+</div>
+<pre><span id="VALget_duplicates"><span class="keyword">val</span> get_duplicates</span> : <code class="type">'a list -> 'a list</code></pre><div class="info">
+<code class="code">get_duplicates l</code> returns the elements that appear multiple times
+    in the list l.<br>
+</div>
+<pre><span id="VALget_duplicates_gen"><span class="keyword">val</span> get_duplicates_gen</span> : <code class="type">('a -> 'a -> bool) -> 'a list -> 'a list</code></pre><div class="info">
+<code class="code">get_duplicates_gen p l</code> returns the elements that appear multiple times
+    in the list l. It is a generalised version of <code class="code">get_duplicates</code> where
+    the equality check is performed by <code class="code">p</code>.<br>
+</div>
+<br>
+<span id="2_OptionFunctions"><h2>Option Functions</h2></span><br>
+<pre><span id="VALoption_map"><span class="keyword">val</span> option_map</span> : <code class="type">('a -> 'b) -> 'a option -> 'b option</code></pre><div class="info">
+<code class="code">option_map f None</code> returns <code class="code">None</code>, whereas
+    <code class="code">option_map f (Some x)</code> returns <code class="code">Some (f x)</code>.<br>
+</div>
+<pre><span id="VALoption_cases"><span class="keyword">val</span> option_cases</span> : <code class="type">'a option -> ('a -> 'b) -> (unit -> 'b) -> 'b</code></pre><div class="info">
+<code class="code">option_cases None f_s f_n</code> returns <code class="code">f_n</code>, whereas
+    <code class="code">option_cases (Some x) f_s f_n</code> returns <code class="code">f_s x</code>.<br>
+</div>
+<pre><span id="VALoption_bind"><span class="keyword">val</span> option_bind</span> : <code class="type">('a -> 'b option) -> 'a option -> 'b option</code></pre><div class="info">
+<code class="code">option_bind f None</code> returns <code class="code">None</code>, whereas
+    <code class="code">option_bind f (Some x)</code> returns <code class="code">f x</code>.<br>
+</div>
+<pre><span id="VALoption_default"><span class="keyword">val</span> option_default</span> : <code class="type">'a -> 'a option -> 'a</code></pre><div class="info">
+<code class="code">option_default d None</code> returns the default value <code class="code">d</code>, 
+    whereas <code class="code">option_default d (Some x)</code> returns <code class="code">x</code>.<br>
+</div>
+<pre><span id="VALoption_default_map"><span class="keyword">val</span> option_default_map</span> : <code class="type">'a option -> 'b -> ('a -> 'b) -> 'b</code></pre><div class="info">
+<code class="code">option_default_map v d f</code> is short for 
+    <code class="code">option_default d (option_map f v)</code>. This means that
+    <code class="code">option_default_map None d f</code> returns <code class="code">d</code>, whereas
+    <code class="code">option_default_map (Some x) d f</code> returns <code class="code">f x</code>.<br>
+</div>
+<pre><span id="VALoption_get_exn"><span class="keyword">val</span> option_get_exn</span> : <code class="type">exn -> 'a option -> 'a</code></pre><div class="info">
+<code class="code">option_get_exn exn None</code> throws the exception <code class="code">exn</code>,
+    whereas <code class="code">option_get_exn exn (Some x)</code> returns <code class="code">x</code>.<br>
+</div>
+<pre><span id="VALchanged2"><span class="keyword">val</span> changed2</span> : <code class="type">('a -> 'b -> 'c) -><br>       ('a -> 'a option) -> 'a -> ('b -> 'b option) -> 'b -> 'c option</code></pre><div class="info">
+<code class="code">changed2 f g x h y</code> applies <code class="code">g</code> to <code class="code">x</code> and <code class="code">h</code> to <code class="code">y</code>.
+    If both function applications return <code class="code">None</code>, then <code class="code">None</code> is
+    returned. Otherwise <code class="code">f</code> is applied to the results. For this
+    application of <code class="code">f</code>, <code class="code">x</code> is used in case <code class="code">g x</code> returns <code class="code">None</code> and
+    similarly <code class="code">y</code> in case <code class="code">h y</code> returns <code class="code">None</code>.<br>
+</div>
+<br>
+<span id="2_ListFunctions"><h2>List Functions</h2></span><br>
+<pre><span id="VALlist_index"><span class="keyword">val</span> list_index</span> : <code class="type">('a -> bool) -> 'a list -> int option</code></pre><div class="info">
+<code class="code">list_index p l</code> returns the first index <code class="code">i</code> such that
+    the predicate <code class="code">p (l!i)</code> holds. If no such <code class="code">i</code> exists,
+    <code class="code">None</code> is returned.<br>
+</div>
+<pre><span id="VALlist_subset"><span class="keyword">val</span> list_subset</span> : <code class="type">'a list -> 'a list -> bool</code></pre><div class="info">
+<code class="code">list_subset l1 l2</code> tests whether all elements of <code class="code">l1</code> also
+    occur in <code class="code">l2</code>.<br>
+</div>
+<pre><span id="VALlist_diff"><span class="keyword">val</span> list_diff</span> : <code class="type">'a list -> 'a list -> 'a list</code></pre><div class="info">
+<code class="code">list_diff l1 l2</code> removes all elements from <code class="code">l1</code> that occur in <code class="code">l2</code>.<br>
+</div>
+<pre><span id="VALlist_longer"><span class="keyword">val</span> list_longer</span> : <code class="type">int -> 'a list -> bool</code></pre><div class="info">
+<code class="code">list_longer n l</code> checks whether the list <code class="code">l</code> has more than <code class="code">n</code> elements.
+    It is equivalent to <code class="code">List.length l &gt; n</code>, but more efficient, as it aborts counting,
+    when the limit is reached.<br>
+</div>
+<pre><span id="VALlist_null"><span class="keyword">val</span> list_null</span> : <code class="type">'a list -> bool</code></pre><div class="info">
+<code class="code">list_null l</code> checks whether the list <code class="code">l</code> is empty, i.e. if <code class="code">l = []</code> holds.<br>
+</div>
+<pre><span id="VALoption_first"><span class="keyword">val</span> option_first</span> : <code class="type">('a -> 'b option) -> 'a list -> 'b option</code></pre><div class="info">
+<code class="code">option_first f l</code> searches for the first element <code class="code">x</code> of <code class="code">l</code> such
+    that the <code class="code">f x</code> is not <code class="code">None</code>. If such an element exists, <code class="code">f x</code> is
+    returned, otherwise <code class="code">None</code>.<br>
+</div>
+<pre><span id="VALmap_changed"><span class="keyword">val</span> map_changed</span> : <code class="type">('a -> 'a option) -> 'a list -> 'a list option</code></pre><div class="info">
+<code class="code">map_changed f l</code> maps <code class="code">f</code> over <code class="code">l</code>.
+    If for all elements of <code class="code">l</code> the
+    function <code class="code">f</code> returns <code class="code">None</code>, then <code class="code">map_changed f l</code> returns <code class="code">None</code>.
+    Otherwise, it uses <code class="code">x</code> for all elements, where <code class="code">f x</code> returns <code class="code">None</code>,
+    and returns the resulting list.<br>
+</div>
+<pre><span id="VALmap_changed_default"><span class="keyword">val</span> map_changed_default</span> : <code class="type">('a -> 'b) -> ('a -> 'b option) -> 'a list -> 'b list option</code></pre><div class="info">
+<code class="code">map_changed_default d f l</code> maps <code class="code">f</code> over <code class="code">l</code>.
+    If for all elements of <code class="code">l</code> the
+    function <code class="code">f</code> returns <code class="code">None</code>, then <code class="code">map_changed f l</code> returns <code class="code">None</code>.
+    Otherwise, it uses <code class="code">d x</code> for all elements <code class="code">x</code>, where <code class="code">f x</code> returns <code class="code">None</code>,
+    and returns the resulting list.<br>
+</div>
+<pre><span id="VALlist_mapi"><span class="keyword">val</span> list_mapi</span> : <code class="type">(int -> 'a -> 'b) -> 'a list -> 'b list</code></pre><div class="info">
+<code class="code">list_mapi f l</code> maps <code class="code">f</code> over <code class="code">l</code>. In contrast to the standard
+    <code class="code">map</code> function, <code class="code">f</code> gets the current index of the list as an extra
+    argument. Counting starts at <code class="code">0</code>.<br>
+</div>
+<pre><span id="VALlist_iter_sep"><span class="keyword">val</span> list_iter_sep</span> : <code class="type">(unit -> unit) -> ('a -> unit) -> 'a list -> unit</code></pre><div class="info">
+<code class="code">list_iter_sep sf f [a1; ...; an]</code> applies function <code class="code">f</code> in turn to <code class="code">a1; ...; an</code> and
+    calls <code class="code">sf ()</code> in between. It is equivalent to <code class="code">begin f a1; sf(); f a2; sf(); ...; f an; () end</code>.<br>
+</div>
+<pre><span id="VALintercalate"><span class="keyword">val</span> intercalate</span> : <code class="type">'a -> 'a list -> 'a list</code></pre><div class="info">
+<code class="code">intercalate sep as</code> inserts <code class="code">sep</code> between the elements of <code class="code">as</code>, i.e. it returns a list of the form
+     <code class="code">a1; sep; ... sep ; an</code>.<br>
+</div>
+<pre><span id="VALinterleave"><span class="keyword">val</span> interleave</span> : <code class="type">'a list -> 'a list -> 'a list</code></pre><div class="info">
+<code class="code">interleave l1 l2</code> interleaves lists <code class="code">l1</code> and <code class="code">l2</code>, by alternatingly taking an element of l1 and l2 
+    till one of the lists is empty. Then the remaining elements are added. The first element is from <code class="code">l1</code>.<br>
+</div>
+<pre><span id="VALreplicate"><span class="keyword">val</span> replicate</span> : <code class="type">int -> 'a -> 'a list</code></pre><div class="info">
+<code class="code">replicate n e</code> creates a list that contains <code class="code">n</code> times the element <code class="code">e</code>.<br>
+</div>
+<pre><span id="VALmap_filter"><span class="keyword">val</span> map_filter</span> : <code class="type">('a -> 'b option) -> 'a list -> 'b list</code></pre><div class="info">
+<code class="code">map_filter f l</code> maps <code class="code">f</code> over <code class="code">l</code> and removes all entries <code class="code">x</code> of <code class="code">l</code>
+    with <code class="code">f x = None</code>.<br>
+</div>
+<pre><span id="VALmap_all"><span class="keyword">val</span> map_all</span> : <code class="type">('a -> 'b option) -> 'a list -> 'b list option</code></pre><div class="info">
+<code class="code">map_all f l</code> maps <code class="code">f</code> over <code class="code">l</code>. If at least one entry is <code class="code">None</code>, <code class="code">None</code> is returned. Otherwise,
+    the <code class="code">Some</code> function is removed from the list.<br>
+</div>
+<pre><span id="VALlist_to_front"><span class="keyword">val</span> list_to_front</span> : <code class="type">int -> 'a list -> 'a list</code></pre><div class="info">
+<code class="code">list_to_front i l</code> resorts the list <code class="code">l</code> by bringing the element at index <code class="code">i</code>
+    to the front.<br>
+</div>
+<pre><span id="VALundo_list_to_front"><span class="keyword">val</span> undo_list_to_front</span> : <code class="type">int -> 'a list -> 'a list</code></pre><div class="info">
+<code class="code">undo_list_to_front i l</code> resorts the list <code class="code">l</code> by moving the head element to index index <code class="code">i</code>
+    It's the inverse of <code class="code">list_to_front i l</code>.<br>
+</div>
+<pre><span id="VALsplit_after"><span class="keyword">val</span> split_after</span> : <code class="type">int -> 'a list -> 'a list * 'a list</code></pre><div class="info">
+<code class="code">split_after n l</code> splits the first <code class="code">n</code> elemenst from list <code class="code">l</code>, i.e. it returns two lists
+    <code class="code">l1</code> and <code class="code">l2</code>, with <code class="code">length l1 = n</code> and <code class="code">l1 @ l2 = l</code>. Fails if n is too small or large.<br>
+</div>
+<pre><span id="VALlist_firstn"><span class="keyword">val</span> list_firstn</span> : <code class="type">int -> 'a list -> 'a list</code></pre><div class="info">
+<code class="code">list_fristn n l</code> gets the first <code class="code">n</code> elemenst from list <code class="code">l</code>, i.e. it does the same as
+    <code class="code">fst (split_after n l)</code>. It fails if n is too small or large.<br>
+</div>
+<pre><span id="VALlist_dropn"><span class="keyword">val</span> list_dropn</span> : <code class="type">int -> 'a list -> 'a list</code></pre><div class="info">
+<code class="code">list_dropn n l</code> drops the first <code class="code">n</code> elemenst from list <code class="code">l</code>, i.e. it does the same as
+    <code class="code">snd (split_after n l)</code>. It fails if n is too small or large.<br>
+</div>
+<pre><span id="VALlist_dest_snoc"><span class="keyword">val</span> list_dest_snoc</span> : <code class="type">'a list -> 'a list * 'a</code></pre><div class="info">
+<code class="code">list_dest_snoc l</code> splits the last entry off a list. This mean
+    that <code class="code">list_dest_snoc (l @ [x])</code> returns <code class="code">(l, x)</code>. It raises a
+    <code class="code">Failure "list_dest_snoc"</code> exception, if the list <code class="code">l</code> is empty.<br>
+</div>
+<pre><span id="VALlist_pick"><span class="keyword">val</span> list_pick</span> : <code class="type">('a -> bool) -> 'a list -> ('a * 'a list) option</code></pre><div class="info">
+<code class="code">list_pick p l</code> tries to pick the first element from <code class="code">l</code> that satisfies predicate <code class="code">p</code>.
+    If such an element is found, it is returned together with the list <code class="code">l</code> where this
+    element has been removed.<br>
+</div>
+<pre><span id="VALcompare_list"><span class="keyword">val</span> compare_list</span> : <code class="type">('a -> 'b -> int) -> 'a list -> 'b list -> int</code></pre><br>
+<span id="2_Files"><h2>Files</h2></span><br>
+<pre><span id="VALcopy_file"><span class="keyword">val</span> copy_file</span> : <code class="type">string -> string -> unit</code></pre><div class="info">
+<code class="code">copy_file src dst</code> copies file <code class="code">src</code> to file <code class="code">dst</code>. Only files are supported,
+    no directories.<br>
+</div>
+<pre><span id="VALmove_file"><span class="keyword">val</span> move_file</span> : <code class="type">string -> string -> unit</code></pre><div class="info">
+<code class="code">move_file src dst</code> moves file <code class="code">src</code> to file <code class="code">dst</code>. In contrast to <code class="code">Sys.rename</code> no error is
+    produced, if <code class="code">dst</code> already exists. Moreover, in case <code class="code">Sys.rename</code> fails for some reason (e.g. because
+    it does not work over filesystem boundaries), <code class="code">copy_file</code> and <code class="code">Sys.remove</code> are used as
+    fallback.<br>
+</div>
+<pre><span id="VALsame_content_files"><span class="keyword">val</span> same_content_files</span> : <code class="type">string -> string -> bool</code></pre><div class="info">
+<code class="code">same_content_files file1 file2</code> checks, whether the files <code class="code">file1</code> and <code class="code">file2</code> have the same content.
+If at least one of the files does not exist, <code class="code">false</code> is returned. <code class="code">same_content_files</code> throws an exception,
+if one of the files exists, but cannot be read.<br>
+</div>
+<pre><span id="VALabsolute_dir"><span class="keyword">val</span> absolute_dir</span> : <code class="type">string -> string option</code></pre><div class="info">
+<code class="code">absolute_dir dir</code> tries to get the absolute path name of directory <code class="code">dir</code>. If this fails (usually, 
+    because <code class="code">dir</code> does not exist), <code class="code">None</code> is returned.<br>
+</div>
+<pre><span id="VALdir_eq"><span class="keyword">val</span> dir_eq</span> : <code class="type">string -> string -> bool</code></pre><div class="info">
+<code class="code">dir_eq d1 d2</code> uses <code class="code">absolute_dir</code> to check whether the two directories are equal.<br>
+</div>
+<br>
+<span id="2_Strings"><h2>Strings</h2></span><br>
+<pre><span id="VALstring_to_list"><span class="keyword">val</span> string_to_list</span> : <code class="type">string -> char list</code></pre><div class="info">
+<code class="code">string_to_list l</code> translates the string <code class="code">l</code> to the list of its characters.<br>
+</div>
+<pre><span id="VALstring_for_all"><span class="keyword">val</span> string_for_all</span> : <code class="type">(char -> bool) -> string -> bool</code></pre><div class="info">
+<code class="code">string_for_all p s</code> checks whether all characters of <code class="code">s</code> satisfy <code class="code">p</code>.<br>
+</div>
+<pre><span id="VALis_simple_ident_string"><span class="keyword">val</span> is_simple_ident_string</span> : <code class="type">string -> bool</code></pre><div class="info">
+<code class="code">is_simple_ident_string s</code> checks whether <code class="code">s</code> is a "simple" identifier. The meaning of
+    simple is fuzzy. Essentially it means that <code class="code">s</code> can be used by all backends. Currently the
+    restricting is that <code class="code">s</code> is non-empty, starts with a letter and contains only letters, numbers
+    and underscores.<br>
+</div>
+<pre><span id="VALstring_split"><span class="keyword">val</span> string_split</span> : <code class="type">char -> string -> string list * string</code></pre><div class="info">
+<code class="code">string_split c string</code> splits the string into a list of strings on occurences of the char <code class="code">c</code>.
+    The last remaining string is handed out separately. This encodes, that the resulting string list
+    is never empty<br>
+</div>
+<pre><span id="VALuncapitalize_prefix"><span class="keyword">val</span> uncapitalize_prefix</span> : <code class="type">string -> string</code></pre><div class="info">
+<code class="code">uncapitalize_prefix n</code> tries to uncapitalize the first few letters of <code class="code">n</code>.
+    In contrast to <code class="code">uncapitalize</code>, it continues with the next letter,
+    till a non-uppercase letter is found. The idea is to produce nicer looking names when
+    uncaptalizing. Turning <code class="code">UTF8.lem</code> into <code class="code">uTF8Script.sml</code> for example is strange and
+    <code class="code">utf8Script.sml</code> looks nicer.<br>
+</div>
+<pre><span id="VALstring_map"><span class="keyword">val</span> string_map</span> : <code class="type">(char -> char) -> string -> string</code></pre><div class="info">
+<code class="code">string_map f s</code> maps <code class="code">f</code> over all characters of a copy of <code class="code">s</code>. It corresponds to <code class="code">String.map</code>, which
+    is unluckily only available for OCaml 4<br>
+</div>
+<pre><span id="VALmessage_singular_plural"><span class="keyword">val</span> message_singular_plural</span> : <code class="type">string * string -> 'a list -> string</code></pre><div class="info">
+<code class="code">message_singular_plural (sing_message, multiple_message) l</code> is used
+    to determine whether the singular or plural form should be used in messages. If the list <code class="code">l</code> contains
+    no elements or exactly one element, <code class="code">sing_message</code> is returned. Otherwise, i.e. for multiple elements,
+    the result is <code class="code">multiple_message</code>.<br>
+</div>
+<pre><span id="VALfresh_string"><span class="keyword">val</span> fresh_string</span> : <code class="type">string list -> string -> string</code></pre><div class="info">
+<code class="code">fresh_string forbidden</code> generates a stateful function <code class="code">gen_fresh</code> that generates fresh strings. <code class="code">gen_fresh s</code> 
+    will return a string similar to <code class="code">s</code> that has never been returned before and is not part of <code class="code">forbidden</code>. By storing
+    the result in internal state, it is ensured that the same result is never returned twice. This function is used
+    for example to generate unique labels.<br>
+</div>
+<br>
+<span id="2_UsefulSets"><h2>Useful Sets</h2></span><br>
+<pre><span class="keyword">module</span> <a href="Util.StringSet.html">StringSet</a>: <code class="type">Set.S</code><code class="type">  with type elt = string</code></pre><div class="info">
+Sets of Integers
+</div>
+<pre><span class="keyword">module</span> <a href="Util.IntSet.html">IntSet</a>: <code class="type">Set.S</code><code class="type">  with type elt = int</code></pre><pre><span class="keyword">module</span> <a href="Util.IntIntSet.html">IntIntSet</a>: <code class="type">Set.S</code><code class="type">  with type elt = int * int</code></pre><pre><span class="keyword">module</span> <a href="Util.ExtraSet.html">ExtraSet</a>: <div class="sig_block"><code class="code">functor (</code><code class="code">S</code><code class="code"> : </code><code class="type">Set.S</code><code class="code">) -&gt; </code><code class="code">sig</code> <a href="Util.ExtraSet.html">..</a> <code class="code">end</code></div></pre><div class="info">
+Some useful extra functions for sets
+</div>
+</body></html>
