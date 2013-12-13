@@ -1,6 +1,6 @@
 # Writing your own Lem files
 
-Lem's syntax broadly follows OCaml syntax, while the libraries follow the Haskell libraries. Here, only a few selected points of Lem's syntax and its features are discussed. To learn more about its syntax, please have a look at the file `doc/lem.pdf`. Another possibility is having a look at the Lem-library in the `library`-directory or at the tests in directory `tests`, especially `tests/backends`.
+Lem's syntax broadly follows OCaml syntax, while the libraries follow the Haskell libraries. Here, only a few selected points of Lem's syntax and its features are discussed. To learn more about its syntax, please have a look at the next section and at the file `doc/lem.pdf`. Another possibility is having a look at the Lem-library in the `library`-directory or at the tests in directory `tests`, especially `tests/backends`.
 
 ## Header
 
