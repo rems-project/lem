@@ -1,36 +1,50 @@
-INPUT_FILES := \
-  header.md \
-  introduction.md \
-  installation.md \
-  invokation.md \
-  backends.md \
-    backend_ocaml.md \
-    backend_hol.md \
-    backend_isa.md \
-    backend_coq.md \
-    backend_tex.md \
-    backend_html.md \
-  library.md \
-  own_lem_files.md \
-  language.md \
-  backend_linking.md \
-  typeclasses.md \
-  refactoring.md \
 
 
-all: lem-manual.html lem-manual.pdf
+##  build all documentation and create links from this directory to it
+
+all: 
+# manual
+	make -C manual
+	ln -sf manual/lem-manual.html .
+	ln -sf manual/lem-manual.pdf .
+# lem Ott grammar
+	make -C ../language 
+	ln -sf ../language/lem.pdf .
+# library documentation
+	make -C .. tex-libs
+	ln -sf ../tex-lib/lem-libs.pdf .
+	lem -print_env ../library/pervasives.lem > lem-libs-pervasives.txt  
+	lem -print_env ../library/pervasives_extra.lem > lem-libs-pervasives-extra.txt
+# source documentation
+	make -C ../src .
+	ln -sf ../src/html-doc .
+	make -C ../src doc-pdf
+	ln -sf ../src/tex-doc/lem-doc.pdf .
+	make -C ../src doc-dot
+	ln -sf ../src/dep.pdf  .
+
+## copy built documentation 
+
+TARGET=built-doc
+snapshot:
+	cp -rL lem-manual.html $(TARGET)
+	cp lem-manual.pdf $(TARGET)
+	cp lem.pdf $(TARGET)
+	cp lem-libs.pdf $(TARGET)
+	cp lem-libs-pervasives.txt $(TARGET)
+	cp lem-libs-pervasives-extra.txt $(TARGET)
+	cp -rL html-doc $(TARGET)
+	cp lem-doc.pdf $(TARGET)
+	cp dep.pdf $(TARGET)
+	cp lem-draft.pdf $(TARGET)
+
+
+
 
 clean:
-	rm -f lem-manual.md 
+	rm -rf dep.pdf html-doc doc-dep.pdf doc.pdf lem.pdf lem-libs.pdf lem-manual.html lem-manual.pdf lem-doc.pdf
+	rm -rf lem-libs-pervasives-extra.txt
+	rm -rf lem-libs-pervasives.txt
 
-lem-manual.md : $(INPUT_FILES)
-	cat $(INPUT_FILES) > lem-manual.md
-
-lem-manual.html : lem-manual.md
-	pandoc -s --number-sections --toc lem-manual.md -o lem-manual.html
-
-lem-manual.pdf : lem-manual.md
-	pandoc -s --number-sections --toc lem-manual.md -o lem-manual.pdf
-
-lem-language.pdf: 
-	make -C ../language && cp ../language/lem-language.pdf .
+cleansnapshot:
+	rm -rf built-doc/*

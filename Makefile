@@ -132,13 +132,7 @@ build-lem: src/ast.ml src/version.ml src/build_directory.ml
 	make -C src all
 	ln -sf src/main.native lem
 
-lem-doc: build-lem
-	make -C src doc
-	ln -sf src/html-doc .
-	make -C src doc-pdf
-	ln -sf src/tex-doc/lem-doc.pdf .
-	make -C src doc-dot
-	ln -sf src/dep.pdf lem-doc-dep.pdf
+
 
 lem: build-lem
 
