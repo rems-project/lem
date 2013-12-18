@@ -15,7 +15,7 @@ declare {isabelle;ocaml;hol} rename module = Lem_list
 
 open import Bool Maybe Basic_classes Tuple Num
 
-open import {coq} `Coq.Lists.TheoryList`
+open import {coq} `Coq.Lists.List`
 open import {isabelle} `$LIB_DIR/Lem`
 open import {hol} `listTheory` `rich_listTheory` `sortingTheory`
 
@@ -71,7 +71,7 @@ declare termination_argument length = automatic
 declare hol      target_rep function length = `LENGTH`
 declare ocaml    target_rep function length = `List.length`
 declare isabelle target_rep function length = `List.length`
-declare coq      target_rep function length = `Length_l`
+declare coq      target_rep function length = `List.length`
 
 assert length_0: (length ([]:list nat) = 0)
 assert length_1: (length ([2]:list nat) = 1)
