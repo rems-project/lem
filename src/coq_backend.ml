@@ -621,7 +621,7 @@ let generate_coq_record_update_notation e =
             ws skips; from_string "Module "; name; from_string "."; ws skips'; ws skips'';
             body; from_string "\nEnd "; name; from_string "."; ws skips'''
           ]
-      | Rename (skips, name, mod_binding, skips', mod_descr) -> from_string "Rename"
+      | Rename (skips, name, mod_binding, skips', mod_descr) -> emp
       | OpenImport (oi, ms) ->                  
           let (ms', sk) = B.open_to_open_target ms in
           if (ms' = []) then
