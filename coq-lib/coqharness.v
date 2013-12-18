@@ -1,6 +1,7 @@
 Require Import Coq.ZArith.BinInt.
 Require Import Coq.ZArith.Zorder.
 Require Import ClassicalDescription.
+Require Import Coq.Strings.String.
 
 (* Logic *)
 
@@ -286,8 +287,8 @@ Definition set_sigma
     List.fold_right (fun x xys => List.fold_right (fun y xys => set_add (x, y) xys) xys (f x)) set_empty sa.
 
 Program Definition set_choose_dependent
-  {elt: Type} (s: set elt) (p: 0 < length s): elt :=
-    match s return forall x, s = x -> 0 < length x -> elt with
+  {elt: Type} (s: set elt) (p: 0 < (List.length s)): elt :=
+    match s return forall x, s = x -> 0 < List.length x -> elt with
       | [] => fun x => fun eq => fun p => _
       | x::xs => fun _ => fun _ => fun _ => x
     end s (eq_refl s) p.
@@ -304,11 +305,11 @@ Program Definition set_choose_dependent
 Program Definition set_case_by
   {elt elt': Type} (eltord: elt -> elt -> ordering) (s: set elt)
   (empty: elt') (single: elt -> elt') (otherwise: elt'): elt' :=
-    match s return forall x, s = x -> length s = length x -> elt' with
+    match s return forall x, s = x -> List.length s = List.length x -> elt' with
       | [] => fun _ _ _ => empty
       | [e] => fun x srefl lrefl => single (set_choose_dependent [e] _)
       | _  => fun _ _ _ => otherwise
-    end s (eq_refl s) (eq_refl (length s)).
+    end s (eq_refl s) (eq_refl (List.length s)).
 
 Axiom set_tc :
   forall {elt : Type},
@@ -399,3 +400,6 @@ Definition nat_default: nat := 0.
 Definition list_default {elt: Type}: list elt := [].
 Definition set_default {elt: Type}: set elt := [].
 Definition fmap_default {key value: Type}: fmap key value := [].
+Definition string_default: string := ("" % string).
+Definition unit_default: unit := tt.
+Definition option_default {elt: Type}: option elt := None.
