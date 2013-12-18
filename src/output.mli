@@ -57,14 +57,13 @@ type t' =
 
 (** kind annotation for latex'd identifiers *)
 type id_annot =  
-  | Term_const of bool (** is it a quatation one that needs no escaping ?*)
-  | Term_ctor
-  | Term_field 
+  | Term_const of bool * bool (** [Term_const(is_quotation, needs_escaping)] *)
+  | Term_field
   | Term_method 
   | Term_var 
   | Term_var_toplevel
   | Term_spec 
-  | Type_ctor of bool (** is it a quatation one that needs no escaping ?*)
+  | Type_ctor of bool * bool  (** [Term_ctor(is_quotation, needs_escaping)] *)
   | Type_var
   | Nexpr_var
   | Module_name
@@ -153,7 +152,21 @@ val block_hv : bool -> int -> t -> t
 val block_hov : bool -> int -> t -> t
 
 
+(** [core out] is a marker for marking the most important part of some output. It marks for example the
+    rhs of a definition. Together with [extract_core] this is used to sometimes only print the most essential part
+    of some output *)
+val core : t -> t
+
+(** [remove_core o] removes all occurences of core form [t] by replacing [core o'] with just [o']. *)
+val remove_core : t -> t
+
+(** [extract_core o] extracts all top-level cores from output [o]. *)
+val extract_core : t -> t list
+
 (** {3 Spacing} *) 
+
+(** [removes intial whitespace (including comments) from output] *)
+val remove_initial_ws : t -> t
 
 (** [break_hint add_space ind] is a general hint for a line-break. If [add_space] is set
     a space is added in case no line-break is needed. Otherwise a line-break with the given 

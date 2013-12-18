@@ -1,0 +1,2998 @@
+type bit
+type bool
+type char
+type list 'a
+type nat
+type numeral
+type set 'a
+type string
+type unit
+type vector 'b ''a
+
+
+module Basic_classes = struct
+  class Eq
+  type Eq_class 'a = {
+      val isEqual_method : forall 'a. 
+                             (Basic_classes.Eq_class 'a) -> 'a -> 'a -> bool
+
+      val isInequal_method : forall 'a. 
+                               (Basic_classes.Eq_class 'a) -> 'a -> 'a -> 
+                                                                    bool
+
+  }
+  class Ord
+  class OrdMaxMin
+  type OrdMaxMin_class 'a = {
+      val max_method : forall 'a. 
+                         (Basic_classes.OrdMaxMin_class 'a) -> 'a -> 'a -> 'a
+
+      val min_method : forall 'a. 
+                         (Basic_classes.OrdMaxMin_class 'a) -> 'a -> 'a -> 'a
+
+  }
+  type Ord_class 'a = {
+      val compare_method : forall 'a. 
+                             (Basic_classes.Ord_class 'a) -> 'a -> 'a -> 
+                                                                   Basic_classes.ordering
+
+      val isLess_method : forall 'a. 
+                            (Basic_classes.Ord_class 'a) -> 'a -> 'a -> bool
+
+      val isLessEqual_method : forall 'a. 
+                                 (Basic_classes.Ord_class 'a) -> 'a -> 
+                                                                 'a -> 
+                                                                 bool
+
+      val isGreater_method : forall 'a. 
+                               (Basic_classes.Ord_class 'a) -> 'a -> 
+                                                               'a -> 
+                                                               bool
+
+      val isGreaterEqual_method : forall 'a. 
+                                    (Basic_classes.Ord_class 'a) -> 'a -> 
+                                                                    'a -> 
+                                                                    bool
+
+  }
+  class SetType
+  type SetType_class 'a = {
+      val setElemCompare_method : forall 'a. 
+                                    (Basic_classes.SetType_class 'a) -> 
+                                    'a -> 'a -> Basic_classes.ordering
+
+  }
+  type ordering
+
+  val < : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> bool
+  val <= : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> bool
+  val <> : forall 'a. (Basic_classes.Eq 'a) => 'a -> 'a -> bool
+  val = : forall 'a. (Basic_classes.Eq 'a) => 'a -> 'a -> bool
+  val > : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> bool
+  val >= : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> bool
+  val EQ : Basic_classes.ordering
+  val GT : Basic_classes.ordering
+  val LT : Basic_classes.ordering
+  val boolCompare : bool -> bool -> Basic_classes.ordering
+  val compare : forall 'a. 
+                  (Basic_classes.Ord 'a) => 
+                    'a -> 'a -> Basic_classes.ordering
+  val defaultCompare : forall 'a. 'a -> 'a -> Basic_classes.ordering
+  val defaultGreater : forall 'a. 'a -> 'a -> bool
+  val defaultGreaterEq : forall 'a. 'a -> 'a -> bool
+  val defaultLess : forall 'a. 'a -> 'a -> bool
+  val defaultLessEq : forall 'a. 'a -> 'a -> bool
+  val defaultMax : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> 'a
+  val defaultMin : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> 'a
+  val genericCompare : forall 'a. 
+                         ('a -> 'a -> bool) -> ('a -> 'a -> bool) -> 
+                                               'a -> 'a -> Basic_classes.ordering
+  val instance_Basic_classes_Eq_Basic_classes_ordering_dict : 
+                                                                Basic_classes.Eq_class 
+                                                                Basic_classes.ordering
+  val instance_Basic_classes_Eq_bool_dict : Basic_classes.Eq_class bool
+  val instance_Basic_classes_Eq_tup_dict : forall 'a 'b. 
+                                             (Basic_classes.Eq 'a)
+                                               (Basic_classes.Eq 'b) => 
+                                               Basic_classes.Eq_class 
+                                               ('a * 'b)
+  val instance_Basic_classes_Eq_var_dict : forall 'a. 
+                                             Basic_classes.Eq_class 'a
+  val instance_Basic_classes_OrdMaxMin_var_dict : forall 'a. 
+                                                    (Basic_classes.Ord 'a) => 
+                                                      Basic_classes.OrdMaxMin_class 
+                                                      'a
+  val instance_Basic_classes_Ord_tup_dict : forall 'a 'b. 
+                                              (Basic_classes.Ord 'a)
+                                                (Basic_classes.Ord 'b) => 
+                                                Basic_classes.Ord_class 
+                                                ('a * 'b)
+  val instance_Basic_classes_SetType_bool_dict : 
+                                                   Basic_classes.SetType_class 
+                                                   bool
+  val instance_Basic_classes_SetType_tup_dict : forall 'a 'b. 
+                                                  (Basic_classes.SetType 'a)
+                                                    (Basic_classes.SetType 'b) => 
+                                                    Basic_classes.SetType_class 
+                                                    ('a * 'b)
+  val instance_Basic_classes_SetType_var_dict : forall 'a. 
+                                                  Basic_classes.SetType_class 
+                                                  'a
+  val isEqual : forall 'a. (Basic_classes.Eq 'a) => 'a -> 'a -> bool
+  val isGreater : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> bool
+  val isGreaterEqual : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> bool
+  val isInequal : forall 'a. (Basic_classes.Eq 'a) => 'a -> 'a -> bool
+  val isLess : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> bool
+  val isLessEqual : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> bool
+  val max : forall 'a. (Basic_classes.OrdMaxMin 'a) => 'a -> 'a -> 'a
+  val min : forall 'a. (Basic_classes.OrdMaxMin 'a) => 'a -> 'a -> 'a
+  val ordCompare : forall 'a. 
+                     (Basic_classes.Eq 'a) (Basic_classes.Ord 'a) => 
+                       'a -> 'a -> Basic_classes.ordering
+  val orderingEqual : 
+                        Basic_classes.ordering -> Basic_classes.ordering -> 
+                                                  bool
+  val orderingIsEqual : Basic_classes.ordering -> bool
+  val orderingIsGreater : Basic_classes.ordering -> bool
+  val orderingIsGreaterEqual : Basic_classes.ordering -> bool
+  val orderingIsLess : Basic_classes.ordering -> bool
+  val orderingIsLessEqual : Basic_classes.ordering -> bool
+  val ordering_cases : forall 'a. 
+                         Basic_classes.ordering -> 'a -> 'a -> 'a -> 'a
+  val pairCompare : forall 'a 'b. 
+                      ('a -> 'a -> Basic_classes.ordering) -> ('b -> 
+                                                              'b -> Basic_classes.ordering) -> 
+                                                              ('a * 'b) -> 
+                                                              ('a * 'b) -> 
+                                                              Basic_classes.ordering
+  val pairEqual : forall 'a 'b. 
+                    (Basic_classes.Eq 'a) (Basic_classes.Eq 'b) => 
+                      ('a * 'b) -> ('a * 'b) -> bool
+  val pairEqualBy : forall 'a 'b. 
+                      ('a -> 'a -> bool) -> ('b -> 'b -> bool) -> ('a * 'b) -> 
+                                                                  ('a * 'b) -> 
+                                                                  bool
+  val pairGreater : forall 'a 'b. 
+                      (Basic_classes.Ord 'a) (Basic_classes.Ord 'b) => 
+                        ('a * 'b) -> ('a * 'b) -> bool
+  val pairGreaterEq : forall 'a 'b. 
+                        (Basic_classes.Ord 'a) (Basic_classes.Ord 'b) => 
+                          ('a * 'b) -> ('a * 'b) -> bool
+  val pairLess : forall 'a 'b. 
+                   (Basic_classes.Ord 'a) (Basic_classes.Ord 'b) => 
+                     ('b * 'a) -> ('b * 'a) -> bool
+  val pairLessEq : forall 'a 'b. 
+                     (Basic_classes.Ord 'a) (Basic_classes.Ord 'b) => 
+                       ('b * 'a) -> ('b * 'a) -> bool
+  val setElemCompare : forall 'a. 
+                         (Basic_classes.SetType 'a) => 
+                           'a -> 'a -> Basic_classes.ordering
+  val test : forall 'a 'b. 
+               (Basic_classes.SetType 'a) (Basic_classes.SetType 'b) => 
+                 ('a * 'b) -> ('a * 'b) -> Basic_classes.ordering
+  val unsafe_structural_equality : forall 'a. 'a -> 'a -> bool
+  val unsafe_structural_inequality : forall 'a. 'a -> 'a -> bool
+
+  module Instance_Basic_classes_Eq_Basic_classes_ordering = struct
+
+    val <> : Basic_classes.ordering -> Basic_classes.ordering -> bool
+    val = : Basic_classes.ordering -> Basic_classes.ordering -> bool
+
+  end
+
+  module Instance_Basic_classes_Eq_bool = struct
+
+    val <> : bool -> bool -> bool
+    val = : bool -> bool -> bool
+
+  end
+
+  module Instance_Basic_classes_Eq_tup = struct
+
+    val <> : forall 'a 'b. 
+               (Basic_classes.Eq 'a) (Basic_classes.Eq 'b) => 
+                 ('a * 'b) -> ('a * 'b) -> bool
+    val = : forall 'a 'b. 
+              (Basic_classes.Eq 'a) (Basic_classes.Eq 'b) => 
+                ('a * 'b) -> ('a * 'b) -> bool
+
+  end
+
+  module Instance_Basic_classes_Eq_var = struct
+
+    val <> : forall 'a. 'a -> 'a -> bool
+    val = : forall 'a. 'a -> 'a -> bool
+
+  end
+
+  module Instance_Basic_classes_OrdMaxMin_var = struct
+
+    val max : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> 'a
+    val min : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> 'a
+
+  end
+
+  module Instance_Basic_classes_Ord_tup = struct
+
+    val < : forall 'a 'b. 
+              (Basic_classes.Ord 'a) (Basic_classes.Ord 'b) => 
+                ('a * 'b) -> ('a * 'b) -> bool
+    val <= : forall 'a 'b. 
+               (Basic_classes.Ord 'a) (Basic_classes.Ord 'b) => 
+                 ('a * 'b) -> ('a * 'b) -> bool
+    val > : forall 'a 'b. 
+              (Basic_classes.Ord 'a) (Basic_classes.Ord 'b) => 
+                ('a * 'b) -> ('a * 'b) -> bool
+    val >= : forall 'a 'b. 
+               (Basic_classes.Ord 'a) (Basic_classes.Ord 'b) => 
+                 ('a * 'b) -> ('a * 'b) -> bool
+    val compare : forall 'a 'b. 
+                    (Basic_classes.Ord 'a) (Basic_classes.Ord 'b) => 
+                      ('a * 'b) -> ('a * 'b) -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_SetType_bool = struct
+
+    val setElemCompare : bool -> bool -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_SetType_tup = struct
+
+    val setElemCompare : forall 'a 'b. 
+                           (Basic_classes.SetType 'a)
+                             (Basic_classes.SetType 'b) => 
+                             ('a * 'b) -> ('a * 'b) -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_SetType_var = struct
+
+    val setElemCompare : forall 'a. 'a -> 'a -> Basic_classes.ordering
+
+  end
+
+end
+
+module Bool = struct
+
+  val && : bool -> bool -> bool
+  val --> : bool -> bool -> bool
+  val <-> : bool -> bool -> bool
+  val and : bool -> bool -> bool
+  val equiv : bool -> bool -> bool
+  val imp : bool -> bool -> bool
+  val not : bool -> bool
+  val or : bool -> bool -> bool
+  val || : bool -> bool -> bool
+
+end
+
+module Either = struct
+  type either 'a 'b
+
+  val Left : forall 'a 'b. 'a -> Either.either 'a 'b
+  val Right : forall 'a 'b. 'b -> Either.either 'a 'b
+  val either : forall 'a 'b 'c. 
+                 ('a -> 'c) -> ('b -> 'c) -> (Either.either 'a 'b) -> 'c
+  val eitherEqual : forall 'a 'b. 
+                      (Basic_classes.Eq 'a) (Basic_classes.Eq 'b) => 
+                        (Either.either 'a 'b) -> (Either.either 'a 'b) -> 
+                                                 bool
+  val eitherEqualBy : forall 'a 'b. 
+                        ('a -> 'a -> bool) -> ('b -> 'b -> bool) -> (Either.either 
+                                                                    'a 
+                                                                    'b) -> 
+                                                                    (Either.either 
+                                                                    'a 
+                                                                    'b) -> 
+                                                                    bool
+  val instance_Basic_classes_Eq_Either_either_dict : forall 'a 'b. 
+                                                       (Basic_classes.Eq 'a)
+                                                         (Basic_classes.Eq 'b) => 
+                                                         Basic_classes.Eq_class 
+                                                         (Either.either 
+                                                         'a 'b)
+  val isLeft : forall 'a 'b. (Either.either 'a 'b) -> bool
+  val isRight : forall 'a 'b. (Either.either 'a 'b) -> bool
+  val lefts : forall 'a 'b. (list (Either.either 'a 'b)) -> list 'a
+  val partitionEither : forall 'a 'b. 
+                          (list (Either.either 'a 'b)) -> ((list 'a) *
+                                                           (list 'b))
+  val rights : forall 'a 'b. (list (Either.either 'a 'b)) -> list 'b
+
+  module Instance_Basic_classes_Eq_Either_either = struct
+
+    val <> : forall 'a 'b. 
+               (Basic_classes.Eq 'a) (Basic_classes.Eq 'b) => 
+                 (Either.either 'a 'b) -> (Either.either 'a 'b) -> bool
+    val = : forall 'a 'b. 
+              (Basic_classes.Eq 'a) (Basic_classes.Eq 'b) => 
+                (Either.either 'a 'b) -> (Either.either 'a 'b) -> bool
+
+  end
+
+end
+
+module Function = struct
+
+  val $ : forall 'a 'b. ('a -> 'b) -> 'a -> 'b
+  val apply : forall 'a 'b. ('a -> 'b) -> 'a -> 'b
+  val comb : forall 'a 'b 'c. ('b -> 'c) -> ('a -> 'b) -> 'a -> 'c
+  val const : forall 'a 'b. 'a -> 'b -> 'a
+  val flip : forall 'a 'b 'c. ('a -> 'b -> 'c) -> 'b -> 'a -> 'c
+  val id : forall 'a. 'a -> 'a
+
+end
+
+module List = struct
+
+  val ++ : forall 'a. (list 'a) -> (list 'a) -> list 'a
+  val :: : forall 'a. 'a -> (list 'a) -> list 'a
+  val all : forall 'a. ('a -> bool) -> (list 'a) -> bool
+  val any : forall 'a. ('a -> bool) -> (list 'a) -> bool
+  val append : forall 'a. (list 'a) -> (list 'a) -> list 'a
+  val concat : forall 'a. (list (list 'a)) -> list 'a
+  val concatMap : forall 'a 'b. ('a -> list 'b) -> (list 'a) -> list 'b
+  val cons : forall 'a. 'a -> (list 'a) -> list 'a
+  val delete : forall 'a. (Basic_classes.Eq 'a) => 'a -> (list 'a) -> list 'a
+  val deleteBy : forall 'a. ('a -> 'a -> bool) -> 'a -> (list 'a) -> list 'a
+  val deleteFirst : forall 'a. 
+                      ('a -> bool) -> (list 'a) -> Maybe.maybe (list 'a)
+  val drop : forall 'a. nat -> (list 'a) -> list 'a
+  val elem : forall 'a. (Basic_classes.Eq 'a) => 'a -> (list 'a) -> bool
+  val elemBy : forall 'a. ('a -> 'a -> bool) -> 'a -> (list 'a) -> bool
+  val elemIndex : forall 'a. 
+                    (Basic_classes.Eq 'a) => 
+                      'a -> (list 'a) -> Maybe.maybe nat
+  val elemIndices : forall 'a. 
+                      (Basic_classes.Eq 'a) => 'a -> (list 'a) -> list nat
+  val filter : forall 'a. ('a -> bool) -> (list 'a) -> list 'a
+  val find : forall 'a. ('a -> bool) -> (list 'a) -> Maybe.maybe 'a
+  val findIndex : forall 'a. ('a -> bool) -> (list 'a) -> Maybe.maybe nat
+  val findIndices : forall 'a. ('a -> bool) -> (list 'a) -> list nat
+  val findIndices_aux : forall 'a. 
+                          nat -> ('a -> bool) -> (list 'a) -> list nat
+  val foldl : forall 'a 'b. ('a -> 'b -> 'a) -> 'a -> (list 'b) -> 'a
+  val foldr : forall 'a 'b. ('a -> 'b -> 'b) -> 'b -> (list 'a) -> 'b
+  val genlist : forall 'a. (nat -> 'a) -> nat -> list 'a
+  val index : forall 'a. (list 'a) -> nat -> Maybe.maybe 'a
+  val instance_Basic_classes_Eq_list_dict : forall 'a. 
+                                              (Basic_classes.Eq 'a) => 
+                                                Basic_classes.Eq_class 
+                                                (list 'a)
+  val instance_Basic_classes_Ord_list_dict : forall 'a. 
+                                               (Basic_classes.Ord 'a) => 
+                                                 Basic_classes.Ord_class 
+                                                 (list 'a)
+  val length : forall 'a. (list 'a) -> nat
+  val lexicographicCompare : forall 'a. 
+                               (Basic_classes.Ord 'a) => 
+                                 (list 'a) -> (list 'a) -> Basic_classes.ordering
+  val lexicographicCompareBy : forall 'a. 
+                                 ('a -> 'a -> Basic_classes.ordering) -> 
+                                 (list 'a) -> (list 'a) -> Basic_classes.ordering
+  val lexicographicLess : forall 'a. 
+                            (Basic_classes.Ord 'a) => 
+                              (list 'a) -> (list 'a) -> bool
+  val lexicographicLessBy : forall 'a. 
+                              ('a -> 'a -> bool) -> ('a -> 'a -> bool) -> 
+                                                    (list 'a) -> (list 'a) -> 
+                                                                 bool
+  val lexicographicLessEq : forall 'a. 
+                              (Basic_classes.Ord 'a) => 
+                                (list 'a) -> (list 'a) -> bool
+  val lexicographicLessEqBy : forall 'a. 
+                                ('a -> 'a -> bool) -> ('a -> 'a -> bool) -> 
+                                                      (list 'a) -> (list 'a) -> 
+                                                                   bool
+  val listEqual : forall 'a. 
+                    (Basic_classes.Eq 'a) => (list 'a) -> (list 'a) -> bool
+  val listEqualBy : forall 'a. 
+                      ('a -> 'a -> bool) -> (list 'a) -> (list 'a) -> bool
+  val lookup : forall 'a 'b. 
+                 (Basic_classes.Eq 'a) => 
+                   'a -> (list ('a * 'b)) -> Maybe.maybe 'b
+  val lookupBy : forall 'a 'b. 
+                   ('a -> 'a -> bool) -> 'a -> (list ('a * 'b)) -> Maybe.maybe 
+                                                                   'b
+  val map : forall 'a 'b. ('a -> 'b) -> (list 'a) -> list 'b
+  val null : forall 'a. (list 'a) -> bool
+  val partition : forall 'a. 
+                    ('a -> bool) -> (list 'a) -> ((list 'a) * (list 'a))
+  val replicate : forall 'a. nat -> 'a -> list 'a
+  val reverse : forall 'a. (list 'a) -> list 'a
+  val reverseAppend : forall 'a. (list 'a) -> (list 'a) -> list 'a
+  val reverseMap : forall 'a 'b. ('a -> 'b) -> (list 'a) -> list 'b
+  val reversePartition : forall 'a. 
+                           ('a -> bool) -> (list 'a) -> ((list 'a) *
+                                                         (list 'a))
+  val snoc : forall 'a. 'a -> (list 'a) -> list 'a
+  val splitAt : forall 'a. nat -> (list 'a) -> ((list 'a) * (list 'a))
+  val take : forall 'a. nat -> (list 'a) -> list 'a
+  val unzip : forall 'a 'b. (list ('a * 'b)) -> ((list 'a) * (list 'b))
+  val update : forall 'a. (list 'a) -> nat -> 'a -> list 'a
+  val zip : forall 'a 'b. (list 'a) -> (list 'b) -> list ('a * 'b)
+
+  module Instance_Basic_classes_Eq_list = struct
+
+    val <> : forall 'a. 
+               (Basic_classes.Eq 'a) => (list 'a) -> (list 'a) -> bool
+    val = : forall 'a. 
+              (Basic_classes.Eq 'a) => (list 'a) -> (list 'a) -> bool
+
+  end
+
+  module Instance_Basic_classes_Ord_list = struct
+
+    val < : forall 'a. 
+              (Basic_classes.Ord 'a) => (list 'a) -> (list 'a) -> bool
+    val <= : forall 'a. 
+               (Basic_classes.Ord 'a) => (list 'a) -> (list 'a) -> bool
+    val > : forall 'a. 
+              (Basic_classes.Ord 'a) => (list 'a) -> (list 'a) -> bool
+    val >= : forall 'a. 
+               (Basic_classes.Ord 'a) => (list 'a) -> (list 'a) -> bool
+    val compare : forall 'a. 
+                    (Basic_classes.Ord 'a) => 
+                      (list 'a) -> (list 'a) -> Basic_classes.ordering
+
+  end
+
+end
+
+module Map = struct
+  class MapKeyType
+  type MapKeyType_class 'a = {
+      val mapKeyCompare_method : forall 'a. 
+                                   (Map.MapKeyType_class 'a) -> 'a -> 
+                                                                'a -> 
+                                                                Basic_classes.ordering
+
+  }
+  type map 'k 'v
+
+  val all : forall 'k 'v. 
+              (Map.MapKeyType 'k) (Basic_classes.Eq 'v) => 
+                ('k -> 'v -> bool) -> (Map.map 'k 'v) -> bool
+  val any : forall 'k 'v. 
+              (Map.MapKeyType 'k) (Basic_classes.Eq 'v) => 
+                ('k -> 'v -> bool) -> (Map.map 'k 'v) -> bool
+  val delete : forall 'k 'v. 
+                 (Map.MapKeyType 'k) => 
+                   'k -> (Map.map 'k 'v) -> Map.map 'k 'v
+  val deleteBy : forall 'k 'v. 
+                   ('k -> 'k -> Basic_classes.ordering) -> 'k -> (Map.map 
+                                                                 'k 'v) -> 
+                                                                 Map.map 
+                                                                 'k 'v
+  val deleteSwap : forall 'k 'v. 
+                     (Map.MapKeyType 'k) => 
+                       (Map.map 'k 'v) -> 'k -> Map.map 'k 'v
+  val domain : forall 'k 'v. 
+                 (Map.MapKeyType 'k) (Basic_classes.SetType 'k) => 
+                   (Map.map 'k 'v) -> set 'k
+  val domainBy : forall 'k 'v. 
+                   ('k -> 'k -> Basic_classes.ordering) -> (Map.map 'k 'v) -> 
+                                                           set 'k
+  val empty : forall 'k 'v. (Map.MapKeyType 'k) => Map.map 'k 'v
+  val emptyBy : forall 'k 'v. 
+                  ('k -> 'k -> Basic_classes.ordering) -> Map.map 'k 'v
+  val findWithDefault : forall 'k 'v. 
+                          (Map.MapKeyType 'k) => 
+                            'k -> 'v -> (Map.map 'k 'v) -> 'v
+  val fromList : forall 'k 'v. 
+                   (Map.MapKeyType 'k) => (list ('k * 'v)) -> Map.map 'k 'v
+  val insert : forall 'k 'v. 
+                 (Map.MapKeyType 'k) => 
+                   'k -> 'v -> (Map.map 'k 'v) -> Map.map 'k 'v
+  val instance_Basic_classes_Eq_Map_map_dict : forall 'k 'v. 
+                                                 (Basic_classes.Eq 'k)
+                                                   (Basic_classes.Eq 'v) => 
+                                                   Basic_classes.Eq_class 
+                                                   (Map.map 'k 'v)
+  val instance_Map_MapKeyType_var_dict : forall 'a. 
+                                           (Basic_classes.SetType 'a) => 
+                                             Map.MapKeyType_class 'a
+  val lookup : forall 'k 'v. 
+                 (Map.MapKeyType 'k) => 
+                   'k -> (Map.map 'k 'v) -> Maybe.maybe 'v
+  val lookupBy : forall 'k 'v. 
+                   ('k -> 'k -> Basic_classes.ordering) -> 'k -> (Map.map 
+                                                                 'k 'v) -> 
+                                                                 Maybe.maybe 
+                                                                 'v
+  val map : forall 'k 'v 'w. 
+              (Map.MapKeyType 'k) => 
+                ('v -> 'w) -> (Map.map 'k 'v) -> Map.map 'k 'w
+  val mapEqual : forall 'k 'v. 
+                   (Basic_classes.Eq 'k) (Basic_classes.Eq 'v) => 
+                     (Map.map 'k 'v) -> (Map.map 'k 'v) -> bool
+  val mapEqualBy : forall 'k 'v. 
+                     ('k -> 'k -> bool) -> ('v -> 'v -> bool) -> (Map.map 
+                                                                 'k 'v) -> 
+                                                                 (Map.map 
+                                                                 'k 'v) -> 
+                                                                 bool
+  val mapKeyCompare : forall 'a. 
+                        (Map.MapKeyType 'a) => 
+                          'a -> 'a -> Basic_classes.ordering
+  val member : forall 'k 'v. 
+                 (Map.MapKeyType 'k) (Basic_classes.SetType 'k)
+                   (Basic_classes.Eq 'k) => 'k -> (Map.map 'k 'v) -> bool
+  val notMember : forall 'k 'v. 
+                    (Map.MapKeyType 'k) (Basic_classes.SetType 'k)
+                      (Basic_classes.Eq 'k) => 'k -> (Map.map 'k 'v) -> bool
+  val null : forall 'k 'v. 
+               (Map.MapKeyType 'k) (Basic_classes.Eq 'k)
+                 (Basic_classes.Eq 'v) => (Map.map 'k 'v) -> bool
+  val range : forall 'k 'v. 
+                (Map.MapKeyType 'k) (Basic_classes.SetType 'v) => 
+                  (Map.map 'k 'v) -> set 'v
+  val rangeBy : forall 'k 'v. 
+                  ('v -> 'v -> Basic_classes.ordering) -> (Map.map 'k 'v) -> 
+                                                          set 'v
+  val singleton : forall 'k 'v. 
+                    (Map.MapKeyType 'k) => 'k -> 'v -> Map.map 'k 'v
+  val size : forall 'k 'v. 
+               (Map.MapKeyType 'k) (Basic_classes.SetType 'k) => 
+                 (Map.map 'k 'v) -> nat
+  val toSet : forall 'k 'v. 
+                (Map.MapKeyType 'k) (Basic_classes.SetType 'k)
+                  (Basic_classes.SetType 'v) => 
+                  (Map.map 'k 'v) -> set ('k * 'v)
+  val toSetBy : forall 'k 'v. 
+                  (('k * 'v) -> ('k * 'v) -> Basic_classes.ordering) -> 
+                  (Map.map 'k 'v) -> set ('k * 'v)
+  val union : forall 'k 'v. 
+                (Map.MapKeyType 'k) => 
+                  (Map.map 'k 'v) -> (Map.map 'k 'v) -> Map.map 'k 'v
+  val unions : forall 'k 'v. 
+                 (Map.MapKeyType 'k) => 
+                   (list (Map.map 'k 'v)) -> Map.map 'k 'v
+
+  module Instance_Basic_classes_Eq_Map_map = struct
+
+    val <> : forall 'k 'v. 
+               (Basic_classes.Eq 'k) (Basic_classes.Eq 'v) => 
+                 (Map.map 'k 'v) -> (Map.map 'k 'v) -> bool
+    val = : forall 'k 'v. 
+              (Basic_classes.Eq 'k) (Basic_classes.Eq 'v) => 
+                (Map.map 'k 'v) -> (Map.map 'k 'v) -> bool
+
+  end
+
+  module Instance_Map_MapKeyType_var = struct
+
+    val mapKeyCompare : forall 'a. 
+                          (Basic_classes.SetType 'a) => 
+                            'a -> 'a -> Basic_classes.ordering
+
+  end
+
+end
+
+module Maybe = struct
+  type maybe 'a
+
+  val Just : forall 'a. 'a -> Maybe.maybe 'a
+  val Nothing : forall 'a. Maybe.maybe 'a
+  val bind : forall 'a 'b. 
+               ('a -> Maybe.maybe 'b) -> (Maybe.maybe 'a) -> Maybe.maybe 'b
+  val fromMaybe : forall 'a. 'a -> (Maybe.maybe 'a) -> 'a
+  val instance_Basic_classes_Eq_Maybe_maybe_dict : forall 'a. 
+                                                     (Basic_classes.Eq 'a) => 
+                                                       Basic_classes.Eq_class 
+                                                       (Maybe.maybe 'a)
+  val instance_Basic_classes_SetType_Maybe_maybe_dict : forall 'a. 
+                                                          (Basic_classes.SetType
+                                                           'a) => 
+                                                            Basic_classes.SetType_class 
+                                                            (Maybe.maybe 'a)
+  val isJust : forall 'a. (Maybe.maybe 'a) -> bool
+  val isNothing : forall 'a. (Maybe.maybe 'a) -> bool
+  val map : forall 'a 'b. ('a -> 'b) -> (Maybe.maybe 'a) -> Maybe.maybe 'b
+  val maybe : forall 'a 'b. 'b -> ('a -> 'b) -> (Maybe.maybe 'a) -> 'b
+  val maybeCompare : forall 'a 'b. 
+                       ('b -> 'a -> Basic_classes.ordering) -> (Maybe.maybe 
+                                                               'b) -> 
+                                                               (Maybe.maybe 
+                                                               'a) -> 
+                                                               Basic_classes.ordering
+  val maybeEqual : forall 'a. 
+                     (Basic_classes.Eq 'a) => 
+                       (Maybe.maybe 'a) -> (Maybe.maybe 'a) -> bool
+  val maybeEqualBy : forall 'a. 
+                       ('a -> 'a -> bool) -> (Maybe.maybe 'a) -> (Maybe.maybe 
+                                                                 'a) -> 
+                                                                 bool
+
+  module Instance_Basic_classes_Eq_Maybe_maybe = struct
+
+    val <> : forall 'a. 
+               (Basic_classes.Eq 'a) => 
+                 (Maybe.maybe 'a) -> (Maybe.maybe 'a) -> bool
+    val = : forall 'a. 
+              (Basic_classes.Eq 'a) => 
+                (Maybe.maybe 'a) -> (Maybe.maybe 'a) -> bool
+
+  end
+
+  module Instance_Basic_classes_SetType_Maybe_maybe = struct
+
+    val setElemCompare : forall 'a. 
+                           (Basic_classes.SetType 'a) => 
+                             (Maybe.maybe 'a) -> (Maybe.maybe 'a) -> 
+                                                 Basic_classes.ordering
+
+  end
+
+end
+
+module Num = struct
+  class NumAdd
+  type NumAdd_class 'a = {
+      val numAdd_method : forall 'a. (Num.NumAdd_class 'a) -> 'a -> 'a -> 'a
+
+  }
+  class NumDivision
+  type NumDivision_class 'a = {
+      val numDivision_method : forall 'a. 
+                                 (Num.NumDivision_class 'a) -> 'a -> 'a -> 'a
+
+  }
+  class NumIntegerDivision
+  type NumIntegerDivision_class 'a = {
+      val div_method : forall 'a. 
+                         (Num.NumIntegerDivision_class 'a) -> 'a -> 'a -> 'a
+
+  }
+  class NumMinus
+  type NumMinus_class 'a = {
+      val numMinus_method : forall 'a. 
+                              (Num.NumMinus_class 'a) -> 'a -> 'a -> 'a
+
+  }
+  class NumMult
+  type NumMult_class 'a = {
+      val numMult_method : forall 'a. 
+                             (Num.NumMult_class 'a) -> 'a -> 'a -> 'a
+
+  }
+  class NumNegate
+  type NumNegate_class 'a = {
+      val numNegate_method : forall 'a. (Num.NumNegate_class 'a) -> 'a -> 'a
+
+  }
+  class NumPow
+  type NumPow_class 'a = {
+      val numPow_method : forall 'a. (Num.NumPow_class 'a) -> 'a -> nat -> 'a
+
+  }
+  class NumPred
+  type NumPred_class 'a = {
+      val pred_method : forall 'a. (Num.NumPred_class 'a) -> 'a -> 'a
+
+  }
+  class NumRemainder
+  type NumRemainder_class 'a = {
+      val mod_method : forall 'a. 
+                         (Num.NumRemainder_class 'a) -> 'a -> 'a -> 'a
+
+  }
+  class NumSucc
+  type NumSucc_class 'a = {
+      val succ_method : forall 'a. (Num.NumSucc_class 'a) -> 'a -> 'a
+
+  }
+  class Numeral
+  type Numeral_class 'a = {
+      val fromNumeral_method : forall 'a. 
+                                 (Num.Numeral_class 'a) -> numeral -> 'a
+
+  }
+  type float32
+  type float64
+  type int
+  type int32
+  type int64
+  type integer
+  type natural
+  type rational
+
+  val * : forall 'a. (Num.NumMult 'a) => 'a -> 'a -> 'a
+  val ** : forall 'a. (Num.NumPow 'a) => 'a -> nat -> 'a
+  val + : forall 'a. (Num.NumAdd 'a) => 'a -> 'a -> 'a
+  val - : forall 'a. (Num.NumMinus 'a) => 'a -> 'a -> 'a
+  val / : forall 'a. (Num.NumDivision 'a) => 'a -> 'a -> 'a
+  val div : forall 'a. (Num.NumIntegerDivision 'a) => 'a -> 'a -> 'a
+  val fromNumeral : forall 'a. (Num.Numeral 'a) => numeral -> 'a
+  val instance_Basic_classes_Eq_Num_int_dict : Basic_classes.Eq_class Num.int
+  val instance_Basic_classes_Eq_Num_integer_dict : 
+                                                     Basic_classes.Eq_class 
+                                                     Num.integer
+  val instance_Basic_classes_Eq_Num_natural_dict : 
+                                                     Basic_classes.Eq_class 
+                                                     Num.natural
+  val instance_Basic_classes_Eq_nat_dict : Basic_classes.Eq_class nat
+  val instance_Basic_classes_OrdMaxMin_Num_int_dict : 
+                                                        Basic_classes.OrdMaxMin_class 
+                                                        Num.int
+  val instance_Basic_classes_OrdMaxMin_Num_integer_dict : 
+                                                            Basic_classes.OrdMaxMin_class 
+                                                            Num.integer
+  val instance_Basic_classes_OrdMaxMin_Num_natural_dict : 
+                                                            Basic_classes.OrdMaxMin_class 
+                                                            Num.natural
+  val instance_Basic_classes_OrdMaxMin_nat_dict : 
+                                                    Basic_classes.OrdMaxMin_class 
+                                                    nat
+  val instance_Basic_classes_Ord_Num_int_dict : 
+                                                  Basic_classes.Ord_class 
+                                                  Num.int
+  val instance_Basic_classes_Ord_Num_integer_dict : 
+                                                      Basic_classes.Ord_class 
+                                                      Num.integer
+  val instance_Basic_classes_Ord_Num_natural_dict : 
+                                                      Basic_classes.Ord_class 
+                                                      Num.natural
+  val instance_Basic_classes_Ord_nat_dict : Basic_classes.Ord_class nat
+  val instance_Basic_classes_SetType_Num_int_dict : 
+                                                      Basic_classes.SetType_class 
+                                                      Num.int
+  val instance_Basic_classes_SetType_Num_integer_dict : 
+                                                          Basic_classes.SetType_class 
+                                                          Num.integer
+  val instance_Basic_classes_SetType_Num_natural_dict : 
+                                                          Basic_classes.SetType_class 
+                                                          Num.natural
+  val instance_Basic_classes_SetType_nat_dict : 
+                                                  Basic_classes.SetType_class 
+                                                  nat
+  val instance_Num_NumAdd_Num_int_dict : Num.NumAdd_class Num.int
+  val instance_Num_NumAdd_Num_integer_dict : Num.NumAdd_class Num.integer
+  val instance_Num_NumAdd_Num_natural_dict : Num.NumAdd_class Num.natural
+  val instance_Num_NumAdd_nat_dict : Num.NumAdd_class nat
+  val instance_Num_NumDivision_Num_int_dict : Num.NumDivision_class Num.int
+  val instance_Num_NumDivision_Num_integer_dict : 
+                                                    Num.NumDivision_class 
+                                                    Num.integer
+  val instance_Num_NumDivision_Num_natural_dict : 
+                                                    Num.NumDivision_class 
+                                                    Num.natural
+  val instance_Num_NumDivision_nat_dict : Num.NumDivision_class nat
+  val instance_Num_NumIntegerDivision_Num_int_dict : 
+                                                       Num.NumIntegerDivision_class 
+                                                       Num.int
+  val instance_Num_NumIntegerDivision_Num_integer_dict : 
+                                                           Num.NumIntegerDivision_class 
+                                                           Num.integer
+  val instance_Num_NumIntegerDivision_Num_natural_dict : 
+                                                           Num.NumIntegerDivision_class 
+                                                           Num.natural
+  val instance_Num_NumIntegerDivision_nat_dict : 
+                                                   Num.NumIntegerDivision_class 
+                                                   nat
+  val instance_Num_NumMinus_Num_int_dict : Num.NumMinus_class Num.int
+  val instance_Num_NumMinus_Num_integer_dict : Num.NumMinus_class Num.integer
+  val instance_Num_NumMinus_Num_natural_dict : Num.NumMinus_class Num.natural
+  val instance_Num_NumMinus_nat_dict : Num.NumMinus_class nat
+  val instance_Num_NumMult_Num_int_dict : Num.NumMult_class Num.int
+  val instance_Num_NumMult_Num_integer_dict : Num.NumMult_class Num.integer
+  val instance_Num_NumMult_Num_natural_dict : Num.NumMult_class Num.natural
+  val instance_Num_NumMult_nat_dict : Num.NumMult_class nat
+  val instance_Num_NumNegate_Num_int_dict : Num.NumNegate_class Num.int
+  val instance_Num_NumNegate_Num_integer_dict : 
+                                                  Num.NumNegate_class 
+                                                  Num.integer
+  val instance_Num_NumPow_Num_int_dict : Num.NumPow_class Num.int
+  val instance_Num_NumPow_Num_integer_dict : Num.NumPow_class Num.integer
+  val instance_Num_NumPow_Num_natural_dict : Num.NumPow_class Num.natural
+  val instance_Num_NumPow_nat_dict : Num.NumPow_class nat
+  val instance_Num_NumPred_Num_int_dict : Num.NumPred_class Num.int
+  val instance_Num_NumPred_Num_integer_dict : Num.NumPred_class Num.integer
+  val instance_Num_NumPred_Num_natural_dict : Num.NumPred_class Num.natural
+  val instance_Num_NumPred_nat_dict : Num.NumPred_class nat
+  val instance_Num_NumRemainder_Num_int_dict : Num.NumRemainder_class Num.int
+  val instance_Num_NumRemainder_Num_integer_dict : 
+                                                     Num.NumRemainder_class 
+                                                     Num.integer
+  val instance_Num_NumRemainder_Num_natural_dict : 
+                                                     Num.NumRemainder_class 
+                                                     Num.natural
+  val instance_Num_NumRemainder_nat_dict : Num.NumRemainder_class nat
+  val instance_Num_NumSucc_Num_int_dict : Num.NumSucc_class Num.int
+  val instance_Num_NumSucc_Num_integer_dict : Num.NumSucc_class Num.integer
+  val instance_Num_NumSucc_Num_natural_dict : Num.NumSucc_class Num.natural
+  val instance_Num_NumSucc_nat_dict : Num.NumSucc_class nat
+  val instance_Num_Numeral_Num_int_dict : Num.Numeral_class Num.int
+  val instance_Num_Numeral_Num_integer_dict : Num.Numeral_class Num.integer
+  val instance_Num_Numeral_Num_natural_dict : Num.Numeral_class Num.natural
+  val instance_Num_Numeral_nat_dict : Num.Numeral_class nat
+  val intAdd : Num.int -> Num.int -> Num.int
+  val intCompare : Num.int -> Num.int -> Basic_classes.ordering
+  val intDiv : Num.int -> Num.int -> Num.int
+  val intEq : Num.int -> Num.int -> bool
+  val intFromNat : nat -> Num.int
+  val intFromNumeral : numeral -> Num.int
+  val intGreater : Num.int -> Num.int -> bool
+  val intGreaterEqual : Num.int -> Num.int -> bool
+  val intLess : Num.int -> Num.int -> bool
+  val intLessEqual : Num.int -> Num.int -> bool
+  val intMax : Num.int -> Num.int -> Num.int
+  val intMin : Num.int -> Num.int -> Num.int
+  val intMinus : Num.int -> Num.int -> Num.int
+  val intMod : Num.int -> Num.int -> Num.int
+  val intMult : Num.int -> Num.int -> Num.int
+  val intNegate : Num.int -> Num.int
+  val intPow : Num.int -> nat -> Num.int
+  val intPred : Num.int -> Num.int
+  val intSucc : Num.int -> Num.int
+  val integerAdd : Num.integer -> Num.integer -> Num.integer
+  val integerCompare : Num.integer -> Num.integer -> Basic_classes.ordering
+  val integerDiv : Num.integer -> Num.integer -> Num.integer
+  val integerEq : Num.integer -> Num.integer -> bool
+  val integerFromNumeral : numeral -> Num.integer
+  val integerGreater : Num.integer -> Num.integer -> bool
+  val integerGreaterEqual : Num.integer -> Num.integer -> bool
+  val integerLess : Num.integer -> Num.integer -> bool
+  val integerLessEqual : Num.integer -> Num.integer -> bool
+  val integerMax : Num.integer -> Num.integer -> Num.integer
+  val integerMin : Num.integer -> Num.integer -> Num.integer
+  val integerMinus : Num.integer -> Num.integer -> Num.integer
+  val integerMod : Num.integer -> Num.integer -> Num.integer
+  val integerMult : Num.integer -> Num.integer -> Num.integer
+  val integerNegate : Num.integer -> Num.integer
+  val integerPow : Num.integer -> nat -> Num.integer
+  val integerPred : Num.integer -> Num.integer
+  val integerSucc : Num.integer -> Num.integer
+  val mod : forall 'a. (Num.NumRemainder 'a) => 'a -> 'a -> 'a
+  val natAdd : nat -> nat -> nat
+  val natCompare : nat -> nat -> Basic_classes.ordering
+  val natDiv : nat -> nat -> nat
+  val natEq : nat -> nat -> bool
+  val natFromInt : Num.int -> nat
+  val natFromNatural : Num.natural -> nat
+  val natFromNumeral : numeral -> nat
+  val natGreater : nat -> nat -> bool
+  val natGreaterEqual : nat -> nat -> bool
+  val natLess : nat -> nat -> bool
+  val natLessEqual : nat -> nat -> bool
+  val natMax : nat -> nat -> nat
+  val natMin : nat -> nat -> nat
+  val natMinus : nat -> nat -> nat
+  val natMod : nat -> nat -> nat
+  val natMult : nat -> nat -> nat
+  val natPow : nat -> nat -> nat
+  val natPred : nat -> nat
+  val natSucc : nat -> nat
+  val naturalAdd : Num.natural -> Num.natural -> Num.natural
+  val naturalCompare : Num.natural -> Num.natural -> Basic_classes.ordering
+  val naturalDiv : Num.natural -> Num.natural -> Num.natural
+  val naturalEq : Num.natural -> Num.natural -> bool
+  val naturalFromNat : nat -> Num.natural
+  val naturalFromNumeral : numeral -> Num.natural
+  val naturalGreater : Num.natural -> Num.natural -> bool
+  val naturalGreaterEqual : Num.natural -> Num.natural -> bool
+  val naturalLess : Num.natural -> Num.natural -> bool
+  val naturalLessEqual : Num.natural -> Num.natural -> bool
+  val naturalMax : Num.natural -> Num.natural -> Num.natural
+  val naturalMin : Num.natural -> Num.natural -> Num.natural
+  val naturalMinus : Num.natural -> Num.natural -> Num.natural
+  val naturalMod : Num.natural -> Num.natural -> Num.natural
+  val naturalMult : Num.natural -> Num.natural -> Num.natural
+  val naturalPow : Num.natural -> nat -> Num.natural
+  val naturalPred : Num.natural -> Num.natural
+  val naturalSucc : Num.natural -> Num.natural
+  val numAdd : forall 'a. (Num.NumAdd 'a) => 'a -> 'a -> 'a
+  val numDivision : forall 'a. (Num.NumDivision 'a) => 'a -> 'a -> 'a
+  val numIntegerDivision : forall 'a. 
+                             (Num.NumIntegerDivision 'a) => 'a -> 'a -> 'a
+  val numMinus : forall 'a. (Num.NumMinus 'a) => 'a -> 'a -> 'a
+  val numMult : forall 'a. (Num.NumMult 'a) => 'a -> 'a -> 'a
+  val numNegate : forall 'a. (Num.NumNegate 'a) => 'a -> 'a
+  val numPow : forall 'a. (Num.NumPow 'a) => 'a -> nat -> 'a
+  val numRemainder : forall 'a. (Num.NumRemainder 'a) => 'a -> 'a -> 'a
+  val pred : forall 'a. (Num.NumPred 'a) => 'a -> 'a
+  val succ : forall 'a. (Num.NumSucc 'a) => 'a -> 'a
+  val ~ : forall 'a. (Num.NumNegate 'a) => 'a -> 'a
+
+  module Instance_Basic_classes_Eq_Num_int = struct
+
+    val <> : Num.int -> Num.int -> bool
+    val = : Num.int -> Num.int -> bool
+
+  end
+
+  module Instance_Basic_classes_Eq_Num_integer = struct
+
+    val <> : Num.integer -> Num.integer -> bool
+    val = : Num.integer -> Num.integer -> bool
+
+  end
+
+  module Instance_Basic_classes_Eq_Num_natural = struct
+
+    val <> : Num.natural -> Num.natural -> bool
+    val = : Num.natural -> Num.natural -> bool
+
+  end
+
+  module Instance_Basic_classes_Eq_nat = struct
+
+    val <> : nat -> nat -> bool
+    val = : nat -> nat -> bool
+
+  end
+
+  module Instance_Basic_classes_OrdMaxMin_Num_int = struct
+
+    val max : Num.int -> Num.int -> Num.int
+    val min : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Basic_classes_OrdMaxMin_Num_integer = struct
+
+    val max : Num.integer -> Num.integer -> Num.integer
+    val min : Num.integer -> Num.integer -> Num.integer
+
+  end
+
+  module Instance_Basic_classes_OrdMaxMin_Num_natural = struct
+
+    val max : Num.natural -> Num.natural -> Num.natural
+    val min : Num.natural -> Num.natural -> Num.natural
+
+  end
+
+  module Instance_Basic_classes_OrdMaxMin_nat = struct
+
+    val max : nat -> nat -> nat
+    val min : nat -> nat -> nat
+
+  end
+
+  module Instance_Basic_classes_Ord_Num_int = struct
+
+    val < : Num.int -> Num.int -> bool
+    val <= : Num.int -> Num.int -> bool
+    val > : Num.int -> Num.int -> bool
+    val >= : Num.int -> Num.int -> bool
+    val compare : Num.int -> Num.int -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_Ord_Num_integer = struct
+
+    val < : Num.integer -> Num.integer -> bool
+    val <= : Num.integer -> Num.integer -> bool
+    val > : Num.integer -> Num.integer -> bool
+    val >= : Num.integer -> Num.integer -> bool
+    val compare : Num.integer -> Num.integer -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_Ord_Num_natural = struct
+
+    val < : Num.natural -> Num.natural -> bool
+    val <= : Num.natural -> Num.natural -> bool
+    val > : Num.natural -> Num.natural -> bool
+    val >= : Num.natural -> Num.natural -> bool
+    val compare : Num.natural -> Num.natural -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_Ord_nat = struct
+
+    val < : nat -> nat -> bool
+    val <= : nat -> nat -> bool
+    val > : nat -> nat -> bool
+    val >= : nat -> nat -> bool
+    val compare : nat -> nat -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_SetType_Num_int = struct
+
+    val setElemCompare : Num.int -> Num.int -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_SetType_Num_integer = struct
+
+    val setElemCompare : Num.integer -> Num.integer -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_SetType_Num_natural = struct
+
+    val setElemCompare : Num.natural -> Num.natural -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_SetType_nat = struct
+
+    val setElemCompare : nat -> nat -> Basic_classes.ordering
+
+  end
+
+  module Instance_Num_NumAdd_Num_int = struct
+
+    val + : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumAdd_Num_integer = struct
+
+    val + : Num.integer -> Num.integer -> Num.integer
+
+  end
+
+  module Instance_Num_NumAdd_Num_natural = struct
+
+    val + : Num.natural -> Num.natural -> Num.natural
+
+  end
+
+  module Instance_Num_NumAdd_nat = struct
+
+    val + : nat -> nat -> nat
+
+  end
+
+  module Instance_Num_NumDivision_Num_int = struct
+
+    val / : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumDivision_Num_integer = struct
+
+    val / : Num.integer -> Num.integer -> Num.integer
+
+  end
+
+  module Instance_Num_NumDivision_Num_natural = struct
+
+    val / : Num.natural -> Num.natural -> Num.natural
+
+  end
+
+  module Instance_Num_NumDivision_nat = struct
+
+    val / : nat -> nat -> nat
+
+  end
+
+  module Instance_Num_NumIntegerDivision_Num_int = struct
+
+    val div : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumIntegerDivision_Num_integer = struct
+
+    val div : Num.integer -> Num.integer -> Num.integer
+
+  end
+
+  module Instance_Num_NumIntegerDivision_Num_natural = struct
+
+    val div : Num.natural -> Num.natural -> Num.natural
+
+  end
+
+  module Instance_Num_NumIntegerDivision_nat = struct
+
+    val div : nat -> nat -> nat
+
+  end
+
+  module Instance_Num_NumMinus_Num_int = struct
+
+    val - : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumMinus_Num_integer = struct
+
+    val - : Num.integer -> Num.integer -> Num.integer
+
+  end
+
+  module Instance_Num_NumMinus_Num_natural = struct
+
+    val - : Num.natural -> Num.natural -> Num.natural
+
+  end
+
+  module Instance_Num_NumMinus_nat = struct
+
+    val - : nat -> nat -> nat
+
+  end
+
+  module Instance_Num_NumMult_Num_int = struct
+
+    val * : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumMult_Num_integer = struct
+
+    val * : Num.integer -> Num.integer -> Num.integer
+
+  end
+
+  module Instance_Num_NumMult_Num_natural = struct
+
+    val * : Num.natural -> Num.natural -> Num.natural
+
+  end
+
+  module Instance_Num_NumMult_nat = struct
+
+    val * : nat -> nat -> nat
+
+  end
+
+  module Instance_Num_NumNegate_Num_int = struct
+
+    val ~ : Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumNegate_Num_integer = struct
+
+    val ~ : Num.integer -> Num.integer
+
+  end
+
+  module Instance_Num_NumPow_Num_int = struct
+
+    val ** : Num.int -> nat -> Num.int
+
+  end
+
+  module Instance_Num_NumPow_Num_integer = struct
+
+    val ** : Num.integer -> nat -> Num.integer
+
+  end
+
+  module Instance_Num_NumPow_Num_natural = struct
+
+    val ** : Num.natural -> nat -> Num.natural
+
+  end
+
+  module Instance_Num_NumPow_nat = struct
+
+    val ** : nat -> nat -> nat
+
+  end
+
+  module Instance_Num_NumPred_Num_int = struct
+
+    val pred : Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumPred_Num_integer = struct
+
+    val pred : Num.integer -> Num.integer
+
+  end
+
+  module Instance_Num_NumPred_Num_natural = struct
+
+    val pred : Num.natural -> Num.natural
+
+  end
+
+  module Instance_Num_NumPred_nat = struct
+
+    val pred : nat -> nat
+
+  end
+
+  module Instance_Num_NumRemainder_Num_int = struct
+
+    val mod : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumRemainder_Num_integer = struct
+
+    val mod : Num.integer -> Num.integer -> Num.integer
+
+  end
+
+  module Instance_Num_NumRemainder_Num_natural = struct
+
+    val mod : Num.natural -> Num.natural -> Num.natural
+
+  end
+
+  module Instance_Num_NumRemainder_nat = struct
+
+    val mod : nat -> nat -> nat
+
+  end
+
+  module Instance_Num_NumSucc_Num_int = struct
+
+    val succ : Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumSucc_Num_integer = struct
+
+    val succ : Num.integer -> Num.integer
+
+  end
+
+  module Instance_Num_NumSucc_Num_natural = struct
+
+    val succ : Num.natural -> Num.natural
+
+  end
+
+  module Instance_Num_NumSucc_nat = struct
+
+    val succ : nat -> nat
+
+  end
+
+  module Instance_Num_Numeral_Num_int = struct
+
+    val fromNumeral : numeral -> Num.int
+
+  end
+
+  module Instance_Num_Numeral_Num_integer = struct
+
+    val fromNumeral : numeral -> Num.integer
+
+  end
+
+  module Instance_Num_Numeral_Num_natural = struct
+
+    val fromNumeral : numeral -> Num.natural
+
+  end
+
+  module Instance_Num_Numeral_nat = struct
+
+    val fromNumeral : numeral -> nat
+
+  end
+
+end
+
+module Pervasives = struct
+  class Eq
+  type Eq_class 'a = {
+      val isEqual_method : forall 'a. 
+                             (Basic_classes.Eq_class 'a) -> 'a -> 'a -> bool
+
+      val isInequal_method : forall 'a. 
+                               (Basic_classes.Eq_class 'a) -> 'a -> 'a -> 
+                                                                    bool
+
+  }
+  class MapKeyType
+  type MapKeyType_class 'a = {
+      val mapKeyCompare_method : forall 'a. 
+                                   (Map.MapKeyType_class 'a) -> 'a -> 
+                                                                'a -> 
+                                                                Basic_classes.ordering
+
+  }
+  class NumAdd
+  type NumAdd_class 'a = {
+      val numAdd_method : forall 'a. (Num.NumAdd_class 'a) -> 'a -> 'a -> 'a
+
+  }
+  class NumDivision
+  type NumDivision_class 'a = {
+      val numDivision_method : forall 'a. 
+                                 (Num.NumDivision_class 'a) -> 'a -> 'a -> 'a
+
+  }
+  class NumIntegerDivision
+  type NumIntegerDivision_class 'a = {
+      val div_method : forall 'a. 
+                         (Num.NumIntegerDivision_class 'a) -> 'a -> 'a -> 'a
+
+  }
+  class NumMinus
+  type NumMinus_class 'a = {
+      val numMinus_method : forall 'a. 
+                              (Num.NumMinus_class 'a) -> 'a -> 'a -> 'a
+
+  }
+  class NumMult
+  type NumMult_class 'a = {
+      val numMult_method : forall 'a. 
+                             (Num.NumMult_class 'a) -> 'a -> 'a -> 'a
+
+  }
+  class NumNegate
+  type NumNegate_class 'a = {
+      val numNegate_method : forall 'a. (Num.NumNegate_class 'a) -> 'a -> 'a
+
+  }
+  class NumPow
+  type NumPow_class 'a = {
+      val numPow_method : forall 'a. (Num.NumPow_class 'a) -> 'a -> nat -> 'a
+
+  }
+  class NumPred
+  type NumPred_class 'a = {
+      val pred_method : forall 'a. (Num.NumPred_class 'a) -> 'a -> 'a
+
+  }
+  class NumRemainder
+  type NumRemainder_class 'a = {
+      val mod_method : forall 'a. 
+                         (Num.NumRemainder_class 'a) -> 'a -> 'a -> 'a
+
+  }
+  class NumSucc
+  type NumSucc_class 'a = {
+      val succ_method : forall 'a. (Num.NumSucc_class 'a) -> 'a -> 'a
+
+  }
+  class Numeral
+  type Numeral_class 'a = {
+      val fromNumeral_method : forall 'a. 
+                                 (Num.Numeral_class 'a) -> numeral -> 'a
+
+  }
+  class Ord
+  class OrdMaxMin
+  type OrdMaxMin_class 'a = {
+      val max_method : forall 'a. 
+                         (Basic_classes.OrdMaxMin_class 'a) -> 'a -> 'a -> 'a
+
+      val min_method : forall 'a. 
+                         (Basic_classes.OrdMaxMin_class 'a) -> 'a -> 'a -> 'a
+
+  }
+  type Ord_class 'a = {
+      val compare_method : forall 'a. 
+                             (Basic_classes.Ord_class 'a) -> 'a -> 'a -> 
+                                                                   Basic_classes.ordering
+
+      val isLess_method : forall 'a. 
+                            (Basic_classes.Ord_class 'a) -> 'a -> 'a -> bool
+
+      val isLessEqual_method : forall 'a. 
+                                 (Basic_classes.Ord_class 'a) -> 'a -> 
+                                                                 'a -> 
+                                                                 bool
+
+      val isGreater_method : forall 'a. 
+                               (Basic_classes.Ord_class 'a) -> 'a -> 
+                                                               'a -> 
+                                                               bool
+
+      val isGreaterEqual_method : forall 'a. 
+                                    (Basic_classes.Ord_class 'a) -> 'a -> 
+                                                                    'a -> 
+                                                                    bool
+
+  }
+  class SetType
+  type SetType_class 'a = {
+      val setElemCompare_method : forall 'a. 
+                                    (Basic_classes.SetType_class 'a) -> 
+                                    'a -> 'a -> Basic_classes.ordering
+
+  }
+  type either 'a 'b
+  type float32
+  type float64
+  type int
+  type int32
+  type int64
+  type integer
+  type map 'k 'v
+  type maybe 'a
+  type natural
+  type ordering
+  type rational
+
+  val $ : forall 'a 'b. ('a -> 'b) -> 'a -> 'b
+  val && : bool -> bool -> bool
+  val * : forall 'a. (Num.NumMult 'a) => 'a -> 'a -> 'a
+  val ** : forall 'a. (Num.NumPow 'a) => 'a -> nat -> 'a
+  val + : forall 'a. (Num.NumAdd 'a) => 'a -> 'a -> 'a
+  val ++ : forall 'a. (list 'a) -> (list 'a) -> list 'a
+  val - : forall 'a. (Num.NumMinus 'a) => 'a -> 'a -> 'a
+  val --> : bool -> bool -> bool
+  val / : forall 'a. (Num.NumDivision 'a) => 'a -> 'a -> 'a
+  val :: : forall 'a. 'a -> (list 'a) -> list 'a
+  val < : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> bool
+  val <-> : bool -> bool -> bool
+  val <= : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> bool
+  val <> : forall 'a. (Basic_classes.Eq 'a) => 'a -> 'a -> bool
+  val = : forall 'a. (Basic_classes.Eq 'a) => 'a -> 'a -> bool
+  val > : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> bool
+  val >= : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> bool
+  val EQ : Basic_classes.ordering
+  val GT : Basic_classes.ordering
+  val IN : forall 'a. (Basic_classes.SetType 'a) => 'a -> (set 'a) -> bool
+  val Just : forall 'a. 'a -> Maybe.maybe 'a
+  val LT : Basic_classes.ordering
+  val Left : forall 'a 'b. 'a -> Either.either 'a 'b
+  val NIN : forall 'a. (Basic_classes.SetType 'a) => 'a -> (set 'a) -> bool
+  val Nothing : forall 'a. Maybe.maybe 'a
+  val Right : forall 'a 'b. 'b -> Either.either 'a 'b
+  val \ : forall 'a. 
+            (Basic_classes.SetType 'a) => (set 'a) -> (set 'a) -> set 'a
+  val all : forall 'a. ('a -> bool) -> (list 'a) -> bool
+  val and : bool -> bool -> bool
+  val any : forall 'a. ('a -> bool) -> (list 'a) -> bool
+  val append : forall 'a. (list 'a) -> (list 'a) -> list 'a
+  val apply : forall 'a 'b. ('a -> 'b) -> 'a -> 'b
+  val bigunion : forall 'a. 
+                   (Basic_classes.SetType 'a) => (set (set 'a)) -> set 'a
+  val bigunionBy : forall 'a. 
+                     ('a -> 'a -> Basic_classes.ordering) -> (set (set 'a)) -> 
+                                                             set 'a
+  val bind : forall 'a 'b. 
+               ('a -> Maybe.maybe 'b) -> (Maybe.maybe 'a) -> Maybe.maybe 'b
+  val boolCompare : bool -> bool -> Basic_classes.ordering
+  val comb : forall 'a 'b 'c. ('b -> 'c) -> ('a -> 'b) -> 'a -> 'c
+  val compare : forall 'a. 
+                  (Basic_classes.Ord 'a) => 
+                    'a -> 'a -> Basic_classes.ordering
+  val concat : forall 'a. (list (list 'a)) -> list 'a
+  val concatMap : forall 'a 'b. ('a -> list 'b) -> (list 'a) -> list 'b
+  val cons : forall 'a. 'a -> (list 'a) -> list 'a
+  val const : forall 'a 'b. 'a -> 'b -> 'a
+  val cross : forall 'a 'b. 
+                (Basic_classes.SetType 'a) (Basic_classes.SetType 'b) => 
+                  (set 'a) -> (set 'b) -> set ('a * 'b)
+  val crossBy : forall 'a 'b. 
+                  (('a * 'b) -> ('a * 'b) -> Basic_classes.ordering) -> 
+                  (set 'a) -> (set 'b) -> set ('a * 'b)
+  val curry : forall 'a 'b 'c. (('a * 'b) -> 'c) -> 'a -> 'b -> 'c
+  val defaultCompare : forall 'a. 'a -> 'a -> Basic_classes.ordering
+  val defaultGreater : forall 'a. 'a -> 'a -> bool
+  val defaultGreaterEq : forall 'a. 'a -> 'a -> bool
+  val defaultLess : forall 'a. 'a -> 'a -> bool
+  val defaultLessEq : forall 'a. 'a -> 'a -> bool
+  val defaultMax : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> 'a
+  val defaultMin : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> 'a
+  val delete : forall 'a. (Basic_classes.Eq 'a) => 'a -> (list 'a) -> list 'a
+  val deleteBy : forall 'a. ('a -> 'a -> bool) -> 'a -> (list 'a) -> list 'a
+  val deleteFirst : forall 'a. 
+                      ('a -> bool) -> (list 'a) -> Maybe.maybe (list 'a)
+  val deleteSwap : forall 'k 'v. 
+                     (Map.MapKeyType 'k) => 
+                       (Map.map 'k 'v) -> 'k -> Map.map 'k 'v
+  val difference : forall 'a. 
+                     (Basic_classes.SetType 'a) => 
+                       (set 'a) -> (set 'a) -> set 'a
+  val differenceBy : forall 'a. 
+                       ('a -> 'a -> Basic_classes.ordering) -> (set 'a) -> 
+                                                               (set 'a) -> 
+                                                               set 'a
+  val div : forall 'a. (Num.NumIntegerDivision 'a) => 'a -> 'a -> 'a
+  val domain : forall 'k 'v. 
+                 (Map.MapKeyType 'k) (Basic_classes.SetType 'k) => 
+                   (Map.map 'k 'v) -> set 'k
+  val domainBy : forall 'k 'v. 
+                   ('k -> 'k -> Basic_classes.ordering) -> (Map.map 'k 'v) -> 
+                                                           set 'k
+  val drop : forall 'a. nat -> (list 'a) -> list 'a
+  val either : forall 'a 'b 'c. 
+                 ('a -> 'c) -> ('b -> 'c) -> (Either.either 'a 'b) -> 'c
+  val eitherEqual : forall 'a 'b. 
+                      (Basic_classes.Eq 'a) (Basic_classes.Eq 'b) => 
+                        (Either.either 'a 'b) -> (Either.either 'a 'b) -> 
+                                                 bool
+  val eitherEqualBy : forall 'a 'b. 
+                        ('a -> 'a -> bool) -> ('b -> 'b -> bool) -> (Either.either 
+                                                                    'a 
+                                                                    'b) -> 
+                                                                    (Either.either 
+                                                                    'a 
+                                                                    'b) -> 
+                                                                    bool
+  val elem : forall 'a. (Basic_classes.Eq 'a) => 'a -> (list 'a) -> bool
+  val elemBy : forall 'a. ('a -> 'a -> bool) -> 'a -> (list 'a) -> bool
+  val elemIndex : forall 'a. 
+                    (Basic_classes.Eq 'a) => 
+                      'a -> (list 'a) -> Maybe.maybe nat
+  val elemIndices : forall 'a. 
+                      (Basic_classes.Eq 'a) => 'a -> (list 'a) -> list nat
+  val empty : forall 'a. (Basic_classes.SetType 'a) => set 'a
+  val emptyBy : forall 'a. ('a -> 'a -> Basic_classes.ordering) -> set 'a
+  val equiv : bool -> bool -> bool
+  val filter : forall 'a. ('a -> bool) -> (list 'a) -> list 'a
+  val find : forall 'a. ('a -> bool) -> (list 'a) -> Maybe.maybe 'a
+  val findIndex : forall 'a. ('a -> bool) -> (list 'a) -> Maybe.maybe nat
+  val findIndices : forall 'a. ('a -> bool) -> (list 'a) -> list nat
+  val findIndices_aux : forall 'a. 
+                          nat -> ('a -> bool) -> (list 'a) -> list nat
+  val findMax : forall 'a. 
+                  (Basic_classes.SetType 'a) (Basic_classes.Eq 'a) => 
+                    (set 'a) -> Maybe.maybe 'a
+  val findMin : forall 'a. 
+                  (Basic_classes.SetType 'a) (Basic_classes.Eq 'a) => 
+                    (set 'a) -> Maybe.maybe 'a
+  val findWithDefault : forall 'k 'v. 
+                          (Map.MapKeyType 'k) => 
+                            'k -> 'v -> (Map.map 'k 'v) -> 'v
+  val finite : forall 'a. (Basic_classes.SetType 'a) => (set 'a) -> bool
+  val flip : forall 'a 'b 'c. ('a -> 'b -> 'c) -> 'b -> 'a -> 'c
+  val foldl : forall 'a 'b. ('a -> 'b -> 'a) -> 'a -> (list 'b) -> 'a
+  val foldr : forall 'a 'b. ('a -> 'b -> 'b) -> 'b -> (list 'a) -> 'b
+  val fromList : forall 'a. (Basic_classes.SetType 'a) => (list 'a) -> set 'a
+  val fromListBy : forall 'a. 
+                     ('a -> 'a -> Basic_classes.ordering) -> (list 'a) -> 
+                                                             set 'a
+  val fromMaybe : forall 'a. 'a -> (Maybe.maybe 'a) -> 'a
+  val fromNumeral : forall 'a. (Num.Numeral 'a) => numeral -> 'a
+  val fst : forall 'a 'b. ('a * 'b) -> 'a
+  val genericCompare : forall 'a. 
+                         ('a -> 'a -> bool) -> ('a -> 'a -> bool) -> 
+                                               'a -> 'a -> Basic_classes.ordering
+  val genlist : forall 'a. (nat -> 'a) -> nat -> list 'a
+  val id : forall 'a. 'a -> 'a
+  val imp : bool -> bool -> bool
+  val index : forall 'a. (list 'a) -> nat -> Maybe.maybe 'a
+  val insert : forall 'a. 
+                 (Basic_classes.SetType 'a) => 'a -> (set 'a) -> set 'a
+  val instance_Basic_classes_Eq_Basic_classes_ordering_dict : 
+                                                                Basic_classes.Eq_class 
+                                                                Basic_classes.ordering
+  val instance_Basic_classes_Eq_Either_either_dict : forall 'a 'b. 
+                                                       (Basic_classes.Eq 'a)
+                                                         (Basic_classes.Eq 'b) => 
+                                                         Basic_classes.Eq_class 
+                                                         (Either.either 
+                                                         'a 'b)
+  val instance_Basic_classes_Eq_Map_map_dict : forall 'k 'v. 
+                                                 (Basic_classes.Eq 'k)
+                                                   (Basic_classes.Eq 'v) => 
+                                                   Basic_classes.Eq_class 
+                                                   (Map.map 'k 'v)
+  val instance_Basic_classes_Eq_Maybe_maybe_dict : forall 'a. 
+                                                     (Basic_classes.Eq 'a) => 
+                                                       Basic_classes.Eq_class 
+                                                       (Maybe.maybe 'a)
+  val instance_Basic_classes_Eq_Num_int_dict : Basic_classes.Eq_class Num.int
+  val instance_Basic_classes_Eq_Num_integer_dict : 
+                                                     Basic_classes.Eq_class 
+                                                     Num.integer
+  val instance_Basic_classes_Eq_Num_natural_dict : 
+                                                     Basic_classes.Eq_class 
+                                                     Num.natural
+  val instance_Basic_classes_Eq_bool_dict : Basic_classes.Eq_class bool
+  val instance_Basic_classes_Eq_list_dict : forall 'a. 
+                                              (Basic_classes.Eq 'a) => 
+                                                Basic_classes.Eq_class 
+                                                (list 'a)
+  val instance_Basic_classes_Eq_nat_dict : Basic_classes.Eq_class nat
+  val instance_Basic_classes_Eq_set_dict : forall 'a. 
+                                             (Basic_classes.SetType 'a) => 
+                                               Basic_classes.Eq_class 
+                                               (set 'a)
+  val instance_Basic_classes_Eq_tup_dict : forall 'a 'b. 
+                                             (Basic_classes.Eq 'a)
+                                               (Basic_classes.Eq 'b) => 
+                                               Basic_classes.Eq_class 
+                                               ('a * 'b)
+  val instance_Basic_classes_Eq_var_dict : forall 'a. 
+                                             Basic_classes.Eq_class 'a
+  val instance_Basic_classes_OrdMaxMin_Num_int_dict : 
+                                                        Basic_classes.OrdMaxMin_class 
+                                                        Num.int
+  val instance_Basic_classes_OrdMaxMin_Num_integer_dict : 
+                                                            Basic_classes.OrdMaxMin_class 
+                                                            Num.integer
+  val instance_Basic_classes_OrdMaxMin_Num_natural_dict : 
+                                                            Basic_classes.OrdMaxMin_class 
+                                                            Num.natural
+  val instance_Basic_classes_OrdMaxMin_nat_dict : 
+                                                    Basic_classes.OrdMaxMin_class 
+                                                    nat
+  val instance_Basic_classes_OrdMaxMin_var_dict : forall 'a. 
+                                                    (Basic_classes.Ord 'a) => 
+                                                      Basic_classes.OrdMaxMin_class 
+                                                      'a
+  val instance_Basic_classes_Ord_Num_int_dict : 
+                                                  Basic_classes.Ord_class 
+                                                  Num.int
+  val instance_Basic_classes_Ord_Num_integer_dict : 
+                                                      Basic_classes.Ord_class 
+                                                      Num.integer
+  val instance_Basic_classes_Ord_Num_natural_dict : 
+                                                      Basic_classes.Ord_class 
+                                                      Num.natural
+  val instance_Basic_classes_Ord_list_dict : forall 'a. 
+                                               (Basic_classes.Ord 'a) => 
+                                                 Basic_classes.Ord_class 
+                                                 (list 'a)
+  val instance_Basic_classes_Ord_nat_dict : Basic_classes.Ord_class nat
+  val instance_Basic_classes_Ord_tup_dict : forall 'a 'b. 
+                                              (Basic_classes.Ord 'a)
+                                                (Basic_classes.Ord 'b) => 
+                                                Basic_classes.Ord_class 
+                                                ('a * 'b)
+  val instance_Basic_classes_SetType_Maybe_maybe_dict : forall 'a. 
+                                                          (Basic_classes.SetType
+                                                           'a) => 
+                                                            Basic_classes.SetType_class 
+                                                            (Maybe.maybe 'a)
+  val instance_Basic_classes_SetType_Num_int_dict : 
+                                                      Basic_classes.SetType_class 
+                                                      Num.int
+  val instance_Basic_classes_SetType_Num_integer_dict : 
+                                                          Basic_classes.SetType_class 
+                                                          Num.integer
+  val instance_Basic_classes_SetType_Num_natural_dict : 
+                                                          Basic_classes.SetType_class 
+                                                          Num.natural
+  val instance_Basic_classes_SetType_bool_dict : 
+                                                   Basic_classes.SetType_class 
+                                                   bool
+  val instance_Basic_classes_SetType_nat_dict : 
+                                                  Basic_classes.SetType_class 
+                                                  nat
+  val instance_Basic_classes_SetType_set_dict : forall 'a. 
+                                                  (Basic_classes.SetType 'a) => 
+                                                    Basic_classes.SetType_class 
+                                                    (set 'a)
+  val instance_Basic_classes_SetType_tup_dict : forall 'a 'b. 
+                                                  (Basic_classes.SetType 'a)
+                                                    (Basic_classes.SetType 'b) => 
+                                                    Basic_classes.SetType_class 
+                                                    ('a * 'b)
+  val instance_Basic_classes_SetType_var_dict : forall 'a. 
+                                                  Basic_classes.SetType_class 
+                                                  'a
+  val instance_Map_MapKeyType_var_dict : forall 'a. 
+                                           (Basic_classes.SetType 'a) => 
+                                             Map.MapKeyType_class 'a
+  val instance_Num_NumAdd_Num_int_dict : Num.NumAdd_class Num.int
+  val instance_Num_NumAdd_Num_integer_dict : Num.NumAdd_class Num.integer
+  val instance_Num_NumAdd_Num_natural_dict : Num.NumAdd_class Num.natural
+  val instance_Num_NumAdd_nat_dict : Num.NumAdd_class nat
+  val instance_Num_NumDivision_Num_int_dict : Num.NumDivision_class Num.int
+  val instance_Num_NumDivision_Num_integer_dict : 
+                                                    Num.NumDivision_class 
+                                                    Num.integer
+  val instance_Num_NumDivision_Num_natural_dict : 
+                                                    Num.NumDivision_class 
+                                                    Num.natural
+  val instance_Num_NumDivision_nat_dict : Num.NumDivision_class nat
+  val instance_Num_NumIntegerDivision_Num_int_dict : 
+                                                       Num.NumIntegerDivision_class 
+                                                       Num.int
+  val instance_Num_NumIntegerDivision_Num_integer_dict : 
+                                                           Num.NumIntegerDivision_class 
+                                                           Num.integer
+  val instance_Num_NumIntegerDivision_Num_natural_dict : 
+                                                           Num.NumIntegerDivision_class 
+                                                           Num.natural
+  val instance_Num_NumIntegerDivision_nat_dict : 
+                                                   Num.NumIntegerDivision_class 
+                                                   nat
+  val instance_Num_NumMinus_Num_int_dict : Num.NumMinus_class Num.int
+  val instance_Num_NumMinus_Num_integer_dict : Num.NumMinus_class Num.integer
+  val instance_Num_NumMinus_Num_natural_dict : Num.NumMinus_class Num.natural
+  val instance_Num_NumMinus_nat_dict : Num.NumMinus_class nat
+  val instance_Num_NumMult_Num_int_dict : Num.NumMult_class Num.int
+  val instance_Num_NumMult_Num_integer_dict : Num.NumMult_class Num.integer
+  val instance_Num_NumMult_Num_natural_dict : Num.NumMult_class Num.natural
+  val instance_Num_NumMult_nat_dict : Num.NumMult_class nat
+  val instance_Num_NumNegate_Num_int_dict : Num.NumNegate_class Num.int
+  val instance_Num_NumNegate_Num_integer_dict : 
+                                                  Num.NumNegate_class 
+                                                  Num.integer
+  val instance_Num_NumPow_Num_int_dict : Num.NumPow_class Num.int
+  val instance_Num_NumPow_Num_integer_dict : Num.NumPow_class Num.integer
+  val instance_Num_NumPow_Num_natural_dict : Num.NumPow_class Num.natural
+  val instance_Num_NumPow_nat_dict : Num.NumPow_class nat
+  val instance_Num_NumPred_Num_int_dict : Num.NumPred_class Num.int
+  val instance_Num_NumPred_Num_integer_dict : Num.NumPred_class Num.integer
+  val instance_Num_NumPred_Num_natural_dict : Num.NumPred_class Num.natural
+  val instance_Num_NumPred_nat_dict : Num.NumPred_class nat
+  val instance_Num_NumRemainder_Num_int_dict : Num.NumRemainder_class Num.int
+  val instance_Num_NumRemainder_Num_integer_dict : 
+                                                     Num.NumRemainder_class 
+                                                     Num.integer
+  val instance_Num_NumRemainder_Num_natural_dict : 
+                                                     Num.NumRemainder_class 
+                                                     Num.natural
+  val instance_Num_NumRemainder_nat_dict : Num.NumRemainder_class nat
+  val instance_Num_NumSucc_Num_int_dict : Num.NumSucc_class Num.int
+  val instance_Num_NumSucc_Num_integer_dict : Num.NumSucc_class Num.integer
+  val instance_Num_NumSucc_Num_natural_dict : Num.NumSucc_class Num.natural
+  val instance_Num_NumSucc_nat_dict : Num.NumSucc_class nat
+  val instance_Num_Numeral_Num_int_dict : Num.Numeral_class Num.int
+  val instance_Num_Numeral_Num_integer_dict : Num.Numeral_class Num.integer
+  val instance_Num_Numeral_Num_natural_dict : Num.Numeral_class Num.natural
+  val instance_Num_Numeral_nat_dict : Num.Numeral_class nat
+  val intAdd : Num.int -> Num.int -> Num.int
+  val intCompare : Num.int -> Num.int -> Basic_classes.ordering
+  val intDiv : Num.int -> Num.int -> Num.int
+  val intEq : Num.int -> Num.int -> bool
+  val intFromNat : nat -> Num.int
+  val intFromNumeral : numeral -> Num.int
+  val intGreater : Num.int -> Num.int -> bool
+  val intGreaterEqual : Num.int -> Num.int -> bool
+  val intLess : Num.int -> Num.int -> bool
+  val intLessEqual : Num.int -> Num.int -> bool
+  val intMax : Num.int -> Num.int -> Num.int
+  val intMin : Num.int -> Num.int -> Num.int
+  val intMinus : Num.int -> Num.int -> Num.int
+  val intMod : Num.int -> Num.int -> Num.int
+  val intMult : Num.int -> Num.int -> Num.int
+  val intNegate : Num.int -> Num.int
+  val intPow : Num.int -> nat -> Num.int
+  val intPred : Num.int -> Num.int
+  val intSucc : Num.int -> Num.int
+  val integerAdd : Num.integer -> Num.integer -> Num.integer
+  val integerCompare : Num.integer -> Num.integer -> Basic_classes.ordering
+  val integerDiv : Num.integer -> Num.integer -> Num.integer
+  val integerEq : Num.integer -> Num.integer -> bool
+  val integerFromNumeral : numeral -> Num.integer
+  val integerGreater : Num.integer -> Num.integer -> bool
+  val integerGreaterEqual : Num.integer -> Num.integer -> bool
+  val integerLess : Num.integer -> Num.integer -> bool
+  val integerLessEqual : Num.integer -> Num.integer -> bool
+  val integerMax : Num.integer -> Num.integer -> Num.integer
+  val integerMin : Num.integer -> Num.integer -> Num.integer
+  val integerMinus : Num.integer -> Num.integer -> Num.integer
+  val integerMod : Num.integer -> Num.integer -> Num.integer
+  val integerMult : Num.integer -> Num.integer -> Num.integer
+  val integerNegate : Num.integer -> Num.integer
+  val integerPow : Num.integer -> nat -> Num.integer
+  val integerPred : Num.integer -> Num.integer
+  val integerSucc : Num.integer -> Num.integer
+  val inter : forall 'a. 
+                (Basic_classes.SetType 'a) => (set 'a) -> (set 'a) -> set 'a
+  val intersection : forall 'a. 
+                       (Basic_classes.SetType 'a) => 
+                         (set 'a) -> (set 'a) -> set 'a
+  val intersectionBy : forall 'a. 
+                         ('a -> 'a -> Basic_classes.ordering) -> (set 'a) -> 
+                                                                 (set 'a) -> 
+                                                                 set 
+                                                                 'a
+  val isEqual : forall 'a. (Basic_classes.Eq 'a) => 'a -> 'a -> bool
+  val isGreater : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> bool
+  val isGreaterEqual : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> bool
+  val isInequal : forall 'a. (Basic_classes.Eq 'a) => 'a -> 'a -> bool
+  val isJust : forall 'a. (Maybe.maybe 'a) -> bool
+  val isLeft : forall 'a 'b. (Either.either 'a 'b) -> bool
+  val isLess : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> bool
+  val isLessEqual : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> bool
+  val isNothing : forall 'a. (Maybe.maybe 'a) -> bool
+  val isProperSubsetOf : forall 'a. 
+                           (Basic_classes.SetType 'a) => 
+                             (set 'a) -> (set 'a) -> bool
+  val isProperSubsetOfBy : forall 'a. 
+                             ('a -> 'a -> Basic_classes.ordering) -> 
+                             (set 'a) -> (set 'a) -> bool
+  val isRight : forall 'a 'b. (Either.either 'a 'b) -> bool
+  val isSubsetOf : forall 'a. 
+                     (Basic_classes.SetType 'a) => 
+                       (set 'a) -> (set 'a) -> bool
+  val isSubsetOfBy : forall 'a. 
+                       ('a -> 'a -> Basic_classes.ordering) -> (set 'a) -> 
+                                                               (set 'a) -> 
+                                                               bool
+  val leastFixedPoint : forall 'a. 
+                          (Basic_classes.SetType 'a) => 
+                            nat -> ((set 'a) -> set 'a) -> (set 'a) -> set 'a
+  val lefts : forall 'a 'b. (list (Either.either 'a 'b)) -> list 'a
+  val length : forall 'a. (list 'a) -> nat
+  val lexicographicCompare : forall 'a. 
+                               (Basic_classes.Ord 'a) => 
+                                 (list 'a) -> (list 'a) -> Basic_classes.ordering
+  val lexicographicCompareBy : forall 'a. 
+                                 ('a -> 'a -> Basic_classes.ordering) -> 
+                                 (list 'a) -> (list 'a) -> Basic_classes.ordering
+  val lexicographicLess : forall 'a. 
+                            (Basic_classes.Ord 'a) => 
+                              (list 'a) -> (list 'a) -> bool
+  val lexicographicLessBy : forall 'a. 
+                              ('a -> 'a -> bool) -> ('a -> 'a -> bool) -> 
+                                                    (list 'a) -> (list 'a) -> 
+                                                                 bool
+  val lexicographicLessEq : forall 'a. 
+                              (Basic_classes.Ord 'a) => 
+                                (list 'a) -> (list 'a) -> bool
+  val lexicographicLessEqBy : forall 'a. 
+                                ('a -> 'a -> bool) -> ('a -> 'a -> bool) -> 
+                                                      (list 'a) -> (list 'a) -> 
+                                                                   bool
+  val listEqual : forall 'a. 
+                    (Basic_classes.Eq 'a) => (list 'a) -> (list 'a) -> bool
+  val listEqualBy : forall 'a. 
+                      ('a -> 'a -> bool) -> (list 'a) -> (list 'a) -> bool
+  val lookup : forall 'a 'b. 
+                 (Basic_classes.Eq 'a) => 
+                   'a -> (list ('a * 'b)) -> Maybe.maybe 'b
+  val lookupBy : forall 'a 'b. 
+                   ('a -> 'a -> bool) -> 'a -> (list ('a * 'b)) -> Maybe.maybe 
+                                                                   'b
+  val map : forall 'a 'b. ('a -> 'b) -> (list 'a) -> list 'b
+  val mapBy : forall 'a 'b. 
+                ('b -> 'b -> Basic_classes.ordering) -> ('a -> 'b) -> 
+                                                        (set 'a) -> set 'b
+  val mapEqual : forall 'k 'v. 
+                   (Basic_classes.Eq 'k) (Basic_classes.Eq 'v) => 
+                     (Map.map 'k 'v) -> (Map.map 'k 'v) -> bool
+  val mapEqualBy : forall 'k 'v. 
+                     ('k -> 'k -> bool) -> ('v -> 'v -> bool) -> (Map.map 
+                                                                 'k 'v) -> 
+                                                                 (Map.map 
+                                                                 'k 'v) -> 
+                                                                 bool
+  val mapKeyCompare : forall 'a. 
+                        (Map.MapKeyType 'a) => 
+                          'a -> 'a -> Basic_classes.ordering
+  val max : forall 'a. (Basic_classes.OrdMaxMin 'a) => 'a -> 'a -> 'a
+  val maybe : forall 'a 'b. 'b -> ('a -> 'b) -> (Maybe.maybe 'a) -> 'b
+  val maybeCompare : forall 'a 'b. 
+                       ('b -> 'a -> Basic_classes.ordering) -> (Maybe.maybe 
+                                                               'b) -> 
+                                                               (Maybe.maybe 
+                                                               'a) -> 
+                                                               Basic_classes.ordering
+  val maybeEqual : forall 'a. 
+                     (Basic_classes.Eq 'a) => 
+                       (Maybe.maybe 'a) -> (Maybe.maybe 'a) -> bool
+  val maybeEqualBy : forall 'a. 
+                       ('a -> 'a -> bool) -> (Maybe.maybe 'a) -> (Maybe.maybe 
+                                                                 'a) -> 
+                                                                 bool
+  val member : forall 'a. 
+                 (Basic_classes.SetType 'a) => 'a -> (set 'a) -> bool
+  val memberBy : forall 'a. 
+                   ('a -> 'a -> Basic_classes.ordering) -> 'a -> (set 'a) -> 
+                                                                 bool
+  val min : forall 'a. (Basic_classes.OrdMaxMin 'a) => 'a -> 'a -> 'a
+  val mod : forall 'a. (Num.NumRemainder 'a) => 'a -> 'a -> 'a
+  val natAdd : nat -> nat -> nat
+  val natCompare : nat -> nat -> Basic_classes.ordering
+  val natDiv : nat -> nat -> nat
+  val natEq : nat -> nat -> bool
+  val natFromInt : Num.int -> nat
+  val natFromNatural : Num.natural -> nat
+  val natFromNumeral : numeral -> nat
+  val natGreater : nat -> nat -> bool
+  val natGreaterEqual : nat -> nat -> bool
+  val natLess : nat -> nat -> bool
+  val natLessEqual : nat -> nat -> bool
+  val natMax : nat -> nat -> nat
+  val natMin : nat -> nat -> nat
+  val natMinus : nat -> nat -> nat
+  val natMod : nat -> nat -> nat
+  val natMult : nat -> nat -> nat
+  val natPow : nat -> nat -> nat
+  val natPred : nat -> nat
+  val natSucc : nat -> nat
+  val naturalAdd : Num.natural -> Num.natural -> Num.natural
+  val naturalCompare : Num.natural -> Num.natural -> Basic_classes.ordering
+  val naturalDiv : Num.natural -> Num.natural -> Num.natural
+  val naturalEq : Num.natural -> Num.natural -> bool
+  val naturalFromNat : nat -> Num.natural
+  val naturalFromNumeral : numeral -> Num.natural
+  val naturalGreater : Num.natural -> Num.natural -> bool
+  val naturalGreaterEqual : Num.natural -> Num.natural -> bool
+  val naturalLess : Num.natural -> Num.natural -> bool
+  val naturalLessEqual : Num.natural -> Num.natural -> bool
+  val naturalMax : Num.natural -> Num.natural -> Num.natural
+  val naturalMin : Num.natural -> Num.natural -> Num.natural
+  val naturalMinus : Num.natural -> Num.natural -> Num.natural
+  val naturalMod : Num.natural -> Num.natural -> Num.natural
+  val naturalMult : Num.natural -> Num.natural -> Num.natural
+  val naturalPow : Num.natural -> nat -> Num.natural
+  val naturalPred : Num.natural -> Num.natural
+  val naturalSucc : Num.natural -> Num.natural
+  val not : bool -> bool
+  val notMember : forall 'a. 
+                    (Basic_classes.SetType 'a) => 'a -> (set 'a) -> bool
+  val null : forall 'a. (list 'a) -> bool
+  val numAdd : forall 'a. (Num.NumAdd 'a) => 'a -> 'a -> 'a
+  val numDivision : forall 'a. (Num.NumDivision 'a) => 'a -> 'a -> 'a
+  val numIntegerDivision : forall 'a. 
+                             (Num.NumIntegerDivision 'a) => 'a -> 'a -> 'a
+  val numMinus : forall 'a. (Num.NumMinus 'a) => 'a -> 'a -> 'a
+  val numMult : forall 'a. (Num.NumMult 'a) => 'a -> 'a -> 'a
+  val numNegate : forall 'a. (Num.NumNegate 'a) => 'a -> 'a
+  val numPow : forall 'a. (Num.NumPow 'a) => 'a -> nat -> 'a
+  val numRemainder : forall 'a. (Num.NumRemainder 'a) => 'a -> 'a -> 'a
+  val or : bool -> bool -> bool
+  val ordCompare : forall 'a. 
+                     (Basic_classes.Eq 'a) (Basic_classes.Ord 'a) => 
+                       'a -> 'a -> Basic_classes.ordering
+  val orderingEqual : 
+                        Basic_classes.ordering -> Basic_classes.ordering -> 
+                                                  bool
+  val orderingIsEqual : Basic_classes.ordering -> bool
+  val orderingIsGreater : Basic_classes.ordering -> bool
+  val orderingIsGreaterEqual : Basic_classes.ordering -> bool
+  val orderingIsLess : Basic_classes.ordering -> bool
+  val orderingIsLessEqual : Basic_classes.ordering -> bool
+  val ordering_cases : forall 'a. 
+                         Basic_classes.ordering -> 'a -> 'a -> 'a -> 'a
+  val pairCompare : forall 'a 'b. 
+                      ('a -> 'a -> Basic_classes.ordering) -> ('b -> 
+                                                              'b -> Basic_classes.ordering) -> 
+                                                              ('a * 'b) -> 
+                                                              ('a * 'b) -> 
+                                                              Basic_classes.ordering
+  val pairEqual : forall 'a 'b. 
+                    (Basic_classes.Eq 'a) (Basic_classes.Eq 'b) => 
+                      ('a * 'b) -> ('a * 'b) -> bool
+  val pairEqualBy : forall 'a 'b. 
+                      ('a -> 'a -> bool) -> ('b -> 'b -> bool) -> ('a * 'b) -> 
+                                                                  ('a * 'b) -> 
+                                                                  bool
+  val pairGreater : forall 'a 'b. 
+                      (Basic_classes.Ord 'a) (Basic_classes.Ord 'b) => 
+                        ('a * 'b) -> ('a * 'b) -> bool
+  val pairGreaterEq : forall 'a 'b. 
+                        (Basic_classes.Ord 'a) (Basic_classes.Ord 'b) => 
+                          ('a * 'b) -> ('a * 'b) -> bool
+  val pairLess : forall 'a 'b. 
+                   (Basic_classes.Ord 'a) (Basic_classes.Ord 'b) => 
+                     ('b * 'a) -> ('b * 'a) -> bool
+  val pairLessEq : forall 'a 'b. 
+                     (Basic_classes.Ord 'a) (Basic_classes.Ord 'b) => 
+                       ('b * 'a) -> ('b * 'a) -> bool
+  val partition : forall 'a. 
+                    ('a -> bool) -> (list 'a) -> ((list 'a) * (list 'a))
+  val partitionEither : forall 'a 'b. 
+                          (list (Either.either 'a 'b)) -> ((list 'a) *
+                                                           (list 'b))
+  val pred : forall 'a. (Num.NumPred 'a) => 'a -> 'a
+  val range : forall 'k 'v. 
+                (Map.MapKeyType 'k) (Basic_classes.SetType 'v) => 
+                  (Map.map 'k 'v) -> set 'v
+  val rangeBy : forall 'k 'v. 
+                  ('v -> 'v -> Basic_classes.ordering) -> (Map.map 'k 'v) -> 
+                                                          set 'v
+  val replicate : forall 'a. nat -> 'a -> list 'a
+  val reverse : forall 'a. (list 'a) -> list 'a
+  val reverseAppend : forall 'a. (list 'a) -> (list 'a) -> list 'a
+  val reverseMap : forall 'a 'b. ('a -> 'b) -> (list 'a) -> list 'b
+  val reversePartition : forall 'a. 
+                           ('a -> bool) -> (list 'a) -> ((list 'a) *
+                                                         (list 'a))
+  val rights : forall 'a 'b. (list (Either.either 'a 'b)) -> list 'b
+  val setCompare : forall 'a. 
+                     (Basic_classes.SetType 'a) => 
+                       (set 'a) -> (set 'a) -> Basic_classes.ordering
+  val setCompareBy : forall 'a. 
+                       ('a -> 'a -> Basic_classes.ordering) -> (set 'a) -> 
+                                                               (set 'a) -> 
+                                                               Basic_classes.ordering
+  val setElemCompare : forall 'a. 
+                         (Basic_classes.SetType 'a) => 
+                           'a -> 'a -> Basic_classes.ordering
+  val setEqual : forall 'a. 
+                   (Basic_classes.SetType 'a) => (set 'a) -> (set 'a) -> bool
+  val setEqualBy : forall 'a. 
+                     ('a -> 'a -> Basic_classes.ordering) -> (set 'a) -> 
+                                                             (set 'a) -> 
+                                                             bool
+  val set_case : forall 'a 'b. 
+                   (Basic_classes.SetType 'a) => 
+                     (set 'a) -> 'b -> ('a -> 'b) -> 'b -> 'b
+  val sigma : forall 'a 'b. 
+                (Basic_classes.SetType 'a) (Basic_classes.SetType 'b) => 
+                  (set 'a) -> ('a -> set 'b) -> set ('a * 'b)
+  val sigmaBy : forall 'a 'b. 
+                  (('a * 'b) -> ('a * 'b) -> Basic_classes.ordering) -> 
+                  (set 'a) -> ('a -> set 'b) -> set ('a * 'b)
+  val singleton : forall 'a. (Basic_classes.SetType 'a) => 'a -> set 'a
+  val size : forall 'a. (Basic_classes.SetType 'a) => (set 'a) -> nat
+  val snd : forall 'a 'b. ('a * 'b) -> 'b
+  val snoc : forall 'a. 'a -> (list 'a) -> list 'a
+  val split : forall 'a. 
+                (Basic_classes.SetType 'a) (Basic_classes.Ord 'a) => 
+                  'a -> (set 'a) -> ((set 'a) * (set 'a))
+  val splitAt : forall 'a. nat -> (list 'a) -> ((list 'a) * (list 'a))
+  val splitMember : forall 'a. 
+                      (Basic_classes.SetType 'a) (Basic_classes.Ord 'a) => 
+                        'a -> (set 'a) -> ((set 'a) * bool * (set 'a))
+  val subset : forall 'a. 
+                 (Basic_classes.SetType 'a) => (set 'a) -> (set 'a) -> bool
+  val succ : forall 'a. (Num.NumSucc 'a) => 'a -> 'a
+  val swap : forall 'a 'b. ('a * 'b) -> ('b * 'a)
+  val take : forall 'a. nat -> (list 'a) -> list 'a
+  val test : forall 'a 'b. 
+               (Basic_classes.SetType 'a) (Basic_classes.SetType 'b) => 
+                 ('a * 'b) -> ('a * 'b) -> Basic_classes.ordering
+  val toSet : forall 'k 'v. 
+                (Map.MapKeyType 'k) (Basic_classes.SetType 'k)
+                  (Basic_classes.SetType 'v) => 
+                  (Map.map 'k 'v) -> set ('k * 'v)
+  val toSetBy : forall 'k 'v. 
+                  (('k * 'v) -> ('k * 'v) -> Basic_classes.ordering) -> 
+                  (Map.map 'k 'v) -> set ('k * 'v)
+  val uncurry : forall 'a 'b 'c. ('a -> 'b -> 'c) -> ('a * 'b) -> 'c
+  val union : forall 'a. 
+                (Basic_classes.SetType 'a) => (set 'a) -> (set 'a) -> set 'a
+  val unionBy : forall 'a. 
+                  ('a -> 'a -> Basic_classes.ordering) -> (set 'a) -> 
+                                                          (set 'a) -> 
+                                                          set 'a
+  val unions : forall 'k 'v. 
+                 (Map.MapKeyType 'k) => 
+                   (list (Map.map 'k 'v)) -> Map.map 'k 'v
+  val unsafe_structural_equality : forall 'a. 'a -> 'a -> bool
+  val unsafe_structural_inequality : forall 'a. 'a -> 'a -> bool
+  val unzip : forall 'a 'b. (list ('a * 'b)) -> ((list 'a) * (list 'b))
+  val update : forall 'a. (list 'a) -> nat -> 'a -> list 'a
+  val zip : forall 'a 'b. (list 'a) -> (list 'b) -> list ('a * 'b)
+  val || : bool -> bool -> bool
+  val ~ : forall 'a. (Num.NumNegate 'a) => 'a -> 'a
+
+  module Instance_Basic_classes_Eq_Basic_classes_ordering = struct
+
+    val <> : Basic_classes.ordering -> Basic_classes.ordering -> bool
+    val = : Basic_classes.ordering -> Basic_classes.ordering -> bool
+
+  end
+
+  module Instance_Basic_classes_Eq_Either_either = struct
+
+    val <> : forall 'a 'b. 
+               (Basic_classes.Eq 'a) (Basic_classes.Eq 'b) => 
+                 (Either.either 'a 'b) -> (Either.either 'a 'b) -> bool
+    val = : forall 'a 'b. 
+              (Basic_classes.Eq 'a) (Basic_classes.Eq 'b) => 
+                (Either.either 'a 'b) -> (Either.either 'a 'b) -> bool
+
+  end
+
+  module Instance_Basic_classes_Eq_Map_map = struct
+
+    val <> : forall 'k 'v. 
+               (Basic_classes.Eq 'k) (Basic_classes.Eq 'v) => 
+                 (Map.map 'k 'v) -> (Map.map 'k 'v) -> bool
+    val = : forall 'k 'v. 
+              (Basic_classes.Eq 'k) (Basic_classes.Eq 'v) => 
+                (Map.map 'k 'v) -> (Map.map 'k 'v) -> bool
+
+  end
+
+  module Instance_Basic_classes_Eq_Maybe_maybe = struct
+
+    val <> : forall 'a. 
+               (Basic_classes.Eq 'a) => 
+                 (Maybe.maybe 'a) -> (Maybe.maybe 'a) -> bool
+    val = : forall 'a. 
+              (Basic_classes.Eq 'a) => 
+                (Maybe.maybe 'a) -> (Maybe.maybe 'a) -> bool
+
+  end
+
+  module Instance_Basic_classes_Eq_Num_int = struct
+
+    val <> : Num.int -> Num.int -> bool
+    val = : Num.int -> Num.int -> bool
+
+  end
+
+  module Instance_Basic_classes_Eq_Num_integer = struct
+
+    val <> : Num.integer -> Num.integer -> bool
+    val = : Num.integer -> Num.integer -> bool
+
+  end
+
+  module Instance_Basic_classes_Eq_Num_natural = struct
+
+    val <> : Num.natural -> Num.natural -> bool
+    val = : Num.natural -> Num.natural -> bool
+
+  end
+
+  module Instance_Basic_classes_Eq_bool = struct
+
+    val <> : bool -> bool -> bool
+    val = : bool -> bool -> bool
+
+  end
+
+  module Instance_Basic_classes_Eq_list = struct
+
+    val <> : forall 'a. 
+               (Basic_classes.Eq 'a) => (list 'a) -> (list 'a) -> bool
+    val = : forall 'a. 
+              (Basic_classes.Eq 'a) => (list 'a) -> (list 'a) -> bool
+
+  end
+
+  module Instance_Basic_classes_Eq_nat = struct
+
+    val <> : nat -> nat -> bool
+    val = : nat -> nat -> bool
+
+  end
+
+  module Instance_Basic_classes_Eq_set = struct
+
+    val <> : forall 'a. 
+               (Basic_classes.SetType 'a) => (set 'a) -> (set 'a) -> bool
+    val = : forall 'a. 
+              (Basic_classes.SetType 'a) => (set 'a) -> (set 'a) -> bool
+
+  end
+
+  module Instance_Basic_classes_Eq_tup = struct
+
+    val <> : forall 'a 'b. 
+               (Basic_classes.Eq 'a) (Basic_classes.Eq 'b) => 
+                 ('a * 'b) -> ('a * 'b) -> bool
+    val = : forall 'a 'b. 
+              (Basic_classes.Eq 'a) (Basic_classes.Eq 'b) => 
+                ('a * 'b) -> ('a * 'b) -> bool
+
+  end
+
+  module Instance_Basic_classes_Eq_var = struct
+
+    val <> : forall 'a. 'a -> 'a -> bool
+    val = : forall 'a. 'a -> 'a -> bool
+
+  end
+
+  module Instance_Basic_classes_OrdMaxMin_Num_int = struct
+
+    val max : Num.int -> Num.int -> Num.int
+    val min : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Basic_classes_OrdMaxMin_Num_integer = struct
+
+    val max : Num.integer -> Num.integer -> Num.integer
+    val min : Num.integer -> Num.integer -> Num.integer
+
+  end
+
+  module Instance_Basic_classes_OrdMaxMin_Num_natural = struct
+
+    val max : Num.natural -> Num.natural -> Num.natural
+    val min : Num.natural -> Num.natural -> Num.natural
+
+  end
+
+  module Instance_Basic_classes_OrdMaxMin_nat = struct
+
+    val max : nat -> nat -> nat
+    val min : nat -> nat -> nat
+
+  end
+
+  module Instance_Basic_classes_OrdMaxMin_var = struct
+
+    val max : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> 'a
+    val min : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> 'a
+
+  end
+
+  module Instance_Basic_classes_Ord_Num_int = struct
+
+    val < : Num.int -> Num.int -> bool
+    val <= : Num.int -> Num.int -> bool
+    val > : Num.int -> Num.int -> bool
+    val >= : Num.int -> Num.int -> bool
+    val compare : Num.int -> Num.int -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_Ord_Num_integer = struct
+
+    val < : Num.integer -> Num.integer -> bool
+    val <= : Num.integer -> Num.integer -> bool
+    val > : Num.integer -> Num.integer -> bool
+    val >= : Num.integer -> Num.integer -> bool
+    val compare : Num.integer -> Num.integer -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_Ord_Num_natural = struct
+
+    val < : Num.natural -> Num.natural -> bool
+    val <= : Num.natural -> Num.natural -> bool
+    val > : Num.natural -> Num.natural -> bool
+    val >= : Num.natural -> Num.natural -> bool
+    val compare : Num.natural -> Num.natural -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_Ord_list = struct
+
+    val < : forall 'a. 
+              (Basic_classes.Ord 'a) => (list 'a) -> (list 'a) -> bool
+    val <= : forall 'a. 
+               (Basic_classes.Ord 'a) => (list 'a) -> (list 'a) -> bool
+    val > : forall 'a. 
+              (Basic_classes.Ord 'a) => (list 'a) -> (list 'a) -> bool
+    val >= : forall 'a. 
+               (Basic_classes.Ord 'a) => (list 'a) -> (list 'a) -> bool
+    val compare : forall 'a. 
+                    (Basic_classes.Ord 'a) => 
+                      (list 'a) -> (list 'a) -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_Ord_nat = struct
+
+    val < : nat -> nat -> bool
+    val <= : nat -> nat -> bool
+    val > : nat -> nat -> bool
+    val >= : nat -> nat -> bool
+    val compare : nat -> nat -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_Ord_tup = struct
+
+    val < : forall 'a 'b. 
+              (Basic_classes.Ord 'a) (Basic_classes.Ord 'b) => 
+                ('a * 'b) -> ('a * 'b) -> bool
+    val <= : forall 'a 'b. 
+               (Basic_classes.Ord 'a) (Basic_classes.Ord 'b) => 
+                 ('a * 'b) -> ('a * 'b) -> bool
+    val > : forall 'a 'b. 
+              (Basic_classes.Ord 'a) (Basic_classes.Ord 'b) => 
+                ('a * 'b) -> ('a * 'b) -> bool
+    val >= : forall 'a 'b. 
+               (Basic_classes.Ord 'a) (Basic_classes.Ord 'b) => 
+                 ('a * 'b) -> ('a * 'b) -> bool
+    val compare : forall 'a 'b. 
+                    (Basic_classes.Ord 'a) (Basic_classes.Ord 'b) => 
+                      ('a * 'b) -> ('a * 'b) -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_SetType_Maybe_maybe = struct
+
+    val setElemCompare : forall 'a. 
+                           (Basic_classes.SetType 'a) => 
+                             (Maybe.maybe 'a) -> (Maybe.maybe 'a) -> 
+                                                 Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_SetType_Num_int = struct
+
+    val setElemCompare : Num.int -> Num.int -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_SetType_Num_integer = struct
+
+    val setElemCompare : Num.integer -> Num.integer -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_SetType_Num_natural = struct
+
+    val setElemCompare : Num.natural -> Num.natural -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_SetType_bool = struct
+
+    val setElemCompare : bool -> bool -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_SetType_nat = struct
+
+    val setElemCompare : nat -> nat -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_SetType_set = struct
+
+    val setElemCompare : forall 'a. 
+                           (Basic_classes.SetType 'a) => 
+                             (set 'a) -> (set 'a) -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_SetType_tup = struct
+
+    val setElemCompare : forall 'a 'b. 
+                           (Basic_classes.SetType 'a)
+                             (Basic_classes.SetType 'b) => 
+                             ('a * 'b) -> ('a * 'b) -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_SetType_var = struct
+
+    val setElemCompare : forall 'a. 'a -> 'a -> Basic_classes.ordering
+
+  end
+
+  module Instance_Map_MapKeyType_var = struct
+
+    val mapKeyCompare : forall 'a. 
+                          (Basic_classes.SetType 'a) => 
+                            'a -> 'a -> Basic_classes.ordering
+
+  end
+
+  module Instance_Num_NumAdd_Num_int = struct
+
+    val + : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumAdd_Num_integer = struct
+
+    val + : Num.integer -> Num.integer -> Num.integer
+
+  end
+
+  module Instance_Num_NumAdd_Num_natural = struct
+
+    val + : Num.natural -> Num.natural -> Num.natural
+
+  end
+
+  module Instance_Num_NumAdd_nat = struct
+
+    val + : nat -> nat -> nat
+
+  end
+
+  module Instance_Num_NumDivision_Num_int = struct
+
+    val / : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumDivision_Num_integer = struct
+
+    val / : Num.integer -> Num.integer -> Num.integer
+
+  end
+
+  module Instance_Num_NumDivision_Num_natural = struct
+
+    val / : Num.natural -> Num.natural -> Num.natural
+
+  end
+
+  module Instance_Num_NumDivision_nat = struct
+
+    val / : nat -> nat -> nat
+
+  end
+
+  module Instance_Num_NumIntegerDivision_Num_int = struct
+
+    val div : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumIntegerDivision_Num_integer = struct
+
+    val div : Num.integer -> Num.integer -> Num.integer
+
+  end
+
+  module Instance_Num_NumIntegerDivision_Num_natural = struct
+
+    val div : Num.natural -> Num.natural -> Num.natural
+
+  end
+
+  module Instance_Num_NumIntegerDivision_nat = struct
+
+    val div : nat -> nat -> nat
+
+  end
+
+  module Instance_Num_NumMinus_Num_int = struct
+
+    val - : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumMinus_Num_integer = struct
+
+    val - : Num.integer -> Num.integer -> Num.integer
+
+  end
+
+  module Instance_Num_NumMinus_Num_natural = struct
+
+    val - : Num.natural -> Num.natural -> Num.natural
+
+  end
+
+  module Instance_Num_NumMinus_nat = struct
+
+    val - : nat -> nat -> nat
+
+  end
+
+  module Instance_Num_NumMult_Num_int = struct
+
+    val * : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumMult_Num_integer = struct
+
+    val * : Num.integer -> Num.integer -> Num.integer
+
+  end
+
+  module Instance_Num_NumMult_Num_natural = struct
+
+    val * : Num.natural -> Num.natural -> Num.natural
+
+  end
+
+  module Instance_Num_NumMult_nat = struct
+
+    val * : nat -> nat -> nat
+
+  end
+
+  module Instance_Num_NumNegate_Num_int = struct
+
+    val ~ : Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumNegate_Num_integer = struct
+
+    val ~ : Num.integer -> Num.integer
+
+  end
+
+  module Instance_Num_NumPow_Num_int = struct
+
+    val ** : Num.int -> nat -> Num.int
+
+  end
+
+  module Instance_Num_NumPow_Num_integer = struct
+
+    val ** : Num.integer -> nat -> Num.integer
+
+  end
+
+  module Instance_Num_NumPow_Num_natural = struct
+
+    val ** : Num.natural -> nat -> Num.natural
+
+  end
+
+  module Instance_Num_NumPow_nat = struct
+
+    val ** : nat -> nat -> nat
+
+  end
+
+  module Instance_Num_NumPred_Num_int = struct
+
+    val pred : Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumPred_Num_integer = struct
+
+    val pred : Num.integer -> Num.integer
+
+  end
+
+  module Instance_Num_NumPred_Num_natural = struct
+
+    val pred : Num.natural -> Num.natural
+
+  end
+
+  module Instance_Num_NumPred_nat = struct
+
+    val pred : nat -> nat
+
+  end
+
+  module Instance_Num_NumRemainder_Num_int = struct
+
+    val mod : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumRemainder_Num_integer = struct
+
+    val mod : Num.integer -> Num.integer -> Num.integer
+
+  end
+
+  module Instance_Num_NumRemainder_Num_natural = struct
+
+    val mod : Num.natural -> Num.natural -> Num.natural
+
+  end
+
+  module Instance_Num_NumRemainder_nat = struct
+
+    val mod : nat -> nat -> nat
+
+  end
+
+  module Instance_Num_NumSucc_Num_int = struct
+
+    val succ : Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumSucc_Num_integer = struct
+
+    val succ : Num.integer -> Num.integer
+
+  end
+
+  module Instance_Num_NumSucc_Num_natural = struct
+
+    val succ : Num.natural -> Num.natural
+
+  end
+
+  module Instance_Num_NumSucc_nat = struct
+
+    val succ : nat -> nat
+
+  end
+
+  module Instance_Num_Numeral_Num_int = struct
+
+    val fromNumeral : numeral -> Num.int
+
+  end
+
+  module Instance_Num_Numeral_Num_integer = struct
+
+    val fromNumeral : numeral -> Num.integer
+
+  end
+
+  module Instance_Num_Numeral_Num_natural = struct
+
+    val fromNumeral : numeral -> Num.natural
+
+  end
+
+  module Instance_Num_Numeral_nat = struct
+
+    val fromNumeral : numeral -> nat
+
+  end
+
+end
+
+module Relation = struct
+  type rel 'a 'b = Relation.rel_set 'a 'b
+  type rel_pred 'a 'b = 'a -> 'b -> bool
+  type rel_set 'a 'b = set ('a * 'b)
+
+  val inRel : forall 'a 'b. 
+                (Basic_classes.SetType 'a) (Basic_classes.SetType 'b)
+                  (Basic_classes.Eq 'a) (Basic_classes.Eq 'b) => 
+                  'a -> 'b -> (Relation.rel 'a 'b) -> bool
+  val isAntisymmetric : forall 'a. 
+                          (Basic_classes.SetType 'a)
+                            (Basic_classes.Eq 'a) => 
+                            (Relation.rel 'a 'a) -> bool
+  val isAntisymmetricOn : forall 'a. 
+                            (Basic_classes.SetType 'a)
+                              (Basic_classes.Eq 'a) => 
+                              (Relation.rel 'a 'a) -> (set 'a) -> bool
+  val isEquivalence : forall 'a. 
+                        (Basic_classes.SetType 'a) (Basic_classes.Eq 'a) => 
+                          (Relation.rel 'a 'a) -> bool
+  val isEquivalenceOn : forall 'a. 
+                          (Basic_classes.SetType 'a)
+                            (Basic_classes.Eq 'a) => 
+                            (Relation.rel 'a 'a) -> (set 'a) -> bool
+  val isIrreflexive : forall 'a. 
+                        (Basic_classes.SetType 'a) (Basic_classes.Eq 'a) => 
+                          (Relation.rel 'a 'a) -> bool
+  val isIrreflexiveOn : forall 'a. 
+                          (Basic_classes.SetType 'a)
+                            (Basic_classes.Eq 'a) => 
+                            (Relation.rel 'a 'a) -> (set 'a) -> bool
+  val isPartialOrder : forall 'a. 
+                         (Basic_classes.SetType 'a) (Basic_classes.Eq 'a) => 
+                           (Relation.rel 'a 'a) -> bool
+  val isPartialOrderOn : forall 'a. 
+                           (Basic_classes.SetType 'a)
+                             (Basic_classes.Eq 'a) => 
+                             (Relation.rel 'a 'a) -> (set 'a) -> bool
+  val isPreorder : forall 'a. 
+                     (Basic_classes.SetType 'a) (Basic_classes.Eq 'a) => 
+                       (Relation.rel 'a 'a) -> bool
+  val isPreorderOn : forall 'a. 
+                       (Basic_classes.SetType 'a) (Basic_classes.Eq 'a) => 
+                         (Relation.rel 'a 'a) -> (set 'a) -> bool
+  val isReflexive : forall 'a. 
+                      (Basic_classes.SetType 'a) (Basic_classes.Eq 'a) => 
+                        (Relation.rel 'a 'a) -> bool
+  val isReflexiveOn : forall 'a. 
+                        (Basic_classes.SetType 'a) (Basic_classes.Eq 'a) => 
+                          (Relation.rel 'a 'a) -> (set 'a) -> bool
+  val isSingleValued : forall 'a 'b. 
+                         (Basic_classes.SetType 'a)
+                           (Basic_classes.SetType 'b) (Basic_classes.Eq 'a)
+                           (Basic_classes.Eq 'b) => 
+                           (Relation.rel 'a 'b) -> bool
+  val isStrictPartialOrder : forall 'a. 
+                               (Basic_classes.SetType 'a)
+                                 (Basic_classes.Eq 'a) => 
+                                 (Relation.rel 'a 'a) -> bool
+  val isStrictPartialOrderOn : forall 'a. 
+                                 (Basic_classes.SetType 'a)
+                                   (Basic_classes.Eq 'a) => 
+                                   (Relation.rel 'a 'a) -> (set 'a) -> bool
+  val isStrictTotalOrder : forall 'a. 
+                             (Basic_classes.SetType 'a)
+                               (Basic_classes.Eq 'a) => 
+                               (Relation.rel 'a 'a) -> bool
+  val isStrictTotalOrderOn : forall 'a. 
+                               (Basic_classes.SetType 'a)
+                                 (Basic_classes.Eq 'a) => 
+                                 (Relation.rel 'a 'a) -> (set 'a) -> bool
+  val isSubrel : forall 'a 'b. 
+                   (Basic_classes.SetType 'a) (Basic_classes.SetType 'b)
+                     (Basic_classes.Eq 'a) (Basic_classes.Eq 'b) => 
+                     (Relation.rel 'a 'b) -> (Relation.rel 'a 'b) -> bool
+  val isSymmetric : forall 'a. 
+                      (Basic_classes.SetType 'a) (Basic_classes.Eq 'a) => 
+                        (Relation.rel 'a 'a) -> bool
+  val isSymmetricOn : forall 'a. 
+                        (Basic_classes.SetType 'a) (Basic_classes.Eq 'a) => 
+                          (Relation.rel 'a 'a) -> (set 'a) -> bool
+  val isTotal : forall 'a. 
+                  (Basic_classes.SetType 'a) (Basic_classes.Eq 'a) => 
+                    (Relation.rel 'a 'a) -> bool
+  val isTotalOn : forall 'a. 
+                    (Basic_classes.SetType 'a) (Basic_classes.Eq 'a) => 
+                      (Relation.rel 'a 'a) -> (set 'a) -> bool
+  val isTotalOrder : forall 'a. 
+                       (Basic_classes.SetType 'a) (Basic_classes.Eq 'a) => 
+                         (Relation.rel 'a 'a) -> bool
+  val isTotalOrderOn : forall 'a. 
+                         (Basic_classes.SetType 'a) (Basic_classes.Eq 'a) => 
+                           (Relation.rel 'a 'a) -> (set 'a) -> bool
+  val isTransitive : forall 'a. 
+                       (Basic_classes.SetType 'a) (Basic_classes.Eq 'a) => 
+                         (Relation.rel 'a 'a) -> bool
+  val isTransitiveOn : forall 'a. 
+                         (Basic_classes.SetType 'a) (Basic_classes.Eq 'a) => 
+                           (Relation.rel 'a 'a) -> (set 'a) -> bool
+  val isTrichotomous : forall 'a. 
+                         (Basic_classes.SetType 'a) (Basic_classes.Eq 'a) => 
+                           (Relation.rel 'a 'a) -> bool
+  val isTrichotomousOn : forall 'a. 
+                           (Basic_classes.SetType 'a)
+                             (Basic_classes.Eq 'a) => 
+                             (Relation.rel 'a 'a) -> (set 'a) -> bool
+  val isWellFounded : forall 'a. 
+                        (Basic_classes.SetType 'a) (Basic_classes.Eq 'a) => 
+                          (Relation.rel 'a 'a) -> bool
+  val reflexivTransitiveClosure : forall 'a. 
+                                    (Basic_classes.SetType 'a)
+                                      (Basic_classes.Eq 'a) => 
+                                      (Relation.rel 'a 'a) -> Relation.rel 
+                                                              'a 'a
+  val reflexivTransitiveClosureOn : forall 'a. 
+                                      (Basic_classes.SetType 'a)
+                                        (Basic_classes.Eq 'a) => 
+                                        (Relation.rel 'a 'a) -> (set 'a) -> 
+                                                                Relation.rel 
+                                                                'a 'a
+  val relAdd : forall 'a 'b. 
+                 (Basic_classes.SetType 'a) (Basic_classes.SetType 'b) => 
+                   'a -> 'b -> (Relation.rel 'a 'b) -> Relation.rel 'a 'b
+  val relApply : forall 'a 'b. 
+                   (Basic_classes.SetType 'a) (Basic_classes.SetType 'b)
+                     (Basic_classes.Eq 'a) => 
+                     (Relation.rel 'a 'b) -> (set 'a) -> set 'b
+  val relComp : forall 'a 'b 'c. 
+                  (Basic_classes.SetType 'a) (Basic_classes.SetType 'b)
+                    (Basic_classes.SetType 'c) (Basic_classes.Eq 'a)
+                    (Basic_classes.Eq 'b) => 
+                    (Relation.rel 'a 'b) -> (Relation.rel 'b 'c) -> Relation.rel 
+                                                                    'a 
+                                                                    'c
+  val relConverse : forall 'a 'b. 
+                      (Basic_classes.SetType 'a)
+                        (Basic_classes.SetType 'b) => 
+                        (Relation.rel 'a 'b) -> Relation.rel 'b 'a
+  val relDefinedOn : forall 'a. 
+                       (Basic_classes.SetType 'a) => 
+                         (Relation.rel 'a 'a) -> set 'a
+  val relDomain : forall 'a 'b. 
+                    (Basic_classes.SetType 'a) (Basic_classes.SetType 'b) => 
+                      (Relation.rel 'a 'b) -> set 'a
+  val relEmpty : forall 'a 'b. 
+                   (Basic_classes.SetType 'a) (Basic_classes.SetType 'b) => 
+                     Relation.rel 'a 'b
+  val relEq : forall 'a 'b. 
+                (Basic_classes.SetType 'a) (Basic_classes.SetType 'b) => 
+                  (Relation.rel 'a 'b) -> (Relation.rel 'a 'b) -> bool
+  val relFromPred : forall 'a 'b. 
+                      (Basic_classes.SetType 'a) (Basic_classes.SetType 'b)
+                        (Basic_classes.Eq 'a) (Basic_classes.Eq 'b) => 
+                        (set 'a) -> (set 'b) -> (Relation.rel_pred 'a 'b) -> 
+                                                Relation.rel 'a 'b
+  val relFromSet : forall 'a 'b. 
+                     (Basic_classes.SetType 'a)
+                       (Basic_classes.SetType 'b) => 
+                       (Relation.rel_set 'a 'b) -> Relation.rel 'a 'b
+  val relId : forall 'a. 
+                (Basic_classes.SetType 'a) (Basic_classes.Eq 'a) => 
+                  Relation.rel 'a 'a
+  val relIdOn : forall 'a. 
+                  (Basic_classes.SetType 'a) (Basic_classes.Eq 'a) => 
+                    (set 'a) -> Relation.rel 'a 'a
+  val relIntersection : forall 'a 'b. 
+                          (Basic_classes.SetType 'a)
+                            (Basic_classes.SetType 'b) (Basic_classes.Eq 'a)
+                            (Basic_classes.Eq 'b) => 
+                            (Relation.rel 'a 'b) -> (Relation.rel 'a 'b) -> 
+                                                    Relation.rel 'a 'b
+  val relOver : forall 'a. 
+                  (Basic_classes.SetType 'a) => 
+                    (Relation.rel 'a 'a) -> (set 'a) -> bool
+  val relRange : forall 'a 'b. 
+                   (Basic_classes.SetType 'a) (Basic_classes.SetType 'b) => 
+                     (Relation.rel 'a 'b) -> set 'b
+  val relRestrict : forall 'a. 
+                      (Basic_classes.SetType 'a) (Basic_classes.Eq 'a) => 
+                        (Relation.rel 'a 'a) -> (set 'a) -> Relation.rel 
+                                                            'a 'a
+  val relToPred : forall 'a 'b. 
+                    (Basic_classes.SetType 'a) (Basic_classes.SetType 'b)
+                      (Basic_classes.Eq 'a) (Basic_classes.Eq 'b) => 
+                      (Relation.rel 'a 'b) -> Relation.rel_pred 'a 'b
+  val relToSet : forall 'a 'b. 
+                   (Basic_classes.SetType 'a) (Basic_classes.SetType 'b) => 
+                     (Relation.rel 'a 'b) -> Relation.rel_set 'a 'b
+  val relUnion : forall 'a 'b. 
+                   (Basic_classes.SetType 'a) (Basic_classes.SetType 'b) => 
+                     (Relation.rel 'a 'b) -> (Relation.rel 'a 'b) -> 
+                                             Relation.rel 'a 'b
+  val transitiveClosure : forall 'a. 
+                            (Basic_classes.SetType 'a)
+                              (Basic_classes.Eq 'a) => 
+                              (Relation.rel 'a 'a) -> Relation.rel 'a 'a
+  val transitiveClosureAdd : forall 'a. 
+                               (Basic_classes.SetType 'a)
+                                 (Basic_classes.Eq 'a) => 
+                                 'a -> 'a -> (Relation.rel 'a 'a) -> 
+                                             Relation.rel 'a 'a
+  val transitiveClosureByCmp : forall 'a. 
+                                 (('a * 'a) -> ('a * 'a) -> Basic_classes.ordering) -> 
+                                 (Relation.rel 'a 'a) -> Relation.rel 'a 'a
+  val transitiveClosureByEq : forall 'a. 
+                                ('a -> 'a -> bool) -> (Relation.rel 'a 'a) -> 
+                                                      Relation.rel 'a 'a
+
+end
+
+module Set = struct
+
+  val IN : forall 'a. (Basic_classes.SetType 'a) => 'a -> (set 'a) -> bool
+  val NIN : forall 'a. (Basic_classes.SetType 'a) => 'a -> (set 'a) -> bool
+  val \ : forall 'a. 
+            (Basic_classes.SetType 'a) => (set 'a) -> (set 'a) -> set 'a
+  val all : forall 'a. 
+              (Basic_classes.SetType 'a) => ('a -> bool) -> (set 'a) -> bool
+  val any : forall 'a. 
+              (Basic_classes.SetType 'a) => ('a -> bool) -> (set 'a) -> bool
+  val bigunion : forall 'a. 
+                   (Basic_classes.SetType 'a) => (set (set 'a)) -> set 'a
+  val bigunionBy : forall 'a. 
+                     ('a -> 'a -> Basic_classes.ordering) -> (set (set 'a)) -> 
+                                                             set 'a
+  val cross : forall 'a 'b. 
+                (Basic_classes.SetType 'a) (Basic_classes.SetType 'b) => 
+                  (set 'a) -> (set 'b) -> set ('a * 'b)
+  val crossBy : forall 'a 'b. 
+                  (('a * 'b) -> ('a * 'b) -> Basic_classes.ordering) -> 
+                  (set 'a) -> (set 'b) -> set ('a * 'b)
+  val delete : forall 'a. 
+                 (Basic_classes.SetType 'a) (Basic_classes.Eq 'a) => 
+                   'a -> (set 'a) -> set 'a
+  val deleteBy : forall 'a. 
+                   (Basic_classes.SetType 'a) => 
+                     ('a -> 'a -> bool) -> 'a -> (set 'a) -> set 'a
+  val difference : forall 'a. 
+                     (Basic_classes.SetType 'a) => 
+                       (set 'a) -> (set 'a) -> set 'a
+  val differenceBy : forall 'a. 
+                       ('a -> 'a -> Basic_classes.ordering) -> (set 'a) -> 
+                                                               (set 'a) -> 
+                                                               set 'a
+  val empty : forall 'a. (Basic_classes.SetType 'a) => set 'a
+  val emptyBy : forall 'a. ('a -> 'a -> Basic_classes.ordering) -> set 'a
+  val filter : forall 'a. 
+                 (Basic_classes.SetType 'a) => 
+                   ('a -> bool) -> (set 'a) -> set 'a
+  val findMax : forall 'a. 
+                  (Basic_classes.SetType 'a) (Basic_classes.Eq 'a) => 
+                    (set 'a) -> Maybe.maybe 'a
+  val findMin : forall 'a. 
+                  (Basic_classes.SetType 'a) (Basic_classes.Eq 'a) => 
+                    (set 'a) -> Maybe.maybe 'a
+  val finite : forall 'a. (Basic_classes.SetType 'a) => (set 'a) -> bool
+  val fromList : forall 'a. (Basic_classes.SetType 'a) => (list 'a) -> set 'a
+  val fromListBy : forall 'a. 
+                     ('a -> 'a -> Basic_classes.ordering) -> (list 'a) -> 
+                                                             set 'a
+  val insert : forall 'a. 
+                 (Basic_classes.SetType 'a) => 'a -> (set 'a) -> set 'a
+  val instance_Basic_classes_Eq_set_dict : forall 'a. 
+                                             (Basic_classes.SetType 'a) => 
+                                               Basic_classes.Eq_class 
+                                               (set 'a)
+  val instance_Basic_classes_SetType_set_dict : forall 'a. 
+                                                  (Basic_classes.SetType 'a) => 
+                                                    Basic_classes.SetType_class 
+                                                    (set 'a)
+  val inter : forall 'a. 
+                (Basic_classes.SetType 'a) => (set 'a) -> (set 'a) -> set 'a
+  val intersection : forall 'a. 
+                       (Basic_classes.SetType 'a) => 
+                         (set 'a) -> (set 'a) -> set 'a
+  val intersectionBy : forall 'a. 
+                         ('a -> 'a -> Basic_classes.ordering) -> (set 'a) -> 
+                                                                 (set 'a) -> 
+                                                                 set 
+                                                                 'a
+  val isProperSubsetOf : forall 'a. 
+                           (Basic_classes.SetType 'a) => 
+                             (set 'a) -> (set 'a) -> bool
+  val isProperSubsetOfBy : forall 'a. 
+                             ('a -> 'a -> Basic_classes.ordering) -> 
+                             (set 'a) -> (set 'a) -> bool
+  val isSubsetOf : forall 'a. 
+                     (Basic_classes.SetType 'a) => 
+                       (set 'a) -> (set 'a) -> bool
+  val isSubsetOfBy : forall 'a. 
+                       ('a -> 'a -> Basic_classes.ordering) -> (set 'a) -> 
+                                                               (set 'a) -> 
+                                                               bool
+  val leastFixedPoint : forall 'a. 
+                          (Basic_classes.SetType 'a) => 
+                            nat -> ((set 'a) -> set 'a) -> (set 'a) -> set 'a
+  val map : forall 'a 'b. 
+              (Basic_classes.SetType 'a) (Basic_classes.SetType 'b) => 
+                ('a -> 'b) -> (set 'a) -> set 'b
+  val mapBy : forall 'a 'b. 
+                ('b -> 'b -> Basic_classes.ordering) -> ('a -> 'b) -> 
+                                                        (set 'a) -> set 'b
+  val member : forall 'a. 
+                 (Basic_classes.SetType 'a) => 'a -> (set 'a) -> bool
+  val memberBy : forall 'a. 
+                   ('a -> 'a -> Basic_classes.ordering) -> 'a -> (set 'a) -> 
+                                                                 bool
+  val notMember : forall 'a. 
+                    (Basic_classes.SetType 'a) => 'a -> (set 'a) -> bool
+  val null : forall 'a. (Basic_classes.SetType 'a) => (set 'a) -> bool
+  val partition : forall 'a. 
+                    (Basic_classes.SetType 'a) => 
+                      ('a -> bool) -> (set 'a) -> ((set 'a) * (set 'a))
+  val setCompare : forall 'a. 
+                     (Basic_classes.SetType 'a) => 
+                       (set 'a) -> (set 'a) -> Basic_classes.ordering
+  val setCompareBy : forall 'a. 
+                       ('a -> 'a -> Basic_classes.ordering) -> (set 'a) -> 
+                                                               (set 'a) -> 
+                                                               Basic_classes.ordering
+  val setEqual : forall 'a. 
+                   (Basic_classes.SetType 'a) => (set 'a) -> (set 'a) -> bool
+  val setEqualBy : forall 'a. 
+                     ('a -> 'a -> Basic_classes.ordering) -> (set 'a) -> 
+                                                             (set 'a) -> 
+                                                             bool
+  val set_case : forall 'a 'b. 
+                   (Basic_classes.SetType 'a) => 
+                     (set 'a) -> 'b -> ('a -> 'b) -> 'b -> 'b
+  val sigma : forall 'a 'b. 
+                (Basic_classes.SetType 'a) (Basic_classes.SetType 'b) => 
+                  (set 'a) -> ('a -> set 'b) -> set ('a * 'b)
+  val sigmaBy : forall 'a 'b. 
+                  (('a * 'b) -> ('a * 'b) -> Basic_classes.ordering) -> 
+                  (set 'a) -> ('a -> set 'b) -> set ('a * 'b)
+  val singleton : forall 'a. (Basic_classes.SetType 'a) => 'a -> set 'a
+  val size : forall 'a. (Basic_classes.SetType 'a) => (set 'a) -> nat
+  val split : forall 'a. 
+                (Basic_classes.SetType 'a) (Basic_classes.Ord 'a) => 
+                  'a -> (set 'a) -> ((set 'a) * (set 'a))
+  val splitMember : forall 'a. 
+                      (Basic_classes.SetType 'a) (Basic_classes.Ord 'a) => 
+                        'a -> (set 'a) -> ((set 'a) * bool * (set 'a))
+  val subset : forall 'a. 
+                 (Basic_classes.SetType 'a) => (set 'a) -> (set 'a) -> bool
+  val union : forall 'a. 
+                (Basic_classes.SetType 'a) => (set 'a) -> (set 'a) -> set 'a
+  val unionBy : forall 'a. 
+                  ('a -> 'a -> Basic_classes.ordering) -> (set 'a) -> 
+                                                          (set 'a) -> 
+                                                          set 'a
+
+  module Instance_Basic_classes_Eq_set = struct
+
+    val <> : forall 'a. 
+               (Basic_classes.SetType 'a) => (set 'a) -> (set 'a) -> bool
+    val = : forall 'a. 
+              (Basic_classes.SetType 'a) => (set 'a) -> (set 'a) -> bool
+
+  end
+
+  module Instance_Basic_classes_SetType_set = struct
+
+    val setElemCompare : forall 'a. 
+                           (Basic_classes.SetType 'a) => 
+                             (set 'a) -> (set 'a) -> Basic_classes.ordering
+
+  end
+
+end
+
+module Set_helpers = struct
+
+  val fold : forall 'a 'b. ('a -> 'b -> 'b) -> (set 'a) -> 'b -> 'b
+
+end
+
+module Sorting = struct
+
+  val insert : forall 'a. 
+                 (Basic_classes.Ord 'a) => 'a -> (list 'a) -> list 'a
+  val insertBy : forall 'a. ('a -> 'a -> bool) -> 'a -> (list 'a) -> list 'a
+  val insertSort : forall 'a. (Basic_classes.Ord 'a) => (list 'a) -> list 'a
+  val insertSortBy : forall 'a. ('a -> 'a -> bool) -> (list 'a) -> list 'a
+  val isPermutation : forall 'a. 
+                        (Basic_classes.Eq 'a) => 
+                          (list 'a) -> (list 'a) -> bool
+  val isPermutationBy : forall 'a. 
+                          ('a -> 'a -> bool) -> (list 'a) -> (list 'a) -> 
+                                                             bool
+  val isSorted : forall 'a. (Basic_classes.Ord 'a) => (list 'a) -> bool
+  val isSortedBy : forall 'a. ('a -> 'a -> bool) -> (list 'a) -> bool
+  val sort : forall 'a. (Basic_classes.Ord 'a) => (list 'a) -> list 'a
+  val sortBy : forall 'a. ('a -> 'a -> bool) -> (list 'a) -> list 'a
+
+end
+
+module Tuple = struct
+
+  val curry : forall 'a 'b 'c. (('a * 'b) -> 'c) -> 'a -> 'b -> 'c
+  val fst : forall 'a 'b. ('a * 'b) -> 'a
+  val snd : forall 'a 'b. ('a * 'b) -> 'b
+  val swap : forall 'a 'b. ('a * 'b) -> ('b * 'a)
+  val uncurry : forall 'a 'b 'c. ('a -> 'b -> 'c) -> ('a * 'b) -> 'c
+
+end
+

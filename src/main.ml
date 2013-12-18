@@ -57,6 +57,7 @@ let opt_print_env = ref false
 let opt_print_version = ref false
 let lib = ref []
 let out_dir = ref None
+let tex_all_filename_opt = ref None
 let opt_file_arguments = ref ([]:string list)
 
 let default_library = 
@@ -72,21 +73,21 @@ let lib_paths_ref = ref ([] : string list)
 let allow_reorder_modules = ref true
 
 let options = Arg.align ([
-  ( "-i", 
-    Arg.String (fun l -> lib := l::!lib),
-    " treat the file as input only and generate no output for it");
+  ( "-ocaml", 
+    Arg.Unit (add_backend (Target.Target_no_ident Target.Target_ocaml)),
+    " generate OCaml");
   ( "-tex", 
     Arg.Unit (add_backend (Target.Target_no_ident Target.Target_tex)),
-    " generate LaTeX");
+    " generate LaTeX for each module separatly");
+  ( "-tex_all", 
+    Arg.String (fun fn -> tex_all_filename_opt := Some fn),
+    " generate LaTeX in a single file");
   ( "-html", 
     Arg.Unit (add_backend (Target.Target_no_ident Target.Target_html)),
     " generate Html");
   ( "-hol", 
     Arg.Unit (add_backend (Target.Target_no_ident Target.Target_hol)),
     " generate HOL");
-  ( "-ocaml", 
-    Arg.Unit (add_backend (Target.Target_no_ident Target.Target_ocaml)),
-    " generate OCaml");
   ( "-isa",
     Arg.Unit (add_backend (Target.Target_no_ident Target.Target_isa)),
     " generate Isabelle");
@@ -98,19 +99,24 @@ let options = Arg.align ([
     " generate Lem output after simple transformations");
   ( "-ident",
     Arg.Unit (add_backend Target.Target_ident),
-    " generate input on stdout");
-  ( "-print_env",
-    Arg.Unit (fun b -> opt_print_env := true),
-    " print the environment signature on stdout");
+    " generate input on stdout\n\n");
+
   ( "-lib", 
     Arg.String (fun l -> lib_paths_ref := l :: (!lib_paths_ref)),
     " add path to library path; if no lib is given the default '"^(default_library)^")' is used. Set LEMLIB environment variable to change this default.");
+  ( "-no_dep_reorder", 
+    Arg.Unit (fun b -> allow_reorder_modules := false),
+    " prohibit reordering modules given to lem as explicit arguments in order during dependency resolution\n\n");
+
   ( "-outdir", 
     Arg.String (fun l -> out_dir := Some l),
     " the output directory (the default is the dir the files reside in)");
-  ( "-v",
-    Arg.Unit (fun b -> opt_print_version := true),
-    " print version");
+  ( "-i", 
+    Arg.String (fun l -> lib := l::!lib),
+    " treat the file as input only and generate no output for it");
+  ( "-only_changed_output",
+    Arg.Unit (fun b -> Process_file.always_replace_files := false),
+    " generate only output files, whose content really changed compared to the existing file");
   ( "-only_auxiliary",
     Arg.Unit (fun b -> Process_file.only_auxiliary := true),
     " generate only auxiliary output files");
@@ -120,30 +126,31 @@ let options = Arg.align ([
        | "none" -> 0
        | "auto" -> 1
        | _ -> 2))),
-    " generate no (none) auxiliary-information, only auxiliaries that can be handled automatically (auto) or all (all) auxiliary information");
+    " generate no (none) auxiliary-information, only auxiliaries that can be handled automatically (auto) or all (all) auxiliary information\n\n");
+
+  ( "-debug",
+    Arg.Unit (fun b -> Printexc.record_backtrace true),
+    " print a backtrace for all errors (lem needs to be compiled in debug mode)");
+  ( "-print_env",
+    Arg.Unit (fun b -> opt_print_env := true),
+    " print the environment signature on stdout");
   ( "-add_loc_annots", 
     Arg.Unit (fun b -> Backend_common.def_add_location_comment_flag := true),
     " add location annotations to the output");
-  ( "-no_dep_reorder", 
-    Arg.Unit (fun b -> allow_reorder_modules := false),
-    " prohibit reordering modules given to lem as explicit arguments in order during dependency resolution");
+  ( "-v",
+    Arg.Unit (fun b -> opt_print_version := true),
+    " print version");
   ( "-ident_pat_compile",
     Arg.Unit (fun b -> Target_trans.ident_force_pattern_compile := true; Reporting.ignore_pat_compile_warnings()),
     " activates pattern compilation for the identity backend. This is used for debugging.");
   ( "-ident_dict_passing",
     Arg.Unit (fun b -> Target_trans.ident_force_dictionary_passing := true),
-    " activates dictionary passing transformations for the identity backend. This is used for debugging.");
-  ( "-only_changed_output",
-    Arg.Unit (fun b -> Process_file.always_replace_files := false),
-    " generate only output files, whose content really changed compared to the existing file");
-  ( "-debug",
-    Arg.Unit (fun b -> Printexc.record_backtrace true),
-    " print a backtrace for all errors (lem needs to be compiled in debug mode)")
+    " activates dictionary passing transformations for the identity backend. This is used for debugging.\n\n");
 ] @ Reporting.warn_opts)
 
 let usage_msg = 
     ("Lem " ^ Version.v ^ "\n"
-     ^ "example usage:       lem -hol -ocaml -lib ../lem/library test.lem\n" 
+     ^ "example usage:       lem -hol -ocaml test.lem\n" 
     )
 
 let _ = 
@@ -156,7 +163,7 @@ let _ =
 let check_modules env modules =
   (* The checks. Modify these lists to add more. *)
   let exp_checks env = [Patterns.check_match_exp_warn env; Syntactic_tests.check_id_restrict_e env] in
-  let pat_checks env = [Syntactic_tests.check_id_restrict_p env] in
+  let pat_checks env = [Syntactic_tests.check_id_restrict_p env; Patterns.check_number_patterns env] in
   let def_checks env = [Patterns.check_match_def_warn env;
                         Syntactic_tests.check_decidable_equality_def env;
 		        Syntactic_tests.check_positivity_condition_def] in
@@ -199,8 +206,7 @@ begin
   ()
 end
 
-(* Do the transformations for a given target *)
-let per_target libpath (out_dir : string option) modules env alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum targ =
+let transform_for_target libpath modules env targ =
   let consts = Initial_env.read_target_constants libpath targ in
 
   let _ = check_env_for_target targ env in
@@ -229,11 +235,23 @@ let per_target libpath (out_dir : string option) modules env alldoc_accum alldoc
     let transformed_m' = Target_trans.rename_def_params targ consts' transformed_m in
 
     let avoid = Target_trans.get_avoid_f targ consts' in
-    let _ = output libpath out_dir targ avoid env'' transformed_m' alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum in
-    env''
+    (env'', avoid, transformed_m')
   with
       | Trans.Trans_error(l,msg) ->
           raise (Reporting_basic.Fatal_error (Reporting_basic.Err_trans (l, msg)))
+
+let per_target libpath tex_all_opt (out_dir : string option) modules env targ =
+  let (env', avoid, transformed_mods) = transform_for_target libpath modules env targ in
+  (if (targ = Target.Target_no_ident Target.Target_tex) then begin
+     match tex_all_opt with
+       | None -> output env' avoid targ out_dir transformed_mods
+       | Some (dir, filename, gen_single) ->
+            if gen_single then output env' avoid targ out_dir transformed_mods;
+            output_alltexdoc env' avoid dir filename transformed_mods
+   end else
+     output env' avoid targ out_dir transformed_mods);
+  env'
+
 
 let main () =
   let _ = if !opt_print_version then print_string ("Lem " ^ Version.v ^ "\n") in
@@ -290,6 +308,20 @@ let main () =
     | (Some _, None) -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_general (false, Ast.Unknown, "in order to use '-outdir' all files given as arguments to Lem need to be in the same directory")));
     | (x, _) -> x
   in
+
+  let tex_all_opt = begin
+     match (!tex_all_filename_opt) with
+       | None -> None
+       | Some fn -> begin
+           let dir0 = Filename.dirname fn in
+           let dir = if dir0 = "" then Filename.current_dir_name else dir0 in
+           let filename0 = Filename.basename fn in
+           let filename = if (Filename.check_suffix filename0 ".tex") then Filename.chop_extension filename0 else filename0 in
+           let generate_single_tex = List.mem (Target.Target_no_ident Target.Target_tex) !backends in
+           let _ = add_backend (Target.Target_no_ident Target.Target_tex) () in
+           Some (dir, filename, generate_single_tex)
+       end
+  end in
 
   (* We don't want to add the files in !lib to the resulting module ASTs,
      because we don't want to put them throught the back end. So, they get an argument false, while all others get true. *)
@@ -365,13 +397,10 @@ let main () =
              end in
 
 
-  let alldoc_accum = ref ([] : Ulib.Text.t list) in
-  let alldoc_inc_accum = ref ([] : Ulib.Text.t list) in
-  let alldoc_inc_usage_accum = ref ([] : Ulib.Text.t list) in
-  let _ = List.fold_left (fun env -> (per_target default_library out_dir (List.rev modules) env alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum))
+  let _ = List.fold_left (fun env -> (per_target default_library tex_all_opt out_dir (List.rev modules) env))
     env !backends in
-  (if List.mem (Target.Target_no_ident Target.Target_tex) !backends then 
-     output_alldoc "alldoc" (String.concat " " !opt_file_arguments) alldoc_accum alldoc_inc_accum alldoc_inc_usage_accum)
+  ()
+
 
 let _ = 
   try 

@@ -50,14 +50,13 @@ let (^^) = Ulib.Text.(^^^)
 let r = Ulib.Text.of_latin1
 
 type id_annot =  (* kind annotation for latex'd identifiers *)
-  | Term_const of bool
-  | Term_ctor
+  | Term_const of bool * bool
   | Term_field 
   | Term_method 
   | Term_var 
   | Term_var_toplevel
   | Term_spec 
-  | Type_ctor of bool
+  | Type_ctor of bool * bool
   | Type_var
   | Nexpr_var
   | Module_name
@@ -91,7 +90,8 @@ type t =
   | Ensure_newline                 (* enters a newline if not already at beginning of line *)
   | Cons of t * t                  (* Cons *)
   | Block of bool * block_type * t (* Block either autoformated or not *)
-  | Break_hint of bool * int        (* Possible line break with indentation *)
+  | Break_hint of bool * int       (* Possible line break with indentation *)
+  | Core of t                      (* The most important part of an output, e.g. the right hand side of a function definiton. It is a marker that can be used to throw everything else away *)
 
 type t' =
   | Kwd' of string
@@ -182,7 +182,41 @@ let ns need_space t1 t2 =
     | ((Empty | Inter _ | Str _ | Err _ | Meta _ | Texspace | Internalspace | Ensure_newline | Break_hint _), _) -> false
     | (_, (Empty | Inter _ | Str _ | Err _ | Meta _ | Texspace | Internalspace | Ensure_newline | Break_hint _)) -> false
     | _ -> need_space (conv t1) (conv t2)
-    
+
+
+(* ******** *)
+(* Core     *)
+(* ******** *)
+
+let core t = Core t 
+
+let rec remove_core = function
+  | Cons(t1,t2) -> Cons (remove_core t1, remove_core t2)
+  | Block(b,d,t) -> Block (b, d, remove_core t)
+  | Core t -> remove_core t
+  | t -> t
+
+let rec extract_core = function
+  | Cons(t1,t2) -> extract_core t1 @ extract_core t2
+  | Block(_,_,t) -> extract_core t
+  | Core t -> [remove_core t]
+  | t -> []
+
+let rec remove_initial_ws = function
+  | Inter _ -> Empty
+  | Meta "" -> Empty
+  | Kwd "" -> Empty
+  | Texspace -> Empty
+  | Cons(t1,t2) -> begin
+      match remove_initial_ws t1 with
+        | Empty -> remove_initial_ws t2
+        | t1' -> Cons (t1', t2)
+    end
+  | Block(b,bty,t) -> Block (b, bty, remove_initial_ws t)
+  | Core t -> Core (remove_initial_ws t)
+  | t -> t
+
+
 
 (* ******** *)
 (* Debug pp *)
@@ -190,7 +224,6 @@ let ns need_space t1 t2 =
 
 let pp_raw_id_annot = function
   | Term_const _       -> r"Term_const"       
-  | Term_ctor          -> r"Term_ctor"        
   | Term_field         -> r"Term_field"       
   | Term_method        -> r"Term_method"      
   | Term_var           -> r"Term_var"         
@@ -208,9 +241,15 @@ let pp_raw_bool = function
   | true  -> r"true"
   | false -> r"false"
 
+let wrap_paren_star x = r"(*" ^^ x ^^ r"*)"
+
 let rec ml_comment_to_rope = function
   | Ast.Chars(r) -> r
-  | Ast.Comment(coms) -> r"(*" ^^ Ulib.Text.concat (r"") (List.map ml_comment_to_rope coms) ^^ r"*)"
+  | Ast.Comment(coms) -> wrap_paren_star (Ulib.Text.concat (r"") (List.map ml_comment_to_rope coms))
+
+let ml_comment_to_rope' = function
+  | Ast.Chars(r) -> r
+  | Ast.Comment(coms) -> Ulib.Text.concat (r"") (List.map ml_comment_to_rope coms)
 
 let rec pp_raw_t t = 
   match t with
@@ -230,7 +269,8 @@ let rec pp_raw_t t =
   | Block(b,d,t) -> r"Block(" ^^ pp_raw_bool b ^^ r"," ^^ pp_raw_t t ^^ r")"
   | Break_hint _ -> r"Breakhint"
   | Internalspace -> r"Internalspace"
-
+  | Core t -> r"Core(" ^^ pp_raw_t t ^^ r")"
+ 
 
 (* turns a single, unstructered Output.t into a string *)
 let to_rope_single quote_char lex_skips_to_rope preserve_ws t : Ulib.Text.t = 
@@ -462,6 +502,7 @@ let tex_escape_aux with_space rr =
          if c=Ulib.UChar.of_char '<'  then r"\\mbox{$<$}" else 
          if c=Ulib.UChar.of_char '>'  then r"\\mbox{$>$}" else 
          if c=Ulib.UChar.of_char '&'  then r"\\&" else 
+         if c=Ulib.UChar.of_char '~'  then r"\\mbox{$\\sim$}" else 
          if c=Ulib.UChar.of_char '\\' then r"\\mbox{$\\backslash{}$}" else 
          if c=Ulib.UChar.of_char '|'  then r"\\mbox{$\\mid$}" else 
          Ulib.Text.of_uchar c)
@@ -470,26 +511,30 @@ let tex_escape_aux with_space rr =
 let tex_escape rr = tex_escape_aux false rr
 let tex_escape_with_space rr = tex_escape_aux true rr
 
-let tex_id_wrap = function
-  | Term_const _       -> r"\\" ^^ tex_sty_prefix ^^ r"TermConst"        
-  | Term_ctor          -> r"\\" ^^ tex_sty_prefix ^^ r"TermCtor"         
-  | Term_field         -> r"\\" ^^ tex_sty_prefix ^^ r"TermField"        
-  | Term_method        -> r"\\" ^^ tex_sty_prefix ^^ r"TermMethod"       
-  | Term_var           -> r"\\" ^^ tex_sty_prefix ^^ r"TermVar"          
-  | Term_var_toplevel  -> r"\\" ^^ tex_sty_prefix ^^ r"TermVarToplevel" 
-  | Term_spec          -> r"\\" ^^ tex_sty_prefix ^^ r"TermSpec"         
-  | Type_ctor _        -> r"\\" ^^ tex_sty_prefix ^^ r"TypeCtor"         
-  | Type_var           -> r"\\" ^^ tex_sty_prefix ^^ r"TypeVar"          
-  | Module_name        -> r"\\" ^^ tex_sty_prefix ^^ r"ModuleName"       
-  | Class_name         -> r"\\" ^^ tex_sty_prefix ^^ r"ClassName"        
-  | Target             -> r"\\" ^^ tex_sty_prefix ^^ r"Target"            
-  | Component          -> r"\\" ^^ tex_sty_prefix ^^ r"Component"            
-  | Nexpr_var          -> r"\\" ^^ tex_sty_prefix ^^ r"Nexpr_var"            
-
-let tex_id_wrap_no_escape = function
-  | Term_const e       -> e
-  | Type_ctor e        -> e
-  | _ -> false
+let tex_id_wrap a r1 = 
+  let res no_escape command_name =
+     (r"\\" ^^ tex_sty_prefix ^^ r command_name, (if no_escape then r1 else tex_escape r1)) in
+  match a with
+  | Term_const (is_quot, is_backend) -> res ((not is_quot) && is_backend) (if is_quot then "TermConstQuote" else "TermConst")          
+  | Term_field         -> res false "TermField"
+  | Term_method        -> res false "TermMethod"       
+  | Term_var           -> res false "TermVar"          
+  | Term_var_toplevel  -> res false "TermVarToplevel" 
+  | Term_spec          -> res false "TermSpec"         
+  | Type_ctor (is_quot, is_backend)  -> res ((not is_quot) && is_backend) (if is_quot then "TypeCtorQuote" else "TypeCtor")          
+  | Module_name        -> res false "ModuleName"       
+  | Class_name         -> res false "ClassName"        
+  | Target             -> res false "Target"            
+  | Component          -> res false "Component"            
+  | Nexpr_var          -> res false "Nexpr_var"            
+  | Type_var           -> begin 
+      let res_special_tyvar x = (r"\\" ^^ tex_sty_prefix ^^ r "TypeVar" ^^ r x, r "") in
+      if (r1 = r"a") then res_special_tyvar "A" else
+      if (r1 = r"b") then res_special_tyvar "B" else
+      if (r1 = r"c") then res_special_tyvar "C" else
+      if (r1 = r"d") then res_special_tyvar "D" else
+      res false "TypeVar"          
+    end
 
 let split_suffix s =
   let regexp = Str.regexp "\\(.*[^'0-9_]\\)_*\\([0-9]*\\)\\('*\\)\\(.*\\)" in
@@ -536,7 +581,8 @@ let debug = false
 
 let to_rope_tex_ident a rr =
   let (r1,r2) = split_suffix_rope rr in
-  tex_id_wrap a ^^ r"{" ^^ (if tex_id_wrap_no_escape a then r1 else tex_escape r1) ^^ r"}" ^^ r2
+  let (tex_wrapper, r1') = tex_id_wrap a r1 in
+  tex_wrapper ^^ r"{" ^^ r1' ^^ r"}" ^^ r2
 
 let rec to_rope_tex_single t = 
   match t with
@@ -544,10 +590,46 @@ let rec to_rope_tex_single t =
   | Kwd(s) ->  Ulib.Text.of_latin1 s
   | Ident(a,r) -> to_rope_tex_ident a r
   | Num(i) ->  Ulib.Text.of_latin1 (string_of_int i)
-  | Inter(Ast.Com(rr)) -> r"\\tsholcomm{" ^^ tex_escape_with_space (ml_comment_to_rope rr)  ^^ r"}" 
+  | Inter(Ast.Com(rr)) -> 
+      (* experiment in supporting
+         -  (*tex FOO*) to inline FOO directly in latex backend 
+         -  (*--- FOO*) to suppress the comment altogether in latex backend
+
+         To test, make in tests/backends/textests and compare 
+         out10.lem and Out10.pdf.
+
+         Within a top-level item it appears to work.
+
+         At top-level it doesn't - we have to identify the top-level
+         comments which should not be associated to the preceding or
+         following definitions (eg if they are separated by a blank
+         line from them). IIRC Thomas removed some old code and a
+         constructor recently that used to do something like that?
+
+         This commit also doesn't:
+         - cope with the possibility of an Ast.Chars that isn't
+            wrapped in an Ast.Comment (I don't know whether that can
+            occur)
+         - suppress (*tex *) and (*--- *) comments in other backends
+         - support analogous (*coq *), (*hol *), (*isa *), or (*html *)
+
+         If we still had the tabbing version of \lemdefn (which maybe
+         also dealt with long lines better than we do now? - see
+         out10.lem for that too) then one could use (*tex \=*) and
+         suchlike to manually control tabstops where necessary.
+       *)
+      let x = ml_comment_to_rope' rr in
+      let texprefix = r"tex " in
+      let suppressprefix = r"--- " in
+      if Ulib.Text.starts_with x texprefix then
+        Ulib.Text.tail x (Ulib.Text.length texprefix)
+      else if Ulib.Text.starts_with x suppressprefix then
+        r"" 
+      else
+        r"\\lemcomm{" ^^ tex_escape_with_space (wrap_paren_star x)  ^^ r"}" 
   | Inter(Ast.Ws(rr)) -> if Ulib.Text.length rr > 0 then r"\\ " ^^ rr else rr
   | Inter(Ast.Nl) -> raise (Failure "Nl in to_rope_tex")
-  | Str(s) ->  quote_string (r"\"") s
+  | Str(s) ->  quote_string (r"\"") (tex_escape s)
   | Err(s) -> raise (Backend(s))
   | Meta(s) -> Ulib.Text.of_latin1 s
   | Texspace -> r""   
@@ -556,6 +638,7 @@ let rec to_rope_tex_single t =
   | Internalspace -> r""   
   | Cons(t1,t2) -> raise (Failure "Cons in to_rope_tex") 
   | Block _ -> raise (Failure "Block in to_rope_tex") 
+  | Core _ -> raise (Failure "Core in to_rope_tex") 
 
 (** [make_indent r] returns a text consisting only of spaces of the same length as [r] *)
 let make_indent (r : Ulib.Text.t) : Ulib.Text.t = 

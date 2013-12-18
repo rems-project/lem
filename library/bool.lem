@@ -8,6 +8,8 @@ declare {isabelle;hol;ocaml} rename module = lem_bool
 
 (* The type bool is hard-coded, so are true and false *)
 
+declare tex target_rep type bool = `$\mathbb{B}$`
+
 (* ----------------------- *)
 (* not                     *)
 (* ----------------------- *)
@@ -23,10 +25,10 @@ declare ocaml    target_rep function not = `not`
 declare isabelle target_rep function not x = `\<not>` x
 declare html     target_rep function not = `&not;`
 declare coq      target_rep function not = `negb`
-declare tex      target_rep function not = `$\neg$`
+declare tex      target_rep function not b = `$\neg$` b
 
-assert not_1 : (not (not true))
-assert not_2 : (not false)
+assert not_1 : not (not true)
+assert not_2 : not false
 
 (* ----------------------- *)
 (* and                     *)

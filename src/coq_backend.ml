@@ -216,8 +216,7 @@ let rec src_t_to_string =
     | Typ_paren (skips, src_t, skips') ->
         from_string "(" ^ src_t_to_string src_t.term ^ from_string ")"
 ;;
-let typ_ident_to_output (p : Path.t id) =     
-  Ident.to_output (Type_ctor false) path_sep (B.type_id_to_ident p)
+let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
 
 let field_ident_to_output fd ascii_alternative = 
   Ident.to_output Term_field path_sep (B.const_id_to_ident fd ascii_alternative)
@@ -413,12 +412,12 @@ let generate_coq_record_update_notation e =
               let right_hand_side =
                 Output.flat [
                   from_string "match r with\n        |";
-                  Name.to_output (Type_ctor false) name; arg_space; right_args_list;
+                  Name.to_output (Type_ctor (false, false)) name; arg_space; right_args_list;
                   from_string " => "; equality_test; catch_all; from_string "\n      end"
                 ]
               in
                 Output.flat [
-                  from_string "|"; Name.to_output (Type_ctor false) name; arg_space;
+                  from_string "|"; Name.to_output (Type_ctor (false, false)) name; arg_space;
                   names_list; from_string " =>\n      "; right_hand_side;
                 ]) l
             in
@@ -574,6 +573,15 @@ let generate_coq_record_update_notation e =
       DefaultMap.find k !initial_default_map
     ;;
 
+    type assoc
+      = NoAssoc
+      | LeftAssoc
+      | RightAssoc
+    ;;
+
+    module AssocMap = Map.Make (struct type t = string let compare = Pervasives.compare end)
+    ;;
+
     let rec def_extra (inside_instance: bool) (callback: def list -> Output.t) (inside_module: bool) (m: def_aux) =
       match m with
         | Lemma (skips, lemma_typ, targets, (name, _), skips', e) ->
@@ -628,6 +636,8 @@ let generate_coq_record_update_notation e =
           let handle_mod (sk, md) = begin
             Output.flat [
               from_string "Require Import "; ws sk; from_string md; from_string ".\n"
+              (* XXX: as Lem assumes files imported in one file are implicitly exported too. *)
+            ; from_string "Require Export "; ws sk; from_string md; from_string ".\n"
             ]
           end in
           if (not (in_target targets)) then emp else Output.flat (List.map handle_mod mod_descrs)
@@ -670,25 +680,50 @@ let generate_coq_record_update_notation e =
             ) body
           in
           let notations = List.flatten (List.map snd body_notations) in
-          let rec generate_notations notations =
+          let assoc_map =
+            List.fold_right (fun (x, y) -> AssocMap.add x y) [
+              ("mod", (40, NoAssoc))
+            ; ("+", (50, LeftAssoc))
+            ; ("-", (50, LeftAssoc))
+            ; ("*", (40, LeftAssoc))
+            ; ("/", (40, LeftAssoc))
+            ] AssocMap.empty
+          in
+          let rec generate_notations assoc_map notations =
             match notations with
               | [] -> emp
               | (infix, name)::xs ->
-                let tail = generate_notations xs in
+                let tail = generate_notations assoc_map xs in
                 let name = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip name)) in
                 let infix = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip infix)) in
-                Output.flat [
-                  from_string "Notation \" X \'"; from_string infix; from_string "\' Y\" := ("
-                ; from_string name; from_string " X Y) (at level 70, no associativity)."
-                ; from_string "\n"; tail
-                ]
+                let associativity =
+                  try
+                    let (level, assoc) = AssocMap.find infix assoc_map in
+                    let assoc =
+                      match assoc with
+                        | NoAssoc -> from_string "no associativity"
+                        | LeftAssoc -> from_string "left associativity"
+                        | RightAssoc -> from_string "right associativity"
+                    in
+                      Output.flat [
+                        from_string "(at level "; from_string (string_of_int level)
+                      ; from_string ", "; assoc; from_string ")"
+                      ]
+                  with Not_found ->
+                    from_string "(at level 70, no associativity)"
+                in
+                  Output.flat [
+                    from_string "Notation \" X \'"; from_string infix; from_string "\' Y\" := ("
+                  ; from_string name; from_string " X Y) "; associativity
+                  ; from_string ".\n"; tail
+                  ]
           in
           let body = Output.concat (from_string ";") (List.map fst body_notations) in
           Output.flat [
             ws skips; from_string "Class"; ws skips'; name; from_string " ("; tv; from_string ": Type): Type := {"
           ; ws skips''; body
           ; from_string "\n}."; ws skips'''
-          ; generate_notations notations
+          ; generate_notations assoc_map notations
           ]
       | Instance (Ast.Inst_default skips, i_ref, inst, vals, skips') -> emp
            (* Don't generate default instances, they are only used for explicit inlining by Lem *)
@@ -776,7 +811,7 @@ let generate_coq_record_update_notation e =
             ]
       | Comment c ->
       	let ((def_aux, skips_opt), l, lenv) = c in
-        let skips = match skips_opt with None -> emp | Some s -> ws s in
+        let skips = match skips_opt with None -> from_string "\n" | Some s -> ws s in
           Output.flat [
       		  skips; from_string "(* "; def inside_instance callback inside_module def_aux; from_string " *)"
           ]
@@ -1053,7 +1088,7 @@ let generate_coq_record_update_notation e =
               Name.to_output Term_var v
           | Backend (sk, i) ->
               ws sk ^
-              Ident.to_output (Term_const false) path_sep i
+              Ident.to_output (Term_const (false, true)) path_sep i
           | Lit l -> literal l
           | Do (skips, mod_descr_id, do_line_list, skips', e, skips'', type_int) -> assert false (* DPM: should have been removed by macros *)
           | App (e1, e2) ->
@@ -1388,7 +1423,7 @@ let generate_coq_record_update_notation e =
             concat emp oL
         | P_backend(sk, i, _, ps) ->
             ws sk ^
-            Ident.to_output (Term_const true) path_sep i ^
+            Ident.to_output (Term_const (false, true)) path_sep i ^
             concat texspace (List.map fun_pattern ps)
         | P_num_add ((name, l), skips, skips', k) ->
             let succs = Output.flat @@ Util.replicate k (from_string "S (") in
@@ -1451,7 +1486,7 @@ let generate_coq_record_update_notation e =
             concat emp oL
         | P_backend(sk, i, _, ps) ->
             ws sk ^
-            Ident.to_output (Term_const true) path_sep i ^
+            Ident.to_output (Term_const (false, true)) path_sep i ^
             concat texspace (List.map def_pattern ps)
         | P_num_add ((name, l), skips, skips', k) ->
             let succs = Output.flat @@ Util.replicate k (from_string "S (") in
@@ -1464,7 +1499,7 @@ let generate_coq_record_update_notation e =
     and type_def_abbreviation def =
     	match Seplist.hd def with
     		| ((n, _), tyvars, _, Te_abbrev (skips, t),_) ->
-    				let name = Name.to_output (Type_ctor false) n in
+    				let name = Name.to_output (Type_ctor (false, false)) n in
             let tyvars' = type_def_type_variables tyvars in
     				let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
             let body = abbreviation_typ t in
@@ -1500,7 +1535,7 @@ let generate_coq_record_update_notation e =
     	match Seplist.hd def with
       	| (n, tyvars, _, (Te_record (skips, skips', fields, skips'') as r),_) ->
             let (n', _) = n in
-            let name = Name.to_output (Type_ctor false) n' in
+            let name = Name.to_output (Type_ctor (false, false)) n' in
             let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) field (sep @@ from_string ";") fields in
       	    let tyvars' = type_def_type_variables tyvars in
             let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
@@ -1527,7 +1562,7 @@ let generate_coq_record_update_notation e =
         ]
     and type_def' ((n0, l), ty_vars, t_path, ty, _) =
       let n = B.type_path_to_name n0 t_path in 
-      let name = Name.to_output (Type_ctor false) n in
+      let name = Name.to_output (Type_ctor (false, false)) n in
       let ty_vars =
         List.map (
           function
@@ -1547,7 +1582,7 @@ let generate_coq_record_update_notation e =
     and inductive ty_vars name =
       let ty_var_sep = if List.length ty_vars = 0 then emp else from_string " " in
       let ty_vars = inductive_type_variables ty_vars in
-      let name = Name.to_output (Type_ctor false) name in
+      let name = Name.to_output (Type_ctor (false, false)) name in
         Output.flat [
           name; ty_var_sep; ty_vars; from_string " : Type "
         ]
@@ -1560,7 +1595,7 @@ let generate_coq_record_update_notation e =
               ]
             | Nvar x ->
               Output.flat [
-                from_string "("; x; from_string " : num)"
+                from_string "("; x; from_string " : nat)"
               ]) vars
       in
         concat_str " " mapped
@@ -1576,7 +1611,7 @@ let generate_coq_record_update_notation e =
             ]
     and constructor ind_name (ty_vars : variable list) ((name0, _), c_ref, skips, args) =
       let ctor_name = B.const_ref_to_name name0 false c_ref in
-      let ctor_name = Name.to_output (Type_ctor false) ctor_name in
+      let ctor_name = Name.to_output (Type_ctor (false, false)) ctor_name in
       let body = flat @@ Seplist.to_sep_list abbreviation_typ (sep @@ from_string "-> ") args in
       let ty_vars_typeset =
         concat_str " " @@ List.map (fun v ->
@@ -1624,7 +1659,7 @@ let generate_coq_record_update_notation e =
         | Typ_len nexp -> src_nexp nexp
         | Typ_backend (p, ts) ->
           let i = Path.to_ident (ident_get_lskip p) p.descr in
-          let i = Ident.to_output (Type_ctor true) path_sep i in
+          let i = Ident.to_output (Type_ctor (false, true)) path_sep i in
           let ts = concat emp @@ List.map pat_typ ts in
             Output.flat [
               i; from_string " "; ts
@@ -1658,6 +1693,26 @@ let generate_coq_record_update_notation e =
               | Typed_ast.Tn_N nv ->
                   Output.flat [
                     from_string "("; from_string "nv: nat)"
+                  ]) tvs
+          in
+            Output.flat [
+              from_string " "; concat_str " " mapped
+            ]
+    and default_type_variables tvs =
+      match tvs with
+        | [] -> emp
+        | [Typed_ast.Tn_A tv] -> from_string "{" ^ tyvar tv ^ from_string ": Type}"
+        | tvs ->
+          let mapped = List.map (fun t ->
+            match t with
+              | Typed_ast.Tn_A (_, tv, _) ->
+                let tv = from_string @@ Ulib.Text.to_string tv in
+                  Output.flat [
+                    from_string "{"; tv; from_string ": Type}"
+                  ]
+              | Typed_ast.Tn_N nv ->
+                  Output.flat [
+                    from_string "{"; from_string "nv: nat}"
                   ]) tvs
           in
             Output.flat [
@@ -1752,7 +1807,7 @@ let generate_coq_record_update_notation e =
           else
             from_string " "
         in
-        let tnvar_list' = type_def_type_variables tnvar_list in
+        let tnvar_list' = default_type_variables tnvar_list in
         let default = generate_default_value_texp t in
         let mapped = concat_str " " @@ List.map (fun x ->
           match x with

@@ -1,0 +1,253 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Path.html">
+<link rel="next" href="Patterns.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of exceptions" rel=Appendix href="index_exceptions.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Ast_util" rel="Chapter" href="Ast_util.html">
+<link title="Backend" rel="Chapter" href="Backend.html">
+<link title="Backend_common" rel="Chapter" href="Backend_common.html">
+<link title="Coq_decidable_equality" rel="Chapter" href="Coq_decidable_equality.html">
+<link title="Def_trans" rel="Chapter" href="Def_trans.html">
+<link title="Finite_map" rel="Chapter" href="Finite_map.html">
+<link title="Ident" rel="Chapter" href="Ident.html">
+<link title="Initial_env" rel="Chapter" href="Initial_env.html">
+<link title="Macro_expander" rel="Chapter" href="Macro_expander.html">
+<link title="Main" rel="Chapter" href="Main.html">
+<link title="Module_dependencies" rel="Chapter" href="Module_dependencies.html">
+<link title="Name" rel="Chapter" href="Name.html">
+<link title="Nvar" rel="Chapter" href="Nvar.html">
+<link title="Output" rel="Chapter" href="Output.html">
+<link title="Path" rel="Chapter" href="Path.html">
+<link title="Pattern_syntax" rel="Chapter" href="Pattern_syntax.html">
+<link title="Patterns" rel="Chapter" href="Patterns.html">
+<link title="Pcombinators" rel="Chapter" href="Pcombinators.html">
+<link title="Pp" rel="Chapter" href="Pp.html">
+<link title="Precedence" rel="Chapter" href="Precedence.html">
+<link title="Process_file" rel="Chapter" href="Process_file.html">
+<link title="Rename_top_level" rel="Chapter" href="Rename_top_level.html">
+<link title="Reporting" rel="Chapter" href="Reporting.html">
+<link title="Reporting_basic" rel="Chapter" href="Reporting_basic.html">
+<link title="Seplist" rel="Chapter" href="Seplist.html">
+<link title="Syntactic_tests" rel="Chapter" href="Syntactic_tests.html">
+<link title="Target" rel="Chapter" href="Target.html">
+<link title="Target_binding" rel="Chapter" href="Target_binding.html">
+<link title="Target_syntax" rel="Chapter" href="Target_syntax.html">
+<link title="Target_trans" rel="Chapter" href="Target_trans.html">
+<link title="Trans" rel="Chapter" href="Trans.html">
+<link title="Typecheck" rel="Chapter" href="Typecheck.html">
+<link title="Typecheck_ctxt" rel="Chapter" href="Typecheck_ctxt.html">
+<link title="Typed_ast" rel="Chapter" href="Typed_ast.html">
+<link title="Typed_ast_syntax" rel="Chapter" href="Typed_ast_syntax.html">
+<link title="Types" rel="Chapter" href="Types.html">
+<link title="Tyvar" rel="Chapter" href="Tyvar.html">
+<link title="Util" rel="Chapter" href="Util.html"><link title="Destructors and selector functions " rel="Section" href="#2_Destructorsandselectorfunctions">
+<link title="Classification of Patterns " rel="Section" href="#2_ClassificationofPatterns">
+<link title="miscellaneous " rel="Section" href="#2_miscellaneous">
+<title>Pattern_syntax</title>
+</head>
+<body>
+<div class="navbar"><a href="Path.html">Previous</a>
+&nbsp;<a href="index.html">Up</a>
+&nbsp;<a href="Patterns.html">Next</a>
+</div>
+<center><h1>Module <a href="type_Pattern_syntax.html">Pattern_syntax</a></h1></center>
+<br>
+<pre><span class="keyword">module</span> Pattern_syntax: <code class="code">sig</code> <a href="Pattern_syntax.html">..</a> <code class="code">end</code></pre>general functions about patterns<br>
+<hr width="100%">
+<br>
+general functions about patterns<br>
+<br>
+<span id="2_Destructorsandselectorfunctions"><h2>Destructors and selector functions </h2></span><br>
+<pre><span id="VALis_var_wild_pat"><span class="keyword">val</span> is_var_wild_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> bool</code></pre><div class="info">
+<code class="code">is_var_wild_pat p</code> checks whether the pattern <code class="code">p</code> is
+    a wildcard or a variable pattern. Before checking
+    type-annotations, parenthesis, etc. are removed.<br>
+</div>
+<pre><span id="VALis_var_pat"><span class="keyword">val</span> is_var_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> bool</code></pre><div class="info">
+<code class="code">is_var_pat p</code> checks whether the pattern <code class="code">p</code> is
+    a variable pattern.<br>
+</div>
+<pre><span id="VALis_ext_var_pat"><span class="keyword">val</span> is_ext_var_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> bool</code></pre><div class="info">
+<code class="code">is_ext_var_pat p</code> checks whether the pattern <code class="code">p</code> is
+    a variable pattern in the broadest sense. In contrast
+    to <code class="code">is_var_pat p</code> also variables with type-annotations and
+    parenthesis are accepted. <code class="code">is_var_wild_pat p</code> additionally
+    accepts wildcard patterns.<br>
+</div>
+<pre><span id="VALis_var_tup_pat"><span class="keyword">val</span> is_var_tup_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> bool</code></pre><div class="info">
+<code class="code">is_var_tup_pat p</code> checks whether the pattern <code class="code">p</code> consists only
+    of variable and tuple patterns.<br>
+</div>
+<pre><span id="VALis_var_wild_tup_pat"><span class="keyword">val</span> is_var_wild_tup_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> bool</code></pre><div class="info">
+<code class="code">is_var_wild_tup_pat p</code> checks whether the pattern <code class="code">p</code> consists only
+    of variable, wildcard and tuple patterns.<br>
+</div>
+<pre><span id="VALdest_var_pat"><span class="keyword">val</span> dest_var_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> <a href="Name.html#TYPEt">Name.t</a> option</code></pre><div class="info">
+<code class="code">dest_var_pat p</code> destructs variable patterns and returs their name. If <code class="code">p</code> 
+    is not a variable pattern, <code class="code">None</code> is returned.<br>
+</div>
+<pre><span id="VALdest_ext_var_pat"><span class="keyword">val</span> dest_ext_var_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> <a href="Name.html#TYPEt">Name.t</a> option</code></pre><div class="info">
+<code class="code">dest_ext_var_pat p</code> is an extended version of <code class="code">det_var_pat p</code>. In addition
+    to <code class="code">det_var_pat p</code> it can handle variable patterns with type annotations and
+    is able to strip parenthesis.<br>
+</div>
+<pre><span id="VALpat_to_ext_name"><span class="keyword">val</span> pat_to_ext_name</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> <a href="Typed_ast.html#TYPEname_lskips_annot">Typed_ast.name_lskips_annot</a> option</code></pre><div class="info">
+<code class="code">pat_to_ext_name p</code> is very similar to <code class="code">dest_ext_var_pat p</code>. 
+    However, intead of returning just a name, <code class="code">pat_to_ext_name</code> returns additionally 
+    the whitespace and the type in form of a <code class="code">name_lskips_annot</code>.<br>
+</div>
+<pre><span id="VALis_wild_pat"><span class="keyword">val</span> is_wild_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> bool</code></pre><div class="info">
+<code class="code">is_wild_pat p</code> checks whether the pattern <code class="code">p</code> is
+    a wildcard pattern.<br>
+</div>
+<pre><span id="VALdest_tup_pat"><span class="keyword">val</span> dest_tup_pat</span> : <code class="type">int option -> <a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> <a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> list option</code></pre><div class="info">
+<code class="code">dest_tup_pat lo p</code> destructs a tuple pattern. If
+    <code class="code">p</code> is no tuple pattern, <code class="code">None</code> is returned. Otherwise,
+    it destructs the tuple pattern into a list of patterns <code class="code">pL</code>.
+    If <code class="code">lo</code> is not <code class="code">None</code>, it checks whether the length of this
+    list matches the length given by <code class="code">lo</code>. If this is the case
+    <code class="code">Some pL</code> is returned, otherwise <code class="code">None</code>.<br>
+</div>
+<pre><span id="VALmk_tup_pat"><span class="keyword">val</span> mk_tup_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> list -> <a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a></code></pre><div class="info">
+<code class="code">mk_tup_pat [p1, ..., pn]</code> creates the pattern <code class="code">(p1, ..., pn)</code>.<br>
+</div>
+<pre><span id="VALis_tup_pat"><span class="keyword">val</span> is_tup_pat</span> : <code class="type">int option -> <a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> bool</code></pre><div class="info">
+<code class="code">is_tup_pat lo p</code> checks whether <code class="code">p</code> is a tuple pattern of the given length. 
+    see <code class="code">dest_tup_pat</code><br>
+</div>
+<pre><span id="VALdest_tf_pat"><span class="keyword">val</span> dest_tf_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> bool option</code></pre><div class="info">
+<code class="code">dest_tf_pat p</code> destructs boolean literal patterns,
+ i.e. <code class="code">true</code> and <code class="code">false</code> patterns.<br>
+</div>
+<pre><span id="VALis_tf_pat"><span class="keyword">val</span> is_tf_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> bool</code></pre><div class="info">
+<code class="code">if_tf_pat p</code> checks whether <code class="code">p</code> is the <code class="code">true</code> or <code class="code">false</code> pattern.<br>
+</div>
+<pre><span id="VALis_t_pat"><span class="keyword">val</span> is_t_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> bool</code></pre><div class="info">
+<code class="code">if_t_pat p</code> checks whether <code class="code">p</code> is the <code class="code">true</code> pattern.<br>
+</div>
+<pre><span id="VALis_f_pat"><span class="keyword">val</span> is_f_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> bool</code></pre><div class="info">
+<code class="code">if_f_pat p</code> checks whether <code class="code">p</code> is the <code class="code">false</code> pattern.<br>
+</div>
+<pre><span id="VALmk_tf_pat"><span class="keyword">val</span> mk_tf_pat</span> : <code class="type">bool -> <a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a></code></pre><div class="info">
+<code class="code">mk_tf_pat b</code> creates <code class="code">true</code> or <code class="code">false</code> pattern.<br>
+</div>
+<pre><span id="VALmk_paren_pat"><span class="keyword">val</span> mk_paren_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> <a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a></code></pre><div class="info">
+adds parenthesis around a pattern<br>
+</div>
+<pre><span id="VALmk_opt_paren_pat"><span class="keyword">val</span> mk_opt_paren_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> <a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a></code></pre><div class="info">
+adds parenthesis around a pattern, when needed<br>
+</div>
+<pre><span id="VALdest_num_pat"><span class="keyword">val</span> dest_num_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> int option</code></pre><div class="info">
+<code class="code">dest_num_pat p</code> destructs number literal patterns<br>
+</div>
+<pre><span id="VALis_num_pat"><span class="keyword">val</span> is_num_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> bool</code></pre><div class="info">
+<code class="code">is_num_pat p</code> checks whether <code class="code">p</code> is a number pattern.<br>
+</div>
+<pre><span id="VALmk_num_pat"><span class="keyword">val</span> mk_num_pat</span> : <code class="type"><a href="Types.html#TYPEt">Types.t</a> -> int -> <a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a></code></pre><div class="info">
+<code class="code">mk_num_pat num_ty i</code> makes a number pattern.<br>
+</div>
+<pre><span id="VALdest_num_add_pat"><span class="keyword">val</span> dest_num_add_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> (<a href="Name.html#TYPEt">Name.t</a> * int) option</code></pre><div class="info">
+<code class="code">dest_num_add_pat p</code> destructs number addition literal patterns<br>
+</div>
+<pre><span id="VALmk_num_add_pat"><span class="keyword">val</span> mk_num_add_pat</span> : <code class="type"><a href="Types.html#TYPEt">Types.t</a> -> <a href="Name.html#TYPEt">Name.t</a> -> int -> <a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a></code></pre><div class="info">
+<code class="code">mk_num_add_pat num_ty i</code> makes a number addition pattern.<br>
+</div>
+<pre><span id="VALis_num_add_pat"><span class="keyword">val</span> is_num_add_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> bool</code></pre><div class="info">
+<code class="code">is_num_add_pat p</code> checks whether <code class="code">p</code> is a number addition pattern.<br>
+</div>
+<pre><span id="VALnum_ty_pat_cases"><span class="keyword">val</span> num_ty_pat_cases</span> : <code class="type">(<a href="Name.html#TYPEt">Name.t</a> -> 'a) -><br>       (int -> 'a) -><br>       (<a href="Name.html#TYPEt">Name.t</a> -> int -> 'a) -> 'a -> (<a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> 'a) -> <a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> 'a</code></pre><div class="info">
+<code class="code">num_ty_pat_cases f_v f_i f_a f_w f_else p</code> performs case analysis for patterns of type num. Depending of which form the pattern <code class="code">p</code> has, 
+    different argument functions are called:<ul>
+<li>v -&gt; f_v v</li>
+<li>c (num constant) -&gt; f_i i </li>
+<li>v + 0 -&gt; f_v v</li>
+<li>v + i (for i &gt; 0) -&gt; f_a v i</li>
+<li>_ -&gt; f_w</li>
+<li>p (everything else) -&gt; f_else p</li>
+</ul>
+<br>
+</div>
+<pre><span id="VALdest_string_pat"><span class="keyword">val</span> dest_string_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> string option</code></pre><div class="info">
+<code class="code">dest_string_pat p</code> destructs number literal patterns<br>
+</div>
+<pre><span id="VALis_string_pat"><span class="keyword">val</span> is_string_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> bool</code></pre><div class="info">
+<code class="code">is_string_pat p</code> checks whether <code class="code">p</code> is a number pattern.<br>
+</div>
+<pre><span id="VALdest_cons_pat"><span class="keyword">val</span> dest_cons_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> (<a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> * <a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a>) option</code></pre><div class="info">
+<code class="code">dest_cons_pat p</code> destructs list-cons patterns.<br>
+</div>
+<pre><span id="VALis_cons_pat"><span class="keyword">val</span> is_cons_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> bool</code></pre><pre><span id="VALdest_list_pat"><span class="keyword">val</span> dest_list_pat</span> : <code class="type">int option -> <a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> <a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> list option</code></pre><div class="info">
+<code class="code">dest_list_pat p</code> destructs list patterns.<br>
+</div>
+<pre><span id="VALis_list_pat"><span class="keyword">val</span> is_list_pat</span> : <code class="type">int option -> <a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> bool</code></pre><pre><span id="VALdest_const_pat"><span class="keyword">val</span> dest_const_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -><br>       (<a href="Typed_ast.html#TYPEconst_descr_ref">Typed_ast.const_descr_ref</a> <a href="Types.html#TYPEid">Types.id</a> * <a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> list) option</code></pre><div class="info">
+<code class="code">dest_contr_pat p</code> destructs constructor patterns.<br>
+</div>
+<pre><span id="VALis_const_pat"><span class="keyword">val</span> is_const_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> bool</code></pre><pre><span id="VALdest_record_pat"><span class="keyword">val</span> dest_record_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -><br>       (<a href="Typed_ast.html#TYPEconst_descr_ref">Typed_ast.const_descr_ref</a> <a href="Types.html#TYPEid">Types.id</a> * <a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a>) list option</code></pre><div class="info">
+<code class="code">dest_record_pat p</code> destructs record patterns.<br>
+</div>
+<pre><span id="VALis_record_pat"><span class="keyword">val</span> is_record_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> bool</code></pre><br>
+<span id="2_ClassificationofPatterns"><h2>Classification of Patterns </h2></span><br>
+<pre><span id="VALis_constructor"><span class="keyword">val</span> is_constructor</span> : <code class="type">Ast.l -> <a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Target.html#TYPEtarget">Target.target</a> -> <a href="Typed_ast.html#TYPEconst_descr_ref">Typed_ast.const_descr_ref</a> -> bool</code></pre><div class="info">
+<code class="code">is_constructor l env targ c</code> checks whether <code class="code">c</code> is a constructor
+    for target <code class="code">targ</code> in environment <code class="code">env</code>.  If you want to know
+    whether it is for any target, use the identity target.
+    Internally, it checks whether <code class="code">type_defs_get_constr_families</code>
+    returns a non-empty list.<br>
+</div>
+<pre><span id="VALis_buildin_constructor"><span class="keyword">val</span> is_buildin_constructor</span> : <code class="type">Ast.l -> <a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Target.html#TYPEtarget">Target.target</a> -> <a href="Typed_ast.html#TYPEconst_descr_ref">Typed_ast.const_descr_ref</a> -> bool</code></pre><div class="info">
+<code class="code">is_buildin_constructor l env targ c</code> checks whether <code class="code">c</code> is a
+    build-in constructor for target <code class="code">targ</code> in environment <code class="code">env</code>. Build-in
+    constructors are constructors, which the target pattern
+    compilation can handle.<br>
+</div>
+<pre><span id="VALis_not_buildin_constructor"><span class="keyword">val</span> is_not_buildin_constructor</span> : <code class="type">Ast.l -> <a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Target.html#TYPEtarget">Target.target</a> -> <a href="Typed_ast.html#TYPEconst_descr_ref">Typed_ast.const_descr_ref</a> -> bool</code></pre><div class="info">
+<code class="code">is_not_buildin_constructor l env targ c</code> checks whether <code class="code">c</code> is a 
+    constructor for target <code class="code">targ</code> in environment <code class="code">env</code>, but not a build-in one. Not build-in
+    constructors get compiled away during pattern compilation.<br>
+</div>
+<pre><span id="VALdirect_subpats"><span class="keyword">val</span> direct_subpats</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> <a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> list</code></pre><div class="info">
+<code class="code">direct_subpats p</code> returns a list of all the direct subpatterns of <code class="code">p</code>.<br>
+</div>
+<pre><span id="VALsubpats"><span class="keyword">val</span> subpats</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> <a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> list</code></pre><div class="info">
+<code class="code">subpats p</code> returns a list of all the subpatterns of <code class="code">p</code>. 
+    In contrast to <code class="code">direct_subpats p</code> really all subpatterns are
+    returned, not only direct ones. This means that the result of
+    <code class="code">direct_subpats p</code> is a subset of <code class="code">subpats p</code>.<br>
+</div>
+<pre><span id="VALexists_subpat"><span class="keyword">val</span> exists_subpat</span> : <code class="type">(<a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> bool) -> <a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> bool</code></pre><div class="info">
+<code class="code">exists_pat cf p</code> checks whether <code class="code">p</code> has a subpattern <code class="code">p'</code> such that <code class="code">cf p'</code> holds.<br>
+</div>
+<pre><span id="VALfor_all_subpat"><span class="keyword">val</span> for_all_subpat</span> : <code class="type">(<a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> bool) -> <a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> bool</code></pre><div class="info">
+<code class="code">for_all_subpat cf p</code> checks whether all subpatterns <code class="code">p'</code> of <code class="code">p</code> satisfy <code class="code">cf p'</code>.<br>
+</div>
+<pre><span id="VALsingle_pat_exhaustive"><span class="keyword">val</span> single_pat_exhaustive</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> bool</code></pre><div class="info">
+<code class="code">single_pat_exhaustive p</code> checks whether the pattern <code class="code">p</code> is exhaustive.<br>
+</div>
+<pre><span id="VALpat_vars_src"><span class="keyword">val</span> pat_vars_src</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> (<a href="Name.html#TYPElskips_t">Name.lskips_t</a>, unit) <a href="Types.html#TYPEannot">Types.annot</a> list</code></pre><div class="info">
+<code class="code">pat_vars_src p</code> returns a list of all the variable names occuring in the pattern.
+    The names are annotated with the type and the whitespace information.<br>
+</div>
+<br>
+<span id="2_miscellaneous"><h2>miscellaneous </h2></span><br>
+<pre><span id="VALpat_extract_lskips"><span class="keyword">val</span> pat_extract_lskips</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> Ast.lex_skips</code></pre><div class="info">
+<code class="code">pat_extract_lskips p</code> extracts all whitespace from a pattern<br>
+</div>
+<pre><span id="VALsplit_var_annot_pat"><span class="keyword">val</span> split_var_annot_pat</span> : <code class="type"><a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> <a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a></code></pre><div class="info">
+<code class="code">split_var_annot_pat p</code> splits annotated variable patterns in variable patterns + type annotation.
+    All other patterns are returned unchanged.<br>
+</div>
+<pre><span id="EXCEPTIONPat_to_exp_unsupported"><span class="keyword">exception</span> Pat_to_exp_unsupported</span> <span class="keyword">of</span> <code class="type">Ast.l * string</code></pre>
+<pre><span id="VALpat_to_exp"><span class="keyword">val</span> pat_to_exp</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">Typed_ast.env</a> -> <a href="Typed_ast.html#TYPEpat">Typed_ast.pat</a> -> <a href="Typed_ast.html#TYPEexp">Typed_ast.exp</a></code></pre><div class="info">
+<code class="code">pat_to_exp env p</code> tries to convert <code class="code">p</code> into a corresponding expression. This might fail,
+    e.g. if <code class="code">p</code> contains wildcard patterns. If it fails a <code class="code">pat_to_exp_unsupported</code> exception is raised.<br>
+</div>
+</body></html>

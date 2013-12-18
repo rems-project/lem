@@ -285,7 +285,7 @@ val dest_num_exp : exp -> int option
 val is_num_exp : exp -> bool
 
 (** [mk_num_exp] creates a number literal expression. *)
-val mk_num_exp : int -> exp
+val mk_num_exp : Types.t -> int -> exp
 
 (** [is_empty_backend_exp] checks whether the expression is [``] *)
 val is_empty_backend_exp : exp -> bool
@@ -306,21 +306,9 @@ val mk_and_exps : env -> exp list -> exp
     to lookup the less-equal constant. *)
 val mk_le_exp : env -> exp -> exp -> exp
 
-(** [mk_add_exp env e1 e2] constructs the expression [e1 + e2]. The environment [env] is needed
-    to lookup the add constant. *)
-val mk_add_exp : env -> exp -> exp -> exp
-
 (** [mk_sub_exp env e1 e2] constructs the expression [e1 - e2]. The environment [env] is needed
     to lookup the subtraction constant. *)
 val mk_sub_exp : env -> exp -> exp -> exp
-
-(** [mk_num_add_exp env n i] constructs the expression [(n + i)]. The environment [env] is needed
-    to lookup the add constant. *)
-val mk_num_add_exp : env -> Name.t -> int -> exp
-
-(** [mk_num_sub_exp env n i] constructs the expression [(n - i)]. The environment [env] is needed
-    to lookup the sub constant. *)
-val mk_num_sub_exp : env -> Name.t -> int -> exp
 
 (** [mk_from_list_exp env e] constructs the expression [Set.from_list e]. The environment [env] is needed
     to lookup the from-list constant. *)
@@ -367,6 +355,10 @@ val mk_paren_exp : exp -> exp
 (** [mk_opt_paren_exp e] adds parenthesis around expression [e] if it seems sensible. 
     For parenthesis, variable expressions and tuples, the parenthesis are skipped, though. *)
 val mk_opt_paren_exp : exp -> exp
+
+(** [may_need_paren e] checks, whether [e] might need parenthesis. If returns, whether [mk_opt_paren_exp e]
+    would modify the expression. *)
+val may_need_paren : exp -> bool
 
 (** [mk_case_exp final l e rows ty] constructs a case (match) expression. In contrast to
     [Typed_ast.mk_case] it uses standard spacing and adds parenthesis. *)
@@ -445,10 +437,13 @@ val empty_used_entities : used_entities
 
 val add_exp_entities : used_entities -> exp -> used_entities
 
-(** [add_def_entities targ only_new ue def] adds all the modules, types, constants ... used by definition [def] for target 
+(** [add_def_aux_entities targ only_new ue def] adds all the modules, types, constants ... used by definition [def] for target 
     [targ] to [ue]. If the flag [only_new] is set, only the newly defined are added. 
     Notice, that the identity backend won't throw parts of modules away. Therefore the result for the identiy backend
     is the union of the results for all other backends. *)
+val add_def_aux_entities : Target.target -> bool -> used_entities -> Typed_ast.def_aux -> used_entities
+
+(** [add_def_entities] is called [add_def_aux_entities] after extracting the appropriate [def_aux]. *)
 val add_def_entities : Target.target -> bool -> used_entities -> Typed_ast.def -> used_entities
 
 (** [get_checked_module_entities targ only_new ml] gets all the modules, types, constants ... used by modules [ml] for target 

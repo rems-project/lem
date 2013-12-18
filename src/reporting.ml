@@ -285,19 +285,20 @@ let ignore_pat_compile_warnings () = (warn_ref_pat_comp := Level_Ignore)
 *)
 
 let warn_opts_aux = [
-   ("unused_vars", [warn_ref_unused_vars],                     "unused variables");
-   ("rename",      [warn_ref_rename],                          "automatic renamings");
-   ("pat_fail",    [warn_ref_pat_fail],                        "failed pattern compilation");
-   ("pat_exh",     [warn_ref_pat_exh; warn_ref_def_exh],       "non-exhaustive pattern matches");
-   ("pat_red",     [warn_ref_pat_red; warn_ref_def_red],       "redundant patterns");
-   ("pat_comp",    [warn_ref_pat_comp],                        "pattern compilation");
-   ("resort",      [warn_ref_fun_resort; warn_ref_rec_resort], "resorted record fields and function clauses");
-   ("comp_message",[warn_ref_compile_message],                 "compile messages");
-   ("no_dec_eq",   [warn_ref_no_decidable_eq],                 "equality of type is undecidable");
-   ("auto_import", [warn_ref_import],                          "automatically imported modules");
-   ("inst_over",   [warn_ref_inst_override],                   "overriden instance declarations");
+   ("gen",         [warn_ref_general],                         "miscellaneous warnings");
    ("amb_code",    [warn_ref_ambiguous_code],                  "ambiguous code");
-   ("gen",         [warn_ref_general],                         "miscellaneous warnings")];;
+   ("auto_import", [warn_ref_import],                          "automatically imported modules");
+   ("comp_message",[warn_ref_compile_message],                 "compile messages");
+   ("inst_over",   [warn_ref_inst_override],                   "overriden instance declarations");
+   ("no_dec_eq",   [warn_ref_no_decidable_eq],                 "equality of type is undecidable");
+   ("pat_comp",    [warn_ref_pat_comp],                        "pattern compilation");
+   ("pat_exh",     [warn_ref_pat_exh; warn_ref_def_exh],       "non-exhaustive pattern matches");
+   ("pat_fail",    [warn_ref_pat_fail],                        "failed pattern compilation");
+   ("pat_red",     [warn_ref_pat_red; warn_ref_def_red],       "redundant patterns");
+   ("rename",      [warn_ref_rename],                          "automatic renamings");
+   ("resort",      [warn_ref_fun_resort; warn_ref_rec_resort], "resorted record fields and function clauses");
+   ("unused_vars", [warn_ref_unused_vars],                     "unused variables");
+];;
 
 
 let warn_arg_fun (f : warn_level -> unit) = Arg.Symbol (["ign"; "warn"; "verb"; "err"], (function 

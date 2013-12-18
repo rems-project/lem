@@ -186,3 +186,5 @@ val map: ('a -> 'b) -> ('key,'a) map -> ('key,'b) map
 val mapi: ('key -> 'a -> 'b) -> ('key,'a) map -> ('key,'b) map
     (** Same as {!Map.S.map}, but the function receives as arguments both the
        key and the associated value for each binding of the map. *)
+
+val from_set : ('key -> 'v) -> ('key Pset.set) -> ('key, 'v) map

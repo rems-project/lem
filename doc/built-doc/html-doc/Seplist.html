@@ -1,0 +1,180 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Reporting_basic.html">
+<link rel="next" href="Syntactic_tests.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of exceptions" rel=Appendix href="index_exceptions.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Ast_util" rel="Chapter" href="Ast_util.html">
+<link title="Backend" rel="Chapter" href="Backend.html">
+<link title="Backend_common" rel="Chapter" href="Backend_common.html">
+<link title="Coq_decidable_equality" rel="Chapter" href="Coq_decidable_equality.html">
+<link title="Def_trans" rel="Chapter" href="Def_trans.html">
+<link title="Finite_map" rel="Chapter" href="Finite_map.html">
+<link title="Ident" rel="Chapter" href="Ident.html">
+<link title="Initial_env" rel="Chapter" href="Initial_env.html">
+<link title="Macro_expander" rel="Chapter" href="Macro_expander.html">
+<link title="Main" rel="Chapter" href="Main.html">
+<link title="Module_dependencies" rel="Chapter" href="Module_dependencies.html">
+<link title="Name" rel="Chapter" href="Name.html">
+<link title="Nvar" rel="Chapter" href="Nvar.html">
+<link title="Output" rel="Chapter" href="Output.html">
+<link title="Path" rel="Chapter" href="Path.html">
+<link title="Pattern_syntax" rel="Chapter" href="Pattern_syntax.html">
+<link title="Patterns" rel="Chapter" href="Patterns.html">
+<link title="Pcombinators" rel="Chapter" href="Pcombinators.html">
+<link title="Pp" rel="Chapter" href="Pp.html">
+<link title="Precedence" rel="Chapter" href="Precedence.html">
+<link title="Process_file" rel="Chapter" href="Process_file.html">
+<link title="Rename_top_level" rel="Chapter" href="Rename_top_level.html">
+<link title="Reporting" rel="Chapter" href="Reporting.html">
+<link title="Reporting_basic" rel="Chapter" href="Reporting_basic.html">
+<link title="Seplist" rel="Chapter" href="Seplist.html">
+<link title="Syntactic_tests" rel="Chapter" href="Syntactic_tests.html">
+<link title="Target" rel="Chapter" href="Target.html">
+<link title="Target_binding" rel="Chapter" href="Target_binding.html">
+<link title="Target_syntax" rel="Chapter" href="Target_syntax.html">
+<link title="Target_trans" rel="Chapter" href="Target_trans.html">
+<link title="Trans" rel="Chapter" href="Trans.html">
+<link title="Typecheck" rel="Chapter" href="Typecheck.html">
+<link title="Typecheck_ctxt" rel="Chapter" href="Typecheck_ctxt.html">
+<link title="Typed_ast" rel="Chapter" href="Typed_ast.html">
+<link title="Typed_ast_syntax" rel="Chapter" href="Typed_ast_syntax.html">
+<link title="Types" rel="Chapter" href="Types.html">
+<link title="Tyvar" rel="Chapter" href="Tyvar.html">
+<link title="Util" rel="Chapter" href="Util.html"><title>Seplist</title>
+</head>
+<body>
+<div class="navbar"><a href="Reporting_basic.html">Previous</a>
+&nbsp;<a href="index.html">Up</a>
+&nbsp;<a href="Syntactic_tests.html">Next</a>
+</div>
+<center><h1>Module <a href="type_Seplist.html">Seplist</a></h1></center>
+<br>
+<pre><span class="keyword">module</span> Seplist: <code class="code">sig</code> <a href="Seplist.html">..</a> <code class="code">end</code></pre>general thing of lists with optional separators<br>
+<hr width="100%">
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type">('a, 'b)</code> t</span> </pre>
+
+<pre><span id="VALempty"><span class="keyword">val</span> empty</span> : <code class="type">('a, 'b) <a href="Seplist.html#TYPEt">t</a></code></pre><pre><span id="VALcons_sep"><span class="keyword">val</span> cons_sep</span> : <code class="type">'a -> ('b, 'a) <a href="Seplist.html#TYPEt">t</a> -> ('b, 'a) <a href="Seplist.html#TYPEt">t</a></code></pre><pre><span id="VALcons_sep_alt"><span class="keyword">val</span> cons_sep_alt</span> : <code class="type">'a -> ('b, 'a) <a href="Seplist.html#TYPEt">t</a> -> ('b, 'a) <a href="Seplist.html#TYPEt">t</a></code></pre><div class="info">
+<code class="code">cons_sep_alt</code> doesn't add the separator if the list is empty<br>
+</div>
+<pre><span id="VALcons_entry"><span class="keyword">val</span> cons_entry</span> : <code class="type">'a -> ('a, 'b) <a href="Seplist.html#TYPEt">t</a> -> ('a, 'b) <a href="Seplist.html#TYPEt">t</a></code></pre><pre><span id="VALis_empty"><span class="keyword">val</span> is_empty</span> : <code class="type">('a, 'b) <a href="Seplist.html#TYPEt">t</a> -> bool</code></pre><pre><span id="VALsing"><span class="keyword">val</span> sing</span> : <code class="type">'a -> ('a, 'b) <a href="Seplist.html#TYPEt">t</a></code></pre><div class="info">
+<code class="code">sing a</code> constructs a seplist with entry <code class="code">a</code>. It does the same as
+    <code class="code">cons_entry a empty</code>.<br>
+</div>
+<pre><span id="VALhd"><span class="keyword">val</span> hd</span> : <code class="type">('a, 'b) <a href="Seplist.html#TYPEt">t</a> -> 'a</code></pre><div class="info">
+gets the first entry, if there is one<br>
+</div>
+<pre><span id="VALhd_sep"><span class="keyword">val</span> hd_sep</span> : <code class="type">('a, 'b) <a href="Seplist.html#TYPEt">t</a> -> 'b</code></pre><div class="info">
+gets the first seperator, if there is one<br>
+</div>
+<pre><span id="VALtl"><span class="keyword">val</span> tl</span> : <code class="type">('a, 'b) <a href="Seplist.html#TYPEt">t</a> -> ('a, 'b) <a href="Seplist.html#TYPEt">t</a></code></pre><div class="info">
+Removes the first entry, fails is there is none, or if a separator is
+    first<br>
+</div>
+<pre><span id="VALtl_alt"><span class="keyword">val</span> tl_alt</span> : <code class="type">('a, 'b) <a href="Seplist.html#TYPEt">t</a> -> ('a, 'b) <a href="Seplist.html#TYPEt">t</a></code></pre><div class="info">
+Removes the first entry, fails is there is none, removes any separator that
+    precedes the first entry<br>
+</div>
+<pre><span id="VALtl_sep"><span class="keyword">val</span> tl_sep</span> : <code class="type">('a, 'b) <a href="Seplist.html#TYPEt">t</a> -> ('a, 'b) <a href="Seplist.html#TYPEt">t</a></code></pre><div class="info">
+Removes the first separator, fails is there is none, or if an entry
+    is first<br>
+</div>
+<pre><span id="VALappend"><span class="keyword">val</span> append</span> : <code class="type">'a -> ('b, 'a) <a href="Seplist.html#TYPEt">t</a> -> ('b, 'a) <a href="Seplist.html#TYPEt">t</a> -> ('b, 'a) <a href="Seplist.html#TYPEt">t</a></code></pre><div class="info">
+<code class="code">append d sl1 sl2</code> appends the seplists <code class="code">sl1</code> and <code class="code">sl2</code>. If
+    <code class="code">sl1</code> ends with a value and <code class="code">sl2</code> starts with a value, a default
+    separator <code class="code">s</code> is added. If <code class="code">sl1</code> ends with a separator and <code class="code">sl2</code> starts
+    with a separator, the seperator of <code class="code">sl2</code> is dropped.<br>
+</div>
+<pre><span id="VALflatten"><span class="keyword">val</span> flatten</span> : <code class="type">'a -> ('b, 'a) <a href="Seplist.html#TYPEt">t</a> list -> ('b, 'a) <a href="Seplist.html#TYPEt">t</a></code></pre><div class="info">
+<code class="code">flatten d sll</code> flattens a list of seplists by applying <code class="code">append</code>
+    repeatedly<br>
+</div>
+<pre><span id="VALto_list"><span class="keyword">val</span> to_list</span> : <code class="type">('a, 'b) <a href="Seplist.html#TYPEt">t</a> -> 'a list</code></pre><div class="info">
+Makes a normal list, ignoring separators<br>
+</div>
+<pre><span id="VALto_pair_list"><span class="keyword">val</span> to_pair_list</span> : <code class="type">'a -> ('b, 'a) <a href="Seplist.html#TYPEt">t</a> -> 'a option * ('b * 'a) list</code></pre><div class="info">
+Makes a normal list of pairs. The first separator is returned separately, an
+    default one added for the last entry, if the lists ends with a value<br>
+</div>
+<pre><span id="VALfrom_pair_list"><span class="keyword">val</span> from_pair_list</span> : <code class="type">'a option -> ('b * 'a) list -> 'b option -> ('b, 'a) <a href="Seplist.html#TYPEt">t</a></code></pre><div class="info">
+constructs a seplist from a list of pairs. In contrast to from_list, the
+    last separator is kept<br>
+</div>
+<pre><span id="VALfrom_pair_list_sym"><span class="keyword">val</span> from_pair_list_sym</span> : <code class="type">'a option -> ('b * 'a) list -> 'b option -> ('a, 'b) <a href="Seplist.html#TYPEt">t</a></code></pre><div class="info">
+<code class="code">from_pair_list_sym first_val_opt sep_val_list last_sep_opt</code> 
+    constructs a seplist from a list of pairs <code class="code">sep_val_list</code>. In contrast to <code class="code">from_pair_list</code>, 
+    the separator is the first component of these pairs. This also means that
+    we now need an optional first value before the list and an optional last separator after the list,
+    whereas from_pair_list has an optional first separator and last value.<br>
+</div>
+<pre><span id="VALdrop_first_sep"><span class="keyword">val</span> drop_first_sep</span> : <code class="type">('a, 'b) <a href="Seplist.html#TYPEt">t</a> -> 'b option * ('a, 'b) <a href="Seplist.html#TYPEt">t</a></code></pre><div class="info">
+If <code class="code">sl</code> starts with a seperator, it is dropped and returned, otherwise nothing happens.<br>
+</div>
+<pre><span id="VALto_sep_list"><span class="keyword">val</span> to_sep_list</span> : <code class="type">('a -> 'b) -> ('c -> 'b) -> ('a, 'c) <a href="Seplist.html#TYPEt">t</a> -> 'b list</code></pre><div class="info">
+Flattens into a normal list with separators and elements intermixed<br>
+</div>
+<br><code><span id="TYPEoptsep"><span class="keyword">type</span> <code class="type">('a, 'b)</code> optsep</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Optional</span></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Require</span> <span class="keyword">of</span> <code class="type">'a</code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Forbid</span> <span class="keyword">of</span> <code class="type">('a -> 'b)</code></code></td>
+
+</tr></table>
+
+
+<pre><span id="VALto_sep_list_first"><span class="keyword">val</span> to_sep_list_first</span> : <code class="type">('a, 'b) <a href="Seplist.html#TYPEoptsep">optsep</a> -><br>       ('c -> 'b) -> ('a -> 'b) -> ('c, 'a) <a href="Seplist.html#TYPEt">t</a> -> 'b list</code></pre><div class="info">
+Flattens into a normal list with separators and elements intermixed, with
+    special control over the first separator.  Optional indicates no special
+    treatment (works as to_sep_list), Require adds the given initial separator if
+    there is none, and Forbid removes the initial separator if there is one.  In
+    the latter case, the initial separator is processed by the function argument
+    to Forbid<br>
+</div>
+<pre><span id="VALto_sep_list_last"><span class="keyword">val</span> to_sep_list_last</span> : <code class="type">('a, 'b) <a href="Seplist.html#TYPEoptsep">optsep</a> -><br>       ('c -> 'b) -> ('a -> 'b) -> ('c, 'a) <a href="Seplist.html#TYPEt">t</a> -> 'b list</code></pre><div class="info">
+As to_sep_list_first, but for the last separator<br>
+</div>
+<pre><span id="VALto_list_map"><span class="keyword">val</span> to_list_map</span> : <code class="type">('a -> 'b) -> ('a, 'c) <a href="Seplist.html#TYPEt">t</a> -> 'b list</code></pre><pre><span id="VALiter"><span class="keyword">val</span> iter</span> : <code class="type">('a -> unit) -> ('a, 'b) <a href="Seplist.html#TYPEt">t</a> -> unit</code></pre><pre><span id="VALfrom_list"><span class="keyword">val</span> from_list</span> : <code class="type">('a * 'b) list -> ('a, 'b) <a href="Seplist.html#TYPEt">t</a></code></pre><div class="info">
+The from list functions ignore the last separator in the input list<br>
+</div>
+<pre><span id="VALfrom_list_prefix"><span class="keyword">val</span> from_list_prefix</span> : <code class="type">'a -> bool -> ('b * 'a) list -> ('b, 'a) <a href="Seplist.html#TYPEt">t</a></code></pre><pre><span id="VALfrom_list_suffix"><span class="keyword">val</span> from_list_suffix</span> : <code class="type">('a * 'b) list -> 'b -> bool -> ('a, 'b) <a href="Seplist.html#TYPEt">t</a></code></pre><pre><span id="VALfrom_list_default"><span class="keyword">val</span> from_list_default</span> : <code class="type">'a -> 'b list -> ('b, 'a) <a href="Seplist.html#TYPEt">t</a></code></pre><div class="info">
+<code class="code">from_list_default d l</code> constructs a seplist form a list of entries <code class="code">l</code> using
+    the separator <code class="code">d</code> as default separator between all entries.<br>
+</div>
+<pre><span id="VALlength"><span class="keyword">val</span> length</span> : <code class="type">('a, 'b) <a href="Seplist.html#TYPEt">t</a> -> int</code></pre><pre><span id="VALmap"><span class="keyword">val</span> map</span> : <code class="type">('a -> 'b) -> ('a, 'c) <a href="Seplist.html#TYPEt">t</a> -> ('b, 'c) <a href="Seplist.html#TYPEt">t</a></code></pre><pre><span id="VALmap_changed"><span class="keyword">val</span> map_changed</span> : <code class="type">('a -> 'a option) -> ('a, 'b) <a href="Seplist.html#TYPEt">t</a> -> ('a, 'b) <a href="Seplist.html#TYPEt">t</a> option</code></pre><div class="info">
+Returns None if the function returns None on all of the elements, otherwise
+    returns a list that uses the original element where the function returns None<br>
+</div>
+<pre><span id="VALmap_acc_right"><span class="keyword">val</span> map_acc_right</span> : <code class="type">('a -> 'b -> 'c * 'b) -> 'b -> ('a, 'd) <a href="Seplist.html#TYPEt">t</a> -> ('c, 'd) <a href="Seplist.html#TYPEt">t</a> * 'b</code></pre><div class="info">
+Maps with an accumulating parameter.  The _right version builds the
+    accumulator right-to-left, and the _left version builds it left-to-right.<br>
+</div>
+<pre><span id="VALmap_acc_left"><span class="keyword">val</span> map_acc_left</span> : <code class="type">('a -> 'b -> 'c * 'b) -> 'b -> ('a, 'd) <a href="Seplist.html#TYPEt">t</a> -> ('c, 'd) <a href="Seplist.html#TYPEt">t</a> * 'b</code></pre><pre><span id="VALfold_right"><span class="keyword">val</span> fold_right</span> : <code class="type">('a -> 'b -> 'b) -> 'b -> ('a, 'c) <a href="Seplist.html#TYPEt">t</a> -> 'b</code></pre><div class="info">
+fold right implemented via <code class="code">map_acc_right</code><br>
+</div>
+<pre><span id="VALfold_left"><span class="keyword">val</span> fold_left</span> : <code class="type">('a -> 'b -> 'b) -> 'b -> ('a, 'c) <a href="Seplist.html#TYPEt">t</a> -> 'b</code></pre><div class="info">
+fold left implemented via <code class="code">map_acc_left</code><br>
+</div>
+<pre><span id="VALfor_all"><span class="keyword">val</span> for_all</span> : <code class="type">('a -> bool) -> ('a, 'b) <a href="Seplist.html#TYPEt">t</a> -> bool</code></pre><pre><span id="VALexists"><span class="keyword">val</span> exists</span> : <code class="type">('a -> bool) -> ('a, 'b) <a href="Seplist.html#TYPEt">t</a> -> bool</code></pre><pre><span id="VALfind"><span class="keyword">val</span> find</span> : <code class="type">'a -> ('b -> bool) -> ('b, 'a) <a href="Seplist.html#TYPEt">t</a> -> 'b * 'a</code></pre><pre><span id="VALpp"><span class="keyword">val</span> pp</span> : <code class="type">(Format.formatter -> 'a -> unit) -><br>       (Format.formatter -> 'b -> unit) -><br>       Format.formatter -> ('a, 'b) <a href="Seplist.html#TYPEt">t</a> -> unit</code></pre><pre><span id="VALreplace_all_seps"><span class="keyword">val</span> replace_all_seps</span> : <code class="type">('a -> 'a) -> ('b, 'a) <a href="Seplist.html#TYPEt">t</a> -> ('b, 'a) <a href="Seplist.html#TYPEt">t</a></code></pre></body></html>

@@ -141,6 +141,7 @@ and pat_aux =
 
 and cr_special_fun (** an indirection for target-representation output functions, the mapping is done in [Backend_common.cr_special_fun_to_fun] *) =
   | CR_special_uncurry of int (** [CR_special_uncurry n] formats a function with [n] arguments curried, i.e. turn the arguments into a tupled argument, surrounded by parenthesis and separated by "," *)
+  | CR_special_rep of string list * exp list (** [CR_special_rep sr args] encodes a user given special representation. replace the arguments in the expression list and then interleave the results with sr *)
 
 and const_target_rep =
   | CR_inline of Ast.l * bool * name_lskips_annot list * exp
@@ -155,7 +156,7 @@ and const_target_rep =
   | CR_simple of Ast.l * bool * name_lskips_annot list * exp
     (** [CR_simple (loc, allow_override, vars, e)] is similar to [CR_inline]. Instead of inlining during macro expansion and therefore allowing
         further processing afterwards, [CR_simple] performs the inlining only during printing in the backend. *)
-  | CR_special of Ast.l * bool * cr_special_fun * Name.t list
+  | CR_special of Ast.l * bool * cr_special_fun * name_lskips_annot list
     (** [CR_special (loc, allow_override, to_out, vars)] describes special formating of this 
         constant. The (renamed) constant (including path prefix) and all arguments are transformed to
         output. [to_out] represents a function that is then given the formatted name and the appropriate number of these

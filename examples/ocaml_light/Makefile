@@ -1,6 +1,6 @@
 all:
 
-DIR=~/rsem/ott/examples/caml/lemtest
+DIR=~/rsem/ott/examples/caml
 getmodel:
 	make -C $(DIR) lemtest
 	cp $(DIR)/caml_typedef.lem           .

@@ -22,7 +22,9 @@ class ( Eq 'a )
 end
 
 declare coq target_rep function isEqual = infix `=`
-declare coq target_rep function isInequal = infix `<>`
+(* declare coq target_rep function isEqual = infix `=`
+declare coq target_rep function isInequal = infix `<>` *)
+declare tex target_rep function isInequal = infix `$\neq$`
 
 
 (* (=) should for all instances be an equivalence relation 

@@ -44,112 +44,66 @@
 %  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         %
 %========================================================================%
 
-% symbols:
+\usepackage{xstring}
+\usepackage{ifthen}
+
+%auxiliary definitions for records
+\newcommand{\lemlrec}{\langle\!\mid}
+\newcommand{\lemrrec}{\mid\!\rangle}
 
 
-\newcommand{\Mlrec}{\langle\![}
-\newcommand{\Mrrec}{]\!\rangle}
-\newcommand{\Mwith}{\lemkw{with}}
-
-% tabbing command handling: just disable them when not in tabbing env
-\newif\ifltsm@gicalign\ltsm@gicalignfalse
-
-\newcommand{\Mmagiclrec}{%
-  \ifltsm@gicalign$\=\+$\displaystyle\Mlrec\;$\=\+$\displaystyle\else\Mlrec\fi}
-\newcommand{\Mmagicwith}{%
-  \ifltsm@gicalign$\=\+$\displaystyle\Mwith\;$\=\+$\displaystyle\else\Mwith\fi}
-\newcommand{\Mmagicrrec}{%
-  \ifltsm@gicalign$\-\-$\displaystyle\fi\Mrrec}
-\newcommand{\Mmagicbolrrec}{%
-  \ifltsm@gicalign$\<\-\-$\displaystyle\fi\Mrrec}
-
-
-\newcommand{\tscomm}[1]{\text{\rrsmall{(*#1*)}}}  % overridden in rrfoo
-\newcommand{\no@tscomm}[1]{#1}
-
-% comments were forced to appear on a line of their own; since they
-% almost always appear on a line of their own anyway, this was
-% wasteful of vspace!
-%% \newcommand{\tslongcomm}[1]{$\par\noindent{\rrsmall{(*#1*)}}\par\noindent$\displaystyle}  % overridden in rrfoo
-%% \newcommand{\tsholcomm}[1]{$\par\noindent{\rrsmall{(*#1*)}}\par\noindent$\displaystyle}   % overridden in rrfoo
-
-\newcommand{\tslongcomm}[1]{$\linebreak[2]\parbox[t]{\linewidth}{\rrsmall(*#1\nolinebreak\mbox{*)}}\linebreak[2]$\displaystyle}  % overridden in rrfoo
-%\newcommand{\tsholcomm}[1]{\ $\linebreak[2]\parbox[t]{\linewidth}{\rrsmall(*#1\nolinebreak\mbox{*)}}\linebreak[2]$\displaystyle}   % overridden in rrfoo
-\newcommand{\un@comm}[1]{{\let\tscomm\no@tscomm\let\tslongcomm\no@tscomm\let\tsholcomm\no@tscomm{}#1}}
-
-\newdimen\@tabbingcomm
-\newcommand{\tabbingtslongcomm}[1]{$\linebreak[2]\ifltsm@gicalign\=\@tabbingcomm\linewidth\advance\@tabbingcomm -\dimen\@curtab\else\@tabbingcomm\linewidth\fi\parbox[t]{\@tabbingcomm}{\rrsmall(*#1\nolinebreak\mbox{*)}}\linebreak[2]$\displaystyle}  % overridden in rrfoo
-%\newcommand{\tabbingtsholcomm}[1]{\ $\linebreak[2]\ifltsm@gicalign\=\@tabbingcomm\linewidth\advance\@tabbingcomm -\dimen\@curtab\else\@tabbingcomm\linewidth\fi\parbox[t]{\@tabbingcomm}{\rrsmall(*#1\nolinebreak\mbox{*)}}\linebreak[2]$\displaystyle}   % overridden in rrfoo
-
-
-% HACK:Sun Dec 13 00:12:51 GMT 2009
-% remove initial space from tsholcomm and tabbingtscholcomm
-%\newcommand{\tsholcomm}[1]{$\linebreak[2]\parbox[t]{\linewidth}{\rrsmall(*#1\nolinebreak\mbox{*)}}\linebreak[2]$\displaystyle}   % overridden in rrfoo
-%\newcommand{\tabbingtsholcomm}[1]{$\linebreak[2]\ifltsm@gicalign\=\@tabbingcomm\linewidth\advance\@tabbingcomm -\dimen\@curtab\else\@tabbingcomm\linewidth\fi\parbox[t]{\@tabbingcomm}{\rrsmall(*#1\nolinebreak\mbox{*)}}\linebreak[2]$\displaystyle}   % overridden in rrfoo
-
-% versions of the above without (* *)
-%\newcommand{\tsholcomm}[1]{$\linebreak[2]\parbox[t]{\linewidth}{\rrsmall#1\nolinebreak\mbox{}}\linebreak[2]$\displaystyle}   % overridden in rrfoo
-\newcommand{\tabbingtsholcomm}[1]{$\linebreak[2]\ifltsm@gicalign\=\@tabbingcomm\linewidth\advance\@tabbingcomm -\dimen\@curtab\else\@tabbingcomm\linewidth\fi\parbox[t]{\@tabbingcomm}{\rrsmall#1\nolinebreak\mbox{}}\linebreak[2]$\displaystyle}   % overridden in rrfoo
-
-%simple tt version
-\newcommand{\tsholcomm}[1]{$\tt #1$\displaystyle}   % overridden in rrfoo
-
-% % experimental alltt versions
-% \renewcommand{\tsholcomm}[1]{$\linebreak[2]\parbox[t]{\linewidth}{\rrsmall\begin{alldoc}#1\end{alldoc}\nolinebreak\mbox{}}\linebreak[2]$\displaystyle}   % overridden in rrfoo
-% %\linebreak[2]
-% \renewcommand{\tabbingtsholcomm}[1]{$\ifltsm@gicalign\=\@tabbingcomm\linewidth\advance\@tabbingcomm-\dimen\@curtab\else\@tabbingcomm\linewidth\fi\parbox[t]{\@tabbingcomm}{\rrsmall\begin{alltt}#1\end{alltt}\nolinebreak\mbox{}}%\linebreak[2]
-% $\displaystyle\mbox{\,}}   % overridden in rrfoo
-
-
-\newcommand{\rrsmall}{\small}
-\newcommand{\rrnormalsize}{\normalsize}
-
-
+%formatting for various Lem entities
 \newcommand{\lemkw}[1]{\textsf{#1}}
 
-\newcommand{\lemTermConst}[1]{\textrm{#1}}        
-\newcommand{\lemTermCtor}[1]{\textsc{#1}}         
-\newcommand{\lemComponent}[1]{\textsf{#1}}         
-\newcommand{\lemTermField}[1]{\mathit{#1}}        
-\newcommand{\lemTermMethod}[1]{\mathit{#1}}       
-\newcommand{\lemTermVar}[1]{\mathit{#1}}          
-\newcommand{\lemTermVarToplevel}[1]{\mathit{#1}} 
-\newcommand{\lemTermSpec}[1]{\mathit{#1}}         
-\newcommand{\lemTypeCtor}[1]{\textsc{#1}}         
-\newcommand{\lemTypeVar}[1]{\mathit{#1}}          
-\newcommand{\lemModuleName}[1]{\mathit{#1}}       
-\newcommand{\lemClassName}[1]{\mathit{#1}}        
-\newcommand{\lemTarget}[1]{\mathit{#1}}            
+\newcommand{\lemTermConst}[1]{\textrm{#1}}
+\newcommand{\lemTermConstQuote}[1]{\texttt{'#1'}}
+\newcommand{\lemComponent}[1]{\textsf{#1}}
+\newcommand{\lemTermField}[1]{\mathit{#1}}
+\newcommand{\lemTermMethod}[1]{\mathit{#1}}
+\newcommand{\lemTermVar}[1]{\mathit{#1}}
+\newcommand{\lemTermVarToplevel}[1]{\mathit{#1}}
+\newcommand{\lemTermSpec}[1]{\mathit{#1}}
+\newcommand{\lemTypeCtor}[1]{\textsc{#1}}
+\newcommand{\lemTypeCtorQuote}[1]{\texttt{'#1'}}
+\newcommand{\lemModuleName}[1]{\mathit{#1}}
+\newcommand{\lemClassName}[1]{\mathit{#1}}
+\newcommand{\lemTarget}[1]{\mathit{#1}}
+
+\newcommand{\lemTypeVar}[1]{\mathit{'\!#1}}
+\newcommand{\lemTypeVarA}{\lemTypeVar{a}}
+\newcommand{\lemTypeVarB}{\lemTypeVar{b}}
+\newcommand{\lemTypeVarC}{\lemTypeVar{c}}
+\newcommand{\lemTypeVarD}{\lemTypeVar{d}}
+
+% comment the following re-definintion out, if you prefer 'a instead of \alpha ...
+\renewcommand{\lemTypeVarA}{\alpha}
+\renewcommand{\lemTypeVarB}{\beta}
+\renewcommand{\lemTypeVarC}{\gamma}
+\renewcommand{\lemTypeVarD}{\delta}
+
+
+%comments and defs
+\newcommand{\lemcomm}[1]{${\tt #1}$\displaystyle}
 \newcommand{\lemdef}[1]{$\displaystyle #1$}
-%\newcommand{\lemdef}[1]{\rrenside{#1}}
 
-% Definition scope is only a single cell inside a tabbing, so we
-% have to be clever.  \\ is defined to be \@tabcr, so we redef that.
-%
-% was \ltsm@gicaligntrue below - turned off until record indent works
-% properly
-%
-\let\@ltsoldtabcr\@tabcr
-\newcommand{\rrtabcr}{$\@ltsoldtabcr$\displaystyle}
-\newcommand{\rrenside}[1]{%
-  {\let\@tabcr\rrtabcr\ltsm@gicalignfalse\let\tslongcomm\tabbingtslongcomm\let\tsholcomm\tabbingtsholcomm
-   \begin{tabbing}$\displaystyle #1$\end{tabbing}}%
-}
-
-
-\newcommand{\lemdefn}[7]{\label{#1}\lemdef{#4#5#6}}
-
-\newcommand{\lemshow}[1]{#1}
-
-
-% one style smaller in math mode:
-\newcommand{\lemsmaller}[1]{%
-  \mathchoice{{\textstyle #1}}%
-             {{\scriptstyle #1}}%
-             {{\scriptscriptstyle #1}}%
-             {{\scriptscriptstyle #1}}%
-}
-
-\newcommand{\lemwedge}{\mathbin{\lemsmaller{\wedge}}}
-\newcommand{\lemvee}{\mathbin{\lemsmaller{\vee}}}
-\newcommand{\lemnot}{\neg}
+% inc macros that allow choosing what exactly to print
+% #1 what to print
+% #2 latex label
+% #3 typeset name (eg to go in index and contents line)
+% #4 immediately-preceding comment
+% #5 full def
+% #6 core
+% #7 immediately-following comment
+\newcommand{\newlineAfter}[1]{\ifthenelse{\equal{#1}{}}{}{#1\\}}
+\newcommand{\lemdefn}[7]{
+\IfEqCase{#1}{%
+  {default}{\label{#2}\lemdef{#5}}
+  {defWithComment}{\label{#2}\lemdef{\newlineAfter{#4}\newlineAfter{#5}}}
+  {def}{\label{#2}\lemdef{#5}}
+  {comment}{\lemdef{#4}}
+  {commentPre}{\lemdef{#4}}
+  {commentPost}{\lemdef{#7}}
+  {core}{\lemdef{#6}}
+  {label}{#2}
+  {name}{#3}}%
+  [UNKNOWN ARGUMENT TO lemdefn]}

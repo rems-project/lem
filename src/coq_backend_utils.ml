@@ -68,7 +68,7 @@ let r = Ulib.Text.of_latin1
 
 let from_string x = meta x
 let sep x s = ws s ^ x
-let path_sep = from_string "."
+let path_sep = r"."
 
 let tyvar (_, tv, _) = id Type_var (Ulib.Text.(^^^) (r"") tv)
 let concat_str s = concat (from_string s)

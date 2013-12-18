@@ -1,0 +1,1717 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Typecheck_ctxt.html">
+<link rel="next" href="Typed_ast_syntax.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of exceptions" rel=Appendix href="index_exceptions.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Ast_util" rel="Chapter" href="Ast_util.html">
+<link title="Backend" rel="Chapter" href="Backend.html">
+<link title="Backend_common" rel="Chapter" href="Backend_common.html">
+<link title="Coq_decidable_equality" rel="Chapter" href="Coq_decidable_equality.html">
+<link title="Def_trans" rel="Chapter" href="Def_trans.html">
+<link title="Finite_map" rel="Chapter" href="Finite_map.html">
+<link title="Ident" rel="Chapter" href="Ident.html">
+<link title="Initial_env" rel="Chapter" href="Initial_env.html">
+<link title="Macro_expander" rel="Chapter" href="Macro_expander.html">
+<link title="Main" rel="Chapter" href="Main.html">
+<link title="Module_dependencies" rel="Chapter" href="Module_dependencies.html">
+<link title="Name" rel="Chapter" href="Name.html">
+<link title="Nvar" rel="Chapter" href="Nvar.html">
+<link title="Output" rel="Chapter" href="Output.html">
+<link title="Path" rel="Chapter" href="Path.html">
+<link title="Pattern_syntax" rel="Chapter" href="Pattern_syntax.html">
+<link title="Patterns" rel="Chapter" href="Patterns.html">
+<link title="Pcombinators" rel="Chapter" href="Pcombinators.html">
+<link title="Pp" rel="Chapter" href="Pp.html">
+<link title="Precedence" rel="Chapter" href="Precedence.html">
+<link title="Process_file" rel="Chapter" href="Process_file.html">
+<link title="Rename_top_level" rel="Chapter" href="Rename_top_level.html">
+<link title="Reporting" rel="Chapter" href="Reporting.html">
+<link title="Reporting_basic" rel="Chapter" href="Reporting_basic.html">
+<link title="Seplist" rel="Chapter" href="Seplist.html">
+<link title="Syntactic_tests" rel="Chapter" href="Syntactic_tests.html">
+<link title="Target" rel="Chapter" href="Target.html">
+<link title="Target_binding" rel="Chapter" href="Target_binding.html">
+<link title="Target_syntax" rel="Chapter" href="Target_syntax.html">
+<link title="Target_trans" rel="Chapter" href="Target_trans.html">
+<link title="Trans" rel="Chapter" href="Trans.html">
+<link title="Typecheck" rel="Chapter" href="Typecheck.html">
+<link title="Typecheck_ctxt" rel="Chapter" href="Typecheck_ctxt.html">
+<link title="Typed_ast" rel="Chapter" href="Typed_ast.html">
+<link title="Typed_ast_syntax" rel="Chapter" href="Typed_ast_syntax.html">
+<link title="Types" rel="Chapter" href="Types.html">
+<link title="Tyvar" rel="Chapter" href="Tyvar.html">
+<link title="Util" rel="Chapter" href="Util.html"><title>Typed_ast</title>
+</head>
+<body>
+<div class="navbar"><a href="Typecheck_ctxt.html">Previous</a>
+&nbsp;<a href="index.html">Up</a>
+&nbsp;<a href="Typed_ast_syntax.html">Next</a>
+</div>
+<center><h1>Module <a href="type_Typed_ast.html">Typed_ast</a></h1></center>
+<br>
+<pre><span class="keyword">module</span> Typed_ast: <code class="code">sig</code> <a href="Typed_ast.html">..</a> <code class="code">end</code></pre>Sets of Names<br>
+<hr width="100%">
+<pre><span class="keyword">module</span> <a href="Typed_ast.NameSet.html">NameSet</a>: <code class="type">Set.S</code><code class="type">  with type elt = Name.t and type t = Set.Make(Name).t</code></pre><div class="info">
+Sets of Names
+</div>
+<pre><span class="keyword">module</span> <a href="Typed_ast.Nfmap.html">Nfmap</a>: <code class="type"><a href="Finite_map.Fmap.html">Finite_map.Fmap</a></code><code class="type">  with type k = Name.t</code></pre><div class="info">
+Name keyed finite maps
+</div>
+<pre><span id="VALnfmap_domain"><span class="keyword">val</span> nfmap_domain</span> : <code class="type">'a Nfmap.t -> NameSet.t</code></pre><pre><span id="TYPEname_l"><span class="keyword">type</span> <code class="type"></code>name_l</span> = <code class="type"><a href="Name.html#TYPElskips_t">Name.lskips_t</a> * Ast.l</code> </pre>
+
+<pre><span id="TYPElskips"><span class="keyword">type</span> <code class="type"></code>lskips</span> = <code class="type">Ast.lex_skips</code> </pre>
+<div class="info">
+Whitespace, comments, and newlines<br>
+</div>
+
+<pre><span id="TYPElskips_seplist"><span class="keyword">type</span> <code class="type">'a</code> lskips_seplist</span> = <code class="type">('a, <a href="Typed_ast.html#TYPElskips">lskips</a>) <a href="Seplist.html#TYPEt">Seplist.t</a></code> </pre>
+
+<pre><span id="VALno_lskips"><span class="keyword">val</span> no_lskips</span> : <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a></code></pre><div class="info">
+The empty lskip<br>
+</div>
+<pre><span id="VALspace"><span class="keyword">val</span> space</span> : <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a></code></pre><div class="info">
+A space lskip<br>
+</div>
+<pre><span id="VALlskips_only_comments"><span class="keyword">val</span> lskips_only_comments</span> : <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> list -> <a href="Typed_ast.html#TYPElskips">lskips</a></code></pre><div class="info">
+Get only the comments (and a trailing space)<br>
+</div>
+<pre><span id="VALlskips_only_comments_first"><span class="keyword">val</span> lskips_only_comments_first</span> : <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> list -> <a href="Typed_ast.html#TYPElskips">lskips</a></code></pre><div class="info">
+Get the first lskip of the list and only comments from the rest<br>
+</div>
+<br><code><span id="TYPEenv_tag"><span class="keyword">type</span> <code class="type"></code>env_tag</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">K_let</span></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >A let definition, the most common case. Convers val as well, details see above.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">K_field</span></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >A field</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">K_constr</span></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >A type constructor</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">K_relation</span></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >A relation</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">K_method</span></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >A class method</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">K_instance</span></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >A method instance</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+
+<div class="info">
+<code class="code">env_tag</code> is used by <code class="code">const_descr</code> to describe the type of constant. Constants can be defined in multiple ways:
+    the most common way is via a <code class="code">let</code>-statement. Record-type definitions introduce fields-accessor 
+    functions and variant types introduce constructors. There are methods, instances and relations as well.
+    A <code class="code">let</code> definition can be made via a <code class="code">val</code> definition and multiple, target specific lets.<br>
+</div>
+
+<pre><span id="TYPEp_env"><span class="keyword">type</span> <code class="type"></code>p_env</span> = <code class="type">(<a href="Path.html#TYPEt">Path.t</a> * Ast.l) Nfmap.t</code> </pre>
+<div class="info">
+Maps a type name to the unique path representing that type and 
+    the first location this type is defined<br>
+</div>
+
+<pre><span id="TYPElit"><span class="keyword">type</span> <code class="type"></code>lit</span> = <code class="type">(<a href="Typed_ast.html#TYPElit_aux">lit_aux</a>, unit) <a href="Types.html#TYPEannot">Types.annot</a></code> </pre>
+
+<br><code><span id="TYPElit_aux"><span class="keyword">type</span> <code class="type"></code>lit_aux</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">L_true</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">L_false</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">L_zero</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >This is a bit, not a num</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">L_one</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >see above</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">L_numeral</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * int</code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >A numeral literal, it has fixed type "numeral" and is used in patterns and after translating L_num to it.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">L_num</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * int</code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >A number literal. This is like a numeral one wrapped with the "from_numeral" function</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">L_char</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * char</code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">L_string</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * string</code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">L_unit</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">L_vector</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * string * string</code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >For vectors of bits, specified with hex or binary, first string is either 0b or 0x, second is the binary or hex number as a string</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">L_undefined</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * string</code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >A special undefined value that explicitly states that nothing is known about it. This is useful for expressing underspecified functions. It has been introduced to easier support pattern compilation of non-exhaustive patterns.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+
+
+<pre><span id="TYPEconst_descr_ref"><span class="keyword">type</span> <code class="type"></code>const_descr_ref</span> = <code class="type"><a href="Types.html#TYPEconst_descr_ref">Types.const_descr_ref</a></code> </pre>
+
+<br><code><span id="TYPEname_kind"><span class="keyword">type</span> <code class="type"></code>name_kind</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Nk_typeconstr</span> <span class="keyword">of</span> <code class="type"><a href="Path.html#TYPEt">Path.t</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Nk_const</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Nk_constr</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Nk_field</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Nk_module</span> <span class="keyword">of</span> <code class="type"><a href="Path.html#TYPEt">Path.t</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Nk_class</span> <span class="keyword">of</span> <code class="type"><a href="Path.html#TYPEt">Path.t</a></code></code></td>
+
+</tr></table>
+
+
+<pre><span id="TYPEpat"><span class="keyword">type</span> <code class="type"></code>pat</span> = <code class="type">(<a href="Typed_ast.html#TYPEpat_aux">pat_aux</a>, <a href="Typed_ast.html#TYPEpat_annot">pat_annot</a>) <a href="Types.html#TYPEannot">Types.annot</a></code> </pre>
+
+<br><code><span id="TYPEpat_annot"><span class="keyword">type</span> <code class="type"></code>pat_annot</span> = {</code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>pvars&nbsp;: <code class="type"><a href="Types.html#TYPEt">Types.t</a> Nfmap.t</code>;</code></td>
+
+</tr></table>
+}
+
+
+<br><code><span id="TYPEpat_aux"><span class="keyword">type</span> <code class="type"></code>pat_aux</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">P_wild</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">P_as</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEpat">pat</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEname_l">name_l</a><br>        * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">P_typ</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEpat">pat</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Types.html#TYPEsrc_t">Types.src_t</a><br>        * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">P_var</span> <span class="keyword">of</span> <code class="type"><a href="Name.html#TYPElskips_t">Name.lskips_t</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">P_const</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a> <a href="Types.html#TYPEid">Types.id</a> * <a href="Typed_ast.html#TYPEpat">pat</a> list</code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">P_backend</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Ident.html#TYPEt">Ident.t</a> * <a href="Types.html#TYPEt">Types.t</a> * <a href="Typed_ast.html#TYPEpat">pat</a> list</code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">P_record</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a><br>        * (<a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a> <a href="Types.html#TYPEid">Types.id</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEpat">pat</a>)<br>          <a href="Typed_ast.html#TYPElskips_seplist">lskips_seplist</a> * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">P_vector</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEpat">pat</a> <a href="Typed_ast.html#TYPElskips_seplist">lskips_seplist</a> * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">P_vectorC</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEpat">pat</a> list * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">P_tup</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEpat">pat</a> <a href="Typed_ast.html#TYPElskips_seplist">lskips_seplist</a> * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">P_list</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEpat">pat</a> <a href="Typed_ast.html#TYPElskips_seplist">lskips_seplist</a> * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">P_paren</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEpat">pat</a> * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">P_cons</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPEpat">pat</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEpat">pat</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">P_num_add</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPEname_l">name_l</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * int</code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">P_lit</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElit">lit</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">P_var_annot</span> <span class="keyword">of</span> <code class="type"><a href="Name.html#TYPElskips_t">Name.lskips_t</a> * <a href="Types.html#TYPEsrc_t">Types.src_t</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >A type-annotated pattern variable.  This is redundant with the combination
+        of the P_typ and P_var cases above, but useful as a macro target.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+
+
+<br><code><span id="TYPEcr_special_fun"><span class="keyword">type</span> <code class="type"></code>cr_special_fun</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">CR_special_uncurry</span> <span class="keyword">of</span> <code class="type">int</code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><code class="code">CR_special_uncurry n</code> formats a function with <code class="code">n</code> arguments curried, i.e. turn the arguments into a tupled argument, surrounded by parenthesis and separated by ","</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">CR_special_rep</span> <span class="keyword">of</span> <code class="type">string list * <a href="Typed_ast.html#TYPEexp">exp</a> list</code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><code class="code">CR_special_rep sr args</code> encodes a user given special representation. replace the arguments in the expression list and then interleave the results with sr</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+
+
+<br><code><span id="TYPEconst_target_rep"><span class="keyword">type</span> <code class="type"></code>const_target_rep</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">CR_inline</span> <span class="keyword">of</span> <code class="type">Ast.l * bool * <a href="Typed_ast.html#TYPEname_lskips_annot">name_lskips_annot</a> list * <a href="Typed_ast.html#TYPEexp">exp</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><code class="code">CR_inline (loc, allow_override, vars, e)</code> means inlining the constant with the expression <code class="code">e</code> and
+        replacing the variable <code class="code">vars</code> inside <code class="code">e</code> with the arguments of the constant. The flag <code class="code">allow_override</code> signals whether
+        the declaration might be safely overriden. Automatically generated target-representations (e.g. for ocaml constructors) should
+        be changeable by the user, whereas multiple user-defined ones should cause a type error.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">CR_infix</span> <span class="keyword">of</span> <code class="type">Ast.l * bool * Ast.fixity_decl * <a href="Ident.html#TYPEt">Ident.t</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><code class="code">CR_infix (loc, allow_override, fixity, i)</code> declares infix notation for the constant with the giving identifier.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">CR_undefined</span> <span class="keyword">of</span> <code class="type">Ast.l * bool</code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><code class="code">CR_undefined (loc, allow_override)</code> declares undefined constant.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">CR_simple</span> <span class="keyword">of</span> <code class="type">Ast.l * bool * <a href="Typed_ast.html#TYPEname_lskips_annot">name_lskips_annot</a> list * <a href="Typed_ast.html#TYPEexp">exp</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><code class="code">CR_simple (loc, allow_override, vars, e)</code> is similar to <code class="code">CR_inline</code>. Instead of inlining during macro expansion and therefore allowing
+        further processing afterwards, <code class="code">CR_simple</code> performs the inlining only during printing in the backend.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">CR_special</span> <span class="keyword">of</span> <code class="type">Ast.l * bool * <a href="Typed_ast.html#TYPEcr_special_fun">cr_special_fun</a> * <a href="Typed_ast.html#TYPEname_lskips_annot">name_lskips_annot</a> list</code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><code class="code">CR_special (loc, allow_override, to_out, vars)</code> describes special formating of this 
+        constant. The (renamed) constant (including path prefix) and all arguments are transformed to
+        output. <code class="code">to_out</code> represents a function that is then given the formatted name and the appropriate number of these
+        outputs. The expected arguments are described by <code class="code">vars</code>. If there are more arguments than variables,
+        they are appended. If there are less, for expressions local functions are introduced. For patterns,
+        an exception is thrown. Since values of <code class="code">const_target_rep</code> need to be written out to file via <code class="code">output_value</code> in order to cache libraries,
+        it cannot be a function of type <code class="code">Output.t list -&gt; Output.t list</code> directly. Instead, the type <code class="code">cr_special_fun</code> is used
+        as an indirection.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+
+
+<br><code><span id="TYPErel_io"><span class="keyword">type</span> <code class="type"></code>rel_io</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Rel_mode_in</span></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Rel_mode_out</span></code></td>
+
+</tr></table>
+
+<div class="info">
+rel_io represents whether an argument of an inductive relation is considerred as an input or an output<br>
+</div>
+
+<pre><span id="TYPErel_mode"><span class="keyword">type</span> <code class="type"></code>rel_mode</span> = <code class="type"><a href="Typed_ast.html#TYPErel_io">rel_io</a> list</code> </pre>
+<div class="info">
+rel_output_type specifies the type of the result<br>
+</div>
+
+<br><code><span id="TYPErel_output_type"><span class="keyword">type</span> <code class="type"></code>rel_output_type</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Out_list</span></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >Return a list of possible outputs</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Out_pure</span></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >Return one possible output or fail if no such output exists</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Out_option</span></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >Return one possible output or None if no such output exists</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Out_unique</span></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >Return the output if it is unique or None otherwise</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+
+
+<br><code><span id="TYPErel_info"><span class="keyword">type</span> <code class="type"></code>rel_info</span> = {</code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>ri_witness&nbsp;: <code class="type">(<a href="Path.html#TYPEt">Path.t</a> * <a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a> Nfmap.t) option</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >Contains the path of the witness type and a mapping from rules to constructors.
+      <code class="code">None</code> if no witness type has been generated</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>ri_check&nbsp;: <code class="type"><a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a> option</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >A reference to the witness checking function or <code class="code">None</code> if it is not generated</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>ri_fns&nbsp;: <code class="type">((<a href="Typed_ast.html#TYPErel_mode">rel_mode</a> * bool * <a href="Typed_ast.html#TYPErel_output_type">rel_output_type</a>) *<br>        <a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a>)<br>       list</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >A list of functions generated from the relation together with their modes</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+}
+
+<div class="info">
+rel_info represents information about functions and types genereated from this relation 0<br>
+</div>
+
+<br><code><span id="TYPEconst_descr"><span class="keyword">type</span> <code class="type"></code>const_descr</span> = {</code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>const_binding&nbsp;: <code class="type"><a href="Path.html#TYPEt">Path.t</a></code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >The path to the definition</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>const_tparams&nbsp;: <code class="type"><a href="Types.html#TYPEtnvar">Types.tnvar</a> list</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >Its type parameters.  Must have length 1 for class methods.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>const_class&nbsp;: <code class="type">(<a href="Path.html#TYPEt">Path.t</a> * <a href="Types.html#TYPEtnvar">Types.tnvar</a>) list</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >Its class constraints (must refer to above type parameters).  Must have
+        length 1 for class methods</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>const_no_class&nbsp;: <code class="type"><a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a> Target.Targetmap.t</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >If the constant has constraints, i.e. const_class is not empty, we need another constant without
+        constraints for dictionary passing. This field stores the reference to this constant, if one such constant
+        has aready been generated.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>const_ranges&nbsp;: <code class="type"><a href="Types.html#TYPErange">Types.range</a> list</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >Its length constraints (must refer to above type parameters). Can be equality or GtEq inequalities</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>const_type&nbsp;: <code class="type"><a href="Types.html#TYPEt">Types.t</a></code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >Its type</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>relation_info&nbsp;: <code class="type"><a href="Typed_ast.html#TYPErel_info">rel_info</a> option</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >If the constant is a relation, it might contain additional information about this relation.
+        However, it might be <code class="code">None</code> for some relations as well.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>env_tag&nbsp;: <code class="type"><a href="Typed_ast.html#TYPEenv_tag">env_tag</a></code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >What kind of definition it is.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>const_targets&nbsp;: <code class="type">Target.Targetset.t</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >The set of targets the constant is defined for.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>spec_l&nbsp;: <code class="type">Ast.l</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >The location for the first occurrence of a definition/specification of
+        this constant.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>target_rename&nbsp;: <code class="type">(Ast.l * <a href="Name.html#TYPEt">Name.t</a>) Target.Targetmap.t</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >Target-specific renames of for this constant.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>target_ascii_rep&nbsp;: <code class="type">(Ast.l * <a href="Name.html#TYPEt">Name.t</a>) Target.Targetmap.t</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >Optional ASCII representation for this constant.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>target_rep&nbsp;: <code class="type"><a href="Typed_ast.html#TYPEconst_target_rep">const_target_rep</a> Target.Targetmap.t</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >Target-specific representation of for this constant</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>compile_message&nbsp;: <code class="type">string Target.Targetmap.t</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >An optional warning message that should be printed, if the constant is used</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>termination_setting&nbsp;: <code class="type">Ast.termination_setting Target.Targetmap.t</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >Can termination be proved automatically by various backends?</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+}
+
+<div class="info">
+The description of a top-level definition<br>
+</div>
+
+<pre><span id="TYPEv_env"><span class="keyword">type</span> <code class="type"></code>v_env</span> = <code class="type"><a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a> Nfmap.t</code> </pre>
+
+<pre><span id="TYPEf_env"><span class="keyword">type</span> <code class="type"></code>f_env</span> = <code class="type"><a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a> Nfmap.t</code> </pre>
+
+<pre><span id="TYPEm_env"><span class="keyword">type</span> <code class="type"></code>m_env</span> = <code class="type"><a href="Path.html#TYPEt">Path.t</a> Nfmap.t</code> </pre>
+
+<pre><span id="TYPEe_env"><span class="keyword">type</span> <code class="type"></code>e_env</span> = <code class="type"><a href="Typed_ast.html#TYPEmod_descr">mod_descr</a> Types.Pfmap.t</code> </pre>
+
+<pre><span id="TYPEc_env"><span class="keyword">type</span> <code class="type"></code>c_env</span> </pre>
+<div class="info">
+<code class="code">local_env</code> represents local_environments, i.e. essentially maps from names to the entities they represent<br>
+</div>
+
+<br><code><span id="TYPElocal_env"><span class="keyword">type</span> <code class="type"></code>local_env</span> = {</code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>m_env&nbsp;: <code class="type"><a href="Typed_ast.html#TYPEm_env">m_env</a></code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >module map</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>p_env&nbsp;: <code class="type"><a href="Typed_ast.html#TYPEp_env">p_env</a></code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >type map</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>f_env&nbsp;: <code class="type"><a href="Typed_ast.html#TYPEf_env">f_env</a></code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >field map</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>v_env&nbsp;: <code class="type"><a href="Typed_ast.html#TYPEv_env">v_env</a></code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >constructor and constant map</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+}
+
+
+<br><code><span id="TYPEenv"><span class="keyword">type</span> <code class="type"></code>env</span> = {</code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>local_env&nbsp;: <code class="type"><a href="Typed_ast.html#TYPElocal_env">local_env</a></code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >the current local environment</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>c_env&nbsp;: <code class="type"><a href="Typed_ast.html#TYPEc_env">c_env</a></code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >global map from constant references to the constant descriptions</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>t_env&nbsp;: <code class="type"><a href="Types.html#TYPEtype_defs">Types.type_defs</a></code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >global type-information</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>i_env&nbsp;: <code class="type"><a href="Types.html#TYPEi_env">Types.i_env</a></code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >global instances information</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>e_env&nbsp;: <code class="type"><a href="Typed_ast.html#TYPEe_env">e_env</a></code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >global map from module paths to the module descriptions</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+}
+
+
+<br><code><span id="TYPEmod_target_rep"><span class="keyword">type</span> <code class="type"></code>mod_target_rep</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">MR_rename</span> <span class="keyword">of</span> <code class="type">Ast.l * <a href="Name.html#TYPEt">Name.t</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >Rename the module</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+
+
+<br><code><span id="TYPEmod_descr"><span class="keyword">type</span> <code class="type"></code>mod_descr</span> = {</code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>mod_binding&nbsp;: <code class="type"><a href="Path.html#TYPEt">Path.t</a></code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >The full path of this module</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>mod_env&nbsp;: <code class="type"><a href="Typed_ast.html#TYPElocal_env">local_env</a></code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >The local environment of the module</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>mod_target_rep&nbsp;: <code class="type"><a href="Typed_ast.html#TYPEmod_target_rep">mod_target_rep</a> Target.Targetmap.t</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >how to represent the module for different backends</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>mod_filename&nbsp;: <code class="type">string option</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >the filename the module is defined in (if it is a top-level module)</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>mod_in_output&nbsp;: <code class="type">bool</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >is this module written to a file (true) or an existing file used (false) ?</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+}
+
+
+<pre><span id="TYPEexp"><span class="keyword">type</span> <code class="type"></code>exp</span> </pre>
+
+<br><code><span id="TYPEexp_subst"><span class="keyword">type</span> <code class="type"></code>exp_subst</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Sub</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPEexp">exp</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Sub_rename</span> <span class="keyword">of</span> <code class="type"><a href="Name.html#TYPEt">Name.t</a></code></code></td>
+
+</tr></table>
+
+
+<br><code><span id="TYPEexp_aux"><span class="keyword">type</span> <code class="type"></code>exp_aux</span> = private </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Var</span> <span class="keyword">of</span> <code class="type"><a href="Name.html#TYPElskips_t">Name.lskips_t</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Backend</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Ident.html#TYPEt">Ident.t</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >An identifier that should be used literally by a backend. The identifier does not contain whitespace. Initial whitespace is represented explicitly.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Nvar_e</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Nvar.html#TYPEt">Nvar.t</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Constant</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a> <a href="Types.html#TYPEid">Types.id</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Fun</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEpat">pat</a> list * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Function</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a><br>        * (<a href="Typed_ast.html#TYPEpat">pat</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a> * Ast.l)<br>          <a href="Typed_ast.html#TYPElskips_seplist">lskips_seplist</a> * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">App</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPEexp">exp</a> * <a href="Typed_ast.html#TYPEexp">exp</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Infix</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPEexp">exp</a> * <a href="Typed_ast.html#TYPEexp">exp</a> * <a href="Typed_ast.html#TYPEexp">exp</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >The middle exp must be a Var, Constant, or Constructor</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Record</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEfexp">fexp</a> <a href="Typed_ast.html#TYPElskips_seplist">lskips_seplist</a> * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Recup</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a> * <a href="Typed_ast.html#TYPElskips">lskips</a><br>        * <a href="Typed_ast.html#TYPEfexp">fexp</a> <a href="Typed_ast.html#TYPElskips_seplist">lskips_seplist</a> * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Field</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPEexp">exp</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a> <a href="Types.html#TYPEid">Types.id</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Vector</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a> <a href="Typed_ast.html#TYPElskips_seplist">lskips_seplist</a> * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">VectorSub</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPEexp">exp</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Types.html#TYPEsrc_nexp">Types.src_nexp</a> * <a href="Typed_ast.html#TYPElskips">lskips</a><br>        * <a href="Types.html#TYPEsrc_nexp">Types.src_nexp</a> * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">VectorAcc</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPEexp">exp</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Types.html#TYPEsrc_nexp">Types.src_nexp</a> * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Case</span> <span class="keyword">of</span> <code class="type">bool * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a> * <a href="Typed_ast.html#TYPElskips">lskips</a><br>        * (<a href="Typed_ast.html#TYPEpat">pat</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a> * Ast.l)<br>          <a href="Typed_ast.html#TYPElskips_seplist">lskips_seplist</a> * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >The boolean flag as first argument is used to prevent pattern compilation from looping in
+        rare cases. If set to <code class="code">true</code>, no pattern compilation is tried. The default value is <code class="code">false</code>.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Typed</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Types.html#TYPEsrc_t">Types.src_t</a><br>        * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Let</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEletbind">letbind</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Tup</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a> <a href="Typed_ast.html#TYPElskips_seplist">lskips_seplist</a> * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">List</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a> <a href="Typed_ast.html#TYPElskips_seplist">lskips_seplist</a> * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Paren</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a> * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Begin</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a> * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">If</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a><br>        * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Lit</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElit">lit</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Set</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a> <a href="Typed_ast.html#TYPElskips_seplist">lskips_seplist</a> * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Setcomp</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a><br>        * <a href="Typed_ast.html#TYPElskips">lskips</a> * NameSet.t</code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Comp_binding</span> <span class="keyword">of</span> <code class="type">bool * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPElskips">lskips</a><br>        * <a href="Typed_ast.html#TYPEquant_binding">quant_binding</a> list * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a><br>        * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><code class="code">true</code> for list comprehensions, <code class="code">false</code> for set comprehensions</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Quant</span> <span class="keyword">of</span> <code class="type">Ast.q * <a href="Typed_ast.html#TYPEquant_binding">quant_binding</a> list * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Do</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Path.html#TYPEt">Path.t</a> <a href="Types.html#TYPEid">Types.id</a> * <a href="Typed_ast.html#TYPEdo_line">do_line</a> list<br>        * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a> * <a href="Typed_ast.html#TYPElskips">lskips</a><br>        * (<a href="Types.html#TYPEt">Types.t</a> * <a href="Typed_ast.html#TYPEbind_tyargs_order">bind_tyargs_order</a>)</code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >The last argument is the type of the value in the monad</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+
+
+<br><code><span id="TYPEdo_line"><span class="keyword">type</span> <code class="type"></code>do_line</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Do_line</span> <span class="keyword">of</span> <code class="type">(<a href="Typed_ast.html#TYPEpat">pat</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a> * <a href="Typed_ast.html#TYPElskips">lskips</a>)</code></code></td>
+
+</tr></table>
+
+
+<br><code><span id="TYPEbind_tyargs_order"><span class="keyword">type</span> <code class="type"></code>bind_tyargs_order</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">BTO_input_output</span></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><code class="code">['a, 'b]</code></td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">BTO_output_input</span></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><code class="code">['b, 'a]</code></td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+
+<div class="info">
+A bind constant of a monad M has type <code class="code">M 'a -&gt; ('a -&gt; M 'b) -&gt; M 'b</code>.
+        Here, I call <code class="code">'a</code> the input type and <code class="code">'b</code> the output type. Depending on
+        how the bind constant is defined in detail its free type variable list
+        (stored in constant-description record, field const_tparams) might be either
+        of the form <code class="code">['a, 'b]</code> or <code class="code">['b, 'a]</code>. This type is used to distinguish the
+        two possibilities.<br>
+</div>
+
+<pre><span id="TYPEfexp"><span class="keyword">type</span> <code class="type"></code>fexp</span> = <code class="type"><a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a> <a href="Types.html#TYPEid">Types.id</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a> * Ast.l</code> </pre>
+
+<pre><span id="TYPEname_lskips_annot"><span class="keyword">type</span> <code class="type"></code>name_lskips_annot</span> = <code class="type">(<a href="Name.html#TYPElskips_t">Name.lskips_t</a>, unit) <a href="Types.html#TYPEannot">Types.annot</a></code> </pre>
+
+<br><code><span id="TYPEquant_binding"><span class="keyword">type</span> <code class="type"></code>quant_binding</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Qb_var</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPEname_lskips_annot">name_lskips_annot</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Qb_restr</span> <span class="keyword">of</span> <code class="type">bool * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEpat">pat</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a><br>        * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >true for list quantifiers, false for set quantifiers</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+
+
+<pre><span id="TYPEfuncl_aux"><span class="keyword">type</span> <code class="type"></code>funcl_aux</span> = <code class="type"><a href="Typed_ast.html#TYPEname_lskips_annot">name_lskips_annot</a> * <a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a> *<br>       <a href="Typed_ast.html#TYPEpat">pat</a> list * (<a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Types.html#TYPEsrc_t">Types.src_t</a>) option *<br>       <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a></code> </pre>
+
+<pre><span id="TYPEletbind"><span class="keyword">type</span> <code class="type"></code>letbind</span> = <code class="type"><a href="Typed_ast.html#TYPEletbind_aux">letbind_aux</a> * Ast.l</code> </pre>
+
+<br><code><span id="TYPEletbind_aux"><span class="keyword">type</span> <code class="type"></code>letbind_aux</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Let_val</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPEpat">pat</a> * (<a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Types.html#TYPEsrc_t">Types.src_t</a>) option * <a href="Typed_ast.html#TYPElskips">lskips</a><br>        * <a href="Typed_ast.html#TYPEexp">exp</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><code class="code">Let_val (p, ty_opt, sk, e)</code> describes binding the pattern <code class="code">p</code> to exp <code class="code">e</code> in a local
+        let statement, i.e. a statement like <code class="code">let p = e in ...</code></td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Let_fun</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPEname_lskips_annot">name_lskips_annot</a> * <a href="Typed_ast.html#TYPEpat">pat</a> list<br>        * (<a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Types.html#TYPEsrc_t">Types.src_t</a>) option * <a href="Typed_ast.html#TYPElskips">lskips</a><br>        * <a href="Typed_ast.html#TYPEexp">exp</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><code class="code">Let_fun (n, ps, ty_opt, sk, e)</code> describes defining a local function <code class="code">f</code> with arguments <code class="code">ps</code> locally.
+        It repre0sents a statement like <code class="code">let n ps = e in ...</code>. Notice that the arguments of <code class="code">Let_fun</code> are
+        similar to <code class="code">funcl_aux</code>. However, funcl_aux has a constant-references, as it is used in top-level definitions,
+        whereas <code class="code">Let_fun</code> is used only for local functions.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+
+
+<pre><span id="TYPEtyvar"><span class="keyword">type</span> <code class="type"></code>tyvar</span> = <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * Ulib.Text.t * Ast.l</code> </pre>
+
+<pre><span id="TYPEnvar"><span class="keyword">type</span> <code class="type"></code>nvar</span> = <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * Ulib.Text.t * Ast.l</code> </pre>
+
+<br><code><span id="TYPEtnvar"><span class="keyword">type</span> <code class="type"></code>tnvar</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Tn_A</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPEtyvar">tyvar</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Tn_N</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPEnvar">nvar</a></code></code></td>
+
+</tr></table>
+
+
+<br><code><span id="TYPEtexp"><span class="keyword">type</span> <code class="type"></code>texp</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Te_opaque</span></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >introduce just a new type name without definition</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Te_abbrev</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Types.html#TYPEsrc_t">Types.src_t</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >a type abbreviation with the type Te_abbrev</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Te_record</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPElskips">lskips</a><br>        * (<a href="Typed_ast.html#TYPEname_l">name_l</a> * <a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> *<br>           <a href="Types.html#TYPEsrc_t">Types.src_t</a>)<br>          <a href="Typed_ast.html#TYPElskips_seplist">lskips_seplist</a> * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><code class="code">Te_record (_, _, field_list, _)</code> defines a record type. The fields and their types
+         are stored in <code class="code">field_list</code>. The entries of <code class="code">field_list</code> consist of the name of the field,
+         the reference to it's constant description and the type of the field as well as white-spaces.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Te_variant</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a><br>        * (<a href="Typed_ast.html#TYPEname_l">name_l</a> * <a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> *<br>           <a href="Types.html#TYPEsrc_t">Types.src_t</a> <a href="Typed_ast.html#TYPElskips_seplist">lskips_seplist</a>)<br>          <a href="Typed_ast.html#TYPElskips_seplist">lskips_seplist</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><code class="code">Te_variant (_, _, constr_list, _)</code> defines a variant type. The constructors and their types
+         are stored in <code class="code">constr_list</code>. The entries of <code class="code">constr_list</code> consist of the name of the constructor,
+         the reference to it's constant description and the type of it's arguments as well as white-spaces.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+
+<div class="info">
+Type exepressions for defining types<br>
+</div>
+
+<br><code><span id="TYPErange"><span class="keyword">type</span> <code class="type"></code>range</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">GtEq</span> <span class="keyword">of</span> <code class="type">Ast.l * <a href="Types.html#TYPEsrc_nexp">Types.src_nexp</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Types.html#TYPEsrc_nexp">Types.src_nexp</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Eq</span> <span class="keyword">of</span> <code class="type">Ast.l * <a href="Types.html#TYPEsrc_nexp">Types.src_nexp</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Types.html#TYPEsrc_nexp">Types.src_nexp</a></code></code></td>
+
+</tr></table>
+
+
+<br><code><span id="TYPEconstraints"><span class="keyword">type</span> <code class="type"></code>constraints</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Cs_list</span> <span class="keyword">of</span> <code class="type">(<a href="Ident.html#TYPEt">Ident.t</a> * <a href="Typed_ast.html#TYPEtnvar">tnvar</a>) <a href="Typed_ast.html#TYPElskips_seplist">lskips_seplist</a><br>        * <a href="Typed_ast.html#TYPElskips">lskips</a> option * <a href="Typed_ast.html#TYPErange">range</a> <a href="Typed_ast.html#TYPElskips_seplist">lskips_seplist</a><br>        * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr></table>
+
+
+<br><code><span id="TYPEconstraint_prefix"><span class="keyword">type</span> <code class="type"></code>constraint_prefix</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Cp_forall</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEtnvar">tnvar</a> list * <a href="Typed_ast.html#TYPElskips">lskips</a><br>        * <a href="Typed_ast.html#TYPEconstraints">constraints</a> option</code></code></td>
+
+</tr></table>
+
+
+<pre><span id="TYPEtypschm"><span class="keyword">type</span> <code class="type"></code>typschm</span> = <code class="type"><a href="Typed_ast.html#TYPEconstraint_prefix">constraint_prefix</a> option * <a href="Types.html#TYPEsrc_t">Types.src_t</a></code> </pre>
+
+<pre><span id="TYPEinstschm"><span class="keyword">type</span> <code class="type"></code>instschm</span> = <code class="type"><a href="Typed_ast.html#TYPEconstraint_prefix">constraint_prefix</a> option * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Ident.html#TYPEt">Ident.t</a> * <a href="Path.html#TYPEt">Path.t</a> *<br>       <a href="Types.html#TYPEsrc_t">Types.src_t</a> * <a href="Typed_ast.html#TYPElskips">lskips</a></code> </pre>
+<div class="info">
+Instance Scheme, constraint prefix, sk, class-ident as printed, resolved class-path the id points to, instantiation type, sk<br>
+</div>
+
+<pre><span id="VALcr_special_fun_uses_name"><span class="keyword">val</span> cr_special_fun_uses_name</span> : <code class="type"><a href="Typed_ast.html#TYPEcr_special_fun">cr_special_fun</a> -> bool</code></pre><div class="info">
+<code class="code">cr_special_fun_uses_name f</code> checks, whether <code class="code">f</code> uses it's first argument,
+    i.e. whether it uses the formatted name of the constant. This information
+    is important to determine, whether the constant needs to be renamed.<br>
+</div>
+<pre><span id="TYPEtargets_opt"><span class="keyword">type</span> <code class="type"></code>targets_opt</span> = <code class="type">(bool * <a href="Typed_ast.html#TYPElskips">lskips</a> * Ast.target <a href="Typed_ast.html#TYPElskips_seplist">lskips_seplist</a> *<br>        <a href="Typed_ast.html#TYPElskips">lskips</a>)<br>       option</code> </pre>
+<div class="info">
+targets_opt is represents a set of targets. There are 3 types of values   
+<ul>
+<li>`None` represents the universal set, i.e. all targets</li>
+<li>`Some (false, sk_1, tl, sk_2)` (in source `{ t1; ...; tn }`) is the set of all targets in the list `tl`</li>
+<li>`Some (true, sk_1, tl, sk_2)` (in source `~{ t1; ...; tn }`) is the set of all targets <b>not</b> in the list `tl`</li>
+</ul>
+<br>
+</div>
+
+<pre><span id="VALin_targets_opt"><span class="keyword">val</span> in_targets_opt</span> : <code class="type"><a href="Target.html#TYPEtarget">Target.target</a> -> <a href="Typed_ast.html#TYPEtargets_opt">targets_opt</a> -> bool</code></pre><div class="info">
+<code class="code">in_targets_opt targ targets_opt</code> checks whether the target `targ` is in the set of targets represented by
+    `targets_opt`. If <code class="code">targ</code> is the a human readable target, <code class="code">true</code> is returned.<br>
+</div>
+<pre><span id="VALin_target_set"><span class="keyword">val</span> in_target_set</span> : <code class="type"><a href="Target.html#TYPEtarget">Target.target</a> -> Target.Targetset.t -> bool</code></pre><div class="info">
+<code class="code">in_target_set targ targetset</code> checks whether the target `targ` is in the set of targets 
+    <code class="code">targetset</code>. It is intended for checking whether to output certain parts of the TAST. 
+    Therefore, <code class="code">in_target_set</code> returns true for all human readable targets and only checks for others.<br>
+</div>
+<pre><span id="VALtargets_opt_to_list"><span class="keyword">val</span> targets_opt_to_list</span> : <code class="type"><a href="Typed_ast.html#TYPEtargets_opt">targets_opt</a> -> <a href="Target.html#TYPEnon_ident_target">Target.non_ident_target</a> list</code></pre><div class="info">
+<code class="code">target_opt_to_list targets_opt</code> returns a distinct list of all the targets in the option.<br>
+</div>
+<pre><span id="TYPEval_spec"><span class="keyword">type</span> <code class="type"></code>val_spec</span> = <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEname_l">name_l</a> * <a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a> *<br>       Ast.ascii_opt * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEtypschm">typschm</a></code> </pre>
+
+<pre><span id="TYPEclass_val_spec"><span class="keyword">type</span> <code class="type"></code>class_val_spec</span> = <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEtargets_opt">targets_opt</a> * <a href="Typed_ast.html#TYPEname_l">name_l</a> *<br>       <a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a> * Ast.ascii_opt * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Types.html#TYPEsrc_t">Types.src_t</a></code> </pre>
+
+<br><code><span id="TYPEfun_def_rec_flag"><span class="keyword">type</span> <code class="type"></code>fun_def_rec_flag</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">FR_non_rec</span></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">FR_rec</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr></table>
+
+<div class="info">
+<code class="code">fun_def_rec_flag</code> is used to encode, whether a <code class="code">Fun_def</code> is recursive. The recursive one carries some whitespace for
+    printing after the rec-keyword.<br>
+</div>
+
+<br><code><span id="TYPEval_def"><span class="keyword">type</span> <code class="type"></code>val_def</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Let_def</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEtargets_opt">targets_opt</a><br>        * (<a href="Typed_ast.html#TYPEpat">pat</a> * (<a href="Name.html#TYPEt">Name.t</a> * <a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a>) list *<br>           (<a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Types.html#TYPEsrc_t">Types.src_t</a>) option * <a href="Typed_ast.html#TYPElskips">lskips</a> *<br>           <a href="Typed_ast.html#TYPEexp">exp</a>)</code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Fun_def</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEfun_def_rec_flag">fun_def_rec_flag</a> * <a href="Typed_ast.html#TYPEtargets_opt">targets_opt</a><br>        * <a href="Typed_ast.html#TYPEfuncl_aux">funcl_aux</a> <a href="Typed_ast.html#TYPElskips_seplist">lskips_seplist</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><code class="code">Fun_def (sk1, rec_flag, topt, clauses)</code> encodes a function definition, which might consist of multiple clauses.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Let_inline</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEtargets_opt">targets_opt</a><br>        * <a href="Typed_ast.html#TYPEname_lskips_annot">name_lskips_annot</a> * <a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a><br>        * <a href="Typed_ast.html#TYPEname_lskips_annot">name_lskips_annot</a> list * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a></code></code></td>
+
+</tr></table>
+
+
+<br><code><span id="TYPEname_sect"><span class="keyword">type</span> <code class="type"></code>name_sect</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Name_restrict</span> <span class="keyword">of</span> <code class="type">(<a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEname_l">name_l</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> *<br>      string * <a href="Typed_ast.html#TYPElskips">lskips</a>)</code></code></td>
+
+</tr></table>
+
+
+<br><code><span id="TYPEindreln_rule_quant_name"><span class="keyword">type</span> <code class="type"></code>indreln_rule_quant_name</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">QName</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPEname_lskips_annot">name_lskips_annot</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Name_typ</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEname_lskips_annot">name_lskips_annot</a> * <a href="Typed_ast.html#TYPElskips">lskips</a><br>        * <a href="Types.html#TYPEsrc_t">Types.src_t</a> * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr></table>
+
+
+<br><code><span id="TYPEindreln_rule_aux"><span class="keyword">type</span> <code class="type"></code>indreln_rule_aux</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Rule</span> <span class="keyword">of</span> <code class="type"><a href="Name.html#TYPElskips_t">Name.lskips_t</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPElskips">lskips</a><br>        * <a href="Typed_ast.html#TYPEindreln_rule_quant_name">indreln_rule_quant_name</a> list * <a href="Typed_ast.html#TYPElskips">lskips</a><br>        * <a href="Typed_ast.html#TYPEexp">exp</a> option * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEname_lskips_annot">name_lskips_annot</a><br>        * <a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a> * <a href="Typed_ast.html#TYPEexp">exp</a> list</code></code></td>
+
+</tr></table>
+
+<div class="info">
+A rule of the form <code class="code">Rule(clause_name_opt, sk1, sk2, bound_vars, sk3, left_hand_side_opt, sk4, rel_name, c, args)</code> encodes
+   a clause <code class="code">clause_name: forall bound_vars. (left_hand_side ==&gt; rel_name args)</code>. <code class="code">c</code> is the reference of the relation <code class="code">rel_name</code>.<br>
+</div>
+
+<pre><span id="TYPEindreln_rule"><span class="keyword">type</span> <code class="type"></code>indreln_rule</span> = <code class="type"><a href="Typed_ast.html#TYPEindreln_rule_aux">indreln_rule_aux</a> * Ast.l</code> </pre>
+
+<br><code><span id="TYPEindreln_witness"><span class="keyword">type</span> <code class="type"></code>indreln_witness</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Indreln_witness</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Name.html#TYPElskips_t">Name.lskips_t</a> * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr></table>
+
+<div class="info">
+Name of the witness type to be generated<br>
+</div>
+
+<br><code><span id="TYPEindreln_indfn"><span class="keyword">type</span> <code class="type"></code>indreln_indfn</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Indreln_fn</span> <span class="keyword">of</span> <code class="type"><a href="Name.html#TYPElskips_t">Name.lskips_t</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Types.html#TYPEsrc_t">Types.src_t</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> option</code></code></td>
+
+</tr></table>
+
+<div class="info">
+Name and mode of a function to be generated from an inductive relation<br>
+</div>
+
+<br><code><span id="TYPEindreln_name"><span class="keyword">type</span> <code class="type"></code>indreln_name</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">RName</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Name.html#TYPElskips_t">Name.lskips_t</a> * <a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a><br>        * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEtypschm">typschm</a> * <a href="Typed_ast.html#TYPEindreln_witness">indreln_witness</a> option<br>        * (<a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Name.html#TYPElskips_t">Name.lskips_t</a> * <a href="Typed_ast.html#TYPElskips">lskips</a>) option<br>        * <a href="Typed_ast.html#TYPEindreln_indfn">indreln_indfn</a> list option * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr></table>
+
+<div class="info">
+Type annotation for the relation and information on what to generate from it.
+    <code class="code">RName(sk1, rel_name, rel_name_ref, sk2, rel_type, witness_opt, check_opt, indfns opt, sk3)</code><br>
+</div>
+
+<br><code><span id="TYPEtarget_rep_rhs"><span class="keyword">type</span> <code class="type"></code>target_rep_rhs</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Target_rep_rhs_infix</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * Ast.fixity_decl * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Ident.html#TYPEt">Ident.t</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >Declaration of an infix constant</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Target_rep_rhs_term_replacement</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPEexp">exp</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >the standard term replacement, replace with the exp for the given backend</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Target_rep_rhs_type_replacement</span> <span class="keyword">of</span> <code class="type"><a href="Types.html#TYPEsrc_t">Types.src_t</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >the standard term replacement, replace with the type for the given backend</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Target_rep_rhs_special</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * string * <a href="Typed_ast.html#TYPEexp">exp</a> list</code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >fancy represenation of terms</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Target_rep_rhs_undefined</span></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >undefined, don't throw a problem during typeching, but during output</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+
+
+<br><code><span id="TYPEdeclare_def"><span class="keyword">type</span> <code class="type"></code>declare_def</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Decl_compile_message</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEtargets_opt">targets_opt</a> * <a href="Typed_ast.html#TYPElskips">lskips</a><br>        * <a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a> <a href="Types.html#TYPEid">Types.id</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPElskips">lskips</a><br>        * string</code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><code class="code">Decl_compile_message_decl (sk1, targs, sk2, c, sk3, sk4, message)</code>, declares printing waring message
+       <code class="code">message</code>, if constant <code class="code">c</code> is used for one of the targets in <code class="code">targs</code></td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Decl_target_rep_term</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * Ast.target * <a href="Typed_ast.html#TYPElskips">lskips</a> * Ast.component<br>        * <a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a> <a href="Types.html#TYPEid">Types.id</a> * <a href="Typed_ast.html#TYPEname_lskips_annot">name_lskips_annot</a> list<br>        * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEtarget_rep_rhs">target_rep_rhs</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><code class="code">Decl_target_rep_term (sk1, targ, sk2, comp, c, args, sk3, rhs)</code> declares a target-representation for target <code class="code">targ</code> and
+       constant <code class="code">c</code> with arguments <code class="code">args</code>. Since fields and constant live in different namespaces, <code class="code">comp</code> is used to declare
+       whether a field or a constant is meant. The <code class="code">rhs</code> constains details about the representation.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Decl_target_rep_type</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * Ast.target * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPElskips">lskips</a><br>        * <a href="Path.html#TYPEt">Path.t</a> <a href="Types.html#TYPEid">Types.id</a> * <a href="Typed_ast.html#TYPEtnvar">tnvar</a> list * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Types.html#TYPEsrc_t">Types.src_t</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><code class="code">Decl_target_rep_type (sk1, targ, sk2, sk3, id, args, sk4, rhs)</code> declares a target-representation. for target <code class="code">targ</code> and
+       type <code class="code">id</code> with arguments <code class="code">args</code>.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Decl_ascii_rep</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEtargets_opt">targets_opt</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * Ast.component<br>        * <a href="Typed_ast.html#TYPEname_kind">name_kind</a> <a href="Types.html#TYPEid">Types.id</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPElskips">lskips</a><br>        * <a href="Name.html#TYPEt">Name.t</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Decl_rename</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEtargets_opt">targets_opt</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * Ast.component<br>        * <a href="Typed_ast.html#TYPEname_kind">name_kind</a> <a href="Types.html#TYPEid">Types.id</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Name.html#TYPElskips_t">Name.lskips_t</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Decl_rename_current_module</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEtargets_opt">targets_opt</a> * <a href="Typed_ast.html#TYPElskips">lskips</a><br>        * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Name.html#TYPElskips_t">Name.lskips_t</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Decl_termination_argument</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEtargets_opt">targets_opt</a> * <a href="Typed_ast.html#TYPElskips">lskips</a><br>        * <a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a> <a href="Types.html#TYPEid">Types.id</a> * <a href="Typed_ast.html#TYPElskips">lskips</a><br>        * Ast.termination_setting</code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Decl_pattern_match_decl</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEtargets_opt">targets_opt</a> * <a href="Typed_ast.html#TYPElskips">lskips</a><br>        * Ast.exhaustivity_setting * <a href="Path.html#TYPEt">Path.t</a> <a href="Types.html#TYPEid">Types.id</a> * <a href="Typed_ast.html#TYPEtnvar">tnvar</a> list<br>        * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPElskips">lskips</a><br>        * <a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a> <a href="Types.html#TYPEid">Types.id</a> <a href="Typed_ast.html#TYPElskips_seplist">lskips_seplist</a><br>        * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a> <a href="Types.html#TYPEid">Types.id</a> option</code></code></td>
+
+</tr></table>
+
+
+<br><code><span id="TYPEdef_aux"><span class="keyword">type</span> <code class="type"></code>def_aux</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Type_def</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a><br>        * (<a href="Typed_ast.html#TYPEname_l">name_l</a> * <a href="Typed_ast.html#TYPEtnvar">tnvar</a> list * <a href="Path.html#TYPEt">Path.t</a> * <a href="Typed_ast.html#TYPEtexp">texp</a> *<br>           <a href="Typed_ast.html#TYPEname_sect">name_sect</a> option)<br>          <a href="Typed_ast.html#TYPElskips_seplist">lskips_seplist</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><code class="code">Type_def (sk, sl)</code> defines one or more types. The entries of <code class="code">sl</code> are the type definitions.
+        They contain a name of the type, the full path of the defined type, the free type variables, the main type definiton and 
+        restrictions on variable names of this type</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Val_def</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPEval_def">val_def</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >The list contains the class constraints on those variables</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Lemma</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * Ast.lemma_typ * <a href="Typed_ast.html#TYPEtargets_opt">targets_opt</a> * <a href="Typed_ast.html#TYPEname_l">name_l</a><br>        * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEexp">exp</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Module</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEname_l">name_l</a> * <a href="Path.html#TYPEt">Path.t</a> * <a href="Typed_ast.html#TYPElskips">lskips</a><br>        * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEdef">def</a> list * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Rename</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEname_l">name_l</a> * <a href="Path.html#TYPEt">Path.t</a> * <a href="Typed_ast.html#TYPElskips">lskips</a><br>        * <a href="Path.html#TYPEt">Path.t</a> <a href="Types.html#TYPEid">Types.id</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >Renaming an already defined module</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">OpenImport</span> <span class="keyword">of</span> <code class="type">Ast.open_import * <a href="Path.html#TYPEt">Path.t</a> <a href="Types.html#TYPEid">Types.id</a> list</code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >open and/or import modules</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">OpenImportTarget</span> <span class="keyword">of</span> <code class="type">Ast.open_import * <a href="Typed_ast.html#TYPEtargets_opt">targets_opt</a> * (<a href="Typed_ast.html#TYPElskips">lskips</a> * string) list</code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >open and/or import modules only for specific targets</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Indreln</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEtargets_opt">targets_opt</a><br>        * <a href="Typed_ast.html#TYPEindreln_name">indreln_name</a> <a href="Typed_ast.html#TYPElskips_seplist">lskips_seplist</a><br>        * <a href="Typed_ast.html#TYPEindreln_rule">indreln_rule</a> <a href="Typed_ast.html#TYPElskips_seplist">lskips_seplist</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >Inductive relations</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Val_spec</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPEval_spec">val_spec</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Class</span> <span class="keyword">of</span> <code class="type">Ast.class_decl * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEname_l">name_l</a> * <a href="Typed_ast.html#TYPEtnvar">tnvar</a><br>        * <a href="Path.html#TYPEt">Path.t</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPEclass_val_spec">class_val_spec</a> list<br>        * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Instance</span> <span class="keyword">of</span> <code class="type">Ast.instance_decl * <a href="Types.html#TYPEinstance_ref">Types.instance_ref</a> * <a href="Typed_ast.html#TYPEinstschm">instschm</a><br>        * <a href="Typed_ast.html#TYPEval_def">val_def</a> list * <a href="Typed_ast.html#TYPElskips">lskips</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><code class="code">Instance (default?, instance_scheme, methods, sk2)</code></td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Comment</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPEdef">def</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >Does not appear in the source, used to comment out definitions for certain backends</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">Declaration</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPEdeclare_def">declare_def</a></code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >Declarations that change the behaviour of lem, but have no semantic meaning</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+
+
+<pre><span id="TYPEdef"><span class="keyword">type</span> <code class="type"></code>def</span> = <code class="type">(<a href="Typed_ast.html#TYPEdef_aux">def_aux</a> * <a href="Typed_ast.html#TYPElskips">lskips</a> option) * Ast.l * <a href="Typed_ast.html#TYPElocal_env">local_env</a></code> </pre>
+<div class="info">
+A definition consists of a the real definition represented as a <code class="code">def_aux</code>, followed by some white-space.
+    There is also the location of the definition and the local-environment present after the definition has been processed.<br>
+</div>
+
+<pre><span id="VALtnvar_to_types_tnvar"><span class="keyword">val</span> tnvar_to_types_tnvar</span> : <code class="type"><a href="Typed_ast.html#TYPEtnvar">tnvar</a> -> <a href="Types.html#TYPEtnvar">Types.tnvar</a> * Ast.l</code></pre><pre><span id="VALempty_local_env"><span class="keyword">val</span> empty_local_env</span> : <code class="type"><a href="Typed_ast.html#TYPElocal_env">local_env</a></code></pre><pre><span id="VALempty_env"><span class="keyword">val</span> empty_env</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">env</a></code></pre><pre><span id="VALe_env_lookup"><span class="keyword">val</span> e_env_lookup</span> : <code class="type">Ast.l -> <a href="Typed_ast.html#TYPEe_env">e_env</a> -> <a href="Path.html#TYPEt">Path.t</a> -> <a href="Typed_ast.html#TYPEmod_descr">mod_descr</a></code></pre><div class="info">
+<code class="code">e_env_lookup l e_env p</code> looks up the module with path <code class="code">p</code> in
+    environment <code class="code">e_env</code> and returns the corresponding description. If this
+    lookup fails, a fatal error is thrown using location <code class="code">l</code> for the error message.<br>
+</div>
+<pre><span id="VALc_env_lookup"><span class="keyword">val</span> c_env_lookup</span> : <code class="type">Ast.l -><br>       <a href="Typed_ast.html#TYPEc_env">c_env</a> -> <a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a> -> <a href="Typed_ast.html#TYPEconst_descr">const_descr</a></code></pre><div class="info">
+<code class="code">c_env_lookup l c_env c_ref</code> looks up the constant reference <code class="code">c_ref</code> in
+    environment <code class="code">c_env</code> and returns the corresponding description. If this
+    lookup fails, a fatal error is thrown using location <code class="code">l</code> for the error message.<br>
+</div>
+<pre><span id="VALc_env_store_raw"><span class="keyword">val</span> c_env_store_raw</span> : <code class="type"><a href="Typed_ast.html#TYPEc_env">c_env</a> -><br>       <a href="Typed_ast.html#TYPEconst_descr">const_descr</a> -> <a href="Typed_ast.html#TYPEc_env">c_env</a> * <a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a></code></pre><div class="info">
+<code class="code">c_env_store_raw c_env c_d</code> stores the description <code class="code">c_d</code> 
+    environment <code class="code">c_env</code>. Thereby, a new unique reference is generated and returned
+    along with the modified environment. It stores the real <code class="code">c_d</code> passed. The function
+    <code class="code">c_env_store</code> preprocesses <code class="code">c_d</code> to add common features like for example 
+    capitalizing constructors for the Ocaml backend.<br>
+</div>
+<pre><span id="VALc_env_update"><span class="keyword">val</span> c_env_update</span> : <code class="type"><a href="Typed_ast.html#TYPEc_env">c_env</a> -><br>       <a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a> -> <a href="Typed_ast.html#TYPEconst_descr">const_descr</a> -> <a href="Typed_ast.html#TYPEc_env">c_env</a></code></pre><div class="info">
+<code class="code">c_env_update c_env c_ref c_d</code> updates the description of constant <code class="code">c_ref</code> with 
+    <code class="code">c_d</code> in environment <code class="code">c_env</code>.<br>
+</div>
+<pre><span id="VALenv_c_env_update"><span class="keyword">val</span> env_c_env_update</span> : <code class="type"><a href="Typed_ast.html#TYPEenv">env</a> -><br>       <a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a> -> <a href="Typed_ast.html#TYPEconst_descr">const_descr</a> -> <a href="Typed_ast.html#TYPEenv">env</a></code></pre><div class="info">
+<code class="code">env_c_env_update env c_ref c_d</code> updates the description of constant <code class="code">c_ref</code> with 
+    <code class="code">c_d</code> in environment <code class="code">env</code>.<br>
+</div>
+<pre><span id="VALc_env_all_consts"><span class="keyword">val</span> c_env_all_consts</span> : <code class="type"><a href="Typed_ast.html#TYPEc_env">c_env</a> -> <a href="Typed_ast.html#TYPEconst_descr_ref">const_descr_ref</a> list</code></pre><div class="info">
+<code class="code">c_env_all_consts c_env</code> returns the constants defined in <code class="code">c_env</code><br>
+</div>
+<pre><span id="VALexp_to_locn"><span class="keyword">val</span> exp_to_locn</span> : <code class="type"><a href="Typed_ast.html#TYPEexp">exp</a> -> Ast.l</code></pre><pre><span id="VALexp_to_typ"><span class="keyword">val</span> exp_to_typ</span> : <code class="type"><a href="Typed_ast.html#TYPEexp">exp</a> -> <a href="Types.html#TYPEt">Types.t</a></code></pre><pre><span id="VALappend_lskips"><span class="keyword">val</span> append_lskips</span> : <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> -> <a href="Typed_ast.html#TYPEexp">exp</a> -> <a href="Typed_ast.html#TYPEexp">exp</a></code></pre><div class="info">
+append_lskips adds new whitespace/newline/comments to the front of an
+    expression (before any existing whitespace/newline/comments in front of the
+    expression)<br>
+</div>
+<pre><span id="VALpat_append_lskips"><span class="keyword">val</span> pat_append_lskips</span> : <code class="type"><a href="Typed_ast.html#TYPElskips">lskips</a> -> <a href="Typed_ast.html#TYPEpat">pat</a> -> <a href="Typed_ast.html#TYPEpat">pat</a></code></pre><pre><span id="VALalter_init_lskips"><span class="keyword">val</span> alter_init_lskips</span> : <code class="type">(<a href="Typed_ast.html#TYPElskips">lskips</a> -> <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPElskips">lskips</a>) -><br>       <a href="Typed_ast.html#TYPEexp">exp</a> -> <a href="Typed_ast.html#TYPEexp">exp</a> * <a href="Typed_ast.html#TYPElskips">lskips</a></code></pre><div class="info">
+<code class="code">alter_init_lskips</code> finds all of the whitespace/newline/comments preceding an
+    expression and passes it to the supplied function in a single invocation.
+    The preceding whitespace/newline/comments are replaced with the fst of the
+    function's result, and the snd of the function's result is returned from
+    alter_init_lskips<br>
+</div>
+<pre><span id="VALpat_alter_init_lskips"><span class="keyword">val</span> pat_alter_init_lskips</span> : <code class="type">(<a href="Typed_ast.html#TYPElskips">lskips</a> -> <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPElskips">lskips</a>) -><br>       <a href="Typed_ast.html#TYPEpat">pat</a> -> <a href="Typed_ast.html#TYPEpat">pat</a> * <a href="Typed_ast.html#TYPElskips">lskips</a></code></pre><pre><span id="VALdef_aux_alter_init_lskips"><span class="keyword">val</span> def_aux_alter_init_lskips</span> : <code class="type">(<a href="Typed_ast.html#TYPElskips">lskips</a> -> <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPElskips">lskips</a>) -><br>       <a href="Typed_ast.html#TYPEdef_aux">def_aux</a> -> <a href="Typed_ast.html#TYPEdef_aux">def_aux</a> * <a href="Typed_ast.html#TYPElskips">lskips</a></code></pre><pre><span id="VALdef_alter_init_lskips"><span class="keyword">val</span> def_alter_init_lskips</span> : <code class="type">(<a href="Typed_ast.html#TYPElskips">lskips</a> -> <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPElskips">lskips</a>) -><br>       <a href="Typed_ast.html#TYPEdef">def</a> -> <a href="Typed_ast.html#TYPEdef">def</a> * <a href="Typed_ast.html#TYPElskips">lskips</a></code></pre><pre><span id="VALoi_alter_init_lskips"><span class="keyword">val</span> oi_alter_init_lskips</span> : <code class="type">(<a href="Typed_ast.html#TYPElskips">lskips</a> -> <a href="Typed_ast.html#TYPElskips">lskips</a> * <a href="Typed_ast.html#TYPElskips">lskips</a>) -><br>       Ast.open_import -> Ast.open_import * <a href="Typed_ast.html#TYPElskips">lskips</a></code></pre><pre><span id="VALpp_const_descr"><span class="keyword">val</span> pp_const_descr</span> : <code class="type">Format.formatter -> <a href="Typed_ast.html#TYPEconst_descr">const_descr</a> -> unit</code></pre><pre><span id="VALpp_env"><span class="keyword">val</span> pp_env</span> : <code class="type">Format.formatter -> <a href="Typed_ast.html#TYPEenv">env</a> -> unit</code></pre><pre><span id="VALpp_local_env"><span class="keyword">val</span> pp_local_env</span> : <code class="type">Format.formatter -> <a href="Typed_ast.html#TYPElocal_env">local_env</a> -> unit</code></pre><pre><span id="VALpp_c_env"><span class="keyword">val</span> pp_c_env</span> : <code class="type">Format.formatter -> <a href="Typed_ast.html#TYPEc_env">c_env</a> -> unit</code></pre><pre><span id="VALpp_instances"><span class="keyword">val</span> pp_instances</span> : <code class="type">Format.formatter -> <a href="Types.html#TYPEinstance">Types.instance</a> list Types.Pfmap.t -> unit</code></pre><br><code><span id="TYPEimported_modules"><span class="keyword">type</span> <code class="type"></code>imported_modules</span> = </code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">IM_paths</span> <span class="keyword">of</span> <code class="type"><a href="Path.html#TYPEt">Path.t</a> list</code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span class="constructor">IM_targets</span> <span class="keyword">of</span> <code class="type"><a href="Typed_ast.html#TYPEtargets_opt">targets_opt</a> * string list</code></code></td>
+
+</tr></table>
+
+
+<br><code><span id="TYPEchecked_module"><span class="keyword">type</span> <code class="type"></code>checked_module</span> = {</code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>filename&nbsp;: <code class="type">string</code>;</code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>module_path&nbsp;: <code class="type"><a href="Path.html#TYPEt">Path.t</a></code>;</code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>imported_modules&nbsp;: <code class="type"><a href="Typed_ast.html#TYPEimported_modules">imported_modules</a> list</code>;</code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>imported_modules_rec&nbsp;: <code class="type"><a href="Typed_ast.html#TYPEimported_modules">imported_modules</a> list</code>;</code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>untyped_ast&nbsp;: <code class="type">Ast.defs * Ast.lex_skips</code>;</code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>typed_ast&nbsp;: <code class="type"><a href="Typed_ast.html#TYPEdef">def</a> list * Ast.lex_skips</code>;</code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>generate_output&nbsp;: <code class="type">bool</code>;</code></td>
+
+</tr></table>
+}
+
+
+<pre><span id="TYPEvar_avoid_f"><span class="keyword">type</span> <code class="type"></code>var_avoid_f</span> = <code class="type">bool * (<a href="Name.html#TYPEt">Name.t</a> -> bool) * (Ulib.Text.t -> (<a href="Name.html#TYPEt">Name.t</a> -> bool) -> <a href="Name.html#TYPEt">Name.t</a>)</code> </pre>
+<div class="info">
+<code class="code">var_avoid_f</code> is a type of a tuple <code class="code">(avoid_ty_vars, name_ok, do_rename)</code>. 
+    The flag <code class="code">avoid_ty_vars</code> states, whether clashes with type variables should be avoided.
+    The <code class="code">name_ok n</code> checks whether the name <code class="code">n</code> is OK. 
+    If it is not OK, the function <code class="code">do_rename n_text check</code> renames <code class="code">n</code>.
+    As input it takes the text of <code class="code">n</code>, a function <code class="code">check</code> that checks whether the new
+    name clashes with any names to be avoided or existing variable names in the context.<br>
+</div>
+
+<pre><span class="keyword">module type</span> <a href="Typed_ast.Exp_context.html">Exp_context</a> = <code class="code">sig</code> <a href="Typed_ast.Exp_context.html">..</a> <code class="code">end</code></pre><pre><span class="keyword">module</span> <a href="Typed_ast.Exps_in_context.html">Exps_in_context</a>: <div class="sig_block"><code class="code">functor (</code><code class="code">C</code><code class="code"> : </code><code class="type"><a href="Typed_ast.Exp_context.html">Exp_context</a></code><code class="code">) -&gt; </code><code class="code">sig</code> <a href="Typed_ast.Exps_in_context.html">..</a> <code class="code">end</code></div></pre><pre><span id="VALlocal_env_union"><span class="keyword">val</span> local_env_union</span> : <code class="type"><a href="Typed_ast.html#TYPElocal_env">local_env</a> -> <a href="Typed_ast.html#TYPElocal_env">local_env</a> -> <a href="Typed_ast.html#TYPElocal_env">local_env</a></code></pre><pre><span id="VALfuncl_aux_seplist_group"><span class="keyword">val</span> funcl_aux_seplist_group</span> : <code class="type"><a href="Typed_ast.html#TYPEfuncl_aux">funcl_aux</a> <a href="Typed_ast.html#TYPElskips_seplist">lskips_seplist</a> -><br>       bool * <a href="Typed_ast.html#TYPElskips">lskips</a> option *<br>       (<a href="Name.html#TYPEt">Name.t</a> * <a href="Typed_ast.html#TYPEfuncl_aux">funcl_aux</a> <a href="Typed_ast.html#TYPElskips_seplist">lskips_seplist</a>) list</code></pre><div class="info">
+Mutually recursive function definitions may contain multiple clauses for the
+    same function. These can however appear interleaved with clauses for other functions. 
+    <code class="code">funcl_aux_seplist_group seplist</code> sorts the clauses according to the function names and
+    states, whether any resorting was necessary. Moreover, the initial lskip is returned, if present.<br>
+</div>
+<pre><span id="VALclass_path_to_dict_name"><span class="keyword">val</span> class_path_to_dict_name</span> : <code class="type"><a href="Path.html#TYPEt">Path.t</a> -> <a href="Types.html#TYPEtnvar">Types.tnvar</a> -> <a href="Name.html#TYPEt">Name.t</a></code></pre><div class="info">
+<code class="code">class_path_to_dict_name cp tv</code> creates a name for the class <code class="code">cp</code>
+    with type argument <code class="code">tv</code>.  This name is used during dictionary
+    passing. If a function has a type constraint that type-variable
+    <code class="code">tv</code> is of type-class <code class="code">cp</code>, the function call
+    <code class="code">class_path_to_dict_name cp tv</code> is used to generate the name of a
+    new argument. This argument is a dictionary that is used to eliminate the use
+    of type classes.
+<p>
+
+    This design is very fragile and should probably be changed in the future!
+    <code class="code">class_path_to_dict_name</code> needs to generate names that globally do not clash with
+    anything else, including names generated by <code class="code">class_path_to_dict_name</code> itself. The
+    generated name is independently used by both definition macros adding the 
+    argument to the definition and expression macros that use the added argument.
+    The name used in both places has to coincide! Therefore, the name cannot be modified 
+    depending on the context. Renaming to avoid clashes with other arguments /
+    local variables is not possible.<br>
+</div>
+<pre><span id="VALident_get_lskip"><span class="keyword">val</span> ident_get_lskip</span> : <code class="type">'a <a href="Types.html#TYPEid">Types.id</a> -> Ast.lex_skips</code></pre><pre><span id="VALident_replace_lskip"><span class="keyword">val</span> ident_replace_lskip</span> : <code class="type"><a href="Types.html#TYPEident_option">Types.ident_option</a> -> Ast.lex_skips -> <a href="Types.html#TYPEident_option">Types.ident_option</a></code></pre><pre><span id="VALoi_get_lskip"><span class="keyword">val</span> oi_get_lskip</span> : <code class="type">Ast.open_import -> Ast.lex_skips</code></pre></body></html>

@@ -49,11 +49,22 @@
 let class_label_to_path (label : string) : Path.t =
   let (ns, n) = begin
   match label with
-    | "class_numeral" -> (["Num"], "Numeral")
-(*    | "class_ord" -> (["Basic_classes"], "Ord") *)
-    | "class_set_type" -> (["Basic_classes"], "SetType")
+    | "class_numeral"   -> (["Num"], "Numeral")
+    | "class_ord"       -> (["Basic_classes"], "Ord")
+    | "class_num_minus" -> (["Num"], "NumMinus")
+    | "class_set_type"  -> (["Basic_classes"], "SetType")
     | s -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_general (true,				     
               (Ast.Trans (false, "class_label_to_path", None)),
+              ("Unknown label '" ^ s ^ "'"))))
+  end in
+  Path.mk_path (List.map Name.from_string ns) (Name.from_string n)
+
+let type_label_to_path (label : string) : Path.t =
+  let (ns, n) = begin
+  match label with
+    | "type_natural" -> (["Num"], "natural")
+    | s -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_general (true,				     
+              (Ast.Trans (false, "type_label_to_path", None)),
               ("Unknown label '" ^ s ^ "'"))))
   end in
   Path.mk_path (List.map Name.from_string ns) (Name.from_string n)
@@ -63,18 +74,15 @@ let class_label_to_path (label : string) : Path.t =
 let constant_label_to_path_name (label : string) : (string list * string) =
 match label with
   | "fromNumeral" -> (["Num"], "fromNumeral")
-
   | "equality" -> (["Basic_classes"], "isEqual")
   | "identity" -> (["Function"], "id")
 
   | "conjunction" -> (["Bool"], "&&")
   | "implication" -> (["Bool"], "-->")
 
-  | "addition" -> (["Num"], "+")
   | "multiplication" -> (["Num"], "*")
   | "subtraction" -> (["Num"], "-")
   | "less_equal" -> (["Basic_classes"], "<=")
-  | "num_suc" -> (["Num"], "natSucc")
 
   | "list_concat" -> (["List"], "concat")
   | "list_cons" -> (["List"], "::")

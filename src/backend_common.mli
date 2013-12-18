@@ -88,7 +88,7 @@ module Make(A : sig
   val env : env;; 
   val target : Target.target;;
   val dir : string;;
-  val id_format_args : (bool -> Output.id_annot -> Ulib.Text.t -> Output.t) * Output.t
+  val id_format_args : (bool -> Output.id_annot -> Ulib.Text.t -> Output.t) * Ulib.Text.t
  end) : sig
 
 val open_to_open_target : (Path.t id) list -> (lskips * string) list * lskips
@@ -150,6 +150,12 @@ val type_path_to_name : Name.lskips_t -> Path.t -> Name.lskips_t
     in environment [A.env]. 
 *)
 val type_id_to_ident : Path.t id -> Ident.t
+
+(** [type_id_to_output ty_id] tries to format a type
+    [ty_id] as an identifier for target [A.target] using the rules stored
+    in environment [A.env]. 
+*)
+val type_id_to_output : Path.t id -> Output.t
 
 (** [type_id_to_ident_no_modify ty_id] formats [ty_id] as an identifier.
     In contrast to [type_id_to_ident] neither the target [A.target] nor the rules stored

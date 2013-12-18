@@ -73,7 +73,9 @@ val insert    : forall 'k 'v. MapKeyType 'k => 'k -> 'v -> map 'k 'v -> map 'k '
 
 declare coq      target_rep function insert = `fmap_add`
 declare ocaml    target_rep function insert = `Pmap.add`
-declare hol      target_rep function insert k v m = `FUPDATE` m (k,v)
+(* declare hol      target_rep function insert k v m = `FUPDATE` m (k,v) *)
+declare hol      target_rep function insert k v m = special "%e |+ (%e, %e)" m k v
+
 declare isabelle target_rep function insert = `map_update`
 
 

@@ -134,13 +134,14 @@ and pat_aux =
 
 and cr_special_fun =
   | CR_special_uncurry of int
+  | CR_special_rep of string list * exp list
 
 and const_target_rep =
   | CR_inline of Ast.l * bool * name_lskips_annot list * exp
   | CR_infix of Ast.l * bool * Ast.fixity_decl * Ident.t
   | CR_undefined of Ast.l * bool 
   | CR_simple of Ast.l * bool * name_lskips_annot list * exp
-  | CR_special of Ast.l * bool * cr_special_fun * Name.t list
+  | CR_special of Ast.l * bool * cr_special_fun * name_lskips_annot list
 
 and rel_io = Rel_mode_in | Rel_mode_out
 and rel_mode = rel_io list
@@ -257,6 +258,7 @@ and letbind_aux =
 
 let cr_special_fun_uses_name = function
   | (CR_special_uncurry _) -> true
+  | (CR_special_rep _) -> false
 
 type tyvar = lskips * Ulib.Text.t * Ast.l
 type nvar = lskips * Ulib.Text.t * Ast.l
@@ -531,9 +533,16 @@ let rec alter_init_lskips (lskips_f : lskips -> lskips * lskips) (e : exp) : exp
       | Function(s1,pes,s2) ->
           let (s_new, s_ret) = lskips_f s1 in
             res (Function(s_new, pes,s2)) s_ret
-      | App(e1,e2) ->
-          let (e_new, s_ret) = alter_init_lskips lskips_f e1 in
-            res (App(e_new, e2)) s_ret
+      | App(e1,e2) -> begin
+          match e1.term with
+            | Backend (sk, i) when (Ident.to_string i = "") ->
+                let e1' = { e with term = Backend (None, i) } in
+                let lskips_f' sk2 = lskips_f (Ast.combine_lex_skips sk sk2) in
+                let (e_new, s_ret) = alter_init_lskips lskips_f' e2 in
+                   res (App(e1', e_new)) s_ret
+            | _ -> let (e_new, s_ret) = alter_init_lskips lskips_f e1 in
+                   res (App(e_new, e2)) s_ret
+        end
       | Infix(e1,e2,e3) ->
           let (e_new, s_ret) = alter_init_lskips lskips_f e1 in
             res (Infix(e_new, e2, e3)) s_ret

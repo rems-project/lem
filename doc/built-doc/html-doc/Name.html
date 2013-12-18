@@ -1,0 +1,179 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Module_dependencies.html">
+<link rel="next" href="Nvar.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of exceptions" rel=Appendix href="index_exceptions.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Ast_util" rel="Chapter" href="Ast_util.html">
+<link title="Backend" rel="Chapter" href="Backend.html">
+<link title="Backend_common" rel="Chapter" href="Backend_common.html">
+<link title="Coq_decidable_equality" rel="Chapter" href="Coq_decidable_equality.html">
+<link title="Def_trans" rel="Chapter" href="Def_trans.html">
+<link title="Finite_map" rel="Chapter" href="Finite_map.html">
+<link title="Ident" rel="Chapter" href="Ident.html">
+<link title="Initial_env" rel="Chapter" href="Initial_env.html">
+<link title="Macro_expander" rel="Chapter" href="Macro_expander.html">
+<link title="Main" rel="Chapter" href="Main.html">
+<link title="Module_dependencies" rel="Chapter" href="Module_dependencies.html">
+<link title="Name" rel="Chapter" href="Name.html">
+<link title="Nvar" rel="Chapter" href="Nvar.html">
+<link title="Output" rel="Chapter" href="Output.html">
+<link title="Path" rel="Chapter" href="Path.html">
+<link title="Pattern_syntax" rel="Chapter" href="Pattern_syntax.html">
+<link title="Patterns" rel="Chapter" href="Patterns.html">
+<link title="Pcombinators" rel="Chapter" href="Pcombinators.html">
+<link title="Pp" rel="Chapter" href="Pp.html">
+<link title="Precedence" rel="Chapter" href="Precedence.html">
+<link title="Process_file" rel="Chapter" href="Process_file.html">
+<link title="Rename_top_level" rel="Chapter" href="Rename_top_level.html">
+<link title="Reporting" rel="Chapter" href="Reporting.html">
+<link title="Reporting_basic" rel="Chapter" href="Reporting_basic.html">
+<link title="Seplist" rel="Chapter" href="Seplist.html">
+<link title="Syntactic_tests" rel="Chapter" href="Syntactic_tests.html">
+<link title="Target" rel="Chapter" href="Target.html">
+<link title="Target_binding" rel="Chapter" href="Target_binding.html">
+<link title="Target_syntax" rel="Chapter" href="Target_syntax.html">
+<link title="Target_trans" rel="Chapter" href="Target_trans.html">
+<link title="Trans" rel="Chapter" href="Trans.html">
+<link title="Typecheck" rel="Chapter" href="Typecheck.html">
+<link title="Typecheck_ctxt" rel="Chapter" href="Typecheck_ctxt.html">
+<link title="Typed_ast" rel="Chapter" href="Typed_ast.html">
+<link title="Typed_ast_syntax" rel="Chapter" href="Typed_ast_syntax.html">
+<link title="Types" rel="Chapter" href="Types.html">
+<link title="Tyvar" rel="Chapter" href="Tyvar.html">
+<link title="Util" rel="Chapter" href="Util.html"><link title="plain names " rel="Section" href="#2_plainnames">
+<link title="names with whitespace an type" rel="Section" href="#2_nameswithwhitespaceantype">
+<link title="output functions" rel="Section" href="#2_outputfunctions">
+<link title="modifying names" rel="Subsection" href="#3_modifyingnames">
+<link title="generating fresh names" rel="Subsection" href="#3_generatingfreshnames">
+<title>Name</title>
+</head>
+<body>
+<div class="navbar"><a href="Module_dependencies.html">Previous</a>
+&nbsp;<a href="index.html">Up</a>
+&nbsp;<a href="Nvar.html">Next</a>
+</div>
+<center><h1>Module <a href="type_Name.html">Name</a></h1></center>
+<br>
+<pre><span class="keyword">module</span> Name: <code class="code">sig</code> <a href="Name.html">..</a> <code class="code">end</code></pre>source-file and internal short identifiers<br>
+<hr width="100%">
+<br>
+<span id="2_plainnames"><h2>plain names </h2></span><br>
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> </pre>
+<div class="info">
+t is the type of plain names, names are essentially strings<br>
+</div>
+
+<pre><span id="VALcompare"><span class="keyword">val</span> compare</span> : <code class="type"><a href="Name.html#TYPEt">t</a> -> <a href="Name.html#TYPEt">t</a> -> int</code></pre><div class="info">
+<span id="3_basicfunctionsonplainnames"><h3>basic functions on plain names </h3></span><br>
+</div>
+<pre><span id="VALpp"><span class="keyword">val</span> pp</span> : <code class="type">Format.formatter -> <a href="Name.html#TYPEt">t</a> -> unit</code></pre><pre><span id="VALfrom_string"><span class="keyword">val</span> from_string</span> : <code class="type">string -> <a href="Name.html#TYPEt">t</a></code></pre><pre><span id="VALto_string"><span class="keyword">val</span> to_string</span> : <code class="type"><a href="Name.html#TYPEt">t</a> -> string</code></pre><pre><span id="VALfrom_rope"><span class="keyword">val</span> from_rope</span> : <code class="type">Ulib.Text.t -> <a href="Name.html#TYPEt">t</a></code></pre><pre><span id="VALto_rope"><span class="keyword">val</span> to_rope</span> : <code class="type"><a href="Name.html#TYPEt">t</a> -> Ulib.Text.t</code></pre><br>
+<span id="3_modifyingnames"><h3>modifying names</h3></span><br>
+<pre><span id="VALrename"><span class="keyword">val</span> rename</span> : <code class="type">(Ulib.Text.t -> Ulib.Text.t) -> <a href="Name.html#TYPEt">t</a> -> <a href="Name.html#TYPEt">t</a></code></pre><div class="info">
+<code class="code">rename r_fun n</code> renames <code class="code">n</code> using the function <code class="code">r_fun</code>. It looks at the 
+  text representation <code class="code">n_text</code> of <code class="code">n</code> and returns then the name corresponding to
+  <code class="code">r_fun n_text</code>.<br>
+</div>
+<pre><span id="VALstarts_with_upper_letter"><span class="keyword">val</span> starts_with_upper_letter</span> : <code class="type"><a href="Name.html#TYPEt">t</a> -> bool</code></pre><div class="info">
+<code class="code">start_with_upper_letter n</code> checks, whether the name <code class="code">n</code> starts with
+    a character in the range <code class="code">A-Z</code>.<br>
+</div>
+<pre><span id="VALuncapitalize"><span class="keyword">val</span> uncapitalize</span> : <code class="type"><a href="Name.html#TYPEt">t</a> -> <a href="Name.html#TYPEt">t</a> option</code></pre><div class="info">
+<code class="code">uncapitalize n</code> tries to uncapitalize the first letter of <code class="code">n</code>.
+    If <code class="code">n</code> does not start with a uppercase character, <code class="code">None</code> is returned, otherwise 
+    the modified name.<br>
+</div>
+<pre><span id="VALstarts_with_lower_letter"><span class="keyword">val</span> starts_with_lower_letter</span> : <code class="type"><a href="Name.html#TYPEt">t</a> -> bool</code></pre><div class="info">
+<code class="code">start_with_lower_letter n</code> checks, whether the name <code class="code">n</code> starts with
+    a character in the range <code class="code">a-z</code>.<br>
+</div>
+<pre><span id="VALcapitalize"><span class="keyword">val</span> capitalize</span> : <code class="type"><a href="Name.html#TYPEt">t</a> -> <a href="Name.html#TYPEt">t</a> option</code></pre><div class="info">
+<code class="code">capitalize n</code> tries to capitalize the first letter of <code class="code">n</code>.
+    If <code class="code">n</code> does not start with a lowercase character, <code class="code">None</code> is returned, otherwise 
+    the modified name.<br>
+</div>
+<pre><span id="VALstarts_with_underscore"><span class="keyword">val</span> starts_with_underscore</span> : <code class="type"><a href="Name.html#TYPEt">t</a> -> bool</code></pre><div class="info">
+<code class="code">start_with_underscore n</code> checks, whether the name <code class="code">n</code> starts with
+    an underscore character.<br>
+</div>
+<pre><span id="VALremove_underscore"><span class="keyword">val</span> remove_underscore</span> : <code class="type"><a href="Name.html#TYPEt">t</a> -> <a href="Name.html#TYPEt">t</a> option</code></pre><div class="info">
+<code class="code">remove_underscore n</code> tries to remove a leading underscore from name <code class="code">n</code>.
+    If <code class="code">n</code> does not start with an underscore character, <code class="code">None</code> is returned, otherwise 
+    the modified name.<br>
+</div>
+<br>
+<span id="3_generatingfreshnames"><h3>generating fresh names</h3></span><br>
+<pre><span id="VALfresh"><span class="keyword">val</span> fresh</span> : <code class="type">Ulib.Text.t -> (<a href="Name.html#TYPEt">t</a> -> bool) -> <a href="Name.html#TYPEt">t</a></code></pre><div class="info">
+<code class="code">fresh n OK</code> generates a name <code class="code">m</code>, such that 
+    <code class="code">OK m</code> holds. <code class="code">m</code> is of the form <code class="code">n</code> followed by
+    an integer postfix. First <code class="code">n</code> without postfix is tried.
+    Then counting up from 0 starts, till <code class="code">OK</code> is satisfied.<br>
+</div>
+<pre><span id="VALfresh_num_list"><span class="keyword">val</span> fresh_num_list</span> : <code class="type">int -> Ulib.Text.t -> (<a href="Name.html#TYPEt">t</a> -> bool) -> <a href="Name.html#TYPEt">t</a> list</code></pre><div class="info">
+<code class="code">fresh_num_list i n OK</code> generates a list of <code class="code">i</code> fresh names. If no conflicts occur
+    it returns a list of the form <code class="code">[ni, n(i-1), ..., n1]</code>. Internally,
+    <code class="code">fresh n OK</code> is used <code class="code">n</code> times. However, <code class="code">OK</code> is updated to ensure, that
+    the elemenst of the resulting list not only satisfy <code class="code">OK</code>, but are also distinct from each other.<br>
+</div>
+<pre><span id="VALfresh_list"><span class="keyword">val</span> fresh_list</span> : <code class="type">(<a href="Name.html#TYPEt">t</a> -> bool) -> <a href="Name.html#TYPEt">t</a> list -> <a href="Name.html#TYPEt">t</a> list</code></pre><div class="info">
+<code class="code">fresh_list OK ns</code> builds variants of the names in list <code class="code">ns</code> such that all elements of 
+    the resulting list <code class="code">ns'</code> satisfy <code class="code">OK</code> and are distinct to each other.<br>
+</div>
+<br>
+<span id="2_nameswithwhitespaceantype"><h2>names with whitespace an type</h2></span><br>
+<pre><span id="TYPElskips_t"><span class="keyword">type</span> <code class="type"></code>lskips_t</span> </pre>
+<div class="info">
+<code class="code">lskips_t</code> is the type of names with immediately preceding skips, i.e. whitespace or comments<br>
+</div>
+
+<pre><span id="VALlskip_pp"><span class="keyword">val</span> lskip_pp</span> : <code class="type">Format.formatter -> <a href="Name.html#TYPElskips_t">lskips_t</a> -> unit</code></pre><pre><span id="VALfrom_x"><span class="keyword">val</span> from_x</span> : <code class="type">Ast.x_l -> <a href="Name.html#TYPElskips_t">lskips_t</a></code></pre><div class="info">
+creates a name from Ast.x_l, used during typechecking<br>
+</div>
+<pre><span id="VALfrom_ix"><span class="keyword">val</span> from_ix</span> : <code class="type">Ast.ix_l -> <a href="Name.html#TYPElskips_t">lskips_t</a></code></pre><div class="info">
+creates a name from Ast.ix_l, used during typechecking<br>
+</div>
+<pre><span id="VALadd_lskip"><span class="keyword">val</span> add_lskip</span> : <code class="type"><a href="Name.html#TYPEt">t</a> -> <a href="Name.html#TYPElskips_t">lskips_t</a></code></pre><div class="info">
+<code class="code">add_lskip</code> converts a name into a name with skips by adding empty whitespace<br>
+</div>
+<pre><span id="VALstrip_lskip"><span class="keyword">val</span> strip_lskip</span> : <code class="type"><a href="Name.html#TYPElskips_t">lskips_t</a> -> <a href="Name.html#TYPEt">t</a></code></pre><div class="info">
+<code class="code">strip_lskip</code> converts a name with whitespace into a name by dropping the preceeding whitespace<br>
+</div>
+<pre><span id="VALget_lskip"><span class="keyword">val</span> get_lskip</span> : <code class="type"><a href="Name.html#TYPElskips_t">lskips_t</a> -> Ast.lex_skips</code></pre><div class="info">
+<code class="code">get_lskip n</code> gets the preceeding whitespace of <code class="code">n</code><br>
+</div>
+<pre><span id="VALadd_pre_lskip"><span class="keyword">val</span> add_pre_lskip</span> : <code class="type">Ast.lex_skips -> <a href="Name.html#TYPElskips_t">lskips_t</a> -> <a href="Name.html#TYPElskips_t">lskips_t</a></code></pre><div class="info">
+<code class="code">add_pre_lskip sk n</code> adds additional whitespace in front of <code class="code">n</code><br>
+</div>
+<pre><span id="VALreplace_lskip"><span class="keyword">val</span> replace_lskip</span> : <code class="type"><a href="Name.html#TYPElskips_t">lskips_t</a> -> Ast.lex_skips -> <a href="Name.html#TYPElskips_t">lskips_t</a></code></pre><div class="info">
+<code class="code">replace_lskip sk n</code> replaces the whitespace in front of <code class="code">n</code> with <code class="code">sk</code>. The old whitespace is
+    thrown away.<br>
+</div>
+<pre><span id="VALlskip_rename"><span class="keyword">val</span> lskip_rename</span> : <code class="type">(Ulib.Text.t -> Ulib.Text.t) -> <a href="Name.html#TYPElskips_t">lskips_t</a> -> <a href="Name.html#TYPElskips_t">lskips_t</a></code></pre><div class="info">
+<code class="code">lskip_rename r_fun n</code> is a version of <code class="code">rename</code> that can handle lskips. It renames <code class="code">n</code> using 
+    the function <code class="code">r_fun</code> and preserves the original whitespace.<br>
+</div>
+<br>
+<span id="2_outputfunctions"><h2>output functions</h2></span><br>
+<pre><span id="VALto_output_format"><span class="keyword">val</span> to_output_format</span> : <code class="type">(<a href="Output.html#TYPEid_annot">Output.id_annot</a> -> Ulib.Text.t -> <a href="Output.html#TYPEt">Output.t</a>) -><br>       <a href="Output.html#TYPEid_annot">Output.id_annot</a> -> <a href="Name.html#TYPElskips_t">lskips_t</a> -> <a href="Output.html#TYPEt">Output.t</a></code></pre><div class="info">
+<code class="code">to_output_format format_fun id_annot n</code> formats the name <code class="code">n</code> as output. A name with output consists of preedeing whitespace, 
+    the name as a text and a name-type. The space is formated using <code class="code">ws</code>, the other componenst together with <code class="code">id_annot</code> are formated 
+    with <code class="code">format_fun</code>.<br>
+</div>
+<pre><span id="VALto_output"><span class="keyword">val</span> to_output</span> : <code class="type"><a href="Output.html#TYPEid_annot">Output.id_annot</a> -> <a href="Name.html#TYPElskips_t">lskips_t</a> -> <a href="Output.html#TYPEt">Output.t</a></code></pre><div class="info">
+<code class="code">to_output</code> is the same as <code class="code">to_output_format Output.id</code><br>
+</div>
+<pre><span id="VALto_output_quoted"><span class="keyword">val</span> to_output_quoted</span> : <code class="type">string -> string -> <a href="Output.html#TYPEid_annot">Output.id_annot</a> -> <a href="Name.html#TYPElskips_t">lskips_t</a> -> <a href="Output.html#TYPEt">Output.t</a></code></pre><div class="info">
+<code class="code">to_output_quoted qs_begin qs_end id_annot n</code> formats <code class="code">n</code> with the quoting strings <code class="code">qs_begin</code> and <code class="code">qs_end</code> added before and after respectively.<br>
+</div>
+<pre><span id="VALto_rope_tex"><span class="keyword">val</span> to_rope_tex</span> : <code class="type"><a href="Output.html#TYPEid_annot">Output.id_annot</a> -> <a href="Name.html#TYPEt">t</a> -> Ulib.Text.t</code></pre><div class="info">
+<code class="code">to_rope_tex a n</code> formats <code class="code">n</code> as <code class="code">a</code> for the tex-backend as a string. The preceeding whitespace is ignored.<br>
+</div>
+</body></html>

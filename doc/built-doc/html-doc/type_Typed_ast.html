@@ -1,0 +1,858 @@
+<html><head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of exceptions" rel=Appendix href="index_exceptions.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Ast_util" rel="Chapter" href="Ast_util.html">
+<link title="Backend" rel="Chapter" href="Backend.html">
+<link title="Backend_common" rel="Chapter" href="Backend_common.html">
+<link title="Coq_decidable_equality" rel="Chapter" href="Coq_decidable_equality.html">
+<link title="Def_trans" rel="Chapter" href="Def_trans.html">
+<link title="Finite_map" rel="Chapter" href="Finite_map.html">
+<link title="Ident" rel="Chapter" href="Ident.html">
+<link title="Initial_env" rel="Chapter" href="Initial_env.html">
+<link title="Macro_expander" rel="Chapter" href="Macro_expander.html">
+<link title="Main" rel="Chapter" href="Main.html">
+<link title="Module_dependencies" rel="Chapter" href="Module_dependencies.html">
+<link title="Name" rel="Chapter" href="Name.html">
+<link title="Nvar" rel="Chapter" href="Nvar.html">
+<link title="Output" rel="Chapter" href="Output.html">
+<link title="Path" rel="Chapter" href="Path.html">
+<link title="Pattern_syntax" rel="Chapter" href="Pattern_syntax.html">
+<link title="Patterns" rel="Chapter" href="Patterns.html">
+<link title="Pcombinators" rel="Chapter" href="Pcombinators.html">
+<link title="Pp" rel="Chapter" href="Pp.html">
+<link title="Precedence" rel="Chapter" href="Precedence.html">
+<link title="Process_file" rel="Chapter" href="Process_file.html">
+<link title="Rename_top_level" rel="Chapter" href="Rename_top_level.html">
+<link title="Reporting" rel="Chapter" href="Reporting.html">
+<link title="Reporting_basic" rel="Chapter" href="Reporting_basic.html">
+<link title="Seplist" rel="Chapter" href="Seplist.html">
+<link title="Syntactic_tests" rel="Chapter" href="Syntactic_tests.html">
+<link title="Target" rel="Chapter" href="Target.html">
+<link title="Target_binding" rel="Chapter" href="Target_binding.html">
+<link title="Target_syntax" rel="Chapter" href="Target_syntax.html">
+<link title="Target_trans" rel="Chapter" href="Target_trans.html">
+<link title="Trans" rel="Chapter" href="Trans.html">
+<link title="Typecheck" rel="Chapter" href="Typecheck.html">
+<link title="Typecheck_ctxt" rel="Chapter" href="Typecheck_ctxt.html">
+<link title="Typed_ast" rel="Chapter" href="Typed_ast.html">
+<link title="Typed_ast_syntax" rel="Chapter" href="Typed_ast_syntax.html">
+<link title="Types" rel="Chapter" href="Types.html">
+<link title="Tyvar" rel="Chapter" href="Tyvar.html">
+<link title="Util" rel="Chapter" href="Util.html"><title>Typed_ast</title>
+</head>
+<body>
+<code class="code"><span class="keyword">sig</span><br>
+&nbsp;&nbsp;<span class="keyword">module</span>&nbsp;<span class="constructor">NameSet</span>&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">sig</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;elt&nbsp;=&nbsp;<span class="constructor">Name</span>.t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;t&nbsp;=&nbsp;<span class="constructor">Set</span>.<span class="constructor">Make</span>(<span class="constructor">Name</span>).t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;empty&nbsp;:&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;is_empty&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mem&nbsp;:&nbsp;elt&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;add&nbsp;:&nbsp;elt&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;singleton&nbsp;:&nbsp;elt&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;remove&nbsp;:&nbsp;elt&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;union&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;inter&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;diff&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;compare&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;equal&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;subset&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;iter&nbsp;:&nbsp;(elt&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;fold&nbsp;:&nbsp;(elt&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;for_all&nbsp;:&nbsp;(elt&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;exists&nbsp;:&nbsp;(elt&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;filter&nbsp;:&nbsp;(elt&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;partition&nbsp;:&nbsp;(elt&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;*&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;cardinal&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;elements&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;elt&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;min_elt&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;elt<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;max_elt&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;elt<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;choose&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;elt<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;split&nbsp;:&nbsp;elt&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;*&nbsp;bool&nbsp;*&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
+&nbsp;&nbsp;<span class="keyword">module</span>&nbsp;<span class="constructor">Nfmap</span>&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">sig</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;k&nbsp;=&nbsp;<span class="constructor">Name</span>.t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">module</span>&nbsp;<span class="constructor">S</span>&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">sig</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;elt&nbsp;=&nbsp;k<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;empty&nbsp;:&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;is_empty&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mem&nbsp;:&nbsp;elt&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;add&nbsp;:&nbsp;elt&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;singleton&nbsp;:&nbsp;elt&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;remove&nbsp;:&nbsp;elt&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;union&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;inter&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;diff&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;compare&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;equal&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;subset&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;iter&nbsp;:&nbsp;(elt&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;fold&nbsp;:&nbsp;(elt&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;for_all&nbsp;:&nbsp;(elt&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;exists&nbsp;:&nbsp;(elt&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;filter&nbsp;:&nbsp;(elt&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;partition&nbsp;:&nbsp;(elt&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;*&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;cardinal&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;elements&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;elt&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;min_elt&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;elt<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;max_elt&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;elt<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;choose&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;elt<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;split&nbsp;:&nbsp;elt&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t&nbsp;*&nbsp;bool&nbsp;*&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;empty&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;is_empty&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;from_list&nbsp;:&nbsp;(k&nbsp;*&nbsp;<span class="keywordsign">'</span>a)&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;from_list2&nbsp;:&nbsp;k&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;insert&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;k&nbsp;*&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;union&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;big_union&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;t&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;merge&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(k&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>b&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>c&nbsp;option)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>b&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>c&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;apply&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;k&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;option<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;in_dom&nbsp;:&nbsp;k&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;map&nbsp;:&nbsp;(k&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>b)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>b&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;domains_overlap&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>b&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;k&nbsp;option<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;domains_disjoint&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;t&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;iter&nbsp;:&nbsp;(k&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;fold&nbsp;:&nbsp;(<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;k&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>b&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>b&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;filter&nbsp;:&nbsp;(k&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;remove&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;k&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;pp_map&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Format</span>.formatter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;k&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit)&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Format</span>.formatter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Format</span>.formatter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;domain&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">S</span>.t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;nfmap_domain&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Typed_ast</span>.<span class="constructor">Nfmap</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.<span class="constructor">NameSet</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;name_l&nbsp;=&nbsp;<span class="constructor">Name</span>.lskips_t&nbsp;*&nbsp;<span class="constructor">Ast</span>.l<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;lskips&nbsp;=&nbsp;<span class="constructor">Ast</span>.lex_skips<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;lskips_seplist&nbsp;=&nbsp;(<span class="keywordsign">'</span>a,&nbsp;<span class="constructor">Typed_ast</span>.lskips)&nbsp;<span class="constructor">Seplist</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;no_lskips&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;space&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;lskips_only_comments&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;lskips_only_comments_first&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;env_tag&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">K_let</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">K_field</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">K_constr</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">K_relation</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">K_method</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">K_instance</span><br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;p_env&nbsp;=&nbsp;(<span class="constructor">Path</span>.t&nbsp;*&nbsp;<span class="constructor">Ast</span>.l)&nbsp;<span class="constructor">Typed_ast</span>.<span class="constructor">Nfmap</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;lit&nbsp;=&nbsp;(<span class="constructor">Typed_ast</span>.lit_aux,&nbsp;unit)&nbsp;<span class="constructor">Types</span>.annot<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;lit_aux&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">L_true</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">L_false</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">L_zero</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">L_one</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">L_numeral</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">L_num</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">L_char</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;char<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">L_string</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">L_unit</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">L_vector</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;string&nbsp;*&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">L_undefined</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;string<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;const_descr_ref&nbsp;=&nbsp;<span class="constructor">Types</span>.const_descr_ref<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;name_kind&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Nk_typeconstr</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Path</span>.t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Nk_const</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Nk_constr</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Nk_field</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Nk_module</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Path</span>.t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Nk_class</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Path</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;pat&nbsp;=&nbsp;(<span class="constructor">Typed_ast</span>.pat_aux,&nbsp;<span class="constructor">Typed_ast</span>.pat_annot)&nbsp;<span class="constructor">Types</span>.annot<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;pat_annot&nbsp;=&nbsp;{&nbsp;pvars&nbsp;:&nbsp;<span class="constructor">Types</span>.t&nbsp;<span class="constructor">Typed_ast</span>.<span class="constructor">Nfmap</span>.t;&nbsp;}<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;pat_aux&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">P_wild</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">P_as</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.name_l&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">P_typ</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Types</span>.src_t&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">P_var</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Name</span>.lskips_t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">P_const</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;<span class="constructor">Types</span>.id&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">P_backend</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Ident</span>.t&nbsp;*&nbsp;<span class="constructor">Types</span>.t&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">P_record</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;<span class="constructor">Types</span>.id&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.pat)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">P_vector</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">P_vectorC</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;list&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">P_tup</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">P_list</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">P_paren</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">P_cons</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.pat<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">P_num_add</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.name_l&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">P_lit</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lit<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">P_var_annot</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Name</span>.lskips_t&nbsp;*&nbsp;<span class="constructor">Types</span>.src_t<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;cr_special_fun&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">CR_special_uncurry</span>&nbsp;<span class="keyword">of</span>&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">CR_special_rep</span>&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;list&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;list<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;const_target_rep&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">CR_inline</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Ast</span>.l&nbsp;*&nbsp;bool&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.name_lskips_annot&nbsp;list&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">CR_infix</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Ast</span>.l&nbsp;*&nbsp;bool&nbsp;*&nbsp;<span class="constructor">Ast</span>.fixity_decl&nbsp;*&nbsp;<span class="constructor">Ident</span>.t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">CR_undefined</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Ast</span>.l&nbsp;*&nbsp;bool<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">CR_simple</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Ast</span>.l&nbsp;*&nbsp;bool&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.name_lskips_annot&nbsp;list&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">CR_special</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Ast</span>.l&nbsp;*&nbsp;bool&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.cr_special_fun&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.name_lskips_annot&nbsp;list<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;rel_io&nbsp;=&nbsp;<span class="constructor">Rel_mode_in</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Rel_mode_out</span><br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;rel_mode&nbsp;=&nbsp;<span class="constructor">Typed_ast</span>.rel_io&nbsp;list<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;rel_output_type&nbsp;=&nbsp;<span class="constructor">Out_list</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Out_pure</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Out_option</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Out_unique</span><br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;rel_info&nbsp;=&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;ri_witness&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Path</span>.t&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;<span class="constructor">Typed_ast</span>.<span class="constructor">Nfmap</span>.t)&nbsp;option;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;ri_check&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;option;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;ri_fns&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((<span class="constructor">Typed_ast</span>.rel_mode&nbsp;*&nbsp;bool&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.rel_output_type)&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;list;<br>
+&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;const_descr&nbsp;=&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;const_binding&nbsp;:&nbsp;<span class="constructor">Path</span>.t;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;const_tparams&nbsp;:&nbsp;<span class="constructor">Types</span>.tnvar&nbsp;list;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;const_class&nbsp;:&nbsp;(<span class="constructor">Path</span>.t&nbsp;*&nbsp;<span class="constructor">Types</span>.tnvar)&nbsp;list;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;const_no_class&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;<span class="constructor">Target</span>.<span class="constructor">Targetmap</span>.t;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;const_ranges&nbsp;:&nbsp;<span class="constructor">Types</span>.range&nbsp;list;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;const_type&nbsp;:&nbsp;<span class="constructor">Types</span>.t;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;relation_info&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.rel_info&nbsp;option;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;env_tag&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.env_tag;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;const_targets&nbsp;:&nbsp;<span class="constructor">Target</span>.<span class="constructor">Targetset</span>.t;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;spec_l&nbsp;:&nbsp;<span class="constructor">Ast</span>.l;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;target_rename&nbsp;:&nbsp;(<span class="constructor">Ast</span>.l&nbsp;*&nbsp;<span class="constructor">Name</span>.t)&nbsp;<span class="constructor">Target</span>.<span class="constructor">Targetmap</span>.t;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;target_ascii_rep&nbsp;:&nbsp;(<span class="constructor">Ast</span>.l&nbsp;*&nbsp;<span class="constructor">Name</span>.t)&nbsp;<span class="constructor">Target</span>.<span class="constructor">Targetmap</span>.t;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;target_rep&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.const_target_rep&nbsp;<span class="constructor">Target</span>.<span class="constructor">Targetmap</span>.t;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;compile_message&nbsp;:&nbsp;string&nbsp;<span class="constructor">Target</span>.<span class="constructor">Targetmap</span>.t;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;termination_setting&nbsp;:&nbsp;<span class="constructor">Ast</span>.termination_setting&nbsp;<span class="constructor">Target</span>.<span class="constructor">Targetmap</span>.t;<br>
+&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;v_env&nbsp;=&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;<span class="constructor">Typed_ast</span>.<span class="constructor">Nfmap</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;f_env&nbsp;=&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;<span class="constructor">Typed_ast</span>.<span class="constructor">Nfmap</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;m_env&nbsp;=&nbsp;<span class="constructor">Path</span>.t&nbsp;<span class="constructor">Typed_ast</span>.<span class="constructor">Nfmap</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;e_env&nbsp;=&nbsp;<span class="constructor">Typed_ast</span>.mod_descr&nbsp;<span class="constructor">Types</span>.<span class="constructor">Pfmap</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;c_env<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;local_env&nbsp;=&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;m_env&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.m_env;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;p_env&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.p_env;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;f_env&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.f_env;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;v_env&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.v_env;<br>
+&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;env&nbsp;=&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;local_env&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.local_env;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;c_env&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.c_env;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;t_env&nbsp;:&nbsp;<span class="constructor">Types</span>.type_defs;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;i_env&nbsp;:&nbsp;<span class="constructor">Types</span>.i_env;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;e_env&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.e_env;<br>
+&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;mod_target_rep&nbsp;=&nbsp;<span class="constructor">MR_rename</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Ast</span>.l&nbsp;*&nbsp;<span class="constructor">Name</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;mod_descr&nbsp;=&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;mod_binding&nbsp;:&nbsp;<span class="constructor">Path</span>.t;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;mod_env&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.local_env;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;mod_target_rep&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.mod_target_rep&nbsp;<span class="constructor">Target</span>.<span class="constructor">Targetmap</span>.t;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;mod_filename&nbsp;:&nbsp;string&nbsp;option;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;mod_in_output&nbsp;:&nbsp;bool;<br>
+&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;exp<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;exp_subst&nbsp;=&nbsp;<span class="constructor">Sub</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Sub_rename</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Name</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;exp_aux&nbsp;=&nbsp;<span class="keyword">private</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Var</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Name</span>.lskips_t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Backend</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Ident</span>.t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Nvar_e</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Nvar</span>.t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Constant</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;<span class="constructor">Types</span>.id<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Fun</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;list&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Function</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Typed_ast</span>.pat&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*&nbsp;<span class="constructor">Ast</span>.l)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">App</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Infix</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Record</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.fexp&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Recup</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.fexp&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Field</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;<span class="constructor">Types</span>.id<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Vector</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">VectorSub</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Types</span>.src_nexp&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Types</span>.src_nexp&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">VectorAcc</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Types</span>.src_nexp&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Case</span>&nbsp;<span class="keyword">of</span>&nbsp;bool&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Typed_ast</span>.pat&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*&nbsp;<span class="constructor">Ast</span>.l)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Typed</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Types</span>.src_t&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Let</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.letbind&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Tup</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">List</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Paren</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Begin</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">If</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Lit</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lit<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Set</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Setcomp</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.<span class="constructor">NameSet</span>.t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Comp_binding</span>&nbsp;<span class="keyword">of</span>&nbsp;bool&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.quant_binding&nbsp;list&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Quant</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Ast</span>.q&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.quant_binding&nbsp;list&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Do</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Path</span>.t&nbsp;<span class="constructor">Types</span>.id&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.do_line&nbsp;list&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Types</span>.t&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.bind_tyargs_order)<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;do_line&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Do_line</span>&nbsp;<span class="keyword">of</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Typed_ast</span>.pat&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips)<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;bind_tyargs_order&nbsp;=&nbsp;<span class="constructor">BTO_input_output</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">BTO_output_input</span><br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;fexp&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;<span class="constructor">Types</span>.id&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;name_lskips_annot&nbsp;=&nbsp;(<span class="constructor">Name</span>.lskips_t,&nbsp;unit)&nbsp;<span class="constructor">Types</span>.annot<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;quant_binding&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Qb_var</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.name_lskips_annot<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Qb_restr</span>&nbsp;<span class="keyword">of</span>&nbsp;bool&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;funcl_aux&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.name_lskips_annot&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;list&nbsp;*&nbsp;(<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Types</span>.src_t)&nbsp;option&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;letbind&nbsp;=&nbsp;<span class="constructor">Typed_ast</span>.letbind_aux&nbsp;*&nbsp;<span class="constructor">Ast</span>.l<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;letbind_aux&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Let_val</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;*&nbsp;(<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Types</span>.src_t)&nbsp;option&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Let_fun</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.name_lskips_annot&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;list&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Types</span>.src_t)&nbsp;option&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;tyvar&nbsp;=&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Ulib</span>.<span class="constructor">Text</span>.t&nbsp;*&nbsp;<span class="constructor">Ast</span>.l<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;nvar&nbsp;=&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Ulib</span>.<span class="constructor">Text</span>.t&nbsp;*&nbsp;<span class="constructor">Ast</span>.l<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;tnvar&nbsp;=&nbsp;<span class="constructor">Tn_A</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.tyvar&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Tn_N</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.nvar<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;texp&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Te_opaque</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Te_abbrev</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Types</span>.src_t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Te_record</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Typed_ast</span>.name_l&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Types</span>.src_t)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Te_variant</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Typed_ast</span>.name_l&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Types</span>.src_t&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;range&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">GtEq</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Ast</span>.l&nbsp;*&nbsp;<span class="constructor">Types</span>.src_nexp&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Types</span>.src_nexp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Eq</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Ast</span>.l&nbsp;*&nbsp;<span class="constructor">Types</span>.src_nexp&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Types</span>.src_nexp<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;constraints&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Cs_list</span>&nbsp;<span class="keyword">of</span>&nbsp;(<span class="constructor">Ident</span>.t&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.tnvar)&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;option&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.range&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;constraint_prefix&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Cp_forall</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.tnvar&nbsp;list&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.constraints&nbsp;option<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;typschm&nbsp;=&nbsp;<span class="constructor">Typed_ast</span>.constraint_prefix&nbsp;option&nbsp;*&nbsp;<span class="constructor">Types</span>.src_t<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;instschm&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.constraint_prefix&nbsp;option&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Ident</span>.t&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Path</span>.t&nbsp;*&nbsp;<span class="constructor">Types</span>.src_t&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;cr_special_fun_uses_name&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.cr_special_fun&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;targets_opt&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(bool&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Ast</span>.target&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;option<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;in_targets_opt&nbsp;:&nbsp;<span class="constructor">Target</span>.target&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.targets_opt&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;in_target_set&nbsp;:&nbsp;<span class="constructor">Target</span>.target&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Target</span>.<span class="constructor">Targetset</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;targets_opt_to_list&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.targets_opt&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Target</span>.non_ident_target&nbsp;list<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;val_spec&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.name_l&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.ascii_opt&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.typschm<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;class_val_spec&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.targets_opt&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.name_l&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;*&nbsp;<span class="constructor">Ast</span>.ascii_opt&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Types</span>.src_t<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;fun_def_rec_flag&nbsp;=&nbsp;<span class="constructor">FR_non_rec</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">FR_rec</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;val_def&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Let_def</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.targets_opt&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Typed_ast</span>.pat&nbsp;*&nbsp;(<span class="constructor">Name</span>.t&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref)&nbsp;list&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Types</span>.src_t)&nbsp;option&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Fun_def</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.fun_def_rec_flag&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.targets_opt&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.funcl_aux&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Let_inline</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.targets_opt&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.name_lskips_annot&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.name_lskips_annot&nbsp;list&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;name_sect&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Name_restrict</span>&nbsp;<span class="keyword">of</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.name_l&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;string&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips)<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;indreln_rule_quant_name&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">QName</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.name_lskips_annot<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Name_typ</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.name_lskips_annot&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Types</span>.src_t&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;indreln_rule_aux&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Rule</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Name</span>.lskips_t&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.indreln_rule_quant_name&nbsp;list&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;option&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.name_lskips_annot&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;list<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;indreln_rule&nbsp;=&nbsp;<span class="constructor">Typed_ast</span>.indreln_rule_aux&nbsp;*&nbsp;<span class="constructor">Ast</span>.l<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;indreln_witness&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Indreln_witness</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Name</span>.lskips_t&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;indreln_indfn&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Indreln_fn</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Name</span>.lskips_t&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Types</span>.src_t&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;option<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;indreln_name&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">RName</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Name</span>.lskips_t&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.typschm&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.indreln_witness&nbsp;option&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Name</span>.lskips_t&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips)&nbsp;option&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.indreln_indfn&nbsp;list&nbsp;option&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;target_rep_rhs&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Target_rep_rhs_infix</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Ast</span>.fixity_decl&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Ident</span>.t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Target_rep_rhs_term_replacement</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Target_rep_rhs_type_replacement</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Types</span>.src_t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Target_rep_rhs_special</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Target_rep_rhs_undefined</span><br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;declare_def&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Decl_compile_message</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.targets_opt&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;<span class="constructor">Types</span>.id&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Decl_target_rep_term</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Ast</span>.target&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Ast</span>.component&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;<span class="constructor">Types</span>.id&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.name_lskips_annot&nbsp;list&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.target_rep_rhs<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Decl_target_rep_type</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Ast</span>.target&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Path</span>.t&nbsp;<span class="constructor">Types</span>.id&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.tnvar&nbsp;list&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Types</span>.src_t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Decl_ascii_rep</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.targets_opt&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Ast</span>.component&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.name_kind&nbsp;<span class="constructor">Types</span>.id&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Name</span>.t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Decl_rename</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.targets_opt&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Ast</span>.component&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.name_kind&nbsp;<span class="constructor">Types</span>.id&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Name</span>.lskips_t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Decl_rename_current_module</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.targets_opt&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Name</span>.lskips_t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Decl_termination_argument</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.targets_opt&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;<span class="constructor">Types</span>.id&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Ast</span>.termination_setting<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Decl_pattern_match_decl</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.targets_opt&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Ast</span>.exhaustivity_setting&nbsp;*&nbsp;<span class="constructor">Path</span>.t&nbsp;<span class="constructor">Types</span>.id&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.tnvar&nbsp;list&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;<span class="constructor">Types</span>.id&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;<span class="constructor">Types</span>.id&nbsp;option<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;def_aux&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Type_def</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Typed_ast</span>.name_l&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.tnvar&nbsp;list&nbsp;*&nbsp;<span class="constructor">Path</span>.t&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.texp&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.name_sect&nbsp;option)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Val_def</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.val_def<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Lemma</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Ast</span>.lemma_typ&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.targets_opt&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.name_l&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Module</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.name_l&nbsp;*&nbsp;<span class="constructor">Path</span>.t&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.def&nbsp;list&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Rename</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.name_l&nbsp;*&nbsp;<span class="constructor">Path</span>.t&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Path</span>.t&nbsp;<span class="constructor">Types</span>.id<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">OpenImport</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Ast</span>.open_import&nbsp;*&nbsp;<span class="constructor">Path</span>.t&nbsp;<span class="constructor">Types</span>.id&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">OpenImportTarget</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Ast</span>.open_import&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.targets_opt&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;string)&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Indreln</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.targets_opt&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.indreln_name&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.indreln_rule&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Val_spec</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.val_spec<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Class</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Ast</span>.class_decl&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.name_l&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.tnvar&nbsp;*&nbsp;<span class="constructor">Path</span>.t&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.class_val_spec&nbsp;list&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Instance</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Ast</span>.instance_decl&nbsp;*&nbsp;<span class="constructor">Types</span>.instance_ref&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.instschm&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.val_def&nbsp;list&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Comment</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.def<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">Declaration</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.declare_def<br>
+&nbsp;&nbsp;<span class="keyword">and</span>&nbsp;def&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Typed_ast</span>.def_aux&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;option)&nbsp;*&nbsp;<span class="constructor">Ast</span>.l&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.local_env<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;tnvar_to_types_tnvar&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.tnvar&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.tnvar&nbsp;*&nbsp;<span class="constructor">Ast</span>.l<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;empty_local_env&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.local_env<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;empty_env&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.env<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;e_env_lookup&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.e_env&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Path</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.mod_descr<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;c_env_lookup&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.c_env&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.const_descr<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;c_env_store_raw&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.c_env&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.const_descr&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.c_env&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;c_env_update&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.c_env&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.const_descr&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.c_env<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;env_c_env_update&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.env&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.const_descr&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.env<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;c_env_all_consts&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.c_env&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;list<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;exp_to_locn&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Ast</span>.l<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;exp_to_typ&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;append_lskips&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;pat_append_lskips&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.pat<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;alter_init_lskips&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips)&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;pat_alter_init_lskips&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips)&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;def_aux_alter_init_lskips&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips)&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.def_aux&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.def_aux&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;def_alter_init_lskips&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips)&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.def&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.def&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;oi_alter_init_lskips&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips)&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.open_import&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Ast</span>.open_import&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;pp_const_descr&nbsp;:&nbsp;<span class="constructor">Format</span>.formatter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.const_descr&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;pp_env&nbsp;:&nbsp;<span class="constructor">Format</span>.formatter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.env&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;pp_local_env&nbsp;:&nbsp;<span class="constructor">Format</span>.formatter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.local_env&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;pp_c_env&nbsp;:&nbsp;<span class="constructor">Format</span>.formatter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.c_env&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;pp_instances&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Format</span>.formatter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.instance&nbsp;list&nbsp;<span class="constructor">Types</span>.<span class="constructor">Pfmap</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;imported_modules&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">IM_paths</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Path</span>.t&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">IM_targets</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Typed_ast</span>.targets_opt&nbsp;*&nbsp;string&nbsp;list<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;checked_module&nbsp;=&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;filename&nbsp;:&nbsp;string;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;module_path&nbsp;:&nbsp;<span class="constructor">Path</span>.t;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;imported_modules&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.imported_modules&nbsp;list;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;imported_modules_rec&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.imported_modules&nbsp;list;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;untyped_ast&nbsp;:&nbsp;<span class="constructor">Ast</span>.defs&nbsp;*&nbsp;<span class="constructor">Ast</span>.lex_skips;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;typed_ast&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.def&nbsp;list&nbsp;*&nbsp;<span class="constructor">Ast</span>.lex_skips;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;generate_output&nbsp;:&nbsp;bool;<br>
+&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;var_avoid_f&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bool&nbsp;*&nbsp;(<span class="constructor">Name</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool)&nbsp;*&nbsp;(<span class="constructor">Ulib</span>.<span class="constructor">Text</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;(<span class="constructor">Name</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Name</span>.t)<br>
+&nbsp;&nbsp;<span class="keyword">module</span>&nbsp;<span class="keyword">type</span>&nbsp;<span class="constructor">Exp_context</span>&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">sig</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;env_opt&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.env&nbsp;option<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;avoid&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.var_avoid_f&nbsp;option<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
+&nbsp;&nbsp;<span class="keyword">module</span>&nbsp;<span class="constructor">Exps_in_context</span>&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">functor</span>&nbsp;(<span class="constructor">C</span>&nbsp;:&nbsp;<span class="constructor">Exp_context</span>)&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">sig</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;exp_subst&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Types</span>.t&nbsp;<span class="constructor">Types</span>.<span class="constructor">TNfmap</span>.t&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp_subst&nbsp;<span class="constructor">Typed_ast</span>.<span class="constructor">Nfmap</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;push_subst&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Types</span>.t&nbsp;<span class="constructor">Types</span>.<span class="constructor">TNfmap</span>.t&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp_subst&nbsp;<span class="constructor">Typed_ast</span>.<span class="constructor">Nfmap</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;list&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;exp_to_term&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp_aux<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;exp_to_free&nbsp;:&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;<span class="constructor">Typed_ast</span>.<span class="constructor">Nfmap</span>.t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;type_eq&nbsp;:&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_lnumeral&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;int&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lit<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_lnum&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;int&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lit<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_lbool&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lit<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_lbit&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;int&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lit<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_lundef&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lit<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_lstring&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lit<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_twild&nbsp;:&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.src_t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_tvar&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Tyvar</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.src_t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_tfn&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Types</span>.src_t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.src_t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.src_t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_ttup&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Types</span>.src_t&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.src_t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_tapp&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Path</span>.t&nbsp;<span class="constructor">Types</span>.id&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Types</span>.src_t&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.src_t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_tparen&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Types</span>.src_t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.src_t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_pwild&nbsp;:&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.pat<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_pas&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.name_l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.pat<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_ptyp&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Types</span>.src_t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.pat<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_pvar&nbsp;:&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Name</span>.lskips_t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.pat<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_pconst&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;<span class="constructor">Types</span>.id&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.pat<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_pbackend&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ident</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Types</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.pat<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_precord&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;<span class="constructor">Types</span>.id&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.pat)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.pat<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_ptup&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.pat<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_plist&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.pat<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_pvector&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.pat<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_pvectorc&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.pat<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_pparen&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.pat<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_pcons&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.pat<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_pnum_add&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.name_l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;int&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.pat<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_plit&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lit&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.pat<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_pvar_annot&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Name</span>.lskips_t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.src_t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.pat<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_var&nbsp;:&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Name</span>.lskips_t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_nvar_e&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Nvar</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_backend&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Ident</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_const&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;<span class="constructor">Types</span>.id&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_fun&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_function&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Typed_ast</span>.pat&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*&nbsp;<span class="constructor">Ast</span>.l)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_app&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_infix&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_record&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;<span class="constructor">Types</span>.id&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*&nbsp;<span class="constructor">Ast</span>.l)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_recup&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;<span class="constructor">Types</span>.id&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*&nbsp;<span class="constructor">Ast</span>.l)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_field&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.const_descr_ref&nbsp;<span class="constructor">Types</span>.id&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_case&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bool&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Typed_ast</span>.pat&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;*&nbsp;<span class="constructor">Ast</span>.l)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_typed&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Types</span>.src_t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_let_val&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Types</span>.src_t)&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.letbind<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_let_fun&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.name_lskips_annot&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Typed_ast</span>.lskips&nbsp;*&nbsp;<span class="constructor">Types</span>.src_t)&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.letbind<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_let&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.letbind&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_tup&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_list&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_vector&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_vaccess&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Types</span>.src_nexp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_vaccessr&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Types</span>.src_nexp&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Types</span>.src_nexp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_paren&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_begin&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_if&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_lit&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.lit&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_set&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_setcomp&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.<span class="constructor">NameSet</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_comp_binding&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bool&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.quant_binding&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_quant&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.q&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.quant_binding&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mk_do&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ast</span>.l&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Path</span>.t&nbsp;<span class="constructor">Types</span>.id&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.do_line&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.exp&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Types</span>.t&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.bind_tyargs_order&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Types</span>.t&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.exp<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;t_to_src_t&nbsp;:&nbsp;<span class="constructor">Types</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.src_t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;pat_subst&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Types</span>.t&nbsp;<span class="constructor">Types</span>.<span class="constructor">TNfmap</span>.t&nbsp;*&nbsp;<span class="constructor">Name</span>.t&nbsp;<span class="constructor">Typed_ast</span>.<span class="constructor">Nfmap</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.pat&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.pat<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;local_env_union&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.local_env&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.local_env&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Typed_ast</span>.local_env<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;funcl_aux_seplist_group&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Typed_ast</span>.funcl_aux&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;bool&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.lskips&nbsp;option&nbsp;*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Name</span>.t&nbsp;*&nbsp;<span class="constructor">Typed_ast</span>.funcl_aux&nbsp;<span class="constructor">Typed_ast</span>.lskips_seplist)&nbsp;list<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;class_path_to_dict_name&nbsp;:&nbsp;<span class="constructor">Path</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.tnvar&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Name</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ident_get_lskip&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Types</span>.id&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Ast</span>.lex_skips<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ident_replace_lskip&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Types</span>.ident_option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Ast</span>.lex_skips&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Types</span>.ident_option<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;oi_get_lskip&nbsp;:&nbsp;<span class="constructor">Ast</span>.open_import&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Ast</span>.lex_skips<br>
+<span class="keyword">end</span></code></body></html>

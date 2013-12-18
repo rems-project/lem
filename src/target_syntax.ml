@@ -383,7 +383,7 @@ and fix_letbind env get_prec (lb,l) = match lb with
         n (List.map (fun p -> delimit_pat P.Plist (fix_pat env get_prec p)) ps) t s1 
         (fix_exp env get_prec e)
 
-let rec fix_infix_and_parens env target_opt defs =
+let rec fix_infix_and_parens env target_opt defs = 
   let get_prec = Precedence.get_prec target_opt env in
   let fix_val_def = function
     | Let_def(s1,targets,(p,name_map,t,s2,e)) ->

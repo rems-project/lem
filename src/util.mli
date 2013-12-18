@@ -162,6 +162,10 @@ val list_iter_sep : (unit -> unit) -> ('a -> unit) -> 'a list -> unit
      [a1; sep; ... sep ; an]. *)
 val intercalate : 'a -> 'a list -> 'a list
 
+(** [interleave l1 l2] interleaves lists [l1] and [l2], by alternatingly taking an element of l1 and l2 
+    till one of the lists is empty. Then the remaining elements are added. The first element is from [l1]. *) 
+val interleave : 'a list -> 'a list -> 'a list
+
 (** [replicate n e] creates a list that contains [n] times the element [e]. *)
 val replicate : int -> 'a -> 'a list
 
@@ -262,16 +266,23 @@ val uncapitalize_prefix : string -> string
     is unluckily only available for OCaml 4 *)
 val string_map : (char -> char) -> string -> string
 
-
 (** [message_singular_plural (sing_message, multiple_message) l] is used
     to determine whether the singular or plural form should be used in messages. If the list [l] contains
     no elements or exactly one element, [sing_message] is returned. Otherwise, i.e. for multiple elements,
     the result is [multiple_message]. *)
 val message_singular_plural : (string * string) -> 'a list -> string
 
+(** [fresh_string forbidden] generates a stateful function [gen_fresh] that generates fresh strings. [gen_fresh s] 
+    will return a string similar to [s] that has never been returned before and is not part of [forbidden]. By storing
+    the result in internal state, it is ensured that the same result is never returned twice. This function is used
+    for example to generate unique labels. *)
+val fresh_string : string list -> (string -> string)
+
+
 (** {2 Useful Sets} *)
 
 (** Sets of Integers *)
+module StringSet : Set.S with type elt = string
 module IntSet : Set.S with type elt = int
 module IntIntSet : Set.S with type elt = int * int
 

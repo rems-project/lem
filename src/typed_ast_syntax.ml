@@ -415,7 +415,11 @@ let fix_const_descr_ocaml_constr c_d =
   in if not is_constr then c_d else begin
     (* get the argument types *)
     let (arg_tyL, _) = Types.strip_fn_type None c_d.const_type in
-    let vars = List.map t_to_var_name arg_tyL in
+    let vars = List.map (fun ty ->
+      { term = Name.add_lskip (t_to_var_name ty);
+        locn = Ast.Unknown;
+        typ = ty;
+        rest = (); }) arg_tyL in
 
     let rep = CR_special (c_d.spec_l, true, CR_special_uncurry (List.length arg_tyL), vars) in
     let new_tr = Target.Targetmap.insert c_d.target_rep (Target.Target_ocaml, rep) in
@@ -483,10 +487,10 @@ let dest_num_exp e =
 
 let is_num_exp e = not (dest_tf_exp e = None)
 
-let mk_num_exp i = 
+let mk_num_exp num_ty i = 
   let l = Ast.Trans (false, "mk_num_exp", None) in
-  let lit = C.mk_lnum l None i nat_ty in
-  C.mk_lit l lit (Some nat_ty)
+  let lit = C.mk_lnum l None i num_ty in
+  C.mk_lit l lit (Some num_ty)
 
 let mk_paren_exp e =
      let (e', ws) = alter_init_lskips remove_init_ws e in
@@ -514,6 +518,17 @@ let rec mk_opt_paren_exp (e :exp) : exp =
         mk_paren_exp e
     | _ -> mk_paren_exp e 
 
+
+let rec may_need_paren (e :exp) : bool = 
+  match C.exp_to_term e with
+    | Var _ -> false
+    | Constant _ -> false
+    | Backend _ -> false
+    | Tup _ -> false
+    | Paren _ -> false
+    | Lit _ -> false
+    | App (e1, e2) -> (not (is_empty_backend_exp e1)) || may_need_paren e2
+    | _ -> true
 
 let dest_const_exp (e : exp) : const_descr_ref id option =
   match C.exp_to_term e with
@@ -600,52 +615,28 @@ let rec mk_and_exps env el : exp =
     | e1 :: e2 :: es ->
       mk_and_exp env e1 (mk_and_exps env (e2 :: es))
 
-
 let mk_le_exp env (e1 : exp) (e2 : exp) : exp =
-  let l = Ast.Trans (true, "mk_le_exp", None) in
-  let ty_0 = { Types.t = Types.Tfn (nat_ty, bool_ty) } in
-  let ty_1 = { Types.t = Types.Tfn (nat_ty, ty_0) } in
+  let l = Ast.Trans (true, "mk_le_exp", None) in  
+  let num_ty = exp_to_typ e1 in
+  let ty_0 = { Types.t = Types.Tfn (num_ty, bool_ty) } in
+  let ty_1 = { Types.t = Types.Tfn (num_ty, ty_0) } in
 
-  let (le_id, _) = get_const_id env l "less_equal" [nat_ty] in
+  let (le_id, _) = get_const_id env l "less_equal" [num_ty] in
 
   let le_exp = C.mk_const l le_id (Some ty_1) in
   let res = C.mk_infix l e1 le_exp e2 (Some bool_ty) in
   res
 
-let mk_add_exp env (e1 : exp) (e2 : exp) : exp =
-  let l = Ast.Trans (true, "matrix_compile_mk_add", None) in
-  let ty_0 = { Types.t = Types.Tfn (nat_ty, nat_ty) } in
-  let ty_1 = { Types.t = Types.Tfn (nat_ty, ty_0) } in
-
-  let (add_id, _) = get_const_id env l "addition" [] in
-  let add_exp = C.mk_const l add_id (Some ty_1) in
-  let res = C.mk_infix l e1 add_exp e2 (Some nat_ty) in
-  res
-
 let mk_sub_exp env (e1 : exp) (e2 : exp) : exp =
   let l = Ast.Trans (true, "matrix_compile_mk_sub", None) in
-  let ty_0 = { Types.t = Types.Tfn (nat_ty, nat_ty) } in
-  let ty_1 = { Types.t = Types.Tfn (nat_ty, ty_0) } in
+  let num_ty = exp_to_typ e1 in
+  let ty_0 = { Types.t = Types.Tfn (num_ty, num_ty) } in
+  let ty_1 = { Types.t = Types.Tfn (num_ty, ty_0) } in
 
-  let (sub_id, _) = get_const_id env l "subtraction" [nat_ty] in
+  let (sub_id, _) = get_const_id env l "subtraction" [num_ty] in
   let sub_exp = C.mk_const l sub_id (Some ty_1) in
-  let res = C.mk_infix l e1 sub_exp e2 (Some nat_ty) in
+  let res = C.mk_infix l e1 sub_exp e2 (Some num_ty) in
   res
-
-let mk_num_add_exp env n i = 
-  let l = Ast.Trans (true, "mk_num_add_exp", None) in
-  let e1 = C.mk_var l (Name.add_lskip n) nat_ty in
-  let e2 = mk_num_exp i in
-  let ee = mk_add_exp env e1 e2 in
-  mk_opt_paren_exp ee
-
-let mk_num_sub_exp env n i = 
-  let l = Ast.Trans (true, "mk_num_sub_exp", None) in
-  let e1 = C.mk_var l  (Name.add_lskip n) nat_ty in
-  let e2 = mk_num_exp i in
-  let ee = mk_sub_exp env e1 e2 in
-  mk_opt_paren_exp ee
-
 
 let mk_from_list_exp env (e : exp) : exp =
   let l = Ast.Trans (true, "mk_from_list_exp", None) in
@@ -1088,7 +1079,7 @@ and add_funcl_aux_entities (ue : used_entities) only_new ((_, c, ps, src_t_opt, 
   end
 end
 
-and add_def_entities (t_opt : Target.target) (only_new : bool) (ue : used_entities) (((d, _), _, _) : def) : used_entities = 
+and add_def_aux_entities (t_opt : Target.target) (only_new : bool) (ue : used_entities) (d : def_aux) : used_entities = 
   match d with
       | Type_def(sk, tds) ->
          Seplist.fold_left (fun (_, _, type_path, texp, _) ue -> begin
@@ -1154,6 +1145,9 @@ and add_def_entities (t_opt : Target.target) (only_new : bool) (ue : used_entiti
       | Instance(_,_,_,_,_) -> (* TODO: broken, needs fixing in typechecking and AST *) ue
       | Declaration(_) -> ue
       | Comment _ -> ue
+
+and add_def_entities (t_opt : Target.target) (only_new : bool) (ue : used_entities) (((d, _), _, _) : def) : used_entities = 
+  add_def_aux_entities t_opt only_new ue d
 
 
 let add_checked_module_entities (t_opt : Target.target) only_new (ue : used_entities) (m : checked_module): used_entities = 
