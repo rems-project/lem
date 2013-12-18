@@ -6,6 +6,8 @@ open import Bool Basic_classes
 
 declare {isabelle;hol;ocaml} rename module = lem_function
 
+open import {coq} `Program.Basics`
+
 (* ----------------------- *)
 (* identity function       *)
 (* ----------------------- *)
