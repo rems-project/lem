@@ -27,7 +27,7 @@ open import Pervasives_extra
 
 (*: Generation of fresh ids, for flexible unification variables, events, and instruction instances. :*)
 
-open MachineDefUtils
+open import MachineDefUtils
 
 type flexsym = nat
 type ioid = nat

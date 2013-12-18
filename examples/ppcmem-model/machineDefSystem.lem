@@ -25,11 +25,11 @@ open import Pervasives_extra
 
 (*: \section{The Whole System Behaviour} :*)
 
-open MachineDefFreshIds
-open MachineDefValue
-open MachineDefTypes
-open MachineDefStorageSubsystem
-open MachineDefThreadSubsystem
+open import MachineDefFreshIds
+open import MachineDefValue
+open import MachineDefTypes
+open import MachineDefStorageSubsystem
+open import MachineDefThreadSubsystem
 
 (* the initial writes should be a list of one write for each address that the program will use *)
 let initial_system_state (tids : set thread_id) (irvs: thread_id -> reg -> value) (iws : list write) (m:model_params) =
@@ -187,6 +187,15 @@ barrier_propagate_to_thread: forall program s s' b tid.
        (s.idstate = s'.idstate)
        ==>
        system_label_trans program s (Barrier_propagate_to_thread b tid) s'
+
+and
+
+barrier_propagate_before_end_to_thread: forall program s s' b tid n.
+       (ssmachine_trans s.model.ss s.storage_subsystem {} {} (SS_Propagate_barrier_before_end_to_thread b tid n) s'.storage_subsystem) &&
+       (s.thread_states = s'.thread_states) &&
+       (s.idstate = s'.idstate)
+       ==>
+       system_label_trans program s (Barrier_propagate_before_end_to_thread b tid n) s'
 
 and
 

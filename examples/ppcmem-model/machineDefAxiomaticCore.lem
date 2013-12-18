@@ -5,10 +5,10 @@ open import Pervasives_extra
 (* a generic notion of axiomatic-model candidate execution, over
 abstract instructions, used in the ppcmem candidates.ml *)
 
-open MachineDefUtils
-open MachineDefFreshIds
-open MachineDefValue
-open MachineDefTypes
+open import MachineDefUtils
+open import MachineDefFreshIds
+open import MachineDefValue
+open import MachineDefTypes
 (* open MachineDefInstructionSemantics *)
 
 type rd_eiid = <| rdeiid_thread:thread_id; rdeiid_ioid:ioid; rdeiid_addr:address;rdeiid_value:value |>

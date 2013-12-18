@@ -15,25 +15,25 @@ open import Pervasives_extra
 
 
 val (land) : nat -> nat -> nat
-let inline {ocaml} (land) = `(land)`
+declare ocaml target_rep function (land) = infix `land`
 
 val (lor) : nat -> nat -> nat
-let inline {ocaml} (lor) = `(lor)`
+declare ocaml target_rep function (lor) = infix `lor`
 
 val (lxor) : nat -> nat -> nat
-let inline {ocaml} (lxor) = `(lxor)`
+declare ocaml target_rep function (lxor) = infix `lxor`
 
 val lnot : nat -> nat
-let inline {ocaml} lnot = `lnot`
+declare ocaml target_rep function lnot = `lnot`
 
 val (lsl) : nat -> nat -> nat
-let inline {ocaml} (lsl) = `(lsl)`
+declare ocaml target_rep function (lsl) = infix `lsl`
 
 val (lsr) : nat -> nat -> nat
-let inline {ocaml} (lsr) = `(lsr)`
+declare ocaml target_rep function (lsr) = infix `lsr`
 
 val (asr) : nat -> nat -> nat
-let inline {ocaml} (asr) = `(asr)`
+declare ocaml target_rep function (asr) = infix `asr`
 
 
 

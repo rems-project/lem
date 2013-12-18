@@ -26,10 +26,10 @@ open import Pervasives_extra
 (* PS2: what's the Scott-language prover-output story for these missing pattern match cases? *)
 
 
-open MachineDefUtils
-open MachineDefFreshIds
-open MachineDefValue
-open MachineDefTypes
+open import MachineDefUtils
+open import MachineDefFreshIds
+open import MachineDefValue
+open import MachineDefTypes
 
 let make_write_event tid ioid a v =
   let new_eiid = <| weiid_thread = tid; weiid_ioid = ioid; weiid_addr = a; weiid_value = v |> in

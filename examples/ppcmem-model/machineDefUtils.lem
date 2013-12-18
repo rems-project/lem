@@ -203,7 +203,7 @@ let insert_at_nth l n e =
 
 (*: \subsection{Comparisons} :*)
 type comparison = ordering
-declare lem target_rep type ordering =ordering 
+declare lem target_rep type ordering =`ordering` 
 
 let compare_num n1 n2 = 
  if n1 < n2 then LT

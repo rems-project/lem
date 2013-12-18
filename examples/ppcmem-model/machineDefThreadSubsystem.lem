@@ -26,11 +26,11 @@ open import Pervasives_extra
 
 (*: \section{Thread Transitions} :*) 
 
-open MachineDefUtils
-open MachineDefFreshIds
-open MachineDefValue
-open MachineDefTypes
-open MachineDefInstructionSemantics
+open import MachineDefUtils
+open import MachineDefFreshIds
+open import MachineDefValue
+open import MachineDefTypes
+open import MachineDefInstructionSemantics
 
 (*: \subsection{Auxiliary Definitions} :*) 
 

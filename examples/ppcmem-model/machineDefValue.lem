@@ -31,8 +31,8 @@ values, but no other equations involving symbolic values. :*)
 
 
 open import BitwiseCompatibility
-open MachineDefUtils
-open MachineDefFreshIds
+open import MachineDefUtils
+open import MachineDefFreshIds
 
 type cst = 
   | Concrete of nat

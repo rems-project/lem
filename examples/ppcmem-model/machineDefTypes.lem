@@ -28,9 +28,9 @@ and write for memory actions.  Unqualifed load/store/read/write do not
 include any reserve/conditional or acquire/release variants *)
 
 
-open MachineDefUtils
-open MachineDefFreshIds
-open MachineDefValue
+open import MachineDefUtils
+open import MachineDefFreshIds
+open import MachineDefValue
 
 (*: \section{The Core/Storage Subsystem Interface} :*) 
 
@@ -390,11 +390,17 @@ type propagate_write_params =
   | Only_at_end
   | Possibly_in_middle
 
+type barrier_coherence_params =
+  | Weak_BC
+  | SemiStrong_BC
+  | Strong_BC
+
 type ss_params =
   <| coherence_commit : coherence_commit_params;
      pcc_deadlock_avoid : bool;
      coherence_points : bool;
      pw : propagate_write_params;
+     bc: barrier_coherence_params; 
   |>
 
 
@@ -464,6 +470,7 @@ type ss_trans =
    | SS_Send_read_response of thread_id * read_request * write
    | SS_Accept_barrier_request of barrier
    | SS_Propagate_barrier_to_thread of barrier * thread_id
+   | SS_Propagate_barrier_before_end_to_thread of barrier * thread_id * nat
    | SS_Acknowledge_sync_barrier of barrier
  
 type thread_trans =
@@ -505,6 +512,7 @@ type trans =
 (* P  *)   | Write_propagate_to_thread of write * thread_id
 (* P  *)   | Write_propagate_between_coherence of write * thread_id * nat
 (* P  *)   | Barrier_propagate_to_thread of barrier * thread_id 
+(* P  *)   | Barrier_propagate_before_end_to_thread of barrier * thread_id * nat 
 (* P  *)   | Read_from_storage_subsystem of thread_id * instruction_instance * write
 (* PF *)   | Write_forward_to_read of thread_id * instruction_instance * write * instruction_instance
 (* P  *)   | Acknowledge_sync of barrier
