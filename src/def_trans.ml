@@ -122,7 +122,9 @@ let remove_opens _ env (((d,_),_,_) as def) =
 let remove_import_include _ env (((d,s),l,lenv) as def) =
   let aux mk_f = function
     | Ast.OI_open sk -> None
-    | Ast.OI_import sk -> Some (env, [comment_def def])
+    | Ast.OI_import sk ->
+      Some (env, [((mk_f (Ast.OI_open (lskips_only_comments_first [sk])), s), l, lenv)])
+      (* Some (env, [comment_def def]) *)
     | Ast.OI_include sk -> Some (env, [((mk_f (Ast.OI_open sk), s), l, lenv)])
     | (Ast.OI_open_import (sk1, sk2) | Ast.OI_include_import (sk1, sk2)) -> 
        Some (env, [((mk_f (Ast.OI_open (lskips_only_comments_first [sk1;sk2])), s), l, lenv)])
