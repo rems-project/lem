@@ -1773,13 +1773,15 @@ let generate_coq_record_update_notation e =
             (match Seplist.to_list seplist with
               | []    -> assert false (* empty type in default value generation, should this be allowed? *)
               | x::xs ->
-                let ((name, _), _, _, src_ts) = x in
+                let ((name, l), const_descr_ref, _, src_ts) = x in
+                  let name = B.const_ref_to_name name false const_descr_ref in
                   let ys = Seplist.to_list src_ts in
                   let mapped = List.map default_value ys in
+                  let sep = if List.length mapped = 0 then emp else from_string " " in
                   let mapped = concat_str " " mapped in
                   let o = lskips_t_to_output name in
                     Output.flat [
-                      o; from_string " "; mapped
+                      o; sep; mapped
                     ])
       and generate_default_value ((name, _), tnvar_list, _, t, name_sect_opt) : Output.t =
         let o = lskips_t_to_output name in
