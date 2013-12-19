@@ -2,7 +2,7 @@
 (* A generic library for machine words.                                       *)
 (******************************************************************************)
 
-declare {isabelle;coq;hol;ocaml} rename module = lem_word
+declare {isabelle;coq;hol;ocaml} rename module = Lem_word
 
 open import Maybe Num
 
