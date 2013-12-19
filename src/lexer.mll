@@ -213,7 +213,11 @@ rule token skips = parse
   | ">=" oper_char+ as i   		{ (GtEqX(Some(skips), Ulib.Text.of_latin1 i)) }
   | ['@''^'] oper_char* as i            { (AtX(Some(skips), Ulib.Text.of_latin1 i)) }
   | ['=''<''>''|''&''$'] oper_char* as i { (EqualX(Some(skips), Ulib.Text.of_latin1 i)) }
-  | digit+ as i                         { (Num(Some(skips),int_of_string i)) }
+  | digit+ as i                         { try Num(Some(skips),int_of_string i)
+                                          with Failure "int_of_string" ->
+                                           raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax (
+                                             Lexing.lexeme_start_p lexbuf,
+                                            "couldn't parse integer "^i))) }
   | "0b" (binarydigit+ as i)		{ (Bin(Some(skips), i)) }
   | "0x" (hexdigit+ as i) 		{ (Hex(Some(skips), i)) }
   | '"'                                 { (String(Some(skips),
