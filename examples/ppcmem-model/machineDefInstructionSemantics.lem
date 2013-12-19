@@ -604,11 +604,11 @@ let ppc_bitreg cr bit = PPC_reg (CRBit (32+4*cr+bit))
 
 let empty_sem = <|remaining = [];val_soln = Map.empty|> 
 
-let op3regs op set rD rA rB ist = 
+let op3regs op set' rD rA rB ist = 
   let (vA,ist') = fresh_var () ist in
   let (vB,ist'') = fresh_var () ist' in
   let (v,ist''') = fresh_var () ist'' in
-  match set with
+  match set' with
   | DontSetCR0 ->
       (<|empty_sem with
        remaining = [Read_reg rA vA ;
@@ -635,10 +635,10 @@ let op3regs op set rD rA rB ist =
   end
 
 
-let op2regs op set rD rA ist = 
+let op2regs op set' rD rA ist = 
   let (vA,ist') = fresh_var () ist in
   let (v,ist''') = fresh_var () ist' in
-  match set with
+  match set' with
   | DontSetCR0 ->
       (<|empty_sem with
        remaining = [Read_reg rA vA ;
@@ -663,10 +663,10 @@ let op2regs op set rD rA ist =
   end
 
 
-let op2regi op set rD rA vimm ist = 
+let op2regi op set' rD rA vimm ist = 
   let (vA,ist') = fresh_var () ist in
   let (v,ist'') = fresh_var () ist' in
-  match set with
+  match set' with
   | DontSetCR0 ->
       (<|empty_sem with
        remaining = [Read_reg rA vA ;
@@ -694,22 +694,22 @@ let op2regi op set rD rA vimm ist =
 
 let ppc_sem_of_instruction i ist =
   match i with
-  | Padd  set rD rA rB  ->
-      op3regs    Add set rD rA rB ist
-  | Psub  set rD rA rB  ->
-      op3regs    Sub set rD rA rB ist 
-  | Psubf  set rD rA rB  ->
-      op3regs    Sub set rD rB rA ist (* subtract from -> swap args *)
-  | Por  set rD rA rB  ->
-      op3regs    Or set rD rA rB ist
-  | Pand  set rD rA rB  ->
-      op3regs    And set rD rA rB ist
-  | Pxor  set rD rA rB  ->
-      op3regs    Xor set rD rA rB ist
-  | Pmull  set rD rA rB  ->
-      op3regs    Mul set rD rA rB ist
-  | Pdiv  set rD rA rB  ->
-      op3regs    Div set rD rA rB ist
+  | Padd  set' rD rA rB  ->
+      op3regs    Add set' rD rA rB ist
+  | Psub  set' rD rA rB  ->
+      op3regs    Sub set' rD rA rB ist 
+  | Psubf  set' rD rA rB  ->
+      op3regs    Sub set' rD rB rA ist (* subtract from -> swap args *)
+  | Por  set' rD rA rB  ->
+      op3regs    Or set' rD rA rB ist
+  | Pand  set' rD rA rB  ->
+      op3regs    And set' rD rA rB ist
+  | Pxor  set' rD rA rB  ->
+      op3regs    Xor set' rD rA rB ist
+  | Pmull  set' rD rA rB  ->
+      op3regs    Mul set' rD rA rB ist
+  | Pdiv  set' rD rA rB  ->
+      op3regs    Div set' rD rA rB ist
 
   | Pmr  rD rS  ->
       let (v,ist') = fresh_var () ist in
@@ -723,13 +723,16 @@ let ppc_sem_of_instruction i ist =
        remaining = [Write_reg rD (  intToV v) ]|>,
 	ist)
 
-  | Paddi  rD (PPC_reg(Ireg GPR0)) v  ->
-      (<|empty_sem with
-       remaining = [Write_reg rD (  intToV v) ]|>,
-	ist)
-
   | Paddi  rD rA simm  ->
-      op2regi    Add DontSetCR0 rD rA (  intToV simm) ist
+    match rA with 
+      | (PPC_reg(Ireg GPR0)) ->
+        (<|empty_sem with
+            remaining = [Write_reg rD (  intToV simm) ]|>,
+	ist)
+      | _ -> 
+        op2regi    Add DontSetCR0 rD rA (  intToV simm) ist
+    end
+
   | Pori  rD rA simm  ->
       op2regi    Or DontSetCR0 rD rA (  intToV simm) ist
   | Pxori  rD rA simm  ->
@@ -742,48 +745,51 @@ let ppc_sem_of_instruction i ist =
 	
   | Pb lbl -> (<|empty_sem with remaining = [Jump (Symbolic lbl)]|>,ist)
 
-  | Pbcc  Lt lbl  ->
-      let (v,ist') = fresh_var () ist in
-      (<|empty_sem with
-       remaining = [Read_reg (ppc_bitreg 0 bit_lt) v ;
-		    Cond_branch  v (Symbolic lbl)]|>,
+  | Pbcc c lbl ->
+    match c with
+      | Lt ->
+        let (v,ist') = fresh_var () ist in
+        (<|empty_sem with
+            remaining = [Read_reg (ppc_bitreg 0 bit_lt) v ;
+		         Cond_branch  v (Symbolic lbl)]|>,
 	ist')
-  | Pbcc  Ge lbl  ->
-      let (v,ist') = fresh_var () ist in
-      let (vn,ist'') = fresh_var () ist' in
-      (<|empty_sem with
-       remaining = [Read_reg (ppc_bitreg 0 bit_lt) v ;
-		    Unop  vn    Not v ;
-		    Cond_branch  vn (Symbolic lbl)]|>,
+      | Ge ->
+        let (v,ist') = fresh_var () ist in
+        let (vn,ist'') = fresh_var () ist' in
+        (<|empty_sem with
+            remaining = [Read_reg (ppc_bitreg 0 bit_lt) v ;
+		         Unop  vn    Not v ;
+		         Cond_branch  vn (Symbolic lbl)]|>,
 	ist'')
-  | Pbcc  Gt lbl  ->
-      let (v,ist') = fresh_var () ist in
-      (<|empty_sem with
-       remaining = [Read_reg (ppc_bitreg 0 bit_gt) v ;
-		    Cond_branch  v (Symbolic lbl)]|>,
+      | Gt ->
+        let (v,ist') = fresh_var () ist in
+        (<|empty_sem with
+            remaining = [Read_reg (ppc_bitreg 0 bit_gt) v ;
+		         Cond_branch  v (Symbolic lbl)]|>,
 	ist')
-  | Pbcc  Le lbl  ->
-      let (v,ist') = fresh_var () ist in
-      let (vn,ist'') = fresh_var () ist' in
-      (<|empty_sem with
-       remaining = [Read_reg (ppc_bitreg 0 bit_gt) v ;
-		    Unop  vn    Not v ;
-		    Cond_branch  vn (Symbolic lbl)]|>,
+      | Le ->
+        let (v,ist') = fresh_var () ist in
+        let (vn,ist'') = fresh_var () ist' in
+        (<|empty_sem with
+            remaining = [Read_reg (ppc_bitreg 0 bit_gt) v ;
+		         Unop  vn    Not v ;
+		         Cond_branch  vn (Symbolic lbl)]|>,
 	ist'')
-  | Pbcc  Eq lbl  ->
-      let (v,ist') = fresh_var () ist in
-      (<|empty_sem with
-       remaining = [Read_reg (ppc_bitreg 0 bit_eq) v ;
-		    Cond_branch  v (Symbolic lbl)]|>,
+      | Eq ->
+        let (v,ist') = fresh_var () ist in
+        (<|empty_sem with
+            remaining = [Read_reg (ppc_bitreg 0 bit_eq) v ;
+		         Cond_branch  v (Symbolic lbl)]|>,
 	ist')
-  | Pbcc  Ne lbl  ->
-      let (v,ist') = fresh_var () ist in
-      let (vn,ist'') = fresh_var () ist' in
-      (<|empty_sem with
-       remaining = [Read_reg (ppc_bitreg 0 bit_eq) v ;
-		    Unop  vn    Not v ;
-		    Cond_branch  vn (Symbolic lbl)]|>,
+      | Ne ->
+        let (v,ist') = fresh_var () ist in
+        let (vn,ist'') = fresh_var () ist' in
+        (<|empty_sem with
+            remaining = [Read_reg (ppc_bitreg 0 bit_eq) v ;
+		         Unop  vn    Not v ;
+		         Cond_branch  vn (Symbolic lbl)]|>,
 	ist'')
+    end
 
   | Pcmpwi  cr rA v  ->
       let (vA,ist') = fresh_var () ist in
@@ -836,51 +842,58 @@ let ppc_sem_of_instruction i ist =
 		    Read_mem a v ;
 		    Write_reg  rD v ]|>,
 	ist''')
-  | Plwzx rD (PPC_reg(Ireg GPR0)) rB  ->
-      let (aB,ist') = fresh_var () ist in
-      let (a,ist'') = fresh_var () ist' in
-      let (v,ist''') = fresh_var () ist'' in
-      (<|empty_sem with
-       remaining = [Read_reg rB aB ;
-		    Binop  a    Add aB (  intToV 0) ; (* Can be optimized *)
-		    Read_mem a v ;
-		    Write_reg  rD v ]|>,
-	ist''')
 
-  | Pldx rD (PPC_reg(Ireg GPR0)) rB  ->
-      let (aB,ist') = fresh_var () ist in
-      let (a,ist'') = fresh_var () ist' in
-      let (v,ist''') = fresh_var () ist'' in
-      (<|empty_sem with
-       remaining = [Read_reg rB aB ;
-		    Binop  a    Add aB (  intToV 0) ; (* Can be optimized *)
-		    Read_mem a v ;
+  | Plwzx rD rA rB  ->
+    match rA with 
+      | (PPC_reg(Ireg GPR0)) ->
+        let (aB,ist') = fresh_var () ist in
+        let (a,ist'') = fresh_var () ist' in
+        let (v,ist''') = fresh_var () ist'' in
+        (<|empty_sem with
+            remaining = [Read_reg rB aB ;
+		         Binop  a    Add aB (  intToV 0) ; (* Can be optimized *)
+		         Read_mem a v ;
 		    Write_reg  rD v ]|>,
 	ist''')
-  | Plwzx rD rA rB  ->
-      let (aA,ist') = fresh_var () ist in
-      let (aB,ist'') = fresh_var () ist' in
-      let (a,ist''') = fresh_var () ist'' in
-      let (v,ist'''') = fresh_var () ist''' in
-      (<|empty_sem with
-       remaining = [Read_reg rA aA ;
-		    Read_reg rB aB ;
-		    Binop  a    Add aA aB ;
-		    Read_mem a v ;
-		    Write_reg  rD v ]|>,
+      | _ -> 
+        let (aA,ist') = fresh_var () ist in
+        let (aB,ist'') = fresh_var () ist' in
+        let (a,ist''') = fresh_var () ist'' in
+        let (v,ist'''') = fresh_var () ist''' in
+        (<|empty_sem with
+            remaining = [Read_reg rA aA ;
+		         Read_reg rB aB ;
+		         Binop  a    Add aA aB ;
+		         Read_mem a v ;
+		         Write_reg  rD v ]|>,
 	ist'''')
+    end
+
   | Pldx rD rA rB  ->
-      let (aA,ist') = fresh_var () ist in
-      let (aB,ist'') = fresh_var () ist' in
-      let (a,ist''') = fresh_var () ist'' in
-      let (v,ist'''') = fresh_var () ist''' in
-      (<|empty_sem with
-       remaining = [Read_reg rA aA ;
-		    Read_reg rB aB ;
-		    Binop  a    Add aA aB ;
-		    Read_mem a v ;
-		    Write_reg  rD v ]|>,
+    match rA with
+      | (PPC_reg(Ireg GPR0)) -> 
+        let (aB,ist') = fresh_var () ist in
+        let (a,ist'') = fresh_var () ist' in
+        let (v,ist''') = fresh_var () ist'' in
+        (<|empty_sem with
+            remaining = [Read_reg rB aB ;
+		         Binop  a    Add aB (  intToV 0) ; (* Can be optimized *)
+		         Read_mem a v ;
+		         Write_reg  rD v ]|>,
+	ist''')
+      | _ -> 
+        let (aA,ist') = fresh_var () ist in
+        let (aB,ist'') = fresh_var () ist' in
+        let (a,ist''') = fresh_var () ist'' in
+        let (v,ist'''') = fresh_var () ist''' in
+        (<|empty_sem with
+            remaining = [Read_reg rA aA ;
+		         Read_reg rB aB ;
+		         Binop  a    Add aA aB ;
+		         Read_mem a v ;
+		         Write_reg  rD v ]|>,
 	ist'''')
+    end
 
   | Pstw rS d rA  ->
       let (vS,ist') = fresh_var () ist in
@@ -903,121 +916,130 @@ let ppc_sem_of_instruction i ist =
 		    Write_mem a vS ]|>,
 	ist''')
 
-
-  | Pstwx rS (PPC_reg(Ireg GPR0)) rB  ->
-      let (vS,ist') = fresh_var () ist in
-      let (aB,ist'') = fresh_var () ist' in
-      let (a,ist''') = fresh_var () ist'' in
-      (<|empty_sem with
-       remaining = [Read_reg rB aB ;
-		    Binop  a    Add aB (  intToV 0) ; (* Can be optimized *)
-		    Read_reg rS vS ;
-		    Write_mem a vS ]|>,
-	ist''')
-  | Pstdx rS (PPC_reg(Ireg GPR0)) rB  ->
-      let (vS,ist') = fresh_var () ist in
-      let (aB,ist'') = fresh_var () ist' in
-      let (a,ist''') = fresh_var () ist'' in
-      (<|empty_sem with
-       remaining = [Read_reg rB aB ;
-		    Binop  a    Add aB (  intToV 0) ; (* Can be optimized *)
-		    Read_reg rS vS ;
-		    Write_mem a vS ]|>,
-	ist''')
   | Pstwx rS rA rB  ->
-      let (vS,ist') = fresh_var () ist in
-      let (aA,ist'') = fresh_var () ist' in
-      let (aB,ist''') = fresh_var () ist'' in
-      let (a,ist'''') = fresh_var () ist''' in
-      (<|empty_sem with
-       remaining = [Read_reg rA aA ;
-		    Read_reg rB aB ;
-		    Binop  a    Add aA aB ;
-		    Read_reg rS vS ;
-		    Write_mem a vS ]|>,
-	ist'''')
-  | Pstdx rS rA rB  ->
-      let (vS,ist') = fresh_var () ist in
-      let (aA,ist'') = fresh_var () ist' in
-      let (aB,ist''') = fresh_var () ist'' in
-      let (a,ist'''') = fresh_var () ist''' in
-      (<|empty_sem with
-       remaining = [Read_reg rA aA ;
-		    Read_reg rB aB ;
-		    Binop  a    Add aA aB ;
-		    Read_reg rS vS ;
-		    Write_mem a vS ]|>,
-	ist'''')
-	
-  | Plwarx rD (PPC_reg(Ireg GPR0)) rB -> 
-      let (aB,ist') = fresh_var () ist in
-      let (a,ist'') = fresh_var () ist' in
-      let (v,ist''') = fresh_var () ist'' in
-      (<|empty_sem with
-       remaining = [Read_reg rB aB ;
-		    Binop  a    Add aB (  intToV 0) ; (* Can be optimized *)
-		    Read_mem_reserve a v ;
-		    Write_reg  rD v ]|>,
+    match rA with
+      | (PPC_reg(Ireg GPR0)) -> 
+        let (vS,ist') = fresh_var () ist in
+        let (aB,ist'') = fresh_var () ist' in
+        let (a,ist''') = fresh_var () ist'' in
+        (<|empty_sem with
+            remaining = [Read_reg rB aB ;
+		         Binop  a    Add aB (  intToV 0) ; (* Can be optimized *)
+		         Read_reg rS vS ;
+		         Write_mem a vS ]|>,
 	ist''')
-  | Plwarx rD rA rB  ->
-      let (aA,ist') = fresh_var () ist in
-      let (aB,ist'') = fresh_var () ist' in
-      let (a,ist''') = fresh_var () ist'' in
-      let (v,ist'''') = fresh_var () ist''' in
-      (<|empty_sem with
-       remaining = [Read_reg rA aA ;
-		    Read_reg rB aB ;
-		    Binop  a    Add aA aB ;
-		    Read_mem_reserve a v ;
-		    Write_reg  rD v ]|>,
-	ist'''')
-  | Pstwcx rS (PPC_reg(Ireg GPR0)) rB  ->
-      let (vS,ist') = fresh_var () ist in
-      let (aB,ist'') = fresh_var () ist' in
-      let (a,ist''') = fresh_var () ist'' in
-      let (succ,ist'''') = fresh_var () ist''' in
-      (<|empty_sem with
-       remaining = [Read_reg rB aB ;
-		    Binop  a    Add aB (  intToV 0) ; (* Can be optimized *)
-		    Read_reg rS vS ;
-		    Write_mem_conditional a vS succ;
-		    Write_reg  (ppc_bitreg 0 bit_lt)  (intToV 0) ; 
-		    Write_reg  (ppc_bitreg 0 bit_gt)  (intToV 0) ; 
-		    Write_reg  (ppc_bitreg 0 bit_eq)  succ ]|>,
-	ist'''')
-  | Pstwcx rS rA rB -> 
-      let (vS,ist') = fresh_var () ist in
-      let (aA,ist'') = fresh_var () ist' in
-      let (aB,ist''') = fresh_var () ist'' in
-      let (a,ist'''') = fresh_var () ist''' in
-      let (succ,ist''''') = fresh_var () ist'''' in
-      (<|empty_sem with
-       remaining = [Read_reg rA aA ;
-		    Read_reg rB aB ;
-		    Binop  a    Add aA aB ;
-		    Read_reg rS vS ;
-		    Write_mem_conditional a vS succ;
-		    Write_reg  (ppc_bitreg 0 bit_lt)  (intToV 0) ; 
-		    Write_reg  (ppc_bitreg 0 bit_gt)  (intToV 0) ; 
-		    Write_reg  (ppc_bitreg 0 bit_eq)  succ ]|>,
-	ist''''')
+      | _ -> let (vS,ist') = fresh_var () ist in
+             let (aA,ist'') = fresh_var () ist' in
+             let (aB,ist''') = fresh_var () ist'' in
+             let (a,ist'''') = fresh_var () ist''' in
+             (<|empty_sem with
+                     remaining = [Read_reg rA aA ;
+		                  Read_reg rB aB ;
+		                  Binop  a    Add aA aB ;
+		                  Read_reg rS vS ;
+		                  Write_mem a vS ]|>,
+             ist'''')
+    end
 
+  | Pstdx rS rA rB  ->
+    match rA with
+      | (PPC_reg(Ireg GPR0)) -> 
+        let (vS,ist') = fresh_var () ist in
+        let (aB,ist'') = fresh_var () ist' in
+        let (a,ist''') = fresh_var () ist'' in
+        (<|empty_sem with
+            remaining = [Read_reg rB aB ;
+		         Binop  a    Add aB (  intToV 0) ; (* Can be optimized *)
+		    Read_reg rS vS ;
+		         Write_mem a vS ]|>,
+	ist''')
+      | _ ->
+        let (vS,ist') = fresh_var () ist in
+        let (aA,ist'') = fresh_var () ist' in
+        let (aB,ist''') = fresh_var () ist'' in
+        let (a,ist'''') = fresh_var () ist''' in
+        (<|empty_sem with
+            remaining = [Read_reg rA aA ;
+		         Read_reg rB aB ;
+		         Binop  a    Add aA aB ;
+		         Read_reg rS vS ;
+		         Write_mem a vS ]|>,
+        ist'''')
+    end
+
+  | Plwarx rD rA rB  ->
+    match rA with
+      | (PPC_reg(Ireg GPR0)) -> 
+        let (aB,ist') = fresh_var () ist in
+        let (a,ist'') = fresh_var () ist' in
+        let (v,ist''') = fresh_var () ist'' in
+        (<|empty_sem with
+            remaining = [Read_reg rB aB ;
+		         Binop  a    Add aB (  intToV 0) ; (* Can be optimized *)
+		         Read_mem_reserve a v ;
+		         Write_reg  rD v ]|>,
+	ist''')
+      | _ ->
+        let (aA,ist') = fresh_var () ist in
+        let (aB,ist'') = fresh_var () ist' in
+        let (a,ist''') = fresh_var () ist'' in
+        let (v,ist'''') = fresh_var () ist''' in
+        (<|empty_sem with
+            remaining = [Read_reg rA aA ;
+		         Read_reg rB aB ;
+		         Binop  a    Add aA aB ;
+		         Read_mem_reserve a v ;
+		         Write_reg  rD v ]|>,
+	ist'''')
+    end
+  | Pstwcx rS rA rB -> 
+      match rA with
+        | (PPC_reg(Ireg GPR0)) ->      let (vS,ist') = fresh_var () ist in
+                                       let (aB,ist'') = fresh_var () ist' in
+                                       let (a,ist''') = fresh_var () ist'' in
+                                       let (succ,ist'''') = fresh_var () ist''' in
+                                       (<|empty_sem with
+                                           remaining = [Read_reg rB aB ;
+		                                        Binop  a    Add aB (  intToV 0) ; (* Can be optimized *)
+		                                        Read_reg rS vS ;
+		                                        Write_mem_conditional a vS succ;
+		                                        Write_reg  (ppc_bitreg 0 bit_lt)  (intToV 0) ; 
+		                                        Write_reg  (ppc_bitreg 0 bit_gt)  (intToV 0) ; 
+		                                        Write_reg  (ppc_bitreg 0 bit_eq)  succ ]|>,
+	                               ist'''')
+        | _ ->       let (vS,ist') = fresh_var () ist in
+                     let (aA,ist'') = fresh_var () ist' in
+                     let (aB,ist''') = fresh_var () ist'' in
+                     let (a,ist'''') = fresh_var () ist''' in
+                     let (succ,ist''''') = fresh_var () ist'''' in
+                     (<|empty_sem with
+                         remaining = [Read_reg rA aA ;
+		                        Read_reg rB aB ;
+		                        Binop  a    Add aA aB ;
+		                        Read_reg rS vS ;
+		                        Write_mem_conditional a vS succ;
+		                        Write_reg  (ppc_bitreg 0 bit_lt)  (intToV 0) ; 
+		                        Write_reg  (ppc_bitreg 0 bit_gt)  (intToV 0) ; 
+		                        Write_reg  (ppc_bitreg 0 bit_eq)  succ ]|>,
+	             ist''''')
+       end
+        
   | Psync -> (<|empty_sem with remaining = [Barrier Sync]|>,ist)
   | Pisync -> (<|empty_sem with remaining = [Isync]|>,ist)
   | Plwsync -> (<|empty_sem with remaining = [Barrier LwSync]|>,ist)
   | Peieio -> (<|empty_sem with remaining = [Barrier Eieio]|>,ist)
   | Pdcbf _ _ -> (empty_sem,ist)
 
-  | Pnor  set rD rA rB  ->
-      op3regs    Nor set rD rA rB ist
-  | Pneg  set rD rA ->
-      op2regs    Neg set rD rA ist
-  | Pslw  set rD rA rB  ->
-      op3regs    Lsl set rD rA rB ist
-  | Psrawi set rD rA simm  ->
-      op2regi    Asr set rD rA (  intToV simm) ist
-  | Psraw set rD rA rB  ->
-      op3regs    Asr set rD rA rB ist
+  | Pnor  set' rD rA rB  ->
+      op3regs    Nor set' rD rA rB ist
+  | Pneg  set' rD rA ->
+      op2regs    Neg set' rD rA ist
+  | Pslw  set' rD rA rB  ->
+      op3regs    Lsl set' rD rA rB ist
+  | Psrawi set' rD rA simm  ->
+      op2regi    Asr set' rD rA (  intToV simm) ist
+  | Psraw set' rD rA rB  ->
+      op3regs    Asr set' rD rA rB ist
   | Pbl lbl -> (<|empty_sem with remaining = [(* todo: write link register = next instruction *) Jump (Symbolic lbl)]|>,ist)
   | Pblr -> (empty_sem, ist)
   | Pmtlr reg -> (empty_sem, ist)
@@ -1080,11 +1102,11 @@ let ppc_sem_of_instruction i ist =
 
 let arm_bitreg_eq = ARM_reg (Z)            (* hack: use Z register for EQ bit *)
 
-let arm_op3regs op set rD rA rB ist = 
+let arm_op3regs op set' rD rA rB ist = 
   let (vA,ist') = fresh_var () ist in
   let (vB,ist'') = fresh_var () ist' in
   let (v,ist''') = fresh_var () ist'' in
-  match set with
+  match set' with
   | DontSetFlags ->
       (<|empty_sem with
        remaining = [Read_reg rA vA ;
@@ -1110,10 +1132,10 @@ let arm_op3regs op set rD rA rB ist =
 	ist'''')
   end
 
-let arm_op2regi op set rD rA vimm ist = 
+let arm_op2regi op set' rD rA vimm ist = 
   let (vA,ist') = fresh_var () ist in
   let (v,ist'') = fresh_var () ist' in
-  match set with
+  match set' with
   | DontSetFlags ->
       (<|empty_sem with
        remaining = [Read_reg rA vA ;
@@ -1141,12 +1163,12 @@ let arm_op2regi op set rD rA vimm ist =
 let arm_sem_of_instruction m i ist =
   let ism = m.thread_ism in
   match i with
-  | I_ADD3  set rD rA rB  ->
-      arm_op3regs    Add set rD rA rB ist
-  | I_SUB3  set rD rA rB  ->
-      arm_op3regs    Sub set rD rB rA ist (* subtract from -> swap args *)
-  | I_XOR  set rD rA rB  ->
-      arm_op3regs    Xor set rD rA rB ist
+  | I_ADD3  set' rD rA rB  ->
+      arm_op3regs    Add set' rD rA rB ist
+  | I_SUB3  set' rD rA rB  ->
+      arm_op3regs    Sub set' rD rB rA ist (* subtract from -> swap args *)
+  | I_XOR  set' rD rA rB  ->
+      arm_op3regs    Xor set' rD rA rB ist
   | I_MOV  rD rS c ->                                (* TODO: CONDITION *)
       let (v,ist') = fresh_var () ist in
       (<|empty_sem with 
@@ -1158,12 +1180,12 @@ let arm_sem_of_instruction m i ist =
        remaining = [Write_reg rD (  intToV v) ]|>,
 	ist)
 
-  | I_ADD set rD rA simm  ->
-      arm_op2regi    Add set rD rA (  intToV simm) ist
-  | I_SUB set rD rA simm  ->
-      arm_op2regi    Sub set rD rA (  intToV simm) ist
-  | I_AND set rD rA simm  ->
-      arm_op2regi    And set rD rA (  intToV simm) ist
+  | I_ADD set' rD rA simm  ->
+      arm_op2regi    Add set' rD rA (  intToV simm) ist
+  | I_SUB set' rD rA simm  ->
+      arm_op2regi    Sub set' rD rA (  intToV simm) ist
+  | I_AND set' rD rA simm  ->
+      arm_op2regi    And set' rD rA (  intToV simm) ist
 	
   | I_B lbl -> (<|empty_sem with remaining = [Jump (Symbolic lbl)]|>,ist)
 

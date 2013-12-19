@@ -30,12 +30,12 @@ artificial dependencies, and the evaluation of operations on concrete
 values, but no other equations involving symbolic values. :*)
 
 
-open import BitwiseCompatibility
 open import MachineDefUtils
 open import MachineDefFreshIds
+open import BitwiseCompatibility
 
 type cst = 
-  | Concrete of nat
+  | Concrete of word
   | Symbolic of string
 
 let compare_cst c1 c2 =
@@ -104,15 +104,19 @@ let binop op_op op v1 v2 = match (v1,v2) with
 end
 
 let add v1 v2 = match (v1,v2) with
-| (Rigid (Concrete 0),v) -> v
-| (v,Rigid (Concrete 0)) -> v (* Important for symbolic constants *)
+| (Rigid (Concrete n),v) -> if n = 0 
+                            then v 
+                            else binop Add (+) (Rigid (Concrete n)) v
+| (v,Rigid (Concrete n)) -> if n = 0 
+                            then v 
+                            else binop Add (+) v (Rigid (Concrete n)) (* Important for symbolic constants *)
 | (_,_) -> binop Add (+) v1 v2
 end
 
 let xor v1 v2 = 
   if compare_value v1 v2 = EQ then zero else binop Xor (lxor) v1 v2
 
-let bool_to_int f v1 v2 : nat = match f v1 v2 with
+let bool_to_int f v1 v2 : word = match f v1 v2 with
   | false -> 0
   | true -> 1
 end
@@ -123,8 +127,8 @@ let eq v1 v2 = match (v1,v2) with
     if compare_string s1 s2 = EQ then one else zero
 | (Rigid (Concrete i1),Rigid (Concrete i2)) ->
     if compare_num i1 i2 = EQ then one else zero
-| (Rigid (Symbolic _), Rigid (Concrete 0)) -> zero
-| (Rigid (Concrete 0), Rigid (Symbolic _)) -> zero
+| (Rigid (Symbolic _), Rigid (Concrete _)) -> zero
+| (Rigid (Concrete _), Rigid (Symbolic _)) -> zero
 | (_,_) -> zero
 end
 
@@ -142,7 +146,7 @@ end
 
 let op1 op = match op with
 | Not ->
-    unop (fun i -> match i with 0 -> 1 | _ -> 0 end)
+    unop (fun i -> if i = 0 then 1 else 0)
 | Neg ->
     unop (fun i -> (0 - i)) (* Official definition in manual: bitwise negate(i) + 1, which is equivalent *)
 end

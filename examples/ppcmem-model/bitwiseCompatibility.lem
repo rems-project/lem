@@ -13,27 +13,34 @@
 
 open import Pervasives_extra
 
+type word = int32
 
-val (land) : nat -> nat -> nat
-declare ocaml target_rep function (land) = infix `land`
+val (land) : word -> word -> word
+declare ocaml    target_rep function (land) = infix `land`
+declare isabelle target_rep function (land) = `bitAND`
 
-val (lor) : nat -> nat -> nat
-declare ocaml target_rep function (lor) = infix `lor`
+val (lor) : word -> word -> word
+declare ocaml    target_rep function (lor) = infix `lor`
+declare isabelle target_rep function (lor) = `bitOR`
 
-val (lxor) : nat -> nat -> nat
-declare ocaml target_rep function (lxor) = infix `lxor`
+val (lxor) : word -> word -> word
+declare ocaml    target_rep function (lxor) = infix `lxor`
+declare isabelle target_rep function (lxor) = `bitXOR`
 
-val lnot : nat -> nat
-declare ocaml target_rep function lnot = `lnot`
+val lnot : word -> word
+declare ocaml    target_rep function lnot = `lnot`
+declare isabelle target_rep function lnot = `bitNOT`
 
-val (lsl) : nat -> nat -> nat
-declare ocaml target_rep function (lsl) = infix `lsl`
+val (lsl) : word -> word -> word
+declare ocaml    target_rep function (lsl) = infix `lsl`
+declare isabelle target_rep function (lsl) u v =  ``u `<<`  (`unat` v)
 
-val (lsr) : nat -> nat -> nat
-declare ocaml target_rep function (lsr) = infix `lsr`
+val (lsr) : word -> word -> word
+declare ocaml    target_rep function (lsr) = infix `lsr`
+declare isabelle target_rep function (lsr) u v = ``u `>>` (`unat` v)
 
-val (asr) : nat -> nat -> nat
-declare ocaml target_rep function (asr) = infix `asr`
-
+val (asr) : word -> word -> word
+declare ocaml    target_rep function (asr) = infix `asr`
+declare isabelle target_rep function (asr) u v = ``u `>>>` (`unat` v)
 
 
