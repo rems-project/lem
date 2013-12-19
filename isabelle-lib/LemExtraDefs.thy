@@ -50,10 +50,10 @@ theory "LemExtraDefs"
 
 imports 
  	 Main
-   "~~/src/HOL/Map"
- 	 "~~/src/HOL/Library/Efficient_Nat"
- 	 "~~/src/HOL/Library/Char_nat"
- 	 "~~/src/HOL/Library/Permutation"
+         "~~/src/HOL/Map"
+         "~~/src/HOL/Library/Code_Target_Numeral"
+         "~~/src/HOL/String"
+         "~~/src/HOL/Library/Permutation"
 
 begin 
 
