@@ -10,7 +10,7 @@
 declare {isabelle;ocaml;hol;coq} rename module = lem_num
 
 open import Bool Basic_classes
-open import {isabelle} `Word`
+open import {isabelle} `~~/src/HOL/Word/Word`
 open import {hol} `integerTheory` `intReduce`
 open import {coq} `Coq.ZArith.BinInt` `Coq.ZArith.Zpower` `Coq.ZArith.Zdiv` `Coq.ZArith.Zmax`
 
@@ -156,13 +156,15 @@ declare tex      target_rep type integer = `$\mathbb{Z}$`
 
 (* 32 bit integers *)
 type int32 
-declare ocaml    target_rep type int32 = `int32`
+declare ocaml    target_rep type int32 = `int`     (*Fix this!*)
 declare coq      target_rep type int32 = `Z`       (* ???: better type for this in Coq? *)
+declare isabelle target_rep type int32 = `word` 32
 declare hol      target_rep type int32 = `int`     (* ???: better type for this in HOL? *)
 
 (* 64 bit integers *)
 type int64
 declare ocaml    target_rep type int64 = `int64` 
+declare isabelle target_rep type int64 = `word` 64
 declare coq      target_rep type int64 = `Z` (* ???: better type for this in Coq? *)
 declare hol      target_rep type int64 = `int` (* ???: better type for this in HOL? *)
 
@@ -708,6 +710,186 @@ declare coq      target_rep function intMax = `Zmax`
 instance ( OrdMaxMin int ) 
   let max = intMax
   let min = intMin
+end
+
+(* ----------------------- *)
+(* int32                   *)
+(* ----------------------- *)
+val int32FromNumeral : numeral -> int32
+
+declare ocaml    target_rep function int32FromNumeral = ``
+declare isabelle target_rep function int32FromNumeral = `word_of_int`
+(* declare hol      target_rep function int32FromNumeral n = (``n : int)  (*TODO: Implement *)
+declare coq      target_rep function int32FromNumeral n = (`Zpos` (`P_of_succ_nat` n)) (*TODO: Implement *) *)
+
+instance (Numeral int32)
+  let fromNumeral n = int32FromNumeral n
+end
+
+val int32Eq : int32 -> int32 -> bool
+let inline int32Eq = unsafe_structural_equality
+instance (Eq int32)
+  let (=) = int32Eq
+  let (<>) n1 n2 = not (int32Eq n1 n2)
+end
+
+val int32Less : int32 -> int32 -> bool
+val int32LessEqual : int32 -> int32 -> bool
+val int32Greater : int32 -> int32 -> bool
+val int32GreaterEqual : int32 -> int32 -> bool
+
+declare ocaml    target_rep function int32Less = infix `<`
+declare isabelle target_rep function int32Less = infix `<`
+(* 
+declare hol      target_rep function intLess = infix `<` 
+declare coq      target_rep function intLess = `int_ltb` 
+*)
+
+declare ocaml    target_rep function int32LessEqual = infix `<=`
+declare isabelle target_rep function int32LessEqual = infix `\<le>`
+(* 
+declare hol      target_rep function intLessEqual = infix `<=` 
+declare coq      target_rep function intLessEqual = `int_lteb`
+*)
+
+declare ocaml    target_rep function int32Greater = infix `>`
+declare isabelle target_rep function int32Greater = infix `>`
+(*
+declare hol      target_rep function intGreater = infix `>` 
+declare coq      target_rep function intGreater = `int_gtb`
+*)
+
+declare ocaml    target_rep function int32GreaterEqual = infix `>=`
+declare isabelle target_rep function int32GreaterEqual = infix `\<ge>`
+(* 
+declare hol      target_rep function intGreaterEqual = infix `>=` 
+declare coq      target_rep function intGreaterEqual = `int_gteb`
+*)
+
+val int32Compare : int32 -> int32 -> ordering
+let inline int32Compare = defaultCompare
+let inline {coq; isabelle; hol} int32Compare = genericCompare int32Less int32Eq
+declare ocaml target_rep function int32Compare = `compare`
+
+instance (Ord int32)
+  let compare = int32Compare
+  let (<) = int32Less
+  let (<=) = int32LessEqual
+  let (>) = int32Greater
+  let (>=) = int32GreaterEqual
+end
+
+instance (SetType int32)
+  let setElemCompare = int32Compare
+end
+
+val int32Negate : int32 -> int32
+declare hol      target_rep function int32Negate i = `~` i
+declare ocaml    target_rep function int32Negate i = (`~-` i)
+declare isabelle target_rep function int32Negate i = `-` i
+declare coq      target_rep function int32Negate i = (`Coq.ZArith.BinInt32.Zminus` `Z0` i)
+
+instance (NumNegate int32)
+  let ~ = int32Negate
+end
+
+
+val int32Add : int32 -> int32 -> int32
+declare hol      target_rep function int32Add = infix `+`
+declare ocaml    target_rep function int32Add = infix `+`
+declare isabelle target_rep function int32Add = infix `+`
+declare coq      target_rep function int32Add = `Coq.ZArith.BinInt.Zplus`
+
+instance (NumAdd int32)
+  let (+) = int32Add
+end
+
+val int32Minus : int32 -> int32 -> int32
+declare hol      target_rep function int32Minus = infix `-`
+declare ocaml    target_rep function int32Minus = infix `-`
+declare isabelle target_rep function int32Minus = infix `-`
+declare coq      target_rep function int32Minus = `Coq.ZArith.BinInt.Zminus`
+
+instance (NumMinus int32)
+  let (-) = int32Minus
+end
+
+val int32Succ : int32 -> int32
+let inline int32Succ n = n + 1
+declare ocaml    target_rep function int32Succ = `succ`
+instance (NumSucc int32)
+  let succ = int32Succ
+end
+
+val int32Pred : int32 -> int32
+let inline int32Pred n = n - 1
+declare ocaml    target_rep function int32Pred = `pred`
+instance (NumPred int32)
+  let pred = int32Pred
+end
+
+val int32Mult : int32 -> int32 -> int32
+declare hol      target_rep function int32Mult = infix `*`
+declare ocaml    target_rep function int32Mult = infix `*`
+declare isabelle target_rep function int32Mult = infix `*`
+declare coq      target_rep function int32Mult = `Coq.ZArith.BinInt.Zmult`
+
+instance (NumMult int32)
+  let ( * ) = int32Mult
+end
+
+
+val int32Pow : int32 -> nat -> int32
+declare hol      target_rep function int32Pow = infix `**`
+declare ocaml    target_rep function int32Pow = `Nat_num.int_pow`
+declare isabelle target_rep function int32Pow = infix `^`
+declare coq      target_rep function int32Pow = `Coq.ZArith.Zpower.Zpower_nat`
+
+instance ( NumPow int32 ) 
+  let ( ** ) = int32Pow
+end
+
+val int32Div : int32 -> int32 -> int32
+declare hol      target_rep function int32Div = infix `/`
+declare ocaml    target_rep function int32Div = `Nat_num.int_div`
+declare isabelle target_rep function int32Div = infix `div`
+declare coq      target_rep function int32Div = `Coq.ZArith.Zdiv.Zdiv`
+
+instance ( NumIntegerDivision int32 ) 
+  let (div) = int32Div
+end
+
+instance ( NumDivision int32 ) 
+  let (/) = int32Div
+end
+
+val int32Mod : int32 -> int32 -> int32
+declare hol      target_rep function int32Mod = infix `%`
+declare ocaml    target_rep function int32Mod = `Nat_num.int_mod`
+declare isabelle target_rep function int32Mod = infix `mod`
+declare coq      target_rep function int32Mod = `Coq.ZArith.Zdiv.Zmod`
+
+instance ( NumRemainder int32 ) 
+  let (mod) = int32Mod
+end
+
+val int32Min : int32 -> int32 -> int32
+let inline int32Min = defaultMin
+declare isabelle target_rep function int32Min = `min`
+declare ocaml    target_rep function int32Min = `min`
+declare hol      target_rep function int32Min = `int_min`
+declare coq      target_rep function int32Min = `Zmin`
+
+val int32Max : int32 -> int32 -> int32
+let inline int32Max = defaultMax
+declare isabelle target_rep function int32Max = `max`
+declare ocaml    target_rep function int32Max = `max`
+declare hol      target_rep function int32Max = `int_max`
+declare coq      target_rep function int32Max = `Zmax`
+
+instance ( OrdMaxMin int32 ) 
+  let max = int32Max
+  let min = int32Min
 end
 
 
