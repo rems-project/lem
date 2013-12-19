@@ -5,7 +5,7 @@
 open import Basic_classes
 open import {hol} `stringLib`
 
-declare {isabelle;ocaml;hol} rename module = lem_string_extra
+declare {isabelle;ocaml;hol;coq} rename module = lem_string_extra
 
 val stringCompare : string -> string -> ordering
 

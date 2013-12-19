@@ -4,7 +4,7 @@
 
 open import Bool
 
-declare {isabelle;ocaml;hol} rename module = lem_basic_classes 
+declare {isabelle;ocaml;hol;coq} rename module = lem_basic_classes 
 
 (* ========================================================================== *)
 (* Equality                                                                   *)

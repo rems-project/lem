@@ -14,7 +14,7 @@
 (* rename module to clash with existing list modules of targets
    problem: renaming from inside the module itself! *)
 
-declare {isabelle;hol;ocaml} rename module = lem_list_extra
+declare {isabelle;hol;ocaml;coq} rename module = lem_list_extra
 
 open import Bool Maybe Basic_classes Tuple Num List
 

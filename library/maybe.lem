@@ -4,7 +4,7 @@
 (* It mainly follows the Haskell Maybe-library                                *)
 (******************************************************************************)
 
-declare {hol;isabelle;ocaml} rename module = lem_maybe 
+declare {hol;isabelle;ocaml;coq} rename module = lem_maybe 
 
 open import Bool Basic_classes Function
 

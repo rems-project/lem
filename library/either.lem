@@ -6,7 +6,7 @@
 (* Header                                                                     *)
 (* ========================================================================== *)
 
-declare {isabelle; hol} rename module = Lem_either 
+declare {isabelle;hol;coq} rename module = lem_either 
 declare {ocaml} rename module = Lem_either 
 
 open import Bool Basic_classes List Tuple

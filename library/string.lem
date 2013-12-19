@@ -1,0 +1,6 @@
+declar {ocaml;isabelle;hol;coq} rename module = lem_string
+
+type string
+
+val toCharList : string -> list char
+val toString : list char -> string

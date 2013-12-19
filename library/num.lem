@@ -7,9 +7,10 @@
 (* rename module to clash with existing list modules of targets
    problem: renaming from inside the module itself! *)
 
-declare {isabelle;ocaml;hol} rename module = lem_num
+declare {isabelle;ocaml;hol;coq} rename module = lem_num
 
-open import Bool Basic_classes 
+open import Bool Basic_classes
+open import {isabelle} `Word`
 open import {hol} `integerTheory` `intReduce`
 open import {coq} `Coq.ZArith.BinInt` `Coq.ZArith.Zpower` `Coq.ZArith.Zdiv` `Coq.ZArith.Zmax`
 
@@ -157,14 +158,12 @@ declare tex      target_rep type integer = `$\mathbb{Z}$`
 type int32 
 declare ocaml    target_rep type int32 = `int32`
 declare coq      target_rep type int32 = `Z`       (* ???: better type for this in Coq? *)
-declare isabelle target_rep type int32 = `int`     (* ???: better type for this in Isa? *)
 declare hol      target_rep type int32 = `int`     (* ???: better type for this in HOL? *)
 
 (* 64 bit integers *)
 type int64
 declare ocaml    target_rep type int64 = `int64` 
 declare coq      target_rep type int64 = `Z` (* ???: better type for this in Coq? *)
-declare isabelle target_rep type int64 = `int` (* ???: better type for this in Isa? *)
 declare hol      target_rep type int64 = `int` (* ???: better type for this in HOL? *)
 
 

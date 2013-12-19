@@ -14,6 +14,9 @@ machineDefSystem.lem \
 machineDefAxiomaticCore.lem
 
 
+isa: $(MACHINEFILES)
+	$(TOOLDIR)/lem -isa -lib $(TOOLDIR)/library bitwiseCompatibility.lem $(MACHINEFILES)
+
 all: $(MACHINEFILES)
 	$(TOOLDIR)/lem -ocaml -tex -lib $(TOOLDIR)/library bitwiseCompatibility.lem $(MACHINEFILES)
 	mkdir -p generated

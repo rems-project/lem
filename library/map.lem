@@ -6,7 +6,7 @@
 (* Header                                                                     *)
 (* ========================================================================== *)
 
-declare {isabelle;ocaml;hol} rename module = lem_map
+declare {isabelle;ocaml;hol;coq} rename module = lem_map
 
 open import Bool Basic_classes Function Maybe List Tuple Set Num
 open import {hol} `finite_mapTheory` `finite_mapLib`

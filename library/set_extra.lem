@@ -10,7 +10,7 @@
 
 open import Bool Basic_classes Maybe Function Num List Sorting Set
 
-declare {hol;isabelle;ocaml} rename module = lem_set_extra
+declare {hol;isabelle;ocaml;coq} rename module = lem_set_extra
 
 
 (* ----------------------------*)

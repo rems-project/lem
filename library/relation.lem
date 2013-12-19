@@ -6,7 +6,7 @@
 (* Header                                                                     *)
 (* ========================================================================== *)
 
-declare {isabelle;ocaml;hol} rename module = lem_relation
+declare {isabelle;ocaml;hol;coq} rename module = lem_relation
 
 open import Bool Basic_classes Tuple Set Num
 open import {hol} `set_relationTheory`

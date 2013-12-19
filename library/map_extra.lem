@@ -6,7 +6,7 @@
 (* Header                                                                     *)
 (* ========================================================================== *)
 
-declare {isabelle;hol;ocaml} rename module = lem_map_extra
+declare {isabelle;hol;ocaml;coq} rename module = lem_map_extra
 
 open import Bool Basic_classes Function Maybe List Num Set Map
 

@@ -11,7 +11,7 @@
 (* ========================================================================== *)
 
 
-declare {isabelle;ocaml;hol} rename module = Lem_list 
+declare {isabelle;ocaml;hol;coq} rename module = lem_list 
 
 open import Bool Maybe Basic_classes Tuple Num
 
@@ -345,7 +345,6 @@ let concat = foldr append []
 declare hol      target_rep function concat = `FLAT`
 declare ocaml    target_rep function concat = `List.concat`
 declare isabelle target_rep function concat = `List.concat`
-declare coq      target_rep function concat = `List.flat_map` (fun x -> x)
 
 assert concat_nil: (concat ([]:list (list nat)) = [])
 assert concat_1: (concat [[(1:nat)]] = [1])
