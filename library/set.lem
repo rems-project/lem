@@ -33,7 +33,7 @@ declare {isabelle;hol;ocaml;coq} rename module = lem_set
 (* DPM: sets currently implemented as lists due to mismatch between Coq type
  * class hierarchy and the hierarchy implemented in Lem.
  *)
-open import {coq} `Coq.Lists.TheoryList`
+open import {coq} `Coq.Lists.List`
 open import {hol} `lemTheory`
 open import {isabelle} `$LIB_DIR/Lem`
 

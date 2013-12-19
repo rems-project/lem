@@ -17,7 +17,7 @@
 open import Bool Basic_classes Maybe Function Num 
 declare {isabelle;hol;ocaml;coq} rename module = lem_set_helpers 
 
-open import {coq} `Coq.Lists.TheoryList`
+open import {coq} `Coq.Lists.List`
 
 (* ------------------------ *)
 (* fold                     *)
