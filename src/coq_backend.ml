@@ -1502,7 +1502,7 @@ let generate_coq_record_update_notation e =
     				let name = Name.to_output (Type_ctor (false, false)) n in
             let tyvars' = type_def_type_variables tyvars in
     				let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
-            let body = abbreviation_typ t in
+            let body = pat_typ t in
             let equality = generate_coq_abbreviation_equality tyvars name t in
               Output.flat [
     						from_string "Definition"; name; tyvar_sep; tyvars';
@@ -1510,27 +1510,6 @@ let generate_coq_record_update_notation e =
                 (*equality*)
     					]
     		| _ -> from_string "(* Internal Lem error, please report. *)"
-    and abbreviation_typ t =
-      match t.term with
-        | Typ_wild skips -> ws skips ^ from_string "_"
-        | Typ_var (skips, v) -> id Type_var @@ Ulib.Text.(^^^) (r"") (Tyvar.to_rope v)
-        | Typ_fn (t1, skips, t2) -> abbreviation_typ t1 ^ ws skips ^ kwd "->" ^ abbreviation_typ t2
-        | Typ_tup ts ->
-            let body = flat @@ Seplist.to_sep_list abbreviation_typ (sep @@ from_string "*") ts in
-              from_string "(" ^ body ^ from_string ") % type"
-        | Typ_app (p, ts) ->
-          let args = concat_str " " @@ List.map abbreviation_typ ts in
-          let (name_list, name) = Ident.to_name_list (B.type_id_to_ident p) in
-          let arg_sep = if List.length ts > 1 then from_string " " else emp in
-            Output.flat [
-              kwd @@ Ulib.Text.to_string (Name.to_rope name); arg_sep; args
-            ]
-        | Typ_paren(skips, t, skips') ->
-            Output.flat [
-              ws skips; from_string "("; abbreviation_typ t; from_string ")"; ws skips'
-            ]
-        | Typ_len nexp -> src_nexp nexp
-        | _ -> assert false
     and type_def_record def =
     	match Seplist.hd def with
       	| (n, tyvars, _, (Te_record (skips, skips', fields, skips'') as r),_) ->
@@ -1612,7 +1591,7 @@ let generate_coq_record_update_notation e =
     and constructor ind_name (ty_vars : variable list) ((name0, _), c_ref, skips, args) =
       let ctor_name = B.const_ref_to_name name0 false c_ref in
       let ctor_name = Name.to_output (Type_ctor (false, false)) ctor_name in
-      let body = flat @@ Seplist.to_sep_list abbreviation_typ (sep @@ from_string "-> ") args in
+      let body = flat @@ Seplist.to_sep_list (* abbreviation_typ *) pat_typ (sep @@ from_string "-> ") args in
       let ty_vars_typeset =
         concat_str " " @@ List.map (fun v ->
           match v with
@@ -1639,7 +1618,10 @@ let generate_coq_record_update_notation e =
     and pat_typ t =
       match t.term with
         | Typ_wild skips -> ws skips ^ from_string "_"
-        | Typ_var (skips, v) -> ws skips ^ (id Type_var @@ Ulib.Text.(^^^) (r"") (Tyvar.to_rope v))
+        | Typ_var (skips, v) ->
+            Output.flat [
+              ws skips; id Type_var @@ Ulib.Text.(^^^) (r"") (Tyvar.to_rope v)
+            ]
         | Typ_fn (t1, skips, t2) ->
             if skips = Typed_ast.no_lskips then
               pat_typ t1 ^ from_string " -> " ^ ws skips ^ pat_typ t2
