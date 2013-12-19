@@ -1,6 +1,16 @@
-declar {ocaml;isabelle;hol;coq} rename module = lem_string
+declare {ocaml;isabelle;hol;coq} rename module = lem_string
+
+open import Bool Basic_classes
 
 type string
 
 val toCharList : string -> list char
 val toString : list char -> string
+val stringEqual : string -> string -> bool
+val stringInequal : string -> string -> bool
+let stringInequal x y = not (stringEqual x y)
+
+instance (Eq string)
+  let (=) = stringEqual
+  let (<>) = stringInequal
+end
