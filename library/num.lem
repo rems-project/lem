@@ -154,6 +154,8 @@ declare tex      target_rep type integer = `$\mathbb{Z}$`
 (* bint                    *)
 (* ----------------------- *)
 
+(* TODO the bounded ints are only partially implemented, use with care. *)
+
 (* 32 bit integers *)
 type int32 
 declare ocaml    target_rep type int32 = `int`     (*Fix this!*)
@@ -784,10 +786,8 @@ instance (SetType int32)
 end
 
 val int32Negate : int32 -> int32
-declare hol      target_rep function int32Negate i = `~` i
 declare ocaml    target_rep function int32Negate i = (`~-` i)
 declare isabelle target_rep function int32Negate i = `-` i
-declare coq      target_rep function int32Negate i = (`Coq.ZArith.BinInt32.Zminus` `Z0` i)
 
 instance (NumNegate int32)
   let ~ = int32Negate
@@ -795,20 +795,16 @@ end
 
 
 val int32Add : int32 -> int32 -> int32
-declare hol      target_rep function int32Add = infix `+`
 declare ocaml    target_rep function int32Add = infix `+`
 declare isabelle target_rep function int32Add = infix `+`
-declare coq      target_rep function int32Add = `Coq.ZArith.BinInt.Zplus`
 
 instance (NumAdd int32)
   let (+) = int32Add
 end
 
 val int32Minus : int32 -> int32 -> int32
-declare hol      target_rep function int32Minus = infix `-`
 declare ocaml    target_rep function int32Minus = infix `-`
 declare isabelle target_rep function int32Minus = infix `-`
-declare coq      target_rep function int32Minus = `Coq.ZArith.BinInt.Zminus`
 
 instance (NumMinus int32)
   let (-) = int32Minus
@@ -817,6 +813,7 @@ end
 val int32Succ : int32 -> int32
 let inline int32Succ n = n + 1
 declare ocaml    target_rep function int32Succ = `succ`
+
 instance (NumSucc int32)
   let succ = int32Succ
 end
@@ -829,10 +826,8 @@ instance (NumPred int32)
 end
 
 val int32Mult : int32 -> int32 -> int32
-declare hol      target_rep function int32Mult = infix `*`
 declare ocaml    target_rep function int32Mult = infix `*`
 declare isabelle target_rep function int32Mult = infix `*`
-declare coq      target_rep function int32Mult = `Coq.ZArith.BinInt.Zmult`
 
 instance (NumMult int32)
   let ( * ) = int32Mult
@@ -840,20 +835,16 @@ end
 
 
 val int32Pow : int32 -> nat -> int32
-declare hol      target_rep function int32Pow = infix `**`
 declare ocaml    target_rep function int32Pow = `Nat_num.int_pow`
 declare isabelle target_rep function int32Pow = infix `^`
-declare coq      target_rep function int32Pow = `Coq.ZArith.Zpower.Zpower_nat`
 
 instance ( NumPow int32 ) 
   let ( ** ) = int32Pow
 end
 
 val int32Div : int32 -> int32 -> int32
-declare hol      target_rep function int32Div = infix `/`
 declare ocaml    target_rep function int32Div = `Nat_num.int_div`
 declare isabelle target_rep function int32Div = infix `div`
-declare coq      target_rep function int32Div = `Coq.ZArith.Zdiv.Zdiv`
 
 instance ( NumIntegerDivision int32 ) 
   let (div) = int32Div
@@ -864,10 +855,8 @@ instance ( NumDivision int32 )
 end
 
 val int32Mod : int32 -> int32 -> int32
-declare hol      target_rep function int32Mod = infix `%`
 declare ocaml    target_rep function int32Mod = `Nat_num.int_mod`
 declare isabelle target_rep function int32Mod = infix `mod`
-declare coq      target_rep function int32Mod = `Coq.ZArith.Zdiv.Zmod`
 
 instance ( NumRemainder int32 ) 
   let (mod) = int32Mod
@@ -877,15 +866,11 @@ val int32Min : int32 -> int32 -> int32
 let inline int32Min = defaultMin
 declare isabelle target_rep function int32Min = `min`
 declare ocaml    target_rep function int32Min = `min`
-declare hol      target_rep function int32Min = `int_min`
-declare coq      target_rep function int32Min = `Zmin`
 
 val int32Max : int32 -> int32 -> int32
 let inline int32Max = defaultMax
 declare isabelle target_rep function int32Max = `max`
 declare ocaml    target_rep function int32Max = `max`
-declare hol      target_rep function int32Max = `int_max`
-declare coq      target_rep function int32Max = `Zmax`
 
 instance ( OrdMaxMin int32 ) 
   let max = int32Max
