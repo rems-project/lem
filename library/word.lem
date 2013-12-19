@@ -1,0 +1,40 @@
+(******************************************************************************)
+(* A generic library for machine words.                                       *)
+(******************************************************************************)
+
+declare {isabelle;coq;hol;ocaml} rename module = lem_word
+
+open import Maybe Num
+
+class ( Word 'a )
+  val lnot : 'a -> 'a
+  val (land) [`conjunction`]  : 'a -> 'a -> 'a
+  val (lor)  [`inclusive_or`] : 'a -> 'a -> 'a
+  val (lxor) [`exclusive_or`] : 'a -> 'a -> 'a
+  val (lsl)  [`left_shift`] : nat -> 'a -> 'a
+  val (lsr)  [`right_shift`] : nat -> 'a -> 'a
+  val fromBoolList : list bool -> maybe 'a
+  val toBoolList   : 'a -> list bool
+end
+
+(* int32 *)
+
+val int32Lnot : int32 -> int32
+val int32Lor  : int32 -> int32 -> int32
+val int32Lxor : int32 -> int32 -> int32
+val int32Land : int32 -> int32 -> int32
+val int32Lsl  : nat -> int32 -> int32
+val int32Lsr  : nat -> int32 -> int32
+val int32fromBoolList : list bool -> maybe int32
+val int32ToBoolList : int32 -> list bool
+
+instance (Word int32)
+  let lnot = int32Lnot
+  let (land) = int32Land
+  let (lor) = int32Lor
+  let (lxor) = int32Lxor
+  let (lsl) = int32Lsl
+  let (lsr) = int32Lsr
+  let fromBoolList = int32fromBoolList
+  let toBoolList = int32ToBoolList
+end
