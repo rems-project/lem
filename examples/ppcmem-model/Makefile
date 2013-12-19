@@ -13,16 +13,18 @@ machineDefThreadSubsystem.lem \
 machineDefSystem.lem \
 machineDefAxiomaticCore.lem
 
-all: $(MACHINEFILES)
+all: $(MACHINEFILES) generated
 	$(TOOLDIR)/lem -ocaml -tex -lib $(TOOLDIR)/library bitwiseCompatibility.lem $(MACHINEFILES)
-	mkdir -p generated
 	mv *.ml generated/
 	mv *.tex generated/
 
-isabelle: $(MACHINEFILES)
+isabelle: $(MACHINEFILES) generated
 	$(TOOLDIR)/lem -isa -lib $(TOOLDIR)/library bitwiseCompatibility.lem $(MACHINEFILES)
 	make patch # apply patches
 	mv *.thy generated/
+
+generated:
+	mkdir -p generated
 
 patch:
 # Isabelle/HOL gets stuck on ppc_sem_of_instruction otherwise
