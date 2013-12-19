@@ -194,7 +194,6 @@ declare termination_argument append = automatic
 declare hol      target_rep function append = infix `++`
 declare ocaml    target_rep function append = `List.append`
 declare isabelle target_rep function append = infix `@`
-declare coq      target_rep function append = `app`
 declare tex      target_rep function append = infix `$+\!+$`
 
 assert append_1: ([0;1;2;3] ++ [4;5] = [(0:nat);1;2;3;4;5])
