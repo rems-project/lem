@@ -1498,7 +1498,8 @@ let generate_coq_record_update_notation e =
         | _ -> from_string "(* XXX: todo *)"
     and type_def_abbreviation def =
     	match Seplist.hd def with
-    		| ((n, _), tyvars, _, Te_abbrev (skips, t),_) ->
+    		| ((n, _), tyvars, path, Te_abbrev (skips, t),_) ->
+            let n = B.type_path_to_name n path in
     				let name = Name.to_output (Type_ctor (false, false)) n in
             let tyvars' = type_def_type_variables tyvars in
     				let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
@@ -1783,7 +1784,8 @@ let generate_coq_record_update_notation e =
                     Output.flat [
                       o; sep; mapped
                     ])
-      and generate_default_value ((name, _), tnvar_list, _, t, name_sect_opt) : Output.t =
+      and generate_default_value ((name, _), tnvar_list, path, t, name_sect_opt) : Output.t =
+        let name = B.type_path_to_name name path in
         let o = lskips_t_to_output name in
         let tnvar_list_sep =
           if List.length tnvar_list = 0 then
