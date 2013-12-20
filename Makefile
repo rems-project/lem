@@ -184,17 +184,7 @@ apply_header:
 
 #src/version.ml: 
 version:
-	rm -rf src/version.ml
-	echo 'let v="' > src/tmp-version.ml
-	git describe --dirty --always >> src/tmp-version.ml
-	echo '"' >> src/tmp-version.ml
-	tr '\n' ' ' < src/tmp-version.ml > tmp2-version.ml
-	rsync --checksum tmp2-version.ml src/version.ml
-	rm -rf src/tmp-version.ml
-	rm -rf src/tmp2-version.ml
-#	sed -e 's/\\\\n//g' <src/version.ml
-#	echo 'let v="$(LEMVERSION)"' > src/version.ml
-#	chmod a-x src/version.ml
+	printf 'let v="%s"\n' `git describe --dirty --always` > src/version.ml
 
 src/build_directory.ml: 
 	echo let d=\"$$(pwd)\" > src/build_directory.ml
