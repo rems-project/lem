@@ -185,7 +185,7 @@ apply_header:
 #src/version.ml: 
 version:
 	rm -rf src/version.ml
-	echo -n 'let v="' > src/tmp-version.ml
+	echo 'let v="' > src/tmp-version.ml
 	git describe --dirty --always >> src/tmp-version.ml
 	echo '"' >> src/tmp-version.ml
 	tr '\n' ' ' < src/tmp-version.ml > tmp2-version.ml
