@@ -4,7 +4,9 @@ DDIR=lem-$(LEMVERSION)
 PATH := $(CURDIR)/$(FINDLIB)/bin:$(PATH)
 
 #all: il.pdf build-main ilTheory.uo
-all: version build-lem 
+all: build-lem libs
+# we might want run the tests for all backends that are present
+
 build-doc:
 	make -C doc
 do-tests:
@@ -128,7 +130,7 @@ debug: src/ast.ml version src/build_directory.ml
 	ln -sf src/main.d.byte lem
 
 
-build-lem: src/ast.ml version src/build_directory.ml
+build-lem: version src/ast.ml src/build_directory.ml
 	make -C src all
 	ln -sf src/main.native lem
 
@@ -186,8 +188,10 @@ version:
 	echo -n 'let v="' > src/tmp-version.ml
 	git describe --dirty --always >> src/tmp-version.ml
 	echo '"' >> src/tmp-version.ml
-	tr '\n' ' ' < src/tmp-version.ml > src/version.ml
+	tr '\n' ' ' < src/tmp-version.ml > tmp2-version.ml
+	rsync --checksum tmp2-version.ml src/version.ml
 	rm -rf src/tmp-version.ml
+	rm -rf src/tmp2-version.ml
 #	sed -e 's/\\\\n//g' <src/version.ml
 #	echo 'let v="$(LEMVERSION)"' > src/version.ml
 #	chmod a-x src/version.ml

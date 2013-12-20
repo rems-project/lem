@@ -7,30 +7,30 @@ ISA_BUILD_DIR=isa-build-dir---${NOW}
 
 markdown_targets := $(patsubst %.markdown,%.html,$(wildcard *.markdown))
 
-libs : ocaml-libs hol-libs isa-libs coq-libs
+libs : ocaml-libs hol-libs isa-libs coq-libs 
 
 hol-libs:
-	make -C ..
+	make -C .. build-lem
 	../lem -hol -outdir ../hol-lib -wl ign -wl_auto_import err -wl_rename err ${LIBS} -auxiliary_level none -only_changed_output
 
 ocaml-libs:
-	make -C ..
+	make -C .. build-lem
 	../lem -ocaml -outdir ../ocaml-lib -wl ign -wl_auto_import err -wl_rename err ${LIBS} -auxiliary_level none -only_changed_output
 
 isa-libs:
-	make -C ..
+	make -C .. build-lem
 	../lem -isa -outdir ../isabelle-lib -wl ign -wl_auto_import err -wl_rename err ${LIBS} -auxiliary_level none -only_changed_output
 
 coq-libs:
-	make -C ..
+	make -C .. build-lem
 	../lem -coq -outdir ../coq-lib -wl ign -wl_auto_import err ${LIBS} -auxiliary_level none -only_changed_output
 
 tex-libs:
-	make -C ..
+	make -C .. build-lem
 	../lem -tex_all ../tex-lib/lem-libs.tex -wl ign -wl_auto_import err ${LIBS} 
 
 html-libs:
-	make -C ..
+	make -C .. build-lem
 	../lem -html -outdir ../html-lib -wl ign -wl_auto_import err ${LIBS} 
 
 ocaml-lib-tests: 
