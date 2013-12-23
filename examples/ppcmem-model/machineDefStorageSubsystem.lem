@@ -580,7 +580,7 @@ barrier_propagate: forall m s b tid.
        ssmachine_trans m s {} {} (SS_Propagate_barrier_to_thread b tid) (barrier_propagation_action m s b tid)
 and
 (*: \textbf{propagate barrier possibly at an intermediate position, recording it as done w.r.t.~another thread}  :*)
-barrier_propagate: forall m s b tid n.
+barrier_propagate_intermediate: forall m s b tid n.
        (barrier_propagate_before_already_propagated_cand m s b tid n)
        ==>
        ssmachine_trans m s {} {} (SS_Propagate_barrier_before_end_to_thread b tid n) (barrier_propagate_before_already_propagated_action s b tid n)

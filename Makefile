@@ -1,10 +1,12 @@
-LEMVERSION=0.3.1
+LEMVERSION=0.4
 DDIR=lem-$(LEMVERSION)
 
 PATH := $(CURDIR)/$(FINDLIB)/bin:$(PATH)
 
 #all: il.pdf build-main ilTheory.uo
-all: build-lem
+all: build-lem libs
+# we might want run the tests for all backends that are present
+
 build-doc:
 	make -C doc
 do-tests:
@@ -122,13 +124,13 @@ test-texw:
 test-texgw:
 	g tests/test-tex/test-tex-inc-wrapper
 
-debug: src/ast.ml src/version.ml src/build_directory.ml
+debug: src/ast.ml version src/build_directory.ml
 	rm -f library/lib_cache
 	make -C src debug
 	ln -sf src/main.d.byte lem
 
 
-build-lem: src/ast.ml src/version.ml src/build_directory.ml
+build-lem: version src/ast.ml src/build_directory.ml
 	make -C src all
 	ln -sf src/main.native lem
 
@@ -180,15 +182,15 @@ apply_header:
 #install_lem_unwrapped: lem_unwrapped.tex
 #	cp lem_unwrapped.tex ../../ott/examples/ich/generated/lem_unwrapped.tex
 
-src/version.ml: Makefile
-	echo 'let v="$(LEMVERSION)"' > src/version.ml
-	chmod a-x src/version.ml
+#src/version.ml: 
+version:
+	printf 'let v="%s"\n' `git describe --dirty --always` > src/version.ml
 
 src/build_directory.ml: 
 	echo let d=\"$$(pwd)\" > src/build_directory.ml
 
 
-distrib: src/ast.ml src/version.ml headache
+distrib: src/ast.ml version headache
 	rm -rf $(DDIR)
 	rm -rf $(DDIR).tar.gz
 	mkdir $(DDIR)

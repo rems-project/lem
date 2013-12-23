@@ -28,9 +28,11 @@ and write for memory actions.  Unqualifed load/store/read/write do not
 include any reserve/conditional or acquire/release variants *)
 
 
-open import MachineDefUtils
-open import MachineDefFreshIds
-open import MachineDefValue
+open import 
+  BitwiseCompatibility 
+  MachineDefUtils 
+  MachineDefFreshIds 
+  MachineDefValue
 
 (*: \section{The Core/Storage Subsystem Interface} :*) 
 
@@ -164,12 +166,12 @@ type reg =
 
 (*: Instructions :*)
 
-type k = nat
+type k = word
 type lbl = string
 
 (*: PPC Instructions :*)
 
-type idx = nat
+type idx = word
 
 type cond =
   | Eq | Ne

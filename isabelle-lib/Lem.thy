@@ -50,9 +50,9 @@ theory "Lem"
 
 imports 
  	 Main
- 	 LemExtraDefs
-   "~~/src/HOL/Map"
- 	 "~~/src/HOL/Library/Efficient_Nat"
+         LemExtraDefs
+         "~~/src/HOL/Map"
+         "~~/src/HOL/Library/Code_Target_Numeral"
 
 begin 
 
