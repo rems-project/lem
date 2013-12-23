@@ -405,6 +405,7 @@ Definition fmap_range_by
 
 Definition bool_default: bool := false.
 Definition nat_default: nat := 0.
+Definition Z_default: Z := Z0.
 Definition list_default {elt: Type}: list elt := [].
 Definition set_default {elt: Type}: set elt := [].
 Definition fmap_default {key value: Type}: fmap key value := [].
