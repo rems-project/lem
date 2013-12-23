@@ -199,7 +199,7 @@ val rangeBy : forall 'k 'v. ('v -> 'v -> ordering) -> map 'k 'v -> set 'v
 declare ocaml    target_rep function rangeBy = `Pmap.range`
 declare hol      target_rep function range = `FRANGE`
 declare isabelle target_rep function range = `Map.ran`
-declare coq      target_rep function rangeBy = `map_range_by`
+declare coq      target_rep function rangeBy = `fmap_range_by`
 let inline {ocaml;coq} range = rangeBy setElemCompare
 
 assert range_0: (range (empty : map nat bool) = {})

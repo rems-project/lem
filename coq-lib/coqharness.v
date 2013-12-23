@@ -393,6 +393,14 @@ Fixpoint fmap_map
           (key, f value)::fmap_map f xs
     end.
 
+Definition fmap_domain_by
+  {k v: Type} (kord: k -> k -> ordering) (map: fmap k v): set k :=
+    List.map (@fst k v) map.
+
+Definition fmap_range_by
+  {k v: Type} (vord: v -> v -> ordering) (map: fmap k v): set v :=
+    List.map (@snd k v) map.
+
 (* Default values for incomplete pattern matching. *)
 
 Definition bool_default: bool := false.
