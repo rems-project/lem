@@ -25,7 +25,6 @@ bool_of_Prop
 classical_boolean_equivalence
 list_equal_by
 list_member_by
-ordering
 LT
 EQ
 GT
@@ -44,7 +43,6 @@ int_ltb
 int_lteb
 int_gtb
 int_gteb
-set
 set_equal_by
 set_member_by
 set_compare_by
@@ -85,3 +83,4 @@ fmap_default
 string_default
 unit_default
 option_default
+value
