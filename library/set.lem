@@ -6,7 +6,7 @@
 
 (* Sets in Lem are a bit tricky. On the one hand, we want efficiently executable sets.
    OCaml and Haskell both represent sets by some kind of balancing trees. This means
-   that sets are finite and an order on the elemet type is required. 
+   that sets are finite and an order on the element type is required. 
    Such sets are constructed by simple, executable operations like inserting or
    deleting elements, union, intersection, filtering etc.
 
