@@ -2006,7 +2006,12 @@ let indreln_clause (Rule(name, s0, s1, qnames, s2, e_opt, s3, rname, rname_ref, 
   (*Indreln TODO does not print format annotated variables with their types find*)
   (if (T.reln_clause_show_empty_quant || List.length qnames > 0) then (
     T.reln_clause_quant ^
-    flat (interspace (List.map (fun (QName n) -> Name.to_output Term_var n.term) qnames)) ^
+    flat (interspace (List.map (fun n ->
+      match n with
+        | QName n -> Name.to_output Term_var n.term
+        | Name_typ (sk1, n, sk2, src_t, sk3) ->
+          let name = Name.to_output Term_var n.term in
+            ws sk1 ^ name ^ ws sk2 ^ typ false src_t ^ ws sk3) qnames)) ^
     ws s2 ^ 
     kwd "."
   ) else emp) ^
