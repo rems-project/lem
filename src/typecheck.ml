@@ -1919,7 +1919,12 @@ module Make_checker(T : sig
               s0,
               s1,
               List.map 
-                (fun (Ast.Name_t_name xl) -> QName (annot_name (Name.from_x xl) (Ast.xl_to_l xl) quant_env))
+                (fun n ->
+                  match n with
+                    | Ast.Name_t_name xl -> QName (annot_name (Name.from_x xl) (Ast.xl_to_l xl) quant_env)
+                    | Ast.Name_t_nt (sk1, xl, sk2, typ, sk3) ->
+                      let src_t = typ_to_src_t T.allow_backend_quots build_wild C.add_tyvar C.add_nvar T.e typ in
+                        Name_typ (sk1, annot_name (Name.from_x xl) (Ast.xl_to_l xl) quant_env, sk2, src_t, sk3))
                 ns,
               s2,
               Some et,
