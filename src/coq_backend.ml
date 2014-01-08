@@ -1531,14 +1531,8 @@ let generate_coq_record_update_notation e =
     and type_def inside_module defs =
       let body = flat @@ Seplist.to_sep_list type_def' (sep @@ from_string "with") defs in
       let boolean_equality = generate_coq_variant_equality defs in
-      let head =
-        if inside_module then
-          from_string "Parameter"
-        else
-          from_string "Inductive"
-      in
         Output.flat [
-          head; body; from_string ".\n";
+          from_string "Inductive"; body; from_string ".\n";
           boolean_equality
         ]
     and type_def' ((n0, l), ty_vars, t_path, ty, _) =
