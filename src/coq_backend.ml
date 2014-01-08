@@ -1113,7 +1113,7 @@ let generate_coq_record_update_notation e =
               ]
           | Typed (skips, e, skips', t, skips'') ->
               Output.flat [
-                ws skips; from_string "("; exp inside_instance e; from_string " :"; ws skips'; typ t; ws skips''; from_string ")";
+                ws skips; from_string "("; exp inside_instance e; from_string " :"; ws skips'; pat_typ t; ws skips''; from_string ")";
               ]
           | Tup (skips, es, skips') ->
               let tups = flat @@ Seplist.to_sep_list (exp inside_instance) (sep (from_string ", ")) es in
