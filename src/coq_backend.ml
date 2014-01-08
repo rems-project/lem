@@ -1741,7 +1741,8 @@ let generate_coq_record_update_notation e =
         | Te_abbrev (_, src_t) -> default_value src_t
         | Te_record (_, _, seplist, _) ->
             let fields = Seplist.to_list seplist in
-            let mapped = List.map (fun ((name, _), _, _, src_t) ->
+            let mapped = List.map (fun ((name, _), const_descr_ref, _, src_t) ->
+              let name = B.const_ref_to_name name true const_descr_ref in
               let o = lskips_t_to_output name in
               let s = default_value src_t in
                 Output.flat [
