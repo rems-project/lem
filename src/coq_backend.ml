@@ -1513,8 +1513,9 @@ let generate_coq_record_update_notation e =
     		| _ -> from_string "(* Internal Lem error, please report. *)"
     and type_def_record def =
     	match Seplist.hd def with
-      	| (n, tyvars, _, (Te_record (skips, skips', fields, skips'') as r),_) ->
+      	| (n, tyvars, path, (Te_record (skips, skips', fields, skips'') as r),_) ->
             let (n', _) = n in
+            let n' = B.type_path_to_name n' path in
             let name = Name.to_output (Type_ctor (false, false)) n' in
             let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) field (sep @@ from_string ";") fields in
       	    let tyvars' = type_def_type_variables tyvars in
