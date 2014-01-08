@@ -1385,7 +1385,7 @@ let generate_coq_record_update_notation e =
         | P_as (skips, p, skips', (n, l), skips'') ->
           let name = Name.to_output Term_var n in
             Output.flat [
-              ws skips; fun_pattern p; ws skips'; from_string "as"; ws skips''; name
+              ws skips; fun_pattern p; from_string "as"; ws skips'; name; ws skips''
             ]
         | P_typ (skips, p, skips', t, skips'') ->
             Output.flat [
@@ -1729,28 +1729,10 @@ let generate_coq_record_update_notation e =
             ws skips ^ from_string "(" ^ indreln_typ t ^ from_string ")" ^ ws skips'
         | Typ_len nexp -> src_nexp nexp
         | _ -> assert false
-    and field_typ t =
-      match t.term with
-        | Typ_wild skips -> ws skips ^ from_string "_"
-        | Typ_var (skips, v) -> id Type_var @@ Ulib.Text.(^^^) (r"") (Tyvar.to_rope v)
-        | Typ_fn (t1, skips, t2) -> field_typ t1 ^ ws skips ^ from_string "->" ^ field_typ t2
-        | Typ_tup ts ->
-            let body = flat @@ Seplist.to_sep_list typ (sep @@ from_string "*") ts in
-              from_string "(" ^ body ^ from_string ") % type"
-        | Typ_app (p, ts) ->
-          let args = concat_str " " @@ List.map field_typ ts in
-          let args_space = if List.length ts = 1 then from_string " " else emp in
-            Output.flat [
-              typ_ident_to_output p; args_space; args
-            ]
-        | Typ_paren(skips, t, skips') ->
-            ws skips ^ from_string "(" ^ typ t ^ from_string ")" ^ ws skips'
-        | Typ_len nexp -> src_nexp nexp
-        | _ -> assert false
     and field ((n, _), f_ref, skips, t) =
       Output.flat [
           Name.to_output Term_field (B.const_ref_to_name n false f_ref); 
-          from_string ":"; ws skips; field_typ t
+          from_string ":"; ws skips; pat_typ t
       ]
     and generate_default_value_texp (t: texp) =
       match t with
