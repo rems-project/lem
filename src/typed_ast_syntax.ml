@@ -789,16 +789,16 @@ let strip_app_infix_exp (e : exp) : exp * exp list * bool =
 (* checking properties and extracting specific informations                   *)
 (* -------------------------------------------------------------------------- *)
 
-let val_def_get_name d : Name.t option = match d with
+let val_def_get_name d : Name.lskips_t option = match d with
   | (Fun_def (_, _, _, clauses)) -> 
     begin
       match Seplist.to_list clauses with
          | [] -> None
-         | (n, _, _, _, _, _)::_ -> Some (Name.strip_lskip n.term)
+         | (n, _, _, _, _, _)::_ -> Some n.term
     end
   | (Let_def (_, _, (p,_,_,_,_))) -> 
       (match p.term with
-         | P_var ns -> Some (Name.strip_lskip ns)
+         | P_var ns -> Some ns
          | _ -> None)
   | _ -> None
 

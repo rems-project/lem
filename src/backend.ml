@@ -2916,7 +2916,9 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
         kwd "where \n\"" ^ pat false p ^ ws sk ^ kwd "= (" ^ exp false e ^ kwd ")\"" ^ T.def_end ^
         (match val_def_get_name def with None -> emp | Some n ->
           (if is_simple then emp else 
-                          (kwd (String.concat "" ["\ndeclare "; Name.to_string n; ".simps [simp del]"]))))
+            let (name, const_descr_ref) = List.find (fun (x, y) -> x = (Name.strip_lskip n)) name_map in
+            let name = B.const_ref_to_name n false const_descr_ref in
+                          (kwd (String.concat "" ["\ndeclare "; Name.to_string (Name.strip_lskip name); ".simps [simp del]"]))))
       else emp
   
   | Val_def ((Fun_def (s1, rec_flag, targets, clauses) as def)) ->
@@ -2932,9 +2934,17 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
         flat (Seplist.to_sep_list (isa_funcl_default (kwd "= ")) (sep T.def_sep) clauses) ^
         (if (is_rec && not try_term) then (kwd "\nby pat_completeness auto") else emp) ^
         (match val_def_get_name def with None -> emp | Some n ->
-          (if (is_rec && not try_term) || is_simple then emp else 
-                (kwd (String.concat "" ["\ndeclare "; Name.to_string n; ".simps [simp del]"])))) ^
-        new_line
+          let name =
+            try
+              let (name, const_descr_ref, _, _, _, _) = Seplist.hd clauses in
+              let name = name.term in
+              let name = B.const_ref_to_name name false const_descr_ref in
+                Name.to_string (Name.strip_lskip name)
+            with Failure ("Seplist.hd") -> ""
+          in
+            (if (is_rec && not try_term) || is_simple then emp else 
+              (kwd (String.concat "" ["\ndeclare "; name; ".simps [simp del]"])))) ^
+              new_line
       else emp
       
   | Val_spec(s1,(n,l),n_ref,_,s2,t) ->
