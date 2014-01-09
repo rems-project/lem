@@ -94,7 +94,6 @@ let rec listEqualBy eq l1 l2 = match (l1,l2) with
 end
 declare termination_argument listEqualBy = automatic
 
-
 let inline listEqual = listEqualBy (=)
 declare hol      target_rep function listEqual = infix `=`
 declare isabelle target_rep function listEqual = infix `=`
