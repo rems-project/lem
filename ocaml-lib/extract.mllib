@@ -2,6 +2,7 @@ Nat_big_num
 Nat_num
 Pset
 Pmap
+Xstring
 Vector
 Bit
 Either
@@ -25,6 +26,7 @@ Lem_relation
 Lem_set 
 Lem_set_extra 
 Lem_set_helpers
+Lem_string
 Lem_sorting
 Lem_tuple
 Lem_string_extra
