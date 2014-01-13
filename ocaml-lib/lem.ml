@@ -91,9 +91,10 @@ let option_map f = function
   | Some a -> Some (f a)
   | None   -> None
 
-let option_bind f = function
-  | Some a -> f a
-  | None   -> None
+let option_bind m f =
+  match m with
+    | Some a -> f a
+    | None   -> None
 
 let option_equal eq o1 o2 = match (o1, o2) with
   | (None, None)       -> true
