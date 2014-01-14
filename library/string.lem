@@ -1,26 +1,29 @@
-(*declare {ocaml;isabelle;hol;coq} rename module = lem_string*)
-declare {ocaml} rename module = lem_string
+declare {ocaml;isabelle;hol;coq} rename module = lem_string
 
 open import Bool Basic_classes List
 open import {ocaml} `Xstring`
 
 type char
 declare ocaml target_rep type char = `char`
+declare hol target_rep type char = `char`
 
 val toCharList : string -> list char
 declare ocaml target_rep function toCharList = `Xstring.explode`
+declare hol   target_rep function toCharList = `(\x.x)`
 
 val toString : list char -> string
 declare ocaml target_rep function toString = `Xstring.implode`
+declare hol   target_rep function toString = `(\x.x)`
 
 val stringEqual : string -> string -> bool
 declare ocaml target_rep function stringEqual = `(=)`
-declare hol target_rep function stringEqual = `TODO`
+declare hol target_rep function stringEqual = `(=)`
 declare isabelle target_rep function stringEqual = `TODO`
 declare coq target_rep function stringEqual = `TODO`
 
 val stringInequal : string -> string -> bool
 let stringInequal x y = not (stringEqual x y)
+declare hol target_rep function stringInequal = `(<>)`
 
 instance (Eq string)
   let (=) = stringEqual
@@ -30,3 +33,4 @@ end
 val stringAppend : string -> string -> string
 (*let stringAppend x y = (toString ((toCharList x) ++ (toCharList y))) *) (* TODO: Uncomment when toString and toCharList supported *)
 declare ocaml target_rep function stringAppend = `(^)`
+declare hol   target_rep function stringAppend = `(++)`
