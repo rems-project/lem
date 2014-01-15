@@ -53,7 +53,7 @@ lemma {hol} in_univ_thm : forall x. x IN universal
 (* --------------------------- *)
 
 val toList        : forall 'a. SetType 'a => set 'a -> list 'a
-declare compile_message toList = "toList is only defined on finite sets and the order of the resulting list is unspecified and therefore might differ for diffrent backend implementations."
+declare compile_message toList = "toList is only defined on finite sets and the order of the resulting list is unspecified and therefore might differ for different backend implementations."
 
 declare ocaml    target_rep function toList = `Pset.elements`
 declare isabelle target_rep function toList = `list_of_set`
