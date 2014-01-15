@@ -170,18 +170,18 @@ assert map_3: (map not (Just false) = Just true)
 (* bind                    *)
 (* ----------------------- *)
 
-val bind : forall 'a 'b. ('a -> maybe 'b) -> maybe 'a -> maybe 'b 
-let bind f = maybe Nothing f
+val bind : forall 'a 'b. maybe 'a -> ('a -> maybe 'b) -> maybe 'b 
+let bind mb f = maybe Nothing f mb
 
-declare isabelle target_rep function bind f mb = `Option.bind` mb f
+declare isabelle target_rep function bind = `Option.bind`
 declare ocaml    target_rep function bind = `Lem.option_bind`
-declare hol      target_rep function bind f mb = `OPTION_BIND` mb f
+declare hol      target_rep function bind = `OPTION_BIND`
 
 lemma maybe_bind: (
-  (forall f. bind f Nothing = Nothing) &&
-  (forall f v. bind f (Just v) = (f v)))
+  (forall f. bind Nothing f = Nothing) &&
+  (forall f v. bind (Just v) f = (f v)))
 
-assert bind_1: (bind (fun b -> Just (not b)) Nothing = Nothing)
-assert bind_2: (bind (fun b -> Just (not b)) (Just true) = Just false)
-assert bind_3: (bind (fun b -> Just (not b)) (Just false) = Just true)
-assert bind_4: (bind (fun b -> (Nothing : maybe bool)) (Just false) = Nothing)
+assert bind_1: (bind Nothing (fun b -> Just (not b)) = Nothing)
+assert bind_2: (bind (Just true) (fun b -> Just (not b)) = Just false)
+assert bind_3: (bind (Just false) (fun b -> Just (not b)) = Just true)
+assert bind_4: (bind (Just false) (fun b -> (Nothing : maybe bool)) = Nothing)

@@ -94,11 +94,9 @@ let rec listEqualBy eq l1 l2 = match (l1,l2) with
 end
 declare termination_argument listEqualBy = automatic
 
-
 let inline listEqual = listEqualBy (=)
 declare hol      target_rep function listEqual = infix `=`
 declare isabelle target_rep function listEqual = infix `=`
-declare ocaml    target_rep function listEqualBy = `List.for_all2`
 declare coq      target_rep function listEqualBy = `list_equal_by`
 
 instance forall 'a. Eq 'a => (Eq (list 'a))

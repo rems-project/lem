@@ -493,7 +493,7 @@ val is_pp_exp : exp -> bool
 val is_pp_def : def -> bool
 
 (** [val_def_get_name d] tries to extract the name of the defined function. *)
-val val_def_get_name : val_def -> Name.t option 
+val val_def_get_name : val_def -> Name.lskips_t option 
 
 (** [val_def_get_class_constraints_no_target_rep env targ vd] collects the class constraints of all top-level function definitions
     in [vd], which don't have a target-specific representation for target [targ]. Warning: contraints may appear multiple times in the resulting list *)

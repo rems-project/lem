@@ -1290,3 +1290,6 @@ assert nat_from_int_0: natFromInt 0 = 0
 assert nat_from_int_1: natFromInt 1 = 1
 assert nat_from_int_2: natFromInt (~ 2) = 2
 
+
+val string_of_natural : natural -> string
+declare ocaml target_rep function string_of_natural = `Big_int.string_of_big_int`

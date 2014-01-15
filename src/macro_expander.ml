@@ -351,7 +351,11 @@ let rec expand_defs defs ((r,typ_r,src_typ_r,pat_r): ((macro_context -> exp -> e
                      (Rule (name_opt,
                       s0,
                       s1,
-                      (List.map (fun n -> QName n) (List.map (expand_annot_typ typ_r) (List.map (fun (QName n) -> n) ns))), (*Need to map into type annotated vars as well*)
+                      (List.map (fun n -> QName n) (List.map (expand_annot_typ typ_r) (
+                        List.map (fun n ->
+                          match n with
+                            | QName n -> n
+                            | Name_typ (_, n, _, typ, _) -> n) ns))), (*Need to map into type annotated vars as well*)
                       s2,
                       Util.option_map (expand_exp Ctxt_other (r,typ_r,src_typ_r,pat_r)) e_opt, s3, 
                       expand_annot_typ typ_r n, 

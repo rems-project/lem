@@ -1113,7 +1113,7 @@ let generate_coq_record_update_notation e =
               ]
           | Typed (skips, e, skips', t, skips'') ->
               Output.flat [
-                ws skips; from_string "("; exp inside_instance e; from_string " :"; ws skips'; typ t; ws skips''; from_string ")";
+                ws skips; from_string "("; exp inside_instance e; from_string " :"; ws skips'; pat_typ t; ws skips''; from_string ")";
               ]
           | Tup (skips, es, skips') ->
               let tups = flat @@ Seplist.to_sep_list (exp inside_instance) (sep (from_string ", ")) es in
@@ -1385,7 +1385,7 @@ let generate_coq_record_update_notation e =
         | P_as (skips, p, skips', (n, l), skips'') ->
           let name = Name.to_output Term_var n in
             Output.flat [
-              ws skips; fun_pattern p; ws skips'; from_string "as"; ws skips''; name
+              ws skips; fun_pattern p; from_string "as"; ws skips'; name; ws skips''
             ]
         | P_typ (skips, p, skips', t, skips'') ->
             Output.flat [
@@ -1513,8 +1513,9 @@ let generate_coq_record_update_notation e =
     		| _ -> from_string "(* Internal Lem error, please report. *)"
     and type_def_record def =
     	match Seplist.hd def with
-      	| (n, tyvars, _, (Te_record (skips, skips', fields, skips'') as r),_) ->
+      	| (n, tyvars, path, (Te_record (skips, skips', fields, skips'') as r),_) ->
             let (n', _) = n in
+            let n' = B.type_path_to_name n' path in
             let name = Name.to_output (Type_ctor (false, false)) n' in
             let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) field (sep @@ from_string ";") fields in
       	    let tyvars' = type_def_type_variables tyvars in
@@ -1530,14 +1531,8 @@ let generate_coq_record_update_notation e =
     and type_def inside_module defs =
       let body = flat @@ Seplist.to_sep_list type_def' (sep @@ from_string "with") defs in
       let boolean_equality = generate_coq_variant_equality defs in
-      let head =
-        if inside_module then
-          from_string "Parameter"
-        else
-          from_string "Inductive"
-      in
         Output.flat [
-          head; body; from_string ".\n";
+          from_string "Inductive"; body; from_string ".\n";
           boolean_equality
         ]
     and type_def' ((n0, l), ty_vars, t_path, ty, _) =
@@ -1729,28 +1724,10 @@ let generate_coq_record_update_notation e =
             ws skips ^ from_string "(" ^ indreln_typ t ^ from_string ")" ^ ws skips'
         | Typ_len nexp -> src_nexp nexp
         | _ -> assert false
-    and field_typ t =
-      match t.term with
-        | Typ_wild skips -> ws skips ^ from_string "_"
-        | Typ_var (skips, v) -> id Type_var @@ Ulib.Text.(^^^) (r"") (Tyvar.to_rope v)
-        | Typ_fn (t1, skips, t2) -> field_typ t1 ^ ws skips ^ from_string "->" ^ field_typ t2
-        | Typ_tup ts ->
-            let body = flat @@ Seplist.to_sep_list typ (sep @@ from_string "*") ts in
-              from_string "(" ^ body ^ from_string ") % type"
-        | Typ_app (p, ts) ->
-          let args = concat_str " " @@ List.map field_typ ts in
-          let args_space = if List.length ts = 1 then from_string " " else emp in
-            Output.flat [
-              typ_ident_to_output p; args_space; args
-            ]
-        | Typ_paren(skips, t, skips') ->
-            ws skips ^ from_string "(" ^ typ t ^ from_string ")" ^ ws skips'
-        | Typ_len nexp -> src_nexp nexp
-        | _ -> assert false
     and field ((n, _), f_ref, skips, t) =
       Output.flat [
           Name.to_output Term_field (B.const_ref_to_name n false f_ref); 
-          from_string ":"; ws skips; field_typ t
+          from_string ":"; ws skips; pat_typ t
       ]
     and generate_default_value_texp (t: texp) =
       match t with
@@ -1758,7 +1735,8 @@ let generate_coq_record_update_notation e =
         | Te_abbrev (_, src_t) -> default_value src_t
         | Te_record (_, _, seplist, _) ->
             let fields = Seplist.to_list seplist in
-            let mapped = List.map (fun ((name, _), _, _, src_t) ->
+            let mapped = List.map (fun ((name, _), const_descr_ref, _, src_t) ->
+              let name = B.const_ref_to_name name true const_descr_ref in
               let o = lskips_t_to_output name in
               let s = default_value src_t in
                 Output.flat [
