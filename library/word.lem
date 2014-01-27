@@ -21,21 +21,27 @@ end
 
 val int32Lnot : int32 -> int32
 declare ocaml    target_rep function int32Lnot = `Int32.lognot`
+declare hol      target_rep function int32Lnot w = (`~` w)
 
 val int32Lor  : int32 -> int32 -> int32
 declare ocaml    target_rep function int32Lor = `Int32.logor`
+declare hol      target_rep function int32Lor = `word_or`
 
 val int32Lxor : int32 -> int32 -> int32
 declare ocaml    target_rep function int32Lxor = `Int32.logxor`
+declare hol      target_rep function int32Lxor = `word_xor`
 
 val int32Land : int32 -> int32 -> int32
 declare ocaml    target_rep function int32Land = `Int32.logand`
+declare hol      target_rep function int32Land = `word_and`
 
 val int32Lsl  : int32 -> nat -> int32
 declare ocaml    target_rep function int32Lsl = `Int32.shift_left`
+declare hol      target_rep function int32Lsl = `word_lsl`
 
 val int32Lsr  : int32 -> nat -> int32
 declare ocaml    target_rep function int32Lsr = `Int32.shift_right_logical`
+declare hol      target_rep function int32Lsr = `word_lsr`
 
 val int32fromBoolList : list bool -> maybe int32
 
