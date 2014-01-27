@@ -158,7 +158,7 @@ declare tex      target_rep type integer = `$\mathbb{Z}$`
 
 (* 32 bit integers *)
 type int32 
-declare ocaml    target_rep type int32 = `int`     (*Fix this!*)
+declare ocaml    target_rep type int32 = `Int32.t` 
 declare coq      target_rep type int32 = `Z`       (* ???: better type for this in Coq? *)
 declare isabelle target_rep type int32 = `word` 32
 declare hol      target_rep type int32 = `int`     (* ???: better type for this in HOL? *)
@@ -719,7 +719,7 @@ end
 (* ----------------------- *)
 val int32FromNumeral : numeral -> int32
 
-declare ocaml    target_rep function int32FromNumeral = ``
+declare ocaml    target_rep function int32FromNumeral = `Int32.of_int`
 declare isabelle target_rep function int32FromNumeral = `word_of_int`
 (*TODO: Implement the following two correctly. *)
 declare hol      target_rep function int32FromNumeral n = ``n  
@@ -731,6 +731,7 @@ end
 
 val int32Eq : int32 -> int32 -> bool
 let inline int32Eq = unsafe_structural_equality
+
 instance (Eq int32)
   let (=) = int32Eq
   let (<>) n1 n2 = not (int32Eq n1 n2)
@@ -768,7 +769,7 @@ declare coq      target_rep function int32GreaterEqual = `int_gteb`
 val int32Compare : int32 -> int32 -> ordering
 let inline int32Compare = defaultCompare
 let inline {coq; isabelle; hol} int32Compare = genericCompare int32Less int32Eq
-declare ocaml target_rep function int32Compare = `compare`
+declare ocaml target_rep function int32Compare = `Int32.compare`
 
 instance (Ord int32)
   let compare = int32Compare
@@ -783,7 +784,7 @@ instance (SetType int32)
 end
 
 val int32Negate : int32 -> int32
-declare ocaml    target_rep function int32Negate i = (`~-` i)
+declare ocaml    target_rep function int32Negate = `Int32.neg`
 declare isabelle target_rep function int32Negate i = `-` i
 (*TODO: Implement the following two correctly. *)
 declare hol      target_rep function int32Negate i = `~` i
@@ -795,7 +796,7 @@ end
 
 
 val int32Add : int32 -> int32 -> int32
-declare ocaml    target_rep function int32Add = infix `+`
+declare ocaml    target_rep function int32Add = `Int32.add`
 declare isabelle target_rep function int32Add = infix `+`
 (*TODO: Implement the following two correctly. *)
 declare hol      target_rep function int32Add = infix `+`
@@ -806,7 +807,7 @@ instance (NumAdd int32)
 end
 
 val int32Minus : int32 -> int32 -> int32
-declare ocaml    target_rep function int32Minus = infix `-`
+declare ocaml    target_rep function int32Minus = `Int32.sub`
 declare isabelle target_rep function int32Minus = infix `-`
 (*TODO: Implement the following two correctly. *)
 declare hol      target_rep function int32Minus = infix `-`
@@ -818,7 +819,7 @@ end
 
 val int32Succ : int32 -> int32
 let inline int32Succ n = n + 1
-declare ocaml    target_rep function int32Succ = `succ`
+declare ocaml    target_rep function int32Succ = `Int32.succ`
 
 instance (NumSucc int32)
   let succ = int32Succ
@@ -826,13 +827,13 @@ end
 
 val int32Pred : int32 -> int32
 let inline int32Pred n = n - 1
-declare ocaml    target_rep function int32Pred = `pred`
+declare ocaml    target_rep function int32Pred = `Int32.pred`
 instance (NumPred int32)
   let pred = int32Pred
 end
 
 val int32Mult : int32 -> int32 -> int32
-declare ocaml    target_rep function int32Mult = infix `*`
+declare ocaml    target_rep function int32Mult = `Int32.mul`
 declare isabelle target_rep function int32Mult = infix `*`
 (*TODO: Implement the following two correctly. *)
 declare hol      target_rep function int32Mult = infix `*`
@@ -844,7 +845,7 @@ end
 
 
 val int32Pow : int32 -> nat -> int32
-declare ocaml    target_rep function int32Pow = `Nat_num.int_pow`
+declare ocaml    target_rep function int32Pow = `Nat_num.int32_pow`
 declare isabelle target_rep function int32Pow = infix `^`
 (*TODO: Implement the following two correctly. *)
 declare hol      target_rep function int32Pow = infix `**`
@@ -855,7 +856,7 @@ instance ( NumPow int32 )
 end
 
 val int32Div : int32 -> int32 -> int32
-declare ocaml    target_rep function int32Div = `Nat_num.int_div`
+declare ocaml    target_rep function int32Div = `Nat_num.int32_div`
 declare isabelle target_rep function int32Div = infix `div`
 (*TODO: Implement the following two correctly. *)
 declare hol      target_rep function int32Div = infix `/`
@@ -870,7 +871,7 @@ instance ( NumDivision int32 )
 end
 
 val int32Mod : int32 -> int32 -> int32
-declare ocaml    target_rep function int32Mod = `Nat_num.int_mod`
+declare ocaml    target_rep function int32Mod = `Nat_num.int32_mod`
 declare isabelle target_rep function int32Mod = infix `mod`
 (*TODO: Implement the following two correctly. *)
 declare hol      target_rep function int32Mod = infix `%`
@@ -883,7 +884,6 @@ end
 val int32Min : int32 -> int32 -> int32
 let inline int32Min = defaultMin
 declare isabelle target_rep function int32Min = `min`
-declare ocaml    target_rep function int32Min = `min`
 (*TODO: Implement the following two correctly. *)
 declare hol      target_rep function int32Min = `int_min`
 declare coq      target_rep function int32Min = `Zmin`
@@ -891,7 +891,6 @@ declare coq      target_rep function int32Min = `Zmin`
 val int32Max : int32 -> int32 -> int32
 let inline int32Max = defaultMax
 declare isabelle target_rep function int32Max = `max`
-declare ocaml    target_rep function int32Max = `max`
 (*TODO: Implement the following two correctly. *)
 declare hol      target_rep function int32Max = `int_max`
 declare coq      target_rep function int32Max = `Zmax`
@@ -1214,11 +1213,42 @@ assert int_test24 : (succ 0 = (1 : int))
 assert int_test25 : (pred 12 = (11 : int))
 assert int_test26 : (pred 0 = ~(1 : int))
 
+assert int32_test1 : (2 + (5 : int32) = 7)
+assert int32_test2 : (8 - (7 : int32) = 1)
+assert int32_test3 : (7 - (8 : int32) = ~1)
+assert int32_test4 : (7 * (8 : int32) = 56)
+assert int32_test5 : ((7 : int32) ** 2 = 49)
+assert int32_test6 : (11 div (4 : int32) = 2)
+assert int32_test6a : ((~ 11) div (4 : int32) = ~3)
+assert int32_test7 : (11 / (4 : int32) = 2)
+assert int32_test7a : (~11 / (4 : int32) = ~3)
+assert int32_test8 : (11 mod (4 : int32) = 3)
+assert int32_test8at : (~11 mod (4 : int32) = 1)
+assert int32_test9 : (11 < (12 : int32))
+assert int32_test10 : (11 <= (12 : int32))
+assert int32_test11 : (12 <= (12 : int32))
+assert int32_test12 : (not (12 < (12 : int32)))
+assert int32_test13 : (12 > (11 : int32))
+assert int32_test14 : (12 >= (11 : int32))
+assert int32_test15 : (12 >= (12 : int32))
+assert int32_test16 : (not (12 > (12 : int32)))
+assert int32_test17 : (min 12 (12 : int32) = 12)
+assert int32_test18 : (min 10 (12 : int32) = 10)
+assert int32_test19 : (min 12 (10 : int32) = 10)
+assert int32_test20 : (max 12 (12 : int32) = 12)
+assert int32_test21 : (max 10 (12 : int32) = 12)
+assert int32_test22 : (max 12 (10 : int32) = 12)
+assert int32_test23 : (succ 12 = (13 : int32))
+assert int32_test24 : (succ 0 = (1 : int32))
+assert int32_test25 : (pred 12 = (11 : int32))
+assert int32_test26 : (pred 0 = ~(1 : int32))
+
+
 assert integer_test1 : (2 + (5 : integer) = 7)
 assert integer_test2 : (8 - (7 : integer) = 1)
 assert integer_test3 : (7 - (8 : integer) = ~1)
 assert integer_test4 : (7 * (8 : integer) = 56)
-assert integer_test5 : ((7:integer) ** 2 = 49)
+assert integer_test5 : ((7 : integer) ** 2 = 49)
 assert integer_test6 : (11 div (4 : integer) = 2)
 assert integer_test6a : ((~ 11) div (4 : integer) = ~3)
 assert integer_test7 : (11 / (4 : integer) = 2)

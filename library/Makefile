@@ -1,4 +1,4 @@
-LIBS=pervasives_extra.lem pervasives.lem basic_classes.lem either.lem function.lem list.lem map.lem maybe.lem relation.lem set_helpers.lem sorting.lem tuple.lem function_extra.lem bool.lem list_extra.lem num.lem map_extra.lem set.lem set_extra.lem maybe_extra.lem string.lem string_extra.lem
+LIBS=pervasives_extra.lem pervasives.lem basic_classes.lem either.lem function.lem list.lem map.lem maybe.lem relation.lem set_helpers.lem sorting.lem tuple.lem function_extra.lem bool.lem list_extra.lem num.lem map_extra.lem set.lem set_extra.lem maybe_extra.lem string.lem string_extra.lem word.lem
 
 NOW=$(shell date +%Y-%m-%d---%H-%M-%S)
 OCAML_BUILD_DIR=ocaml-build-dir---${NOW}
