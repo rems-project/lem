@@ -49,7 +49,7 @@ structure lemLib =
 struct
 
 open HolKernel Parse boolLib bossLib;
-open lemTheory intReduce;
+open lemTheory intReduce wordsLib;
 
 val run_interactive = ref false
 val lem_conv_eval = computeLib.EVAL_CONV

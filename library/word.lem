@@ -4,15 +4,15 @@
 
 declare {isabelle;coq;hol;ocaml} rename module = Lem_word
 
-open import Maybe Num
+open import Maybe Num Basic_classes List
 
 class ( Word 'a )
   val lnot : 'a -> 'a
   val (land) [`conjunction`]  : 'a -> 'a -> 'a
   val (lor)  [`inclusive_or`] : 'a -> 'a -> 'a
   val (lxor) [`exclusive_or`] : 'a -> 'a -> 'a
-  val (lsl)  [`left_shift`] : nat -> 'a -> 'a
-  val (lsr)  [`right_shift`] : nat -> 'a -> 'a
+  val (lsl)  [`left_shift`] : 'a -> nat -> 'a
+  val (lsr)  [`right_shift`] : 'a -> nat -> 'a
   val fromBoolList : list bool -> maybe 'a
   val toBoolList   : 'a -> list bool
 end
@@ -20,13 +20,53 @@ end
 (* int32 *)
 
 val int32Lnot : int32 -> int32
+declare ocaml    target_rep function int32Lnot = `Int32.lognot`
+declare hol      target_rep function int32Lnot w = (`~` w)
+
 val int32Lor  : int32 -> int32 -> int32
+declare ocaml    target_rep function int32Lor = `Int32.logor`
+declare hol      target_rep function int32Lor = `word_or`
+
 val int32Lxor : int32 -> int32 -> int32
+declare ocaml    target_rep function int32Lxor = `Int32.logxor`
+declare hol      target_rep function int32Lxor = `word_xor`
+
 val int32Land : int32 -> int32 -> int32
-val int32Lsl  : nat -> int32 -> int32
-val int32Lsr  : nat -> int32 -> int32
+declare ocaml    target_rep function int32Land = `Int32.logand`
+declare hol      target_rep function int32Land = `word_and`
+
+val int32Lsl  : int32 -> nat -> int32
+declare ocaml    target_rep function int32Lsl = `Int32.shift_left`
+declare hol      target_rep function int32Lsl = `word_lsl`
+
+val int32Lsr  : int32 -> nat -> int32
+declare ocaml    target_rep function int32Lsr = `Int32.shift_right_logical`
+declare hol      target_rep function int32Lsr = `word_lsr`
+
 val int32fromBoolList : list bool -> maybe int32
+
+let rec int32fromBoolListAux (acc : int32) (bl : list bool) = 
+  match bl with 
+    | [] -> acc
+    | (true :: bl') -> int32fromBoolListAux ((int32Lsl acc 1) + 1) bl'
+    | (false :: bl') -> int32fromBoolListAux (int32Lsl acc 1) bl'
+  end
+declare termination_argument int32fromBoolListAux = automatic
+let int32fromBoolList bl = if (List.length bl <= 32) then Just (int32fromBoolListAux 0 (List.reverse bl)) else Nothing
+
+
 val int32ToBoolList : int32 -> list bool
+val int32ToBoolListAux : nat -> list bool -> int32 -> list bool
+
+let rec int32ToBoolListAux pos acc remainder =
+ if (pos = 0) then 
+   List.reverse acc 
+ else
+   (int32ToBoolListAux (pos - 1) (((remainder mod 2) = 1) :: acc) 
+      (int32Lsr remainder 1))
+declare termination_argument int32ToBoolListAux = automatic
+
+let int32ToBoolList i = int32ToBoolListAux 32 [] i
 
 instance (Word int32)
   let lnot = int32Lnot
@@ -38,3 +78,52 @@ instance (Word int32)
   let fromBoolList = int32fromBoolList
   let toBoolList = int32ToBoolList
 end
+
+
+assert int32_test1 : (fromBoolList [false; false;false;false] = Just (0:int32))
+assert int32_test2 : (fromBoolList [false; false;true;false] = Just (4:int32))
+assert int32_test3 : (fromBoolList [true;false;true; false] = Just (5:int32))
+assert int32_test4 : (toBoolList (0:int32) = 
+ [false; false; false; false; false; false; false; false;
+  false; false; false; false; false; false; false; false;
+  false; false; false; false; false; false; false; false;
+  false; false; false; false; false; false; false; false;])
+assert int32_test5 : (toBoolList (6:int32) = 
+ [false; true;  true;  false; false; false; false; false;
+  false; false; false; false; false; false; false; false;
+  false; false; false; false; false; false; false; false;
+  false; false; false; false; false; false; false; false;])
+assert int32_test6 : (fromBoolList 
+ [false; false; false; false; false; false; false; false;
+  false; false; false; false; false; false; false; false;
+  false; false; false; false; false; false; false; false;
+  false; false; false; false; false; false; false; true;] = Just (~2147483648 : int32))
+assert int32_test7 : (fromBoolList 
+ [false; false; true; false; false; false; false; false;
+  false; false; false; false; false; false; false; false;
+  false; false; false; false; false; false; false; false;
+  false; false; false; false; false; false; false; true;] = Just (~2147483644 : int32))
+assert int32_test8 : (fromBoolList 
+ [false; true;  true;  false; false; false; false; false;
+  false; false; false; false; false; false; false; false;
+  false; false; false; false; false; false; false; false;
+  false; false; false; false; false; false; false; true;  false] = (Nothing : maybe int32))
+
+assert int32_test9  : ((6 : int32) land 5 = 4)
+assert int32_test10 : ((6 : int32) lor 5 = 7)
+assert int32_test11 : ((6 : int32) lxor 5 = 3)
+assert int32_test12 : ((12 : int32) land 9 = 8)
+assert int32_test13 : ((12 : int32) lor 9 = 13)
+assert int32_test14 : ((12 : int32) lxor 9 = 5)
+
+assert int32_test15 : (lnot (12 : int32) = ~13)
+assert int32_test16 : (lnot (27 : int32) = ~28)
+assert int32_test17 : ((27 : int32) lsl 0 = 27)
+assert int32_test18 : ((27 : int32) lsl 1 = 54)
+assert int32_test19 : ((27 : int32) lsl 2 = 108)
+assert int32_test20 : ((27 : int32) lsl 3  = 216)
+assert int32_test21 : ((27 : int32) lsr 0 = 27)
+assert int32_test22 : ((27 : int32) lsr 1 = 13)
+assert int32_test23 : ((27 : int32) lsr 2 = 6)
+assert int32_test24 : ((27 : int32) lsr 3 = 3)
+
