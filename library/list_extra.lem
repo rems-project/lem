@@ -16,13 +16,13 @@
 
 declare {isabelle;hol;ocaml;coq} rename module = lem_list_extra
 
-open import Bool Maybe Basic_classes Tuple Num List
+open import Bool Maybe Basic_classes Tuple Num List Function_extra
 
 (* ------------------------- *)
 (* head of non-empty list    *)
 (* ------------------------- *)
 val head : forall 'a. list 'a -> 'a
-let head l = match l with | x::xs -> x end
+let head l = match l with | x::xs -> x | [] -> failwith "List_extra.head of empty list" end
 
 declare compile_message head = "head is only defined on non-empty list and should therefore be avoided. Use maching instead and handle the empty case explicitly."
 declare hol      target_rep function head = `HD`
@@ -37,7 +37,7 @@ assert head_simple_2: (head [5;4] = (5:nat))
 (* tail of non-empty list    *)
 (* ------------------------- *)
 val tail : forall 'a. list 'a -> list 'a
-let tail l = match l with | x::xs -> xs end
+let tail l = match l with | x::xs -> xs | [] -> failwith "List_extra.tail of empty list" end
 
 declare compile_message tail = "tail is only defined on non-empty list and should therefore be avoided. Use maching instead and handle the empty case explicitly."
 
@@ -56,7 +56,7 @@ lemma head_tail_cons: (forall l. length l > 0 --> (l = (head l)::(tail l)))
 (* last                      *)
 (* ------------------------- *)
 val last : forall 'a. list 'a -> 'a
-let rec last l = match l with | [x] -> x | x1::x2::xs -> last (x2 :: xs) end
+let rec last l = match l with | [x] -> x | x1::x2::xs -> last (x2 :: xs) | [] -> failwith "List_extra.last of empty list" end
 declare compile_message last = "last is only defined on non-empty list and should therefore be avoided. Use maching instead and handle the empty case explicitly."
 
 declare hol      target_rep function last = `LAST`
@@ -73,7 +73,7 @@ assert last_simple_2: (last [(5:nat);4] = 4)
 
 (* All elements of a non-empty list except the last one. *)
 val init : forall 'a. list 'a -> list 'a
-let rec init l = match l with | [x] -> [] | x1::x2::xs -> x1::(init (x2::xs)) end
+let rec init l = match l with | [x] -> [] | x1::x2::xs -> x1::(init (x2::xs)) | [] -> failwith "List_extra.init of empty list" end
 
 declare compile_message init = "init is only defined on non-empty list and should therefore be avoided. Use maching instead and handle the empty case explicitly."
 
@@ -94,11 +94,11 @@ lemma init_last_append: (forall l. length l > 0 --> (l = (init l) ++ [last l]))
 (* folding functions for non-empty lists,
     which don`t take the base case *)
 val foldl1 : forall 'a. ('a -> 'a -> 'a) -> list 'a -> 'a
-let foldl1 f (x :: xs) = foldl f x xs
+let foldl1 f x_xs = match x_xs with | (x :: xs) -> foldl f x xs | [] -> failwith "List_extra.foldl1 of empty list" end
 declare compile_message foldl1 = "foldl1 is only defined on non-empty lists. Better use foldl or explicit pattern matching."
 
 val foldr1 : forall 'a. ('a -> 'a -> 'a) -> list 'a -> 'a
-let foldr1 f (x :: xs) = foldr f x xs
+let foldr1 f x_xs = match x_xs with | (x :: xs) -> foldr f x xs | [] -> failwith "List_extra.foldr1 of empty list" end
 declare compile_message foldr1 = "foldr1 is only defined on non-empty lists. Better use foldr or explicit pattern matching."
 
   
@@ -108,7 +108,7 @@ declare compile_message foldr1 = "foldr1 is only defined on non-empty lists. Bet
 
 (* get the nth element of a list *)
 val nth : forall 'a. list 'a -> nat -> 'a
-let nth l n = match index l n with Just e -> e end
+let nth l n = match index l n with Just e -> e | Nothing -> failwith "List_extra.nth" end
 declare compile_message foldl1 = "nth is undefined for too large indices, use carefully"
 
 declare hol      target_rep function nth l n = `EL` n l
@@ -132,6 +132,7 @@ lemma nth_index: (forall l n e. n < length l --> index l n = Just (nth l n))
 val find_non_pure : forall 'a. ('a -> bool) -> list 'a -> 'a 
 let find_non_pure P l = match (find P l) with 
   | Just e      -> e
+  | Nothing     -> failwith "List_extra.find_non_pure"
 end
 
 declare compile_message find_non_pure = "find_non_pure is undefined, if no element with the property is in the list. Better use find."
@@ -142,10 +143,15 @@ declare compile_message find_non_pure = "find_non_pure is undefined, if no eleme
 (* ------------------------- *)
 
 val zip_same_length : forall 'a 'b. list 'a -> list 'b -> list ('a * 'b) 
-let inline zip_same_length = List.zip
+let rec zip_same_length l1 l2 = match (l1, l2) with
+  | (x :: xs, y :: ys) -> (x, y) :: zip_same_length xs ys
+  | ([], []) -> []
+  | _ -> failwith "List_extra.zip_same_length of different length lists"
+
+end
+declare termination_argument zip_same_length = automatic
 
 declare compile_message zip_same_length = "zip_same_length is undefined, if the two lists have different lengths"
-
 declare hol target_rep function zip_same_length l1 l2 = `ZIP` (l1, l2)
 declare ocaml target_rep function zip_same_length = `List.combine` 
 

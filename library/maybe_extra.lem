@@ -5,14 +5,14 @@
 
 declare {isabelle;hol;ocaml;coq} rename module = lem_maybe_extra 
 
-open import Basic_classes Maybe
+open import Basic_classes Maybe Function_extra
 
 (* ----------------------- *)
 (* fromJust                *)
 (* ----------------------- *)
 
 val fromJust : forall 'a. maybe 'a -> 'a
-let fromJust (Just v) = v
+let fromJust op = match op with | Just v -> v | Nothing -> failwith "fromJust of Nothing" end
 declare termination_argument fromJust = automatic
 declare compile_message fromJust = "fromJust is only defined on Just. Better use `fromMaybe` or use explicit maching to handle the Nothing-case."
 

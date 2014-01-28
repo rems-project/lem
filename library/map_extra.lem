@@ -8,21 +8,20 @@
 
 declare {isabelle;hol;ocaml;coq} rename module = lem_map_extra
 
-open import Bool Basic_classes Function Maybe List Num Set Map
+open import Bool Basic_classes Function Function_extra Maybe List Num Set Map
 
 (* -------------------------------------------------------------------------- *)
 (* find                                                                       *)
 (* -------------------------------------------------------------------------- *)
 
 val find : forall 'k 'v. MapKeyType 'k => 'k -> map 'k 'v -> 'v
-let find k m = match (lookup k m) with Just x -> x end
+let find k m = match (lookup k m) with Just x -> x | Nothing -> failwith "Map_extra.find" end
 
 declare ocaml    target_rep function find = `Pmap.find`
 declare isabelle target_rep function find = `map_find`
 declare hol      target_rep function find k m = `FAPPLY` m k
 
 declare compile_message find = "find is only defined if the key is found. Use lookup instead and handle the not-found case explicitly."
-
 assert find_insert_1: (find 16 (insert (16 : nat) true empty) = true)
 assert find_insert_2: (find 36 (insert 36 false (insert (16 : nat) true empty)) = false )
 
