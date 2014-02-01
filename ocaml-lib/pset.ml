@@ -312,6 +312,8 @@ let inter s1 s2 = { s1 with s = inter s1.cmp s1.s s2.s }
 
 let diff s1 s2 = { s1 with s = diff s1.cmp s1.s s2.s }
 
+let compare_by cmp s1 s2 = compare cmp s1.s s2.s
+
 let compare s1 s2 = compare s1.cmp s1.s s2.s
 
 let equal s1 s2 = equal s1.cmp s1.s s2.s
@@ -512,3 +514,4 @@ let tc c r =
 
 
 let get_elem_compare s = s.cmp
+
