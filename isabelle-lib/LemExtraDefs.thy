@@ -57,6 +57,11 @@ imports
 
 begin 
 
+subsection{* General *}
+
+definition failwith :: " 'a \<Rightarrow> 'b " where
+  "failwith message = undefined"
+
 subsection{* Lists *}
 
 fun index :: " 'a list \<Rightarrow> nat \<Rightarrow> 'a option "  where 

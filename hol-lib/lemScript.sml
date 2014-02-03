@@ -55,6 +55,7 @@ val _ = numLib.prefer_num();
 
 val _ = new_theory "lem"
 
+val failwith_def = Define `failwith (s:'a) = (ARB:'b)`;
 
 val set_CASE_def = zDefine `
   set_CASE s c_emp c_sing c_else =
