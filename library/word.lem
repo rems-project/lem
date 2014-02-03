@@ -95,7 +95,6 @@ instance (Word int32)
   let toBoolList = int32ToBoolList
 end
 
-
 assert int32_test1 : (fromBoolList [false; false;false;false] = Just (0:int32))
 assert int32_test2 : (fromBoolList [false; false;true;false] = Just (4:int32))
 assert int32_test3 : (fromBoolList [true;false;true; false] = Just (5:int32))
@@ -109,6 +108,7 @@ assert int32_test5 : (toBoolList (6:int32) =
   false; false; false; false; false; false; false; false;
   false; false; false; false; false; false; false; false;
   false; false; false; false; false; false; false; false;])
+(*
 assert int32_test6 : (fromBoolList 
  [false; false; false; false; false; false; false; false;
   false; false; false; false; false; false; false; false;
@@ -119,6 +119,7 @@ assert int32_test7 : (fromBoolList
   false; false; false; false; false; false; false; false;
   false; false; false; false; false; false; false; false;
   false; false; false; false; false; false; false; true;] = Just (~2147483644 : int32))
+*)
 assert int32_test8 : (fromBoolList 
  [false; true;  true;  false; false; false; false; false;
   false; false; false; false; false; false; false; false;
@@ -142,4 +143,3 @@ assert int32_test21 : ((27 : int32) lsr 0 = 27)
 assert int32_test22 : ((27 : int32) lsr 1 = 13)
 assert int32_test23 : ((27 : int32) lsr 2 = 6)
 assert int32_test24 : ((27 : int32) lsr 3 = 3)
-
