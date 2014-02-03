@@ -6,6 +6,9 @@ declare {isabelle;coq;hol;ocaml} rename module = Lem_word
 
 open import Maybe Num Basic_classes List
 
+open import {isabelle} `~~/src/HOL/Word/Word`
+open import {hol} `wordsTheory` `wordsLib`
+
 class ( Word 'a )
   val lnot : 'a -> 'a
   val (land) [`conjunction`]  : 'a -> 'a -> 'a
@@ -22,26 +25,39 @@ end
 val int32Lnot : int32 -> int32
 declare ocaml    target_rep function int32Lnot = `Int32.lognot`
 declare hol      target_rep function int32Lnot w = (`~` w)
+declare isabelle target_rep function int32Lnot w = (`NOT` w)
+declare coq      target_rep function int32Lnot = `TODO`
 
 val int32Lor  : int32 -> int32 -> int32
 declare ocaml    target_rep function int32Lor = `Int32.logor`
 declare hol      target_rep function int32Lor = `word_or`
+declare isabelle target_rep function int32Lor = infix `OR`
+declare coq      target_rep function int32Lor = `TODO`
 
 val int32Lxor : int32 -> int32 -> int32
 declare ocaml    target_rep function int32Lxor = `Int32.logxor`
 declare hol      target_rep function int32Lxor = `word_xor`
+declare isabelle target_rep function int32Lxor = infix `XOR`
+declare coq      target_rep function int32Lxor = `TODO`
 
 val int32Land : int32 -> int32 -> int32
 declare ocaml    target_rep function int32Land = `Int32.logand`
 declare hol      target_rep function int32Land = `word_and`
+declare isabelle target_rep function int32Land = infix `AND`
+declare coq      target_rep function int32Land = `TODO`
 
 val int32Lsl  : int32 -> nat -> int32
 declare ocaml    target_rep function int32Lsl = `Int32.shift_left`
 declare hol      target_rep function int32Lsl = `word_lsl`
+declare isabelle target_rep function int32Lsl = infix `<<`
+declare coq      target_rep function int32Lsl = `TODO`
+
 
 val int32Lsr  : int32 -> nat -> int32
 declare ocaml    target_rep function int32Lsr = `Int32.shift_right_logical`
 declare hol      target_rep function int32Lsr = `word_lsr`
+declare isabelle target_rep function int32Lsr = infix `>>`
+declare coq      target_rep function int32Lsr = `TODO`
 
 val int32fromBoolList : list bool -> maybe int32
 

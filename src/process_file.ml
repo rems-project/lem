@@ -285,7 +285,7 @@ let output1 env (out_dir : string option) (targ : Target.target) avoid m =
                 let (o, ext_o) = open_output_with_check dir (module_name ^ "Auxiliary.thy") in              
                 Printf.fprintf o "header{*%s*}\n\n" (generated_line m.filename);
                 Printf.fprintf o "theory \"%sAuxiliary\" \n\n" module_name;
-                Printf.fprintf o "imports \n \t Main \"~~/src/HOL/Library/Efficient_Nat\"\n";
+                Printf.fprintf o "imports \n \t Main \"~~/src/HOL/Library/Code_Target_Numeral\"\n";
 (*                Printf.fprintf o "\t \"%s\"\n" isa_thy; *)
                 begin 
                   if extra_imported_modules <> [] then 
