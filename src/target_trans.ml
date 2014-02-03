@@ -353,7 +353,7 @@ let trans (targ : Target.target) params env (m : checked_module) =
 
   (* TODO: Macros are only applied in the order they are given. Fix this! As a workaround, just apply all
            macros several times. *)
-  let params = { params with macros = params.macros @ params.macros @ params.macros @ params.macros } in
+  let params = { params with macros = params.macros @ params.macros @ params.macros @ params.macros (* extra *) @ params.macros @ params.macros @ params.macros @ params.macros } in
 
   let (module_path, module_name) = Path.to_name_list m.module_path in
   let rev_module_path = List.rev module_path in
