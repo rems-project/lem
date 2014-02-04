@@ -86,12 +86,14 @@ let to_string n = Ulib.Text.to_string n
 let (^) = Ulib.Text.(^^^)
 
 let fresh_start start s ok =
-  let rec f (n:int) =
+  let rec f (retries : int) (n:int) =
+    let _ = if retries <= 0 then raise (Reporting_basic.Fatal_error (
+       Reporting_basic.Err_trans (Ast.Unknown, String.concat "" ["could not find a fresh name for \""; Ulib.Text.to_string s; "\""]))) else () in
     let name = s ^ Ulib.Text.of_latin1 (string_of_int n) in
       if ok (from_rope name) then 
         name
       else
-        f (n + 1)
+        f (retries - 1) (n + 1)
   in
   let x = s in
     match start with
@@ -99,9 +101,9 @@ let fresh_start start s ok =
           if ok (from_rope x) then
             x 
           else
-            f 0
+            f 1000 (* give up after 1000 tries *) 0
       | Some(i) ->
-          f i
+          f 1000 i
 
 let fresh s ok = from_rope (fresh_start None s ok)
 
