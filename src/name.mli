@@ -91,7 +91,7 @@ val capitalize : t -> t option
     an underscore character. *)
 val starts_with_underscore : t -> bool
 
-(** [remove_underscore n] tries to remove a leading underscore from name [n].
+(** [remove_underscore n] tries to remove all leading underscores from name [n].
     If [n] does not start with an underscore character, [None] is returned, otherwise 
     the modified name. *)
 val remove_underscore : t -> t option

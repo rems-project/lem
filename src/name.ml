@@ -144,9 +144,14 @@ let starts_with_underscore x =
   with 
     | Ulib.UChar.Out_of_range -> false
 
+let rec remove_underscore_aux x = 
+  if (starts_with_underscore x) then
+     remove_underscore_aux (from_rope (let r = (to_rope x) in Ulib.Text.sub r 1 (Ulib.Text.length r -1)))
+  else x
+
 let remove_underscore x = 
   if (starts_with_underscore x) then
-     Some (from_rope (let r = (to_rope x) in Ulib.Text.sub r 1 (Ulib.Text.length r -1)))
+     Some (remove_underscore_aux x)
   else None
 
 let starts_with_lower_letter x = 
