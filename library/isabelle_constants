@@ -93,6 +93,7 @@ exit
 export_code
 extract
 extract_type
+False
 finalconsts
 finally
 find_consts
@@ -238,6 +239,7 @@ thus
 thy_deps
 touch_thy
 translations
+True
 txt
 txt_raw
 typ

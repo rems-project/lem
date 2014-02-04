@@ -66,6 +66,7 @@ end
 
 val setCompareBy: forall 'a. ('a -> 'a -> ordering) -> set 'a -> set 'a -> ordering
 declare coq target_rep function setCompareBy = `set_compare_by`
+declare ocaml target_rep function setCompareBy = `Pset.compare_by`
 
 val setCompare : forall 'a. SetType 'a => set 'a -> set 'a -> ordering
 let inline {coq} setCompare = setCompareBy setElemCompare

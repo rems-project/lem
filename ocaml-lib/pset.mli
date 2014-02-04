@@ -163,3 +163,7 @@ val sigma : ('a * 'b -> 'a * 'b -> int) -> 'a set -> ('a -> 'b set) -> ('a * 'b)
 val cross : ('a * 'b -> 'a * 'b -> int) -> 'a set -> 'b set -> ('a * 'b) set
 
 val get_elem_compare : 'a set -> ('a -> 'a -> int)
+
+val compare_by: ('a->'a->int) -> 'a set -> 'a set -> int
+(** set comparison parameterised by element comparison (ignoring the comparison functions of the argument sets*)
+
