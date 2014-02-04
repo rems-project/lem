@@ -4,6 +4,8 @@ NOW=$(shell date +%Y-%m-%d---%H-%M-%S)
 OCAML_BUILD_DIR=ocaml-build-dir---${NOW}
 HOL_BUILD_DIR=hol-build-dir---${NOW}
 ISA_BUILD_DIR=isa-build-dir---${NOW}
+HOL_BUILD_DIR_REUSED=hol-build-dir-reused
+
 
 markdown_targets := $(patsubst %.markdown,%.html,$(wildcard *.markdown))
 
@@ -47,6 +49,12 @@ hol-lib-tests:
 	@../lem -hol -outdir ${HOL_BUILD_DIR} -wl ign -wl_auto_import err -wl_rename err ${LIBS} -only_auxiliary -auxiliary_level auto -only_changed_output
 	@cp Holmakefile ${HOL_BUILD_DIR}
 	@cd ${HOL_BUILD_DIR}; Holmake 
+
+hol-lib-tests-reuse: 
+	@mkdir -p ${HOL_BUILD_DIR_REUSED} || true
+	@../lem -hol -outdir ${HOL_BUILD_DIR_REUSED} -wl ign -wl_auto_import err -wl_rename err ${LIBS} -only_auxiliary -auxiliary_level auto -only_changed_output
+	@cp Holmakefile ${HOL_BUILD_DIR_REUSED}
+	@cd ${HOL_BUILD_DIR_REUSED}; Holmake 
 
 isa-lib-tests: 
 	@mkdir -p ${ISA_BUILD_DIR}

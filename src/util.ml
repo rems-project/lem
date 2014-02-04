@@ -450,3 +450,7 @@ let fresh_string forbidden = begin
   fresh_string_aux my_ref
 end 
 
+
+let is_simple_char c =
+  let x = int_of_char c in
+  (x >= 0x20 && x <= 0x7e && not (List.mem x [0x22; 0x27; 0x5c; 0x60]))

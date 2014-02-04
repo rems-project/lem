@@ -214,7 +214,7 @@ let remove_fun_pats keep_tup _ e =
 let string_lits_isa _ e =
   let l_unk = Ast.Trans(true, "string_lits_isa", Some (exp_to_locn e)) in
   match C.exp_to_term e with
-  | Lit {term = (L_string(lskips, s))} ->
+  | Lit {term = (L_string(lskips, s, _))} ->
       let is_isa_chr x =
         x >= 0x20 && x <= 0x7e &&
         (* most printable characters are supported, but there are some exceptions! *)

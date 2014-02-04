@@ -887,6 +887,8 @@ module Make_checker(T : sig
   (* checking literals                                                          *)
   (* -------------------------------------------------------------------------- *)
 
+  let string_unescape s = Scanf.sscanf ("\"" ^ s ^ "\"") "%S%!" (fun u -> u)
+
   (* Corresponds to judgment check_lit '|- lit : t' *)
   let check_lit is_pattern t_ret (Ast.Lit_l(lit,l)) =
     let annot (lit : lit_aux) (t : t) : lit = 
@@ -901,7 +903,9 @@ module Make_checker(T : sig
           if is_pattern then C.add_constraint (External_constants.class_label_to_path "class_num_minus") t_ret else ();
           annot (L_num(sk,i)) t_ret 
       | Ast.L_string(sk,i) ->
-          annot (L_string(sk,i)) { t = Tapp([], Path.stringpath) }
+          annot (L_string(sk, string_unescape i, Some i)) { t = Tapp([], Path.stringpath) }
+      | Ast.L_char(sk,i) ->
+          annot (L_char(sk,String.get (string_unescape i) 0, Some i)) { t = Tapp([], Path.charpath) }
       | Ast.L_unit(sk1,sk2) ->
           annot (L_unit(sk1,sk2)) { t = Tapp([], Path.unitpath) }
       | Ast.L_bin(sk,i) ->

@@ -1321,7 +1321,7 @@ let generate_coq_record_update_notation e =
         | L_true skips -> ws skips ^ from_string "true"
         | L_false skips -> ws skips ^ from_string "false"
         | L_num (skips, n) -> ws skips ^ num n
-        | L_string (skips, s) ->
+        | L_string (skips, s, _) ->
             (* in Coq, string literals are UTF8 except doublequotes which are doubled *)
             let escaped = Str.global_replace (Str.regexp "\"") "\"\"" s in
             ws skips ^ str (Ulib.Text.of_string escaped)
@@ -1334,7 +1334,7 @@ let generate_coq_record_update_notation e =
           Output.flat [
             ws s; from_string "true"
           ]
-        | L_char (s, c) ->
+        | L_char (s, c, _) ->
           let c = from_string @@ Char.escaped c in
           Output.flat [
             ws s; c

@@ -154,7 +154,7 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 %token <Ast.terminal * Ulib.Text.t> X Tyvar Nvar 
 %token <Ast.terminal * Ulib.Text.t> StarstarX StarX PlusX AtX EqualX GtEqX
 %token <Ast.terminal * int> Num
-%token <Ast.terminal * string> BacktickString String Bin Hex 
+%token <Ast.terminal * string> BacktickString String Char Bin Hex 
 
 %token <Ast.terminal> Indreln Forall EqEqGt Inline Lem_transform LtBar BarGt Exists EqGt BraceBar BarBrace DotBrace 
 %token <Ast.terminal> Assert Lemma Theorem 
@@ -311,6 +311,8 @@ lit:
     { lloc (L_num(fst $1, snd $1)) }
   | String
     { lloc (L_string(fst $1, snd $1)) }
+  | Char
+    { lloc (L_char(fst $1, snd $1)) }
   | Lparen Rparen
     { lloc (L_unit($1,$2)) }
   | HashZero

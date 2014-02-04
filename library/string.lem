@@ -4,9 +4,14 @@ open import Bool Basic_classes List
 open import {ocaml} `Xstring`
 open import {hol} `stringTheory`
 
-type char
 declare ocaml target_rep type char = `char`
 declare hol target_rep type char = `char`
+
+assert char_simple_0: not (#'0' = ((#'1'):char))
+assert char_simple_1: not (#'X' = #'Y') 
+assert char_simple_2: not (#'\xAF' = #'\x00')
+assert char_simple_3: not (#' ' = #'@')
+assert char_simple_4: not (#'\\' = #'\n') 
 
 val toCharList : string -> list char
 declare ocaml    target_rep function toCharList = `Xstring.explode`
@@ -34,4 +39,5 @@ val stringAppend : string -> string -> string
 declare ocaml target_rep function stringAppend = infix `^`
 declare hol   target_rep function stringAppend = infix `++`
 declare isabelle target_rep function stringAppend = infix `@`
+
 

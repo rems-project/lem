@@ -100,8 +100,8 @@ and lit_aux =
   | L_one of lskips  (** see above *)
   | L_numeral of lskips * int (** A numeral literal, it has fixed type "numeral" and is used in patterns and after translating L_num to it. *)
   | L_num of lskips * int (** A number literal. This is like a numeral one wrapped with the "from_numeral" function *)
-  | L_char of lskips * char
-  | L_string of lskips * string
+  | L_char of lskips * char * string option (** A char literal. It contains the parsed char as well as the original input string (if available). *)
+  | L_string of lskips * string * string option (** A string literal. It contains the parsed string as well as the original input string (if available). *)
   | L_unit of lskips * lskips
   | L_vector of lskips * string * string  (** For vectors of bits, specified with hex or binary, first string is either 0b or 0x, second is the binary or hex number as a string *)
   | L_undefined of lskips * string (** A special undefined value that explicitly states that nothing is known about it. This is useful for expressing underspecified functions. It has been introduced to easier support pattern compilation of non-exhaustive patterns. *)
