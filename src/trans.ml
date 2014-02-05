@@ -206,34 +206,6 @@ let remove_fun_pats keep_tup _ e =
       | _ -> None
 ;;
 
-
-(* Transforms string literals that cannot be represented in Isabelle into a list
- * of integers, and pass this list to Pervasives.nat_list_to_string which then
- * returns an Isabelle string. *)
-
-let string_lits_isa _ e =
-  let l_unk = Ast.Trans(true, "string_lits_isa", Some (exp_to_locn e)) in
-  match C.exp_to_term e with
-  | Lit {term = (L_string(lskips, s, _))} ->
-      let is_isa_chr x =
-        x >= 0x20 && x <= 0x7e &&
-        (* most printable characters are supported, but there are some exceptions! *)
-        not (List.mem x [0x22; 0x27; 0x5c; 0x60]) in
-      let chars = List.map int_of_char (Util.string_to_list s) in
-      if List.for_all is_isa_chr chars
-      then (* no need to translate if all characters are representable *)
-        None
-      else begin
-        let f = mk_const_exp env l_unk "nat_list_to_string" [] in
-        let nums = List.map (mk_num_exp nat_ty) chars in
-        let char_list = Seplist.from_list_default None nums in
-        let char_list_exp = C.mk_list l_unk None char_list None { Types.t =
-          Types.Tapp([nat_ty], Path.listpath) } in
-        Some(append_lskips lskips (C.mk_app l_unk f char_list_exp None))
-      end
-  | _ -> None
-
-
 let remove_unit_pats _ _ p =
   let l_unk = Ast.Trans(true, "remove_unit_pats", Some p.locn) in
   match p.term with

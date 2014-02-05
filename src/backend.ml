@@ -135,18 +135,53 @@ let string_escape_hol s =
   String.iter (fun c -> Buffer.add_string b (char_escape_hol c)) s;
   Buffer.contents b
 
+(* check whether a character is natively supported by Isabelle *)
+let is_isa_chr x =
+  x >= 0x20 && x <= 0x7e &&
+  (* most printable characters are supported, but there are some exceptions! *)
+  not (List.mem x [0x22; 0x27; 0x5c; 0x60])
+
+let nibble_from_hex h =
+  if h =  0 then "Nibble0" else
+  if h =  1 then "Nibble1" else
+  if h =  2 then "Nibble2" else
+  if h =  3 then "Nibble3" else
+  if h =  4 then "Nibble4" else
+  if h =  5 then "Nibble5" else
+  if h =  6 then "Nibble6" else
+  if h =  7 then "Nibble7" else
+  if h =  8 then "Nibble8" else
+  if h =  9 then "Nibble9" else
+  if h = 10 then "NibbleA" else
+  if h = 11 then "NibbleB" else
+  if h = 12 then "NibbleC" else
+  if h = 13 then "NibbleD" else
+  if h = 14 then "NibbleE" else
+                 "NibbleF" 
+
+let char_escape_isa c =
+  let x = int_of_char c in 
+  if is_isa_chr x then (String.concat "" ["(CHR ''"; String.make 1 c; "'')"])
+  else let n1 = (x / 16) in let n2 = x mod 16 in
+    String.concat "" ["(Char "; nibble_from_hex n1; " "; nibble_from_hex n2; ")"];;
+
+
+
 (* Check that string literal s contains only CHR characters for Isabelle.  Other
  * string literals should have been translated into a list by a macro. *)
 let string_escape_isa s =
-  let is_isa_chr x =
-    x >= 0x20 && x <= 0x7e &&
-    (* most printable characters are supported, but there are some exceptions! *)
-    not (List.mem x [0x22; 0x27; 0x5c; 0x60]) in
-  let check_char c =
-    if not(is_isa_chr (int_of_char c))
-    then raise (Failure "Unsupported character in Isabelle string literal")
-  in
-  String.iter check_char s; s
+  let is_isa_chr c = 
+    let x = int_of_char c in
+    (x >= 0x20 && x <= 0x7e &&
+     (* most printable characters are supported, but there are some exceptions! *)
+     not (List.mem x [0x22; 0x27; 0x5c; 0x60])) in
+  let is_simple_is_string = Util.string_for_all is_isa_chr s in
+  if is_simple_is_string then
+    String.concat "" ["(''"; s; "'')"]
+  else
+    let char_list = Util.string_to_list s in
+    let encoded_chars = List.map char_escape_isa char_list in
+    String.concat "" ["(["; String.concat ", " encoded_chars; "])"]
 
 let pat_add_op_suc kwd suc n s1 s2 i = 
   let rec suc_aux j = begin match j with
@@ -831,11 +866,11 @@ module Isa : Target = struct
 
   let const_true = kwd "True"
   let const_false = kwd "False"
-  let string_quote = r"''"
+  let string_quote = r""
   let string_escape s _ = string_escape_isa s
   let const_num i = num i
   let const_num_pat i = pat_add_op_suc kwd (kwd "Suc") (kwd "0") None None i
-  let const_char c _ = err "TODO: char literal"
+  let const_char c _ = kwd (char_escape_isa c)
   let const_unit s = kwd "() " ^ ws s
   let const_empty s = kwd "{}" ^ ws s
   let const_undefined t m = (kwd "undefined")

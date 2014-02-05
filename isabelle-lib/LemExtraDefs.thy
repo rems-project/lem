@@ -835,7 +835,13 @@ qed
 
 subsection {* sorting *}
 
-term remove1
+subsection {* Strings *}
+
+lemma explode_str_simp [simp] :
+  "explode (STR l) = l"
+by (metis STR_inverse UNIV_I)
+
+declare String.literal.explode_inverse [simp]
 
 subsection {* num to string conversions *}
 
