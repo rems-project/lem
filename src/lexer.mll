@@ -249,8 +249,8 @@ and string pos b = parse
   | '\\' '\n' ws                        { Lexing.new_line lexbuf; string pos b lexbuf }
   | '\\'                                { raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax (pos,
                                             "illegal backslash escape in string"))) }
-  | '"'                                 { let s = unescaped(Buffer.contents b) in
-                                          try Ulib.UTF8.validate s; s
+  | '"'                                 { let s = Buffer.contents b in
+                                          try Ulib.UTF8.validate (unescaped s); s
                                           with Ulib.UTF8.Malformed_code ->
                                             raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax (pos,
                                               "String literal is not valid utf8"))) }

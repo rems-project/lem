@@ -21,7 +21,7 @@ assert char_simple_5: (#'\x20' = #' ')
 
 assert string_simple_0: not ("Hello" = ("Goodby":string))
 assert string_simple_1: not ("Hello\nWorld" = "Goodby\x20!")
-assert string_simple_2: not ("123_-+!?X_&" = "!'")
+assert string_simple_2: not ("123_\\\t-+!?X_&" = "!'")
 assert string_simple_3: ("Hello World" = ("Hello\x20World":string))
 
 val toCharList : string -> list char
