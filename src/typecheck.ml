@@ -1278,7 +1278,7 @@ module Make_checker(T : sig
                      Path.get_name f_path
                   end in
                   let names = List.map field_get_name missing_fields in
-                  let names_string = Pp.pp_to_string (fun ppf -> (Pp.lst "@, @" Name.pp) ppf names) in
+                  let names_string = Pp.pp_to_string (fun ppf -> (Pp.lst ", " Name.pp) ppf names) in
                   let message = Printf.sprintf "missing %s: %s" (if Util.list_longer 1 missing_fields then "fields" else "field") names_string in
                   raise (Reporting_basic.err_type l message)
               end;
