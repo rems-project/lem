@@ -542,14 +542,12 @@ let nvar_to_parameter : def_macro = fun mod_path env ((d,s),l,_) ->
          end
       | _ -> None
 
-let get_name def l = match def with
+let get_name def = match def with
 
   (*TODO : Check the name section, no just within the clauses*)
   | Indreln(_,_,_,clauses) -> (match Seplist.to_list clauses with 
-    | [] ->  
-        raise (Reporting_basic.err_todo false l "Error while pruning target definitions: empty Indreln clauses in get_name [debug]")
-        
-    | ((Rule(_,_,_,_,_,_,_,name,_,_),_)::cs) -> Name.strip_lskip name.term
+    | [] ->  None             
+    | ((Rule(_,_,_,_,_,_,_,name,_,_),_)::cs) -> Some (Name.strip_lskip name.term)
     )
   
   | Val_def(Fun_def(_,_,_,clauses)) -> (match Seplist.to_list clauses with
@@ -557,35 +555,33 @@ let get_name def l = match def with
     (* in a Rec_def, the constant names of all clauses should be the same, so we
      * check only the first TODO: check! *)
     
-    | [] ->  
-        raise (Reporting_basic.err_todo false l "Error while pruning target definitions: empty Rec_def clauses in get_name [debug]")
+    | [] -> None
 
-    | ((name,_,_,_,_,_)::cs) -> Name.strip_lskip name.term     
+    | ((name,_,_,_,_,_)::cs) -> Some (Name.strip_lskip name.term)
     )
 
   | Val_def(Let_def(_,_,(p,_,_,_,_))) -> begin
       match Pattern_syntax.pat_to_ext_name p with
-        | Some nls -> Name.strip_lskip nls.term 
-        | None -> raise (Reporting_basic.err_todo false l "Error while pruning target definitions: unmatched Let_val case in get_name [debug]")
+        | Some nls -> Some (Name.strip_lskip nls.term)
+        | None -> None
     end
-  | Val_def(Let_inline(_,_,_,name,_,_,_,_)) -> Name.strip_lskip name.term
-  | _ -> 
-    raise (Reporting_basic.err_todo false l "Error while pruning target definitions: unmatched top-level case in get_name [debug]")
+  | Val_def(Let_inline(_,_,_,name,_,_,_,_)) -> Some (Name.strip_lskip name.term)
+  | _ -> None
 
 let prune_target_bindings target (defs : def list) : def list =
 
   (* given a list constant name and a list of definition, rem_dups removes all
    * duplicate definitions (i.e. with the same name) from the list *)
-  let rec rem_dups name = function 
+  let rec rem_dups name_opt = function 
     | [] -> []
     | ((def,s),l, lenv)::defs -> 
         (match def with 
-      | (Val_def _ | Indreln _) -> 
-          if (Name.compare name (get_name def l) = 0) then
-            rem_dups name defs
-          else 
-            ((def,s),l,lenv) :: rem_dups name defs
-      | d -> ((d,s),l,lenv) :: rem_dups name defs
+      | (Val_def _ | Indreln _) -> (
+          match (name_opt, get_name def) with
+            | (Some n1, Some n2) when (Name.compare n1 n2 = 0) -> rem_dups name_opt defs
+            | _ -> ((def,s),l,lenv) :: rem_dups name_opt defs
+      )
+      | d -> ((d,s),l,lenv) :: rem_dups name_opt defs
     )
   in
 
@@ -601,19 +597,24 @@ let prune_target_bindings target (defs : def list) : def list =
           Val_def(Fun_def(_,_,topt,_)) |
           Indreln(_,topt,_,_) ) as d -> 
           if Typed_ast.in_targets_opt (Target_no_ident target) topt then 
-              let name = get_name d l in
-              let acc' = rem_dups name acc in  
-              let defs' = rem_dups name defs in
+              let name_opt = get_name d in
+              let acc' = rem_dups name_opt acc in  
+              let defs' = rem_dups name_opt defs in
             def_walker target (((def,s),l,lenv) :: acc') defs' 
           else
-            def_walker target acc defs
-      
+            def_walker target acc defs     
        | Lemma(_,lty,targets,_,_,_) as d ->
          let targ_OK = Typed_ast.in_targets_opt (Target_no_ident target) targets in
          if (target_supports_lemma_type (Target.Target_no_ident target) lty && targ_OK) then
             def_walker target (((d,s),l,lenv) :: acc) defs
          else
             def_walker target acc defs
+       | Module(sk1,(n,l'),mod_bind,sk2,sk3,ds,sk4) -> begin
+           (* clean module recursively *)
+           let ds' = def_walker target [] ds in
+           let d' = Module(sk1,(n,l'),mod_bind,sk2,sk3,ds',sk4) in
+           def_walker target (((d',s),l,lenv) :: acc) defs
+         end
        | d -> def_walker target (((d,s),l,lenv) :: acc) defs
      end
 
