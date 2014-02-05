@@ -194,7 +194,7 @@ let rec dest_string_pat (p :pat) : string option =
   match p.term with
   | P_lit l -> (
     match l.term with
-      L_string (_, s) -> Some s
+      L_string (_, s, _) -> Some s
     | _ -> None)
   | _ -> None
 

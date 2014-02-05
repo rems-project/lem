@@ -105,10 +105,10 @@ and lit_aux =
   | L_one of lskips
   | L_numeral of lskips * int
   | L_num of lskips * int
-  | L_char of lskips * char
-  | L_string of lskips * string
+  | L_char of lskips * char * string option
+  | L_string of lskips * string * string option
   | L_unit of lskips * lskips
-  | L_vector of lskips * string * string 
+  | L_vector of lskips * string * string
   | L_undefined of lskips * string
 
 type pat = (pat_aux,pat_annot) annot
@@ -442,12 +442,12 @@ let lit_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (l : lit) : lit
       | L_numeral(s,n) ->
           let (s_new,s_ret) = lskips_f s in
             res (L_numeral(s_new,n)) s_ret
-      | L_char(s,c) ->
+      | L_char(s,c, input_c) ->
           let (s_new,s_ret) = lskips_f s in
-            res (L_char(s_new,c)) s_ret
-      | L_string(s,n) ->
+            res (L_char(s_new,c,input_c)) s_ret
+      | L_string(s,n,input_s) ->
           let (s_new,s_ret) = lskips_f s in
-            res (L_string(s_new,n)) s_ret
+            res (L_string(s_new,n,input_s)) s_ret
       | L_vector(s,n,m) ->
           let (s_new,s_ret) = lskips_f s in
             res (L_vector(s_new,n,m)) s_ret
@@ -1585,7 +1585,7 @@ module Exps_in_context(D : Exp_context) = struct
 
   let mk_lstring l s c t = 
     let t = check_typ l "mk_lstring" t (fun d -> Some { t = Tapp([],Path.stringpath) }) in
-    { term = L_string(s,c);
+    { term = L_string(s,c,None);
       locn = l;
       typ = t;
       rest = (); }

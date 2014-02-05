@@ -337,6 +337,7 @@ lit_aux :: 'L_' ::=
   {{ com hex and bin are constant bit vectors, entered as C-style hex or binaries }}
   | bin						:: :: bin
   | string						:: :: string
+  | string						:: :: char
   | ( )							:: :: unit
   | bitzero						:: :: zero
   {{ com bitzero and bitone are constant bits, if commonly used we will consider overloading 0 and 1 }}

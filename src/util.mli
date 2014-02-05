@@ -250,6 +250,16 @@ val string_for_all : (char -> bool) -> string -> bool
     and underscores. *)
 val is_simple_ident_string : string -> bool
 
+(** [is_simple_char c] checks whether [c] is an easily printable
+    character. Currently these are the characters which Isabelle's
+    parser and pretty-printer supports. This decision was taken, because Isabelle is the most
+    restrictive of our backend. It might be revised at any point.
+
+    The user can rely on that [is_simple_char] only accepts chars that need no escaping for any backend.
+    These are simple letters (A-Z, a-z), digits (0-9) and a few selected special chars (space, parenthesis,
+    punctuation ... ) *)
+val is_simple_char : char -> bool
+
 (** [string_split c string] splits the string into a list of strings on occurences of the char [c].
     The last remaining string is handed out separately. This encodes, that the resulting string list
     is never empty *)

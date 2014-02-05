@@ -4,34 +4,50 @@ open import Bool Basic_classes List
 open import {ocaml} `Xstring`
 open import {hol} `stringTheory`
 
-type char
-declare ocaml target_rep type char = `char`
-declare hol target_rep type char = `char`
+declare ocaml    target_rep type char = `char`
+declare hol      target_rep type char = `char`
+declare isabelle target_rep type char = `char`
+
+declare ocaml    target_rep type string = `string`
+declare hol      target_rep type string = `string`
+declare isabelle target_rep type string = `string`
+
+assert char_simple_0: not (#'0' = ((#'1'):char))
+assert char_simple_1: not (#'X' = #'Y') 
+assert char_simple_2: not (#'\xAF' = #'\x00')
+assert char_simple_3: not (#' ' = #'@')
+assert char_simple_4: not (#'\\' = #'\n') 
+assert char_simple_5: (#'\x20' = #' ')
+
+assert string_simple_0: not ("Hello" = ("Goodby":string))
+assert string_simple_1: not ("Hello\nWorld" = "Goodby\x20!")
+assert string_simple_2: not ("123_-+!?X_&" = "!'")
+assert string_simple_3: ("Hello World" = ("Hello\x20World":string))
 
 val toCharList : string -> list char
 declare ocaml    target_rep function toCharList = `Xstring.explode`
 declare hol      target_rep function toCharList s = ``s
 declare isabelle target_rep function toCharList s = ``s
+declare coq      target_rep function toCharList s = ``s (* TODO: check *)
+
+assert toCharList_0 : (toCharList "Hello" = [#'H'; #'e'; #'l'; #'l'; #'o'])
+assert toCharList_1 : (toCharList "H\nA" = [#'H'; #'\n'; #'A'])
 
 val toString : list char -> string
 declare ocaml    target_rep function toString = `Xstring.implode`
 declare hol      target_rep function toString s = ``s
 declare isabelle target_rep function toString s = ``s
+declare coq      target_rep function toString s = ``s (* TODO: check *)
 
-val stringEq : string -> string -> bool
-let inline stringEq = unsafe_structural_equality
+assert toString_0 : (toString [#'H'; #'e'; #'l'; #'l'; #'o'] = "Hello")
+assert toString_1 : (toString [#'H'; #'\n'; #'A'] = "H\nA")
 
-val stringIneq : string -> string -> bool
-let inline stringIneq = unsafe_structural_inequality
 
-instance (Eq string)
-  let (=) = stringEq
-  let (<>) = stringIneq
-end
-
-val stringAppend : string -> string -> string
-(*let stringAppend x y = (toString ((toCharList x) ++ (toCharList y))) *) (* TODO: Uncomment when toString and toCharList supported *)
-declare ocaml target_rep function stringAppend = infix `^`
-declare hol   target_rep function stringAppend = infix `++`
+val (^) [`stringAppend`] : string -> string -> string
+let inline stringAppend x y = (toString ((toCharList x) ++ (toCharList y)))
+declare ocaml    target_rep function stringAppend = infix `^`
+declare hol      target_rep function stringAppend = infix `++`
 declare isabelle target_rep function stringAppend = infix `@`
+
+assert stringAppend_0 : ("Hello" ^ " " ^ "World!" = "Hello World!")
 

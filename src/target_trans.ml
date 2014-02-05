@@ -204,7 +204,6 @@ let isa  =
                        T.remove_set_comp_binding;
                        Backend_common.inline_exp_macro Target_isa env;
                        T.sort_record_fields;
-                       T.string_lits_isa;
                        Patterns.compile_exp (Target_no_ident Target_isa) Patterns.is_isabelle_pattern_match env]);
       Pat_macros (fun env ->
                     let module T = T(struct let env = env end) in

@@ -137,6 +137,8 @@ let safe_com2 = [^'*''(''\n']
 let com_help = "("*safe_com2 | "*"*"("+safe_com2 | "*"*safe_com1
 let com_body = com_help*"*"*
 let escape_sequence = ('\\' ['\\''\"''\'''n''t''b''r']) | ('\\' digit digit digit) | ('\\' 'x' hexdigit hexdigit)
+let char = letter|digit|[' ''!''#''$''%''&''('')''*''+'',''-''.''/'':'';''<''=''>''?''@''['']''^''_''{''}''|''~']|escape_sequence
+
 
 rule token skips = parse
   | ws as i
@@ -222,6 +224,7 @@ rule token skips = parse
   | "0x" (hexdigit+ as i) 		{ (Hex(Some(skips), i)) }
   | '"'                                 { (String(Some(skips),
                                            string (Lexing.lexeme_start_p lexbuf) (Buffer.create 10) lexbuf)) }
+  | "#\'" (char as i) '\''               { (Char(Some(skips), i)) }
   | eof                                 { (Eof(Some(skips))) }
   | _  as c                             { raise (LexError(c, Lexing.lexeme_start_p lexbuf)) }
 

@@ -108,9 +108,8 @@ let latex_fresh_labels = let f = Util.fresh_string reserved_labels  in (fun s ->
 (* Use SML-style escape sequences for HOL, with some caveats.  See
  * src/parse/MLstring.sml in HOL source code, as well as
  * http://www.standardml.org/Basis/char.html#SIG:CHAR.toString:VAL *)
-let string_escape_hol s =
-  let b = Buffer.create (String.length s) in
-  let escape_char c = match int_of_char c with
+
+let char_escape_hol c = match int_of_char c with
   | 0x5c -> "\\\\" (* backslash *)
   | 0x22 -> "\\\"" (* double quote *)
   | 0x5e -> "^^"   (* carret *)
@@ -128,24 +127,61 @@ let string_escape_hol s =
   | x when x > 126 && x <= 255 ->
       Printf.sprintf "\\%03u" x
   | _ -> failwith "int_of_char returned an unexpected value"
-  in
+
+let string_escape_hol s =
+  let b = Buffer.create (String.length s) in
   (* Do not iterate on the UTF8 code, because HOL does not handle UTF8 even
    * though SML does, for some reason. *)
-  String.iter (fun c -> Buffer.add_string b (escape_char c)) s;
+  String.iter (fun c -> Buffer.add_string b (char_escape_hol c)) s;
   Buffer.contents b
+
+(* check whether a character is natively supported by Isabelle *)
+let is_isa_chr x =
+  x >= 0x20 && x <= 0x7e &&
+  (* most printable characters are supported, but there are some exceptions! *)
+  not (List.mem x [0x22; 0x27; 0x5c; 0x60])
+
+let nibble_from_hex h =
+  if h =  0 then "Nibble0" else
+  if h =  1 then "Nibble1" else
+  if h =  2 then "Nibble2" else
+  if h =  3 then "Nibble3" else
+  if h =  4 then "Nibble4" else
+  if h =  5 then "Nibble5" else
+  if h =  6 then "Nibble6" else
+  if h =  7 then "Nibble7" else
+  if h =  8 then "Nibble8" else
+  if h =  9 then "Nibble9" else
+  if h = 10 then "NibbleA" else
+  if h = 11 then "NibbleB" else
+  if h = 12 then "NibbleC" else
+  if h = 13 then "NibbleD" else
+  if h = 14 then "NibbleE" else
+                 "NibbleF" 
+
+let char_escape_isa c =
+  let x = int_of_char c in 
+  if is_isa_chr x then (String.concat "" ["(CHR ''"; String.make 1 c; "'')"])
+  else let n1 = (x / 16) in let n2 = x mod 16 in
+    String.concat "" ["(Char "; nibble_from_hex n1; " "; nibble_from_hex n2; ")"];;
+
+
 
 (* Check that string literal s contains only CHR characters for Isabelle.  Other
  * string literals should have been translated into a list by a macro. *)
 let string_escape_isa s =
-  let is_isa_chr x =
-    x >= 0x20 && x <= 0x7e &&
-    (* most printable characters are supported, but there are some exceptions! *)
-    not (List.mem x [0x22; 0x27; 0x5c; 0x60]) in
-  let check_char c =
-    if not(is_isa_chr (int_of_char c))
-    then raise (Failure "Unsupported character in Isabelle string literal")
-  in
-  String.iter check_char s; s
+  let is_isa_chr c = 
+    let x = int_of_char c in
+    (x >= 0x20 && x <= 0x7e &&
+     (* most printable characters are supported, but there are some exceptions! *)
+     not (List.mem x [0x22; 0x27; 0x5c; 0x60])) in
+  let is_simple_is_string = Util.string_for_all is_isa_chr s in
+  if is_simple_is_string then
+    String.concat "" ["(''"; s; "'')"]
+  else
+    let char_list = Util.string_to_list s in
+    let encoded_chars = List.map char_escape_isa char_list in
+    String.concat "" ["(["; String.concat ", " encoded_chars; "])"]
 
 let pat_add_op_suc kwd suc n s1 s2 i = 
   let rec suc_aux j = begin match j with
@@ -200,10 +236,10 @@ module type Target = sig
   val const_unit : Ast.lex_skips -> t
   val const_empty : Ast.lex_skips -> t
   val string_quote : Ulib.Text.t
-  val string_escape : Ulib.UTF8.t -> Ulib.UTF8.t
+  val string_escape : Ulib.UTF8.t -> Ulib.UTF8.t option -> Ulib.UTF8.t
   val const_num : int -> t
   val const_num_pat : int -> t
-  val const_char : char -> t
+  val const_char : char -> string option -> t
   val const_undefined : Types.t -> string -> t
   val const_bzero : t
   val const_bone : t
@@ -409,10 +445,11 @@ module Identity : Target = struct
   let const_unit s = kwd "(" ^ ws s ^ kwd ")"
   let const_empty s = kwd "{" ^ ws s ^ kwd "}"
   let string_quote = r"\""
-  let string_escape = String.escaped
+  let string_escape s s_org = Util.option_default (String.escaped s) s_org
   let const_num = num
   let const_num_pat = num
-  let const_char c = err "TODO: char literal"
+  let const_char c c_org = 
+     meta (String.concat "" ["#\'"; Util.option_default (Char.escaped c) c_org; "\'"])
   let const_undefined t m = (kwd "Undef") (* ^ (comment m) *)
   let const_bzero = kwd "#0"
   let const_bone = kwd "#1"
@@ -610,10 +647,10 @@ module Tex : Target = struct
   let const_true = bkwd "true"
   let const_false = bkwd "false"
   let string_quote = r"\""
-  let string_escape = String.escaped
+  let string_escape = Identity.string_escape
   let const_num = num
   let const_num_pat = num
-  let const_char c = err "TODO: char literal"
+  let const_char = Identity.const_char
   let const_undefined t m = (bkwd "undefined")
   let const_bzero = kwd "#0"
   let const_bone = kwd "#1"
@@ -769,6 +806,7 @@ module Ocaml : Target = struct
   let const_bzero = kwd "Bit.Zero"
   let const_bone = kwd "Bit.One"
   let const_undefined t m = (kwd "failwith ") ^ (str (r m))
+  let const_char c _ = meta (String.concat "" ["\'"; Char.escaped c; "\'"])
 
   let rec_start = kwd "{"
   let rec_end = kwd "}"
@@ -828,11 +866,11 @@ module Isa : Target = struct
 
   let const_true = kwd "True"
   let const_false = kwd "False"
-  let string_quote = r"''"
-  let string_escape = string_escape_isa
+  let string_quote = r""
+  let string_escape s _ = string_escape_isa s
   let const_num i = num i
   let const_num_pat i = pat_add_op_suc kwd (kwd "Suc") (kwd "0") None None i
-  let const_char c = err "TODO: char literal"
+  let const_char c _ = kwd (char_escape_isa c)
   let const_unit s = kwd "() " ^ ws s
   let const_empty s = kwd "{}" ^ ws s
   let const_undefined t m = (kwd "undefined")
@@ -1025,10 +1063,10 @@ module Hol : Target = struct
   let const_unit s = kwd "() " ^ ws s
   let const_empty s = kwd "{" ^ ws s ^ kwd "}"
   let string_quote = r"\""
-  let string_escape = string_escape_hol
+  let string_escape s _ = string_escape_hol s
   let const_num = num
   let const_num_pat i = pat_add_op_suc kwd (kwd "SUC") (kwd "0") None None i
-  let const_char c = err "TODO: char literal"
+  let const_char c _ = meta (String.concat "" ["#\""; char_escape_hol c; "\""])
   let const_undefined t m = (kwd "ARB") 
   let const_bzero = emp
   let const_bone = emp
@@ -1232,8 +1270,8 @@ let lit l is_pat t = match l.term with
   | L_undefined(s,m) -> ws s ^ T.const_undefined t m
   | L_num(s,i) -> ws s ^ (if is_pat then T.const_num_pat i else T.const_num i)
   | L_numeral(s,i) -> ws s ^ (if is_pat then T.const_num_pat i else T.const_num i)
-  | L_char(s,c) -> ws s ^ T.const_char c
-  | L_string(s,i) -> ws s ^ str (Ulib.Text.of_string (T.string_escape i))
+  | L_char(s,c,org_c) -> ws s ^ T.const_char c org_c
+  | L_string(s,i,org_i) -> ws s ^ str (Ulib.Text.of_string (T.string_escape i org_i))
   | L_unit(s1,s2) -> ws s1 ^ T.const_unit s2
   | L_zero(s) -> ws s ^ T.const_bzero 
   | L_one(s) -> ws s ^ T.const_bone
@@ -2671,7 +2709,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
                ws sk1 ^
                T.bkwd "special" ^
                ws sk2 ^
-               str (Ulib.Text.of_string (T.string_escape st)) ^
+               str (Ulib.Text.of_string (T.string_escape st None)) ^
                Output.concat emp (List.map (exp false) eL)
             end
           | _ -> raise (Reporting_basic.err_todo true Ast.Unknown "declaration")
@@ -2743,7 +2781,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         ws sk3 ^
         kwd "=" ^
         ws sk4 ^
-        core (str (Ulib.Text.of_string (T.string_escape msg)))
+        core (str (Ulib.Text.of_string (T.string_escape msg None)))
       end
   | Declaration (Decl_termination_argument (sk1, targets, sk2, c_id, sk3, term_arg)) -> 
       if (not (Target.is_human_target T.target)) then emp else begin
