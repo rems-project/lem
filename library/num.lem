@@ -736,7 +736,7 @@ end
 val int32FromNumeral : numeral -> int32
 
 declare ocaml    target_rep function int32FromNumeral = `Int32.of_int`
-declare isabelle target_rep function int32FromNumeral = `word_of_int`
+declare isabelle target_rep function int32FromNumeral n = ((`word_of_int` n) : int32)
 (*TODO: Implement the following two correctly. *)
 declare hol      target_rep function int32FromNumeral n = ((`n2w` n) : int32)
 declare coq      target_rep function int32FromNumeral n = (`Zpos` (`P_of_succ_nat` n)) 
@@ -1332,6 +1332,30 @@ assert nat_from_int_0: natFromInt 0 = 0
 assert nat_from_int_1: natFromInt 1 = 1
 assert nat_from_int_2: natFromInt (~ 2) = 2
 
+val int32FromNat : nat -> int32
+declare hol      target_rep function int32FromNat n = ((`n2w` n) : int32)
+declare ocaml    target_rep function int32FromNat = `Int32.of_int`
+declare coq      target_rep function int32FromNat n = (`Zpos` (`P_of_succ_nat` n)) (* TODO check *)
+declare isabelle target_rep function int32FromNat n = ((`word_of_int` (`int` n)):int32)
+
+assert int32_from_nat_0: int32FromNat 0 = 0
+assert int32_from_nat_1: int32FromNat 1 = 1
+assert int32_from_nat_2: int32FromNat 123 = 123
+
+val int32FromInt : int -> int32
+let int32FromInt i = (
+  let abs_int32 = int32FromNat (natFromInt i) in
+  if (i < 0) then (~ abs_int32) else abs_int32 
+)
+declare ocaml    target_rep function int32FromInt = `Int32.of_int`
+declare isabelle target_rep function int32FromInt i = ((`word_of_int` i) : int32)
+
+assert int32_from_int_0: int32FromInt 0 = 0
+assert int32_from_int_1: int32FromInt 1 = 1
+assert int32_from_int_2: int32FromInt 123 = 123
+assert int32_from_int_3: int32FromInt (~0) = ~0
+assert int32_from_int_4: int32FromInt (~1) = ~1
+assert int32_from_int_5: int32FromInt (~123) = ~123
 
 val string_of_natural : natural -> string
 declare ocaml target_rep function string_of_natural = `Big_int.string_of_big_int`
