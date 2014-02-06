@@ -374,3 +374,23 @@ instance forall 'a 'b 'c. SetType 'a, SetType 'b => (SetType ('a * 'b * 'c))
 end
 
 *)
+
+val     listCompare: forall 'a. ('a -> 'a -> ordering) -> list 'a -> list 'a -> ordering
+let rec listCompare cmp xs ys =
+  match (xs, ys) with
+    | ([], []) ->
+        EQ
+    | (x::xs, y::ys) ->
+        match cmp x y with
+          | EQ -> listCompare cmp xs ys
+          | z  -> z
+        end
+    |([], _) ->
+       LT
+    |(_, []) ->
+       GT
+  end
+
+instance forall 'a. SetType 'a => (SetType (list 'a))
+  let setElemCompare = listCompare setElemCompare
+end
