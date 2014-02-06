@@ -509,7 +509,7 @@ let rec lfp s f =
 
 let tc c r =
   let one_step r = fold (fun (x,y) xs -> fold (fun (y',z) xs ->
-     if y = y' then add (x,z) xs else xs) r xs) r (empty c) in
+     if c (y,y) (y',y') = 0 then add (x,z) xs else xs) r xs) r (empty c) in
   lfp r one_step
 
 
