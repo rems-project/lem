@@ -279,6 +279,8 @@ instance (SetType bool)
   let setElemCompare = boolCompare
 end
 
+(* pairs *)
+
 val pairEqual : forall 'a 'b. Eq 'a, Eq 'b => ('a * 'b) -> ('a * 'b) -> bool
 let pairEqual (a1, b1) (a2, b2) = (a1 = a2) && (b1 = b2)
 
@@ -303,7 +305,7 @@ let pairCompare cmpa cmpb (a1, b1) (a2, b2) =
   end
 
 let pairLess (x1, x2) (y1, y2) = (x1 < y1) || ((x1 <= y1) && (x2 < y2))
-let pairLessEq (x1, x2) (y1, y2) = (x1 < y1) || ((x1 <= y1) && (x2 < y2))
+let pairLessEq (x1, x2) (y1, y2) = (x1 < y1) || ((x1 <= y1) && (x2 <= y2))
 
 let pairGreater x12 y12 = pairLess y12 x12
 let pairGreaterEq x12 y12 = pairLessEq y12 x12
@@ -323,3 +325,59 @@ let {ocaml} test = pairCompare setElemCompare setElemCompare
 instance forall 'a 'b. SetType 'a, SetType 'b => (SetType ('a * 'b))
   let setElemCompare = pairCompare setElemCompare setElemCompare
 end
+
+
+(* triples *)
+
+(*
+val tripleEqual : forall 'a 'b 'c. Eq 'a, Eq 'b, Eq 'c => ('a * 'b * 'c) -> ('a * 'b * 'c) -> bool
+let tripleEqual (a1, b1, c1) (a2, b2, c2) = (a1 = a2) && (b1 = b2) && (c1 = c2)
+
+val tripleEqualBy : forall 'a 'b 'c. ('a -> 'a -> bool) -> ('b -> 'b -> bool) -> ('c -> 'c -> bool) -> ('a * 'b * 'c) -> ('a * 'b * 'c) -> bool
+declare ocaml    target_rep function tripleEqualBy = `Lem.triple_equal`
+declare coq      target_rep function tripleEqualBy = `tuple_equal_by`
+
+let inline {hol;isabelle} tripleEqual = unsafe_structural_equality
+let inline {ocaml;coq} tripleEqual = tripleEqualBy isEqual isEqual isEqual
+
+instance forall 'a 'b 'c. Eq 'a, Eq 'b, Eq 'c => (Eq ('a * 'b * 'c))
+  let (=) = tripleEqual
+  let (<>) x y = not (tripleEqual x y)
+end
+
+val tripleCompare : forall 'a 'b 'c. ('a -> 'a -> ordering) -> ('b -> 'b -> ordering) -> ('c -> 'c -> ordering) -> ('a * 'b * 'c) -> ('a * 'b * 'c) -> ordering
+let tripleCompare cmpa cmpb (a1, b1, c1) (a2, b2, c2) =
+  match cmpa a1 a2 with
+    | LT -> LT
+    | GT -> GT
+    | EQ ->  
+        match cmpb b1 b2 with
+        | LT -> LT
+        | GT -> GT
+        | EQ ->  cmpc c1 c2
+        end
+  end
+
+let tripleLess (x1, x2, x3) (y1, y2, y3) = (x1 < y1) || ((x1 <= y1) && (x2 < y2)) || ((x1 <= y1) && (x2 <= y2) && (x3 < y3))
+let tripleLessEq (x1, x2, x3) (y1, y2, y3) = (x1 < y1) || ((x1 <= y1) && (x2 < y2)) || ((x1 <= y1) && (x2 <= y2) && (x3 <= y3))
+
+let tripleGreater x123 y123 = tripleLess y123 x123
+let tripleGreaterEq x123 y123 = tripleLessEq y123 x123
+
+instance forall 'a 'b 'c. Ord 'a, Ord 'b, Ord 'c => (Ord ('a * 'b * 'c))
+  let compare = tripleCompare compare compare
+  let (<)  = tripleLess
+  let (<=) = tripleLessEq
+  let (>)  = tripleGreater
+  let (>=) = tripleGreaterEq
+end
+
+val test : forall 'a 'b 'c. SetType 'a, SetType 'b, SetType 'c => ('a * 'b * 'c) -> ('a * 'b * 'c) -> ordering
+let {ocaml} test = tripleCompare setElemCompare setElemCompare setElemCompare
+
+
+instance forall 'a 'b 'c. SetType 'a, SetType 'b => (SetType ('a * 'b * 'c))
+  let setElemCompare = tripleCompare setElemCompare setElemCompare setElemCompare
+end
+
+*)

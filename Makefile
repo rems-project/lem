@@ -4,7 +4,7 @@ DDIR=lem-$(LEMVERSION)
 PATH := $(CURDIR)/$(FINDLIB)/bin:$(PATH)
 
 #all: il.pdf build-main ilTheory.uo
-all: build-lem libs
+all: bin/lem libs
 # we might want run the tests for all backends that are present
 
 build-doc:
@@ -137,6 +137,10 @@ build-lem: version src/ast.ml src/build_directory.ml
 
 
 lem: build-lem
+
+bin/lem : lem
+	mkdir -p bin
+	cd bin; ln -sf ../src/main.native lem
 
 headache: headache-1.03.tar.gz
 	tar xzf headache-1.03.tar.gz

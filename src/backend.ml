@@ -109,6 +109,23 @@ let latex_fresh_labels = let f = Util.fresh_string reserved_labels  in (fun s ->
  * src/parse/MLstring.sml in HOL source code, as well as
  * http://www.standardml.org/Basis/char.html#SIG:CHAR.toString:VAL *)
 
+let char_escape_ocaml c = match int_of_char c with
+  | 0x5c -> "\\\\" (* backslash *)
+  | 0x22 -> "\\\"" (* double quote *)
+  | 0x27 -> "\\\'" (* single quote *)
+  | x when x >= 32 && x <= 126 -> (* other printable characters *)
+      String.make 1 c
+  | 0x07 -> "\\a" (* common control characters *)
+  | 0x08 -> "\\b"
+  | 0x09 -> "\\t"
+  | 0x0a -> "\\n"
+  | 0x0b -> "\\v"
+  | 0x0c -> "\\f"
+  | 0x0d -> "\\r"
+  | x when x <= 255 ->
+      Printf.sprintf "\\%03u" x
+  | _ -> failwith "int_of_char returned an unexpected value"
+
 let char_escape_hol c = match int_of_char c with
   | 0x5c -> "\\\\" (* backslash *)
   | 0x22 -> "\\\"" (* double quote *)
@@ -164,8 +181,6 @@ let char_escape_isa c =
   if is_isa_chr x then (String.concat "" ["(CHR ''"; String.make 1 c; "'')"])
   else let n1 = (x / 16) in let n2 = x mod 16 in
     String.concat "" ["(Char "; nibble_from_hex n1; " "; nibble_from_hex n2; ")"];;
-
-
 
 (* Check that string literal s contains only CHR characters for Isabelle.  Other
  * string literals should have been translated into a list by a macro. *)
@@ -449,7 +464,7 @@ module Identity : Target = struct
   let const_num = num
   let const_num_pat = num
   let const_char c c_org = 
-     meta (String.concat "" ["#\'"; Util.option_default (Char.escaped c) c_org; "\'"])
+     kwd (String.concat "" ["#\'"; Util.option_default (char_escape_ocaml c) c_org; "\'"])
   let const_undefined t m = (kwd "Undef") (* ^ (comment m) *)
   let const_bzero = kwd "#0"
   let const_bone = kwd "#1"
@@ -806,7 +821,8 @@ module Ocaml : Target = struct
   let const_bzero = kwd "Bit.Zero"
   let const_bone = kwd "Bit.One"
   let const_undefined t m = (kwd "failwith ") ^ (str (r m))
-  let const_char c _ = meta (String.concat "" ["\'"; Char.escaped c; "\'"])
+  let const_char c c_org = 
+     meta (String.concat "" ["\'"; (char_escape_ocaml c); "\'"])
 
   let rec_start = kwd "{"
   let rec_end = kwd "}"

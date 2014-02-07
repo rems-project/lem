@@ -33,6 +33,7 @@ assert char_simple_2: not (#'\xAF' = #'\x00')
 assert char_simple_3: not (#' ' = #'@')
 assert char_simple_4: not (#'\\' = #'\n') 
 assert char_simple_5: (#'\x20' = #' ')
+assert char_simple_6: not ([#'\x20'; #' '; #'\x60'; #'\x27';#'~';#'\\'] = [])
 
 assert string_simple_0: not ("Hello" = ("Goodby":string))
 assert string_simple_1: not ("Hello\nWorld" = "Goodby\x20!")

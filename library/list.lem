@@ -930,6 +930,12 @@ declare ocaml    target_rep function unzip = `List.split`
 assert unzip_1 : (unzip ([] : list (nat * nat)) = ([], []))
 assert unzip_2 : (unzip [((1:nat),(2:nat));(2,3);(3,4)] = ([1;2;3], [2;3;4]))
 
+
+instance forall 'a. SetType 'a => (SetType (list 'a))
+ let setElemCompare = lexicographicCompareBy setElemCompare
+end
+
+
 (* ========================================================================== *)
 (* Comments (not clean yet, please ignore the rest of the file)               *)
 (* ========================================================================== *)
