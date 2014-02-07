@@ -897,13 +897,13 @@ end
 
 val int32Min : int32 -> int32 -> int32
 let inline int32Min = defaultMin
-declare hol      target_rep function int32Min = `word_min`
+declare hol      target_rep function int32Min = `word_smin`
 (*TODO: Implement the following correctly. *)
 declare coq      target_rep function int32Min = `Zmin`
 
 val int32Max : int32 -> int32 -> int32
 let inline int32Max = defaultMax
-declare hol      target_rep function int32Max = `word_max`
+declare hol      target_rep function int32Max = `word_smax`
 (*TODO: Implement the following correctly. *)
 declare coq      target_rep function int32Max = `Zmax`
 
@@ -1081,13 +1081,13 @@ end
 
 val int64Min : int64 -> int64 -> int64
 let inline int64Min = defaultMin
-declare hol      target_rep function int64Min = `word_min`
+declare hol      target_rep function int64Min = `word_smin`
 (*TODO: Implement the following one correctly. *)
 declare coq      target_rep function int64Min = `Zmin`
 
 val int64Max : int64 -> int64 -> int64
 let inline int64Max = defaultMax
-declare hol      target_rep function int64Max = `word_max`
+declare hol      target_rep function int64Max = `word_smax`
 (*TODO: Implement the following one correctly. *)
 declare coq      target_rep function int64Max = `Zmax`
 
