@@ -140,7 +140,7 @@ lem: build-lem
 
 bin/lem : lem
 	mkdir -p bin
-	ln -sf src/main.native bin/lem
+	cd bin; ln -sf ../src/main.native lem
 
 headache: headache-1.03.tar.gz
 	tar xzf headache-1.03.tar.gz
