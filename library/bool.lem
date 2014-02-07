@@ -122,3 +122,17 @@ assert equiv_1 : (not (true <-> false))
 assert equiv_2 : (not (false <-> true))
 assert equiv_3 : (false <-> false)
 assert equiv_4 : (true <-> true)
+
+
+(* ----------------------- *)
+(* xor                     *)
+(* ----------------------- *)
+
+val xor : bool -> bool -> bool
+let inline xor b1 b2 = not (b1 <-> b2)
+
+assert xor_1 : (xor true false)
+assert xor_2 : (xor false true)
+assert xor_3 : (not (xor true true))
+assert xor_4 : (not (xor false false))
+

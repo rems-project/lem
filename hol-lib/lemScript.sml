@@ -50,6 +50,7 @@ open pred_setSimps pred_setTheory
 open finite_mapTheory
 open set_relationTheory
 open integerTheory intReduce quantHeuristicsLib;
+open wordsTheory
 
 val _ = numLib.prefer_num();
 
@@ -268,7 +269,9 @@ SIMP_TAC (std_ss++pred_setSimps.PRED_SET_ss++QUANT_INST_ss [std_qp]) [range_def,
 
 val _ = computeLib.add_persistent_funs ["rrestrict_eval", "domain_eval", "range_eval"]
 
-
-
+val w2int_def = Define `w2int (w : 'a word) = 
+  let i1 = (w2n w) in
+  let i2 = (INT_MAX (:'a)) in
+  if i1 > i2 then (int_of_num i1 - (int_of_num (UINT_MAX (:'a)))) - 1 else int_of_num i1`
 
 val _ = export_theory()
