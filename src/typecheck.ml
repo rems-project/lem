@@ -2649,7 +2649,7 @@ let rec check_instance_type_shape (ctxt : defn_ctxt) (src_t : src_t)
     | Typ_fn(t1,_,t2) ->
         (tvs_to_set [to_tnvar t1; to_tnvar t2], r"fun")
     | Typ_tup(ts) ->
-        (tvs_to_set (Seplist.to_list_map to_tnvar ts), r"tup")
+        (tvs_to_set (Seplist.to_list_map to_tnvar ts), r ("tup" ^ (string_of_int (Seplist.length ts))))
     | Typ_backend(p,_) -> raise (Reporting_basic.err_type p.id_locn "backend-type in class instance type")
     | Typ_app(p,ts) ->
         begin
