@@ -98,8 +98,8 @@ and lit_aux =
   | L_false of lskips
   | L_zero of lskips (** This is a bit, not a num *)
   | L_one of lskips  (** see above *)
-  | L_numeral of lskips * int (** A numeral literal, it has fixed type "numeral" and is used in patterns and after translating L_num to it. *)
-  | L_num of lskips * int (** A number literal. This is like a numeral one wrapped with the "from_numeral" function *)
+  | L_numeral of lskips * int * string option (** A numeral literal, it has fixed type "numeral" and is used in patterns and after translating L_num to it. *)
+  | L_num of lskips * int * string option (** A number literal. This is like a numeral one wrapped with the "from_numeral" function *)
   | L_char of lskips * char * string option (** A char literal. It contains the parsed char as well as the original input string (if available). *)
   | L_string of lskips * string * string option (** A string literal. It contains the parsed string as well as the original input string (if available). *)
   | L_unit of lskips * lskips
@@ -607,8 +607,8 @@ module Exps_in_context(C : Exp_context) : sig
   val exp_to_term : exp -> exp_aux
   val exp_to_free : exp -> Types.t Nfmap.t
   val type_eq : Ast.l -> string -> Types.t -> Types.t -> unit
-  val mk_lnumeral : Ast.l -> lskips -> int -> Types.t option -> lit
-  val mk_lnum : Ast.l -> lskips -> int -> Types.t -> lit 
+  val mk_lnumeral : Ast.l -> lskips -> int -> string option -> Types.t option -> lit
+  val mk_lnum : Ast.l -> lskips -> int -> string option -> Types.t -> lit 
   val mk_lbool : Ast.l -> lskips -> bool -> Types.t option -> lit
   val mk_lbit : Ast.l -> lskips -> int -> Types.t option -> lit
   val mk_lundef : Ast.l -> lskips -> string -> Types.t -> lit

@@ -332,7 +332,7 @@ lit_aux :: 'L_' ::=
   {{ com Literal constants }}
   | true						:: :: true
   | false						:: :: false
-  | num						:: :: num
+  | string 						:: :: num
   | hex						:: :: hex
   {{ com hex and bin are constant bit vectors, entered as C-style hex or binaries }}
   | bin						:: :: bin

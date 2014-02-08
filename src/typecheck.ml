@@ -901,7 +901,9 @@ module Make_checker(T : sig
           C.add_constraint (External_constants.class_label_to_path "class_numeral") t_ret;
           if is_pattern then C.add_constraint (External_constants.class_label_to_path "class_ord") t_ret else ();
           if is_pattern then C.add_constraint (External_constants.class_label_to_path "class_num_minus") t_ret else ();
-          annot (L_num(sk,i)) t_ret 
+          let i_int = try int_of_string i with Failure "int_of_string" ->
+            raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax_locn (l, "couldn't parse integer "^i))) in
+          annot (L_num(sk,i_int, Some i)) t_ret 
       | Ast.L_string(sk,i) ->
           annot (L_string(sk, string_unescape i, Some i)) { t = Tapp([], Path.stringpath) }
       | Ast.L_char(sk,i) ->
