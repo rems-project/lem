@@ -18,7 +18,7 @@ open import {coq} `Coq.ZArith.BinInt` `Coq.ZArith.Zpower` `Coq.ZArith.Zdiv` `Coq
 (* Numerals                                                                   *)
 (* ========================================================================== *)
 
-(* Numerals like 0, 1, 2, 42, 4543 are build-in. That's the only use
+(* Numerals like 0, 1, 2, 42, 4543 are built-in. That's the only use
    of numerals. The following type-class is used to convert numerals into
    verious number types. The type of numerals differs form backend to backend.
    Essentially they are just printed as "0", "1", ... and the backend decides
