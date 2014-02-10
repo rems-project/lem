@@ -153,8 +153,8 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 %token <Ast.terminal * Ulib.Text.t> AmpAmp BarBar ColonColon Star Plus Eq At GtEq 
 %token <Ast.terminal * Ulib.Text.t> X Tyvar Nvar 
 %token <Ast.terminal * Ulib.Text.t> StarstarX StarX PlusX AtX EqualX GtEqX
-%token <Ast.terminal * int> Num
-%token <Ast.terminal * string> BacktickString String Char Bin Hex 
+%token <Ast.terminal * (int * string)> Num BinNum OctNum HexNum
+%token <Ast.terminal * string> BacktickString String Char Bin Hex Oct
 
 %token <Ast.terminal> Indreln Forall EqEqGt Inline Lem_transform LtBar BarGt Exists EqGt BraceBar BarBrace DotBrace 
 %token <Ast.terminal> Assert Lemma Theorem 
@@ -286,7 +286,7 @@ atomic_nexp:
    | Nvar
      { nloc (Nexp_var (fst $1, snd $1)) }
    | Num
-     { nloc (Nexp_constant(fst $1, snd $1)) }
+     { nloc (Nexp_constant(fst $1, fst (snd $1))) }
    | Lparen nexp Rparen
      { nloc (Nexp_paren($1,$2,$3)) }
 
@@ -308,7 +308,13 @@ lit:
   | False
     { lloc (L_false($1)) }
   | Num
-    { lloc (L_num(fst $1, snd $1)) }
+    { lloc (L_num(fst $1, (snd (snd $1)))) }
+  | BinNum
+    { lloc (L_num(fst $1, (snd (snd $1)))) }
+  | OctNum
+    { lloc (L_num(fst $1, (snd (snd $1)))) }
+  | HexNum
+    { lloc (L_num(fst $1, (snd (snd $1)))) }
   | String
     { lloc (L_string(fst $1, snd $1)) }
   | Char
@@ -348,7 +354,7 @@ atomic_pat:
   | Lparen pat As x Rparen
     { ploc (P_as($1,$2,$3,$4,$5)) }
   | x Plus Num
-    { ploc (P_num_add($1,fst $2,fst $3, snd $3)) }
+    { ploc (P_num_add($1,fst $2,fst $3, fst (snd $3))) }
 
 atomic_pats:
   | atomic_pat
@@ -937,11 +943,11 @@ tnvar_list :
 
 fixity_decl :
   | RightAssoc Num
-    { Fixity_right_assoc($1, snd $2) }
+    { Fixity_right_assoc($1, fst (snd $2)) }
   | LeftAssoc Num
-    { Fixity_left_assoc($1, snd $2) }
+    { Fixity_left_assoc($1, fst (snd $2)) }
   | NonAssoc Num
-    { Fixity_non_assoc($1, snd $2) }
+    { Fixity_non_assoc($1, fst (snd $2)) }
   |
     { Fixity_default_assoc }
 

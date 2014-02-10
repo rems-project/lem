@@ -252,7 +252,7 @@ module type Target = sig
   val const_empty : Ast.lex_skips -> t
   val string_quote : Ulib.Text.t
   val string_escape : Ulib.UTF8.t -> Ulib.UTF8.t option -> Ulib.UTF8.t
-  val const_num : int -> t
+  val const_num : int -> string option -> t
   val const_num_pat : int -> t
   val const_char : char -> string option -> t
   val const_undefined : Types.t -> string -> t
@@ -461,7 +461,7 @@ module Identity : Target = struct
   let const_empty s = kwd "{" ^ ws s ^ kwd "}"
   let string_quote = r"\""
   let string_escape s s_org = Util.option_default (String.escaped s) s_org
-  let const_num = num
+  let const_num i i_opt = Util.option_default_map i_opt (num i) kwd
   let const_num_pat = num
   let const_char c c_org = 
      kwd (String.concat "" ["#\'"; Util.option_default (char_escape_ocaml c) c_org; "\'"])
@@ -510,7 +510,7 @@ module Identity : Target = struct
   let setcomp_binding_middle = kwd "|"
   let setcomp_sep = kwd "|"
   let cons_op = kwd "::"
-  let pat_add_op n s1 s2 i =  n ^ ws s1 ^ (kwd "+") ^ ws s2 ^ const_num i
+  let pat_add_op n s1 s2 i =  n ^ ws s1 ^ (kwd "+") ^ ws s2 ^ const_num i None
   let set_sep = kwd ";"
   let list_begin = kwd "["
   let list_end = kwd "]"
@@ -663,7 +663,7 @@ module Tex : Target = struct
   let const_false = bkwd "false"
   let string_quote = r"\""
   let string_escape = Identity.string_escape
-  let const_num = num
+  let const_num = Identity.const_num
   let const_num_pat = num
   let const_char = Identity.const_char
   let const_undefined t m = (bkwd "undefined")
@@ -715,7 +715,7 @@ module Tex : Target = struct
   let setcomp_binding_middle = texspace ^ kwd "|" ^ texspace
   let setcomp_sep = texspace ^ kwd "|" ^ texspace
   let cons_op = kwd "::"
-  let pat_add_op n s1 s2 i =  n ^ ws s1 ^ kwd "+" ^ ws s2 ^ const_num i
+  let pat_add_op n s1 s2 i =  n ^ ws s1 ^ kwd "+" ^ ws s2 ^ const_num i None
   let set_sep = kwd ";\\,"
   let list_begin = kwd "["
   let list_end = kwd "]"
@@ -884,7 +884,7 @@ module Isa : Target = struct
   let const_false = kwd "False"
   let string_quote = r""
   let string_escape s _ = string_escape_isa s
-  let const_num i = num i
+  let const_num i _ = num i
   let const_num_pat i = pat_add_op_suc kwd (kwd "Suc") (kwd "0") None None i
   let const_char c _ = kwd (char_escape_isa c)
   let const_unit s = kwd "() " ^ ws s
@@ -1080,7 +1080,7 @@ module Hol : Target = struct
   let const_empty s = kwd "{" ^ ws s ^ kwd "}"
   let string_quote = r"\""
   let string_escape s _ = string_escape_hol s
-  let const_num = num
+  let const_num i _ = num i
   let const_num_pat i = pat_add_op_suc kwd (kwd "SUC") (kwd "0") None None i
   let const_char c _ = meta (String.concat "" ["#\""; char_escape_hol c; "\""])
   let const_undefined t m = (kwd "ARB") 
@@ -1284,8 +1284,8 @@ let lit l is_pat t = match l.term with
   | L_true(s) -> ws s ^ T.const_true
   | L_false(s) -> ws s ^ T.const_false
   | L_undefined(s,m) -> ws s ^ T.const_undefined t m
-  | L_num(s,i) -> ws s ^ (if is_pat then T.const_num_pat i else T.const_num i)
-  | L_numeral(s,i) -> ws s ^ (if is_pat then T.const_num_pat i else T.const_num i)
+  | L_num(s,i,org_input) -> ws s ^ (if is_pat then T.const_num_pat i else T.const_num i org_input)
+  | L_numeral(s,i,org_i) -> ws s ^ (if is_pat then T.const_num_pat i else T.const_num i org_i)
   | L_char(s,c,org_c) -> ws s ^ T.const_char c org_c
   | L_string(s,i,org_i) -> ws s ^ str (Ulib.Text.of_string (T.string_escape i org_i))
   | L_unit(s1,s2) -> ws s1 ^ T.const_unit s2
@@ -1298,7 +1298,7 @@ let nexp n =
     | Nexp_var(s,v) ->
         ws s ^ id Nexpr_var (Ulib.Text.(^^^) T.nexp_var (Nvar.to_rope v))
     | Nexp_const(s,i) ->
-        ws s ^ T.const_num i
+        ws s ^ T.const_num i None
     | Nexp_mult(n1,s,n2) ->
         nexp_int n1 ^ ws s ^ T.nexp_times ^ nexp_int n2
     | Nexp_add(n1,s,n2) ->
