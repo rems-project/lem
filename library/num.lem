@@ -1501,26 +1501,9 @@ assert integer_test26 : (pred 0 = ~(1 : integer))
 (* Translation between number types                                           *)
 (* ========================================================================== *)
 
-val naturalFromNat : nat -> natural
-declare hol      target_rep function naturalFromNat = `` (* remove natFromNumeral, as it is the identify function *)
-declare ocaml    target_rep function naturalFromNat = `Big_int.big_int_of_int`
-declare isabelle target_rep function naturalFromNat = ``
-declare coq      target_rep function naturalFromNat = `id`
-
-assert natural_from_nat_0: naturalFromNat 0 = 0
-assert natural_from_nat_1: naturalFromNat 1 = 1
-assert natural_from_nat_2: naturalFromNat 2 = 2
-
-val natFromNatural : natural -> nat
-declare hol      target_rep function natFromNatural = `` (* remove natFromNumeral, as it is the identify function *)
-declare ocaml    target_rep function natFromNatural = `Big_int.int_of_big_int`
-declare isabelle target_rep function natFromNatural = ``
-declare coq      target_rep function natFromNatural = `id`
-
-assert nat_from_natural_0: natFromNatural 0 = 0
-assert nat_from_natural_1: natFromNatural 1 = 1
-assert nat_from_natural_2: natFromNatural 2 = 2
-
+(******************)
+(* integerFrom... *)
+(******************)
 
 val integerFromInt : int -> integer
 declare hol      target_rep function integerFromInt = `` (* remove natFromNumeral, as it is the identify function *)
@@ -1532,47 +1515,16 @@ assert integer_from_int_0: integerFromInt 0 = 0
 assert integer_from_int_1: integerFromInt 1 = 1
 assert integer_from_int_2: integerFromInt (~2) = (~2)
 
-val intFromInteger : integer -> int
-declare hol      target_rep function intFromInteger = `` (* remove natFromNumeral, as it is the identify function *)
-declare ocaml    target_rep function intFromInteger = `Big_int.int_of_big_int`
-declare isabelle target_rep function intFromInteger = ``
-declare coq      target_rep function intFromInteger = `id`
 
-assert int_from_integer_0: intFromInteger 0 = 0
-assert int_from_integer_1: intFromInteger 1 = 1
-assert int_from_integer_2: intFromInteger (~2) = (~2)
+val integerFromNat : nat -> integer
+declare hol      target_rep function integerFromNat = `int_of_num` 
+declare ocaml    target_rep function integerFromNat = `Big_int.big_int_of_int`
+declare isabelle target_rep function integerFromNat = `int`
+declare coq      target_rep function integerFromNat n = (`Zpos` (`P_of_succ_nat` n)) (* TODO: check *)
 
-
-val intFromNat : nat -> int
-declare hol      target_rep function intFromNat = `int_of_num` 
-declare ocaml    target_rep function intFromNat n = ``n
-declare isabelle target_rep function intFromNat = `int`
-declare coq      target_rep function intFromNat n = (`Zpos` (`P_of_succ_nat` n))
-
-assert int_from_nat_0: intFromNat 0 = 0
-assert int_from_nat_1: intFromNat 1 = 1
-assert int_from_nat_2: intFromNat 2 = 2
-
-val natFromInt : int -> nat
-declare hol      target_rep function natFromInt i = `Num` (`ABS` i) 
-declare ocaml    target_rep function natFromInt = `abs`
-declare coq      target_rep function natFromInt = `Zabs_nat`
-declare isabelle target_rep function natFromInt i = `nat` (`abs` i)
-
-assert nat_from_int_0: natFromInt 0 = 0
-assert nat_from_int_1: natFromInt 1 = 1
-assert nat_from_int_2: natFromInt (~ 2) = 2
-
-
-val naturalFromInteger : integer -> natural
-declare hol      target_rep function naturalFromInteger i = `Num` (`ABS` i) 
-declare ocaml    target_rep function naturalFromInteger = `Big_int.abs_big_int`
-declare coq      target_rep function naturalFromInteger = `Zabs_nat`
-declare isabelle target_rep function naturalFromInteger i = `nat` (`abs` i)
-
-assert natural_from_integer_0: naturalFromInteger 0 = 0
-assert natural_from_integer_1: naturalFromInteger 1 = 1
-assert natural_from_integer_2: naturalFromInteger (~ 2) = 2
+assert integer_from_nat_0: integerFromNat 0 = 0
+assert integer_from_nat_1: integerFromNat 1 = 1
+assert integer_from_nat_2: integerFromNat 12 = 12
 
 val integerFromNatural : natural -> integer 
 declare hol      target_rep function integerFromNatural = `int_of_num` 
@@ -1585,8 +1537,116 @@ assert integerFromNatural_1: integerFromNatural 822 = 822
 assert integerFromNatural_2: integerFromNatural 12 = 12
 
 
+val integerFromInt32 : int32 -> integer
+declare ocaml    target_rep function integerFromInt32 = `Big_int.big_int_of_int32`
+declare isabelle target_rep function integerFromInt32 = `sint`
+declare hol      target_rep function integerFromInt32 = `w2int`
+declare coq      target_rep function integerFromInt32 = `TODO`
+
+assert integer_from_int32_0: integerFromInt32 0 = 0
+assert integer_from_int32_1: integerFromInt32 1 = 1
+assert integer_from_int32_2: integerFromInt32 123 = 123
+assert integer_from_int32_3: integerFromInt32 (~0) = ~0
+assert integer_from_int32_4: integerFromInt32 (~1) = ~1
+assert integer_from_int32_5: integerFromInt32 (~123) = ~123
 
 
+val integerFromInt64 : int64 -> integer
+declare ocaml    target_rep function integerFromInt64 = `Big_int.big_int_of_int64`
+declare isabelle target_rep function integerFromInt64 = `sint`
+declare hol      target_rep function integerFromInt64 = `w2int`
+declare coq      target_rep function integerFromInt64 = `TODO`
+
+assert integer_from_int64_0: integerFromInt64 0 = 0
+assert integer_from_int64_1: integerFromInt64 1 = 1
+assert integer_from_int64_2: integerFromInt64 123 = 123
+assert integer_from_int64_3: integerFromInt64 (~0) = ~0
+assert integer_from_int64_4: integerFromInt64 (~1) = ~1
+assert integer_from_int64_5: integerFromInt64 (~123) = ~123
+
+
+(******************)
+(* naturalFrom... *)
+(******************)
+
+val naturalFromNat : nat -> natural
+declare hol      target_rep function naturalFromNat = `` (* remove natFromNumeral, as it is the identify function *)
+declare ocaml    target_rep function naturalFromNat = `Big_int.big_int_of_int`
+declare isabelle target_rep function naturalFromNat = ``
+declare coq      target_rep function naturalFromNat = `id`
+
+assert natural_from_nat_0: naturalFromNat 0 = 0
+assert natural_from_nat_1: naturalFromNat 1 = 1
+assert natural_from_nat_2: naturalFromNat 2 = 2
+
+val naturalFromInteger : integer -> natural
+declare compile_message naturalFromInteger = "naturalFromInteger is undefined for negative integers"
+
+declare hol      target_rep function naturalFromInteger i = `Num` (`ABS` i) 
+declare ocaml    target_rep function naturalFromInteger = `Big_int.abs_big_int`
+declare coq      target_rep function naturalFromInteger = `Zabs_nat`
+declare isabelle target_rep function naturalFromInteger i = `nat` (`abs` i)
+
+assert natural_from_integer_0: naturalFromInteger 0 = 0
+assert natural_from_integer_1: naturalFromInteger 1 = 1
+assert natural_from_integer_2: naturalFromInteger (~ 2) = 2
+
+
+(******************)
+(* intFrom ...    *)
+(******************)
+
+val intFromInteger : integer -> int
+declare compile_message naturalFromInteger = "naturalFromInteger is undefined for negative integers and might fail for numbers greater 2^30"
+declare hol      target_rep function intFromInteger = `` (* remove natFromNumeral, as it is the identify function *)
+declare ocaml    target_rep function intFromInteger = `Big_int.int_of_big_int`
+declare isabelle target_rep function intFromInteger = ``
+declare coq      target_rep function intFromInteger = `id`
+
+assert int_from_integer_0: intFromInteger 0 = 0
+assert int_from_integer_1: intFromInteger 1 = 1
+assert int_from_integer_2: intFromInteger (~2) = (~2)
+
+val intFromNat : nat -> int
+declare hol      target_rep function intFromNat = `int_of_num` 
+declare ocaml    target_rep function intFromNat n = ``n
+declare isabelle target_rep function intFromNat = `int`
+declare coq      target_rep function intFromNat n = (`Zpos` (`P_of_succ_nat` n))
+
+assert int_from_nat_0: intFromNat 0 = 0
+assert int_from_nat_1: intFromNat 1 = 1
+assert int_from_nat_2: intFromNat 2 = 2
+
+
+(******************)
+(* natFrom ...    *)
+(******************)
+
+val natFromNatural : natural -> nat
+declare compile_message naturalFromInteger = "natFromNatural might fail for too big values. The values allowed are system-dependend. However, at least 30 bit should be available, i.e. all numbers up to 2^30 = 1 073 741 824 should be OK."
+declare hol      target_rep function natFromNatural = `` (* remove natFromNumeral, as it is the identify function *)
+declare ocaml    target_rep function natFromNatural = `Big_int.int_of_big_int`
+declare isabelle target_rep function natFromNatural = ``
+declare coq      target_rep function natFromNatural = `id`
+
+assert nat_from_natural_0: natFromNatural 0 = 0
+assert nat_from_natural_1: natFromNatural 1 = 1
+assert nat_from_natural_2: natFromNatural 2 = 2
+
+val natFromInt : int -> nat
+declare hol      target_rep function natFromInt i = `Num` (`ABS` i) 
+declare ocaml    target_rep function natFromInt = `abs`
+declare coq      target_rep function natFromInt = `Zabs_nat`
+declare isabelle target_rep function natFromInt i = `nat` (`abs` i)
+
+assert nat_from_int_0: natFromInt 0 = 0
+assert nat_from_int_1: natFromInt 1 = 1
+assert nat_from_int_2: natFromInt (~ 2) = 2
+
+
+(******************)
+(* int32From ...  *)
+(******************)
 
 val int32FromNat : nat -> int32
 declare hol      target_rep function int32FromNat n = ((`n2w` n) : int32)
@@ -1608,12 +1668,24 @@ assert int32_from_natural_0: int32FromNatural 0 = 0
 assert int32_from_natural_1: int32FromNatural 1 = 1
 assert int32_from_natural_2: int32FromNatural 123 = 123
 
-
-val int32FromInt : int -> int32
-let int32FromInt i = (
-  let abs_int32 = int32FromNat (natFromInt i) in
+val int32FromInteger : integer -> int32
+let int32FromInteger i = (
+  let abs_int32 = int32FromNatural (naturalFromInteger i) in
   if (i < 0) then (~ abs_int32) else abs_int32 
 )
+
+declare ocaml    target_rep function int32FromInteger = `Big_int.int32_of_big_int`
+declare isabelle target_rep function int32FromInteger i = ((`word_of_int` i) : int32)
+
+assert int32_from_integer_0: int32FromInteger 0 = 0
+assert int32_from_integer_1: int32FromInteger 1 = 1
+assert int32_from_integer_2: int32FromInteger 123 = 123
+assert int32_from_integer_3: int32FromInteger (~0) = ~0
+assert int32_from_integer_4: int32FromInteger (~1) = ~1
+assert int32_from_integer_5: int32FromInteger (~123) = ~123
+
+val int32FromInt : int -> int32
+let int32FromInt i = int32FromInteger (integerFromInt i)
 declare ocaml    target_rep function int32FromInt = `Int32.of_int`
 declare isabelle target_rep function int32FromInt i = ((`word_of_int` i) : int32)
 
@@ -1624,38 +1696,148 @@ assert int32_from_int_3: int32FromInt (~0) = ~0
 assert int32_from_int_4: int32FromInt (~1) = ~1
 assert int32_from_int_5: int32FromInt (~123) = ~123
 
-val int32FromInteger : integer -> int32
-let int32FromInteger i = (
-  let abs_int32 = int32FromNatural (naturalFromInteger i) in
-  if (i < 0) then (~ abs_int32) else abs_int32 
+
+val int32FromInt64 : int64 -> int32
+let int32FromInt64 i = int32FromInteger (integerFromInt64 i)
+declare ocaml    target_rep function int32FromInt64 = `Int64.to_int32`
+declare hol      target_rep function int32FromInt64 i = ((`sw2sw` i) : int32)
+declare isabelle target_rep function int32FromInt64 i = ((`scast` i) : int32)
+
+assert int32_from_int_64_0: int32FromInt64 0 = 0
+assert int32_from_int_64_1: int32FromInt64 1 = 1
+assert int32_from_int_64_2: int32FromInt64 123 = 123
+assert int32_from_int_64_3: int32FromInt64 (~0) = ~0
+assert int32_from_int_64_4: int32FromInt64 (~1) = ~1
+assert int32_from_int_64_5: int32FromInt64 (~123) = ~123
+
+
+
+
+(******************)
+(* int64From ...  *)
+(******************)
+
+val int64FromNat : nat -> int64
+declare hol      target_rep function int64FromNat n = ((`n2w` n) : int64)
+declare ocaml    target_rep function int64FromNat = `Int64.of_int`
+declare coq      target_rep function int64FromNat n = (`Zpos` (`P_of_succ_nat` n)) (* TODO check *)
+declare isabelle target_rep function int64FromNat n = ((`word_of_int` (`int` n)):int64)
+
+assert int64_from_nat_0: int64FromNat 0 = 0
+assert int64_from_nat_1: int64FromNat 1 = 1
+assert int64_from_nat_2: int64FromNat 123 = 123
+
+val int64FromNatural : natural -> int64
+declare hol      target_rep function int64FromNatural n = ((`n2w` n) : int64)
+declare ocaml    target_rep function int64FromNatural = `Big_int.int64_of_big_int`
+declare coq      target_rep function int64FromNatural n = (`Zpos` (`P_of_succ_nat` n)) (* TODO check *)
+declare isabelle target_rep function int64FromNatural n = ((`word_of_int` (`int` n)):int64)
+
+assert int64_from_natural_0: int64FromNatural 0 = 0
+assert int64_from_natural_1: int64FromNatural 1 = 1
+assert int64_from_natural_2: int64FromNatural 123 = 123
+
+val int64FromInteger : integer -> int64
+let int64FromInteger i = (
+  let abs_int64 = int64FromNatural (naturalFromInteger i) in
+  if (i < 0) then (~ abs_int64) else abs_int64 
 )
 
-declare ocaml    target_rep function int32FromInteger = `Big_int.int32_of_big_int`
-declare isabelle target_rep function int32FromInteger i = ((`word_of_int` i) : int32)
+declare ocaml    target_rep function int64FromInteger = `Big_int.int64_of_big_int`
+declare isabelle target_rep function int64FromInteger i = ((`word_of_int` i) : int64)
+
+assert int64_from_integer_0: int64FromInteger 0 = 0
+assert int64_from_integer_1: int64FromInteger 1 = 1
+assert int64_from_integer_2: int64FromInteger 123 = 123
+assert int64_from_integer_3: int64FromInteger (~0) = ~0
+assert int64_from_integer_4: int64FromInteger (~1) = ~1
+assert int64_from_integer_5: int64FromInteger (~123) = ~123
+
+val int64FromInt : int -> int64
+let int64FromInt i = int64FromInteger (integerFromInt i)
+declare ocaml    target_rep function int64FromInt = `Int64.of_int`
+declare isabelle target_rep function int64FromInt i = ((`word_of_int` i) : int64)
+
+assert int64_from_int_0: int64FromInt 0 = 0
+assert int64_from_int_1: int64FromInt 1 = 1
+assert int64_from_int_2: int64FromInt 123 = 123
+assert int64_from_int_3: int64FromInt (~0) = ~0
+assert int64_from_int_4: int64FromInt (~1) = ~1
+assert int64_from_int_5: int64FromInt (~123) = ~123
 
 
-assert int32_from_integer_0: int32FromInteger 0 = 0
-assert int32_from_integer_1: int32FromInteger 1 = 1
-assert int32_from_integer_2: int32FromInteger 123 = 123
-assert int32_from_integer_3: int32FromInteger (~0) = ~0
-assert int32_from_integer_4: int32FromInteger (~1) = ~1
-assert int32_from_integer_5: int32FromInteger (~123) = ~123
+val int64FromInt32 : int32 -> int64
+let int64FromInt32 i = int64FromInteger (integerFromInt32 i)
+declare ocaml    target_rep function int64FromInt32 = `Int64.of_int32`
+declare hol      target_rep function int64FromInt32 i = ((`sw2sw` i) : int64)
+declare isabelle target_rep function int64FromInt32 i = ((`scast` i) : int64)
+
+assert int64_from_int_33_0: int64FromInt32 0 = 0
+assert int64_from_int_32_1: int64FromInt32 1 = 1
+assert int64_from_int_32_2: int64FromInt32 123 = 123
+assert int64_from_int_32_3: int64FromInt32 (~0) = ~0
+assert int64_from_int_32_4: int64FromInt32 (~1) = ~1
+assert int64_from_int_32_5: int64FromInt32 (~123) = ~123
 
 
-val integerFromInt32 : int32 -> integer
-declare ocaml    target_rep function integerFromInt32 = `Big_int.big_int_of_int32`
-declare isabelle target_rep function integerFromInt32 = `sint`
-declare hol      target_rep function integerFromInt32 = `w2int`
-declare coq      target_rep function integerFromInt32 = `TODO`
+(******************)
+(* what's missing *)
+(******************)
+
+val naturalFromInt : int -> natural
+val naturalFromInt32 : int32 -> natural
+val naturalFromInt64 : int64 -> natural
+
+let inline naturalFromInt i = naturalFromNat (natFromInt i)
+let inline naturalFromInt32 i = naturalFromInteger (integerFromInt32 i)
+let inline naturalFromInt64 i = naturalFromInteger (integerFromInt64 i)
+
+assert natural_from_int_0: naturalFromInt 0 = 0
+assert natural_from_int_1: naturalFromInt 1 = 1
+assert natural_from_int_2: naturalFromInt (~ 2) = 2
+assert natural_from_int32_0: naturalFromInt32 0 = 0
+assert natural_from_int32_1: naturalFromInt32 1 = 1
+assert natural_from_int32_2: naturalFromInt32 (~ 2) = 2
+assert natural_from_int64_0: naturalFromInt64 0 = 0
+assert natural_from_int64_1: naturalFromInt64 1 = 1
+assert natural_from_int64_2: naturalFromInt64 (~ 2) = 2
 
 
-assert integer_from_int32_0: integerFromInt32 0 = 0
-assert integer_from_int32_1: integerFromInt32 1 = 1
-assert integer_from_int32_2: integerFromInt32 123 = 123
-assert integer_from_int32_3: integerFromInt32 (~0) = ~0
-assert integer_from_int32_4: integerFromInt32 (~1) = ~1
-assert integer_from_int32_5: integerFromInt32 (~123) = ~123
+val intFromNatural : natural -> int
+val intFromInt32 : int32 -> int
+val intFromInt64 : int64 -> int
 
+let inline intFromNatural n = intFromNat (natFromNatural n)
+let inline intFromInt32 i = intFromInteger (integerFromInt32 i)
+let inline intFromInt64 i = intFromInteger (integerFromInt64 i)
+
+assert int_from_natural_0: intFromNatural 0 = 0
+assert int_from_natural_1: intFromNatural 1 = 1
+assert int_from_natural_2: intFromNatural 122 = 122
+assert int_from_int32_0: intFromInt32 0 = 0
+assert int_from_int32_1: intFromInt32 1 = 1
+assert int_from_int32_2: intFromInt32 (~ 2) = (~2)
+assert int_from_int64_0: intFromInt64 0 = 0
+assert int_from_int64_1: intFromInt64 1 = 1
+assert int_from_int64_2: intFromInt64 (~ 2) = (~2)
+
+val natFromInteger : integer -> nat
+val natFromInt32 : int32 -> nat
+val natFromInt64 : int64 -> nat
+
+let inline natFromInteger n = natFromInt (intFromInteger n)
+let inline natFromInt32 i = natFromInteger (integerFromInt32 i)
+let inline natFromInt64 i = natFromInteger (integerFromInt64 i)
+
+assert nat_from_integer_0: natFromInteger 0 = 0
+assert nat_from_integer_1: natFromInteger 1 = 1
+assert nat_from_integer_2: natFromInteger 122 = 122
+assert nat_from_int32_0: natFromInt32 0 = 0
+assert nat_from_int32_1: natFromInt32 1 = 1
+assert nat_from_int32_2: natFromInt32 (~ 2) = 2
+assert nat_from_int64_0: natFromInt64 0 = 0
+assert nat_from_int64_1: natFromInt64 1 = 1
+assert nat_from_int64_2: natFromInt64 (~ 2) = 2
 
 val string_of_natural : natural -> string
 declare ocaml target_rep function string_of_natural = `Big_int.string_of_big_int`
