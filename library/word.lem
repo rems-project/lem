@@ -4,23 +4,518 @@
 
 declare {isabelle;coq;hol;ocaml} rename module = Lem_word
 
-open import Maybe Num Basic_classes List
+open import Bool Maybe Num Basic_classes List
 
 open import {isabelle} `~~/src/HOL/Word/Word`
 open import {hol} `wordsTheory` `wordsLib`
 
-class ( Word 'a )
-  val lnot : 'a -> 'a
-  val (land) [`conjunction`]  : 'a -> 'a -> 'a
-  val (lor)  [`inclusive_or`] : 'a -> 'a -> 'a
-  val (lxor) [`exclusive_or`] : 'a -> 'a -> 'a
-  val (lsl)  [`left_shift`] : 'a -> nat -> 'a
-  val (lsr)  [`right_shift`] : 'a -> nat -> 'a
-  val fromBoolList : list bool -> maybe 'a
-  val toBoolList   : 'a -> list bool
+
+(* ========================================================================== *)
+(* Define general purpose word, i.e. sequences of bits of arbitrary length    *)
+(* ========================================================================== *)
+
+type bitSequence = BitSeq of 
+   maybe nat  * (* length of the sequence, Nothing means infinite length *)
+   bool *       (* sign of the word, used to fill up after concrete value is exhausted *)
+   list bool    (* the initial part of the sequence, least significant bit first *)
+
+val boolListFrombitSeq : nat -> bitSequence -> list bool
+
+let rec boolListFrombitSeqAux n s bl =
+  if n = 0 then [] else
+  if n = 1 then [s] else
+  match bl with
+    | []       -> replicate n s
+    | b :: bl' -> b :: (boolListFrombitSeqAux (n-1) s bl')
+  end
+declare termination_argument boolListFrombitSeqAux = automatic
+
+let boolListFrombitSeq n (BitSeq _ s bl) = boolListFrombitSeqAux n s bl
+
+assert boolListFrombitSeq_0 : boolListFrombitSeq 5 (BitSeq Nothing false [true;false;true]) = [true;false;true;false;false]
+assert boolListFrombitSeq_1 : boolListFrombitSeq 5 (BitSeq Nothing true [true;false;true]) = [true;false;true;true;true]
+assert boolListFrombitSeq_2 : boolListFrombitSeq 2 (BitSeq Nothing true [true;false;true]) = [true;true]
+
+lemma boolListFrombitSeq_len : forall n bs. (List.length (boolListFrombitSeq n bs) = n)
+
+
+val bitSeqFromBoolList : list bool -> maybe bitSequence
+let bitSeqFromBoolList bl =
+  match dest_init bl with
+    | Nothing -> Nothing
+    | Just (bl', s) -> Just (BitSeq (Just (List.length bl)) s bl')
+  end
+
+assert bitSeqFromBoolList_0 : bitSeqFromBoolList [] = Nothing
+assert bitSeqFromBoolList_1 : bitSeqFromBoolList [true;false;false] = Just (BitSeq (Just 3) false [true;false])
+assert bitSeqFromBoolList_2 : bitSeqFromBoolList [true;false;true] = Just (BitSeq (Just 3) true [true;false])
+
+lemma bitSeqFromBoolList_nothing : forall bl. (isNothing (bitSeqFromBoolList bl) <-> List.null bl)
+
+
+(* cleans up the representation of a bitSequence without changing its semantics *)
+val cleanBitSeq : bitSequence -> bitSequence
+let cleanBitSeq (BitSeq len s bl) = match len with
+  | Nothing -> (BitSeq len s (List.reverse (dropWhile (isEqual s) (List.reverse bl))))
+  | Just n  -> (BitSeq len s (List.reverse (dropWhile (isEqual s) (List.reverse (List.take (n-1) bl)))))
 end
 
-(* int32 *)
+assert cleanBitSeq_0: cleanBitSeq (BitSeq Nothing false [true;false;true;false;false]) = (BitSeq Nothing false [true;false;true])
+assert cleanBitSeq_1: cleanBitSeq (BitSeq Nothing true [true;false;true;false;false]) = (BitSeq Nothing true [true;false;true;false;false])
+assert cleanBitSeq_2: cleanBitSeq (BitSeq (Just 4) true [true;false;true;false;false]) = (BitSeq (Just 4) true [true;false])
+
+
+val bitSeqTestBit : bitSequence -> nat -> maybe bool
+let bitSeqTestBit (BitSeq len s bl) pos = 
+  match len with
+    | Nothing -> if pos < length bl then index bl pos else Just s
+    | Just l -> if (pos >= l) then Nothing else
+                if (pos = (l - 1) || pos >= length bl) then Just s else
+                index bl pos
+  end
+
+val bitSeqSetBit : bitSequence -> nat -> bool -> bitSequence
+let bitSeqSetBit (BitSeq len s bl) pos v =
+  let bl' = if (pos < length bl) then bl else bl ++ replicate pos s in
+  let bl'' = List.update bl' pos v in
+  let bs' = BitSeq len s bl'' in
+  cleanBitSeq bs'
+
+
+val resizeBitSeq : maybe nat -> bitSequence -> bitSequence
+let resizeBitSeq new_len bs =
+  let (BitSeq len s bl) = cleanBitSeq bs in
+  let shorten_opt = match (new_len, len) with
+     | (Nothing, _) -> Nothing
+     | (Just l1, Nothing) -> Just l1
+     | (Just l1, Just l2) -> if (l1 < l2) then Just l1 else Nothing
+  end in
+  match shorten_opt with
+    | Nothing -> BitSeq new_len s bl
+    | Just l1 -> (
+        let bl' = List.take l1 (bl ++ [s]) in
+        match dest_init bl' with
+          | Nothing -> (BitSeq len s bl) (* do nothing if size 0 is requested *)
+          | Just (bl'', s') -> cleanBitSeq (BitSeq new_len s' bl'')
+	end)
+  end
+
+assert resizeBitSeq_0: (resizeBitSeq Nothing (BitSeq (Just 5) true [false;false]) = (BitSeq Nothing true [false;false]))
+assert resizeBitSeq_1: (resizeBitSeq (Just 3) (BitSeq Nothing true [false;true;false;false]) = (BitSeq (Just 3) false [false;true]))
+assert resizeBitSeq_2: (resizeBitSeq (Just 3) (BitSeq Nothing false [false;true;true;false]) = (BitSeq (Just 3) true [false]))
+assert resizeBitSeq_3: (resizeBitSeq (Just 3) (BitSeq (Just 10) false [false;true;true;false]) = (BitSeq (Just 3) true [false])) 
+assert resizeBitSeq_4: (resizeBitSeq (Just 10) (BitSeq (Just 3) false [false;true;true;false]) = (BitSeq (Just 10) false [false;true])) 
+
+val bitSeqNot : bitSequence -> bitSequence
+let bitSeqNot (BitSeq len s bl) = BitSeq len (not s) (List.map not bl)
+
+assert bitSeqNot_0: (bitSeqNot (BitSeq (Just 2) true [false;true])) = BitSeq (Just 2) false [true;false]
+
+val bitSeqBinop : (bool -> bool -> bool) -> bitSequence -> bitSequence -> bitSequence
+
+val bitSeqBinopAux : (bool -> bool -> bool) -> bool -> list bool -> bool -> list bool -> list bool
+let rec bitSeqBinopAux binop s1 bl1 s2 bl2 =
+  match (bl1, bl2) with
+    | ([], []) -> []
+    | (b1 :: bl1', []) -> (binop b1 s2) :: bitSeqBinopAux binop s1 bl1' s2 []
+    | ([], b2 :: bl2') -> (binop s1 b2) :: bitSeqBinopAux binop s1 []   s2 bl2'
+    | (b1 :: bl1', b2 :: bl2') -> (binop b1 b2) :: bitSeqBinopAux binop s1 bl1' s2 bl2'
+  end
+declare termination_argument bitSeqBinopAux = automatic
+
+let bitSeqBinop binop bs1 bs2 = (
+  let (BitSeq len1 s1 bl1) = cleanBitSeq bs1 in
+  let (BitSeq len2 s2 bl2) = cleanBitSeq bs2 in
+
+  let len = match (len1, len2) with
+    | (Just l1, Just l2) -> Just (max l1 l2)
+    | _ -> Nothing
+  end in
+  let s = binop s1 s2 in
+  let bl = bitSeqBinopAux binop s1 bl1 s2 bl2 in
+  cleanBitSeq (BitSeq len s bl)
+)
+
+let bitSeqAnd = bitSeqBinop (&&)
+let bitSeqOr = bitSeqBinop (||)
+let bitSeqXor = bitSeqBinop xor
+
+val bitSeqShiftLeft : bitSequence -> nat -> bitSequence
+let bitSeqShiftLeft (BitSeq len s bl) n = cleanBitSeq (BitSeq len s (replicate n false ++ bl))
+
+val bitSeqArithmeticShiftRight : bitSequence -> nat -> bitSequence
+let bitSeqArithmeticShiftRight bs n = 
+  let (BitSeq len s bl) = cleanBitSeq bs in
+  cleanBitSeq (BitSeq len s (drop n bl))
+
+val bitSeqLogicalShiftRight : bitSequence -> nat -> bitSequence
+let bitSeqLogicalShiftRight bs n = 
+  if (n = 0) then cleanBitSeq bs else
+  let (BitSeq len s bl) = cleanBitSeq bs in
+  match len with
+    | Nothing -> cleanBitSeq (BitSeq len s (drop n bl))
+    | Just l -> cleanBitSeq (BitSeq len false ((drop n bl) ++ replicate l s))
+  end
+
+
+(* integerFromBoolList sign bl creates an integer form a list of bits 
+   (least significant bit first and an explicitly given sign bit.
+   It uses two's complement encoding. *)
+val integerFromBoolList : (bool * list bool) -> integer
+
+let rec integerFromBoolListAux (acc : integer) (bl : list bool) = 
+  match bl with 
+    | [] -> acc
+    | (true :: bl') -> integerFromBoolListAux ((acc * 2) + 1) bl'
+    | (false :: bl') -> integerFromBoolListAux (acc * 2) bl'
+  end
+declare termination_argument integerFromBoolListAux = automatic
+
+let integerFromBoolList (sign, bl) = 
+   if sign then 
+     ~(integerFromBoolListAux 0 (List.reverseMap not bl) + 1)
+   else integerFromBoolListAux 0 (List.reverse bl)
+
+assert integerFromBoolList_0: integerFromBoolList (false, [false;true;false]) = 2
+assert integerFromBoolList_1: integerFromBoolList (false, [false;true;false;true]) = 10
+assert integerFromBoolList_2: integerFromBoolList (true,  [false;true;false;true]) = ~6
+assert integerFromBoolList_3: integerFromBoolList (true,  [false;true]) = ~2
+assert integerFromBoolList_4: integerFromBoolList (true,  [true;false]) = ~3
+
+(* [integerToBoolList i] creates a sign bit and a list of booleans from an integer. The len_opt tells it when to stop.*)
+val boolListFromInteger :    integer -> bool * list bool
+val boolListFromIntegerAux : list bool -> integer -> list bool
+
+let rec boolListFromNatural acc (remainder : natural) =
+ if (remainder > 0) then 
+   (boolListFromNatural (((remainder mod 2) = 1) :: acc) 
+      (remainder / 2))
+ else
+   List.reverse acc 
+declare termination_argument boolListFromNatural = automatic
+
+let boolListFromInteger (i : integer) = 
+  if (i < 0) then
+    (true, List.map not (boolListFromNatural [] (naturalFromInteger (~(i + 1)))))
+  else
+    (false, boolListFromNatural [] (naturalFromInteger i))
+
+assert boolListFromInteger_0: boolListFromInteger 2 = (false, [false;true])
+assert boolListFromInteger_1: boolListFromInteger 10 = (false, [false;true;false;true])
+assert boolListFromInteger_2: boolListFromInteger (~6) = (true, [false;true;false]) 
+assert boolListFromInteger_3: boolListFromInteger (~2) = (true, [false])
+assert boolListFromInteger_4: boolListFromInteger (~3) = (true, [true;false])
+
+lemma boolListFromInteger_inverse_1: (forall i. integerFromBoolList (boolListFromInteger i) = i)
+lemma boolListFromInteger_inverse_2: (forall s bl i. boolListFromInteger (integerFromBoolList (s, bl)) = 
+   (s, List.reverse (dropWhile (isEqual s) (List.reverse bl))))
+
+
+(* [bitSeqFromInteger len_opt i] encodes [i] as a bitsequence with [len_opt] bits. If there are not enough
+   bits, truncation happens *)
+val bitSeqFromInteger : maybe nat -> integer -> bitSequence
+let bitSeqFromInteger len_opt i =
+  let (s, bl) = boolListFromInteger i in
+  resizeBitSeq len_opt (BitSeq Nothing s bl)
+
+assert bitSeqFromInteger_0: (bitSeqFromInteger Nothing 5 = BitSeq Nothing false [true;false;true])
+assert bitSeqFromInteger_1: (bitSeqFromInteger (Just 2) 5 = BitSeq (Just 2) false [true])
+assert bitSeqFromInteger_2: (bitSeqFromInteger Nothing (~5) = BitSeq Nothing true [true;true;false])
+assert bitSeqFromInteger_3: (bitSeqFromInteger (Just 3) (~5) = BitSeq (Just 3) false [true;true])
+assert bitSeqFromInteger_4: (bitSeqFromInteger (Just 2) (~5) = BitSeq (Just 2) true [])
+assert bitSeqFromInteger_5: (bitSeqFromInteger (Just 5) (~5) = BitSeq (Just 5) true [true;true;false])
+
+
+val integerFromBitSeq : bitSequence -> integer
+let integerFromBitSeq bs =
+  let (BitSeq len s bl) = cleanBitSeq bs in
+  integerFromBoolList (s, bl)
+
+
+assert integerFromBitSeq_0: (integerFromBitSeq (BitSeq Nothing false [true;false;true]) = 5)
+assert integerFromBitSeq_1: (integerFromBitSeq (BitSeq (Just 2) false [true]) = 1)
+assert integerFromBitSeq_2: (integerFromBitSeq (BitSeq Nothing true [true;true;false]) = (~5))
+assert integerFromBitSeq_3: (integerFromBitSeq (BitSeq (Just 2) true [true;true;false]) = (~1))
+
+lemma integerFromBitSeq_inv : (forall i. integerFromBitSeq (bitSeqFromInteger Nothing i) = i)
+assert integerFromBitSeq_inv_0: (integerFromBitSeq (bitSeqFromInteger Nothing 10)) = 10
+assert integerFromBitSeq_inv_1: (integerFromBitSeq (bitSeqFromInteger Nothing (~1932))) = (~1932)
+assert integerFromBitSeq_inv_2: (integerFromBitSeq (bitSeqFromInteger Nothing 343)) = 343
+
+
+(* Now we can via translation to integers map arithmetic operations to bitSequences *)
+
+val bitSeqArithUnaryOp : (integer -> integer) -> bitSequence -> bitSequence
+let bitSeqArithUnaryOp uop bs =
+  let (BitSeq len _ _) = bs in
+  bitSeqFromInteger len (uop (integerFromBitSeq bs))
+
+val bitSeqArithBinOp : (integer -> integer -> integer) -> bitSequence -> bitSequence -> bitSequence
+let bitSeqArithBinOp binop bs1 bs2 =
+  let (BitSeq len1 _ _) = bs1 in
+  let (BitSeq len2 _ _) = bs2 in
+  let len = match (len1, len2) with 
+    | (Just l1, Just l2) -> Just (max l1 l2)
+    | _ -> Nothing
+  end in
+  bitSeqFromInteger len (binop (integerFromBitSeq bs1) (integerFromBitSeq bs2))
+
+val bitSeqArithBinTest : forall 'a. (integer -> integer -> 'a) -> bitSequence -> bitSequence -> 'a
+let bitSeqArithBinTest binop bs1 bs2 = binop (integerFromBitSeq bs1) (integerFromBitSeq bs2)
+
+
+(* now instantiate the number interface for bit-sequences *)
+
+val bitSeqFromNumeral : numeral -> bitSequence
+let inline bitSeqFromNumeral n = bitSeqFromInteger Nothing (integerFromNumeral n)
+
+instance (Numeral bitSequence)
+  let fromNumeral n = bitSeqFromNumeral n
+end
+
+val bitSeqEq : bitSequence -> bitSequence -> bool
+let inline bitSeqEq = unsafe_structural_equality
+instance (Eq bitSequence)
+  let (=) = bitSeqEq
+  let (<>) n1 n2 = not (bitSeqEq n1 n2)
+end
+
+val bitSeqLess : bitSequence -> bitSequence -> bool
+let bitSeqLess bs1 bs2 = bitSeqArithBinTest (<) bs1 bs2
+
+val bitSeqLessEqual : bitSequence -> bitSequence -> bool
+let bitSeqLessEqual bs1 bs2 = bitSeqArithBinTest (<=) bs1 bs2
+
+val bitSeqGreater : bitSequence -> bitSequence -> bool
+let bitSeqGreater bs1 bs2 = bitSeqArithBinTest (>) bs1 bs2
+
+val bitSeqGreaterEqual : bitSequence -> bitSequence -> bool
+let bitSeqGreaterEqual bs1 bs2 = bitSeqArithBinTest (>=) bs1 bs2
+
+val bitSeqCompare : bitSequence -> bitSequence -> ordering
+let bitSeqCompare bs1 bs2 = bitSeqArithBinTest compare bs1 bs2
+
+instance (Ord bitSequence)
+  let compare = bitSeqCompare
+  let (<) = bitSeqLess
+  let (<=) = bitSeqLessEqual
+  let (>) = bitSeqGreater
+  let (>=) = bitSeqGreaterEqual
+end
+
+instance (SetType bitSequence)
+  let setElemCompare = bitSeqCompare
+end
+
+(* arithmetic negation, don't mix up with bitwise negation *)
+val bitSeqNegate : bitSequence -> bitSequence 
+let bitSeqNegate bs = bitSeqArithUnaryOp integerNegate bs
+
+instance (NumNegate bitSequence)
+  let ~ = bitSeqNegate
+end
+
+
+val bitSeqAdd : bitSequence -> bitSequence -> bitSequence
+let bitSeqAdd bs1 bs2 = bitSeqArithBinOp (+) bs1 bs2
+
+instance (NumAdd bitSequence)
+  let (+) = bitSeqAdd
+end
+
+val bitSeqMinus : bitSequence -> bitSequence -> bitSequence
+let bitSeqMinus bs1 bs2 = bitSeqArithBinOp (-) bs1 bs2
+
+instance (NumMinus bitSequence)
+  let (-) = bitSeqMinus
+end
+
+val bitSeqSucc : bitSequence -> bitSequence
+let bitSeqSucc bs = bitSeqArithUnaryOp succ bs
+
+instance (NumSucc bitSequence)
+  let succ = bitSeqSucc
+end
+
+val bitSeqPred : bitSequence -> bitSequence
+let bitSeqPred bs = bitSeqArithUnaryOp pred bs
+
+instance (NumPred bitSequence)
+  let pred = bitSeqPred
+end
+
+val bitSeqMult : bitSequence -> bitSequence -> bitSequence
+let bitSeqMult bs1 bs2 = bitSeqArithBinOp integerMult bs1 bs2
+
+instance (NumMult bitSequence)
+  let ( * ) = bitSeqMult
+end
+
+
+val bitSeqPow : bitSequence -> nat -> bitSequence
+let bitSeqPow bs n = bitSeqArithUnaryOp (fun i -> integerPow i n) bs
+
+instance ( NumPow bitSequence ) 
+  let ( ** ) = bitSeqPow
+end
+
+val bitSeqDiv : bitSequence -> bitSequence -> bitSequence
+let bitSeqDiv bs1 bs2 = bitSeqArithBinOp integerDiv bs1 bs2
+
+instance ( NumIntegerDivision bitSequence ) 
+  let (div) = bitSeqDiv
+end
+
+instance ( NumDivision bitSequence ) 
+  let (/) = bitSeqDiv
+end
+
+val bitSeqMod : bitSequence -> bitSequence -> bitSequence
+let bitSeqMod bs1 bs2 = bitSeqArithBinOp integerMod bs1 bs2
+
+instance ( NumRemainder bitSequence ) 
+  let (mod) = bitSeqMod
+end
+
+val bitSeqMin : bitSequence -> bitSequence -> bitSequence
+let bitSeqMin bs1 bs2 = bitSeqArithBinOp integerMin bs1 bs2
+
+val bitSeqMax : bitSequence -> bitSequence -> bitSequence
+let bitSeqMax bs1 bs2 = bitSeqArithBinOp integerMax bs1 bs2
+
+instance ( OrdMaxMin bitSequence ) 
+  let max = bitSeqMax
+  let min = bitSeqMin
+end
+
+assert bitSequence_test1 : (2 + (5 : bitSequence) = 7)
+assert bitSequence_test2 : (8 - (7 : bitSequence) = 1)
+assert bitSequence_test3 : (7 - (8 : bitSequence) = ~1)
+assert bitSequence_test4 : (7 * (8 : bitSequence) = 56)
+assert bitSequence_test5 : ((7 : bitSequence) ** 2 = 49)
+assert bitSequence_test6 : (11 div (4 : bitSequence) = 2)
+assert bitSequence_test6a : ((~ 11) div (4 : bitSequence) = ~3)
+assert bitSequence_test7 : (11 / (4 : bitSequence) = 2)
+assert bitSequence_test7a : (~11 / (4 : bitSequence) = ~3)
+assert bitSequence_test8 : (11 mod (4 : bitSequence) = 3)
+assert bitSequence_test8a : (~11 mod (4 : bitSequence) = 1)
+assert bitSequence_test9 : (11 < (12 : bitSequence))
+assert bitSequence_test10 : (11 <= (12 : bitSequence))
+assert bitSequence_test11 : (12 <= (12 : bitSequence))
+assert bitSequence_test12 : (not (12 < (12 : bitSequence)))
+assert bitSequence_test13 : (12 > (11 : bitSequence))
+assert bitSequence_test14 : (12 >= (11 : bitSequence))
+assert bitSequence_test15 : (12 >= (12 : bitSequence))
+assert bitSequence_test16 : (not (12 > (12 : bitSequence)))
+assert bitSequence_test17 : (min 12 (12 : bitSequence) = 12)
+assert bitSequence_test18 : (min 10 (12 : bitSequence) = 10)
+assert bitSequence_test19 : (min 12 (10 : bitSequence) = 10)
+assert bitSequence_test20 : (max 12 (12 : bitSequence) = 12)
+assert bitSequence_test21 : (max 10 (12 : bitSequence) = 12)
+assert bitSequence_test22 : (max 12 (10 : bitSequence) = 12)
+assert bitSequence_test23 : (succ 12 = (13 : bitSequence))
+assert bitSequence_test24 : (succ 0 = (1 : bitSequence))
+assert bitSequence_test25 : (pred 12 = (11 : bitSequence))
+assert bitSequence_test26 : (pred 0 = ~(1 : bitSequence))
+
+
+
+
+(* ========================================================================== *)
+(* Interface for bitoperations                                                *)
+(* ========================================================================== *)
+
+class ( WordNot 'a )
+  val lnot : 'a -> 'a
+end
+
+class ( WordAnd 'a )
+  val (land) [`conjunction`]  : 'a -> 'a -> 'a
+end
+
+class ( WordOr 'a )
+  val (lor)  [`inclusive_or`] : 'a -> 'a -> 'a
+end
+
+
+class ( WordXor 'a )
+  val (lxor) [`exclusive_or`] : 'a -> 'a -> 'a
+end
+
+class ( WordLsl 'a )
+  val (lsl)  [`left_shift`] : 'a -> nat -> 'a
+end
+
+class ( WordLsr 'a )
+  val (lsr)  [`logicial_right_shift`] : 'a -> nat -> 'a
+end
+
+class ( WordAsr 'a )
+  val (asr)  [`arithmetic_right_shift`] : 'a -> nat -> 'a
+end
+
+(* ----------------------- *)
+(* bitSequence             *)
+(* ----------------------- *)
+
+instance ( WordNot bitSequence) 
+  let lnot = bitSeqNot
+end
+
+instance ( WordAnd bitSequence) 
+  let (land) = bitSeqAnd
+end
+
+instance ( WordOr bitSequence) 
+  let (lor) = bitSeqOr
+end
+
+instance ( WordXor bitSequence) 
+  let (lxor) = bitSeqXor
+end
+
+instance  (WordLsl bitSequence) 
+  let (lsl) = bitSeqShiftLeft
+end
+
+instance  (WordLsr bitSequence) 
+  let (lsr) = bitSeqLogicalShiftRight
+end
+
+instance  (WordAsr bitSequence) 
+  let (asr) = bitSeqArithmeticShiftRight
+end
+
+assert bitSequence_bittest1  : ((6 : bitSequence) land 5 = 4)
+assert bitSequence_bittest2  : ((6 : bitSequence) lor 5 = 7)
+assert bitSequence_bittest3  : ((6 : bitSequence) lxor 5 = 3)
+assert bitSequence_bittest4  : ((12 : bitSequence) land 9 = 8)
+assert bitSequence_bittest5  : ((12 : bitSequence) lor 9 = 13)
+assert bitSequence_bittest6  : ((12 : bitSequence) lxor 9 = 5)
+
+assert bitSequence_bittest7  : (lnot (12 : bitSequence) = ~13)
+assert bitSequence_bittest8  : (lnot (27 : bitSequence) = ~28)
+assert bitSequence_bittest9  : ((27 : bitSequence) lsl 0 = 27)
+assert bitSequence_bittest10 : ((27 : bitSequence) lsl 1 = 54)
+assert bitSequence_bittest11 : ((27 : bitSequence) lsl 2 = 108)
+assert bitSequence_bittest12 : ((27 : bitSequence) lsl 3  = 216)
+assert bitSequence_bittest13 : ((27 : bitSequence) lsr 0 = 27)
+assert bitSequence_bittest14 : ((27 : bitSequence) lsr 1 = 13)
+assert bitSequence_bittest15 : ((27 : bitSequence) lsr 2 = 6)
+assert bitSequence_bittest16 : ((27 : bitSequence) lsr 3 = 3)
+assert bitSequence_bittest17 : ((27 : bitSequence) asr 0 = 27)
+assert bitSequence_bittest18 : ((27 : bitSequence) asr 1 = 13)
+assert bitSequence_bittest19 : ((27 : bitSequence) asr 2 = 6)
+assert bitSequence_bittest20 : ((27 : bitSequence) asr 3 = 3)
+assert bitSequence_bittest21 : ((~(27 : bitSequence)) lsr 0 = ~(27))
+assert bitSequence_bittest22 : ((~(27 : bitSequence) asr 0) = ~(27))
+assert bitSequence_bittest23 : ((~(27 : bitSequence)) lsr 1 = ~(14))
+assert bitSequence_bittest24 : ((~(27 : bitSequence)) asr 1 = ~(14))
+
+
+(* ----------------------- *)
+(* int32                   *)
+(* ----------------------- *)
 
 val int32Lnot : int32 -> int32
 declare ocaml    target_rep function int32Lnot = `Int32.lognot`
@@ -28,11 +523,20 @@ declare hol      target_rep function int32Lnot w = (`~` w)
 declare isabelle target_rep function int32Lnot w = (`NOT` w)
 declare coq      target_rep function int32Lnot = `TODO`
 
+instance ( WordNot int32) 
+  let lnot = int32Lnot
+end
+
+
 val int32Lor  : int32 -> int32 -> int32
 declare ocaml    target_rep function int32Lor = `Int32.logor`
 declare hol      target_rep function int32Lor = `word_or`
 declare isabelle target_rep function int32Lor = infix `OR`
 declare coq      target_rep function int32Lor = `TODO`
+
+instance (WordOr int32) 
+  let (lor) = int32Lor
+end
 
 val int32Lxor : int32 -> int32 -> int32
 declare ocaml    target_rep function int32Lxor = `Int32.logxor`
@@ -40,11 +544,19 @@ declare hol      target_rep function int32Lxor = `word_xor`
 declare isabelle target_rep function int32Lxor = infix `XOR`
 declare coq      target_rep function int32Lxor = `TODO`
 
+instance ( WordXor int32) 
+  let (lxor) = int32Lxor
+end
+
 val int32Land : int32 -> int32 -> int32
 declare ocaml    target_rep function int32Land = `Int32.logand`
 declare hol      target_rep function int32Land = `word_and`
 declare isabelle target_rep function int32Land = infix `AND`
 declare coq      target_rep function int32Land = `TODO`
+
+instance ( WordAnd int32) 
+  let (land) = int32Land
+end
 
 val int32Lsl  : int32 -> nat -> int32
 declare ocaml    target_rep function int32Lsl = `Int32.shift_left`
@@ -52,6 +564,9 @@ declare hol      target_rep function int32Lsl = `word_lsl`
 declare isabelle target_rep function int32Lsl = infix `<<`
 declare coq      target_rep function int32Lsl = `TODO`
 
+instance  (WordLsl int32) 
+  let (lsl) = int32Lsl
+end
 
 val int32Lsr  : int32 -> nat -> int32
 declare ocaml    target_rep function int32Lsr = `Int32.shift_right_logical`
@@ -59,87 +574,499 @@ declare hol      target_rep function int32Lsr = `word_lsr`
 declare isabelle target_rep function int32Lsr = infix `>>`
 declare coq      target_rep function int32Lsr = `TODO`
 
-val int32fromBoolList : list bool -> maybe int32
-
-let rec int32fromBoolListAux (acc : int32) (bl : list bool) = 
-  match bl with 
-    | [] -> acc
-    | (true :: bl') -> int32fromBoolListAux ((int32Lsl acc 1) + 1) bl'
-    | (false :: bl') -> int32fromBoolListAux (int32Lsl acc 1) bl'
-  end
-declare termination_argument int32fromBoolListAux = automatic
-let int32fromBoolList bl = if (List.length bl <= 32) then Just (int32fromBoolListAux 0 (List.reverse bl)) else Nothing
-
-
-val int32ToBoolList : int32 -> list bool
-val int32ToBoolListAux : nat -> list bool -> int32 -> list bool
-
-let rec int32ToBoolListAux pos acc remainder =
- if (pos = 0) then 
-   List.reverse acc 
- else
-   (int32ToBoolListAux (pos - 1) (((remainder mod 2) = 1) :: acc) 
-      (int32Lsr remainder 1))
-declare termination_argument int32ToBoolListAux = automatic
-
-let int32ToBoolList i = int32ToBoolListAux 32 [] i
-
-instance (Word int32)
-  let lnot = int32Lnot
-  let (land) = int32Land
-  let (lor) = int32Lor
-  let (lxor) = int32Lxor
-  let (lsl) = int32Lsl
+instance  (WordLsr int32) 
   let (lsr) = int32Lsr
-  let fromBoolList = int32fromBoolList
-  let toBoolList = int32ToBoolList
 end
 
-assert int32_test1 : (fromBoolList [false; false;false;false] = Just (0:int32))
-assert int32_test2 : (fromBoolList [false; false;true;false] = Just (4:int32))
-assert int32_test3 : (fromBoolList [true;false;true; false] = Just (5:int32))
-assert int32_test4 : (toBoolList (0:int32) = 
- [false; false; false; false; false; false; false; false;
-  false; false; false; false; false; false; false; false;
-  false; false; false; false; false; false; false; false;
-  false; false; false; false; false; false; false; false;])
-assert int32_test5 : (toBoolList (6:int32) = 
- [false; true;  true;  false; false; false; false; false;
-  false; false; false; false; false; false; false; false;
-  false; false; false; false; false; false; false; false;
-  false; false; false; false; false; false; false; false;])
-(*
-assert int32_test6 : (fromBoolList 
- [false; false; false; false; false; false; false; false;
-  false; false; false; false; false; false; false; false;
-  false; false; false; false; false; false; false; false;
-  false; false; false; false; false; false; false; true;] = Just (~2147483648 : int32))
-assert int32_test7 : (fromBoolList 
- [false; false; true; false; false; false; false; false;
-  false; false; false; false; false; false; false; false;
-  false; false; false; false; false; false; false; false;
-  false; false; false; false; false; false; false; true;] = Just (~2147483644 : int32))
-*)
-assert int32_test8 : (fromBoolList 
- [false; true;  true;  false; false; false; false; false;
-  false; false; false; false; false; false; false; false;
-  false; false; false; false; false; false; false; false;
-  false; false; false; false; false; false; false; true;  false] = (Nothing : maybe int32))
 
-assert int32_test9  : ((6 : int32) land 5 = 4)
-assert int32_test10 : ((6 : int32) lor 5 = 7)
-assert int32_test11 : ((6 : int32) lxor 5 = 3)
-assert int32_test12 : ((12 : int32) land 9 = 8)
-assert int32_test13 : ((12 : int32) lor 9 = 13)
-assert int32_test14 : ((12 : int32) lxor 9 = 5)
+val int32Asr  : int32 -> nat -> int32
+declare ocaml    target_rep function int32Asr = `Int32.shift_right`
+declare hol      target_rep function int32Asr = `word_asr`
+declare isabelle target_rep function int32Asr = infix `>>>`
+declare coq      target_rep function int32Asr = `TODO`
 
-assert int32_test15 : (lnot (12 : int32) = ~13)
-assert int32_test16 : (lnot (27 : int32) = ~28)
-assert int32_test17 : ((27 : int32) lsl 0 = 27)
-assert int32_test18 : ((27 : int32) lsl 1 = 54)
-assert int32_test19 : ((27 : int32) lsl 2 = 108)
-assert int32_test20 : ((27 : int32) lsl 3  = 216)
-assert int32_test21 : ((27 : int32) lsr 0 = 27)
-assert int32_test22 : ((27 : int32) lsr 1 = 13)
-assert int32_test23 : ((27 : int32) lsr 2 = 6)
-assert int32_test24 : ((27 : int32) lsr 3 = 3)
+instance  (WordAsr int32) 
+  let (asr) = int32Asr
+end
+
+
+assert int32_bittest1  : ((6 : int32) land 5 = 4)
+assert int32_bittest2  : ((6 : int32) lor 5 = 7)
+assert int32_bittest3  : ((6 : int32) lxor 5 = 3)
+assert int32_bittest4  : ((12 : int32) land 9 = 8)
+assert int32_bittest5  : ((12 : int32) lor 9 = 13)
+assert int32_bittest6  : ((12 : int32) lxor 9 = 5)
+
+assert int32_bittest7  : (lnot (12 : int32) = ~13)
+assert int32_bittest8  : (lnot (27 : int32) = ~28)
+assert int32_bittest9  : ((27 : int32) lsl 0 = 27)
+assert int32_bittest10 : ((27 : int32) lsl 1 = 54)
+assert int32_bittest11 : ((27 : int32) lsl 2 = 108)
+assert int32_bittest12 : ((27 : int32) lsl 3  = 216)
+assert int32_bittest13 : ((27 : int32) lsr 0 = 27)
+assert int32_bittest14 : ((27 : int32) lsr 1 = 13)
+assert int32_bittest15 : ((27 : int32) lsr 2 = 6)
+assert int32_bittest16 : ((27 : int32) lsr 3 = 3)
+assert int32_bittest17 : ((27 : int32) asr 0 = 27)
+assert int32_bittest18 : ((27 : int32) asr 1 = 13)
+assert int32_bittest19 : ((27 : int32) asr 2 = 6)
+assert int32_bittest20 : ((27 : int32) asr 3 = 3)
+assert int32_bittest21 : ((~(27 : int32)) lsr 0 = ~(27))
+assert int32_bittest22 : ((~(27 : int32) asr 0) = ~(27))
+assert int32_bittest23 : ((~(27 : int32)) lsr 2 = 1073741817)
+assert int32_bittest24 : ((~(27 : int32)) asr 2 = ~(7))
+
+
+(* ----------------------- *)
+(* int64                   *)
+(* ----------------------- *)
+
+val int64Lnot : int64 -> int64
+declare ocaml    target_rep function int64Lnot = `Int64.lognot`
+declare hol      target_rep function int64Lnot w = (`~` w)
+declare isabelle target_rep function int64Lnot w = (`NOT` w)
+declare coq      target_rep function int64Lnot = `TODO`
+
+instance ( WordNot int64) 
+  let lnot = int64Lnot
+end
+
+val int64Lor  : int64 -> int64 -> int64
+declare ocaml    target_rep function int64Lor = `Int64.logor`
+declare hol      target_rep function int64Lor = `word_or`
+declare isabelle target_rep function int64Lor = infix `OR`
+declare coq      target_rep function int64Lor = `TODO`
+
+instance (WordOr int64) 
+  let (lor) = int64Lor
+end
+
+val int64Lxor : int64 -> int64 -> int64
+declare ocaml    target_rep function int64Lxor = `Int64.logxor`
+declare hol      target_rep function int64Lxor = `word_xor`
+declare isabelle target_rep function int64Lxor = infix `XOR`
+declare coq      target_rep function int64Lxor = `TODO`
+
+instance (WordXor int64) 
+  let (lxor) = int64Lxor
+end
+
+val int64Land : int64 -> int64 -> int64
+declare ocaml    target_rep function int64Land = `Int64.logand`
+declare hol      target_rep function int64Land = `word_and`
+declare isabelle target_rep function int64Land = infix `AND`
+declare coq      target_rep function int64Land = `TODO`
+
+instance (WordAnd int64) 
+  let (land) = int64Land
+end
+
+val int64Lsl  : int64 -> nat -> int64
+declare ocaml    target_rep function int64Lsl = `Int64.shift_left`
+declare hol      target_rep function int64Lsl = `word_lsl`
+declare isabelle target_rep function int64Lsl = infix `<<`
+declare coq      target_rep function int64Lsl = `TODO`
+
+instance (WordLsl int64) 
+  let (lsl) = int64Lsl
+end
+
+val int64Lsr  : int64 -> nat -> int64
+declare ocaml    target_rep function int64Lsr = `Int64.shift_right_logical`
+declare hol      target_rep function int64Lsr = `word_lsr`
+declare isabelle target_rep function int64Lsr = infix `>>`
+declare coq      target_rep function int64Lsr = `TODO`
+
+instance (WordLsr int64) 
+  let (lsr) = int64Lsr
+end
+
+val int64Asr  : int64 -> nat -> int64
+declare ocaml    target_rep function int64Asr = `Int64.shift_right`
+declare hol      target_rep function int64Asr = `word_asr`
+declare isabelle target_rep function int64Asr = infix `>>>`
+declare coq      target_rep function int64Asr = `TODO`
+
+instance  (WordAsr int64) 
+  let (asr) = int64Asr
+end
+
+
+assert int64_bittest1  : ((6 : int64) land 5 = 4)
+assert int64_bittest2  : ((6 : int64) lor 5 = 7)
+assert int64_bittest3  : ((6 : int64) lxor 5 = 3)
+assert int64_bittest4  : ((12 : int64) land 9 = 8)
+assert int64_bittest5  : ((12 : int64) lor 9 = 13)
+assert int64_bittest6  : ((12 : int64) lxor 9 = 5)
+
+assert int64_bittest7  : (lnot (12 : int64) = ~13)
+assert int64_bittest8  : (lnot (27 : int64) = ~28)
+assert int64_bittest9  : ((27 : int64) lsl 0 = 27)
+assert int64_bittest10 : ((27 : int64) lsl 1 = 54)
+assert int64_bittest11 : ((27 : int64) lsl 2 = 108)
+assert int64_bittest12 : ((27 : int64) lsl 3  = 216)
+assert int64_bittest13 : ((27 : int64) lsr 0 = 27)
+assert int64_bittest14 : ((27 : int64) lsr 1 = 13)
+assert int64_bittest15 : ((27 : int64) lsr 2 = 6)
+assert int64_bittest16 : ((27 : int64) lsr 3 = 3)
+assert int64_bittest17 : ((27 : int64) asr 0 = 27)
+assert int64_bittest18 : ((27 : int64) asr 1 = 13)
+assert int64_bittest19 : ((27 : int64) asr 2 = 6)
+assert int64_bittest20 : ((27 : int64) asr 3 = 3)
+assert int64_bittest21 : ((~(27 : int64)) lsr 0 = ~(27))
+assert int64_bittest22 : ((~(27 : int64) asr 0) = ~(27))
+assert int64_bittest23 : ((~(27 : int64)) lsr 34 = 1073741823)
+assert int64_bittest24 : ((~(27 : int64)) asr 2 = ~(7))
+
+
+(* ----------------------- *)
+(* Words via bit sequences *)
+(* ----------------------- *)
+
+val defaultLnot : forall 'a. (bitSequence -> 'a) -> ('a -> bitSequence) -> 'a -> 'a 
+let defaultLnot fromBitSeq toBitSeq x = fromBitSeq (bitSeqNegate (toBitSeq x))
+
+val defaultLand : forall 'a. (bitSequence -> 'a) -> ('a -> bitSequence) -> 'a -> 'a -> 'a
+let defaultLand fromBitSeq toBitSeq x1 x2 = fromBitSeq (bitSeqAnd (toBitSeq x1) (toBitSeq x2))
+
+val defaultLor : forall 'a. (bitSequence -> 'a) -> ('a -> bitSequence) -> 'a -> 'a -> 'a
+let defaultLor fromBitSeq toBitSeq x1 x2 = fromBitSeq (bitSeqOr (toBitSeq x1) (toBitSeq x2))
+
+val defaultLxor : forall 'a. (bitSequence -> 'a) -> ('a -> bitSequence) -> 'a -> 'a -> 'a
+let defaultLxor fromBitSeq toBitSeq x1 x2 = fromBitSeq (bitSeqXor (toBitSeq x1) (toBitSeq x2))
+
+val defaultLsl : forall 'a. (bitSequence -> 'a) -> ('a -> bitSequence) -> 'a -> nat -> 'a
+let defaultLsl fromBitSeq toBitSeq x n = fromBitSeq (bitSeqShiftLeft (toBitSeq x) n)
+
+val defaultLsr : forall 'a. (bitSequence -> 'a) -> ('a -> bitSequence) -> 'a -> nat -> 'a
+let defaultLsr fromBitSeq toBitSeq x n = fromBitSeq (bitSeqLogicalShiftRight (toBitSeq x) n)
+
+val defaultAsr : forall 'a. (bitSequence -> 'a) -> ('a -> bitSequence) -> 'a -> nat -> 'a
+let defaultAsr fromBitSeq toBitSeq x n = fromBitSeq (bitSeqArithmeticShiftRight (toBitSeq x) n)
+
+(* ----------------------- *)
+(* integer                 *)
+(* ----------------------- *)
+
+val integerLnot : integer -> integer
+let integerLnot i = ~(i + 1)
+
+instance ( WordNot integer) 
+  let lnot = integerLnot
+end
+
+
+val integerLor  : integer -> integer -> integer
+let integerLor i1 i2 = defaultLor integerFromBitSeq (bitSeqFromInteger Nothing) i1 i2
+declare ocaml target_rep function integerLor = `Big_int.or_big_int`
+
+instance (WordOr integer) 
+  let (lor) = integerLor
+end
+
+val integerLxor : integer -> integer -> integer
+let integerLxor i1 i2 = defaultLxor integerFromBitSeq (bitSeqFromInteger Nothing) i1 i2
+declare ocaml target_rep function integerLxor = `Big_int.xor_big_int`
+
+instance (WordXor integer) 
+  let (lxor) = integerLxor
+end
+
+val integerLand : integer -> integer -> integer
+let integerLand i1 i2 = defaultLand integerFromBitSeq (bitSeqFromInteger Nothing) i1 i2
+declare ocaml target_rep function integerLand = `Big_int.and_big_int`
+
+instance (WordAnd integer) 
+  let (land) = integerLand
+end
+
+val integerLsl  : integer -> nat -> integer
+let integerLsl i n = defaultLsl integerFromBitSeq (bitSeqFromInteger Nothing) i n
+declare ocaml target_rep function integerLsl = `Big_int.shift_left_big_int`
+
+instance (WordLsl integer) 
+  let (lsl) = integerLsl
+end
+
+val integerAsr  : integer -> nat -> integer
+let integerAsr i n = defaultAsr integerFromBitSeq (bitSeqFromInteger Nothing) i n
+declare ocaml target_rep function integerAsr = `Big_int.shift_right_big_int`
+
+instance (WordLsr integer) 
+  let (lsr) = integerAsr
+end
+
+instance  (WordAsr integer) 
+  let (asr) = integerAsr
+end
+
+
+
+assert integer_bittest1  : ((6 : integer) land 5 = 4)
+assert integer_bittest2  : ((6 : integer) lor 5 = 7)
+assert integer_bittest3  : ((6 : integer) lxor 5 = 3)
+assert integer_bittest4  : ((12 : integer) land 9 = 8)
+assert integer_bittest5  : ((12 : integer) lor 9 = 13)
+assert integer_bittest6  : ((12 : integer) lxor 9 = 5)
+
+assert integer_bittest7  : (lnot (12 : integer) = ~13)
+assert integer_bittest8  : (lnot (27 : integer) = ~28)
+assert integer_bittest9  : ((27 : integer) lsl 0 = 27)
+assert integer_bittest10 : ((27 : integer) lsl 1 = 54)
+assert integer_bittest11 : ((27 : integer) lsl 2 = 108)
+assert integer_bittest12 : ((27 : integer) lsl 3  = 216)
+assert integer_bittest13 : ((27 : integer) lsr 0 = 27)
+assert integer_bittest14 : ((27 : integer) lsr 1 = 13)
+assert integer_bittest15 : ((27 : integer) lsr 2 = 6)
+assert integer_bittest16 : ((27 : integer) lsr 3 = 3)
+assert integer_bittest17 : ((27 : integer) asr 0 = 27)
+assert integer_bittest18 : ((27 : integer) asr 1 = 13)
+assert integer_bittest19 : ((27 : integer) asr 2 = 6)
+assert integer_bittest20 : ((27 : integer) asr 3 = 3)
+assert integer_bittest22 : ((~(27 : integer) asr 0) = ~(27))
+assert integer_bittest24 : ((~(27 : integer)) asr 2 = ~(7))
+
+
+(* ----------------------- *)
+(* int                     *)
+(* ----------------------- *)
+
+(* sometimes it is convinient to be able to perform bit-operations on its.
+   However, since int is not well-defined (it has different size on different systems),
+   it should be used very carefully and only for operations that don't depend on the
+   bitwidth of int *)
+
+val intFromBitSeq : bitSequence -> int
+let intFromBitSeq bs = intFromInteger (integerFromBitSeq (resizeBitSeq (Just 31) bs))
+
+
+val bitSeqFromInt : int -> bitSequence 
+let bitSeqFromInt i = bitSeqFromInteger (Just 31) (integerFromInt i)
+
+
+val intLnot : int -> int
+let intLnot i = ~(i + 1)
+declare ocaml target_rep function intLnot = `lnot`
+
+instance ( WordNot int) 
+  let lnot = intLnot
+end
+
+val intLor  : int -> int -> int
+let intLor i1 i2 = defaultLor intFromBitSeq bitSeqFromInt i1 i2
+declare ocaml target_rep function intLor = infix `lor`
+
+instance (WordOr int) 
+  let (lor) = intLor
+end
+
+val intLxor : int -> int -> int
+let intLxor i1 i2 = defaultLxor intFromBitSeq bitSeqFromInt i1 i2
+declare ocaml target_rep function intLxor = infix `lxor`
+
+instance (WordXor int) 
+  let (lxor) = intLxor
+end
+
+val intLand : int -> int -> int
+let intLand i1 i2 = defaultLand intFromBitSeq bitSeqFromInt i1 i2
+declare ocaml target_rep function intLand = infix `land`
+
+instance (WordAnd int) 
+  let (land) = intLand
+end
+
+val intLsl  : int -> nat -> int
+let intLsl i n = defaultLsl intFromBitSeq bitSeqFromInt i n
+declare ocaml target_rep function intLsl = infix `lsl`
+
+instance (WordLsl int) 
+  let (lsl) = intLsl
+end
+
+val intAsr  : int -> nat -> int
+let intAsr i n = defaultAsr intFromBitSeq bitSeqFromInt i n
+declare ocaml target_rep function intAsr = infix `asr`
+
+instance  (WordAsr int) 
+  let (asr) = intAsr
+end
+
+
+
+assert int_bittest1  : ((6 : int) land 5 = 4)
+assert int_bittest2  : ((6 : int) lor 5 = 7)
+assert int_bittest3  : ((6 : int) lxor 5 = 3)
+assert int_bittest4  : ((12 : int) land 9 = 8)
+assert int_bittest5  : ((12 : int) lor 9 = 13)
+assert int_bittest6  : ((12 : int) lxor 9 = 5)
+
+assert int_bittest7  : (lnot (12 : int) = ~13)
+assert int_bittest8  : (lnot (27 : int) = ~28)
+assert int_bittest9  : ((27 : int) lsl 0 = 27)
+assert int_bittest10 : ((27 : int) lsl 1 = 54)
+assert int_bittest11 : ((27 : int) lsl 2 = 108)
+assert int_bittest12 : ((27 : int) lsl 3  = 216)
+assert int_bittest17 : ((27 : int) asr 0 = 27)
+assert int_bittest18 : ((27 : int) asr 1 = 13)
+assert int_bittest19 : ((27 : int) asr 2 = 6)
+assert int_bittest20 : ((27 : int) asr 3 = 3)
+assert int_bittest22 : ((~(27 : int) asr 0) = ~(27))
+assert int_bittest24 : ((~(27 : int)) asr 2 = ~(7))
+
+
+
+(* ----------------------- *)
+(* natural                 *)
+(* ----------------------- *)
+
+(* some operations work also on positive numbers *)
+
+val naturalFromBitSeq : bitSequence -> natural
+let naturalFromBitSeq bs = naturalFromInteger (integerFromBitSeq bs)
+
+val bitSeqFromNatural : maybe nat -> natural -> bitSequence
+let bitSeqFromNatural len n = bitSeqFromInteger len (integerFromNatural n)
+
+val naturalLor  : natural -> natural -> natural
+let naturalLor i1 i2 = defaultLor naturalFromBitSeq (bitSeqFromNatural Nothing) i1 i2
+declare ocaml target_rep function naturalLor = `Big_int.or_big_int`
+
+instance (WordOr natural) 
+  let (lor) = naturalLor
+end
+
+val naturalLxor : natural -> natural -> natural
+let naturalLxor i1 i2 = defaultLxor naturalFromBitSeq (bitSeqFromNatural Nothing) i1 i2
+declare ocaml target_rep function naturalLxor = `Big_int.xor_big_int`
+
+instance (WordXor natural) 
+  let (lxor) = naturalLxor
+end
+
+val naturalLand : natural -> natural -> natural
+let naturalLand i1 i2 = defaultLand naturalFromBitSeq (bitSeqFromNatural Nothing) i1 i2
+declare ocaml target_rep function naturalLand = `Big_int.and_big_int`
+
+instance (WordAnd natural) 
+  let (land) = naturalLand
+end
+
+val naturalLsl  : natural -> nat -> natural
+let naturalLsl i n = defaultLsl naturalFromBitSeq (bitSeqFromNatural Nothing) i n
+declare ocaml target_rep function naturalLsl = `Big_int.shift_left_big_int`
+
+instance (WordLsl natural) 
+  let (lsl) = naturalLsl
+end
+
+val naturalAsr  : natural -> nat -> natural
+let naturalAsr i n = defaultAsr naturalFromBitSeq (bitSeqFromNatural Nothing) i n
+declare ocaml target_rep function naturalAsr = `Big_int.shift_right_big_int`
+
+instance (WordLsr natural) 
+  let (lsr) = naturalAsr
+end
+
+instance  (WordAsr natural) 
+  let (asr) = naturalAsr
+end
+
+
+
+assert natural_bittest1  : ((6 : natural) land 5 = 4)
+assert natural_bittest2  : ((6 : natural) lor 5 = 7)
+assert natural_bittest3  : ((6 : natural) lxor 5 = 3)
+assert natural_bittest4  : ((12 : natural) land 9 = 8)
+assert natural_bittest5  : ((12 : natural) lor 9 = 13)
+assert natural_bittest6  : ((12 : natural) lxor 9 = 5)
+
+assert natural_bittest9  : ((27 : natural) lsl 0 = 27)
+assert natural_bittest10 : ((27 : natural) lsl 1 = 54)
+assert natural_bittest11 : ((27 : natural) lsl 2 = 108)
+assert natural_bittest12 : ((27 : natural) lsl 3  = 216)
+assert natural_bittest13 : ((27 : natural) lsr 0 = 27)
+assert natural_bittest14 : ((27 : natural) lsr 1 = 13)
+assert natural_bittest15 : ((27 : natural) lsr 2 = 6)
+assert natural_bittest16 : ((27 : natural) lsr 3 = 3)
+assert natural_bittest17 : ((27 : natural) asr 0 = 27)
+assert natural_bittest18 : ((27 : natural) asr 1 = 13)
+assert natural_bittest19 : ((27 : natural) asr 2 = 6)
+assert natural_bittest20 : ((27 : natural) asr 3 = 3)
+
+
+(* ----------------------- *)
+(* nat                     *)
+(* ----------------------- *)
+
+(* sometimes it is convinient to be able to perform bit-operations on its.
+   However, since nat is not well-defined (it has different size on different systems),
+   it should be used very carefully and only for operations that don't depend on the
+   bitwidth of nat *)
+
+val natFromBitSeq : bitSequence -> nat
+let natFromBitSeq bs = natFromNatural (naturalFromBitSeq (resizeBitSeq (Just 31) bs))
+
+
+val bitSeqFromNat : nat -> bitSequence 
+let bitSeqFromNat i = bitSeqFromNatural (Just 31) (naturalFromNat i)
+
+
+val natLor  : nat -> nat -> nat
+let natLor i1 i2 = defaultLor natFromBitSeq bitSeqFromNat i1 i2
+declare ocaml target_rep function natLor = infix `lor`
+
+instance (WordOr nat) 
+  let (lor) = natLor
+end
+
+val natLxor : nat -> nat -> nat
+let natLxor i1 i2 = defaultLxor natFromBitSeq bitSeqFromNat i1 i2
+declare ocaml target_rep function natLxor = infix `lxor`
+
+instance (WordXor nat) 
+  let (lxor) = natLxor
+end
+
+val natLand : nat -> nat -> nat
+let natLand i1 i2 = defaultLand natFromBitSeq bitSeqFromNat i1 i2
+declare ocaml target_rep function natLand = infix `land`
+
+instance (WordAnd nat) 
+  let (land) = natLand
+end
+
+val natLsl  : nat -> nat -> nat
+let natLsl i n = defaultLsl natFromBitSeq bitSeqFromNat i n
+declare ocaml target_rep function natLsl = infix `lsl`
+
+instance (WordLsl nat) 
+  let (lsl) = natLsl
+end
+
+val natAsr  : nat -> nat -> nat
+let natAsr i n = defaultAsr natFromBitSeq bitSeqFromNat i n
+declare ocaml target_rep function natAsr = infix `asr`
+
+instance  (WordAsr nat) 
+  let (asr) = natAsr
+end
+
+
+
+assert nat_bittest1  : ((6 : nat) land 5 = 4)
+assert nat_bittest2  : ((6 : nat) lor 5 = 7)
+assert nat_bittest3  : ((6 : nat) lxor 5 = 3)
+assert nat_bittest4  : ((12 : nat) land 9 = 8)
+assert nat_bittest5  : ((12 : nat) lor 9 = 13)
+assert nat_bittest6  : ((12 : nat) lxor 9 = 5)
+
+assert nat_bittest9  : ((27 : nat) lsl 0 = 27)
+assert nat_bittest10 : ((27 : nat) lsl 1 = 54)
+assert nat_bittest11 : ((27 : nat) lsl 2 = 108)
+assert nat_bittest12 : ((27 : nat) lsl 3  = 216)
+assert nat_bittest17 : ((27 : nat) asr 0 = 27)
+assert nat_bittest18 : ((27 : nat) asr 1 = 13)
+assert nat_bittest19 : ((27 : nat) asr 2 = 6)
+assert nat_bittest20 : ((27 : nat) asr 3 = 3)
+

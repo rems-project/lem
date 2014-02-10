@@ -4,6 +4,8 @@ NOW=$(shell date +%Y-%m-%d---%H-%M-%S)
 OCAML_BUILD_DIR=ocaml-build-dir---${NOW}
 HOL_BUILD_DIR=hol-build-dir---${NOW}
 ISA_BUILD_DIR=isa-build-dir---${NOW}
+
+OCAML_BUILD_DIR_REUSED=ocaml-build-dir-reused
 HOL_BUILD_DIR_REUSED=hol-build-dir-reused
 ISA_BUILD_DIR_REUSED=isa-build-dir-reused
 
@@ -42,6 +44,11 @@ ocaml-lib-tests:
 	@ln -s ${OCAML_BUILD_DIR} ocaml-build-dir       
 	@../lem -ocaml -outdir ${OCAML_BUILD_DIR} -wl ign -wl_auto_import err -wl_rename err ${LIBS} -only_auxiliary -only_changed_output
 	@./run-ocaml-tests.sh ${OCAML_BUILD_DIR}
+
+ocaml-lib-tests-reuse: 
+	@mkdir -p ${OCAML_BUILD_DIR_REUSED} || true
+	@../lem -ocaml -outdir ${OCAML_BUILD_DIR_REUSED} -wl ign -wl_auto_import err -wl_rename err ${LIBS} -only_auxiliary -only_changed_output
+	@./run-ocaml-tests.sh ${OCAML_BUILD_DIR_REUSED}
 
 hol-lib-tests: 
 	@mkdir -p ${HOL_BUILD_DIR}

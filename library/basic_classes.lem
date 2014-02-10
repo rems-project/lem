@@ -218,14 +218,21 @@ class ( OrdMaxMin 'a )
   val min : 'a -> 'a -> 'a
 end
 
-val defaultMin : forall 'a. Ord 'a => 'a -> 'a -> 'a
-let defaultMin x y = if (x <= y) then x else y
-declare ocaml    target_rep function defaultMin = `min`
+val minByLessEqual : forall 'a. ('a -> 'a -> bool) -> 'a -> 'a -> 'a
+let ~{isabelle} minByLessEqual le x y = if (le x y) then x else y
+let inline {isabelle} minByLessEqual le x y = if (le x y) then x else y
+
+val maxByLessEqual : forall 'a. ('a -> 'a -> bool) -> 'a -> 'a -> 'a
+let ~{isabelle} maxByLessEqual le x y = if (le y x) then x else y
+let inline {isabelle} maxByLessEqual le x y = if (le y x) then x else y
 
 val defaultMax : forall 'a. Ord 'a => 'a -> 'a -> 'a
-let defaultMax x y = if (y <= x) then x else y
+let inline defaultMax = maxByLessEqual (<=)
 declare ocaml    target_rep function defaultMax = `max`
 
+val defaultMin : forall 'a. Ord 'a => 'a -> 'a -> 'a
+let inline defaultMin = minByLessEqual (<=)
+declare ocaml    target_rep function defaultMin = `min`
 
 default_instance forall 'a. Ord 'a => ( OrdMaxMin 'a) 
   let max = defaultMax
