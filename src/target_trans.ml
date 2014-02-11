@@ -250,19 +250,23 @@ let coq =
     }
 
 let default_avoid_f ty_avoid (cL : (Name.t -> Name.t option) list) consts = 
-  let is_good n = not (NameSet.mem n consts) && List.for_all (fun c -> c n = None) cL
-  in
+  let is_good n = not (NameSet.mem n consts) && List.for_all (fun c -> c n = None) cL in
     (ty_avoid, is_good, 
      (fun n check -> 
         let old_n : Name.t = Name.from_rope n in
-        let new_n_opt : Name.t option = Util.option_first (fun c -> c old_n) cL in
-        let n' = Util.option_default n (Util.option_map Name.to_rope new_n_opt) in
+        let apply_fun (n : Name.t) = Util.option_first (fun c -> c n) cL in
+        let new_n : Name.t = Util.option_repeat apply_fun old_n in
+        let n' = Name.to_rope new_n in
         Name.fresh n' (fun n -> check n && is_good n)))
 
 let ocaml_avoid_f consts = default_avoid_f false [Name.uncapitalize] consts
 
 let underscore_avoid_f consts = 
   default_avoid_f false [Name.remove_underscore] consts
+
+let underscore_both_avoid_f consts = 
+  default_avoid_f false [Name.remove_underscore; Name.remove_underscore_suffix] consts
+
 
 
 let add_used_entities_to_avoid_names env targ ue ns =
@@ -307,7 +311,7 @@ end
 let get_avoid_f targ : NameSet.t -> var_avoid_f = 
   match targ with
     | Target_no_ident Target_ocaml -> ocaml_avoid_f 
-    | Target_no_ident Target_isa -> underscore_avoid_f 
+    | Target_no_ident Target_isa -> underscore_both_avoid_f
     | Target_no_ident Target_hol -> underscore_avoid_f 
     | Target_no_ident Target_coq -> default_avoid_f true [] 
     | _ -> default_avoid_f false [] 

@@ -185,6 +185,10 @@ let changed2 f g x h y =
     | (None,Some(y')) -> Some(f x y')
     | (Some(x'),Some(y')) -> Some(f x' y')
 
+let rec option_repeat f x = match f x with
+  | None -> x
+  | Some x' -> option_repeat f x'
+
 let rec map_all (f : 'a -> 'b option) (l : 'a list) : 'b list option =
   match l with [] -> Some []
     | x :: xs ->
