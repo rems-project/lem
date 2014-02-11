@@ -70,3 +70,7 @@ val ident_force_pattern_compile : bool ref
 
 (** This flag enables dictionary passing transfromations for the identity backend. Used for debugging. *)
 val ident_force_dictionary_passing : bool ref 
+
+(** This flag enables removing top-level matches from definition for the HOL4 backend. *)
+val hol_remove_matches : bool ref 
+

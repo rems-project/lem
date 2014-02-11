@@ -46,6 +46,7 @@
 
 let ident_force_pattern_compile = ref false
 let ident_force_dictionary_passing = ref false
+let hol_remove_matches = ref false
 
 open Typed_ast
 open Typed_ast_syntax
@@ -122,13 +123,16 @@ let hol =
   { macros = indreln_macros @
              dictionary_macros (Target_no_ident Target_hol) @ 
              nvar_macros @
-             [Def_macros (fun env -> [  M.remove_vals;
+             [Def_macros (fun env -> ([  M.remove_vals;
                                         M.remove_classes; 
                                         M.remove_opens;
 					M.remove_module_renames;
                                         M.remove_types_with_target_rep (Target_no_ident Target_hol);
                                         M.defs_with_target_rep_to_lemma env (Target_no_ident Target_hol);
-                                        Patterns.compile_def (Target_no_ident Target_hol) Patterns.is_hol_pattern_match env;]);
+                                        Patterns.compile_def (Target_no_ident Target_hol) Patterns.is_hol_pattern_match env] @
+                                        (if (!hol_remove_matches) then 
+                                          [Patterns.remove_toplevel_match (Target_no_ident Target_hol) Patterns.is_hol_pattern_match env]
+                                        else [])));
               Pat_macros (fun env -> [Backend_common.inline_pat_macro Target_hol env]);
               Exp_macros (fun env ->
                             let module T = T(struct let env = env end) in
