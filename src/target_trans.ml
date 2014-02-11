@@ -213,8 +213,8 @@ let isa  =
                     let module T = T(struct let env = env end) in
                       [T.remove_unit_pats])
      ];
-    extra = [(* (fun n -> Rename_top_level.rename_nested_module [n]);
-             Rename_top_level.flatten_modules; 
+    extra = [Rename_top_level.flatten_modules; 
+             (* (fun n -> Rename_top_level.rename_nested_module [n]);             
              (fun n -> Rename_top_level.rename_defs_target (Some Target_isa) consts fixed_renames [n])*)];
   }
 
