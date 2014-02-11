@@ -2983,7 +2983,7 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
           | _ -> false) 
         in
         let s2 = match rec_flag with FR_non_rec -> None | FR_rec sk -> sk in
-        ws s1 ^ kwd (if (is_rec && not try_term) then "function (sequential)" else (if is_simple then "definition" else "fun")) ^ ws s2 ^
+        ws s1 ^ kwd (if (is_rec && not try_term) then "function (sequential,domintros)" else (if is_simple then "definition" else "fun")) ^ ws s2 ^
         (isa_funcl_header_seplist clauses) ^
         flat (Seplist.to_sep_list (isa_funcl_default (kwd "= ")) (sep T.def_sep) clauses) ^
         (if (is_rec && not try_term) then (kwd "\nby pat_completeness auto") else emp) ^
