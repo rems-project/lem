@@ -356,7 +356,6 @@ let trans (targ : Target.target) params env (m : checked_module) =
 
   (* TODO: Macros are only applied in the order they are given. Fix this! As a workaround, just apply all
            macros several times. *)
-  let params = { params with macros = params.macros @ params.macros @ params.macros @ params.macros (* extra *) @ params.macros @ params.macros @ (* extra extra *) params.macros @ params.macros } in
 
   let (module_path, module_name) = Path.to_name_list m.module_path in
   let rev_module_path = List.rev module_path in
@@ -367,42 +366,49 @@ let trans (targ : Target.target) params env (m : checked_module) =
       | Target_ident -> defs
       | Target_no_ident t -> Def_trans.prune_target_bindings t defs 
   in
-  let (env,defs) = 
-    List.fold_left 
-      (fun (env,defs) mac ->
-         match mac with
-           | Def_macros dtrans ->
-               Def_trans.process_defs 
-                 rev_module_path
-                 (Def_trans.list_to_mac (dtrans env))
-                 module_name
-                 env
-                 defs
-           | Exp_macros etrans ->
-               let module Ctxt = struct let avoid = None let env_opt = Some(env) end in
-               let module M = Macro_expander.Expander(Ctxt) in
-               let defs =
-                 M.expand_defs defs
-                   (Macro_expander.list_to_mac (etrans env),
-                    (fun ty -> ty),
-                    (fun ty -> ty),
-                    Macro_expander.list_to_bool_mac [])
-               in
-                 (env,defs)
-           | Pat_macros ptrans ->
-               let module Ctxt = struct let avoid = None let env_opt = Some(env) end in
-               let module M = Macro_expander.Expander(Ctxt) in
-               let defs =
-                 M.expand_defs defs
-                   (Macro_expander.list_to_mac [],
-                    (fun ty -> ty),
-                    (fun ty -> ty),
-                    Macro_expander.list_to_bool_mac (ptrans env))
-               in
-                 (env,defs))
-      (env,List.rev defs)
-      params.macros
+
+  let rec achieve_fixpoint env defs =
+    let (env',defs') = 
+      List.fold_left 
+        (fun (env,defs) mac ->
+           match mac with
+             | Def_macros dtrans ->
+                 Def_trans.process_defs 
+                   rev_module_path
+                   (Def_trans.list_to_mac (dtrans env))
+                   module_name
+                   env
+                   defs
+             | Exp_macros etrans ->
+                 let module Ctxt = struct let avoid = None let env_opt = Some(env) end in
+                 let module M = Macro_expander.Expander(Ctxt) in
+                 let defs =
+                   M.expand_defs defs
+                     (Macro_expander.list_to_mac (etrans env),
+                      (fun ty -> ty),
+                      (fun ty -> ty),
+                      Macro_expander.list_to_bool_mac [])
+                 in
+                   (env,defs)
+             | Pat_macros ptrans ->
+                 let module Ctxt = struct let avoid = None let env_opt = Some(env) end in
+                 let module M = Macro_expander.Expander(Ctxt) in
+                 let defs =
+                   M.expand_defs defs
+                     (Macro_expander.list_to_mac [],
+                      (fun ty -> ty),
+                      (fun ty -> ty),
+                      Macro_expander.list_to_bool_mac (ptrans env))
+                 in
+                   (env,defs))
+        (env, defs) params.macros
+    in
+      if env' = env && defs = defs' then
+        (env, defs)
+      else
+        achieve_fixpoint env' defs'
   in
+  let (env, defs) = achieve_fixpoint env (List.rev defs) in
   let defs =
     List.fold_left
       (fun defs e -> e m.module_path env defs)
