@@ -157,7 +157,7 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 %token <Ast.terminal * string> BacktickString String Char Bin Hex Oct
 
 %token <Ast.terminal> Indreln Forall EqEqGt Inline Lem_transform LtBar BarGt Exists EqGt BraceBar BarBrace DotBrace 
-%token <Ast.terminal> Assert Lemma Theorem 
+%token <Ast.terminal> Assert Lemma Theorem NonExec
 %token <Ast.terminal> Declare TargetType TargetConst
 %token <Ast.terminal * Ulib.Text.t> IN MEM MinusMinusGt
 %token <Ast.terminal> Class_ Do LeftArrow
@@ -898,6 +898,8 @@ targets_opt:
     { Some(Targets_concrete($1,$2,$3)) }
   | NegLcurly targets Rcurly
     { Some(Targets_neg_concrete($1,$2,$3)) }
+  | NonExec
+    { Some(Targets_non_exec($1)) }
 
 component_term :
   | Function_

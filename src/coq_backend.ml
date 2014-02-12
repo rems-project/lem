@@ -630,7 +630,7 @@ let generate_coq_record_update_notation e =
           if (ms' = []) then
              ws (oi_get_lskip oi)
           else (
-            let d' = OpenImportTarget(oi, None, ms') in
+            let d' = OpenImportTarget(oi, Targets_opt_none, ms') in
             def inside_instance callback inside_module d' ^ ws sk
           )
       | OpenImportTarget(oi, _, []) -> ws (oi_get_lskip oi)

@@ -284,6 +284,7 @@ type
 targets =  (* Backend target name lists *)
    Targets_concrete of terminal * (target * terminal) list * terminal
  | Targets_neg_concrete of terminal * (target * terminal) list * terminal (* all targets except the listed ones *)
+ | Targets_non_exec of terminal (* all non-executable targets, useful for high level properties containing quantifiers *)
 
 
 type 
