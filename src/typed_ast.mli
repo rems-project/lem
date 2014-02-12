@@ -392,14 +392,15 @@ type instschm = constraint_prefix option * lskips * Ident.t * Path.t * src_t * l
 val cr_special_fun_uses_name : cr_special_fun -> bool
 
 
-(** targets_opt is represents a set of targets. There are 3 types of values   
-{ul
-    {- `None` represents the universal set, i.e. all targets}
-    {- `Some (false, sk_1, tl, sk_2)` (in source `\{ t1; ...; tn \}`) is the set of all targets in the list `tl`}
-    {- `Some (true, sk_1, tl, sk_2)` (in source `~\{ t1; ...; tn \}`) is the set of all targets {b not} in the list `tl`}
-}
-*)
-type targets_opt = (bool * lskips * Ast.target lskips_seplist * lskips) option
+(** targets_opt is represents a set of targets *)
+type targets_opt = 
+   Targets_opt_none (** represents the universal set, i.e. all targets *)
+ | Targets_opt_concrete of lskips * Ast.target lskips_seplist * lskips
+     (** (in source `\{ t1; ...; tn \}`) is the set of all targets in the list `tl` *)
+ | Targets_opt_neg_concrete of lskips * Ast.target lskips_seplist * lskips
+     (** (in source ~`\{ t1; ...; tn \}`) is the set of all targets {b not} in the list `tl` *)
+ | Targets_opt_non_exec of lskips
+     (** (in source `non_exec`) is the set of all targets that can handle non-executable definitions *)
 
 
 (** [in_targets_opt targ targets_opt] checks whether the target `targ` is in the set of targets represented by

@@ -2077,13 +2077,21 @@ let indreln_clause (Rule(name, s0, s1, qnames, s2, e_opt, s3, rname, rname_ref, 
   T.reln_clause_end
 
 let targets_opt = function
-  | None -> emp
-  | Some((b,s1,targets,s2)) ->
+  | Targets_opt_none -> emp
+  | Targets_opt_concrete (s1, targets, s2) -> 
       ws s1 ^
-      (if b then T.targets_opt_start_neg  else T.targets_opt_start) ^
+      T.targets_opt_start ^
       flat (Seplist.to_sep_list target_to_output (sep T.set_sep) targets) ^
       ws s2 ^
       T.targets_opt_end
+  | Targets_opt_neg_concrete (s1, targets, s2) -> 
+      ws s1 ^
+      T.targets_opt_start_neg ^
+      flat (Seplist.to_sep_list target_to_output (sep T.set_sep) targets) ^
+      ws s2 ^
+      T.targets_opt_end
+  | Targets_opt_non_exec (s1) -> 
+      ws s1 ^ kwd "non_exec"
 
 let in_target targs = Typed_ast.in_targets_opt T.target targs
 
@@ -2620,7 +2628,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
       Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)
   | OpenImport (oi, ms) ->
       let (ms', sk) = B.open_to_open_target ms in 
-      open_import_def_to_output false oi None ms' ^
+      open_import_def_to_output false oi Targets_opt_none ms' ^
       ws sk
   | OpenImportTarget(oi, _, []) -> ws (oi_get_lskip oi)
   | OpenImportTarget(oi,targets, ms) ->

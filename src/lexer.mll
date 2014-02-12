@@ -116,6 +116,7 @@ let kw_table =
      ("right_assoc"),            (fun x -> RightAssoc(x));
      ("left_assoc"),             (fun x -> LeftAssoc(x));
      ("non_assoc"),              (fun x -> NonAssoc(x));
+     ("non_exec"),               (fun x -> NonExec(x));
      ("special"),                (fun x -> Special(x));
      ("target_rep"),             (fun x -> TargetRep(x));
      ("target_type",             (fun x -> TargetType(x)));

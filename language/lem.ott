@@ -714,6 +714,8 @@ targets {{ tex \ensuremath{\tau} }} :: 'Targets_' ::=		{{ hol target list }}
     {{ hol [[target1..targetn]] }}
   | ~{ target1 ; .. ; targetn }					:: :: neg_concrete
     {{ com all targets except the listed ones }}
+  | non_exec							:: :: non_exec
+    {{ com all non-executable targets, useful for high level properties containing quantifiers }}
 
 targets_opt {{ tex \ensuremath{\tau^?} }} :: 'Targ_' ::= {{ phantom }}
 								{{ hol targets option }}
