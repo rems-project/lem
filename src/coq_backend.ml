@@ -219,7 +219,10 @@ let rec src_t_to_string =
 let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
 
 let field_ident_to_output fd ascii_alternative = 
-  Ident.to_output Term_field path_sep (B.const_id_to_ident fd ascii_alternative)
+  let ident = B.const_id_to_ident fd ascii_alternative in
+  let name = Ident.get_name ident in
+  let stripped = Name.strip_lskip name in
+    from_string (Name.to_string stripped)
 ;;
 
 let const_name_to_output a n =
@@ -1182,7 +1185,7 @@ let generate_coq_record_update_notation e =
                 ws skips''
             in
               Output.flat [
-                 ws skips; from_string "{["; exp inside_instance e; ws skips'; from_string "with"; body; skips''; from_string " ]}"
+                 ws skips; from_string "{["; exp inside_instance e; ws skips'; from_string "with "; body; skips''; from_string " ]}"
               ]
           | Case (_, skips, e, skips', cases, skips'') ->
             let body = flat @@ Seplist.to_sep_list_last Seplist.Optional (case_line inside_instance) (sep (break_hint_space 2 ^ from_string "|")) cases in
@@ -1314,7 +1317,7 @@ let generate_coq_record_update_notation e =
     and field_update inside_instance (fd, skips, e, _) =
       let name = field_ident_to_output fd (use_ascii_rep_for_const fd.descr) in
         Output.flat [
-          name; ws skips; from_string ":="; exp inside_instance e
+          name; ws skips; from_string ":= "; exp inside_instance e
         ]
     and literal l =
       match l.term with
