@@ -158,8 +158,8 @@ let bitSeqLogicalShiftRight bs n =
   end
 
 
-(* integerFromBoolList sign bl creates an integer form a list of bits 
-   (least significant bit first and an explicitly given sign bit.
+(* integerFromBoolList sign bl creates an integer from a list of bits
+   (least significant bit first) and an explicitly given sign bit.
    It uses two's complement encoding. *)
 val integerFromBoolList : (bool * list bool) -> integer
 
@@ -831,7 +831,7 @@ assert integer_bittest24 : ((~(27 : integer)) asr 2 = ~(7))
 (* int                     *)
 (* ----------------------- *)
 
-(* sometimes it is convinient to be able to perform bit-operations on its.
+(* sometimes it is convenient to be able to perform bit-operations on ints.
    However, since int is not well-defined (it has different size on different systems),
    it should be used very carefully and only for operations that don't depend on the
    bitwidth of int *)
@@ -999,7 +999,7 @@ assert natural_bittest20 : ((27 : natural) asr 3 = 3)
 (* nat                     *)
 (* ----------------------- *)
 
-(* sometimes it is convinient to be able to perform bit-operations on its.
+(* sometimes it is convenient to be able to perform bit-operations on nats.
    However, since nat is not well-defined (it has different size on different systems),
    it should be used very carefully and only for operations that don't depend on the
    bitwidth of nat *)
