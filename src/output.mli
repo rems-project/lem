@@ -208,6 +208,7 @@ val to_rope_tex : t -> Ulib.Text.t
 val to_rope_option_tex : t -> Ulib.Text.t option
 
 val tex_escape : Ulib.Text.t -> Ulib.Text.t
+val tex_escape_string : string -> string
 val tex_command_escape : Ulib.Text.t -> Ulib.Text.t
 val tex_command_label  : Ulib.Text.t -> Ulib.Text.t
 val tex_command_name  : Ulib.Text.t -> Ulib.Text.t

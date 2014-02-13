@@ -205,6 +205,9 @@ let pat_add_op_suc kwd suc n s1 s2 i =
   end in
   ws s1 ^ ws s2 ^ (suc_aux i)
 
+  let const_char_helper c c_org = 
+     (String.concat "" ["#\'"; Util.option_default (char_escape_ocaml c) c_org; "\'"])
+
 
 module type Target = sig
   val lex_skip : Ast.lex_skip -> Ulib.Text.t
@@ -463,8 +466,7 @@ module Identity : Target = struct
   let string_escape s s_org = Util.option_default (String.escaped s) s_org
   let const_num i i_opt = Util.option_default_map i_opt (num i) kwd
   let const_num_pat = num
-  let const_char c c_org = 
-     kwd (String.concat "" ["#\'"; Util.option_default (char_escape_ocaml c) c_org; "\'"])
+  let const_char c c_org = kwd (const_char_helper c c_org)
   let const_undefined t m = (kwd "Undef") (* ^ (comment m) *)
   let const_bzero = kwd "#0"
   let const_bone = kwd "#1"
@@ -665,10 +667,10 @@ module Tex : Target = struct
   let string_escape = Identity.string_escape
   let const_num = Identity.const_num
   let const_num_pat = num
-  let const_char = Identity.const_char
+  let const_char = function c -> function c_org -> kwd (Output.tex_escape_string (const_char_helper c c_org))
   let const_undefined t m = (bkwd "undefined")
-  let const_bzero = kwd "#0"
-  let const_bone = kwd "#1"
+  let const_bzero = kwd "\\#0"
+  let const_bone = kwd "\\#1"
 
   let backend_quote i = i (* quotation done by latex-macro *)
   let case_start = bkwd "match"
