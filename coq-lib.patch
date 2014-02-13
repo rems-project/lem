@@ -38,15 +38,6 @@ diff -u coq-lib-orig/lem_num.v coq-lib/lem_num.v
 diff -u coq-lib-orig/lem_word.v coq-lib/lem_word.v
 --- coq-lib-orig/lem_word.v	2014-02-13 15:15:21.000000000 +0000
 +++ coq-lib/lem_word.v	2014-02-13 15:22:07.000000000 +0000
-@@ -35,7 +35,7 @@
-    option  nat    ->  (* length of the sequence, Nothing means infinite length *)
-    bool  ->        (* sign of the word, used to fill up after concrete value is exhausted *)
-    list  bool  -> bitSequence .
--Definition bitSequence_default: bitSequence  := BitSeq maybe_default bool_default list_default.
-+Definition bitSequence_default: bitSequence  := BitSeq option_default bool_default list_default.
- (* [?]: removed value specification. *)
- 
- 
 @@ -110,11 +110,12 @@
  
  (* [?]: removed value specification. *)

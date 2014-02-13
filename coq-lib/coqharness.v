@@ -454,4 +454,4 @@ Definition set_default {elt: Type}: set elt := [].
 Definition fmap_default {key value: Type}: fmap key value := [].
 Definition string_default: string := ("" % string).
 Definition unit_default: unit := tt.
-Definition option_default {elt: Type}: option elt := None.
+Definition maybe_default {elt: Type}: option elt := None.
