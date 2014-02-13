@@ -33,6 +33,7 @@ ocaml-libs:
 
 isa-libs: 
 	make -C library isa-libs
+	isabelle build -d isabelle-lib -b LEM
 
 coq-libs: 
 	make -C library coq-libs

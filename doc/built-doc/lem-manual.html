@@ -107,8 +107,9 @@
 <li><a href="#infix-operations"><span class="toc-section-number">8.4</span> Infix Operations</a></li>
 <li><a href="#special-target-representations"><span class="toc-section-number">8.5</span> Special Target Representations</a></li>
 </ul></li>
-<li><a href="#typeclasses"><span class="toc-section-number">9</span> Typeclasses</a><ul>
-<li><a href="#type-classes-for-sets-and-maps"><span class="toc-section-number">9.1</span> Type-classes for Sets and Maps</a></li>
+<li><a href="#type-classes"><span class="toc-section-number">9</span> Type classes</a><ul>
+<li><a href="#type-classes-for-sets-and-maps"><span class="toc-section-number">9.1</span> Type classes for Sets and Maps</a></li>
+<li><a href="#other-standard-library-type-classes"><span class="toc-section-number">9.2</span> Other Standard Library Type Classes</a></li>
 </ul></li>
 <li><a href="#refactoring"><span class="toc-section-number">10</span> Refactoring</a><ul>
 <li><a href="#types-1"><span class="toc-section-number">10.1</span> Types</a></li>
@@ -743,15 +744,50 @@ declare tex      target_rep function (&amp;&amp;) = infix `$\wedge$`</code></pre
   val ( ** ) [`numPow`] : &#39;a -&gt; nat -&gt; &#39;a
 end
 declare tex target_rep function numPow n m = special &quot;{%e}^{%e}&quot; n m</code></pre>
-<h1 id="typeclasses"><a href="#TOC"><span class="header-section-number">9</span> Typeclasses</a></h1>
-<h2 id="type-classes-for-sets-and-maps"><a href="#TOC"><span class="header-section-number">9.1</span> Type-classes for Sets and Maps</a></h2>
+<h1 id="type-classes"><a href="#TOC"><span class="header-section-number">9</span> Type classes</a></h1>
+<h2 id="type-classes-for-sets-and-maps"><a href="#TOC"><span class="header-section-number">9.1</span> Type classes for Sets and Maps</a></h2>
+<p>Sets and Maps require comparison operations in OCaml and Coq. This is provided via type classes <code>SetType</code> and <code>MapType</code>, introduced in <code>library/basic_classes.lem</code>; the former has a single method <code>setElemCompare</code>. The default OCaml instantiation of <code>SetType</code> is with OCaml's <code>compare</code>, but if the user constructs sets of types containing any tuples, records, or user-defined inductive types, those types must also have an instance declaration for <code>SetType</code> with a suitable comparison function. If this is omitted, the default will be used and there may be a run-time error as the equality test will be incorrect. <code>MapType</code> uses <code>SetType</code> as default implementation.</p>
+<p>For example, for a simple inductive type:</p>
+<pre><code>type memory_order = Atomic | NA</code></pre>
+<p>one can make it an instance of <code>SetType</code> as follows, as here the default OCaml <code>compare</code> and the theorem prover equalities will be correct.</p>
+<pre><code>instance (SetType memory_order)
+  let setElemCompare = defaultCompare
+end</code></pre>
+<p>For a more complex inductive type such as the following, with recursion through a set and pair constructor:</p>
+<pre><code>type tree &#39;a =
+  | Node of set (&#39;a * tree &#39;a)</code></pre>
+<p>one can define an equality function making use of the underlying <code>setCompareBy</code> comparison on sets:</p>
+<pre><code>val treeCompare : forall &#39;a . 
+  (&#39;a -&gt; &#39;a -&gt; ordering) -&gt; (tree &#39;a) -&gt; (tree &#39;a) -&gt; ordering
+let rec treeCompare cmpa (Node xs) (Node ys) =  
+  setCompareBy (pairCompare cmpa (treeCompare cmpa)) xs ys </code></pre>
+<p>and make the <code>tree</code> type constructor instantiate <code>SetType</code> as follows:</p>
+<pre><code>instance forall &#39;a. SetType &#39;a =&gt; (SetType (tree &#39;a))
+  let setElemCompare = treeCompare setElemCompare
+end </code></pre>
+<p>Tuple types up to a certain size are made an instance of <code>SetType</code> in <code>basic_classes.lem</code>; if one uses sets or maps of wider tuples, they must also be made instances following the same pattern, otherwise Lem will generate incorrect code.</p>
+<h2 id="other-standard-library-type-classes"><a href="#TOC"><span class="header-section-number">9.2</span> Other Standard Library Type Classes</a></h2>
+<p>The standard library defines several other type classes. In <code>library/basic_classes.lem</code> we have, in addition to <code>SetType</code>:</p>
 <ul>
-<li>Sets and Maps require comparison operation in OCaml and Coq</li>
-<li><code>SetType</code> and <code>MapType</code> used to provide this comparison function</li>
-<li>default instantiation of <code>SetType</code> is by OCaml's <code>compare</code></li>
-<li>for types, where this fails user needs to provide instantion, otherwise OCaml run-time error</li>
-<li><code>MapType</code> uses <code>SetType</code> as default implementation</li>
+<li><code>Eq</code> for equality and inequality</li>
+<li><code>Ord</code> for total linear orders with comparison operations</li>
+<li><code>OrdMaxMin</code> extending <code>Ord</code> with max and min</li>
 </ul>
+<p>In <code>map.lem</code> we have <code>MapKeyType</code>.</p>
+<p>In <code>num.lem</code> there are various numeric types and type classes for the operations that they each may or may not support:</p>
+<ul>
+<li><code>NumNegate</code></li>
+<li><code>NumAdd</code></li>
+<li><code>NumMinus</code></li>
+<li><code>NumMult</code></li>
+<li><code>NumPow</code></li>
+<li><code>NumDivision</code></li>
+<li><code>NumIntegerDivision</code></li>
+<li><code>NumRemainder</code></li>
+<li><code>NumSucc</code></li>
+<li><code>NumPred</code></li>
+</ul>
+<p>In <code>word.lem</code> there is a type class <code>Word</code> of machine words, bitwise logical operations, and conversions to and from lists of booleans.</p>
 <h1 id="refactoring"><a href="#TOC"><span class="header-section-number">10</span> Refactoring</a></h1>
 <ul>
 <li>backend <code>lem</code> used for refactoring</li>

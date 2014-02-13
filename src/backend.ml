@@ -2425,8 +2425,10 @@ let val_ascii_opt = function
   | Ast.Ascii_opt_none -> emp
   | Ast.Ascii_opt_some (sk1, sk2, q, sk3) -> 
      if (is_human_target T.target) then begin
-        let i = Ident.mk_ident_strings [] q in
-        ws sk1 ^ kwd "[" ^ backend false sk2 i ^ ws sk3 ^ kwd "]" 
+       let i_escaped = match T.target with
+       | Target_no_ident Target_tex -> Ident.mk_ident_strings [] (tex_escape_string q)
+       | _ -> Ident.mk_ident_strings [] q in
+       ws sk1 ^ kwd "[" ^ backend false sk2 i_escaped ^ ws sk3 ^ kwd "]" 
      end else emp
 
 let infix_decl = function
