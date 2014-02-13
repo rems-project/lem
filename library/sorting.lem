@@ -140,12 +140,16 @@ lemma insertSort_2: (forall l cmp. isSorted (insertSort l))
 
 val sort: forall 'a. Ord 'a => list 'a -> list 'a
 val sortBy: forall 'a. ('a -> 'a -> bool) -> list 'a -> list 'a
+val sortByOrd: forall 'a. ('a -> 'a -> ordering) -> list 'a -> list 'a
 
 let inline sortBy = insertSortBy
-let inline sort = sortBy (<=)
-
 declare isabelle target_rep function sortBy = `sort_by`
 declare hol      target_rep function sortBy = `QSORT`
+declare ocaml    target_rep function sortByOrd = `List.sort`
+
+let inline ~{ocaml} sort = sortBy (<=)
+let inline {ocaml} sort = sortByOrd compare
+
 
 assert sort_1 : (sort ([] : list nat) = [])
 assert sort_2 : (sort ([6;4;3;8;1;2] : list nat) = [1;2;3;4;6;8])

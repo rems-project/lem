@@ -101,9 +101,15 @@ let compute_ocaml_rename_constant_fun (nk : name_kind) (n : Name.t) : Name.t opt
     | Nk_module _     -> Name.capitalize n
     | Nk_class _      -> None
 
+let compute_isa_rename_constant_fun (nk : name_kind) (n : Name.t) : Name.t option =
+  let n0 = Util.option_repeat Name.remove_underscore n in
+  let n1 = Util.option_repeat Name.remove_underscore_suffix n0 in
+  if (Name.compare n1 n = 0) then None else Some n1
+
 let compute_target_rename_constant_fun (targ : Target.non_ident_target) (nk : name_kind) (n : Name.t) : Name.t option =
   match targ with 
     | Target_ocaml -> compute_ocaml_rename_constant_fun nk n 
+    | Target_isa -> compute_isa_rename_constant_fun nk n 
     | _ -> None
 
 let get_fresh_name consts consts' n = 

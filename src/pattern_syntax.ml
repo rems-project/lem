@@ -156,7 +156,7 @@ let rec dest_num_pat (p :pat) : int option =
   match p.term with
   | P_lit l -> (
     match l.term with
-      L_num (_, n) -> Some n
+      L_num (_, n,_) -> Some n
     | _ -> None)
   | P_paren (_, p, _) -> dest_num_pat p
   | P_typ(_,p,_,_,_) -> dest_num_pat p
@@ -166,7 +166,7 @@ let is_num_pat p = not (dest_num_pat p = None)
 
 let mk_num_pat num_ty i = 
   let l = Ast.Trans (false, "mk_num_pat", None) in
-  let lit = C.mk_lnum l None i num_ty in
+  let lit = C.mk_lnum l None i None num_ty in
   C.mk_plit l lit (Some num_ty)
 
 let rec dest_num_add_pat (p :pat) : (Name.t * int) option =
