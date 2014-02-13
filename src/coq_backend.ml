@@ -1128,7 +1128,7 @@ let generate_coq_record_update_notation e =
           | Let (skips, bind, skips', e) ->
               let body = let_body inside_instance None false Types.TNset.empty bind in
                 Output.flat [
-                  ws skips; from_string "let"; body; ws skips'; from_string "in "; exp inside_instance e;
+                  ws skips; from_string "let "; body; ws skips'; from_string "in "; exp inside_instance e; (* The space after 'let' is a crude workaround for issue #90 (a missing space after 'let' in certain situations) *)
                 ]
           | Constant const -> 
             Output.concat emp (B.function_application_to_output (exp_to_locn e) (exp inside_instance) false e const [] (use_ascii_rep_for_const const.descr))
