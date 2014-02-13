@@ -37,6 +37,10 @@ isa-libs:
 
 coq-libs: 
 	make -C library coq-libs
+	patch -p0 < coq-lib.patch
+	cd coq-lib; coqc coqharness.v
+	cd coq-lib; coq_makefile -f coq_makefile.in > Makefile
+	make -C coq-lib
 
 tex-libs: 
 	make -C library tex-libs
