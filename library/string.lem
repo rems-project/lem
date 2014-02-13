@@ -51,7 +51,7 @@ val toCharList : string -> list char
 declare ocaml    target_rep function toCharList = `Xstring.explode`
 declare hol      target_rep function toCharList = `EXPLODE`
 declare isabelle target_rep function toCharList s = ``s
-declare coq      target_rep function toCharList s = `string_to_char_list` (* TODO: check *)
+declare coq      target_rep function toCharList = `string_to_char_list` (* TODO: check *)
 
 assert toCharList_0 : (toCharList "Hello" = [#'H'; #'e'; #'l'; #'l'; #'o'])
 assert toCharList_1 : (toCharList "H\nA" = [#'H'; #'\n'; #'A'])
@@ -60,7 +60,7 @@ val toString : list char -> string
 declare ocaml    target_rep function toString = `Xstring.implode`
 declare hol      target_rep function toString = `IMPLODE`
 declare isabelle target_rep function toString s = ``s
-declare coq      target_rep function toString s = `string_from_char_list` (* TODO: check *)
+declare coq      target_rep function toString = `string_from_char_list` (* TODO: check *)
 
 assert toString_0 : (toString [#'H'; #'e'; #'l'; #'l'; #'o'] = "Hello")
 assert toString_1 : (toString [#'H'; #'\n'; #'A'] = "H\nA")
