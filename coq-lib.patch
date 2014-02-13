@@ -1,24 +1,3 @@
-diff -u coq-lib-orig/lem_list.v coq-lib/lem_list.v
---- coq-lib-orig/lem_list.v	2014-02-13 15:15:21.000000000 +0000
-+++ coq-lib/lem_list.v	2014-02-13 15:22:21.000000000 +0000
-@@ -158,7 +158,7 @@
- end. *)
- (* [?]: removed value specification. *)
-  (* before also called "flatten" *)
--Definition concat {a : Type}   : list (list a) -> list a:=  List.fold_right List.append [].
-+Definition concat {a : Type}   : list (list a) -> list a:=  List.fold_right (@List.app _) []. (* XXX See issue #97. *)
- (* [?]: removed value specification. *)
- 
- (* [?]: removed top-level value definition. *)
-@@ -218,7 +218,7 @@
- Program Fixpoint genlist {a : Type}  (f : nat  -> a) (n : nat )  : list a:= 
-   match ( n) with 
-     | 0 => []
--    | S (n') =>  List.append(genlist f n') [(f n')]
-+    | S (n') =>  (@List.app _)(genlist f n') [(f n')] (* XXX See issue #97. *)
-   end.
- (* [?]: removed value specification. *)
- 
 diff -u coq-lib-orig/lem_num.v coq-lib/lem_num.v
 --- coq-lib-orig/lem_num.v	2014-02-13 15:15:21.000000000 +0000
 +++ coq-lib/lem_num.v	2014-02-13 15:22:07.000000000 +0000
