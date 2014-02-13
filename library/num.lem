@@ -639,7 +639,7 @@ val intAbs : int -> int
 declare hol      target_rep function intAbs = `ABS`
 declare ocaml    target_rep function intAbs = `abs`
 declare isabelle target_rep function intAbs = `abs`
-declare coq      target_rep function intAbs = `Zabs_nat` (* TODO: check *)
+declare coq      target_rep function intAbs input = `Zpred` (`Zpos` (`P_of_succ_nat` (`Zabs_nat` input))) (* TODO: check *)
 
 instance (NumAbs int)
   let abs = intAbs

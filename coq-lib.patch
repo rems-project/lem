@@ -17,18 +17,6 @@ diff -u coq-lib-orig/lem_num.v coq-lib/lem_num.v
  
  
  Instance x90_NumPow : NumPow nat := { 
-@@ -472,9 +474,11 @@
- (* [?]: removed value specification. *)
-  (* TODO: check *)
- 
-+(*
- Instance x69_NumAbs : NumAbs Z := {
-    abs  :=  Zabs_nat
- }.
-+*)
- 
- (* [?]: removed value specification. *)
- 
 @@ -983,7 +987,7 @@
  Definition int32FromInt  (i : Z ) :=  int32FromInteger (id i).
  (* [?]: removed value specification. *)
