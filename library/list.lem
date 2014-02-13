@@ -193,6 +193,7 @@ declare hol      target_rep function append = infix `++`
 declare ocaml    target_rep function append = `List.append`
 declare isabelle target_rep function append = infix `@`
 declare tex      target_rep function append = infix `$+\!+$`
+declare coq      target_rep function append = `List.append`
 
 assert append_1: ([0;1;2;3] ++ [4;5] = [(0:nat);1;2;3;4;5])
 lemma append_nil_1: (forall l. l ++ [] = l)
