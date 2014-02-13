@@ -67,10 +67,6 @@ Program Fixpoint list_tail
       | [] => fun absurd => _
       | x::xs => fun irrelevant => xs
     end p.
-  Obligation 1.
-    destruct (Coq.Arith.Lt.lt_irrefl 0).
-    apply absurd.
-Qed.
 
 (* Comparisons *)
 
