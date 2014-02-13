@@ -2062,7 +2062,7 @@ let is_coq_pat_direct (toplevel : bool) env (p : pat) : bool =
     | P_record _ -> false
     | P_tup _ -> not toplevel
     | (P_vector _ | P_vectorC _) -> false
-    | P_const (c, _) -> is_buildin_constructor Ast.Unknown env (Target.Target_no_ident Target.Target_coq) c.descr
+    | P_const (c, _) -> not toplevel
     | _ -> true
 
 let rec is_coq_exp env (e : exp) : bool = 
