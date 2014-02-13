@@ -1204,7 +1204,7 @@ val integerAbs : integer -> integer
 declare hol      target_rep function integerAbs = `ABS`
 declare ocaml    target_rep function integerAbs = `Big_int.abs_big_int`
 declare isabelle target_rep function integerAbs = `abs`
-declare coq      target_rep function integerAbs = `Zabs_nat` (* TODO: check *)
+declare coq      target_rep function integerAbs input = `Zpred` (`Zpos` (`P_of_succ_nat` (`Zabs_nat` input))) (* TODO: check *)
 
 instance (NumAbs integer)
   let abs = integerAbs
