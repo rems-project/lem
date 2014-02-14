@@ -137,6 +137,9 @@ let options = Arg.align ([
   ( "-add_loc_annots", 
     Arg.Unit (fun b -> Backend_common.def_add_location_comment_flag := true),
     " add location annotations to the output");
+  ( "-add_full_isa_lib_path",
+    Arg.Unit (fun b -> Backend_common.isa_add_full_library_path_flag := true),
+    " add the full path of the isabelle-lib directory to Isabelle import statements");
   ( "-v",
     Arg.Unit (fun b -> opt_print_version := true),
     " print version");

@@ -74,6 +74,14 @@ val get_module_name : env -> Target.target -> Name.t list -> Name.t -> Name.t
 (** [get_module_open_string l env targ dir mod_path] looks up how to represent this module in import / open statements. *)
 val get_module_open_string : env -> Target.target -> string -> Path.t -> string 
 
+
+(** [isa_add_full_library_path_flag] controls whether the full path to directory [isabelle-lib] is added to
+    Lem library modules imported by files outside the lib. This is useful to process the files easily from Isabelle, without
+    providing the path these library modules can be found explicitly to Isabelle. The resulting files are however not 
+    directly portable. Therefore, this flag is turned off by default and it is recommended to add the isabelle-library
+    directory instead to your [.isabelle/YOUR VERSION/ROOTS] file. *)    
+val isa_add_full_library_path_flag : bool ref
+
 (** [get_imported_target_modules env targ defs] extracts a list of module that should be imported.
     The exact names of these modules depend on the environment and the target. Therefore, they get extracted in
     an abstract from and converted (after possible changes to the environment) by
