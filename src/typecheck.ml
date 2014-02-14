@@ -1728,7 +1728,7 @@ module Make_checker(T : sig
       (fun n (t,l) ->
          let const_data = Nfmap.apply T.new_module_env.v_env n in
            match const_data with
-             | None ->
+             | None -> () (*
                  (* The constant is not defined yet. Check whether the definition is target
                     specific and raise an exception in this case. *)
                  begin
@@ -1738,7 +1738,7 @@ module Make_checker(T : sig
                            "target-specific definition without preceding 'val' specification"
                            Name.pp n)
                      | None -> ()
-                 end
+                 end *)
              | Some(c) ->
                  (* The constant is defined. Check, whether we are alowed to add another, target specific
                     definition. *)
