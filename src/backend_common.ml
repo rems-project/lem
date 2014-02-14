@@ -259,11 +259,14 @@ let get_module_name env target path mod_name =  begin
   Name.from_string (get_module_name_from_descr md mod_name (fun s -> s) target)
 end
 
+let isa_add_full_library_path_flag = ref false 
+
 let adapt_isabelle_library_dir dir =
   if (Util.dir_eq (Filename.concat Build_directory.d "library") dir) then
-     Filename.concat Build_directory.d "isabelle-lib"
+     (if (!isa_add_full_library_path_flag) then (Filename.concat Build_directory.d "isabelle-lib") else "")
   else 
      dir
+
 
 (* this function modifies target specific imports. It's main purpose is to replace
    variables in these imports. "$LIB_DIR/" gets replaced with either "" if we are
@@ -275,7 +278,8 @@ let get_module_open_string_target =
  fun target dir mod_string ->
  match target with
     | Target.Target_no_ident (Target.Target_isa) -> 
-        let new_dir = if Util.dir_eq dir abs_lib_dir then "" else (String.concat "" [abs_lib_dir; "/"]) in
+        let new_dir = if (not (!isa_add_full_library_path_flag)) then "" else
+          (if Util.dir_eq dir abs_lib_dir then "" else (String.concat "" [abs_lib_dir; "/"])) in
         Str.global_replace (Str.regexp_string "$LIB_DIR/") new_dir mod_string 
     | _ -> mod_string
 
