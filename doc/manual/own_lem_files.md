@@ -95,6 +95,9 @@ Recursive definitions require termination (or well-foundedness) proofs in the th
 
 ## Type definitions
 
+Note that when defining new types in Lem it may be necessary to
+instantiate some of the basic type classes, as described in the Type
+Classes section below.
 
 
 ## Assertions / Lemmata / Theorems
