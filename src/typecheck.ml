@@ -149,6 +149,7 @@ let ast_def_to_target_opt : Ast.def_aux -> Ast.targets option = function
                   Ast.Let_transform(_,_,target_opt,_) |
                   Ast.Let_rec(_,_,target_opt,_)) -> target_opt
     | Ast.Indreln(_,target_opt,_,_) -> target_opt
+    | Ast.Lemma(Ast.Lemma_named(Lemma_assert _,None,_,_,_)) -> None
     | Ast.Lemma(Ast.Lemma_named(_,None,_,_,_)) -> Some (Targets_non_exec None)
     | Ast.Lemma(Ast.Lemma_named(_,Some targets,_,_,_)) -> Some targets
     | Ast.Type_def _ -> None
