@@ -18,7 +18,7 @@ declare {hol;isabelle;ocaml;coq} rename module = lem_set_extra
 (* --------------------------- *)
 
 val choose : forall 'a. SetType 'a => set 'a -> 'a
-declare compile_message choose = "choose is non-deterministic and only defined for non-empty sets. It's result may differ between different backends. It may even not be a logical function, because the result may depend on the low-level representation of sets and be different for two representations of the same set."
+declare compile_message choose = "choose is non-deterministic and only defined for non-empty sets. Its result may differ between different backends. It may even not be a logical function, because the result may depend on the low-level representation of sets and be different for two representations of the same set."
 
 declare hol      target_rep function choose = `CHOICE`
 declare isabelle target_rep function choose = `set_choose`
