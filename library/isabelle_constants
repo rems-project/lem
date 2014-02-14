@@ -19,6 +19,7 @@ ProofGeneral\\.undo
 abbreviation
 acc
 also
+append
 apply
 apply_end
 arities
@@ -302,6 +303,7 @@ open
 output
 outputs
 overloaded
+perm
 permissive
 pervasive
 post

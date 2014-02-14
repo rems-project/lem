@@ -14,6 +14,14 @@ Definition bool_of_Prop (P : Prop) : bool :=
    else
      false.
 
+Definition Prop_of_bool (b: bool): Prop :=
+  match b with
+    | true => True
+    | false => False
+  end.
+
+Coercion Prop_of_bool: bool >-> Sortclass.
+
 Definition classical_boolean_equivalence {a : Type} (l r : a) : bool :=
   bool_of_Prop (l = r).
 
