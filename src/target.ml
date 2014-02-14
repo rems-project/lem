@@ -68,6 +68,10 @@ let all_targets_list = [
   Target_tex; 
   Target_html;] 
 
+let all_targets_only_exec_list = [
+  Target_ocaml
+] 
+
 let ast_target_to_target t = match t with
   | Ast.Target_hol   _ -> Target_hol 
   | Ast.Target_ocaml _ -> Target_ocaml 
@@ -130,6 +134,7 @@ end)
 let all_targets = List.fold_right Targetset.add all_targets_list Targetset.empty
 
 let all_targets_non_explicit = Targetset.remove Target_lem all_targets
+let all_targets_only_exec = List.fold_right Targetset.add all_targets_only_exec_list Targetset.empty
 
 let non_ident_target_to_string = function
   | Target_hol -> "hol"

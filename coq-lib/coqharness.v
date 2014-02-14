@@ -1,6 +1,7 @@
 Require Import Coq.ZArith.BinInt.
 Require Import Coq.ZArith.Zorder.
 Require Import ClassicalDescription.
+Require Import Coq.Strings.Ascii.
 Require Import Coq.Strings.String.
 
 (* Logic *)
@@ -48,6 +49,24 @@ Fixpoint list_member_by
           else
             list_member_by elteq e xs
     end.
+
+Program Fixpoint list_head
+  {elt: Type} (l: list elt) (p: 0 < List.length l): elt :=
+    match l return 0 < List.length l -> elt with
+      | [] => fun absurd => _
+      | x::xs => fun irrelevant => x
+    end p.
+  Obligation 1.
+    destruct (Coq.Arith.Lt.lt_irrefl 0).
+    apply absurd.
+Qed.
+
+Program Fixpoint list_tail
+  {elt: Type} (l: list elt) (p: 0 < List.length l): list elt :=
+    match l return 0 < List.length l -> list elt with
+      | [] => fun absurd => _
+      | x::xs => fun irrelevant => xs
+    end p.
 
 (* Comparisons *)
 
@@ -401,6 +420,30 @@ Definition fmap_range_by
   {k v: Type} (vord: v -> v -> ordering) (map: fmap k v): set v :=
     List.map (@snd k v) map.
 
+(* Strings *)
+
+Fixpoint string_to_char_list
+  (s: string): list ascii :=
+    match s with
+      | EmptyString => []
+      | String hd tl => hd::string_to_char_list tl
+    end.
+
+Fixpoint string_from_char_list
+  (chars: list ascii): string :=
+    match chars with
+      | [] => EmptyString
+      | hd::tl => String hd (string_from_char_list tl)
+    end.
+
+Fixpoint string_make_string
+  (m: nat) (char: ascii): string :=
+    match m with
+      | 0 => EmptyString
+      | S m' => String char (string_make_string m' char)
+    end.
+
+
 (* Default values for incomplete pattern matching. *)
 
 Definition bool_default: bool := false.
@@ -411,4 +454,4 @@ Definition set_default {elt: Type}: set elt := [].
 Definition fmap_default {key value: Type}: fmap key value := [].
 Definition string_default: string := ("" % string).
 Definition unit_default: unit := tt.
-Definition option_default {elt: Type}: option elt := None.
+Definition maybe_default {elt: Type}: option elt := None.

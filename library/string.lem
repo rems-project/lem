@@ -11,6 +11,7 @@ declare {ocaml;isabelle;hol;coq} rename module = lem_string
 open import Bool Basic_classes List
 open import {ocaml} `Xstring`
 open import {hol} `stringTheory`
+open import {coq} `Coq.Strings.Ascii` `Coq.Strings.String`
 
 (* ----------------------- *)
 (* basic instantiations    *)
@@ -22,10 +23,12 @@ open import {hol} `stringTheory`
 declare ocaml    target_rep type char = `char`
 declare hol      target_rep type char = `char`
 declare isabelle target_rep type char = `char`
+declare coq      target_rep type char = `ascii`
 
 declare ocaml    target_rep type string = `string`
 declare hol      target_rep type string = `string`
 declare isabelle target_rep type string = `string`
+declare coq      target_rep type string = `string`
 
 assert char_simple_0: not (#'0' = ((#'1'):char))
 assert char_simple_1: not (#'X' = #'Y') 
@@ -48,7 +51,7 @@ val toCharList : string -> list char
 declare ocaml    target_rep function toCharList = `Xstring.explode`
 declare hol      target_rep function toCharList = `EXPLODE`
 declare isabelle target_rep function toCharList s = ``s
-declare coq      target_rep function toCharList s = ``s (* TODO: check *)
+declare coq      target_rep function toCharList = `string_to_char_list` (* TODO: check *)
 
 assert toCharList_0 : (toCharList "Hello" = [#'H'; #'e'; #'l'; #'l'; #'o'])
 assert toCharList_1 : (toCharList "H\nA" = [#'H'; #'\n'; #'A'])
@@ -57,7 +60,7 @@ val toString : list char -> string
 declare ocaml    target_rep function toString = `Xstring.implode`
 declare hol      target_rep function toString = `IMPLODE`
 declare isabelle target_rep function toString s = ``s
-declare coq      target_rep function toString s = ``s (* TODO: check *)
+declare coq      target_rep function toString = `string_from_char_list` (* TODO: check *)
 
 assert toString_0 : (toString [#'H'; #'e'; #'l'; #'l'; #'o'] = "Hello")
 assert toString_1 : (toString [#'H'; #'\n'; #'A'] = "H\nA")
@@ -72,7 +75,7 @@ let makeString len c = toString (replicate len c)
 declare ocaml    target_rep function makeString = `String.make`
 declare isabelle target_rep function makeString = `List.replicate`
 declare hol      target_rep function makeString = `REPLICATE`
-declare coq      target_rep function makeString = `TODO-makeString`
+declare coq      target_rep function makeString = `string_make_string`
 
 assert makeString_0: (makeString 0 #'a' = "")
 assert makeString_1: (makeString 5 #'a' = "aaaaa")
@@ -86,7 +89,7 @@ val stringLength : string -> nat
 declare hol      target_rep function stringLength = `STRLEN`
 declare ocaml    target_rep function stringLength = `String.length`
 declare isabelle target_rep function stringLength = `List.length`
-declare coq      target_rep function stringLength = `List.length` (* TODO: check *)
+declare coq      target_rep function stringLength = `String.length` (* TODO: check *)
 
 assert stringLength_0: (stringLength "" = 0)
 assert stringLength_1: (stringLength "abc" = 3)
@@ -101,6 +104,7 @@ let inline stringAppend x y = (toString ((toCharList x) ++ (toCharList y)))
 declare ocaml    target_rep function stringAppend = infix `^`
 declare hol      target_rep function stringAppend = `STRCAT`
 declare isabelle target_rep function stringAppend = infix `@`
+declare coq      target_rep function stringAppend = `String.append`
 
 assert stringAppend_0 : ("Hello" ^ " " ^ "World!" = "Hello World!")
 

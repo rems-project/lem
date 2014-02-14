@@ -1,5 +1,25 @@
 # Type classes
 
+
+## Type class for Equality
+
+The Lem equality is translated using the type class `Eq`, defined in
+`library/basic_classes.lem`, with operations `=` (`isEqual`) and `<>`
+(`isInequal`) for equality and inequality.
+
+For HOL and Isabelle, this is always mapped to their standard equalities.
+
+However, for OCaml, the default mapping to OCaml equality is not
+always appropriate, and if a Lem development uses equality at any
+types at which it is not, the user must provide a suitable
+instantiation for type class `Eq`.  For example, one needs to
+instantiate `Eq` for any inductively defined types that make use of
+`natural` (mapped to OCaml big integers) or sets or maps, or
+(recursively) any other types that do.  On a similar note, one also
+needs to instantiate `Ord` (the type class for total linear orders)
+to compare such user-defined types, and to use them in sets or maps.
+
+
 ## Type classes for Sets and Maps
 
 Sets and Maps require comparison operations in OCaml and Coq.  This is
@@ -48,9 +68,8 @@ Tuple types up to a certain size are made an instance of `SetType` in `basic_cla
 
 ## Other Standard Library Type Classes
 
-The standard library defines several other type classes.   In `library/basic_classes.lem` we have, in addition to `SetType`:
+The standard library defines several other type classes.   In `library/basic_classes.lem` we have, in addition to `Eq` and `SetType`:
 
-- `Eq`   for equality and inequality
 - `Ord`  for total linear orders with comparison operations
 - `OrdMaxMin`  extending `Ord` with max and min
 

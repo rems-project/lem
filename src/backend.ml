@@ -205,6 +205,9 @@ let pat_add_op_suc kwd suc n s1 s2 i =
   end in
   ws s1 ^ ws s2 ^ (suc_aux i)
 
+  let const_char_helper c c_org = 
+     (String.concat "" ["#\'"; Util.option_default (char_escape_ocaml c) c_org; "\'"])
+
 
 module type Target = sig
   val lex_skip : Ast.lex_skip -> Ulib.Text.t
@@ -463,8 +466,7 @@ module Identity : Target = struct
   let string_escape s s_org = Util.option_default (String.escaped s) s_org
   let const_num i i_opt = Util.option_default_map i_opt (num i) kwd
   let const_num_pat = num
-  let const_char c c_org = 
-     kwd (String.concat "" ["#\'"; Util.option_default (char_escape_ocaml c) c_org; "\'"])
+  let const_char c c_org = kwd (const_char_helper c c_org)
   let const_undefined t m = (kwd "Undef") (* ^ (comment m) *)
   let const_bzero = kwd "#0"
   let const_bone = kwd "#1"
@@ -665,10 +667,10 @@ module Tex : Target = struct
   let string_escape = Identity.string_escape
   let const_num = Identity.const_num
   let const_num_pat = num
-  let const_char = Identity.const_char
+  let const_char = function c -> function c_org -> kwd (Output.tex_escape_string (const_char_helper c c_org))
   let const_undefined t m = (bkwd "undefined")
-  let const_bzero = kwd "#0"
-  let const_bone = kwd "#1"
+  let const_bzero = kwd "\\#0"
+  let const_bone = kwd "\\#1"
 
   let backend_quote i = i (* quotation done by latex-macro *)
   let case_start = bkwd "match"
@@ -2077,13 +2079,21 @@ let indreln_clause (Rule(name, s0, s1, qnames, s2, e_opt, s3, rname, rname_ref, 
   T.reln_clause_end
 
 let targets_opt = function
-  | None -> emp
-  | Some((b,s1,targets,s2)) ->
+  | Targets_opt_none -> emp
+  | Targets_opt_concrete (s1, targets, s2) -> 
       ws s1 ^
-      (if b then T.targets_opt_start_neg  else T.targets_opt_start) ^
+      T.targets_opt_start ^
       flat (Seplist.to_sep_list target_to_output (sep T.set_sep) targets) ^
       ws s2 ^
       T.targets_opt_end
+  | Targets_opt_neg_concrete (s1, targets, s2) -> 
+      ws s1 ^
+      T.targets_opt_start_neg ^
+      flat (Seplist.to_sep_list target_to_output (sep T.set_sep) targets) ^
+      ws s2 ^
+      T.targets_opt_end
+  | Targets_opt_non_exec (s1) -> 
+      ws s1 ^ kwd "non_exec"
 
 let in_target targs = Typed_ast.in_targets_opt T.target targs
 
@@ -2415,8 +2425,10 @@ let val_ascii_opt = function
   | Ast.Ascii_opt_none -> emp
   | Ast.Ascii_opt_some (sk1, sk2, q, sk3) -> 
      if (is_human_target T.target) then begin
-        let i = Ident.mk_ident_strings [] q in
-        ws sk1 ^ kwd "[" ^ backend false sk2 i ^ ws sk3 ^ kwd "]" 
+       let i_escaped = match T.target with
+       | Target_no_ident Target_tex -> Ident.mk_ident_strings [] (tex_escape_string q)
+       | _ -> Ident.mk_ident_strings [] q in
+       ws sk1 ^ kwd "[" ^ backend false sk2 i_escaped ^ ws sk3 ^ kwd "]" 
      end else emp
 
 let infix_decl = function
@@ -2620,7 +2632,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
       Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)
   | OpenImport (oi, ms) ->
       let (ms', sk) = B.open_to_open_target ms in 
-      open_import_def_to_output false oi None ms' ^
+      open_import_def_to_output false oi Targets_opt_none ms' ^
       ws sk
   | OpenImportTarget(oi, _, []) -> ws (oi_get_lskip oi)
   | OpenImportTarget(oi,targets, ms) ->
@@ -2983,7 +2995,7 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
           | _ -> false) 
         in
         let s2 = match rec_flag with FR_non_rec -> None | FR_rec sk -> sk in
-        ws s1 ^ kwd (if (is_rec && not try_term) then "function (sequential)" else (if is_simple then "definition" else "fun")) ^ ws s2 ^
+        ws s1 ^ kwd (if (is_rec && not try_term) then "function (sequential,domintros)" else (if is_simple then "definition" else "fun")) ^ ws s2 ^
         (isa_funcl_header_seplist clauses) ^
         flat (Seplist.to_sep_list (isa_funcl_default (kwd "= ")) (sep T.def_sep) clauses) ^
         (if (is_rec && not try_term) then (kwd "\nby pat_completeness auto") else emp) ^

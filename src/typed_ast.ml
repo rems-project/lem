@@ -287,15 +287,22 @@ type typschm = constraint_prefix option * src_t
 
 type instschm = constraint_prefix option * lskips * Ident.t * Path.t * src_t * lskips
 
-type targets_opt = (bool * lskips * Ast.target lskips_seplist * lskips) option
+type targets_opt = 
+   Targets_opt_none
+ | Targets_opt_concrete of lskips * Ast.target lskips_seplist * lskips
+ | Targets_opt_neg_concrete of lskips * Ast.target lskips_seplist * lskips
+ | Targets_opt_non_exec of lskips
 
 let in_targets_opt_raw (targ : Target.target) (targets_opt : targets_opt) : bool = match targ with
     Target_ident   -> true
   | Target_no_ident t -> (match targets_opt with 
-                 None -> true
-               | Some (neg, _, targets, _) -> 
-                 let is_in = Seplist.exists (fun t' -> ast_target_compare (target_to_ast_target t) t' = 0) targets in
-                 if neg then not is_in else is_in)
+        Targets_opt_none -> true
+      | Targets_opt_concrete (_, targets, _) -> 
+          Seplist.exists (fun t' -> ast_target_compare (target_to_ast_target t) t' = 0) targets
+      | Targets_opt_neg_concrete (_, targets, _) -> 
+          not (Seplist.exists (fun t' -> ast_target_compare (target_to_ast_target t) t' = 0) targets)
+      | Targets_opt_non_exec _ ->
+          not (List.exists (fun t' -> target_compare t t' = 0) Target.all_targets_only_exec_list))
 
 let in_targets_opt (targ : Target.target) (targets_opt : targets_opt) : bool = 
    if is_human_target targ then true else in_targets_opt_raw targ targets_opt
