@@ -91,10 +91,19 @@ val capitalize : t -> t option
     an underscore character. *)
 val starts_with_underscore : t -> bool
 
-(** [remove_underscore n] tries to remove all leading underscores from name [n].
+(** [remove_underscore n] tries to remove a leading underscores from name [n].
     If [n] does not start with an underscore character, [None] is returned, otherwise 
     the modified name. *)
 val remove_underscore : t -> t option
+
+(** [ends_with_underscore n] checks, whether the name [n] ends with
+    an underscore character. *)
+val ends_with_underscore : t -> bool
+
+(** [remove_underscore_suffix n] tries to remove a suffix underscores from name [n].
+    If [n] does not end with an underscore character, [None] is returned, otherwise 
+    the modified name. *)
+val remove_underscore_suffix : t -> t option
 
 (** {3 generating fresh names} *)
 

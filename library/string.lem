@@ -1,16 +1,34 @@
+(******************************************************************************)
+(* A library for strings                                                      *)
+(******************************************************************************)
+
+(* ========================================================================== *)
+(* Header                                                                     *)
+(* ========================================================================== *)
+
 declare {ocaml;isabelle;hol;coq} rename module = lem_string
 
 open import Bool Basic_classes List
 open import {ocaml} `Xstring`
 open import {hol} `stringTheory`
+open import {coq} `Coq.Strings.Ascii` `Coq.Strings.String`
+
+(* ----------------------- *)
+(* basic instantiations    *)
+(* ----------------------- *)
+
+(* set up the string and char types correctly for the backends and make
+   sure that parsing and equality checks work *)
 
 declare ocaml    target_rep type char = `char`
 declare hol      target_rep type char = `char`
 declare isabelle target_rep type char = `char`
+declare coq      target_rep type char = `ascii`
 
 declare ocaml    target_rep type string = `string`
 declare hol      target_rep type string = `string`
 declare isabelle target_rep type string = `string`
+declare coq      target_rep type string = `string`
 
 assert char_simple_0: not (#'0' = ((#'1'):char))
 assert char_simple_1: not (#'X' = #'Y') 
@@ -25,11 +43,15 @@ assert string_simple_1: not ("Hello\nWorld" = "Goodby\x20!")
 assert string_simple_2: not ("123_\\\t-+!?X_&" = "!'")
 assert string_simple_3: ("Hello World" = ("Hello\x20World":string))
 
+(* ------------------------------------------- *)
+(* translations between strings and char lists *)
+(* ------------------------------------------- *)
+
 val toCharList : string -> list char
 declare ocaml    target_rep function toCharList = `Xstring.explode`
 declare hol      target_rep function toCharList = `EXPLODE`
 declare isabelle target_rep function toCharList s = ``s
-declare coq      target_rep function toCharList s = ``s (* TODO: check *)
+declare coq      target_rep function toCharList = `string_to_char_list` (* TODO: check *)
 
 assert toCharList_0 : (toCharList "Hello" = [#'H'; #'e'; #'l'; #'l'; #'o'])
 assert toCharList_1 : (toCharList "H\nA" = [#'H'; #'\n'; #'A'])
@@ -38,17 +60,100 @@ val toString : list char -> string
 declare ocaml    target_rep function toString = `Xstring.implode`
 declare hol      target_rep function toString = `IMPLODE`
 declare isabelle target_rep function toString s = ``s
-declare coq      target_rep function toString s = ``s (* TODO: check *)
+declare coq      target_rep function toString = `string_from_char_list` (* TODO: check *)
 
 assert toString_0 : (toString [#'H'; #'e'; #'l'; #'l'; #'o'] = "Hello")
 assert toString_1 : (toString [#'H'; #'\n'; #'A'] = "H\nA")
 
 
+(* ----------------------- *)
+(* generating strings      *)
+(* ----------------------- *)
+
+val makeString : nat -> char -> string
+let makeString len c = toString (replicate len c)
+declare ocaml    target_rep function makeString = `String.make`
+declare isabelle target_rep function makeString = `List.replicate`
+declare hol      target_rep function makeString = `REPLICATE`
+declare coq      target_rep function makeString = `string_make_string`
+
+assert makeString_0: (makeString 0 #'a' = "")
+assert makeString_1: (makeString 5 #'a' = "aaaaa")
+assert makeString_2: (makeString 3 #'c' = "ccc")
+
+(* ----------------------- *)
+(* length                  *)
+(* ----------------------- *)
+
+val stringLength : string -> nat
+declare hol      target_rep function stringLength = `STRLEN`
+declare ocaml    target_rep function stringLength = `String.length`
+declare isabelle target_rep function stringLength = `List.length`
+declare coq      target_rep function stringLength = `String.length` (* TODO: check *)
+
+assert stringLength_0: (stringLength "" = 0)
+assert stringLength_1: (stringLength "abc" = 3)
+assert stringLength_2: (stringLength "123456" = 6)
+
+(* ----------------------- *)
+(* string concatenation    *)
+(* ----------------------- *)
+
 val (^) [`stringAppend`] : string -> string -> string
 let inline stringAppend x y = (toString ((toCharList x) ++ (toCharList y)))
 declare ocaml    target_rep function stringAppend = infix `^`
-declare hol      target_rep function stringAppend = infix `++`
+declare hol      target_rep function stringAppend = `STRCAT`
 declare isabelle target_rep function stringAppend = infix `@`
+declare coq      target_rep function stringAppend = `String.append`
 
 assert stringAppend_0 : ("Hello" ^ " " ^ "World!" = "Hello World!")
+
+
+(* ----------------------------*)
+(* setting up pattern matching *)
+(* --------------------------- *)
+
+val string_case : forall 'a. string -> 'a -> (char -> string -> 'a) -> 'a
+
+let string_case s c_empty c_cons = 
+  match (toCharList s) with
+    | [] -> c_empty
+    | c :: cs -> c_cons c (toString cs)
+  end
+declare ocaml    target_rep function string_case = `Xstring.string_case`
+declare hol      target_rep function string_case = `string_case`
+declare isabelle target_rep function string_case s c_e c_c = `list_case` c_e c_c s
+
+val empty_string : string
+let inline empty_string = ""
+
+assert empty_string_0: (empty_string = "")
+assert empty_string_1: not (empty_string = "xxx")
+
+val cons_string : char -> string -> string
+let inline cons_string c s = toString (c :: toCharList s)
+
+assert string_cons_0: (cons_string #'a' empty_string = "a")
+assert string_cons_1: (cons_string #'x' "yz" = "xyz")
+
+declare ocaml    target_rep function cons_string = `Xstring.cons_string`
+declare hol      target_rep function cons_string = `STRING`
+declare isabelle target_rep function cons_string = infix `#`
+
+
+declare pattern_match exhaustive string = [ empty_string; cons_string ] string_case
+
+assert string_patterns_0: (
+  match "" with
+    | empty_string -> true
+    | _ -> false
+  end
+)
+
+assert string_patterns_1: (
+  match "abc" with
+    | empty_string -> ""
+    | cons_string c s -> (makeString 5 c ^ s)
+  end = "aaaaabc"
+)
 

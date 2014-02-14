@@ -91,30 +91,51 @@ module Basic_classes = struct
                                                                 Basic_classes.Eq_class 
                                                                 Basic_classes.ordering
   val instance_Basic_classes_Eq_bool_dict : Basic_classes.Eq_class bool
-  val instance_Basic_classes_Eq_tup_dict : forall 'a 'b. 
-                                             (Basic_classes.Eq 'a)
-                                               (Basic_classes.Eq 'b) => 
-                                               Basic_classes.Eq_class 
-                                               ('a * 'b)
+  val instance_Basic_classes_Eq_tup2_dict : forall 'a 'b. 
+                                              (Basic_classes.Eq 'a)
+                                                (Basic_classes.Eq 'b) => 
+                                                Basic_classes.Eq_class 
+                                                ('a * 'b)
+  val instance_Basic_classes_Eq_tup3_dict : forall 'a 'b 'c. 
+                                              (Basic_classes.Eq 'a)
+                                                (Basic_classes.Eq 'b)
+                                                (Basic_classes.Eq 'c) => 
+                                                Basic_classes.Eq_class 
+                                                ('a * 'b * 'c)
   val instance_Basic_classes_Eq_var_dict : forall 'a. 
                                              Basic_classes.Eq_class 'a
   val instance_Basic_classes_OrdMaxMin_var_dict : forall 'a. 
                                                     (Basic_classes.Ord 'a) => 
                                                       Basic_classes.OrdMaxMin_class 
                                                       'a
-  val instance_Basic_classes_Ord_tup_dict : forall 'a 'b. 
-                                              (Basic_classes.Ord 'a)
-                                                (Basic_classes.Ord 'b) => 
-                                                Basic_classes.Ord_class 
-                                                ('a * 'b)
+  val instance_Basic_classes_Ord_tup2_dict : forall 'a 'b. 
+                                               (Basic_classes.Ord 'a)
+                                                 (Basic_classes.Ord 'b) => 
+                                                 Basic_classes.Ord_class 
+                                                 ('a * 'b)
+  val instance_Basic_classes_Ord_tup3_dict : forall 'a 'b 'c. 
+                                               (Basic_classes.Ord 'a)
+                                                 (Basic_classes.Ord 'b)
+                                                 (Basic_classes.Ord 'c) => 
+                                                 Basic_classes.Ord_class 
+                                                 ('a * 'b * 'c)
   val instance_Basic_classes_SetType_bool_dict : 
                                                    Basic_classes.SetType_class 
                                                    bool
-  val instance_Basic_classes_SetType_tup_dict : forall 'a 'b. 
-                                                  (Basic_classes.SetType 'a)
-                                                    (Basic_classes.SetType 'b) => 
-                                                    Basic_classes.SetType_class 
-                                                    ('a * 'b)
+  val instance_Basic_classes_SetType_tup2_dict : forall 'a 'b. 
+                                                   (Basic_classes.SetType 'a)
+                                                     (Basic_classes.SetType
+                                                      'b) => 
+                                                     Basic_classes.SetType_class 
+                                                     ('a * 'b)
+  val instance_Basic_classes_SetType_tup3_dict : forall 'a 'b 'c. 
+                                                   (Basic_classes.SetType 'a)
+                                                     (Basic_classes.SetType
+                                                      'b)
+                                                     (Basic_classes.SetType
+                                                      'c) => 
+                                                     Basic_classes.SetType_class 
+                                                     ('a * 'b * 'c)
   val instance_Basic_classes_SetType_var_dict : forall 'a. 
                                                   Basic_classes.SetType_class 
                                                   'a
@@ -125,7 +146,9 @@ module Basic_classes = struct
   val isLess : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> bool
   val isLessEqual : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> bool
   val max : forall 'a. (Basic_classes.OrdMaxMin 'a) => 'a -> 'a -> 'a
+  val maxByLessEqual : forall 'a. ('a -> 'a -> bool) -> 'a -> 'a -> 'a
   val min : forall 'a. (Basic_classes.OrdMaxMin 'a) => 'a -> 'a -> 'a
+  val minByLessEqual : forall 'a. ('a -> 'a -> bool) -> 'a -> 'a -> 'a
   val ordCompare : forall 'a. 
                      (Basic_classes.Eq 'a) (Basic_classes.Ord 'a) => 
                        'a -> 'a -> Basic_classes.ordering
@@ -167,9 +190,36 @@ module Basic_classes = struct
   val setElemCompare : forall 'a. 
                          (Basic_classes.SetType 'a) => 
                            'a -> 'a -> Basic_classes.ordering
-  val test : forall 'a 'b. 
-               (Basic_classes.SetType 'a) (Basic_classes.SetType 'b) => 
-                 ('a * 'b) -> ('a * 'b) -> Basic_classes.ordering
+  val tripleCompare : forall 'a 'b 'c. 
+                        ('a -> 'a -> Basic_classes.ordering) -> ('b -> 
+                                                                'b -> 
+                                                                Basic_classes.ordering) -> 
+                                                                ('c -> 
+                                                                'c -> 
+                                                                Basic_classes.ordering) -> 
+                                                                ('a * 'b * 'c) -> 
+                                                                ('a * 'b * 'c) -> 
+                                                                Basic_classes.ordering
+  val tripleEqual : forall 'a 'b 'c. 
+                      (Basic_classes.Eq 'a) (Basic_classes.Eq 'b)
+                        (Basic_classes.Eq 'c) => 
+                        ('a * 'b * 'c) -> ('a * 'b * 'c) -> bool
+  val tripleGreater : forall 'a 'b 'c. 
+                        (Basic_classes.Ord 'a) (Basic_classes.Ord 'b)
+                          (Basic_classes.Ord 'c) => 
+                          ('c * 'b * 'a) -> ('c * 'b * 'a) -> bool
+  val tripleGreaterEq : forall 'a 'b 'c. 
+                          (Basic_classes.Ord 'a) (Basic_classes.Ord 'b)
+                            (Basic_classes.Ord 'c) => 
+                            ('c * 'b * 'a) -> ('c * 'b * 'a) -> bool
+  val tripleLess : forall 'a 'b 'c. 
+                     (Basic_classes.Ord 'a) (Basic_classes.Ord 'b)
+                       (Basic_classes.Ord 'c) => 
+                       ('a * 'b * 'c) -> ('a * 'b * 'c) -> bool
+  val tripleLessEq : forall 'a 'b 'c. 
+                       (Basic_classes.Ord 'a) (Basic_classes.Ord 'b)
+                         (Basic_classes.Ord 'c) => 
+                         ('a * 'b * 'c) -> ('a * 'b * 'c) -> bool
   val unsafe_structural_equality : forall 'a. 'a -> 'a -> bool
   val unsafe_structural_inequality : forall 'a. 'a -> 'a -> bool
 
@@ -187,7 +237,7 @@ module Basic_classes = struct
 
   end
 
-  module Instance_Basic_classes_Eq_tup = struct
+  module Instance_Basic_classes_Eq_tup2 = struct
 
     val <> : forall 'a 'b. 
                (Basic_classes.Eq 'a) (Basic_classes.Eq 'b) => 
@@ -195,6 +245,19 @@ module Basic_classes = struct
     val = : forall 'a 'b. 
               (Basic_classes.Eq 'a) (Basic_classes.Eq 'b) => 
                 ('a * 'b) -> ('a * 'b) -> bool
+
+  end
+
+  module Instance_Basic_classes_Eq_tup3 = struct
+
+    val <> : forall 'a 'b 'c. 
+               (Basic_classes.Eq 'a) (Basic_classes.Eq 'b)
+                 (Basic_classes.Eq 'c) => 
+                 ('a * 'b * 'c) -> ('a * 'b * 'c) -> bool
+    val = : forall 'a 'b 'c. 
+              (Basic_classes.Eq 'a) (Basic_classes.Eq 'b)
+                (Basic_classes.Eq 'c) => 
+                ('a * 'b * 'c) -> ('a * 'b * 'c) -> bool
 
   end
 
@@ -212,7 +275,7 @@ module Basic_classes = struct
 
   end
 
-  module Instance_Basic_classes_Ord_tup = struct
+  module Instance_Basic_classes_Ord_tup2 = struct
 
     val < : forall 'a 'b. 
               (Basic_classes.Ord 'a) (Basic_classes.Ord 'b) => 
@@ -232,18 +295,53 @@ module Basic_classes = struct
 
   end
 
+  module Instance_Basic_classes_Ord_tup3 = struct
+
+    val < : forall 'a 'b 'c. 
+              (Basic_classes.Ord 'a) (Basic_classes.Ord 'b)
+                (Basic_classes.Ord 'c) => 
+                ('a * 'b * 'c) -> ('a * 'b * 'c) -> bool
+    val <= : forall 'a 'b 'c. 
+               (Basic_classes.Ord 'a) (Basic_classes.Ord 'b)
+                 (Basic_classes.Ord 'c) => 
+                 ('a * 'b * 'c) -> ('a * 'b * 'c) -> bool
+    val > : forall 'a 'b 'c. 
+              (Basic_classes.Ord 'a) (Basic_classes.Ord 'b)
+                (Basic_classes.Ord 'c) => 
+                ('a * 'b * 'c) -> ('a * 'b * 'c) -> bool
+    val >= : forall 'a 'b 'c. 
+               (Basic_classes.Ord 'a) (Basic_classes.Ord 'b)
+                 (Basic_classes.Ord 'c) => 
+                 ('a * 'b * 'c) -> ('a * 'b * 'c) -> bool
+    val compare : forall 'a 'b 'c. 
+                    (Basic_classes.Ord 'a) (Basic_classes.Ord 'b)
+                      (Basic_classes.Ord 'c) => 
+                      ('a * 'b * 'c) -> ('a * 'b * 'c) -> Basic_classes.ordering
+
+  end
+
   module Instance_Basic_classes_SetType_bool = struct
 
     val setElemCompare : bool -> bool -> Basic_classes.ordering
 
   end
 
-  module Instance_Basic_classes_SetType_tup = struct
+  module Instance_Basic_classes_SetType_tup2 = struct
 
     val setElemCompare : forall 'a 'b. 
                            (Basic_classes.SetType 'a)
                              (Basic_classes.SetType 'b) => 
                              ('a * 'b) -> ('a * 'b) -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_SetType_tup3 = struct
+
+    val setElemCompare : forall 'a 'b 'c. 
+                           (Basic_classes.SetType 'a)
+                             (Basic_classes.SetType 'b)
+                             (Basic_classes.SetType 'c) => 
+                             ('a * 'b * 'c) -> ('a * 'b * 'c) -> Basic_classes.ordering
 
   end
 
@@ -265,6 +363,7 @@ module Bool = struct
   val imp : bool -> bool -> bool
   val not : bool -> bool
   val or : bool -> bool -> bool
+  val xor : bool -> bool -> bool
   val || : bool -> bool -> bool
 
 end
@@ -340,7 +439,11 @@ module List = struct
   val deleteBy : forall 'a. ('a -> 'a -> bool) -> 'a -> (list 'a) -> list 'a
   val deleteFirst : forall 'a. 
                       ('a -> bool) -> (list 'a) -> Maybe.maybe (list 'a)
+  val dest_init : forall 'a. (list 'a) -> Maybe.maybe ((list 'a) * 'a)
+  val dest_init_aux : forall 'a. 
+                        (list 'a) -> 'a -> (list 'a) -> ((list 'a) * 'a)
   val drop : forall 'a. nat -> (list 'a) -> list 'a
+  val dropWhile : forall 'a. ('a -> bool) -> (list 'a) -> list 'a
   val elem : forall 'a. (Basic_classes.Eq 'a) => 'a -> (list 'a) -> bool
   val elemBy : forall 'a. ('a -> 'a -> bool) -> 'a -> (list 'a) -> bool
   val elemIndex : forall 'a. 
@@ -366,6 +469,10 @@ module List = struct
                                                (Basic_classes.Ord 'a) => 
                                                  Basic_classes.Ord_class 
                                                  (list 'a)
+  val instance_Basic_classes_SetType_list_dict : forall 'a. 
+                                                   (Basic_classes.SetType 'a) => 
+                                                     Basic_classes.SetType_class 
+                                                     (list 'a)
   val length : forall 'a. (list 'a) -> nat
   val lexicographicCompare : forall 'a. 
                                (Basic_classes.Ord 'a) => 
@@ -411,6 +518,7 @@ module List = struct
   val snoc : forall 'a. 'a -> (list 'a) -> list 'a
   val splitAt : forall 'a. nat -> (list 'a) -> ((list 'a) * (list 'a))
   val take : forall 'a. nat -> (list 'a) -> list 'a
+  val takeWhile : forall 'a. ('a -> bool) -> (list 'a) -> list 'a
   val unzip : forall 'a 'b. (list ('a * 'b)) -> ((list 'a) * (list 'b))
   val update : forall 'a. (list 'a) -> nat -> 'a -> list 'a
   val zip : forall 'a 'b. (list 'a) -> (list 'b) -> list ('a * 'b)
@@ -437,6 +545,14 @@ module List = struct
     val compare : forall 'a. 
                     (Basic_classes.Ord 'a) => 
                       (list 'a) -> (list 'a) -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_SetType_list = struct
+
+    val setElemCompare : forall 'a. 
+                           (Basic_classes.SetType 'a) => 
+                             (list 'a) -> (list 'a) -> Basic_classes.ordering
 
   end
 
@@ -579,7 +695,7 @@ module Maybe = struct
   val Just : forall 'a. 'a -> Maybe.maybe 'a
   val Nothing : forall 'a. Maybe.maybe 'a
   val bind : forall 'a 'b. 
-               ('a -> Maybe.maybe 'b) -> (Maybe.maybe 'a) -> Maybe.maybe 'b
+               (Maybe.maybe 'a) -> ('a -> Maybe.maybe 'b) -> Maybe.maybe 'b
   val fromMaybe : forall 'a. 'a -> (Maybe.maybe 'a) -> 'a
   val instance_Basic_classes_Eq_Maybe_maybe_dict : forall 'a. 
                                                      (Basic_classes.Eq 'a) => 
@@ -631,6 +747,11 @@ module Maybe = struct
 end
 
 module Num = struct
+  class NumAbs
+  type NumAbs_class 'a = {
+      val abs_method : forall 'a. (Num.NumAbs_class 'a) -> 'a -> 'a
+
+  }
   class NumAdd
   type NumAdd_class 'a = {
       val numAdd_method : forall 'a. (Num.NumAdd_class 'a) -> 'a -> 'a -> 'a
@@ -706,8 +827,17 @@ module Num = struct
   val + : forall 'a. (Num.NumAdd 'a) => 'a -> 'a -> 'a
   val - : forall 'a. (Num.NumMinus 'a) => 'a -> 'a -> 'a
   val / : forall 'a. (Num.NumDivision 'a) => 'a -> 'a -> 'a
+  val abs : forall 'a. (Num.NumAbs 'a) => 'a -> 'a
   val div : forall 'a. (Num.NumIntegerDivision 'a) => 'a -> 'a -> 'a
   val fromNumeral : forall 'a. (Num.Numeral 'a) => numeral -> 'a
+  val gen_pow : forall 'a. 'a -> ('a -> 'a -> 'a) -> 'a -> nat -> 'a
+  val gen_pow_aux : forall 'a. ('a -> 'a -> 'a) -> 'a -> 'a -> nat -> 'a
+  val instance_Basic_classes_Eq_Num_int32_dict : 
+                                                   Basic_classes.Eq_class 
+                                                   Num.int32
+  val instance_Basic_classes_Eq_Num_int64_dict : 
+                                                   Basic_classes.Eq_class 
+                                                   Num.int64
   val instance_Basic_classes_Eq_Num_int_dict : Basic_classes.Eq_class Num.int
   val instance_Basic_classes_Eq_Num_integer_dict : 
                                                      Basic_classes.Eq_class 
@@ -716,6 +846,12 @@ module Num = struct
                                                      Basic_classes.Eq_class 
                                                      Num.natural
   val instance_Basic_classes_Eq_nat_dict : Basic_classes.Eq_class nat
+  val instance_Basic_classes_OrdMaxMin_Num_int32_dict : 
+                                                          Basic_classes.OrdMaxMin_class 
+                                                          Num.int32
+  val instance_Basic_classes_OrdMaxMin_Num_int64_dict : 
+                                                          Basic_classes.OrdMaxMin_class 
+                                                          Num.int64
   val instance_Basic_classes_OrdMaxMin_Num_int_dict : 
                                                         Basic_classes.OrdMaxMin_class 
                                                         Num.int
@@ -728,6 +864,12 @@ module Num = struct
   val instance_Basic_classes_OrdMaxMin_nat_dict : 
                                                     Basic_classes.OrdMaxMin_class 
                                                     nat
+  val instance_Basic_classes_Ord_Num_int32_dict : 
+                                                    Basic_classes.Ord_class 
+                                                    Num.int32
+  val instance_Basic_classes_Ord_Num_int64_dict : 
+                                                    Basic_classes.Ord_class 
+                                                    Num.int64
   val instance_Basic_classes_Ord_Num_int_dict : 
                                                   Basic_classes.Ord_class 
                                                   Num.int
@@ -738,6 +880,12 @@ module Num = struct
                                                       Basic_classes.Ord_class 
                                                       Num.natural
   val instance_Basic_classes_Ord_nat_dict : Basic_classes.Ord_class nat
+  val instance_Basic_classes_SetType_Num_int32_dict : 
+                                                        Basic_classes.SetType_class 
+                                                        Num.int32
+  val instance_Basic_classes_SetType_Num_int64_dict : 
+                                                        Basic_classes.SetType_class 
+                                                        Num.int64
   val instance_Basic_classes_SetType_Num_int_dict : 
                                                       Basic_classes.SetType_class 
                                                       Num.int
@@ -750,10 +898,22 @@ module Num = struct
   val instance_Basic_classes_SetType_nat_dict : 
                                                   Basic_classes.SetType_class 
                                                   nat
+  val instance_Num_NumAbs_Num_int32_dict : Num.NumAbs_class Num.int32
+  val instance_Num_NumAbs_Num_int64_dict : Num.NumAbs_class Num.int64
+  val instance_Num_NumAbs_Num_int_dict : Num.NumAbs_class Num.int
+  val instance_Num_NumAbs_Num_integer_dict : Num.NumAbs_class Num.integer
+  val instance_Num_NumAdd_Num_int32_dict : Num.NumAdd_class Num.int32
+  val instance_Num_NumAdd_Num_int64_dict : Num.NumAdd_class Num.int64
   val instance_Num_NumAdd_Num_int_dict : Num.NumAdd_class Num.int
   val instance_Num_NumAdd_Num_integer_dict : Num.NumAdd_class Num.integer
   val instance_Num_NumAdd_Num_natural_dict : Num.NumAdd_class Num.natural
   val instance_Num_NumAdd_nat_dict : Num.NumAdd_class nat
+  val instance_Num_NumDivision_Num_int32_dict : 
+                                                  Num.NumDivision_class 
+                                                  Num.int32
+  val instance_Num_NumDivision_Num_int64_dict : 
+                                                  Num.NumDivision_class 
+                                                  Num.int64
   val instance_Num_NumDivision_Num_int_dict : Num.NumDivision_class Num.int
   val instance_Num_NumDivision_Num_integer_dict : 
                                                     Num.NumDivision_class 
@@ -762,6 +922,12 @@ module Num = struct
                                                     Num.NumDivision_class 
                                                     Num.natural
   val instance_Num_NumDivision_nat_dict : Num.NumDivision_class nat
+  val instance_Num_NumIntegerDivision_Num_int32_dict : 
+                                                         Num.NumIntegerDivision_class 
+                                                         Num.int32
+  val instance_Num_NumIntegerDivision_Num_int64_dict : 
+                                                         Num.NumIntegerDivision_class 
+                                                         Num.int64
   val instance_Num_NumIntegerDivision_Num_int_dict : 
                                                        Num.NumIntegerDivision_class 
                                                        Num.int
@@ -774,26 +940,42 @@ module Num = struct
   val instance_Num_NumIntegerDivision_nat_dict : 
                                                    Num.NumIntegerDivision_class 
                                                    nat
+  val instance_Num_NumMinus_Num_int32_dict : Num.NumMinus_class Num.int32
+  val instance_Num_NumMinus_Num_int64_dict : Num.NumMinus_class Num.int64
   val instance_Num_NumMinus_Num_int_dict : Num.NumMinus_class Num.int
   val instance_Num_NumMinus_Num_integer_dict : Num.NumMinus_class Num.integer
   val instance_Num_NumMinus_Num_natural_dict : Num.NumMinus_class Num.natural
   val instance_Num_NumMinus_nat_dict : Num.NumMinus_class nat
+  val instance_Num_NumMult_Num_int32_dict : Num.NumMult_class Num.int32
+  val instance_Num_NumMult_Num_int64_dict : Num.NumMult_class Num.int64
   val instance_Num_NumMult_Num_int_dict : Num.NumMult_class Num.int
   val instance_Num_NumMult_Num_integer_dict : Num.NumMult_class Num.integer
   val instance_Num_NumMult_Num_natural_dict : Num.NumMult_class Num.natural
   val instance_Num_NumMult_nat_dict : Num.NumMult_class nat
+  val instance_Num_NumNegate_Num_int32_dict : Num.NumNegate_class Num.int32
+  val instance_Num_NumNegate_Num_int64_dict : Num.NumNegate_class Num.int64
   val instance_Num_NumNegate_Num_int_dict : Num.NumNegate_class Num.int
   val instance_Num_NumNegate_Num_integer_dict : 
                                                   Num.NumNegate_class 
                                                   Num.integer
+  val instance_Num_NumPow_Num_int32_dict : Num.NumPow_class Num.int32
+  val instance_Num_NumPow_Num_int64_dict : Num.NumPow_class Num.int64
   val instance_Num_NumPow_Num_int_dict : Num.NumPow_class Num.int
   val instance_Num_NumPow_Num_integer_dict : Num.NumPow_class Num.integer
   val instance_Num_NumPow_Num_natural_dict : Num.NumPow_class Num.natural
   val instance_Num_NumPow_nat_dict : Num.NumPow_class nat
+  val instance_Num_NumPred_Num_int32_dict : Num.NumPred_class Num.int32
+  val instance_Num_NumPred_Num_int64_dict : Num.NumPred_class Num.int64
   val instance_Num_NumPred_Num_int_dict : Num.NumPred_class Num.int
   val instance_Num_NumPred_Num_integer_dict : Num.NumPred_class Num.integer
   val instance_Num_NumPred_Num_natural_dict : Num.NumPred_class Num.natural
   val instance_Num_NumPred_nat_dict : Num.NumPred_class nat
+  val instance_Num_NumRemainder_Num_int32_dict : 
+                                                   Num.NumRemainder_class 
+                                                   Num.int32
+  val instance_Num_NumRemainder_Num_int64_dict : 
+                                                   Num.NumRemainder_class 
+                                                   Num.int64
   val instance_Num_NumRemainder_Num_int_dict : Num.NumRemainder_class Num.int
   val instance_Num_NumRemainder_Num_integer_dict : 
                                                      Num.NumRemainder_class 
@@ -802,19 +984,76 @@ module Num = struct
                                                      Num.NumRemainder_class 
                                                      Num.natural
   val instance_Num_NumRemainder_nat_dict : Num.NumRemainder_class nat
+  val instance_Num_NumSucc_Num_int32_dict : Num.NumSucc_class Num.int32
+  val instance_Num_NumSucc_Num_int64_dict : Num.NumSucc_class Num.int64
   val instance_Num_NumSucc_Num_int_dict : Num.NumSucc_class Num.int
   val instance_Num_NumSucc_Num_integer_dict : Num.NumSucc_class Num.integer
   val instance_Num_NumSucc_Num_natural_dict : Num.NumSucc_class Num.natural
   val instance_Num_NumSucc_nat_dict : Num.NumSucc_class nat
+  val instance_Num_Numeral_Num_int32_dict : Num.Numeral_class Num.int32
+  val instance_Num_Numeral_Num_int64_dict : Num.Numeral_class Num.int64
   val instance_Num_Numeral_Num_int_dict : Num.Numeral_class Num.int
   val instance_Num_Numeral_Num_integer_dict : Num.Numeral_class Num.integer
   val instance_Num_Numeral_Num_natural_dict : Num.Numeral_class Num.natural
   val instance_Num_Numeral_nat_dict : Num.Numeral_class nat
+  val int32Abs : Num.int32 -> Num.int32
+  val int32Add : Num.int32 -> Num.int32 -> Num.int32
+  val int32Compare : Num.int32 -> Num.int32 -> Basic_classes.ordering
+  val int32Div : Num.int32 -> Num.int32 -> Num.int32
+  val int32Eq : Num.int32 -> Num.int32 -> bool
+  val int32FromInt : Num.int -> Num.int32
+  val int32FromInt64 : Num.int64 -> Num.int32
+  val int32FromInteger : Num.integer -> Num.int32
+  val int32FromNat : nat -> Num.int32
+  val int32FromNatural : Num.natural -> Num.int32
+  val int32FromNumeral : numeral -> Num.int32
+  val int32Greater : Num.int32 -> Num.int32 -> bool
+  val int32GreaterEqual : Num.int32 -> Num.int32 -> bool
+  val int32Less : Num.int32 -> Num.int32 -> bool
+  val int32LessEqual : Num.int32 -> Num.int32 -> bool
+  val int32Max : Num.int32 -> Num.int32 -> Num.int32
+  val int32Min : Num.int32 -> Num.int32 -> Num.int32
+  val int32Minus : Num.int32 -> Num.int32 -> Num.int32
+  val int32Mod : Num.int32 -> Num.int32 -> Num.int32
+  val int32Mult : Num.int32 -> Num.int32 -> Num.int32
+  val int32Negate : Num.int32 -> Num.int32
+  val int32Pow : Num.int32 -> nat -> Num.int32
+  val int32Pred : Num.int32 -> Num.int32
+  val int32Succ : Num.int32 -> Num.int32
+  val int64Abs : Num.int64 -> Num.int64
+  val int64Add : Num.int64 -> Num.int64 -> Num.int64
+  val int64Compare : Num.int64 -> Num.int64 -> Basic_classes.ordering
+  val int64Div : Num.int64 -> Num.int64 -> Num.int64
+  val int64Eq : Num.int64 -> Num.int64 -> bool
+  val int64FromInt : Num.int -> Num.int64
+  val int64FromInt32 : Num.int32 -> Num.int64
+  val int64FromInteger : Num.integer -> Num.int64
+  val int64FromNat : nat -> Num.int64
+  val int64FromNatural : Num.natural -> Num.int64
+  val int64FromNumeral : numeral -> Num.int64
+  val int64Greater : Num.int64 -> Num.int64 -> bool
+  val int64GreaterEqual : Num.int64 -> Num.int64 -> bool
+  val int64Less : Num.int64 -> Num.int64 -> bool
+  val int64LessEqual : Num.int64 -> Num.int64 -> bool
+  val int64Max : Num.int64 -> Num.int64 -> Num.int64
+  val int64Min : Num.int64 -> Num.int64 -> Num.int64
+  val int64Minus : Num.int64 -> Num.int64 -> Num.int64
+  val int64Mod : Num.int64 -> Num.int64 -> Num.int64
+  val int64Mult : Num.int64 -> Num.int64 -> Num.int64
+  val int64Negate : Num.int64 -> Num.int64
+  val int64Pow : Num.int64 -> nat -> Num.int64
+  val int64Pred : Num.int64 -> Num.int64
+  val int64Succ : Num.int64 -> Num.int64
+  val intAbs : Num.int -> Num.int
   val intAdd : Num.int -> Num.int -> Num.int
   val intCompare : Num.int -> Num.int -> Basic_classes.ordering
   val intDiv : Num.int -> Num.int -> Num.int
   val intEq : Num.int -> Num.int -> bool
+  val intFromInt32 : Num.int32 -> Num.int
+  val intFromInt64 : Num.int64 -> Num.int
+  val intFromInteger : Num.integer -> Num.int
   val intFromNat : nat -> Num.int
+  val intFromNatural : Num.natural -> Num.int
   val intFromNumeral : numeral -> Num.int
   val intGreater : Num.int -> Num.int -> bool
   val intGreaterEqual : Num.int -> Num.int -> bool
@@ -829,10 +1068,16 @@ module Num = struct
   val intPow : Num.int -> nat -> Num.int
   val intPred : Num.int -> Num.int
   val intSucc : Num.int -> Num.int
+  val integerAbs : Num.integer -> Num.integer
   val integerAdd : Num.integer -> Num.integer -> Num.integer
   val integerCompare : Num.integer -> Num.integer -> Basic_classes.ordering
   val integerDiv : Num.integer -> Num.integer -> Num.integer
   val integerEq : Num.integer -> Num.integer -> bool
+  val integerFromInt : Num.int -> Num.integer
+  val integerFromInt32 : Num.int32 -> Num.integer
+  val integerFromInt64 : Num.int64 -> Num.integer
+  val integerFromNat : nat -> Num.integer
+  val integerFromNatural : Num.natural -> Num.integer
   val integerFromNumeral : numeral -> Num.integer
   val integerGreater : Num.integer -> Num.integer -> bool
   val integerGreaterEqual : Num.integer -> Num.integer -> bool
@@ -853,6 +1098,9 @@ module Num = struct
   val natDiv : nat -> nat -> nat
   val natEq : nat -> nat -> bool
   val natFromInt : Num.int -> nat
+  val natFromInt32 : Num.int32 -> nat
+  val natFromInt64 : Num.int64 -> nat
+  val natFromInteger : Num.integer -> nat
   val natFromNatural : Num.natural -> nat
   val natFromNumeral : numeral -> nat
   val natGreater : nat -> nat -> bool
@@ -871,6 +1119,10 @@ module Num = struct
   val naturalCompare : Num.natural -> Num.natural -> Basic_classes.ordering
   val naturalDiv : Num.natural -> Num.natural -> Num.natural
   val naturalEq : Num.natural -> Num.natural -> bool
+  val naturalFromInt : Num.int -> Num.natural
+  val naturalFromInt32 : Num.int32 -> Num.natural
+  val naturalFromInt64 : Num.int64 -> Num.natural
+  val naturalFromInteger : Num.integer -> Num.natural
   val naturalFromNat : nat -> Num.natural
   val naturalFromNumeral : numeral -> Num.natural
   val naturalGreater : Num.natural -> Num.natural -> bool
@@ -895,6 +1147,7 @@ module Num = struct
   val numPow : forall 'a. (Num.NumPow 'a) => 'a -> nat -> 'a
   val numRemainder : forall 'a. (Num.NumRemainder 'a) => 'a -> 'a -> 'a
   val pred : forall 'a. (Num.NumPred 'a) => 'a -> 'a
+  val string_of_natural : Num.natural -> string
   val succ : forall 'a. (Num.NumSucc 'a) => 'a -> 'a
   val ~ : forall 'a. (Num.NumNegate 'a) => 'a -> 'a
 
@@ -902,6 +1155,20 @@ module Num = struct
 
     val <> : Num.int -> Num.int -> bool
     val = : Num.int -> Num.int -> bool
+
+  end
+
+  module Instance_Basic_classes_Eq_Num_int32 = struct
+
+    val <> : Num.int32 -> Num.int32 -> bool
+    val = : Num.int32 -> Num.int32 -> bool
+
+  end
+
+  module Instance_Basic_classes_Eq_Num_int64 = struct
+
+    val <> : Num.int64 -> Num.int64 -> bool
+    val = : Num.int64 -> Num.int64 -> bool
 
   end
 
@@ -933,6 +1200,20 @@ module Num = struct
 
   end
 
+  module Instance_Basic_classes_OrdMaxMin_Num_int32 = struct
+
+    val max : Num.int32 -> Num.int32 -> Num.int32
+    val min : Num.int32 -> Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Basic_classes_OrdMaxMin_Num_int64 = struct
+
+    val max : Num.int64 -> Num.int64 -> Num.int64
+    val min : Num.int64 -> Num.int64 -> Num.int64
+
+  end
+
   module Instance_Basic_classes_OrdMaxMin_Num_integer = struct
 
     val max : Num.integer -> Num.integer -> Num.integer
@@ -961,6 +1242,26 @@ module Num = struct
     val > : Num.int -> Num.int -> bool
     val >= : Num.int -> Num.int -> bool
     val compare : Num.int -> Num.int -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_Ord_Num_int32 = struct
+
+    val < : Num.int32 -> Num.int32 -> bool
+    val <= : Num.int32 -> Num.int32 -> bool
+    val > : Num.int32 -> Num.int32 -> bool
+    val >= : Num.int32 -> Num.int32 -> bool
+    val compare : Num.int32 -> Num.int32 -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_Ord_Num_int64 = struct
+
+    val < : Num.int64 -> Num.int64 -> bool
+    val <= : Num.int64 -> Num.int64 -> bool
+    val > : Num.int64 -> Num.int64 -> bool
+    val >= : Num.int64 -> Num.int64 -> bool
+    val compare : Num.int64 -> Num.int64 -> Basic_classes.ordering
 
   end
 
@@ -1000,6 +1301,18 @@ module Num = struct
 
   end
 
+  module Instance_Basic_classes_SetType_Num_int32 = struct
+
+    val setElemCompare : Num.int32 -> Num.int32 -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_SetType_Num_int64 = struct
+
+    val setElemCompare : Num.int64 -> Num.int64 -> Basic_classes.ordering
+
+  end
+
   module Instance_Basic_classes_SetType_Num_integer = struct
 
     val setElemCompare : Num.integer -> Num.integer -> Basic_classes.ordering
@@ -1018,9 +1331,45 @@ module Num = struct
 
   end
 
+  module Instance_Num_NumAbs_Num_int = struct
+
+    val abs : Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumAbs_Num_int32 = struct
+
+    val abs : Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Num_NumAbs_Num_int64 = struct
+
+    val abs : Num.int64 -> Num.int64
+
+  end
+
+  module Instance_Num_NumAbs_Num_integer = struct
+
+    val abs : Num.integer -> Num.integer
+
+  end
+
   module Instance_Num_NumAdd_Num_int = struct
 
     val + : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumAdd_Num_int32 = struct
+
+    val + : Num.int32 -> Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Num_NumAdd_Num_int64 = struct
+
+    val + : Num.int64 -> Num.int64 -> Num.int64
 
   end
 
@@ -1048,6 +1397,18 @@ module Num = struct
 
   end
 
+  module Instance_Num_NumDivision_Num_int32 = struct
+
+    val / : Num.int32 -> Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Num_NumDivision_Num_int64 = struct
+
+    val / : Num.int64 -> Num.int64 -> Num.int64
+
+  end
+
   module Instance_Num_NumDivision_Num_integer = struct
 
     val / : Num.integer -> Num.integer -> Num.integer
@@ -1069,6 +1430,18 @@ module Num = struct
   module Instance_Num_NumIntegerDivision_Num_int = struct
 
     val div : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumIntegerDivision_Num_int32 = struct
+
+    val div : Num.int32 -> Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Num_NumIntegerDivision_Num_int64 = struct
+
+    val div : Num.int64 -> Num.int64 -> Num.int64
 
   end
 
@@ -1096,6 +1469,18 @@ module Num = struct
 
   end
 
+  module Instance_Num_NumMinus_Num_int32 = struct
+
+    val - : Num.int32 -> Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Num_NumMinus_Num_int64 = struct
+
+    val - : Num.int64 -> Num.int64 -> Num.int64
+
+  end
+
   module Instance_Num_NumMinus_Num_integer = struct
 
     val - : Num.integer -> Num.integer -> Num.integer
@@ -1117,6 +1502,18 @@ module Num = struct
   module Instance_Num_NumMult_Num_int = struct
 
     val * : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumMult_Num_int32 = struct
+
+    val * : Num.int32 -> Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Num_NumMult_Num_int64 = struct
+
+    val * : Num.int64 -> Num.int64 -> Num.int64
 
   end
 
@@ -1144,6 +1541,18 @@ module Num = struct
 
   end
 
+  module Instance_Num_NumNegate_Num_int32 = struct
+
+    val ~ : Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Num_NumNegate_Num_int64 = struct
+
+    val ~ : Num.int64 -> Num.int64
+
+  end
+
   module Instance_Num_NumNegate_Num_integer = struct
 
     val ~ : Num.integer -> Num.integer
@@ -1153,6 +1562,18 @@ module Num = struct
   module Instance_Num_NumPow_Num_int = struct
 
     val ** : Num.int -> nat -> Num.int
+
+  end
+
+  module Instance_Num_NumPow_Num_int32 = struct
+
+    val ** : Num.int32 -> nat -> Num.int32
+
+  end
+
+  module Instance_Num_NumPow_Num_int64 = struct
+
+    val ** : Num.int64 -> nat -> Num.int64
 
   end
 
@@ -1180,6 +1601,18 @@ module Num = struct
 
   end
 
+  module Instance_Num_NumPred_Num_int32 = struct
+
+    val pred : Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Num_NumPred_Num_int64 = struct
+
+    val pred : Num.int64 -> Num.int64
+
+  end
+
   module Instance_Num_NumPred_Num_integer = struct
 
     val pred : Num.integer -> Num.integer
@@ -1201,6 +1634,18 @@ module Num = struct
   module Instance_Num_NumRemainder_Num_int = struct
 
     val mod : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumRemainder_Num_int32 = struct
+
+    val mod : Num.int32 -> Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Num_NumRemainder_Num_int64 = struct
+
+    val mod : Num.int64 -> Num.int64 -> Num.int64
 
   end
 
@@ -1228,6 +1673,18 @@ module Num = struct
 
   end
 
+  module Instance_Num_NumSucc_Num_int32 = struct
+
+    val succ : Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Num_NumSucc_Num_int64 = struct
+
+    val succ : Num.int64 -> Num.int64
+
+  end
+
   module Instance_Num_NumSucc_Num_integer = struct
 
     val succ : Num.integer -> Num.integer
@@ -1249,6 +1706,18 @@ module Num = struct
   module Instance_Num_Numeral_Num_int = struct
 
     val fromNumeral : numeral -> Num.int
+
+  end
+
+  module Instance_Num_Numeral_Num_int32 = struct
+
+    val fromNumeral : numeral -> Num.int32
+
+  end
+
+  module Instance_Num_Numeral_Num_int64 = struct
+
+    val fromNumeral : numeral -> Num.int64
 
   end
 
@@ -1289,6 +1758,11 @@ module Pervasives = struct
                                    (Map.MapKeyType_class 'a) -> 'a -> 
                                                                 'a -> 
                                                                 Basic_classes.ordering
+
+  }
+  class NumAbs
+  type NumAbs_class 'a = {
+      val abs_method : forall 'a. (Num.NumAbs_class 'a) -> 'a -> 'a
 
   }
   class NumAdd
@@ -1393,6 +1867,42 @@ module Pervasives = struct
                                     'a -> 'a -> Basic_classes.ordering
 
   }
+  class WordAnd
+  type WordAnd_class 'a = {
+      val land_method : forall 'a. (Word.WordAnd_class 'a) -> 'a -> 'a -> 'a
+
+  }
+  class WordAsr
+  type WordAsr_class 'a = {
+      val asr_method : forall 'a. (Word.WordAsr_class 'a) -> 'a -> nat -> 'a
+
+  }
+  class WordLsl
+  type WordLsl_class 'a = {
+      val lsl_method : forall 'a. (Word.WordLsl_class 'a) -> 'a -> nat -> 'a
+
+  }
+  class WordLsr
+  type WordLsr_class 'a = {
+      val lsr_method : forall 'a. (Word.WordLsr_class 'a) -> 'a -> nat -> 'a
+
+  }
+  class WordNot
+  type WordNot_class 'a = {
+      val lnot_method : forall 'a. (Word.WordNot_class 'a) -> 'a -> 'a
+
+  }
+  class WordOr
+  type WordOr_class 'a = {
+      val lor_method : forall 'a. (Word.WordOr_class 'a) -> 'a -> 'a -> 'a
+
+  }
+  class WordXor
+  type WordXor_class 'a = {
+      val lxor_method : forall 'a. (Word.WordXor_class 'a) -> 'a -> 'a -> 'a
+
+  }
+  type bitSequence
   type either 'a 'b
   type float32
   type float64
@@ -1423,6 +1933,7 @@ module Pervasives = struct
   val = : forall 'a. (Basic_classes.Eq 'a) => 'a -> 'a -> bool
   val > : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> bool
   val >= : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> bool
+  val BitSeq : (Maybe.maybe nat) -> bool -> (list bool) -> Word.bitSequence
   val EQ : Basic_classes.ordering
   val GT : Basic_classes.ordering
   val IN : forall 'a. (Basic_classes.SetType 'a) => 'a -> (set 'a) -> bool
@@ -1434,26 +1945,94 @@ module Pervasives = struct
   val Right : forall 'a 'b. 'b -> Either.either 'a 'b
   val \ : forall 'a. 
             (Basic_classes.SetType 'a) => (set 'a) -> (set 'a) -> set 'a
+  val ^ : string -> string -> string
+  val abs : forall 'a. (Num.NumAbs 'a) => 'a -> 'a
   val all : forall 'a. ('a -> bool) -> (list 'a) -> bool
   val and : bool -> bool -> bool
   val any : forall 'a. ('a -> bool) -> (list 'a) -> bool
   val append : forall 'a. (list 'a) -> (list 'a) -> list 'a
   val apply : forall 'a 'b. ('a -> 'b) -> 'a -> 'b
+  val arithmetic_right_shift : forall 'a. 
+                                 (Word.WordAsr 'a) => 'a -> nat -> 'a
+  val asr : forall 'a. (Word.WordAsr 'a) => 'a -> nat -> 'a
   val bigunion : forall 'a. 
                    (Basic_classes.SetType 'a) => (set (set 'a)) -> set 'a
   val bigunionBy : forall 'a. 
                      ('a -> 'a -> Basic_classes.ordering) -> (set (set 'a)) -> 
                                                              set 'a
   val bind : forall 'a 'b. 
-               ('a -> Maybe.maybe 'b) -> (Maybe.maybe 'a) -> Maybe.maybe 'b
+               (Maybe.maybe 'a) -> ('a -> Maybe.maybe 'b) -> Maybe.maybe 'b
+  val bitSeqAdd : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+  val bitSeqAnd : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+  val bitSeqArithBinOp : 
+                           (Num.integer -> Num.integer -> Num.integer) -> 
+                           Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+  val bitSeqArithBinTest : forall 'a. 
+                             (Num.integer -> Num.integer -> 'a) -> Word.bitSequence -> 
+                                                                   Word.bitSequence -> 
+                                                                   'a
+  val bitSeqArithUnaryOp : 
+                             (Num.integer -> Num.integer) -> Word.bitSequence -> 
+                                                             Word.bitSequence
+  val bitSeqArithmeticShiftRight : 
+                                     Word.bitSequence -> nat -> Word.bitSequence
+  val bitSeqBinop : 
+                      (bool -> bool -> bool) -> Word.bitSequence -> Word.bitSequence -> 
+                                                                    Word.bitSequence
+  val bitSeqBinopAux : 
+                         (bool -> bool -> bool) -> bool -> (list bool) -> 
+                                                           bool -> (list 
+                                                                   bool) -> 
+                                                                   list 
+                                                                   bool
+  val bitSeqCompare : 
+                        Word.bitSequence -> Word.bitSequence -> Basic_classes.ordering
+  val bitSeqDiv : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+  val bitSeqEq : Word.bitSequence -> Word.bitSequence -> bool
+  val bitSeqFromBoolList : (list bool) -> Maybe.maybe Word.bitSequence
+  val bitSeqFromInt : Num.int -> Word.bitSequence
+  val bitSeqFromInteger : 
+                            (Maybe.maybe nat) -> Num.integer -> Word.bitSequence
+  val bitSeqFromNat : nat -> Word.bitSequence
+  val bitSeqFromNatural : 
+                            (Maybe.maybe nat) -> Num.natural -> Word.bitSequence
+  val bitSeqFromNumeral : numeral -> Word.bitSequence
+  val bitSeqGreater : Word.bitSequence -> Word.bitSequence -> bool
+  val bitSeqGreaterEqual : Word.bitSequence -> Word.bitSequence -> bool
+  val bitSeqLess : Word.bitSequence -> Word.bitSequence -> bool
+  val bitSeqLessEqual : Word.bitSequence -> Word.bitSequence -> bool
+  val bitSeqLogicalShiftRight : Word.bitSequence -> nat -> Word.bitSequence
+  val bitSeqMax : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+  val bitSeqMin : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+  val bitSeqMinus : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+  val bitSeqMod : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+  val bitSeqMult : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+  val bitSeqNegate : Word.bitSequence -> Word.bitSequence
+  val bitSeqNot : Word.bitSequence -> Word.bitSequence
+  val bitSeqOr : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+  val bitSeqPow : Word.bitSequence -> nat -> Word.bitSequence
+  val bitSeqPred : Word.bitSequence -> Word.bitSequence
+  val bitSeqSetBit : Word.bitSequence -> nat -> bool -> Word.bitSequence
+  val bitSeqShiftLeft : Word.bitSequence -> nat -> Word.bitSequence
+  val bitSeqSucc : Word.bitSequence -> Word.bitSequence
+  val bitSeqTestBit : Word.bitSequence -> nat -> Maybe.maybe bool
+  val bitSeqXor : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
   val boolCompare : bool -> bool -> Basic_classes.ordering
+  val boolListFromInteger : Num.integer -> (bool * (list bool))
+  val boolListFromIntegerAux : (list bool) -> Num.integer -> list bool
+  val boolListFromNatural : (list bool) -> Num.natural -> list bool
+  val boolListFrombitSeq : nat -> Word.bitSequence -> list bool
+  val boolListFrombitSeqAux : forall 'a. nat -> 'a -> (list 'a) -> list 'a
+  val cleanBitSeq : Word.bitSequence -> Word.bitSequence
   val comb : forall 'a 'b 'c. ('b -> 'c) -> ('a -> 'b) -> 'a -> 'c
   val compare : forall 'a. 
                   (Basic_classes.Ord 'a) => 
                     'a -> 'a -> Basic_classes.ordering
   val concat : forall 'a. (list (list 'a)) -> list 'a
   val concatMap : forall 'a 'b. ('a -> list 'b) -> (list 'a) -> list 'b
+  val conjunction : forall 'a. (Word.WordAnd 'a) => 'a -> 'a -> 'a
   val cons : forall 'a. 'a -> (list 'a) -> list 'a
+  val cons_string : char -> string -> string
   val const : forall 'a 'b. 'a -> 'b -> 'a
   val cross : forall 'a 'b. 
                 (Basic_classes.SetType 'a) (Basic_classes.SetType 'b) => 
@@ -1462,11 +2041,32 @@ module Pervasives = struct
                   (('a * 'b) -> ('a * 'b) -> Basic_classes.ordering) -> 
                   (set 'a) -> (set 'b) -> set ('a * 'b)
   val curry : forall 'a 'b 'c. (('a * 'b) -> 'c) -> 'a -> 'b -> 'c
+  val defaultAsr : forall 'a. 
+                     (Word.bitSequence -> 'a) -> ('a -> Word.bitSequence) -> 
+                                                 'a -> nat -> 'a
   val defaultCompare : forall 'a. 'a -> 'a -> Basic_classes.ordering
   val defaultGreater : forall 'a. 'a -> 'a -> bool
   val defaultGreaterEq : forall 'a. 'a -> 'a -> bool
+  val defaultLand : forall 'a. 
+                      (Word.bitSequence -> 'a) -> ('a -> Word.bitSequence) -> 
+                                                  'a -> 'a -> 'a
   val defaultLess : forall 'a. 'a -> 'a -> bool
   val defaultLessEq : forall 'a. 'a -> 'a -> bool
+  val defaultLnot : forall 'a. 
+                      (Word.bitSequence -> 'a) -> ('a -> Word.bitSequence) -> 
+                                                  'a -> 'a
+  val defaultLor : forall 'a. 
+                     (Word.bitSequence -> 'a) -> ('a -> Word.bitSequence) -> 
+                                                 'a -> 'a -> 'a
+  val defaultLsl : forall 'a. 
+                     (Word.bitSequence -> 'a) -> ('a -> Word.bitSequence) -> 
+                                                 'a -> nat -> 'a
+  val defaultLsr : forall 'a. 
+                     (Word.bitSequence -> 'a) -> ('a -> Word.bitSequence) -> 
+                                                 'a -> nat -> 'a
+  val defaultLxor : forall 'a. 
+                      (Word.bitSequence -> 'a) -> ('a -> Word.bitSequence) -> 
+                                                  'a -> 'a -> 'a
   val defaultMax : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> 'a
   val defaultMin : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> 'a
   val delete : forall 'a. (Basic_classes.Eq 'a) => 'a -> (list 'a) -> list 'a
@@ -1476,6 +2076,9 @@ module Pervasives = struct
   val deleteSwap : forall 'k 'v. 
                      (Map.MapKeyType 'k) => 
                        (Map.map 'k 'v) -> 'k -> Map.map 'k 'v
+  val dest_init : forall 'a. (list 'a) -> Maybe.maybe ((list 'a) * 'a)
+  val dest_init_aux : forall 'a. 
+                        (list 'a) -> 'a -> (list 'a) -> ((list 'a) * 'a)
   val difference : forall 'a. 
                      (Basic_classes.SetType 'a) => 
                        (set 'a) -> (set 'a) -> set 'a
@@ -1491,6 +2094,7 @@ module Pervasives = struct
                    ('k -> 'k -> Basic_classes.ordering) -> (Map.map 'k 'v) -> 
                                                            set 'k
   val drop : forall 'a. nat -> (list 'a) -> list 'a
+  val dropWhile : forall 'a. ('a -> bool) -> (list 'a) -> list 'a
   val either : forall 'a 'b 'c. 
                  ('a -> 'c) -> ('b -> 'c) -> (Either.either 'a 'b) -> 'c
   val eitherEqual : forall 'a 'b. 
@@ -1514,7 +2118,9 @@ module Pervasives = struct
                       (Basic_classes.Eq 'a) => 'a -> (list 'a) -> list nat
   val empty : forall 'a. (Basic_classes.SetType 'a) => set 'a
   val emptyBy : forall 'a. ('a -> 'a -> Basic_classes.ordering) -> set 'a
+  val empty_string : string
   val equiv : bool -> bool -> bool
+  val exclusive_or : forall 'a. (Word.WordXor 'a) => 'a -> 'a -> 'a
   val filter : forall 'a. ('a -> bool) -> (list 'a) -> list 'a
   val find : forall 'a. ('a -> bool) -> (list 'a) -> Maybe.maybe 'a
   val findIndex : forall 'a. ('a -> bool) -> (list 'a) -> Maybe.maybe nat
@@ -1541,12 +2147,15 @@ module Pervasives = struct
   val fromMaybe : forall 'a. 'a -> (Maybe.maybe 'a) -> 'a
   val fromNumeral : forall 'a. (Num.Numeral 'a) => numeral -> 'a
   val fst : forall 'a 'b. ('a * 'b) -> 'a
+  val gen_pow : forall 'a. 'a -> ('a -> 'a -> 'a) -> 'a -> nat -> 'a
+  val gen_pow_aux : forall 'a. ('a -> 'a -> 'a) -> 'a -> 'a -> nat -> 'a
   val genericCompare : forall 'a. 
                          ('a -> 'a -> bool) -> ('a -> 'a -> bool) -> 
                                                'a -> 'a -> Basic_classes.ordering
   val genlist : forall 'a. (nat -> 'a) -> nat -> list 'a
   val id : forall 'a. 'a -> 'a
   val imp : bool -> bool -> bool
+  val inclusive_or : forall 'a. (Word.WordOr 'a) => 'a -> 'a -> 'a
   val index : forall 'a. (list 'a) -> nat -> Maybe.maybe 'a
   val insert : forall 'a. 
                  (Basic_classes.SetType 'a) => 'a -> (set 'a) -> set 'a
@@ -1568,6 +2177,12 @@ module Pervasives = struct
                                                      (Basic_classes.Eq 'a) => 
                                                        Basic_classes.Eq_class 
                                                        (Maybe.maybe 'a)
+  val instance_Basic_classes_Eq_Num_int32_dict : 
+                                                   Basic_classes.Eq_class 
+                                                   Num.int32
+  val instance_Basic_classes_Eq_Num_int64_dict : 
+                                                   Basic_classes.Eq_class 
+                                                   Num.int64
   val instance_Basic_classes_Eq_Num_int_dict : Basic_classes.Eq_class Num.int
   val instance_Basic_classes_Eq_Num_integer_dict : 
                                                      Basic_classes.Eq_class 
@@ -1575,6 +2190,9 @@ module Pervasives = struct
   val instance_Basic_classes_Eq_Num_natural_dict : 
                                                      Basic_classes.Eq_class 
                                                      Num.natural
+  val instance_Basic_classes_Eq_Word_bitSequence_dict : 
+                                                          Basic_classes.Eq_class 
+                                                          Word.bitSequence
   val instance_Basic_classes_Eq_bool_dict : Basic_classes.Eq_class bool
   val instance_Basic_classes_Eq_list_dict : forall 'a. 
                                               (Basic_classes.Eq 'a) => 
@@ -1585,13 +2203,25 @@ module Pervasives = struct
                                              (Basic_classes.SetType 'a) => 
                                                Basic_classes.Eq_class 
                                                (set 'a)
-  val instance_Basic_classes_Eq_tup_dict : forall 'a 'b. 
-                                             (Basic_classes.Eq 'a)
-                                               (Basic_classes.Eq 'b) => 
-                                               Basic_classes.Eq_class 
-                                               ('a * 'b)
+  val instance_Basic_classes_Eq_tup2_dict : forall 'a 'b. 
+                                              (Basic_classes.Eq 'a)
+                                                (Basic_classes.Eq 'b) => 
+                                                Basic_classes.Eq_class 
+                                                ('a * 'b)
+  val instance_Basic_classes_Eq_tup3_dict : forall 'a 'b 'c. 
+                                              (Basic_classes.Eq 'a)
+                                                (Basic_classes.Eq 'b)
+                                                (Basic_classes.Eq 'c) => 
+                                                Basic_classes.Eq_class 
+                                                ('a * 'b * 'c)
   val instance_Basic_classes_Eq_var_dict : forall 'a. 
                                              Basic_classes.Eq_class 'a
+  val instance_Basic_classes_OrdMaxMin_Num_int32_dict : 
+                                                          Basic_classes.OrdMaxMin_class 
+                                                          Num.int32
+  val instance_Basic_classes_OrdMaxMin_Num_int64_dict : 
+                                                          Basic_classes.OrdMaxMin_class 
+                                                          Num.int64
   val instance_Basic_classes_OrdMaxMin_Num_int_dict : 
                                                         Basic_classes.OrdMaxMin_class 
                                                         Num.int
@@ -1601,6 +2231,9 @@ module Pervasives = struct
   val instance_Basic_classes_OrdMaxMin_Num_natural_dict : 
                                                             Basic_classes.OrdMaxMin_class 
                                                             Num.natural
+  val instance_Basic_classes_OrdMaxMin_Word_bitSequence_dict : 
+                                                                 Basic_classes.OrdMaxMin_class 
+                                                                 Word.bitSequence
   val instance_Basic_classes_OrdMaxMin_nat_dict : 
                                                     Basic_classes.OrdMaxMin_class 
                                                     nat
@@ -1608,6 +2241,12 @@ module Pervasives = struct
                                                     (Basic_classes.Ord 'a) => 
                                                       Basic_classes.OrdMaxMin_class 
                                                       'a
+  val instance_Basic_classes_Ord_Num_int32_dict : 
+                                                    Basic_classes.Ord_class 
+                                                    Num.int32
+  val instance_Basic_classes_Ord_Num_int64_dict : 
+                                                    Basic_classes.Ord_class 
+                                                    Num.int64
   val instance_Basic_classes_Ord_Num_int_dict : 
                                                   Basic_classes.Ord_class 
                                                   Num.int
@@ -1617,21 +2256,36 @@ module Pervasives = struct
   val instance_Basic_classes_Ord_Num_natural_dict : 
                                                       Basic_classes.Ord_class 
                                                       Num.natural
+  val instance_Basic_classes_Ord_Word_bitSequence_dict : 
+                                                           Basic_classes.Ord_class 
+                                                           Word.bitSequence
   val instance_Basic_classes_Ord_list_dict : forall 'a. 
                                                (Basic_classes.Ord 'a) => 
                                                  Basic_classes.Ord_class 
                                                  (list 'a)
   val instance_Basic_classes_Ord_nat_dict : Basic_classes.Ord_class nat
-  val instance_Basic_classes_Ord_tup_dict : forall 'a 'b. 
-                                              (Basic_classes.Ord 'a)
-                                                (Basic_classes.Ord 'b) => 
-                                                Basic_classes.Ord_class 
-                                                ('a * 'b)
+  val instance_Basic_classes_Ord_tup2_dict : forall 'a 'b. 
+                                               (Basic_classes.Ord 'a)
+                                                 (Basic_classes.Ord 'b) => 
+                                                 Basic_classes.Ord_class 
+                                                 ('a * 'b)
+  val instance_Basic_classes_Ord_tup3_dict : forall 'a 'b 'c. 
+                                               (Basic_classes.Ord 'a)
+                                                 (Basic_classes.Ord 'b)
+                                                 (Basic_classes.Ord 'c) => 
+                                                 Basic_classes.Ord_class 
+                                                 ('a * 'b * 'c)
   val instance_Basic_classes_SetType_Maybe_maybe_dict : forall 'a. 
                                                           (Basic_classes.SetType
                                                            'a) => 
                                                             Basic_classes.SetType_class 
                                                             (Maybe.maybe 'a)
+  val instance_Basic_classes_SetType_Num_int32_dict : 
+                                                        Basic_classes.SetType_class 
+                                                        Num.int32
+  val instance_Basic_classes_SetType_Num_int64_dict : 
+                                                        Basic_classes.SetType_class 
+                                                        Num.int64
   val instance_Basic_classes_SetType_Num_int_dict : 
                                                       Basic_classes.SetType_class 
                                                       Num.int
@@ -1641,9 +2295,16 @@ module Pervasives = struct
   val instance_Basic_classes_SetType_Num_natural_dict : 
                                                           Basic_classes.SetType_class 
                                                           Num.natural
+  val instance_Basic_classes_SetType_Word_bitSequence_dict : 
+                                                               Basic_classes.SetType_class 
+                                                               Word.bitSequence
   val instance_Basic_classes_SetType_bool_dict : 
                                                    Basic_classes.SetType_class 
                                                    bool
+  val instance_Basic_classes_SetType_list_dict : forall 'a. 
+                                                   (Basic_classes.SetType 'a) => 
+                                                     Basic_classes.SetType_class 
+                                                     (list 'a)
   val instance_Basic_classes_SetType_nat_dict : 
                                                   Basic_classes.SetType_class 
                                                   nat
@@ -1651,21 +2312,45 @@ module Pervasives = struct
                                                   (Basic_classes.SetType 'a) => 
                                                     Basic_classes.SetType_class 
                                                     (set 'a)
-  val instance_Basic_classes_SetType_tup_dict : forall 'a 'b. 
-                                                  (Basic_classes.SetType 'a)
-                                                    (Basic_classes.SetType 'b) => 
-                                                    Basic_classes.SetType_class 
-                                                    ('a * 'b)
+  val instance_Basic_classes_SetType_tup2_dict : forall 'a 'b. 
+                                                   (Basic_classes.SetType 'a)
+                                                     (Basic_classes.SetType
+                                                      'b) => 
+                                                     Basic_classes.SetType_class 
+                                                     ('a * 'b)
+  val instance_Basic_classes_SetType_tup3_dict : forall 'a 'b 'c. 
+                                                   (Basic_classes.SetType 'a)
+                                                     (Basic_classes.SetType
+                                                      'b)
+                                                     (Basic_classes.SetType
+                                                      'c) => 
+                                                     Basic_classes.SetType_class 
+                                                     ('a * 'b * 'c)
   val instance_Basic_classes_SetType_var_dict : forall 'a. 
                                                   Basic_classes.SetType_class 
                                                   'a
   val instance_Map_MapKeyType_var_dict : forall 'a. 
                                            (Basic_classes.SetType 'a) => 
                                              Map.MapKeyType_class 'a
+  val instance_Num_NumAbs_Num_int32_dict : Num.NumAbs_class Num.int32
+  val instance_Num_NumAbs_Num_int64_dict : Num.NumAbs_class Num.int64
+  val instance_Num_NumAbs_Num_int_dict : Num.NumAbs_class Num.int
+  val instance_Num_NumAbs_Num_integer_dict : Num.NumAbs_class Num.integer
+  val instance_Num_NumAdd_Num_int32_dict : Num.NumAdd_class Num.int32
+  val instance_Num_NumAdd_Num_int64_dict : Num.NumAdd_class Num.int64
   val instance_Num_NumAdd_Num_int_dict : Num.NumAdd_class Num.int
   val instance_Num_NumAdd_Num_integer_dict : Num.NumAdd_class Num.integer
   val instance_Num_NumAdd_Num_natural_dict : Num.NumAdd_class Num.natural
+  val instance_Num_NumAdd_Word_bitSequence_dict : 
+                                                    Num.NumAdd_class 
+                                                    Word.bitSequence
   val instance_Num_NumAdd_nat_dict : Num.NumAdd_class nat
+  val instance_Num_NumDivision_Num_int32_dict : 
+                                                  Num.NumDivision_class 
+                                                  Num.int32
+  val instance_Num_NumDivision_Num_int64_dict : 
+                                                  Num.NumDivision_class 
+                                                  Num.int64
   val instance_Num_NumDivision_Num_int_dict : Num.NumDivision_class Num.int
   val instance_Num_NumDivision_Num_integer_dict : 
                                                     Num.NumDivision_class 
@@ -1673,7 +2358,16 @@ module Pervasives = struct
   val instance_Num_NumDivision_Num_natural_dict : 
                                                     Num.NumDivision_class 
                                                     Num.natural
+  val instance_Num_NumDivision_Word_bitSequence_dict : 
+                                                         Num.NumDivision_class 
+                                                         Word.bitSequence
   val instance_Num_NumDivision_nat_dict : Num.NumDivision_class nat
+  val instance_Num_NumIntegerDivision_Num_int32_dict : 
+                                                         Num.NumIntegerDivision_class 
+                                                         Num.int32
+  val instance_Num_NumIntegerDivision_Num_int64_dict : 
+                                                         Num.NumIntegerDivision_class 
+                                                         Num.int64
   val instance_Num_NumIntegerDivision_Num_int_dict : 
                                                        Num.NumIntegerDivision_class 
                                                        Num.int
@@ -1683,29 +2377,63 @@ module Pervasives = struct
   val instance_Num_NumIntegerDivision_Num_natural_dict : 
                                                            Num.NumIntegerDivision_class 
                                                            Num.natural
+  val instance_Num_NumIntegerDivision_Word_bitSequence_dict : 
+                                                                Num.NumIntegerDivision_class 
+                                                                Word.bitSequence
   val instance_Num_NumIntegerDivision_nat_dict : 
                                                    Num.NumIntegerDivision_class 
                                                    nat
+  val instance_Num_NumMinus_Num_int32_dict : Num.NumMinus_class Num.int32
+  val instance_Num_NumMinus_Num_int64_dict : Num.NumMinus_class Num.int64
   val instance_Num_NumMinus_Num_int_dict : Num.NumMinus_class Num.int
   val instance_Num_NumMinus_Num_integer_dict : Num.NumMinus_class Num.integer
   val instance_Num_NumMinus_Num_natural_dict : Num.NumMinus_class Num.natural
+  val instance_Num_NumMinus_Word_bitSequence_dict : 
+                                                      Num.NumMinus_class 
+                                                      Word.bitSequence
   val instance_Num_NumMinus_nat_dict : Num.NumMinus_class nat
+  val instance_Num_NumMult_Num_int32_dict : Num.NumMult_class Num.int32
+  val instance_Num_NumMult_Num_int64_dict : Num.NumMult_class Num.int64
   val instance_Num_NumMult_Num_int_dict : Num.NumMult_class Num.int
   val instance_Num_NumMult_Num_integer_dict : Num.NumMult_class Num.integer
   val instance_Num_NumMult_Num_natural_dict : Num.NumMult_class Num.natural
+  val instance_Num_NumMult_Word_bitSequence_dict : 
+                                                     Num.NumMult_class 
+                                                     Word.bitSequence
   val instance_Num_NumMult_nat_dict : Num.NumMult_class nat
+  val instance_Num_NumNegate_Num_int32_dict : Num.NumNegate_class Num.int32
+  val instance_Num_NumNegate_Num_int64_dict : Num.NumNegate_class Num.int64
   val instance_Num_NumNegate_Num_int_dict : Num.NumNegate_class Num.int
   val instance_Num_NumNegate_Num_integer_dict : 
                                                   Num.NumNegate_class 
                                                   Num.integer
+  val instance_Num_NumNegate_Word_bitSequence_dict : 
+                                                       Num.NumNegate_class 
+                                                       Word.bitSequence
+  val instance_Num_NumPow_Num_int32_dict : Num.NumPow_class Num.int32
+  val instance_Num_NumPow_Num_int64_dict : Num.NumPow_class Num.int64
   val instance_Num_NumPow_Num_int_dict : Num.NumPow_class Num.int
   val instance_Num_NumPow_Num_integer_dict : Num.NumPow_class Num.integer
   val instance_Num_NumPow_Num_natural_dict : Num.NumPow_class Num.natural
+  val instance_Num_NumPow_Word_bitSequence_dict : 
+                                                    Num.NumPow_class 
+                                                    Word.bitSequence
   val instance_Num_NumPow_nat_dict : Num.NumPow_class nat
+  val instance_Num_NumPred_Num_int32_dict : Num.NumPred_class Num.int32
+  val instance_Num_NumPred_Num_int64_dict : Num.NumPred_class Num.int64
   val instance_Num_NumPred_Num_int_dict : Num.NumPred_class Num.int
   val instance_Num_NumPred_Num_integer_dict : Num.NumPred_class Num.integer
   val instance_Num_NumPred_Num_natural_dict : Num.NumPred_class Num.natural
+  val instance_Num_NumPred_Word_bitSequence_dict : 
+                                                     Num.NumPred_class 
+                                                     Word.bitSequence
   val instance_Num_NumPred_nat_dict : Num.NumPred_class nat
+  val instance_Num_NumRemainder_Num_int32_dict : 
+                                                   Num.NumRemainder_class 
+                                                   Num.int32
+  val instance_Num_NumRemainder_Num_int64_dict : 
+                                                   Num.NumRemainder_class 
+                                                   Num.int64
   val instance_Num_NumRemainder_Num_int_dict : Num.NumRemainder_class Num.int
   val instance_Num_NumRemainder_Num_integer_dict : 
                                                      Num.NumRemainder_class 
@@ -1713,25 +2441,171 @@ module Pervasives = struct
   val instance_Num_NumRemainder_Num_natural_dict : 
                                                      Num.NumRemainder_class 
                                                      Num.natural
+  val instance_Num_NumRemainder_Word_bitSequence_dict : 
+                                                          Num.NumRemainder_class 
+                                                          Word.bitSequence
   val instance_Num_NumRemainder_nat_dict : Num.NumRemainder_class nat
+  val instance_Num_NumSucc_Num_int32_dict : Num.NumSucc_class Num.int32
+  val instance_Num_NumSucc_Num_int64_dict : Num.NumSucc_class Num.int64
   val instance_Num_NumSucc_Num_int_dict : Num.NumSucc_class Num.int
   val instance_Num_NumSucc_Num_integer_dict : Num.NumSucc_class Num.integer
   val instance_Num_NumSucc_Num_natural_dict : Num.NumSucc_class Num.natural
+  val instance_Num_NumSucc_Word_bitSequence_dict : 
+                                                     Num.NumSucc_class 
+                                                     Word.bitSequence
   val instance_Num_NumSucc_nat_dict : Num.NumSucc_class nat
+  val instance_Num_Numeral_Num_int32_dict : Num.Numeral_class Num.int32
+  val instance_Num_Numeral_Num_int64_dict : Num.Numeral_class Num.int64
   val instance_Num_Numeral_Num_int_dict : Num.Numeral_class Num.int
   val instance_Num_Numeral_Num_integer_dict : Num.Numeral_class Num.integer
   val instance_Num_Numeral_Num_natural_dict : Num.Numeral_class Num.natural
+  val instance_Num_Numeral_Word_bitSequence_dict : 
+                                                     Num.Numeral_class 
+                                                     Word.bitSequence
   val instance_Num_Numeral_nat_dict : Num.Numeral_class nat
+  val instance_Word_WordAnd_Num_int32_dict : Word.WordAnd_class Num.int32
+  val instance_Word_WordAnd_Num_int64_dict : Word.WordAnd_class Num.int64
+  val instance_Word_WordAnd_Num_int_dict : Word.WordAnd_class Num.int
+  val instance_Word_WordAnd_Num_integer_dict : Word.WordAnd_class Num.integer
+  val instance_Word_WordAnd_Num_natural_dict : Word.WordAnd_class Num.natural
+  val instance_Word_WordAnd_Word_bitSequence_dict : 
+                                                      Word.WordAnd_class 
+                                                      Word.bitSequence
+  val instance_Word_WordAnd_nat_dict : Word.WordAnd_class nat
+  val instance_Word_WordAsr_Num_int32_dict : Word.WordAsr_class Num.int32
+  val instance_Word_WordAsr_Num_int64_dict : Word.WordAsr_class Num.int64
+  val instance_Word_WordAsr_Num_int_dict : Word.WordAsr_class Num.int
+  val instance_Word_WordAsr_Num_integer_dict : Word.WordAsr_class Num.integer
+  val instance_Word_WordAsr_Num_natural_dict : Word.WordAsr_class Num.natural
+  val instance_Word_WordAsr_Word_bitSequence_dict : 
+                                                      Word.WordAsr_class 
+                                                      Word.bitSequence
+  val instance_Word_WordAsr_nat_dict : Word.WordAsr_class nat
+  val instance_Word_WordLsl_Num_int32_dict : Word.WordLsl_class Num.int32
+  val instance_Word_WordLsl_Num_int64_dict : Word.WordLsl_class Num.int64
+  val instance_Word_WordLsl_Num_int_dict : Word.WordLsl_class Num.int
+  val instance_Word_WordLsl_Num_integer_dict : Word.WordLsl_class Num.integer
+  val instance_Word_WordLsl_Num_natural_dict : Word.WordLsl_class Num.natural
+  val instance_Word_WordLsl_Word_bitSequence_dict : 
+                                                      Word.WordLsl_class 
+                                                      Word.bitSequence
+  val instance_Word_WordLsl_nat_dict : Word.WordLsl_class nat
+  val instance_Word_WordLsr_Num_int32_dict : Word.WordLsr_class Num.int32
+  val instance_Word_WordLsr_Num_int64_dict : Word.WordLsr_class Num.int64
+  val instance_Word_WordLsr_Num_integer_dict : Word.WordLsr_class Num.integer
+  val instance_Word_WordLsr_Num_natural_dict : Word.WordLsr_class Num.natural
+  val instance_Word_WordLsr_Word_bitSequence_dict : 
+                                                      Word.WordLsr_class 
+                                                      Word.bitSequence
+  val instance_Word_WordNot_Num_int32_dict : Word.WordNot_class Num.int32
+  val instance_Word_WordNot_Num_int64_dict : Word.WordNot_class Num.int64
+  val instance_Word_WordNot_Num_int_dict : Word.WordNot_class Num.int
+  val instance_Word_WordNot_Num_integer_dict : Word.WordNot_class Num.integer
+  val instance_Word_WordNot_Word_bitSequence_dict : 
+                                                      Word.WordNot_class 
+                                                      Word.bitSequence
+  val instance_Word_WordOr_Num_int32_dict : Word.WordOr_class Num.int32
+  val instance_Word_WordOr_Num_int64_dict : Word.WordOr_class Num.int64
+  val instance_Word_WordOr_Num_int_dict : Word.WordOr_class Num.int
+  val instance_Word_WordOr_Num_integer_dict : Word.WordOr_class Num.integer
+  val instance_Word_WordOr_Num_natural_dict : Word.WordOr_class Num.natural
+  val instance_Word_WordOr_Word_bitSequence_dict : 
+                                                     Word.WordOr_class 
+                                                     Word.bitSequence
+  val instance_Word_WordOr_nat_dict : Word.WordOr_class nat
+  val instance_Word_WordXor_Num_int32_dict : Word.WordXor_class Num.int32
+  val instance_Word_WordXor_Num_int64_dict : Word.WordXor_class Num.int64
+  val instance_Word_WordXor_Num_int_dict : Word.WordXor_class Num.int
+  val instance_Word_WordXor_Num_integer_dict : Word.WordXor_class Num.integer
+  val instance_Word_WordXor_Num_natural_dict : Word.WordXor_class Num.natural
+  val instance_Word_WordXor_Word_bitSequence_dict : 
+                                                      Word.WordXor_class 
+                                                      Word.bitSequence
+  val instance_Word_WordXor_nat_dict : Word.WordXor_class nat
+  val int32Abs : Num.int32 -> Num.int32
+  val int32Add : Num.int32 -> Num.int32 -> Num.int32
+  val int32Asr : Num.int32 -> nat -> Num.int32
+  val int32Compare : Num.int32 -> Num.int32 -> Basic_classes.ordering
+  val int32Div : Num.int32 -> Num.int32 -> Num.int32
+  val int32Eq : Num.int32 -> Num.int32 -> bool
+  val int32FromInt : Num.int -> Num.int32
+  val int32FromInt64 : Num.int64 -> Num.int32
+  val int32FromInteger : Num.integer -> Num.int32
+  val int32FromNat : nat -> Num.int32
+  val int32FromNatural : Num.natural -> Num.int32
+  val int32FromNumeral : numeral -> Num.int32
+  val int32Greater : Num.int32 -> Num.int32 -> bool
+  val int32GreaterEqual : Num.int32 -> Num.int32 -> bool
+  val int32Land : Num.int32 -> Num.int32 -> Num.int32
+  val int32Less : Num.int32 -> Num.int32 -> bool
+  val int32LessEqual : Num.int32 -> Num.int32 -> bool
+  val int32Lnot : Num.int32 -> Num.int32
+  val int32Lor : Num.int32 -> Num.int32 -> Num.int32
+  val int32Lsl : Num.int32 -> nat -> Num.int32
+  val int32Lsr : Num.int32 -> nat -> Num.int32
+  val int32Lxor : Num.int32 -> Num.int32 -> Num.int32
+  val int32Max : Num.int32 -> Num.int32 -> Num.int32
+  val int32Min : Num.int32 -> Num.int32 -> Num.int32
+  val int32Minus : Num.int32 -> Num.int32 -> Num.int32
+  val int32Mod : Num.int32 -> Num.int32 -> Num.int32
+  val int32Mult : Num.int32 -> Num.int32 -> Num.int32
+  val int32Negate : Num.int32 -> Num.int32
+  val int32Pow : Num.int32 -> nat -> Num.int32
+  val int32Pred : Num.int32 -> Num.int32
+  val int32Succ : Num.int32 -> Num.int32
+  val int64Abs : Num.int64 -> Num.int64
+  val int64Add : Num.int64 -> Num.int64 -> Num.int64
+  val int64Asr : Num.int64 -> nat -> Num.int64
+  val int64Compare : Num.int64 -> Num.int64 -> Basic_classes.ordering
+  val int64Div : Num.int64 -> Num.int64 -> Num.int64
+  val int64Eq : Num.int64 -> Num.int64 -> bool
+  val int64FromInt : Num.int -> Num.int64
+  val int64FromInt32 : Num.int32 -> Num.int64
+  val int64FromInteger : Num.integer -> Num.int64
+  val int64FromNat : nat -> Num.int64
+  val int64FromNatural : Num.natural -> Num.int64
+  val int64FromNumeral : numeral -> Num.int64
+  val int64Greater : Num.int64 -> Num.int64 -> bool
+  val int64GreaterEqual : Num.int64 -> Num.int64 -> bool
+  val int64Land : Num.int64 -> Num.int64 -> Num.int64
+  val int64Less : Num.int64 -> Num.int64 -> bool
+  val int64LessEqual : Num.int64 -> Num.int64 -> bool
+  val int64Lnot : Num.int64 -> Num.int64
+  val int64Lor : Num.int64 -> Num.int64 -> Num.int64
+  val int64Lsl : Num.int64 -> nat -> Num.int64
+  val int64Lsr : Num.int64 -> nat -> Num.int64
+  val int64Lxor : Num.int64 -> Num.int64 -> Num.int64
+  val int64Max : Num.int64 -> Num.int64 -> Num.int64
+  val int64Min : Num.int64 -> Num.int64 -> Num.int64
+  val int64Minus : Num.int64 -> Num.int64 -> Num.int64
+  val int64Mod : Num.int64 -> Num.int64 -> Num.int64
+  val int64Mult : Num.int64 -> Num.int64 -> Num.int64
+  val int64Negate : Num.int64 -> Num.int64
+  val int64Pow : Num.int64 -> nat -> Num.int64
+  val int64Pred : Num.int64 -> Num.int64
+  val int64Succ : Num.int64 -> Num.int64
+  val intAbs : Num.int -> Num.int
   val intAdd : Num.int -> Num.int -> Num.int
+  val intAsr : Num.int -> nat -> Num.int
   val intCompare : Num.int -> Num.int -> Basic_classes.ordering
   val intDiv : Num.int -> Num.int -> Num.int
   val intEq : Num.int -> Num.int -> bool
+  val intFromBitSeq : Word.bitSequence -> Num.int
+  val intFromInt32 : Num.int32 -> Num.int
+  val intFromInt64 : Num.int64 -> Num.int
+  val intFromInteger : Num.integer -> Num.int
   val intFromNat : nat -> Num.int
+  val intFromNatural : Num.natural -> Num.int
   val intFromNumeral : numeral -> Num.int
   val intGreater : Num.int -> Num.int -> bool
   val intGreaterEqual : Num.int -> Num.int -> bool
+  val intLand : Num.int -> Num.int -> Num.int
   val intLess : Num.int -> Num.int -> bool
   val intLessEqual : Num.int -> Num.int -> bool
+  val intLnot : Num.int -> Num.int
+  val intLor : Num.int -> Num.int -> Num.int
+  val intLsl : Num.int -> nat -> Num.int
+  val intLxor : Num.int -> Num.int -> Num.int
   val intMax : Num.int -> Num.int -> Num.int
   val intMin : Num.int -> Num.int -> Num.int
   val intMinus : Num.int -> Num.int -> Num.int
@@ -1741,15 +2615,30 @@ module Pervasives = struct
   val intPow : Num.int -> nat -> Num.int
   val intPred : Num.int -> Num.int
   val intSucc : Num.int -> Num.int
+  val integerAbs : Num.integer -> Num.integer
   val integerAdd : Num.integer -> Num.integer -> Num.integer
+  val integerAsr : Num.integer -> nat -> Num.integer
   val integerCompare : Num.integer -> Num.integer -> Basic_classes.ordering
   val integerDiv : Num.integer -> Num.integer -> Num.integer
   val integerEq : Num.integer -> Num.integer -> bool
+  val integerFromBitSeq : Word.bitSequence -> Num.integer
+  val integerFromBoolList : (bool * (list bool)) -> Num.integer
+  val integerFromBoolListAux : Num.integer -> (list bool) -> Num.integer
+  val integerFromInt : Num.int -> Num.integer
+  val integerFromInt32 : Num.int32 -> Num.integer
+  val integerFromInt64 : Num.int64 -> Num.integer
+  val integerFromNat : nat -> Num.integer
+  val integerFromNatural : Num.natural -> Num.integer
   val integerFromNumeral : numeral -> Num.integer
   val integerGreater : Num.integer -> Num.integer -> bool
   val integerGreaterEqual : Num.integer -> Num.integer -> bool
+  val integerLand : Num.integer -> Num.integer -> Num.integer
   val integerLess : Num.integer -> Num.integer -> bool
   val integerLessEqual : Num.integer -> Num.integer -> bool
+  val integerLnot : Num.integer -> Num.integer
+  val integerLor : Num.integer -> Num.integer -> Num.integer
+  val integerLsl : Num.integer -> nat -> Num.integer
+  val integerLxor : Num.integer -> Num.integer -> Num.integer
   val integerMax : Num.integer -> Num.integer -> Num.integer
   val integerMin : Num.integer -> Num.integer -> Num.integer
   val integerMinus : Num.integer -> Num.integer -> Num.integer
@@ -1792,9 +2681,11 @@ module Pervasives = struct
                        ('a -> 'a -> Basic_classes.ordering) -> (set 'a) -> 
                                                                (set 'a) -> 
                                                                bool
+  val land : forall 'a. (Word.WordAnd 'a) => 'a -> 'a -> 'a
   val leastFixedPoint : forall 'a. 
                           (Basic_classes.SetType 'a) => 
                             nat -> ((set 'a) -> set 'a) -> (set 'a) -> set 'a
+  val left_shift : forall 'a. (Word.WordLsl 'a) => 'a -> nat -> 'a
   val lefts : forall 'a 'b. (list (Either.either 'a 'b)) -> list 'a
   val length : forall 'a. (list 'a) -> nat
   val lexicographicCompare : forall 'a. 
@@ -1821,12 +2712,19 @@ module Pervasives = struct
                     (Basic_classes.Eq 'a) => (list 'a) -> (list 'a) -> bool
   val listEqualBy : forall 'a. 
                       ('a -> 'a -> bool) -> (list 'a) -> (list 'a) -> bool
+  val lnot : forall 'a. (Word.WordNot 'a) => 'a -> 'a
+  val logicial_right_shift : forall 'a. (Word.WordLsr 'a) => 'a -> nat -> 'a
   val lookup : forall 'a 'b. 
                  (Basic_classes.Eq 'a) => 
                    'a -> (list ('a * 'b)) -> Maybe.maybe 'b
   val lookupBy : forall 'a 'b. 
                    ('a -> 'a -> bool) -> 'a -> (list ('a * 'b)) -> Maybe.maybe 
                                                                    'b
+  val lor : forall 'a. (Word.WordOr 'a) => 'a -> 'a -> 'a
+  val lsl : forall 'a. (Word.WordLsl 'a) => 'a -> nat -> 'a
+  val lsr : forall 'a. (Word.WordLsr 'a) => 'a -> nat -> 'a
+  val lxor : forall 'a. (Word.WordXor 'a) => 'a -> 'a -> 'a
+  val makeString : nat -> char -> string
   val map : forall 'a 'b. ('a -> 'b) -> (list 'a) -> list 'b
   val mapBy : forall 'a 'b. 
                 ('b -> 'b -> Basic_classes.ordering) -> ('a -> 'b) -> 
@@ -1844,6 +2742,7 @@ module Pervasives = struct
                         (Map.MapKeyType 'a) => 
                           'a -> 'a -> Basic_classes.ordering
   val max : forall 'a. (Basic_classes.OrdMaxMin 'a) => 'a -> 'a -> 'a
+  val maxByLessEqual : forall 'a. ('a -> 'a -> bool) -> 'a -> 'a -> 'a
   val maybe : forall 'a 'b. 'b -> ('a -> 'b) -> (Maybe.maybe 'a) -> 'b
   val maybeCompare : forall 'a 'b. 
                        ('b -> 'a -> Basic_classes.ordering) -> (Maybe.maybe 
@@ -1864,18 +2763,28 @@ module Pervasives = struct
                    ('a -> 'a -> Basic_classes.ordering) -> 'a -> (set 'a) -> 
                                                                  bool
   val min : forall 'a. (Basic_classes.OrdMaxMin 'a) => 'a -> 'a -> 'a
+  val minByLessEqual : forall 'a. ('a -> 'a -> bool) -> 'a -> 'a -> 'a
   val mod : forall 'a. (Num.NumRemainder 'a) => 'a -> 'a -> 'a
   val natAdd : nat -> nat -> nat
+  val natAsr : nat -> nat -> nat
   val natCompare : nat -> nat -> Basic_classes.ordering
   val natDiv : nat -> nat -> nat
   val natEq : nat -> nat -> bool
+  val natFromBitSeq : Word.bitSequence -> nat
   val natFromInt : Num.int -> nat
+  val natFromInt32 : Num.int32 -> nat
+  val natFromInt64 : Num.int64 -> nat
+  val natFromInteger : Num.integer -> nat
   val natFromNatural : Num.natural -> nat
   val natFromNumeral : numeral -> nat
   val natGreater : nat -> nat -> bool
   val natGreaterEqual : nat -> nat -> bool
+  val natLand : nat -> nat -> nat
   val natLess : nat -> nat -> bool
   val natLessEqual : nat -> nat -> bool
+  val natLor : nat -> nat -> nat
+  val natLsl : nat -> nat -> nat
+  val natLxor : nat -> nat -> nat
   val natMax : nat -> nat -> nat
   val natMin : nat -> nat -> nat
   val natMinus : nat -> nat -> nat
@@ -1885,15 +2794,25 @@ module Pervasives = struct
   val natPred : nat -> nat
   val natSucc : nat -> nat
   val naturalAdd : Num.natural -> Num.natural -> Num.natural
+  val naturalAsr : Num.natural -> nat -> Num.natural
   val naturalCompare : Num.natural -> Num.natural -> Basic_classes.ordering
   val naturalDiv : Num.natural -> Num.natural -> Num.natural
   val naturalEq : Num.natural -> Num.natural -> bool
+  val naturalFromBitSeq : Word.bitSequence -> Num.natural
+  val naturalFromInt : Num.int -> Num.natural
+  val naturalFromInt32 : Num.int32 -> Num.natural
+  val naturalFromInt64 : Num.int64 -> Num.natural
+  val naturalFromInteger : Num.integer -> Num.natural
   val naturalFromNat : nat -> Num.natural
   val naturalFromNumeral : numeral -> Num.natural
   val naturalGreater : Num.natural -> Num.natural -> bool
   val naturalGreaterEqual : Num.natural -> Num.natural -> bool
+  val naturalLand : Num.natural -> Num.natural -> Num.natural
   val naturalLess : Num.natural -> Num.natural -> bool
   val naturalLessEqual : Num.natural -> Num.natural -> bool
+  val naturalLor : Num.natural -> Num.natural -> Num.natural
+  val naturalLsl : Num.natural -> nat -> Num.natural
+  val naturalLxor : Num.natural -> Num.natural -> Num.natural
   val naturalMax : Num.natural -> Num.natural -> Num.natural
   val naturalMin : Num.natural -> Num.natural -> Num.natural
   val naturalMinus : Num.natural -> Num.natural -> Num.natural
@@ -1967,6 +2886,8 @@ module Pervasives = struct
                   ('v -> 'v -> Basic_classes.ordering) -> (Map.map 'k 'v) -> 
                                                           set 'v
   val replicate : forall 'a. nat -> 'a -> list 'a
+  val resizeBitSeq : 
+                       (Maybe.maybe nat) -> Word.bitSequence -> Word.bitSequence
   val reverse : forall 'a. (list 'a) -> list 'a
   val reverseAppend : forall 'a. (list 'a) -> (list 'a) -> list 'a
   val reverseMap : forall 'a 'b. ('a -> 'b) -> (list 'a) -> list 'b
@@ -2010,14 +2931,17 @@ module Pervasives = struct
   val splitMember : forall 'a. 
                       (Basic_classes.SetType 'a) (Basic_classes.Ord 'a) => 
                         'a -> (set 'a) -> ((set 'a) * bool * (set 'a))
+  val stringAppend : string -> string -> string
+  val stringLength : string -> nat
+  val string_case : forall 'a. string -> 'a -> (char -> string -> 'a) -> 'a
+  val string_of_natural : Num.natural -> string
   val subset : forall 'a. 
                  (Basic_classes.SetType 'a) => (set 'a) -> (set 'a) -> bool
   val succ : forall 'a. (Num.NumSucc 'a) => 'a -> 'a
   val swap : forall 'a 'b. ('a * 'b) -> ('b * 'a)
   val take : forall 'a. nat -> (list 'a) -> list 'a
-  val test : forall 'a 'b. 
-               (Basic_classes.SetType 'a) (Basic_classes.SetType 'b) => 
-                 ('a * 'b) -> ('a * 'b) -> Basic_classes.ordering
+  val takeWhile : forall 'a. ('a -> bool) -> (list 'a) -> list 'a
+  val toCharList : string -> list char
   val toSet : forall 'k 'v. 
                 (Map.MapKeyType 'k) (Basic_classes.SetType 'k)
                   (Basic_classes.SetType 'v) => 
@@ -2025,6 +2949,37 @@ module Pervasives = struct
   val toSetBy : forall 'k 'v. 
                   (('k * 'v) -> ('k * 'v) -> Basic_classes.ordering) -> 
                   (Map.map 'k 'v) -> set ('k * 'v)
+  val toString : (list char) -> string
+  val tripleCompare : forall 'a 'b 'c. 
+                        ('a -> 'a -> Basic_classes.ordering) -> ('b -> 
+                                                                'b -> 
+                                                                Basic_classes.ordering) -> 
+                                                                ('c -> 
+                                                                'c -> 
+                                                                Basic_classes.ordering) -> 
+                                                                ('a * 'b * 'c) -> 
+                                                                ('a * 'b * 'c) -> 
+                                                                Basic_classes.ordering
+  val tripleEqual : forall 'a 'b 'c. 
+                      (Basic_classes.Eq 'a) (Basic_classes.Eq 'b)
+                        (Basic_classes.Eq 'c) => 
+                        ('a * 'b * 'c) -> ('a * 'b * 'c) -> bool
+  val tripleGreater : forall 'a 'b 'c. 
+                        (Basic_classes.Ord 'a) (Basic_classes.Ord 'b)
+                          (Basic_classes.Ord 'c) => 
+                          ('c * 'b * 'a) -> ('c * 'b * 'a) -> bool
+  val tripleGreaterEq : forall 'a 'b 'c. 
+                          (Basic_classes.Ord 'a) (Basic_classes.Ord 'b)
+                            (Basic_classes.Ord 'c) => 
+                            ('c * 'b * 'a) -> ('c * 'b * 'a) -> bool
+  val tripleLess : forall 'a 'b 'c. 
+                     (Basic_classes.Ord 'a) (Basic_classes.Ord 'b)
+                       (Basic_classes.Ord 'c) => 
+                       ('a * 'b * 'c) -> ('a * 'b * 'c) -> bool
+  val tripleLessEq : forall 'a 'b 'c. 
+                       (Basic_classes.Ord 'a) (Basic_classes.Ord 'b)
+                         (Basic_classes.Ord 'c) => 
+                         ('a * 'b * 'c) -> ('a * 'b * 'c) -> bool
   val uncurry : forall 'a 'b 'c. ('a -> 'b -> 'c) -> ('a * 'b) -> 'c
   val union : forall 'a. 
                 (Basic_classes.SetType 'a) => (set 'a) -> (set 'a) -> set 'a
@@ -2039,6 +2994,7 @@ module Pervasives = struct
   val unsafe_structural_inequality : forall 'a. 'a -> 'a -> bool
   val unzip : forall 'a 'b. (list ('a * 'b)) -> ((list 'a) * (list 'b))
   val update : forall 'a. (list 'a) -> nat -> 'a -> list 'a
+  val xor : bool -> bool -> bool
   val zip : forall 'a 'b. (list 'a) -> (list 'b) -> list ('a * 'b)
   val || : bool -> bool -> bool
   val ~ : forall 'a. (Num.NumNegate 'a) => 'a -> 'a
@@ -2090,6 +3046,20 @@ module Pervasives = struct
 
   end
 
+  module Instance_Basic_classes_Eq_Num_int32 = struct
+
+    val <> : Num.int32 -> Num.int32 -> bool
+    val = : Num.int32 -> Num.int32 -> bool
+
+  end
+
+  module Instance_Basic_classes_Eq_Num_int64 = struct
+
+    val <> : Num.int64 -> Num.int64 -> bool
+    val = : Num.int64 -> Num.int64 -> bool
+
+  end
+
   module Instance_Basic_classes_Eq_Num_integer = struct
 
     val <> : Num.integer -> Num.integer -> bool
@@ -2101,6 +3071,13 @@ module Pervasives = struct
 
     val <> : Num.natural -> Num.natural -> bool
     val = : Num.natural -> Num.natural -> bool
+
+  end
+
+  module Instance_Basic_classes_Eq_Word_bitSequence = struct
+
+    val <> : Word.bitSequence -> Word.bitSequence -> bool
+    val = : Word.bitSequence -> Word.bitSequence -> bool
 
   end
 
@@ -2136,7 +3113,7 @@ module Pervasives = struct
 
   end
 
-  module Instance_Basic_classes_Eq_tup = struct
+  module Instance_Basic_classes_Eq_tup2 = struct
 
     val <> : forall 'a 'b. 
                (Basic_classes.Eq 'a) (Basic_classes.Eq 'b) => 
@@ -2144,6 +3121,19 @@ module Pervasives = struct
     val = : forall 'a 'b. 
               (Basic_classes.Eq 'a) (Basic_classes.Eq 'b) => 
                 ('a * 'b) -> ('a * 'b) -> bool
+
+  end
+
+  module Instance_Basic_classes_Eq_tup3 = struct
+
+    val <> : forall 'a 'b 'c. 
+               (Basic_classes.Eq 'a) (Basic_classes.Eq 'b)
+                 (Basic_classes.Eq 'c) => 
+                 ('a * 'b * 'c) -> ('a * 'b * 'c) -> bool
+    val = : forall 'a 'b 'c. 
+              (Basic_classes.Eq 'a) (Basic_classes.Eq 'b)
+                (Basic_classes.Eq 'c) => 
+                ('a * 'b * 'c) -> ('a * 'b * 'c) -> bool
 
   end
 
@@ -2161,6 +3151,20 @@ module Pervasives = struct
 
   end
 
+  module Instance_Basic_classes_OrdMaxMin_Num_int32 = struct
+
+    val max : Num.int32 -> Num.int32 -> Num.int32
+    val min : Num.int32 -> Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Basic_classes_OrdMaxMin_Num_int64 = struct
+
+    val max : Num.int64 -> Num.int64 -> Num.int64
+    val min : Num.int64 -> Num.int64 -> Num.int64
+
+  end
+
   module Instance_Basic_classes_OrdMaxMin_Num_integer = struct
 
     val max : Num.integer -> Num.integer -> Num.integer
@@ -2172,6 +3176,13 @@ module Pervasives = struct
 
     val max : Num.natural -> Num.natural -> Num.natural
     val min : Num.natural -> Num.natural -> Num.natural
+
+  end
+
+  module Instance_Basic_classes_OrdMaxMin_Word_bitSequence = struct
+
+    val max : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+    val min : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
 
   end
 
@@ -2199,6 +3210,26 @@ module Pervasives = struct
 
   end
 
+  module Instance_Basic_classes_Ord_Num_int32 = struct
+
+    val < : Num.int32 -> Num.int32 -> bool
+    val <= : Num.int32 -> Num.int32 -> bool
+    val > : Num.int32 -> Num.int32 -> bool
+    val >= : Num.int32 -> Num.int32 -> bool
+    val compare : Num.int32 -> Num.int32 -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_Ord_Num_int64 = struct
+
+    val < : Num.int64 -> Num.int64 -> bool
+    val <= : Num.int64 -> Num.int64 -> bool
+    val > : Num.int64 -> Num.int64 -> bool
+    val >= : Num.int64 -> Num.int64 -> bool
+    val compare : Num.int64 -> Num.int64 -> Basic_classes.ordering
+
+  end
+
   module Instance_Basic_classes_Ord_Num_integer = struct
 
     val < : Num.integer -> Num.integer -> bool
@@ -2216,6 +3247,17 @@ module Pervasives = struct
     val > : Num.natural -> Num.natural -> bool
     val >= : Num.natural -> Num.natural -> bool
     val compare : Num.natural -> Num.natural -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_Ord_Word_bitSequence = struct
+
+    val < : Word.bitSequence -> Word.bitSequence -> bool
+    val <= : Word.bitSequence -> Word.bitSequence -> bool
+    val > : Word.bitSequence -> Word.bitSequence -> bool
+    val >= : Word.bitSequence -> Word.bitSequence -> bool
+    val compare : 
+                    Word.bitSequence -> Word.bitSequence -> Basic_classes.ordering
 
   end
 
@@ -2245,7 +3287,7 @@ module Pervasives = struct
 
   end
 
-  module Instance_Basic_classes_Ord_tup = struct
+  module Instance_Basic_classes_Ord_tup2 = struct
 
     val < : forall 'a 'b. 
               (Basic_classes.Ord 'a) (Basic_classes.Ord 'b) => 
@@ -2265,6 +3307,31 @@ module Pervasives = struct
 
   end
 
+  module Instance_Basic_classes_Ord_tup3 = struct
+
+    val < : forall 'a 'b 'c. 
+              (Basic_classes.Ord 'a) (Basic_classes.Ord 'b)
+                (Basic_classes.Ord 'c) => 
+                ('a * 'b * 'c) -> ('a * 'b * 'c) -> bool
+    val <= : forall 'a 'b 'c. 
+               (Basic_classes.Ord 'a) (Basic_classes.Ord 'b)
+                 (Basic_classes.Ord 'c) => 
+                 ('a * 'b * 'c) -> ('a * 'b * 'c) -> bool
+    val > : forall 'a 'b 'c. 
+              (Basic_classes.Ord 'a) (Basic_classes.Ord 'b)
+                (Basic_classes.Ord 'c) => 
+                ('a * 'b * 'c) -> ('a * 'b * 'c) -> bool
+    val >= : forall 'a 'b 'c. 
+               (Basic_classes.Ord 'a) (Basic_classes.Ord 'b)
+                 (Basic_classes.Ord 'c) => 
+                 ('a * 'b * 'c) -> ('a * 'b * 'c) -> bool
+    val compare : forall 'a 'b 'c. 
+                    (Basic_classes.Ord 'a) (Basic_classes.Ord 'b)
+                      (Basic_classes.Ord 'c) => 
+                      ('a * 'b * 'c) -> ('a * 'b * 'c) -> Basic_classes.ordering
+
+  end
+
   module Instance_Basic_classes_SetType_Maybe_maybe = struct
 
     val setElemCompare : forall 'a. 
@@ -2280,6 +3347,18 @@ module Pervasives = struct
 
   end
 
+  module Instance_Basic_classes_SetType_Num_int32 = struct
+
+    val setElemCompare : Num.int32 -> Num.int32 -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_SetType_Num_int64 = struct
+
+    val setElemCompare : Num.int64 -> Num.int64 -> Basic_classes.ordering
+
+  end
+
   module Instance_Basic_classes_SetType_Num_integer = struct
 
     val setElemCompare : Num.integer -> Num.integer -> Basic_classes.ordering
@@ -2292,9 +3371,24 @@ module Pervasives = struct
 
   end
 
+  module Instance_Basic_classes_SetType_Word_bitSequence = struct
+
+    val setElemCompare : 
+                           Word.bitSequence -> Word.bitSequence -> Basic_classes.ordering
+
+  end
+
   module Instance_Basic_classes_SetType_bool = struct
 
     val setElemCompare : bool -> bool -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_SetType_list = struct
+
+    val setElemCompare : forall 'a. 
+                           (Basic_classes.SetType 'a) => 
+                             (list 'a) -> (list 'a) -> Basic_classes.ordering
 
   end
 
@@ -2312,12 +3406,22 @@ module Pervasives = struct
 
   end
 
-  module Instance_Basic_classes_SetType_tup = struct
+  module Instance_Basic_classes_SetType_tup2 = struct
 
     val setElemCompare : forall 'a 'b. 
                            (Basic_classes.SetType 'a)
                              (Basic_classes.SetType 'b) => 
                              ('a * 'b) -> ('a * 'b) -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_SetType_tup3 = struct
+
+    val setElemCompare : forall 'a 'b 'c. 
+                           (Basic_classes.SetType 'a)
+                             (Basic_classes.SetType 'b)
+                             (Basic_classes.SetType 'c) => 
+                             ('a * 'b * 'c) -> ('a * 'b * 'c) -> Basic_classes.ordering
 
   end
 
@@ -2335,9 +3439,45 @@ module Pervasives = struct
 
   end
 
+  module Instance_Num_NumAbs_Num_int = struct
+
+    val abs : Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumAbs_Num_int32 = struct
+
+    val abs : Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Num_NumAbs_Num_int64 = struct
+
+    val abs : Num.int64 -> Num.int64
+
+  end
+
+  module Instance_Num_NumAbs_Num_integer = struct
+
+    val abs : Num.integer -> Num.integer
+
+  end
+
   module Instance_Num_NumAdd_Num_int = struct
 
     val + : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumAdd_Num_int32 = struct
+
+    val + : Num.int32 -> Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Num_NumAdd_Num_int64 = struct
+
+    val + : Num.int64 -> Num.int64 -> Num.int64
 
   end
 
@@ -2353,6 +3493,12 @@ module Pervasives = struct
 
   end
 
+  module Instance_Num_NumAdd_Word_bitSequence = struct
+
+    val + : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+
+  end
+
   module Instance_Num_NumAdd_nat = struct
 
     val + : nat -> nat -> nat
@@ -2362,6 +3508,18 @@ module Pervasives = struct
   module Instance_Num_NumDivision_Num_int = struct
 
     val / : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumDivision_Num_int32 = struct
+
+    val / : Num.int32 -> Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Num_NumDivision_Num_int64 = struct
+
+    val / : Num.int64 -> Num.int64 -> Num.int64
 
   end
 
@@ -2377,6 +3535,12 @@ module Pervasives = struct
 
   end
 
+  module Instance_Num_NumDivision_Word_bitSequence = struct
+
+    val / : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+
+  end
+
   module Instance_Num_NumDivision_nat = struct
 
     val / : nat -> nat -> nat
@@ -2386,6 +3550,18 @@ module Pervasives = struct
   module Instance_Num_NumIntegerDivision_Num_int = struct
 
     val div : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumIntegerDivision_Num_int32 = struct
+
+    val div : Num.int32 -> Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Num_NumIntegerDivision_Num_int64 = struct
+
+    val div : Num.int64 -> Num.int64 -> Num.int64
 
   end
 
@@ -2401,6 +3577,12 @@ module Pervasives = struct
 
   end
 
+  module Instance_Num_NumIntegerDivision_Word_bitSequence = struct
+
+    val div : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+
+  end
+
   module Instance_Num_NumIntegerDivision_nat = struct
 
     val div : nat -> nat -> nat
@@ -2410,6 +3592,18 @@ module Pervasives = struct
   module Instance_Num_NumMinus_Num_int = struct
 
     val - : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumMinus_Num_int32 = struct
+
+    val - : Num.int32 -> Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Num_NumMinus_Num_int64 = struct
+
+    val - : Num.int64 -> Num.int64 -> Num.int64
 
   end
 
@@ -2425,6 +3619,12 @@ module Pervasives = struct
 
   end
 
+  module Instance_Num_NumMinus_Word_bitSequence = struct
+
+    val - : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+
+  end
+
   module Instance_Num_NumMinus_nat = struct
 
     val - : nat -> nat -> nat
@@ -2434,6 +3634,18 @@ module Pervasives = struct
   module Instance_Num_NumMult_Num_int = struct
 
     val * : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumMult_Num_int32 = struct
+
+    val * : Num.int32 -> Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Num_NumMult_Num_int64 = struct
+
+    val * : Num.int64 -> Num.int64 -> Num.int64
 
   end
 
@@ -2449,6 +3661,12 @@ module Pervasives = struct
 
   end
 
+  module Instance_Num_NumMult_Word_bitSequence = struct
+
+    val * : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+
+  end
+
   module Instance_Num_NumMult_nat = struct
 
     val * : nat -> nat -> nat
@@ -2461,15 +3679,45 @@ module Pervasives = struct
 
   end
 
+  module Instance_Num_NumNegate_Num_int32 = struct
+
+    val ~ : Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Num_NumNegate_Num_int64 = struct
+
+    val ~ : Num.int64 -> Num.int64
+
+  end
+
   module Instance_Num_NumNegate_Num_integer = struct
 
     val ~ : Num.integer -> Num.integer
 
   end
 
+  module Instance_Num_NumNegate_Word_bitSequence = struct
+
+    val ~ : Word.bitSequence -> Word.bitSequence
+
+  end
+
   module Instance_Num_NumPow_Num_int = struct
 
     val ** : Num.int -> nat -> Num.int
+
+  end
+
+  module Instance_Num_NumPow_Num_int32 = struct
+
+    val ** : Num.int32 -> nat -> Num.int32
+
+  end
+
+  module Instance_Num_NumPow_Num_int64 = struct
+
+    val ** : Num.int64 -> nat -> Num.int64
 
   end
 
@@ -2485,6 +3733,12 @@ module Pervasives = struct
 
   end
 
+  module Instance_Num_NumPow_Word_bitSequence = struct
+
+    val ** : Word.bitSequence -> nat -> Word.bitSequence
+
+  end
+
   module Instance_Num_NumPow_nat = struct
 
     val ** : nat -> nat -> nat
@@ -2494,6 +3748,18 @@ module Pervasives = struct
   module Instance_Num_NumPred_Num_int = struct
 
     val pred : Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumPred_Num_int32 = struct
+
+    val pred : Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Num_NumPred_Num_int64 = struct
+
+    val pred : Num.int64 -> Num.int64
 
   end
 
@@ -2509,6 +3775,12 @@ module Pervasives = struct
 
   end
 
+  module Instance_Num_NumPred_Word_bitSequence = struct
+
+    val pred : Word.bitSequence -> Word.bitSequence
+
+  end
+
   module Instance_Num_NumPred_nat = struct
 
     val pred : nat -> nat
@@ -2518,6 +3790,18 @@ module Pervasives = struct
   module Instance_Num_NumRemainder_Num_int = struct
 
     val mod : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumRemainder_Num_int32 = struct
+
+    val mod : Num.int32 -> Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Num_NumRemainder_Num_int64 = struct
+
+    val mod : Num.int64 -> Num.int64 -> Num.int64
 
   end
 
@@ -2533,6 +3817,12 @@ module Pervasives = struct
 
   end
 
+  module Instance_Num_NumRemainder_Word_bitSequence = struct
+
+    val mod : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+
+  end
+
   module Instance_Num_NumRemainder_nat = struct
 
     val mod : nat -> nat -> nat
@@ -2542,6 +3832,18 @@ module Pervasives = struct
   module Instance_Num_NumSucc_Num_int = struct
 
     val succ : Num.int -> Num.int
+
+  end
+
+  module Instance_Num_NumSucc_Num_int32 = struct
+
+    val succ : Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Num_NumSucc_Num_int64 = struct
+
+    val succ : Num.int64 -> Num.int64
 
   end
 
@@ -2557,6 +3859,12 @@ module Pervasives = struct
 
   end
 
+  module Instance_Num_NumSucc_Word_bitSequence = struct
+
+    val succ : Word.bitSequence -> Word.bitSequence
+
+  end
+
   module Instance_Num_NumSucc_nat = struct
 
     val succ : nat -> nat
@@ -2566,6 +3874,18 @@ module Pervasives = struct
   module Instance_Num_Numeral_Num_int = struct
 
     val fromNumeral : numeral -> Num.int
+
+  end
+
+  module Instance_Num_Numeral_Num_int32 = struct
+
+    val fromNumeral : numeral -> Num.int32
+
+  end
+
+  module Instance_Num_Numeral_Num_int64 = struct
+
+    val fromNumeral : numeral -> Num.int64
 
   end
 
@@ -2581,9 +3901,285 @@ module Pervasives = struct
 
   end
 
+  module Instance_Num_Numeral_Word_bitSequence = struct
+
+    val fromNumeral : numeral -> Word.bitSequence
+
+  end
+
   module Instance_Num_Numeral_nat = struct
 
     val fromNumeral : numeral -> nat
+
+  end
+
+  module Instance_Word_WordAnd_Num_int = struct
+
+    val land : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Word_WordAnd_Num_int32 = struct
+
+    val land : Num.int32 -> Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Word_WordAnd_Num_int64 = struct
+
+    val land : Num.int64 -> Num.int64 -> Num.int64
+
+  end
+
+  module Instance_Word_WordAnd_Num_integer = struct
+
+    val land : Num.integer -> Num.integer -> Num.integer
+
+  end
+
+  module Instance_Word_WordAnd_Num_natural = struct
+
+    val land : Num.natural -> Num.natural -> Num.natural
+
+  end
+
+  module Instance_Word_WordAnd_Word_bitSequence = struct
+
+    val land : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+
+  end
+
+  module Instance_Word_WordAnd_nat = struct
+
+    val land : nat -> nat -> nat
+
+  end
+
+  module Instance_Word_WordAsr_Num_int = struct
+
+    val asr : Num.int -> nat -> Num.int
+
+  end
+
+  module Instance_Word_WordAsr_Num_int32 = struct
+
+    val asr : Num.int32 -> nat -> Num.int32
+
+  end
+
+  module Instance_Word_WordAsr_Num_int64 = struct
+
+    val asr : Num.int64 -> nat -> Num.int64
+
+  end
+
+  module Instance_Word_WordAsr_Num_integer = struct
+
+    val asr : Num.integer -> nat -> Num.integer
+
+  end
+
+  module Instance_Word_WordAsr_Num_natural = struct
+
+    val asr : Num.natural -> nat -> Num.natural
+
+  end
+
+  module Instance_Word_WordAsr_Word_bitSequence = struct
+
+    val asr : Word.bitSequence -> nat -> Word.bitSequence
+
+  end
+
+  module Instance_Word_WordAsr_nat = struct
+
+    val asr : nat -> nat -> nat
+
+  end
+
+  module Instance_Word_WordLsl_Num_int = struct
+
+    val lsl : Num.int -> nat -> Num.int
+
+  end
+
+  module Instance_Word_WordLsl_Num_int32 = struct
+
+    val lsl : Num.int32 -> nat -> Num.int32
+
+  end
+
+  module Instance_Word_WordLsl_Num_int64 = struct
+
+    val lsl : Num.int64 -> nat -> Num.int64
+
+  end
+
+  module Instance_Word_WordLsl_Num_integer = struct
+
+    val lsl : Num.integer -> nat -> Num.integer
+
+  end
+
+  module Instance_Word_WordLsl_Num_natural = struct
+
+    val lsl : Num.natural -> nat -> Num.natural
+
+  end
+
+  module Instance_Word_WordLsl_Word_bitSequence = struct
+
+    val lsl : Word.bitSequence -> nat -> Word.bitSequence
+
+  end
+
+  module Instance_Word_WordLsl_nat = struct
+
+    val lsl : nat -> nat -> nat
+
+  end
+
+  module Instance_Word_WordLsr_Num_int32 = struct
+
+    val lsr : Num.int32 -> nat -> Num.int32
+
+  end
+
+  module Instance_Word_WordLsr_Num_int64 = struct
+
+    val lsr : Num.int64 -> nat -> Num.int64
+
+  end
+
+  module Instance_Word_WordLsr_Num_integer = struct
+
+    val lsr : Num.integer -> nat -> Num.integer
+
+  end
+
+  module Instance_Word_WordLsr_Num_natural = struct
+
+    val lsr : Num.natural -> nat -> Num.natural
+
+  end
+
+  module Instance_Word_WordLsr_Word_bitSequence = struct
+
+    val lsr : Word.bitSequence -> nat -> Word.bitSequence
+
+  end
+
+  module Instance_Word_WordNot_Num_int = struct
+
+    val lnot : Num.int -> Num.int
+
+  end
+
+  module Instance_Word_WordNot_Num_int32 = struct
+
+    val lnot : Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Word_WordNot_Num_int64 = struct
+
+    val lnot : Num.int64 -> Num.int64
+
+  end
+
+  module Instance_Word_WordNot_Num_integer = struct
+
+    val lnot : Num.integer -> Num.integer
+
+  end
+
+  module Instance_Word_WordNot_Word_bitSequence = struct
+
+    val lnot : Word.bitSequence -> Word.bitSequence
+
+  end
+
+  module Instance_Word_WordOr_Num_int = struct
+
+    val lor : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Word_WordOr_Num_int32 = struct
+
+    val lor : Num.int32 -> Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Word_WordOr_Num_int64 = struct
+
+    val lor : Num.int64 -> Num.int64 -> Num.int64
+
+  end
+
+  module Instance_Word_WordOr_Num_integer = struct
+
+    val lor : Num.integer -> Num.integer -> Num.integer
+
+  end
+
+  module Instance_Word_WordOr_Num_natural = struct
+
+    val lor : Num.natural -> Num.natural -> Num.natural
+
+  end
+
+  module Instance_Word_WordOr_Word_bitSequence = struct
+
+    val lor : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+
+  end
+
+  module Instance_Word_WordOr_nat = struct
+
+    val lor : nat -> nat -> nat
+
+  end
+
+  module Instance_Word_WordXor_Num_int = struct
+
+    val lxor : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Word_WordXor_Num_int32 = struct
+
+    val lxor : Num.int32 -> Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Word_WordXor_Num_int64 = struct
+
+    val lxor : Num.int64 -> Num.int64 -> Num.int64
+
+  end
+
+  module Instance_Word_WordXor_Num_integer = struct
+
+    val lxor : Num.integer -> Num.integer -> Num.integer
+
+  end
+
+  module Instance_Word_WordXor_Num_natural = struct
+
+    val lxor : Num.natural -> Num.natural -> Num.natural
+
+  end
+
+  module Instance_Word_WordXor_Word_bitSequence = struct
+
+    val lxor : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+
+  end
+
+  module Instance_Word_WordXor_nat = struct
+
+    val lxor : nat -> nat -> nat
 
   end
 
@@ -2983,6 +4579,23 @@ module Sorting = struct
   val isSortedBy : forall 'a. ('a -> 'a -> bool) -> (list 'a) -> bool
   val sort : forall 'a. (Basic_classes.Ord 'a) => (list 'a) -> list 'a
   val sortBy : forall 'a. ('a -> 'a -> bool) -> (list 'a) -> list 'a
+  val sortByOrd : forall 'a. 
+                    ('a -> 'a -> Basic_classes.ordering) -> (list 'a) -> 
+                                                            list 'a
+
+end
+
+module String = struct
+
+  val ^ : string -> string -> string
+  val cons_string : char -> string -> string
+  val empty_string : string
+  val makeString : nat -> char -> string
+  val stringAppend : string -> string -> string
+  val stringLength : string -> nat
+  val string_case : forall 'a. string -> 'a -> (char -> string -> 'a) -> 'a
+  val toCharList : string -> list char
+  val toString : (list char) -> string
 
 end
 
@@ -2993,6 +4606,660 @@ module Tuple = struct
   val snd : forall 'a 'b. ('a * 'b) -> 'b
   val swap : forall 'a 'b. ('a * 'b) -> ('b * 'a)
   val uncurry : forall 'a 'b 'c. ('a -> 'b -> 'c) -> ('a * 'b) -> 'c
+
+end
+
+module Word = struct
+  class WordAnd
+  type WordAnd_class 'a = {
+      val land_method : forall 'a. (Word.WordAnd_class 'a) -> 'a -> 'a -> 'a
+
+  }
+  class WordAsr
+  type WordAsr_class 'a = {
+      val asr_method : forall 'a. (Word.WordAsr_class 'a) -> 'a -> nat -> 'a
+
+  }
+  class WordLsl
+  type WordLsl_class 'a = {
+      val lsl_method : forall 'a. (Word.WordLsl_class 'a) -> 'a -> nat -> 'a
+
+  }
+  class WordLsr
+  type WordLsr_class 'a = {
+      val lsr_method : forall 'a. (Word.WordLsr_class 'a) -> 'a -> nat -> 'a
+
+  }
+  class WordNot
+  type WordNot_class 'a = {
+      val lnot_method : forall 'a. (Word.WordNot_class 'a) -> 'a -> 'a
+
+  }
+  class WordOr
+  type WordOr_class 'a = {
+      val lor_method : forall 'a. (Word.WordOr_class 'a) -> 'a -> 'a -> 'a
+
+  }
+  class WordXor
+  type WordXor_class 'a = {
+      val lxor_method : forall 'a. (Word.WordXor_class 'a) -> 'a -> 'a -> 'a
+
+  }
+  type bitSequence
+
+  val BitSeq : (Maybe.maybe nat) -> bool -> (list bool) -> Word.bitSequence
+  val arithmetic_right_shift : forall 'a. 
+                                 (Word.WordAsr 'a) => 'a -> nat -> 'a
+  val asr : forall 'a. (Word.WordAsr 'a) => 'a -> nat -> 'a
+  val bitSeqAdd : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+  val bitSeqAnd : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+  val bitSeqArithBinOp : 
+                           (Num.integer -> Num.integer -> Num.integer) -> 
+                           Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+  val bitSeqArithBinTest : forall 'a. 
+                             (Num.integer -> Num.integer -> 'a) -> Word.bitSequence -> 
+                                                                   Word.bitSequence -> 
+                                                                   'a
+  val bitSeqArithUnaryOp : 
+                             (Num.integer -> Num.integer) -> Word.bitSequence -> 
+                                                             Word.bitSequence
+  val bitSeqArithmeticShiftRight : 
+                                     Word.bitSequence -> nat -> Word.bitSequence
+  val bitSeqBinop : 
+                      (bool -> bool -> bool) -> Word.bitSequence -> Word.bitSequence -> 
+                                                                    Word.bitSequence
+  val bitSeqBinopAux : 
+                         (bool -> bool -> bool) -> bool -> (list bool) -> 
+                                                           bool -> (list 
+                                                                   bool) -> 
+                                                                   list 
+                                                                   bool
+  val bitSeqCompare : 
+                        Word.bitSequence -> Word.bitSequence -> Basic_classes.ordering
+  val bitSeqDiv : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+  val bitSeqEq : Word.bitSequence -> Word.bitSequence -> bool
+  val bitSeqFromBoolList : (list bool) -> Maybe.maybe Word.bitSequence
+  val bitSeqFromInt : Num.int -> Word.bitSequence
+  val bitSeqFromInteger : 
+                            (Maybe.maybe nat) -> Num.integer -> Word.bitSequence
+  val bitSeqFromNat : nat -> Word.bitSequence
+  val bitSeqFromNatural : 
+                            (Maybe.maybe nat) -> Num.natural -> Word.bitSequence
+  val bitSeqFromNumeral : numeral -> Word.bitSequence
+  val bitSeqGreater : Word.bitSequence -> Word.bitSequence -> bool
+  val bitSeqGreaterEqual : Word.bitSequence -> Word.bitSequence -> bool
+  val bitSeqLess : Word.bitSequence -> Word.bitSequence -> bool
+  val bitSeqLessEqual : Word.bitSequence -> Word.bitSequence -> bool
+  val bitSeqLogicalShiftRight : Word.bitSequence -> nat -> Word.bitSequence
+  val bitSeqMax : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+  val bitSeqMin : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+  val bitSeqMinus : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+  val bitSeqMod : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+  val bitSeqMult : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+  val bitSeqNegate : Word.bitSequence -> Word.bitSequence
+  val bitSeqNot : Word.bitSequence -> Word.bitSequence
+  val bitSeqOr : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+  val bitSeqPow : Word.bitSequence -> nat -> Word.bitSequence
+  val bitSeqPred : Word.bitSequence -> Word.bitSequence
+  val bitSeqSetBit : Word.bitSequence -> nat -> bool -> Word.bitSequence
+  val bitSeqShiftLeft : Word.bitSequence -> nat -> Word.bitSequence
+  val bitSeqSucc : Word.bitSequence -> Word.bitSequence
+  val bitSeqTestBit : Word.bitSequence -> nat -> Maybe.maybe bool
+  val bitSeqXor : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+  val boolListFromInteger : Num.integer -> (bool * (list bool))
+  val boolListFromIntegerAux : (list bool) -> Num.integer -> list bool
+  val boolListFromNatural : (list bool) -> Num.natural -> list bool
+  val boolListFrombitSeq : nat -> Word.bitSequence -> list bool
+  val boolListFrombitSeqAux : forall 'a. nat -> 'a -> (list 'a) -> list 'a
+  val cleanBitSeq : Word.bitSequence -> Word.bitSequence
+  val conjunction : forall 'a. (Word.WordAnd 'a) => 'a -> 'a -> 'a
+  val defaultAsr : forall 'a. 
+                     (Word.bitSequence -> 'a) -> ('a -> Word.bitSequence) -> 
+                                                 'a -> nat -> 'a
+  val defaultLand : forall 'a. 
+                      (Word.bitSequence -> 'a) -> ('a -> Word.bitSequence) -> 
+                                                  'a -> 'a -> 'a
+  val defaultLnot : forall 'a. 
+                      (Word.bitSequence -> 'a) -> ('a -> Word.bitSequence) -> 
+                                                  'a -> 'a
+  val defaultLor : forall 'a. 
+                     (Word.bitSequence -> 'a) -> ('a -> Word.bitSequence) -> 
+                                                 'a -> 'a -> 'a
+  val defaultLsl : forall 'a. 
+                     (Word.bitSequence -> 'a) -> ('a -> Word.bitSequence) -> 
+                                                 'a -> nat -> 'a
+  val defaultLsr : forall 'a. 
+                     (Word.bitSequence -> 'a) -> ('a -> Word.bitSequence) -> 
+                                                 'a -> nat -> 'a
+  val defaultLxor : forall 'a. 
+                      (Word.bitSequence -> 'a) -> ('a -> Word.bitSequence) -> 
+                                                  'a -> 'a -> 'a
+  val exclusive_or : forall 'a. (Word.WordXor 'a) => 'a -> 'a -> 'a
+  val inclusive_or : forall 'a. (Word.WordOr 'a) => 'a -> 'a -> 'a
+  val instance_Basic_classes_Eq_Word_bitSequence_dict : 
+                                                          Basic_classes.Eq_class 
+                                                          Word.bitSequence
+  val instance_Basic_classes_OrdMaxMin_Word_bitSequence_dict : 
+                                                                 Basic_classes.OrdMaxMin_class 
+                                                                 Word.bitSequence
+  val instance_Basic_classes_Ord_Word_bitSequence_dict : 
+                                                           Basic_classes.Ord_class 
+                                                           Word.bitSequence
+  val instance_Basic_classes_SetType_Word_bitSequence_dict : 
+                                                               Basic_classes.SetType_class 
+                                                               Word.bitSequence
+  val instance_Num_NumAdd_Word_bitSequence_dict : 
+                                                    Num.NumAdd_class 
+                                                    Word.bitSequence
+  val instance_Num_NumDivision_Word_bitSequence_dict : 
+                                                         Num.NumDivision_class 
+                                                         Word.bitSequence
+  val instance_Num_NumIntegerDivision_Word_bitSequence_dict : 
+                                                                Num.NumIntegerDivision_class 
+                                                                Word.bitSequence
+  val instance_Num_NumMinus_Word_bitSequence_dict : 
+                                                      Num.NumMinus_class 
+                                                      Word.bitSequence
+  val instance_Num_NumMult_Word_bitSequence_dict : 
+                                                     Num.NumMult_class 
+                                                     Word.bitSequence
+  val instance_Num_NumNegate_Word_bitSequence_dict : 
+                                                       Num.NumNegate_class 
+                                                       Word.bitSequence
+  val instance_Num_NumPow_Word_bitSequence_dict : 
+                                                    Num.NumPow_class 
+                                                    Word.bitSequence
+  val instance_Num_NumPred_Word_bitSequence_dict : 
+                                                     Num.NumPred_class 
+                                                     Word.bitSequence
+  val instance_Num_NumRemainder_Word_bitSequence_dict : 
+                                                          Num.NumRemainder_class 
+                                                          Word.bitSequence
+  val instance_Num_NumSucc_Word_bitSequence_dict : 
+                                                     Num.NumSucc_class 
+                                                     Word.bitSequence
+  val instance_Num_Numeral_Word_bitSequence_dict : 
+                                                     Num.Numeral_class 
+                                                     Word.bitSequence
+  val instance_Word_WordAnd_Num_int32_dict : Word.WordAnd_class Num.int32
+  val instance_Word_WordAnd_Num_int64_dict : Word.WordAnd_class Num.int64
+  val instance_Word_WordAnd_Num_int_dict : Word.WordAnd_class Num.int
+  val instance_Word_WordAnd_Num_integer_dict : Word.WordAnd_class Num.integer
+  val instance_Word_WordAnd_Num_natural_dict : Word.WordAnd_class Num.natural
+  val instance_Word_WordAnd_Word_bitSequence_dict : 
+                                                      Word.WordAnd_class 
+                                                      Word.bitSequence
+  val instance_Word_WordAnd_nat_dict : Word.WordAnd_class nat
+  val instance_Word_WordAsr_Num_int32_dict : Word.WordAsr_class Num.int32
+  val instance_Word_WordAsr_Num_int64_dict : Word.WordAsr_class Num.int64
+  val instance_Word_WordAsr_Num_int_dict : Word.WordAsr_class Num.int
+  val instance_Word_WordAsr_Num_integer_dict : Word.WordAsr_class Num.integer
+  val instance_Word_WordAsr_Num_natural_dict : Word.WordAsr_class Num.natural
+  val instance_Word_WordAsr_Word_bitSequence_dict : 
+                                                      Word.WordAsr_class 
+                                                      Word.bitSequence
+  val instance_Word_WordAsr_nat_dict : Word.WordAsr_class nat
+  val instance_Word_WordLsl_Num_int32_dict : Word.WordLsl_class Num.int32
+  val instance_Word_WordLsl_Num_int64_dict : Word.WordLsl_class Num.int64
+  val instance_Word_WordLsl_Num_int_dict : Word.WordLsl_class Num.int
+  val instance_Word_WordLsl_Num_integer_dict : Word.WordLsl_class Num.integer
+  val instance_Word_WordLsl_Num_natural_dict : Word.WordLsl_class Num.natural
+  val instance_Word_WordLsl_Word_bitSequence_dict : 
+                                                      Word.WordLsl_class 
+                                                      Word.bitSequence
+  val instance_Word_WordLsl_nat_dict : Word.WordLsl_class nat
+  val instance_Word_WordLsr_Num_int32_dict : Word.WordLsr_class Num.int32
+  val instance_Word_WordLsr_Num_int64_dict : Word.WordLsr_class Num.int64
+  val instance_Word_WordLsr_Num_integer_dict : Word.WordLsr_class Num.integer
+  val instance_Word_WordLsr_Num_natural_dict : Word.WordLsr_class Num.natural
+  val instance_Word_WordLsr_Word_bitSequence_dict : 
+                                                      Word.WordLsr_class 
+                                                      Word.bitSequence
+  val instance_Word_WordNot_Num_int32_dict : Word.WordNot_class Num.int32
+  val instance_Word_WordNot_Num_int64_dict : Word.WordNot_class Num.int64
+  val instance_Word_WordNot_Num_int_dict : Word.WordNot_class Num.int
+  val instance_Word_WordNot_Num_integer_dict : Word.WordNot_class Num.integer
+  val instance_Word_WordNot_Word_bitSequence_dict : 
+                                                      Word.WordNot_class 
+                                                      Word.bitSequence
+  val instance_Word_WordOr_Num_int32_dict : Word.WordOr_class Num.int32
+  val instance_Word_WordOr_Num_int64_dict : Word.WordOr_class Num.int64
+  val instance_Word_WordOr_Num_int_dict : Word.WordOr_class Num.int
+  val instance_Word_WordOr_Num_integer_dict : Word.WordOr_class Num.integer
+  val instance_Word_WordOr_Num_natural_dict : Word.WordOr_class Num.natural
+  val instance_Word_WordOr_Word_bitSequence_dict : 
+                                                     Word.WordOr_class 
+                                                     Word.bitSequence
+  val instance_Word_WordOr_nat_dict : Word.WordOr_class nat
+  val instance_Word_WordXor_Num_int32_dict : Word.WordXor_class Num.int32
+  val instance_Word_WordXor_Num_int64_dict : Word.WordXor_class Num.int64
+  val instance_Word_WordXor_Num_int_dict : Word.WordXor_class Num.int
+  val instance_Word_WordXor_Num_integer_dict : Word.WordXor_class Num.integer
+  val instance_Word_WordXor_Num_natural_dict : Word.WordXor_class Num.natural
+  val instance_Word_WordXor_Word_bitSequence_dict : 
+                                                      Word.WordXor_class 
+                                                      Word.bitSequence
+  val instance_Word_WordXor_nat_dict : Word.WordXor_class nat
+  val int32Asr : Num.int32 -> nat -> Num.int32
+  val int32Land : Num.int32 -> Num.int32 -> Num.int32
+  val int32Lnot : Num.int32 -> Num.int32
+  val int32Lor : Num.int32 -> Num.int32 -> Num.int32
+  val int32Lsl : Num.int32 -> nat -> Num.int32
+  val int32Lsr : Num.int32 -> nat -> Num.int32
+  val int32Lxor : Num.int32 -> Num.int32 -> Num.int32
+  val int64Asr : Num.int64 -> nat -> Num.int64
+  val int64Land : Num.int64 -> Num.int64 -> Num.int64
+  val int64Lnot : Num.int64 -> Num.int64
+  val int64Lor : Num.int64 -> Num.int64 -> Num.int64
+  val int64Lsl : Num.int64 -> nat -> Num.int64
+  val int64Lsr : Num.int64 -> nat -> Num.int64
+  val int64Lxor : Num.int64 -> Num.int64 -> Num.int64
+  val intAsr : Num.int -> nat -> Num.int
+  val intFromBitSeq : Word.bitSequence -> Num.int
+  val intLand : Num.int -> Num.int -> Num.int
+  val intLnot : Num.int -> Num.int
+  val intLor : Num.int -> Num.int -> Num.int
+  val intLsl : Num.int -> nat -> Num.int
+  val intLxor : Num.int -> Num.int -> Num.int
+  val integerAsr : Num.integer -> nat -> Num.integer
+  val integerFromBitSeq : Word.bitSequence -> Num.integer
+  val integerFromBoolList : (bool * (list bool)) -> Num.integer
+  val integerFromBoolListAux : Num.integer -> (list bool) -> Num.integer
+  val integerLand : Num.integer -> Num.integer -> Num.integer
+  val integerLnot : Num.integer -> Num.integer
+  val integerLor : Num.integer -> Num.integer -> Num.integer
+  val integerLsl : Num.integer -> nat -> Num.integer
+  val integerLxor : Num.integer -> Num.integer -> Num.integer
+  val land : forall 'a. (Word.WordAnd 'a) => 'a -> 'a -> 'a
+  val left_shift : forall 'a. (Word.WordLsl 'a) => 'a -> nat -> 'a
+  val lnot : forall 'a. (Word.WordNot 'a) => 'a -> 'a
+  val logicial_right_shift : forall 'a. (Word.WordLsr 'a) => 'a -> nat -> 'a
+  val lor : forall 'a. (Word.WordOr 'a) => 'a -> 'a -> 'a
+  val lsl : forall 'a. (Word.WordLsl 'a) => 'a -> nat -> 'a
+  val lsr : forall 'a. (Word.WordLsr 'a) => 'a -> nat -> 'a
+  val lxor : forall 'a. (Word.WordXor 'a) => 'a -> 'a -> 'a
+  val natAsr : nat -> nat -> nat
+  val natFromBitSeq : Word.bitSequence -> nat
+  val natLand : nat -> nat -> nat
+  val natLor : nat -> nat -> nat
+  val natLsl : nat -> nat -> nat
+  val natLxor : nat -> nat -> nat
+  val naturalAsr : Num.natural -> nat -> Num.natural
+  val naturalFromBitSeq : Word.bitSequence -> Num.natural
+  val naturalLand : Num.natural -> Num.natural -> Num.natural
+  val naturalLor : Num.natural -> Num.natural -> Num.natural
+  val naturalLsl : Num.natural -> nat -> Num.natural
+  val naturalLxor : Num.natural -> Num.natural -> Num.natural
+  val resizeBitSeq : 
+                       (Maybe.maybe nat) -> Word.bitSequence -> Word.bitSequence
+
+  module Instance_Basic_classes_Eq_Word_bitSequence = struct
+
+    val <> : Word.bitSequence -> Word.bitSequence -> bool
+    val = : Word.bitSequence -> Word.bitSequence -> bool
+
+  end
+
+  module Instance_Basic_classes_OrdMaxMin_Word_bitSequence = struct
+
+    val max : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+    val min : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+
+  end
+
+  module Instance_Basic_classes_Ord_Word_bitSequence = struct
+
+    val < : Word.bitSequence -> Word.bitSequence -> bool
+    val <= : Word.bitSequence -> Word.bitSequence -> bool
+    val > : Word.bitSequence -> Word.bitSequence -> bool
+    val >= : Word.bitSequence -> Word.bitSequence -> bool
+    val compare : 
+                    Word.bitSequence -> Word.bitSequence -> Basic_classes.ordering
+
+  end
+
+  module Instance_Basic_classes_SetType_Word_bitSequence = struct
+
+    val setElemCompare : 
+                           Word.bitSequence -> Word.bitSequence -> Basic_classes.ordering
+
+  end
+
+  module Instance_Num_NumAdd_Word_bitSequence = struct
+
+    val + : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+
+  end
+
+  module Instance_Num_NumDivision_Word_bitSequence = struct
+
+    val / : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+
+  end
+
+  module Instance_Num_NumIntegerDivision_Word_bitSequence = struct
+
+    val div : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+
+  end
+
+  module Instance_Num_NumMinus_Word_bitSequence = struct
+
+    val - : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+
+  end
+
+  module Instance_Num_NumMult_Word_bitSequence = struct
+
+    val * : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+
+  end
+
+  module Instance_Num_NumNegate_Word_bitSequence = struct
+
+    val ~ : Word.bitSequence -> Word.bitSequence
+
+  end
+
+  module Instance_Num_NumPow_Word_bitSequence = struct
+
+    val ** : Word.bitSequence -> nat -> Word.bitSequence
+
+  end
+
+  module Instance_Num_NumPred_Word_bitSequence = struct
+
+    val pred : Word.bitSequence -> Word.bitSequence
+
+  end
+
+  module Instance_Num_NumRemainder_Word_bitSequence = struct
+
+    val mod : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+
+  end
+
+  module Instance_Num_NumSucc_Word_bitSequence = struct
+
+    val succ : Word.bitSequence -> Word.bitSequence
+
+  end
+
+  module Instance_Num_Numeral_Word_bitSequence = struct
+
+    val fromNumeral : numeral -> Word.bitSequence
+
+  end
+
+  module Instance_Word_WordAnd_Num_int = struct
+
+    val land : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Word_WordAnd_Num_int32 = struct
+
+    val land : Num.int32 -> Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Word_WordAnd_Num_int64 = struct
+
+    val land : Num.int64 -> Num.int64 -> Num.int64
+
+  end
+
+  module Instance_Word_WordAnd_Num_integer = struct
+
+    val land : Num.integer -> Num.integer -> Num.integer
+
+  end
+
+  module Instance_Word_WordAnd_Num_natural = struct
+
+    val land : Num.natural -> Num.natural -> Num.natural
+
+  end
+
+  module Instance_Word_WordAnd_Word_bitSequence = struct
+
+    val land : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+
+  end
+
+  module Instance_Word_WordAnd_nat = struct
+
+    val land : nat -> nat -> nat
+
+  end
+
+  module Instance_Word_WordAsr_Num_int = struct
+
+    val asr : Num.int -> nat -> Num.int
+
+  end
+
+  module Instance_Word_WordAsr_Num_int32 = struct
+
+    val asr : Num.int32 -> nat -> Num.int32
+
+  end
+
+  module Instance_Word_WordAsr_Num_int64 = struct
+
+    val asr : Num.int64 -> nat -> Num.int64
+
+  end
+
+  module Instance_Word_WordAsr_Num_integer = struct
+
+    val asr : Num.integer -> nat -> Num.integer
+
+  end
+
+  module Instance_Word_WordAsr_Num_natural = struct
+
+    val asr : Num.natural -> nat -> Num.natural
+
+  end
+
+  module Instance_Word_WordAsr_Word_bitSequence = struct
+
+    val asr : Word.bitSequence -> nat -> Word.bitSequence
+
+  end
+
+  module Instance_Word_WordAsr_nat = struct
+
+    val asr : nat -> nat -> nat
+
+  end
+
+  module Instance_Word_WordLsl_Num_int = struct
+
+    val lsl : Num.int -> nat -> Num.int
+
+  end
+
+  module Instance_Word_WordLsl_Num_int32 = struct
+
+    val lsl : Num.int32 -> nat -> Num.int32
+
+  end
+
+  module Instance_Word_WordLsl_Num_int64 = struct
+
+    val lsl : Num.int64 -> nat -> Num.int64
+
+  end
+
+  module Instance_Word_WordLsl_Num_integer = struct
+
+    val lsl : Num.integer -> nat -> Num.integer
+
+  end
+
+  module Instance_Word_WordLsl_Num_natural = struct
+
+    val lsl : Num.natural -> nat -> Num.natural
+
+  end
+
+  module Instance_Word_WordLsl_Word_bitSequence = struct
+
+    val lsl : Word.bitSequence -> nat -> Word.bitSequence
+
+  end
+
+  module Instance_Word_WordLsl_nat = struct
+
+    val lsl : nat -> nat -> nat
+
+  end
+
+  module Instance_Word_WordLsr_Num_int32 = struct
+
+    val lsr : Num.int32 -> nat -> Num.int32
+
+  end
+
+  module Instance_Word_WordLsr_Num_int64 = struct
+
+    val lsr : Num.int64 -> nat -> Num.int64
+
+  end
+
+  module Instance_Word_WordLsr_Num_integer = struct
+
+    val lsr : Num.integer -> nat -> Num.integer
+
+  end
+
+  module Instance_Word_WordLsr_Num_natural = struct
+
+    val lsr : Num.natural -> nat -> Num.natural
+
+  end
+
+  module Instance_Word_WordLsr_Word_bitSequence = struct
+
+    val lsr : Word.bitSequence -> nat -> Word.bitSequence
+
+  end
+
+  module Instance_Word_WordNot_Num_int = struct
+
+    val lnot : Num.int -> Num.int
+
+  end
+
+  module Instance_Word_WordNot_Num_int32 = struct
+
+    val lnot : Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Word_WordNot_Num_int64 = struct
+
+    val lnot : Num.int64 -> Num.int64
+
+  end
+
+  module Instance_Word_WordNot_Num_integer = struct
+
+    val lnot : Num.integer -> Num.integer
+
+  end
+
+  module Instance_Word_WordNot_Word_bitSequence = struct
+
+    val lnot : Word.bitSequence -> Word.bitSequence
+
+  end
+
+  module Instance_Word_WordOr_Num_int = struct
+
+    val lor : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Word_WordOr_Num_int32 = struct
+
+    val lor : Num.int32 -> Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Word_WordOr_Num_int64 = struct
+
+    val lor : Num.int64 -> Num.int64 -> Num.int64
+
+  end
+
+  module Instance_Word_WordOr_Num_integer = struct
+
+    val lor : Num.integer -> Num.integer -> Num.integer
+
+  end
+
+  module Instance_Word_WordOr_Num_natural = struct
+
+    val lor : Num.natural -> Num.natural -> Num.natural
+
+  end
+
+  module Instance_Word_WordOr_Word_bitSequence = struct
+
+    val lor : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+
+  end
+
+  module Instance_Word_WordOr_nat = struct
+
+    val lor : nat -> nat -> nat
+
+  end
+
+  module Instance_Word_WordXor_Num_int = struct
+
+    val lxor : Num.int -> Num.int -> Num.int
+
+  end
+
+  module Instance_Word_WordXor_Num_int32 = struct
+
+    val lxor : Num.int32 -> Num.int32 -> Num.int32
+
+  end
+
+  module Instance_Word_WordXor_Num_int64 = struct
+
+    val lxor : Num.int64 -> Num.int64 -> Num.int64
+
+  end
+
+  module Instance_Word_WordXor_Num_integer = struct
+
+    val lxor : Num.integer -> Num.integer -> Num.integer
+
+  end
+
+  module Instance_Word_WordXor_Num_natural = struct
+
+    val lxor : Num.natural -> Num.natural -> Num.natural
+
+  end
+
+  module Instance_Word_WordXor_Word_bitSequence = struct
+
+    val lxor : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
+
+  end
+
+  module Instance_Word_WordXor_nat = struct
+
+    val lxor : nat -> nat -> nat
+
+  end
 
 end
 

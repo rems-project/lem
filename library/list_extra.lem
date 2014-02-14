@@ -85,6 +85,7 @@ assert init_simple_2: (init [(5:nat)] = [])
 assert init_simple_3: (init [(5:nat);4;3;2] = [5;4;3])
 
 lemma init_last_append: (forall l. length l > 0 --> (l = (init l) ++ [last l]))
+lemma init_last_dest: (forall l. length l > 0 --> (dest_init l = Just (init l, last l)))
 
 
 (* ------------------------- *)

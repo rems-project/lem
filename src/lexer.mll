@@ -54,6 +54,14 @@ let r = Ulib.Text.of_latin1
 (* Available as Scanf.unescaped since OCaml 4.0 but 3.12 is still common *)
 let unescaped s = Scanf.sscanf ("\"" ^ s ^ "\"") "%S%!" (fun x -> x)
 
+let parse_int lexbuf i =
+  try (int_of_string i, i)
+  with Failure "int_of_string" ->
+    raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax (
+           Lexing.lexeme_start_p lexbuf,
+           "couldn't parse integer "^i)))
+
+
 let kw_table = 
   List.fold_left
     (fun r (x,y) -> M.add x y r)
@@ -108,6 +116,7 @@ let kw_table =
      ("right_assoc"),            (fun x -> RightAssoc(x));
      ("left_assoc"),             (fun x -> LeftAssoc(x));
      ("non_assoc"),              (fun x -> NonAssoc(x));
+     ("non_exec"),               (fun x -> NonExec(x));
      ("special"),                (fun x -> Special(x));
      ("target_rep"),             (fun x -> TargetRep(x));
      ("target_type",             (fun x -> TargetType(x)));
@@ -126,6 +135,7 @@ let ws = [' ''\t']+
 let letter = ['a'-'z''A'-'Z']
 let digit = ['0'-'9']
 let binarydigit = ['0'-'1']
+let octdigit = ['0'-'7']
 let hexdigit = ['0'-'9''A'-'F''a'-'f']
 let alphanum = letter|digit
 let startident = letter|'_'
@@ -215,11 +225,11 @@ rule token skips = parse
   | ">=" oper_char+ as i   		{ (GtEqX(Some(skips), Ulib.Text.of_latin1 i)) }
   | ['@''^'] oper_char* as i            { (AtX(Some(skips), Ulib.Text.of_latin1 i)) }
   | ['=''<''>''|''&''$'] oper_char* as i { (EqualX(Some(skips), Ulib.Text.of_latin1 i)) }
-  | digit+ as i                         { try Num(Some(skips),int_of_string i)
-                                          with Failure "int_of_string" ->
-                                           raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax (
-                                             Lexing.lexeme_start_p lexbuf,
-                                            "couldn't parse integer "^i))) }
+  | digit+ as i                         { Num(Some(skips),parse_int lexbuf i) }
+  | "0B" binarydigit+ as i		{ BinNum(Some(skips), parse_int lexbuf i) }
+  | "0O" octdigit+ as i 		{ OctNum(Some(skips), parse_int lexbuf i) }
+  | "0X" hexdigit+ as i 		{ HexNum(Some(skips), parse_int lexbuf i) }
+
   | "0b" (binarydigit+ as i)		{ (Bin(Some(skips), i)) }
   | "0x" (hexdigit+ as i) 		{ (Hex(Some(skips), i)) }
   | '"'                                 { (String(Some(skips),

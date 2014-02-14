@@ -407,9 +407,9 @@ let instance_to_dict create_inline targ mod_path (env : env) ((d,s),l,lenv) =
 
               let dict = if not create_inline then begin            
                     let dict' = ((dict_name, id.inst_dict, [], None, space, dict_body):funcl_aux) in
-                    Fun_def(sk1,FR_non_rec,None,Seplist.cons_entry dict' Seplist.empty) 
+                    Fun_def(sk1,FR_non_rec,Targets_opt_none,Seplist.cons_entry dict' Seplist.empty) 
                   end else 
-                    Let_inline (sk1, None, None, dict_name, id.inst_dict, [], space, dict_body) 
+                    Let_inline (sk1, None, Targets_opt_none, dict_name, id.inst_dict, [], space, dict_body) 
               in
               (dict, env')
             end in

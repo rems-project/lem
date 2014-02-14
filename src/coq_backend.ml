@@ -219,7 +219,10 @@ let rec src_t_to_string =
 let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
 
 let field_ident_to_output fd ascii_alternative = 
-  Ident.to_output Term_field path_sep (B.const_id_to_ident fd ascii_alternative)
+  let ident = B.const_id_to_ident fd ascii_alternative in
+  let name = Ident.get_name ident in
+  let stripped = Name.strip_lskip name in
+    from_string (Name.to_string stripped)
 ;;
 
 let const_name_to_output a n =
@@ -627,7 +630,7 @@ let generate_coq_record_update_notation e =
           if (ms' = []) then
              ws (oi_get_lskip oi)
           else (
-            let d' = OpenImportTarget(oi, None, ms') in
+            let d' = OpenImportTarget(oi, Targets_opt_none, ms') in
             def inside_instance callback inside_module d' ^ ws sk
           )
       | OpenImportTarget(oi, _, []) -> ws (oi_get_lskip oi)
@@ -1128,7 +1131,7 @@ let generate_coq_record_update_notation e =
           | Let (skips, bind, skips', e) ->
               let body = let_body inside_instance None false Types.TNset.empty bind in
                 Output.flat [
-                  ws skips; from_string "let"; body; ws skips'; from_string "in "; exp inside_instance e;
+                  ws skips; from_string "let "; body; ws skips'; from_string "in "; exp inside_instance e; (* The space after 'let' is a crude workaround for issue #90 (a missing space after 'let' in certain situations) *)
                 ]
           | Constant const -> 
             Output.concat emp (B.function_application_to_output (exp_to_locn e) (exp inside_instance) false e const [] (use_ascii_rep_for_const const.descr))
@@ -1182,7 +1185,7 @@ let generate_coq_record_update_notation e =
                 ws skips''
             in
               Output.flat [
-                 ws skips; from_string "{["; exp inside_instance e; ws skips'; from_string "with"; body; skips''; from_string " ]}"
+                 ws skips; from_string "{["; exp inside_instance e; ws skips'; from_string "with "; body; skips''; from_string " ]}"
               ]
           | Case (_, skips, e, skips', cases, skips'') ->
             let body = flat @@ Seplist.to_sep_list_last Seplist.Optional (case_line inside_instance) (sep (break_hint_space 2 ^ from_string "|")) cases in
@@ -1314,13 +1317,13 @@ let generate_coq_record_update_notation e =
     and field_update inside_instance (fd, skips, e, _) =
       let name = field_ident_to_output fd (use_ascii_rep_for_const fd.descr) in
         Output.flat [
-          name; ws skips; from_string ":="; exp inside_instance e
+          name; ws skips; from_string ":= "; exp inside_instance e
         ]
     and literal l =
       match l.term with
         | L_true skips -> ws skips ^ from_string "true"
         | L_false skips -> ws skips ^ from_string "false"
-        | L_num (skips, n) -> ws skips ^ num n
+        | L_num (skips, n, _) -> ws skips ^ num n
         | L_string (skips, s, _) ->
             (* in Coq, string literals are UTF8 except doublequotes which are doubled *)
             let escaped = Str.global_replace (Str.regexp "\"") "\"\"" s in
@@ -1339,7 +1342,7 @@ let generate_coq_record_update_notation e =
           Output.flat [
             ws s; c
           ]
-        | L_numeral (skips, i) ->
+        | L_numeral (skips, i, _) ->
           let i = from_string @@ string_of_int i in
             Output.flat [
               ws skips; i

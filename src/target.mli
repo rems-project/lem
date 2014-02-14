@@ -106,6 +106,11 @@ val all_targets : Targetset.t
 (** The set of targets used when negating or no mentioning explicit targets. Targets like Lem are excluded by default. *)
 val all_targets_non_explicit : Targetset.t
 
+(** The set of targets that can handle only executable definitions. 
+    Currently only Ocaml, but this might change. *)
+val all_targets_only_exec : Targetset.t
+val all_targets_only_exec_list : non_ident_target list
+
 (** [non_ident_target_to_string t] returns a string description of a target [t]. *)
 val non_ident_target_to_string : non_ident_target -> string
 

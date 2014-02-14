@@ -103,8 +103,8 @@ and lit_aux =
   | L_false of lskips
   | L_zero of lskips
   | L_one of lskips
-  | L_numeral of lskips * int
-  | L_num of lskips * int
+  | L_numeral of lskips * int * string option 
+  | L_num of lskips * int * string option
   | L_char of lskips * char * string option
   | L_string of lskips * string * string option
   | L_unit of lskips * lskips
@@ -287,15 +287,22 @@ type typschm = constraint_prefix option * src_t
 
 type instschm = constraint_prefix option * lskips * Ident.t * Path.t * src_t * lskips
 
-type targets_opt = (bool * lskips * Ast.target lskips_seplist * lskips) option
+type targets_opt = 
+   Targets_opt_none
+ | Targets_opt_concrete of lskips * Ast.target lskips_seplist * lskips
+ | Targets_opt_neg_concrete of lskips * Ast.target lskips_seplist * lskips
+ | Targets_opt_non_exec of lskips
 
 let in_targets_opt_raw (targ : Target.target) (targets_opt : targets_opt) : bool = match targ with
     Target_ident   -> true
   | Target_no_ident t -> (match targets_opt with 
-                 None -> true
-               | Some (neg, _, targets, _) -> 
-                 let is_in = Seplist.exists (fun t' -> ast_target_compare (target_to_ast_target t) t' = 0) targets in
-                 if neg then not is_in else is_in)
+        Targets_opt_none -> true
+      | Targets_opt_concrete (_, targets, _) -> 
+          Seplist.exists (fun t' -> ast_target_compare (target_to_ast_target t) t' = 0) targets
+      | Targets_opt_neg_concrete (_, targets, _) -> 
+          not (Seplist.exists (fun t' -> ast_target_compare (target_to_ast_target t) t' = 0) targets)
+      | Targets_opt_non_exec _ ->
+          not (List.exists (fun t' -> target_compare t t' = 0) Target.all_targets_only_exec_list))
 
 let in_targets_opt (targ : Target.target) (targets_opt : targets_opt) : bool = 
    if is_human_target targ then true else in_targets_opt_raw targ targets_opt
@@ -436,12 +443,12 @@ let lit_alter_init_lskips (lskips_f : lskips -> lskips * lskips) (l : lit) : lit
       | L_one(s) ->
           let (s_new,s_ret) = lskips_f s in
             res (L_one(s_new)) s_ret
-      | L_num(s,n) ->
+      | L_num(s,n,org) ->
           let (s_new,s_ret) = lskips_f s in
-            res (L_num(s_new,n)) s_ret
-      | L_numeral(s,n) ->
+            res (L_num(s_new,n,org)) s_ret
+      | L_numeral(s,n,org) ->
           let (s_new,s_ret) = lskips_f s in
-            res (L_numeral(s_new,n)) s_ret
+            res (L_numeral(s_new,n,org)) s_ret
       | L_char(s,c, input_c) ->
           let (s_new,s_ret) = lskips_f s in
             res (L_char(s_new,c,input_c)) s_ret
@@ -1550,15 +1557,15 @@ module Exps_in_context(D : Exp_context) = struct
             let (new_do_lines,e) = push_do_lines_subst subst do_lines e in
               Do(s1,mid,new_do_lines,s2, List.hd e, s3,t)
 
-  let mk_lnumeral l s i t = 
+  let mk_lnumeral l s i org_input t = 
     let t = check_typ l "mk_lnumeral" t (fun d -> Some { t = Tapp([],Path.numeralpath) }) in
-    { term = L_numeral(s,i);
+    { term = L_numeral(s,i,org_input);
       locn = l;
       typ = t;
       rest = (); }
 
-  let mk_lnum l s i t = 
-    { term = L_num(s,i);
+  let mk_lnum l s i org_input t = 
+    { term = L_num(s,i,org_input);
       locn = l;
       typ = t;
       rest = (); }

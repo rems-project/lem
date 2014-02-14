@@ -33,4 +33,15 @@ generate executable OCaml,
 theorem prover definitions in Coq, HOL4 and Isabelle/HOL, 
 typeset definitions in LaTeX, and simple HTML.
 
+## Supported software
+
+Lem is tested against the following versions of the backend software:
+
+  * OCaml: 3.12.1. and 4.00.0
+  * Coq: 8.4pl3 and 8.4pl2
+  * Isabelle: Isabelle-2013-2
+  * HOL: HOL4 Kananaskis 9
+
+Older or newer versions of this software may work correctly with Lem, but are unsupported.
+
 

@@ -482,14 +482,14 @@ let is_tf_exp b e = (dest_tf_exp e = Some b)
 
 let dest_num_exp e =
   match C.exp_to_term e with
-      Lit l -> (match l.term with L_num (_,i) -> Some i | _ -> None)
+      Lit l -> (match l.term with L_num (_,i,_) -> Some i | _ -> None)
     | _ -> None
 
 let is_num_exp e = not (dest_tf_exp e = None)
 
 let mk_num_exp num_ty i = 
   let l = Ast.Trans (false, "mk_num_exp", None) in
-  let lit = C.mk_lnum l None i num_ty in
+  let lit = C.mk_lnum l None i None num_ty in
   C.mk_lit l lit (Some num_ty)
 
 let mk_paren_exp e =

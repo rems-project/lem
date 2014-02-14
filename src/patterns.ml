@@ -1021,7 +1021,7 @@ let cases_matrix_compile_fun dest_pat make_lit (gen_match : bool) env (gen : var
 
 let num_matrix_compile_fun =
   let l = Ast.Trans (true, "num_matrix_compile_fun", None) in
-  cases_matrix_compile_fun (dest_num_pat) (fun num_ty c -> (C_no_types.mk_lnum l None c num_ty))
+  cases_matrix_compile_fun (dest_num_pat) (fun num_ty c -> (C_no_types.mk_lnum l None c None num_ty))
 
 let string_matrix_compile_fun =
   let l = Ast.Trans (true, "string_matrix_compile_fun", None) in
@@ -1937,7 +1937,7 @@ let is_isabelle_pat_direct env (p : pat) : bool =
                 because for each character in the string pattern, all 256 possible values of this char
                 become separate cases. *)
            | L_string  _ -> false 
-           | L_num (_, i) -> i <= max_succ_nesting 
+           | L_num (_, i, _) -> i <= max_succ_nesting 
            | _ -> true
       end
     | _ -> true
@@ -1995,7 +1995,7 @@ let is_hol_pat_direct env (p : pat) : bool =
     | P_lit li -> 
       begin
          match li.term with 
-           | L_num (_, i) -> i <= max_succ_nesting 
+           | L_num (_, i, _) -> i <= max_succ_nesting 
            | _ -> true
       end
     | P_const (c, _) -> is_buildin_constructor Ast.Unknown env (Target.Target_no_ident Target.Target_hol) c.descr
@@ -2062,7 +2062,7 @@ let is_coq_pat_direct (toplevel : bool) env (p : pat) : bool =
     | P_record _ -> false
     | P_tup _ -> not toplevel
     | (P_vector _ | P_vectorC _) -> false
-    | P_const (c, _) -> is_buildin_constructor Ast.Unknown env (Target.Target_no_ident Target.Target_coq) c.descr
+    | P_const (c, _) -> not toplevel
     | _ -> true
 
 let rec is_coq_exp env (e : exp) : bool = 

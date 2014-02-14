@@ -729,13 +729,13 @@ let remove_num_lit _ e =
   match C.exp_to_term e with
     | Lit lit -> begin
         match lit.term with 
-          | L_num (sk, i) -> begin
+          | L_num (sk, i, org_i) -> begin
               let (fromNumeral_id, _) = get_const_id env l "fromNumeral" [exp_to_typ e] in
               let numeral_ty  = { Types.t = Types.Tapp ([], Path.numeralpath)  } in
               let ty_0 = { Types.t = Types.Tfn (numeral_ty, exp_to_typ e) } in
 
               let exp0 = C.mk_const l fromNumeral_id (Some ty_0) in
-              let lit1 = C.mk_lnumeral l sk i (Some numeral_ty) in
+              let lit1 = C.mk_lnumeral l sk i org_i (Some numeral_ty) in
               let exp1 = C.mk_lit l lit1 (Some numeral_ty) in
               let exp2 = C.mk_app l exp0 exp1 (Some (exp_to_typ e)) in
               Some exp2
@@ -921,7 +921,7 @@ let nexp_to_exp n =
    let rec to_exp n =
       match n.Types.nexp with
       | Types.Nvar(n) -> C.mk_nvar_e l_unk Typed_ast.no_lskips n num_type
-      | Types.Nconst(i) -> let lit =  C.mk_lnum l_unk Typed_ast.no_lskips i num_type in
+      | Types.Nconst(i) -> let lit =  C.mk_lnum l_unk Typed_ast.no_lskips i None num_type in
                            C.mk_lit l_unk lit (Some num_type)
       | Types.Nadd(n1,n2) -> 
                let (plus_const_id, _) = get_const_id env l_unk "addition" [] in

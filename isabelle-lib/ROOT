@@ -1,0 +1,8 @@
+session LEM = HOL +
+  description {*
+    HOL + LEM specific theories
+  *}
+  options [document_graph]
+  theories Lem_pervasives Lem_pervasives_extra
+
+

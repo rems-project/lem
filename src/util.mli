@@ -107,6 +107,11 @@ val option_get_exn : exn -> 'a option -> 'a
     similarly [y] in case [h y] returns [None]. *)
 val changed2 : ('a -> 'b -> 'c) -> ('a -> 'a option) -> 'a -> ('b -> 'b option) -> 'b -> 'c option
                                               
+(** [option_repeat f x] applies [f] to [x] till nothings changes any more. This means
+    that if [f x] is [None], [x] is returned. Otherwise [option_repeat] calls itself recursively on the
+    result of [f x]. *)
+val option_repeat : ('a -> 'a option) -> 'a -> 'a
+
 
 (** {2 List Functions} *)
 

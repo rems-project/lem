@@ -144,14 +144,20 @@ let starts_with_underscore x =
   with 
     | Ulib.UChar.Out_of_range -> false
 
-let rec remove_underscore_aux x = 
-  if (starts_with_underscore x) then
-     remove_underscore_aux (from_rope (let r = (to_rope x) in Ulib.Text.sub r 1 (Ulib.Text.length r -1)))
-  else x
-
 let remove_underscore x = 
   if (starts_with_underscore x) then
-     Some (remove_underscore_aux x)
+     Some (from_rope (let r = (to_rope x) in Ulib.Text.sub r 1 (Ulib.Text.length r -1)))
+  else None
+
+let ends_with_underscore x = 
+  try 
+    (String.length x > 1) && (Ulib.UChar.char_of (Ulib.UTF8.get x (Ulib.UTF8.last x)) = '_')
+  with 
+    | Ulib.UChar.Out_of_range -> false
+
+let remove_underscore_suffix x = 
+  if (ends_with_underscore x) then
+     Some (from_rope (let r = (to_rope x) in Ulib.Text.sub r 0 (Ulib.Text.length r -1)))
   else None
 
 let starts_with_lower_letter x = 

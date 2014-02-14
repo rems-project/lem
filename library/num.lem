@@ -18,7 +18,7 @@ open import {coq} `Coq.ZArith.BinInt` `Coq.ZArith.Zpower` `Coq.ZArith.Zdiv` `Coq
 (* Numerals                                                                   *)
 (* ========================================================================== *)
 
-(* Numerals like 0, 1, 2, 42, 4543 are build-in. That's the only use
+(* Numerals like 0, 1, 2, 42, 4543 are built-in. That's the only use
    of numerals. The following type-class is used to convert numerals into
    verious number types. The type of numerals differs form backend to backend.
    Essentially they are just printed as "0", "1", ... and the backend decides
@@ -44,6 +44,10 @@ class ( NumNegate 'a )
   val ~ [`numNegate`] : 'a -> 'a 
 end
 declare tex target_rep function numNegate = `$-$`
+
+class ( NumAbs 'a ) 
+  val abs : 'a -> 'a 
+end
 
 class ( NumAdd 'a ) 
   val (+) [`numAdd`] : 'a -> 'a -> 'a
@@ -165,10 +169,10 @@ declare hol      target_rep type int32 = `word32`
 
 (* 64 bit integers *)
 type int64
-declare ocaml    target_rep type int64 = `int64` 
+declare ocaml    target_rep type int64 = `Int64.t` 
+declare coq      target_rep type int64 = `Z`       (* ???: better type for this in Coq? *)
 declare isabelle target_rep type int64 = `word` 64
-declare coq      target_rep type int64 = `Z` (* ???: better type for this in Coq? *)
-declare hol      target_rep type int64 = `int` (* ???: better type for this in HOL? *)
+declare hol      target_rep type int64 = `word64` 
 
 
 (* ----------------------- *)
@@ -631,6 +635,15 @@ instance (NumNegate int)
   let ~ = intNegate
 end
 
+val intAbs : int -> int
+declare hol      target_rep function intAbs = `ABS`
+declare ocaml    target_rep function intAbs = `abs`
+declare isabelle target_rep function intAbs = `abs`
+declare coq      target_rep function intAbs input = `Zpred` (`Zpos` (`P_of_succ_nat` (`Zabs_nat` input))) (* TODO: check *)
+
+instance (NumAbs int)
+  let abs = intAbs
+end
 
 val intAdd : int -> int -> int
 declare hol      target_rep function intAdd = infix `+`
@@ -736,10 +749,9 @@ end
 val int32FromNumeral : numeral -> int32
 
 declare ocaml    target_rep function int32FromNumeral = `Int32.of_int`
-declare isabelle target_rep function int32FromNumeral = `word_of_int`
-(*TODO: Implement the following two correctly. *)
+declare isabelle target_rep function int32FromNumeral n = ((`word_of_int` n) : int32)
 declare hol      target_rep function int32FromNumeral n = ((`n2w` n) : int32)
-declare coq      target_rep function int32FromNumeral n = (`Zpos` (`P_of_succ_nat` n)) 
+declare coq      target_rep function int32FromNumeral n = (`Zpos` (`P_of_succ_nat` n))  (* TODO: check *)
 
 instance (Numeral int32)
   let fromNumeral n = int32FromNumeral n
@@ -759,27 +771,27 @@ val int32Greater : int32 -> int32 -> bool
 val int32GreaterEqual : int32 -> int32 -> bool
 
 declare ocaml    target_rep function int32Less = infix `<`
-declare isabelle target_rep function int32Less = infix `<`
-(*TODO: Implement the following two correctly. *)
+declare isabelle target_rep function int32Less = `word_sless`
 declare hol      target_rep function int32Less = infix `<` 
+(*TODO: Implement the following correctly. *)
 declare coq      target_rep function int32Less = `int_ltb` 
 
 declare ocaml    target_rep function int32LessEqual = infix `<=`
-declare isabelle target_rep function int32LessEqual = infix `\<le>`
-(*TODO: Implement the following two correctly. *)
+declare isabelle target_rep function int32LessEqual = `word_sle`
 declare hol      target_rep function int32LessEqual = infix `<=` 
+(*TODO: Implement the following correctly. *)
 declare coq      target_rep function int32LessEqual = `int_lteb`
 
 declare ocaml    target_rep function int32Greater = infix `>`
-declare isabelle target_rep function int32Greater = infix `>`
-(*TODO: Implement the following two correctly. *)
+let inline {isabelle} int32Greater x y = int32Less y x
 declare hol      target_rep function int32Greater = infix `>` 
+(*TODO: Implement the following correctly. *)
 declare coq      target_rep function int32Greater = `int_gtb`
 
 declare ocaml    target_rep function int32GreaterEqual = infix `>=`
-declare isabelle target_rep function int32GreaterEqual = infix `\<ge>`
-(*TODO: Implement the following two correctly. *)
+let inline {isabelle} int32GreaterEqual x y = int32LessEqual y x
 declare hol      target_rep function int32GreaterEqual = infix `>=` 
+(*TODO: Implement the following correctly. *)
 declare coq      target_rep function int32GreaterEqual = `int_gteb`
 
 val int32Compare : int32 -> int32 -> ordering
@@ -802,12 +814,20 @@ end
 val int32Negate : int32 -> int32
 declare ocaml    target_rep function int32Negate = `Int32.neg`
 declare isabelle target_rep function int32Negate i = `-` i
-(*TODO: Implement the following two correctly. *)
 declare hol      target_rep function int32Negate i = ((`-` i) : int32)
+(*TODO: Implement the following correctly. *)
 declare coq      target_rep function int32Negate i = (`Coq.ZArith.BinInt.Zminus` `Z0` i)
 
 instance (NumNegate int32)
   let ~ = int32Negate
+end
+
+val int32Abs : int32 -> int32
+let int32Abs i = (if 0 <= i then i else ~i)
+declare ocaml    target_rep function int32Abs = `Int32.abs`
+
+instance (NumAbs int32)
+  let abs = int32Abs
 end
 
 
@@ -851,8 +871,8 @@ end
 val int32Mult : int32 -> int32 -> int32
 declare ocaml    target_rep function int32Mult = `Int32.mul`
 declare isabelle target_rep function int32Mult = infix `*`
-(*TODO: Implement the following two correctly. *)
 declare hol      target_rep function int32Mult i1 i2 = ((`word_mul` i1 i2) : int32)
+(*TODO: Implement the following correctly. *)
 declare coq      target_rep function int32Mult = `Coq.ZArith.BinInt.Zmult`
 
 instance (NumMult int32)
@@ -873,8 +893,8 @@ end
 val int32Div : int32 -> int32 -> int32
 declare ocaml    target_rep function int32Div = `Nat_num.int32_div`
 declare isabelle target_rep function int32Div = infix `div`
-(*TODO: Implement the following two correctly. *)
 declare hol      target_rep function int32Div i1 i2 = ((`word_div` i1 i2) : int32)
+(*TODO: Implement the following correctly. *)
 declare coq      target_rep function int32Div = `Coq.ZArith.Zdiv.Zdiv`
 
 instance ( NumIntegerDivision int32 ) 
@@ -888,8 +908,8 @@ end
 val int32Mod : int32 -> int32 -> int32
 declare ocaml    target_rep function int32Mod = `Nat_num.int32_mod`
 declare isabelle target_rep function int32Mod = infix `mod`
-(*TODO: Implement the following two correctly. *)
 declare hol      target_rep function int32Mod i1 i2 = ((`word_mod` i1 i2) : int32)
+(*TODO: Implement the following correctly. *)
 declare coq      target_rep function int32Mod = `Coq.ZArith.Zdiv.Zmod`
 
 instance ( NumRemainder int32 ) 
@@ -898,21 +918,211 @@ end
 
 val int32Min : int32 -> int32 -> int32
 let inline int32Min = defaultMin
-declare isabelle target_rep function int32Min = `min`
-(*TODO: Implement the following two correctly. *)
-declare hol      target_rep function int32Min = `word_min`
+declare hol      target_rep function int32Min = `word_smin`
+(*TODO: Implement the following correctly. *)
 declare coq      target_rep function int32Min = `Zmin`
 
 val int32Max : int32 -> int32 -> int32
 let inline int32Max = defaultMax
-declare isabelle target_rep function int32Max = `max`
-(*TODO: Implement the following two correctly. *)
-declare hol      target_rep function int32Max = `word_max`
+declare hol      target_rep function int32Max = `word_smax`
+(*TODO: Implement the following correctly. *)
 declare coq      target_rep function int32Max = `Zmax`
 
 instance ( OrdMaxMin int32 ) 
   let max = int32Max
   let min = int32Min
+end
+
+
+
+(* ----------------------- *)
+(* int64                   *)
+(* ----------------------- *)
+val int64FromNumeral : numeral -> int64
+
+declare ocaml    target_rep function int64FromNumeral = `Int64.of_int`
+declare isabelle target_rep function int64FromNumeral n = ((`word_of_int` n) : int64)
+declare hol      target_rep function int64FromNumeral n = ((`n2w` n) : int64)
+declare coq      target_rep function int64FromNumeral n = (`Zpos` (`P_of_succ_nat` n))  (* TODO: check *)
+
+instance (Numeral int64)
+  let fromNumeral n = int64FromNumeral n
+end
+
+val int64Eq : int64 -> int64 -> bool
+let inline int64Eq = unsafe_structural_equality
+
+instance (Eq int64)
+  let (=) = int64Eq
+  let (<>) n1 n2 = not (int64Eq n1 n2)
+end
+
+val int64Less : int64 -> int64 -> bool
+val int64LessEqual : int64 -> int64 -> bool
+val int64Greater : int64 -> int64 -> bool
+val int64GreaterEqual : int64 -> int64 -> bool
+
+declare ocaml    target_rep function int64Less = infix `<`
+declare isabelle target_rep function int64Less = `word_sless`
+declare hol      target_rep function int64Less = infix `<` 
+(*TODO: Implement the following correctly. *)
+declare coq      target_rep function int64Less = `int_ltb` 
+
+declare ocaml    target_rep function int64LessEqual = infix `<=`
+declare isabelle target_rep function int64LessEqual = `word_sle`
+declare hol      target_rep function int64LessEqual = infix `<=` 
+(*TODO: Implement the following correctly. *)
+declare coq      target_rep function int64LessEqual = `int_lteb`
+
+declare ocaml    target_rep function int64Greater = infix `>`
+let inline {isabelle} int64Greater x y = int64Less y x
+declare hol      target_rep function int64Greater = infix `>` 
+(*TODO: Implement the following correctly. *)
+declare coq      target_rep function int64Greater = `int_gtb`
+
+declare ocaml    target_rep function int64GreaterEqual = infix `>=`
+let inline {isabelle} int64GreaterEqual x y = int64LessEqual y x
+declare hol      target_rep function int64GreaterEqual = infix `>=` 
+(*TODO: Implement the following correctly. *)
+declare coq      target_rep function int64GreaterEqual = `int_gteb`
+
+val int64Compare : int64 -> int64 -> ordering
+let inline int64Compare = defaultCompare
+let inline {coq; isabelle; hol} int64Compare = genericCompare int64Less int64Eq
+declare ocaml target_rep function int64Compare = `Int64.compare`
+
+instance (Ord int64)
+  let compare = int64Compare
+  let (<) = int64Less
+  let (<=) = int64LessEqual
+  let (>) = int64Greater
+  let (>=) = int64GreaterEqual
+end
+
+instance (SetType int64)
+  let setElemCompare = int64Compare
+end
+
+val int64Negate : int64 -> int64
+declare ocaml    target_rep function int64Negate = `Int64.neg`
+declare isabelle target_rep function int64Negate i = `-` i
+declare hol      target_rep function int64Negate i = ((`-` i) : int64)
+(*TODO: Implement the following one correctly. *)
+declare coq      target_rep function int64Negate i = (`Coq.ZArith.BinInt.Zminus` `Z0` i)
+
+instance (NumNegate int64)
+  let ~ = int64Negate
+end
+
+val int64Abs : int64 -> int64
+let int64Abs i = (if 0 <= i then i else ~i)
+declare ocaml    target_rep function int64Abs = `Int64.abs`
+
+instance (NumAbs int64)
+  let abs = int64Abs
+end
+
+
+val int64Add : int64 -> int64 -> int64
+declare ocaml    target_rep function int64Add = `Int64.add`
+declare isabelle target_rep function int64Add = infix `+`
+declare hol      target_rep function int64Add i1 i2 = ((`word_add` i1 i2) : int64)
+(*TODO: Implement the following one correctly. *)
+declare coq      target_rep function int64Add = `Coq.ZArith.BinInt.Zplus`
+
+instance (NumAdd int64)
+  let (+) = int64Add
+end
+
+val int64Minus : int64 -> int64 -> int64
+declare ocaml    target_rep function int64Minus = `Int64.sub`
+declare isabelle target_rep function int64Minus = infix `-`
+declare hol      target_rep function int64Minus i1 i2 = ((`word_sub` i1 i2) : int64)
+(*TODO: Implement the following one correctly. *)
+declare coq      target_rep function int64Minus = `Coq.ZArith.BinInt.Zminus`
+
+instance (NumMinus int64)
+  let (-) = int64Minus
+end
+
+val int64Succ : int64 -> int64
+let inline int64Succ n = n + 1
+declare ocaml    target_rep function int64Succ = `Int64.succ`
+
+instance (NumSucc int64)
+  let succ = int64Succ
+end
+
+val int64Pred : int64 -> int64
+let inline int64Pred n = n - 1
+declare ocaml    target_rep function int64Pred = `Int64.pred`
+instance (NumPred int64)
+  let pred = int64Pred
+end
+
+val int64Mult : int64 -> int64 -> int64
+declare ocaml    target_rep function int64Mult = `Int64.mul`
+declare isabelle target_rep function int64Mult = infix `*`
+declare hol      target_rep function int64Mult i1 i2 = ((`word_mul` i1 i2) : int64)
+(*TODO: Implement the following one correctly. *)
+declare coq      target_rep function int64Mult = `Coq.ZArith.BinInt.Zmult`
+
+instance (NumMult int64)
+  let ( * ) = int64Mult
+end
+
+
+val int64Pow : int64 -> nat -> int64
+let {ocaml;hol} int64Pow = gen_pow 1 int64Mult
+declare isabelle target_rep function int64Pow = infix `^`
+(*TODO: Implement the following one correctly. *)
+declare coq      target_rep function int64Pow = `Coq.ZArith.Zpower.Zpower_nat`
+
+instance ( NumPow int64 ) 
+  let ( ** ) = int64Pow
+end
+
+val int64Div : int64 -> int64 -> int64
+declare ocaml    target_rep function int64Div = `Nat_num.int64_div`
+declare isabelle target_rep function int64Div = infix `div`
+(*TODO: Implement the following two correctly. *)
+declare hol      target_rep function int64Div i1 i2 = ((`word_div` i1 i2) : int64)
+declare coq      target_rep function int64Div = `Coq.ZArith.Zdiv.Zdiv`
+
+instance ( NumIntegerDivision int64 ) 
+  let (div) = int64Div
+end
+
+instance ( NumDivision int64 ) 
+  let (/) = int64Div
+end
+
+val int64Mod : int64 -> int64 -> int64
+declare ocaml    target_rep function int64Mod = `Nat_num.int64_mod`
+declare isabelle target_rep function int64Mod = infix `mod`
+(*TODO: Implement the following two correctly. *)
+declare hol      target_rep function int64Mod i1 i2 = ((`word_mod` i1 i2) : int64)
+declare coq      target_rep function int64Mod = `Coq.ZArith.Zdiv.Zmod`
+
+instance ( NumRemainder int64 ) 
+  let (mod) = int64Mod
+end
+
+val int64Min : int64 -> int64 -> int64
+let inline int64Min = defaultMin
+declare hol      target_rep function int64Min = `word_smin`
+(*TODO: Implement the following one correctly. *)
+declare coq      target_rep function int64Min = `Zmin`
+
+val int64Max : int64 -> int64 -> int64
+let inline int64Max = defaultMax
+declare hol      target_rep function int64Max = `word_smax`
+(*TODO: Implement the following one correctly. *)
+declare coq      target_rep function int64Max = `Zmax`
+
+instance ( OrdMaxMin int64 ) 
+  let max = int64Max
+  let min = int64Min
 end
 
 
@@ -990,6 +1200,15 @@ instance (NumNegate integer)
   let ~ = integerNegate
 end
 
+val integerAbs : integer -> integer
+declare hol      target_rep function integerAbs = `ABS`
+declare ocaml    target_rep function integerAbs = `Big_int.abs_big_int`
+declare isabelle target_rep function integerAbs = `abs`
+declare coq      target_rep function integerAbs input = `Zpred` (`Zpos` (`P_of_succ_nat` (`Zabs_nat` input))) (* TODO: check *)
+
+instance (NumAbs integer)
+  let abs = integerAbs
+end
 
 val integerAdd : integer -> integer -> integer
 declare hol      target_rep function integerAdd = infix `+`
@@ -1227,6 +1446,8 @@ assert int_test23 : (succ 12 = (13 : int))
 assert int_test24 : (succ 0 = (1 : int))
 assert int_test25 : (pred 12 = (11 : int))
 assert int_test26 : (pred 0 = ~(1 : int))
+assert int_test27 : (abs 42 = (42 : int))
+assert int_test28 : (abs (~42) = (42 : int))
 
 assert int32_test1 : (2 + (5 : int32) = 7)
 assert int32_test2 : (8 - (7 : int32) = 1)
@@ -1241,6 +1462,7 @@ assert int32_test10 : (11 <= (12 : int32))
 assert int32_test11 : (12 <= (12 : int32))
 assert int32_test12 : (not (12 < (12 : int32)))
 assert int32_test13 : (12 > (11 : int32))
+assert int32_test13a: (12 > (~(11 : int32)))
 assert int32_test14 : (12 >= (11 : int32))
 assert int32_test15 : (12 >= (12 : int32))
 assert int32_test16 : (not (12 > (12 : int32)))
@@ -1248,13 +1470,44 @@ assert int32_test17 : (min 12 (12 : int32) = 12)
 assert int32_test18 : (min 10 (12 : int32) = 10)
 assert int32_test19 : (min 12 (10 : int32) = 10)
 assert int32_test20 : (max 12 (12 : int32) = 12)
-assert int32_test21 : (max 10 (12 : int32) = 12)
+assert int32_test21 : (max (~10) (12 : int32) = 12)
 assert int32_test22 : (max 12 (10 : int32) = 12)
 assert int32_test23 : (succ 12 = (13 : int32))
 assert int32_test24 : (succ 0 = (1 : int32))
 assert int32_test25 : (pred 12 = (11 : int32))
 assert int32_test26 : (pred 0 = ~(1 : int32))
+assert int32_test27 : (abs 42 = (42 : int32))
+assert int32_test28 : (abs (~42) = (42 : int32))
 
+assert int64_test1 : (2 + (5 : int64) = 7)
+assert int64_test2 : (8 - (7 : int64) = 1)
+assert int64_test3 : (7 - (8 : int64) = ~1)
+assert int64_test4 : (7 * (8 : int64) = 56)
+assert int64_test5 : ((7 : int64) ** 2 = 49)
+assert int64_test6 : (11 div (4 : int64) = 2)
+assert int64_test7 : (11 / (4 : int64) = 2)
+assert int64_test8 : (11 mod (4 : int64) = 3)
+assert int64_test9 : (11 < (12 : int64))
+assert int64_test10 : (11 <= (12 : int64))
+assert int64_test11 : (12 <= (12 : int64))
+assert int64_test12 : (not (12 < (12 : int64)))
+assert int64_test13 : (12 > (11 : int64))
+assert int64_test13a : (12 > (~(11 : int64)))
+assert int64_test14 : (12 >= (11 : int64))
+assert int64_test15 : (12 >= (12 : int64))
+assert int64_test16 : (not (12 > (12 : int64)))
+assert int64_test17 : (min 12 (12 : int64) = 12)
+assert int64_test18 : (min 10 (12 : int64) = 10)
+assert int64_test19 : (min 12 (10 : int64) = 10)
+assert int64_test20 : (max 12 (12 : int64) = 12)
+assert int64_test21 : (max (~10) (12 : int64) = 12)
+assert int64_test22 : (max 12 (10 : int64) = 12)
+assert int64_test23 : (succ 12 = (13 : int64))
+assert int64_test24 : (succ 0 = (1 : int64))
+assert int64_test25 : (pred 12 = (11 : int64))
+assert int64_test26 : (pred 0 = ~(1 : int64))
+assert int64_test27 : (abs 42 = (42 : int64))
+assert int64_test28 : (abs (~42) = (42 : int64))
 
 assert integer_test1 : (2 + (5 : integer) = 7)
 assert integer_test2 : (8 - (7 : integer) = 1)
@@ -1285,12 +1538,82 @@ assert integer_test23 : (succ 12 = (13 : integer))
 assert integer_test24 : (succ 0 = (1 : integer))
 assert integer_test25 : (pred 12 = (11 : integer))
 assert integer_test26 : (pred 0 = ~(1 : integer))
+assert integer_test27 : (abs 42 = (42 : integer))
+assert integer_test28 : (abs (~42) = (42 : integer))
 
 
 
 (* ========================================================================== *)
 (* Translation between number types                                           *)
 (* ========================================================================== *)
+
+(******************)
+(* integerFrom... *)
+(******************)
+
+val integerFromInt : int -> integer
+declare hol      target_rep function integerFromInt = `` (* remove natFromNumeral, as it is the identify function *)
+declare ocaml    target_rep function integerFromInt = `Big_int.big_int_of_int`
+declare isabelle target_rep function integerFromInt = ``
+declare coq      target_rep function integerFromInt = `id`
+
+assert integer_from_int_0: integerFromInt 0 = 0
+assert integer_from_int_1: integerFromInt 1 = 1
+assert integer_from_int_2: integerFromInt (~2) = (~2)
+
+
+val integerFromNat : nat -> integer
+declare hol      target_rep function integerFromNat = `int_of_num` 
+declare ocaml    target_rep function integerFromNat = `Big_int.big_int_of_int`
+declare isabelle target_rep function integerFromNat = `int`
+declare coq      target_rep function integerFromNat n = (`Zpos` (`P_of_succ_nat` n)) (* TODO: check *)
+
+assert integer_from_nat_0: integerFromNat 0 = 0
+assert integer_from_nat_1: integerFromNat 1 = 1
+assert integer_from_nat_2: integerFromNat 12 = 12
+
+val integerFromNatural : natural -> integer 
+declare hol      target_rep function integerFromNatural = `int_of_num` 
+declare ocaml    target_rep function integerFromNatural n = ``n
+declare isabelle target_rep function integerFromNatural = `int`
+declare coq      target_rep function integerFromNatural n = (`Zpos` (`P_of_succ_nat` n)) (* TODO: check *)
+
+assert integerFromNatural_0: integerFromNatural 0 = 0
+assert integerFromNatural_1: integerFromNatural 822 = 822
+assert integerFromNatural_2: integerFromNatural 12 = 12
+
+
+val integerFromInt32 : int32 -> integer
+declare ocaml    target_rep function integerFromInt32 = `Big_int.big_int_of_int32`
+declare isabelle target_rep function integerFromInt32 = `sint`
+declare hol      target_rep function integerFromInt32 = `w2int`
+declare coq      target_rep function integerFromInt32 = `TODO`
+
+assert integer_from_int32_0: integerFromInt32 0 = 0
+assert integer_from_int32_1: integerFromInt32 1 = 1
+assert integer_from_int32_2: integerFromInt32 123 = 123
+assert integer_from_int32_3: integerFromInt32 (~0) = ~0
+assert integer_from_int32_4: integerFromInt32 (~1) = ~1
+assert integer_from_int32_5: integerFromInt32 (~123) = ~123
+
+
+val integerFromInt64 : int64 -> integer
+declare ocaml    target_rep function integerFromInt64 = `Big_int.big_int_of_int64`
+declare isabelle target_rep function integerFromInt64 = `sint`
+declare hol      target_rep function integerFromInt64 = `w2int`
+declare coq      target_rep function integerFromInt64 = `TODO`
+
+assert integer_from_int64_0: integerFromInt64 0 = 0
+assert integer_from_int64_1: integerFromInt64 1 = 1
+assert integer_from_int64_2: integerFromInt64 123 = 123
+assert integer_from_int64_3: integerFromInt64 (~0) = ~0
+assert integer_from_int64_4: integerFromInt64 (~1) = ~1
+assert integer_from_int64_5: integerFromInt64 (~123) = ~123
+
+
+(******************)
+(* naturalFrom... *)
+(******************)
 
 val naturalFromNat : nat -> natural
 declare hol      target_rep function naturalFromNat = `` (* remove natFromNumeral, as it is the identify function *)
@@ -1302,15 +1625,33 @@ assert natural_from_nat_0: naturalFromNat 0 = 0
 assert natural_from_nat_1: naturalFromNat 1 = 1
 assert natural_from_nat_2: naturalFromNat 2 = 2
 
-val natFromNatural : natural -> nat
-declare hol      target_rep function natFromNatural = `` (* remove natFromNumeral, as it is the identify function *)
-declare ocaml    target_rep function natFromNatural = `Big_int.int_of_big_int`
-declare isabelle target_rep function natFromNatural = ``
-declare coq      target_rep function natFromNatural = `id`
+val naturalFromInteger : integer -> natural
+declare compile_message naturalFromInteger = "naturalFromInteger is undefined for negative integers"
 
-assert nat_from_natural_0: natFromNatural 0 = 0
-assert nat_from_natural_1: natFromNatural 1 = 1
-assert nat_from_natural_2: natFromNatural 2 = 2
+declare hol      target_rep function naturalFromInteger i = `Num` (`ABS` i) 
+declare ocaml    target_rep function naturalFromInteger = `Big_int.abs_big_int`
+declare coq      target_rep function naturalFromInteger = `Zabs_nat`
+declare isabelle target_rep function naturalFromInteger i = `nat` (`abs` i)
+
+assert natural_from_integer_0: naturalFromInteger 0 = 0
+assert natural_from_integer_1: naturalFromInteger 1 = 1
+assert natural_from_integer_2: naturalFromInteger (~ 2) = 2
+
+
+(******************)
+(* intFrom ...    *)
+(******************)
+
+val intFromInteger : integer -> int
+declare compile_message naturalFromInteger = "naturalFromInteger is undefined for negative integers and might fail for numbers greater 2^30"
+declare hol      target_rep function intFromInteger = `` (* remove natFromNumeral, as it is the identify function *)
+declare ocaml    target_rep function intFromInteger = `Big_int.int_of_big_int`
+declare isabelle target_rep function intFromInteger = ``
+declare coq      target_rep function intFromInteger = `id`
+
+assert int_from_integer_0: intFromInteger 0 = 0
+assert int_from_integer_1: intFromInteger 1 = 1
+assert int_from_integer_2: intFromInteger (~2) = (~2)
 
 val intFromNat : nat -> int
 declare hol      target_rep function intFromNat = `int_of_num` 
@@ -1322,6 +1663,22 @@ assert int_from_nat_0: intFromNat 0 = 0
 assert int_from_nat_1: intFromNat 1 = 1
 assert int_from_nat_2: intFromNat 2 = 2
 
+
+(******************)
+(* natFrom ...    *)
+(******************)
+
+val natFromNatural : natural -> nat
+declare compile_message naturalFromInteger = "natFromNatural might fail for too big values. The values allowed are system-dependend. However, at least 30 bit should be available, i.e. all numbers up to 2^30 = 1 073 741 824 should be OK."
+declare hol      target_rep function natFromNatural = `` (* remove natFromNumeral, as it is the identify function *)
+declare ocaml    target_rep function natFromNatural = `Big_int.int_of_big_int`
+declare isabelle target_rep function natFromNatural = ``
+declare coq      target_rep function natFromNatural = `id`
+
+assert nat_from_natural_0: natFromNatural 0 = 0
+assert nat_from_natural_1: natFromNatural 1 = 1
+assert nat_from_natural_2: natFromNatural 2 = 2
+
 val natFromInt : int -> nat
 declare hol      target_rep function natFromInt i = `Num` (`ABS` i) 
 declare ocaml    target_rep function natFromInt = `abs`
@@ -1332,6 +1689,201 @@ assert nat_from_int_0: natFromInt 0 = 0
 assert nat_from_int_1: natFromInt 1 = 1
 assert nat_from_int_2: natFromInt (~ 2) = 2
 
+
+(******************)
+(* int32From ...  *)
+(******************)
+
+val int32FromNat : nat -> int32
+declare hol      target_rep function int32FromNat n = ((`n2w` n) : int32)
+declare ocaml    target_rep function int32FromNat = `Int32.of_int`
+declare coq      target_rep function int32FromNat n = (`Zpos` (`P_of_succ_nat` n)) (* TODO check *)
+declare isabelle target_rep function int32FromNat n = ((`word_of_int` (`int` n)):int32)
+
+assert int32_from_nat_0: int32FromNat 0 = 0
+assert int32_from_nat_1: int32FromNat 1 = 1
+assert int32_from_nat_2: int32FromNat 123 = 123
+
+val int32FromNatural : natural -> int32
+declare hol      target_rep function int32FromNatural n = ((`n2w` n) : int32)
+declare ocaml    target_rep function int32FromNatural = `Big_int.int32_of_big_int`
+declare coq      target_rep function int32FromNatural n = (`Zpos` (`P_of_succ_nat` n)) (* TODO check *)
+declare isabelle target_rep function int32FromNatural n = ((`word_of_int` (`int` n)):int32)
+
+assert int32_from_natural_0: int32FromNatural 0 = 0
+assert int32_from_natural_1: int32FromNatural 1 = 1
+assert int32_from_natural_2: int32FromNatural 123 = 123
+
+val int32FromInteger : integer -> int32
+let int32FromInteger i = (
+  let abs_int32 = int32FromNatural (naturalFromInteger i) in
+  if (i < 0) then (~ abs_int32) else abs_int32 
+)
+
+declare ocaml    target_rep function int32FromInteger = `Big_int.int32_of_big_int`
+declare isabelle target_rep function int32FromInteger i = ((`word_of_int` i) : int32)
+
+assert int32_from_integer_0: int32FromInteger 0 = 0
+assert int32_from_integer_1: int32FromInteger 1 = 1
+assert int32_from_integer_2: int32FromInteger 123 = 123
+assert int32_from_integer_3: int32FromInteger (~0) = ~0
+assert int32_from_integer_4: int32FromInteger (~1) = ~1
+assert int32_from_integer_5: int32FromInteger (~123) = ~123
+
+val int32FromInt : int -> int32
+let int32FromInt i = int32FromInteger (integerFromInt i)
+declare ocaml    target_rep function int32FromInt = `Int32.of_int`
+declare isabelle target_rep function int32FromInt i = ((`word_of_int` i) : int32)
+
+assert int32_from_int_0: int32FromInt 0 = 0
+assert int32_from_int_1: int32FromInt 1 = 1
+assert int32_from_int_2: int32FromInt 123 = 123
+assert int32_from_int_3: int32FromInt (~0) = ~0
+assert int32_from_int_4: int32FromInt (~1) = ~1
+assert int32_from_int_5: int32FromInt (~123) = ~123
+
+
+val int32FromInt64 : int64 -> int32
+let int32FromInt64 i = int32FromInteger (integerFromInt64 i)
+declare ocaml    target_rep function int32FromInt64 = `Int64.to_int32`
+declare hol      target_rep function int32FromInt64 i = ((`sw2sw` i) : int32)
+declare isabelle target_rep function int32FromInt64 i = ((`scast` i) : int32)
+
+assert int32_from_int_64_0: int32FromInt64 0 = 0
+assert int32_from_int_64_1: int32FromInt64 1 = 1
+assert int32_from_int_64_2: int32FromInt64 123 = 123
+assert int32_from_int_64_3: int32FromInt64 (~0) = ~0
+assert int32_from_int_64_4: int32FromInt64 (~1) = ~1
+assert int32_from_int_64_5: int32FromInt64 (~123) = ~123
+
+
+
+
+(******************)
+(* int64From ...  *)
+(******************)
+
+val int64FromNat : nat -> int64
+declare hol      target_rep function int64FromNat n = ((`n2w` n) : int64)
+declare ocaml    target_rep function int64FromNat = `Int64.of_int`
+declare coq      target_rep function int64FromNat n = (`Zpos` (`P_of_succ_nat` n)) (* TODO check *)
+declare isabelle target_rep function int64FromNat n = ((`word_of_int` (`int` n)):int64)
+
+assert int64_from_nat_0: int64FromNat 0 = 0
+assert int64_from_nat_1: int64FromNat 1 = 1
+assert int64_from_nat_2: int64FromNat 123 = 123
+
+val int64FromNatural : natural -> int64
+declare hol      target_rep function int64FromNatural n = ((`n2w` n) : int64)
+declare ocaml    target_rep function int64FromNatural = `Big_int.int64_of_big_int`
+declare coq      target_rep function int64FromNatural n = (`Zpos` (`P_of_succ_nat` n)) (* TODO check *)
+declare isabelle target_rep function int64FromNatural n = ((`word_of_int` (`int` n)):int64)
+
+assert int64_from_natural_0: int64FromNatural 0 = 0
+assert int64_from_natural_1: int64FromNatural 1 = 1
+assert int64_from_natural_2: int64FromNatural 123 = 123
+
+val int64FromInteger : integer -> int64
+let int64FromInteger i = (
+  let abs_int64 = int64FromNatural (naturalFromInteger i) in
+  if (i < 0) then (~ abs_int64) else abs_int64 
+)
+
+declare ocaml    target_rep function int64FromInteger = `Big_int.int64_of_big_int`
+declare isabelle target_rep function int64FromInteger i = ((`word_of_int` i) : int64)
+
+assert int64_from_integer_0: int64FromInteger 0 = 0
+assert int64_from_integer_1: int64FromInteger 1 = 1
+assert int64_from_integer_2: int64FromInteger 123 = 123
+assert int64_from_integer_3: int64FromInteger (~0) = ~0
+assert int64_from_integer_4: int64FromInteger (~1) = ~1
+assert int64_from_integer_5: int64FromInteger (~123) = ~123
+
+val int64FromInt : int -> int64
+let int64FromInt i = int64FromInteger (integerFromInt i)
+declare ocaml    target_rep function int64FromInt = `Int64.of_int`
+declare isabelle target_rep function int64FromInt i = ((`word_of_int` i) : int64)
+
+assert int64_from_int_0: int64FromInt 0 = 0
+assert int64_from_int_1: int64FromInt 1 = 1
+assert int64_from_int_2: int64FromInt 123 = 123
+assert int64_from_int_3: int64FromInt (~0) = ~0
+assert int64_from_int_4: int64FromInt (~1) = ~1
+assert int64_from_int_5: int64FromInt (~123) = ~123
+
+
+val int64FromInt32 : int32 -> int64
+let int64FromInt32 i = int64FromInteger (integerFromInt32 i)
+declare ocaml    target_rep function int64FromInt32 = `Int64.of_int32`
+declare hol      target_rep function int64FromInt32 i = ((`sw2sw` i) : int64)
+declare isabelle target_rep function int64FromInt32 i = ((`scast` i) : int64)
+
+assert int64_from_int_33_0: int64FromInt32 0 = 0
+assert int64_from_int_32_1: int64FromInt32 1 = 1
+assert int64_from_int_32_2: int64FromInt32 123 = 123
+assert int64_from_int_32_3: int64FromInt32 (~0) = ~0
+assert int64_from_int_32_4: int64FromInt32 (~1) = ~1
+assert int64_from_int_32_5: int64FromInt32 (~123) = ~123
+
+
+(******************)
+(* what's missing *)
+(******************)
+
+val naturalFromInt : int -> natural
+val naturalFromInt32 : int32 -> natural
+val naturalFromInt64 : int64 -> natural
+
+let inline naturalFromInt i = naturalFromNat (natFromInt i)
+let inline naturalFromInt32 i = naturalFromInteger (integerFromInt32 i)
+let inline naturalFromInt64 i = naturalFromInteger (integerFromInt64 i)
+
+assert natural_from_int_0: naturalFromInt 0 = 0
+assert natural_from_int_1: naturalFromInt 1 = 1
+assert natural_from_int_2: naturalFromInt (~ 2) = 2
+assert natural_from_int32_0: naturalFromInt32 0 = 0
+assert natural_from_int32_1: naturalFromInt32 1 = 1
+assert natural_from_int32_2: naturalFromInt32 (~ 2) = 2
+assert natural_from_int64_0: naturalFromInt64 0 = 0
+assert natural_from_int64_1: naturalFromInt64 1 = 1
+assert natural_from_int64_2: naturalFromInt64 (~ 2) = 2
+
+
+val intFromNatural : natural -> int
+val intFromInt32 : int32 -> int
+val intFromInt64 : int64 -> int
+
+let inline intFromNatural n = intFromNat (natFromNatural n)
+let inline intFromInt32 i = intFromInteger (integerFromInt32 i)
+let inline intFromInt64 i = intFromInteger (integerFromInt64 i)
+
+assert int_from_natural_0: intFromNatural 0 = 0
+assert int_from_natural_1: intFromNatural 1 = 1
+assert int_from_natural_2: intFromNatural 122 = 122
+assert int_from_int32_0: intFromInt32 0 = 0
+assert int_from_int32_1: intFromInt32 1 = 1
+assert int_from_int32_2: intFromInt32 (~ 2) = (~2)
+assert int_from_int64_0: intFromInt64 0 = 0
+assert int_from_int64_1: intFromInt64 1 = 1
+assert int_from_int64_2: intFromInt64 (~ 2) = (~2)
+
+val natFromInteger : integer -> nat
+val natFromInt32 : int32 -> nat
+val natFromInt64 : int64 -> nat
+
+let inline natFromInteger n = natFromInt (intFromInteger n)
+let inline natFromInt32 i = natFromInteger (integerFromInt32 i)
+let inline natFromInt64 i = natFromInteger (integerFromInt64 i)
+
+assert nat_from_integer_0: natFromInteger 0 = 0
+assert nat_from_integer_1: natFromInteger 1 = 1
+assert nat_from_integer_2: natFromInteger 122 = 122
+assert nat_from_int32_0: natFromInt32 0 = 0
+assert nat_from_int32_1: natFromInt32 1 = 1
+assert nat_from_int32_2: natFromInt32 (~ 2) = 2
+assert nat_from_int64_0: natFromInt64 0 = 0
+assert nat_from_int64_1: natFromInt64 1 = 1
+assert nat_from_int64_2: natFromInt64 (~ 2) = 2
 
 val string_of_natural : natural -> string
 declare ocaml target_rep function string_of_natural = `Big_int.string_of_big_int`

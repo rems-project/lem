@@ -505,10 +505,13 @@ let tex_escape_aux with_space rr =
          if c=Ulib.UChar.of_char '~'  then r"\\mbox{$\\sim$}" else 
          if c=Ulib.UChar.of_char '\\' then r"\\mbox{$\\backslash{}$}" else 
          if c=Ulib.UChar.of_char '|'  then r"\\mbox{$\\mid$}" else 
+         if c=Ulib.UChar.of_char '\''  then r"\\mbox{\'}" else 
          Ulib.Text.of_uchar c)
        (Ulib.Text.explode rr))
 
 let tex_escape rr = tex_escape_aux false rr
+let tex_escape_string s = 
+  Ulib.Text.to_string (tex_escape (Ulib.Text.of_string s))
 let tex_escape_with_space rr = tex_escape_aux true rr
 
 let tex_id_wrap a r1 = 
@@ -548,7 +551,7 @@ let split_suffix s =
      else if String.length numeric_suffix = 1 then "_" ^ numeric_suffix
      else "_{"^numeric_suffix^"}") ^
      prime_suffix ^
-     remaining_suffix)       
+     (tex_escape_string remaining_suffix))
   else
     (s, "")
 

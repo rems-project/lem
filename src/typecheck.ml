@@ -121,17 +121,24 @@ let targets_to_set : Ast.targets -> Targetset.t = function
              (fun (t,_) ks -> Targetset.remove (ast_target_to_target t) ks)
              targs
              all_targets_non_explicit)
+  | (Ast.Targets_non_exec _) ->
+      (List.fold_right
+             (fun t ks -> Targetset.remove t ks)
+             all_targets_only_exec_list
+             all_targets_non_explicit)
 
 let targets_opt_to_set_opt = Util.option_map targets_to_set 
 
 let targets_opt_to_set x = Util.option_default Target.all_targets_non_explicit (targets_opt_to_set_opt x)
 
 let check_target_opt : Ast.targets option -> Typed_ast.targets_opt = function
-  | None -> None
+  | None -> Targets_opt_none
   | Some(Ast.Targets_concrete(s1,targs,s2)) -> 
-      Some(false, s1,Seplist.from_list targs,s2)
+      Targets_opt_concrete(s1,Seplist.from_list targs,s2)
   | Some(Ast.Targets_neg_concrete(s1,targs,s2)) -> 
-      Some(true, s1,Seplist.from_list targs,s2)
+      Targets_opt_neg_concrete(s1,Seplist.from_list targs,s2)
+  | Some(Ast.Targets_non_exec s) -> 
+      Targets_opt_non_exec s
 
 
 (* If a definition is target specific, we only want to check it with regards to
@@ -901,7 +908,9 @@ module Make_checker(T : sig
           C.add_constraint (External_constants.class_label_to_path "class_numeral") t_ret;
           if is_pattern then C.add_constraint (External_constants.class_label_to_path "class_ord") t_ret else ();
           if is_pattern then C.add_constraint (External_constants.class_label_to_path "class_num_minus") t_ret else ();
-          annot (L_num(sk,i)) t_ret 
+          let i_int = try int_of_string i with Failure "int_of_string" ->
+            raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax_locn (l, "couldn't parse integer "^i))) in
+          annot (L_num(sk,i_int, Some i)) t_ret 
       | Ast.L_string(sk,i) ->
           annot (L_string(sk, string_unescape i, Some i)) { t = Tapp([], Path.stringpath) }
       | Ast.L_char(sk,i) ->
@@ -2485,7 +2494,7 @@ let check_val_def (ts : Targetset.t) (mod_path : Name.t list) (l : Ast.l)
           let is_transform = match vd with Ast.Let_transform _ -> true | _ -> false in
           let _ = match (is_transform, target_opt) with
               | (false, _) -> ()
-              | (_, None) -> ()
+              | (_, Targets_opt_none) -> ()
               | _ ->   raise (Reporting_basic.err_type l "lem_transform does not permit target-options") in
           let (ctxt'', args) = lb_to_inline l ctxt' is_transform target_set_opt lb in
             (ctxt'', e_v, Let_inline(sk1,sk2,target_opt,nls,n_ref,args,sk3,et), Tconstraints(tnvs,constraints,lconstraints))
@@ -2558,7 +2567,7 @@ let check_val_def_instance (ts : Targetset.t) (mod_path : Name.t list) (instance
           let ctxt' = add_let_defs_to_ctxt mod_path ctxt (TNset.elements tnvs) constraints lconstraints K_instance None e_v in
           let (ctxt'', _) = lb_to_inline l ctxt' false None lb in
 
-          let (vd : val_def) = letbind_to_funcl_aux sk None ctxt'' lb in
+          let (vd : val_def) = letbind_to_funcl_aux sk Targets_opt_none ctxt'' lb in
 
           (* instance methods should not refer to each other. Therefore, remove the bindings added by add_let_defs_to_ctxt from
              ctxt.cur_env. They are still in ctxt.new_defs *)
@@ -2649,7 +2658,7 @@ let rec check_instance_type_shape (ctxt : defn_ctxt) (src_t : src_t)
     | Typ_fn(t1,_,t2) ->
         (tvs_to_set [to_tnvar t1; to_tnvar t2], r"fun")
     | Typ_tup(ts) ->
-        (tvs_to_set (Seplist.to_list_map to_tnvar ts), r"tup")
+        (tvs_to_set (Seplist.to_list_map to_tnvar ts), r ("tup" ^ (string_of_int (Seplist.length ts))))
     | Typ_backend(p,_) -> raise (Reporting_basic.err_type p.id_locn "backend-type in class instance type")
     | Typ_app(p,ts) ->
         begin

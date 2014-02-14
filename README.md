@@ -32,5 +32,11 @@ Documentation can be found in `doc/built-doc`, including:
 * the type signatures of the pervasives and pervasives-extra libaries, in `lem-libs-pervasives.txt` and `lem-libs-pervasives-extra.txt`; and
 * source documentation, in `html-doc` and `lem-doc.pdf`, with a dependency diagram of the source modules in `dep.pdf`.
 
+# Supported versions of software
 
+Lem is tested against the following versions of the backend software:
 
+  * OCaml: 3.12.1. and 4.00.0
+  * Coq: 8.4pl3 and 8.4pl2
+  * Isabelle: Isabelle-2013-2
+  * HOL: HOL4 Kananaskis 9

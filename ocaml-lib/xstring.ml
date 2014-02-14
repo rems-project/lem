@@ -9,3 +9,14 @@ let implode l =
   | [] -> res
   | c :: l -> res.[i] <- c; imp (i + 1) l in
   imp 0 l;;
+
+let string_case s c_empty c_cons = begin
+  let len = String.length s in
+  if (len = 0) then c_empty else
+  c_cons (String.get s 0) (String.sub s 1 (len - 1))
+end;;
+
+let cons_string c s = begin
+  let cs = String.make 1 c in
+  cs ^ s
+end;;

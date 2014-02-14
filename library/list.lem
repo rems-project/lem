@@ -193,6 +193,7 @@ declare hol      target_rep function append = infix `++`
 declare ocaml    target_rep function append = `List.append`
 declare isabelle target_rep function append = infix `@`
 declare tex      target_rep function append = infix `$+\!+$`
+declare coq      target_rep function append = (`@` `List.app` `_`)
 
 assert append_1: ([0;1;2;3] ++ [4;5] = [(0:nat);1;2;3;4;5])
 lemma append_nil_1: (forall l. l ++ [] = l)
@@ -406,6 +407,34 @@ assert any_4_neg: (any (fun x -> (x < (3:nat))) [4;5;2;7])
 
 lemma any_nil_thm: (forall P. not (any P []))
 lemma any_cons_thm: (forall P e l. any P (e::l) = (P e || any P l))
+
+
+(* ------------------------- *)
+(* dest_init                 *)
+(* ------------------------- *)
+
+(* get the initial part and the last element of the list in a safe way *)
+
+val dest_init : forall 'a. list 'a -> maybe (list 'a * 'a) 
+
+let rec dest_init_aux rev_init last_elem_seen to_process =
+  match to_process with
+    | []    -> (reverse rev_init, last_elem_seen)
+    | x::xs -> dest_init_aux (last_elem_seen::rev_init) x xs
+  end
+declare termination_argument dest_init_aux = automatic
+
+let dest_init l = match l with
+  | [] -> Nothing
+  | x::xs -> Just (dest_init_aux [] x xs)
+end
+
+assert dest_init_0: (dest_init ([]:list nat) = Nothing)
+assert dest_init_1: (dest_init [(1:nat)] = Just ([], 1))
+assert dest_init_2: (dest_init [(1:nat);2;3;4;5] = Just ([1;2;3;4], 5))
+
+lemma dest_init_nil : (dest_init [] = Nothing)
+lemma dest_init_snoc: (forall x xs. dest_init (xs ++ [x]) = Just (xs, x))
 
 
 (* ========================================================================== *)
@@ -637,6 +666,41 @@ assert drop_3: (drop 100 [(1:nat);2;3;4;5;6] = [])
 lemma splitAt_take_drop: (forall n xs. splitAt n xs = (take n xs, drop n xs))
 
 let inline {hol} splitAt n xs = (take n xs, drop n xs)
+
+(* ------------------------- *)
+(* dropWhile                 *)
+(* ------------------------- *)
+
+(* [dropWhile p xs] drops the first elements of [xs] that satisfy [p]. *)
+val dropWhile : forall 'a. ('a -> bool) -> list 'a -> list 'a
+let rec dropWhile p l = match l with 
+  | [] -> []
+  | x::xs -> if p x then dropWhile p xs else l
+end
+declare termination_argument dropWhile = automatic
+
+assert dropWhile_0: (dropWhile ((>) 3) [(1:nat);2;3;4;5;6] = [3;4;5;6])
+assert dropWhile_1: (dropWhile ((>=) 5) [(1:nat);2;3;4;5;6] = [6])
+assert dropWhile_2: (dropWhile ((>) 100) [(1:nat);2;3;4;5;6] = [])
+assert dropWhile_3: (dropWhile ((<) 10) [(1:nat);2;3;4;5;6] = [1;2;3;4;5;6])
+
+
+(* ------------------------- *)
+(* takeWhile                 *)
+(* ------------------------- *)
+
+(* [takeWhile p xs] takes the first elements of [xs] that satisfy [p]. *)
+val takeWhile : forall 'a. ('a -> bool) -> list 'a -> list 'a
+let rec takeWhile p l = match l with 
+  | [] -> []
+  | x::xs -> if p x then x::takeWhile p xs else []
+end
+declare termination_argument takeWhile = automatic
+
+assert takeWhile_0: (takeWhile ((>) 3) [(1:nat);2;3;4;5;6] = [1;2])
+assert takeWhile_1: (takeWhile ((>=) 5) [(1:nat);2;3;4;5;6] = [1;2;3;4;5])
+assert takeWhile_2: (takeWhile ((>) 100) [(1:nat);2;3;4;5;6] = [1;2;3;4;5;6])
+assert takeWhile_3: (takeWhile ((<) 10) [(1:nat);2;3;4;5;6] = [])
 
 
 (* ------------------------- *)
