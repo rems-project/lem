@@ -15,9 +15,8 @@ types at which it is not, the user must provide a suitable
 instantiation for type class `Eq`.  For example, one needs to
 instantiate `Eq` for any inductively defined types that make use of
 `natural` (mapped to OCaml big integers) or sets or maps, or
-(recursively) any other types that do.  On a similar note, one also
-needs to instantiate `Ord` (the type class for total linear orders)
-to compare such user-defined types, and to use them in sets or maps.
+(recursively) any other types that do.
+
 
 
 ## Type classes for Sets and Maps
