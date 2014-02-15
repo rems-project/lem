@@ -274,7 +274,7 @@ assert delete_insert_2:      (member (7 : nat) (delete 5 (insert 7 true empty)))
 assert delete_delete: (null (delete (5 : nat) (delete (5 : nat) (insert 5 true empty))))
 
 val (union)          : forall 'k 'v. MapKeyType 'k => map 'k 'v -> map 'k 'v -> map 'k 'v
-declare coq      target_rep function (union) = `List.app`
+declare coq      target_rep function (union) = (`@` `List.app` `_`)
 declare ocaml    target_rep function (union) = `Pmap.union`
 declare isabelle target_rep function (union) = infix `++`
 declare hol      target_rep function (union) = `FUNION`

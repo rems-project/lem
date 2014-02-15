@@ -18,7 +18,7 @@ let fst (v1, v2) = v1
 declare hol      target_rep function fst = `FST`
 declare ocaml    target_rep function fst = `fst`
 declare isabelle target_rep function fst = `fst`
-declare coq      target_rep function fst = `fst`
+declare coq      target_rep function fst = (`@` `fst` `_` `_`)
 
 assert fst_1 : (fst (true, false) = true) 
 assert fst_2 : (fst (false, true) = false)
@@ -33,7 +33,7 @@ let snd (v1, v2) = v2
 declare hol      target_rep function snd = `SND`
 declare ocaml    target_rep function snd = `snd`
 declare isabelle target_rep function snd = `snd`
-declare coq      target_rep function snd = `snd`
+declare coq      target_rep function snd = (`@` `snd` `_` `_`)
 
 lemma fst_snd: (forall v. v = (fst v, snd v))
 
