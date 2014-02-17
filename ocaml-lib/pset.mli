@@ -86,6 +86,11 @@ val fold: ('a -> 'b -> 'b) -> 'a set -> 'b -> 'b
 
 val map: ('b -> 'b -> int) -> ('a -> 'b) -> 'a set -> 'b set
 
+val map_union: ('b -> 'b -> int) -> ('a -> 'b set) -> 'a set -> 'b set
+(** [map_union cmp f s] does the same as [bigunion cmp (map cmp' f s)].
+    Because the set of sets is internally not constructed though the comparison function [cmp'] is
+    not needed. *)
+
 val for_all: ('a -> bool) -> 'a set -> bool
 (** [for_all p s] checks if all elements of the set
   satisfy the predicate [p]. *)

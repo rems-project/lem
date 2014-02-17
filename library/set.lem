@@ -529,6 +529,24 @@ assert map_2: (map (fun n -> n * 3) {(2:nat);3;4} = {6;9;12})
 
 
 (* ------------------------ *)
+(* bigunionMap              *)
+(* ------------------------ *)
+
+(* In order to avoid providing an comparison function for sets of sets,
+   it might be better to combine bigunion and map sometimes into a single operation. *)
+
+val bigunionMap : forall 'a 'b. SetType 'a, SetType 'b => ('a -> set 'b) -> set 'a -> set 'b
+val bigunionMapBy : forall 'a 'b. ('b -> 'b -> ordering) -> ('a -> set 'b) -> set 'a -> set 'b
+
+let inline bigunionMap f bs = bigunion (map f bs)
+
+declare ocaml    target_rep function bigunionMapBy = `Pset.map_union`
+let inline {ocaml} bigunionMap = bigunionMapBy setElemCompare
+
+assert bigunionmap_0: (bigunionMap (fun n -> {n; 2 * n; 3 * n}) {(1:nat)} = {1;2;3})
+assert bigunionmap_1: (bigunionMap (fun n -> {n; 2 * n; 3 * n}) {(2:nat);8} = {2;4;6;8;16;24})
+
+(* ------------------------ *)
 (* min and max              *)
 (* ------------------------ *)
 
