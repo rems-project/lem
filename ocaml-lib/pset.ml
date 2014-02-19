@@ -257,6 +257,9 @@ let rec fold f s accu =
 
 let map cmp f s = fold (fun e s -> add cmp (f e) s) s empty
 
+let map_union cmp f s = fold (fun e s -> union cmp (f e) s) s empty
+
+
 let rec for_all p = function
     Empty -> true
   | Node(l, v, r, _) -> p v && for_all p l && for_all p r
@@ -307,6 +310,8 @@ let singleton c x = { cmp = c; s = singleton x }
 let remove x s = { s with s = remove s.cmp x s.s }
 
 let union s1 s2 = { s1 with s = union s1.cmp s1.s s2.s }
+
+let map_union c f s1 = { cmp = c; s = map_union c (fun x -> (f x).s) s1.s}
 
 let inter s1 s2 = { s1 with s = inter s1.cmp s1.s s2.s }
 
