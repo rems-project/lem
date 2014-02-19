@@ -114,7 +114,7 @@ assert stringAppend_0 : ("Hello" ^ " " ^ "World!" = "Hello World!")
 
 val stringEquality : string -> string -> bool
 declare coq target_rep function stringEquality = `string_equal`
-let inline {ocaml;hol;isabelle} stringEqual = unsafe_structural_equality
+let inline {ocaml;hol;isabelle} stringEquality = unsafe_structural_equality
 
 instance (Eq string)
   let (=)      = stringEquality
