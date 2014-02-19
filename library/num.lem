@@ -1887,3 +1887,4 @@ assert nat_from_int64_2: natFromInt64 (~ 2) = 2
 
 val string_of_natural : natural -> string
 declare ocaml target_rep function string_of_natural = `Big_int.string_of_big_int`
+let inline {coq} string_of_natural n = "TODO"
