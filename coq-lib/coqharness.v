@@ -1,3 +1,4 @@
+Require Import Coq.Bool.Bool.
 Require Import Coq.ZArith.BinInt.
 Require Import Coq.ZArith.Zorder.
 Require Import ClassicalDescription.
@@ -430,6 +431,28 @@ Definition fmap_range_by
 
 (* Strings *)
 
+Definition char_equal
+  (c d: ascii): bool :=
+    match c, d with
+      | (Ascii b1 b2 b3 b4 b5 b6 b7 b8), (Ascii b1' b2' b3' b4' b5' b6' b7' b8') =>
+          andb (eqb b1 b1')
+          (andb (eqb b2 b2')
+          (andb (eqb b3 b3')
+          (andb (eqb b4 b4')
+          (andb (eqb b5 b5')
+          (andb (eqb b6 b6')
+          (andb (eqb b7 b7') (eqb b8 b8')))))))
+    end.
+
+Fixpoint string_equal
+  (s t: string): bool :=
+    match s, t with
+      | EmptyString, EmptyString => true
+      | (String hd tl), (String hd' tl') =>
+          andb (char_equal hd hd') (string_equal tl tl')
+      | _, _ => false
+    end.
+
 Fixpoint string_to_char_list
   (s: string): list ascii :=
     match s with
@@ -461,5 +484,6 @@ Definition list_default {elt: Type}: list elt := [].
 Definition set_default {elt: Type}: set elt := [].
 Definition fmap_default {key value: Type}: fmap key value := [].
 Definition string_default: string := ("" % string).
+Definition sum_default {left right: Type}: sum left right := inl (DAEMON (a:=left)).
 Definition unit_default: unit := tt.
 Definition maybe_default {elt: Type}: option elt := None.
