@@ -251,6 +251,10 @@ distrib: src/ast.ml version headache
 clean:
 	-make -C language clean
 	-make -C src clean
+	-make -C coq-lib clean
+	-rm -f coq-lib/Makefile
+	-rm -f coq-lib/coqharness.vo
+	-rm -f coq-lib/coqharness.glob
 	-rm -rf src/version.ml lem library/lib_cache src/build_directory.ml
 	#-rm -rf lem_dep.tex lem_dep.pdf lem_dep.aux lem_dep.log
 
