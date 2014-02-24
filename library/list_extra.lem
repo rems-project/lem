@@ -161,3 +161,17 @@ assert zip_same_length_1 : (zip_same_length [(1:nat); 2;3;4;5] [(2:nat); 3;4;5;6
 
 
 
+(* ------------------------- *)
+(* distinct elements         *)
+(* ------------------------- *)
+
+val all_distinct : forall 'a. Eq 'a => list 'a -> bool
+let rec all_distinct l = 
+  match l with
+    | [] -> true
+    | (x::l') -> not (elem x l') && all_distinct l'
+  end
+declare termination_argument all_distinct = automatic
+
+declare hol target_rep function all_distinct = `ALL_DISTINCT`
+

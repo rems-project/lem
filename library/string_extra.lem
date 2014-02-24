@@ -3,9 +3,97 @@
 (******************************************************************************)
 
 open import Basic_classes
+open import Num
+open import List
+open import String
+open import List_extra
 open import {hol} `stringLib`
+open import {hol} `ASCIInumbersTheory`
 
 declare {isabelle;ocaml;hol;coq} rename module = lem_string_extra
+
+
+(******************************************************************************)
+(* Character's to numbers                                                     *)
+(******************************************************************************)
+
+val ord : char -> nat
+declare hol target_rep function ord = `ORD`
+declare ocaml target_rep function ord = `code`
+(* TODO: The Isabelle and Coq representations are taken from a quick Google
+   search, they might not be the best options *)
+declare isabelle target_rep function ord = `nat_of_char`
+declare coq target_rep function ord = `nat_of_ascii`
+
+val chr : nat -> char
+declare hol target_rep function chr = `CHR`
+declare ocaml target_rep function chr = `chr`
+(* TODO: The Isabelle and Coq representations are taken from a quick Google
+   search, they might not be the best options *)
+declare isabelle target_rep function chr = `char_of_nat`
+declare coq target_rep function chr = `ascii_of_nat`
+
+(******************************************************************************)
+(* Converting to strings                                                      *)
+(******************************************************************************)
+
+class (Show 'a)
+  val show : 'a -> string
+end
+
+val natToStringHelper : nat -> list char -> list char
+let rec natToStringHelper n acc =
+  if n = 0 then
+    acc
+  else
+    natToStringHelper (n / 10) (chr (n mod 10 + 48) :: acc)
+
+val natToString : nat -> string
+let natToString n = toString (natToStringHelper n [])
+
+declare hol target_rep function natToString = `num_to_dec_string`
+
+instance (Show nat)
+  let show = natToString
+end
+
+val naturalToStringHelper : natural -> list char -> list char
+let rec naturalToStringHelper n acc =
+  if n = 0 then
+    acc
+  else
+    naturalToStringHelper (n / 10) (chr (natFromNatural (n mod 10 + 48)) :: acc)
+
+val naturalToString : natural -> string
+let naturalToString n = toString (naturalToStringHelper n [])
+
+declare hol target_rep function naturalToString = `num_to_dec_string`
+
+instance (Show natural)
+  let show = naturalToString
+end
+
+
+(******************************************************************************)
+(* List-like operations                                                       *)
+(******************************************************************************)
+
+val nth : string -> nat -> char
+let nth s n = List_extra.nth (toCharList s) n
+
+declare hol      target_rep function nth l n = `SUB` (l, n)
+declare ocaml    target_rep function nth     = `String.get`
+
+val stringConcat : list string -> string
+let stringConcat s =
+  List.foldr (^) "" s
+
+declare hol      target_rep function stringConcat = `CONCAT`
+declare ocaml    target_rep function stringConcat s = `String.concat` "" s
+
+(******************************************************************************)
+(* String comparison                                                          *)
+(******************************************************************************)
 
 val stringCompare : string -> string -> ordering
 
