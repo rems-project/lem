@@ -961,6 +961,19 @@ instance forall 'a. SetType 'a => (SetType (list 'a))
  let setElemCompare = lexicographicCompareBy setElemCompare
 end
 
+(* ------------------------- *)
+(* distinct elements         *)
+(* ------------------------- *)
+
+val allDistinct : forall 'a. Eq 'a => list 'a -> bool
+let rec allDistinct l = 
+  match l with
+    | [] -> true
+    | (x::l') -> not (elem x l') && allDistinct l'
+  end
+declare termination_argument allDistinct = automatic
+
+declare hol target_rep function allDistinct = `ALL_DISTINCT`
 
 (* ========================================================================== *)
 (* Comments (not clean yet, please ignore the rest of the file)               *)
