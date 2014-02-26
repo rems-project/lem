@@ -153,14 +153,10 @@ Definition nat_gteb (m n: nat): bool := nat_lteb n m.
 
 (* Ints *)
 
-Definition int_ltb (i j: Z): bool :=
-  bool_of_Prop (Zlt i j).
-Definition int_gtb (i j: Z): bool :=
-  bool_of_Prop (Zgt i j).
-Definition int_lteb (i j: Z): bool :=
-  bool_of_Prop (Zle i j).
-Definition int_gteb (i j: Z): bool :=
-  bool_of_Prop (Zge i j).
+Definition int_ltb (i j: Z): bool := Z.ltb i j.
+Definition int_gtb (i j: Z): bool := Z.gtb i j.
+Definition int_lteb (i j: Z): bool := Z.leb i j.
+Definition int_gteb (i j: Z): bool := Z.geb i j.
 
 (* Sets *)
 
