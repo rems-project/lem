@@ -27,7 +27,7 @@ declare coq target_rep function ord = `nat_of_ascii`
 
 val chr : nat -> char
 declare hol target_rep function chr = `CHR`
-declare ocaml target_rep function chr = `chr`
+declare ocaml target_rep function chr = `Char.chr`
 (* TODO: The Isabelle and Coq representations are taken from a quick Google
    search, they might not be the best options *)
 declare isabelle target_rep function chr = `char_of_nat`
