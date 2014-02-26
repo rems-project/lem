@@ -130,34 +130,31 @@ lemma nth_index: (forall l n e. n < length l --> index l n = Just (nth l n))
 (* ------------------------- *)
 (* Find_non_pure             *)
 (* ------------------------- *)
-val find_non_pure : forall 'a. ('a -> bool) -> list 'a -> 'a 
-let find_non_pure P l = match (find P l) with 
+val findNonPure : forall 'a. ('a -> bool) -> list 'a -> 'a 
+let findNonPure P l = match (find P l) with 
   | Just e      -> e
-  | Nothing     -> failwith "List_extra.find_non_pure"
+  | Nothing     -> failwith "List_extra.findNonPure"
 end
 
-declare compile_message find_non_pure = "find_non_pure is undefined, if no element with the property is in the list. Better use find."
+declare compile_message findNonPure = "findNonPure is undefined if no element with the property is in the list. Better use find."
 
 
 (* ------------------------- *)
 (* zip same length           *)
 (* ------------------------- *)
 
-val zip_same_length : forall 'a 'b. list 'a -> list 'b -> list ('a * 'b) 
-let rec zip_same_length l1 l2 = match (l1, l2) with
-  | (x :: xs, y :: ys) -> (x, y) :: zip_same_length xs ys
+val zipSameLength : forall 'a 'b. list 'a -> list 'b -> list ('a * 'b) 
+let rec zipSameLength l1 l2 = match (l1, l2) with
+  | (x :: xs, y :: ys) -> (x, y) :: zipSameLength xs ys
   | ([], []) -> []
-  | _ -> failwith "List_extra.zip_same_length of different length lists"
+  | _ -> failwith "List_extra.zipSameLength of different length lists"
 
 end
-declare termination_argument zip_same_length = automatic
+declare termination_argument zipSameLength = automatic
 
-declare compile_message zip_same_length = "zip_same_length is undefined, if the two lists have different lengths"
-declare hol target_rep function zip_same_length l1 l2 = `ZIP` (l1, l2)
-declare ocaml target_rep function zip_same_length = `List.combine` 
+declare compile_message zipSameLength = "zipSameLength is undefined if the two lists have different lengths"
+declare hol target_rep function zipSameLength l1 l2 = `ZIP` (l1, l2)
+declare ocaml target_rep function zipSameLength = `List.combine` 
 
-assert zip_same_length_1 : (zip_same_length [(1:nat); 2;3;4;5] [(2:nat); 3;4;5;6] = [(1,2);(2,3);(3,4);(4,5);(5,6)])
-
-
-
+assert zipSameLength_1 : (zipSameLength [(1:nat); 2;3;4;5] [(2:nat); 3;4;5;6] = [(1,2);(2,3);(3,4);(4,5);(5,6)])
 
