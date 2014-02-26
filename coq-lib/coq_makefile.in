@@ -15,3 +15,4 @@ lem_set_helpers.v
 lem_sorting.v
 lem_string.v
 lem_tuple.v
+lem_word.v
