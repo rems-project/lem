@@ -23,7 +23,6 @@ val boolListFrombitSeq : nat -> bitSequence -> list bool
 
 let rec boolListFrombitSeqAux n s bl =
   if n = 0 then [] else
-  if n = 1 then [s] else
   match bl with
     | []       -> replicate n s
     | b :: bl' -> b :: (boolListFrombitSeqAux (n-1) s bl')
@@ -34,7 +33,7 @@ let boolListFrombitSeq n (BitSeq _ s bl) = boolListFrombitSeqAux n s bl
 
 assert boolListFrombitSeq_0 : boolListFrombitSeq 5 (BitSeq Nothing false [true;false;true]) = [true;false;true;false;false]
 assert boolListFrombitSeq_1 : boolListFrombitSeq 5 (BitSeq Nothing true [true;false;true]) = [true;false;true;true;true]
-assert boolListFrombitSeq_2 : boolListFrombitSeq 2 (BitSeq Nothing true [true;false;true]) = [true;true]
+assert boolListFrombitSeq_2 : boolListFrombitSeq 2 (BitSeq Nothing true [true;false;true]) = [true;false]
 
 lemma boolListFrombitSeq_len : forall n bs. (List.length (boolListFrombitSeq n bs) = n)
 
@@ -182,9 +181,8 @@ assert integerFromBoolList_2: integerFromBoolList (true,  [false;true;false;true
 assert integerFromBoolList_3: integerFromBoolList (true,  [false;true]) = ~2
 assert integerFromBoolList_4: integerFromBoolList (true,  [true;false]) = ~3
 
-(* [integerToBoolList i] creates a sign bit and a list of booleans from an integer. The len_opt tells it when to stop.*)
+(* [boolListFromInteger i] creates a sign bit and a list of booleans from an integer. The len_opt tells it when to stop.*)
 val boolListFromInteger :    integer -> bool * list bool
-val boolListFromIntegerAux : list bool -> integer -> list bool
 
 let rec boolListFromNatural acc (remainder : natural) =
  if (remainder > 0) then 
