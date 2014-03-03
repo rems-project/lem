@@ -13,7 +13,9 @@
 </div>
 <div id="TOC">
 <ul>
-<li><a href="#introduction"><span class="toc-section-number">1</span> Introduction</a></li>
+<li><a href="#introduction"><span class="toc-section-number">1</span> Introduction</a><ul>
+<li><a href="#supported-software"><span class="toc-section-number">1.1</span> Supported software</a></li>
+</ul></li>
 <li><a href="#installation"><span class="toc-section-number">2</span> Installation</a><ul>
 <li><a href="#lem-binary"><span class="toc-section-number">2.1</span> Lem binary</a></li>
 <li><a href="#backend-libraries"><span class="toc-section-number">2.2</span> Backend libraries</a></li>
@@ -108,8 +110,9 @@
 <li><a href="#special-target-representations"><span class="toc-section-number">8.5</span> Special Target Representations</a></li>
 </ul></li>
 <li><a href="#type-classes"><span class="toc-section-number">9</span> Type classes</a><ul>
-<li><a href="#type-classes-for-sets-and-maps"><span class="toc-section-number">9.1</span> Type classes for Sets and Maps</a></li>
-<li><a href="#other-standard-library-type-classes"><span class="toc-section-number">9.2</span> Other Standard Library Type Classes</a></li>
+<li><a href="#type-class-for-equality"><span class="toc-section-number">9.1</span> Type class for Equality</a></li>
+<li><a href="#type-classes-for-sets-and-maps"><span class="toc-section-number">9.2</span> Type classes for Sets and Maps</a></li>
+<li><a href="#other-standard-library-type-classes"><span class="toc-section-number">9.3</span> Other Standard Library Type Classes</a></li>
 </ul></li>
 <li><a href="#refactoring"><span class="toc-section-number">10</span> Refactoring</a><ul>
 <li><a href="#types-1"><span class="toc-section-number">10.1</span> Types</a></li>
@@ -123,6 +126,15 @@
 <p>Lem is a lightweight tool for writing, managing, and publishing large scale semantic definitions. It is also intended as an intermediate language for generating definitions from domain-specific tools, and for porting definitions between interactive theorem proving systems (such as Coq, HOL4, and Isabelle).</p>
 <p>The language combines features familiar from functional programming languages with logical constructs. From functional programming languages we take pure higher-order functions, general recursion, recursive algebraic datatypes, records, lists, pattern matching, parametric polymorphism, a simple type class mechanism for overloading, and a simple module system. To these we add logical constructs familar in provers: universal and existential quantification, sets (including set comprehensions), relations, finite maps, inductive relation definitions, and lemma statements. Then there are facilities to let the user tune how Lem definitions are mapped into the various targets (by declaring target representations and controlling notation, renaming, inlining, and type classes), to generate witness types and executable functions from inductive relations, and for assertions.</p>
 <p>Lem typechecks its input and can generate executable OCaml, theorem prover definitions in Coq, HOL4 and Isabelle/HOL, typeset definitions in LaTeX, and simple HTML.</p>
+<h2 id="supported-software"><a href="#TOC"><span class="header-section-number">1.1</span> Supported software</a></h2>
+<p>Lem is tested against the following versions of the backend software:</p>
+<ul>
+<li>OCaml: 3.12.1. and 4.00.0</li>
+<li>Coq: 8.4pl3 and 8.4pl2</li>
+<li>Isabelle: Isabelle-2013-2</li>
+<li>HOL: HOL4 Kananaskis 9</li>
+</ul>
+<p>Older or newer versions of this software may work correctly with Lem, but are unsupported.</p>
 <h1 id="installation"><a href="#TOC"><span class="header-section-number">2</span> Installation</a></h1>
 <h2 id="lem-binary"><a href="#TOC"><span class="header-section-number">2.1</span> Lem binary</a></h2>
 <p>To build Lem run <code>make</code> in the top-level directory. This builds the executable <code>lem</code>, and places a symbolic link to it in that directory. Lem depends on <a href="http://caml.inria.fr/">OCaml</a>. Lem is tested against OCaml 3.12.1. and 4.00.0. Other versions might or might not work.</p>
@@ -363,6 +375,7 @@ ocamlbuild -libs nums -use-ocamlfind -pkg lem name.native</code></pre>
 <pre><code>declare {hol; isabelle} termination_argument even = automatic
 declare {hol; isabelle} termination_argument odd = automatic</code></pre>
 <h2 id="type-definitions"><a href="#TOC"><span class="header-section-number">6.3</span> Type definitions</a></h2>
+<p>Note that when defining new types in Lem it may be necessary to instantiate some of the basic type classes, as described in the Type Classes section below.</p>
 <h2 id="assertions-lemmata-theorems"><a href="#TOC"><span class="header-section-number">6.4</span> Assertions / Lemmata / Theorems</a></h2>
 <p>Lem allows the user to write assertions, lemmata and theorems. These are named boolean expressions, which the user desires to be true. For the append function on lists, one could for example write:</p>
 <pre><code>assert append_test_1: [(2:nat); 3] ++ [4;5] = [2;3;4;5]
@@ -745,7 +758,11 @@ declare tex      target_rep function (&amp;&amp;) = infix `$\wedge$`</code></pre
 end
 declare tex target_rep function numPow n m = special &quot;{%e}^{%e}&quot; n m</code></pre>
 <h1 id="type-classes"><a href="#TOC"><span class="header-section-number">9</span> Type classes</a></h1>
-<h2 id="type-classes-for-sets-and-maps"><a href="#TOC"><span class="header-section-number">9.1</span> Type classes for Sets and Maps</a></h2>
+<h2 id="type-class-for-equality"><a href="#TOC"><span class="header-section-number">9.1</span> Type class for Equality</a></h2>
+<p>The Lem equality is translated using the type class <code>Eq</code>, defined in <code>library/basic_classes.lem</code>, with operations <code>=</code> (<code>isEqual</code>) and <code>&lt;&gt;</code> (<code>isInequal</code>) for equality and inequality.</p>
+<p>For HOL and Isabelle, this is always mapped to their standard equalities.</p>
+<p>However, for OCaml, the default mapping to OCaml equality is not always appropriate, and if a Lem development uses equality at any types at which it is not, the user must provide a suitable instantiation for type class <code>Eq</code>. For example, one needs to instantiate <code>Eq</code> for any inductively defined types that make use of <code>natural</code> (mapped to OCaml big integers) or sets or maps, or (recursively) any other types that do.</p>
+<h2 id="type-classes-for-sets-and-maps"><a href="#TOC"><span class="header-section-number">9.2</span> Type classes for Sets and Maps</a></h2>
 <p>Sets and Maps require comparison operations in OCaml and Coq. This is provided via type classes <code>SetType</code> and <code>MapType</code>, introduced in <code>library/basic_classes.lem</code>; the former has a single method <code>setElemCompare</code>. The default OCaml instantiation of <code>SetType</code> is with OCaml's <code>compare</code>, but if the user constructs sets of types containing any tuples, records, or user-defined inductive types, those types must also have an instance declaration for <code>SetType</code> with a suitable comparison function. If this is omitted, the default will be used and there may be a run-time error as the equality test will be incorrect. <code>MapType</code> uses <code>SetType</code> as default implementation.</p>
 <p>For example, for a simple inductive type:</p>
 <pre><code>type memory_order = Atomic | NA</code></pre>
@@ -766,10 +783,9 @@ let rec treeCompare cmpa (Node xs) (Node ys) =
   let setElemCompare = treeCompare setElemCompare
 end </code></pre>
 <p>Tuple types up to a certain size are made an instance of <code>SetType</code> in <code>basic_classes.lem</code>; if one uses sets or maps of wider tuples, they must also be made instances following the same pattern, otherwise Lem will generate incorrect code.</p>
-<h2 id="other-standard-library-type-classes"><a href="#TOC"><span class="header-section-number">9.2</span> Other Standard Library Type Classes</a></h2>
-<p>The standard library defines several other type classes. In <code>library/basic_classes.lem</code> we have, in addition to <code>SetType</code>:</p>
+<h2 id="other-standard-library-type-classes"><a href="#TOC"><span class="header-section-number">9.3</span> Other Standard Library Type Classes</a></h2>
+<p>The standard library defines several other type classes. In <code>library/basic_classes.lem</code> we have, in addition to <code>Eq</code> and <code>SetType</code>:</p>
 <ul>
-<li><code>Eq</code> for equality and inequality</li>
 <li><code>Ord</code> for total linear orders with comparison operations</li>
 <li><code>OrdMaxMin</code> extending <code>Ord</code> with max and min</li>
 </ul>

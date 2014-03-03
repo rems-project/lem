@@ -23,6 +23,13 @@ all:
 	make -C ../src doc-dot
 	ln -sf ../src/dep.pdf  .
 
+
+# pull lem-draft.pdf
+pull-lem-draft:
+	cp ~/rsem/lem/doc/pldi2014-submission/lem-icfp-2014.pdf  lem-draft.pdf 
+
+
+
 ## copy built documentation 
 
 TARGET=built-doc

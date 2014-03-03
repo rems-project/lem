@@ -430,6 +430,7 @@ module List = struct
   val ++ : forall 'a. (list 'a) -> (list 'a) -> list 'a
   val :: : forall 'a. 'a -> (list 'a) -> list 'a
   val all : forall 'a. ('a -> bool) -> (list 'a) -> bool
+  val allDistinct : forall 'a. (Basic_classes.Eq 'a) => (list 'a) -> bool
   val any : forall 'a. ('a -> bool) -> (list 'a) -> bool
   val append : forall 'a. (list 'a) -> (list 'a) -> list 'a
   val concat : forall 'a. (list (list 'a)) -> list 'a
@@ -473,6 +474,8 @@ module List = struct
                                                    (Basic_classes.SetType 'a) => 
                                                      Basic_classes.SetType_class 
                                                      (list 'a)
+  val isPrefixOf : forall 'a. 
+                     (Basic_classes.Eq 'a) => (list 'a) -> (list 'a) -> bool
   val length : forall 'a. (list 'a) -> nat
   val lexicographicCompare : forall 'a. 
                                (Basic_classes.Ord 'a) => 
@@ -1948,6 +1951,7 @@ module Pervasives = struct
   val ^ : string -> string -> string
   val abs : forall 'a. (Num.NumAbs 'a) => 'a -> 'a
   val all : forall 'a. ('a -> bool) -> (list 'a) -> bool
+  val allDistinct : forall 'a. (Basic_classes.Eq 'a) => (list 'a) -> bool
   val and : bool -> bool -> bool
   val any : forall 'a. ('a -> bool) -> (list 'a) -> bool
   val append : forall 'a. (list 'a) -> (list 'a) -> list 'a
@@ -1960,6 +1964,15 @@ module Pervasives = struct
   val bigunionBy : forall 'a. 
                      ('a -> 'a -> Basic_classes.ordering) -> (set (set 'a)) -> 
                                                              set 'a
+  val bigunionMap : forall 'a 'b. 
+                      (Basic_classes.SetType 'a)
+                        (Basic_classes.SetType 'b) => 
+                        ('a -> set 'b) -> (set 'a) -> set 'b
+  val bigunionMapBy : forall 'a 'b. 
+                        ('b -> 'b -> Basic_classes.ordering) -> ('a -> 
+                                                                set 'b) -> 
+                                                                (set 'a) -> 
+                                                                set 'b
   val bind : forall 'a 'b. 
                (Maybe.maybe 'a) -> ('a -> Maybe.maybe 'b) -> Maybe.maybe 'b
   val bitSeqAdd : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
@@ -2019,7 +2032,6 @@ module Pervasives = struct
   val bitSeqXor : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
   val boolCompare : bool -> bool -> Basic_classes.ordering
   val boolListFromInteger : Num.integer -> (bool * (list bool))
-  val boolListFromIntegerAux : (list bool) -> Num.integer -> list bool
   val boolListFromNatural : (list bool) -> Num.natural -> list bool
   val boolListFrombitSeq : nat -> Word.bitSequence -> list bool
   val boolListFrombitSeqAux : forall 'a. nat -> 'a -> (list 'a) -> list 'a
@@ -2203,6 +2215,7 @@ module Pervasives = struct
                                              (Basic_classes.SetType 'a) => 
                                                Basic_classes.Eq_class 
                                                (set 'a)
+  val instance_Basic_classes_Eq_string_dict : Basic_classes.Eq_class string
   val instance_Basic_classes_Eq_tup2_dict : forall 'a 'b. 
                                               (Basic_classes.Eq 'a)
                                                 (Basic_classes.Eq 'b) => 
@@ -2667,6 +2680,8 @@ module Pervasives = struct
   val isLess : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> bool
   val isLessEqual : forall 'a. (Basic_classes.Ord 'a) => 'a -> 'a -> bool
   val isNothing : forall 'a. (Maybe.maybe 'a) -> bool
+  val isPrefixOf : forall 'a. 
+                     (Basic_classes.Eq 'a) => (list 'a) -> (list 'a) -> bool
   val isProperSubsetOf : forall 'a. 
                            (Basic_classes.SetType 'a) => 
                              (set 'a) -> (set 'a) -> bool
@@ -2932,6 +2947,7 @@ module Pervasives = struct
                       (Basic_classes.SetType 'a) (Basic_classes.Ord 'a) => 
                         'a -> (set 'a) -> ((set 'a) * bool * (set 'a))
   val stringAppend : string -> string -> string
+  val stringEquality : string -> string -> bool
   val stringLength : string -> nat
   val string_case : forall 'a. string -> 'a -> (char -> string -> 'a) -> 'a
   val string_of_natural : Num.natural -> string
@@ -3110,6 +3126,13 @@ module Pervasives = struct
                (Basic_classes.SetType 'a) => (set 'a) -> (set 'a) -> bool
     val = : forall 'a. 
               (Basic_classes.SetType 'a) => (set 'a) -> (set 'a) -> bool
+
+  end
+
+  module Instance_Basic_classes_Eq_string = struct
+
+    val <> : string -> string -> bool
+    val = : string -> string -> bool
 
   end
 
@@ -4410,6 +4433,15 @@ module Set = struct
   val bigunionBy : forall 'a. 
                      ('a -> 'a -> Basic_classes.ordering) -> (set (set 'a)) -> 
                                                              set 'a
+  val bigunionMap : forall 'a 'b. 
+                      (Basic_classes.SetType 'a)
+                        (Basic_classes.SetType 'b) => 
+                        ('a -> set 'b) -> (set 'a) -> set 'b
+  val bigunionMapBy : forall 'a 'b. 
+                        ('b -> 'b -> Basic_classes.ordering) -> ('a -> 
+                                                                set 'b) -> 
+                                                                (set 'a) -> 
+                                                                set 'b
   val cross : forall 'a 'b. 
                 (Basic_classes.SetType 'a) (Basic_classes.SetType 'b) => 
                   (set 'a) -> (set 'b) -> set ('a * 'b)
@@ -4590,12 +4622,21 @@ module String = struct
   val ^ : string -> string -> string
   val cons_string : char -> string -> string
   val empty_string : string
+  val instance_Basic_classes_Eq_string_dict : Basic_classes.Eq_class string
   val makeString : nat -> char -> string
   val stringAppend : string -> string -> string
+  val stringEquality : string -> string -> bool
   val stringLength : string -> nat
   val string_case : forall 'a. string -> 'a -> (char -> string -> 'a) -> 'a
   val toCharList : string -> list char
   val toString : (list char) -> string
+
+  module Instance_Basic_classes_Eq_string = struct
+
+    val <> : string -> string -> bool
+    val = : string -> string -> bool
+
+  end
 
 end
 
@@ -4707,7 +4748,6 @@ module Word = struct
   val bitSeqTestBit : Word.bitSequence -> nat -> Maybe.maybe bool
   val bitSeqXor : Word.bitSequence -> Word.bitSequence -> Word.bitSequence
   val boolListFromInteger : Num.integer -> (bool * (list bool))
-  val boolListFromIntegerAux : (list bool) -> Num.integer -> list bool
   val boolListFromNatural : (list bool) -> Num.natural -> list bool
   val boolListFrombitSeq : nat -> Word.bitSequence -> list bool
   val boolListFrombitSeqAux : forall 'a. nat -> 'a -> (list 'a) -> list 'a
