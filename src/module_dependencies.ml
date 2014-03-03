@@ -124,7 +124,7 @@ let load_module_file (filename, loc, needs_output, is_user_import) =
   }
 
 
-(** [load_module tries to load the module with name [module_name] *)
+(** [load_module] tries to load the module with name [module_name] *)
 let load_module (l: Ast.l) (search_dirs : string list) (module_name : string) =
   let module_file_name = search_module_file l search_dirs module_name in
   load_module_file (module_file_name, l, false, false)
