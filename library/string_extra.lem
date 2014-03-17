@@ -19,7 +19,7 @@ declare {isabelle;ocaml;hol;coq} rename module = lem_string_extra
 
 val ord : char -> nat
 declare hol target_rep function ord = `ORD`
-declare ocaml target_rep function ord = `code`
+declare ocaml target_rep function ord = `Char.code`
 (* TODO: The Isabelle and Coq representations are taken from a quick Google
    search, they might not be the best options *)
 declare isabelle target_rep function ord = `nat_of_char`
