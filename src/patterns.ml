@@ -1579,7 +1579,7 @@ let cleanup_match_exp env add_missing e =
 
       (* add missing patterns *)
       let undef_exp = begin
-        let mes = "Incomplete Pattern at " ^ (Reporting_basic.loc_to_string true l) in
+        let mes = "Incomplete Pattern at " ^ String.escaped (Reporting_basic.loc_to_string true l) in
         mk_undefined_exp l mes (exp_to_typ e) 
       end in
       let mis_rows = List.map (fun pL -> ((pat_append_lskips space (List.hd pL), space, undef_exp, loc), middle_s)) mp.missing_pats in
@@ -1629,7 +1629,7 @@ let compile_match_exp topt mca env e =
         let cf = combine_matrix_compile_fun loc gen matrix_ty cfL in
 
         let undef_exp = begin
-          let mes = "Incomplete Pattern at " ^ (Reporting_basic.loc_to_string true loc) in
+          let mes = "Incomplete Pattern at " ^ String.escaped (Reporting_basic.loc_to_string true loc) in
           let loc' = Ast.Trans (true, "pat_matrix_compile", Some loc) in
           mk_undefined_exp loc' mes matrix_ty 
         end in
