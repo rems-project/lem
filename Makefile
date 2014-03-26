@@ -2,6 +2,7 @@ LEMVERSION=0.4
 DDIR=lem-$(LEMVERSION)
 
 PATH := $(CURDIR)/$(FINDLIB)/bin:$(PATH)
+BUILD_DIR := $$(pwd)
 
 #all: il.pdf build-main ilTheory.uo
 all: bin/lem libs
@@ -196,7 +197,7 @@ version:
 	printf 'let v="%s"\n' `git describe --dirty --always` > src/version.ml
 
 src/build_directory.ml: 
-	echo let d=\"$$(pwd)\" > src/build_directory.ml
+	echo let d=\"$(BUILD_DIR)\" > src/build_directory.ml
 
 
 distrib: src/ast.ml version headache

@@ -1,0 +1,11 @@
+description = "Lem"
+
+package "ocaml" (
+  version = "0.4.0-dev"
+  description = "Lem library for extracted OCaml"
+  requires = "num"
+
+  archive(byte) = "extract.cma"
+  archive(native) = "extract.cmxa"
+  exists_if = "extract.cma"
+)
