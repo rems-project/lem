@@ -63,6 +63,7 @@ declare hol      target_rep function unsafe_structural_inequality = infix `<>`
 
 (* The default for equality is the unsafe structural one. It can 
    (and should) be overriden for concrete types later. *)
+
 default_instance forall 'a. (Eq 'a) 
   let (=) = unsafe_structural_equality
   let (<>) = unsafe_structural_inequality
@@ -277,6 +278,22 @@ end
 
 instance (SetType bool)
   let setElemCompare = boolCompare
+end
+
+(* strings *)
+
+instance (Eq char) 
+  let (=) = unsafe_structural_equality
+  let (<>) = unsafe_structural_inequality
+end
+
+val stringEquality : string -> string -> bool
+declare coq target_rep function stringEquality = `string_equal`
+let inline {ocaml;hol;isabelle} stringEquality = unsafe_structural_equality
+
+instance (Eq string)
+  let (=)      = stringEquality
+  let (<>) l r = not (stringEquality l r)
 end
 
 (* pairs *)

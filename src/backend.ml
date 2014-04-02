@@ -2274,14 +2274,15 @@ let rec isa_def_extra (gf:extra_gen_flags) d l : Output.t = match d with
       end
       else emp
   | Lemma (_, lty, targets, (n, _), sk1, e) when (extra_gen_flags_gen_lty gf lty && in_target targets) -> begin
+      let theorem_name = (Name.to_string (Name.strip_lskip n)) in
       let lem_st = match lty with
                      | Ast.Lemma_theorem _ -> "theorem"
                      | _ -> "lemma" in
       let solve = match lty with
                      | Ast.Lemma_assert _ -> "by eval"
-                     | _ -> "(* try *) by auto" in
+                     | _ -> String.concat "" ["(* Theorem: "; theorem_name; "*)(* try *) by auto"] in
       (kwd lem_st ^ space ^
-      kwd (Name.to_string (Name.strip_lskip n)) ^ ws sk1 ^ kwd ":" ^
+      kwd theorem_name ^ ws sk1 ^ kwd ":" ^
       new_line ^
       kwd "\"" ^
       exp false e ^
@@ -2323,16 +2324,14 @@ let rec hol_def_extra gf d l : Output.t = match d with
              new_line
            end
          | _ -> begin 
-             let start = begin
-               let n_s = (Name.to_string (Name.strip_lskip n)) in
-               Format.sprintf "val %s = store_thm(\"%s\",\n" n_s n_s 
-             end in
+             let n_s = (Name.to_string (Name.strip_lskip n)) in
+             let start = Format.sprintf "val %s = store_thm(\"%s\",\n" n_s n_s in
              kwd start ^
              kwd "``" ^
              exp false e' ^
              kwd "``," ^
              new_line ^
-             meta "  (* your proof *) ALL_TAC" ^
+             meta (String.concat "" ["  (* Theorem: "; n_s; "*)(* your proof *) ALL_TAC"]) ^
              new_line ^
              kwd ");" ^
              new_line ^
