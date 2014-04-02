@@ -476,51 +476,108 @@ let make_namegen (names : Nset.t) : Ast.text -> Name.t =
   in
   fresh
 
-(* Problems : 
-   - the user can't shadow relation names
-   - we probably rename relation names anyway
-*)
-let make_renamer quantified_orig rules = 
-  let scope = Nset.union quantified_orig rules in
-  let gen_name = make_namegen scope in
-  let used = ref Nset.empty in
-  let gen_eqused () = 
-    let seen = ref Nset.empty in 
-    let equalities = ref [] in
-    let check_rename l v typ =
-      let l = loc_trans "make_renamer" l in
-      let n = Name.strip_lskip v in
-      if not (Nset.mem n quantified_orig)
-      then no_translation None
-      else 
-        begin 
-          let varname = 
-            if not (Nset.mem n !used)
-            then n
-            else 
-              let n' = gen_name (Name.to_rope n)  in
-              let v' =  Name.add_lskip n' in
-              equalities := (C.mk_var l v typ,
-                             C.mk_var l v' typ) :: !equalities;
-              n'
-          in
-          used := Nset.add varname !used;
-          seen := Nset.add varname !seen;
-          Name.add_lskip varname
-        end
+(** [extract_exp l env e avoid] creates a new variable [v] (whose name is
+    not in [avoid]) and returns
+
+    - A pattern match on this variable
+
+    - An equation [v = e] asserting that this variable is equal to [e] *)
+let extract_exp
+    (l : Ast.l) (env : env) (e : exp) (avoid : Nset.t ref)
+  : pat * exp =
+  let l = loc_trans "extract_exp" l in
+  let n =
+    Name.fresh (r"pat") (fun n -> not (Nset.mem n !avoid)) in
+  let v = Name.add_lskip n in
+  let ty = exp_to_typ e in
+  let pat =
+    mk_pvar_annot l v (t_to_src_t ty) (Some ty) in
+  let var =
+    mk_var l v ty in
+  avoid := Nset.add n !avoid;
+  (pat, (mk_eq_exp env var e))
+
+(** [linearize env pats avoid] constructs:
+
+    - New patterns from [pats] where duplicate variables have been
+    renamed with names not present in [!avoid]. [avoid] is updated to
+    contains the generated names.
+
+    - A list of equalities that between the renamed variables and
+    their initial names that must be satisfied for the new pattern(s)
+    to be equivalent to the old one(s).
+
+    For instance, when called with a pattern [C (x, K (y, x), y)], it
+    returns the new pattern [C (x, K (y, x'), y')] and the list of
+    equations [[ y = y' ; x = x']]. *)
+let linearize (env : env) (pats : pat list) (avoid : Nset.t ref)
+  : pat list * exp list =
+  let seen = ref Nset.empty in
+  let eqs = ref [] in
+  (* Constructs a fresh variable and registers its equalities *)
+  let make_fresh (n : Name.lskips_t) (l : Ast.l) (t : Types.t)
+    : Name.lskips_t =
+    let n' =
+      Name.lskip_rename
+        (fun v ->
+           if not (Nset.mem (Name.from_rope v) !seen) then v
+           else Name.(to_rope (fresh v (fun n -> not (Nset.mem n !avoid)))))
+        n
     in
-    let transform_exp l e typ = 
-      let l = loc_trans "make_renamer" l in
-      let n = gen_name (Ulib.Text.of_latin1 "pat") in
-      let v = Name.add_lskip n in
-      used := Nset.add n !used;
-      seen := Nset.add n !seen;
-      equalities := (C.mk_var l v typ, e) :: !equalities;
-      C.mk_pvar_annot l v (C.t_to_src_t typ) (Some typ)
-    in
-    (check_rename, transform_exp, seen, equalities)
+    let v = Name.strip_lskip n in
+    let v' = Name.strip_lskip n' in
+    avoid := Nset.add v' !avoid;
+    seen := Nset.add v' !seen;
+    if v' <> v then
+      eqs :=
+        (mk_eq_exp env
+           (mk_var l (Name.add_lskip v) t)
+           (mk_var l (Name.add_lskip v') t))
+        :: !eqs;
+    n' in
+  let rec linearize_pat (p : pat) : pat =
+    let ty = p.typ in
+    let l = loc_trans "linearize" p.locn in
+    match p.term with
+    | P_wild s -> mk_pwild l s ty
+    | P_as (s1, p', s2, (n, l'), s3) ->
+      mk_pas l s1 (linearize_pat p') s2
+        (make_fresh n l ty, l') s3 (Some ty)
+    | P_typ (s1, p', s2, t, s3) ->
+      mk_ptyp l s1 (linearize_pat p') s2 t s3 (Some ty)
+    | P_var n ->
+      mk_pvar l (make_fresh n l ty) ty
+    | P_const (cdr, pats) ->
+      mk_pconst l cdr (List.map linearize_pat pats) (Some ty)
+    | P_backend (s1, ident, t, pats) ->
+      mk_pbackend l s1 ident t (List.map linearize_pat pats) (Some ty)
+    | P_record (s1, fs, s2) ->
+      let fs' =
+        Seplist.map (fun (cd, s, p) ->
+            (cd, s, linearize_pat p)) fs in
+      mk_precord l s1 fs' s2 (Some ty)
+    | P_vector (s1, ps, s2) ->
+      mk_pvector l s1 (Seplist.map linearize_pat ps) s2 ty
+    | P_vectorC (s1, ps, s2) ->
+      mk_pvectorc l s1 (List.map linearize_pat ps) s2 ty
+    | P_tup (s1, ps, s2) ->
+      mk_ptup l s1 (Seplist.map linearize_pat ps) s2 (Some ty)
+    | P_list (s1, ps, s2) ->
+      mk_plist l s1 (Seplist.map linearize_pat ps) s2 ty
+    | P_paren (s1, p, s2) ->
+      mk_pparen l s1 (linearize_pat p) s2 (Some ty)
+    | P_cons (p1, s, p2) ->
+      mk_pcons l (linearize_pat p1) s
+        (linearize_pat p2) (Some ty)
+    | P_num_add ((n, l'), s1, s2, i) ->
+      mk_pnum_add l (make_fresh n l ty, l') s1 s2 i (Some ty)
+    | P_lit lit ->
+      mk_plit l lit (Some ty)
+    | P_var_annot (n, t) ->
+      mk_pvar_annot l (make_fresh n l ty) t (Some ty)
   in
-  gen_eqused
+  let pats' = List.map linearize_pat pats in
+  (pats', !eqs)
 
 (* Try to convert an expression to a pattern
 
@@ -556,56 +613,124 @@ let is_constructor
         List.mem c_d cfd.constr_list
       ) td.type_constr
 
-let cons_ref env = fst (get_const env "list_cons")
+(** [is_list_cons env cons] checks whether [cons] is the list `cons'
+    operator (::) in environment [env]. *)
+let is_list_cons
+    (env : env) (cons : const_descr_ref) : bool
+  =
+  cons = fst (get_const env "list_cons")
 
+(** [exps_to_pats avoid env es] returns a pair [(ps, eqs)], where:
 
-let exp_to_pat env e check_rename transform_exp  =
-  let rec exp_to_pat e = 
+    - [ps] is a list of same length as [es], where each expression in
+    [es] have been translated into a pattern ; that is, each pattern
+    in [ps] match exactly the expressions of same shape as the
+    corresponding expression in [es], if moreover the guards in [eqs]
+    are respected.
+
+    - [eqs] is a list of guards for the patterns. When encountering a
+    complex expression that can't directly be translated into a
+    pattern (such as a function call), [exps_to_pats] creates a fresh
+    variable to put in the pattern, and adds the equality between this
+    variable and the initial expression in [eqs]. For instance, the
+    translation of [[f x :: y]] would be [[x' :: y]] as a pattern, and
+    [[x' = f x]] as guarded equality.
+
+    The fresh variables generated avoid the names in [avoid], and are
+    added to [avoid] afterwards.
+
+    Note that the patterns may not be linear (yet), and that one must
+    call [linearize] at some point after calling [exps_to_pats]. This
+    also means that the free variables appearing in the side condition
+    may be bound in the pattern - for instance, the translation of
+    [f x :: x] would give [x' :: x] as a pattern and [x' = f x] as a
+    guard. *)
+let exps_to_pats (avoid : Nset.t ref) (env : env) (es : exp list)
+  : pat list * exp list =
+  let eqs = ref [] in
+  let rec exp_to_pat e =
     let loc = loc_trans "exp_to_pat" (exp_to_locn e) in
-    let typ = Some(exp_to_typ e) in
     let ty = exp_to_typ e in
     let (head, args) = split_app e in
-    match C.exp_to_term head, args with
-      | Constant cons, [e1;e2] when cons.descr = cons_ref env -> 
-        mk_pcons loc (exp_to_pat e1) None (exp_to_pat e2) typ 
-      | Constant c, args when is_constructor env ty c.descr -> 
-        mk_pconst loc c (List.map exp_to_pat args) typ
-      | Var v, [] ->
-            mk_pvar_annot loc (check_rename loc v ty) 
-              (C.t_to_src_t ty) typ
-      | Record(s1, fields,s2), [] -> 
-        let pfields = Seplist.map (fun (field, skip, e, _loc) ->
-          (field, skip, exp_to_pat e)) fields in
-        mk_precord loc s1 pfields s2 typ 
-      | Vector(s1, es, s2), [] -> 
-        mk_pvector loc s1 (exps_to_pats es) s2 ty
-      | Tup(s1, es, s2), [] -> 
-        mk_ptup loc s1 (exps_to_pats es) s2 typ
-      | List(s1, es, s2), [] ->
-        mk_plist loc s1 (exps_to_pats es) s2 ty
-      | Lit l, [] -> mk_plit loc l typ
-      | Set(s1, es, s2), [] when Seplist.length es = 1 ->
-        (* XXX TODO FIXME XXX: cheat here *)
-        let se = Seplist.hd es in
-        let pat = exp_to_pat se in
-(*        Reporting.print_debug_exp "Cheated on set expression" [e]; *)
-        transform_exp loc e ty
-      | _ -> (* Reporting.print_debug_exp "Untranslatable" [e]; *)transform_exp loc e ty
-  and exps_to_pats es = Seplist.map exp_to_pat es in
-  exp_to_pat e
+    match exp_to_term head, args with
+    (* Cons is treated differently than other constructors in
+       patterns. *)
+    | Constant cons, [e1;e2] when is_list_cons env cons.descr ->
+      let p1 = exp_to_pat e1 in
+      let p2 = exp_to_pat e2 in
+      mk_pcons loc p1 None p2 (Some ty)
+    | Constant c, args when is_constructor env ty c.descr ->
+      let pargs =
+        List.fold_right (fun e (pats) ->
+            let p = exp_to_pat e in
+            (p :: pats)) args ([]) in
+      mk_pconst loc c pargs (Some ty)
+    | Var v, [] ->
+      mk_pvar_annot loc v (t_to_src_t ty) (Some ty)
+    | Record(s1, fields, s2), [] ->
+      let pfields =
+        Seplist.map (fun (cd, s, e, _loc) ->
+            (cd, s, exp_to_pat e)) fields in
+      mk_precord loc s1 pfields s2 (Some ty)
+    | Vector(s1, es, s2), [] ->
+      let ps = Seplist.map exp_to_pat es in
+      mk_pvector loc s1 ps s2 ty
+    | Tup(s1, es, s2), [] ->
+      let ps = Seplist.map exp_to_pat es in
+      mk_ptup loc s1 ps s2 (Some ty)
+    | List(s1, es, s2), [] ->
+      let ps = Seplist.map exp_to_pat es in
+      mk_plist loc s1 ps s2 ty
+    | Lit l, [] ->
+      mk_plit loc l (Some ty)
+    (* TODO: Sets, x+1, ...
+          | Set(s1, es, s2), [] when Seplist.length es = 1 ->
+            (* XXX TODO FIXME XXX: cheat here *)
+            let se = Seplist.hd es in
+            let _pat = exp_to_pat se in
+       (*        Reporting.print_debug_exp env "Cheated on set expression" [e];*)
+            transform_exp loc e ty *)
+    | _ ->
+      Reporting.print_debug_exp env "Extracting non-pattern expression" [e];
+      let (p, eq) = extract_exp loc env e avoid in
+      eqs := eq :: !eqs;
+      p in
+  let ps = List.map exp_to_pat es in
+  (ps, !eqs)
 
-let find_some f l = try Some(List.find f l) with Not_found -> None
+(** [exp_to_pat avoid env e] converts expression [e] into a pattern.
 
-let convert_output env gen_rn exps mask = 
-  let (check_rename, transform_exp, bound, equalities) = gen_rn () in
-  let outargs = map_filter id (List.map2 (fun exp inarg ->
-    if inarg then None
-    else Some (exp_to_pat env exp check_rename transform_exp)
-  ) exps mask) in
-  (outargs, !bound, !equalities)
+    See [exps_to_pats]. *)
+let exp_to_pat (avoid : Nset.t ref) (env : env) (e : exp)
+  : pat * exp list =
+  let (ps, eqs) = exps_to_pats avoid env [e] in
+  (List.hd ps, eqs)
 
-let newline = Some([Ast.Nl])
-let space = Some([Ast.Ws(Ulib.Text.of_latin1 " ")])
+(** [pat_to_bound p] returns the variables bound by [p]. *)
+let pat_to_bound (p : pat) : Types.t Nmap.t =
+  p.rest.pvars
+
+(** [pats_to_bound ps] returns the variables bound by a pattern in
+    [ps]. *)
+let pats_to_bound (ps : pat list) : Types.t Nmap.t =
+  List.fold_left (fun bound p ->
+      Nfmap.union p.rest.pvars bound)
+    Nfmap.empty ps
+
+(** [extract_patterns env avoid exps mask] converts the expressions from
+    [exps] at positions where the corresponding value in [mask] is
+    [true] into patterns.
+
+    It also returns the equalities that have been generated to extract
+    the non-patternizable expressions (e.g. function calls), see
+    [exps_to_pats]. *)
+let extract_patterns
+    (env : env) (avoid : Nset.t ref) (exps : exp list)
+    (mask : bool list)
+  : pat list * exp list =
+  exps_to_pats avoid env
+    (map_filter (fun (e, m) -> if m then Some e else None)
+       (List.map2 (fun x y -> (x, y)) exps mask))
 
 let sep_newline l = Seplist.from_list_default newline l
 
@@ -1353,21 +1478,20 @@ let transform_rule
   let l = loc_trans "transform_rule" rule.rule_loc in
   (* The variables that appears in the rule's [forall] part *)
   let vars = Nfmap.domain (Nfmap.from_list rule.rule_vars) in
-  (* TODO : we probably don't need localrels here *)
-  let avoid = Nfmap.fold (fun avoid relname reldescr ->
-    List.fold_left (fun avoid (funname, _) -> Nset.add funname avoid)
-      (Nset.add relname avoid) reldescr.rel_indfns
-  ) Nset.empty localrels in
-  let gen_rn = make_renamer vars avoid in
-  let (patterns, initknown, initeqs) = 
-    convert_output env gen_rn rule.rule_args (List.map (fun x -> x = Rel_mode_out) mode) in
-  let gen_witness_name = 
+  let avoid = ref Nset.empty in
+  (* Constructs the patterns for input mode. Used at the end. *)
+  let (patterns, initeqs) =
+    extract_patterns env avoid rule.rule_args
+      (List.map (fun x -> x = Rel_mode_in) mode) in
+  (* The variables bound by [patterns] are already known *)
+  let initknown = Nmap.domain (pats_to_bound patterns) in
+  let gen_witness_name =
     let gen = make_namegen Nset.empty in
     fun () -> gen (Ulib.Text.of_latin1 "witness") in
   let gen_witness_var relinfo =
     match relinfo.ri_witness with
-      | None -> None
-      | Some(t,_) -> Some(gen_witness_name (), {t=Tapp([],t)})
+    | None -> None
+    | Some(t,_) -> Some(gen_witness_name (), {t=Tapp([],t)})
   in
   let (indconds, usefuleqs, sideconds) =
     partition_conditions l env rule.rule_conds in
@@ -1402,60 +1526,85 @@ let transform_rule
       in
       let args = rule.rule_vars @ witness_var_order in
       let args = List.map
-        (fun (name,ty) -> mk_var l (Name.add_lskip name) ty) args in
+          (fun (name,ty) -> mk_var l (Name.add_lskip name) ty) args in
       let constr_id = {id_path = Id_none None; id_locn = Ast.Unknown;
                        descr = constr_descr_ref; instantiation = []} in
       let constr = mk_const l constr_id None in
       let wit = List.fold_left (fun u v -> mk_app l u v None) constr args in
       returns@[wit]
   in
-  let rec build_code known indconds sideconds eqconds usefuleqs =
-    let exp_known e = Nfmap.fold (fun b v _ -> b && Nset.mem v known) 
-      true (C.exp_to_free e) in
-    let (selected_eqs,eqconds2) = 
-      List.partition (fun (e1,e2) -> exp_known e1 && exp_known e2) eqconds in
-    let (selected_side,sideconds2) = 
+  let add_side side x = List.fold_left (fun x e -> IF(e,x)) x side in
+  (* build_code does some stuff. It seems to be generating code
+     according to some algorithm. *)
+  let rec build_code
+      (known : Nset.t) indconds (sideconds : exp list)
+      (eqconds : exp list) (usefuleqs : (exp * exp) list) =
+    (* [exp_known e] checks whether all free variables of [e] are in [known]. *)
+    let exp_known e = Nfmap.fold (fun b v _ -> b && Nset.mem v known)
+        true (exp_to_free e) in
+    (* [selected_eqs] are the equality where both sides are currently known. *)
+    let (selected_eqs,eqconds2) =
+      List.partition (fun e -> exp_known e) eqconds in
+    (* [selected_side] are the side conditions that can already be computed. *)
+    let (selected_side,sideconds2) =
       List.partition (fun e -> exp_known e) sideconds in
-    let add_eq eq x = List.fold_left (fun x (e1,e2) -> IFEQ(e1,e2,x)) x eq in
-    let add_side side x = List.fold_left (fun x e -> IF(e,x)) x side in
     let rec search_ind notok = function
       | [] ->
         begin match eqconds2,sideconds2 with
-          | [], [] when notok = [] && List.for_all exp_known returns -> 
+          | [], [] when notok = [] && List.for_all exp_known returns ->
             RETURN returns
-          | _ -> report_no_translation rel rule full_mode print_debug
+          | _ ->
+            if print_debug then begin
+              Format.eprintf "DEBUG: Known variables: ";
+              Nset.iter (fun n ->
+                  Format.eprintf "%s " (Name.to_string n))
+                known;
+              Format.eprintf "@.";
+              Reporting.print_debug_exp env "Return expressions: " returns;
+              Reporting.print_debug_exp env "Equalities conditions: "
+                (eqconds2);
+              Reporting.print_debug_exp env "Side conditions: "
+                sideconds2;
+              Format.eprintf "DEBUG: %d notoks@." (List.length notok)
+            end;
+            report_no_translation rel rule full_mode print_debug
         end
       | (modes,args,wit_var) as c::cs ->
         let inargs = List.map exp_known args in
-        let mode_matches ((fun_mode, fun_wit, fun_out_mode),_info) = 
+        let mode_matches ((fun_mode, fun_wit, fun_out_mode),_info) =
           List.for_all (fun x -> x)
             (List.map2 (fun inp m -> inp || m = Rel_mode_out) inargs fun_mode)
-            && (not need_wit || fun_wit) 
-            && (fun_out_mode = out_mode)
+          && (not need_wit || fun_wit)
+          && (fun_out_mode = out_mode)
         in
         match List.filter mode_matches modes with
-          | [] -> search_ind (c::notok) cs
-          | ((fun_mode, fun_wit, _out_mode), fun_ref) ::ms -> 
-            let (outputs, bound, equalities) = convert_output env gen_rn args 
-              (List.map (fun m -> m = Rel_mode_in) fun_mode) in
-            let outputs = match wit_var with
-              | Some(wit_name, wit_ty) when fun_wit ->
-                outputs @ [mk_pvar l (Name.add_lskip wit_name) wit_ty]
-              | _ -> outputs
-            in
-            let inputs = map_filter id (List.map2 (fun exp m ->
+        | [] -> search_ind (c::notok) cs
+        | ((fun_mode, fun_wit, _out_mode), fun_ref) ::ms ->
+          let (outputs, equalities) =
+            extract_patterns env avoid args
+              (List.map (fun m -> m = Rel_mode_out) fun_mode) in
+          let bound = Nmap.domain (pats_to_bound outputs) in
+          let outputs, bound = match wit_var with
+            | Some(wit_name, wit_ty) when fun_wit ->
+              outputs @ [mk_pvar l (Name.add_lskip wit_name) wit_ty],
+              Nset.add wit_name bound
+            | _ -> outputs, bound
+          in
+          let inputs = map_filter id (List.map2 (fun exp m ->
               match m with
-                | Rel_mode_in -> Some(exp)
-                | Rel_mode_out -> None
+              | Rel_mode_in -> Some(exp)
+              | Rel_mode_out -> None
             ) args fun_mode) in
-            CALL(fun_ref, inputs, outputs,
-                 build_code (Nset.union bound known) (cs@notok) 
-                   sideconds2 (equalities@eqconds2) usefuleqs)
+          CALL (fun_ref, inputs, outputs,
+                build_code (Nset.union bound known)
+                  (cs@notok) sideconds2 (equalities@eqconds2) usefuleqs)
     in
-    let use_eq usefuleqs u v = 
+    let use_eq usefuleqs u v =
       (* u is known, v is (maybe) unknown *)
-      let ([output], bound, equalities) = convert_output env gen_rn [v] [false] in
-      LET(output, u, 
+      let ([output], equalities) =
+        extract_patterns env avoid [v] [true] in
+      let bound = Nmap.domain (pat_to_bound output) in
+      LET(output, u,
           build_code (Nset.union bound known) indconds
             sideconds2 (equalities@eqconds2) usefuleqs)
     in
@@ -1465,13 +1614,15 @@ let transform_rule
       | (u,v)::es when exp_known v -> use_eq (notok@es) v u
       | e::es -> search_eq (e::notok) es
     in
-    add_eq selected_eqs (add_side selected_side (search_eq [] usefuleqs))
+    add_side selected_eqs (add_side selected_side (search_eq [] usefuleqs))
   in
-  (l, patterns, build_code initknown indconds sideconds initeqs usefuleqs)
-
+  let e =
+    build_code initknown indconds sideconds initeqs usefuleqs in
+  let (ps, eqs)= linearize env patterns avoid in
+  (l, ps, add_side [mk_and_exps env eqs] e)
 
 let transform_rules env localrels mode reldescr print_debug =
-  List.map (fun x -> transform_rule env localrels mode reldescr x print_debug) 
+  List.map (fun x -> transform_rule env localrels mode reldescr x print_debug)
     reldescr.rel_rules
 
 (* env is the globalized env *)
