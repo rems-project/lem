@@ -8,6 +8,10 @@ open Typed_ast_syntax
 (* FIXME *)
 let raise_error l m f x = raise (Reporting_basic.err_type_pp l m f x)
 
+let r = Ulib.Text.of_latin1
+let newline = Some [Ast.Nl]
+let space = Some [Ast.Ws(r" ")]
+
 module Converter(C : Exp_context) = struct
 
 module C = Exps_in_context(C)
@@ -16,197 +20,319 @@ open C
 module Nmap = Typed_ast.Nfmap
 module Nset = Nmap.S
 
-
 let sep_no_skips l = Seplist.from_list_default None l
 
+(* TODO: Move to util. *)
+type ('a,'b) choice = Left of 'a | Right of 'b
 
-let typ_unit = {t=Tapp([],Path.unitpath)}
+let map_partition f l =
+  List.fold_right (fun x (ls,rs) ->
+    match f x with
+      | Left l -> (l::ls,rs)
+      | Right r -> (ls,r::rs)
+  ) l ([],[])
 
-let lit_unit l = {
-  term = L_unit(None, None);
-  locn = l;
-  typ = typ_unit;
-  rest = ()
-}
+(******************************************************************************)
+(* Auxiliary functions acting on the AST                                      *)
+(******************************************************************************)
 
-let mk_tup_unit_exp l : exp list -> exp = function
-  | [] -> mk_lit l (lit_unit l) None
-  | [e] -> e
-  | es -> mk_tup l None (sep_no_skips es) None None
+(* Locations                                                                  *)
 
-let mk_tup_unit_pat l : pat list -> pat= function
-  | [] -> mk_plit l (lit_unit l) None
-  | [p] -> p
-  | ps -> mk_ptup l None (sep_no_skips ps) None None
+(** [loc_trans s l] returns the location [l] annotated with the
+    information that translation was performed by [s] at this
+    location *)
+let loc_trans (s : string) (l : Ast.l) : Ast.l =
+  Ast.Trans (true, s, Some l)
 
-let mk_tup_unit_typ = function
-  | [] -> typ_unit
+(* Types                                                                      *)
+
+(** [unit_ty] represent the Lem type [()] *)
+(* TODO: Move to typed_ast_syntax *)
+let unit_ty : Types.t =
+  { t = Tapp ([], Path.unitpath) }
+
+(** [mk_fun_ty [T1 ; ... ; Tn] ret] constructs the type
+    [T1 -> ... -> Tn -> ret] *)
+let mk_fun_ty args ret =
+  List.fold_right (fun a b -> {t=Tfn(a,b)}) args ret
+
+(** [mk_option_type ty] constructs the type [maybe ty] *)
+let mk_option_type (ty : Types.t) : Types.t =
+  { Types.t = Types.Tapp ( [ty],
+                           Path.mk_path [ Name.from_string "Maybe" ]
+                             (Name.from_string "maybe") ) }
+(** [remove_option ty] removes the maybe constructor from type
+    [maybe t], and fails otherwise. *)
+(* TODO: This actually removes any type constructor. Plus this should
+   probably not be done. *)
+let remove_option (ty : Types.t) : Types.t =
+  match ty.t with
+  | Types.Tapp([ty], _) -> ty
+  | _ -> failwith "???"
+
+(** [mk_list_type ty] constructs the type [list ty] *)
+let mk_list_type ty =
+  { Types.t = Types.Tapp([ty], Path.listpath) }
+
+(** [mk_tup_unit_typ tys] converts the list of types [tys] into a
+    single tuple type. *)
+let mk_tup_unit_typ : t list -> t = function
+  | [] -> unit_ty
   | [t] -> t
   | l -> {t=Ttup(l)}
 
+(* Literals                                                                   *)
 
-let loc_trans s l = Ast.Trans(true, s, Some(l))
+let mk_lunit (l : Ast.l) : lit =
+  { term = L_unit (None, None) ;
+    locn = l ;
+    typ = unit_ty ;
+    rest = () }
 
-let is_true l = match l.term with
-  | L_true _ -> true
-  | _ -> false
+(* Constants                                                                  *)
 
-let r = Ulib.Text.of_latin1
-let mk_string_path ns n = Path.mk_path (List.map (fun s -> Name.from_rope (r s)) ns) (Name.from_rope (r n))
+let const_descr
+    ~binding ?(tparams=[]) ?(class_=[])
+    ?(no_class=Target.Targetmap.empty)
+    ?(ranges=[]) ~type_ ?(relation_info=None)
+    ~env_tag ?(targets=Target.Targetset.empty)
+    ~l ?(target_rename=Target.Targetmap.empty)
+    ?(target_rep=Target.Targetmap.empty)
+    ?(target_ascii_rep=Target.Targetmap.empty)
+    ?(compile_message=Target.Targetmap.empty)
+    ?(termination_setting=Target.Targetmap.empty)
+    ()
+  : const_descr =
+  { const_binding = binding ;
+    const_tparams = tparams ;
+    const_class = class_ ;
+    const_no_class = no_class ;
+    const_ranges = ranges ;
+    const_type = type_ ;
+    relation_info = relation_info ;
+    env_tag = env_tag ;
+    const_targets = targets ;
+    spec_l = l ;
+    target_rename = target_rename ;
+    target_rep = target_rep ;
+    target_ascii_rep = target_ascii_rep ;
+    compile_message = compile_message ;
+    termination_setting = termination_setting }
 
-let mk_const_ref (env : env) l (c_ref : const_descr_ref) inst = 
-  let id = {id_path = Id_none None; 
-            id_locn = l; 
-            descr = c_ref; 
-            instantiation = inst} in
+(** [and_const_ref env] represent the Lem constant [&&] in environment
+    [env] *)
+let and_const_ref (env : env) : const_descr_ref =
+  fst (get_const env "conjunction")
+
+(** [eq_const_ref env] represent the Lem equality function in
+    environment [env]. *)
+let eq_const_ref (env : env) : const_descr_ref =
+  fst (get_const env "equality")
+
+(* Expressions                                                                *)
+
+let mk_unit_exp =
+  let l = Ast.Trans (false, "mk_unit_exp", None) in
+  let lit = mk_lunit l in
+  let exp = mk_lit l lit (Some unit_ty) in
+  exp
+
+let is_t_exp e =
+  is_tf_exp true e
+
+(** [mk_const_ref env l c_ref inst] transforms the constant [c_ref]
+    into an expression by giving it the instantiation [inst]. *)
+let mk_const_ref
+    (env : env) (l : Ast.l) (c_ref : const_descr_ref)
+    (inst : Types.t list)
+  : exp
+  =
+  let id = { id_path = Id_none None;
+             id_locn = l;
+             descr = c_ref;
+             instantiation = inst } in
   let c_d = c_env_lookup l env.c_env c_ref in
   let t = Types.type_subst 
     (Types.TNfmap.from_list2 c_d.const_tparams id.instantiation) 
     c_d.const_type in
   C.mk_const l id (Some t)
 
+(** [mk_tup_unit_exp l es] converts the list of expressions [es] into
+    a single tuple expression. *)
+let mk_tup_unit_exp l : exp list -> exp = function
+  | [] -> mk_unit_exp
+  | [e] -> e
+  | es -> mk_tup l None (sep_no_skips es) None None
 
-let and_const_ref env = fst (get_const env "conjunction")
-let eq_const_ref env = fst (get_const env "equality")
-let id_const_ref env = fst (get_const env "identity")
-
-let mk_fun_ty args ret =
-  List.fold_right (fun a b -> {t=Tfn(a,b)}) args ret
-
-let mk_option ty = 
-  { Types.t = Types.Tapp([ty], mk_string_path ["Maybe"] "maybe") } 
-
-let remove_option ty = 
-  match ty.t with
-    | Types.Tapp([ty], _) -> ty
-    | _ -> failwith "???"
-
-let path_to_string_list p = 
-  let (mp,n) = Path.to_name_list p in
-  (List.map Name.to_string mp, Name.to_string n)
-
-let mk_pconst_pat env l label inst args = 
-  let (c, c_d) = get_const_id env l label inst in
-  let t = Types.type_subst
-    (Types.TNfmap.from_list2 c_d.const_tparams c.instantiation)
-    c_d.const_type in
-  C.mk_pconst l c args (Some t)
-
-let mk_const_app env l label inst args = 
-  let c = mk_const_exp env l label inst in
-  List.fold_left (fun u v -> mk_app l u v None) c args
-
-
-let c_env_lookup_rel_info l c_env c_ref =
-  let c_d = c_env_lookup l c_env c_ref in
-  match c_d.relation_info with
-    | Some(x) -> x
-    | None -> {ri_witness = None; ri_check = None; ri_fns = []}
-
-let c_env_update_rel_info l c_env c_ref ri =
-  let c_d = c_env_lookup l c_env c_ref in
-  c_env_update c_env c_ref {c_d with relation_info = Some(ri)}
-
-module LemOptionMonad = struct
-
-  let mk_none env ty = mk_const_app env Ast.Unknown "maybe_nothing" [ty] []
-  let mk_some env e = mk_const_app env Ast.Unknown "maybe_just" [exp_to_typ e] [e]
-  let mk_pnone env ty = mk_pconst_pat env Ast.Unknown "maybe_nothing" [ty] []
-  let mk_psome env p = mk_pconst_pat env Ast.Unknown "maybe_just" [p.typ] [p]
-    
-  let mk_bind env call pat code = 
-    let l = Ast.Trans (true, "mk_bind", None) in
-    mk_case_exp false l call
-      [(mk_psome env pat, code);
-       (mk_pwild l None (exp_to_typ call), mk_none env (remove_option (exp_to_typ code)))]
-      (exp_to_typ code)
-      
-  let mk_cond env cond code = 
-    let l = Ast.Trans (true, "mk_cond", None) in
-    mk_if_exp l cond code (mk_none env (remove_option (exp_to_typ code)))
-
-end
-
-
-let is_and env e = 
-  match C.exp_to_term e with
+(** [is_and env e] checks whether expression [e] is the [&&] constant in
+    environment [env] *)
+let is_and (env : env) (e : exp) =
+  match exp_to_term e with
     | Constant c -> c.descr = and_const_ref env
     | _ -> false
 
 (* Splits on infix (&&) : ((a && b) && (c && d)) && true -> [a;b;c;d] *)
-let rec split_and (env : env) (e : exp) = 
-  match C.exp_to_term e with
+let rec split_and (env : env) (e : exp) : exp list =
+  match exp_to_term e with
     | Infix(e1, op_and, e2) when is_and env op_and ->
       split_and env e1 @ split_and env e2
-    | Lit lit_true when is_true lit_true -> []
     | Paren(_,e,_) -> split_and env e
     | Typed(_,e,_,_,_) -> split_and env e
+    | _ when is_t_exp e -> []
     | _ -> [e]
 
-(* 
+(* [mk_const_app env l label inst args] constructs the application of
+   [label] to arguments [args] with type instantiation [inst]. *)
+let mk_const_app
+    (env : env) (l : Ast.l) (label : string)
+    (inst : Types.t list) (args : exp list)
+  : exp =
+  let c = mk_const_exp env l label inst in
+  List.fold_left (fun u v -> mk_app l u v None) c args
+
+(* Patterns                                                                   *)
+
+(** [mk_tup_unit_pat l ps] converts the list of patterns [ps] into a
+    single pattern on tuples. *)
+let mk_tup_unit_pat l : pat list -> pat= function
+  | [] -> mk_plit l (mk_lunit l) None
+  | [p] -> p
+  | ps -> mk_ptup l None (sep_no_skips ps) None None
+
+(** [mk_pconst_pat env l label inst args] constructs the pattern
+    matching values of shape [label (args)] where the type variables in
+    the type of [label] have been instantiated with the types in
+    [inst]. *)
+let mk_pconst_pat (env : env) (l : Ast.l) (label : string)
+    (inst : t list) (args : pat list) : pat =
+  let (c, c_d) = get_const_id env l label inst in
+  let t = Types.type_subst
+    (Types.TNfmap.from_list2 c_d.const_tparams c.instantiation)
+    c_d.const_type in
+  mk_pconst l c args (Some t)
+
+(* Relation information                                                       *)
+
+(** [c_env_lookup_rel_info l c_env c_ref] extracts the relation
+    information for [c_ref] in [c_env] with a default value. *)
+let c_env_lookup_rel_info
+    (l : Ast.l) (c_env : c_env) (c_ref : const_descr_ref)
+  : rel_info =
+  let c_d = c_env_lookup l c_env c_ref in
+  match c_d.relation_info with
+  | Some(x) -> x
+  | None -> { ri_witness = None ;
+              ri_check = None ;
+              ri_fns = [] }
+
+(** [c_env_update_rel_info l c_env c_ref ri] updates the relation
+    information for [c_ref] in [c_env] with [ri] *)
+let c_env_update_rel_info
+    (l : Ast.l) (c_env : c_env) (c_ref : const_descr_ref)
+    (ri : rel_info)
+  : c_env =
+  let c_d = c_env_lookup l c_env c_ref in
+  c_env_update c_env c_ref { c_d with relation_info = Some(ri) }
+
+type mode_spec =
+  (* The input/output specifiers *)
+  rel_mode
+  (* Should witnesses be generated? *)
+  * bool
+  (* The monad in which code should be generated *)
+  * rel_output_type
+
+(*
   Group rules by output relation
 *)
 
+(** Describes a rule *)
 type ruledescr = {
+  (** Name of the rule *)
   rule_name : Name.t;
-  rule_vars : (Name.t * Types.t) list;
-  rule_conds : exp list;
-  rule_args : exp list;
-  rule_loc : Ast.l;
-} 
 
+  (** Quantified variables *)
+  rule_vars : (Name.t * Types.t) list;
+
+  (** Conditions *)
+  rule_conds : exp list;
+
+  (** Arguments for the conclusion *)
+  rule_args : exp list;
+
+  (** Source location for the definition *)
+  rule_loc : Ast.l;
+}
+
+(** Describes a relation *)
 type reldescr = {
+  (** Name of the relation *)
   rel_name : Name.t;
+
+  (** Reference to the defined constant. *)
   rel_const_ref : const_descr_ref;
+
+  (** Type scheme of the relation. *)
   rel_type : typschm;
+
+  (** Types of the relation's arguments *)
   rel_argtypes : Types.t list;
+
+  (** Name of the type if we must generate one. *)
   rel_witness : Name.t option;
+
+  (** Name of the witness checking function if we must generate one. *)
   rel_check : Name.t option;
+
+  (** Name and modes of the functions that should be generated. *)
   rel_indfns : (Name.t * (rel_mode * bool * rel_output_type)) list;
+
+  (** The rules determining this relation. *)
   rel_rules : ruledescr list;
+
+  (** Source location for the indreln block. *)
   rel_loc : Ast.l;
 }
 
 type relsdescr = reldescr Nfmap.t
 
-
-let mk_list_type ty = 
-  { Types.t = Types.Tapp([ty], Path.listpath) }
-
-let map_option f = function
-  | Some(x) -> Some(f x)
-  | None -> None
-
-let to_in_out (typ : src_t) : rel_io = 
+(** Converts the source types "input" and "output" to [Rel_mode_in]
+    and [Rel_mode_out] respectively. *)
+(* TODO: This should probably be done earlier. *)
+let to_in_out (typ : src_t) : rel_io =
   match typ.term with
-    | Typ_app({id_path = p}, []) ->
-      begin match p with
-        | Id_some(i) -> 
-          begin match Name.to_string (Name.strip_lskip (Ident.get_name i)) with
-            | "input" -> Rel_mode_in
-            | "output" -> Rel_mode_out
-            | s -> raise (Invalid_argument ("to_in_out: "^s))
-          end
-        | _ -> raise (Invalid_argument "to_in_out")
-      end
-    | _ -> raise (Invalid_argument "to_in_out")
+  | Typ_app({id_path = Id_some i }, []) ->
+    begin match Name.to_string (Name.strip_lskip (Ident.get_name i)) with
+      | "input" -> Rel_mode_in
+      | "output" -> Rel_mode_out
+      | s -> raise (Invalid_argument ("to_in_out: "^s))
+    end
+  | _ -> raise (Invalid_argument "to_in_out")
 
+(** The default output mode if not specified. *)
+(* TODO: Should there be a default mode? *)
 let default_out_mode = Out_pure
 
-let rec src_t_to_mode (typ : src_t) : rel_mode * bool * rel_output_type =
+(** [src_t_to_mode typ] converts the type with source annotations
+    [typ] into a mode specification, i.e. a list of input/output
+    specifiers for the arguments, a boolean indicating whether a
+    witness should be generated, and a [rel_output_type] specification
+    for the monad in which to generate the code. *)
+(* TODO: This should probably be done earlier. *)
+let rec src_t_to_mode (typ : src_t) : mode_spec =
   match typ.term with
     | Typ_paren(_,t,_) -> src_t_to_mode t
-    | Typ_fn(x1,_,x2) -> 
+    | Typ_fn(x1,_,x2) ->
       let (mode, wit, out) = src_t_to_mode x2 in
       (to_in_out x1::mode, wit, out)
     | Typ_app({id_path = p },args) ->
-      begin 
+      begin
         try ([to_in_out typ], false, default_out_mode)
-        with Invalid_argument _ -> 
+        with Invalid_argument _ ->
           begin match p with
             | Id_some(i) ->
               let n = Name.to_string (Name.strip_lskip (Ident.get_name i)) in
-              begin match n with 
+              begin match n with
                 | "unit" | "bool" -> ([], false, default_out_mode)
                 | "list" -> ([], args <> [], Out_list)
                 | "option" -> ([], args <> [], Out_option)
@@ -218,91 +344,132 @@ let rec src_t_to_mode (typ : src_t) : rel_mode * bool * rel_output_type =
       end
     | _ -> raise (Invalid_argument "src_t_to_mode")
 
+(******************************************************************************)
+(* Extracting a relation description                                          *)
+(******************************************************************************)
 
-let rec decompose_rel_type typ = 
+(** Extract the arguments types from a relation. *)
+let rec decompose_rel_type (typ : src_t) : Types.t list =
   match typ.term with
     | Typ_fn(u,_,v) -> u.typ::decompose_rel_type v
     | _ -> [] (* The return value is assumed to be bool, we don't check it *)
 
-let get_rels (env : env) (l : Ast.l) (names : indreln_name lskips_seplist) 
+(** Extract the relation descriptions from a seplist of [indreln_name].
+    The extracted relation doesn't have any rule information. *)
+let get_relsdescr_from_names
+    (l : Ast.l) (names : indreln_name lskips_seplist)
+  : relsdescr =
+  Seplist.fold_left (fun (RName (_, n, c_ref, _, t, wit, chk, fn, _)) s ->
+      let relname = Name.strip_lskip n in
+      let witness_name =
+        option_map (fun (Indreln_witness (_, _, n, _)) ->
+            Name.strip_lskip n) wit in
+      let check_name =
+        option_map (fun (_, n, _) -> Name.strip_lskip n) chk in
+      let (_constraints, typ) = t in
+      let argtypes  =
+        decompose_rel_type typ in
+      let indfns =
+        List.map
+          (fun (Indreln_fn (n, _, t, _)) ->
+             (Name.strip_lskip n, src_t_to_mode t))
+          (option_default [] fn) in
+      let descr =
+        { rel_name = relname ;
+          rel_const_ref = c_ref ;
+          rel_type = t ;
+          rel_argtypes = argtypes ;
+          rel_witness = witness_name ;
+          rel_check = check_name ;
+          rel_indfns = indfns ;
+          rel_rules = [] ;
+          rel_loc = l
+        }
+      in
+      Nfmap.insert s (relname, descr))
+    Nfmap.empty names
+
+(** [add_rules_to_relsdescr env rules descr] adds the rules from
+    [rules] to the relation descriptions in [descrs].
+
+    [env] is used to detect conjunctions in the hypotheses.
+
+    For every rule in [rules], its relation must have an associated
+    relation description in [descrs], otherwise the function fails.
+*)
+let add_rules_to_relsdescr
+    (env : env) (rules : indreln_rule lskips_seplist)
+    (descrs : relsdescr)
+  : relsdescr =
+  Seplist.fold_left (fun (Rule (n, _, _, vars, _, cond, _, rel, _, args), l) s ->
+      let l' = loc_trans "add_rules_to_relsdescr" l in
+      let rulecond =
+        match cond with
+        | Some x -> x
+        | None -> mk_tf_exp true in
+      let extract_name = function
+        | QName n -> n
+        | Name_typ (_, n, _, _, _) -> n in
+      let typed_vars =
+        List.map (fun qv ->
+            let v = extract_name qv in
+            (Name.strip_lskip v.term, v.typ))
+          vars in
+      let ruledescr = {
+        rule_name = Name.strip_lskip n ;
+        rule_vars = typed_vars ;
+        rule_conds = split_and env rulecond ;
+        rule_args = args ;
+        rule_loc = l
+      } in
+      let relname = Name.strip_lskip rel.term in
+      match Nfmap.apply s relname with
+      | None ->
+        failwith "Relation without description"
+      | Some rel ->
+        Nfmap.insert s
+          (relname, { rel with rel_rules = ruledescr :: rel.rel_rules }))
+    descrs rules
+
+(** [get_rels env l names rules] combines both
+    [add_rules_to_relsdescr] and [get_relsdescr_from_names] to extract
+    the full relation description from the relation in [names] with
+    rules in [rules]. *)
+let get_rels (env : env) (l : Ast.l) (names : indreln_name lskips_seplist)
     (rules: indreln_rule lskips_seplist) : relsdescr =
-  let names = List.fold_left (fun s (RName(_,n,n_c,_,t,wit,chk,fn,_)) ->
-    let relname = Name.strip_lskip n in
-    let witness = map_option (fun (Indreln_witness(_,_,n,_)) -> Name.strip_lskip n) wit in 
-    let check = map_option (fun (_,n,_) -> Name.strip_lskip n) chk in
-    let (_constraints, typ) = t in
-    let argtypes = decompose_rel_type typ in
-    let fn = match fn with None -> [] | Some(x) -> x in
-    let indfns = List.map 
-      (fun (Indreln_fn(n,_,t,_)) -> (Name.strip_lskip n, src_t_to_mode t)) fn in
-    let descr = {
-      rel_name = relname;
-      rel_const_ref = n_c;
-      rel_type = t;
-      rel_argtypes = argtypes; 
-      rel_witness = witness;
-      rel_check = check;
-      rel_indfns = indfns;
-      rel_rules = [];
-      rel_loc = l; 
-    } in
-    Nfmap.insert s (relname, descr)
-  ) Nfmap.empty (Seplist.to_list names) in
-  List.fold_left (fun s (Rule(rulename,_,_,vars,_,cond,_,rel,_,args),l) ->
-    let rulename = Name.strip_lskip rulename in
-    let relname = Name.strip_lskip rel.term in
-    let l' = loc_trans "get_rels" l in
-    let rulecond = match cond with
-      | Some x -> x
-      | None -> C.mk_lit l'
-        {term = L_true None; 
-         locn = l'; 
-         typ =  {t = Tapp([], Path.boolpath)}; 
-         rest = ()
-        } None in
-    let vars = List.map (function
-      | QName(n) -> n
-      | Name_typ(_,n,_,_,_) -> n
-    ) vars in
-    let ruledescr = {
-      rule_name = rulename;
-      rule_vars = List.map (fun v -> (Name.strip_lskip v.term, v.typ) ) vars;
-      rule_conds = split_and env rulecond;
-      rule_args = args;
-      rule_loc = l;
-    } in
-    match Nfmap.apply s relname with
-      | None -> failwith "Relation without description"
-      | Some rel -> Nfmap.insert s 
-        (relname, {rel with rel_rules = ruledescr::rel.rel_rules})
-  ) names (Seplist.to_list rules)
-
-type ('a,'b) choice = Left of 'a | Right of 'b
-
-let map_partition f l = 
-  List.fold_right (fun x (ls,rs) ->
-    match f x with
-      | Left l -> (l::ls,rs)
-      | Right r -> (ls,r::rs)
-  ) l ([],[])
+  add_rules_to_relsdescr env rules
+    (get_relsdescr_from_names l names)
 
 
 (* Just a small model of the code we will generate later
    We will need a partial "exp to pattern" function somewhere *)
-type code = 
-  | IF of exp * code 
+type code =
+  (* [IF (e, c)] becomes
+       [if e then [[c]] else fail] *)
+  | IF of exp * code
+  (* [CALL (fn, [e1; ..; en], [p1; ..; pn], c)] becomes
+       [bind (fn e1 .. en) (function | (p1, .., pn) -> [[c]] | _ -> fail)] *)
   | CALL of const_descr_ref * exp list * pat list * code
+  (* [LET (p, e, c)] becomes
+       [match e with | p -> [[c]] | _ -> fail] *)
   | LET of pat * exp * code
-  | IFEQ of exp * exp * code 
+  (* [IFEQ (e1, e2, c)] becomes
+       [if e1 = e2 then [[c]] else fail] *)
+  | IFEQ of exp * exp * code
+  (* [RETURN (e1, ..., en)] becomes
+       [return (e1, ..., en)] *)
   | RETURN of exp list
 
 exception No_translation of exp option
-
 let no_translation e = raise (No_translation e)
 
-let make_namegen names = 
+(** [make_namegen names] returns a name generator that
+    - Never generates twice the same name.
+    - Never generates a name from the set [names]
+*)
+let make_namegen (names : Nset.t) : Ast.text -> Name.t =
   let names = ref names in
-  let fresh n = 
+  let fresh n =
     let n' = Name.fresh n (fun n -> not (Nset.mem n !names)) in
     names := Nset.add n' !names;
     n'
@@ -359,12 +526,15 @@ let make_renamer quantified_orig rules =
 
     `check_rename' checks that the translated vars are forall-bound and not
     relations, and renames them if necessary to make the pattern matching
-    linear 
+    linear
 *)
 
+(** [split_app e] converts an expression into a couple of an applied
+    function and the list of its arguments.
 
-let split_app e = 
-  let rec split_app e args = match C.exp_to_term e with
+    For instance, [f x y z] is transformed into [(f, [x; y; z])]. *)
+let split_app (e : exp) : exp * exp list =
+  let rec split_app e args = match exp_to_term e with
     | App(e1,e2) -> split_app e1 (e2::args)
     | Paren(_,e,_) | Begin(_,e,_) | Typed(_,e,_,_,_) -> split_app e args
     | Infix(e2, e1, e3) -> split_app e1 (e2::e3::args)
@@ -374,11 +544,15 @@ let split_app e =
 
 let id x = x
 
-let is_constructor env t c_d = 
+(** [is_constructor env t c_d] checks whether [c_d] is a constructor
+    for type [t] in environment [env]. *)
+let is_constructor
+    (env : env) (t : Types.t) (c_d : const_descr_ref) : bool
+  =
   match type_defs_lookup_typ Ast.Unknown env.t_env t with
-    | None -> false
-    | Some(td) ->
-      List.exists (fun cfd ->
+  | None -> false
+  | Some(td) ->
+    List.exists (fun cfd ->
         List.mem c_d cfd.constr_list
       ) td.type_constr
 
@@ -438,51 +612,93 @@ let sep_newline l = Seplist.from_list_default newline l
 let mk_pvar_ty l n t =
   mk_ptyp l space (mk_pvar l n t) None (t_to_src_t t) None None
 
-module type COMPILATION_CONTEXT = sig
-  (* lem signature : type a -> type m a) *)
-  val mk_type : Types.t -> Types.t
-  val remove_type : Types.t -> Types.t
+(* A compilation context takes care of generating real Lem code from
+   the monadic mini-language.
 
-  (* lem signature : type a -> exp m a *)
+   It encapsulate some abstract monadic type constructor [m] in which
+   the generated code "lives". *)
+module type COMPILATION_CONTEXT = sig
+  (* [mk_type t] returns the type [m t] *)
+  val mk_type : Types.t -> Types.t
+
+  (* [mk_failure env l t] constructs a value of type [m t] that
+     indicates failure (None, empty list, ...)
+
+     It should be read as
+       [fail]
+     and its type should be understood as
+       [type a -> exp (m a)]. *)
   val mk_failure : Typed_ast.env -> Ast.l -> Types.t -> Typed_ast.exp
 
-  (* exp a -> exp m a *)
+  (* [mk_return env l e] is a monadic return.
+
+     It should be read as
+       [return `e`]
+     and its type should be understood as
+       [exp a -> exp (m a)]. *)
   val mk_return : Typed_ast.env -> Ast.l -> Typed_ast.exp -> Typed_ast.exp
 
-  (* exp m a -> pat a -> exp m b -> exp m b *)
+  (* [mk_bind env l x pat res] is a monadic bind, returning [res] when
+     expression [x] matches the pattern [pat] and indicating a failure
+     otherwise.
+
+     It should be read as
+       [bind `x` (function | `pat` -> `res` | _ -> fail)]
+     and its type should be understood as
+       [exp (m a) -> pat a -> exp (m b) -> exp (m b)]. *)
   val mk_bind : Typed_ast.env -> Ast.l -> Typed_ast.exp -> Typed_ast.pat -> Typed_ast.exp -> Typed_ast.exp
 
-  (* exp bool -> exp m a -> exp m a *)
+  (* [mk_cond env l cond expr] returns the monadic expression [expr]
+     if the boolean expression [cond] is true, and indicates a filure
+     otherwise.
+
+     It should be read as
+       [if `cond` then `expr` else fail]
+     and its type should be understood as
+       [exp bool -> exp (m a) -> exp (m a)]. *)
   val mk_cond : Typed_ast.env -> Ast.l -> Typed_ast.exp -> Typed_ast.exp -> Typed_ast.exp
 
-  (* pat a -> exp a -> exp m b -> exp m b *)
+  (* [mk_let env l pat exp res] is a monadic let, returning [res] when
+     expression matches the pattern [pat] and indicating a failure
+     otherwise.
+
+     It should be read as
+       [match `exp`  with | `pat` -> `res` | _ -> fail]
+     and its type should be understood as
+       [pat a -> exp a -> exp (m b) -> exp (m b)]. *)
   val mk_let : Typed_ast.env -> Ast.l -> Typed_ast.pat -> Typed_ast.exp -> Typed_ast.exp -> Typed_ast.exp
 
-  (* type b -> exp a -> (exp a * exp m b) list -> m b *)
+  (* [mk_choice env l ty exp branches] is a branching operation.
+
+     It should be read as
+       [match `exp` with `branches` | _ -> fail]
+     and its type should be understood as
+       [type b -> exp a -> (pat a * exp (m b)) list -> exp (m b)]. *)
   val mk_choice : Typed_ast.env -> Ast.l -> Types.t -> Typed_ast.exp ->
     (Typed_ast.pat * Typed_ast.exp) list -> Typed_ast.exp
 end
 
+(* Compilation context for the nondeterministic monad, implemented by
+   lists. *)
 module Context_list : COMPILATION_CONTEXT = struct
+  let mk_type ty =
+    mk_list_type ty
 
-  let mk_type ty = 
-    { Types.t = Types.Tapp([ty], Path.listpath) }
-
-  let remove_type ty = 
+  let remove_type ty =
     match ty.t with
       | Types.Tapp([ty], _) -> ty
       | _ -> failwith "???"
 
   let remove_list = remove_type
 
-  let mk_list_map env l fn lst = 
+  let mk_list_map env l fn lst =
     let l = loc_trans "mk_list_map" l in
     match (exp_to_typ fn).t with
       | Types.Tfn(a,b) ->
         mk_app l (mk_app l (mk_const_exp env l "list_map" [a;b]) fn None) lst None
       | _ -> failwith "???"
-        
-  let mk_list_concat env l lst = 
+
+  let mk_list_concat env l lst =
     let t = remove_list (remove_list (exp_to_typ lst)) in
     let l = loc_trans "mk_list_concat" l in
     mk_app l (mk_const_exp env l "list_concat" [t]) lst None
@@ -490,39 +706,42 @@ module Context_list : COMPILATION_CONTEXT = struct
   let mk_return env l e =
     mk_list (loc_trans "mk_return" l) None (sep_no_skips [e]) None (mk_type (exp_to_typ e))
 
-  let mk_failure env l t = 
-    mk_list (loc_trans "mk_failure" l) None (sep_no_skips []) None (mk_type t)
-      
-  let mk_bind env l call pat code = 
+  let mk_failure env l t =
+    mk_list (loc_trans "mk_failure" l) None (sep_no_skips []) None t
+
+  let mk_bind env l call pat code =
     let l = loc_trans "mk_bind" l in
     let namegen = make_namegen (Nfmap.domain (exp_to_free code)) in
     let var = Name.add_lskip (namegen (Ulib.Text.of_latin1 "x")) in
-    let inty = pat.typ in 
-    let fn = mk_fun l None [mk_pvar l var inty] None 
-      (mk_case_exp false l (mk_var l var inty) 
+    let inty = pat.typ in
+    let fn = mk_fun l None [mk_pvar l var inty] None
+      (mk_case_exp false l (mk_var l var inty)
          [(pat, code);
-          (mk_pwild l None inty, mk_list l None (sep_no_skips []) None (exp_to_typ code))
+          (mk_pwild l None inty, mk_failure env l (exp_to_typ code))
          ] (exp_to_typ code)) None in
     mk_list_concat env l (mk_list_map env l fn call)
-      
-  let mk_cond env l cond code = 
+
+  let mk_cond env l cond code =
     let l = loc_trans "mk_cond" l in
     mk_if_exp l cond code (mk_list l None (sep_no_skips []) None (exp_to_typ code))
 
-  let mk_let env l pat v code = 
+  let mk_let env l pat v code =
     let l = loc_trans "mk_let" l in
     mk_case_exp false l v
       [(pat, code);
        (mk_pwild l None pat.typ, mk_list l None (sep_no_skips []) None (exp_to_typ code))
       ] (exp_to_typ code)
 
-  let mk_choice env l ty input pats = 
+  let mk_choice env l ty input pats =
     let l = loc_trans "mk_choice" l in
     mk_list_concat env l
       (mk_list l None (sep_newline (List.map (fun (pat, code) -> mk_let env l pat input code) pats)) None (mk_list_type (mk_list_type ty)))
 
 end
 
+(* Compilation context for the identity monad.
+
+   Failure is implemented by an exception. *)
 module Context_pure : COMPILATION_CONTEXT = struct
   let mk_type x = x
   let remove_type x = x
@@ -541,7 +760,7 @@ module Context_pure : COMPILATION_CONTEXT = struct
     let l = loc_trans "mk_cond" l in
     mk_if_exp l cond code (mk_failure env l (remove_type (exp_to_typ code)))
 
-  let mk_choice env l t v pats = 
+  let mk_choice env l t v pats =
     let l = loc_trans "mk_choice" l in
     (* Check pattern non-overlap & completeness or emit a warning *)
     let props = Patterns.check_pat_list env (List.map fst pats) in
@@ -549,7 +768,7 @@ module Context_pure : COMPILATION_CONTEXT = struct
       | None -> failwith "Pattern matching compilation failed"
       | Some(props) ->
         if not props.Patterns.is_exhaustive
-        then Reporting.report_warning env 
+        then Reporting.report_warning env
           (Reporting.Warn_general(true, l, "non-exhaustive patterns in inductive relation"));
         if props.Patterns.overlapping_pats <> []
         then Reporting.report_warning env
@@ -557,18 +776,19 @@ module Context_pure : COMPILATION_CONTEXT = struct
     mk_case_exp false l v pats (mk_type t)
 end
 
-(* TODO : merge with LemOptionMonad ? *)
+(* Pre-context for the option monad. Choice is left unspecified for
+   specialization by [Context_option] and [Context_unique]. *)
 module Context_option_pre = struct
 
-  let mk_type ty = 
-    { Types.t = Types.Tapp([ty], mk_string_path ["Maybe"] "maybe") } 
+  let mk_type ty =
+    mk_option_type ty
 
-  let remove_type ty = 
+  let remove_type ty =
     match ty.t with
       | Types.Tapp([ty], _) -> ty
       | _ -> failwith "???"
 
-  let mk_none env l ty = mk_const_app env l "maybe_nothing" [ty] [] 
+  let mk_none env l ty = mk_const_app env l "maybe_nothing" [ty] []
   let mk_some env l e = mk_const_app env l "maybe_just" [exp_to_typ e] [e]
   let mk_pnone env l ty = mk_pconst_pat env l "maybe_nothing" [ty] []
   let mk_psome env l p = mk_pconst_pat env l "maybe_just" [p.typ] [p]
@@ -577,33 +797,36 @@ module Context_option_pre = struct
 
   let mk_failure env l ty = mk_none env l ty
 
-  let mk_let env l pat exp code = 
+  let mk_let env l pat exp code =
     let l = loc_trans "mk_let" l in
     mk_case_exp false l exp
       [(pat, code);
-       (mk_pwild l None (exp_to_typ exp), 
+       (mk_pwild l None (exp_to_typ exp),
         mk_none env l (remove_option (exp_to_typ code)))]
       (exp_to_typ code)
 
-  let mk_bind env l call pat code = 
+  let mk_bind env l call pat code =
     let l = loc_trans "mk_bind" l in
     mk_case_exp false l call
       [(mk_psome env l pat, code);
        (mk_pwild l None (exp_to_typ call), mk_none env l (remove_option (exp_to_typ code)))]
       (exp_to_typ code)
 
-  let mk_cond env l cond code = 
+  let mk_cond env l cond code =
     let l = loc_trans "mk_cond" l in
     mk_if_exp l cond code (mk_none env l (remove_option (exp_to_typ code)))
-
 end
 
+(* Compilation context for the option monad. *)
 module Context_option : COMPILATION_CONTEXT = struct
   include Context_option_pre
 
   let mk_choice _ = failwith "Not implemented"
 end
 
+(* Compilation context for the "unique" monad, i.e. the option monad
+   with the additional requirement that every time a choice must be
+   performed, at most one branch returns a meaningful value. *)
 module Context_unique : COMPILATION_CONTEXT = struct
   include Context_option_pre
 
@@ -616,79 +839,104 @@ let select_module = function
   | Out_unique -> (module Context_unique : COMPILATION_CONTEXT)
   | Out_option -> (module Context_option : COMPILATION_CONTEXT)
 
-let get_witness_type env reldescr = 
+(** [get_witness_type env reldescr] extract the witness type from the
+    descriptor [reldescr].
+
+    The called should ensure that such a witness type is actually present. *)
+let get_witness_type (env : env) (reldescr : reldescr) : Types.t =
   let c = c_env_lookup reldescr.rel_loc env.c_env reldescr.rel_const_ref in
   match c.relation_info with
-    | Some(ri) -> ri.ri_witness
-    | None -> None
+    | Some { ri_witness = Some (t, _) } ->
+      { t = Tapp ([], t) }
+    | _ ->
+      raise
+        (Reporting_basic.
+           (Fatal_error (Err_internal
+                           (Ast.Unknown, "Impossible to find a witness type."))))
 
-let out_ty_from_mode env reldescr (mode, wit, _out) = 
+(* [out_ty_from_mode env reldescr spec] extracts the Lem output type
+   from the mode specification [spec]. *)
+let out_ty_from_mode
+    (env : env) (reldescr : reldescr) ((mode, wit, _out) : mode_spec)
+  : Types.t =
   let ret = map_filter (function
-    | (Rel_mode_out,x) -> Some x
-    | _ -> None
-  ) (List.map2 (fun x y -> (x,y)) mode reldescr.rel_argtypes) in
-  let ret = 
+      | (Rel_mode_out,x) -> Some x
+      | _ -> None
+    ) (List.map2 (fun x y -> (x,y)) mode reldescr.rel_argtypes) in
+  let ret =
     if not wit
     then ret
-    else match get_witness_type env reldescr with
-      | None -> failwith "Invalid mode, should have been rejected before"
-      | Some(t,_) -> ret@[{t=Tapp([],t)}]
+    else ret @ [ get_witness_type env reldescr ]
   in
   mk_tup_unit_typ ret
-        
-let in_tys_from_mode env reldescr (mode, _wit, _out) = 
+
+(* [in_tys_from_mode env reldescr spec] extracts the Lem input types
+   from the mode specification [spec]. *)
+let in_tys_from_mode
+    (env : env) (reldescr : reldescr) ((mode, _wit, _out) : mode_spec)
+  : Types.t list =
   map_filter (function
     | (Rel_mode_in,x) -> Some x
     | _ -> None
   ) (List.map2 (fun x y -> (x,y)) mode reldescr.rel_argtypes)
 
-let ty_from_mode env reldescr ((_,_,out) as mode) = 
+(* [ty_from_mode env reldescr spec] extracts the Lem type of the
+   function from the mode specification [spec]. *)
+let ty_from_mode
+    (env : env) (reldescr : reldescr) ((_,_,out) as mode : mode_spec)
+  : Types.t =
   let args = in_tys_from_mode env reldescr mode in
   let ret = out_ty_from_mode env reldescr mode in
   let module M = (val select_module out : COMPILATION_CONTEXT) in
   mk_fun_ty args (M.mk_type ret)
 
+(**************************************************************************)
+(* Compilation                                                            *)
+(**************************************************************************)
+
+(** The Compile functor converts code expressed in the monadic
+    mini-language into real Lem expressions using a compilation
+    context. *)
 module Compile(M : COMPILATION_CONTEXT) = struct
-  
-  let rec compile_code env loc code : exp = 
+  let rec compile_code env ty loc code : exp =
     let l = loc_trans "compile_code" loc in
     match code with
-      | RETURN(exps) -> 
+      | RETURN(exps) ->
         let ret = mk_tup_unit_exp l exps in
         M.mk_return env l ret
-      | IF(cond, code) -> 
-        let subexp = compile_code env loc code in 
+      | IF(cond, code) ->
+        let subexp = compile_code env ty loc code in
         M.mk_cond env l cond subexp
       | IFEQ(e1,e2,code) ->
-        let subexp = compile_code env loc code in
+        let subexp = compile_code env ty loc code in
         let cond = mk_eq_exp env e1 e2 in
         M.mk_cond env l cond subexp
       | LET(p,e,code) ->
-        let subexp = compile_code env loc code in
+        let subexp = compile_code env ty loc code in
         M.mk_let env l p e subexp
       | CALL(n_ref, inp, outp, code) ->
-        let subexp = compile_code env loc code in
+        let subexp = compile_code env ty loc code in
         let func = mk_const_ref env l n_ref [] in
-        let call = List.fold_left (fun func arg -> mk_app l func arg None) 
+        let call = List.fold_left (fun func arg -> mk_app l func arg None)
           func inp in
         let pat = mk_tup_unit_pat l outp in
         M.mk_bind env l call pat subexp
-          
-  let compile_rule env (loc, patterns, code) = 
+
+  let compile_rule env ty (loc, patterns, code) =
     let pattern = mk_tup_unit_pat (loc_trans "compile_rule" loc) patterns in
-    let lemcode = compile_code env loc code in
-    (pattern, lemcode) 
+    let lemcode = compile_code env ty loc code in
+    (pattern, lemcode)
 
   let compile_function env reldescr (n,n_ref,mode,mty,rules) : funcl_aux =
-    let l = loc_trans "compile_function" reldescr.rel_loc in 
+    let l = loc_trans "compile_function" reldescr.rel_loc in
+    let output_type = out_ty_from_mode env reldescr mode in
     let gen_name = make_namegen Nset.empty in
-    let vars = List.map 
+    let vars = List.map
       (fun ty -> Name.add_lskip (gen_name (Ulib.Text.of_latin1 "input")), ty)
       (in_tys_from_mode env reldescr mode) in
     let tuple_of_vars = mk_tup_unit_exp l (List.map (fun (var,ty) -> mk_var l var ty) vars) in
     let pats_of_vars = List.map (fun (var,ty) -> mk_pvar_ty l var ty) vars in
-    let cases = List.map (compile_rule env) rules in
-    let output_type = out_ty_from_mode env reldescr mode in
+    let cases = List.map (compile_rule env output_type) rules in
     (* Generate a list of binds and concat them ! *)
     let body = M.mk_choice env l output_type tuple_of_vars cases in
     let annot = { term = Name.add_lskip n;
@@ -698,28 +946,22 @@ module Compile(M : COMPILATION_CONTEXT) = struct
     (annot, n_ref, pats_of_vars, Some(space, t_to_src_t (M.mk_type output_type)), space, body)
 end
 
-let compile_function env reldescr 
-    ((n,((_,_,out_mode) as mode),mty,rules) as m) = 
+let compile_function env reldescr
+    ((n,((_,_,out_mode) as mode),mty,rules) as _m) =
   let module M = (val select_module out_mode : COMPILATION_CONTEXT) in
   let module C = Compile(M) in
   let rel_info = c_env_lookup_rel_info reldescr.rel_loc env.c_env reldescr.rel_const_ref in
   let fun_ref = List.assoc mode rel_info.ri_fns in
   C.compile_function env reldescr (n,fun_ref,mode,mty,rules)
 
-
 let compile_to_typed_ast env prog =
   let l = Ast.Trans (true, "compile_to_typed_ast", None) in
   let defs = Nfmap.map (fun _rel (reldescr, modes) ->
-    List.map (compile_function env reldescr) modes 
+    List.map (compile_function env reldescr) modes
   ) prog in
   let defs = sep_newline (Nfmap.fold (fun l _ c -> c@l) [] defs) in
   let fdefs = Fun_def(None, FR_rec None, Targets_opt_none, defs) in
   ((Val_def fdefs, None), l)
-
-module Compile_list = Compile(Context_list)
-module Compile_pure = Compile(Context_pure)
-module Compile_unique = Compile(Context_unique)
-module Compile_option = Compile(Context_option)
 
 open Typecheck_ctxt
 
@@ -747,7 +989,7 @@ let make_typedef env loc td_l =
   in
   Type_def(newline, sep_no_skips t_def_l)
 
-let register_types rel_loc ctxt mod_path tds = 
+let register_types rel_loc ctxt mod_path tds =
   Nfmap.fold (fun ctxt relname (rel_ref, tname, type_path, tconstrs) ->
     let l = loc_trans "register_types" rel_loc in
     let () =
@@ -761,36 +1003,26 @@ let register_types rel_loc ctxt mod_path tds =
                 raise_error l "duplicate type constructor definition"
                   Name.pp tname
               | Some(Tc_class _) ->
-                raise_error l "type constructor already defined as a type class" 
+                raise_error l "type constructor already defined as a type class"
                   Name.pp tname
           end
     in
     let ctxt = add_p_to_ctxt ctxt (tname, (type_path,l)) in
-(*    let cnames = List.fold_left (fun s (_,cname,_) -> NameSet.add cname s) 
+(*    let cnames = List.fold_left (fun s (_,cname,_) -> NameSet.add cname s)
       NameSet.empty tconstrs in *)
     let mk_descr c_env cname cargs =
       let ty = mk_fun_ty cargs {t=Tapp([],type_path)} in
-      let descr = {
-        const_binding = Path.mk_path mod_path cname;
-        const_tparams = [];
-        const_class = [];
-	const_no_class = Target.Targetmap.empty;
-        const_ranges = [];
-        const_type = ty;
-        relation_info = None;
-        env_tag = K_constr;
-        const_targets = Target.Targetset.empty;
-        spec_l = l;
-        target_rename = Target.Targetmap.empty;
-        target_rep = Target.Targetmap.empty;
-        target_ascii_rep =  Target.Targetmap.empty;
-        compile_message = Target.Targetmap.empty;
-        termination_setting = Target.Targetmap.empty;
-      } in
+      let descr =
+        const_descr
+          ~binding:(Path.mk_path mod_path cname)
+          ~type_:ty
+          ~env_tag:K_constr
+          ~l:l
+          () in
       let (c_env, c_ref) = c_env_store c_env descr in
       (c_env, cname, c_ref)
     in
-    let (c_env, constrs) = List.fold_left 
+    let (c_env, constrs) = List.fold_left
       (fun (c_env, constrs) (crule, cname, cargs) ->
         let (c_env, c_d, c_ref) = mk_descr c_env cname cargs in
         (c_env, (crule, cname, c_ref)::constrs))
@@ -798,12 +1030,12 @@ let register_types rel_loc ctxt mod_path tds =
     let ctxt = {ctxt with ctxt_c_env = c_env} in
     let constrs_map = Nfmap.from_list (List.map (fun (u,_,v) -> u,v) constrs) in
     let rel_descr = c_env_lookup_rel_info l ctxt.ctxt_c_env rel_ref in
-    let rel_descr = {rel_descr 
+    let rel_descr = {rel_descr
                      with ri_witness = Some(type_path, constrs_map)} in
-    let ctxt = {ctxt with ctxt_c_env = 
+    let ctxt = {ctxt with ctxt_c_env =
         c_env_update_rel_info l ctxt.ctxt_c_env rel_ref rel_descr } in
     let ctxt = List.fold_left (fun ctxt (crule, cname, c_ref) ->
-      let () = 
+      let () =
         match Nfmap.apply ctxt.new_defs.v_env cname with
           | None -> ()
           | Some(_) -> raise_error l "Name already used" Name.pp cname
@@ -818,7 +1050,7 @@ let register_types rel_loc ctxt mod_path tds =
       constr_default = true;
       constr_targets = Target.all_targets;
     } in
-    let tdescr = { type_tparams = []; 
+    let tdescr = { type_tparams = [];
                    type_abbrev = None;
                    type_varname_regexp = None;
                    type_fields = None;
@@ -829,20 +1061,20 @@ let register_types rel_loc ctxt mod_path tds =
     in
     let ctxt = add_d_to_ctxt ctxt type_path (Tc_type tdescr) in
     ctxt
-  ) ctxt tds 
+  ) ctxt tds
 
 (* TODO : || -> either, && -> *, forall -> (->), exists -> ... *)
-let gen_witness_type_aux (env : env) mod_path l names rules warn_incomplete = 
+let gen_witness_type_aux (env : env) mod_path l names rules warn_incomplete =
   let rels = get_rels env l names rules in
   let localrels = Nfmap.fold (fun localrels relname reldescr ->
     Cdmap.insert localrels (reldescr.rel_const_ref, reldescr)
-  ) Cdmap.empty rels 
+  ) Cdmap.empty rels
   in
   (* Return (maybe) the witness type for a relation. *)
   let relation_witness e = match exp_to_term e with
     | Constant {descr=c_ref} ->
       begin match Cdmap.apply localrels c_ref with
-        | Some r -> 
+        | Some r ->
           begin match r.rel_witness with
             | Some n -> Some({t=Tapp([], Path.mk_path mod_path n)})
             | None -> raise_error l "no witness for relation" Name.pp r.rel_name
@@ -850,19 +1082,19 @@ let gen_witness_type_aux (env : env) mod_path l names rules warn_incomplete =
         | None ->
           let c_d = c_env_lookup l env.c_env c_ref in
           begin match c_d with
-            | {env_tag = K_relation; 
+            | {env_tag = K_relation;
                relation_info = Some({ri_witness = Some(p,_)})} ->
               Some({t = Tapp([], p)})
-            | {env_tag = K_relation} -> 
+            | {env_tag = K_relation} ->
               raise_error l "no witness for relation" Path.pp c_d.const_binding
             | _ -> None
           end
       end
     | _ -> None
   in
-  (* Check whether an expression contains the name of an inductive 
+  (* Check whether an expression contains the name of an inductive
      relation and emit a warning in this case *)
-  let is_relation c_ref = 
+  let is_relation c_ref =
     Cdmap.in_dom c_ref localrels
           || (let c_d = c_env_lookup l env.c_env c_ref in c_d.env_tag = K_relation)
   in
@@ -887,7 +1119,7 @@ let gen_witness_type_aux (env : env) mod_path l names rules warn_incomplete =
         let constructors = List.map (fun rule  ->
           let consname = gen_consname rule.rule_name in
           let vars_ty = List.map (fun (_,t) -> t) rule.rule_vars in
-          let conds_ty = map_filter 
+          let conds_ty = map_filter
             (fun cond -> is_head_relation cond) rule.rule_conds in
           let argstypes = vars_ty @ conds_ty in
           (rule.rule_name, consname, argstypes)
@@ -934,28 +1166,19 @@ let gen_witness_check_info l mod_path ctxt names rules =
             "no witness for relation while generating witness-checking function"
             Path.pp check_path
         in
-        let check_type = {t=Tfn(witness_type, mk_option (mk_tup_unit_typ ret))} in
+        let check_type = {t=Tfn(witness_type, mk_option_type (mk_tup_unit_typ ret))} in
         Cdmap.insert defs (reldescr.rel_const_ref, (check_name, check_path, check_type))
   ) Cdmap.empty rels in
   (* Register the functions *)
   Cdmap.fold (fun ctxt rel_ref (cname,cpath,ctype) ->
-    let c_descr = {
-      const_binding = cpath;
-      const_tparams = [];
-      const_class = [];
-      const_no_class = Target.Targetmap.empty;
-      const_ranges = [];
-      const_type = ctype;
-      relation_info = None;
-      env_tag = K_let;
-      const_targets = Target.all_targets;
-      spec_l = loc_trans "gen_witness_check_info" l;
-      target_rename = Target.Targetmap.empty;
-      target_rep = Target.Targetmap.empty;
-      target_ascii_rep =  Target.Targetmap.empty;
-      compile_message = Target.Targetmap.empty;
-      termination_setting = Target.Targetmap.empty;
-    } in
+      let c_descr =
+        const_descr
+          ~binding:cpath
+          ~type_:ctype
+          ~env_tag:K_let
+          ~l:(loc_trans "gen_witness_check_info" l)
+          ~targets:Target.all_targets
+          () in
     let c_env, c_ref = c_env_store ctxt.ctxt_c_env c_descr in
     let ctxt = { ctxt with ctxt_c_env = c_env } in
     let ctxt = add_v_to_ctxt ctxt (cname, c_ref) in
@@ -966,9 +1189,8 @@ let gen_witness_check_info l mod_path ctxt names rules =
 
 let nset_of_list l = List.fold_left (fun set x -> Nset.add x set) Nset.empty l
 
-open LemOptionMonad
-
-let gen_witness_check_def env l mpath localenv names rules local = 
+let gen_witness_check_def env l mpath localenv names rules local =
+  let open Context_option_pre in
   let rels = get_rels env l names rules in
   let mkloc = loc_trans "gen_witness_check_def" in
   let l = mkloc l in
@@ -1000,7 +1222,7 @@ let gen_witness_check_def env l mpath localenv names rules local =
                    ri_check = Some(check_ref)
                  })} ->
                 Left(args, p, check_ref)
-              | {env_tag = K_relation} -> 
+              | {env_tag = K_relation} ->
                 raise_error (exp_to_locn e)
                   "no witness checking function for relation"
                   Path.pp c_d.const_binding
@@ -1014,10 +1236,10 @@ let gen_witness_check_def env l mpath localenv names rules local =
         let witness_name = gen_name (Ulib.Text.of_latin1 "witness") in
         (args, witness_ty, check_ref, witness_name)
       ) relconds in
-      let pvars = List.map 
+      let pvars = List.map
         (fun (var,typ) -> mk_pvar l (Name.add_lskip var) typ) rule.rule_vars in
       let pconds = List.map
-        (fun (_,witness_ty,_,var) -> 
+        (fun (_,witness_ty,_,var) ->
           mk_pvar l (Name.add_lskip var) witness_ty
         ) relconds in
       let constr_id = { id_path = Id_none None;
@@ -1025,11 +1247,11 @@ let gen_witness_check_def env l mpath localenv names rules local =
                         descr = constr_ref;
                         instantiation = [] } in
       let pattern = mk_pconst l constr_id (pvars @ pconds) None in
-      let ret = mk_some env 
+      let ret = mk_some env l
         (mk_tup_unit_exp l rule.rule_args) in
       let genconds_exps = List.map (fun (args,witness_ty,check_ref,witness) ->
         let witness_var = mk_var l (Name.add_lskip witness) witness_ty in
-        let rhs = mk_some env (mk_tup_unit_exp l args) in
+        let rhs = mk_some env l (mk_tup_unit_exp l args) in
         let check_id = { id_path = Id_none None; id_locn = l;
                          descr = check_ref; instantiation = [] } in
         let check_fun = mk_const l check_id None in
@@ -1037,11 +1259,9 @@ let gen_witness_check_def env l mpath localenv names rules local =
         mk_eq_exp env rhs lhs
       ) relconds in
       let ifconds = auxconds @ genconds_exps in
-      let lit_true = mk_lit l ({term=L_true(None); locn = l;
-                                typ={t=Tapp([],Path.boolpath)};
-                                rest=()}) None in
-      let cond = List.fold_left (mk_and_exp env) lit_true ifconds in
-      let code = mk_if_exp l cond ret (mk_none env (remove_option (exp_to_typ ret))) in
+      let cond =
+        List.fold_left (mk_and_exp env) (mk_tf_exp true) ifconds in
+      let code = mk_if_exp l cond ret (mk_none env l (remove_option (exp_to_typ ret))) in
       (pattern, code)
     ) reldescr.rel_rules in
     let x = Name.add_lskip (make_namegen Nset.empty (Ulib.Text.of_latin1 "x")) in
@@ -1065,12 +1285,12 @@ let gen_witness_check_def env l mpath localenv names rules local =
   if defs = [] then []
   else [((Val_def def, None), l, local)]
 
-let pp_mode ppf (io, wit, out) = 
-  List.iter (function 
-    | Rel_mode_in -> Format.fprintf ppf "input -> " 
+let pp_mode ppf (io, wit, out) =
+  List.iter (function
+    | Rel_mode_in -> Format.fprintf ppf "input -> "
     | Rel_mode_out -> Format.fprintf ppf "output -> "
   ) io;
-  Format.fprintf ppf "%s" 
+  Format.fprintf ppf "%s"
     (match out with
       | Out_pure -> ""
       | Out_list -> "list"
@@ -1080,18 +1300,24 @@ let pp_mode ppf (io, wit, out) =
   if wit then Format.fprintf ppf " witness"
   else Format.fprintf ppf " unit"
 
-
-let report_no_translation reldescr ruledescr mode print_debug =
+let report_no_translation
+    (reldescr : reldescr) (ruledescr : ruledescr)
+    (mode : mode_spec) (print_debug : bool)
+  =
   if print_debug then begin
-    Format.eprintf "No transalation for relation %s, mode %a\n"
+    Format.eprintf "No translation for relation %s, mode %a\n"
       (Name.to_string reldescr.rel_name) pp_mode mode;
     Format.eprintf "Blocking rule is %s\n"  (Name.to_string ruledescr.rule_name)
   end;
   no_translation None
 
-
-let transform_rule env localrels ((mode, need_wit, out_mode) as full_mode) rel (rule : ruledescr) print_debug = 
+let transform_rule
+    (env : env) (localrels : relsdescr)
+    ((mode, need_wit, out_mode) as full_mode : mode_spec)
+    (rel : reldescr) (rule : ruledescr)
+    (print_debug : bool) =
   let l = loc_trans "transform_rule" rule.rule_loc in
+  (* The variables that appears in the rule's [forall] part *)
   let vars = Nfmap.domain (Nfmap.from_list rule.rule_vars) in
   (* TODO : we probably don't need localrels here *)
   let avoid = Nfmap.fold (fun avoid relname reldescr ->
@@ -1221,7 +1447,6 @@ let transform_rules env localrels mode reldescr print_debug =
   List.map (fun x -> transform_rule env localrels mode reldescr x print_debug) 
     reldescr.rel_rules
 
-
 (* env is the globalized env *)
 (* For each relation : we assume all modes are possible (via updating reldescr)
    and then try to see what mode can effectively computed from that.
@@ -1232,28 +1457,21 @@ let join f a b =
 
 let gen_fns_info_aux l mod_path ctxt rels =
   let env = defn_ctxt_to_env ctxt in
+  let l = loc_trans "gen_fns_info" l in
+  (*  TODO: list_possible_modes mod_path ctxt rels;  *)
   Nfmap.fold (fun ctxt relname reldescr ->
     let rel_ref = reldescr.rel_const_ref in
     List.fold_left (fun ctxt (name, mode) ->
       let ty = ty_from_mode env reldescr mode in
       let path = Path.mk_path mod_path name in
-      let f_descr = {
-        const_binding = path;
-        const_tparams = [];
-        const_class = [];
-	const_no_class = Target.Targetmap.empty;
-        const_ranges = [];
-        const_type = ty;
-        relation_info = None;
-        env_tag = K_let;
-        const_targets = Target.all_targets;
-        spec_l = l;
-        target_rep = Target.Targetmap.empty;
-        target_rename = Target.Targetmap.empty;
-        target_ascii_rep =  Target.Targetmap.empty;
-        compile_message = Target.Targetmap.empty;
-        termination_setting = Target.Targetmap.empty;
-      } in
+      let f_descr =
+        const_descr
+          ~binding:path
+          ~type_:ty
+          ~env_tag:K_let
+          ~targets:Target.all_targets
+          ~l:l
+          () in
       let c_env, f_ref = c_env_store ctxt.ctxt_c_env f_descr in
       let ctxt = { ctxt with ctxt_c_env = c_env } in
       let ctxt = add_v_to_ctxt ctxt (name, f_ref) in
