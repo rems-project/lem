@@ -736,7 +736,6 @@ module Context_list : COMPILATION_CONTEXT = struct
     let l = loc_trans "mk_choice" l in
     mk_list_concat env l
       (mk_list l None (sep_newline (List.map (fun (pat, code) -> mk_let env l pat input code) pats)) None (mk_list_type (mk_list_type ty)))
-
 end
 
 (* Compilation context for the identity monad.
@@ -1128,9 +1127,9 @@ let gen_witness_type_aux (env : env) mod_path l names rules warn_incomplete =
   ) Nfmap.empty rels in
   tds
 
-let gen_witness_type_info l mod_path ctxt names rules = 
+let gen_witness_type_info l mod_path ctxt names rules =
   let env = defn_ctxt_to_env ctxt in
-  let tds = gen_witness_type_aux env mod_path l 
+  let tds = gen_witness_type_aux env mod_path l
     names rules true in
   let newctxt = register_types l ctxt mod_path tds in
   newctxt
@@ -1143,7 +1142,7 @@ let gen_witness_type_def env l mpath localenv names rules local =
   else [(make_typedef env l tds, None),  l, local] in
   r
 
-let ctxt_mod update ctxt = 
+let ctxt_mod update ctxt =
   { ctxt with
     cur_env = update ctxt.cur_env;
     new_defs = update ctxt.new_defs
@@ -1155,7 +1154,7 @@ let gen_witness_check_info l mod_path ctxt names rules =
   let defs = Nfmap.fold (fun defs relname reldescr ->
     match reldescr.rel_check with
       | None -> defs
-      | Some(check_name) -> 
+      | Some(check_name) ->
         let rules = reldescr.rel_rules in
         let ret = List.map exp_to_typ (List.hd rules).rule_args in
         let check_path = Path.mk_path mod_path check_name in
@@ -1189,6 +1188,7 @@ let gen_witness_check_info l mod_path ctxt names rules =
 
 let nset_of_list l = List.fold_left (fun set x -> Nset.add x set) Nset.empty l
 
+(** Generation of the witness checking function. *)
 let gen_witness_check_def env l mpath localenv names rules local =
   let open Context_option_pre in
   let rels = get_rels env l names rules in
@@ -1311,6 +1311,40 @@ let report_no_translation
   end;
   no_translation None
 
+(** [partition_conditions l env conds] partitions the lists of indreln
+    conditions [cond] into three separate lists [inds], [eqs] and
+    [sides].
+
+    - [inds] contains the conditions of shape [P (x, ...)] where [P]
+      is an indreln relation. It is a list of pairs [(relinfo, args)]
+      where [relinfo] is the relation information for the relation
+      [P], and [args] is the list of arguments [x, ...].
+
+    - [eqs] contains the equality conditions, of shape [x = y]. It is
+      a list of pair [(x, y)].
+
+    - [sides] contains the remaining conditions. *)
+let partition_conditions
+    (l : Ast.l) (env : env) (conds : exp list)
+  : (rel_info * exp list) list * (exp * exp) list * exp list =
+  List.fold_left
+    (fun (inds, eqs, sides) exp ->
+       let head, args = split_app exp in
+       match exp_to_term head, args with
+       | Constant { descr = eq_ref }, [ u; v ]
+         when eq_ref = eq_const_ref env ->
+         (inds, (u, v) :: eqs, sides)
+       | Constant { descr = c_ref }, _ ->
+         let c_d = c_env_lookup l env.c_env c_ref in
+         begin match c_d.env_tag with
+           | K_relation ->
+             let relinfo = c_env_lookup_rel_info l env.c_env c_ref in
+             ( (relinfo, args) :: inds, eqs, sides)
+           | _ -> (inds, eqs, exp :: sides)
+         end
+       | _ -> (inds, eqs, exp :: sides))
+    ([], [], []) conds
+
 let transform_rule
     (env : env) (localrels : relsdescr)
     ((mode, need_wit, out_mode) as full_mode : mode_spec)
@@ -1335,33 +1369,26 @@ let transform_rule
       | None -> None
       | Some(t,_) -> Some(gen_witness_name (), {t=Tapp([],t)})
   in
-  let (indconds, sideconds) = 
-    map_partition (fun x ->
-      let (e,args) = split_app x in
-      match exp_to_term e, args with
-        | Constant {descr = eq_ref}, [u;v] when eq_ref = eq_const_ref env ->
-          Right(Left(u,v))
-        | Constant {descr = c_ref}, _ ->
-          let c_d = c_env_lookup l env.c_env c_ref in
-          begin match c_d with
-            | {env_tag = K_relation} ->
-              let relinfo = c_env_lookup_rel_info l env.c_env c_ref in
-              Left(relinfo.ri_fns , args, gen_witness_var relinfo)
-            | _ -> Right(Right(x))
-          end
-        | _ -> Right(Right(x))
-    ) rule.rule_conds
-  in
-  let (usefuleqs, sideconds) = map_partition id sideconds in
+  let (indconds, usefuleqs, sideconds) =
+    partition_conditions l env rule.rule_conds in
+  (* Generate the witnesses *)
+  let indconds = List.map (fun (relinfo, args) ->
+      relinfo.ri_fns, args, gen_witness_var relinfo)
+      indconds in
   (* map_filter drops relations with no witnesses.
      it's not a problem because if our relation has a witness, all these
      relations must have one *)
   let witness_var_order = map_filter (fun (_,_,var) -> var) indconds in
-  let returns = map_filter (function
-    | (Rel_mode_in, _) -> None
-    | (Rel_mode_out, r) -> Some(r)
-  ) (List.map2 (fun x y -> (x,y)) mode rule.rule_args) in
-  let returns = 
+  (* Construct the expressions to return. *)
+  (* TODO: We must rename any indreln inside ;-) *)
+  let returns =
+    map_filter
+      (function
+        | (Rel_mode_in, _) -> None
+        | (Rel_mode_out, r) -> Some r)
+      (List.map2 (fun x y -> (x,y)) mode rule.rule_args) in
+  (* Add witness if needed. *)
+  let returns =
     if not need_wit then returns
     else
       let rel_info = c_env_lookup_rel_info l env.c_env rel.rel_const_ref in
