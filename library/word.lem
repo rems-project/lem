@@ -19,6 +19,13 @@ type bitSequence = BitSeq of
    bool *       (* sign of the word, used to fill up after concrete value is exhausted *)
    list bool    (* the initial part of the sequence, least significant bit first *)
 
+val bitSeqEq : bitSequence -> bitSequence -> bool
+let inline bitSeqEq = unsafe_structural_equality
+instance (Eq bitSequence)
+  let (=) = bitSeqEq
+  let (<>) n1 n2 = not (bitSeqEq n1 n2)
+end
+
 val boolListFrombitSeq : nat -> bitSequence -> list bool
 
 let rec boolListFrombitSeqAux n s bl =
@@ -269,13 +276,6 @@ let inline bitSeqFromNumeral n = bitSeqFromInteger Nothing (integerFromNumeral n
 
 instance (Numeral bitSequence)
   let fromNumeral n = bitSeqFromNumeral n
-end
-
-val bitSeqEq : bitSequence -> bitSequence -> bool
-let inline bitSeqEq = unsafe_structural_equality
-instance (Eq bitSequence)
-  let (=) = bitSeqEq
-  let (<>) n1 n2 = not (bitSeqEq n1 n2)
 end
 
 val bitSeqLess : bitSequence -> bitSequence -> bool

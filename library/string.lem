@@ -108,19 +108,6 @@ declare coq      target_rep function stringAppend = `String.append`
 
 assert stringAppend_0 : ("Hello" ^ " " ^ "World!" = "Hello World!")
 
-(* --------------------------- *)
-(* equality                    *)
-(* --------------------------- *)
-
-val stringEquality : string -> string -> bool
-declare coq target_rep function stringEquality = `string_equal`
-let inline {ocaml;hol;isabelle} stringEquality = unsafe_structural_equality
-
-instance (Eq string)
-  let (=)      = stringEquality
-  let (<>) l r = not (stringEquality l r)
-end
-
 
 (* ----------------------------*)
 (* setting up pattern matching *)
