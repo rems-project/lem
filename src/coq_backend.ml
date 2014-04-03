@@ -980,7 +980,7 @@ let generate_coq_record_update_notation e =
         ) gathered
       in
         Output.flat [
-          from_string "\nInductive "; concat_str "\nand " indrelns; from_string "."
+          from_string "\nInductive "; concat_str "\nwith " indrelns; from_string "."
         ]
     and let_body inside_instance i_ref_opt top_level tv_set ((lb, _):letbind) =
       match lb with
