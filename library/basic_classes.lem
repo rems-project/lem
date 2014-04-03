@@ -6,6 +6,8 @@ open import Bool
 
 declare {isabelle;ocaml;hol;coq} rename module = lem_basic_classes 
 
+open import {coq} `Coq.Strings.Ascii`
+
 (* ========================================================================== *)
 (* Equality                                                                   *)
 (* ========================================================================== *)
