@@ -301,10 +301,10 @@ Definition set_proper_subset_by
     andb (set_subset_by eltord left right) (negb (set_equal_by eltord left right)).
 
 Definition set_from_list
-  {elt: Type} (s: set elt): list elt := s.
+  {elt: Type} (s: list elt): set elt := s.
 
 Definition set_to_list
-  {elt: Type} (l: list elt): set elt := l.
+  {elt: Type} (l: set elt): list elt := l.
 
 Definition set_sigma
   {elt elt': Type} (sa: set elt) (f: elt -> set elt'): set (elt * elt') :=
