@@ -1,4 +1,3 @@
--arg "-require coqharness"
 -install none
 lem_basic_classes.v
 lem_bool.v

@@ -315,6 +315,7 @@ let output1 env (out_dir : string option) (targ : Target.target) avoid m =
                   Printf.fprintf o "Require Import List.\n";
                   Printf.fprintf o "Require Import String.\n";
                   Printf.fprintf o "Require Import Program.Wf.\n\n";
+                  Printf.fprintf o "Require Import coqharness.\n\n";
                   Printf.fprintf o "Open Scope nat_scope.\n";
                   Printf.fprintf o "Open Scope string_scope.\n\n";
                   Printf.fprintf o "%s" (Ulib.Text.to_string r);
