@@ -1,4 +1,4 @@
 declare {isabelle;ocaml;hol;coq} rename module = Lem_pervasives_extra 
 
 include import Pervasives 
-include import Function_extra Maybe_extra Map_extra Set_extra Set_helpers List_extra String_extra Assert_false_extra
+include import Function_extra Maybe_extra Map_extra Set_extra Set_helpers List_extra String_extra Assert_extra

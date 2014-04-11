@@ -1,0 +1,37 @@
+(* ------------------------------------ *)
+(* impure functions for signalling      *)
+(* catastrophic failure, or function    *)
+(* preconditions.                       *)
+(* ------------------------------------ *)
+
+declare {isabelle;ocaml;hol;coq} rename module = lem_assert_extra
+
+(* ------------------------------------ *)
+(* failing with a proper error message  *)
+(* ------------------------------------ *)
+
+val failwith: forall 'a. string -> 'a
+declare ocaml    target_rep function failwith = `failwith`
+declare hol      target_rep function failwith = `failwith`
+declare isabelle target_rep function failwith = `failwith`
+declare coq      target_rep function failwith s = `DAEMON`
+
+(* ------------------------------------ *)
+(* failing without an error message     *)
+(* ------------------------------------ *)
+
+val fail : forall 'a. 'a
+let fail = failwith "fail"
+declare ocaml target_rep function fail = `assert` `false`
+
+(* ------------------------------------- *)
+(* assertions                            *)
+(* ------------------------------------- *)
+
+val ensure : bool -> string -> unit
+let ensure test msg =
+  if test then
+    ()
+  else
+    failwith msg
+;;

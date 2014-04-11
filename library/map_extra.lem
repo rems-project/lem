@@ -8,7 +8,7 @@
 
 declare {isabelle;hol;ocaml;coq} rename module = lem_map_extra
 
-open import Bool Basic_classes Function Function_extra Maybe List Num Set Map
+open import Bool Basic_classes Function Assert_extra Maybe List Num Set Map
 
 (* -------------------------------------------------------------------------- *)
 (* find                                                                       *)

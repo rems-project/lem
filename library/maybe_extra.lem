@@ -5,7 +5,7 @@
 
 declare {isabelle;hol;ocaml;coq} rename module = lem_maybe_extra 
 
-open import Basic_classes Maybe Function_extra
+open import Basic_classes Maybe Assert_extra
 
 (* ----------------------- *)
 (* fromJust                *)

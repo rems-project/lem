@@ -29,17 +29,6 @@ assert apply_1: (fun (x:nat) -> 3 * x) $ 2 = 6
 assert flip_0: flip (fun (x:nat) y -> x - y) 3 5 = 2
 assert flip_1: flip (fun (x:nat) y -> x - y) 5 3 = 0
 
-
-(* ------------------------------------ *)
-(* failing with a proper error message  *)
-(* ------------------------------------ *)
-
-val failwith: forall 'a. string -> 'a
-declare ocaml    target_rep function failwith = `failwith`
-declare hol      target_rep function failwith = `failwith`
-declare isabelle target_rep function failwith = `failwith`
-declare coq      target_rep function failwith s = `DAEMON`
-
 (* ----------------------- *)
 (* getting a unique value  *)
 (* ----------------------- *)

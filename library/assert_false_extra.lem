@@ -1,4 +1,0 @@
-declare {isabelle;ocaml;hol;coq} rename module = lem_assert_false_extra
-
-val assert_false : forall 'a. 'a
-declare ocaml target_rep function assert_false = `assert` `false`
