@@ -4,6 +4,7 @@ Pset
 Pmap
 Vector
 Bit
+Xstring
 Either
 
 Lem
@@ -27,5 +28,7 @@ Lem_set
 Lem_set_extra 
 Lem_set_helpers
 Lem_sorting
+Lem_string
+Lem_string_extra
 Lem_tuple
 Lem_word
