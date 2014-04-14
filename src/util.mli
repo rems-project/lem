@@ -270,6 +270,12 @@ val is_simple_char : char -> bool
     is never empty *)
 val string_split : char -> string -> (string list * string)
 
+(** [is_uppercase c] returns true if c is between A and Z *)
+val is_uppercase : char -> bool
+
+(** [is_lowercase c] returns true if c is between a and z *)
+val is_lowercase : char -> bool
+
 (** [uncapitalize_prefix n] tries to uncapitalize the first few letters of [n].
     In contrast to [uncapitalize], it continues with the next letter,
     till a non-uppercase letter is found. The idea is to produce nicer looking names when

@@ -134,7 +134,7 @@ let pp ppf n = pp_str ppf (to_string n)
 let starts_with_upper_letter x = 
   try 
     let c = Ulib.UChar.char_of (Ulib.UTF8.get x 0) in
-      Str.string_match (Str.regexp "[A-Z]") (String.make 1 c) 0
+      Util.is_uppercase c
   with 
     | Ulib.UChar.Out_of_range -> false
 
@@ -163,7 +163,7 @@ let remove_underscore_suffix x =
 let starts_with_lower_letter x = 
   try 
     let c = Ulib.UChar.char_of (Ulib.UTF8.get x 0) in
-      Str.string_match (Str.regexp "[a-z]") (String.make 1 c) 0
+      Util.is_lowercase c
   with 
     | Ulib.UChar.Out_of_range -> false
 

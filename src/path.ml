@@ -69,18 +69,30 @@ let mk_path_list names =
 
 let r = Ulib.Text.of_latin1
 
-let to_name_list p =  match p with 
-    | Path_def(vs,v) -> (vs, v)
-    | Path_list    -> ([], Name.from_rope (r"list"))
-    | Path_bool    -> ([], Name.from_rope (r"bool"))
-    | Path_bit     -> ([], Name.from_rope (r"bit"))
-    | Path_nat     -> ([], Name.from_rope (r"nat"))
-    | Path_set     -> ([], Name.from_rope (r"set"))
-    | Path_vector  -> ([], Name.from_rope (r"vector"))
-    | Path_string  -> ([], Name.from_rope (r"string"))
-    | Path_unit    -> ([], Name.from_rope (r"unit"))
-    | Path_char    -> ([], Name.from_rope (r"char"))
-    | Path_numeral -> ([], Name.from_rope (r"numeral"))
+let to_name_list =
+    let build s = ([], Name.from_rope (r s)) in
+    let lst = build "list" in
+    let bln = build "bool" in
+    let bit = build "bit" in
+    let nat = build "nat" in
+    let set = build "set" in
+    let vec = build "vector" in
+    let str = build "string" in
+    let unt = build "unit" in
+    let chr = build "char" in
+    let num = build "numeral" in
+    function
+    | Path_def (vs,v) -> (vs,v)
+    | Path_list    -> lst
+    | Path_bool    -> bln
+    | Path_bit     -> bit
+    | Path_nat     -> nat
+    | Path_set     -> set
+    | Path_vector  -> vec
+    | Path_string  -> str
+    | Path_unit    -> unt
+    | Path_char    -> chr
+    | Path_numeral -> num
 
 let from_id id = 
   let (x,y) = Ident.to_name_list id in 

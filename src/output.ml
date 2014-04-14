@@ -539,8 +539,9 @@ let tex_id_wrap a r1 =
       res false "TypeVar"          
     end
 
-let split_suffix s =
+let split_suffix =
   let regexp = Str.regexp "\\(.*[^'0-9_]\\)_*\\([0-9]*\\)\\('*\\)\\(.*\\)" in
+  fun s ->
   if Str.string_match regexp s 0 then
     (Str.matched_group 1 s, 
      let (^) = Pervasives.(^) in
