@@ -105,7 +105,7 @@ let options = Arg.align ([
     Arg.String (fun l -> lib_paths_ref := l :: (!lib_paths_ref)),
     " add path to library path; if no lib is given the default '"^(default_library)^")' is used. Set LEMLIB environment variable to change this default.");
   ( "-no_dep_reorder", 
-    Arg.Unit (fun b -> allow_reorder_modules := false),
+    Arg.Clear allow_reorder_modules,
     " prohibit reordering modules given to lem as explicit arguments in order during dependency resolution\n\n");
 
   ( "-outdir", 
@@ -115,10 +115,10 @@ let options = Arg.align ([
     Arg.String (fun l -> lib := l::!lib),
     " treat the file as input only and generate no output for it");
   ( "-only_changed_output",
-    Arg.Unit (fun b -> Process_file.always_replace_files := false),
+    Arg.Clear Process_file.always_replace_files, 
     " generate only output files, whose content really changed compared to the existing file");
   ( "-only_auxiliary",
-    Arg.Unit (fun b -> Process_file.only_auxiliary := true),
+    Arg.Set Process_file.only_auxiliary, 
     " generate only auxiliary output files");
   ( "-auxiliary_level", 
     Arg.Symbol (["none"; "auto"; "all"], (fun s ->
@@ -129,31 +129,31 @@ let options = Arg.align ([
     " generate no (none) auxiliary-information, only auxiliaries that can be handled automatically (auto) or all (all) auxiliary information\n\n");
 
   ( "-debug",
-    Arg.Unit (fun b -> Printexc.record_backtrace true),
+    Arg.Unit (fun () -> Printexc.record_backtrace true),
     " print a backtrace for all errors (lem needs to be compiled in debug mode)");
   ( "-print_env",
-    Arg.Unit (fun b -> opt_print_env := true),
+    Arg.Set opt_print_env, 
     " print the environment signature on stdout");
   ( "-add_loc_annots", 
-    Arg.Unit (fun b -> Backend_common.def_add_location_comment_flag := true),
+    Arg.Set Backend_common.def_add_location_comment_flag, 
     " add location annotations to the output");
   ( "-add_full_isa_lib_path",
-    Arg.Unit (fun b -> Backend_common.isa_add_full_library_path_flag := true),
+    Arg.Set Backend_common.isa_add_full_library_path_flag, 
     " add the full path of the isabelle-lib directory to Isabelle import statements");
   ( "-v",
-    Arg.Unit (fun b -> opt_print_version := true),
+    Arg.Set opt_print_version, 
     " print version");
   ( "-ident_pat_compile",
-    Arg.Unit (fun b -> Target_trans.ident_force_pattern_compile := true; Reporting.ignore_pat_compile_warnings()),
+    Arg.Unit (fun () -> Target_trans.ident_force_pattern_compile := true; Reporting.ignore_pat_compile_warnings()),
     " activates pattern compilation for the identity backend. This is used for debugging.");
   ( "-ident_dict_passing",
-    Arg.Unit (fun b -> Target_trans.ident_force_dictionary_passing := true),
+    Arg.Set Target_trans.ident_force_dictionary_passing, 
     " activates dictionary passing transformations for the identity backend. This is used for debugging.");
   ( "-hol_remove_matches",
-    Arg.Unit (fun b -> Target_trans.hol_remove_matches := true),
+    Arg.Set Target_trans.hol_remove_matches, 
     " try to remove toplevel matches in HOL4 output."); (* This is generally useful, but disabled by default for compatibility with old Lem versions. *)
   ( "-prover_remove_failwith",
-    Arg.Unit (fun b -> Target_trans.prover_remove_failwith := true),
+    Arg.Set Target_trans.prover_remove_failwith, 
     " remove failwith branches in match statements in the prover backends.");
 ] @ Reporting.warn_opts)
 
