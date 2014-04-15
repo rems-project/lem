@@ -192,7 +192,13 @@ let isa  =
   { macros =
      indreln_macros @
      dictionary_macros (Target_no_ident Target_isa) @
-     [Def_macros (fun env ->
+     [Exp_macros (fun env ->
+        let module T = T(struct let env = env end) in
+          if !prover_remove_failwith then
+            [T.remove_failwith_matches]
+          else
+            []);
+      Def_macros (fun env ->
                     [M.remove_vals;
                      M.remove_opens;
                      M.remove_indrelns_true_lhs;
@@ -203,10 +209,6 @@ let isa  =
       Pat_macros (fun env -> [Backend_common.inline_pat_macro Target_isa env]);
       Exp_macros (fun env ->
                     let module T = T(struct let env = env end) in
-                      (if !prover_remove_failwith then
-                        [T.remove_failwith_matches]
-                       else
-                        []) @
                       [T.list_quant_to_set_quant;
                        T.remove_list_comprehension;
                        T.cleanup_set_quant;
