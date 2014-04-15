@@ -50,6 +50,10 @@ let option_map f = function
 
 type ('a,'s) t = 's option * ('a * 's) list * 'a option
 
+let filter p (opt, list, opt') =
+  (opt, List.filter (fun (fst, snd) -> p fst) list, opt')
+;;
+
 let empty = (None, [], None)
 
 let is_empty = function

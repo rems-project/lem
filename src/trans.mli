@@ -199,6 +199,12 @@ module Macros (E : sig val env : env end) : sig
       Variable patterns and - if [keep_tup] is set - tuple patterns are kept. *)
   val remove_fun_pats : bool -> exp macro
 
+  (** [remove_failwith_matches] removes branches in match statements that contain only
+      "failwith" or "fail" from the Lem library module Assert_extra and replace them
+      with partial matches.
+    *)
+  val remove_failwith_matches : exp macro
+
   (** {2 Macros I don't understand} *)
 
 (* TODO: add again *)

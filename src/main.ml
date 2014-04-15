@@ -152,6 +152,9 @@ let options = Arg.align ([
   ( "-hol_remove_matches",
     Arg.Unit (fun b -> Target_trans.hol_remove_matches := true),
     " try to remove toplevel matches in HOL4 output."); (* This is generally useful, but disabled by default for compatibility with old Lem versions. *)
+  ( "-prover_remove_failwith",
+    Arg.Unit (fun b -> Target_trans.prover_remove_failwith := true),
+    " remove failwith branches in match statements in the prover backends.");
 ] @ Reporting.warn_opts)
 
 let usage_msg = 

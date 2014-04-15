@@ -146,6 +146,45 @@ let sort_record_fields _ e =
       | _ -> None
 ;;
 
+let remove_failwith_matches _ e =
+  let l_unk = Ast.Trans(true, "remove_failwith_matches", Some (exp_to_locn e)) in
+    match C.exp_to_term e with
+      | Case (flag, skips, scrutinee, skips', pat_skips_exp_loc_seplist, skips'') ->
+        let common_path    = [Name.from_string "Assert_extra"] in
+        let fail_head      = Name.from_string "fail" in
+        let fail_path      = Path.mk_path common_path fail_head in
+        let fail_with_head = Name.from_string "failwith" in
+        let fail_with_path = Path.mk_path common_path fail_with_head in
+        let exp_contains_fail_or_failwith loc exp =
+          match C.exp_to_term exp with
+            | Constant const_descr_ref_id ->
+              let const_descr_ref = const_descr_ref_id.descr in
+              let const_descr     = Typed_ast.c_env_lookup loc E.env.c_env const_descr_ref in
+                not (const_descr.const_binding = fail_path)
+            | App (left, right) ->
+              begin
+                match C.exp_to_term left with
+                  | Constant const_descr_ref_id ->
+                    let const_descr_ref = const_descr_ref_id.descr in
+                    let const_descr     = Typed_ast.c_env_lookup loc E.env.c_env const_descr_ref in
+                      not (const_descr.const_binding = fail_with_path)
+                  | _ -> false
+              end
+            | _ -> false
+        in
+        let filter =
+          Seplist.filter (fun (pat, skips, exp, loc) ->
+            exp_contains_fail_or_failwith loc exp
+          ) pat_skips_exp_loc_seplist
+        in
+        if filter = pat_skips_exp_loc_seplist then
+          None
+        else
+          let res = C.mk_case flag l_unk skips scrutinee skips' filter skips'' None in
+            Some res
+      | _ -> None
+;;
+
 (* Turn function | pat1 -> exp1 ... | patn -> expn end into
  * fun x -> match x with | pat1 -> exp1 ... | patn -> expn end *)
 let remove_function _ e = Patterns.remove_function E.env (fun e -> e) e

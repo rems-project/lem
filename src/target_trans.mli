@@ -72,5 +72,11 @@ val ident_force_pattern_compile : bool ref
 val ident_force_dictionary_passing : bool ref 
 
 (** This flag enables removing top-level matches from definition for the HOL4 backend. *)
-val hol_remove_matches : bool ref 
+val hol_remove_matches : bool ref
+
+(** This flag enables the removing of failwith and fail (from library module Assert_extra) in the
+    prover backends in favour of a partial pattern match that will then be handled by pattern match
+    compilation.  At Peter and Shaked's request.
+*)
+val prover_remove_failwith : bool ref
 

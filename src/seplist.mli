@@ -140,6 +140,11 @@ val from_list_suffix : ('a * 's) list -> 's -> bool -> ('a,'s) t
     the separator [d] as default separator between all entries. *)
 val from_list_default : 's -> 'a list -> ('a,'s) t
 
+(** [filter p s] filters all elements of the seplist [s] that satisfy the predicate
+    [p], dropping the rest.
+  *)
+val filter : ('a -> bool) -> ('a, 's) t -> ('a, 's) t
+
 val length : ('a,'s) t -> int
 
 val map : ('a -> 'b) -> ('a,'s) t -> ('b, 's) t
