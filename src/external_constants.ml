@@ -77,6 +77,9 @@ match label with
   | "equality" -> (["Basic_classes"], "isEqual")
   | "identity" -> (["Function"], "id")
 
+  | "fail" -> (["Assert_extra"], "fail")
+  | "failwith" -> (["Assert_extra"], "failwith")
+
   | "conjunction" -> (["Bool"], "&&")
   | "implication" -> (["Bool"], "-->")
 
@@ -113,6 +116,12 @@ match label with
   | s -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_general (true,				     
             (Ast.Trans (false, "constant_label_to_path_name", None)),
             ("Unknown label '" ^ s ^ "'"))))
+;;
+
+let constant_label_to_path (label : string) : Path.t =
+  let (path, head) = constant_label_to_path_name label in
+    Path.mk_path (List.map Name.from_string path) (Name.from_string head)
+;;
 
 
 

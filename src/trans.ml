@@ -150,11 +150,8 @@ let remove_failwith_matches _ e =
   let l_unk = Ast.Trans(true, "remove_failwith_matches", Some (exp_to_locn e)) in
     match C.exp_to_term e with
       | Case (flag, skips, scrutinee, skips', pat_skips_exp_loc_seplist, skips'') ->
-        let common_path    = [Name.from_string "Assert_extra"] in
-        let fail_head      = Name.from_string "fail" in
-        let fail_path      = Path.mk_path common_path fail_head in
-        let fail_with_head = Name.from_string "failwith" in
-        let fail_with_path = Path.mk_path common_path fail_with_head in
+        let fail_path      = External_constants.constant_label_to_path "fail" in
+        let fail_with_path = External_constants.constant_label_to_path "failwith" in
         let exp_contains_fail_or_failwith loc exp =
           match C.exp_to_term exp with
             | Constant const_descr_ref_id ->
