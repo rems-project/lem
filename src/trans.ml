@@ -150,23 +150,12 @@ let remove_failwith_matches _ e =
   let l_unk = Ast.Trans(true, "remove_failwith_matches", Some (exp_to_locn e)) in
     match C.exp_to_term e with
       | Case (flag, skips, scrutinee, skips', pat_skips_exp_loc_seplist, skips'') ->
-        let fail_path      = External_constants.constant_label_to_path "fail" in
-        let fail_with_path = External_constants.constant_label_to_path "failwith" in
+        let (fail_ref, _)      = get_const E.env "fail" in
+        let (fail_with_ref, _) = get_const E.env "failwith" in
         let exp_contains_fail_or_failwith loc exp =
-          match C.exp_to_term exp with
+          match C.exp_to_term (fst (strip_app_exp exp)) with
             | Constant const_descr_ref_id ->
-              let const_descr_ref = const_descr_ref_id.descr in
-              let const_descr     = Typed_ast.c_env_lookup loc E.env.c_env const_descr_ref in
-                not (const_descr.const_binding = fail_path)
-            | App (left, right) ->
-              begin
-                match C.exp_to_term left with
-                  | Constant const_descr_ref_id ->
-                    let const_descr_ref = const_descr_ref_id.descr in
-                    let const_descr     = Typed_ast.c_env_lookup loc E.env.c_env const_descr_ref in
-                      not (const_descr.const_binding = fail_with_path)
-                  | _ -> false
-              end
+                not ((const_descr_ref_id.descr = fail_ref) || (const_descr_ref_id.descr = fail_with_ref))
             | _ -> false
         in
         let filter =
