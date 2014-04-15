@@ -155,12 +155,12 @@ let remove_failwith_matches _ e =
         let exp_contains_fail_or_failwith loc exp =
           match C.exp_to_term (fst (strip_app_exp exp)) with
             | Constant const_descr_ref_id ->
-                not ((const_descr_ref_id.descr = fail_ref) || (const_descr_ref_id.descr = fail_with_ref))
+                ((const_descr_ref_id.descr = fail_ref) || (const_descr_ref_id.descr = fail_with_ref))
             | _ -> false
         in
         let filter =
           Seplist.filter (fun (pat, skips, exp, loc) ->
-            exp_contains_fail_or_failwith loc exp
+            not (exp_contains_fail_or_failwith loc exp)
           ) pat_skips_exp_loc_seplist
         in
         if filter = pat_skips_exp_loc_seplist then
