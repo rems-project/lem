@@ -50,22 +50,9 @@ let option_map f = function
 
 type ('a,'s) t = 's option * ('a * 's) list * 'a option
 
-let filter p (opt, lst, opt') =
-  let list_filter = List.filter (fun (fst, snd) -> p fst) lst in
-    match opt' with
-      | None      ->
-        begin
-          match list_filter with
-            | []    -> (opt, [], None)
-            | (x, _)::xs -> (opt, xs, Some x)
-        end
-      | Some opt' ->
-        if p opt' then
-          (opt, list_filter, Some opt')
-        else
-          match list_filter with
-            | []    -> (opt, [], None)
-            | (x, _)::xs -> (opt, xs, Some x)
+let filter p (opt, list, opt') =
+  (opt, List.filter (fun (fst, snd) -> p fst) list,
+    Util.option_bind (fun x -> if p x then Some x else None) opt')
 ;;
 
 let empty = (None, [], None)
