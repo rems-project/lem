@@ -272,6 +272,12 @@ val dest_tf_exp : exp -> bool option
 (** [is_tf_exp v e] checks whether [e] is a [true] or [false] expression. *)
 val is_tf_exp : bool -> exp -> bool
 
+(** [is_t_exp v e] checks whether [e] is the [true] expression. *)
+val is_t_exp : exp -> bool
+
+(** [is_f_exp v e] checks whether [e] is the [false] expression. *)
+val is_f_exp : exp -> bool
+
 (** Destructor for constants expressions *)
 val dest_const_exp : exp -> const_descr_ref id option
 
@@ -301,6 +307,14 @@ val mk_and_exp : env -> exp -> exp -> exp
 (** [mk_and_exps env es] constructs the conjunction of all expressions in es. The environment [env] is needed
     to lookup the conjunction constant. *)
 val mk_and_exps : env -> exp list -> exp
+
+(** [dest_and_exps env e] extracts the arguments from a conjunction
+    expression [e].  The environment [env] is needed to lookup the
+    conjunction constant.
+
+    It is an inverse for [mk_and_exps] when the inner expression are
+    not themselves conjunctions. *)
+val dest_and_exps : env -> exp -> exp list
 
 (** [mk_le_exp env e1 e2] constructs the expression [e1 <= e2]. The environment [env] is needed
     to lookup the less-equal constant. *)

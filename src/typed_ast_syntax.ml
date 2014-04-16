@@ -480,6 +480,12 @@ let dest_tf_exp e =
 
 let is_tf_exp b e = (dest_tf_exp e = Some b)
 
+let is_t_exp e =
+  is_tf_exp true e
+
+let is_f_exp e =
+  is_tf_exp false e
+
 let dest_num_exp e =
   match C.exp_to_term e with
       Lit l -> (match l.term with L_num (_,i,_) -> Some i | _ -> None)
@@ -614,6 +620,21 @@ let rec mk_and_exps env el : exp =
     | [e] -> e
     | e1 :: e2 :: es ->
       mk_and_exp env e1 (mk_and_exps env (e2 :: es))
+
+let is_and_exp (env : env) (e : exp) =
+  match C.exp_to_term e with
+    | Constant c -> c.descr = fst (get_const env "conjunction")
+    | _ -> false
+
+(* Splits on infix (&&) : ((a && b) && (c && d)) && true -> [a;b;c;d] *)
+let rec dest_and_exps (env : env) (e : exp) : exp list =
+  match C.exp_to_term e with
+    | Infix(e1, op, e2) when is_and_exp env op ->
+      dest_and_exps env e1 @ dest_and_exps env e2
+    | Paren(_,e,_) -> dest_and_exps env e
+    | Typed(_,e,_,_,_) -> dest_and_exps env e
+    | _ when is_t_exp e -> []
+    | _ -> [e]
 
 let mk_le_exp env (e1 : exp) (e2 : exp) : exp =
   let l = Ast.Trans (true, "mk_le_exp", None) in  
