@@ -137,9 +137,6 @@ let mk_unit_exp =
   let exp = mk_lit l lit (Some unit_ty) in
   exp
 
-let is_t_exp e =
-  is_tf_exp true e
-
 (** [mk_const_ref env l c_ref inst] transforms the constant [c_ref]
     into an expression by giving it the instantiation [inst]. *)
 let mk_const_ref
@@ -163,23 +160,6 @@ let mk_tup_unit_exp l : exp list -> exp = function
   | [] -> mk_unit_exp
   | [e] -> e
   | es -> mk_tup l None (sep_no_skips es) None None
-
-(** [is_and env e] checks whether expression [e] is the [&&] constant in
-    environment [env] *)
-let is_and (env : env) (e : exp) =
-  match exp_to_term e with
-    | Constant c -> c.descr = and_const_ref env
-    | _ -> false
-
-(* Splits on infix (&&) : ((a && b) && (c && d)) && true -> [a;b;c;d] *)
-let rec split_and (env : env) (e : exp) : exp list =
-  match exp_to_term e with
-    | Infix(e1, op_and, e2) when is_and env op_and ->
-      split_and env e1 @ split_and env e2
-    | Paren(_,e,_) -> split_and env e
-    | Typed(_,e,_,_,_) -> split_and env e
-    | _ when is_t_exp e -> []
-    | _ -> [e]
 
 (* [mk_const_app env l label inst args] constructs the application of
    [label] to arguments [args] with type instantiation [inst]. *)
@@ -418,7 +398,7 @@ let add_rules_to_relsdescr
       let ruledescr = {
         rule_name = Name.strip_lskip n ;
         rule_vars = typed_vars ;
-        rule_conds = split_and env rulecond ;
+        rule_conds = dest_and_exps env rulecond ;
         rule_args = args ;
         rule_loc = l
       } in
