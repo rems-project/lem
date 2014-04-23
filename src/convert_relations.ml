@@ -591,6 +591,13 @@ let is_list_cons
   =
   cons = fst (get_const env "list_cons")
 
+(** [is_list_append env append] checks whether [append] is the list
+    `append` operator (++) in environmnet [env]. *)
+let is_list_append
+    (env : env) (append : const_descr_ref)
+  : bool =
+  append = fst (get_const env "list_append")
+
 (** [exps_to_pats avoid env es] returns a pair [(ps, eqs)], where:
 
     - [ps] is a list of same length as [es], where each expression in
@@ -630,6 +637,28 @@ let exps_to_pats (avoid : Nset.t ref) (env : env) (es : exp list)
       let p1 = exp_to_pat e1 in
       let p2 = exp_to_pat e2 in
       mk_pcons loc p1 None p2 (Some ty)
+    | Constant cd, [e1;e2] when is_list_append env cd.descr ->
+      let p1 = exp_to_pat e1 in
+      let p2 = exp_to_pat e2 in
+      begin match p1.term, p2.term with
+        | P_list (s1, ps, s2), P_list (s1', ps', s2') ->
+          mk_plist loc s1
+            (Seplist.append s2 ps (Seplist.cons_sep s1' ps'))
+            s2' p2.typ
+        | P_list (s1, ps, s2), _ ->
+          mk_pparen loc s1
+            (Seplist.fold_right
+               (fun p r ->
+                  mk_pcons loc p None r (Some ty))
+               p2 ps)
+            s2 (Some ty)
+        | _, P_list (_, ps, _) when Seplist.length ps = 0 -> p1
+        | _ ->
+          Reporting.print_debug_exp env "Extracting complex list expression" [e];
+          let (p, eq) = extract_exp loc env e avoid in
+          eqs := eq :: !eqs;
+          p
+      end
     | Constant c, args when is_constructor env ty c.descr ->
       let pargs =
         List.fold_right (fun e (pats) ->

@@ -94,6 +94,7 @@ match label with
   | "list_forall" -> (["List"], "all")
   | "list_map" -> (["List"], "map")
   | "list_member" -> (["List"], "elem")
+  | "list_append" -> (["List"], "++")
 
   | "maybe_just" -> (["Maybe"], "Just")
   | "maybe_nothing" -> (["Maybe"], "Nothing")
