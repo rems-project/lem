@@ -442,7 +442,7 @@ let extract_exp
   avoid := Nset.add n !avoid;
   (pat, (mk_eq_exp env var e))
 
-(** [linearize env pats avoid] constructs:
+(** [linearize env pats avoid seen] constructs:
 
     - New patterns from [pats] where duplicate variables have been
     renamed with names not present in [!avoid]. [avoid] is updated to
@@ -452,12 +452,16 @@ let extract_exp
     their initial names that must be satisfied for the new pattern(s)
     to be equivalent to the old one(s).
 
+    - [seen] is updated with the name of all variables bound by the
+      pattern, and contains a set of already-bound names.
+
     For instance, when called with a pattern [C (x, K (y, x), y)], it
     returns the new pattern [C (x, K (y, x'), y')] and the list of
     equations [[ y = y' ; x = x']]. *)
-let linearize (env : env) (pats : pat list) (avoid : Nset.t ref)
+let linearize
+    (env : env) (pats : pat list) (avoid : Nset.t ref)
+    (seen : Nset.t ref)
   : pat list * exp list =
-  let seen = ref Nset.empty in
   let eqs = ref [] in
   (* Constructs a fresh variable and registers its equalities *)
   let make_fresh (n : Name.lskips_t) (l : Ast.l) (t : Types.t)
@@ -471,14 +475,14 @@ let linearize (env : env) (pats : pat list) (avoid : Nset.t ref)
     in
     let v = Name.strip_lskip n in
     let v' = Name.strip_lskip n' in
-    avoid := Nset.add v' !avoid;
-    seen := Nset.add v' !seen;
-    if v' <> v then
+    if v <> v' then
       eqs :=
         (mk_eq_exp env
            (mk_var l (Name.add_lskip v) t)
            (mk_var l (Name.add_lskip v') t))
         :: !eqs;
+    avoid := Nset.add v (Nset.add v' !avoid);
+    seen := Nset.add v !seen;
     n' in
   let rec linearize_pat (p : pat) : pat =
     let ty = p.typ in
@@ -523,6 +527,28 @@ let linearize (env : env) (pats : pat list) (avoid : Nset.t ref)
   in
   let pats' = List.map linearize_pat pats in
   (pats', !eqs)
+
+let mk_if_code (env : env) (es : exp list) (c : code) : code=
+  if es = [] then c
+  else IF (mk_and_exps env es, c)
+
+let rec linearize_code
+  (env : env) (seen : Nset.t ref)
+  (avoid : Nset.t ref) (c : code)
+  : code =
+  match c with
+  | IF (e, c) -> IF (e, linearize_code env seen avoid c)
+  | CALL (cd, es, ps, c) ->
+    let (ps, eqs) = linearize env ps seen avoid in
+    CALL (cd, es, ps,
+          mk_if_code env eqs (linearize_code env seen avoid c))
+  | LET (p, e, c) ->
+    let (p, eqs) = linearize env [p] seen avoid in
+    LET (List.hd p, e,
+         mk_if_code env eqs (linearize_code env seen avoid c))
+  | IFEQ (e1, e2, c) ->
+    IFEQ (e1, e2, linearize_code env seen avoid c)
+  | RETURN es -> RETURN es
 
 (* Try to convert an expression to a pattern
 
@@ -1478,7 +1504,10 @@ let transform_rule
       let wit = List.fold_left (fun u v -> mk_app l u v None) constr args in
       returns@[wit]
   in
-  let add_side side x = List.fold_left (fun x e -> IF(e,x)) x side in
+  let add_side side x =
+    List.fold_left (fun x e ->
+        if is_t_exp e then x else IF (e, x))
+      x side in
   (* build_code does some stuff. It seems to be generating code
      according to some algorithm. *)
   let rec build_code
@@ -1563,8 +1592,9 @@ let transform_rule
   in
   let e =
     build_code initknown indconds sideconds initeqs usefuleqs in
-  let (ps, eqs)= linearize env patterns avoid in
-  (l, ps, add_side [mk_and_exps env eqs] e)
+  let seen = ref Nset.empty in
+  let (ps, eqs)= linearize env patterns seen avoid in
+  (l, ps, linearize_code env seen avoid (add_side [mk_and_exps env eqs] e))
 
 let transform_rules env localrels mode reldescr print_debug =
   List.map (fun x -> transform_rule env localrels mode reldescr x print_debug)
