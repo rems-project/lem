@@ -59,8 +59,14 @@ let new_line = Some [Ast.Ws (r"\n")]
 
 module C = Exps_in_context(struct let env_opt = None let avoid = None end)
 
+let unit_ty = { Types.t = Types.Tapp ([], Path.unitpath) }
 let bool_ty = { Types.t = Types.Tapp ([], Path.boolpath) }
 let nat_ty  = { Types.t = Types.Tapp ([], Path.natpath)  }
+let list_ty ty = { Types.t = Types.Tapp ([ty], Path.listpath) }
+let option_ty ty =
+  { Types.t = Types.Tapp ([ty],
+                          Path.mk_path [ Name.from_string "Maybe" ]
+                            (Name.from_string "maybe")) }
 
 let mk_name_lskips_annot l n ty : name_lskips_annot = 
   { term = n;

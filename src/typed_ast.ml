@@ -1721,6 +1721,13 @@ module Exps_in_context(D : Exp_context) = struct
       typ = t;
       rest = (); }
 
+  let mk_lunit l s t =
+    let t = check_typ l "mk_lunit" t (fun d -> Some { t = Tapp([],Path.unitpath) }) in
+    { term = L_unit (s, None);
+      locn = l;
+      typ = t;
+      rest = (); }
+
   let mk_lbit l s b t =
     let t = check_typ l "mk_lbit" t (fun d -> Some { t = Tapp([],Path.bitpath) }) in
     { term = if (b=0) then L_zero(s) else L_one(s);

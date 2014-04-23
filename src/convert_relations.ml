@@ -46,21 +46,6 @@ let loc_trans (s : string) (l : Ast.l) : Ast.l =
 
 (* Types                                                                      *)
 
-(** [unit_ty] represent the Lem type [()] *)
-(* TODO: Move to typed_ast_syntax *)
-let unit_ty : Types.t =
-  { t = Tapp ([], Path.unitpath) }
-
-(** [mk_fun_ty [T1 ; ... ; Tn] ret] constructs the type
-    [T1 -> ... -> Tn -> ret] *)
-let mk_fun_ty args ret =
-  List.fold_right (fun a b -> {t=Tfn(a,b)}) args ret
-
-(** [mk_option_type ty] constructs the type [maybe ty] *)
-let mk_option_type (ty : Types.t) : Types.t =
-  { Types.t = Types.Tapp ( [ty],
-                           Path.mk_path [ Name.from_string "Maybe" ]
-                             (Name.from_string "maybe") ) }
 (** [remove_option ty] removes the maybe constructor from type
     [maybe t], and fails otherwise. *)
 (* TODO: This actually removes any type constructor. Plus this should
@@ -70,24 +55,12 @@ let remove_option (ty : Types.t) : Types.t =
   | Types.Tapp([ty], _) -> ty
   | _ -> failwith "???"
 
-(** [mk_list_type ty] constructs the type [list ty] *)
-let mk_list_type ty =
-  { Types.t = Types.Tapp([ty], Path.listpath) }
-
 (** [mk_tup_unit_typ tys] converts the list of types [tys] into a
     single tuple type. *)
 let mk_tup_unit_typ : t list -> t = function
   | [] -> unit_ty
   | [t] -> t
   | l -> {t=Ttup(l)}
-
-(* Literals                                                                   *)
-
-let mk_lunit (l : Ast.l) : lit =
-  { term = L_unit (None, None) ;
-    locn = l ;
-    typ = unit_ty ;
-    rest = () }
 
 (* Constants                                                                  *)
 
@@ -129,14 +102,6 @@ let and_const_ref (env : env) : const_descr_ref =
 let eq_const_ref (env : env) : const_descr_ref =
   fst (get_const env "equality")
 
-(* Expressions                                                                *)
-
-let mk_unit_exp =
-  let l = Ast.Trans (false, "mk_unit_exp", None) in
-  let lit = mk_lunit l in
-  let exp = mk_lit l lit (Some unit_ty) in
-  exp
-
 (** [mk_const_ref env l c_ref inst] transforms the constant [c_ref]
     into an expression by giving it the instantiation [inst]. *)
 let mk_const_ref
@@ -157,7 +122,7 @@ let mk_const_ref
 (** [mk_tup_unit_exp l es] converts the list of expressions [es] into
     a single tuple expression. *)
 let mk_tup_unit_exp l : exp list -> exp = function
-  | [] -> mk_unit_exp
+  | [] -> mk_lit l (mk_lunit l None (Some unit_ty)) (Some unit_ty)
   | [e] -> e
   | es -> mk_tup l None (sep_no_skips es) None None
 
@@ -175,7 +140,7 @@ let mk_const_app
 (** [mk_tup_unit_pat l ps] converts the list of patterns [ps] into a
     single pattern on tuples. *)
 let mk_tup_unit_pat l : pat list -> pat= function
-  | [] -> mk_plit l (mk_lunit l) None
+  | [] -> mk_plit l (mk_lunit l None (Some unit_ty)) None
   | [p] -> p
   | ps -> mk_ptup l None (sep_no_skips ps) None None
 
@@ -787,7 +752,7 @@ end
    lists. *)
 module Context_list : COMPILATION_CONTEXT = struct
   let mk_type ty =
-    mk_list_type ty
+    list_ty ty
 
   let remove_type ty =
     match ty.t with
@@ -840,7 +805,7 @@ module Context_list : COMPILATION_CONTEXT = struct
   let mk_choice env l ty input pats =
     let l = loc_trans "mk_choice" l in
     mk_list_concat env l
-      (mk_list l None (sep_newline (List.map (fun (pat, code) -> mk_let env l pat input code) pats)) None (mk_list_type (mk_list_type ty)))
+      (mk_list l None (sep_newline (List.map (fun (pat, code) -> mk_let env l pat input code) pats)) None (list_ty (list_ty ty)))
 end
 
 (* Compilation context for the identity monad.
@@ -885,7 +850,7 @@ end
 module Context_option_pre = struct
 
   let mk_type ty =
-    mk_option_type ty
+    option_ty ty
 
   let remove_type ty =
     match ty.t with
@@ -992,7 +957,7 @@ let ty_from_mode
   let args = in_tys_from_mode env reldescr mode in
   let ret = out_ty_from_mode env reldescr mode in
   let module M = (val select_module out : COMPILATION_CONTEXT) in
-  mk_fun_ty args (M.mk_type ret)
+  multi_fun args (M.mk_type ret)
 
 (**************************************************************************)
 (* Compilation                                                            *)
@@ -1115,7 +1080,7 @@ let register_types rel_loc ctxt mod_path tds =
 (*    let cnames = List.fold_left (fun s (_,cname,_) -> NameSet.add cname s)
       NameSet.empty tconstrs in *)
     let mk_descr c_env cname cargs =
-      let ty = mk_fun_ty cargs {t=Tapp([],type_path)} in
+      let ty = multi_fun cargs {t=Tapp([],type_path)} in
       let descr =
         const_descr
           ~binding:(Path.mk_path mod_path cname)
@@ -1270,7 +1235,7 @@ let gen_witness_check_info l mod_path ctxt names rules =
             "no witness for relation while generating witness-checking function"
             Path.pp check_path
         in
-        let check_type = {t=Tfn(witness_type, mk_option_type (mk_tup_unit_typ ret))} in
+        let check_type = {t=Tfn(witness_type, option_ty (mk_tup_unit_typ ret))} in
         Cdmap.insert defs (reldescr.rel_const_ref, (check_name, check_path, check_type))
   ) Cdmap.empty rels in
   (* Register the functions *)
@@ -1576,8 +1541,8 @@ let transform_rule
               | Rel_mode_out -> None
             ) args fun_mode) in
           CALL (fun_ref, inputs, outputs,
-                build_code (Nset.union bound known)
-                  (cs@notok) sideconds2 (equalities@eqconds2) usefuleqs)
+                (build_code (Nset.union bound known)
+                   (cs@notok) sideconds2 (equalities@eqconds2) usefuleqs))
     in
     let use_eq usefuleqs u v =
       (* u is known, v is (maybe) unknown *)
