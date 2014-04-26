@@ -5,6 +5,9 @@
 (* ------------------------------------ *)
 
 declare {isabelle;ocaml;hol;coq} rename module = lem_assert_extra
+open import {ocaml} `Xstring`
+open import {hol} `stringTheory` `lemTheory`
+open import {coq} `Coq.Strings.Ascii` `Coq.Strings.String`
 
 (* ------------------------------------ *)
 (* failing with a proper error message  *)
