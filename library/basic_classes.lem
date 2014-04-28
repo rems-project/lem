@@ -125,7 +125,7 @@ assert ordering_match_6 : ((fun r -> (match r with GT -> true && true | _ -> fal
 
 val orderingEqual : ordering -> ordering -> bool
 let inline ~{ocaml;coq} orderingEqual = unsafe_structural_equality
-declare coq   target_rep function orderingEqual = `ordering_equal`
+declare coq   target_rep function orderingEqual left right = (`ordering_equal` left right)
 declare ocaml target_rep function orderingEqual = `Lem.orderingEqual`
 
 instance (Eq ordering) 
@@ -284,13 +284,17 @@ end
 
 (* strings *)
 
+val charEqual : char -> char -> bool
+let inline ~{coq} charEqual = unsafe_structural_equality
+declare coq target_rep function charEqual left right = (`char_equal` left right)
+
 instance (Eq char) 
-  let (=) = unsafe_structural_equality
-  let (<>) = unsafe_structural_inequality
+  let (=) = charEqual
+  let (<>) left right = not (charEqual left right)
 end
 
 val stringEquality : string -> string -> bool
-declare coq target_rep function stringEquality = `string_equal`
+declare coq target_rep function stringEquality left right = (`string_equal` left right)
 let inline {ocaml;hol;isabelle} stringEquality = unsafe_structural_equality
 
 instance (Eq string)
@@ -305,7 +309,7 @@ let pairEqual (a1, b1) (a2, b2) = (a1 = a2) && (b1 = b2)
 
 val pairEqualBy : forall 'a 'b. ('a -> 'a -> bool) -> ('b -> 'b -> bool) -> ('a * 'b) -> ('a * 'b) -> bool
 declare ocaml    target_rep function pairEqualBy = `Lem.pair_equal`
-declare coq      target_rep function pairEqualBy = `tuple_equal_by`
+declare coq      target_rep function pairEqualBy leftEq rightEq left right = (`tuple_equal_by` leftEq rightEq left right)
 
 let inline {hol;isabelle} pairEqual = unsafe_structural_equality
 let inline {ocaml;coq} pairEqual = pairEqualBy isEqual isEqual
