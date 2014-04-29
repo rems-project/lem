@@ -16,7 +16,7 @@ open import {coq} `Coq.Strings.Ascii` `Coq.Strings.String`
 val failwith: forall 'a. string -> 'a
 declare ocaml    target_rep function failwith = `failwith`
 declare hol      target_rep function failwith = `failwith`
-declare isabelle target_rep function failwith = `failwith`
+declare isabelle target_rep function failwith s = `undefined` `(*` s `*)`
 declare coq      target_rep function failwith s = `DAEMON`
 
 (* ------------------------------------ *)
