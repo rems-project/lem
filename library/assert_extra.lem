@@ -8,6 +8,7 @@ declare {isabelle;ocaml;hol;coq} rename module = lem_assert_extra
 open import {ocaml} `Xstring`
 open import {hol} `stringTheory` `lemTheory`
 open import {coq} `Coq.Strings.Ascii` `Coq.Strings.String`
+open import {isabelle} `$LIB_DIR/Lem`
 
 (* ------------------------------------ *)
 (* failing with a proper error message  *)
@@ -16,7 +17,7 @@ open import {coq} `Coq.Strings.Ascii` `Coq.Strings.String`
 val failwith: forall 'a. string -> 'a
 declare ocaml    target_rep function failwith = `failwith`
 declare hol      target_rep function failwith = `failwith`
-declare isabelle target_rep function failwith s = `undefined` `(*` s `*)`
+declare isabelle target_rep function failwith = `failwith`
 declare coq      target_rep function failwith s = `DAEMON`
 
 (* ------------------------------------ *)
