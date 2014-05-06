@@ -1979,7 +1979,7 @@ let is_hol_exp env (e : exp) : bool =
   match C.exp_to_term e with
     | Let(_,(Let_fun _,_),_,_) -> false
     | Let(_,(Let_val (p,_,_,_),_),_,_) -> is_var_tup_pat p
-    | Fun (_, pL, _, _) -> (List.for_all is_var_tup_pat pL) || (List.length pL = 1 && (is_wild_pat (List.hd pL)))
+    | Fun (_, pL, _, _) -> List.for_all is_var_tup_pat pL
     | Function _ -> false
     | Case _ -> true
     | Quant (_, qbs, _, _) -> List.for_all (function | Qb_var _ -> true | Qb_restr(_,_,p,_,_,_) -> is_var_tup_pat p) qbs
