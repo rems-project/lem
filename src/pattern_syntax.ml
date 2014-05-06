@@ -279,7 +279,7 @@ let rec is_var_wild_tup_pat p : bool = match p.term with
     | P_wild _ -> true
     | P_paren(_,p,_) -> is_var_wild_tup_pat p
     | P_var _ | P_var_annot _ -> true
-    | P_typ(_,p,_,_,_) -> is_var_tup_pat p
+    | P_typ(_,p,_,_,_) -> is_var_wild_tup_pat p
     | P_tup(_,ps,_) -> Seplist.for_all is_var_wild_tup_pat ps
     | _ -> false
 
