@@ -633,7 +633,7 @@ let rec to_rope_tex_single t =
         r"\\lemcomm{" ^^ tex_escape_with_space (wrap_paren_star x)  ^^ r"}" 
   | Inter(Ast.Ws(rr)) -> if Ulib.Text.length rr > 0 then r"\\ " ^^ rr else rr
   | Inter(Ast.Nl) -> raise (Failure "Nl in to_rope_tex")
-  | Str(s) ->  quote_string (r"\"") (tex_escape s)
+  | Str(s) ->  r"\\text{\\textit{" ^^ (r"``") ^^ (tex_escape s) ^^ (r"''") ^^ r"}}"
   | Err(s) -> raise (Backend(s))
   | Meta(s) -> Ulib.Text.of_latin1 s
   | Texspace -> r""   
