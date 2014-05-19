@@ -50,6 +50,7 @@ open Module_dependencies
 open Typed_ast
 
 let backends = ref ([] : Target.target list)
+let suppress_renaming = ref false
 
 let add_backend b () : unit = if not (List.mem b !backends) then (backends := b::!backends)
 
@@ -158,6 +159,9 @@ let options = Arg.align ([
   ( "-prover_remove_failwith",
     Arg.Set Target_trans.prover_remove_failwith, 
     " remove failwith branches in match statements in the prover backends.");
+  ( "-suppress_renaming",
+  	Arg.Set suppress_renaming,
+  	" suppresses Lem's renaming facilities.")
 ] @ Reporting.warn_opts)
 
 let usage_msg = 
@@ -240,14 +244,21 @@ let transform_for_target libpath modules env targ =
     let _ = print_compile_messages env targ modules in
 
     (* perform renamings *)
-    let used_entities = Typed_ast_syntax.get_checked_modules_entities targ false transformed_m in
-    let env'' = Rename_top_level.rename_defs_target targ used_entities consts env' in
+    if not (!suppress_renaming) then
+	    let used_entities = Typed_ast_syntax.get_checked_modules_entities targ false transformed_m in
+  	  let env'' = Rename_top_level.rename_defs_target targ used_entities consts env' in
 
-    let consts' = Target_trans.add_used_entities_to_avoid_names env'' targ used_entities consts in
-    let transformed_m' = Target_trans.rename_def_params targ consts' transformed_m in
+  	  let consts' = Target_trans.add_used_entities_to_avoid_names env'' targ used_entities consts in
+  	  let transformed_m' = Target_trans.rename_def_params targ consts' transformed_m in
 
-    let avoid = Target_trans.get_avoid_f targ consts' in
-    (env'', avoid, transformed_m')
+  	  let avoid = Target_trans.get_avoid_f targ consts' in
+  	  (env'', avoid, transformed_m')
+  	 else
+  	 	let f utxt name_f =
+  	 		Name.from_rope utxt
+  	 	in
+  	 	let empty_var_avoid_f = (false, (fun x -> true), f) in
+	  	 	(env', empty_var_avoid_f, transformed_m)
   with
       | Trans.Trans_error(l,msg) ->
           raise (Reporting_basic.Fatal_error (Reporting_basic.Err_trans (l, msg)))
