@@ -49,6 +49,9 @@
 (** The level of extra information to generate *)
 val gen_extra_level : int ref
 
+(** Used to suppress the printing of target names in the TeX backend *)
+val suppress_target_names : bool ref
+
 (** The various backends that generate text from typed asts *)
 module Make(C : sig val avoid : Typed_ast.var_avoid_f;; val env : Typed_ast.env;; 
                 val dir : string (** the directory the output will be stored. This is important for setting relative paths to import other modules *) end) : sig

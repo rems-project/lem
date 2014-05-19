@@ -84,6 +84,7 @@ open Output
 open Target
 
 let gen_extra_level = ref 3
+let suppress_target_names = ref false
 
 let r = Ulib.Text.of_latin1
 let (^^) = Pervasives.(^)
@@ -2551,12 +2552,12 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
         else
           emp *)
 
-  | Val_def(Let_def(s1, targets,(p, name_map, topt, sk, e))) -> 
+  | Val_def(Let_def(s1, targets,(p, name_map, topt, sk, e))) ->
       (* TODO: use name_map to do proper renaming *)
       if in_target targets then
         ws s1 ^
         T.def_start ^
-        (if Target.is_human_target T.target then
+        (if Target.is_human_target T.target && not (Target.suppress_targets T.target !suppress_target_names) then
            targets_opt targets 
          else
            emp) ^
@@ -2575,7 +2576,7 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
             | (n,n_ref, _, _, _, _)::_ -> Name.strip_lskip (B.const_ref_to_name n.term false n_ref)
         in
           T.rec_def_header is_rec is_real_rec try_term s1 s2 n ^
-          (if Target.is_human_target T.target then
+          (if Target.is_human_target T.target && not (Target.suppress_targets T.target !suppress_target_names) then
              targets_opt targets 
            else
              emp) ^

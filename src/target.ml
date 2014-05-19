@@ -181,6 +181,11 @@ let is_human_target = function
   | Target_no_ident Target_tex   -> true
   | Target_no_ident Target_lem   -> true
 
+let suppress_targets current_target tex_flag =
+	match current_target with
+		| Target_no_ident Target_tex -> tex_flag
+		| _ -> false
+;;
 
 let dest_human_target = function
     Target_ident -> None

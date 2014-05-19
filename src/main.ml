@@ -149,6 +149,9 @@ let options = Arg.align ([
   ( "-ident_dict_passing",
     Arg.Set Target_trans.ident_force_dictionary_passing, 
     " activates dictionary passing transformations for the identity backend. This is used for debugging.");
+  ( "-tex_suppress_target_names",
+  	Arg.Set Backend.suppress_target_names,
+  	" prints target-specific let-bindings as normal let bindings in the TeX backend.");
   ( "-hol_remove_matches",
     Arg.Set Target_trans.hol_remove_matches, 
     " try to remove toplevel matches in HOL4 output."); (* This is generally useful, but disabled by default for compatibility with old Lem versions. *)
