@@ -44,3 +44,16 @@ assert fromSet_0: (fromSet succ (Set.empty : set nat) = Map.empty)
 assert fromSet_1: (fromSet succ {(2:nat); 3; 4}) = Map.fromList [(2,3); (3, 4); (4, 5)]
 
 
+(* -------------------------------------------------------------------------- *)
+(* fold                                                                       *)
+(* -------------------------------------------------------------------------- *)
+
+val fold : forall 'k 'v 'r. MapKeyType 'k, SetType 'k, SetType 'v => ('k -> 'v -> 'r -> 'r) -> map 'k 'v -> 'r -> 'r
+let fold f m v = Set_helpers.fold (fun (k, v) r -> f k v r) (Map.toSet m) v
+  
+declare ocaml    target_rep function fold = `Pmap.fold`
+
+declare compile_message fold = "Map_extra.fold interates over the elements of the map in a unspecified order"
+
+assert fold_1: (fold (fun k v a -> (a+k)) (Map.fromList [((2:nat),(3:nat)); (3, 4); (4, 5)]) 0 = 9)
+assert fold_2: (fold (fun k v a -> (a+v)) (Map.fromList [((2:nat),(3:nat)); (3, 4); (4, 5)]) 0 = 12)
