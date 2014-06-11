@@ -299,6 +299,9 @@ val message_singular_plural : (string * string) -> 'a list -> string
     for example to generate unique labels. *)
 val fresh_string : string list -> (string -> string)
 
+(** [unescaped] is the same [Scanf.unescaped] --- used for
+ * backwards-compatibility with OCaml 3.12 *)
+val unescaped : string -> string
 
 (** {2 Useful Sets} *)
 

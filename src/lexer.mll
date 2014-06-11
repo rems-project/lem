@@ -51,8 +51,6 @@ exception LexError of char * Lexing.position
 
 let (^^^) = Ulib.Text.(^^^)
 let r = Ulib.Text.of_latin1
-(* Available as Scanf.unescaped since OCaml 4.0 but 3.12 is still common *)
-let unescaped s = Scanf.sscanf ("\"" ^ s ^ "\"") "%S%!" (fun x -> x)
 
 let parse_int lexbuf i =
   try (int_of_string i, i)
@@ -275,7 +273,7 @@ and string pos b = parse
   | '\\'                                { raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax (pos,
                                             "illegal backslash escape in string"))) }
   | '"'                                 { let s = Buffer.contents b in
-                                          try Ulib.UTF8.validate (unescaped s); s
+                                          try Ulib.UTF8.validate (Util.unescaped s); s
                                           with Ulib.UTF8.Malformed_code ->
                                             raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax (pos,
                                               "String literal is not valid utf8"))) }

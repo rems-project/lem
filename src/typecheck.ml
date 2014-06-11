@@ -896,8 +896,6 @@ module Make_checker(T : sig
   (* checking literals                                                          *)
   (* -------------------------------------------------------------------------- *)
 
-  let string_unescape s = Scanf.sscanf ("\"" ^ s ^ "\"") "%S%!" (fun u -> u)
-
   (* Corresponds to judgment check_lit '|- lit : t' *)
   let check_lit is_pattern t_ret (Ast.Lit_l(lit,l)) =
     let annot (lit : lit_aux) (t : t) : lit = 
@@ -914,9 +912,9 @@ module Make_checker(T : sig
             raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax_locn (l, "couldn't parse integer "^i))) in
           annot (L_num(sk,i_int, Some i)) t_ret 
       | Ast.L_string(sk,i) ->
-          annot (L_string(sk, string_unescape i, Some i)) { t = Tapp([], Path.stringpath) }
+          annot (L_string(sk, Util.unescaped i, Some i)) { t = Tapp([], Path.stringpath) }
       | Ast.L_char(sk,i) ->
-          annot (L_char(sk,String.get (string_unescape i) 0, Some i)) { t = Tapp([], Path.charpath) }
+          annot (L_char(sk,String.get (Util.unescaped i) 0, Some i)) { t = Tapp([], Path.charpath) }
       | Ast.L_unit(sk1,sk2) ->
           annot (L_unit(sk1,sk2)) { t = Tapp([], Path.unitpath) }
       | Ast.L_bin(sk,i) ->
