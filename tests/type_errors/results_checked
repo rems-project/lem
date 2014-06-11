@@ -1408,3 +1408,10 @@ type t6 [name = "nv*"] = t5
 File "test.lem", line 4, character 6 to line 4, character 7
   Type error: Type abbreviations may not restrict identifier names: t6
 ================================================================================
+type ctype [name = ".+_ty$\\|ty[0-9 ']*$"] = | Void
+let f (foo_ty : ctype) (ty2 : ctype) = true
+let g (x : ctype) = false
+--------------------------------------------------------------------------------
+File "test.lem", line 5, character 8 to line 5, character 8
+  Type error: variables with type Test.ctype are restricted to names matching the regular expression .+_ty$\|ty[0-9 ']*$: x
+================================================================================

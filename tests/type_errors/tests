@@ -818,3 +818,8 @@ type t5 [nme = "nv*"] = NV of bool | NVC of nat
 ===============================================================================
 type t5 = NV of bool | NVC of nat
 type t6 [name = "nv*"] = t5
+
+===============================================================================
+type ctype [name = ".+_ty$\\|ty[0-9 ']*$"] = | Void
+let f (foo_ty : ctype) (ty2 : ctype) = true
+let g (x : ctype) = false
