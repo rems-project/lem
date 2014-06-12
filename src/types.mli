@@ -240,8 +240,9 @@ type type_descr = {
   type_abbrev : t option;
   (** if it is an abbreviation, the type it abbreviates *)
 
-  type_varname_regexp : string option;
-  (** an optional regular expression that variable names that have the type must match *)
+  type_varname_regexp : (string * Str.regexp) option;
+  (** an optional regular expression that variable names that have the
+   * type must match, stored in literal and pre-compiled form *)
 
   type_fields : (const_descr_ref list) option;
   (** if it is a record type, the list of fields *)

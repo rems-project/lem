@@ -66,8 +66,8 @@ let check_id_restrict_e env (e : Typed_ast.exp) : unit =
                     | None | Some(Tc_class _) ->
                         raise (Reporting_basic.err_general true Ast.Unknown "invariant in typechecking identifier broken")
                     | Some(Tc_type { type_varname_regexp = None }) -> ()
-                    | Some(Tc_type { type_varname_regexp = Some(restrict) }) -> 
-                       if (Str.string_match (Str.regexp restrict) id 0) 
+                    | Some(Tc_type { type_varname_regexp = Some(restrict, regexp) }) ->
+                       if (Str.string_match regexp id 0)
                          then ()
                          else  raise (Reporting_basic.err_type_pp (exp_to_locn e) 
                                ("variables with type " ^ t_to_string (exp_to_typ e) ^ " are restricted to names matching the regular expression " ^ restrict)
@@ -85,8 +85,8 @@ let check_id_restrict_p env p = match p.term with
                  | Tapp(_,path) -> (match Pfmap.apply env.t_env path with
                     | None | Some(Tc_class _) -> raise (Reporting_basic.err_general true Ast.Unknown "invariant broken when checking id_restrict_p")
                     | Some(Tc_type { type_varname_regexp = None }) -> ()
-                    | Some(Tc_type { type_varname_regexp = Some(restrict) }) -> 
-                       if (Str.string_match (Str.regexp restrict) id 0) 
+                    | Some(Tc_type { type_varname_regexp = Some(restrict, regexp) }) ->
+                       if (Str.string_match regexp id 0)
                          then ()
                          else  raise (Reporting_basic.err_type_pp p.locn 
                                ("variables with type " ^t_to_string p.typ ^ " are restricted to names matching the regular expression " ^ restrict)

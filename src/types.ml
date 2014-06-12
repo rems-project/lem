@@ -609,7 +609,7 @@ type type_target_rep =
 type type_descr = { 
   type_tparams : tnvar list;
   type_abbrev : t option;
-  type_varname_regexp : string option;
+  type_varname_regexp : (string * Str.regexp) option;
   type_fields : (const_descr_ref list) option;
   type_constr : constr_family_descr list;
   type_rename : (Ast.l * Name.t) Target.Targetmap.t;
@@ -643,7 +643,8 @@ let mk_tc_type_abbrev vars abbrev = Tc_type {
 let mk_tc_type vars reg = Tc_type { 
   type_tparams = vars;
   type_abbrev = None;
-  type_varname_regexp = Util.option_map Util.unescaped reg;
+  type_varname_regexp = Util.option_map (fun s ->
+    let s' = Util.unescaped s in (s', Str.regexp s')) reg;
   type_fields = None;
   type_constr = [];
   type_rename = Target.Targetmap.empty;
