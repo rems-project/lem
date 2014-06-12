@@ -1293,36 +1293,6 @@ module Exps_in_context(D : Exp_context) = struct
     in
       (renames,new_vsubst)
 
-  let push_subst (tsubst,vsubst) ps e =
-    let binders =
-      List.fold_left
-        (fun binders p -> NameSet.union (Nfmap.domain p.rest.pvars) binders)
-        NameSet.empty
-        ps
-    in
-    let binder_tyvars =
-      List.fold_left
-        (fun binder_tyvars p -> NameSet.union (pat_to_free_tyvars p) binder_tyvars)
-        NameSet.empty
-        ps
-    in
-    let (renames,new_vsubst) = 
-      get_renames binders vsubst (Nfmap.domain (exp_to_free e)) (NameSet.union (exp_to_free_tyvars e) binder_tyvars)
-    in
-      (List.map (pat_subst (tsubst,renames)) ps,
-       exp_subst (tsubst,new_vsubst) e)
-
- let push_subst1 (tsubst,vsubst) p e =
-    match push_subst (tsubst,vsubst) [p] e with
-      | ([p'],e') -> (p',e')
-      | _ -> assert false
-
-  let push_subst_name subst n e =
-    match push_subst1 subst (mk_pvar Ast.Unknown n.term n.typ) e with
-      | ({ term = P_var(n'); typ = t; locn = l }, e) ->
-          ({ n with term = n'; typ = t; locn = l; }, e)
-      | _ -> assert false
-
   let push_pat_exp_bind_list f_aux not_to_choose' (tsubst,vsubst) pes es =
     let not_to_choose = 
       List.fold_left
@@ -1341,8 +1311,38 @@ module Exps_in_context(D : Exp_context) = struct
     in
       (new_pes, List.map (exp_subst (tsubst,new_vsubst)) es)
 
+  let rec push_subst (tsubst,vsubst) ps e =
+    let binders =
+      List.fold_left
+        (fun binders p -> NameSet.union (Nfmap.domain p.rest.pvars) binders)
+        NameSet.empty
+        ps
+    in
+    let binders = NameSet.union binders (exp_to_binders e) in
+    let binder_tyvars =
+      List.fold_left
+        (fun binder_tyvars p -> NameSet.union (pat_to_free_tyvars p) binder_tyvars)
+        NameSet.empty
+        ps
+    in
+    let (renames,new_vsubst) = 
+      get_renames binders vsubst (Nfmap.domain (exp_to_free e)) (NameSet.union (exp_to_free_tyvars e) binder_tyvars)
+    in
+      (List.map (pat_subst (tsubst,renames)) ps,
+       exp_subst (tsubst,new_vsubst) e)
 
-  let rec push_quant_binds_subst_aux not_to_choose not_to_choose_ty (tsubst, vsubst) = function
+  and push_subst1 (tsubst,vsubst) p e =
+    match push_subst (tsubst,vsubst) [p] e with
+      | ([p'],e') -> (p',e')
+      | _ -> assert false
+
+  and push_subst_name subst n e =
+    match push_subst1 subst (mk_pvar Ast.Unknown n.term n.typ) e with
+      | ({ term = P_var(n'); typ = t; locn = l }, e) ->
+          ({ n with term = n'; typ = t; locn = l; }, e)
+      | _ -> assert false
+
+  and push_quant_binds_subst_aux not_to_choose not_to_choose_ty (tsubst, vsubst) = function
     | [] -> ([], vsubst)
     | Qb_var(n)::qbs ->
         let binders = NameSet.singleton (Name.strip_lskip n.term) in
@@ -1379,7 +1379,7 @@ module Exps_in_context(D : Exp_context) = struct
         in
           (Qb_restr(lst,s1,p',s2,e',s3)::qbs, s)
 
-  let push_quant_binds_subst (tsubst,vsubst) qbs es =
+  and push_quant_binds_subst (tsubst,vsubst) qbs es =
     let not_to_choose' =
       List.fold_left
         (fun s qb ->
@@ -1394,19 +1394,19 @@ module Exps_in_context(D : Exp_context) = struct
     in
     push_pat_exp_bind_list push_quant_binds_subst_aux not_to_choose' (tsubst,vsubst) qbs es
 
-  let push_quant_binds_subst1 subst qbs e =
+  and push_quant_binds_subst1 subst qbs e =
     match push_quant_binds_subst subst qbs [e] with
       | (qbs,[e]) -> (qbs,e)
       | _ -> assert false
 
-  let push_quant_binds_subst2 subst qbs e1 e2 =
+  and push_quant_binds_subst2 subst qbs e1 e2 =
     match push_quant_binds_subst subst qbs [e1;e2] with
       | (qbs,[e1;e2]) -> (qbs,e1,e2)
       | _ -> assert false
 
   (* This is very similar to push_quant_binds_subst_aux, but OCaml doesn't 
    * give us a very good way to abstract *)
-  let rec push_do_lines_subst_aux not_to_choose not_to_choose_ty (tsubst, vsubst) = function
+  and push_do_lines_subst_aux not_to_choose not_to_choose_ty (tsubst, vsubst) = function
     | [] -> ([], vsubst)
     | Do_line(p,s1,e,s2)::do_lines ->
         let binders = Nfmap.domain p.rest.pvars in
@@ -1424,7 +1424,7 @@ module Exps_in_context(D : Exp_context) = struct
         in
           (Do_line(p',s1,e',s2)::do_lines, s)
 
-  let push_do_lines_subst (tsubst,vsubst) do_lines e =
+  and push_do_lines_subst (tsubst,vsubst) do_lines e =
     let not_to_choose' =
       List.fold_left
         (fun s line ->
@@ -1438,7 +1438,7 @@ module Exps_in_context(D : Exp_context) = struct
     in
       push_pat_exp_bind_list push_do_lines_subst_aux not_to_choose' (tsubst,vsubst) do_lines [e]
 
-  let rec exp_to_term e = 
+  and exp_to_term e = 
     let (tsubst, vsubst) = e.rest.subst in
     let subst = (tsubst,vsubst) in
     let id_subst i = 
@@ -1556,6 +1556,103 @@ module Exps_in_context(D : Exp_context) = struct
         | Do(s1,mid,do_lines,s2,e,s3,t) ->
             let (new_do_lines,e) = push_do_lines_subst subst do_lines e in
               Do(s1,mid,new_do_lines,s2, List.hd e, s3,t)
+
+  and exp_to_binders (e : exp) : NameSet.t =
+  	match exp_to_term e with
+  		| Let (_, (letbind, _), _, exp) ->
+  		  let letbind_vars =
+  				match letbind with
+  					| Let_val (pat, _, _, exp) ->
+  					    let pat_vars = Nfmap.domain pat.rest.pvars in
+  					    let exp_bind = exp_to_binders exp in
+  					    	NameSet.union pat_vars exp_bind
+  			  	| Let_fun (_, pats, _, _, exp) ->
+  			  	    let pat_vars = List.fold_right NameSet.union (List.map (fun p -> Nfmap.domain p.rest.pvars) pats) NameSet.empty in
+  			  	    let exp_bind = exp_to_binders exp in
+  			  	    	NameSet.union pat_vars exp_bind
+  	    in
+  	      NameSet.union letbind_vars (exp_to_binders exp)
+  	  | Tup (_, exps, _) ->
+  	    let lexps = Seplist.to_list exps in
+  	      List.fold_right NameSet.union (List.map exp_to_binders lexps) NameSet.empty
+  	  | Fun (_, pats, _, exp) ->
+  	      let pat_vars = List.fold_right NameSet.union (List.map (fun p -> Nfmap.domain p.rest.pvars) pats) NameSet.empty in
+  	      let exp_bind = exp_to_binders exp in
+  	        NameSet.union pat_vars exp_bind
+  	  | App (left, right) ->
+  	      NameSet.union (exp_to_binders left) (exp_to_binders right)
+  	  | Infix (left, centre, right) ->
+  	      NameSet.union (exp_to_binders left) (NameSet.union (exp_to_binders centre) (exp_to_binders right))
+  	  | Paren (_, exp, _) -> exp_to_binders exp
+  	  | Typed (_, exp, _, _, _) -> exp_to_binders exp
+  	  | Begin (_, exp, _) -> exp_to_binders exp
+  	  | If (_, cond, _, t, _, f) ->
+  	      NameSet.union (exp_to_binders cond) (NameSet.union (exp_to_binders t) (exp_to_binders f))
+  	  | List (_, exps, _) ->
+  	      let lexps = Seplist.to_list exps in
+  	        List.fold_right NameSet.union (List.map exp_to_binders lexps) NameSet.empty
+  	  | Set (_, exps, _) ->
+  	      let lexps = Seplist.to_list exps in
+  	        List.fold_right NameSet.union (List.map exp_to_binders lexps) NameSet.empty
+  	  | Setcomp (_, exp0, _, exp1, _, name_set) ->
+  	      NameSet.union name_set (NameSet.union (exp_to_binders exp0) (exp_to_binders exp1))
+  	  | Var _ -> NameSet.empty
+  	  | Backend _ -> NameSet.empty
+  	  | Nvar_e _ -> NameSet.empty
+  	  | Constant _ -> NameSet.empty
+  	  | Function (_, pat_exps, _) ->
+  	      let lpat_exps = Seplist.to_list pat_exps in
+  	      let binds = List.map (fun (pat, _, exp, _) -> NameSet.union (Nfmap.domain pat.rest.pvars) (exp_to_binders exp)) lpat_exps in
+  	        List.fold_right NameSet.union binds NameSet.empty
+  	  | Lit _ -> NameSet.empty
+  	  | Field (exp, _, _) -> exp_to_binders exp
+  	  | Vector (_, exps, _) ->
+  	      let lexps = Seplist.to_list exps in
+  	        List.fold_right NameSet.union (List.map exp_to_binders lexps) NameSet.empty
+  	  | VectorSub (exp, _, _, _, _, _) -> exp_to_binders exp
+  	  | VectorAcc (exp, _, _, _) -> exp_to_binders exp
+  	  | Quant (_, quants, _, exp) ->
+  	      let quant_binding_to_binder binding =
+  	        match binding with
+  	          | Qb_var name_lskips_annot ->
+  	              NameSet.singleton (Name.strip_lskip (name_lskips_annot.term))
+              | Qb_restr (_, _, pat, _, exp, _) ->
+                  NameSet.union (Nfmap.domain pat.rest.pvars) (exp_to_binders exp)
+          in
+          let qbind = List.fold_right NameSet.union (List.map quant_binding_to_binder quants) NameSet.empty in
+            NameSet.union qbind (exp_to_binders exp)
+  	  | Record (_, fexps, _) ->
+  	      let fexp_to_binder (_, _, exp, _) = exp_to_binders exp in
+  	      let lfexps = Seplist.to_list fexps in
+  	        List.fold_right NameSet.union (List.map fexp_to_binder lfexps) NameSet.empty
+  	  | Recup (_, exp, _, fexps, _) ->
+  	    	let fexp_to_binder (_, _, exp, _) = exp_to_binders exp in
+  	      let lfexps = Seplist.to_list fexps in
+  	      let binds = List.fold_right NameSet.union (List.map fexp_to_binder lfexps) NameSet.empty in
+  	        NameSet.union binds (exp_to_binders exp)
+  	  | Case (_, _, cond, _, pat_exps, _) ->
+  	      let lpat_exps = Seplist.to_list pat_exps in
+  	      let bind      = List.fold_right NameSet.union (List.map (fun (pat, _, exp, _) -> NameSet.union (Nfmap.domain pat.rest.pvars) (exp_to_binders exp)) lpat_exps) NameSet.empty in
+  	        NameSet.union bind (exp_to_binders cond)
+  	  | Comp_binding (_, _, exp0, _, _, quants, _, exp1, _) ->
+  	    	let quant_binding_to_binder binding =
+  	        match binding with
+  	          | Qb_var name_lskips_annot ->
+  	              NameSet.singleton (Name.strip_lskip (name_lskips_annot.term))
+              | Qb_restr (_, _, pat, _, exp, _) ->
+                  NameSet.union (Nfmap.domain pat.rest.pvars) (exp_to_binders exp)
+          in
+          let qbind = List.fold_right NameSet.union (List.map quant_binding_to_binder quants) NameSet.empty in
+            NameSet.union (exp_to_binders exp0) (NameSet.union (exp_to_binders exp1) qbind)
+  	  | Do (_, _, lines, _, exp, _, _) ->
+  	      let do_line_to_binders line =
+  	        match line with
+    	        | Do_line (pat, _, exp, _) ->
+    	            NameSet.union (Nfmap.domain pat.rest.pvars) (exp_to_binders exp)
+    	    in
+    	    let bind = List.fold_right NameSet.union (List.map do_line_to_binders lines) NameSet.empty in
+    	      NameSet.union bind (exp_to_binders exp)
+  ;;
 
   let mk_lnumeral l s i org_input t = 
     let t = check_typ l "mk_lnumeral" t (fun d -> Some { t = Tapp([],Path.numeralpath) }) in

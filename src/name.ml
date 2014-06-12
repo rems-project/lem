@@ -85,7 +85,6 @@ let to_string n = Ulib.Text.to_string n
 
 let (^) = Ulib.Text.(^^^)
 
-(*
 let fresh_start start s ok =
   let rec f (retries : int) (n:int) =
     let _ = if retries <= 0 then raise (Reporting_basic.Fatal_error (
@@ -105,43 +104,17 @@ let fresh_start start s ok =
             f 1000 (* give up after 1000 tries *) 0
       | Some(i) ->
           f 1000 i
-*)
 
-let fresh_counter = ref 0
-
-let reset_counter () =
-  let counter = !fresh_counter in
-  let _ = fresh_counter := 0 in
-  let counter = !fresh_counter in
-  	()
-;;
-
-let get_counter_and_increment () =
-	let counter = !fresh_counter in
-	let _ = fresh_counter := counter + 1 in
-		counter
-;;
-
-let fresh s ok =
-	let rec generate () =
-		let counter = get_counter_and_increment () in
-		let base = from_rope (s ^ Ulib.Text.of_latin1 (string_of_int counter)) in
-		if ok base then
-			base
-		else
-			generate ()
-	in
-		generate ()
-;;
+let fresh s ok = from_rope (fresh_start None s ok)
 
 let rec fresh_num_list i s ok =
-	match i with
-		| 0 -> []
-		| m ->
-			let fresh_name = fresh s ok in
-			let rest = fresh_num_list (m - 1) s ok in
-				fresh_name::rest
-;;
+   if i = 0 then
+     []
+   else begin
+     let new_name = from_rope (fresh_start (Some(i)) s ok) in
+     let new_ok n = ok n && (n <> new_name) in
+     new_name :: fresh_num_list (i - 1) s new_ok
+   end
 
 (*
 let rec fresh_num_list i s ok =
