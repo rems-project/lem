@@ -253,10 +253,8 @@ let transform_for_target libpath modules env targ =
 
   	  let avoid = Target_trans.get_avoid_f targ consts' in
   	  (env'', avoid, transformed_m')
-  	 else
-  	 	let f utxt name_f =
-  	 		Name.from_rope utxt
-  	 	in
+  	else
+  	 	let f utxt name_f = Name.from_rope utxt in
   	 	let empty_var_avoid_f = (false, (fun x -> true), f) in
 	  	 	(env', empty_var_avoid_f, transformed_m)
   with

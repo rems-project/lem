@@ -107,6 +107,9 @@ val remove_underscore_suffix : t -> t option
 
 (** {3 generating fresh names} *)
 
+(** [reset_counter] resets the global fresh name counter. *)
+val reset_counter : unit -> unit
+
 (** [fresh n OK] generates a name [m], such that 
     [OK m] holds. [m] is of the form [n] followed by
     an integer postfix. First [n] without postfix is tried.

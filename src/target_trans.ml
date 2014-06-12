@@ -367,7 +367,8 @@ let rename_def_params_aux targ consts =
 
 let rename_def_params targ consts =
     let rdp = rename_def_params_aux targ consts in
-    List.map (fun (m:Typed_ast.checked_module) -> 
+    List.map (fun (m:Typed_ast.checked_module) ->
+    	let _ = Name.reset_counter () in
        {m with Typed_ast.typed_ast = (let (defs, end_lex_skips) = m.Typed_ast.typed_ast in (List.map rdp defs, end_lex_skips))})
 
 let trans (targ : Target.target) params env (m : checked_module) =

@@ -109,6 +109,13 @@ let fresh_start start s ok =
 
 let fresh_counter = ref 0
 
+let reset_counter () =
+  let counter = !fresh_counter in
+  let _ = fresh_counter := 0 in
+  let counter = !fresh_counter in
+  	()
+;;
+
 let get_counter_and_increment () =
 	let counter = !fresh_counter in
 	let _ = fresh_counter := counter + 1 in
