@@ -1384,7 +1384,7 @@ let generate_coq_record_update_notation e =
           in
           let t = C.t_to_src_t p.typ in
             Output.flat [
-              skips; from_string "("; from_string "_ : "; pat_typ t; from_string ")"
+              skips; from_string "_ : "; pat_typ t
             ]
         | P_var v ->
           let name = lskips_t_to_output v in
@@ -1400,8 +1400,8 @@ let generate_coq_record_update_notation e =
             ]
         | P_typ (skips, p, skips', t, skips'') ->
             Output.flat [
-              ws skips; from_string "("; def_pattern p; ws skips'; from_string ":";
-              ws skips''; pat_typ t; from_string ")"
+              ws skips; def_pattern p; ws skips'; from_string ":";
+              ws skips''; pat_typ t
             ]
         | P_tup (skips, ps, skips') ->
           let body = flat @@ Seplist.to_sep_list fun_pattern (sep @@ from_string ", ") ps in
@@ -1418,7 +1418,7 @@ let generate_coq_record_update_notation e =
         | P_var_annot (n, t) ->
             let name = Name.to_output Term_var n in
               Output.flat [
-                from_string "("; name; from_string " : "; pat_typ t; from_string ")"
+                name; from_string " : "; pat_typ t
               ]
         | P_list (skips, ps, skips') ->
           let body = flat @@ Seplist.to_sep_list_last Seplist.Optional fun_pattern (sep @@ from_string "; ") ps in
