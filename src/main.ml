@@ -161,7 +161,10 @@ let options = Arg.align ([
     " remove failwith branches in match statements in the prover backends.");
   ( "-suppress_renaming",
   	Arg.Set suppress_renaming,
-  	" suppresses Lem's renaming facilities.")
+  	" suppresses Lem's renaming facilities.");
+  ( "-report_default_instance_invocation",
+    Arg.Set Types.report_default_instance_invocation,
+    " reports the name of any default instance invoked at a given type.")
 ] @ Reporting.warn_opts)
 
 let usage_msg = 

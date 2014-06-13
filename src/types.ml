@@ -46,6 +46,8 @@
 
 open Reporting_basic
 
+let report_default_instance_invocation = ref false
+
 type tnvar = 
   | Ty of Tyvar.t
   | Nv of Nvar.t
@@ -1048,6 +1050,17 @@ begin
             let new_cs = get_new_constraints i subst in
             try
               let _ = try_solve new_cs in
+              let _ =
+                if i.inst_is_default then
+                  let class_name =  Path.to_string i.inst_class in
+                  let type_name = t_to_string t in
+                    if !report_default_instance_invocation then
+                      Reporting_basic.print_err false false false l_unk "Default instance" ("instance invoked for class " ^ class_name ^ " at type " ^ type_name ^ ".")
+                    else
+                      ()
+                else
+                  ()
+              in
               Some(i, subst)
             with Unsolveable_matching_instance_contraint -> None) 
           possibilities''

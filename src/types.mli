@@ -44,6 +44,8 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
+val report_default_instance_invocation : bool ref
+
 type tnvar =
   | Ty of Tyvar.t
   | Nv of Nvar.t
