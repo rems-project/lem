@@ -279,303 +279,6 @@ let generate_coq_record_update_notation e =
       | _                          -> emp
 ;;
 
-
-    let generate_record_equality tvs o lskips_seplist =
-      let eq_typ =
-        if List.length tvs = 0 then
-          Output.flat [
-            from_string "(l : "; o; from_string ") (r :"; o;
-            from_string ") : bool"
-          ]
-        else
-          let eq_funs = List.map (fun tv ->
-            let tv =
-              match tv with
-                | Typed_ast.Tn_A (_, tv, _) -> tv
-                | _ -> assert false
-            in
-            let name = id Type_var tv in
-            let eq_fun_name = Output.flat [name; from_string "_beq"] in
-            let eq_fun_type = Output.flat [name; from_string " -> "; name; from_string " -> bool"] in
-              Output.flat [
-                from_string "("; eq_fun_name; from_string ": ";
-                eq_fun_type; from_string ")"
-              ]
-            ) tvs
-          in
-          let eq_fun_list = concat_str " " eq_funs in
-          let tvs = List.map (fun tv ->
-            let tv =
-              match tv with
-                | Typed_ast.Tn_A (_, tv, _) -> tv
-                | _ -> assert false
-            in
-            let name = id Type_var tv in
-              Output.flat [
-                from_string "{"; name; from_string ": Type}"
-              ]
-            ) tvs
-          in
-          let tv_list = concat_str " " tvs in
-          let eq_type =
-            Output.flat [
-              eq_fun_list; from_string " (l : "; o; from_string ") (r :"; o;
-              from_string ") : bool"
-            ]
-          in
-            Output.flat [
-              tv_list; from_string " "; eq_type
-            ]
-      in
-      let rec decidable_equality_possible l =
-        let l = List.map (fun (x, _, y, z) -> z) l in
-          List.for_all (fun typ ->
-            match typ.term with
-              | _ -> true
-          ) l
-      in
-      let l = Seplist.to_list lskips_seplist in
-        if decidable_equality_possible l then
-          let prefix =
-            Output.flat [
-              from_string "(* Definition "; o; from_string "_beq ";
-              eq_typ; from_string ":=\n  "
-            ]
-          in
-          let body = List.map (fun (name, _, _, typ) ->
-            let t = src_t_to_string typ.term ^ from_string "_beq" in
-            let _ = decidable_equality_tracker := OutputSet.add t !decidable_equality_tracker in
-            let o = lskips_t_to_string name in
-              Output.flat [
-                t; from_string " ("; o; from_string " l) (";
-                o; from_string " r)"
-              ]) l
-          in
-          let f = concat_str " && " body in
-            Output.flat [prefix; f; kwd ". *)"]
-        else
-          from_string "(* XXX: unable to produce decidable equality for type " ^ o ^ from_string ". *)"
-    ;;
-
-    let generate_case_expressions bods =
-      match bods with
-        | Te_opaque -> from_string "(* XXX: extracting equality for an opaque type.  Hard drive will now be formatted. *)"
-        | Te_abbrev (_, src_t) -> from_string " (* XXX: internal Lem error, please report *)"
-        | Te_record (_, _, name_l_src_t_lskips_seplist, _) -> from_string " (* XXX: internal Lem error, please report *)"
-        | Te_variant (_, name_l_src_t_lskips_seplist) ->
-            let l = Seplist.to_list name_l_src_t_lskips_seplist in
-            let cases = List.map (fun ((name0, _), c_ref, y, typs) ->
-              let name = B.const_ref_to_name name0 false c_ref in
-              let typs = Seplist.to_list typs in
-              let args = List.map (fun typ ->
-                begin
-                  match typ.term with
-                    | Typ_app (_, vs) ->
-                        let fresh_name = generate_fresh_name () in
-                          (from_string fresh_name, typ.typ)
-                    | Typ_var (_, t) ->
-                        let fresh_name = generate_fresh_name () in
-                          (from_string fresh_name, typ.typ)
-                    | Typ_paren (_, t, _) ->
-                        let fresh_name = generate_fresh_name () in
-                          (from_string fresh_name, typ.typ)
-                    | _ -> print_and_fail typ.locn "illegal type appearing in variant constructor type"
-                end) typs
-              in
-              let arg_space = if List.length args = 0 then emp else from_string " " in
-              let names = List.map fst args in
-              let right_args = List.map (fun x -> from_string (generate_fresh_name ())) args in
-              let right_args_list = concat_str " " right_args in
-              let typs = List.map snd args in
-              let names_list = concat_str " " names in
-              let equality_test =
-                if List.length typs = 0 then
-                  from_string "true"
-                else
-                  let body = Util.list_mapi (fun i -> fun x ->
-                      let left_name = List.nth names i in
-                      let right_name = List.nth right_args i in
-                      let typ = C.t_to_src_t @@ List.nth typs i in
-                      let typ_name = src_t_to_string typ.term in
-                      let eq_name = typ_name ^ from_string "_beq " in
-                        Output.flat [
-                          eq_name; left_name; from_string " "; right_name
-                        ]
-                    ) typs
-                  in
-                  let body = concat_str " && " body in
-                    body
-              in
-              let catch_all =
-                if List.length l > 1 then
-                  from_string "\n        | _ => false"
-                else
-                  emp
-              in
-              let right_hand_side =
-                Output.flat [
-                  from_string "match r with\n        |";
-                  Name.to_output (Type_ctor (false, false)) name; arg_space; right_args_list;
-                  from_string " => "; equality_test; catch_all; from_string "\n      end"
-                ]
-              in
-                Output.flat [
-                  from_string "|"; Name.to_output (Type_ctor (false, false)) name; arg_space;
-                  names_list; from_string " =>\n      "; right_hand_side;
-                ]) l
-            in
-            let cases = concat_str "\n    " cases in
-              Output.flat [
-                from_string "  match l with\n    "; cases; from_string "\n  end"
-              ]
-    ;;
-
-    let rec generate_coq_abbreviation_equality tvs name bod =
-      match bod.term with
-        | Typ_wild _ -> print_and_fail bod.locn "illegal wildcard type appearing in abbreviation type"
-        | Typ_var (skips, tyvar) -> print_and_fail bod.locn "illegal type variable appearing in abbreviation type"
-        | Typ_len src_nexp -> print_and_fail bod.locn "illegal vector length index appearing in abbreviation type"
-        | Typ_fn (src_t, skips, src_t') -> from_string "(* XXX: equality on Typ_fn *)\n"
-        | Typ_tup src_t_lskips_seplist -> from_string "(* XXX: equality on Typ_tup *)\n"
-        | Typ_backend (path_id, src_t_list) -> from_string "(* XXX: equality on Typ_backend *)\n"
-        | Typ_app (path_id, src_t_list) ->
-            let eq_name = typ_ident_to_output path_id in
-            Output.flat [
-              from_string "(* Definition"; name; from_string "_beq :=";
-              eq_name; from_string "_beq. *)"
-            ]
-        | Typ_paren (skips, src_t, skips') ->
-            generate_coq_abbreviation_equality tvs name src_t
-    ;;
-
-    type variable
-      = Tyvar of Output.t
-      | Nvar of Output.t
-    ;;
-
-    let generate_variant_equality tvs o bods =
-      let eq_typ =
-        if List.length tvs = 0 then
-          Output.flat [
-            from_string " (l : "; o; from_string ") (r : "; o; from_string ") : bool"
-          ]
-        else
-          let eq_funs = List.map (fun tv ->
-            let tv =
-              match tv with
-                | Typed_ast.Tn_A (_, tyvar, _) -> Tyvar (from_string @@ Ulib.Text.to_string tyvar)
-                | Typed_ast.Tn_N (_, nvar, _) -> Nvar (from_string @@ Ulib.Text.to_string nvar)
-            in
-            let eq_fun_name, eq_fun_type =
-              match tv with
-                | Tyvar name ->
-                    Output.flat [
-                      name; from_string "_beq"
-                    ],
-                    Output.flat [
-                      name; from_string " -> "; name; from_string " -> bool"
-                    ]
-                | Nvar name ->
-                    emp, emp
-            in
-              Output.flat [
-                from_string "("; eq_fun_name; from_string ": ";
-                eq_fun_type; from_string ")"
-              ]
-            ) tvs
-          in
-          let eq_fun_list = concat_str " " eq_funs in
-          let tvs = List.map (fun tv ->
-            match tv with
-              | Typed_ast.Tn_A (_, tvar, _) ->
-                let name = from_string @@ Ulib.Text.to_string tvar in
-                  Output.flat [
-                    from_string "{"; name; from_string ": Type}"
-                  ]
-              | Typed_ast.Tn_N (_, nvar, _) ->
-                let name = from_string @@ Ulib.Text.to_string nvar in
-                  Output.flat [
-                    from_string "{"; name; from_string ": num}"
-                  ]) tvs
-          in
-          let tv_list = concat_str " " tvs in
-            Output.flat [
-              from_string " "; tv_list; from_string " "; eq_fun_list;
-              from_string " (l : "; o; from_string ") (r : "; o; from_string ") : bool"
-            ]
-      in
-      let dec_eq_name =
-        Output.flat [
-          o; from_string "_beq"
-        ]
-      in
-      let cases = generate_case_expressions bods in
-        Output.flat [
-          from_string "(* "; dec_eq_name; eq_typ;
-          from_string " :=\n"; cases; from_string " *)"
-        ]
-    ;;
-
-    let generate_coq_record_equality tvs name lskips_seplist =
-      let o = lskips_t_to_string name in
-        generate_record_equality tvs o lskips_seplist
-    ;;
-
-    let generate_coq_variant_equality lskips_seplist =
-      (* 
-      let l = Seplist.to_list lskips_seplist in
-      let names = List.map (fun (x, y, _, z, _) -> lskips_t_to_string x) l in
-      let tvs = List.map (fun (x, y, _, z, _) -> y) l in
-      let bods = List.map (fun (x, y, _, z, _) -> z) l in
-      let rec zip3 x y z =
-        match x, y, z with
-          | [], [], [] -> []
-          | x::xs, y::ys, z::zs -> (x, y, z)::(zip3 xs ys zs)
-          | _ -> assert false (* illegal mismatch of list lengths *)
-      in
-      let zipped = zip3 tvs names bods in
-      let mapped = List.map (fun (x, y, z) -> generate_variant_equality x y z) zipped in
-      let body = concat_str "\nwith " mapped in
-        Output.flat [
-          from_string "(* "; from_string "Fixpoint "; body; from_string ". *)\n" 
-        ]
-      *)
-      emp
-    ;;
-
-    let rec is_inferrable (s : src_t) : bool =
-      match s.term with
-        | Typ_var _ -> true
-        | Typ_app (path, src_ts) ->
-            List.length src_ts = 0 || List.for_all is_inferrable src_ts
-        | Typ_tup seplist ->
-          let src_ts = Seplist.to_list seplist in
-            List.for_all is_inferrable src_ts
-        | Typ_paren (_, src_t, _) -> is_inferrable src_t
-        | _ -> false
-    ;;
-
-    module DefaultMap = Map.Make (struct type t = string let compare = Pervasives.compare end)
-    ;;
-
-    let initial_default_map : string list DefaultMap.t ref =
-      let d =
-        DefaultMap.empty |>
-        DefaultMap.add "fmap_default" ["a"; "b"] |>
-        DefaultMap.add "set_default" ["a"] |>
-        DefaultMap.add "list_default" ["a"]
-      in
-        ref d
-    ;;
-
-    let add_to_default_map k v =
-      initial_default_map := DefaultMap.add k v !initial_default_map
-    ;;
-
-    let lookup_from_default_map k =
-      DefaultMap.find k !initial_default_map
-    ;;
-
     type assoc
       = NoAssoc
       | LeftAssoc
@@ -583,6 +286,11 @@ let generate_coq_record_update_notation e =
     ;;
 
     module AssocMap = Map.Make (struct type t = string let compare = Pervasives.compare end)
+    ;;
+
+    type variable
+      = Tyvar of Output.t
+      | Nvar of Output.t
     ;;
 
     let rec def_extra (inside_instance: bool) (callback: def list -> Output.t) (inside_module: bool) (m: def_aux) =
@@ -638,9 +346,9 @@ let generate_coq_record_update_notation e =
           ws skips ^
           let handle_mod (sk, md) = begin
             Output.flat [
-              from_string "Require Import "; ws sk; from_string md; from_string ".\n"
+              from_string "Require Import"; ws sk; from_string md; from_string ".\n"
               (* XXX: as Lem assumes files imported in one file are implicitly exported too. *)
-            ; from_string "Require Export "; ws sk; from_string md; from_string ".\n"
+            ; from_string "Require Export"; ws sk; from_string md; from_string ".\n"
             ]
           end in
           if (not (in_target targets)) then emp else Output.flat (List.map handle_mod mod_descrs)
@@ -1016,7 +724,7 @@ let generate_coq_record_update_notation e =
             in
             let e = exp inside_instance e in
               Output.flat [
-                p; tv_set_sep; tv_set; topt; ws skips; from_string " := "; e
+                p; tv_set_sep; tv_set; topt; ws skips; from_string ":="; e
               ]
         | Let_fun (n, pats, typ_opt, skips, e) ->
           funcl_aux inside_instance i_ref_opt emp tv_set (n.term, pats, typ_opt, skips, e)
@@ -1127,19 +835,19 @@ let generate_coq_record_update_notation e =
                 ws skips; from_string "("; exp inside_instance e; from_string " :"; ws skips'; pat_typ t; ws skips''; from_string ")";
               ]
           | Tup (skips, es, skips') ->
-              let tups = flat @@ Seplist.to_sep_list (exp inside_instance) (sep (from_string ", ")) es in
+              let tups = flat @@ Seplist.to_sep_list (exp inside_instance) (sep (from_string ",")) es in
                 Output.flat [
                   ws skips; from_string "("; tups; from_string ")"; ws skips'
                 ]
           | List (skips, es, skips') ->
-              let lists = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> from_string " ")) (exp inside_instance) (sep @@ from_string "; ") es in
+              let lists = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> from_string " ")) (exp inside_instance) (sep @@ from_string ";") es in
                 Output.flat [
                   ws skips; from_string "["; lists; from_string "]"; ws skips'
                 ]
           | Let (skips, bind, skips', e) ->
               let body = let_body inside_instance None false Types.TNset.empty bind in
                 Output.flat [
-                  ws skips; from_string "let "; body; ws skips'; from_string "in "; exp inside_instance e; (* The space after 'let' is a crude workaround for issue #90 (a missing space after 'let' in certain situations) *)
+                  ws skips; from_string "let"; body; ws skips'; from_string "in"; exp inside_instance e
                 ]
           | Constant const -> 
             Output.concat emp (B.function_application_to_output (exp_to_locn e) (exp inside_instance) false e const [] (use_ascii_rep_for_const const.descr))
@@ -1325,7 +1033,7 @@ let generate_coq_record_update_notation e =
     and field_update inside_instance (fd, skips, e, _) =
       let name = field_ident_to_output fd (use_ascii_rep_for_const fd.descr) in
         Output.flat [
-          name; ws skips; from_string ":= "; exp inside_instance e
+          name; ws skips; from_string ":="; exp inside_instance e
         ]
     and literal l =
       match l.term with
@@ -1515,11 +1223,9 @@ let generate_coq_record_update_notation e =
             let tyvars' = type_def_type_variables tyvars in
     				let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
             let body = pat_typ t in
-            let equality = generate_coq_abbreviation_equality tyvars name t in
               Output.flat [
     						from_string "Definition"; name; tyvar_sep; tyvars';
                 from_string " : Type :="; ws skips; body; from_string ".\n";
-                (*equality*)
     					]
     		| _ -> from_string "(* Internal Lem error, please report. *)"
     and type_def_record def =
@@ -1531,7 +1237,6 @@ let generate_coq_record_update_notation e =
             let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) field (sep @@ from_string ";") fields in
       	    let tyvars' = type_def_type_variables tyvars in
             let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
-            let boolean_equality = generate_coq_record_equality tyvars n fields in
       			  Output.flat [
                 from_string "Record"; name; tyvar_sep; tyvars'; from_string " : Type";
                 ws skips; from_string ":="; ws skips'; from_string "{";
@@ -1541,10 +1246,8 @@ let generate_coq_record_update_notation e =
         | _ -> from_string "(* Internal Lem error, please report. *)"
     and type_def inside_module defs =
       let body = flat @@ Seplist.to_sep_list type_def' (sep @@ from_string "with") defs in
-      let boolean_equality = generate_coq_variant_equality defs in
         Output.flat [
           from_string "Inductive"; body; from_string ".\n";
-          boolean_equality
         ]
     and type_def' ((n0, l), ty_vars, t_path, ty, _) =
       let n = B.type_path_to_name n0 t_path in 
@@ -1738,7 +1441,7 @@ let generate_coq_record_update_notation e =
     and field ((n, _), f_ref, skips, t) =
       Output.flat [
           Name.to_output Term_field (B.const_ref_to_name n false f_ref); 
-          from_string ":"; ws skips; pat_typ t
+          ws skips; from_string ":"; pat_typ t
       ]
     and generate_default_value_texp (t: texp) =
       match t with
@@ -1808,7 +1511,7 @@ let generate_coq_record_update_notation e =
                   from_string "("; concat_str ", " mapped; from_string ")"
                 ]
           | Typ_app (path, src_ts) ->
-              if List.length src_ts = 0 || List.for_all is_inferrable src_ts then
+              if List.length src_ts = 0 then
                   Output.flat [
                     from_string (Name.to_string (Name.strip_lskip (Ident.get_name (B.type_id_to_ident path)))); 
                     from_string "_default"
