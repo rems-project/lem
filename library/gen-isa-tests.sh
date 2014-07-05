@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/sh -e
 
 dir=$1
 cd $dir
@@ -9,7 +9,7 @@ echo -e "\n\nimports Main\n" >> $outfile
 
 for file in *Auxiliary.thy
 do
-  file_thy=${file/.thy/}
+  file_thy=${file%.thy}
   echo -e "\t\"$file_thy\"" >> $outfile
 done 
 
