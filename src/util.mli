@@ -331,3 +331,5 @@ module ExtraSet : functor (S : Set.S) ->
    end
 
 
+(* tail-recursive reverse of List.flatten *)
+val rev_flatten : 'a list list -> 'a list

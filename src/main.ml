@@ -377,9 +377,9 @@ let main () =
            let im_direct = Ast_util.get_imported_modules ast in
            let get_rec_deps (p, _) = begin p :: (match Util.option_first (fun mr -> if (Path.compare mr.module_path p = 0) then Some mr.imported_modules_rec else None) mods with
              | None -> []
-             | Some imr -> List.flatten (List.map (function IM_targets _ -> [] | IM_paths ps -> ps) imr))
+             | Some imr -> Util.rev_flatten (List.rev_map (function IM_targets _ -> [] | IM_paths ps -> ps) imr))
            end in
-           List.flatten (List.map get_rec_deps im_direct)
+           Util.rev_flatten (List.rev_map get_rec_deps im_direct)
          end in
 
          let m_env' = Nfmap.filter (fun mod_name mod_path -> List.exists (fun p -> Path.compare mod_path p = 0) im) env.local_env.m_env in
@@ -390,7 +390,7 @@ let main () =
          let imported_mods = Backend_common.get_imported_target_modules tast in
          let get_rec_imported_mods = function 
            | IM_targets _ -> []
-           | IM_paths ps -> List.flatten (List.map (fun p -> begin
+           | IM_paths ps -> Util.rev_flatten (List.rev_map (fun p -> begin
                Util.option_default [] (Util.option_first (fun mr -> if (Path.compare mr.module_path p = 0) then Some mr.imported_modules_rec else None) mods)
              end) ps)
          in
@@ -398,7 +398,7 @@ let main () =
            { Typed_ast.filename = file_name;
              Typed_ast.module_path = Path.mk_path [] mod_name_name;
              Typed_ast.imported_modules = imported_mods;
-             Typed_ast.imported_modules_rec = imported_mods @ List.flatten (List.map get_rec_imported_mods imported_mods);
+             Typed_ast.imported_modules_rec = List.fold_left (fun acc z -> List.rev_append (get_rec_imported_mods z) acc) (List.rev imported_mods) imported_mods;
              Typed_ast.untyped_ast = ast;
              Typed_ast.typed_ast = tast;
              Typed_ast.generate_output = add_to_modules }

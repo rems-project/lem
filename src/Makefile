@@ -16,7 +16,7 @@ doc-dot:
 	dot -Tpdf -o dep.pdf dep.dot
 
 debug: 
-	ocamlbuild main.d.byte
+	ocamlbuild -tag annot main.d.byte
 
 clean:
 	-ocamlbuild -clean
