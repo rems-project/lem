@@ -2,7 +2,7 @@ LEMVERSION=0.4
 DDIR=lem-$(LEMVERSION)
 
 PATH := $(CURDIR)/$(FINDLIB)/bin:$(PATH)
-BUILD_DIR := $$(pwd)
+BUILD_DIR := `pwd`
 
 #all: il.pdf build-main ilTheory.uo
 all: bin/lem libs
