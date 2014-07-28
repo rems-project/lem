@@ -1,9 +1,12 @@
 Require Import Coq.Bool.Bool.
 Require Import Coq.ZArith.BinInt.
 Require Import Coq.ZArith.Zorder.
+Require Import Coq.Numbers.Natural.Peano.NPeano.
+Require Import Coq.Arith.EqNat.
 Require Import ClassicalDescription.
 Require Import Coq.Strings.Ascii.
 Require Import Coq.Strings.String.
+Require Import Coq.Program.Wf.
 
 (* Logic *)
 
@@ -150,6 +153,20 @@ Fixpoint nat_ltb (m n: nat): bool :=
 Definition nat_lteb (m n: nat): bool := nat_ltb (S m) n.
 Definition nat_gtb (m n: nat): bool := nat_ltb n m.
 Definition nat_gteb (m n: nat): bool := nat_lteb n m.
+
+Program Fixpoint gen_pow_aux
+  {a : Type} (mul : a -> a -> a) (a0 : a) (b : a) (e : nat) {measure e} : a := 
+   match e with 
+     | 0 => a0 (* cannot happen, call discipline guarentees e >= 1 *)
+     | 1 => mul a0 b
+     |(  S (S (e'))) => let e'' := div e 2 in
+                   let a'  := (if beq_nat (modulo e 2) 0 then a0 else mul a0 b) in
+                   gen_pow_aux mul a' (mul b b) e''
+   end.
+  Obligation 1.
+    apply DAEMON. (* XXX: finish *)
+  Defined.
+
 
 (* Ints *)
 
@@ -470,6 +487,30 @@ Fixpoint string_make_string
       | S m' => String char (string_make_string m' char)
     end.
 
+(* Word. *)
+
+Program Fixpoint bitSeqBinopAux
+  (binop : bool -> bool -> bool) (s1 : bool) (bl1 : list bool) (s2 : bool) (bl2 : list bool) {measure (Coq.Init.Datatypes.length bl1 + Coq.Init.Datatypes.length bl2)} := 
+  match ((bl1, bl2)) with 
+    | ([],  []) => []
+    | (b1 :: bl1',  []) => (binop b1 s2) :: bitSeqBinopAux binop s1 bl1' s2 []
+    | ([],  b2 :: bl2') => (binop s1 b2) :: bitSeqBinopAux binop s1 []   s2 bl2'
+    | (b1 :: bl1',  b2 :: bl2') => (binop b1 b2) :: bitSeqBinopAux binop s1 bl1' s2 bl2'
+  end.
+  Obligation 3.
+    simpl. rewrite <- plus_n_Sm. auto.
+  Defined.
+
+Program Fixpoint boolListFromNatural
+  (acc : list bool) (remainder : nat) {measure remainder} := 
+  if (nat_gtb remainder 0) then 
+   (boolListFromNatural ((beq_nat (Coq.Numbers.Natural.Peano.NPeano.modulo remainder 2) 1) :: acc) 
+      (Coq.Numbers.Natural.Peano.NPeano.div remainder 2))
+  else
+    List.rev acc.
+  Obligation 1.
+    apply DAEMON. (* XXX: todo *)
+  Defined.
 
 (* Default values for incomplete pattern matching. *)
 

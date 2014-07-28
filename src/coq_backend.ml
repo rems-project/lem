@@ -1108,8 +1108,8 @@ let generate_coq_record_update_notation e =
             ]
         | P_typ (skips, p, skips', t, skips'') ->
             Output.flat [
-              ws skips; def_pattern p; ws skips'; from_string ":";
-              ws skips''; pat_typ t
+              ws skips; from_string "("; def_pattern p; ws skips'; from_string ":";
+              ws skips''; pat_typ t; from_string ")"
             ]
         | P_tup (skips, ps, skips') ->
           let body = flat @@ Seplist.to_sep_list fun_pattern (sep @@ from_string ", ") ps in

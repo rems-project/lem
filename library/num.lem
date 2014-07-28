@@ -12,7 +12,7 @@ declare {isabelle;ocaml;hol;coq} rename module = lem_num
 open import Bool Basic_classes
 open import {isabelle} `~~/src/HOL/Word/Word`
 open import {hol} `integerTheory` `intReduce` `wordsTheory` `wordsLib`
-open import {coq} `Coq.Numbers.BinNums` `Coq.ZArith.BinInt` `Coq.ZArith.Zpower` `Coq.ZArith.Zdiv` `Coq.ZArith.Zmax`
+open import {coq} `Coq.Numbers.BinNums` `Coq.ZArith.BinInt` `Coq.ZArith.Zpower` `Coq.ZArith.Zdiv` `Coq.ZArith.Zmax` `Coq.Numbers.Natural.Peano.NPeano`
 
 (* ========================================================================== *)
 (* Numerals                                                                   *)
@@ -328,7 +328,7 @@ val natDiv : nat -> nat -> nat
 declare hol      target_rep function natDiv = infix `DIV`
 declare ocaml    target_rep function natDiv = infix `/`
 declare isabelle target_rep function natDiv = infix `div`
-declare coq      target_rep function natDiv = `nat_div`
+declare coq      target_rep function natDiv = `Coq.Numbers.Natural.Peano.NPeano.div`
 
 instance ( NumIntegerDivision nat ) 
   let (div) = natDiv
@@ -342,7 +342,7 @@ val natMod : nat -> nat -> nat
 declare hol      target_rep function natMod = infix `MOD`
 declare ocaml    target_rep function natMod = infix `mod`
 declare isabelle target_rep function natMod = infix `mod`
-declare coq      target_rep function natMod = `nat_mod`
+declare coq      target_rep function natMod = `Coq.Numbers.Natural.Peano.NPeano.modulo`
 
 instance ( NumRemainder nat ) 
   let (mod) = natMod
@@ -359,6 +359,8 @@ let rec gen_pow_aux (mul : 'a -> 'a -> 'a) (a : 'a) (b : 'a) (e : nat) =
                    gen_pow_aux mul a' (mul b b) e''
    end
 declare termination_argument gen_pow_aux = automatic
+
+declare coq target_rep function gen_pow_aux = `gen_pow_aux`
        
 let gen_pow (one : 'a) (mul : 'a -> 'a -> 'a) (b : 'a) (e : nat) : 'a = 
   if e < 0 then one else 
@@ -524,7 +526,7 @@ val naturalDiv : natural -> natural -> natural
 declare hol      target_rep function naturalDiv = infix `DIV`
 declare ocaml    target_rep function naturalDiv = `Big_int.div_big_int`
 declare isabelle target_rep function naturalDiv = infix `div`
-declare coq      target_rep function naturalDiv = `nat_div`
+declare coq      target_rep function naturalDiv = `Coq.Numbers.Natural.Peano.NPeano.div`
 
 instance ( NumIntegerDivision natural ) 
   let (div) = naturalDiv
@@ -538,7 +540,7 @@ val naturalMod : natural -> natural -> natural
 declare hol      target_rep function naturalMod = infix `MOD`
 declare ocaml    target_rep function naturalMod = `Big_int.mod_big_int`
 declare isabelle target_rep function naturalMod = infix `mod`
-declare coq      target_rep function naturalMod = `nat_mod`
+declare coq      target_rep function naturalMod = `Coq.Numbers.Natural.Peano.NPeano.modulo`
 
 instance ( NumRemainder natural ) 
   let (mod) = naturalMod
@@ -1593,7 +1595,7 @@ val integerFromInt32 : int32 -> integer
 declare ocaml    target_rep function integerFromInt32 = `Big_int.big_int_of_int32`
 declare isabelle target_rep function integerFromInt32 = `sint`
 declare hol      target_rep function integerFromInt32 = `w2int`
-declare coq      target_rep function integerFromInt32 = `TODO`
+declare coq      target_rep function integerFromInt32 = ``
 
 assert integer_from_int32_0: integerFromInt32 0 = 0
 assert integer_from_int32_1: integerFromInt32 1 = 1
@@ -1607,7 +1609,7 @@ val integerFromInt64 : int64 -> integer
 declare ocaml    target_rep function integerFromInt64 = `Big_int.big_int_of_int64`
 declare isabelle target_rep function integerFromInt64 = `sint`
 declare hol      target_rep function integerFromInt64 = `w2int`
-declare coq      target_rep function integerFromInt64 = `TODO`
+declare coq      target_rep function integerFromInt64 = ``
 
 assert integer_from_int64_0: integerFromInt64 0 = 0
 assert integer_from_int64_1: integerFromInt64 1 = 1

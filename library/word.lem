@@ -128,6 +128,7 @@ let rec bitSeqBinopAux binop s1 bl1 s2 bl2 =
     | (b1 :: bl1', b2 :: bl2') -> (binop b1 b2) :: bitSeqBinopAux binop s1 bl1' s2 bl2'
   end
 declare termination_argument bitSeqBinopAux = automatic
+declare coq target_rep function bitSeqBinopAux = `bitSeqBinopAux`
 
 let bitSeqBinop binop bs1 bs2 = (
   let (BitSeq len1 s1 bl1) = cleanBitSeq bs1 in
@@ -198,6 +199,7 @@ let rec boolListFromNatural acc (remainder : natural) =
  else
    List.reverse acc 
 declare termination_argument boolListFromNatural = automatic
+declare coq target_rep function boolListFromNatural = `boolListFromNatural`
 
 let boolListFromInteger (i : integer) = 
   if (i < 0) then
@@ -519,9 +521,9 @@ val int32Lnot : int32 -> int32
 declare ocaml    target_rep function int32Lnot = `Int32.lognot`
 declare hol      target_rep function int32Lnot w = (`~` w)
 declare isabelle target_rep function int32Lnot w = (`NOT` w)
-declare coq      target_rep function int32Lnot = `TODO`
+declare coq      target_rep function int32Lnot w = w (* XXX: fix *)
 
-instance ( WordNot int32) 
+instance (WordNot int32) 
   let lnot = int32Lnot
 end
 
@@ -530,7 +532,7 @@ val int32Lor  : int32 -> int32 -> int32
 declare ocaml    target_rep function int32Lor = `Int32.logor`
 declare hol      target_rep function int32Lor = `word_or`
 declare isabelle target_rep function int32Lor = infix `OR`
-declare coq      target_rep function int32Lor = `TODO`
+declare coq      target_rep function int32Lor q w = w (* XXX: fix *)
 
 instance (WordOr int32) 
   let (lor) = int32Lor
@@ -540,7 +542,7 @@ val int32Lxor : int32 -> int32 -> int32
 declare ocaml    target_rep function int32Lxor = `Int32.logxor`
 declare hol      target_rep function int32Lxor = `word_xor`
 declare isabelle target_rep function int32Lxor = infix `XOR`
-declare coq      target_rep function int32Lxor = `TODO`
+declare coq      target_rep function int32Lxor q w = w (* XXX: fix *)
 
 instance ( WordXor int32) 
   let (lxor) = int32Lxor
@@ -550,7 +552,7 @@ val int32Land : int32 -> int32 -> int32
 declare ocaml    target_rep function int32Land = `Int32.logand`
 declare hol      target_rep function int32Land = `word_and`
 declare isabelle target_rep function int32Land = infix `AND`
-declare coq      target_rep function int32Land = `TODO`
+declare coq      target_rep function int32Land q w = w (* XXX: fix *)
 
 instance ( WordAnd int32) 
   let (land) = int32Land
@@ -560,7 +562,7 @@ val int32Lsl  : int32 -> nat -> int32
 declare ocaml    target_rep function int32Lsl = `Int32.shift_left`
 declare hol      target_rep function int32Lsl = `word_lsl`
 declare isabelle target_rep function int32Lsl = infix `<<`
-declare coq      target_rep function int32Lsl = `TODO`
+declare coq      target_rep function int32Lsl q w = q (* XXX: fix *)
 
 instance  (WordLsl int32) 
   let (lsl) = int32Lsl
@@ -570,7 +572,7 @@ val int32Lsr  : int32 -> nat -> int32
 declare ocaml    target_rep function int32Lsr = `Int32.shift_right_logical`
 declare hol      target_rep function int32Lsr = `word_lsr`
 declare isabelle target_rep function int32Lsr = infix `>>`
-declare coq      target_rep function int32Lsr = `TODO`
+declare coq      target_rep function int32Lsr q w = q (* XXX: fix *)
 
 instance  (WordLsr int32) 
   let (lsr) = int32Lsr
@@ -581,7 +583,7 @@ val int32Asr  : int32 -> nat -> int32
 declare ocaml    target_rep function int32Asr = `Int32.shift_right`
 declare hol      target_rep function int32Asr = `word_asr`
 declare isabelle target_rep function int32Asr = infix `>>>`
-declare coq      target_rep function int32Asr = `TODO`
+declare coq      target_rep function int32Asr q w = q (* XXX: fix *)
 
 instance  (WordAsr int32) 
   let (asr) = int32Asr
@@ -623,7 +625,7 @@ val int64Lnot : int64 -> int64
 declare ocaml    target_rep function int64Lnot = `Int64.lognot`
 declare hol      target_rep function int64Lnot w = (`~` w)
 declare isabelle target_rep function int64Lnot w = (`NOT` w)
-declare coq      target_rep function int64Lnot = `TODO`
+declare coq      target_rep function int64Lnot w = w (* XXX: fix *)
 
 instance ( WordNot int64) 
   let lnot = int64Lnot
@@ -633,7 +635,7 @@ val int64Lor  : int64 -> int64 -> int64
 declare ocaml    target_rep function int64Lor = `Int64.logor`
 declare hol      target_rep function int64Lor = `word_or`
 declare isabelle target_rep function int64Lor = infix `OR`
-declare coq      target_rep function int64Lor = `TODO`
+declare coq      target_rep function int64Lor q w = w (* XXX: fix *)
 
 instance (WordOr int64) 
   let (lor) = int64Lor
@@ -643,7 +645,7 @@ val int64Lxor : int64 -> int64 -> int64
 declare ocaml    target_rep function int64Lxor = `Int64.logxor`
 declare hol      target_rep function int64Lxor = `word_xor`
 declare isabelle target_rep function int64Lxor = infix `XOR`
-declare coq      target_rep function int64Lxor = `TODO`
+declare coq      target_rep function int64Lxor q w = w (* XXX: fix *)
 
 instance (WordXor int64) 
   let (lxor) = int64Lxor
@@ -653,7 +655,7 @@ val int64Land : int64 -> int64 -> int64
 declare ocaml    target_rep function int64Land = `Int64.logand`
 declare hol      target_rep function int64Land = `word_and`
 declare isabelle target_rep function int64Land = infix `AND`
-declare coq      target_rep function int64Land = `TODO`
+declare coq      target_rep function int64Land q w = w (* XXX: fix *)
 
 instance (WordAnd int64) 
   let (land) = int64Land
@@ -663,7 +665,7 @@ val int64Lsl  : int64 -> nat -> int64
 declare ocaml    target_rep function int64Lsl = `Int64.shift_left`
 declare hol      target_rep function int64Lsl = `word_lsl`
 declare isabelle target_rep function int64Lsl = infix `<<`
-declare coq      target_rep function int64Lsl = `TODO`
+declare coq      target_rep function int64Lsl q w = q (* XXX: fix *)
 
 instance (WordLsl int64) 
   let (lsl) = int64Lsl
@@ -673,7 +675,7 @@ val int64Lsr  : int64 -> nat -> int64
 declare ocaml    target_rep function int64Lsr = `Int64.shift_right_logical`
 declare hol      target_rep function int64Lsr = `word_lsr`
 declare isabelle target_rep function int64Lsr = infix `>>`
-declare coq      target_rep function int64Lsr = `TODO`
+declare coq      target_rep function int64Lsr q w = q (* XXX: fix *)
 
 instance (WordLsr int64) 
   let (lsr) = int64Lsr
@@ -683,7 +685,7 @@ val int64Asr  : int64 -> nat -> int64
 declare ocaml    target_rep function int64Asr = `Int64.shift_right`
 declare hol      target_rep function int64Asr = `word_asr`
 declare isabelle target_rep function int64Asr = infix `>>>`
-declare coq      target_rep function int64Asr = `TODO`
+declare coq      target_rep function int64Asr q w = q (* XXX: fix *)
 
 instance  (WordAsr int64) 
   let (asr) = int64Asr
