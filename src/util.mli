@@ -303,6 +303,9 @@ val fresh_string : string list -> (string -> string)
  * backwards-compatibility with OCaml 3.12 *)
 val unescaped : string -> string
 
+(** [memo_rec f] returns a memoized version of the function [f] *)
+val memo_rec : (('a -> 'b) -> 'a -> 'b) -> 'a -> 'b
+
 (** {2 Useful Sets} *)
 
 (** Sets of Integers *)

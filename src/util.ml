@@ -469,6 +469,19 @@ let is_simple_char c =
 
 let unescaped s = Scanf.sscanf ("\"" ^ s ^ "\"") "%S%!" (fun x -> x)
 
-
 let rev_flatten xxs =
-  List.fold_left (fun acc xs -> List.rev_append (List.rev xs) acc) [] xxs
+  List.fold_left (fun acc xs ->
+  	List.rev_append (List.rev xs) acc) [] xxs
+
+let memo_rec f =
+  let m = ref [] in
+  let rec g x =
+    try
+      List.assoc x !m
+    with
+    Not_found ->
+      let y = f g x in
+        m := (x, y) :: !m ;
+        y
+  in
+    g
