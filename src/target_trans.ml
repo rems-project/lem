@@ -357,9 +357,9 @@ let rename_def_params_aux targ consts =
                 Seplist.map
                   (fun (Rule(name,s0,s1,ns,s2,e,s3,n,c,es),l) ->
                   	let (_, name_avoid, _) = get_avoid_f targ consts in
-                  	let rename_name_lskips_annot name_lskips_annot const_ref =
+                  	let rename_name_lskips_annot name_lskips_annot =
                   		let name_lskips = name_lskips_annot.Types.term in
-                  		let name_lskips = Backend_common.const_ref_to_name name_lskips false const_ref in
+                  		(*let name_lskips = Backend_common.const_ref_to_name name_lskips false const_ref in*)
                   		let locn = name_lskips_annot.Types.locn in
                   		let typ = name_lskips_annot.Types.typ in
                   		let rest = name_lskips_annot.Types.rest in
@@ -367,7 +367,7 @@ let rename_def_params_aux targ consts =
                     in
                   	let ns = List.map (fun n ->
                   		match n with
-                  	    | QName (name_lskips_annot, const_ref) ->
+                  	    | QName (name_lskips_annot) ->
                   	    		QName (rename_name_lskips_annot name_lskips_annot)
                         | Name_typ (skips, name_lskips_annot, skips', src_t, skips'') ->
                         		Name_typ (skips, (rename_name_lskips_annot name_lskips_annot), skips', src_t, skips'')
