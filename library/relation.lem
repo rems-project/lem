@@ -35,6 +35,8 @@ val relFromSet : forall 'a 'b. SetType 'a, SetType 'b => rel_set 'a 'b -> rel 'a
 let inline relToSet s = s
 let inline relFromSet r = r
 
+declare tex target_rep function relFromSet r = r
+
 val relEq : forall 'a 'b. SetType 'a, SetType 'b => rel 'a 'b -> rel 'a 'b -> bool
 let relEq r1 r2 = (relToSet r1 = relToSet r2)
 
@@ -86,6 +88,7 @@ assert in_rel_3: not (inRel 7 4 (relFromSet {((2:nat), (3:nat)); (4,5)}))
 
 val relEmpty : forall 'a 'b. SetType 'a, SetType 'b => rel 'a 'b
 let inline relEmpty = relFromSet {}
+declare tex target_rep function relEmpty = `$\emptyset$`
 
 assert relEmpty_0: relToSet relEmpty = ({} : set (nat * nat))
 assert relEmpty_1: not (inRel true (2:nat) relEmpty)
@@ -129,6 +132,7 @@ assert rel_id_3: not (inRel (0:nat) 2 (relIdOn {0;1;2;3}))
 
 val relUnion : forall 'a 'b. SetType 'a, SetType 'b => rel 'a 'b -> rel 'a 'b -> rel 'a 'b
 let inline relUnion r1 r2 = relFromSet ((relToSet r1) union (relToSet r2))
+declare tex target_rep function relUnion = infix `$\cup$`
 
 lemma in_rel_union: (forall a b r1 r2. inRel a b (relUnion r1 r2) = inRel a b r1 || inRel a b r2)
 assert rel_union_0: relUnion (relAdd (2:nat) true relEmpty) (relAdd 5 false relEmpty) =
@@ -140,6 +144,7 @@ assert rel_union_0: relUnion (relAdd (2:nat) true relEmpty) (relAdd 5 false relE
 
 val relIntersection : forall 'a 'b. SetType 'a, SetType 'b, Eq 'a, Eq 'b => rel 'a 'b -> rel 'a 'b -> rel 'a 'b
 let inline relIntersection r1 r2 = relFromSet ((relToSet r1) inter (relToSet r2))
+declare tex target_rep function relIntersection = infix `$\cap$`
 
 lemma in_rel_inter: (forall a b r1 r2. inRel a b (relIntersection r1 r2) = inRel a b r1 && inRel a b r2)
 assert rel_inter_0: relIntersection (relAdd (2:nat) true (relAdd 7 false relEmpty)) 
@@ -203,7 +208,7 @@ lemma rel_converse_converse : forall r. relConverse (relConverse r) = r
 
 val relDomain : forall 'a 'b. SetType 'a, SetType 'b => rel 'a 'b -> set 'a
 let relDomain r = Set.map (fun x -> fst x) (relToSet r)
-
+declare tex target_rep function relDomain = `dom`
 declare hol target_rep function relDomain = `domain`
 
 assert rel_domain_0: relDomain (relFromSet {((2:nat), (3:nat)); (3, 4); (4,5)}) = {2;3;4}
@@ -217,6 +222,7 @@ assert rel_domain_2: relDomain (relFromSet {((3:nat), (3:nat)); (3, 4); (4,5)}) 
 val relRange : forall 'a 'b. SetType 'a, SetType 'b => rel 'a 'b -> set 'b
 let relRange r = Set.map (fun x -> snd x) (relToSet r)
 
+declare tex target_rep function relRange = `rng`
 declare hol target_rep function relRange = `range`
 
 assert rel_range_0: relRange (relFromSet {((2:nat), (3:nat)); (3, 4); (4,5)}) = {3;4;5}
@@ -288,6 +294,8 @@ lemma rel_apply_add: forall x y s r. relApply (relAdd x y r) s = (if (x IN s) th
 
 val isSubrel : forall 'a 'b. SetType 'a, SetType 'b, Eq 'a, Eq 'b => rel 'a 'b -> rel 'a 'b -> bool
 let inline isSubrel r1 r2 = isSubsetOf (relToSet r1) (relToSet r2)
+
+declare tex target_rep function isSubrel = infix `$\subseteq$`
 
 lemma is_subrel_empty : forall r. isSubrel relEmpty r
 lemma is_subrel_empty2 : forall r. isSubrel r relEmpty = (r = relEmpty)

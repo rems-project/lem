@@ -161,21 +161,6 @@ assert nin_3: ((1:nat) NIN {})
 assert nin_4: not ((1:nat) NIN {1;2;1;3;1;4})
 
 
-(* ----------------------- *)
-(* insert                  *)
-(* ----------------------- *)
-
-val insert : forall 'a. SetType 'a => 'a -> set 'a -> set 'a (* before add *)
-
-declare ocaml    target_rep function insert = `Pset.add`
-declare coq      target_rep function insert = `set_add`
-declare hol      target_rep function insert = infix `INSERT`
-declare isabelle target_rep function insert = `Set.insert`
-
-assert insert_1: ((insert (2:nat) {3;4}) = {2;3;4})
-assert insert_2: ((insert (3:nat) {3;4}) = {3;4})
-assert insert_3: ((insert (3:nat) {}) = {3})
-
 
 (* ----------------------- *)
 (* Emptyness check         *)
@@ -338,6 +323,38 @@ assert set_patterns_10: (
 ) = 0
 
 
+(* ------------------------ *)
+(* union                    *)
+(* ------------------------ *)
+
+val unionBy : forall 'a. ('a -> 'a -> ordering) -> set 'a -> set 'a -> set 'a
+val (union) : forall 'a. SetType 'a => set 'a -> set 'a -> set 'a
+declare ocaml    target_rep function (union) = `Pset.(union)`
+declare hol      target_rep function (union) = infix `UNION`
+declare isabelle target_rep function (union) = infix `\<union>`
+declare coq      target_rep function unionBy = `set_union_by`
+declare tex      target_rep function (union) = infix `$\cup$`
+let inline {coq} (union) = unionBy setElemCompare
+
+
+assert union_1: ({(1:nat);2;3} union {3;2;4} = {1;2;3;4})
+lemma union_in: (forall e s1 s2. e IN (s1 union s2) <-> (e IN s1 || e IN s2))
+
+(* ----------------------- *)
+(* insert                  *)
+(* ----------------------- *)
+
+val insert : forall 'a. SetType 'a => 'a -> set 'a -> set 'a (* before add *)
+
+declare ocaml    target_rep function insert = `Pset.add`
+declare coq      target_rep function insert = `set_add`
+declare hol      target_rep function insert = infix `INSERT`
+declare isabelle target_rep function insert = `Set.insert`
+
+assert insert_1: ((insert (2:nat) {3;4}) = {2;3;4})
+assert insert_2: ((insert (3:nat) {3;4}) = {3;4})
+assert insert_3: ((insert (3:nat) {}) = {3})
+
 (* ----------------------- *)
 (* filter                  *)
 (* ----------------------- *)
@@ -432,25 +449,6 @@ let inline delete e s = deleteBy (=) e s
 
 
 (* ------------------------ *)
-(* union                    *)
-(* ------------------------ *)
-
-val unionBy : forall 'a. ('a -> 'a -> ordering) -> set 'a -> set 'a -> set 'a
-val (union) : forall 'a. SetType 'a => set 'a -> set 'a -> set 'a
-declare ocaml    target_rep function (union) = `Pset.(union)`
-declare hol      target_rep function (union) = infix `UNION`
-declare isabelle target_rep function (union) = infix `\<union>`
-declare coq      target_rep function unionBy = `set_union_by`
-declare tex      target_rep function (union) = infix `$\cup$`
-let inline {coq} (union) = unionBy setElemCompare
-
-
-assert union_1: ({(1:nat);2;3} union {3;2;4} = {1;2;3;4})
-lemma union_in: (forall e s1 s2. e IN (s1 union s2) <-> (e IN s1 || e IN s2))
-
-
-
-(* ------------------------ *)
 (* bigunion                 *)
 (* ------------------------ *)
 
@@ -481,6 +479,7 @@ val difference : forall 'a. SetType 'a => set 'a -> set 'a -> set 'a
 declare ocaml    target_rep function difference = `Pset.diff`
 declare hol      target_rep function difference = infix `DIFF`
 declare isabelle target_rep function difference = infix `-`
+declare tex      target_rep function difference = infix `$\setminus$`
 declare coq      target_rep function differenceBy = `set_diff_by`
 let inline {coq} difference = differenceBy setElemCompare
 

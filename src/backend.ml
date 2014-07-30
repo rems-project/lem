@@ -343,6 +343,7 @@ module type Target = sig
   val reln_sep : t
   val reln_name_start : t
   val reln_name_end : t
+  val reln_clause_sep : t
   val reln_clause_start : t
   val reln_clause_quant : t
   val reln_clause_show_empty_quant : bool
@@ -552,6 +553,7 @@ module Identity : Target = struct
   let reln_sep = kwd "and"
   let reln_name_start = kwd "["
   let reln_name_end = kwd "]"
+  let reln_clause_sep = kwd "==>"
   let reln_clause_quant = kwd "forall"
   let reln_clause_show_empty_quant = true
   let reln_clause_show_name = true
@@ -748,6 +750,7 @@ module Tex : Target = struct
   let reln_sep = bkwd "and"
   let reln_name_start = kwd "["
   let reln_name_end = kwd "]"
+  let reln_clause_sep = kwd "\\Longrightarrow"
   let reln_clause_start = emp
   let reln_clause_quant = kwd "\\forall"
   let reln_clause_show_empty_quant = true
@@ -1179,6 +1182,7 @@ module Hol : Target = struct
   let reln_sep = kwd "/\\"
   let reln_name_start = emp (*TODO Inderln fixup for Hol*)
   let reln_name_end = emp
+  let reln_clause_sep = kwd "==>"
   let reln_clause_start = kwd "("
   let reln_clause_quant = kwd "!"
   let reln_clause_show_empty_quant = false
@@ -2074,7 +2078,7 @@ let indreln_clause (Rule(name, s0, s1, qnames, s2, e_opt, s3, rname, rname_ref, 
   ) else emp) ^
   (match e_opt with None -> ws s3 | Some e -> 
      exp false (if T.reln_clause_add_paren then Typed_ast_syntax.mk_opt_paren_exp e else e) ^ 
-     ws s3 ^ kwd "==>") ^
+     ws s3 ^ T.reln_clause_sep) ^
   Name.to_output Term_var (B.const_ref_to_name rname.term false rname_ref) ^
   flat (interspace (List.map (exp false) es)) ^
   T.reln_clause_end
