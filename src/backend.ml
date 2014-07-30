@@ -85,6 +85,7 @@ open Target
 
 let gen_extra_level = ref 3
 let suppress_target_names = ref false
+let suppress_libraries = ref false
 
 let r = Ulib.Text.of_latin1
 let (^^) = Pervasives.(^)
@@ -2464,7 +2465,7 @@ let open_import_def_to_output print_backend oi targets ms =
       if in_target targets then
         if (Target.is_human_target T.target || not (T.module_only_single_open) || List.length ms < 2) then 
         begin
-          open_import_to_output oi ^
+          	open_import_to_output oi ^
           (if Target.is_human_target T.target then
              targets_opt targets 
            else
@@ -2475,11 +2476,11 @@ let open_import_def_to_output print_backend oi targets ms =
           match ms with 
             | (sk, m) :: sk_ms' -> begin
                 let (oi', _) = oi_alter_init_lskips (fun _ -> (Some [Ast.Ws (r"\n")], None)) oi in
-                open_import_to_output oi ^
+          	       open_import_to_output oi ^
                 ws sk ^ backend_quote_cond print_backend (id Module_name (Ulib.Text.of_string m)) ^
 
                (Output.flat (List.map (fun (sk, m) -> 
-                  open_import_to_output oi' ^
+          	        open_import_to_output oi' ^
                   ws sk ^ backend_quote_cond print_backend (id Module_name (Ulib.Text.of_string m))) sk_ms'))
               end
             | _ -> emp (* covert by other case already *)
@@ -2635,12 +2636,22 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
       kwd "=" ^
       Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)
   | OpenImport (oi, ms) ->
-      let (ms', sk) = B.open_to_open_target ms in 
-      open_import_def_to_output false oi Targets_opt_none ms' ^
-      ws sk
-  | OpenImportTarget(oi, _, []) -> ws (oi_get_lskip oi)
+  		if T.target = Target.Target_no_ident Target_tex && not !suppress_libraries then
+      	let (ms', sk) = B.open_to_open_target ms in 
+      	open_import_def_to_output false oi Targets_opt_none ms' ^
+      	ws sk
+      else
+      	emp
+  | OpenImportTarget(oi, _, []) ->
+  	if T.target = Target.Target_no_ident Target_tex && not !suppress_libraries then
+		  ws (oi_get_lskip oi)
+		else
+			emp
   | OpenImportTarget(oi,targets, ms) ->
+  	if T.target = Target.Target_no_ident Target_tex && not !suppress_libraries then
       open_import_def_to_output (is_human_target T.target) oi targets ms
+    else
+    	emp
   | Indreln(s,targets,names,clauses) ->
       if in_target targets then
         ws s ^
@@ -2923,6 +2934,10 @@ begin
                (rev_ws end_ws, rev_ws ws'')
              end
   end in
+  match d with
+  	| OpenImport _ when !suppress_libraries -> []
+  	| OpenImportTarget _ when !suppress_libraries -> []
+  	| _ ->
   let (d', comment_ws_pre) = def_aux_alter_init_lskips extract_comments d in
   let (_, comment_ws_post) = Util.option_default_map ws_after (None, None) extract_comments in
 

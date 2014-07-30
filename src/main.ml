@@ -153,6 +153,9 @@ let options = Arg.align ([
   ( "-tex_suppress_target_names",
   	Arg.Set Backend.suppress_target_names,
   	" prints target-specific let-bindings as normal let bindings in the TeX backend.");
+  ( "-tex_suppress_libraries",
+  	Arg.Set Backend.suppress_libraries,
+  	" suppresses inclusion of libraries in the TeX backend.");
   ( "-hol_remove_matches",
     Arg.Set Target_trans.hol_remove_matches, 
     " try to remove toplevel matches in HOL4 output."); (* This is generally useful, but disabled by default for compatibility with old Lem versions. *)
