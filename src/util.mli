@@ -333,7 +333,7 @@ module ExtraSet : functor (S : Set.S) ->
      val list_inter : S.t list -> S.t
    end
 
-(** [rev_flatten xs] flattens and reverses a list of lists.  Key property:
+(** [rev_flatten xs] reverses and then flattens [xs], a list of lists.  Key property:
       rev_flatten (rev_map f xs) = flatten (map f xs)
   *)
 val rev_flatten : 'a list list -> 'a list
