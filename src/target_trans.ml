@@ -357,21 +357,28 @@ let rename_def_params_aux targ consts =
                 Seplist.map
                   (fun (Rule(name,s0,s1,ns,s2,e,s3,n,c,es),l) ->
                   	let (_, name_avoid, _) = get_avoid_f targ consts in
-                  	let rename_name_lskips_annot name_lskips_annot =
-                  		let name_lskips = name_lskips_annot.Types.term in
-                  		(*let name_lskips = Backend_common.const_ref_to_name name_lskips false const_ref in*)
-                  		let locn = name_lskips_annot.Types.locn in
-                  		let typ = name_lskips_annot.Types.typ in
-                  		let rest = name_lskips_annot.Types.rest in
-                  			{ Types.term = name_lskips; locn = locn; typ = typ; rest = rest }
-                    in
                   	let ns = List.map (fun n ->
                   		match n with
-                  	    | QName (name_lskips_annot) ->
-                  	    		QName (rename_name_lskips_annot name_lskips_annot)
+                  	    | QName name_lskips_annot ->
+                  	    		let new_name = Name.lskip_rename (fun t -> Name.to_rope (Name.fresh t name_avoid)) name_lskips_annot.Types.term in
+                  	    		let subst = Nfmap.insert Nfmap.empty (Name.strip_lskip name_lskips_annot.Types.term, Sub_rename (Name.strip_lskip new_name)) in
+                  	    		let name_lskips_annot = { name_lskips_annot with Types.term = new_name } in
+                  	    			QName name_lskips_annot, subst
                         | Name_typ (skips, name_lskips_annot, skips', src_t, skips'') ->
-                        		Name_typ (skips, (rename_name_lskips_annot name_lskips_annot), skips', src_t, skips'')
+                        	  let new_name = Name.lskip_rename (fun t -> Name.to_rope (Name.fresh t name_avoid)) name_lskips_annot.Types.term in
+                  	    		let subst = Nfmap.insert Nfmap.empty (Name.strip_lskip name_lskips_annot.Types.term, Sub_rename (Name.strip_lskip new_name)) in
+                  	    		let name_lskips_annot = { name_lskips_annot with Types.term = new_name } in
+                        		Name_typ (skips, name_lskips_annot, skips', src_t, skips''), subst
                   	) ns in
+                  	let substs = Nfmap.big_union (List.map snd ns) in
+                  	let e   =
+                  		match e with
+                  			| None   -> None
+                  			| Some e ->
+                  			    Some (Ctxt.exp_subst (Types.TNfmap.empty, substs) e)
+                    in
+                  	let es  = List.map (Ctxt.exp_subst (Types.TNfmap.empty, substs)) es in
+                  	let ns  = List.map fst ns in
                      (* TODO: rename ns to avoid conflicts *)
                      (Rule(name,s0,s1,ns,s2,e,s3,n,c,es),l))
                   clauses
