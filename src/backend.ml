@@ -2636,22 +2636,36 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
       kwd "=" ^
       Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)
   | OpenImport (oi, ms) ->
-  		if T.target = Target.Target_no_ident Target_tex && not !suppress_libraries then
-      	let (ms', sk) = B.open_to_open_target ms in 
-      	open_import_def_to_output false oi Targets_opt_none ms' ^
-      	ws sk
-      else
-      	emp
+  		let out =
+  			let (ms', sk) = B.open_to_open_target ms in 
+      		open_import_def_to_output false oi Targets_opt_none ms' ^
+      		ws sk
+      in
+  			if !suppress_libraries then
+  				if Target.is_tex_target T.target then
+  					emp
+  				else
+  					out
+  			else
+  				out
   | OpenImportTarget(oi, _, []) ->
-  	if T.target = Target.Target_no_ident Target_tex && not !suppress_libraries then
-		  ws (oi_get_lskip oi)
-		else
-			emp
+  		let out = ws (oi_get_lskip oi) in
+  			if !suppress_libraries then
+  				if Target.is_tex_target T.target then
+  					emp
+  				else
+  					out
+  			else
+  				out
   | OpenImportTarget(oi,targets, ms) ->
-  	if T.target = Target.Target_no_ident Target_tex && not !suppress_libraries then
-      open_import_def_to_output (is_human_target T.target) oi targets ms
-    else
-    	emp
+  		let out = open_import_def_to_output (is_human_target T.target) oi targets ms in
+  			if !suppress_libraries then
+  				if Target.is_tex_target T.target then
+  					emp
+  				else
+  					out
+  			else
+  				out
   | Indreln(s,targets,names,clauses) ->
       if in_target targets then
         ws s ^

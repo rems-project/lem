@@ -180,6 +180,11 @@ let is_human_target = function
   | Target_no_ident Target_html  -> true
   | Target_no_ident Target_tex   -> true
   | Target_no_ident Target_lem   -> true
+  
+let is_tex_target targ =
+	match targ with
+		| Target_no_ident Target_tex -> true
+		| _ -> false
 
 let suppress_targets current_target tex_flag =
 	match current_target with

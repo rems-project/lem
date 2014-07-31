@@ -131,6 +131,9 @@ val target_to_output : Ast.target -> Output.t
     the tex-, html- and identity-targets. *)
 val is_human_target : target -> bool
 
+(** [is_tex_target targ] checks whether [targ] is the TeX target. *)
+val is_tex_target : target -> bool
+
 (** [suppress_targets targ tex_flag] returns whether a target must print let-bindings
     defined for a subset of target backends as normal let-bindings in the TeX backend. *)
 val suppress_targets : target -> bool -> bool
