@@ -194,7 +194,8 @@ and exp = (exp_aux,exp_annot) annot
 * keep subst bindings (for the exp subst) that are free in the unapplied free
 * map *)
 and exp_annot = 
-  { free : free_env; 
+  { free  : free_env;
+    bound : NameSet.t;
     subst : t TNfmap.t * exp_subst Nfmap.t; }
 and exp_subst = 
   | Sub of exp
@@ -259,6 +260,43 @@ and letbind_aux =
 let cr_special_fun_uses_name = function
   | (CR_special_uncurry _) -> true
   | (CR_special_rep _) -> false
+
+let big_union sets =
+  List.fold_right NameSet.union sets NameSet.empty
+
+let rec pat_to_bound_names pat =
+  match pat.term with
+    | P_wild _ -> NameSet.empty
+    | P_as (_, pat, _, _, _) -> pat_to_bound_names pat
+    | P_typ (_, pat, _, _, _) -> pat_to_bound_names pat
+    | P_var name -> NameSet.add (Name.strip_lskip name) NameSet.empty
+    | P_const (_, pats) -> big_union (List.map pat_to_bound_names pats)
+    | P_backend (_, _, _, pats) -> big_union (List.map pat_to_bound_names pats)
+    | P_record (_, pats, _) ->
+      let pats = Seplist.to_list pats in
+      let sets = List.map (fun (_, _, p) ->
+          pat_to_bound_names p
+        ) pats
+      in
+        big_union sets
+    | P_vector (_, pats, _) ->
+      let pats = Seplist.to_list pats in
+      let sets = List.map pat_to_bound_names pats in
+        big_union sets
+    | P_vectorC (_, pats, _) -> big_union (List.map pat_to_bound_names pats)
+    | P_tup (_, pats, _) ->
+      let pats = Seplist.to_list pats in
+        big_union (List.map pat_to_bound_names pats)
+    | P_list (_, pats, _) ->
+      let pats = Seplist.to_list pats in
+        big_union (List.map pat_to_bound_names pats)
+    | P_paren (_, pat, _) -> pat_to_bound_names pat
+    | P_cons (patl, _, patr) ->
+      NameSet.union (pat_to_bound_names patl) (pat_to_bound_names patr)
+    | P_num_add (name_l, _, _, _) -> NameSet.empty
+    | P_lit _ -> NameSet.empty
+    | P_var_annot (name, _) -> NameSet.add (Name.strip_lskip name) NameSet.empty
+
 
 type tyvar = lskips * Ulib.Text.t * Ast.l
 type nvar = lskips * Ulib.Text.t * Ast.l
@@ -1192,6 +1230,7 @@ module Exps_in_context(D : Exp_context) = struct
         typ = type_subst tsubst e.typ;
         rest =
           { free = e.rest.free;
+            bound = e.rest.bound;
             subst = (TNfmap.union tsubst new_tsubst, 
                      Nfmap.union (cut_subst vsubst e.rest.free) new_vsubst); }; }
 
@@ -1240,7 +1279,6 @@ module Exps_in_context(D : Exp_context) = struct
            | Sub_rename(n) -> NameSet.add n fv)
       NameSet.empty
       subst
-  
   (* Rename the binders that conflict with avoid or the free variables of the
    * substitution.  When choosing the new name, don't rename to names in
    * would_capture.  Return the renamings, and the substitution modified for
@@ -1314,11 +1352,11 @@ module Exps_in_context(D : Exp_context) = struct
   let rec push_subst (tsubst,vsubst) ps e =
     let binders =
       List.fold_left
-        (fun binders p -> NameSet.union (Nfmap.domain p.rest.pvars) binders)
+        (fun binders p ->
+          NameSet.union (Nfmap.domain p.rest.pvars) binders)
         NameSet.empty
         ps
     in
-    let binders = NameSet.union binders (exp_to_binders e) in
     let binder_tyvars =
       List.fold_left
         (fun binder_tyvars p -> NameSet.union (pat_to_free_tyvars p) binder_tyvars)
@@ -1327,6 +1365,15 @@ module Exps_in_context(D : Exp_context) = struct
     in
     let (renames,new_vsubst) = 
       get_renames binders vsubst (Nfmap.domain (exp_to_free e)) (NameSet.union (exp_to_free_tyvars e) binder_tyvars)
+    in
+    let bound =
+      NameSet.fold (fun e set ->
+        match Nfmap.apply renames e with
+          | None -> NameSet.add e set
+          | Some n -> NameSet.add n set) binders NameSet.empty
+    in
+    let (renames,new_vsubst) = 
+      get_renames binders vsubst (NameSet.union (Nfmap.domain (exp_to_free e)) bound) (NameSet.union (exp_to_free_tyvars e) binder_tyvars)
     in
       (List.map (pat_subst (tsubst,renames)) ps,
        exp_subst (tsubst,new_vsubst) e)
@@ -1745,7 +1792,8 @@ module Exps_in_context(D : Exp_context) = struct
       locn = l;
       typ = t;
       rest =
-        { free = sing_free_env (Name.strip_lskip n) t;
+        { free  = sing_free_env (Name.strip_lskip n) t;
+          bound = NameSet.empty;
           subst = empty_sub; } }
 
   let mk_backend l sk i t : exp =
@@ -1754,6 +1802,7 @@ module Exps_in_context(D : Exp_context) = struct
       typ = t;
       rest =
         { free = empty_free_env;
+          bound = NameSet.empty;
           subst = empty_sub; } }
 
 
@@ -1763,6 +1812,7 @@ module Exps_in_context(D : Exp_context) = struct
       typ = t;
       rest =
         { free = empty_free_env; 
+          bound = NameSet.empty;
           subst = empty_sub; }; }
 
   let mk_const l c t : exp =
@@ -1780,18 +1830,21 @@ module Exps_in_context(D : Exp_context) = struct
         locn = l;
         typ = t;
         rest = { free = empty_free_env;
+                 bound = NameSet.empty;
                  subst = empty_sub; }; }
 
   let mk_fun l s1 ps s2 e t : exp  =
     let t = 
       check_typ l "mk_fun" t (fun d -> Some (multi_fun (List.map (fun p -> p.typ) ps) e.typ))
     in
+    let bound' = NameSet.union (big_union (List.map pat_to_bound_names ps)) e.rest.bound in
     let p_free = merge_free_env true l (List.map (fun p -> p.rest.pvars) ps) in
       { term = Fun(s1,ps,s2,e);
         locn = l;
         typ = t;
         rest = 
           { free = bind_free_env l p_free (exp_to_free e);
+            bound = bound';
             subst = empty_sub; }; }
 
   let mk_function l s1 pes s2 t =
@@ -1801,6 +1854,13 @@ module Exps_in_context(D : Exp_context) = struct
            let (p,_,e,_) = Seplist.hd pes in
              Some { t = Tfn(p.typ,e.typ) })
     in
+      let bound' =
+        let pes  = Seplist.to_list pes in
+        let sets = List.map (fun (pat, _, exp, _) ->
+          NameSet.union (pat_to_bound_names pat) exp.rest.bound) pes
+        in
+          big_union sets
+      in
       if check then
         Seplist.iter 
           (fun (p,_,e,_) -> type_eq l "mk_function" t { t = Tfn(p.typ,e.typ) })
@@ -1814,6 +1874,7 @@ module Exps_in_context(D : Exp_context) = struct
                 (Seplist.to_list_map 
                    (fun (p,_,e,_) -> bind_free_env l p.rest.pvars (exp_to_free e)) 
                    pes);
+            bound = bound';
             subst = empty_sub; }; }
 
   let mk_app l e1 e2 t =
@@ -1832,6 +1893,7 @@ module Exps_in_context(D : Exp_context) = struct
         typ = t; 
         rest = 
           { free = merge_free_env false l [exp_to_free e1;exp_to_free e2];
+            bound = NameSet.union e1.rest.bound e2.rest.bound;
             subst = empty_sub; }; }
 
   let mk_infix l e1 e2 e3 t =
@@ -1859,6 +1921,7 @@ module Exps_in_context(D : Exp_context) = struct
               typ = t'; 
               rest =
                 { free = merge_free_env false l [exp_to_free e1; exp_to_free e2; exp_to_free e3];
+                  bound = NameSet.union e1.rest.bound (NameSet.union e2.rest.bound e3.rest.bound);
                   subst = empty_sub; }; }
         | _ -> 
             mk_app l (mk_app l e2 e1 (Some({ t = Tfn(e3.typ,t') }))) e3 t
@@ -1875,7 +1938,14 @@ module Exps_in_context(D : Exp_context) = struct
       let _ = if check then (* TODO: add typecheck code *) () in
       f_rec_ty
     end) D.env_opt in
-    let t = check_typ l "mk_record" t (fun d -> f_rec_ty_opt )
+    let t = check_typ l "mk_record" t (fun d -> f_rec_ty_opt ) in
+    let bound' =
+      let fes  = Seplist.to_list fes in
+      let sets = List.map (fun (cdr, _, exp, _) ->
+          exp.rest.bound
+        ) fes
+      in
+        big_union sets
     in
     { term = Record(s1,fes,s2);
       locn = l;
@@ -1884,6 +1954,7 @@ module Exps_in_context(D : Exp_context) = struct
         { free = 
           merge_free_env false l 
             (Seplist.to_list_map (fun (_,_,e,_) -> exp_to_free e) fes);
+          bound = bound';
           subst = empty_sub; }; }
 
   let mk_recup l s1 e s2 fes s3 t =
@@ -1891,6 +1962,14 @@ module Exps_in_context(D : Exp_context) = struct
       if check then
         (* TODO: add typecheck code *)
         ();
+      let bound' =
+        let fes  = Seplist.to_list fes in
+        let sets = List.map (fun (cdr, _, exp, _) ->
+            exp.rest.bound
+          ) fes
+      in
+        NameSet.union e.rest.bound (big_union sets)
+    in
       { term = Recup(s1,e,s2,fes,s3);
         locn = l;
         typ = t; 
@@ -1898,6 +1977,7 @@ module Exps_in_context(D : Exp_context) = struct
           { free = 
               merge_free_env false l 
                 (exp_to_free e :: Seplist.to_list_map (fun (_,_,e,_) -> exp_to_free e) fes);
+            bound = bound';
             subst = empty_sub; }; }
 
   let mk_field l e s f t =
@@ -1917,6 +1997,7 @@ module Exps_in_context(D : Exp_context) = struct
         typ = t; 
         rest =
           { free = exp_to_free e;
+            bound = e.rest.bound;
             subst = empty_sub; }; }
 
   let mk_vector l s1 es s2 t =
@@ -1933,6 +2014,7 @@ module Exps_in_context(D : Exp_context) = struct
        typ = t;
        rest = 
           {free = merge_free_env false l (Seplist.to_list_map exp_to_free es);
+           bound = big_union (List.map (fun x -> x.rest.bound) (Seplist.to_list es));
            subst = empty_sub;}; }
                         
   let mk_vectoracc l e s1 n s2 t =
@@ -1946,6 +2028,7 @@ module Exps_in_context(D : Exp_context) = struct
        typ = t;
        rest = 
          { free = exp_to_free e;
+           bound = e.rest.bound;
            subst = empty_sub; }; }
 
   let mk_vectoraccr l e s1 n1 s2 n2 s3 t =
@@ -1955,6 +2038,7 @@ module Exps_in_context(D : Exp_context) = struct
        typ = t;
        rest = 
          { free = exp_to_free e;
+           bound = e.rest.bound;
            subst = empty_sub; }; }
 
   let mk_case c l s1 e s2 pats s3 t =
@@ -1964,6 +2048,16 @@ module Exps_in_context(D : Exp_context) = struct
            match Seplist.hd pats with
              | (_,_,e,_) -> Some e.typ)
     in
+      let bound' =
+        let pats = Seplist.to_list pats in
+        let sets = List.map (fun (p, _, e, _) ->
+            let ps = pat_to_bound_names p in
+            let es = e.rest.bound in
+              NameSet.union ps es
+          ) pats
+        in
+          big_union sets
+      in
       if check then
         Seplist.iter
           (fun (p,_,e',_) ->
@@ -1980,6 +2074,7 @@ module Exps_in_context(D : Exp_context) = struct
                  (Seplist.to_list_map 
                     (fun (p,_,e,_) -> bind_free_env l p.rest.pvars (exp_to_free e)) 
                     pats));
+            bound = bound';
             subst = empty_sub; }; }
 
   let mk_typed l s1 e s2 src_t s3 t =
@@ -1990,6 +2085,7 @@ module Exps_in_context(D : Exp_context) = struct
         typ = t; 
         rest =
           { free = exp_to_free e;
+            bound = e.rest.bound;
             subst = empty_sub; }; }
 
   let mk_let_val l p topt s e =
@@ -2012,9 +2108,21 @@ module Exps_in_context(D : Exp_context) = struct
 
   let mk_let l s1 lb s2 e t =
     let t = check_typ l "mk_let" t (fun d -> Some e.typ) in
+    let bound' =
+      let es = e.rest.bound in
+      let lb =
+        let (lb_aux, _) = lb in
+          match lb_aux with
+            | Let_val (p, _, _, e) ->
+                NameSet.union (pat_to_bound_names p) e.rest.bound
+            | Let_fun (_, ps, _, _, e) ->
+                NameSet.union (big_union (List.map pat_to_bound_names ps)) e.rest.bound
+      in
+        NameSet.union (NameSet.union lb es) e.rest.bound
+    in
       { term = Let(s1,lb,s2,e);
         locn = l;
-        typ = t; 
+        typ = t;
         rest =
           { free = 
               begin
@@ -2032,6 +2140,7 @@ module Exps_in_context(D : Exp_context) = struct
                            (sing_free_env (Name.strip_lskip n.term) n.typ)
                            (exp_to_free e)]
               end;
+            bound = bound';
             subst = empty_sub; }; }
 
   let mk_tup l s1 es s2 t =
@@ -2039,15 +2148,26 @@ module Exps_in_context(D : Exp_context) = struct
       check_typ l "mk_tup" t 
         (fun d -> Some { t = Ttup(Seplist.to_list_map (fun e -> e.typ) es) } )
     in
+    let bound' =
+      let es   = Seplist.to_list es in
+      let sets = List.map (fun x -> x.rest.bound) es in
+        big_union sets
+    in
       { term = Tup(s1,es,s2);
         locn = l;
         typ = t; 
         rest =
           { free =
               merge_free_env false l (Seplist.to_list_map exp_to_free es);
+            bound = bound';
             subst = empty_sub; }; }
 
   let mk_list l s1 es s2 t =
+    let bound' =
+      let es   = Seplist.to_list es in
+      let sets = List.map (fun x -> x.rest.bound) es in
+        big_union sets
+    in
     if check then
       Seplist.iter 
         (fun e -> type_eq l "mk_list" { t = Tapp([e.typ], Path.listpath) } t) 
@@ -2057,10 +2177,16 @@ module Exps_in_context(D : Exp_context) = struct
       typ = t;
       rest = 
         { free = merge_free_env false l (Seplist.to_list_map exp_to_free es);
+          bound = bound';
           subst = empty_sub; }; }
 
   let mk_vector l s1 es s2 t =
-    let tlen = {t = Tne({nexp = Nconst(Seplist.length es)}) } in 
+    let tlen = {t = Tne({nexp = Nconst(Seplist.length es)}) } in
+    let bound' =
+      let es   = Seplist.to_list es in
+      let sets = List.map (fun x -> x.rest.bound) es in
+        big_union sets
+    in
     if check then
      Seplist.iter
        (fun e -> type_eq l "mk_vector" { t = Tapp([e.typ;tlen],Path.vectorpath) } t)
@@ -2070,6 +2196,7 @@ module Exps_in_context(D : Exp_context) = struct
       typ = t;
       rest = 
         { free = merge_free_env false l (Seplist.to_list_map exp_to_free es);
+          bound = bound';
           subst = empty_sub; }; }
 
    let mk_vaccess l e s1 n s2 t = 
@@ -2079,6 +2206,7 @@ module Exps_in_context(D : Exp_context) = struct
        typ = t;
        rest =
         { free = exp_to_free e;
+          bound = e.rest.bound;
           subst = empty_sub; }; }       
 
   let mk_vaccessr l e s1 n1 s2 n2 s3 t =
@@ -2088,6 +2216,7 @@ module Exps_in_context(D : Exp_context) = struct
        typ = t;
        rest = 
          { free = exp_to_free e;
+           bound = e.rest.bound;
            subst = empty_sub } }
 
   let mk_paren l s1 e s2 t =
@@ -2096,7 +2225,8 @@ module Exps_in_context(D : Exp_context) = struct
         locn = l;
         typ = t; 
         rest = 
-          { free = exp_to_free e; 
+          { free = exp_to_free e;
+            bound = e.rest.bound; 
             subst = empty_sub; }; }
 
   let mk_begin l s1 e s2 t =
@@ -2106,6 +2236,7 @@ module Exps_in_context(D : Exp_context) = struct
         typ = t;
         rest = 
           { free = exp_to_free e;
+            bound = e.rest.bound;
             subst = empty_sub; }; }
 
   let mk_if l s1 e1 s2 e2 s3 e3 t =
@@ -2118,6 +2249,7 @@ module Exps_in_context(D : Exp_context) = struct
         rest =
           { free = merge_free_env false l 
                      [exp_to_free e1; exp_to_free e2; exp_to_free e3];
+            bound = NameSet.union (NameSet.union e1.rest.bound e2.rest.bound) e3.rest.bound;
             subst = empty_sub; }; }
 
   let mk_lit l li t =
@@ -2127,9 +2259,15 @@ module Exps_in_context(D : Exp_context) = struct
         typ = t; 
         rest =
           { free = empty_free_env;
+            bound = NameSet.empty;
             subst = empty_sub; }; }
 
   let mk_set l s1 es s2 t =
+    let bound' =
+      let es   = Seplist.to_list es in
+      let sets = List.map (fun x -> x.rest.bound) es in
+        big_union sets
+    in
     if check then
       Seplist.iter 
         (fun e -> type_eq l "mk_set" { t = Tapp([e.typ], Path.setpath) } t) 
@@ -2139,6 +2277,7 @@ module Exps_in_context(D : Exp_context) = struct
       typ = t;
       rest =
         { free = merge_free_env false l (Seplist.to_list_map exp_to_free es);
+          bound = bound';
           subst = empty_sub; }; }
 
   let mk_setcomp l s1 e1 s2 e2 s3 ns t =
@@ -2150,6 +2289,7 @@ module Exps_in_context(D : Exp_context) = struct
         typ = t;
         rest = 
           { free = NameSet.fold (fun k e -> Nfmap.remove e k) ns env;
+            bound = NameSet.union (NameSet.union e1.rest.bound e2.rest.bound) ns;
             subst = empty_sub; }; }
 
   let pp_fvs = Nfmap.pp_map Name.pp Types.pp_type
@@ -2210,6 +2350,18 @@ module Exps_in_context(D : Exp_context) = struct
       qbs
 
   let mk_comp_binding l is_lst s1 e1 s2 s3 qbs s4 e2 s5 t =
+    let bound' =
+      let qbs = List.map (fun q ->
+        match q with
+          | Qb_var name_lskips ->
+              let name_lskips = name_lskips.term in
+                NameSet.add (Name.strip_lskip name_lskips) NameSet.empty
+          | Qb_restr (_, _, pat, _, exp, _) ->
+              NameSet.union (pat_to_bound_names pat) exp.rest.bound
+        ) qbs
+      in
+        NameSet.union (NameSet.union e1.rest.bound e2.rest.bound) (big_union qbs)
+    in
     let t = 
       check_typ l "mk_comp_binding" t
         (fun d ->  Some
@@ -2232,9 +2384,21 @@ module Exps_in_context(D : Exp_context) = struct
                    (qbs_bindings l qbs) 
                    (merge_free_env false l [exp_to_free e1; exp_to_free e2]) ::
                  qbs_envs l qbs);
+            bound = bound';
             subst = empty_sub; }; }
 
   let mk_quant l q qbs s e t =
+    let bound' =
+      let qbs = List.map (fun q ->
+        match q with
+          | Qb_var name_lskips ->
+              let name_lskips = name_lskips.term in
+                NameSet.add (Name.strip_lskip name_lskips) NameSet.empty
+          | Qb_restr (_, _, pat, _, exp, _) ->
+              NameSet.union (pat_to_bound_names pat) exp.rest.bound) qbs
+      in
+        NameSet.union e.rest.bound (big_union qbs)
+    in
     let t = check_typ l "mk_quant" t (fun d -> Some e.typ) in
       List.iter (check_qbs l) qbs;
       type_eq l "mk_quant" e.typ { t = Tapp([],Path.boolpath) };
@@ -2246,6 +2410,7 @@ module Exps_in_context(D : Exp_context) = struct
               merge_free_env false l
                 (bind_free_env l (qbs_bindings l qbs) (exp_to_free e) ::
                  qbs_envs l qbs);
+            bound = bound';
             subst = empty_sub; }; }
 
   let do_lns_bindings l do_lns = 
@@ -2256,6 +2421,15 @@ module Exps_in_context(D : Exp_context) = struct
     List.map (function | Do_line(_,_,e,_) -> exp_to_free e) do_lns
 
   let mk_do l s1 mid do_lns s2 e s3 ret_t t =
+    let bound' =
+      let do_lns = List.map (fun d ->
+          match d with
+            | Do_line (p, _, e, _) ->
+                NameSet.union (pat_to_bound_names p) e.rest.bound
+        ) do_lns
+      in
+        NameSet.union e.rest.bound (big_union do_lns)
+    in
     (* TODO: actually do the check *)
     let t = check_typ l "mk_do" t (fun d -> Some e.typ ) in
       { term = Do(s1,mid,do_lns,s2,e,s3,ret_t);
@@ -2265,6 +2439,7 @@ module Exps_in_context(D : Exp_context) = struct
           { free = pat_exp_list_freevars l true 
                      (List.map (function | Do_line(p,_,e,_) -> (p,Some e)) do_lns)
                      e;
+            bound = bound';
             subst = empty_sub }}
 
 

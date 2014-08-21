@@ -350,7 +350,9 @@ and letbind_aux =
         It repre0sents a statement like [let n ps = e in ...]. Notice that the arguments of [Let_fun] are
         similar to [funcl_aux]. However, funcl_aux has a constant-references, as it is used in top-level definitions,
         whereas [Let_fun] is used only for local functions. *)
-  
+
+val pat_to_bound_names : pat -> NameSet.t
+
 type tyvar = lskips * Ulib.Text.t * Ast.l
 type nvar = lskips * Ulib.Text.t * Ast.l
 
