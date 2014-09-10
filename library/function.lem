@@ -64,3 +64,11 @@ declare coq target_rep function flip = `flip`
 let inline {isabelle} flip f x y = f y x
 declare hol      target_rep function flip = `combin$C`
 
+
+(* currying / uncurrying *)
+
+val curry : forall 'a 'b 'c. (('a * 'b) -> 'c) -> 'a -> 'b -> 'c
+let curry f = (fun a b -> f (a, b))
+
+val uncurry : forall 'a 'b 'c. ('a -> 'b -> 'c) -> ('a * 'b -> 'c)
+let uncurry f (a,b) = f a b

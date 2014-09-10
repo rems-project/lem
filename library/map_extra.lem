@@ -57,3 +57,11 @@ declare compile_message fold = "Map_extra.fold interates over the elements of th
 
 assert fold_1: (fold (fun k v a -> (a+k)) (Map.fromList [((2:nat),(3:nat)); (3, 4); (4, 5)]) 0 = 9)
 assert fold_2: (fold (fun k v a -> (a+v)) (Map.fromList [((2:nat),(3:nat)); (3, 4); (4, 5)]) 0 = 12)
+
+
+val toList: forall 'k 'v. MapKeyType 'k => map 'k 'v -> list ('k * 'v)
+
+(* TODO: add Coq and isabelle *)
+declare ocaml    target_rep function toList = `Pmap.bindings_list`
+declare compile_message fold = "Map_extra.toList is only defined for the ocaml backend"
+
