@@ -20,12 +20,23 @@ open C
 module Nmap = Typed_ast.Nfmap
 module Nset = Nmap.S
 
-let sep_no_skips l = Seplist.from_list_default None l
+(** [sep_no_skips l] converts the list [l] into a Seplist with empty
+    separator. *)
+let sep_no_skips (l : 'a list) : 'a lskips_seplist =
+  Seplist.from_list_default None l
+
+
+(** [sep_newline l] converts the list [l] into a Seplist with newline
+    separator *)
+let sep_newline l = Seplist.from_list_default newline l
 
 (* TODO: Move to util. *)
+(** Binary type to represent a choice. *)
 type ('a,'b) choice = Left of 'a | Right of 'b
 
-let map_partition f l =
+(** [map_partition f l] maps [f] over [l] and partitions the result
+    between the [Left] and [Right] values. *)
+let map_partition (f : 'a -> ('b, 'c) choice) (l : 'a list) : 'b list * 'c list =
   List.fold_right (fun x (ls,rs) ->
     match f x with
       | Left l -> (l::ls,rs)
@@ -38,9 +49,8 @@ let map_partition f l =
 
 (* Locations                                                                  *)
 
-(** [loc_trans s l] returns the location [l] annotated with the
-    information that translation was performed by [s] at this
-    location *)
+(** [loc_trans s l] is a simple wrapper around [Ast.Trans] that
+    annotates [l] with the translation information [s]. *)
 let loc_trans (s : string) (l : Ast.l) : Ast.l =
   Ast.Trans (true, s, Some l)
 
@@ -48,8 +58,9 @@ let loc_trans (s : string) (l : Ast.l) : Ast.l =
 
 (** [remove_option ty] removes the maybe constructor from type
     [maybe t], and fails otherwise. *)
-(* TODO: This actually removes any type constructor. Plus this should
-   probably not be done. *)
+(* TODO: This actually removes any type constructor.  It should
+   probably not be done at all, but this requires some serious
+   refactoring. *)
 let remove_option (ty : Types.t) : Types.t =
   match ty.t with
   | Types.Tapp([ty], _) -> ty
@@ -64,6 +75,8 @@ let mk_tup_unit_typ : t list -> t = function
 
 (* Constants                                                                  *)
 
+(** [const_descr] is a helper function for the construction of a
+    [const_descr] with (hopefully) sane defaults. *)
 let const_descr
     ~binding ?(tparams=[]) ?(class_=[])
     ?(no_class=Target.Targetmap.empty)
@@ -102,9 +115,10 @@ let and_const_ref (env : env) : const_descr_ref =
 let eq_const_ref (env : env) : const_descr_ref =
   fst (get_const env "equality")
 
-(** [mk_const_ref env l c_ref inst] transforms the constant [c_ref]
-    into an expression by giving it the instantiation [inst]. *)
-let mk_const_ref
+(** [cdr_instantiate env l c_ref inst] transforms the constant [c_ref]
+    into an expression by instantiating it with the types in
+    [inst]. *)
+let cdr_instantiate
     (env : env) (l : Ast.l) (c_ref : const_descr_ref)
     (inst : Types.t list)
   : exp
@@ -126,8 +140,8 @@ let mk_tup_unit_exp l : exp list -> exp = function
   | [e] -> e
   | es -> mk_tup l None (sep_no_skips es) None None
 
-(* [mk_const_app env l label inst args] constructs the application of
-   [label] to arguments [args] with type instantiation [inst]. *)
+(** [mk_const_app env l label inst args] constructs the application of
+    [label] to arguments [args] with type instantiation [inst]. *)
 let mk_const_app
     (env : env) (l : Ast.l) (label : string)
     (inst : Types.t list) (args : exp list)
@@ -187,22 +201,18 @@ type mode_spec =
   (* The monad in which code should be generated *)
   * rel_output_type
 
-(*
-  Group rules by output relation
-*)
-
-(** Describes a rule *)
+(** Describes a rule [rn: forall x1 .. xn, P1 && .. && Pn ==> R t1 .. tn] *)
 type ruledescr = {
-  (** Name of the rule *)
+  (** Name of the rule [rn] *)
   rule_name : Name.t;
 
-  (** Quantified variables *)
+  (** Quantified variables [x1 .. xn] *)
   rule_vars : (Name.t * Types.t) list;
 
-  (** Conditions *)
+  (** Conditions [P1 .. Pn] *)
   rule_conds : exp list;
 
-  (** Arguments for the conclusion *)
+  (** Arguments for the conclusion [t1 .. tn] *)
   rule_args : exp list;
 
   (** Source location for the definition *)
@@ -223,14 +233,14 @@ type reldescr = {
   (** Types of the relation's arguments *)
   rel_argtypes : Types.t list;
 
-  (** Name of the type if we must generate one. *)
+  (** Name of the witness type if we must generate one. *)
   rel_witness : Name.t option;
 
   (** Name of the witness checking function if we must generate one. *)
   rel_check : Name.t option;
 
   (** Name and modes of the functions that should be generated. *)
-  rel_indfns : (Name.t * (rel_mode * bool * rel_output_type)) list;
+  rel_indfns : (Name.t * mode_spec) list;
 
   (** The rules determining this relation. *)
   rel_rules : ruledescr list;
@@ -243,7 +253,8 @@ type relsdescr = reldescr Nfmap.t
 
 (** Converts the source types "input" and "output" to [Rel_mode_in]
     and [Rel_mode_out] respectively. *)
-(* TODO: This should probably be done earlier. *)
+(* TODO: This should probably be done earlier in the process (at the
+   point the check is made to only allow "input" and "output" here *)
 let to_in_out (typ : src_t) : rel_io =
   match typ.term with
   | Typ_app({id_path = Id_some i }, []) ->
@@ -255,7 +266,7 @@ let to_in_out (typ : src_t) : rel_io =
   | _ -> raise (Invalid_argument "to_in_out")
 
 (** The default output mode if not specified. *)
-(* TODO: Should there be a default mode? *)
+(* TODO: Out_pure is broken; only Out_list is working. *)
 let default_out_mode = Out_pure
 
 (** [src_t_to_mode typ] converts the type with source annotations
@@ -263,7 +274,7 @@ let default_out_mode = Out_pure
     specifiers for the arguments, a boolean indicating whether a
     witness should be generated, and a [rel_output_type] specification
     for the monad in which to generate the code. *)
-(* TODO: This should probably be done earlier. *)
+(* TODO: This should probably be done earlier, see [to_in_out]. *)
 let rec src_t_to_mode (typ : src_t) : mode_spec =
   match typ.term with
     | Typ_paren(_,t,_) -> src_t_to_mode t
@@ -386,8 +397,7 @@ let get_rels (env : env) (l : Ast.l) (names : indreln_name lskips_seplist)
     (get_relsdescr_from_names l names)
 
 
-(* Just a small model of the code we will generate later
-   We will need a partial "exp to pattern" function somewhere *)
+(* A small model of the code we will generate later *)
 type code =
   (* [IF (e, c)] becomes
        [if e then [[c]] else fail] *)
@@ -398,9 +408,6 @@ type code =
   (* [LET (p, e, c)] becomes
        [match e with | p -> [[c]] | _ -> fail] *)
   | LET of pat * exp * code
-  (* [IFEQ (e1, e2, c)] becomes
-       [if e1 = e2 then [[c]] else fail] *)
-  | IFEQ of exp * exp * code
   (* [RETURN (e1, ..., en)] becomes
        [return (e1, ..., en)] *)
   | RETURN of exp list
@@ -424,7 +431,7 @@ let make_namegen (names : Nset.t) : Ast.text -> Name.t =
 (** [extract_exp l env e avoid] creates a new variable [v] (whose name is
     not in [avoid]) and returns
 
-    - A pattern match on this variable
+    - A pattern matching on this variable
 
     - An equation [v = e] asserting that this variable is equal to [e] *)
 let extract_exp
@@ -528,10 +535,28 @@ let linearize
   let pats' = List.map linearize_pat pats in
   (pats', !eqs)
 
+(** [mk_if_code env es c] guards the code [c] with conditions in
+    [es] *)
 let mk_if_code (env : env) (es : exp list) (c : code) : code=
   if es = [] then c
   else IF (mk_and_exps env es, c)
 
+(** [linearize_code env seen avoid c] transforms the code [c] such
+    that any variable appearing several times in [c] (either in patterns
+    or expressions) are actually linked to the same variable.
+
+    Effectively, any variable appearing in a pattern except the first time
+    it is encountered is replaced by a fresh variable that is checked to
+    be equal to the old one.
+
+    The [!seen] set contains the variables that are already bound by a
+    pattern in the current scope, and the [!avoid] set contains variable
+    names that must not be used for fresh variables (and is expected to be
+    a superset of the [!seen] set).
+
+    WARNING: [!seen] actually contains *all* the variables encountered
+    by the current search in the current code. This is not a problem
+    right now as there is no branching, however. *)
 let rec linearize_code
   (env : env) (seen : Nset.t ref)
   (avoid : Nset.t ref) (c : code)
@@ -546,31 +571,22 @@ let rec linearize_code
     let (p, eqs) = linearize env [p] seen avoid in
     LET (List.hd p, e,
          mk_if_code env eqs (linearize_code env seen avoid c))
-  | IFEQ (e1, e2, c) ->
-    IFEQ (e1, e2, linearize_code env seen avoid c)
   | RETURN es -> RETURN es
 
-(* Try to convert an expression to a pattern
-
-    `check_rename' checks that the translated vars are forall-bound and not
-    relations, and renames them if necessary to make the pattern matching
-    linear
-*)
-
-(** [split_app e] converts an expression into a couple of an applied
-    function and the list of its arguments.
+(** [dest_list_app_exp e] converts an expression into a couple of an
+    applied function and the list of its arguments. It is roughly an
+    inverse of [mk_list_app_exp], except that it looks deep into
+    parentheses and similar constructs.
 
     For instance, [f x y z] is transformed into [(f, [x; y; z])]. *)
-let split_app (e : exp) : exp * exp list =
-  let rec split_app e args = match exp_to_term e with
-    | App(e1,e2) -> split_app e1 (e2::args)
-    | Paren(_,e,_) | Begin(_,e,_) | Typed(_,e,_,_,_) -> split_app e args
-    | Infix(e2, e1, e3) -> split_app e1 (e2::e3::args)
+let dest_list_app_exp (e : exp) : exp * exp list =
+  let rec dest_list_app_exp e args = match exp_to_term e with
+    | App(e1,e2) -> dest_list_app_exp e1 (e2::args)
+    | Paren(_,e,_) | Begin(_,e,_) | Typed(_,e,_,_,_) -> dest_list_app_exp e args
+    | Infix(e2, e1, e3) -> dest_list_app_exp e1 (e2::e3::args)
     | _ -> (e,args)
   in
-  split_app e []
-
-let id x = x
+  dest_list_app_exp e []
 
 (** [is_constructor env t c_d] checks whether [c_d] is a constructor
     for type [t] in environment [env]. *)
@@ -592,7 +608,7 @@ let is_list_cons
   cons = fst (get_const env "list_cons")
 
 (** [is_list_append env append] checks whether [append] is the list
-    `append` operator (++) in environmnet [env]. *)
+    `append` operator (++) in environment [env]. *)
 let is_list_append
     (env : env) (append : const_descr_ref)
   : bool =
@@ -629,7 +645,7 @@ let exps_to_pats (avoid : Nset.t ref) (env : env) (es : exp list)
   let rec exp_to_pat e =
     let loc = loc_trans "exp_to_pat" (exp_to_locn e) in
     let ty = exp_to_typ e in
-    let (head, args) = split_app e in
+    let (head, args) = dest_list_app_exp e in
     match exp_to_term head, args with
     (* Cons is treated differently than other constructors in
        patterns. *)
@@ -641,10 +657,12 @@ let exps_to_pats (avoid : Nset.t ref) (env : env) (es : exp list)
       let p1 = exp_to_pat e1 in
       let p2 = exp_to_pat e2 in
       begin match p1.term, p2.term with
+        (* [[x1 ; .. ; xn] ++ [y1 ; .. yn ]] is [x1 ; .. ; xn ; y1 ; .. ; yn] *)
         | P_list (s1, ps, s2), P_list (s1', ps', s2') ->
           mk_plist loc s1
             (Seplist.append s2 ps (Seplist.cons_sep s1' ps'))
             s2' p2.typ
+        (* [[x1 ; .. ; xn] ++ l] is [x1 :: .. :: xn :: l] *)
         | P_list (s1, ps, s2), _ ->
           mk_pparen loc s1
             (Seplist.fold_right
@@ -652,6 +670,7 @@ let exps_to_pats (avoid : Nset.t ref) (env : env) (es : exp list)
                   mk_pcons loc p None r (Some ty))
                p2 ps)
             s2 (Some ty)
+        (* [[] ++ l] is [l] *)
         | _, P_list (_, ps, _) when Seplist.length ps = 0 -> p1
         | _ ->
           Reporting.print_debug_exp env "Extracting complex list expression" [e];
@@ -683,13 +702,7 @@ let exps_to_pats (avoid : Nset.t ref) (env : env) (es : exp list)
       mk_plist loc s1 ps s2 ty
     | Lit l, [] ->
       mk_plit loc l (Some ty)
-    (* TODO: Sets, x+1, ...
-          | Set(s1, es, s2), [] when Seplist.length es = 1 ->
-            (* XXX TODO FIXME XXX: cheat here *)
-            let se = Seplist.hd es in
-            let _pat = exp_to_pat se in
-       (*        Reporting.print_debug_exp env "Cheated on set expression" [e];*)
-            transform_exp loc e ty *)
+    (* TODO: Sets *)
     | _ ->
       Reporting.print_debug_exp env "Extracting non-pattern expression" [e];
       let (p, eq) = extract_exp loc env e avoid in
@@ -732,12 +745,11 @@ let extract_patterns
     (map_filter (fun (e, m) -> if m then Some e else None)
        (List.map2 (fun x y -> (x, y)) exps mask))
 
-let sep_newline l = Seplist.from_list_default newline l
-
+(** [mk_pvar_ty l n t] creates a typed variable pattern, e.g. [(x : int)] *)
 let mk_pvar_ty l n t =
   mk_ptyp l space (mk_pvar l n t) None (t_to_src_t t) None None
 
-(* A compilation context takes care of generating real Lem code from
+(* a compilation context takes care of generating real Lem code from
    the monadic mini-language.
 
    It encapsulate some abstract monadic type constructor [m] in which
@@ -1031,16 +1043,12 @@ module Compile(M : COMPILATION_CONTEXT) = struct
       | IF(cond, code) ->
         let subexp = compile_code env ty loc code in
         M.mk_cond env l cond subexp
-      | IFEQ(e1,e2,code) ->
-        let subexp = compile_code env ty loc code in
-        let cond = mk_eq_exp env e1 e2 in
-        M.mk_cond env l cond subexp
       | LET(p,e,code) ->
         let subexp = compile_code env ty loc code in
         M.mk_let env l p e subexp
       | CALL(n_ref, inp, outp, code) ->
         let subexp = compile_code env ty loc code in
-        let func = mk_const_ref env l n_ref [] in
+        let func = cdr_instantiate env l n_ref [] in
         let call = List.fold_left (fun func arg -> mk_app l func arg None)
           func inp in
         let pat = mk_tup_unit_pat l outp in
@@ -1132,8 +1140,6 @@ let register_types rel_loc ctxt mod_path tds =
           end
     in
     let ctxt = add_p_to_ctxt ctxt (tname, (type_path,l)) in
-(*    let cnames = List.fold_left (fun s (_,cname,_) -> NameSet.add cname s)
-      NameSet.empty tconstrs in *)
     let mk_descr c_env cname cargs =
       let ty = multi_fun cargs {t=Tapp([],type_path)} in
       let descr =
@@ -1231,7 +1237,7 @@ let gen_witness_type_aux (env : env) mod_path l names rules warn_incomplete =
         (Reporting.Warn_general(false, l, "An incomplete witness will be generated"))
   in
   let is_head_relation e =
-    let (head, args) = split_app e in
+    let (head, args) = dest_list_app_exp e in
     match relation_witness head with
       | Some v -> List.iter check_complete args; Some v
       | None -> check_complete e; None
@@ -1336,7 +1342,7 @@ let gen_witness_check_def env l mpath localenv names rules local =
       let gen_name = make_namegen Nset.empty in
       let l = mkloc rule.rule_loc in
       let is_rel_or_aux e =
-        let (head, args) = split_app e in
+        let (head, args) = dest_list_app_exp e in
         match exp_to_term head with
           | Constant {descr=c_ref} ->
             let c_d = c_env_lookup l env.c_env c_ref in
@@ -1405,7 +1411,7 @@ let gen_witness_check_def env l mpath localenv names rules local =
     Some(annot, c_ref, [xpat], Some(space, t_to_src_t return_ty), space, body)
 
   ) rels in
-  let defs = map_filter id (Nfmap.fold (fun l _ v -> v::l) [] defs) in
+  let defs = map_filter (fun x -> x) (Nfmap.fold (fun l _ v -> v::l) [] defs) in
   let def = Fun_def(newline, FR_rec None, Targets_opt_none, sep_newline defs) in
   if defs = [] then []
   else [((Val_def def, None), l, local)]
@@ -1454,7 +1460,7 @@ let partition_conditions
   : (rel_info * exp list) list * (exp * exp) list * exp list =
   List.fold_left
     (fun (inds, eqs, sides) exp ->
-       let head, args = split_app exp in
+       let head, args = dest_list_app_exp exp in
        match exp_to_term head, args with
        | Constant { descr = eq_ref }, [ u; v ]
          when eq_ref = eq_const_ref env ->
@@ -1593,7 +1599,7 @@ let transform_rule
               Nset.add wit_name bound
             | _ -> outputs, bound
           in
-          let inputs = map_filter id (List.map2 (fun exp m ->
+          let inputs = map_filter (fun x -> x) (List.map2 (fun exp m ->
               match m with
               | Rel_mode_in -> Some(exp)
               | Rel_mode_out -> None
@@ -1716,7 +1722,7 @@ let gen_fns_info l mod_path (ctxt : defn_ctxt) names rules =
   let env = defn_ctxt_to_env ctxt in
   let rels = get_rels env l names rules in
   let l = loc_trans "gen_fns_info" l in
-(*  list_possible_modes mod_path ctxt rels;  *)
+  list_possible_modes mod_path ctxt rels |> ignore;
   gen_fns_info_aux l mod_path ctxt rels
 
 let gen_fns_def env l mpath localenv names rules local =
