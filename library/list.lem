@@ -40,6 +40,32 @@ declare isabelle target_rep function cons = infix `#`
 declare coq      target_rep function cons = infix `::`
 
 
+
+(* ----------------------- *)
+(* Equality                *)
+(* ----------------------- *)
+
+val listEqual : forall 'a. Eq 'a => list 'a -> list 'a -> bool
+val listEqualBy : forall 'a. ('a -> 'a -> bool) -> list 'a -> list 'a -> bool
+
+let rec listEqualBy eq l1 l2 = match (l1,l2) with
+  | ([], []) -> true
+  | ([], (_::_)) -> false
+  | ((_::_), []) -> false
+  | (x::xs, y :: ys) -> (eq x y && listEqualBy eq xs ys)
+end
+declare termination_argument listEqualBy = automatic
+
+let inline listEqual = listEqualBy (=)
+declare hol      target_rep function listEqual = infix `=`
+declare isabelle target_rep function listEqual = infix `=`
+declare coq      target_rep function listEqualBy = `list_equal_by`
+
+instance forall 'a. Eq 'a => (Eq (list 'a))
+  let (=) = listEqual
+  let (<>) l1 l2 = not (listEqual l1 l2)
+end
+
 (* ----------------------- *)
 (* Emptyness check         *)
 (* ----------------------- *)
@@ -49,7 +75,7 @@ let null l = match l with [] -> true | _ -> false end
 
 declare hol   target_rep function null = `NULL`
 declare {ocaml} rename function null = list_null
-let inline {isabelle} null l = (l = [])
+(*let inline {isabelle} null l = (l = []) *) (* TODO *)
 
 assert null_simple_1: (null ([]:list nat))
 assert null_simple_2: (not (null [(2:nat);3;4]))
@@ -78,32 +104,6 @@ assert length_1: (length ([2]:list nat) = 1)
 assert length_2: (length ([2;3]:list nat) = 2)
 
 lemma length_spec: ((length [] = 0) && (forall x xs. length (x :: xs) = length xs + 1))
-
-(* ----------------------- *)
-(* Equality                *)
-(* ----------------------- *)
-
-val listEqual : forall 'a. Eq 'a => list 'a -> list 'a -> bool
-val listEqualBy : forall 'a. ('a -> 'a -> bool) -> list 'a -> list 'a -> bool
-
-let rec listEqualBy eq l1 l2 = match (l1,l2) with
-  | ([], []) -> true
-  | ([], (_::_)) -> false
-  | ((_::_), []) -> false
-  | (x::xs, y :: ys) -> (eq x y && listEqualBy eq xs ys)
-end
-declare termination_argument listEqualBy = automatic
-
-let inline listEqual = listEqualBy (=)
-declare hol      target_rep function listEqual = infix `=`
-declare isabelle target_rep function listEqual = infix `=`
-declare coq      target_rep function listEqualBy = `list_equal_by`
-
-instance forall 'a. Eq 'a => (Eq (list 'a))
-  let (=) = listEqual
-  let (<>) l1 l2 = not (listEqual l1 l2)
-end
-
 
 (* ----------------------- *)
 (* compare                 *)

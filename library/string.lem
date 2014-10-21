@@ -30,6 +30,15 @@ declare hol      target_rep type string = `string`
 declare isabelle target_rep type string = `string`
 declare coq      target_rep type string = `string`
 
+(* ----------------------- *)
+(* basic instantiations    *)
+(* ----------------------- *)
+instance (SetType string) 
+  let setElemCompare = defaultCompare
+end
+
+
+
 assert char_simple_0: not (#'0' = ((#'1'):char))
 assert char_simple_1: not (#'X' = #'Y') 
 assert char_simple_2: not (#'\xAF' = #'\x00')

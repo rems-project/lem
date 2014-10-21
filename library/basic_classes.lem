@@ -66,10 +66,12 @@ declare hol      target_rep function unsafe_structural_inequality = infix `<>`
 (* The default for equality is the unsafe structural one. It can 
    (and should) be overriden for concrete types later. *)
 
+(*
 default_instance forall 'a. (Eq 'a) 
   let (=) = unsafe_structural_equality
   let (<>) = unsafe_structural_inequality
 end
+*)
 
 (* for HOL and Isabelle, be even stronger and always(!) use
    standard equality *)
@@ -237,10 +239,12 @@ val defaultMin : forall 'a. Ord 'a => 'a -> 'a -> 'a
 let inline defaultMin = minByLessEqual (<=)
 declare ocaml    target_rep function defaultMin = `min`
 
+(*
 default_instance forall 'a. Ord 'a => ( OrdMaxMin 'a) 
   let max = defaultMax
   let min = defaultMin
 end
+*)
 
 
 (* ========================================================================== *)
@@ -258,9 +262,11 @@ class ( SetType 'a )
   val {ocaml;coq} setElemCompare : 'a -> 'a -> ordering
 end
 
+(*
 default_instance forall 'a. ( SetType 'a ) 
   let setElemCompare = defaultCompare
 end
+*)
 
 (* ========================================================================== *)
 (* Instantiations                                                             *)
@@ -280,6 +286,16 @@ end
 
 instance (SetType bool)
   let setElemCompare = boolCompare
+end
+
+(* unit *)
+instance (Eq unit)
+  let (=) = fun _ _  -> true
+  let (<>) = fun _ _ -> false
+end
+
+instance (SetType unit)
+  let setElemCompare = fun _ _ -> EQ
 end
 
 (* strings *)
@@ -377,5 +393,40 @@ end
 
 instance forall 'a 'b 'c. SetType 'a, SetType 'b, SetType 'c => (SetType ('a * 'b * 'c))
   let setElemCompare = tripleCompare setElemCompare setElemCompare setElemCompare
+end
+
+
+(* quintuples *)
+
+val quintupleEqual : forall 'a 'b 'c 'd 'e. Eq 'a, Eq 'b, Eq 'c, Eq 'd, Eq 'e => ('a * 'b * 'c * 'd * 'e) -> ('a * 'b * 'c * 'd * 'e) -> bool
+let quintupleEqual (x1, x2, x3, x4, x5) (y1, y2, y3, y4, y5) = ((x1, (x2, (x3, (x4, x5)))) = (y1, (y2, (y3, (y4, y5)))))
+let inline {hol;isabelle} quintupleEqual = unsafe_structural_equality
+
+instance forall 'a 'b 'c 'd 'e. Eq 'a, Eq 'b, Eq 'c, Eq 'd, Eq 'e => (Eq ('a * 'b * 'c * 'd * 'e))
+  let (=) = quintupleEqual
+  let (<>) x y = not (quintupleEqual x y)
+end
+
+val quintupleCompare : forall 'a 'b 'c 'd 'e. ('a -> 'a -> ordering) -> ('b -> 'b -> ordering) -> ('c -> 'c -> ordering) ->
+                                              ('d -> 'd -> ordering) -> ('e -> 'e -> ordering) -> ('a * 'b * 'c * 'd * 'e) -> ('a * 'b * 'c * 'd * 'e) -> ordering
+let quintupleCompare cmpa cmpb cmpc cmpd cmpe (a1, b1, c1, d1, e1) (a2, b2, c2, d2, e2) =
+  pairCompare cmpa (pairCompare cmpb (pairCompare cmpc (pairCompare cmpd cmpe))) (a1, (b1, (c1, (d1, e1)))) (a2, (b2, (c2, (d2, e2))))
+
+let quintupleLess (x1, x2, x3, x4, x5) (y1, y2, y3, y4, y5) = (x1, (x2, (x3, (x4, x5)))) < (y1, (y2, (y3, (y4, y5))))
+let quintupleLessEq (x1, x2, x3, x4, x5) (y1, y2, y3, y4, y5) = (x1, (x2, (x3, (x4, x5)))) <= (y1, (y2, (y3, (y4, y5))))
+
+let quintupleGreater x12345 y12345 = quintupleLess y12345 x12345
+let quintupleGreaterEq x12345 y12345 = quintupleLessEq y12345 x12345
+
+instance forall 'a 'b 'c 'd 'e. Ord 'a, Ord 'b, Ord 'c, Ord 'd, Ord 'e => (Ord ('a * 'b * 'c * 'd * 'e))
+  let compare = quintupleCompare compare compare compare compare compare
+  let (<)  = quintupleLess
+  let (<=) = quintupleLessEq
+  let (>)  = quintupleGreater
+  let (>=) = quintupleGreaterEq
+end
+
+instance forall 'a 'b 'c 'd 'e. SetType 'a, SetType 'b, SetType 'c, SetType 'd, SetType 'e => (SetType ('a * 'b * 'c * 'd * 'e))
+  let setElemCompare = quintupleCompare setElemCompare setElemCompare setElemCompare setElemCompare setElemCompare
 end
 
