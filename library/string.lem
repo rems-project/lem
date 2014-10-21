@@ -33,7 +33,7 @@ declare coq      target_rep type string = `string`
 (* ----------------------- *)
 (* basic instantiations    *)
 (* ----------------------- *)
-instance (SetType string) 
+instance (SetType string)
   let setElemCompare = defaultCompare
 end
 
