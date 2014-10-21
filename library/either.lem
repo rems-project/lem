@@ -54,6 +54,18 @@ declare ocaml target_rep function eitherEqualBy = `Either.eitherEqualBy`
 instance forall 'a 'b. Eq 'a, Eq 'b => (Eq (either 'a 'b))
   let (=) = eitherEqual
   let (<>) x y = not (eitherEqual x y)
+ end
+
+let either_setElemCompare cmpa cmpb x y =
+  match (x, y) with
+    | (Left x', Left y') -> cmpa x' y'
+    | (Right x', Right y') -> cmpb x' y'
+    | (Left _, Right _) -> LT
+    | (Right _, Left _) -> GT
+  end
+
+instance forall 'a 'b. SetType 'a, SetType 'b => (SetType (either 'a 'b))
+  let setElemCompare x y = either_setElemCompare setElemCompare setElemCompare x y
 end
 
 assert either_equal_1: (((Left false) : either bool bool) = Left false)
