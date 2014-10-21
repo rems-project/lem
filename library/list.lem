@@ -976,23 +976,23 @@ declare termination_argument allDistinct = automatic
 declare hol target_rep function allDistinct = `ALL_DISTINCT`
 
 (* some more useful functions *)
-val maybe_map : forall 'a 'b. ('a -> maybe 'b) -> list 'a -> list 'b
-let rec maybe_map f xs =
+val mapMaybe : forall 'a 'b. ('a -> maybe 'b) -> list 'a -> list 'b
+let rec mapMaybe f xs =
   match xs with
   | [] -> []
   | x::xs ->
       match f x with
-      | Nothing -> maybe_map f xs
-      | Just y -> y :: (maybe_map f xs)
+      | Nothing -> mapMaybe f xs
+      | Just y -> y :: (mapMaybe f xs)
       end
   end
 
 val mapi : forall 'a 'b. (nat -> 'a -> 'b) -> list 'a -> list 'b
-let rec mapi_aux f (n : nat) l = match l with
+let rec mapiAux f (n : nat) l = match l with
   | [] -> []
-  | x :: xs -> (f n x) :: mapi_aux f (n + 1) xs
+  | x :: xs -> (f n x) :: mapiAux f (n + 1) xs
 end
-let mapi f l = mapi_aux f 0 l
+let mapi f l = mapiAux f 0 l
 
 (* ========================================================================== *)
 (* Comments (not clean yet, please ignore the rest of the file)               *)
