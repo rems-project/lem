@@ -297,6 +297,11 @@ declare isabelle target_rep function map = `map_image`
 assert map_0 : (map (fun b -> not b) (insert (2:nat) true (insert (3:nat) false empty)) =
                 insert (2:nat) false (insert (3:nat) true empty))
 
+val mapi : forall 'k 'v 'w. MapKeyType 'k => ('k -> 'v -> 'w) -> map 'k 'v -> map 'k 'w
+
+(* TODO: add Coq and isabelle *)
+declare ocaml target_rep function mapi = `Map.mapi`
+declare compile_message mapi = "Map.mapi is only defined for the ocaml backend"
 
 (* -------------------------------------------------------------------------- *)
 (* Cardinality                                                                *)
