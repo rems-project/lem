@@ -53,7 +53,7 @@ let fold f m v = Set_helpers.fold (fun (k, v) r -> f k v r) (Map.toSet m) v
   
 declare ocaml    target_rep function fold = `Pmap.fold`
 
-declare compile_message fold = "Map_extra.fold interates over the elements of the map in a unspecified order"
+declare compile_message fold = "Map_extra.fold iterates over the elements of the map in a unspecified order"
 
 assert fold_1: (fold (fun k v a -> (a+k)) (Map.fromList [((2:nat),(3:nat)); (3, 4); (4, 5)]) 0 = 9)
 assert fold_2: (fold (fun k v a -> (a+v)) (Map.fromList [((2:nat),(3:nat)); (3, 4); (4, 5)]) 0 = 12)
