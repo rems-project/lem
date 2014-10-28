@@ -133,7 +133,7 @@ let resolve_const_ref l env targ i_opt c_ref =
     | Some ns' -> Ident.mk_ident sk ns' n
     | None -> let m = String.concat "\n    "  [
         "could not resolve constant path " ^ Path.to_string c_descr.const_binding;
-        "This is usally caused by using transformations like inlining, target representations or special pattern matching";
+        "This is usually caused by using transformations like inlining, target representations or special pattern matching";
         "to introduce a contant in code, where it is not defined yet."] in
       raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal
           (l, m)))

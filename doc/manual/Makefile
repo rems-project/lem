@@ -2,7 +2,7 @@ INPUT_FILES := \
   header.md \
   introduction.md \
   installation.md \
-  invokation.md \
+  invocation.md \
   backends.md \
     backend_ocaml.md \
     backend_hol.md \
