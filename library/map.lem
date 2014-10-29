@@ -300,7 +300,7 @@ assert map_0 : (map (fun b -> not b) (insert (2:nat) true (insert (3:nat) false 
 val mapi : forall 'k 'v 'w. MapKeyType 'k => ('k -> 'v -> 'w) -> map 'k 'v -> map 'k 'w
 
 (* TODO: add Coq and isabelle *)
-declare ocaml target_rep function mapi = `Map.mapi`
+declare ocaml target_rep function mapi = `Pmap.mapi`
 declare compile_message mapi = "Map.mapi is only defined for the ocaml backend"
 
 (* -------------------------------------------------------------------------- *)
