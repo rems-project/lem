@@ -41,14 +41,13 @@ end
 (* Map type class                                                             *)
 (* -------------------------------------------------------------------------- *)
 
-class ( MapKeyType 'a ) 
+class ( MapKeyType 'a )
   val {ocaml;coq} mapKeyCompare : 'a -> 'a -> ordering
 end
 
-default_instance forall 'a. SetType 'a => ( MapKeyType 'a ) 
+default_instance forall 'a. SetType 'a => ( MapKeyType 'a )
   let mapKeyCompare = setElemCompare
-end
-
+ end
 
 (* -------------------------------------------------------------------------- *)
 (* Empty maps                                                                 *)
@@ -314,3 +313,11 @@ declare hol   target_rep function size = `FCARD`
 
 assert empty_size: (size (empty : map nat bool) = 0)
 assert singleton_size: (size (singleton (2:nat) (3:nat)) = 1)
+
+(* instance of SetType *)
+let map_setElemCompare cmp x y =
+  cmp (toSet x) (toSet y)
+
+instance forall 'a 'b. SetType 'a, SetType 'b, MapKeyType 'a => (SetType (map 'a 'b))
+  let setElemCompare x y = map_setElemCompare setElemCompare x y
+end
