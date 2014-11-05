@@ -1,0 +1,62 @@
+open import String Maybe Num Basic_classes
+
+(* For the moment, the definition of Show is in String_extra *)
+include import String_extra
+
+(*
+class (Show 'a)
+  val show: 'a -> string
+end
+*)
+
+
+let string_of_maybe showX = function
+  | Just x ->
+      "Just (" ^ showX x ^ ")"
+  | Nothing ->
+      "Nothing"
+end
+
+instance forall 'a. Show 'a => (Show (maybe 'a))
+  let show x_opt = string_of_maybe show x_opt
+end
+
+
+let rec string_of_list_aux showX = function
+  | [] ->
+      ""
+  | [x] ->
+      showX x
+  | x::xs' ->
+      showX x ^ "; " ^ string_of_list_aux showX xs'
+  end
+
+let string_of_list showX xs =
+  "[" ^ string_of_list_aux showX xs ^ "]"
+
+instance forall 'a. Show 'a => (Show (list 'a))
+  let show xs = string_of_list show xs
+end
+
+
+let string_of_pair showX showY (x,y) =
+  "(" ^ showX x ^ ", " ^ showY y ^ ")"
+
+instance forall 'a 'b. Show 'a, Show 'b => (Show ('a * 'b))
+  let show = string_of_pair show show
+end
+
+
+(*
+instance (Show nat)
+  let show n = string_of_natural (naturalFromNat n)
+end
+*)
+
+instance (Show integer)
+  let show = string_of_integer
+end
+
+instance (Show bool)
+  let show b = if b then "true" else "false"
+end
