@@ -9,6 +9,10 @@ class (Show 'a)
 end
 *)
 
+instance (Show string)
+  let show s = "\"" ^ s ^ "\""
+end
+
 
 let string_of_maybe showX = function
   | Just x ->
