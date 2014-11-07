@@ -149,6 +149,9 @@ let mk_const_app
   let c = mk_const_exp env l label inst in
   List.fold_left (fun u v -> mk_app l u v None) c args
 
+let mk_none env l ty = mk_const_app env l "maybe_nothing" [ty] []
+let mk_some env l e = mk_const_app env l "maybe_just" [exp_to_typ e] [e]
+
 (* Patterns                                                                   *)
 
 (** [mk_tup_unit_pat l ps] converts the list of patterns [ps] into a
@@ -168,6 +171,7 @@ let mk_pconst_pat (env : env) (l : Ast.l) (label : string)
   let t = Types.type_subst
     (Types.TNfmap.from_list2 c_d.const_tparams c.instantiation)
     c_d.const_type in
+  let (_, t) = Types.strip_fn_type (Some env.t_env) t in
   mk_pconst l c args (Some t)
 
 (* Relation information                                                       *)
@@ -614,6 +618,12 @@ let is_list_append
   : bool =
   append = fst (get_const env "list_append")
 
+(** [is_num_add env add] checks whether [add] is the addition operator
+    on numbers `Num.+` *)
+let is_num_add
+    (env : env) (add : const_descr_ref)
+  : bool =
+  add = fst (get_const env "addition")
 (** [exps_to_pats avoid env es] returns a pair [(ps, eqs)], where:
 
     - [ps] is a list of same length as [es], where each expression in
@@ -773,7 +783,7 @@ module type COMPILATION_CONTEXT = sig
        [return `e`]
      and its type should be understood as
        [exp a -> exp (m a)]. *)
-  val mk_return : Typed_ast.env -> Ast.l -> Typed_ast.exp -> Typed_ast.exp
+  val mk_return : Typed_ast.env -> Ast.l -> Types.t -> exp -> exp
 
   (* [mk_bind env l x pat res] is a monadic bind, returning [res] when
      expression [x] matches the pattern [pat] and indicating a failure
@@ -783,7 +793,7 @@ module type COMPILATION_CONTEXT = sig
        [bind `x` (function | `pat` -> `res` | _ -> fail)]
      and its type should be understood as
        [exp (m a) -> pat a -> exp (m b) -> exp (m b)]. *)
-  val mk_bind : Typed_ast.env -> Ast.l -> Typed_ast.exp -> Typed_ast.pat -> Typed_ast.exp -> Typed_ast.exp
+  val mk_bind : env -> Ast.l -> Types.t -> Types.t -> exp -> pat -> exp -> exp
 
   (* [mk_cond env l cond expr] returns the monadic expression [expr]
      if the boolean expression [cond] is true, and indicates a filure
@@ -793,7 +803,7 @@ module type COMPILATION_CONTEXT = sig
        [if `cond` then `expr` else fail]
      and its type should be understood as
        [exp bool -> exp (m a) -> exp (m a)]. *)
-  val mk_cond : Typed_ast.env -> Ast.l -> Typed_ast.exp -> Typed_ast.exp -> Typed_ast.exp
+  val mk_cond : Typed_ast.env -> Ast.l -> Types.t -> Typed_ast.exp -> Typed_ast.exp -> Typed_ast.exp
 
   (* [mk_let env l pat exp res] is a monadic let, returning [res] when
      expression matches the pattern [pat] and indicating a failure
@@ -815,159 +825,213 @@ module type COMPILATION_CONTEXT = sig
     (Typed_ast.pat * Typed_ast.exp) list -> Typed_ast.exp
 end
 
-(* Compilation context for the nondeterministic monad, implemented by
-   lists. *)
-module Context_list : COMPILATION_CONTEXT = struct
-  let mk_type ty =
+module type MONAD = sig
+  (* `[t] -> `[m t] *)
+  val mk_type : Types.t -> Types.t
+
+  (* env -> l -> `[m t] -> `{m t} *)
+  val mk_failure : env -> Ast.l -> Types.t -> exp
+
+  (* env -> l -> `[t] -> `{t} -> `{m t} *)
+  val mk_return : env -> Ast.l -> Types.t -> exp -> exp
+
+  (* env -> l -> `[m t] -> `{m t} list -> `{m t} *)
+  val mk_choose : env -> Ast.l -> Types.t -> exp list -> exp
+
+  (* env -> l -> `[a] -> `[m b] -> `{a} -> `{a -> m b} -> `{m b} *)
+  val mk_bind : env -> Ast.l -> Types.t -> Types.t -> exp -> exp -> exp
+end
+
+module Monad_list : MONAD = struct
+  let mk_type (ty : Types.t) : Types.t =
     list_ty ty
 
-  let remove_type ty =
-    match ty.t with
-      | Types.Tapp([ty], _) -> ty
-      | _ -> failwith "???"
+  let mk_return (env : env) (l_org : Ast.l) (ty : Types.t) (e : exp) =
+    let l = loc_trans "Monad_list.mk_return" l_org in
+    mk_list (loc_trans "mk_return" l) None (sep_no_skips [e]) None
+      (mk_type ty)
 
-  let remove_list = remove_type
+  let mk_failure env l m_ty =
+    mk_list (loc_trans "mk_failure" l) None (sep_no_skips []) None
+      m_ty
 
-  let mk_list_map env l fn lst =
-    let l = loc_trans "mk_list_map" l in
-    match (exp_to_typ fn).t with
-      | Types.Tfn(a,b) ->
-        mk_app l (mk_app l (mk_const_exp env l "list_map" [a;b]) fn None) lst None
-      | _ -> failwith "???"
-
-  let mk_list_concat env l lst =
-    let t = remove_list (remove_list (exp_to_typ lst)) in
+  let mk_list_concat (env : env) (l : Ast.l) (m_ty : Types.t) (lst : exp) =
+    type_eq l "mk_list_concat" (exp_to_typ lst) (list_ty m_ty);
     let l = loc_trans "mk_list_concat" l in
-    mk_app l (mk_const_exp env l "list_concat" [t]) lst None
+    mk_app l (mk_const_exp env l "list_concat" [remove_option m_ty]) lst
+      (Some m_ty)
 
-  let mk_return env l e =
-    mk_list (loc_trans "mk_return" l) None (sep_no_skips [e]) None (mk_type (exp_to_typ e))
+  let mk_choose (env : env) (l_org : Ast.l) (m_ty : Types.t) (args : exp list) =
+    let l = loc_trans "mk_choose [List]" l_org in
+    let result =
+      mk_list_concat env l m_ty @@
+    mk_list l None
+      (sep_newline args)
+        None (list_ty @@ m_ty) in
+    result
 
-  let mk_failure env l t =
-    mk_list (loc_trans "mk_failure" l) None (sep_no_skips []) None t
-
-  let mk_bind env l call pat code =
-    let l = loc_trans "mk_bind" l in
-    let namegen = make_namegen (Nfmap.domain (exp_to_free code)) in
-    let var = Name.add_lskip (namegen (Ulib.Text.of_latin1 "x")) in
-    let inty = pat.typ in
-    let fn = mk_fun l None [mk_pvar l var inty] None
-      (mk_case_exp false l (mk_var l var inty)
-         [(pat, code);
-          (mk_pwild l None inty, mk_failure env l (exp_to_typ code))
-         ] (exp_to_typ code)) None in
-    mk_list_concat env l (mk_list_map env l fn call)
-
-  let mk_cond env l cond code =
-    let l = loc_trans "mk_cond" l in
-    mk_if_exp l cond code (mk_list l None (sep_no_skips []) None (exp_to_typ code))
-
-  let mk_let env l pat v code =
-    let l = loc_trans "mk_let" l in
-    mk_case_exp false l v
-      [(pat, code);
-       (mk_pwild l None pat.typ, mk_list l None (sep_no_skips []) None (exp_to_typ code))
-      ] (exp_to_typ code)
-
-  let mk_choice env l ty input pats =
-    let l = loc_trans "mk_choice" l in
-    mk_list_concat env l
-      (mk_list l None (sep_newline (List.map (fun (pat, code) -> mk_let env l pat input code) pats)) None (list_ty (list_ty ty)))
+  let mk_bind
+      (env : env) (l_org : Ast.l) (inty : Types.t) (m_outy : Types.t) (x : exp) (fn : exp) : exp =
+    let l = loc_trans "Monad_list.mk_bind" l_org in
+    mk_list_concat env l m_outy @@
+    mk_list_app_exp l env.t_env
+      (mk_const_exp env l "list_map" [inty; m_outy]) [fn; x]
 end
+
+module Monad_pure : MONAD = struct
+  let mk_type (ty : Types.t) : Types.t = ty
+
+  let mk_return (env : env) (l_org : Ast.l) (ty : Types.t) (e : exp) : exp =
+    e
+
+  let mk_failure (env : env) (l_org : Ast.l) (m_ty : Types.t) =
+    mk_undefined_exp (loc_trans "Monad_pure.mk_failure" l_org) "Undef" m_ty
+
+  let mk_choose (env : env) (l_org : Ast.l) (m_ty : Types.t) (args : exp list) =
+    match args with
+    | [] -> mk_failure env l_org m_ty
+    | [ arg ] -> arg
+    | arg :: _ ->
+      Reporting.report_warning env @@
+      Reporting.Warn_general
+        (true, l_org,
+         "You should not use pure mode for branching relations. " ^
+         "The generated code will be incomplete.");
+      arg
+
+  let mk_bind
+    (env : env) (l_org : Ast.l) (inty : Types.t) (m_outy : Types.t) (x : exp) (fn : exp) : exp =
+    mk_app l_org fn x (Some m_outy)
+end
+
+module Monad_option : MONAD = struct
+  let mk_type (ty : Types.t) : Types.t =
+    option_ty ty
+
+  let mk_return (env : env) (l_org : Ast.l) (ty : Types.t) (e : exp) : exp =
+    mk_const_app env l_org "maybe_just" [ty] [e]
+
+  let mk_failure (env : env) (l_org : Ast.l) (m_ty : Types.t) : exp =
+    mk_const_app env l_org "maybe_nothing" [remove_option m_ty] []
+
+  let rec mk_choose (env : env) (l_org : Ast.l) (m_ty : Types.t) (args : exp list) =
+    let l = loc_trans "Monad_option.mk_choose" l_org in
+    match args with
+    | [] -> mk_failure env l_org m_ty
+    | [ arg ] -> arg
+    | arg :: args' ->
+      let ty = remove_option m_ty in
+      let x_name = Name.add_lskip @@ Name.from_string "x" in
+      mk_case_exp true l arg
+        [ mk_pconst_pat env l "maybe_nothing" [ty] [],
+          mk_choose env l m_ty args'
+        ; mk_pconst_pat env l "maybe_just" [ty] [ mk_pvar l x_name ty ],
+          mk_return env l ty @@ mk_var l x_name ty ]
+        m_ty
+
+  let mk_bind
+    (env : env) (l_org : Ast.l) (inty : Types.t) (m_outy : Types.t) (x : exp) (fn : exp) : exp =
+    let l = loc_trans "Monad_option.mk_bind" l_org in
+    mk_list_app_exp l env.t_env
+      (mk_const_exp env l "maybe_bind" [inty; remove_option @@ m_outy]) [x; fn]
+end
+
+(* Monad definition for the "unique" monad, i.e. the option monad with
+   the additional requirement that every time a choice must be
+   performed, at most one branch returns a meaningful value. *)
+module Monad_unique : MONAD = struct
+  include Monad_option
+
+  let mk_choose _ = failwith "Not implemented"
+end
+
+
+module Make_Generic_Context(Monad : MONAD) : COMPILATION_CONTEXT = struct
+  let mk_type (ty : Types.t) : Types.t =
+    Monad.mk_type ty
+
+  let mk_failure (env : env) (l : Ast.l) (m_ty : Types.t) : exp =
+    let result = Monad.mk_failure env l m_ty in
+    type_eq l "Internal: mk_failure result consistency" (exp_to_typ result) m_ty;
+    result
+
+  let mk_return (env : env) (l : Ast.l) (ty : Types.t) (e : exp) : exp =
+    type_eq l "Internal: mk_return arguments consistency" (exp_to_typ e) ty;
+    let result = Monad.mk_return env l ty e in
+    type_eq l "Internal: mk_return result consistency" (exp_to_typ result) (mk_type ty);
+    result
+
+  let mk_choose (env : env) (l : Ast.l) (m_ty : Types.t) (args : exp list) : exp =
+    List.iter (fun arg ->
+        type_eq l "Internal: mk_choose arguments consistency" (exp_to_typ arg) (m_ty))
+      args;
+    let result = Monad.mk_choose env l m_ty args in
+    type_eq l "Internal: mk_choose result consistency" (exp_to_typ result) (m_ty);
+    result
+
+  (** [if `cond` then `code` else fail] *)
+  let mk_cond (env : env) (l_org : Ast.l) (ty : Types.t) (cond : exp) (code : exp) : exp =
+    let l = loc_trans "mk_cond [Generic]" l_org in
+    type_eq l "Internal: mk_cond condition consistency" (exp_to_typ cond) bool_ty;
+    type_eq l "Internal: mk_cond argument consistency" (exp_to_typ code) (mk_type ty);
+    let result = mk_if_exp l cond code (mk_failure env l @@ mk_type ty) in
+    type_eq l "Internal: mk_cond result consistency" (exp_to_typ result) (mk_type ty);
+    result
+
+  let mk_choice
+      (env : env) (l_org : Ast.l) (m_ty : Types.t)
+      (input : exp) (pats : (pat * exp) list) : exp =
+    let l = loc_trans "mk_choice [Generic]" l_org in
+    List.iter
+      (fun (p, e) ->
+         assert_equal l "Internal: mk_choice arg consistency" env.t_env
+           (exp_to_typ e) m_ty;
+         assert_equal l "Internal: mk_choice pat consistency" env.t_env
+           (annot_to_typ p) (exp_to_typ input))
+      pats;
+    let case = mk_case_exp false l input pats m_ty in
+    assert_equal l "Internal: case consistency" env.t_env
+      (exp_to_typ case) m_ty;
+    let case_opt =
+      Patterns.compile_relation_exp env
+        mk_failure mk_choose
+        case in
+    option_default case case_opt
+
+  let mk_bind
+      (env : env) (l_org : Ast.l) (inty : Types.t) (m_outy : Types.t)
+      (x : exp) (pat : pat) (res : exp) : exp =
+    let l = loc_trans "mk_bind [Generic]" l_org in
+    type_eq l "Internal: mk_bind bound check" (exp_to_typ x) (mk_type inty);
+    type_eq l "Internal: mk_bind pat check" (annot_to_typ pat) inty;
+    type_eq l "Internal: mk_bind output check" (exp_to_typ res) (m_outy);
+    let namegen = make_namegen (Nfmap.domain (exp_to_free res)) in
+    let var = Name.add_lskip (namegen (r"x")) in
+    let body =
+      mk_choice env l m_outy (mk_var l var inty) [pat, res] in
+    (* fn : inty -> list outy *)
+    let fn =
+      mk_fun l space [mk_pvar l var inty] space body
+        (Some { t = Tfn (inty, m_outy) }) in
+    let result = Monad.mk_bind env l inty m_outy x fn in
+    type_eq l "Internal: mk_bind result check" (exp_to_typ result) (m_outy);
+    result
+
+  let mk_let (env : env) (l_org : Ast.l) (pat : pat) (v : exp) (code : exp) : exp =
+    let l = loc_trans "mk_let [Generic]" l_org in
+    mk_choice env l (exp_to_typ code) v [pat, code]
+end
+
+module Context_list = Make_Generic_Context(Monad_list)
 
 (* Compilation context for the identity monad.
 
    Failure is implemented by an exception. *)
-module Context_pure : COMPILATION_CONTEXT = struct
-  let mk_type x = x
-  let remove_type x = x
+module Context_pure = Make_Generic_Context(Monad_pure)
 
-  let mk_return _ l e = e
-  let mk_failure _ l t = mk_undefined_exp (loc_trans "mk_undefined" l)
-    "Undef" t
+module Context_option = Make_Generic_Context(Monad_option)
 
-  let mk_bind _ l e pat code =
-    let l = loc_trans "mk_bind" l in
-    mk_case_exp false l e [(pat, code)] (exp_to_typ code)
-
-  let mk_let env l p e code = mk_bind env l e p code
-
-  let mk_cond env l cond code =
-    let l = loc_trans "mk_cond" l in
-    mk_if_exp l cond code (mk_failure env l (remove_type (exp_to_typ code)))
-
-  let mk_choice env l t v pats =
-    let l = loc_trans "mk_choice" l in
-    (* Check pattern non-overlap & completeness or emit a warning *)
-    let props = Patterns.check_pat_list env (List.map fst pats) in
-    (match props with
-      | None -> failwith "Pattern matching compilation failed"
-      | Some(props) ->
-        if not props.Patterns.is_exhaustive
-        then Reporting.report_warning env
-          (Reporting.Warn_general(true, l, "non-exhaustive patterns in inductive relation"));
-        if props.Patterns.overlapping_pats <> []
-        then Reporting.report_warning env
-          (Reporting.Warn_general(true, l, "overlapping patterns in inductive relation")));
-    mk_case_exp false l v pats (mk_type t)
-end
-
-(* Pre-context for the option monad. Choice is left unspecified for
-   specialization by [Context_option] and [Context_unique]. *)
-module Context_option_pre = struct
-
-  let mk_type ty =
-    option_ty ty
-
-  let remove_type ty =
-    match ty.t with
-      | Types.Tapp([ty], _) -> ty
-      | _ -> failwith "???"
-
-  let mk_none env l ty = mk_const_app env l "maybe_nothing" [ty] []
-  let mk_some env l e = mk_const_app env l "maybe_just" [exp_to_typ e] [e]
-  let mk_pnone env l ty = mk_pconst_pat env l "maybe_nothing" [ty] []
-  let mk_psome env l p = mk_pconst_pat env l "maybe_just" [p.typ] [p]
-
-  let mk_return env l e = mk_some env l e
-
-  let mk_failure env l ty = mk_none env l ty
-
-  let mk_let env l pat exp code =
-    let l = loc_trans "mk_let" l in
-    mk_case_exp false l exp
-      [(pat, code);
-       (mk_pwild l None (exp_to_typ exp),
-        mk_none env l (remove_option (exp_to_typ code)))]
-      (exp_to_typ code)
-
-  let mk_bind env l call pat code =
-    let l = loc_trans "mk_bind" l in
-    mk_case_exp false l call
-      [(mk_psome env l pat, code);
-       (mk_pwild l None (exp_to_typ call), mk_none env l (remove_option (exp_to_typ code)))]
-      (exp_to_typ code)
-
-  let mk_cond env l cond code =
-    let l = loc_trans "mk_cond" l in
-    mk_if_exp l cond code (mk_none env l (remove_option (exp_to_typ code)))
-end
-
-(* Compilation context for the option monad. *)
-module Context_option : COMPILATION_CONTEXT = struct
-  include Context_option_pre
-
-  let mk_choice _ = failwith "Not implemented"
-end
-
-(* Compilation context for the "unique" monad, i.e. the option monad
-   with the additional requirement that every time a choice must be
-   performed, at most one branch returns a meaningful value. *)
-module Context_unique : COMPILATION_CONTEXT = struct
-  include Context_option_pre
-
-  let mk_choice _ = failwith "Not implemented"
-end
+module Context_unique = Make_Generic_Context(Monad_unique)
 
 let select_module = function
   | Out_list -> (module Context_list : COMPILATION_CONTEXT)
@@ -1039,10 +1103,10 @@ module Compile(M : COMPILATION_CONTEXT) = struct
     match code with
       | RETURN(exps) ->
         let ret = mk_tup_unit_exp l exps in
-        M.mk_return env l ret
+        M.mk_return env l (exp_to_typ ret) ret
       | IF(cond, code) ->
         let subexp = compile_code env ty loc code in
-        M.mk_cond env l cond subexp
+        M.mk_cond env l ty cond subexp
       | LET(p,e,code) ->
         let subexp = compile_code env ty loc code in
         M.mk_let env l p e subexp
@@ -1052,7 +1116,8 @@ module Compile(M : COMPILATION_CONTEXT) = struct
         let call = List.fold_left (fun func arg -> mk_app l func arg None)
           func inp in
         let pat = mk_tup_unit_pat l outp in
-        M.mk_bind env l call pat subexp
+        M.mk_bind env l (annot_to_typ pat) (exp_to_typ subexp)
+          call pat subexp
 
   let compile_rule env ty (loc, patterns, code) =
     let pattern = mk_tup_unit_pat (loc_trans "compile_rule" loc) patterns in
@@ -1070,7 +1135,7 @@ module Compile(M : COMPILATION_CONTEXT) = struct
     let pats_of_vars = List.map (fun (var,ty) -> mk_pvar_ty l var ty) vars in
     let cases = List.map (compile_rule env output_type) rules in
     (* Generate a list of binds and concat them ! *)
-    let body = M.mk_choice env l output_type tuple_of_vars cases in
+    let body = M.mk_choice env l (M.mk_type output_type) tuple_of_vars cases in
     let annot = { term = Name.add_lskip n;
                   locn = l;
                   typ = mty;
@@ -1321,7 +1386,6 @@ let nset_of_list l = List.fold_left (fun set x -> Nset.add x set) Nset.empty l
 
 (** Generation of the witness checking function. *)
 let gen_witness_check_def env l mpath localenv names rules local =
-  let open Context_option_pre in
   let rels = get_rels env l names rules in
   let mkloc = loc_trans "gen_witness_check_def" in
   let l = mkloc l in

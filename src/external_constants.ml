@@ -98,6 +98,7 @@ match label with
 
   | "maybe_just" -> (["Maybe"], "Just")
   | "maybe_nothing" -> (["Maybe"], "Nothing")
+  | "maybe_bind" -> (["Maybe"], "bind")
 
   | "nat_list_to_string" -> (["Pervasives"], "nat_list_to_string")
 
