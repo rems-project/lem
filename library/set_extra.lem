@@ -83,7 +83,7 @@ let inline ~{isabelle;ocaml} toOrderedList l = sort (toList l)
 let inline {isabelle} toOrderedList = toOrderedListBy (<=)
 declare ocaml    target_rep function toOrderedList = `Pset.elements`
 
-declare compile_message toOrderedList = "toList is only defined on finite sets. Even worse, it returns the elements in an unspecified order. The result may differ form backend to backend or even between different excutions in the same backend. The result may also depend on the low-level representation. The same set may have several low-level representations that might lead to different results for toList."
+declare compile_message toOrderedList = "toOrderedList is only defined on finite sets. Even worse, it returns the elements in an unspecified order. The result may differ form backend to backend or even between different excutions in the same backend. The result may also depend on the low-level representation. The same set may have several low-level representations that might lead to different results for toList."
 
 assert toOrderedList_0: toOrderedList ({} : set nat) = []
 assert toOrderedList_1: toOrderedList {(6:nat); 1; 2} = [1;2;6]
