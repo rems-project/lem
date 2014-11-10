@@ -105,11 +105,3 @@ declare compile_message toOrderedList = "leastFixedPointUnbounded is deprecated 
 assert lfp_empty: leastFixedPointUnbounded (map (fun x -> x)) ({} : set nat) = {}
 assert lfp_saturate_neg: leastFixedPointUnbounded (map (fun x -> ~x)) ({1; 2; 3} : set int) = {~3; ~2; ~1; 1; 2; 3}
 assert lfp_saturate_mod: leastFixedPointUnbounded (map (fun x -> (2*x) mod 5)) ({1} : set nat) = {1; 2; 3; 4}
-
-(* fold *)
-val fold : forall 'a 'b. SetType 'b => ('a -> 'b -> 'a) -> 'a -> set 'b -> 'a
-let fold f acc s =
-  List.foldl f acc (toList s)
-
-(* just to avoid a useless-renaming-induced bug *)
-declare {ocaml;hol;isabelle} rename function fold = set_fold
