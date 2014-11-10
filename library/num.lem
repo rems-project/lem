@@ -1900,3 +1900,6 @@ let inline {coq} string_of_natural n = "TODO"
 val string_of_integer : integer -> string
 declare ocaml target_rep function string_of_integer = `Big_int.string_of_big_int`
 let inline ~{ocaml} string_of_integer n = "TODO"
+
+val string_of_int : int -> string
+let string_of_int i = string_of_integer (integerFromInt i)
