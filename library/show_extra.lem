@@ -1,0 +1,9 @@
+open import String Maybe Num Basic_classes Show String_extra
+import Set_extra
+
+let string_of_set showX xs =
+  "{" ^ Show.string_of_list_aux showX (Set_extra.toList xs) ^ "}"
+
+instance forall 'a. Show 'a, SetType 'a => (Show (set 'a))
+  let show xs = string_of_set show xs
+end
