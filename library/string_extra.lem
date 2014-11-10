@@ -49,7 +49,8 @@ let rec natToStringHelper n acc =
     natToStringHelper (n / 10) (chr (n mod 10 + 48) :: acc)
 
 val natToString : nat -> string
-let natToString n = toString (natToStringHelper n [])
+let natToString n = 
+  if n = 0 then "0" else toString (natToStringHelper n [])
 
 declare hol target_rep function natToString = `num_to_dec_string`
 
@@ -65,7 +66,8 @@ let rec naturalToStringHelper n acc =
     naturalToStringHelper (n / 10) (chr (natFromNatural (n mod 10 + 48)) :: acc)
 
 val naturalToString : natural -> string
-let naturalToString n = toString (naturalToStringHelper n [])
+let naturalToString n = 
+  if n = 0 then "0" else toString (naturalToStringHelper n [])
 
 declare hol target_rep function naturalToString = `num_to_dec_string`
 
