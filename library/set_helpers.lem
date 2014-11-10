@@ -28,7 +28,7 @@ open import {coq} `Coq.Lists.List`
    results are undefined. On the other hand, it is very handy to
    define other - non suspicious functions. 
 
-   Moreover, fold is central for OCaml, size it is used to
+   Moreover, fold is central for OCaml, since it is used to
    compile set comprehensions *)
 
 val fold : forall 'a 'b. ('a -> 'b -> 'b) -> set 'a -> 'b -> 'b
