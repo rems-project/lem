@@ -57,6 +57,10 @@ instance (Show nat)
 end
 *)
 
+instance (Show int)
+  let show = string_of_int
+end
+
 instance (Show integer)
   let show = string_of_integer
 end

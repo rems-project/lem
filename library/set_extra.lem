@@ -73,7 +73,7 @@ assert toList_2: toList ({(2:nat)} : set nat) = [2]
 (* "toOrderedList" returns a sorted list. Therefore the result is (given a suitable order) deterministic.
    Therefore, it is much preferred to "toList". However, it still is only defined for finite sets. So, please
    use carefully and consider using set-operations instead of translating sets to lists, performing list manipulations
-   and then transforming back to sets. *) 
+   and then transforming back to sets. *)
 
 val toOrderedListBy : forall 'a. ('a -> 'a -> bool) -> set 'a -> list 'a
 declare isabelle target_rep function toOrderedListBy = `ordered_list_of_set`
@@ -83,7 +83,7 @@ let inline ~{isabelle;ocaml} toOrderedList l = sort (toList l)
 let inline {isabelle} toOrderedList = toOrderedListBy (<=)
 declare ocaml    target_rep function toOrderedList = `Pset.elements`
 
-declare compile_message toOrderedList = "toOrderedList is only defined on finite sets. Even worse, it returns the elements in an unspecified order. The result may differ form backend to backend or even between different excutions in the same backend. The result may also depend on the low-level representation. The same set may have several low-level representations that might lead to different results for toOrderedList."
+declare compile_message toOrderedList = "toOrderedList is only defined on finite sets."
 
 assert toOrderedList_0: toOrderedList ({} : set nat) = []
 assert toOrderedList_1: toOrderedList {(6:nat); 1; 2} = [1;2;6]

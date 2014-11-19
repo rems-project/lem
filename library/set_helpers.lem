@@ -7,7 +7,7 @@
    some backends or are just seldomly used.
 
    For sets the situation is different. folding is not well defined, since it
-   is only sensibly defined for finite sets and it the traversel 
+   is only sensibly defined for finite sets and the traversal 
    order is underspecified. *) 
 
 (* ========================================================================== *)
@@ -24,7 +24,7 @@ open import {coq} `Coq.Lists.List`
 (* ------------------------ *)
 
 (* fold is suspicious, because if given a function, for which
-   the order, in which the arguments are given, matters, it's
+   the order, in which the arguments are given, matters, its
    results are undefined. On the other hand, it is very handy to
    define other - non suspicious functions. 
 
