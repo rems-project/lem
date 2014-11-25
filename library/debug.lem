@@ -11,6 +11,3 @@
 *)
 val print_string : string -> unit
 declare ocaml target_rep function print_string = `print_string`
-
-val string_of_nat : nat -> string
-declare ocaml target_rep function string_of_nat = `string_of_int`
