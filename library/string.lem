@@ -115,7 +115,7 @@ assert stringAppend_0 : ("Hello" ^ " " ^ "World!" = "Hello World!")
 
 val string_case : forall 'a. string -> 'a -> (char -> string -> 'a) -> 'a
 
-let string_case s c_empty c_cons = 
+let string_case s c_empty c_cons =
   match (toCharList s) with
     | [] -> c_empty
     | c :: cs -> c_cons c (toString cs)
@@ -157,3 +157,10 @@ assert string_patterns_1: (
   end = "aaaaabc"
 )
 
+
+let rec concat sep ss =
+  match ss with
+    | [] -> ""
+    | [s] -> s
+    | s1 :: s2 :: ss' -> s1 ^ sep ^ concat sep (s2 :: ss')
+  end
