@@ -157,7 +157,7 @@ assert string_patterns_1: (
   end = "aaaaabc"
 )
 
-
+val concat : string -> list string -> string
 let rec concat sep ss =
   match ss with
     | [] -> ""
