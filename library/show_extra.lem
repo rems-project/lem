@@ -1,3 +1,5 @@
+declare {isabelle;hol;ocaml;coq} rename module = lem_show_extra
+
 open import String Maybe Num Basic_classes Show String_extra
 import Set_extra
 

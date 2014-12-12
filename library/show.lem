@@ -1,3 +1,5 @@
+declare {isabelle;hol;ocaml;coq} rename module = lem_show
+
 open import String Maybe Num Basic_classes
 
 (* For the moment, the definition of Show is in String_extra *)
