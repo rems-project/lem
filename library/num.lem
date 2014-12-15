@@ -1892,19 +1892,3 @@ assert nat_from_int32_2: natFromInt32 (~ 2) = 2
 assert nat_from_int64_0: natFromInt64 0 = 0
 assert nat_from_int64_1: natFromInt64 1 = 1
 assert nat_from_int64_2: natFromInt64 (~ 2) = 2
-
-val string_of_natural : natural -> string
-declare ocaml target_rep function string_of_natural = `Big_int.string_of_big_int`
-let inline ~{ocaml} string_of_natural n = "TODO"
-declare compile_message string_of_natural = "Num.string_of_natural is only defined for the ocaml backend"
-
-val string_of_integer : integer -> string
-declare ocaml target_rep function string_of_integer = `Big_int.string_of_big_int`
-let inline ~{ocaml} string_of_integer n = "TODO"
-declare compile_message string_of_integer = "Num.string_of_integer is only defined for the ocaml backend"
-
-val string_of_int : int -> string
-let string_of_int i = string_of_integer (integerFromInt i)
-
-let string_of_nat n = string_of_natural (naturalFromNat n)
-declare ocaml target_rep function string_of_nat = `string_of_int`

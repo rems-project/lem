@@ -37,43 +37,69 @@ declare coq target_rep function chr = `ascii_of_nat`
 (* Converting to strings                                                      *)
 (******************************************************************************)
 
-class (Show 'a)
-  val show : 'a -> string
-end
-
-val natToStringHelper : nat -> list char -> list char
-let rec natToStringHelper n acc =
+val stringFromNatHelper : nat -> list char -> list char
+let rec stringFromNatHelper n acc =
   if n = 0 then
     acc
   else
-    natToStringHelper (n / 10) (chr (n mod 10 + 48) :: acc)
+    stringFromNatHelper (n / 10) (chr (n mod 10 + 48) :: acc)
 
-val natToString : nat -> string
-let natToString n = 
-  if n = 0 then "0" else toString (natToStringHelper n [])
+val stringFromNat : nat -> string
+let ~{ocaml;hol} stringFromNat n = 
+  if n = 0 then "0" else toString (stringFromNatHelper n [])
 
-declare hol target_rep function natToString = `num_to_dec_string`
+declare ocaml target_rep function stringFromNat = `string_of_int`
+declare hol target_rep function stringFromNat = `num_to_dec_string`
 
-instance (Show nat)
-  let show = natToString
-end
+assert stringFromNat_0: stringFromNat 0 = "0"
+assert stringFromNat_1: stringFromNat 1 = "1"
+assert stringFromNat_2: stringFromNat 42 = "42"
 
-val naturalToStringHelper : natural -> list char -> list char
-let rec naturalToStringHelper n acc =
+val stringFromNaturalHelper : natural -> list char -> list char
+let rec stringFromNaturalHelper n acc =
   if n = 0 then
     acc
   else
-    naturalToStringHelper (n / 10) (chr (natFromNatural (n mod 10 + 48)) :: acc)
+    stringFromNaturalHelper (n / 10) (chr (natFromNatural (n mod 10 + 48)) :: acc)
 
-val naturalToString : natural -> string
-let naturalToString n = 
-  if n = 0 then "0" else toString (naturalToStringHelper n [])
+val stringFromNatural : natural -> string
+let ~{ocaml;hol} stringFromNatural n = 
+  if n = 0 then "0" else toString (stringFromNaturalHelper n [])
 
-declare hol target_rep function naturalToString = `num_to_dec_string`
+declare hol target_rep function stringFromNatural = `num_to_dec_string`
+declare ocaml target_rep function stringFromNatural = `Big_int.string_of_big_int`
 
-instance (Show natural)
-  let show = naturalToString
-end
+assert stringFromNatural_0: stringFromNatural 0 = "0"
+assert stringFromNatural_1: stringFromNatural 1 = "1"
+assert stringFromNatural_2: stringFromNatural 42 = "42"
+
+val stringFromInt : int -> string
+let ~{ocaml} stringFromInt i = 
+  if i < 0 then 
+    "-" ^ stringFromNat (natFromInt i)
+  else
+    stringFromNat (natFromInt i)
+
+declare ocaml target_rep function stringFromInt = `string_of_int`
+
+assert stringFromInt_0: stringFromInt 0 = "0"
+assert stringFromInt_1: stringFromInt 1 = "1"
+assert stringFromInt_2: stringFromInt 42 = "42"
+assert stringFromInt_3: stringFromInt (~1) = "-1"
+
+val stringFromInteger : integer -> string
+let ~{ocaml} stringFromInteger i = 
+  if i < 0 then 
+    "-" ^ stringFromNatural (naturalFromInteger i)
+  else
+    stringFromNatural (naturalFromInteger i)
+
+declare ocaml target_rep function stringFromInteger = `Big_int.string_of_big_int`
+
+assert stringFromInteger_0: stringFromInteger 0 = "0"
+assert stringFromInteger_1: stringFromInteger 1 = "1"
+assert stringFromInteger_2: stringFromInteger 42 = "42"
+assert stringFromInteger_3: stringFromInteger (~1) = "-1"
 
 
 (******************************************************************************)
