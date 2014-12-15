@@ -1895,9 +1895,7 @@ assert nat_from_int64_2: natFromInt64 (~ 2) = 2
 
 val string_of_natural : natural -> string
 declare ocaml target_rep function string_of_natural = `Big_int.string_of_big_int`
-declare coq target_rep function string_of_natural = `XXX` (* TODO *)
-declare isabelle target_rep function string_of_natural = `XXX` (* TODO *)
-declare hol target_rep function string_of_natural = `XXX` (* TODO *)
+let inline ~{ocaml} string_of_natural n = "TODO"
 declare compile_message string_of_natural = "Num.string_of_natural is only defined for the ocaml backend"
 
 val string_of_integer : integer -> string
