@@ -1,9 +1,27 @@
-open import String Maybe Num Basic_classes Show String_extra
-import Set_extra
+declare {isabelle;hol;ocaml;coq} rename module = lem_show_extra
 
-let string_of_set showX xs =
-  "{" ^ Show.string_of_list_aux showX (Set_extra.toList xs) ^ "}"
+open import String Maybe Num Basic_classes Show 
+import Set_extra String_extra
+
+instance (Show nat)
+  let show = String_extra.stringFromNat
+end
+
+instance (Show natural)
+  let show = String_extra.stringFromNatural
+end
+
+instance (Show int)
+  let show = String_extra.stringFromInt
+end
+
+instance (Show integer)
+  let show = String_extra.stringFromInteger
+end
+
+let stringFromSet showX xs =
+  "{" ^ Show.stringFromListAux showX (Set_extra.toList xs) ^ "}"
 
 instance forall 'a. Show 'a, SetType 'a => (Show (set 'a))
-  let show xs = string_of_set show xs
+  let show xs = stringFromSet show xs
 end

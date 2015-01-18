@@ -32,3 +32,5 @@ Lem_string
 Lem_string_extra
 Lem_tuple
 Lem_word
+Lem_show
+Lem_show_extra
