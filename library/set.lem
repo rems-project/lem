@@ -546,6 +546,27 @@ assert bigunionmap_0: (bigunionMap (fun n -> {n; 2 * n; 3 * n}) {(1:nat)} = {1;2
 assert bigunionmap_1: (bigunionMap (fun n -> {n; 2 * n; 3 * n}) {(2:nat);8} = {2;4;6;8;16;24})
 
 (* ------------------------ *)
+(* mapMaybe and fromMaybe   *)
+(* ------------------------ *)
+
+(* If the mapping function returns Just x, x is added to the result
+   list. If it returns Nothing, no element is added. *)
+
+val mapMaybe : forall 'a 'b. SetType 'a, SetType 'b => ('a -> maybe 'b) -> set 'a -> set 'b
+let mapMaybe f s = 
+  bigunionMap (fun x -> match f x with 
+                        | Just y  -> singleton y 
+                        | Nothing -> empty
+                        end)
+              s
+
+(* The name mapMaybe is already being used in the list.lem *)
+declare rename function mapMaybe = setMapMaybe
+
+val removeMaybe : forall 'a. SetType 'a => set (maybe 'a) -> set 'a
+let removeMaybe s = mapMaybe (fun x -> x) s
+
+(* ------------------------ *)
 (* min and max              *)
 (* ------------------------ *)
 
