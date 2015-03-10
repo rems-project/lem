@@ -380,7 +380,7 @@ let add_rules_to_relsdescr
         rule_vars = typed_vars ;
         rule_conds = dest_and_exps env rulecond ;
         rule_args = args ;
-        rule_loc = l
+        rule_loc = l'
       } in
       let relname = Name.strip_lskip rel.term in
       match Nfmap.apply s relname with
@@ -740,6 +740,256 @@ let pats_to_bound (ps : pat list) : Types.t Nmap.t =
       Nfmap.union p.rest.pvars bound)
     Nfmap.empty ps
 
+module Pat : sig
+  type t
+  val bound : t list -> Types.t Nmap.t
+  val linearize : t list -> t list
+  val simplify : t -> t
+  val from_exp : env -> exp -> t
+  val to_pats : env -> Nset.t ref -> t list -> pat list * exp Nmap.t
+end = struct
+
+  type aux =
+    | IP_lit of lit
+    | IP_list of t list
+    | IP_cons of t * t
+    | IP_append of t * t
+    | IP_tuple of t list
+    | IP_vector of t list
+    | IP_record of (Types.const_descr_ref Types.id * t) list
+    | IP_var of string
+    | IP_constant of Types.const_descr_ref Types.id * t list
+    | IP_fresh of exp
+   and t =
+     { loc : Ast.l
+     ; typ : Types.t
+     ; pat : aux }
+
+  let bound ips =
+    let rec bound_ map ip =
+      match ip.pat with
+      | IP_lit _ | IP_fresh _ -> map
+      | IP_list ips
+      | IP_tuple ips
+      | IP_vector ips
+      | IP_constant (_, ips) ->
+	 List.fold_left bound_ map ips
+      | IP_cons (l, r)
+      | IP_append (l, r) ->
+	 bound_ (bound_ map l) r
+      | IP_record fields ->
+	 List.fold_left (fun map (_, ip) -> bound_ map ip) map fields
+      | IP_var v ->
+	 Nmap.insert map (Name.from_string v, ip.typ)
+    in
+    List.fold_left bound_ Nmap.empty ips
+
+  let linearize (ips : t list) : t list =
+    let vars = Hashtbl.create 17 in
+    let rec linearize_aux (ip : t) =
+      let self = linearize_aux in
+      let { loc; typ; pat } = ip in
+      match pat with
+      | IP_lit _ | IP_fresh _ -> ip
+      | IP_list ips ->
+	 { ip with pat = IP_list (List.map self ips) }
+      | IP_cons (l, r) ->
+	 { ip with pat = IP_cons (self l, self r) }
+      | IP_append (l, r) ->
+	 { ip with pat = IP_append (self l, self r) }
+      | IP_tuple ips ->
+	 { ip with pat = IP_tuple (List.map self ips) }
+      | IP_vector ips ->
+	 { ip with pat = IP_vector (List.map self ips) }
+      | IP_record fields ->
+	 { ip with pat = IP_record
+			   (List.map (fun (cd, ip) -> (cd, self ip)) fields) }
+      | IP_var s ->
+	 if Hashtbl.mem vars s then
+	   let n = Name.add_lskip @@ Name.from_string s in
+	   { ip with pat = IP_fresh (mk_var loc n typ) }
+	 else begin
+	     Hashtbl.add vars s ();
+	     ip
+	   end
+      | IP_constant (cd, args) ->
+	 { ip with pat = IP_constant (cd, List.map self args) }
+    in List.map linearize_aux ips
+
+  let rec simplify (ip : t) =
+    let { loc; typ; pat } = ip in
+    match pat with
+    | IP_lit _ | IP_fresh _ | IP_var _ -> ip
+    | IP_list l ->
+       { ip with pat = IP_list (List.map simplify l) }
+    | IP_cons (left, right) ->
+       let sleft = simplify left in
+       let sright = simplify right in
+       begin match sright.pat with
+	     | IP_list ips ->
+		{ ip with pat = IP_list (sleft :: ips) }
+	     | _ ->
+		{ ip with pat = IP_cons (sleft, sright) }
+       end
+    | IP_append (left, right) ->
+       let sleft = simplify left in
+       let sright = simplify right in
+       begin match sleft.pat, sright.pat with
+	     | IP_list pl, IP_list pr ->
+		{ ip with pat = IP_list (pl @ pr) }
+	     | _, IP_list [] ->
+		sleft
+	     | IP_list pl, _ ->
+		List.fold_right
+		  (fun hd tl ->
+		   { loc = hd.loc; typ = tl.typ; pat = IP_cons (hd, tl) })
+		  pl sright
+	     | _ ->
+		{ ip with pat = IP_append (sleft, sright) }
+       end
+    | IP_tuple ips ->
+       { ip with pat = IP_tuple (List.map simplify ips) }
+    | IP_vector ips ->
+       { ip with pat = IP_vector (List.map simplify ips) }
+    | IP_record fields ->
+       { ip with pat = IP_record
+			 (List.map (fun (c, ip) ->
+				    (c, simplify ip))
+				   fields) }
+    | IP_constant (cd, args) ->
+       { ip with pat = IP_constant (cd, List.map simplify args) }
+
+  let rec from_exp (env : env) (exp : exp) =
+    let self = from_exp env in
+    let loc = loc_trans "from_exp" (exp_to_locn exp) in
+    let typ = exp_to_typ exp in
+    let head, args = dest_list_app_exp exp in
+    match exp_to_term head, args with
+    | Constant nil, [] when is_nil_const_descr_ref nil.descr ->
+       { loc; typ; pat = IP_list [] }
+    | Constant cons, [e1; e2] when is_list_cons env cons.descr ->
+       { loc; typ; pat = IP_list [self e1; self e2] }
+    | Constant cd, [e1; e2] when is_list_append env cd.descr ->
+       { loc; typ; pat = IP_append (self e1, self e2) }
+    | Constant c, args when is_constructor env typ c.descr ->
+       { loc; typ; pat = IP_constant (c, List.map self args) }
+    | Var v, [] ->
+       { loc; typ; pat = IP_var Name.(to_string @@ strip_lskip v) }
+    | Record (_, fields, _), [] ->
+       let ip_fields =
+	 List.map (fun (cd, _, e, _) ->
+		   (cd, self e))
+	 @@ Seplist.to_list fields in
+       { loc; typ; pat = IP_record ip_fields }
+    | Vector (_, es, _), [] ->
+       let ips = List.map self @@ Seplist.to_list es in
+       { loc; typ; pat = IP_vector ips }
+    | Tup (_, es, _), [] ->
+       let ips = List.map self @@ Seplist.to_list es in
+       { loc; typ; pat = IP_tuple ips }
+    | List (_, es, _), [] ->
+       let ips = List.map self @@ Seplist.to_list es in
+       { loc; typ; pat = IP_list ips }
+    | Lit l, [] ->
+       { loc; typ; pat = IP_lit l }
+    | _ ->
+       { loc; typ; pat = IP_fresh exp }
+
+  let rec to_exp (env : env) (ip : t) =
+    let self = to_exp env in
+    let { loc; typ; pat } = ip in
+    match pat with
+    | IP_lit l ->
+       mk_lit loc l (Some typ)
+    | IP_list ips ->
+       let es = List.map self ips in
+       let es_sep = Seplist.from_list_default space es in
+       mk_list loc space es_sep space typ
+    | IP_cons (l, r) ->
+       let el, er = self l, self r in
+       let cons = Typed_ast_syntax.mk_const_exp env loc "list_cons" [exp_to_typ el] in
+       mk_list_app_exp loc env.t_env cons [el; er]
+    | IP_append (l, r) ->
+       let el, er = self l, self r in
+       let append = Typed_ast_syntax.mk_const_exp
+		      env loc "list_append"
+		      [remove_option @@ exp_to_typ el] in
+       mk_list_app_exp loc env.t_env append [el; er]
+    | IP_tuple ips ->
+       let es = List.map self ips in
+       let es_sep = Seplist.from_list_default space es in
+       mk_tup loc space es_sep space (Some typ)
+    | IP_vector ips ->
+       let es = List.map self ips in
+       let es_sep = Seplist.from_list_default space es in
+       mk_vector loc space es_sep space typ
+    | IP_record ip_fields ->
+       let es_fields =
+	 List.map (fun (cd, ip) ->
+		   (cd, space, self ip, ip.loc))
+		  ip_fields in
+       let sep_fields = Seplist.from_list_default space es_fields in
+       mk_record loc space sep_fields space (Some typ)
+    | IP_var s ->
+       let n = Name.add_lskip @@  Name.from_string s in
+       mk_var loc n typ
+    | IP_constant (cd, args) ->
+       let es_args = List.map self args in
+       let const = mk_const loc cd None in
+       mk_list_app_exp loc env.t_env const es_args
+    | IP_fresh e -> e
+
+  let to_pats (env : env) (avoid : Nset.t ref) (ips : t list) : pat list * exp Nmap.t =
+    let mapping = ref Nmap.empty in
+    let rec to_pat ip =
+      let { loc; typ; pat } = ip in
+      match pat with
+      | IP_lit l ->
+	 mk_plit loc l (Some typ)
+      | IP_fresh e ->
+	 let n =
+	   Name.fresh (r"pat") (fun n -> not (Nset.mem n !avoid)) in
+	 avoid := Nset.add n !avoid;
+	 mapping := Nmap.insert !mapping (n, e);
+	 mk_pvar_annot loc (Name.add_lskip n) (t_to_src_t typ) (Some typ)
+      | IP_list ips ->
+	 let ps = List.map to_pat ips in
+	 let sep_ps = Seplist.from_list_default space ps in
+	 mk_plist loc space sep_ps space typ
+      | IP_cons (x, xs) ->
+	 mk_pcons loc (to_pat x) space (to_pat xs) (Some typ)
+      | IP_append (p1, p2) ->
+	 to_pat { ip with pat = IP_fresh (to_exp env ip) }
+      | IP_tuple ips ->
+	 let ps = List.map to_pat ips in
+	 let sep_ps = Seplist.from_list_default space ps in
+	 mk_ptup loc space sep_ps space (Some typ)
+      | IP_vector ips ->
+	 let ps = List.map to_pat ips in
+	 let sep_ps = Seplist.from_list_default space ps in
+	 mk_pvector loc space sep_ps space typ
+      | IP_record fields ->
+	 let p_fields =
+	   List.map (fun (cd, ip) ->
+		     (cd, space, to_pat ip))
+		    fields in
+	 let sep_fields = Seplist.from_list_default space p_fields in
+	 mk_precord loc space sep_fields space (Some typ)
+      | IP_var s ->
+	 mk_pvar_annot
+	   loc
+	   (Name.add_lskip @@ Name.from_string s)
+	   (t_to_src_t typ)
+	   (Some typ)
+      | IP_constant (cd, args) ->
+	 let pargs = List.map to_pat args in
+	 mk_pconst loc cd pargs (Some typ)
+    in
+    let pats = List.map to_pat ips in
+    (pats, !mapping)
+
+end
+
 (** [extract_patterns env avoid exps mask] converts the expressions from
     [exps] at positions where the corresponding value in [mask] is
     [true] into patterns.
@@ -748,12 +998,22 @@ let pats_to_bound (ps : pat list) : Types.t Nmap.t =
     the non-patternizable expressions (e.g. function calls), see
     [exps_to_pats]. *)
 let extract_patterns
-    (env : env) (avoid : Nset.t ref) (exps : exp list)
-    (mask : bool list)
-  : pat list * exp list =
-  exps_to_pats avoid env
-    (map_filter (fun (e, m) -> if m then Some e else None)
-       (List.map2 (fun x y -> (x, y)) exps mask))
+      (env : env) (avoid : Nset.t ref) (exps : exp list)
+      (mask : bool list)
+    : pat list * exp list =
+  let wanted =
+    map_filter (fun (e, m) -> if m then Some e else None)
+	       (List.map2 (fun x y -> (x, y)) exps mask) in
+  let pats, map =
+    Pat.to_pats env avoid @@
+      Pat.linearize @@
+	List.map (Pat.from_exp env) wanted in
+  let eqs =
+    Nmap.fold (fun lst n e ->
+	       let v = mk_var Ast.Unknown (Name.add_lskip n) (exp_to_typ e) in
+	       mk_eq_exp env v e :: lst)
+	      [] map in
+  pats, eqs
 
 (** [mk_pvar_ty l n t] creates a typed variable pattern, e.g. [(x : int)] *)
 let mk_pvar_ty l n t =
@@ -1175,7 +1435,7 @@ let make_typedef env loc td_l =
       | _ -> failwith "No witness"
     in
     let c_def_l = List.map (fun (c_rule, c_name, c_args) ->
-      let Some(c_ref) = Nfmap.apply c_ref_m c_rule in
+      let Some (c_ref) = Nfmap.apply c_ref_m c_rule in
       let c_args = sep_no_skips (List.map t_to_src_t c_args) in
       (mk_name_l c_name, c_ref, None, c_args)
     ) t_constr_l in
