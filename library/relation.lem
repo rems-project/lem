@@ -651,17 +651,17 @@ assert transitive_closure_add_2: transitiveClosureAdd (4:nat) (5:nat) {(2, 3); (
 
 
 (* ========================================================================== *)
-(* reflexiv closures                                                          *)
+(* reflexive closure                                                          *)
 (* ========================================================================== *)
 
-val reflexivTransitiveClosureOn : forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> set 'a -> rel 'a 'a
-let reflexivTransitiveClosureOn r s = transitiveClosure (relUnion r (relIdOn s))
-declare {hol} rename function reflexivTransitiveClosureOn = reflexiv_transitive_closure_on
+val reflexiveTransitiveClosureOn : forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> set 'a -> rel 'a 'a
+let reflexiveTransitiveClosureOn r s = transitiveClosure (relUnion r (relIdOn s))
+declare {hol} rename function reflexiveTransitiveClosureOn = reflexive_transitive_closure_on
 
-assert reflexiv_transitive_closure_0: (reflexivTransitiveClosureOn (relFromSet {((2:nat), (3:nat)); (3,4)}) {2;3;4} =
+assert reflexive_transitive_closure_0: (reflexiveTransitiveClosureOn (relFromSet {((2:nat), (3:nat)); (3,4)}) {2;3;4} =
                               relFromSet {(2,3); (2,4); (3,4); (2,2); (3,3); (4,4)})
 
 
-val reflexivTransitiveClosure : forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> rel 'a 'a
-let ~{ocaml;coq} reflexivTransitiveClosure r = transitiveClosure (relUnion r relId)
+val reflexiveTransitiveClosure : forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> rel 'a 'a
+let ~{ocaml;coq} reflexiveTransitiveClosure r = transitiveClosure (relUnion r relId)
 
