@@ -72,7 +72,9 @@ consts
 consts_code
 context
 corollary
+count
 cpodef
+cut
 datatype
 declaration
 declare
@@ -114,6 +116,7 @@ help
 hence
 hide
 id
+index
 inductive
 inductive_cases
 inductive_set
@@ -132,7 +135,9 @@ linear_undo
 local
 local_setup
 locale
+max
 method_setup
+min
 moreover
 new_domain
 next

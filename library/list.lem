@@ -13,7 +13,7 @@
 
 declare {isabelle;ocaml;hol;coq} rename module = lem_list 
 
-open import Bool Maybe Basic_classes Tuple Num
+open import Bool Maybe Basic_classes Function Tuple Num
 
 open import {coq} `Coq.Lists.List`
 open import {isabelle} `$LIB_DIR/Lem`
@@ -993,6 +993,20 @@ let rec mapiAux f (n : nat) l = match l with
   | x :: xs -> (f n x) :: mapiAux f (n + 1) xs
 end
 let mapi f l = mapiAux f 0 l
+
+
+val     unfoldr: forall 'a 'b. ('a -> maybe ('b * 'a)) -> 'a -> list 'b
+let rec unfoldr f x =
+  match f x with
+    | Just (y, x') ->
+        y :: unfoldr f x'
+    | Nothing ->
+        []
+  end
+
+val deletes: forall 'a. Eq 'a => list 'a -> list 'a -> list 'a
+let deletes xs ys =
+  foldl (flip delete) xs ys
 
 (* ========================================================================== *)
 (* Comments (not clean yet, please ignore the rest of the file)               *)
