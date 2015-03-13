@@ -119,6 +119,8 @@ let relIdOn s = relFromPred s s (=)
 val relId : forall 'a. SetType 'a, Eq 'a => rel 'a 'a
 let ~{coq;ocaml} relId = {(x, x) | forall x | true}
 
+declare isabelle target_rep function relId = `Id`
+
 lemma relId_spec: (forall x y s. (inRel x y (relIdOn s) <-> (x IN s && (x = y))))
 
 assert rel_id_0: inRel (0:nat) 0 (relIdOn {0;1;2;3})
@@ -159,6 +161,7 @@ val relComp : forall 'a 'b 'c. SetType 'a, SetType 'b, SetType 'c, Eq 'a, Eq 'b 
 let relComp r1 r2 = relFromSet {(e1, e3) | forall ((e1,e2) IN (relToSet r1)) ((e2',e3) IN (relToSet r2)) | e2 = e2'}
 
 declare hol target_rep function relComp = `rcomp`
+declare isabelle target_rep function relComp = infix `O`
 
 lemma rel_comp_1 : (forall r1 r2 e1 e2 e3. (inRel e1 e2 r1 && inRel e2 e3 r2) --> inRel e1 e3 (relComp r1 r2))
 lemma ~{coq;ocaml} rel_comp_2 : (forall r. (relComp r relId = r) && (relComp relId r = r))
@@ -194,6 +197,7 @@ val relConverse : forall 'a 'b. SetType 'a, SetType 'b => rel 'a 'b -> rel 'b 'a
 let relConverse r = relFromSet (Set.map swap (relToSet r))
 
 declare {hol} rename function relConverse = lem_converse
+declare isabelle target_rep function relConverse = `converse`
 
 assert rel_converse_0: relConverse (relFromSet {((2:nat), (3:nat)); (3, 4); (4,5)}) =
                        relFromSet {(3,2); (4, 3); (5,4)}
@@ -208,8 +212,10 @@ lemma rel_converse_converse : forall r. relConverse (relConverse r) = r
 
 val relDomain : forall 'a 'b. SetType 'a, SetType 'b => rel 'a 'b -> set 'a
 let relDomain r = Set.map (fun x -> fst x) (relToSet r)
+
 declare tex target_rep function relDomain = `dom`
 declare hol target_rep function relDomain = `domain`
+declare isabelle target_rep function relDomain = `Domain`
 
 assert rel_domain_0: relDomain (relFromSet {((2:nat), (3:nat)); (3, 4); (4,5)}) = {2;3;4}
 assert rel_domain_1: relDomain (relFromSet {((5:nat), (3:nat)); (3, 4); (4,5)}) = {3;4;5}
@@ -224,6 +230,7 @@ let relRange r = Set.map (fun x -> snd x) (relToSet r)
 
 declare tex target_rep function relRange = `rng`
 declare hol target_rep function relRange = `range`
+declare isabelle target_rep function relRange = `Range`
 
 assert rel_range_0: relRange (relFromSet {((2:nat), (3:nat)); (3, 4); (4,5)}) = {3;4;5}
 assert rel_range_1: relRange (relFromSet {((5:nat), (6:nat)); (3, 4); (4,5)}) = {4;5;6}
@@ -274,7 +281,7 @@ lemma rel_over_add: forall x y s r. relOver (relAdd x y r) s = (x IN s && y IN s
 val relApply : forall 'a 'b. SetType 'a, SetType 'b, Eq 'a => rel 'a 'b -> set 'a -> set 'b
 let relApply r s = { y | forall ((x, y) IN (relToSet r)) | x IN s }
 declare {hol} rename function relApply = rapply
-
+declare isabelle target_rep function relApply = `Image`
 
 assert rel_apply_0: relApply (relFromSet {((2:nat), (3:nat)); (3, 4); (4,5)}) {2;3} = {3;4}
 assert rel_apply_1: relApply (relFromSet {((2:nat), (3:nat)); (3, 7); (3,5)}) {2;3} = {3;5;7}
@@ -319,6 +326,7 @@ val isReflexive : forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> bool
 let ~{ocaml;coq} isReflexive r = (forall e. inRel e e r)
 
 declare {hol} rename function isReflexive = lem_is_reflexive
+declare isabelle target_rep function isReflexive = `refl`
 
 assert is_reflexive_on_0 : isReflexiveOn (relFromSet {((2:nat), (2:nat)); (3, 3); (3, 4); (4,5)}) {2;3}
 assert is_reflexive_on_1 : not (isReflexiveOn (relFromSet {((2:nat), (2:nat)); (3, 3); (3, 4); (4,5)}) {2;4;3})
@@ -338,6 +346,7 @@ val isIrreflexive : forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> bool
 let isIrreflexive r = (forall ((e1, e2) IN (relToSet r)). not (e1 = e2))
 
 declare {hol} rename function isIrreflexive = lem_is_irreflexive
+declare isabelle target_rep function isIrreflexive = `irrefl`
 
 assert is_irreflexive_on_0 : isIrreflexiveOn (relFromSet {((2:nat), (2:nat)); (3, 3); (3, 4); (4,5)}) {4}
 assert is_irreflexive_on_1 : not (isIrreflexiveOn (relFromSet {((2:nat), (2:nat)); (3, 3); (3, 4); (4,5)}) {2;4})
@@ -361,6 +370,7 @@ val isSymmetric : forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> bool
 let isSymmetric r = (forall ((e1, e2) IN relToSet r). inRel e2 e1 r)
 
 declare {hol} rename function isSymmetric = lem_is_symmetric
+declare isabelle target_rep function isSymmetric = `sym`
 
 assert is_symmetric_on_0 : isSymmetricOn (relFromSet {((2:nat), (2:nat)); (3, 3); (3, 4); (4,5); (5, 4)}) {4}
 assert is_symmetric_on_1 : isSymmetricOn (relFromSet {((2:nat), (2:nat)); (3, 3); (3, 4); (4,5); (5, 4)}) {3}
@@ -386,7 +396,7 @@ val isAntisymmetric : forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> bool
 let isAntisymmetric r = (forall ((e1, e2) IN relToSet r). (inRel e2 e1 r) --> (e1 = e2))
 
 declare hol target_rep function isAntisymmetric = `antisym`
-
+declare isabelle target_rep function isAntisymmetric = `antisym`
 
 assert is_antisymmetric_on_0 : isAntisymmetricOn (relFromSet {((2:nat), (2:nat)); (3, 3); (3, 4); (4,5); (5, 4)}) {3;4}
 assert is_antisymmetric_on_1 : not (isAntisymmetricOn (relFromSet {((2:nat), (2:nat)); (3, 3); (3, 4); (4,5); (5, 4)}) {4; 5})
@@ -411,6 +421,7 @@ val isTransitive : forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> bool
 let isTransitive r = (forall ((e1, e2) IN relToSet r) (e3 IN relApply r {e2}). inRel e1 e3 r)
 
 declare hol target_rep function isTransitive = `transitive`
+declare isabelle target_rep function isTransitive = `trans`
 
 assert is_transitive_on_0 : isTransitiveOn (relFromSet {((2:nat), (3:nat)); (3, 4); (2,4); (4,5); (5, 4)}) {2;3;4}
 assert is_transitive_on_1 : not (isTransitiveOn (relFromSet {((2:nat), (3:nat)); (3, 4); (2,4); (4,5); (5, 4)}) {2;3;4;5})
@@ -431,7 +442,7 @@ declare {hol} rename function isTotalOn = lem_is_total_on
 val isTotal : forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> bool
 let ~{ocaml;coq} isTotal r = (forall e1 e2. (inRel e1 e2 r) || (inRel e2 e1 r))
 declare {hol} rename function isTotal = lem_is_total
-
+declare isabelle target_rep function isTotal = `total`
 
 val isTrichotomousOn : forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> set 'a -> bool
 let isTrichotomousOn r s = (forall (e1 IN s) (e2 IN s). (inRel e1 e2 r) || (e1 = e2) || (inRel e2 e1 r))
@@ -651,17 +662,17 @@ assert transitive_closure_add_2: transitiveClosureAdd (4:nat) (5:nat) {(2, 3); (
 
 
 (* ========================================================================== *)
-(* reflexiv closures                                                          *)
+(* reflexive closure                                                          *)
 (* ========================================================================== *)
 
-val reflexivTransitiveClosureOn : forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> set 'a -> rel 'a 'a
-let reflexivTransitiveClosureOn r s = transitiveClosure (relUnion r (relIdOn s))
-declare {hol} rename function reflexivTransitiveClosureOn = reflexiv_transitive_closure_on
+val reflexiveTransitiveClosureOn : forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> set 'a -> rel 'a 'a
+let reflexiveTransitiveClosureOn r s = transitiveClosure (relUnion r (relIdOn s))
+declare {hol} rename function reflexiveTransitiveClosureOn = reflexive_transitive_closure_on
 
-assert reflexiv_transitive_closure_0: (reflexivTransitiveClosureOn (relFromSet {((2:nat), (3:nat)); (3,4)}) {2;3;4} =
+assert reflexive_transitive_closure_0: (reflexiveTransitiveClosureOn (relFromSet {((2:nat), (3:nat)); (3,4)}) {2;3;4} =
                               relFromSet {(2,3); (2,4); (3,4); (2,2); (3,3); (4,4)})
 
 
-val reflexivTransitiveClosure : forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> rel 'a 'a
-let ~{ocaml;coq} reflexivTransitiveClosure r = transitiveClosure (relUnion r relId)
+val reflexiveTransitiveClosure : forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> rel 'a 'a
+let ~{ocaml;coq} reflexiveTransitiveClosure r = transitiveClosure (relUnion r relId)
 

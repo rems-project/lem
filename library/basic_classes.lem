@@ -395,6 +395,39 @@ instance forall 'a 'b 'c. SetType 'a, SetType 'b, SetType 'c => (SetType ('a * '
   let setElemCompare = tripleCompare setElemCompare setElemCompare setElemCompare
 end
 
+(* quadruples *)
+
+val quadrupleEqual : forall 'a 'b 'c 'd. Eq 'a, Eq 'b, Eq 'c, Eq 'd => ('a * 'b * 'c * 'd) -> ('a * 'b * 'c * 'd) -> bool
+let quadrupleEqual (x1, x2, x3, x4) (y1, y2, y3, y4) = ((x1, (x2, (x3, x4))) = (y1, (y2, (y3, y4))))
+let inline {hol;isabelle} quadrupleEqual = unsafe_structural_equality
+
+instance forall 'a 'b 'c 'd. Eq 'a, Eq 'b, Eq 'c, Eq 'd => (Eq ('a * 'b * 'c * 'd))
+  let (=) = quadrupleEqual
+  let (<>) x y = not (quadrupleEqual x y)
+end
+
+val quadrupleCompare : forall 'a 'b 'c 'd. ('a -> 'a -> ordering) -> ('b -> 'b -> ordering) -> ('c -> 'c -> ordering) ->
+                                              ('d -> 'd -> ordering) -> ('a * 'b * 'c * 'd) -> ('a * 'b * 'c * 'd) -> ordering
+let quadrupleCompare cmpa cmpb cmpc cmpd (a1, b1, c1, d1) (a2, b2, c2, d2) =
+  pairCompare cmpa (pairCompare cmpb (pairCompare cmpc cmpd)) (a1, (b1, (c1, d1))) (a2, (b2, (c2, d2)))
+
+let quadrupleLess (x1, x2, x3, x4) (y1, y2, y3, y4) = (x1, (x2, (x3, x4))) < (y1, (y2, (y3, y4)))
+let quadrupleLessEq (x1, x2, x3, x4) (y1, y2, y3, y4) = (x1, (x2, (x3, x4))) <= (y1, (y2, (y3, y4)))
+
+let quadrupleGreater x1234 y1234 = quadrupleLess y1234 x1234
+let quadrupleGreaterEq x1234 y1234 = quadrupleLessEq y1234 x1234
+
+instance forall 'a 'b 'c 'd. Ord 'a, Ord 'b, Ord 'c, Ord 'd => (Ord ('a * 'b * 'c * 'd))
+  let compare = quadrupleCompare compare compare compare compare
+  let (<)  = quadrupleLess
+  let (<=) = quadrupleLessEq
+  let (>)  = quadrupleGreater
+  let (>=) = quadrupleGreaterEq
+end
+
+instance forall 'a 'b 'c 'd. SetType 'a, SetType 'b, SetType 'c, SetType 'd => (SetType ('a * 'b * 'c * 'd))
+  let setElemCompare = quadrupleCompare setElemCompare setElemCompare setElemCompare setElemCompare
+end
 
 (* quintuples *)
 
