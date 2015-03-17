@@ -2054,17 +2054,6 @@ let list_possible_modes mod_path ctxt rels =
         | _ -> Some(false)) rels1 rels2)
   in
   let shrink_modeset rels =
-    Format.printf "--------------@.@.";
-    let ppf = Format.str_formatter in
-    Nfmap.iter (fun relname reldescr ->
-        Format.fprintf ppf "Relation %s: @." (Name.to_string relname);
-        List.iter (fun (name, mspec) ->
-            Format.fprintf ppf "%s: " (Name.to_string name);
-            pp_mode ppf mspec;
-            Format.fprintf ppf "@.")
-          reldescr.rel_indfns)
-      rels;
-    Format.printf "%s" @@ Format.flush_str_formatter ();
     let ctxt = gen_fns_info_aux Ast.Unknown mod_path ctxt rels in
     let env = defn_ctxt_to_env ctxt in
     Nfmap.map (fun _ reldescr ->
