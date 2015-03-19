@@ -16,7 +16,9 @@ exception of a few files derived from OCaml, which are under the
 GNU Library GPL.
 
 Lem depends on [OCaml](http://caml.inria.fr/). Lem is tested against OCaml
-3.12.1. and 4.00.0. Other versions might or might not work.
+3.12.1. and 4.02.0. Other versions might or might not work.  Lem requires
+the OCaml ZArith library for arbitrary precision arithmetic.  Lem has been
+tested against ZArith version 1.2.  Other versions might or might not work.
 
 To build Lem run 'make' in the top-level directory. This builds the
 executable 'lem', and places a symbolic link to it in that directory.

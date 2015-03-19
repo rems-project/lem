@@ -1,4 +1,4 @@
-module BI = Big_int
+module BI = Big_int_Z
 
 type num = BI.big_int
 

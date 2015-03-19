@@ -11,7 +11,7 @@ for file in *Auxiliary.ml
 do
   echo $file
   file_nat=${file%.ml}.native
-  ocamlbuild -libs nums -I ocaml-lib ${file_nat}
+  ocamlbuild -use-ocamlfind -package zarith -libs nums -I ocaml-lib ${file_nat}
 done 
 
 for file in _build/*.native 
