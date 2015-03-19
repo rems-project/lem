@@ -67,7 +67,7 @@ let ~{ocaml;hol} stringFromNatural n =
   if n = 0 then "0" else toString (stringFromNaturalHelper n [])
 
 declare hol target_rep function stringFromNatural = `num_to_dec_string`
-declare ocaml target_rep function stringFromNatural = `Big_int.string_of_big_int`
+declare ocaml target_rep function stringFromNatural = `Nat_big_num.to_string`
 
 assert stringFromNatural_0: stringFromNatural 0 = "0"
 assert stringFromNatural_1: stringFromNatural 1 = "1"
@@ -94,7 +94,7 @@ let ~{ocaml} stringFromInteger i =
   else
     stringFromNatural (naturalFromInteger i)
 
-declare ocaml target_rep function stringFromInteger = `Big_int.string_of_big_int`
+declare ocaml target_rep function stringFromInteger = `Nat_big_num.to_string`
 
 assert stringFromInteger_0: stringFromInteger 0 = "0"
 assert stringFromInteger_1: stringFromInteger 1 = "1"
