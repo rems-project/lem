@@ -80,7 +80,7 @@ let maybe d f mb = match mb with
 end
 
 declare ocaml    target_rep function maybe = `Lem.option_case`
-declare isabelle target_rep function maybe = `option_case`
+declare isabelle target_rep function maybe = `case_option`
 declare hol      target_rep function maybe d f mb = `option_CASE` mb d f
 
 assert maybe_1: (maybe true not Nothing = true)
@@ -154,7 +154,7 @@ let map f = maybe Nothing (fun v -> Just (f v))
 
 declare hol      target_rep function map = `OPTION_MAP`
 declare ocaml    target_rep function map = `Lem.option_map`
-declare isabelle target_rep function map = `Option.map`
+declare isabelle target_rep function map = `map_option`
 declare coq      target_rep function map = `option_map`
 
 lemma maybe_map: (
