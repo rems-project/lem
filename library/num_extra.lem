@@ -1,0 +1,20 @@
+(* **************************************************** *)
+(*                                                      *)
+(* A library of additional functions on numbers         *)
+(*                                                      *)
+(* **************************************************** *)
+
+open import Num
+open import String
+
+declare {hol;isabelle;ocaml;coq} rename module = lem_num_extra
+
+val naturalOfString : string -> natural
+
+declare compile_message naturalOfString = "naturalOfString can fail, potentially with an exception, if the string cannot be parsed"
+declare ocaml target_rep function naturalOfString = `Nat_big_num.of_string_nat`
+
+val integerOfString : string -> integer
+
+declare compile_message integerOfString = "integerOfString can fail, potentially with an exception, if the string cannot be parsed"
+declare ocaml target_rep function integerOfString = `Nat_big_num.of_string`

@@ -50,3 +50,11 @@ let of_int64 = BI.big_int_of_int64
 let to_int64 = BI.int64_of_big_int
 
 let to_string = BI.string_of_big_int
+
+let of_string = BI.big_int_of_string
+let of_string_nat s =
+  let i = of_string s in
+    if BI.lt_big_int i BI.zero_big_int then
+      assert false
+    else
+      i

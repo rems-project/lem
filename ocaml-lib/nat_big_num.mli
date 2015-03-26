@@ -41,3 +41,5 @@ val to_int32 : num -> Int32.t
 val to_int64 : num -> Int64.t
 
 val to_string : num -> string
+val of_string : string -> num
+val of_string_nat : string -> num
