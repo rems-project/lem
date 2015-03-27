@@ -1689,7 +1689,7 @@ match C.exp_to_term e with
       block is_user_exp 0 (
       ws s1 ^
       T.let_start ^
-      block is_user_exp 0 (letbind print_backend bind) ^
+      block is_user_exp 0 (remove_core @@ letbind print_backend bind) ^
       ws s2 ^
       T.let_in ^
       break_hint_space 0 ^

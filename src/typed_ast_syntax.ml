@@ -491,7 +491,7 @@ let dest_num_exp e =
       Lit l -> (match l.term with L_num (_,i,_) -> Some i | _ -> None)
     | _ -> None
 
-let is_num_exp e = not (dest_tf_exp e = None)
+let is_num_exp e = not (dest_num_exp e = None)
 
 let mk_num_exp num_ty i = 
   let l = Ast.Trans (false, "mk_num_exp", None) in
