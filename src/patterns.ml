@@ -2089,6 +2089,14 @@ let is_coq_pattern_match : match_check_arg =
      allow_non_exhaustive = false }
 
 
+(******************************************************************************)
+(* Compilation for inductive relations                                        *)
+(******************************************************************************)
+
+(* In this section, the semantics of a pattern is slightly different.
+   In particular, we wish to keep all branches and use a given
+   [mk_choose] parameter to build a choice between possible
+   alternatives for a given match. *)
 
 (*
 top_fun : given exp arguments for each of the cases in the Some,
