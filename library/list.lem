@@ -1162,3 +1162,14 @@ val intersect : forall 'a. list 'a -> list 'a -> list 'a
 
 
 *)
+
+val     catMaybes : forall 'a. list (maybe 'a) -> list 'a
+let rec catMaybes xs =
+  match xs with
+    | [] ->
+        []
+    | (Nothing :: xs') ->
+        catMaybes xs'
+    | (Just x :: xs') ->
+        x :: catMaybes xs'
+  end

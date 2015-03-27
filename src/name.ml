@@ -101,9 +101,9 @@ let fresh_start start s ok =
           if ok (from_rope x) then
             x 
           else
-            f 1000 (* give up after 1000 tries *) 0
+            f 3000 (* give up after 1000 tries *) 0
       | Some(i) ->
-          f 1000 i
+          f 3000 i
 
 let fresh s ok = from_rope (fresh_start None s ok)
 
