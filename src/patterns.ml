@@ -467,7 +467,6 @@ let rec pat_matrix_simps_combine (sL : pat_matrix_simp list) m =
 let pat_matrix_simps l_org = pat_matrix_simps_combine [pat_matrix_simp_pat l_org]
    
 
-
 (******************************************************************************)
 (* The real compilation step                                                  *)
 (******************************************************************************)
@@ -562,6 +561,7 @@ let pat_matrix_compile_find_col (m: pat_matrix) : int =
   match res_opt with
       Some n -> n
     | None -> raise (match_compile_unreachable "pat_matrix_compile_find_col called on empty or trivial matrix")
+
 
 (******************************************************************************)
 (* Matrix Compile Funs                                                        *)
@@ -2087,3 +2087,324 @@ let is_coq_pattern_match : match_check_arg =
      pat_OK = is_coq_pat false;
      allow_redundant = false;
      allow_non_exhaustive = false }
+
+
+(******************************************************************************)
+(* Compilation for inductive relations                                        *)
+(******************************************************************************)
+
+(* In this section, the semantics of a pattern is slightly different.
+   In particular, we wish to keep all branches and use a given
+   [mk_choose] parameter to build a choice between possible
+   alternatives for a given match. *)
+
+(*
+top_fun : given exp arguments for each of the cases in the Some,
+   rebuild the match
+for each case
+  case_fun pat ee : return [None] if don't recognize a row ;
+             otherwise [Some (pats, pat_matrix_ext_exp)] where pat_matrix_ext_exp is the modified input and pats are the new sub-patterns
+  dest_in e : return the list of expressions corresponding to the pats of case_fun
+  restr : rebuild the whole pat from the pats of case_fun
+in_case is [fun e -> None]
+*)
+
+let my_list_compile_step
+    (env : env) mk_choose (gen : var_name_generator) (m_ty : Types.t) l_org :
+  matrix_compile_fun = fun pL ->
+  (* Heavily inspired from list_matrix_compile_fun *)
+  let module C =
+    Exps_in_context(struct
+      let env_opt = Some env
+      let avoid = None
+    end) in
+  matrix_compile_fun_check
+    (List.exists (fun p -> is_cons_pat p || is_list_pat None p) pL);
+  matrix_compile_fun_check
+    (List.for_all (fun p -> is_cons_pat p || is_list_pat None p || is_wild_pat p) pL);
+  let l = Ast.Trans (true, "my_list_compile_step", Some l_org) in
+
+  let p = List.hd pL in
+  let list_ty = annot_to_typ p in
+  let elem_ty = match list_ty.Types.t with
+    | Types.Tapp ([e], _) -> e
+    | _ -> raise Pat_Matrix_Compile_Fun_Failed in
+
+  (* Auxiliary vars/pvars/wildcards *)
+  let new_list_wc_pat = matrix_compile_mk_pwild list_ty in
+  let new_elem_wc_pat = matrix_compile_mk_pwild elem_ty in
+  let new_list_var_name = gen None list_ty in
+  let new_elem_var_name = gen None elem_ty in
+
+  (* Wildcard patterns *)
+  let wilds = List.filter is_wild_pat pL in
+  let case_fun_wild p ee =
+    if is_wild_pat p then Some ([], ee)
+    else None in
+  let dest_in_wild e = [] in
+  let restr_pat_wild pL =
+    matrix_compile_mk_pwild list_ty in
+
+  (* Nil patterns *)
+  let case_fun_nil p ee =
+    if is_list_pat (Some 0) p then Some ([], ee)
+    else None in
+  let dest_in_nil = fun e -> [] in
+  let restr_pat_nil pL =
+    assert (pL = []);
+    matrix_compile_mk_plist [] list_ty in
+
+  (* Cons patterns *)
+  let case_fun_cons p ee =
+    match p.term with
+    | P_cons _ ->
+      let (pe, pL) = matrix_compile_fun_get (dest_cons_pat p) in
+      Some ([pe; pL], ee)
+    | P_list _ ->
+      let pL = matrix_compile_fun_get (dest_list_pat None p) in
+      begin match pL with
+        | [] -> None
+        | p :: pL' -> Some ([p; matrix_compile_mk_plist pL' list_ty], ee)
+      end
+    | _ -> None in
+  let dest_in_cons e =
+    [ matrix_compile_mk_var new_elem_var_name elem_ty;
+      matrix_compile_mk_var new_list_var_name list_ty] in
+  let restr_pat_cons = function
+    | [ p1; p2 ] -> matrix_compile_mk_pcons p1 p2
+    | _ -> raise @@
+      match_compile_unreachable "my_list_compile_step wrong no of args to rest_pat_const" in
+
+  (* Reconstruction function *)
+  let nil_pats =
+    List.filter (is_list_pat (Some 0)) pL in
+  let cons_pats =
+    List.filter (fun p ->
+        is_cons_pat p || (is_list_pat None p && not (is_list_pat (Some 0) p))) pL in
+  let top_fun i eL =
+    match eL with
+    | e_nil :: e_cons :: e_wilds ->
+      let vs_cons = nfmap_domain @@ C.exp_to_free e_cons in
+      let (_, cons_p1) = matrix_compile_mk_pvar_pwild vs_cons new_elem_var_name elem_ty in
+      let (_, cons_p2) = matrix_compile_mk_pvar_pwild vs_cons new_list_var_name list_ty in
+      let cons_p = matrix_compile_mk_pcons cons_p1 cons_p2 in
+      let nil_p = matrix_compile_mk_plist [] list_ty in
+      let all_pats =
+        mk_case_exp true l i
+          [ (nil_p, e_nil); (cons_p, e_cons) ] m_ty ::
+        e_wilds in
+      if List.length all_pats > 1 then
+        mk_choose env l m_ty all_pats
+      else
+        List.hd all_pats
+    | _ -> raise @@
+      match_compile_unreachable "my_list_compile_step wrong no of args to top_fun" in
+
+  Some (top_fun,
+        (case_fun_nil, dest_in_nil, restr_pat_nil) ::
+        (case_fun_cons, dest_in_cons, restr_pat_cons) ::
+        List.map (fun _ ->
+            (case_fun_wild, dest_in_wild, restr_pat_wild)) wilds,
+        fun e -> None)
+
+let my_compile_step (env : env) (mk_failure : env -> Ast.l -> Types.t -> exp)
+    mk_choose (gen : var_name_generator) (m_ty : Types.t) l_org :
+  matrix_compile_fun = fun pL ->
+  let module C =
+    Exps_in_context(struct
+      let env_opt = Some env
+      let avoid = None
+    end) in
+  matrix_compile_fun_check
+    (List.for_all (fun p -> is_const_pat p || is_wild_pat p) pL);
+  let l = Ast.Trans (true, "my_compile_step", Some l_org) in
+
+  let p_ty =
+    matrix_compile_fun_get @@ Util.option_first
+      (fun p ->
+         Some (annot_to_typ p)) pL in
+
+  (* TODO: We may need to use constructor families here (see
+     [constr_matrix_compile_fun]), but I don't quite understand how they
+     work and just want to get something working ASAP. *)
+
+  let constr_ids =
+    Util.map_filter
+      (fun p -> Util.option_map (fun (id, _) -> id) @@ dest_const_pat p)
+      pL in
+  let constr_ids = List.sort (fun id id' -> Pervasives.compare id.descr id'.descr) constr_ids in
+  let rec uniq = function
+    | [] -> []
+    | [ x ] -> [ x ]
+    | x :: x' :: xs when x.descr = x'.descr ->
+      uniq (x' :: xs)
+    | x :: x' :: xs -> x :: uniq (x' :: xs) in
+  let constr_ids = uniq constr_ids in
+
+  let wilds =
+    List.filter is_wild_pat pL in
+  Reporting.print_debug_pat env "WILDS: " wilds;
+
+  let all_args =
+    let build_args (c_id : const_descr_ref id) =
+      let cd = c_env_lookup l env.c_env c_id.descr in
+      let subst = Types.TNfmap.from_list2 cd.const_tparams c_id.instantiation in
+      let c_type = Types.type_subst subst cd.const_type in
+      let (arg_tyL, _) = Types.strip_fn_type None c_type in
+      let resL = List.map (fun ty -> (ty, gen None ty, matrix_compile_mk_pwild ty)) arg_tyL in
+      (c_id, resL) in
+    List.map build_args constr_ids in
+
+  let top_fun con eL =
+    let build_row (c, argL) ee =
+      let vs = nfmap_domain @@ C.exp_to_free ee in
+      let build_arg (ty, n, _) =
+        snd @@ matrix_compile_mk_pvar_pwild vs n ty in
+      let arg_pL = List.map build_arg argL in
+      let full_pat = C.mk_pconst l c arg_pL (Some p_ty) in
+      (full_pat, ee)
+    in
+
+    let everything =
+      (List.map (fun p -> `Wild (annot_to_typ p)) wilds) @
+      (List.map (fun (c, argL) -> `Const (c, argL)) all_args) in
+    assert (List.length everything = List.length eL);
+    let all =
+      List.sort (fun (con, _) (con', _) ->
+          match con, con' with
+          | `Const (c, _), `Const (c', _) ->
+            Pervasives.compare c.descr c'.descr
+          | `Const (_, _), `Wild _ -> -1
+          | `Wild _, `Const (_, _) -> 1
+          | `Wild _, `Wild _ -> 0) @@
+      List.combine everything eL in
+    let rec split =
+      function
+      | [] -> ([], [])
+      | (`Const (c, argL), ee) :: rst ->
+        let consts, wilds = split rst in
+        ((c, argL), ee) :: consts, wilds
+      | (`Wild ty, ee) :: rst ->
+        let consts, wilds = split rst in
+        consts, (ty, ee) :: wilds in
+    let consts, wilds = split all in
+    let all_pats =
+      if consts = [] then List.map (fun (ty, ee) -> ee) wilds else begin
+        Reporting.print_debug_exp env "\x1b[033mWAS\x1b[m" @@ List.map snd consts;
+        (* Let's try to build a [flex]. *)
+        mk_case_exp true l con
+          (List.map (fun (p, ee) -> build_row p ee) consts @
+           [ matrix_compile_mk_pwild p_ty, mk_failure env l m_ty ] ) m_ty ::
+        List.map (fun (ty, ee) -> ee) wilds
+      end in
+    let all_pats = List.sort Pervasives.compare all_pats in
+    let rec uniq = function
+      | [] -> []
+      | [x] -> [x]
+      | x :: x' :: xs when x = x' -> uniq @@ x' :: xs
+      | x :: x' :: xs -> x :: (uniq @@ x' :: xs) in
+    let all_pats = uniq all_pats in
+    if List.length all_pats > 1 then
+      mk_choose env l m_ty all_pats
+    else List.hd all_pats in
+
+  (* compilation of wildcard patterns that may match anything *)
+  let case_fun_wild p ee =
+    if is_wild_pat p then Some ([], ee)
+    else None in
+
+  let dest_in_wild e = [] in
+
+  let restr_pat_wild pL =
+    matrix_compile_mk_pwild p_ty in
+
+  (* Compilation for the various other constructors *)
+  let case_fun (id, _) p ee =
+    match p.term with
+    | P_const (id', pL) when id'.descr = id.descr ->
+      Some (pL, ee)
+    | _ -> None in
+
+  let dest_in (id, argL) =
+    let vL = List.map (fun (ty, n, _) -> matrix_compile_mk_var n ty) argL in
+    fun e -> vL in
+
+  let restr_pat (id, _) pL =
+    C.mk_pconst l id (List.map mk_opt_paren_pat pL) (Some p_ty) in
+
+  let case_fun_else p ee =
+    Some ([], ee) in
+  let dest_in_else e = [] in
+  let restr_pat_else _ = matrix_compile_mk_pwild p_ty in
+
+  let nall = List.length all_args in
+
+  Some
+    (top_fun,
+     List.map (fun _ ->
+         (case_fun_wild, dest_in_wild, restr_pat_wild))
+       wilds @
+     List.map (fun (id, argL) ->
+         (case_fun (id, argL), dest_in (id, argL), restr_pat (id, argL)))
+       all_args (*@
+                  [ (case_fun_else, dest_in_else, restr_pat_else) ]*),
+     fun e -> None)
+
+let is_trivial_indreln_matrix (m : pat_matrix) : bool =
+  let (_, rows, _) = m in
+  List.for_all (fun (_, pL, _) ->
+      List.for_all (fun p -> is_var_pat p || is_wild_pat p) pL) rows
+
+let nontrivial (m : pat_matrix) : pat_matrix =
+  let eL, rowL, rebuild = m in
+  let move =
+    List.find (fun (_, pL, _) ->
+        not @@ List.for_all (fun p -> is_var_pat p || is_wild_pat p) pL) rowL in
+  let rowL' =
+    move :: List.filter (fun x -> x != move) rowL in
+  eL, List.mapi (fun i (_, pL, ee) -> (i, pL, ee)) rowL', rebuild
+
+let rec indreln_matrix (fail : exp) choose cf env l_org m =
+  let l = Ast.Trans (true, "indreln_matrix", Some l_org) in
+  let m_simp = pat_matrix_simps l m in
+  if is_empty_pat_matrix m_simp then
+    fail
+  else if is_trivial_indreln_matrix m_simp then
+    let eL, rowL, rebuild = m_simp in
+    if List.length rowL > 1 then
+      choose @@
+      List.map (fun row ->
+          trivial_pat_matrix_to_exp (eL, [row], rebuild)) rowL
+    else
+      trivial_pat_matrix_to_exp m_simp
+else
+    let m_simp = pat_matrix_simps l @@ nontrivial m_simp in
+    let col_no = pat_matrix_compile_find_col m_simp in
+    let top_fun, mL =
+      pat_matrix_compile_step cf col_no m_simp in
+    let eL =
+      List.map (fun (_, m) ->
+          indreln_matrix fail choose cf env l m) mL in
+    let res = top_fun eL in
+    res
+
+let compile_relation_exp
+    (env : env) (mk_failure : env -> Ast.l -> Types.t -> exp)
+    (mk_choose : env -> Ast.l -> Types.t -> exp list -> exp) (exp : exp)
+  : exp option =
+  let l = Ast.Trans (true, "compile_relation_exp", Some (exp_to_locn exp)) in
+
+  match case_exp_to_pat_matrix true exp with
+  | None -> assert false
+  | Some m ->
+    let gen = mk_var_name_gen (pat_matrix_vars m) in
+    let cf =
+      combine_matrix_compile_fun l gen (exp_to_typ exp) [
+        tuple_matrix_compile_fun env ;
+        my_list_compile_step env mk_choose ;
+        my_compile_step env mk_failure mk_choose ;
+        num_matrix_compile_fun true env ;
+        num_add_matrix_compile_fun true (fun _ -> true) env ;
+        string_matrix_compile_fun false env ] in
+    let res = indreln_matrix (mk_failure env l @@ exp_to_typ exp) (mk_choose env l @@ exp_to_typ exp) cf env l m in
+    Some res
