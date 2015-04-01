@@ -8,9 +8,6 @@ BUILD_DIR := `pwd`
 all: bin/lem libs
 # we might want run the tests for all backends that are present
 
-dependencies:
-	make -C dependencies
-
 build-doc:
 	make -C doc
 do-tests:
@@ -49,6 +46,9 @@ tex-libs:
 	make -C library tex-libs
 	cd tex-lib; pdflatex lem-libs.tex
 	cd tex-lib; pdflatex lem-libs.tex
+	
+dependencies:
+	make -C dependencies
 
 test-other: test-ppcmem test-cpp test-cppppc
 
