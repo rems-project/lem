@@ -8,6 +8,9 @@ BUILD_DIR := `pwd`
 all: bin/lem libs
 # we might want run the tests for all backends that are present
 
+dependencies:
+	make -C dependencies
+
 build-doc:
 	make -C doc
 do-tests:
