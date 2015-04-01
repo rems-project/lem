@@ -1,4 +1,4 @@
-type num
+type num = Big_int_Z.big_int
 
 val succ : num -> num
 val pred : num -> num
