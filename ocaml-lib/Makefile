@@ -1,5 +1,23 @@
-all:
-	ocamlbuild -use-ocamlfind -package zarith extract.cmxa
-	ocamlbuild -use-ocamlfind -package zarith extract.cma
+DEPENDS ?= dependencies
+ZARITH ?= $(DEPENDS)/zarith
+OCAMLFLAGS += -I $(ZARITH)/
+
+ML_FILES := \
+	lem.ml lem_assert_extra.ml lem_bool.ml lem_basic_classes.ml lem_function.ml lem_maybe.ml lem_tuple.ml lem_num.ml lem_list.ml lem_either.ml \
+	lem_list_extra.ml lem_set_helpers.ml lem_set.ml lem_map.ml lem_map_extra.ml lem_maybe_extra.ml lem_function_extra.ml \
+	lem_relation.ml lem_sorting.ml lem_set_extra.ml \
+	lem_string.ml lem_string_extra.ml lem_word.ml lem_show.ml lem_show_extra.ml lem_pervasives.ml lem_num_extra.ml lem_pervasives_extra.ml
+	
+SUPPORTING_ML_FILES := \
+	nat_big_num.mli nat_big_num.ml nat_num.mli nat_num.ml pset.mli pset.ml pmap.mli pmap.ml vector.mli vector.ml bit.mli bit.ml xstring.mli xstring.ml either.ml
+
+all: $(SUPPORTING_ML_FILES) $(ML_FILES)
+	make -C dependencies
+	ocamlfind ocamlc $(OCAMLFLAGS) zarith.cma nums.cma $(SUPPORTING_ML_FILES) $(ML_FILES)
+	
 clean:
 	-ocamlbuild -clean
+	make -C dependencies clean
+
+dependencies:	
+	make -C dependencies
