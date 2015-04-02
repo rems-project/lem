@@ -2085,9 +2085,17 @@ let gen_fns_info
     (rules : indreln_rule lskips_seplist) : defn_ctxt =
   let env = defn_ctxt_to_env ctxt in
   let rels = get_rels env l names rules in
-  let l = loc_trans "gen_fns_info" l in
-  let full_rels = list_possible_modes mod_path ctxt rels in
-  gen_fns_info_aux l mod_path ctxt full_rels
+  (* Only generate the modes if there is at least one annotated rule. *)
+  let gen =
+    Nfmap.fold (fun gen _ reldescr ->
+        gen || List.length reldescr.rel_indfns > 0)
+      false rels in
+  if gen then
+    let l = loc_trans "gen_fns_info" l in
+    let full_rels = list_possible_modes mod_path ctxt rels in
+    gen_fns_info_aux l mod_path ctxt full_rels
+  else
+    ctxt
 
 let gen_fns_def env l mpath localenv names rules local =
   let rels = get_rels env l names rules in
