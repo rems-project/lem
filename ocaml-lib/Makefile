@@ -25,7 +25,7 @@ all: $(SUPPORTING_ML_FILES) $(ML_FILES)
 	ocamlfind ocamlc $(OCAMLFLAGS) -a -o extract.cma $(SUPPORTING_CMI_FILES) $(CMI_FILES)
 
 clean:
-	-ocamlbuild -clean
+	\rm *.c* *.o *.cma *.cmxa
 	make -C dependencies clean
 
 dependencies:	
