@@ -42,6 +42,8 @@ let bitwise_or = BI.or_big_int
 let bitwise_xor  = BI.xor_big_int
 let bitwise_and = BI.and_big_int
 
+let extract_num = BI.extract_big_int
+
 let of_int = BI.big_int_of_int
 let to_int = BI.int_of_big_int
 let of_int32 = BI.big_int_of_int32

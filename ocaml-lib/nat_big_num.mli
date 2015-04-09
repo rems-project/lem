@@ -32,6 +32,8 @@ val bitwise_xor : num -> num -> num
 val shift_left : num -> int -> num
 val shift_right : num -> int -> num
 
+val extract_num : num -> int -> int -> num
+
 val of_int : int -> num
 val of_int32 : Int32.t -> num
 val of_int64 : Int64.t -> num
