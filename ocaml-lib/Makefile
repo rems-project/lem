@@ -22,7 +22,7 @@ all: $(SUPPORTING_ML_FILES) $(ML_FILES)
 	ocamlfind ocamlc $(OCAMLFLAGS) zarith.cma nums.cma $(SUPPORTING_ML_FILES) $(ML_FILES)
 	ocamlfind ocamlopt $(OCAMLFLAGS) zarith.cmxa nums.cmxa $(SUPPORTING_ML_FILES) $(ML_FILES)
 	ocamlfind ocamlopt $(OCAMLFLAGS) -a -o extract.cmxa $(SUPPORTING_CMX_FILES) $(CMX_FILES)
-	ocamlfind ocamlc $(OCAMLFLAGS) -a -o extract.cma $(SUPPORTING_CMI_FILES) $(CMI_FILES)
+	ocamlfind ocamlc $(OCAMLFLAGS) -a -o extract.cma $(SUPPORTING_CMO_FILES) $(CMO_FILES)
 
 clean:
 	\rm -f *.c* *.o *.cma *.cmxa
