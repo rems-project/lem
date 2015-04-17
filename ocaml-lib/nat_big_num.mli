@@ -11,7 +11,10 @@ val sub_nat : num -> num -> num
 val div : num -> num -> num
 val mul : num -> num -> num
 val pow_int : num -> int -> num
+val pow_int_positive : int -> int -> num
 
+
+val quomod : num -> num -> num * num
 val abs : num -> num
 val modulus : num -> num -> num
 
