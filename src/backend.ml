@@ -3112,7 +3112,7 @@ let rec defs (ds:def list) =
            | None ->
                emp
            | Some(s) -> 
-               ws s ^ kwd ";;"
+               ws s
        end ^
        y)
     ds 
