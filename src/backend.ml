@@ -2629,15 +2629,12 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
       ws s4 ^
       T.module_end
   | Rename(s1,(n,l),mod_bind,s2,m) ->
-  		if T.target = Target_no_ident Target_hol || T.target = Target_no_ident Target_isa then
-  			ws s1
-  		else
-      	ws s1 ^ kwd "XXX" ^
-      	T.module_module ^
-      	Name.to_output Module_name n ^
-      	ws s2 ^
-      	kwd "=" ^
-      	Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)
+    	ws s1 ^
+    	T.module_module ^
+    	Name.to_output Module_name n ^
+    	ws s2 ^
+    	kwd "=" ^
+    	Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)
   | OpenImport (oi, ms) ->
   		let out =
   			let (ms', sk) = B.open_to_open_target ms in 
