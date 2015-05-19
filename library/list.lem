@@ -764,8 +764,8 @@ lemma list_update_index: (forall i l n e.
 (* ------------------------- *)
 
 (* The membership test, one of the basic list functions, is actually tricky for
-   Lem, because it is tricky, which equality to use. From Lem`s point of 
-   perspective, we want to use the equality provided by the equality type - class.
+   Lem, because it is tricky, which equality to use. From Lem's point of
+   view, we want to use the equality provided by the equality type class.
    This allows for example to check whether a set is in a list of sets.
 
    However, in order to use the equality type class, elem essentially becomes
@@ -773,11 +773,11 @@ lemma list_update_index: (forall i l n e.
    equality (=) with syntactic equality, this is overly complicated. In
    our theorem prover backend, we would end up with overly complicated, harder
    to read definitions and some of the automation would be harder to apply.
-   Moreover, nearly all the old Lem generated code would change and require 
+   Moreover, nearly all the old Lem generated code would change and require
    (hopefully minor) adaptions of proofs.
 
    For now, we ignore this problem and just demand, that all instances of
-   the equality type class do the right thing for the theorem prover backends.   
+   the equality type class do the right thing for the theorem prover backends.
 *)
 
 val elem : forall 'a. Eq 'a => 'a -> list 'a -> bool
@@ -787,7 +787,6 @@ let elemBy eq e l = any (eq e) l
 let elem = elemBy (=)
 
 declare hol      target_rep function elem = `MEM`
-declare ocaml    target_rep function elem = `List.mem`
 declare isabelle target_rep function elem e l = `Set.member` e (`set` l)
 
 assert elem_1: (elem (2:nat) [3;1;2;4])
