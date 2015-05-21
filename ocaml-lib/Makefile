@@ -9,7 +9,7 @@ ML_FILES := \
 	lem_string.ml lem_string_extra.ml lem_word.ml lem_show.ml lem_show_extra.ml lem_pervasives.ml lem_num_extra.ml lem_pervasives_extra.ml
 
 SUPPORTING_ML_FILES := \
-	nat_big_num.mli nat_big_num.ml nat_num.mli nat_num.ml pset.mli pset.ml pmap.mli pmap.ml vector.mli vector.ml bit.mli bit.ml xstring.mli xstring.ml either.ml
+	big_int_impl.ml big_int_impl.mli nat_big_num.mli nat_big_num.ml nat_num.mli nat_num.ml pset.mli pset.ml pmap.mli pmap.ml vector.mli vector.ml bit.mli bit.ml xstring.mli xstring.ml either.ml
 
 CMX_FILES := $(patsubst %.ml,%.cmx,$(ML_FILES))
 CMO_FILES := $(patsubst %.ml,%.cmo,$(ML_FILES))
