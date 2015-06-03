@@ -593,6 +593,5 @@ less_eq
 greater
 greater_eq
 word
-nat
 last
 default
