@@ -11,3 +11,6 @@
 *)
 val print_string : string -> unit
 declare ocaml target_rep function print_string = `print_string`
+
+val print_endline : string -> unit
+declare ocaml target_rep function print_endline = `print_endline`
