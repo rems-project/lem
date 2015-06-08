@@ -758,7 +758,7 @@ end
 
 val integerLor  : integer -> integer -> integer
 let integerLor i1 i2 = defaultLor integerFromBitSeq (bitSeqFromInteger Nothing) i1 i2
-declare ocaml target_rep function integerLor = `Big_int.or_big_int`
+declare ocaml target_rep function integerLor = `Nat_big_num.bitwise_or`
 
 instance (WordOr integer) 
   let (lor) = integerLor
@@ -766,7 +766,7 @@ end
 
 val integerLxor : integer -> integer -> integer
 let integerLxor i1 i2 = defaultLxor integerFromBitSeq (bitSeqFromInteger Nothing) i1 i2
-declare ocaml target_rep function integerLxor = `Big_int.xor_big_int`
+declare ocaml target_rep function integerLxor = `Nat_big_num.bitwise_xor`
 
 instance (WordXor integer) 
   let (lxor) = integerLxor
@@ -774,7 +774,7 @@ end
 
 val integerLand : integer -> integer -> integer
 let integerLand i1 i2 = defaultLand integerFromBitSeq (bitSeqFromInteger Nothing) i1 i2
-declare ocaml target_rep function integerLand = `Big_int.and_big_int`
+declare ocaml target_rep function integerLand = `Nat_big_num.bitwise_and`
 
 instance (WordAnd integer) 
   let (land) = integerLand
@@ -782,7 +782,7 @@ end
 
 val integerLsl  : integer -> nat -> integer
 let integerLsl i n = defaultLsl integerFromBitSeq (bitSeqFromInteger Nothing) i n
-declare ocaml target_rep function integerLsl = `Big_int.shift_left_big_int`
+declare ocaml target_rep function integerLsl = `Nat_big_num.shift_left`
 
 instance (WordLsl integer) 
   let (lsl) = integerLsl
@@ -790,7 +790,7 @@ end
 
 val integerAsr  : integer -> nat -> integer
 let integerAsr i n = defaultAsr integerFromBitSeq (bitSeqFromInteger Nothing) i n
-declare ocaml target_rep function integerAsr = `Big_int.shift_right_big_int`
+declare ocaml target_rep function integerAsr = `Nat_big_num.shift_right`
 
 instance (WordLsr integer) 
   let (lsr) = integerAsr
@@ -930,7 +930,7 @@ let bitSeqFromNatural len n = bitSeqFromInteger len (integerFromNatural n)
 
 val naturalLor  : natural -> natural -> natural
 let naturalLor i1 i2 = defaultLor naturalFromBitSeq (bitSeqFromNatural Nothing) i1 i2
-declare ocaml target_rep function naturalLor = `Big_int.or_big_int`
+declare ocaml target_rep function naturalLor = `Nat_big_num.bitwise_or`
 
 instance (WordOr natural) 
   let (lor) = naturalLor
@@ -938,7 +938,7 @@ end
 
 val naturalLxor : natural -> natural -> natural
 let naturalLxor i1 i2 = defaultLxor naturalFromBitSeq (bitSeqFromNatural Nothing) i1 i2
-declare ocaml target_rep function naturalLxor = `Big_int.xor_big_int`
+declare ocaml target_rep function naturalLxor = `Nat_big_num.bitwise_xor`
 
 instance (WordXor natural) 
   let (lxor) = naturalLxor
@@ -946,7 +946,7 @@ end
 
 val naturalLand : natural -> natural -> natural
 let naturalLand i1 i2 = defaultLand naturalFromBitSeq (bitSeqFromNatural Nothing) i1 i2
-declare ocaml target_rep function naturalLand = `Big_int.and_big_int`
+declare ocaml target_rep function naturalLand = `Nat_big_num.bitwise_and`
 
 instance (WordAnd natural) 
   let (land) = naturalLand
@@ -954,7 +954,7 @@ end
 
 val naturalLsl  : natural -> nat -> natural
 let naturalLsl i n = defaultLsl naturalFromBitSeq (bitSeqFromNatural Nothing) i n
-declare ocaml target_rep function naturalLsl = `Big_int.shift_left_big_int`
+declare ocaml target_rep function naturalLsl = `Nat_big_num.shift_left`
 
 instance (WordLsl natural) 
   let (lsl) = naturalLsl
@@ -962,7 +962,7 @@ end
 
 val naturalAsr  : natural -> nat -> natural
 let naturalAsr i n = defaultAsr naturalFromBitSeq (bitSeqFromNatural Nothing) i n
-declare ocaml target_rep function naturalAsr = `Big_int.shift_right_big_int`
+declare ocaml target_rep function naturalAsr = `Nat_big_num.shift_right`
 
 instance (WordLsr natural) 
   let (lsr) = naturalAsr

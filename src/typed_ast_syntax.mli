@@ -51,12 +51,20 @@ open Types
 
 (** {2 Types} *)
 
+(** The unit type *)
+val unit_ty : Types.t
+
 (** The boolean type *)
 val bool_ty : Types.t
 
 (** The natural number type *)
 val nat_ty : Types.t
 
+(** The list type *)
+val list_ty : Types.t -> Types.t
+
+(** The option type *)
+val option_ty : Types.t -> Types.t
 
 (** {2 Navigating Environments} *)
 

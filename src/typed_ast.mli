@@ -613,6 +613,7 @@ module Exps_in_context(C : Exp_context) : sig
   val mk_lnumeral : Ast.l -> lskips -> int -> string option -> Types.t option -> lit
   val mk_lnum : Ast.l -> lskips -> int -> string option -> Types.t -> lit 
   val mk_lbool : Ast.l -> lskips -> bool -> Types.t option -> lit
+  val mk_lunit : Ast.l -> lskips -> Types.t option -> lit
   val mk_lbit : Ast.l -> lskips -> int -> Types.t option -> lit
   val mk_lundef : Ast.l -> lskips -> string -> Types.t -> lit
   val mk_lstring : Ast.l -> lskips -> string -> Types.t option -> lit

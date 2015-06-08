@@ -702,6 +702,16 @@ assert takeWhile_1: (takeWhile ((>=) 5) [(1:nat);2;3;4;5;6] = [1;2;3;4;5])
 assert takeWhile_2: (takeWhile ((>) 100) [(1:nat);2;3;4;5;6] = [1;2;3;4;5;6])
 assert takeWhile_3: (takeWhile ((<) 10) [(1:nat);2;3;4;5;6] = [])
 
+(* ------------------------- *)
+(* splitWhile                *)
+(* ------------------------- *)
+
+val splitWhile : forall 'a. ('a -> bool) -> list 'a -> (list 'a * list 'a)
+let splitWhile p xs = (takeWhile p xs, dropWhile p xs)
+
+assert splitWhile_1: (splitWhile ((>) 3) [(1:nat);2;3;4;5;6] = ([1;2],[3;4;5;6]))
+assert splitWhile_2: (splitWhile ((<=) 6) ([] : list nat) = ([], []))
+
 
 (* ------------------------- *)
 (* isPrefixOf                *)
@@ -1151,3 +1161,14 @@ val intersect : forall 'a. list 'a -> list 'a -> list 'a
 
 
 *)
+
+val     catMaybes : forall 'a. list (maybe 'a) -> list 'a
+let rec catMaybes xs =
+  match xs with
+    | [] ->
+        []
+    | (Nothing :: xs') ->
+        catMaybes xs'
+    | (Just x :: xs') ->
+        x :: catMaybes xs'
+  end

@@ -95,6 +95,14 @@ val cleanup_match_exp : env -> bool -> exp -> exp option
     warning messages might be issued. This warning uses [target_opt]. Otherwise, it is not used.*)
 val compile_match_exp : target -> match_check_arg -> env -> exp -> exp option
 
+(** [compile_relation_exp env fail choose e] compiles
+    match-expressions as inductive relations.
+
+    Redundant matches are kept and merged using the [choose] function,
+    while non-exhaustive matches are completed through with the [fail]
+    function. *)
+val compile_relation_exp : env -> (env -> Ast.l -> Types.t -> exp) -> (env -> Ast.l -> Types.t -> exp list -> exp) -> exp -> exp option
+
 val compile_exp : target -> match_check_arg -> env -> Macro_expander.macro_context -> exp -> exp option
 
 val compile_def : target -> match_check_arg -> env -> Def_trans.def_macro

@@ -1689,7 +1689,7 @@ match C.exp_to_term e with
       block is_user_exp 0 (
       ws s1 ^
       T.let_start ^
-      block is_user_exp 0 (letbind print_backend bind) ^
+      block is_user_exp 0 (remove_core @@ letbind print_backend bind) ^
       ws s2 ^
       T.let_in ^
       break_hint_space 0 ^
@@ -2628,13 +2628,13 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
       callback ds ^
       ws s4 ^
       T.module_end
-  | Rename(s1,(n,l),mod_bind,s2,m) ->      
-      ws s1 ^
-      T.module_module ^
-      Name.to_output Module_name n ^
-      ws s2 ^
-      kwd "=" ^
-      Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)
+  | Rename(s1,(n,l),mod_bind,s2,m) ->
+    	ws s1 ^
+    	T.module_module ^
+    	Name.to_output Module_name n ^
+    	ws s2 ^
+    	kwd "=" ^
+    	Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)
   | OpenImport (oi, ms) ->
   		let out =
   			let (ms', sk) = B.open_to_open_target ms in 
@@ -3112,7 +3112,7 @@ let rec defs (ds:def list) =
            | None ->
                emp
            | Some(s) -> 
-               ws s ^ kwd ";;"
+               ws s
        end ^
        y)
     ds 

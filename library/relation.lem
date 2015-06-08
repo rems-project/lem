@@ -676,3 +676,30 @@ assert reflexive_transitive_closure_0: (reflexiveTransitiveClosureOn (relFromSet
 val reflexiveTransitiveClosure : forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> rel 'a 'a
 let ~{ocaml;coq} reflexiveTransitiveClosure r = transitiveClosure (relUnion r relId)
 
+
+
+
+(* ========================================================================== *)
+(* inverse of closures                                                        *)
+(* ========================================================================== *)
+
+(* ----------------------- *)
+(* without transitve edges *)
+(* ----------------------- *)
+
+val withoutTransitiveEdges: forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> rel 'a 'a
+let withoutTransitiveEdges r =
+  let tc = transitiveClosure r in
+  {(a, c) | forall ((a, c) IN r) 
+  | forall (b IN relRange r). a <> b && b <> c --> not ((a, b) IN tc && (b, c) IN tc)}
+
+lemma trancl_withoutTransitiveEdges_thm: forall r. finite r --> 
+                    transitiveClosure (withoutTransitiveEdges r) = transitiveClosure r
+
+assert withoutTransitiveEdges_0: withoutTransitiveEdges {((0:nat), 1)} = {((0:nat), 1)}
+assert withoutTransitiveEdges_1: withoutTransitiveEdges {((0:nat), 1); (1, 2); (0, 2)} = 
+                                 {((0:nat), 1); (1, 2)}
+assert withoutTransitiveEdges_2: withoutTransitiveEdges {((0:nat), 1); (1, 2); (2, 3); (0, 3)} = 
+                                 {((0:nat), 1); (1, 2); (2, 3)}
+assert withoutTransitiveEdges_3: withoutTransitiveEdges {((0:nat), 0); (0, 1)} = 
+                                 {((0:nat), 0); (0, 1)}
