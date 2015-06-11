@@ -1,6 +1,6 @@
 declare {isabelle;hol;ocaml;coq} rename module = lem_show_extra
 
-open import String Maybe Num Basic_classes Show 
+open import String Maybe Num Basic_classes Set Relation Show 
 import Set_extra String_extra
 
 instance (Show nat)
@@ -21,6 +21,19 @@ end
 
 let stringFromSet showX xs =
   "{" ^ Show.stringFromListAux showX (Set_extra.toList xs) ^ "}"
+
+(* Abbreviates the representation if the relation is transitive. *)
+let stringFromRelation showX rel =
+  if isTransitive rel then
+    let pruned_rel = withoutTransitiveEdges rel in
+    if (forall (e IN rel). (e IN pruned_rel)) then
+      (* The relations are the same (there are no transitive edges),
+         so we can just as well print the original one. *)
+      stringFromSet showX rel
+    else
+      "trancl of " ^ stringFromSet showX pruned_rel
+  else
+    stringFromSet showX rel
 
 instance forall 'a. Show 'a, SetType 'a => (Show (set 'a))
   let show xs = stringFromSet show xs
