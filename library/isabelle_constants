@@ -595,3 +595,12 @@ greater_eq
 word
 last
 default
+filter
+tl
+first
+length
+size
+fst
+map
+set
+fields
