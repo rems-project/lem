@@ -2,6 +2,7 @@ module BI = Big_int_impl.BI
 
 type num = BI.big_int
 
+let zero = BI.zero_big_int
 let succ = BI.succ_big_int
 let pred = BI.pred_big_int
 let pred_nat p =

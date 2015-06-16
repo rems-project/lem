@@ -190,7 +190,7 @@ declare ascii_rep function (++) = `append`
 declare termination_argument append = automatic
 
 declare hol      target_rep function append = infix `++`
-declare ocaml    target_rep function append = `List.append`
+declare ocaml    target_rep function append l1 l2 = `List.rev_append` (`List.rev` l1) l2
 declare isabelle target_rep function append = infix `@`
 declare tex      target_rep function append = infix `$+\!+$`
 declare coq      target_rep function append = (`@` `List.app` `_`)

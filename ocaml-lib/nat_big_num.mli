@@ -1,5 +1,6 @@
 type num = Big_int_impl.BI.big_int
 
+val zero : num
 val succ : num -> num
 val pred : num -> num
 val pred_nat : num -> num
