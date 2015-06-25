@@ -200,6 +200,7 @@ let isa  =
             []);
       Def_macros (fun env ->
                     [M.remove_vals;
+                     M.remove_module_renames;
                      M.remove_opens;
                      M.remove_indrelns_true_lhs;
                      M.remove_types_with_target_rep (Target_no_ident Target_isa);

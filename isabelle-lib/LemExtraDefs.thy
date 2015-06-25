@@ -200,10 +200,10 @@ next
   from LeastI [of ?p, OF `?p i`]
   have "?p (Least ?p)" .
 
-  with not_less_Least [where ?P = ?p]
-  have "find_index P xs = Some (Least ?p)"
-    by (simp)    
-  thus "\<not> ?lhs" by auto
+  hence "find_index P xs = Some (Least ?p)"
+    by (subst find_index_eq_some) (metis (mono_tags) less_trans not_less_Least)
+
+  thus "\<not> ?lhs" by blast
 qed
 
 definition genlist where
@@ -225,13 +225,13 @@ fun delete_first :: "('a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow>
     "delete_first P [] = None"
   | "delete_first P (x # xs) =
      (if (P x) then Some xs else
-      Option.map (\<lambda>xs'. x # xs') (delete_first P xs))" 
+      map_option (\<lambda>xs'. x # xs') (delete_first P xs))" 
 declare delete_first.simps [simp del]
 
 lemma delete_first_simps [simp] :
    "delete_first P [] = None"
    "P x \<Longrightarrow> delete_first P (x # xs) = Some xs"
-   "\<not>(P x) \<Longrightarrow> delete_first P (x # xs) = Option.map (\<lambda>xs'. x # xs') (delete_first P xs)"
+   "\<not>(P x) \<Longrightarrow> delete_first P (x # xs) = map_option (\<lambda>xs'. x # xs') (delete_first P xs)"
 unfolding delete_first.simps by auto
 
 lemmas delete_first_unroll = delete_first.simps(2)
@@ -492,7 +492,7 @@ by (simp add: insert_sort_by_perm)
 subsection{* Maps *}
 
 definition map_image :: "('v \<Rightarrow> 'w) \<Rightarrow> ('k, 'v) map \<Rightarrow> ('k, 'w) map" where
-  "map_image f m = (\<lambda>k. Option.map f (m k))"
+  "map_image f m = (\<lambda>k. map_option f (m k))"
 
 lemma map_image_simps [simp]:
   "(map_image f m) k = None \<longleftrightarrow> m k = None"
@@ -838,7 +838,7 @@ subsection {* sorting *}
 subsection {* Strings *}
 
 lemma explode_str_simp [simp] :
-  "explode (STR l) = l"
+  "String.explode (STR l) = l"
 by (metis STR_inverse UNIV_I)
 
 declare String.literal.explode_inverse [simp]

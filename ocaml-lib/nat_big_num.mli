@@ -1,5 +1,6 @@
-type num = Big_int_Z.big_int
+type num = Big_int_impl.BI.big_int
 
+val zero : num
 val succ : num -> num
 val pred : num -> num
 val pred_nat : num -> num
@@ -11,7 +12,10 @@ val sub_nat : num -> num -> num
 val div : num -> num -> num
 val mul : num -> num -> num
 val pow_int : num -> int -> num
+val pow_int_positive : int -> int -> num
 
+
+val quomod : num -> num -> num * num
 val abs : num -> num
 val modulus : num -> num -> num
 

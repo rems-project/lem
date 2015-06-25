@@ -156,6 +156,8 @@ headache: headache-1.03.tar.gz
 
 OCAML-LIB-NON_LGPL =      \
 ocaml-lib/Makefile	  \
+ocaml-lib/big_int_impl.ml \
+ocaml-lib/big_int_impl.mli \
 ocaml-lib/nat_big_num.ml  \
 ocaml-lib/nat_big_num.mli \
 ocaml-lib/nat_num.ml	  \

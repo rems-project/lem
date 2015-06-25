@@ -1,7 +1,8 @@
-module BI = Big_int_Z
+module BI = Big_int_impl.BI
 
 type num = BI.big_int
 
+let zero = BI.zero_big_int
 let succ = BI.succ_big_int
 let pred = BI.pred_big_int
 let pred_nat p =
@@ -20,6 +21,10 @@ let sub_nat left right =
     BI.sub_big_int left right
 let mul = BI.mult_big_int
 let pow_int = BI.power_big_int_positive_int
+let pow_int_positive = BI.power_int_positive_int
+
+
+let quomod = BI.quomod_big_int
 
 let abs = BI.abs_big_int
 let modulus = BI.mod_big_int

@@ -233,7 +233,6 @@ subsubsect
 subsubsection
 syntax
 term
-termination
 text
 text_raw
 then
@@ -461,7 +460,6 @@ context
 datatype
 declaration
 declare
-defaultsort
 defer_recdef
 definition
 defs
@@ -595,3 +593,12 @@ less_eq
 greater
 greater_eq
 word
+last
+default
+filter
+tl
+first
+length
+size
+fst
+fields
