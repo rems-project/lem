@@ -32,6 +32,25 @@ assert ~{coq} choose_1: choose {(5:nat)} = 5
 assert ~{coq} choose_2: choose {(6:nat)} = 6
 assert ~{coq} choose_3: choose {(6:nat);1;2} IN {6;1;2}
 
+(* ------------------------ *)
+(* chooseAndSplit           *)
+(* ------------------------ *)
+(* The idea here is to provide a simple primitive that Lem code can use
+ * to perform its own custom searches within the set -- likely using a
+ * search criterion related to the element ordering, but not necessarily).
+ * For example, sometimes we don't necessarily want to search for a specific
+ * element, but want to search for elements greater than or less than some other.
+ * Someties we'd like to use "split" but don't know a good value to "split" at.
+ * This function lets the set implementation decide that value.
+ *
+ * The contract of chooseAndSplit is simply to select an element nondeterministically
+ * and return that element, together with the subsets of elements less than and
+ * greater than it. In this way, we can recursively traverse the set with any
+ * search criterion, and we avoid baking in the tree representation (although that
+ * is the obvious choice).
+ *)
+val chooseAndSplit : forall 'a. SetType 'a, Ord 'a => set 'a -> maybe (set 'a * 'a * set 'a)
+declare ocaml target_rep function chooseAndSplit = `Pset.choose_and_split`
 
 (* ----------------------------*)
 (* universal set               *)

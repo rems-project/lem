@@ -148,6 +148,10 @@ let rec split cmp x = function
           else
             let (lr, pres, rr) = split cmp x r in (join cmp l v lr, pres, rr)
 
+let rec choose_and_split = function
+    Empty -> None
+  | Node(l, v, r, _) -> Some(l, v, r)
+
 (* Implementation of the set operations *)
 
 let empty = Empty
