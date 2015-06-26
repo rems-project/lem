@@ -141,6 +141,8 @@ val choose: 'a set -> 'a
 val set_case: 'a set -> 'b -> ('a -> 'b) -> 'b -> 'b
 (** case-split function for sets *)
 
+val choose_and_split : 'a set -> ('a set * 'a * 'a set) option
+
 val split: 'a -> 'a set -> 'a set * bool * 'a set
     (** [split x s] returns a triple [(l, present, r)], where
       [l] is the set of elements of [s] that are

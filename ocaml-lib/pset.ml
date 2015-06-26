@@ -147,10 +147,7 @@ let rec split cmp x = function
           let (ll, pres, rl) = split cmp x l in (ll, pres, join cmp rl v r)
           else
             let (lr, pres, rr) = split cmp x r in (join cmp l v lr, pres, rr)
-
-let rec choose_and_split = function
-    Empty -> None
-  | Node(l, v, r, _) -> Some(l, v, r)
+    
 
 (* Implementation of the set operations *)
 
@@ -523,4 +520,9 @@ let tc c r =
 
 
 let get_elem_compare s = s.cmp
+
+let choose_and_split s =
+  match s.s with
+    Empty -> None
+  | Node(l, v, r, _) -> Some({ cmp = s.cmp; s = l }, v, { cmp = s.cmp; s = r })
 
