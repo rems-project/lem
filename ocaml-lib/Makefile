@@ -1,6 +1,6 @@
 DEPENDS ?= dependencies
 ZARITH ?= $(DEPENDS)/zarith
-override OCAMLFLAGS += -I $(ZARITH)/
+override OCAMLFLAGS += -g -I $(ZARITH)/
 BIG_INT_IMPL_ML ?= big_int_impl.ml
 BIG_INT_IMPL_MLI ?= big_int_impl.mli
 
@@ -11,7 +11,7 @@ ML_FILES := \
 	lem_string.ml lem_string_extra.ml lem_word.ml lem_show.ml lem_show_extra.ml lem_pervasives.ml lem_num_extra.ml lem_pervasives_extra.ml
 
 SUPPORTING_ML_FILES := \
-	$(BIG_INT_IMPL_MLI) $(BIG_INT_IMPL_ML) nat_big_num.mli nat_big_num.ml nat_num.mli nat_num.ml pset.mli pset.ml pmap.mli pmap.ml vector.mli vector.ml bit.mli bit.ml xstring.mli xstring.ml either.ml
+	$(BIG_INT_IMPL_MLI) $(BIG_INT_IMPL_ML) llist.mli llist.ml nat_big_num.mli nat_big_num.ml nat_num.mli nat_num.ml pset.mli pset.ml pmap.mli pmap.ml vector.mli vector.ml bit.mli bit.ml xstring.mli xstring.ml either.ml
 
 CMX_FILES := $(patsubst %.ml,%.cmx,$(ML_FILES))
 CMO_FILES := $(patsubst %.ml,%.cmo,$(ML_FILES))

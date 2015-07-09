@@ -220,15 +220,31 @@ lemma snoc_append : forall e l1 l2. (snoc e (l1 ++ l2) = l1 ++ (snoc e l2))
 (* Map                     *)
 (* ----------------------- *)
 
-val map : forall 'a 'b. ('a -> 'b) -> list 'a -> list 'b
-let rec map f l = match l with
+val map_nontr : forall 'a 'b. ('a -> 'b) -> list 'a -> list 'b
+let rec map_nontr f l = match l with
   | [] -> []
-  | x :: xs -> (f x) :: map f xs
+  | x :: xs -> (f x) :: map_nontr f xs
 end
+
+val count_map : forall 'a 'b. ('a -> 'b) -> list 'a -> nat -> list 'b
+let rec count_map f l ctr =  
+  match l with  
+  | []       -> []  
+  | hd :: tl -> f hd :: 
+    (if ctr < 5000 then count_map f tl (ctr + 1) 
+    else map_nontr f tl)
+  end
+ 
+val map : forall 'a 'b. ('a -> 'b) -> list 'a -> list 'b
+let map f l = count_map f l 0 
+
 declare termination_argument map = automatic
 
 declare hol      target_rep function map = `MAP`
-declare ocaml    target_rep function map = `List.map`
+(** DPM: for standard List.map replace line below, otherwise uses imperative
+  * version supplied with Lem to avoid blowing stack on huge lists.
+  *)
+declare ocaml    target_rep function map = `Llist.map`
 declare isabelle target_rep function map = `List.map`
 declare coq      target_rep function map = `List.map`
 
