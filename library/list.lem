@@ -244,13 +244,17 @@ declare hol      target_rep function map = `MAP`
 (** DPM: for standard List.map replace line below, otherwise uses imperative
   * version supplied with Lem to avoid blowing stack on huge lists.
   *)
-declare ocaml    target_rep function map = `Llist.map`
+declare ocaml    target_rep function map = `List.map`
 declare isabelle target_rep function map = `List.map`
 declare coq      target_rep function map = `List.map`
 
 assert map_nil: (map (fun x -> x + (1:nat)) [] = [])
 assert map_1: (map (fun x -> x + (1:nat)) [0] = [1])
+assert map_2: (map (fun x -> x + (1:nat)) [0;1] = [1;2])
+assert map_3: (map (fun x -> x + (1:nat)) [0;1;2] = [1;2;3])
 assert map_4: (map (fun x -> x + (1:nat)) [0;1;2;3] = [1;2;3;4])
+assert map_5: (map (fun x -> x + (1:nat)) [0;1;2;3;4] = [1;2;3;4;5])
+assert map_6: (map (fun x -> x + (1:nat)) [0;1;2;3;4;5] = [1;2;3;4;5;6])
 
 (* ----------------------- *)
 (* Reverse                 *)
