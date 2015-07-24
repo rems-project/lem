@@ -446,3 +446,38 @@ end
 instance forall 'a 'b 'c 'd 'e. SetType 'a, SetType 'b, SetType 'c, SetType 'd, SetType 'e => (SetType ('a * 'b * 'c * 'd * 'e))
   let setElemCompare = quintupleCompare setElemCompare setElemCompare setElemCompare setElemCompare setElemCompare
 end
+
+(* sextuples *)
+
+val sextupleEqual : forall 'a 'b 'c 'd 'e 'f. Eq 'a, Eq 'b, Eq 'c, Eq 'd, Eq 'e, Eq 'f => ('a * 'b * 'c * 'd * 'e * 'f) -> ('a * 'b * 'c * 'd * 'e * 'f) -> bool
+let sextupleEqual (x1, x2, x3, x4, x5, x6) (y1, y2, y3, y4, y5, y6) = ((x1, (x2, (x3, (x4, (x5, x6))))) = (y1, (y2, (y3, (y4, (y5, y6))))))
+let inline {hol;isabelle} sextupleEqual = unsafe_structural_equality
+
+instance forall 'a 'b 'c 'd 'e 'f. Eq 'a, Eq 'b, Eq 'c, Eq 'd, Eq 'e, Eq 'f => (Eq ('a * 'b * 'c * 'd * 'e * 'f))
+  let (=) = sextupleEqual
+  let (<>) x y = not (sextupleEqual x y)
+end
+
+val sextupleCompare : forall 'a 'b 'c 'd 'e 'f. ('a -> 'a -> ordering) -> ('b -> 'b -> ordering) -> ('c -> 'c -> ordering) ->
+                                              ('d -> 'd -> ordering) -> ('e -> 'e -> ordering) -> ('f -> 'f -> ordering) ->
+                                              ('a * 'b * 'c * 'd * 'e * 'f) -> ('a * 'b * 'c * 'd * 'e * 'f) -> ordering
+let sextupleCompare cmpa cmpb cmpc cmpd cmpe cmpf (a1, b1, c1, d1, e1, f1) (a2, b2, c2, d2, e2, f2) =
+  pairCompare cmpa (pairCompare cmpb (pairCompare cmpc (pairCompare cmpd (pairCompare cmpe cmpf)))) (a1, (b1, (c1, (d1, (e1, f1))))) (a2, (b2, (c2, (d2, (e2, f2)))))
+
+let sextupleLess (x1, x2, x3, x4, x5, x6) (y1, y2, y3, y4, y5, y6) = (x1, (x2, (x3, (x4, (x5, x6))))) < (y1, (y2, (y3, (y4, (y5, y6)))))
+let sextupleLessEq (x1, x2, x3, x4, x5, x6) (y1, y2, y3, y4, y5, y6) = (x1, (x2, (x3, (x4, (x5, x6))))) <= (y1, (y2, (y3, (y4, (y5, y6)))))
+
+let sextupleGreater x123456 y123456 = sextupleLess y123456 x123456
+let sextupleGreaterEq x123456 y123456 = sextupleLessEq y123456 x123456
+
+instance forall 'a 'b 'c 'd 'e 'f. Ord 'a, Ord 'b, Ord 'c, Ord 'd, Ord 'e, Ord 'f => (Ord ('a * 'b * 'c * 'd * 'e * 'f))
+  let compare = sextupleCompare compare compare compare compare compare compare
+  let (<)  = sextupleLess
+  let (<=) = sextupleLessEq
+  let (>)  = sextupleGreater
+  let (>=) = sextupleGreaterEq
+end
+
+instance forall 'a 'b 'c 'd 'e 'f. SetType 'a, SetType 'b, SetType 'c, SetType 'd, SetType 'e, SetType 'f => (SetType ('a * 'b * 'c * 'd * 'e * 'f))
+  let setElemCompare = sextupleCompare setElemCompare setElemCompare setElemCompare setElemCompare setElemCompare setElemCompare
+end
