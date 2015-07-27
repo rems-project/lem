@@ -11,7 +11,7 @@ for file in *Auxiliary.ml
 do
   echo $file
   file_nat=${file%.ml}.native
-  ocamlfind ocamlc -o ${file_nat} -I ocaml-lib/dependencies/zarith/ -I ocaml-lib zarith.cma nums.cma llist.cmo lem.cmo either.cmo nat_num.cmo lem_function.cmo lem_list.cmo big_int_impl.cmo nat_big_num.cmo lem_num.cmo lem_list_extra.cmo pset.cmo pmap.cmo lem_basic_classes.cmo lem_map.cmo lem_relation.cmo lem_maybe.cmo lem_set.cmo lem_set_extra.cmo lem_sorting.cmo xstring.cmo lem_string_extra.cmo lem_word.cmo ${file}
+  ocamlfind ocamlc -o ${file_nat} -I ocaml-lib/dependencies/zarith/ -I ocaml-lib zarith.cma nums.cma lem.cmo either.cmo nat_num.cmo lem_function.cmo lem_list.cmo big_int_impl.cmo nat_big_num.cmo lem_num.cmo lem_list_extra.cmo pset.cmo pmap.cmo lem_basic_classes.cmo lem_map.cmo lem_relation.cmo lem_maybe.cmo lem_set.cmo lem_set_extra.cmo lem_sorting.cmo xstring.cmo lem_string_extra.cmo lem_word.cmo ${file}
 done 
 
 for file in *.native 
