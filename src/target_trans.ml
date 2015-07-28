@@ -167,6 +167,7 @@ let ocaml =
                             [M.remove_vals; 
                              M.remove_import;
                              M.remove_indrelns;
+                             M.type_annotate_definitions;
                              M.remove_types_with_target_rep (Target_no_ident Target_ocaml);
                              M.defs_with_target_rep_to_lemma env (Target_no_ident Target_ocaml);
                              Patterns.compile_def (Target_no_ident Target_ocaml) Patterns.is_ocaml_pattern_match env]);
