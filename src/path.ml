@@ -98,9 +98,41 @@ let from_id id =
   let (x,y) = Ident.to_name_list id in 
     Path_def(x,y)
 
-let compare p1 p2 = 
-  match (to_name_list p1,to_name_list p2) with
-      ((ns1,n1), (ns2,n2)) -> Util.compare_list Name.compare (ns1@[n1]) (ns2@[n2])
+let partial_map_to_int p =
+  match p with
+    | Path_list -> 0
+    | Path_bool -> 1
+    | Path_nat -> 2
+    | Path_numeral -> 3
+    | Path_bit -> 4
+    | Path_set -> 5
+    | Path_vector -> 6
+    | Path_char -> 7
+    | Path_string -> 8
+    | Path_unit -> 9
+
+let compare p1 p2 =
+  match (p1, p2) with
+    | Path_def(p1, h1), Path_def(p2, h2) ->
+      let paths = Util.compare_list Name.compare p1 p2 in
+      let heads = Name.compare h1 h2 in
+      if paths = 0 then
+        heads
+      else
+        paths
+    | Path_list, Path_list -> 0
+    | Path_bool, Path_bool -> 0
+    | Path_nat, Path_nat -> 0
+    | Path_numeral, Path_numeral -> 0
+    | Path_bit, Path_bit -> 0
+    | Path_set, Path_set -> 0
+    | Path_vector, Path_vector -> 0
+    | Path_char, Path_char -> 0
+    | Path_string, Path_string -> 0
+    | Path_unit, Path_unit -> 0
+    | Path_def(_,_), _ -> -1
+    | _, Path_def(_,_) -> 1
+    | p1, p2 -> Pervasives.compare (partial_map_to_int p1) (partial_map_to_int p2)
 
 let pp ppf p =
   match (to_name_list p) with
