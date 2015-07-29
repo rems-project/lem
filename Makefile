@@ -139,6 +139,9 @@ build-lem: version src/ast.ml src/build_directory.ml
 	make -C src all
 	ln -sf src/main.native lem
 
+build-lem-profile: version src/ast.ml src/build_directory.ml
+	make -C src profile
+	ln -sf src/main.p.native lem-profile
 
 
 lem: build-lem
