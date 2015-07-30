@@ -852,12 +852,30 @@ let pp_instances = Pfmap.pp_map Path.pp (lst "@\n" pp_instance)
 type imported_modules =
   | IM_paths of Path.t list
   | IM_targets of targets_opt * string list
+  
+module Imported_Modules_Ordered_Type : Set.OrderedType with type t = imported_modules =
+struct
+  type t = imported_modules
+  let compare im1 im2 =
+    match im1, im2 with
+      | IM_paths p1, IM_paths p2 -> Util.compare_list Path.compare p1 p2
+      | IM_targets (t1, s1), IM_targets (t2, s2) ->
+        let first = Pervasives.compare t1 t2 in
+          if first = 0 then
+            Pervasives.compare s1 s2
+          else
+            first
+      | IM_paths _, IM_targets _ -> -1
+      | IM_targets _, IM_paths _ -> 1
+end
+
+module Imported_Modules_Set : Set.S with type elt = imported_modules = Set.Make(Imported_Modules_Ordered_Type)
 
 type checked_module =
     { filename : string;
       module_path : Path.t;
-      imported_modules : imported_modules list;
-      imported_modules_rec : imported_modules list;
+      imported_modules : Imported_Modules_Set.t;
+      imported_modules_rec : Imported_Modules_Set.t;
       untyped_ast : Ast.defs * Ast.lex_skips;
       typed_ast : def list * Ast.lex_skips;
       generate_output : bool }

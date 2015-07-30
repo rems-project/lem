@@ -86,10 +86,10 @@ val isa_add_full_library_path_flag : bool ref
     The exact names of these modules depend on the environment and the target. Therefore, they get extracted in
     an abstract from and converted (after possible changes to the environment) by
     [imported_modules_to_strings].*)
-val get_imported_target_modules : Typed_ast.def list * Ast.lex_skips -> imported_modules list
+val get_imported_target_modules : Typed_ast.def list * Ast.lex_skips -> Imported_Modules_Set.t
 
 (** [imported_modules_to_strings env targ dir imported_mods] is used together with [get_imported_target_modules]. Please see there. *)
-val imported_modules_to_strings : env -> Target.target -> string -> imported_modules list -> string list
+val imported_modules_to_strings : env -> Target.target -> string -> Imported_Modules_Set.t -> string list
 
 
 module Make(A : sig
