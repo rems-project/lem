@@ -266,15 +266,10 @@ let remove_indrelns_true_lhs _ env ((d,s),l,lenv) =
              Some(env, [def]))
     | _ -> None
 
-(* For Coq, add return types to function definitions that have type variables *)
 let generate_srt_t_opt src_opt e =
   match src_opt with 
     | Some _ -> None
-    | None ->  
-        if Types.TNset.is_empty (Types.free_vars (exp_to_typ e)) then
-          None
-        else
-          Some (None,C.t_to_src_t (exp_to_typ e))
+    | None -> Some (None,C.t_to_src_t (exp_to_typ e))
              
 let type_annotate_definitions _ env ((d,s),l,lenv) =
   match d with
