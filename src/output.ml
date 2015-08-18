@@ -524,7 +524,7 @@ let tex_id_wrap a r1 =
   | Term_var           -> res false "TermVar"          
   | Term_var_toplevel  -> res false "TermVarToplevel" 
   | Term_spec          -> res false "TermSpec"         
-  | Type_ctor (is_quot, is_backend)  -> res ((not is_quot) && is_backend) (if is_quot then "TypeCtorQuote" else "TypeCtor")          
+  | Type_ctor (is_quot, is_backend)  -> res ((*PS:2015-08-18 not sure what this check was for, but it's not good for Cerberus latex, so replacing by false*)(*(not is_quot) && is_backend*)false) (if is_quot then "TypeCtorQuote" else "TypeCtor")          
   | Module_name        -> res false "ModuleName"       
   | Class_name         -> res false "ClassName"        
   | Target             -> res false "Target"            
