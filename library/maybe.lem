@@ -68,6 +68,13 @@ instance forall 'a. SetType 'a => (SetType (maybe 'a))
   let setElemCompare = maybeCompare setElemCompare
 end
 
+instance forall 'a. Ord 'a => (Ord (maybe 'a))
+    let compare = maybeCompare compare
+    let (<) = fun m1 -> (fun m2 -> maybeCompare compare m1 m2 = LT)
+    let (<=) = fun m1 -> (fun m2 -> (let r = maybeCompare compare m1 m2 in r = LT || r = EQ))
+    let (>) = fun m1 -> (fun m2 -> maybeCompare compare m1 m2 = GT)
+    let (>=) = fun m1 -> (fun m2 -> (let r = maybeCompare compare m1 m2 in r = GT || r = EQ))
+end
 
 (* ----------------------- *)
 (* maybe                   *)

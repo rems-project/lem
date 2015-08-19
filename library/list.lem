@@ -217,26 +217,6 @@ lemma snoc_append : forall e l1 l2. (snoc e (l1 ++ l2) = l1 ++ (snoc e l2))
 
 
 (* ----------------------- *)
-(* Map                     *)
-(* ----------------------- *)
-
-val map : forall 'a 'b. ('a -> 'b) -> list 'a -> list 'b
-let rec map f l = match l with
-  | [] -> []
-  | x :: xs -> (f x) :: map f xs
-end
-declare termination_argument map = automatic
-
-declare hol      target_rep function map = `MAP`
-declare ocaml    target_rep function map = `List.map`
-declare isabelle target_rep function map = `List.map`
-declare coq      target_rep function map = `List.map`
-
-assert map_nil: (map (fun x -> x + (1:nat)) [] = [])
-assert map_1: (map (fun x -> x + (1:nat)) [0] = [1])
-assert map_4: (map (fun x -> x + (1:nat)) [0;1;2;3] = [1;2;3;4])
-
-(* ----------------------- *)
 (* Reverse                 *)
 (* ----------------------- *)
 
@@ -274,6 +254,47 @@ assert reverse_5: (reverse [(1:nat);2;3;4;5] = [5;4;3;2;1])
 lemma reverseAppend: (forall l1 l2. reverseAppend l1 l2 = append (reverse l1) l2)
 let inline {isabelle} reverseAppend l1 l2 = ((reverse l1) ++ l2)
 
+(* ----------------------- *)
+(* Map                     *)
+(* ----------------------- *)
+
+val map_tr : forall 'a 'b. list 'b -> ('a -> 'b) -> list 'a -> list 'b
+let rec map_tr rev_acc f l = match l with
+  | [] -> reverse rev_acc
+  | x :: xs -> map_tr ((f x) :: rev_acc) f xs
+end
+
+(* taken from: https://blogs.janestreet.com/optimizing-list-map/ *)
+val count_map : forall 'a 'b. ('a -> 'b) -> list 'a -> nat -> list 'b
+let rec count_map f l ctr =  
+  match l with  
+  | []       -> []  
+  | hd :: tl -> f hd :: 
+    (if ctr < 5000 then count_map f tl (ctr + 1) 
+    else map_tr [] f tl)
+  end
+ 
+val map : forall 'a 'b. ('a -> 'b) -> list 'a -> list 'b
+let map f l = count_map f l 0 
+
+declare termination_argument map = automatic
+
+declare hol      target_rep function map = `MAP`
+(** DPM: for standard List.map replace line below, otherwise uses imperative
+  * version supplied with Lem to avoid blowing stack on huge lists.
+  * SRK: don't bother using standard List.map, because long lists really do happen.
+  *)
+(*declare ocaml    target_rep function map = `List.map`*)
+declare isabelle target_rep function map = `List.map`
+declare coq      target_rep function map = `List.map`
+
+assert map_nil: (map (fun x -> x + (1:nat)) [] = [])
+assert map_1: (map (fun x -> x + (1:nat)) [0] = [1])
+assert map_2: (map (fun x -> x + (1:nat)) [0;1] = [1;2])
+assert map_3: (map (fun x -> x + (1:nat)) [0;1;2] = [1;2;3])
+assert map_4: (map (fun x -> x + (1:nat)) [0;1;2;3] = [1;2;3;4])
+assert map_5: (map (fun x -> x + (1:nat)) [0;1;2;3;4] = [1;2;3;4;5])
+assert map_6: (map (fun x -> x + (1:nat)) [0;1;2;3;4;5] = [1;2;3;4;5;6])
 
 (* ----------------------- *)
 (* Reverse Map             *)
@@ -283,7 +304,6 @@ val reverseMap : forall 'a 'b. ('a -> 'b) -> list 'a -> list 'b
 let inline reverseMap f l = reverse (map f l)
 
 declare ocaml target_rep function reverseMap = `List.rev_map`
-
 
 
 (* ========================================================================== *)
@@ -600,17 +620,27 @@ lemma replicate_index: (forall n x i. i < n --> index (replicate n x) i = Just x
 (* [splitAt n xs] returns a tuple (xs1, xs2), with "append xs1 xs2 = xs" and 
    "length xs1 = n". If there are not enough elements 
    in [xs], the original list and the empty one are returned. *)
+val splitAtAcc : forall 'a. list 'a -> nat -> list 'a -> (list 'a * list 'a)
+let rec splitAtAcc revAcc n l = 
+  match l with
+    | []    -> (reverse revAcc, [])
+    | x::xs -> if n <= 0 then (reverse revAcc, l) else splitAtAcc (x::revAcc) (n-1) xs
+  end
+
 val splitAt : forall 'a. nat -> list 'a -> (list 'a * list 'a)
 let rec splitAt n l = 
-  match l with
+   splitAtAcc [] n l
+(*   match l with
     | []    -> ([], [])
     | x::xs -> 
        if n <= 0 then ([], l) else
        begin
          let (l1, l2) = splitAt (n-1) xs in
          (x::l1, l2)
-       end    
-  end
+       end
+    end *)
+    
+    
 declare termination_argument splitAt = automatic
 
 declare isabelle target_rep function splitAt = `split_at`

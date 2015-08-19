@@ -334,10 +334,14 @@ let get_imported_target_modules_of_def_aux = function
   | _ -> None
 
 let get_imported_target_modules ((ds, _) : Typed_ast.def list * Ast.lex_skips)  =
-  Util.map_filter (fun ((d, _), _, _) -> get_imported_target_modules_of_def_aux d) ds 
+  List.fold_right Imported_Modules_Set.union (List.map (fun ((d, _), _, _) ->
+    match get_imported_target_modules_of_def_aux d with
+      | None   -> Imported_Modules_Set.empty
+      | Some s -> Imported_Modules_Set.singleton s) ds) Imported_Modules_Set.empty
 
 let imported_modules_to_strings env target dir iml =
-  Util.remove_duplicates (List.flatten (List.map (imported_module_to_strings env target dir) iml));;
+  let ms = Imported_Modules_Set.elements iml in
+    List.flatten (List.map (imported_module_to_strings env target dir) ms)
 
 module Make(A : sig 
   val env : env;; 

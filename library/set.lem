@@ -387,12 +387,16 @@ declare {hol} rename function partition = SET_PARTITION
 (* ----------------------- *)
 
 val split : forall 'a. SetType 'a, Ord 'a => 'a -> set 'a -> set 'a * set 'a
-let split p s = (filter ((<) p) s, filter ((>) p) s)
+let split p s = (filter ((>) p) s, filter ((<) p) s)
 declare {hol} rename function split = SET_SPLIT
 
 val splitMember : forall 'a. SetType 'a, Ord 'a => 'a -> set 'a -> set 'a * bool * set 'a
 let splitMember p s = (filter ((<) p) s, p IN s, filter ((>) p) s)
 
+assert split_simple: split 
+        (3, 0) 
+        ({ (1, 0); (2, 0); (3, 0); (4, 0); (5, 0); (6, 0) } : set (natural * natural))
+        = ({ (1, 0); (2, 0) }, { (4, 0); (5, 0); (6, 0) })
 
 (* ------------------------ *)
 (* subset and proper subset *)

@@ -577,11 +577,15 @@ type imported_modules =
   | IM_paths of Path.t list
   | IM_targets of targets_opt * string list
 
+module Imported_Modules_Ordered_Type : Set.OrderedType with type t = imported_modules
+
+module Imported_Modules_Set : Set.S with type elt = imported_modules
+
 type checked_module =
     { filename : string; 
       module_path : Path.t;
-      imported_modules : imported_modules list; 
-      imported_modules_rec : imported_modules list;
+      imported_modules : Imported_Modules_Set.t; 
+      imported_modules_rec : Imported_Modules_Set.t;
       untyped_ast : Ast.defs * Ast.lex_skips;
       typed_ast : def list * Ast.lex_skips; 
       generate_output : bool}

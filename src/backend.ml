@@ -2624,10 +2624,11 @@ let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = 
       ws s2 ^
       kwd "=" ^
       ws s3 ^
-      T.module_struct ^
-      callback ds ^
-      ws s4 ^
-      T.module_end
+      T.module_struct ^ (*meta "}" ^ *)
+      flat (List.map (fun d -> def_internal callback true (match d with ((dreal,_),_,_) -> dreal) is_user_def) ds) ^
+      (* THE ABOVE LINE WAS:  callback ds ^ *)
+      ws s4 ^ 
+      T.module_end 
   | Rename(s1,(n,l),mod_bind,s2,m) ->
     	ws s1 ^
     	T.module_module ^

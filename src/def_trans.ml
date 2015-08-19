@@ -266,23 +266,36 @@ let remove_indrelns_true_lhs _ env ((d,s),l,lenv) =
              Some(env, [def]))
     | _ -> None
 
-(* For Coq, add return types to function definitions that have type variables *)
 let generate_srt_t_opt src_opt e =
   match src_opt with 
     | Some _ -> None
-    | None ->  
-        if Types.TNset.is_empty (Types.free_vars (exp_to_typ e)) then
-          None
-        else
-          Some (None,C.t_to_src_t (exp_to_typ e))
+    | None -> Some (None,C.t_to_src_t (exp_to_typ e))
              
 let type_annotate_definitions _ env ((d,s),l,lenv) =
   match d with
     | Val_def(Let_def(sk1,topt,(p, name_map, src_t_opt, sk2, e))) -> begin
         match generate_srt_t_opt src_t_opt e with
           | None -> None
-          | Some t -> Some (env,
-               [((Val_def(Let_def(sk1, topt,(p, name_map, Some t, sk2, e))), s), l, lenv)])
+          | Some t ->
+            let (_, typ) = t in
+            let is_wildcard_pattern p =
+              match p.term with
+                | P_wild _ -> true
+                | _        -> false
+            in
+            let is_ptyp_pattern p =
+              match p.term with
+                | P_typ _ -> true
+                | _       -> false
+            in
+              if is_ptyp_pattern p then
+                None
+              else if is_wildcard_pattern p then
+                let l_unk = Ast.Trans(true, "type_annotate_definitions", Some l) in 
+                let p = C.mk_ptyp l_unk Typed_ast.space p Typed_ast.no_lskips typ Typed_ast.no_lskips (Some (exp_to_typ e)) in
+                  Some (env, [((Val_def(Let_def(sk1, topt,(p, name_map, None, sk2, e))), s), l, lenv)])
+              else
+                Some (env, [((Val_def(Let_def(sk1, topt,(p, name_map, Some t, sk2, e))), s), l, lenv)])
       end
     | Val_def(Fun_def(sk1,sk2,topt,funs)) -> begin
         let fix_funcl_aux (n, n_c, pL, src_t_opt, sk, e) = begin

@@ -378,10 +378,13 @@ let main () =
 
          let im : Path.t list = begin 
            let im_direct = Ast_util.get_imported_modules ast in
-           let get_rec_deps (p, _) = begin p :: (match Util.option_first (fun mr -> if (Path.compare mr.module_path p = 0) then Some mr.imported_modules_rec else None) mods with
-             | None -> []
-             | Some imr -> Util.rev_flatten (List.rev_map (function IM_targets _ -> [] | IM_paths ps -> ps) imr))
-           end in
+           let get_rec_deps (p, _) =
+             begin p ::
+               (match Util.option_first (fun mr -> if (Path.compare mr.module_path p = 0) then Some mr.imported_modules_rec else None) mods with
+                  | None -> []
+                  | Some imr -> Util.rev_flatten (List.rev_map (function IM_targets _ -> [] | IM_paths ps -> ps) (Imported_Modules_Set.elements imr)))
+             end
+         in
            Util.rev_flatten (List.rev_map get_rec_deps im_direct)
          end in
 
@@ -392,16 +395,20 @@ let main () =
 
          let imported_mods = Backend_common.get_imported_target_modules tast in
          let get_rec_imported_mods = function 
-           | IM_targets _ -> []
-           | IM_paths ps -> Util.rev_flatten (List.rev_map (fun p -> begin
-               Util.option_default [] (Util.option_first (fun mr -> if (Path.compare mr.module_path p = 0) then Some mr.imported_modules_rec else None) mods)
-             end) ps)
+           | IM_targets _ -> Imported_Modules_Set.empty
+           | IM_paths ps -> List.fold_right Imported_Modules_Set.union (List.rev_map (fun p -> begin
+               Util.option_default Imported_Modules_Set.empty (Util.option_first (fun mr -> if (Path.compare mr.module_path p = 0) then Some mr.imported_modules_rec else None) mods)
+             end) ps) Imported_Modules_Set.empty
+         in
+         let imported_mods_rec =
+           Imported_Modules_Set.fold (fun e acc -> Imported_Modules_Set.union (get_rec_imported_mods e) acc) imported_mods imported_mods
+           (*List.fold_left (fun acc z -> List.rev_append (get_rec_imported_mods z) acc) (List.rev imported_mods) imported_mods*)
          in
          let module_record = 
            { Typed_ast.filename = file_name;
              Typed_ast.module_path = Path.mk_path [] mod_name_name;
              Typed_ast.imported_modules = imported_mods;
-             Typed_ast.imported_modules_rec = List.fold_left (fun acc z -> List.rev_append (get_rec_imported_mods z) acc) (List.rev imported_mods) imported_mods;
+             Typed_ast.imported_modules_rec = imported_mods_rec;
              Typed_ast.untyped_ast = ast;
              Typed_ast.typed_ast = tast;
              Typed_ast.generate_output = add_to_modules }

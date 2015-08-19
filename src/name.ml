@@ -59,15 +59,40 @@ let to_rope n = Ulib.Text.of_string n
 let to_string = Ulib.UTF8.to_string
 *)
 
-type t = string
-let compare r1 r2 = 
-  Pervasives.compare r1 r2
+(** A hash table mapping string -> int that keeps track of strings and their
+  * unique assigned IDs for interning purposes.
+  *)
+let interning_hashtbl =
+  Hashtbl.create 5000
+  
+let counter = ref 0
+  
+let generate_fresh () =
+  let _ = counter := !counter + 1 in
+    !counter
+  
+let register_string s =
+  try
+    Hashtbl.find interning_hashtbl s
+  with Not_found ->
+    let id = generate_fresh () in
+    let _  = Hashtbl.add interning_hashtbl s id in
+      id
 
-let from_rope r = Ulib.Text.to_string r
+type t = (int * string)
 
-let to_rope n = Ulib.Text.of_string n
-let to_string n = n
-let from_string n = n
+let compare (i, s) (i', s') = Pervasives.compare i i'
+
+let from_rope r =
+  let str = Ulib.Text.to_string r in
+  let id  = register_string str in
+    (id, str)
+
+let to_rope (_, n) = Ulib.Text.of_string n
+let to_string (_, n) = n
+let from_string n =
+  let id = register_string n in
+    (id, n)
 
   (*
 type t = Ulib.Text.t
@@ -141,14 +166,14 @@ let rename f r = from_rope (f (to_rope r))
 
 let pp ppf n = pp_str ppf (to_string n)
 
-let starts_with_upper_letter x = 
+let starts_with_upper_letter (_, x) = 
   try 
     let c = Ulib.UChar.char_of (Ulib.UTF8.get x 0) in
       Util.is_uppercase c
   with 
     | Ulib.UChar.Out_of_range -> false
 
-let starts_with_underscore x = 
+let starts_with_underscore (_, x) = 
   try 
     (String.length x > 1) && (Ulib.UChar.char_of (Ulib.UTF8.get x 0) = '_')
   with 
@@ -159,7 +184,7 @@ let remove_underscore x =
      Some (from_rope (let r = (to_rope x) in Ulib.Text.sub r 1 (Ulib.Text.length r -1)))
   else None
 
-let ends_with_underscore x = 
+let ends_with_underscore (_, x) = 
   try 
     (String.length x > 1) && (Ulib.UChar.char_of (Ulib.UTF8.get x (Ulib.UTF8.last x)) = '_')
   with 
@@ -170,22 +195,22 @@ let remove_underscore_suffix x =
      Some (from_rope (let r = (to_rope x) in Ulib.Text.sub r 0 (Ulib.Text.length r -1)))
   else None
 
-let starts_with_lower_letter x = 
+let starts_with_lower_letter (_, x) = 
   try 
     let c = Ulib.UChar.char_of (Ulib.UTF8.get x 0) in
       Util.is_lowercase c
   with 
     | Ulib.UChar.Out_of_range -> false
 
-let uncapitalize x = 
+let uncapitalize ((_, y) as x) = 
   if (starts_with_upper_letter x) then
-    let c = Ulib.UChar.of_char (Char.lowercase (Ulib.UChar.char_of (Ulib.UTF8.get x 0))) in
+    let c = Ulib.UChar.of_char (Char.lowercase (Ulib.UChar.char_of (Ulib.UTF8.get y 0))) in
     Some (from_rope (Ulib.Text.set (to_rope x) 0 c))
   else None
 
-let capitalize x =
+let capitalize ((_, y) as x) =
   if (starts_with_lower_letter x) then
-    let c = Ulib.UChar.of_char (Char.uppercase (Ulib.UChar.char_of (Ulib.UTF8.get x 0))) in
+    let c = Ulib.UChar.of_char (Char.uppercase (Ulib.UChar.char_of (Ulib.UTF8.get y 0))) in
     Some (from_rope (Ulib.Text.set (to_rope x) 0 c))
   else None
 

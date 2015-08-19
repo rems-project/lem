@@ -1,6 +1,6 @@
 DEPENDS ?= dependencies
 ZARITH ?= $(DEPENDS)/zarith
-override OCAMLFLAGS += -I $(ZARITH)/
+override OCAMLFLAGS += -g -I $(ZARITH)/
 BIG_INT_IMPL_ML ?= big_int_impl.ml
 BIG_INT_IMPL_MLI ?= big_int_impl.mli
 
