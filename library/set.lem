@@ -550,7 +550,7 @@ assert bigunionmap_1: (bigunionMap (fun n -> {n; 2 * n; 3 * n}) {(2:nat);8} = {2
 (* ------------------------ *)
 
 (* If the mapping function returns Just x, x is added to the result
-   list. If it returns Nothing, no element is added. *)
+   set. If it returns Nothing, no element is added. *)
 
 val mapMaybe : forall 'a 'b. SetType 'a, SetType 'b => ('a -> maybe 'b) -> set 'a -> set 'b
 let mapMaybe f s = 
