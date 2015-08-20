@@ -1599,7 +1599,24 @@ match C.exp_to_term e with
          match C.exp_to_term e0 with
            | Constant cd -> 
              (* constant, so use special formatting *)
-             B.function_application_to_output (exp_to_locn e) trans false e cd args (use_ascii_rep_for_const cd)
+               begin
+(* hack: attempt at special-casing Cerberus Core syntax *)
+                 let (c_descr : Typed_ast.const_descr) = c_env_lookup Ast.Unknown A.env.c_env cd.descr in
+                 let (c_id_string : string) = Path.to_string c_descr.const_binding in
+                 (*[meta c_id_string] @ *) 
+                 match c_id_string, args with
+
+
+                 | "Core.Esseq", [pattern; expr1; expr2] ->  [meta "{\\color{blue}[\\!["; T.bkwd "let" ; space; T.bkwd "strong"; exp print_backend pattern; kwd "="; exp print_backend expr1; space; T.bkwd "in"; space; exp print_backend expr2; meta "]\\!]}" ] 
+                 | "Core.Ewseq", [pattern; expr1; expr2] ->  [meta "{\\color{blue}[\\!["; T.bkwd "let" ; space; T.bkwd "weak"; exp print_backend pattern; kwd "="; exp print_backend expr1; space; T.bkwd "in"; space; exp print_backend expr2; meta "]\\!]}" ] 
+                 | "Core.Eif", [expr1; expr2; expr3] ->  [meta "{\\color{blue}[\\!["; T.bkwd "if" ; space; exp print_backend expr1; T.bkwd "then"; exp print_backend expr2; space; T.bkwd "else"; space; exp print_backend expr3; meta "]\\!]}" ] 
+
+                 | s, _ when String.sub s 0 5 = "Core." -> [meta "{\\color{red}[\\!["; meta c_id_string ; meta "]\\!]}" ]  
+                     @ B.function_application_to_output (exp_to_locn e) trans false e cd args (use_ascii_rep_for_const cd)
+(* end hack *)
+                 | _ -> 
+                     B.function_application_to_output (exp_to_locn e) trans false e cd args (use_ascii_rep_for_const cd)
+               end
            | _ -> (* no constant, so use standard one *)
              List.map trans (e0 :: args)
       end in
