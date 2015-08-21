@@ -1703,7 +1703,7 @@ match C.exp_to_term e with
                begin
                  match c_id_string with
                    
-(*                 | _ when (try ">>=" = String.sub c_id_string (String.length c_id_string -3) 3 with Invalid_argument _ -> false) -> [T.bkwd ">>="; ppexp e1; ppexp e3]*)
+(*                 | _ when (try ">>=" = String.sub c_id_string (String.length c_id_string -3) 3 with Invalid_argument _ -> false) -> [meta "[[{\\color{black}{"; T.bkwd ">>="; ppexp e3; ppexp e1; meta "}}]]"]*)
                  | _ -> (* (*show real path:*)  [T.bkwd c_id_string] @*)
                      B.function_application_to_output (exp_to_locn e) trans true e cd [e1;e3] (use_ascii_rep_for_const cd)
                end
