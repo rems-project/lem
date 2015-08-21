@@ -1703,7 +1703,20 @@ match C.exp_to_term e with
                begin
                  match c_id_string with
                    
-(*                 | _ when (try ">>=" = String.sub c_id_string (String.length c_id_string -3) 3 with Invalid_argument _ -> false) -> [meta "[[{\\color{black}{"; T.bkwd ">>="; ppexp e3; ppexp e1; meta "}}]]"]*)
+                 | _ when (try ">>=" = String.sub c_id_string (String.length c_id_string -3) 3 with Invalid_argument _ -> false) -> 
+                     let (e1',lskips1) = Typed_ast.alter_init_lskips (fun lskips1->(Typed_ast.no_lskips, lskips1)) e1 in 
+                     let (e3',lskips3) = Typed_ast.alter_init_lskips (fun lskips3->(Typed_ast.no_lskips, lskips3)) e3 in 
+                     (match C.exp_to_term e3' with 
+                     | Fun(s1,ps,s2,e) ->
+                         [ws lskips1 ;
+                          patlist print_backend ps ;
+                          (*      ws s2 *)
+                          space; T.bkwd ":=" ; space;
+                          ppexp e1';
+                          T.bkwd ";" ;
+(*                          new_line;*)
+                          ppexp e]
+                     | _ -> [meta " Cerberus Fun match Failure"] @ B.function_application_to_output (exp_to_locn e) trans true e cd [e1;e3] (use_ascii_rep_for_const cd))
                  | _ -> (* (*show real path:*)  [T.bkwd c_id_string] @*)
                      B.function_application_to_output (exp_to_locn e) trans true e cd [e1;e3] (use_ascii_rep_for_const cd)
                end
