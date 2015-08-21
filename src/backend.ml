@@ -214,6 +214,7 @@ let pat_add_op_suc kwd suc n s1 s2 i =
 module type Target = sig
   val lex_skip : Ast.lex_skip -> Ulib.Text.t
   val bkwd : string -> Output.t
+  val ckwd : string -> Output.t  (* for Cerberus core keywords *)
   val need_space : Output.t' -> Output.t' -> bool
 
   val target : Target.target
@@ -400,6 +401,7 @@ module Identity : Target = struct
   module S = Set.Make(String)
 
   let bkwd = kwd 
+  let ckwd = kwd 
   let delim_regexp = regexp "^\\([][`;,(){}]\\|;;\\)$"
 
   let symbolic_regexp = regexp "^[-!$%&*+./:<=>?@^|~]+$"
@@ -631,6 +633,8 @@ module Tex : Target = struct
   let target = Target_no_ident Target_tex
 
   let bkwd s = kwd (String.concat "" ["\\lemkw{"; Ulib.Text.to_string (tex_escape (Ulib.Text.of_string s));  "}"])
+
+  let ckwd s = kwd (String.concat "" ["{\\color{blue}{\\lemkw{"; Ulib.Text.to_string (tex_escape (Ulib.Text.of_string s));  "}}}"])
 
   let path_sep = r "." (* "`" *)
   let list_sep = kwd ";"
@@ -1021,6 +1025,7 @@ module Hol : Target = struct
 
   let symbolic_regexp = regexp "^[!%&*+/:<=>?@^|#\\`]+$"
   let bkwd = kwd
+  let ckwd = kwd
 
   let is_delim s = 
     string_match delim_regexp s 0
@@ -1592,7 +1597,14 @@ match C.exp_to_term e with
   | App(e1,e2) ->
       let trans e = block (is_pp_exp e) 0 (exp print_backend e) in
       let sep = (texspace ^ break_hint_space 2) in
-
+      (* interleave sp between elements of xs *)
+      let rec sep_with sp xs = match xs with 
+      | [] -> []
+      | [x] -> [x]
+      | x1::x2::xs' -> [x1] @ sp @ sep_with sp (x2::xs') in
+      let ppexp e = exp print_backend e in 
+      (* TODO: pp core expression list using separator sp *)
+      let core_expr_list sp es = [exp print_backend es] in 
       let oL = begin
          (* try to strip all application and see whether there is a constant at the beginning *)
          let (e0, args) = strip_app_exp e in
@@ -1602,21 +1614,80 @@ match C.exp_to_term e with
                begin
 (* hack: attempt at special-casing Cerberus Core syntax *)
                  let (c_descr : Typed_ast.const_descr) = c_env_lookup Ast.Unknown A.env.c_env cd.descr in
+
+(* TODO: how to pull out the initial lskips from the Constant?                  let lskip = Ident.get_lskip c_descr.const_binding.id_path in  *)
                  let (c_id_string : string) = Path.to_string c_descr.const_binding in
+                 if String.sub c_id_string 0 5 = "Core." then match c_id_string, args with
                  (*[meta c_id_string] @ *) 
-                 match c_id_string, args with
+(** Core.pexpr *)
+                 | "Core.PEundef", [ub] -> [T.ckwd "undef"; space; ppexp ub]
+                 | "Core.PEerror", [s] ->  [T.ckwd "error"; space; ppexp s]
+                 | "Core.PEval", [v] -> [ppexp v]
+                 | "Core.PEsym", [sym] -> [ppexp sym]
+                 | "Core.PEimpl", [iCst] -> [ppexp iCst]
+                 | "Core.PEcons", [e1; e2] -> [ppexp e1; T.ckwd "::"; ppexp e2]
+                 | "Core.PEcase_list", [e1; e2; nm] -> [T.ckwd "case_list"; space; T.ckwd "("; ppexp e1; T.ckwd ","; ppexp e2; T.ckwd ","; ppexp nm; T.ckwd ")"]
+                 | "Core.PEcase_ctype", [e1; e2; nm1; nm2; nm3; nm4; nm5; nm6; nm7; nm8] -> 
+                     [T.ckwd "case_ctype"; space; ppexp e1; space; T.ckwd "with"; space;
+                      T.ckwd "void:"; space; ppexp e2; T.ckwd ",";               
+                      T.ckwd "basic:"; space; ppexp nm1; T.ckwd ",";               
+                      T.ckwd "array:"; space; ppexp nm2; T.ckwd ",";               
+                      T.ckwd "function:"; space; ppexp nm3; T.ckwd ",";               
+                      T.ckwd "pointer:"; space; ppexp nm4; T.ckwd ",";               
+                      T.ckwd "atomic:"; space; ppexp nm5; T.ckwd ",";               
+                      T.ckwd "struct:"; space; ppexp nm6; T.ckwd ",";               
+                      T.ckwd "union:"; space; ppexp nm7; T.ckwd ",";               
+                      T.ckwd "builtin:"; space; ppexp nm8;               
+                    ]
+                 | "Core.PEarray_shift", [e1; ty; e2] -> [T.ckwd "array_shift"; T.ckwd "("; ppexp e1; T.ckwd ","; ppexp ty; T.ckwd ","; ppexp e2; T.ckwd ")"]
+                 | "Core.PEmember_shift", [e1; sym; id] -> [T.ckwd "member_shift"; T.ckwd "("; ppexp e1; T.ckwd ","; ppexp sym; T.ckwd ","; ppexp id; T.ckwd ")"]
+                 | "Core.PEnot", [e] -> [T.ckwd "not"; T.ckwd "("; ppexp e; T.ckwd ")"]
+                 | "Core.PEop", [op; pe1; pe2] -> [ppexp pe1; space; ppexp op; space; ppexp pe2]
+                 | "Core.PEmemop", [memop; pes] -> [ppexp memop; T.ckwd "("] @ core_expr_list "," pes @ [T.ckwd ")"]
+                 | "Core.PEtuple", [pes] -> [T.ckwd "("] @ core_expr_list "," pes @ [T.ckwd ")"]
+                 | "Core.PEarray", [pes] -> [T.ckwd "array("] @ core_expr_list "," pes @ [ T.ckwd ")"]
+(*                 | "Core.PEstruct"*)
+                 | "Core.PEcall", [nm; pes] -> [ppexp nm; T.ckwd "("] @ core_expr_list "," pes @ [T.ckwd ")"]
+                 | "Core.PElet", [sym; pe1; pe2] -> [T.ckwd "let" ; space; ppexp sym ; T.ckwd "="; ppexp pe1; space; T.ckwd "in"; space; ppexp pe2 ] 
+                 | "Core.PEif", [pe1; pe2; pe3] ->  [T.ckwd "if" ; space; ppexp pe1; T.ckwd "then"; ppexp pe2; space; T.ckwd "else"; space; ppexp pe3 ] 
 
 
-                 | "Core.Esseq", [pattern; expr1; expr2] ->  [meta "{\\color{blue}[\\!["; T.bkwd "let" ; space; T.bkwd "strong"; exp print_backend pattern; kwd "="; exp print_backend expr1; space; T.bkwd "in"; space; exp print_backend expr2; meta "]\\!]}" ] 
-                 | "Core.Ewseq", [pattern; expr1; expr2] ->  [meta "{\\color{blue}[\\!["; T.bkwd "let" ; space; T.bkwd "weak"; exp print_backend pattern; kwd "="; exp print_backend expr1; space; T.bkwd "in"; space; exp print_backend expr2; meta "]\\!]}" ] 
-                 | "Core.Eif", [expr1; expr2; expr3] ->  [meta "{\\color{blue}[\\!["; T.bkwd "if" ; space; exp print_backend expr1; T.bkwd "then"; exp print_backend expr2; space; T.bkwd "else"; space; exp print_backend expr3; meta "]\\!]}" ] 
+(** Core.expr *)
+                 | "Core.Epure", [pexpr] -> [T.ckwd "pure" ; space; ppexp pexpr]   (*TODO*)
+(*                 | "Core.Ememop", [memop; pexprs] -> *)
+                 | "Core.Eraise", [evnt] -> [T.ckwd "raise" ; T.ckwd "("; ppexp evnt; T.ckwd ")" ]
+                 | "Core.Eregister", [evnt; nm] -> [T.ckwd "register"; T.ckwd "("; ppexp evnt; T.ckwd ","; ppexp nm; T.ckwd ")"]
+                       
+                 | "Core.Eskip", [] -> [T.ckwd "skip"]
+                 | "Core.Elet", [a; e1; e2] ->  [T.ckwd "let" ; space; ppexp a ; T.ckwd "="; ppexp e1; space; T.ckwd "in"; space; ppexp e2 ] 
+                 | "Core.Eif", [expr1; expr2; expr3] ->  [T.ckwd "if" ; space; ppexp expr1; T.ckwd "then"; ppexp expr2; space; T.ckwd "else"; space; ppexp expr3 ] 
+                 | "Core.Eproc", [nm; es] -> [ppexp nm; T.ckwd "("] @ (*sep_with [kwd ","] (List.map (ppexp) es)*) core_expr_list "," es  @ [kwd ")"]
+                 | "Core.Eaction", [pact] -> [ppexp pact]
+                 | "Core.Eunseq", [es] -> [T.ckwd "["] @ core_expr_list "||" es @ [T.ckwd "]"]
 
-                 | s, _ when String.sub s 0 5 = "Core." -> [meta "{\\color{red}[\\!["; meta c_id_string ; meta "]\\!]}" ]  
+                 | "Core.Esseq", [pattern; expr1; expr2] ->  [T.ckwd "let" ; space; T.ckwd "strong"; ppexp pattern; T.ckwd "="; ppexp expr1; space; T.ckwd "in"; space; ppexp expr2 ] 
+                 | "Core.Ewseq", [pattern; expr1; expr2] ->  [T.ckwd "let" ; space; T.ckwd "weak"; ppexp pattern; T.ckwd "="; ppexp expr1; space; T.ckwd "in"; space; ppexp expr2 ] 
+                 | "Core.Easeq", [msym; act; pact] ->  [T.ckwd "let" ; space; T.ckwd "atomic"; ppexp msym; T.ckwd "="; ppexp act; space; T.ckwd "in"; space; ppexp pact ] 
+                 | "Core.Eindet", [expr] -> [T.ckwd "indet"; T.ckwd "("; ppexp expr ; T.ckwd ")"]
+                 | "Core.Ebound", [n; expr] -> [T.ckwd "bound"; T.ckwd "("; ppexp n ; T.ckwd ","; ppexp expr ; T.ckwd ")"]
+
+                 | "Core.Esave", [d; a_tys; e] -> [T.ckwd "save"; ppexp d; space; ppexp a_tys; T.ckwd "."; ppexp e; T.ckwd "end"]
+                 | "Core.Erun", [_; d; a_es] -> [T.ckwd "run"; ppexp d; space; ppexp a_es]
+
+                 | "Core.Eret", [pexpr] -> [T.ckwd "return"; ppexp pexpr]
+                 | "Core.Epar", [es] -> [T.ckwd "par"; ppexp es]
+                 | "Core.Ewait", [tid] -> [T.ckwd "wait"; ppexp tid]
+
+                 | s,_ -> [meta "{\\color{red}[\\!["; meta c_id_string ; meta "]\\!]}" ]  
                      @ B.function_application_to_output (exp_to_locn e) trans false e cd args (use_ascii_rep_for_const cd)
 (* end hack *)
+
                  | _ -> 
                      B.function_application_to_output (exp_to_locn e) trans false e cd args (use_ascii_rep_for_const cd)
+                 else
+                   B.function_application_to_output (exp_to_locn e) trans false e cd args (use_ascii_rep_for_const cd)
                end
+
            | _ -> (* no constant, so use standard one *)
              List.map trans (e0 :: args)
       end in
