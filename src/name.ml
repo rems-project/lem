@@ -216,8 +216,6 @@ let capitalize ((_, y) as x) =
 
 type lskips_t = Ast.lex_skips * Ulib.Text.t
 
-let lskips_empty = (None, Ulib.Text.of_latin1 "")
-
 let r = Ulib.Text.of_latin1
 
 let from_ix = function 
