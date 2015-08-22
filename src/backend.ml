@@ -216,6 +216,7 @@ module type Target = sig
   val bkwd : string -> Output.t
   val ckwd : string -> Output.t  (* for Cerberus core keywords *)
   val akwd : string -> Output.t  (* for Cerberus ail keywords *)
+  val asbr : Output.t -> Output.t  (* for Cerberus ail semantic brackets *)
   val need_space : Output.t' -> Output.t' -> bool
 
   val target : Target.target
@@ -404,6 +405,8 @@ module Identity : Target = struct
   let bkwd = kwd 
   let ckwd = kwd 
   let akwd = kwd 
+  let asbr output = kwd "[[" ^ output ^ kwd "]]"
+
   let delim_regexp = regexp "^\\([][`;,(){}]\\|;;\\)$"
 
   let symbolic_regexp = regexp "^[-!$%&*+./:<=>?@^|~]+$"
@@ -603,6 +606,12 @@ module Html : Target = struct
   include Identity 
   let target = Target_no_ident Target_html
 
+  let bkwd s = kwd (String.concat "" ["<b>";s;"</b>"])
+  let ckwd s = kwd (String.concat "" ["<b><font color=\"blue\">"; s;  "</font></b>"])
+  let akwd s = kwd (String.concat "" ["<b><font color=\"magenta\">"; s;  "</font></b>"])
+  let asbr output = kwd "<font color=\"magenta\">[[" ^ output ^ kwd "]]</font>"
+
+
   let forall = kwd "&forall;"
   let exists = kwd "&exist;"
   let set_quant_binding = kwd "&isin;"
@@ -639,6 +648,10 @@ module Tex : Target = struct
   let ckwd s = kwd (String.concat "" ["{\\color{blue}{\\lemkw{"; Ulib.Text.to_string (tex_escape (Ulib.Text.of_string s));  "}}}"])
 
   let akwd s = kwd (String.concat "" ["{\\color{magenta}{\\lemkwtt{"; Ulib.Text.to_string (tex_escape (Ulib.Text.of_string s));  "}}}"])
+
+  let asbr output = kwd "{\\color{magenta}{[\\![" ^ output ^ kwd "]\\!]}}"
+
+
 
   let path_sep = r "." (* "`" *)
   let list_sep = kwd ";"
@@ -1031,6 +1044,7 @@ module Hol : Target = struct
   let bkwd = kwd
   let ckwd = kwd
   let akwd = kwd
+  let asbr output = output
 
   let is_delim s = 
     string_match delim_regexp s 0
@@ -1488,7 +1502,8 @@ let rec pat print_backend p = match p.term with
         match cerberus_pat print_backend p cd ps with
         | Some output ->  
             let lskip = Typed_ast.ident_get_lskip cd in
-            concat texspace(*?*) (ws lskip :: meta "{\\color{magenta}{[\\![" ::  output @ [meta "]\\!]}}"])
+(*            concat texspace(*?*) (ws lskip :: [T.asbr output] )*)
+            ws lskip ^ (T.asbr (concat texspace output))
         | None ->
             let oL = B.pattern_application_to_output p.locn (pat print_backend) cd ps (use_ascii_rep_for_const cd) in
             concat texspace oL
@@ -2129,7 +2144,7 @@ and cerberus_exp_app print_backend trans e e0 args cd =
   let core_expr_list list_begin list_end list_sep last_list_sep es = 
     match C.exp_to_term es with 
     | List(s1,es,s2) ->
-        block true 0 (
+        block false 0 (
         ws s1 ^
         list_begin ^
         flat 
@@ -2165,7 +2180,7 @@ and cerberus_exp_app print_backend trans e e0 args cd =
           | _ -> exp print_backend e 
         end
     | Paren(s1,e,s2) -> 
-        block true 0 (ws s1 ^ T.ckwd "(" ^ block true 0 (core_expr_option_pattern e ^ ws s2) ^ T.ckwd ")")
+        block false 0 (ws s1 ^ T.ckwd "(" ^ block false 0 (core_expr_option_pattern e ^ ws s2) ^ T.ckwd ")")
     | _ -> (*meta " MISMATCH " ^*)
         exp print_backend e in
 
@@ -2177,7 +2192,7 @@ and cerberus_exp_app print_backend trans e e0 args cd =
             ws s1 ^
             T.ckwd "_"
         | false -> 
-            block true 0 (
+            block false 0 (
             ws s1 ^
             T.ckwd "[" ^
             flat 
