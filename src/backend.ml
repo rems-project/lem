@@ -1510,7 +1510,7 @@ let exp_core_expr_list pparg es list_begin list_end list_sep last_list_sep =
            pparg (sep list_sep) es) ^
       ws s2 ^
       list_end)
-  | _ -> meta " BACKEND PP FAILURE: exp_core_expr_list" 
+  | _ -> pparg es (*meta " BACKEND PP FAILURE: exp_core_expr_list" *)
 
 (* pp of expression lists used in Lem expressions in Core pattern positions, mapping Just e to e and Nothing to _ *)
 let rec exp_core_expr_option_pattern ppexp e = 
@@ -1575,7 +1575,7 @@ let pat_core_expr_list pppat p list_begin list_end list_sep last_list_sep =
            pppat (sep list_sep) ps) ^
       ws s2 ^
       list_end
-  | _ -> meta " BACKEND PP FAILURE: pat_core_expr_list" 
+  | _ -> pppat p (*meta " BACKEND PP FAILURE: pat_core_expr_list" *)
 
 (* using default pp for now for these two*)
 let pat_core_expr_option_pattern pppat p = 
@@ -2029,7 +2029,8 @@ match C.exp_to_term e with
                           ppexp e1';
                           T.bkwd ";" ;
                           ppexp e]
-                     | _ -> [meta " BACKEND PP ERROR: Cerberus FUN MATCH FAILURE"] @ B.function_application_to_output (exp_to_locn e) trans true e cd [e1;e3] (use_ascii_rep_for_const cd))
+                     | _ -> B.function_application_to_output (exp_to_locn e) trans true e cd [e1;e3] (use_ascii_rep_for_const cd))
+(*[meta " BACKEND PP ERROR: Cerberus FUN MATCH FAILURE"] @ B.function_application_to_output (exp_to_locn e) trans true e cd [e1;e3] (use_ascii_rep_for_const cd))*)
                  | _ -> (* (*show real path for debugging:*)  [T.bkwd c_id_string] @*)
                      B.function_application_to_output (exp_to_locn e) trans true e cd [e1;e3] (use_ascii_rep_for_const cd)
                end
