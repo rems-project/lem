@@ -211,12 +211,17 @@ let pat_add_op_suc kwd suc n s1 s2 i =
      (String.concat "" ["#\'"; Util.option_default (char_escape_ocaml c) c_org; "\'"])
 
 
+type cerberus_exp_or_pat_kind =
+  | Plain
+  | Core
+  | Ail
+
 module type Target = sig
   val lex_skip : Ast.lex_skip -> Ulib.Text.t
   val bkwd : string -> Output.t
   val ckwd : string -> Output.t  (* for Cerberus core keywords *)
   val akwd : string -> Output.t  (* for Cerberus ail keywords *)
-  val asbr : Output.t -> Output.t  (* for Cerberus ail semantic brackets *)
+  val asbr : cerberus_exp_or_pat_kind -> Output.t -> Output.t  (* for Cerberus ail semantic brackets *)
   val need_space : Output.t' -> Output.t' -> bool
 
   val target : Target.target
@@ -405,7 +410,7 @@ module Identity : Target = struct
   let bkwd = kwd 
   let ckwd = kwd 
   let akwd = kwd 
-  let asbr output = kwd "[[" ^ output ^ kwd "]]"
+  let asbr kind output = kwd "[[" ^ output ^ kwd "]]"
 
   let delim_regexp = regexp "^\\([][`;,(){}]\\|;;\\)$"
 
@@ -609,8 +614,11 @@ module Html : Target = struct
   let bkwd s = kwd (String.concat "" ["<b>";s;"</b>"])
   let ckwd s = kwd (String.concat "" ["<b><font color=\"blue\">"; s;  "</font></b>"])
   let akwd s = kwd (String.concat "" ["<b><font color=\"magenta\">"; s;  "</font></b>"])
-  let asbr output = kwd "[[" ^ output ^ kwd "]]"
-  (*let asbr output = kwd "<font color=\"magenta\">[[" ^ output ^ kwd "]]</font>"*)
+  let asbr kind output = 
+    match kind with 
+    | Plain -> kwd "[[" ^ output ^ kwd "]]"
+    | Ail -> kwd "<font color=\"magenta\">[[</font>" ^ output ^ kwd "<font color =\"magenta\">]]</font>"
+    | Core -> kwd "<font color=\"blue\">[[</font>" ^ output ^ kwd "<font color =\"blue\">]]</font>"
 
 
   let forall = kwd "&forall;"
@@ -650,8 +658,11 @@ module Tex : Target = struct
 
   let akwd s = kwd (String.concat "" ["{\\color{magenta}{\\lemkwtt{"; Ulib.Text.to_string (tex_escape (Ulib.Text.of_string s));  "}}}"])
 
-  let asbr output = kwd "[\\![" ^ output ^ kwd "]\\!]"
-  (*let asbr output = kwd "{\\color{magenta}{[\\![" ^ output ^ kwd "]\\!]}}"*)
+  let asbr kind output = 
+    match kind with 
+    | Plain -> kwd "[\\![" ^ output ^ kwd "]\\!]"
+    | Ail ->  kwd "{\\color{magenta}{[\\![}}" ^ output ^ kwd "{\\color{magenta}{]\\!]}}"
+    | Core ->  kwd "{\\color{blue}{[\\![}}" ^ output ^ kwd "{\\color{blue}{]\\!]}}"
 
 
 
@@ -1046,7 +1057,7 @@ module Hol : Target = struct
   let bkwd = kwd
   let ckwd = kwd
   let akwd = kwd
-  let asbr output = output
+  let asbr kind output = output
 
   let is_delim s = 
     string_match delim_regexp s 0
@@ -1597,7 +1608,6 @@ let ail_unary_is_postfix c_id_string =
   | "AilSyntax.PostfixIncr" -> true
   | "AilSyntax.PostfixDecr" -> true
 
-
 let ppcerberus (c_id_string,args) deconstruct_arg pparg pparg_flip_lskip 
     core_expr_list core_expr_pattern_list core_expr_option_pattern = 
 
@@ -1610,8 +1620,8 @@ let ppcerberus (c_id_string,args) deconstruct_arg pparg pparg_flip_lskip
       | Some (c_id_string,es) ->
           begin
             match ppc (c_id_string,es) with
-            | Some output -> concat emp output
-            | None -> pparg e
+            | kind, Some output -> concat emp output
+            | kind, None -> pparg e
           end
       | None ->
           pparg e in 
@@ -1620,14 +1630,14 @@ let ppcerberus (c_id_string,args) deconstruct_arg pparg pparg_flip_lskip
     match c_id_string, args with
       (*[meta c_id_string] @ *) 
       (** Core.pexpr *)
-    | "Core.PEundef", [ub] -> Some [T.ckwd "undef"; space; pparg ub]
-    | "Core.PEerror", [s] -> Some  [T.ckwd "error"; space; pparg s]
-    | "Core.PEval", [v] -> Some [pparg v]
-    | "Core.PEsym", [sym] -> Some [pparg sym]
-    | "Core.PEimpl", [iCst] -> Some [pparg iCst]
-    | "Core.PEcons", [e1; e2] -> Some [pparg e1; T.ckwd "::"; pparg e2]
-    | "Core.PEcase_list", [e1; e2; nm] -> Some [T.ckwd "case_list"; space; T.ckwd "("; pparg e1; T.ckwd ","; pparg e2; T.ckwd ","; pparg nm; T.ckwd ")"]
-    | "Core.PEcase_ctype", [e1; e2; nm1; nm2; nm3; nm4; nm5; nm6; nm7; nm8] -> Some 
+    | "Core.PEundef", [ub] -> Core, Some [T.ckwd "undef"; space; pparg ub]
+    | "Core.PEerror", [s] -> Core, Some  [T.ckwd "error"; space; pparg s]
+    | "Core.PEval", [v] -> Core, Some [pparg v]
+    | "Core.PEsym", [sym] -> Core, Some [pparg sym]
+    | "Core.PEimpl", [iCst] -> Core, Some [pparg iCst]
+    | "Core.PEcons", [e1; e2] -> Core, Some [pparg e1; T.ckwd "::"; pparg e2]
+    | "Core.PEcase_list", [e1; e2; nm] -> Core, Some [T.ckwd "case_list"; space; T.ckwd "("; pparg e1; T.ckwd ","; pparg e2; T.ckwd ","; pparg nm; T.ckwd ")"]
+    | "Core.PEcase_ctype", [e1; e2; nm1; nm2; nm3; nm4; nm5; nm6; nm7; nm8] -> Core, Some 
           [T.ckwd "case_ctype"; space; pparg e1; space; T.ckwd "with"; space;
            T.ckwd "void:"; space; pparg e2; T.ckwd ",";               
            T.ckwd "basic:"; space; pparg nm1; T.ckwd ",";               
@@ -1639,54 +1649,54 @@ let ppcerberus (c_id_string,args) deconstruct_arg pparg pparg_flip_lskip
            T.ckwd "union:"; space; pparg nm7; T.ckwd ",";               
            T.ckwd "builtin:"; space; pparg nm8;               
          ]
-    | "Core.PEarray_shift", [e1; ty; e2] -> Some [T.ckwd "array_shift"; T.ckwd "("; pparg e1; T.ckwd ","; pparg ty; T.ckwd ","; pparg e2; T.ckwd ")"]
-    | "Core.PEmember_shift", [e1; sym; id] -> Some [T.ckwd "member_shift"; T.ckwd "("; pparg e1; T.ckwd ","; pparg sym; T.ckwd ","; pparg id; T.ckwd ")"]
-    | "Core.PEnot", [e] -> Some [T.ckwd "not"; T.ckwd "("; pparg e; T.ckwd ")"]
-    | "Core.PEop", [op; pe1; pe2] -> Some [pparg pe1; space; ppc_deconstruct op; space; pparg pe2]
-    | "Core.PEmemop", [memop; pes] -> Some ([pparg memop; core_expr_list pes (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional])
-    | "Core.PEtuple", [pes] -> Some ([core_expr_list pes (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional])
-    | "Core.PEarray", [pes] -> Some ([core_expr_list pes (T.ckwd "array(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional])  (*TODO: concrete syntax for core arrays?*)
+    | "Core.PEarray_shift", [e1; ty; e2] -> Core, Some [T.ckwd "array_shift"; T.ckwd "("; pparg e1; T.ckwd ","; pparg ty; T.ckwd ","; pparg e2; T.ckwd ")"]
+    | "Core.PEmember_shift", [e1; sym; id] -> Core, Some [T.ckwd "member_shift"; T.ckwd "("; pparg e1; T.ckwd ","; pparg sym; T.ckwd ","; pparg id; T.ckwd ")"]
+    | "Core.PEnot", [e] -> Core, Some [T.ckwd "not"; T.ckwd "("; pparg e; T.ckwd ")"]
+    | "Core.PEop", [op; pe1; pe2] -> Core, Some [pparg pe1; space; ppc_deconstruct op; space; pparg pe2]
+    | "Core.PEmemop", [memop; pes] -> Core, Some ([pparg memop; core_expr_list pes (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional])
+    | "Core.PEtuple", [pes] -> Core, Some ([core_expr_list pes (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional])
+    | "Core.PEarray", [pes] -> Core, Some ([core_expr_list pes (T.ckwd "array(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional])  (*TODO: concrete syntax for core arrays?*)
           (*                 | "Core.PEstruct"*)
-    | "Core.PEcall", [nm; pes] -> Some ([pparg nm; core_expr_list pes (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional])
-    | "Core.PElet", [sym; pe1; pe2] -> Some [T.ckwd "let" ; pparg sym ; T.ckwd "="; pparg pe1; space; T.ckwd "in"; space; pparg pe2 ] 
-    | "Core.PEif", [pe1; pe2; pe3] -> Some  [T.ckwd "if" ; pparg pe1; space; T.ckwd "then"; pparg pe2; space; T.ckwd "else"; space; pparg pe3 ] 
+    | "Core.PEcall", [nm; pes] -> Core, Some ([pparg nm; core_expr_list pes (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional])
+    | "Core.PElet", [sym; pe1; pe2] -> Core, Some [T.ckwd "let" ; pparg sym ; T.ckwd "="; pparg pe1; space; T.ckwd "in"; space; pparg pe2 ] 
+    | "Core.PEif", [pe1; pe2; pe3] -> Core, Some  [T.ckwd "if" ; pparg pe1; space; T.ckwd "then"; pparg pe2; space; T.ckwd "else"; space; pparg pe3 ] 
           
           (** Core.expr *) (*TODO: how should we highlight purity in the output?*)
-    | "Core.Epure", [pexpr] -> Some [T.ckwd "pure" ; pparg pexpr]   (*TODO*)
-    | "Core.Ememop", [memop; pes] -> Some ([pparg memop; core_expr_list pes (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional])
-    | "Core.Eskip", [] -> Some [T.ckwd "skip"]
-    | "Core.Elet", [a; e1; e2] -> Some  [T.ckwd "let" ; space; pparg a ; T.ckwd "="; pparg e1; space; T.ckwd "in"; space; pparg e2 ] 
-    | "Core.Eif", [expr1; expr2; expr3] -> Some  [T.ckwd "if" ; space; pparg expr1; space; T.ckwd "then"; pparg expr2; space; T.ckwd "else"; space; pparg expr3 ] 
-    | "Core.Eproc", [nm; es] -> Some ([pparg nm; core_expr_list es (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional]) (*TODO: just like call?*)
-    | "Core.Eaction", [pact] -> Some [pparg pact]
-    | "Core.Eunseq", [es] -> Some ([core_expr_list es (T.ckwd "[") (T.ckwd "]") (T.ckwd "||") Seplist.Optional])
-    | "Core.Esseq", [pattern; expr1; expr2] -> Some  [T.ckwd "let" ; space; T.ckwd "strong"; core_expr_pattern_list pattern; space; T.ckwd "="; pparg expr1; space; T.ckwd "in"; space; pparg expr2 ] 
-    | "Core.Ewseq", [pattern; expr1; expr2] -> Some  [T.ckwd "let" ; space; T.ckwd "weak"; core_expr_pattern_list pattern; space; T.ckwd "="; pparg expr1; space; T.ckwd "in"; space; pparg expr2 ] 
-    | "Core.Easeq", [msym; act; pact] -> Some  [T.ckwd "let" ; space; T.ckwd "atomic"; (*pparg*) core_expr_option_pattern msym; space; T.ckwd "="; pparg act; space; T.ckwd "in"; space; pparg pact ] 
-    | "Core.Eindet", [expr] -> Some [T.ckwd "indet"; T.ckwd "("; pparg expr ; T.ckwd ")"]
-    | "Core.Ebound", [n; expr] -> Some [T.ckwd "bound"; T.ckwd "("; pparg n ; T.ckwd ","; pparg expr ; T.ckwd ")"]
+    | "Core.Epure", [pexpr] -> Core, Some [T.ckwd "pure" ; pparg pexpr]   (*TODO*)
+    | "Core.Ememop", [memop; pes] -> Core, Some ([pparg memop; core_expr_list pes (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional])
+    | "Core.Eskip", [] -> Core, Some [T.ckwd "skip"]
+    | "Core.Elet", [a; e1; e2] -> Core, Some  [T.ckwd "let" ; space; pparg a ; T.ckwd "="; pparg e1; space; T.ckwd "in"; space; pparg e2 ] 
+    | "Core.Eif", [expr1; expr2; expr3] -> Core, Some  [T.ckwd "if" ; space; pparg expr1; space; T.ckwd "then"; pparg expr2; space; T.ckwd "else"; space; pparg expr3 ] 
+    | "Core.Eproc", [nm; es] -> Core, Some ([pparg nm; core_expr_list es (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional]) (*TODO: just like call?*)
+    | "Core.Eaction", [pact] -> Core, Some [pparg pact]
+    | "Core.Eunseq", [es] -> Core, Some ([core_expr_list es (T.ckwd "[") (T.ckwd "]") (T.ckwd "||") Seplist.Optional])
+    | "Core.Esseq", [pattern; expr1; expr2] -> Core, Some  [T.ckwd "let" ; space; T.ckwd "strong"; core_expr_pattern_list pattern; space; T.ckwd "="; pparg expr1; space; T.ckwd "in"; space; pparg expr2 ] 
+    | "Core.Ewseq", [pattern; expr1; expr2] -> Core, Some  [T.ckwd "let" ; space; T.ckwd "weak"; core_expr_pattern_list pattern; space; T.ckwd "="; pparg expr1; space; T.ckwd "in"; space; pparg expr2 ] 
+    | "Core.Easeq", [msym; act; pact] -> Core, Some  [T.ckwd "let" ; space; T.ckwd "atomic"; (*pparg*) core_expr_option_pattern msym; space; T.ckwd "="; pparg act; space; T.ckwd "in"; space; pparg pact ] 
+    | "Core.Eindet", [expr] -> Core, Some [T.ckwd "indet"; T.ckwd "("; pparg expr ; T.ckwd ")"]
+    | "Core.Ebound", [n; expr] -> Core, Some [T.ckwd "bound"; T.ckwd "("; pparg n ; T.ckwd ","; pparg expr ; T.ckwd ")"]
           
-    | "Core.Esave", [d; a_tys; e] -> Some [T.ckwd "save"; pparg d; space; pparg a_tys; T.ckwd "."; pparg e; space; T.ckwd "end"]
-    | "Core.Erun", [_; d; a_es] -> Some [T.ckwd "run"; pparg d; space; pparg a_es]
+    | "Core.Esave", [d; a_tys; e] -> Core, Some [T.ckwd "save"; pparg d; space; pparg a_tys; T.ckwd "."; pparg e; space; T.ckwd "end"]
+    | "Core.Erun", [_; d; a_es] -> Core, Some [T.ckwd "run"; pparg d; space; pparg a_es]
           
-    | "Core.Eret", [pexpr] -> Some [T.ckwd "return"; pparg pexpr]
-    | "Core.Epar", [es] -> Some [T.ckwd "par"; pparg es]
-    | "Core.Ewait", [tid] -> Some [T.ckwd "wait"; pparg tid]
+    | "Core.Eret", [pexpr] -> Core, Some [T.ckwd "return"; pparg pexpr]
+    | "Core.Epar", [es] -> Core, Some [T.ckwd "par"; pparg es]
+    | "Core.Ewait", [tid] -> Core, Some [T.ckwd "wait"; pparg tid]
 
           (** Core operators *)
-    | "Core.OpAdd", [] -> Some ([T.ckwd "+"  ])
-    | "Core.OpSub", [] -> Some ([T.ckwd "-"  ])
-    | "Core.OpMul", [] -> Some ([T.ckwd "*"  ])
-    | "Core.OpDiv", [] -> Some ([T.ckwd "/"  ])
-    | "Core.OpMod", [] -> Some ([T.ckwd "%"  ])
-    | "Core.OpExp", [] -> Some ([T.ckwd "^"  ])
-    | "Core.OpEq" , [] -> Some ([T.ckwd "="  ])
-    | "Core.OpGt" , [] -> Some ([T.ckwd ">"  ])
-    | "Core.OpLt" , [] -> Some ([T.ckwd "<"  ])
-    | "Core.OpGe" , [] -> Some ([T.ckwd ">=" ])
-    | "Core.OpLe" , [] -> Some ([T.ckwd "<=" ])
-    | "Core.OpAnd", [] -> Some ([T.ckwd "/\\"])
-    | "Core.OpOr" , [] -> Some ([T.ckwd "\\/"])
+    | "Core.OpAdd", [] -> Core, Some ([T.ckwd "+"  ])
+    | "Core.OpSub", [] -> Core, Some ([T.ckwd "-"  ])
+    | "Core.OpMul", [] -> Core, Some ([T.ckwd "*"  ])
+    | "Core.OpDiv", [] -> Core, Some ([T.ckwd "/"  ])
+    | "Core.OpMod", [] -> Core, Some ([T.ckwd "%"  ])
+    | "Core.OpExp", [] -> Core, Some ([T.ckwd "^"  ])
+    | "Core.OpEq" , [] -> Core, Some ([T.ckwd "="  ])
+    | "Core.OpGt" , [] -> Core, Some ([T.ckwd ">"  ])
+    | "Core.OpLt" , [] -> Core, Some ([T.ckwd "<"  ])
+    | "Core.OpGe" , [] -> Core, Some ([T.ckwd ">=" ])
+    | "Core.OpLe" , [] -> Core, Some ([T.ckwd "<=" ])
+    | "Core.OpAnd", [] -> Core, Some ([T.ckwd "/\\"])
+    | "Core.OpOr" , [] -> Core, Some ([T.ckwd "\\/"])
 
 
 (*
@@ -1696,25 +1706,25 @@ let ppcerberus (c_id_string,args) deconstruct_arg pparg pparg_flip_lskip
  *)
 
 (** AilSyntax.statement *)
-    | "AilSyntax.AilSskip", [] -> Some  [T.akwd "skip" ] 
-    | "AilSyntax.AilSexpr", [e1] -> Some  [pparg e1; ] 
-    | "AilSyntax.AilSblock", [b; ss] -> Some  [T.akwd "{"; space; pparg b; space; pparg ss; space; T.akwd "}"] 
-    | "AilSyntax.AilSif", [e1; s1; s2] -> Some  [T.akwd "if" ; pparg_flip_lskip_string "(" e1; T.akwd ")"; space; pparg s1; space; T.akwd "else"; space; pparg s2 ] 
-    | "AilSyntax.AilSwhile", [e1; s1] -> Some  [T.akwd "while" ; pparg_flip_lskip_string "(" e1; T.akwd ")"; space; pparg s1  ] 
-    | "AilSyntax.AilSdo", [s1; e1] -> Some  [T.akwd "do" ; space; pparg s1; space; T.akwd "while"; pparg_flip_lskip_string "(" e1; T.akwd ")"; ] 
-    | "AilSyntax.AilSbreak", [] -> Some  [T.akwd "break" ]
-    | "AilSyntax.AilScontinue", [] -> Some  [T.akwd "continue" ]
-    | "AilSyntax.AilSreturnVoid", [] -> Some  [T.akwd "returnVoid" ]
+    | "AilSyntax.AilSskip", [] -> Ail, Some  [T.akwd "skip" ] 
+    | "AilSyntax.AilSexpr", [e1] -> Ail, Some  [pparg e1; ] 
+    | "AilSyntax.AilSblock", [b; ss] -> Ail, Some  [T.akwd "{"; space; pparg b; space; pparg ss; space; T.akwd "}"] 
+    | "AilSyntax.AilSif", [e1; s1; s2] -> Ail, Some  [T.akwd "if" ; pparg_flip_lskip_string "(" e1; T.akwd ")"; space; pparg s1; space; T.akwd "else"; space; pparg s2 ] 
+    | "AilSyntax.AilSwhile", [e1; s1] -> Ail, Some  [T.akwd "while" ; pparg_flip_lskip_string "(" e1; T.akwd ")"; space; pparg s1  ] 
+    | "AilSyntax.AilSdo", [s1; e1] -> Ail, Some  [T.akwd "do" ; space; pparg s1; space; T.akwd "while"; pparg_flip_lskip_string "(" e1; T.akwd ")"; ] 
+    | "AilSyntax.AilSbreak", [] -> Ail, Some  [T.akwd "break" ]
+    | "AilSyntax.AilScontinue", [] -> Ail, Some  [T.akwd "continue" ]
+    | "AilSyntax.AilSreturnVoid", [] -> Ail, Some  [T.akwd "returnVoid" ]
 
 
-    | "AilSyntax.AilSreturn", [e1] -> Some  [T.akwd "return" ; space; pparg e1; ] 
-    | "AilSyntax.AilSswitch", [e1; s1] -> Some  [T.akwd "switch" ; pparg_flip_lskip_string "(" e1; T.akwd ")"; space; pparg s1  ] 
-    | "AilSyntax.AilScase", [iCst; s1] -> Some  [T.akwd "case" ; space; pparg iCst; T.akwd ":"; pparg s1; ] 
-    | "AilSyntax.AilSdefault", [s1] -> Some  [T.akwd "default" ; space; T.akwd ":"; pparg s1; ] 
-    | "AilSyntax.AilSlabel", [id; s1] -> Some  [pparg id ; space; T.akwd ":"; space; pparg s1; ] 
-    | "AilSyntax.AilSgoto", [id] -> Some  [T.akwd "goto"; space; pparg id ] 
-    | "AilSyntax.AilSdeclaration", [ds] -> Some  [T.akwd "declaration-TODO"; space; pparg ds ] 
-    | "AilSyntax.AilSpar", [ss] -> Some  [T.akwd "par-TODO"; space; pparg ss ] 
+    | "AilSyntax.AilSreturn", [e1] -> Ail, Some  [T.akwd "return" ; space; pparg e1; ] 
+    | "AilSyntax.AilSswitch", [e1; s1] -> Ail, Some  [T.akwd "switch" ; pparg_flip_lskip_string "(" e1; T.akwd ")"; space; pparg s1  ] 
+    | "AilSyntax.AilScase", [iCst; s1] -> Ail, Some  [T.akwd "case" ; space; pparg iCst; T.akwd ":"; pparg s1; ] 
+    | "AilSyntax.AilSdefault", [s1] -> Ail, Some  [T.akwd "default" ; space; T.akwd ":"; pparg s1; ] 
+    | "AilSyntax.AilSlabel", [id; s1] -> Ail, Some  [pparg id ; space; T.akwd ":"; space; pparg s1; ] 
+    | "AilSyntax.AilSgoto", [id] -> Ail, Some  [T.akwd "goto"; space; pparg id ] 
+    | "AilSyntax.AilSdeclaration", [ds] -> Ail, Some  [T.akwd "declaration-TODO"; space; pparg ds ] 
+    | "AilSyntax.AilSpar", [ss] -> Ail, Some  [T.akwd "par-TODO"; space; pparg ss ] 
 (** AilSyntax.expression *)
     | "AilSyntax.AilEunary", [op;e] -> 
         begin
@@ -1722,35 +1732,35 @@ let ppcerberus (c_id_string,args) deconstruct_arg pparg pparg_flip_lskip
           | Some (c_id_string',[]) -> 
               begin 
                 match ppc (c_id_string',[]),  ail_unary_is_postfix c_id_string' with
-                | (Some op_output), true -> Some  [ pparg_flip_lskip (concat emp op_output) e ] 
-                | (Some op_output), false -> Some  [pparg e; (concat emp op_output) ] 
-                | None, true -> Some [pparg op; pparg e;]
+                | (kind,(Some op_output)), true -> Ail, Some  [ pparg_flip_lskip (concat emp op_output) e ] 
+                | (kind,(Some op_output)), false -> Ail, Some  [pparg e; (concat emp op_output) ] 
+                | (kind,None), true -> Ail, Some [pparg op; pparg e;]
               end
-          | None -> Some [pparg op; pparg e;]
+          | None -> Ail, Some [pparg op; pparg e;]
         end
     | "AilSyntax.AilEbinary", [e1;op;e2] -> 
-        Some [
+        Ail, Some [
         pparg e1; 
         (match deconstruct_arg op with 
         | Some (c_id_string',xs) -> 
             begin 
               match ppc (c_id_string',xs) with
-              | Some output -> concat emp output
-              | None -> pparg op
+              | kind, Some output -> concat emp output
+              | kind, None -> pparg op
             end
         | None -> 
             pparg op);
         pparg e2]
-    | "AilSyntax.AilEassign", [e1;e2] -> Some  [pparg e1; space; T.akwd "="; space; pparg e2; ] 
-    | "AilSyntax.AilEcompoundAssign", [e1;aop;e2] -> Some  [pparg e1; space; pparg aop; T.akwd "="; space; pparg e2; ] 
-    | "AilSyntax.AilEcond", [e1;e2;e3] -> Some  [pparg e1; space; T.akwd "?"; space; pparg e2; space; T.akwd ":"; space; pparg e3; ] 
-    | "AilSyntax.AilEcast", [q; ct; e1] -> Some  [ pparg_flip_lskip_string "(" q; space; pparg ct; space; T.akwd ")"; space; pparg e1; ] 
-    | "AilSyntax.AilEcall", [e1; es] -> Some  [pparg e1; pparg_flip_lskip_string "(" es; T.akwd ")"; space; ] 
+    | "AilSyntax.AilEassign", [e1;e2] -> Ail, Some  [pparg e1; space; T.akwd "="; space; pparg e2; ] 
+    | "AilSyntax.AilEcompoundAssign", [e1;aop;e2] -> Ail, Some  [pparg e1; space; pparg aop; T.akwd "="; space; pparg e2; ] 
+    | "AilSyntax.AilEcond", [e1;e2;e3] -> Ail, Some  [pparg e1; space; T.akwd "?"; space; pparg e2; space; T.akwd ":"; space; pparg e3; ] 
+    | "AilSyntax.AilEcast", [q; ct; e1] -> Ail, Some  [ pparg_flip_lskip_string "(" q; space; pparg ct; space; T.akwd ")"; space; pparg e1; ] 
+    | "AilSyntax.AilEcall", [e1; es] -> Ail, Some  [pparg e1; pparg_flip_lskip_string "(" es; T.akwd ")"; space; ] 
           (* now the grammar and lem diverge, so I'll stop for now*)
 
           (* for debugging, announce the Lem-internal AilSyntax identifier *)
     | s,_ when String.length s >=13 && String.sub s 0 13 = "AilSyntax.Ail" -> 
-        Some ([meta "{\\color{red}[\\!["; meta c_id_string ; meta "]\\!]}" ]  
+        Ail, Some ([meta "{\\color{red}[\\!["; meta c_id_string ; meta "]\\!]}" ]  
               (*@let oL = B.pattern_application_to_output p.locn (pat print_backend) cd ps (use_ascii_rep_for_const cd) in
               oL*))
 (** AilSyntax binary operators *)
@@ -1760,44 +1770,44 @@ let ppcerberus (c_id_string,args) deconstruct_arg pparg pparg_flip_lskip
           | Some (c_id_string', []) -> 
               begin
                 match c_id_string' with
-                | "AilSyntax.Mul"  -> Some ([T.akwd "*" ])
-                | "AilSyntax.Div"  -> Some ([T.akwd "/" ])
-                | "AilSyntax.Mod"  -> Some ([T.akwd "%" ])
-                | "AilSyntax.Add"  -> Some ([T.akwd "+" ])
-                | "AilSyntax.Sub"  -> Some ([T.akwd "-" ])
-                | "AilSyntax.Shl"  -> Some ([T.akwd "<<"])
-                | "AilSyntax.Shr"  -> Some ([T.akwd ">>"])
-                | "AilSyntax.Band" -> Some ([T.akwd "&" ])
-                | "AilSyntax.Bor"  -> Some ([T.akwd "|" ])
-                | "AilSyntax.Bxor" -> Some ([T.akwd "^" ])
-                | _ -> None
+                | "AilSyntax.Mul"  -> Ail, Some ([T.akwd "*" ])
+                | "AilSyntax.Div"  -> Ail, Some ([T.akwd "/" ])
+                | "AilSyntax.Mod"  -> Ail, Some ([T.akwd "%" ])
+                | "AilSyntax.Add"  -> Ail, Some ([T.akwd "+" ])
+                | "AilSyntax.Sub"  -> Ail, Some ([T.akwd "-" ])
+                | "AilSyntax.Shl"  -> Ail, Some ([T.akwd "<<"])
+                | "AilSyntax.Shr"  -> Ail, Some ([T.akwd ">>"])
+                | "AilSyntax.Band" -> Ail, Some ([T.akwd "&" ])
+                | "AilSyntax.Bor"  -> Ail, Some ([T.akwd "|" ])
+                | "AilSyntax.Bxor" -> Ail, Some ([T.akwd "^" ])
+                | _ -> Ail, None
               end
-          | _ -> None
+          | _ -> Ail, None
         end
-    | "AilSyntax.Comma",[] -> Some ([T.akwd "," ])
-    | "AilSyntax.And",[]   -> Some ([T.akwd "&&"])
-    | "AilSyntax.Or",[]    -> Some ([T.akwd "||"])
-    | "AilSyntax.Lt",[]    -> Some ([T.akwd "<" ])
-    | "AilSyntax.Gt",[]    -> Some ([T.akwd ">" ])
-    | "AilSyntax.Le",[]    -> Some ([T.akwd "<="])
-    | "AilSyntax.Ge",[]    -> Some ([T.akwd ">="])
-    | "AilSyntax.Eq",[]    -> Some ([T.akwd "=="])
-    | "AilSyntax.Ne",[]    -> Some ([T.akwd "!="])
+    | "AilSyntax.Comma",[] -> Ail, Some ([T.akwd "," ])
+    | "AilSyntax.And",[]   -> Ail, Some ([T.akwd "&&"])
+    | "AilSyntax.Or",[]    -> Ail, Some ([T.akwd "||"])
+    | "AilSyntax.Lt",[]    -> Ail, Some ([T.akwd "<" ])
+    | "AilSyntax.Gt",[]    -> Ail, Some ([T.akwd ">" ])
+    | "AilSyntax.Le",[]    -> Ail, Some ([T.akwd "<="])
+    | "AilSyntax.Ge",[]    -> Ail, Some ([T.akwd ">="])
+    | "AilSyntax.Eq",[]    -> Ail, Some ([T.akwd "=="])
+    | "AilSyntax.Ne",[]    -> Ail, Some ([T.akwd "!="])
           
 (** AilSyntax unary operators *)
-    | "AilSyntax.Plus"       ,[] -> Some ([T.akwd "+"])
-    | "AilSyntax.Minus"      ,[] -> Some ([T.akwd "-"])
-    | "AilSyntax.Bnot"       ,[] -> Some ([T.akwd "!"])
-    | "AilSyntax.Address"    ,[] -> Some ([T.akwd "&"])
-    | "AilSyntax.Indirection",[] -> Some ([T.akwd "*"])
-    | "AilSyntax.PostfixIncr",[] -> Some ([T.akwd "++"])  (*postfix*)
-    | "AilSyntax.PostfixDecr",[] -> Some ([T.akwd "--"])  (*postfix*)
+    | "AilSyntax.Plus"       ,[] -> Ail, Some ([T.akwd "+"])
+    | "AilSyntax.Minus"      ,[] -> Ail, Some ([T.akwd "-"])
+    | "AilSyntax.Bnot"       ,[] -> Ail, Some ([T.akwd "!"])
+    | "AilSyntax.Address"    ,[] -> Ail, Some ([T.akwd "&"])
+    | "AilSyntax.Indirection",[] -> Ail, Some ([T.akwd "*"])
+    | "AilSyntax.PostfixIncr",[] -> Ail, Some ([T.akwd "++"])  (*postfix*)
+    | "AilSyntax.PostfixDecr",[] -> Ail, Some ([T.akwd "--"])  (*postfix*)
 
 
 
 
 
-    | _ -> None
+    | _ -> Plain, None
 
   in 
   ppc (c_id_string,args)
@@ -1832,11 +1842,11 @@ let rec pat print_backend p = match p.term with
   | P_const(cd,ps) ->
       begin
         match cerberus_pat print_backend p cd ps with
-        | Some output ->  
+        | kind, Some output ->  
             let lskip = Typed_ast.ident_get_lskip cd in
 (*            concat texspace(*?*) (ws lskip :: [T.asbr output] )*)
-            ws lskip ^ (T.asbr (concat texspace output))
-        | None ->
+            ws lskip ^ (T.asbr kind (concat texspace output))
+        | _, None ->
             let oL = B.pattern_application_to_output p.locn (pat print_backend) cd ps (use_ascii_rep_for_const cd) in
             concat texspace oL
       end
@@ -1938,7 +1948,7 @@ and cerberus_pat print_backend p cd ps =
   | Some (c_id_string,ps) -> 
       ppcerberus (c_id_string,ps) deconstruct_pat pppat (pppat_flip_lskip pppat)
         (pat_core_expr_list pppat) (pat_core_expr_pattern_list pppat) (pat_core_expr_option_pattern pppat)
-  | None -> None
+  | None -> Plain, None
  
 
 
@@ -1989,10 +1999,10 @@ match C.exp_to_term e with
                begin
                  (* special-case Cerberus output *)
                  match cerberus_exp_app print_backend trans e e0 args cd with
-                 | Some output ->  
+                 | kind, Some output ->  
                      let lskip = Typed_ast.ident_get_lskip cd in
                      ws lskip :: output
-                 | None -> 
+                 | _, None -> 
                      B.function_application_to_output (exp_to_locn e) trans false e cd args (use_ascii_rep_for_const cd)
                end
            | _ -> (* no constant, so use standard one *)
