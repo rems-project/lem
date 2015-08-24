@@ -609,7 +609,8 @@ module Html : Target = struct
   let bkwd s = kwd (String.concat "" ["<b>";s;"</b>"])
   let ckwd s = kwd (String.concat "" ["<b><font color=\"blue\">"; s;  "</font></b>"])
   let akwd s = kwd (String.concat "" ["<b><font color=\"magenta\">"; s;  "</font></b>"])
-  let asbr output = kwd "<font color=\"magenta\">[[" ^ output ^ kwd "]]</font>"
+  let asbr output = kwd "[[" ^ output ^ kwd "]]"
+  (*let asbr output = kwd "<font color=\"magenta\">[[" ^ output ^ kwd "]]</font>"*)
 
 
   let forall = kwd "&forall;"
@@ -649,7 +650,8 @@ module Tex : Target = struct
 
   let akwd s = kwd (String.concat "" ["{\\color{magenta}{\\lemkwtt{"; Ulib.Text.to_string (tex_escape (Ulib.Text.of_string s));  "}}}"])
 
-  let asbr output = kwd "{\\color{magenta}{[\\![" ^ output ^ kwd "]\\!]}}"
+  let asbr output = kwd "[\\![" ^ output ^ kwd "]\\!]"
+  (*let asbr output = kwd "{\\color{magenta}{[\\![" ^ output ^ kwd "]\\!]}}"*)
 
 
 
@@ -1471,6 +1473,336 @@ let backend use_quotes sk i =
   backend_quote_cond use_quotes (
     Ident.to_output (Term_const (use_quotes, true)) T.path_sep i)
 
+
+
+(* special stuff for Cerberus *)
+
+(* pp something like the (p of (p) but with the lskip of p before the ( *)
+let pppat_flip_lskip pppat kw_output p =
+  let (p',lskips) = Typed_ast.pat_alter_init_lskips (fun lskips->(Typed_ast.no_lskips, lskips)) p in 
+  ws lskips ^
+  kw_output ^ 
+  pppat p' 
+
+let ppexp_flip_lskip ppexp kw_output e =
+  let (e',lskips) = Typed_ast.alter_init_lskips (fun lskips->(Typed_ast.no_lskips, lskips)) e in 
+  ws lskips ^
+  kw_output ^
+  ppexp e' 
+
+
+
+(* interleave sp between elements of xs *)
+let rec sep_with sp xs = match xs with 
+| [] -> []
+| [x] -> [x]
+| x1::x2::xs' -> [x1] @ sp @ sep_with sp (x2::xs') 
+
+(* pp of expression lists used in Lem expressions in Core, parameterised by begin/end/separator *)
+let exp_core_expr_list pparg es list_begin list_end list_sep last_list_sep = 
+  match C.exp_to_term es with 
+  | List(s1,es,s2) ->
+      block false 0 (
+      ws s1 ^
+      list_begin ^
+      flat 
+        (Seplist.to_sep_list_last last_list_sep 
+           pparg (sep list_sep) es) ^
+      ws s2 ^
+      list_end)
+  | _ -> meta " BACKEND PP FAILURE: exp_core_expr_list" 
+
+(* pp of expression lists used in Lem expressions in Core pattern positions, mapping Just e to e and Nothing to _ *)
+let rec exp_core_expr_option_pattern ppexp e = 
+  (*meta " CORE_EXPR_OPTION_PATTERN " ^ *)
+  match C.exp_to_term e with
+  | Constant cd when
+      (let (c_descr : Typed_ast.const_descr) = c_env_lookup Ast.Unknown A.env.c_env cd.descr in
+      let (c_id_string : string) = Path.to_string c_descr.const_binding in
+      String.length c_id_string >=7 && String.sub c_id_string (String.length c_id_string - 7) 7 = "Nothing")
+    -> 
+      let lskip = Typed_ast.ident_get_lskip cd in
+      ws lskip ^
+      T.ckwd "_"
+  | App(e1,e2) -> 
+      (*meta " APP " ^ *)
+      begin
+        match C.exp_to_term e1 with
+        | Constant cd when
+            (let (c_descr : Typed_ast.const_descr) = c_env_lookup Ast.Unknown A.env.c_env cd.descr in
+            let (c_id_string : string) = Path.to_string c_descr.const_binding in
+            String.length c_id_string >=4 && String.sub c_id_string (String.length c_id_string - 4) 4 = "Just")
+          ->
+            let lskip = Typed_ast.ident_get_lskip cd in
+            ws lskip ^
+            ppexp e2
+        | _ -> ppexp e 
+      end
+  | Paren(s1,e,s2) -> 
+      block false 0 (ws s1 ^ T.ckwd "(" ^ block false 0 (exp_core_expr_option_pattern ppexp e ^ ws s2) ^ T.ckwd ")")
+  | _ -> (*meta " MISMATCH " ^*)
+      ppexp e 
+
+let exp_core_expr_pattern_list ppexp es = 
+  match C.exp_to_term es with 
+  | List(s1,es,s2) ->
+      (match Seplist.is_empty es with
+      | true -> 
+          ws s1 ^
+          T.ckwd "_"
+      | false -> 
+          block false 0 (
+          ws s1 ^
+          T.ckwd "[" ^
+          flat 
+            (Seplist.to_sep_list_last Seplist.Optional
+               (exp_core_expr_option_pattern ppexp) (sep (T.ckwd ",")) es) ^
+          ws s2 ^
+          T.ckwd "]"))
+  | _ -> 
+      (*meta " BACKEND PP FAILURE: core_expr_pattern_list" *)
+      ppexp es 
+
+(* pp of expression lists used in Lem patterns in Core pattern positions*)
+
+let pat_core_expr_list pppat p list_begin list_end list_sep last_list_sep = 
+  match p.term with 
+  | P_list(s1,ps,s2) ->
+      ws s1 ^
+      list_begin ^
+      flat 
+        (Seplist.to_sep_list_last last_list_sep 
+           pppat (sep list_sep) ps) ^
+      ws s2 ^
+      list_end
+  | _ -> meta " BACKEND PP FAILURE: pat_core_expr_list" 
+
+(* using default pp for now for these two*)
+let pat_core_expr_option_pattern pppat p = 
+  pppat p
+
+let pat_core_expr_pattern_list pppat ps =
+  pppat ps
+
+
+
+
+let ail_unary_is_postfix c_id_string = 
+  match c_id_string with
+  | "AilSyntax.Plus"        -> false
+  | "AilSyntax.Minus"       -> false
+  | "AilSyntax.Bnot"        -> false
+  | "AilSyntax.Address"     -> false
+  | "AilSyntax.Indirection" -> false
+  | "AilSyntax.PostfixIncr" -> true
+  | "AilSyntax.PostfixDecr" -> true
+
+
+let ppcerberus (c_id_string,args) deconstruct_arg pparg pparg_flip_lskip 
+    core_expr_list core_expr_pattern_list core_expr_option_pattern = 
+
+  let pparg_flip_lskip_string kw_string e = pparg_flip_lskip (T.akwd kw_string) e in
+
+  let rec ppc (c_id_string,args) = 
+
+    let ppc_deconstruct e =   (* deconstruct e and try ppc, falling back to pparg if either fails *)
+      match deconstruct_arg e with
+      | Some (c_id_string,es) ->
+          begin
+            match ppc (c_id_string,es) with
+            | Some output -> concat emp output
+            | None -> pparg e
+          end
+      | None ->
+          pparg e in 
+
+
+    match c_id_string, args with
+      (*[meta c_id_string] @ *) 
+      (** Core.pexpr *)
+    | "Core.PEundef", [ub] -> Some [T.ckwd "undef"; space; pparg ub]
+    | "Core.PEerror", [s] -> Some  [T.ckwd "error"; space; pparg s]
+    | "Core.PEval", [v] -> Some [pparg v]
+    | "Core.PEsym", [sym] -> Some [pparg sym]
+    | "Core.PEimpl", [iCst] -> Some [pparg iCst]
+    | "Core.PEcons", [e1; e2] -> Some [pparg e1; T.ckwd "::"; pparg e2]
+    | "Core.PEcase_list", [e1; e2; nm] -> Some [T.ckwd "case_list"; space; T.ckwd "("; pparg e1; T.ckwd ","; pparg e2; T.ckwd ","; pparg nm; T.ckwd ")"]
+    | "Core.PEcase_ctype", [e1; e2; nm1; nm2; nm3; nm4; nm5; nm6; nm7; nm8] -> Some 
+          [T.ckwd "case_ctype"; space; pparg e1; space; T.ckwd "with"; space;
+           T.ckwd "void:"; space; pparg e2; T.ckwd ",";               
+           T.ckwd "basic:"; space; pparg nm1; T.ckwd ",";               
+           T.ckwd "array:"; space; pparg nm2; T.ckwd ",";               
+           T.ckwd "function:"; space; pparg nm3; T.ckwd ",";               
+           T.ckwd "pointer:"; space; pparg nm4; T.ckwd ",";               
+           T.ckwd "atomic:"; space; pparg nm5; T.ckwd ",";               
+           T.ckwd "struct:"; space; pparg nm6; T.ckwd ",";               
+           T.ckwd "union:"; space; pparg nm7; T.ckwd ",";               
+           T.ckwd "builtin:"; space; pparg nm8;               
+         ]
+    | "Core.PEarray_shift", [e1; ty; e2] -> Some [T.ckwd "array_shift"; T.ckwd "("; pparg e1; T.ckwd ","; pparg ty; T.ckwd ","; pparg e2; T.ckwd ")"]
+    | "Core.PEmember_shift", [e1; sym; id] -> Some [T.ckwd "member_shift"; T.ckwd "("; pparg e1; T.ckwd ","; pparg sym; T.ckwd ","; pparg id; T.ckwd ")"]
+    | "Core.PEnot", [e] -> Some [T.ckwd "not"; T.ckwd "("; pparg e; T.ckwd ")"]
+    | "Core.PEop", [op; pe1; pe2] -> Some [pparg pe1; space; ppc_deconstruct op; space; pparg pe2]
+    | "Core.PEmemop", [memop; pes] -> Some ([pparg memop; core_expr_list pes (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional])
+    | "Core.PEtuple", [pes] -> Some ([core_expr_list pes (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional])
+    | "Core.PEarray", [pes] -> Some ([core_expr_list pes (T.ckwd "array(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional])  (*TODO: concrete syntax for core arrays?*)
+          (*                 | "Core.PEstruct"*)
+    | "Core.PEcall", [nm; pes] -> Some ([pparg nm; core_expr_list pes (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional])
+    | "Core.PElet", [sym; pe1; pe2] -> Some [T.ckwd "let" ; pparg sym ; T.ckwd "="; pparg pe1; space; T.ckwd "in"; space; pparg pe2 ] 
+    | "Core.PEif", [pe1; pe2; pe3] -> Some  [T.ckwd "if" ; pparg pe1; space; T.ckwd "then"; pparg pe2; space; T.ckwd "else"; space; pparg pe3 ] 
+          
+          (** Core.expr *) (*TODO: how should we highlight purity in the output?*)
+    | "Core.Epure", [pexpr] -> Some [T.ckwd "pure" ; pparg pexpr]   (*TODO*)
+    | "Core.Ememop", [memop; pes] -> Some ([pparg memop; core_expr_list pes (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional])
+    | "Core.Eskip", [] -> Some [T.ckwd "skip"]
+    | "Core.Elet", [a; e1; e2] -> Some  [T.ckwd "let" ; space; pparg a ; T.ckwd "="; pparg e1; space; T.ckwd "in"; space; pparg e2 ] 
+    | "Core.Eif", [expr1; expr2; expr3] -> Some  [T.ckwd "if" ; space; pparg expr1; space; T.ckwd "then"; pparg expr2; space; T.ckwd "else"; space; pparg expr3 ] 
+    | "Core.Eproc", [nm; es] -> Some ([pparg nm; core_expr_list es (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional]) (*TODO: just like call?*)
+    | "Core.Eaction", [pact] -> Some [pparg pact]
+    | "Core.Eunseq", [es] -> Some ([core_expr_list es (T.ckwd "[") (T.ckwd "]") (T.ckwd "||") Seplist.Optional])
+    | "Core.Esseq", [pattern; expr1; expr2] -> Some  [T.ckwd "let" ; space; T.ckwd "strong"; core_expr_pattern_list pattern; space; T.ckwd "="; pparg expr1; space; T.ckwd "in"; space; pparg expr2 ] 
+    | "Core.Ewseq", [pattern; expr1; expr2] -> Some  [T.ckwd "let" ; space; T.ckwd "weak"; core_expr_pattern_list pattern; space; T.ckwd "="; pparg expr1; space; T.ckwd "in"; space; pparg expr2 ] 
+    | "Core.Easeq", [msym; act; pact] -> Some  [T.ckwd "let" ; space; T.ckwd "atomic"; (*pparg*) core_expr_option_pattern msym; space; T.ckwd "="; pparg act; space; T.ckwd "in"; space; pparg pact ] 
+    | "Core.Eindet", [expr] -> Some [T.ckwd "indet"; T.ckwd "("; pparg expr ; T.ckwd ")"]
+    | "Core.Ebound", [n; expr] -> Some [T.ckwd "bound"; T.ckwd "("; pparg n ; T.ckwd ","; pparg expr ; T.ckwd ")"]
+          
+    | "Core.Esave", [d; a_tys; e] -> Some [T.ckwd "save"; pparg d; space; pparg a_tys; T.ckwd "."; pparg e; space; T.ckwd "end"]
+    | "Core.Erun", [_; d; a_es] -> Some [T.ckwd "run"; pparg d; space; pparg a_es]
+          
+    | "Core.Eret", [pexpr] -> Some [T.ckwd "return"; pparg pexpr]
+    | "Core.Epar", [es] -> Some [T.ckwd "par"; pparg es]
+    | "Core.Ewait", [tid] -> Some [T.ckwd "wait"; pparg tid]
+
+          (** Core operators *)
+    | "Core.OpAdd", [] -> Some ([T.ckwd "+"  ])
+    | "Core.OpSub", [] -> Some ([T.ckwd "-"  ])
+    | "Core.OpMul", [] -> Some ([T.ckwd "*"  ])
+    | "Core.OpDiv", [] -> Some ([T.ckwd "/"  ])
+    | "Core.OpMod", [] -> Some ([T.ckwd "%"  ])
+    | "Core.OpExp", [] -> Some ([T.ckwd "^"  ])
+    | "Core.OpEq" , [] -> Some ([T.ckwd "="  ])
+    | "Core.OpGt" , [] -> Some ([T.ckwd ">"  ])
+    | "Core.OpLt" , [] -> Some ([T.ckwd "<"  ])
+    | "Core.OpGe" , [] -> Some ([T.ckwd ">=" ])
+    | "Core.OpLe" , [] -> Some ([T.ckwd "<=" ])
+    | "Core.OpAnd", [] -> Some ([T.ckwd "/\\"])
+    | "Core.OpOr" , [] -> Some ([T.ckwd "\\/"])
+
+
+(*
+(* for debugging, announce the Lem-internal Core identifier *)a        
+  | s,_ when String.sub s 0 5 = "Core." -> Some ([meta "{\\color{red}[\\!["; meta c_id_string ; meta "]\\!]}" ]  
+  @ B.function_application_to_output (exp_to_locn e) trans false e cd args (use_ascii_rep_for_const cd))
+ *)
+
+(** AilSyntax.statement *)
+    | "AilSyntax.AilSskip", [] -> Some  [T.akwd "skip" ] 
+    | "AilSyntax.AilSexpr", [e1] -> Some  [pparg e1; ] 
+    | "AilSyntax.AilSblock", [b; ss] -> Some  [T.akwd "{"; space; pparg b; space; pparg ss; space; T.akwd "}"] 
+    | "AilSyntax.AilSif", [e1; s1; s2] -> Some  [T.akwd "if" ; pparg_flip_lskip_string "(" e1; T.akwd ")"; space; pparg s1; space; T.akwd "else"; space; pparg s2 ] 
+    | "AilSyntax.AilSwhile", [e1; s1] -> Some  [T.akwd "while" ; pparg_flip_lskip_string "(" e1; T.akwd ")"; space; pparg s1  ] 
+    | "AilSyntax.AilSdo", [s1; e1] -> Some  [T.akwd "do" ; space; pparg s1; space; T.akwd "while"; pparg_flip_lskip_string "(" e1; T.akwd ")"; ] 
+    | "AilSyntax.AilSbreak", [] -> Some  [T.akwd "break" ]
+    | "AilSyntax.AilScontinue", [] -> Some  [T.akwd "continue" ]
+    | "AilSyntax.AilSreturnVoid", [] -> Some  [T.akwd "returnVoid" ]
+
+
+    | "AilSyntax.AilSreturn", [e1] -> Some  [T.akwd "return" ; space; pparg e1; ] 
+    | "AilSyntax.AilSswitch", [e1; s1] -> Some  [T.akwd "switch" ; pparg_flip_lskip_string "(" e1; T.akwd ")"; space; pparg s1  ] 
+    | "AilSyntax.AilScase", [iCst; s1] -> Some  [T.akwd "case" ; space; pparg iCst; T.akwd ":"; pparg s1; ] 
+    | "AilSyntax.AilSdefault", [s1] -> Some  [T.akwd "default" ; space; T.akwd ":"; pparg s1; ] 
+    | "AilSyntax.AilSlabel", [id; s1] -> Some  [pparg id ; space; T.akwd ":"; space; pparg s1; ] 
+    | "AilSyntax.AilSgoto", [id] -> Some  [T.akwd "goto"; space; pparg id ] 
+    | "AilSyntax.AilSdeclaration", [ds] -> Some  [T.akwd "declaration-TODO"; space; pparg ds ] 
+    | "AilSyntax.AilSpar", [ss] -> Some  [T.akwd "par-TODO"; space; pparg ss ] 
+(** AilSyntax.expression *)
+    | "AilSyntax.AilEunary", [op;e] -> 
+        begin
+          match deconstruct_arg op with 
+          | Some (c_id_string',[]) -> 
+              begin 
+                match ppc (c_id_string',[]),  ail_unary_is_postfix c_id_string' with
+                | (Some op_output), true -> Some  [ pparg_flip_lskip (concat emp op_output) e ] 
+                | (Some op_output), false -> Some  [pparg e; (concat emp op_output) ] 
+                | None, true -> Some [pparg op; pparg e;]
+              end
+          | None -> Some [pparg op; pparg e;]
+        end
+    | "AilSyntax.AilEbinary", [e1;op;e2] -> 
+        Some [
+        pparg e1; 
+        (match deconstruct_arg op with 
+        | Some (c_id_string',xs) -> 
+            begin 
+              match ppc (c_id_string',xs) with
+              | Some output -> concat emp output
+              | None -> pparg op
+            end
+        | None -> 
+            pparg op);
+        pparg e2]
+    | "AilSyntax.AilEassign", [e1;e2] -> Some  [pparg e1; space; T.akwd "="; space; pparg e2; ] 
+    | "AilSyntax.AilEcompoundAssign", [e1;aop;e2] -> Some  [pparg e1; space; pparg aop; T.akwd "="; space; pparg e2; ] 
+    | "AilSyntax.AilEcond", [e1;e2;e3] -> Some  [pparg e1; space; T.akwd "?"; space; pparg e2; space; T.akwd ":"; space; pparg e3; ] 
+    | "AilSyntax.AilEcast", [q; ct; e1] -> Some  [ pparg_flip_lskip_string "(" q; space; pparg ct; space; T.akwd ")"; space; pparg e1; ] 
+    | "AilSyntax.AilEcall", [e1; es] -> Some  [pparg e1; pparg_flip_lskip_string "(" es; T.akwd ")"; space; ] 
+          (* now the grammar and lem diverge, so I'll stop for now*)
+
+          (* for debugging, announce the Lem-internal AilSyntax identifier *)
+    | s,_ when String.length s >=13 && String.sub s 0 13 = "AilSyntax.Ail" -> 
+        Some ([meta "{\\color{red}[\\!["; meta c_id_string ; meta "]\\!]}" ]  
+              (*@let oL = B.pattern_application_to_output p.locn (pat print_backend) cd ps (use_ascii_rep_for_const cd) in
+              oL*))
+(** AilSyntax binary operators *)
+    | "AilSyntax.Arithmetic", [p] -> 
+        begin
+          match deconstruct_arg p with
+          | Some (c_id_string', []) -> 
+              begin
+                match c_id_string' with
+                | "AilSyntax.Mul"  -> Some ([T.akwd "*" ])
+                | "AilSyntax.Div"  -> Some ([T.akwd "/" ])
+                | "AilSyntax.Mod"  -> Some ([T.akwd "%" ])
+                | "AilSyntax.Add"  -> Some ([T.akwd "+" ])
+                | "AilSyntax.Sub"  -> Some ([T.akwd "-" ])
+                | "AilSyntax.Shl"  -> Some ([T.akwd "<<"])
+                | "AilSyntax.Shr"  -> Some ([T.akwd ">>"])
+                | "AilSyntax.Band" -> Some ([T.akwd "&" ])
+                | "AilSyntax.Bor"  -> Some ([T.akwd "|" ])
+                | "AilSyntax.Bxor" -> Some ([T.akwd "^" ])
+                | _ -> None
+              end
+          | _ -> None
+        end
+    | "AilSyntax.Comma",[] -> Some ([T.akwd "," ])
+    | "AilSyntax.And",[]   -> Some ([T.akwd "&&"])
+    | "AilSyntax.Or",[]    -> Some ([T.akwd "||"])
+    | "AilSyntax.Lt",[]    -> Some ([T.akwd "<" ])
+    | "AilSyntax.Gt",[]    -> Some ([T.akwd ">" ])
+    | "AilSyntax.Le",[]    -> Some ([T.akwd "<="])
+    | "AilSyntax.Ge",[]    -> Some ([T.akwd ">="])
+    | "AilSyntax.Eq",[]    -> Some ([T.akwd "=="])
+    | "AilSyntax.Ne",[]    -> Some ([T.akwd "!="])
+          
+(** AilSyntax unary operators *)
+    | "AilSyntax.Plus"       ,[] -> Some ([T.akwd "+"])
+    | "AilSyntax.Minus"      ,[] -> Some ([T.akwd "-"])
+    | "AilSyntax.Bnot"       ,[] -> Some ([T.akwd "!"])
+    | "AilSyntax.Address"    ,[] -> Some ([T.akwd "&"])
+    | "AilSyntax.Indirection",[] -> Some ([T.akwd "*"])
+    | "AilSyntax.PostfixIncr",[] -> Some ([T.akwd "++"])  (*postfix*)
+    | "AilSyntax.PostfixDecr",[] -> Some ([T.akwd "--"])  (*postfix*)
+
+
+
+
+
+    | _ -> None
+
+  in 
+  ppc (c_id_string,args)
+
+
 let rec pat print_backend p = match p.term with
   | P_wild(s) ->
       ws s ^
@@ -1590,128 +1922,23 @@ and cerberus_pat print_backend p cd ps =
 
   let pppat p' = pat print_backend p' in 
 
-  (* pp something like the (p of (p) but with the lskip of p before the ( *)
-  let pppat_flip_lskip kw p =
-    let (p',lskips) = Typed_ast.pat_alter_init_lskips (fun lskips->(Typed_ast.no_lskips, lskips)) p in 
-    ws lskips ^
-    T.akwd kw ^
-    pppat p' in 
-    
-
-  let ail_unary_op op = match op with
-  | "AilSyntax.Plus" -> "+",true
-  | "AilSyntax.Minus" -> "-",true
-  | "AilSyntax.Bnot" -> "!",true
-  | "AilSyntax.Address" -> "&",true
-  | "AilSyntax.Indirection" -> "*",true
-  | "AilSyntax.PostfixIncr" -> "++",false
-  | "AilSyntax.PostfixDecr" -> "--",false
-  | _ -> Printf.sprintf "AIL UNARY OP NOT FOUND \"%s\"" op,true in
-
-  let pp_ail_unary_op op e = 
-    match op.term with
-    | P_const(cd, []) -> 
+  let rec deconstruct_pat p =
+    match p.term with 
+    | P_paren(s1,p',s2) -> deconstruct_pat p'  (* suppress parens in op pattern output *)
+    | P_const(cd, ps) -> 
         let (c_descr : Typed_ast.const_descr) = c_env_lookup Ast.Unknown A.env.c_env cd.descr in
         let (c_id_string : string) = Path.to_string c_descr.const_binding in
-        begin
-          match ail_unary_op c_id_string with
-          | op_string, true -> Some  [ pppat_flip_lskip op_string e ] 
-          | op_string, false -> Some  [pppat e; T.akwd op_string; ] 
-        end
-    | _ -> 
-      Some [pppat op; pppat e;] in
-  
+        Some (c_id_string, ps)
+    | _ -> None in
 
-  let pp_ail_binary_op e1 op e2 = 
-    let rec op_string_opt op = 
-      match op.term with
-      | P_paren(s1,p,s2) -> op_string_opt p
-      | P_const(cd, ps) -> 
-          let (c_descr : Typed_ast.const_descr) = c_env_lookup Ast.Unknown A.env.c_env cd.descr in
-          let (c_id_string : string) = Path.to_string c_descr.const_binding in
-          begin
-            match c_id_string, ps with
-            | "AilSyntax.Arithmetic", [p] -> 
-                begin
-                  match p.term with
-                  | P_const(cd', []) -> 
-                      let (c_descr' : Typed_ast.const_descr) = c_env_lookup Ast.Unknown A.env.c_env cd'.descr in
-                      let (c_id_string' : string) = Path.to_string c_descr'.const_binding in
-                      begin
-                        match c_id_string' with
-                        | "AilSyntax.Mul"  -> Some "*"
-                        | "AilSyntax.Div"  -> Some "/"
-                        | "AilSyntax.Mod"  -> Some "%"
-                        | "AilSyntax.Add"  -> Some "+"
-                        | "AilSyntax.Sub"  -> Some "-"
-                        | "AilSyntax.Shl"  -> Some "<<"
-                        | "AilSyntax.Shr"  -> Some ">>"
-                        | "AilSyntax.Band" -> Some "&"
-                        | "AilSyntax.Bor"  -> Some "|"
-                        | "AilSyntax.Bxor" -> Some "^"
-                        | _ -> None
-                      end
-                  | _ -> None
-                end
-            | "AilSyntax.Comma",[] -> Some ","
-            | "AilSyntax.And",[]   -> Some "&&"
-            | "AilSyntax.Or",[]    -> Some "||"
-            | "AilSyntax.Lt",[]    -> Some "<"
-            | "AilSyntax.Gt",[]    -> Some ">"
-            | "AilSyntax.Le",[]    -> Some "<="
-            | "AilSyntax.Ge",[]    -> Some ">="
-            | "AilSyntax.Eq",[]    -> Some "=="
-            | "AilSyntax.Ne",[]    -> Some "!="
-            | _ -> None
-          end 
-      | _ -> None
-    in
-    Some [pppat e1; 
-          (match op_string_opt op with
-          | Some op_string -> T.akwd op_string
-          | None -> pppat op); 
-          pppat e2]
-  in
 
   let (c_descr : Typed_ast.const_descr) = c_env_lookup Ast.Unknown A.env.c_env cd.descr in
   (* TODO: how to pull out the initial lskips from the Constant?                  let lskip = Ident.get_lskip c_descr.const_binding.id_path in  *)
-  let (c_id_string : string) = Path.to_string c_descr.const_binding in
-  match c_id_string, ps with
-(** AilSyntax.statement *)
-  | "AilSyntax.AilSskip", [] -> Some  [T.akwd "skip" ] 
-  | "AilSyntax.AilSexpr", [e1] -> Some  [pppat e1; ] 
-  | "AilSyntax.AilSblock", [b; ss] -> Some  [T.akwd "{"; space; pppat b; space; pppat ss; space; T.akwd "}"] 
-  | "AilSyntax.AilSif", [e1; s1; s2] -> Some  [T.akwd "if" ; pppat_flip_lskip "(" e1; T.akwd ")"; space; pppat s1; space; T.akwd "else"; space; pppat s2 ] 
-  | "AilSyntax.AilSwhile", [e1; s1] -> Some  [T.akwd "while" ; pppat_flip_lskip "(" e1; T.akwd ")"; space; pppat s1  ] 
-  | "AilSyntax.AilSdo", [s1; e1] -> Some  [T.akwd "do" ; space; pppat s1; space; T.akwd "while"; pppat_flip_lskip "(" e1; T.akwd ")"; ] 
-  | "AilSyntax.AilSbreak", [] -> Some  [T.akwd "break" ]
-  | "AilSyntax.AilScontinue", [] -> Some  [T.akwd "continue" ]
-  | "AilSyntax.AilSreturnVoid", [] -> Some  [T.akwd "returnVoid" ]
-
-
-  | "AilSyntax.AilSreturn", [e1] -> Some  [T.akwd "return" ; space; pppat e1; ] 
-  | "AilSyntax.AilSswitch", [e1; s1] -> Some  [T.akwd "switch" ; pppat_flip_lskip "(" e1; T.akwd ")"; space; pppat s1  ] 
-  | "AilSyntax.AilScase", [iCst; s1] -> Some  [T.akwd "case" ; space; pppat iCst; T.akwd ":"; pppat s1; ] 
-  | "AilSyntax.AilSdefault", [s1] -> Some  [T.akwd "default" ; space; T.akwd ":"; pppat s1; ] 
-  | "AilSyntax.AilSlabel", [id; s1] -> Some  [pppat id ; space; T.akwd ":"; space; pppat s1; ] 
-  | "AilSyntax.AilSgoto", [id] -> Some  [T.akwd "goto"; space; pppat id ] 
-  | "AilSyntax.AilSdeclaration", [ds] -> Some  [T.akwd "declaration-TODO"; space; pppat ds ] 
-  | "AilSyntax.AilSpar", [ss] -> Some  [T.akwd "par-TODO"; space; pppat ss ] 
-(** AilSyntax.expression *)
-  | "AilSyntax.AilEunary", [op;e1] -> pp_ail_unary_op op e1
-  | "AilSyntax.AilEbinary", [e1;op;e2] -> pp_ail_binary_op e1 op e2
-  | "AilSyntax.AilEassign", [e1;e2] -> Some  [pppat e1; space; T.akwd "="; space; pppat e2; ] 
-  | "AilSyntax.AilEcompoundAssign", [e1;aop;e2] -> Some  [pppat e1; space; pppat aop; T.akwd "="; space; pppat e2; ] 
-  | "AilSyntax.AilEcond", [e1;e2;e3] -> Some  [pppat e1; space; T.akwd "?"; space; pppat e2; space; T.akwd ":"; space; pppat e3; ] 
-  | "AilSyntax.AilEcast", [q; ct; e1] -> Some  [ pppat_flip_lskip "(" q; space; pppat ct; space; T.akwd ")"; space; pppat e1; ] 
-  | "AilSyntax.AilEcall", [e1; es] -> Some  [pppat e1; pppat_flip_lskip "(" es; T.akwd ")"; space; ] 
-  (* now the grammar and lem diverge, so I'll stop for now*)
-
-  | s,_ when String.length s >=13 && String.sub s 0 13 = "AilSyntax.Ail" -> 
-      Some ([meta "{\\color{red}[\\!["; meta c_id_string ; meta "]\\!]}" ]  
-            @ let oL = B.pattern_application_to_output p.locn (pat print_backend) cd ps (use_ascii_rep_for_const cd) in
-            oL)
-  | _ -> None
+  match deconstruct_pat p with
+  | Some (c_id_string,ps) -> 
+      ppcerberus (c_id_string,ps) deconstruct_pat pppat (pppat_flip_lskip pppat)
+        (pat_core_expr_list pppat) (pat_core_expr_pattern_list pppat) (pat_core_expr_option_pattern pppat)
+  | None -> None
  
 
 
@@ -2134,170 +2361,23 @@ and letbind print_backend (lb, _) : Output.t = match lb with
 (* hack: attempt at special-casing Cerberus Core syntax *)
 and cerberus_exp_app print_backend trans e e0 args cd = 
   
-  (* interleave sp between elements of xs *)
-  let rec sep_with sp xs = match xs with 
-  | [] -> []
-  | [x] -> [x]
-  | x1::x2::xs' -> [x1] @ sp @ sep_with sp (x2::xs') in
-  let ppexp e = exp print_backend e in 
-  (* pp of expression lists parameterised by begin/end/separator *)
-  let core_expr_list list_begin list_end list_sep last_list_sep es = 
-    match C.exp_to_term es with 
-    | List(s1,es,s2) ->
-        block false 0 (
-        ws s1 ^
-        list_begin ^
-        flat 
-          (Seplist.to_sep_list_last last_list_sep 
-             (exp print_backend) (sep list_sep) es) ^
-        ws s2 ^
-        list_end)
-    | _ -> meta " BACKEND PP FAILURE: core_expr_list" in
-  (* pp of expression lists used in Core pattern positions, mapping Just e to e and Nothing to _ *)
-  let rec core_expr_option_pattern e = 
-    (*meta " CORE_EXPR_OPTION_PATTERN " ^ *)
-    match C.exp_to_term e with
-    | Constant cd when
-        (let (c_descr : Typed_ast.const_descr) = c_env_lookup Ast.Unknown A.env.c_env cd.descr in
-        let (c_id_string : string) = Path.to_string c_descr.const_binding in
-        String.length c_id_string >=7 && String.sub c_id_string (String.length c_id_string - 7) 7 = "Nothing")
-          -> 
-            let lskip = Typed_ast.ident_get_lskip cd in
-            ws lskip ^
-            T.ckwd "_"
-    | App(e1,e2) -> 
-        (*meta " APP " ^ *)
-        begin
-          match C.exp_to_term e1 with
-          | Constant cd when
-              (let (c_descr : Typed_ast.const_descr) = c_env_lookup Ast.Unknown A.env.c_env cd.descr in
-              let (c_id_string : string) = Path.to_string c_descr.const_binding in
-              String.length c_id_string >=4 && String.sub c_id_string (String.length c_id_string - 4) 4 = "Just")
-            ->
-              let lskip = Typed_ast.ident_get_lskip cd in
-              ws lskip ^
-              exp print_backend e2
-          | _ -> exp print_backend e 
-        end
-    | Paren(s1,e,s2) -> 
-        block false 0 (ws s1 ^ T.ckwd "(" ^ block false 0 (core_expr_option_pattern e ^ ws s2) ^ T.ckwd ")")
-    | _ -> (*meta " MISMATCH " ^*)
-        exp print_backend e in
+  let ppexp e = exp print_backend e in
 
-  let core_expr_pattern_list es = 
-    match C.exp_to_term es with 
-    | List(s1,es,s2) ->
-        (match Seplist.is_empty es with
-        | true -> 
-            ws s1 ^
-            T.ckwd "_"
-        | false -> 
-            block false 0 (
-            ws s1 ^
-            T.ckwd "[" ^
-            flat 
-              (Seplist.to_sep_list_last Seplist.Optional
-                 (core_expr_option_pattern) (sep (T.ckwd ",")) es) ^
-            ws s2 ^
-            T.ckwd "]"))
-    | _ -> 
-        (*meta " BACKEND PP FAILURE: core_expr_pattern_list" *)
-        exp print_backend es in
-
-
-
-(*[exp print_backend es] in *)
-  let core_op op = match op with
-  | "Core.OpAdd" -> "+"
-  | "Core.OpSub" -> "-"
-  | "Core.OpMul" -> "*"
-  | "Core.OpDiv" -> "/"
-  | "Core.OpMod" -> "%"
-  | "Core.OpExp" -> "^"
-  | "Core.OpEq"  -> "="
-  | "Core.OpGt"  -> ">"
-  | "Core.OpLt"  -> "<"
-  | "Core.OpGe"  -> ">="
-  | "Core.OpLe"  -> "<="
-  | "Core.OpAnd" -> "/\\"
-  | "Core.OpOr"  -> "\\/"
-  | _ -> Printf.sprintf " BACKEND PP FAILURE: CORE OP NOT FOUND \"%s\"" op in
-  let ppop e = 
+  let deconstruct_exp e = 
     match C.exp_to_term e with
     | Constant(cd') -> 
         let (c_descr' : Typed_ast.const_descr) = c_env_lookup Ast.Unknown A.env.c_env cd'.descr in
         let (c_id_string' : string) = Path.to_string c_descr'.const_binding in
-        T.ckwd (core_op c_id_string') 
-    | _ -> T.ckwd " BACKEND PP FAILURE: CORE OP NOT CONSTANT " in
-  
+        Some (c_id_string', [])
+    | _ -> None (*T.ckwd " BACKEND PP FAILURE: CORE OP NOT CONSTANT " in*) in
 
   let (c_descr : Typed_ast.const_descr) = c_env_lookup Ast.Unknown A.env.c_env cd.descr in
   let (c_id_string : string) = Path.to_string c_descr.const_binding in
   let c_id_string = if String.length c_id_string >=2 && String.sub c_id_string 0 2 = "C." then String.concat "" ["Core.";  String.sub c_id_string 2 (String.length c_id_string)] else c_id_string in
-  match c_id_string, args with
-    (*[meta c_id_string] @ *) 
-  (** Core.pexpr *)
-  | "Core.PEundef", [ub] -> Some [T.ckwd "undef"; space; ppexp ub]
-  | "Core.PEerror", [s] -> Some  [T.ckwd "error"; space; ppexp s]
-  | "Core.PEval", [v] -> Some [ppexp v]
-  | "Core.PEsym", [sym] -> Some [ppexp sym]
-  | "Core.PEimpl", [iCst] -> Some [ppexp iCst]
-  | "Core.PEcons", [e1; e2] -> Some [ppexp e1; T.ckwd "::"; ppexp e2]
-  | "Core.PEcase_list", [e1; e2; nm] -> Some [T.ckwd "case_list"; space; T.ckwd "("; ppexp e1; T.ckwd ","; ppexp e2; T.ckwd ","; ppexp nm; T.ckwd ")"]
-  | "Core.PEcase_ctype", [e1; e2; nm1; nm2; nm3; nm4; nm5; nm6; nm7; nm8] -> Some 
-      [T.ckwd "case_ctype"; space; ppexp e1; space; T.ckwd "with"; space;
-       T.ckwd "void:"; space; ppexp e2; T.ckwd ",";               
-       T.ckwd "basic:"; space; ppexp nm1; T.ckwd ",";               
-       T.ckwd "array:"; space; ppexp nm2; T.ckwd ",";               
-       T.ckwd "function:"; space; ppexp nm3; T.ckwd ",";               
-       T.ckwd "pointer:"; space; ppexp nm4; T.ckwd ",";               
-       T.ckwd "atomic:"; space; ppexp nm5; T.ckwd ",";               
-       T.ckwd "struct:"; space; ppexp nm6; T.ckwd ",";               
-       T.ckwd "union:"; space; ppexp nm7; T.ckwd ",";               
-       T.ckwd "builtin:"; space; ppexp nm8;               
-     ]
-  | "Core.PEarray_shift", [e1; ty; e2] -> Some [T.ckwd "array_shift"; T.ckwd "("; ppexp e1; T.ckwd ","; ppexp ty; T.ckwd ","; ppexp e2; T.ckwd ")"]
-  | "Core.PEmember_shift", [e1; sym; id] -> Some [T.ckwd "member_shift"; T.ckwd "("; ppexp e1; T.ckwd ","; ppexp sym; T.ckwd ","; ppexp id; T.ckwd ")"]
-  | "Core.PEnot", [e] -> Some [T.ckwd "not"; T.ckwd "("; ppexp e; T.ckwd ")"]
-  | "Core.PEop", [op; pe1; pe2] -> Some [ppexp pe1; space; ppop op; space; ppexp pe2]
-  | "Core.PEmemop", [memop; pes] -> Some ([ppexp memop; core_expr_list (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional pes])
-  | "Core.PEtuple", [pes] -> Some ([core_expr_list (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional pes])
-  | "Core.PEarray", [pes] -> Some ([core_expr_list (T.ckwd "array(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional pes])  (*TODO: concrete syntax for core arrays?*)
-  (*                 | "Core.PEstruct"*)
-  | "Core.PEcall", [nm; pes] -> Some ([ppexp nm; core_expr_list (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional pes])
-  | "Core.PElet", [sym; pe1; pe2] -> Some [T.ckwd "let" ; ppexp sym ; T.ckwd "="; ppexp pe1; space; T.ckwd "in"; space; ppexp pe2 ] 
-  | "Core.PEif", [pe1; pe2; pe3] -> Some  [T.ckwd "if" ; ppexp pe1; space; T.ckwd "then"; ppexp pe2; space; T.ckwd "else"; space; ppexp pe3 ] 
-        
-  (** Core.expr *) (*TODO: how should we highlight purity in the output?*)
-  | "Core.Epure", [pexpr] -> Some [T.ckwd "pure" ; ppexp pexpr]   (*TODO*)
-  | "Core.Ememop", [memop; pes] -> Some ([ppexp memop; core_expr_list (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional pes])
-  | "Core.Eskip", [] -> Some [T.ckwd "skip"]
-  | "Core.Elet", [a; e1; e2] -> Some  [T.ckwd "let" ; space; ppexp a ; T.ckwd "="; ppexp e1; space; T.ckwd "in"; space; ppexp e2 ] 
-  | "Core.Eif", [expr1; expr2; expr3] -> Some  [T.ckwd "if" ; space; ppexp expr1; space; T.ckwd "then"; ppexp expr2; space; T.ckwd "else"; space; ppexp expr3 ] 
-  | "Core.Eproc", [nm; es] -> Some ([ppexp nm; core_expr_list (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional es]) (*TODO: just like call?*)
-  | "Core.Eaction", [pact] -> Some [ppexp pact]
-  | "Core.Eunseq", [es] -> Some ([core_expr_list (T.ckwd "[") (T.ckwd "]") (T.ckwd "||") Seplist.Optional es])
-  | "Core.Esseq", [pattern; expr1; expr2] -> Some  [T.ckwd "let" ; space; T.ckwd "strong"; core_expr_pattern_list pattern; space; T.ckwd "="; ppexp expr1; space; T.ckwd "in"; space; ppexp expr2 ] 
-  | "Core.Ewseq", [pattern; expr1; expr2] -> Some  [T.ckwd "let" ; space; T.ckwd "weak"; core_expr_pattern_list pattern; space; T.ckwd "="; ppexp expr1; space; T.ckwd "in"; space; ppexp expr2 ] 
-  | "Core.Easeq", [msym; act; pact] -> Some  [T.ckwd "let" ; space; T.ckwd "atomic"; (*ppexp*) core_expr_option_pattern msym; space; T.ckwd "="; ppexp act; space; T.ckwd "in"; space; ppexp pact ] 
-  | "Core.Eindet", [expr] -> Some [T.ckwd "indet"; T.ckwd "("; ppexp expr ; T.ckwd ")"]
-  | "Core.Ebound", [n; expr] -> Some [T.ckwd "bound"; T.ckwd "("; ppexp n ; T.ckwd ","; ppexp expr ; T.ckwd ")"]
-        
-  | "Core.Esave", [d; a_tys; e] -> Some [T.ckwd "save"; ppexp d; space; ppexp a_tys; T.ckwd "."; ppexp e; space; T.ckwd "end"]
-  | "Core.Erun", [_; d; a_es] -> Some [T.ckwd "run"; ppexp d; space; ppexp a_es]
-        
-  | "Core.Eret", [pexpr] -> Some [T.ckwd "return"; ppexp pexpr]
-  | "Core.Epar", [es] -> Some [T.ckwd "par"; ppexp es]
-  | "Core.Ewait", [tid] -> Some [T.ckwd "wait"; ppexp tid]
 
-(*
-(* for debugging, announce the Lem-internal Core identifier *)a        
-  | s,_ when String.sub s 0 5 = "Core." -> Some ([meta "{\\color{red}[\\!["; meta c_id_string ; meta "]\\!]}" ]  
-      @ B.function_application_to_output (exp_to_locn e) trans false e cd args (use_ascii_rep_for_const cd))
-*)
+  ppcerberus (c_id_string,args) deconstruct_exp ppexp (ppexp_flip_lskip ppexp)
+    (exp_core_expr_list ppexp) (exp_core_expr_pattern_list ppexp) (exp_core_expr_option_pattern ppexp)
 
-
-  | _ -> None
 
 
 
