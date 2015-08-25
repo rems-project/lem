@@ -2953,7 +2953,7 @@ let open_import_def_to_output print_backend oi targets ms =
         end
       else emp
 
-let rec def_internal callback (inside_: bool) d is_user_def : Output.t = match d with
+let rec def_internal callback (inside_module: bool) d is_user_def : Output.t = match d with
   (* A single type abbreviation *)
   | Type_def(s1, l) when is_abbrev l->
       begin
