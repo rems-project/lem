@@ -49,6 +49,9 @@
 open Typed_ast 
 open Types
 
+(** [cerberus_pp] controls whether to special-case LaTeX and HTML typesetting of Cerberus Ail and Core. *)
+val cerberus_pp : bool ref 
+
 (** [def_add_location_comment_flag] controls whether [def_add_location_comment]. *)
 val def_add_location_comment_flag : bool ref 
 

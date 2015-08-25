@@ -1929,8 +1929,8 @@ and patlist print_backend ps =
   | p::((_::_) as ps') -> pat print_backend p ^ texspace ^ patlist print_backend ps'
 
 and cerberus_pat print_backend p cd ps = 
-  match T.target with
-  | Target_no_ident (Target_tex|Target_html) ->
+  match !Backend_common.cerberus_pp, T.target with
+  | true, Target_no_ident (Target_tex|Target_html) ->
     let pppat p' = pat print_backend p' in 
 
     let rec deconstruct_pat p =
@@ -1952,7 +1952,7 @@ and cerberus_pat print_backend p cd ps =
             (pat_core_expr_list pppat) (pat_core_expr_pattern_list pppat) (pat_core_expr_option_pattern pppat)
       | None -> Plain, None
     end
-  | _ ->
+  | _,_ ->
       Plain,None
 
 
@@ -2002,8 +2002,8 @@ match C.exp_to_term e with
              (* constant, so use special formatting *)
                begin
                  (* special-case Cerberus output *)
-                 match T.target with
-                 | Target_no_ident (Target_tex|Target_html) ->
+                 match !Backend_common.cerberus_pp, T.target with
+                 | true, Target_no_ident (Target_tex|Target_html) ->
                      begin
                        match cerberus_exp_app print_backend trans e e0 args cd with
                        | (kind, Some output) ->  
@@ -2012,7 +2012,7 @@ match C.exp_to_term e with
                        | (_, None) -> 
                            B.function_application_to_output (exp_to_locn e) trans false e cd args (use_ascii_rep_for_const cd)
                      end
-                 | _ ->
+                 | _,_ ->
                      B.function_application_to_output (exp_to_locn e) trans false e cd args (use_ascii_rep_for_const cd)
                end
            | _ -> (* no constant, so use standard one *)
@@ -2379,7 +2379,7 @@ and letbind print_backend (lb, _) : Output.t = match lb with
 
 
       
-(* hack: attempt at special-casing Cerberus Core syntax *)
+(* special-casing Cerberus Ail and Core syntax *)
 and cerberus_exp_app print_backend trans e e0 args cd = 
   
   let ppexp e = exp print_backend e in

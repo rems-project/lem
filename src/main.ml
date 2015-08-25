@@ -132,6 +132,9 @@ let options = Arg.align ([
   ( "-debug",
     Arg.Unit (fun () -> Printexc.record_backtrace true),
     " print a backtrace for all errors (lem needs to be compiled in debug mode)");
+  ( "-cerberus_pp", 
+    Arg.Set Backend_common.cerberus_pp, 
+    " special case HTML and LaTeX output for Cerberus Ail and Core");
   ( "-print_env",
     Arg.Set opt_print_env, 
     " print the environment signature on stdout");

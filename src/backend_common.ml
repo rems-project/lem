@@ -54,6 +54,8 @@ let r = Ulib.Text.of_latin1
 let marker_lex_skip : Ast.lex_skips = (Some [Ast.Ws (Ulib.Text.of_latin1 "***marker***")])
 
 
+let cerberus_pp = ref false
+
 let def_add_location_comment_flag = ref false
 
 let def_add_location_comment (((d,s),l,lenv) : def) =
