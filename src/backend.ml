@@ -1929,27 +1929,31 @@ and patlist print_backend ps =
   | p::((_::_) as ps') -> pat print_backend p ^ texspace ^ patlist print_backend ps'
 
 and cerberus_pat print_backend p cd ps = 
+  match T.target with
+  | Target_no_ident (Target_tex|Target_html) ->
+    let pppat p' = pat print_backend p' in 
 
-  let pppat p' = pat print_backend p' in 
-
-  let rec deconstruct_pat p =
-    match p.term with 
-    | P_paren(s1,p',s2) -> deconstruct_pat p'  (* suppress parens in op pattern output *)
-    | P_const(cd, ps) -> 
-        let (c_descr : Typed_ast.const_descr) = c_env_lookup Ast.Unknown A.env.c_env cd.descr in
-        let (c_id_string : string) = Path.to_string c_descr.const_binding in
-        Some (c_id_string, ps)
-    | _ -> None in
+    let rec deconstruct_pat p =
+      match p.term with 
+      | P_paren(s1,p',s2) -> deconstruct_pat p'  (* suppress parens in op pattern output *)
+      | P_const(cd, ps) -> 
+          let (c_descr : Typed_ast.const_descr) = c_env_lookup Ast.Unknown A.env.c_env cd.descr in
+          let (c_id_string : string) = Path.to_string c_descr.const_binding in
+          Some (c_id_string, ps)
+      | _ -> None in
 
 
-  let (c_descr : Typed_ast.const_descr) = c_env_lookup Ast.Unknown A.env.c_env cd.descr in
-  (* TODO: how to pull out the initial lskips from the Constant?                  let lskip = Ident.get_lskip c_descr.const_binding.id_path in  *)
-  match deconstruct_pat p with
-  | Some (c_id_string,ps) -> 
-      ppcerberus (c_id_string,ps) deconstruct_pat pppat (pppat_flip_lskip pppat)
-        (pat_core_expr_list pppat) (pat_core_expr_pattern_list pppat) (pat_core_expr_option_pattern pppat)
-  | None -> Plain, None
- 
+    let (c_descr : Typed_ast.const_descr) = c_env_lookup Ast.Unknown A.env.c_env cd.descr in
+    (* TODO: how to pull out the initial lskips from the Constant?                  let lskip = Ident.get_lskip c_descr.const_binding.id_path in  *)
+    begin
+      match deconstruct_pat p with
+      | Some (c_id_string,ps) -> 
+          ppcerberus (c_id_string,ps) deconstruct_pat pppat (pppat_flip_lskip pppat)
+            (pat_core_expr_list pppat) (pat_core_expr_pattern_list pppat) (pat_core_expr_option_pattern pppat)
+      | None -> Plain, None
+    end
+  | _ ->
+      Plain,None
 
 
 let rec exp print_backend e = 
@@ -1998,11 +2002,17 @@ match C.exp_to_term e with
              (* constant, so use special formatting *)
                begin
                  (* special-case Cerberus output *)
-                 match cerberus_exp_app print_backend trans e e0 args cd with
-                 | kind, Some output ->  
-                     let lskip = Typed_ast.ident_get_lskip cd in
-                     ws lskip :: output
-                 | _, None -> 
+                 match T.target with
+                 | Target_no_ident (Target_tex|Target_html) ->
+                     begin
+                       match cerberus_exp_app print_backend trans e e0 args cd with
+                       | (kind, Some output) ->  
+                           let lskip = Typed_ast.ident_get_lskip cd in
+                           ws lskip :: output
+                       | (_, None) -> 
+                           B.function_application_to_output (exp_to_locn e) trans false e cd args (use_ascii_rep_for_const cd)
+                     end
+                 | _ ->
                      B.function_application_to_output (exp_to_locn e) trans false e cd args (use_ascii_rep_for_const cd)
                end
            | _ -> (* no constant, so use standard one *)
@@ -2943,7 +2953,7 @@ let open_import_def_to_output print_backend oi targets ms =
         end
       else emp
 
-let rec def_internal callback (inside_module : bool) d is_user_def : Output.t = match d with
+let rec def_internal callback (inside_: bool) d is_user_def : Output.t = match d with
   (* A single type abbreviation *)
   | Type_def(s1, l) when is_abbrev l->
       begin
