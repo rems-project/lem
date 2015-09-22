@@ -111,6 +111,7 @@ function
 global
 guess
 have
+hd
 header
 help
 hence
@@ -243,6 +244,7 @@ thm
 thm_deps
 thus
 thy_deps
+tl
 touch_thy
 translations
 True
@@ -596,7 +598,6 @@ word
 last
 default
 filter
-tl
 first
 length
 size

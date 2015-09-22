@@ -50,12 +50,12 @@ assert ~{coq} choose_3: choose {(6:nat);1;2} IN {6;1;2}
  * is the obvious choice).
  *)
 val chooseAndSplit : forall 'a. SetType 'a, Ord 'a => set 'a -> maybe (set 'a * 'a * set 'a)
-let ~{coq} chooseAndSplit set =
-  if set = Set.empty then
+let ~{coq} chooseAndSplit s =
+  if s = Set.empty then
     Nothing
   else
-    let element  = choose set in
-    let (lt, gt) = Set.split element set in
+    let element  = choose s in
+    let (lt, gt) = Set.split element s in
       Just (lt, element, gt)
 
 declare ocaml target_rep function chooseAndSplit = `Pset.choose_and_split`
