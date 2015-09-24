@@ -606,3 +606,4 @@ fields
 sym
 equiv
 lessThan
+greaterThan
