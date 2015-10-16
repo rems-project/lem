@@ -628,6 +628,7 @@ saturate_mul
 saturate_n2w
 saturate_sub
 saturate_w2w
+size
 some
 stmarker
 strict
