@@ -40,9 +40,10 @@ declare compile_message fromSet = "fromSet only works for finite sets, use caref
 declare ocaml    target_rep function fromSet = `Pmap.from_set`
 declare hol      target_rep function fromSet = `FUN_FMAP`
 
+(*
 assert fromSet_0: (fromSet succ (Set.empty : set nat) = Map.empty)
 assert fromSet_1: (fromSet succ {(2:nat); 3; 4}) = Map.fromList [(2,3); (3, 4); (4, 5)]
-
+*)
 
 (* -------------------------------------------------------------------------- *)
 (* fold                                                                       *)
@@ -55,9 +56,10 @@ declare ocaml    target_rep function fold = `Pmap.fold`
 
 declare compile_message fold = "Map_extra.fold iterates over the elements of the map in a unspecified order"
 
+(*
 assert fold_1: (fold (fun k v a -> (a+k)) (Map.fromList [((2:nat),(3:nat)); (3, 4); (4, 5)]) 0 = 9)
 assert fold_2: (fold (fun k v a -> (a+v)) (Map.fromList [((2:nat),(3:nat)); (3, 4); (4, 5)]) 0 = 12)
-
+*)
 
 val toList: forall 'k 'v. MapKeyType 'k => map 'k 'v -> list ('k * 'v)
 
