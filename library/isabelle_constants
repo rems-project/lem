@@ -67,6 +67,7 @@ code_type
 coinductive
 coinductive_set
 commit
+comp
 constdefs
 consts
 consts_code
