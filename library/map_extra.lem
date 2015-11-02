@@ -66,8 +66,8 @@ val toList: forall 'k 'v. MapKeyType 'k => map 'k 'v -> list ('k * 'v)
 declare ocaml    target_rep function toList = `Pmap.bindings_list`
 declare coq target_rep function toList = `fmap_elements` (* TODO *)
 (* TODO: declare hol target_rep function toList = `XXX` *)
-(* TODO: declare isabelle target_rep function toList = `XXX` *)
-declare compile_message toList = "Map_extra.toList is only defined for the ocaml and coq backend"
+declare isabelle target_rep function toList m = `list_to_set` (`LemExtraDefs.map_to_set` `m`)
+declare compile_message toList = "Map_extra.toList is only defined for the ocaml, isabelle and coq backend"
 
 (* more 'map' functions *)
 
