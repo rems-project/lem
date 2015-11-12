@@ -66,4 +66,5 @@ let of_string_nat s =
     else
       i
 
-let integerDiv_t = Z.div
+let integerDiv_t = BI.div
+let integerMod_a = fun x y -> BI.(mod) x y

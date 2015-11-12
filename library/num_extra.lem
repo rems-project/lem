@@ -23,3 +23,6 @@ declare ocaml target_rep function integerOfString = `Nat_big_num.of_string`
 (* Truncation integer division (round toward zero) *)
 val integerDiv_t: integer -> integer -> integer
 declare ocaml target_rep function integerDiv_t = `Nat_big_num.integerDiv_t`
+
+val integerMod_a: integer -> integer -> integer
+declare ocaml target_rep function integerMod_a = `Nat_big_num.integerMod_a`
