@@ -65,3 +65,5 @@ let of_string_nat s =
       assert false
     else
       i
+
+let integerDiv_t = Z.div
