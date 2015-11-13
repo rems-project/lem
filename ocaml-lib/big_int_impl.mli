@@ -51,5 +51,7 @@ module BI :
     val shift_right_big_int : big_int -> int -> big_int
     val shift_right_towards_zero_big_int : big_int -> int -> big_int
     val extract_big_int : big_int -> int -> int -> big_int
+    val div : big_int -> big_int -> big_int
+    val (mod) : big_int -> big_int -> big_int
   end
 

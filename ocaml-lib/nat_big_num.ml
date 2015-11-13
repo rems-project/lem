@@ -65,3 +65,6 @@ let of_string_nat s =
       assert false
     else
       i
+
+let integerDiv_t = BI.div
+let integerMod_a = fun x y -> BI.(mod) x y
