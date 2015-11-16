@@ -80,7 +80,7 @@ let options = Arg.align ([
   ( "-tex", 
     Arg.Unit (add_backend (Target.Target_no_ident Target.Target_tex)),
     " generate LaTeX for each module separatly");
-  ( "-tex_all", 
+  ( "-tex_all <filename>", 
     Arg.String (fun fn -> tex_all_filename_opt := Some fn),
     " generate LaTeX in a single file");
   ( "-html", 
@@ -102,17 +102,17 @@ let options = Arg.align ([
     Arg.Unit (add_backend Target.Target_ident),
     " generate input on stdout\n\n");
 
-  ( "-lib", 
+  ( "-lib <path>", 
     Arg.String (fun l -> lib_paths_ref := l :: (!lib_paths_ref)),
     " add path to library path; if no lib is given the default '"^(default_library)^")' is used. Set LEMLIB environment variable to change this default.");
   ( "-no_dep_reorder", 
     Arg.Clear allow_reorder_modules,
     " prohibit reordering modules given to lem as explicit arguments in order during dependency resolution\n\n");
 
-  ( "-outdir", 
+  ( "-outdir <dir>", 
     Arg.String (fun l -> out_dir := Some l),
     " the output directory (the default is the dir the files reside in)");
-  ( "-i", 
+  ( "-i <input-file>", 
     Arg.String (fun l -> lib := l::!lib),
     " treat the file as input only and generate no output for it");
   ( "-only_changed_output",
