@@ -1034,16 +1034,6 @@ let rec mapiAux f (n : nat) l = match l with
 end
 let mapi f l = mapiAux f 0 l
 
-
-val     unfoldr: forall 'a 'b. ('a -> maybe ('b * 'a)) -> 'a -> list 'b
-let rec unfoldr f x =
-  match f x with
-    | Just (y, x') ->
-        y :: unfoldr f x'
-    | Nothing ->
-        []
-  end
-
 val deletes: forall 'a. Eq 'a => list 'a -> list 'a -> list 'a
 let deletes xs ys =
   foldl (flip delete) xs ys

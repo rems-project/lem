@@ -158,3 +158,12 @@ declare ocaml target_rep function zipSameLength = `List.combine`
 
 assert zipSameLength_1 : (zipSameLength [(1:nat); 2;3;4;5] [(2:nat); 3;4;5;6] = [(1,2);(2,3);(3,4);(4,5);(5,6)])
 
+val     unfoldr: forall 'a 'b. ('a -> maybe ('b * 'a)) -> 'a -> list 'b
+let rec unfoldr f x =
+  match f x with
+    | Just (y, x') ->
+        y :: unfoldr f x'
+    | Nothing ->
+        []
+  end
+
