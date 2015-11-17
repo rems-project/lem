@@ -56,10 +56,9 @@ Definition string_case {a : Type}  (s : string ) (c_empty : a) (c_cons : ascii  
 (* [?]: removed top-level value definition. *)
 (* [?]: removed value specification. *)
 
-Program Fixpoint concat0 (sep : string) (ss : list string) {measure (List.length ss)} : string := 
-  match ss with 
-    | []     => ""
-    | [s]    => s
-    | s1::s2 =>
-        String.append s1 (String.append sep (concat0 sep s2))
+Program Fixpoint concat0  (sep : string) (ss : list string) {measure (List.length ss)} : string := 
+  match ( ss) with 
+    | [] => ""
+    | [s] => s
+    | s1 :: s2 :: ss' =>  String.append s1  (String.append sep (concat0 sep (s2 :: ss')))
   end.

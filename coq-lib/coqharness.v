@@ -216,6 +216,8 @@ Axiom set_compare_by:
 
 Definition set_empty {a : Type} : set a := [].
 
+Definition set_singleton {a: Type} (x : a) : set a := [ x ].
+
 Definition set_is_empty
   {elt: Type} (s: set elt): bool :=
     match s with
