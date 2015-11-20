@@ -67,4 +67,5 @@ let of_string_nat s =
       i
 
 let integerDiv_t = BI.div
-let integerMod_a = fun x y -> BI.(mod) x y
+let integerRem_t = fun x y -> BI.(mod) x y
+let integerRem_f = fun x y -> BI.mod_big_int x y
