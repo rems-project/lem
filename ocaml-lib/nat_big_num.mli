@@ -50,4 +50,5 @@ val to_string : num -> string
 val of_string : string -> num
 val of_string_nat : string -> num
 val integerDiv_t : num -> num -> num
-val integerMod_a : num -> num -> num
+val integerRem_t : num -> num -> num
+val integerRem_f : num -> num -> num

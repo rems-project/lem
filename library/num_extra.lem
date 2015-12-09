@@ -24,5 +24,10 @@ declare ocaml target_rep function integerOfString = `Nat_big_num.of_string`
 val integerDiv_t: integer -> integer -> integer
 declare ocaml target_rep function integerDiv_t = `Nat_big_num.integerDiv_t`
 
-val integerMod_a: integer -> integer -> integer
-declare ocaml target_rep function integerMod_a = `Nat_big_num.integerMod_a`
+(* Truncation modulo *)
+val integerRem_t: integer -> integer -> integer
+declare ocaml target_rep function integerRem_t = `Nat_big_num.integerRem_t`
+
+(* Flooring modulo *)
+val integerRem_f: integer -> integer -> integer
+declare ocaml target_rep function integerRem_f = `Nat_big_num.integerRem_f`
