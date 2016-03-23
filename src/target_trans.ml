@@ -145,6 +145,7 @@ let hol =
                                T.list_quant_to_set_quant;
                     	       T.remove_setcomp;
                                T.remove_num_lit;
+                               T.remove_do;
                                T.remove_set_restr_quant;
                                T.remove_restr_quant Pattern_syntax.is_var_tup_pat;
                                Backend_common.inline_exp_macro Target_hol env;
