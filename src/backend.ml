@@ -132,6 +132,7 @@ let char_escape_hol c = match int_of_char c with
   | 0x5c -> "\\\\" (* backslash *)
   | 0x22 -> "\\\"" (* double quote *)
   | 0x5e -> "^^"   (* carret *)
+  | 0x60 -> "^`"   (* back quote *)
   | x when x >= 32 && x <= 126 -> (* other printable characters *)
       String.make 1 c
   | 0x07 -> "\\a" (* common control characters *)
@@ -338,12 +339,12 @@ module type Target = sig
   val def_sep : t
   val name_start : t
   val name_end : t
-  val rec_def_header : bool -> bool -> bool -> lskips -> lskips -> Name.t -> t
+  val rec_def_header : bool -> bool -> bool -> lskips -> lskips -> Name.t list -> t
     (** [rec_def_header is_rec is_real_rec try_term sk1 sk2 n] formats [let sk1 rec? sk2 n]. 
         The flag [is_rec] denotes whether the keyword [rec] occours in the input, while
         [is_real_rec] denotes whether the definition is really recursive. [try_term] signals, whether
         an automatic termination proof should be attempted*)
-  val rec_def_footer : bool -> bool -> bool -> Name.t -> t
+  val rec_def_footer : bool -> bool -> bool -> Name.t list -> t
   val funcase_start : t
   val funcase_end : t
   val reln_start : t
@@ -1193,25 +1194,44 @@ module Hol : Target = struct
   let targets_opt_start_neg = meta "~{"
   let targets_opt_end = meta "}"
 
+  let cons_uniq xs x = if List.mem x xs then xs else x :: xs
+  let remove_from_left xs = List.rev (List.fold_left cons_uniq [] xs)
+
   let def_start = meta "val _ = Define `\n"
   let def_binding = kwd "="
   let def_end = meta "`;\n"
   let def_sep = kwd "/\\"
   let name_start = kwd "(*"
   let name_end = kwd "*)"
-  let rec_def_header _ rrr try_term sk1 sk2 n = 
-    ws sk1 ^ ws sk2 ^   
-    let n = Ulib.Text.to_string (Name.to_rope n) in 
-      if (rrr && not try_term) then
-        meta (Format.sprintf "val %s_defn = Hol_defn \"%s\" `\n" n n)
-      else
-        meta (Format.sprintf "val _ = Define `\n")
-  let rec_def_footer _ rrr try_term n =
-     if (rrr && not try_term) then
-       meta (Format.sprintf "\nval _ = Lib.with_flag (computeLib.auto_import_definitions, false) Defn.save_defn %s_defn;" 
-            (Ulib.Text.to_string (Name.to_rope n)))
-     else emp
-
+  let rec_def_header _ rrr try_term sk1 sk2 ns = match ns with
+    | [] ->  assert false
+    | (l::ls) -> ws sk1 ^ ws sk2 ^   
+              let n = Ulib.Text.to_string (Name.to_rope l) in 
+              if (rrr && not try_term) then
+                if (List.length ls = 0) then
+                  meta (Format.sprintf "val %s_defn = Hol_defn \"%s\" `\n" n n)
+                else
+                  let rec flat_list ls = match ls with
+                    | [] -> ""
+                    | [n] -> n
+                    | (n::ns) -> n ^^ ", " ^^ flat_list ns
+                  in
+                  let cons_uniq xs x = if List.mem x xs then xs else x :: xs in
+                  let remove_from_left xs = List.rev (List.fold_left cons_uniq [] xs) in
+                  let name_list = List.map (fun n -> Ulib.Text.to_string (Name.to_rope n)) (l::ls) in
+                  let ns = flat_list (remove_from_left name_list) in
+                    meta (Format.sprintf "val %s_defn = Defn.Hol_defns [\"%s\"] `\n" n ns)
+              else
+                meta (Format.sprintf "val _ = Define `\n")
+  let rec_def_footer _ rrr try_term ns = match ns with
+    | [] ->  assert false
+    | (n::ns) -> let n = Ulib.Text.to_string (Name.to_rope n) in 
+              if (rrr && not try_term) then
+                if (List.length ns == 0) then
+                  meta (Format.sprintf "\nval _ = Lib.with_flag (computeLib.auto_import_definitions, false) Defn.save_defn %s_defn;" n)
+                else
+                  meta (Format.sprintf "\nval _ = Lib.with_flag (computeLib.auto_import_definitions, false) (List.map Defn.save_defn) %s_defn;" n)
+              else emp
   let funcase_start = kwd "("
   let funcase_end = kwd ")"
   let reln_start = meta "val _ = Hol_reln `"
@@ -3041,19 +3061,20 @@ let rec def_internal callback (inside_module: bool) d is_user_def : Output.t = m
       if in_target targets then
         let (is_rec, is_real_rec, try_term) = Typed_ast_syntax.try_termination_proof T.target A.env.c_env d in
         let s2 = match rec_flag with FR_non_rec -> None | FR_rec sk -> sk in
-        let n = 
-          match Seplist.to_list clauses with
-            | [] -> assert false
-            | (n,n_ref, _, _, _, _)::_ -> Name.strip_lskip (B.const_ref_to_name n.term false n_ref)
+        let rec clause_names ls =
+          match ls with
+            | [] -> []
+            | (n,n_ref, _, _, _, _)::cs -> (Name.strip_lskip (B.const_ref_to_name n.term false n_ref)) :: clause_names cs
         in
-          T.rec_def_header is_rec is_real_rec try_term s1 s2 n ^
+        let ns = clause_names (Seplist.to_list clauses) in
+          T.rec_def_header is_rec is_real_rec try_term s1 s2 ns ^
           (if Target.is_human_target T.target && not (Target.suppress_targets T.target !suppress_target_names) then
              targets_opt targets 
            else
              emp) ^
           flat (Seplist.to_sep_list (funcl false) (sep T.def_sep) clauses) ^
           T.def_end ^
-          T.rec_def_footer is_rec is_real_rec try_term n
+          T.rec_def_footer is_rec is_real_rec try_term ns
           else
         emp
   | Val_def(Let_inline(s1,s2,targets,n,c,args,s4,body)) ->

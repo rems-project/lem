@@ -18,16 +18,20 @@ val integerOfString : string -> integer
 
 declare compile_message integerOfString = "integerOfString can fail, potentially with an exception, if the string cannot be parsed"
 declare ocaml target_rep function integerOfString = `Nat_big_num.of_string`
+declare hol target_rep function integerOfString = `ABS`
 
 
 (* Truncation integer division (round toward zero) *)
 val integerDiv_t: integer -> integer -> integer
 declare ocaml target_rep function integerDiv_t = `Nat_big_num.integerDiv_t`
+declare hol target_rep function integerDiv_t = `$/`
 
 (* Truncation modulo *)
 val integerRem_t: integer -> integer -> integer
 declare ocaml target_rep function integerRem_t = `Nat_big_num.integerRem_t`
+declare hol target_rep function integerRem_t = `$%`
 
 (* Flooring modulo *)
 val integerRem_f: integer -> integer -> integer
 declare ocaml target_rep function integerRem_f = `Nat_big_num.integerRem_f`
+declare hol target_rep function integerRem_f = `$%`
