@@ -2,6 +2,8 @@ declare {isabelle;hol;ocaml;coq} rename module = lem_show
 
 open import String Maybe Num Basic_classes
 
+open import {hol} `lemTheory`
+
 class (Show 'a)
   val show: 'a -> string
 end

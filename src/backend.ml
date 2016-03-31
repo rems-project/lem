@@ -1194,9 +1194,6 @@ module Hol : Target = struct
   let targets_opt_start_neg = meta "~{"
   let targets_opt_end = meta "}"
 
-  let cons_uniq xs x = if List.mem x xs then xs else x :: xs
-  let remove_from_left xs = List.rev (List.fold_left cons_uniq [] xs)
-
   let def_start = meta "val _ = Define `\n"
   let def_binding = kwd "="
   let def_end = meta "`;\n"
@@ -1211,16 +1208,7 @@ module Hol : Target = struct
                 if (List.length ls = 0) then
                   meta (Format.sprintf "val %s_defn = Hol_defn \"%s\" `\n" n n)
                 else
-                  let rec flat_list ls = match ls with
-                    | [] -> ""
-                    | [n] -> n
-                    | (n::ns) -> n ^^ ", " ^^ flat_list ns
-                  in
-                  let cons_uniq xs x = if List.mem x xs then xs else x :: xs in
-                  let remove_from_left xs = List.rev (List.fold_left cons_uniq [] xs) in
-                  let name_list = List.map (fun n -> Ulib.Text.to_string (Name.to_rope n)) (l::ls) in
-                  let ns = flat_list (remove_from_left name_list) in
-                    meta (Format.sprintf "val %s_defn = Defn.Hol_defns [\"%s\"] `\n" n ns)
+                  meta (Format.sprintf "val %s_defn = lemLib.lem_define `\n" n)
               else
                 meta (Format.sprintf "val _ = Define `\n")
   let rec_def_footer _ rrr try_term ns = match ns with

@@ -10,7 +10,7 @@ declare {ocaml;isabelle;hol;coq} rename module = lem_string
 
 open import Bool Basic_classes List
 open import {ocaml} `Xstring`
-open import {hol} `stringTheory`
+open import {hol} `lemTheory` `stringTheory`
 open import {coq} `Coq.Strings.Ascii` `Coq.Strings.String`
 
 (* ----------------------- *)

@@ -274,4 +274,7 @@ val w2int_def = Define `w2int (w : 'a word) =
   let i2 = (INT_MAX (:'a)) in
   if i1 > i2 then (int_of_num i1 - (int_of_num (UINT_MAX (:'a)))) - 1 else int_of_num i1`
 
+
+val _ = Define `MAP_TO_LIST m = SET_TO_LIST (\(x, y). FAPPLY m x = y)`
+
 val _ = export_theory()

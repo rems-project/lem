@@ -17,7 +17,7 @@ open import Bool Maybe Basic_classes Function Tuple Num
 
 open import {coq} `Coq.Lists.List`
 open import {isabelle} `$LIB_DIR/Lem`
-open import {hol} `listTheory` `rich_listTheory` `sortingTheory`
+open import {hol} `lemTheory` `listTheory` `rich_listTheory` `sortingTheory`
 
 (* ========================================================================== *)
 (* Basic list functions                                                       *)
