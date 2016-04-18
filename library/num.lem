@@ -1678,7 +1678,7 @@ assert int_from_nat_2: intFromNat 2 = 2
 
 val natFromNatural : natural -> nat
 declare compile_message naturalFromInteger = "natFromNatural might fail for too big values. The values allowed are system-dependent. However, at least 30 bit should be available, i.e. all numbers up to 2^30 = 1 073 741 824 should be OK."
-declare hol      target_rep function natFromNatural = `I` (* remove natFromNumeral, as it is the identify function *)
+declare hol      target_rep function natFromNatural x = `x` (* remove natFromNumeral, as it is the identify function *)
 declare ocaml    target_rep function natFromNatural = `Nat_big_num.to_int`
 declare isabelle target_rep function natFromNatural = ``
 declare coq      target_rep function natFromNatural = ``
