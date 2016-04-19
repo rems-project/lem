@@ -27,8 +27,11 @@ val stringFromListAux : forall 'a. ('a -> string) -> list 'a -> string
 let rec stringFromListAux showX x =
   match x with
     | [] -> ""
-    | [x] -> showX x
-    | x::xs' -> showX x ^ "; " ^ stringFromListAux showX xs'
+    | x::xs' ->
+      match xs' with
+      | [] -> showX x
+      | _ -> showX x ^ "; " ^ stringFromListAux showX xs'
+      end
   end
 
 val stringFromList : forall 'a. ('a -> string) -> list 'a -> string

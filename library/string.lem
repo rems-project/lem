@@ -161,6 +161,9 @@ val concat : string -> list string -> string
 let rec concat sep ss =
   match ss with
     | [] -> ""
-    | [s] -> s
-    | s1 :: s2 :: ss' -> s1 ^ sep ^ concat sep (s2 :: ss')
+    | s :: ss' ->
+      match ss' with
+      | [] -> s
+      | _ -> s ^ sep ^ concat sep ss'
+      end
   end
