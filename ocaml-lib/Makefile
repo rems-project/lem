@@ -25,9 +25,13 @@ all: $(SUPPORTING_ML_FILES) $(ML_FILES)
 	ocamlfind ocamlopt $(OCAMLFLAGS) -a -o extract.cmxa $(SUPPORTING_CMX_FILES) $(CMX_FILES)
 	ocamlfind ocamlc $(OCAMLFLAGS) -a -o extract.cma $(SUPPORTING_CMO_FILES) $(CMO_FILES)
 
-clean:
+local_clean:
 	\rm -f *.c* *.o *.cma *.cmxa *.a
+
+clean: local_clean
 	make -C dependencies clean
 
-dependencies:	
+dependencies:
 	make -C dependencies
+
+.PHONY: all local_clean clean dependencies

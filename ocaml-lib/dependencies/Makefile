@@ -1,12 +1,12 @@
-all: extract make-zarith
+all: zarith/zarith.cma
 
-extract:
+zarith/zarith.cma: zarith-1.3.tgz
 	mkdir -p zarith
-	tar -zxvf zarith-1.3.tgz -C zarith --strip-components=1
-	
+	tar -zxf zarith-1.3.tgz -C zarith --strip-components=1
+	cd zarith && ./configure > /dev/null
+	OCAMLOPTFLAGS=-quiet make -C zarith
+
 clean:
 	rm -rf zarith
-	
-make-zarith:
-	cd zarith && ./configure
-	make -C zarith
+
+.PHONY: all clean
