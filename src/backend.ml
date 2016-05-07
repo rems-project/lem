@@ -1603,9 +1603,6 @@ let pat_core_expr_option_pattern pppat p =
 let pat_core_expr_pattern_list pppat ps =
   pppat ps
 
-
-
-
 let ail_unary_is_postfix c_id_string = 
   match c_id_string with
   | "AilSyntax.Plus"        -> false
@@ -1616,8 +1613,36 @@ let ail_unary_is_postfix c_id_string =
   | "AilSyntax.PostfixIncr" -> true
   | "AilSyntax.PostfixDecr" -> true
 
+(* pp of clause lists used in Lem expressions in Core *)
+let exp_core_clause_list pparg clauses = 
+  let pp_clause clause = 
+    match C.exp_to_term clause with 
+    | Tup(s1,es,s2) ->
+        (*block is_user_exp 0*) (  
+        ws s1 ^
+        T.ckwd "|" ^ (*(pparg e1) ^ T.ckwd "=>" ^ (pparg e2)  ^*)
+        flat (Seplist.to_sep_list pparg (sep (T.ckwd "=>")) es) ^ 
+        ws s2 
+        )
+    | _ -> kwd "ERROR: core_clause_list failed to find Tup of size 2" 
+          
+       in 
+
+  
+  [exp_core_expr_list pp_clause clauses emp emp emp Seplist.Optional  ]
+  (*      [T.ckwd "|";  pparg pat; T.ckwd "=>"; pparg pe ] in *)
+
+
+
+let pat_core_clause_list clauses pparg = 
+  []
+
 let ppcerberus (c_id_string,args) deconstruct_arg pparg pparg_flip_lskip 
-    core_expr_list core_expr_pattern_list core_expr_option_pattern = 
+    core_expr_list core_expr_pattern_list core_expr_option_pattern core_clause_list = 
+
+
+
+
 
   let pparg_flip_lskip_string kw_string e = pparg_flip_lskip (T.akwd kw_string) e in
 
@@ -1637,14 +1662,28 @@ let ppcerberus (c_id_string,args) deconstruct_arg pparg pparg_flip_lskip
 
     match c_id_string, args with
       (*[meta c_id_string] @ *) 
-      (** Core.pexpr *)
-    | "Core.PEundef", [ub] -> Core, Some [T.ckwd "undef"; space; pparg ub]
-    | "Core.PEerror", [s] -> Core, Some  [T.ckwd "error"; space; pparg s]
-    | "Core.PEval", [v] -> Core, Some [pparg v]
+      (** Core.pexpr *) (** following core.ott *)
     | "Core.PEsym", [sym] -> Core, Some [pparg sym]
     | "Core.PEimpl", [iCst] -> Core, Some [pparg iCst]
-    | "Core.PEcons", [e1; e2] -> Core, Some [pparg e1; T.ckwd "::"; pparg e2]
-    | "Core.PEcase_list", [e1; e2; nm] -> Core, Some [T.ckwd "case_list"; space; T.ckwd "("; pparg e1; T.ckwd ","; pparg e2; T.ckwd ","; pparg nm; T.ckwd ")"]
+
+    | "Core.PEval", [v] -> Core, Some [pparg v]
+    (* TODO: PEconstrained ? *)
+
+    | "Core.PEundef", [ub] -> Core, Some [T.ckwd "undef"; space; pparg ub]
+    | "Core.PEerror", [s; e] -> Core, Some  [T.ckwd "error"; T.ckwd "("; pparg s; T.ckwd ","; pparg e; T.ckwd ")"]
+
+
+    | "Core.PEctor", [ctor; pes] -> Core, Some ([pparg ctor; pparg pes]) (*core_expr_list pes (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional])*)
+
+    | "Core.PEcase", [e1; clauses] -> Core, Some ([T.ckwd "case"; space; pparg e1; space; T.ckwd "with"] @ (core_clause_list clauses))
+
+
+    (** down to here... *)
+
+    | "Core.Pexpr", [ty; pe] -> Core, Some [pparg pe]   
+
+
+
     | "Core.PEcase_ctype", [e1; e2; nm1; nm2; nm3; nm4; nm5; nm6; nm7; nm8] -> Core, Some 
           [T.ckwd "case_ctype"; space; pparg e1; space; T.ckwd "with"; space;
            T.ckwd "void:"; space; pparg e2; T.ckwd ",";               
@@ -1957,7 +1996,7 @@ and cerberus_pat print_backend p cd ps =
       match deconstruct_pat p with
       | Some (c_id_string,ps) -> 
           ppcerberus (c_id_string,ps) deconstruct_pat pppat (pppat_flip_lskip pppat)
-            (pat_core_expr_list pppat) (pat_core_expr_pattern_list pppat) (pat_core_expr_option_pattern pppat)
+            (pat_core_expr_list pppat) (pat_core_expr_pattern_list pppat) (pat_core_expr_option_pattern pppat) (pat_core_clause_list pppat)
       | None -> Plain, None
     end
   | _,_ ->
@@ -2405,7 +2444,7 @@ and cerberus_exp_app print_backend trans e e0 args cd =
   let c_id_string = if String.length c_id_string >=2 && String.sub c_id_string 0 2 = "C." then String.concat "" ["Core.";  String.sub c_id_string 2 (String.length c_id_string)] else c_id_string in
 
   ppcerberus (c_id_string,args) deconstruct_exp ppexp (ppexp_flip_lskip ppexp)
-    (exp_core_expr_list ppexp) (exp_core_expr_pattern_list ppexp) (exp_core_expr_option_pattern ppexp)
+    (exp_core_expr_list ppexp) (exp_core_expr_pattern_list ppexp) (exp_core_expr_option_pattern ppexp) (exp_core_clause_list ppexp)
 
 
 
