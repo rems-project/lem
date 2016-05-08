@@ -1621,7 +1621,7 @@ let ail_unary_is_postfix c_id_string =
   | "AilSyntax.PostfixIncr" -> true
   | "AilSyntax.PostfixDecr" -> true
 
-(* pp of clause lists used in Lem expressions in Core *)
+(* pp of pattern-match clause lists used in Lem expressions in Core *)
 let exp_core_clause_list pparg clauses = 
   let pp_clause clause = 
     match C.exp_to_term clause with 
@@ -1631,22 +1631,32 @@ let exp_core_clause_list pparg clauses =
         T.ckwd "|" ^ space ^ (*(pparg e1) ^ T.ckwd "=>" ^ (pparg e2)  ^*)
         flat (Seplist.to_sep_list pparg (sep (flat [space; T.ckwd "=>"; space])) es) ^ 
         ws s2 
-        )
-    | _ -> pparg clauses (*kwd "ERROR: core_clause_list failed to find Tup of size 2" *)
-          
-       in 
-
-  
+       )
+    | _ -> pparg clauses (*kwd "ERROR: core_clause_list failed to find Tup of size 2" *)  in 
   [exp_core_expr_list pp_clause clauses emp emp emp Seplist.Optional  ]
-  (*      [T.ckwd "|";  pparg pat; T.ckwd "=>"; pparg pe ] in *)
-
-
 
 let pat_core_clause_list clauses pparg = 
   []
 
+(* pp of struct member lists used in Lem expressions in Core *)
+let exp_core_struct_member_list pparg struct_members = 
+  let pp_member member = 
+    match C.exp_to_term member with 
+    | Tup(s1,es,s2) ->
+        (*block is_user_exp 0*) (  
+        ws s1 ^
+        T.ckwd "." ^ (*(pparg e1) ^ T.ckwd "=>" ^ (pparg e2)  ^*)
+        flat (Seplist.to_sep_list pparg (sep (flat [space; T.ckwd "="; space])) es) ^ 
+        ws s2 
+       )
+    | _ -> pparg struct_members in
+  flat [exp_core_expr_list pp_member struct_members (T.ckwd "{") (T.ckwd "}") (T.ckwd ",") Seplist.Optional  ]
+
+let pat_core_struct_member_list pparg struct_members = 
+  flat []
+
 let ppcerberus (c_id_string, args) deconstruct_arg pparg pparg_flip_lskip 
-    core_expr_list core_expr_pattern_list core_expr_option_pattern core_clause_list = 
+    core_expr_list core_expr_pattern_list core_expr_option_pattern core_clause_list core_struct_member_list = 
 
   (* Printf.printf "%s\n" c_id_string;*)
 
@@ -1668,10 +1678,33 @@ let ppcerberus (c_id_string, args) deconstruct_arg pparg pparg_flip_lskip
 
     match c_id_string, args with
       (*[meta c_id_string] @ *) 
-      (** Core.generic_ctor *)
 
+    (** special case for undefined behaviour constructors *)
     | s,[] when String.length s >= 12 && String.sub s 0 12 = "Undefined.UB" -> Core, Some [T.ckwd s]
 
+    (** Core.generic_object_value *)
+    | "Core.OVinteger", [mem_integer_value] -> Core, Some [pparg mem_integer_value]
+    | "Core.OVfloating", [mem_floating_value] -> Core, Some [pparg mem_floating_value]
+    | "Core.OVpointer", [mem_pointer_value] -> Core, Some [pparg mem_pointer_value]
+    | "Core.OVcfunction", [nm] -> Core, Some [pparg nm]
+    | "Core.OVarray", [vs] -> Core, Some [T.ckwd "array"; core_expr_list vs (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional ]
+    | "Core.OVstruct", [tag; struct_members] -> Core, Some [T.ckwd "("; T.ckwd "struct"; pparg tag; T.ckwd ")"; core_struct_member_list struct_members]
+    | "Core.OVunion", [tag;id;v] -> Core, Some [T.ckwd "("; T.ckwd "union"; space; pparg tag; T.ckwd ")"; T.ckwd "{"; T.ckwd "."; pparg id; T.ckwd "="; pparg v]
+
+    (** Core.generic_value *)
+    (* TODO   "Core.Constrained"  *)
+    | "Core.Vobject", [v] -> Core, Some [pparg v]
+    | "Core.Vspecified", [v] -> Core, Some [T.ckwd "Specified"; T.ckwd "("; pparg v; T.ckwd ")"]
+    | "Core.Vunpecified", [_ (*ty*)] -> Core, Some [T.ckwd "Unspecified"(*; T.ckwd "("; pparg ty; T.ckwd ")"*)]
+         (* TODO: not sure it's really a good idea to suppress the ty's *)
+    | "Core.Vunit", [] -> Core, Some [T.ckwd "Unit"]
+    | "Core.Vtrue", [] -> Core, Some [T.ckwd "True"]
+    | "Core.Vfalse", [] -> Core, Some [T.ckwd "False"]
+    | "Core.Vctype", [ctype] -> Core, Some [pparg ctype]
+    | "Core.Vlist", [cbt; vs] -> Core, Some [ core_expr_list vs (T.ckwd "[") (T.ckwd "]") (T.ckwd ";") Seplist.Optional ]
+    | "Core.Vtuple", [vs] -> Core, Some [ core_expr_list vs (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional ]
+
+    (** Core.generic_ctor *)
     | "Core.Cnil", [ty] -> Core, Some [T.ckwd "Nil"]
     | "Core.Ccons", [] -> Core, Some [T.ckwd "Cons"]
     | "Core.Ctuple", [] -> Core, Some [T.ckwd "Tuple"]
@@ -1694,7 +1727,8 @@ let ppcerberus (c_id_string, args) deconstruct_arg pparg pparg_flip_lskip
     | "Core_aux.mk_ivsizeof_pe", [ty] -> Core, Some [T.ckwd "ivsizeof"; T.ckwd "("; pparg ty; T.ckwd ")"]
     | "Core_aux.mk_ivalignof_pe", [ty] -> Core, Some [T.ckwd "ivalignof"; T.ckwd "("; pparg ty; T.ckwd ")"]
 
-          
+    (** Core.maybesym *)
+    (* TODO: this needs special-casing as it uses the Lem maybe type - would be better to use a distinguished Core type *)          
     
 
     (** Core.generic_pattern *)
@@ -1708,7 +1742,7 @@ let ppcerberus (c_id_string, args) deconstruct_arg pparg pparg_flip_lskip
     | "Core_aux.mk_tuple_pat", [pats] -> Core, Some ([core_expr_list pats (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional])
     | "Core_aux.mk_specified_pat", [pat] -> Core, Some ([T.ckwd "Specified"; T.ckwd "("; pparg pat; T.ckwd ")"])
 
-      (** Core.pexpr *) (** following core.ott *)
+      (** Core.pexpr_ *) (** following core.ott *)
     | "Core.PEsym", [sym] | "Core_aux.mk_sym_pe", [_(*ty*); sym] -> Core, Some [pparg sym]
     | "Core.PEimpl", [iCst] -> Core, Some [pparg iCst]
 
@@ -1731,7 +1765,7 @@ let ppcerberus (c_id_string, args) deconstruct_arg pparg pparg_flip_lskip
     | "Core.PEnot", [e] | "Core_aux.mk_not_pe", [e] -> Core, Some [T.ckwd "not"; T.ckwd "("; pparg e; T.ckwd ")"]
     | "Core.PEop", [op; pe1; pe2] | "Core_aux.mk_op_pe", [op; pe1; pe2] -> Core, Some [pparg pe1; space; ppc_deconstruct op; space; pparg pe2]
 
-    | "Core.PEstruct", [tag; struct_clauses] -> Core, Some [T.ckwd "("; T.ckwd "struct"; pparg tag; T.ckwd ")"; T.ckwd "{"; T.ckwd "TODO PEstruct"; T.ckwd "}"]
+    | "Core.PEstruct", [tag; struct_members] -> Core, Some [T.ckwd "("; T.ckwd "struct"; pparg tag; T.ckwd ")"; core_struct_member_list struct_members]
 
     | "Core.PEunion", [tag; id; pe] -> Core, Some [T.ckwd "("; T.ckwd "union"; pparg tag; T.ckwd ")"; T.ckwd "{"; T.ckwd "."; pparg id; T.ckwd "="; pparg pe; T.ckwd "}"]
 
@@ -1747,17 +1781,25 @@ let ppcerberus (c_id_string, args) deconstruct_arg pparg pparg_flip_lskip
     
 
     (** generic_pexpr *)
-
     | "Core.Pexpr", [ty; pe] -> Core, Some [pparg pe]   
 
+    (** Mem_memop *)
+    | "Core.PtrEqNe", [peo] -> Core, Some [pparg peo]
+    | "Core.PtrRel", [pro] -> Core, Some [pparg pro]
+    | "Core.Ptrdiff", [] -> Core, Some [T.ckwd "ptrdiff"]
+    | "Core.IntFromPtr", [] -> Core, Some [T.ckwd "intFromPtr"]
+    | "Core.PtrFromInt", [] -> Core, Some [T.ckwd "ptrFromInt"]
+    | "Core.PtrValidForDeref", [] -> Core, Some [T.ckwd "ptrValidForDeref"]
 
-    (** pexpr_ *)
-
+    (** generic_expr *)
     (* | pure ( generic_pexpr ) :: :: pure  {{ com  pure expression }} *)
     | "Core.Epure", [pexpr] -> Core, Some [T.ckwd "pure" ; T.ckwd "("; pparg pexpr; T.ckwd ")"] 
 
     (* | ptrop ( Mem_memop , generic_pexpr1 , .. , generic_pexprn ) :: :: memop {{ com pointer op involving memory }} *)
+    | "Core.Ememop", [memop; pes] -> Core, Some ([pparg memop; T.ckwd "("; core_expr_list pes emp emp (T.ckwd ",") Seplist.Optional; T.ckwd ")"])
+
     (* | generic_paction  :: :: action {{ com memory action }} *)
+    | "Core.Eaction", [a] -> Core, Some [pparg a]
 
     (* | case generic_pexpr with </ | generic_patterni => generic_expri // i /> end :: :: case {{ com pattern matching }} *)
     | "Core.Ecase", [e1; clauses] -> Core, Some ([T.ckwd "case"; space; pparg e1; space; T.ckwd "with"] @ (core_clause_list clauses))
@@ -1775,54 +1817,54 @@ let ppcerberus (c_id_string, args) deconstruct_arg pparg pparg_flip_lskip
     | "Core.Ereturn", [e] -> Core, Some [T.ckwd "return" ; T.ckwd "("; pparg e; T.ckwd ")"] 
 
     (* | unseq ( generic_expr1 , .. , generic_exprn ) :: :: unseq {{ com unsequenced expressions }} *)
-    | "Core.Eunseq", [es] | "Core_aux.mk_unseq", [es] -> Core, Some ([T.ckwd "unseq"; core_expr_list es (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional])
-    (* | let weak generic_pattern = generic_expr1 in generic_expr2 :: :: wseq {{ com weak sequencing }} *)
+    | "Core.Eunseq", [es] | "Core_aux.mk_unseq", [es] -> Core, Some ([T.ckwd "unseq"; core_expr_list es (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional]) 
+   (* | let weak generic_pattern = generic_expr1 in generic_expr2 :: :: wseq {{ com weak sequencing }} *)
     | "Core.Ewseq", [pat; e1; e2] -> Core, Some [T.ckwd "let" ; space; T.ckwd "weak"; pparg pat ; T.ckwd "="; pparg e1; space; T.ckwd "in"; space; pparg e2 ] 
     (* | let strong generic_pattern = generic_expr1 in generic_expr2 :: :: sseq {{ com strong sequencing }} *)
     | "Core.Esseq", [pat; e1; e2] -> Core, Some [T.ckwd "let" ; space; T.ckwd "strong"; pparg pat ; T.ckwd "="; pparg e1; space; T.ckwd "in"; space; pparg e2 ]
     (* | let atomic maybe_Symbol_sym_core_base_type = generic_action1 in generic_paction2 :: :: aseq  {{ com atomic sequencing }}% (\* this ctor doesn't exist at runtine *\) *)
+    | "Core.Easeq", [sym; a1; a2] -> Core, Some [T.ckwd "let" ; space; T.ckwd "atomic"; pparg sym ; T.ckwd "="; pparg a1; space; T.ckwd "in"; space; pparg a2 ] 
     (* | indet [ nat ] ( generic_expr ) :: :: indet  {{ com indeterminately sequenced expr }} % (\* this ctor doesn't exist at runtine *\) *)
+    | "Core.Eindet", [n; e] -> Core, Some [T.ckwd "indet"; T.ckwd "["; pparg n; T.ckwd "]"; T.ckwd "("; pparg e; T.ckwd ")"]
+
     (* | bound [ nat ] ( generic_expr ) :: :: bound  {{ com $\ldots$and boundary }} %(\* this ctor doesn't exist at runtine *\) *)
+    | "Core.Ebound", [n; e] -> Core, Some [T.ckwd "bound"; T.ckwd "["; pparg n; T.ckwd "]"; T.ckwd "("; pparg e; T.ckwd ")"]
+
     (* | nd ( generic_expr1 , .. , generic_exprn ) :: ::  nd {{ com nondeterministic sequencing }} *)
+    | "Core.End", [es] -> Core, Some ([T.ckwd "nd"; core_expr_list es (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional])
+
     (* | save label ( </ Symbol_symi : ctypei // , // i /> ) in generic_expr :: :: save  {{ com save label }} *)
+    | "Core.Esave", (label::_) -> Core, Some [T.ckwd "save"; space; pparg label]  (* TODO: fix wrt changes to save/run *)
+
     (* | run a label ( </ Symbol_symi := generic_pexpri // , // i /> ) :: :: run  {{ com run from label }} *)
+    | "Core.Erun", (label::_) -> Core, Some [T.ckwd "run"; space; pparg label]
+
     (* | par ( generic_expr1 , .. , generic_exprn ) :: :: par  {{ com cppmem thread creation }}%(\* Parallel composition: for cppmem-style composition *\) *)
+    | "Core.Epar", [es] -> Core, Some ([T.ckwd "par"; core_expr_list es (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional])
+
     (* | wait ( Thread_thread_id ) ::  :: wait  %(\* TODO: this will need to have a Core type annotation to allow typecheck ... *\) *)
-    (*    {{ com wait for thread termination }}  *)
+    | "Core.Ewait", [tid] -> Core, Some [T.ckwd "wait"; T.ckwd "("; pparg tid; T.ckwd ")"]
+
+    (* TODO *)
     (* | Eloc Loc_t generic_expr :: X :: loc  *)
 
-
-
-(*
-    | "Core.PEmemop", [memop; pes] -> Core, Some ([pparg memop; core_expr_list pes (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional])
-    | "Core.PEtuple", [pes] -> Core, Some ([core_expr_list pes (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional])
-    | "Core.PEarray", [pes] -> Core, Some ([core_expr_list pes (T.ckwd "array(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional])  (*TODO: concrete syntax for core arrays?*)
-*)
           
-    (** Core.generic_expr *) 
-(*
-    | "Core.Ememop", [memop; pes] -> Core, Some ([pparg memop; core_expr_list pes (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional])
-    | "Core.Eskip", [] -> Core, Some [T.ckwd "skip"]
-    | "Core.Elet", [a; e1; e2] -> Core, Some  [T.ckwd "let" ; space; pparg a ; T.ckwd "="; pparg e1; space; T.ckwd "in"; space; pparg e2 ] 
-    | "Core.Eif", [expr1; expr2; expr3] -> Core, Some  [T.ckwd "if" ; space; pparg expr1; space; T.ckwd "then"; pparg expr2; space; T.ckwd "else"; space; pparg expr3 ] 
-    | "Core.Eproc", [nm; es] -> Core, Some ([pparg nm; core_expr_list es (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional]) (*TODO: just like call?*)
-    | "Core.Eaction", [pact] -> Core, Some [pparg pact]
-    | "Core.Eunseq", [es] | "Core_aux.mk_unseq", [es] -> Core, Some ([core_expr_list es (T.ckwd "[") (T.ckwd "]") (T.ckwd "||") Seplist.Optional])
-    | "Core.Esseq", [pattern; expr1; expr2] -> Core, Some  [T.ckwd "let" ; space; T.ckwd "strong"; core_expr_pattern_list pattern; space; T.ckwd "="; pparg expr1; space; T.ckwd "in"; space; pparg expr2 ] 
-    | "Core.Ewseq", [pattern; expr1; expr2] -> Core, Some  [T.ckwd "let" ; space; T.ckwd "weak"; core_expr_pattern_list pattern; space; T.ckwd "="; pparg expr1; space; T.ckwd "in"; space; pparg expr2 ] 
-    | "Core.Easeq", [msym; act; pact] -> Core, Some  [T.ckwd "let" ; space; T.ckwd "atomic"; (*pparg*) core_expr_option_pattern msym; space; T.ckwd "="; pparg act; space; T.ckwd "in"; space; pparg pact ] 
-    | "Core.Eindet", [expr] -> Core, Some [T.ckwd "indet"; T.ckwd "("; pparg expr ; T.ckwd ")"]
-    | "Core.Ebound", [n; expr] -> Core, Some [T.ckwd "bound"; T.ckwd "("; pparg n ; T.ckwd ","; pparg expr ; T.ckwd ")"]
-          
-    | "Core.Esave", [d; a_tys; e] -> Core, Some [T.ckwd "save"; pparg d; space; pparg a_tys; T.ckwd "."; pparg e; space; T.ckwd "end"]
-    | "Core.Erun", [_; d; a_es] -> Core, Some [T.ckwd "run"; pparg d; space; pparg a_es]
-          
-    | "Core.Eret", [pexpr] -> Core, Some [T.ckwd "return"; pparg pexpr]
-    | "Core.Epar", [es] -> Core, Some [T.ckwd "par"; pparg es]
-    | "Core.Ewait", [tid] -> Core, Some [T.ckwd "wait"; pparg tid]
-*)
+    (** generic_actionB *)
+    | "Core.Create", [pe1; pe2; symprefix] -> Core, Some [T.ckwd "create"; T.ckwd "("; pparg pe1; T.ckwd ","; pparg pe2; space; pparg symprefix; T.ckwd ")"]
+    | "Core.Alloc", [pe1; pe2; symprefix] -> Core, Some [T.ckwd "alloc"; T.ckwd "("; pparg pe1; T.ckwd ","; pparg pe2; space; pparg symprefix; T.ckwd ")"]
+    | "Core.Kill", [pe] -> Core, Some [T.ckwd "kill"; T.ckwd "("; pparg pe; T.ckwd ")"]
+    | "Core.Store", [pe1; pe2; pe; mo] -> Core, Some [T.ckwd "store"; T.ckwd "("; pparg pe1; T.ckwd ","; pparg pe2; T.ckwd ","; pparg pe; T.ckwd ","; pparg mo;  T.ckwd ")"]
+    | "Core.Load", [pe1; pe2; mo] -> Core, Some [T.ckwd "load"; T.ckwd "("; pparg pe1; T.ckwd ","; pparg pe2; T.ckwd ","; pparg mo;  T.ckwd ")"]
+    | "Core.RMW", [pe1; pe2; pe3; pe4; mo1; mo2] -> Core, Some [T.ckwd "rmw"; T.ckwd "("; pparg pe1; T.ckwd ","; pparg pe2; T.ckwd ","; pparg pe3; T.ckwd ","; pparg pe4; T.ckwd ","; pparg mo1; T.ckwd ","; pparg mo2;  T.ckwd ")"]
+    | "Core.Fence", [pe] -> Core, Some [T.ckwd "fence"; T.ckwd "("; pparg pe; T.ckwd ")"]
 
-          (** Core operators *)
+    (** generic_action *)
+    | "Core.Action", [l; a; ga] -> Core, Some [T.ckwd "action"; space; pparg ga]  (* TODO: suppressing both l and a; is that right?  And maybe the concrete syntax for Core should be harmonised to have parens for all these kinds of thing...*)
+
+    (** generic_paction *)
+    | "Core.Paction", [pol; ga] -> Core, Some [T.ckwd "Paction"; space; pparg pol; space; pparg ga]
+
+    (** Core operators *)
     | "Core.OpAdd", [] -> Core, Some ([T.ckwd "+"  ])
     | "Core.OpSub", [] -> Core, Some ([T.ckwd "-"  ])
     | "Core.OpMul", [] -> Core, Some ([T.ckwd "*"  ])
@@ -2103,7 +2145,7 @@ and cerberus_pat print_backend p cd ps =
       match deconstruct_pat p with
       | Some (c_id_string,ps) -> 
           ppcerberus (c_id_string,ps) deconstruct_pat pppat (pppat_flip_lskip pppat)
-            (pat_core_expr_list pppat) (pat_core_expr_pattern_list pppat) (pat_core_expr_option_pattern pppat) (pat_core_clause_list pppat)
+            (pat_core_expr_list pppat) (pat_core_expr_pattern_list pppat) (pat_core_expr_option_pattern pppat) (pat_core_clause_list pppat) (pat_core_struct_member_list pppat)
       | None -> Plain, None
     end
   | _,_ ->
@@ -2563,7 +2605,7 @@ and cerberus_exp_app print_backend trans e e0 args cd =
   let (c_id_string : string) = normalise_c_id_string (Path.to_string c_descr.const_binding) in
 
   ppcerberus (c_id_string,args) deconstruct_exp ppexp (ppexp_flip_lskip ppexp)
-    (exp_core_expr_list ppexp) (exp_core_expr_pattern_list ppexp) (exp_core_expr_option_pattern ppexp) (exp_core_clause_list ppexp)
+    (exp_core_expr_list ppexp) (exp_core_expr_pattern_list ppexp) (exp_core_expr_option_pattern ppexp) (exp_core_clause_list ppexp) (exp_core_struct_member_list ppexp)
 
 
 
