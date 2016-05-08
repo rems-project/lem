@@ -272,7 +272,7 @@ let rec pp_raw_t t =
   | Core t -> r"Core(" ^^ pp_raw_t t ^^ r")"
  
 
-(* turns a single, unstructered Output.t into a string *)
+(* turns a single, unstructured Output.t into a string *)
 let to_rope_single quote_char lex_skips_to_rope preserve_ws t : Ulib.Text.t = 
   match t with
     | Empty -> r""
