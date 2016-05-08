@@ -272,14 +272,16 @@ let transform_for_target libpath modules env targ =
 
 let per_target libpath tex_all_opt (out_dir : string option) modules env targ =
   let (env', avoid, transformed_mods) = transform_for_target libpath modules env targ in
-  (if (targ = Target.Target_no_ident Target.Target_tex) then begin
-     match tex_all_opt with
-       | None -> output env' avoid targ out_dir transformed_mods
-       | Some (dir, filename, gen_single) ->
-            if gen_single then output env' avoid targ out_dir transformed_mods;
-            output_alltexdoc env' avoid dir filename transformed_mods
-   end else
-     output env' avoid targ out_dir transformed_mods);
+  (if (targ = Target.Target_no_ident Target.Target_tex) then 
+    begin
+      match tex_all_opt with
+      | None -> output env' avoid targ out_dir transformed_mods
+      | Some (dir, filename, gen_single) ->
+          if gen_single then output env' avoid targ out_dir transformed_mods;
+          output_alltexdoc env' avoid dir filename transformed_mods
+    end 
+  else
+    output env' avoid targ out_dir transformed_mods);
   env'
 
 
