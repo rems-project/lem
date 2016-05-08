@@ -1629,7 +1629,7 @@ let exp_core_clause_list pparg clauses =
         (*block is_user_exp 0*) (  
         ws s1 ^
         T.ckwd "|" ^ space ^ (*(pparg e1) ^ T.ckwd "=>" ^ (pparg e2)  ^*)
-        flat (Seplist.to_sep_list pparg (sep (T.ckwd "=>")) es) ^ 
+        flat (Seplist.to_sep_list pparg (sep (flat [space; T.ckwd "=>"; space])) es) ^ 
         ws s2 
         )
     | _ -> pparg clauses (*kwd "ERROR: core_clause_list failed to find Tup of size 2" *)
@@ -1922,6 +1922,19 @@ let ppcerberus (c_id_string, args) deconstruct_arg pparg pparg_flip_lskip
               end
           | _ -> Ail, None
         end
+(* repeating the above not inside an AilSyntax.Arithmetic *)
+    | "AilSyntax.Mul" ,[] -> Ail, Some ([T.akwd "*" ])
+    | "AilSyntax.Div" ,[] -> Ail, Some ([T.akwd "/" ])
+    | "AilSyntax.Mod" ,[] -> Ail, Some ([T.akwd "%" ])
+    | "AilSyntax.Add" ,[] -> Ail, Some ([T.akwd "+" ])
+    | "AilSyntax.Sub" ,[] -> Ail, Some ([T.akwd "-" ])
+    | "AilSyntax.Shl" ,[] -> Ail, Some ([T.akwd "<<"])
+    | "AilSyntax.Shr" ,[] -> Ail, Some ([T.akwd ">>"])
+    | "AilSyntax.Band",[] -> Ail, Some ([T.akwd "&" ])
+    | "AilSyntax.Bor" ,[] -> Ail, Some ([T.akwd "|" ])
+    | "AilSyntax.Bxor",[] -> Ail, Some ([T.akwd "^" ])
+
+
     | "AilSyntax.Comma",[] -> Ail, Some ([T.akwd "," ])
     | "AilSyntax.And",[]   -> Ail, Some ([T.akwd "&&"])
     | "AilSyntax.Or",[]    -> Ail, Some ([T.akwd "||"])
@@ -2105,7 +2118,20 @@ match C.exp_to_term e with
   | Nvar_e(s,n) ->
       ws s ^ id Nexpr_var (Ulib.Text.(^^^) T.nexp_var (Nvar.to_rope n))
   | Constant(cd) ->
-      Output.concat emp (B.function_application_to_output (exp_to_locn e) (exp print_backend) false e cd [] (use_ascii_rep_for_const cd))
+      Output.concat emp
+        (match !Backend_common.cerberus_pp, T.target with
+        | true, Target_no_ident (Target_tex|Target_html) ->
+            begin
+              match cerberus_exp_app print_backend (exp print_backend) e e [] cd with
+              | (kind, Some output) ->  
+                  let lskip = Typed_ast.ident_get_lskip cd in
+                  ws lskip :: output
+              | (_, None) -> 
+                  B.function_application_to_output (exp_to_locn e) (*trans*) (exp print_backend) false e cd [] (use_ascii_rep_for_const cd)
+            end
+        | _,_ ->
+            (B.function_application_to_output (exp_to_locn e) (exp print_backend) false e cd [] (use_ascii_rep_for_const cd))
+        )
   | Fun(s1,ps,s2,e) ->
       ws s1 ^
       T.fun_start ^

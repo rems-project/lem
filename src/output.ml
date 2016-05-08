@@ -522,6 +522,7 @@ let tex_escape_aux with_space rr =
          if c=Ulib.UChar.of_char '&'  then r"\\&" else 
          if c=Ulib.UChar.of_char '~'  then r"\\texttt{\\char`\\~}" else 
          if c=Ulib.UChar.of_char '\\' then r"\\texttt{\\char`\\\\}" else 
+         if c=Ulib.UChar.of_char '/' then r"\\texttt{\\char`\\/}" else 
          if c=Ulib.UChar.of_char '|'  then r"\\texttt{\\char`\\|}" else 
          if c=Ulib.UChar.of_char '\'' then r"\\texttt{\\char`\\'}" else 
 
