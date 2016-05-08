@@ -1685,7 +1685,8 @@ let ppcerberus (c_id_string, args) deconstruct_arg pparg pparg_flip_lskip
 
     (** additional Core_aux.mk_ functions to construct generic_ctor applications *)
     | "Core_aux.mk_specified_pe", [e] -> Core, Some ([T.ckwd "Specified"; T.ckwd "("; pparg e; T.ckwd ")"])
-    (* curiously, mk_unspecified_pe makes a Vunspecified, not a Cunspecified...? *)
+    | "Core_aux.mk_unspecified_pe", [ _ (*ty*)] -> Core, Some ([T.ckwd "Unspecified"])
+    (* mk_unspecified_pe actually makes a Vunspecified, not a Cunspecified...? *)
     | "Core_aux.mk_list_pe", [es] -> Core, Some ([core_expr_list es (T.ckwd "[") (T.ckwd "]") (T.ckwd ";") Seplist.Optional])
     | "Core_aux.mk_tuple_pe", [es] -> Core, Some ([core_expr_list es (T.ckwd "(") (T.ckwd ")") (T.ckwd ",") Seplist.Optional])
     | "Core_aux.mk_ivmax_pe", [ty] -> Core, Some [T.ckwd "ivmax"; T.ckwd "("; pparg ty; T.ckwd ")"]
@@ -1715,7 +1716,7 @@ let ppcerberus (c_id_string, args) deconstruct_arg pparg pparg_flip_lskip
     | "Core_aux.mk_integer_pe", [v] -> Core, (*Some [pparg v]*)
           Some ([meta "{\\color{blue}"; pparg v ; meta "}" ])   (* TODO: this hack won't work for html *)
 
-    | "Core.PEundef", [ub] | "Core_aux.mk_undef_pe", [ub] -> Core, Some [T.ckwd "undef"; space; pparg ub]
+    | "Core.PEundef", [ub] | "Core_aux.mk_undef_pe", [ub] -> Core, Some [T.ckwd "undef"; T.ckwd "("; pparg ub; T.ckwd ")"]
     | "Core.PEerror", [s; e] | "Core_aux.mk_error_pe", [s;e] -> Core, Some  [T.ckwd "error"; T.ckwd "("; pparg s; T.ckwd ","; pparg e; T.ckwd ")"]
 
 
