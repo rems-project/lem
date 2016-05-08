@@ -85,7 +85,7 @@ open Target
 
 let gen_extra_level = ref 3
 let suppress_target_names = ref false
-let suppress_libraries = ref true
+let suppress_libraries = ref false
 
 let r = Ulib.Text.of_latin1
 let (^^) = Pervasives.(^)
