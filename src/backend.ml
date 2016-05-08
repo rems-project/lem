@@ -1712,7 +1712,8 @@ let ppcerberus (c_id_string, args) deconstruct_arg pparg pparg_flip_lskip
     | "Core.PEimpl", [iCst] -> Core, Some [pparg iCst]
 
     | "Core.PEval", [v] -> Core, Some [pparg v]
-    | "Core_aux.mk_integer_pe", [v] -> Core, Some [pparg v]
+    | "Core_aux.mk_integer_pe", [v] -> Core, (*Some [pparg v]*)
+          Some ([meta "{\\color{blue}"; pparg v ; meta "}" ])   (* TODO: this hack won't work for html *)
 
     | "Core.PEundef", [ub] | "Core_aux.mk_undef_pe", [ub] -> Core, Some [T.ckwd "undef"; space; pparg ub]
     | "Core.PEerror", [s; e] | "Core_aux.mk_error_pe", [s;e] -> Core, Some  [T.ckwd "error"; T.ckwd "("; pparg s; T.ckwd ","; pparg e; T.ckwd ")"]
