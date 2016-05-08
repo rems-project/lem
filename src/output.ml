@@ -491,6 +491,7 @@ let tex_escape_aux with_space rr =
        (fun c ->  
          if (with_space && c=Ulib.UChar.of_char ' ')  then r"\\ " else 
          if (with_space && c=Ulib.UChar.of_char '\n')  then r"\\\\\\hspace*{0em}%\n" else 
+(*
          if c=Ulib.UChar.of_char '_'  then r"\\_" else 
          if c=Ulib.UChar.of_char '%'  then r"\\%" else 
          if c=Ulib.UChar.of_char '$'  then r"\\$" else 
@@ -506,6 +507,24 @@ let tex_escape_aux with_space rr =
          if c=Ulib.UChar.of_char '\\' then r"\\mbox{$\\backslash{}$}" else 
          if c=Ulib.UChar.of_char '|'  then r"\\mbox{$\\mid$}" else 
          if c=Ulib.UChar.of_char '\''  then r"\\mbox{\'}" else 
+*)
+         if c=Ulib.UChar.of_char '_'  then r"\\_" else 
+         if c=Ulib.UChar.of_char '%'  then r"\\texttt{\\char`\\%}" else 
+         if c=Ulib.UChar.of_char '$'  then r"\\$" else 
+         if c=Ulib.UChar.of_char '#'  then r"\\#" else 
+         if c=Ulib.UChar.of_char '?'  then r"\\texttt{\\char`\\?}" else 
+         if c=Ulib.UChar.of_char '^'  then r"\\texttt{\\char`\\^}" else 
+         if c=Ulib.UChar.of_char '{'  then r"\\{" else 
+         if c=Ulib.UChar.of_char '}'  then r"\\}" else 
+         if c=Ulib.UChar.of_char '='  then r"\\texttt{\\char`\\=}" else 
+         if c=Ulib.UChar.of_char '<'  then r"\\texttt{\\char`\\<}" else 
+         if c=Ulib.UChar.of_char '>'  then r"\\texttt{\\char`\\>}" else 
+         if c=Ulib.UChar.of_char '&'  then r"\\&" else 
+         if c=Ulib.UChar.of_char '~'  then r"\\texttt{\\char`\\~}" else 
+         if c=Ulib.UChar.of_char '\\' then r"\\texttt{\\char`\\\\}" else 
+         if c=Ulib.UChar.of_char '|'  then r"\\texttt{\\char`\\|}" else 
+         if c=Ulib.UChar.of_char '\'' then r"\\texttt{\\char`\\'}" else 
+
          Ulib.Text.of_uchar c)
        (Ulib.Text.explode rr))
 
