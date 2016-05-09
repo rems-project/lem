@@ -175,7 +175,7 @@ let dest_err = function
   | Err_cyclic_build m -> ("Circular build detected", false, Loc Ast.Unknown, "module '" ^ m ^ "' depends on itself")
   | Err_cyclic_inline (l, targ, c) -> ("Circular target definition", false, Loc l, "the definition of " ^ c ^ " for target " ^ targ ^ " depends on itself")
   | Err_resolve_dependency (l, dirs, m) -> ("Unknown dependency", false, Loc l, ("could not find module '"^m^"' in directories " ^ (String.concat ", " (List.map (fun s -> "'" ^ s ^ "'") dirs))))
-  | Err_reorder_dependency (l, m) -> ("Reordering dependency", false, Loc l, ("module '"^m^"' is needed earlier, but it reordering is not allowed"))
+  | Err_reorder_dependency (l, m) -> ("Reordering dependency", false, Loc l, ("module '"^m^"' is needed earlier, but its reordering is not allowed"))
 
 exception Fatal_error of error
 
