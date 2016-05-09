@@ -60,13 +60,16 @@ let get_lexbuf fn =
     lexbuf
 
 let parse_file (f : string) : (Ast.defs * Ast.lex_skips) =
-  let lexbuf = get_lexbuf f in
     try
-      Parser.file (Lexer.token []) lexbuf
-    with
-      | Parsing.Parse_error ->
+      let lexbuf = get_lexbuf f in
+      try
+        Parser.file (Lexer.token []) lexbuf
+      with
+        | Parsing.Parse_error ->
           let pos = Lexing.lexeme_start_p lexbuf in
           raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax (pos, "")))
+    with
+      | Sys_error msg -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_general (false, Ast.Unknown, msg)))
       | Ast.Parse_error_locn(l,m) ->
           raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax_locn (l, m)))
       | Lexer.LexError(c,p) ->
