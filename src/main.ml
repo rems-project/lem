@@ -326,20 +326,7 @@ let main () =
             I.init
   in*)
 
-
-  (* check whether all the files are in one directory *)
-  let out_dir_compute = match !opt_file_arguments with
-    | [] -> Some (Filename.current_dir_name)
-    | f :: fs -> begin
-        let d = Filename.dirname f in
-        if (List.exists (fun f -> not (Filename.dirname f = d)) fs) 
-          then None else Some d
-      end
-  in
-  let out_dir = match (!out_dir, out_dir_compute) with
-    | (Some _, None) -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_general (false, Ast.Unknown, "in order to use '-outdir' all files given as arguments to Lem need to be in the same directory")));
-    | (x, _) -> x
-  in
+  let out_dir = !out_dir in
 
   let tex_all_opt = begin
      match (!tex_all_filename_opt) with
