@@ -2541,13 +2541,13 @@ and expfield print_backend (fd,s1,e,_) =
   field_ident_to_output fd ^
   ws s1 ^
   T.record_assign ^
-  exp print_backend e
+  exp print_backend (if is_human_target T.target then e else mk_opt_paren_exp e)
 
 and expfieldup print_backend (fd,s1,e,_) =
   field_ident_to_output fd ^
   ws s1 ^
   T.recup_assign ^
-  exp print_backend e
+  exp print_backend (if is_human_target T.target then e else mk_opt_paren_exp e)
 
 and case_line print_backend (p,s1,e,_) =
   pat print_backend p ^
@@ -2564,7 +2564,8 @@ and funcl_aux print_backend (n, ps, topt, s1, e) =
   begin
     match topt with
       | None -> emp 
-      | Some(s,t) -> ws s ^ T.typ_sep ^ typ print_backend t
+      | Some(s,t) ->
+          ws s ^ T.typ_sep ^ typ print_backend t
   end ^
   ws s1 ^
   T.def_binding ^
@@ -3245,7 +3246,7 @@ let rec def_internal callback (inside_module: bool) d is_user_def : Output.t = m
         T.def_end
       else
         emp
-  | Val_def(Fun_def(s1, rec_flag, targets, clauses)) -> 
+  | Val_def(Fun_def(s1, rec_flag, targets, clauses)) ->
       if in_target targets then
         let (is_rec, is_real_rec, try_term) = Typed_ast_syntax.try_termination_proof T.target A.env.c_env d in
         let s2 = match rec_flag with FR_non_rec -> None | FR_rec sk -> sk in
