@@ -3247,7 +3247,6 @@ let rec def_internal callback (inside_module: bool) d is_user_def : Output.t = m
       else
         emp
   | Val_def(Fun_def(s1, rec_flag, targets, clauses)) ->
-      let _ = Printf.printf "XXX" in
       if in_target targets then
         let (is_rec, is_real_rec, try_term) = Typed_ast_syntax.try_termination_proof T.target A.env.c_env d in
         let s2 = match rec_flag with FR_non_rec -> None | FR_rec sk -> sk in
