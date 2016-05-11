@@ -44,7 +44,7 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (*========================================================================*)
 
-header{* Auxiliary Definitions needed by Lem *}
+chapter{* Auxiliary Definitions needed by Lem *}
 
 theory "LemExtraDefs" 
 
