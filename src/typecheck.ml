@@ -716,7 +716,7 @@ let check_free_tvs_exp l (tvs : TNset.t) e : unit =
   let free_tnvars = (add_exp_entities empty_used_entities e).used_tnvars in
   let unbound_tnvars = TNset.diff free_tnvars tvs in
   if (TNset.is_empty unbound_tnvars) then () else begin
-     raise (Reporting_basic.err_type_pp l "unbound type variables"
+     raise (Reporting_basic.err_type_pp l "unconstrained polymorphic let expression, generating free type variables"
                (Pp.lst ";" Types.pp_tnvar) (TNset.elements unbound_tnvars))
   end
 
