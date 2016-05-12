@@ -50,7 +50,7 @@ open Typed_ast
 
 exception Trans_error of Ast.l * string
 
-type 'a macro = Macro_expander.macro_context -> 'a -> 'a option
+type 'a macro = Macro_expander.macro_context -> 'a -> 'a Macro_expander.continuation
 type pat_macro = Macro_expander.pat_position -> pat macro
 
 module Macros (E : sig val env : env end) : sig 
@@ -204,6 +204,16 @@ module Macros (E : sig val env : env end) : sig
       with partial matches.
     *)
   val remove_failwith_matches : exp macro
+
+  (** [eta_expand_constructors] eta expands constructors, introducing a new function
+      that takes the required number of arguments and immediately applies them to
+      the constructor: useful in the OCaml backend where
+        let f = Some
+      is invalid as constructors are not merely constants of functional type, but
+      must be explicitly applied to arguments, like:
+        let f = fun x -> Some x
+  *)
+  val eta_expand_constructors : exp macro
 
   (** {2 Macros I don't understand} *)
 

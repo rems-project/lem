@@ -54,7 +54,7 @@ exception Trans_error of Ast.l * string
 
 let r = Ulib.Text.of_latin1
 
-type 'a macro = Macro_expander.macro_context -> 'a -> 'a option
+type 'a macro = Macro_expander.macro_context -> 'a -> 'a Macro_expander.continuation
 type pat_macro = Macro_expander.pat_position -> pat macro
 
 module Macros(E : sig val env : env end) = struct
@@ -85,12 +85,12 @@ let remove_singleton_record_updates _ e =
                           | Some fl -> List.length fl
                       end in
                   if field_count = 1 then
-                    Some (C.mk_record l s1 fields s3 (Some (exp_to_typ e)))
+                    Macro_expander.Continue (C.mk_record l s1 fields s3 (Some (exp_to_typ e)))
                   else
-                    None
-              | _   -> None
+                    Macro_expander.Fail
+              | _   -> Macro_expander.Fail
         end
-      | _ -> None
+      | _ -> Macro_expander.Fail
 ;;
 
 let remove_multiple_record_updates _ e =
@@ -99,8 +99,8 @@ let remove_multiple_record_updates _ e =
       | Recup(s1, e, s2, fields, s3) ->
         begin
             match List.rev (Seplist.to_list fields) with
-              | [] -> None
-              | [x] -> None
+              | [] -> Macro_expander.Fail
+              | [x] -> Macro_expander.Fail
               | x::xs ->
                 let singleton e =
                   Seplist.from_pair_list None [(e, Typed_ast.no_lskips)] None
@@ -113,16 +113,16 @@ let remove_multiple_record_updates _ e =
                     C.mk_recup l_unk s2 recup s2 (singleton x) s2 None
                   ) recup xs
                 in
-                  Some recups
+                  Macro_expander.Continue recups
         end
-      | _ -> None
+      | _ -> Macro_expander.Fail
 ;;
 
 
 let sort_record_fields _ e =
   let l_unk = Ast.Trans(true, "sort_record_fields", Some (exp_to_locn e)) in
     match C.exp_to_term e with
-      | Record(s1,fields,s2) -> if Seplist.length fields < 2 then None else
+      | Record(s1,fields,s2) -> if Seplist.length fields < 2 then Macro_expander.Fail else
         begin
           let all_fields_opt = Util.option_bind (fun td -> td.Types.type_fields) (Types.type_defs_lookup_typ l_unk E.env.t_env (exp_to_typ e)) in
           let all_fields = Util.option_get_exn (Reporting_basic.err_unreachable l_unk "type of record is no record-type") all_fields_opt in
@@ -137,13 +137,13 @@ let sort_record_fields _ e =
                let (y, changed', ys) = find_field n changed fieldL in (changed', ys, y::resultL)) 
                (false, fieldsL, []) all_fields
             with Not_found -> (false, fieldsL, fieldsL) 
-          in if (not changed) then None else begin
+          in if (not changed) then Macro_expander.Fail else begin
             let fields' = Seplist.from_pair_list hd_sep_opt (List.rev resultL) None in
             let res = C.mk_record l_unk s1 fields' s2 (Some (exp_to_typ e)) in
             let _ = Reporting.report_warning E.env (Reporting.Warn_record_resorted (exp_to_locn e, e)) in
-            Some (res) end
+            Macro_expander.Continue (res) end
         end 
-      | _ -> None
+      | _ -> Macro_expander.Fail
 ;;
 
 let remove_failwith_matches _ e =
@@ -164,16 +164,19 @@ let remove_failwith_matches _ e =
           ) pat_skips_exp_loc_seplist
         in
         if filter = pat_skips_exp_loc_seplist then
-          None
+          Macro_expander.Fail
         else
           let res = C.mk_case flag l_unk skips scrutinee skips' filter skips'' None in
-            Some res
-      | _ -> None
+            Macro_expander.Continue res
+      | _ -> Macro_expander.Fail
 ;;
 
 (* Turn function | pat1 -> exp1 ... | patn -> expn end into
  * fun x -> match x with | pat1 -> exp1 ... | patn -> expn end *)
-let remove_function _ e = Patterns.remove_function E.env (fun e -> e) e
+let remove_function _ e =
+  match Patterns.remove_function E.env (fun e -> e) e with
+    | None -> Macro_expander.Fail
+    | Some e -> Macro_expander.Continue e
 
 (* Remove patterns from (fun ps -> ...), except for variable and 
  * (optionally) tuple patterns *)
@@ -200,7 +203,7 @@ let remove_fun_pats keep_tup _ e =
           let pss = group [] ps in
             begin
               match pss with
-                | [(true,_)] -> None
+                | [(true,_)] -> Macro_expander.Fail
                 | _ ->
                     let e =
                       List.fold_right
@@ -220,23 +223,23 @@ let remove_fun_pats keep_tup _ e =
                     in
                       match (C.exp_to_term e) with
                         | Fun(_,ps,_,e') ->
-                            Some(C.mk_fun (exp_to_locn e) s1 ps s2 e'
+                            Macro_expander.Continue (C.mk_fun (exp_to_locn e) s1 ps s2 e'
                                    (Some(exp_to_typ e)))
                         | Function(_,x,_) ->
-                            Some(C.mk_function (exp_to_locn e) 
+                            Macro_expander.Continue (C.mk_function (exp_to_locn e) 
                                    (Ast.combine_lex_skips s1 s2) x no_lskips
                                    (Some(exp_to_typ e)))
                         | _ -> assert false
             end
-      | _ -> None
+      | _ -> Macro_expander.Fail
 ;;
 
 let remove_unit_pats _ _ p =
   let l_unk = Ast.Trans(true, "remove_unit_pats", Some p.locn) in
   match p.term with
     | P_lit({ term = L_unit(s1, s2)}) ->
-        Some(C.mk_pwild l_unk s1 { Types.t = Types.Tapp([], Path.unitpath) } )
-     | _ -> None
+        Macro_expander.Continue (C.mk_pwild l_unk s1 { Types.t = Types.Tapp([], Path.unitpath) } )
+     | _ -> Macro_expander.Fail
 
 (* Turn comprehensions into nested folds, fails on unrestricted quantifications *)
 let remove_comprehension for_lst _ e = 
@@ -338,9 +341,8 @@ let remove_comprehension for_lst _ e =
           (helper qbs)
           None
       in
-        Some(letexp)
-  | _ -> 
-      None
+        Macro_expander.Continue letexp
+  | _ -> Macro_expander.Fail
 
 let rec var_tup_pat_eq_exp p e =
   match dest_var_pat p with
@@ -370,7 +372,7 @@ let remove_set_comprehension_image_filter allow_sigma _ e =
       let ok = List.for_all (function Qb_var _ -> false | Qb_restr (_, _, p, _, e, _) -> is_var_tup_pat p) qbs in
       let need_sigma = List.exists (function Qb_var _ -> false | Qb_restr (_, _, p, _, e, _) -> not (
                    NameSet.is_empty (NameSet.inter all_quant_vars (nfmap_domain (C.exp_to_free e))))) qbs in
-      if not (ok && ((not need_sigma) || allow_sigma)) then None else
+      if not (ok && ((not need_sigma) || allow_sigma)) then Macro_expander.Fail else
       begin
         (* filter the quantifiers that need to be in a cross-product and ones that need to go to the expression *)
         let all_vars = NameSet.union (nfmap_domain (C.exp_to_free e1)) all_quant_vars in
@@ -386,7 +388,7 @@ let remove_set_comprehension_image_filter allow_sigma _ e =
              )) qbs ([], [], []) in
 
         let ok2 = (match qbs_set_p with [] -> false | _ -> true) in
-        if not ok2 then None else
+        if not ok2 then Macro_expander.Fail else
         begin
           (* new condition *)
           let e2' = if List.length qbs_cond = 0 then e2 else 
@@ -399,11 +401,10 @@ let remove_set_comprehension_image_filter allow_sigma _ e =
           let res0 = mk_set_filter_exp env (mk_fun_exp [p] e2') s in
           let res1 = if (var_tup_pat_eq_exp p e1) then res0 else
                        mk_set_image_exp env (mk_fun_exp [p] e1) res0 in
-          Some res1
+          Macro_expander.Continue res1
         end
       end
-  | _ -> 
-      None
+  | _ -> Macro_expander.Fail
 
 (* Replaces Setcomp with Comp_binding. *)
 let remove_setcomp _ e = 
@@ -417,10 +418,10 @@ let remove_setcomp _ e =
             | Some ty -> Some (Qb_var{ term = Name.add_lskip n; locn = l_unk; typ = ty; rest = (); })
        end in 
        match Util.map_all qb_name (NameSet.elements bindings) with
-         | None -> None
-         | Some qbs -> Some (C.mk_comp_binding l_unk false s1 e1 s2 space qbs space e2 s3 (Some (exp_to_typ e)))
+         | None -> Macro_expander.Fail
+         | Some qbs -> Macro_expander.Continue (C.mk_comp_binding l_unk false s1 e1 s2 space qbs space e2 s3 (Some (exp_to_typ e)))
      end
-  | _ -> None
+  | _ -> Macro_expander.Fail
 
 let remove_sets context e = 
   let l_unk = Ast.Trans(true, "remove_sets", Some (exp_to_locn e)) in
@@ -435,7 +436,7 @@ let remove_sets context e =
               in
               let from_list = mk_const_exp env l_unk "set_from_list" [t] in
               let app = C.mk_app l_unk from_list lst None in
-                Some(app)
+                Macro_expander.Continue app
           | _ -> 
               assert false
       end
@@ -488,7 +489,7 @@ let remove_quant context e =
   let l_unk = Ast.Trans(true, "remove_quant", Some (exp_to_locn e)) in
   match C.exp_to_term e with
   | Quant(q,[],s,e) ->
-      Some(append_lskips s e)
+      Macro_expander.Continue (append_lskips s e)
   | Quant(q,qb::qbs,s1,e') ->
       begin
         match qb with
@@ -505,19 +506,19 @@ let remove_quant context e =
                   None
               in
               let app1 = C.mk_app l_unk q_impl f None in
-                Some(C.mk_app (exp_to_locn e) app1 e_restr None)
+                Macro_expander.Continue (C.mk_app (exp_to_locn e) app1 e_restr None)
       end
-  | _ -> None
+  | _ -> Macro_expander.Fail
 ;;
 
 let remove_quant_coq context e = 
   if context = Macro_expander.Ctxt_theorem then
-    None
+    Macro_expander.Fail
   else
     let l_unk = Ast.Trans(true, "remove_quant_coq", Some (exp_to_locn e)) in
     match C.exp_to_term e with
     | Quant(q,[],s,e) ->
-        Some(append_lskips s e)
+        Macro_expander.Continue (append_lskips s e)
     | Quant(q,qb::qbs,s1,e') ->
         begin
           match qb with
@@ -534,9 +535,9 @@ let remove_quant_coq context e =
                     None
                 in
                 let app1 = C.mk_app l_unk q_impl f None in
-                  Some(C.mk_app (exp_to_locn e) app1 e_restr None)
+                  Macro_expander.Continue (C.mk_app (exp_to_locn e) app1 e_restr None)
         end
-    | _ -> None
+    | _ -> Macro_expander.Fail
 ;;
 
 
@@ -554,16 +555,16 @@ let list_quant_to_set_quant _ e =
                      (mk_const_exp env l_unk "set_from_list" [p.typ])
                  in
                  let app = C.mk_app l_unk lst_to_set e None in
-                   Some(Qb_restr(false,s2,p,s3,app,s4))
+                   Some (Qb_restr(false,s2,p,s3,app,s4))
              | _ -> None)
           qbs
       in
         begin
           match qbs with
-            | None -> None
-            | Some(qbs) -> Some(C.mk_quant (exp_to_locn e) q qbs s1 e' None)
+            | None -> Macro_expander.Fail
+            | Some(qbs) -> Macro_expander.Continue (C.mk_quant (exp_to_locn e) q qbs s1 e' None)
         end
-  | _ -> None
+  | _ -> Macro_expander.Fail
 
 
 (* Turn restricted quantification into unrestricted quantification:
@@ -581,7 +582,7 @@ let remove_set_restr_quant _ e =
   match C.exp_to_term e with
   | Comp_binding(false,s1,e1,s2,s3,qbs,s4,e2,s5) ->
       if List.for_all qb_OK qbs then
-        None
+        Macro_expander.Fail
       else
         let and_const = mk_const_exp env l_unk "conjunction" [] in
         let in_const t = mk_const_exp env l_unk "set_member" [t] in
@@ -619,11 +620,11 @@ let remove_set_restr_quant _ e =
                   | Qb_restr(_,_,p,_,_,_) -> List.map (fun v -> Qb_var(v)) (Pattern_syntax.pat_vars_src p))
                qbs)
         in
-          Some(C.mk_comp_binding l_unk
+          Macro_expander.Continue (C.mk_comp_binding l_unk
                  false s1 e1 s2 s3 new_qbs s4 pred_exp s5 None)
-  | _ -> None)
+  | _ -> Macro_expander.Fail)
   with Pat_to_exp_unsupported (l, m) -> 
-    (Reporting.report_warning env (Reporting.Warn_general (true, exp_to_locn e, m^" in restricted set comprehension")); None) (* it can still be handled by pattern compilation *)
+    (Reporting.report_warning env (Reporting.Warn_general (true, exp_to_locn e, m^" in restricted set comprehension")); Macro_expander.Fail) (* it can still be handled by pattern compilation *)
 
 
 (* Moves quantification to the condition part of the 
@@ -648,12 +649,12 @@ let cleanup_set_quant _ e =
       in
       let (qbs_move, qbs_keep) = List.partition can_move qbs in
       if List.length qbs_move = 0 then
-        None
+        Macro_expander.Fail
       else
         let e2' = C.mk_quant l_unk (Ast.Q_exists None) qbs_move  space e2 (Some bool_ty) in 
         let res = C.mk_comp_binding l_unk false s1 e1 s2 s3 qbs_keep s4 e2' s5 (Some (exp_to_typ e)) in
-          Some res
-  | _ -> None
+          Macro_expander.Continue res
+  | _ -> Macro_expander.Fail
 
 (* Turn unrestricted comb-bindings into set_comb
  * { f x | x | P x y1 ... yn } goes to
@@ -664,7 +665,7 @@ let remove_set_comp_binding _ e =
   let qb_OK = (function | Qb_var _ -> true | Qb_restr _ -> false) in
   match C.exp_to_term e with
   | Comp_binding(false,s1,e1,s2,s3,qbs,s4,e2,s5) ->
-      if not (List.for_all qb_OK qbs) then None
+      if not (List.for_all qb_OK qbs) then Macro_expander.Fail
       else begin
         let e_vars = nfmap_domain (C.exp_to_free e1) in
         let b_vars = begin 
@@ -675,14 +676,14 @@ let remove_set_comp_binding _ e =
           bvs
         end in
         if not (NameSet.equal e_vars b_vars) then
-          None
+          Macro_expander.Fail
         else begin
           let s234 = (Ast.combine_lex_skips s2 (Ast.combine_lex_skips s3 s4)) in
           let res = C.mk_setcomp l_unk s1 e1 s234 e2 s5 e_vars (Some (exp_to_typ e)) in
-          Some res
+          Macro_expander.Continue res
         end
       end 
-  | _ -> None
+  | _ -> Macro_expander.Fail
 
 
 (* Turn restricted quantification into unrestricted quantification.
@@ -696,7 +697,7 @@ let remove_restr_quant pat_OK _ e =
   try (match C.exp_to_term e with
   | Quant(q,qbs,s,e) ->
       if List.for_all qb_OK qbs then
-        None
+        Macro_expander.Fail
       else
         let imp_const = mk_const_exp env l_unk "implication" [] in
         let and_const = mk_const_exp env l_unk "conjunction" [] in
@@ -738,10 +739,10 @@ let remove_restr_quant pat_OK _ e =
                   | Qb_restr(_,_,p,_,_,_) -> (if pat_OK p then [qb] else (List.map (fun v -> Qb_var(v)) (Pattern_syntax.pat_vars_src p))))
                qbs)
         in
-          Some(C.mk_quant (exp_to_locn e) q new_qbs s pred_exp None)
-  | _ -> None)
+          Macro_expander.Continue (C.mk_quant (exp_to_locn e) q new_qbs s pred_exp None)
+  | _ -> Macro_expander.Fail)
   with Pat_to_exp_unsupported (l, m) -> 
-    (Reporting.report_warning env (Reporting.Warn_general (true, exp_to_locn e, m^" in restricted set comprehension")); None) (* it can still be handled by pattern compilation *)
+    (Reporting.report_warning env (Reporting.Warn_general (true, exp_to_locn e, m^" in restricted set comprehension")); Macro_expander.Fail) (* it can still be handled by pattern compilation *)
 
 
 let tnfmap_apply m k =
@@ -763,11 +764,11 @@ let remove_num_lit _ e =
               let lit1 = C.mk_lnumeral l sk i org_i (Some numeral_ty) in
               let exp1 = C.mk_lit l lit1 (Some numeral_ty) in
               let exp2 = C.mk_app l exp0 exp1 (Some (exp_to_typ e)) in
-              Some exp2
+              Macro_expander.Continue exp2
             end
-          | _ -> None
+          | _ -> Macro_expander.Fail
       end
-    | _ -> None
+    | _ -> Macro_expander.Fail
 
 
 
@@ -798,14 +799,14 @@ let remove_method (target : Target.target) try_dict _ e =
                                       descr = new_const_ref;
                                       instantiation = List.map (tnfmap_apply subst) new_const_descr.const_tparams; }
                                   in
-                                  let new_e = C.mk_const l_unk id None in Some(new_e)
+                                  let new_e = C.mk_const l_unk id None in Macro_expander.Continue (new_e)
                                 end
                             | None -> 
                                 let is_inlined = match Targetmap.apply_target c_descr.target_rep target with
                                   | Some (CR_inline _) -> true
                                   | _ -> false
                                 in
-                                if is_inlined || (not try_dict) then None else (
+                                if is_inlined || (not try_dict) then Macro_expander.Fail else (
                                 let tv = 
                                   match targ.Types.t with
                                     | Types.Tvar tv -> Types.Ty tv
@@ -831,13 +832,13 @@ let remove_method (target : Target.target) try_dict _ e =
                                 let new_e = 
                                   C.mk_field l_unk dict None field (Some (exp_to_typ e))
                                 in
-                                    Some(new_e))
+                                    Macro_expander.Continue (new_e))
                         end
                     | _ -> assert false
                 end
-            | _ -> None
+            | _ -> Macro_expander.Fail
         end
-    | _ -> None
+    | _ -> Macro_expander.Fail
 
 
 let remove_method_pat _ _ p =
@@ -865,29 +866,29 @@ let remove_method_pat _ _ p =
                                       descr = new_const_ref;
                                       instantiation = List.map (tnfmap_apply subst) new_const_descr.const_tparams; }
                                   in
-                                  let new_e = C.mk_pconst l_unk id ps None in Some(new_e)
+                                  let new_e = C.mk_pconst l_unk id ps None in Macro_expander.Continue (new_e)
                                 end
-                            | None -> None (* no instance, so don't do a thing. Perhaps something else
+                            | None -> Macro_expander.Fail (* no instance, so don't do a thing. Perhaps something else
                                               takes care of this constant *)
                         end
                     | _ -> assert false
                 end
-            | _ -> None
+            | _ -> Macro_expander.Fail
         end
-    | _ -> None
+    | _ -> Macro_expander.Fail
 
 
 (* remove class constraints from constants by adding explicit dictionary arguments. *)
 
 let remove_class_const_aux l_unk targ mk_exp c =
   let c_descr = c_env_lookup l_unk env.c_env c.descr in
-  if const_descr_has_target_rep targ c_descr then (* if the constant is represented specially, don't touch it *) None else
+  if const_descr_has_target_rep targ c_descr then (* if the constant is represented specially, don't touch it *) Macro_expander.Fail else
   let const_constraints = List.filter (fun (c, _) -> not (class_all_methods_inlined_for_target l_unk env targ c)) c_descr.const_class in
 
   match (const_constraints, Targetmap.apply_target c_descr.const_no_class targ) with
       | (([], _) | (_, None)) ->                 
           (* if there are no class constraints, there is nothing to do *)
-          None
+          Macro_expander.Fail
       | (_, Some c_ref') ->
           let subst = Types.TNfmap.from_list2 c_descr.const_tparams c.instantiation in
           let class_constraint_to_arg (c_path, tv) =
@@ -925,7 +926,7 @@ let remove_class_const_aux l_unk targ mk_exp c =
               (mk_exp {c with descr = c_ref'})
               args
           in
-            Some(new_e)
+            Macro_expander.Continue new_e
      
 
 let remove_class_const targ _ e =
@@ -935,7 +936,7 @@ let remove_class_const targ _ e =
         remove_class_const_aux l_unk targ (fun c' -> (C.mk_const l_unk c' None)) c
     | Field(e,sk,fd) ->
         remove_class_const_aux l_unk targ (fun fd' -> (C.mk_field l_unk e sk fd' None)) fd
-    | _ -> None
+    | _ -> Macro_expander.Fail
 
 
 (*Convert nexpressions to expressions *)
@@ -967,6 +968,42 @@ let rec remove_tne ts =
     | t :: ts -> let (tns,oths) = remove_tne ts in
                  (tns,t::oths)
 
+(** [consume_arrows typ const] for a constant [const] with type [typ], repeatedly
+  * checks whether [typ] is of the form t1 -> t2 -> t3 -> t4 ... and repeatedly
+  * expands eta-expands const.
+  *)
+let consume_arrows l typ c =
+  let rec go counter l typ c =
+    match typ.t with
+      | Types.Tfn (dom, rng) ->
+        begin
+          let n = Name.add_lskip (Name.from_string ("eta" ^ string_of_int counter)) in
+          let v = C.mk_var l n dom in
+          let a = C.mk_app l c v None in
+          let p = C.mk_pvar l n dom in
+          let f = C.mk_fun l None [p] None a (Some typ) in
+            go (1 + counter) l rng f
+        end
+      | _ -> c
+  in go 0 l typ c
+
+(* eta expands a constructor constant, so Some becomes fun x -> Some x *)
+let eta_expand_constructors _ e =
+  let l_unk = Ast.Trans(true, "eta_expand_constructors", Some (exp_to_locn e)) in
+    match C.exp_to_term e with
+      | Constant c ->
+        begin
+          let c_descr = c_env_lookup l_unk env.c_env c.descr in
+            match c_descr.env_tag with
+              | K_constr ->
+                begin
+                  let typ = c_descr.const_type in
+                    Macro_expander.Halt (consume_arrows l_unk typ e)
+                end
+              | _ -> Macro_expander.Fail
+        end
+      | _ -> Macro_expander.Fail
+
 (*add numeric parameter for nexp type parameter in function calls with constants*)
 let add_nexp_param_in_const _ e =
   let l_unk = Ast.Trans(true, "add_nexp_param_in_const", Some (exp_to_locn e)) in
@@ -975,12 +1012,12 @@ let add_nexp_param_in_const _ e =
         begin
           let c_descr = c_env_lookup l_unk env.c_env c.descr in
           match c_descr.env_tag with
-            | K_method -> None 
+            | K_method -> Macro_expander.Fail 
             | K_let ->
-                if c_descr.const_tparams = [] then None
+                if c_descr.const_tparams = [] then Macro_expander.Fail
                 else    
                   let (nvars,tvars) = Types.tnvar_split c_descr.const_tparams in
-                  if nvars = [] then None
+                  if nvars = [] then Macro_expander.Fail
                   else
                     let (c_path1,c_path2) = Path.to_name_list c_descr.const_binding in
                     let (new_c_ref, new_c_descr) = names_get_const env c_path1 c_path2 in
@@ -988,7 +1025,7 @@ let add_nexp_param_in_const _ e =
                        and the add_nexp updates the local descr. This only works when the macro is run after the def_trans for nvars
                        and before other macros have updated the local descr.
                     *)
-                    if c.descr = new_c_ref then None
+                    if c.descr = new_c_ref then Macro_expander.Fail
                     else 
                       let (args,instances) = remove_tne c.instantiation in
                       let args = List.map (fun t -> match t.Types.t with | Types.Tne(n) -> nexp_to_exp n | _ -> assert false) args in
@@ -999,10 +1036,10 @@ let add_nexp_param_in_const _ e =
                           (fun e arg -> C.mk_app l_unk e arg None)
                           (C.mk_const l_unk new_id None)
                            args in
-                        Some(new_e)
-            | _ -> None
+                        Macro_expander.Continue (new_e)
+            | _ -> Macro_expander.Fail
         end
-    | _ -> None
+    | _ -> Macro_expander.Fail
 
 (*Replace vector access with an appropriate external library call, ocaml specific at the moment*)
 let remove_vector_access _ e =
@@ -1016,8 +1053,8 @@ let remove_vector_access _ e =
       let (f_id, _) = get_const_id env l_unk "vector_access" [(exp_to_typ e); {Types.t = Types.Tne(i.nt)}; vlength ] in
       let f = C.mk_const l_unk f_id (Some acc_typ) in
       let app1 = C.mk_app l_unk f (nexp_to_exp i.nt) (Some acc_typ1) in
-      Some(C.mk_app l_unk app1 v (Some (exp_to_typ e)))
-    | _ -> None
+      Macro_expander.Continue (C.mk_app l_unk app1 v (Some (exp_to_typ e)))
+    | _ -> Macro_expander.Fail
 
 (*Replace vector sub with an appropriate external library call, ocaml specific at the moment*)
 let remove_vector_sub _ e =
@@ -1034,8 +1071,8 @@ let remove_vector_sub _ e =
       let f = C.mk_const l_unk f_id (Some acc_typ3) in
       let app1 = C.mk_app l_unk f (nexp_to_exp i1.nt) (Some acc_typ2) in
       let app2 = C.mk_app l_unk app1 (nexp_to_exp i2.nt) (Some acc_typ1) in
-      Some(C.mk_app l_unk app2 v (Some (exp_to_typ e)))
-    | _ -> None
+      Macro_expander.Continue (C.mk_app l_unk app2 v (Some (exp_to_typ e)))
+    | _ -> Macro_expander.Fail
 
 
 (* Add type annotations to pattern variables whose type contains a type variable
@@ -1046,8 +1083,8 @@ let rec coq_type_annot_pat_vars (level,pos) _ p =
     | P_var(n) when level = Macro_expander.Top_level && 
                     pos = Macro_expander.Param && 
                     not (Types.TNset.is_empty (Types.free_vars p.typ)) ->
-        Some(C.mk_pvar_annot l_unk n (C.t_to_src_t p.typ) (Some(p.typ)))
-    | _ -> None
+        Macro_expander.Continue (C.mk_pvar_annot l_unk n (C.t_to_src_t p.typ) (Some(p.typ)))
+    | _ -> Macro_expander.Fail
 
 let bind_id l = function
   | Id_none(sk) ->
@@ -1067,7 +1104,7 @@ let remove_do _ e =
   let l_unk = Ast.Trans(true, "remove_do", Some (exp_to_locn e)) in
     match C.exp_to_term e with
       | Do(sk1, m, [], sk2, e, sk3,t) ->
-          Some e
+          Macro_expander.Continue e
       | Do(sk1, m, Do_line(p',sk1',e',sk2')::lns, sk2, exp, sk3, (t, direction)) ->
           let e1 = e' in
           let tyargs = match direction with
@@ -1079,8 +1116,8 @@ let remove_do _ e =
             C.mk_fun l_unk None [p'] sk1' (C.mk_do (exp_to_locn e) sk1 m lns sk2 exp sk3 (t, direction) (Some (exp_to_typ e))) 
               (Some { Types.t = Types.Tfn(p'.typ,exp_to_typ e)})
           in
-            Some (C.mk_infix l_unk e1 e2 e3 (Some (exp_to_typ e)))
-      | _ -> None
+            Macro_expander.Continue (C.mk_infix l_unk e1 e2 e3 (Some (exp_to_typ e)))
+      | _ -> Macro_expander.Fail
 
 end
 

@@ -47,6 +47,8 @@
 open Format
 open Typed_ast
 
+let force_library_output = ref false
+
 (* XXX: for debugging the developing code: open Coq_ast *)
 
 let r = Ulib.Text.of_latin1
@@ -363,6 +365,12 @@ let output_alltexdoc env avoid dir f mods =
   let module B = Backend.Make(C) in
   let (^^^^) = Ulib.Text.(^^^) in
 
+  let mods' =
+    if !force_library_output then
+      List.filter (fun x -> x.generate_output) mods
+    else mods
+  in
+
   let (r_main, r_inc, r_usage) = List.fold_left (fun (r_main, r_inc, r_usage) m -> begin
      let r_main' = B.tex_defs m.typed_ast in
      let (r_inc',r_usage') = B.tex_inc_defs m.typed_ast in
@@ -373,7 +381,7 @@ let output_alltexdoc env avoid dir f mods =
      (r_main ^^^^ sect_header ^^^^ r_main', 
       r_inc ^^^^ r_inc',
       r_usage ^^^^ sect_header ^^^^ r_usage')
-    end) (r"", r"", r"") mods in
+    end) (r"", r"", r"") mods' in
 
   let fs = String.concat " " (List.map (fun m -> m.filename) mods) in
   let gen_string = Printf.sprintf "%%%s\n" (generated_line fs) in

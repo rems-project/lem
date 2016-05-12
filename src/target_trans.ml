@@ -58,8 +58,8 @@ module M = Def_trans
 
 type which_macro =
   | Def_macros of (env -> Def_trans.def_macro list)
-  | Exp_macros of (env -> (Macro_expander.macro_context -> exp -> exp option) list)
-  | Pat_macros of (env -> (Macro_expander.pat_position -> Macro_expander.macro_context -> pat -> pat option) list)
+  | Exp_macros of (env -> (Macro_expander.macro_context -> exp -> exp Macro_expander.continuation) list)
+  | Pat_macros of (env -> (Macro_expander.pat_position -> Macro_expander.macro_context -> pat -> pat Macro_expander.continuation) list)
 
 type trans =
     { 
@@ -107,12 +107,30 @@ let indreln_macros =
 let ident () =
   { (* for debugging pattern compilation *)
     macros = (if !ident_force_dictionary_passing then dictionary_macros Target_ident else []) @ [ Def_macros (fun env -> if !ident_force_pattern_compile then [Patterns.compile_def Target_ident (Patterns.is_pattern_match_const false) env] else []);
-               Exp_macros (fun env -> if !ident_force_pattern_compile then [(Patterns.compile_exp Target_ident (Patterns.is_pattern_match_const false) env)] else [])];
+               Exp_macros (fun env ->
+                 if !ident_force_pattern_compile then
+                   let m a1 a2 =
+                     match (Patterns.compile_exp Target_ident (Patterns.is_pattern_match_const false) env) a1 a2 with
+                       | None -> Macro_expander.Fail
+                       | Some e -> Macro_expander.Continue e
+                   in
+                     [m]
+                 else [])];
     extra = []; }
 
 let lem () = 
-  { macros = [Exp_macros (fun env -> [Backend_common.inline_exp_macro Target_lem env]);
-              Pat_macros (fun env -> [Backend_common.inline_pat_macro Target_lem env])];
+  { macros = [Exp_macros (fun env ->
+                let m a1 a2 =
+                  match Backend_common.inline_exp_macro Target_lem env a1 a2 with
+                    | None -> Macro_expander.Fail
+                    | Some e -> Macro_expander.Continue e
+                in [m]);
+              Pat_macros (fun env ->
+                let m a1 a2 a3 =
+                  match Backend_common.inline_pat_macro Target_lem env a1 a2 a3 with
+                    | None -> Macro_expander.Fail
+                    | Some e -> Macro_expander.Continue e
+                in [m])];
     extra = []; }
 
 
@@ -134,7 +152,12 @@ let hol =
                                         (if (!hol_remove_matches) then 
                                           [Patterns.remove_toplevel_match (Target_no_ident Target_hol) Patterns.is_hol_pattern_match env]
                                         else [])));
-              Pat_macros (fun env -> [Backend_common.inline_pat_macro Target_hol env]);
+              Pat_macros (fun env ->
+                let m a1 a2 a3 =
+                  match Backend_common.inline_pat_macro Target_hol env a1 a2 a3 with
+                    | None -> Macro_expander.Fail
+                    | Some e -> Macro_expander.Continue e
+                in [m]);
               Exp_macros (fun env ->
                             let module T = T(struct let env = env end) in
                               (if !prover_remove_failwith then
@@ -148,8 +171,14 @@ let hol =
                                T.remove_do;
                                T.remove_set_restr_quant;
                                T.remove_restr_quant Pattern_syntax.is_var_tup_pat;
-                               Backend_common.inline_exp_macro Target_hol env;
-                               Patterns.compile_exp (Target_no_ident Target_hol) Patterns.is_hol_pattern_match env]);
+                               (fun a1 a2 ->
+                                 match Backend_common.inline_exp_macro Target_hol env a1 a2 with
+                                   | None -> Macro_expander.Fail
+                                   | Some e -> Macro_expander.Continue e);
+                               (fun a1 a2 ->
+                                 match Patterns.compile_exp (Target_no_ident Target_hol) Patterns.is_hol_pattern_match env a1 a2 with
+                                   | None -> Macro_expander.Fail
+                                   | Some e -> Macro_expander.Continue e)]);
               Pat_macros (fun env ->
                             let module T = T(struct let env = env end) in
                               [])
@@ -172,12 +201,20 @@ let ocaml =
                              M.remove_types_with_target_rep (Target_no_ident Target_ocaml);
                              M.defs_with_target_rep_to_lemma env (Target_no_ident Target_ocaml);
                              Patterns.compile_def (Target_no_ident Target_ocaml) Patterns.is_ocaml_pattern_match env]);
-              Pat_macros (fun env -> [Backend_common.inline_pat_macro Target_ocaml env]);
+              Pat_macros (fun env ->
+                let m a1 a2 a3 =
+                  match Backend_common.inline_pat_macro Target_ocaml env a1 a2 a3 with
+                    | None -> Macro_expander.Fail
+                    | Some e -> Macro_expander.Continue e
+                in [m]);
               Exp_macros (fun env ->
                             let module T = T(struct let env = env end) in
                               [(* TODO: figure out what it does and perhaps add it again    T.hack; *)
                                (* TODO: add again or implement otherwise                    T.tup_ctor (fun e -> e) Seplist.empty; *)
-                               Backend_common.inline_exp_macro Target_ocaml env;
+                               (fun a1 a2 ->
+                                 match Backend_common.inline_exp_macro Target_ocaml env a1 a2 with
+                                   | None -> Macro_expander.Fail
+                                   | Some e -> Macro_expander.Continue e);
                                T.remove_sets;
                                T.remove_num_lit;
                                T.remove_list_comprehension;
@@ -185,7 +222,10 @@ let ocaml =
                                T.remove_vector_access;
                                T.remove_vector_sub;
                                T.remove_do;
-                               Patterns.compile_exp (Target_no_ident Target_ocaml) Patterns.is_ocaml_pattern_match env])
+                               (fun a1 a2 ->
+                                 match Patterns.compile_exp (Target_no_ident Target_ocaml) Patterns.is_ocaml_pattern_match env a1 a2 with
+                                   | None -> Macro_expander.Fail
+                                   | Some e -> Macro_expander.Continue e)])
              ];
     extra = [(* (fun n -> Rename_top_level.rename_defs_target (Some Target_ocaml) consts fixed_renames [n]) *)]; 
   }
@@ -209,7 +249,12 @@ let isa  =
                      M.defs_with_target_rep_to_lemma env (Target_no_ident Target_isa);
                      Patterns.compile_def (Target_no_ident Target_isa) Patterns.is_isabelle_pattern_match env;
                      Patterns.remove_toplevel_match (Target_no_ident Target_isa) Patterns.is_isabelle_pattern_match env;] );
-      Pat_macros (fun env -> [Backend_common.inline_pat_macro Target_isa env]);
+              Pat_macros (fun env ->
+                let m a1 a2 a3 =
+                  match Backend_common.inline_pat_macro Target_isa env a1 a2 a3 with
+                    | None -> Macro_expander.Fail
+                    | Some e -> Macro_expander.Continue e
+                in [m]);
       Exp_macros (fun env ->
                     let module T = T(struct let env = env end) in
                       [T.list_quant_to_set_quant;
@@ -220,9 +265,15 @@ let isa  =
                        T.remove_set_restr_quant;
                        T.remove_restr_quant Pattern_syntax.is_var_wild_tup_pat;
                        T.remove_set_comp_binding;
-                       Backend_common.inline_exp_macro Target_isa env;
+                       (fun a1 a2 ->
+                         match Backend_common.inline_exp_macro Target_isa env a1 a2 with
+                           | None -> Macro_expander.Fail
+                           | Some e -> Macro_expander.Continue e);
                        T.sort_record_fields;
-                       Patterns.compile_exp (Target_no_ident Target_isa) Patterns.is_isabelle_pattern_match env]);
+                       (fun a1 a2 ->
+                         match Patterns.compile_exp (Target_no_ident Target_isa) Patterns.is_isabelle_pattern_match env a1 a2 with
+                           | None -> Macro_expander.Fail
+                           | Some e -> Macro_expander.Continue e)]);
       Pat_macros (fun env ->
                     let module T = T(struct let env = env end) in
                       [T.remove_unit_pats])
@@ -243,7 +294,12 @@ let coq =
                      M.defs_with_target_rep_to_lemma env (Target_no_ident Target_coq);
                      Patterns.compile_def (Target_no_ident Target_coq) Patterns.is_coq_pattern_match env
                     ]); 
-       Pat_macros (fun env -> [Backend_common.inline_pat_macro Target_coq env]);
+      Pat_macros (fun env ->
+        let m a1 a2 a3 =
+          match Backend_common.inline_pat_macro Target_coq env a1 a2 a3 with
+            | None -> Macro_expander.Fail
+            | Some e -> Macro_expander.Continue e
+        in [m]);
        Exp_macros (fun env -> 
                      let module T = T(struct let env = env end) in
                       (if !prover_remove_failwith then
@@ -256,9 +312,15 @@ let coq =
                         T.remove_num_lit;
                         T.remove_set_comprehension;
                         T.remove_quant_coq;
-                        Backend_common.inline_exp_macro Target_coq env;
+                       (fun a1 a2 ->
+                         match Backend_common.inline_exp_macro Target_coq env a1 a2 with
+                           | None -> Macro_expander.Fail
+                           | Some e -> Macro_expander.Continue e);
                         T.remove_do;
-                        Patterns.compile_exp (Target_no_ident Target_coq) Patterns.is_coq_pattern_match env]);
+                       (fun a1 a2 ->
+                         match Patterns.compile_exp (Target_no_ident Target_coq) Patterns.is_coq_pattern_match env a1 a2 with
+                           | None -> Macro_expander.Fail
+                           | Some e -> Macro_expander.Continue e)]);
        Pat_macros (fun env ->
                      let module T = T(struct let env = env end) in
                        [T.coq_type_annot_pat_vars])

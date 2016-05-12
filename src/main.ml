@@ -168,6 +168,9 @@ let options = Arg.align ([
   ( "-suppress_renaming",
   	Arg.Set suppress_renaming,
   	" suppresses Lem's renaming facilities.");
+  ( "-tex_all_force_library_output",
+    Arg.Set Process_file.force_library_output,
+    " force library output with tex_all");
   ( "-report_default_instance_invocation",
     Arg.Set Types.report_default_instance_invocation,
     " reports the name of any default instance invoked at a given type.")
@@ -196,10 +199,10 @@ let check_modules env modules =
   (* Use the Macro_expander to execute these checks *)
   let module Ctxt = struct let avoid = None let env_opt = Some(env) end in
   let module M = Macro_expander.Expander(Ctxt) in
-  let exp_mac env = Macro_expander.list_to_mac (List.map (fun f _ e -> (let _ = f e in None)) (exp_checks env)) in
+  let exp_mac env = Macro_expander.list_to_mac (List.map (fun f _ e -> (let _ = f e in Macro_expander.Fail)) (exp_checks env)) in
   let exp_ty env ty = ty in
   let exp_src_ty env src_t = src_t in
-  let exp_pat env = Macro_expander.list_to_bool_mac (List.map (fun f _ _ p -> (let _ = f p in None)) (pat_checks env)) in
+  let exp_pat env = Macro_expander.list_to_bool_mac (List.map (fun f _ _ p -> (let _ = f p in Macro_expander.Fail)) (pat_checks env)) in
   let check_defs env defs = begin
     let _ = M.expand_defs (List.rev defs) (exp_mac env, exp_ty env, exp_src_ty env, exp_pat env) in
     let _ = List.map (fun d -> List.map (fun c -> c d) (def_checks env)) defs in
@@ -348,6 +351,10 @@ let main () =
       (List.map (fun x -> (x, false)) (List.rev !lib) @ 
        List.map (fun x -> (x, true)) !opt_file_arguments)
   in
+
+  let _ = Printf.printf "XXX\n\n\n\n\n\nXXX\n" in
+  let _ = List.map (fun x -> Printf.printf "XXX: %s\n" x) (!lib) in
+  let _ = Printf.printf "XXX\n\n\n\n\n\nXXX\n" in
 
   (* Parse all of the .lem sources and also parse depencies *)
   let processed_files = Module_dependencies.process_files (!allow_reorder_modules) lib_path files_to_process in

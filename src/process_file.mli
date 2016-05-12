@@ -47,6 +47,8 @@
 open Typed_ast
 open Target
 
+val force_library_output : bool ref
+
 val parse_file : string -> Ast.defs * Ast.lex_skips
 
 type instances = Types.instance list Types.Pfmap.t

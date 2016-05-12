@@ -64,25 +64,32 @@ type macro_context
   | Ctxt_other
 ;;
 
+type 'a continuation =
+  | Continue of 'a
+  | Halt of 'a
+  | Fail
+
 type pat_position = level * pat_pos
 
 let rec list_to_mac = function
-  | [] -> (fun ctxt e -> None)
+  | [] -> (fun ctxt e -> Fail)
   | m1::ms ->
       let ms_f = list_to_mac ms in
         (fun ctxt e ->
            match m1 ctxt e with
-             | None -> ms_f ctxt e
-             | Some(e) -> Some(e))
+             | Fail -> ms_f ctxt e
+             | Continue e -> Continue e
+             | Halt e -> Halt e)
 
 let rec list_to_bool_mac = function
-  | [] -> (fun a ctxt e -> None)
+  | [] -> (fun a ctxt e -> Fail)
   | m1::ms ->
       let ms_f = list_to_bool_mac ms in
         (fun a ctxt e ->
            match m1 a ctxt e with
-             | None -> ms_f a ctxt e
-             | Some(e) -> Some(e))
+             | Fail -> ms_f a ctxt e
+             | Continue e -> Continue e
+             | Halt e -> Halt e)
 
 
 module Expander(C : Exp_context) = struct
@@ -98,8 +105,9 @@ let rec expand_pat (macro_ctxt : macro_context) pat_pos p (typ_r, src_typ_r, r) 
   let new_t = typ_r p.typ in
   let old_l = p.locn in
     match r pat_pos macro_ctxt p with
-      | Some(p') -> trans p'
-      | None ->
+      | Continue p' -> trans p'
+      | Halt p' -> p'
+      | Fail ->
           match p.term with
             | P_as(s1,p,s2,nl,s3) -> 
                 C.mk_pas old_l s1 (trans p) s2 nl s3 (Some new_t)
@@ -145,7 +153,7 @@ let rec expand_pat (macro_ctxt : macro_context) pat_pos p (typ_r, src_typ_r, r) 
                 { p with typ = new_t }
 
 
-let rec expand_exp (macro_ctxt : macro_context) ((r,typ_r,src_typ_r,pat_r):((macro_context -> exp -> exp option) * (Types.t -> Types.t) * (src_t -> src_t) * (pat_position -> macro_context -> pat -> pat option))) (e : exp) : exp = 
+let rec expand_exp (macro_ctxt : macro_context) ((r,typ_r,src_typ_r,pat_r):((macro_context -> exp -> exp continuation) * (Types.t -> Types.t) * (src_t -> src_t) * (pat_position -> macro_context -> pat -> pat continuation))) (e : exp) : exp = 
   let trans = expand_exp macro_ctxt (r,typ_r,src_typ_r,pat_r) in 
   let transp b p = expand_pat macro_ctxt (Nested, b) p (typ_r, src_typ_r, pat_r) in
   let trans_bindings qb =
@@ -157,12 +165,13 @@ let rec expand_exp (macro_ctxt : macro_context) ((r,typ_r,src_typ_r,pat_r):((mac
   let new_t = typ_r (exp_to_typ e) in
   let old_l = exp_to_locn e in
     match r macro_ctxt e with
-      | Some(e') -> 
+      | Continue e' -> 
           begin
             C.type_eq old_l "expand_exp" (exp_to_typ e) (exp_to_typ e');
             trans e'
           end
-      | None ->
+      | Halt e' -> e'
+      | Fail ->
           begin
             match (C.exp_to_term e) with
               | Fun(s1,ps,s2,e) ->
@@ -192,14 +201,6 @@ let rec expand_exp (macro_ctxt : macro_context) ((r,typ_r,src_typ_r,pat_r):((mac
                        fieldexps)
                     s2
                     (Some new_t)
-(*              | Record_coq(n,s1,fieldexps,s2) ->
-                  C.mk_record_coq old_l
-                    s1
-                    (Seplist.map 
-                       (fun (fid,s1,e,l) -> (fid,s1,trans e,l))
-                       fieldexps)
-                    s2
-                    (Some new_t)*)
               | Recup(s1,e,s2,fieldexps,s3) ->
                   C.mk_recup old_l
                     s1 (trans e) s2
@@ -328,7 +329,7 @@ and expand_letbind (macro_ctxt : macro_context) (level,_) (r,typ_r,src_typ_r,pat
         (List.map (fun p -> expand_pat macro_ctxt (level,Param) p (typ_r, src_typ_r, pat_r)) ps) t s1 
         (expand_exp macro_ctxt (r,typ_r,src_typ_r,pat_r) e)
 
-let rec expand_defs defs ((r,typ_r,src_typ_r,pat_r): ((macro_context -> exp -> exp option) * (Types.t -> Types.t) * (src_t -> src_t) * (pat_position -> macro_context -> pat -> pat option))) =
+let rec expand_defs defs ((r,typ_r,src_typ_r,pat_r): ((macro_context -> exp -> exp continuation) * (Types.t -> Types.t) * (src_t -> src_t) * (pat_position -> macro_context -> pat -> pat continuation))) =
   let expand_val_def = function
     | Let_def(s1,targets,(p, name_map, topt, sk, e)) ->
         let lb = (expand_pat Ctxt_other (Top_level,Param) p (typ_r, src_typ_r, pat_r), name_map, topt, sk, 
