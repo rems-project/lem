@@ -993,6 +993,13 @@ function nat_to_string :: "nat \<Rightarrow> string" where
 by auto
 termination 
   by (relation "measure id") (auto simp add: is_digit_def)
+
+definition int_to_string :: "int \<Rightarrow> string" where
+  "int_to_string i \<equiv>
+     if i < 0 then
+       ''-'' @ nat_to_string (nat (abs i))
+     else
+       nat_to_string (nat i)"
       
 lemma nat_to_string_simps[simp]:
    "is_digit n \<Longrightarrow> nat_to_string n = [digit_to_char n]"
@@ -1060,7 +1067,6 @@ lemma is_strong_nat_string_simps[simp]:
                                     (c = CHR ''0'' \<longrightarrow> s = [])"
 unfolding is_strong_nat_string_def by simp_all
 
-
 fun string_to_nat_aux :: "nat \<Rightarrow> string \<Rightarrow> nat" where
    "string_to_nat_aux n [] = n"
  | "string_to_nat_aux n (d#ds) =
@@ -1069,6 +1075,9 @@ fun string_to_nat_aux :: "nat \<Rightarrow> string \<Rightarrow> nat" where
 definition string_to_nat :: "string \<Rightarrow> nat option" where
    "string_to_nat s \<equiv> 
     (if is_nat_string s then Some (string_to_nat_aux 0 s) else None)"
+
+definition string_to_nat' :: "string \<Rightarrow> nat" where
+  "string_to_nat' s \<equiv> the (string_to_nat s)"
 
 lemma string_to_nat_aux_inv :
 assumes "is_nat_string s"
