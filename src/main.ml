@@ -352,10 +352,6 @@ let main () =
        List.map (fun x -> (x, true)) !opt_file_arguments)
   in
 
-  let _ = Printf.printf "XXX\n\n\n\n\n\nXXX\n" in
-  let _ = List.map (fun x -> Printf.printf "XXX: %s\n" x) (!lib) in
-  let _ = Printf.printf "XXX\n\n\n\n\n\nXXX\n" in
-
   (* Parse all of the .lem sources and also parse depencies *)
   let processed_files = Module_dependencies.process_files (!allow_reorder_modules) lib_path files_to_process in
   
