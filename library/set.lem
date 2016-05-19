@@ -473,6 +473,15 @@ assert bigunion_2: (bigunion {{(1:nat);2;3} ; {3;2;4}; {}} = {1;2;3;4})
 assert bigunion_3: (bigunion {{(1:nat);2;3} ; {3;2;4}; {5}} = {1;2;3;4;5})
 lemma bigunion_in: (forall e bs. e IN bigunion bs <-> (exists s. s IN bs && e IN s))
 
+(* ------------------------ *)
+(* big intersection         *)
+(* ------------------------ *)
+
+(* Shaked's addition, for which he is now forever responsible as a de facto
+ * Lem maintainer...
+ *)
+val bigintersection : forall 'a. SetType 'a => set (set 'a) -> set 'a
+let bigintersection bs = {x | forall (x IN (bigunion bs)) | forall (s IN bs). x IN s}
 
 (* ------------------------ *)
 (* difference               *)
@@ -586,7 +595,10 @@ let inline findMax = findMinBy (>=) (=)
 *)
 
 declare ocaml target_rep function findMin = `Pset.min_elt_opt` 
-declare ocaml target_rep function findMax = `Pset.max_elt_opt` 
+declare ocaml target_rep function findMax = `Pset.max_elt_opt`
+
+declare isabelle target_rep function findMin = `ELF_Types_Local.find_min_element`
+declare isabelle target_rep function findMax = `ELF_Types_Local.find_max_element`
 
 
 
