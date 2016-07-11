@@ -597,6 +597,10 @@ let inline findMax = findMinBy (>=) (=)
 declare ocaml target_rep function findMin = `Pset.min_elt_opt` 
 declare ocaml target_rep function findMax = `Pset.max_elt_opt`
 
+(* XXX: move into Lem libraries... *)
+declare isabelle target_rep function findMin = `Elf_Types_Local.find_min_element`
+declare isabelle target_rep function findMax = `Elf_Types_Local.find_max_element`
+
 (* ------------------------ *)
 (* fromList                 *)
 (* ------------------------ *)
