@@ -770,6 +770,20 @@ let remove_num_lit _ e =
       end
     | _ -> Macro_expander.Fail
 
+let remove_junk_from_within_nil _ e =
+  let l = Ast.Trans(false, "remove_junk_from_within_nil", Some (exp_to_locn e)) in
+  match C.exp_to_term e with
+    | List (s1, contents, s2) ->
+        if Seplist.is_empty contents then
+          match Seplist.drop_first_sep contents with
+            | (None, contents)     -> Macro_expander.Fail
+            | (Some sep, contents) ->
+              let s3 = Ast.combine_lex_skips sep s2 in
+              let xs = C.mk_list l s1 contents s3 (Typed_ast.exp_to_typ e) in
+                Macro_expander.Continue xs
+        else
+          Macro_expander.Fail
+    | _ -> Macro_expander.Fail
 
 
 

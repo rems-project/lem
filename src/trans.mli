@@ -186,6 +186,10 @@ module Macros (E : sig val env : env end) : sig
 
   (** {2 Misc} *)
 
+  (** [remove_junk_from_within_nil] removes any comments or whitespace from within
+      the middle of a list nil pattern, which confuses Isabelle's parser. *)
+  val remove_junk_from_within_nil : exp macro
+
   (** [remove_function] turns [function | pat1 -> exp1 ... | patn -> expn end] into
       [fun x -> match x with | pat1 -> exp1 ... | patn -> expn end]. *)
   val remove_function : exp macro

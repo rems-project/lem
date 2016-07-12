@@ -265,6 +265,7 @@ let isa  =
                        T.remove_set_restr_quant;
                        T.remove_restr_quant Pattern_syntax.is_var_wild_tup_pat;
                        T.remove_set_comp_binding;
+                       T.remove_junk_from_within_nil;
                        (fun a1 a2 ->
                          match Backend_common.inline_exp_macro Target_isa env a1 a2 with
                            | None -> Macro_expander.Fail
