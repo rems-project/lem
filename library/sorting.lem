@@ -142,7 +142,10 @@ val sort: forall 'a. Ord 'a => list 'a -> list 'a
 val sortBy: forall 'a. ('a -> 'a -> bool) -> list 'a -> list 'a
 val sortByOrd: forall 'a. ('a -> 'a -> ordering) -> list 'a -> list 'a
 
-declare isabelle target_rep function sortByOrd = `Elf_Types_Local.merge_sort_ord`
+(* FIXME! Move this out of the ELF repo and into Lem... *)
+declare isabelle target_rep function sortByOrd = `Elf_Types_Local.merge_sort`
+declare hol      target_rep function sortByOrd = `ARB`
+declare coq      target_rep function sortByOrd = `sort_by_ordering`
 
 let inline sortBy = insertSortBy
 declare isabelle target_rep function sortBy = `sort_by`
