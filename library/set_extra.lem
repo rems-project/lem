@@ -59,6 +59,7 @@ let ~{coq} chooseAndSplit s =
       Just (lt, element, gt)
 
 declare ocaml target_rep function chooseAndSplit = `Pset.choose_and_split`
+declare coq   target_rep function chooseAndSplit = `choose_and_split`
 
 (* ----------------------------*)
 (* universal set               *)
