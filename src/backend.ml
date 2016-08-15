@@ -1208,7 +1208,7 @@ module Hol : Target = struct
                 if (List.length ls = 0) then
                   meta (Format.sprintf "val %s_defn = Hol_defn \"%s\" `\n" n n)
                 else
-                  meta (Format.sprintf "val %s_defn = lemLib.lem_define `\n" n)
+                  meta (Format.sprintf "val %s_defn = Defn.Hol_multi_defns `\n" n)
               else
                 meta (Format.sprintf "val _ = Define `\n")
   let rec_def_footer _ rrr try_term ns = match ns with

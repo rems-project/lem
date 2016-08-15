@@ -102,21 +102,4 @@ in
     ()
 end;
 
-fun head tm = fst(strip_comb tm);
-
-fun lem_define q =
- let val eqnsl = Defn.parse_quote q
-     val stems = map (fst o dest_var o head o lhs o snd o
-                      strip_forall o hd o strip_conj) eqnsl
- in
-     Defn.mk_defns stems eqnsl
- end
- handle e =>
-   let val absyn0 = Parse.Absyn q
-       val locn = Absyn.locn_of_absyn absyn0
-   in
-     raise wrap_exn_loc "Lem" "define" locn e
-   end;
-
-
 end
