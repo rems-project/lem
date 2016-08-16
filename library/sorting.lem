@@ -142,15 +142,23 @@ val sort: forall 'a. Ord 'a => list 'a -> list 'a
 val sortBy: forall 'a. ('a -> 'a -> bool) -> list 'a -> list 'a
 val sortByOrd: forall 'a. ('a -> 'a -> ordering) -> list 'a -> list 'a
 
-(* FIXME! Move this out of the ELF repo and into Lem... *)
-declare isabelle target_rep function sortByOrd = `Elf_Types_Local.merge_sort`
-declare hol      target_rep function sortByOrd = `ARB`
-declare coq      target_rep function sortByOrd = `sort_by_ordering`
+val predicate_of_ord : forall 'a. ('a -> 'a -> ordering) -> 'a -> 'a -> bool
+let predicate_of_ord f x y =
+  match f x y with
+    | LT -> true
+    | EQ -> true
+    | GT -> false
+  end
 
 let inline sortBy = insertSortBy
 declare isabelle target_rep function sortBy = `sort_by`
 declare hol      target_rep function sortBy = `QSORT`
 declare ocaml    target_rep function sortByOrd = `List.sort`
+
+(* FIXME! Move this out of the ELF repo and into Lem... *)
+declare isabelle target_rep function sortByOrd      = `Elf_Types_Local.merge_sort`
+let inline {hol} sortByOrd f xs = sortBy (predicate_of_ord f) xs
+declare coq      target_rep function sortByOrd      = `sort_by_ordering`
 
 let inline ~{ocaml} sort = sortBy (<=)
 let inline {ocaml} sort = sortByOrd compare
