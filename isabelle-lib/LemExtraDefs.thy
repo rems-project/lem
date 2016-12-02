@@ -494,6 +494,10 @@ subsection{* Maps *}
 definition map_image :: "('v \<Rightarrow> 'w) \<Rightarrow> ('k, 'v) map \<Rightarrow> ('k, 'w) map" where
   "map_image f m = (\<lambda>k. map_option f (m k))"
 
+definition map_domain_image :: "('k \<Rightarrow> 'v \<Rightarrow> 'w) \<Rightarrow> ('k, 'v) map \<Rightarrow> ('k, 'w) map" where
+  "map_domain_image f m = (\<lambda>k. map_option (f k) (m k))"
+
+
 lemma map_image_simps [simp]:
   "(map_image f m) k = None \<longleftrightarrow> m k = None"
   "(map_image f m) k = Some x \<longleftrightarrow> (\<exists>x'. (m k = Some x') \<and> (x = f x'))"

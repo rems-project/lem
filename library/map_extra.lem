@@ -67,14 +67,14 @@ declare ocaml    target_rep function toList = `Pmap.bindings_list`
 declare coq target_rep function toList = `fmap_elements` (* TODO *)
 declare hol target_rep function toList = `MAP_TO_LIST`
 declare isabelle target_rep function toList m = `list_of_set` (`LemExtraDefs.map_to_set` `m`)
-declare compile_message toList = "Map_extra.toList is only defined for the ocaml, isabelle and coq backend"
+(* declare compile_message toList = "Map_extra.toList is only defined for the ocaml, isabelle and coq backend" *)
 
 (* more 'map' functions *)
 
 (* TODO: this function is in map_extra rather than map just for implementation reasons *)
 val mapMaybe : forall 'a 'b 'c. MapKeyType 'a => ('a -> 'b -> maybe 'c) -> map 'a 'b -> map 'a 'c
-(* TODO: mapMaybe depends on toList that is not defined for hol and isabelle *)
-let ~{hol;isabelle} mapMaybe f m =
+(* OLD: TODO: mapMaybe depends on toList that is not defined for hol and isabelle *)
+let mapMaybe f m =
   List.foldl
     (fun m' (k, v) ->
       match f k v with
