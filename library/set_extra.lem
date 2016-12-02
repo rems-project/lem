@@ -105,6 +105,7 @@ assert toList_2: toList ({(2:nat)} : set nat) = [2]
 
 val toOrderedListBy : forall 'a. ('a -> 'a -> bool) -> set 'a -> list 'a
 declare isabelle target_rep function toOrderedListBy = `ordered_list_of_set`
+declare hol      target_rep function toOrderedListBy = `ARB`
 
 val toOrderedList : forall 'a. SetType 'a, Ord 'a => set 'a -> list 'a
 let inline ~{isabelle;ocaml} toOrderedList l = sort (toList l)
@@ -116,6 +117,26 @@ declare compile_message toOrderedList = "toOrderedList is only defined on finite
 assert toOrderedList_0: toOrderedList ({} : set nat) = []
 assert toOrderedList_1: toOrderedList {(6:nat); 1; 2} = [1;2;6]
 assert toOrderedList_2: toOrderedList ({(2:nat)} : set nat) = [2]
+
+(* ----------------------- *)
+(* compare                 *)
+(* ----------------------- *)
+
+val setCompareBy: forall 'a. ('a -> 'a -> ordering) -> set 'a -> set 'a -> ordering
+let {isabelle;hol} setCompareBy cmp ss ts =
+  let ss' = toOrderedListBy (fun x y -> cmp x y = LT) ss in
+  let ts' = toOrderedListBy (fun x y -> cmp x y = LT) ts in
+    lexicographicCompareBy cmp ss' ts'
+
+declare coq target_rep function setCompareBy = `set_compare_by`
+declare ocaml target_rep function setCompareBy = `Pset.compare_by`
+
+val setCompare : forall 'a. SetType 'a, Ord 'a => set 'a -> set 'a -> ordering
+let setCompare = setCompareBy compare
+
+instance forall 'a. SetType 'a => (SetType (set 'a))
+  let setElemCompare = setCompareBy setElemCompare
+end
 
 (* ----------------------------*)
 (* unbounded fixed point       *)
