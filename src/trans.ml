@@ -396,7 +396,7 @@ let remove_set_comprehension_image_filter allow_sigma _ e =
           (* cross or big_union set *)
           let p = mk_tup_pat qbs_set_p in
           let mk_exp env s (p, s') = if need_sigma then mk_set_sigma_exp env s' (mk_fun_exp [p] s) else mk_cross_exp env s' s in
-          let s = List.fold_left (mk_exp env) (List.hd (List.rev qbs_set_e)) (List.tl (List.rev (List.combine qbs_set_p qbs_set_e))) in
+          let s = List.fold_right (fun x y -> mk_exp env y x) (List.tl (List.rev (List.combine qbs_set_p qbs_set_e))) (List.hd (List.rev qbs_set_e)) in
 
           let res0 = mk_set_filter_exp env (mk_fun_exp [p] e2') s in
           let res1 = if (var_tup_pat_eq_exp p e1) then res0 else
