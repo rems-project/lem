@@ -144,7 +144,7 @@ build-lem-profile: version src/ast.ml src/build_directory.ml
 	ln -sf src/main.p.native lem-profile
 
 
-lem: build-lem
+lem: build-lem ocaml-libs
 
 bin/lem : lem
 	mkdir -p bin
