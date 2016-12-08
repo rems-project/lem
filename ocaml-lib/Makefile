@@ -1,6 +1,17 @@
 DEPENDS ?= dependencies
 ZARITH ?= $(DEPENDS)/zarith
-override OCAMLFLAGS += -g -I $(ZARITH)/
+override OCAMLFLAGS += -g
+
+BUILD_DEPS=true
+ifeq ("$(BUILD_DEPS)","true")
+  # build dependencies from source
+  DEPS  = -I $(ZARITH) zarith$(suffix $@) nums$(suffix $@)
+  DEPSPREREQ = dependencies
+else
+  # use preinstalled packages (to get the package do 'opam install zarith')
+  DEPS  = -package zarith -package num -linkpkg
+endif
+
 BIG_INT_IMPL_ML ?= big_int_impl.ml
 BIG_INT_IMPL_MLI ?= big_int_impl.mli
 
@@ -18,12 +29,15 @@ CMO_FILES := $(patsubst %.ml,%.cmo,$(ML_FILES))
 SUPPORTING_CMX_FILES := $(patsubst %.ml,%.cmx,$(SUPPORTING_ML_FILES))
 SUPPORTING_CMO_FILES := $(patsubst %.ml,%.cmo,$(SUPPORTING_ML_FILES))
 
-all: $(SUPPORTING_ML_FILES) $(ML_FILES)
-	make -C dependencies
-	ocamlfind ocamlc $(OCAMLFLAGS) zarith.cma nums.cma $(SUPPORTING_ML_FILES) $(ML_FILES)
-	ocamlfind ocamlopt $(OCAMLFLAGS) zarith.cmxa nums.cmxa $(SUPPORTING_ML_FILES) $(ML_FILES)
-	ocamlfind ocamlopt $(OCAMLFLAGS) -a -o extract.cmxa $(SUPPORTING_CMX_FILES) $(CMX_FILES)
-	ocamlfind ocamlc $(OCAMLFLAGS) -a -o extract.cma $(SUPPORTING_CMO_FILES) $(CMO_FILES)
+all: extract.cmxa extract.cma
+
+extract.cmxa: $(SUPPORTING_ML_FILES) $(ML_FILES) $(DEPSPREREQ)
+	ocamlfind ocamlopt $(OCAMLFLAGS) $(DEPS) $(SUPPORTING_ML_FILES) $(ML_FILES)
+	ocamlfind ocamlopt $(OCAMLFLAGS) -a -o $@ $(SUPPORTING_CMX_FILES) $(CMX_FILES)
+
+extract.cma: $(SUPPORTING_ML_FILES) $(ML_FILES) $(DEPSPREREQ)
+	ocamlfind ocamlc $(OCAMLFLAGS) $(DEPS) $(SUPPORTING_ML_FILES) $(ML_FILES)
+	ocamlfind ocamlc $(OCAMLFLAGS) -a -o $@ $(SUPPORTING_CMO_FILES) $(CMO_FILES)
 
 local_clean:
 	\rm -f *.c* *.o *.cma *.cmxa *.a
