@@ -1766,6 +1766,13 @@ module Exps_in_context(D : Exp_context) = struct
       typ = t;
       rest = (); }
 
+  let mk_lchar l s c t =
+    let t = check_typ l "mk_lchar" t (fun d -> Some {t = Tapp([],Path.charpath) }) in
+    { term = L_char(s,c,None);
+      locn = l;
+      typ = t;
+      rest = (); }
+
   let mk_twild l s t =
     { term = Typ_wild(s);
       locn = l;

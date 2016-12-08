@@ -200,6 +200,16 @@ let rec dest_string_pat (p :pat) : string option =
 
 let is_string_pat p = not (dest_string_pat p = None)
 
+let rec dest_char_pat (p :pat) : char option =
+  match p.term with
+  | P_lit l -> (
+    match l.term with
+      L_char (_, c, _) -> Some c
+    | _ -> None)
+  | _ -> None
+
+let is_char_pat p = not (dest_char_pat p = None)
+
 let rec dest_cons_pat (p :pat) : (pat * pat) option =
   match p.term with
   | P_cons (p1, _, p2) -> Some (p1, p2)

@@ -160,11 +160,17 @@ val is_num_add_pat : pat -> bool
 *)
 val num_ty_pat_cases : (Name.t -> 'a) -> (int -> 'a) -> (Name.t -> int -> 'a) -> 'a -> (pat -> 'a) -> pat -> 'a
 
-(** [dest_string_pat p] destructs number literal patterns *)
+(** [dest_string_pat p] destructs string literal patterns *)
 val dest_string_pat : pat -> string option
 
-(** [is_string_pat p] checks whether [p] is a number pattern. *)
+(** [is_string_pat p] checks whether [p] is a string pattern. *)
 val is_string_pat : pat -> bool
+
+(** [dest_char_pat p] destructs character literal patterns *)
+val dest_char_pat : pat -> char option
+
+(** [is_char_pat p] checks whether [p] is a character pattern *)
+val is_char_pat : pat -> bool
 
 (** [dest_cons_pat p] destructs list-cons patterns. *)
 val dest_cons_pat : pat -> (pat * pat) option
