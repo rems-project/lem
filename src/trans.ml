@@ -361,51 +361,6 @@ let rec var_tup_pat_eq_exp p e =
 	    end
       end
 
-(* Replaces set comprehension by introducing set_image and set_filter. Perhaps
-   cross is added as well. *)
-let remove_set_comprehension_image_filter allow_sigma _ e = 
-  let l_unk = Ast.Trans(true, "remove_set_comprehension_image_filter", Some (exp_to_locn e)) in
-  match C.exp_to_term e with
-  | Comp_binding(false,s1,e1,s2,s3,qbs,s4,e2,s5) ->
-      let all_quant_vars = List.fold_left (fun acc -> function Qb_var _ -> acc | Qb_restr (_, _, p, _, _, _) -> 
-                              NameSet.union (nfmap_domain p.rest.pvars) acc) NameSet.empty qbs in
-      let ok = List.for_all (function Qb_var _ -> false | Qb_restr (_, _, p, _, e, _) -> is_var_tup_pat p) qbs in
-      let need_sigma = List.exists (function Qb_var _ -> false | Qb_restr (_, _, p, _, e, _) -> not (
-                   NameSet.is_empty (NameSet.inter all_quant_vars (nfmap_domain (C.exp_to_free e))))) qbs in
-      if not (ok && ((not need_sigma) || allow_sigma)) then Macro_expander.Fail else
-      begin
-        (* filter the quantifiers that need to be in a cross-product and ones that need to go to the expression *)
-        let all_vars = NameSet.union (nfmap_domain (C.exp_to_free e1)) all_quant_vars in
-        let (qbs_set_p, qbs_set_e, qbs_cond) = List.fold_right (fun qb (s_p, s_e, c) -> (
-           match qb with 
-              Qb_var _ -> raise (Reporting_basic.err_unreachable l_unk "previosly checked")
-            | Qb_restr (is_lst, sk1, p, sk2, e, sk3) -> begin
-                let can_move = NameSet.is_empty (NameSet.inter all_vars (nfmap_domain p.rest.pvars)) in
-                if can_move then (s_p, s_e, qb::c) else (
-                  let e' = if is_lst then mk_from_list_exp env e else e in
-                  (p::s_p, e'::s_e, c))
-              end
-             )) qbs ([], [], []) in
-
-        let ok2 = (match qbs_set_p with [] -> false | _ -> true) in
-        if not ok2 then Macro_expander.Fail else
-        begin
-          (* new condition *)
-          let e2' = if List.length qbs_cond = 0 then e2 else 
-                      C.mk_quant l_unk (Ast.Q_exists None) qbs_cond space e2 (Some bool_ty) in
-          (* cross or big_union set *)
-          let p = mk_tup_pat qbs_set_p in
-          let mk_exp env s (p, s') = if need_sigma then mk_set_sigma_exp env s' (mk_fun_exp [p] s) else mk_cross_exp env s' s in
-          let s = List.fold_right (fun x y -> mk_exp env y x) (List.tl (List.rev (List.combine qbs_set_p qbs_set_e))) (List.hd (List.rev qbs_set_e)) in
-
-          let res0 = mk_set_filter_exp env (mk_fun_exp [p] e2') s in
-          let res1 = if (var_tup_pat_eq_exp p e1) then res0 else
-                       mk_set_image_exp env (mk_fun_exp [p] e1) res0 in
-          Macro_expander.Continue res1
-        end
-      end
-  | _ -> Macro_expander.Fail
-
 (* Replaces Setcomp with Comp_binding. *)
 let remove_setcomp _ e = 
   let l_unk = Ast.Trans(true, "remove_setcomp", Some (exp_to_locn e)) in

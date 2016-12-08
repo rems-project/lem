@@ -258,9 +258,7 @@ let isa  =
       Exp_macros (fun env ->
                     let module T = T(struct let env = env end) in
                       [T.list_quant_to_set_quant;
-                       T.remove_list_comprehension;
                        T.cleanup_set_quant;
-                       T.remove_set_comprehension_image_filter true;
                        T.remove_num_lit;
                        T.remove_set_restr_quant;
                        T.remove_restr_quant Pattern_syntax.is_var_wild_tup_pat;

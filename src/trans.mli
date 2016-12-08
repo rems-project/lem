@@ -85,19 +85,6 @@ module Macros (E : sig val env : env end) : sig
       thrown, if not only bounded quantification is used. *)
   val remove_set_comprehension : exp macro
 
-  (** [remove_set_comprehension allow_sigma] removes set comprehensions by turning
-      them into set-image, set-filter and set-product operations. For example
-      [{ f (x,y,z) | forall ((x,y) IN A) (z IN B) | P (x, y, z)}] is turned into
-      [Set.image f (Set.filter P (Set.cross A B))]. If [allow_sigma] is set and the
-      quantifiers depend on each other, [set_sigma] is used instead. So, for example
-      [{ f (x,y,z) | forall ((x,y) IN A) (z IN B x) | P (x, y, z)}] is turned into
-      [Set.image f (Set.filter P (Set.set_sigma A (fun (x, y) -> B x)))].
-
-      In contrast to [remove_set_comprehension] no exception is thrown, if the translation fails. 
-      This is because it is intended to be used
-      with theorem prover backends, which can handle unbounded quantification differently.*)
-  val remove_set_comprehension_image_filter : bool -> exp macro
-
   (** [remove_setcomp] removes set comprehensions with implicit bound variable to ones with
       explicitly bound onces. For example [{ (x, y) | x > y }] might, depending on context be turned
       in [{ (x, y) | forall x | x > y}], [{ (x, y) | forall x y | x > y}] or something similar.*)

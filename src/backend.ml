@@ -2439,19 +2439,34 @@ match C.exp_to_term e with
 
   (* List comprehensions *)
   | Comp_binding(true,s1,e1,s2,s5,qbs,s3,e2,s4) ->
-      ws s1 ^
-      kwd "[" ^
-      exp print_backend e1 ^
-      ws s2 ^
-      kwd "|" ^
-      ws s5 ^
-      T.setcomp_binding_start ^
-      concat T.setcomp_binding_sep (List.map (quant_binding print_backend) qbs) ^
-      ws s3 ^
-      T.setcomp_binding_middle ^ 
-      exp print_backend e2 ^
-      ws s4 ^
-      kwd "]"
+      if (T.target = Target_no_ident Target_isa) then
+        let qb_fun =
+          let temp = 
+            List.map (fun q ->
+              match q with
+                | Qb_var n -> Name.to_output Term_var n.term
+                | Qb_restr(is_lst, s1, p, s2, e, s3) ->
+                    ws s1 ^ pat print_backend p ^ ws s2 ^ kwd "<-" ^
+                      exp print_backend e ^ ws s3) qbs
+          in
+            List.fold_right (^) (Util.intercalate (kwd ", ") temp) (kwd "")
+        in
+          ws s1 ^ kwd "[" ^ exp print_backend e1 ^ ws s2 ^ kwd "." ^ ws s5 ^
+            qb_fun ^ ws s3 ^ kwd ", " ^ exp print_backend e2 ^ ws s4 ^ kwd "]"
+      else
+        ws s1 ^
+        kwd "[" ^
+        exp print_backend e1 ^
+        ws s2 ^
+        kwd "|" ^
+        ws s5 ^
+        T.setcomp_binding_start ^
+        concat T.setcomp_binding_sep (List.map (quant_binding print_backend) qbs) ^
+        ws s3 ^
+        T.setcomp_binding_middle ^ 
+        exp print_backend e2 ^
+        ws s4 ^
+        kwd "]"
 
   (* Set comprehensions *)
   | Comp_binding(false,s1,e1,s2,s5,qbs,s3,e2,s4) ->

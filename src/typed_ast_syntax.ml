@@ -713,7 +713,7 @@ let mk_set_sigma_exp env (e1 : exp) (e2 : exp) : exp =
   res
 
 let mk_set_filter_exp env (e_P : exp) (e_s : exp) : exp =
-  let l = Ast.Trans (true, "mk_filter_exp", None) in
+  let l = Ast.Trans (true, "mk_set_filter_exp", None) in
 
   let set_ty = match (exp_to_typ e_P).Types.t with
        | Types.Tfn (ty_a, _) -> ty_a
@@ -723,13 +723,15 @@ let mk_set_filter_exp env (e_P : exp) (e_s : exp) : exp =
   let aux_ty = { Types.t = Types.Tfn (exp_to_typ e_s, res_ty) } in
 
   let filter_exp = mk_const_exp env l "set_filter" [set_ty] in
+
   let res0 = C.mk_app l filter_exp e_P (Some aux_ty) in
   let res = C.mk_app l res0 e_s (Some res_ty) in
+
   res
 
 
 let mk_set_image_exp env (e_f : exp) (e_s : exp) : exp =
-  let l = Ast.Trans (true, "mk_image_exp", None) in
+  let l = Ast.Trans (true, "mk_set_image_exp", None) in
 
   let (ty_a, ty_b) = match (exp_to_typ e_f).Types.t with
        | Types.Tfn (ty_a, ty_b) -> (ty_a, ty_b)
