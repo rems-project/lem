@@ -621,6 +621,7 @@ module Exps_in_context(C : Exp_context) : sig
   val mk_lbit : Ast.l -> lskips -> int -> Types.t option -> lit
   val mk_lundef : Ast.l -> lskips -> string -> Types.t -> lit
   val mk_lstring : Ast.l -> lskips -> string -> Types.t option -> lit
+  val mk_lchar : Ast.l -> lskips -> char -> Types.t option -> lit
   val mk_twild : Ast.l -> lskips -> Types.t -> src_t
   val mk_tvar : Ast.l -> lskips -> Tyvar.t -> Types.t -> src_t
   val mk_tfn : Ast.l -> src_t -> lskips -> src_t -> Types.t option -> src_t

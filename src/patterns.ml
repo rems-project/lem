@@ -1027,7 +1027,9 @@ let string_matrix_compile_fun =
   let l = Ast.Trans (true, "string_matrix_compile_fun", None) in
   cases_matrix_compile_fun (dest_string_pat) (fun ty c -> (C_no_types.mk_lstring l None c (Some ty)))
 
-
+let char_matrix_compile_fun =
+  let l = Ast.Trans (true, "char_matrix_compile_fun", None) in
+  cases_matrix_compile_fun (dest_char_pat) (fun ty c -> (C_no_types.mk_lchar l None c (Some ty)))
 
 (* num patterns *)
 let mk_opt_let_exp l (n, e1) e2 = 
@@ -1211,6 +1213,7 @@ let basic_compile_funs (targ : Target.target) : (bool -> env -> var_name_generat
     (fun _   -> num_matrix_compile_fun true);   
     (fun _   -> num_add_matrix_compile_fun true (fun _ -> true)); 
     (fun _   -> string_matrix_compile_fun false); 
+    (fun _   -> char_matrix_compile_fun false);
     (fun _   -> record_matrix_compile_fun)]
 
 (* Target specific ones, use [basic_compile_funs] as a fallback. *)
@@ -1219,6 +1222,7 @@ let get_target_compile_funs (topt:target) : (bool -> env -> var_name_generator -
     match topt with
     | Target_no_ident Target_ocaml -> [
          (fun _   -> num_add_matrix_compile_fun false (fun i -> i < 3)); (* if less than 3 cases are missing list all cases, otherwise use >= *)
+         (fun _   -> char_matrix_compile_fun true);
          (fun _   -> num_matrix_compile_fun false);   
       ]
     | Target_no_ident Target_hol -> [
