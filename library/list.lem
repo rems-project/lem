@@ -827,7 +827,7 @@ let elemBy eq e l = any (eq e) l
 let elem = elemBy (=)
 
 declare hol      target_rep function elem = `MEM`
-declare ocaml    target_rep function elem = `List.mem`
+(*  declare ocaml    target_rep function elem = `List.mem`  *)
 declare isabelle target_rep function elem e l = `Set.member` e (`set` l)
 
 assert elem_1: (elem (2:nat) [3;1;2;4])

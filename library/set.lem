@@ -161,10 +161,14 @@ assert null_2: (not (null {(1:nat)}))
 (* singleton                *)
 (* ------------------------ *)
 
+val singletonBy : forall 'a. ('a -> 'a -> ordering) -> 'a -> set 'a
 val singleton : forall 'a. SetType 'a => 'a -> set 'a
-let inline singleton x = {x}
 
+declare ocaml    target_rep function singletonBy = `Pset.singleton`
 declare coq target_rep function singleton = `set_singleton`
+
+let inline {ocaml} singleton = singletonBy setElemCompare
+let inline ~{ocaml;coq} singleton x = {x}
 
 assert singleton_1 : singleton (2:nat) = {2}
 assert singleton_2 : not (null (singleton (2:nat)))
