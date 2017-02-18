@@ -1,3 +1,4 @@
+-R . Lem
 -install none
 lem_basic_classes.v
 lem_bool.v
@@ -10,6 +11,7 @@ lem_num.v
 lem_pervasives.v
 lem_relation.v
 lem_set.v
+lem_show.v
 lem_set_helpers.v
 lem_sorting.v
 lem_string.v
