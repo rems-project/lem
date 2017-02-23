@@ -890,7 +890,7 @@ let generate_coq_record_update_notation e =
           | Field (e, skips, fd) ->
             let name = field_ident_to_output fd (use_ascii_rep_for_const fd.descr) in
               Output.flat [
-                from_string "("; name; ws skips; exp inside_instance e; from_string ")"
+                from_string "("; name; from_string " "; ws skips; exp inside_instance e; from_string ")"
               ]
           | Recup (skips, e, skips', fields, skips'') ->
             let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) (field_update inside_instance) (sep @@ from_string ";") fields in
@@ -1092,7 +1092,7 @@ let generate_coq_record_update_notation e =
           in
           let t = C.t_to_src_t p.typ in
             Output.flat [
-              skips; from_string "_ : "; pat_typ t
+              from_string "("; skips; from_string "_ : "; pat_typ t; from_string ")"
             ]
         | P_var v ->
           let name = lskips_t_to_output v in

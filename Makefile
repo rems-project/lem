@@ -3,13 +3,22 @@ DDIR=lem-$(LEMVERSION)
 
 PATH := $(CURDIR)/$(FINDLIB)/bin:$(PATH)
 BUILD_DIR := `pwd`
+INSTALL_DIR := /usr/local
 
 #all: il.pdf build-main ilTheory.uo
 all: bin/lem libs
 # we might want run the tests for all backends that are present
 
+install:
+	mkdir -p $(INSTALL_DIR)/bin
+	mkdir -p $(INSTALL_DIR)/share
+	cp lem.sh $(INSTALL_DIR)/bin/lem
+	rm -rf $(INSTALL_DIR)/share/lem
+	cp -R $(BUILD_DIR) $(INSTALL_DIR)/share/lem
+
 build-doc:
 	make -C doc
+
 do-tests:
 	make -C tests
 
@@ -38,7 +47,7 @@ isa-libs:
 
 coq-libs: 
 	make -C library coq-libs
-	cd coq-lib; coqc coqharness.v
+	cd coq-lib; coqc -R . Lem coqharness.v
 	cd coq-lib; coq_makefile -f coq_makefile.in > Makefile
 	make -C coq-lib
 
