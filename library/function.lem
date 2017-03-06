@@ -53,6 +53,10 @@ let apply f = (fun x -> f x)
 declare coq target_rep function apply = `apply`
 let inline {isabelle;ocaml;hol} apply f x = f x
 
+val ($>) [`rev_apply`] : forall 'a 'b. 'a -> ('a -> 'b) -> 'b
+let rev_apply x f = f x
+let inline {isabelle;ocaml;hol} rev_apply x f = f x
+
 (* ----------------------- *)
 (* flipping argument order *)
 (* ----------------------- *)
