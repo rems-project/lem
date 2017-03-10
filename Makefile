@@ -6,7 +6,8 @@ BUILD_DIR := `pwd`
 INSTALL_DIR := /usr/local
 
 #all: il.pdf build-main ilTheory.uo
-all: bin/lem libs
+all: bin/lem libs_phase_1 ocaml-libs
+
 # we might want run the tests for all backends that are present
 
 install:
@@ -28,115 +29,129 @@ lem_dep.tex: lem_dep.ott
 lem_dep.pdf: lem_dep.tex
 	pdflatex lem_dep.tex
 
-libs: 
+# this runs Lem on the Lem library (library/*.lem), leaving the
+# generated OCaml, Coq, HOL4, and Isabelle files to ocaml-libs,
+# hol-libs, etc.
+libs_phase_1: 
 	make -C library
 
+
+# this processes the Lem-generated library files for that target,
+# together with any other hand-written files needed (eg the ocaml
+# pset.ml), through the target.
+libs_phase_2:
+	make ocaml-libs
+	make tex-libs
+	make hol-libs
+	make coq-libs
+	make isa-libs
+
 hol-libs: 
-	make -C library hol-libs
+#	make -C library hol-libs
 	cd hol-lib; Holmake --qof -k
 	make -C library hol-lib-tests
 
 ocaml-libs:
-	make -C library ocaml-libs
+#	make -C library ocaml-libs
 	make -C ocaml-lib all
 	make -C library ocaml-lib-tests
 
 isa-libs: 
-	make -C library isa-libs
+#	make -C library isa-libs
 	isabelle build -d isabelle-lib -b LEM
 
 coq-libs: 
-	make -C library coq-libs
+#	make -C library coq-libs
 	cd coq-lib; coqc -R . Lem coqharness.v
 	cd coq-lib; coq_makefile -f coq_makefile.in > Makefile
 	make -C coq-lib
 
 tex-libs: 
-	make -C library tex-libs
+#	make -C library tex-libs
 	cd tex-lib; pdflatex lem-libs.tex
 	cd tex-lib; pdflatex lem-libs.tex
 
-test-other: test-ppcmem test-cpp test-cppppc
-
-test-ppc:
-	# ppc model
-	make -C ../../sem/WeakMemory/ppc-abstract-machine 
-	# pull ppc model into ppcmem directory
-	# DON'T COMMIT
-	make -C ../ppcmem/system model
-
-test-axppc:
-	# Sela model	
-	make -C ../axppc
-	# pull Sela model into ppcmem directory
-	# DON'T COMMIT
-	make -C ../ppcmem/system axmodel
-
-test-arm:
-	# ARM flowing model
-	make -C ../arm/flowing-things
-	# pull ARM model into ppcmem directory
-	# DON'T COMMIT
-	make -C ../ppcmem/system flowingmodel
-
-test-ppcmem: test-ppc test-axppc test-arm
-	# next 3 compile PPCMEM
-	# Check makefile in ppcmem/system is set to "text"
-	# DON'T commit
-	make -C ../ppcmem/system clean
-	make -C ../ppcmem/system depend_text
-	make -C ../ppcmem/system text
-
-test-cpp:
-	# C++. Chat with Mark to fix
-	make -C ../cpp/axiomatic/ntc deadlock
-	# C++. Chat with Mark to fix HOL building and Mark/Susmit/Mike ML
-	# building
-	#make -C ../cpp/opsem
-	#make -C ../cpp/axiomatic/ntc/proofs all
-
-test-cppppc:
-	make -C ../cppppc proof
-	make -C ../cppppc/proof2 lem
-
-
-MACHINEFILES=\
-MachineDefUtils.lem \
-MachineDefFreshIds.lem \
-MachineDefValue.lem \
-MachineDefTypes.lem \
-MachineDefInstructionSemantics.lem \
-MachineDefStorageSubsystem.lem \
-MachineDefThreadSubsystem.lem \
-MachineDefSystem.lem
-
-test-tex:  lem
-	rm -rf tests/test-tex/*
-	cp ../WeakMemory/ppc-abstract-machine/*.lem tests/test-tex
-	cp tests/test-tex-inc-wrapper.tex tests/test-tex 
-	chmod ugo-w tests/test-tex/*.lem
-	cd tests/test-tex; ../../lem -hol -tex -ocaml -lib ../../library $(MACHINEFILES)
-	cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex alldoc.tex; dvips alldoc
-	cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex test-tex-inc-wrapper.tex; dvips test-tex-inc-wrapper
-	#cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex MachineDefUtils.tex; dvips MachineDefUtils
-	#cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex MachineDefFreshIds.tex; dvips MachineDefFreshIds
-	#cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex MachineDefValue.tex; dvips MachineDefValue
-	#cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex MachineDefTypes.tex; dvips MachineDefTypes
-	#cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex MachineDefInstructionSemantics.tex; dvips MachineDefInstructionSemantics
-	#cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex MachineDefStorageSubsystem.tex; dvips MachineDefStorageSubsystem
-	#cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex MachineDefThreadSubsystem.tex; dvips MachineDefThreadSubsystem
-	#cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex MachineDefSystem.tex; dvips MachineDefSystem
-
-test-texg:
-	g tests/test-tex/alldoc
-	#g tests/test-tex/MachineDefStorageSubsystem
-
-test-texw:
-	cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex test-tex-inc-wrapper.tex; dvips test-tex-inc-wrapper
-
-
-test-texgw:
-	g tests/test-tex/test-tex-inc-wrapper
+# test-other: test-ppcmem test-cpp test-cppppc
+# 
+# test-ppc:
+# 	# ppc model
+# 	make -C ../../sem/WeakMemory/ppc-abstract-machine 
+# 	# pull ppc model into ppcmem directory
+# 	# DON'T COMMIT
+# 	make -C ../ppcmem/system model
+# 
+# test-axppc:
+# 	# Sela model	
+# 	make -C ../axppc
+# 	# pull Sela model into ppcmem directory
+# 	# DON'T COMMIT
+# 	make -C ../ppcmem/system axmodel
+# 
+# test-arm:
+# 	# ARM flowing model
+# 	make -C ../arm/flowing-things
+# 	# pull ARM model into ppcmem directory
+# 	# DON'T COMMIT
+# 	make -C ../ppcmem/system flowingmodel
+# 
+# test-ppcmem: test-ppc test-axppc test-arm
+# 	# next 3 compile PPCMEM
+# 	# Check makefile in ppcmem/system is set to "text"
+# 	# DON'T commit
+# 	make -C ../ppcmem/system clean
+# 	make -C ../ppcmem/system depend_text
+# 	make -C ../ppcmem/system text
+# 
+# test-cpp:
+# 	# C++. Chat with Mark to fix
+# 	make -C ../cpp/axiomatic/ntc deadlock
+# 	# C++. Chat with Mark to fix HOL building and Mark/Susmit/Mike ML
+# 	# building
+# 	#make -C ../cpp/opsem
+# 	#make -C ../cpp/axiomatic/ntc/proofs all
+# 
+# test-cppppc:
+# 	make -C ../cppppc proof
+# 	make -C ../cppppc/proof2 lem
+# 
+# 
+# MACHINEFILES=\
+# MachineDefUtils.lem \
+# MachineDefFreshIds.lem \
+# MachineDefValue.lem \
+# MachineDefTypes.lem \
+# MachineDefInstructionSemantics.lem \
+# MachineDefStorageSubsystem.lem \
+# MachineDefThreadSubsystem.lem \
+# MachineDefSystem.lem
+# 
+# test-tex:  lem
+# 	rm -rf tests/test-tex/*
+# 	cp ../WeakMemory/ppc-abstract-machine/*.lem tests/test-tex
+# 	cp tests/test-tex-inc-wrapper.tex tests/test-tex 
+# 	chmod ugo-w tests/test-tex/*.lem
+# 	cd tests/test-tex; ../../lem -hol -tex -ocaml -lib ../../library $(MACHINEFILES)
+# 	cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex alldoc.tex; dvips alldoc
+# 	cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex test-tex-inc-wrapper.tex; dvips test-tex-inc-wrapper
+# 	#cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex MachineDefUtils.tex; dvips MachineDefUtils
+# 	#cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex MachineDefFreshIds.tex; dvips MachineDefFreshIds
+# 	#cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex MachineDefValue.tex; dvips MachineDefValue
+# 	#cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex MachineDefTypes.tex; dvips MachineDefTypes
+# 	#cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex MachineDefInstructionSemantics.tex; dvips MachineDefInstructionSemantics
+# 	#cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex MachineDefStorageSubsystem.tex; dvips MachineDefStorageSubsystem
+# 	#cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex MachineDefThreadSubsystem.tex; dvips MachineDefThreadSubsystem
+# 	#cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex MachineDefSystem.tex; dvips MachineDefSystem
+# 
+# test-texg:
+# 	g tests/test-tex/alldoc
+# 	#g tests/test-tex/MachineDefStorageSubsystem
+# 
+# test-texw:
+# 	cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex test-tex-inc-wrapper.tex; dvips test-tex-inc-wrapper
+# 
+# 
+# test-texgw:
+# 	g tests/test-tex/test-tex-inc-wrapper
 
 debug: src/ast.ml version src/build_directory.ml
 	rm -f library/lib_cache
