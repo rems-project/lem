@@ -162,28 +162,28 @@ let is_isa_chr x =
   not (List.mem x [0x22; 0x27; 0x5c; 0x60])
 
 let nibble_from_hex h =
-  if h =  0 then "Nibble0" else
-  if h =  1 then "Nibble1" else
-  if h =  2 then "Nibble2" else
-  if h =  3 then "Nibble3" else
-  if h =  4 then "Nibble4" else
-  if h =  5 then "Nibble5" else
-  if h =  6 then "Nibble6" else
-  if h =  7 then "Nibble7" else
-  if h =  8 then "Nibble8" else
-  if h =  9 then "Nibble9" else
-  if h = 10 then "NibbleA" else
-  if h = 11 then "NibbleB" else
-  if h = 12 then "NibbleC" else
-  if h = 13 then "NibbleD" else
-  if h = 14 then "NibbleE" else
-                 "NibbleF" 
+  if h =  0 then "0x0" else
+  if h =  1 then "0x1" else
+  if h =  2 then "0x2" else
+  if h =  3 then "0x3" else
+  if h =  4 then "0x4" else
+  if h =  5 then "0x5" else
+  if h =  6 then "0x6" else
+  if h =  7 then "0x7" else
+  if h =  8 then "0x8" else
+  if h =  9 then "0x9" else
+  if h = 10 then "0xA" else
+  if h = 11 then "0xB" else
+  if h = 12 then "0xC" else
+  if h = 13 then "0xD" else
+  if h = 14 then "0xE" else
+                 "0xF" 
 
 let char_escape_isa c =
   let x = int_of_char c in 
   if is_isa_chr x then (String.concat "" ["(CHR ''"; String.make 1 c; "'')"])
   else let n1 = (x / 16) in let n2 = x mod 16 in
-    String.concat "" ["(Char "; nibble_from_hex n1; " "; nibble_from_hex n2; ")"];;
+    String.concat "" ["(char_of_nat "; nibble_from_hex n1; " "; nibble_from_hex n2; ")"];;
 
 (* Check that string literal s contains only CHR characters for Isabelle.  Other
  * string literals should have been translated into a list by a macro. *)

@@ -676,8 +676,6 @@ assert take_1: (take 0   [(1:nat);2;3;4;5;6] = [])
 assert take_2: (take 2   [(1:nat);2;3;4;5;6] = [1;2])
 assert take_3: (take 100 [(1:nat);2;3;4;5;6] = [1;2;3;4;5;6])
 
-
-
 (* ------------------------- *)
 (* drop                      *)
 (* ------------------------- *)
@@ -697,51 +695,46 @@ lemma splitAt_take_drop: (forall n xs. splitAt n xs = (take n xs, drop n xs))
 
 let inline {hol} splitAt n xs = (take n xs, drop n xs)
 
-(* ------------------------- *)
-(* dropWhile                 *)
-(* ------------------------- *)
+(* ------------------------------------ *)
+(* splitWhile, takeWhile, and dropWhile *)
+(* ------------------------------------ *)
+
+val splitWhile_tr : forall 'a. ('a -> bool) -> list 'a -> list 'a -> (list 'a * list 'a)
+let rec splitWhile_tr p xs acc = match xs with
+  | []    ->
+    (reverse acc, [])
+  | x::xs ->
+    if p x then
+      splitWhile_tr p xs (x::acc)
+    else
+      (reverse acc, x::xs)
+end
+
+declare termination_argument splitWhile_tr = automatic
+
+val splitWhile : forall 'a. ('a -> bool) -> list 'a -> (list 'a * list 'a)
+let splitWhile p xs = splitWhile_tr p xs []
+
+assert splitWhile_1: (splitWhile ((>) 3) [(1:nat);2;3;4;5;6] = ([1;2],[3;4;5;6]))
+assert splitWhile_2: (splitWhile ((<=) 6) ([] : list nat) = ([], []))
+
+(* [takeWhile p xs] takes the first elements of [xs] that satisfy [p]. *)
+val takeWhile : forall 'a. ('a -> bool) -> list 'a -> list 'a
+let takeWhile p l = fst (splitWhile p l)
 
 (* [dropWhile p xs] drops the first elements of [xs] that satisfy [p]. *)
 val dropWhile : forall 'a. ('a -> bool) -> list 'a -> list 'a
-let rec dropWhile p l = match l with 
-  | [] -> []
-  | x::xs -> if p x then dropWhile p xs else l
-end
-declare termination_argument dropWhile = automatic
+let dropWhile p l = snd (splitWhile p l)
 
 assert dropWhile_0: (dropWhile ((>) 3) [(1:nat);2;3;4;5;6] = [3;4;5;6])
 assert dropWhile_1: (dropWhile ((>=) 5) [(1:nat);2;3;4;5;6] = [6])
 assert dropWhile_2: (dropWhile ((>) 100) [(1:nat);2;3;4;5;6] = [])
 assert dropWhile_3: (dropWhile ((<) 10) [(1:nat);2;3;4;5;6] = [1;2;3;4;5;6])
 
-
-(* ------------------------- *)
-(* takeWhile                 *)
-(* ------------------------- *)
-
-(* [takeWhile p xs] takes the first elements of [xs] that satisfy [p]. *)
-val takeWhile : forall 'a. ('a -> bool) -> list 'a -> list 'a
-let rec takeWhile p l = match l with 
-  | [] -> []
-  | x::xs -> if p x then x::takeWhile p xs else []
-end
-declare termination_argument takeWhile = automatic
-
 assert takeWhile_0: (takeWhile ((>) 3) [(1:nat);2;3;4;5;6] = [1;2])
 assert takeWhile_1: (takeWhile ((>=) 5) [(1:nat);2;3;4;5;6] = [1;2;3;4;5])
 assert takeWhile_2: (takeWhile ((>) 100) [(1:nat);2;3;4;5;6] = [1;2;3;4;5;6])
 assert takeWhile_3: (takeWhile ((<) 10) [(1:nat);2;3;4;5;6] = [])
-
-(* ------------------------- *)
-(* splitWhile                *)
-(* ------------------------- *)
-
-val splitWhile : forall 'a. ('a -> bool) -> list 'a -> (list 'a * list 'a)
-let splitWhile p xs = (takeWhile p xs, dropWhile p xs)
-
-assert splitWhile_1: (splitWhile ((>) 3) [(1:nat);2;3;4;5;6] = ([1;2],[3;4;5;6]))
-assert splitWhile_2: (splitWhile ((<=) 6) ([] : list nat) = ([], []))
-
 
 (* ------------------------- *)
 (* isPrefixOf                *)
@@ -827,7 +820,7 @@ let elemBy eq e l = any (eq e) l
 let elem = elemBy (=)
 
 declare hol      target_rep function elem = `MEM`
-declare ocaml    target_rep function elem = `List.mem`
+(*  declare ocaml    target_rep function elem = `List.mem`  *)
 declare isabelle target_rep function elem e l = `Set.member` e (`set` l)
 
 assert elem_1: (elem (2:nat) [3;1;2;4])
