@@ -34,7 +34,7 @@ Documentation can be found in `doc/built-doc`, including:
 * the type signatures of the pervasives and pervasives-extra libaries, in `lem-libs-pervasives.txt` and `lem-libs-pervasives-extra.txt`; and
 * source documentation, in `html-doc` and `lem-doc.pdf`, with a dependency diagram of the source modules in `dep.pdf`.
 
-# Supported versions of software
+# Supported versions of software 
 
 Lem is tested against the following versions of the backend software:
 
