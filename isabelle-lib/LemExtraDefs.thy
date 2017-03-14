@@ -269,7 +269,7 @@ next
     qed
   next
     case False
-    def rhs_pred \<equiv> "\<lambda>l1 x l2 l l'. ?rhs_body l1 x l2 l l'"
+    define rhs_pred where "rhs_pred \<equiv> \<lambda>l1 x l2 l l'. ?rhs_body l1 x l2 l l'"
     have rhs_fold: "\<And>l1 x l2 l l'. ?rhs_body l1 x l2 l l' = rhs_pred l1 x l2 l l'"
        unfolding rhs_pred_def by simp
 
@@ -1052,7 +1052,7 @@ next
 
       from not_digs n2s_eq ind_hyp' digit_to_char_11[of "n1 mod 10" "n2' mod 10"]
       have "(n1 mod 10) = (n2' mod 10)" "n1 div 10 = n2' div 10" by simp_all 
-      thus "n1 = n2'" by (metis mod_div_equality)
+      thus "n1 = n2'" by (metis div_mult_mod_eq)
     qed
   qed
 qed 

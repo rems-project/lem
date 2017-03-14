@@ -12,7 +12,7 @@ ISA_BUILD_DIR_REUSED=isa-build-dir-reused
 
 markdown_targets := $(patsubst %.markdown,%.html,$(wildcard *.markdown))
 
-libs : ocaml-libs hol-libs isa-libs coq-libs 
+libs : ocaml-libs hol-libs isa-libs coq-libs tex-libs html-libs
 
 hol-libs:
 	make -C .. build-lem
