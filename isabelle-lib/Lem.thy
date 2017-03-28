@@ -44,21 +44,21 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (*========================================================================*)
 
-chapter{* Mappings of Syntax needed by Lem *}
+chapter\<open>Mappings of Syntax needed by Lem\<close>
 
-theory "Lem" 
+theory "Lem"
 
-imports 
+imports
  	 Main
          LemExtraDefs
          "~~/src/HOL/Map"
          "~~/src/HOL/Library/Code_Target_Numeral"
 
-begin 
+begin
 
 type_synonym numeral = nat
 
-subsection{* Finite Maps *}
+subsection \<open>Finite Maps\<close>
 
 abbreviation (input) "map_find k m \<equiv> the (m k)"
 abbreviation (input) "map_update k v m \<equiv> m (k \<mapsto> v)"
@@ -66,25 +66,25 @@ abbreviation (input) "map_remove k m \<equiv> m |` (- {k})"
 abbreviation (input) "map_any P m \<equiv> \<exists> (k, v) \<in> map_to_set m. P k v"
 abbreviation (input) "map_all P m \<equiv> \<forall> (k, v) \<in> map_to_set m. P k v"
 
-subsection{* Lists *}
+subsection \<open>Lists\<close>
 
 abbreviation (input) "list_mem e l \<equiv> (e \<in> set l)"
 abbreviation (input) "list_forall P l \<equiv> (\<forall>e\<in>set l. P e)"
 abbreviation (input) "list_exists P l \<equiv> (\<exists>e\<in>set l. P e)"
 abbreviation (input) "list_unzip l \<equiv> (map fst l, map snd l)"
 
-subsection{* Sets *}
+subsection \<open>Sets\<close>
 
 abbreviation (input) "set_filter P (s::'a set) \<equiv> {x \<in> s. P x}"
 abbreviation (input) "set_bigunion S \<equiv> \<Union> S"
 abbreviation (input) "set_biginter S \<equiv> \<Inter> S"
 
-subsection{* Natural numbers *}
+subsection \<open>Natural numbers\<close>
 
-subsection{* Integers *}
+subsection \<open>Integers\<close>
 
 
-subsection {* Dummy *}
+subsection \<open>Dummy\<close>
 
 definition bitwise_xor :: "nat \<Rightarrow> nat \<Rightarrow> nat" where
   "bitwise_xor x y = undefined"
