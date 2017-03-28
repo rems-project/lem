@@ -49,10 +49,7 @@ chapter\<open>Mappings of Syntax needed by Lem\<close>
 theory "Lem"
 
 imports
- 	 Main
          LemExtraDefs
-         "~~/src/HOL/Map"
-         "~~/src/HOL/Library/Code_Target_Numeral"
 
 begin
 

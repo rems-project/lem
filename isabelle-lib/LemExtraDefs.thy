@@ -50,9 +50,6 @@ theory "LemExtraDefs"
 
 imports
  	 Main
-         "~~/src/HOL/Map"
-         "~~/src/HOL/Library/Code_Target_Numeral"
-         "~~/src/HOL/String"
          "~~/src/HOL/Library/Permutation"
 
 begin
