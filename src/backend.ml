@@ -182,8 +182,7 @@ let nibble_from_hex h =
 let char_escape_isa c =
   let x = int_of_char c in 
   if is_isa_chr x then (String.concat "" ["(CHR ''"; String.make 1 c; "'')"])
-  else let n1 = (x / 16) in let n2 = x mod 16 in
-    String.concat "" ["(char_of_nat "; nibble_from_hex n1; " "; nibble_from_hex n2; ")"];;
+  else String.concat "" ["(char_of_nat "; string_of_int x; ")"];;
 
 (* Check that string literal s contains only CHR characters for Isabelle.  Other
  * string literals should have been translated into a list by a macro. *)
