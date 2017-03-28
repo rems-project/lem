@@ -949,9 +949,9 @@ module Isa : Target = struct
   let fun_sep = meta ". "
 
   let record_assign = kwd "="
-  let recup_start = emp
+  let recup_start = kwd "("
   let recup_middle = kwd "(|"
-  let recup_end = kwd "|)"
+  let recup_end = kwd "|)" ^ kwd ")"
   let recup_assign = kwd ":="
 
   let val_start = kwd "val" (* TODO*)
