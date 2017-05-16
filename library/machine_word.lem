@@ -12,8 +12,54 @@ open import {hol} `wordsTheory` `wordsLib`
 
 type mword 'a
 
+type mword1
+type mword2
+type mword3
+type mword4
+type mword5
+type mword6
+type mword7
+type mword8
+type mword16
+type mword32
+type mword64
+type mword128
+type mword256
+
 declare isabelle target_rep type mword 'a = `word` 'a
 declare hol      target_rep type mword 'a = `word` 'a
+
+declare isabelle target_rep type mword1   = `1` `word`
+declare isabelle target_rep type mword2   = `2` `word`
+declare isabelle target_rep type mword3   = `3` `word`
+declare isabelle target_rep type mword4   = `4` `word`
+declare isabelle target_rep type mword5   = `5` `word`
+declare isabelle target_rep type mword6   = `6` `word`
+declare isabelle target_rep type mword7   = `7` `word`
+declare isabelle target_rep type mword8   = `8` `word`
+declare isabelle target_rep type mword16  = `16` `word`
+declare isabelle target_rep type mword32  = `32` `word`
+declare isabelle target_rep type mword64  = `64` `word`
+declare isabelle target_rep type mword128 = `128` `word`
+declare isabelle target_rep type mword256 = `256` `word`
+
+declare hol target_rep type mword1   = `1` `word`
+declare hol target_rep type mword2   = `2` `word`
+declare hol target_rep type mword3   = `3` `word`
+declare hol target_rep type mword4   = `4` `word`
+declare hol target_rep type mword5   = `5` `word`
+declare hol target_rep type mword6   = `6` `word`
+declare hol target_rep type mword7   = `7` `word`
+declare hol target_rep type mword8   = `8` `word`
+declare hol target_rep type mword16  = `16` `word`
+declare hol target_rep type mword32  = `32` `word`
+declare hol target_rep type mword64  = `64` `word`
+declare hol target_rep type mword128 = `128` `word`
+declare hol target_rep type mword256 = `256` `word`
+
+(******************************************************************)
+(* Comparisons                                                    *)
+(******************************************************************)
 
 val mwordEq : forall 'a. mword 'a -> mword 'a -> bool
 let inline mwordEq = unsafe_structural_equality
@@ -22,6 +68,22 @@ instance forall 'a. (Eq (mword 'a))
   let (=)        = mwordEq
   let (<>) w1 w2 = not (mwordEq w1 w2)
 end
+
+val signedLess : forall 'a. mword 'a -> mword 'a -> bool
+
+declare isabelle target_rep function signedLess = `word_sless`
+
+val signedLessEq : forall 'a. mword 'a -> mword 'a -> bool
+
+declare isabelle target_rep function signedLessEq = `word_sle`
+
+val unsignedLess : forall 'a. mword 'a -> mword 'a -> bool
+
+declare isabelle target_rep function unsignedLess = `ord_word_inst.less_word`
+
+val unsignedLessEq : forall 'a. mword 'a -> mword 'a -> bool
+
+declare isabelle target_rep function unsignedLessEq = `ord_word_inst.less_eq_word`
 
 (******************************************************************)
 (* Appending, splitting and probing words                         *)
@@ -42,6 +104,14 @@ declare isabelle target_rep function setBit = `bits_word_inst.set_bit_word`
 val getBit : forall 'a. mword 'a -> natural -> bool
 
 declare isabelle target_rep function getBit = `bits_word_inst.test_bit_word`
+
+val msb : forall 'a. mword 'a -> bool
+
+declare isabelle target_rep function msb = `bitss_word_inst.msb_word`
+
+val lsb : forall 'a. mword 'a -> bool
+
+declare isabelle target_rep function lsb = `bits_word_inst.lsb_word`
 
 
 (******************************************************************)
@@ -69,7 +139,7 @@ let {isabelle} wordFromNatural n =
   wordFromInteger (integerFromNatural n)
 
 (******************************************************************)
-(* Shifts, etc.                                                   *)
+(* Bitwise operations, shifts, etc.                               *)
 (******************************************************************)
 
 val shiftLeft  : forall 'a. mword 'a -> natural -> mword 'a
@@ -95,3 +165,47 @@ declare isabelle target_rep function lXor = `bit_word_inst.bitXOR_word`
 val lNot       : forall 'a. mword 'a -> mword 'a
 
 declare isabelle target_rep function lNot = `bit_word_inst.bitNOT_word`
+
+val rotateRight : forall 'a. natural -> mword 'a -> mword 'a
+
+declare isabelle target_rep function rotateRight = `word_rotr`
+
+val rotateLeft : forall 'a. natural -> mword 'a -> mword 'a
+
+declare isabelle target_rep function rotateLeft = `word_rotl`
+
+val zeroExtend : forall 'a 'b. mword 'a -> mword 'b
+
+declare isabelle target_rep function zeroExtend = `ucast`
+
+val signExtend : forall 'a 'b. mword 'a -> mword 'b
+
+declare isabelle target_rep function signExtend = `scast`
+
+(*****************************************************************)
+(* Arithmetic                                                    *)
+(*****************************************************************)
+
+val plus   : forall 'a. mword 'a -> mword 'a -> mword 'a
+
+declare isabelle target_rep function plus = `plus_word_inst.plus_word`
+
+val minus  : forall 'a. mword 'a -> mword 'a -> mword 'a
+
+declare isabelle target_rep function minus = `minus_word_inst.minus_word`
+
+val uminus : forall 'a. mword 'a -> mword 'a
+
+declare isabelle target_rep function uminus = `uminus_word_inst.uminus_word`
+
+val times : forall 'a. mword 'a -> mword 'a -> mword 'a
+
+declare isabelle target_rep function times = `times_word_inst.times_word`
+
+val divide : forall 'a. mword 'a -> mword 'a -> mword 'a
+
+declare isabelle target_rep function divide = `divide_word_inst.divide_word`
+
+val modulo : forall 'a. mword 'a -> mword 'a -> mword 'a
+
+declare isabelle target_rep function modulo = `modulo_word_inst.modulo_word`
