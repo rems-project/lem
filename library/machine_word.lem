@@ -1,0 +1,14 @@
+(*******************************************************************)
+(* A new machine word library, suitable for targetting from Sail,  *)
+(* and a thin wrapper around the HOL and Isabelle word libraries.  *)
+(*******************************************************************)
+
+declare {isabelle;coq;hol;ocaml} rename module = Lem_machine_word
+
+open import {isabelle} `~~/src/HOL/Word/Word`
+open import {hol} `wordsTheory` `wordsLib`
+
+type word 'a
+
+declare isabelle target_rep type word 'a = 'a `word`
+declare hol      target_rep type word 'a = 'a `word`
