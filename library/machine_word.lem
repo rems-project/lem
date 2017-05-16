@@ -10,36 +10,36 @@ open import Bool Num Basic_classes
 open import {isabelle} `~~/src/HOL/Word/Word`
 open import {hol} `wordsTheory` `wordsLib`
 
-type word 'a
+type mword 'a
 
-declare isabelle target_rep type word 'a = `word` 'a
-declare hol      target_rep type word 'a = `word` 'a
+declare isabelle target_rep type mword 'a = `word` 'a
+declare hol      target_rep type mword 'a = `word` 'a
 
-val wordEq : forall 'a. word 'a -> word 'a -> bool
-let inline wordEq = unsafe_structural_equality
+val mwordEq : forall 'a. mword 'a -> mword 'a -> bool
+let inline mwordEq = unsafe_structural_equality
 
-instance forall 'a. (Eq (word 'a))
-  let (=)        = wordEq
-  let (<>) w1 w2 = not (wordEq w1 w2)
+instance forall 'a. (Eq (mword 'a))
+  let (=)        = mwordEq
+  let (<>) w1 w2 = not (mwordEq w1 w2)
 end
 
 (******************************************************************)
 (* Appending, splitting and probing words                         *)
 (******************************************************************)
 
-val wordCat : forall 'a 'b 'c. word 'a -> word 'b -> word 'c
+val wordCat : forall 'a 'b 'c. mword 'a -> mword 'b -> mword 'c
 
 declare isabelle target_rep function wordCat = `word_cat`
 
-val wordSplit : forall 'a 'b 'c. word 'a -> word 'b * word 'c
+val wordSplit : forall 'a 'b 'c. mword 'a -> mword 'b * mword 'c
 
 declare isabelle target_rep function wordSplit = `word_split`
 
-val setBit : forall 'a. word 'a -> natural -> bool -> word 'a
+val setBit : forall 'a. mword 'a -> natural -> bool -> mword 'a
 
 declare isabelle target_rep function setBit = `bits_word_inst.set_bit_word`
 
-val getBit : forall 'a. word 'a -> natural -> bool
+val getBit : forall 'a. mword 'a -> natural -> bool
 
 declare isabelle target_rep function getBit = `bits_word_inst.test_bit_word`
 
@@ -48,50 +48,50 @@ declare isabelle target_rep function getBit = `bits_word_inst.test_bit_word`
 (* Conversions                                                    *)
 (******************************************************************)
 
-val signedIntegerFromWord : forall 'a. word 'a -> integer
+val signedIntegerFromWord : forall 'a. mword 'a -> integer
 
 declare isabelle target_rep function signedIntegerFromWord = `sint`
 
-val unsignedIntegerFromWord : forall 'a. word 'a -> integer
+val unsignedIntegerFromWord : forall 'a. mword 'a -> integer
 
 declare isabelle target_rep function unsignedIntegerFromWord = `uint`
 
-val wordFromInteger : forall 'a. integer -> word 'a
+val wordFromInteger : forall 'a. integer -> mword 'a
 
 declare isabelle target_rep function wordFromInteger = `word_of_int`
 
-val naturalFromWord : forall 'a. word 'a -> natural
+val naturalFromWord : forall 'a. mword 'a -> natural
 
 declare isabelle target_rep function naturalFromWord = `unat`
 
-val wordFromNatural : forall 'a. natural -> word 'a
-let wordFromNatural n =
+val wordFromNatural : forall 'a. natural -> mword 'a
+let {isabelle} wordFromNatural n =
   wordFromInteger (integerFromNatural n)
 
 (******************************************************************)
 (* Shifts, etc.                                                   *)
 (******************************************************************)
 
-val shiftLeft  : forall 'a. word 'a -> natural -> word 'a
+val shiftLeft  : forall 'a. mword 'a -> natural -> mword 'a
 
 declare isabelle target_rep function shiftLeft = `sshiftl`
 
-val shiftRight : forall 'a. word 'a -> natural -> word 'a
+val shiftRight : forall 'a. mword 'a -> natural -> mword 'a
 
 declare isabelle target_rep function shiftRight = `sshiftr`
 
-val lAnd       : forall 'a. word 'a -> word 'a -> word 'a
+val lAnd       : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function lAnd = `bit_word_inst.bitAND_word`
 
-val lOr        : forall 'a. word 'a -> word 'a -> word 'a
+val lOr        : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function lOr = `bit_word_inst.bitOR_word`
 
-val lXor       : forall 'a. word 'a -> word 'a -> word 'a
+val lXor       : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function lXor = `bit_word_inst.bitXOR_word`
 
-val lNot       : forall 'a. word 'a -> word 'a
+val lNot       : forall 'a. mword 'a -> mword 'a
 
 declare isabelle target_rep function lNot = `bit_word_inst.bitNOT_word`
