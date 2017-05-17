@@ -20,11 +20,56 @@ type mword5
 type mword6
 type mword7
 type mword8
+type mword9
+type mword10
+type mword11
+type mword12
+type mword13
+type mword14
+type mword15
 type mword16
+type mword17
+type mword19
+type mword20
+type mword21
+type mword22
+type mword23
+type mword24
+type mword25
+type mword26
+type mword27
+type mword28
+type mword30
+type mword31
 type mword32
+type mword33
+type mword34
+type mword35
+type mword36
+type mword37
+type mword38
+type mword40
+type mword41
+type mword45
+type mword46
+type mword48
+type mword50
+type mword51
+type mword52
+type mword55
+type mword56
+type mword58
+type mword59
+type mword60
+type mword61
+type mword62
+type mword63
 type mword64
+type mword65
 type mword128
+type mword192
 type mword256
+type mword257
 
 declare isabelle target_rep type mword 'a = `word` 'a
 declare hol      target_rep type mword 'a = `word` 'a
@@ -37,11 +82,56 @@ declare isabelle target_rep type mword5   = `5` `word`
 declare isabelle target_rep type mword6   = `6` `word`
 declare isabelle target_rep type mword7   = `7` `word`
 declare isabelle target_rep type mword8   = `8` `word`
+declare isabelle target_rep type mword9   = `9` `word`
+declare isabelle target_rep type mword10  = `10` `word`
+declare isabelle target_rep type mword11  = `11` `word`
+declare isabelle target_rep type mword12  = `12` `word`
+declare isabelle target_rep type mword13  = `13` `word`
+declare isabelle target_rep type mword14  = `14` `word`
+declare isabelle target_rep type mword15  = `15` `word`
 declare isabelle target_rep type mword16  = `16` `word`
+declare isabelle target_rep type mword17  = `17` `word`
+declare isabelle target_rep type mword19  = `19` `word`
+declare isabelle target_rep type mword20  = `20` `word`
+declare isabelle target_rep type mword21  = `21` `word`
+declare isabelle target_rep type mword22  = `22` `word`
+declare isabelle target_rep type mword23  = `23` `word`
+declare isabelle target_rep type mword24  = `24` `word`
+declare isabelle target_rep type mword25  = `25` `word`
+declare isabelle target_rep type mword26  = `26` `word`
+declare isabelle target_rep type mword27  = `27` `word`
+declare isabelle target_rep type mword28  = `28` `word`
+declare isabelle target_rep type mword30  = `30` `word`
+declare isabelle target_rep type mword31  = `31` `word`
 declare isabelle target_rep type mword32  = `32` `word`
+declare isabelle target_rep type mword33  = `33` `word`
+declare isabelle target_rep type mword34  = `34` `word`
+declare isabelle target_rep type mword35  = `35` `word`
+declare isabelle target_rep type mword36  = `36` `word`
+declare isabelle target_rep type mword37  = `37` `word`
+declare isabelle target_rep type mword38  = `38` `word`
+declare isabelle target_rep type mword40  = `40` `word`
+declare isabelle target_rep type mword41  = `41` `word`
+declare isabelle target_rep type mword45  = `45` `word`
+declare isabelle target_rep type mword46  = `46` `word`
+declare isabelle target_rep type mword48  = `48` `word`
+declare isabelle target_rep type mword50  = `50` `word`
+declare isabelle target_rep type mword51  = `51` `word`
+declare isabelle target_rep type mword52  = `52` `word`
+declare isabelle target_rep type mword55  = `55` `word`
+declare isabelle target_rep type mword56  = `56` `word`
+declare isabelle target_rep type mword58  = `58` `word`
+declare isabelle target_rep type mword59  = `59` `word`
+declare isabelle target_rep type mword60  = `60` `word`
+declare isabelle target_rep type mword61  = `61` `word`
+declare isabelle target_rep type mword62  = `62` `word`
+declare isabelle target_rep type mword63  = `63` `word`
 declare isabelle target_rep type mword64  = `64` `word`
+declare isabelle target_rep type mword65  = `65` `word`
 declare isabelle target_rep type mword128 = `128` `word`
+declare isabelle target_rep type mword192 = `192` `word`
 declare isabelle target_rep type mword256 = `256` `word`
+declare isabelle target_rep type mword257 = `257` `word`
 
 declare hol target_rep type mword1   = `1` `word`
 declare hol target_rep type mword2   = `2` `word`
@@ -51,11 +141,56 @@ declare hol target_rep type mword5   = `5` `word`
 declare hol target_rep type mword6   = `6` `word`
 declare hol target_rep type mword7   = `7` `word`
 declare hol target_rep type mword8   = `8` `word`
+declare hol target_rep type mword9   = `9` `word`
+declare hol target_rep type mword10  = `10` `word`
+declare hol target_rep type mword11  = `11` `word`
+declare hol target_rep type mword12  = `12` `word`
+declare hol target_rep type mword13  = `13` `word`
+declare hol target_rep type mword14  = `14` `word`
+declare hol target_rep type mword15  = `15` `word`
 declare hol target_rep type mword16  = `16` `word`
+declare hol target_rep type mword17  = `17` `word`
+declare hol target_rep type mword19  = `19` `word`
+declare hol target_rep type mword20  = `20` `word`
+declare hol target_rep type mword21  = `21` `word`
+declare hol target_rep type mword22  = `22` `word`
+declare hol target_rep type mword23  = `23` `word`
+declare hol target_rep type mword24  = `24` `word`
+declare hol target_rep type mword25  = `25` `word`
+declare hol target_rep type mword26  = `26` `word`
+declare hol target_rep type mword27  = `27` `word`
+declare hol target_rep type mword28  = `28` `word`
+declare hol target_rep type mword30  = `30` `word`
+declare hol target_rep type mword31  = `31` `word`
 declare hol target_rep type mword32  = `32` `word`
+declare hol target_rep type mword33  = `33` `word`
+declare hol target_rep type mword34  = `34` `word`
+declare hol target_rep type mword35  = `35` `word`
+declare hol target_rep type mword36  = `36` `word`
+declare hol target_rep type mword37  = `37` `word`
+declare hol target_rep type mword38  = `38` `word`
+declare hol target_rep type mword40  = `40` `word`
+declare hol target_rep type mword41  = `41` `word`
+declare hol target_rep type mword45  = `45` `word`
+declare hol target_rep type mword46  = `46` `word`
+declare hol target_rep type mword48  = `48` `word`
+declare hol target_rep type mword50  = `50` `word`
+declare hol target_rep type mword51  = `51` `word`
+declare hol target_rep type mword52  = `52` `word`
+declare hol target_rep type mword55  = `55` `word`
+declare hol target_rep type mword56  = `56` `word`
+declare hol target_rep type mword58  = `58` `word`
+declare hol target_rep type mword59  = `59` `word`
+declare hol target_rep type mword60  = `60` `word`
+declare hol target_rep type mword61  = `61` `word`
+declare hol target_rep type mword62  = `62` `word`
+declare hol target_rep type mword63  = `63` `word`
 declare hol target_rep type mword64  = `64` `word`
+declare hol target_rep type mword65  = `65` `word`
 declare hol target_rep type mword128 = `128` `word`
+declare hol target_rep type mword192 = `192` `word`
 declare hol target_rep type mword256 = `256` `word`
+declare hol target_rep type mword257 = `257` `word`
 
 (******************************************************************)
 (* Comparisons                                                    *)
