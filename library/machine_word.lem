@@ -35,70 +35,72 @@ declare hol      target_rep type bit1 'a = `bit1` 'a
 (* Fixed bitwidths extracted from Anthony's models.                *)
 (*******************************************************************)
 
-type mword1
-type mword2
-type mword3
-type mword4
-type mword5
-type mword6
-type mword7
-type mword8
-type mword9
-type mword10
-type mword11
-type mword12
-type mword13
-type mword14
-type mword15
-type mword16
-type mword17
-type mword19
-type mword20
-type mword21
-type mword22
-type mword23
-type mword24
-type mword25
-type mword26
-type mword27
-type mword28
-type mword30
-type mword31
-type mword32
-type mword33
-type mword34
-type mword35
-type mword36
-type mword37
-type mword38
-type mword40
-type mword41
-type mword45
-type mword46
-type mword48
-type mword50
-type mword51
-type mword52
-type mword55
-type mword56
-type mword58
-type mword59
-type mword60
-type mword61
-type mword62
-type mword63
-type mword64
-type mword65
-type mword128
-type mword192
-type mword256
-type mword257
+type mword1   = mword one
+type mword2   = mword (bit0 one)
+type mword3   = mword (bit1 one)
+type mword4   = mword (bit0 (bit0 one))
+type mword5   = mword (bit1 (bit0 one))
+type mword6   = mword (bit0 (bit1 one))
+type mword7   = mword (bit1 (bit1 one))
+type mword8   = mword (bit0 (bit0 (bit0 one)))
+type mword9   = mword (bit1 (bit0 (bit0 one)))
+type mword10  = mword (bit0 (bit1 (bit0 one)))
+type mword11  = mword (bit1 (bit1 (bit0 one)))
+type mword12  = mword (bit0 (bit0 (bit1 one)))
+type mword13  = mword (bit1 (bit0 (bit1 one)))
+type mword14  = mword (bit0 (bit1 (bit1 one)))
+type mword15  = mword (bit1 (bit1 (bit1 one)))
+type mword16  = mword (bit0 (bit0 (bit0 (bit0 one))))
+type mword17  = mword (bit1 (bit0 (bit0 (bit0 one))))
+type mword19  = mword (bit1 (bit1 (bit0 (bit0 one))))
+type mword20  = mword (bit0 (bit0 (bit1 (bit0 one))))
+type mword21  = mword (bit1 (bit0 (bit1 (bit0 one))))
+type mword22  = mword (bit0 (bit1 (bit1 (bit0 one))))
+type mword23  = mword (bit1 (bit1 (bit1 (bit0 one))))
+type mword24  = mword (bit0 (bit0 (bit0 (bit1 one))))
+type mword25  = mword (bit1 (bit0 (bit0 (bit1 one))))
+type mword26  = mword (bit0 (bit1 (bit0 (bit1 one))))
+type mword27  = mword (bit1 (bit1 (bit0 (bit1 one))))
+type mword28  = mword (bit0 (bit0 (bit1 (bit1 one))))
+type mword30  = mword (bit0 (bit1 (bit1 (bit1 one))))
+type mword31  = mword (bit1 (bit1 (bit1 (bit1 one))))
+type mword32  = mword (bit0 (bit0 (bit0 (bit0 (bit0 one)))))
+type mword33  = mword (bit1 (bit0 (bit0 (bit0 (bit0 one)))))
+type mword34  = mword (bit0 (bit1 (bit0 (bit0 (bit0 one)))))
+type mword35  = mword (bit1 (bit1 (bit0 (bit0 (bit0 one)))))
+type mword36  = mword (bit0 (bit0 (bit1 (bit0 (bit0 one)))))
+type mword37  = mword (bit1 (bit0 (bit1 (bit0 (bit0 one)))))
+type mword38  = mword (bit0 (bit1 (bit1 (bit0 (bit0 one)))))
+type mword40  = mword (bit0 (bit0 (bit0 (bit1 (bit0 one)))))
+type mword41  = mword (bit1 (bit0 (bit0 (bit1 (bit0 one)))))
+type mword45  = mword (bit1 (bit0 (bit1 (bit1 (bit0 one)))))
+type mword46  = mword (bit0 (bit1 (bit1 (bit1 (bit0 one)))))
+type mword48  = mword (bit0 (bit0 (bit0 (bit0 (bit1 one)))))
+type mword50  = mword (bit0 (bit1 (bit0 (bit0 (bit1 one)))))
+type mword51  = mword (bit1 (bit1 (bit0 (bit0 (bit1 one)))))
+type mword52  = mword (bit0 (bit0 (bit1 (bit0 (bit1 one)))))
+type mword55  = mword (bit1 (bit1 (bit1 (bit0 (bit1 one)))))
+type mword56  = mword (bit1 (bit1 (bit1 (bit0 (bit1 one)))))
+type mword58  = mword (bit0 (bit1 (bit0 (bit1 (bit1 one)))))
+type mword59  = mword (bit1 (bit1 (bit0 (bit1 (bit1 one)))))
+type mword60  = mword (bit0 (bit0 (bit1 (bit1 (bit1 one)))))
+type mword61  = mword (bit1 (bit0 (bit1 (bit1 (bit1 one)))))
+type mword62  = mword (bit0 (bit1 (bit1 (bit1 (bit1 one)))))
+type mword63  = mword (bit1 (bit1 (bit1 (bit1 (bit1 one)))))
+type mword64  = mword (bit0 (bit0 (bit0 (bit0 (bit0 (bit0 one))))))
+type mword65  = mword (bit1 (bit0 (bit0 (bit0 (bit0 (bit0 one))))))
+type mword128 = mword (bit0 (bit0 (bit0 (bit0 (bit0 (bit0 (bit0 one)))))))
+type mword192 = mword (bit0 (bit0 (bit0 (bit0 (bit0 (bit0 (bit1 one)))))))
+type mword256 = mword (bit0 (bit0 (bit0 (bit0 (bit0 (bit0 (bit0 (bit0 one))))))))
+type mword257 = mword (bit1 (bit0 (bit0 (bit0 (bit0 (bit0 (bit0 (bit0 one))))))))
+
+(* Pretty printing for both Isabelle and HOL so users don't suffer the encoding
+ * above when using words...
+ *)
 
 declare isabelle target_rep type mword 'a = `word` 'a
 declare hol      target_rep type mword 'a = `word` 'a
 
-declare isabelle target_rep type mword1   = `1` `word`
-declare isabelle target_rep type mword2   = `2` `word`
 declare isabelle target_rep type mword3   = `3` `word`
 declare isabelle target_rep type mword4   = `4` `word`
 declare isabelle target_rep type mword5   = `5` `word`
