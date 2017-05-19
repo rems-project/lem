@@ -12,6 +12,29 @@ open import {hol} `wordsTheory` `wordsLib`
 
 type mword 'a
 
+(*******************************************************************)
+(* Generating arbitrary new bitwidths.                             *)
+(*******************************************************************)
+
+type one
+
+type bit0 'a
+
+type bit1 'a
+
+declare isabelle target_rep type one = `1`
+declare hol      target_rep type one = `one`
+
+declare isabelle target_rep type bit0 'a = `bit0` 'a
+declare hol      target_rep type bit0 'a = `bit0` 'a
+
+declare isabelle target_rep type bit1 'a = `bit1` 'a
+declare hol      target_rep type bit1 'a = `bit1` 'a
+
+(*******************************************************************)
+(* Fixed bitwidths extracted from Anthony's models.                *)
+(*******************************************************************)
+
 type mword1
 type mword2
 type mword3
