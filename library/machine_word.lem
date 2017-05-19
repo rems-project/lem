@@ -207,30 +207,28 @@ end
 val signedLess : forall 'a. mword 'a -> mword 'a -> bool
 
 declare isabelle target_rep function signedLess = `word_sless`
+declare hol      target_rep function signedLess = `word_lt`
 
 val signedLessEq : forall 'a. mword 'a -> mword 'a -> bool
 
 declare isabelle target_rep function signedLessEq = `word_sle`
+declare hol      target_rep function signedLessEq = `word_le`
 
 val unsignedLess : forall 'a. mword 'a -> mword 'a -> bool
 
 declare isabelle target_rep function unsignedLess = `ord_word_inst.less_word`
+declare hol      target_rep function unsignedLess = `word_lo`
 
 val unsignedLessEq : forall 'a. mword 'a -> mword 'a -> bool
 
 declare isabelle target_rep function unsignedLessEq = `ord_word_inst.less_eq_word`
+declare hol      target_rep function unsignedLessEq = `word_ls`
 
 (******************************************************************)
 (* Appending, splitting and probing words                         *)
 (******************************************************************)
 
-val wordCat : forall 'a 'b 'c. mword 'a -> mword 'b -> mword 'c
-
-declare isabelle target_rep function wordCat = `word_cat`
-
-val wordSplit : forall 'a 'b 'c. mword 'a -> mword 'b * mword 'c
-
-declare isabelle target_rep function wordSplit = `word_split`
+(* Word cat, split, not needed? *)
 
 val setBit : forall 'a. mword 'a -> natural -> bool -> mword 'a
 
@@ -238,15 +236,18 @@ declare isabelle target_rep function setBit = `bits_word_inst.set_bit_word`
 
 val getBit : forall 'a. mword 'a -> natural -> bool
 
-declare isabelle target_rep function getBit = `bits_word_inst.test_bit_word`
+declare isabelle target_rep function getBit     = `bits_word_inst.test_bit_word`
+declare hol      target_rep function getBit w b = `word_bit` w b
 
 val msb : forall 'a. mword 'a -> bool
 
 declare isabelle target_rep function msb = `bitss_word_inst.msb_word`
+declare hol      target_rep function msb = `word_msb`
 
 val lsb : forall 'a. mword 'a -> bool
 
 declare isabelle target_rep function lsb = `bits_word_inst.lsb_word`
+declare hol      target_rep function lsb = `word_lsb`
 
 
 (******************************************************************)
@@ -268,8 +269,12 @@ declare isabelle target_rep function wordFromInteger = `word_of_int`
 val naturalFromWord : forall 'a. mword 'a -> natural
 
 declare isabelle target_rep function naturalFromWord = `unat`
+declare hol      target_rep function naturalFromWord = `w2n`
 
 val wordFromNatural : forall 'a. natural -> mword 'a
+
+declare hol      target_rep function wordFromNatural = `n2w`
+
 let {isabelle} wordFromNatural n =
   wordFromInteger (integerFromNatural n)
 
@@ -280,42 +285,52 @@ let {isabelle} wordFromNatural n =
 val shiftLeft  : forall 'a. mword 'a -> natural -> mword 'a
 
 declare isabelle target_rep function shiftLeft = `sshiftl`
+declare hol      target_rep function shiftLeft = `word_lsl`
 
 val shiftRight : forall 'a. mword 'a -> natural -> mword 'a
 
 declare isabelle target_rep function shiftRight = `sshiftr`
+declare hol      target_rep function shiftRight = `word_lsr`
 
 val lAnd       : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function lAnd = `bit_word_inst.bitAND_word`
+declare hol      target_rep function lAnd = `word_and`
 
 val lOr        : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function lOr = `bit_word_inst.bitOR_word`
+declare hol      target_rep function lOr = `word_or`
 
 val lXor       : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function lXor = `bit_word_inst.bitXOR_word`
+declare hol      target_rep function lXor = `word_xor`
 
 val lNot       : forall 'a. mword 'a -> mword 'a
 
 declare isabelle target_rep function lNot = `bit_word_inst.bitNOT_word`
+declare hol      target_rep function lNot = `word_1comp`
 
 val rotateRight : forall 'a. natural -> mword 'a -> mword 'a
 
 declare isabelle target_rep function rotateRight = `word_rotr`
+declare hol      target_rep function rotateRight = `word_ror`
 
 val rotateLeft : forall 'a. natural -> mword 'a -> mword 'a
 
 declare isabelle target_rep function rotateLeft = `word_rotl`
+declare hol      target_rep function rotateLeft = `word_rol`
 
 val zeroExtend : forall 'a 'b. mword 'a -> mword 'b
 
 declare isabelle target_rep function zeroExtend = `ucast`
+declare hol      target_rep function zeroExtend = `w2w`
 
 val signExtend : forall 'a 'b. mword 'a -> mword 'b
 
 declare isabelle target_rep function signExtend = `scast`
+declare hol      target_rep function signExtend = `sw2sw`
 
 (*****************************************************************)
 (* Arithmetic                                                    *)
@@ -324,23 +339,35 @@ declare isabelle target_rep function signExtend = `scast`
 val plus   : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function plus = `plus_word_inst.plus_word`
+declare hol      target_rep function plus = `word_add`
 
 val minus  : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function minus = `minus_word_inst.minus_word`
+declare hol      target_rep function minus = `word_sub`
 
 val uminus : forall 'a. mword 'a -> mword 'a
 
 declare isabelle target_rep function uminus = `uminus_word_inst.uminus_word`
+let {hol} uminus m =
+  (minus (wordFromNatural 0) m)
 
 val times : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function times = `times_word_inst.times_word`
+declare hol      target_rep function times = `word_mul`
 
-val divide : forall 'a. mword 'a -> mword 'a -> mword 'a
+val unsignedDivide : forall 'a. mword 'a -> mword 'a -> mword 'a
+val signedDivide : forall 'a. mword 'a -> mword 'a -> mword 'a
 
-declare isabelle target_rep function divide = `divide_word_inst.divide_word`
+declare isabelle target_rep function unsignedDivide = `divide_word_inst.divide_word`
+declare hol      target_rep function unsignedDivide = `word_div`
+declare hol      target_rep function signedDivide   = `word_sdiv`
+
+let {isabelle} signedDivide x y =
+  wordFromInteger ((signedIntegerFromWord x) / (signedIntegerFromWord y))
 
 val modulo : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function modulo = `modulo_word_inst.modulo_word`
+declare hol      target_rep function modulo = `word_mod`
