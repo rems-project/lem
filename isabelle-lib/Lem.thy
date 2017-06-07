@@ -50,7 +50,7 @@ theory "Lem"
 
 imports
          LemExtraDefs
-
+         "Word"
 begin
 
 type_synonym numeral = nat
@@ -101,5 +101,10 @@ definition bitwise_not :: "nat \<Rightarrow> nat" where
 definition bitwise_and :: "nat \<Rightarrow> nat \<Rightarrow> nat" where
   "bitwise_and n m = undefined"
 
+subsection \<open>Machine words\<close>
+
+definition word_update :: "'a::len word \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'b::len word \<Rightarrow> 'a word" where
+  "word_update v lo hi w =
+    of_bl (take lo (to_bl v) @ to_bl w @ drop hi (to_bl v))"
 
 end

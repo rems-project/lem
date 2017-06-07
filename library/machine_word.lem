@@ -5,7 +5,7 @@
 
 declare {isabelle;coq;hol;ocaml} rename module = Lem_machine_word
 
-open import Bool Num Basic_classes
+open import Bool Num Basic_classes Show
 
 open import {isabelle} `~~/src/HOL/Word/Word`
 open import {hol} `wordsTheory` `wordsLib`
@@ -217,6 +217,9 @@ declare hol target_rep type mword192 = `word` `192`
 declare hol target_rep type mword256 = `word` `256`
 declare hol target_rep type mword257 = `word` `257`
 
+val word_length : forall 'a. mword 'a -> nat
+declare hol target_rep function word_length = `word_len`
+
 (******************************************************************)
 (* Comparisons                                                    *)
 (******************************************************************)
@@ -253,11 +256,27 @@ declare hol      target_rep function unsignedLessEq = `word_ls`
 (* Appending, splitting and probing words                         *)
 (******************************************************************)
 
-(* Word cat, split, not needed? *)
+val word_concat : forall 'a 'b 'c. mword 'a -> mword 'b -> mword 'c
+declare hol      target_rep function word_concat = `word_concat`
+declare isabelle target_rep function word_concat = `word_cat`
+
+(* Note that we assume the result type has the correct size, especially
+   for Isabelle. *)
+val word_extract : forall 'a 'b. nat -> nat -> mword 'a -> mword 'b
+declare hol      target_rep function word_extract lo hi v = `word_extract` hi lo v
+declare isabelle target_rep function word_extract lo hi v = `slice` lo v
+
+(*  Needs to be in the prover because we'd end up with unknown sizes in the
+   types in Lem.
+*)
+val word_update : forall 'a 'b. mword 'a -> nat -> nat -> mword 'b -> mword 'a
+declare hol      target_rep function word_update v lo hi w = `bit_field_insert` hi lo w v
+declare isabelle target_rep function word_update v lo hi w = `word_update` v lo hi w (* In Lem.thy *)
 
 val setBit : forall 'a. mword 'a -> natural -> bool -> mword 'a
 
 declare isabelle target_rep function setBit = `bits_word_inst.set_bit_word`
+declare hol      target_rep function setBit w i b = `$:+` i b w
 
 val getBit : forall 'a. mword 'a -> natural -> bool
 
@@ -282,6 +301,7 @@ declare hol      target_rep function lsb = `word_lsb`
 val signedIntegerFromWord : forall 'a. mword 'a -> integer
 
 declare isabelle target_rep function signedIntegerFromWord = `sint`
+declare hol      target_rep function signedIntegerFromWord = `w2i`
 
 val unsignedIntegerFromWord : forall 'a. mword 'a -> integer
 
@@ -290,6 +310,7 @@ declare isabelle target_rep function unsignedIntegerFromWord = `uint`
 val wordFromInteger : forall 'a. integer -> mword 'a
 
 declare isabelle target_rep function wordFromInteger = `word_of_int`
+declare hol      target_rep function wordFromInteger = `i2w`
 
 val naturalFromWord : forall 'a. mword 'a -> natural
 
@@ -302,6 +323,16 @@ declare hol      target_rep function wordFromNatural = `n2w`
 
 let {isabelle} wordFromNatural n =
   wordFromInteger (integerFromNatural n)
+
+val wordToHex : forall 'a. mword 'a -> string
+declare hol target_rep function wordToHex = `word_to_hex_string`
+(* Building libraries fails if we don't provide implementations for the
+   type class. *)
+let {ocaml;isabelle;coq} wordToHex w = "wordToHex not yet implemented"
+
+instance forall 'a. (Show (mword 'a))
+  let show = wordToHex
+end
 
 (******************************************************************)
 (* Bitwise operations, shifts, etc.                               *)

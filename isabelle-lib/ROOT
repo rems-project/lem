@@ -1,4 +1,4 @@
-session LEM = HOL +
+session LEM = "HOL-Word" +
   description {*
     HOL + LEM specific theories
   *}
