@@ -105,6 +105,7 @@ subsection \<open>Machine words\<close>
 
 definition word_update :: "'a::len word \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'b::len word \<Rightarrow> 'a word" where
   "word_update v lo hi w =
-    of_bl (take lo (to_bl v) @ to_bl w @ drop hi (to_bl v))"
+    (let sz = size v in
+    of_bl (take (sz-hi-1) (to_bl v) @ to_bl w @ drop (sz-lo) (to_bl v)))"
 
 end

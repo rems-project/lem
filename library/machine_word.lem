@@ -218,7 +218,51 @@ declare hol target_rep type mword256 = `word` `256`
 declare hol target_rep type mword257 = `word` `257`
 
 val word_length : forall 'a. mword 'a -> nat
+declare isabelle target_rep function word_length = `size`
 declare hol target_rep function word_length = `word_len`
+
+(******************************************************************)
+(* Conversions                                                    *)
+(******************************************************************)
+
+val signedIntegerFromWord : forall 'a. mword 'a -> integer
+
+declare isabelle target_rep function signedIntegerFromWord = `sint`
+declare hol      target_rep function signedIntegerFromWord = `w2i`
+
+val unsignedIntegerFromWord : forall 'a. mword 'a -> integer
+
+declare isabelle target_rep function unsignedIntegerFromWord = `uint`
+
+val wordFromInteger : forall 'a. integer -> mword 'a
+
+declare isabelle target_rep function wordFromInteger = `word_of_int`
+declare hol      target_rep function wordFromInteger = `i2w`
+
+val naturalFromWord : forall 'a. mword 'a -> natural
+
+declare isabelle target_rep function naturalFromWord = `unat`
+declare hol      target_rep function naturalFromWord = `w2n`
+
+val wordFromNatural : forall 'a. natural -> mword 'a
+
+declare hol      target_rep function wordFromNatural = `n2w`
+
+let {isabelle} wordFromNatural n =
+  wordFromInteger (integerFromNatural n)
+
+val wordToHex : forall 'a. mword 'a -> string
+declare hol target_rep function wordToHex = `word_to_hex_string`
+(* Building libraries fails if we don't provide implementations for the
+   type class. *)
+let {ocaml;isabelle;coq} wordToHex w = "wordToHex not yet implemented"
+
+instance forall 'a. (Show (mword 'a))
+  let show = wordToHex
+end
+
+
+assert {hol;isabelle} length_test : word_length ((wordFromNatural 0) : mword13) = 13
 
 (******************************************************************)
 (* Comparisons                                                    *)
@@ -281,7 +325,7 @@ declare hol      target_rep function setBit w i b = `$:+` i b w
 val getBit : forall 'a. mword 'a -> natural -> bool
 
 declare isabelle target_rep function getBit     = `bits_word_inst.test_bit_word`
-declare hol      target_rep function getBit w b = `word_bit` w b
+declare hol      target_rep function getBit w b = `word_bit` b w
 
 val msb : forall 'a. mword 'a -> bool
 
@@ -293,46 +337,20 @@ val lsb : forall 'a. mword 'a -> bool
 declare isabelle target_rep function lsb = `bits_word_inst.lsb_word`
 declare hol      target_rep function lsb = `word_lsb`
 
-
-(******************************************************************)
-(* Conversions                                                    *)
-(******************************************************************)
-
-val signedIntegerFromWord : forall 'a. mword 'a -> integer
-
-declare isabelle target_rep function signedIntegerFromWord = `sint`
-declare hol      target_rep function signedIntegerFromWord = `w2i`
-
-val unsignedIntegerFromWord : forall 'a. mword 'a -> integer
-
-declare isabelle target_rep function unsignedIntegerFromWord = `uint`
-
-val wordFromInteger : forall 'a. integer -> mword 'a
-
-declare isabelle target_rep function wordFromInteger = `word_of_int`
-declare hol      target_rep function wordFromInteger = `i2w`
-
-val naturalFromWord : forall 'a. mword 'a -> natural
-
-declare isabelle target_rep function naturalFromWord = `unat`
-declare hol      target_rep function naturalFromWord = `w2n`
-
-val wordFromNatural : forall 'a. natural -> mword 'a
-
-declare hol      target_rep function wordFromNatural = `n2w`
-
-let {isabelle} wordFromNatural n =
-  wordFromInteger (integerFromNatural n)
-
-val wordToHex : forall 'a. mword 'a -> string
-declare hol target_rep function wordToHex = `word_to_hex_string`
-(* Building libraries fails if we don't provide implementations for the
-   type class. *)
-let {ocaml;isabelle;coq} wordToHex w = "wordToHex not yet implemented"
-
-instance forall 'a. (Show (mword 'a))
-  let show = wordToHex
-end
+assert {hol;isabelle} extract_concat_test :
+  let x : mword16 = wordFromNatural 1234 in
+  word_concat ((word_extract 11 15 x) : mword5)
+              ((word_concat ((word_extract 4 10 x) : mword7)
+                            ((word_extract 0 3 x) : mword4)) : mword11)
+               = x
+assert {hol;isabelle} update_test :
+  let x : mword16 = wordFromNatural 1234 in
+  let y : mword8 = wordFromNatural 41 in
+  word_update x 1 8 y = wordFromNatural 1106
+assert {hol;isabelle} setBit_test1 : setBit (wordFromNatural 12 : mword8) 1  true = wordFromNatural 14
+assert {hol;isabelle} setBit_test2 : setBit (wordFromNatural 14 : mword8) 1 false = wordFromNatural 12
+assert {hol;isabelle} setBit_test3 : setBit (wordFromNatural 2 : mword8) 1 false = wordFromNatural 0
+assert {hol;isabelle} getBit_test  : getBit (wordFromNatural 3 : mword8) 1 = true
 
 (******************************************************************)
 (* Bitwise operations, shifts, etc.                               *)
