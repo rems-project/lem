@@ -101,3 +101,27 @@ let option_equal eq o1 o2 = match (o1, o2) with
   | (None, Some _)     -> false
   | (Some _,  None)    -> false
   | (Some x1, Some x2) -> eq x1 x2
+
+
+(* ========================================================================== *)
+(* Machine words                                                              *)
+(* ========================================================================== *)
+
+type mword = int * Nat_big_num.num
+
+let machine_word_inject (n,w) = (n,Big_int_impl.BI.extract_big_int w 0 n)
+
+let word_length (n,_) = n
+
+let word_concat (n1,w1) (n2,w2) =
+  (n1+n2, Nat_big_num.add (Big_int_impl.BI.shift_left_big_int w1 n2) w2)
+
+let word_extract lo hi (n,w) =
+  let sz = hi-lo+1 in
+  (sz, Big_int_impl.BI.extract_big_int w lo sz)
+
+let word_update (n,v) lo hi (_,w) =
+  let old = Big_int_impl.BI.extract_big_int v lo (hi-lo+1) in
+  let old = Big_int_impl.BI.shift_left_big_int old lo in
+  let removed = Nat_big_num.sub v old in
+  (n, Nat_big_num.add removed (Big_int_impl.BI.shift_left_big_int w lo))
