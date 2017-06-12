@@ -25,6 +25,15 @@ declare ocaml target_rep function ocaml_inject = `Lem.machine_word_inject`
 
 (*******************************************************************)
 (* Fixed bitwidths extracted from Anthony's models.                *)
+(*                                                                 *)
+(* If you need a size N that is not included here, put the lines   *)
+(*                                                                 *)
+(* type tyN                                                        *)
+(* instance (Size tyN) let size = N end                            *)
+(* declare isabelle target_rep type tyN = `N`                      *)
+(* declare hol target_rep type tyN = `N`                           *)
+(*                                                                 *)
+(* in your project, replacing N in each line.                      *)
 (*******************************************************************)
 
 type ty1
@@ -281,15 +290,23 @@ val unsignedIntegerFromWord : forall 'a. mword 'a -> integer
 
 declare isabelle target_rep function unsignedIntegerFromWord = `uint`
 
-val wordFromInteger : forall 'a. integer -> mword 'a
+(* Version without typeclass constraint so that we can derive operations
+   in Lem for one of the theorem provers without requiring it. *)
+val proverWordFromInteger : forall 'a. integer -> mword 'a
 
-declare isabelle target_rep function wordFromInteger = `word_of_int`
-declare hol      target_rep function wordFromInteger = `i2w`
+declare isabelle target_rep function proverWordFromInteger = `word_of_int`
+declare hol      target_rep function proverWordFromInteger = `i2w`
+
+val wordFromInteger : forall 'a. Size 'a => integer -> mword 'a
+
+let inline {isabelle;hol} wordFromInteger i = proverWordFromInteger i
+(* The OCaml version is defined after the arithmetic operations, below. *)
 
 val naturalFromWord : forall 'a. mword 'a -> natural
 
 declare isabelle target_rep function naturalFromWord = `unat`
 declare hol      target_rep function naturalFromWord = `w2n`
+declare ocaml    target_rep function naturalFromWord = `Lem.naturalFromWord`
 
 val wordFromNatural : forall 'a. Size 'a => natural -> mword 'a
 
@@ -466,33 +483,54 @@ val plus   : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function plus = `plus_word_inst.plus_word`
 declare hol      target_rep function plus = `word_add`
+declare ocaml    target_rep function plus = `Lem.word_plus`
 
 val minus  : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function minus = `minus_word_inst.minus_word`
 declare hol      target_rep function minus = `word_sub`
+declare ocaml     target_rep function minus = `Lem.word_minus`
 
 val uminus : forall 'a. mword 'a -> mword 'a
 
 declare isabelle target_rep function uminus = `uminus_word_inst.uminus_word`
 declare hol      target_rep function uminus = `word_2comp`
+declare ocaml    target_rep function uminus = `Lem.word_uminus`
 
 val times : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function times = `times_word_inst.times_word`
 declare hol      target_rep function times = `word_mul`
+declare ocaml    target_rep function times = `Lem.word_times`
 
 val unsignedDivide : forall 'a. mword 'a -> mword 'a -> mword 'a
 val signedDivide : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function unsignedDivide = `divide_word_inst.divide_word`
 declare hol      target_rep function unsignedDivide = `word_div`
+declare ocaml    target_rep function unsignedDivide = `Lem.word_udiv`
 declare hol      target_rep function signedDivide   = `word_sdiv`
 
 let {isabelle} signedDivide x y =
-  wordFromInteger ((signedIntegerFromWord x) / (signedIntegerFromWord y))
+  proverWordFromInteger ((signedIntegerFromWord x) / (signedIntegerFromWord y))
 
 val modulo : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function modulo = `modulo_word_inst.modulo_word`
 declare hol      target_rep function modulo = `word_mod`
+declare ocaml    target_rep function modulo = `Lem.word_mod`
+
+(* Now we can define wordFromInteger for OCaml *)
+
+let {ocaml} wordFromInteger i =
+    if i < 0
+    then uminus (wordFromNatural (naturalFromInteger (~i)))
+    else wordFromNatural (naturalFromInteger i)
+
+assert {ocaml;hol;isabelle} wordFromInteger_nat_test1 : ((wordFromInteger 42) : mword ty8) = wordFromNatural 42
+assert {ocaml;hol;isabelle} wordFromInteger_nat_test2 : ((wordFromInteger (~42)) : mword ty8) = uminus (wordFromNatural 42)
+
+assert {ocaml;hol;isabelle} plus_test : plus (wordFromInteger (~5) : mword ty8) (wordFromNatural 2) = wordFromInteger (~3)
+assert {ocaml;hol;isabelle} minus_test : minus (wordFromInteger (~5) : mword ty8) (wordFromNatural 2) = wordFromInteger (~7)
+assert {ocaml;hol;isabelle} times_test : times (wordFromInteger (~5) : mword ty8) (wordFromNatural 2) = wordFromInteger (~10)
+assert {ocaml;hol;isabelle} udiv_test : unsignedDivide (wordFromInteger (~5) : mword ty8) (wordFromNatural 2) = wordFromInteger 125
