@@ -139,6 +139,17 @@ let ctxt_all_tdefs_set_target_rep l (ctxt : defn_ctxt) (p : Path.t) (targ : Targ
   (ctxt', old_rep)
 end
 
+let ctxt_all_tdefs_set_target_sorts l (ctxt : defn_ctxt) (p : Path.t) (targ : Target.non_ident_target) sorts = begin
+  let td = match Pfmap.apply ctxt.all_tdefs p with
+            | Some(Tc_type(td)) -> td 
+            | _ -> raise (Reporting_basic.err_general true l "invariant in checking type broken") in
+  let old_sorts = Target.Targetmap.apply td.type_target_sorts targ in
+  
+  let td' = {td with type_target_sorts = Target.Targetmap.insert td.type_target_sorts (targ, (l, sorts))} in
+  let ctxt' = {ctxt with all_tdefs = Pfmap.insert ctxt.all_tdefs (p, Tc_type td') } in
+  (ctxt', old_sorts)
+end
+
 
 
 let ctxt_begin_submodule ctxt =

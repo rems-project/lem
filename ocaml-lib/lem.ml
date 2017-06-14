@@ -101,3 +101,46 @@ let option_equal eq o1 o2 = match (o1, o2) with
   | (None, Some _)     -> false
   | (Some _,  None)    -> false
   | (Some x1, Some x2) -> eq x1 x2
+
+
+(* ========================================================================== *)
+(* Machine words                                                              *)
+(* ========================================================================== *)
+
+(* In OCaml we represent bitvectors as a length (so that only the
+   creation operations need a length parameter) and in-range bignum. *)
+
+type mword = int * Nat_big_num.num
+
+let machine_word_inject (n,w) = (n,Big_int_impl.BI.extract_big_int w 0 n)
+
+let word_length (n,_) = n
+
+let word_concat (n1,w1) (n2,w2) =
+  (n1+n2, Nat_big_num.add (Big_int_impl.BI.shift_left_big_int w1 n2) w2)
+
+let word_extract lo hi (n,w) =
+  let sz = hi-lo+1 in
+  (sz, Big_int_impl.BI.extract_big_int w lo sz)
+
+let word_update (n,v) lo hi (_,w) =
+  let old = Big_int_impl.BI.extract_big_int v lo (hi-lo+1) in
+  let old = Big_int_impl.BI.shift_left_big_int old lo in
+  let removed = Nat_big_num.sub v old in
+  (n, Nat_big_num.add removed (Big_int_impl.BI.shift_left_big_int w lo))
+
+let word_uminus (n,w) =
+  let lim = Big_int_impl.BI.shift_left_big_int Big_int_impl.BI.unit_big_int n in
+  (n,Nat_big_num.sub lim w)
+
+let naturalFromWord (_,w) = w
+
+let word_bin_arith f (n,x) ((_:int),y) =
+  let w = f x y in
+  (n, Big_int_impl.BI.extract_big_int w 0 n)
+
+let word_plus = word_bin_arith Nat_big_num.add
+let word_minus = word_bin_arith Nat_big_num.sub
+let word_times = word_bin_arith Nat_big_num.mul
+let word_udiv (n,x) (_,y) = (n, Nat_big_num.div x y)
+let word_mod (n,x) (_,y) = (n, Nat_big_num.modulus x y)

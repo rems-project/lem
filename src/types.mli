@@ -204,6 +204,7 @@ and src_t_aux =
  | Typ_app of Path.t id * src_t list
  | Typ_backend of Path.t id * src_t list (** a backend type that should be used literally *)
  | Typ_paren of Ast.lex_skips * src_t * Ast.lex_skips
+ | Typ_with_sort of src_t * Name.t (** Literal sort annotation to add; currently only used in backend *)
 
 and src_nexp = { nterm : src_nexp_aux; nloc : Ast.l; nt : nexp } (*(src_nexp_aux,unit) annot*)
 
@@ -234,6 +235,9 @@ type type_target_rep =
   | TYR_simple of Ast.l *  bool * Ident.t
   | TYR_subst of Ast.l *  bool * tnvar list * src_t 
 
+(** optional target sort annotation for a type parameter *)
+type sort = Sort of Ast.lex_skips * Name.t option
+
 (** a type description  **)
 type type_descr = { 
   type_tparams : tnvar list;
@@ -257,6 +261,9 @@ type type_descr = {
 
   type_target_rep : type_target_rep Target.Targetmap.t;
   (** target representation of the type *)
+
+  type_target_sorts : (Ast.l * (sort list)) Target.Targetmap.t;
+  (** sort annotations for target representation of the type *)
 }
 
 type class_descr = { 

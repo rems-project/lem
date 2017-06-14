@@ -2681,7 +2681,8 @@ let rec check_instance_type_shape (ctxt : defn_ctxt) (src_t : src_t)
             | Nexp_const(_,i) -> (tvs_to_set [], r"const")
             | _ -> err ()
         end
-    | Typ_paren(_,t,_) -> check_instance_type_shape ctxt t
+    | Typ_paren(_,t,_)
+    | Typ_with_sort(t,_) -> check_instance_type_shape ctxt t
 
 
 
@@ -2862,6 +2863,59 @@ begin
   (ctxt', Some (Declaration decl_def))
 end
 
+let check_declare_target_sorts
+   (ts : Targetset.t) 
+   (mod_path : Name.t list) 
+   (l : Ast.l) 
+   (ctxt : defn_ctxt) 
+   sk1
+   target
+   sk2
+   sk3
+   type_id
+   sk4
+   sorts :
+   (Typecheck_ctxt.defn_ctxt * Typed_ast.def_aux option) = 
+begin
+  let p = lookup_p "" (defn_ctxt_to_env ctxt) type_id in
+  let p_id = {id_path = Id_some (Ident.from_id type_id); 
+              id_locn = l;
+              descr = p;
+              instantiation = []; } in  
+
+  let td = match Pfmap.apply ctxt.all_tdefs p with
+            | Some(Tc_type(td)) -> td 
+            | _ -> raise (Reporting_basic.err_general true l "invariant in checking type broken") in
+
+  let map_sort = function (Ast.Sort (l,None)) -> Sort (l,None)
+                        | (Ast.Sort (l,Some s)) -> Sort (l,Some (Name.from_string s)) in
+  let new_sorts = List.map map_sort sorts in
+
+  let decl_def = Decl_target_sorts (sk1, target, sk2, sk3, p_id, sk4, new_sorts) in
+
+  let targ = (Target.ast_target_to_target target) in
+
+  let () = if List.length sorts > List.length td.type_tparams
+    then let msg = Format.sprintf
+           "more sorts specified for type '%s' on target %s than it has parameters"
+           (Path.to_string p) (Target.non_ident_target_to_string targ)
+         in raise (Reporting_basic.err_type l msg)
+    else ()
+  in
+
+  let (ctxt', old_sorts_opt) = ctxt_all_tdefs_set_target_sorts l ctxt p targ new_sorts in
+  let _ =  match old_sorts_opt with
+      | None -> (* no representation present before, so OK *) ()
+      | Some (old_l,old_sorts) -> begin
+          let loc_s = Reporting_basic.loc_to_string true old_l in
+          let msg = Format.sprintf 
+                      "%s target sort annotations for type '%s' have already been given at\n    %s" 
+                      (Target.non_ident_target_to_string targ) (Path.to_string p) loc_s in
+          raise (Reporting_basic.err_type l msg)
+      end in
+  (ctxt', Some (Declaration decl_def))
+end
+
 
 (***************************************)
 (* The main function for defs          *)
@@ -2985,6 +3039,8 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           check_declare_target_rep_type backend_targets mod_path l ctxt sk1 target (Ast.combine_lex_skips sk2 sk3) sk4 x tnvars sk5 typ 
       | Ast.Declaration(Ast.Decl_target_rep_decl _) ->
           raise (Reporting_basic.err_type l "illformed target-representation declaration")
+      | Ast.Declaration(Ast.Decl_target_sorts (sk1, target, sk2, sk3, id, sk4, sorts)) ->
+         check_declare_target_sorts backend_targets mod_path l ctxt sk1 target sk2 sk3 id sk4 sorts
       | Ast.Declaration(Ast.Decl_set_flag_decl (_, _, _, _, _)) ->
           let _ = prerr_endline "set flag declaration encountered" in
             ctxt, None

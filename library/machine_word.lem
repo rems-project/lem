@@ -5,217 +5,331 @@
 
 declare {isabelle;coq;hol;ocaml} rename module = Lem_machine_word
 
-open import Bool Num Basic_classes
+open import Bool Num Basic_classes Show
 
 open import {isabelle} `~~/src/HOL/Word/Word`
 open import {hol} `wordsTheory` `wordsLib`
 
 type mword 'a
+declare isabelle target_sorts mword = `len`
 
-(*******************************************************************)
-(* Generating arbitrary new bitwidths.                             *)
-(*******************************************************************)
-
-type one
-
-type bit0 'a
-
-type bit1 'a
-
-declare isabelle target_rep type one = `1`
-declare hol      target_rep type one = `one`
-
-declare isabelle target_rep type bit0 'a = `bit0` 'a
-declare hol      target_rep type bit0 'a = `bit0` 'a
-
-declare isabelle target_rep type bit1 'a = `bit1` 'a
-declare hol      target_rep type bit1 'a = `bit1` 'a
-
-(*******************************************************************)
-(* Fixed bitwidths extracted from Anthony's models.                *)
-(*******************************************************************)
-
-type mword1   = mword one
-type mword2   = mword (bit0 one)
-type mword3   = mword (bit1 one)
-type mword4   = mword (bit0 (bit0 one))
-type mword5   = mword (bit1 (bit0 one))
-type mword6   = mword (bit0 (bit1 one))
-type mword7   = mword (bit1 (bit1 one))
-type mword8   = mword (bit0 (bit0 (bit0 one)))
-type mword9   = mword (bit1 (bit0 (bit0 one)))
-type mword10  = mword (bit0 (bit1 (bit0 one)))
-type mword11  = mword (bit1 (bit1 (bit0 one)))
-type mword12  = mword (bit0 (bit0 (bit1 one)))
-type mword13  = mword (bit1 (bit0 (bit1 one)))
-type mword14  = mword (bit0 (bit1 (bit1 one)))
-type mword15  = mword (bit1 (bit1 (bit1 one)))
-type mword16  = mword (bit0 (bit0 (bit0 (bit0 one))))
-type mword17  = mword (bit1 (bit0 (bit0 (bit0 one))))
-type mword19  = mword (bit1 (bit1 (bit0 (bit0 one))))
-type mword20  = mword (bit0 (bit0 (bit1 (bit0 one))))
-type mword21  = mword (bit1 (bit0 (bit1 (bit0 one))))
-type mword22  = mword (bit0 (bit1 (bit1 (bit0 one))))
-type mword23  = mword (bit1 (bit1 (bit1 (bit0 one))))
-type mword24  = mword (bit0 (bit0 (bit0 (bit1 one))))
-type mword25  = mword (bit1 (bit0 (bit0 (bit1 one))))
-type mword26  = mword (bit0 (bit1 (bit0 (bit1 one))))
-type mword27  = mword (bit1 (bit1 (bit0 (bit1 one))))
-type mword28  = mword (bit0 (bit0 (bit1 (bit1 one))))
-type mword30  = mword (bit0 (bit1 (bit1 (bit1 one))))
-type mword31  = mword (bit1 (bit1 (bit1 (bit1 one))))
-type mword32  = mword (bit0 (bit0 (bit0 (bit0 (bit0 one)))))
-type mword33  = mword (bit1 (bit0 (bit0 (bit0 (bit0 one)))))
-type mword34  = mword (bit0 (bit1 (bit0 (bit0 (bit0 one)))))
-type mword35  = mword (bit1 (bit1 (bit0 (bit0 (bit0 one)))))
-type mword36  = mword (bit0 (bit0 (bit1 (bit0 (bit0 one)))))
-type mword37  = mword (bit1 (bit0 (bit1 (bit0 (bit0 one)))))
-type mword38  = mword (bit0 (bit1 (bit1 (bit0 (bit0 one)))))
-type mword40  = mword (bit0 (bit0 (bit0 (bit1 (bit0 one)))))
-type mword41  = mword (bit1 (bit0 (bit0 (bit1 (bit0 one)))))
-type mword45  = mword (bit1 (bit0 (bit1 (bit1 (bit0 one)))))
-type mword46  = mword (bit0 (bit1 (bit1 (bit1 (bit0 one)))))
-type mword48  = mword (bit0 (bit0 (bit0 (bit0 (bit1 one)))))
-type mword50  = mword (bit0 (bit1 (bit0 (bit0 (bit1 one)))))
-type mword51  = mword (bit1 (bit1 (bit0 (bit0 (bit1 one)))))
-type mword52  = mword (bit0 (bit0 (bit1 (bit0 (bit1 one)))))
-type mword55  = mword (bit1 (bit1 (bit1 (bit0 (bit1 one)))))
-type mword56  = mword (bit1 (bit1 (bit1 (bit0 (bit1 one)))))
-type mword58  = mword (bit0 (bit1 (bit0 (bit1 (bit1 one)))))
-type mword59  = mword (bit1 (bit1 (bit0 (bit1 (bit1 one)))))
-type mword60  = mword (bit0 (bit0 (bit1 (bit1 (bit1 one)))))
-type mword61  = mword (bit1 (bit0 (bit1 (bit1 (bit1 one)))))
-type mword62  = mword (bit0 (bit1 (bit1 (bit1 (bit1 one)))))
-type mword63  = mword (bit1 (bit1 (bit1 (bit1 (bit1 one)))))
-type mword64  = mword (bit0 (bit0 (bit0 (bit0 (bit0 (bit0 one))))))
-type mword65  = mword (bit1 (bit0 (bit0 (bit0 (bit0 (bit0 one))))))
-type mword128 = mword (bit0 (bit0 (bit0 (bit0 (bit0 (bit0 (bit0 one)))))))
-type mword192 = mword (bit0 (bit0 (bit0 (bit0 (bit0 (bit0 (bit1 one)))))))
-type mword256 = mword (bit0 (bit0 (bit0 (bit0 (bit0 (bit0 (bit0 (bit0 one))))))))
-type mword257 = mword (bit1 (bit0 (bit0 (bit0 (bit0 (bit0 (bit0 (bit0 one))))))))
-
-(* Pretty printing for both Isabelle and HOL so users don't suffer the encoding
- * above when using words...
- *)
+class (Size 'a)
+  val size : nat
+end
 
 declare isabelle target_rep type mword 'a = `word` 'a
 declare hol      target_rep type mword 'a = `word` 'a
+declare ocaml    target_rep type mword 'a = `Lem.mword`
 
-declare isabelle target_rep type mword3   = `3` `word`
-declare isabelle target_rep type mword4   = `4` `word`
-declare isabelle target_rep type mword5   = `5` `word`
-declare isabelle target_rep type mword6   = `6` `word`
-declare isabelle target_rep type mword7   = `7` `word`
-declare isabelle target_rep type mword8   = `8` `word`
-declare isabelle target_rep type mword9   = `9` `word`
-declare isabelle target_rep type mword10  = `10` `word`
-declare isabelle target_rep type mword11  = `11` `word`
-declare isabelle target_rep type mword12  = `12` `word`
-declare isabelle target_rep type mword13  = `13` `word`
-declare isabelle target_rep type mword14  = `14` `word`
-declare isabelle target_rep type mword15  = `15` `word`
-declare isabelle target_rep type mword16  = `16` `word`
-declare isabelle target_rep type mword17  = `17` `word`
-declare isabelle target_rep type mword19  = `19` `word`
-declare isabelle target_rep type mword20  = `20` `word`
-declare isabelle target_rep type mword21  = `21` `word`
-declare isabelle target_rep type mword22  = `22` `word`
-declare isabelle target_rep type mword23  = `23` `word`
-declare isabelle target_rep type mword24  = `24` `word`
-declare isabelle target_rep type mword25  = `25` `word`
-declare isabelle target_rep type mword26  = `26` `word`
-declare isabelle target_rep type mword27  = `27` `word`
-declare isabelle target_rep type mword28  = `28` `word`
-declare isabelle target_rep type mword30  = `30` `word`
-declare isabelle target_rep type mword31  = `31` `word`
-declare isabelle target_rep type mword32  = `32` `word`
-declare isabelle target_rep type mword33  = `33` `word`
-declare isabelle target_rep type mword34  = `34` `word`
-declare isabelle target_rep type mword35  = `35` `word`
-declare isabelle target_rep type mword36  = `36` `word`
-declare isabelle target_rep type mword37  = `37` `word`
-declare isabelle target_rep type mword38  = `38` `word`
-declare isabelle target_rep type mword40  = `40` `word`
-declare isabelle target_rep type mword41  = `41` `word`
-declare isabelle target_rep type mword45  = `45` `word`
-declare isabelle target_rep type mword46  = `46` `word`
-declare isabelle target_rep type mword48  = `48` `word`
-declare isabelle target_rep type mword50  = `50` `word`
-declare isabelle target_rep type mword51  = `51` `word`
-declare isabelle target_rep type mword52  = `52` `word`
-declare isabelle target_rep type mword55  = `55` `word`
-declare isabelle target_rep type mword56  = `56` `word`
-declare isabelle target_rep type mword58  = `58` `word`
-declare isabelle target_rep type mword59  = `59` `word`
-declare isabelle target_rep type mword60  = `60` `word`
-declare isabelle target_rep type mword61  = `61` `word`
-declare isabelle target_rep type mword62  = `62` `word`
-declare isabelle target_rep type mword63  = `63` `word`
-declare isabelle target_rep type mword64  = `64` `word`
-declare isabelle target_rep type mword65  = `65` `word`
-declare isabelle target_rep type mword128 = `128` `word`
-declare isabelle target_rep type mword192 = `192` `word`
-declare isabelle target_rep type mword256 = `256` `word`
-declare isabelle target_rep type mword257 = `257` `word`
+val ocaml_inject : forall 'a. nat * natural -> mword 'a
+declare ocaml target_rep function ocaml_inject = `Lem.machine_word_inject`
 
-declare hol target_rep type mword1   = `1` `word`
-declare hol target_rep type mword2   = `2` `word`
-declare hol target_rep type mword3   = `3` `word`
-declare hol target_rep type mword4   = `4` `word`
-declare hol target_rep type mword5   = `5` `word`
-declare hol target_rep type mword6   = `6` `word`
-declare hol target_rep type mword7   = `7` `word`
-declare hol target_rep type mword8   = `8` `word`
-declare hol target_rep type mword9   = `9` `word`
-declare hol target_rep type mword10  = `10` `word`
-declare hol target_rep type mword11  = `11` `word`
-declare hol target_rep type mword12  = `12` `word`
-declare hol target_rep type mword13  = `13` `word`
-declare hol target_rep type mword14  = `14` `word`
-declare hol target_rep type mword15  = `15` `word`
-declare hol target_rep type mword16  = `16` `word`
-declare hol target_rep type mword17  = `17` `word`
-declare hol target_rep type mword19  = `19` `word`
-declare hol target_rep type mword20  = `20` `word`
-declare hol target_rep type mword21  = `21` `word`
-declare hol target_rep type mword22  = `22` `word`
-declare hol target_rep type mword23  = `23` `word`
-declare hol target_rep type mword24  = `24` `word`
-declare hol target_rep type mword25  = `25` `word`
-declare hol target_rep type mword26  = `26` `word`
-declare hol target_rep type mword27  = `27` `word`
-declare hol target_rep type mword28  = `28` `word`
-declare hol target_rep type mword30  = `30` `word`
-declare hol target_rep type mword31  = `31` `word`
-declare hol target_rep type mword32  = `32` `word`
-declare hol target_rep type mword33  = `33` `word`
-declare hol target_rep type mword34  = `34` `word`
-declare hol target_rep type mword35  = `35` `word`
-declare hol target_rep type mword36  = `36` `word`
-declare hol target_rep type mword37  = `37` `word`
-declare hol target_rep type mword38  = `38` `word`
-declare hol target_rep type mword40  = `40` `word`
-declare hol target_rep type mword41  = `41` `word`
-declare hol target_rep type mword45  = `45` `word`
-declare hol target_rep type mword46  = `46` `word`
-declare hol target_rep type mword48  = `48` `word`
-declare hol target_rep type mword50  = `50` `word`
-declare hol target_rep type mword51  = `51` `word`
-declare hol target_rep type mword52  = `52` `word`
-declare hol target_rep type mword55  = `55` `word`
-declare hol target_rep type mword56  = `56` `word`
-declare hol target_rep type mword58  = `58` `word`
-declare hol target_rep type mword59  = `59` `word`
-declare hol target_rep type mword60  = `60` `word`
-declare hol target_rep type mword61  = `61` `word`
-declare hol target_rep type mword62  = `62` `word`
-declare hol target_rep type mword63  = `63` `word`
-declare hol target_rep type mword64  = `64` `word`
-declare hol target_rep type mword65  = `65` `word`
-declare hol target_rep type mword128 = `128` `word`
-declare hol target_rep type mword192 = `192` `word`
-declare hol target_rep type mword256 = `256` `word`
-declare hol target_rep type mword257 = `257` `word`
+(*******************************************************************)
+(* Fixed bitwidths extracted from Anthony's models.                *)
+(*                                                                 *)
+(* If you need a size N that is not included here, put the lines   *)
+(*                                                                 *)
+(* type tyN                                                        *)
+(* instance (Size tyN) let size = N end                            *)
+(* declare isabelle target_rep type tyN = `N`                      *)
+(* declare hol target_rep type tyN = `N`                           *)
+(*                                                                 *)
+(* in your project, replacing N in each line.                      *)
+(*******************************************************************)
+
+type ty1
+type ty2
+type ty3
+type ty4
+type ty5
+type ty6
+type ty7
+type ty8
+type ty9
+type ty10
+type ty11
+type ty12
+type ty13
+type ty14
+type ty15
+type ty16
+type ty17
+type ty19
+type ty20
+type ty21
+type ty22
+type ty23
+type ty24
+type ty25
+type ty26
+type ty27
+type ty28
+type ty30
+type ty31
+type ty32
+type ty33
+type ty34
+type ty35
+type ty36
+type ty37
+type ty38
+type ty40
+type ty41
+type ty45
+type ty46
+type ty48
+type ty50
+type ty51
+type ty52
+type ty55
+type ty56
+type ty58
+type ty59
+type ty60
+type ty61
+type ty62
+type ty63
+type ty64
+type ty65
+type ty128
+type ty192
+type ty256
+type ty257
+
+instance (Size ty1) let size = 1 end
+instance (Size ty2) let size = 2 end
+instance (Size ty3) let size = 3 end
+instance (Size ty4) let size = 4 end
+instance (Size ty5) let size = 5 end
+instance (Size ty6) let size = 6 end
+instance (Size ty7) let size = 7 end
+instance (Size ty8) let size = 8 end
+instance (Size ty9) let size = 9 end
+instance (Size ty10) let size = 10 end
+instance (Size ty11) let size = 11 end
+instance (Size ty12) let size = 12 end
+instance (Size ty13) let size = 13 end
+instance (Size ty14) let size = 14 end
+instance (Size ty15) let size = 15 end
+instance (Size ty16) let size = 16 end
+instance (Size ty17) let size = 17 end
+instance (Size ty19) let size = 19 end
+instance (Size ty20) let size = 20 end
+instance (Size ty21) let size = 21 end
+instance (Size ty22) let size = 22 end
+instance (Size ty23) let size = 23 end
+instance (Size ty24) let size = 24 end
+instance (Size ty25) let size = 25 end
+instance (Size ty26) let size = 26 end
+instance (Size ty27) let size = 27 end
+instance (Size ty28) let size = 28 end
+instance (Size ty30) let size = 30 end
+instance (Size ty31) let size = 31 end
+instance (Size ty32) let size = 32 end
+instance (Size ty33) let size = 33 end
+instance (Size ty34) let size = 34 end
+instance (Size ty35) let size = 35 end
+instance (Size ty36) let size = 36 end
+instance (Size ty37) let size = 37 end
+instance (Size ty38) let size = 38 end
+instance (Size ty40) let size = 40 end
+instance (Size ty41) let size = 41 end
+instance (Size ty45) let size = 45 end
+instance (Size ty46) let size = 46 end
+instance (Size ty48) let size = 48 end
+instance (Size ty50) let size = 50 end
+instance (Size ty51) let size = 51 end
+instance (Size ty52) let size = 52 end
+instance (Size ty55) let size = 55 end
+instance (Size ty56) let size = 56 end
+instance (Size ty58) let size = 58 end
+instance (Size ty59) let size = 59 end
+instance (Size ty60) let size = 60 end
+instance (Size ty61) let size = 61 end
+instance (Size ty62) let size = 62 end
+instance (Size ty63) let size = 63 end
+instance (Size ty64) let size = 64 end
+instance (Size ty65) let size = 65 end
+instance (Size ty128) let size = 128 end
+instance (Size ty192) let size = 192 end
+instance (Size ty256) let size = 256 end
+instance (Size ty257) let size = 257 end
+
+declare isabelle target_rep type ty1   = `1`
+declare isabelle target_rep type ty2   = `2`
+declare isabelle target_rep type ty3   = `3`
+declare isabelle target_rep type ty4   = `4`
+declare isabelle target_rep type ty5   = `5`
+declare isabelle target_rep type ty6   = `6`
+declare isabelle target_rep type ty7   = `7`
+declare isabelle target_rep type ty8   = `8`
+declare isabelle target_rep type ty9   = `9`
+declare isabelle target_rep type ty10  = `10`
+declare isabelle target_rep type ty11  = `11`
+declare isabelle target_rep type ty12  = `12`
+declare isabelle target_rep type ty13  = `13`
+declare isabelle target_rep type ty14  = `14`
+declare isabelle target_rep type ty15  = `15`
+declare isabelle target_rep type ty16  = `16`
+declare isabelle target_rep type ty17  = `17`
+declare isabelle target_rep type ty19  = `19`
+declare isabelle target_rep type ty20  = `20`
+declare isabelle target_rep type ty21  = `21`
+declare isabelle target_rep type ty22  = `22`
+declare isabelle target_rep type ty23  = `23`
+declare isabelle target_rep type ty24  = `24`
+declare isabelle target_rep type ty25  = `25`
+declare isabelle target_rep type ty26  = `26`
+declare isabelle target_rep type ty27  = `27`
+declare isabelle target_rep type ty28  = `28`
+declare isabelle target_rep type ty30  = `30`
+declare isabelle target_rep type ty31  = `31`
+declare isabelle target_rep type ty32  = `32`
+declare isabelle target_rep type ty33  = `33`
+declare isabelle target_rep type ty34  = `34`
+declare isabelle target_rep type ty35  = `35`
+declare isabelle target_rep type ty36  = `36`
+declare isabelle target_rep type ty37  = `37`
+declare isabelle target_rep type ty38  = `38`
+declare isabelle target_rep type ty40  = `40`
+declare isabelle target_rep type ty41  = `41`
+declare isabelle target_rep type ty45  = `45`
+declare isabelle target_rep type ty46  = `46`
+declare isabelle target_rep type ty48  = `48`
+declare isabelle target_rep type ty50  = `50`
+declare isabelle target_rep type ty51  = `51`
+declare isabelle target_rep type ty52  = `52`
+declare isabelle target_rep type ty55  = `55`
+declare isabelle target_rep type ty56  = `56`
+declare isabelle target_rep type ty58  = `58`
+declare isabelle target_rep type ty59  = `59`
+declare isabelle target_rep type ty60  = `60`
+declare isabelle target_rep type ty61  = `61`
+declare isabelle target_rep type ty62  = `62`
+declare isabelle target_rep type ty63  = `63`
+declare isabelle target_rep type ty64  = `64`
+declare isabelle target_rep type ty65  = `65`
+declare isabelle target_rep type ty128 = `128`
+declare isabelle target_rep type ty192 = `192`
+declare isabelle target_rep type ty256 = `256`
+declare isabelle target_rep type ty257 = `257`
+
+declare hol target_rep type ty1   = `1`
+declare hol target_rep type ty2   = `2`
+declare hol target_rep type ty3   = `3`
+declare hol target_rep type ty4   = `4`
+declare hol target_rep type ty5   = `5`
+declare hol target_rep type ty6   = `6`
+declare hol target_rep type ty7   = `7`
+declare hol target_rep type ty8   = `8`
+declare hol target_rep type ty9   = `9`
+declare hol target_rep type ty10  = `10`
+declare hol target_rep type ty11  = `11`
+declare hol target_rep type ty12  = `12`
+declare hol target_rep type ty13  = `13`
+declare hol target_rep type ty14  = `14`
+declare hol target_rep type ty15  = `15`
+declare hol target_rep type ty16  = `16`
+declare hol target_rep type ty17  = `17`
+declare hol target_rep type ty19  = `19`
+declare hol target_rep type ty20  = `20`
+declare hol target_rep type ty21  = `21`
+declare hol target_rep type ty22  = `22`
+declare hol target_rep type ty23  = `23`
+declare hol target_rep type ty24  = `24`
+declare hol target_rep type ty25  = `25`
+declare hol target_rep type ty26  = `26`
+declare hol target_rep type ty27  = `27`
+declare hol target_rep type ty28  = `28`
+declare hol target_rep type ty30  = `30`
+declare hol target_rep type ty31  = `31`
+declare hol target_rep type ty32  = `32`
+declare hol target_rep type ty33  = `33`
+declare hol target_rep type ty34  = `34`
+declare hol target_rep type ty35  = `35`
+declare hol target_rep type ty36  = `36`
+declare hol target_rep type ty37  = `37`
+declare hol target_rep type ty38  = `38`
+declare hol target_rep type ty40  = `40`
+declare hol target_rep type ty41  = `41`
+declare hol target_rep type ty45  = `45`
+declare hol target_rep type ty46  = `46`
+declare hol target_rep type ty48  = `48`
+declare hol target_rep type ty50  = `50`
+declare hol target_rep type ty51  = `51`
+declare hol target_rep type ty52  = `52`
+declare hol target_rep type ty55  = `55`
+declare hol target_rep type ty56  = `56`
+declare hol target_rep type ty58  = `58`
+declare hol target_rep type ty59  = `59`
+declare hol target_rep type ty60  = `60`
+declare hol target_rep type ty61  = `61`
+declare hol target_rep type ty62  = `62`
+declare hol target_rep type ty63  = `63`
+declare hol target_rep type ty64  = `64`
+declare hol target_rep type ty65  = `65`
+declare hol target_rep type ty128 = `128`
+declare hol target_rep type ty192 = `192`
+declare hol target_rep type ty256 = `256`
+declare hol target_rep type ty257 = `257`
+
+val word_length : forall 'a. mword 'a -> nat
+declare ocaml    target_rep function word_length = `Lem.word_length`
+declare isabelle target_rep function word_length = `size`
+declare hol      target_rep function word_length = `word_len`
+
+(******************************************************************)
+(* Conversions                                                    *)
+(******************************************************************)
+
+val signedIntegerFromWord : forall 'a. mword 'a -> integer
+
+declare isabelle target_rep function signedIntegerFromWord = `sint`
+declare hol      target_rep function signedIntegerFromWord = `w2i`
+
+val unsignedIntegerFromWord : forall 'a. mword 'a -> integer
+
+declare isabelle target_rep function unsignedIntegerFromWord = `uint`
+
+(* Version without typeclass constraint so that we can derive operations
+   in Lem for one of the theorem provers without requiring it. *)
+val proverWordFromInteger : forall 'a. integer -> mword 'a
+
+declare isabelle target_rep function proverWordFromInteger = `word_of_int`
+declare hol      target_rep function proverWordFromInteger = `i2w`
+
+val wordFromInteger : forall 'a. Size 'a => integer -> mword 'a
+
+let inline {isabelle;hol} wordFromInteger i = proverWordFromInteger i
+(* The OCaml version is defined after the arithmetic operations, below. *)
+
+val naturalFromWord : forall 'a. mword 'a -> natural
+
+declare isabelle target_rep function naturalFromWord = `unat`
+declare hol      target_rep function naturalFromWord = `w2n`
+declare ocaml    target_rep function naturalFromWord = `Lem.naturalFromWord`
+
+val wordFromNatural : forall 'a. Size 'a => natural -> mword 'a
+
+declare hol      target_rep function wordFromNatural = `n2w`
+
+let inline {isabelle} wordFromNatural n =
+  wordFromInteger (integerFromNatural n)
+
+let {ocaml} wordFromNatural n = ocaml_inject (size, n)
+
+val wordToHex : forall 'a. mword 'a -> string
+declare hol target_rep function wordToHex = `word_to_hex_string`
+(* Building libraries fails if we don't provide implementations for the
+   type class. *)
+let {ocaml;isabelle;coq} wordToHex w = "wordToHex not yet implemented"
+
+instance forall 'a. (Show (mword 'a))
+  let show = wordToHex
+end
+
+
+assert {ocaml;hol;isabelle} length_test : word_length ((wordFromNatural 0) : mword ty13) = 13
 
 (******************************************************************)
 (* Comparisons                                                    *)
@@ -253,16 +367,35 @@ declare hol      target_rep function unsignedLessEq = `word_ls`
 (* Appending, splitting and probing words                         *)
 (******************************************************************)
 
-(* Word cat, split, not needed? *)
+val word_concat : forall 'a 'b 'c. mword 'a -> mword 'b -> mword 'c
+declare hol      target_rep function word_concat = `word_concat`
+declare isabelle target_rep function word_concat = `word_cat`
+declare ocaml    target_rep function word_concat = `Lem.word_concat`
+
+(* Note that we assume the result type has the correct size, especially
+   for Isabelle. *)
+val word_extract : forall 'a 'b. nat -> nat -> mword 'a -> mword 'b
+declare hol      target_rep function word_extract lo hi v = `word_extract` hi lo v
+declare isabelle target_rep function word_extract lo hi v = `slice` lo v
+declare ocaml    target_rep function word_extract = `Lem.word_extract`
+
+(*  Needs to be in the prover because we'd end up with unknown sizes in the
+   types in Lem.
+*)
+val word_update : forall 'a 'b. mword 'a -> nat -> nat -> mword 'b -> mword 'a
+declare hol      target_rep function word_update v lo hi w = `bit_field_insert` hi lo w v
+declare isabelle target_rep function word_update v lo hi w = `word_update` v lo hi w (* In Lem.thy *)
+declare ocaml    target_rep function word_update = `Lem.word_update`
 
 val setBit : forall 'a. mword 'a -> natural -> bool -> mword 'a
 
 declare isabelle target_rep function setBit = `bits_word_inst.set_bit_word`
+declare hol      target_rep function setBit w i b = `$:+` i b w
 
 val getBit : forall 'a. mword 'a -> natural -> bool
 
 declare isabelle target_rep function getBit     = `bits_word_inst.test_bit_word`
-declare hol      target_rep function getBit w b = `word_bit` w b
+declare hol      target_rep function getBit w b = `word_bit` b w
 
 val msb : forall 'a. mword 'a -> bool
 
@@ -274,34 +407,20 @@ val lsb : forall 'a. mword 'a -> bool
 declare isabelle target_rep function lsb = `bits_word_inst.lsb_word`
 declare hol      target_rep function lsb = `word_lsb`
 
-
-(******************************************************************)
-(* Conversions                                                    *)
-(******************************************************************)
-
-val signedIntegerFromWord : forall 'a. mword 'a -> integer
-
-declare isabelle target_rep function signedIntegerFromWord = `sint`
-
-val unsignedIntegerFromWord : forall 'a. mword 'a -> integer
-
-declare isabelle target_rep function unsignedIntegerFromWord = `uint`
-
-val wordFromInteger : forall 'a. integer -> mword 'a
-
-declare isabelle target_rep function wordFromInteger = `word_of_int`
-
-val naturalFromWord : forall 'a. mword 'a -> natural
-
-declare isabelle target_rep function naturalFromWord = `unat`
-declare hol      target_rep function naturalFromWord = `w2n`
-
-val wordFromNatural : forall 'a. natural -> mword 'a
-
-declare hol      target_rep function wordFromNatural = `n2w`
-
-let {isabelle} wordFromNatural n =
-  wordFromInteger (integerFromNatural n)
+assert {ocaml;hol;isabelle} extract_concat_test :
+  let x : mword ty16 = wordFromNatural 1234 in
+  word_concat ((word_extract 11 15 x) : mword ty5)
+              ((word_concat ((word_extract 4 10 x) : mword ty7)
+                            ((word_extract 0 3 x) : mword ty4)) : mword ty11)
+               = x
+assert {ocaml;hol;isabelle} update_test :
+  let x : mword ty16 = wordFromNatural 1234 in
+  let y : mword ty8 = wordFromNatural 41 in
+  word_update x 1 8 y = wordFromNatural 1106
+assert {hol;isabelle} setBit_test1 : setBit (wordFromNatural 12 : mword ty8) 1  true = wordFromNatural 14
+assert {hol;isabelle} setBit_test2 : setBit (wordFromNatural 14 : mword ty8) 1 false = wordFromNatural 12
+assert {hol;isabelle} setBit_test3 : setBit (wordFromNatural 2 : mword ty8) 1 false = wordFromNatural 0
+assert {hol;isabelle} getBit_test  : getBit (wordFromNatural 3 : mword ty8) 1 = true
 
 (******************************************************************)
 (* Bitwise operations, shifts, etc.                               *)
@@ -365,34 +484,54 @@ val plus   : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function plus = `plus_word_inst.plus_word`
 declare hol      target_rep function plus = `word_add`
+declare ocaml    target_rep function plus = `Lem.word_plus`
 
 val minus  : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function minus = `minus_word_inst.minus_word`
 declare hol      target_rep function minus = `word_sub`
+declare ocaml     target_rep function minus = `Lem.word_minus`
 
 val uminus : forall 'a. mword 'a -> mword 'a
 
 declare isabelle target_rep function uminus = `uminus_word_inst.uminus_word`
-let {hol} uminus m =
-  (minus (wordFromNatural 0) m)
+declare hol      target_rep function uminus = `word_2comp`
+declare ocaml    target_rep function uminus = `Lem.word_uminus`
 
 val times : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function times = `times_word_inst.times_word`
 declare hol      target_rep function times = `word_mul`
+declare ocaml    target_rep function times = `Lem.word_times`
 
 val unsignedDivide : forall 'a. mword 'a -> mword 'a -> mword 'a
 val signedDivide : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function unsignedDivide = `divide_word_inst.divide_word`
 declare hol      target_rep function unsignedDivide = `word_div`
+declare ocaml    target_rep function unsignedDivide = `Lem.word_udiv`
 declare hol      target_rep function signedDivide   = `word_sdiv`
 
 let {isabelle} signedDivide x y =
-  wordFromInteger ((signedIntegerFromWord x) / (signedIntegerFromWord y))
+  proverWordFromInteger ((signedIntegerFromWord x) / (signedIntegerFromWord y))
 
 val modulo : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function modulo = `modulo_word_inst.modulo_word`
 declare hol      target_rep function modulo = `word_mod`
+declare ocaml    target_rep function modulo = `Lem.word_mod`
+
+(* Now we can define wordFromInteger for OCaml *)
+
+let {ocaml} wordFromInteger i =
+    if i < 0
+    then uminus (wordFromNatural (naturalFromInteger (~i)))
+    else wordFromNatural (naturalFromInteger i)
+
+assert {ocaml;hol;isabelle} wordFromInteger_nat_test1 : ((wordFromInteger 42) : mword ty8) = wordFromNatural 42
+assert {ocaml;hol;isabelle} wordFromInteger_nat_test2 : ((wordFromInteger (~42)) : mword ty8) = uminus (wordFromNatural 42)
+
+assert {ocaml;hol;isabelle} plus_test : plus (wordFromInteger (~5) : mword ty8) (wordFromNatural 2) = wordFromInteger (~3)
+assert {ocaml;hol;isabelle} minus_test : minus (wordFromInteger (~5) : mword ty8) (wordFromNatural 2) = wordFromInteger (~7)
+assert {ocaml;hol;isabelle} times_test : times (wordFromInteger (~5) : mword ty8) (wordFromNatural 2) = wordFromInteger (~10)
+assert {ocaml;hol;isabelle} udiv_test : unsignedDivide (wordFromInteger (~5) : mword ty8) (wordFromNatural 2) = wordFromInteger 125

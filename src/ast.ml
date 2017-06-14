@@ -474,6 +474,7 @@ type
 lemma_decl =  (* Lemmata and Tests *)
    Lemma_named of lemma_typ * targets option * x_l * terminal * exp
 
+type sort = Sort of terminal * Ulib.UTF8.t option
 
 type 
 declare_def =  (* declarations *)
@@ -482,6 +483,7 @@ declare_def =  (* declarations *)
  | Decl_rename_decl of terminal * targets option * terminal * component * id * terminal * x_l
  | Decl_ascii_rep_decl of terminal * targets option * terminal * component * id * terminal * terminal * Ulib.UTF8.t
  | Decl_target_rep_decl of terminal * target * terminal * target_rep_lhs * terminal * target_rep_rhs
+ | Decl_target_sorts of terminal * target * terminal * terminal * id * terminal * sort list
  | Decl_set_flag_decl of terminal * terminal * x_l * terminal * x_l
  | Decl_termination_argument_decl of terminal * targets option * terminal * id * terminal * termination_setting
  | Decl_pattern_match_decl of terminal * targets option * terminal * exhaustivity_setting * id * tnvar list * terminal * terminal * (id * terminal) list * terminal * bool * terminal * elim_opt

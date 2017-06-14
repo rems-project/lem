@@ -111,7 +111,8 @@ let rec has_decidable_equality_src_t (src_t : src_t) : bool =
           List.for_all has_decidable_equality_src_t seplist
     | Typ_app (_, src_ts) -> List.for_all has_decidable_equality_src_t src_ts
     | Typ_backend (_, src_ts) -> List.for_all has_decidable_equality_src_t src_ts
-    | Typ_paren (_, src_t, _) -> has_decidable_equality_src_t src_t
+    | Typ_paren (_, src_t, _)
+    | Typ_with_sort (src_t, _) -> has_decidable_equality_src_t src_t
 ;;
 
 (** Checks whether a type expression has a decidable equality.  [in_module_scope]
@@ -196,7 +197,8 @@ let rec occurs_src_t (x : Name.t) (s : src_t) : bool =
             List.exists (occurs_src_t x) src_ts
     | Typ_backend (_, src_ts) ->
         List.exists (occurs_src_t x) src_ts
-    | Typ_paren (_, src_t, _) -> occurs_src_t x src_t
+    | Typ_paren (_, src_t, _)
+    | Typ_with_sort (src_t, _) -> occurs_src_t x src_t
 ;;
 
 module InductiveMap = Map.Make (
@@ -251,7 +253,8 @@ and occurs_strictly_positively (inductive_types : src_t list InductiveMap.t) (x 
             List.for_all (fun y -> not (occurs_src_t x y)) src_ts
     | Typ_backend (path, src_ts) ->
           List.for_all (fun y -> not (occurs_src_t x y)) src_ts
-    | Typ_paren (_, src_t, _) -> occurs_strictly_positively inductive_types x src_t
+    | Typ_paren (_, src_t, _)
+    | Typ_with_sort (src_t, _) -> occurs_strictly_positively inductive_types x src_t
 
 (**
     A constructor type T satisfies the strict positivity condition if:
@@ -274,7 +277,8 @@ and strict_positivity_condition (inductive_types : src_t list InductiveMap.t) (x
           List.for_all (strict_positivity_condition x) src_ts *)
     | (Typ_app (_, src_ts) | Typ_backend (_, src_ts)) ->
         List.for_all (fun y -> not (occurs_src_t x y)) src_ts
-    | Typ_paren (_, src_t, _) -> strict_positivity_condition inductive_types x src_t
+    | Typ_paren (_, src_t, _)
+    | Typ_with_sort (src_t, _) -> strict_positivity_condition inductive_types x src_t
 ;;
 
 let check_positivity_condition_texp (inductive_types : src_t list InductiveMap.t) (x : Name.t) (t : texp) : bool =
