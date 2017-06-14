@@ -281,7 +281,8 @@ let default_out_mode = Out_pure
 (* TODO: This should probably be done earlier, see [to_in_out]. *)
 let rec src_t_to_mode (typ : src_t) : mode_spec =
   match typ.term with
-    | Typ_paren(_,t,_) -> src_t_to_mode t
+    | Typ_paren(_,t,_)
+    | Typ_with_sort(t,_) -> src_t_to_mode t
     | Typ_fn(x1,_,x2) ->
       let (mode, wit, out) = src_t_to_mode x2 in
       (to_in_out x1::mode, wit, out)
@@ -1513,7 +1514,8 @@ let register_types rel_loc ctxt mod_path tds =
                    type_fields = None;
                    type_constr = [constrset];
                    type_rename = Target.Targetmap.empty;
-                   type_target_rep = Target.Targetmap.empty
+                   type_target_rep = Target.Targetmap.empty;
+                   type_target_sorts = Target.Targetmap.empty
                  }
     in
     let ctxt = add_d_to_ctxt ctxt type_path (Tc_type tdescr) in

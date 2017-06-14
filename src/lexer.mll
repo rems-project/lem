@@ -130,6 +130,7 @@ let kw_table =
      ("non_exec"),               (fun x -> NonExec(x));
      ("special"),                (fun x -> Special(x));
      ("target_rep"),             (fun x -> TargetRep(x));
+     ("target_sorts"),           (fun x -> TargetSorts(x));
      ("target_type",             (fun x -> TargetType(x)));
      ("target_const",            (fun x -> TargetConst(x)));
      ("lemma",                   (fun x -> Lemma(x)));

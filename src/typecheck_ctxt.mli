@@ -75,6 +75,12 @@ val ctxt_c_env_set_target_rep : Ast.l -> defn_ctxt -> Typed_ast.const_descr_ref 
 val ctxt_all_tdefs_set_target_rep : Ast.l -> defn_ctxt -> Path.t -> Target.non_ident_target ->
            Types.type_target_rep -> defn_ctxt * Types.type_target_rep option
 
+(** [ctxt_all_tdefs_set_target_sorts l ctxt ty targ new_sorts] updates the target sort annotations of
+    type [ty] for target [targ] in context [ctxt] to [new_sorts]. This results into a new
+    environment. If an representation was already stored (and is now overridden), it is returned as well. *)
+val ctxt_all_tdefs_set_target_sorts : Ast.l -> defn_ctxt -> Path.t -> Target.non_ident_target ->
+           Types.sort list -> defn_ctxt * (Ast.l * Types.sort list) option
+
 
 (** [ctxt_start_submodule ctxt] is used when a new submodule is processed. It resets all the
     new-information like the field [new_defs], but keeps the other informations (including

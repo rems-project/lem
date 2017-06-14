@@ -547,17 +547,29 @@ let type_id_to_ident_no_modify (p : Path.t id) =
   let sk = ident_get_lskip p in
   Ident.mk_ident sk ns n
 
+let rec combine_sorts ts ss =
+  match ts,ss with
+  | [], _ -> []
+  | l,[] -> l
+  | (h::t),((Sort (_,None))::t') -> h::(combine_sorts t t')
+  | (h::t),((Sort (_,Some h'))::t') ->
+     {term = Typ_with_sort (h,h'); locn = h.locn; typ = h.typ; rest = h.rest}
+       ::(combine_sorts t t')
 
 let type_app_to_output format p ts =
   let l = Ast.Trans (false, "type_app_to_output", None) in
   let (_, path_sep) = A.id_format_args in 
   let td = Types.type_defs_lookup l A.env.t_env p.descr in
   let sk = ident_get_lskip p in
+  let ts' = match Target.Targetmap.apply_target td.Types.type_target_sorts A.target with
+    | None -> ts
+    | Some (_,ss) -> combine_sorts ts ss
+  in
   match Target.Targetmap.apply_target td.Types.type_target_rep A.target with
-     | None -> (ts, Ident.to_output (Type_ctor (false, false)) path_sep (type_id_to_ident p))
-     | Some (TYR_simple (_, _, i)) -> (ts, ws sk ^ Ident.to_output (Type_ctor (false, true)) path_sep i)
+     | None -> (ts', Ident.to_output (Type_ctor (false, false)) path_sep (type_id_to_ident p))
+     | Some (TYR_simple (_, _, i)) -> (ts', ws sk ^ Ident.to_output (Type_ctor (false, true)) path_sep i)
      | Some (TYR_subst (_, _, tnvars, t')) -> begin    
-         let subst = Types.TNfmap.from_list2 tnvars ts in
+         let subst = Types.TNfmap.from_list2 tnvars ts' in
          let t'' = src_type_subst subst t' in
          ([], ws sk ^ format t'')
   end

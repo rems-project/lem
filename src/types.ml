@@ -428,6 +428,7 @@ and src_t_aux =
  | Typ_app of Path.t id * src_t list
  | Typ_backend of Path.t id * src_t list
  | Typ_paren of Ast.lex_skips * src_t * Ast.lex_skips
+ | Typ_with_sort of src_t * Name.t
 
 and src_nexp =  { nterm : src_nexp_aux; nloc : Ast.l; nt : nexp } 
 
@@ -498,6 +499,9 @@ let rec typ_alter_init_lskips (lskips_f : Ast.lex_skips -> Ast.lex_skips * Ast.l
       | Typ_paren(s1,t,s2) ->
           let (s_new,s_ret) = lskips_f s1 in
             res (Typ_paren(s_new,t,s2)) s_ret
+      | Typ_with_sort(t,sort) ->
+          let (t_new, s_ret) = typ_alter_init_lskips lskips_f t in
+            res (Typ_with_sort(t_new,sort)) s_ret
 
 let typ_append_lskips sk t =
   fst (typ_alter_init_lskips (fun s -> (Ast.combine_lex_skips sk s, None)) t)
@@ -542,6 +546,12 @@ let rec src_type_subst_aux (substs : src_t TNfmap.t) (t : src_t) : src_t option 
           match src_type_subst_aux substs t with
             | None -> None
             | Some(t') -> fix_result (Typ_paren(sk1, t', sk2), src_t_to_t t')
+        end
+    | Typ_with_sort(t,sort) ->
+        begin
+          match src_type_subst_aux substs t with
+            | None -> None
+            | Some(t') -> fix_result (Typ_with_sort(t', sort), src_t_to_t t')
         end
     | Typ_len _ -> None
 
@@ -608,6 +618,8 @@ type type_target_rep =
   | TYR_simple of Ast.l *  bool * Ident.t
   | TYR_subst of Ast.l *  bool * tnvar list * src_t 
 
+type sort = Sort of Ast.lex_skips * Name.t option
+
 type type_descr = { 
   type_tparams : tnvar list;
   type_abbrev : t option;
@@ -616,6 +628,7 @@ type type_descr = {
   type_constr : constr_family_descr list;
   type_rename : (Ast.l * Name.t) Target.Targetmap.t;
   type_target_rep : type_target_rep Target.Targetmap.t;
+  type_target_sorts : (Ast.l * (sort list)) Target.Targetmap.t;
 }
 
 
@@ -639,7 +652,8 @@ let mk_tc_type_abbrev vars abbrev = Tc_type {
   type_fields = None;
   type_constr = [];
   type_rename = Target.Targetmap.empty;
-  type_target_rep = Target.Targetmap.empty
+  type_target_rep = Target.Targetmap.empty;
+  type_target_sorts = Target.Targetmap.empty
 }
 
 let mk_tc_type vars reg = Tc_type { 
@@ -650,7 +664,8 @@ let mk_tc_type vars reg = Tc_type {
   type_fields = None;
   type_constr = [];
   type_rename = Target.Targetmap.empty;
-  type_target_rep = Target.Targetmap.empty
+  type_target_rep = Target.Targetmap.empty;
+  type_target_sorts = Target.Targetmap.empty
 }
 
 type type_defs = tc_def Pfmap.t

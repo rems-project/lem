@@ -11,6 +11,7 @@ open import {isabelle} `~~/src/HOL/Word/Word`
 open import {hol} `wordsTheory` `wordsLib`
 
 type mword 'a
+declare isabelle target_sorts mword = `len`
 
 class (Size 'a)
   val size : nat
