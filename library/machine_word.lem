@@ -8,7 +8,7 @@ declare {isabelle;coq;hol;ocaml} rename module = Lem_machine_word
 open import Bool Num Basic_classes Show
 
 open import {isabelle} `~~/src/HOL/Word/Word`
-open import {hol} `wordsTheory` `wordsLib`
+open import {hol} `wordsTheory` `wordsLib` `bitstringTheory`
 
 type mword 'a
 declare isabelle target_sorts mword = `len`
@@ -328,8 +328,21 @@ instance forall 'a. (Show (mword 'a))
   let show = wordToHex
 end
 
+val wordFromBitlist : forall 'a. Size 'a => list bool -> mword 'a
+declare isabelle target_rep function wordFromBitlist = `of_bl`
+declare hol      target_rep function wordFromBitlist = `v2w`
+
+val bitlistFromWord : forall 'a. mword 'a -> list bool
+declare isabelle target_rep function bitlistFromWord = `to_bl`
+declare hol      target_rep function bitlistFromWord = `w2v`
+
 
 assert {ocaml;hol;isabelle} length_test : word_length ((wordFromNatural 0) : mword ty13) = 13
+assert {hol;isabelle} wordFromBitlist_test : ((wordFromBitlist [false;false;true;false]) : mword ty4) = wordFromNatural 2
+assert {hol;isabelle} bitlistFromWord_test : bitlistFromWord ((wordFromNatural 2) : mword ty4) = [false;false;true;false]
+assert {hol;isabelle} wordFromBitlist_bitListFromWord_test :
+  let w : mword ty8 = wordFromNatural 33 in
+  wordFromBitlist (bitlistFromWord w) = w
 
 (******************************************************************)
 (* Comparisons                                                    *)
