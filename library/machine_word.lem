@@ -8,7 +8,7 @@ declare {isabelle;coq;hol;ocaml} rename module = Lem_machine_word
 open import Bool Num Basic_classes Show
 
 open import {isabelle} `~~/src/HOL/Word/Word`
-open import {hol} `wordsTheory` `wordsLib` `bitstringTheory`
+open import {hol} `wordsTheory` `wordsLib` `bitstringTheory` `integer_wordTheory`
 
 type mword 'a
 declare isabelle target_sorts mword = `len`
