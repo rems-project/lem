@@ -8,7 +8,7 @@ declare {isabelle;coq;hol;ocaml} rename module = Lem_machine_word
 open import Bool Num Basic_classes Show
 
 open import {isabelle} `~~/src/HOL/Word/Word`
-open import {hol} `wordsTheory` `wordsLib`
+open import {hol} `wordsTheory` `wordsLib` `bitstringTheory` `integer_wordTheory`
 
 type mword 'a
 declare isabelle target_sorts mword = `len`
@@ -17,8 +17,8 @@ class (Size 'a)
   val size : nat
 end
 
-declare isabelle target_rep type mword 'a = `word` 'a
-declare hol      target_rep type mword 'a = `word` 'a
+declare isabelle target_rep type mword 'a = `Word.word` 'a
+declare hol      target_rep type mword 'a = `words$word` 'a
 declare ocaml    target_rep type mword 'a = `Lem.mword`
 
 val ocaml_inject : forall 'a. nat * natural -> mword 'a
@@ -276,7 +276,7 @@ declare hol target_rep type ty257 = `257`
 val word_length : forall 'a. mword 'a -> nat
 declare ocaml    target_rep function word_length = `Lem.word_length`
 declare isabelle target_rep function word_length = `size`
-declare hol      target_rep function word_length = `word_len`
+declare hol      target_rep function word_length = `words$word_len`
 
 (******************************************************************)
 (* Conversions                                                    *)
@@ -284,19 +284,19 @@ declare hol      target_rep function word_length = `word_len`
 
 val signedIntegerFromWord : forall 'a. mword 'a -> integer
 
-declare isabelle target_rep function signedIntegerFromWord = `sint`
-declare hol      target_rep function signedIntegerFromWord = `w2i`
+declare isabelle target_rep function signedIntegerFromWord = `Word.sint`
+declare hol      target_rep function signedIntegerFromWord = `words$w2i`
 
 val unsignedIntegerFromWord : forall 'a. mword 'a -> integer
 
-declare isabelle target_rep function unsignedIntegerFromWord = `uint`
+declare isabelle target_rep function unsignedIntegerFromWord = `Word.uint`
 
 (* Version without typeclass constraint so that we can derive operations
    in Lem for one of the theorem provers without requiring it. *)
 val proverWordFromInteger : forall 'a. integer -> mword 'a
 
-declare isabelle target_rep function proverWordFromInteger = `word_of_int`
-declare hol      target_rep function proverWordFromInteger = `i2w`
+declare isabelle target_rep function proverWordFromInteger = `Word.word_of_int`
+declare hol      target_rep function proverWordFromInteger = `integer_word$i2w`
 
 val wordFromInteger : forall 'a. Size 'a => integer -> mword 'a
 
@@ -305,13 +305,13 @@ let inline {isabelle;hol} wordFromInteger i = proverWordFromInteger i
 
 val naturalFromWord : forall 'a. mword 'a -> natural
 
-declare isabelle target_rep function naturalFromWord = `unat`
-declare hol      target_rep function naturalFromWord = `w2n`
+declare isabelle target_rep function naturalFromWord = `Word.unat`
+declare hol      target_rep function naturalFromWord = `words$w2n`
 declare ocaml    target_rep function naturalFromWord = `Lem.naturalFromWord`
 
 val wordFromNatural : forall 'a. Size 'a => natural -> mword 'a
 
-declare hol      target_rep function wordFromNatural = `n2w`
+declare hol      target_rep function wordFromNatural = `words$n2w`
 
 let inline {isabelle} wordFromNatural n =
   wordFromInteger (integerFromNatural n)
@@ -319,7 +319,7 @@ let inline {isabelle} wordFromNatural n =
 let {ocaml} wordFromNatural n = ocaml_inject (size, n)
 
 val wordToHex : forall 'a. mword 'a -> string
-declare hol target_rep function wordToHex = `word_to_hex_string`
+declare hol target_rep function wordToHex = `words$word_to_hex_string`
 (* Building libraries fails if we don't provide implementations for the
    type class. *)
 let {ocaml;isabelle;coq} wordToHex w = "wordToHex not yet implemented"
@@ -328,8 +328,21 @@ instance forall 'a. (Show (mword 'a))
   let show = wordToHex
 end
 
+val wordFromBitlist : forall 'a. Size 'a => list bool -> mword 'a
+declare isabelle target_rep function wordFromBitlist = `Word.of_bl`
+declare hol      target_rep function wordFromBitlist = `bitstring$v2w`
+
+val bitlistFromWord : forall 'a. mword 'a -> list bool
+declare isabelle target_rep function bitlistFromWord = `Word.to_bl`
+declare hol      target_rep function bitlistFromWord = `bitstring$w2v`
+
 
 assert {ocaml;hol;isabelle} length_test : word_length ((wordFromNatural 0) : mword ty13) = 13
+assert {hol;isabelle} wordFromBitlist_test : ((wordFromBitlist [false;false;true;false]) : mword ty4) = wordFromNatural 2
+assert {hol;isabelle} bitlistFromWord_test : bitlistFromWord ((wordFromNatural 2) : mword ty4) = [false;false;true;false]
+assert {hol;isabelle} wordFromBitlist_bitListFromWord_test :
+  let w : mword ty8 = wordFromNatural 33 in
+  wordFromBitlist (bitlistFromWord w) = w
 
 (******************************************************************)
 (* Comparisons                                                    *)
@@ -345,46 +358,46 @@ end
 
 val signedLess : forall 'a. mword 'a -> mword 'a -> bool
 
-declare isabelle target_rep function signedLess = `word_sless`
-declare hol      target_rep function signedLess = `word_lt`
+declare isabelle target_rep function signedLess = `Word.word_sless`
+declare hol      target_rep function signedLess = `words$word_lt`
 
 val signedLessEq : forall 'a. mword 'a -> mword 'a -> bool
 
-declare isabelle target_rep function signedLessEq = `word_sle`
-declare hol      target_rep function signedLessEq = `word_le`
+declare isabelle target_rep function signedLessEq = `Word.word_sle`
+declare hol      target_rep function signedLessEq = `words$word_le`
 
 val unsignedLess : forall 'a. mword 'a -> mword 'a -> bool
 
 declare isabelle target_rep function unsignedLess = `ord_word_inst.less_word`
-declare hol      target_rep function unsignedLess = `word_lo`
+declare hol      target_rep function unsignedLess = `words$word_lo`
 
 val unsignedLessEq : forall 'a. mword 'a -> mword 'a -> bool
 
 declare isabelle target_rep function unsignedLessEq = `ord_word_inst.less_eq_word`
-declare hol      target_rep function unsignedLessEq = `word_ls`
+declare hol      target_rep function unsignedLessEq = `words$word_ls`
 
 (******************************************************************)
 (* Appending, splitting and probing words                         *)
 (******************************************************************)
 
 val word_concat : forall 'a 'b 'c. mword 'a -> mword 'b -> mword 'c
-declare hol      target_rep function word_concat = `word_concat`
-declare isabelle target_rep function word_concat = `word_cat`
+declare hol      target_rep function word_concat = `words$word_concat`
+declare isabelle target_rep function word_concat = `Word.word_cat`
 declare ocaml    target_rep function word_concat = `Lem.word_concat`
 
 (* Note that we assume the result type has the correct size, especially
    for Isabelle. *)
 val word_extract : forall 'a 'b. nat -> nat -> mword 'a -> mword 'b
-declare hol      target_rep function word_extract lo hi v = `word_extract` hi lo v
-declare isabelle target_rep function word_extract lo hi v = `slice` lo v
+declare hol      target_rep function word_extract lo hi v = `words$word_extract` hi lo v
+declare isabelle target_rep function word_extract lo hi v = `Word.slice` lo v
 declare ocaml    target_rep function word_extract = `Lem.word_extract`
 
 (*  Needs to be in the prover because we'd end up with unknown sizes in the
    types in Lem.
 *)
 val word_update : forall 'a 'b. mword 'a -> nat -> nat -> mword 'b -> mword 'a
-declare hol      target_rep function word_update v lo hi w = `bit_field_insert` hi lo w v
-declare isabelle target_rep function word_update v lo hi w = `word_update` v lo hi w (* In Lem.thy *)
+declare hol      target_rep function word_update v lo hi w = `words$bit_field_insert` hi lo w v
+declare isabelle target_rep function word_update v lo hi w = `Lem.word_update` v lo hi w
 declare ocaml    target_rep function word_update = `Lem.word_update`
 
 val setBit : forall 'a. mword 'a -> natural -> bool -> mword 'a
@@ -395,17 +408,17 @@ declare hol      target_rep function setBit w i b = `$:+` i b w
 val getBit : forall 'a. mword 'a -> natural -> bool
 
 declare isabelle target_rep function getBit     = `bits_word_inst.test_bit_word`
-declare hol      target_rep function getBit w b = `word_bit` b w
+declare hol      target_rep function getBit w b = `words$word_bit` b w
 
 val msb : forall 'a. mword 'a -> bool
 
 declare isabelle target_rep function msb = `bitss_word_inst.msb_word`
-declare hol      target_rep function msb = `word_msb`
+declare hol      target_rep function msb = `words$word_msb`
 
 val lsb : forall 'a. mword 'a -> bool
 
 declare isabelle target_rep function lsb = `bits_word_inst.lsb_word`
-declare hol      target_rep function lsb = `word_lsb`
+declare hol      target_rep function lsb = `words$word_lsb`
 
 assert {ocaml;hol;isabelle} extract_concat_test :
   let x : mword ty16 = wordFromNatural 1234 in
@@ -428,53 +441,56 @@ assert {hol;isabelle} getBit_test  : getBit (wordFromNatural 3 : mword ty8) 1 = 
 
 val shiftLeft  : forall 'a. mword 'a -> natural -> mword 'a
 
-declare isabelle target_rep function shiftLeft = `sshiftl`
-declare hol      target_rep function shiftLeft = `word_lsl`
+declare isabelle target_rep function shiftLeft = infix `<<`
+declare hol      target_rep function shiftLeft = `words$word_lsl`
 
 val shiftRight : forall 'a. mword 'a -> natural -> mword 'a
 
-declare isabelle target_rep function shiftRight = `sshiftr`
-declare hol      target_rep function shiftRight = `word_lsr`
+declare isabelle target_rep function shiftRight = `Word.sshiftr`
+declare hol      target_rep function shiftRight = `words$word_lsr`
 
 val lAnd       : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function lAnd = `bit_word_inst.bitAND_word`
-declare hol      target_rep function lAnd = `word_and`
+declare hol      target_rep function lAnd = `words$word_and`
 
 val lOr        : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function lOr = `bit_word_inst.bitOR_word`
-declare hol      target_rep function lOr = `word_or`
+declare hol      target_rep function lOr = `words$word_or`
 
 val lXor       : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function lXor = `bit_word_inst.bitXOR_word`
-declare hol      target_rep function lXor = `word_xor`
+declare hol      target_rep function lXor = `words$word_xor`
 
 val lNot       : forall 'a. mword 'a -> mword 'a
 
 declare isabelle target_rep function lNot = `bit_word_inst.bitNOT_word`
-declare hol      target_rep function lNot = `word_1comp`
+declare hol      target_rep function lNot = `words$word_1comp`
 
 val rotateRight : forall 'a. natural -> mword 'a -> mword 'a
 
-declare isabelle target_rep function rotateRight = `word_rotr`
-declare hol      target_rep function rotateRight = `word_ror`
+declare isabelle target_rep function rotateRight = `Word.word_rotr`
+declare hol      target_rep function rotateRight = `words$word_ror`
 
 val rotateLeft : forall 'a. natural -> mword 'a -> mword 'a
 
-declare isabelle target_rep function rotateLeft = `word_rotl`
-declare hol      target_rep function rotateLeft = `word_rol`
+declare isabelle target_rep function rotateLeft = `Word.word_rotl`
+declare hol      target_rep function rotateLeft = `words$word_rol`
 
 val zeroExtend : forall 'a 'b. mword 'a -> mword 'b
 
-declare isabelle target_rep function zeroExtend = `ucast`
-declare hol      target_rep function zeroExtend = `w2w`
+declare isabelle target_rep function zeroExtend = `Word.ucast`
+declare hol      target_rep function zeroExtend = `words$w2w`
 
 val signExtend : forall 'a 'b. mword 'a -> mword 'b
 
-declare isabelle target_rep function signExtend = `scast`
-declare hol      target_rep function signExtend = `sw2sw`
+declare isabelle target_rep function signExtend = `Word.scast`
+declare hol      target_rep function signExtend = `words$sw2sw`
+
+assert {hol;isabelle} shift_test1 : shiftLeft (wordFromNatural 5 : mword ty8) 2 = wordFromNatural 20
+assert {hol;isabelle} shift_test2 : shiftRight (wordFromNatural 5 : mword ty8) 2 = wordFromNatural 1
 
 (*****************************************************************)
 (* Arithmetic                                                    *)
@@ -483,34 +499,34 @@ declare hol      target_rep function signExtend = `sw2sw`
 val plus   : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function plus = `plus_word_inst.plus_word`
-declare hol      target_rep function plus = `word_add`
+declare hol      target_rep function plus = `words$word_add`
 declare ocaml    target_rep function plus = `Lem.word_plus`
 
 val minus  : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function minus = `minus_word_inst.minus_word`
-declare hol      target_rep function minus = `word_sub`
+declare hol      target_rep function minus = `words$word_sub`
 declare ocaml     target_rep function minus = `Lem.word_minus`
 
 val uminus : forall 'a. mword 'a -> mword 'a
 
 declare isabelle target_rep function uminus = `uminus_word_inst.uminus_word`
-declare hol      target_rep function uminus = `word_2comp`
+declare hol      target_rep function uminus = `words$word_2comp`
 declare ocaml    target_rep function uminus = `Lem.word_uminus`
 
 val times : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function times = `times_word_inst.times_word`
-declare hol      target_rep function times = `word_mul`
+declare hol      target_rep function times = `words$word_mul`
 declare ocaml    target_rep function times = `Lem.word_times`
 
 val unsignedDivide : forall 'a. mword 'a -> mword 'a -> mword 'a
 val signedDivide : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function unsignedDivide = `divide_word_inst.divide_word`
-declare hol      target_rep function unsignedDivide = `word_div`
+declare hol      target_rep function unsignedDivide = `words$word_div`
 declare ocaml    target_rep function unsignedDivide = `Lem.word_udiv`
-declare hol      target_rep function signedDivide   = `word_sdiv`
+declare hol      target_rep function signedDivide   = `words$word_sdiv`
 
 let {isabelle} signedDivide x y =
   proverWordFromInteger ((signedIntegerFromWord x) / (signedIntegerFromWord y))
@@ -518,7 +534,7 @@ let {isabelle} signedDivide x y =
 val modulo : forall 'a. mword 'a -> mword 'a -> mword 'a
 
 declare isabelle target_rep function modulo = `modulo_word_inst.modulo_word`
-declare hol      target_rep function modulo = `word_mod`
+declare hol      target_rep function modulo = `words$word_mod`
 declare ocaml    target_rep function modulo = `Lem.word_mod`
 
 (* Now we can define wordFromInteger for OCaml *)
