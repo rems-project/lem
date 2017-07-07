@@ -1242,8 +1242,13 @@ declare hol      target_rep function shiftLeft = `words$word_lsl`
 
 val shiftRight : forall 'a. mword 'a -> natural -> mword 'a
 
-declare isabelle target_rep function shiftRight = `Word.sshiftr`
+declare isabelle target_rep function shiftRight = infix `>>`
 declare hol      target_rep function shiftRight = `words$word_lsr`
+
+val arithShiftRight : forall 'a. mword 'a -> natural -> mword 'a
+
+declare isabelle target_rep function arithShiftRight = infix `>>>`
+declare hol      target_rep function arithShiftRight = `words$word_asr`
 
 val lAnd       : forall 'a. mword 'a -> mword 'a -> mword 'a
 
@@ -1287,6 +1292,8 @@ declare hol      target_rep function signExtend = `words$sw2sw`
 
 assert {hol;isabelle} shift_test1 : shiftLeft (wordFromNatural 5 : mword ty8) 2 = wordFromNatural 20
 assert {hol;isabelle} shift_test2 : shiftRight (wordFromNatural 5 : mword ty8) 2 = wordFromNatural 1
+assert {hol;isabelle} shift_test3 : shiftRight (wordFromNatural 129 : mword ty8) 2 = wordFromNatural 32
+assert {hol;isabelle} shift_test4 : arithShiftRight (wordFromNatural 129 : mword ty8) 2 = wordFromNatural 224
 
 (*****************************************************************)
 (* Arithmetic                                                    *)
