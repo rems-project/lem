@@ -135,6 +135,87 @@ let word_uminus (n,w) =
 
 let naturalFromWord (_,w) = w
 
+let signedIntegerFromWord (n,w) =
+  let sign = Big_int_impl.BI.extract_big_int w (n-1) n in
+  if Nat_big_num.equal sign Nat_big_num.zero
+  then w
+  else
+    let high = Big_int_impl.BI.shift_left_big_int Big_int_impl.BI.unit_big_int n in
+    Big_int_impl.BI.sub_big_int w high
+
+let rec wordFromBitlist = function
+  | [] -> failwith "empty bitlist"
+  | l ->
+     let rec aux n w = function
+       | [] -> (n,w)
+       | (h::t) ->
+          let w = Big_int_impl.BI.shift_left_big_int w 1 in
+          aux (n+1) (if h then Nat_big_num.add w Big_int_impl.BI.unit_big_int else w) t
+     in aux 0 Big_int_impl.BI.zero_big_int l
+
+let bitlistFromWord (n,w) =
+  let rec aux acc n w =
+    if n = 0 then acc else
+      let b = Big_int_impl.BI.extract_big_int w 0 1 in
+      let b = if Nat_big_num.equal b (Big_int_impl.BI.zero_big_int) then false else true in
+      aux (b::acc) (n-1) (Big_int_impl.BI.shift_right_big_int w 1)
+  in aux [] n w
+
+let unsignedLess ((_:int),w1) ((_:int),w2) = Nat_big_num.less w1 w2
+let unsignedLessEq ((_:int),w1) ((_:int),w2) = Nat_big_num.less_equal w1 w2
+
+(* TODO: see if we can replace this with the zarith version *)
+let word_not (n,w) =
+  let twon = Big_int_impl.BI.shift_left_big_int Big_int_impl.BI.unit_big_int n in
+  let bits = Nat_big_num.sub twon Big_int_impl.BI.unit_big_int in
+  (n,Big_int_impl.BI.xor_big_int w bits)
+
+let word_setBit (n,w) i b =
+  let bit = Big_int_impl.BI.shift_left_big_int Big_int_impl.BI.unit_big_int i in
+  if b then
+    (n,Nat_big_num.bitwise_or w bit)
+  else
+    (n,Nat_big_num.bitwise_and w (snd (word_not (n,bit))))
+
+let word_getBit (n,w) i =
+  let bit = Big_int_impl.BI.extract_big_int w i (i+1) in
+  if Nat_big_num.equal bit Nat_big_num.zero then false else true
+
+let word_msb (n,w) =
+  let bit = Big_int_impl.BI.extract_big_int w (n-1) n in
+  if Nat_big_num.equal bit Nat_big_num.zero then false else true
+
+let word_lsb (n,w) =
+  let bit = Big_int_impl.BI.extract_big_int w 0 1 in
+  if Nat_big_num.equal bit Nat_big_num.zero then false else true
+
+let word_shiftLeft (n,w) m = (n,Big_int_impl.BI.shift_left_big_int w m)
+let word_shiftRight (n,w) m = (n,Big_int_impl.BI.shift_right_big_int w m)
+let word_arithShiftRight (n,w) m =
+  let signbit = Big_int_impl.BI.extract_big_int w (n-1) n in
+  let shifted = Big_int_impl.BI.shift_right_big_int w m in
+  if Nat_big_num.equal signbit Nat_big_num.zero then
+    (n,shifted)
+  else
+    let twom = Big_int_impl.BI.shift_left_big_int Big_int_impl.BI.unit_big_int m in
+    let ones = Nat_big_num.sub twom Big_int_impl.BI.unit_big_int in
+    let signs = Big_int_impl.BI.shift_left_big_int ones (n-m) in
+    (n,Nat_big_num.bitwise_or shifted signs)
+
+let word_logic f ((n:int),x) ((_:int),y) =
+  (n, f x y)
+
+let word_and = word_logic Nat_big_num.bitwise_and
+let word_or  = word_logic Nat_big_num.bitwise_or
+let word_xor = word_logic Nat_big_num.bitwise_xor
+
+let word_ror i (n,w) =
+  let low = Big_int_impl.BI.extract_big_int w i n in
+  let high = Big_int_impl.BI.extract_big_int w 0 i in
+  (n, Nat_big_num.bitwise_or low (Big_int_impl.BI.shift_left_big_int high (n-i)))
+
+let word_rol i (n,w) = word_ror (n-i) (n,w)
+
 let word_bin_arith f (n,x) ((_:int),y) =
   let w = f x y in
   (n, Big_int_impl.BI.extract_big_int w 0 n)
