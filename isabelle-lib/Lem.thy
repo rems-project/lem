@@ -83,23 +83,13 @@ subsection \<open>Integers\<close>
 
 subsection \<open>Dummy\<close>
 
-definition bitwise_xor :: "nat \<Rightarrow> nat \<Rightarrow> nat" where
-  "bitwise_xor x y = undefined"
-
-definition num_asr :: "nat \<Rightarrow> nat \<Rightarrow> nat" where
-  "num_asr n m = undefined"
-
-definition num_lsl :: "nat \<Rightarrow> nat \<Rightarrow> nat" where
-  "num_lsl n m = undefined"
-
-definition bitwise_or :: "nat \<Rightarrow> nat \<Rightarrow> nat" where
-  "bitwise_or n m = undefined"
-
-definition bitwise_not :: "nat \<Rightarrow> nat" where
-  "bitwise_not n = undefined"
-
-definition bitwise_and :: "nat \<Rightarrow> nat \<Rightarrow> nat" where
-  "bitwise_and n m = undefined"
+consts
+  bitwise_xor :: "nat \<Rightarrow> nat \<Rightarrow> nat"
+  num_asr :: "nat \<Rightarrow> nat \<Rightarrow> nat"
+  num_lsl :: "nat \<Rightarrow> nat \<Rightarrow> nat"
+  bitwise_or :: "nat \<Rightarrow> nat \<Rightarrow> nat"
+  bitwise_not :: "nat \<Rightarrow> nat"
+  bitwise_and :: "nat \<Rightarrow> nat \<Rightarrow> nat"
 
 subsection \<open>Machine words\<close>
 
