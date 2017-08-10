@@ -50,7 +50,7 @@ theory "Lem"
 
 imports
          LemExtraDefs
-         "Word"
+         "~~/src/HOL/Word/Word"
 begin
 
 type_synonym numeral = nat
