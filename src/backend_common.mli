@@ -74,8 +74,8 @@ val component_to_output : Ast.component -> Output.t
     target [targ].*)
 val get_module_name : env -> Target.target -> Name.t list -> Name.t -> Name.t
 
-(** [get_module_open_string l env targ dir mod_path] looks up how to represent this module in import / open statements. *)
-val get_module_open_string : env -> Target.target -> string -> Path.t -> string 
+(** [get_module_open_string l env targ dir relative mod_path] looks up how to represent this module in import / open statements. *)
+val get_module_open_string : env -> Target.target -> string -> bool -> Path.t -> string 
 
 
 (** [isa_add_full_library_path_flag] controls whether the full path to directory [isabelle-lib] is added to
@@ -91,8 +91,8 @@ val isa_add_full_library_path_flag : bool ref
     [imported_modules_to_strings].*)
 val get_imported_target_modules : Typed_ast.def list * Ast.lex_skips -> Imported_Modules_Set.t
 
-(** [imported_modules_to_strings env targ dir imported_mods] is used together with [get_imported_target_modules]. Please see there. *)
-val imported_modules_to_strings : env -> Target.target -> string -> Imported_Modules_Set.t -> string list
+(** [imported_modules_to_strings env targ dir imported_mods relative] is used together with [get_imported_target_modules]. Please see there. *)
+val imported_modules_to_strings : env -> Target.target -> string -> Imported_Modules_Set.t -> bool -> string list
 
 
 module Make(A : sig

@@ -167,8 +167,9 @@ let output1 env (out_dir : string option) (targ : Target.target) avoid m =
   let module B = Backend.Make(C) in
   let open Typed_ast in
   
-  let imported_modules = Backend_common.imported_modules_to_strings env targ dir m.imported_modules in
-  let extra_imported_modules = Util.remove_duplicates (imported_modules @ [Backend_common.get_module_open_string env targ dir m.module_path]) in
+  let relative = not (out_dir = None) in
+  let imported_modules = Backend_common.imported_modules_to_strings env targ dir m.imported_modules relative in
+  let extra_imported_modules = Util.remove_duplicates (imported_modules @ [Backend_common.get_module_open_string env targ dir relative m.module_path]) in
   let (mod_path, mod_name) = Path.to_name_list m.module_path in
   let module_name = Name.to_string (Backend_common.get_module_name env targ mod_path mod_name) in
     match targ with
