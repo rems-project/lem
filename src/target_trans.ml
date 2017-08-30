@@ -248,7 +248,7 @@ let isa  =
                      M.remove_types_with_target_rep (Target_no_ident Target_isa);
                      M.defs_with_target_rep_to_lemma env (Target_no_ident Target_isa);
                      Patterns.compile_def (Target_no_ident Target_isa) Patterns.is_isabelle_pattern_match env;
-                     Patterns.remove_toplevel_match (Target_no_ident Target_isa) Patterns.is_isabelle_pattern_match env;] );
+                     (*Patterns.remove_toplevel_match (Target_no_ident Target_isa) Patterns.is_isabelle_pattern_match env;*)] );
               Pat_macros (fun env ->
                 let m a1 a2 a3 =
                   match Backend_common.inline_pat_macro Target_isa env a1 a2 a3 with
