@@ -56,8 +56,7 @@ begin
 
 subsection \<open>General\<close>
 
-definition failwith :: " 'a \<Rightarrow> 'b " where
-  "failwith message = undefined"
+consts failwith :: " 'a \<Rightarrow> 'b"
 
 subsection \<open>Lists\<close>
 

@@ -163,7 +163,7 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 %token <Ast.terminal> Class_ Do LeftArrow
 %token <Ast.terminal> Inst Inst_default
 %token <Ast.terminal> Module CompileMessage Field Type Automatic Manual Exhaustive Inexhaustive AsciiRep SetFlag TerminationArgument PatternMatch
-%token <Ast.terminal> RightAssoc LeftAssoc NonAssoc Infix Special TargetRep
+%token <Ast.terminal> RightAssoc LeftAssoc NonAssoc Infix Special TargetRep TargetSorts
 
 %start file
 %type <Ast.defs> defs
@@ -974,6 +974,18 @@ x_ls :
   | X x_ls
     { (Ast.X_l ($1, loc()))::$2 }
 
+sort :
+  | Under
+    { Ast.Sort ($1, None) }
+  | BacktickString
+    { Ast.Sort (fst $1, Some (snd $1)) }
+
+sorts :
+  |
+    { [] }
+  | sort sorts
+    { $1::$2 }
+
 declaration :
   | Declare targets_opt CompileMessage id Eq String
     { Decl_compile_message_decl($1, $2, $3, $4, fst $5, fst $6, snd $6) }
@@ -987,6 +999,8 @@ declaration :
     { Decl_target_rep_decl($1, fst $2, snd $2, Target_rep_lhs_term ($3, $4, $5, $6), fst $7, $8) }
   | Declare target TargetRep component_type id tnvs Eq target_rep_rhs_type
     { Decl_target_rep_decl($1, fst $2, snd $2, Target_rep_lhs_type($3, $4, $5, $6), fst $7, Target_rep_rhs_type_replacement $8) }
+  | Declare target TargetSorts id Eq sorts
+    { Decl_target_sorts($1, fst $2, snd $2, $3, $4, fst $5, $6) }
   | Declare SetFlag x Eq x
     { Decl_set_flag_decl($1, $2, $3, fst $4, $5) }
   | Declare targets_opt TerminationArgument id Eq termination_setting

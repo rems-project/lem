@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/bash -e
 
 dir=$1
 cd $dir

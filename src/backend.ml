@@ -242,6 +242,7 @@ module type Target = sig
   val typ_constr_sep : t
   val typ_var : Ulib.Text.t
   val typ_class_constraint_prefix_end : t 
+  val typ_with_sort : t -> Ulib.Text.t -> t
 
   (* Length specifications *)
   val nexp_start : t
@@ -461,6 +462,7 @@ module Identity : Target = struct
   let typ_constr_sep = kwd "of"
   let typ_var = r"'"
   let typ_class_constraint_prefix_end = kwd "=>"
+  let typ_with_sort _ _ = err "Type with sort not supported in ident backend"
 
   let nexp_start = emp
   let nexp_end = emp
@@ -632,6 +634,8 @@ module Html : Target = struct
   let reln_clause_add_paren = false
   let reln_clause_start = emp
 
+  let typ_with_sort _ _ = err "Type with sort not supported in HTML backend"
+
   let backend_quote i = (meta "`") ^ i ^ (meta "`")
 end
 
@@ -687,6 +691,7 @@ module Tex : Target = struct
   let typ_constr_sep = bkwd "of"
   let typ_var = r""
   let typ_class_constraint_prefix_end = kwd "\\Rightarrow"
+  let typ_with_sort _ _ = err "Type with sort not supported in TeX backend"
   
   let nexp_start = emp
   let nexp_end = emp
@@ -841,6 +846,7 @@ module Ocaml : Target = struct
   let nexp_start = kwd "(*"
   let nexp_end = kwd "*)"
   let nexp_var = r""
+  let typ_with_sort _ _ = err "Type with sort not supported in OCaml backend"
 
   let ctor_typ_end _ _ = emp
   let ctor_typ_end' _ _ _ = emp
@@ -916,6 +922,7 @@ module Isa : Target = struct
   let typ_constr_sep = emp
   let typ_var = r"'"
   let typ_class_constraint_prefix_end = kwd "=>"
+  let typ_with_sort t sort = kwd "(" ^ t ^ kwd "::" ^ str sort ^ kwd ")"
 
   let pat_as = err "as pattern in Isabelle"
   let pat_rec_start = err "record pattern in Isabelle"
@@ -1105,6 +1112,7 @@ module Hol : Target = struct
   let typ_constr_sep = kwd "of"
   let typ_var = r"'"
   let typ_class_constraint_prefix_end = kwd "=>"
+  let typ_with_sort _ _ = err "Type with sort not supported in HOL backend"
 
   let nexp_start = kwd "(*"
   let nexp_end = kwd "*)"
@@ -1404,6 +1412,9 @@ let rec typ print_backend t = match t.term with
       typ print_backend t ^
       ws s2 ^
       kwd ")"
+  (* Sorts only appear on type variables *)
+  | Typ_with_sort({term = Typ_var _} as t,sort) -> T.typ_with_sort (typ print_backend t) (Name.to_rope sort)
+  | Typ_with_sort(t,sort) -> typ print_backend t
 
 let field_ident_to_output cd =
   Ident.to_output Term_field T.path_sep (B.const_id_to_ident cd (use_ascii_rep_for_const cd))
@@ -3477,6 +3488,25 @@ let rec def_internal callback (inside_module: bool) d is_user_def : Output.t = m
         ws sk4 ^
         kwd "=" ^
         core (typ true rhs)
+      end
+  | Declaration (Decl_target_sorts (sk1, targ, sk2, sk3, id, sk4, sorts)) ->
+      if (not (Target.is_human_target T.target)) then emp else begin
+        let sort = function
+          | Sort (sk,None) -> ws sk ^ kwd "_"
+          | Sort (sk,Some n) -> ws sk ^
+             T.backend_quote (Name.to_output (Term_const (false, false))
+                                (Name.add_lskip n))
+        in
+        ws sk1 ^
+        T.bkwd "declare" ^
+        ws sk2 ^
+        (Target.target_to_output targ) ^
+        ws sk3 ^
+        T.bkwd "target_sorts" ^
+        B.type_id_to_output id ^
+        ws sk4 ^
+        kwd "=" ^
+        core (flat (List.map sort sorts))
       end
   | Declaration (Decl_ascii_rep (sk1, targets, sk2, comp, nk_id, sk3, sk4, n)) ->
       if (not (Target.is_human_target T.target)) then emp else begin

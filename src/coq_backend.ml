@@ -165,7 +165,8 @@ let rec generate_coq_decidable_equality' t =
      | Typ_tup srct_skiplist -> assert false
      | Typ_app (id, typ) -> assert false
      | Typ_backend (id, typ) -> assert false
-     | Typ_paren (_, src, _) -> generate_coq_decidable_equality' src.term
+     | Typ_paren (_, src, _)
+     | Typ_with_sort (src, _) -> generate_coq_decidable_equality' src.term
 ;;
 
 let error o =
@@ -215,6 +216,10 @@ let rec src_t_to_string =
     | Typ_tup src_t_lskips_seplist -> from_string "(* src_t_to_string tuple *)"
     | Typ_paren (skips, src_t, skips') ->
         from_string "(" ^ src_t_to_string src_t.term ^ from_string ")"
+    | Typ_with_sort (src_t, sort) ->
+        from_string "(" ^ src_t_to_string src_t.term ^ from_string " : " ^ 
+          (from_string @@ Ulib.Text.to_string (Name.to_rope sort)) ^
+          from_string ")"
 ;;
 let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
 
@@ -1348,6 +1353,7 @@ let generate_coq_record_update_notation e =
               ]
         | Typ_paren(skips, t, skips') ->
             ws skips ^ from_string "(" ^ pat_typ t ^ ws skips' ^ from_string ")"
+        | Typ_with_sort(t,_) -> raise (Reporting_basic.err_general true t.locn "Target sort annotations not currently supported for Coq")
         | Typ_len nexp -> src_nexp nexp
         | Typ_backend (p, ts) ->
           let i = Path.to_ident (ident_get_lskip p) p.descr in
@@ -1368,6 +1374,7 @@ let generate_coq_record_update_notation e =
            typ_ident_to_output p
       	| Typ_paren (skips, t, skips') ->
           	ws skips ^ from_string "(" ^ typ t ^ from_string ")" ^ ws skips'
+      	| Typ_with_sort (t, sort) -> raise (Reporting_basic.err_general true t.locn "Target sort annotations not currently supported for Coq")
         | Typ_len nexp -> src_nexp nexp
         | _ -> assert false
     and type_def_type_variables tvs =
@@ -1436,6 +1443,7 @@ let generate_coq_record_update_notation e =
             ]
         | Typ_paren(skips, t, skips') ->
             ws skips ^ from_string "(" ^ indreln_typ t ^ from_string ")" ^ ws skips'
+        | Typ_with_sort(t, _) -> indreln_typ t (* TODO? *)
         | Typ_len nexp -> src_nexp nexp
         | _ -> assert false
     and field ((n, _), f_ref, skips, t) =
@@ -1518,7 +1526,8 @@ let generate_coq_record_update_notation e =
                   ]
               else
                 from_string "DAEMON"
-          | Typ_paren (_, src_t, _) -> default_value src_t
+          | Typ_paren (_, src_t, _)
+          | Typ_with_sort (src_t, _) -> default_value src_t
           | Typ_fn (dom, _, rng) ->
               let v = generate_fresh_name () in
                 Output.flat [

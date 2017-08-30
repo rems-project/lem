@@ -50,7 +50,7 @@ theory "Lem"
 
 imports
          LemExtraDefs
-
+         "~~/src/HOL/Word/Word"
 begin
 
 type_synonym numeral = nat
@@ -83,23 +83,19 @@ subsection \<open>Integers\<close>
 
 subsection \<open>Dummy\<close>
 
-definition bitwise_xor :: "nat \<Rightarrow> nat \<Rightarrow> nat" where
-  "bitwise_xor x y = undefined"
+consts
+  bitwise_xor :: "nat \<Rightarrow> nat \<Rightarrow> nat"
+  num_asr :: "nat \<Rightarrow> nat \<Rightarrow> nat"
+  num_lsl :: "nat \<Rightarrow> nat \<Rightarrow> nat"
+  bitwise_or :: "nat \<Rightarrow> nat \<Rightarrow> nat"
+  bitwise_not :: "nat \<Rightarrow> nat"
+  bitwise_and :: "nat \<Rightarrow> nat \<Rightarrow> nat"
 
-definition num_asr :: "nat \<Rightarrow> nat \<Rightarrow> nat" where
-  "num_asr n m = undefined"
+subsection \<open>Machine words\<close>
 
-definition num_lsl :: "nat \<Rightarrow> nat \<Rightarrow> nat" where
-  "num_lsl n m = undefined"
-
-definition bitwise_or :: "nat \<Rightarrow> nat \<Rightarrow> nat" where
-  "bitwise_or n m = undefined"
-
-definition bitwise_not :: "nat \<Rightarrow> nat" where
-  "bitwise_not n = undefined"
-
-definition bitwise_and :: "nat \<Rightarrow> nat \<Rightarrow> nat" where
-  "bitwise_and n m = undefined"
-
+definition word_update :: "'a::len word \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'b::len word \<Rightarrow> 'a word" where
+  "word_update v lo hi w =
+    (let sz = size v in
+    of_bl (take (sz-hi-1) (to_bl v) @ to_bl w @ drop (sz-lo) (to_bl v)))"
 
 end
