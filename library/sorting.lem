@@ -155,9 +155,7 @@ declare isabelle target_rep function sortBy = `sort_by`
 declare hol      target_rep function sortBy = `QSORT`
 declare ocaml    target_rep function sortByOrd = `List.sort`
 
-(* FIXME! Move this out of the ELF repo and into Lem... *)
-declare isabelle target_rep function sortByOrd      = `Elf_Types_Local.merge_sort`
-let inline {hol} sortByOrd f xs = sortBy (predicate_of_ord f) xs
+let inline {isabelle;hol} sortByOrd f xs = sortBy (predicate_of_ord f) xs
 declare coq      target_rep function sortByOrd      = `sort_by_ordering`
 
 let inline ~{ocaml} sort = sortBy (<=)
