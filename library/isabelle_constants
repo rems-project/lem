@@ -323,6 +323,7 @@ signature
 simproc_setup
 size
 sledgehammer
+slice1
 smt_status
 SOME
 sorry
