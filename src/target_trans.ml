@@ -260,6 +260,7 @@ let isa  =
                       [T.list_quant_to_set_quant;
                        T.cleanup_set_quant;
                        T.remove_num_lit;
+                       T.remove_fun_pats false;
                        T.remove_set_restr_quant;
                        T.remove_restr_quant Pattern_syntax.is_var_wild_tup_pat;
                        T.remove_set_comp_binding;
