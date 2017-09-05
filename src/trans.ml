@@ -520,7 +520,6 @@ let list_quant_to_set_quant _ e =
             | Some(qbs) -> Macro_expander.Continue (C.mk_quant (exp_to_locn e) q qbs s1 e' None)
         end
   | Comp_binding(b,s1,e1,s2,s3,qbs,s4,e2,s5) ->
-      let _ = Printf.printf "I saw a comp binding!" in
       let qbs =
         Util.map_changed
           (fun e -> match e with
