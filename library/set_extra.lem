@@ -67,9 +67,9 @@ declare coq   target_rep function chooseAndSplit = `choose_and_split`
 
 val universal : forall 'a. SetType 'a => set 'a
 declare compile_message universal = "universal sets are usually infinite and only available in HOL and Isabelle"
-let {hol;isabelle} universal = { x | forall x | true }
 
 declare hol      target_rep function universal = `UNIV`
+declare isabelle target_rep function universal = `UNIV`
 
 assert {hol} in_univ_0 : true IN universal
 assert {hol} in_univ_1 : (1:nat) IN universal
