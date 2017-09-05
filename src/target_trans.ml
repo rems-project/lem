@@ -257,8 +257,7 @@ let isa  =
                 in [m]);
       Exp_macros (fun env ->
                     let module T = T(struct let env = env end) in
-                      [T.list_quant_to_set_quant;
-                       T.cleanup_set_quant;
+                      [T.cleanup_set_quant;
                        T.remove_num_lit;
                        T.remove_fun_pats false;
                        T.remove_set_restr_quant;
@@ -270,6 +269,7 @@ let isa  =
                            | None -> Macro_expander.Fail
                            | Some e -> Macro_expander.Continue e);
                        T.sort_record_fields;
+                       T.list_quant_to_set_quant;
                        (fun a1 a2 ->
                          match Patterns.compile_exp (Target_no_ident Target_isa) Patterns.is_isabelle_pattern_match env a1 a2 with
                            | None -> Macro_expander.Fail

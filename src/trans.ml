@@ -504,7 +504,7 @@ let list_quant_to_set_quant _ e =
       let qbs =
         Util.map_changed
           (fun e -> match e with
-             | Qb_restr(is_lst,s2,p,s3,e,s4) when is_lst->
+             | Qb_restr(is_lst,s2,p,s3,e,s4) when is_lst ->
                  let lst_to_set = 
                    append_lskips space
                      (mk_const_exp env l_unk "set_from_list" [p.typ])
@@ -518,6 +518,26 @@ let list_quant_to_set_quant _ e =
           match qbs with
             | None -> Macro_expander.Fail
             | Some(qbs) -> Macro_expander.Continue (C.mk_quant (exp_to_locn e) q qbs s1 e' None)
+        end
+  | Comp_binding(b,s1,e1,s2,s3,qbs,s4,e2,s5) ->
+      let _ = Printf.printf "I saw a comp binding!" in
+      let qbs =
+        Util.map_changed
+          (fun e -> match e with
+             | Qb_restr(is_lst,s2,p,s3,e,s4) when is_lst ->
+                 let lst_to_set = 
+                   append_lskips space
+                     (mk_const_exp env l_unk "set_from_list" [p.typ])
+                 in
+                 let app = C.mk_app l_unk lst_to_set e None in
+                   Some (Qb_restr(false,s2,p,s3,app,s4))
+             | _ -> None)
+          qbs
+      in
+        begin
+          match qbs with
+            | None -> Macro_expander.Fail
+            | Some(qbs) -> Macro_expander.Continue (C.mk_comp_binding (exp_to_locn e) b s1 e1 s2 s3 qbs s4 e2 s5 None)
         end
   | _ -> Macro_expander.Fail
 
