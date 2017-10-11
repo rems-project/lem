@@ -1,12 +1,17 @@
 Require Import Coq.Bool.Bool.
 Require Import Coq.ZArith.BinInt.
 Require Import Coq.ZArith.Zorder.
+Require Import Coq.QArith.QArith_base.
+Require Import Coq.Reals.Rbase.
+Require Import Coq.Reals.ROrderedType.
 Require Import Coq.Numbers.Natural.Peano.NPeano.
 Require Import Coq.Arith.EqNat.
 Require Import ClassicalDescription.
 Require Import Coq.Strings.Ascii.
 Require Import Coq.Strings.String.
 Require Import Coq.Program.Wf.
+
+Local Open Scope nat_scope.
 
 (* Logic *)
 
@@ -174,6 +179,25 @@ Definition int_ltb (i j: Z): bool := Z.ltb i j.
 Definition int_gtb (i j: Z): bool := Z.gtb i j.
 Definition int_lteb (i j: Z): bool := Z.leb i j.
 Definition int_gteb (i j: Z): bool := Z.geb i j.
+
+(* Rationals *)
+
+Definition Qlt_bool (x y: Q): bool := (Qle_bool x y) && (negb (Qeq_bool x y)).
+Definition Qgt_bool (x y: Q): bool := (negb (Qle_bool x y)) && (negb (Qeq_bool x y)).
+Definition Qge_bool (x y: Q): bool := (negb (Qle_bool x y)) || (Qeq_bool x y).
+
+(* Reals *)
+
+Definition Rlt_bool (x y: R): bool :=
+ match Rcompare x y with
+ | Lt => true
+ | _ => false
+ end.
+Definition Rle_bool (x y: R): bool := (Rlt_bool x y) || (Reqb x y).
+Definition Rgt_bool (x y: R): bool := negb (Rle_bool x y).
+Definition Rge_bool (x y: R): bool := (Rgt_bool x y) || (Reqb x y).
+
+Definition Rdown (x:R): Z := ((up x) - 1)%Z.
 
 (* Sets *)
 
