@@ -11,7 +11,7 @@ declare {isabelle;ocaml;hol;coq} rename module = lem_num
 
 open import Bool Basic_classes
 open import {isabelle} `~~/src/HOL/Word/Word` `Real`
-open import {hol} `integerTheory` `intReduce` `wordsTheory` `wordsLib` `ratTheory` `realTheory`
+open import {hol} `integerTheory` `intReduce` `wordsTheory` `wordsLib` `ratTheory` `realTheory` `intrealTheory`
 open import {coq} `Coq.Numbers.BinNums` `Coq.ZArith.BinInt` `Coq.ZArith.Zpower` `Coq.ZArith.Zdiv` `Coq.ZArith.Zmax` `Coq.Numbers.Natural.Peano.NPeano` `Coq.QArith.Qabs` `Coq.QArith.Qminmax` `Coq.Reals.ROrderedType` `Coq.Reals.Rbase` `Coq.Reals.Rfunctions`
 
 (* ========================================================================== *)
@@ -1355,7 +1355,7 @@ end
 val rationalFromFrac : int -> int -> rational
 declare ocaml    target_rep function rationalFromFrac n d = (`Q.of_ints` n d)
 declare isabelle target_rep function rationalFromFrac n d = (`Fract` n d)
-declare hol      target_rep function rationalFromFrac n d = (`Rat` (n, d))
+declare hol      target_rep function rationalFromFrac n d = (`rat_cons` n d)
 declare coq      target_rep function rationalFromFrac n d = (`Qmake` n d)
 
 val rationalEq : rational -> rational -> bool
@@ -1518,7 +1518,7 @@ end
 val realFromNumeral : numeral -> real
 declare ocaml    target_rep function realFromNumeral n = (`float_of_int` n)
 declare isabelle target_rep function realFromNumeral n = (``n : real)
-declare hol      target_rep function realFromNumeral n = (``n : real)
+declare hol      target_rep function realFromNumeral n = (`real_of_num` n)
 declare coq      target_rep function realFromNumeral n = (`IZR` (`Zpred` (`Zpos` (`P_of_succ_nat` n))))
 
 instance (Numeral real)
@@ -1528,7 +1528,7 @@ end
 val realFromInteger : integer -> real
 declare ocaml    target_rep function realFromInteger n = (`float_of_int` (`Nat_big_num.to_int` n))
 declare isabelle target_rep function realFromInteger n = (`real_of_int` n)
-declare hol      target_rep function realFromInteger n = (``n : real)
+declare hol      target_rep function realFromInteger n = (`real_of_int` n)
 declare coq      target_rep function realFromInteger n = (`IZR` n)
 
 val realEq : real -> real -> bool
@@ -1655,7 +1655,6 @@ end
 val realFromFrac : integer -> integer -> real
 let realFromFrac n d = realDiv (realFromInteger n) (realFromInteger d)
 declare ocaml    target_rep function realFromFrac n d = (`Lem.div_float` (realFromInteger n) (realFromInteger d))
-declare hol      target_rep function realFromFrac n d = (`Rat` (n, d))
 
 val realPowInteger : real -> integer -> real
 let rec realPowInteger b e =
@@ -1681,12 +1680,14 @@ declare coq      target_rep function realSqrt = `Rsqrt`
 
 val realMin : real -> real -> real
 let inline realMin = defaultMin
+declare hol      target_rep function realMin = `min`
 declare isabelle target_rep function realMin = `min`
 declare ocaml    target_rep function realMin = `min`
 declare coq      target_rep function realMin = `Rmin`
 
 val realMax : real -> real -> real
 let inline realMax = defaultMax
+declare hol      target_rep function realMax = `max`
 declare isabelle target_rep function realMax = `max`
 declare ocaml    target_rep function realMax = `max`
 declare coq      target_rep function realMax = `Rmax`
@@ -1699,13 +1700,13 @@ end
 val realRoundUp : real -> integer
 declare isabelle target_rep function realRoundUp = `ceil`
 declare ocaml    target_rep function realRoundUp = `Lem.big_num_of_ceil`
-declare hol      target_rep function realRoundUp = `upper_int_of_rat`
+declare hol      target_rep function realRoundUp = `clg`
 declare coq      target_rep function realRoundUp = `up`
 
 val realRoundDown : real -> integer
 declare isabelle target_rep function realRoundDown = `floor`
 declare ocaml    target_rep function realRoundDown = `Lem.big_num_of_floor`
-declare hol      target_rep function realRoundDown = `lower_int_of_rat`
+declare hol      target_rep function realRoundDown = `flr`
 declare coq      target_rep function realRoundDown = `Rdown`
 
 
