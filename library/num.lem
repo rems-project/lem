@@ -1496,14 +1496,12 @@ val rationalMin : rational -> rational -> rational
 let inline rationalMin = defaultMin
 declare isabelle target_rep function rationalMin = `min`
 declare ocaml    target_rep function rationalMin = `Q.min`
-declare hol      target_rep function rationalMin = `int_min`
 declare coq      target_rep function rationalMin = `Qmin`
 
 val rationalMax : rational -> rational -> rational
 let inline rationalMax = defaultMax
 declare isabelle target_rep function rationalMax = `max`
 declare ocaml    target_rep function rationalMax = `Q.max`
-declare hol      target_rep function rationalMax = `int_max`
 declare coq      target_rep function rationalMax = `Qmax`
 
 instance ( OrdMaxMin rational )
@@ -1685,14 +1683,12 @@ val realMin : real -> real -> real
 let inline realMin = defaultMin
 declare isabelle target_rep function realMin = `min`
 declare ocaml    target_rep function realMin = `min`
-declare hol      target_rep function realMin = `int_min`
 declare coq      target_rep function realMin = `Rmin`
 
 val realMax : real -> real -> real
 let inline realMax = defaultMax
 declare isabelle target_rep function realMax = `max`
 declare ocaml    target_rep function realMax = `max`
-declare hol      target_rep function realMax = `int_max`
 declare coq      target_rep function realMax = `Rmax`
 
 instance ( OrdMaxMin real )
@@ -1703,13 +1699,13 @@ end
 val realRoundUp : real -> integer
 declare isabelle target_rep function realRoundUp = `ceil`
 declare ocaml    target_rep function realRoundUp = `Lem.big_num_of_ceil`
-declare hol      target_rep function realRoundUp = `ceil`
+declare hol      target_rep function realRoundUp = `upper_int_of_rat`
 declare coq      target_rep function realRoundUp = `up`
 
 val realRoundDown : real -> integer
 declare isabelle target_rep function realRoundDown = `floor`
 declare ocaml    target_rep function realRoundDown = `Lem.big_num_of_floor`
-declare hol      target_rep function realRoundDown = `floor`
+declare hol      target_rep function realRoundDown = `lower_int_of_rat`
 declare coq      target_rep function realRoundDown = `Rdown`
 
 
