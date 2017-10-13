@@ -1704,7 +1704,7 @@ instance ( OrdMaxMin real )
 end
 
 val realRoundUp : real -> integer
-declare isabelle target_rep function realRoundUp = `ceil`
+declare isabelle target_rep function realRoundUp = `ceiling`
 declare ocaml    target_rep function realRoundUp = `Lem.big_num_of_ceil`
 declare hol      target_rep function realRoundUp = `clg`
 declare coq      target_rep function realRoundUp = `up`
@@ -2010,6 +2010,8 @@ assert real_test28 : (realRoundDown (realFromFrac 11 4) = 2)
 assert real_test29 : (realRoundUp (realFromFrac 11 4) = 3)
 assert real_test30 : (realRoundDown (realFromFrac 12 4) = 3)
 assert real_test31 : (realRoundUp (realFromFrac 12 4) = 3)
+assert real_test32 : (realRoundDown (realFromFrac (~3) 2) = ~2)
+assert real_test33 : (realRoundUp (realFromFrac (~3) 2) = ~1)
 
 (* ========================================================================== *)
 (* Translation between number types                                           *)
