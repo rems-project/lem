@@ -1352,11 +1352,11 @@ instance (Numeral rational)
   let fromNumeral n = rationalFromNumeral n
 end
 
-val rationalFromFrac : int -> int -> rational
-declare ocaml    target_rep function rationalFromFrac n d = (`Q.of_ints` n d)
-declare isabelle target_rep function rationalFromFrac n d = (`Fract` n d)
-declare hol      target_rep function rationalFromFrac n d = (`rat_cons` n d)
-declare coq      target_rep function rationalFromFrac n d = (`Qmake` n d)
+val rationalFromInt : int -> rational
+declare ocaml    target_rep function rationalFromInt n = (`Q.of_int` n)
+declare isabelle target_rep function rationalFromInt n = (`Fract` n (1 : integer))
+declare hol      target_rep function rationalFromInt n = (`rat_of_int` n)
+declare coq      target_rep function rationalFromInt n = (`inject_Z` n)
 
 val rationalEq : rational -> rational -> bool
 let inline rationalEq = unsafe_structural_equality
@@ -1477,6 +1477,12 @@ declare coq      target_rep function rationalDiv = `Qdiv`
 instance ( NumDivision rational )
   let (/) = rationalDiv
 end
+
+val rationalFromFrac : int -> int -> rational
+let rationalFromFrac n d = (rationalFromInt n) / (rationalFromInt d)
+declare ocaml    target_rep function rationalFromFrac n d = (`Q.of_ints` n d)
+declare isabelle target_rep function rationalFromFrac n d = (`Fract` n d)
+declare hol      target_rep function rationalFromFrac n d = (`rat_cons` n d)
 
 val rationalPowInteger : rational -> integer -> rational
 let rec rationalPowInteger b e =
@@ -1944,7 +1950,7 @@ assert integer_test28 : (abs (~42) = (42 : integer))
 
 
 assert rational_test1 : (2 + (5 : rational) = 7)
-assert rational_test2 : ((3 / (2 : real)) + (1 / 2) = 2)
+assert rational_test2 : ((rationalFromFrac 3 2) + (rationalFromFrac 1 2) = 2)
 assert rational_test3 : (7 - (8 : rational) = ~1)
 assert rational_test4 : (7 * (8 : rational) = 56)
 assert rational_test5 : ((7 : rational) ** 2 = 49)
@@ -1970,10 +1976,10 @@ assert rational_test23 : (pred 12 = (11 : rational))
 assert rational_test24 : (pred 0 = ~(1 : rational))
 assert rational_test25 : (abs 42 = (42 : rational))
 assert rational_test26 : (abs (~42) = (42 : rational))
-assert rational_test27 : ((1 / (2 : real)) * 2 = 1)
+assert rational_test27 : ((rationalFromFrac 1 2) * 2 = 1)
 
 assert real_test1 : (2 + (5 : real) = 7)
-assert real_test2 : ((realFromFrac 3 2) + (realFromFrac 1 2) = 2)
+assert real_test2 : ((3 / (2 : real)) + (1 / 2) = 2)
 assert real_test3 : (7 - (8 : real) = ~1)
 assert real_test4 : (7 * (8 : real) = 56)
 assert real_test5 : ((7 : real) ** 2 = 49)
@@ -1999,7 +2005,7 @@ assert real_test23 : (pred 12 = (11 : real))
 assert real_test24 : (pred 0 = ~(1 : real))
 assert real_test25 : (abs 42 = (42 : real))
 assert real_test26 : (abs (~42) = (42 : real))
-assert real_test27 : ((realFromFrac 1 2) * 2 = 1)
+assert real_test27 : ((1 / (2 : real)) * 2 = 1)
 assert real_test28 : (realRoundDown (realFromFrac 11 4) = 2)
 assert real_test29 : (realRoundUp (realFromFrac 11 4) = 3)
 assert real_test30 : (realRoundDown (realFromFrac 12 4) = 3)
