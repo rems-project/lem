@@ -1487,12 +1487,14 @@ declare hol      target_rep function rationalFromFrac n d = (`rat_cons` n d)
 val rationalPowInteger : rational -> integer -> rational
 let rec rationalPowInteger b e =
   if e = 0 then 1 else
-    if e > 0 then rationalPowInteger b (e - 1) * b else
-      rationalPowInteger b (e + 1) / b
+  if e > 0 then rationalPowInteger b (e - 1) * b else
+  rationalPowInteger b (e + 1) / b
 declare coq      target_rep function rationalPowInteger = `Qpower`
 
 val rationalPowNat : rational -> nat -> rational
 let rationalPowNat r e = rationalPowInteger r (integerFromNat e)
+declare isabelle target_rep function rationalPowNat = `power`
+declare coq      target_rep function rationalPowNat r e = (`Qpower` r (`Z.of_nat` e))
 
 instance ( NumPow rational )
   let ( ** ) = rationalPowNat
@@ -1665,14 +1667,16 @@ declare ocaml    target_rep function realFromFrac n d = (`Lem.div_float` (realFr
 val realPowInteger : real -> integer -> real
 let rec realPowInteger b e =
   if e = 0 then 1 else
-    if e > 0 then realPowInteger b (e - 1) * b else
-      realPowInteger b (e + 1) / b
+  if e > 0 then realPowInteger b (e - 1) * b else
+  realPowInteger b (e + 1) / b
 declare ocaml    target_rep function realPowInteger r e = (`Lem.pow_float` r (realFromInteger e))
 declare coq      target_rep function realPowInteger = `powerRZ`
 
 val realPowNat : real -> nat -> real
 let realPowNat r e = realPowInteger r (integerFromNat e)
+declare isabelle target_rep function realPowNat = `power`
 declare coq      target_rep function realPowNat = `pow`
+declare hol      target_rep function realPowNat = infix `pow`
 
 instance ( NumPow real )
   let ( ** ) = realPowNat
@@ -1954,6 +1958,9 @@ assert rational_test2 : ((rationalFromFrac 3 2) + (rationalFromFrac 1 2) = 2)
 assert rational_test3 : (7 - (8 : rational) = ~1)
 assert rational_test4 : (7 * (8 : rational) = 56)
 assert rational_test5 : ((7 : rational) ** 2 = 49)
+assert rational_test5a : (rationalPowInteger (2 : rational) (~3) = rationalFromFrac 1 8)
+assert rational_test5b : (rationalPowInteger (~2 : rational) (~3) = rationalFromFrac (~1) 8)
+assert rational_test5c : (rationalPowInteger (~2 : rational) (~2) = rationalFromFrac 1 4)
 assert rational_test6 : (11 / (4 : rational) = (rationalFromFrac 11 4))
 assert rational_test6a : ((~ 11) / (4 : rational) = (rationalFromFrac (~11) 4))
 assert rational_test7 : (11 < (12 : rational))
@@ -1983,6 +1990,9 @@ assert real_test2 : ((3 / (2 : real)) + (1 / 2) = 2)
 assert real_test3 : (7 - (8 : real) = ~1)
 assert real_test4 : (7 * (8 : real) = 56)
 assert real_test5 : ((7 : real) ** 2 = 49)
+assert real_test5a : (realPowInteger (2 : real) (~3) = realFromFrac 1 8)
+assert real_test5b : (realPowInteger (~2 : real) (~3) = realFromFrac (~1) 8)
+assert real_test5c : (realPowInteger (~2 : real) (~2) = realFromFrac 1 4)
 assert real_test6 : (11 / (4 : real) = (realFromFrac 11 4))
 assert real_test6a : ((~ 11) / (4 : real) = (realFromFrac (~11) 4))
 assert real_test7 : (11 < (12 : real))
