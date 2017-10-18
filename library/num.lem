@@ -10,7 +10,7 @@
 declare {isabelle;ocaml;hol;coq} rename module = lem_num
 
 open import Bool Basic_classes
-open import {isabelle} `~~/src/HOL/Word/Word` `Real`
+open import {isabelle} `~~/src/HOL/Word/Word` `Real` `~~/src/HOL/NthRoot`
 open import {hol} `integerTheory` `intReduce` `wordsTheory` `wordsLib` `ratTheory` `realTheory` `intrealTheory`
 open import {coq} `Coq.Numbers.BinNums` `Coq.ZArith.BinInt` `Coq.ZArith.Zpower` `Coq.ZArith.Zdiv` `Coq.ZArith.Zmax` `Coq.Numbers.Natural.Peano.NPeano` `Coq.QArith.Qabs` `Coq.QArith.Qminmax` `Coq.Reals.ROrderedType` `Coq.Reals.Rbase` `Coq.Reals.Rfunctions`
 
