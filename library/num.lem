@@ -1707,17 +1707,17 @@ instance ( OrdMaxMin real )
   let min = realMin
 end
 
-val realRoundUp : real -> integer
-declare isabelle target_rep function realRoundUp = `ceiling`
-declare ocaml    target_rep function realRoundUp = `Lem.big_num_of_ceil`
-declare hol      target_rep function realRoundUp = `clg`
-declare coq      target_rep function realRoundUp = `up`
+val realCeiling : real -> integer
+declare isabelle target_rep function realCeiling = `ceiling`
+declare ocaml    target_rep function realCeiling = `Lem.big_num_of_ceil`
+declare hol      target_rep function realCeiling = `clg`
+declare coq      target_rep function realCeiling = `up`
 
-val realRoundDown : real -> integer
-declare isabelle target_rep function realRoundDown = `floor`
-declare ocaml    target_rep function realRoundDown = `Lem.big_num_of_floor`
-declare hol      target_rep function realRoundDown = `flr`
-declare coq      target_rep function realRoundDown = `Rdown`
+val realFloor : real -> integer
+declare isabelle target_rep function realFloor = `floor`
+declare ocaml    target_rep function realFloor = `Lem.big_num_of_floor`
+declare hol      target_rep function realFloor = `flr`
+declare coq      target_rep function realFloor = `Rdown`
 
 
 
@@ -2016,12 +2016,12 @@ assert real_test24 : (pred 0 = ~(1 : real))
 assert real_test25 : (abs 42 = (42 : real))
 assert real_test26 : (abs (~42) = (42 : real))
 assert real_test27 : ((1 / (2 : real)) * 2 = 1)
-assert real_test28 : (realRoundDown (realFromFrac 11 4) = 2)
-assert real_test29 : (realRoundUp (realFromFrac 11 4) = 3)
-assert real_test30 : (realRoundDown (realFromFrac 12 4) = 3)
-assert real_test31 : (realRoundUp (realFromFrac 12 4) = 3)
-assert real_test32 : (realRoundDown (realFromFrac (~3) 2) = ~2)
-assert real_test33 : (realRoundUp (realFromFrac (~3) 2) = ~1)
+assert real_test28 : (realFloor (realFromFrac 11 4) = 2)
+assert real_test29 : (realCeiling (realFromFrac 11 4) = 3)
+assert real_test30 : (realFloor (realFromFrac 12 4) = 3)
+assert real_test31 : (realCeiling (realFromFrac 12 4) = 3)
+assert real_test32 : (realFloor (realFromFrac (~3) 2) = ~2)
+assert real_test33 : (realCeiling (realFromFrac (~3) 2) = ~1)
 
 (* ========================================================================== *)
 (* Translation between number types                                           *)
