@@ -1,12 +1,17 @@
 Require Import Coq.Bool.Bool.
 Require Import Coq.ZArith.BinInt.
 Require Import Coq.ZArith.Zorder.
+Require Import Coq.QArith.QArith_base.
+Require Import Coq.Reals.Rbase.
+Require Import Coq.Reals.ROrderedType.
 Require Import Coq.Numbers.Natural.Peano.NPeano.
 Require Import Coq.Arith.EqNat.
 Require Import ClassicalDescription.
 Require Import Coq.Strings.Ascii.
 Require Import Coq.Strings.String.
 Require Import Coq.Program.Wf.
+
+Local Open Scope nat_scope.
 
 (* Logic *)
 
@@ -174,6 +179,59 @@ Definition int_ltb (i j: Z): bool := Z.ltb i j.
 Definition int_gtb (i j: Z): bool := Z.gtb i j.
 Definition int_lteb (i j: Z): bool := Z.leb i j.
 Definition int_gteb (i j: Z): bool := Z.geb i j.
+
+(* Rationals *)
+
+Definition Qlt_bool (x y: Q): bool := (Qle_bool x y) && (negb (Qeq_bool x y)).
+Definition Qgt_bool (x y: Q): bool := (negb (Qle_bool x y)) && (negb (Qeq_bool x y)).
+Definition Qge_bool (x y: Q): bool := (negb (Qle_bool x y)) || (Qeq_bool x y).
+
+(* Reals *)
+
+Definition Rlt_bool (x y: R): bool :=
+ match Rcompare x y with
+ | Lt => true
+ | _ => false
+ end.
+Definition Rle_bool (x y: R): bool := (Rlt_bool x y) || (Reqb x y).
+Definition Rgt_bool (x y: R): bool := negb (Rle_bool x y).
+Definition Rge_bool (x y: R): bool := (Rgt_bool x y) || (Reqb x y).
+
+Definition Rdown (x:R): Z := ((up x) - 1)%Z.
+
+Lemma false_eq_true_False: (false = true) <-> False.
+Proof. intuition. Qed.
+
+Lemma false_eq_true_P: forall (P:Prop), false = true -> P.
+Proof. intros P H; rewrite false_eq_true_False in H; tauto. Qed.
+
+Lemma Rlt_eq_False: forall (x y:R), (x < y)%R -> x = y -> False.
+Proof. intros; absurd (x = y); auto using Rlt_not_eq. Qed.
+
+Lemma Rlt_Rgt_False: forall (x y:R), (x < y)%R -> (y < x)%R -> False.
+Proof. intros; absurd (y < x)%R; auto using (Rlt_asym x y). Qed.
+
+Lemma Rlt_bool_lt : forall (x y:R), (Rlt_bool x y = true) <-> (x < y)%R.
+Proof.
+ intros; unfold Rlt_bool; destruct (Rcompare_spec x y);
+ intuition eauto using (false_eq_true_P (x <y)%R), Rlt_eq_False, Rlt_Rgt_False.
+Qed.
+
+Lemma Rle_bool_le : forall (x y:R), (Rle_bool x y = true) <-> (x <= y)%R.
+Proof. intros; unfold Rle_bool; rewrite orb_true_iff, Reqb_eq, Rlt_bool_lt; intuition. Qed.
+
+Lemma Rgt_iff_not_le : forall (r1 r2:R), (r1 > r2)%R <-> ~ (r1 <= r2)%R.
+Proof. intros. split. apply Rgt_not_le. apply Rnot_le_gt. Qed.
+
+Lemma Rgt_bool_gt : forall (x y:R), (Rgt_bool x y = true) <-> (x > y)%R.
+Proof.
+ intros; unfold Rgt_bool;
+ rewrite negb_true_iff, Rgt_iff_not_le, <- Rle_bool_le;
+ destruct (Rle_bool x y); intuition.
+Qed.
+
+Lemma Rge_bool_ge : forall (x y:R), (Rge_bool x y = true) <-> (x >= y)%R.
+Proof. intros; unfold Rge_bool; rewrite orb_true_iff, Rgt_bool_gt, Reqb_eq; intuition. Qed.
 
 (* Sets *)
 

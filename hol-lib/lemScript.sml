@@ -54,6 +54,9 @@ open wordsTheory
 
 val _ = numLib.prefer_num();
 
+(* From BasicProvers, for compatibility with older versions of HOL *)
+fun subgoal q = Q.SUBGOAL_THEN q STRIP_ASSUME_TAC
+
 val _ = new_theory "lem"
 
 val failwith_def = Define `failwith (s:'a) = (ARB:'b)`;
@@ -91,7 +94,7 @@ Tactical.REVERSE (Cases_on `FINITE s`) THEN1 (
 
 `~(s = {})` by (PROVE_TAC [MEMBER_NOT_EMPTY]) THEN
 
-`2 <= CARD s` by ALL_TAC THEN1 (
+subgoal `2 <= CARD s` THEN1 (
   `CARD {x1; x2} = 2` by ASM_SIMP_TAC (std_ss++PRED_SET_ss) [] THEN
   `{x1; x2} SUBSET s` by ASM_SIMP_TAC (std_ss++PRED_SET_ss) [] THEN
   PROVE_TAC [CARD_SUBSET]

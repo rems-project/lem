@@ -104,6 +104,20 @@ let option_equal eq o1 o2 = match (o1, o2) with
 
 
 (* ========================================================================== *)
+(* Floats                                                                     *)
+(* ========================================================================== *)
+
+let plus_float x y = x +. y
+let minus_float x y = x -. y
+let mult_float x y = x *. y
+let div_float x y = x /. y
+let pow_float x y = x ** y
+let pow_float_int x y = x ** (float_of_int y)
+let neg_float x = ~-. x
+let big_num_of_ceil x = Nat_big_num.of_int (int_of_float (ceil x))
+let big_num_of_floor x = Nat_big_num.of_int (int_of_float (floor x))
+
+(* ========================================================================== *)
 (* Machine words                                                              *)
 (* ========================================================================== *)
 

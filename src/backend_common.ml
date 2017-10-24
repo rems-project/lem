@@ -286,7 +286,7 @@ let get_module_open_string_target =
     | _ -> mod_string
 
 
-let get_module_open_string env target dir mod_path =
+let get_module_open_string env target dir relative mod_path =
 begin
   let transform_name md mod_string = match target with
     | Target.Target_no_ident (Target.Target_hol) -> String.concat "" [mod_string; "Theory"]
@@ -298,7 +298,7 @@ begin
               let out_dir_opt = Util.absolute_dir dir in
               match (mod_dir_opt, out_dir_opt) with
                 | (Some mod_dir, Some out_dir) ->
-                     if (String.compare mod_dir out_dir = 0) then
+                     if relative || (String.compare mod_dir out_dir = 0) then
                        mod_string 
                      else
                        Filename.concat mod_dir mod_string
@@ -323,8 +323,8 @@ let rec concat_skip_lists acc sk = function
              concat_skip_lists acc None skip_list
     end 
 
-let imported_module_to_strings env target dir = function
-  | IM_paths ids -> List.map (get_module_open_string env target dir) ids
+let imported_module_to_strings env target dir relative = function
+  | IM_paths ids -> List.map (get_module_open_string env target dir relative) ids
   | IM_targets (targs, strings) -> 
       if (Typed_ast.in_targets_opt target targs) then List.map (get_module_open_string_target target dir) strings else []
 
@@ -341,9 +341,9 @@ let get_imported_target_modules ((ds, _) : Typed_ast.def list * Ast.lex_skips)  
       | None   -> Imported_Modules_Set.empty
       | Some s -> Imported_Modules_Set.singleton s) ds) Imported_Modules_Set.empty
 
-let imported_modules_to_strings env target dir iml =
+let imported_modules_to_strings env target dir iml relative =
   let ms = Imported_Modules_Set.elements iml in
-    List.flatten (List.map (imported_module_to_strings env target dir) ms)
+    List.flatten (List.map (imported_module_to_strings env target dir relative) ms)
 
 module Make(A : sig 
   val env : env;; 
@@ -355,7 +355,7 @@ module Make(A : sig
 
 let open_to_open_target ms =
 begin
-  let sk_sl_list = List.map (fun id -> (ident_get_lskip id, [get_module_open_string A.env A.target A.dir id.descr])) ms in
+  let sk_sl_list = List.map (fun id -> (ident_get_lskip id, [get_module_open_string A.env A.target A.dir false id.descr])) ms in
   concat_skip_lists [] None sk_sl_list
 end
 

@@ -10,9 +10,9 @@
 declare {isabelle;ocaml;hol;coq} rename module = lem_num
 
 open import Bool Basic_classes
-open import {isabelle} `~~/src/HOL/Word/Word`
-open import {hol} `integerTheory` `intReduce` `wordsTheory` `wordsLib`
-open import {coq} `Coq.Numbers.BinNums` `Coq.ZArith.BinInt` `Coq.ZArith.Zpower` `Coq.ZArith.Zdiv` `Coq.ZArith.Zmax` `Coq.Numbers.Natural.Peano.NPeano`
+open import {isabelle} `~~/src/HOL/Word/Word` `Real` `~~/src/HOL/NthRoot`
+open import {hol} `integerTheory` `intReduce` `wordsTheory` `wordsLib` `ratTheory` `realTheory` `intrealTheory`
+open import {coq} `Coq.Numbers.BinNums` `Coq.ZArith.BinInt` `Coq.ZArith.Zpower` `Coq.ZArith.Zdiv` `Coq.ZArith.Zmax` `Coq.Numbers.Natural.Peano.NPeano` `Coq.QArith.Qabs` `Coq.QArith.Qminmax` `Coq.Reals.ROrderedType` `Coq.Reals.Rbase` `Coq.Reals.Rfunctions`
 
 (* ========================================================================== *)
 (* Numerals                                                                   *)
@@ -182,10 +182,24 @@ declare hol      target_rep type int64 = `word64`
 (* unbounded size and precision rational numbers *)
 
 type rational
-declare ocaml    target_rep type rational = `Num.num`
+declare ocaml    target_rep type rational = `Q.t`
 declare coq      target_rep type rational = `Q` (* ???: better type for this in Coq? *)
-declare isabelle target_rep type rational = `rat` (* ???: better type for this in Isa? *)
-declare hol      target_rep type rational = `XXX` (* ???: better type for this in HOL? *)
+declare isabelle target_rep type rational = `rat`
+declare hol      target_rep type rational = `rat` (* ???: better type for this in HOL? *)
+
+
+(* ----------------------- *)
+(* real                    *)
+(* ----------------------- *)
+
+(* real numbers *)
+(* Note that for OCaml, this is mapped to floats with 64 bits. *)
+
+type real
+declare ocaml    target_rep type real = `float`
+declare coq      target_rep type real = `R` (* ???: better type for this in Coq? *)
+declare isabelle target_rep type real = `real`
+declare hol      target_rep type real = `real` (* ???: better type for this in HOL? *)
 
 
 (* ----------------------- *)
@@ -1147,6 +1161,12 @@ instance (Numeral integer)
   let fromNumeral n = integerFromNumeral n
 end
 
+val integerFromNat : nat -> integer
+declare hol      target_rep function integerFromNat = `int_of_num`
+declare ocaml    target_rep function integerFromNat = `Nat_big_num.of_int`
+declare isabelle target_rep function integerFromNat = `int`
+declare coq      target_rep function integerFromNat n = (`Zpred` (`Zpos` (`P_of_succ_nat` n))) (* TODO: check *)
+
 val integerEq : integer -> integer -> bool
 let inline integerEq = unsafe_structural_equality
 declare ocaml    target_rep function integerEq = `Nat_big_num.equal`
@@ -1315,6 +1335,389 @@ instance ( OrdMaxMin integer )
   let max = integerMax
   let min = integerMin
 end
+
+
+
+(* ----------------------- *)
+(* rational                *)
+(* ----------------------- *)
+
+val rationalFromNumeral : numeral -> rational
+declare ocaml    target_rep function rationalFromNumeral n = (`Q.of_int` n)
+declare isabelle target_rep function rationalFromNumeral n = (`Fract` (``n : integer) (1 : integer))
+declare hol      target_rep function rationalFromNumeral n = (``n : rational)
+declare coq      target_rep function rationalFromNumeral n = (`inject_Z` (`Zpred` (`Zpos` (`P_of_succ_nat` n))))
+
+instance (Numeral rational)
+  let fromNumeral n = rationalFromNumeral n
+end
+
+val rationalFromInt : int -> rational
+declare ocaml    target_rep function rationalFromInt n = (`Q.of_int` n)
+declare isabelle target_rep function rationalFromInt n = (`Fract` n (1 : integer))
+declare hol      target_rep function rationalFromInt n = (`rat_of_int` n)
+declare coq      target_rep function rationalFromInt n = (`inject_Z` n)
+
+val rationalEq : rational -> rational -> bool
+let inline rationalEq = unsafe_structural_equality
+declare ocaml    target_rep function rationalEq = `Q.equal`
+declare coq      target_rep function rationalEq = `Qeq_bool`
+instance (Eq rational)
+  let (=) = rationalEq
+  let (<>) n1 n2 = not (rationalEq n1 n2)
+end
+
+val rationalLess : rational -> rational -> bool
+val rationalLessEqual : rational -> rational -> bool
+val rationalGreater : rational -> rational -> bool
+val rationalGreaterEqual : rational -> rational -> bool
+
+declare hol      target_rep function rationalLess = infix `<`
+declare ocaml    target_rep function rationalLess = `Q.lt`
+declare isabelle target_rep function rationalLess = infix `<`
+declare coq      target_rep function rationalLess = `Qlt_bool`
+
+declare hol      target_rep function rationalLessEqual = infix `<=`
+declare ocaml    target_rep function rationalLessEqual = `Q.leq`
+declare isabelle target_rep function rationalLessEqual = infix `\<le>`
+declare coq      target_rep function rationalLessEqual = `Qle_bool`
+
+declare hol      target_rep function rationalGreater = infix `>`
+declare ocaml    target_rep function rationalGreater = `Q.gt`
+declare isabelle target_rep function rationalGreater = infix `>`
+declare coq      target_rep function rationalGreater = `Qgt_bool`
+
+declare hol      target_rep function rationalGreaterEqual = infix `>=`
+declare ocaml    target_rep function rationalGreaterEqual = `Q.geq`
+declare isabelle target_rep function rationalGreaterEqual = infix `\<ge>`
+declare coq      target_rep function rationalGreaterEqual = `Qge_bool`
+
+val rationalCompare : rational -> rational -> ordering
+let inline rationalCompare = defaultCompare
+let inline {coq; isabelle; hol; ocaml} rationalCompare = genericCompare rationalLess rationalEq
+
+instance (Ord rational)
+  let compare = rationalCompare
+  let (<) = rationalLess
+  let (<=) = rationalLessEqual
+  let (>) = rationalGreater
+  let (>=) = rationalGreaterEqual
+end
+
+instance (SetType rational)
+  let setElemCompare = rationalCompare
+end
+
+val rationalAdd : rational -> rational -> rational
+declare hol      target_rep function rationalAdd = infix `+`
+declare ocaml    target_rep function rationalAdd = `Q.add`
+declare isabelle target_rep function rationalAdd = infix `+`
+declare coq      target_rep function rationalAdd = `Qplus`
+
+instance (NumAdd rational)
+  let (+) = rationalAdd
+end
+
+val rationalMinus : rational -> rational -> rational
+declare hol      target_rep function rationalMinus = infix `-`
+declare ocaml    target_rep function rationalMinus = `Q.sub`
+declare isabelle target_rep function rationalMinus = infix `-`
+declare coq      target_rep function rationalMinus = `Qminus`
+
+instance (NumMinus rational)
+  let (-) = rationalMinus
+end
+
+val rationalNegate : rational -> rational
+let inline rationalNegate n = 0 - n
+declare ocaml    target_rep function rationalNegate = `Q.neg`
+declare isabelle target_rep function rationalNegate i = `-` i
+
+instance (NumNegate rational)
+  let ~ = rationalNegate
+end
+
+val rationalAbs : rational -> rational
+let inline rationalAbs n = (if n > 0 then n else ~n)
+declare ocaml    target_rep function rationalAbs = `Q.abs`
+declare isabelle target_rep function rationalAbs = `abs`
+
+instance (NumAbs rational)
+  let abs = rationalAbs
+end
+
+val rationalSucc : rational -> rational
+let inline rationalSucc n = n + 1
+instance (NumSucc rational)
+  let succ = rationalSucc
+end
+
+val rationalPred : rational -> rational
+let inline rationalPred n = n - 1
+instance (NumPred rational)
+  let pred = rationalPred
+end
+
+val rationalMult : rational -> rational -> rational
+declare hol      target_rep function rationalMult = infix `*`
+declare ocaml    target_rep function rationalMult = `Q.mul`
+declare isabelle target_rep function rationalMult = infix `*`
+declare coq      target_rep function rationalMult = `Qmult`
+
+instance (NumMult rational)
+  let ( * ) = rationalMult
+end
+
+val rationalDiv : rational -> rational -> rational
+declare hol      target_rep function rationalDiv = infix `/`
+declare ocaml    target_rep function rationalDiv = `Q.div`
+declare isabelle target_rep function rationalDiv = infix `div`
+declare coq      target_rep function rationalDiv = `Qdiv`
+
+instance ( NumDivision rational )
+  let (/) = rationalDiv
+end
+
+val rationalFromFrac : int -> int -> rational
+let rationalFromFrac n d = (rationalFromInt n) / (rationalFromInt d)
+declare ocaml    target_rep function rationalFromFrac n d = (`Q.of_ints` n d)
+declare isabelle target_rep function rationalFromFrac n d = (`Fract` n d)
+declare hol      target_rep function rationalFromFrac n d = (`rat_cons` n d)
+
+val rationalPowInteger : rational -> integer -> rational
+let rec rationalPowInteger b e =
+  if e = 0 then 1 else
+  if e > 0 then rationalPowInteger b (e - 1) * b else
+  rationalPowInteger b (e + 1) / b
+declare coq      target_rep function rationalPowInteger = `Qpower`
+
+val rationalPowNat : rational -> nat -> rational
+let rationalPowNat r e = rationalPowInteger r (integerFromNat e)
+declare isabelle target_rep function rationalPowNat = `power`
+declare coq      target_rep function rationalPowNat r e = (`Qpower` r (`Z.of_nat` e))
+
+instance ( NumPow rational )
+  let ( ** ) = rationalPowNat
+end
+
+val rationalMin : rational -> rational -> rational
+let inline rationalMin = defaultMin
+declare isabelle target_rep function rationalMin = `min`
+declare ocaml    target_rep function rationalMin = `Q.min`
+declare coq      target_rep function rationalMin = `Qmin`
+
+val rationalMax : rational -> rational -> rational
+let inline rationalMax = defaultMax
+declare isabelle target_rep function rationalMax = `max`
+declare ocaml    target_rep function rationalMax = `Q.max`
+declare coq      target_rep function rationalMax = `Qmax`
+
+instance ( OrdMaxMin rational )
+  let max = rationalMax
+  let min = rationalMin
+end
+
+
+
+(* ----------------------- *)
+(* real                    *)
+(* ----------------------- *)
+
+val realFromNumeral : numeral -> real
+declare ocaml    target_rep function realFromNumeral n = (`float_of_int` n)
+declare isabelle target_rep function realFromNumeral n = (``n : real)
+declare hol      target_rep function realFromNumeral n = (`real_of_num` n)
+declare coq      target_rep function realFromNumeral n = (`IZR` (`Zpred` (`Zpos` (`P_of_succ_nat` n))))
+
+instance (Numeral real)
+  let fromNumeral n = realFromNumeral n
+end
+
+val realFromInteger : integer -> real
+declare ocaml    target_rep function realFromInteger n = (`float_of_int` (`Nat_big_num.to_int` n))
+declare isabelle target_rep function realFromInteger n = (`real_of_int` n)
+declare hol      target_rep function realFromInteger n = (`real_of_int` n)
+declare coq      target_rep function realFromInteger n = (`IZR` n)
+
+val realEq : real -> real -> bool
+let inline realEq = unsafe_structural_equality
+declare coq      target_rep function realEq = `Reqb`
+instance (Eq real)
+  let (=) = realEq
+  let (<>) n1 n2 = not (realEq n1 n2)
+end
+
+val realLess : real -> real -> bool
+val realLessEqual : real -> real -> bool
+val realGreater : real -> real -> bool
+val realGreaterEqual : real -> real -> bool
+
+declare hol      target_rep function realLess = infix `<`
+declare ocaml    target_rep function realLess = infix `<`
+declare isabelle target_rep function realLess = infix `<`
+declare coq      target_rep function realLess = `Rlt_bool`
+
+declare hol      target_rep function realLessEqual = infix `<=`
+declare ocaml    target_rep function realLessEqual = infix `<=`
+declare isabelle target_rep function realLessEqual = infix `\<le>`
+declare coq      target_rep function realLessEqual = `Rle_bool`
+
+declare hol      target_rep function realGreater = infix `>`
+declare ocaml    target_rep function realGreater = infix `>`
+declare isabelle target_rep function realGreater = infix `>`
+declare coq      target_rep function realGreater = `Rgt_bool`
+
+declare hol      target_rep function realGreaterEqual = infix `>=`
+declare ocaml    target_rep function realGreaterEqual = infix `>=`
+declare isabelle target_rep function realGreaterEqual = infix `\<ge>`
+declare coq      target_rep function realGreaterEqual = `Rge_bool`
+
+val realCompare : real -> real -> ordering
+let inline realCompare = defaultCompare
+let inline {coq; isabelle; hol; ocaml} realCompare = genericCompare realLess realEq
+
+instance (Ord real)
+  let compare = realCompare
+  let (<) = realLess
+  let (<=) = realLessEqual
+  let (>) = realGreater
+  let (>=) = realGreaterEqual
+end
+
+instance (SetType real)
+  let setElemCompare = realCompare
+end
+
+val realAdd : real -> real -> real
+declare hol      target_rep function realAdd = infix `+`
+declare ocaml    target_rep function realAdd = `Lem.plus_float`
+declare isabelle target_rep function realAdd = infix `+`
+declare coq      target_rep function realAdd = `Rplus`
+
+instance (NumAdd real)
+  let (+) = realAdd
+end
+
+val realMinus : real -> real -> real
+declare hol      target_rep function realMinus = infix `-`
+declare ocaml    target_rep function realMinus = `Lem.minus_float`
+declare isabelle target_rep function realMinus = infix `-`
+declare coq      target_rep function realMinus = `Rminus`
+
+instance (NumMinus real)
+  let (-) = realMinus
+end
+
+val realNegate : real -> real
+let inline realNegate n = 0 - n
+declare ocaml    target_rep function realNegate = `Lem.neg_float`
+declare isabelle target_rep function realNegate i = `-` i
+declare coq      target_rep function realNegate = `Ropp`
+
+instance (NumNegate real)
+  let ~ = realNegate
+end
+
+val realAbs : real -> real
+let inline realAbs n = (if n > 0 then n else ~n)
+declare ocaml    target_rep function realAbs = `abs_float`
+declare isabelle target_rep function realAbs = `abs`
+declare coq      target_rep function realAbs = `Rabs`
+
+instance (NumAbs real)
+  let abs = realAbs
+end
+
+val realSucc : real -> real
+let inline realSucc n = n + 1
+instance (NumSucc real)
+  let succ = realSucc
+end
+
+val realPred : real -> real
+let inline realPred n = n - 1
+instance (NumPred real)
+  let pred = realPred
+end
+
+val realMult : real -> real -> real
+declare hol      target_rep function realMult = infix `*`
+declare ocaml    target_rep function realMult = `Lem.mult_float`
+declare isabelle target_rep function realMult = infix `*`
+declare coq      target_rep function realMult = `Rmult`
+
+instance (NumMult real)
+  let ( * ) = realMult
+end
+
+val realDiv : real -> real -> real
+declare hol      target_rep function realDiv = infix `/`
+declare ocaml    target_rep function realDiv = `Lem.div_float`
+declare isabelle target_rep function realDiv = infix `div`
+declare coq      target_rep function realDiv = `Rdiv`
+
+instance ( NumDivision real )
+  let (/) = realDiv
+end
+
+val realFromFrac : integer -> integer -> real
+let realFromFrac n d = realDiv (realFromInteger n) (realFromInteger d)
+declare ocaml    target_rep function realFromFrac n d = (`Lem.div_float` (realFromInteger n) (realFromInteger d))
+
+val realPowInteger : real -> integer -> real
+let rec realPowInteger b e =
+  if e = 0 then 1 else
+  if e > 0 then realPowInteger b (e - 1) * b else
+  realPowInteger b (e + 1) / b
+declare ocaml    target_rep function realPowInteger r e = (`Lem.pow_float` r (realFromInteger e))
+declare coq      target_rep function realPowInteger = `powerRZ`
+
+val realPowNat : real -> nat -> real
+let realPowNat r e = realPowInteger r (integerFromNat e)
+declare isabelle target_rep function realPowNat = `power`
+declare coq      target_rep function realPowNat = `pow`
+declare hol      target_rep function realPowNat = infix `pow`
+
+instance ( NumPow real )
+  let ( ** ) = realPowNat
+end
+
+val realSqrt : real -> real
+declare hol      target_rep function realSqrt = `sqrt`
+declare ocaml    target_rep function realSqrt = `sqrt`
+declare isabelle target_rep function realSqrt = `sqrt`
+declare coq      target_rep function realSqrt = `Rsqrt`
+
+val realMin : real -> real -> real
+let inline realMin = defaultMin
+declare hol      target_rep function realMin = `min`
+declare isabelle target_rep function realMin = `min`
+declare ocaml    target_rep function realMin = `min`
+declare coq      target_rep function realMin = `Rmin`
+
+val realMax : real -> real -> real
+let inline realMax = defaultMax
+declare hol      target_rep function realMax = `max`
+declare isabelle target_rep function realMax = `max`
+declare ocaml    target_rep function realMax = `max`
+declare coq      target_rep function realMax = `Rmax`
+
+instance ( OrdMaxMin real )
+  let max = realMax
+  let min = realMin
+end
+
+val realCeiling : real -> integer
+declare isabelle target_rep function realCeiling = `ceiling`
+declare ocaml    target_rep function realCeiling = `Lem.big_num_of_ceil`
+declare hol      target_rep function realCeiling = `clg`
+declare coq      target_rep function realCeiling = `up`
+
+val realFloor : real -> integer
+declare isabelle target_rep function realFloor = `floor`
+declare ocaml    target_rep function realFloor = `Lem.big_num_of_floor`
+declare hol      target_rep function realFloor = `flr`
+declare coq      target_rep function realFloor = `Rdown`
 
 
 
@@ -1550,6 +1953,75 @@ assert integer_test27 : (abs 42 = (42 : integer))
 assert integer_test28 : (abs (~42) = (42 : integer))
 
 
+assert rational_test1 : (2 + (5 : rational) = 7)
+assert rational_test2 : ((rationalFromFrac 3 2) + (rationalFromFrac 1 2) = 2)
+assert rational_test3 : (7 - (8 : rational) = ~1)
+assert rational_test4 : (7 * (8 : rational) = 56)
+assert rational_test5 : ((7 : rational) ** 2 = 49)
+assert rational_test5a : (rationalPowInteger (2 : rational) (~3) = rationalFromFrac 1 8)
+assert rational_test5b : (rationalPowInteger (~2 : rational) (~3) = rationalFromFrac (~1) 8)
+assert rational_test5c : (rationalPowInteger (~2 : rational) (~2) = rationalFromFrac 1 4)
+assert rational_test6 : (11 / (4 : rational) = (rationalFromFrac 11 4))
+assert rational_test6a : ((~ 11) / (4 : rational) = (rationalFromFrac (~11) 4))
+assert rational_test7 : (11 < (12 : rational))
+assert rational_test8 : (11 <= (12 : rational))
+assert rational_test9 : (12 <= (12 : rational))
+assert rational_test10 : (not (12 < (12 : rational)))
+assert rational_test11 : (12 > (11 : rational))
+assert rational_test12 : (12 >= (11 : rational))
+assert rational_test13 : (12 >= (12 : rational))
+assert rational_test14 : (not (12 > (12 : rational)))
+assert rational_test15 : (min 12 (12 : rational) = 12)
+assert rational_test16 : (min 10 (12 : rational) = 10)
+assert rational_test17 : (min 12 (10 : rational) = 10)
+assert rational_test18 : (max 12 (12 : rational) = 12)
+assert rational_test19 : (max 10 (12 : rational) = 12)
+assert rational_test20 : (max 12 (10 : rational) = 12)
+assert rational_test21 : (succ 12 = (13 : rational))
+assert rational_test22 : (succ 0 = (1 : rational))
+assert rational_test23 : (pred 12 = (11 : rational))
+assert rational_test24 : (pred 0 = ~(1 : rational))
+assert rational_test25 : (abs 42 = (42 : rational))
+assert rational_test26 : (abs (~42) = (42 : rational))
+assert rational_test27 : ((rationalFromFrac 1 2) * 2 = 1)
+
+assert real_test1 : (2 + (5 : real) = 7)
+assert real_test2 : ((3 / (2 : real)) + (1 / 2) = 2)
+assert real_test3 : (7 - (8 : real) = ~1)
+assert real_test4 : (7 * (8 : real) = 56)
+assert real_test5 : ((7 : real) ** 2 = 49)
+assert real_test5a : (realPowInteger (2 : real) (~3) = realFromFrac 1 8)
+assert real_test5b : (realPowInteger (~2 : real) (~3) = realFromFrac (~1) 8)
+assert real_test5c : (realPowInteger (~2 : real) (~2) = realFromFrac 1 4)
+assert real_test6 : (11 / (4 : real) = (realFromFrac 11 4))
+assert real_test6a : ((~ 11) / (4 : real) = (realFromFrac (~11) 4))
+assert real_test7 : (11 < (12 : real))
+assert real_test8 : (11 <= (12 : real))
+assert real_test9 : (12 <= (12 : real))
+assert real_test10 : (not (12 < (12 : real)))
+assert real_test11 : (12 > (11 : real))
+assert real_test12 : (12 >= (11 : real))
+assert real_test13 : (12 >= (12 : real))
+assert real_test14 : (not (12 > (12 : real)))
+assert real_test15 : (min 12 (12 : real) = 12)
+assert real_test16 : (min 10 (12 : real) = 10)
+assert real_test17 : (min 12 (10 : real) = 10)
+assert real_test18 : (max 12 (12 : real) = 12)
+assert real_test19 : (max 10 (12 : real) = 12)
+assert real_test20 : (max 12 (10 : real) = 12)
+assert real_test21 : (succ 12 = (13 : real))
+assert real_test22 : (succ 0 = (1 : real))
+assert real_test23 : (pred 12 = (11 : real))
+assert real_test24 : (pred 0 = ~(1 : real))
+assert real_test25 : (abs 42 = (42 : real))
+assert real_test26 : (abs (~42) = (42 : real))
+assert real_test27 : ((1 / (2 : real)) * 2 = 1)
+assert real_test28 : (realFloor (realFromFrac 11 4) = 2)
+assert real_test29 : (realCeiling (realFromFrac 11 4) = 3)
+assert real_test30 : (realFloor (realFromFrac 12 4) = 3)
+assert real_test31 : (realCeiling (realFromFrac 12 4) = 3)
+assert real_test32 : (realFloor (realFromFrac (~3) 2) = ~2)
+assert real_test33 : (realCeiling (realFromFrac (~3) 2) = ~1)
 
 (* ========================================================================== *)
 (* Translation between number types                                           *)
@@ -1568,13 +2040,6 @@ declare coq      target_rep function integerFromInt = ``
 assert integer_from_int_0: integerFromInt 0 = 0
 assert integer_from_int_1: integerFromInt 1 = 1
 assert integer_from_int_2: integerFromInt (~2) = (~2)
-
-
-val integerFromNat : nat -> integer
-declare hol      target_rep function integerFromNat = `int_of_num` 
-declare ocaml    target_rep function integerFromNat = `Nat_big_num.of_int`
-declare isabelle target_rep function integerFromNat = `int`
-declare coq      target_rep function integerFromNat n = (`Zpred` (`Zpos` (`P_of_succ_nat` n))) (* TODO: check *)
 
 assert integer_from_nat_0: integerFromNat 0 = 0
 assert integer_from_nat_1: integerFromNat 1 = 1
