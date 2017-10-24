@@ -3725,20 +3725,14 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
       end
 
   | Val_def ((Let_def(s1, targets,(p, name_map, topt,sk, e)) as def)) ->
-      let is_simple = true in
       if in_target targets then 
-        ws s1 ^ kwd (if is_simple then "definition" else "fun") ^ 
+        ws s1 ^ kwd "definition" ^ 
         (if Target.is_human_target T.target then
            targets_opt targets 
          else
            emp) ^
         isa_mk_typed_def_header (pat false p, [], sk, exp_to_typ e) ^
-        kwd "where \n\"" ^ pat false p ^ ws sk ^ kwd "= (" ^ exp false e ^ kwd ")\"" ^ T.def_end ^
-        (match val_def_get_name def with None -> emp | Some n ->
-          (if is_simple then emp else 
-            let (name, const_descr_ref) = List.find (fun (x, y) -> x = (Name.strip_lskip n)) name_map in
-            let name = B.const_ref_to_name n false const_descr_ref in
-                          (kwd (String.concat "" ["\ndeclare "; Name.to_string (Name.strip_lskip name); ".simps [simp del]"]))))
+        kwd "where \n\"" ^ pat false p ^ ws sk ^ kwd "= (" ^ exp false e ^ kwd ")\"" ^ T.def_end
       else emp
   
   | Val_def ((Fun_def (s1, rec_flag, targets, clauses) as def)) ->
@@ -3753,17 +3747,6 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
         (isa_funcl_header_seplist clauses) ^
         flat (Seplist.to_sep_list (isa_funcl_default (kwd "= ")) (sep T.def_sep) clauses) ^
         (if (is_rec && not try_term) then (kwd "\nby pat_completeness auto") else emp) ^
-        (match val_def_get_name def with None -> emp | Some n ->
-          let name =
-            try
-              let (name, const_descr_ref, _, _, _, _) = Seplist.hd clauses in
-              let name = name.term in
-              let name = B.const_ref_to_name name false const_descr_ref in
-                Name.to_string (Name.strip_lskip name)
-            with Failure ("Seplist.hd") -> ""
-          in
-            (if (is_rec && not try_term) || is_simple then emp else 
-              (kwd (String.concat "" ["\ndeclare "; name; ".simps [simp del]"])))) ^
               new_line
       else emp
       
