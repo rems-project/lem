@@ -2985,7 +2985,7 @@ let rec isa_def_extra (gf:extra_gen_flags) d l : Output.t = match d with
                      | Ast.Lemma_theorem _ -> "theorem"
                      | _ -> "lemma" in
       let solve = match lty with
-                     | Ast.Lemma_assert _ -> "by eval"
+                     | Ast.Lemma_assert _ -> "by (normalization | auto)"
                      | _ -> String.concat "" ["(* Theorem: "; theorem_name; "*)(* try *) by auto"] in
       (kwd lem_st ^ space ^
       kwd theorem_name ^ ws sk1 ^ kwd ":" ^
