@@ -63,7 +63,7 @@ val uncurry : forall 'a 'b 'c. ('a -> 'b -> 'c) -> ('a * 'b -> 'c)
 let inline uncurry f = (fun (v1, v2) -> f v1 v2)
 
 declare hol      target_rep function uncurry = `UNCURRY`
-declare isabelle target_rep function uncurry = `Product_Type.split`
+declare isabelle target_rep function uncurry = `case_prod`
 declare ocaml    target_rep function uncurry = `Lem.uncurry`
 declare coq      target_rep function uncurry = `prod_uncurry`
 

@@ -116,7 +116,7 @@ let either fa fb x = match x with
 end
 
 declare ocaml    target_rep function either = `Either.either_case`
-declare isabelle target_rep function either = `sum_case`
+declare isabelle target_rep function either = `case_sum`
 declare hol      target_rep function either fa fb x = `sum_CASE` x fa fb
 
 assert either_1: (either (not) (fun b -> b) (Left true) = false)

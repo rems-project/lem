@@ -21,6 +21,12 @@ declare isabelle target_rep type mword 'a = `Word.word` 'a
 declare hol      target_rep type mword 'a = `words$word` 'a
 declare ocaml    target_rep type mword 'a = `Lem.mword`
 
+val native_size : forall 'a. nat
+declare hol      target_rep function native_size = `dimindex` (`the_value` : `itself` 'a)
+declare isabelle target_rep function native_size = `len_of` (`TYPE(_)` : `itself` 'a)
+
+let inline {isabelle} size = native_size
+
 val ocaml_inject : forall 'a. nat * natural -> mword 'a
 declare ocaml target_rep function ocaml_inject = `Lem.machine_word_inject`
 
@@ -1137,6 +1143,11 @@ declare isabelle target_rep function bitlistFromWord = `Word.to_bl`
 declare hol      target_rep function bitlistFromWord = `bitstring$w2v`
 declare ocaml    target_rep function bitlistFromWord = `Lem.bitlistFromWord`
 
+
+val size_test_fn : forall 'a. Size 'a => mword 'a -> nat
+let size_test_fn _ = size
+
+assert {ocaml;isabelle} size_test : size_test_fn ((wordFromNatural 0) : mword ty5) = 5
 
 assert {ocaml;hol;isabelle} length_test :
   word_length ((wordFromNatural 0) : mword ty13) = 13
