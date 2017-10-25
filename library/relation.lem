@@ -678,7 +678,6 @@ let ~{ocaml;coq} reflexiveTransitiveClosure r = transitiveClosure (relUnion r re
 
 
 
-
 (* ========================================================================== *)
 (* inverse of closures                                                        *)
 (* ========================================================================== *)
@@ -692,6 +691,8 @@ let withoutTransitiveEdges r =
   let tc = transitiveClosure r in
   {(a, c) | forall ((a, c) IN r) 
   | forall (b IN relRange r). a <> b && b <> c --> not ((a, b) IN tc && (b, c) IN tc)}
+
+declare isabelle target_rep function withoutTransitiveEdges = `LemExtraDefs.without_trans_edges`
 
 lemma trancl_withoutTransitiveEdges_thm: forall r. finite r --> 
                     transitiveClosure (withoutTransitiveEdges r) = transitiveClosure r

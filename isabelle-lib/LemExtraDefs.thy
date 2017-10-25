@@ -530,6 +530,11 @@ subsection \<open>Sets\<close>
 
 definition "set_choose s \<equiv> (SOME x. (x \<in> s))"
   
+definition without_trans_edges :: "('a \<times> 'a) set \<Rightarrow> ('a \<times> 'a) set" where
+  "without_trans_edges S \<equiv>
+     let ts = trancl S in
+       { (x, y) \<in> S. \<forall>z \<in> snd ` S. x \<noteq> z \<and> y \<noteq> z \<longrightarrow> \<not> ((x, z) \<in> ts \<and> (z, y) \<in> ts)}"
+  
 definition unbounded_lfp :: "'a set \<Rightarrow> ('a set \<Rightarrow> 'a set) \<Rightarrow> 'a set" where
   "unbounded_lfp S f \<equiv>
      while (\<lambda>x. x \<subset> S) f S"
