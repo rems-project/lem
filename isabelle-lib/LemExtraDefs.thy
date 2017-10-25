@@ -50,8 +50,8 @@ theory "LemExtraDefs"
 
 imports
  	 Main
-         "~~/src/HOL/Library/Permutation"
-
+   "~~/src/HOL/Library/Permutation"
+   "~~/src/HOL/Library/While_Combinator"
 begin
 
 subsection \<open>General\<close>
@@ -529,6 +529,14 @@ qed
 subsection \<open>Sets\<close>
 
 definition "set_choose s \<equiv> (SOME x. (x \<in> s))"
+  
+definition unbounded_lfp :: "'a set \<Rightarrow> ('a set \<Rightarrow> 'a set) \<Rightarrow> 'a set" where
+  "unbounded_lfp S f \<equiv>
+     while (\<lambda>x. x \<subset> S) f S"
+  
+definition unbounded_gfp :: "'a set \<Rightarrow> ('a set \<Rightarrow> 'a set) \<Rightarrow> 'a set" where
+  "unbounded_gfp S f \<equiv>
+     while (\<lambda>x. S \<subset> x) f S"
 
 lemma set_choose_thm[simp]:
   "s \<noteq> {} \<Longrightarrow> (set_choose s) \<in> s"

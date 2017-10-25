@@ -149,6 +149,8 @@ let rec leastFixedPointUnbounded f x =
    if fx subset x then x
    else leastFixedPointUnbounded f (fx union x)
 
+declare isabelle target_rep function leastFixedPointUnbounded f s = `LemExtraDefs.unbounded_lfp` s f
+
 declare compile_message toOrderedList = "leastFixedPointUnbounded is deprecated as it is not supported by all backends (e.g. coq). Use Set.leastFixedPoint instead."
 
 assert lfp_empty: leastFixedPointUnbounded (map (fun x -> x)) ({} : set nat) = {}
