@@ -281,6 +281,8 @@ clean:
 	-make -C language clean
 	-make -C src clean
 	-make -C coq-lib clean
+	-make -C ocaml-lib clean
+	-make -C tex-lib clean
 	-rm -f coq-lib/Makefile
 	-rm -f coq-lib/coqharness.vo
 	-rm -f coq-lib/coqharness.glob
