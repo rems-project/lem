@@ -7,6 +7,8 @@ cd $dir
 rm -f ocaml-lib
 ln -s ../../ocaml-lib .
 
+export LD_LIBRARY_PATH="$(readlink -f ocaml-lib)"/dependencies/zarith/:"${LD_LIBRARY_PATH}"
+
 for file in *Auxiliary.ml
 do
   echo $file
