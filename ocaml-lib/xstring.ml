@@ -7,7 +7,7 @@ let implode l =
   let res = Bytes.create (List.length l) in
   let rec imp i = function
   | [] -> res
-  | c :: l -> res.[i] <- c; imp (i + 1) l in
+  | c :: l -> Bytes.set res i c; imp (i + 1) l in
   imp 0 l |> Bytes.to_string;;
 
 let string_case s c_empty c_cons = begin
