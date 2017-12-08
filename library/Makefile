@@ -41,7 +41,7 @@ html-libs:
 ocaml-lib-tests: 
 	@mkdir -p ${OCAML_BUILD_DIR}
 	@rm -f ocaml-build-dir
-	@ln -s ${OCAML_BUILD_DIR} ocaml-build-dir       
+	@ln -s ${OCAML_BUILD_DIR} ocaml-build-dir
 	@../lem -ocaml -outdir ${OCAML_BUILD_DIR} -wl ign -wl_auto_import err -wl_rename err ${LIBS} -only_auxiliary -only_changed_output -no_dep_reorder
 	@./run-ocaml-tests.sh ${OCAML_BUILD_DIR}
 
