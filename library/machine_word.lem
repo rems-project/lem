@@ -1184,7 +1184,8 @@ assert {ocaml;hol;isabelle} wordFromBitlist_bitListFromWord_test :
 (******************************************************************)
 
 val mwordEq : forall 'a. mword 'a -> mword 'a -> bool
-let inline mwordEq = unsafe_structural_equality
+declare ocaml target_rep function mwordEq = `Lem.word_equal`
+let inline ~{ocaml} mwordEq = unsafe_structural_equality
 
 instance forall 'a. (Eq (mword 'a))
   let (=)        = mwordEq

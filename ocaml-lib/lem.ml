@@ -126,6 +126,8 @@ let big_num_of_floor x = Nat_big_num.of_int (int_of_float (floor x))
 
 type mword = int * Nat_big_num.num
 
+let word_equal (n1,w1) (n2,w2) = (n1 == n2) && Nat_big_num.equal w1 w2
+
 let machine_word_inject (n,w) = (n,Big_int_impl.BI.extract_big_int w 0 n)
 
 let word_length (n,_) = n
