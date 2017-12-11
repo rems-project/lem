@@ -182,7 +182,7 @@ declare hol      target_rep type int64 = `word64`
 (* unbounded size and precision rational numbers *)
 
 type rational
-declare ocaml    target_rep type rational = `Q.t`
+declare ocaml    target_rep type rational = `Rational.t`
 declare coq      target_rep type rational = `Q` (* ???: better type for this in Coq? *)
 declare isabelle target_rep type rational = `rat`
 declare hol      target_rep type rational = `rat` (* ???: better type for this in HOL? *)
@@ -1343,7 +1343,7 @@ end
 (* ----------------------- *)
 
 val rationalFromNumeral : numeral -> rational
-declare ocaml    target_rep function rationalFromNumeral n = (`Q.of_int` n)
+declare ocaml    target_rep function rationalFromNumeral n = (`Rational.of_int` n)
 declare isabelle target_rep function rationalFromNumeral n = (`Fract` (``n : integer) (1 : integer))
 declare hol      target_rep function rationalFromNumeral n = (``n : rational)
 declare coq      target_rep function rationalFromNumeral n = (`inject_Z` (`Zpred` (`Zpos` (`P_of_succ_nat` n))))
@@ -1353,14 +1353,14 @@ instance (Numeral rational)
 end
 
 val rationalFromInt : int -> rational
-declare ocaml    target_rep function rationalFromInt n = (`Q.of_int` n)
+declare ocaml    target_rep function rationalFromInt n = (`Rational.of_int` n)
 declare isabelle target_rep function rationalFromInt n = (`Fract` n (1 : integer))
 declare hol      target_rep function rationalFromInt n = (`rat_of_int` n)
 declare coq      target_rep function rationalFromInt n = (`inject_Z` n)
 
 val rationalEq : rational -> rational -> bool
 let inline rationalEq = unsafe_structural_equality
-declare ocaml    target_rep function rationalEq = `Q.equal`
+declare ocaml    target_rep function rationalEq = `Rational.equal`
 declare coq      target_rep function rationalEq = `Qeq_bool`
 instance (Eq rational)
   let (=) = rationalEq
@@ -1373,22 +1373,22 @@ val rationalGreater : rational -> rational -> bool
 val rationalGreaterEqual : rational -> rational -> bool
 
 declare hol      target_rep function rationalLess = infix `<`
-declare ocaml    target_rep function rationalLess = `Q.lt`
+declare ocaml    target_rep function rationalLess = `Rational.lt`
 declare isabelle target_rep function rationalLess = infix `<`
 declare coq      target_rep function rationalLess = `Qlt_bool`
 
 declare hol      target_rep function rationalLessEqual = infix `<=`
-declare ocaml    target_rep function rationalLessEqual = `Q.leq`
+declare ocaml    target_rep function rationalLessEqual = `Rational.leq`
 declare isabelle target_rep function rationalLessEqual = infix `\<le>`
 declare coq      target_rep function rationalLessEqual = `Qle_bool`
 
 declare hol      target_rep function rationalGreater = infix `>`
-declare ocaml    target_rep function rationalGreater = `Q.gt`
+declare ocaml    target_rep function rationalGreater = `Rational.gt`
 declare isabelle target_rep function rationalGreater = infix `>`
 declare coq      target_rep function rationalGreater = `Qgt_bool`
 
 declare hol      target_rep function rationalGreaterEqual = infix `>=`
-declare ocaml    target_rep function rationalGreaterEqual = `Q.geq`
+declare ocaml    target_rep function rationalGreaterEqual = `Rational.geq`
 declare isabelle target_rep function rationalGreaterEqual = infix `\<ge>`
 declare coq      target_rep function rationalGreaterEqual = `Qge_bool`
 
@@ -1410,7 +1410,7 @@ end
 
 val rationalAdd : rational -> rational -> rational
 declare hol      target_rep function rationalAdd = infix `+`
-declare ocaml    target_rep function rationalAdd = `Q.add`
+declare ocaml    target_rep function rationalAdd = `Rational.add`
 declare isabelle target_rep function rationalAdd = infix `+`
 declare coq      target_rep function rationalAdd = `Qplus`
 
@@ -1420,7 +1420,7 @@ end
 
 val rationalMinus : rational -> rational -> rational
 declare hol      target_rep function rationalMinus = infix `-`
-declare ocaml    target_rep function rationalMinus = `Q.sub`
+declare ocaml    target_rep function rationalMinus = `Rational.sub`
 declare isabelle target_rep function rationalMinus = infix `-`
 declare coq      target_rep function rationalMinus = `Qminus`
 
@@ -1430,7 +1430,7 @@ end
 
 val rationalNegate : rational -> rational
 let inline rationalNegate n = 0 - n
-declare ocaml    target_rep function rationalNegate = `Q.neg`
+declare ocaml    target_rep function rationalNegate = `Rational.neg`
 declare isabelle target_rep function rationalNegate i = `-` i
 
 instance (NumNegate rational)
@@ -1439,7 +1439,7 @@ end
 
 val rationalAbs : rational -> rational
 let inline rationalAbs n = (if n > 0 then n else ~n)
-declare ocaml    target_rep function rationalAbs = `Q.abs`
+declare ocaml    target_rep function rationalAbs = `Rational.abs`
 declare isabelle target_rep function rationalAbs = `abs`
 
 instance (NumAbs rational)
@@ -1460,7 +1460,7 @@ end
 
 val rationalMult : rational -> rational -> rational
 declare hol      target_rep function rationalMult = infix `*`
-declare ocaml    target_rep function rationalMult = `Q.mul`
+declare ocaml    target_rep function rationalMult = `Rational.mul`
 declare isabelle target_rep function rationalMult = infix `*`
 declare coq      target_rep function rationalMult = `Qmult`
 
@@ -1470,7 +1470,7 @@ end
 
 val rationalDiv : rational -> rational -> rational
 declare hol      target_rep function rationalDiv = infix `/`
-declare ocaml    target_rep function rationalDiv = `Q.div`
+declare ocaml    target_rep function rationalDiv = `Rational.div`
 declare isabelle target_rep function rationalDiv = infix `div`
 declare coq      target_rep function rationalDiv = `Qdiv`
 
@@ -1480,7 +1480,7 @@ end
 
 val rationalFromFrac : int -> int -> rational
 let rationalFromFrac n d = (rationalFromInt n) / (rationalFromInt d)
-declare ocaml    target_rep function rationalFromFrac n d = (`Q.of_ints` n d)
+declare ocaml    target_rep function rationalFromFrac n d = (`Rational.of_ints` n d)
 declare isabelle target_rep function rationalFromFrac n d = (`Fract` n d)
 declare hol      target_rep function rationalFromFrac n d = (`rat_cons` n d)
 
@@ -1503,13 +1503,13 @@ end
 val rationalMin : rational -> rational -> rational
 let inline rationalMin = defaultMin
 declare isabelle target_rep function rationalMin = `min`
-declare ocaml    target_rep function rationalMin = `Q.min`
+declare ocaml    target_rep function rationalMin = `Rational.min`
 declare coq      target_rep function rationalMin = `Qmin`
 
 val rationalMax : rational -> rational -> rational
 let inline rationalMax = defaultMax
 declare isabelle target_rep function rationalMax = `max`
-declare ocaml    target_rep function rationalMax = `Q.max`
+declare ocaml    target_rep function rationalMax = `Rational.max`
 declare coq      target_rep function rationalMax = `Qmax`
 
 instance ( OrdMaxMin rational )
