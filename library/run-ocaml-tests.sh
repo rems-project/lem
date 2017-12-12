@@ -7,17 +7,16 @@ cd $dir
 rm -f ocaml-lib
 ln -s ../../ocaml-lib .
 
+# OCaml foolishly provides "its own" LD_LIBRARY_PATH, but the vanilla one
+# also takes effect if the OCaml one is not set. So we have to munge both.
 export LD_LIBRARY_PATH="$(readlink -f ocaml-lib)"/dependencies/zarith/:"${LD_LIBRARY_PATH}"
+export CAML_LD_LIBRARY_PATH="$(readlink -f ocaml-lib)"/dependencies/zarith/:"${CAML_LD_LIBRARY_PATH}"
 
 for file in *Auxiliary.ml
 do
   echo $file
   file_nat=${file%.ml}.native
-  if ocamlfind ocamlc -package zarith 2>&1 > /dev/null; then
-    ocamlfind ocamlc -o ${file_nat} -package zarith -linkpkg -I ocaml-lib nums.cma extract.cma ${file}
-  else
-    ocamlfind ocamlc -o ${file_nat} -I ocaml-lib/dependencies/zarith/ -I ocaml-lib zarith.cma nums.cma extract.cma ${file}
-  fi
+  ocamlfind ocamlc -o ${file_nat} -I ocaml-lib/dependencies/zarith/ -I ocaml-lib zarith.cma nums.cma extract.cma ${file}
 done 
 
 for file in *.native 

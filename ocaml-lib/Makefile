@@ -4,7 +4,7 @@ override OCAMLFLAGS += -g
 
 
 
-BUILD_DEPS := $(if $(shell ocamlfind ocamlc -package zarith 2>&1),true,false)
+BUILD_DEPS := true
 ifeq ("$(BUILD_DEPS)","true")
   # build dependencies from source
   DEPS  = -I $(ZARITH) zarith$(suffix $@) nums$(suffix $@)
