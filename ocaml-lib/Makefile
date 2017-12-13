@@ -37,7 +37,7 @@ SUPPORTING_CMO_FILES := $(patsubst %.ml,%.cmo,$(SUPPORTING_ML_FILES))
 
 all: extract.cmxa extract.cma
 
-extract.cmxa: $(SUPPORTING_ML_FILES) $(ML_FILES) $(DEPSPREREQ)
+extract.cmxa extract.a: $(SUPPORTING_ML_FILES) $(ML_FILES) $(DEPSPREREQ)
 	ocamlfind ocamlopt $(OCAMLFLAGS) $(DEPS) $(NUM_IMPL_FLAGS) $(SUPPORTING_ML_FILES) $(ML_FILES)
 	ocamlfind ocamlopt $(OCAMLFLAGS) -a -o $@ $(NUM_IMPL_FLAGS) $(SUPPORTING_CMX_FILES) $(CMX_FILES)
 
