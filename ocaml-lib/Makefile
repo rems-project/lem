@@ -57,3 +57,31 @@ dependencies:
 	make -C dependencies
 
 .PHONY: all local_clean clean dependencies
+
+
+
+
+# after doing 'make install'
+install:
+	$(MAKE) clean
+	$(MAKE) _install_pkg PKGNAME=lem_zarith NUM_IMPL_PATH=num_impl_zarith BUILD_DEPS=false
+	$(MAKE) clean
+	$(MAKE) _install_pkg PKGNAME=lem_num NUM_IMPL_PATH=num_impl_big_int BUILD_DEPS=false
+	$(MAKE) _install_pkg PKGNAME=lem PKGFILES=META
+.PHONY: install
+
+uninstall:
+	$(MAKE) _uninstall_pkg PKGNAME=lem
+	$(MAKE) _uninstall_pkg PKGNAME=lem_zarith
+	$(MAKE) _uninstall_pkg PKGNAME=lem_num
+.PHONY: uninstall
+
+# TODO: add .mli files to the package
+PKGFILES := $(NUM_IMPL_PATH)/META $(wildcard *.cmi) extract.cma extract.cmxa extract.a
+_install_pkg: $(PKGFILES) _uninstall_pkg
+	ocamlfind install $(PKGNAME) $(PKGFILES)
+.PHONY: _install_pkg
+
+_uninstall_pkg:
+	-ocamlfind remove $(PKGNAME)
+.PHONY: _uninstall_pkg
