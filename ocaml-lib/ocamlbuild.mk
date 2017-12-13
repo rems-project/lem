@@ -8,7 +8,7 @@ install: install_zarith install_num install_lem
 .PHONY: install
 
 extract_zarith extract_num: extract_%:
-	@ocamlfind query $* > /dev/null || { echo "please install the missing package (or 'make dependencies')" && false; }
+	@ocamlfind query $* > /dev/null || { echo "please install the missing $* package (or do 'make install_dependencies' from `pwd`)" && false; }
 	ocamlbuild -build-dir _build_$* -X dependencies -I num_impl_$* -use-ocamlfind -pkg $* extract.cma extract.cmxa
 .PHONY: extract_zarith extract_num
 
@@ -44,5 +44,6 @@ clean:
 .PHONY: clean
 
 
-dependencies:
+.PHONY: install_dependencies
+install_dependencies:
 	make -C dependencies install
