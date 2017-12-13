@@ -1,0 +1,7 @@
+# META file of package lem_num:
+description = "Lem library for extracted OCaml (using the Num library)"
+requires = "num"
+version = "0.0.0-dev"
+archive(byte) = "extract.cma"
+archive(native) = "extract.cmxa"
+error(pkg_zarith) = "Package zarith is incompatible with lem_num (use lem_zarith instead)"

@@ -1,6 +1,8 @@
 Big_int_impl
+Rational_impl
 Nat_big_num
 Nat_num
+Rational
 Pset
 Pmap
 Vector
@@ -17,11 +19,13 @@ Lem_function
 Lem_function_extra
 Lem_list
 Lem_list_extra
+Lem_machine_word
 Lem_map
 Lem_map_extra
 Lem_maybe
 Lem_maybe_extra
 Lem_num
+Lem_num_extra
 Lem_pervasives 
 Lem_pervasives_extra 
 Lem_relation
