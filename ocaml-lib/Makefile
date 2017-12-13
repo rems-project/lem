@@ -15,6 +15,7 @@ else
 endif
 
 NUM_IMPL_PATH ?= num_impl_zarith
+# or: NUM_IMPL_PATH ?= num_impl_num
 NUM_IMPL_FLAGS ?= -I $(NUM_IMPL_PATH)
 BIG_INT_IMPL_ML ?= $(NUM_IMPL_PATH)/big_int_impl.ml
 BIG_INT_IMPL_MLI ?= $(NUM_IMPL_PATH)/big_int_impl.mli
@@ -51,7 +52,7 @@ local_clean:
 clean: local_clean
 	make -C dependencies clean
 	make -C num_impl_zarith clean
-	make -C num_impl_big_int clean
+	make -C num_impl_num clean
 
 dependencies:
 	make -C dependencies
@@ -66,7 +67,7 @@ install:
 	$(MAKE) clean
 	$(MAKE) _install_pkg PKGNAME=lem_zarith NUM_IMPL_PATH=num_impl_zarith BUILD_DEPS=false
 	$(MAKE) clean
-	$(MAKE) _install_pkg PKGNAME=lem_num NUM_IMPL_PATH=num_impl_big_int BUILD_DEPS=false
+	$(MAKE) _install_pkg PKGNAME=lem_num NUM_IMPL_PATH=num_impl_num BUILD_DEPS=false
 	$(MAKE) _install_pkg PKGNAME=lem PKGFILES=META
 .PHONY: install
 
