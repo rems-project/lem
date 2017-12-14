@@ -5,3 +5,7 @@ ifeq "$(USE_OCAMLBUILD)" "false"
 else
   include ocamlbuild.mk
 endif
+
+clean:
+	$(MAKE) -f ocamlbuild.mk clean
+	$(MAKE) -f no_ocamlbuild.mk clean
