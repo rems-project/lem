@@ -1,3 +1,6 @@
+# this is the old Makefile, it is included from the new Makefile when USE_OCAMLBUILD=false
+# notice that the files are generated in place and not in _build_zarith or _build_num
+
 DEPENDS ?= dependencies
 ZARITH ?= $(DEPENDS)/zarith
 override OCAMLFLAGS += -g
