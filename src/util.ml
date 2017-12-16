@@ -285,13 +285,13 @@ let is_uppercase = function
   | _ -> false
 
 let uncapitalize_prefix = 
-  let uncapitalize_pos (x:string) (p:int) : bool =     
-    if not (p < String.length x) then false else
+  let uncapitalize_pos (x:bytes) (p:int) : bool =
+    if not (p < Bytes.length x) then false else
     begin
-      let c = String.get x p in
+      let c = Bytes.get x p in
       if is_uppercase c then
         let c' = Char.lowercase c in
-        let _ = String.set x p c' in
+        let _ = Bytes.set x p c' in
         true
       else
         false
@@ -300,21 +300,21 @@ let uncapitalize_prefix =
   let rec aux x p = begin
     if uncapitalize_pos x p then aux x (p+1) else x
   end in
-  fun x -> aux (String.copy x) 0
+  fun x -> Bytes.to_string (aux (Bytes.of_string x) 0)
 
 let string_map f s_input =
-  let s = String.copy s_input in
+  let s = Bytes.of_string s_input in
   let rec aux p = begin
     if p > 0 then
       begin 
         let p' = p - 1 in
-        let _ = String.set s p' (f (String.get s p')) in
+        let _ = Bytes.set s p' (f (Bytes.get s p')) in
         aux p'
       end
     else ()
   end in
-  let _ = aux (String.length s) in
-  s
+  let _ = aux (Bytes.length s) in
+  Bytes.to_string s
 
 
 module IntSet = Set.Make( 
@@ -343,7 +343,7 @@ module ExtraSet = functor (S : Set.S) ->
 
 let copy_file src dst = 
   let len = 5096 in
-  let b = String.make len ' ' in
+  let b = Bytes.make len ' ' in
   let read_len = ref 0 in
   let i = open_in_bin src in
   let o = open_out_bin dst  in

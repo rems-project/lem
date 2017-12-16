@@ -73,9 +73,9 @@ let iteri (i : int -> 'a -> unit) (l : 'a list) =
 
 let string_of_char_list (cs : char list) : string =
   let length = List.length cs in
-  let buffer = String.create length in
-  let _ = iteri (fun c -> fun x -> String.set buffer c x) cs in
-    buffer
+  let buffer = Bytes.create length in
+  let _ = iteri (fun c -> fun x -> Bytes.set buffer c x) cs in
+  Bytes.to_string buffer
 ;;
 
 (* Monadic interface *)

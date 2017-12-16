@@ -1,6 +1,6 @@
 (** Unicode (ISO-UCS) characters.
 
-   This module implements Unicode characters.
+    This module implements Unicode characters.
 *)
 
 (* Copyright (C) 2002, 2003, 2004 Yamagata Yoriyuki. *)
@@ -48,9 +48,9 @@ let char_of c =
 
 let of_char = Char.code
 
-  (* valid range: U+0000..U+D7FF and U+E000..U+10FFFF *)
+(* valid range: U+0000..U+D7FF and U+E000..U+10FFFF *)
 let chr n =
-  if (n >= 0 && n <= 0xd7ff) or (n >= 0xe000 && n <= 0x10ffff)
+  if (n >= 0 && n <= 0xd7ff) || (n >= 0xe000 && n <= 0x10ffff)
   then n
   else raise Out_of_range
 
@@ -64,3 +64,5 @@ type uchar = t
 
 let int_of u = code u
 let of_int n = chr n
+
+let is_ascii u = u < 128

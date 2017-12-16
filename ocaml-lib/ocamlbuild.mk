@@ -34,7 +34,7 @@ uninstall_zarith uninstall_num: uninstall_%:
 
 $(INSTALLDIR)/lem_zarith/META $(INSTALLDIR)/lem_num/META: $(INSTALLDIR)/lem_%/META: num_impl_%/META _build_%/extract.cma _build_%/extract.cmxa _build_%/extract.a
 	-ocamlfind remove lem_$*
-	ocamlfind install -patch-version "$(LEMVERSION)" lem_$* $^ $$(find _build_$* -name '*.cmi' -o -name '*.mli')
+	ocamlfind install -patch-version "$(LEMVERSION)" lem_$* $^ `find _build_$* -name '*.cmi' -o -name '*.cmx' -o -name '*.mli'`
 	touch $@
 
 
