@@ -2,4 +2,4 @@
 description = "Lem library for extracted OCaml"
 requires = "lem_zarith"
 requires(nozarith) = "lem_num"
-version = "0.0.0-dev"
+version = "0.0.0"

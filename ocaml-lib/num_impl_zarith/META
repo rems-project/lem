@@ -1,6 +1,6 @@
 # META file of package lem_zarith:
 description = "Lem library for extracted OCaml (using zarith)"
-requires = "zarith"
-version = "0.0.0-dev"
+requires = "zarith num"
+version = "0.0.0"
 archive(byte) = "extract.cma"
 archive(native) = "extract.cmxa"
