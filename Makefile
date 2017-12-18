@@ -11,6 +11,7 @@ all: bin/lem libs_phase_1 ocaml-libs
 # we might want run the tests for all backends that are present
 
 install:
+	$(MAKE) -C ocaml-lib install
 	mkdir -p $(INSTALL_DIR)/bin
 	mkdir -p $(INSTALL_DIR)/share
 	cp lem.sh $(INSTALL_DIR)/bin/lem
