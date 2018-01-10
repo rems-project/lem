@@ -57,7 +57,6 @@ let of_int64 = BI.big_int_of_int64
 let to_int64 = BI.int64_of_big_int
 
 let to_string = BI.string_of_big_int
-
 let of_string = BI.big_int_of_string
 let of_string_nat s =
   let i = of_string s in
@@ -69,3 +68,6 @@ let of_string_nat s =
 let integerDiv_t = BI.div
 let integerRem_t = fun x y -> BI.(mod) x y
 let integerRem_f = fun x y -> BI.mod_big_int x y
+
+let pp_num (f: Format.formatter) (n: num) : unit =
+  Format.pp_print_string f (to_string n)
