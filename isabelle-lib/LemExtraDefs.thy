@@ -50,8 +50,8 @@ theory "LemExtraDefs"
 
 imports
  	 Main
-   "~~/src/HOL/Library/Permutation"
-   "~~/src/HOL/Library/While_Combinator"
+   "HOL-Library.Permutation"
+   "HOL-Library.While_Combinator"
 begin
 
 subsection \<open>General\<close>
@@ -335,10 +335,10 @@ fun sorted_by  :: "('a \<Rightarrow> 'a \<Rightarrow> bool)\<Rightarrow> 'a list
  | "sorted_by cmp (x1 # x2 # xs) = ((cmp x1 x2) \<and> sorted_by cmp (x2 # xs))"
 
 lemma sorted_by_lesseq [simp] :
-  "sorted_by ((op \<le>) :: ('a::{linorder}) => 'a => bool) = sorted"
+  "sorted_by ((\<le>) :: ('a::{linorder}) => 'a => bool) = sorted"
 proof (rule ext)
   fix l :: "'a list"
-  show "sorted_by (op \<le>) l = sorted l"
+  show "sorted_by (\<le>) l = sorted l"
   proof (induct l)
     case Nil thus ?case by simp
   next
@@ -681,7 +681,7 @@ next
       thus ?thesis by blast
     next
       case False
-      with xyl_in have "xyl \<in> op # y ` insert_in_list_at_arbitrary_pos x l" by simp
+      with xyl_in have "xyl \<in> (#) y ` insert_in_list_at_arbitrary_pos x l" by simp
       with ind_hyp obtain l1 l2 where "l = l1 @ l2 \<and> xyl = y # l1 @ x # l2"
          by (auto simp add: image_def Bex_def)
       hence "y # l = (y # l1) @ l2 \<and> xyl = (y # l1) @ [x] @ l2" by simp
