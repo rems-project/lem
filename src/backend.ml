@@ -982,7 +982,15 @@ module Isa : Target = struct
   let setcomp_binding_middle = kwd "."
   let setcomp_sep = kwd "|"
   let first_case_sep = Seplist.Forbid(fun sk -> ws sk ^ meta " ")
-  let infix_op_format a x = match a with (Term_var | Term_var_toplevel) -> id a x | _ -> kwd "(op" ^ id a x  ^ kwd ")"
+
+  let star = Ulib.Text.of_latin1 "*"
+  let space = Output.ws (Some [Ast.Ws (Ulib.Text.of_latin1 " ")])
+  let infix_op_format a x = match a with (Term_var | Term_var_toplevel) -> id a x | _ -> begin
+     if (Ulib.Text.left x 1 = star || Ulib.Text.right x 1 = star) then
+       kwd "(" ^ space ^ id a x ^ space ^ kwd ")"
+     else
+       kwd "(" ^ id a x ^ kwd ")"
+  end
 
   let op_format use_infix = if use_infix then infix_op_format else id
 
