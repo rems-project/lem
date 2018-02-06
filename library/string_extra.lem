@@ -44,6 +44,8 @@ let rec stringFromNatHelper n acc =
   else
     stringFromNatHelper (n / 10) (chr (n mod 10 + 48) :: acc)
 
+declare {isabelle} termination_argument stringFromNatHelper = automatic
+
 val stringFromNat : nat -> string
 let ~{ocaml;hol} stringFromNat n = 
   if n = 0 then "0" else toString (stringFromNatHelper n [])
@@ -61,6 +63,8 @@ let rec stringFromNaturalHelper n acc =
     acc
   else
     stringFromNaturalHelper (n / 10) (chr (natFromNatural (n mod 10 + 48)) :: acc)
+
+declare {isabelle} termination_argument stringFromNaturalHelper = automatic
 
 val stringFromNatural : natural -> string
 let ~{ocaml;hol} stringFromNatural n = 

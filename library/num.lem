@@ -1490,6 +1490,7 @@ let rec rationalPowInteger b e =
   if e > 0 then rationalPowInteger b (e - 1) * b else
   rationalPowInteger b (e + 1) / b
 declare coq      target_rep function rationalPowInteger = `Qpower`
+declare {isabelle} termination_argument rationalPowInteger = automatic
 
 val rationalPowNat : rational -> nat -> rational
 let rationalPowNat r e = rationalPowInteger r (integerFromNat e)
@@ -1671,6 +1672,7 @@ let rec realPowInteger b e =
   realPowInteger b (e + 1) / b
 declare ocaml    target_rep function realPowInteger r e = (`Lem.pow_float` r (realFromInteger e))
 declare coq      target_rep function realPowInteger = `powerRZ`
+declare {isabelle} termination_argument realPowInteger = automatic
 
 val realPowNat : real -> nat -> real
 let realPowNat r e = realPowInteger r (integerFromNat e)

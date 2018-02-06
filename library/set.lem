@@ -675,6 +675,8 @@ let rec leastFixedPoint bound f x =
                   else leastFixedPoint bound' f (fx union x)
   end
 
+declare {isabelle} termination_argument leastFixedPoint = automatic
+
 assert lfp_empty_0: leastFixedPoint 0 (map (fun x -> x)) ({} : set nat) = {}
 assert lfp_empty_1: leastFixedPoint 1 (map (fun x -> x)) ({} : set nat) = {}
 assert lfp_saturate_neg_1: leastFixedPoint 1 (map (fun x -> ~x)) ({1; 2; 3} : set int) = {~3; ~2; ~1; 1; 2; 3}
