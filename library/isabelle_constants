@@ -195,6 +195,7 @@ local
 locale
 local_setup
 lsb
+mask
 max
 method_setup
 min
@@ -314,6 +315,7 @@ remove_thy
 rename
 rep_datatype
 repdef
+replicate
 respects
 respects2
 restrict
