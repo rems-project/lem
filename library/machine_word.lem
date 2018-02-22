@@ -1403,8 +1403,12 @@ declare hol      target_rep function unsignedDivide = `words$word_div`
 declare ocaml    target_rep function unsignedDivide = `Lem.word_udiv`
 declare hol      target_rep function signedDivide   = `words$word_sdiv`
 
-let {isabelle} signedDivide x y =
-  proverWordFromInteger ((signedIntegerFromWord x) / (signedIntegerFromWord y))
+let {isabelle;ocaml} signedDivide x y =
+    if msb x then
+        if msb y then unsignedDivide (uminus x) (uminus y)
+        else uminus (unsignedDivide (uminus x) y)
+    else if msb y then uminus (unsignedDivide x (uminus y))
+        else unsignedDivide x y
 
 val modulo : forall 'a. mword 'a -> mword 'a -> mword 'a
 
@@ -1429,6 +1433,7 @@ assert {ocaml;hol;isabelle} plus_test : plus (wordFromInteger (~5) : mword ty8) 
 assert {ocaml;hol;isabelle} minus_test : minus (wordFromInteger (~5) : mword ty8) (wordFromNatural 2) = wordFromInteger (~7)
 assert {ocaml;hol;isabelle} times_test : times (wordFromInteger (~5) : mword ty8) (wordFromNatural 2) = wordFromInteger (~10)
 assert {ocaml;hol;isabelle} udiv_test : unsignedDivide (wordFromInteger (~5) : mword ty8) (wordFromNatural 2) = wordFromInteger 125
+assert {ocaml;hol;isabelle} sdiv_test : signedDivide (wordFromInteger (~5) : mword ty8) (wordFromNatural 2) = wordFromInteger 254
 
 
 (* Comparison tests, which need wordFromInteger *)
