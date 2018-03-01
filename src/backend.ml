@@ -1025,7 +1025,7 @@ module Isa : Target = struct
   let typedef_end = emp
   let typedef_sep = kwd "and"
 
-  let typedefrec_start = kwd "record"
+  let typedefrec_start = kwd "datatype_record"
   let typedefrec_end = emp
   let rec_start = kwd "(|"
   let rec_end = kwd "|)"
