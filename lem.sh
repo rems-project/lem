@@ -1,4 +1,4 @@
-#/bin/sh
+#!/bin/sh
 
 export LEMDIR=/usr/local/share/lem
-$LEMDIR/lem $*
+$LEMDIR/lem "$@"
