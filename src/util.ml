@@ -290,7 +290,7 @@ let uncapitalize_prefix =
     begin
       let c = Bytes.get x p in
       if is_uppercase c then
-        let c' = Char.lowercase c in
+        let c' = Char.lowercase_ascii c in
         let _ = Bytes.set x p c' in
         true
       else

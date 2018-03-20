@@ -54,7 +54,7 @@ let r = Ulib.Text.of_latin1
 
 let parse_int lexbuf i =
   try (int_of_string i, i)
-  with Failure "int_of_string" ->
+  with Failure _ ->
     raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax (
            Lexing.lexeme_start_p lexbuf,
            "couldn't parse integer "^i)))

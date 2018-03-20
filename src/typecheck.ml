@@ -908,7 +908,7 @@ module Make_checker(T : sig
           C.add_constraint (External_constants.class_label_to_path "class_numeral") t_ret;
           if is_pattern then C.add_constraint (External_constants.class_label_to_path "class_ord") t_ret else ();
           if is_pattern then C.add_constraint (External_constants.class_label_to_path "class_num_minus") t_ret else ();
-          let i_int = try int_of_string i with Failure "int_of_string" ->
+          let i_int = try int_of_string i with Failure _ ->
             raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax_locn (l, "couldn't parse integer "^i))) in
           annot (L_num(sk,i_int, Some i)) t_ret 
       | Ast.L_string(sk,i) ->
@@ -3166,7 +3166,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let sub = begin
             let var_subst = Seplist.fold_left (fun (RName(_,name,r_ref,_,typschm, _,_,_,_)) subst ->
               begin
-    	        let name = Name.strip_lskip name in
+	        let name = Name.strip_lskip name in
                 let name_d = c_env_lookup l newctxt.ctxt_c_env r_ref in
                 let id = { id_path = Id_some (Ident.mk_ident None [] name); 
                            id_locn = l; descr = r_ref; 
@@ -3406,8 +3406,8 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
 
                    (* check that [n] has the right type / check whether it is in the set of methods *)
                    let _ = try
-  		       let (_, _, n_class_ty) = List.find (fun (_, n', _) -> Name.compare n n' = 0) class_methods in
-                       if Types.check_equal ctxt.all_tdefs n_class_ty n_d.const_type then 
+                       let (_, _, n_class_ty) = List.find (fun (_, n', _) -> Name.compare n n' = 0) class_methods in
+                       if Types.check_equal ctxt.all_tdefs n_class_ty n_d.const_type then
                           (* type matches, everything OK *) ()
                        else begin
                          let t_should = Types.t_to_string n_class_ty in
@@ -3445,7 +3445,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
 
 
           (* add a dictionary constant *)
-          let dict_name = Name.from_string (String.uncapitalize (Name.to_string instance_name) ^ "_dict") in
+          let dict_name = Name.from_string (String.uncapitalize_ascii (Name.to_string instance_name) ^ "_dict") in
 
           let dict_type = class_descr_get_dict_type p_d src_t.typ in
 

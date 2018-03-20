@@ -1600,10 +1600,12 @@ module Constraint (T : Global_defs) : Constraint = struct
          end
        | _ -> assert false (*Normal so should not be reached*)
     in
+    (* TODO: remove completely, or actually use it somewhere
     let rec walk_constraints = function
     | [ ] -> [ ]
     | c :: constraints -> range_with c (add_vars all_vars (range_of_n c)) :: (walk_constraints  constraints)
-    in 
+    in
+    *)
     Array.of_list(List.map (fun r -> ref (Some r)) constraints (* (walk_constraints constraints) *))
     
   let is_inconsistent = function

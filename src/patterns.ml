@@ -84,7 +84,7 @@ let check_number_patterns_aux (p : pat) : bool =
      raise (Reporting_basic.err_type p.locn "number pattern not of type nat or natural") in
   true
 
-let check_number_patterns env p = (for_all_subpat check_number_patterns_aux p; ())
+let check_number_patterns env p = (ignore(for_all_subpat check_number_patterns_aux p); ())
 
 
 
@@ -2135,8 +2135,10 @@ let my_list_compile_step
     | _ -> raise Pat_Matrix_Compile_Fun_Failed in
 
   (* Auxiliary vars/pvars/wildcards *)
-  let new_list_wc_pat = matrix_compile_mk_pwild list_ty in
-  let new_elem_wc_pat = matrix_compile_mk_pwild elem_ty in
+  (* TODO: remove this or actually use it somewhere
+   let new_list_wc_pat = matrix_compile_mk_pwild list_ty in *)
+  (* TODO: remove this or actually use it somewhere
+  let new_elem_wc_pat = matrix_compile_mk_pwild elem_ty in *)
   let new_list_var_name = gen None list_ty in
   let new_elem_var_name = gen None elem_ty in
 
@@ -2180,11 +2182,15 @@ let my_list_compile_step
       match_compile_unreachable "my_list_compile_step wrong no of args to rest_pat_const" in
 
   (* Reconstruction function *)
+  (* TODO: remove this or actually use it somewhere
   let nil_pats =
     List.filter (is_list_pat (Some 0)) pL in
+  *)
+  (* TODO: remove this or actually use it somewhere
   let cons_pats =
     List.filter (fun p ->
         is_cons_pat p || (is_list_pat None p && not (is_list_pat (Some 0) p))) pL in
+   *)
   let top_fun i eL =
     match eL with
     | e_nil :: e_cons :: e_wilds ->
@@ -2336,12 +2342,15 @@ let my_compile_step (env : env) (mk_failure : env -> Ast.l -> Types.t -> exp)
   let restr_pat (id, _) pL =
     C.mk_pconst l id (List.map mk_opt_paren_pat pL) (Some p_ty) in
 
+  (* TODO: remove this or actually use it somewhere
   let case_fun_else p ee =
-    Some ([], ee) in
-  let dest_in_else e = [] in
-  let restr_pat_else _ = matrix_compile_mk_pwild p_ty in
-
-  let nall = List.length all_args in
+     Some ([], ee) in *)
+  (* TODO: remove this or actually use it somewhere
+  let dest_in_else e = [] in *)
+  (* TODO: remove this or actually use it somewhere
+  let restr_pat_else _ = matrix_compile_mk_pwild p_ty in *)
+  (* TODO: remove this or actually use it somewhere
+  let nall = List.length all_args in *)
 
   Some
     (top_fun,

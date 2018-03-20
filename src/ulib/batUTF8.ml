@@ -203,10 +203,8 @@ let validate s =
   main 0
 
 let of_ascii s =
-  for i = 0 to String.length s - 1 do
-    if Char.code s.[i] >= 0x80 then raise Malformed_code;
-  done;
-  String.copy s
+  String.iter (fun c -> if Char.code c >= 0x80 then raise Malformed_code) s;
+  s
 
 let of_latin1 s = init (String.length s) (fun i -> BatUChar.of_char s.[i])
 

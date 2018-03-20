@@ -119,7 +119,7 @@ let remove_opens _ env (((d,_),_,_) as def) =
         Some (env, [comment_def def])
     | _ -> None
 
-let remove_import_include _ env (((d,s),l,lenv) as def) =
+let remove_import_include _ env (((d,s),l,lenv)) =
   let aux mk_f = function
     | Ast.OI_open sk -> None
     | Ast.OI_import sk ->
@@ -475,13 +475,13 @@ let class_constraint_to_parameter targ : def_macro = fun mod_path env ((d,s),l,l
               begin
                 let c_d = c_env_lookup l_unk c_env c in
                 let new_pats = pats_from_constraints (filter_constraints c_d.const_class) in
-  	        let (c', t', c_env') = 
+	        let (c', t', c_env') =
                   match Targetmap.apply_target c_d.const_no_class targ with
 		    | Some c' -> 
                         let c_d' = c_env_lookup l_unk c_env c' in
                         (c', c_d'.const_type, c_env)
-  		    | None -> 
-                      begin            
+		    | None ->
+                      begin
                         let t' = Types.multi_fun (List.map (fun x -> x.typ) new_pats) c_d.const_type in
 
                         (* for debug 

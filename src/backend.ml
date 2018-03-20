@@ -99,7 +99,7 @@ let gensym_tex_command =
 let rec process_latex_labels s =
   let regexp = Str.regexp "\\([^_]*\\)_+\\(.*\\)" in
   if Str.string_match regexp s 0 then
-    let new_s = String.concat "" [Str.matched_group 1 s; String.capitalize (Str.matched_group 2 s)] in
+    let new_s = String.concat "" [Str.matched_group 1 s; String.capitalize_ascii (Str.matched_group 2 s)] in
     process_latex_labels new_s
   else
     s
@@ -2148,8 +2148,9 @@ and cerberus_pat print_backend p cd ps =
           Some (c_id_string, ps)
       | _ -> None in
 
+    (* TODO: remove this or actually use it somewhere
+    let (c_descr : Typed_ast.const_descr) = c_env_lookup Ast.Unknown A.env.c_env cd.descr in *)
 
-    let (c_descr : Typed_ast.const_descr) = c_env_lookup Ast.Unknown A.env.c_env cd.descr in
     (* TODO: how to pull out the initial lskips from the Constant?                  let lskip = Ident.get_lskip c_descr.const_binding.id_path in  *)
     begin
       match deconstruct_pat p with
@@ -3165,7 +3166,7 @@ let open_import_def_to_output print_backend oi targets ms =
       if in_target targets then
         if (Target.is_human_target T.target || not (T.module_only_single_open) || List.length ms < 2) then 
         begin
-          	open_import_to_output oi ^
+		open_import_to_output oi ^
           (if Target.is_human_target T.target then
              targets_opt targets 
            else
@@ -3176,11 +3177,11 @@ let open_import_def_to_output print_backend oi targets ms =
           match ms with 
             | (sk, m) :: sk_ms' -> begin
                 let (oi', _) = oi_alter_init_lskips (fun _ -> (Some [Ast.Ws (r"\n")], None)) oi in
-          	       open_import_to_output oi ^
+		       open_import_to_output oi ^
                 ws sk ^ backend_quote_cond print_backend (id Module_name (Ulib.Text.of_string m)) ^
 
-               (Output.flat (List.map (fun (sk, m) -> 
-          	        open_import_to_output oi' ^
+               (Output.flat (List.map (fun (sk, m) ->
+		        open_import_to_output oi' ^
                   ws sk ^ backend_quote_cond print_backend (id Module_name (Ulib.Text.of_string m))) sk_ms'))
               end
             | _ -> emp (* covert by other case already *)
@@ -3331,17 +3332,17 @@ let rec def_internal callback (inside_module: bool) d is_user_def : Output.t = m
       ws s4 ^ 
       T.module_end 
   | Rename(s1,(n,l),mod_bind,s2,m) ->
-    	ws s1 ^
-    	T.module_module ^
+	ws s1 ^
+	T.module_module ^
     	Name.to_output Module_name n ^
     	ws s2 ^
     	kwd "=" ^
-    	Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)
+	Ident.to_output Module_name T.path_sep (B.module_id_to_ident m)
   | OpenImport (oi, ms) ->
-  		let out =
-  			let (ms', sk) = B.open_to_open_target ms in 
-      		open_import_def_to_output false oi Targets_opt_none ms' ^
-      		ws sk
+		let out =
+			let (ms', sk) = B.open_to_open_target ms in
+		open_import_def_to_output false oi Targets_opt_none ms' ^
+		ws sk
       in
   			if !suppress_libraries then
   				if Target.is_tex_target T.target then
@@ -3724,9 +3725,9 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
           | _ -> assert false
       end
 
-  | Val_def ((Let_def(s1, targets,(p, name_map, topt,sk, e)) as def)) ->
-      if in_target targets then 
-        ws s1 ^ kwd "definition" ^ 
+  | Val_def ((Let_def(s1, targets,(p, name_map, topt,sk, e)))) ->
+      if in_target targets then
+        ws s1 ^ kwd "definition" ^
         (if Target.is_human_target T.target then
            targets_opt targets 
          else
@@ -3734,8 +3735,8 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
         isa_mk_typed_def_header (pat false p, [], sk, exp_to_typ e) ^
         kwd "where \n\"" ^ pat false p ^ ws sk ^ kwd "= (" ^ exp false e ^ kwd ")\"" ^ T.def_end
       else emp
-  
-  | Val_def ((Fun_def (s1, rec_flag, targets, clauses) as def)) ->
+
+  | Val_def ((Fun_def (s1, rec_flag, targets, clauses))) ->
       let (is_rec, is_real_rec, try_term) = Typed_ast_syntax.try_termination_proof T.target A.env.c_env d in
       if in_target targets then 
         let is_simple = not is_rec && (match Seplist.to_list clauses with
@@ -3845,7 +3846,7 @@ let defs_inc ((ds:def list),end_lex_skips) =
       batrope_pair_concat (List.map (function ((d,s),l,lenv) -> 
         let ue = add_def_entities T.target true empty_used_entities ((d,s),l,lenv) in
         let module F' = F_Aux(T)(struct let avoid = A.avoid;; let env = { A.env with local_env = lenv };;
-   				        let dir = A.dir;;
+				        let dir = A.dir;;
 					let ascii_rep_set = CdsetE.from_list ue.used_consts end)(X) in
         batrope_pair_concat (F'.def_tex_inc defs ((d,s), l, lenv))) ds)
   | _ ->

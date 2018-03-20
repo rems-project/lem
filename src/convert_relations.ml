@@ -1814,7 +1814,9 @@ let transform_rule
   (* Stores the dependencies on other indreln translations *)
   let requests = ref [] in
   (* The variables that appears in the rule's [forall] part *)
+  (* TODO: remove this or actually use it somewhere
   let vars = Nfmap.domain (Nfmap.from_list rule.rule_vars) in
+   *)
   let avoid = ref Nset.empty in
   (* Constructs the patterns for input mode. Used at the end. *)
   let (patterns, initeqs) =

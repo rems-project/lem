@@ -75,7 +75,7 @@ type t = P_prefix
        | P_special
 
 let t_to_int = function
-  | P_special _ -> -1
+  | P_special -> -1
   | P_prefix -> 0
   | P_infix i -> i
   | P_infix_left i -> i
