@@ -7,3 +7,10 @@ src/main.native
 src/version.ml
 examples/ppcmem-model/generated/*
 
+coq-lib/lem_*.v
+ocaml-lib/lem_*.ml
+ocaml-lib/_build_zarith/
+tex-lib/lem-*.tex
+isabelle-lib/Lem_*.thy
+html-lib/*.html
+hol-lib/lem_*.sml
