@@ -45,7 +45,7 @@
 (**************************************************************************)
 
 module DepSet = Set.Make(
-struct 
+struct
   type t = (string * Ast.l)
   let compare = Pervasives.compare
 end)
@@ -63,22 +63,22 @@ type module_dependency = {
    module_needs_output : bool;
    module_given_by_user : bool
 }
-  
+
 let module_dependency_is_resolved md =
-  DepSet.is_empty md.missing_deps 
+  DepSet.is_empty md.missing_deps
 
 let module_dependency_is_cyclic md =
-  DepSet.exists (fun (n, _) -> n = md.module_name) md.missing_deps 
+  DepSet.exists (fun (n, _) -> n = md.module_name) md.missing_deps
 
 (** convert a filename to a module name by capitalising it and chopping the
     extension ".lem" *)
-let filename_to_modname filename = 
+let filename_to_modname filename =
   let filename_base = Filename.basename (Filename.chop_extension filename) in
   String.capitalize filename_base
 
 (** convert a module name to a file name by uncapitalising it and adding the
     extension ".lem" *)
-let modname_to_filename modname = 
+let modname_to_filename modname =
   String.uncapitalize (modname ^ ".lem")
 
 (** [search_module_file mod_name] searches for the file a module [mod_name].
@@ -92,14 +92,14 @@ let search_module_file l search_dirs mod_name =
     let filename' = Filename.concat dir filename in
     if Sys.file_exists filename' then
       Some filename'
-    else None 
+    else None
   end in
 
   match Util.option_first check_dir search_dirs with
     | Some f -> (* filename found :-) *) f
     | None -> raise (
        Reporting_basic.Fatal_error (Reporting_basic.Err_resolve_dependency (l, search_dirs, mod_name)))
-        
+
 
 
 
@@ -113,7 +113,7 @@ let load_module_file (filename, loc, needs_output, is_user_import) =
     let needed_module_strings = List.map (fun (n, l) -> (String.capitalize (Name.to_string n), l)) needed_modules_top in
     DepSetExtra.from_list needed_module_strings
   end in
-  { 
+  {
     module_name = filename_to_modname filename;
     module_loc = loc;
     module_filename = filename;
@@ -132,7 +132,7 @@ let load_module (l: Ast.l) (search_dirs : string list) (module_name : string) =
 
 (** [resolve_dependencies ordered_modules missing_modules] tries to solve dependencies by
     ordering the modules in [missing_modules]. The list [ordered_modules] have already
-    been loaded. *)      
+    been loaded. *)
 let rec resolve_dependencies allow_input_reorder (lib_dirs : string list)
   (resolved_modules : module_dependency list)
   (missing_modules : module_dependency list) : module_dependency list =
@@ -146,7 +146,7 @@ match missing_modules with
          {md with missing_deps = DepSet.filter (fun (n, _) -> not (List.mem n resolved_modules_list)) md.missing_deps }
       end in
 
-      if module_dependency_is_resolved md then          
+      if module_dependency_is_resolved md then
         (* md is OK, we can typecheck it now *)
         resolve_dependencies allow_input_reorder lib_dirs (md :: resolved_modules) missing_modules'
       else if module_dependency_is_cyclic md then
@@ -156,14 +156,14 @@ match missing_modules with
         (* choose an aribitray missing depency and process it *)
         let (missing_dep, dep_l) = DepSet.choose md.missing_deps in
         match Util.list_pick (fun md' -> md'.module_name = missing_dep) missing_modules' with
-          | Some (md', missing_modules'') ->              
-              (* md depends on already parsed module md'. Therefore, process md' first and 
+          | Some (md', missing_modules'') ->
+              (* md depends on already parsed module md'. Therefore, process md' first and
                  for cycle-detection make sure the depencies of md' are also dependencies of md. *)
 
               let _ = if not ((not allow_input_reorder) && md'.module_given_by_user) then () else begin
                 raise (Reporting_basic.Fatal_error (Reporting_basic.Err_reorder_dependency (dep_l, md'.module_name)))
               end in
-                 
+
               let md = {md with missing_deps = DepSet.union md.missing_deps md'.missing_deps} in
               resolve_dependencies allow_input_reorder lib_dirs resolved_modules (md' :: md :: missing_modules'')
           | None ->
@@ -173,7 +173,7 @@ match missing_modules with
               let md' = load_module dep_l search_dirs missing_dep in
               resolve_dependencies allow_input_reorder lib_dirs resolved_modules (md' :: md :: missing_modules')
       end
-    end  
+    end
 
 
 let process_files allow_input_reorder (lib_dirs : string list) (files : (string * bool) list) =

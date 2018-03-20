@@ -52,7 +52,7 @@ let format_pos ff p = (
 
 let format_pos2 ff p1 p2 = (
   Format.fprintf ff "File \"%s\", line %d, character %d to line %d, character %d"
-    p1.Lexing.pos_fname 
+    p1.Lexing.pos_fname
     p1.Lexing.pos_lnum (p1.Lexing.pos_cnum - p1.Lexing.pos_bol + 1)
     p2.Lexing.pos_lnum (p2.Lexing.pos_cnum - p2.Lexing.pos_bol);
   Format.pp_print_flush ff ()
@@ -63,7 +63,7 @@ let format_pos2 ff p1 p2 = (
 let read_from_file_pos2 p1 p2 =
   let (s, e, multi) = if p1.Lexing.pos_lnum = p2.Lexing.pos_lnum then
                   (* everything in the same line, so really only read this small part*)
-                  (p1.Lexing.pos_cnum, p2.Lexing.pos_cnum, None) 
+                  (p1.Lexing.pos_cnum, p2.Lexing.pos_cnum, None)
                else (*multiline, so start reading at beginning of line *)
                   (p1.Lexing.pos_bol, p2.Lexing.pos_cnum, Some (p1.Lexing.pos_cnum - p1.Lexing.pos_bol)) in
 
@@ -78,7 +78,7 @@ let read_from_file_pos2 p1 p2 =
 
 (* Destruct a location by splitting all the Ast.Trans strings except possibly the
    last one into a string list and keeping only the last location *)
-let dest_loc (l : Ast.l) : (Ast.l * string list) = 
+let dest_loc (l : Ast.l) : (Ast.l * string list) =
   let rec aux acc l = match l with
     | Ast.Trans(_, s, Some l') -> aux (s::acc) l'
     | _ -> (l, acc)
@@ -94,15 +94,15 @@ let rec format_loc_aux only_first ff l =
   in
   if (not only_first) && (List.length mod_s > 0) then begin
     let mod_s' = String.concat ", " mod_s in
-    let _ = Format.fprintf ff " processed by: %s" mod_s' in () 
+    let _ = Format.fprintf ff " processed by: %s" mod_s' in ()
   end else ()
 
-let format_loc_source ff l = 
-  match dest_loc l with 
-  | (Ast.Range (p1, p2), _) -> 
+let format_loc_source ff l =
+  match dest_loc l with
+  | (Ast.Range (p1, p2), _) ->
     begin
       let (s, multi_line) = read_from_file_pos2 p1 p2 in
-      if multi_line then 
+      if multi_line then
         Format.fprintf ff "  original input:\n%s\n" (Bytes.to_string s)
       else
         Format.fprintf ff "  original input: \"%s\"\n" (Bytes.to_string s)
@@ -115,7 +115,7 @@ let format_loc only_first ff l =
   Format.pp_print_flush ff ()
 );;
 
-let print_err_loc only_first l = 
+let print_err_loc only_first l =
    (format_loc only_first Format.err_formatter l)
 
 let print_pos p = format_pos Format.std_formatter p
@@ -141,7 +141,7 @@ let print_err fatal verb_loc only_first l m1 m2 =
   print_err_internal fatal verb_loc only_first (Loc l) m1 m2
 
 
-type error = 
+type error =
   | Err_general of bool * Ast.l * string
   | Err_unreachable of Ast.l * string
   | Err_todo of bool * Ast.l * string
@@ -153,11 +153,11 @@ type error =
   | Err_type of Ast.l * string
   | Err_internal of Ast.l * string
   | Err_rename of Ast.l * string
-  | Err_cyclic_build of string 
+  | Err_cyclic_build of string
   | Err_cyclic_inline of Ast.l * string * string
-  | Err_resolve_dependency of Ast.l * string list * string 
+  | Err_resolve_dependency of Ast.l * string list * string
   | Err_reorder_dependency of Ast.l * string
-  | Err_fancy_pattern_constant of Ast.l * string 
+  | Err_fancy_pattern_constant of Ast.l * string
 
 let dest_err = function
   | Err_general (b, l, m) -> ("Error", b, Loc l, m)
@@ -190,7 +190,7 @@ let err_type_pp l msg pp n =
   let pp ppf = Format.fprintf ppf "%s: %a" msg pp n in
   err_type l (Pp.pp_to_string pp)
 
-let report_error e = 
+let report_error e =
   if Printexc.backtrace_status ()
   then Printexc.print_backtrace stderr;
   let (m1, verb_pos, pos_l, m2) = dest_err e in
@@ -207,4 +207,3 @@ let print_debug s =
   if (not !debug_flag) then () else
   (Format.eprintf "DEBUG: %s\n\n" s;
    Format.pp_print_flush Format.err_formatter ())
-

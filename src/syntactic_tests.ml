@@ -69,7 +69,7 @@ let check_id_restrict_e env (e : Typed_ast.exp) : unit =
                     | Some(Tc_type { type_varname_regexp = Some(restrict, regexp) }) ->
                        if (Str.string_match regexp id 0)
                          then ()
-                         else  raise (Reporting_basic.err_type_pp (exp_to_locn e) 
+                         else  raise (Reporting_basic.err_type_pp (exp_to_locn e)
                                ("variables with type " ^ t_to_string (exp_to_typ e) ^ " are restricted to names matching the regular expression " ^ restrict)
                                Name.pp (Name.strip_lskip n)))
                  | _ -> ()
@@ -88,7 +88,7 @@ let check_id_restrict_p env p = match p.term with
                     | Some(Tc_type { type_varname_regexp = Some(restrict, regexp) }) ->
                        if (Str.string_match regexp id 0)
                          then ()
-                         else  raise (Reporting_basic.err_type_pp p.locn 
+                         else  raise (Reporting_basic.err_type_pp p.locn
                                ("variables with type " ^t_to_string p.typ ^ " are restricted to names matching the regular expression " ^ restrict)
                                Name.pp (Name.strip_lskip n) ))
                  | _ -> ()

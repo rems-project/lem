@@ -183,7 +183,7 @@ let one_of l =
 (** Parses a character [c], failing if input stream does not have
     [c] as its head.
  *)
-let char_exact (c : char) = 
+let char_exact (c : char) =
   predicate (fun x -> x = c)
 ;;
 
@@ -241,7 +241,7 @@ let whitespace =
 
 let whitespace1 =
   many1 whitespace >>= fun w ->
-  return (List.fold_right (^) w "") 
+  return (List.fold_right (^) w "")
 ;;
 
 (* Performing parses. *)

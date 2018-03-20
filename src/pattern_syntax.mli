@@ -53,7 +53,7 @@ open Typed_ast
 
 (** [is_var_wild_pat p] checks whether the pattern [p] is
     a wildcard or a variable pattern. Before checking
-    type-annotations, parenthesis, etc. are removed. 
+    type-annotations, parenthesis, etc. are removed.
 *)
 val is_var_wild_pat : pat -> bool
 
@@ -76,7 +76,7 @@ val is_var_tup_pat : pat -> bool
     of variable, wildcard and tuple patterns. *)
 val is_var_wild_tup_pat : pat -> bool
 
-(** [dest_var_pat p] destructs variable patterns and returs their name. If [p] 
+(** [dest_var_pat p] destructs variable patterns and returs their name. If [p]
     is not a variable pattern, [None] is returned. *)
 val dest_var_pat : pat -> Name.t option
 
@@ -85,10 +85,10 @@ val dest_var_pat : pat -> Name.t option
     is able to strip parenthesis. *)
 val dest_ext_var_pat : pat -> Name.t option
 
-(** [pat_to_ext_name p] is very similar to [dest_ext_var_pat p]. 
-    However, intead of returning just a name, [pat_to_ext_name] returns additionally 
+(** [pat_to_ext_name p] is very similar to [dest_ext_var_pat p].
+    However, intead of returning just a name, [pat_to_ext_name] returns additionally
     the whitespace and the type in form of a [name_lskips_annot]. *)
-val pat_to_ext_name : pat -> name_lskips_annot option 
+val pat_to_ext_name : pat -> name_lskips_annot option
 
 (** [is_wild_pat p] checks whether the pattern [p] is
     a wildcard pattern. *)
@@ -103,9 +103,9 @@ val is_wild_pat : pat -> bool
 val dest_tup_pat : int option -> pat -> pat list option
 
 (** [mk_tup_pat [p1, ..., pn]] creates the pattern [(p1, ..., pn)]. *)
-val mk_tup_pat : pat list -> pat 
+val mk_tup_pat : pat list -> pat
 
-(** [is_tup_pat lo p] checks whether [p] is a tuple pattern of the given length. 
+(** [is_tup_pat lo p] checks whether [p] is a tuple pattern of the given length.
     see [dest_tup_pat]*)
 val is_tup_pat : int option -> pat -> bool
 
@@ -149,10 +149,10 @@ val mk_num_add_pat : Types.t -> Name.t -> int -> pat
 (** [is_num_add_pat p] checks whether [p] is a number addition pattern. *)
 val is_num_add_pat : pat -> bool
 
-(** [num_ty_pat_cases f_v f_i f_a f_w f_else p] performs case analysis for patterns of type num. Depending of which form the pattern [p] has, 
+(** [num_ty_pat_cases f_v f_i f_a f_w f_else p] performs case analysis for patterns of type num. Depending of which form the pattern [p] has,
     different argument functions are called:
 - v -> f_v v
-- c (num constant) -> f_i i 
+- c (num constant) -> f_i i
 - v + 0 -> f_v v
 - v + i (for i > 0) -> f_a v i
 - _ -> f_w
@@ -206,7 +206,7 @@ val is_constructor : Ast.l -> env -> Target.target -> const_descr_ref -> bool
     compilation can handle. *)
 val is_buildin_constructor : Ast.l -> env -> Target.target -> const_descr_ref -> bool
 
-(** [is_not_buildin_constructor l env targ c] checks whether [c] is a 
+(** [is_not_buildin_constructor l env targ c] checks whether [c] is a
     constructor for target [targ] in environment [env], but not a build-in one. Not build-in
     constructors get compiled away during pattern compilation. *)
 val is_not_buildin_constructor : Ast.l -> env -> Target.target -> const_descr_ref -> bool
@@ -214,7 +214,7 @@ val is_not_buildin_constructor : Ast.l -> env -> Target.target -> const_descr_re
 (** [direct_subpats p] returns a list of all the direct subpatterns of [p]. *)
 val direct_subpats : pat -> pat list
 
-(** [subpats p] returns a list of all the subpatterns of [p]. 
+(** [subpats p] returns a list of all the subpatterns of [p].
     In contrast to [direct_subpats p] really all subpatterns are
     returned, not only direct ones. This means that the result of
     [direct_subpats p] is a subset of [subpats p]. *)
@@ -248,4 +248,3 @@ exception Pat_to_exp_unsupported of Ast.l * string
 (** [pat_to_exp env p] tries to convert [p] into a corresponding expression. This might fail,
     e.g. if [p] contains wildcard patterns. If it fails a [pat_to_exp_unsupported] exception is raised. *)
 val pat_to_exp : env -> pat -> exp
-

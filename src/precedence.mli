@@ -50,7 +50,7 @@ type t = P_prefix                (** a prefix operation *)
        | P_infix_right of int    (** a right-associative infix operation *)
        | P_special               (** an operation with special syntax (e.g. if-then-else) *)
 
-type context = 
+type context =
   | Field
   | App_right
   | App_left
@@ -63,7 +63,7 @@ type exp_kind =
   | Infix of t
   | Let
   | Atomic
-        
+
 type pat_context =
   | Plist
   | Pas_left
@@ -78,7 +78,7 @@ type pat_kind =
   | Pcons
   | Patomic
 
-val is_infix : t -> bool 
+val is_infix : t -> bool
 
 val needs_parens : context -> exp_kind -> bool
 val pat_needs_parens : pat_context -> pat_kind -> bool

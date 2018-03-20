@@ -63,16 +63,16 @@ val check_match_exp : env -> exp -> match_props option
     returned that contains information on whether the match is exhaustive, contains redundant parts etc. *)
 val check_pat_list : env -> pat list -> match_props option
 
-(** [check_match_exp_warn env e] internally calls [check_match_exp env e]. Instead of returning 
+(** [check_match_exp_warn env e] internally calls [check_match_exp env e]. Instead of returning
     the properties of the match expression, it prints appropriate warning messages, though. *)
 val check_match_exp_warn : env -> exp -> unit
 
-(** [check_match_def env d] checks a definition using pattern matching [d] in environment [env]. 
+(** [check_match_def env d] checks a definition using pattern matching [d] in environment [env].
     Definitions of mutually recursive functions can contain multiple top-level pattern matches.
     Therefore, a list is returned. This lists consists of pairs of
     the name of the defined function and it's properties. If the definition does not have a top-level pattern match,
     i.e. if it is not a function definition, the empty list is returned. *)
-val check_match_def : env -> def -> (Name.t * match_props) list 
+val check_match_def : env -> def -> (Name.t * match_props) list
 
 (** [check_match_def_warn env d] checks a definition and prints appropriate warning messages. *)
 val check_match_def_warn : env -> def -> unit
@@ -81,7 +81,7 @@ val check_match_def_warn : env -> def -> unit
 type match_check_arg
 
 (** [cleanup_match_exp env add_missing e] tries to cleanup the match-expression [e] by removing
-    redunanant rows. Moreover, missing patterns are added at the end, if the argument [add_missing] 
+    redunanant rows. Moreover, missing patterns are added at the end, if the argument [add_missing]
     is set.*)
 val cleanup_match_exp : env -> bool -> exp -> exp option
 
@@ -91,7 +91,7 @@ val cleanup_match_exp : env -> bool -> exp -> exp option
 
     If the case-expression [e] contains a pattern [p] such that [pat_OK p] does not hold,
     the whole case-expression is processed and transformed into an expression with
-    the same semantics that contains only supported patterns. During this compilation, 
+    the same semantics that contains only supported patterns. During this compilation,
     warning messages might be issued. This warning uses [target_opt]. Otherwise, it is not used.*)
 val compile_match_exp : target -> match_check_arg -> env -> exp -> exp option
 

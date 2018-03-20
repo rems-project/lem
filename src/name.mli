@@ -64,7 +64,7 @@ val to_rope : t -> Ulib.Text.t
 
 (** {3 modifying names} *)
 
-(** [rename r_fun n] renames [n] using the function [r_fun]. It looks at the 
+(** [rename r_fun n] renames [n] using the function [r_fun]. It looks at the
   text representation [n_text] of [n] and returns then the name corresponding to
   [r_fun n_text]. *)
 val rename : (Ulib.Text.t -> Ulib.Text.t) -> t -> t
@@ -74,7 +74,7 @@ val rename : (Ulib.Text.t -> Ulib.Text.t) -> t -> t
 val starts_with_upper_letter : t -> bool
 
 (** [uncapitalize n] tries to uncapitalize the first letter of [n].
-    If [n] does not start with a uppercase character, [None] is returned, otherwise 
+    If [n] does not start with a uppercase character, [None] is returned, otherwise
     the modified name. *)
 val uncapitalize : t -> t option
 
@@ -83,7 +83,7 @@ val uncapitalize : t -> t option
 val starts_with_lower_letter : t -> bool
 
 (** [capitalize n] tries to capitalize the first letter of [n].
-    If [n] does not start with a lowercase character, [None] is returned, otherwise 
+    If [n] does not start with a lowercase character, [None] is returned, otherwise
     the modified name. *)
 val capitalize : t -> t option
 
@@ -92,7 +92,7 @@ val capitalize : t -> t option
 val starts_with_underscore : t -> bool
 
 (** [remove_underscore n] tries to remove a leading underscores from name [n].
-    If [n] does not start with an underscore character, [None] is returned, otherwise 
+    If [n] does not start with an underscore character, [None] is returned, otherwise
     the modified name. *)
 val remove_underscore : t -> t option
 
@@ -101,13 +101,13 @@ val remove_underscore : t -> t option
 val ends_with_underscore : t -> bool
 
 (** [remove_underscore_suffix n] tries to remove a suffix underscores from name [n].
-    If [n] does not end with an underscore character, [None] is returned, otherwise 
+    If [n] does not end with an underscore character, [None] is returned, otherwise
     the modified name. *)
 val remove_underscore_suffix : t -> t option
 
 (** {3 generating fresh names} *)
 
-(** [fresh n OK] generates a name [m], such that 
+(** [fresh n OK] generates a name [m], such that
     [OK m] holds. [m] is of the form [n] followed by
     an integer postfix. First [n] without postfix is tried.
     Then counting up from 0 starts, till [OK] is satisfied. *)
@@ -119,7 +119,7 @@ val fresh : Ulib.Text.t -> (t -> bool) -> t
     the elemenst of the resulting list not only satisfy [OK], but are also distinct from each other. *)
 val fresh_num_list : int -> Ulib.Text.t -> (t -> bool) -> t list
 
-(** [fresh_list OK ns] builds variants of the names in list [ns] such that all elements of 
+(** [fresh_list OK ns] builds variants of the names in list [ns] such that all elements of
     the resulting list [ns'] satisfy [OK] and are distinct to each other.*)
 val fresh_list : (t -> bool) -> t list -> t list
 
@@ -154,14 +154,14 @@ val add_pre_lskip : Ast.lex_skips -> lskips_t -> lskips_t
     thrown away. *)
 val replace_lskip : lskips_t -> Ast.lex_skips -> lskips_t
 
-(** [lskip_rename r_fun n] is a version of [rename] that can handle lskips. It renames [n] using 
+(** [lskip_rename r_fun n] is a version of [rename] that can handle lskips. It renames [n] using
     the function [r_fun] and preserves the original whitespace. *)
 val lskip_rename : (Ulib.Text.t -> Ulib.Text.t) -> lskips_t -> lskips_t
 
 (** {2 output functions} *)
 
-(** [to_output_format format_fun id_annot n] formats the name [n] as output. A name with output consists of preedeing whitespace, 
-    the name as a text and a name-type. The space is formated using [ws], the other componenst together with [id_annot] are formated 
+(** [to_output_format format_fun id_annot n] formats the name [n] as output. A name with output consists of preedeing whitespace,
+    the name as a text and a name-type. The space is formated using [ws], the other componenst together with [id_annot] are formated
     with [format_fun]. *)
 val to_output_format : (Output.id_annot -> Ulib.Text.t -> Output.t) -> Output.id_annot -> lskips_t -> Output.t
 

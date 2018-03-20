@@ -62,7 +62,7 @@ type which_macro =
   | Pat_macros of (env -> (Macro_expander.pat_position -> Macro_expander.macro_context -> pat -> pat Macro_expander.continuation) list)
 
 type trans =
-    { 
+    {
       (* Which macros to run, in the given order so that updates to the
        * environment by definition macros can be properly accounted for. *)
       macros : which_macro list;
@@ -72,11 +72,11 @@ type trans =
     }
 
 (* The macros needed to implement the dictionary passing translations to remove type classes *)
-let dictionary_macros targ = 
+let dictionary_macros targ =
   [
    Def_macros (fun env -> [M.class_to_record targ]);
    Def_macros (fun env -> [M.instance_to_dict false targ]);
-   Def_macros (fun env -> [M.class_constraint_to_parameter targ]);  
+   Def_macros (fun env -> [M.class_constraint_to_parameter targ]);
    Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_method targ true]);
    Pat_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_method_pat]);
    Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.remove_class_const targ])
@@ -94,14 +94,14 @@ let nvar_macros =
    Exp_macros (fun env -> let module T = T(struct let env = env end) in [T.add_nexp_param_in_const])
   ]
 
-let indreln_macros = 
+let indreln_macros =
   [
-    Def_macros (fun env ->   
+    Def_macros (fun env ->
       let module Ctxt = struct let avoid = None let env_opt = Some(env) end in
       let module Conv = Convert_relations.Converter(Ctxt) in
       [ Conv.gen_witness_type_macro env;
         Conv.gen_witness_check_macro env;
-        Conv.gen_fns_macro env;]); 
+        Conv.gen_fns_macro env;]);
   ]
 
 let ident () =
@@ -118,7 +118,7 @@ let ident () =
                  else [])];
     extra = []; }
 
-let lem () = 
+let lem () =
   { macros = [Exp_macros (fun env ->
                 let m a1 a2 =
                   match Backend_common.inline_exp_macro Target_lem env a1 a2 with
@@ -140,16 +140,16 @@ let tex =
 
 let hol =
   { macros = indreln_macros @
-             dictionary_macros (Target_no_ident Target_hol) @ 
+             dictionary_macros (Target_no_ident Target_hol) @
              nvar_macros @
              [Def_macros (fun env -> ([  M.remove_vals;
-                                        M.remove_classes; 
+                                        M.remove_classes;
                                         M.remove_opens;
 					M.remove_module_renames;
                                         M.remove_types_with_target_rep (Target_no_ident Target_hol);
                                         M.defs_with_target_rep_to_lemma env (Target_no_ident Target_hol);
                                         Patterns.compile_def (Target_no_ident Target_hol) Patterns.is_hol_pattern_match env] @
-                                        (if (!hol_remove_matches) then 
+                                        (if (!hol_remove_matches) then
                                           [Patterns.remove_toplevel_match (Target_no_ident Target_hol) Patterns.is_hol_pattern_match env]
                                         else [])));
               Pat_macros (fun env ->
@@ -183,18 +183,18 @@ let hol =
                             let module T = T(struct let env = env end) in
                               [])
              ];
-    extra = [(* (fun n -> Rename_top_level.rename_nested_module [n]);  
+    extra = [(* (fun n -> Rename_top_level.rename_nested_module [n]);
              (fun n -> Rename_top_level.rename_defs_target (Some Target_hol) consts fixed_renames [n]);*)
              Rename_top_level.flatten_modules]; }
 
 
 
 let ocaml =
-  { macros = indreln_macros @ 
+  { macros = indreln_macros @
              dictionary_macros (Target_no_ident Target_ocaml) @
              nvar_macros @
-             [Def_macros (fun env ->  
-                            [M.remove_vals; 
+             [Def_macros (fun env ->
+                            [M.remove_vals;
                              M.remove_import;
                              M.remove_indrelns;
                              M.type_annotate_definitions;
@@ -227,7 +227,7 @@ let ocaml =
                                    | None -> Macro_expander.Fail
                                    | Some e -> Macro_expander.Continue e)])
              ];
-    extra = [(* (fun n -> Rename_top_level.rename_defs_target (Some Target_ocaml) consts fixed_renames [n]) *)]; 
+    extra = [(* (fun n -> Rename_top_level.rename_defs_target (Some Target_ocaml) consts fixed_renames [n]) *)];
   }
 
 let isa  =
@@ -280,29 +280,29 @@ let isa  =
                     let module T = T(struct let env = env end) in
                       [T.remove_unit_pats])
      ];
-    extra = [Rename_top_level.flatten_modules; 
-             (* (fun n -> Rename_top_level.rename_nested_module [n]);             
+    extra = [Rename_top_level.flatten_modules;
+             (* (fun n -> Rename_top_level.rename_nested_module [n]);
              (fun n -> Rename_top_level.rename_defs_target (Some Target_isa) consts fixed_renames [n])*)];
   }
 
 let coq =
   { macros = indreln_macros @
       coq_typeclass_resolution_macros (Target_no_ident Target_coq) @
-      [Def_macros (fun env -> 
+      [Def_macros (fun env ->
                     [M.type_annotate_definitions;
                      M.comment_out_inline_instances_and_classes (Target_no_ident Target_coq);
                      M.remove_import_include;
                      M.remove_types_with_target_rep (Target_no_ident Target_coq);
                      M.defs_with_target_rep_to_lemma env (Target_no_ident Target_coq);
                      Patterns.compile_def (Target_no_ident Target_coq) Patterns.is_coq_pattern_match env
-                    ]); 
+                    ]);
       Pat_macros (fun env ->
         let m a1 a2 a3 =
           match Backend_common.inline_pat_macro Target_coq env a1 a2 a3 with
             | None -> Macro_expander.Fail
             | Some e -> Macro_expander.Continue e
         in [m]);
-       Exp_macros (fun env -> 
+       Exp_macros (fun env ->
                      let module T = T(struct let env = env end) in
                       (if !prover_remove_failwith then
                        [T.remove_failwith_matches]
@@ -328,13 +328,13 @@ let coq =
                        [T.coq_type_annot_pat_vars])
       ];
     (* TODO: coq_get_prec *)
-    extra = [(* fun n -> Rename_top_level.rename_defs_target (Some Target_coq) consts fixed_renames [n]) *)]; 
+    extra = [(* fun n -> Rename_top_level.rename_defs_target (Some Target_coq) consts fixed_renames [n]) *)];
     }
 
-let default_avoid_f ty_avoid (cL : (Name.t -> Name.t option) list) consts = 
+let default_avoid_f ty_avoid (cL : (Name.t -> Name.t option) list) consts =
   let is_good n = not (NameSet.mem n consts) && List.for_all (fun c -> c n = None) cL in
-    (ty_avoid, is_good, 
-     (fun n check -> 
+    (ty_avoid, is_good,
+     (fun n check ->
         let old_n : Name.t = Name.from_rope n in
         let apply_fun (n : Name.t) = Util.option_first (fun c -> c n) cL in
         let new_n : Name.t = Util.option_repeat apply_fun old_n in
@@ -343,10 +343,10 @@ let default_avoid_f ty_avoid (cL : (Name.t -> Name.t option) list) consts =
 
 let ocaml_avoid_f consts = default_avoid_f false [Name.uncapitalize] consts
 
-let underscore_avoid_f consts = 
+let underscore_avoid_f consts =
   default_avoid_f false [Name.remove_underscore] consts
 
-let underscore_both_avoid_f consts = 
+let underscore_both_avoid_f consts =
   default_avoid_f false [Name.remove_underscore; Name.remove_underscore_suffix] consts
 
 
@@ -358,7 +358,7 @@ begin
   let avoid_consts =  match targ with
                         | Target_ident -> false
                         | Target_no_ident Target_lem -> false
-                        | Target_no_ident Target_hol -> false 
+                        | Target_no_ident Target_hol -> false
                         | _ -> true
   in
   let avoid_types = match targ with
@@ -372,7 +372,7 @@ begin
   let add_avoid_const ns r = begin
     let c_d = c_env_lookup l env.c_env r in
     let (n_is_shown, n, n_ascii_opt) = constant_descr_to_name targ c_d in
-    if n_is_shown then 
+    if n_is_shown then
       NameSet.add n (Util.option_default_map n_ascii_opt ns (fun n_ascii -> NameSet.add n_ascii ns))
     else ns
   end in
@@ -381,35 +381,35 @@ begin
   let add_avoid_type ns t = begin
     let td = Types.type_defs_lookup l env.t_env t in
     let n = type_descr_to_name targ t td in
-    NameSet.add n ns 
+    NameSet.add n ns
   end in
   let ns = if not avoid_types then ns else List.fold_left add_avoid_type ns ue.used_types in
-  
+
   (* TODO: add avoid modules *)
   let ns = if not avoid_modules then ns else ns in
   ns
 end
 
-let get_avoid_f targ : NameSet.t -> var_avoid_f = 
+let get_avoid_f targ : NameSet.t -> var_avoid_f =
   match targ with
-    | Target_no_ident Target_ocaml -> ocaml_avoid_f 
+    | Target_no_ident Target_ocaml -> ocaml_avoid_f
     | Target_no_ident Target_isa -> underscore_both_avoid_f
-    | Target_no_ident Target_hol -> underscore_avoid_f 
-    | Target_no_ident Target_coq -> default_avoid_f true [] 
-    | _ -> default_avoid_f false [] 
+    | Target_no_ident Target_hol -> underscore_avoid_f
+    | Target_no_ident Target_coq -> default_avoid_f true []
+    | _ -> default_avoid_f false []
 
 let rename_def_params_aux targ consts =
-  let module Ctxt = Exps_in_context(struct 
+  let module Ctxt = Exps_in_context(struct
                                       let env_opt = None
                                       (* TODO *)
                                       let avoid = Some(get_avoid_f targ consts)
-                                    end) 
+                                    end)
   in
     fun ((d,lex_skips),l,lenv) ->
-      let d = 
+      let d =
         match d with
           | Val_def(Fun_def(s1,s2_opt,topt,clauses)) ->
-              let clauses = 
+              let clauses =
                 Seplist.map
                   (fun (n,c,ps,topt,s,e) ->
                      let (ps,e) =
@@ -450,7 +450,7 @@ let rename_def_params_aux targ consts =
                      (Rule(name,s0,s1,ns,s2,e,s3,n,c,es),l))
                   clauses
               in
-                Indreln(s1,topt,names,clauses)      
+                Indreln(s1,topt,names,clauses)
           | d -> d
       in
         ((d,lex_skips),l,lenv)
@@ -471,18 +471,18 @@ let trans (targ : Target.target) params env (m : checked_module) =
 
   (* TODO: Move this to a definition macro, and remove the targ argument *)
   let defs = if (Target.is_human_target targ) then defs else
-    match targ with 
+    match targ with
       | Target_ident -> defs
-      | Target_no_ident t -> Def_trans.prune_target_bindings t defs 
+      | Target_no_ident t -> Def_trans.prune_target_bindings t defs
   in
 
   let rec achieve_fixpoint env defs =
-    let (env',defs') = 
-      List.fold_left 
+    let (env',defs') =
+      List.fold_left
         (fun (env,defs) mac ->
            match mac with
              | Def_macros dtrans ->
-                 Def_trans.process_defs 
+                 Def_trans.process_defs
                    rev_module_path
                    (Def_trans.list_to_mac (dtrans env))
                    module_name
@@ -524,7 +524,7 @@ let trans (targ : Target.target) params env (m : checked_module) =
       defs
       params.extra
   in
-  let defs = if (is_human_target targ) then defs else Target_syntax.fix_infix_and_parens env targ defs in 
+  let defs = if (is_human_target targ) then defs else Target_syntax.fix_infix_and_parens env targ defs in
     (* Note: this is the environment from the macro translations, ignoring the
      * extra translations *)
     (env,
@@ -542,5 +542,3 @@ let get_transformation targ =
     | Target_ident                 -> ident ()
   in
     trans targ tr
-
-

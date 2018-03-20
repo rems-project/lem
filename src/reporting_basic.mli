@@ -46,18 +46,18 @@
 
 (** Basic error reporting
 
-  [Reporting_basic] contains functions to report errors and warnings. 
+  [Reporting_basic] contains functions to report errors and warnings.
   It contains functions to print locations ([Ast.l]) and lexing positions.
   Despite [Ast] it should not depend on any other Lem-file. This guarentees that
   it can be used throughout the whole devolpment.
 
   The main functionality is reporting errors. This is done by raising a
-  [Fatal_error] exception. This is catched inside Lem and reported via [report_error]. 
+  [Fatal_error] exception. This is catched inside Lem and reported via [report_error].
   There are several predefined types of errors which all cause different error
-  messages. If none of these fit, [Err_general] can be used.       
+  messages. If none of these fit, [Err_general] can be used.
 
   Reporting functions that need access to parts of the Lem development like
-  [Typed_ast] are collected in [Reporting]. 
+  [Typed_ast] are collected in [Reporting].
 *)
 
 (** {2 Auxiliary Functions } *)
@@ -79,17 +79,17 @@ val print_err : bool -> bool -> bool -> Ast.l -> string -> string -> unit
 val debug_flag : bool ref
 
 (** [print_debug s] prints the string [s] with some debug prefix to the standard error output. *)
-val print_debug : string -> unit 
+val print_debug : string -> unit
 
 (** {2 Errors } *)
 
-(** In contrast to warnings, errors always kill the current run of Lem. They can't be recovered from. 
+(** In contrast to warnings, errors always kill the current run of Lem. They can't be recovered from.
     [Err_todo] should not be used directly, but only through [err_todo] in order to make search easier.
 
     Errors usually have location information and a message attached. Some also carry a boolean flag indicating,
     the original source corresponding to the location information should be looked up and printed.
 *)
-type error = 
+type error =
   | Err_general of bool * Ast.l * string
   (** General errors, used for multi purpose. If you are unsure, use this one. *)
 
@@ -117,7 +117,7 @@ type error =
   | Err_reorder_dependency of Ast.l * string (** [Err_reorder_dependency (l, m)] module [m] is needed at location [l], but not allowed to be imported, because this
       would require reording the user input *)
   | Err_fancy_pattern_constant of Ast.l * string (** a constant occouring in a pattern has a fancy target-representation, that cannot be dealt with for patterns *)
-  
+
 (** Since errors are always fatal, they are reported by raising an [Fatal_error] exception instead of
     calling a report-function. *)
 exception Fatal_error of error
@@ -142,5 +142,3 @@ val err_type_pp : Ast.l -> string -> (Format.formatter -> 'a -> unit) -> 'a -> e
 (** Report error should only be used by main to print the error in the end. Everywhere else,
     raising a [Fatal_error] exception is recommended. *)
 val report_error : error -> 'a
-
-

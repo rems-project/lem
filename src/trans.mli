@@ -53,7 +53,7 @@ exception Trans_error of Ast.l * string
 type 'a macro = Macro_expander.macro_context -> 'a -> 'a Macro_expander.continuation
 type pat_macro = Macro_expander.pat_position -> pat macro
 
-module Macros (E : sig val env : env end) : sig 
+module Macros (E : sig val env : env end) : sig
 
   (** {2 Record Macros} *)
   (** [remove_singleton_record_updates] replaces updates of
@@ -90,21 +90,21 @@ module Macros (E : sig val env : env end) : sig
       in [{ (x, y) | forall x | x > y}], [{ (x, y) | forall x y | x > y}] or something similar.*)
   val remove_setcomp : exp macro
 
-  (** [cleanup_set_quant] moves restricted and unrestricted quantification 
+  (** [cleanup_set_quant] moves restricted and unrestricted quantification
       in set comprehensions to the condition part, if the bound variables are only used by the condition.
       This means, that expressions of the form [{ f x | forall (p IN e) ... | P x }] become
       [{ f x | forall ... | exists (p IN e). P x }] if [x] is not a member of [FV p].
   *)
   val cleanup_set_quant : exp macro
 
-  (** [remove_set_comp_binding] tries to turn [Comb_binding] expressions into [Set_comb] ones. 
+  (** [remove_set_comp_binding] tries to turn [Comb_binding] expressions into [Set_comb] ones.
       Given a term of the form [{ f x z | forall x z | P x z y1 ... yn }] it checks that only
       unbounded quantification is used and that the set of bound variables is exactly the set of free
-      variables of the expression [f x z]. If this is the case, the expression is transformed to 
+      variables of the expression [f x z]. If this is the case, the expression is transformed to
       [{ f x z | P x z y1 ... yn }]. Otherwise [remove_set_comp_binding] fails. *)
   val remove_set_comp_binding : exp macro
 
-  (** [remove_set_restr_quant] turns restricted quantification in set comprehensions 
+  (** [remove_set_restr_quant] turns restricted quantification in set comprehensions
       into unrestricted quantification. Expressions of the form [{ f x | forall (p IN e) | P x }] become
       [{ f x | FV(p) | forall FV(p). p IN e /\ P x }]. This requires turning pattern [p] into
       an expression. This is likely to fail for more complex patterns. In these cases, [remove_set_restr_quant]
@@ -119,7 +119,7 @@ module Macros (E : sig val env : env end) : sig
   (** [remove_restr_quant pat_OK] turns restricted quantification into unrestricted quantification,
       if then pattern does not satisfy [pat_OK]. For example, expressions of the from [forall (p IN e). P x] becomes
       [forall FV(p). p IN e --> P x], if [pat_OK p] does not hold. [pat_OK] is used to configure, which types
-      of restricted quantification are supported by the backend. For example, HOL 4 supports 
+      of restricted quantification are supported by the backend. For example, HOL 4 supports
       patterns consisting of variables, tuples and wildcard patterns, while Isabelle does not like wildcard ones.
       This macros tries to turn pattern [p] into
       an expression. This is likely to fail for more complex patterns. In these cases, [remove_restr_quant pat_OK]
@@ -147,18 +147,18 @@ module Macros (E : sig val env : env end) : sig
 
   (** {2 Type Class Macros } *)
 
-   (** [remove_method target add_dict] is used to remove occurrences of class methods. 
-       If a class method is encountered, the [remove_method] macro first tries to 
+   (** [remove_method target add_dict] is used to remove occurrences of class methods.
+       If a class method is encountered, the [remove_method] macro first tries to
        resolve the type-class instantiation statically and replace the method with it's
        instantiation. If this static resolving attempt fails, it is checked, whether the method
-       is inlined for this target. If this is not the case and the flag [add_dict] is set, 
+       is inlined for this target. If this is not the case and the flag [add_dict] is set,
        the method is replaced with a lookup in a dictionary. This dictionary is added by the
        [Def_trans.class_constraint_to_parameter] to the arguments of each definition that
        has type class constraints. *)
   val remove_method : Target.target -> bool -> exp macro
 
-   (** [remove_method_pat] is used to remove occurrences of class methods. 
-       If a class method is encountered, [remove_method_pat] macro tries to 
+   (** [remove_method_pat] is used to remove occurrences of class methods.
+       If a class method is encountered, [remove_method_pat] macro tries to
        resolve the type-class instantiation statically and replace the method with it's
        instantiation. *)
   val remove_method_pat : pat_macro
@@ -186,7 +186,7 @@ module Macros (E : sig val env : env end) : sig
   val remove_sets : exp macro
 
   (** [remove_fun_pats keep_tup] removes patterns from expressions of the from
-      [fun p1 ... pn -> e] by introducing [function] expressions. 
+      [fun p1 ... pn -> e] by introducing [function] expressions.
       Variable patterns and - if [keep_tup] is set - tuple patterns are kept. *)
   val remove_fun_pats : bool -> exp macro
 

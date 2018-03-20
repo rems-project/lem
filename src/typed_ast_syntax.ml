@@ -68,7 +68,7 @@ let option_ty ty =
                           Path.mk_path [ Name.from_string "Maybe" ]
                             (Name.from_string "maybe")) }
 
-let mk_name_lskips_annot l n ty : name_lskips_annot = 
+let mk_name_lskips_annot l n ty : name_lskips_annot =
   { term = n;
     locn = l;
     typ = ty;
@@ -76,7 +76,7 @@ let mk_name_lskips_annot l n ty : name_lskips_annot =
 
 let rec replace_init_ws nws ws =
   let rec aux rws ws =
-    match ws with 
+    match ws with
       | None -> (nws, rws)
       | Some [] -> (nws, rws)
       | Some (Ast.Com _ :: _) -> (Ast.combine_lex_skips nws ws, rws)
@@ -116,7 +116,7 @@ let is_pp_def (((_, _), l, _) : def) =  is_pp_loc l
 (* navigating environments                                                    *)
 (* -------------------------------------------------------------------------- *)
 
-let lookup_env_opt_aux (e_env : e_env) (e : local_env) (mp : Name.t list) : (local_env * mod_descr option) option = 
+let lookup_env_opt_aux (e_env : e_env) (e : local_env) (mp : Name.t list) : (local_env * mod_descr option) option =
   let rec aux (env : local_env) (last_descr : mod_descr option) mp =
      match mp with
       | [] -> Some (env, last_descr)
@@ -127,34 +127,34 @@ let lookup_env_opt_aux (e_env : e_env) (e : local_env) (mp : Name.t list) : (loc
   in
   aux e None mp
 
-let lookup_env_opt (e : env) (mp : Name.t list) : local_env option = 
+let lookup_env_opt (e : env) (mp : Name.t list) : local_env option =
   Util.option_map fst (lookup_env_opt_aux e.e_env e.local_env mp)
 
-let rec lookup_env (e : env) (mp : Name.t list) : local_env = 
+let rec lookup_env (e : env) (mp : Name.t list) : local_env =
 match lookup_env_opt e mp with
   | Some env -> env
   | None ->
         let mod_p = Path.mk_path_list mp in
-        raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal (Ast.Unknown, 
+        raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal (Ast.Unknown,
               "lookup_env failed to find module '" ^ (Path.to_string mod_p) ^"'")))
 
-let rec lookup_mod_descr_opt (e : env) (mp : Name.t list) (n : Name.t) : mod_descr option = 
+let rec lookup_mod_descr_opt (e : env) (mp : Name.t list) (n : Name.t) : mod_descr option =
   Util.option_bind snd (lookup_env_opt_aux e.e_env e.local_env (mp @ [n]))
 
-let lookup_mod_descr (e : env) (mp : Name.t list) (n : Name.t) : mod_descr = 
+let lookup_mod_descr (e : env) (mp : Name.t list) (n : Name.t) : mod_descr =
   match lookup_mod_descr_opt e mp n with
     | Some md -> md
     | None ->
         let mod_p = Path.mk_path mp n in
-        raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal (Ast.Unknown, 
+        raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal (Ast.Unknown,
               "lookup_mod_descr failed to find module '" ^ (Path.to_string mod_p) ^"'")))
 
 
-let names_get_const_ref (env : env) mp n : const_descr_ref = 
+let names_get_const_ref (env : env) mp n : const_descr_ref =
   let l = Ast.Trans(false, "names_get_const_ref", None) in
   let local_env_opt = lookup_env_opt env mp in
   let res_opt = Util.option_bind (fun local_env -> Nfmap.apply local_env.v_env n) local_env_opt in
-  match res_opt with 
+  match res_opt with
     | Some d -> d
     | None ->
       let const_ident = Ident.mk_ident None mp n in
@@ -182,41 +182,41 @@ let const_exists env label =
     | Some _ -> true
 
 let dest_field_types l env (f : const_descr_ref) =
-  let l = Ast.Trans(false, "dest_field_types", Some l) in 
+  let l = Ast.Trans(false, "dest_field_types", Some l) in
   let f_d = c_env_lookup l env.c_env f in
   let full_type = f_d.const_type in
   match Types.dest_fn_type (Some env.t_env) full_type with
-    | Some ({ Types.t = Types.Tapp (t_b_args, t_b_c) }, t_arg) when t_b_args = List.map Types.tnvar_to_type (f_d.const_tparams) -> 
+    | Some ({ Types.t = Types.Tapp (t_b_args, t_b_c) }, t_arg) when t_b_args = List.map Types.tnvar_to_type (f_d.const_tparams) ->
          (t_arg, t_b_c, f_d)
     | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "not a field type")))
 
 let get_field_type_descr l env (f : const_descr_ref) =
-  let l = Ast.Trans(false, "get_field_type_descr", Some l) in 
+  let l = Ast.Trans(false, "get_field_type_descr", Some l) in
   let (f_field_arg, f_tconstr, f_d) = dest_field_types l env f in
   match Types.Pfmap.apply env.t_env f_tconstr with
     | Some(Types.Tc_type(td)) -> td
     | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "not a field type")))
 
 let get_field_all_fields l env (f : const_descr_ref) : const_descr_ref list =
-  let l = Ast.Trans(false, "get_field_all_fields", Some l) in 
+  let l = Ast.Trans(false, "get_field_all_fields", Some l) in
   let td = get_field_type_descr l env f in
   match td.Types.type_fields with
     | Some(fl) -> fl
     | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "not a field type")))
 
 let lookup_class_descr l env (class_path : Path.t) =
-  let l = Ast.Trans(false, "get_class_descr", Some l) in 
+  let l = Ast.Trans(false, "get_class_descr", Some l) in
   match Types.Pfmap.apply env.t_env class_path with
     | Some(Types.Tc_class(cd)) -> cd
     | _ -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "not a type class")))
 
-let lookup_field_for_class_method l cd method_ref = 
-  try 
+let lookup_field_for_class_method l cd method_ref =
+  try
      List.assoc method_ref cd.Types.class_methods
   with Not_found -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "method-ref not present in class!")))
 
-let lookup_inst_method_for_class_method l id method_ref = 
-  try 
+let lookup_inst_method_for_class_method l id method_ref =
+  try
      List.assoc method_ref id.Types.inst_methods
   with Not_found -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, "method-ref not present in class!")))
 
@@ -225,7 +225,7 @@ let class_descr_get_dict_type cd arg =
     { Types.t = Types.Tapp([arg], cd.class_record) }
 
 let class_all_methods_inlined_for_target l env target (class_path : Path.t) =
-  let l = Ast.Trans(false, "class_all_methods_inlined_for_target", Some l) in 
+  let l = Ast.Trans(false, "class_all_methods_inlined_for_target", Some l) in
   let class_d = lookup_class_descr l env class_path in
   let method_refs = List.map fst class_d.class_methods in
 
@@ -241,19 +241,19 @@ let class_all_methods_inlined_for_target l env target (class_path : Path.t) =
 
 
 let update_const_descr l up c env =
-  let l = Ast.Trans(false, "update_const_descr", Some l) in 
+  let l = Ast.Trans(false, "update_const_descr", Some l) in
   let cd = c_env_lookup l env.c_env c in
   let new_cd = up cd in
   let new_c_env = c_env_update env.c_env c new_cd in
   {env with c_env = new_c_env}
 
-let constant_descr_to_name (targ : Target.target) (cd : const_descr) : (bool * Name.t * Name.t option) = 
+let constant_descr_to_name (targ : Target.target) (cd : const_descr) : (bool * Name.t * Name.t option) =
   let name_renamed = match Target.Targetmap.apply_target cd.target_rename targ with
     | Some (_, n) -> n
     | None -> Path.get_name cd.const_binding
   in
 
-  let name_ascii = 
+  let name_ascii =
      match Target.Targetmap.apply_target cd.target_ascii_rep targ with
        | Some (_, n) -> Some n
        | None -> None
@@ -278,7 +278,7 @@ begin
   let name_ok n = Util.is_simple_ident_string (Name.to_string n) in
 
   let name0 = Path.get_name c_descr.const_binding in
-  if (name_ok name0) then name0 else 
+  if (name_ok name0) then name0 else
   begin
     let check_target targ = begin
        let (_, n_no_ascii, n_ascii_opt) = constant_descr_to_name (Target.Target_no_ident targ) c_descr in
@@ -286,32 +286,32 @@ begin
        Util.option_bind (fun n -> if name_ok n then Some n else None) n_ascii_opt
     end in
     match Util.option_first check_target Target.all_targets_list with
-      | None -> (* really could not find anything, so make something up *) 
+      | None -> (* really could not find anything, so make something up *)
                 (const_descr_ref_to_ascii_name_counter := !const_descr_ref_to_ascii_name_counter + 1;
-                 Name.from_string ("please_define_ascii_alternative" ^ 
+                 Name.from_string ("please_define_ascii_alternative" ^
                    (string_of_int !const_descr_ref_to_ascii_name_counter)))
       | Some n -> n
   end
 end
 
-let type_descr_to_name (targ : Target.target) (p : Path.t) (td : type_descr) : Name.t = 
+let type_descr_to_name (targ : Target.target) (p : Path.t) (td : type_descr) : Name.t =
   match Target.Targetmap.apply_target td.Types.type_rename targ with
-     | None -> Path.get_name p        
+     | None -> Path.get_name p
      | Some (_, n) -> n
 
 
-let constant_descr_rename  (targ : Target.non_ident_target) (n':Name.t) (l' : Ast.l) (cd : const_descr) : (const_descr * (Ast.l * Name.t) option) = 
+let constant_descr_rename  (targ : Target.non_ident_target) (n':Name.t) (l' : Ast.l) (cd : const_descr) : (const_descr * (Ast.l * Name.t) option) =
   let old_info = Target.Targetmap.apply_target cd.target_rename (Target.Target_no_ident targ) in
   let tr = Target.Targetmap.insert (cd.target_rename) (targ, (l', n')) in
   ({cd with target_rename = tr}, old_info)
 
-let mod_target_rep_rename  (targ : Target.non_ident_target) mod_string (n':Name.t) (l' : Ast.l) (tr : mod_target_rep Target.Targetmap.t) : mod_target_rep Target.Targetmap.t = 
+let mod_target_rep_rename  (targ : Target.non_ident_target) mod_string (n':Name.t) (l' : Ast.l) (tr : mod_target_rep Target.Targetmap.t) : mod_target_rep Target.Targetmap.t =
   let _ = match (Target.Targetmap.apply_target tr (Target.Target_no_ident targ)) with
     | (Some (MR_rename (l, _))) ->
       begin
         let loc_s = Reporting_basic.loc_to_string true l in
-        let msg = Format.sprintf 
-           "a %s target representation for module '%s' has already been given at\n    %s" 
+        let msg = Format.sprintf
+           "a %s target representation for module '%s' has already been given at\n    %s"
            (Target.non_ident_target_to_string targ) mod_string loc_s in
         raise (Reporting_basic.err_type l' msg)
       end
@@ -323,7 +323,7 @@ let mod_target_rep_rename  (targ : Target.non_ident_target) mod_string (n':Name.
   tr'
 
 
-let type_descr_rename  (targ : Target.non_ident_target) (n':Name.t) (l' : Ast.l) (td : type_descr) : type_descr * (Ast.l * Name.t) option = 
+let type_descr_rename  (targ : Target.non_ident_target) (n':Name.t) (l' : Ast.l) (td : type_descr) : type_descr * (Ast.l * Name.t) option =
   let old_rep = Target.Targetmap.apply td.type_rename targ in
   let tr = Target.Targetmap.insert td.type_rename (targ, (l', n')) in
   ({td with type_rename = tr}, old_rep)
@@ -383,7 +383,7 @@ let env_apply_aux (env : env) n comp =
         case_fun env.local_env.v_env (fun r ->
         let d = c_env_lookup (Ast.Trans (false, "env_apply", None)) env.c_env r in
         (const_descr_to_kind (r, d), d.const_binding, d.spec_l))
-    | Ast.Component_type _ -> 
+    | Ast.Component_type _ ->
         case_fun env.local_env.p_env (fun (p, l) -> (Nk_typeconstr p, p, l))
     | Ast.Component_field _ ->
         case_fun env.local_env.f_env (fun r ->
@@ -414,7 +414,7 @@ let get_const_id env l label inst =
 (* fixing initial representations                                             *)
 (* -------------------------------------------------------------------------- *)
 
-let fix_const_descr_ocaml_constr c_d = 
+let fix_const_descr_ocaml_constr c_d =
   let is_constr = match c_d.env_tag with
     | K_constr -> true
     | _ -> false
@@ -429,11 +429,11 @@ let fix_const_descr_ocaml_constr c_d =
 
     let rep = CR_special (c_d.spec_l, true, CR_special_uncurry (List.length arg_tyL), vars) in
     let new_tr = Target.Targetmap.insert c_d.target_rep (Target.Target_ocaml, rep) in
-    
+
     { c_d with target_rep = new_tr }
   end
 
-  
+
 let fix_const_descr c_d =
   let c_d = fix_const_descr_ocaml_constr c_d in
   c_d
@@ -441,7 +441,7 @@ let fix_const_descr c_d =
 let c_env_store c_env c_d = c_env_store_raw c_env (fix_const_descr c_d)
 
 let c_env_save c_env c_id_opt c_d =
-  match c_id_opt with 
+  match c_id_opt with
     | None -> c_env_store c_env c_d
     | Some c_id -> (c_env_update c_env c_id c_d, c_id)
 
@@ -476,7 +476,7 @@ let rec is_var_tup_exp e = is_var_exp e ||
 let mk_tf_exp b =
   let l = Ast.Trans (false, "mk_tf_exp", None) in
   let lit = C.mk_lbool l None b (Some bool_ty) in
-  let exp = C.mk_lit l lit (Some bool_ty) 
+  let exp = C.mk_lit l lit (Some bool_ty)
 in exp
 
 let dest_tf_exp e =
@@ -499,7 +499,7 @@ let dest_num_exp e =
 
 let is_num_exp e = not (dest_num_exp e = None)
 
-let mk_num_exp num_ty i = 
+let mk_num_exp num_ty i =
   let l = Ast.Trans (false, "mk_num_exp", None) in
   let lit = C.mk_lnum l None i None num_ty in
   C.mk_lit l lit (Some num_ty)
@@ -511,11 +511,11 @@ let mk_paren_exp e =
 
 let is_empty_backend_exp e =
   match C.exp_to_term e with
-   | Backend(_,i) -> (Ident.to_string i = "") 
+   | Backend(_,i) -> (Ident.to_string i = "")
    | _ -> false
 
 
-let rec mk_opt_paren_exp (e :exp) : exp = 
+let rec mk_opt_paren_exp (e :exp) : exp =
   match C.exp_to_term e with
     | Var _ -> e
     | Constant _ -> e
@@ -523,15 +523,15 @@ let rec mk_opt_paren_exp (e :exp) : exp =
     | Tup _ -> e
     | Paren _ -> e
     | Lit _ -> e
-    | App (e1, e2) -> 
+    | App (e1, e2) ->
       if is_empty_backend_exp e1 then
-        C.mk_app (exp_to_locn e) e1 (mk_opt_paren_exp e2) (Some (exp_to_typ e)) 
+        C.mk_app (exp_to_locn e) e1 (mk_opt_paren_exp e2) (Some (exp_to_typ e))
       else
         mk_paren_exp e
-    | _ -> mk_paren_exp e 
+    | _ -> mk_paren_exp e
 
 
-let rec may_need_paren (e :exp) : bool = 
+let rec may_need_paren (e :exp) : bool =
   match C.exp_to_term e with
     | Var _ -> false
     | Constant _ -> false
@@ -573,7 +573,7 @@ let mk_let_exp (l:Ast.l) ((n: Name.t), (e1:exp)) (e2:exp) : exp =
   in let_exp
 
 let mk_if_exp loc e_c e_t e_f =
-  C.mk_if loc space (mk_opt_paren_exp e_c) space (mk_opt_paren_exp e_t) space (mk_opt_paren_exp e_f) (Some (exp_to_typ e_t)) 
+  C.mk_if loc space (mk_opt_paren_exp e_c) space (mk_opt_paren_exp e_t) space (mk_opt_paren_exp e_f) (Some (exp_to_typ e_t))
 
 let mk_undefined_exp l m ty = begin
    let lit = C.mk_lundef l space m ty in
@@ -589,8 +589,8 @@ let mk_dummy_exp ty = mk_undefined_exp Ast.Unknown "Dummy expression" ty
 
 let strings_mk_const_exp (env : env) l mp n inst =
   let (c, c_d) = (strings_get_const_id env l mp n inst) in
-  let t = Types.type_subst 
-             (Types.TNfmap.from_list2 c_d.const_tparams c.instantiation) 
+  let t = Types.type_subst
+             (Types.TNfmap.from_list2 c_d.const_tparams c.instantiation)
              c_d.const_type in
   C.mk_const l c (Some t)
 
@@ -600,7 +600,7 @@ let mk_const_exp (env : env) l label inst =
 
 let mk_eq_exp env (e1 : exp) (e2 : exp) : exp =
   let l = Ast.Trans (true, "mk_eq", None) in
-  let ty = exp_to_typ e1 in  
+  let ty = exp_to_typ e1 in
 
   let ty_0 = { Types.t = Types.Tfn (ty, bool_ty) } in
   let ty_1 = { Types.t = Types.Tfn (ty, ty_0) } in
@@ -643,7 +643,7 @@ let rec dest_and_exps (env : env) (e : exp) : exp list =
     | _ -> [e]
 
 let mk_le_exp env (e1 : exp) (e2 : exp) : exp =
-  let l = Ast.Trans (true, "mk_le_exp", None) in  
+  let l = Ast.Trans (true, "mk_le_exp", None) in
   let num_ty = exp_to_typ e1 in
   let ty_0 = { Types.t = Types.Tfn (num_ty, bool_ty) } in
   let ty_1 = { Types.t = Types.Tfn (num_ty, ty_0) } in
@@ -673,7 +673,7 @@ let mk_from_list_exp env (e : exp) : exp =
           | Types.Tapp([t],_) -> t
           | _ -> raise (Reporting_basic.err_unreachable l "e not of list-type") in
   let set_ty = { Types.t = Types.Tapp([base_ty],Path.setpath) } in
-  
+
   let from_list_exp = mk_const_exp env l "set_from_list" [base_ty] in
   let res = C.mk_app l from_list_exp e (Some set_ty) in
   res
@@ -690,7 +690,7 @@ let mk_cross_exp env (e1 : exp) (e2 : exp) : exp =
   let pair_ty = { Types.t = Types.Ttup [e1_ty; e2_ty] } in
   let cross_ty = { Types.t = Types.Tapp([pair_ty],Path.setpath) } in
   let aux_ty = { Types.t = Types.Tfn (exp_to_typ e2, cross_ty) } in
-  
+
   let cross_exp = mk_const_exp env l "set_cross" [e1_ty; e2_ty] in
   let res0 = C.mk_app l cross_exp e1 (Some aux_ty) in
   let res = C.mk_app l res0 e2 (Some cross_ty) in
@@ -706,7 +706,7 @@ let mk_set_sigma_exp env (e1 : exp) (e2 : exp) : exp =
   let pair_ty = { Types.t = Types.Ttup [e1_ty; e2_ty] } in
   let sigma_ty = { Types.t = Types.Tapp([pair_ty],Path.setpath) } in
   let aux_ty = { Types.t = Types.Tfn (exp_to_typ e2, sigma_ty) } in
-  
+
   let union_exp = mk_const_exp env l "set_sigma" [e1_ty; e2_ty] in
   let res0 = C.mk_app l union_exp e1 (Some aux_ty) in
   let res = C.mk_app l res0 e2 (Some sigma_ty) in
@@ -718,7 +718,7 @@ let mk_set_filter_exp env (e_P : exp) (e_s : exp) : exp =
   let set_ty = match (exp_to_typ e_P).Types.t with
        | Types.Tfn (ty_a, _) -> ty_a
        | _ -> raise (Reporting_basic.err_unreachable l "e_P not of predicate-type") in
- 
+
   let res_ty = { Types.t = Types.Tapp([set_ty],Path.setpath) } in
   let aux_ty = { Types.t = Types.Tfn (exp_to_typ e_s, res_ty) } in
 
@@ -736,7 +736,7 @@ let mk_set_image_exp env (e_f : exp) (e_s : exp) : exp =
   let (ty_a, ty_b) = match (exp_to_typ e_f).Types.t with
        | Types.Tfn (ty_a, ty_b) -> (ty_a, ty_b)
        | _ -> raise (Reporting_basic.err_unreachable l "e_f not of function-type") in
- 
+
   let res_ty = { Types.t = Types.Tapp([ty_b],Path.setpath) } in
   let aux_ty = { Types.t = Types.Tfn (exp_to_typ e_s, res_ty) } in
 
@@ -764,7 +764,7 @@ let mk_app_exp l d e1 e2 =
   C.mk_app l e1 e2 (Some b_ty)
 
 let rec mk_list_app_exp l d f aL =
-  match aL with 
+  match aL with
     | [] -> f
     | a :: aL' -> mk_list_app_exp l d (mk_app_exp l d f a) aL'
 
@@ -780,7 +780,7 @@ let dest_app_exp (e :exp) : (exp * exp) option =
     | App (e1, e2) -> Some (e1, e2)
     | _ -> None
 
-let strip_app_exp (e : exp) : exp * exp list = 
+let strip_app_exp (e : exp) : exp * exp list =
   let rec aux acc e =
     match dest_app_exp e with
       | None -> (e, acc)
@@ -799,8 +799,8 @@ let is_infix_exp e =
     | Infix _ -> true
     | _ -> false
 
-let strip_infix_exp (e : exp) : exp * exp list = 
-  match dest_infix_exp e with 
+let strip_infix_exp (e : exp) : exp * exp list =
+  match dest_infix_exp e with
     | None -> (e, [])
     | Some (l, c, r) -> (c, [l;r])
 
@@ -813,19 +813,19 @@ let strip_app_infix_exp (e : exp) : exp * exp list * bool =
     let (e, args) = strip_app_exp e in
     (e, args, false)
 
-  
+
 (* -------------------------------------------------------------------------- *)
 (* checking properties and extracting specific informations                   *)
 (* -------------------------------------------------------------------------- *)
 
 let val_def_get_name d : Name.lskips_t option = match d with
-  | (Fun_def (_, _, _, clauses)) -> 
+  | (Fun_def (_, _, _, clauses)) ->
     begin
       match Seplist.to_list clauses with
          | [] -> None
          | (n, _, _, _, _, _)::_ -> Some n.term
     end
-  | (Let_def (_, _, (p,_,_,_,_))) -> 
+  | (Let_def (_, _, (p,_,_,_,_))) ->
       (match p.term with
          | P_var ns -> Some ns
          | _ -> None)
@@ -833,17 +833,17 @@ let val_def_get_name d : Name.lskips_t option = match d with
 
 
 let val_def_get_const_descr_refs = function
-  | Let_def(_, _, (_, nm, _, _, _)) -> 
+  | Let_def(_, _, (_, nm, _, _, _)) ->
       List.map snd nm
   | Let_inline(_,_,_,_,c,_,_,_) -> [c]
-  | Fun_def(_, _, _, funs) -> 
+  | Fun_def(_, _, _, funs) ->
      Seplist.to_list_map (fun ((_, c, _, _, _, _):funcl_aux) -> c) funs
 
 let val_def_get_class_constraints_no_target_rep env targ d = begin
   let l_unk = Ast.Trans (true, "val_def_get_class_constraints", None) in
   let cs = val_def_get_const_descr_refs d in
   let cds = List.map (c_env_lookup l_unk env.c_env) cs in
-  List.flatten (List.map (fun cd -> 
+  List.flatten (List.map (fun cd ->
        match Target.Targetmap.apply_target cd.target_rep targ with
          | None -> cd.const_class | Some _ -> []) cds)
 end
@@ -863,7 +863,7 @@ let val_def_get_free_tnvars env d = begin
   List.fold_left (fun s x -> TNset.add x s) TNset.empty tnvars
 end
 
-let is_type_def_abbrev (((d, _), _, _):def) = 
+let is_type_def_abbrev (((d, _), _, _):def) =
   match d with
     | Type_def (_, l) -> begin
         Seplist.length l = 1 &&
@@ -873,7 +873,7 @@ let is_type_def_abbrev (((d, _), _, _):def) =
       end
     | _ -> false
 
-let is_type_def_record  (((d, _), _, _):def) = 
+let is_type_def_record  (((d, _), _, _):def) =
   match d with
     | Type_def (_, l) -> begin
         Seplist.length l = 1 &&
@@ -890,21 +890,21 @@ let is_type_def_record  (((d, _), _, _):def) =
 (* Lookup the functions / types / modules used in some context                *)
 (* -------------------------------------------------------------------------- *)
 
-(* the used constant references, modules and types of some expression, definition, pattern ... 
+(* the used constant references, modules and types of some expression, definition, pattern ...
    used_entities is using lists, because the order in which entities occur might be important for renaming.
    However, each list contains only distinct elements
 *)
-type used_entities = { 
-   used_consts : const_descr_ref list; 
+type used_entities = {
+   used_consts : const_descr_ref list;
    used_consts_set : Cdset.t;
-   used_types : Path.t list; 
+   used_types : Path.t list;
    used_types_set : Pset.t;
-   used_modules : Path.t list; 
+   used_modules : Path.t list;
    used_modules_set : Pset.t;
    used_tnvars : TNset.t }
 
 let reverse_used_entities ue =
-  { used_consts  = List.rev ue.used_consts; 
+  { used_consts  = List.rev ue.used_consts;
     used_consts_set = ue.used_consts_set;
     used_types   = List.rev ue.used_types;
     used_types_set = ue.used_types_set;
@@ -912,12 +912,12 @@ let reverse_used_entities ue =
     used_modules_set = ue.used_modules_set;
     used_tnvars  = ue.used_tnvars }
 
-let empty_used_entities = { 
-    used_consts = []; 
+let empty_used_entities = {
+    used_consts = [];
     used_consts_set = Cdset.empty;
-    used_types = []; 
+    used_types = [];
     used_types_set = Pset.empty;
-    used_modules = []; 
+    used_modules = [];
     used_modules_set = Pset.empty;
     used_tnvars = TNset.empty }
 
@@ -944,7 +944,7 @@ let rec add_type_entities_aux (ue : used_entities) (t : Types.t) : used_entities
   match t.t with
     | Tvar _ -> ue
     | Tfn(t1,t2) -> add_type_entities_aux (add_type_entities_aux ue t1) t2
-    | Ttup(ts) -> 
+    | Ttup(ts) ->
         List.fold_left add_type_entities_aux ue ts
     | Tapp(ts,p) ->
         List.fold_left add_type_entities_aux (used_entities_add_type ue p) ts
@@ -973,30 +973,30 @@ let rec add_pat_entities (ue : used_entities) (p : pat) : used_entities =
   match p.term with
     | P_wild _ -> ue
     | P_as(_,p,_,_,_) -> add_pat_entities ue p
-    | P_typ(_,p,_,t,_) -> 
+    | P_typ(_,p,_,t,_) ->
         add_pat_entities (add_src_t_entities ue t) p
     | P_var _ -> ue
-    | P_const(c,ps) -> 
+    | P_const(c,ps) ->
         let ue = used_entities_add_const ue c.descr in
         List.fold_left add_pat_entities ue ps
-    | P_backend(_,_,_,ps) -> 
+    | P_backend(_,_,_,ps) ->
         List.fold_left add_pat_entities ue ps
-    | P_record(_,fieldpats,_) -> Seplist.fold_left (fun (id, _, p) ue -> 
+    | P_record(_,fieldpats,_) -> Seplist.fold_left (fun (id, _, p) ue ->
          add_pat_entities (used_entities_add_const ue id.descr)  p) ue fieldpats
     | P_vector(_,vectorpats,_) -> Seplist.fold_left (fun p ue -> add_pat_entities ue p) ue vectorpats
     | P_vectorC(_, vectorpats,_) -> List.fold_left add_pat_entities ue vectorpats
-    | P_tup(_,ps,_) -> 
+    | P_tup(_,ps,_) ->
         Seplist.fold_left (fun p ue -> add_pat_entities ue p) ue ps
-    | P_list(_,ps,_) -> 
+    | P_list(_,ps,_) ->
         Seplist.fold_left (fun p ue -> add_pat_entities ue p) ue ps
     | P_paren(_,p,_) -> add_pat_entities ue p
-    | P_cons(p1,_,p2) -> 
+    | P_cons(p1,_,p2) ->
        add_pat_entities (add_pat_entities ue p1) p2
     | P_num_add _ -> ue
     | P_lit _ -> ue
     | P_var_annot(_,t) -> add_src_t_entities ue t
 
-let rec add_letbind_entities (ue : used_entities) (lb : letbind) : used_entities = 
+let rec add_letbind_entities (ue : used_entities) (lb : letbind) : used_entities =
   match lb with
     | ( Let_val (p, ty_opt, _, e), _) ->
       let ue = add_pat_entities ue p in
@@ -1009,7 +1009,7 @@ let rec add_letbind_entities (ue : used_entities) (lb : letbind) : used_entities
       let ue = add_exp_entities ue e in
       ue
 
-and add_quant_binding_entities (ue : used_entities) (qb : quant_binding) : used_entities = 
+and add_quant_binding_entities (ue : used_entities) (qb : quant_binding) : used_entities =
   match qb with
     | Qb_var _ -> ue
     | Qb_restr (_, _, p, _, e, _) ->
@@ -1017,21 +1017,21 @@ and add_quant_binding_entities (ue : used_entities) (qb : quant_binding) : used_
       let ue = add_exp_entities ue e in
       ue
 
-and add_do_lines_entities (ue : used_entities) (dl : do_line) : used_entities = 
+and add_do_lines_entities (ue : used_entities) (dl : do_line) : used_entities =
   match dl with
     | Do_line (p, _, e, _) ->
       let ue = add_pat_entities ue p in
       let ue = add_exp_entities ue e in
       ue
 
-and add_exp_entities (ue : used_entities) (e : exp) : used_entities = 
+and add_exp_entities (ue : used_entities) (e : exp) : used_entities =
   let ue = add_type_entities ue (exp_to_typ e) in
   match C.exp_to_term e with
     | Var(n) -> ue
     | Nvar_e _ -> ue
     | Backend _ -> ue
     | Constant(c) -> used_entities_add_const ue c.descr
-    | Fun(_,ps,_,e) ->        
+    | Fun(_,ps,_,e) ->
          add_exp_entities (List.fold_left add_pat_entities ue ps) e
     | Function(_,pes,_) ->
          Seplist.fold_left (fun (p, _, e,_) ue -> add_exp_entities (add_pat_entities ue p) e) ue pes
@@ -1099,16 +1099,16 @@ and add_funcl_aux_entities (ue : used_entities) only_new ((_, c, ps, src_t_opt, 
   let ue = used_entities_add_const ue c in
   if only_new then ue else begin
     let ue = List.fold_left add_pat_entities ue ps in
-    let ue = match src_t_opt with 
-      | Some (_, src_t) -> add_src_t_entities ue src_t 
-      | _ -> ue 
+    let ue = match src_t_opt with
+      | Some (_, src_t) -> add_src_t_entities ue src_t
+      | _ -> ue
     in
     let ue = add_exp_entities ue e in
     ue
   end
 end
 
-and add_def_aux_entities (t_opt : Target.target) (only_new : bool) (ue : used_entities) (d : def_aux) : used_entities = 
+and add_def_aux_entities (t_opt : Target.target) (only_new : bool) (ue : used_entities) (d : def_aux) : used_entities =
   match d with
       | Type_def(sk, tds) ->
          Seplist.fold_left (fun (_, _, type_path, texp, _) ue -> begin
@@ -1116,22 +1116,22 @@ and add_def_aux_entities (t_opt : Target.target) (only_new : bool) (ue : used_en
            let ue = if only_new then ue else add_texp_entities ue texp in
            ue
          end) ue tds
-      | Val_def(Let_def(_, targs, (p, nm, src_t_opt, _, e))) -> 
+      | Val_def(Let_def(_, targs, (p, nm, src_t_opt, _, e))) ->
          if (not (in_targets_opt t_opt targs)) then ue else begin
            let ue = List.fold_left (fun ue  (_, c) -> used_entities_add_const ue c) ue nm in
            if only_new then ue else begin
              let ue = add_pat_entities ue p in
-             let ue = match src_t_opt with 
-               | Some (_, src_t) -> add_src_t_entities ue src_t 
-               | _ -> ue 
+             let ue = match src_t_opt with
+               | Some (_, src_t) -> add_src_t_entities ue src_t
+               | _ -> ue
              in
              let ue = add_exp_entities ue e in
              ue
            end
          end
-      | (Val_def(Fun_def(_, _, targs, funs))) -> 
-         if (in_targets_opt t_opt targs) then 
-           Seplist.fold_left (fun clause ue -> add_funcl_aux_entities ue only_new clause) ue funs 
+      | (Val_def(Fun_def(_, _, targs, funs))) ->
+         if (in_targets_opt t_opt targs) then
+           Seplist.fold_left (fun clause ue -> add_funcl_aux_entities ue only_new clause) ue funs
          else ue
       | Val_def(Let_inline(_,_,targs,_,c,_,_,e)) ->
          if (in_targets_opt t_opt targs) && not only_new then begin
@@ -1175,12 +1175,12 @@ and add_def_aux_entities (t_opt : Target.target) (only_new : bool) (ue : used_en
       | Declaration(_) -> ue
       | Comment _ -> ue
 
-and add_def_entities (t_opt : Target.target) (only_new : bool) (ue : used_entities) (((d, _), _, _) : def) : used_entities = 
+and add_def_entities (t_opt : Target.target) (only_new : bool) (ue : used_entities) (((d, _), _, _) : def) : used_entities =
   add_def_aux_entities t_opt only_new ue d
 
 
-let add_checked_module_entities (t_opt : Target.target) only_new (ue : used_entities) (m : checked_module): used_entities = 
-  let (dl, _) = m.typed_ast in 
+let add_checked_module_entities (t_opt : Target.target) only_new (ue : used_entities) (m : checked_module): used_entities =
+  let (dl, _) = m.typed_ast in
   List.fold_left (add_def_entities t_opt only_new) ue dl
 
 let get_checked_modules_entities (t_opt : Target.target) only_new (ml : checked_module list) : used_entities =
@@ -1188,9 +1188,9 @@ let get_checked_modules_entities (t_opt : Target.target) only_new (ml : checked_
 
 
 (* check whether a definition is recursive using entities *)
-let is_recursive_def (d:def_aux) =  
+let is_recursive_def (d:def_aux) =
  match d with
-  |  Val_def ((Fun_def (_, FR_rec _, _, sl))) -> begin 
+  |  Val_def ((Fun_def (_, FR_rec _, _, sl))) -> begin
        let (_, pL) = Seplist.to_pair_list None sl in
 
        (* get the names of all newly defined functions *)
@@ -1206,10 +1206,10 @@ let is_recursive_def (d:def_aux) =
   |  _ -> (false, false)
 
 (* check whether a definition is recursive using entities *)
-let try_termination_proof targ c_env (d:def_aux) =  
+let try_termination_proof targ c_env (d:def_aux) =
  let l_unk = Ast.Trans (true, "try_termination_proof", None) in
  match d with
-  |  Val_def ((Fun_def (_, FR_rec _, _, sl))) -> begin 
+  |  Val_def ((Fun_def (_, FR_rec _, _, sl))) -> begin
        let (is_rec, is_real_rec) = is_recursive_def d in
        let try_term = if (not is_real_rec) then true else begin
          let (_, pL) = Seplist.to_pair_list None sl in
@@ -1225,7 +1225,7 @@ let try_termination_proof targ c_env (d:def_aux) =
              | Some (Ast.Termination_setting_manual _) -> false
              | Some (Ast.Termination_setting_automatic _) -> true
          end in
-          
+
          List.for_all check_terminate all_consts
        end in
        (is_rec, is_real_rec, try_term)
@@ -1240,7 +1240,7 @@ begin
   (* make the variable names distinct from any already used names and from each other *)
   let fv_map = C.exp_to_free e in
   let vars' = Name.fresh_list (fun n -> not (Nfmap.in_dom n fv_map)) vars in
-  
+
   (* get types *)
   let (arg_tyL, _) = strip_fn_type (Some t_env) (exp_to_typ e) in
   let (var_types, _) = Util.split_after (List.length vars') arg_tyL in
@@ -1255,7 +1255,7 @@ begin
       | Some (_, ty) -> ty
       | None -> raise (Reporting_basic.err_unreachable l "fun type already checked above")
     in
-    C.mk_app l e var (Some ty) 
+    C.mk_app l e var (Some ty)
   end in
   let e' = List.fold_left mk_var_app e typed_vars in
 
@@ -1272,19 +1272,19 @@ let constr_family_to_id_aux l env (inst_type : t) (cf : constr_family_descr) : (
     let cd = c_env_lookup l env.c_env c in
     let c_string = Path.to_string cd.const_binding in
     let (t_args, t_base) = strip_fn_type (Some env.t_env) cd.const_type in
-    let _ = if (TNset.subset (free_vars cd.const_type) (free_vars t_base)) then () else raise 
+    let _ = if (TNset.subset (free_vars cd.const_type) (free_vars t_base)) then () else raise
        (Constr_family_to_id_exn ("function " ^ c_string ^ " has type-variables not appearing in result type")) in
     let subst = Util.option_get_exn (Constr_family_to_id_exn ("function "^ c_string ^" has wrong result type")) (match_types t_base inst_type) in
-    let inst = List.map (fun v -> Util.option_get_exn 
+    let inst = List.map (fun v -> Util.option_get_exn
         (Constr_family_to_id_exn ("problem with " ^ c_string)) (TNfmap.apply subst v)) cd.const_tparams in
 
-    let c_id = 
+    let c_id =
       { id_path = Id_none None;
         id_locn = l;
         descr = c;
         instantiation = inst } in
     let t_args' = List.map (type_subst subst) t_args in
-    (c_id, t_args')   
+    (c_id, t_args')
   end in
 
   let constr_resl = List.map check_constr cf.constr_list in
@@ -1301,16 +1301,16 @@ let constr_family_to_id_aux l env (inst_type : t) (cf : constr_family_descr) : (
         in
 
         let constr_args_list = if not cf.constr_exhaustive then (List.map snd constr_resl) @ [[]] else (List.map snd constr_resl) in
-        let _ = if List.length constr_args_list + 1 = List.length t_args then () else 
+        let _ = if List.length constr_args_list + 1 = List.length t_args then () else
            raise (Constr_family_to_id_exn ("number of given constructors and number of arguments of " ^ case_string ^ " don't match")) in
 
         let subst = (* get the substitution for the arguments as well as the return type variable *) begin
            match t_args with
              | [] -> raise (Reporting_basic.err_unreachable l "checked length before")
-             | ty :: _ -> 
-                 let _ = if (TNset.mem ret_ty_var (free_vars ty)) then raise 
+             | ty :: _ ->
+                 let _ = if (TNset.mem ret_ty_var (free_vars ty)) then raise
                  (Constr_family_to_id_exn ("return type of " ^ case_string ^ " is too special")) in
-                 Util.option_get_exn (Constr_family_to_id_exn ("type of first argument of " ^ case_string ^ " does not match pattern type")) 
+                 Util.option_get_exn (Constr_family_to_id_exn ("type of first argument of " ^ case_string ^ " does not match pattern type"))
                      (match_types ty inst_type)
         end in
 
@@ -1334,7 +1334,7 @@ let constr_family_to_id_aux l env (inst_type : t) (cf : constr_family_descr) : (
           { id_path = Id_none None;
             id_locn = l;
             descr = case_c;
-            instantiation = inst }           
+            instantiation = inst }
         end)
     end
   in
@@ -1351,7 +1351,7 @@ let check_constr_family l env inst_type cf =
   try
     let _ = constr_family_to_id_aux l env inst_type cf in
     ()
-  with Constr_family_to_id_exn s -> 
+  with Constr_family_to_id_exn s ->
      raise (Reporting_basic.err_type l ("invalid constructor family: " ^ s))
 
 
@@ -1360,7 +1360,7 @@ let check_for_inline_cycles (targ : Target.target) (c_env : c_env) : unit = begi
   let report_error c = begin
     let cd = c_env_lookup l c_env c in
     let tr = match Target.Targetmap.apply_target cd.target_rep targ with
-      | Some tr ->tr 
+      | Some tr ->tr
       | None -> raise (Reporting_basic.err_unreachable Ast.Unknown "since the target_rep is cyclic, it must exist")
     in
     let tr_l = const_target_rep_to_loc tr in
@@ -1397,5 +1397,3 @@ let check_for_inline_cycles (targ : Target.target) (c_env : c_env) : unit = begi
   let _ = List.iter (check_for_inline_cycle_aux []) (c_env_all_consts c_env) in
   ()
 end
-
-

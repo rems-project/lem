@@ -54,4 +54,3 @@ val flatten_modules : Path.t -> Typed_ast.env -> Typed_ast.def list -> Typed_ast
     renames them for target [topt]. This renaming is target specific. It avoids the names in set [consts] and modifies the descriptions
     of constants, types, etc. in environment [e]. The modified environment is returned. *)
 val rename_defs_target : Target.target -> Typed_ast_syntax.used_entities -> Typed_ast.NameSet.t -> Typed_ast.env -> Typed_ast.env
-

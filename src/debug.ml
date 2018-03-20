@@ -117,10 +117,10 @@ and parse_src_nexp_aux_paren =
 
 (*
 and src_nexp_aux =
- | Nexp_var of lskips * Nvar.t 
+ | Nexp_var of lskips * Nvar.t
  | Nexp_const of lskips * int
  | Nexp_mult of src_nexp * lskips * src_nexp (* One will always be const *)
- | Nexp_add of src_nexp * lskips * src_nexp 
+ | Nexp_add of src_nexp * lskips * src_nexp
  | Nexp_paren of lskips * src_nexp * lskips
 *)
 

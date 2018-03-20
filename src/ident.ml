@@ -50,22 +50,22 @@ open Pp
 type t = Ast.lex_skips * Name.t list * Name.t
 
 let pp ppf (sk,ns,n) =
-  fprintf ppf "%a" 
+  fprintf ppf "%a"
     (Pp.lst "." Name.pp) (ns @ [n])
 
 let to_string t =
   pp_to_string (fun ppf -> pp ppf t)
 
 let error_pp_help ppf (n,sk) =
-  fprintf ppf "%a%a" 
+  fprintf ppf "%a%a"
     Name.lskip_pp n
     Ast.pp_lex_skips sk
 
 let error_pp ppf (sk,ns,n) =
-  fprintf ppf "%a" 
+  fprintf ppf "%a"
     (Pp.lst "." error_pp_help) (ns @ [n])
 
-let mk_ident_ast m n l : t = 
+let mk_ident_ast m n l : t =
   let ms = List.map (fun (n,sk) -> n) m in
   let prelim_id = (None, m, (n,None)) in
     List.iter (fun (_, sk) ->
@@ -77,7 +77,7 @@ let mk_ident_ast m n l : t =
       | [] ->
           (Name.get_lskip n, [], Name.strip_lskip n)
       | m'::ms' ->
-          List.iter 
+          List.iter
             (fun n ->
                if Name.get_lskip n <> None && Name.get_lskip n <> Some([]) then
                  raise (Reporting_basic.err_type_pp l "illegal whitespace in identifier"
@@ -92,7 +92,7 @@ let mk_ident sk m n = ((sk, m, n) : t)
 let from_name n = (Name.get_lskip n, [], Name.strip_lskip n)
 
 let mk_ident_strings l i =
-  mk_ident None (List.map (fun n -> Name.from_string n) l) (Name.from_string i) 
+  mk_ident None (List.map (fun n -> Name.from_string n) l) (Name.from_string i)
 
 let from_id (Ast.Id(m,xl,l)) : t =
   mk_ident_ast
@@ -112,14 +112,14 @@ let to_output_format ident_f a sep ((sk,ns,n):t) =
 let to_output = to_output_format Output.id
 
 let replace_lskip ((sk,ns,n):t) s = (s,ns,n)
-let get_lskip ((sk,ns,n):t) = sk                
+let get_lskip ((sk,ns,n):t) = sk
 let to_name_list ((sk,ns,n):t) = (ns, n)
 
 let has_empty_path_prefix ((sk,ns,n):t) = (List.length ns = 0)
 
 let strip_path name ((sk,ns,n) :t) : t =
   match ns with
-    | [] -> 
+    | [] ->
         (sk,[],n)
     | (h::t) ->
         if Name.compare name h = 0 then

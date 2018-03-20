@@ -217,13 +217,13 @@ let rec src_t_to_string =
     | Typ_paren (skips, src_t, skips') ->
         from_string "(" ^ src_t_to_string src_t.term ^ from_string ")"
     | Typ_with_sort (src_t, sort) ->
-        from_string "(" ^ src_t_to_string src_t.term ^ from_string " : " ^ 
+        from_string "(" ^ src_t_to_string src_t.term ^ from_string " : " ^
           (from_string @@ Ulib.Text.to_string (Name.to_rope sort)) ^
           from_string ")"
 ;;
 let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
 
-let field_ident_to_output fd ascii_alternative = 
+let field_ident_to_output fd ascii_alternative =
   let ident = B.const_id_to_ident fd ascii_alternative in
   let name = Ident.get_name ident in
   let stripped = Name.strip_lskip name in
@@ -305,7 +305,7 @@ let generate_coq_record_update_notation e =
             let name = Name.to_output Term_var name
             in
               Output.flat [
-                ws skips; from_string "Lemma"; name; ws skips'; from_string ":"; 
+                ws skips; from_string "Lemma"; name; ws skips'; from_string ":";
                 from_string "("; exp inside_instance e; from_string ": Prop) ";
                 from_string "."
               ]
@@ -338,7 +338,7 @@ let generate_coq_record_update_notation e =
             body; from_string "\nEnd "; name; from_string "."; ws skips'''
           ]
       | Rename (skips, name, mod_binding, skips', mod_descr) -> emp
-      | OpenImport (oi, ms) ->                  
+      | OpenImport (oi, ms) ->
           let (ms', sk) = B.open_to_open_target ms in
           if (ms' = []) then
              ws (oi_get_lskip oi)
@@ -347,7 +347,7 @@ let generate_coq_record_update_notation e =
             def inside_instance callback inside_module d' ^ ws sk
           )
       | OpenImportTarget(oi, _, []) -> ws (oi_get_lskip oi)
-      | OpenImportTarget (Ast.OI_open skips, targets, mod_descrs) ->                 
+      | OpenImportTarget (Ast.OI_open skips, targets, mod_descrs) ->
           ws skips ^
           let handle_mod (sk, md) = begin
             Output.flat [
@@ -480,7 +480,7 @@ let generate_coq_record_update_notation e =
                                               | Typed_ast.Tn_A (_, var, _) ->
                                                   from_string @@ Ulib.Text.to_string var
                                               | _ ->
-                                                raise (Reporting_basic.err_general true l_unk "nexps not supported in instance declarations") 
+                                                raise (Reporting_basic.err_general true l_unk "nexps not supported in instance declarations")
                                           in
                                           let ident = Name.to_output Term_var (Ident.get_name id) in
                                             Output.flat [
@@ -544,7 +544,7 @@ let generate_coq_record_update_notation e =
                   | Types.Ty var -> from_string @@ Ulib.Text.to_string @@ Types.tnvar_to_rope tnvar
                   | _ ->
                       raise (Reporting_basic.err_general true Ast.Unknown "nexps not supported in type class constraints")
-              in 
+              in
                 Output.flat [
                   from_string "`{"; name; from_string " "; var; from_string "}"
                 ]
@@ -823,7 +823,7 @@ let generate_coq_record_update_notation e =
               (* try to strip all application and see whether there is a constant at the beginning *)
               let (e0, args) = strip_app_exp e in
                 match C.exp_to_term e0 with
-                  | Constant cd -> 
+                  | Constant cd ->
                     (* constant, so use special formatting *)
                     B.function_application_to_output (exp_to_locn e) trans false e cd args (use_ascii_rep_for_const cd.descr)
                   | _ -> (* no constant, so use standard one *)
@@ -854,7 +854,7 @@ let generate_coq_record_update_notation e =
                 Output.flat [
                   ws skips; from_string "let"; body; ws skips'; from_string "in"; exp inside_instance e
                 ]
-          | Constant const -> 
+          | Constant const ->
             Output.concat emp (B.function_application_to_output (exp_to_locn e) (exp inside_instance) false e const [] (use_ascii_rep_for_const const.descr))
           | Fun (skips, ps, skips', e) ->
               let ps = fun_pattern_list inside_instance ps in
@@ -1255,7 +1255,7 @@ let generate_coq_record_update_notation e =
           from_string "Inductive"; body; from_string ".\n";
         ]
     and type_def' ((n0, l), ty_vars, t_path, ty, _) =
-      let n = B.type_path_to_name n0 t_path in 
+      let n = B.type_path_to_name n0 t_path in
       let name = Name.to_output (Type_ctor (false, false)) n in
       let ty_vars =
         List.map (
@@ -1448,7 +1448,7 @@ let generate_coq_record_update_notation e =
         | _ -> assert false
     and field ((n, _), f_ref, skips, t) =
       Output.flat [
-          Name.to_output Term_field (B.const_ref_to_name n false f_ref); 
+          Name.to_output Term_field (B.const_ref_to_name n false f_ref);
           ws skips; from_string ":"; pat_typ t
       ]
     and generate_default_value_texp (t: texp) =
@@ -1521,7 +1521,7 @@ let generate_coq_record_update_notation e =
           | Typ_app (path, src_ts) ->
               if List.length src_ts = 0 then
                   Output.flat [
-                    from_string (Name.to_string (Name.strip_lskip (Ident.get_name (B.type_id_to_ident path)))); 
+                    from_string (Name.to_string (Name.strip_lskip (Ident.get_name (B.type_id_to_ident path))));
                     from_string "_default"
                   ]
               else
@@ -1562,7 +1562,7 @@ module CoqBackend (A : sig val avoid : var_avoid_f option;; val env : env;; val 
             end)
           in
           let (before_out, d') = Backend_common.def_add_location_comment ((d,s),l,lenv) in
-          before_out ^ 
+          before_out ^
           match s with
             | None   -> C.def inside_instance callback inside_module d' ^ y
             | Some s -> C.def inside_instance callback inside_module d' ^ ws s ^ y

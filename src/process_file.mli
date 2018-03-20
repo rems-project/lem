@@ -53,16 +53,16 @@ val parse_file : string -> Ast.defs * Ast.lex_skips
 
 type instances = Types.instance list Types.Pfmap.t
 
-val output :   
+val output :
   Typed_ast.env ->                    (** The full environment built after all typechecking, and transforming *)
   Typed_ast.var_avoid_f ->
-  target ->                           (** Backend name *) 
+  target ->                           (** Backend name *)
   string option ->                    (** output directory option *)
   checked_module list ->              (** The typechecked modules *)
   unit
 
 (** output_alltexdoc produces the latex output for all modules in a single file *)
-val output_alltexdoc : 
+val output_alltexdoc :
   Typed_ast.env ->                    (** The full environment built after all typechecking, and transforming *)
   Typed_ast.var_avoid_f ->
   string ->                           (** output directory *)

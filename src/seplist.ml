@@ -91,7 +91,7 @@ let tl_sep l = match l with
       (None,l,e)
   | _ -> raise (Failure "Seplist.tl_sep")
 
-let replace_all_seps ns (so, l, e) = 
+let replace_all_seps ns (so, l, e) =
   (Util.option_map ns so, List.map (fun (x, s) -> (x, ns s)) l, e)
 
 let append d l1 l2 = match (l1, l2) with
@@ -108,31 +108,31 @@ let rec flatten d sll = match sll with
   | [] -> empty
   | (x :: xs) -> append d x (flatten d xs)
 
-let to_list (_,l,o) = 
+let to_list (_,l,o) =
   let l = List.map fst l in
     match o with
       | None -> l
       | Some(x) -> l @ [x]
 
-let to_pair_list default_s (o1,l,o2) = 
+let to_pair_list default_s (o1,l,o2) =
     match o2 with
       | None -> (o1, l)
       | Some(x) -> (o1, l @ [(x, default_s)])
 
 let from_pair_list o1 l o2 = (o1, l, o2)
 
-let from_pair_list_sym o1 l o2 = 
-  let rec aux a0 l = 
-    match l with 
+let from_pair_list_sym o1 l o2 =
+  let rec aux a0 l =
+    match l with
       | [] -> begin
-          match o2 with 
+          match o2 with
             | None -> ([], Some a0)
             | Some s -> ([(a0,s)], None)
         end
       | (s,a)::l' -> let (l'', o2') = aux a l' in
           ((a0,s) :: l'', o2')
   in
-  match l with 
+  match l with
     | [] -> begin
               match (o1, o2) with
                 | (Some a, Some s) -> (None, [(a,s)], None)
@@ -140,7 +140,7 @@ let from_pair_list_sym o1 l o2 =
             end
     | (s0,a1)::l' -> let (l'', o2') = aux a1 l' in begin
                  match o1 with None -> (Some s0, l'', o2')
-                             | Some a0 -> (None, (a0, s0)::l'', o2') 
+                             | Some a0 -> (None, (a0, s0)::l'', o2')
                  end
 
 let drop_first_sep (o1, l, o2) = (o1, (None, l, o2))
@@ -149,26 +149,26 @@ let to_list_map f (_,l,o) =
   let l = List.map (fun x -> f (fst x)) l in
    match o with
      | None -> l
-     | Some(x) -> l @ [f x] 
+     | Some(x) -> l @ [f x]
 
 let iter f (_,l,o) =
   List.iter (fun x -> f (fst x)) l;
   match o with
     | None -> ()
-    | Some(x) -> f x 
+    | Some(x) -> f x
 
 let rec tsl_help f g = function
   | [] -> []
   | (x,y)::l -> f x :: g y :: tsl_help f g l
 
-let to_sep_list f g (o1,l,o2) = 
+let to_sep_list f g (o1,l,o2) =
   let l1 = tsl_help f g l in
-  let l2 = 
+  let l2 =
     match o2 with
       | None -> l1
       | Some(x) -> l1 @ [f x]
   in
-    match o1 with 
+    match o1 with
       | None -> l2
       | Some(x) -> g x :: l2
 
@@ -198,16 +198,16 @@ let to_sep_list_last o f g (o1,l,o2) =
     (* Leave the list as is *)
     | (Forbid(g'), Some _) -> to_sep_list f g (o1, l, o2)
     (* Remove the existing final separator *)
-    | (Forbid(g'), None) -> 
+    | (Forbid(g'), None) ->
         begin
-          match List.rev l with 
-            | [] -> 
+          match List.rev l with
+            | [] ->
                 begin
                   match o1 with
                     | None -> []
                     | Some(s) -> [g' s]
                 end
-            | (x,s)::rest -> 
+            | (x,s)::rest ->
                 to_sep_list f g (o1, List.rev rest, Some(x)) @ [g' s]
         end
 
@@ -236,13 +236,13 @@ let cons_entry x = function
       assert false
 
 let sing x = (None, [], Some x)
-  
+
 
 let length (_,l,o2) =
-  List.length l 
-  + 
+  List.length l
+  +
   begin
-    match o2 with 
+    match o2 with
       | None -> 0
       | Some _ -> 1
   end
@@ -257,7 +257,7 @@ let map_changed (f : 'a -> 'a option) ((o1,l,o2) : ('a,'s) t) : ('a,'s) t option
             | Some(x') -> ((x',s)::r,true)
   in
   let (r,c) = g l in
-  let (r',c') = 
+  let (r',c') =
     match o2 with
       | None -> (None, false)
       | Some(x) ->
@@ -292,11 +292,11 @@ let from_list_prefix s b l =
 let rec fls_help s = function
   | [] -> (Some(s),[],None)
   | [(x,y)] -> (None,[(x,s)],None)
-  | (x,y)::l -> 
+  | (x,y)::l ->
       let (o1,l,o2) = fls_help s l in
         (o1,(x,y)::l,o2)
 
-let from_list_suffix l s b = 
+let from_list_suffix l s b =
   if not b then
     from_list l
   else
@@ -306,7 +306,7 @@ let map_acc_right f base_acc (o1,l,o2) =
   let (new_o2, new_acc) =
     match o2 with
       | None -> (None, base_acc)
-      | Some(v) -> 
+      | Some(v) ->
           let (x,y) = f v base_acc in
             (Some(x), y)
   in
@@ -316,7 +316,7 @@ let map_acc_right f base_acc (o1,l,o2) =
          let (p,a) = f v acc in
            ((p,s)::l, a))
       l
-      ([], new_acc) 
+      ([], new_acc)
   in
     ((o1, new_l, new_o2), new_acc)
 
@@ -332,7 +332,7 @@ let map_acc_left f base_acc (o1,l,o2) =
   let (new_o2, new_acc) =
     match o2 with
       | None -> (None, new_acc)
-      | Some(v) -> 
+      | Some(v) ->
           let (x,y) = f v new_acc in
             (Some(x), y)
   in
@@ -349,7 +349,7 @@ let for_all f (o1,l,o2) =
     | [] -> true
     | (x,_)::l -> f x && help l
   in
-    match o2 with 
+    match o2 with
       | None -> help l
       | Some(x) -> help l && f x
 
@@ -358,7 +358,7 @@ let exists f (o1,l,o2) =
     | [] -> false
     | (x,_)::l -> f x || help l
   in
-    match o2 with 
+    match o2 with
       | None -> help l
       | Some(x) -> help l || f x
 
@@ -367,23 +367,21 @@ let find default_s f (o1,l,o2) =
     | [] -> None
     | (x,s)::l -> if f x then Some (x,s) else help l
   in
-    match help l with 
-      | None -> (match o2 with 
-         | None -> raise Not_found 
+    match help l with
+      | None -> (match o2 with
+         | None -> raise Not_found
          | Some x -> if (f x) then (x, default_s) else raise Not_found)
       | Some(x,s) -> (x,s)
 
-let rec pp f g ppf (fst_sep, lst, last_el) = 
-  begin  
+let rec pp f g ppf (fst_sep, lst, last_el) =
+  begin
     match fst_sep with
       | None -> ()
       | Some(s) -> g ppf s
   end;
   Pp.lst "" (fun ppf (e,s) -> f ppf e; g ppf s) ppf lst;
-  begin  
+  begin
     match last_el with
       | None -> ()
       | Some(e) -> f ppf e
   end
-
-

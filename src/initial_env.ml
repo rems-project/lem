@@ -55,7 +55,7 @@ let r = Ulib.Text.of_latin1
 
 
 (** Build type_defs for build-in types *)
-let tds = 
+let tds =
   [(Path.listpath, mk_tc_type [Ty(Tyvar.from_rope (r"a"))] None);
    (Path.setpath, mk_tc_type [Ty(Tyvar.from_rope (r"a"))] None);
    (Path.vectorpath, mk_tc_type [Ty(Tyvar.from_rope (r"b"));Nv(Nvar.from_rope (r"a"))] None);
@@ -67,12 +67,12 @@ let tds =
    (Path.numeralpath, mk_tc_type [] None);
    (Path.unitpath, mk_tc_type [] None)]
 
-let initial_d : Types.type_defs = 
+let initial_d : Types.type_defs =
   List.fold_right (fun x y -> Types.Pfmap.insert y x) tds Types.Pfmap.empty
 
 let initial_local_env : Typed_ast.local_env =
   { empty_local_env with
-    p_env = Nfmap.from_list 
+    p_env = Nfmap.from_list
               [(Name.from_rope (r"bool"), (Path.boolpath, Ast.Unknown));
                (Name.from_rope (r"bit"), (Path.bitpath, Ast.Unknown));
                (Name.from_rope (r"vector"), (Path.vectorpath, Ast.Unknown));
@@ -93,14 +93,14 @@ let space = Str.regexp "[ \t\n]+"
 let read_constants file =
   let i = open_in file in
   let rec f () =
-    try 
+    try
       let s = input_line i in
         List.map Ulib.Text.of_latin1 (Str.split space s) @ f ()
     with
       | End_of_file ->
           close_in i;
           []
-  in 
+  in
   let const_list = f() in
   let const_set = List.fold_left (fun s c -> NameSet.add (Name.from_rope c) s) NameSet.empty const_list in
   const_set
@@ -108,6 +108,6 @@ let read_constants file =
 let read_target_constants lib_path targ =
   match targ with
     | Target_ident -> NameSet.empty
-    | Target_no_ident targ' -> (try 
+    | Target_no_ident targ' -> (try
         read_constants (lib_path ^^ (non_ident_target_to_string targ' ^ "_constants"))
       with _ -> NameSet.empty)

@@ -48,10 +48,10 @@ open Format
 
 type t = Ulib.Text.t
 
-let compare r1 r2 = 
+let compare r1 r2 =
   if r1 == r2 then
-    0 
-  else 
+    0
+  else
     Ulib.Text.compare r1 r2
 
 let pp ppf s =

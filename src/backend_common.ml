@@ -90,7 +90,7 @@ let cr_special_uncurry_fun n arg_f name vars argsL = begin
   end
 
 (** Axiliary function for [inline_exp] and [cr_special_rep_fun] *)
-let rec build_subst (params : name_lskips_annot list) (args : exp list) 
+let rec build_subst (params : name_lskips_annot list) (args : exp list)
       : exp_subst Nfmap.t * name_lskips_annot list * exp list =
   match (params, args) with
     | ([],args) -> (Nfmap.empty, [], args)
@@ -103,10 +103,10 @@ let rec build_subst (params : name_lskips_annot list) (args : exp list)
 
 let cr_special_rep_fun srepl rep_args env tsubst arg_f name vars (vargsL : exp list) = begin
   let _ = if ((List.length vargsL = List.length vars) &&
-              (List.length srepl = List.length rep_args + 1)) then () else 
-     raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal (Ast.Unknown, 
+              (List.length srepl = List.length rep_args + 1)) then () else
+     raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal (Ast.Unknown,
        "special target presentation of OCaml got wrong numer of args")))
-  in 
+  in
   let module C = Exps_in_context(struct let env_opt = Some env;; let avoid = None end) in
   let (vsubst, _, _) = build_subst vars vargsL in
   let rep_args' = List.map (C.exp_subst (tsubst,vsubst)) rep_args in
@@ -124,7 +124,7 @@ let cr_special_fun_to_fun_pat err = function
 
 let cr_special_fun_to_fun_exp env tsubst = function
   | CR_special_uncurry n -> cr_special_uncurry_fun n
-  | CR_special_rep (srepl, exps) -> cr_special_rep_fun srepl exps env tsubst 
+  | CR_special_rep (srepl, exps) -> cr_special_rep_fun srepl exps env tsubst
 
 
 let inline_exp l (target : Target.target) env was_infix params body_sk body tsubst (args : exp list) : exp =
@@ -143,10 +143,10 @@ let inline_exp l (target : Target.target) env was_infix params body_sk body tsub
     match leftover_args with
       | [a1; a2] -> C.mk_infix loc a1 b a2 None
       | _ -> raise (Reporting_basic.err_unreachable l "infix operator with not 2 arguments")
-  end else 
+  end else
   if leftover_params = [] then
     let res = (* all parameters are instantiatated *)
-    (List.fold_left 
+    (List.fold_left
        (fun e e' -> C.mk_app loc e e' None)
        b
        leftover_args) in
@@ -157,7 +157,7 @@ let inline_exp l (target : Target.target) env was_infix params body_sk body tsub
     let (b, b_sk) = alter_init_lskips (fun sk -> (None, sk)) b in
     append_lskips b_sk (mk_opt_paren_exp (C.mk_fun loc None
          (List.map (fun n -> C.mk_pvar n.locn n.term (Types.type_subst tsubst n.typ))
-                                  leftover_params) 
+                                  leftover_params)
          None b None))
 
 
@@ -173,7 +173,7 @@ let generalised_inline_exp_macro (do_CR_simple : bool) (target : Target.target) 
             inline_exp l_unk target env was_infix params (ident_get_lskip c_id) body tsubst args
           in
 
-          let subst_opt = begin            
+          let subst_opt = begin
             match Target.Targetmap.apply_target cd.target_rep target with
               | Some(CR_inline (_, _, params,body)) -> Some (params, body)
               | Some(CR_simple (_, _, params,body)) when do_CR_simple -> Some (params, body)
@@ -199,14 +199,14 @@ let inline_pat_err l c_path target cr_l =
 let inline_pat l_unk env cd c_id ps (params, body) =
    let module C = Exps_in_context(struct let env_opt = Some env;; let avoid = None end) in
    let tsubst = Types.TNfmap.from_list2 cd.const_tparams c_id.instantiation in
-   
+
    (* adapt whitespace before body *)
    let b = (fst (alter_init_lskips (fun _ -> (ident_get_lskip c_id, None)) body)) in
    let b = C.exp_subst (tsubst,Nfmap.empty) b in
-            
+
    match (params, C.exp_to_term b) with
      | ([], Constant c_id') -> Some (C.mk_pconst l_unk c_id' ps None)
-     | ([], Backend (sk, i)) -> 
+     | ([], Backend (sk, i)) ->
           let ty = Types.type_subst tsubst cd.const_type in
           Some (C.mk_pbackend l_unk sk i ty ps None)
      | _ -> None
@@ -216,14 +216,14 @@ let generalised_inline_pat_macro (do_CR_simple : bool) (target : Target.target) 
   let l_unk = Ast.Trans(false, "inline_pat_macro", Some p.locn) in
     match p.term with
       | P_const(c_id, ps) ->
-          if (Pattern_syntax.is_not_buildin_constructor l_unk env target c_id.descr) then 
-            (* let pattern matching handle constructors *) None 
+          if (Pattern_syntax.is_not_buildin_constructor l_unk env target c_id.descr) then
+            (* let pattern matching handle constructors *) None
           else begin
             let cd = c_env_lookup l_unk env.c_env c_id.descr in
-            let res_opt = begin            
+            let res_opt = begin
               match Target.Targetmap.apply_target cd.target_rep target with
                 | Some(CR_inline (l, _, params,body)) -> (Some l, inline_pat l_unk env cd c_id ps (params, body))
-                | Some(CR_simple (l, _, params,body)) -> 
+                | Some(CR_simple (l, _, params,body)) ->
                   if do_CR_simple then
                     (Some l, inline_pat l_unk env cd c_id ps (params, body))
                   else
@@ -261,12 +261,12 @@ let get_module_name env target path mod_name =  begin
   Name.from_string (get_module_name_from_descr md mod_name (fun s -> s) target)
 end
 
-let isa_add_full_library_path_flag = ref false 
+let isa_add_full_library_path_flag = ref false
 
 let adapt_isabelle_library_dir dir =
   if (Util.dir_eq (Filename.concat Build_directory.d "library") dir) then
      (if (!isa_add_full_library_path_flag) then (Filename.concat Build_directory.d "isabelle-lib") else "")
-  else 
+  else
      dir
 
 
@@ -274,15 +274,15 @@ let adapt_isabelle_library_dir dir =
    variables in these imports. "$LIB_DIR/" gets replaced with either "" if we are
    outputting in the library-directory or the full path to it otherwise. *)
 let get_module_open_string_target =
- let abs_lib_dir = Util.option_default Filename.current_dir_name 
+ let abs_lib_dir = Util.option_default Filename.current_dir_name
    (Util.absolute_dir (Filename.concat Build_directory.d "isabelle-lib")) in
 
  fun target dir mod_string ->
  match target with
-    | Target.Target_no_ident (Target.Target_isa) -> 
+    | Target.Target_no_ident (Target.Target_isa) ->
         let new_dir = if (not (!isa_add_full_library_path_flag)) then "" else
           (if Util.dir_eq dir abs_lib_dir then "" else (String.concat "" [abs_lib_dir; "/"])) in
-        Str.global_replace (Str.regexp_string "$LIB_DIR/") new_dir mod_string 
+        Str.global_replace (Str.regexp_string "$LIB_DIR/") new_dir mod_string
     | _ -> mod_string
 
 
@@ -299,12 +299,12 @@ begin
               match (mod_dir_opt, out_dir_opt) with
                 | (Some mod_dir, Some out_dir) ->
                      if relative || (String.compare mod_dir out_dir = 0) then
-                       mod_string 
+                       mod_string
                      else
                        Filename.concat mod_dir mod_string
                 | _ -> mod_string
             end
-      end 
+      end
     | _ -> mod_string
   in
   let md = e_env_lookup Ast.Unknown env.e_env mod_path in
@@ -318,20 +318,20 @@ let rec concat_skip_lists acc sk = function
       let sl' = List.filter (fun s -> not (List.exists (fun (_, s') -> s = s') acc)) sl in
       match sl' with
         | [] -> concat_skip_lists acc (Ast.combine_lex_skips sk sk') skip_list
-        | (s :: sl) -> 
+        | (s :: sl) ->
              let acc = List.rev_append (List.map (fun s -> (space, s)) sl) ((Ast.combine_lex_skips sk sk', s) :: acc) in
              concat_skip_lists acc None skip_list
-    end 
+    end
 
 let imported_module_to_strings env target dir relative = function
   | IM_paths ids -> List.map (get_module_open_string env target dir relative) ids
-  | IM_targets (targs, strings) -> 
+  | IM_targets (targs, strings) ->
       if (Typed_ast.in_targets_opt target targs) then List.map (get_module_open_string_target target dir) strings else []
 
 let get_imported_target_modules_of_def_aux = function
-  | OpenImport ((Ast.OI_import _ | Ast.OI_open_import _ | Ast.OI_include_import _), ids) ->      
+  | OpenImport ((Ast.OI_import _ | Ast.OI_open_import _ | Ast.OI_include_import _), ids) ->
       Some (IM_paths (List.map (fun id -> id.descr) ids))
-  | OpenImportTarget ((Ast.OI_import _ | Ast.OI_open_import _ | Ast.OI_include_import _), targs, ts) ->      
+  | OpenImportTarget ((Ast.OI_import _ | Ast.OI_open_import _ | Ast.OI_include_import _), targs, ts) ->
       Some (IM_targets (targs, (List.map snd ts)))
   | _ -> None
 
@@ -345,8 +345,8 @@ let imported_modules_to_strings env target dir iml relative =
   let ms = Imported_Modules_Set.elements iml in
     List.flatten (List.map (imported_module_to_strings env target dir relative) ms)
 
-module Make(A : sig 
-  val env : env;; 
+module Make(A : sig
+  val env : env;;
   val target : Target.target;;
   val dir : string;;
   val id_format_args : (bool -> Output.id_annot -> Ulib.Text.t -> Output.t) * Ulib.Text.t
@@ -380,7 +380,7 @@ let fix_module_ident (i : Ident.t) =
   Ident.mk_ident (Ident.get_lskip i) ns' n'
 
 let ident_to_output use_infix from_backend =
-  let (ident_f, sep) = A.id_format_args in 
+  let (ident_f, sep) = A.id_format_args in
   Ident.to_output_format (ident_f use_infix) (Term_const (false, from_backend)) sep
 
 
@@ -388,7 +388,7 @@ let const_ref_to_name n0 use_ascii c =
   let l = Ast.Trans (false, "const_ref_to_name", None) in
   let c_descr = c_env_lookup l A.env.c_env c in
   let (_, n_no_ascii, n_ascii_opt) = constant_descr_to_name A.target c_descr in
-  let n =    
+  let n =
     match (n_ascii_opt, use_ascii) with
       | (Some ascii, true) -> ascii
       | _  -> n_no_ascii
@@ -400,12 +400,12 @@ let const_ref_to_name n0 use_ascii c =
 (* A version of const_id_to_ident that returns additionally, whether
    the ascii-alternative was used. This is handy for determining infix
    status. *)
-let const_id_to_ident_aux c_id ascii_alternative given_id_opt =   
+let const_id_to_ident_aux c_id ascii_alternative given_id_opt =
   let l = Ast.Trans (false, "const_id_to_ident", (Some c_id.id_locn)) in
   let c_descr = c_env_lookup l A.env.c_env c_id.descr in
   let org_ident = resolve_constant_id_ident l A.env A.target c_id in
   let (_, n, n_ascii_opt) = constant_descr_to_name A.target c_descr in
-  let (ascii_used, given_used, ident')  =    
+  let (ascii_used, given_used, ident')  =
     match (n_ascii_opt, ascii_alternative, given_id_opt) with
       | (Some ascii, true, _) -> (true, false, Ident.rename org_ident ascii)
       | (_, false, Some i) -> (false, true, Ident.replace_lskip i (Ident.get_lskip org_ident))
@@ -418,18 +418,18 @@ let const_id_to_ident_aux c_id ascii_alternative given_id_opt =
 let const_id_to_ident c_id ascii_alternative = (let (_, _, i) = const_id_to_ident_aux c_id ascii_alternative None in i)
 
 let constant_application_to_output_simple is_infix_pos arg_f alter_sk_f args c_id ascii_alternative given_id_opt = begin
-  let (ascii_used, given_id_used, i) = const_id_to_ident_aux c_id ascii_alternative given_id_opt in 
-  let const_is_infix = not (ascii_used) && Precedence.is_infix (Precedence.get_prec A.target A.env c_id.descr) in 
+  let (ascii_used, given_id_used, i) = const_id_to_ident_aux c_id ascii_alternative given_id_opt in
+  let const_is_infix = not (ascii_used) && Precedence.is_infix (Precedence.get_prec A.target A.env c_id.descr) in
   let const_is_infix_input = Precedence.is_infix (Precedence.get_prec Target.Target_ident A.env c_id.descr) in
   let is_infix = (const_is_infix && (Ident.has_empty_path_prefix i) && (List.length args = 2) &&
-                  (is_infix_pos || not const_is_infix_input)) in           
+                  (is_infix_pos || not const_is_infix_input)) in
   let use_infix_notation = ((not is_infix) && const_is_infix) in
 
   (* adapt whitespace *)
   let (i, args) = if (is_infix && not is_infix_pos) || (not is_infix && is_infix_pos) then
       begin (* print "f arg1 arg2" as "arg1 f arg2" or vise versa, so swap space of arg1 and f *)
         match args with
-          | [arg1; arg2] -> 
+          | [arg1; arg2] ->
               let (arg1', arg1_sk) = alter_sk_f (fun sk -> (Ident.get_lskip i, sk)) arg1 in
               let i' = Ident.replace_lskip i arg1_sk in
               (i', [arg1'; arg2])
@@ -441,8 +441,8 @@ let constant_application_to_output_simple is_infix_pos arg_f alter_sk_f args c_i
   let args_out = List.map (arg_f use_infix_notation) args in
 
   if (not is_infix) then
-     (name :: args_out) 
-  else 
+     (name :: args_out)
+  else
      [(List.nth args_out 0); name; (List.nth args_out 1)]
 end
 
@@ -461,16 +461,16 @@ let function_application_to_output l (arg_f0 : exp -> Output.t) (is_infix_pos : 
   let arg_f b e = if b then arg_f0 (mk_opt_paren_exp e) else arg_f0 e in
   let c_descr = c_env_lookup Ast.Unknown A.env.c_env c_id.descr in
   match Target.Targetmap.apply_target c_descr.target_rep A.target with
-     | Some (CR_special (_, _, to_out, vars)) when not ascii_alternative -> 
+     | Some (CR_special (_, _, to_out, vars)) when not ascii_alternative ->
             if (List.length args < List.length vars) then begin
               (* eta expand and call recursively *)
               let remaining_vars = List.map (fun n -> Name.strip_lskip n.term) (Util.list_dropn (List.length args) vars) in
               let eta_exp = mk_eta_expansion_exp (A.env.t_env) remaining_vars full_exp in
               [arg_f true eta_exp]
-              
+
             end else begin
               let tsubst = Types.TNfmap.from_list2 c_descr.const_tparams c_id.instantiation in
-              constant_application_to_output_special c_id to_out (cr_special_fun_to_fun_exp A.env tsubst) (arg_f false) args vars 
+              constant_application_to_output_special c_id to_out (cr_special_fun_to_fun_exp A.env tsubst) (arg_f false) args vars
             end
      | Some (CR_simple (_, _, params,body)) when not ascii_alternative -> begin
          let tsubst = Types.TNfmap.from_list2 c_descr.const_tparams c_id.instantiation in
@@ -478,12 +478,12 @@ let function_application_to_output l (arg_f0 : exp -> Output.t) (is_infix_pos : 
          [arg_f false new_exp]
        end
      | Some (CR_infix (_, _, _, i)) -> constant_application_to_output_simple is_infix_pos arg_f alter_init_lskips args c_id ascii_alternative (Some i)
-     | Some (CR_undefined (l', _)) -> 
-       begin 
+     | Some (CR_undefined (l', _)) ->
+       begin
          let (^) = Pervasives.(^) in
          let m0 = "constant '" ^ Path.to_string c_descr.const_binding ^ "' is explicitly declared undefined for target " ^ (Target.target_to_string A.target) ^ " at\n    " in
-         let loc_s = Reporting_basic.loc_to_string false l' in 
-         raise (Reporting_basic.Fatal_error (Reporting_basic.Err_type (l, 
+         let loc_s = Reporting_basic.loc_to_string false l' in
+         raise (Reporting_basic.Fatal_error (Reporting_basic.Err_type (l,
            (m0 ^ loc_s))))
        end
      | _ -> constant_application_to_output_simple is_infix_pos arg_f alter_init_lskips args c_id ascii_alternative None
@@ -492,26 +492,26 @@ let pattern_application_to_output l (arg_f0 : pat -> Output.t) (c_id : const_des
   let arg_f b p = if b then arg_f0 (Pattern_syntax.mk_opt_paren_pat p) else arg_f0 p in
   let c_descr = c_env_lookup Ast.Unknown A.env.c_env c_id.descr in
   match Target.Targetmap.apply_target c_descr.target_rep A.target with
-     | Some (CR_special (_, _, to_out, vars)) when not ascii_alternative -> 
+     | Some (CR_special (_, _, to_out, vars)) when not ascii_alternative ->
         if (List.length args < List.length vars) then begin
            raise (Reporting_basic.err_unreachable Ast.Unknown "Constructor without enough arguments!")
         end else begin
-           constant_application_to_output_special c_id to_out 
-             (cr_special_fun_to_fun_pat (fun () -> inline_pat_err Ast.Unknown c_descr.const_binding A.target l)) 
-             (arg_f false) args vars 
+           constant_application_to_output_special c_id to_out
+             (cr_special_fun_to_fun_pat (fun () -> inline_pat_err Ast.Unknown c_descr.const_binding A.target l))
+             (arg_f false) args vars
         end
      | Some (CR_simple (l, _, params,body)) when not ascii_alternative -> begin
          let res_opt = inline_pat Ast.Unknown A.env c_descr c_id args (params, body) in
          match res_opt with
-           | None -> inline_pat_err Ast.Unknown c_descr.const_binding A.target l 
+           | None -> inline_pat_err Ast.Unknown c_descr.const_binding A.target l
            | Some p' -> [arg_f false p']
        end
-     | Some (CR_undefined (l', _)) -> 
-       begin 
+     | Some (CR_undefined (l', _)) ->
+       begin
          let (^) = Pervasives.(^) in
          let m0 = "constant '" ^ Path.to_string c_descr.const_binding ^ "' is explicitly declared undefined for target " ^ (Target.target_to_string A.target) ^ " at\n    " in
-         let loc_s = Reporting_basic.loc_to_string false l' in 
-         raise (Reporting_basic.Fatal_error (Reporting_basic.Err_type (l, 
+         let loc_s = Reporting_basic.loc_to_string false l' in
+         raise (Reporting_basic.Fatal_error (Reporting_basic.Err_type (l,
            (m0 ^ loc_s))))
        end
      | _ -> constant_application_to_output_simple false arg_f pat_alter_init_lskips args c_id ascii_alternative None
@@ -539,7 +539,7 @@ let type_id_to_ident (p : Path.t id) = snd (type_id_to_ident_aux p)
 
 let type_id_to_output (p : Path.t id) =
   let (needs_no_escape, i) = type_id_to_ident_aux p in
-  let (_, path_sep) = A.id_format_args in 
+  let (_, path_sep) = A.id_format_args in
   Ident.to_output (Type_ctor (false, not needs_no_escape)) path_sep i
 
 let type_id_to_ident_no_modify (p : Path.t id) =
@@ -558,7 +558,7 @@ let rec combine_sorts ts ss =
 
 let type_app_to_output format p ts =
   let l = Ast.Trans (false, "type_app_to_output", None) in
-  let (_, path_sep) = A.id_format_args in 
+  let (_, path_sep) = A.id_format_args in
   let td = Types.type_defs_lookup l A.env.t_env p.descr in
   let sk = ident_get_lskip p in
   let ts' = match Target.Targetmap.apply_target td.Types.type_target_sorts A.target with
@@ -568,14 +568,14 @@ let type_app_to_output format p ts =
   match Target.Targetmap.apply_target td.Types.type_target_rep A.target with
      | None -> (ts', Ident.to_output (Type_ctor (false, false)) path_sep (type_id_to_ident p))
      | Some (TYR_simple (_, _, i)) -> (ts', ws sk ^ Ident.to_output (Type_ctor (false, true)) path_sep i)
-     | Some (TYR_subst (_, _, tnvars, t')) -> begin    
+     | Some (TYR_subst (_, _, tnvars, t')) -> begin
          let subst = Types.TNfmap.from_list2 tnvars ts' in
          let t'' = src_type_subst subst t' in
          ([], ws sk ^ format t'')
   end
 
 let module_id_to_ident (mod_id : Path.t id) : Ident.t =
-   let l = Ast.Trans (true, "module_id_to_ident", None) in 
+   let l = Ast.Trans (true, "module_id_to_ident", None) in
    let i = resolve_module_id_ident l A.env mod_id mod_id.descr in
    let i' = fix_module_ident i in
    i'
@@ -584,7 +584,7 @@ end
 
 
 
-let component_to_output t = 
+let component_to_output t =
   let open Output in
     let a = Output.Component in
     match t with
@@ -592,5 +592,3 @@ let component_to_output t =
       | Ast.Component_field s -> ws s ^ id a (r"field")
       | Ast.Component_module s -> ws s ^ id a (r"module")
       | Ast.Component_function s -> ws s ^ id a (r"function")
-
-

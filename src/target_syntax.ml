@@ -57,7 +57,7 @@ module P = Precedence
 
 
 (* TODO: redo without string matching *)
-let exp_to_prec get_prec (exp : exp) : P.t = 
+let exp_to_prec get_prec (exp : exp) : P.t =
   match C.exp_to_term exp with
     | Var(n) -> Precedence.P_prefix
     | Constant(c) -> get_prec c.descr
@@ -86,7 +86,7 @@ let delimit_pat (c : P.pat_context) (p : pat) : pat =
     if P.pat_needs_parens c k then
       begin
         let (p_new, lskips) = pat_alter_init_lskips (fun s -> (no_lskips, s)) p in
-          { term = P_paren(lskips,p_new,no_lskips); 
+          { term = P_paren(lskips,p_new,no_lskips);
             locn = p.locn; typ = p.typ; rest = p.rest; }
       end
     else
@@ -98,7 +98,7 @@ let id_fix_parens_for_prefix env get_prec id =
   let l = Ast.Trans ("id_fix_parens_for_prefix", None) in
   let c_d = c_env_lookup l env.c_env id.descr in
   let p = resolve_ident_path id c_d.const_binding in
-  let add_or_drop = 
+  let add_or_drop =
     if P.is_infix (Ident.get_prec get_prec p) then
       Ident.add_parens
     else
@@ -116,18 +116,18 @@ let name_fix_parens_for_prefix get_prec n =
 let fix_pat_parens env get_prec p =
   let l_unk = Ast.Trans("fix_pat_parens", Some (p.locn)) in
   match p.term with
-    | P_const(c,ps) -> 
+    | P_const(c,ps) ->
         let c_d = c_env_lookup l_unk env.c_env c.descr in
         let id = resolve_ident_path c c_d.const_binding in
-        let path = 
+        let path =
           if P.is_infix (Ident.get_prec get_prec id) then
             Ident.add_parens get_prec id
           else
             Ident.drop_parens get_prec id
         in
-          { p with term = P_const({c with id_path = Id_some path}, ps) } 
+          { p with term = P_const({c with id_path = Id_some path}, ps) }
     | P_var(n) ->
-        let n = 
+        let n =
           if P.is_infix (Name.get_prec get_prec n) then
             Name.add_parens n
           else
@@ -135,7 +135,7 @@ let fix_pat_parens env get_prec p =
         in
           { p with term = P_var(n) }
     | P_var_annot(n,t) ->
-        let n = 
+        let n =
           if P.is_infix (Name.get_prec get_prec n) then
             Name.add_parens n
           else
@@ -145,71 +145,71 @@ let fix_pat_parens env get_prec p =
     | _ -> assert false
 *)
 
-let rec fix_pat env get_prec p = 
+let rec fix_pat env get_prec p =
   let old_t = Some(p.typ) in
   let old_l = p.locn in
   let trans = fix_pat env get_prec in
     match p.term with
-      | P_as(sk1,p,s,nl,sk2) -> 
+      | P_as(sk1,p,s,nl,sk2) ->
           C.mk_pas old_l sk1 (delimit_pat P.Pas_left (trans p)) s nl sk2 old_t
-      | P_typ(s1,p,s2,t,s3) -> 
+      | P_typ(s1,p,s2,t,s3) ->
           C.mk_ptyp old_l s1 (trans p) s2 t s3 old_t
-      | P_const(c,ps) -> 
-            (C.mk_pconst old_l 
-               c 
-               (List.map 
-                  (fun p -> delimit_pat P.Plist (trans p)) 
+      | P_const(c,ps) ->
+            (C.mk_pconst old_l
+               c
+               (List.map
+                  (fun p -> delimit_pat P.Plist (trans p))
                   ps)
                old_t)
-      | P_backend(sk,i,ty,ps) -> 
-            (C.mk_pbackend old_l sk i ty 
-               (List.map 
-                  (fun p -> delimit_pat P.Plist (trans p)) 
+      | P_backend(sk,i,ty,ps) ->
+            (C.mk_pbackend old_l sk i ty
+               (List.map
+                  (fun p -> delimit_pat P.Plist (trans p))
                   ps)
                old_t)
       | P_record(s1,fieldpats,s2) ->
           C.mk_precord old_l
-            s1 
-            (Seplist.map 
+            s1
+            (Seplist.map
                (fun (fid,s1,p) -> (fid,s1,trans p))
                fieldpats)
             s2
             old_t
-      | P_tup(s1,ps,s2) -> 
+      | P_tup(s1,ps,s2) ->
           C.mk_ptup old_l s1 (Seplist.map trans ps) s2 old_t
-      | P_list(s1,ps,s2) -> 
+      | P_list(s1,ps,s2) ->
           C.mk_plist old_l s1 (Seplist.map trans ps) s2 p.typ
       | P_vector(s1,ps,s2) ->
           C.mk_pvector old_l s1 (Seplist.map trans ps) s2 p.typ
       | P_vectorC(s1,ps,s2) ->
           C.mk_pvectorc old_l s1 (List.map trans ps) s2 p.typ
-      | P_paren(s1,p,s2) -> 
+      | P_paren(s1,p,s2) ->
           C.mk_pparen old_l s1 (trans p) s2 old_t
-      | P_cons(p1,s,p2) -> 
+      | P_cons(p1,s,p2) ->
           C.mk_pcons old_l
-            (delimit_pat P.Pcons_left (trans p1)) 
-            s 
+            (delimit_pat P.Pcons_left (trans p1))
+            s
             (delimit_pat P.Pcons_right (trans p2))
             old_t
-      | (P_var _ | P_var_annot _) -> 
+      | (P_var _ | P_var_annot _) ->
           p
       | (P_lit _ | P_wild _ | P_num_add _) ->
           p
 
-let rec fix_exp env get_prec e = 
-  let trans = fix_exp env get_prec in 
+let rec fix_exp env get_prec e =
+  let trans = fix_exp env get_prec in
   let transp = fix_pat env get_prec in
   let old_t = Some(exp_to_typ e) in
   let old_l = exp_to_locn e in
     match (C.exp_to_term e) with
       | Fun(s1,ps,s2,e) ->
-          C.mk_fun old_l 
-            s1 (List.map (fun p -> delimit_pat P.Plist (transp p)) ps) 
+          C.mk_fun old_l
+            s1 (List.map (fun p -> delimit_pat P.Plist (transp p)) ps)
             s2 (trans e)
             old_t
       | Function(s1,pes,s2) ->
           C.mk_function old_l
-            s1 (Seplist.map 
+            s1 (Seplist.map
                   (fun (p,s1,e,l) -> (transp p,s1,trans e,l))
                   pes)
             s2
@@ -237,13 +237,13 @@ let rec fix_exp env get_prec e =
                     | Constant(c) -> trans_e2
                     | _ -> assert false
                 in
-                  C.mk_infix old_l 
+                  C.mk_infix old_l
                     (delimit_exp get_prec
-                       (P.Infix_left(exp_to_prec get_prec e2)) 
+                       (P.Infix_left(exp_to_prec get_prec e2))
                        (trans e1))
                     e2'
-                    (delimit_exp get_prec 
-                       (P.Infix_right(exp_to_prec get_prec e2)) 
+                    (delimit_exp get_prec
+                       (P.Infix_right(exp_to_prec get_prec e2))
                        (trans e3))
                     old_t
               end
@@ -253,8 +253,8 @@ let rec fix_exp env get_prec e =
                *expression *)
               let (e1',sk) = alter_init_lskips (fun x -> (None,x)) e1 in
               let trans_e2' = append_lskips sk trans_e2 in
-                C.mk_app old_l 
-                  (C.mk_app old_l 
+                C.mk_app old_l
+                  (C.mk_app old_l
                      (delimit_exp get_prec P.App_left trans_e2')
                      (delimit_exp get_prec P.App_right (trans e1'))
                      (Some({ Types.t = Types.Tfn(exp_to_typ e3,exp_to_typ e) })))
@@ -264,7 +264,7 @@ let rec fix_exp env get_prec e =
       | Record(s1,fieldexps,s2) ->
           C.mk_record old_l
             s1
-            (Seplist.map 
+            (Seplist.map
                (fun (fid,s1,e,l) -> (fid,s1,delimit_exp get_prec P.App_right (trans e),l))
                fieldexps)
             s2
@@ -272,13 +272,13 @@ let rec fix_exp env get_prec e =
       | Recup(s1,e,s2,fieldexps,s3) ->
           C.mk_recup old_l
             s1 (trans e) s2
-            (Seplist.map 
+            (Seplist.map
                (fun (fid,s1,e,l) -> (fid,s1,trans e,l))
                fieldexps)
             s3
             old_t
       | Field(e,s,fid) ->
-          C.mk_field old_l 
+          C.mk_field old_l
             (delimit_exp get_prec P.Field (trans e)) s fid
             old_t
       | Case(c,s1,e,s2,patexps,s3) ->
@@ -290,7 +290,7 @@ let rec fix_exp env get_prec e =
             s3
             old_t
       | Typed(s1,e,s2,t,s3) ->
-          C.mk_typed old_l 
+          C.mk_typed old_l
             s1 (trans e) s2 t s3
             old_t
       | Let(s1,letbind,s2,e) ->
@@ -310,7 +310,7 @@ let rec fix_exp env get_prec e =
             s1 (Seplist.map (fun e -> delimit_exp get_prec P.App_left (trans e)) es) s2
             (exp_to_typ e)
       | VectorAcc(e,s1,n,s2) ->
-          C.mk_vaccess old_l (trans e) s1 n s2 
+          C.mk_vaccess old_l (trans e) s1 n s2
             (exp_to_typ e)
       | VectorSub(e,s1,n1,s2,n2,s3) ->
          C.mk_vaccessr old_l (trans e) s1 n1 s2 n2 s3
@@ -360,9 +360,9 @@ let rec fix_exp env get_prec e =
       | Constant(c) ->
           C.mk_const old_l c old_t
       | Var(n) ->
-          C.mk_var old_l n (exp_to_typ e) 
+          C.mk_var old_l n (exp_to_typ e)
       | Backend(sk,i) ->
-          C.mk_backend old_l sk i (exp_to_typ e) 
+          C.mk_backend old_l sk i (exp_to_typ e)
       | Lit _  | Nvar_e _ ->
           e
 
@@ -378,12 +378,12 @@ and fix_letbind env get_prec (lb,l) = match lb with
   | Let_val(p,topt,s,e) ->
       C.mk_let_val l
         (fix_pat env get_prec p) topt s (fix_exp env get_prec e)
-  | Let_fun(n,ps,t,s1,e) -> 
+  | Let_fun(n,ps,t,s1,e) ->
       C.mk_let_fun l
-        n (List.map (fun p -> delimit_pat P.Plist (fix_pat env get_prec p)) ps) t s1 
+        n (List.map (fun p -> delimit_pat P.Plist (fix_pat env get_prec p)) ps) t s1
         (fix_exp env get_prec e)
 
-let rec fix_infix_and_parens env target_opt defs = 
+let rec fix_infix_and_parens env target_opt defs =
   let get_prec = Precedence.get_prec target_opt env in
   let fix_val_def = function
     | Let_def(s1,targets,(p,name_map,t,s2,e)) ->
@@ -394,7 +394,7 @@ let rec fix_infix_and_parens env target_opt defs =
                 s2_opt,
                 targets,
                 Seplist.map
-                  (fun (nl,c,ps,topt,s3,e) -> 
+                  (fun (nl,c,ps,topt,s3,e) ->
                      (nl, c, List.map (fun p -> delimit_pat P.Plist (fix_pat env get_prec p)) ps,
                       topt,s3,fix_exp env get_prec e))
                   clauses)
@@ -423,4 +423,3 @@ let rec fix_infix_and_parens env target_opt defs =
       | [] -> []
       | ((def,s),l,lenv)::defs ->
           ((fix_def def,s),l,lenv)::fix_infix_and_parens env target_opt defs
-

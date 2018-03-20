@@ -80,7 +80,7 @@ val numeralpath : t
 val get_name : t -> Name.t
 
 (** [get_toplevel_name p] gets the outmost name of a path. This is important
-    when checking prefixes. For example, the result for path [module.submodule.name] is 
+    when checking prefixes. For example, the result for path [module.submodule.name] is
     [module] and for [name] it is [name]. *)
 val get_toplevel_name: t -> Name.t
 
