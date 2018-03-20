@@ -265,7 +265,7 @@ let output1 env (out_dir : string option) (targ : Target.target) avoid m =
               begin
                 let (o, ext_o) = open_output_with_check dir (module_name ^ ".thy") in 
                 let r1 = B.isa_header_defs m.typed_ast in
-                Printf.fprintf o "chapter \\<open>%s\\<close>\n\n" (generated_line m.filename);
+                Printf.fprintf o "chapter \\<open>%s\\<close>\n\n" (generated_line (Printf.sprintf "\\<open>%s\\<close>" m.filename));
                 Printf.fprintf o "theory \"%s\" \n\n" module_name;
                 Printf.fprintf o "imports \n \t Main\n";
 (*                Printf.fprintf o "\t \"%s\"\n" isa_thy; *)
@@ -289,7 +289,7 @@ let output1 env (out_dir : string option) (targ : Target.target) avoid m =
               let _ = match r_extra_opt with None -> () | Some r_extra ->
               begin
                 let (o, ext_o) = open_output_with_check dir (module_name ^ "Auxiliary.thy") in              
-                Printf.fprintf o "chapter {* %s *}\n\n" (generated_line m.filename);
+                Printf.fprintf o "chapter {* %s *}\n\n" (generated_line (Printf.sprintf "\\<open>%s\\<close>" m.filename));
                 Printf.fprintf o "theory \"%sAuxiliary\" \n\n" module_name;
                 Printf.fprintf o "imports \n \t Main\n";
 (*                Printf.fprintf o "\t \"%s\"\n" isa_thy; *)
