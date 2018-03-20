@@ -59,7 +59,7 @@ val get_avoid_f : target -> (NameSet.t -> var_avoid_f)
     Since for each target different names need to be avoided, the intended target is required as well. Finally,
     the environment is needed to look-up target representations. *)
 val add_used_entities_to_avoid_names : env -> target -> Typed_ast_syntax.used_entities -> NameSet.t -> NameSet.t
-  
+
 (** Rename the arguments to definitions, if they clash with constants in a given set of constants.
    This was previously part of the transformation returned by get_transformation. It got moved
    out in order to see all the renamings of definitions before changing their arguments. *)
@@ -69,7 +69,7 @@ val rename_def_params : target -> NameSet.t -> checked_module list -> checked_mo
 val ident_force_pattern_compile : bool ref
 
 (** This flag enables dictionary passing transfromations for the identity backend. Used for debugging. *)
-val ident_force_dictionary_passing : bool ref 
+val ident_force_dictionary_passing : bool ref
 
 (** This flag enables removing top-level matches from definition for the HOL4 backend. *)
 val hol_remove_matches : bool ref
@@ -79,4 +79,3 @@ val hol_remove_matches : bool ref
     compilation.  At Peter and Shaked's request.
 *)
 val prover_remove_failwith : bool ref
-

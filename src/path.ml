@@ -47,11 +47,11 @@
 open Format
 open Pp
 
-type t = 
+type t =
   | Path_def of Name.t list * Name.t
   | Path_list
   | Path_bool
-  | Path_nat 
+  | Path_nat
   | Path_numeral
   | Path_bit
   | Path_set
@@ -94,8 +94,8 @@ let to_name_list =
     | Path_char    -> chr
     | Path_numeral -> num
 
-let from_id id = 
-  let (x,y) = Ident.to_name_list id in 
+let from_id id =
+  let (x,y) = Ident.to_name_list id in
     Path_def(x,y)
 
 let partial_map_to_int p =
@@ -139,7 +139,7 @@ let pp ppf p =
     | ([],v) ->
         Name.pp ppf v
     | (vs,v) ->
-        fprintf ppf "%a.%a" 
+        fprintf ppf "%a.%a"
           (lst "." Name.pp) vs
           Name.pp v
 
@@ -152,7 +152,7 @@ let flat = function
 
 let (^) = Ulib.Text.(^^^)
 
-let to_ident sk p =  match to_name_list p with 
+let to_ident sk p =  match to_name_list p with
      (vs,v) -> Ident.mk_ident sk vs v
 
 let natpath = Path_nat
@@ -174,11 +174,11 @@ let check_prefix n p = match p with
 let get_toplevel_name p = match (to_name_list p) with
   | ([]  ,n) -> n
   | (n::_,_) -> n
-           
+
 let to_name p = match to_name_list p with
   | ([],n) -> n
   | (ns,n) ->
-      Name.from_rope 
+      Name.from_rope
         (Ulib.Text.concat (r"_") (List.map Name.to_rope ns @ [Name.to_rope n]))
 
 let get_name p = match to_name_list p with (_,x) -> x
@@ -187,4 +187,3 @@ let get_module_path p =
   let (ms, _) = to_name_list p in
   if (Util.list_null ms) then None else
   Some (mk_path_list ms)
-

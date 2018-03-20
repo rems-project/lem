@@ -53,7 +53,7 @@
 val setcomp_bindings : (Name.t -> bool) -> Ast.exp -> Set.Make(Name).t
 
 (** [get_imported_modules ast] returns a list of the modules imported by
-    the given definitions. These are modules that are explicitly imported via 
-    an [import] statement. The resulting list may 
+    the given definitions. These are modules that are explicitly imported via
+    an [import] statement. The resulting list may
     contain duplicates and is not sorted in any way. *)
 val get_imported_modules : Ast.defs * Ast.lex_skips -> (Path.t * Ast.l) list

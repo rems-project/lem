@@ -61,32 +61,32 @@ let out_dir = ref None
 let tex_all_filename_opt = ref None
 let opt_file_arguments = ref ([]:string list)
 
-let default_library = 
-   try 
+let default_library =
+   try
      let lp = Sys.getenv("LEMLIB") in
-     if Filename.is_relative lp 
+     if Filename.is_relative lp
      then Filename.concat (Sys.getcwd ()) lp
      else lp
-   with 
+   with
      | Not_found -> Filename.concat Build_directory.d "library"
 
 let lib_paths_ref = ref ([] : string list)
 let allow_reorder_modules = ref true
 
 let options = Arg.align ([
-  ( "-ocaml", 
+  ( "-ocaml",
     Arg.Unit (add_backend (Target.Target_no_ident Target.Target_ocaml)),
     " generate OCaml");
-  ( "-tex", 
+  ( "-tex",
     Arg.Unit (add_backend (Target.Target_no_ident Target.Target_tex)),
     " generate LaTeX for each module separatly");
-  ( "-tex_all", 
+  ( "-tex_all",
     Arg.String (fun fn -> tex_all_filename_opt := Some fn),
     " generate LaTeX in a single file");
-  ( "-html", 
+  ( "-html",
     Arg.Unit (add_backend (Target.Target_no_ident Target.Target_html)),
     " generate Html");
-  ( "-hol", 
+  ( "-hol",
     Arg.Unit (add_backend (Target.Target_no_ident Target.Target_hol)),
     " generate HOL");
   ( "-isa",
@@ -102,26 +102,26 @@ let options = Arg.align ([
     Arg.Unit (add_backend Target.Target_ident),
     " generate input on stdout\n\n");
 
-  ( "-lib", 
+  ( "-lib",
     Arg.String (fun l -> lib_paths_ref := l :: (!lib_paths_ref)),
     " add path to library path; if no lib is given the default '"^(default_library)^")' is used. Set LEMLIB environment variable to change this default.");
-  ( "-no_dep_reorder", 
+  ( "-no_dep_reorder",
     Arg.Clear allow_reorder_modules,
     " prohibit reordering modules given to lem as explicit arguments in order during dependency resolution\n\n");
 
-  ( "-outdir", 
+  ( "-outdir",
     Arg.String (fun l -> out_dir := Some l),
     " the output directory (the default is the dir the files reside in)");
-  ( "-i", 
+  ( "-i",
     Arg.String (fun l -> lib := l::!lib),
     " treat the file as input only and generate no output for it");
   ( "-only_changed_output",
-    Arg.Clear Process_file.always_replace_files, 
+    Arg.Clear Process_file.always_replace_files,
     " generate only output files, whose content really changed compared to the existing file");
   ( "-only_auxiliary",
-    Arg.Set Process_file.only_auxiliary, 
+    Arg.Set Process_file.only_auxiliary,
     " generate only auxiliary output files");
-  ( "-auxiliary_level", 
+  ( "-auxiliary_level",
     Arg.Symbol (["none"; "auto"; "all"], (fun s ->
      Backend.gen_extra_level := (match s with
        | "none" -> 0
@@ -132,26 +132,26 @@ let options = Arg.align ([
   ( "-debug",
     Arg.Unit (fun () -> Printexc.record_backtrace true),
     " print a backtrace for all errors (lem needs to be compiled in debug mode)");
-  ( "-cerberus_pp", 
-    Arg.Set Backend_common.cerberus_pp, 
+  ( "-cerberus_pp",
+    Arg.Set Backend_common.cerberus_pp,
     " special case HTML and LaTeX output for Cerberus Ail and Core");
   ( "-print_env",
-    Arg.Set opt_print_env, 
+    Arg.Set opt_print_env,
     " print the environment signature on stdout");
-  ( "-add_loc_annots", 
-    Arg.Set Backend_common.def_add_location_comment_flag, 
+  ( "-add_loc_annots",
+    Arg.Set Backend_common.def_add_location_comment_flag,
     " add location annotations to the output");
   ( "-add_full_isa_lib_path",
-    Arg.Set Backend_common.isa_add_full_library_path_flag, 
+    Arg.Set Backend_common.isa_add_full_library_path_flag,
     " add the full path of the isabelle-lib directory to Isabelle import statements");
   ( "-v",
-    Arg.Set opt_print_version, 
+    Arg.Set opt_print_version,
     " print version");
   ( "-ident_pat_compile",
     Arg.Unit (fun () -> Target_trans.ident_force_pattern_compile := true; Reporting.ignore_pat_compile_warnings()),
     " activates pattern compilation for the identity backend. This is used for debugging.");
   ( "-ident_dict_passing",
-    Arg.Set Target_trans.ident_force_dictionary_passing, 
+    Arg.Set Target_trans.ident_force_dictionary_passing,
     " activates dictionary passing transformations for the identity backend. This is used for debugging.");
   ( "-tex_suppress_target_names",
   	Arg.Set Backend.suppress_target_names,
@@ -160,10 +160,10 @@ let options = Arg.align ([
   	Arg.Clear Backend.suppress_libraries,
   	" include libraries in the TeX backend.");
   ( "-hol_remove_matches",
-    Arg.Set Target_trans.hol_remove_matches, 
+    Arg.Set Target_trans.hol_remove_matches,
     " try to remove toplevel matches in HOL4 output."); (* This is generally useful, but disabled by default for compatibility with old Lem versions. *)
   ( "-prover_remove_failwith",
-    Arg.Set Target_trans.prover_remove_failwith, 
+    Arg.Set Target_trans.prover_remove_failwith,
     " remove failwith branches in match statements in the prover backends.");
   ( "-suppress_renaming",
   	Arg.Set suppress_renaming,
@@ -176,14 +176,14 @@ let options = Arg.align ([
     " reports the name of any default instance invoked at a given type.")
 ] @ Reporting.warn_opts)
 
-let usage_msg = 
+let usage_msg =
     ("Lem " ^ Version.v ^ "\n"
-     ^ "example usage:       lem -hol -ocaml test.lem\n" 
+     ^ "example usage:       lem -hol -ocaml test.lem\n"
     )
 
-let _ = 
-  Arg.parse options 
-    (fun s -> 
+let _ =
+  Arg.parse options
+    (fun s ->
       opt_file_arguments := (!opt_file_arguments) @ [s])
     usage_msg
 
@@ -208,7 +208,7 @@ let check_modules env modules =
     let _ = List.map (fun d -> List.map (fun c -> c d) (def_checks env)) defs in
     ()
   end in
-  let check_module m = (if m.Typed_ast.generate_output then 
+  let check_module m = (if m.Typed_ast.generate_output then
     (let (defs, _) = m.Typed_ast.typed_ast in check_defs env defs)) in
   let _ = List.map check_module modules in
   ()
@@ -221,7 +221,7 @@ let print_compile_messages env targ modules = begin
     let cd = Typed_ast.c_env_lookup Ast.Unknown env.Typed_ast.c_env c in
     match Target.Targetmap.apply_target cd.Typed_ast.compile_message targ with
       | None -> ()
-      | Some m -> Reporting.report_warning env (Reporting.Warn_compile_message 
+      | Some m -> Reporting.report_warning env (Reporting.Warn_compile_message
           (cd.Typed_ast.spec_l, targ, cd.Typed_ast.const_binding, m))
   end in
   List.iter print_const_ref used_entities.Typed_ast_syntax.used_consts
@@ -241,16 +241,16 @@ let transform_for_target libpath modules env targ =
 
   let trans = Target_trans.get_transformation targ in
   try
-    let (env',transformed_m) = 
-      List.fold_left 
-        (fun (env,new_mods) old_mod -> 
+    let (env',transformed_m) =
+      List.fold_left
+        (fun (env,new_mods) old_mod ->
            let _ = Reporting.warnings_active := old_mod.Typed_ast.generate_output in
            let (env,m) = trans env old_mod in
              (env,m::new_mods))
         (env,[])
         modules
-    in     
-    let transformed_m = List.rev transformed_m in 
+    in
+    let transformed_m = List.rev transformed_m in
 
     let _ = Reporting.warnings_active := true in
     let _ = print_compile_messages env targ modules in
@@ -275,14 +275,14 @@ let transform_for_target libpath modules env targ =
 
 let per_target libpath tex_all_opt (out_dir : string option) modules env targ =
   let (env', avoid, transformed_mods) = transform_for_target libpath modules env targ in
-  (if (targ = Target.Target_no_ident Target.Target_tex) then 
+  (if (targ = Target.Target_no_ident Target.Target_tex) then
     begin
       match tex_all_opt with
       | None -> output env' avoid targ out_dir transformed_mods
       | Some (dir, filename, gen_single) ->
           if gen_single then output env' avoid targ out_dir transformed_mods;
           output_alltexdoc env' avoid dir filename transformed_mods
-    end 
+    end
   else
     output env' avoid targ out_dir transformed_mods);
   env'
@@ -299,13 +299,13 @@ let main () =
           else
             lp) l'
   end in
-  let _ = 
+  let _ =
     List.iter
       (fun f -> if not (Filename.check_suffix f ".lem")
       then raise (Failure "Files must have .lem extension"))
       (!opt_file_arguments @ !lib)
   in
-  let _ = 
+  let _ =
     List.iter
       (fun f ->
          if not (Str.string_match (Str.regexp "[A-Za-z]") (Filename.basename f) 0) then
@@ -348,21 +348,21 @@ let main () =
   (* We don't want to add the files in !lib to the resulting module ASTs,
      because we don't want to put them throught the back end. So, they get an argument false, while all others get true. *)
   let files_to_process =
-      (List.map (fun x -> (x, false)) (List.rev !lib) @ 
+      (List.map (fun x -> (x, false)) (List.rev !lib) @
        List.map (fun x -> (x, true)) !opt_file_arguments)
   in
 
   (* Parse all of the .lem sources and also parse depencies *)
   let processed_files = Module_dependencies.process_files (!allow_reorder_modules) lib_path files_to_process in
-  
-  let backend_set = 
-    List.fold_right 
+
+  let backend_set =
+    List.fold_right
       (fun x s ->
          match Target.dest_human_target x with
            | None -> s
            | Some(t) -> Target.Targetset.add t s)
        !backends
-    Target.Targetset.empty 
+    Target.Targetset.empty
   in
 
   (* Typecheck all of the .lem sources *)
@@ -371,7 +371,7 @@ let main () =
       (fun (mods, env) (mod_name, file_name, ast, add_to_modules) ->
          let mod_name_name = Name.from_string mod_name in
 
-         let im : Path.t list = begin 
+         let im : Path.t list = begin
            let im_direct = Ast_util.get_imported_modules ast in
            let get_rec_deps (p, _) =
              begin p ::
@@ -389,7 +389,7 @@ let main () =
          let e = {e with local_env = {e.local_env with m_env = Nfmap.union env.local_env.m_env e.local_env.m_env}} in
 
          let imported_mods = Backend_common.get_imported_target_modules tast in
-         let get_rec_imported_mods = function 
+         let get_rec_imported_mods = function
            | IM_targets _ -> Imported_Modules_Set.empty
            | IM_paths ps -> List.fold_right Imported_Modules_Set.union (List.rev_map (fun p -> begin
                Util.option_default Imported_Modules_Set.empty (Util.option_first (fun mr -> if (Path.compare mr.module_path p = 0) then Some mr.imported_modules_rec else None) mods)
@@ -399,7 +399,7 @@ let main () =
            Imported_Modules_Set.fold (fun e acc -> Imported_Modules_Set.union (get_rec_imported_mods e) acc) imported_mods imported_mods
            (*List.fold_left (fun acc z -> List.rev_append (get_rec_imported_mods z) acc) (List.rev imported_mods) imported_mods*)
          in
-         let module_record = 
+         let module_record =
            { Typed_ast.filename = file_name;
              Typed_ast.module_path = Path.mk_path [] mod_name_name;
              Typed_ast.imported_modules = imported_mods;
@@ -431,11 +431,10 @@ let main () =
   ()
 
 
-let _ = 
-  try 
+let _ =
+  try
     begin
-      try ignore(main ()) 
+      try ignore(main ())
       with  Failure(s) -> raise (Reporting_basic.err_general false Ast.Unknown ("Failure "^s))
     end
   with Reporting_basic.Fatal_error e -> Reporting_basic.report_error e
-

@@ -48,7 +48,7 @@
 
 (** A datatype for Targets. In contrast to the one in
     [ast.ml] this one does not carry white-space information. *)
-type non_ident_target = 
+type non_ident_target =
   | Target_hol
   | Target_ocaml
   | Target_isa
@@ -60,7 +60,7 @@ type non_ident_target =
 (** [target] for the typechecked ast is either a real target as in the AST or
     the identity target *)
 type target =
-  | Target_no_ident of non_ident_target 
+  | Target_no_ident of non_ident_target
   | Target_ident
 
 (** [ast_target_to_target t] converts an ast-target to a
@@ -81,13 +81,13 @@ val target_compare : non_ident_target -> non_ident_target -> int
 module Targetmap : sig
    include Finite_map.Fmap with type k = non_ident_target
 
-   (** [apply_target m targ] looks up the [targ] in map [m]. 
+   (** [apply_target m targ] looks up the [targ] in map [m].
        Target-maps only store information for real targets, not the identity one.
        If therefore [targ] is [Target_ident], i.e. represents the identity backend,
        [None] is returned. *)
    val apply_target : 'a t -> target -> 'a option
 
-   (** [insert_target m (targ, v)] inserts value [v] for [targ] in map [m]. 
+   (** [insert_target m (targ, v)] inserts value [v] for [targ] in map [m].
        Target-maps only store information for real targets, not the identity one.
        If therefore [targ] is [Target_ident], i.e. represents the identity backend,
        the map is not(!) updated. *)
@@ -106,7 +106,7 @@ val all_targets : Targetset.t
 (** The set of targets used when negating or no mentioning explicit targets. Targets like Lem are excluded by default. *)
 val all_targets_non_explicit : Targetset.t
 
-(** The set of targets that can handle only executable definitions. 
+(** The set of targets that can handle only executable definitions.
     Currently only Ocaml, but this might change. *)
 val all_targets_only_exec : Targetset.t
 val all_targets_only_exec_list : non_ident_target list
@@ -138,6 +138,6 @@ val is_tex_target : target -> bool
     defined for a subset of target backends as normal let-bindings in the TeX backend. *)
 val suppress_targets : target -> bool -> bool
 
-(** [dest_human_target targ] destructs [targ] to get the non-identity target. If it s a human-target, 
+(** [dest_human_target targ] destructs [targ] to get the non-identity target. If it s a human-target,
     [None] is returned, otherwise the non-identity target. *)
 val dest_human_target : target -> non_ident_target option

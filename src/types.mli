@@ -124,11 +124,11 @@ val tnvar_split : tnvar list -> (tnvar list * tnvar list)
     be defined here, because types need information about associated constants.
     Record types need a list of all their field constants. Moreover, every type
     can contain a list of constructor descriptions. *)
-type const_descr_ref 
+type const_descr_ref
 
 (** [string_of_const_descr_ref] formats a reference in a human readable form.
-    No other guarentees are given. This function should only be used for debugging 
-    and reporting internal errors. Its implementation can change at any point to 
+    No other guarentees are given. This function should only be used for debugging
+    and reporting internal errors. Its implementation can change at any point to
     something completely different and should not be relied on. *)
 val string_of_const_descr_ref : const_descr_ref -> string
 
@@ -172,16 +172,16 @@ type ident_option =
 
 (** Represents a usage of an 'a (usually in constr_descr, field_descr,
     const_descr) *)
-type 'a id = 
-    { 
-      id_path : ident_option; 
+type 'a id =
+    {
+      id_path : ident_option;
       (** The identifier as written at the usage point.  None if it is generated
           internally, and therefore has no original source *)
 
       id_locn : Ast.l;
       (** The location of the usage point *)
 
-      descr : 'a; 
+      descr : 'a;
       (** A description of the binding that the usage refers to *)
 
       instantiation : t list;
@@ -195,7 +195,7 @@ type 'a id =
  * itself *)
 and src_t = (src_t_aux,unit) annot
 
-and src_t_aux = 
+and src_t_aux =
  | Typ_wild of Ast.lex_skips
  | Typ_var of Ast.lex_skips * Tyvar.t
  | Typ_len of src_nexp
@@ -209,21 +209,21 @@ and src_t_aux =
 and src_nexp = { nterm : src_nexp_aux; nloc : Ast.l; nt : nexp } (*(src_nexp_aux,unit) annot*)
 
 and src_nexp_aux =
- | Nexp_var of Ast.lex_skips * Nvar.t 
+ | Nexp_var of Ast.lex_skips * Nvar.t
  | Nexp_const of Ast.lex_skips * int
  | Nexp_mult of src_nexp * Ast.lex_skips * src_nexp (* One will always be const *)
- | Nexp_add of src_nexp * Ast.lex_skips * src_nexp 
+ | Nexp_add of src_nexp * Ast.lex_skips * src_nexp
  | Nexp_paren of Ast.lex_skips * src_nexp * Ast.lex_skips
 
 val src_t_to_t : src_t -> t
 val src_type_subst : src_t TNfmap.t -> src_t -> src_t
 
 val id_alter_init_lskips : (Ast.lex_skips -> Ast.lex_skips * Ast.lex_skips) -> 'a id -> 'a id * Ast.lex_skips
-val typ_alter_init_lskips : (Ast.lex_skips -> Ast.lex_skips * Ast.lex_skips) -> src_t -> src_t * Ast.lex_skips 
+val typ_alter_init_lskips : (Ast.lex_skips -> Ast.lex_skips * Ast.lex_skips) -> src_t -> src_t * Ast.lex_skips
 val nexp_alter_init_lskips : (Ast.lex_skips -> Ast.lex_skips * Ast.lex_skips) -> src_nexp -> src_nexp * Ast.lex_skips
 
-type constr_family_descr = { 
-   constr_list : const_descr_ref list; 
+type constr_family_descr = {
+   constr_list : const_descr_ref list;
    constr_exhaustive : bool;
    constr_case_fun : const_descr_ref option;
    constr_default : bool;
@@ -233,13 +233,13 @@ type constr_family_descr = {
 (** the target representation of a type *)
 type type_target_rep =
   | TYR_simple of Ast.l *  bool * Ident.t
-  | TYR_subst of Ast.l *  bool * tnvar list * src_t 
+  | TYR_subst of Ast.l *  bool * tnvar list * src_t
 
 (** optional target sort annotation for a type parameter *)
 type sort = Sort of Ast.lex_skips * Name.t option
 
 (** a type description  **)
-type type_descr = { 
+type type_descr = {
   type_tparams : tnvar list;
   (** a list of type and length parameters *)
 
@@ -255,7 +255,7 @@ type type_descr = {
 
   type_constr : constr_family_descr list;
   (** the constructors of this type *)
-  
+
   type_rename : (Ast.l * Name.t) Target.Targetmap.t;
   (** target representation of the type *)
 
@@ -266,10 +266,10 @@ type type_descr = {
   (** sort annotations for target representation of the type *)
 }
 
-type class_descr = { 
+type class_descr = {
   class_tparam : tnvar; (** the type paremeter of the type class *)
   class_record : Path.t; (** for dictionary style passing a corresponding record is defined, this is its path *)
-  class_methods : (const_descr_ref * const_descr_ref) list; 
+  class_methods : (const_descr_ref * const_descr_ref) list;
    (** The methods of the class. For each method there is a corresponding record field. Therefore, methods are represented by pairs
        (method_ref, field_ref). Details like the names and types can be looked up in the environment. *)
   class_rename : (Ast.l * Name.t) Target.Targetmap.t;
@@ -277,7 +277,7 @@ type class_descr = {
   class_is_inline : bool
 }
 
-type tc_def = 
+type tc_def =
   | Tc_type of type_descr
   | Tc_class of class_descr
 
@@ -296,7 +296,7 @@ val type_defs_update_fields : Ast.l -> type_defs -> Path.t -> const_descr_ref li
 
 val type_defs_add_constr_family : Ast.l -> type_defs -> Path.t -> constr_family_descr -> type_defs
 
-(** [type_defs_get_constr_families l d targ t c] gets all constructor family descriptions for type [t] 
+(** [type_defs_get_constr_families l d targ t c] gets all constructor family descriptions for type [t]
     for target [targ] in type environment [d], which contain the constant [c]. *)
 val type_defs_get_constr_families : Ast.l -> type_defs -> Target.target -> t -> const_descr_ref -> constr_family_descr list
 
@@ -318,7 +318,7 @@ val mk_tc_type_abbrev : tnvar list -> t -> tc_def
 val mk_tc_type : tnvar list -> string option -> tc_def
 
 (** [match_types t_pat t] tries to match type [t_pat] against type [t].
-    If it succeeds, it returns a substitution [sub] that applied to [t_pat] returns [t]. 
+    If it succeeds, it returns a substitution [sub] that applied to [t_pat] returns [t].
     This function is rather simple. It does not use type synonyms or other fancy features. *)
 val match_types : t -> t -> (t TNfmap.t) option
 
@@ -352,13 +352,13 @@ val dest_fn_type : type_defs option -> t -> (t * t) option
 (** [strip_fn_type d t] tries to destruct a function type [t] by applying [dest_fn] repeatedly. *)
 val strip_fn_type : type_defs option -> t -> (t list * t)
 
-(** [check_equal d t1 t2] checks whether [t1] and [t2] are equal in type environment [d]. 
+(** [check_equal d t1 t2] checks whether [t1] and [t2] are equal in type environment [d].
     It expands the type to perform this check. Therefore, it is more reliable than [compare t1 t2 = 0],
     which only performs a structural check, but does not unfold type definitions. *)
 val check_equal : type_defs -> t -> t -> bool
 
-(** [assert_equal l m d t1 t2] performs the same check as [check_equal d t1 t2]. However, while 
-    check_equal returns wether the types are equal, [assert_equal] raises a type-exception 
+(** [assert_equal l m d t1 t2] performs the same check as [check_equal d t1 t2]. However, while
+    check_equal returns wether the types are equal, [assert_equal] raises a type-exception
     in case they are not. [l] and [m] are used for printing this exception. *)
 val assert_equal : Ast.l -> string -> type_defs -> t -> t -> unit
 
@@ -370,19 +370,19 @@ val compare_expand : type_defs -> t -> t -> int
 
 
 (** A reference to an instance. *)
-type instance_ref 
+type instance_ref
 
 (** [string_of_instance_ref] formats a reference in a human readable form.
-    No other guarentees are given. This function should only be used for debugging 
-    and reporting internal errors. Its implementation can change at any point to 
+    No other guarentees are given. This function should only be used for debugging
+    and reporting internal errors. Its implementation can change at any point to
     something completely different and should not be relied on. *)
 val string_of_instance_ref : instance_ref -> string
 
 (** an instance environment carries information about all defined instances *)
-type i_env 
+type i_env
 
 (** an empty instance environment *)
-val empty_i_env : i_env 
+val empty_i_env : i_env
 
 (** [i_env_add i_env i] adds an additional instance [i] to the instance environment.
     It returns the modified environment as well as the reference of the added instance. *)
@@ -403,7 +403,7 @@ val i_env_lookup : Ast.l -> i_env -> instance_ref -> instance
     typevariables of an instances might have attached type
     constraints. It is not (!) checked, that the found substitution
     satisfies these constraints. However, they are taken into account
-    to rule out impossible instances, if there are multiple options. 
+    to rule out impossible instances, if there are multiple options.
 *)
 val get_matching_instance : type_defs -> (Path.t * t) -> i_env -> (instance * t TNfmap.t) option
 
@@ -411,9 +411,9 @@ val get_matching_instance : type_defs -> (Path.t * t) -> i_env -> (instance * t 
 val nexp_from_list : nexp list -> nexp
 
 module type Global_defs = sig
-  val d : type_defs 
+  val d : type_defs
   val i : i_env
-end 
+end
 
 module Constraint (T : Global_defs) : sig
   val new_type : unit -> t
@@ -422,7 +422,7 @@ module Constraint (T : Global_defs) : sig
   val in_range : Ast.l -> nexp -> nexp -> unit
   val add_constraint : Path.t -> t -> unit
   val add_length_constraint : range -> unit
-  val add_tyvar : Tyvar.t -> unit 
+  val add_tyvar : Tyvar.t -> unit
   val add_nvar : Nvar.t -> unit
   val inst_leftover_uvars : Ast.l -> typ_constraints
   val check_numeric_constraint_implication : Ast.l -> range -> range list -> unit

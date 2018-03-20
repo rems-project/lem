@@ -87,7 +87,7 @@ val append : 's -> ('a,'s) t ->  ('a,'s) t ->  ('a,'s) t
 
 (** [flatten d sll] flattens a list of seplists by applying [append]
     repeatedly *)
-val flatten : 's -> ('a,'s) t list ->  ('a,'s) t 
+val flatten : 's -> ('a,'s) t list ->  ('a,'s) t
 
 (** Makes a normal list, ignoring separators *)
 val to_list : ('a,'s) t -> 'a list
@@ -100,8 +100,8 @@ val to_pair_list : 's -> ('a,'s) t -> ('s option * ('a * 's) list)
     last separator is kept *)
 val from_pair_list : 's option -> ('a * 's) list -> 'a option -> ('a, 's) t
 
-(** [from_pair_list_sym first_val_opt sep_val_list last_sep_opt] 
-    constructs a seplist from a list of pairs [sep_val_list]. In contrast to [from_pair_list], 
+(** [from_pair_list_sym first_val_opt sep_val_list last_sep_opt]
+    constructs a seplist from a list of pairs [sep_val_list]. In contrast to [from_pair_list],
     the separator is the first component of these pairs. This also means that
     we now need an optional first value before the list and an optional last separator after the list,
     whereas from_pair_list has an optional first separator and last value. *)
@@ -171,5 +171,5 @@ val exists : ('a -> bool) -> ('a,'s) t -> bool
 val find : 's -> ('a -> bool) -> ('a,'s) t -> ('a * 's)
 
 val pp : (Format.formatter -> 'a -> unit) -> (Format.formatter -> 'b -> unit) -> Format.formatter -> ('a,'b) t -> unit
-                                                                           
+
 val replace_all_seps : ('s -> 's) -> ('a, 's) t -> ('a, 's) t

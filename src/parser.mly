@@ -45,21 +45,21 @@
 /**************************************************************************/
 
 %{
-(* 
-  There are 3 ambiguities that OCaml solves with the first letter case 
+(*
+  There are 3 ambiguities that OCaml solves with the first letter case
   distinction for identifiers:
    - In a long identifier a.b.c.d.e, which dots are record projections and
      which are module projections
-   - In type t = u, whether u should refer to an existing type constructor, or 
-     be defined as a nullary data constructor 
+   - In type t = u, whether u should refer to an existing type constructor, or
+     be defined as a nullary data constructor
    - In let x y = exp, whether a function x of 1 argument is declared, or if
      x y is taken to be a constructor pattern, so a value is bound for y.
 
    In the first case, I assume all module projections and let the type system
    disambiguate
 
-   In the other two cases I default to type constructor, and function respectively.  
-   I believe these should be the common case.  In the latter, parens allow the other 
+   In the other two cases I default to type constructor, and function respectively.
+   I believe these should be the common case.  In the latter, parens allow the other
    meaning, as in let (x y) = exp.  In the former, a bar allows the other
    meaning, as in type t = | u .
 
@@ -95,7 +95,7 @@ let pat_to_letfun p =
   match p with
     | Pat_l(P_app(Id([],v,_),(arg::args as a)),_) ->
         (v,a)
-    | Pat_l(_,l) -> 
+    | Pat_l(_,l) ->
         raise (Parse_error_locn(l,"Bad pattern for let binding of a function"))
 
 let get_target (s1,n) =
@@ -135,8 +135,8 @@ let star = Ulib.Text.of_latin1 "*"
 let mk_pre_x_l sk1 (sk2,id) sk3 l =
   if (sk2 = None || sk2 = Some []) && (sk3 = None || sk3 = Some []) then
     PreX_l(sk1,(None,id),None,l)
-  else if (sk2 = Some [Ws space] && 
-           sk3 = Some [Ws space] && 
+  else if (sk2 = Some [Ws space] &&
+           sk3 = Some [Ws space] &&
            (Ulib.Text.left id 1 = star ||
             Ulib.Text.right id 1 = star)) then
     PreX_l(sk1,(None,id),None,l)
@@ -146,17 +146,17 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 
 %}
 
-%token <Ast.terminal> Dot Lparen Rparen Comma Under Arrow As Colon NegLcurly Lcurly Rcurly 
+%token <Ast.terminal> Dot Lparen Rparen Comma Under Arrow As Colon NegLcurly Lcurly Rcurly
 %token <Ast.terminal> Semi Lsquare Rsquare Fun_ Function_ Bar With Match Let_ And HashZero HashOne
 %token <Ast.terminal> In Of Rec Type Witness Check Rename Module_ Struct End Open_ Import_ Include_ SemiSemi Eof
 %token <Ast.terminal> True False Begin_ If_ Then Else Val
-%token <Ast.terminal * Ulib.Text.t> AmpAmp BarBar ColonColon Star Plus Eq At GtEq 
-%token <Ast.terminal * Ulib.Text.t> X Tyvar Nvar 
+%token <Ast.terminal * Ulib.Text.t> AmpAmp BarBar ColonColon Star Plus Eq At GtEq
+%token <Ast.terminal * Ulib.Text.t> X Tyvar Nvar
 %token <Ast.terminal * Ulib.Text.t> StarstarX StarX PlusX AtX EqualX GtEqX
 %token <Ast.terminal * (int * string)> Num BinNum OctNum HexNum
 %token <Ast.terminal * string> BacktickString String Char Bin Hex Oct
 
-%token <Ast.terminal> Indreln Forall EqEqGt Inline Lem_transform LtBar BarGt Exists EqGt BraceBar BarBrace DotBrace 
+%token <Ast.terminal> Indreln Forall EqEqGt Inline Lem_transform LtBar BarGt Exists EqGt BraceBar BarBrace DotBrace
 %token <Ast.terminal> Assert Lemma Theorem NonExec
 %token <Ast.terminal> Declare TargetType TargetConst
 %token <Ast.terminal * Ulib.Text.t> IN MEM MinusMinusGt
@@ -261,7 +261,7 @@ app_typ:
     { tloc (Typ_app($1,$2)) }
   | BacktickString atomic_typs
     { tloc (Typ_backend(fst $1,snd $1, $2)) }
-  
+
 star_typ_list:
   | app_typ
     { [($1,None)] }
@@ -378,7 +378,7 @@ pat:
   | app_pat
     { $1 }
   | app_pat ColonColon pat
-    { ploc (P_cons($1,fst $2,$3)) } 
+    { ploc (P_cons($1,fst $2,$3)) }
 
 semi_pats_atomic:
   | atomic_pat
@@ -386,7 +386,7 @@ semi_pats_atomic:
   | atomic_pat Semi
     { ([($1,None)], ($2,true)) }
   | atomic_pat Semi semi_pats_atomic
-    { (($1,$2)::fst $3, snd $3) }    
+    { (($1,$2)::fst $3, snd $3) }
 
 semi_pats_help:
   | pat
@@ -439,7 +439,7 @@ atomic_exp:
     { eloc (Begin($1,$2,$3)) }
   | lit
     { eloc (Lit($1)) }
-  | BacktickString 
+  | BacktickString
     { eloc (Backend (fst $1, snd $1)) }
   | Nvar
     { eloc (Nvar($1)) }
@@ -643,7 +643,7 @@ comma_exps:
     { [($1,$2);($3,None)] }
   | exp Comma comma_exps
     { ($1,$2)::$3 }
- 
+
 semi_exps_help:
   | exp
     { ([($1,None)], (None,false)) }
@@ -677,7 +677,7 @@ patsexp:
     { Patsexp($1,$2,$3,loc ()) }
 
 opt_typ_annot:
-  | 
+  |
     { Typ_annot_none }
   | Colon typ
     { Typ_annot_some($1,$2) }
@@ -718,12 +718,12 @@ letbind:
         | _ -> lbloc (Let_val($1,$2,fst $3,$4)) }
 
 do_exps:
-  | 
+  |
     { [] }
   | pat LeftArrow exp Semi do_exps
     { ($1,$2,$3,$4)::$5 }
 
-funcl: 
+funcl:
   | x atomic_pats1 opt_typ_annot Eq exp
     { reclloc (Funcl($1,$2,$3,fst $4,$5)) }
 
@@ -746,7 +746,7 @@ exps:
     { [] }
   | field_exp exps
     { $1::$2 }
- 
+
 indreln_clause:
   | x Colon Forall name_ts Dot exp EqEqGt x exps
     { irloc (Rule($1,$2,$3,$4,$5,$6,$7,$8,$9)) }
@@ -808,11 +808,11 @@ cs:
 
 c2:
   | id typ
-    { 
+    {
       match $2 with
         | Typ_l(Typ_var(a_l),_) ->
-            C($1,Avl(a_l)) 
-        | _ -> 
+            C($1,Avl(a_l))
+        | _ ->
           raise (Parse_error_locn(loc (),"Invalid class constraint"))
     }
 
@@ -831,7 +831,7 @@ range:
 ranges:
   | range
     { [($1,None)] }
-  | range Comma ranges 
+  | range Comma ranges
     { ($1,$2)::$3 }
 
 typschm:
@@ -954,9 +954,9 @@ fixity_decl :
     { Fixity_default_assoc }
 
 target_rep_rhs_term :
-  | 
+  |
     { Target_rep_rhs_undefined }
-  | Infix fixity_decl BacktickString 
+  | Infix fixity_decl BacktickString
     { Target_rep_rhs_infix($1, $2, fst $3, snd $3) }
   | exp
     { Target_rep_rhs_term_replacement($1) }
@@ -989,7 +989,7 @@ sorts :
 declaration :
   | Declare targets_opt CompileMessage id Eq String
     { Decl_compile_message_decl($1, $2, $3, $4, fst $5, fst $6, snd $6) }
-  | Declare targets_opt Rename Module_ Eq x 
+  | Declare targets_opt Rename Module_ Eq x
     { Decl_rename_current_module_decl($1, $2, $3, $4, fst $5, $6) }
   | Declare targets_opt Rename component id Eq x
     { Decl_rename_decl($1, $2, $3, $4, $5, fst $6, $7) }
@@ -1016,11 +1016,11 @@ lemma_typ:
   | Assert
     { Lemma_assert $1 }
 
-lemma: 
+lemma:
   | lemma_typ targets_opt x Colon exp
     { Lemma_named ($1, $2, $3, $4, $5) }
 
-val_def:  
+val_def:
   | Let_ targets_opt letbind
     { Let_def($1,$2,$3) }
   | Let_ Rec targets_opt funcls
@@ -1037,13 +1037,13 @@ val_defs:
     { ($1,loc ())::$2 }
 
 open_import:
-  | Open_ 
+  | Open_
     { OI_open($1) }
-  | Include_ 
+  | Include_
     { OI_include($1) }
-  | Import_ 
+  | Import_
     { OI_import($1) }
-  | Open_ Import_ 
+  | Open_ Import_
     { OI_open_import($1, $2) }
   | Include_ Import_
     { OI_include_import($1, $2) }
@@ -1081,7 +1081,7 @@ def:
 xtyp:
   | x Colon typ
     { ($1,$2,$3) }
-   
+
 xtyps:
   | xtyp
     { ([($1,None)], (None, false)) }
@@ -1099,7 +1099,7 @@ ctor_texp:
 ctor_single_texp:
   | x Of star_typ_list
     { Cte($1,$2,$3) }
-    
+
 ctor_texps:
   | ctor_texp
     { [($1,None)] }
@@ -1110,7 +1110,7 @@ texp:
   | typ
     { Te_abbrev($1) }
   | LtBar xtyps BarGt
-    { Te_record($1,fst $2, fst (snd $2), snd (snd $2), $3) }    
+    { Te_record($1,fst $2, fst (snd $2), snd (snd $2), $3) }
   | Bar ctor_texps
     { Te_variant($1,true,$2) }
   | ctor_texp Bar ctor_texps
@@ -1121,7 +1121,7 @@ texp:
 name_sect:
   | Lsquare x Eq String Rsquare
     { Name_sect_name($1,$2,fst $3,(fst $4),(snd $4),$5) }
- 
+
 td:
   | x tnvs
     { Td_opaque($1,$2,Name_sect_none) }
@@ -1195,4 +1195,3 @@ defs:
 file:
   | defs Eof
     { ($1,$2) }
-

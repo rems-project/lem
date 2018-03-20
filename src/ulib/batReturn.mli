@@ -72,4 +72,3 @@ val return : 'a t -> 'a -> _
       of [l] (i.e. the call to function [label]
       which produced [l]) is a run-time error
       and causes termination of the program.*)
-

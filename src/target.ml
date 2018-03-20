@@ -46,7 +46,7 @@
 
 let r = Ulib.Text.of_latin1
 
-type non_ident_target = 
+type non_ident_target =
   | Target_hol
   | Target_ocaml
   | Target_isa
@@ -56,25 +56,25 @@ type non_ident_target =
   | Target_lem
 
 type target =
-  | Target_no_ident of non_ident_target 
+  | Target_no_ident of non_ident_target
   | Target_ident
 
 let all_targets_list = [
   Target_ocaml;
-  Target_lem; 
-  Target_hol; 
-  Target_isa; 
-  Target_coq; 
-  Target_tex; 
-  Target_html;] 
+  Target_lem;
+  Target_hol;
+  Target_isa;
+  Target_coq;
+  Target_tex;
+  Target_html;]
 
 let all_targets_only_exec_list = [
   Target_ocaml
-] 
+]
 
 let ast_target_to_target t = match t with
-  | Ast.Target_hol   _ -> Target_hol 
-  | Ast.Target_ocaml _ -> Target_ocaml 
+  | Ast.Target_hol   _ -> Target_hol
+  | Ast.Target_ocaml _ -> Target_ocaml
   | Ast.Target_isa   _ -> Target_isa
   | Ast.Target_coq   _ -> Target_coq
   | Ast.Target_tex   _ -> Target_tex
@@ -103,22 +103,22 @@ let ast_target_to_int = function
 
 let ast_target_compare x y = Pervasives.compare (ast_target_to_int x) (ast_target_to_int y)
 
-module Targetmap = struct 
+module Targetmap = struct
 
   (* include finite maps *)
   include Finite_map.Fmap_map(
-    struct 
+    struct
       type t = non_ident_target
       let compare = target_compare
     end
   )
 
-  let apply_target m targ = 
+  let apply_target m targ =
     match targ with
       | Target_ident -> None (* No entry for identity backend *)
       | Target_no_ident t -> apply m t
 
-  let insert_target m (targ, v) = 
+  let insert_target m (targ, v) =
     match targ with
       | Target_ident -> m
       | Target_no_ident t -> insert m (t, v)
@@ -126,7 +126,7 @@ module Targetmap = struct
 end
 
 module Targetset = Set.Make(
-struct 
+struct
   type t = non_ident_target
   let compare = target_compare
 end)
@@ -149,7 +149,7 @@ let target_to_string = function
   | Target_ident -> "ident"
   | Target_no_ident t -> non_ident_target_to_string t
 
-let target_to_output t = 
+let target_to_output t =
   let open Output in
     let a = Output.Target in
     match t with
@@ -180,7 +180,7 @@ let is_human_target = function
   | Target_no_ident Target_html  -> true
   | Target_no_ident Target_tex   -> true
   | Target_no_ident Target_lem   -> true
-  
+
 let is_tex_target targ =
 	match targ with
 		| Target_no_ident Target_tex -> true

@@ -56,7 +56,7 @@ let rec lst sep f ppf = function
   | [x] ->
       fprintf ppf "%a"
         f x
-  | (h::t) -> 
+  | (h::t) ->
       f ppf h;
       fprintf ppf sep;
       lst sep f ppf t

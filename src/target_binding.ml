@@ -48,19 +48,19 @@ open Typed_ast
 open Typed_ast_syntax
 
 
-(* Given some entity of the form [m1. ... . mn . name] the function 
+(* Given some entity of the form [m1. ... . mn . name] the function
    [search_module_suffix eq_fun env [m1, ... , mn]] finds the minimum module prefix
    needed to describe [name]. The function [is_ok] must return [true] if the
    entity can be found in the local environment of a given module.
  *)
-let search_module_suffix (env : Typed_ast.env) (is_ok : Typed_ast.env -> bool) (default : Name.t list option) (ns : Name.t list) = 
+let search_module_suffix (env : Typed_ast.env) (is_ok : Typed_ast.env -> bool) (default : Name.t list option) (ns : Name.t list) =
   let suffix_ok ns =
     let env_opt = lookup_env_opt env ns in
     match env_opt with
       | Some lenv -> is_ok {env with local_env = lenv}
       | _ -> false
   in
-  let rec aux acc ns = 
+  let rec aux acc ns =
     let acc = if suffix_ok ns then Some ns else acc in
     match ns with
       | [] -> acc
@@ -86,9 +86,9 @@ let resolve_module_path l env i_opt (p : Path.t) =
     | Some ns' -> Ident.mk_ident sk ns' n
     | None ->
       raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal
-          (l, "could not resolve module path " ^ Path.to_string p))) 
+          (l, "could not resolve module path " ^ Path.to_string p)))
 
-let resolve_type_path l env i_opt p = 
+let resolve_type_path l env i_opt p =
   let (ns, n) = Path.to_name_list p in
   let (default_ns, sk) = match i_opt with
     | Types.Id_none sk -> (None, sk)
@@ -103,19 +103,19 @@ let resolve_type_path l env i_opt p =
     | Some ns' -> Ident.mk_ident sk ns' n
     | None ->
       raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal
-          (l, "could not resolve type path " ^ Path.to_string p))) 
+          (l, "could not resolve type path " ^ Path.to_string p)))
 
-let resolve_const_ref l env targ i_opt c_ref = 
+let resolve_const_ref l env targ i_opt c_ref =
   let c_descr = c_env_lookup Ast.Unknown env.c_env c_ref in
   let c_kind = const_descr_to_kind (c_ref, c_descr) in
   let (ns, n) = Path.to_name_list c_descr.const_binding in
   let (default_ns, sk) = match i_opt with
     | Types.Id_none sk -> (None, sk)
-    | Types.Id_some i -> (Some (fst (Ident.to_name_list i)), Ident.get_lskip i) in  
-  let is_ok env = 
+    | Types.Id_some i -> (Some (fst (Ident.to_name_list i)), Ident.get_lskip i) in
+  let is_ok env =
     let lenv = env.local_env in
     let m = match c_kind with
-              | Nk_field _ -> lenv.f_env 
+              | Nk_field _ -> lenv.f_env
               | _ -> lenv.v_env
     in
     let c_ref_opt = Nfmap.apply m n in
@@ -137,12 +137,3 @@ let resolve_const_ref l env targ i_opt c_ref =
         "to introduce a contant in code, where it is not defined yet."] in
       raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal
           (l, m)))
-
-
-
-
-
-
-
-
-

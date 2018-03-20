@@ -48,7 +48,7 @@ open Reporting_basic
 
 let report_default_instance_invocation = ref false
 
-type tnvar = 
+type tnvar =
   | Ty of Tyvar.t
   | Nv of Nvar.t
 
@@ -103,7 +103,7 @@ and t_aux =
 and t_uvar = { index : int; mutable subst : t option }
 
 and nexp = { mutable nexp : nexp_aux }
-and nexp_aux = 
+and nexp_aux =
   | Nvar of Nvar.t
   | Nconst of int
   | Nadd of nexp * nexp
@@ -137,7 +137,7 @@ let free_vars t =
     match t.t with
       | Tvar(tv) -> TNset.add (Ty tv) acc
       | Tfn(t1,t2) -> f t2 (f t1 acc)
-      | Ttup(ts) -> 
+      | Ttup(ts) ->
           List.fold_left (fun acc t -> f t acc) acc ts
       | Tapp(ts,_) ->
           List.fold_left (fun acc t -> f t acc) acc ts
@@ -145,7 +145,7 @@ let free_vars t =
           List.fold_left (fun acc t -> f t acc) acc ts
       | Tne n -> f_n n acc
       | Tuvar _ -> assert false (*TVset.empty*)
-   and f_n n acc = 
+   and f_n n acc =
     match n.nexp with
       | Nvar(nv) -> TNset.add (Nv nv) acc
       | Nconst _ -> acc
@@ -156,13 +156,13 @@ let free_vars t =
     f t TNset.empty
 
 let rec tnvar_to_tyvar_lst tnlst =
-  match tnlst with 
+  match tnlst with
     | [] -> []
     | Ty(tv)::tnlst -> tv::(tnvar_to_tyvar_lst tnlst)
     | Nv _ ::tnlst -> (tnvar_to_tyvar_lst tnlst)
 
 let rec tnvar_to_nvar_lst tnlst =
-  match tnlst with 
+  match tnlst with
     | [] -> []
     | Ty _ ::tnlst -> (tnvar_to_nvar_lst tnlst)
     | Nv(n)::tnlst -> n::(tnvar_to_nvar_lst tnlst)
@@ -181,7 +181,7 @@ let rec compare_nexp n1 n2 =
      | (Nvar(v1), Nvar(v2)) -> Nvar.compare v1 v2
      | (Nvar _ , _) -> 1
      | (_ , Nvar _) -> -1
-     | (Nconst(c1),Nconst(c2)) -> 
+     | (Nconst(c1),Nconst(c2)) ->
        if c1 = c2 then 0
        else if c1 > c2 then 1 else -1
      | (Nconst _, _) -> 1
@@ -197,7 +197,7 @@ let rec compare_nexp n1 n2 =
      | (Nneg(n1),Nneg(n2)) -> compare_nexp n2 n1
      | (Nneg _, _) -> 1
      | (_,Nneg _) -> -1
-     | (Nuvar(u1), Nuvar(u2)) -> 
+     | (Nuvar(u1), Nuvar(u2)) ->
         if u1 == u2 then
           0
         else
@@ -229,7 +229,7 @@ let rec compare t1 t2 =
         Util.compare_list compare ts1 ts2
     | (Ttup _, _) -> 1
     | (_, Ttup _) -> -1
-    | (Tapp(ts1,p1), Tapp(ts2,p2)) -> 
+    | (Tapp(ts1,p1), Tapp(ts2,p2)) ->
         let c = Util.compare_list compare ts1 ts2 in
           if c = 0 then
             Path.compare p1 p2
@@ -237,7 +237,7 @@ let rec compare t1 t2 =
             c
     | (Tapp _, _) -> 1
     | (_, Tapp _) -> -1
-    | (Tbackend(ts1,p1), Tbackend(ts2,p2)) -> 
+    | (Tbackend(ts1,p1), Tbackend(ts2,p2)) ->
         let c = Util.compare_list compare ts1 ts2 in
           if c = 0 then
             Path.compare p1 p2
@@ -248,7 +248,7 @@ let rec compare t1 t2 =
     | (Tne(n1),Tne(n2)) -> compare_nexp n1 n2
     | (Tne _, _) -> 1
     | (_, Tne _) -> -1
-    | (Tuvar(u1), Tuvar(u2)) -> 
+    | (Tuvar(u1), Tuvar(u2)) ->
         if u1 == u2 then
           0
         else
@@ -280,7 +280,7 @@ let tnvar_to_type tnv =
  | Ty(v) -> { t = Tvar(v) }
  | Nv(v) -> { t = Tne( { nexp = Nvar(v) } ) }
 
-let rec tnvar_split tnvs = 
+let rec tnvar_split tnvs =
   match tnvs with
   | [] -> [],[]
   | (Ty v)::tnvs -> let (nvars,tvars) = tnvar_split tnvs in
@@ -288,13 +288,13 @@ let rec tnvar_split tnvs =
   | (Nv v)::tnvs -> let (nvars,tvars) = tnvar_split tnvs in
      ((Nv v)::nvars,tvars)
 
-let rec type_subst_aux (substs : t TNfmap.t) (t : t) = 
+let rec type_subst_aux (substs : t TNfmap.t) (t : t) =
   match t.t with
     | Tvar(s) ->
         (match TNfmap.apply substs (Ty s) with
            | Some(t) -> Some(t)
            | None -> None)
-    | Tfn(t1,t2) -> 
+    | Tfn(t1,t2) ->
         begin
           match (type_subst_aux substs t1, type_subst_aux substs t2) with
             | (None,None) -> None
@@ -302,31 +302,31 @@ let rec type_subst_aux (substs : t TNfmap.t) (t : t) =
             | (None,Some(t)) -> Some({ t = Tfn(t1, t) })
             | (Some(t1),Some(t2)) -> Some({ t = Tfn(t1, t2) })
         end
-    | Ttup(ts) -> 
+    | Ttup(ts) ->
         begin
           match Util.map_changed (type_subst_aux substs) ts with
             | None -> None
             | Some(ts) -> Some({ t = Ttup(ts) })
         end
-    | Tapp(ts,p) -> 
+    | Tapp(ts,p) ->
         begin
           match Util.map_changed (type_subst_aux substs) ts with
             | None -> None
             | Some(ts) -> Some({ t = Tapp(ts,p) })
         end
-    | Tbackend(ts,p) -> 
+    | Tbackend(ts,p) ->
         begin
           match Util.map_changed (type_subst_aux substs) ts with
             | None -> None
             | Some(ts) -> Some({ t = Tapp(ts,p) })
         end
-    | Tne(n) -> 
+    | Tne(n) ->
         begin
           match (nexp_subst_aux substs n) with
             | n,false -> None
             | n,true -> Some({t = Tne(n)})
         end
-    | Tuvar _ -> 
+    | Tuvar _ ->
         assert false
 
 and nexp_subst_aux_help (substs : t TNfmap.t) (n: nexp) =
@@ -336,7 +336,7 @@ and nexp_subst_aux_help (substs : t TNfmap.t) (n: nexp) =
            | Some({t = Tne(n)}) -> Some(n)
            | _ -> assert false)
     | Nconst _ -> None
-    | Nadd(n1,n2) -> 
+    | Nadd(n1,n2) ->
         begin
           match (nexp_subst_aux_help substs n1, nexp_subst_aux_help substs n2) with
             | (None,None) -> None
@@ -344,7 +344,7 @@ and nexp_subst_aux_help (substs : t TNfmap.t) (n: nexp) =
             | (None,Some(n)) -> Some({ nexp = Nadd(n1, n) })
             | (Some(n1),Some(n2)) -> Some({ nexp = Nadd(n1, n2) })
         end
-    | Nmult(n1,n2) -> 
+    | Nmult(n1,n2) ->
         begin
           match (nexp_subst_aux_help substs n1, nexp_subst_aux_help substs n2) with
             | (None,None) -> None
@@ -360,7 +360,7 @@ and nexp_subst_aux_help (substs : t TNfmap.t) (n: nexp) =
         end
     | Nuvar _ -> assert false
 
-and nexp_subst_aux (substs : t TNfmap.t) (n : nexp) : nexp * bool = 
+and nexp_subst_aux (substs : t TNfmap.t) (n : nexp) : nexp * bool =
   if TNfmap.is_empty substs then
     n, false
   else
@@ -372,7 +372,7 @@ let nexp_subst (substs : t TNfmap.t) (n : nexp) : nexp =
    let n,_ = nexp_subst_aux substs n in
    n
 
-let type_subst (substs : t TNfmap.t) (t : t) : t = 
+let type_subst (substs : t TNfmap.t) (t : t) : t =
   if TNfmap.is_empty substs then
     t
   else
@@ -387,7 +387,7 @@ let rec resolve_subst (t : t) : t = match t.t with
            | Tuvar(_) ->
                u.subst <- Some(t'');
                t''
-           | x -> 
+           | x ->
                t.t <- x;
                t)
   | _ ->
@@ -397,7 +397,7 @@ let rec resolve_nexp_subst (n : nexp) : nexp = match n.nexp with
   | Nuvar({ nsubst = Some(n')} as u) ->
      let n'' = resolve_nexp_subst n' in
       (match n''.nexp with
-        | Nuvar(_) -> 
+        | Nuvar(_) ->
           u.nsubst <- Some(n'');
           n''
         | x -> n.nexp <- x; n)
@@ -414,12 +414,12 @@ type ident_option =
 
 type 'a id = { id_path : ident_option;
                id_locn : Ast.l;
-               descr : 'a; 
+               descr : 'a;
                instantiation : t list; }
 
 and src_t = (src_t_aux,unit) annot
 
-and src_t_aux = 
+and src_t_aux =
  | Typ_wild of Ast.lex_skips
  | Typ_var of Ast.lex_skips * Tyvar.t
  | Typ_len of src_nexp
@@ -430,13 +430,13 @@ and src_t_aux =
  | Typ_paren of Ast.lex_skips * src_t * Ast.lex_skips
  | Typ_with_sort of src_t * Name.t
 
-and src_nexp =  { nterm : src_nexp_aux; nloc : Ast.l; nt : nexp } 
+and src_nexp =  { nterm : src_nexp_aux; nloc : Ast.l; nt : nexp }
 
 and src_nexp_aux =
- | Nexp_var of Ast.lex_skips * Nvar.t 
+ | Nexp_var of Ast.lex_skips * Nvar.t
  | Nexp_const of Ast.lex_skips * int
  | Nexp_mult of src_nexp * Ast.lex_skips * src_nexp (** One will always be const *)
- | Nexp_add of src_nexp * Ast.lex_skips * src_nexp 
+ | Nexp_add of src_nexp * Ast.lex_skips * src_nexp
  | Nexp_paren of Ast.lex_skips * src_nexp * Ast.lex_skips
 
 
@@ -470,7 +470,7 @@ let id_alter_init_lskips lskips_f (id : 'a id) : 'a id * Ast.lex_skips =
         let (s_new, s_ret) = lskips_f sk in
           ({id with id_path = Id_none s_new}, s_ret)
 
-let rec typ_alter_init_lskips (lskips_f : Ast.lex_skips -> Ast.lex_skips * Ast.lex_skips) (t : src_t) : src_t * Ast.lex_skips = 
+let rec typ_alter_init_lskips (lskips_f : Ast.lex_skips -> Ast.lex_skips * Ast.lex_skips) (t : src_t) : src_t * Ast.lex_skips =
   let res t' s = ({ t with term = t'}, s) in
     match t.term with
       | Typ_wild(s) ->
@@ -479,7 +479,7 @@ let rec typ_alter_init_lskips (lskips_f : Ast.lex_skips -> Ast.lex_skips * Ast.l
       | Typ_var(s,tv) ->
           let (s_new,s_ret) = lskips_f s in
             res (Typ_var(s_new,tv)) s_ret
-      | Typ_len(nexp) -> 
+      | Typ_len(nexp) ->
           let (nexp_new,s_ret) = nexp_alter_init_lskips lskips_f nexp in
              res (Typ_len(nexp_new)) s_ret
       | Typ_fn(t1,s,t2) ->
@@ -492,10 +492,10 @@ let rec typ_alter_init_lskips (lskips_f : Ast.lex_skips -> Ast.lex_skips * Ast.l
             res (Typ_tup(Seplist.cons_entry t_new ts')) s_ret
       | Typ_app(id,ts) ->
           let (id_new,s_ret) = id_alter_init_lskips lskips_f id in
-            res (Typ_app(id_new,ts)) s_ret 
+            res (Typ_app(id_new,ts)) s_ret
       | Typ_backend(id,ts) ->
           let (id_new,s_ret) = id_alter_init_lskips lskips_f id in
-            res (Typ_backend(id_new,ts)) s_ret 
+            res (Typ_backend(id_new,ts)) s_ret
       | Typ_paren(s1,t,s2) ->
           let (s_new,s_ret) = lskips_f s1 in
             res (Typ_paren(s_new,t,s2)) s_ret
@@ -507,15 +507,15 @@ let typ_append_lskips sk t =
   fst (typ_alter_init_lskips (fun s -> (Ast.combine_lex_skips sk s, None)) t)
 
 
-let rec src_type_subst_aux (substs : src_t TNfmap.t) (t : src_t) : src_t option = 
+let rec src_type_subst_aux (substs : src_t TNfmap.t) (t : src_t) : src_t option =
   let fix_result (aux, ty) = Some {t with term = aux; typ = ty} in
   match t.term with
     | Typ_wild _ -> None
     | Typ_var(sk, s) ->
         (match TNfmap.apply substs (Ty s) with
            | Some(t) -> Some t
-           | None -> None) 
-    | Typ_fn(t1,sk,t2) -> 
+           | None -> None)
+    | Typ_fn(t1,sk,t2) ->
         begin
           match (src_type_subst_aux substs t1, src_type_subst_aux substs t2) with
             | (None,None) -> None
@@ -523,25 +523,25 @@ let rec src_type_subst_aux (substs : src_t TNfmap.t) (t : src_t) : src_t option 
             | (None,Some(t2')) -> fix_result (Typ_fn(t1, sk, t2'), {t = Tfn(t1.typ, t2'.typ) })
             | (Some(t1'),Some(t2')) -> fix_result (Typ_fn(t1', sk, t2'), {t = Tfn(t1'.typ, t2'.typ) })
         end
-    | Typ_tup(ts) -> 
+    | Typ_tup(ts) ->
         begin
           match Seplist.map_changed (src_type_subst_aux substs) ts with
             | None -> None
             | Some(ts) -> fix_result (Typ_tup(ts), { t = Ttup(Seplist.to_list_map src_t_to_t ts) })
         end
-    | Typ_app(p, ts) -> 
+    | Typ_app(p, ts) ->
         begin
           match Util.map_changed (src_type_subst_aux substs) ts with
             | None -> None
             | Some(ts) -> fix_result (Typ_app(p, ts), { t = Tapp(List.map src_t_to_t ts, p.descr) })
         end
-    | Typ_backend(p, ts) -> 
+    | Typ_backend(p, ts) ->
         begin
           match Util.map_changed (src_type_subst_aux substs) ts with
             | None -> None
             | Some(ts) -> fix_result (Typ_backend(p, ts), { t = Tbackend(List.map src_t_to_t ts, p.descr) })
         end
-    | Typ_paren(sk1, t, sk2) -> 
+    | Typ_paren(sk1, t, sk2) ->
         begin
           match src_type_subst_aux substs t with
             | None -> None
@@ -555,7 +555,7 @@ let rec src_type_subst_aux (substs : src_t TNfmap.t) (t : src_t) : src_t option 
         end
     | Typ_len _ -> None
 
-let src_type_subst (substs : src_t TNfmap.t) (t : src_t) : src_t = 
+let src_type_subst (substs : src_t TNfmap.t) (t : src_t) : src_t =
   if TNfmap.is_empty substs then
     t
   else
@@ -570,13 +570,13 @@ let nil_const_descr_ref = 0
 let is_nil_const_descr_ref r = (r = 0)
 
 module Cdmap = Finite_map.Fmap_map(
-struct 
+struct
   type t = const_descr_ref
   let compare = Pervasives.compare
 end)
 
 module Cdset = Set.Make(
-struct 
+struct
   type t = const_descr_ref
   let compare = Pervasives.compare
 end)
@@ -588,7 +588,7 @@ let cdmap_lookup (c_env_count, c_env_map) c = Cdmap.apply c_env_map c
 let cdmap_update (c_env_count, c_env_map) c_id c_d =
     (c_env_count, Cdmap.insert c_env_map (c_id, c_d))
 
-let cdmap_insert (c_env_count, c_env_map) c_d = 
+let cdmap_insert (c_env_count, c_env_map) c_d =
   ((c_env_count+1, Cdmap.insert c_env_map (c_env_count, c_d)), c_env_count)
 
 let cdmap_empty () = (nil_const_descr_ref + 1, Cdmap.empty)
@@ -597,8 +597,8 @@ let cdmap_domain (_, c_env_map) =
   Cdmap.fold (fun l k _ -> (k :: l)) [] c_env_map
 
 
-type constr_family_descr = { 
-   constr_list : const_descr_ref list; 
+type constr_family_descr = {
+   constr_list : const_descr_ref list;
    (** a list of all the constructors *)
 
    constr_exhaustive : bool;
@@ -616,11 +616,11 @@ type constr_family_descr = {
 
 type type_target_rep =
   | TYR_simple of Ast.l *  bool * Ident.t
-  | TYR_subst of Ast.l *  bool * tnvar list * src_t 
+  | TYR_subst of Ast.l *  bool * tnvar list * src_t
 
 type sort = Sort of Ast.lex_skips * Name.t option
 
-type type_descr = { 
+type type_descr = {
   type_tparams : tnvar list;
   type_abbrev : t option;
   type_varname_regexp : (string * Str.regexp) option;
@@ -632,20 +632,20 @@ type type_descr = {
 }
 
 
-type class_descr = { 
+type class_descr = {
   class_tparam : tnvar;
-  class_record : Path.t; 
+  class_record : Path.t;
   class_methods : (const_descr_ref * const_descr_ref) list;
   class_rename : (Ast.l * Name.t) Target.Targetmap.t;
   class_target_rep : type_target_rep Target.Targetmap.t;
   class_is_inline : bool;
 }
 
-type tc_def = 
-  | Tc_type of type_descr 
+type tc_def =
+  | Tc_type of type_descr
   | Tc_class of class_descr
 
-let mk_tc_type_abbrev vars abbrev = Tc_type { 
+let mk_tc_type_abbrev vars abbrev = Tc_type {
   type_tparams = vars;
   type_abbrev = Some abbrev;
   type_varname_regexp = None;
@@ -656,7 +656,7 @@ let mk_tc_type_abbrev vars abbrev = Tc_type {
   type_target_sorts = Target.Targetmap.empty
 }
 
-let mk_tc_type vars reg = Tc_type { 
+let mk_tc_type vars reg = Tc_type {
   type_tparams = vars;
   type_abbrev = None;
   type_varname_regexp = Util.option_map (fun s ->
@@ -670,13 +670,13 @@ let mk_tc_type vars reg = Tc_type {
 
 type type_defs = tc_def Pfmap.t
 
-let env_no_type_exp l p = 
+let env_no_type_exp l p =
   let _ = Format.flush_str_formatter() in
   let _ = Format.fprintf Format.str_formatter "environment does not contain type '%a'!" Path.pp p in
   let m = Format.flush_str_formatter() in
   Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l, m))
 
-let env_no_update_exp l p = 
+let env_no_update_exp l p =
   let _ = Format.flush_str_formatter() in
   let _ = Format.fprintf Format.str_formatter "update of type-description not possible for type '%a'!" Path.pp p in
   let m = Format.flush_str_formatter() in
@@ -716,7 +716,7 @@ let type_defs_add_constr_family l (d : type_defs) (p : Path.t) (cf_new : constr_
        Some {cf with constr_targets = cts}
      end else Some cf
   end in
-  let update_families l = cf_new :: (Util.map_filter update_family l) in    
+  let update_families l = cf_new :: (Util.map_filter update_family l) in
   type_defs_update_tc_type l d p (fun tc -> Some {tc with type_constr = update_families tc.type_constr});;
 
 let type_defs_lookup l (d : type_defs) (p : Path.t) =
@@ -729,7 +729,7 @@ let type_defs_update (d : type_defs) (p : Path.t) td =
     Pfmap.insert d (p, Tc_type td)
 
 let type_defs_lookup_typ l (d : type_defs) (t : t) =
-    match t with 
+    match t with
       | { t = Tapp(_, p) } -> Some (type_defs_lookup l d p)
       | _ -> None
 
@@ -740,14 +740,14 @@ let type_defs_get_constr_families l (d : type_defs) (targ: Target.target) (t : t
       | Target.Target_ident -> true
       | Target.Target_no_ident t -> Target.Targetset.mem t cf.constr_targets)
   end in
-  match type_defs_lookup_typ l d t with 
+  match type_defs_lookup_typ l d t with
     | None -> []
     | Some td -> List.filter family_matches td.type_constr
 
 type instance = {
   inst_l : Ast.l;
   inst_is_default : bool;
-  inst_binding : Path.t; 
+  inst_binding : Path.t;
   inst_class : Path.t;
   inst_type : t;
   inst_tyvars : tnvar list;
@@ -773,7 +773,7 @@ let rec pp_nexp ppf n =
              pp_nexp i
              pp_nexp j
      | Nmult(i,j) ->
-         fprintf ppf "(%a * %a)" 
+         fprintf ppf "(%a * %a)"
             pp_nexp i
             pp_nexp j
      | Nneg(n) -> fprintf ppf "- %a"
@@ -810,14 +810,14 @@ let rec pp_type_aux paren ppf t =
            Path.pp p
            (lst "@ " (pp_type_aux true)) ts;
          if paren then pp_print_string ppf ")";
-     | Tne(n) -> fprintf ppf "%a" 
+     | Tne(n) -> fprintf ppf "%a"
                    pp_nexp n
      | Tuvar(u) ->
          fprintf ppf "_");
-         
-         (*fprintf ppf "<@[%d,@ %a@]>" 
+
+         (*fprintf ppf "<@[%d,@ %a@]>"
            u.index
-           (opt pp_type) u.subst);*)          
+           (opt pp_type) u.subst);*)
   pp_close_box ppf ();;
 
 let pp_type = pp_type_aux false;;
@@ -874,7 +874,7 @@ let pp_instance ppf inst =
   fprintf ppf "@[<2>forall@ (@[%a@]).@ @[%a@]@ =>@ %a@]@ (%a)"
     (lst ",@," pp_tnvar) inst.inst_tyvars
     (lst "@ " pp_class_constraint) inst.inst_constraints
-    pp_type inst.inst_type 
+    pp_type inst.inst_type
     Path.pp inst.inst_binding
 
 (*
@@ -885,7 +885,7 @@ let pp_instance_defs ppf ((ipf, _, _):i_env) =
 let t_to_string t =
   pp_to_string (fun ppf -> pp_type ppf t)
 
-let print_debug_typ_raw s tl = 
+let print_debug_typ_raw s tl =
   let tl_sl = List.map t_to_string tl in
   let tl_s = String.concat ", " tl_sl in
   print_debug (s ^ " " ^ tl_s)
@@ -899,9 +899,9 @@ let t_to_var_name t =
      | Tbackend(ts,p) -> Name.to_string (Path.get_name p)
      | Tne(n) -> "x"
      | Tuvar(u) -> "x"
-  in 
+  in
   let n_s = String.sub (aux t) 0 1 in
-  let n_s' = let c = Char.code (String.get n_s 0) in 
+  let n_s' = let c = Char.code (String.get n_s 0) in
              if 96 < c && c < 123 then n_s else "x" in
   Name.from_rope (Ulib.Text.of_string n_s')
 
@@ -911,7 +911,7 @@ let nexp_to_string n =
 let range_to_string r =
   pp_to_string (fun ppf -> pp_range ppf r)
 
-let rec head_norm (d : type_defs) (t : t) : t = 
+let rec head_norm (d : type_defs) (t : t) : t =
   let t = resolve_subst t in
     match t.t with
       | Tapp(ts,p) ->
@@ -927,7 +927,7 @@ let rec head_norm (d : type_defs) (t : t) : t =
              | Some(Tc_type(dc)) -> Util.option_default_map dc.type_abbrev t (fun t -> head_norm d (type_subst (TNfmap.from_list2 dc.type_tparams ts) t))
              | Some(Tc_class _) ->
                  raise (Reporting_basic.err_unreachable Ast.Unknown "head_norm: called on a type-class!"))
-      | _ -> 
+      | _ ->
           t
 
 let dest_fn_type (d_opt : type_defs option) (t : t) : (t * t) option =
@@ -943,7 +943,7 @@ let rec strip_fn_type d_opt t =
         let (al, bt) = strip_fn_type d_opt t2 in
         (t1 :: al, bt)
       end
-                       
+
 
 let t_to_tnv t =
   match t.t with
@@ -995,7 +995,7 @@ let match_types t_pat t =
 
 type instance_ref = int
 module Instmap = Finite_map.Fmap_map(
-struct 
+struct
   type t = instance_ref
   let compare = Pervasives.compare
 end)
@@ -1004,7 +1004,7 @@ let string_of_instance_ref = string_of_int
 
 
 type i_env = (instance_ref list) Pfmap.t * (instance Instmap.t) * instance_ref
-              
+
 let empty_i_env = (Pfmap.empty, Instmap.empty, 0)
 
 let i_env_add ((class_map, inst_map, max_inst_ref) : i_env) (i : instance) =
@@ -1019,10 +1019,10 @@ let i_env_add ((class_map, inst_map, max_inst_ref) : i_env) (i : instance) =
   ((class_map', inst_map', new_inst_ref), new_inst_ref)
 
 
-let i_env_lookup l i_env i_ref = 
+let i_env_lookup l i_env i_ref =
   let (_, i_map, _) = i_env in
   match Instmap.apply i_map i_ref with
-    | None -> 
+    | None ->
         let m = Format.sprintf "instance reference %s not present in environment" (string_of_instance_ref i_ref) in
         raise (Reporting_basic.err_type l m)
     | Some(i) -> i
@@ -1031,14 +1031,14 @@ let i_env_lookup l i_env i_ref =
 
 exception Unsolveable_matching_instance_contraint;;
 
-let get_matching_instance d (p,t) (instances : i_env) : (instance * t TNfmap.t) option = 
+let get_matching_instance d (p,t) (instances : i_env) : (instance * t TNfmap.t) option =
 begin
   let l_unk = Ast.Trans (false, "get_matching_instance", None) in
 
   (* ignore variable bindings, since they can never be satisfied. *)
   let ignore_type_for_search (t : t) = is_var_type t in
-  let get_new_constraints i subst = 
-     List.map (fun (p, tnv) -> (p, 
+  let get_new_constraints i subst =
+     List.map (fun (p, tnv) -> (p,
        match TNfmap.apply subst tnv with
          | Some(t) -> t
          | None -> raise (Reporting_basic.err_unreachable i.inst_l "get_matching_instance does not provide proper substitution!")))
@@ -1051,7 +1051,7 @@ begin
           | None -> raise Unsolveable_matching_instance_contraint
           | Some(i,subst) -> try_solve ((get_new_constraints i subst) @ constraints)
   and get_matching_aux (p,(t:t))  = begin
-    let t = head_norm d t in 
+    let t = head_norm d t in
     let (class_map, _, _) = instances in
     match Pfmap.apply class_map p with
       | None -> None
@@ -1077,7 +1077,7 @@ begin
                   ()
               in
               Some(i, subst)
-            with Unsolveable_matching_instance_contraint -> None) 
+            with Unsolveable_matching_instance_contraint -> None)
           possibilities''
         end
   end in
@@ -1085,12 +1085,12 @@ begin
   get_matching_aux (p, t)
 end
 
-let type_mismatch l m t1 t2 = 
+let type_mismatch l m t1 t2 =
   let t1 = t_to_string t1 in
   let t2 = t_to_string t2 in
     raise (err_type l ("type mismatch: " ^ m ^ "\n    " ^ t1 ^ "\n  and\n    " ^ t2))
 
-let type_mismatch_occur_check l m t_occ t1 t2 = 
+let type_mismatch_occur_check l m t_occ t1 t2 =
   let t1 = t_to_string t1 in
   let t2 = t_to_string t2 in
   let t_occ = t_to_string t_occ in
@@ -1110,16 +1110,16 @@ let normalize nexp =
  let nBang base n = base.nexp <- n; base in
  let make_c i = { nexp = Nconst i } in
  let make_n n = {nexp = n} in
- let make_mul base n i = match i with 
+ let make_mul base n i = match i with
                     | 0 -> make_c 0
                     | 1 -> n
-                    | _ -> nBang base (Nmult (n,make_c i)) in 
+                    | _ -> nBang base (Nmult (n,make_c i)) in
   let make_ordered base cl cr nl nr i v =
     match (compare_nexp cl cr) with
       | -1 -> nBang base (Nadd(nr,nl))
       | 0 -> make_mul base v i
       | _ -> nBang base (Nadd(nl,nr)) in
- let rec norm nexp = 
+ let rec norm nexp =
 (*    let _ = fprintf std_formatter "norm of %a@ \n" pp_nexp nexp in *)
     match nexp.nexp with
     | Nvar _ | Nconst _ | Nuvar _ -> nexp
@@ -1130,7 +1130,7 @@ let normalize nexp =
         | _ -> norm (make_mul nexp n' (-1)))
     | Nmult(n1,n2) -> (
        let n1',n2' = norm n1,norm n2 in
-       let n1',n2' = sort n1',sort n2' in 
+       let n1',n2' = sort n1',sort n2' in
        match n1'.nexp,n2'.nexp with
         | Nconst i, Nconst j -> nBang nexp (Nconst (i*j))
         | Nconst 1, _ -> n2' | _, Nconst 1 -> n1'
@@ -1151,38 +1151,38 @@ let normalize nexp =
         | _ -> assert false ) (*TODO KG Needs to be an actualy error, as must mean that a variable is multiplied by a variable, somewhere *)
     | Nadd(n1,n2) -> (
       let n1',n2' = norm n1,norm n2 in
-      let n1',n2' = sort n1',sort n2' in 
+      let n1',n2' = sort n1',sort n2' in
       match n1'.nexp,n2'.nexp with
         | Nconst i, Nconst j -> nBang nexp (Nconst(i+j))
         | _,_ -> nBang nexp (Nadd(n1',n2')))
   and
-    sort nexp = 
+    sort nexp =
 (*     let _ = fprintf std_formatter "sort of %a@ \n" pp_nexp nexp in *)
-     match nexp.nexp with 
+     match nexp.nexp with
      | Nvar _ | Nconst _ | Nuvar _ | Nmult _ | Nneg _ -> nexp
      | Nadd(n1,n2) ->
        let n1,n2 = sort n1, sort n2 in
         begin match n1.nexp,n2.nexp with
          | Nconst i , Nconst j -> nBang nexp (Nconst (i+j))
-         | Nconst 0, n -> n2 | n , Nconst 0 -> n1 
+         | Nconst 0, n -> n2 | n , Nconst 0 -> n1
          | Nconst _ , (Nmult _ | Nvar _ | Nuvar _ ) -> nBang nexp (Nadd(n1,n2))
          | (Nmult _ | Nvar _ | Nuvar _ ) , Nconst _ -> nBang nexp (Nadd(n2,n1))
-         | Nuvar _ , Nuvar _ | Nuvar _ , Nvar _ | Nvar _ , Nuvar _ | Nvar _ , Nvar _ -> 
+         | Nuvar _ , Nuvar _ | Nuvar _ , Nvar _ | Nvar _ , Nuvar _ | Nvar _ , Nvar _ ->
            make_ordered nexp n1 n2 n1 n2 2 n1
          | Nvar _, Nmult(v,n) | Nuvar _, Nmult(v,n) ->
-           (match v.nexp,n.nexp with 
-            | Nvar _,Nconst i | Nuvar _,Nconst i -> 
+           (match v.nexp,n.nexp with
+            | Nvar _,Nconst i | Nuvar _,Nconst i ->
               make_ordered nexp n1 v n1 n2 (i+1) n1
              | _ -> assert false)
          | Nmult(v,n), Nvar _ | Nmult(v,n), Nuvar _ ->
-              (match v.nexp,n.nexp with 
-               | Nvar _ ,Nconst i | Nuvar _, Nconst i -> 
+              (match v.nexp,n.nexp with
+               | Nvar _ ,Nconst i | Nuvar _, Nconst i ->
                  make_ordered nexp v n2 n1 n2 (i+1) n2
                | _ -> assert false)
          | Nmult(var1,nc1),Nmult(var2,nc2) ->
-              (match var1.nexp,nc1.nexp,var2.nexp,nc2.nexp with 
+              (match var1.nexp,nc1.nexp,var2.nexp,nc2.nexp with
                | _, Nconst i1, _, Nconst i2 ->
-                 make_ordered nexp var1 var2 n1 n2 (i1+i2) var1  
+                 make_ordered nexp var1 var2 n1 n2 (i1+i2) var1
                | _ -> assert false)
          | Nadd(n1l,n1r),Nadd(n2l,n2r) ->
                (match compare_nexp n1r n2r with
@@ -1199,22 +1199,22 @@ let normalize nexp =
                 | _ -> let sorted = sort (make_n (Nadd(n1,n2l))) in
                         (match sorted.nexp with
                          | Nconst 0 -> n2r
-                         | _ -> sort (nBang nexp ( Nadd (sorted, n2r)))))         
+                         | _ -> sort (nBang nexp ( Nadd (sorted, n2r)))))
          | Nadd(n1l,n1r),n -> (*Add on left, potential nuvar on right*)
               let sorted = sort (make_n (Nadd(n1r,n2))) in
-              (match sorted.nexp with 
-                 | Nadd(nb,ns) -> 
+              (match sorted.nexp with
+                 | Nadd(nb,ns) ->
                    let sorted_left = sort (make_n (Nadd (n1l, nb))) in
                    (match sorted_left.nexp with
                      | Nconst 0 -> ns
                      | _ -> nBang nexp (Nadd(sorted_left,ns)))
                  | Nconst 0 -> n1l
                  | _ -> make_n(Nadd(n1l, sorted))
-              )         
+              )
          | n, Nadd(n1l,n1r)-> (* Add on right, potential nuvar on left*)
               let sorted = sort (make_n (Nadd(n1r,n1))) in
-              (match sorted.nexp with 
-                 | Nadd(nb,ns) -> 
+              (match sorted.nexp with
+                 | Nadd(nb,ns) ->
                    let sorted_left = sort (make_n (Nadd (n1l, nb))) in
                    (match sorted_left.nexp with
                      | Nconst 0 -> ns
@@ -1224,7 +1224,7 @@ let normalize nexp =
               )
          | Nneg _ , _ | _ , Nneg _ -> assert false (*Should have been removed in norm*)
        end
-  in 
+  in
   let normal = norm nexp in
 (*  let _  =  fprintf std_formatter "normal unsorted is %a@ \n" pp_nexp normal in *)
   let sorted = sort normal in
@@ -1256,10 +1256,10 @@ let rec check_equal_with_withness (d : type_defs) (t1 : t) (t2 : t) : check_equa
               | CEW_equal -> check_equal_with_withness d t2 t4
               | (_ as w) -> w
           end
-        | (Ttup(ts1), Ttup(ts2)) -> 
+        | (Ttup(ts1), Ttup(ts2)) ->
             if List.length ts1 = List.length ts2 then
               check_equal_with_withness_lists d ts1 ts2
-            else 
+            else
               CEW_type (t1, t2)
         | (Tapp(args1,p1), Tapp(args2,p2)) ->
             if Path.compare p1 p2 = 0 && List.length args1 = List.length args2 then
@@ -1357,7 +1357,7 @@ module type Constraint = sig
   (*
   val equate_type_lists : Ast.l -> t list -> t list -> unit
    *)
-  val add_tyvar : Tyvar.t -> unit 
+  val add_tyvar : Tyvar.t -> unit
   val add_nvar : Nvar.t -> unit
   (*
   val same_types : Ast.l -> t list -> t
@@ -1368,9 +1368,9 @@ module type Constraint = sig
 end
 
 module type Global_defs = sig
-  val d : type_defs 
-  val i : i_env 
-end 
+  val d : type_defs
+  val i : i_env
+end
 
 module Constraint (T : Global_defs) : Constraint = struct
 
@@ -1406,7 +1406,7 @@ module Constraint (T : Global_defs) : Constraint = struct
   let add_tyvar (tv : Tyvar.t) : unit =
     tvars := TNset.add (Ty tv) (!tvars)
 
-  let add_nvar (nv : Nvar.t) : unit = 
+  let add_nvar (nv : Nvar.t) : unit =
     nvars := TNset.add (Nv nv) (!nvars)
 
   exception Occurs_exn of t
@@ -1442,16 +1442,16 @@ module Constraint (T : Global_defs) : Constraint = struct
                t_box.t <- t.t)
 
   let rec equate_types (l : Ast.l) m (t1 : t) (t2 : t) : unit =
-  try 
+  try
     if t1 == t2 then
       ()
     else
     let t1 = head_norm T.d t1 in
     let t2 = head_norm T.d t2 in
       match (t1.t,t2.t) with
-        | (Tuvar _, _) -> 
+        | (Tuvar _, _) ->
             prim_equate_types t1 t2
-        | (_, Tuvar _) -> 
+        | (_, Tuvar _) ->
             prim_equate_types t2 t1
         | (Tvar(s1), Tvar(s2)) ->
             if Tyvar.compare s1 s2 = 0 then
@@ -1461,10 +1461,10 @@ module Constraint (T : Global_defs) : Constraint = struct
         | (Tfn(t1,t2), Tfn(t3,t4)) ->
             equate_types l m t1 t3;
             equate_types l m t2 t4
-        | (Ttup(ts1), Ttup(ts2)) -> 
+        | (Ttup(ts1), Ttup(ts2)) ->
             if List.length ts1 = List.length ts2 then
               equate_type_lists l m ts1 ts2
-            else 
+            else
               type_mismatch l m t1 t2
         | (Tapp(args1,p1), Tapp(args2,p2)) ->
             if Path.compare p1 p2 = 0 && List.length args1 = List.length args2 then
@@ -1473,7 +1473,7 @@ module Constraint (T : Global_defs) : Constraint = struct
               type_mismatch l m t1 t2
         | (Tne(n1),Tne(n2)) ->
            equate_nexps l n1 n2;
-        | _ -> 
+        | _ ->
             type_mismatch l m t1 t2
   with Occurs_exn t_occ -> type_mismatch_occur_check l m t_occ t1 t2
 
@@ -1483,7 +1483,7 @@ module Constraint (T : Global_defs) : Constraint = struct
   and equate_nexps l nexp1 nexp2 =
     if nexp1 == nexp2
       then ()
-    else 
+    else
       let n1 = normalize nexp1 in
       let n2 = normalize nexp2 in
       let n3 = normalize { nexp = Nadd(n1, {nexp= Nneg n2}) } in
@@ -1491,7 +1491,7 @@ module Constraint (T : Global_defs) : Constraint = struct
       match n3.nexp with
        | Nconst 0 -> ()
        | _ -> add_length_constraint (Eq (l,n3))
-       
+
   let in_range l vec_n n =
     let (top,bot) = (normalize vec_n,normalize n) in
     let bound = normalize {nexp = Nadd(top, {nexp = Nneg(bot)})} in
@@ -1520,7 +1520,7 @@ module Constraint (T : Global_defs) : Constraint = struct
   let rec get_next_tvar (i : int) : (int * tnvar) =
     let tv = Ty (Tyvar.nth i) in
       if TNset.mem tv (!tvars) then
-        get_next_tvar (i + 1) 
+        get_next_tvar (i + 1)
       else
         (i,tv)
 
@@ -1559,10 +1559,10 @@ module Constraint (T : Global_defs) : Constraint = struct
     | Nmult(n1,n2) -> add_vars curr_vars n1 (* Due to normalize, n2 is const *)
     | Nadd(n1,n2) -> add_vars (add_vars curr_vars n2) n1
     | _ -> assert false (*Due to normalize, should not happen*)
-   in   
+   in
    let rec walk_constraints curr_vars = function
    | [ ] -> curr_vars
-   | c::constraints -> 
+   | c::constraints ->
 (*     let _ = fprintf std_formatter "calling collect_vars of %a@ \n" pp_range c in *)
      walk_constraints (add_vars curr_vars (range_of_n c)) constraints
    in
@@ -1573,7 +1573,7 @@ module Constraint (T : Global_defs) : Constraint = struct
     (* Add a multiply by 0 term so that all variables are present in all terms *)
     let zero = { nexp = Nconst 0 } in
     let mult_zero v = { nexp = Nmult(v, zero ) } in
-    let get_var n = match n.nexp with 
+    let get_var n = match n.nexp with
        | Nuvar _  | Nvar _ -> n
        | Nmult(n,_) -> n
        | _ -> assert false
@@ -1581,7 +1581,7 @@ module Constraint (T : Global_defs) : Constraint = struct
     let rec add_vars all_vars n =
       match (all_vars,n.nexp) with
        | ([],_) -> n
-       | (var::all_vars, Nconst _) -> add_vars all_vars { nexp = Nadd(n, mult_zero var) } 
+       | (var::all_vars, Nconst _) -> add_vars all_vars { nexp = Nadd(n, mult_zero var) }
        | (var::all_vars, Nuvar _ ) | (var::all_vars , Nvar _ ) | (var::all_vars, Nmult _ ) ->
           begin match (compare_nexp var (get_var n)) with
           | -1 -> add_vars all_vars { nexp = Nadd(n, mult_zero var) }
@@ -1589,7 +1589,7 @@ module Constraint (T : Global_defs) : Constraint = struct
           | _ -> add_vars all_vars { nexp = Nadd(mult_zero var, n) }
          end
        | (var::all_vars, Nadd(n1,n2)) ->
-          begin match n2.nexp with 
+          begin match n2.nexp with
           | Nuvar _ | Nvar _ | Nmult _ ->
             begin match (compare_nexp var (get_var n2)) with
             | -1 -> {nexp = Nadd( (add_vars all_vars n2), mult_zero var) }
@@ -1603,9 +1603,9 @@ module Constraint (T : Global_defs) : Constraint = struct
     let rec walk_constraints = function
     | [ ] -> [ ]
     | c :: constraints -> range_with c (add_vars all_vars (range_of_n c)) :: (walk_constraints  constraints)
-    in 
+    in
     Array.of_list(List.map (fun r -> ref (Some r)) constraints (* (walk_constraints constraints) *))
-    
+
   let is_inconsistent = function
     | Eq(_,n) -> (*let _ = fprintf std_formatter "inconsistent Eq call of %a@ \n" pp_nexp n in*)
                  begin match (normalize n).nexp with
@@ -1636,9 +1636,9 @@ module Constraint (T : Global_defs) : Constraint = struct
     let rec nexp_to_term_list n =
       match n.nexp with
       | Nadd(n1,n2) -> n2::(nexp_to_term_list n1)
-      | _ -> [n] in 
-    let rec get_const n = 
-       match n.nexp with 
+      | _ -> [n] in
+    let rec get_const n =
+       match n.nexp with
          | Nconst(i) -> i
          | Nmult(_,n1) -> get_const n1
          | Nvar _ | Nuvar _ -> 1
@@ -1647,7 +1647,7 @@ module Constraint (T : Global_defs) : Constraint = struct
     let rec equiv_nexp_consts n1 n2 = (abs (get_const n1)) = (abs (get_const n2)) in
     let rec split_equiv_to n equivs = function
      | [] -> equivs,[]
-     | n1::ns -> if (equiv_nexp_consts n1 n) 
+     | n1::ns -> if (equiv_nexp_consts n1 n)
                     then split_equiv_to n (n1::equivs) ns
                     else equivs, n1::ns
     in
@@ -1666,12 +1666,12 @@ module Constraint (T : Global_defs) : Constraint = struct
       | n1::ns ->let equivs,ns = split_equiv_to n1 [] ns in
                  (match equivs with
                  | [] -> ()
-                 | [n2] -> if (op ((get_const n1) + (get_const n2)) 0) 
+                 | [n2] -> if (op ((get_const n1) + (get_const n2)) 0)
                               then begin assign_nuvar n1 n2; remove_nuvars op ns end
                               else remove_nuvars op ns
                  | _ -> remove_nuvars op ns) in
 (*    let _ = fprintf std_formatter "solving solo of %a\n" pp_range r in *)
-    let scp n1 n2 = () (*fprintf std_formatter "special case after solve, %a %a\n" pp_nexp n1 pp_nexp n2 *) in 
+    let scp n1 n2 = () (*fprintf std_formatter "special case after solve, %a %a\n" pp_nexp n1 pp_nexp n2 *) in
     match r with
     | Eq(l,n) -> let terms = List.sort compare_nexp_consts (nexp_to_term_list n) in
                  remove_nuvars (=) terms;
@@ -1680,11 +1680,11 @@ module Constraint (T : Global_defs) : Constraint = struct
                  | Nconst 0 -> None
                  | Nadd(n1,n2) -> (match n1.nexp,n2.nexp with
                                     | Nconst(i),Nuvar _ -> begin (scp n1 n2); n2.nexp <- Nconst( i * -1); (scp n1 n2); None end
-                                    | Nconst(i),Nmult(v,c) -> (match v.nexp,c.nexp with 
+                                    | Nconst(i),Nmult(v,c) -> (match v.nexp,c.nexp with
                                                                  | Nuvar _ , Nconst j -> begin (scp n1 n2); v.nexp <- Nconst(i/( - j)); (scp n1 n2); None end
                                                                  | _ -> Some(Eq(l,n)))
                                     | Nvar _ ,Nuvar _ -> begin (scp n1 n2); n2.nexp <- n1.nexp; (scp n1 n2); None end
-                                    | Nvar _ ,Nmult(v,c) -> (match v.nexp,c.nexp with 
+                                    | Nvar _ ,Nmult(v,c) -> (match v.nexp,c.nexp with
                                                                  | Nuvar _ , (Nconst 1 | Nconst -1) -> begin (scp n1 n2); v.nexp <- n1.nexp; (scp n1 n2); None end
                                                                  | _ -> Some(Eq(l,n)))
                                     | Nuvar _ , Nmult(v,c) -> (match v.nexp,c.nexp with
@@ -1704,8 +1704,8 @@ module Constraint (T : Global_defs) : Constraint = struct
                        else Some(LtEq(l,n))
 
   (*Return the nexp constant that is the multiplier for variable or unification variable v in n *)
-  let rec find_multiplier v n = 
-   match n.nexp with 
+  let rec find_multiplier v n =
+   match n.nexp with
    | Nvar _ | Nuvar _ -> if (compare_nexp v n) = 0
                             then Some({nexp = Nconst 1})
                             else None
@@ -1738,7 +1738,7 @@ module Constraint (T : Global_defs) : Constraint = struct
      | _ -> None
 
   let rec resolve_matrix i ns =
-    if i >= Array.length ns 
+    if i >= Array.length ns
        then ()
        else match !(ns.(i)) with
          | None -> resolve_matrix (i+1) ns
@@ -1746,27 +1746,27 @@ module Constraint (T : Global_defs) : Constraint = struct
             let n = range_of_n rnge in
 (*            let _ = fprintf std_formatter "resolve_matrix of %a@ \n" pp_nexp n in *)
             let potential_pivot = pivot_var n in
-            match potential_pivot with 
+            match potential_pivot with
              | None -> if (is_redundant rnge) then
                           begin ns.(i) := None ; resolve_matrix (i+1) ns end
                           else if (is_inconsistent rnge) then
                                   inconsistent_constraints rnge (range_l rnge)
                                   else resolve_matrix (i+1) ns
-             | Some(v,c) -> 
+             | Some(v,c) ->
                let rec inner_loop j =
                  if (j >= Array.length ns)
                    then resolve_matrix (i+1) ns
                  else if (i = j) then inner_loop (j+1)
-                   else 
+                   else
                      match !(ns.(j)) with
                       | None -> inner_loop (j+1)
-                      | Some(rnge_j) -> 
+                      | Some(rnge_j) ->
                           let rnge_new = range_with rnge_j (var_to_zero v c n (range_of_n rnge_j)) in
 (*                          let _ = fprintf std_formatter "%a@ after var_to_zero of %a and %a \n" pp_range rnge_new pp_nexp n pp_nexp (range_of_n rnge_j) in *)
                           ns.(j) := Some(rnge_new);
                           inner_loop (j+1)
                 in inner_loop 0
-                          
+
   (*TODO find where this should have come from, or move to util*)
   let rec some_list = function
     | [] -> []
@@ -1774,14 +1774,14 @@ module Constraint (T : Global_defs) : Constraint = struct
                        a::(some_list rest)
     | None::rest -> some_list rest
 
-  let prune_constraints rns =    
+  let prune_constraints rns =
     let rec matrix_to_list i=
       if (i >= Array.length rns)
          then []
          else match !(rns.(i)) with
               | None -> matrix_to_list (i+1)
               | Some r -> r::(matrix_to_list (i+1))
-    in 
+    in
     let rec combine_eq_constraints base_eq ineqs = function
       | [] -> base_eq, ineqs
       | Eq(l,n)::rns -> let eqr,ineqs = combine_eq_constraints base_eq ineqs rns in
@@ -1812,27 +1812,27 @@ module Constraint (T : Global_defs) : Constraint = struct
             unresolved
 
   let check_numeric_constraint_implication l c constraints =
-    let negate_c = match c with 
+    let negate_c = match c with
                     | Eq(l,n) -> Eq(l,{nexp=Nadd(n,{nexp=Nconst 1})})
                     | GtEq(l,n) -> LtEq(l,{nexp=Nadd(n,{nexp=Nconst 1})})
                     | LtEq(l,n) -> GtEq(l,{nexp=Nadd(n,{nexp=Nconst(-1)})}) in
     if (try ignore(solve_numeric_constraints [] (negate_c::constraints));
             false
-        with 
+        with
           | (Fatal_error (Err_type _)) -> true
           | e -> raise e)
        then ()
        else raise (err_type l ("Constraint " ^ range_to_string c ^ " is required by let definition but not implied by val specification\n"))
 
   let rec solve_constraints (unsolvable : PTset.t) = function
-    | [] -> unsolvable 
+    | [] -> unsolvable
     | (p,t) :: constraints ->
         match get_matching_instance T.d (p,t) T.i with
           | None ->
               solve_constraints (PTset.add (p,t) unsolvable) constraints
           | Some(i,subst) ->
               (** apply subst to constraints of instance *)
-              let new_cs = List.map (fun (p, tnv) -> (p, 
+              let new_cs = List.map (fun (p, tnv) -> (p,
                     match TNfmap.apply subst tnv with
                             | Some(t) -> t
                             | None -> raise (Reporting_basic.err_unreachable i.inst_l "get_matching_instance does not provide proper substitution!")))
@@ -1847,13 +1847,13 @@ module Constraint (T : Global_defs) : Constraint = struct
                    | Nvar(nv) -> (p, Nv nv)
                    | _ -> let t1 = Pp.pp_to_string (fun ppf -> pp_instance_constraint ppf (p, t)) in
                       raise (err_type l ("unsatisfied type class constraint:\n    " ^t1)))
-      | _ -> 
-          let t1 = 
+      | _ ->
+          let t1 =
             Pp.pp_to_string (fun ppf -> pp_instance_constraint ppf (p, t))
-          in 
+          in
             raise (err_type l ("unsatisfied type class constraint:\n    " ^ t1))
 
-  let inst_leftover_uvars l =  
+  let inst_leftover_uvars l =
     let used_tvs = ref TNset.empty in
     let inst t =
       let t' = resolve_subst t in
@@ -1866,7 +1866,7 @@ module Constraint (T : Global_defs) : Constraint = struct
           | _ -> ()
     in
     let used_nvs = ref TNset.empty in
-    let inst_n n = 
+    let inst_n n =
       let n' = resolve_nexp_subst n in
         match n'.nexp with
           | Nuvar(u) ->
@@ -1880,8 +1880,8 @@ module Constraint (T : Global_defs) : Constraint = struct
       List.iter inst (!uvars);
       List.iter inst_n (!nuvars);
       let cs = solve_constraints PTset.empty !class_constraints in
-        Tconstraints(TNset.union (TNset.union !tvars !used_tvs) 
-                                 (TNset.union !nvars !used_nvs), 
+        Tconstraints(TNset.union (TNset.union !tvars !used_tvs)
+                                 (TNset.union !nvars !used_nvs),
                      List.map (check_constraint l) (PTset.elements cs),
                      ns)
 end
@@ -1890,18 +1890,18 @@ let rec ftvs (ts : t list) (acc : TNset.t) : TNset.t = match ts with
   | [] -> acc
   | t::ts -> ftvs ts (ftv t acc)
 and ftv (t : t) (acc : TNset.t) : TNset.t = match t.t with
-  | Tvar(x) -> 
+  | Tvar(x) ->
       TNset.add (Ty x) acc
-  | Tfn(t1,t2) -> 
+  | Tfn(t1,t2) ->
       ftv t2 (ftv t1 acc)
-  | Ttup(ts) -> 
+  | Ttup(ts) ->
       ftvs ts acc
   | Tapp(ts,_) ->
       ftvs ts acc
   | Tbackend(ts,_) ->
       ftvs ts acc
   | Tne(n) -> fnv n acc
-  | Tuvar(_) -> 
+  | Tuvar(_) ->
       acc
 and fnv (n:nexp) (acc : TNset.t) : TNset.t = match n.nexp with
   | Nvar(x) ->
@@ -1909,4 +1909,3 @@ and fnv (n:nexp) (acc : TNset.t) : TNset.t = match n.nexp with
   | Nadd(n1,n2) | Nmult(n1,n2) -> fnv n1 (fnv n2 acc)
   | Nneg(n) -> fnv n acc
   | Nconst _ | Nuvar _ -> acc
-

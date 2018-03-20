@@ -46,7 +46,7 @@
 
 module Duplicate(S : Set.S) = struct
 
-type dups = 
+type dups =
   | No_dups of S.t
   | Has_dups of S.elt
 
@@ -64,23 +64,23 @@ end
 
 let remove_duplicates_gen p l =
   let rec aux acc l = match l with
-      [] -> List.rev acc  
+      [] -> List.rev acc
     | (x :: xs) -> if (List.exists (p x) acc) then (aux acc xs) else aux (x::acc) xs
   in
   aux [] l
 
 let remove_duplicates l = remove_duplicates_gen (fun x y -> x = y) l
 
-let get_duplicates_gen p l = 
+let get_duplicates_gen p l =
   let rec aux acc l = match l with
-      [] -> List.rev acc  
+      [] -> List.rev acc
     | (x :: xs) -> if ((List.exists (p x) xs) && not (List.exists (p x) acc)) then (aux (x::acc) xs) else aux acc xs
   in
   aux [] l
 
 let get_duplicates l = get_duplicates_gen (fun x y -> x = y) l
 
-let rec compare_list f l1 l2 = 
+let rec compare_list f l1 l2 =
   match (l1,l2) with
     | ([],[]) -> 0
     | (_,[]) -> 1
@@ -91,7 +91,7 @@ let rec compare_list f l1 l2 =
             compare_list f l1 l2
           else
             c
-              
+
 let map_changed_default d f l =
   let rec g = function
     | [] -> ([],false)
@@ -113,7 +113,7 @@ let rec map_filter (f : 'a -> 'b option) (l : 'a list) : 'b list =
   match l with [] -> []
     | x :: xs ->
       let xs' = map_filter f xs in
-      match (f x) with None -> xs' 
+      match (f x) with None -> xs'
         | Some x' -> x' :: xs'
 
 let list_index p l =
@@ -135,13 +135,13 @@ let rec list_null l = match l with
   | [] -> true
   | _ -> false
 
-let list_dest_snoc l =  
+let list_dest_snoc l =
   match l with
     | [] -> raise (Failure "list_dest_snoc")
     | _ -> begin
       let l_rev = List.rev l in
       (List.rev (List.tl l_rev), List.hd l_rev)
-    end 
+    end
 
 let list_pick p l = begin
   let rec aux acc l = begin
@@ -162,7 +162,7 @@ let option_default d = function
   | Some(o) -> o
 
 let option_default_map op d f =
-  match op with 
+  match op with
     | None -> d
     | Some(o) -> f o
 
@@ -201,7 +201,7 @@ let rec option_first f xL =
     | (x :: xs) -> match f x with None -> option_first f xs | Some s -> Some s
 
 let list_to_front n l =
-  if n <= 0 then l else 
+  if n <= 0 then l else
   let rec aux acc n l =
     match (n, l) with
         (0, x::xs) -> (x :: (List.rev_append acc xs))
@@ -210,7 +210,7 @@ let list_to_front n l =
   in aux [] n l
 
 let undo_list_to_front n l =
-  if n <= 0 then l else 
+  if n <= 0 then l else
   let rec aux acc n y l =
     match (n, l) with
         (0, xs) -> List.rev_append acc (y::xs)
@@ -273,7 +273,7 @@ let string_split c s =
      let next = String.index_from s start c in
      let acc' = (String.sub s start (next - start))::acc in
      aux acc' (next+1)
-  with Not_found -> (List.rev acc, String.sub s start (String.length s - start)) 
+  with Not_found -> (List.rev acc, String.sub s start (String.length s - start))
   in aux [] 0
 
 let is_lowercase = function
@@ -284,7 +284,7 @@ let is_uppercase = function
   |'A' .. 'Z' -> true
   | _ -> false
 
-let uncapitalize_prefix = 
+let uncapitalize_prefix =
   let uncapitalize_pos (x:bytes) (p:int) : bool =
     if not (p < Bytes.length x) then false else
     begin
@@ -306,7 +306,7 @@ let string_map f s_input =
   let s = Bytes.of_string s_input in
   let rec aux p = begin
     if p > 0 then
-      begin 
+      begin
         let p' = p - 1 in
         let _ = Bytes.set s p' (f (Bytes.get s p')) in
         aux p'
@@ -317,13 +317,13 @@ let string_map f s_input =
   Bytes.to_string s
 
 
-module IntSet = Set.Make( 
+module IntSet = Set.Make(
   struct
     let compare = Pervasives.compare
     type t = int
   end )
 
-module IntIntSet = Set.Make( 
+module IntIntSet = Set.Make(
   struct
     let compare = Pervasives.compare
     type t = int * int
@@ -331,7 +331,7 @@ module IntIntSet = Set.Make(
 
 
 module ExtraSet = functor (S : Set.S) ->
-  struct 
+  struct
     let add_list s l = List.fold_left (fun s x -> S.add x s) s l
     let remove_list s l = List.fold_left (fun s x -> S.remove x s) s l
     let from_list l = add_list S.empty l
@@ -341,7 +341,7 @@ module ExtraSet = functor (S : Set.S) ->
   end;;
 
 
-let copy_file src dst = 
+let copy_file src dst =
   let len = 5096 in
   let b = Bytes.make len ' ' in
   let read_len = ref 0 in
@@ -358,7 +358,7 @@ let move_file src dst =
    try
      (* try efficient version *)
      Sys.rename src dst
-   with Sys_error _ -> 
+   with Sys_error _ ->
    begin
      (* OK, do it the the hard way *)
      copy_file src dst;
@@ -366,12 +366,12 @@ let move_file src dst =
    end
 
 let same_content_files file1 file2 : bool =
-  (Sys.file_exists file1) && (Sys.file_exists file2) && 
+  (Sys.file_exists file1) && (Sys.file_exists file2) &&
   begin
     let s1 = Stream.of_channel (open_in_bin file1) in
     let s2 = Stream.of_channel (open_in_bin file2) in
     let stream_is_empty s = (try Stream.empty s; true with Stream.Failure -> false) in
-    try 
+    try
       while ((Stream.next s1) = (Stream.next s2)) do () done;
       false
     with Stream.Failure -> stream_is_empty s1 && stream_is_empty s2
@@ -390,28 +390,28 @@ let dir_eq d1 d2 =
   let abs_d1_opt = absolute_dir d1 in
   let abs_d2_opt = absolute_dir d2 in
   match (abs_d1_opt, abs_d2_opt) with
-    | (Some d1', Some d2') -> (String.compare d1' d2' = 0) 
+    | (Some d1', Some d2') -> (String.compare d1' d2' = 0)
     | _ -> false
 
 let string_for_all p s = List.for_all p (string_to_list s)
 
-let is_letter_char x = 
-  let c = Char.code x in 
+let is_letter_char x =
+  let c = Char.code x in
   begin
-    (c <= 90  && c >= 65) (* A-Z *) || 
+    (c <= 90  && c >= 65) (* A-Z *) ||
     (c <= 122 && c >= 97) (* a-z *)
   end
 
-let is_digit_char x = 
-  let c = Char.code x in 
+let is_digit_char x =
+  let c = Char.code x in
   begin
     (c <= 57  && c >= 48) (* 0-9 *)
   end
 
-let is_simple_ident_char x = 
+let is_simple_ident_char x =
   is_letter_char x ||
   is_digit_char x ||
-  (x = '_')  
+  (x = '_')
 
 let is_simple_ident_string s =
   match (string_to_list s) with
@@ -429,7 +429,7 @@ let message_singular_plural (s, p) = function
 let fresh_string_start ok start s =
   let rec f (n:int) =
     let name = s ^ (string_of_int n) in
-      if ok name then 
+      if ok name then
         name
       else
         f (n + 1)
@@ -443,7 +443,7 @@ let fresh_string_start ok start s =
       | Some(i) ->
           f i
 
-module StringSet = Set.Make( 
+module StringSet = Set.Make(
   struct
     let compare = String.compare
     type t = string
@@ -460,7 +460,7 @@ let fresh_string forbidden = begin
   let initial_set = List.fold_left (fun s x -> StringSet.add x s) StringSet.empty forbidden in
   let my_ref = ref initial_set in
   fresh_string_aux my_ref
-end 
+end
 
 
 let is_simple_char c =

@@ -73,7 +73,7 @@ let update_loc lexbuf file line =
   };;
 
 
-let kw_table = 
+let kw_table =
   List.fold_left
     (fun r (x,y) -> M.add x y r)
     M.empty
@@ -167,10 +167,10 @@ rule token skips = parse
     { token (Ast.Ws(Ulib.Text.of_latin1 i)::skips) lexbuf }
   | "\n"
     { Lexing.new_line lexbuf;
-      token (Ast.Nl::skips) lexbuf } 
+      token (Ast.Nl::skips) lexbuf }
   | "#" [' ' '\t']* (['0'-'9']+ as num) [' ' '\t']* ("\"" ([^ '\010' '\013' '"' ]* as name) "\"")? [^ '\010' '\013']* "\n"
                                         { update_loc lexbuf name (int_of_string num);
-                                          token [] lexbuf }  
+                                          token [] lexbuf }
   | "."                                 { (Dot(Some(skips))) }
 
   | "("                                 { (Lparen(Some(skips))) }
@@ -216,7 +216,7 @@ rule token skips = parse
   | "mod" | "div" | "land" | "lor" | "lxor" as i  { (StarX(Some(skips), Ulib.Text.of_latin1 i)) }
 
 
-  | "(*"                           
+  | "(*"
     { token (Ast.Com(Ast.Comment(comment (Lexing.lexeme_start_p lexbuf) lexbuf))::skips) lexbuf }
 
   | startident ident* as i              { if M.mem i kw_table then
@@ -224,7 +224,7 @@ rule token skips = parse
                                           else
                                             X(Some(skips), Ulib.Text.of_latin1 i) }
 
-  | "\\\\" ([^' ' '\t' '\n']+ as i)     { (X(Some(skips), Ulib.Text.of_latin1 i)) } 
+  | "\\\\" ([^' ' '\t' '\n']+ as i)     { (X(Some(skips), Ulib.Text.of_latin1 i)) }
 
   | "`" (quote* as i) "`"              { BacktickString(Some skips, i) }
 
@@ -258,7 +258,7 @@ and comment pos = parse
                                           let c2 = comment pos lexbuf in
                                             Ast.Chars(Ulib.Text.of_latin1 i) :: Ast.Comment(c1) :: c2}
   | (com_body as i) "*)"                { [Ast.Chars(Ulib.Text.of_latin1 i)] }
-  | com_body "("* "\n" as i             { Lexing.new_line lexbuf; 
+  | com_body "("* "\n" as i             { Lexing.new_line lexbuf;
                                           (Ast.Chars(Ulib.Text.of_latin1 i) :: comment pos lexbuf) }
   | _  as c                             { raise (LexError(c, Lexing.lexeme_start_p lexbuf)) }
   | eof                                 { raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax (pos,

@@ -53,7 +53,7 @@ open Typed_ast
     [rev_path] represents the path of the module of definition [d] as a list of names in reverse order.
     [env] is the local environment for the module of [d]. This means that also the definitions in
     the same module that follow [d] are present. If the macro does not modify the definition, it should
-    return [None]. Otherwise, it should return a pair [Some (env', ds)], where [env'] is a updated environment 
+    return [None]. Otherwise, it should return a pair [Some (env', ds)], where [env'] is a updated environment
     and [ds] a list of definitions that replace [d]. *)
 type def_macro = Name.t list -> env -> def -> (env * def list) option
 
@@ -65,8 +65,8 @@ val list_to_mac : def_macro list -> def_macro
 (** [process_defs rev_path def_mac mod_name env ds] is intended to run the macro [def_mac] over all
     definitions in module [mod_name]. The argument [rev_path] is the path to module [mod_name] in reversed order.
     [env] is the environment containing module [mod_name] and [ds] is the list of definitions in this module.
-    If [def_mac] modifies a definition [d] to a list [ds], it is then run on all definitions in [ds].     
-    If one of the is a module-definition, which is not modified by [ds], then [def_macro] is run 
+    If [def_mac] modifies a definition [d] to a list [ds], it is then run on all definitions in [ds].
+    If one of the is a module-definition, which is not modified by [ds], then [def_macro] is run
     on all definitions inside this module. For this recursive call the path, module name and environment are adapted.
 
     The result of [process_defs] is an updated environment and a new list of definitons. *)
@@ -125,6 +125,3 @@ val type_annotate_definitions : def_macro
 val nvar_to_parameter : def_macro
 
 val prune_target_bindings : Target.non_ident_target -> def list -> def list
-
-
-

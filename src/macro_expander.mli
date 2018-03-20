@@ -47,11 +47,11 @@
 open Types
 open Typed_ast
 
-type level = 
+type level =
   | Top_level
   | Nested
 
-type pat_pos = 
+type pat_pos =
   | Bind
   | Param
 
@@ -81,4 +81,3 @@ end
 
 val list_to_mac : (macro_context -> 'b -> 'c continuation) list -> macro_context -> 'b -> 'c continuation
 val list_to_bool_mac : (pat_position -> macro_context -> 'b -> 'c continuation) list -> pat_position -> macro_context -> 'b -> 'c continuation
-

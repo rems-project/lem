@@ -54,7 +54,7 @@ open Typed_ast
  * (+) x y
  * M.(+) x y
  *
- * For x + y we can convert to 
+ * For x + y we can convert to
  * (+) x y if + is infix in the target or + x y if it isn't
  *
  * For (+) x y we can convert to
@@ -80,7 +80,7 @@ let t_to_int = function
   | P_infix i -> i
   | P_infix_left i -> i
   | P_infix_right i -> i
-  
+
 let ast_fixity_decl_to_t = function
  | Ast.Fixity_right_assoc   (_, i) -> P_infix_right i
  | Ast.Fixity_left_assoc    (_, i) -> P_infix_left i
@@ -102,7 +102,7 @@ type pat_kind =
   | Pcons
   | Patomic
 
-type context = 
+type context =
   | Field
   | App_right
   | App_left
@@ -132,8 +132,8 @@ let amp = regexp "^&&$"
 let bar_bar = regexp "^||$"
 let imp = regexp "^-->$"
 
-let get_ident_prec s = 
-  let s = 
+let get_ident_prec s =
+  let s =
     match s with
       | Cons -> "::"
       | Op(s) -> s
@@ -174,7 +174,7 @@ let needs_parens context t =
             true
           else if t_to_int p1 = t_to_int p2 then
             match (p1, p2) with
-              | (P_infix_left _, P_infix_left _) -> false 
+              | (P_infix_left _, P_infix_left _) -> false
               | _ -> true
           else
             false
@@ -183,7 +183,7 @@ let needs_parens context t =
             true
           else if t_to_int p1 = t_to_int p2 then
             match (p1, p2) with
-              | (P_infix_right _, P_infix_right _) -> false 
+              | (P_infix_right _, P_infix_right _) -> false
               | _ -> true
           else
             false
@@ -226,4 +226,3 @@ and get_prec_exp targ env e =
     | Paren (_, e, _) -> get_prec_exp targ env e
     | Typed (_, e, _, _, _) -> get_prec_exp targ env e
     | _ -> P_prefix
-  

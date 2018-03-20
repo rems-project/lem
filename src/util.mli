@@ -45,8 +45,8 @@
 (**************************************************************************)
 
 (** Mixed useful things *)
-module Duplicate(S : Set.S) : sig 
-  type dups = 
+module Duplicate(S : Set.S) : sig
+  type dups =
     | No_dups of S.t
     | Has_dups of S.elt
   val duplicates : S.elt list -> dups
@@ -86,11 +86,11 @@ val option_cases : 'a option -> ('a -> 'b) -> (unit -> 'b) -> 'b
     [option_bind f (Some x)] returns [f x]. *)
 val option_bind : ('a -> 'b option) -> 'a option -> 'b option
 
-(** [option_default d None] returns the default value [d], 
+(** [option_default d None] returns the default value [d],
     whereas [option_default d (Some x)] returns [x]. *)
 val option_default : 'a -> 'a option -> 'a
 
-(** [option_default_map v d f] is short for 
+(** [option_default_map v d f] is short for
     [option_default d (option_map f v)]. This means that
     [option_default_map None d f] returns [d], whereas
     [option_default_map (Some x) d f] returns [f x]. *)
@@ -106,7 +106,7 @@ val option_get_exn : exn -> 'a option -> 'a
     application of [f], [x] is used in case [g x] returns [None] and
     similarly [y] in case [h y] returns [None]. *)
 val changed2 : ('a -> 'b -> 'c) -> ('a -> 'a option) -> 'a -> ('b -> 'b option) -> 'b -> 'c option
-                                              
+
 (** [option_repeat f x] applies [f] to [x] till nothings changes any more. This means
     that if [f x] is [None], [x] is returned. Otherwise [option_repeat] calls itself recursively on the
     result of [f x]. *)
@@ -144,14 +144,14 @@ val option_first: ('a -> 'b option) -> 'a list -> 'b option
     If for all elements of [l] the
     function [f] returns [None], then [map_changed f l] returns [None].
     Otherwise, it uses [x] for all elements, where [f x] returns [None],
-    and returns the resulting list. *)   
+    and returns the resulting list. *)
 val map_changed : ('a -> 'a option) -> 'a list -> 'a list option
 
 (** [map_changed_default d f l] maps [f] over [l].
     If for all elements of [l] the
     function [f] returns [None], then [map_changed f l] returns [None].
     Otherwise, it uses [d x] for all elements [x], where [f x] returns [None],
-    and returns the resulting list. *)   
+    and returns the resulting list. *)
 val map_changed_default : ('a -> 'b) -> ('a -> 'b option) -> 'a list -> 'b list option
 
 (** [list_mapi f l] maps [f] over [l]. In contrast to the standard
@@ -161,14 +161,14 @@ val list_mapi : (int -> 'a -> 'b) -> 'a list -> 'b list
 
 (** [list_iter_sep sf f [a1; ...; an]] applies function [f] in turn to [a1; ...; an] and
     calls [sf ()] in between. It is equivalent to [begin f a1; sf(); f a2; sf(); ...; f an; () end]. *)
-val list_iter_sep : (unit -> unit) -> ('a -> unit) -> 'a list -> unit 
+val list_iter_sep : (unit -> unit) -> ('a -> unit) -> 'a list -> unit
 
 (** [intercalate sep as] inserts [sep] between the elements of [as], i.e. it returns a list of the form
      [a1; sep; ... sep ; an]. *)
 val intercalate : 'a -> 'a list -> 'a list
 
-(** [interleave l1 l2] interleaves lists [l1] and [l2], by alternatingly taking an element of l1 and l2 
-    till one of the lists is empty. Then the remaining elements are added. The first element is from [l1]. *) 
+(** [interleave l1 l2] interleaves lists [l1] and [l2], by alternatingly taking an element of l1 and l2
+    till one of the lists is empty. Then the remaining elements are added. The first element is from [l1]. *)
 val interleave : 'a list -> 'a list -> 'a list
 
 (** [replicate n e] creates a list that contains [n] times the element [e]. *)
@@ -183,7 +183,7 @@ val map_filter : ('a -> 'b option) -> 'a list -> 'b list
 val map_all : ('a -> 'b option) -> 'a list -> 'b list option
 
 (** [list_to_front i l] resorts the list [l] by bringing the element at index [i]
-    to the front. 
+    to the front.
     @throws Failure if [i] is not smaller than the length of [l]*)
 val list_to_front : int -> 'a list -> 'a list
 
@@ -197,7 +197,7 @@ val split_after : int -> 'a list -> 'a list * 'a list
 
 (** [list_fristn n l] gets the first [n] elemenst from list [l], i.e. it does the same as
     [fst (split_after n l)]. It fails if n is too small or large. *)
-val list_firstn : int -> 'a list -> 'a list 
+val list_firstn : int -> 'a list -> 'a list
 
 (** [list_dropn n l] drops the first [n] elemenst from list [l], i.e. it does the same as
     [snd (split_after n l)]. It fails if n is too small or large. *)
@@ -234,7 +234,7 @@ If at least one of the files does not exist, [false] is returned. [same_content_
 if one of the files exists, but cannot be read. *)
 val same_content_files : string -> string -> bool
 
-(** [absolute_dir dir] tries to get the absolute path name of directory [dir]. If this fails (usually, 
+(** [absolute_dir dir] tries to get the absolute path name of directory [dir]. If this fails (usually,
     because [dir] does not exist), [None] is returned. *)
 val absolute_dir : string -> string option
 
@@ -293,7 +293,7 @@ val string_map : (char -> char) -> string -> string
     the result is [multiple_message]. *)
 val message_singular_plural : (string * string) -> 'a list -> string
 
-(** [fresh_string forbidden] generates a stateful function [gen_fresh] that generates fresh strings. [gen_fresh s] 
+(** [fresh_string forbidden] generates a stateful function [gen_fresh] that generates fresh strings. [gen_fresh s]
     will return a string similar to [s] that has never been returned before and is not part of [forbidden]. By storing
     the result in internal state, it is ensured that the same result is never returned twice. This function is used
     for example to generate unique labels. *)

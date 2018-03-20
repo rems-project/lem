@@ -128,8 +128,8 @@ let cdr_instantiate
              descr = c_ref;
              instantiation = inst } in
   let c_d = c_env_lookup l env.c_env c_ref in
-  let t = Types.type_subst 
-    (Types.TNfmap.from_list2 c_d.const_tparams id.instantiation) 
+  let t = Types.type_subst
+    (Types.TNfmap.from_list2 c_d.const_tparams id.instantiation)
     c_d.const_type in
   C.mk_const l id (Some t)
 
@@ -1990,7 +1990,7 @@ let transform_rules env localrels mode reldescr print_debug =
    and then try to see what mode can effectively computed from that.
    We then try to get the least fixed point
 *)
-let join f a b = 
+let join f a b =
   List.concat (List.map (fun x -> List.map (fun y -> f x y ) b) a)
 
 let gen_fns_info_aux l mod_path ctxt rels =
@@ -2028,8 +2028,8 @@ let list_possible_modes mod_path ctxt rels =
     Nfmap.map (fun relname reldescr ->
       let out_modes = [Out_list] in
       let wit_modes = if reldescr.rel_witness = None then [false] else [false;true] in
-      let io_modes = List.fold_left 
-        (fun acc _ -> join (fun x y -> x::y) [Rel_mode_in; Rel_mode_out] acc) 
+      let io_modes = List.fold_left
+        (fun acc _ -> join (fun x y -> x::y) [Rel_mode_in; Rel_mode_out] acc)
         [[]] reldescr.rel_argtypes in
       let back_map = Hashtbl.create 17 in
       List.iter (fun (name, mdesc) ->
@@ -2046,12 +2046,12 @@ let list_possible_modes mod_path ctxt rels =
       { reldescr with rel_indfns = modes }
     ) rels
   in
-  let modeset_equals rels1 rels2 = 
+  let modeset_equals rels1 rels2 =
     Nfmap.fold (fun acc _ x -> acc && x) true
       (Nfmap.merge (fun _ a b -> match a, b with
         | None, None -> Some(true)
-        | Some(rd1), Some(rd2) -> 
-          Some(List.length rd1.rel_indfns = List.length rd2.rel_indfns 
+        | Some(rd1), Some(rd2) ->
+          Some(List.length rd1.rel_indfns = List.length rd2.rel_indfns
               && List.for_all (fun e -> List.mem e rd2.rel_indfns) rd1.rel_indfns)
         | _ -> Some(false)) rels1 rels2)
   in
@@ -2061,13 +2061,13 @@ let list_possible_modes mod_path ctxt rels =
     Nfmap.map (fun _ reldescr ->
       { reldescr with rel_indfns = List.filter (fun (_,mode) ->
         try
-          ignore (transform_rules env rels mode reldescr false); 
+          ignore (transform_rules env rels mode reldescr false);
           true
         with _ -> false
       )  reldescr.rel_indfns}
     ) rels
   in
-  let rec iter rels = 
+  let rec iter rels =
     let newrels = shrink_modeset rels in
     if modeset_equals rels newrels
     then rels
@@ -2148,7 +2148,7 @@ let gen_fns_def env l mpath localenv names rules local =
     !transformed;
   let u,v = compile_to_typed_ast env !transformed_rules in
   let code = u,v,local in
-  let emptydef = 
+  let emptydef =
     Nfmap.fold (fun b _ (_,l) -> b && [] = l) true !transformed_rules in
   if emptydef then []
   else [code]
@@ -2156,7 +2156,7 @@ let gen_fns_def env l mpath localenv names rules local =
 let gen_witness_type_macro env mpath localenv def =
   match def with
     | (Indreln(x,y,names,rules),z), l, local ->
-      let remove_witness = 
+      let remove_witness =
         function RName(a,a',b,c,d,_witness,f,g,h) ->
           RName(a,a',b,c,d,None,f,g,h)
       in
@@ -2170,7 +2170,7 @@ let gen_witness_type_macro env mpath localenv def =
 let gen_witness_check_macro env mpath localenv def_ =
   match def_ with
     | (Indreln(x,y,names,rules),z), l, local ->
-      let remove_check = 
+      let remove_check =
         function RName(a,a',b,c,d,e,_check,g,h) ->
            RName(a,a',b,c,d,e,None,g,h)
       in
@@ -2184,7 +2184,7 @@ let gen_witness_check_macro env mpath localenv def_ =
 let gen_fns_macro env mpath localenv def =
   match def with
     | (Indreln(x,y,names,rules),z), l, local ->
-      let remove_indfns = 
+      let remove_indfns =
         function RName(a,a',b,c,d,e,f,_indfns,h) ->
           RName(a,a',b,c,d,e,f,None,h)
       in

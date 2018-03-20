@@ -51,5 +51,3 @@ val initial_env : Typed_ast.env
     avoided for target [target]. These constants are read from a file [lib_path/{target}_constants].
     If this file does not exists, the empty set is returned. *)
 val read_target_constants : string -> Target.target -> Typed_ast.NameSet.t
-
-

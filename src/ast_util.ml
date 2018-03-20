@@ -53,17 +53,17 @@ let xl_to_name x =
   Name.strip_lskip (Name.from_x x)
 
 let id_vars not_shadowed = function
-  | Id([],xl,_) -> 
+  | Id([],xl,_) ->
       let n = xl_to_name xl in
         if not_shadowed n then
           NameSet.singleton n
-        else 
+        else
           emp
-  | Id((xl,_)::_,_,_) -> 
+  | Id((xl,_)::_,_,_) ->
       let n = xl_to_name xl in
         if not_shadowed n then
           NameSet.singleton n
-        else 
+        else
           emp
 
 let rec pat_vars not_shadowed (Pat_l(p,l)) =
@@ -105,7 +105,7 @@ let rec setcomp_bindings not_shadowed (Expr_l(e,l)) =
       | Ident(id) -> id_vars not_shadowed id
       | Backend _ -> NameSet.empty
       | Fun(_,Patsexp(ps,_,e,_)) ->
-          NameSet.diff 
+          NameSet.diff
             (scb e)
             (pats_vars not_shadowed ps)
       | Function(_,_,_,pes,_) ->
@@ -121,7 +121,7 @@ let rec setcomp_bindings not_shadowed (Expr_l(e,l)) =
           let n = Name.from_rope op in
             if not_shadowed n then
               NameSet.add n s
-            else 
+            else
               s
       | Record(_,(Fexps(fexpr_terms,_,_,_)),_) ->
           scb_list (List.map (fun (Fexp(_,_,e,_),_) -> e) fexpr_terms)
@@ -132,9 +132,9 @@ let rec setcomp_bindings not_shadowed (Expr_l(e,l)) =
       | Field(e,_,_) ->
           scb e
       | Case(_,e,_,_,_,patexprs,_,_) ->
-          List.fold_right 
-            (fun (Patexp(p,_,e,_),_) s -> NameSet.union (NameSet.diff (scb e) (pat_vars not_shadowed p)) s) 
-            patexprs 
+          List.fold_right
+            (fun (Patexp(p,_,e,_),_) s -> NameSet.union (NameSet.diff (scb e) (pat_vars not_shadowed p)) s)
+            patexprs
             (scb e)
       | Typed(_,e,_,_,_) ->
           scb e
@@ -168,7 +168,7 @@ let rec setcomp_bindings not_shadowed (Expr_l(e,l)) =
       | Listcomp(_,e1,_,_,qbs,_,e2,_) ->
           setcomp_bindings_qbs not_shadowed qbs (NameSet.union (scb e1) (scb e2))
       | Do(_,_,lns,_,e,_) ->
-          setcomp_bindings_lns not_shadowed lns (scb e) 
+          setcomp_bindings_lns not_shadowed lns (scb e)
 
 and setcomp_bindings_lns not_shadowed =
   List.fold_right
@@ -199,7 +199,7 @@ and letbind_freevars not_shadowed = function
 let get_imported_modules_of_def_aux l = function
   | Open_import ((OI_import _ | OI_open_import _ | OI_include_import _), ids) ->
       List.map (fun id -> (Path.from_id (Ident.from_id id), l)) ids
-  | _ -> [] 
-  
+  | _ -> []
+
 let get_imported_modules (Defs ds, _) =
   List.flatten (List.map (fun (Def_l (d, l), _, _) -> get_imported_modules_of_def_aux l d) ds)

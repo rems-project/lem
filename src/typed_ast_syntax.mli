@@ -77,7 +77,7 @@ val lookup_env_opt : env -> Name.t list -> local_env option
     error instead of returning [None], if no environment can be found. *)
 val lookup_env : env -> Name.t list -> local_env
 
-(** [env_apply env comp_opt n] looks up the name [n] in the environment [env]. If 
+(** [env_apply env comp_opt n] looks up the name [n] in the environment [env]. If
     component [comp] is given, only this type of component is searched. Otherwise,
     it checks whether [n] refers to a type, field, constructor or constant. [env_apply] returns the
     kind of this name, it's full path and the location of the original definition. *)
@@ -96,7 +96,7 @@ val lookup_mod_descr : env -> Name.t list -> Name.t -> mod_descr
 
 (** [names_get_const env path n] looks up the constant with name [n] reachable via path [path] in
    the environment [env] *)
-val names_get_const : env -> Name.t list -> Name.t -> const_descr_ref * const_descr 
+val names_get_const : env -> Name.t list -> Name.t -> const_descr_ref * const_descr
 
 (** [strings_get_const] is a wrapper around [names_get_const] that uses strings instead of names. *)
 val strings_get_const : env -> string list -> string -> const_descr_ref * const_descr
@@ -133,8 +133,8 @@ val mk_const_exp : env -> Ast.l -> string -> Types.t list -> exp
 (** [dest_field_types l env f] looks up the types of the field [f] in environment [env].
     It first gets the description [f_descr] of the field [f] in [env]. It then looks up
     the type of [f]. For fields, this type is always of the form [field_type --> (free_vars) rec_ty_path].
-    [dest_field_types] checks that [free_vars] corresponds with the free typevariables of [f_descr]. 
-    If the type of [f] is not of the described from, or if [free_vars] does not correspond, 
+    [dest_field_types] checks that [free_vars] corresponds with the free typevariables of [f_descr].
+    If the type of [f] is not of the described from, or if [free_vars] does not correspond,
     the constant did not describe a proper field. In this case, [dest_field_types] fails. Otherwise,
     it returns [(field_type, rec_ty_path, f_descr)]. *)
 val dest_field_types : Ast.l -> env -> const_descr_ref -> Types.t * Path.t * const_descr
@@ -147,16 +147,16 @@ val get_field_type_descr : Ast.l -> env -> const_descr_ref -> Types.type_descr
     the record type of the field [f]. It then returns a list of all the other fields of this record. *)
 val get_field_all_fields : Ast.l -> env -> const_descr_ref -> const_descr_ref list
 
-(** [lookup_class_descr l env c_path] looks up the description of type-class [c_path] in environment [env]. 
+(** [lookup_class_descr l env c_path] looks up the description of type-class [c_path] in environment [env].
     If [c_path] is no valid type-class, an exception is raised. *)
 val lookup_class_descr : Ast.l -> env -> Path.t -> Types.class_descr
 
-(** [lookup_field_for_class_method l cd method_ref] looks up the field reference corresponding to 
+(** [lookup_field_for_class_method l cd method_ref] looks up the field reference corresponding to
     the method identified by [method_ref] in the description [cd] of a type class.
     If the reference does not point to a method of this type-class, an exception is raised. *)
 val lookup_field_for_class_method : Ast.l -> Types.class_descr -> const_descr_ref -> const_descr_ref
 
-(** [lookup_inst_method_for_class_method l i method_ref] looks up the instance method reference corresponding to 
+(** [lookup_inst_method_for_class_method l i method_ref] looks up the instance method reference corresponding to
     the method identified by [method_ref] in the instance [i].
     If the reference does not point to a method of this instance, an exception is raised. *)
 val lookup_inst_method_for_class_method : Ast.l -> Types.instance -> const_descr_ref -> const_descr_ref
@@ -168,7 +168,7 @@ val class_descr_get_dict_type : Types.class_descr -> Types.t -> Types.t
 (** Some targets may choose to not use type-classes to implement certain functions. An example is the equality type-class,
     which is implemented using just the build-in equality of HOL, Coq and Isabelle instead of one determined by
     the type-class. If all methods of a type-class are specially treated like this, the type-class does not need to
-    be generated at all. This involves not generating the record definition, not generating instances and not 
+    be generated at all. This involves not generating the record definition, not generating instances and not
     using dictionary style passing for the class. The function [class_all_methods_inlined_for_target l env targ class_path] checks,
     wether all methods of [class_path] are inlined for target [targ]. *)
 val class_all_methods_inlined_for_target : Ast.l -> env -> Target.target -> Path.t -> bool
@@ -177,7 +177,7 @@ val class_all_methods_inlined_for_target : Ast.l -> env -> Target.target -> Path
     the function [up]. *)
 val update_const_descr : Ast.l -> (const_descr -> const_descr) -> const_descr_ref -> env -> env
 
-(** [c_env_store c_env c_d] stores the description [c_d] 
+(** [c_env_store c_env c_d] stores the description [c_d]
     environment [c_env]. Thereby, a new unique reference is generated and returned
     along with the modified environment. *)
 val c_env_store : c_env -> const_descr -> (c_env * const_descr_ref)
@@ -191,14 +191,14 @@ val c_env_save : c_env -> const_descr_ref option -> const_descr -> c_env * const
 (** [const_target_rep_to_loc rep] returns the location, at which [rep] is defined. *)
 val const_target_rep_to_loc : const_target_rep -> Ast.l
 
-(** [const_target_rep_allow_override rep] returns whether this representation can be redefined. 
+(** [const_target_rep_allow_override rep] returns whether this representation can be redefined.
     Only auto-generated target-reps should be redefinable by the user. *)
 val const_target_rep_allow_override : const_target_rep -> bool
 
 (** [type_target_rep_to_loc rep] returns the location, at which [rep] is defined. *)
 val type_target_rep_to_loc : type_target_rep -> Ast.l
 
-(** [type_target_rep_allow_override rep] returns whether this representation can be redefined. 
+(** [type_target_rep_allow_override rep] returns whether this representation can be redefined.
     Only auto-generated target-reps should be redefinable by the user. *)
 val type_target_rep_allow_override : type_target_rep -> bool
 
@@ -212,10 +212,10 @@ val type_target_rep_allow_override : type_target_rep -> bool
 val constant_descr_to_name : Target.target -> const_descr -> (bool * Name.t * Name.t option)
 
 
-(** [const_descr_ref_to_ascii_name env c] tries to find a simple 
+(** [const_descr_ref_to_ascii_name env c] tries to find a simple
     identifier for constant [c]. The exact identifier does not matter, but should somehow
     be familiar to the user. It looks up the constant names, ascii-representations and
-    renamings for various backends. If everything fails, it just makes a name up. *) 
+    renamings for various backends. If everything fails, it just makes a name up. *)
 val const_descr_ref_to_ascii_name : c_env -> const_descr_ref -> Name.t
 
 (** [type_descr_to_name targ ty td] looks up the representation for target [targ] in the type
@@ -225,7 +225,7 @@ val const_descr_ref_to_ascii_name : c_env -> const_descr_ref -> Name.t
 val type_descr_to_name : Target.target -> Path.t -> Types.type_descr -> Name.t
 
 (** [const_descr_rename targ n' l' cd] looks up the representation for target [targ] in the constant
-    description [cd]. It then updates this description by renaming to the new name [n'] and new location [l']. 
+    description [cd]. It then updates this description by renaming to the new name [n'] and new location [l'].
     The updated description is returned along with information of where the constant was last renamed and to which name. *)
 val constant_descr_rename : Target.non_ident_target -> Name.t -> Ast.l -> const_descr -> (const_descr * (Ast.l * Name.t) option)
 
@@ -235,7 +235,7 @@ val constant_descr_rename : Target.non_ident_target -> Name.t -> Ast.l -> const_
 val mod_target_rep_rename : Target.non_ident_target -> string -> Name.t -> Ast.l -> mod_target_rep Target.Targetmap.t -> mod_target_rep Target.Targetmap.t
 
 (** [type_descr_rename targ n' l' td] looks up the representation for target [targ] in the type
-    description [td]. It then updates this description by renaming to the new name [n'] and new location [l']. 
+    description [td]. It then updates this description by renaming to the new name [n'] and new location [l'].
     The updated description is returned along with information of where the type
     was last renamed and to which name. *)
 val type_descr_rename : Target.non_ident_target -> Name.t -> Ast.l -> Types.type_descr -> Types.type_descr * (Ast.l * Name.t) option
@@ -251,7 +251,7 @@ val const_descr_has_target_rep : Target.target -> Typed_ast.const_descr -> bool
 (** {2 Constructing, checking and destructing expressions} *)
 
 (** [mk_name_lskips_annot] creates an annoted name *)
-val mk_name_lskips_annot : Ast.l -> Name.lskips_t -> Types.t -> name_lskips_annot 
+val mk_name_lskips_annot : Ast.l -> Name.lskips_t -> Types.t -> name_lskips_annot
 
 (** Destructor for variable expressions *)
 val dest_var_exp : exp -> Name.t option
@@ -269,7 +269,7 @@ val is_tup_exp : int option -> exp -> bool
 (** [is_var_tup_exp e] checks, whether [e] is an expression consisting only of
     variables and tuples. I.e. simple variable expressions, tuples containing
     only variables and tuples containing other variable-tuples are accepted. *)
-val is_var_tup_exp : exp -> bool 
+val is_var_tup_exp : exp -> bool
 
 (** [mk_tf_exp] creates [true] and [false] expressions. *)
 val mk_tf_exp : bool -> exp
@@ -374,7 +374,7 @@ val mk_eta_expansion_exp : Types.type_defs -> Name.t list -> exp -> exp
     means that whitespace (except comments) are deleted before expression [e]. *)
 val mk_paren_exp : exp -> exp
 
-(** [mk_opt_paren_exp e] adds parenthesis around expression [e] if it seems sensible. 
+(** [mk_opt_paren_exp e] adds parenthesis around expression [e] if it seems sensible.
     For parenthesis, variable expressions and tuples, the parenthesis are skipped, though. *)
 val mk_opt_paren_exp : exp -> exp
 
@@ -384,7 +384,7 @@ val may_need_paren : exp -> bool
 
 (** [mk_case_exp final l e rows ty] constructs a case (match) expression. In contrast to
     [Typed_ast.mk_case] it uses standard spacing and adds parenthesis. *)
-val mk_case_exp : bool -> Ast.l -> exp -> (pat * exp) list -> Types.t -> exp 
+val mk_case_exp : bool -> Ast.l -> exp -> (pat * exp) list -> Types.t -> exp
 
 (** [mk_let_exp l (n, e1) e2] constructs the expression [let n = e1 in e2] using
     default spacing. *)
@@ -420,10 +420,10 @@ val is_infix_exp : exp -> bool
 (** [strip_infix_exp e] is similar to [dest_infix_exp], but returns the result in the same way as
     [strip_app_exp]. If [e] is of the form
     [l infix_op r] then [(infix_op, [l;r])] is returned, otherwise [(e, [])]. *)
-val strip_infix_exp : exp -> exp * exp list 
+val strip_infix_exp : exp -> exp * exp list
 
-(** [strip_app_infix_exp e] is a combination of [strip_infix_exp] and [strip_app_exp]. 
-    The additional boolean result states, whether [e] is an infix operation. 
+(** [strip_app_infix_exp e] is a combination of [strip_infix_exp] and [strip_app_exp].
+    The additional boolean result states, whether [e] is an infix operation.
     If [e] is an infix operation [strip_infix_exp] is called and the additional boolean result
     is [true]. Otherwise [strip_app_exp] is called and the result is set to [false]. *)
 val strip_app_infix_exp : exp -> exp * exp list * bool
@@ -431,26 +431,26 @@ val strip_app_infix_exp : exp -> exp * exp list * bool
 
 (** {2 Constructing, checking and destructing definitions} *)
 
-(** [is_type_def_abbrev d] checks whether the definition [d] is a 
+(** [is_type_def_abbrev d] checks whether the definition [d] is a
     type-abbreviation definition. *)
 val is_type_def_abbrev : def -> bool
 
-(** [is_type_def_abbrev d] checks whether the definition [d] is a 
+(** [is_type_def_abbrev d] checks whether the definition [d] is a
     definition of a record_type. *)
 val is_type_def_record : def -> bool
 
 
 (** {2 Collecting information about uses constants, types, modules ...} *)
 
-(** The type [used_entities] collects lists of used constant references, modules and types of some expression, definition, pattern ... 
+(** The type [used_entities] collects lists of used constant references, modules and types of some expression, definition, pattern ...
    used_entities is using lists, because the order in which entities occur might be important for renaming.
    However, these lists should not contain duplicates. *)
-type used_entities = { 
-   used_consts : const_descr_ref list; 
+type used_entities = {
+   used_consts : const_descr_ref list;
    used_consts_set : Cdset.t;
-   used_types : Path.t list; 
+   used_types : Path.t list;
    used_types_set : Pset.t;
-   used_modules : Path.t list; 
+   used_modules : Path.t list;
    used_modules_set : Pset.t;
    used_tnvars : TNset.t }
 
@@ -459,8 +459,8 @@ val empty_used_entities : used_entities
 
 val add_exp_entities : used_entities -> exp -> used_entities
 
-(** [add_def_aux_entities targ only_new ue def] adds all the modules, types, constants ... used by definition [def] for target 
-    [targ] to [ue]. If the flag [only_new] is set, only the newly defined are added. 
+(** [add_def_aux_entities targ only_new ue def] adds all the modules, types, constants ... used by definition [def] for target
+    [targ] to [ue]. If the flag [only_new] is set, only the newly defined are added.
     Notice, that the identity backend won't throw parts of modules away. Therefore the result for the identiy backend
     is the union of the results for all other backends. *)
 val add_def_aux_entities : Target.target -> bool -> used_entities -> Typed_ast.def_aux -> used_entities
@@ -468,8 +468,8 @@ val add_def_aux_entities : Target.target -> bool -> used_entities -> Typed_ast.d
 (** [add_def_entities] is called [add_def_aux_entities] after extracting the appropriate [def_aux]. *)
 val add_def_entities : Target.target -> bool -> used_entities -> Typed_ast.def -> used_entities
 
-(** [get_checked_module_entities targ only_new ml] gets all the modules, types, constants ... used by modules [ml] for target 
-    [targ]. If the flag [only_new] is set, only the newly defined are returned. 
+(** [get_checked_module_entities targ only_new ml] gets all the modules, types, constants ... used by modules [ml] for target
+    [targ]. If the flag [only_new] is set, only the newly defined are returned.
     Notice, that the identity backend won't throw parts of modules away. Therefore the result for the identiy backend
     is the union of the results for all other backends. *)
 val get_checked_modules_entities : Target.target -> bool -> checked_module list -> used_entities
@@ -515,7 +515,7 @@ val is_pp_exp : exp -> bool
 val is_pp_def : def -> bool
 
 (** [val_def_get_name d] tries to extract the name of the defined function. *)
-val val_def_get_name : val_def -> Name.lskips_t option 
+val val_def_get_name : val_def -> Name.lskips_t option
 
 (** [val_def_get_class_constraints_no_target_rep env targ vd] collects the class constraints of all top-level function definitions
     in [vd], which don't have a target-specific representation for target [targ]. Warning: contraints may appear multiple times in the resulting list *)
@@ -534,14 +534,14 @@ val env_tag_to_string : env_tag -> string
 
 
 (** [constr_family_to_id l env ty cf] tries to instantiate the constructor family [cf] to be used
-    on a match statement where the matched type is [ty]. If it succeeeds the properly instantiated 
+    on a match statement where the matched type is [ty]. If it succeeeds the properly instantiated
     construtor ids + the instantiated case split function is returned. However, returning the case-split
     function is a bit complicated. It depends on the return type of match expression as well. Moreover, it
     might not be there at all, if the targets build-in pattern matching should be used to construct one.
     Therefore, an optional function from a type (the return type) to an id is returned for the case-split function. *)
 val constr_family_to_id : Ast.l -> env -> Types.t -> constr_family_descr -> ((const_descr_ref id) list * (t -> (const_descr_ref id)) option) option
 
-(** [check_constr_family] is similar to [constr_family_to_id]. It does not return the instantiations though, but 
+(** [check_constr_family] is similar to [constr_family_to_id]. It does not return the instantiations though, but
     produces a nicely formatted error, in case no such instantiations could be found. *)
 val check_constr_family : Ast.l -> env -> Types.t -> constr_family_descr -> unit
 

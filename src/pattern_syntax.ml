@@ -51,7 +51,7 @@ module C = Exps_in_context(struct let env_opt = None let avoid = None end)
 let rec is_var_wild_pat (p : pat) : bool =
   match p.term with
     | P_wild _ | P_var _ | P_var_annot _ -> true
-    | P_typ(_,p,_,_,_) | P_paren(_,p,_) -> 
+    | P_typ(_,p,_,_,_) | P_paren(_,p,_) ->
         is_var_wild_pat p
     | _ -> false
 
@@ -59,7 +59,7 @@ let rec dest_ext_var_pat (p : pat) : Name.t option =
   match p.term with
     | P_var ns -> Some (Name.strip_lskip ns)
     | P_var_annot (ns, _) -> Some (Name.strip_lskip ns)
-    | P_typ(_,p,_,_,_) | P_paren(_,p,_) -> 
+    | P_typ(_,p,_,_,_) | P_paren(_,p,_) ->
         dest_ext_var_pat p
     | _ -> None
 
@@ -75,14 +75,14 @@ let is_var_pat (p : pat) : bool =
     | P_var _ -> true
     | _ -> false
 
-let rec pat_to_ext_name (p:pat) : name_lskips_annot option = 
+let rec pat_to_ext_name (p:pat) : name_lskips_annot option =
   match p.term with
     | P_var n -> Some { term = n; typ= p.typ; locn = p.locn; rest = (); }
     | P_var_annot (n, _) -> Some { term = n; typ= p.typ; locn = p.locn; rest = (); }
     | P_typ(_,p,_,_,_) | P_paren(_,p,_) -> pat_to_ext_name p
     | _ -> None
 
-(** Is it a wildcard pattern? Nothing else including typed vars accepted. 
+(** Is it a wildcard pattern? Nothing else including typed vars accepted.
     @param p Something *)
 let rec is_wild_pat (p : pat) : bool =
   match p.term with
@@ -91,7 +91,7 @@ let rec is_wild_pat (p : pat) : bool =
 
 let rec dest_tup_pat (lo : int option) (p : pat) : pat list option =
   match p.term with
-    | P_tup (_, sl, _) -> 
+    | P_tup (_, sl, _) ->
       begin
         let l = Seplist.to_list sl in
         match lo with None -> Some l
@@ -105,7 +105,7 @@ let mk_tup_pat = function [p] -> p | pL ->
   let l = Ast.Trans (true, "mk_tup_pat", None) in
   let ty = { Types.t = Types.Ttup(List.map annot_to_typ pL) } in
   let ps = Seplist.from_list (List.map (fun p -> (p, None)) pL) in
-  let p = C.mk_ptup l None ps None (Some ty) 
+  let p = C.mk_ptup l None ps None (Some ty)
 in p
 
 
@@ -126,7 +126,7 @@ let mk_tf_pat b =
   let l = Ast.Trans (false, "mk_tf_pat", None) in
   let bool_ty = { Types.t = Types.Tapp ([], Path.boolpath) } in
   let lit = C.mk_lbool l None b (Some bool_ty) in
-  let exp = C.mk_plit l lit (Some bool_ty) 
+  let exp = C.mk_plit l lit (Some bool_ty)
 in exp
 
 let mk_paren_pat =
@@ -146,9 +146,9 @@ let mk_opt_paren_pat (p :pat) : pat =
       | P_const (_, pL) -> not (pL = [])
       | P_backend (_, _, _, pL) -> not (pL = [])
       | _ -> true
-  in 
-  if (needs_parens) then 
-    mk_paren_pat p 
+  in
+  if (needs_parens) then
+    mk_paren_pat p
   else p
 
 
@@ -164,7 +164,7 @@ let rec dest_num_pat (p :pat) : int option =
 
 let is_num_pat p = not (dest_num_pat p = None)
 
-let mk_num_pat num_ty i = 
+let mk_num_pat num_ty i =
   let l = Ast.Trans (false, "mk_num_pat", None) in
   let lit = C.mk_lnum l None i None num_ty in
   C.mk_plit l lit (Some num_ty)
@@ -176,17 +176,17 @@ let rec dest_num_add_pat (p :pat) : (Name.t * int) option =
   | P_typ(_,p,_,_,_) -> dest_num_add_pat p
   | _ -> None
 
-let is_num_add_pat p = 
+let is_num_add_pat p =
   not (dest_num_add_pat p = None)
 
-let mk_num_add_pat num_ty n i = 
+let mk_num_add_pat num_ty n i =
   let l = Ast.Trans (false, "mk_num_add_pat", None) in
   mk_paren_pat (C.mk_pnum_add l (Name.add_lskip n,l) space space i (Some num_ty))
 
 let num_ty_pat_cases f_v f_i f_a f_w f_else p =
   Util.option_cases (dest_ext_var_pat p) f_v (fun () ->
                  Util.option_cases (dest_num_pat p) f_i (fun () ->
-                   Util.option_cases (dest_num_add_pat p) (fun (n,i) -> 
+                   Util.option_cases (dest_num_add_pat p) (fun (n,i) ->
                        if i = 0 then f_v n else f_a n i)
                      (fun () -> if is_wild_pat p then f_w else f_else p)))
 
@@ -238,7 +238,7 @@ let is_const_pat p = not (dest_const_pat p = None)
 
 let rec dest_record_pat (p : pat) : (const_descr_ref id * pat) list option =
   match p.term with
-    | P_record (_, sl, _) -> 
+    | P_record (_, sl, _) ->
      begin
         let l = Seplist.to_list sl in
         let l' = List.map (fun (i, _, p) -> (i, p)) l in
@@ -254,7 +254,7 @@ let direct_subpats (p : pat) : pat list =
   match p.term with
     | (P_lit _ | P_wild _ | P_var _ | P_var_annot _) -> []
     | P_num_add (_, _, _, _) -> []
-    | P_typ (_,p,_,_,_) -> [p] 
+    | P_typ (_,p,_,_,_) -> [p]
     | P_paren(_,p,_) -> [p]
     | P_const(_,ps) -> ps
     | P_backend(_,_,_,ps) -> ps
@@ -270,10 +270,10 @@ let rec subpats (p : pat) : pat list =
   let spL = List.map subpats (direct_subpats p) in
   p :: (List.flatten spL)
 
-let rec exists_subpat (cf : pat -> bool) (p : pat) : bool = 
+let rec exists_subpat (cf : pat -> bool) (p : pat) : bool =
   cf p || List.exists (exists_subpat cf) (direct_subpats p)
 
-let rec for_all_subpat (cf : pat -> bool) (p : pat) : bool = 
+let rec for_all_subpat (cf : pat -> bool) (p : pat) : bool =
   cf p && List.for_all (for_all_subpat cf) (direct_subpats p)
 
 let rec is_var_tup_pat p : bool = match p.term with
@@ -297,7 +297,7 @@ let split_var_annot_pat p = match p.term with
   | P_var_annot (n, src_t) -> C.mk_ptyp (p.locn) None (C.mk_pvar (p.locn) n (annot_to_typ p)) None src_t None (Some (annot_to_typ p))
   | _ -> p
 
-let rec single_pat_exhaustive (p : pat) : bool = 
+let rec single_pat_exhaustive (p : pat) : bool =
   match p.term with
     | P_wild _ | P_var _ | P_var_annot _ -> true
     | P_tup(_,ps,_) ->
@@ -314,7 +314,7 @@ let rec single_pat_exhaustive (p : pat) : bool =
     | P_num_add (_, _, _, n) -> (n = 0)
     | P_lit _ | P_list _ | P_cons _ | P_vector _ | P_vectorC _ ->
         false
-    | P_as(_,p,_,_,_) | P_typ(_,p,_,_,_) | P_paren(_,p,_) -> 
+    | P_as(_,p,_,_,_) | P_typ(_,p,_,_,_) | P_paren(_,p,_) ->
         single_pat_exhaustive p
 
 let rec pat_vars_src p = match p.term with
@@ -343,11 +343,11 @@ let rec pat_vars_src p = match p.term with
   | _ -> raise (Reporting_basic.err_todo true p.locn "Unimplemented pattern in pat_vars_src")
 
 
-let rec pat_extract_lskips p = 
+let rec pat_extract_lskips p =
   let sk_flatten sks = List.fold_right Ast.combine_lex_skips sks None in
   match p.term with
   | P_wild s -> s
-  | P_as(s1,p,s2,(n,_),s3) -> 
+  | P_as(s1,p,s2,(n,_),s3) ->
       sk_flatten [s1; pat_extract_lskips p; s2; Name.get_lskip n; s3]
   | P_typ(s1,p,s2,_,s3) -> (* TODO extract from src_t as well *)
       sk_flatten [s1; pat_extract_lskips p; s2; s3]
@@ -377,11 +377,11 @@ let rec pat_extract_lskips p =
 
 
 exception Pat_to_exp_unsupported of Ast.l * string
-let rec pat_to_exp env p = 
+let rec pat_to_exp env p =
   let module C = Exps_in_context(struct let env_opt = Some env let avoid = None end) in
   let l_unk = Ast.Trans(true, "pat_to_exp", Some p.locn) in
   match p.term with
-    | P_wild(lskips) -> 
+    | P_wild(lskips) ->
         raise (Pat_to_exp_unsupported(p.locn, "_ pattern"))
     | P_as(_,p,_,(n,_),_) ->
         raise (Pat_to_exp_unsupported(p.locn, "as pattern"))
@@ -416,7 +416,7 @@ let rec pat_to_exp env p =
           C.mk_infix p.locn (pat_to_exp env p1) (append_lskips lskips cons) (pat_to_exp env p2) None
     | P_lit(l) ->
         C.mk_lit p.locn l None
-    | P_num_add _ -> 
+    | P_num_add _ ->
         raise (Pat_to_exp_unsupported(p.locn, "add_const pattern"))
     | P_var_annot(n,t) ->
         C.mk_typed p.locn None (C.mk_var p.locn n p.typ) None t None None

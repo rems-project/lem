@@ -50,7 +50,7 @@
 
 (** Warnings can be caused by definitions or expressions. The type [warm_source] allows
     to pass the origin easily to warnings *)
-type warn_source = 
+type warn_source =
   | Warn_source_exp of Typed_ast.exp
   | Warn_source_def of Typed_ast.def
   | Warn_source_unkown
@@ -59,41 +59,41 @@ val warn_source_to_locn : warn_source -> Ast.l
 
 (** Warnings are problems that Lem can deal with. Depending on user settings, they
     can be completely ignored, reported to the user or even be treated as an error. *)
-type warning = 
+type warning =
   | Warn_general of bool * Ast.l * string
     (** [Warn_general vl ls m] is a general warning with message [m], locations [ls] and a flag [vl] whether to print these locations verbosely. *)
 
-  | Warn_rename of Ast.l * string * (string * Ast.l) option * string * Target.target 
+  | Warn_rename of Ast.l * string * (string * Ast.l) option * string * Target.target
     (** Warning about renaming an identifier. The arguments are the old name, an optional intermediate one, the new name and the target *)
 
-  | Warn_pattern_compilation_failed of Ast.l * Typed_ast.pat list * warn_source 
+  | Warn_pattern_compilation_failed of Ast.l * Typed_ast.pat list * warn_source
     (** pattern compilation failed *)
 
   | Warn_pattern_not_exhaustive of Ast.l * Typed_ast.pat list list
     (** pattern match is not exhaustive *)
 
   | Warn_def_not_exhaustive of Ast.l * string * Typed_ast.pat list list
-    (** a function is defined using non-exhaustive pattern-matching *) 
+    (** a function is defined using non-exhaustive pattern-matching *)
 
-  | Warn_pattern_redundant of Ast.l * (int * Typed_ast.pat) list * Typed_ast.exp 
+  | Warn_pattern_redundant of Ast.l * (int * Typed_ast.pat) list * Typed_ast.exp
     (** redundant patterns in pattern-match *)
 
-  | Warn_def_redundant of Ast.l * string * (int * Typed_ast.pat) list * Typed_ast.def 
+  | Warn_def_redundant of Ast.l * string * (int * Typed_ast.pat) list * Typed_ast.def
     (** redundant patterns in function definition *)
 
-  | Warn_pattern_needs_compilation of Ast.l * Target.target * Typed_ast.exp * Typed_ast.exp 
+  | Warn_pattern_needs_compilation of Ast.l * Target.target * Typed_ast.exp * Typed_ast.exp
     (** [Warn_pattern_needs_compilation l topt old_e new_e] warns about the compilation of [old_e] to [new_e] for target [topt] *)
 
-  | Warn_unused_vars of Ast.l * string list * warn_source 
+  | Warn_unused_vars of Ast.l * string list * warn_source
     (** unused variables detected *)
 
-  | Warn_fun_clauses_resorted of Ast.l * Target.target * string list * Typed_ast.def 
+  | Warn_fun_clauses_resorted of Ast.l * Target.target * string list * Typed_ast.def
     (** clauses of mutually recursive function definitions resorted *)
 
   | Warn_record_resorted of Ast.l * Typed_ast.exp
     (** record fields resorted *)
 
-  | Warn_no_decidable_equality of Ast.l * string 
+  | Warn_no_decidable_equality of Ast.l * string
     (** no decidable equality *)
 
   | Warn_compile_message of Ast.l * Target.target * Path.t * string
@@ -118,8 +118,8 @@ val warnings_active : bool ref
     do nothing, print a warning message or print an error message and exit Lem *)
 val report_warning : Typed_ast.env -> warning -> unit
 
-(** [report_warning_no_env w] reports a warning, when no-environment is available. 
-    In contrast to [report_warning] the warning messages might be more basic, since 
+(** [report_warning_no_env w] reports a warning, when no-environment is available.
+    In contrast to [report_warning] the warning messages might be more basic, since
     no information can be extracted from the environment. *)
 val report_warning_no_env : warning -> unit
 
@@ -127,7 +127,7 @@ val report_warning_no_env : warning -> unit
 
 (** Command line options for warnings *)
 val warn_opts : (string * Arg.spec * string) list
-  
+
 (** Turn off pattern compilation warnings, used by main *)
 val ignore_pat_compile_warnings : unit -> unit
 

@@ -46,7 +46,7 @@
 
 open Reporting_basic
 
-type warn_source = 
+type warn_source =
   | Warn_source_exp of Typed_ast.exp
   | Warn_source_def of Typed_ast.def
   | Warn_source_unkown
@@ -55,10 +55,10 @@ let warn_source_to_locn = function
     Warn_source_exp e -> Typed_ast.exp_to_locn e
   | Warn_source_def (_, l, _) -> l
   | Warn_source_unkown -> Ast.Unknown
-  
-type warning = 
+
+type warning =
   | Warn_general of bool * Ast.l * string
-  | Warn_rename of Ast.l * string * (string * Ast.l) option * string * Target.target 
+  | Warn_rename of Ast.l * string * (string * Ast.l) option * string * Target.target
   | Warn_pattern_compilation_failed of Ast.l * Typed_ast.pat list * warn_source
   | Warn_pattern_not_exhaustive of Ast.l * Typed_ast.pat list list
   | Warn_def_not_exhaustive of Ast.l * string * Typed_ast.pat list list
@@ -75,7 +75,7 @@ type warning =
   | Warn_ambiguous_code of Ast.l * string
 
 let warn_source_to_string exp def ws =
-  match ws with 
+  match ws with
       Warn_source_exp e -> Some ("expression", Ulib.Text.to_string (exp e))
     | Warn_source_def d -> Some ("definition", Ulib.Text.to_string (def d))
     | Warn_source_unkown -> None
@@ -85,7 +85,7 @@ let warn_source_to_string exp def ws =
    l: the source location
    m: the message to display
 *)
-let dest_warning_common (verbose: bool) (w : warning) : (bool * Ast.l * string) option = 
+let dest_warning_common (verbose: bool) (w : warning) : (bool * Ast.l * string) option =
   match w with
   | Warn_general (b, l, m) -> Some (b, l, m)
   | Warn_rename (l, n_org, n_via_opt, n_new, targ) ->
@@ -94,14 +94,14 @@ let dest_warning_common (verbose: bool) (w : warning) : (bool * Ast.l * string) 
                   loc_to_string true l') n_via_opt)) in
      let m = Format.sprintf "renaming '%s' to '%s' for target %s%s" n_org n_new target_s via_s in
      Some (false, l, m)
-  | Warn_unused_vars (l, sl, ws) -> 
+  | Warn_unused_vars (l, sl, ws) ->
       let var_label = Util.message_singular_plural ("variable", "variables") sl in
       let vsL = List.map (fun s -> ("'" ^ s ^ "'")) sl in
       let vs = String.concat ", " vsL in
       let m = Format.sprintf "unused %s: %s" var_label vs in
       Some (true, l, m)
 
-  | Warn_fun_clauses_resorted (l, targ, nl, d) -> 
+  | Warn_fun_clauses_resorted (l, targ, nl, d) ->
       let fun_label = Util.message_singular_plural ("function ", "functions ") nl in
       let fsL = List.map (fun s -> ("'" ^ s ^ "'")) nl in
       let fs = String.concat ", " fsL in
@@ -109,71 +109,71 @@ let dest_warning_common (verbose: bool) (w : warning) : (bool * Ast.l * string) 
       let m : string = Format.sprintf "function definition clauses of %s %s reordered for target %s" fun_label fs target_s in
       Some (false, l, m)
 
-  | Warn_record_resorted (l, e) -> 
+  | Warn_record_resorted (l, e) ->
       let m : string = "record fields reordered" in
       Some (true, l, m)
 
-  | Warn_no_decidable_equality (l, n) -> 
+  | Warn_no_decidable_equality (l, n) ->
       let m : string = "type '" ^ n ^ "' does not have a decidable equality" in
       Some (true, l, m)
 
-  | Warn_import (l, m_name, f_name) -> 
+  | Warn_import (l, m_name, f_name) ->
       let m : string = "importing module '" ^ m_name ^ "' from file '" ^ f_name ^"'" in
       Some (false, l, m)
 
-  | Warn_overriden_instance (l, ty, i) -> 
+  | Warn_overriden_instance (l, ty, i) ->
       let class_name =  Path.to_string i.Types.inst_class in
       let type_name = Types.t_to_string ty.Types.typ in
       let loc_org = Reporting_basic.loc_to_string false i.Types.inst_l in
-      let msg = Format.sprintf 
-                  "class '%s' has already been instantiated for type '%s' at\n    %s" 
+      let msg = Format.sprintf
+                  "class '%s' has already been instantiated for type '%s' at\n    %s"
                   class_name type_name loc_org in
       Some (true, l, msg)
 
-  | Warn_compile_message (l, targ, c, m) -> 
+  | Warn_compile_message (l, targ, c, m) ->
       let const_name =  Path.to_string c in
       let target_s = (Target.target_to_string targ) in
-      let msg = Format.sprintf 
-                  "compile message for constant '%s' and target '%s'\n    %s" 
+      let msg = Format.sprintf
+                  "compile message for constant '%s' and target '%s'\n    %s"
                   const_name target_s m in
       Some (false, l, msg)
   | Warn_ambiguous_code (l, m) -> Some (true, l, m)
   | _ -> None
 
-let dest_warning_basic (verbose: bool) (w : warning) : (bool * Ast.l * string) option = 
+let dest_warning_basic (verbose: bool) (w : warning) : (bool * Ast.l * string) option =
   match w with
-  | Warn_pattern_compilation_failed (l, pL, ws) -> 
+  | Warn_pattern_compilation_failed (l, pL, ws) ->
       Some (true, l, "could not compile some patterns")
 
-  | Warn_pattern_not_exhaustive (l, pLL) -> 
+  | Warn_pattern_not_exhaustive (l, pLL) ->
       Some (true, l, "pattern-matching is not exhaustive")
 
-  | Warn_def_not_exhaustive (l, n, pLL) -> 
+  | Warn_def_not_exhaustive (l, n, pLL) ->
       Some (true, l, "function '"^n^"' is defined by non-exhaustive pattern-matching")
 
-  | Warn_pattern_redundant (l, rL, e) -> 
+  | Warn_pattern_redundant (l, rL, e) ->
       Some (true, l, "redundant patterns")
 
-  | Warn_def_redundant (l, n, rL, d) ->  
+  | Warn_def_redundant (l, n, rL, d) ->
       let pat_label = Util.message_singular_plural ("pattern", "patterns") rL in
       let m = Format.sprintf "redundant %s in definition of function '%s'" pat_label n in
       Some (true, l, m)
 
-  | Warn_pattern_needs_compilation (l, targ, e_old, e_new) -> 
+  | Warn_pattern_needs_compilation (l, targ, e_old, e_new) ->
       let target_s = Target.target_to_string targ in
       let m = "pattern compilation used for target " ^ target_s in
       Some (true, l, m)
   | _ -> dest_warning_common verbose w
 
 
-let dest_warning_with_env (env : Typed_ast.env) (verbose: bool) (w : warning) : (bool * Ast.l * string) option = 
+let dest_warning_with_env (env : Typed_ast.env) (verbose: bool) (w : warning) : (bool * Ast.l * string) option =
   let module B = Backend.Make(struct
     let avoid = (false, (fun _ -> true), Name.fresh);;
     let env = env
     let dir = Filename.current_dir_name
   end) in
   match w with
-  | Warn_pattern_compilation_failed (l, pL, ws) -> 
+  | Warn_pattern_compilation_failed (l, pL, ws) ->
       let psL = List.map (fun p -> "'" ^ Ulib.Text.to_string (B.ident_pat p) ^ "'") pL in
       let ps = String.concat ", " psL in
       let m = Format.sprintf "could not compile the following list of patterns: %s" ps in
@@ -182,31 +182,31 @@ let dest_warning_with_env (env : Typed_ast.env) (verbose: bool) (w : warning) : 
       in
       Some (true, l, m ^ m')
 
-  | Warn_pattern_not_exhaustive (l, pLL) -> 
+  | Warn_pattern_not_exhaustive (l, pLL) ->
       let pL_to_string pL = String.concat " " (List.map (fun p -> Ulib.Text.to_string (B.ident_pat p)) pL) in
-      let ps = String.concat ", " (List.map (fun pL -> "'" ^ pL_to_string pL ^ "'") pLL) in     
+      let ps = String.concat ", " (List.map (fun pL -> "'" ^ pL_to_string pL ^ "'") pLL) in
       Some (true, l, "pattern-matching is not exhaustive\n  missing patterns " ^ ps)
 
-  | Warn_def_not_exhaustive (l, n, pLL) -> 
+  | Warn_def_not_exhaustive (l, n, pLL) ->
       let pL_to_string pL = String.concat " " (List.map (fun p -> Ulib.Text.to_string (B.ident_pat p)) pL) in
-      let ps = String.concat ", " (List.map (fun pL -> "'" ^ pL_to_string pL ^ "'") pLL) in     
+      let ps = String.concat ", " (List.map (fun pL -> "'" ^ pL_to_string pL ^ "'") pLL) in
       Some (true, l, "function '"^n^"' is defined by non-exhaustive pattern-matching\n  missing patterns " ^ ps)
 
-  | Warn_pattern_redundant (l, rL, e) -> 
+  | Warn_pattern_redundant (l, rL, e) ->
       let pat_label = Util.message_singular_plural ("pattern", "patterns") rL in
       let psL = List.map (fun (_,p) -> "'" ^ Ulib.Text.to_string (B.ident_pat p) ^ "'") rL in
       let ps = String.concat ", " psL in
       let m = Format.sprintf "redundant %s: %s" pat_label ps in
       Some (true, l, m)
 
-  | Warn_def_redundant (l, n, rL, d) ->  
+  | Warn_def_redundant (l, n, rL, d) ->
       let pat_label = Util.message_singular_plural ("pattern", "patterns") rL in
       let psL = List.map (fun (_,p) -> "'" ^ Ulib.Text.to_string (B.ident_pat p) ^ "'") rL in
       let ps = String.concat ", " psL in
       let m = Format.sprintf "redundant %s in definition of function '%s': %s" pat_label n ps in
       Some (true, l, m)
 
-  | Warn_pattern_needs_compilation (l, targ, e_old, e_new) -> 
+  | Warn_pattern_needs_compilation (l, targ, e_old, e_new) ->
       let target_s = Target.target_to_string targ in
       let m_basic = "pattern compilation used for target " ^ target_s in
       let m_verb = if not verbose then "" else begin
@@ -219,7 +219,7 @@ let dest_warning_with_env (env : Typed_ast.env) (verbose: bool) (w : warning) : 
   | _ -> dest_warning_common verbose w
 
 
-let dest_warning (env_opt : Typed_ast.env option) (verbose: bool) (w : warning) : (bool * Ast.l * string) option = 
+let dest_warning (env_opt : Typed_ast.env option) (verbose: bool) (w : warning) : (bool * Ast.l * string) option =
 match env_opt with
   | None -> dest_warning_basic verbose w
   | Some env -> dest_warning_with_env env verbose w
@@ -249,8 +249,8 @@ let warn_ref_ambiguous_code   = ref Level_Warn;;
 
 (* a list of all these references *)
 let warn_refL = [
-  warn_ref_rename; warn_ref_pat_fail; warn_ref_pat_exh; warn_ref_pat_red; warn_ref_def_exh; 
-  warn_ref_def_red; warn_ref_pat_comp; warn_ref_unused_vars; warn_ref_general; 
+  warn_ref_rename; warn_ref_pat_fail; warn_ref_pat_exh; warn_ref_pat_red; warn_ref_def_exh;
+  warn_ref_def_red; warn_ref_pat_comp; warn_ref_unused_vars; warn_ref_general;
   warn_ref_fun_resort; warn_ref_rec_resort; warn_ref_no_decidable_eq; warn_ref_import;
   warn_ref_inst_override;warn_ref_compile_message; warn_ref_ambiguous_code
 ]
@@ -277,8 +277,8 @@ let warn_level = function
 let ignore_pat_compile_warnings () = (warn_ref_pat_comp := Level_Ignore)
 
 (* A list of the option, the entries consists of
-   - "name of argument", 
-   - reference to modify, 
+   - "name of argument",
+   - reference to modify,
    - doc string
 
    This is the list to modify in order to get the command line options working
@@ -301,7 +301,7 @@ let warn_opts_aux = [
 ];;
 
 
-let warn_arg_fun (f : warn_level -> unit) = Arg.Symbol (["ign"; "warn"; "verb"; "err"], (function 
+let warn_arg_fun (f : warn_level -> unit) = Arg.Symbol (["ign"; "warn"; "verb"; "err"], (function
    "ign" -> f Level_Ignore
  | "warn" -> f Level_Warn
  | "verb" -> f Level_Warn_Verbose
@@ -316,7 +316,7 @@ let warn_level_to_string = function
   | Level_Warn_Verbose -> "verb"
   | Level_Error -> "err"
 
-let get_default_warn_level = function 
+let get_default_warn_level = function
     []      -> None
   | [r]     -> Some (!r)
   | (r::rs) -> let wl = !r in if (List.for_all (fun r' -> !r' = wl) rs) then Some wl else None
@@ -327,9 +327,9 @@ let get_default_warn_level_string rL =
     | Some wl -> " (default " ^ warn_level_to_string wl ^ ")"
 
 (* Now process it to get the real thing that the Arg-Lib can handle *)
-let warn_opts = 
+let warn_opts =
   let prefix_doc refL d = " warning level of "^d ^ (get_default_warn_level_string refL) in
-  let process_option (p, refL, d) = 
+  let process_option (p, refL, d) =
     let real_arg = ("-wl_"^p) in
     let real_doc = prefix_doc refL d in
     let mod_fun = warn_arg_fun_full refL in
@@ -343,7 +343,7 @@ let warnings_active = ref true
 
 let report_warning_aux env_opt w =
   if not !warnings_active then () else
-  let level = warn_level w in  
+  let level = warn_level w in
   match level with
       Level_Ignore       -> ()
     | Level_Warn         -> (match dest_warning env_opt false w with None -> () | Some (b, l, m) -> print_err false false true  l "Warning" m)
@@ -363,7 +363,7 @@ let print_debug_data f s xs =
   let xs_s = List.map (fun x -> Ulib.Text.to_string (f x)) xs in
   print_debug (s ^ "\n" ^ (String.concat "\n" xs_s))
 
-let print_debug_exp env = 
+let print_debug_exp env =
   let module B = Backend.Make(struct
     let avoid = (false, (fun _ -> true), Name.fresh);;
     let env = env
@@ -371,7 +371,7 @@ let print_debug_exp env =
   end) in
   print_debug_data B.ident_exp
 
-let print_debug_pat env = 
+let print_debug_pat env =
   let module B = Backend.Make(struct
     let avoid = (false, (fun _ -> true), Name.fresh);;
     let env = env
@@ -379,7 +379,7 @@ let print_debug_pat env =
   end) in
   print_debug_data B.ident_pat
 
-let print_debug_def env = 
+let print_debug_def env =
   let module B = Backend.Make(struct
     let avoid = (false, (fun _ -> true), Name.fresh);;
     let env = env
@@ -387,7 +387,7 @@ let print_debug_def env =
   end) in
   print_debug_data B.ident_def
 
-let print_debug_typ env = 
+let print_debug_typ env =
   let module B = Backend.Make(struct
     let avoid = (false, (fun _ -> true), Name.fresh);;
     let env = env
@@ -395,11 +395,10 @@ let print_debug_typ env =
   end) in
   print_debug_data B.ident_typ
 
-let print_debug_src_t env = 
+let print_debug_src_t env =
   let module B = Backend.Make(struct
     let avoid = (false, (fun _ -> true), Name.fresh);;
     let env = env
     let dir = Filename.current_dir_name
   end) in
   print_debug_data B.ident_src_t
-

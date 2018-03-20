@@ -50,7 +50,7 @@ open Pp
 (* These compare faster than Ulib.Text.t *)
 (*
 type t = Ulib.UTF8.t
-let compare r1 r2 = 
+let compare r1 r2 =
   Ulib.UTF8.compare r1 r2
 
 let from_rope r = Ulib.Text.to_string r
@@ -64,13 +64,13 @@ let to_string = Ulib.UTF8.to_string
   *)
 let interning_hashtbl =
   Hashtbl.create 5000
-  
+
 let counter = ref 0
-  
+
 let generate_fresh () =
   let _ = counter := !counter + 1 in
     !counter
-  
+
 let register_string s =
   try
     Hashtbl.find interning_hashtbl s
@@ -96,10 +96,10 @@ let from_string n =
 
   (*
 type t = Ulib.Text.t
-let compare r1 r2 = 
-  if r1 == r2 then 
-    0 
-  else 
+let compare r1 r2 =
+  if r1 == r2 then
+    0
+  else
     Ulib.Text.compare r1 r2
 
 let from_rope r = r
@@ -115,7 +115,7 @@ let fresh_start start s ok =
     let _ = if retries <= 0 then raise (Reporting_basic.Fatal_error (
        Reporting_basic.Err_trans (Ast.Unknown, String.concat "" ["could not find a fresh name for \""; Ulib.Text.to_string s; "\""]))) else () in
     let name = s ^ Ulib.Text.of_latin1 (string_of_int n) in
-      if ok (from_rope name) then 
+      if ok (from_rope name) then
         name
       else
         f (retries - 1) (n + 1)
@@ -124,7 +124,7 @@ let fresh_start start s ok =
     match start with
       | None ->
           if ok (from_rope x) then
-            x 
+            x
           else
             f 50000 (* give up after 1000 tries *) 0
       | Some(i) ->
@@ -158,7 +158,7 @@ let rec fresh_list_aux (acc : t list) (ok : t -> bool) = function
       let n' = fresh (to_rope n) ok in
       let ok' n =  ok n && (n <> n') in
       fresh_list_aux (n'::acc) ok' ns
-    end 
+    end
 
 let fresh_list ok ns = fresh_list_aux [] ok ns
 
@@ -166,43 +166,43 @@ let rename f r = from_rope (f (to_rope r))
 
 let pp ppf n = pp_str ppf (to_string n)
 
-let starts_with_upper_letter (_, x) = 
-  try 
+let starts_with_upper_letter (_, x) =
+  try
     let c = Ulib.UChar.char_of (Ulib.UTF8.get x 0) in
       Util.is_uppercase c
-  with 
+  with
     | Ulib.UChar.Out_of_range -> false
 
-let starts_with_underscore (_, x) = 
-  try 
+let starts_with_underscore (_, x) =
+  try
     (String.length x > 1) && (Ulib.UChar.char_of (Ulib.UTF8.get x 0) = '_')
-  with 
+  with
     | Ulib.UChar.Out_of_range -> false
 
-let remove_underscore x = 
+let remove_underscore x =
   if (starts_with_underscore x) then
      Some (from_rope (let r = (to_rope x) in Ulib.Text.sub r 1 (Ulib.Text.length r -1)))
   else None
 
-let ends_with_underscore (_, x) = 
-  try 
+let ends_with_underscore (_, x) =
+  try
     (String.length x > 1) && (Ulib.UChar.char_of (Ulib.UTF8.get x (Ulib.UTF8.last x)) = '_')
-  with 
+  with
     | Ulib.UChar.Out_of_range -> false
 
-let remove_underscore_suffix x = 
+let remove_underscore_suffix x =
   if (ends_with_underscore x) then
      Some (from_rope (let r = (to_rope x) in Ulib.Text.sub r 0 (Ulib.Text.length r -1)))
   else None
 
-let starts_with_lower_letter (_, x) = 
-  try 
+let starts_with_lower_letter (_, x) =
+  try
     let c = Ulib.UChar.char_of (Ulib.UTF8.get x 0) in
       Util.is_lowercase c
-  with 
+  with
     | Ulib.UChar.Out_of_range -> false
 
-let uncapitalize ((_, y) as x) = 
+let uncapitalize ((_, y) as x) =
   if (starts_with_upper_letter x) then
     let c = Ulib.UChar.of_char (Char.lowercase (Ulib.UChar.char_of (Ulib.UTF8.get y 0))) in
     Some (from_rope (Ulib.Text.set (to_rope x) 0 c))
@@ -218,10 +218,10 @@ type lskips_t = Ast.lex_skips * Ulib.Text.t
 
 let r = Ulib.Text.of_latin1
 
-let from_ix = function 
+let from_ix = function
   | Ast.SymX_l((s,x),l) -> (s,x)
 
-let from_x = function 
+let from_x = function
   | Ast.X_l((s,x),l) -> (s,x)
   | Ast.PreX_l(s,(_,x),_,_) ->  (s, x) (* TODO: check the missing parenthesis information is not important *)
 
@@ -235,27 +235,26 @@ let space = Output.ws (Some [Ast.Ws (Ulib.Text.of_latin1 " ")])
 let to_output_format f a ((s,x):lskips_t) = Output.(^) (Output.ws s) (f a x)
 let to_output = to_output_format Output.id
 
-let to_output_quoted q_begin q_end a (s,x)= 
+let to_output_quoted q_begin q_end a (s,x)=
   let open Output in
   let (^^) = Ulib.Text.(^^^) in
   to_output a (s, (r q_begin ^^ x ^^ r q_end))
 
-let to_rope_tex a n = 
+let to_rope_tex a n =
   Output.to_rope_tex (Output.id a (to_rope n))
 
-let add_pre_lskip lskip (s,x) = 
+let add_pre_lskip lskip (s,x) =
   (Ast.combine_lex_skips lskip s,x)
 
 let get_lskip (s,x) = s
 
-let lskip_pp ppf (s,x) = 
-        Format.fprintf ppf "%a%a" 
+let lskip_pp ppf (s,x) =
+        Format.fprintf ppf "%a%a"
           Ast.pp_lex_skips s
           pp (from_rope x)
 
 let lskip_rename f (s,x) =
   (s,f x)
 
-let replace_lskip (s,x) s_new = 
+let replace_lskip (s,x) s_new =
   (s_new,x)
-

@@ -46,17 +46,17 @@
 
 (** Functions used by multiple backends *)
 
-open Typed_ast 
+open Typed_ast
 open Types
 
 (** [cerberus_pp] controls whether to special-case LaTeX and HTML typesetting of Cerberus Ail and Core. *)
-val cerberus_pp : bool ref 
+val cerberus_pp : bool ref
 
 (** [def_add_location_comment_flag] controls whether [def_add_location_comment]. *)
-val def_add_location_comment_flag : bool ref 
+val def_add_location_comment_flag : bool ref
 
 (** If [def_add_location_comment_flag] is set, [def_add_location_comment d] adds a comment with location information
-    before definition [d]. This may require changing the initial whitespace before the definition. Therefore, the 
+    before definition [d]. This may require changing the initial whitespace before the definition. Therefore, the
     [def_aux] of [d] with changed whitespace as well as the output that should be added before [d] is returned. *)
 val def_add_location_comment : Typed_ast.def -> Output.t * Typed_ast.def_aux
 
@@ -75,14 +75,14 @@ val component_to_output : Ast.component -> Output.t
 val get_module_name : env -> Target.target -> Name.t list -> Name.t -> Name.t
 
 (** [get_module_open_string l env targ dir relative mod_path] looks up how to represent this module in import / open statements. *)
-val get_module_open_string : env -> Target.target -> string -> bool -> Path.t -> string 
+val get_module_open_string : env -> Target.target -> string -> bool -> Path.t -> string
 
 
 (** [isa_add_full_library_path_flag] controls whether the full path to directory [isabelle-lib] is added to
     Lem library modules imported by files outside the lib. This is useful to process the files easily from Isabelle, without
-    providing the path these library modules can be found explicitly to Isabelle. The resulting files are however not 
+    providing the path these library modules can be found explicitly to Isabelle. The resulting files are however not
     directly portable. Therefore, this flag is turned off by default and it is recommended to add the isabelle-library
-    directory instead to your [.isabelle/YOUR VERSION/ROOTS] file. *)    
+    directory instead to your [.isabelle/YOUR VERSION/ROOTS] file. *)
 val isa_add_full_library_path_flag : bool ref
 
 (** [get_imported_target_modules env targ defs] extracts a list of module that should be imported.
@@ -96,7 +96,7 @@ val imported_modules_to_strings : env -> Target.target -> string -> Imported_Mod
 
 
 module Make(A : sig
-  val env : env;; 
+  val env : env;;
   val target : Target.target;;
   val dir : string;;
   val id_format_args : (bool -> Output.id_annot -> Ulib.Text.t -> Output.t) * Ulib.Text.t
@@ -106,18 +106,18 @@ val open_to_open_target : (Path.t id) list -> (lskips * string) list * lskips
 
 (** [function_application_to_output l exp inf full_exp c_id args] tries to format
     a function application as output. It gets an expression [full_ex] of the from
-    [c arg1 ... argn]. The id [c_id] corresponds to constant [c]. The arguments [arg1, ... argn] are 
+    [c arg1 ... argn]. The id [c_id] corresponds to constant [c]. The arguments [arg1, ... argn] are
     handed over as [args]. The description corresponding to [c] is looked up in [A.env]. Depending on
     this description and the backend-specific formats therein, the
     function and its arguments are formated as output.  In the
     simplest case the representation is an identifier ([Ident.t]),
-    which is formated using [A.id_format_args] and the information, 
+    which is formated using [A.id_format_args] and the information,
     whether it the whole expression is an infix one [inf]. In more complicated
     cases, formating of expressions is needed, which is done via the
     callback [exp]. In particular if some arguments are not needed by
     the formating of the function application, the function [exp] is
     called on these remaining arguments. The original expression [full_exp] is
-    needed, if not enough parameters are present to format the definition correctly. 
+    needed, if not enough parameters are present to format the definition correctly.
     In this case, eta-expansion is applied and the resulting expression formatting via [exp].
     [ascii_alternative] denotes whether an ascii alternative representation for this
     function name is required.
@@ -127,7 +127,7 @@ val function_application_to_output : Ast.l -> (exp -> Output.t) -> bool -> exp -
 (** [pattern_application_to_output l pat c_id args] tries to
     format a function application in a pattern as output. It does otherwise the same as
     function_application_to_output. However, since there are no infix patterns, the
-    parameter [inf] is always set to [false]. 
+    parameter [inf] is always set to [false].
 *)
 val pattern_application_to_output : Ast.l -> (pat -> Output.t) -> const_descr_ref id -> pat list -> bool -> Output.t list
 
@@ -136,7 +136,7 @@ val pattern_application_to_output : Ast.l -> (pat -> Output.t) -> const_descr_re
     in environment [A.env]. If the flag [use_ascii] is set, the ascii representation of the
     constant should be used, if there is one. Depending on the formating rules for the
     constant, [const_id_to_ident] might raise an exception. *)
-val const_id_to_ident : const_descr_ref id -> bool -> Ident.t 
+val const_id_to_ident : const_descr_ref id -> bool -> Ident.t
 
 
 (** [const_ref_to_name n use_ascii c] tries to format a constant
@@ -158,13 +158,13 @@ val type_path_to_name : Name.lskips_t -> Path.t -> Name.lskips_t
 
 (** [type_id_to_ident ty_id] tries to format a type
     [ty_id] as an identifier for target [A.target] using the rules stored
-    in environment [A.env]. 
+    in environment [A.env].
 *)
 val type_id_to_ident : Path.t id -> Ident.t
 
 (** [type_id_to_output ty_id] tries to format a type
     [ty_id] as an identifier for target [A.target] using the rules stored
-    in environment [A.env]. 
+    in environment [A.env].
 *)
 val type_id_to_output : Path.t id -> Output.t
 
@@ -180,7 +180,7 @@ val type_app_to_output : (src_t -> Output.t) -> Path.t id -> src_t list -> (src_
 
 (** [module_id_to_ident m_id] tries to format a module
     [m_id] as an identifier for target [A.target] using the rules stored
-    in environment [A.env]. 
+    in environment [A.env].
 *)
 val module_id_to_ident : Path.t id -> Ident.t
 

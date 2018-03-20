@@ -68,15 +68,15 @@ module type Fmap = sig
   val fold : ('b -> k -> 'a -> 'b) -> 'b -> 'a t -> 'b
   val filter : (k -> 'a -> bool) -> 'a t -> 'a t
   val remove : 'a t -> k -> 'a t
-  val pp_map : (Format.formatter -> k -> unit) -> 
-               (Format.formatter -> 'a -> unit) -> 
-               Format.formatter -> 
+  val pp_map : (Format.formatter -> k -> unit) ->
+               (Format.formatter -> 'a -> unit) ->
+               Format.formatter ->
                'a t ->
                unit
   val domain : 'a t -> S.t
 end
 
-module Fmap_map(Key : Set.OrderedType) : Fmap 
+module Fmap_map(Key : Set.OrderedType) : Fmap
                   with type k = Key.t and module S = Set.Make(Key) = struct
 
   type k = Key.t
@@ -92,18 +92,18 @@ module Fmap_map(Key : Set.OrderedType) : Fmap
   let from_list2 l1 l2 = let _ = assert (List.length l1 = List.length l2) in
                          List.fold_left2 (fun m k v -> M.add k v m) M.empty l1 l2
   let insert m (k,v) = M.add k v m
-  let union m1 m2 = 
+  let union m1 m2 =
     M.merge (fun k v1 v2 -> match v2 with | None -> v1 | Some _ -> v2) m1 m2
   let merge f m1 m2 = M.merge f m1 m2
-  let apply m k = 
+  let apply m k =
     try
       Some(M.find k m)
     with
       | Not_found -> None
   let in_dom k m = M.mem k m
   let map f m = M.mapi f m
-  let rec domains_overlap m1 m2 = 
-    M.fold 
+  let rec domains_overlap m1 m2 =
+    M.fold
       (fun k _ res ->
          if M.mem k m1 then
            Some(k)
@@ -119,7 +119,7 @@ module Fmap_map(Key : Set.OrderedType) : Fmap
     let l = M.fold (fun k v l -> (k,v)::l) m [] in
       Format.fprintf ppf "@[%a@]"
         (Pp.lst "@\n"
-           (fun ppf (k,v) -> 
+           (fun ppf (k,v) ->
               Format.fprintf ppf "@[<2>%a@ |->@ %a@]"
                 pp_key k
                 pp_val v))
@@ -152,7 +152,7 @@ module type Dmap = sig
 
 end
 
-module Dmap_map(Key : Set.OrderedType) : Dmap 
+module Dmap_map(Key : Set.OrderedType) : Dmap
                   with type k = Key.t = struct
 
   type k = Key.t
@@ -171,9 +171,9 @@ module Dmap_map(Key : Set.OrderedType) : Dmap
       | Not_found -> if S.mem k s then None else d_opt;;
 
   let apply_opt (m, s, d_opt) = function None -> d_opt | Some k -> apply (m, s, d_opt) k
-     
+
   let in_dom k (m, s, d_opt) = M.mem k m || (S.mem k s && d_opt <> None)
-    
+
   let insert (m, s, d_opt) (k,v) = (M.add k v m, S.remove k s, d_opt)
 
   let insert_opt dm (k_opt,v) = match k_opt with
@@ -182,4 +182,3 @@ module Dmap_map(Key : Set.OrderedType) : Dmap
 
   let remove (m, s, d_opt) k = (M.remove k m, S.add k s, d_opt)
 end
-

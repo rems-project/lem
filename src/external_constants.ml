@@ -53,7 +53,7 @@ let class_label_to_path (label : string) : Path.t =
     | "class_ord"       -> (["Basic_classes"], "Ord")
     | "class_num_minus" -> (["Num"], "NumMinus")
     | "class_set_type"  -> (["Basic_classes"], "SetType")
-    | s -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_general (true,				     
+    | s -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_general (true,
               (Ast.Trans (false, "class_label_to_path", None)),
               ("Unknown label '" ^ s ^ "'"))))
   end in
@@ -63,7 +63,7 @@ let type_label_to_path (label : string) : Path.t =
   let (ns, n) = begin
   match label with
     | "type_natural" -> (["Num"], "natural")
-    | s -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_general (true,				     
+    | s -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_general (true,
               (Ast.Trans (false, "type_label_to_path", None)),
               ("Unknown label '" ^ s ^ "'"))))
   end in
@@ -115,7 +115,7 @@ match label with
 
   | "vector_access" -> (["Vector"], "vector_access")
   | "vector_slice" -> (["Vector"], "vector_slice")
-  | s -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_general (true,				     
+  | s -> raise (Reporting_basic.Fatal_error (Reporting_basic.Err_general (true,
             (Ast.Trans (false, "constant_label_to_path_name", None)),
             ("Unknown label '" ^ s ^ "'"))))
 ;;
@@ -124,7 +124,3 @@ let constant_label_to_path (label : string) : Path.t =
   let (path, head) = constant_label_to_path_name label in
     Path.mk_path (List.map Name.from_string path) (Name.from_string head)
 ;;
-
-
-
-

@@ -1,13 +1,13 @@
 open Types
 open Typed_ast
 
-type defn_ctxt = { 
-  all_tdefs : type_defs; 
+type defn_ctxt = {
+  all_tdefs : type_defs;
   ctxt_c_env : c_env;
   ctxt_e_env : mod_descr Pfmap.t;
   all_instances : i_env;
 
-  lemmata_labels : NameSet.t; 
+  lemmata_labels : NameSet.t;
   ctxt_mod_target_rep: Typed_ast.mod_target_rep Target.Targetmap.t;
   ctxt_mod_in_output : bool;
 
@@ -28,13 +28,13 @@ type defn_ctxt = {
  * operations are performed. With this contract, the function ctxt really only
  * adds a module, constant, field, ... to the context.
  *)
-let ctxt_local_update (select : local_env -> 'a Nfmap.t) (set : local_env -> 'a Nfmap.t -> local_env) 
+let ctxt_local_update (select : local_env -> 'a Nfmap.t) (set : local_env -> 'a Nfmap.t -> local_env)
       (ctxt : defn_ctxt) (f : 'a Nfmap.t -> 'a Nfmap.t)
       : defn_ctxt =
-  { ctxt with 
+  { ctxt with
         cur_env = set ctxt.cur_env (f (select ctxt.cur_env));
         new_defs = set ctxt.new_defs (f (select ctxt.new_defs));
-        export_env = set ctxt.export_env (f (select ctxt.export_env)); } 
+        export_env = set ctxt.export_env (f (select ctxt.export_env)); }
 
 let ctxt_local_add select set ctxt m =
   ctxt_local_update select set ctxt (fun s -> Nfmap.insert s m)
@@ -65,8 +65,8 @@ let add_v_to_ctxt ctxt ((n:Name.t), (r:const_descr_ref)) =
      ctxt_local_add (fun x -> x.v_env) (fun x y -> { x with v_env = y }) ctxt (n, r)
 
 let union_v_ctxt ctxt map  =
-  ctxt_local_update (fun x -> x.v_env) (fun x y -> { x with v_env = y }) 
-                    ctxt (fun m -> Nfmap.union m map) 
+  ctxt_local_update (fun x -> x.v_env) (fun x y -> { x with v_env = y })
+                    ctxt (fun m -> Nfmap.union m map)
 
 
 (* Update new and cumulative enviroments with a new module definition, after
@@ -74,29 +74,29 @@ let union_v_ctxt ctxt map  =
  * the same definition sequence.  It can have the same name as another module
  * globally. *)
 let add_m_to_ctxt (l : Ast.l) (ctxt : defn_ctxt) (k : Name.t) (v : mod_descr)
-      : defn_ctxt = 
+      : defn_ctxt =
     if Nfmap.in_dom k ctxt.new_defs.m_env then
       raise (Reporting_basic.err_type_pp l "duplicate module definition" Name.pp k)
     else
-      ctxt_local_add 
-        (fun x -> x.m_env) 
-        (fun x y -> { x with m_env = y }) 
+      ctxt_local_add
+        (fun x -> x.m_env)
+        (fun x y -> { x with m_env = y })
         {ctxt with ctxt_e_env = Pfmap.insert ctxt.ctxt_e_env (v.mod_binding, v)}
         (k,v.mod_binding)
 
 let add_m_alias_to_ctxt (l : Ast.l) (ctxt : defn_ctxt) (k : Name.t) (m : Path.t)
-      : defn_ctxt = 
+      : defn_ctxt =
     if Nfmap.in_dom k ctxt.new_defs.m_env then
       raise (Reporting_basic.err_type_pp l "duplicate module definition" Name.pp k)
     else
-      ctxt_local_add 
-        (fun x -> x.m_env) 
-        (fun x y -> { x with m_env = y }) 
+      ctxt_local_add
+        (fun x -> x.m_env)
+        (fun x y -> { x with m_env = y })
         ctxt
         (k,m)
 
 (* Add a lemma name to the context *)
-let add_lemma_to_ctxt (ctxt : defn_ctxt) (n : Name.t)  
+let add_lemma_to_ctxt (ctxt : defn_ctxt) (n : Name.t)
       : defn_ctxt =
   { ctxt with lemmata_labels = NameSet.add n ctxt.lemmata_labels; }
 
@@ -115,12 +115,12 @@ let ctxt_c_env_set_target_rep l (ctxt : defn_ctxt) (c : const_descr_ref) (targ :
       | None -> (* no representation present before, so OK *) ()
       | Some old_rep -> if Typed_ast_syntax.const_target_rep_allow_override old_rep then () else begin
           let loc_s = Reporting_basic.loc_to_string true (Typed_ast_syntax.const_target_rep_to_loc old_rep) in
-          let msg = Format.sprintf 
-                      "a %s target representation for '%s' has already been given at\n    %s" 
+          let msg = Format.sprintf
+                      "a %s target representation for '%s' has already been given at\n    %s"
                       (Target.non_ident_target_to_string targ) (Path.to_string c_descr.const_binding) loc_s in
           raise (Reporting_basic.err_type l msg)
         end
-  in 
+  in
   let c_descr' = {c_descr with target_rep = Target.Targetmap.insert c_descr.target_rep (targ, rep);
                                const_targets = Target.Targetset.add targ c_descr.const_targets} in
   let ctxt' = {ctxt with ctxt_c_env = c_env_update ctxt.ctxt_c_env c c_descr'} in
@@ -130,10 +130,10 @@ end
 
 let ctxt_all_tdefs_set_target_rep l (ctxt : defn_ctxt) (p : Path.t) (targ : Target.non_ident_target) rep = begin
   let td = match Pfmap.apply ctxt.all_tdefs p with
-            | Some(Tc_type(td)) -> td 
+            | Some(Tc_type(td)) -> td
             | _ -> raise (Reporting_basic.err_general true l "invariant in checking type broken") in
   let old_rep = Target.Targetmap.apply td.type_target_rep targ in
-  
+
   let td' = {td with type_target_rep = Target.Targetmap.insert td.type_target_rep (targ, rep)} in
   let ctxt' = {ctxt with all_tdefs = Pfmap.insert ctxt.all_tdefs (p, Tc_type td') } in
   (ctxt', old_rep)
@@ -141,10 +141,10 @@ end
 
 let ctxt_all_tdefs_set_target_sorts l (ctxt : defn_ctxt) (p : Path.t) (targ : Target.non_ident_target) sorts = begin
   let td = match Pfmap.apply ctxt.all_tdefs p with
-            | Some(Tc_type(td)) -> td 
+            | Some(Tc_type(td)) -> td
             | _ -> raise (Reporting_basic.err_general true l "invariant in checking type broken") in
   let old_sorts = Target.Targetmap.apply td.type_target_sorts targ in
-  
+
   let td' = {td with type_target_sorts = Target.Targetmap.insert td.type_target_sorts (targ, (l, sorts))} in
   let ctxt' = {ctxt with all_tdefs = Pfmap.insert ctxt.all_tdefs (p, Tc_type td') } in
   (ctxt', old_sorts)
@@ -157,16 +157,15 @@ let ctxt_begin_submodule ctxt =
                 export_env = empty_local_env;
                 new_tdefs = [];
                 new_instances = [];
-                ctxt_mod_target_rep = Target.Targetmap.empty; } 
+                ctxt_mod_target_rep = Target.Targetmap.empty; }
 
 
 let ctxt_end_submodule l ctxt_before mod_path n ctxt =
   let ctxt' =
-     {ctxt with new_defs = ctxt_before.new_defs; 
+     {ctxt with new_defs = ctxt_before.new_defs;
                 export_env = ctxt_before.export_env;
                 cur_env = ctxt_before.cur_env;
                 new_tdefs = ctxt_before.new_tdefs;
                 new_instances = ctxt_before.new_instances;
                 ctxt_mod_target_rep = ctxt_before.ctxt_mod_target_rep } in
   add_m_to_ctxt l ctxt' n { mod_binding = Path.mk_path mod_path n; mod_env = ctxt.export_env; mod_target_rep = ctxt.ctxt_mod_target_rep; mod_in_output = ctxt.ctxt_mod_in_output; mod_filename = None }
-

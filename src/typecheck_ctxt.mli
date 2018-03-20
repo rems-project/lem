@@ -1,9 +1,9 @@
 (* As we process definitions, we need to keep track of the type definitions
  * (type_defs), class instance definitions (instance list Pfmap.t) and
  * function/value/module/field (env) definitions we encounter. *)
-type defn_ctxt = { 
-  (* All type definitions ever seen *) 
-  all_tdefs : Types.type_defs; 
+type defn_ctxt = {
+  (* All type definitions ever seen *)
+  all_tdefs : Types.type_defs;
 
   (* The global c_env *)
   ctxt_c_env : Typed_ast.c_env;
@@ -15,7 +15,7 @@ type defn_ctxt = {
   all_instances : Types.i_env;
 
   (* The names of all assertions / lemmata defined. Used only to avoid using names multiple times. *)
-  lemmata_labels : Typed_ast.NameSet.t; 
+  lemmata_labels : Typed_ast.NameSet.t;
 
   (* The target-reps of current top-level module. *)
   ctxt_mod_target_rep: Typed_ast.mod_target_rep Target.Targetmap.t;
@@ -64,7 +64,7 @@ val defn_ctxt_to_env : defn_ctxt -> Typed_ast.env
 
 (** [ctxt_c_env_set_target_rep l ctxt c targ new_rep] updates the target-representation of
     constant [c] for target [targ] in context [ctxt] to [new_rep]. This results into a new
-    environment. If an representation was already stored (and is now overridden), it is returned as well. 
+    environment. If an representation was already stored (and is now overridden), it is returned as well.
     If it can't be overriden, an exception is raised. *)
 val ctxt_c_env_set_target_rep : Ast.l -> defn_ctxt -> Typed_ast.const_descr_ref -> Target.non_ident_target ->
            Typed_ast.const_target_rep -> defn_ctxt * Typed_ast.const_target_rep option
@@ -87,10 +87,9 @@ val ctxt_all_tdefs_set_target_sorts : Ast.l -> defn_ctxt -> Path.t -> Target.non
     the current environment) around. *)
 val ctxt_begin_submodule : defn_ctxt -> defn_ctxt
 
-(** [ctxt_end_submodule l ctxt_before mod_path mod_name ctxt_submodule] is used when a new submodule is no longer processed. 
+(** [ctxt_end_submodule l ctxt_before mod_path mod_name ctxt_submodule] is used when a new submodule is no longer processed.
     It resets some information (like the local environment of [ctxt_submodule] back to the values
     in [ctxt_before]. The context [ctxt_before] is supposed to be the one valid before
     starting to process the submodule. The new definitions of the submodule are moved to
     a new module [mod_name] at path [mod_path].*)
 val ctxt_end_submodule : Ast.l -> defn_ctxt -> Name.t list -> Name.t -> defn_ctxt -> defn_ctxt
-
