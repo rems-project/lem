@@ -1,5 +1,7 @@
+open Big_int_impl
+
 type nat = int
-type natural = Big_int.big_int
+type natural = BI.big_int
 
 val natural_monus : natural -> natural -> natural
 val natural_pred : natural -> natural
