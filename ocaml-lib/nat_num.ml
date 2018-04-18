@@ -1,7 +1,4 @@
-open Big_int_impl
-
 type nat = int
-type natural = BI.big_int
 
 let nat_monus x y =
   let d = x - y in
@@ -10,14 +7,7 @@ let nat_monus x y =
     else
       d
 
-let natural_monus x y =
-    (if BI.le_big_int x y then
-      BI.zero_big_int
-    else
-      (BI.sub_big_int x y))
-
 let nat_pred x = nat_monus x 1
-let natural_pred x = natural_monus x BI.unit_big_int
 
 let int_mod i n =
   let r = i mod n in
