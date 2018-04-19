@@ -23,6 +23,11 @@ install:
 #	cp -R isabelle-lib $(INSTALL_DIR)/share/lem
 #	cp -R tex-lib $(INSTALL_DIR)/share/lem
 
+uninstall:
+	rm -f $(INSTALL_DIR)/bin/lem
+	rm -rf $(INSTALL_DIR)/share/lem
+	$(MAKE) -C ocaml-lib uninstall
+
 build-doc:
 	make -C doc
 
