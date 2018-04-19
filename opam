@@ -1,5 +1,6 @@
 opam-version: "1.2"
 name: "lem"
+version: "2018-04-19"
 author: [
 "Dominic Mulligan"
 "Francesco Zappa Nardelli"
@@ -12,7 +13,6 @@ author: [
 "Thomas Tuerk"
 ]
 maintainer: "Lem Devs <cl-lem-dev@lists.cam.ac.uk>"
-version: "0.4"
 homepage: "http://www.cl.cam.ac.uk/~pes20/lem/"
 dev-repo: "https://github.com/rems-project/lem"
 bug-reports: "https://github.com/rems-project/lem/issues"
