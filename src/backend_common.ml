@@ -264,8 +264,8 @@ end
 let isa_add_full_library_path_flag = ref false 
 
 let adapt_isabelle_library_dir dir =
-  if (Util.dir_eq (Filename.concat Build_directory.d "library") dir) then
-     (if (!isa_add_full_library_path_flag) then (Filename.concat Build_directory.d "isabelle-lib") else "")
+  if (Util.dir_eq (Filename.concat Share_directory.d "library") dir) then
+     (if (!isa_add_full_library_path_flag) then (Filename.concat Share_directory.d "isabelle-lib") else "")
   else 
      dir
 
@@ -275,7 +275,7 @@ let adapt_isabelle_library_dir dir =
    outputting in the library-directory or the full path to it otherwise. *)
 let get_module_open_string_target =
  let abs_lib_dir = Util.option_default Filename.current_dir_name 
-   (Util.absolute_dir (Filename.concat Build_directory.d "isabelle-lib")) in
+   (Util.absolute_dir (Filename.concat Share_directory.d "isabelle-lib")) in
 
  fun target dir mod_string ->
  match target with
