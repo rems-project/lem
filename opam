@@ -1,0 +1,30 @@
+opam-version: "1.2"
+name: "lem"
+version: "2018-04-19"
+author: [
+"Dominic Mulligan"
+"Francesco Zappa Nardelli"
+"Gabriel Kerneis"
+"Kathy Gray"
+"Peter Boehm"
+"Peter Sewell"
+"Scott Owens"
+"Thomas Tuerk"
+"Brian Campbell"
+"Shaked Flur"
+"Thomas Bauereiss"
+"Stephen Kell"
+"Thomas Williams"
+"Lars Hupel"
+"Basile Clement"
+]
+maintainer: "Lem Devs <cl-lem-dev@lists.cam.ac.uk>"
+homepage: "http://www.cl.cam.ac.uk/~pes20/lem/"
+dev-repo: "https://github.com/rems-project/lem"
+bug-reports: "https://github.com/rems-project/lem/issues"
+license: "part BSD3, part LGPL 2"
+available: [ ocaml-version >= "4.02.3" ]
+build : [ make "INSTALL_DIR=%{prefix}%" ]
+install : [ make "INSTALL_DIR=%{prefix}%" "install" ]
+remove: [ make "INSTALL_DIR=%{prefix}%" "uninstall" ]
+depends: ["ocamlfind" "ocamlbuild" "zarith"]

@@ -9,9 +9,16 @@
 (*          Peter Sewell, University of Cambridge                         *)
 (*          Scott Owens, University of Kent                               *)
 (*          Thomas Tuerk, University of Cambridge                         *)
+(*          Brian Campbell, University of Edinburgh                       *)
+(*          Shaked Flur, University of Cambridge                          *)
+(*          Thomas Bauereiss, University of Cambridge                     *)
+(*          Stephen Kell, University of Cambridge                         *)
+(*          Thomas Williams                                               *)
+(*          Lars Hupel                                                    *)
+(*          Basile Clement                                                *)
 (*                                                                        *)
-(*  The Lem sources are copyright 2010-2013                               *)
-(*  by the UK authors above and Institut National de Recherche en         *)
+(*  The Lem sources are copyright 2010-2018                               *)
+(*  by the authors above and Institut National de Recherche en            *)
 (*  Informatique et en Automatique (INRIA).                               *)
 (*                                                                        *)
 (*  All files except ocaml-lib/pmap.{ml,mli} and ocaml-libpset.{ml,mli}   *)
@@ -68,7 +75,7 @@ let default_library =
      then Filename.concat (Sys.getcwd ()) lp
      else lp
    with 
-     | Not_found -> Filename.concat Build_directory.d "library"
+     | Not_found -> Filename.concat Share_directory.d "library"
 
 let lib_paths_ref = ref ([] : string list)
 let allow_reorder_modules = ref true
