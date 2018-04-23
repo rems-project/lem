@@ -1,8 +1,4 @@
 type nat = int
-type natural = Big_int.big_int
-
-val natural_monus : natural -> natural -> natural
-val natural_pred : natural -> natural
 
 val nat_pred  : nat -> nat
 val nat_monus : nat -> nat -> nat
