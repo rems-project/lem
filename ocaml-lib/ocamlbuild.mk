@@ -1,4 +1,4 @@
-INSTALLDIR := $(shell ocamlfind printconf destdir)
+OCAML_DESTDIR ?= $(DESTDIR)$(shell ocamlfind printconf destdir)
 LEMVERSION := $(shell git describe --dirty --always)
 LOCALINSTALDIR := local
 
@@ -11,7 +11,7 @@ install: install_zarith install_num install_lem
 
 local-install:
 	mkdir -p $(LOCALINSTALDIR)
-	$(MAKE) INSTALLDIR=$(LOCALINSTALDIR) install
+	$(MAKE) OCAML_DESTDIR=$(LOCALINSTALDIR) install
 .PHONY: local-install
 
 uninstall: uninstall_lem uninstall_zarith uninstall_num
@@ -30,34 +30,35 @@ extract_zarith extract_num: extract_%:
 	ocamlbuild -build-dir _build_$* -X $(LOCALINSTALDIR) -X dependencies -I num_impl_$* -use-ocamlfind -pkg $* extract.cma extract.cmxa
 .PHONY: extract_zarith extract_num
 
-install_zarith install_num: install_%: extract_%
-	$(MAKE) $(INSTALLDIR)/lem_$*/META
+install_zarith install_num: install_%: extract_% $(OCAML_DESTDIR)
+	$(MAKE) $(OCAML_DESTDIR)/lem_$*/META
 .PHONY: install_zarith install_num
 
 uninstall_zarith uninstall_num: uninstall_%:
-	-ocamlfind remove -destdir $(INSTALLDIR) lem_$*
+	-ocamlfind remove -destdir $(OCAML_DESTDIR) lem_$*
 .PHONY: uninstall_zarith uninstall_num
 
-$(INSTALLDIR)/lem_zarith/META $(INSTALLDIR)/lem_num/META: $(INSTALLDIR)/lem_%/META: num_impl_%/META _build_%/extract.cma _build_%/extract.cmxa _build_%/extract.a
-	-ocamlfind remove -destdir $(INSTALLDIR) lem_$*
-	ocamlfind install -destdir $(INSTALLDIR) -patch-version "$(LEMVERSION)" lem_$* $^ `find _build_$* -name '*.cmi' -o -name '*.cmx' -o -name '*.mli'`
+$(OCAML_DESTDIR)/lem_zarith/META $(OCAML_DESTDIR)/lem_num/META: $(OCAML_DESTDIR)/lem_%/META: num_impl_%/META _build_%/extract.cma _build_%/extract.cmxa _build_%/extract.a
+	-ocamlfind remove -destdir $(OCAML_DESTDIR) lem_$*
+	mkdir -p $(OCAML_DESTDIR)
+	ocamlfind install -destdir $(OCAML_DESTDIR) -patch-version "$(LEMVERSION)" lem_$* $^ `find _build_$* -name '*.cmi' -o -name '*.cmx' -o -name '*.mli'`
 	touch $@
 
 
 
 
 install_lem:
-	$(MAKE) $(INSTALLDIR)/lem/META
+	$(MAKE) $(OCAML_DESTDIR)/lem/META
 .PHONY: install_lem
 
 uninstall_lem:
-	-ocamlfind remove -destdir $(INSTALLDIR) lem
+	-ocamlfind remove -destdir $(OCAML_DESTDIR) lem
 .PHONY: uninstall_lem
 
-
-$(INSTALLDIR)/lem/META: META
-	-ocamlfind remove -destdir $(INSTALLDIR) lem
-	ocamlfind install -destdir $(INSTALLDIR) -patch-version "$(LEMVERSION)" lem $^
+$(OCAML_DESTDIR)/lem/META: META
+	-ocamlfind remove -destdir $(OCAML_DESTDIR) lem
+	mkdir -p $(OCAML_DESTDIR)
+	ocamlfind install -destdir $(OCAML_DESTDIR) -patch-version "$(LEMVERSION)" lem $^
 	touch $@
 
 
