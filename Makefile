@@ -3,7 +3,7 @@ DDIR=lem-$(LEMVERSION)
 
 PATH := $(CURDIR)/$(FINDLIB)/bin:$(PATH)
 BUILD_DIR := `pwd`
-INSTALL_DIR := /usr/local
+DESTDIR ?= /usr/local
 
 #all: il.pdf build-main ilTheory.uo
 all: bin/lem libs_phase_1 ocaml-libs
@@ -12,11 +12,11 @@ all: bin/lem libs_phase_1 ocaml-libs
 
 install:
 	$(MAKE) -C ocaml-lib install
-	mkdir -p $(INSTALL_DIR)/bin
-	mkdir -p $(INSTALL_DIR)/share
-	cp lem.sh $(INSTALL_DIR)/bin/lem
-	rm -rf $(INSTALL_DIR)/share/lem
-	cp -R $(BUILD_DIR) $(INSTALL_DIR)/share/lem
+	mkdir -p $(DESTDIR)/bin
+	mkdir -p $(DESTDIR)/share
+	cp lem.sh $(DESTDIR)/bin/lem
+	rm -rf $(DESTDIR)/share/lem
+	cp -R $(BUILD_DIR) $(DESTDIR)/share/lem
 
 build-doc:
 	make -C doc
@@ -33,7 +33,7 @@ lem_dep.pdf: lem_dep.tex
 # this runs Lem on the Lem library (library/*.lem), leaving the
 # generated OCaml, Coq, HOL4, and Isabelle files to ocaml-libs,
 # hol-libs, etc.
-libs_phase_1: 
+libs_phase_1:
 	make -C library
 
 
@@ -47,7 +47,7 @@ libs_phase_2:
 	make coq-libs
 	make isa-libs
 
-hol-libs: 
+hol-libs:
 #	make -C library hol-libs
 	cd hol-lib; Holmake --qof -k
 	make -C library hol-lib-tests
@@ -57,44 +57,44 @@ ocaml-libs:
 	make -C ocaml-lib all
 	make -C library ocaml-lib-tests
 
-isa-libs: 
+isa-libs:
 #	make -C library isa-libs
 	isabelle build -d isabelle-lib -b LEM
 
-coq-libs: 
+coq-libs:
 #	make -C library coq-libs
 	cd coq-lib; coqc -R . Lem coqharness.v
 	cd coq-lib; coq_makefile -f coq_makefile.in > Makefile
 	make -C coq-lib
 
-tex-libs: 
+tex-libs:
 #	make -C library tex-libs
 	cd tex-lib; pdflatex lem-libs.tex
 	cd tex-lib; pdflatex lem-libs.tex
 
 # test-other: test-ppcmem test-cpp test-cppppc
-# 
+#
 # test-ppc:
 # 	# ppc model
-# 	make -C ../../sem/WeakMemory/ppc-abstract-machine 
+# 	make -C ../../sem/WeakMemory/ppc-abstract-machine
 # 	# pull ppc model into ppcmem directory
 # 	# DON'T COMMIT
 # 	make -C ../ppcmem/system model
-# 
+#
 # test-axppc:
-# 	# Sela model	
+# 	# Sela model
 # 	make -C ../axppc
 # 	# pull Sela model into ppcmem directory
 # 	# DON'T COMMIT
 # 	make -C ../ppcmem/system axmodel
-# 
+#
 # test-arm:
 # 	# ARM flowing model
 # 	make -C ../arm/flowing-things
 # 	# pull ARM model into ppcmem directory
 # 	# DON'T COMMIT
 # 	make -C ../ppcmem/system flowingmodel
-# 
+#
 # test-ppcmem: test-ppc test-axppc test-arm
 # 	# next 3 compile PPCMEM
 # 	# Check makefile in ppcmem/system is set to "text"
@@ -102,7 +102,7 @@ tex-libs:
 # 	make -C ../ppcmem/system clean
 # 	make -C ../ppcmem/system depend_text
 # 	make -C ../ppcmem/system text
-# 
+#
 # test-cpp:
 # 	# C++. Chat with Mark to fix
 # 	make -C ../cpp/axiomatic/ntc deadlock
@@ -110,12 +110,12 @@ tex-libs:
 # 	# building
 # 	#make -C ../cpp/opsem
 # 	#make -C ../cpp/axiomatic/ntc/proofs all
-# 
+#
 # test-cppppc:
 # 	make -C ../cppppc proof
 # 	make -C ../cppppc/proof2 lem
-# 
-# 
+#
+#
 # MACHINEFILES=\
 # MachineDefUtils.lem \
 # MachineDefFreshIds.lem \
@@ -125,11 +125,11 @@ tex-libs:
 # MachineDefStorageSubsystem.lem \
 # MachineDefThreadSubsystem.lem \
 # MachineDefSystem.lem
-# 
+#
 # test-tex:  lem
 # 	rm -rf tests/test-tex/*
 # 	cp ../WeakMemory/ppc-abstract-machine/*.lem tests/test-tex
-# 	cp tests/test-tex-inc-wrapper.tex tests/test-tex 
+# 	cp tests/test-tex-inc-wrapper.tex tests/test-tex
 # 	chmod ugo-w tests/test-tex/*.lem
 # 	cd tests/test-tex; ../../lem -hol -tex -ocaml -lib ../../library $(MACHINEFILES)
 # 	cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex alldoc.tex; dvips alldoc
@@ -142,15 +142,15 @@ tex-libs:
 # 	#cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex MachineDefStorageSubsystem.tex; dvips MachineDefStorageSubsystem
 # 	#cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex MachineDefThreadSubsystem.tex; dvips MachineDefThreadSubsystem
 # 	#cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex MachineDefSystem.tex; dvips MachineDefSystem
-# 
+#
 # test-texg:
 # 	g tests/test-tex/alldoc
 # 	#g tests/test-tex/MachineDefStorageSubsystem
-# 
+#
 # test-texw:
 # 	cd tests/test-tex; TEXINPUTS=../../tex-lib:$(TEXINPUTS) latex test-tex-inc-wrapper.tex; dvips test-tex-inc-wrapper
-# 
-# 
+#
+#
 # test-texgw:
 # 	g tests/test-tex/test-tex-inc-wrapper
 
@@ -208,7 +208,7 @@ apply_header:
 	./headache -c etc/head_config -h etc/header `ls coq-lib/*.v`
 	./headache -c etc/head_config -h etc/header `ls isabelle-lib/*.thy`
 	./headache -c etc/head_config -h etc/header `ls tex-lib/*.sty`
-	./headache -c etc/head_config -h etc/header $(OCAML-LIB-NONLGPL) 
+	./headache -c etc/head_config -h etc/header $(OCAML-LIB-NONLGPL)
 	./headache -c etc/head_config -h etc/header `ls library/coq/*.lem`
 	./headache -c etc/head_config -h etc/header `ls library/hol/*.lem`
 	./headache -c etc/head_config -h etc/header `ls library/isabelle/*.lem`
@@ -221,11 +221,11 @@ apply_header:
 #install_lem_unwrapped: lem_unwrapped.tex
 #	cp lem_unwrapped.tex ../../ott/examples/ich/generated/lem_unwrapped.tex
 
-#src/version.ml: 
+#src/version.ml:
 version:
 	printf 'let v="%s"\n' `git describe --dirty --always` > src/version.ml
 
-src/build_directory.ml: 
+src/build_directory.ml:
 	echo let d=\"$(BUILD_DIR)\" > src/build_directory.ml
 
 
@@ -255,10 +255,10 @@ distrib: src/ast.ml version headache
 	cp library/hol/*.lem $(DDIR)/library/hol/
 	cp library/ocaml/*.lem $(DDIR)/library/ocaml/
 	mkdir $(DDIR)/ocaml-lib
-	cp ocaml-lib/*.ml $(DDIR)/ocaml-lib	
-	cp ocaml-lib/*.mli $(DDIR)/ocaml-lib	
-	cp ocaml-lib/*.mllib $(DDIR)/ocaml-lib	
-	cp ocaml-lib/Makefile $(DDIR)/ocaml-lib	
+	cp ocaml-lib/*.ml $(DDIR)/ocaml-lib
+	cp ocaml-lib/*.mli $(DDIR)/ocaml-lib
+	cp ocaml-lib/*.mllib $(DDIR)/ocaml-lib
+	cp ocaml-lib/Makefile $(DDIR)/ocaml-lib
 	mkdir $(DDIR)/tex-lib
 	cp tex-lib/lem.sty $(DDIR)/tex-lib
 	cp Makefile-distrib $(DDIR)/Makefile
