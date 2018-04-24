@@ -2,8 +2,18 @@
 ocaml-lib/_build
 src/_build
 lem
-src/build_directory.ml
+src/share_directory.ml
 src/main.native
 src/version.ml
 examples/ppcmem-model/generated/*
+coq-lib/lem_*.v
+hol-lib/lem_*.sml
+html-lib/*.html
+isabelle-lib/Lem_*.thy
+library/ocaml-build-dir*
+ocaml-lib/lem_*.ml
+ocaml-lib/_build_num
+ocaml-lib/_build_zarith
+tex-lib/lem-libs*.tex
+
 
