@@ -15,6 +15,7 @@ all: bin/lem libs_phase_1
 
 install:
 	mkdir -p $(INSTALL_DIR)/bin
+	rm -f $(INSTALL_DIR)/bin/lem
 	cp src/main.native $(INSTALL_DIR)/bin/lem
 	rm -rf $(INSTALL_DIR)/share/lem
 	mkdir -p $(INSTALL_DIR)/share/lem/library
