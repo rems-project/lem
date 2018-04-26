@@ -164,7 +164,7 @@ let is_isa_chr x =
 let char_escape_isa c =
   let x = int_of_char c in 
   if is_isa_chr x then (String.concat "" ["(CHR ''"; String.make 1 c; "'')"])
-  else String.concat "" ["(char_of_nat "; string_of_int x; ")"];;
+  else String.concat "" ["(CHR "; Printf.sprintf "0x%X" 39; ")"];;
 
 (* Check that string literal s contains only CHR characters for Isabelle.  Other
  * string literals should have been translated into a list by a macro. *)

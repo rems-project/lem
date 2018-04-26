@@ -49,7 +49,7 @@ chapter \<open>Auxiliary Definitions needed by Lem\<close>
 theory "LemExtraDefs"
 
 imports
- 	 Main
+   Main
    "HOL-Library.Permutation"
    "HOL-Library.While_Combinator"
 begin
@@ -850,16 +850,12 @@ subsection \<open>sorting\<close>
 
 subsection \<open>Strings\<close>
 
-lemma explode_str_simp [simp] :
-  "String.explode (STR l) = l"
-by (metis STR_inverse UNIV_I)
-
 declare String.literal.explode_inverse [simp]
 
 subsection \<open>num to string conversions\<close>
 
 definition nat_list_to_string :: "nat list \<Rightarrow> string" where
-  "nat_list_to_string nl = map char_of_nat nl"
+  "nat_list_to_string nl = map char_of nl"
 
 definition is_digit where
   "is_digit (n::nat) = (n < 10)"
