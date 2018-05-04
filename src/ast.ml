@@ -92,7 +92,7 @@ let combine_lex_skips s1 s2 =
   match (s1,s2) with
     | (None,_) -> s2
     | (_,None) -> s1
-    | (Some(s1),Some(s2)) -> Some(s2@s1)
+    | (Some(s1),Some(s2)) -> Some(s1@s2)
 
 type terminal = lex_skips
 
@@ -688,5 +688,3 @@ inst =  (* A typeclass instance, t must not contain nested types *)
 (** definitions *)
 (** definitions *)
 (** definitions *)
-
-
