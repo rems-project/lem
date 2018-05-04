@@ -128,7 +128,7 @@ type mword = int * Nat_big_num.num
 
 let word_equal (n1,w1) (n2,w2) = (n1 == n2) && Nat_big_num.equal w1 w2
 
-let machine_word_inject (n,w) = (n,Big_int_impl.BI.extract_big_int w 0 n)
+let machine_word_inject (n,w) = if n = 0 then (0, Nat_big_num.zero) else (n,Big_int_impl.BI.extract_big_int w 0 n)
 
 let word_length (n,_) = n
 
@@ -159,15 +159,13 @@ let signedIntegerFromWord (n,w) =
     let high = Big_int_impl.BI.shift_left_big_int Big_int_impl.BI.unit_big_int n in
     Big_int_impl.BI.sub_big_int w high
 
-let rec wordFromBitlist = function
-  | [] -> failwith "empty bitlist"
-  | l ->
-     let rec aux n w = function
-       | [] -> (n,w)
-       | (h::t) ->
-          let w = Big_int_impl.BI.shift_left_big_int w 1 in
-          aux (n+1) (if h then Nat_big_num.add w Big_int_impl.BI.unit_big_int else w) t
-     in aux 0 Big_int_impl.BI.zero_big_int l
+let rec wordFromBitlist l =
+  let rec aux n w = function
+    | [] -> (n,w)
+    | (h::t) ->
+       let w = Big_int_impl.BI.shift_left_big_int w 1 in
+       aux (n+1) (if h then Nat_big_num.add w Big_int_impl.BI.unit_big_int else w) t
+  in aux 0 Big_int_impl.BI.zero_big_int l
 
 let bitlistFromWord (n,w) =
   let rec aux acc n w =
