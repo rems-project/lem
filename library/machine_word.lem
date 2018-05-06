@@ -1401,7 +1401,7 @@ val signedDivide : forall 'a. mword 'a -> mword 'a -> mword 'a
 declare isabelle target_rep function unsignedDivide = `divide_word_inst.divide_word`
 declare hol      target_rep function unsignedDivide = `words$word_div`
 declare ocaml    target_rep function unsignedDivide = `Lem.word_udiv`
-declare hol      target_rep function signedDivide   = `words$word_sdiv`
+declare hol      target_rep function signedDivide   = `words$word_quot`
 
 let {isabelle;ocaml} signedDivide x y =
     if msb x then
