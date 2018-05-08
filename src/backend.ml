@@ -2587,10 +2587,14 @@ and case_line print_backend (p,s1,e,_) =
   T.case_line_sep ^
   block (is_pp_exp e) 2 (exp print_backend e)
 
-and funcl_aux print_backend (n, ps, topt, s1, e) =
+and funcl_aux print_backend (n, t, ps, topt, s1, e) =
+  let n' = Name.to_output Term_var (Name.replace_lskip n None) in
   ws (Name.get_lskip n) ^ 
   T.funcase_start ^
-  Name.to_output Term_var (Name.replace_lskip n None) ^
+  (match T.target with
+  | Target_no_ident Target_hol ->
+     kwd "(" ^ n' ^ T.typ_sep ^ typ print_backend (C.t_to_src_t t) ^ kwd ")"
+  | _ -> n') ^
   (match ps with [] -> emp | _ -> texspace) ^
   patlist print_backend ps ^
   begin
@@ -2604,8 +2608,8 @@ and funcl_aux print_backend (n, ps, topt, s1, e) =
   core (exp print_backend (if is_human_target T.target then e else mk_opt_paren_exp e)) ^
   T.funcase_end
 
-and funcl print_backend (({term = n}, c, ps, topt, s1, e):funcl_aux) =
-  funcl_aux print_backend (B.const_ref_to_name n false c, ps, topt, s1, e)    
+and funcl print_backend (({term = n; typ = t}, c, ps, topt, s1, e):funcl_aux) =
+  funcl_aux print_backend (B.const_ref_to_name n false c, t, ps, topt, s1, e)    
 
 and letbind print_backend (lb, _) : Output.t = match lb with
   | Let_val(p,topt,s2,e) ->
@@ -2617,7 +2621,7 @@ and letbind print_backend (lb, _) : Output.t = match lb with
       end ^
       ws s2 ^ T.def_binding ^ core (exp print_backend (if is_human_target T.target then e else mk_opt_paren_exp e))
   | Let_fun (n, ps, topt, s1, e) ->
-      funcl_aux print_backend (n.term, ps, topt, s1, e)
+      funcl_aux print_backend (n.term, n.typ, ps, topt, s1, e)
 
 
       
