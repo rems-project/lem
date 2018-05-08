@@ -102,7 +102,7 @@ by (induct l) auto
 
 lemma sorted_map_suc :
   "sorted l \<Longrightarrow> sorted (map Suc l)"
-by (induct l) (simp_all add: sorted_Cons)
+by (induct l) (simp_all)
 
 lemma sorted_find_indices :
   "sorted (find_indices P xs)"
@@ -112,7 +112,7 @@ next
   case (Cons x xs)
   from sorted_map_suc[OF this]
   show ?case
-    by (simp add: sorted_Cons)
+    by (simp)
 qed
 
 lemma find_indices_set [simp] :
@@ -152,7 +152,7 @@ next
 
   from sorted_find_indices[of P xs] find_indices_eq
   have "sorted (i # il)" by simp
-  hence i_leq: "\<And>i'. i' \<in> set (i # il) \<Longrightarrow> i \<le> i'" unfolding sorted_Cons by auto
+  hence i_leq: "\<And>i'. i' \<in> set (i # il) \<Longrightarrow> i \<le> i'" by auto
 
   from find_indices_set[of P xs, unfolded find_indices_eq]
   have set_i_il_eq:"\<And>i'. i' \<in> set (i # il) = (i' < length xs \<and> P (xs ! i'))"
@@ -343,7 +343,7 @@ proof (rule ext)
     case Nil thus ?case by simp
   next
     case (Cons x xs)
-    thus ?case by (cases xs) (simp_all)
+    thus ?case by (cases xs) (simp_all del: sorted.simps(2) add: sorted2_simps)
   qed
 qed
 
