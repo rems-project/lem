@@ -5,7 +5,7 @@
 
 declare {isabelle;coq;hol;ocaml} rename module = Lem_machine_word
 
-open import Bool Num Basic_classes Show
+open import Bool Num Basic_classes Show Function
 
 open import {isabelle} `~~/src/HOL/Word/Word`
 open import {hol} `wordsTheory` `wordsLib` `bitstringTheory` `integer_wordTheory`
@@ -14,6 +14,7 @@ type mword 'a
 declare isabelle target_sorts mword = `len`
 
 class (Size 'a)
+  val dummy : 'a -> 'a (* To prevent the phantom type disappearing in HOL *)
   val size : nat
 end
 
@@ -317,263 +318,263 @@ type ty255
 type ty256
 type ty257
 
-instance (Size ty1) let size = 1 end
-instance (Size ty2) let size = 2 end
-instance (Size ty3) let size = 3 end
-instance (Size ty4) let size = 4 end
-instance (Size ty5) let size = 5 end
-instance (Size ty6) let size = 6 end
-instance (Size ty7) let size = 7 end
-instance (Size ty8) let size = 8 end
-instance (Size ty9) let size = 9 end
-instance (Size ty10) let size = 10 end
-instance (Size ty11) let size = 11 end
-instance (Size ty12) let size = 12 end
-instance (Size ty13) let size = 13 end
-instance (Size ty14) let size = 14 end
-instance (Size ty15) let size = 15 end
-instance (Size ty16) let size = 16 end
-instance (Size ty17) let size = 17 end
-instance (Size ty18) let size = 18 end
-instance (Size ty19) let size = 19 end
-instance (Size ty20) let size = 20 end
-instance (Size ty21) let size = 21 end
-instance (Size ty22) let size = 22 end
-instance (Size ty23) let size = 23 end
-instance (Size ty24) let size = 24 end
-instance (Size ty25) let size = 25 end
-instance (Size ty26) let size = 26 end
-instance (Size ty27) let size = 27 end
-instance (Size ty28) let size = 28 end
-instance (Size ty29) let size = 29 end
-instance (Size ty30) let size = 30 end
-instance (Size ty31) let size = 31 end
-instance (Size ty32) let size = 32 end
-instance (Size ty33) let size = 33 end
-instance (Size ty34) let size = 34 end
-instance (Size ty35) let size = 35 end
-instance (Size ty36) let size = 36 end
-instance (Size ty37) let size = 37 end
-instance (Size ty38) let size = 38 end
-instance (Size ty39) let size = 39 end
-instance (Size ty40) let size = 40 end
-instance (Size ty41) let size = 41 end
-instance (Size ty42) let size = 42 end
-instance (Size ty43) let size = 43 end
-instance (Size ty44) let size = 44 end
-instance (Size ty45) let size = 45 end
-instance (Size ty46) let size = 46 end
-instance (Size ty47) let size = 47 end
-instance (Size ty48) let size = 48 end
-instance (Size ty49) let size = 49 end
-instance (Size ty50) let size = 50 end
-instance (Size ty51) let size = 51 end
-instance (Size ty52) let size = 52 end
-instance (Size ty53) let size = 53 end
-instance (Size ty54) let size = 54 end
-instance (Size ty55) let size = 55 end
-instance (Size ty56) let size = 56 end
-instance (Size ty57) let size = 57 end
-instance (Size ty58) let size = 58 end
-instance (Size ty59) let size = 59 end
-instance (Size ty60) let size = 60 end
-instance (Size ty61) let size = 61 end
-instance (Size ty62) let size = 62 end
-instance (Size ty63) let size = 63 end
-instance (Size ty64) let size = 64 end
-instance (Size ty65) let size = 65 end
-instance (Size ty66) let size = 66 end
-instance (Size ty67) let size = 67 end
-instance (Size ty68) let size = 68 end
-instance (Size ty69) let size = 69 end
-instance (Size ty70) let size = 70 end
-instance (Size ty71) let size = 71 end
-instance (Size ty72) let size = 72 end
-instance (Size ty73) let size = 73 end
-instance (Size ty74) let size = 74 end
-instance (Size ty75) let size = 75 end
-instance (Size ty76) let size = 76 end
-instance (Size ty77) let size = 77 end
-instance (Size ty78) let size = 78 end
-instance (Size ty79) let size = 79 end
-instance (Size ty80) let size = 80 end
-instance (Size ty81) let size = 81 end
-instance (Size ty82) let size = 82 end
-instance (Size ty83) let size = 83 end
-instance (Size ty84) let size = 84 end
-instance (Size ty85) let size = 85 end
-instance (Size ty86) let size = 86 end
-instance (Size ty87) let size = 87 end
-instance (Size ty88) let size = 88 end
-instance (Size ty89) let size = 89 end
-instance (Size ty90) let size = 90 end
-instance (Size ty91) let size = 91 end
-instance (Size ty92) let size = 92 end
-instance (Size ty93) let size = 93 end
-instance (Size ty94) let size = 94 end
-instance (Size ty95) let size = 95 end
-instance (Size ty96) let size = 96 end
-instance (Size ty97) let size = 97 end
-instance (Size ty98) let size = 98 end
-instance (Size ty99) let size = 99 end
-instance (Size ty100) let size = 100 end
-instance (Size ty101) let size = 101 end
-instance (Size ty102) let size = 102 end
-instance (Size ty103) let size = 103 end
-instance (Size ty104) let size = 104 end
-instance (Size ty105) let size = 105 end
-instance (Size ty106) let size = 106 end
-instance (Size ty107) let size = 107 end
-instance (Size ty108) let size = 108 end
-instance (Size ty109) let size = 109 end
-instance (Size ty110) let size = 110 end
-instance (Size ty111) let size = 111 end
-instance (Size ty112) let size = 112 end
-instance (Size ty113) let size = 113 end
-instance (Size ty114) let size = 114 end
-instance (Size ty115) let size = 115 end
-instance (Size ty116) let size = 116 end
-instance (Size ty117) let size = 117 end
-instance (Size ty118) let size = 118 end
-instance (Size ty119) let size = 119 end
-instance (Size ty120) let size = 120 end
-instance (Size ty121) let size = 121 end
-instance (Size ty122) let size = 122 end
-instance (Size ty123) let size = 123 end
-instance (Size ty124) let size = 124 end
-instance (Size ty125) let size = 125 end
-instance (Size ty126) let size = 126 end
-instance (Size ty127) let size = 127 end
-instance (Size ty128) let size = 128 end
-instance (Size ty129) let size = 129 end
-instance (Size ty130) let size = 130 end
-instance (Size ty131) let size = 131 end
-instance (Size ty132) let size = 132 end
-instance (Size ty133) let size = 133 end
-instance (Size ty134) let size = 134 end
-instance (Size ty135) let size = 135 end
-instance (Size ty136) let size = 136 end
-instance (Size ty137) let size = 137 end
-instance (Size ty138) let size = 138 end
-instance (Size ty139) let size = 139 end
-instance (Size ty140) let size = 140 end
-instance (Size ty141) let size = 141 end
-instance (Size ty142) let size = 142 end
-instance (Size ty143) let size = 143 end
-instance (Size ty144) let size = 144 end
-instance (Size ty145) let size = 145 end
-instance (Size ty146) let size = 146 end
-instance (Size ty147) let size = 147 end
-instance (Size ty148) let size = 148 end
-instance (Size ty149) let size = 149 end
-instance (Size ty150) let size = 150 end
-instance (Size ty151) let size = 151 end
-instance (Size ty152) let size = 152 end
-instance (Size ty153) let size = 153 end
-instance (Size ty154) let size = 154 end
-instance (Size ty155) let size = 155 end
-instance (Size ty156) let size = 156 end
-instance (Size ty157) let size = 157 end
-instance (Size ty158) let size = 158 end
-instance (Size ty159) let size = 159 end
-instance (Size ty160) let size = 160 end
-instance (Size ty161) let size = 161 end
-instance (Size ty162) let size = 162 end
-instance (Size ty163) let size = 163 end
-instance (Size ty164) let size = 164 end
-instance (Size ty165) let size = 165 end
-instance (Size ty166) let size = 166 end
-instance (Size ty167) let size = 167 end
-instance (Size ty168) let size = 168 end
-instance (Size ty169) let size = 169 end
-instance (Size ty170) let size = 170 end
-instance (Size ty171) let size = 171 end
-instance (Size ty172) let size = 172 end
-instance (Size ty173) let size = 173 end
-instance (Size ty174) let size = 174 end
-instance (Size ty175) let size = 175 end
-instance (Size ty176) let size = 176 end
-instance (Size ty177) let size = 177 end
-instance (Size ty178) let size = 178 end
-instance (Size ty179) let size = 179 end
-instance (Size ty180) let size = 180 end
-instance (Size ty181) let size = 181 end
-instance (Size ty182) let size = 182 end
-instance (Size ty183) let size = 183 end
-instance (Size ty184) let size = 184 end
-instance (Size ty185) let size = 185 end
-instance (Size ty186) let size = 186 end
-instance (Size ty187) let size = 187 end
-instance (Size ty188) let size = 188 end
-instance (Size ty189) let size = 189 end
-instance (Size ty190) let size = 190 end
-instance (Size ty191) let size = 191 end
-instance (Size ty192) let size = 192 end
-instance (Size ty193) let size = 193 end
-instance (Size ty194) let size = 194 end
-instance (Size ty195) let size = 195 end
-instance (Size ty196) let size = 196 end
-instance (Size ty197) let size = 197 end
-instance (Size ty198) let size = 198 end
-instance (Size ty199) let size = 199 end
-instance (Size ty200) let size = 200 end
-instance (Size ty201) let size = 201 end
-instance (Size ty202) let size = 202 end
-instance (Size ty203) let size = 203 end
-instance (Size ty204) let size = 204 end
-instance (Size ty205) let size = 205 end
-instance (Size ty206) let size = 206 end
-instance (Size ty207) let size = 207 end
-instance (Size ty208) let size = 208 end
-instance (Size ty209) let size = 209 end
-instance (Size ty210) let size = 210 end
-instance (Size ty211) let size = 211 end
-instance (Size ty212) let size = 212 end
-instance (Size ty213) let size = 213 end
-instance (Size ty214) let size = 214 end
-instance (Size ty215) let size = 215 end
-instance (Size ty216) let size = 216 end
-instance (Size ty217) let size = 217 end
-instance (Size ty218) let size = 218 end
-instance (Size ty219) let size = 219 end
-instance (Size ty220) let size = 220 end
-instance (Size ty221) let size = 221 end
-instance (Size ty222) let size = 222 end
-instance (Size ty223) let size = 223 end
-instance (Size ty224) let size = 224 end
-instance (Size ty225) let size = 225 end
-instance (Size ty226) let size = 226 end
-instance (Size ty227) let size = 227 end
-instance (Size ty228) let size = 228 end
-instance (Size ty229) let size = 229 end
-instance (Size ty230) let size = 230 end
-instance (Size ty231) let size = 231 end
-instance (Size ty232) let size = 232 end
-instance (Size ty233) let size = 233 end
-instance (Size ty234) let size = 234 end
-instance (Size ty235) let size = 235 end
-instance (Size ty236) let size = 236 end
-instance (Size ty237) let size = 237 end
-instance (Size ty238) let size = 238 end
-instance (Size ty239) let size = 239 end
-instance (Size ty240) let size = 240 end
-instance (Size ty241) let size = 241 end
-instance (Size ty242) let size = 242 end
-instance (Size ty243) let size = 243 end
-instance (Size ty244) let size = 244 end
-instance (Size ty245) let size = 245 end
-instance (Size ty246) let size = 246 end
-instance (Size ty247) let size = 247 end
-instance (Size ty248) let size = 248 end
-instance (Size ty249) let size = 249 end
-instance (Size ty250) let size = 250 end
-instance (Size ty251) let size = 251 end
-instance (Size ty252) let size = 252 end
-instance (Size ty253) let size = 253 end
-instance (Size ty254) let size = 254 end
-instance (Size ty255) let size = 255 end
-instance (Size ty256) let size = 256 end
-instance (Size ty257) let size = 257 end
+instance (Size ty1) let dummy = id let size = 1 end
+instance (Size ty2) let dummy = id let size = 2 end
+instance (Size ty3) let dummy = id let size = 3 end
+instance (Size ty4) let dummy = id let size = 4 end
+instance (Size ty5) let dummy = id let size = 5 end
+instance (Size ty6) let dummy = id let size = 6 end
+instance (Size ty7) let dummy = id let size = 7 end
+instance (Size ty8) let dummy = id let size = 8 end
+instance (Size ty9) let dummy = id let size = 9 end
+instance (Size ty10) let dummy = id let size = 10 end
+instance (Size ty11) let dummy = id let size = 11 end
+instance (Size ty12) let dummy = id let size = 12 end
+instance (Size ty13) let dummy = id let size = 13 end
+instance (Size ty14) let dummy = id let size = 14 end
+instance (Size ty15) let dummy = id let size = 15 end
+instance (Size ty16) let dummy = id let size = 16 end
+instance (Size ty17) let dummy = id let size = 17 end
+instance (Size ty18) let dummy = id let size = 18 end
+instance (Size ty19) let dummy = id let size = 19 end
+instance (Size ty20) let dummy = id let size = 20 end
+instance (Size ty21) let dummy = id let size = 21 end
+instance (Size ty22) let dummy = id let size = 22 end
+instance (Size ty23) let dummy = id let size = 23 end
+instance (Size ty24) let dummy = id let size = 24 end
+instance (Size ty25) let dummy = id let size = 25 end
+instance (Size ty26) let dummy = id let size = 26 end
+instance (Size ty27) let dummy = id let size = 27 end
+instance (Size ty28) let dummy = id let size = 28 end
+instance (Size ty29) let dummy = id let size = 29 end
+instance (Size ty30) let dummy = id let size = 30 end
+instance (Size ty31) let dummy = id let size = 31 end
+instance (Size ty32) let dummy = id let size = 32 end
+instance (Size ty33) let dummy = id let size = 33 end
+instance (Size ty34) let dummy = id let size = 34 end
+instance (Size ty35) let dummy = id let size = 35 end
+instance (Size ty36) let dummy = id let size = 36 end
+instance (Size ty37) let dummy = id let size = 37 end
+instance (Size ty38) let dummy = id let size = 38 end
+instance (Size ty39) let dummy = id let size = 39 end
+instance (Size ty40) let dummy = id let size = 40 end
+instance (Size ty41) let dummy = id let size = 41 end
+instance (Size ty42) let dummy = id let size = 42 end
+instance (Size ty43) let dummy = id let size = 43 end
+instance (Size ty44) let dummy = id let size = 44 end
+instance (Size ty45) let dummy = id let size = 45 end
+instance (Size ty46) let dummy = id let size = 46 end
+instance (Size ty47) let dummy = id let size = 47 end
+instance (Size ty48) let dummy = id let size = 48 end
+instance (Size ty49) let dummy = id let size = 49 end
+instance (Size ty50) let dummy = id let size = 50 end
+instance (Size ty51) let dummy = id let size = 51 end
+instance (Size ty52) let dummy = id let size = 52 end
+instance (Size ty53) let dummy = id let size = 53 end
+instance (Size ty54) let dummy = id let size = 54 end
+instance (Size ty55) let dummy = id let size = 55 end
+instance (Size ty56) let dummy = id let size = 56 end
+instance (Size ty57) let dummy = id let size = 57 end
+instance (Size ty58) let dummy = id let size = 58 end
+instance (Size ty59) let dummy = id let size = 59 end
+instance (Size ty60) let dummy = id let size = 60 end
+instance (Size ty61) let dummy = id let size = 61 end
+instance (Size ty62) let dummy = id let size = 62 end
+instance (Size ty63) let dummy = id let size = 63 end
+instance (Size ty64) let dummy = id let size = 64 end
+instance (Size ty65) let dummy = id let size = 65 end
+instance (Size ty66) let dummy = id let size = 66 end
+instance (Size ty67) let dummy = id let size = 67 end
+instance (Size ty68) let dummy = id let size = 68 end
+instance (Size ty69) let dummy = id let size = 69 end
+instance (Size ty70) let dummy = id let size = 70 end
+instance (Size ty71) let dummy = id let size = 71 end
+instance (Size ty72) let dummy = id let size = 72 end
+instance (Size ty73) let dummy = id let size = 73 end
+instance (Size ty74) let dummy = id let size = 74 end
+instance (Size ty75) let dummy = id let size = 75 end
+instance (Size ty76) let dummy = id let size = 76 end
+instance (Size ty77) let dummy = id let size = 77 end
+instance (Size ty78) let dummy = id let size = 78 end
+instance (Size ty79) let dummy = id let size = 79 end
+instance (Size ty80) let dummy = id let size = 80 end
+instance (Size ty81) let dummy = id let size = 81 end
+instance (Size ty82) let dummy = id let size = 82 end
+instance (Size ty83) let dummy = id let size = 83 end
+instance (Size ty84) let dummy = id let size = 84 end
+instance (Size ty85) let dummy = id let size = 85 end
+instance (Size ty86) let dummy = id let size = 86 end
+instance (Size ty87) let dummy = id let size = 87 end
+instance (Size ty88) let dummy = id let size = 88 end
+instance (Size ty89) let dummy = id let size = 89 end
+instance (Size ty90) let dummy = id let size = 90 end
+instance (Size ty91) let dummy = id let size = 91 end
+instance (Size ty92) let dummy = id let size = 92 end
+instance (Size ty93) let dummy = id let size = 93 end
+instance (Size ty94) let dummy = id let size = 94 end
+instance (Size ty95) let dummy = id let size = 95 end
+instance (Size ty96) let dummy = id let size = 96 end
+instance (Size ty97) let dummy = id let size = 97 end
+instance (Size ty98) let dummy = id let size = 98 end
+instance (Size ty99) let dummy = id let size = 99 end
+instance (Size ty100) let dummy = id let size = 100 end
+instance (Size ty101) let dummy = id let size = 101 end
+instance (Size ty102) let dummy = id let size = 102 end
+instance (Size ty103) let dummy = id let size = 103 end
+instance (Size ty104) let dummy = id let size = 104 end
+instance (Size ty105) let dummy = id let size = 105 end
+instance (Size ty106) let dummy = id let size = 106 end
+instance (Size ty107) let dummy = id let size = 107 end
+instance (Size ty108) let dummy = id let size = 108 end
+instance (Size ty109) let dummy = id let size = 109 end
+instance (Size ty110) let dummy = id let size = 110 end
+instance (Size ty111) let dummy = id let size = 111 end
+instance (Size ty112) let dummy = id let size = 112 end
+instance (Size ty113) let dummy = id let size = 113 end
+instance (Size ty114) let dummy = id let size = 114 end
+instance (Size ty115) let dummy = id let size = 115 end
+instance (Size ty116) let dummy = id let size = 116 end
+instance (Size ty117) let dummy = id let size = 117 end
+instance (Size ty118) let dummy = id let size = 118 end
+instance (Size ty119) let dummy = id let size = 119 end
+instance (Size ty120) let dummy = id let size = 120 end
+instance (Size ty121) let dummy = id let size = 121 end
+instance (Size ty122) let dummy = id let size = 122 end
+instance (Size ty123) let dummy = id let size = 123 end
+instance (Size ty124) let dummy = id let size = 124 end
+instance (Size ty125) let dummy = id let size = 125 end
+instance (Size ty126) let dummy = id let size = 126 end
+instance (Size ty127) let dummy = id let size = 127 end
+instance (Size ty128) let dummy = id let size = 128 end
+instance (Size ty129) let dummy = id let size = 129 end
+instance (Size ty130) let dummy = id let size = 130 end
+instance (Size ty131) let dummy = id let size = 131 end
+instance (Size ty132) let dummy = id let size = 132 end
+instance (Size ty133) let dummy = id let size = 133 end
+instance (Size ty134) let dummy = id let size = 134 end
+instance (Size ty135) let dummy = id let size = 135 end
+instance (Size ty136) let dummy = id let size = 136 end
+instance (Size ty137) let dummy = id let size = 137 end
+instance (Size ty138) let dummy = id let size = 138 end
+instance (Size ty139) let dummy = id let size = 139 end
+instance (Size ty140) let dummy = id let size = 140 end
+instance (Size ty141) let dummy = id let size = 141 end
+instance (Size ty142) let dummy = id let size = 142 end
+instance (Size ty143) let dummy = id let size = 143 end
+instance (Size ty144) let dummy = id let size = 144 end
+instance (Size ty145) let dummy = id let size = 145 end
+instance (Size ty146) let dummy = id let size = 146 end
+instance (Size ty147) let dummy = id let size = 147 end
+instance (Size ty148) let dummy = id let size = 148 end
+instance (Size ty149) let dummy = id let size = 149 end
+instance (Size ty150) let dummy = id let size = 150 end
+instance (Size ty151) let dummy = id let size = 151 end
+instance (Size ty152) let dummy = id let size = 152 end
+instance (Size ty153) let dummy = id let size = 153 end
+instance (Size ty154) let dummy = id let size = 154 end
+instance (Size ty155) let dummy = id let size = 155 end
+instance (Size ty156) let dummy = id let size = 156 end
+instance (Size ty157) let dummy = id let size = 157 end
+instance (Size ty158) let dummy = id let size = 158 end
+instance (Size ty159) let dummy = id let size = 159 end
+instance (Size ty160) let dummy = id let size = 160 end
+instance (Size ty161) let dummy = id let size = 161 end
+instance (Size ty162) let dummy = id let size = 162 end
+instance (Size ty163) let dummy = id let size = 163 end
+instance (Size ty164) let dummy = id let size = 164 end
+instance (Size ty165) let dummy = id let size = 165 end
+instance (Size ty166) let dummy = id let size = 166 end
+instance (Size ty167) let dummy = id let size = 167 end
+instance (Size ty168) let dummy = id let size = 168 end
+instance (Size ty169) let dummy = id let size = 169 end
+instance (Size ty170) let dummy = id let size = 170 end
+instance (Size ty171) let dummy = id let size = 171 end
+instance (Size ty172) let dummy = id let size = 172 end
+instance (Size ty173) let dummy = id let size = 173 end
+instance (Size ty174) let dummy = id let size = 174 end
+instance (Size ty175) let dummy = id let size = 175 end
+instance (Size ty176) let dummy = id let size = 176 end
+instance (Size ty177) let dummy = id let size = 177 end
+instance (Size ty178) let dummy = id let size = 178 end
+instance (Size ty179) let dummy = id let size = 179 end
+instance (Size ty180) let dummy = id let size = 180 end
+instance (Size ty181) let dummy = id let size = 181 end
+instance (Size ty182) let dummy = id let size = 182 end
+instance (Size ty183) let dummy = id let size = 183 end
+instance (Size ty184) let dummy = id let size = 184 end
+instance (Size ty185) let dummy = id let size = 185 end
+instance (Size ty186) let dummy = id let size = 186 end
+instance (Size ty187) let dummy = id let size = 187 end
+instance (Size ty188) let dummy = id let size = 188 end
+instance (Size ty189) let dummy = id let size = 189 end
+instance (Size ty190) let dummy = id let size = 190 end
+instance (Size ty191) let dummy = id let size = 191 end
+instance (Size ty192) let dummy = id let size = 192 end
+instance (Size ty193) let dummy = id let size = 193 end
+instance (Size ty194) let dummy = id let size = 194 end
+instance (Size ty195) let dummy = id let size = 195 end
+instance (Size ty196) let dummy = id let size = 196 end
+instance (Size ty197) let dummy = id let size = 197 end
+instance (Size ty198) let dummy = id let size = 198 end
+instance (Size ty199) let dummy = id let size = 199 end
+instance (Size ty200) let dummy = id let size = 200 end
+instance (Size ty201) let dummy = id let size = 201 end
+instance (Size ty202) let dummy = id let size = 202 end
+instance (Size ty203) let dummy = id let size = 203 end
+instance (Size ty204) let dummy = id let size = 204 end
+instance (Size ty205) let dummy = id let size = 205 end
+instance (Size ty206) let dummy = id let size = 206 end
+instance (Size ty207) let dummy = id let size = 207 end
+instance (Size ty208) let dummy = id let size = 208 end
+instance (Size ty209) let dummy = id let size = 209 end
+instance (Size ty210) let dummy = id let size = 210 end
+instance (Size ty211) let dummy = id let size = 211 end
+instance (Size ty212) let dummy = id let size = 212 end
+instance (Size ty213) let dummy = id let size = 213 end
+instance (Size ty214) let dummy = id let size = 214 end
+instance (Size ty215) let dummy = id let size = 215 end
+instance (Size ty216) let dummy = id let size = 216 end
+instance (Size ty217) let dummy = id let size = 217 end
+instance (Size ty218) let dummy = id let size = 218 end
+instance (Size ty219) let dummy = id let size = 219 end
+instance (Size ty220) let dummy = id let size = 220 end
+instance (Size ty221) let dummy = id let size = 221 end
+instance (Size ty222) let dummy = id let size = 222 end
+instance (Size ty223) let dummy = id let size = 223 end
+instance (Size ty224) let dummy = id let size = 224 end
+instance (Size ty225) let dummy = id let size = 225 end
+instance (Size ty226) let dummy = id let size = 226 end
+instance (Size ty227) let dummy = id let size = 227 end
+instance (Size ty228) let dummy = id let size = 228 end
+instance (Size ty229) let dummy = id let size = 229 end
+instance (Size ty230) let dummy = id let size = 230 end
+instance (Size ty231) let dummy = id let size = 231 end
+instance (Size ty232) let dummy = id let size = 232 end
+instance (Size ty233) let dummy = id let size = 233 end
+instance (Size ty234) let dummy = id let size = 234 end
+instance (Size ty235) let dummy = id let size = 235 end
+instance (Size ty236) let dummy = id let size = 236 end
+instance (Size ty237) let dummy = id let size = 237 end
+instance (Size ty238) let dummy = id let size = 238 end
+instance (Size ty239) let dummy = id let size = 239 end
+instance (Size ty240) let dummy = id let size = 240 end
+instance (Size ty241) let dummy = id let size = 241 end
+instance (Size ty242) let dummy = id let size = 242 end
+instance (Size ty243) let dummy = id let size = 243 end
+instance (Size ty244) let dummy = id let size = 244 end
+instance (Size ty245) let dummy = id let size = 245 end
+instance (Size ty246) let dummy = id let size = 246 end
+instance (Size ty247) let dummy = id let size = 247 end
+instance (Size ty248) let dummy = id let size = 248 end
+instance (Size ty249) let dummy = id let size = 249 end
+instance (Size ty250) let dummy = id let size = 250 end
+instance (Size ty251) let dummy = id let size = 251 end
+instance (Size ty252) let dummy = id let size = 252 end
+instance (Size ty253) let dummy = id let size = 253 end
+instance (Size ty254) let dummy = id let size = 254 end
+instance (Size ty255) let dummy = id let size = 255 end
+instance (Size ty256) let dummy = id let size = 256 end
+instance (Size ty257) let dummy = id let size = 257 end
 
 declare isabelle target_rep type ty1 = `1`
 declare isabelle target_rep type ty2 = `2`
