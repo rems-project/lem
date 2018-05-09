@@ -77,6 +77,22 @@ let search_module_suffix (env : Typed_ast.env) (is_ok : Typed_ast.env -> bool) (
     | Some dns -> if suffix_ok dns then Some dns else aux None ns
     | _ -> aux None ns
 
+let search_module_suffix_hack (env : Typed_ast.env) (is_ok : Typed_ast.env -> bool) (default : Name.t list option) (ns : Name.t list) = 
+  let suffix_ok ns =
+    let env_opt = lookup_env_opt env ns in
+    match env_opt with
+      | Some lenv -> is_ok {env with local_env = lenv}
+      | _ -> false
+  in
+  let rec aux acc ns = 
+    if suffix_ok ns then Some ns else
+    match ns with
+      | [] -> acc
+      | n::ns -> aux acc ns
+  in
+  match None with
+    | Some dns -> if suffix_ok dns then Some dns else aux None ns
+    | _ -> aux None ns
 
 let resolve_module_path l env i_opt (p : Path.t) =
   let (ns, n) = Path.to_name_list p in
@@ -106,7 +122,7 @@ let resolve_type_path l env i_opt p =
       | None -> false
       | Some (p',_) -> Path.compare p p' = 0
   in
-  match search_module_suffix env is_ok default_ns ns with
+  match search_module_suffix_hack env is_ok default_ns ns with
     | Some ns' -> Ident.mk_ident sk ns' n
     | None ->
       raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal
