@@ -641,3 +641,68 @@ let prune_target_bindings target (defs : def list) : def list =
   in def_walker target [] defs
 
 
+(* HOL's syntax for defining new datatypes (including records) doesn't include
+   declaring the type variables, but gathers them from the definition and
+   orders them alphabetically.  This code adds a prefix where necessary to
+   ensure that the original order is preserved. *)
+
+let texp_subst subst =
+  let subst = Types.src_type_subst subst in
+  function
+  | Te_opaque -> Te_opaque
+  | Te_abbrev (sk, ty) -> Te_abbrev (sk, subst ty)
+  | Te_record (sk1,sk2,fields,sk3) ->
+     Te_record (sk1,sk2,Seplist.map (fun (n,c,sk,ty) -> (n,c,sk,subst ty)) fields,sk3)
+  | Te_variant (sk,variants) ->
+     Te_variant (sk,Seplist.map (fun (n,c,sk,tys) -> (n,c,sk,Seplist.map subst tys)) variants)
+
+let make_subst tyvars =
+  let a = Char.code 'a' in
+  let uscore = Ulib.Text.of_char '_' in
+  let change_tn i tn =
+    match tn with
+    | Tn_A (lsk, txt, l) ->
+       let prefix =
+         if i > 25 then failwith "Too many type variables for Def_trans.make_subst" else
+           Ulib.Text.append (Ulib.Text.of_char (Char.chr (a + i))) uscore
+       in
+       let tn' = Tn_A (lsk, Ulib.Text.append prefix txt, l) in
+       let tv' = match tnvar_to_types_tnvar tn' with
+         | Ty tv,_ -> tv
+         | _ -> assert false
+       in
+       tn', [(fst (tnvar_to_types_tnvar tn),C.mk_tvar l None tv' {t = Tvar tv'})]
+    | Tn_N _ ->
+       tn, []
+  in
+  let (tyvars', substs) = List.split (Util.list_mapi change_tn tyvars) in
+  tyvars', List.concat substs
+
+let are_tyvars_ordered tyvars =
+  let rec aux h = function
+    | [] -> true
+    | (Tn_A (_,next,_)::t) ->
+       Ulib.Text.compare h next < 0 && aux next t
+    | (Tn_N _::t) -> aux h t
+  in
+  let rec start = function
+    | [] -> true
+    | (Tn_A (_,h,_)::t) -> aux h t
+    | (Tn_N _ :: t) -> start t
+  in start tyvars
+
+let rename_tyvars_in_typdef _ env ((d,lsk),l,lenv) =
+  match d with
+  | Type_def (sk, sl) ->
+     let do_def (n,tyvars,p,e,restr) =
+       if are_tyvars_ordered tyvars then None else
+         let tyvars', subst = make_subst tyvars in
+         let subst = TNfmap.from_list subst in
+         let e' = texp_subst subst e in
+         if are_tyvars_ordered tyvars'
+         then Some (n,tyvars',p,e',restr)
+         else assert false
+     in
+     let sl' = Seplist.map_changed do_def sl in
+     Util.option_map (fun sl' -> (env,[((Type_def (sk, sl'),lsk),l,lenv)])) sl'
+  | _ -> None

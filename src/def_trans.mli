@@ -130,6 +130,7 @@ val remove_indrelns_true_lhs : def_macro
 val remove_classes : def_macro
 val type_annotate_definitions : def_macro
 val nvar_to_parameter : def_macro
+val rename_tyvars_in_typdef : def_macro
 
 val prune_target_bindings : Target.non_ident_target -> def list -> def list
 

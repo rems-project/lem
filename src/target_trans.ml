@@ -154,6 +154,7 @@ let hol =
                                         M.remove_opens;
 					M.remove_module_renames;
                                         M.remove_types_with_target_rep (Target_no_ident Target_hol);
+                                        M.rename_tyvars_in_typdef;
                                         M.defs_with_target_rep_to_lemma env (Target_no_ident Target_hol);
                                         Patterns.compile_def (Target_no_ident Target_hol) Patterns.is_hol_pattern_match env] @
                                         (if (!hol_remove_matches) then 
