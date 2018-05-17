@@ -7,7 +7,14 @@ src/main.native
 src/version.ml
 examples/ppcmem-model/generated/*
 coq-lib/lem_*.v
-hol-lib/lem_*.sml
+hol-lib/lem*.sml
+hol-lib/lem*.sig
+hol-lib/lem*.ui
+hol-lib/lem*.uo
+hol-lib/lem*.dat
+hol-lib/lemheap
+hol-lib/.hollogs
+hol-lib/.HOLMK
 html-lib/*.html
 isabelle-lib/Lem_*.thy
 library/ocaml-build-dir*
