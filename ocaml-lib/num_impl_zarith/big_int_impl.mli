@@ -1,6 +1,6 @@
 module BI :
   sig
-    type big_int
+    type big_int = Z.t
     val zero_big_int : big_int
     val unit_big_int : big_int
     val minus_big_int : big_int -> big_int
@@ -54,4 +54,3 @@ module BI :
     val div : big_int -> big_int -> big_int
     val (mod) : big_int -> big_int -> big_int
   end
-

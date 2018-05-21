@@ -16,4 +16,6 @@ module QI :
     val geq : Num.num -> Num.num -> bool
     val min : Num.num -> Num.num -> Num.num
     val max : Num.num -> Num.num -> Num.num
+    val floor : Num.num -> Big_int.big_int
+    val ceiling : Num.num -> Big_int.big_int
   end
