@@ -14,3 +14,5 @@ val leq : t -> t -> bool
 val geq : t -> t -> bool
 val min : t -> t -> t
 val max : t -> t -> t
+val floor : t -> Big_int_impl.BI.big_int
+val ceiling : t -> Big_int_impl.BI.big_int

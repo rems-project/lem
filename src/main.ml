@@ -9,9 +9,16 @@
 (*          Peter Sewell, University of Cambridge                         *)
 (*          Scott Owens, University of Kent                               *)
 (*          Thomas Tuerk, University of Cambridge                         *)
+(*          Brian Campbell, University of Edinburgh                       *)
+(*          Shaked Flur, University of Cambridge                          *)
+(*          Thomas Bauereiss, University of Cambridge                     *)
+(*          Stephen Kell, University of Cambridge                         *)
+(*          Thomas Williams                                               *)
+(*          Lars Hupel                                                    *)
+(*          Basile Clement                                                *)
 (*                                                                        *)
-(*  The Lem sources are copyright 2010-2013                               *)
-(*  by the UK authors above and Institut National de Recherche en         *)
+(*  The Lem sources are copyright 2010-2018                               *)
+(*  by the authors above and Institut National de Recherche en            *)
 (*  Informatique et en Automatique (INRIA).                               *)
 (*                                                                        *)
 (*  All files except ocaml-lib/pmap.{ml,mli} and ocaml-libpset.{ml,mli}   *)
@@ -62,13 +69,24 @@ let tex_all_filename_opt = ref None
 let opt_file_arguments = ref ([]:string list)
 
 let default_library = 
-   try 
-     let lp = Sys.getenv("LEMLIB") in
-     if Filename.is_relative lp 
-     then Filename.concat (Sys.getcwd ()) lp
-     else lp
-   with 
-     | Not_found -> Filename.concat Build_directory.d "library"
+  begin match Sys.getenv "LEMLIB" with
+  | lp ->
+      if Filename.is_relative lp
+      then Filename.concat (Sys.getcwd ()) lp
+      else lp
+  | exception Not_found ->
+      let lib = Filename.concat Share_directory.d "library" in
+      begin match Sys.is_directory lib with
+      | true -> lib
+      (* if "make install" did not run (hence the above failed) we assume
+      argv.(0) is in the source tree, and we look for "library" relative
+      to it *)
+      | false ->
+          Filename.concat (Filename.dirname (Sys.argv.(0))) "library"
+      | exception Sys_error _ ->
+          Filename.concat (Filename.dirname (Sys.argv.(0))) "library"
+      end
+  end
 
 let lib_paths_ref = ref ([] : string list)
 let allow_reorder_modules = ref true

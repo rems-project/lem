@@ -18,4 +18,6 @@ module QI = struct
   let geq = Num.ge_num
   let min = Num.min_num
   let max = Num.max_num
+  let floor x = Num.big_int_of_num (Num.floor_num x)
+  let ceiling x = Num.big_int_of_num (Num.ceiling_num x)
 end

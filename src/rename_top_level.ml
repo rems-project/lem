@@ -9,9 +9,16 @@
 (*          Peter Sewell, University of Cambridge                         *)
 (*          Scott Owens, University of Kent                               *)
 (*          Thomas Tuerk, University of Cambridge                         *)
+(*          Brian Campbell, University of Edinburgh                       *)
+(*          Shaked Flur, University of Cambridge                          *)
+(*          Thomas Bauereiss, University of Cambridge                     *)
+(*          Stephen Kell, University of Cambridge                         *)
+(*          Thomas Williams                                               *)
+(*          Lars Hupel                                                    *)
+(*          Basile Clement                                                *)
 (*                                                                        *)
-(*  The Lem sources are copyright 2010-2013                               *)
-(*  by the UK authors above and Institut National de Recherche en         *)
+(*  The Lem sources are copyright 2010-2018                               *)
+(*  by the authors above and Institut National de Recherche en            *)
 (*  Informatique et en Automatique (INRIA).                               *)
 (*                                                                        *)
 (*  All files except ocaml-lib/pmap.{ml,mli} and ocaml-libpset.{ml,mli}   *)
@@ -106,10 +113,16 @@ let compute_isa_rename_constant_fun (nk : name_kind) (n : Name.t) : Name.t optio
   let n1 = Util.option_repeat Name.remove_underscore_suffix n0 in
   if (Name.compare n1 n = 0) then None else Some n1
 
+(* TODO: check whether this is sufficient, or if more restrictions are required *)
+let compute_hol_rename_constant_fun (nk : name_kind) (n : Name.t) : Name.t option =
+  let n0 = Util.option_repeat Name.remove_underscore n in
+  if (Name.compare n0 n = 0) then None else Some n0
+
 let compute_target_rename_constant_fun (targ : Target.non_ident_target) (nk : name_kind) (n : Name.t) : Name.t option =
   match targ with 
     | Target_ocaml -> compute_ocaml_rename_constant_fun nk n 
     | Target_isa -> compute_isa_rename_constant_fun nk n 
+    | Target_hol -> compute_hol_rename_constant_fun nk n 
     | _ -> None
 
 let get_fresh_name consts consts' n = 

@@ -14,33 +14,31 @@ markdown_targets := $(patsubst %.markdown,%.html,$(wildcard *.markdown))
 
 libs : ocaml-libs hol-libs isa-libs coq-libs tex-libs html-libs
 
-hol-libs:
+.PHONY: ../lem
+../lem:
 	make -C .. build-lem
+
+hol-libs: ../lem
 	../lem -hol -hol_remove_matches -outdir ../hol-lib -wl ign -wl_auto_import err -wl_rename err ${LIBS} -auxiliary_level none -only_changed_output
 
-ocaml-libs:
-	make -C .. build-lem
+ocaml-libs: ../lem
 	../lem -ocaml -outdir ../ocaml-lib -wl ign -wl_auto_import err -wl_rename err ${LIBS} -auxiliary_level none -only_changed_output
 
-isa-libs:
-	make -C .. build-lem
+isa-libs: ../lem
 	../lem -isa -outdir ../isabelle-lib -wl ign -wl_auto_import err -wl_rename err ${LIBS} -auxiliary_level none -only_changed_output
 
-coq-libs:
-	make -C .. build-lem
+coq-libs: ../lem
 	../lem -coq -outdir ../coq-lib -wl ign -wl_auto_import err ${LIBS} -auxiliary_level none -only_changed_output
 
-tex-libs:
-	make -C .. build-lem
+tex-libs: ../lem
 	../lem -tex_all ../tex-lib/lem-libs.tex -wl ign -wl_auto_import err ${LIBS} 
 
-html-libs:
-	make -C .. build-lem
+html-libs: ../lem
 	../lem -html -outdir ../html-lib -wl ign -wl_auto_import err ${LIBS} 
 
 ocaml-lib-tests: 
 	@mkdir -p ${OCAML_BUILD_DIR}
-	@rm -f ocaml-build-dir
+	@rm -rf ocaml-build-dir
 	@ln -s ${OCAML_BUILD_DIR} ocaml-build-dir
 	@../lem -ocaml -outdir ${OCAML_BUILD_DIR} -wl ign -wl_auto_import err -wl_rename err ${LIBS} -only_auxiliary -only_changed_output -no_dep_reorder
 	@./run-ocaml-tests.sh ${OCAML_BUILD_DIR}

@@ -9,9 +9,16 @@
 (*          Peter Sewell, University of Cambridge                         *)
 (*          Scott Owens, University of Kent                               *)
 (*          Thomas Tuerk, University of Cambridge                         *)
+(*          Brian Campbell, University of Edinburgh                       *)
+(*          Shaked Flur, University of Cambridge                          *)
+(*          Thomas Bauereiss, University of Cambridge                     *)
+(*          Stephen Kell, University of Cambridge                         *)
+(*          Thomas Williams                                               *)
+(*          Lars Hupel                                                    *)
+(*          Basile Clement                                                *)
 (*                                                                        *)
-(*  The Lem sources are copyright 2010-2013                               *)
-(*  by the UK authors above and Institut National de Recherche en         *)
+(*  The Lem sources are copyright 2010-2018                               *)
+(*  by the authors above and Institut National de Recherche en            *)
 (*  Informatique et en Automatique (INRIA).                               *)
 (*                                                                        *)
 (*  All files except ocaml-lib/pmap.{ml,mli} and ocaml-libpset.{ml,mli}   *)
@@ -147,6 +154,7 @@ let hol =
                                         M.remove_opens;
 					M.remove_module_renames;
                                         M.remove_types_with_target_rep (Target_no_ident Target_hol);
+                                        M.rename_tyvars_in_typdef;
                                         M.defs_with_target_rep_to_lemma env (Target_no_ident Target_hol);
                                         Patterns.compile_def (Target_no_ident Target_hol) Patterns.is_hol_pattern_match env] @
                                         (if (!hol_remove_matches) then 
@@ -358,7 +366,6 @@ begin
   let avoid_consts =  match targ with
                         | Target_ident -> false
                         | Target_no_ident Target_lem -> false
-                        | Target_no_ident Target_hol -> false 
                         | _ -> true
   in
   let avoid_types = match targ with

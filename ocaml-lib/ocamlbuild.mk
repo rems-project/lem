@@ -1,5 +1,4 @@
 INSTALLDIR := $(shell ocamlfind printconf destdir)
-LEMVERSION := $(shell git describe --dirty --always)
 LOCALINSTALDIR := local
 
 all: extract_zarith extract_num

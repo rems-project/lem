@@ -94,7 +94,7 @@ let combine_lex_skips s1 s2 =
   match (s1,s2) with
     | (None,_) -> s2
     | (_,None) -> s1
-    | (Some(s1),Some(s2)) -> Some(s2@s1)
+    | (Some(s1),Some(s2)) -> Some(s1@s2)
 
 type terminal = lex_skips
 
@@ -2586,4 +2586,3 @@ E1(id) gives E2
 </zj//j/>,D1,E1 u+ E2 |- </defi semisemi_opti // i/> gives D3,E3
 ------------------------------------------------------------ :: open
 </zj//j/>,D1,E1 |- open id l semisemi_opt </defi semisemi_opti // i/> gives D3,E3
-

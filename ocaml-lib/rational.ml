@@ -20,3 +20,6 @@ let geq = QI.geq
 
 let min = QI.min
 let max = QI.max
+
+let floor = QI.floor
+let ceiling = QI.ceiling

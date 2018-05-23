@@ -1,22 +1,37 @@
-LEMVERSION=0.4
+# Attempt to ask git for a version (tag or hash) but fall back on LEMRELEASE.
+# Note that opam builds from a tar ball so LEMRELEASE will be used in that case.
+LEMRELEASE:=2018-04-23
+LEMVERSION:=$(shell git describe --dirty --always 2>/dev/null || echo $(LEMRELEASE))
+
 DDIR=lem-$(LEMVERSION)
 
-PATH := $(CURDIR)/$(FINDLIB)/bin:$(PATH)
-BUILD_DIR := `pwd`
-INSTALL_DIR := /usr/local
+# by default assume local install
+INSTALL_DIR := $(realpath .)
 
 #all: il.pdf build-main ilTheory.uo
-all: bin/lem libs_phase_1 ocaml-libs
+all: bin/lem libs_phase_1
 
 # we might want run the tests for all backends that are present
 
 install:
-	$(MAKE) -C ocaml-lib install
 	mkdir -p $(INSTALL_DIR)/bin
-	mkdir -p $(INSTALL_DIR)/share
-	cp lem.sh $(INSTALL_DIR)/bin/lem
+	rm -f $(INSTALL_DIR)/bin/lem
+	cp src/main.native $(INSTALL_DIR)/bin/lem
 	rm -rf $(INSTALL_DIR)/share/lem
-	cp -R $(BUILD_DIR) $(INSTALL_DIR)/share/lem
+	mkdir -p $(INSTALL_DIR)/share/lem/library
+	cp library/*.lem $(INSTALL_DIR)/share/lem/library
+	cp library/*_constants $(INSTALL_DIR)/share/lem/library
+	$(MAKE) -C ocaml-lib install
+#	cp -R coq-lib $(INSTALL_DIR)/share/lem
+#	cp -R hol-lib $(INSTALL_DIR)/share/lem
+#	cp -R html-lib $(INSTALL_DIR)/share/lem
+#	cp -R isabelle-lib $(INSTALL_DIR)/share/lem
+#	cp -R tex-lib $(INSTALL_DIR)/share/lem
+
+uninstall:
+	rm -f $(INSTALL_DIR)/bin/lem
+	rm -rf $(INSTALL_DIR)/share/lem
+	$(MAKE) -C ocaml-lib uninstall
 
 build-doc:
 	make -C doc
@@ -35,13 +50,14 @@ lem_dep.pdf: lem_dep.tex
 # hol-libs, etc.
 libs_phase_1: 
 	make -C library
+	make ocaml-libs
 
 
 # this processes the Lem-generated library files for that target,
 # together with any other hand-written files needed (eg the ocaml
 # pset.ml), through the target.
 libs_phase_2:
-	make ocaml-libs
+#	make ocaml-libs
 	make tex-libs
 	make hol-libs
 	make coq-libs
@@ -154,33 +170,26 @@ tex-libs:
 # test-texgw:
 # 	g tests/test-tex/test-tex-inc-wrapper
 
-debug: src/ast.ml version src/build_directory.ml
+debug: version share_directory
 	rm -f library/lib_cache
 	make -C src debug
 	ln -sf src/main.d.byte lem
 
 
-build-lem: version src/ast.ml src/build_directory.ml
+build-lem: version share_directory
 	make -C src all
 	ln -sf src/main.native lem
 
-build-lem-profile: version src/ast.ml src/build_directory.ml
+build-lem-profile: version share_directory
 	make -C src profile
 	ln -sf src/main.p.native lem-profile
 
 
 lem: build-lem
 
-bin/lem : lem
+bin/lem: lem
 	mkdir -p bin
-	cd bin; ln -sf ../src/main.native lem
-
-headache: headache-1.03.tar.gz
-	tar xzf headache-1.03.tar.gz
-	cd headache-1.03; ./configure --bindir $(CURDIR)/headache
-	make -C headache-1.03
-	make -C headache-1.03 install
-	rm -rf headache-1.03
+	cd bin && ln -sf ../src/main.native lem
 
 OCAML-LIB-NON_LGPL =      \
 ocaml-lib/Makefile	  \
@@ -199,20 +208,20 @@ ocaml-lib/vector.mli
 # pset.mli
 
 apply_header:
-	./headache -h etc/header `ls src/*.ml`
-	./headache -h etc/header `ls src/*.mli`
-	./headache -h etc/header `ls src/*.mly`
-	./headache -h etc/header `ls src/*.mll`
-	./headache -c etc/head_config -h etc/header `ls language/*.lem`
-	./headache -c etc/head_config -h etc/header `ls tex-lib/*.sty`
-	./headache -c etc/head_config -h etc/header `ls coq-lib/*.v`
-	./headache -c etc/head_config -h etc/header `ls isabelle-lib/*.thy`
-	./headache -c etc/head_config -h etc/header `ls tex-lib/*.sty`
-	./headache -c etc/head_config -h etc/header $(OCAML-LIB-NONLGPL) 
-	./headache -c etc/head_config -h etc/header `ls library/coq/*.lem`
-	./headache -c etc/head_config -h etc/header `ls library/hol/*.lem`
-	./headache -c etc/head_config -h etc/header `ls library/isabelle/*.lem`
-	./headache -c etc/head_config -h etc/header `ls library/ocaml/*.lem`
+	headache -h etc/header `ls src/*.ml`
+	headache -h etc/header `ls src/*.mli`
+	headache -h etc/header `ls src/*.mly`
+	headache -h etc/header `ls src/*.mll`
+	headache -c etc/head_config -h etc/header `ls language/*.lem`
+	headache -c etc/head_config -h etc/header `ls tex-lib/*.sty`
+	headache -c etc/head_config -h etc/header `ls coq-lib/*.v`
+	headache -c etc/head_config -h etc/header `ls isabelle-lib/*.thy`
+	headache -c etc/head_config -h etc/header `ls tex-lib/*.sty`
+	headache -c etc/head_config -h etc/header $(OCAML-LIB-NONLGPL) 
+	headache -c etc/head_config -h etc/header `ls library/coq/*.lem`
+	headache -c etc/head_config -h etc/header `ls library/hol/*.lem`
+	headache -c etc/head_config -h etc/header `ls library/isabelle/*.lem`
+	headache -c etc/head_config -h etc/header `ls library/ocaml/*.lem`
 
 
 #lem_unwrapped.tex: lem.ott
@@ -223,13 +232,15 @@ apply_header:
 
 #src/version.ml: 
 version:
-	printf 'let v="%s"\n' `git describe --dirty --always` > src/version.ml
+	echo "(* Generated file -- do not edit. *)" > src/version.ml
+	echo 'let v="$(LEMVERSION)"' >> src/version.ml
 
-src/build_directory.ml: 
-	echo let d=\"$(BUILD_DIR)\" > src/build_directory.ml
+share_directory:
+	echo "(* Generated file -- do not edit. *)" > src/share_directory.ml
+	echo let d=\"$(INSTALL_DIR)/share/lem\" >> src/share_directory.ml
 
 
-distrib: src/ast.ml version headache
+distrib: src/ast.ml version
 	rm -rf $(DDIR)
 	rm -rf $(DDIR).tar.gz
 	mkdir $(DDIR)
@@ -265,15 +276,15 @@ distrib: src/ast.ml version headache
 	cp src/Makefile-distrib $(DDIR)/src/Makefile
 	cp README $(DDIR)
 	cp LICENSE $(DDIR)
-	./headache -h header `ls $(DDIR)/src/*.ml`
-	./headache -h header `ls $(DDIR)/src/*.mli`
-	./headache -h header `ls $(DDIR)/src/*.mly`
-	./headache -h header `ls $(DDIR)/src/*.mll`
-	./headache -c head_config -h header `ls $(DDIR)/tex-lib/*.sty`
-	./headache -c head_config -h header `ls $(DDIR)/library/*.lem`
-	./headache -c head_config -h header `ls $(DDIR)/library/hol/*.lem`
-	./headache -c head_config -h header `ls $(DDIR)/library/isabelle/*.lem`
-	./headache -c head_config -h header `ls $(DDIR)/library/ocaml/*.lem`
+	headache -h header `ls $(DDIR)/src/*.ml`
+	headache -h header `ls $(DDIR)/src/*.mli`
+	headache -h header `ls $(DDIR)/src/*.mly`
+	headache -h header `ls $(DDIR)/src/*.mll`
+	headache -c head_config -h header `ls $(DDIR)/tex-lib/*.sty`
+	headache -c head_config -h header `ls $(DDIR)/library/*.lem`
+	headache -c head_config -h header `ls $(DDIR)/library/hol/*.lem`
+	headache -c head_config -h header `ls $(DDIR)/library/isabelle/*.lem`
+	headache -c head_config -h header `ls $(DDIR)/library/ocaml/*.lem`
 	tar cf $(DDIR).tar $(DDIR)
 	gzip $(DDIR).tar
 	rm -rf $(DDIR)
@@ -287,7 +298,7 @@ clean:
 	-rm -f coq-lib/Makefile
 	-rm -f coq-lib/coqharness.vo
 	-rm -f coq-lib/coqharness.glob
-	-rm -rf src/version.ml lem library/lib_cache src/build_directory.ml
+	-rm -rf src/version.ml lem library/lib_cache src/share_directory.ml
 	#-rm -rf lem_dep.tex lem_dep.pdf lem_dep.aux lem_dep.log
 
 cleanall: clean
@@ -296,5 +307,4 @@ cleanall: clean
 	-make -C manual cleanall
 	-make -C ocaml-lib clean
 	-make -C tests clean
-	-rm -rf headache
 	-rm -rf lem-$(LEMVERSION) lem-$(LEMVERSION).tar.gz

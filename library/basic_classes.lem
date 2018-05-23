@@ -8,6 +8,7 @@ declare {isabelle;ocaml;hol;coq} rename module = lem_basic_classes
 open import {isabelle} `HOL-Library.Datatype_Records`
 
 open import {coq} `Coq.Strings.Ascii`
+open import {hol} `ternaryComparisonsTheory`
 
 (* ========================================================================== *)
 (* Equality                                                                   *)
@@ -94,6 +95,11 @@ declare coq target_rep type ordering = `ordering`
 declare coq target_rep function LT = `LT`
 declare coq target_rep function EQ = `EQ`
 declare coq target_rep function GT = `GT`
+
+declare hol target_rep type ordering = `ordering`
+declare hol target_rep function LT = `LESS`
+declare hol target_rep function EQ = `EQUAL`
+declare hol target_rep function GT = `GREATER`
 
 let orderingIsLess r       = (match r with LT -> true | _ -> false end)
 let orderingIsGreater r    = (match r with GT -> true | _ -> false end)

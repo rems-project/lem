@@ -38,6 +38,8 @@ module QI :
     val div : t -> t -> t
     val mul_2exp : t -> int -> t
     val div_2exp : t -> int -> t
+    val floor : t -> Big_int_impl.BI.big_int
+    val ceiling : t -> Big_int_impl.BI.big_int
     val print : t -> unit
     val output : out_channel -> t -> unit
     val sprint : unit -> t -> string

@@ -3,6 +3,7 @@
 \\.
 \\.\\.
 abbreviation
+abs
 acc
 actions
 advanced
@@ -108,6 +109,7 @@ exit
 export_code
 extract
 extract_type
+extend
 False
 fields
 file
@@ -168,6 +170,7 @@ internals
 interpret
 interpretation
 is
+iszero
 Isabelle\\.command
 Isar\\.begin_document
 Isar\\.define_command
@@ -191,6 +194,8 @@ linear_undo
 local
 locale
 local_setup
+lsb
+mask
 max
 method_setup
 min
@@ -310,9 +315,11 @@ remove_thy
 rename
 rep_datatype
 repdef
+replicate
 respects
 respects2
 restrict
+round
 sect
 section
 setup
@@ -339,6 +346,7 @@ subsection
 subsubsect
 subsubsection
 SUM
+sum
 SUP
 sym
 syntax
