@@ -1,7 +1,6 @@
 opam-version: "1.2"
-name: "lem"
-version: "2018-05-11"
 maintainer: "Lem Devs <cl-lem-dev@lists.cam.ac.uk>"
+name: "lem"
 authors: [
   "Dominic Mulligan"
   "Francesco Zappa Nardelli"
@@ -22,7 +21,7 @@ authors: [
 homepage: "http://www.cl.cam.ac.uk/~pes20/lem/"
 bug-reports: "https://github.com/rems-project/lem/issues"
 license: "part BSD3, part LGPL 2"
-dev-repo: "https://github.com/rems-project/lem"
+dev-repo: "https://github.com/rems-project/lem.git"
 build: [make "INSTALL_DIR=%{prefix}%"]
 install: [make "INSTALL_DIR=%{prefix}%" "install"]
 remove: [make "INSTALL_DIR=%{prefix}%" "uninstall"]
