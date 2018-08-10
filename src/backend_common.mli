@@ -92,6 +92,11 @@ val get_module_open_string : env -> Target.target -> string -> bool -> Path.t ->
     directory instead to your [.isabelle/YOUR VERSION/ROOTS] file. *)    
 val isa_add_full_library_path_flag : bool ref
 
+(** [isa_use_datatype_record_flag] controls whether the Isabelle output uses [datatype_record] instead of
+    [record]. [record]s are more performant, but are not allowed to participate in nested recursion of
+    [datatype]s. *)
+val isa_use_datatype_record_flag : bool ref
+
 (** [get_imported_target_modules env targ defs] extracts a list of module that should be imported.
     The exact names of these modules depend on the environment and the target. Therefore, they get extracted in
     an abstract from and converted (after possible changes to the environment) by

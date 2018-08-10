@@ -270,6 +270,8 @@ end
 
 let isa_add_full_library_path_flag = ref false 
 
+let isa_use_datatype_record_flag = ref false
+
 let adapt_isabelle_library_dir dir =
   if (Util.dir_eq (Filename.concat Share_directory.d "library") dir) then
      (if (!isa_add_full_library_path_flag) then (Filename.concat Share_directory.d "isabelle-lib") else "")

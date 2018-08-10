@@ -879,7 +879,7 @@ let back_tick = List.hd (Ulib.Text.explode (r"`"))
 let quotation_mark = List.hd (Ulib.Text.explode (r"\""))
 let backslash = List.hd (Ulib.Text.explode (r"\\"))
 
-module Isa : Target = struct
+module Isa () : Target = struct
   include Identity 
 
   let lex_skip = function
@@ -1014,7 +1014,11 @@ module Isa : Target = struct
   let typedef_end = emp
   let typedef_sep = kwd "and"
 
-  let typedefrec_start = kwd "datatype_record"
+  let typedefrec_start =
+    if !Backend_common.isa_use_datatype_record_flag then
+      kwd "datatype_record"
+    else
+      kwd "record"
   let typedefrec_end = emp
   let rec_start = kwd "(|"
   let rec_end = kwd "|)"
@@ -3969,11 +3973,11 @@ module Make(A : sig val avoid : var_avoid_f;; val env : env;; val dir : string e
       (B.defs_to_rope defs, B.defs_to_extra defs)
 
   let isa_defs defs =
-    let module B = F(Isa)(C)(Comment_def) in
+    let module B = F(Isa())(C)(Comment_def) in
       (B.defs_to_rope defs, B.defs_to_extra defs)
 
   let isa_header_defs defs =
-    let module B = F(Isa)(C)(Comment_def) in
+    let module B = F(Isa())(C)(Comment_def) in
       B.header_defs defs
 
   let coq_defs defs =

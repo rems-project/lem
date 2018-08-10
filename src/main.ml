@@ -162,6 +162,9 @@ let options = Arg.align ([
   ( "-add_full_isa_lib_path",
     Arg.Set Backend_common.isa_add_full_library_path_flag, 
     " add the full path of the isabelle-lib directory to Isabelle import statements");
+  ( "-use_datatype_record",
+    Arg.Set Backend_common.isa_use_datatype_record_flag,
+    " use datatype_record instead of record in Isabelle output");
   ( "-v",
     Arg.Set opt_print_version, 
     " print version");
