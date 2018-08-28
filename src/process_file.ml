@@ -264,26 +264,32 @@ let output1 env (out_dir : string option) (targ : Target.target) avoid m =
                 close_output_with_check ext_o
              end in ()
           end
-      | Target.Target_no_ident(Target.Target_isa) -> 
+      | Target.Target_no_ident(Target.Target_isa) ->
           begin
           try begin
             let (r_main, r_extra_opt) = B.isa_defs m.typed_ast in
-            let _ = if (!only_auxiliary) then () else 
+            let import_records =
+              if !Backend_common.isa_use_datatype_record_flag then
+                "  \"HOL-Library.Datatype_Records\"\n"
+              else
+                "" in
+            let imports = "  Main\n" ^ import_records in
+            let _ = if (!only_auxiliary) then () else
               begin
-                let (o, ext_o) = open_output_with_check dir (module_name ^ ".thy") in 
+                let (o, ext_o) = open_output_with_check dir (module_name ^ ".thy") in
                 let r1 = B.isa_header_defs m.typed_ast in
-                Printf.fprintf o "chapter \\<open>%s\\<close>\n\n" (generated_line m.filename);
+                Printf.fprintf o "chapter \\<open>%s\\<close>\n\n" (generated_line (Printf.sprintf "\\<open>%s\\<close>" m.filename));
                 Printf.fprintf o "theory \"%s\" \n\n" module_name;
-                Printf.fprintf o "imports \n \t Main\n";
+                Printf.fprintf o "imports\n%s" imports;
 (*                Printf.fprintf o "\t \"%s\"\n" isa_thy; *)
                 (*
                 Printf.fprintf o "imports \n \t \"%s/num_type\" \n" libpath;
                  *)
                 Printf.fprintf o "%s" (Ulib.Text.to_string r1);
-                begin 
-                  if imported_modules <> [] then 
+                begin
+                  if imported_modules <> [] then
                     begin
-                      List.iter (fun f -> Printf.fprintf o "\t \"%s\" \n" f) imported_modules
+                      List.iter (fun f -> Printf.fprintf o "  \"%s\"\n" f) imported_modules
                     end;
                 end;
 
@@ -295,15 +301,15 @@ let output1 env (out_dir : string option) (targ : Target.target) avoid m =
 
               let _ = match r_extra_opt with None -> () | Some r_extra ->
               begin
-                let (o, ext_o) = open_output_with_check dir (module_name ^ "Auxiliary.thy") in              
-                Printf.fprintf o "chapter {* %s *}\n\n" (generated_line m.filename);
+                let (o, ext_o) = open_output_with_check dir (module_name ^ "Auxiliary.thy") in
+                Printf.fprintf o "chapter {* %s *}\n\n" (generated_line (Printf.sprintf "\\<open>%s\\<close>" m.filename));
                 Printf.fprintf o "theory \"%sAuxiliary\" \n\n" module_name;
-                Printf.fprintf o "imports \n \t Main\n";
+                Printf.fprintf o "imports\n%s" imports;
 (*                Printf.fprintf o "\t \"%s\"\n" isa_thy; *)
-                begin 
-                  if extra_imported_modules <> [] then 
+                begin
+                  if extra_imported_modules <> [] then
                     begin
-                      List.iter (fun f -> Printf.fprintf o "\t \"%s\" \n" f) extra_imported_modules
+                      List.iter (fun f -> Printf.fprintf o "  \"%s\"\n" f) extra_imported_modules
                     end;
                 end;
                 Printf.fprintf o "\nbegin \n\n";

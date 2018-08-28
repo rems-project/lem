@@ -168,28 +168,10 @@ let is_isa_chr x =
   (* most printable characters are supported, but there are some exceptions! *)
   not (List.mem x [0x22; 0x27; 0x5c; 0x60])
 
-let nibble_from_hex h =
-  if h =  0 then "0x0" else
-  if h =  1 then "0x1" else
-  if h =  2 then "0x2" else
-  if h =  3 then "0x3" else
-  if h =  4 then "0x4" else
-  if h =  5 then "0x5" else
-  if h =  6 then "0x6" else
-  if h =  7 then "0x7" else
-  if h =  8 then "0x8" else
-  if h =  9 then "0x9" else
-  if h = 10 then "0xA" else
-  if h = 11 then "0xB" else
-  if h = 12 then "0xC" else
-  if h = 13 then "0xD" else
-  if h = 14 then "0xE" else
-                 "0xF" 
-
 let char_escape_isa c =
   let x = int_of_char c in 
   if is_isa_chr x then (String.concat "" ["(CHR ''"; String.make 1 c; "'')"])
-  else String.concat "" ["(char_of_nat "; string_of_int x; ")"];;
+  else String.concat "" ["(CHR "; Printf.sprintf "0x%X" 39; ")"];;
 
 (* Check that string literal s contains only CHR characters for Isabelle.  Other
  * string literals should have been translated into a list by a macro. *)
@@ -897,7 +879,7 @@ let back_tick = List.hd (Ulib.Text.explode (r"`"))
 let quotation_mark = List.hd (Ulib.Text.explode (r"\""))
 let backslash = List.hd (Ulib.Text.explode (r"\\"))
 
-module Isa : Target = struct
+module Isa () : Target = struct
   include Identity 
 
   let lex_skip = function
@@ -989,7 +971,15 @@ module Isa : Target = struct
   let setcomp_binding_middle = kwd "."
   let setcomp_sep = kwd "|"
   let first_case_sep = Seplist.Forbid(fun sk -> ws sk ^ meta " ")
-  let infix_op_format a x = match a with (Term_var | Term_var_toplevel) -> id a x | _ -> kwd "(op" ^ id a x  ^ kwd ")"
+
+  let star = Ulib.Text.of_latin1 "*"
+  let space = Output.ws (Some [Ast.Ws (Ulib.Text.of_latin1 " ")])
+  let infix_op_format a x = match a with (Term_var | Term_var_toplevel) -> id a x | _ -> begin
+     if (Ulib.Text.left x 1 = star || Ulib.Text.right x 1 = star) then
+       kwd "(" ^ space ^ id a x ^ space ^ kwd ")"
+     else
+       kwd "(" ^ id a x ^ kwd ")"
+  end
 
   let op_format use_infix = if use_infix then infix_op_format else id
 
@@ -1024,7 +1014,11 @@ module Isa : Target = struct
   let typedef_end = emp
   let typedef_sep = kwd "and"
 
-  let typedefrec_start = kwd "record"
+  let typedefrec_start =
+    if !Backend_common.isa_use_datatype_record_flag then
+      kwd "datatype_record"
+    else
+      kwd "record"
   let typedefrec_end = emp
   let rec_start = kwd "(|"
   let rec_end = kwd "|)"
@@ -3979,11 +3973,11 @@ module Make(A : sig val avoid : var_avoid_f;; val env : env;; val dir : string e
       (B.defs_to_rope defs, B.defs_to_extra defs)
 
   let isa_defs defs =
-    let module B = F(Isa)(C)(Comment_def) in
+    let module B = F(Isa())(C)(Comment_def) in
       (B.defs_to_rope defs, B.defs_to_extra defs)
 
   let isa_header_defs defs =
-    let module B = F(Isa)(C)(Comment_def) in
+    let module B = F(Isa())(C)(Comment_def) in
       B.header_defs defs
 
   let coq_defs defs =
