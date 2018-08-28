@@ -193,7 +193,8 @@ and mod_target_rep =
 and mod_descr = { mod_binding    : Path.t;
                   mod_env        : local_env; 
                   mod_target_rep : mod_target_rep Targetmap.t;
-		  mod_filename   : string option;
+                  mod_filename   : string option;
+                  mod_session    : string option;
                   mod_in_output  : bool }
 
 and exp = (exp_aux,exp_annot) annot
@@ -2595,4 +2596,3 @@ let ident_replace_lskip id sk =
 let oi_get_lskip oi =
   let (_, sk) = oi_alter_init_lskips (fun sk -> (sk, sk)) oi in
   sk
-

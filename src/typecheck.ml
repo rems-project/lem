@@ -3520,7 +3520,7 @@ and check_defs_internal (backend_targets : Targetset.t) (mod_path : Name.t list)
 (* the interface                                                              *)
 (* -------------------------------------------------------------------------- *)
 
-let check_defs backend_targets mod_name filename mod_in_output (env : env) (Ast.Defs(defs), end_lex_skips) =
+let check_defs backend_targets mod_name filename session mod_in_output (env : env) (Ast.Defs(defs), end_lex_skips) =
   let ctxt = { all_tdefs = env.t_env;
                new_tdefs = [];  
                all_instances = env.i_env;
@@ -3546,7 +3546,8 @@ let check_defs backend_targets mod_name filename mod_in_output (env : env) (Ast.
                mod_binding = mod_binding; 
                mod_target_rep = ctxt.ctxt_mod_target_rep;
                mod_in_output = mod_in_output;
-               mod_filename = Some filename } in
+               mod_filename = Some filename;
+               mod_session = session; } in
 
     (* add the module *)
     let new_e_env = Pfmap.insert env'.e_env (mod_binding, md) in
@@ -3555,4 +3556,3 @@ let check_defs backend_targets mod_name filename mod_in_output (env : env) (Ast.
   end in
 
   (new_env, (checked_defs, end_lex_skips))
-

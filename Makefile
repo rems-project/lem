@@ -25,7 +25,7 @@ install:
 #	cp -R coq-lib $(INSTALL_DIR)/share/lem
 #	cp -R hol-lib $(INSTALL_DIR)/share/lem
 #	cp -R html-lib $(INSTALL_DIR)/share/lem
-#	cp -R isabelle-lib $(INSTALL_DIR)/share/lem
+	cp -R isabelle-lib $(INSTALL_DIR)/share/lem
 #	cp -R tex-lib $(INSTALL_DIR)/share/lem
 
 uninstall:

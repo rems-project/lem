@@ -88,8 +88,21 @@ let default_library =
       end
   end
 
-let lib_paths_ref = ref ([] : string list)
+let lib_paths_ref = ref ([(Some "LEM", default_library)] : (string option * string) list)
 let allow_reorder_modules = ref true
+
+let add_lib_path str =
+  let (name, path) =
+    try
+      let idx = String.index str '=' in
+      if not (String.rcontains_from str idx '/')
+      then (Some (String.sub str 0 idx),
+            String.sub str (idx+1) (String.length str - idx - 1))
+      else (None, str)
+    with
+    | _ -> (None, str)
+  in
+  lib_paths_ref := (name, path) :: !lib_paths_ref
 
 let options = Arg.align ([
   ( "-ocaml", 
@@ -121,8 +134,8 @@ let options = Arg.align ([
     " generate input on stdout\n\n");
 
   ( "-lib", 
-    Arg.String (fun l -> lib_paths_ref := l :: (!lib_paths_ref)),
-    " add path to library path; if no lib is given the default '"^(default_library)^")' is used. Set LEMLIB environment variable to change this default.");
+    Arg.String add_lib_path,
+    " add path to library path; if no lib is given the default '"^(default_library)^"' is used. Set LEMLIB environment variable to change this default. Directories in the library path may optionally be associated with Isabelle session names, e.g. -lib MyLib=path/to/mylib.");
   ( "-no_dep_reorder", 
     Arg.Clear allow_reorder_modules,
     " prohibit reordering modules given to lem as explicit arguments in order during dependency resolution\n\n");
@@ -159,9 +172,9 @@ let options = Arg.align ([
   ( "-add_loc_annots", 
     Arg.Set Backend_common.def_add_location_comment_flag, 
     " add location annotations to the output");
-  ( "-add_full_isa_lib_path",
-    Arg.Set Backend_common.isa_add_full_library_path_flag, 
-    " add the full path of the isabelle-lib directory to Isabelle import statements");
+  ( "-isa_path_imports",
+    Arg.Set Backend_common.isa_path_imports,
+    " use paths in Isabelle import statements instead of session-qualified imports");
   ( "-use_datatype_record",
     Arg.Set Backend_common.isa_use_datatype_record_flag,
     " use datatype_record instead of record in Isabelle output");
@@ -312,13 +325,9 @@ let per_target libpath tex_all_opt (out_dir : string option) modules env targ =
 let main () =
   let _ = if !opt_print_version then print_string ("Lem " ^ Version.v ^ "\n") in
   let lib_path = begin
-    let l = List.rev !lib_paths_ref in
-    let l' = default_library :: l in
-    List.map (fun lp ->
-          if Filename.is_relative lp then
-            Filename.concat (Sys.getcwd ()) lp
-          else
-            lp) l'
+    let l = List.rev (List.map snd !lib_paths_ref) in
+    (* let l' = default_library :: l in *)
+    List.map (fun lp -> Util.option_default lp (Util.absolute_dir lp)) l
   end in
   let _ = 
     List.iter
@@ -391,6 +400,18 @@ let main () =
     List.fold_left
       (fun (mods, env) (mod_name, file_name, ast, add_to_modules) ->
          let mod_name_name = Name.from_string mod_name in
+         let dir_name = Filename.dirname file_name in
+         let mod_dir = Util.option_default dir_name (Util.absolute_dir dir_name) in
+         let session =
+           try
+             fst (List.find
+                    (fun (_, d) ->
+                       let d = Util.option_default d (Util.absolute_dir d) in
+                       String.compare d mod_dir = 0)
+                    !lib_paths_ref)
+           with
+           | _ -> None
+         in
 
          let im : Path.t list = begin 
            let im_direct = Ast_util.get_imported_modules ast in
@@ -406,7 +427,7 @@ let main () =
 
          let m_env' = Nfmap.filter (fun mod_name mod_path -> List.exists (fun p -> Path.compare mod_path p = 0) im) env.local_env.m_env in
          let env' = {env with local_env = {env.local_env with m_env = m_env'}} in
-         let (e,tast) = Typecheck.check_defs backend_set mod_name_name file_name add_to_modules env' ast in
+         let (e,tast) = Typecheck.check_defs backend_set mod_name_name file_name session add_to_modules env' ast in
          let e = {e with local_env = {e.local_env with m_env = Nfmap.union env.local_env.m_env e.local_env.m_env}} in
 
          let imported_mods = Backend_common.get_imported_target_modules tast in
@@ -459,4 +480,3 @@ let _ =
       with  Failure(s) -> raise (Reporting_basic.err_general false Ast.Unknown ("Failure "^s))
     end
   with Reporting_basic.Fatal_error e -> Reporting_basic.report_error e
-

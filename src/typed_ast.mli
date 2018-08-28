@@ -280,7 +280,8 @@ and mod_target_rep =
 and mod_descr = { mod_binding     : Path.t; (** The full path of this module *)
                   mod_env         : local_env;  (** The local environment of the module *)
                   mod_target_rep  : mod_target_rep Target.Targetmap.t; (** how to represent the module for different backends *)
-		  mod_filename   : string option; (** the filename the module is defined in (if it is a top-level module) *)
+                  mod_filename    : string option; (** the filename the module is defined in (if it is a top-level module) *)
+                  mod_session     : string option; (** the (Isabelle) session the module belongs to *)
                   mod_in_output   : bool; (** is this module written to a file (true) or an existing file used (false) ? *) 
 }
 

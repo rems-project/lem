@@ -85,12 +85,11 @@ val get_module_name : env -> Target.target -> Name.t list -> Name.t -> Name.t
 val get_module_open_string : env -> Target.target -> string -> bool -> Path.t -> string 
 
 
-(** [isa_add_full_library_path_flag] controls whether the full path to directory [isabelle-lib] is added to
-    Lem library modules imported by files outside the lib. This is useful to process the files easily from Isabelle, without
-    providing the path these library modules can be found explicitly to Isabelle. The resulting files are however not 
-    directly portable. Therefore, this flag is turned off by default and it is recommended to add the isabelle-library
-    directory instead to your [.isabelle/YOUR VERSION/ROOTS] file. *)    
-val isa_add_full_library_path_flag : bool ref
+(** [isa_path_imports] controls whether Lem outputs path names in theory
+    imports for Isabelle.  The default is to generate session-qualified imports.
+    The [-lib] command line option can be used to associate session names with
+    directories in the library import path. *)
+val isa_path_imports : bool ref
 
 (** [isa_use_datatype_record_flag] controls whether the Isabelle output uses [datatype_record] instead of
     [record]. [record]s are more performant, but are not allowed to participate in nested recursion of

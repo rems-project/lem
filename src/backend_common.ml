@@ -268,13 +268,13 @@ let get_module_name env target path mod_name =  begin
   Name.from_string (get_module_name_from_descr md mod_name (fun s -> s) target)
 end
 
-let isa_add_full_library_path_flag = ref false 
+let isa_path_imports = ref false
 
 let isa_use_datatype_record_flag = ref false
 
 let adapt_isabelle_library_dir dir =
   if (Util.dir_eq (Filename.concat Share_directory.d "library") dir) then
-     (if (!isa_add_full_library_path_flag) then (Filename.concat Share_directory.d "isabelle-lib") else "")
+     (if (!isa_path_imports) then (Filename.concat Share_directory.d "isabelle-lib") else "")
   else 
      dir
 
@@ -289,7 +289,7 @@ let get_module_open_string_target =
  fun target dir mod_string ->
  match target with
     | Target.Target_no_ident (Target.Target_isa) -> 
-        let new_dir = if (not (!isa_add_full_library_path_flag)) then "" else
+        let new_dir = if (not (!isa_path_imports)) then "" else
           (if Util.dir_eq dir abs_lib_dir then "" else (String.concat "" [abs_lib_dir; "/"])) in
         Str.global_replace (Str.regexp_string "$LIB_DIR/") new_dir mod_string 
     | _ -> mod_string
@@ -303,15 +303,18 @@ begin
         match md.mod_filename with
           | None -> mod_string
           | Some fn -> begin
-              let mod_dir_opt = Util.absolute_dir (adapt_isabelle_library_dir (Filename.dirname fn)) in
-              let out_dir_opt = Util.absolute_dir dir in
-              match (mod_dir_opt, out_dir_opt) with
-                | (Some mod_dir, Some out_dir) ->
-                     if relative || (String.compare mod_dir out_dir = 0) then
-                       mod_string 
-                     else
-                       Filename.concat mod_dir mod_string
-                | _ -> mod_string
+              if !isa_path_imports then
+                let mod_dir = adapt_isabelle_library_dir (Filename.dirname fn) in
+                let mod_dir_abs = Util.option_default mod_dir (Util.absolute_dir mod_dir) in
+                let out_dir_abs = Util.option_default dir (Util.absolute_dir dir) in
+                if String.compare mod_dir_abs out_dir_abs = 0 || (relative && md.mod_in_output)
+                then mod_string
+                else Filename.concat mod_dir_abs mod_string
+              else begin
+                match md.mod_session with
+                  | Some s -> String.concat "." [s; mod_string]
+                  | None -> mod_string
+              end
             end
       end 
     | _ -> mod_string
@@ -601,5 +604,3 @@ let component_to_output t =
       | Ast.Component_field s -> ws s ^ id a (r"field")
       | Ast.Component_module s -> ws s ^ id a (r"module")
       | Ast.Component_function s -> ws s ^ id a (r"function")
-
-

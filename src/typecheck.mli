@@ -53,7 +53,7 @@
 
 open Types
 
-(** [check_defs backend_targets mod_name filename mod_in_output env ast] typescheck the parsed module 
+(** [check_defs backend_targets mod_name filename session mod_in_output env ast] typescheck the parsed module
     [ast] from file [filename] in environment [env]. It is assumed that mainly the backends
     [backend_targets] will be used later, i.e. only for these backends 
     problems like missing definitions are reported. However,
@@ -61,13 +61,14 @@ open Types
     to the environment as new module [mod_name]. The result is a new
     environment as well as the type-checked ast of the module. The flag [mod_in_output] is
     stored in the resulting module description. It signals, whether the module will be
-    written to file. *)
+    written to file. The parameter [session] contains the optional Isabelle
+    session that includes this module. *)
 val check_defs : 
   Target.Targetset.t ->
   Name.t ->
   string ->
+  string option ->
   bool ->
   Typed_ast.env ->
   (Ast.defs * Ast.lex_skips) ->
   Typed_ast.env * (Typed_ast.def list * Ast.lex_skips)
-
