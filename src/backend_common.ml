@@ -302,20 +302,19 @@ begin
     | Target.Target_no_ident (Target.Target_isa) -> begin
         match md.mod_filename with
           | None -> mod_string
-          | Some fn -> begin
-              if !isa_path_imports then
-                let mod_dir = adapt_isabelle_library_dir (Filename.dirname fn) in
-                let mod_dir_abs = Util.option_default mod_dir (Util.absolute_dir mod_dir) in
-                let out_dir_abs = Util.option_default dir (Util.absolute_dir dir) in
-                if String.compare mod_dir_abs out_dir_abs = 0 || (relative && md.mod_in_output)
-                then mod_string
-                else Filename.concat mod_dir_abs mod_string
+          | Some fn ->
+              let mod_dir = Filename.dirname fn in
+              let mod_dir_abs = Util.option_default mod_dir (Util.absolute_dir mod_dir) in
+              let out_dir_abs = Util.option_default dir (Util.absolute_dir dir) in
+              if String.compare mod_dir_abs out_dir_abs = 0 || (relative && md.mod_in_output) then
+                mod_string
+              else if !isa_path_imports then
+                Filename.concat (adapt_isabelle_library_dir mod_dir_abs) mod_string
               else begin
                 match md.mod_session with
                   | Some s -> String.concat "." [s; mod_string]
                   | None -> mod_string
               end
-            end
       end 
     | _ -> mod_string
   in
