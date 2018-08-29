@@ -135,7 +135,7 @@ let options = Arg.align ([
 
   ( "-lib", 
     Arg.String add_lib_path,
-    " add path to library path; if no lib is given the default '"^(default_library)^"' is used. Set LEMLIB environment variable to change this default. Directories in the library path may optionally be associated with Isabelle session names, e.g. -lib MyLib=path/to/mylib.");
+    " add a library path, in addition to the standard library at '"^(default_library)^"'. To change the latter, set the LEMLIB environment variable. Directories in the library path may optionally be associated with Isabelle session names, e.g. -lib MyLib=path/to/mylib. The standard library is associated with the session name LEM by default.");
   ( "-no_dep_reorder", 
     Arg.Clear allow_reorder_modules,
     " prohibit reordering modules given to lem as explicit arguments in order during dependency resolution\n\n");
