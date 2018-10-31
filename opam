@@ -1,7 +1,7 @@
 opam-version: "1.2"
 maintainer: "Lem Devs <cl-lem-dev@lists.cam.ac.uk>"
 name: "lem"
-version: "2018-07-13"
+version: "2018-10-31"
 authors: [
   "Dominic Mulligan"
   "Francesco Zappa Nardelli"
