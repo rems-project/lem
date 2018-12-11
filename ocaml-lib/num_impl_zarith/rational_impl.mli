@@ -8,6 +8,7 @@ module QI :
     val minus_inf : t
     val undef : t
     val of_int : int -> t
+    val of_big_int : Big_int_impl.BI.big_int -> t
     val of_int32 : int32 -> t
     val of_int64 : int64 -> t
     val of_nativeint : nativeint -> t
@@ -40,6 +41,8 @@ module QI :
     val div_2exp : t -> int -> t
     val floor : t -> Big_int_impl.BI.big_int
     val ceiling : t -> Big_int_impl.BI.big_int
+    val num : t -> Big_int_impl.BI.big_int
+    val den : t -> Big_int_impl.BI.big_int
     val print : t -> unit
     val output : out_channel -> t -> unit
     val sprint : unit -> t -> string

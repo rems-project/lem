@@ -3,6 +3,7 @@ module QI :
     type t = Num.num
     val of_int : int -> Num.num
     val of_ints : int -> int -> Num.num
+    val of_big_int : Big_int.big_int -> Num.num
     val add : Num.num -> Num.num -> Num.num
     val sub : Num.num -> Num.num -> Num.num
     val mul : Num.num -> Num.num -> Num.num
@@ -18,4 +19,6 @@ module QI :
     val max : Num.num -> Num.num -> Num.num
     val floor : Num.num -> Big_int.big_int
     val ceiling : Num.num -> Big_int.big_int
+    val num : Num.num -> Big_int.big_int
+    val den : Num.num -> Big_int.big_int
   end

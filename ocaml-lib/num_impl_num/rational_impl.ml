@@ -3,6 +3,7 @@ module QI = struct
 
   let of_int = Num.num_of_int
   let of_ints x y = Num.div_num (of_int x) (of_int y)
+  let of_big_int = Num.num_of_big_int
 
   let add = Num.add_num
   let sub = Num.sub_num
@@ -20,4 +21,12 @@ module QI = struct
   let max = Num.max_num
   let floor x = Num.big_int_of_num (Num.floor_num x)
   let ceiling x = Num.big_int_of_num (Num.ceiling_num x)
+  let num = function
+    | Num.Int i -> Big_int.big_int_of_int i
+    | Num.Big_int i -> i
+    | Num.Ratio r -> Ratio.numerator_ratio r
+  let den = function
+    | Num.Int i -> Big_int.unit_big_int
+    | Num.Big_int i -> Big_int.unit_big_int
+    | Num.Ratio r -> Ratio.denominator_ratio r
 end

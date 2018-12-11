@@ -4,6 +4,7 @@ type t = QI.t
 
 let of_int = QI.of_int
 let of_ints = QI.of_ints
+let of_big_int = QI.of_big_int
 
 let add = QI.add
 let sub = QI.sub
@@ -23,3 +24,6 @@ let max = QI.max
 
 let floor = QI.floor
 let ceiling = QI.ceiling
+
+let num = QI.num
+let den = QI.den

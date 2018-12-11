@@ -1358,6 +1358,12 @@ declare isabelle target_rep function rationalFromInt n = (`Fract` n (1 : integer
 declare hol      target_rep function rationalFromInt n = (`rat_of_int` n)
 declare coq      target_rep function rationalFromInt n = (`inject_Z` n)
 
+val rationalFromInteger : integer -> rational
+declare ocaml    target_rep function rationalFromInteger n = (`Rational.of_big_int` n)
+declare isabelle target_rep function rationalFromInteger n = (`Fract` n (1 : integer))
+declare hol      target_rep function rationalFromInteger n = (`rat_of_int` n)
+declare coq      target_rep function rationalFromInteger n = (`inject_Z` n)
+
 val rationalEq : rational -> rational -> bool
 let inline rationalEq = unsafe_structural_equality
 declare ocaml    target_rep function rationalEq = `Rational.equal`
@@ -1483,6 +1489,18 @@ let rationalFromFrac n d = (rationalFromInt n) / (rationalFromInt d)
 declare ocaml    target_rep function rationalFromFrac n d = (`Rational.of_ints` n d)
 declare isabelle target_rep function rationalFromFrac n d = (`Fract` n d)
 declare hol      target_rep function rationalFromFrac n d = (`rat_cons` n d)
+
+val rationalNumerator : rational -> integer
+declare ocaml    target_rep function rationalNumerator r = (`Rational.num` r)
+declare isabelle target_rep function rationalNumerator r = (`fst` (`quotient_of` r))
+declare hol      target_rep function rationalNumerator r = (`Numerator` r)
+declare coq      target_rep function rationalNumerator r = (`Qnum` r)  (* TODO: test *)
+
+val rationalDenominator : rational -> integer
+declare ocaml    target_rep function rationalDenominator r = (`Rational.den` r)
+declare isabelle target_rep function rationalDenominator r = (`snd` (`quotient_of` r))
+declare hol      target_rep function rationalDenominator r = (`Denominator` r)
+declare coq      target_rep function rationalDenominator r = (`QDen` r)  (* TODO: test *)
 
 val rationalPowInteger : rational -> integer -> rational
 let rec rationalPowInteger b e =
@@ -1986,6 +2004,12 @@ assert rational_test24 : (pred 0 = ~(1 : rational))
 assert rational_test25 : (abs 42 = (42 : rational))
 assert rational_test26 : (abs (~42) = (42 : rational))
 assert rational_test27 : ((rationalFromFrac 1 2) * 2 = 1)
+assert rational_test28 :
+  (let r = rationalFromFrac (~11) 4 in
+   (rationalFromInteger (rationalNumerator r) / rationalFromInteger (rationalDenominator r) = r))
+assert rational_test29 :
+  (let r = rationalFromFrac 8 4 in
+   (rationalFromInteger (rationalNumerator r) / rationalFromInteger (rationalDenominator r) = rationalFromInt 2))
 
 assert real_test1 : (2 + (5 : real) = 7)
 assert real_test2 : ((3 / (2 : real)) + (1 / 2) = 2)
