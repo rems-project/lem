@@ -1317,6 +1317,10 @@ instance ( NumRemainder integer )
   let (mod) = integerMod
 end
 
+val integerSqrt : integer -> integer
+declare ocaml    target_rep function integerSqrt = `Nat_big_num.sqrt`
+(* TODO: Other backends *)
+
 val integerMin : integer -> integer -> integer
 let inline integerMin = defaultMin
 declare isabelle target_rep function integerMin = `min`
@@ -1971,6 +1975,7 @@ assert integer_test25 : (pred 12 = (11 : integer))
 assert integer_test26 : (pred 0 = ~(1 : integer))
 assert integer_test27 : (abs 42 = (42 : integer))
 assert integer_test28 : (abs (~42) = (42 : integer))
+assert {ocaml} integer_test29 : (integerSqrt 5 = 2)
 
 
 assert rational_test1 : (2 + (5 : rational) = 7)

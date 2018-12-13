@@ -13,7 +13,7 @@ val div : num -> num -> num
 val mul : num -> num -> num
 val pow_int : num -> int -> num
 val pow_int_positive : int -> int -> num
-
+val sqrt : num -> num
 
 val quomod : num -> num -> num * num
 val abs : num -> num

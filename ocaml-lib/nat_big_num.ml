@@ -22,7 +22,7 @@ let sub_nat left right =
 let mul = BI.mult_big_int
 let pow_int = BI.power_big_int_positive_int
 let pow_int_positive = BI.power_int_positive_int
-
+let sqrt = BI.sqrt_big_int
 
 let quomod = BI.quomod_big_int
 
