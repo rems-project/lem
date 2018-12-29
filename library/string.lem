@@ -32,7 +32,8 @@ declare coq      target_rep type string = `string`
 
 assert char_simple_0: not (#'0' = ((#'1'):char))
 assert char_simple_1: not (#'X' = #'Y') 
-assert char_simple_2: not (#'\xAF' = #'\x00')
+(* Temporary workaround for https://github.com/HOL-Theorem-Prover/HOL/issues/632 *)
+assert ~{hol} char_simple_2: not (#'\xAF' = #'\x00')
 assert char_simple_3: not (#' ' = #'@')
 assert char_simple_4: not (#'\\' = #'\n') 
 assert char_simple_5: (#'\x20' = #' ')
