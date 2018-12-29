@@ -62,17 +62,21 @@ hol-lib-tests-reuse:
 	@cp Holmakefile ${HOL_BUILD_DIR_REUSED}
 	@cd ${HOL_BUILD_DIR_REUSED}; Holmake 
 
+# The tests are generated from the same files as the library, but are run in a
+# separate Isabelle session, so we manually patch up the names with sed.
 isa-lib-tests: 
 	@mkdir -p ${ISA_BUILD_DIR}
 	@rm -f isa-build-dir
 	@ln -s ${ISA_BUILD_DIR} isa-build-dir       
 	@../lem -isa -outdir ${ISA_BUILD_DIR} -wl ign -wl_auto_import err -wl_rename err ${LIBS} -only_auxiliary -auxiliary_level auto -only_changed_output -no_dep_reorder
+	@sed -i -e 's/^  "Lem_/  "LEM.Lem_/' -e 's/^  "Lem"/  "LEM.Lem"/' ${ISA_BUILD_DIR}/Lem_*Auxiliary.thy
 	@./gen-isa-tests.sh ${ISA_BUILD_DIR} 
 	@echo "please run\n   isabelle jedit -d ../isabelle-lib -l LEM ${ISA_BUILD_DIR}/LemTests.thy"
 
 isa-lib-tests-reuse: 
 	@mkdir -p ${ISA_BUILD_DIR_REUSED} || true
 	@../lem -isa -outdir ${ISA_BUILD_DIR_REUSED} -wl ign -wl_auto_import err -wl_rename err ${LIBS} -only_auxiliary -auxiliary_level auto -only_changed_output -no_dep_reorder
+	@sed -i -e 's/^  "Lem_/  "LEM.Lem_/' -e 's/^  "Lem"/  "LEM.Lem"/' ${ISA_BUILD_DIR}/Lem_*Auxiliary.thy
 	@./gen-isa-tests.sh ${ISA_BUILD_DIR_REUSED} 
 	@echo "please run\n   isabelle jedit ${ISA_BUILD_DIR_REUSED}/LemTests.thy"
 
