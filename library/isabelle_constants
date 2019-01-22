@@ -14,6 +14,7 @@ AND
 append
 apply
 apply_end
+arg
 arities
 assume
 assumes
