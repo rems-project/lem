@@ -22,8 +22,8 @@ install:
 	cp library/*.lem $(INSTALL_DIR)/share/lem/library
 	cp library/*_constants $(INSTALL_DIR)/share/lem/library
 	$(MAKE) -C ocaml-lib install
-#	cp -R coq-lib $(INSTALL_DIR)/share/lem
-#	cp -R hol-lib $(INSTALL_DIR)/share/lem
+	cp -R coq-lib $(INSTALL_DIR)/share/lem
+	cp -R hol-lib $(INSTALL_DIR)/share/lem
 #	cp -R html-lib $(INSTALL_DIR)/share/lem
 	cp -R isabelle-lib $(INSTALL_DIR)/share/lem
 #	cp -R tex-lib $(INSTALL_DIR)/share/lem
