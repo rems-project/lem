@@ -110,8 +110,8 @@ and lit_aux =
   | L_false of lskips
   | L_zero of lskips
   | L_one of lskips
-  | L_numeral of lskips * int * string option 
-  | L_num of lskips * int * string option
+  | L_numeral of lskips * Z.t * string option
+  | L_num of lskips * Z.t * string option
   | L_char of lskips * char * string option
   | L_string of lskips * string * string option
   | L_unit of lskips * lskips
@@ -135,7 +135,7 @@ and pat_aux =
   | P_list of lskips * pat lskips_seplist * lskips
   | P_paren of lskips * pat * lskips
   | P_cons of pat * lskips * pat
-  | P_num_add of name_l * lskips * lskips * int
+  | P_num_add of name_l * lskips * lskips * Z.t
   | P_lit of lit
   | P_var_annot of Name.lskips_t * src_t
 
@@ -1095,7 +1095,7 @@ module Exps_in_context(D : Exp_context) = struct
 
   let mk_pvector l s1 ps s2 t =
     if check then
-       type_eq l "mk_pvector" { t= Tapp([((Seplist.hd ps).typ);{t=Tne({nexp=Nconst(Seplist.length ps)})} ], Path.vectorpath) } t;
+       type_eq l "mk_pvector" { t= Tapp([((Seplist.hd ps).typ);{t=Tne({nexp=Nconst(Z.of_int (Seplist.length ps))})} ], Path.vectorpath) } t;
     (* TODO KG need to check here that the types are all the same *)
     { term = P_vector(s1,ps,s2);
        locn = l;
@@ -2048,7 +2048,7 @@ module Exps_in_context(D : Exp_context) = struct
       check_typ l "mk_vector" t 
         (fun d ->
            let len = Seplist.length es in Some
-                     { t = Tapp([List.hd (Seplist.to_list_map (fun e -> e.typ) es); {t = Tne({nexp = Nconst(len)})}],
+                     { t = Tapp([List.hd (Seplist.to_list_map (fun e -> e.typ) es); {t = Tne({nexp = Nconst(Z.of_int len)})}],
                                 Path.vectorpath) })
     (* TODO KG determine if the types should be checked here to all be the same *)
     in
@@ -2224,7 +2224,7 @@ module Exps_in_context(D : Exp_context) = struct
           subst = empty_sub; }; }
 
   let mk_vector l s1 es s2 t =
-    let tlen = {t = Tne({nexp = Nconst(Seplist.length es)}) } in
+    let tlen = {t = Tne({nexp = Nconst(Z.of_int (Seplist.length es))}) } in
     let bound' =
       let es   = Seplist.to_list es in
       let sets = List.map (fun x -> x.rest.bound) es in

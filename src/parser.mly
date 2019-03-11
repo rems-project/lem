@@ -160,7 +160,7 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 %token <Ast.terminal * Ulib.Text.t> AmpAmp BarBar ColonColon Star Plus Eq At GtEq 
 %token <Ast.terminal * Ulib.Text.t> X Tyvar Nvar 
 %token <Ast.terminal * Ulib.Text.t> StarstarX StarX PlusX AtX EqualX GtEqX
-%token <Ast.terminal * (int * string)> Num BinNum OctNum HexNum
+%token <Ast.terminal * (Z.t * string)> Num BinNum OctNum HexNum
 %token <Ast.terminal * string> BacktickString String Char Bin Hex Oct
 
 %token <Ast.terminal> Indreln Forall EqEqGt Inline Lem_transform LtBar BarGt Exists EqGt BraceBar BarBrace DotBrace 
@@ -952,11 +952,11 @@ tnvar_list :
 
 fixity_decl :
   | RightAssoc Num
-    { Fixity_right_assoc($1, fst (snd $2)) }
+    { Fixity_right_assoc($1, Z.to_int (fst (snd $2))) }
   | LeftAssoc Num
-    { Fixity_left_assoc($1, fst (snd $2)) }
+    { Fixity_left_assoc($1, Z.to_int (fst (snd $2))) }
   | NonAssoc Num
-    { Fixity_non_assoc($1, fst (snd $2)) }
+    { Fixity_non_assoc($1, Z.to_int (fst (snd $2))) }
   |
     { Fixity_default_assoc }
 
@@ -1202,4 +1202,3 @@ defs:
 file:
   | defs Eof
     { ($1,$2) }
-

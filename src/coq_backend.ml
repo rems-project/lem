@@ -1024,7 +1024,7 @@ let generate_coq_record_update_notation e =
             ]
         | Nexp_const (skips, i) ->
             Output.flat [
-              ws skips; from_string (string_of_int i)
+              ws skips; from_string (Z.to_string i)
             ]
         | Nexp_mult (nexp, skips, nexp') ->
             Output.flat [
@@ -1071,7 +1071,7 @@ let generate_coq_record_update_notation e =
             ws s; c
           ]
         | L_numeral (skips, i, _) ->
-          let i = from_string @@ string_of_int i in
+          let i = from_string @@ Z.to_string i in
             Output.flat [
               ws skips; i
             ]
@@ -1157,8 +1157,8 @@ let generate_coq_record_update_notation e =
             Ident.to_output (Term_const (false, true)) path_sep i ^
             concat texspace (List.map fun_pattern ps)
         | P_num_add ((name, l), skips, skips', k) ->
-            let succs = Output.flat @@ Util.replicate k (from_string "S (") in
-            let close = Output.flat @@ Util.replicate k (from_string ")") in
+            let succs = Output.flat @@ Util.replicate (Z.to_int k) (from_string "S (") in
+            let close = Output.flat @@ Util.replicate (Z.to_int k) (from_string ")") in
             let name = lskips_t_to_output name in
               Output.flat [
                 ws skips; succs; name; close
@@ -1220,8 +1220,8 @@ let generate_coq_record_update_notation e =
             Ident.to_output (Term_const (false, true)) path_sep i ^
             concat texspace (List.map def_pattern ps)
         | P_num_add ((name, l), skips, skips', k) ->
-            let succs = Output.flat @@ Util.replicate k (from_string "S (") in
-            let close = Output.flat @@ Util.replicate k (from_string ")") in
+            let succs = Output.flat @@ Util.replicate (Z.to_int k) (from_string "S (") in
+            let close = Output.flat @@ Util.replicate (Z.to_int k) (from_string ")") in
             let name = lskips_t_to_output name in
               Output.flat [
                 ws skips; succs; name; close

@@ -60,7 +60,7 @@ type t
 type t' =
   | Kwd' of string
   | Ident' of Ulib.Text.t
-  | Num' of int
+  | Num' of Z.t
 
 (** kind annotation for latex'd identifiers *)
 type id_annot =  
@@ -87,7 +87,7 @@ val emp : t
 val kwd : string -> t
 
 (** [num i] constructs the output for number [i] *)
-val num : int -> t
+val num : Z.t -> t
 
 (** [str s] constructs the output for string constant [s] *)
 val str : Ulib.Text.t -> t
@@ -219,4 +219,3 @@ val tex_escape_string : string -> string
 val tex_command_escape : Ulib.Text.t -> Ulib.Text.t
 val tex_command_label  : Ulib.Text.t -> Ulib.Text.t
 val tex_command_name  : Ulib.Text.t -> Ulib.Text.t
-

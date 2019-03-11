@@ -56,6 +56,8 @@ let to_int32 = BI.int32_of_big_int
 let of_int64 = BI.big_int_of_int64
 let to_int64 = BI.int64_of_big_int
 
+let to_float = BI.float_of_big_int
+
 let to_string = BI.string_of_big_int
 let of_string = BI.big_int_of_string
 let of_string_nat s =

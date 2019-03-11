@@ -22,13 +22,13 @@ open import {coq} `Coq.Numbers.BinNums` `Coq.ZArith.BinInt` `Coq.ZArith.Zpower` 
    of numerals. The following type-class is used to convert numerals into
    verious number types. The type of numerals differs form backend to backend.
    Essentially they are just printed as "0", "1", ... and the backend decides
-   then. For Ocaml, they are integers. For HOL of type "num". Isabelle thinks
+   then. For Ocaml, they are big integers. For HOL of type "num". Isabelle thinks
    they are polymorphic. ...
 *)
 
 declare hol      target_rep type numeral = `num`
 declare coq      target_rep type numeral = `nat`
-declare ocaml    target_rep type numeral = `int` 
+declare ocaml    target_rep type numeral = `Nat_big_num.num`
 
 class inline ( Numeral 'a ) 
   val fromNumeral : numeral -> 'a 
@@ -232,7 +232,7 @@ declare hol      target_rep type float32 = `XXX` (* ???: better type for this in
 
 val natFromNumeral : numeral -> nat
 declare hol      target_rep function natFromNumeral x = (``x : nat)
-declare ocaml    target_rep function natFromNumeral = ``
+declare ocaml    target_rep function natFromNumeral = `Nat_big_num.to_int`
 declare isabelle target_rep function natFromNumeral n = (``n : nat)
 declare coq      target_rep function natFromNumeral = ``
 
@@ -417,7 +417,7 @@ end
 
 val naturalFromNumeral : numeral -> natural
 declare hol      target_rep function naturalFromNumeral x = (``x:natural)
-declare ocaml    target_rep function naturalFromNumeral = `Nat_big_num.of_int`
+declare ocaml    target_rep function naturalFromNumeral = ``
 declare isabelle target_rep function naturalFromNumeral n = (``n : natural)
 declare coq      target_rep function naturalFromNumeral = ``
 
@@ -585,7 +585,7 @@ end
 (* ----------------------- *)
 
 val intFromNumeral : numeral -> int
-declare ocaml    target_rep function intFromNumeral = ``
+declare ocaml    target_rep function intFromNumeral = `Nat_big_num.to_int`
 declare isabelle target_rep function intFromNumeral n = (``n : int)
 declare hol      target_rep function intFromNumeral n = (``n : int)
 declare coq      target_rep function intFromNumeral n = (`Zpred` (`Zpos` (`P_of_succ_nat` n)))
@@ -767,7 +767,7 @@ end
 (* ----------------------- *)
 val int32FromNumeral : numeral -> int32
 
-declare ocaml    target_rep function int32FromNumeral = `Int32.of_int`
+declare ocaml    target_rep function int32FromNumeral = `Nat_big_num.to_int32`
 declare isabelle target_rep function int32FromNumeral n = ((`word_of_int` n) : int32)
 declare hol      target_rep function int32FromNumeral n = ((`n2w` n) : int32)
 declare coq      target_rep function int32FromNumeral n = (`Zpred` (`Zpos` (`P_of_succ_nat` n)))  (* TODO: check *)
@@ -960,7 +960,7 @@ end
 (* ----------------------- *)
 val int64FromNumeral : numeral -> int64
 
-declare ocaml    target_rep function int64FromNumeral = `Int64.of_int`
+declare ocaml    target_rep function int64FromNumeral = `Nat_big_num.to_int64`
 declare isabelle target_rep function int64FromNumeral n = ((`word_of_int` n) : int64)
 declare hol      target_rep function int64FromNumeral n = ((`n2w` n) : int64)
 declare coq      target_rep function int64FromNumeral n = (`Zpred` (`Zpos` (`P_of_succ_nat` n)))  (* TODO: check *)
@@ -1152,7 +1152,7 @@ end
 (* ----------------------- *)
 
 val integerFromNumeral : numeral -> integer
-declare ocaml    target_rep function integerFromNumeral = `Nat_big_num.of_int`
+declare ocaml    target_rep function integerFromNumeral = ``
 declare isabelle target_rep function integerFromNumeral n = (``n : integer)
 declare hol      target_rep function integerFromNumeral n = (``n : integer)
 declare coq      target_rep function integerFromNumeral n = (`Zpred` (`Zpos` (`P_of_succ_nat` n)))
@@ -1343,7 +1343,7 @@ end
 (* ----------------------- *)
 
 val rationalFromNumeral : numeral -> rational
-declare ocaml    target_rep function rationalFromNumeral n = (`Rational.of_int` n)
+declare ocaml    target_rep function rationalFromNumeral n = (`Rational.of_big_int` n)
 declare isabelle target_rep function rationalFromNumeral n = (`Fract` (``n : integer) (1 : integer))
 declare hol      target_rep function rationalFromNumeral n = (``n : rational)
 declare coq      target_rep function rationalFromNumeral n = (`inject_Z` (`Zpred` (`Zpos` (`P_of_succ_nat` n))))
@@ -1543,7 +1543,7 @@ end
 (* ----------------------- *)
 
 val realFromNumeral : numeral -> real
-declare ocaml    target_rep function realFromNumeral n = (`float_of_int` n)
+declare ocaml    target_rep function realFromNumeral n = (`Nat_big_num.to_float` n)
 declare isabelle target_rep function realFromNumeral n = (``n : real)
 declare hol      target_rep function realFromNumeral n = (`real_of_num` n)
 declare coq      target_rep function realFromNumeral n = (`IZR` (`Zpred` (`Zpos` (`P_of_succ_nat` n))))

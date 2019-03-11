@@ -90,7 +90,7 @@ let parse_nvar : Nvar.t parser =
 
 let parse_src_nexp_aux_const : src_nexp_aux parser =
   digits >>= fun ds ->
-  return (Nexp_const (no_lskips, ds))
+  return (Nexp_const (no_lskips, Z.of_int ds))
 ;;
 
 (*

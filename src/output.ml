@@ -87,7 +87,7 @@ type t =
   | Empty                          (* Empty output *)
   | Kwd of string                  (* Keyword *)
   | Ident of id_annot * Ulib.Text.t  (* Identifier *)
-  | Num of int                     (* Literal int *)
+  | Num of Z.t                     (* Literal int *)
   | Inter of Ast.lex_skip          (* Interstitial: Comment (currently including (* *), Pure whitespace [' ''\t']+, or Newline *)
   | Str of Ulib.Text.t             (* String literal, without surrounding "" *)
   | Err of string                  (* Causes to_rope to raise an exception *) 
@@ -103,7 +103,7 @@ type t =
 type t' =
   | Kwd' of string
   | Ident' of Ulib.Text.t
-  | Num' of int
+  | Num' of Z.t
 
 let emp = Empty
 let kwd t = Kwd(t)
@@ -263,7 +263,7 @@ let rec pp_raw_t t =
   | Empty -> r"Empty"
   | Kwd(s) -> r"Kwd(" ^^ Ulib.Text.of_latin1 s ^^r")"
   | Ident(a,rr) -> r"Ident(" ^^ pp_raw_id_annot a ^^ r"," ^^ rr ^^ r")"
-  | Num(i) -> r"Num(" ^^  Ulib.Text.of_latin1 (string_of_int i) ^^ r")"
+  | Num(i) -> r"Num(" ^^  Ulib.Text.of_latin1 (Z.to_string i) ^^ r")"
   | Inter(Ast.Com(rr)) -> r"Inter(Ast.Com(" ^^ ml_comment_to_rope rr ^^ r")"
   | Inter(Ast.Ws(rr)) -> r"Inter(Ast.Ws(" ^^ rr ^^ r")"
   | Inter(Ast.Nl) -> r"Inter(Ast.Nl)"
@@ -285,7 +285,7 @@ let to_rope_single quote_char lex_skips_to_rope preserve_ws t : Ulib.Text.t =
     | Empty -> r""
     | Kwd(s) -> Ulib.Text.of_latin1 s
     | Ident(a,r) -> r
-    | Num(i) -> Ulib.Text.of_latin1 (string_of_int i)
+    | Num(i) -> Ulib.Text.of_latin1 (Z.to_string i)
     | Inter(i) -> begin 
         match i with 
          | Ast.Com(r) -> lex_skips_to_rope i
@@ -620,7 +620,7 @@ let rec to_rope_tex_single t =
   | Empty -> r""
   | Kwd(s) ->  Ulib.Text.of_latin1 s
   | Ident(a,r) -> to_rope_tex_ident a r
-  | Num(i) ->  Ulib.Text.of_latin1 (string_of_int i)
+  | Num(i) ->  Ulib.Text.of_latin1 (Z.to_string i)
   | Inter(Ast.Com(rr)) -> 
       (* experiment in supporting
          -  (*tex FOO*) to inline FOO directly in latex backend 
@@ -746,4 +746,3 @@ let to_rope_tex t =
   match to_rope_option_tex t with
     | None -> r""
     | Some rr -> rr
-

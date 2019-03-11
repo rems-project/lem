@@ -190,10 +190,10 @@ let string_escape_isa s =
     String.concat "" ["(["; String.concat ", " encoded_chars; "])"]
 
 let pat_add_op_suc kwd suc n s1 s2 i =
-  let rec suc_aux j = begin match j with
-        | 0 -> n
-        | _ -> kwd "(" ^ suc ^ suc_aux (j-1) ^ kwd ")"
-  end in
+  let rec suc_aux j =
+    if Z.leq j Z.zero then n else
+    kwd "(" ^ suc ^ suc_aux (Z.pred j) ^ kwd ")"
+  in
   ws s1 ^ ws s2 ^ (suc_aux i)
 
   let const_char_helper c c_org =
@@ -255,8 +255,8 @@ module type Target = sig
   val const_empty : Ast.lex_skips -> t
   val string_quote : Ulib.Text.t
   val string_escape : Ulib.UTF8.t -> Ulib.UTF8.t option -> Ulib.UTF8.t
-  val const_num : int -> string option -> t
-  val const_num_pat : int -> t
+  val const_num : Z.t -> string option -> t
+  val const_num_pat : Z.t -> t
   val const_char : char -> string option -> t
   val const_undefined : Types.t -> string -> t
   val const_bzero : t
@@ -304,7 +304,7 @@ module type Target = sig
   val setcomp_binding_middle : t
   val setcomp_sep : t
   val cons_op : t
-  val pat_add_op : t -> Ast.lex_skips -> Ast.lex_skips -> int -> t
+  val pat_add_op : t -> Ast.lex_skips -> Ast.lex_skips -> Z.t -> t
   val set_sep : t
   val list_begin : t
   val list_end : t
@@ -859,6 +859,10 @@ module Ocaml : Target = struct
   let const_undefined t m = (kwd "failwith ") ^ (str (r m))
   let const_char c c_org =
      meta (String.concat "" ["\'"; (char_escape_ocaml c); "\'"])
+  let const_num i i_opt =
+     if Z.numbits i < 31
+     then kwd "(Nat_big_num.of_int" ^ space ^ Identity.const_num i i_opt ^ kwd ")"
+     else kwd "(Nat_big_num.of_string" ^ space ^ str (Ulib.Text.of_string (Z.to_string i)) ^ kwd ")"
 
   let rec_start = kwd "{"
   let rec_end = kwd "}"
@@ -3149,9 +3153,9 @@ let val_ascii_opt = function
 
 let infix_decl = function
   | Ast.Fixity_default_assoc -> emp
-  | Ast.Fixity_non_assoc (sk, n) -> ws sk ^ kwd "non_assoc" ^ num n
-  | Ast.Fixity_left_assoc (sk, n) -> ws sk ^ kwd "left_assoc" ^ num n
-  | Ast.Fixity_right_assoc (sk, n) -> ws sk ^ kwd "right_assoc" ^ num n
+  | Ast.Fixity_non_assoc (sk, n) -> ws sk ^ kwd "non_assoc" ^ num (Z.of_int n)
+  | Ast.Fixity_left_assoc (sk, n) -> ws sk ^ kwd "left_assoc" ^ num (Z.of_int n)
+  | Ast.Fixity_right_assoc (sk, n) -> ws sk ^ kwd "right_assoc" ^ num (Z.of_int n)
 
 
 let open_import_to_output = function
