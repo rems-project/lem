@@ -931,7 +931,12 @@ module Isa () : Target = struct
   let const_false = kwd "False"
   let string_quote = r""
   let string_escape s _ = string_escape_isa s
-  let const_num i _ = num i
+  let const_num i i_opt = match i_opt with
+    | Some s ->
+       Str.replace_first (Str.regexp "^0X") "0x" s
+       |> Str.replace_first (Str.regexp "^0B") "0b"
+       |> kwd
+    | None -> num i
   let const_num_pat i = pat_add_op_suc kwd (kwd "Suc") (kwd "0") None None i
   let const_char c _ = kwd (char_escape_isa c)
   let const_unit s = kwd "() " ^ ws s
@@ -1143,7 +1148,12 @@ module Hol : Target = struct
   let const_empty s = kwd "{" ^ ws s ^ kwd "}"
   let string_quote = r"\""
   let string_escape s _ = string_escape_hol s
-  let const_num i _ = num i
+  let const_num i i_opt = match i_opt with
+    | Some s ->
+       Str.replace_first (Str.regexp "^0X") "0x" s
+       |> Str.replace_first (Str.regexp "^0B") "0b"
+       |> kwd
+    | None -> num i
   let const_num_pat i = pat_add_op_suc kwd (kwd "SUC") (kwd "0") None None i
   let const_char c _ = meta (String.concat "" ["#\""; char_escape_hol c; "\""])
   let const_undefined t m = (kwd "ARB")

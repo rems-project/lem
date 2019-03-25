@@ -924,6 +924,7 @@ module Make_checker(T : sig
           annot (L_char(sk,String.get (Util.unescaped i) 0, Some i)) { t = Tapp([], Path.charpath) }
       | Ast.L_unit(sk1,sk2) ->
           annot (L_unit(sk1,sk2)) { t = Tapp([], Path.unitpath) }
+      (* TODO The "vector" type does not seem to be supported in the prover backends.  Remove and use machine words instead? *)
       | Ast.L_bin(sk,i) ->
           let bit = { t = Tapp([], Path.bitpath) } in
           let len = { t = Tne( { nexp = Nconst(Z.of_int (String.length i))} ) } in

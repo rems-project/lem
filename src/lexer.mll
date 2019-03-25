@@ -247,12 +247,13 @@ rule token skips = parse
   | ['@''^'] oper_char* as i            { (AtX(Some(skips), Ulib.Text.of_latin1 i)) }
   | ['=''<''>''|''&''$'] oper_char* as i { (EqualX(Some(skips), Ulib.Text.of_latin1 i)) }
   | digit+ as i                         { Num(Some(skips),parse_int lexbuf i) }
-  | "0B" binarydigit+ as i		{ BinNum(Some(skips), parse_int lexbuf i) }
-  | "0O" octdigit+ as i 		{ OctNum(Some(skips), parse_int lexbuf i) }
-  | "0X" hexdigit+ as i 		{ HexNum(Some(skips), parse_int lexbuf i) }
+  | ("0B"|"0b") binarydigit+ as i       { BinNum(Some(skips), parse_int lexbuf i) }
+  | ("0O"|"0o") octdigit+ as i          { OctNum(Some(skips), parse_int lexbuf i) }
+  | ("0X"|"0x") hexdigit+ as i          { HexNum(Some(skips), parse_int lexbuf i) }
 
+  (* TODO Bin and Hex are typed as "vector", but that does not seem to work in the prover backends.  Remove?
   | "0b" (binarydigit+ as i)		{ (Bin(Some(skips), i)) }
-  | "0x" (hexdigit+ as i) 		{ (Hex(Some(skips), i)) }
+  | "0x" (hexdigit+ as i) 		{ (Hex(Some(skips), i)) }*)
   | '"'                                 { (String(Some(skips),
                                            string (Lexing.lexeme_start_p lexbuf) (Buffer.create 10) lexbuf)) }
   | "#\'" (char as i) '\''               { (Char(Some(skips), i)) }
