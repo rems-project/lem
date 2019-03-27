@@ -731,12 +731,12 @@ let tnfmap_apply m k =
     | None -> assert false
     | Some x -> x
 
-let remove_num_lit _ e =
+let remove_num_lit is_numeral _ e =
   let l = Ast.Trans(false, "remove_num_lit", Some (exp_to_locn e)) in
   match C.exp_to_term e with
     | Lit lit -> begin
         match lit.term with 
-          | L_num (sk, i, org_i) -> begin
+          | L_num (sk, i, org_i) when is_numeral e -> begin
               let (fromNumeral_id, _) = get_const_id env l "fromNumeral" [exp_to_typ e] in
               let numeral_ty  = { Types.t = Types.Tapp ([], Path.numeralpath)  } in
               let ty_0 = { Types.t = Types.Tfn (numeral_ty, exp_to_typ e) } in

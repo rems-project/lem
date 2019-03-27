@@ -1979,7 +1979,7 @@ assert integer_test26 : (pred 0 = ~(1 : integer))
 assert integer_test27 : (abs 42 = (42 : integer))
 assert integer_test28 : (abs (~42) = (42 : integer))
 assert integer_test29 : (integerSqrt 5 = 2)
-assert integer_test30 : (0x7F + (0x01 : integer) = 0x80)
+assert integer_test30 : (0xFFFFFFFFFFFFFFFF + (0b1 : integer) = 0x10000000000000000)
 
 
 assert rational_test1 : (2 + (5 : rational) = 7)
