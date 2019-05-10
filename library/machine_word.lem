@@ -11,7 +11,7 @@ open import {isabelle} `HOL-Word.Word`
 open import {hol} `wordsTheory` `wordsLib` `bitstringTheory` `integer_wordTheory`
 
 type mword 'a
-declare isabelle target_sorts mword = `len`
+declare isabelle target_sorts mword = `len0`
 
 class (Size 'a)
   val size : nat
@@ -33,7 +33,7 @@ declare ocaml target_rep function ocaml_inject = `Lem.machine_word_inject`
 (* A singleton type family that can be used to carry a size as the type parameter *)
 
 type itself 'a
-declare isabelle target_sorts itself = `len`
+declare isabelle target_sorts itself = `len0`
 declare hol      target_rep type itself 'a = `itself` 'a
 declare isabelle target_rep type itself 'a = `itself` 'a
 declare ocaml    target_rep type itself 'a = `unit`
@@ -59,6 +59,7 @@ let size_itself x = size
 (* in your project, replacing N in each line.                      *)
 (*******************************************************************)
 
+type ty0
 type ty1
 type ty2
 type ty3
@@ -317,6 +318,7 @@ type ty255
 type ty256
 type ty257
 
+instance (Size ty0) let size = 0 end
 instance (Size ty1) let size = 1 end
 instance (Size ty2) let size = 2 end
 instance (Size ty3) let size = 3 end
@@ -575,6 +577,7 @@ instance (Size ty255) let size = 255 end
 instance (Size ty256) let size = 256 end
 instance (Size ty257) let size = 257 end
 
+declare isabelle target_rep type ty0 = `0`
 declare isabelle target_rep type ty1 = `1`
 declare isabelle target_rep type ty2 = `2`
 declare isabelle target_rep type ty3 = `3`
@@ -1102,7 +1105,7 @@ declare hol      target_rep function word_length = `words$word_len`
 
 val signedIntegerFromWord : forall 'a. mword 'a -> integer
 
-declare isabelle target_rep function signedIntegerFromWord = `Word.sint`
+declare isabelle target_rep function signedIntegerFromWord = `Lem.signedIntegerFromWord`
 declare hol      target_rep function signedIntegerFromWord = `integer_word$w2i`
 declare ocaml    target_rep function signedIntegerFromWord = `Lem.signedIntegerFromWord`
 
@@ -1194,12 +1197,12 @@ end
 
 val signedLess : forall 'a. mword 'a -> mword 'a -> bool
 
-declare isabelle target_rep function signedLess = `Word.word_sless`
+declare isabelle target_rep function signedLess = `Lem.signedLess`
 declare hol      target_rep function signedLess = `words$word_lt`
 
 val signedLessEq : forall 'a. mword 'a -> mword 'a -> bool
 
-declare isabelle target_rep function signedLessEq = `Word.word_sle`
+declare isabelle target_rep function signedLessEq = `Lem.signedLessEq`
 declare hol      target_rep function signedLessEq = `words$word_le`
 
 val unsignedLess : forall 'a. mword 'a -> mword 'a -> bool
@@ -1257,7 +1260,7 @@ declare ocaml    target_rep function getBit = `Lem.word_getBit`
 
 val msb : forall 'a. mword 'a -> bool
 
-declare isabelle target_rep function msb = `Bits.msb`
+declare isabelle target_rep function msb = `mostSignificantBit`
 declare hol      target_rep function msb = `words$word_msb`
 declare ocaml    target_rep function msb = `Lem.word_msb`
 
@@ -1280,7 +1283,7 @@ assert {ocaml;hol;isabelle} update_test :
 assert {ocaml;hol;isabelle} setBit_test1 : setBit (wordFromNatural 12 : mword ty8) 1  true = wordFromNatural 14
 assert {ocaml;hol;isabelle} setBit_test2 : setBit (wordFromNatural 14 : mword ty8) 1 false = wordFromNatural 12
 assert {ocaml;hol;isabelle} setBit_test3 : setBit (wordFromNatural 2 : mword ty8) 1 false = wordFromNatural 0
-assert {ocaml;hol;isabelle} getBit_test  : getBit (wordFromNatural 3 : mword ty8) 1 = true
+assert {ocaml;hol;isabelle} getBit_test : getBit (wordFromNatural 3 : mword ty8) 1 = true
 
 (******************************************************************)
 (* Bitwise operations, shifts, etc.                               *)
@@ -1300,7 +1303,7 @@ declare ocaml    target_rep function shiftRight = `Lem.word_shiftRight`
 
 val arithShiftRight : forall 'a. mword 'a -> nat -> mword 'a
 
-declare isabelle target_rep function arithShiftRight = infix `>>>`
+declare isabelle target_rep function arithShiftRight = `Lem.arithShiftRight`
 declare hol      target_rep function arithShiftRight = `words$word_asr`
 declare ocaml    target_rep function arithShiftRight = `Lem.word_arithShiftRight`
 
@@ -1348,7 +1351,7 @@ let {ocaml} zeroExtend x = wordFromNatural (naturalFromWord x)
 
 val signExtend : forall 'a 'b. Size 'b => mword 'a -> mword 'b
 
-declare isabelle target_rep function signExtend = `Word.scast`
+declare isabelle target_rep function signExtend = `Lem.signExtend`
 declare hol      target_rep function signExtend = `words$sw2sw`
 (* ocaml after definition for wordFromInteger *)
 
@@ -1429,12 +1432,17 @@ let {ocaml} signExtend x = wordFromInteger (signedIntegerFromWord x)
 assert {ocaml;hol;isabelle} wordFromInteger_nat_test1 : ((wordFromInteger 42) : mword ty8) = wordFromNatural 42
 assert {ocaml;hol;isabelle} wordFromInteger_nat_test2 : ((wordFromInteger (~42)) : mword ty8) = uminus (wordFromNatural 42)
 
+assert {ocaml;isabelle} signedIntegerFromWord_mword0_test: (signedIntegerFromWord ((wordFromInteger 42) : mword ty0)) = 0
+
 assert {ocaml;hol;isabelle} plus_test : plus (wordFromInteger (~5) : mword ty8) (wordFromNatural 2) = wordFromInteger (~3)
 assert {ocaml;hol;isabelle} minus_test : minus (wordFromInteger (~5) : mword ty8) (wordFromNatural 2) = wordFromInteger (~7)
 assert {ocaml;hol;isabelle} times_test : times (wordFromInteger (~5) : mword ty8) (wordFromNatural 2) = wordFromInteger (~10)
 assert {ocaml;hol;isabelle} udiv_test : unsignedDivide (wordFromInteger (~5) : mword ty8) (wordFromNatural 2) = wordFromInteger 125
 assert {ocaml;hol;isabelle} sdiv_test : signedDivide (wordFromInteger (~5) : mword ty8) (wordFromNatural 2) = wordFromInteger 254
 
+assert {ocaml;hol;isabelle} msb_test1 : msb (wordFromInteger 1 : mword ty8) = false
+assert {ocaml;hol;isabelle} msb_test2 : msb (wordFromInteger (~1) : mword ty8) = true
+assert {ocaml;isabelle} msb_test3 : msb (wordFromInteger 1 : mword ty0) = false
 
 (* Comparison tests, which need wordFromInteger *)
 

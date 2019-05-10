@@ -152,12 +152,15 @@ let word_uminus (n,w) =
 let naturalFromWord (_,w) = w
 
 let signedIntegerFromWord (n,w) =
-  let sign = Big_int_impl.BI.extract_big_int w (n-1) n in
-  if Nat_big_num.equal sign Nat_big_num.zero
-  then w
+  if n = 0
+  then Big_int_impl.BI.zero_big_int
   else
-    let high = Big_int_impl.BI.shift_left_big_int Big_int_impl.BI.unit_big_int n in
-    Big_int_impl.BI.sub_big_int w high
+    let sign = Big_int_impl.BI.extract_big_int w (n-1) n in
+    if Nat_big_num.equal sign Nat_big_num.zero
+    then w
+    else
+      let high = Big_int_impl.BI.shift_left_big_int Big_int_impl.BI.unit_big_int n in
+      Big_int_impl.BI.sub_big_int w high
 
 let rec wordFromBitlist l =
   let rec aux n w = function
@@ -196,8 +199,11 @@ let word_getBit (n,w) i =
   if Nat_big_num.equal bit Nat_big_num.zero then false else true
 
 let word_msb (n,w) =
-  let bit = Big_int_impl.BI.extract_big_int w (n-1) n in
-  if Nat_big_num.equal bit Nat_big_num.zero then false else true
+  if n = 0 then
+    false
+  else
+    let bit = Big_int_impl.BI.extract_big_int w (n-1) n in
+    if Nat_big_num.equal bit Nat_big_num.zero then false else true
 
 let word_lsb (n,w) =
   let bit = Big_int_impl.BI.extract_big_int w 0 1 in
@@ -206,15 +212,18 @@ let word_lsb (n,w) =
 let word_shiftLeft (n,w) m = (n,Big_int_impl.BI.shift_left_big_int w m)
 let word_shiftRight (n,w) m = (n,Big_int_impl.BI.shift_right_big_int w m)
 let word_arithShiftRight (n,w) m =
-  let signbit = Big_int_impl.BI.extract_big_int w (n-1) n in
-  let shifted = Big_int_impl.BI.shift_right_big_int w m in
-  if Nat_big_num.equal signbit Nat_big_num.zero then
-    (n,shifted)
+  if n = 0 then
+    (n,w)
   else
-    let twom = Big_int_impl.BI.shift_left_big_int Big_int_impl.BI.unit_big_int m in
-    let ones = Nat_big_num.sub twom Big_int_impl.BI.unit_big_int in
-    let signs = Big_int_impl.BI.shift_left_big_int ones (n-m) in
-    (n,Nat_big_num.bitwise_or shifted signs)
+    let signbit = Big_int_impl.BI.extract_big_int w (n-1) n in
+    let shifted = Big_int_impl.BI.shift_right_big_int w m in
+    if Nat_big_num.equal signbit Nat_big_num.zero then
+      (n,shifted)
+    else
+      let twom = Big_int_impl.BI.shift_left_big_int Big_int_impl.BI.unit_big_int m in
+      let ones = Nat_big_num.sub twom Big_int_impl.BI.unit_big_int in
+      let signs = Big_int_impl.BI.shift_left_big_int ones (n-m) in
+      (n,Nat_big_num.bitwise_or shifted signs)
 
 let word_logic f ((n:int),x) ((_:int),y) =
   (n, f x y)

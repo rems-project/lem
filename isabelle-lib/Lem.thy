@@ -100,9 +100,72 @@ consts
 
 subsection \<open>Machine words\<close>
 
-definition word_update :: "'a::len word \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'b::len word \<Rightarrow> 'a word" where
+definition word_update :: "'a::len0 word \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'b::len0 word \<Rightarrow> 'a word" where
   "word_update v lo hi w =
     (let sz = size v in
     of_bl (take (sz-hi-1) (to_bl v) @ to_bl w @ drop (sz-lo) (to_bl v)))"
+
+definition signedIntegerFromWord :: "'a::len0 word \<Rightarrow> int" where
+  \<comment> \<open>returns 0 for 0-length words; otherwise, treats the most-significant-bit as a sign bit\<close>
+  "signedIntegerFromWord w = (if LENGTH('a) > 0 then sbintrunc (len_of TYPE('a) - 1) (uint w) else 0)"
+
+lemma signedIntegerFromWord_sint[simp]:
+  fixes w :: "'a::len word"
+  shows "signedIntegerFromWord w = Word.sint w"
+  by (auto simp: signedIntegerFromWord_def sint_uint)
+
+lemma signedIntegerFromWord_0[simp]:
+  "signedIntegerFromWord (w :: 0 word) = 0"
+  by (auto simp: signedIntegerFromWord_def)
+
+definition mostSignificantBit :: "'a::len0 word \<Rightarrow> bool" where
+  \<comment> \<open>considers the most significant bit of 0-length words to be False\<close>
+  "mostSignificantBit a \<longleftrightarrow> bin_sign (signedIntegerFromWord a) = -1"
+
+lemma mostSignificantBit_msb[simp]: "mostSignificantBit (w::'a::len word) = Bits.msb w"
+  by (auto simp: mostSignificantBit_def word_msb_def)
+
+lemma mostSignificantBit_word0[simp]: "mostSignificantBit (w::0 word) \<longleftrightarrow> False"
+  by (auto simp: mostSignificantBit_def)
+
+definition signedLessEq :: "'a::len0 word \<Rightarrow> 'a word \<Rightarrow> bool"
+  where "signedLessEq a b \<equiv> signedIntegerFromWord a \<le> signedIntegerFromWord b"
+
+definition signedLess :: "'a::len0 word \<Rightarrow> 'a word \<Rightarrow> bool"
+  where "signedLess x y \<equiv> signedLessEq x y \<and> x \<noteq> y"
+
+lemma
+  fixes x y :: "'a::len word"
+  shows signedLessEq_word_sle[simp]: "signedLessEq x y \<longleftrightarrow> x <=s y"
+    and signedLess_word_sless[simp]: "signedLess x y \<longleftrightarrow> x <s y"
+  by (auto simp: signedLessEq_def signedLess_def word_sle_def word_sless_def)
+
+lemma signedLessEq_0[simp]: "signedLessEq (x :: 0 word) y"
+  by (auto simp: signedLessEq_def)
+
+lemma word0_0: "(w :: 0 word) = 0"
+  by transfer auto
+
+lemma signedLess_0[simp]: "signedLess (x :: 0 word) y \<longleftrightarrow> False"
+  using word0_0[of x] word0_0[of y]
+  by (auto simp: signedLess_def)
+
+definition arithShiftRight1 :: "'a::len0 word \<Rightarrow> 'a word"
+  where "arithShiftRight1 w = word_of_int (bin_rest (signedIntegerFromWord w))"
+
+definition arithShiftRight :: "'a::len0 word \<Rightarrow> nat \<Rightarrow> 'a word"
+  where "arithShiftRight w n = (arithShiftRight1 ^^ n) w"
+
+lemma arithShiftRight1_sshiftr1[simp]: "arithShiftRight1 (w::'a::len word) = sshiftr1 w"
+  by (auto simp: arithShiftRight1_def sshiftr1_def)
+
+lemma arithShiftRight_sshiftr[simp]: "arithShiftRight (w::'a::len word) n = w >>> n"
+  by (induction n) (auto simp: arithShiftRight_def sshiftr_def)
+
+definition signExtend :: "'a::len0 word \<Rightarrow> 'b::len0 word"
+  where "signExtend w = word_of_int (signedIntegerFromWord w)"
+
+lemma signExtend_scast[simp]: "signExtend (w::'a::len word) = scast w"
+  by (auto simp: signExtend_def scast_def)
 
 end
