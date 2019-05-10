@@ -4,8 +4,10 @@
 (*                                                      *)
 (* **************************************************** *)
 
+open import Basic_classes
 open import Num
 open import String
+open import Assert_extra
 
 declare {hol;isabelle;ocaml;coq} rename module = lem_num_extra
 
@@ -20,6 +22,34 @@ declare compile_message integerOfString = "integerOfString can fail, potentially
 declare ocaml target_rep function integerOfString = `Nat_big_num.of_string`
 declare hol target_rep function integerOfString = `ABS`
 
+val integerOfChar : char -> integer
+
+let integerOfChar = function
+  | #'0' -> 0
+  | #'1' -> 1
+  | #'2' -> 2
+  | #'3' -> 3
+  | #'4' -> 4
+  | #'5' -> 5
+  | #'6' -> 6
+  | #'7' -> 7
+  | #'8' -> 8
+  | #'9' -> 9
+  | _ -> failwith "integerOfChar: unexpected character"
+end
+
+val integerOfStringHelper : list char -> integer
+
+let rec integerOfStringHelper s = match s with
+  | d :: ds -> integerOfChar d + (10 * integerOfStringHelper ds)
+  | [] -> 0
+end
+
+declare {isabelle} termination_argument integerOfStringHelper = automatic
+
+let ~{ocaml;hol} integerOfString s = integerOfStringHelper (List.reverse (String.toCharList s))
+
+assert {ocaml;hol;isabelle} integerOfString_test : (integerOfString "4096" = 4096)
 
 (* Truncation integer division (round toward zero) *)
 val integerDiv_t: integer -> integer -> integer
