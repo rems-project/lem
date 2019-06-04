@@ -561,13 +561,13 @@ Definition char_equal
   (c d: ascii): bool :=
     match c, d with
       | (Ascii b1 b2 b3 b4 b5 b6 b7 b8), (Ascii b1' b2' b3' b4' b5' b6' b7' b8') =>
-          andb (eqb b1 b1')
-          (andb (eqb b2 b2')
-          (andb (eqb b3 b3')
-          (andb (eqb b4 b4')
-          (andb (eqb b5 b5')
-          (andb (eqb b6 b6')
-          (andb (eqb b7 b7') (eqb b8 b8')))))))
+          andb (Bool.eqb b1 b1')
+          (andb (Bool.eqb b2 b2')
+          (andb (Bool.eqb b3 b3')
+          (andb (Bool.eqb b4 b4')
+          (andb (Bool.eqb b5 b5')
+          (andb (Bool.eqb b6 b6')
+          (andb (Bool.eqb b7 b7') (Bool.eqb b8 b8')))))))
     end.
 
 Fixpoint string_equal
