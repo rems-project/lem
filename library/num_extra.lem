@@ -9,18 +9,20 @@ open import Num
 open import String
 open import Assert_extra
 
+open import {hol} `ASCIInumbersTheory`
+
 declare {hol;isabelle;ocaml;coq} rename module = lem_num_extra
 
 val naturalOfString : string -> natural
 
 declare compile_message naturalOfString = "naturalOfString can fail, potentially with an exception, if the string cannot be parsed"
 declare ocaml target_rep function naturalOfString = `Nat_big_num.of_string_nat`
+declare hol target_rep function naturalOfString = `toNum`
 
 val integerOfString : string -> integer
 
 declare compile_message integerOfString = "integerOfString can fail, potentially with an exception, if the string cannot be parsed"
 declare ocaml target_rep function integerOfString = `Nat_big_num.of_string`
-declare hol target_rep function integerOfString = `ABS`
 
 val integerOfChar : char -> integer
 
@@ -47,9 +49,18 @@ end
 
 declare {isabelle} termination_argument integerOfStringHelper = automatic
 
-let ~{ocaml;hol} integerOfString s = integerOfStringHelper (List.reverse (String.toCharList s))
+let ~{ocaml;hol} integerOfString s = match String.toCharList s with
+  | #'-' :: ds -> integerNegate (integerOfStringHelper (List.reverse ds))
+  | ds -> integerOfStringHelper (List.reverse ds)
+end
 
-assert {ocaml;hol;isabelle} integerOfString_test : (integerOfString "4096" = 4096)
+let {hol} integerOfString s = match s with
+  | cons_string #'-' s' -> integerNegate (integerFromNatural (naturalOfString s'))
+  | _ -> integerFromNatural (naturalOfString s)
+end
+
+assert {ocaml;hol;isabelle} integerOfString_test_1 : (integerOfString "4096" = 4096)
+assert {ocaml;hol;isabelle} integerOfString_test_2 : (integerOfString "-4096" = ~4096)
 
 (* Truncation integer division (round toward zero) *)
 val integerDiv_t: integer -> integer -> integer

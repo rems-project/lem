@@ -121,7 +121,7 @@ let string_case s c_empty c_cons =
     | c :: cs -> c_cons c (toString cs)
   end
 declare ocaml    target_rep function string_case = `Xstring.string_case`
-declare hol      target_rep function string_case = `string_case`
+declare hol      target_rep function string_case = `list_CASE`
 declare isabelle target_rep function string_case s c_e c_c = `case_list` c_e c_c s
 
 val empty_string : string
