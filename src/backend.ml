@@ -980,12 +980,7 @@ module Isa () : Target = struct
 
   let star = Ulib.Text.of_latin1 "*"
   let space = Output.ws (Some [Ast.Ws (Ulib.Text.of_latin1 " ")])
-  let infix_op_format a x = match a with (Term_var | Term_var_toplevel) -> id a x | _ -> begin
-     if (Ulib.Text.left x 1 = star || Ulib.Text.right x 1 = star) then
-       kwd "(" ^ space ^ id a x ^ space ^ kwd ")"
-     else
-       kwd "(" ^ id a x ^ kwd ")"
-  end
+  let infix_op_format a x = match a with (Term_var | Term_var_toplevel) -> id a x | _ -> kwd "(" ^ id a x ^ kwd ")"
 
   let op_format use_infix = if use_infix then infix_op_format else id
 
