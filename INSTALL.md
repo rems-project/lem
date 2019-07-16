@@ -1,5 +1,10 @@
 # Lem install
 
+
+## Opam Package
+
+We release an opam package in our private [opam repository](https://github.com/rems-project/opam-repository). The package will install the `lem` binary in the directory given by `opam config var lem:bin` (which should be on your `PATH` if your opam environment is configured) and the lem libraries at `opam config var lem:share`. If you prefer to build lem yourself see the following sections.
+
 ## Lem binary
 
 To build Lem run "make" in the top-level directory. This builds the
@@ -22,4 +27,5 @@ for Coq     : make coq-libs
 
 These targets depend on the corresponding tool being installed. If you just want to
 generate the input, Lem gives to these tools, please run "make libs"
+
 
