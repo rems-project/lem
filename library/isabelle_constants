@@ -96,6 +96,7 @@ defs
 disable_pr
 display_drafts
 div
+dom
 domain
 domain_isomorphism
 done
