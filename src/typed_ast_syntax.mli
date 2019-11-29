@@ -300,13 +300,13 @@ val dest_const_exp : exp -> const_descr_ref id option
 val is_const_exp : exp -> bool
 
 (** [dest_num_exp e] destructs a number literal expression. *)
-val dest_num_exp : exp -> int option
+val dest_num_exp : exp -> Z.t option
 
 (** [is_num_exp] checks whether [e] is a number literal expression. *)
 val is_num_exp : exp -> bool
 
 (** [mk_num_exp] creates a number literal expression. *)
-val mk_num_exp : Types.t -> int -> exp
+val mk_num_exp : Types.t -> Z.t -> exp
 
 (** [is_empty_backend_exp] checks whether the expression is [``] *)
 val is_empty_backend_exp : exp -> bool

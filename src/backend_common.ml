@@ -121,7 +121,7 @@ let cr_special_rep_fun srepl rep_args env tsubst arg_f name vars (vargsL : exp l
   let args_o = List.map (fun a -> Output.remove_initial_ws (arg_f a)) rep_args' in
   let srepl_o = List.map meta srepl in
 
-  Util.interleave srepl_o args_o
+  [Output.flat (Util.interleave srepl_o args_o)]
 end
 
 

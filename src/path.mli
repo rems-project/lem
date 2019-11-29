@@ -76,6 +76,7 @@ val get_module_path : t -> t option
 
 val natpath : t
 val listpath : t
+(* TODO The vector type does not seem to be supported in the prover backends. Remove? *)
 val vectorpath : t
 val boolpath : t
 val bitpath : t

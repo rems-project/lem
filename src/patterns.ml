@@ -441,7 +441,7 @@ let pat_matrix_simp_pat l_org ((input, rows, pf) : pat_matrix) : pat_matrix opti
       | P_vectorC _ -> None
       | P_tup _ -> None
       | P_list _ -> None
-      | P_num_add ((n,_), _, _, i) -> if i > 0 then None else Some (C_no_types.mk_pvar l n p.typ, ee)
+      | P_num_add ((n,_), _, _, i) -> if Z.gt i Z.zero then None else Some (C_no_types.mk_pvar l n p.typ, ee)
       | P_paren(_,p,_) ->  Some (p, ee)
       | P_cons _ -> None
       | P_lit(li) ->
@@ -1053,10 +1053,10 @@ let num_add_matrix_compile_fun (gen_match : bool) (use_split : int -> bool) env 
 
   (* find the smallest add-number (except 0) we need to be able to handle, then perform the split:
      0, 1, 2, ..., min - 1, x + min *)
-  let (min_inc, min_name_opt) = List.fold_left (fun (min, no) p -> match dest_num_add_pat p with None -> (min, no) | Some (n, i) -> if min = 0 || i < min then (i, Some n) else (min, no)) (0, None) pL in
+  let (min_inc, min_name_opt) = List.fold_left (fun (min, no) p -> match dest_num_add_pat p with None -> (min, no) | Some (n, i) -> if min = 0 || Z.to_int i < min then (Z.to_int i, Some n) else (min, no)) (0, None) pL in
 
   let below_min_inc_missing = begin
-    let constL = List.fold_left (fun acc p -> match dest_num_pat p with None -> acc |  Some i -> if (i < min_inc) then i :: acc else acc) [] pL in
+    let constL = List.fold_left (fun acc p -> match dest_num_pat p with None -> acc |  Some i -> if (Z.to_int i < min_inc) then Z.to_int i :: acc else acc) [] pL in
     min_inc - (List.length (Util.remove_duplicates constL))
   end in
 
@@ -1068,7 +1068,7 @@ let num_add_matrix_compile_fun (gen_match : bool) (use_split : int -> bool) env 
      let rec aux cL eL = match (cL, eL) with 
          ([], [e]) -> e
        | (c::cs, e::es) ->                        
-          let c_exp = mk_num_exp num_ty c in
+          let c_exp = mk_num_exp num_ty (Z.of_int c) in
           let eq_exp = mk_eq_exp env i c_exp in
           mk_if_exp loc eq_exp e (aux cs es)
        | _ -> raise Pat_Matrix_Compile_Fun_Failed (* Should not happen *)
@@ -1076,7 +1076,7 @@ let num_add_matrix_compile_fun (gen_match : bool) (use_split : int -> bool) env 
   in
   let top_fun_case last_used last_n : matrix_compile_top_fun  = fun i eL -> 
      let _ = matrix_compile_fun_check (List.length eL = (min_inc + 1)) in
-     let pL = (List.map (mk_num_pat num_ty) cL) @ [if last_used then matrix_compile_mk_pvar last_n num_ty else matrix_compile_mk_pwild num_ty] in
+     let pL = (List.map (fun i -> mk_num_pat num_ty (Z.of_int i)) cL) @ [if last_used then matrix_compile_mk_pvar last_n num_ty else matrix_compile_mk_pwild num_ty] in
      mk_case_exp true loc i (List.combine pL eL) m_ty
   in
   let abb_n = gen min_name_opt num_ty in
@@ -1090,7 +1090,7 @@ let num_add_matrix_compile_fun (gen_match : bool) (use_split : int -> bool) env 
     let last_e = if real_gen_match then matrix_compile_mk_var last_n num_ty else i' in
 
     let e_last : exp = List.hd eL1 in
-    let (last_used, e_last') = mk_opt_let_exp loc (abb_n, mk_sub_exp env last_e (mk_num_exp num_ty min_inc)) e_last in
+    let (last_used, e_last') = mk_opt_let_exp loc (abb_n, mk_sub_exp env last_e (mk_num_exp num_ty (Z.of_int min_inc))) e_last in
     let eL' = eL0 @ [e_last'] in
 
     let res = if real_gen_match then top_fun_case last_used last_n i' eL' else top_fun_if i' eL' in
@@ -1100,16 +1100,16 @@ let num_add_matrix_compile_fun (gen_match : bool) (use_split : int -> bool) env 
   let top_fun_ge (i : exp) (eL : exp list) = 
   match eL with [e1;e2] ->
   begin
-    let (_, e1') = mk_opt_let_exp loc (abb_n, mk_sub_exp env i (mk_num_exp num_ty min_inc)) e1 in
+    let (_, e1') = mk_opt_let_exp loc (abb_n, mk_sub_exp env i (mk_num_exp num_ty (Z.of_int min_inc))) e1 in
     let (i', _) = alter_init_lskips remove_init_ws i in
-    let le_exp = mk_le_exp env (mk_num_exp num_ty min_inc) i' in
+    let le_exp = mk_le_exp env (mk_num_exp num_ty (Z.of_int min_inc)) i' in
     mk_if_exp loc le_exp e1' e2
   end | _ -> assert false in
 
 
   let restr_pat_eq i _ = mk_num_pat num_ty i in
   let restr_pat_ge i = function 
-      [p] -> num_ty_pat_cases (fun n -> mk_num_add_pat num_ty n i) (fun i' -> mk_num_pat num_ty (i+i')) (fun n i' -> mk_num_add_pat num_ty n (i+i')) p
+      [p] -> num_ty_pat_cases (fun n -> mk_num_add_pat num_ty n i) (fun i' -> mk_num_pat num_ty (Z.add i i')) (fun n i' -> mk_num_add_pat num_ty n (Z.add i i')) p
                  (fun p -> raise (match_compile_unreachable "expression was no number expression")) p
     | _ -> raise (match_compile_unreachable "list_matrix_compile_fun wrong no of args to rest_pat_ge")
   in
@@ -1126,26 +1126,26 @@ let num_add_matrix_compile_fun (gen_match : bool) (use_split : int -> bool) env 
            (fun () -> if is_wild_pat p then f_w else raise (match_compile_unreachable "Unexpected pattern in num_add_matrix_compile_fun"))) in
 
   let case_fun_eq i p ee = 
-     pat_cases (fun i' -> if i' = i then Some ([], ee) else None)  
-               (fun n i' -> if i' <= i then Some ([], add_to_ext_exp ee n (mk_num_exp num_ty (i - i'))) else None)
+     pat_cases (fun i' -> if Z.equal i' i then Some ([], ee) else None)
+               (fun n i' -> if Z.leq i' i then Some ([], add_to_ext_exp ee n (mk_num_exp num_ty (Z.sub i i'))) else None)
                (Some ([], ee)) p in
 
   let case_fun_ge i p ee = 
-    pat_cases (fun i' -> (if i' < i then None else Some ([mk_num_pat num_ty (i'-i)], ee)))
-              (fun n i' -> if i' < i then raise (match_compile_unreachable "because we choose the smallest i") else Some ([mk_num_add_pat num_ty n (i'-i)], ee)) 
+    pat_cases (fun i' -> (if Z.lt i' i then None else Some ([mk_num_pat num_ty (Z.sub i' i)], ee)))
+              (fun n i' -> if Z.lt i' i then raise (match_compile_unreachable "because we choose the smallest i") else Some ([mk_num_add_pat num_ty n (Z.sub i' i)], ee))
               (Some ([new_w], ee)) p in
 
   let case_fun_less i p ee = 
-    pat_cases (fun i' -> (if i' < i then Some ([p], ee) else None))
-              (fun n i' -> (if i' < i then Some ([p], ee) else None))
+    pat_cases (fun i' -> (if Z.lt i' i then Some ([p], ee) else None))
+              (fun n i' -> (if Z.lt i' i then Some ([p], ee) else None))
               (Some ([new_w], ee)) p in
 
   let dest_in_eq e = [] in
   let dest_in_ge e = [abb_v] in
   let dest_in_less e = [e] in
 
-  let res_split = (top_fun_split, (List.map (fun i -> (case_fun_eq i, dest_in_eq, restr_pat_eq i)) cL) @ [(case_fun_ge min_inc, dest_in_ge, restr_pat_ge min_inc)], fun e -> None) in
-  let res_ge = (top_fun_ge, [(case_fun_ge min_inc, dest_in_ge, restr_pat_ge min_inc); (case_fun_less min_inc, dest_in_less, restr_pat_less)], fun e -> None) in
+  let res_split = (top_fun_split, (List.map (fun i -> (case_fun_eq (Z.of_int i), dest_in_eq, restr_pat_eq (Z.of_int i))) cL) @ [(case_fun_ge (Z.of_int min_inc), dest_in_ge, restr_pat_ge (Z.of_int min_inc))], fun e -> None) in
+  let res_ge = (top_fun_ge, [(case_fun_ge (Z.of_int min_inc), dest_in_ge, restr_pat_ge (Z.of_int min_inc)); (case_fun_less (Z.of_int min_inc), dest_in_less, restr_pat_less)], fun e -> None) in
   if (use_split below_min_inc_missing) then Some res_split else Some res_ge
 
 
@@ -1937,7 +1937,7 @@ let remove_toplevel_match targ mca env_global _ env_local (((d, s), l, lenv)) =
 let is_isabelle_pat_direct env (p : pat) : bool = 
   match p.term with
     | P_as _ -> false
-    | P_num_add (_, _, _, i) -> i <= max_succ_nesting
+    | P_num_add (_, _, _, i) -> Z.leq i (Z.of_int max_succ_nesting)
     | P_record _ -> false
     | (P_vector _ | P_vectorC _) -> false
     | P_const (c, _) -> is_buildin_constructor Ast.Unknown env (Target.Target_no_ident Target.Target_isa) c.descr
@@ -1948,7 +1948,7 @@ let is_isabelle_pat_direct env (p : pat) : bool =
                 because for each character in the string pattern, all 256 possible values of this char
                 become separate cases. *)
            | L_string  _ -> false 
-           | L_num (_, i, _) -> i <= max_succ_nesting 
+           | L_num (_, i, _) -> Z.leq i (Z.of_int max_succ_nesting)
            | _ -> true
       end
     | _ -> true
@@ -1999,14 +1999,14 @@ let is_hol_exp env (e : exp) : bool =
 
 let is_hol_pat_direct env (p : pat) : bool = 
   match p.term with
-    | P_num_add (_, _, _, i) -> i <= max_succ_nesting
+    | P_num_add (_, _, _, i) -> Z.leq i (Z.of_int max_succ_nesting)
     | P_as _ -> false
     | P_record _ -> false
     | (P_vector _ | P_vectorC _) -> false
     | P_lit li -> 
       begin
          match li.term with 
-           | L_num (_, i, _) -> i <= max_succ_nesting 
+           | L_num (_, i, _) -> Z.leq i (Z.of_int max_succ_nesting)
            | _ -> true
       end
     | P_const (c, _) -> is_buildin_constructor Ast.Unknown env (Target.Target_no_ident Target.Target_hol) c.descr

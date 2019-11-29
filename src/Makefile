@@ -1,5 +1,5 @@
 all:
-	ocamlbuild -cflags -g main.native
+	ocamlbuild -use-ocamlfind -cflags -g main.native
 #	ocamlbuild main.native
 
 profile:

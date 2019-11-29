@@ -170,9 +170,10 @@ module Macros (E : sig val env : env end) : sig
        instantiation. *)
   val remove_method_pat : pat_macro
 
-   (** [remove_num_lit] replaces [L_num (sk, i)] with [fromNumeral (L_numeral (sk, i))].
+   (** [remove_num_lit is_numeral] replaces expressions [L_num (sk, i)] for which
+       [is_numeral] returns [true] with [fromNumeral (L_numeral (sk, i))].
        This is the first step into using type classes to handle numerals.  *)
-  val remove_num_lit : exp macro
+  val remove_num_lit : (exp -> bool) -> exp macro
 
   (** [remove_class_const] remove constants that have class constraints by adding
       explicit dictionary parameters. *)

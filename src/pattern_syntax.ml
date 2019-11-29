@@ -159,7 +159,7 @@ let mk_opt_paren_pat (p :pat) : pat =
   else p
 
 
-let rec dest_num_pat (p :pat) : int option =
+let rec dest_num_pat (p :pat) : Z.t option =
   match p.term with
   | P_lit l -> (
     match l.term with
@@ -176,7 +176,7 @@ let mk_num_pat num_ty i =
   let lit = C.mk_lnum l None i None num_ty in
   C.mk_plit l lit (Some num_ty)
 
-let rec dest_num_add_pat (p :pat) : (Name.t * int) option =
+let rec dest_num_add_pat (p :pat) : (Name.t * Z.t) option =
   match p.term with
   | P_num_add ((n, _), _, _, i) -> Some (Name.strip_lskip n, i)
   | P_paren (_, p, _) -> dest_num_add_pat p
@@ -194,7 +194,7 @@ let num_ty_pat_cases f_v f_i f_a f_w f_else p =
   Util.option_cases (dest_ext_var_pat p) f_v (fun () ->
                  Util.option_cases (dest_num_pat p) f_i (fun () ->
                    Util.option_cases (dest_num_add_pat p) (fun (n,i) -> 
-                       if i = 0 then f_v n else f_a n i)
+                       if Z.equal i Z.zero then f_v n else f_a n i)
                      (fun () -> if is_wild_pat p then f_w else f_else p)))
 
 let rec dest_string_pat (p :pat) : string option =
@@ -318,7 +318,7 @@ let rec single_pat_exhaustive (p : pat) : bool =
         Seplist.for_all
           (fun (_,_,p) -> single_pat_exhaustive p)
           fes
-    | P_num_add (_, _, _, n) -> (n = 0)
+    | P_num_add (_, _, _, n) -> (Z.equal n Z.zero)
     | P_lit _ | P_list _ | P_cons _ | P_vector _ | P_vectorC _ ->
         false
     | P_as(_,p,_,_,_) | P_typ(_,p,_,_,_) | P_paren(_,p,_) -> 

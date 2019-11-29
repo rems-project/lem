@@ -112,7 +112,7 @@ and t_uvar = { index : int; mutable subst : t option }
 and nexp = { mutable nexp : nexp_aux }
 and nexp_aux = 
   | Nvar of Nvar.t
-  | Nconst of int
+  | Nconst of Z.t
   | Nadd of nexp * nexp
   | Nmult of nexp *nexp
   | Nneg of nexp
@@ -441,7 +441,7 @@ and src_nexp =  { nterm : src_nexp_aux; nloc : Ast.l; nt : nexp }
 
 and src_nexp_aux =
  | Nexp_var of Ast.lex_skips * Nvar.t 
- | Nexp_const of Ast.lex_skips * int
+ | Nexp_const of Ast.lex_skips * Z.t
  | Nexp_mult of src_nexp * Ast.lex_skips * src_nexp (** One will always be const *)
  | Nexp_add of src_nexp * Ast.lex_skips * src_nexp 
  | Nexp_paren of Ast.lex_skips * src_nexp * Ast.lex_skips
@@ -774,7 +774,7 @@ let rec pp_nexp ppf n =
      | Nvar(nv) ->
          Nvar.pp ppf nv
      | Nconst(i) ->
-         fprintf ppf "%d" i
+         fprintf ppf "%s" (Z.to_string i)
      | Nadd(i,j) ->
          fprintf ppf "(%a + %a)"
              pp_nexp i
@@ -1115,12 +1115,15 @@ let inconsistent_constraints r l =
 let normalize nexp =
  (*Note it is only okay to call make_n if the nexp is certainly NOT an nuvar*)
  let nBang base n = base.nexp <- n; base in
+ let is_zero i = Z.equal i Z.zero in
+ let is_one i = Z.equal i Z.one in
  let make_c i = { nexp = Nconst i } in
  let make_n n = {nexp = n} in
- let make_mul base n i = match i with 
-                    | 0 -> make_c 0
-                    | 1 -> n
-                    | _ -> nBang base (Nmult (n,make_c i)) in 
+ let make_mul base n i =
+    if is_zero i then make_c Z.zero else
+    if is_one i then n else
+    nBang base (Nmult (n,make_c i))
+  in
   let make_ordered base cl cr nl nr i v =
     match (compare_nexp cl cr) with
       | -1 -> nBang base (Nadd(nr,nl))
@@ -1133,14 +1136,15 @@ let normalize nexp =
     | Nneg(n) -> (
        let n' = norm n in
        match n'.nexp with
-        | Nconst(i) -> nBang nexp (Nconst(-1 * i))
-        | _ -> norm (make_mul nexp n' (-1)))
+        | Nconst(i) -> nBang nexp (Nconst(Z.neg i))
+        | _ -> norm (make_mul nexp n' Z.minus_one))
     | Nmult(n1,n2) -> (
        let n1',n2' = norm n1,norm n2 in
        let n1',n2' = sort n1',sort n2' in 
        match n1'.nexp,n2'.nexp with
-        | Nconst i, Nconst j -> nBang nexp (Nconst (i*j))
-        | Nconst 1, _ -> n2' | _, Nconst 1 -> n1'
+        | Nconst i, Nconst j -> nBang nexp (Nconst (Z.mul i j))
+        | Nconst one, _ when is_one one -> n2'
+        | _, Nconst one when is_one one -> n1'
         | Nvar _ , Nconst _ | Nuvar _ , Nconst _  -> nBang nexp (Nmult(n1',n2'))
         | Nconst _ , Nvar _ | Nconst _ , Nuvar _ -> nBang nexp (Nmult(n2',n1'))
         | Nconst i , Nadd(n1,n2) | Nadd(n1,n2), Nconst i ->
@@ -1160,7 +1164,7 @@ let normalize nexp =
       let n1',n2' = norm n1,norm n2 in
       let n1',n2' = sort n1',sort n2' in 
       match n1'.nexp,n2'.nexp with
-        | Nconst i, Nconst j -> nBang nexp (Nconst(i+j))
+        | Nconst i, Nconst j -> nBang nexp (Nconst(Z.add i j))
         | _,_ -> nBang nexp (Nadd(n1',n2')))
   and
     sort nexp = 
@@ -1170,42 +1174,43 @@ let normalize nexp =
      | Nadd(n1,n2) ->
        let n1,n2 = sort n1, sort n2 in
         begin match n1.nexp,n2.nexp with
-         | Nconst i , Nconst j -> nBang nexp (Nconst (i+j))
-         | Nconst 0, n -> n2 | n , Nconst 0 -> n1 
+         | Nconst i , Nconst j -> nBang nexp (Nconst (Z.add i j))
+         | Nconst z, n when is_zero z -> n2
+         | n, Nconst z when is_zero z -> n1
          | Nconst _ , (Nmult _ | Nvar _ | Nuvar _ ) -> nBang nexp (Nadd(n1,n2))
          | (Nmult _ | Nvar _ | Nuvar _ ) , Nconst _ -> nBang nexp (Nadd(n2,n1))
          | Nuvar _ , Nuvar _ | Nuvar _ , Nvar _ | Nvar _ , Nuvar _ | Nvar _ , Nvar _ -> 
-           make_ordered nexp n1 n2 n1 n2 2 n1
+           make_ordered nexp n1 n2 n1 n2 (Z.of_int 2) n1
          | Nvar _, Nmult(v,n) | Nuvar _, Nmult(v,n) ->
            (match v.nexp,n.nexp with 
             | Nvar _,Nconst i | Nuvar _,Nconst i -> 
-              make_ordered nexp n1 v n1 n2 (i+1) n1
+              make_ordered nexp n1 v n1 n2 (Z.succ i) n1
              | _ -> assert false)
          | Nmult(v,n), Nvar _ | Nmult(v,n), Nuvar _ ->
               (match v.nexp,n.nexp with 
                | Nvar _ ,Nconst i | Nuvar _, Nconst i -> 
-                 make_ordered nexp v n2 n1 n2 (i+1) n2
+                 make_ordered nexp v n2 n1 n2 (Z.succ i) n2
                | _ -> assert false)
          | Nmult(var1,nc1),Nmult(var2,nc2) ->
               (match var1.nexp,nc1.nexp,var2.nexp,nc2.nexp with 
                | _, Nconst i1, _, Nconst i2 ->
-                 make_ordered nexp var1 var2 n1 n2 (i1+i2) var1  
+                 make_ordered nexp var1 var2 n1 n2 (Z.add i1 i2) var1
                | _ -> assert false)
          | Nadd(n1l,n1r),Nadd(n2l,n2r) ->
                (match compare_nexp n1r n2r with
                  | -1 -> let sorted = sort (make_n (Nadd(n1l,n2))) in
                          (match sorted.nexp with
-                          | Nconst 0 -> n1r
+                          | Nconst z when is_zero z -> n1r
                           | _ -> sort (nBang nexp ( Nadd(sorted, n1r))))
                 | 0 -> let rightmost = sort (make_n (Nadd(n1r,n2r))) in
                        let sorted = sort (make_n (Nadd(n1l,n2l))) in
                          (match rightmost.nexp,sorted.nexp with
-                           | Nconst 0, n -> sorted
-                           | n, Nconst 0 -> rightmost
+                           | Nconst z, n when is_zero z -> sorted
+                           | n, Nconst z when is_zero z -> rightmost
                            | _ -> sort (nBang nexp (Nadd (sorted,rightmost))))
                 | _ -> let sorted = sort (make_n (Nadd(n1,n2l))) in
                         (match sorted.nexp with
-                         | Nconst 0 -> n2r
+                         | Nconst z when is_zero z -> n2r
                          | _ -> sort (nBang nexp ( Nadd (sorted, n2r)))))         
          | Nadd(n1l,n1r),n -> (*Add on left, potential nuvar on right*)
               let sorted = sort (make_n (Nadd(n1r,n2))) in
@@ -1213,9 +1218,9 @@ let normalize nexp =
                  | Nadd(nb,ns) -> 
                    let sorted_left = sort (make_n (Nadd (n1l, nb))) in
                    (match sorted_left.nexp with
-                     | Nconst 0 -> ns
+                     | Nconst z when is_zero z -> ns
                      | _ -> nBang nexp (Nadd(sorted_left,ns)))
-                 | Nconst 0 -> n1l
+                 | Nconst z when is_zero z -> n1l
                  | _ -> make_n(Nadd(n1l, sorted))
               )         
          | n, Nadd(n1l,n1r)-> (* Add on right, potential nuvar on left*)
@@ -1224,9 +1229,9 @@ let normalize nexp =
                  | Nadd(nb,ns) -> 
                    let sorted_left = sort (make_n (Nadd (n1l, nb))) in
                    (match sorted_left.nexp with
-                     | Nconst 0 -> ns
+                     | Nconst z when is_zero z -> ns
                      | _ -> nBang nexp (Nadd(sorted_left,ns)))
-                 | Nconst 0 -> n1l
+                 | Nconst z when is_zero z -> n1l
                  | _ -> nBang nexp (Nadd(n1l, sorted))
               )
          | Nneg _ , _ | _ , Nneg _ -> assert false (*Should have been removed in norm*)
@@ -1496,7 +1501,7 @@ module Constraint (T : Global_defs) : Constraint = struct
       let n3 = normalize { nexp = Nadd(n1, {nexp= Nneg n2}) } in
 (*      let _ = fprintf std_formatter "equate nexps of n1 %a n2 %a and diff %a \n" pp_nexp n1 pp_nexp n2 pp_nexp n3 in *)
       match n3.nexp with
-       | Nconst 0 -> ()
+       | Nconst z when Z.equal z Z.zero -> ()
        | _ -> add_length_constraint (Eq (l,n3))
        
   let in_range l vec_n n =
@@ -1504,7 +1509,7 @@ module Constraint (T : Global_defs) : Constraint = struct
     let bound = normalize {nexp = Nadd(top, {nexp = Nneg(bot)})} in
 (*    let _ = fprintf std_formatter "in_range of %a and %a, with diff %a\n" pp_nexp top pp_nexp bot pp_nexp bound in *)
     match bound.nexp with
-     | Nconst i -> if (i >= 0) then () else nexp_mismatch l top bot (* TODO make this bound not matching*)
+     | Nconst i -> if (Z.geq i Z.zero) then () else nexp_mismatch l top bot (* TODO make this bound not matching*)
      | _ -> add_length_constraint (GtEq(l,bound))
 
 (*
@@ -1578,7 +1583,7 @@ module Constraint (T : Global_defs) : Constraint = struct
   (* Make sure that each constraint contains all variables of the set of constraints and put each "row" into an array *)
   let expand_matrix constraints all_vars =
     (* Add a multiply by 0 term so that all variables are present in all terms *)
-    let zero = { nexp = Nconst 0 } in
+    let zero = { nexp = Nconst Z.zero } in
     let mult_zero v = { nexp = Nmult(v, zero ) } in
     let get_var n = match n.nexp with 
        | Nuvar _  | Nvar _ -> n
@@ -1616,26 +1621,26 @@ module Constraint (T : Global_defs) : Constraint = struct
   let is_inconsistent = function
     | Eq(_,n) -> (*let _ = fprintf std_formatter "inconsistent Eq call of %a@ \n" pp_nexp n in*)
                  begin match (normalize n).nexp with
-                 | Nconst(i) -> not (i=0)
+                 | Nconst(i) -> not (Z.equal i Z.zero)
                  | _ -> false end
     | GtEq(_,n) -> (*let _ = fprintf std_formatter "inconsistent GtEq call of %a@ \n" pp_nexp n in*)
                    begin match (normalize n).nexp with
-                   | Nconst(i) -> i<0
+                   | Nconst(i) -> Z.lt i Z.zero
                    | _ -> false end
     | LtEq(_,n) -> begin match (normalize n).nexp with
-                   | Nconst(i) -> i>0
+                   | Nconst(i) -> Z.gt i Z.zero
                    | _ -> false end
 
   let is_redundant = function
     | Eq(_,n) -> begin match (normalize n).nexp with
-                 | Nconst(i) -> i=0
+                 | Nconst(i) -> Z.equal i Z.zero
                  | _ -> false end
     | GtEq(_,n) -> begin match (normalize n).nexp with
-                   | Nconst(i) -> i>=0
+                   | Nconst(i) -> Z.geq i Z.zero
                    | Nvar _ | Nuvar _ -> true (*Since all instantiations of variables must be positive in specifications *)
                    | _ -> false end
     | LtEq(_,n) -> begin match (normalize n).nexp with
-                   | Nconst(i) -> i<=0
+                   | Nconst(i) -> Z.leq i Z.zero
                    | _ -> false end
 
   (* For situations with one constraint in multiple variables, attempts only to assign unification variables where possible *)
@@ -1648,10 +1653,10 @@ module Constraint (T : Global_defs) : Constraint = struct
        match n.nexp with 
          | Nconst(i) -> i
          | Nmult(_,n1) -> get_const n1
-         | Nvar _ | Nuvar _ -> 1
-         | _ -> 0 in
-    let compare_nexp_consts n1 n2 = Pervasives.compare (abs (get_const n1)) (abs (get_const n2)) in
-    let rec equiv_nexp_consts n1 n2 = (abs (get_const n1)) = (abs (get_const n2)) in
+         | Nvar _ | Nuvar _ -> Z.one
+         | _ -> Z.zero in
+    let compare_nexp_consts n1 n2 = Z.compare (Z.abs (get_const n1)) (Z.abs (get_const n2)) in
+    let rec equiv_nexp_consts n1 n2 = Z.equal (Z.abs (get_const n1)) (Z.abs (get_const n2)) in
     let rec split_equiv_to n equivs = function
      | [] -> equivs,[]
      | n1::ns -> if (equiv_nexp_consts n1 n) 
@@ -1662,8 +1667,8 @@ module Constraint (T : Global_defs) : Constraint = struct
       match n1.nexp,n2.nexp with
       | Nvar _ , Nuvar _ -> n2.nexp <- n1.nexp
       | Nuvar _ , Nvar _ -> n1.nexp <- n2.nexp
-      | Nconst _ , Nuvar _ -> n2.nexp <- Nconst(1)
-      | Nuvar _ , Nconst _ -> n1.nexp <- Nconst(1)
+      | Nconst _ , Nuvar _ -> n2.nexp <- Nconst(Z.one)
+      | Nuvar _ , Nconst _ -> n1.nexp <- Nconst(Z.one)
       | Nmult(n1,_), Nmult(n2,_) -> assign_nuvar n1 n2
       | Nmult(n1,_), _ -> assign_nuvar n1 n2
       | _, Nmult(n2,_) -> assign_nuvar n1 n2
@@ -1673,7 +1678,7 @@ module Constraint (T : Global_defs) : Constraint = struct
       | n1::ns ->let equivs,ns = split_equiv_to n1 [] ns in
                  (match equivs with
                  | [] -> ()
-                 | [n2] -> if (op ((get_const n1) + (get_const n2)) 0) 
+                 | [n2] -> if (op (Z.add (get_const n1) (get_const n2)) Z.zero)
                               then begin assign_nuvar n1 n2; remove_nuvars op ns end
                               else remove_nuvars op ns
                  | _ -> remove_nuvars op ns) in
@@ -1684,21 +1689,21 @@ module Constraint (T : Global_defs) : Constraint = struct
                  remove_nuvars (=) terms;
                  let n = normalize n in
                 (match n.nexp with
-                 | Nconst 0 -> None
+                 | Nconst z when Z.equal z Z.zero -> None
                  | Nadd(n1,n2) -> (match n1.nexp,n2.nexp with
-                                    | Nconst(i),Nuvar _ -> begin (scp n1 n2); n2.nexp <- Nconst( i * -1); (scp n1 n2); None end
+                                    | Nconst(i),Nuvar _ -> begin (scp n1 n2); n2.nexp <- Nconst(Z.neg i); (scp n1 n2); None end
                                     | Nconst(i),Nmult(v,c) -> (match v.nexp,c.nexp with 
-                                                                 | Nuvar _ , Nconst j -> begin (scp n1 n2); v.nexp <- Nconst(i/( - j)); (scp n1 n2); None end
+                                                                 | Nuvar _ , Nconst j -> begin (scp n1 n2); v.nexp <- Nconst(Z.div i (Z.neg j)); (scp n1 n2); None end
                                                                  | _ -> Some(Eq(l,n)))
                                     | Nvar _ ,Nuvar _ -> begin (scp n1 n2); n2.nexp <- n1.nexp; (scp n1 n2); None end
                                     | Nvar _ ,Nmult(v,c) -> (match v.nexp,c.nexp with 
-                                                                 | Nuvar _ , (Nconst 1 | Nconst -1) -> begin (scp n1 n2); v.nexp <- n1.nexp; (scp n1 n2); None end
+                                                                 | Nuvar _ , Nconst o when Z.equal o Z.one || Z.equal o Z.minus_one -> begin (scp n1 n2); v.nexp <- n1.nexp; (scp n1 n2); None end
                                                                  | _ -> Some(Eq(l,n)))
                                     | Nuvar _ , Nmult(v,c) -> (match v.nexp,c.nexp with
-                                                                 | Nuvar _ , Nconst -1 -> begin (scp n1 n2); v.nexp <- n1.nexp; (scp n1 n2); None end
+                                                                 | Nuvar _ , Nconst o when Z.equal o Z.minus_one -> begin (scp n1 n2); v.nexp <- n1.nexp; (scp n1 n2); None end
                                                                  | _ -> Some(Eq(l,n)))
                                     | Nmult(v,c), Nuvar _ -> (match v.nexp,c.nexp with
-                                                                 | Nuvar _ , Nconst -1 -> begin (scp n1 n2); n2.nexp <- v.nexp; (scp n1 n2); None end
+                                                                 | Nuvar _ , Nconst o when Z.equal o Z.minus_one -> begin (scp n1 n2); n2.nexp <- v.nexp; (scp n1 n2); None end
                                                                  | _ -> Some(Eq(l,n)))
 
                                     | _ -> Some(Eq(l,n)))
@@ -1714,7 +1719,7 @@ module Constraint (T : Global_defs) : Constraint = struct
   let rec find_multiplier v n = 
    match n.nexp with 
    | Nvar _ | Nuvar _ -> if (compare_nexp v n) = 0
-                            then Some({nexp = Nconst 1})
+                            then Some({nexp = Nconst Z.one})
                             else None
    | Nmult(v1,n) -> if (compare_nexp v1 v) = 0
                        then Some n
@@ -1734,9 +1739,9 @@ module Constraint (T : Global_defs) : Constraint = struct
 
   let rec pivot_var n =
     match n.nexp with
-     | Nvar _ | Nuvar _ -> Some(n,{nexp= Nconst 1})
+     | Nvar _ | Nuvar _ -> Some(n,{nexp= Nconst Z.one})
      | Nmult(v,n1) -> (match n1.nexp with
-                       | Nconst 0 -> None
+                       | Nconst z when Z.equal z Z.zero -> None
                        | _ -> Some(v,n1))
      | Nadd(n1,n2) ->
        (match (pivot_var n2) with
@@ -1798,7 +1803,7 @@ module Constraint (T : Global_defs) : Constraint = struct
     let lst_constraints = matrix_to_list 0 in
 (*    let _ = List.iter (fun r -> fprintf std_formatter "Constraints after matrix %a\n" pp_range r) lst_constraints in *)
     let simplified_normalized_constraints = List.map solve_solo lst_constraints in
-    let eq, ineqs = combine_eq_constraints (Eq(Ast.Unknown,{nexp=Nconst 0})) [] (some_list simplified_normalized_constraints) in
+    let eq, ineqs = combine_eq_constraints (Eq(Ast.Unknown,{nexp=Nconst Z.zero})) [] (some_list simplified_normalized_constraints) in
     let eq_normal = range_with eq (normalize (range_of_n eq)) in
     if (is_redundant eq_normal)
        then ineqs
@@ -1820,9 +1825,9 @@ module Constraint (T : Global_defs) : Constraint = struct
 
   let check_numeric_constraint_implication l c constraints =
     let negate_c = match c with 
-                    | Eq(l,n) -> Eq(l,{nexp=Nadd(n,{nexp=Nconst 1})})
-                    | GtEq(l,n) -> LtEq(l,{nexp=Nadd(n,{nexp=Nconst 1})})
-                    | LtEq(l,n) -> GtEq(l,{nexp=Nadd(n,{nexp=Nconst(-1)})}) in
+                    | Eq(l,n) -> Eq(l,{nexp=Nadd(n,{nexp=Nconst Z.one})})
+                    | GtEq(l,n) -> LtEq(l,{nexp=Nadd(n,{nexp=Nconst Z.one})})
+                    | LtEq(l,n) -> GtEq(l,{nexp=Nadd(n,{nexp=Nconst Z.minus_one})}) in
     if (try ignore(solve_numeric_constraints [] (negate_c::constraints));
             false
         with 
@@ -1916,4 +1921,3 @@ and fnv (n:nexp) (acc : TNset.t) : TNset.t = match n.nexp with
   | Nadd(n1,n2) | Nmult(n1,n2) -> fnv n1 (fnv n2 acc)
   | Nneg(n) -> fnv n acc
   | Nconst _ | Nuvar _ -> acc
-

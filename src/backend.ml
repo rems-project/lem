@@ -190,10 +190,10 @@ let string_escape_isa s =
     String.concat "" ["(["; String.concat ", " encoded_chars; "])"]
 
 let pat_add_op_suc kwd suc n s1 s2 i =
-  let rec suc_aux j = begin match j with
-        | 0 -> n
-        | _ -> kwd "(" ^ suc ^ suc_aux (j-1) ^ kwd ")"
-  end in
+  let rec suc_aux j =
+    if Z.leq j Z.zero then n else
+    kwd "(" ^ suc ^ suc_aux (Z.pred j) ^ kwd ")"
+  in
   ws s1 ^ ws s2 ^ (suc_aux i)
 
   let const_char_helper c c_org =
@@ -255,12 +255,14 @@ module type Target = sig
   val const_empty : Ast.lex_skips -> t
   val string_quote : Ulib.Text.t
   val string_escape : Ulib.UTF8.t -> Ulib.UTF8.t option -> Ulib.UTF8.t
-  val const_num : int -> string option -> t
-  val const_num_pat : int -> t
   val const_char : char -> string option -> t
   val const_undefined : Types.t -> string -> t
   val const_bzero : t
   val const_bone : t
+  (* The Boolean parameter for the following two indicates whether the number
+   * comes from L_numeral (as opposed to L_num) *)
+  val const_num : bool -> Z.t -> string option -> t
+  val const_num_pat : bool -> Z.t -> t
 
   (* Expressions *)
   val backend_quote : t -> t
@@ -304,7 +306,7 @@ module type Target = sig
   val setcomp_binding_middle : t
   val setcomp_sep : t
   val cons_op : t
-  val pat_add_op : t -> Ast.lex_skips -> Ast.lex_skips -> int -> t
+  val pat_add_op : t -> Ast.lex_skips -> Ast.lex_skips -> Z.t -> t
   val set_sep : t
   val list_begin : t
   val list_end : t
@@ -470,8 +472,8 @@ module Identity : Target = struct
   let const_empty s = kwd "{" ^ ws s ^ kwd "}"
   let string_quote = r"\""
   let string_escape s s_org = Util.option_default (String.escaped s) s_org
-  let const_num i i_opt = Util.option_default_map i_opt (num i) kwd
-  let const_num_pat = num
+  let const_num _ i i_opt = Util.option_default_map i_opt (num i) kwd
+  let const_num_pat _ = num
   let const_char c c_org = kwd (const_char_helper c c_org)
   let const_undefined t m = (kwd "Undef") (* ^ (comment m) *)
   let const_bzero = kwd "#0"
@@ -518,7 +520,7 @@ module Identity : Target = struct
   let setcomp_binding_middle = kwd "|"
   let setcomp_sep = kwd "|"
   let cons_op = kwd "::"
-  let pat_add_op n s1 s2 i =  n ^ ws s1 ^ (kwd "+") ^ ws s2 ^ const_num i None
+  let pat_add_op n s1 s2 i =  n ^ ws s1 ^ (kwd "+") ^ ws s2 ^ const_num true i None
   let set_sep = kwd ";"
   let list_begin = kwd "["
   let list_end = kwd "]"
@@ -698,7 +700,7 @@ module Tex : Target = struct
   let string_quote = r"\""
   let string_escape = Identity.string_escape
   let const_num = Identity.const_num
-  let const_num_pat = num
+  let const_num_pat _ = num
   let const_char = function c -> function c_org -> kwd (Output.tex_escape_string (const_char_helper c c_org))
   let const_undefined t m = (bkwd "undefined")
   let const_bzero = kwd "\\#0"
@@ -749,7 +751,7 @@ module Tex : Target = struct
   let setcomp_binding_middle = texspace ^ kwd "|" ^ texspace
   let setcomp_sep = texspace ^ kwd "|" ^ texspace
   let cons_op = kwd "::"
-  let pat_add_op n s1 s2 i =  n ^ ws s1 ^ kwd "+" ^ ws s2 ^ const_num i None
+  let pat_add_op n s1 s2 i =  n ^ ws s1 ^ kwd "+" ^ ws s2 ^ const_num true i None
   let set_sep = kwd ",\\,"
   let list_begin = kwd "["
   let list_end = kwd "]"
@@ -858,8 +860,13 @@ module Ocaml : Target = struct
   let const_bone = kwd "Bit.One"
   let const_undefined t m = (kwd "failwith ") ^ (str (r m))
   let const_char c c_org =
-     meta (String.concat "" ["\'"; (char_escape_ocaml c); "\'"])
-
+    meta (String.concat "" ["\'"; (char_escape_ocaml c); "\'"])
+  let const_num is_numeral i i_opt =
+    if is_numeral then
+      if Z.numbits i < 31
+      then kwd "(Nat_big_num.of_int" ^ space ^ Identity.const_num true i i_opt ^ kwd ")"
+      else kwd "(Nat_big_num.of_string" ^ space ^ str (Ulib.Text.of_string (Z.to_string i)) ^ kwd ")"
+    else Identity.const_num false i i_opt
   let rec_start = kwd "{"
   let rec_end = kwd "}"
 
@@ -927,8 +934,13 @@ module Isa () : Target = struct
   let const_false = kwd "False"
   let string_quote = r""
   let string_escape s _ = string_escape_isa s
-  let const_num i _ = num i
-  let const_num_pat i = pat_add_op_suc kwd (kwd "Suc") (kwd "0") None None i
+  let const_num _ i i_opt = match i_opt with
+    | Some s ->
+       Str.replace_first (Str.regexp "^0X") "0x" s
+       |> Str.replace_first (Str.regexp "^0B") "0b"
+       |> kwd
+    | None -> num i
+  let const_num_pat _ i = pat_add_op_suc kwd (kwd "Suc") (kwd "0") None None i
   let const_char c _ = kwd (char_escape_isa c)
   let const_unit s = kwd "() " ^ ws s
   let const_empty s = kwd "{}" ^ ws s
@@ -1134,8 +1146,13 @@ module Hol : Target = struct
   let const_empty s = kwd "{" ^ ws s ^ kwd "}"
   let string_quote = r"\""
   let string_escape s _ = string_escape_hol s
-  let const_num i _ = num i
-  let const_num_pat i = pat_add_op_suc kwd (kwd "SUC") (kwd "0") None None i
+  let const_num _ i i_opt = match i_opt with
+    | Some s ->
+       Str.replace_first (Str.regexp "^0X") "0x" s
+       |> Str.replace_first (Str.regexp "^0B") "0b"
+       |> kwd
+    | None -> num i
+  let const_num_pat _ i = pat_add_op_suc kwd (kwd "SUC") (kwd "0") None None i
   let const_char c _ = meta (String.concat "" ["#\""; char_escape_hol c; "\""])
   let const_undefined t m = (kwd "ARB")
   let const_bzero = emp
@@ -1346,8 +1363,8 @@ let lit l is_pat t = match l.term with
   | L_true(s) -> ws s ^ T.const_true
   | L_false(s) -> ws s ^ T.const_false
   | L_undefined(s,m) -> ws s ^ T.const_undefined t m
-  | L_num(s,i,org_input) -> ws s ^ (if is_pat then T.const_num_pat i else T.const_num i org_input)
-  | L_numeral(s,i,org_i) -> ws s ^ (if is_pat then T.const_num_pat i else T.const_num i org_i)
+  | L_num(s,i,org_input) -> ws s ^ (if is_pat then T.const_num_pat false i else T.const_num false i org_input)
+  | L_numeral(s,i,org_i) -> ws s ^ (if is_pat then T.const_num_pat true  i else T.const_num true  i org_i)
   | L_char(s,c,org_c) -> ws s ^ T.const_char c org_c
   | L_string(s,i,org_i) -> ws s ^ str (Ulib.Text.of_string (T.string_escape i org_i))
   | L_unit(s1,s2) -> ws s1 ^ T.const_unit s2
@@ -1360,7 +1377,7 @@ let nexp n =
     | Nexp_var(s,v) ->
         ws s ^ id Nexpr_var (Ulib.Text.(^^^) T.nexp_var (Nvar.to_rope v))
     | Nexp_const(s,i) ->
-        ws s ^ T.const_num i None
+        ws s ^ T.const_num false i None
     | Nexp_mult(n1,s,n2) ->
         nexp_int n1 ^ ws s ^ T.nexp_times ^ nexp_int n2
     | Nexp_add(n1,s,n2) ->
@@ -3147,9 +3164,9 @@ let val_ascii_opt = function
 
 let infix_decl = function
   | Ast.Fixity_default_assoc -> emp
-  | Ast.Fixity_non_assoc (sk, n) -> ws sk ^ kwd "non_assoc" ^ num n
-  | Ast.Fixity_left_assoc (sk, n) -> ws sk ^ kwd "left_assoc" ^ num n
-  | Ast.Fixity_right_assoc (sk, n) -> ws sk ^ kwd "right_assoc" ^ num n
+  | Ast.Fixity_non_assoc (sk, n) -> ws sk ^ kwd "non_assoc" ^ num (Z.of_int n)
+  | Ast.Fixity_left_assoc (sk, n) -> ws sk ^ kwd "left_assoc" ^ num (Z.of_int n)
+  | Ast.Fixity_right_assoc (sk, n) -> ws sk ^ kwd "right_assoc" ^ num (Z.of_int n)
 
 
 let open_import_to_output = function

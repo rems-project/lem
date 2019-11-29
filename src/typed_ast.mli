@@ -51,6 +51,7 @@
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
 (**************************************************************************)
 
+open Z
 open Types
 
 (** Sets of Names *)
@@ -105,8 +106,8 @@ and lit_aux =
   | L_false of lskips
   | L_zero of lskips (** This is a bit, not a num *)
   | L_one of lskips  (** see above *)
-  | L_numeral of lskips * int * string option (** A numeral literal, it has fixed type "numeral" and is used in patterns and after translating L_num to it. *)
-  | L_num of lskips * int * string option (** A number literal. This is like a numeral one wrapped with the "from_numeral" function *)
+  | L_numeral of lskips * Z.t * string option (** A numeral literal, it has fixed type "numeral" and is used in patterns and after translating L_num to it. *)
+  | L_num of lskips * Z.t * string option (** A number literal. This is like a numeral one wrapped with the "from_numeral" function *)
   | L_char of lskips * char * string option (** A char literal. It contains the parsed char as well as the original input string (if available). *)
   | L_string of lskips * string * string option (** A string literal. It contains the parsed string as well as the original input string (if available). *)
   | L_unit of lskips * lskips
@@ -140,7 +141,7 @@ and pat_aux =
   | P_list of lskips * pat lskips_seplist * lskips
   | P_paren of lskips * pat * lskips
   | P_cons of pat * lskips * pat
-  | P_num_add of name_l * lskips * lskips * int
+  | P_num_add of name_l * lskips * lskips * Z.t
   | P_lit of lit
   | P_var_annot of Name.lskips_t * src_t
     (** A type-annotated pattern variable.  This is redundant with the combination
@@ -625,8 +626,8 @@ module Exps_in_context(C : Exp_context) : sig
   val exp_to_term : exp -> exp_aux
   val exp_to_free : exp -> Types.t Nfmap.t
   val type_eq : Ast.l -> string -> Types.t -> Types.t -> unit
-  val mk_lnumeral : Ast.l -> lskips -> int -> string option -> Types.t option -> lit
-  val mk_lnum : Ast.l -> lskips -> int -> string option -> Types.t -> lit 
+  val mk_lnumeral : Ast.l -> lskips -> Z.t -> string option -> Types.t option -> lit
+  val mk_lnum : Ast.l -> lskips -> Z.t -> string option -> Types.t -> lit
   val mk_lbool : Ast.l -> lskips -> bool -> Types.t option -> lit
   val mk_lunit : Ast.l -> lskips -> Types.t option -> lit
   val mk_lbit : Ast.l -> lskips -> int -> Types.t option -> lit
@@ -653,7 +654,7 @@ module Exps_in_context(C : Exp_context) : sig
   val mk_pvectorc : Ast.l -> lskips -> pat list -> lskips -> Types.t -> pat
   val mk_pparen : Ast.l -> lskips -> pat -> lskips -> Types.t option -> pat
   val mk_pcons : Ast.l -> pat -> lskips -> pat -> Types.t option -> pat
-  val mk_pnum_add : Ast.l -> name_l -> lskips -> lskips -> int -> Types.t option -> pat
+  val mk_pnum_add : Ast.l -> name_l -> lskips -> lskips -> Z.t -> Types.t option -> pat
   val mk_plit : Ast.l -> lit -> Types.t option -> pat 
   val mk_pvar_annot : Ast.l -> Name.lskips_t -> src_t -> Types.t option -> pat 
 

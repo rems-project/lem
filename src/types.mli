@@ -89,7 +89,7 @@ and t_aux =
 and nexp = { mutable nexp : nexp_aux }
 and nexp_aux =
   | Nvar of Nvar.t
-  | Nconst of int
+  | Nconst of Z.t
   | Nadd of nexp * nexp
   | Nmult of nexp * nexp
   | Nneg of nexp (* Unary minus for representing new vector sizes after vector slicing *)
@@ -217,7 +217,7 @@ and src_nexp = { nterm : src_nexp_aux; nloc : Ast.l; nt : nexp } (*(src_nexp_aux
 
 and src_nexp_aux =
  | Nexp_var of Ast.lex_skips * Nvar.t 
- | Nexp_const of Ast.lex_skips * int
+ | Nexp_const of Ast.lex_skips * Z.t
  | Nexp_mult of src_nexp * Ast.lex_skips * src_nexp (* One will always be const *)
  | Nexp_add of src_nexp * Ast.lex_skips * src_nexp 
  | Nexp_paren of Ast.lex_skips * src_nexp * Ast.lex_skips

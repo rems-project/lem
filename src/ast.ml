@@ -129,7 +129,7 @@ a = terminal * text
 type 
 nexp_aux =  (* Numerical expressions for specifying vector lengths and indexes *)
    Nexp_var of n
- | Nexp_constant of terminal * int
+ | Nexp_constant of terminal * Z.t
  | Nexp_times of nexp * terminal * nexp
  | Nexp_sum of nexp * terminal * nexp
  | Nexp_paren of terminal * nexp * terminal
@@ -287,7 +287,7 @@ pat_aux =  (* Patterns *)
  | P_list of terminal * (pat * terminal) list * terminal * bool * terminal (* List patterns *)
  | P_paren of terminal * pat * terminal
  | P_cons of pat * terminal * pat (* Cons patterns *)
- | P_num_add of x_l * terminal * terminal * int (* constant addition patterns *)
+ | P_num_add of x_l * terminal * terminal * Z.t (* constant addition patterns *)
  | P_lit of lit (* Literal constant patterns *)
 
 and pat =  (* Location-annotated patterns *)

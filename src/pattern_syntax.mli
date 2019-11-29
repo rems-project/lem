@@ -139,19 +139,19 @@ val mk_paren_pat : pat -> pat
 val mk_opt_paren_pat : pat -> pat
 
 (** [dest_num_pat p] destructs number literal patterns *)
-val dest_num_pat : pat -> int option
+val dest_num_pat : pat -> Z.t option
 
 (** [is_num_pat p] checks whether [p] is a number pattern. *)
 val is_num_pat : pat -> bool
 
 (** [mk_num_pat num_ty i] makes a number pattern. *)
-val mk_num_pat : Types.t -> int -> pat
+val mk_num_pat : Types.t -> Z.t -> pat
 
 (** [dest_num_add_pat p] destructs number addition literal patterns *)
-val dest_num_add_pat : pat -> (Name.t * int) option
+val dest_num_add_pat : pat -> (Name.t * Z.t) option
 
 (** [mk_num_add_pat num_ty i] makes a number addition pattern. *)
-val mk_num_add_pat : Types.t -> Name.t -> int -> pat
+val mk_num_add_pat : Types.t -> Name.t -> Z.t -> pat
 
 (** [is_num_add_pat p] checks whether [p] is a number addition pattern. *)
 val is_num_add_pat : pat -> bool
@@ -165,7 +165,7 @@ val is_num_add_pat : pat -> bool
 - _ -> f_w
 - p (everything else) -> f_else p
 *)
-val num_ty_pat_cases : (Name.t -> 'a) -> (int -> 'a) -> (Name.t -> int -> 'a) -> 'a -> (pat -> 'a) -> pat -> 'a
+val num_ty_pat_cases : (Name.t -> 'a) -> (Z.t -> 'a) -> (Name.t -> Z.t -> 'a) -> 'a -> (pat -> 'a) -> pat -> 'a
 
 (** [dest_string_pat p] destructs string literal patterns *)
 val dest_string_pat : pat -> string option
@@ -255,4 +255,3 @@ exception Pat_to_exp_unsupported of Ast.l * string
 (** [pat_to_exp env p] tries to convert [p] into a corresponding expression. This might fail,
     e.g. if [p] contains wildcard patterns. If it fails a [pat_to_exp_unsupported] exception is raised. *)
 val pat_to_exp : env -> pat -> exp
-

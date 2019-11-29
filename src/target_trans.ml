@@ -175,7 +175,7 @@ let hol =
                               [T.remove_list_comprehension;
                                T.list_quant_to_set_quant;
                     	       T.remove_setcomp;
-                               T.remove_num_lit;
+                               T.remove_num_lit (fun _ -> true);
                                T.remove_do;
                                T.remove_set_restr_quant;
                                T.remove_restr_quant Pattern_syntax.is_var_tup_pat;
@@ -196,6 +196,16 @@ let hol =
              Rename_top_level.flatten_modules]; }
 
 
+(* For OCaml, don't wrap number literals in "fromNumeral" if their type is
+   represented as "int", in order to avoid a back-and-forth conversion
+   into/from Nat_big_num. *)
+let has_ocaml_int_typ env e =
+  match Types.type_defs_lookup_typ (exp_to_locn e) env.t_env (exp_to_typ e) with
+  | Some tdesc ->
+     (match Target.Targetmap.apply_target tdesc.type_target_rep (Target_no_ident Target_ocaml) with
+      | Some(TYR_simple(_, _, i)) -> Ident.to_string i = "int"
+      | _ -> false)
+  | _ -> false
 
 let ocaml =
   { macros = indreln_macros @ 
@@ -224,7 +234,7 @@ let ocaml =
                                    | None -> Macro_expander.Fail
                                    | Some e -> Macro_expander.Continue e);
                                T.remove_sets;
-                               T.remove_num_lit;
+                               T.remove_num_lit (fun e -> not (has_ocaml_int_typ env e));
                                T.remove_list_comprehension;
                                T.remove_quant;
                                T.remove_vector_access;
@@ -268,7 +278,7 @@ let isa  =
                       [T.remove_set_comprehension;
                        T.remove_list_comprehension;
                        T.cleanup_set_quant;
-                       T.remove_num_lit;
+                       T.remove_num_lit (fun _ -> true);
                        T.remove_fun_pats false;
                        T.remove_set_restr_quant;
                        T.remove_restr_quant Pattern_syntax.is_var_wild_tup_pat;
@@ -319,7 +329,7 @@ let coq =
                        [T.remove_singleton_record_updates;
                         T.remove_multiple_record_updates;
                         T.remove_list_comprehension;
-                        T.remove_num_lit;
+                        T.remove_num_lit (fun _ -> true);
                         T.remove_set_comprehension;
                         T.remove_quant_coq;
                        (fun a1 a2 ->

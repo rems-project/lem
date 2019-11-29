@@ -915,7 +915,7 @@ module Make_checker(T : sig
           C.add_constraint (External_constants.class_label_to_path "class_numeral") t_ret;
           if is_pattern then C.add_constraint (External_constants.class_label_to_path "class_ord") t_ret else ();
           if is_pattern then C.add_constraint (External_constants.class_label_to_path "class_num_minus") t_ret else ();
-          let i_int = try int_of_string i with Failure "int_of_string" ->
+          let i_int = try Z.of_string i with Invalid_argument _ ->
             raise (Reporting_basic.Fatal_error (Reporting_basic.Err_syntax_locn (l, "couldn't parse integer "^i))) in
           annot (L_num(sk,i_int, Some i)) t_ret 
       | Ast.L_string(sk,i) ->
@@ -924,13 +924,14 @@ module Make_checker(T : sig
           annot (L_char(sk,String.get (Util.unescaped i) 0, Some i)) { t = Tapp([], Path.charpath) }
       | Ast.L_unit(sk1,sk2) ->
           annot (L_unit(sk1,sk2)) { t = Tapp([], Path.unitpath) }
+      (* TODO The "vector" type does not seem to be supported in the prover backends.  Remove and use machine words instead? *)
       | Ast.L_bin(sk,i) ->
           let bit = { t = Tapp([], Path.bitpath) } in
-          let len = { t = Tne( { nexp = Nconst(String.length i)} ) } in
+          let len = { t = Tne( { nexp = Nconst(Z.of_int (String.length i))} ) } in
           annot (L_vector(sk,"0b",i)) { t = Tapp([bit;len], Path.vectorpath) }
       | Ast.L_hex(sk,i) ->
           let bit = { t = Tapp([], Path.bitpath) } in
-          let len = { t = Tne( { nexp = Nconst(String.length i * 4)} ) } in
+          let len = { t = Tne( { nexp = Nconst(Z.of_int (String.length i * 4))} ) } in
           annot (L_vector(sk, "0x", i)) { t = Tapp([bit;len], Path.vectorpath) }
       | Ast.L_zero(sk) -> annot (L_zero(sk)) { t = Tapp([], Path.bitpath) }
       | Ast.L_one(sk) -> annot (L_one(sk)) { t = Tapp([], Path.bitpath) }
@@ -1126,7 +1127,7 @@ module Make_checker(T : sig
            in
            let a = C.new_type () in
              Seplist.iter (fun pat -> C.equate_types l "vector pattern" a pat.typ) pats;
-             let len = { t = Tne({ nexp = Nconst( Seplist.length pats )} ) } in
+             let len = { t = Tne({ nexp = Nconst(Z.of_int (Seplist.length pats))} ) } in
              C.equate_types l "vector pattern" ret_type { t = Tapp([a;len], Path.vectorpath) };
              (A.mk_pvector l sk1 pats sk3 ret_type, pat_e)
         | Ast.P_vectorC(sk1,ps,sk2) -> 
@@ -1354,7 +1355,7 @@ module Make_checker(T : sig
             let es = Seplist.from_list_suffix es sk3 semi in
             let exps = Seplist.map (check_exp l_e) es in
             let a = C.new_type () in
-            let len = {t = Tne( { nexp=Nconst(Seplist.length exps)} ) }in
+            let len = {t = Tne( { nexp=Nconst(Z.of_int (Seplist.length exps))} ) }in
               Seplist.iter (fun exp -> C.equate_types l "vector expression" a (exp_to_typ exp)) exps;
               C.equate_types l "vector expression" ret_type { t = Tapp([a;len], Path.vectorpath) };
               A.mk_vector l sk1 exps sk2 ret_type

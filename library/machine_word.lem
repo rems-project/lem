@@ -1118,10 +1118,11 @@ val proverWordFromInteger : forall 'a. integer -> mword 'a
 
 declare isabelle target_rep function proverWordFromInteger = `Word.word_of_int`
 declare hol      target_rep function proverWordFromInteger = `integer_word$i2w`
+declare coq      target_rep function proverWordFromInteger = `DAEMON`
 
 val wordFromInteger : forall 'a. Size 'a => integer -> mword 'a
 
-let inline {isabelle;hol} wordFromInteger i = proverWordFromInteger i
+let inline {isabelle;hol;coq} wordFromInteger i = proverWordFromInteger i
 (* The OCaml version is defined after the arithmetic operations, below. *)
 
 val naturalFromWord : forall 'a. mword 'a -> natural
@@ -1425,11 +1426,20 @@ let {ocaml} wordFromInteger i =
 
 let {ocaml} signExtend x = wordFromInteger (signedIntegerFromWord x)
 
+val wordFromNumeral : forall 'a. Size 'a => numeral -> mword 'a
 
-assert {ocaml;hol;isabelle} wordFromInteger_nat_test1 : ((wordFromInteger 42) : mword ty8) = wordFromNatural 42
+declare isabelle target_rep function wordFromNumeral n = ``n
+declare hol      target_rep function wordFromNumeral n = special "%ew" n
+let inline {ocaml;coq} wordFromNumeral n = wordFromInteger (integerFromNumeral n)
+
+instance forall 'a. Size 'a => (Numeral (mword 'a))
+  let fromNumeral n = wordFromNumeral n
+end
+
+assert {ocaml;hol;isabelle} wordFromInteger_nat_test1 : ((wordFromInteger 42) : mword ty8) = (0x2A : mword ty8)
 assert {ocaml;hol;isabelle} wordFromInteger_nat_test2 : ((wordFromInteger (~42)) : mword ty8) = uminus (wordFromNatural 42)
 
-assert {ocaml;hol;isabelle} plus_test : plus (wordFromInteger (~5) : mword ty8) (wordFromNatural 2) = wordFromInteger (~3)
+assert {ocaml;hol;isabelle} plus_test : plus (wordFromInteger (~5) : mword ty8) (0b00000010 : mword ty8) = wordFromInteger (~3)
 assert {ocaml;hol;isabelle} minus_test : minus (wordFromInteger (~5) : mword ty8) (wordFromNatural 2) = wordFromInteger (~7)
 assert {ocaml;hol;isabelle} times_test : times (wordFromInteger (~5) : mword ty8) (wordFromNatural 2) = wordFromInteger (~10)
 assert {ocaml;hol;isabelle} udiv_test : unsignedDivide (wordFromInteger (~5) : mword ty8) (wordFromNatural 2) = wordFromInteger 125
