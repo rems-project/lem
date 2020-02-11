@@ -64,4 +64,4 @@ $(INSTALLDIR)/lem/META: META
 
 .PHONY: install_dependencies
 install_dependencies:
-	make -C dependencies install
+	$(MAKE) -C dependencies install

@@ -34,10 +34,10 @@ uninstall:
 	$(MAKE) -C ocaml-lib uninstall
 
 build-doc:
-	make -C doc
+	$(MAKE) -C doc
 
 do-tests:
-	make -C tests
+	$(MAKE) -C tests
 
 lem_dep.tex: lem_dep.ott
 	ott -o lem_dep.tex -picky_multiple_parses true lem_dep.ott
@@ -49,42 +49,42 @@ lem_dep.pdf: lem_dep.tex
 # generated OCaml, Coq, HOL4, and Isabelle files to ocaml-libs,
 # hol-libs, etc.
 libs_phase_1: 
-	make -C library
-	make ocaml-libs
+	$(MAKE) -C library
+	$(MAKE) ocaml-libs
 
 
 # this processes the Lem-generated library files for that target,
 # together with any other hand-written files needed (eg the ocaml
 # pset.ml), through the target.
 libs_phase_2:
-#	make ocaml-libs
-	make tex-libs
-	make hol-libs
-	make coq-libs
-	make isa-libs
+#	$(MAKE) ocaml-libs
+	$(MAKE) tex-libs
+	$(MAKE) hol-libs
+	$(MAKE) coq-libs
+	$(MAKE) isa-libs
 
 hol-libs: 
-#	make -C library hol-libs
+#	$(MAKE) -C library hol-libs
 	cd hol-lib; Holmake --qof -k
-	make -C library hol-lib-tests
+	$(MAKE) -C library hol-lib-tests
 
 ocaml-libs:
-#	make -C library ocaml-libs
-	make -C ocaml-lib all
-	make -C library ocaml-lib-tests
+#	$(MAKE) -C library ocaml-libs
+	$(MAKE) -C ocaml-lib all
+	$(MAKE) -C library ocaml-lib-tests
 
 isa-libs: 
-#	make -C library isa-libs
+#	$(MAKE) -C library isa-libs
 	isabelle build -d isabelle-lib -b LEM
 
 coq-libs: 
-#	make -C library coq-libs
+#	$(MAKE) -C library coq-libs
 	cd coq-lib; coqc -R . Lem coqharness.v
 	cd coq-lib; coq_makefile -f coq_makefile.in > Makefile
-	make -C coq-lib
+	$(MAKE) -C coq-lib
 
 tex-libs: 
-#	make -C library tex-libs
+#	$(MAKE) -C library tex-libs
 	cd tex-lib; pdflatex lem-libs.tex
 	cd tex-lib; pdflatex lem-libs.tex
 
@@ -92,44 +92,44 @@ tex-libs:
 # 
 # test-ppc:
 # 	# ppc model
-# 	make -C ../../sem/WeakMemory/ppc-abstract-machine 
+# 	$(MAKE) -C ../../sem/WeakMemory/ppc-abstract-machine
 # 	# pull ppc model into ppcmem directory
 # 	# DON'T COMMIT
-# 	make -C ../ppcmem/system model
+# 	$(MAKE) -C ../ppcmem/system model
 # 
 # test-axppc:
 # 	# Sela model	
-# 	make -C ../axppc
+# 	$(MAKE) -C ../axppc
 # 	# pull Sela model into ppcmem directory
 # 	# DON'T COMMIT
-# 	make -C ../ppcmem/system axmodel
+# 	$(MAKE) -C ../ppcmem/system axmodel
 # 
 # test-arm:
 # 	# ARM flowing model
-# 	make -C ../arm/flowing-things
+# 	$(MAKE) -C ../arm/flowing-things
 # 	# pull ARM model into ppcmem directory
 # 	# DON'T COMMIT
-# 	make -C ../ppcmem/system flowingmodel
+# 	$(MAKE) -C ../ppcmem/system flowingmodel
 # 
 # test-ppcmem: test-ppc test-axppc test-arm
 # 	# next 3 compile PPCMEM
 # 	# Check makefile in ppcmem/system is set to "text"
 # 	# DON'T commit
-# 	make -C ../ppcmem/system clean
-# 	make -C ../ppcmem/system depend_text
-# 	make -C ../ppcmem/system text
+# 	$(MAKE) -C ../ppcmem/system clean
+# 	$(MAKE) -C ../ppcmem/system depend_text
+# 	$(MAKE) -C ../ppcmem/system text
 # 
 # test-cpp:
 # 	# C++. Chat with Mark to fix
-# 	make -C ../cpp/axiomatic/ntc deadlock
+# 	$(MAKE) -C ../cpp/axiomatic/ntc deadlock
 # 	# C++. Chat with Mark to fix HOL building and Mark/Susmit/Mike ML
 # 	# building
-# 	#make -C ../cpp/opsem
-# 	#make -C ../cpp/axiomatic/ntc/proofs all
+# 	#$(MAKE) -C ../cpp/opsem
+# 	#$(MAKE) -C ../cpp/axiomatic/ntc/proofs all
 # 
 # test-cppppc:
-# 	make -C ../cppppc proof
-# 	make -C ../cppppc/proof2 lem
+# 	$(MAKE) -C ../cppppc proof
+# 	$(MAKE) -C ../cppppc/proof2 lem
 # 
 # 
 # MACHINEFILES=\
@@ -172,16 +172,16 @@ tex-libs:
 
 debug: version share_directory
 	rm -f library/lib_cache
-	make -C src debug
+	$(MAKE) -C src debug
 	ln -sf src/main.d.byte lem
 
 
 build-lem: version share_directory
-	make -C src all
+	$(MAKE) -C src all
 	ln -sf src/main.native lem
 
 build-lem-profile: version share_directory
-	make -C src profile
+	$(MAKE) -C src profile
 	ln -sf src/main.p.native lem-profile
 
 
@@ -290,11 +290,11 @@ distrib: src/ast.ml version
 	rm -rf $(DDIR)
 
 clean:
-	-make -C language clean
-	-make -C src clean
-	-make -C coq-lib clean
-	-make -C ocaml-lib clean
-	-make -C tex-lib clean
+	-$(MAKE) -C language clean
+	-$(MAKE) -C src clean
+	-$(MAKE) -C coq-lib clean
+	-$(MAKE) -C ocaml-lib clean
+	-$(MAKE) -C tex-lib clean
 	-rm -f coq-lib/Makefile
 	-rm -f coq-lib/coqharness.vo
 	-rm -f coq-lib/coqharness.glob
@@ -302,9 +302,9 @@ clean:
 	#-rm -rf lem_dep.tex lem_dep.pdf lem_dep.aux lem_dep.log
 
 cleanall: clean
-	-make -C doc clean
-	-make -C slides clean
-	-make -C manual cleanall
-	-make -C ocaml-lib clean
-	-make -C tests clean
+	-$(MAKE) -C doc clean
+	-$(MAKE) -C slides clean
+	-$(MAKE) -C manual cleanall
+	-$(MAKE) -C ocaml-lib clean
+	-$(MAKE) -C tests clean
 	-rm -rf lem-$(LEMVERSION) lem-$(LEMVERSION).tar.gz

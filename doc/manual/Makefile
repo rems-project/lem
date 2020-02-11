@@ -35,4 +35,4 @@ lem-manual.pdf : lem-manual.md
 
 
 #lem-language.pdf: 
-#	make -C ../language && cp ../language/lem-language.pdf .
+#	$(MAKE) -C ../language && cp ../language/lem-language.pdf .

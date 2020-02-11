@@ -4,23 +4,23 @@
 
 all: 
 # manual
-	make -C manual
+	$(MAKE) -C manual
 	ln -sf manual/lem-manual.html .
 	ln -sf manual/lem-manual.pdf .
 # lem Ott grammar
-	make -C ../language 
+	$(MAKE) -C ../language
 	ln -sf ../language/lem.pdf .
 # library documentation
-	make -C .. tex-libs
+	$(MAKE) -C .. tex-libs
 	ln -sf ../tex-lib/lem-libs.pdf .
 	../lem -print_env ../library/pervasives.lem > lem-libs-pervasives.txt  
 	../lem -print_env ../library/pervasives_extra.lem > lem-libs-pervasives-extra.txt
 # source documentation
-	make -C ../src .
+	$(MAKE) -C ../src .
 	ln -sf ../src/html-doc .
-	make -C ../src doc-pdf
+	$(MAKE) -C ../src doc-pdf
 	ln -sf ../src/tex-doc/lem-doc.pdf .
-	make -C ../src doc-dot
+	$(MAKE) -C ../src doc-dot
 	ln -sf ../src/dep.pdf  .
 
 

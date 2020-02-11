@@ -35,8 +35,8 @@ lem.tex: lem.ottsys
 hevea/bin/hevea: hevea-1.10.tar.gz
 	rm -rf hevea-1.10
 	tar -xzf hevea-1.10.tar.gz
-	make -C hevea-1.10
-	make -C hevea-1.10 install
+	$(MAKE) -C hevea-1.10
+	$(MAKE) -C hevea-1.10 install
 	rm -rf hevea-1.10/*
 
 clean:

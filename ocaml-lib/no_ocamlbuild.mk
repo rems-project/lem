@@ -52,11 +52,11 @@ local_clean:
 	\rm -f *.c* *.o *.cma *.cmxa *.a
 
 clean: local_clean
-	make -C dependencies clean
-	make -C num_impl_zarith clean
-	make -C num_impl_num clean
+	$(MAKE) -C dependencies clean
+	$(MAKE) -C num_impl_zarith clean
+	$(MAKE) -C num_impl_num clean
 
 dependencies:
-	make -C dependencies
+	$(MAKE) -C dependencies
 
 .PHONY: all local_clean clean dependencies

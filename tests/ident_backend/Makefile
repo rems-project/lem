@@ -1,6 +1,6 @@
 all:
 	ocamlbuild -lib str add_comments.byte
-	make -C ../..
+	$(MAKE) -C ../..
 	./test_script basic_type.lem
 	./test_script basic_exprs.lem
 	./test_script basic_pats.lem

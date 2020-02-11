@@ -3,7 +3,7 @@ poly_lib = $(dir $(shell which poly))../lib/
 all: lem holtests ocamltests 
 
 lem:
-	make -C ../..
+	$(MAKE) -C ../..
 
 holtests: TypesTheory.uo PatsTheory.uo ExpsTheory.uo HoltestTheory.uo
 
@@ -49,7 +49,7 @@ Exps.thy: exps.lem ../../lem
 	coqc $<
 
 extract.cma:
-	make -C ../../ocaml-lib
+	$(MAKE) -C ../../ocaml-lib
 
 %.byte: %.ml $(CURDIR)/../../ocaml-lib/_build/extract.cma
 	ocamlc.opt -I $(CURDIR)/../../ocaml-lib/_build -o $@ extract.cma $<

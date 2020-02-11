@@ -16,7 +16,7 @@ libs : ocaml-libs hol-libs isa-libs coq-libs tex-libs html-libs
 
 .PHONY: ../lem
 ../lem:
-	make -C .. build-lem
+	$(MAKE) -C .. build-lem
 
 hol-libs: ../lem
 	../lem -hol -hol_remove_matches -outdir ../hol-lib -wl ign -wl_auto_import err -wl_rename err ${LIBS} -auxiliary_level none -only_changed_output

@@ -1,5 +1,5 @@
 all:
-	make -C ../..
+	$(MAKE) -C ../..
 	rm -f results
 	ocamlbuild -lib unix -lib str tester.byte
 	./tester.byte < tests
