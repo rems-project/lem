@@ -167,3 +167,5 @@ let rec concat sep ss =
       | _ -> s ^ sep ^ concat sep ss'
       end
   end
+
+declare ocaml    target_rep function concat = `String.concat`
