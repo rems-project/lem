@@ -588,7 +588,7 @@ val intFromNumeral : numeral -> int
 declare ocaml    target_rep function intFromNumeral = `Nat_big_num.to_int`
 declare isabelle target_rep function intFromNumeral n = (``n : int)
 declare hol      target_rep function intFromNumeral n = (``n : int)
-declare coq      target_rep function intFromNumeral n = (`Zpred` (`Zpos` (`P_of_succ_nat` n)))
+declare coq      target_rep function intFromNumeral n = (`Z.pred` (`Zpos` (`P_of_succ_nat` n)))
 
 instance (Numeral int)
   let fromNumeral n = intFromNumeral n
@@ -658,7 +658,7 @@ val intAbs : int -> int
 declare hol      target_rep function intAbs = `ABS`
 declare ocaml    target_rep function intAbs = `abs`
 declare isabelle target_rep function intAbs = `abs`
-declare coq      target_rep function intAbs input = (`Zpred` (`Zpos` (`P_of_succ_nat` (`Zabs_nat` input)))) (* TODO: check *)
+declare coq      target_rep function intAbs input = (`Z.pred` (`Zpos` (`P_of_succ_nat` (`Z.abs_nat` input)))) (* TODO: check *)
 
 instance (NumAbs int)
   let abs = intAbs
@@ -723,7 +723,7 @@ val intDiv : int -> int -> int
 declare hol      target_rep function intDiv = infix `/`
 declare ocaml    target_rep function intDiv = `Nat_num.int_div`
 declare isabelle target_rep function intDiv = infix `div`
-declare coq      target_rep function intDiv = `Coq.ZArith.Zdiv.Zdiv`
+declare coq      target_rep function intDiv = `Z.div`
 
 instance ( NumIntegerDivision int ) 
   let (div) = intDiv
@@ -748,14 +748,14 @@ let inline intMin = defaultMin
 declare isabelle target_rep function intMin = `min`
 declare ocaml    target_rep function intMin = `min`
 declare hol      target_rep function intMin = `int_min`
-declare coq      target_rep function intMin = `Zmin`
+declare coq      target_rep function intMin = `Z.min`
 
 val intMax : int -> int -> int
 let inline intMax = defaultMax
 declare isabelle target_rep function intMax = `max`
 declare ocaml    target_rep function intMax = `max`
 declare hol      target_rep function intMax = `int_max`
-declare coq      target_rep function intMax = `Zmax`
+declare coq      target_rep function intMax = `Z.max`
 
 instance ( OrdMaxMin int ) 
   let max = intMax
@@ -770,7 +770,7 @@ val int32FromNumeral : numeral -> int32
 declare ocaml    target_rep function int32FromNumeral = `Nat_big_num.to_int32`
 declare isabelle target_rep function int32FromNumeral n = ((`word_of_int` n) : int32)
 declare hol      target_rep function int32FromNumeral n = ((`n2w` n) : int32)
-declare coq      target_rep function int32FromNumeral n = (`Zpred` (`Zpos` (`P_of_succ_nat` n)))  (* TODO: check *)
+declare coq      target_rep function int32FromNumeral n = (`Z.pred` (`Zpos` (`P_of_succ_nat` n)))  (* TODO: check *)
 
 instance (Numeral int32)
   let fromNumeral n = int32FromNumeral n
@@ -915,7 +915,7 @@ declare ocaml    target_rep function int32Div = `Nat_num.int32_div`
 declare isabelle target_rep function int32Div = infix `div`
 declare hol      target_rep function int32Div i1 i2 = ((`word_div` i1 i2) : int32)
 (*TODO: Implement the following correctly. *)
-declare coq      target_rep function int32Div = `Coq.ZArith.Zdiv.Zdiv`
+declare coq      target_rep function int32Div = `Z.div`
 
 instance ( NumIntegerDivision int32 ) 
   let (div) = int32Div
@@ -940,13 +940,13 @@ val int32Min : int32 -> int32 -> int32
 let inline int32Min = defaultMin
 declare hol      target_rep function int32Min = `word_smin`
 (*TODO: Implement the following correctly. *)
-declare coq      target_rep function int32Min = `Zmin`
+declare coq      target_rep function int32Min = `Z.min`
 
 val int32Max : int32 -> int32 -> int32
 let inline int32Max = defaultMax
 declare hol      target_rep function int32Max = `word_smax`
 (*TODO: Implement the following correctly. *)
-declare coq      target_rep function int32Max = `Zmax`
+declare coq      target_rep function int32Max = `Z.max`
 
 instance ( OrdMaxMin int32 ) 
   let max = int32Max
@@ -963,7 +963,7 @@ val int64FromNumeral : numeral -> int64
 declare ocaml    target_rep function int64FromNumeral = `Nat_big_num.to_int64`
 declare isabelle target_rep function int64FromNumeral n = ((`word_of_int` n) : int64)
 declare hol      target_rep function int64FromNumeral n = ((`n2w` n) : int64)
-declare coq      target_rep function int64FromNumeral n = (`Zpred` (`Zpos` (`P_of_succ_nat` n)))  (* TODO: check *)
+declare coq      target_rep function int64FromNumeral n = (`Z.pred` (`Zpos` (`P_of_succ_nat` n)))  (* TODO: check *)
 
 instance (Numeral int64)
   let fromNumeral n = int64FromNumeral n
@@ -1108,7 +1108,7 @@ declare ocaml    target_rep function int64Div = `Nat_num.int64_div`
 declare isabelle target_rep function int64Div = infix `div`
 (*TODO: Implement the following two correctly. *)
 declare hol      target_rep function int64Div i1 i2 = ((`word_div` i1 i2) : int64)
-declare coq      target_rep function int64Div = `Coq.ZArith.Zdiv.Zdiv`
+declare coq      target_rep function int64Div = `Z.div`
 
 instance ( NumIntegerDivision int64 ) 
   let (div) = int64Div
@@ -1133,13 +1133,13 @@ val int64Min : int64 -> int64 -> int64
 let inline int64Min = defaultMin
 declare hol      target_rep function int64Min = `word_smin`
 (*TODO: Implement the following one correctly. *)
-declare coq      target_rep function int64Min = `Zmin`
+declare coq      target_rep function int64Min = `Z.min`
 
 val int64Max : int64 -> int64 -> int64
 let inline int64Max = defaultMax
 declare hol      target_rep function int64Max = `word_smax`
 (*TODO: Implement the following one correctly. *)
-declare coq      target_rep function int64Max = `Zmax`
+declare coq      target_rep function int64Max = `Z.max`
 
 instance ( OrdMaxMin int64 ) 
   let max = int64Max
@@ -1155,7 +1155,7 @@ val integerFromNumeral : numeral -> integer
 declare ocaml    target_rep function integerFromNumeral = ``
 declare isabelle target_rep function integerFromNumeral n = (``n : integer)
 declare hol      target_rep function integerFromNumeral n = (``n : integer)
-declare coq      target_rep function integerFromNumeral n = (`Zpred` (`Zpos` (`P_of_succ_nat` n)))
+declare coq      target_rep function integerFromNumeral n = (`Z.pred` (`Zpos` (`P_of_succ_nat` n)))
 
 instance (Numeral integer)
   let fromNumeral n = integerFromNumeral n
@@ -1165,7 +1165,7 @@ val integerFromNat : nat -> integer
 declare hol      target_rep function integerFromNat = `int_of_num`
 declare ocaml    target_rep function integerFromNat = `Nat_big_num.of_int`
 declare isabelle target_rep function integerFromNat = `int`
-declare coq      target_rep function integerFromNat n = (`Zpred` (`Zpos` (`P_of_succ_nat` n))) (* TODO: check *)
+declare coq      target_rep function integerFromNat n = (`Z.pred` (`Zpos` (`P_of_succ_nat` n))) (* TODO: check *)
 
 val integerEq : integer -> integer -> bool
 let inline integerEq = unsafe_structural_equality
@@ -1232,7 +1232,7 @@ val integerAbs : integer -> integer
 declare hol      target_rep function integerAbs = `ABS`
 declare ocaml    target_rep function integerAbs = `Nat_big_num.abs`
 declare isabelle target_rep function integerAbs = `abs`
-declare coq      target_rep function integerAbs input = (`Zpred` (`Zpos` (`P_of_succ_nat` (`Zabs_nat` input)))) (* TODO: check *)
+declare coq      target_rep function integerAbs input = (`Z.pred` (`Zpos` (`P_of_succ_nat` (`Z.abs_nat` input)))) (* TODO: check *)
 
 instance (NumAbs integer)
   let abs = integerAbs
@@ -1297,7 +1297,7 @@ val integerDiv : integer -> integer -> integer
 declare hol      target_rep function integerDiv = infix `/`
 declare ocaml    target_rep function integerDiv = `Nat_big_num.div`
 declare isabelle target_rep function integerDiv = infix `div`
-declare coq      target_rep function integerDiv = `Coq.ZArith.Zdiv.Zdiv`
+declare coq      target_rep function integerDiv = `Z.div`
 
 instance ( NumIntegerDivision integer ) 
   let (div) = integerDiv
@@ -1322,14 +1322,14 @@ let inline integerMin = defaultMin
 declare isabelle target_rep function integerMin = `min`
 declare ocaml    target_rep function integerMin = `Nat_big_num.min`
 declare hol      target_rep function integerMin = `int_min`
-declare coq      target_rep function integerMin = `Zmin`
+declare coq      target_rep function integerMin = `Z.min`
 
 val integerMax : integer -> integer -> integer
 let inline integerMax = defaultMax
 declare isabelle target_rep function integerMax = `max`
 declare ocaml    target_rep function integerMax = `Nat_big_num.max`
 declare hol      target_rep function integerMax = `int_max`
-declare coq      target_rep function integerMax = `Zmax`
+declare coq      target_rep function integerMax = `Z.max`
 
 instance ( OrdMaxMin integer ) 
   let max = integerMax
@@ -1346,7 +1346,7 @@ val rationalFromNumeral : numeral -> rational
 declare ocaml    target_rep function rationalFromNumeral n = (`Rational.of_big_int` n)
 declare isabelle target_rep function rationalFromNumeral n = (`Fract` (``n : integer) (1 : integer))
 declare hol      target_rep function rationalFromNumeral n = (``n : rational)
-declare coq      target_rep function rationalFromNumeral n = (`inject_Z` (`Zpred` (`Zpos` (`P_of_succ_nat` n))))
+declare coq      target_rep function rationalFromNumeral n = (`inject_Z` (`Z.pred` (`Zpos` (`P_of_succ_nat` n))))
 
 instance (Numeral rational)
   let fromNumeral n = rationalFromNumeral n
@@ -1546,7 +1546,7 @@ val realFromNumeral : numeral -> real
 declare ocaml    target_rep function realFromNumeral n = (`Nat_big_num.to_float` n)
 declare isabelle target_rep function realFromNumeral n = (``n : real)
 declare hol      target_rep function realFromNumeral n = (`real_of_num` n)
-declare coq      target_rep function realFromNumeral n = (`IZR` (`Zpred` (`Zpos` (`P_of_succ_nat` n))))
+declare coq      target_rep function realFromNumeral n = (`IZR` (`Z.pred` (`Zpos` (`P_of_succ_nat` n))))
 
 instance (Numeral real)
   let fromNumeral n = realFromNumeral n
@@ -2085,7 +2085,7 @@ val integerFromNatural : natural -> integer
 declare hol      target_rep function integerFromNatural = `int_of_num` 
 declare ocaml    target_rep function integerFromNatural n = ``n
 declare isabelle target_rep function integerFromNatural = `int`
-declare coq      target_rep function integerFromNatural n = (`Zpred` (`Zpos` (`P_of_succ_nat` n))) (* TODO: check *)
+declare coq      target_rep function integerFromNatural n = (`Z.pred` (`Zpos` (`P_of_succ_nat` n))) (* TODO: check *)
 
 assert integerFromNatural_0: integerFromNatural 0 = 0
 assert integerFromNatural_1: integerFromNatural 822 = 822
@@ -2139,7 +2139,7 @@ declare compile_message naturalFromInteger = "naturalFromInteger is undefined fo
 
 declare hol      target_rep function naturalFromInteger i = `Num` (`ABS` i) 
 declare ocaml    target_rep function naturalFromInteger = `Nat_big_num.abs`
-declare coq      target_rep function naturalFromInteger = `Zabs_nat`
+declare coq      target_rep function naturalFromInteger = `Z.abs_nat`
 declare isabelle target_rep function naturalFromInteger i = `nat` (`abs` i)
 
 assert natural_from_integer_0: naturalFromInteger 0 = 0
@@ -2166,7 +2166,7 @@ val intFromNat : nat -> int
 declare hol      target_rep function intFromNat = `int_of_num` 
 declare ocaml    target_rep function intFromNat n = ``n
 declare isabelle target_rep function intFromNat = `int`
-declare coq      target_rep function intFromNat n = (`Zpred` (`Zpos` (`P_of_succ_nat` n)))
+declare coq      target_rep function intFromNat n = (`Z.pred` (`Zpos` (`P_of_succ_nat` n)))
 
 assert int_from_nat_0: intFromNat 0 = 0
 assert int_from_nat_1: intFromNat 1 = 1
@@ -2191,7 +2191,7 @@ assert nat_from_natural_2: natFromNatural 2 = 2
 val natFromInt : int -> nat
 declare hol      target_rep function natFromInt i = `Num` (`ABS` i) 
 declare ocaml    target_rep function natFromInt = `abs`
-declare coq      target_rep function natFromInt = `Zabs_nat`
+declare coq      target_rep function natFromInt = `Z.abs_nat`
 declare isabelle target_rep function natFromInt i = `nat` (`abs` i)
 
 assert nat_from_int_0: natFromInt 0 = 0
@@ -2206,7 +2206,7 @@ assert nat_from_int_2: natFromInt (~ 2) = 2
 val int32FromNat : nat -> int32
 declare hol      target_rep function int32FromNat n = ((`n2w` n) : int32)
 declare ocaml    target_rep function int32FromNat = `Int32.of_int`
-declare coq      target_rep function int32FromNat n = (`Zpred` (`Zpos` (`P_of_succ_nat` n))) (* TODO check *)
+declare coq      target_rep function int32FromNat n = (`Z.pred` (`Zpos` (`P_of_succ_nat` n))) (* TODO check *)
 declare isabelle target_rep function int32FromNat n = ((`word_of_int` (`int` n)):int32)
 
 assert int32_from_nat_0: int32FromNat 0 = 0
@@ -2216,7 +2216,7 @@ assert int32_from_nat_2: int32FromNat 123 = 123
 val int32FromNatural : natural -> int32
 declare hol      target_rep function int32FromNatural n = ((`n2w` n) : int32)
 declare ocaml    target_rep function int32FromNatural = `Nat_big_num.to_int32`
-declare coq      target_rep function int32FromNatural n = (`Zpred` (`Zpos` (`P_of_succ_nat` n))) (* TODO check *)
+declare coq      target_rep function int32FromNatural n = (`Z.pred` (`Zpos` (`P_of_succ_nat` n))) (* TODO check *)
 declare isabelle target_rep function int32FromNatural n = ((`word_of_int` (`int` n)):int32)
 
 assert int32_from_natural_0: int32FromNatural 0 = 0
@@ -2275,7 +2275,7 @@ assert int32_from_int_64_5: int32FromInt64 (~123) = ~123
 val int64FromNat : nat -> int64
 declare hol      target_rep function int64FromNat n = ((`n2w` n) : int64)
 declare ocaml    target_rep function int64FromNat = `Int64.of_int`
-declare coq      target_rep function int64FromNat n = (`Zpred` (`Zpos` (`P_of_succ_nat` n))) (* TODO check *)
+declare coq      target_rep function int64FromNat n = (`Z.pred` (`Zpos` (`P_of_succ_nat` n))) (* TODO check *)
 declare isabelle target_rep function int64FromNat n = ((`word_of_int` (`int` n)):int64)
 
 assert int64_from_nat_0: int64FromNat 0 = 0
@@ -2285,7 +2285,7 @@ assert int64_from_nat_2: int64FromNat 123 = 123
 val int64FromNatural : natural -> int64
 declare hol      target_rep function int64FromNatural n = ((`n2w` n) : int64)
 declare ocaml    target_rep function int64FromNatural = `Nat_big_num.to_int64`
-declare coq      target_rep function int64FromNatural n = (`Zpred` (`Zpos` (`P_of_succ_nat` n))) (* TODO check *)
+declare coq      target_rep function int64FromNatural n = (`Z.pred` (`Zpos` (`P_of_succ_nat` n))) (* TODO check *)
 declare isabelle target_rep function int64FromNatural n = ((`word_of_int` (`int` n)):int64)
 
 assert int64_from_natural_0: int64FromNatural 0 = 0
