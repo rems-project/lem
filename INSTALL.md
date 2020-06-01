@@ -3,7 +3,12 @@
 
 ## Opam Package
 
-We release an opam package in our private [opam repository](https://github.com/rems-project/opam-repository). The package will install the `lem` binary in the directory given by `opam config var lem:bin` (which should be on your `PATH` if your opam environment is configured) and the lem libraries at `opam config var lem:share`. If you prefer to build lem yourself see the following sections.
+We release an opam package in our private
+[opam repository](https://github.com/rems-project/opam-repository).
+The package will install the `lem` binary in the directory given by
+`opam config var lem:bin` (which should be on your `PATH` if your opam environment
+is configured) and the lem libraries at `opam config var lem:share`.
+If you prefer to build lem yourself see the following sections.
 
 ## Lem binary
 
@@ -12,12 +17,12 @@ executable lem, and places a symbolic link to it in that directory. Now
 set the `LEMLIB` environment variable to `PATH_TO_LEM/library`, or
 alternately pass the `-lib PATH_TO_LEM/library` flag to lem when you
 run it. Lem depends on [OCaml](http://caml.inria.fr/). Lem is tested against OCaml
-3.12.1. and 4.00.0. Other versions might or might not work.
+`4.02.3`, `4.06.1` and `4.10.0`. Other versions might or might not work.
 
 ## Backend libraries
 
-Running "make" only generates Lem. It not generate the libraries needed to use 
-Lem's output for certain backends. To generate the libraries for a specific backend, 
+Running "make" only generates Lem. It not generate the libraries needed to use
+Lem's output for certain backends. To generate the libraries for a specific backend,
 please run
 
 for OCaml   : make ocaml-libs
@@ -27,5 +32,3 @@ for Coq     : make coq-libs
 
 These targets depend on the corresponding tool being installed. If you just want to
 generate the input, Lem gives to these tools, please run "make libs"
-
-

@@ -16,9 +16,11 @@ exception of a few files derived from OCaml, which are under the
 GNU Library GPL.
 
 Lem depends on [OCaml](http://caml.inria.fr/). Lem is tested against OCaml
-3.12.1. and 4.02.0. Other versions might or might not work.  Lem requires
+`4.02.3`, `4.06.1` and `4.10.0`. Other versions might or might not work.  Lem requires
 the OCaml ZArith library for arbitrary precision arithmetic.  Lem has been
-tested against ZArith version 1.2.  Other versions might or might not work.
+tested against ZArith version `1.4` and `1.9.1`.  Other versions might or might not work.
+
+To install it, the best way is to use `opam` via `opam install .`.
 
 To build Lem run 'make' in the top-level directory. This builds the
 executable 'lem', and places a symbolic link to it in that directory.
@@ -34,11 +36,11 @@ Documentation can be found in `doc/built-doc`, including:
 * the type signatures of the pervasives and pervasives-extra libaries, in `lem-libs-pervasives.txt` and `lem-libs-pervasives-extra.txt`; and
 * source documentation, in `html-doc` and `lem-doc.pdf`, with a dependency diagram of the source modules in `dep.pdf`.
 
-# Supported versions of software 
+# Supported versions of software
 
 Lem is tested against the following versions of the backend software:
 
-  * OCaml: 3.12.1, 4.00.0, 4.01.0, and 4.02.0
+  * OCaml: `4.02.3`, `4.06.1` and `4.10.0`
   * Coq: 8.4pl3 and 8.4pl2
-  * Isabelle: Isabelle-2013-2
+  * Isabelle: Isabelle-2019-1 and Isabelle-2020-1
   * HOL: HOL4 Kananaskis 9
