@@ -1051,7 +1051,7 @@ let generate_coq_record_update_notation e =
       match l.term with
         | L_true skips -> ws skips ^ from_string "true"
         | L_false skips -> ws skips ^ from_string "false"
-        | L_num (skips, n, _) -> ws skips ^ num n
+        | L_num (skips, n, _) -> ws skips ^ num n ^ from_string "%nat"
         | L_string (skips, s, _) ->
             (* in Coq, string literals are UTF8 except doublequotes which are doubled *)
             let escaped = Str.global_replace (Str.regexp "\"") "\"\"" s in
@@ -1073,7 +1073,7 @@ let generate_coq_record_update_notation e =
         | L_numeral (skips, i, _) ->
           let i = from_string @@ Z.to_string i in
             Output.flat [
-              ws skips; i
+              ws skips; i ^ from_string "%nat"
             ]
         | L_vector (s, v, v') -> assert false
         | L_undefined (skips, explanation) ->
