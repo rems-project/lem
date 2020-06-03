@@ -41,6 +41,6 @@ Documentation can be found in `doc/built-doc`, including:
 Lem is tested against the following versions of the backend software:
 
   * OCaml: `4.02.3`, `4.06.1` and `4.10.0`
-  * Coq: 8.4pl3 and 8.4pl2
+  * Coq: 8.11.2
   * Isabelle2019 and Isabelle2020
   * HOL: HOL4 Kananaskis 13
