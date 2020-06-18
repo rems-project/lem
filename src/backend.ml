@@ -3515,7 +3515,7 @@ let rec def_internal callback (inside_module: bool) d is_user_def : Output.t = m
         kwd "=" ^
         core (typ true rhs)
       end
-  | Declaration (Decl_target_sorts (sk1, targ, sk2, sk3, id, sk4, sorts)) ->
+  | Declaration (Decl_target_sorts (sk1, targ, sk2, id, sk3, sorts)) ->
       if (not (Target.is_human_target T.target)) then emp else begin
         let sort = function
           | Sort (sk,None) -> ws sk ^ kwd "_"
@@ -3525,12 +3525,11 @@ let rec def_internal callback (inside_module: bool) d is_user_def : Output.t = m
         in
         ws sk1 ^
         T.bkwd "declare" ^
-        ws sk2 ^
         (Target.target_to_output targ) ^
-        ws sk3 ^
+        ws sk2 ^
         T.bkwd "target_sorts" ^
         B.type_id_to_output id ^
-        ws sk4 ^
+        ws sk3 ^
         kwd "=" ^
         core (flat (List.map sort sorts))
       end

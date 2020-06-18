@@ -983,9 +983,9 @@ x_ls :
 
 sort :
   | Under
-    { Ast.Sort ($1, None) }
+    { Target_sortwild ($1) }
   | BacktickString
-    { Ast.Sort (fst $1, Some (snd $1)) }
+    { Target_sortsort (fst $1, snd $1) }
 
 sorts :
   |
@@ -1007,7 +1007,7 @@ declaration :
   | Declare target TargetRep component_type id tnvs Eq target_rep_rhs_type
     { Decl_target_rep_decl($1, fst $2, snd $2, Target_rep_lhs_type($3, $4, $5, $6), fst $7, Target_rep_rhs_type_replacement $8) }
   | Declare target TargetSorts id Eq sorts
-    { Decl_target_sorts($1, fst $2, snd $2, $3, $4, fst $5, $6) }
+    { Decl_target_sorts_decl($1, fst $2, $3, $4, fst $5, Target_sortssorts($6)) }
   | Declare SetFlag x Eq x
     { Decl_set_flag_decl($1, $2, $3, fst $4, $5) }
   | Declare targets_opt TerminationArgument id Eq termination_setting

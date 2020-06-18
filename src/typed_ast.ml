@@ -399,7 +399,7 @@ type declare_def =  (* declarations *)
  | Decl_compile_message       of lskips * targets_opt * lskips * const_descr_ref id * lskips * lskips * string 
  | Decl_target_rep_term       of lskips * Ast.target  * lskips * Ast.component * const_descr_ref id * name_lskips_annot list * lskips * target_rep_rhs
  | Decl_target_rep_type       of lskips * Ast.target  * lskips * lskips * Path.t id * tnvar list * lskips * src_t
- | Decl_target_sorts          of lskips * Ast.target  * lskips * lskips * Path.t id * lskips * Types.sort list
+ | Decl_target_sorts          of lskips * Ast.target  * lskips * Path.t id * lskips * Types.sort list
  | Decl_ascii_rep             of lskips * targets_opt * lskips * Ast.component * name_kind id * lskips * lskips * Name.t
  | Decl_rename                of lskips * targets_opt * lskips * Ast.component * name_kind id * lskips * Name.lskips_t
  | Decl_rename_current_module of lskips * targets_opt * lskips * lskips * lskips * Name.lskips_t 
@@ -754,9 +754,9 @@ let rec def_aux_alter_init_lskips (lskips_f : lskips -> lskips * lskips) d : def
             | Decl_target_rep_type (sk1, targ, sk2, sk3, id, args, sk4, rhs) ->
                 let (sk1', s_ret) = lskips_f sk1 in
                 (Decl_target_rep_type (sk1', targ, sk2, sk3, id, args, sk4, rhs), s_ret)
-            | Decl_target_sorts (sk1, targ, sk2, sk3, id, sk4, sorts) ->
+            | Decl_target_sorts (sk1, targ, sk2, id, sk3, sorts) ->
                 let (sk1', s_ret) = lskips_f sk1 in
-                (Decl_target_sorts (sk1', targ, sk2, sk3, id, sk4, sorts), s_ret)
+                (Decl_target_sorts (sk1', targ, sk2, id, sk3, sorts), s_ret)
             | Decl_ascii_rep (sk1, targs, sk2, comp, id, sk3, sk4, n) ->
                 let (sk1', s_ret) = lskips_f sk1 in
                 (Decl_ascii_rep (sk1', targs, sk2, comp, id, sk3, sk4, n), s_ret)

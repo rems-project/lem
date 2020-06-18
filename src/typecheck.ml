@@ -2879,9 +2879,8 @@ let check_declare_target_sorts
    sk1
    target
    sk2
-   sk3
    type_id
-   sk4
+   sk3
    sorts :
    (Typecheck_ctxt.defn_ctxt * Typed_ast.def_aux option) = 
 begin
@@ -2895,11 +2894,11 @@ begin
             | Some(Tc_type(td)) -> td 
             | _ -> raise (Reporting_basic.err_general true l "invariant in checking type broken") in
 
-  let map_sort = function (Ast.Sort (l,None)) -> Sort (l,None)
-                        | (Ast.Sort (l,Some s)) -> Sort (l,Some (Name.from_string s)) in
+  let map_sort = function (Ast.Target_sortwild(l)) -> Sort (l,None)
+                        | (Ast.Target_sortsort(l,s)) -> Sort (l,Some (Name.from_string s)) in
   let new_sorts = List.map map_sort sorts in
 
-  let decl_def = Decl_target_sorts (sk1, target, sk2, sk3, p_id, sk4, new_sorts) in
+  let decl_def = Decl_target_sorts (sk1, target, sk2, p_id, sk3, new_sorts) in
 
   let targ = (Target.ast_target_to_target target) in
 
@@ -3047,8 +3046,8 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           check_declare_target_rep_type backend_targets mod_path l ctxt sk1 target (Ast.combine_lex_skips sk2 sk3) sk4 x tnvars sk5 typ 
       | Ast.Declaration(Ast.Decl_target_rep_decl _) ->
           raise (Reporting_basic.err_type l "illformed target-representation declaration")
-      | Ast.Declaration(Ast.Decl_target_sorts (sk1, target, sk2, sk3, id, sk4, sorts)) ->
-         check_declare_target_sorts backend_targets mod_path l ctxt sk1 target sk2 sk3 id sk4 sorts
+      | Ast.Declaration(Ast.Decl_target_sorts_decl (sk1, target, sk2, id, sk3, Ast.Target_sortssorts sorts)) ->
+         check_declare_target_sorts backend_targets mod_path l ctxt sk1 target sk2 id sk3 sorts
       | Ast.Declaration(Ast.Decl_set_flag_decl (_, _, _, _, _)) ->
           let _ = prerr_endline "set flag declaration encountered" in
             ctxt, None

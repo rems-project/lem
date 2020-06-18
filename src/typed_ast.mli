@@ -487,7 +487,7 @@ type declare_def =  (** Declarations *)
    (** [Decl_target_rep_type (sk1, targ, sk2, sk3, id, args, sk4, rhs)] declares a target-representation. for target [targ] and
        type [id] with arguments [args]. *)
 
- | Decl_target_sorts          of lskips * Ast.target  * lskips * lskips * Path.t id * lskips * Types.sort list
+ | Decl_target_sorts          of lskips * Ast.target  * lskips * Path.t id * lskips * Types.sort list
    (** [Decl_target_sorts (sk1, targ, sk2, sk3, id, sk4, sorts)] declares optional sort annotations for
        each type parameter of [id] for target [targ]. *)
  | Decl_ascii_rep             of lskips * targets_opt * lskips * Ast.component * name_kind id * lskips * lskips * Name.t
