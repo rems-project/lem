@@ -133,7 +133,7 @@ can now generate Lem specifications.
 
 
 
-History
+## History
 
 - 2018-01-31: moved to github
 - 2013-12-13: updated with links to current documentation and examples
@@ -142,7 +142,7 @@ History
 - 2011-08-22: Lem 0.2 posted, manual added
 - 2011-05-25: ITP 2011 paper added
 - 2011-04-11: Lem 0.1 posted
-- 2011-03-24: Page created
+- 2011-03-24: Web page created
 
 ## People
 
