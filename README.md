@@ -3,10 +3,11 @@
 Lem is a tool for lightweight executable mathematics, for writing,
 managing, and publishing large-scale portable semantic definitions,
 with export to LaTeX, executable code (currently OCaml) and
-interactive theorem provers (currently Coq, HOL4, and Isabelle/HOL).
-It is also intended as an intermediate language for generating
-definitions from domain-specific tools, and for porting definitions
-between interactive theorem proving systems.
+interactive theorem provers (currently Coq, HOL4, and Isabelle/HOL,
+though the generated Coq is not necessarily idiomatic).  It is also
+intended as an intermediate language for generating definitions from
+domain-specific tools, and for porting definitions between interactive
+theorem proving systems.
 
 The language, originally based on a pure fragment of OCaml, combines
 features familiar from functional programming languages with logical
