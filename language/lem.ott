@@ -5,7 +5,7 @@ indexvar n , i , j , k ::=
 metavar num ::=
   {{ phantom }}
   {{ lex numeric }}
-  {{ ocaml terminal * int }}
+  {{ ocaml terminal * Z.t }}
   {{ hol num }}
   {{ lem (terminal * num) }}
   {{ com Numeric literals }}
