@@ -1,4 +1,40 @@
-                        Lem
+Lem
+
+(c) 2010-2020
+Dominic Mulligan,
+Kathryn E. Gray,
+Scott Owens,
+Peter Sewell, 
+Thomas Tuerk;
+with additional contributions from
+Basile Clement,
+Brian Campbell,
+Christopher Pulte,
+David Sheets,
+Fabian Immler
+Frederic Loulergue,
+Francesco Zappa Nardelli.
+Gabriel Kerneis,
+James Lingard,
+Jean Pichon-Pharabod,
+Justus Matthiesen,
+Kayvan Memarian,
+Kyndylan Nienhuis,
+Lars Hupel,
+Mark Batty,
+Michael Greenberg
+Michael Norrish,
+Ohad Kammar,
+Peter Boehm,
+Robert Norton
+Sami Mäkelä,
+Shaked Flur
+Stephen Kell,
+Thibaut Pérami,
+Thomas Bauereiss,
+Thomas Williams,
+Victor Gomes, and
+emersion.
 
 All files except ocaml-lib/pmap.{ml,mli} and ocaml-libpset.{ml,mli}
 are distributed under the following license: 
