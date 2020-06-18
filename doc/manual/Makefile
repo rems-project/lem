@@ -29,8 +29,10 @@ lem-manual.md : $(INPUT_FILES)
 lem-manual.html : lem-manual.md
 	pandoc -s --number-sections --toc lem-manual.md -o lem-manual.html
 
-lem-manual.pdf : lem-manual.md
-	pandoc  --template my-pandoc-latex-template.latex -s --number-sections --toc lem-manual.md -o lem-manual.pdf
+lem-manual.pdf : lem-manual.md my-pandoc-latex-template.latex
+	pandoc  --template my-pandoc-latex-template.latex -s --number-sections --toc lem-manual.md -o lem-manual.tex
+	pdflatex lem-manual.tex && pdflatex lem-manual.tex && pdflatex lem-manual.tex
+
 
 
 
