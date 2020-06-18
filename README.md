@@ -49,14 +49,14 @@ Documentation can be found in `doc/built-doc`, including:
 
 ## To install and build
 
-Ott is available as 
+Lem is available as 
 an [opam](https://opam.ocaml.org) package and a 
 [github repo](https://github.com/rems-project/lem).
 
 ### With OPAM  (released version)
 
 First, ensure you have opam (the OCaml package manager) installed,
-version 2.0 or greater (opam 1 versions of ott are no longer
+version 2.0 or greater (opam 1 versions of Lem are no longer
 supported).  You can use your system's package manager e.g. `sudo
 apt-get install opam` (e.g. on Ubuntu 20.04) or follow the
 [instructions from the opam website](https://opam.ocaml.org/doc/Install.html).
