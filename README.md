@@ -61,7 +61,7 @@ supported).  You can use your system's package manager e.g. `sudo
 apt-get install opam` (e.g. on Ubuntu 20.04) or follow the
 [instructions from the opam website](https://opam.ocaml.org/doc/Install.html).
 On older Ubuntu versions you will not be able to use their package
-manager's opam 1 version, and will need to install it following the
+manager's opam 1 version, and will need to install opam 2 following the
 instructions on the opam website.
 
 Then `opam install lem` will install the latest Lem version.  
