@@ -1780,8 +1780,8 @@ by
 ------------------------------------------------------------ :: false
 |- false l : __bool
 
------------------------------------------------------------- :: num
-|- num l : __num
+%------------------------------------------------------------ :: num
+%|- string l : __num
 
 nat = bitlength(hex)
 ------------------------------------------------------------ :: hex
@@ -1791,8 +1791,8 @@ nat = bitlength(bin)
 ------------------------------------------------------------ :: bin 
 |- bin l : __vector nat __bit
 
------------------------------------------------------------- :: string
-|- string l : __string
+%------------------------------------------------------------ :: string
+%|- string l : __string
 
 ------------------------------------------------------------ :: unit
 |- () l : __unit
@@ -2079,12 +2079,12 @@ TD,E,E_l |- exp2 : t2 gives S_c3,S_N3
 ------------------------------------------------------------ :: infix_app1
 TD,E,E_l |- exp1 ix l exp2 : t3 gives S_c1 union S_c2 union S_c3,S_N1 union S_N2 union S_N3
 
-%TODO, see above todo
-:check_exp_aux: TD,E,E_l |- x : t1 -> t2 -> t3 gives S_c1,S_N1
-TD,E,E_l |- exp1 : t1 gives S_c2,S_N2
-TD,E,E_l |- exp2 : t2 gives S_c3,S_N3
------------------------------------------------------------- :: infix_app2
-TD,E,E_l |- exp1 `x` l exp2 : t3 gives S_c1 union S_c2 union S_c3,S_N1 union S_N2 union S_N3
+% %TODO, see above todo
+% :check_exp_aux: TD,E,E_l |- x : t1 -> t2 -> t3 gives S_c1,S_N1
+% TD,E,E_l |- exp1 : t1 gives S_c2,S_N2
+% TD,E,E_l |- exp2 : t2 gives S_c3,S_N3
+% ------------------------------------------------------------ :: infix_app2
+% TD,E,E_l |- exp1 `x` l exp2 : t3 gives S_c1 union S_c2 union S_c3,S_N1 union S_N2 union S_N3
 
 %TODO, see above todo, with regard to t_args
 </TD,E |- field idi : p t_args -> ti gives (xi of names)//i/>
@@ -2511,16 +2511,16 @@ TD,I,E |- val_def gives E_x
 ------------------------------------------------------------ :: val_def
 </zj//j/>,<TD,TC,I>,E |- val_def l gives empty,<{},{},{},E_x>
 
-</TD,E1,E_l |- rulei gives {xi|->ti},S_ci,S_Ni//i/>
-%TODO Check S_N constraints Check indreln_names
-I |- </S_ci//i/> gives semC
-</FV(ti) SUBSET tnvs//i/>
-FV(semC) SUBSET tnvs
-compatible overlap(</xi|->ti//i/>)
-E_l = :E_l_concrete: {</xi|->ti//i/>}
-E2 = <{},{},{},{</xi |-><forall tnvs. semC => ti,let>//i/>}>
------------------------------------------------------------- :: indreln
-</zj//j/>,<TD,TC,I>,E1 |- indreln targets_opt indreln_names </rulei//i/> l gives empty,E2
+% </TD,E1,E_l |- rulei gives {xi|->ti},S_ci,S_Ni//i/>
+% %TODO Check S_N constraints Check indreln_names
+% I |- </S_ci//i/> gives semC
+% </FV(ti) SUBSET tnvs//i/>
+% FV(semC) SUBSET tnvs
+% compatible overlap(</xi|->ti//i/>)
+% E_l = :E_l_concrete: {</xi|->ti//i/>}
+% E2 = <{},{},{},{</xi |-><forall tnvs. semC => ti,let>//i/>}>
+% ------------------------------------------------------------ :: indreln
+% </zj//j/>,<TD,TC,I>,E1 |- indreln targets_opt indreln_names </rulei//i/> l gives empty,E2
 
 </zj//j/> x,D1,E1 |- defs gives D2,E2
 ------------------------------------------------------------ :: module
