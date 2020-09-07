@@ -203,7 +203,7 @@ let word_lsb (n,w) =
   let bit = Big_int_impl.BI.extract_big_int w 0 1 in
   if Nat_big_num.equal bit Nat_big_num.zero then false else true
 
-let word_shiftLeft (n,w) m = (n,Big_int_impl.BI.shift_left_big_int w m)
+let word_shiftLeft (n,w) m = machine_word_inject (n,Big_int_impl.BI.shift_left_big_int w m)
 let word_shiftRight (n,w) m = (n,Big_int_impl.BI.shift_right_big_int w m)
 let word_arithShiftRight (n,w) m =
   let signbit = Big_int_impl.BI.extract_big_int w (n-1) n in

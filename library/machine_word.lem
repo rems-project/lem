@@ -1461,6 +1461,10 @@ assert {ocaml;hol;isabelle} unsignedLessEq_test_1 : unsignedLessEq (wordFromInte
 assert {ocaml;hol;isabelle} unsignedLessEq_test_2 : unsignedLessEq (wordFromInteger 3) ((wordFromInteger 255) : mword ty8)
 assert {ocaml;hol;isabelle} unsignedLessEq_test_3 : unsignedLessEq (wordFromInteger 255) ((wordFromInteger 255) : mword ty8)
 
+(* Bitwise tests which need wordFromInteger *)
+
+assert {ocaml;hol;isabelle} signed_shift_test1 : shiftLeft ((wordFromInteger (~1)) : mword ty8) 2 = wordFromNatural 252
+
 (* sign extend tests *)
 
 assert {ocaml;hol;isabelle} sext_test_0 : signExtend (wordFromNatural 130 : mword ty8) = (wordFromInteger (~126) : mword ty16)
