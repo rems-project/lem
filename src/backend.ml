@@ -2846,10 +2846,10 @@ let isa_op_typ texp = match texp.term with
 *)
 
 let isa_mk_typed_def_header (name, ptyps, s, etyp) : Output.t =
-  name ^ kwd " " ^ T.typ_sep ^ kwd " \"" ^
+  name ^ kwd " " ^ T.typ_sep ^ kwd " \\<open>" ^
   flat (List.map (function x -> isa_op_typ (C.t_to_src_t x) ^ T.typ_fun_sep) ptyps) ^
   typ false (C.t_to_src_t etyp) ^
-  kwd "\" " ^ ws s
+  kwd "\\<close> " ^ ws s
 
 (*
   flat (List.map (function x -> (isa_op_typ (C.t_to_src_t x.typ) ^
@@ -2884,13 +2884,13 @@ let isa_funcl_header_indrel_seplist clause_sl =
 
 
 let isa_funcl_default eqsign (({term = n}, c, ps, topt, s1, (e : Typed_ast.exp)):funcl_aux) =
-  kwd "\"" ^ Name.to_output Term_var (B.const_ref_to_name n true c) ^ flat (List.map (pat false) ps)^ ws s1 ^ eqsign ^ kwd "(" ^ exp false e ^ kwd ")\"" ^
+  kwd "\\<open>" ^ Name.to_output Term_var (B.const_ref_to_name n true c) ^ flat (List.map (pat false) ps)^ ws s1 ^ eqsign ^ kwd "(" ^ exp false e ^ kwd ")\\<close>" ^
   (let add_decl decls n t = (Name.to_output Term_var (Name.add_lskip n) ^ kwd " :: \"" ^ typ false (C.t_to_src_t t) ^ kwd "\"") :: decls in
    let decls = List.concat (List.map (fun p -> Nfmap.fold add_decl [] p.rest.pvars) ps) in
    if decls = [] then emp else kwd "\n  for " ^ Output.concat (kwd "\n  and ") decls)
 
 let isa_funcl_abs eqsign (({term = n}, c, ps, topt, s1, (e : Typed_ast.exp)):funcl_aux) =
-  kwd "\"" ^ Name.to_output Term_var (B.const_ref_to_name n true c) ^ ws s1 ^ eqsign ^ kwd "(%" ^ flat (List.map (pat false) ps) ^ kwd ". " ^ exp false e ^ kwd ")\""
+  kwd "\\<open>" ^ Name.to_output Term_var (B.const_ref_to_name n true c) ^ ws s1 ^ eqsign ^ kwd "(%" ^ flat (List.map (pat false) ps) ^ kwd ". " ^ exp false e ^ kwd ")\\<close>"
 
 let isa_funcl simple =
 (*  if simple then isa_funcl_abs (kwd "= ") else isa_funcl_default (kwd "= ") *)
@@ -3757,7 +3757,7 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
          else
            emp) ^
         isa_mk_typed_def_header (pat false p, [], sk, exp_to_typ e) ^
-        kwd "where \n\"" ^ pat false p ^ ws sk ^ kwd "= (" ^ exp false e ^ kwd ")\"" ^ T.def_end
+        kwd "where \n\\<open>" ^ pat false p ^ ws sk ^ kwd "= (" ^ exp false e ^ kwd ")\\<close>" ^ T.def_end
       else emp
 
   | Val_def ((Fun_def (s1, rec_flag, targets, clauses) as def)) ->
