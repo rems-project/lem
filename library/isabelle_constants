@@ -193,6 +193,7 @@ less
 less_eq
 lessThan
 let
+lim
 LIM
 linear_undo
 local
@@ -374,6 +375,7 @@ tl
 to
 top
 touch_thy
+trans
 transitions
 translations
 transrel
