@@ -957,8 +957,8 @@ module Isa () : Target = struct
   let field_access_start = emp
   let field_access_end = kwd " "
 
-  let fun_start = emp
-  let fun_end = emp
+  let fun_start = kwd "("
+  let fun_end = kwd ")"
   let fun_kwd = meta "\\<lambda>"
   let fun_sep = meta ". "
 
