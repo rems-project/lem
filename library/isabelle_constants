@@ -35,6 +35,7 @@ ax_specification
 back
 begin
 binder
+bit
 boogie_end
 boogie_open
 boogie_status
@@ -240,6 +241,7 @@ O
 obtain
 obtains
 of
+of_bl
 OFCLASS
 OO
 oops
@@ -306,6 +308,7 @@ ProofGeneral\\.restart
 ProofGeneral\\.undo
 prop
 PROP
+push_bit
 pwd
 qed
 quickcheck
@@ -330,10 +333,14 @@ round
 sect
 section
 setup
+set_bit
 show
 shows
 SIGMA
+sint
 signature
+signed
+signed_drop_bit
 simproc_setup
 size
 sledgehammer
@@ -373,6 +380,7 @@ thus
 thy_deps
 tl
 to
+to_bl
 top
 touch_thy
 trans
@@ -390,6 +398,7 @@ typed_print_translation
 TYPEREP
 types
 types_code
+uint
 ultimately
 Un
 UN
@@ -399,6 +408,7 @@ undo
 undos_proof
 unfolding
 unused_thms
+unsigned
 use
 uses
 use_thy
