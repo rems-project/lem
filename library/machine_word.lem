@@ -7,7 +7,7 @@ declare {isabelle;coq;hol;ocaml} rename module = Lem_machine_word
 
 open import Bool Num Basic_classes Show Function
 
-open import {isabelle} `HOL-Word.Word`
+open import {isabelle} `Lem` `HOL-Library.Word` `Word_Lib.Generic_set_bit` `Word_Lib.Reversed_Bit_Lists` `Word_Lib.Signed_Division_Word` `Word_Lib.Traditional_Infix_Syntax`
 open import {hol} `wordsTheory` `wordsLib` `bitstringTheory` `integer_wordTheory`
 
 type mword 'a
@@ -1151,12 +1151,12 @@ instance forall 'a. (Show (mword 'a))
 end
 
 val wordFromBitlist : forall 'a. Size 'a => list bool -> mword 'a
-declare isabelle target_rep function wordFromBitlist = `Word.of_bl`
+declare isabelle target_rep function wordFromBitlist = `of_bl`
 declare hol      target_rep function wordFromBitlist = `bitstring$v2w`
 declare ocaml    target_rep function wordFromBitlist = `Lem.wordFromBitlist`
 
 val bitlistFromWord : forall 'a. mword 'a -> list bool
-declare isabelle target_rep function bitlistFromWord = `Word.to_bl`
+declare isabelle target_rep function bitlistFromWord = `to_bl`
 declare hol      target_rep function bitlistFromWord = `bitstring$w2v`
 declare ocaml    target_rep function bitlistFromWord = `Lem.bitlistFromWord`
 
@@ -1246,25 +1246,25 @@ declare ocaml    target_rep function word_update = `Lem.word_update`
 
 val setBit : forall 'a. mword 'a -> nat -> bool -> mword 'a
 
-declare isabelle target_rep function setBit = `Bits.set_bit`
+declare isabelle target_rep function setBit = `set_bit`
 declare hol      target_rep function setBit w i b = `$:+` i b w
 declare ocaml    target_rep function setBit = `Lem.word_setBit`
 
 val getBit : forall 'a. mword 'a -> nat -> bool
 
-declare isabelle target_rep function getBit = `Bits.test_bit`
+declare isabelle target_rep function getBit = `bit`
 declare hol      target_rep function getBit w b = `words$word_bit` b w
 declare ocaml    target_rep function getBit = `Lem.word_getBit`
 
 val msb : forall 'a. mword 'a -> bool
 
-declare isabelle target_rep function msb = `Bits.msb`
+declare isabelle target_rep function msb = `Most_significant_bit.msb`
 declare hol      target_rep function msb = `words$word_msb`
 declare ocaml    target_rep function msb = `Lem.word_msb`
 
 val lsb : forall 'a. mword 'a -> bool
 
-declare isabelle target_rep function lsb = `Bits.lsb`
+declare isabelle target_rep function lsb = `Least_significant_bit.lsb`
 declare hol      target_rep function lsb = `words$word_lsb`
 declare ocaml    target_rep function lsb = `Lem.word_lsb`
 
@@ -1282,6 +1282,10 @@ assert {ocaml;hol;isabelle} setBit_test1 : setBit (wordFromNatural 12 : mword ty
 assert {ocaml;hol;isabelle} setBit_test2 : setBit (wordFromNatural 14 : mword ty8) 1 false = wordFromNatural 12
 assert {ocaml;hol;isabelle} setBit_test3 : setBit (wordFromNatural 2 : mword ty8) 1 false = wordFromNatural 0
 assert {ocaml;hol;isabelle} getBit_test  : getBit (wordFromNatural 3 : mword ty8) 1 = true
+assert {ocaml;hol;isabelle} msb_test1    : msb (wordFromNatural 170 : mword ty8) = true
+assert {ocaml;hol;isabelle} msb_test2    : msb (wordFromNatural 85  : mword ty8) = false
+assert {ocaml;hol;isabelle} lsb_test1    : lsb (wordFromNatural 170 : mword ty8) = false
+assert {ocaml;hol;isabelle} lsb_test2    : lsb (wordFromNatural 85  : mword ty8) = true
 
 (******************************************************************)
 (* Bitwise operations, shifts, etc.                               *)
@@ -1307,25 +1311,25 @@ declare ocaml    target_rep function arithShiftRight = `Lem.word_arithShiftRight
 
 val lAnd       : forall 'a. mword 'a -> mword 'a -> mword 'a
 
-declare isabelle target_rep function lAnd = `Bits.bitAND`
+declare isabelle target_rep function lAnd = infix `AND`
 declare hol      target_rep function lAnd = `words$word_and`
 declare ocaml    target_rep function lAnd = `Lem.word_and`
 
 val lOr        : forall 'a. mword 'a -> mword 'a -> mword 'a
 
-declare isabelle target_rep function lOr = `Bits.bitOR`
+declare isabelle target_rep function lOr = infix `OR`
 declare hol      target_rep function lOr = `words$word_or`
 declare ocaml    target_rep function lOr = `Lem.word_or`
 
 val lXor       : forall 'a. mword 'a -> mword 'a -> mword 'a
 
-declare isabelle target_rep function lXor = `Bits.bitXOR`
+declare isabelle target_rep function lXor = infix `XOR`
 declare hol      target_rep function lXor = `words$word_xor`
 declare ocaml    target_rep function lXor = `Lem.word_xor`
 
 val lNot       : forall 'a. mword 'a -> mword 'a
 
-declare isabelle target_rep function lNot = `Bits.bitNOT`
+declare isabelle target_rep function lNot w = (`NOT` w)
 declare hol      target_rep function lNot = `words$word_1comp`
 declare ocaml    target_rep function lNot = `Lem.word_not`
 
@@ -1402,9 +1406,11 @@ val signedDivide : forall 'a. mword 'a -> mword 'a -> mword 'a
 declare isabelle target_rep function unsignedDivide = infix `div`
 declare hol      target_rep function unsignedDivide = `words$word_div`
 declare ocaml    target_rep function unsignedDivide = `Lem.word_udiv`
+
+declare isabelle target_rep function signedDivide   = infix `sdiv`
 declare hol      target_rep function signedDivide   = `words$word_quot`
 
-let {isabelle;ocaml} signedDivide x y =
+let {ocaml} signedDivide x y =
     if msb x then
         if msb y then unsignedDivide (uminus x) (uminus y)
         else uminus (unsignedDivide (uminus x) y)
