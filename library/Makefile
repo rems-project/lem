@@ -1,4 +1,4 @@
-LIBS=bool.lem basic_classes.lem function.lem maybe.lem num.lem tuple.lem list.lem either.lem set_helpers.lem set.lem map.lem relation.lem sorting.lem function_extra.lem assert_extra.lem list_extra.lem string.lem num_extra.lem map_extra.lem set_extra.lem maybe_extra.lem string_extra.lem word.lem show.lem show_extra.lem machine_word.lem pervasives.lem pervasives_extra.lem
+LIBS=bool.lem basic_classes.lem function.lem maybe.lem num.lem tuple.lem list.lem either.lem set_helpers.lem set.lem map.lem relation.lem sorting.lem function_extra.lem assert_extra.lem list_extra.lem string.lem num_extra.lem map_extra.lem set_extra.lem maybe_extra.lem string_extra.lem word.lem show.lem show_extra.lem machine_word.lem pervasives.lem pervasives_extra.lem debug.lem
 
 NOW:=$(shell date +%Y-%m-%d---%H-%M-%S)
 OCAML_BUILD_DIR=ocaml-build-dir---${NOW}

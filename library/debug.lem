@@ -1,3 +1,5 @@
+declare {isabelle;ocaml;hol;coq} rename module = lem_debug
+
 (* debugging functions; these should *not* be used in production code,
    but are invaluable in debugging the OCaml extraction, as long as
    one pays attention to the interaction with monads;
@@ -9,8 +11,11 @@
    inside the monad (otherwise, the evaluation order is that of the
    monad).
 *)
+
 val print_string : string -> unit
+let ~{ocaml} print_string str = ()
 declare ocaml target_rep function print_string = `print_string`
 
 val print_endline : string -> unit
+let ~{ocaml} print_endline str = ()
 declare ocaml target_rep function print_endline = `print_endline`
