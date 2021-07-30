@@ -382,7 +382,6 @@ begin
                       | Target_ident -> false
                       | Target_no_ident Target_lem -> false
                       | Target_no_ident Target_isa -> false
-                      | Target_no_ident Target_hol -> false
                       | _ -> true in
   let avoid_modules = false in
 
@@ -398,7 +397,15 @@ begin
   let add_avoid_type ns t = begin
     let td = Types.type_defs_lookup l env.t_env t in
     let n = type_descr_to_name targ t td in
-    NameSet.add n ns 
+    match targ with
+    | Target_no_ident Target_hol ->
+       (* HOL records introduce a new constructor that we need to avoid *)
+       begin match td.type_fields with
+       | None -> ns
+       | Some _ -> NameSet.add n ns
+       end
+    | _ ->
+       NameSet.add n ns
   end in
   let ns = if not avoid_types then ns else List.fold_left add_avoid_type ns ue.used_types in
   
