@@ -373,15 +373,23 @@ let move_file src dst =
    end
 
 let same_content_files file1 file2 : bool =
-  (Sys.file_exists file1) && (Sys.file_exists file2) && 
+  (Sys.file_exists file1) && (Sys.file_exists file2) &&
   begin
-    let s1 = Stream.of_channel (open_in_bin file1) in
-    let s2 = Stream.of_channel (open_in_bin file2) in
+    let o1 = open_in_bin file1 in
+    let o2 = open_in_bin file2 in
+    let s1 = Stream.of_channel o1 in
+    let s2 = Stream.of_channel o2 in
     let stream_is_empty s = (try Stream.empty s; true with Stream.Failure -> false) in
-    try 
+    try
       while ((Stream.next s1) = (Stream.next s2)) do () done;
+      close_in o1;
+      close_in o2;
       false
-    with Stream.Failure -> stream_is_empty s1 && stream_is_empty s2
+    with Stream.Failure ->
+      let b = stream_is_empty s1 && stream_is_empty s2 in
+      close_in o1;
+      close_in o2;
+      b
   end
 
 let absolute_dir dir =
