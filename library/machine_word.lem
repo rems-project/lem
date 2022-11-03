@@ -7,7 +7,7 @@ declare {isabelle;coq;hol;ocaml} rename module = Lem_machine_word
 
 open import Bool Num Basic_classes Show Function
 
-open import {isabelle} `Lem` `HOL-Library.Word` `Word_Lib.Generic_set_bit` `Word_Lib.Reversed_Bit_Lists` `Word_Lib.Signed_Division_Word` `Word_Lib.Traditional_Infix_Syntax`
+open import {isabelle} `Lem` `HOL-Library.Word` `Word_Lib.Generic_set_bit` `Word_Lib.Reversed_Bit_Lists` `Word_Lib.Signed_Division_Word`
 open import {hol} `wordsTheory` `wordsLib` `bitstringTheory` `integer_wordTheory`
 
 type mword 'a

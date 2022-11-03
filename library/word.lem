@@ -6,7 +6,7 @@ declare {isabelle;coq;hol;ocaml} rename module = Lem_word
 
 open import Bool Maybe Num Basic_classes List
 
-open import {isabelle} `HOL-Library.Word` `Word_Lib.Traditional_Infix_Syntax`
+open import {isabelle} `HOL-Library.Word`
 open import {hol} `wordsTheory` `wordsLib`
 
 

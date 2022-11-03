@@ -14,7 +14,7 @@ declare {isabelle;hol;ocaml;coq} rename module = lem_sorting
 
 open import Bool Basic_classes Maybe List Num
 
-open import {isabelle} `HOL-Library.Permutation`
+open import {isabelle} `HOL-Combinatorics.List_Permutation`
 open import {coq} `Coq.Lists.List`
 open import {hol} `sortingTheory` `permLib`
 open import {isabelle} `$LIB_DIR/Lem`

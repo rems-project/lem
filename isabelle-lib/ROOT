@@ -2,4 +2,5 @@ session LEM = "Word_Lib" +
   description \<open>
     HOL + LEM specific theories
   \<close>
+  sessions "HOL-Library"
   theories Lem_pervasives Lem_pervasives_extra

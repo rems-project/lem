@@ -57,7 +57,7 @@ theory "LemExtraDefs"
 
 imports
    Main
-   "HOL-Library.Permutation"
+   "HOL-Combinatorics.List_Permutation"
    "HOL-Library.While_Combinator"
 begin
 
