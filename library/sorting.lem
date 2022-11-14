@@ -88,7 +88,7 @@ declare termination_argument isSortedBy = automatic
 
 let inline isSorted = isSortedBy (<=)
 
-declare isabelle target_rep function isSortedBy = `sorted_by`
+declare isabelle target_rep function isSortedBy = `sorted_wrt`
 declare hol      target_rep function isSortedBy = `SORTED`
 
 assert isSorted_1: (isSorted ([]:list nat))

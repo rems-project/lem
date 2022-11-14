@@ -67,6 +67,8 @@ consts failwith :: " 'a \<Rightarrow> 'b"
 
 declare [[code abort: failwith]]
 
+unbundle bit_operations_syntax
+
 subsection \<open>Lists\<close>
 
 fun index :: " 'a list \<Rightarrow> nat \<Rightarrow> 'a option "  where
@@ -231,6 +233,11 @@ fun delete_first :: "('a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow>
   | "delete_first P (x # xs) =
      (if (P x) then Some xs else
       map_option (\<lambda>xs'. x # xs') (delete_first P xs))"
+
+lemma delete_first_extract:
+  "delete_first P xs = map_option (\<lambda>(xs, y, zs). xs @ zs) (List.extract P xs)"
+  by (induction xs) (auto simp: extract_None_iff extract_Cons_code split: option.splits)
+
 declare delete_first.simps [simp del]
 
 lemma delete_first_simps [simp] :
@@ -249,61 +256,11 @@ by (induct l) (auto simp add: delete_first_unroll)
 lemma delete_first_eq_some :
   "delete_first P l = (Some l') \<longleftrightarrow> (\<exists>l1 x l2. P x \<and> (\<forall>x \<in> set l1. \<not>(P x)) \<and> (l = l1 @ (x # l2)) \<and> (l' = l1 @ l2))"
   (is "?lhs l l' = (\<exists>l1 x l2. ?rhs_body l1 x l2 l l')")
-proof (induct l arbitrary: l')
-  case Nil thus ?case by simp
-next
-  case (Cons e l l')
-  note ind_hyp = this
-
-  show ?case
-  proof (cases "P e")
-    case True
-    show ?thesis
-    proof (rule iffI)
-      assume "?lhs (e # l) l'"
-      with \<open>P e\<close> have "l = l'" by simp
-      with \<open>P e\<close> have "?rhs_body [] e l' (e # l) l'" by simp
-      thus "\<exists>l1 x l2. ?rhs_body l1 x l2 (e # l) l'" by blast
-    next
-      assume "\<exists>l1 x l2. ?rhs_body l1 x l2 (e # l) l'"
-      then obtain l1 x l2 where body_ok: "?rhs_body l1 x l2 (e # l) l'" by blast
-
-      from body_ok \<open>P e\<close> have l1_eq[simp]: "l = l'"
-        by (cases l1) (simp_all)
-      with \<open>P e\<close> show "?lhs (e # l) l'" by simp
-    qed
-  next
-    case False
-    define rhs_pred where "rhs_pred \<equiv> \<lambda>l1 x l2 l l'. ?rhs_body l1 x l2 l l'"
-    have rhs_fold: "\<And>l1 x l2 l l'. ?rhs_body l1 x l2 l l' = rhs_pred l1 x l2 l l'"
-       unfolding rhs_pred_def by simp
-
-    have "(\<exists>z l1 x l2. rhs_pred l1 x l2 l z \<and> e # z = l') = (\<exists>l1 x l2. rhs_pred l1 x l2 (e # l) l')"
-    proof (intro iffI)
-      assume "\<exists>z l1 x l2. rhs_pred l1 x l2 l z \<and> e # z = l'"
-      then obtain z l1 x l2 where "rhs_pred l1 x l2 l z" and l'_eq: "l' = e # z" by auto
-      with \<open>\<not>(P e)\<close> have "rhs_pred (e # l1) x l2 (e # l) l'"
-        unfolding rhs_pred_def by simp
-      thus "\<exists>l1 x l2. rhs_pred l1 x l2 (e # l) l'" by blast
-    next
-      assume "\<exists>l1 x l2. rhs_pred l1 x l2 (e # l) l'"
-      then obtain l1 x l2 where "rhs_pred l1 x l2 (e # l) l'" by blast
-      with \<open>\<not> (P e)\<close> obtain l1' where l1_eq[simp]: "l1 = e # l1'"
-        unfolding rhs_pred_def by (cases l1) (auto)
-
-      with \<open>rhs_pred l1 x l2 (e # l) l'\<close>
-      have "rhs_pred l1' x l2 l (l1' @ l2) \<and> e # (l1' @ l2) = l'"
-        unfolding rhs_pred_def by (simp)
-      thus "\<exists>z l1 x l2. rhs_pred l1 x l2 l z \<and> e # z = l'" by blast
-    qed
-    with \<open>\<not> P e\<close> show ?thesis
-      unfolding rhs_fold
-      by (simp add: ind_hyp[unfolded rhs_fold])
-  qed
-qed
+  unfolding delete_first_extract
+  by (auto simp: extract_Some_iff)
 
 
-lemma perm_eval [code] :
+lemma perm_eval:
   "perm [] l \<longleftrightarrow> l = []" (is ?g1)
   "perm (x # xs) l \<longleftrightarrow> (case delete_first (\<lambda>e. e = x) l of
        None => False
@@ -330,7 +287,7 @@ next
            perm_append2 [of "l1 @ [x]" "x # l1" l2]
       have "l1 @ x # l2 <~~> x # (l1 @ l2)" by simp
       hence "x # xs <~~> l1 @ x # l2 \<longleftrightarrow> x # xs <~~> x # (l1 @ l2)"
-        by (metis perm.trans perm_sym)
+        by auto
       thus ?thesis by simp
     qed
     with del_eq l_eq l'_eq show ?thesis by simp
@@ -338,47 +295,16 @@ next
 qed
 
 
-fun sorted_by  :: "('a \<Rightarrow> 'a \<Rightarrow> bool)\<Rightarrow> 'a list \<Rightarrow> bool "  where
-   "sorted_by cmp [] = True"
- | "sorted_by cmp [_] = True"
- | "sorted_by cmp (x1 # x2 # xs) = ((cmp x1 x2) \<and> sorted_by cmp (x2 # xs))"
-
-lemma sorted_by_lesseq [simp] :
-  "sorted_by ((\<le>) :: ('a::{linorder}) => 'a => bool) = sorted"
-proof (rule ext)
-  fix l :: "'a list"
-  show "sorted_by (\<le>) l = sorted l"
-  proof (induct l)
-    case Nil thus ?case by simp
-  next
-    case (Cons x xs)
-    thus ?case by (cases xs) (simp_all del: sorted.simps(2) add: sorted2_simps)
-  qed
-qed
-
-lemma sorted_by_cons_imp :
-  "sorted_by cmp (x # xs) \<Longrightarrow> sorted_by cmp xs"
-by (cases xs) simp_all
-
-lemma sorted_by_cons_trans :
-  assumes trans_cmp: "transp cmp"
-  shows "sorted_by cmp (x # xs) = ((\<forall>x' \<in> set xs . cmp x x') \<and> sorted_by cmp xs)"
-proof (induct xs arbitrary: x)
-  case Nil thus ?case by simp
-next
-  case (Cons x2 xs x1)
-  note ind_hyp = this
-
-  from trans_cmp
-  show ?case
-    by (auto simp add: ind_hyp transp_def)
-qed
-
-
 fun insert_sort_insert_by  :: "('a \<Rightarrow> 'a \<Rightarrow> bool)\<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> 'a list "  where
   "insert_sort_insert_by cmp e ([]) = ( [e])"
 | "insert_sort_insert_by cmp e (x # xs) = ( if cmp e x then (e # (x # xs)) else x # (insert_sort_insert_by cmp e xs))"
 
+
+lemma insert_sort_insert_by_eq_insort_key:
+  assumes "\<And>x y. x \<in> set (z # zs) \<Longrightarrow> y \<in> set (z # zs) \<Longrightarrow> cmp x y \<longleftrightarrow> f x \<le> f y"
+  shows "insert_sort_insert_by cmp z zs = List.insort_key f z zs"
+  using assms
+  by (induction zs) auto
 
 lemma insert_sort_insert_by_length [simp] :
   "length (insert_sort_insert_by cmp e l) = Suc (length l)"
@@ -396,72 +322,33 @@ next
   case (Cons e2 l')
   note ind_hyp = this
 
-  have "e2 # e # l' <~~> e # e2 # l'" by (rule perm.swap)
+  have "e2 # e # l' <~~> e # e2 # l'" by auto
   hence "e2 # insert_sort_insert_by cmp e l' <~~> e # e2 # l'"
-    using ind_hyp by (metis cons_perm_eq perm.trans)
+    using ind_hyp by auto
   thus ?case by simp
 qed
 
 
-lemma insert_sort_insert_by_sorted_by :
-assumes cmp_cases: "\<And>y. y \<in> set l \<Longrightarrow> \<not> (cmp e y) \<Longrightarrow> cmp y e"
-assumes cmp_trans: "transp cmp"
-shows "sorted_by cmp l \<Longrightarrow> sorted_by cmp (insert_sort_insert_by cmp e l)"
-using cmp_cases
-proof (induct l)
-  case Nil thus ?case by simp
-next
-  case (Cons x1 l')
-  note ind_hyp = Cons(1)
-  note sorted_x1_l' = Cons(2)
-  note cmp_cases = Cons(3)
-
-  show ?case
-  proof (cases l')
-    case Nil with cmp_cases show ?thesis by simp
-  next
-    case (Cons x2 l'') note l'_eq = this
-
-    from l'_eq sorted_x1_l' have "cmp x1 x2" "sorted_by cmp l'" by simp_all
-
-    show ?thesis
-    proof (cases "cmp e x1")
-      case True
-      with \<open>cmp x1 x2\<close> \<open>sorted_by cmp l'\<close>
-      have "sorted_by cmp (x1 # l')"
-        unfolding l'_eq by (simp)
-      with \<open>cmp e x1\<close>
-      show ?thesis by simp
-    next
-      case False
-
-      with cmp_cases have "cmp x1 e" by simp
-      have "\<And>x'.  x' \<in> set l' \<Longrightarrow> cmp x1 x'"
-      proof -
-        fix x'
-        assume "x' \<in> set l'"
-        hence "x' = x2 \<or> cmp x2 x'"
-          using \<open>sorted_by cmp l'\<close> l'_eq sorted_by_cons_trans [OF cmp_trans, of x2 l'']
-          by auto
-        with transpD[OF cmp_trans, of x1 x2 x'] \<open>cmp x1 x2\<close>
-        show "cmp x1 x'" by blast
-      qed
-      hence "sorted_by cmp (x1 # insert_sort_insert_by cmp e l')"
-        using ind_hyp [OF \<open>sorted_by cmp l'\<close>] \<open>cmp x1 e\<close> cmp_cases
-        unfolding sorted_by_cons_trans[OF cmp_trans]
-        by simp
-      with \<open>\<not>(cmp e x1)\<close>
-      show ?thesis by simp
-    qed
-  qed
-qed
-
+lemma insert_sort_insert_by_sorted_wrt:
+  assumes cmp_cases: "\<And>y. y \<in> set l \<Longrightarrow> \<not> (cmp e y) \<Longrightarrow> cmp y e"
+  assumes cmp_trans: "transp cmp"
+  shows "sorted_wrt cmp l \<Longrightarrow> sorted_wrt cmp (insert_sort_insert_by cmp e l)"
+  by (use cmp_cases in \<open>induction l\<close>; use cmp_trans in \<open>auto elim: transpE\<close>)
 
 
 fun insert_sort_by :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> 'a list "  where
     "insert_sort_by cmp [] = []"
   | "insert_sort_by cmp (x # xs) = insert_sort_insert_by cmp x (insert_sort_by cmp xs)"
 
+lemma insert_sort_by_eq_foldr:
+  "insert_sort_by cmp xs = foldr (insert_sort_insert_by cmp) xs []"
+  by (induction xs) auto
+
+lemma insert_sort_by_eq_sort_key:
+  assumes "\<And>x y. x \<in> set xs \<Longrightarrow> y \<in> set xs \<Longrightarrow> cmp x y \<longleftrightarrow> f x \<le> f y"
+  shows "insert_sort_by cmp xs = sort_key f xs"
+  using assms
+  by (induction xs) (auto intro: insert_sort_insert_by_eq_insort_key)
 
 lemma insert_sort_by_perm :
   "(insert_sort_by cmp l) <~~> l"
@@ -470,7 +357,8 @@ proof (induct l)
 next
   case (Cons x l)
   thus ?case
-   by simp (metis cons_perm_eq insert_sort_insert_by_perm perm.trans)
+    using insert_sort_insert_by_perm[of cmp x "insert_sort_by cmp l"]
+    by auto
 qed
 
 lemma insert_sort_by_length [simp]:
