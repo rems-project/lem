@@ -71,7 +71,7 @@ let r = Ulib.Text.of_latin1
 module Refl = struct
   type t = const_descr_ref * Ast.l
   let compare (r1,_) (r2,_) =
-    Pervasives.compare r1 r2
+    Stdlib.compare r1 r2
 end
 
 module ReflSet = Set.Make(Refl)
@@ -3452,7 +3452,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
 
 
           (* add a dictionary constant *)
-          let dict_name = Name.from_string (String.uncapitalize (Name.to_string instance_name) ^ "_dict") in
+          let dict_name = Name.from_string (String.uncapitalize_ascii (Name.to_string instance_name) ^ "_dict") in
 
           let dict_type = class_descr_get_dict_type p_d src_t.typ in
 

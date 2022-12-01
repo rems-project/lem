@@ -142,7 +142,7 @@ let some = Ident.mk_ident_strings [] "Some";;
 let fresh_name_counter = ref 0
 ;;
 
-module OutputSet = Set.Make (struct type t = Output.t let compare = Pervasives.compare end)
+module OutputSet = Set.Make (struct type t = Output.t let compare = Stdlib.compare end)
 ;;
 
 let decidable_equality_tracker =
@@ -160,7 +160,7 @@ let generate_fresh_name = fun () ->
   let old  = !fresh_name_counter in
   let _    = fresh_name_counter := old + 1 in
   let post = string_of_int old in
-    Pervasives.(^) "x" post
+    Stdlib.(^) "x" post
 ;;
 
 let rec generate_coq_decidable_equality' t =
@@ -252,7 +252,7 @@ let generate_coq_record_update_notation e =
     let ((n0, l), c, s4, ty) = x in
     let n = B.const_ref_to_name n0 false c in
     let name = Name.to_string (Name.strip_lskip n) in
-    let all_fields = List.filter (fun x -> Pervasives.compare name x <> 0) all_fields in
+    let all_fields = List.filter (fun x -> Stdlib.compare name x <> 0) all_fields in
     let other_fields = concat (kwd "; ")
       (List.map (fun x ->
         Output.flat [
@@ -297,7 +297,7 @@ let generate_coq_record_update_notation e =
       | RightAssoc
     ;;
 
-    module AssocMap = Map.Make (struct type t = string let compare = Pervasives.compare end)
+    module AssocMap = Map.Make (struct type t = string let compare = Stdlib.compare end)
     ;;
 
     type variable
@@ -627,7 +627,7 @@ let generate_coq_record_update_notation e =
       let compare_clauses_by_name name (Rule(_,_, _, _, _, _, _, name', _, _),_) =
         let name' = name'.term in
         let name' = Name.strip_lskip name' in
-          Pervasives.compare name name' = 0
+          Stdlib.compare name name' = 0
       in
       let indrelns =
         List.map (fun name ->

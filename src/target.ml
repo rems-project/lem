@@ -97,7 +97,7 @@ let target_to_ast_target t = match t with
   | Target_html  -> Ast.Target_html None
   | Target_lem   -> Ast.Target_lem None
 
-let target_compare = Pervasives.compare
+let target_compare = Stdlib.compare
 
 let ast_target_to_int = function
   | Ast.Target_lem _   -> 7
@@ -108,7 +108,7 @@ let ast_target_to_int = function
   | Ast.Target_tex _   -> 2
   | Ast.Target_html _  -> 1
 
-let ast_target_compare x y = Pervasives.compare (ast_target_to_int x) (ast_target_to_int y)
+let ast_target_compare x y = Stdlib.compare (ast_target_to_int x) (ast_target_to_int y)
 
 module Targetmap = struct 
 

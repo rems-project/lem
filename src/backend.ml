@@ -95,7 +95,7 @@ let suppress_target_names = ref false
 let suppress_libraries = ref false
 
 let r = Ulib.Text.of_latin1
-let (^^) = Pervasives.(^)
+let (^^) = Stdlib.(^)
 
 let gensym_tex_command =
   let n = ref 0 in
@@ -106,7 +106,7 @@ let gensym_tex_command =
 let rec process_latex_labels s =
   let regexp = Str.regexp "\\([^_]*\\)_+\\(.*\\)" in
   if Str.string_match regexp s 0 then
-    let new_s = String.concat "" [Str.matched_group 1 s; String.capitalize (Str.matched_group 2 s)] in
+    let new_s = String.concat "" [Str.matched_group 1 s; String.capitalize_ascii (Str.matched_group 2 s)] in
     process_latex_labels new_s
   else
     s

@@ -571,7 +571,7 @@ let split_suffix =
   fun s ->
   if Str.string_match regexp s 0 then
     (Str.matched_group 1 s, 
-     let (^) = Pervasives.(^) in
+     let (^) = Stdlib.(^) in
      let numeric_suffix = Str.matched_group 2 s in 
      let prime_suffix = Str.matched_group 3 s in
      let remaining_suffix = Str.matched_group 4 s in

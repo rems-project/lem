@@ -211,7 +211,7 @@ let rec occurs_src_t (x : Name.t) (s : src_t) : bool =
 module InductiveMap = Map.Make (
   struct
     type t = Name.t
-    let compare = Pervasives.compare
+    let compare = Stdlib.compare
   end)
 ;;
 

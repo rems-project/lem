@@ -871,9 +871,9 @@ struct
     match im1, im2 with
       | IM_paths p1, IM_paths p2 -> Util.compare_list Path.compare p1 p2
       | IM_targets (t1, s1), IM_targets (t2, s2) ->
-        let first = Pervasives.compare t1 t2 in
+        let first = Stdlib.compare t1 t2 in
           if first = 0 then
-            Pervasives.compare s1 s2
+            Stdlib.compare s1 s2
           else
             first
       | IM_paths _, IM_targets _ -> -1

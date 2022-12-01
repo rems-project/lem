@@ -206,7 +206,7 @@ let of_ascii s =
   for i = 0 to String.length s - 1 do
     if Char.code s.[i] >= 0x80 then raise Malformed_code;
   done;
-  String.copy s
+  s
 
 let of_latin1 s = init (String.length s) (fun i -> BatUChar.of_char s.[i])
 
@@ -272,7 +272,7 @@ end = struct
   let move us bi n = (* faster moving positive than negative n *)
     let bi = ref bi in
     let step = if n > 0 then next else prev in
-    for j = 1 to abs n do bi := step us !bi done;
+    for _j = 1 to abs n do bi := step us !bi done;
     !bi
   let of_char_idx us ci = move us first ci
 end

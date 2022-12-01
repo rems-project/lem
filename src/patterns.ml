@@ -2243,7 +2243,7 @@ let my_compile_step (env : env) (mk_failure : env -> Ast.l -> Types.t -> exp)
     Util.map_filter
       (fun p -> Util.option_map (fun (id, _) -> id) @@ dest_const_pat p)
       pL in
-  let constr_ids = List.sort (fun id id' -> Pervasives.compare id.descr id'.descr) constr_ids in
+  let constr_ids = List.sort (fun id id' -> Stdlib.compare id.descr id'.descr) constr_ids in
   let rec uniq = function
     | [] -> []
     | [ x ] -> [ x ]
@@ -2284,7 +2284,7 @@ let my_compile_step (env : env) (mk_failure : env -> Ast.l -> Types.t -> exp)
       List.sort (fun (con, _) (con', _) ->
           match con, con' with
           | `Const (c, _), `Const (c', _) ->
-            Pervasives.compare c.descr c'.descr
+            Stdlib.compare c.descr c'.descr
           | `Const (_, _), `Wild _ -> -1
           | `Wild _, `Const (_, _) -> 1
           | `Wild _, `Wild _ -> 0) @@
@@ -2308,7 +2308,7 @@ let my_compile_step (env : env) (mk_failure : env -> Ast.l -> Types.t -> exp)
            [ matrix_compile_mk_pwild p_ty, mk_failure env l m_ty ] ) m_ty ::
         List.map (fun (ty, ee) -> ee) wilds
       end in
-    let all_pats = List.sort Pervasives.compare all_pats in
+    let all_pats = List.sort Stdlib.compare all_pats in
     let rec uniq = function
       | [] -> []
       | [x] -> [x]

@@ -54,7 +54,7 @@
 module DepSet = Set.Make(
 struct 
   type t = (string * Ast.l)
-  let compare = Pervasives.compare
+  let compare = Stdlib.compare
 end)
 
 module DepSetExtra = Util.ExtraSet(DepSet)
@@ -81,12 +81,12 @@ let module_dependency_is_cyclic md =
     extension ".lem" *)
 let filename_to_modname filename = 
   let filename_base = Filename.basename (Filename.chop_extension filename) in
-  String.capitalize filename_base
+  String.capitalize_ascii filename_base
 
 (** convert a module name to a file name by uncapitalising it and adding the
     extension ".lem" *)
 let modname_to_filename modname = 
-  String.uncapitalize (modname ^ ".lem")
+  String.uncapitalize_ascii (modname ^ ".lem")
 
 (** [search_module_file mod_name] searches for the file a module [mod_name].
     This can be done arbitrarily clever, e.g. by searching a list of given
@@ -117,7 +117,7 @@ let load_module_file (filename, loc, needs_output, is_user_import) =
   let missing_deps = begin
     let needed_modules = Ast_util.get_imported_modules ast in
     let needed_modules_top = List.map (fun (n, l) -> ((Path.get_toplevel_name n), l)) needed_modules (* only top_level modules can be loaded by files *) in
-    let needed_module_strings = List.map (fun (n, l) -> (String.capitalize (Name.to_string n), l)) needed_modules_top in
+    let needed_module_strings = List.map (fun (n, l) -> (String.capitalize_ascii (Name.to_string n), l)) needed_modules_top in
     DepSetExtra.from_list needed_module_strings
   end in
   { 

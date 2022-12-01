@@ -297,7 +297,7 @@ let uncapitalize_prefix =
     begin
       let c = Bytes.get x p in
       if is_uppercase c then
-        let c' = Char.lowercase c in
+        let c' = Char.lowercase_ascii c in
         let _ = Bytes.set x p c' in
         true
       else
@@ -326,13 +326,13 @@ let string_map f s_input =
 
 module IntSet = Set.Make( 
   struct
-    let compare = Pervasives.compare
+    let compare = Stdlib.compare
     type t = int
   end )
 
 module IntIntSet = Set.Make( 
   struct
-    let compare = Pervasives.compare
+    let compare = Stdlib.compare
     type t = int * int
   end )
 

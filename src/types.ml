@@ -579,13 +579,13 @@ let is_nil_const_descr_ref r = (r = 0)
 module Cdmap = Finite_map.Fmap_map(
 struct 
   type t = const_descr_ref
-  let compare = Pervasives.compare
+  let compare = Stdlib.compare
 end)
 
 module Cdset = Set.Make(
 struct 
   type t = const_descr_ref
-  let compare = Pervasives.compare
+  let compare = Stdlib.compare
 end)
 
 type 'a cdmap = const_descr_ref * 'a Cdmap.t
@@ -763,7 +763,7 @@ type instance = {
   inst_dict : const_descr_ref
 }
 
-module IM = Map.Make(struct type t = int let compare = Pervasives.compare end)
+module IM = Map.Make(struct type t = int let compare = Stdlib.compare end)
 open Format
 open Pp
 
@@ -1004,7 +1004,7 @@ type instance_ref = int
 module Instmap = Finite_map.Fmap_map(
 struct 
   type t = instance_ref
-  let compare = Pervasives.compare
+  let compare = Stdlib.compare
 end)
 
 let string_of_instance_ref = string_of_int

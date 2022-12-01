@@ -88,7 +88,7 @@ let register_string s =
 
 type t = (int * string)
 
-let compare (i, s) (i', s') = Pervasives.compare i i'
+let compare (i, s) (i', s') = Stdlib.compare i i'
 
 let from_rope r =
   let str = Ulib.Text.to_string r in
@@ -211,13 +211,13 @@ let starts_with_lower_letter (_, x) =
 
 let uncapitalize ((_, y) as x) = 
   if (starts_with_upper_letter x) then
-    let c = Ulib.UChar.of_char (Char.lowercase (Ulib.UChar.char_of (Ulib.UTF8.get y 0))) in
+    let c = Ulib.UChar.of_char (Char.lowercase_ascii (Ulib.UChar.char_of (Ulib.UTF8.get y 0))) in
     Some (from_rope (Ulib.Text.set (to_rope x) 0 c))
   else None
 
 let capitalize ((_, y) as x) =
   if (starts_with_lower_letter x) then
-    let c = Ulib.UChar.of_char (Char.uppercase (Ulib.UChar.char_of (Ulib.UTF8.get y 0))) in
+    let c = Ulib.UChar.of_char (Char.uppercase_ascii (Ulib.UChar.char_of (Ulib.UTF8.get y 0))) in
     Some (from_rope (Ulib.Text.set (to_rope x) 0 c))
   else None
 

@@ -186,7 +186,7 @@ let output1 env (out_dir : string option) (targ : Target.target) avoid m =
       | Target.Target_no_ident (Target.Target_lem) -> 
           begin
             let r = B.lem_defs m.typed_ast in
-            let module_name_lower = String.uncapitalize module_name in
+            let module_name_lower = String.uncapitalize_ascii module_name in
             let (o, ext_o) = open_output_with_check dir (module_name_lower ^ "-processed.lem") in
               Printf.fprintf o "%s" (Ulib.Text.to_string r);
               close_output_with_check ext_o
@@ -245,7 +245,7 @@ let output1 env (out_dir : string option) (targ : Target.target) avoid m =
       | Target.Target_no_ident(Target.Target_ocaml) -> 
           begin
             let (r_main, r_extra_opt) = B.ocaml_defs m.typed_ast in
-            let module_name_lower = String.uncapitalize module_name in
+            let module_name_lower = String.uncapitalize_ascii module_name in
             let _ = if (!only_auxiliary) then () else begin
               let (o, ext_o) = open_output_with_check dir (module_name_lower ^ ".ml") in
               Printf.fprintf o "(*%s*)\n" (generated_line m.filename);

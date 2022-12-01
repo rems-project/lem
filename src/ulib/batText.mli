@@ -123,7 +123,7 @@ val height : t -> int
 val balance : t -> t
 (** [balance r] returns a balanced copy of the [r] rope. Note that ropes are
     automatically rebalanced when their height exceeds a given threshold, but
-    [balance] allows to invoke that operation explicity. *)
+    [balance] allows to invoke that operation explicitly. *)
 
 (** {6 Operations } *)
 
@@ -430,3 +430,8 @@ val compare : t -> t -> int
     {!Pervasives.compare}.  Along with the type [t], this function [compare]
     allows the module [Rope] to be passed as argument to the functors
     {!Set.Make} and {!Map.Make}. *)
+
+val equal : t -> t -> bool
+(** Equality of ropes (based on compare)
+    @since 2.2.0 *)
+

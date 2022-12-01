@@ -491,7 +491,7 @@ let function_application_to_output l (arg_f0 : exp -> Output.t) (is_infix_pos : 
      | Some (CR_infix (_, _, _, i)) -> constant_application_to_output_simple is_infix_pos arg_f alter_init_lskips args c_id ascii_alternative (Some i)
      | Some (CR_undefined (l', _)) -> 
        begin 
-         let (^) = Pervasives.(^) in
+         let (^) = Stdlib.(^) in
          let m0 = "constant '" ^ Path.to_string c_descr.const_binding ^ "' is explicitly declared undefined for target " ^ (Target.target_to_string A.target) ^ " at\n    " in
          let loc_s = Reporting_basic.loc_to_string false l' in 
          raise (Reporting_basic.Fatal_error (Reporting_basic.Err_type (l, 
@@ -519,7 +519,7 @@ let pattern_application_to_output l (arg_f0 : pat -> Output.t) (c_id : const_des
        end
      | Some (CR_undefined (l', _)) -> 
        begin 
-         let (^) = Pervasives.(^) in
+         let (^) = Stdlib.(^) in
          let m0 = "constant '" ^ Path.to_string c_descr.const_binding ^ "' is explicitly declared undefined for target " ^ (Target.target_to_string A.target) ^ " at\n    " in
          let loc_s = Reporting_basic.loc_to_string false l' in 
          raise (Reporting_basic.Fatal_error (Reporting_basic.Err_type (l, 

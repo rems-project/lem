@@ -139,7 +139,7 @@ let compare p1 p2 =
     | Path_unit, Path_unit -> 0
     | Path_def(_,_), _ -> -1
     | _, Path_def(_,_) -> 1
-    | p1, p2 -> Pervasives.compare (partial_map_to_int p1) (partial_map_to_int p2)
+    | p1, p2 -> Stdlib.compare (partial_map_to_int p1) (partial_map_to_int p2)
 
 let pp ppf p =
   match (to_name_list p) with
