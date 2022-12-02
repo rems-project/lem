@@ -99,6 +99,11 @@ might not work.  Lem requires the OCaml ZArith library for arbitrary
 precision arithmetic.  Lem has been tested against ZArith version
 `1.4` and `1.9.1`.  Other versions might or might not work.
 
+The generated Isabelle theories require the `Word_Lib` entry of the [Archive of
+Formal Proofs](https://www.isa-afp.org/) to be installed and set up (e.g. by
+adding the path to `Word_Lib` to `$ISABELLE_HOME_USER/ROOTS`).  An Isabelle
+2022 version of the AFP can be downloaded
+[here](https://foss.heptapod.net/isa-afp/afp-2022).
 
 ## Supported versions of target software
 
@@ -106,7 +111,7 @@ Lem has been tested against the following versions of the backend software:
 
   * OCaml: `4.02.3`, `4.06.1` and `4.10.0`
   * Coq: 8.11.2
-  * Isabelle2019 and Isabelle2020
+  * Isabelle 2022
   * HOL: HOL4 Kananaskis 13
 
 ## Examples
