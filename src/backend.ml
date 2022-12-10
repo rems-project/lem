@@ -138,8 +138,8 @@ let char_escape_ocaml c = match int_of_char c with
 let char_escape_hol c = match int_of_char c with
   | 0x5c -> "\\\\" (* backslash *)
   | 0x22 -> "\\\"" (* double quote *)
-  | 0x5e -> "^^"   (* carret *)
-  | 0x60 -> "^`"   (* back quote *)
+  | 0x5e -> "\094" (* carret *)
+  | 0x60 -> "\096" (* back quote *)
   | x when x >= 32 && x <= 126 -> (* other printable characters *)
       String.make 1 c
   | 0x07 -> "\\a" (* common control characters *)
@@ -149,9 +149,8 @@ let char_escape_hol c = match int_of_char c with
   | 0x0b -> "\\v"
   | 0x0c -> "\\f"
   | 0x0d -> "\\r"
-  | x when x >= 0 && x < 32 -> (* other control characters *)
-      Printf.sprintf "\\^^%c" (char_of_int (x + 64))
-  | x when x > 126 && x <= 255 ->
+  | x when (x >= 0 && x < 32) (* other control characters *)
+        || (x > 126 && x <= 255) ->
       Printf.sprintf "\\%03u" x
   | _ -> failwith "int_of_char returned an unexpected value"
 
