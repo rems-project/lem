@@ -1,5 +1,4 @@
 -R . Lem
--install none
 lem_basic_classes.v
 lem_bool.v
 lem_either.v
