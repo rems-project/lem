@@ -94,7 +94,7 @@ run `make libs`.
 ## Dependencies
 
 Lem depends on [OCaml](http://caml.inria.fr/). Lem has been tested
-against OCaml `4.02.3`, `4.06.1` and `4.10.0`. Other versions might or
+against OCaml `4.07.0`, `4.12.0` and `5.0.0~beta1`. Other versions might or
 might not work.  Lem requires the OCaml ZArith library for arbitrary
 precision arithmetic.  Lem has been tested against ZArith version
 `1.4` and `1.9.1`.  Other versions might or might not work.
@@ -109,10 +109,10 @@ adding the path to `Word_Lib` to `$ISABELLE_HOME_USER/ROOTS`).  An Isabelle
 
 Lem has been tested against the following versions of the backend software:
 
-  * OCaml: `4.02.3`, `4.06.1` and `4.10.0`
-  * Coq: 8.11.2
+  * OCaml: `4.07.0`, `4.12.0` and `5.0.0~beta1`
+  * Coq: 8.16.0
   * Isabelle 2022
-  * HOL: HOL4 Kananaskis 13
+  * HOL: HOL4 Kananaskis 14
 
 ## Examples
 
