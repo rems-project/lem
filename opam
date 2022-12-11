@@ -21,7 +21,7 @@ authors: [
 ]
 homepage: "http://www.cl.cam.ac.uk/~pes20/lem/"
 bug-reports: "https://github.com/rems-project/lem/issues"
-license: "part BSD3, part LGPL 2"
+license: ["BSD-3-Clause" "LGPL-2.1-or-later"]
 dev-repo: "git+https://github.com/rems-project/lem.git"
 build: [make "INSTALL_DIR=%{prefix}%"]
 install: [make "INSTALL_DIR=%{prefix}%" "install"]
