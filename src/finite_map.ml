@@ -100,7 +100,7 @@ module Fmap_map(Key : Set.OrderedType) : Fmap
                          List.fold_left2 (fun m k v -> M.add k v m) M.empty l1 l2
   let insert m (k,v) = M.add k v m
   let union m1 m2 = 
-    M.merge (fun k v1 v2 -> match v2 with | None -> v1 | Some _ -> v2) m1 m2
+    M.union (fun k v1 v2 -> Some v2) m1 m2
   let merge f m1 m2 = M.merge f m1 m2
   let apply m k = 
     try
