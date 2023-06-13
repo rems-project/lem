@@ -353,12 +353,12 @@ module type Target = sig
   val reln_clause_end : t
 
   (* Type defnitions *)
-  val typedef_start : t
+  val typedef_start : bool -> t
   val typedef_binding : t
-  val typedef_end : t
+  val typedef_end : bool -> t
   val typedef_sep : t
-  val typedefrec_start : t
-  val typedefrec_end : t
+  val typedefrec_start : bool -> t
+  val typedefrec_end : bool -> t
 
   val rec_start : t
   val rec_end : t
@@ -567,12 +567,12 @@ module Identity : Target = struct
   let reln_clause_start = emp
   let reln_clause_end = emp
 
-  let typedef_start = kwd "type"
+  let typedef_start _ = kwd "type"
   let typedef_binding = kwd "="
-  let typedef_end = emp
+  let typedef_end _ = emp
   let typedef_sep = kwd "and"
-  let typedefrec_start = kwd "type"
-  let typedefrec_end = emp
+  let typedefrec_start _ = kwd "type"
+  let typedefrec_end _ = emp
   let typedefrec_implicits _ = emp
   let rec_start = kwd "<|"
   let rec_end = kwd "|>"
@@ -789,12 +789,12 @@ module Tex : Target = struct
   let reln_clause_add_paren = false
   let reln_clause_end = emp
 
-  let typedef_start = bkwd "type"
+  let typedef_start _ = bkwd "type"
   let typedef_binding = kwd "="
-  let typedef_end = emp
+  let typedef_end _ = emp
   let typedef_sep = bkwd "and"
-  let typedefrec_start = bkwd "type"
-  let typedefrec_end = emp
+  let typedefrec_start _ = bkwd "type"
+  let typedefrec_end _ = emp
   let typedefrec_implicits _ = emp
   let rec_start = kwd "\\lemlrec"
   let rec_end = kwd "\\lemrrec"
@@ -1022,16 +1022,38 @@ module Isa () : Target = struct
   let reln_clause_add_paren = false
   let reln_clause_end = kwd "\""
 
-  let typedef_start = kwd "datatype"
-  let typedef_end = emp
+  let typedef_start has_sort =
+    if has_sort then
+      meta "context notes [[typedef_overloaded]] begin" ^
+      new_line ^
+      kwd "datatype"
+    else
+      kwd "datatype"
+  let typedef_end has_sort =
+    if has_sort then
+      new_line ^ meta "end"
+    else
+      emp
   let typedef_sep = kwd "and"
 
-  let typedefrec_start =
+  let typedefrec_start has_sort =
     if !Backend_common.isa_use_datatype_record_flag then
-      kwd "datatype_record"
+      if has_sort then
+        meta "context notes [[typedef_overloaded]] begin" ^
+        new_line ^
+        kwd "datatype_record"
+      else
+        kwd "datatype_record"
     else
-      kwd "record"
-  let typedefrec_end = emp
+      if has_sort then
+        kwd "record (overloaded)"
+      else
+        kwd "record"
+  let typedefrec_end has_sort =
+    if !Backend_common.isa_use_datatype_record_flag && has_sort then
+      meta "end" ^ new_line
+    else
+      emp
   let rec_start = kwd "(|"
   let rec_end = kwd "|)"
   let rec_sep = kwd ","
@@ -1262,12 +1284,12 @@ module Hol : Target = struct
   let reln_clause_add_paren = true
   let reln_clause_end = kwd ")"
 
-  let typedef_start = meta "val _ = Hol_datatype `\n"
+  let typedef_start _ = meta "val _ = Hol_datatype `\n"
   let typedef_binding = kwd "="
-  let typedef_end = meta "`;\n"
+  let typedef_end _ = meta "`;\n"
   let typedef_sep = kwd ";"
-  let typedefrec_start = meta "val _ = Hol_datatype `\n"
-  let typedefrec_end = meta "`;\n"
+  let typedefrec_start _ = meta "val _ = Hol_datatype `\n"
+  let typedefrec_end _ = meta "`;\n"
   let typedefrec_implicits _ = emp
   let rec_start = kwd "<|"
   let rec_end = kwd "|>"
@@ -2987,6 +3009,20 @@ let is_rec l =
     | (_,_,_,Te_record _,_) -> true
     | _ -> false
 
+(* Isabelle requires record and datatype definitions using a typeclass parameter
+   to be marked as overloaded.  In particular, definitions that are parametric
+   in a machine word size need them.  This function is used to check whether
+   a type definition needs them. *)
+let rec is_type_with_sort t =
+  match t.term with
+  | Typ_wild _ | Typ_var _ | Typ_len _ -> false
+  | Typ_fn (t1, _, t2) -> is_type_with_sort t1 || is_type_with_sort t2
+  | Typ_tup ts -> Seplist.exists is_type_with_sort ts
+  | Typ_app (p, ts) -> List.exists is_type_with_sort (B.type_app_further_types p ts)
+  | Typ_backend (_, ts) -> List.exists is_type_with_sort ts
+  | Typ_paren (_, t', _) -> is_type_with_sort t'
+  | Typ_with_sort _ -> true
+
 let rec isa_def_extra (gf:extra_gen_flags) d l : Output.t = match d with
   | Val_def(Fun_def(s1, s2_opt, targets, clauses))
       when gf.extra_gen_termination ->
@@ -3232,12 +3268,13 @@ let rec def_internal callback (inside_module: bool) d is_user_def : Output.t = m
       begin
         match Seplist.hd l with
           | ((n,l'),tvs, t_p, Te_record(s4,s5,fields,s6),regexp) ->
+              let has_sort = Seplist.exists (fun (_,_,_,t) -> is_type_with_sort t) fields in
               ws s1 ^
               block is_user_def 0 (
-              T.typedefrec_start ^
+              T.typedefrec_start has_sort ^
               tdef_tctor false tvs (B.type_path_to_name n t_p) regexp ^
               tyexp_rec s4 s5 fields s6 ^
-              T.typedefrec_end) (*
+              T.typedefrec_end has_sort) (*
               if T.target = Some (Ast.Target_coq None) then
                 kwd "\n" ^
                 let l = Seplist.to_list l in
@@ -3262,11 +3299,19 @@ let rec def_internal callback (inside_module: bool) d is_user_def : Output.t = m
         else
           defs
       in
+      let texp_variant_has_sorts = function
+        | Te_variant(_, ctors) ->
+          Seplist.exists (fun (_,_,_,ts) -> Seplist.exists is_type_with_sort ts) ctors
+        | _ -> false
+      in
+      let has_sorts =
+        Seplist.exists (fun (_,_,_,t,_) -> texp_variant_has_sorts t) defs
+      in
         ws s ^
         block is_user_def 2 (
-        T.typedef_start ^
+        T.typedef_start has_sorts ^
         flat (Seplist.to_sep_list tdef (sep (break_hint_space 0 ^ T.typedef_sep)) defs) ^
-        T.typedef_end) (*
+        T.typedef_end has_sorts) (*
         if T.target = Some (Ast.Target_coq None) then
           kwd "\n" ^ (* generate_coq_decidable_equalities defs *)
           let l = Seplist.to_list defs in
@@ -3740,11 +3785,12 @@ and isa_def callback inside_module d is_user_def : Output.t = match d with
       begin
         match Seplist.hd l with
           | ((n,l),tvs,t_path,Te_record(s4,s5,fields,s6),regex) ->
+              let has_sort = Seplist.exists (fun (_,_,_,t) -> is_type_with_sort t) fields in
               ws s1 ^
-              T.typedefrec_start ^
+              T.typedefrec_start has_sort ^
               tdef_tctor false tvs (B.type_path_to_name n t_path) regex ^
               tyexp_rec s4 s5 fields s6 ^
-              T.typedefrec_end
+              T.typedefrec_end has_sort
           | _ -> assert false
       end
 

@@ -585,6 +585,22 @@ let type_app_to_output format p ts =
          ([], ws sk ^ format t'')
   end
 
+(* Similar to the above, but just provides the subtypes for analysis *)
+let type_app_further_types p ts =
+  let l = Ast.Trans (false, "type_app_to_output", None) in
+  let td = Types.type_defs_lookup l A.env.t_env p.descr in
+  let ts' = match Target.Targetmap.apply_target td.Types.type_target_sorts A.target with
+    | None -> ts
+    | Some (_,ss) -> combine_sorts ts ss
+  in
+  match Target.Targetmap.apply_target td.Types.type_target_rep A.target with
+     | None -> ts'
+     | Some (TYR_simple (_, _, i)) -> ts'
+     | Some (TYR_subst (_, _, tnvars, t')) -> begin    
+         let subst = Types.TNfmap.from_list2 tnvars ts' in
+         [src_type_subst subst t']
+  end
+
 let module_id_to_ident (mod_id : Path.t id) : Ident.t =
    let l = Ast.Trans (true, "module_id_to_ident", None) in 
    let i = resolve_module_id_ident l A.env mod_id mod_id.descr in

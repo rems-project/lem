@@ -189,6 +189,11 @@ val type_id_to_ident_no_modify : Path.t id -> Ident.t
 
 val type_app_to_output : (src_t -> Output.t) -> Path.t id -> src_t list -> (src_t list * Output.t)
 
+(** [type_app_further_types p args] applies type sorts and a target
+    substituion if necessary, and returns either the argument types
+    with any sorts, or a replacement type from the substitution. *)
+val type_app_further_types : Path.t id -> src_t list -> src_t list
+
 (** [module_id_to_ident m_id] tries to format a module
     [m_id] as an identifier for target [A.target] using the rules stored
     in environment [A.env]. 
