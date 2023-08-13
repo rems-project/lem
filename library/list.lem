@@ -11,7 +11,7 @@
 (* ========================================================================== *)
 
 
-declare {isabelle;ocaml;hol;coq} rename module = lem_list 
+declare {isabelle;ocaml;hol;coq} rename module = lem_list
 
 open import Bool Maybe Basic_classes Function Tuple Num
 
@@ -23,7 +23,7 @@ open import {hol} `lemTheory` `listTheory` `rich_listTheory` `sortingTheory`
 (* Basic list functions                                                       *)
 (* ========================================================================== *)
 
-(* The type of lists as well as list literals like [], [1;2], ... are hardcoded. 
+(* The type of lists as well as list literals like [], [1;2], ... are hardcoded.
    Thus, we can directly dive into derived definitions. *)
 
 
@@ -117,7 +117,7 @@ let rec lexicographicCompareBy cmp l1 l2 = match (l1,l2) with
   | ([], _::_) -> LT
   | (_::_, []) -> GT
   | (x::xs, y::ys) -> begin
-      match cmp x y with 
+      match cmp x y with
         | LT -> LT
         | GT -> GT
         | EQ -> lexicographicCompareBy cmp xs ys
@@ -226,7 +226,7 @@ lemma snoc_append : forall e l1 l2. (snoc e (l1 ++ l2) = l1 ++ (snoc e l2))
    used to implement reverse. *)
 
 val reverseAppend : forall 'a. list 'a -> list 'a -> list 'a (* originally named rev_append *)
-let rec reverseAppend l1 l2 = match l1 with 
+let rec reverseAppend l1 l2 = match l1 with
                                 | [] -> l2
                                 | x :: xs -> reverseAppend xs (x :: l2)
                                end
@@ -239,7 +239,7 @@ assert reverseAppend_1: (reverseAppend [(0:nat);1;2;3] [4;5] = [3;2;1;0;4;5])
 
 (* Reversing a list *)
 val reverse : forall 'a. list 'a -> list 'a (* originally named rev *)
-let reverse l = reverseAppend l [] 
+let reverse l = reverseAppend l []
 
 declare hol      target_rep function reverse = `REVERSE`
 declare ocaml    target_rep function reverse = `List.rev`
@@ -266,16 +266,16 @@ end
 
 (* taken from: https://blogs.janestreet.com/optimizing-list-map/ *)
 val count_map : forall 'a 'b. ('a -> 'b) -> list 'a -> nat -> list 'b
-let rec count_map f l ctr =  
-  match l with  
-  | []       -> []  
-  | hd :: tl -> f hd :: 
-    (if ctr < 5000 then count_map f tl (ctr + 1) 
+let rec count_map f l ctr =
+  match l with
+  | []       -> []
+  | hd :: tl -> f hd ::
+    (if ctr < 5000 then count_map f tl (ctr + 1)
     else map_tr [] f tl)
   end
- 
+
 val map : forall 'a 'b. ('a -> 'b) -> list 'a -> list 'b
-let map f l = count_map f l 0 
+let map f l = count_map f l 0
 
 declare termination_argument map = automatic
 
@@ -343,10 +343,10 @@ let rec foldr f b l = match l with
 end
 declare termination_argument foldr = automatic
 
-declare hol      target_rep function foldr = `FOLDR` 
+declare hol      target_rep function foldr = `FOLDR`
 declare ocaml    target_rep function foldr f b l = `List.fold_right` f l b
 declare isabelle target_rep function foldr f b l = `List.foldr` f l b
-declare coq      target_rep function foldr = `List.fold_right` 
+declare coq      target_rep function foldr = `List.fold_right`
 
 assert foldr_0: (foldr (+) (0:nat) [] = 0)
 assert foldr_1: (foldr (+) 1 [(4:nat)] = 5)
@@ -398,7 +398,7 @@ let all P l = foldl (fun r e -> P e && r) true l
 declare hol      target_rep function all = `EVERY`
 declare ocaml    target_rep function all = `List.for_all`
 declare isabelle target_rep function all P l = (forall (x IN (`set` l)). P x)
-declare coq      target_rep function all = `List.forallb` 
+declare coq      target_rep function all = `List.forallb`
 
 assert all_0: (all (fun x -> x > (2:nat)) [])
 assert all_4: (all (fun x -> x > (2:nat)) [4;5;6;7])
@@ -419,7 +419,7 @@ let any P l = foldl (fun r e -> P e || r) false l
 declare hol      target_rep function any = `EXISTS`
 declare ocaml    target_rep function any = `List.exists`
 declare isabelle target_rep function any P l = (exists (x IN (`set` l)). P x)
-declare coq      target_rep function any = `List.existsb` 
+declare coq      target_rep function any = `List.existsb`
 
 assert any_0: (not (any (fun x -> (x < (3:nat))) []))
 assert any_4: (not (any (fun x -> (x < (3:nat))) [4;5;6;7]))
@@ -435,7 +435,7 @@ lemma any_cons_thm: (forall P e l. any P (e::l) = (P e || any P l))
 
 (* get the initial part and the last element of the list in a safe way *)
 
-val dest_init : forall 'a. list 'a -> maybe (list 'a * 'a) 
+val dest_init : forall 'a. list 'a -> maybe (list 'a * 'a)
 
 let rec dest_init_aux rev_init last_elem_seen to_process =
   match to_process with
@@ -467,7 +467,7 @@ lemma dest_init_snoc: (forall x xs. dest_init (xs ++ [x]) = Just (xs, x))
 
 val index : forall 'a. list 'a -> nat -> maybe 'a
 
-let rec index l n = match l with 
+let rec index l n = match l with
   | []      -> Nothing
   | x :: xs -> if n = 0 then Just x else index xs (n-1)
 end
@@ -492,7 +492,7 @@ lemma index_list_eq: (forall l1 l2. ((forall n. index l1 n = index l2 n) <-> (l1
 (* findIndices               *)
 (* ------------------------- *)
 
-(* [findIndices P l] returns the indices of all elements of list [l] that satisfy predicate [P]. 
+(* [findIndices P l] returns the indices of all elements of list [l] that satisfy predicate [P].
    Counting starts with 0, the result list is sorted ascendingly *)
 val findIndices : forall 'a. ('a -> bool) -> list 'a -> list nat
 
@@ -617,30 +617,30 @@ lemma replicate_index: (forall n x i. i < n --> index (replicate n x) i = Just x
 (* splitAt                   *)
 (* ------------------------- *)
 
-(* [splitAt n xs] returns a tuple (xs1, xs2), with "append xs1 xs2 = xs" and 
-   "length xs1 = n". If there are not enough elements 
+(* [splitAt n xs] returns a tuple (xs1, xs2), with "append xs1 xs2 = xs" and
+   "length xs1 = n". If there are not enough elements
    in [xs], the original list and the empty one are returned. *)
 val splitAtAcc : forall 'a. list 'a -> nat -> list 'a -> (list 'a * list 'a)
-let rec splitAtAcc revAcc n l = 
+let rec splitAtAcc revAcc n l =
   match l with
     | []    -> (reverse revAcc, [])
     | x::xs -> if n <= 0 then (reverse revAcc, l) else splitAtAcc (x::revAcc) (n-1) xs
   end
 
 val splitAt : forall 'a. nat -> list 'a -> (list 'a * list 'a)
-let rec splitAt n l = 
+let rec splitAt n l =
    splitAtAcc [] n l
 (*   match l with
     | []    -> ([], [])
-    | x::xs -> 
+    | x::xs ->
        if n <= 0 then ([], l) else
        begin
          let (l1, l2) = splitAt (n-1) xs in
          (x::l1, l2)
        end
     end *)
-    
-    
+
+
 declare termination_argument splitAt = automatic
 
 declare isabelle target_rep function splitAt = `split_at`
@@ -652,11 +652,11 @@ assert splitAt_2: (splitAt 2   [(1:nat);2;3;4;5;6] = ([1;2], [3;4;5;6]))
 assert splitAt_3: (splitAt 100 [(1:nat);2;3;4;5;6] = ([1;2;3;4;5;6], []))
 
 lemma splitAt_append: (forall n xs.
-  let (xs1, xs2) = splitAt n xs in 
+  let (xs1, xs2) = splitAt n xs in
   (xs = xs1 ++ xs2))
 
-lemma splitAt_length: (forall n xs. 
-  let (xs1, xs2) = splitAt n xs in 
+lemma splitAt_length: (forall n xs.
+  let (xs1, xs2) = splitAt n xs in
   ((length xs1 = n) ||
    ((length xs1 = length xs) && null xs2)))
 
@@ -765,7 +765,7 @@ lemma isPrefixOf_antisym : forall l1 l2. isPrefixOf l1 l2 --> isPrefixOf l2 l1 -
 (* update                    *)
 (* ------------------------- *)
 val update : forall 'a. list 'a -> nat -> 'a -> list 'a
-let rec update l n e = 
+let rec update l n e =
   match l with
     | []      -> []
     | x :: xs -> if n = 0 then e :: xs else x :: (update xs (n - 1) e)
@@ -783,7 +783,7 @@ assert list_update_4: (update [1;2;3;4;5] 2 (0:nat) = [1;2;0;4;5])
 assert list_update_5: (update [1;2;3;4;5] 5 (0:nat) = [1;2;3;4;5])
 
 lemma list_update_length: (forall l n e. length (update l n e) = length l)
-lemma list_update_index: (forall i l n e. 
+lemma list_update_index: (forall i l n e.
   (index (update l n e) i = ((if i = n && n < length l then Just e else index l e))))
 
 
@@ -797,7 +797,7 @@ lemma list_update_index: (forall i l n e.
 (* ------------------------- *)
 
 (* The membership test, one of the basic list functions, is actually tricky for
-   Lem, because it is tricky, which equality to use. From Lem`s point of 
+   Lem, because it is tricky, which equality to use. From Lem`s point of
    perspective, we want to use the equality provided by the equality type - class.
    This allows for example to check whether a set is in a list of sets.
 
@@ -806,11 +806,11 @@ lemma list_update_index: (forall i l n e.
    equality (=) with syntactic equality, this is overly complicated. In
    our theorem prover backend, we would end up with overly complicated, harder
    to read definitions and some of the automation would be harder to apply.
-   Moreover, nearly all the old Lem generated code would change and require 
+   Moreover, nearly all the old Lem generated code would change and require
    (hopefully minor) adaptions of proofs.
 
    For now, we ignore this problem and just demand, that all instances of
-   the equality type class do the right thing for the theorem prover backends.   
+   the equality type class do the right thing for the theorem prover backends.
 *)
 
 val elem : forall 'a. Eq 'a => 'a -> list 'a -> bool
@@ -835,7 +835,7 @@ lemma elem_spec: ((forall e. not (elem e [])) &&
 (* Find                      *)
 (* ------------------------- *)
 val find : forall 'a. ('a -> bool) -> list 'a -> maybe 'a (* previously not of maybe type *)
-let rec find P l = match l with 
+let rec find P l = match l with
   | []      -> Nothing
   | x :: xs -> if P x then Just x else find P xs
 end
@@ -916,7 +916,7 @@ lemma partition_snd: (forall P l. snd (partition P l) = filter (fun x -> not (P 
 (* with certain property     *)
 (* ------------------------- *)
 
-val deleteFirst : forall 'a. ('a -> bool) -> list 'a -> maybe (list 'a) 
+val deleteFirst : forall 'a. ('a -> bool) -> list 'a -> maybe (list 'a)
 let rec deleteFirst P l = match l with
                             | [] -> Nothing
                             | x :: xs -> if (P x) then Just xs else Maybe.map (fun xs' -> x :: xs') (deleteFirst P xs)
@@ -982,7 +982,7 @@ let rec unzip l = match l with
 end
 declare termination_argument unzip = automatic
 
-declare hol      target_rep function unzip = `UNZIP` 
+declare hol      target_rep function unzip = `UNZIP`
 declare isabelle target_rep function unzip = `list_unzip`
 declare ocaml    target_rep function unzip = `List.split`
 
@@ -999,7 +999,7 @@ end
 (* ------------------------- *)
 
 val allDistinct : forall 'a. Eq 'a => list 'a -> bool
-let rec allDistinct l = 
+let rec allDistinct l =
   match l with
     | [] -> true
     | (x::l') -> not (elem x l') && allDistinct l'
@@ -1027,6 +1027,8 @@ let rec mapiAux f (n : nat) l = match l with
 end
 let mapi f l = mapiAux f 0 l
 
+declare ocaml target_rep function mapi = `List.mapi`
+
 val deletes: forall 'a. Eq 'a => list 'a -> list 'a -> list 'a
 let deletes xs ys =
   foldl (flip delete) xs ys
@@ -1037,7 +1039,7 @@ let deletes xs ys =
 
 (* ----------------------- *)
 (* skipped from Haskell Lib*)
-(* ----------------------- 
+(* -----------------------
 
 intersperse :: a -> [a] -> [a]
 intercalate :: [a] -> [[a]] -> [a]
@@ -1146,12 +1148,12 @@ genericReplicate :: Integral i => i -> a -> [a]Source
 
 (* ----------------------- *)
 (* skipped from Lem Lib    *)
-(* ----------------------- 
+(* -----------------------
 
 
 val for_all2 : forall 'a 'b. ('a -> 'b -> bool) -> list 'a -> list 'b -> bool
 val exists2 : forall 'a 'b. ('a -> 'b -> bool) -> list 'a -> list 'b -> bool
-val map2 : forall 'a 'b 'c. ('a -> 'b -> 'c) -> list 'a -> list 'b -> list 'c 
+val map2 : forall 'a 'b 'c. ('a -> 'b -> 'c) -> list 'a -> list 'b -> list 'c
 val rev_map2 : forall 'a 'b 'c. ('a -> 'b -> 'c) -> list 'a -> list 'b -> list 'c
 val fold_left2 : forall 'a 'b 'c. ('a -> 'b -> 'c -> 'a) -> 'a -> list 'b -> list 'c -> 'a
 val fold_right2 : forall 'a 'b 'c. ('a -> 'b -> 'c -> 'c) -> list 'a -> list 'b -> 'c -> 'c
