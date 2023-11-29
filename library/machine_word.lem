@@ -316,6 +316,61 @@ type ty254
 type ty255
 type ty256
 type ty257
+type ty288
+type ty320
+type ty352
+type ty384
+type ty416
+type ty448
+type ty480
+type ty512
+type ty640
+type ty768
+type ty896
+type ty1024
+type ty1152
+type ty1280
+type ty1408
+type ty1536
+type ty1664
+type ty1792
+type ty1920
+type ty2048
+type ty2304
+type ty2560
+type ty2816
+type ty3072
+type ty3328
+type ty3584
+type ty3840
+type ty4096
+type ty4608
+type ty6400
+type ty8192
+type ty9216
+type ty12800
+type ty12544
+type ty16384
+type ty18432
+type ty20736
+type ty25088
+type ty25600
+type ty30976
+type ty32768
+type ty36864
+type ty41472
+type ty43264
+type ty50176
+type ty51200
+type ty57600
+type ty61952
+type ty65536
+type ty73728
+type ty86528
+type ty100352
+type ty115200
+type ty131072
+type ty262144
 
 instance (Size ty1) let size = 1 end
 instance (Size ty2) let size = 2 end
@@ -574,6 +629,61 @@ instance (Size ty254) let size = 254 end
 instance (Size ty255) let size = 255 end
 instance (Size ty256) let size = 256 end
 instance (Size ty257) let size = 257 end
+instance (Size ty288) let size = 288 end
+instance (Size ty320) let size = 320 end
+instance (Size ty352) let size = 352 end
+instance (Size ty384) let size = 384 end
+instance (Size ty416) let size = 416 end
+instance (Size ty448) let size = 448 end
+instance (Size ty480) let size = 480 end
+instance (Size ty512) let size = 512 end
+instance (Size ty640) let size = 640 end
+instance (Size ty768) let size = 768 end
+instance (Size ty896) let size = 896 end
+instance (Size ty1024) let size = 1024 end
+instance (Size ty1152) let size = 1152 end
+instance (Size ty1280) let size = 1280 end
+instance (Size ty1408) let size = 1408 end
+instance (Size ty1536) let size = 1536 end
+instance (Size ty1664) let size = 1664 end
+instance (Size ty1792) let size = 1792 end
+instance (Size ty1920) let size = 1920 end
+instance (Size ty2048) let size = 2048 end
+instance (Size ty2304) let size = 2304 end
+instance (Size ty2560) let size = 2560 end
+instance (Size ty2816) let size = 2816 end
+instance (Size ty3072) let size = 3072 end
+instance (Size ty3328) let size = 3328 end
+instance (Size ty3584) let size = 3584 end
+instance (Size ty3840) let size = 3840 end
+instance (Size ty4096) let size = 4096 end
+instance (Size ty4608) let size = 4608 end
+instance (Size ty6400) let size = 6400 end
+instance (Size ty8192) let size = 8192 end
+instance (Size ty9216) let size = 9216 end
+instance (Size ty12800) let size = 12800 end
+instance (Size ty12544) let size = 12544 end
+instance (Size ty16384) let size = 16384 end
+instance (Size ty18432) let size = 18432 end
+instance (Size ty20736) let size = 20736 end
+instance (Size ty25088) let size = 25088 end
+instance (Size ty25600) let size = 25600 end
+instance (Size ty30976) let size = 30976 end
+instance (Size ty32768) let size = 32768 end
+instance (Size ty36864) let size = 36864 end
+instance (Size ty41472) let size = 41472 end
+instance (Size ty43264) let size = 43264 end
+instance (Size ty50176) let size = 50176 end
+instance (Size ty51200) let size = 51200 end
+instance (Size ty57600) let size = 57600 end
+instance (Size ty61952) let size = 61952 end
+instance (Size ty65536) let size = 65536 end
+instance (Size ty73728) let size = 73728 end
+instance (Size ty86528) let size = 86528 end
+instance (Size ty100352) let size = 100352 end
+instance (Size ty115200) let size = 115200 end
+instance (Size ty131072) let size = 131072 end
+instance (Size ty262144) let size = 262144 end
 
 declare isabelle target_rep type ty1 = `1`
 declare isabelle target_rep type ty2 = `2`
@@ -832,6 +942,61 @@ declare isabelle target_rep type ty254 = `254`
 declare isabelle target_rep type ty255 = `255`
 declare isabelle target_rep type ty256 = `256`
 declare isabelle target_rep type ty257 = `257`
+declare isabelle target_rep type ty288 = `288`
+declare isabelle target_rep type ty320 = `320`
+declare isabelle target_rep type ty352 = `352`
+declare isabelle target_rep type ty384 = `384`
+declare isabelle target_rep type ty416 = `416`
+declare isabelle target_rep type ty448 = `448`
+declare isabelle target_rep type ty480 = `480`
+declare isabelle target_rep type ty512 = `512`
+declare isabelle target_rep type ty640 = `640`
+declare isabelle target_rep type ty768 = `768`
+declare isabelle target_rep type ty896 = `896`
+declare isabelle target_rep type ty1024 = `1024`
+declare isabelle target_rep type ty1152 = `1152`
+declare isabelle target_rep type ty1280 = `1280`
+declare isabelle target_rep type ty1408 = `1408`
+declare isabelle target_rep type ty1536 = `1536`
+declare isabelle target_rep type ty1664 = `1664`
+declare isabelle target_rep type ty1792 = `1792`
+declare isabelle target_rep type ty1920 = `1920`
+declare isabelle target_rep type ty2048 = `2048`
+declare isabelle target_rep type ty2304 = `2304`
+declare isabelle target_rep type ty2560 = `2560`
+declare isabelle target_rep type ty2816 = `2816`
+declare isabelle target_rep type ty3072 = `3072`
+declare isabelle target_rep type ty3328 = `3328`
+declare isabelle target_rep type ty3584 = `3584`
+declare isabelle target_rep type ty3840 = `3840`
+declare isabelle target_rep type ty4096 = `4096`
+declare isabelle target_rep type ty4608 = `4608`
+declare isabelle target_rep type ty6400 = `6400`
+declare isabelle target_rep type ty8192 = `8192`
+declare isabelle target_rep type ty9216 = `9216`
+declare isabelle target_rep type ty12800 = `12800`
+declare isabelle target_rep type ty12544 = `12544`
+declare isabelle target_rep type ty16384 = `16384`
+declare isabelle target_rep type ty18432 = `18432`
+declare isabelle target_rep type ty20736 = `20736`
+declare isabelle target_rep type ty25088 = `25088`
+declare isabelle target_rep type ty25600 = `25600`
+declare isabelle target_rep type ty30976 = `30976`
+declare isabelle target_rep type ty32768 = `32768`
+declare isabelle target_rep type ty36864 = `36864`
+declare isabelle target_rep type ty41472 = `41472`
+declare isabelle target_rep type ty43264 = `43264`
+declare isabelle target_rep type ty50176 = `50176`
+declare isabelle target_rep type ty51200 = `51200`
+declare isabelle target_rep type ty57600 = `57600`
+declare isabelle target_rep type ty61952 = `61952`
+declare isabelle target_rep type ty65536 = `65536`
+declare isabelle target_rep type ty73728 = `73728`
+declare isabelle target_rep type ty86528 = `86528`
+declare isabelle target_rep type ty100352 = `100352`
+declare isabelle target_rep type ty115200 = `115200`
+declare isabelle target_rep type ty131072 = `131072`
+declare isabelle target_rep type ty262144 = `262144`
 
 declare hol target_rep type ty1 = `1`
 declare hol target_rep type ty2 = `2`
@@ -1090,6 +1255,60 @@ declare hol target_rep type ty254 = `254`
 declare hol target_rep type ty255 = `255`
 declare hol target_rep type ty256 = `256`
 declare hol target_rep type ty257 = `257`
+declare hol target_rep type ty288 = `288`
+declare hol target_rep type ty320 = `320`
+declare hol target_rep type ty352 = `352`
+declare hol target_rep type ty384 = `384`
+declare hol target_rep type ty416 = `416`
+declare hol target_rep type ty448 = `448`
+declare hol target_rep type ty480 = `480`
+declare hol target_rep type ty512 = `512`
+declare hol target_rep type ty640 = `640`
+declare hol target_rep type ty768 = `768`
+declare hol target_rep type ty896 = `896`
+declare hol target_rep type ty1024 = `1024`
+declare hol target_rep type ty1152 = `1152`
+declare hol target_rep type ty1280 = `1280`
+declare hol target_rep type ty1408 = `1408`
+declare hol target_rep type ty1536 = `1536`
+declare hol target_rep type ty1664 = `1664`
+declare hol target_rep type ty1792 = `1792`
+declare hol target_rep type ty1920 = `1920`
+declare hol target_rep type ty2048 = `2048`
+declare hol target_rep type ty2304 = `2304`
+declare hol target_rep type ty2560 = `2560`
+declare hol target_rep type ty2816 = `2816`
+declare hol target_rep type ty3072 = `3072`
+declare hol target_rep type ty3328 = `3328`
+declare hol target_rep type ty3584 = `3584`
+declare hol target_rep type ty3840 = `3840`
+declare hol target_rep type ty4096 = `4096`
+declare hol target_rep type ty4608 = `4608`
+declare hol target_rep type ty6400 = `6400`
+declare hol target_rep type ty8192 = `8192`
+declare hol target_rep type ty9216 = `9216`
+declare hol target_rep type ty12800 = `12800`
+declare hol target_rep type ty12544 = `12544`
+declare hol target_rep type ty16384 = `16384`
+declare hol target_rep type ty18432 = `18432`
+declare hol target_rep type ty20736 = `20736`
+declare hol target_rep type ty25088 = `25088`
+declare hol target_rep type ty25600 = `25600`
+declare hol target_rep type ty30976 = `30976`
+declare hol target_rep type ty32768 = `32768`
+declare hol target_rep type ty36864 = `36864`
+declare hol target_rep type ty41472 = `41472`
+declare hol target_rep type ty43264 = `43264`
+declare hol target_rep type ty50176 = `50176`
+declare hol target_rep type ty51200 = `51200`
+declare hol target_rep type ty57600 = `57600`
+declare hol target_rep type ty61952 = `61952`
+declare hol target_rep type ty65536 = `65536`
+declare hol target_rep type ty73728 = `73728`
+declare hol target_rep type ty100352 = `100352`
+declare hol target_rep type ty115200 = `115200`
+declare hol target_rep type ty131072 = `131072`
+declare hol target_rep type ty262144 = `262144`
 
 val word_length : forall 'a. mword 'a -> nat
 declare ocaml    target_rep function word_length = `Lem.word_length`
