@@ -78,7 +78,7 @@ type warning =
   | Warn_no_decidable_equality of Ast.l * string
   | Warn_compile_message of Ast.l * Target.target * Path.t * string
   | Warn_import of Ast.l * string * string
-  | Warn_overriden_instance of Ast.l * Types.src_t * Types.instance
+  | Warn_overridden_instance of Ast.l * Types.src_t * Types.instance
   | Warn_ambiguous_code of Ast.l * string
 
 let warn_source_to_string exp def ws =
@@ -128,7 +128,7 @@ let dest_warning_common (verbose: bool) (w : warning) : (bool * Ast.l * string) 
       let m : string = "importing module '" ^ m_name ^ "' from file '" ^ f_name ^"'" in
       Some (false, l, m)
 
-  | Warn_overriden_instance (l, ty, i) -> 
+  | Warn_overridden_instance (l, ty, i) -> 
       let class_name =  Path.to_string i.Types.inst_class in
       let type_name = Types.t_to_string ty.Types.typ in
       let loc_org = Reporting_basic.loc_to_string false i.Types.inst_l in
@@ -277,7 +277,7 @@ let warn_level = function
   | Warn_record_resorted _ ->                   !warn_ref_rec_resort
   | Warn_no_decidable_equality _ ->             !warn_ref_no_decidable_eq
   | Warn_import _ ->                            !warn_ref_import
-  | Warn_overriden_instance _ ->                !warn_ref_inst_override
+  | Warn_overridden_instance _ ->               !warn_ref_inst_override
   | Warn_compile_message _ ->                   !warn_ref_compile_message
   | Warn_ambiguous_code _ ->                    !warn_ref_ambiguous_code
 
@@ -296,7 +296,7 @@ let warn_opts_aux = [
    ("amb_code",    [warn_ref_ambiguous_code],                  "ambiguous code");
    ("auto_import", [warn_ref_import],                          "automatically imported modules");
    ("comp_message",[warn_ref_compile_message],                 "compile messages");
-   ("inst_over",   [warn_ref_inst_override],                   "overriden instance declarations");
+   ("inst_over",   [warn_ref_inst_override],                   "overridden instance declarations");
    ("no_dec_eq",   [warn_ref_no_decidable_eq],                 "equality of type is undecidable");
    ("pat_comp",    [warn_ref_pat_comp],                        "pattern compilation");
    ("pat_exh",     [warn_ref_pat_exh; warn_ref_def_exh],       "non-exhaustive pattern matches");

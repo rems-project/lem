@@ -118,7 +118,7 @@ val defn_ctxt_to_env : defn_ctxt -> Typed_ast.env
 (** [ctxt_c_env_set_target_rep l ctxt c targ new_rep] updates the target-representation of
     constant [c] for target [targ] in context [ctxt] to [new_rep]. This results into a new
     environment. If an representation was already stored (and is now overridden), it is returned as well. 
-    If it can't be overriden, an exception is raised. *)
+    If it can't be overridden, an exception is raised. *)
 val ctxt_c_env_set_target_rep : Ast.l -> defn_ctxt -> Typed_ast.const_descr_ref -> Target.non_ident_target ->
            Typed_ast.const_target_rep -> defn_ctxt * Typed_ast.const_target_rep option
 

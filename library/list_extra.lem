@@ -24,7 +24,7 @@ open import Bool Maybe Basic_classes Tuple Num List Assert_extra
 val head : forall 'a. list 'a -> 'a
 let head l = match l with | x::xs -> x | [] -> failwith "List_extra.head of empty list" end
 
-declare compile_message head = "head is only defined on non-empty list and should therefore be avoided. Use maching instead and handle the empty case explicitly."
+declare compile_message head = "head is only defined on non-empty list and should therefore be avoided. Use matching instead and handle the empty case explicitly."
 declare hol      target_rep function head = `HD`
 declare ocaml    target_rep function head = `List.hd`
 declare isabelle target_rep function head = `List.hd`
@@ -39,7 +39,7 @@ assert head_simple_2: (head [5;4] = (5:nat))
 val tail : forall 'a. list 'a -> list 'a
 let tail l = match l with | x::xs -> xs | [] -> failwith "List_extra.tail of empty list" end
 
-declare compile_message tail = "tail is only defined on non-empty list and should therefore be avoided. Use maching instead and handle the empty case explicitly."
+declare compile_message tail = "tail is only defined on non-empty list and should therefore be avoided. Use matching instead and handle the empty case explicitly."
 
 declare hol      target_rep function tail = `TL`
 declare ocaml    target_rep function tail = `List.tl`
@@ -57,7 +57,7 @@ lemma head_tail_cons: (forall l. length l > 0 --> (l = (head l)::(tail l)))
 (* ------------------------- *)
 val last : forall 'a. list 'a -> 'a
 let rec last l = match l with | [x] -> x | x1::x2::xs -> last (x2 :: xs) | [] -> failwith "List_extra.last of empty list" end
-declare compile_message last = "last is only defined on non-empty list and should therefore be avoided. Use maching instead and handle the empty case explicitly."
+declare compile_message last = "last is only defined on non-empty list and should therefore be avoided. Use matching instead and handle the empty case explicitly."
 
 declare hol      target_rep function last = `LAST`
 declare isabelle target_rep function last = `List.last`
@@ -75,7 +75,7 @@ assert last_simple_2: (last [(5:nat);4] = 4)
 val init : forall 'a. list 'a -> list 'a
 let rec init l = match l with | [x] -> [] | x1::x2::xs -> x1::(init (x2::xs)) | [] -> failwith "List_extra.init of empty list" end
 
-declare compile_message init = "init is only defined on non-empty list and should therefore be avoided. Use maching instead and handle the empty case explicitly."
+declare compile_message init = "init is only defined on non-empty list and should therefore be avoided. Use matching instead and handle the empty case explicitly."
 
 declare hol      target_rep function init = `FRONT`
 declare isabelle target_rep function init = `List.butlast`

@@ -3353,7 +3353,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let _ =  match Types.get_matching_instance ctxt.all_tdefs (p, src_t.typ) ctxt.all_instances  with
                      | Some (i, _) -> begin
                         if i.inst_is_default then () else
-                        (Reporting.report_warning (defn_ctxt_to_env ctxt) (Reporting.Warn_overriden_instance (l, src_t, i)))
+                        (Reporting.report_warning (defn_ctxt_to_env ctxt) (Reporting.Warn_overridden_instance (l, src_t, i)))
                      end
                      | None -> ()
           in

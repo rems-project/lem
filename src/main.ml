@@ -110,7 +110,7 @@ let options = Arg.align ([
     " generate OCaml");
   ( "-tex", 
     Arg.Unit (add_backend (Target.Target_no_ident Target.Target_tex)),
-    " generate LaTeX for each module separatly");
+    " generate LaTeX for each module separately");
   ( "-tex_all", 
     Arg.String (fun fn -> tex_all_filename_opt := Some fn),
     " generate LaTeX in a single file");

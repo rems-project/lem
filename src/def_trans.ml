@@ -519,7 +519,7 @@ let class_constraint_to_parameter targ : def_macro = fun mod_path env ((d,s),l,l
           begin
             match lb with
               | Let_def(_,_,_) -> 
-                  raise (Reporting_basic.err_unreachable l "Fancy, top level pattern maching should not have a class constraint. Typechecking should have complained.")
+                  raise (Reporting_basic.err_unreachable l "Fancy, top level pattern matching should not have a class constraint. Typechecking should have complained.")
 
               | Fun_def(sk,fr,topt,clauses) -> build_fun sk fr topt clauses
 

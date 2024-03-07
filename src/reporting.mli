@@ -109,9 +109,9 @@ type warning =
   | Warn_import of Ast.l * string * string
     (** [Warn_import (l, module_name, file_name)] warns about auto-importing module [module_name] from [file_name]. *)
 
-  | Warn_overriden_instance of Ast.l * Types.src_t * Types.instance
-    (** [Warn_overriden_instance (l, ty, i)] warns that the instance [i] that has already been defined is
-        overriden for type [ty] at location [l]. *)
+  | Warn_overridden_instance of Ast.l * Types.src_t * Types.instance
+    (** [Warn_overridden_instance (l, ty, i)] warns that the instance [i] that has already been defined is
+        overridden for type [ty] at location [l]. *)
 
   | Warn_ambiguous_code of Ast.l * string
     (** warn about ambiguous code that could be parsed in several ways and that therefore might confuse users *)
