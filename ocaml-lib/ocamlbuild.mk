@@ -30,34 +30,25 @@ extract_zarith extract_num: extract_%:
 .PHONY: extract_zarith extract_num
 
 install_zarith install_num: install_%: extract_%
-	$(MAKE) $(INSTALLDIR)/lem_$*/META
+	-ocamlfind remove -destdir "$(INSTALLDIR)" lem_$*
+	ocamlfind install -destdir "$(INSTALLDIR)" -patch-version "$(LEMVERSION)" lem_$* num_impl_$*/META _build_$*/extract.cma _build_$*/extract.cmxa _build_$*/extract.a `find _build_$* -name '*.cmi' -o -name '*.cmx' -o -name '*.mli'`
+	touch $@
 .PHONY: install_zarith install_num
 
 uninstall_zarith uninstall_num: uninstall_%:
-	-ocamlfind remove -destdir $(INSTALLDIR) lem_$*
+	-ocamlfind remove -destdir "$(INSTALLDIR)" lem_$*
 .PHONY: uninstall_zarith uninstall_num
-
-$(INSTALLDIR)/lem_zarith/META $(INSTALLDIR)/lem_num/META: $(INSTALLDIR)/lem_%/META: num_impl_%/META _build_%/extract.cma _build_%/extract.cmxa _build_%/extract.a
-	-ocamlfind remove -destdir $(INSTALLDIR) lem_$*
-	ocamlfind install -destdir $(INSTALLDIR) -patch-version "$(LEMVERSION)" lem_$* $^ `find _build_$* -name '*.cmi' -o -name '*.cmx' -o -name '*.mli'`
-	touch $@
-
-
 
 
 install_lem:
-	$(MAKE) $(INSTALLDIR)/lem/META
+	-ocamlfind remove -destdir "$(INSTALLDIR)" lem
+	ocamlfind install -destdir "$(INSTALLDIR)" -patch-version "$(LEMVERSION)" lem META
+	touch $@
 .PHONY: install_lem
 
 uninstall_lem:
-	-ocamlfind remove -destdir $(INSTALLDIR) lem
+	-ocamlfind remove -destdir "$(INSTALLDIR)" lem
 .PHONY: uninstall_lem
-
-
-$(INSTALLDIR)/lem/META: META
-	-ocamlfind remove -destdir $(INSTALLDIR) lem
-	ocamlfind install -destdir $(INSTALLDIR) -patch-version "$(LEMVERSION)" lem $^
-	touch $@
 
 
 

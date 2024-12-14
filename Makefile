@@ -14,23 +14,23 @@ all: bin/lem libs_phase_1
 # we might want run the tests for all backends that are present
 
 install:
-	mkdir -p $(INSTALL_DIR)/bin
-	rm -f $(INSTALL_DIR)/bin/lem
-	cp src/main.native $(INSTALL_DIR)/bin/lem
-	rm -rf $(INSTALL_DIR)/share/lem
-	mkdir -p $(INSTALL_DIR)/share/lem/library
-	cp library/*.lem $(INSTALL_DIR)/share/lem/library
-	cp library/*_constants $(INSTALL_DIR)/share/lem/library
+	mkdir -p "$(INSTALL_DIR)/bin"
+	rm -f "$(INSTALL_DIR)/bin/lem"
+	cp src/main.native "$(INSTALL_DIR)/bin/lem"
+	rm -rf "$(INSTALL_DIR)/share/lem"
+	mkdir -p "$(INSTALL_DIR)/share/lem/library"
+	cp library/*.lem "$(INSTALL_DIR)/share/lem/library"
+	cp library/*_constants "$(INSTALL_DIR)/share/lem/library"
 	$(MAKE) -C ocaml-lib install
-	cp -R coq-lib $(INSTALL_DIR)/share/lem
-	cp -R hol-lib $(INSTALL_DIR)/share/lem
-#	cp -R html-lib $(INSTALL_DIR)/share/lem
-	cp -R isabelle-lib $(INSTALL_DIR)/share/lem
-#	cp -R tex-lib $(INSTALL_DIR)/share/lem
+	cp -R coq-lib "$(INSTALL_DIR)/share/lem"
+	cp -R hol-lib "$(INSTALL_DIR)/share/lem"
+#	cp -R html-lib "$(INSTALL_DIR)/share/lem"
+	cp -R isabelle-lib "$(INSTALL_DIR)/share/lem"
+#	cp -R tex-lib "$(INSTALL_DIR)/share/lem"
 
 uninstall:
-	rm -f $(INSTALL_DIR)/bin/lem
-	rm -rf $(INSTALL_DIR)/share/lem
+	rm -f "$(INSTALL_DIR)/bin/lem"
+	rm -rf "$(INSTALL_DIR)/share/lem"
 	$(MAKE) -C ocaml-lib uninstall
 
 build-doc:
