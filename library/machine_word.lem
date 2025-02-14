@@ -1305,6 +1305,7 @@ declare hol target_rep type ty57600 = `57600`
 declare hol target_rep type ty61952 = `61952`
 declare hol target_rep type ty65536 = `65536`
 declare hol target_rep type ty73728 = `73728`
+declare hol target_rep type ty86528 = `86528`
 declare hol target_rep type ty100352 = `100352`
 declare hol target_rep type ty115200 = `115200`
 declare hol target_rep type ty131072 = `131072`
