@@ -1886,6 +1886,23 @@ let compile_def t mca env_global (_:Name.t list) env_local (((d, s), l, lenv) as
 (* Introduce pattern matching in function defs                                *)
 (******************************************************************************)
 
+(* We allow this rewrite to be turned off for particular types.  This is useful
+   with (e.g.) Isabelle where top-level matches across large types can be
+   expensive to process due to the extra function machinery. *)
+
+let no_toplevel : Path.t list ref = ref []
+
+let add_no_toplevel_type s =
+  let strs = String.split_on_char '.' s in
+  let path = strs |> List.map Name.from_string |> Path.mk_path_list in
+  no_toplevel := path :: !no_toplevel
+
+let check_toplevel_match (t : Types.src_t) =
+  match t.term with
+  | Typ_app (i, _) when List.exists (fun p -> Path.compare i.descr p == 0) !no_toplevel -> false
+  | _ -> true
+
+
 (* Transforms let f y = match y with p1 -> e1 | ... | pn -> en into
    let rec f p1 = e1 
        and f p2 = e2 ... *)
@@ -1905,16 +1922,18 @@ let remove_toplevel_match targ mca env_global _ env_local (((d, s), l, lenv)) =
           let e1 = Util.option_default e0 (compile_match_exp targ mca env e0) in
           let e2 = strip_paren_typ_exp e1 in
           (match C.exp_to_term e2 with Case(_,s1,e',s2,pats,s3) -> (       
-          let free_vars_row s (p, _, ee, _) = NameSet.union s (NameSet.diff (nfmap_domain (C.exp_to_free ee)) (nfmap_domain p.rest.pvars)) in
-          let free = List.fold_left free_vars_row NameSet.empty (Seplist.to_list pats) in
-          match collapse_nested_matches_dest_pat_fun l_unk env free ps [e'] with None -> None | Some dest_f ->
-          begin 
-            let adapt_ws_pL pL = List.map (fun p -> let (p', _) = pat_alter_init_lskips space_com_init_ws p in p') pL in
-            let work_row ((p, _, ee, _) : (pat * lskips * exp * Ast.l)) : funcl_aux option =
-              Util.option_map (fun pL -> (n, c, adapt_ws_pL pL, topt, s, ee)) (dest_f [p]) in
-            let sl_opt = Util.map_all (fun r -> Util.option_map (fun x -> (x, new_line)) (work_row r)) (Seplist.to_list pats) in
-            Util.option_map Seplist.from_list sl_opt
-          end)
+            if check_toplevel_match (C.t_to_src_t (exp_to_typ e')) then
+              let free_vars_row s (p, _, ee, _) = NameSet.union s (NameSet.diff (nfmap_domain (C.exp_to_free ee)) (nfmap_domain p.rest.pvars)) in
+              let free = List.fold_left free_vars_row NameSet.empty (Seplist.to_list pats) in
+              match collapse_nested_matches_dest_pat_fun l_unk env free ps [e'] with None -> None | Some dest_f ->
+              begin 
+                let adapt_ws_pL pL = List.map (fun p -> let (p', _) = pat_alter_init_lskips space_com_init_ws p in p') pL in
+                let work_row ((p, _, ee, _) : (pat * lskips * exp * Ast.l)) : funcl_aux option =
+                  Util.option_map (fun pL -> (n, c, adapt_ws_pL pL, topt, s, ee)) (dest_f [p]) in
+                let sl_opt = Util.map_all (fun r -> Util.option_map (fun x -> (x, new_line)) (work_row r)) (Seplist.to_list pats) in
+                Util.option_map Seplist.from_list sl_opt
+              end
+            else None)
           | _ -> None) in
     match (Util.map_changed group_apply groupL) with None -> None | Some sll' ->
       let sl' = Seplist.flatten space sll' in

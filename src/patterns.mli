@@ -136,6 +136,9 @@ val remove_function : env -> (exp -> exp) -> exp -> exp option
     The function [case_f] is then applied to the new match-expression. *)
 val remove_fun : env -> (exp -> exp) -> exp -> exp option
 
+(** [add_no_toplevel_type s] inhibits remove_toplevel_match on the given type [s] *)
+val add_no_toplevel_type : string -> unit
+
 (** [remove_toplevel_match] tries to introduce matching directly in the function definition by
     eliminating match-expressions in the body. *)
 val remove_toplevel_match : target -> match_check_arg -> env -> Def_trans.def_macro

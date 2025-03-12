@@ -207,7 +207,10 @@ let options = Arg.align ([
     " force library output with tex_all");
   ( "-report_default_instance_invocation",
     Arg.Set Types.report_default_instance_invocation,
-    " reports the name of any default instance invoked at a given type.")
+    " reports the name of any default instance invoked at a given type.");
+  ( "-no_lifting_toplevel_match_for",
+    Arg.String Patterns.add_no_toplevel_type,
+    "<type> Do not move cases over the given type to toplevel function case splits")
 ] @ Reporting.warn_opts)
 
 let usage_msg = 
