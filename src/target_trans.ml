@@ -17,7 +17,7 @@
 (*          Lars Hupel                                                    *)
 (*          Basile Clement                                                *)
 (*                                                                        *)
-(*  The Lem sources are copyright 2010-2018                               *)
+(*  The Lem sources are copyright 2010-2025                               *)
 (*  by the authors above and Institut National de Recherche en            *)
 (*  Informatique et en Automatique (INRIA).                               *)
 (*                                                                        *)
@@ -49,6 +49,7 @@
 (*  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR       *)
 (*  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN   *)
 (*  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                         *)
+(*                                                                        *)
 (**************************************************************************)
 
 let ident_force_pattern_compile = ref false
