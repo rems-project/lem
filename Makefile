@@ -186,6 +186,7 @@ build-lem-profile: version share_directory
 
 
 lem: build-lem
+	true
 
 bin/lem: lem
 	mkdir -p bin

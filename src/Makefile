@@ -1,4 +1,9 @@
+# Remove the symlink if it exists before building, as opam builds on
+# Windows with native symlinks appear to clobber an existing
+# executable otherwise.
+
 all:
+	rm -f main.native
 	ocamlbuild -use-ocamlfind -cflags -g main.native
 #	ocamlbuild main.native
 
