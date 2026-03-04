@@ -30,7 +30,7 @@ let k = C2 1
 let l = C3 true 1
 
 let m = 1::(2 : nat)::[3;4;5;]
-let n = 1::2::[3;4;5]
+let n = (1:nat) ::2::[3;4;5]
 let o = C1::C2 1::[]
 
 type T3 = <| f1 : nat ; f2: bool |>
@@ -40,12 +40,12 @@ let q = <| f1 = 2; f2 = false; |>
 (* let r = p.f1 + q.f1
 let s = <| q with f2 = true |>
 let t = (1, true, "1234") *)
-let u = begin 2 + 1 end
-let v = if true then 4 else 5
+let u = begin (2:nat) + 1 end
+let v = if true then (4:nat) else 5
 
-let x = let x = 2 in x
-let y = let (x, y) = (2, 3) in x + y
-let z = let f x = (x, (x + 1), (x + 3)) in f 1
+let x = let x = (2:nat) in x
+let y = let (x, y) = ((2:nat), 3) in x + y
+let z = let f x = (x, (x + (1:nat)), (x + 3)) in f 1
 
 let aa = { }
 
