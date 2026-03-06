@@ -1,0 +1,27 @@
+open import Pervasives_extra
+
+(* === Record fields that might clash with Lean keywords === *)
+type my_record = <| where_field : nat; have_field : bool |>
+
+(* === Variables named after potential keywords === *)
+let test1 =
+  let show = (1:nat) in
+  let have0 = 2 in
+  let by0 = 3 in
+  show + have0 + by0
+
+(* === Function named with common keyword-like names === *)
+let do_something (x : nat) = x + 1
+
+(* === Constructor names that might be problematic === *)
+type my_type = MyDefault of nat | MyType of bool
+
+let test2 = MyDefault 42
+let test3 = MyType true
+
+(* === Using record with potentially-clashing fields === *)
+let test4 = <| where_field = 10; have_field = true |>
+let test5 = test4.where_field
+
+assert test1_ok : (test1 = (6:nat))
+assert test5_ok : (test5 = (10:nat))

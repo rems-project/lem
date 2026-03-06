@@ -25,3 +25,6 @@ ocaml-lib/_build_zarith
 tex-lib/lem-libs*.tex
 
 
+tests/comprehensive/lean-test/.lake/
+tests/comprehensive/Test_*.lean
+tests/comprehensive/*_auxiliary.lean

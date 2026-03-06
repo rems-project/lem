@@ -1,0 +1,56 @@
+open import Pervasives_extra
+
+module M = struct
+  type t 'a = maybe 'a
+  val return : forall 'a. 'a -> maybe 'a
+  val bind : forall 'a 'b. maybe 'a -> ('a -> maybe 'b) -> maybe 'b
+  let return x = Just x
+  let bind x f =
+    match x with
+      | Nothing -> Nothing
+      | Just y -> f y
+    end
+end
+
+(* === Simple do === *)
+let test1 =
+  do M
+  in
+    M.return (4 : nat)
+  end
+
+(* === Sequential bind === *)
+let test2 =
+  do M
+    x <- M.return (1 : nat) ;
+    y <- M.return (x + 1) ;
+  in
+    M.return (x + y)
+  end
+
+(* === Pattern in bind === *)
+let test3 =
+  (do M
+    (x, y) <- M.return (1, true) ;
+    z <- M.return x ;
+  in
+    M.return (x, z)
+  end : maybe (nat * nat))
+
+(* === Failure propagation === *)
+let test4 =
+  do M
+    x <- M.return (1 : nat) ;
+    y <- Nothing ;
+  in
+    M.return (x + y)
+  end
+
+(* === Higher-order do === *)
+let test5 f (x : nat) =
+  do M
+    x <- f x ;
+    y <- f (x + 4) ;
+  in
+    f (x + y)
+  end

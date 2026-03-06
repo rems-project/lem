@@ -1,0 +1,44 @@
+open import Pervasives_extra
+
+(* === Nullary constructors (enum) === *)
+type empty_enum = A | B | C
+
+(* === Single-argument constructor === *)
+type wrapper = Wrap of nat
+
+(* === Multi-argument constructor === *)
+type pair_ctor = MkPair of nat * bool
+type triple_ctor = MkTriple of nat * bool * string
+
+(* === Constructor application === *)
+let test1 = A
+let test2 = Wrap 42
+let test3 = MkPair 1 true
+let test4 = MkTriple 1 true "hello"
+
+(* === Polymorphic constructors === *)
+type box 'a = Box of 'a
+let test6 = Box (42 : nat)
+let test7 = Box true
+
+(* === Single-constructor type === *)
+type single = Only of nat * nat
+let test8 = Only 1 2
+let test9 (Only x y) = x + y
+
+(* === Constructor in patterns === *)
+let unbox (Box x) = x
+let test10 = unbox (Box (42 : nat))
+
+(* === Constructor in list === *)
+let test11 = [A; B; C]
+let test12 = [Wrap 1; Wrap 2; Wrap (3:nat)]
+
+(* === Matching on enum === *)
+let to_num x = match x with A -> (0:nat) | B -> 1 | C -> 2 end
+
+(* === Nested constructors === *)
+type tree = TLeaf of nat | TNode of tree * tree
+let test13 = TNode (TLeaf 1) (TNode (TLeaf 2) (TLeaf 3))
+
+assert test10_ok : (test10 = (42:nat))

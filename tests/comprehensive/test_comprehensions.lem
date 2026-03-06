@@ -1,0 +1,36 @@
+open import Pervasives_extra
+
+let s1 = {1; 2; (3:nat)}
+
+(* === Simple set comprehension === *)
+let test1 = { x | forall (x IN s1) | x > (1:nat) }
+
+(* === Multiple bindings === *)
+let test2 = { (n:nat) + m | forall (m IN {}) (n IN {1;2;20}) | n < 10 }
+
+(* === List comprehension === *)
+let test5 = [ x + (1:nat) | forall (x MEM [1;2;3]) | x < 3 ]
+
+(* === Constructor patterns in comprehension === *)
+type t = C1 | C2 of nat | C3 of bool * nat
+let test7 = { x | forall (C2 x IN { C2 1; C3 true 3 }) | x < 2 }
+
+(* === Tuple pattern in comprehension === *)
+let test9 = [ (x:nat) | forall ((x, y) MEM [ (1,2); (2,1) ]) | x < y ]
+
+(* === Forall/exists over sets === *)
+let test10 = forall (n IN s1). n > (0:nat)
+let test11 = exists (n IN s1). n > (2:nat)
+
+(* === Quantifiers over lists === *)
+let test12 = forall ((m:nat) MEM [1;2;3]) ((n:nat) MEM [1;2;20]). n < 10
+let test13 = exists ((m:nat) MEM [1;2;3]). m > 2
+
+(* === Nested set membership === *)
+let test14 = forall ((m:set nat) IN {{1;2}; {3;4}; {5;6}}) (n IN m). n < (10:nat)
+
+(* === Cons pattern in comprehension === *)
+let test15 = { (x:nat) | forall (x::y IN { []; }) | x < 2 }
+
+(* === List comprehension with list source === *)
+let test16 = [ (x:nat) | forall (x MEM []) ([] MEM [ []; [(1:nat)]]) | x < 2 ]

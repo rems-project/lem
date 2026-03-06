@@ -378,7 +378,8 @@ let output1 env (out_dir : string option) (targ : Target.target) avoid m =
               begin
                 let (o, ext_o) = open_output_with_check dir (module_name ^ "_auxiliary.lean") in
                   Printf.fprintf o "/- %s -/\n\n" (generated_line m.filename);
-                  Printf.fprintf o "import LemLib\n\n";
+                  Printf.fprintf o "import LemLib\n";
+                  Printf.fprintf o "import %s\n\n" module_name;
                   Printf.fprintf o "%s" (Ulib.Text.to_string r_extra);
                   close_output_with_check ext_o
               end in ()
