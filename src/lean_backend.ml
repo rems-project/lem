@@ -183,12 +183,22 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
       match m with
         | Lemma (skips, lemma_typ, targets, (name, _), skips', e) ->
           if in_target targets then
-            let name = Name.to_output Term_var name
-            in
+            let name_out = Name.to_output Term_var name in
+            let name_str = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip name)) in
+            match lemma_typ with
+            | Ast.Lemma_assert _ ->
               Output.flat [
-                ws skips; from_string "theorem"; name; ws skips'; from_string " : ";
+                ws skips;
+                from_string "#eval do\n";
+                from_string ("  if ("); exp inside_instance e; from_string (" : Bool)\n");
+                from_string (String.concat "" ["  then IO.println \"PASS: "; name_str; "\"\n"]);
+                from_string (String.concat "" ["  else throw (IO.userError \"FAIL: "; name_str; "\")"])
+              ]
+            | Ast.Lemma_lemma _ | Ast.Lemma_theorem _ ->
+              Output.flat [
+                ws skips; from_string "theorem"; name_out; ws skips'; from_string " : ";
                 from_string "("; exp inside_instance e; from_string " : Prop) ";
-                from_string ":= by sorry"
+                from_string ":= by decide"
               ]
           else
             from_string "/- removed lemma intended for another backend -/"
