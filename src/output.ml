@@ -165,6 +165,7 @@ let rec flatten_newlines t =
   | Cons(a, b) -> Cons(flatten_newlines a, flatten_newlines b)
   | Block(b, bt, inner) -> Block(b, bt, flatten_newlines inner)
   | Inter(Ast.Nl) -> Inter(Ast.Ws (Ulib.Text.of_latin1 " "))
+  | Core inner -> Core (flatten_newlines inner)
   | other -> other
 
 let comment_block min_l sl = 

@@ -1,3 +1,17 @@
+/-!
+# LemLib — Lean 4 runtime library for Lem
+
+Provides the core types and operations that Lem-generated Lean 4 code depends on:
+- `DAEMON`: undefined value axiom (analogous to Coq's DAEMON)
+- `LemOrdering`: three-way comparison type used by set/map operations
+- Comparison, arithmetic, and string helpers
+- Set operations (using sorted `List` representation with `LemOrdering` comparators)
+- Finite map operations (using `List (α × β)` with `LemOrdering` comparators)
+
+**Convention**: Functions suffixed with `By` take an explicit `(cmp : α → α → LemOrdering)`
+comparator. Functions without `By` use Lean's `BEq` or `Ord` type classes.
+-/
+
 /- Lem standard library support for Lean 4 -/
 
 /- DAEMON: undefined value placeholder, analogous to Coq's DAEMON axiom -/
@@ -53,15 +67,15 @@ def tupleEqualBy (eq1 : α → α → Bool) (eq2 : β → β → Bool) (p1 : α 
   eq1 p1.1 p2.1 && eq2 p1.2 p2.2
 
 /- Natural number operations -/
-def natPower (base exp : Nat) : Nat := base ^ exp
-def natDiv (a b : Nat) : Nat := a / b
-def natMod (a b : Nat) : Nat := a % b
-def natMin (a b : Nat) : Nat := min a b
-def natMax (a b : Nat) : Nat := max a b
-def natLtb (a b : Nat) : Bool := a < b
-def natLteb (a b : Nat) : Bool := a ≤ b
-def natGtb (a b : Nat) : Bool := a > b
-def natGteb (a b : Nat) : Bool := a ≥ b
+@[inline] def natPower (base exp : Nat) : Nat := base ^ exp
+@[inline] def natDiv (a b : Nat) : Nat := a / b
+@[inline] def natMod (a b : Nat) : Nat := a % b
+@[inline] def natMin (a b : Nat) : Nat := min a b
+@[inline] def natMax (a b : Nat) : Nat := max a b
+@[inline] def natLtb (a b : Nat) : Bool := a < b
+@[inline] def natLteb (a b : Nat) : Bool := a ≤ b
+@[inline] def natGtb (a b : Nat) : Bool := a > b
+@[inline] def natGteb (a b : Nat) : Bool := a ≥ b
 
 /- Exponentiation by squaring -/
 partial def gen_pow_aux (mul : α → α → α) (one : α) (base : α) (exp : Nat) : α :=
@@ -74,10 +88,10 @@ partial def gen_pow_aux (mul : α → α → α) (one : α) (base : α) (exp : N
     gen_pow_aux mul one' (mul base base) half
 
 /- Integer operations -/
-def intLtb (a b : Int) : Bool := a < b
-def intLteb (a b : Int) : Bool := a ≤ b
-def intGtb (a b : Int) : Bool := a > b
-def intGteb (a b : Int) : Bool := a ≥ b
+@[inline] def intLtb (a b : Int) : Bool := a < b
+@[inline] def intLteb (a b : Int) : Bool := a ≤ b
+@[inline] def intGtb (a b : Int) : Bool := a > b
+@[inline] def intGteb (a b : Int) : Bool := a ≥ b
 
 /- String operations -/
 def stringMakeString (n : Nat) (c : Char) : String := String.ofList (List.replicate n c)
@@ -86,13 +100,13 @@ def stringMakeString (n : Nat) (c : Char) : String := String.ofList (List.replic
 def sort_by_ordering (cmp : α → α → LemOrdering) (l : List α) : List α :=
   let leanCmp : α → α → Bool := fun a b => match cmp a b with
     | .LT => true
-    | .EQ => true
+    | .EQ => false
     | .GT => false
   l.mergeSort leanCmp
 
 /- Set operations (using List as a simple set representation) -/
 def setEmpty : List α := []
-def setIsEmpty : List α → Bool := List.isEmpty
+@[inline] def setIsEmpty : List α → Bool := List.isEmpty
 def setSingleton (x : α) : List α := [x]
 
 def setAdd [BEq α] (x : α) (s : List α) : List α :=
@@ -105,7 +119,7 @@ def setMemberBy (cmp : α → α → LemOrdering) (x : α) (s : List α) : Bool 
     | .EQ => true
     | _ => setMemberBy cmp x ys
 
-def setCardinal : List α → Nat := List.length
+@[inline] def setCardinal : List α → Nat := List.length
 
 def setFromList [BEq α] (l : List α) : List α :=
   l.foldl (fun acc x => if acc.elem x then acc else x :: acc) []
@@ -113,8 +127,9 @@ def setFromList [BEq α] (l : List α) : List α :=
 def setFromListBy (cmp : α → α → LemOrdering) (l : List α) : List α :=
   l.foldl (fun acc x => if setMemberBy cmp x acc then acc else x :: acc) []
 
-def setToList (s : List α) : List α := s
+@[inline] def setToList (s : List α) : List α := s
 
+/- Compares two sets for equality. Both sets must be sorted by `cmp` for correct results. -/
 def setEqualBy (cmp : α → α → LemOrdering) (s1 s2 : List α) : Bool :=
   match s1 with
   | [] => s2.isEmpty
@@ -176,8 +191,8 @@ def setProperSubsetBy (cmp : α → α → LemOrdering) (s1 s2 : List α) : Bool
 def setSigmaBy (_cmp : α → α → LemOrdering) (s : List α) (f : α → List β) : List (α × β) :=
   s.foldl (fun acc x => acc ++ (f x).map (fun y => (x, y))) []
 
-def setAny (f : α → Bool) (s : List α) : Bool := s.any f
-def setForAll (f : α → Bool) (s : List α) : Bool := s.all f
+@[inline] def setAny (f : α → Bool) (s : List α) : Bool := s.any f
+@[inline] def setForAll (f : α → Bool) (s : List α) : Bool := s.all f
 def setFold (f : α → β → β) (s : List α) (init : β) : β := s.foldr f init
 
 def setCase (s : List α) (empty : β) (single : α → β) (pair : α → List α → β) : β :=
@@ -197,7 +212,7 @@ def chooseAndSplit (_cmp : α → α → LemOrdering) (s : List α) : Option (Li
 abbrev Fmap (α β : Type) := List (α × β)
 
 def fmapEmpty : Fmap α β := []
-def fmapIsEmpty : Fmap α β → Bool := List.isEmpty
+@[inline] def fmapIsEmpty : Fmap α β → Bool := List.isEmpty
 
 def fmapAdd [BEq α] (k : α) (v : β) (m : Fmap α β) : Fmap α β :=
   (k, v) :: m.filter (fun p => !(p.1 == k))

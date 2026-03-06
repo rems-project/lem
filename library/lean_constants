@@ -90,3 +90,16 @@ calc
 suffices
 assume
 this
+extends
+opaque
+mutual
+notation
+macro
+syntax
+set_option
+attribute
+export
+end
+rec
+scoped
+local

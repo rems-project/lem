@@ -3,6 +3,23 @@
 (*                                                                        *)
 (*  Lean 4 backend                                                        *)
 (*                                                                        *)
+(*  Translates Lem definitions into Lean 4 syntax. Uses the shared        *)
+(*  Backend_common infrastructure for identifier resolution and target    *)
+(*  representation handling.                                               *)
+(*                                                                        *)
+(*  Key design decisions:                                                  *)
+(*  - Block formatting is disabled (Lean 4 is whitespace-sensitive)       *)
+(*  - UTF-8 output uses Meta_utf8 to avoid double-encoding (×, →, etc.)  *)
+(*  - Constructors are brought into scope via 'open TypeName' after each  *)
+(*    inductive definition, instead of dot-notation                       *)
+(*  - Class methods are brought into scope via 'open ClassName'           *)
+(*  - Mutual inductives with heterogeneous parameter counts use indexed   *)
+(*    types (parameters become indices with Type 1 universe)              *)
+(*  - Target-specific class methods ({hol}, {coq}, etc.) are filtered     *)
+(*    from both class and instance definitions                            *)
+(*  - BEq is derived for types without function-typed constructor args    *)
+(*  - Inhabited instances use sorry for mutual recursive types            *)
+(*                                                                        *)
 (**************************************************************************)
 
 open Backend_common
@@ -120,14 +137,11 @@ let lean_format_op use_infix a x =
 
 
 let fresh_name_counter = ref 0
-;;
 
-let generate_fresh_name = fun () ->
-  let old  = !fresh_name_counter in
-  let _    = fresh_name_counter := old + 1 in
-  let post = string_of_int old in
-    Stdlib.(^) "x" post
-;;
+let generate_fresh_name () =
+  let n = !fresh_name_counter in
+  fresh_name_counter := n + 1;
+  Stdlib.(^) "x" (string_of_int n)
 
 type variable
   = Tyvar of Output.t
@@ -154,26 +168,6 @@ module LeanBackendAux (A : sig val avoid : var_avoid_f option;; val env : env;; 
 
 let use_ascii_rep_for_const (cd : const_descr_ref) : bool =
   Types.Cdset.mem cd A.ascii_rep_set
-;;
-
-(* Check if a constant is a plain constructor (not target-rep'd for Lean).
-   Such constructors need a dot prefix in Lean 4 expression position. *)
-let is_plain_constructor (cd_ref : const_descr_ref) : bool =
-  let c_descr = c_env_lookup Ast.Unknown A.env.c_env cd_ref in
-  c_descr.env_tag = K_constr &&
-  (match Target.Targetmap.apply_target c_descr.target_rep (Target_no_ident Target_lean) with
-   | Some _ -> false
-   | None -> true)
-;;
-
-(* Render a constructor with dot prefix, preserving leading whitespace.
-   Turns "  C1" into "  .C1" rather than ".  C1". *)
-let constructor_dot_output (const : const_descr_ref id) ascii_alt : Output.t =
-  let i = B.const_id_to_ident const ascii_alt in
-  let lskip = Ident.get_lskip i in
-  let i_no_ws = Ident.replace_lskip i None in
-  (* Add trailing space to prevent .Ctor( being parsed as namespace access *)
-  Output.flat [ws lskip; from_string "."; Ident.to_output (Term_const (false, true)) path_sep i_no_ws; from_string " "]
 ;;
 
 let field_ident_to_output fd ascii_alternative =
@@ -573,7 +567,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                 concat_str " " @@ List.map (fun b ->
                   match b with
                     | QName n -> from_string (Name.to_string (Name.strip_lskip n.term))
-                    | _ -> assert false
+                    | _ -> raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: unexpected binding form in indreln quantifier")
                 ) name_lskips_annot_list
               in
               let binder, binder_sep =
@@ -697,7 +691,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                 let filtered = List.filter (fun x -> snd x = c) instance.inst_methods in
                   match filtered with
                     | x::xs -> B.const_ref_to_name n true (fst x)
-                    | _   -> assert false
+                    | _ -> raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: instance method not found for class method")
               end
         else
           B.const_ref_to_name n true c
@@ -727,7 +721,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               ws sk ^
               Ident.to_output (Term_const (false, true)) path_sep i
           | Lit l -> literal l
-          | Do (skips, mod_descr_id, do_line_list, skips', e, skips'', type_int) -> assert false
+          | Do (skips, mod_descr_id, do_line_list, skips', e, skips'', type_int) -> raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: do-notation not yet supported")
           | App (e1, e2) ->
               let trans e = exp inside_instance e in
               let sep = from_string " " in
@@ -968,7 +962,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
             Output.flat [
               ws skips; i
             ]
-        | L_vector (s, v, v') -> assert false
+        | L_vector (s, v, v') -> raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: vector literals not yet supported")
         | L_undefined (skips, explanation) ->
           let typ = l.typ in
           let src_t = C.t_to_src_t typ in
@@ -1399,7 +1393,14 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
             ws skips ^ from_string "(" ^ typ t ^ from_string ")" ^ ws skips'
         | Typ_with_sort (t, sort) -> raise (Reporting_basic.err_general true t.locn "Target sort annotations not currently supported for Lean")
         | Typ_len nexp -> src_nexp nexp
-        | _ -> assert false
+        | Typ_backend (p, ts) ->
+          let i = Path.to_ident (ident_get_lskip p) p.descr in
+          let i = Ident.to_output (Type_ctor (false, true)) path_sep i in
+          let ts = concat emp @@ List.map typ ts in
+            Output.flat [
+              i; from_string " "; ts
+            ]
+        | _ -> raise (Reporting_basic.err_general true t.locn "Lean backend: unexpected type form in typ")
     and type_def_type_variables tvs =
       match tvs with
         | [] -> emp
@@ -1407,14 +1408,15 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
         | tvs ->
           let mapped = List.map (fun t ->
             match t with
-              | Typed_ast.Tn_A (_, tv, _) ->
-                let tv = from_string @@ Ulib.Text.to_string tv in
+              | Typed_ast.Tn_A (_, tv_name, _) ->
+                let tv_out = from_string @@ Ulib.Text.to_string tv_name in
                   Output.flat [
-                    from_string "("; tv; from_string " : Type)"
+                    from_string "("; tv_out; from_string " : Type)"
                   ]
-              | Typed_ast.Tn_N nv ->
+              | Typed_ast.Tn_N (_, nv_name, _) ->
+                let nv_out = from_string @@ Ulib.Text.to_string nv_name in
                   Output.flat [
-                    from_string "("; from_string "nv : Nat)"
+                    from_string "("; nv_out; from_string " : Nat)"
                   ]) tvs
           in
             Output.flat [
@@ -1448,7 +1450,14 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
             ws skips ^ from_string "(" ^ indreln_typ t ^ from_string ")" ^ ws skips'
         | Typ_with_sort(t, _) -> indreln_typ t
         | Typ_len nexp -> src_nexp nexp
-        | _ -> assert false
+        | Typ_backend (p, ts) ->
+          let i = Path.to_ident (ident_get_lskip p) p.descr in
+          let i = Ident.to_output (Type_ctor (false, true)) path_sep i in
+          let ts = concat emp @@ List.map indreln_typ ts in
+            Output.flat [
+              i; from_string " "; ts
+            ]
+        | _ -> raise (Reporting_basic.err_general true t.locn "Lean backend: unexpected type form in indreln_typ")
     and field ((n, _), f_ref, skips, t) =
       Output.flat [
           from_string "  ";
@@ -1466,15 +1475,16 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
         | tvs ->
           let mapped = List.map (fun t ->
             match t with
-              | Typed_ast.Tn_A (_, tv, _) ->
-                let tv = from_string @@ Ulib.Text.to_string tv in
+              | Typed_ast.Tn_A (_, tv_name, _) ->
+                let tv_out = from_string @@ Ulib.Text.to_string tv_name in
                   Output.flat [
-                    from_string " {"; tv; from_string " : Type}";
-                    from_string " [Inhabited "; tv; from_string "]"
+                    from_string " {"; tv_out; from_string " : Type}";
+                    from_string " [Inhabited "; tv_out; from_string "]"
                   ]
-              | Typed_ast.Tn_N nv ->
+              | Typed_ast.Tn_N (_, nv_name, _) ->
+                let nv_out = from_string @@ Ulib.Text.to_string nv_name in
                   Output.flat [
-                    from_string " {"; from_string "nv : Nat}"
+                    from_string " {"; nv_out; from_string " : Nat}"
                   ]) tvs
           in
             concat emp mapped
@@ -1499,7 +1509,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               ]
         | Te_variant (_, seplist) ->
             (match Seplist.to_list seplist with
-              | []    -> assert false
+              | [] -> raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: empty variant in Inhabited instance generation")
               | x::xs ->
                 let ((name, l), const_descr_ref, _, src_ts) = x in
                   let name = B.const_ref_to_name name false const_descr_ref in
@@ -1511,20 +1521,26 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                     Output.flat [
                       o; sep; mapped
                     ])
-    and generate_default_value ((name, _), tnvar_list, path, t, name_sect_opt) : Output.t =
+    (* Generate an Inhabited instance for a type definition.
+       When [use_sorry] is true, uses sorry instead of constructing a default
+       value — needed for mutual recursive types with no base case. *)
+    and generate_inhabited_instance use_sorry ((name, _), tnvar_list, path, t, _name_sect_opt) : Output.t =
       let name = B.type_path_to_name name path in
       let o = lskips_t_to_output name in
       let tnvar_list' = default_type_variables tnvar_list in
-      let default = generate_default_value_texp t in
-      let mapped = concat_str " " @@ List.map (fun x ->
+      let default =
+        if use_sorry then from_string "sorry /- mutual type -/"
+        else generate_default_value_texp t
+      in
+      let tnvar_names = concat_str " " @@ List.map (fun x ->
         match x with
-          | Typed_ast.Tn_A (_, x, _) -> from_string (Ulib.Text.to_string x)
-          | _ -> from_string "BUG"
+          | Typed_ast.Tn_A (_, tv_name, _) -> from_string (Ulib.Text.to_string tv_name)
+          | Typed_ast.Tn_N (_, nv_name, _) -> from_string (Ulib.Text.to_string nv_name)
         ) tnvar_list
       in
       let type_args =
         if List.length tnvar_list = 0 then emp
-        else Output.flat [from_string " "; mapped]
+        else Output.flat [from_string " "; tnvar_names]
       in
         Output.flat [
           from_string "instance"; tnvar_list'; from_string " : Inhabited ("; o;
@@ -1533,30 +1549,11 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
         ]
     and generate_default_values ts : Output.t =
       let ts = Seplist.to_list ts in
-      let mapped = List.map generate_default_value ts in
+      let mapped = List.map (generate_inhabited_instance false) ts in
         concat_str "\n" mapped
-    and generate_default_value_sorry ((name, _), tnvar_list, path, t, name_sect_opt) : Output.t =
-      let name = B.type_path_to_name name path in
-      let o = lskips_t_to_output name in
-      let tnvar_list' = default_type_variables tnvar_list in
-      let mapped = concat_str " " @@ List.map (fun x ->
-        match x with
-          | Typed_ast.Tn_A (_, x, _) -> from_string (Ulib.Text.to_string x)
-          | _ -> from_string "BUG"
-        ) tnvar_list
-      in
-      let type_args =
-        if List.length tnvar_list = 0 then emp
-        else Output.flat [from_string " "; mapped]
-      in
-        Output.flat [
-          from_string "instance"; tnvar_list'; from_string " : Inhabited ("; o;
-          type_args;
-          from_string ") where\n  default := sorry /- mutual type -/";
-        ]
     and generate_default_values_mutual ts : Output.t =
       let ts = Seplist.to_list ts in
-      let mapped = List.map generate_default_value_sorry ts in
+      let mapped = List.map (generate_inhabited_instance true) ts in
         concat_str "\n" mapped
     and default_value (s : src_t) : Output.t =
       match s.term with
@@ -1582,7 +1579,8 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                 from_string "(fun ("; from_string v; from_string " : "; pat_typ dom;
                 from_string ") => "; default_value rng; from_string ")"
               ]
-        | _ -> assert false
+        | Typ_backend _ -> from_string "default"
+        | _ -> from_string "sorry /- unexpected type form -/"
       ;;
 end
 ;;
