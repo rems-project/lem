@@ -185,7 +185,8 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               type_def inside_module
           in
             Output.flat [
-              ws skips; funcl def
+              ws skips; funcl def;
+              generate_default_values def;
             ]
       | Val_def (def) ->
           let class_constraints = val_def_get_class_constraints A.env def in
@@ -1145,7 +1146,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               ]
         | Typ_paren(skips, t, skips') ->
             ws skips ^ from_string "(" ^ pat_typ t ^ ws skips' ^ from_string ")"
-        | Typ_with_sort(t,_) -> pat_typ t
+        | Typ_with_sort(t,_) -> raise (Reporting_basic.err_general true t.locn "Target sort annotations not currently supported for Lean")
         | Typ_len nexp -> src_nexp nexp
         | Typ_backend (p, ts) ->
           let i = Path.to_ident (ident_get_lskip p) p.descr in
@@ -1166,7 +1167,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
            typ_ident_to_output p
         | Typ_paren (skips, t, skips') ->
             ws skips ^ from_string "(" ^ typ t ^ from_string ")" ^ ws skips'
-        | Typ_with_sort (t, sort) -> typ t
+        | Typ_with_sort (t, sort) -> raise (Reporting_basic.err_general true t.locn "Target sort annotations not currently supported for Lean")
         | Typ_len nexp -> src_nexp nexp
         | _ -> assert false
     and type_def_type_variables tvs =
@@ -1224,6 +1225,81 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
           Name.to_output Term_field (B.const_ref_to_name n false f_ref);
           ws skips; from_string " :"; pat_typ t
       ]
+    and default_type_variables tvs =
+      match tvs with
+        | [] -> emp
+        | [Typed_ast.Tn_A tv] -> from_string " {" ^ tyvar tv ^ from_string " : Type}"
+        | tvs ->
+          let mapped = List.map (fun t ->
+            match t with
+              | Typed_ast.Tn_A (_, tv, _) ->
+                let tv = from_string @@ Ulib.Text.to_string tv in
+                  Output.flat [
+                    from_string " {"; tv; from_string " : Type}"
+                  ]
+              | Typed_ast.Tn_N nv ->
+                  Output.flat [
+                    from_string " {"; from_string "nv : Nat}"
+                  ]) tvs
+          in
+            concat emp mapped
+    and generate_default_value_texp (t: texp) =
+      match t with
+        | Te_opaque -> from_string "sorry /- DAEMON -/"
+        | Te_abbrev (_, src_t) -> default_value src_t
+        | Te_record (_, _, seplist, _) ->
+            let fields = Seplist.to_list seplist in
+            let mapped = List.map (fun ((name, _), const_descr_ref, _, src_t) ->
+              let name = B.const_ref_to_name name true const_descr_ref in
+              let o = lskips_t_to_output name in
+              let s = default_value src_t in
+                Output.flat [
+                  o; from_string " := "; s
+                ]
+              ) fields
+            in
+            let fields = concat_str ", " mapped in
+              Output.flat [
+                from_string "{ "; fields; from_string " }"
+              ]
+        | Te_variant (_, seplist) ->
+            (match Seplist.to_list seplist with
+              | []    -> assert false
+              | x::xs ->
+                let ((name, l), const_descr_ref, _, src_ts) = x in
+                  let name = B.const_ref_to_name name false const_descr_ref in
+                  let ys = Seplist.to_list src_ts in
+                  let mapped = List.map default_value ys in
+                  let sep = if List.length mapped = 0 then emp else from_string " " in
+                  let mapped = concat_str " " mapped in
+                  let o = lskips_t_to_output name in
+                    Output.flat [
+                      from_string "."; o; sep; mapped
+                    ])
+    and generate_default_value ((name, _), tnvar_list, path, t, name_sect_opt) : Output.t =
+      let name = B.type_path_to_name name path in
+      let o = lskips_t_to_output name in
+      let tnvar_list' = default_type_variables tnvar_list in
+      let default = generate_default_value_texp t in
+      let mapped = concat_str " " @@ List.map (fun x ->
+        match x with
+          | Typed_ast.Tn_A (_, x, _) -> from_string (Ulib.Text.to_string x)
+          | _ -> from_string "BUG"
+        ) tnvar_list
+      in
+      let type_args =
+        if List.length tnvar_list = 0 then emp
+        else Output.flat [from_string " "; mapped]
+      in
+        Output.flat [
+          from_string "instance"; tnvar_list'; from_string " : Inhabited ("; o;
+          type_args;
+          from_string ") where\n  default := "; default;
+        ]
+    and generate_default_values ts : Output.t =
+      let ts = Seplist.to_list ts in
+      let mapped = List.map generate_default_value ts in
+        concat_str "\n" mapped
     and default_value (s : src_t) : Output.t =
       match s.term with
         | Typ_wild _ -> from_string "sorry /- DAEMON -/"
