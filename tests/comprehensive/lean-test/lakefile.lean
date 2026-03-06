@@ -37,5 +37,6 @@ lean_lib LemComprehensiveTest where
     `Test_strings_chars, `Test_strings_chars_auxiliary,
     `Test_target_specific, `Test_target_specific_auxiliary,
     `Test_typ_args, `Test_typ_args_auxiliary,
-    `Test_type_features, `Test_type_features_auxiliary
+    `Test_type_features, `Test_type_features_auxiliary,
+    `Test_vectors, `Test_vectors_auxiliary
   ]

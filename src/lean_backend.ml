@@ -267,13 +267,18 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
       | Class (Ast.Class_inline_decl (skips, _), _, _, _, _,_, _, _) -> ws skips
       | Class (Ast.Class_decl skips, skips', (name, l), tv, p, skips'', body, skips''') ->
           let name = Name.to_output Term_var name in
+          let tv_kind =
+            match tv with
+              | Typed_ast.Tn_A _ -> "Type"
+              | Typed_ast.Tn_N _ -> "Nat"
+          in
           let tv =
             begin
               match tv with
                 | Typed_ast.Tn_A (_, tyvar, _) ->
                     from_string @@ Ulib.Text.to_string tyvar
-                | Typed_ast.Tn_N (_, nvar, l) ->
-                    from_string "sorry /- NOT_SUPPORTED: numeric type variable -/"
+                | Typed_ast.Tn_N (_, nvar, _) ->
+                    from_string @@ Ulib.Text.to_string nvar
             end
           in
           let body_entries =
@@ -290,7 +295,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
           in
           let body_out = Output.concat (from_string "\n") body_entries in
           Output.flat [
-            ws skips; from_string "class"; ws skips'; name; from_string " ("; tv; from_string " : Type) where"
+            ws skips; from_string "class"; ws skips'; name; from_string " ("; tv; from_string " : "; from_string tv_kind; from_string ") where"
           ; ws skips''; from_string "\n"; body_out
           ; ws skips'''; from_string "\nopen "; name; from_string "\n"
           ]
@@ -320,10 +325,10 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
           let prefix =
             match inst with
               | (constraint_prefix_opt, skips, ident, path, src_t, skips') ->
-                let tyvars, c =
+                let tnvar_list_opt, tyvars, c =
                   begin
                   match constraint_prefix_opt with
-                    | None -> emp, emp
+                    | None -> None, emp, emp
                     | Some c ->
                       begin
                       match c with
@@ -333,8 +338,8 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                                 match t with
                                   | Typed_ast.Tn_A (_, var, _) ->
                                       from_string @@ Ulib.Text.to_string var
-                                  | _ ->
-                                    raise (Reporting_basic.err_general true l_unk "nexps not supported in instance declarations")
+                                  | Typed_ast.Tn_N (_, var, _) ->
+                                      from_string @@ Ulib.Text.to_string var
                               ) tnvar_list)
                             in
                             let cs =
@@ -351,8 +356,8 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                                             match var with
                                               | Typed_ast.Tn_A (_, var, _) ->
                                                   from_string @@ Ulib.Text.to_string var
-                                              | _ ->
-                                                raise (Reporting_basic.err_general true l_unk "nexps not supported in instance declarations")
+                                              | Typed_ast.Tn_N (_, var, _) ->
+                                                  from_string @@ Ulib.Text.to_string var
                                           in
                                           let ident = Name.to_output Term_var (Ident.get_name id) in
                                             Output.flat [
@@ -362,7 +367,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                                         ident_var_list
                               end
                             in
-                              tnvars, cs
+                              Some tnvar_list, tnvars, cs
                       end
                   end
                 in
@@ -371,9 +376,26 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                   if tyvars = emp then
                     emp
                   else
-                    Output.flat [
-                      from_string "("; tyvars; from_string " : Type)"
-                    ]
+                    match tnvar_list_opt with
+                    | Some tnvar_list ->
+                      let has_nvar = List.exists (fun t ->
+                        match t with Typed_ast.Tn_N _ -> true | _ -> false) tnvar_list in
+                      if has_nvar then
+                        Output.concat (from_string " ") (List.map (fun t ->
+                          match t with
+                            | Typed_ast.Tn_A (_, var, _) ->
+                              Output.flat [from_string "("; from_string @@ Ulib.Text.to_string var; from_string " : Type)"]
+                            | Typed_ast.Tn_N (_, var, _) ->
+                              Output.flat [from_string "("; from_string @@ Ulib.Text.to_string var; from_string " : Nat)"]
+                        ) tnvar_list)
+                      else
+                        Output.flat [
+                          from_string "("; tyvars; from_string " : Type)"
+                        ]
+                    | None ->
+                      Output.flat [
+                        from_string "("; tyvars; from_string " : Type)"
+                      ]
                 in
                   Output.flat [
                     ws skips; tyvars_typeset; from_string " "; c; from_string " : "; id
@@ -402,11 +424,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
             Output.concat (from_string " ") (List.map (fun (path, tnvar) ->
               let name = Path.get_name path in
               let name = from_string (Ulib.Text.to_string (Name.to_rope name)) in
-              let var =
-                match tnvar with
-                  | Types.Ty var -> from_string @@ Ulib.Text.to_string @@ Types.tnvar_to_rope tnvar
-                  | _ ->
-                      raise (Reporting_basic.err_general true Ast.Unknown "nexps not supported in type class constraints")
+              let var = from_string @@ Ulib.Text.to_string @@ Types.tnvar_to_rope tnvar
               in
                 Output.flat [
                   from_string "["; name; from_string " "; var; from_string "]"
@@ -731,7 +749,19 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               ws sk ^
               Ident.to_output (Term_const (false, true)) path_sep i
           | Lit l -> literal l
-          | Do (skips, mod_descr_id, do_line_list, skips', e, skips'', type_int) -> raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: do-notation not yet supported")
+          | Do (skips, _mod_descr_id, do_line_list, _skips', e, _skips'', _type_int) ->
+              let lines = List.map (fun (Do_line (p, _s1, body, _s2)) ->
+                let (body', _) = Typed_ast.alter_init_lskips (fun sk -> (Typed_ast.no_lskips, sk)) body in
+                Output.flat [
+                  from_string "  let "; fun_pattern p; from_string " ← "; exp inside_instance body'; from_string "\n"
+                ]
+              ) do_line_list in
+              let (e', _) = Typed_ast.alter_init_lskips (fun sk -> (Typed_ast.no_lskips, sk)) e in
+              Output.flat [
+                from_string "\ndo\n";
+                concat emp lines;
+                from_string "  "; exp inside_instance e'; from_string "\n"
+              ]
           | App (e1, e2) ->
               let trans e = exp inside_instance e in
               let sep = from_string " " in
@@ -822,9 +852,11 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               ]
           | Case (_, skips, e, skips', cases, skips'') ->
             let case_sep _ = from_string " " in
+            let has_vec = Seplist.exists (fun (p, _, _, _) -> pat_has_vector p) cases in
             let body = flat @@ Seplist.to_sep_list_last Seplist.Optional (case_line inside_instance) case_sep cases in
+            let match_suffix = if has_vec then from_string ".toList" else emp in
                 Output.flat [
-                  ws skips; from_string "match "; exp inside_instance e; from_string " with "; body; ws skips''
+                  ws skips; from_string "match "; exp inside_instance e; match_suffix; from_string " with "; body; ws skips''
                 ]
           | Infix (l, c, r) ->
               let trans e = exp inside_instance e in
@@ -938,6 +970,14 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
             Output.flat [
               ws skips; from_string "("; src_nexp nexp; ws skips'; from_string ")"
             ]
+    and pat_has_vector (p : pat) : bool =
+      match p.term with
+        | P_vector _ | P_vectorC _ -> true
+        | P_paren (_, p, _) | P_typ (_, p, _, _, _) | P_as (_, p, _, _, _) -> pat_has_vector p
+        | P_tup (_, ps, _) | P_list (_, ps, _) -> Seplist.exists pat_has_vector ps
+        | P_cons (p1, _, p2) -> pat_has_vector p1 || pat_has_vector p2
+        | P_const (_, ps) -> List.exists pat_has_vector ps
+        | _ -> false
     and case_line inside_instance (p, skips, e, _) =
         flatten_newlines (Output.flat [
           from_string "| "; def_pattern p; from_string " => "; exp inside_instance e
@@ -974,7 +1014,10 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
             Output.flat [
               ws skips; i
             ]
-        | L_vector (s, v, v') -> raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: vector literals not yet supported")
+        | L_vector (s, prefix, bits) ->
+            Output.flat [
+              ws s; from_string (String.concat "" [prefix; bits])
+            ]
         | L_undefined (skips, explanation) ->
           let typ = l.typ in
           let src_t = C.t_to_src_t typ in
@@ -1043,6 +1086,14 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
             Output.flat [
               ws skips; from_string "["; body; from_string "]"; ws skips'
             ]
+        | P_vector (skips, ps, skips') ->
+          let body = flat @@ Seplist.to_sep_list_last Seplist.Optional fun_pattern (sep @@ from_string ", ") ps in
+            Output.flat [
+              ws skips; from_string "["; body; from_string "]"; ws skips'
+            ]
+        | P_vectorC _ ->
+            raise (Reporting_basic.err_general true p.locn
+              "Lean backend: vector concatenation patterns are not supported")
         | P_paren (skips, p, skips') ->
             Output.flat [
               ws skips; from_string "("; fun_pattern p; ws skips'; from_string ")"
@@ -1059,8 +1110,8 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               Output.flat [
                 ws skips; from_string "("; name; from_string " + "; from_string (Z.to_string k); from_string ")"
               ]
-        | _ -> raise (Reporting_basic.err_general true p.locn
-            "Lean backend: unsupported pattern form in fun_pattern")
+        | P_record _ ->
+            print_and_fail p.locn "illegal record pattern in code extraction, should have been compiled away"
     and def_pattern p =
       match p.term with
         | P_wild skips ->
@@ -1102,6 +1153,14 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
             Output.flat [
               ws skips; from_string "["; body; from_string "]"; ws skips'
             ]
+        | P_vector (skips, ps, skips') ->
+          let body = flat @@ Seplist.to_sep_list_last Seplist.Optional def_pattern (sep @@ from_string ", ") ps in
+            Output.flat [
+              ws skips; from_string "["; body; from_string "]"; ws skips'
+            ]
+        | P_vectorC _ ->
+            raise (Reporting_basic.err_general true p.locn
+              "Lean backend: vector concatenation patterns are not supported")
         | P_paren (skips, p, skips') ->
             Output.flat [
               from_string "("; ws skips; def_pattern p; ws skips'; from_string ")"
@@ -1118,8 +1177,8 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               Output.flat [
                 ws skips; from_string "("; name; from_string " + "; from_string (Z.to_string k); from_string ")"
               ]
-        | _ -> raise (Reporting_basic.err_general true p.locn
-            "Lean backend: unsupported pattern form in def_pattern")
+        | P_record _ ->
+            print_and_fail p.locn "illegal record pattern in code extraction, should have been compiled away"
     and src_t_has_fn (t : src_t) : bool =
       match t.term with
         | Typ_fn _ -> true
@@ -1577,8 +1636,8 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
         concat_str "\n" mapped
     and default_value (s : src_t) : Output.t =
       match s.term with
-        | Typ_wild _ -> from_string "sorry /- DAEMON -/"
-        | Typ_var _ -> from_string "sorry /- DAEMON -/"
+        | Typ_wild _ -> from_string "default"
+        | Typ_var _ -> from_string "default"
         | Typ_len _ -> from_string "0"
         | Typ_tup seplist ->
             let src_ts = Seplist.to_list seplist in

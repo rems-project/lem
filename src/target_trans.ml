@@ -383,7 +383,6 @@ let lean =
                          match Backend_common.inline_exp_macro Target_lean env a1 a2 with
                            | None -> Macro_expander.Fail
                            | Some e -> Macro_expander.Continue e);
-                        T.remove_do;
                        (fun a1 a2 ->
                          match Patterns.compile_exp (Target_no_ident Target_lean) Patterns.is_coq_pattern_match env a1 a2 with
                            | None -> Macro_expander.Fail

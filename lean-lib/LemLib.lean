@@ -17,6 +17,9 @@ comparator. Functions without `By` use Lean's `BEq` or `Ord` type classes.
 /- DAEMON: undefined value placeholder, analogous to Coq's DAEMON axiom -/
 axiom DAEMON : ∀ {α : Type}, α
 
+/- Lem uses lowercase 'vector' for its built-in vector type -/
+abbrev vector (α : Type) (n : Nat) := Vector α n
+
 /- Ordering type for comparisons -/
 inductive LemOrdering where
   | LT : LemOrdering

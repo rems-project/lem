@@ -1,0 +1,11 @@
+open import Pervasives_extra
+
+(* Simple vector expression *)
+let vec1 : vector bool 3 = [| true; false; true |]
+
+(* Vector pattern matching *)
+let vec_match (v : vector bool 2) : bool =
+  match v with
+    | [| x; y |] -> x && y
+    | _ -> false
+  end
