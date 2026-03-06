@@ -11,6 +11,7 @@ instance : NumAdd Nat where
 
 class SetType (a : Type) where
   setElemCompare : a → a → LemOrdering
+export SetType (setElemCompare)
 
 instance {a : Type} [SetType a] : BEq a where
   beq x y := match SetType.setElemCompare x y with | .EQ => true | _ => false

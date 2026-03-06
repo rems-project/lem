@@ -209,9 +209,15 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
             else
               type_def inside_module
           in
+          let defaults =
+            if Seplist.length def > 1 then
+              generate_default_values_mutual def
+            else
+              generate_default_values def
+          in
             Output.flat [
               ws skips; funcl def;
-              generate_default_values def;
+              defaults;
             ]
       | Val_def (def) ->
           let class_constraints = val_def_get_class_constraints A.env def in
@@ -267,12 +273,15 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
             end
           in
           let body_entries =
-            List.map (fun (skips, targets_opt, (name, l), const_descr_ref, ascii_rep_opt, skips', src_t) ->
-              let name' = B.const_ref_to_name name true const_descr_ref in
-              let name_str = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip name')) in
-                Output.flat [
-                  ws skips; from_string name_str; from_string " :"; ws skips'; pat_typ src_t
-                ]
+            List.filter_map (fun (skips, targets_opt, (name, l), const_descr_ref, ascii_rep_opt, skips', src_t) ->
+              if in_target targets_opt then
+                let name' = B.const_ref_to_name name true const_descr_ref in
+                let name_str = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip name')) in
+                  Some (Output.flat [
+                    ws skips; from_string name_str; from_string " :"; ws skips'; pat_typ src_t
+                  ])
+              else
+                None
             ) body
           in
           let body_out = Output.concat (from_string "\n") body_entries in
@@ -283,6 +292,26 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
           ]
       | Instance (Ast.Inst_default skips, i_ref, inst, vals, skips') -> emp
       | Instance (Ast.Inst_decl skips, i_ref, inst, vals, skips') ->
+        (* Filter out instance methods whose corresponding class methods
+           are not visible for the Lean target *)
+        let instance_info = Types.i_env_lookup Ast.Unknown A.env.i_env i_ref in
+        let class_method_visible (inst_cd_ref : Types.const_descr_ref) : bool =
+          let found = List.filter (fun (_, inst_ref) -> inst_ref = inst_cd_ref) instance_info.inst_methods in
+          match found with
+          | (class_ref, _) :: _ ->
+            let class_cd = c_env_lookup Ast.Unknown A.env.c_env class_ref in
+            Typed_ast.in_target_set (Target.Target_no_ident Target.Target_lean) class_cd.const_targets
+          | [] -> true
+        in
+        let val_is_visible (d : Typed_ast.val_def) : bool =
+          match d with
+          | Let_def (_, _, (_, name_map, _, _, _)) ->
+            List.for_all (fun (_, cd_ref) -> class_method_visible cd_ref) name_map
+          | Fun_def (_, _, _, funcl_sep) ->
+            Seplist.for_all (fun ({term = _}, c, _, _, _, _) -> class_method_visible c) funcl_sep
+          | _ -> true
+        in
+        let vals = List.filter val_is_visible vals in
         let l_unk = Ast.Unknown in
           let prefix =
             match inst with
@@ -1083,6 +1112,23 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                 ws skips; from_string "("; name; from_string " + "; from_string (Z.to_string k); from_string ")"
               ]
         | _ -> from_string "/- pattern not supported -/"
+    and src_t_has_fn (t : src_t) : bool =
+      match t.term with
+        | Typ_fn _ -> true
+        | Typ_tup ts -> Seplist.exists src_t_has_fn ts
+        | Typ_app (_, ts) -> List.exists src_t_has_fn ts
+        | Typ_paren (_, t, _) -> src_t_has_fn t
+        | Typ_with_sort (t, _) -> src_t_has_fn t
+        | _ -> false
+    and texp_can_derive_beq (t : texp) : bool =
+      match t with
+        | Te_variant (_, ctors) ->
+          not (Seplist.exists (fun (_, _, _, args) ->
+            Seplist.exists src_t_has_fn args
+          ) ctors)
+        | Te_record (_, _, fields, _) ->
+          not (Seplist.exists (fun (_, _, _, src_t) -> src_t_has_fn src_t) fields)
+        | _ -> false
     and type_def_abbreviation def =
       match Seplist.hd def with
         | ((n, _), tyvars, path, Te_abbrev (skips, t),_) ->
@@ -1105,10 +1151,15 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
             let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) field (sep @@ from_string "\n") fields in
             let tyvars' = type_def_type_variables tyvars in
             let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
+            let deriving =
+              if texp_can_derive_beq (Te_record (skips, skips', fields, skips'')) then
+                from_string "\n  deriving BEq"
+              else emp
+            in
               Output.flat [
                 from_string "structure"; name; tyvar_sep; tyvars';
                 ws skips; from_string " where"; ws skips';
-                from_string "\n"; body; ws skips''; from_string "\n";
+                from_string "\n"; body; ws skips''; deriving; from_string "\n";
               ]
         | _ -> from_string "/- Internal Lem error, please report. -/"
     and type_def inside_module defs =
@@ -1122,12 +1173,25 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
       ) type_names) in
       let n = Seplist.length defs in
       if n > 1 then
-        let body = flat @@ Seplist.to_sep_list type_def' (sep @@ from_string "\ninductive") defs in
-        Output.flat [ from_string "mutual\ninductive"; body; from_string "\nend"; open_decls; from_string "\n" ]
+        (* Check if all types in mutual block have the same number of type params *)
+        let param_counts = Seplist.to_list_map (fun (_, ty_vars, _, _, _) ->
+          List.length ty_vars
+        ) defs in
+        let all_same = match param_counts with
+          | [] -> true
+          | x :: xs -> List.for_all (fun y -> y = x) xs
+        in
+        if all_same then
+          let body = flat @@ Seplist.to_sep_list (type_def_variant false) (sep @@ from_string "\ninductive") defs in
+          Output.flat [ from_string "mutual\ninductive"; body; from_string "\nend"; open_decls; from_string "\n" ]
+        else
+          (* Heterogeneous params: use indices instead of params for Lean 4 compatibility *)
+          let body = flat @@ Seplist.to_sep_list type_def_indexed (sep @@ from_string "\ninductive") defs in
+          Output.flat [ from_string "mutual\ninductive"; body; from_string "\nend"; open_decls; from_string "\n" ]
       else
-        let body = flat @@ Seplist.to_sep_list type_def' (sep @@ from_string "\n") defs in
+        let body = flat @@ Seplist.to_sep_list (type_def_variant true) (sep @@ from_string "\n") defs in
         Output.flat [ from_string "inductive"; body; open_decls; from_string "\n" ]
-    and type_def' ((n0, l), ty_vars, t_path, ty, _) =
+    and type_def_variant emit_deriving ((n0, l), ty_vars, t_path, ty, _) =
       let n = B.type_path_to_name n0 t_path in
       let name = Name.to_output (Type_ctor (false, false)) n in
       let ty_vars =
@@ -1144,8 +1208,84 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               ]
           | _ ->
             Output.flat [
-              inductive ty_vars n; tyexp name ty_vars ty
+              inductive ty_vars n; tyexp emit_deriving name ty_vars ty
             ]
+    and type_def_indexed ((n0, l), ty_vars, t_path, ty, _) =
+      (* Emit type with indices instead of parameters, for heterogeneous mutual blocks.
+         Parameters become indices: inductive v : (a : Type) → (b : Type) → Type 1 where *)
+      let n = B.type_path_to_name n0 t_path in
+      let name = Name.to_output (Type_ctor (false, false)) n in
+      let ty_vars_list =
+        List.map (
+          function
+            | Typed_ast.Tn_A (_, tyvar, _) -> Tyvar (from_string @@ Ulib.Text.to_string tyvar)
+            | Typed_ast.Tn_N (_, nvar, _) -> Nvar (from_string @@ Ulib.Text.to_string nvar)
+          ) ty_vars
+      in
+      let indices =
+        if List.length ty_vars_list = 0 then emp
+        else
+          let mapped = List.map (fun v ->
+            match v with
+              | Tyvar x -> Output.flat [ from_string "("; x; from_string " : Type) → " ]
+              | Nvar x -> Output.flat [ from_string "("; x; from_string " : Nat) → " ]
+          ) ty_vars_list in
+          concat emp mapped
+      in
+      let universe = if List.length ty_vars_list > 0 then from_string "Type 1" else from_string "Type" in
+      let ty_vars_names =
+        concat_str " " @@ List.map (fun v ->
+          match v with
+            | Tyvar out -> out
+            | Nvar out -> out
+        ) ty_vars_list
+      in
+      let ty_vars_names_space = if List.length ty_vars_list = 0 then emp else from_string " " in
+      match ty with
+        | Te_variant (skips, ctors) ->
+          let body = flat @@ Seplist.to_sep_list_first Seplist.Optional
+            (constructor_indexed name ty_vars_list ty_vars_names ty_vars_names_space) (sep @@ from_string "\n") ctors in
+          Output.flat [
+            from_string " "; name; from_string " : "; indices; universe; from_string " where";
+            ws skips; from_string "\n"; body
+          ]
+        | Te_opaque ->
+          Output.flat [
+            from_string " "; name; from_string " : "; indices; universe; from_string " where"
+          ]
+        | _ ->
+          Output.flat [
+            from_string " "; name; from_string " : "; indices; universe; from_string " where"
+          ]
+    and constructor_indexed ind_name (ty_vars : variable list) ty_vars_names ty_vars_names_space ((name0, _), c_ref, skips, args) =
+      let ctor_name = B.const_ref_to_name name0 false c_ref in
+      let ctor_name = Name.to_output (Type_ctor (false, false)) ctor_name in
+      let body = flat @@ Seplist.to_sep_list pat_typ (sep @@ from_string " → ") args in
+      (* For indexed inductives, constructors must bind all type variables implicitly *)
+      let implicit_bindings =
+        if List.length ty_vars = 0 then emp
+        else
+          let mapped = List.map (fun v ->
+            match v with
+              | Tyvar x -> Output.flat [ from_string "{"; x; from_string " : Type} → " ]
+              | Nvar x -> Output.flat [ from_string "{"; x; from_string " : Nat} → " ]
+          ) ty_vars in
+          concat emp mapped
+      in
+      let tail =
+        Output.flat [
+          from_string " → "; ind_name; ty_vars_names_space; ty_vars_names
+        ]
+      in
+        if Seplist.length args = 0 then
+          Output.flat [
+            from_string "  | "; ctor_name; from_string " :"; ws skips; implicit_bindings; ind_name
+          ; ty_vars_names_space; ty_vars_names
+          ]
+        else
+          Output.flat [
+            from_string "  | "; ctor_name; from_string " :"; ws skips; implicit_bindings; body; tail
+          ]
     and inductive ty_vars name =
       let ty_var_sep = if List.length ty_vars = 0 then emp else from_string " " in
       let ty_vars = inductive_type_variables ty_vars in
@@ -1166,15 +1306,20 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               ]) vars
       in
         concat_str " " mapped
-    and tyexp name ty_vars =
+    and tyexp emit_deriving name ty_vars =
       function
         | Te_opaque -> emp
         | Te_abbrev (skips, t) -> ws skips ^ from_string " := " ^ pat_typ t
         | Te_record (skips, _, fields, skips') -> ws skips ^ from_string " where\n" ^ tyexp_record fields ^ ws skips'
         | Te_variant (skips, ctors) ->
           let body = flat @@ Seplist.to_sep_list_first Seplist.Optional (constructor name ty_vars) (sep @@ from_string "\n") ctors in
+          let deriving =
+            if emit_deriving && texp_can_derive_beq (Te_variant (skips, ctors)) then
+              from_string "\n  deriving BEq"
+            else emp
+          in
             Output.flat [
-              from_string " where"; ws skips; from_string "\n"; body
+              from_string " where"; ws skips; from_string "\n"; body; deriving
             ]
     and constructor ind_name (ty_vars : variable list) ((name0, _), c_ref, skips, args) =
       let ctor_name = B.const_ref_to_name name0 false c_ref in
@@ -1389,6 +1534,29 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
     and generate_default_values ts : Output.t =
       let ts = Seplist.to_list ts in
       let mapped = List.map generate_default_value ts in
+        concat_str "\n" mapped
+    and generate_default_value_sorry ((name, _), tnvar_list, path, t, name_sect_opt) : Output.t =
+      let name = B.type_path_to_name name path in
+      let o = lskips_t_to_output name in
+      let tnvar_list' = default_type_variables tnvar_list in
+      let mapped = concat_str " " @@ List.map (fun x ->
+        match x with
+          | Typed_ast.Tn_A (_, x, _) -> from_string (Ulib.Text.to_string x)
+          | _ -> from_string "BUG"
+        ) tnvar_list
+      in
+      let type_args =
+        if List.length tnvar_list = 0 then emp
+        else Output.flat [from_string " "; mapped]
+      in
+        Output.flat [
+          from_string "instance"; tnvar_list'; from_string " : Inhabited ("; o;
+          type_args;
+          from_string ") where\n  default := sorry /- mutual type -/";
+        ]
+    and generate_default_values_mutual ts : Output.t =
+      let ts = Seplist.to_list ts in
+      let mapped = List.map generate_default_value_sorry ts in
         concat_str "\n" mapped
     and default_value (s : src_t) : Output.t =
       match s.term with
