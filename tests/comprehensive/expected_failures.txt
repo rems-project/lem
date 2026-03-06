@@ -2,8 +2,4 @@
 # Lines starting with # are comments
 # Format: test_file.lem,backend,short reason
 #
-# === Lean compilation failures (backend issues) ===
-test_comprehensions.lem,lean-compile,BEq instance synthesis for set comprehension types
-test_indreln.lem,lean-compile,inductive relation syntax generation (function application form)
-test_sets_maps.lem,lean-compile,setElemCompare not in scope for set operations
-test_stress_large.lem,lean-compile,BEq instance synthesis for user-defined types in sets
+# (none — all tests currently pass)

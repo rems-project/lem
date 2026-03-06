@@ -569,7 +569,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                           (List.map (fun e ->
                                flat [ from_string "(";
                                       exp inside_instance e;
-                                      from_string " : Prop)" ]) ants);
+                                      from_string ")" ]) ants);
                         from_string " → "
                       ]
               in
