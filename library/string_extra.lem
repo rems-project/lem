@@ -24,6 +24,7 @@ declare ocaml target_rep function ord = `Char.code`
    search, they might not be the best options *)
 declare isabelle target_rep function ord = `of_char`
 declare coq target_rep function ord = `nat_of_ascii`
+declare lean target_rep function ord = `Char.toNat`
 
 val chr : nat -> char
 declare hol target_rep function chr = `CHR`
@@ -32,6 +33,7 @@ declare ocaml target_rep function chr = `Char.chr`
    search, they might not be the best options *)
 declare isabelle target_rep function chr = `(%n. char_of (n::nat))`
 declare coq target_rep function chr = `ascii_of_nat`
+declare lean target_rep function chr = `Char.ofNat`
 
 (******************************************************************************)
 (* Converting to strings                                                      *)

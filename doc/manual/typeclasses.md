@@ -21,7 +21,7 @@ instantiate `Eq` for any inductively defined types that make use of
 
 ## Type classes for Sets and Maps
 
-Sets and Maps require comparison operations in OCaml and Coq.  This is
+Sets and Maps require comparison operations in OCaml, Coq, and Lean.  This is
 provided via type classes `SetType` and `MapType`, introduced in
 `library/basic_classes.lem`;
 the former has a single method `setElemCompare`.

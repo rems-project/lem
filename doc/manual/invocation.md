@@ -6,14 +6,15 @@ The most basic usage of Lem is running a command like
 
 This command loads the lem files `input1.lem` through `inputn.lem` and outputs their translation to target `target` in the same directory as the input files. Multiple target arguments are possible. For example
 
-    lem name1.lem name2.lem -ocaml -hol -isa -coq 
+    lem name1.lem name2.lem -ocaml -hol -isa -coq -lean
 
 creates the following files (assuming there are no type errors, and no explicit renaming in the source files):
-  
+
   - `name1.ml` and `name2.ml` for target `ocaml`
   - `name1Script.sml`, `name2Script.sml` for target `hol`
   - `Name1.thy`, `Name2.thy` for target `isa`
   - `name1.v`, `name2.v` for target `coq`
+  - `Name1.lean`, `Name2.lean` for target `lean`
 
 There are auxiliary files generated as well, which are discussed later.
 
@@ -27,6 +28,7 @@ The following command line options tell Lem to generate output for certain backe
 - `-hol`  generate HOL4 output
 - `-isa`  generate Isabelle/HOL output
 - `-coq`  generate Coq output
+- `-lean` generate Lean 4 output
 
 - `-tex`  generate LaTeX output for each module separately. This means that for each input file, a separate output `.tex` file is created. These files contain the pretty-printed input.
 
@@ -59,7 +61,7 @@ By default Lem generates all available auxiliary output. The command-line option
 `-auxiliary_level auto` causes only automatically processable output like testing code of assertions to be generated. `-auxiliary_level none` turns off the generation of auxiliary files. One can also turn off the generation of the main files and only generate the auxiliary ones using `-only_auxiliary`. 
 
 ## Updating Existing Output
-When using multi-file Lem developments, it might be handy to only update the output files that really changed. This allows the build-tools of backends like OCaml, HOL, Isabelle or Coq to only recompile files that really need to. Lem supports this via the command line option `-only_changed_output`.
+When using multi-file Lem developments, it might be handy to only update the output files that really changed. This allows the build-tools of backends like OCaml, HOL, Isabelle, Coq or Lean to only recompile files that really need to. Lem supports this via the command line option `-only_changed_output`.
 
 ## Warnings
 Lem can print warning messages about various things. Common warnings are about unused variables, name clashes that required automatic renaming of some entities or the need for pattern compilation, but there are many more. Warning options start with the prefix `wl`. They can be set to 4 different values

@@ -3,8 +3,8 @@
 Lem is a tool for lightweight executable mathematics, for writing,
 managing, and publishing large-scale portable semantic definitions,
 with export to LaTeX, executable code (currently OCaml) and
-interactive theorem provers (currently Coq, HOL4, and Isabelle/HOL,
-though the generated Coq is not necessarily idiomatic).  It is also
+interactive theorem provers (currently Coq, HOL4, Isabelle/HOL, and
+Lean 4).  It is also
 intended as an intermediate language for generating definitions from
 domain-specific tools, and for porting definitions between interactive
 theorem proving systems.
@@ -86,6 +86,7 @@ Running `make` only generates Lem. It not generate the libraries needed to use L
 - for HOL4 : `make hol-libs`
 - for Isabelle: `make isa-libs`
 - for Coq : `make coq-libs`
+- for Lean 4 : the Lean library is provided in `lean-lib/`
 
 These targets depend on the corresponding tool being installed. If you
 just want to generate the input that Lem gives to these tools, please
@@ -113,6 +114,7 @@ Lem has been tested against the following versions of the backend software:
   * Coq: 8.16.0
   * Isabelle 2022
   * HOL: HOL4 Kananaskis 14
+  * Lean: 4.x (via Lake build system)
 
 ## Examples
 

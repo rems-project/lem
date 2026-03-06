@@ -695,6 +695,7 @@ target :: 'Target_' ::=
   | isabelle							:: :: isa
   | ocaml							:: :: ocaml
   | coq								:: :: coq
+  | lean							:: :: lean
   | tex								:: :: tex
   | html							:: :: html
   | lem 							:: :: lem

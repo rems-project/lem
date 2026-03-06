@@ -3,7 +3,7 @@
 Lem is a lightweight tool for writing, managing, and publishing large scale
 semantic definitions. It is also intended as an intermediate language for
 generating definitions from domain-specific tools, and for porting definitions
-between interactive theorem proving systems (such as Coq, HOL4, and Isabelle).
+between interactive theorem proving systems (such as Coq, HOL4, Isabelle, and Lean 4).
 
 The language combines features familiar from functional programming languages with logical constructs. 
 From functional programming languages we take
@@ -30,7 +30,7 @@ inductive relations, and for assertions.
 
 Lem typechecks its input and can 
 generate executable OCaml, 
-theorem prover definitions in Coq, HOL4 and Isabelle/HOL, 
+theorem prover definitions in Coq, HOL4, Isabelle/HOL, and Lean 4,
 typeset definitions in LaTeX, and simple HTML.
 
 ## Supported software
@@ -41,6 +41,7 @@ Lem is tested against the following versions of the backend software:
   * Coq: 8.4pl3 and 8.4pl2
   * Isabelle: Isabelle-2013-2
   * HOL: HOL4 Kananaskis 9
+  * Lean: 4.x
 
 Older or newer versions of this software may work correctly with Lem, but are unsupported.
 
