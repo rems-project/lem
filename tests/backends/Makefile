@@ -11,6 +11,8 @@ coqtests: types.vo pats.vo exps.vo
 
 ocamltests: types.byte pats.byte exps.byte classes.byte
 
+leantests: Types.lean Pats.lean Exps.lean
+
 isabelletests: isatests/Pats.thy isatests/Types.thy isatests/Exps.thy
 	isabelle make clean
 	isabelle make isatests
@@ -32,6 +34,15 @@ HoltestScript.sml: holtest.lem ../../lem
 
 %.v: %.lem ../../lem
 	../../lem -wl ign -coq $<
+
+Types.lean: types.lem ../../lem
+	../../lem -wl ign -lean $<
+
+Pats.lean: pats.lem ../../lem
+	../../lem -wl ign -lean $<
+
+Exps.lean: exps.lem ../../lem
+	../../lem -wl ign -lean $<
 
 Types.thy: types.lem ../../lem
 	../../lem -wl ign -isa $<
@@ -69,6 +80,6 @@ isatests/%.thy: %.thy
 clean:
 	-Holmake cleanAll
 	-isabelle make clean
-	-rm -fr hol_preload *.cmi *.cmo *.byte pats.ml *.uo *.ui *.v *.thy *Theory.* *Script.* *.imn hol_preload.o exps.ml classes.ml types.ml _build isatests/*.thy holtest.ml
+	-rm -fr hol_preload *.cmi *.cmo *.byte pats.ml *.uo *.ui *.v *.thy *.lean *Theory.* *Script.* *.imn hol_preload.o exps.ml classes.ml types.ml _build isatests/*.thy holtest.ml
 
 .precious: PatsScript.sml pats.ml ExpsScript.sml exps.ml classes.ml TypesScript.sml types.ml types.v Exps.thy exps.v Pats.thy Types.thy types.v HolScript.sml
