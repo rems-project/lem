@@ -122,10 +122,10 @@ def setMemberBy (cmp : α → α → LemOrdering) (x : α) (s : List α) : Bool 
 @[inline] def setCardinal : List α → Nat := List.length
 
 def setFromList [BEq α] (l : List α) : List α :=
-  l.foldl (fun acc x => if acc.elem x then acc else x :: acc) []
+  l.foldr (fun x acc => if acc.elem x then acc else x :: acc) []
 
 def setFromListBy (cmp : α → α → LemOrdering) (l : List α) : List α :=
-  l.foldl (fun acc x => if setMemberBy cmp x acc then acc else x :: acc) []
+  l.foldr (fun x acc => if setMemberBy cmp x acc then acc else x :: acc) []
 
 @[inline] def setToList (s : List α) : List α := s
 
@@ -245,3 +245,8 @@ def fmapRangeBy (cmp : β → β → LemOrdering) (m : Fmap α β) : List β :=
 
 def fmapAll (f : α → β → Bool) (m : Fmap α β) : Bool :=
   m.all (fun p => f p.1 p.2)
+
+def fmapUnion [BEq α] (m1 m2 : Fmap α β) : Fmap α β :=
+  m2.foldl (fun acc (k, v) => fmapAdd k v acc) m1
+
+@[inline] def fmapElements (m : Fmap α β) : List (α × β) := m

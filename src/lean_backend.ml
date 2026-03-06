@@ -880,8 +880,10 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                 quant; from_string " "; bindings; from_string ", ("; ws skips;
                 exp inside_instance e; from_string " : Prop)"
               ]
-          | Comp_binding (_, _, _, _, _, _, _, _, _) -> from_string "/- comp binding -/"
-          | Setcomp (_, _, _, _, _, _) -> from_string "/- setcomp -/"
+          | Comp_binding _ -> raise (Reporting_basic.err_general true Ast.Unknown
+              "Lean backend: unexpected Comp_binding (should be desugared by transformation pipeline)")
+          | Setcomp _ -> raise (Reporting_basic.err_general true Ast.Unknown
+              "Lean backend: unexpected Setcomp (should be desugared by transformation pipeline)")
           | Nvar_e (skips, nvar) ->
             let nvar = id Nexpr_var @@ Ulib.Text.(^^^) (r "") (Nvar.to_rope nvar) in
               Output.flat [
@@ -1057,7 +1059,8 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               Output.flat [
                 ws skips; from_string "("; name; from_string " + "; from_string (Z.to_string k); from_string ")"
               ]
-        | _ -> from_string "/- pattern not supported -/"
+        | _ -> raise (Reporting_basic.err_general true p.locn
+            "Lean backend: unsupported pattern form in fun_pattern")
     and def_pattern p =
       match p.term with
         | P_wild skips ->
@@ -1115,7 +1118,8 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               Output.flat [
                 ws skips; from_string "("; name; from_string " + "; from_string (Z.to_string k); from_string ")"
               ]
-        | _ -> from_string "/- pattern not supported -/"
+        | _ -> raise (Reporting_basic.err_general true p.locn
+            "Lean backend: unsupported pattern form in def_pattern")
     and src_t_has_fn (t : src_t) : bool =
       match t.term with
         | Typ_fn _ -> true
@@ -1398,7 +1402,13 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
             let body = flat @@ Seplist.to_sep_list typ (sep @@ from_string " ×") ts in
               from_string "(" ^ body ^ from_string ")"
         | Typ_app (p, ts) ->
-           typ_ident_to_output p
+            if Path.compare p.descr Path.unitpath = 0 then
+              let sk = Typed_ast.ident_get_lskip p in
+              Output.flat [ ws sk; from_string "Unit" ]
+            else
+              let args = concat_str " " @@ List.map typ ts in
+              let args_space = if ts <> [] then from_string " " else emp in
+              Output.flat [ typ_ident_to_output p; args_space; args ]
         | Typ_paren (skips, t, skips') ->
             ws skips ^ from_string "(" ^ typ t ^ from_string ")" ^ ws skips'
         | Typ_with_sort (t, sort) -> raise (Reporting_basic.err_general true t.locn "Target sort annotations not currently supported for Lean")

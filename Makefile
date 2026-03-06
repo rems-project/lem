@@ -63,6 +63,7 @@ libs_phase_2:
 	$(MAKE) hol-libs
 	$(MAKE) coq-libs
 	$(MAKE) isa-libs
+	$(MAKE) lean-libs
 
 hol-libs: 
 #	$(MAKE) -C library hol-libs
