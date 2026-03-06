@@ -60,6 +60,7 @@ let ~{coq} chooseAndSplit s =
 
 declare ocaml target_rep function chooseAndSplit = `Pset.choose_and_split`
 declare coq   target_rep function chooseAndSplit = `choose_and_split`
+declare lean   target_rep function chooseAndSplit = `chooseAndSplit`
 
 (* ----------------------------*)
 (* universal set               *)
@@ -87,6 +88,7 @@ declare ocaml    target_rep function toList = `Pset.elements`
 declare isabelle target_rep function toList = `list_of_set`
 declare hol      target_rep function toList = `SET_TO_LIST`
 declare coq      target_rep function toList = `set_to_list`
+declare lean     target_rep function toList = `setToList`
 
 
 assert toList_0: toList ({} : set nat) = []
@@ -129,6 +131,7 @@ let {isabelle;hol} setCompareBy cmp ss ts =
     lexicographicCompareBy cmp ss' ts'
 
 declare coq target_rep function setCompareBy = `set_compare_by`
+declare lean target_rep function setCompareBy = `setCompareBy`
 declare ocaml target_rep function setCompareBy = `Pset.compare_by`
 
 val setCompare : forall 'a. SetType 'a, Ord 'a => set 'a -> set 'a -> ordering

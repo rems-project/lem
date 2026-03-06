@@ -1339,6 +1339,7 @@ val proverWordFromInteger : forall 'a. integer -> mword 'a
 declare isabelle target_rep function proverWordFromInteger = `Word.word_of_int`
 declare hol      target_rep function proverWordFromInteger = `integer_word$i2w`
 declare coq      target_rep function proverWordFromInteger = `DAEMON`
+declare lean     target_rep function proverWordFromInteger = `Int.ofNat`
 
 val wordFromInteger : forall 'a. Size 'a => integer -> mword 'a
 

@@ -157,6 +157,7 @@ declare ocaml    target_rep function sortByOrd = `List.sort`
 
 let inline {isabelle;hol} sortByOrd f xs = sortBy (predicate_of_ord f) xs
 declare coq      target_rep function sortByOrd      = `sort_by_ordering`
+declare lean     target_rep function sortByOrd      = `sort_by_ordering`
 
 let inline ~{ocaml} sort = sortBy (<=)
 let inline {ocaml} sort = sortByOrd compare

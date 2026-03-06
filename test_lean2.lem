@@ -1,0 +1,38 @@
+open import Pervasives
+
+(* Test list operations *)
+let double_list (xs : list nat) : list nat =
+  List.map (fun x -> x * 2) xs
+
+(* Test maybe/option *)
+let safe_head (xs : list nat) : maybe nat =
+  match xs with
+    | [] -> Nothing
+    | x :: _ -> Just x
+  end
+
+(* Test records with functions *)
+type config = <|
+  name : string;
+  count : nat;
+  enabled : bool;
+|>
+
+let default_config : config = <|
+  name = "default";
+  count = 0;
+  enabled = true;
+|>
+
+let update_count (c : config) (n : nat) : config =
+  <| c with count = n |>
+
+(* Test if-then-else *)
+let abs_diff (x : nat) (y : nat) : nat =
+  if x > y then x - y else y - x
+
+(* Test let bindings *)
+let compute (x : nat) : nat =
+  let a = x + 1 in
+  let b = a * 2 in
+  b + 3
