@@ -84,9 +84,16 @@ let need_space x y =
       not d1 && not d2 && s1 = s2
 ;;
 
-let from_string x = meta x
+let from_string x = meta_utf8 x
 let sep x s = ws s ^ x
 let path_sep = r"."
+
+(* Lean 4 is whitespace-sensitive, so disable auto-formatting blocks
+   which can break indentation of match alternatives *)
+let block _ _ t = t
+let block_hov _ _ t = t
+
+let flatten_newlines = Output.flatten_newlines
 
 let tyvar (_, tv, _) = id Type_var (Ulib.Text.(^^^) (r"") tv)
 let concat_str s = concat (from_string s)
@@ -111,8 +118,6 @@ let lean_format_op use_infix a x =
   else
     id a x
 
-let none = Ident.mk_ident_strings [] "none";;
-let some = Ident.mk_ident_strings [] "some";;
 
 let fresh_name_counter = ref 0
 ;;
@@ -149,6 +154,26 @@ module LeanBackendAux (A : sig val avoid : var_avoid_f option;; val env : env;; 
 
 let use_ascii_rep_for_const (cd : const_descr_ref) : bool =
   Types.Cdset.mem cd A.ascii_rep_set
+;;
+
+(* Check if a constant is a plain constructor (not target-rep'd for Lean).
+   Such constructors need a dot prefix in Lean 4 expression position. *)
+let is_plain_constructor (cd_ref : const_descr_ref) : bool =
+  let c_descr = c_env_lookup Ast.Unknown A.env.c_env cd_ref in
+  c_descr.env_tag = K_constr &&
+  (match Target.Targetmap.apply_target c_descr.target_rep (Target_no_ident Target_lean) with
+   | Some _ -> false
+   | None -> true)
+;;
+
+(* Render a constructor with dot prefix, preserving leading whitespace.
+   Turns "  C1" into "  .C1" rather than ".  C1". *)
+let constructor_dot_output (const : const_descr_ref id) ascii_alt : Output.t =
+  let i = B.const_id_to_ident const ascii_alt in
+  let lskip = Ident.get_lskip i in
+  let i_no_ws = Ident.replace_lskip i None in
+  (* Add trailing space to prevent .Ctor( being parsed as namespace access *)
+  Output.flat [ws lskip; from_string "."; Ident.to_output (Term_const (false, true)) path_sep i_no_ws; from_string " "]
 ;;
 
 let field_ident_to_output fd ascii_alternative =
@@ -238,7 +263,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                 | Typed_ast.Tn_A (_, tyvar, _) ->
                     from_string @@ Ulib.Text.to_string tyvar
                 | Typed_ast.Tn_N (_, nvar, l) ->
-                    from_string "NOT_SUPPORTED"
+                    from_string "sorry /- NOT_SUPPORTED: numeric type variable -/"
             end
           in
           let body_entries =
@@ -254,7 +279,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
           Output.flat [
             ws skips; from_string "class"; ws skips'; name; from_string " ("; tv; from_string " : Type) where"
           ; ws skips''; from_string "\n"; body_out
-          ; ws skips'''
+          ; ws skips'''; from_string "\nopen "; name; from_string "\n"
           ]
       | Instance (Ast.Inst_default skips, i_ref, inst, vals, skips') -> emp
       | Instance (Ast.Inst_decl skips, i_ref, inst, vals, skips') ->
@@ -379,25 +404,83 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
           | Fun_def (skips, rec_flag, targets, funcl_skips_seplist) ->
               if in_target targets then
                 let skips' = match rec_flag with FR_non_rec -> None | FR_rec sk -> sk in
-                let header, ending =
-                  if is_recursive then
-                    if inside_instance then
-                      ws (match skips' with Some s -> Some s | None -> None), emp
-                    else
-                      Output.flat [
-                        from_string "def"
-                      ], emp
-                  else
-                    if inside_instance then
-                      emp, emp
-                    else
-                      from_string "def", emp
-                in
                 let funcls = Seplist.to_list funcl_skips_seplist in
-                let bodies = List.map (funcl inside_instance i_ref_opt constraints tv_set) funcls in
-                let formed = concat_str "\n" bodies in
+                (* Group clauses by function name *)
+                let get_name ({term = n}, _, _, _, _, _) = Name.to_string (Name.strip_lskip n) in
+                let groups =
+                  let order = ref [] in
+                  let tbl = Hashtbl.create 8 in
+                  List.iter (fun fcl ->
+                    let key = get_name fcl in
+                    (if not (Hashtbl.mem tbl key) then
+                      order := key :: !order);
+                    let existing = try Hashtbl.find tbl key with Not_found -> [] in
+                    Hashtbl.replace tbl key (existing @ [fcl])
+                  ) funcls;
+                  List.map (fun key -> Hashtbl.find tbl key) (List.rev !order)
+                in
+                let num_functions = List.length groups in
+                let is_truly_mutual = num_functions > 1 in
+                let def_keyword =
+                  if is_recursive then
+                    if inside_instance then emp
+                    else from_string "partial def"
+                  else
+                    if inside_instance then emp
+                    else from_string "def"
+                in
+                let render_group group =
+                  match group with
+                  | [] -> emp
+                  | [single_clause] ->
+                    (* Single clause: render as before *)
+                    funcl inside_instance i_ref_opt constraints tv_set single_clause
+                  | first_clause :: rest_clauses ->
+                    (* Multi-clause: use Lean 4 equation compiler syntax *)
+                    let ({term = n}, c, pats, typ_opt, _skips, _e) = first_clause in
+                    let name_skips = Name.get_lskip n in
+                    let name = from_string (Name.to_string (Name.strip_lskip n)) in
+                    (* Get the full type from the const_descr *)
+                    let cd = c_env_lookup Ast.Unknown A.env.c_env c in
+                    let full_type = pat_typ (C.t_to_src_t cd.const_type) in
+                    let tv_set_out =
+                      if inside_instance then emp
+                      else
+                        let tv = Types.free_vars cd.const_type in
+                        if Types.TNset.cardinal tv = 0 then emp
+                        else Output.flat [from_string " "; let_type_variables true tv]
+                    in
+                    let constraints_sep =
+                      if constraints = emp then emp else from_string " "
+                    in
+                    (* Render each clause as | pat1, pat2, ... => body *)
+                    let render_equation ({term = _}, _, pats, _, skips, e) =
+                      let pat_out = concat_str ", " (List.map def_pattern pats) in
+                      Output.flat [
+                        from_string "\n  | "; pat_out; from_string " =>"; ws skips; from_string " "; exp inside_instance e
+                      ]
+                    in
+                    let equations = Output.flat (List.map render_equation (first_clause :: rest_clauses)) in
+                    Output.flat [
+                      ws name_skips; from_string " "; name; tv_set_out; constraints_sep; constraints;
+                      from_string " : "; full_type; equations
+                    ]
+                in
+                let bodies = List.map render_group groups in
+                let rec_skips =
+                  if is_recursive && not inside_instance then
+                    ws (match skips' with Some s -> Some s | None -> None)
+                  else emp
+                in
+                if is_truly_mutual then
                   Output.flat [
-                    ws skips; header; formed; ending
+                    ws skips; from_string "mutual\n"; rec_skips;
+                    concat_str "\n" (List.map (fun b -> Output.flat [def_keyword; b]) bodies);
+                    from_string "\nend"
+                  ]
+                else
+                  Output.flat [
+                    ws skips; rec_skips; def_keyword; Output.flat bodies
                   ]
               else
                 from_string "\n/- removed recursive definition intended for another target -/"
@@ -617,8 +700,8 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
           | Lit l -> literal l
           | Do (skips, mod_descr_id, do_line_list, skips', e, skips'', type_int) -> assert false
           | App (e1, e2) ->
-              let trans e = block (Typed_ast_syntax.is_pp_exp e) 0 (exp inside_instance e) in
-              let sep = (break_hint_space 2) in
+              let trans e = exp inside_instance e in
+              let sep = from_string " " in
               let oL = begin
               let (e0, args) = strip_app_exp e in
                 match C.exp_to_term e0 with
@@ -627,8 +710,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                   | _ ->
                     List.map trans (e0 :: args)
               end in
-              let o = Output.concat sep oL in
-              block is_user_exp 0 o
+              Output.concat sep oL
           | Paren (skips, e, skips') ->
               Output.flat [
                 ws skips; from_string "("; exp inside_instance e; ws skips'; from_string ")";
@@ -650,15 +732,15 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
           | Let (skips, bind, skips', e) ->
               let body = let_body inside_instance None false Types.TNset.empty bind in
                 Output.flat [
-                  ws skips; from_string "let"; body; ws skips'; from_string "\n"; exp inside_instance e
+                  ws skips; from_string "let "; body; ws skips'; from_string "\n"; exp inside_instance e
                 ]
           | Constant const ->
-            Output.concat emp (B.function_application_to_output (exp_to_locn e) (exp inside_instance) false e const [] (use_ascii_rep_for_const const.descr))
+              Output.concat emp (B.function_application_to_output (exp_to_locn e) (exp inside_instance) false e const [] (use_ascii_rep_for_const const.descr))
           | Fun (skips, ps, skips', e) ->
               let ps = fun_pattern_list inside_instance ps in
                 block_hov (Typed_ast_syntax.is_pp_exp e) 2 (
                   Output.flat [
-                    ws skips; from_string "fun"; ps; ws skips'; from_string "=>"; break_hint_space 0; exp inside_instance e
+                    ws skips; from_string "fun"; ps; ws skips'; from_string "=> "; exp inside_instance e
                   ])
           | Function _ ->
               print_and_fail (Typed_ast.exp_to_locn e) "illegal function in extraction, should have been previously macro'd away"
@@ -673,11 +755,11 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               block is_user_exp 0 (
                 if Seplist.is_empty es then
                   Output.flat [
-                    skips; from_string "∅"
+                    skips; from_string "(setEmpty)"
                   ]
                 else
                   Output.flat [
-                    skips; from_string "{"; body; ws skips'; from_string "}"
+                    skips; from_string "(setFromList ["; body; from_string "])"; ws skips'
                   ])
           | Begin (skips, e, skips') ->
               Output.flat [
@@ -706,39 +788,35 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                  ws skips; from_string "{ "; exp inside_instance e; ws skips'; from_string " with "; body; skips''; from_string " }"
               ]
           | Case (_, skips, e, skips', cases, skips'') ->
-            let body = flat @@ Seplist.to_sep_list_last Seplist.Optional (case_line inside_instance) (sep (break_hint_space 2)) cases in
-              block is_user_exp 0 (
+            let case_sep _ = from_string " " in
+            let body = flat @@ Seplist.to_sep_list_last Seplist.Optional (case_line inside_instance) case_sep cases in
                 Output.flat [
-                  ws skips; from_string "match "; exp inside_instance e; from_string " with"; ws skips';
-                  break_hint_space 4; body; ws skips''
-                ])
+                  ws skips; from_string "match "; exp inside_instance e; from_string " with "; body; ws skips''
+                ]
           | Infix (l, c, r) ->
-              let trans e = block (Typed_ast_syntax.is_pp_exp e) 0 (exp inside_instance e) in
-              let sep = (break_hint_space 0) in
+              let trans e = exp inside_instance e in
+              let sep = from_string " " in
               begin
                 match C.exp_to_term c with
                   | Constant cd ->
                     begin
                       let pieces = B.function_application_to_output (exp_to_locn e) trans true e cd [l; r] (use_ascii_rep_for_const cd.descr) in
-                      let output = Output.concat sep pieces in
-                        block is_user_exp 0 output
+                      Output.concat sep pieces
                     end
                   | _           ->
                     begin
                       let mapped = List.map trans [l; c; r] in
-                      let output = Output.concat sep mapped in
-                        block is_user_exp 0 output
+                      Output.concat sep mapped
                     end
               end
           | If (skips, test, skips', t, skips'', f) ->
-              block is_user_exp 0 (Output.flat [
-                ws skips; break_hint_cut; from_string "if";
-                block (Typed_ast_syntax.is_pp_exp test) 0 (exp inside_instance test);
-                ws skips'; from_string "then"; break_hint_space 2;
-                block (Typed_ast_syntax.is_pp_exp t) 0 (exp inside_instance t);
-                ws skips''; break_hint_space 0; from_string "else"; break_hint_space 2;
-                block (Typed_ast_syntax.is_pp_exp f) 0 (exp inside_instance f)
-              ])
+              Output.flat [
+                ws skips; from_string "if";
+                from_string " "; exp inside_instance test;
+                ws skips'; from_string "then"; from_string " ";
+                exp inside_instance t;
+                ws skips''; from_string " else "; exp inside_instance f
+              ]
           | Quant (quant, quant_binding_list, skips, e) ->
             let quant =
               match quant with
@@ -766,8 +844,8 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                 ) quant_binding_list)
             in
               Output.flat [
-                quant; from_string " "; bindings; from_string ","; ws skips;
-                exp inside_instance e
+                quant; from_string " "; bindings; from_string ", ("; ws skips;
+                exp inside_instance e; from_string " : Prop)"
               ]
           | Comp_binding (_, _, _, _, _, _, _, _, _) -> from_string "/- comp binding -/"
           | Setcomp (_, _, _, _, _, _) -> from_string "/- setcomp -/"
@@ -826,9 +904,9 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               ws skips; from_string "("; src_nexp nexp; ws skips'; from_string ")"
             ]
     and case_line inside_instance (p, skips, e, _) =
-        Output.flat [
-          from_string "| "; def_pattern p; ws skips; from_string "=>"; break_hint_space 2; exp inside_instance e
-        ]
+        flatten_newlines (Output.flat [
+          from_string "| "; def_pattern p; from_string " => "; exp inside_instance e
+        ])
     and field_update inside_instance (fd, skips, e, _) =
       let name = field_ident_to_output fd (use_ascii_rep_for_const fd.descr) in
         Output.flat [
@@ -902,7 +980,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
         | P_as (skips, p, skips', (n, l), skips'') ->
           let name = Name.to_output Term_var n in
             Output.flat [
-              ws skips; from_string "("; fun_pattern p; from_string ")"; ws skips'; name; ws skips''
+              ws skips; name; from_string "@("; fun_pattern p; from_string ")"; ws skips''
             ]
         | P_typ (skips, p, skips', t, skips'') ->
             Output.flat [
@@ -935,16 +1013,12 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               ws skips; from_string "("; fun_pattern p; ws skips'; from_string ")"
             ]
         | P_const(cd, ps) ->
-            (* Lean 4: prefix constructor patterns with . for dot notation *)
-            let sk = Typed_ast.ident_get_lskip cd in
-            let cd_no_sk = {cd with id_path = Typed_ast.ident_replace_lskip cd.id_path Typed_ast.no_lskips} in
-            let oL = B.pattern_application_to_output p.locn fun_pattern cd_no_sk ps (use_ascii_rep_for_const cd.descr) in
-            Output.flat [ws sk; from_string "."; concat emp oL]
+            let oL = B.pattern_application_to_output p.locn fun_pattern cd ps (use_ascii_rep_for_const cd.descr) in
+            concat (from_string " ") oL
         | P_backend(sk, i, _, ps) ->
             ws sk ^
-            from_string "." ^
             Ident.to_output (Term_const (false, true)) path_sep (Ident.replace_lskip i Typed_ast.no_lskips) ^
-            concat texspace (List.map fun_pattern ps)
+            concat (from_string " ") (List.map fun_pattern ps)
         | P_num_add ((name, l), skips, skips', k) ->
             let name = lskips_t_to_output name in
               Output.flat [
@@ -968,7 +1042,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
         | P_as (skips, p, skips', (n, l), skips'') ->
           let name = Name.to_output Term_var n in
             Output.flat [
-              ws skips; from_string "("; def_pattern p; ws skips'; from_string ")"; ws skips'; name
+              ws skips; name; from_string "@("; def_pattern p; from_string ")"; ws skips''
             ]
         | P_typ (skips, p, _, t, skips') ->
             Output.flat [
@@ -997,16 +1071,12 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               from_string "("; ws skips; def_pattern p; ws skips'; from_string ")"
             ]
         | P_const(cd, ps) ->
-            (* Lean 4: prefix constructor patterns with . for dot notation *)
-            let sk = Typed_ast.ident_get_lskip cd in
-            let cd_no_sk = {cd with id_path = Typed_ast.ident_replace_lskip cd.id_path Typed_ast.no_lskips} in
-            let oL = B.pattern_application_to_output p.locn def_pattern cd_no_sk ps (use_ascii_rep_for_const cd.descr) in
-            Output.flat [ws sk; from_string "."; concat emp oL]
+            let oL = B.pattern_application_to_output p.locn def_pattern cd ps (use_ascii_rep_for_const cd.descr) in
+            concat (from_string " ") oL
         | P_backend(sk, i, _, ps) ->
             ws sk ^
-            from_string "." ^
             Ident.to_output (Term_const (false, true)) path_sep (Ident.replace_lskip i Typed_ast.no_lskips) ^
-            concat texspace (List.map def_pattern ps)
+            concat (from_string " ") (List.map def_pattern ps)
         | P_num_add ((name, l), skips, skips', k) ->
             let name = lskips_t_to_output name in
               Output.flat [
@@ -1042,10 +1112,21 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               ]
         | _ -> from_string "/- Internal Lem error, please report. -/"
     and type_def inside_module defs =
-      let body = flat @@ Seplist.to_sep_list type_def' (sep @@ from_string "\n") defs in
-        Output.flat [
-          from_string "inductive"; body; from_string "\n";
-        ]
+      (* Collect type names for "open" declarations *)
+      let type_names = Seplist.to_list_map (fun ((n0, _), _, t_path, _, _) ->
+        let n = B.type_path_to_name n0 t_path in
+        Name.to_string (Name.strip_lskip n)
+      ) defs in
+      let open_decls = flat (List.map (fun name_str ->
+        from_string (String.concat "" ["\nopen "; name_str])
+      ) type_names) in
+      let n = Seplist.length defs in
+      if n > 1 then
+        let body = flat @@ Seplist.to_sep_list type_def' (sep @@ from_string "\ninductive") defs in
+        Output.flat [ from_string "mutual\ninductive"; body; from_string "\nend"; open_decls; from_string "\n" ]
+      else
+        let body = flat @@ Seplist.to_sep_list type_def' (sep @@ from_string "\n") defs in
+        Output.flat [ from_string "inductive"; body; open_decls; from_string "\n" ]
     and type_def' ((n0, l), ty_vars, t_path, ty, _) =
       let n = B.type_path_to_name n0 t_path in
       let name = Name.to_output (Type_ctor (false, false)) n in
@@ -1139,6 +1220,10 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
             let body = flat @@ Seplist.to_sep_list pat_typ (sep @@ from_string " ×") ts in
               from_string "(" ^ body ^ from_string ")"
         | Typ_app (p, ts) ->
+            if Path.compare p.descr Path.unitpath = 0 then
+              let sk = Typed_ast.ident_get_lskip p in
+              Output.flat [ ws sk; from_string "Unit" ]
+            else
             let (ts, head) = B.type_app_to_output pat_typ p ts in
             let ts = concat_str " " @@ List.map pat_typ ts in
               Output.flat [
@@ -1228,14 +1313,19 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
     and default_type_variables tvs =
       match tvs with
         | [] -> emp
-        | [Typed_ast.Tn_A tv] -> from_string " {" ^ tyvar tv ^ from_string " : Type}"
+        | [Typed_ast.Tn_A tv] ->
+            Output.flat [
+              from_string " {"; tyvar tv; from_string " : Type}";
+              from_string " [Inhabited "; tyvar tv; from_string "]"
+            ]
         | tvs ->
           let mapped = List.map (fun t ->
             match t with
               | Typed_ast.Tn_A (_, tv, _) ->
                 let tv = from_string @@ Ulib.Text.to_string tv in
                   Output.flat [
-                    from_string " {"; tv; from_string " : Type}"
+                    from_string " {"; tv; from_string " : Type}";
+                    from_string " [Inhabited "; tv; from_string "]"
                   ]
               | Typed_ast.Tn_N nv ->
                   Output.flat [
@@ -1274,7 +1364,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                   let mapped = concat_str " " mapped in
                   let o = lskips_t_to_output name in
                     Output.flat [
-                      from_string "."; o; sep; mapped
+                      o; sep; mapped
                     ])
     and generate_default_value ((name, _), tnvar_list, path, t, name_sect_opt) : Output.t =
       let name = B.type_path_to_name name path in

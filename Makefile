@@ -26,6 +26,7 @@ install:
 	cp -R hol-lib "$(INSTALL_DIR)/share/lem"
 #	cp -R html-lib "$(INSTALL_DIR)/share/lem"
 	cp -R isabelle-lib "$(INSTALL_DIR)/share/lem"
+	cp -R lean-lib "$(INSTALL_DIR)/share/lem"
 #	cp -R tex-lib "$(INSTALL_DIR)/share/lem"
 
 uninstall:
@@ -46,7 +47,7 @@ lem_dep.pdf: lem_dep.tex
 	pdflatex lem_dep.tex
 
 # this runs Lem on the Lem library (library/*.lem), leaving the
-# generated OCaml, Coq, HOL4, and Isabelle files to ocaml-libs,
+# generated OCaml, Coq, HOL4, Isabelle, and Lean 4 files to ocaml-libs,
 # hol-libs, etc.
 libs_phase_1: 
 	$(MAKE) -C library
@@ -77,11 +78,14 @@ isa-libs:
 #	$(MAKE) -C library isa-libs
 	isabelle build -d isabelle-lib -b LEM
 
-coq-libs: 
+coq-libs:
 #	$(MAKE) -C library coq-libs
 	cd coq-lib; coqc -R . Lem coqharness.v
 	cd coq-lib; coq_makefile -f coq_makefile.in > Makefile
 	$(MAKE) -C coq-lib
+
+lean-libs:
+	$(MAKE) -C library lean-libs
 
 tex-libs: 
 #	$(MAKE) -C library tex-libs
@@ -261,6 +265,7 @@ distrib: src/ast.ml version
 	mkdir $(DDIR)/library/isabelle
 	mkdir $(DDIR)/library/ocaml
 	cp library/*.lem $(DDIR)/library/
+	cp library/*_constants $(DDIR)/library/
 	cp library/isabelle/constants $(DDIR)/library/isabelle/
 	cp library/isabelle/*.lem $(DDIR)/library/isabelle/
 	cp library/hol/constants $(DDIR)/library/hol/
@@ -271,6 +276,9 @@ distrib: src/ast.ml version
 	cp ocaml-lib/*.mli $(DDIR)/ocaml-lib	
 	cp ocaml-lib/*.mllib $(DDIR)/ocaml-lib	
 	cp ocaml-lib/Makefile $(DDIR)/ocaml-lib	
+	mkdir $(DDIR)/lean-lib
+	cp lean-lib/*.lean $(DDIR)/lean-lib
+	-cp lean-lib/lean-toolchain $(DDIR)/lean-lib
 	mkdir $(DDIR)/tex-lib
 	cp tex-lib/lem.sty $(DDIR)/tex-lib
 	cp Makefile-distrib $(DDIR)/Makefile
@@ -299,6 +307,7 @@ clean:
 	-rm -f coq-lib/Makefile
 	-rm -f coq-lib/coqharness.vo
 	-rm -f coq-lib/coqharness.glob
+	-rm -rf lean-lib/.lake lean-lib/build
 	-rm -rf src/version.ml lem library/lib_cache src/share_directory.ml
 	#-rm -rf lem_dep.tex lem_dep.pdf lem_dep.aux lem_dep.log
 

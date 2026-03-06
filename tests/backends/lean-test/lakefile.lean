@@ -1,0 +1,16 @@
+import Lake
+open Lake DSL
+
+package LemTest where
+  version := v!"0.1.0"
+  moreLeanArgs := #["-DautoImplicit=false"]
+
+require LemLib from "../../../lean-lib"
+
+@[default_target]
+lean_lib LemTest where
+  srcDir := "."
+  roots := #[`Pervasives_extra,
+             `Types, `Pats3, `Coq_test, `Exps, `Classes2, `Classes3, `Pats,
+             `Types_auxiliary, `Pats3_auxiliary, `Coq_test_auxiliary, `Exps_auxiliary,
+             `Classes2_auxiliary, `Classes3_auxiliary, `Pats_auxiliary]
