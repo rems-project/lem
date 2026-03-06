@@ -11,7 +11,7 @@ coqtests: types.vo pats.vo exps.vo
 
 ocamltests: types.byte pats.byte exps.byte classes.byte
 
-leantests: Types.lean Pats.lean Pats3.lean Exps.lean
+leantests: Types.lean Pats.lean Pats3.lean Exps.lean Classes2.lean Classes3.lean Coq_test.lean
 
 isabelletests: isatests/Pats.thy isatests/Types.thy isatests/Exps.thy
 	isabelle make clean
@@ -45,6 +45,15 @@ Pats3.lean: pats3.lem ../../lem
 	../../lem -wl ign -lean $<
 
 Exps.lean: exps.lem ../../lem
+	../../lem -wl ign -lean $<
+
+Classes2.lean: classes2.lem ../../lem
+	../../lem -wl ign -lean $<
+
+Classes3.lean: classes3.lem ../../lem
+	../../lem -wl ign -lean $<
+
+Coq_test.lean: coq_test.lem ../../lem
 	../../lem -wl ign -lean $<
 
 Types.thy: types.lem ../../lem

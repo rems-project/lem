@@ -35,6 +35,20 @@ let print_and_fail l s =
   raise (Reporting_basic.err_general true l s)
 ;;
 
+let lean_string_escape s =
+  let buf = Buffer.create (String.length s) in
+  String.iter (fun c -> match c with
+    | '\\' -> Buffer.add_string buf "\\\\"
+    | '"' -> Buffer.add_string buf "\\\""
+    | '\n' -> Buffer.add_string buf "\\n"
+    | '\t' -> Buffer.add_string buf "\\t"
+    | '\000' -> Buffer.add_string buf "\\0"
+    | '\r' -> Buffer.add_string buf "\\r"
+    | c -> Buffer.add_char buf c
+  ) s;
+  Buffer.contents buf
+;;
+
 let wrap_lean_comment x = Ulib.Text.(^^^) (Ulib.Text.(^^^) (r"/- ") x) (r" -/")
 
 let rec lean_comment_to_rope =
@@ -191,12 +205,12 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                 ws skips;
                 from_string "#eval do\n";
                 from_string ("  if ("); exp inside_instance e; from_string (" : Bool)\n");
-                from_string (String.concat "" ["  then IO.println \"PASS: "; name_str; "\"\n"]);
-                from_string (String.concat "" ["  else throw (IO.userError \"FAIL: "; name_str; "\")"])
+                from_string (String.concat "" ["  then IO.println \"PASS: "; lean_string_escape name_str; "\"\n"]);
+                from_string (String.concat "" ["  else throw (IO.userError \"FAIL: "; lean_string_escape name_str; "\")"])
               ]
             | Ast.Lemma_lemma _ | Ast.Lemma_theorem _ ->
               Output.flat [
-                ws skips; from_string "theorem"; name_out; ws skips'; from_string " : ";
+                ws skips; from_string "theorem "; name_out; ws skips'; from_string " : ";
                 from_string "("; exp inside_instance e; from_string " : Prop) ";
                 from_string ":= by decide"
               ]
@@ -259,10 +273,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
             let c = Seplist.to_list cs in
               clauses inside_instance c
           else
-            let cs = Seplist.to_list cs in
-              Output.flat [
-                ws skips; clauses inside_instance cs
-              ]
+            ws skips ^ from_string "\n/- removed inductive relation intended for another target -/"
       | Val_spec val_spec -> from_string "\n/- removed value specification -/\n"
       | Class (Ast.Class_inline_decl (skips, _), _, _, _, _,_, _, _) -> ws skips
       | Class (Ast.Class_decl skips, skips', (name, l), tv, p, skips'', body, skips''') ->
@@ -729,16 +740,18 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
       if Types.TNset.is_empty tv_set || not top_level then
         emp
       else
-      let tyvars =
+      let bindings =
         List.map (fun tv -> match tv with
-          | Types.Ty tv -> id Type_var (Tyvar.to_rope tv)
-          | Types.Nv nv -> id Type_var (Nvar.to_rope nv))
+          | Types.Ty tv ->
+            Output.flat [from_string "{"; id Type_var (Tyvar.to_rope tv); from_string " : Type}"]
+          | Types.Nv nv ->
+            Output.flat [from_string "{"; id Type_var (Nvar.to_rope nv); from_string " : Nat}"])
         (Types.TNset.elements tv_set)
       in
-        if List.length tyvars = 0 || not top_level then
+        if List.length bindings = 0 || not top_level then
           emp
         else
-          (from_string "{") ^ (concat_str " " tyvars) ^ (from_string " : Type}")
+          from_string " " ^ concat_str " " bindings
     and lean_function_application_to_output inside_instance l id args = B.function_application_to_output l (exp inside_instance) id args
     and exp inside_instance e =
       let is_user_exp = Typed_ast_syntax.is_pp_exp e in
@@ -753,14 +766,15 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               let lines = List.map (fun (Do_line (p, _s1, body, _s2)) ->
                 let (body', _) = Typed_ast.alter_init_lskips (fun sk -> (Typed_ast.no_lskips, sk)) body in
                 Output.flat [
-                  from_string "  let "; fun_pattern p; from_string " ← "; exp inside_instance body'; from_string "\n"
+                  from_string "    let "; fun_pattern p; from_string " ← "; exp inside_instance body'; from_string "\n"
                 ]
               ) do_line_list in
               let (e', _) = Typed_ast.alter_init_lskips (fun sk -> (Typed_ast.no_lskips, sk)) e in
               Output.flat [
-                from_string "\ndo\n";
+                ws skips; from_string "(do\n";
                 concat emp lines;
-                from_string "  "; exp inside_instance e'; from_string "\n"
+                from_string "    "; exp inside_instance e'; from_string "\n";
+                from_string "  )"
               ]
           | App (e1, e2) ->
               let trans e = exp inside_instance e in
@@ -928,7 +942,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
           | VectorSub (e, skips, nexp, skips', nexp', skips'') ->
               Output.flat [
                 from_string "Vector.slice "; exp inside_instance e; ws skips; src_nexp nexp;
-                ws skips'; src_nexp nexp'; ws skips'
+                ws skips'; src_nexp nexp'; ws skips''
               ]
           | Vector (skips, es, skips') ->
             let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) (exp inside_instance) (sep @@ from_string ", ") es in
@@ -993,8 +1007,8 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
         | L_false skips -> ws skips ^ from_string "false"
         | L_num (skips, n, _) -> ws skips ^ num n
         | L_string (skips, s, _) ->
-            let escaped = Str.global_replace (Str.regexp "\"") "\\\"" s in
-            ws skips ^ str (Ulib.Text.of_string escaped)
+            let escaped = lean_string_escape s in
+            ws skips ^ from_string (String.concat "" ["\""; escaped; "\""])
         | L_unit (skips, skips') -> ws skips ^ from_string "()" ^ ws skips'
         | L_zero s ->
           Output.flat [
@@ -1074,7 +1088,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
             print_and_fail p.locn "illegal record pattern in code extraction, should have been compiled away"
         | P_cons (p1, skips, p2) ->
             Output.flat [
-              def_pattern p1; ws skips; from_string " :: "; def_pattern p2
+              from_string "("; def_pattern p1; ws skips; from_string " :: "; def_pattern p2; from_string ")"
             ]
         | P_var_annot (n, t) ->
             let name = Name.to_output Term_var n in
@@ -1436,10 +1450,11 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               let sk = Typed_ast.ident_get_lskip p in
               Output.flat [ ws sk; from_string "Unit" ]
             else
-            let (ts, head) = B.type_app_to_output pat_typ p ts in
-            let ts = concat_str " " @@ List.map pat_typ ts in
+            let (ts_list, head) = B.type_app_to_output pat_typ p ts in
+            let ts_out = concat_str " " @@ List.map pat_typ ts_list in
+            let space = if ts_list = [] then emp else from_string " " in
               Output.flat [
-                head; from_string " "; ts
+                head; space; ts_out
               ]
         | Typ_paren(skips, t, skips') ->
             ws skips ^ from_string "(" ^ pat_typ t ^ ws skips' ^ from_string ")"
@@ -1448,9 +1463,10 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
         | Typ_backend (p, ts) ->
           let i = Path.to_ident (ident_get_lskip p) p.descr in
           let i = Ident.to_output (Type_ctor (false, true)) path_sep i in
-          let ts = concat emp @@ List.map pat_typ ts in
+          let ts_out = List.map pat_typ ts in
+          let space = if ts_out = [] then emp else from_string " " in
             Output.flat [
-              i; from_string " "; ts
+              i; space; concat emp ts_out
             ]
     and typ t =
       match t.term with
@@ -1475,9 +1491,10 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
         | Typ_backend (p, ts) ->
           let i = Path.to_ident (ident_get_lskip p) p.descr in
           let i = Ident.to_output (Type_ctor (false, true)) path_sep i in
-          let ts = concat emp @@ List.map typ ts in
+          let ts_out = List.map typ ts in
+          let space = if ts_out = [] then emp else from_string " " in
             Output.flat [
-              i; from_string " "; ts
+              i; space; concat emp ts_out
             ]
         | _ -> raise (Reporting_basic.err_general true t.locn "Lean backend: unexpected type form in typ")
     and type_def_type_variables tvs =
@@ -1521,7 +1538,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               from_string "(" ^ body ^ from_string ")"
         | Typ_app (p, ts) ->
           let args = concat_str " " @@ List.map indreln_typ ts in
-          let args_space = if List.length ts = 1 then from_string " " else emp in
+          let args_space = if ts <> [] then from_string " " else emp in
             Output.flat [
               typ_ident_to_output p; args_space; args
             ]
@@ -1532,9 +1549,10 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
         | Typ_backend (p, ts) ->
           let i = Path.to_ident (ident_get_lskip p) p.descr in
           let i = Ident.to_output (Type_ctor (false, true)) path_sep i in
-          let ts = concat emp @@ List.map indreln_typ ts in
+          let ts_out = List.map indreln_typ ts in
+          let space = if ts_out = [] then emp else from_string " " in
             Output.flat [
-              i; from_string " "; ts
+              i; space; concat emp ts_out
             ]
         | _ -> raise (Reporting_basic.err_general true t.locn "Lean backend: unexpected type form in indreln_typ")
     and field ((n, _), f_ref, skips, t) =
@@ -1637,7 +1655,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
     and default_value (s : src_t) : Output.t =
       match s.term with
         | Typ_wild _ -> from_string "default"
-        | Typ_var _ -> from_string "default"
+        | Typ_var _ -> from_string "sorry /- default for type variable -/"
         | Typ_len _ -> from_string "0"
         | Typ_tup seplist ->
             let src_ts = Seplist.to_list seplist in

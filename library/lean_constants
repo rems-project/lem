@@ -103,3 +103,10 @@ end
 rec
 scoped
 local
+nomatch
+nofun
+infix
+infixl
+infixr
+prefix
+postfix

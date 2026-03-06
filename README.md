@@ -114,7 +114,7 @@ Lem has been tested against the following versions of the backend software:
   * Coq: 8.16.0
   * Isabelle 2022
   * HOL: HOL4 Kananaskis 14
-  * Lean: 4.x (via Lake build system)
+  * Lean: 4.28.0 (via Lake build system)
 
 ## Examples
 

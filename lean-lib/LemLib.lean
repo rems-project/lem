@@ -25,7 +25,7 @@ inductive LemOrdering where
   | LT : LemOrdering
   | EQ : LemOrdering
   | GT : LemOrdering
-  deriving Repr, BEq, Inhabited
+  deriving Repr, BEq, Inhabited, DecidableEq
 
 /- Ordering predicates -/
 def isLess (o : LemOrdering) : Bool := o == .LT
@@ -55,6 +55,9 @@ unsafe def failwithImpl {α : Type} (msg : String) : α :=
 @[implemented_by failwithImpl]
 def failwith {α : Type} (_msg : String) : α := DAEMON
 
+/- Function application -/
+def apply (f : α → β) (x : α) : β := f x
+
 /- List operations -/
 def listEqualBy (eq : α → α → Bool) : List α → List α → Bool
   | [], [] => true
@@ -81,14 +84,16 @@ def tupleEqualBy (eq1 : α → α → Bool) (eq2 : β → β → Bool) (p1 : α 
 @[inline] def natGteb (a b : Nat) : Bool := a ≥ b
 
 /- Exponentiation by squaring -/
-partial def gen_pow_aux (mul : α → α → α) (one : α) (base : α) (exp : Nat) : α :=
+def gen_pow_aux (mul : α → α → α) (one : α) (base : α) (exp : Nat) : α :=
   match exp with
   | 0 => one
   | 1 => mul one base
-  | _ =>
-    let half := exp / 2
-    let one' := if exp % 2 == 0 then one else mul one base
+  | n + 2 =>
+    let half := (n + 2) / 2
+    let one' := if (n + 2) % 2 == 0 then one else mul one base
     gen_pow_aux mul one' (mul base base) half
+termination_by exp
+decreasing_by omega
 
 /- Integer operations -/
 @[inline] def intLtb (a b : Int) : Bool := a < b
@@ -103,7 +108,7 @@ def stringMakeString (n : Nat) (c : Char) : String := String.ofList (List.replic
 def sort_by_ordering (cmp : α → α → LemOrdering) (l : List α) : List α :=
   let leanCmp : α → α → Bool := fun a b => match cmp a b with
     | .LT => true
-    | .EQ => false
+    | .EQ => true
     | .GT => false
   l.mergeSort leanCmp
 
@@ -132,25 +137,22 @@ def setFromListBy (cmp : α → α → LemOrdering) (l : List α) : List α :=
 
 @[inline] def setToList (s : List α) : List α := s
 
-/- Compares two sets for equality. Both sets must be sorted by `cmp` for correct results. -/
 def setEqualBy (cmp : α → α → LemOrdering) (s1 s2 : List α) : Bool :=
-  match s1 with
-  | [] => s2.isEmpty
-  | x :: xs => match s2 with
-    | [] => false
-    | y :: ys => match cmp x y with
-      | .EQ => setEqualBy cmp xs ys
-      | _ => false
+  s1.length == s2.length &&
+  s1.all (fun x => setMemberBy cmp x s2) &&
+  s2.all (fun x => setMemberBy cmp x s1)
 
-def setCompareBy (cmp : α → α → LemOrdering) (s1 s2 : List α) : LemOrdering :=
-  match s1, s2 with
+private def sortedCompareBy (cmp : α → α → LemOrdering) : List α → List α → LemOrdering
   | [], [] => .EQ
   | [], _ :: _ => .LT
   | _ :: _, [] => .GT
   | x :: xs, y :: ys => match cmp x y with
     | .LT => .LT
     | .GT => .GT
-    | .EQ => setCompareBy cmp xs ys
+    | .EQ => sortedCompareBy cmp xs ys
+
+def setCompareBy (cmp : α → α → LemOrdering) (s1 s2 : List α) : LemOrdering :=
+  sortedCompareBy cmp (sort_by_ordering cmp s1) (sort_by_ordering cmp s2)
 
 def setUnionBy (cmp : α → α → LemOrdering) (s1 s2 : List α) : List α :=
   match s1 with
@@ -198,18 +200,19 @@ def setSigmaBy (_cmp : α → α → LemOrdering) (s : List α) (f : α → List
 @[inline] def setForAll (f : α → Bool) (s : List α) : Bool := s.all f
 def setFold (f : α → β → β) (s : List α) (init : β) : β := s.foldr f init
 
-def setCase (s : List α) (empty : β) (single : α → β) (pair : α → List α → β) : β :=
+def setCase (s : List α) (empty : β) (single : α → β) (otherwise : β) : β :=
   match s with
   | [] => empty
   | [x] => single x
-  | x :: xs => pair x xs
+  | _ :: _ => otherwise
 
-def chooseAndSplit (_cmp : α → α → LemOrdering) (s : List α) : Option (List α × α × List α) :=
+def chooseAndSplit (cmp : α → α → LemOrdering) (s : List α) : Option (List α × α × List α) :=
   match s with
   | [] => none
   | x :: xs =>
-    let before : List α := []
-    some (before, x, xs)
+    let lt := xs.filter (fun y => match cmp y x with | .LT => true | _ => false)
+    let gt := xs.filter (fun y => match cmp y x with | .LT => false | .EQ => false | .GT => true)
+    some (lt, x, gt)
 
 /- Finite map operations (using List of pairs) -/
 abbrev Fmap (α β : Type) := List (α × β)
@@ -232,11 +235,11 @@ def fmapDeleteBy (cmp : α → α → LemOrdering) (k : α) (m : Fmap α β) : F
 def fmapMap (f : β → γ) (m : Fmap α β) : Fmap α γ :=
   m.map (fun p => (p.1, f p.2))
 
-def fmapEqualBy (cmpK : α → α → LemOrdering) (cmpV : β → β → Bool) (m1 m2 : Fmap α β) : Bool :=
+def fmapEqualBy (eqK : α → α → Bool) (eqV : β → β → Bool) (m1 m2 : Fmap α β) : Bool :=
   let check (m1 m2 : Fmap α β) : Bool :=
     m1.all (fun (k, v) =>
-      match fmapLookupBy cmpK k m2 with
-      | some v' => cmpV v v'
+      match m2.find? (fun (k', _) => eqK k k') with
+      | some (_, v') => eqV v v'
       | none => false)
   check m1 m2 && check m2 m1
 
@@ -253,3 +256,24 @@ def fmapUnion [BEq α] (m1 m2 : Fmap α β) : Fmap α β :=
   m2.foldl (fun acc (k, v) => fmapAdd k v acc) m1
 
 @[inline] def fmapElements (m : Fmap α β) : List (α × β) := m
+
+/- Numeric stubs (rational/real are approximated as Int) -/
+private partial def natSqrtAux (n guess : Nat) : Nat :=
+  let next := (guess + n / guess) / 2
+  if next >= guess then guess else natSqrtAux n next
+
+def integerSqrt (n : Int) : Int :=
+  let m := n.natAbs
+  if m == 0 then 0 else Int.ofNat (natSqrtAux m m)
+def rationalNumerator (n : Int) : Int := n
+def rationalDenominator (_n : Int) : Int := 1
+def realSqrt := integerSqrt
+def realFloor (n : Int) : Int := n
+def realCeiling (n : Int) : Int := n
+
+/- Integer absolute value returning Int (not Nat) -/
+def intAbs (n : Int) : Int := Int.ofNat n.natAbs
+
+/- List indexing wrappers -/
+def listGet? (l : List α) (n : Nat) : Option α := l[n]?
+def listGet! [Inhabited α] (l : List α) (n : Nat) : α := l[n]!
