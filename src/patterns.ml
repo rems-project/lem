@@ -1247,6 +1247,10 @@ let get_target_compile_funs (topt:target) : (bool -> env -> var_name_generator -
          (fun _   -> num_matrix_compile_fun false);   
          (fun _   -> num_add_matrix_compile_fun true (fun i -> i < 3)); 
       ]
+    | Target_no_ident Target_lean -> [
+         (fun _   -> num_matrix_compile_fun false);   
+         (fun _   -> num_add_matrix_compile_fun true (fun i -> i < 3)); 
+      ]
     | Target_ident -> (* make identity behave like ocaml for debug, controlled by flag !ident_force_pattern_compile *) target_compile_funs (Target_no_ident Target_ocaml) 
     | _ -> []
   in target_compile_funs topt @ basic_compile_funs topt
@@ -2118,6 +2122,40 @@ let is_coq_pattern_match : match_check_arg =
      pat_OK = is_coq_pat false;
      allow_redundant = false;
      allow_non_exhaustive = false }
+
+
+let lean_num_lit_types = [nat_ty; natural_ty]
+let is_lean_pat_direct (toplevel : bool) env (p : pat) : bool = 
+  match p.term with
+    | P_record _ -> false
+    | P_tup _ -> not toplevel
+    | (P_vector _ | P_vectorC _) -> false
+    | P_const (c, _) -> not toplevel
+    | _ -> true
+
+let rec is_lean_exp env (e : exp) : bool = 
+  let module C = Exps_in_context(struct let env_opt = Some env let avoid = None end) in
+  match C.exp_to_term e with
+    | Let(_,(Let_fun _,_),_,_) -> false
+    | Let(_,(Let_val (p,_,_,e),_),_,_) -> is_var_wild_pat p && is_lean_exp env e
+    | Fun (_, pL, _, _) -> List.for_all is_var_wild_pat pL
+    | Function _ -> false
+    | Case _ -> true
+    | Quant (_, qbs, _, _) -> List.for_all (function | Qb_var _ -> true | Qb_restr(_,_,p,_,_,_) -> is_var_wild_pat p) qbs
+    | _ -> false
+;;
+
+let is_lean_pat toplevel env = for_all_subpat (is_lean_pat_direct toplevel env)
+let is_lean_def = is_pat_match_def (is_lean_pat true) (fun mp -> mp.redundant_pats = [] && mp.is_exhaustive)
+
+let is_lean_pattern_match : match_check_arg = 
+   { exp_OK = (fun env e -> is_lean_exp env e &&
+                 (match check_match_exp env e with Some mp -> mp.redundant_pats = [] && mp.is_exhaustive | None -> true));
+     def_OK = is_lean_def;
+     pat_OK = is_lean_pat false;
+     allow_redundant = false;
+     allow_non_exhaustive = false }
+
 
 
 (******************************************************************************)

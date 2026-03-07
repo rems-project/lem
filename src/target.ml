@@ -59,6 +59,7 @@ type non_ident_target =
   | Target_ocaml
   | Target_isa
   | Target_coq
+  | Target_lean
   | Target_tex
   | Target_html
   | Target_lem
@@ -73,6 +74,7 @@ let all_targets_list = [
   Target_hol; 
   Target_isa; 
   Target_coq; 
+  Target_lean; 
   Target_tex; 
   Target_html;] 
 
@@ -85,6 +87,7 @@ let ast_target_to_target t = match t with
   | Ast.Target_ocaml _ -> Target_ocaml 
   | Ast.Target_isa   _ -> Target_isa
   | Ast.Target_coq   _ -> Target_coq
+  | Ast.Target_lean  _ -> Target_lean
   | Ast.Target_tex   _ -> Target_tex
   | Ast.Target_html  _ -> Target_html
   | Ast.Target_lem   _ -> Target_lem
@@ -94,6 +97,7 @@ let target_to_ast_target t = match t with
   | Target_ocaml -> Ast.Target_ocaml None
   | Target_isa   -> Ast.Target_isa None
   | Target_coq   -> Ast.Target_coq None
+  | Target_lean  -> Ast.Target_lean None
   | Target_tex   -> Ast.Target_tex None
   | Target_html  -> Ast.Target_html None
   | Target_lem   -> Ast.Target_lem None
@@ -106,6 +110,7 @@ let ast_target_to_int = function
   | Ast.Target_ocaml _ -> 5
   | Ast.Target_isa _   -> 4
   | Ast.Target_coq _   -> 3
+  | Ast.Target_lean _  -> 8
   | Ast.Target_tex _   -> 2
   | Ast.Target_html _  -> 1
 
@@ -149,6 +154,7 @@ let non_ident_target_to_string = function
   | Target_ocaml -> "ocaml"
   | Target_isa -> "isabelle"
   | Target_coq -> "coq"
+  | Target_lean -> "lean"
   | Target_tex -> "tex"
   | Target_html -> "html"
   | Target_lem -> "lem"
@@ -165,6 +171,7 @@ let target_to_output t =
       | Ast.Target_ocaml(s) -> ws s ^ id a (r"ocaml")
       | Ast.Target_isa(s) -> ws s ^ id a (r"isabelle")
       | Ast.Target_coq(s) -> ws s ^ id a (r"coq")
+      | Ast.Target_lean(s) -> ws s ^ id a (r"lean")
       | Ast.Target_tex(s) -> ws s ^ id a (r"tex")
       | Ast.Target_html(s) -> ws s ^ id a (r"html")
       | Ast.Target_lem(s) -> ws s ^ id a (r"lem")
@@ -174,6 +181,7 @@ let non_ident_target_to_mname = function
   | Target_ocaml -> Name.from_rope (r"Ocaml")
   | Target_isa -> Name.from_rope (r"Isabelle")
   | Target_coq -> Name.from_rope (r"Coq")
+  | Target_lean -> Name.from_rope (r"Lean")
   | Target_tex -> Name.from_rope (r"Tex")
   | Target_html -> Name.from_rope (r"Html")
   | Target_lem -> Name.from_rope (r"Lem")
@@ -184,6 +192,7 @@ let is_human_target = function
   | Target_no_ident Target_isa   -> false
   | Target_no_ident Target_hol   -> false
   | Target_no_ident Target_coq   -> false
+  | Target_no_ident Target_lean  -> false
   | Target_no_ident Target_ocaml -> false
   | Target_no_ident Target_html  -> true
   | Target_no_ident Target_tex   -> true

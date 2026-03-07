@@ -113,6 +113,8 @@ let get_target (s1,n) =
     Target_ocaml(s1)
   else if Ulib.Text.compare n (r"coq") = 0 then
     Target_coq(s1)
+  else if Ulib.Text.compare n (r"lean") = 0 then
+    Target_lean(s1)
   else if Ulib.Text.compare n (r"isabelle") = 0 then
     Target_isa(s1)
   else if Ulib.Text.compare n (r"tex") = 0 then
@@ -122,7 +124,7 @@ let get_target (s1,n) =
   else if Ulib.Text.compare n (r"lem") = 0 then
     Target_lem(s1)
   else
-    raise (Parse_error_locn(loc (),"Expected substitution target in {hol; isabelle; ocaml; coq; tex; html}, given " ^ Ulib.Text.to_string n))
+    raise (Parse_error_locn(loc (),"Expected substitution target in {hol; isabelle; ocaml; coq; lean; tex; html}, given " ^ Ulib.Text.to_string n))
 
 let build_fexp (Expr_l(e,_)) l =
   match e with

@@ -504,6 +504,36 @@ let remove_quant_coq context e =
 ;;
 
 
+let remove_quant_lean context e = 
+  if context = Macro_expander.Ctxt_theorem then
+    Macro_expander.Fail
+  else
+    let l_unk = Ast.Trans(true, "remove_quant_lean", Some (exp_to_locn e)) in
+    match C.exp_to_term e with
+    | Quant(q,[],s,e) ->
+        Macro_expander.Continue (append_lskips s e)
+    | Quant(q,qb::qbs,s1,e') ->
+        begin
+          match qb with
+            | Qb_var(n) ->
+                raise (Trans_error(l_unk, "cannot generate code for unrestricted quantifier"))
+            | Qb_restr(is_lst,s2,p,s3,e_restr,s4) ->
+                let q_impl = get_quant_impl E.env is_lst p.typ q in
+                let f = 
+                  C.mk_fun l_unk
+                    (lskips_only_comments [s2;s3;s4])
+                    [pat_append_lskips space p] 
+                    space
+                    (C.mk_quant l_unk (strip_quant_lskips q) qbs s1 e' None)
+                    None
+                in
+                let app1 = C.mk_app l_unk q_impl f None in
+                  Macro_expander.Continue (C.mk_app (exp_to_locn e) app1 e_restr None)
+        end
+    | _ -> Macro_expander.Fail
+;;
+
+
 (* Turn forall (x MEM L). P x into forall (x IN Set.from_list L). P x *)
 let list_quant_to_set_quant _ e = 
   let l_unk = Ast.Trans(true, "list_quant_to_set_quant", Some (exp_to_locn e)) in
@@ -1075,6 +1105,17 @@ let remove_vector_sub _ e =
  * (only add for arguments to top-level functions) *)
 let rec coq_type_annot_pat_vars (level,pos) _ p = 
   let l_unk = Ast.Trans(true, "coq_type_annot_pat_vars", Some p.locn) in
+  match p.term with
+    | P_var(n) when level = Macro_expander.Top_level && 
+                    pos = Macro_expander.Param && 
+                    not (Types.TNset.is_empty (Types.free_vars p.typ)) ->
+        Macro_expander.Continue (C.mk_pvar_annot l_unk n (C.t_to_src_t p.typ) (Some(p.typ)))
+    | _ -> Macro_expander.Fail
+
+(* Add type annotations to pattern variables whose type contains a type variable
+ * (only add for arguments to top-level functions) *)
+let rec lean_type_annot_pat_vars (level,pos) _ p = 
+  let l_unk = Ast.Trans(true, "lean_type_annot_pat_vars", Some p.locn) in
   match p.term with
     | P_var(n) when level = Macro_expander.Top_level && 
                     pos = Macro_expander.Param && 

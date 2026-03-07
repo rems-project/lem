@@ -52,7 +52,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Coq_backend_utils
+open Lean_backend_utils
 
 type 'a parser = char list -> ('a * char list) list
 ;;

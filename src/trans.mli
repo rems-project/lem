@@ -144,6 +144,10 @@ module Macros (E : sig val env : env end) : sig
       statements.  Specific to the Coq backend. *)
   val remove_quant_coq : exp macro
 
+  (** [remove_quant_lean] the same as above but does not apply in the body of lemma or theorem
+      statements.  Specific to the Lean backend. *)
+  val remove_quant_lean : exp macro
+
   (** {2 Pattern Macros} *)
 
   (** [remove_unit_pats] replaces unit-patterns [()] with wildcard ones [_]. *)
@@ -152,6 +156,7 @@ module Macros (E : sig val env : env end) : sig
   (** Add type annotations to pattern variables whose type contains a type variable
      (only add for arguments to top-level functions) *)
   val coq_type_annot_pat_vars : pat_macro
+  val lean_type_annot_pat_vars : pat_macro
 
   (** {2 Type Class Macros } *)
 

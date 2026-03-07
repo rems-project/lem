@@ -52,101 +52,39 @@
 (*                                                                        *)
 (**************************************************************************)
 
-(** Datatype and Function for Targets *)
+open Output
+open Typed_ast
 
-(** A datatype for Targets. In contrast to the one in
-    [ast.ml] this one does not carry white-space information. *)
-type non_ident_target = 
-  | Target_hol
-  | Target_ocaml
-  | Target_isa
-  | Target_coq
-  | Target_lean
-  | Target_tex
-  | Target_html
-  | Target_lem
+(* Backward compatibility functions *)
 
-(** [target] for the typechecked ast is either a real target as in the AST or
-    the identity target *)
-type target =
-  | Target_no_ident of non_ident_target 
-  | Target_ident
+(* Available in OCaml since 4.01.00 - optimisable with "%apply" and "%revapply" *)
+let (|>) x f = f x;;
+let (@@) f x = f x;;
 
-(** [ast_target_to_target t] converts an ast-target to a
-    target. This essentially means dropping the white-space information. *)
-val ast_target_to_target : Ast.target -> non_ident_target
+type ('a, 'b) union
+  = Inl of 'a
+  | Inr of 'b
+;;
 
-(** [target_to_ast_target t] converts a target [t] to an
-    ast_target. This essentially means adding empty white-space information. *)
-val target_to_ast_target : non_ident_target -> Ast.target
+let sum f l =
+  List.map f l |>
+  List.fold_left (+) 0
+;;
 
-(** [ast_target_compare] is a comparison function for ast-targets. *)
-val ast_target_compare : Ast.target -> Ast.target -> int
+let r = Ulib.Text.of_latin1
+;;
 
-(** [target_compare] is a comparison function for targets. *)
-val target_compare : non_ident_target -> non_ident_target -> int
+let from_string x = meta x
+let sep x s = ws s ^ x
+let path_sep = r"."
 
-(** target keyed finite maps *)
-module Targetmap : sig
-   include Finite_map.Fmap with type k = non_ident_target
+let tyvar (_, tv, _) = id Type_var (Ulib.Text.(^^^) (r"") tv)
+let concat_str s = concat (from_string s)
 
-   (** [apply_target m targ] looks up the [targ] in map [m]. 
-       Target-maps only store information for real targets, not the identity one.
-       If therefore [targ] is [Target_ident], i.e. represents the identity backend,
-       [None] is returned. *)
-   val apply_target : 'a t -> target -> 'a option
+let lskips_t_to_output name =
+  let stripped = Name.strip_lskip name in
+  let rope = Name.to_rope stripped in
+    Output.id Term_var rope
+;;
 
-   (** [insert_target m (targ, v)] inserts value [v] for [targ] in map [m]. 
-       Target-maps only store information for real targets, not the identity one.
-       If therefore [targ] is [Target_ident], i.e. represents the identity backend,
-       the map is not(!) updated. *)
-   val insert_target : 'a t -> (target * 'a) -> 'a t
-end
-
-(** target sets *)
-module Targetset : Set.S with type elt = non_ident_target
-
-(** A list of all the targets. *)
-val all_targets_list : non_ident_target list
-
-(** The set of all the targets. *)
-val all_targets : Targetset.t
-
-(** The set of targets used when negating or no mentioning explicit targets. Targets like Lem are excluded by default. *)
-val all_targets_non_explicit : Targetset.t
-
-(** The set of targets that can handle only executable definitions. 
-    Currently only Ocaml, but this might change. *)
-val all_targets_only_exec : Targetset.t
-val all_targets_only_exec_list : non_ident_target list
-
-(** [non_ident_target_to_string t] returns a string description of a target [t]. *)
-val non_ident_target_to_string : non_ident_target -> string
-
-(** [target_to_string t_opt] returns a string description of a target.
-    If some target is given, it does the same as [target_to_string]. Otherwise,
-    it returns a string description of the identity backend. *)
-val target_to_string : target -> string
-
-(** [non_ident_target_to_mname t] returns a name for a target. It is similar to
-    [non_ident_target_to_string t]. However, it returns capitalised versions. *)
-val non_ident_target_to_mname : non_ident_target -> Name.t
-
-(** [target_to_output t] returns output for a target [t]. *)
-val target_to_output : Ast.target -> Output.t
-
-(** [is_human_target targ] checks whether [targ] is a target intended to be read by humans
-    and therefore needs preserving the original structure very closely. Examples for such targets are
-    the tex-, html- and identity-targets. *)
-val is_human_target : target -> bool
-
-(** [is_tex_target targ] checks whether [targ] is the TeX target. *)
-val is_tex_target : target -> bool
-
-(** [suppress_targets targ tex_flag] returns whether a target must print let-bindings
-    defined for a subset of target backends as normal let-bindings in the TeX backend. *)
-val suppress_targets : target -> bool -> bool
-
-(** [dest_human_target targ] destructs [targ] to get the non-identity target. If it s a human-target, 
-    [None] is returned, otherwise the non-identity target. *)
-val dest_human_target : target -> non_ident_target option
+let char_list_of_string = Util.string_to_list

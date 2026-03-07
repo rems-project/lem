@@ -245,6 +245,7 @@ target =  (* Backend target names *)
  | Target_isa of terminal
  | Target_ocaml of terminal
  | Target_coq of terminal
+ | Target_lean of terminal
  | Target_tex of terminal
  | Target_html of terminal
  | Target_lem of terminal

@@ -127,6 +127,9 @@ let options = Arg.align ([
   ( "-coq",
     Arg.Unit (add_backend (Target.Target_no_ident Target.Target_coq)),
     " generate Coq");
+  ( "-lean",
+    Arg.Unit (add_backend (Target.Target_no_ident Target.Target_lean)),
+    " generate Lean (highly experimental)");
   ( "-lem",
     Arg.Unit (add_backend (Target.Target_no_ident Target.Target_lem)),
     " generate Lem output after simple transformations");

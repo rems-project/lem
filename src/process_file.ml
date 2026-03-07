@@ -324,6 +324,7 @@ let output1 env (out_dir : string option) (targ : Target.target) avoid m =
           end
 
       | Target.Target_no_ident(Target.Target_coq) -> 
+          begin
           try begin
             let (r, r_extra) = B.coq_defs m.typed_ast in
             let _ = if (!only_auxiliary) then () else 
@@ -336,6 +337,45 @@ let output1 env (out_dir : string option) (targ : Target.target) avoid m =
                   Printf.fprintf o "Require Import String.\n";
                   Printf.fprintf o "Require Import Program.Wf.\n\n";
                   Printf.fprintf o "Require Import coqharness.\n\n";
+                  Printf.fprintf o "Open Scope nat_scope.\n";
+                  Printf.fprintf o "Open Scope string_scope.\n\n";
+                  Printf.fprintf o "%s" (Ulib.Text.to_string r);
+                  close_output_with_check ext_o
+              end
+            in
+
+            let _ =
+              begin
+                let (o, ext_o) = open_output_with_check dir (module_name ^ "_auxiliary.v") in
+                  Printf.fprintf o "(* %s *)\n\n" (generated_line m.filename);
+                  Printf.fprintf o "Require Import Arith.\n";
+                  Printf.fprintf o "Require Import Bool.\n";
+                  Printf.fprintf o "Require Import List.\n";
+                  Printf.fprintf o "Require Import String.\n";
+                  Printf.fprintf o "Require Import Program.Wf.\n\n";
+                  Printf.fprintf o "Open Scope nat_scope.\n";
+                  Printf.fprintf o "Open Scope string_scope.\n\n";
+                  Printf.fprintf o "%s" (Ulib.Text.to_string r_extra);
+                  close_output_with_check ext_o
+              end in ()
+          end
+            with
+              | Trans.Trans_error(l,msg) ->
+                  raise (Reporting_basic.Fatal_error (Reporting_basic.Err_trans_header (l, msg)))
+          end
+      | Target.Target_no_ident(Target.Target_lean) -> 
+          try begin
+            let (r, r_extra) = B.lean_defs m.typed_ast in
+            let _ = if (!only_auxiliary) then () else 
+              begin
+                let (o, ext_o) = open_output_with_check dir (module_name ^ ".v") in
+                  Printf.fprintf o "(* %s *)\n\n" (generated_line m.filename);
+                  Printf.fprintf o "Require Import Arith.\n";
+                  Printf.fprintf o "Require Import Bool.\n";
+                  Printf.fprintf o "Require Import List.\n";
+                  Printf.fprintf o "Require Import String.\n";
+                  Printf.fprintf o "Require Import Program.Wf.\n\n";
+                  Printf.fprintf o "Require Import leanharness.\n\n";
                   Printf.fprintf o "Open Scope nat_scope.\n";
                   Printf.fprintf o "Open Scope string_scope.\n\n";
                   Printf.fprintf o "%s" (Ulib.Text.to_string r);
