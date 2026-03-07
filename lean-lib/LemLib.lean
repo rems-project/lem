@@ -72,16 +72,6 @@ def listMemberBy (eq : α → α → Bool) (x : α) : List α → Bool
 def tupleEqualBy (eq1 : α → α → Bool) (eq2 : β → β → Bool) (p1 : α × β) (p2 : α × β) : Bool :=
   eq1 p1.1 p2.1 && eq2 p1.2 p2.2
 
-/- Pair equality (non-By variant using BEq) -/
-def pairEqual [BEq α] [BEq β] (p1 : α × β) (p2 : α × β) : Bool :=
-  p1.1 == p2.1 && p1.2 == p2.2
-
-/- Maybe/Option equality -/
-def maybeEqualBy (eq : α → α → Bool) : Option α → Option α → Bool
-  | some x, some y => eq x y
-  | none, none => true
-  | _, _ => false
-
 /- Natural number operations -/
 @[inline] def natPower (base exp : Nat) : Nat := base ^ exp
 @[inline] def natDiv (a b : Nat) : Nat := a / b

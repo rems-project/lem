@@ -710,7 +710,7 @@ declare hol      target_rep function intAbs = `ABS`
 declare ocaml    target_rep function intAbs = `abs`
 declare isabelle target_rep function intAbs = `abs`
 declare coq      target_rep function intAbs input = (`Z.pred` (`Z.pos` (`P_of_succ_nat` (`Z.abs_nat` input)))) (* TODO: check *)
-declare lean     target_rep function intAbs = `Int.natAbs`
+declare lean     target_rep function intAbs = `intAbs`
 
 instance (NumAbs int)
   let abs = intAbs
@@ -1331,7 +1331,7 @@ declare hol      target_rep function integerAbs = `ABS`
 declare ocaml    target_rep function integerAbs = `Nat_big_num.abs`
 declare isabelle target_rep function integerAbs = `abs`
 declare coq      target_rep function integerAbs input = (`Z.pred` (`Z.pos` (`P_of_succ_nat` (`Z.abs_nat` input)))) (* TODO: check *)
-declare lean     target_rep function integerAbs = `Int.natAbs`
+declare lean     target_rep function integerAbs = `intAbs`
 
 instance (NumAbs integer)
   let abs = integerAbs
@@ -1777,7 +1777,7 @@ let inline realAbs n = (if n > 0 then n else ~n)
 declare ocaml    target_rep function realAbs = `abs_float`
 declare isabelle target_rep function realAbs = `abs`
 declare coq      target_rep function realAbs = `Rabs`
-declare lean     target_rep function realAbs = `Int.natAbs`
+declare lean     target_rep function realAbs = `intAbs`
 
 instance (NumAbs real)
   let abs = realAbs

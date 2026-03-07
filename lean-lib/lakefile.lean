@@ -7,4 +7,4 @@ package LemLib where
 @[default_target]
 lean_lib LemLib where
   srcDir := "."
-  globs := #[.one `LemLib, .one `LemLib.Pervasives_extra]
+  globs := #[.one `LemLib, .submodules `LemLib]
