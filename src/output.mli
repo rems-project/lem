@@ -104,6 +104,11 @@ val err : string -> t
     with string [s] any more *)
 val meta : string -> t
 
+(** [meta_utf8 s] is like [meta s] but treats string [s] as UTF-8 encoded
+    rather than Latin-1. Use this when emitting Unicode characters in backend
+    output (e.g., the Lean backend's use of ×, →, ∀, ∃). *)
+val meta_utf8 : string -> t
+
 (** A comment *)
 val comment : string -> t
 
@@ -132,6 +137,10 @@ val (^) : t -> t -> t
 (** [flat [o0; ...; on]] appends all the outputs in the list, i.e.
     it does [o0 ^ ... ^ on]. *)
 val flat : t list -> t
+
+(** [flatten_newlines t] replaces all newlines in the output tree with spaces.
+    Used by the Lean backend to keep match alternatives on a single line. *)
+val flatten_newlines : t -> t
 
 (** [concat sep [o0; ...; on]] appends all the outputs in the list using
     the separator [sep], i.e.

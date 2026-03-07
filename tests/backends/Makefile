@@ -11,6 +11,9 @@ coqtests: types.vo pats.vo exps.vo
 
 ocamltests: types.byte pats.byte exps.byte classes.byte
 
+leantests: Types.lean Pats.lean Pats3.lean Exps.lean Classes2.lean Classes3.lean Coq_test.lean Record_test.lean Op.lean Let_rec.lean Indreln2.lean
+	cd lean-test && lake build
+
 isabelletests: isatests/Pats.thy isatests/Types.thy isatests/Exps.thy
 	isabelle make clean
 	isabelle make isatests
@@ -32,6 +35,39 @@ HoltestScript.sml: holtest.lem ../../lem
 
 %.v: %.lem ../../lem
 	../../lem -wl ign -coq $<
+
+Types.lean: types.lem ../../lem
+	../../lem -wl ign -lean $<
+
+Pats.lean: pats.lem ../../lem
+	../../lem -wl ign -lean $<
+
+Pats3.lean: pats3.lem ../../lem
+	../../lem -wl ign -lean $<
+
+Exps.lean: exps.lem ../../lem
+	../../lem -wl ign -lean $<
+
+Classes2.lean: classes2.lem ../../lem
+	../../lem -wl ign -lean $<
+
+Classes3.lean: classes3.lem ../../lem
+	../../lem -wl ign -lean $<
+
+Coq_test.lean: coq_test.lem ../../lem
+	../../lem -wl ign -lean $<
+
+Record_test.lean: record_test.lem ../../lem
+	../../lem -wl ign -lean $<
+
+Op.lean: op.lem ../../lem
+	../../lem -wl ign -lean $<
+
+Let_rec.lean: let_rec.lem ../../lem
+	../../lem -wl ign -lean $<
+
+Indreln2.lean: indreln2.lem ../../lem
+	../../lem -wl ign -lean $<
 
 Types.thy: types.lem ../../lem
 	../../lem -wl ign -isa $<
@@ -69,6 +105,7 @@ isatests/%.thy: %.thy
 clean:
 	-Holmake cleanAll
 	-isabelle make clean
-	-rm -fr hol_preload *.cmi *.cmo *.byte pats.ml *.uo *.ui *.v *.thy *Theory.* *Script.* *.imn hol_preload.o exps.ml classes.ml types.ml _build isatests/*.thy holtest.ml
+	-cd lean-test && lake clean 2>/dev/null; true
+	-rm -fr hol_preload *.cmi *.cmo *.byte pats.ml *.uo *.ui *.v *.thy *.lean *Theory.* *Script.* *.imn hol_preload.o exps.ml classes.ml types.ml _build isatests/*.thy holtest.ml
 
 .precious: PatsScript.sml pats.ml ExpsScript.sml exps.ml classes.ml TypesScript.sml types.ml types.v Exps.thy exps.v Pats.thy Types.thy types.v HolScript.sml

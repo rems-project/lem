@@ -1,0 +1,52 @@
+open import Pervasives_extra
+
+(* === Empty set === *)
+let s1 = ({} : set nat)
+
+(* === Singleton and finite sets === *)
+let s2 = {(1:nat)}
+let s3 = {1; 2; (3:nat)}
+let s4 = {1; 2; 3; (4:nat)}
+
+(* === Set operations === *)
+let test1 = s3 union s4
+let test2 = s3 inter s4
+let test3 = s4 \ s3
+
+(* === Set membership === *)
+let test4 = (2 : nat) IN s3
+let test5 = (5 : nat) IN s3
+
+(* === Subset === *)
+let test6 = isSubsetOf s2 s3
+
+(* === Set comprehension - restricted === *)
+let test8 = { x | forall (x IN s3) | x > (1:nat) }
+
+(* === List comprehension === *)
+let test10 = [ x + (1:nat) | forall (x MEM [1;2;3]) | x < 3 ]
+
+(* === Quantifiers over sets === *)
+let test11 = forall (x IN s3). x > (0 : nat)
+let test12 = exists (x IN s3). x > (2 : nat)
+
+(* === set from list === *)
+let test14 = Set.fromList [(1:nat); 2; 3; 2; 1]
+
+(* === Set cardinality === *)
+let test15 = Set.size s3
+
+(* === Set equality === *)
+let test16 s1 s2 = setEqual s1 s2
+
+(* === Null check on list === *)
+let test17 = null ([] : list nat)
+
+(* === Assertions === *)
+assert member_ok : test4
+assert non_member_ok : not test5
+assert subset_ok : test6
+assert forall_ok : test11
+assert exists_ok : test12
+assert null_ok : test17
+assert size_ok : test15 = (3 : nat)

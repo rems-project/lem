@@ -1339,10 +1339,11 @@ val proverWordFromInteger : forall 'a. integer -> mword 'a
 declare isabelle target_rep function proverWordFromInteger = `Word.word_of_int`
 declare hol      target_rep function proverWordFromInteger = `integer_word$i2w`
 declare coq      target_rep function proverWordFromInteger = `DAEMON`
+declare lean     target_rep function proverWordFromInteger = `Int.ofNat`
 
 val wordFromInteger : forall 'a. Size 'a => integer -> mword 'a
 
-let inline {isabelle;hol;coq} wordFromInteger i = proverWordFromInteger i
+let inline {isabelle;hol;coq;lean} wordFromInteger i = proverWordFromInteger i
 (* The OCaml version is defined after the arithmetic operations, below. *)
 
 val naturalFromWord : forall 'a. mword 'a -> natural
@@ -1364,7 +1365,7 @@ val wordToHex : forall 'a. mword 'a -> string
 declare hol target_rep function wordToHex = `words$word_to_hex_string`
 (* Building libraries fails if we don't provide implementations for the
    type class. *)
-let {ocaml;isabelle;coq} wordToHex w = "wordToHex not yet implemented"
+let {ocaml;isabelle;coq;lean} wordToHex w = "wordToHex not yet implemented"
 
 instance forall 'a. (Show (mword 'a))
   let show = wordToHex
@@ -1656,7 +1657,7 @@ val wordFromNumeral : forall 'a. Size 'a => numeral -> mword 'a
 
 declare isabelle target_rep function wordFromNumeral n = ``n
 declare hol      target_rep function wordFromNumeral n = special "%ew" n
-let inline {ocaml;coq} wordFromNumeral n = wordFromInteger (integerFromNumeral n)
+let inline {ocaml;coq;lean} wordFromNumeral n = wordFromInteger (integerFromNumeral n)
 
 instance forall 'a. Size 'a => (Numeral (mword 'a))
   let fromNumeral n = wordFromNumeral n

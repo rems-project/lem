@@ -1,0 +1,45 @@
+open import Pervasives_extra
+
+(* === Simple let bindings === *)
+let test1 = let x = (2 : nat) in x
+let test2 = let x : nat = 2 in x
+
+(* === Let with pattern === *)
+let test3 = let (x, y) = ((2:nat), 3) in x + y
+let test5 = let Just x = Just (5:nat) in x
+
+(* === Let function === *)
+let test6 = let f x = x + x in f (2 : nat)
+let test7 = let f (x, y) z = x + y + z in f (1, 2) (3 : nat)
+
+(* === Nested lets === *)
+let test9 = let x = (1:nat) in let y = x + 1 in let z = y + 1 in z
+
+(* === Let rec === *)
+let rec counter (n:nat) : nat =
+  match n with
+    | 0 -> (1:nat)
+    | m -> counter (m - 1)
+  end
+
+(* === Let rec with type annotation === *)
+let rec sum_list (l : list nat) : nat =
+  match l with
+    | [] -> 0
+    | x :: xs -> x + sum_list xs
+  end
+
+(* === Function with multiple args === *)
+let add_pair (x : nat) (y : nat) = x + y
+let test10 = add_pair 3 4
+
+(* === Let with type-annotated pattern === *)
+let test11 = let f (x : nat) = (2:nat) in f 1
+
+(* === Assert: verify runtime values === *)
+assert test1_ok : (test1 = (2:nat))
+assert test3_ok : (test3 = (5:nat))
+assert test9_ok : (test9 = (3:nat))
+assert test10_ok : (test10 = (7:nat))
+assert counter_ok : (counter 5 = (1:nat))
+assert sum_list_ok : (sum_list [1;2;3] = (6:nat))

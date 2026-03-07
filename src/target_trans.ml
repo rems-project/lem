@@ -347,7 +347,51 @@ let coq =
                        [T.coq_type_annot_pat_vars])
       ];
     (* TODO: coq_get_prec *)
-    extra = [(* fun n -> Rename_top_level.rename_defs_target (Some Target_coq) consts fixed_renames [n]) *)]; 
+    extra = [(* fun n -> Rename_top_level.rename_defs_target (Some Target_coq) consts fixed_renames [n]) *)];
+    }
+
+let lean =
+  { macros = indreln_macros @
+      coq_typeclass_resolution_macros (Target_no_ident Target_lean) @
+      [Def_macros (fun env ->
+                    [M.type_annotate_definitions;
+                     M.comment_out_inline_instances_and_classes (Target_no_ident Target_lean);
+                     M.remove_import_include;
+                     M.remove_types_with_target_rep (Target_no_ident Target_lean);
+                     M.defs_with_target_rep_to_lemma env (Target_no_ident Target_lean);
+                     Patterns.compile_def (Target_no_ident Target_lean) Patterns.is_lean_pattern_match env
+                    ]);
+      Pat_macros (fun env ->
+        let m a1 a2 a3 =
+          match Backend_common.inline_pat_macro Target_lean env a1 a2 a3 with
+            | None -> Macro_expander.Fail
+            | Some e -> Macro_expander.Continue e
+        in [m]);
+       Exp_macros (fun env ->
+                     let module T = T(struct let env = env end) in
+                      (if !prover_remove_failwith then
+                       [T.remove_failwith_matches]
+                      else
+                       []) @
+                       [T.remove_singleton_record_updates;
+                        T.remove_multiple_record_updates;
+                        T.remove_list_comprehension;
+                        T.remove_num_lit (fun _ -> true);
+                        T.remove_set_comprehension;
+                        T.remove_quant_coq;
+                       (fun a1 a2 ->
+                         match Backend_common.inline_exp_macro Target_lean env a1 a2 with
+                           | None -> Macro_expander.Fail
+                           | Some e -> Macro_expander.Continue e);
+                       (fun a1 a2 ->
+                         match Patterns.compile_exp (Target_no_ident Target_lean) Patterns.is_lean_pattern_match env a1 a2 with
+                           | None -> Macro_expander.Fail
+                           | Some e -> Macro_expander.Continue e)]);
+       Pat_macros (fun env ->
+                     let module T = T(struct let env = env end) in
+                       [T.coq_type_annot_pat_vars])
+      ];
+    extra = [];
     }
 
 let default_avoid_f ty_avoid (cL : (Name.t -> Name.t option) list) consts = 
@@ -420,7 +464,8 @@ let get_avoid_f targ : NameSet.t -> var_avoid_f =
     | Target_no_ident Target_ocaml -> ocaml_avoid_f 
     | Target_no_ident Target_isa -> underscore_both_avoid_f
     | Target_no_ident Target_hol -> underscore_avoid_f 
-    | Target_no_ident Target_coq -> default_avoid_f true [] 
+    | Target_no_ident Target_coq -> default_avoid_f true []
+    | Target_no_ident Target_lean -> default_avoid_f true []
     | _ -> default_avoid_f false [] 
 
 let rename_def_params_aux targ consts =
@@ -560,6 +605,7 @@ let get_transformation targ =
     | Target_no_ident Target_hol   -> hol
     | Target_no_ident Target_ocaml -> ocaml
     | Target_no_ident Target_coq   -> coq
+    | Target_no_ident Target_lean  -> lean
     | Target_no_ident Target_isa   -> isa
     | Target_no_ident Target_tex   -> tex
     | Target_no_ident Target_lem   -> lem ()

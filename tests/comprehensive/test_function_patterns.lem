@@ -1,0 +1,43 @@
+open import Pervasives_extra
+
+type t = C1 | C2 of nat | C3 of nat * nat
+
+(* === function keyword === *)
+let test1 = function
+  | (x, y) -> x + y
+end
+
+let test2 = function
+    ((2:nat), y) -> y
+  | (x, (3:nat)) -> x
+  | _ -> 10
+end
+
+(* === fun with destructuring === *)
+let test3 = fun (x, (y:nat)) -> x + y
+let test4 = fun (C2 x) -> x
+
+(* === fun with multiple args === *)
+let test5 = fun (x:nat) y z -> x + y + z
+
+(* === fun with constructor patterns === *)
+let test6 = fun (x,C2 y) -> x + y
+let test7 = fun ((x, (y:nat)), (z)) -> x
+
+(* === Function definition with pattern args === *)
+let test8 (x:nat) y = x + y
+
+(* === Function with type annotation on result === *)
+let test9 : nat -> nat -> nat = fun x y -> x + y
+
+(* === Recursive with pattern matching === *)
+let rec length_of (l : list nat) : nat =
+  match l with
+    | [] -> 0
+    | _ :: rest -> 1 + length_of rest
+  end
+
+assert test1_ok : (test1 (3, (4:nat)) = (7:nat))
+assert test5_ok : (test5 1 2 3 = (6:nat))
+assert test8_ok : (test8 3 4 = (7:nat))
+assert length_ok : (length_of [1;2;(3:nat)] = (3:nat))

@@ -1,0 +1,20 @@
+open import Pervasives
+
+type color =
+  | Red
+  | Green
+  | Blue
+
+type point = <|
+  x : nat;
+  y : nat;
+|>
+
+let is_red (c : color) : bool =
+  match c with
+    | Red -> true
+    | Green -> false
+    | Blue -> false
+  end
+
+let origin : point = <| x = 0; y = 0 |>

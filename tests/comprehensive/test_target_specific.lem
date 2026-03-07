@@ -1,0 +1,25 @@
+open import Pervasives_extra
+
+(* === Value with target selection === *)
+val target_val : nat
+let ~{hol; isabelle} target_val = 1
+let {hol} target_val = 2
+let {isabelle} target_val = 3
+
+(* === Function with target selection === *)
+val target_fn : nat -> nat
+let {hol} target_fn x = x + 2
+let ~{hol; isabelle} target_fn x = x + 1
+let {isabelle} target_fn x = x + 3
+
+(* === Target-selective types === *)
+type shared_type = SA | SB of nat
+
+(* === Target-selective class method === *)
+class (TargetClass 'a)
+  val method_all : 'a -> nat
+  val {hol} method_hol_only : 'a -> bool
+end
+
+assert target_val_ok : (target_val = (1:nat))
+assert target_fn_ok : (target_fn 5 = (6:nat))

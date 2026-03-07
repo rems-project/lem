@@ -1,0 +1,59 @@
+open import Pervasives_extra
+
+(* === Simple type abbreviation === *)
+type mynat = nat
+type pair_nat = nat * nat
+type func_type = nat -> bool
+
+(* === Parameterized abbreviation === *)
+type container 'a = list 'a
+type pair_type 'a 'b = 'a * 'b
+
+(* === Complex nested type abbreviation === *)
+type nested = list (nat * bool)
+type doubly_nested = list (list nat)
+
+(* === Record type with various field types === *)
+type config = <|
+  name : string;
+  count : nat;
+  enabled : bool;
+  items : list nat
+|>
+
+(* === Variant type with mixed constructors === *)
+type expr =
+  | Lit of nat
+  | Plus of expr * expr
+  | ENeg of expr
+  | Ite of bool * expr * expr
+
+(* === Parameterized variant === *)
+type result 'a 'e =
+  | ROk of 'a
+  | RErr of 'e
+
+(* === Type used in function signatures === *)
+val eval : expr -> nat
+let rec eval e =
+  match e with
+    | Lit n -> n
+    | Plus e1 e2 -> eval e1 + eval e2
+    | ENeg _ -> 0
+    | Ite b e1 e2 -> if b then eval e1 else eval e2
+  end
+
+let test1 = eval (Plus (Lit 1) (Lit 2))
+let test2 = eval (Ite true (Lit 5) (Lit 10))
+
+(* === Using abbreviation types === *)
+let test3 = ((1, 2) : pair_nat)
+let test4 = ([1; (2:nat)] : container nat)
+let test5 = (<| name = "test"; count = 1; enabled = true; items = [] |> : config)
+
+(* === Result type usage === *)
+let test6 = (ROk 42 : result nat string)
+let test7 = (RErr "bad" : result nat string)
+
+assert eval_add : (test1 = (3:nat))
+assert eval_ite : (test2 = (5:nat))

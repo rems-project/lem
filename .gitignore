@@ -25,3 +25,20 @@ ocaml-lib/_build_zarith
 tex-lib/lem-libs*.tex
 
 
+# Lean backend build artifacts
+lean-lib/.lake/
+library/*.lean
+tests/backends/*.lean
+tests/backends/*_auxiliary.lean
+tests/backends/lean-test/.lake/
+tests/backends/lean-test/[A-Z]*.lean
+tests/backends/lean-test/*_auxiliary.lean
+tests/comprehensive/Test_*.lean
+tests/comprehensive/*_auxiliary.lean
+tests/comprehensive/lean-test/.lake/
+tests/comprehensive/lean-test/Test_*.lean
+tests/comprehensive/lean-test/*_auxiliary.lean
+
+# Tool directories
+.claude/
+_opam/

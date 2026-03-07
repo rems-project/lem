@@ -1,0 +1,31 @@
+open import Pervasives_extra
+
+(* === String literals === *)
+let s1 = ""
+let s2 = "hello"
+let s3 = "hello world"
+
+(* === String pattern matching === *)
+let test1 : nat = match "hello" with
+  | "" -> 0
+  | "hello" -> 1
+  | _ -> 2
+end
+
+(* === String equality === *)
+let test2 = ("hello" = "hello")
+let test3 = ("hello" = "world")
+
+(* === String concatenation === *)
+let test4 = "hello" ^ " " ^ "world"
+
+(* === String length === *)
+let test5 = stringLength "hello"
+let test6 = stringLength ""
+
+assert test1_ok : (test1 = (1:nat))
+assert test2_ok : test2
+assert test3_not : (not test3)
+assert test4_ok : (test4 = "hello world")
+assert test5_ok : (test5 = (5:nat))
+assert test6_ok : (test6 = (0:nat))

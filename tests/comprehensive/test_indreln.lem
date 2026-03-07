@@ -1,0 +1,21 @@
+open import Pervasives_extra
+
+(* === Simple inductive relation === *)
+indreln [even : nat -> bool]
+  even_zero : forall. true ==> even 0
+and
+  even_plus : forall n. even n ==> even (n + 2)
+
+(* === Binary inductive relation === *)
+indreln [add_rel : nat -> nat -> nat -> bool]
+  add_zero : forall n. true ==> add_rel n 0 n
+and
+  add_succ : forall m n p. add_rel m n p ==> add_rel m (n + 1) (p + 1)
+
+(* === Relation with multiple premises === *)
+indreln [mul_rel : nat -> nat -> nat -> bool]
+  mul_zero : forall n. true ==> mul_rel n 0 0
+and
+  mul_succ : forall m n p q. mul_rel m n p && add_rel p m q ==> mul_rel m (n + 1) q
+
+(* Inductive relations generate Prop types — verified by compilation only *)

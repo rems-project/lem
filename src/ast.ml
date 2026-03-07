@@ -248,9 +248,10 @@ target =  (* Backend target names *)
  | Target_tex of terminal
  | Target_html of terminal
  | Target_lem of terminal
+ | Target_lean of terminal
 
 
-type 
+type
 c_pre =  (* Type and instance scheme prefixes *)
    C_pre_empty
  | C_pre_forall of terminal * (tnvar) list * terminal * cs (* Must have $>0$ type variables *)
