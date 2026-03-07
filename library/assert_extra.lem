@@ -8,6 +8,7 @@ declare {isabelle;ocaml;hol;coq} rename module = lem_assert_extra
 open import {ocaml} `Xstring`
 open import {hol} `stringTheory` `lemTheory`
 open import {coq} `Coq.Strings.Ascii` `Coq.Strings.String`
+open import {lean} `Lean.Strings.Ascii` `Lean.Strings.String`
 open import {isabelle} `$LIB_DIR/Lem`
 
 (* ------------------------------------ *)
@@ -19,6 +20,7 @@ declare ocaml    target_rep function failwith = `failwith`
 declare hol      target_rep function failwith = `failwith`
 declare isabelle target_rep function failwith = `failwith`
 declare coq      target_rep function failwith s = `DAEMON`
+declare lean     target_rep function failwith s = `DAEMON`
 
 (* ------------------------------------ *)
 (* failing without an error message     *)

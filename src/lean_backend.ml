@@ -60,6 +60,10 @@ open Typed_ast_syntax
 open Target
 open Types
 
+(* TODO: maybe this name mangling should better be done in a transform pass than in this backend? *)
+let name_uncapitalize_constructor n = match Name.uncapitalize n with None -> n | Some n' -> n' 
+let name_capitalize_type n = match Name.capitalize n with None -> n | Some n' -> n' 
+
 let print_and_fail l s =
   raise (Reporting_basic.err_general true l s)
 ;;
@@ -178,7 +182,7 @@ let rec generate_lean_decidable_equality' t =
 ;;
 
 let error o =
-  from_string "(* unable to generate decidable equality for " ^ o ^ from_string " *)"
+  from_string "/- unable to generate decidable equality for " ^ o ^ from_string " -/"
 ;;
 
 let lskips_t_to_string name =
@@ -219,9 +223,9 @@ let rec src_t_to_string =
     | Typ_var (_, v) ->
         id Type_var @@ Ulib.Text.(^^^) (r"") (Tyvar.to_rope v)
     | Typ_wild skips -> from_string "_"
-    | Typ_len src_nexp -> from_string "(* src_t_to_string len *)"
-    | Typ_fn (src_t, skips, src_t') -> from_string "(* src_t_to_string fn *)"
-    | Typ_tup src_t_lskips_seplist -> from_string "(* src_t_to_string tuple *)"
+    | Typ_len src_nexp -> from_string "/- src_t_to_string len -/"
+    | Typ_fn (src_t, skips, src_t') -> from_string "/- src_t_to_string fn -/"
+    | Typ_tup src_t_lskips_seplist -> from_string "/- src_t_to_string tuple -/"
     | Typ_paren (skips, src_t, skips') ->
         from_string "(" ^ src_t_to_string src_t.term ^ from_string ")"
     | Typ_with_sort (src_t, sort) ->
@@ -270,7 +274,7 @@ let generate_lean_record_update_notation e =
     let result =
       Output.flat [
         prefix; body; from_string "("; from_string "{| "; focussed_field;
-        from_string "; "; other_fields; from_string " |})."
+        from_string "; "; other_fields; from_string " |})"
       ]
     in
       match all_fields with
@@ -315,10 +319,10 @@ let generate_lean_record_update_notation e =
               Output.flat [
                 ws skips; from_string "Lemma"; name; ws skips'; from_string ":"; 
                 from_string "("; exp inside_instance e; from_string ": Prop) ";
-                from_string "."
+                from_string ""
               ]
           else
-            from_string "(* [?]: removed lemma intended for another backend. *)"
+            from_string "/- [?]: removed lemma intended for another backend. -/"
         | _ -> emp
     and def (inside_instance: bool) (callback : def list -> Output.t) (inside_module : bool) (m : def_aux) =
       match m with
@@ -342,8 +346,8 @@ let generate_lean_record_update_notation e =
         let name = lskips_t_to_output name in
         let body = callback defs in
           Output.flat [
-            ws skips; from_string "Module "; name; from_string "."; ws skips'; ws skips'';
-            body; from_string "\nEnd "; name; from_string "."; ws skips'''
+            ws skips; from_string "Module "; name; from_string ""; ws skips'; ws skips'';
+            body; from_string "\nEnd "; name; from_string ""; ws skips'''
           ]
       | Rename (skips, name, mod_binding, skips', mod_descr) -> emp
       | OpenImport (oi, ms) ->                  
@@ -446,7 +450,7 @@ let generate_lean_record_update_notation e =
           Output.flat [
             ws skips; from_string "Class"; ws skips'; name; from_string " ("; tv; from_string ": Type): Type := {"
           ; ws skips''; body
-          ; from_string "\n}."; ws skips'''
+          ; from_string "\n}"; ws skips'''
           ; generate_notations assoc_map notations
           ]
       | Instance (Ast.Inst_default skips, i_ref, inst, vals, skips') -> emp
@@ -531,13 +535,13 @@ let generate_lean_record_update_notation e =
             Output.flat [
               ws skips; from_string "Instance"; prefix; from_string ":= {";
               body;
-              from_string "\n}."; ws skips'
+              from_string "\n}"; ws skips'
             ]
       | Comment c ->
       	let ((def_aux, skips_opt), l, lenv) = c in
         let skips = match skips_opt with None -> from_string "\n" | Some s -> ws s in
           Output.flat [
-      		  skips; from_string "(* "; def inside_instance callback inside_module def_aux; from_string " *)"
+      		  skips; from_string "/- "; def inside_instance callback inside_module def_aux; from_string " -/"
           ]
       | _ -> emp
     and val_def inside_instance i_ref_opt is_recursive def tv_set class_constraints =
@@ -572,13 +576,13 @@ let generate_lean_record_update_notation e =
                   if inside_instance then
                     emp, emp
                   else
-                    from_string "Definition", from_string "."
+                    from_string "Definition", from_string ""
                   in
                     Output.flat [
                       ws skips; defn; constraints; body; ending
                     ]
               else
-                ws skips ^ from_string "(* [?]: removed value definition intended for another target. *)"
+                ws skips ^ from_string "/- [?]: removed value definition intended for another target. -/"
           | Fun_def (skips, rec_flag, targets, funcl_skips_seplist) ->
               if in_target targets then
                 let skips' = match rec_flag with FR_non_rec -> None | FR_rec sk -> sk in
@@ -589,14 +593,14 @@ let generate_lean_record_update_notation e =
                     else
                       Output.flat [
                         from_string "Program"; ws skips'; from_string "Fixpoint"
-                      ], from_string "."
+                      ], from_string ""
                   else
                     if inside_instance then
                       emp, emp
                     else
                       Output.flat [
                         from_string "Definition";
-                      ], from_string "."
+                      ], from_string ""
                 in
                 let funcls = Seplist.to_list funcl_skips_seplist in
                 let bodies = List.map (funcl inside_instance i_ref_opt constraints tv_set) funcls in
@@ -605,8 +609,8 @@ let generate_lean_record_update_notation e =
                     ws skips; header; formed; ending
                   ]
               else
-                from_string "\n(* [?]: removed recursive definition intended for another target. *)"
-          | _ -> from_string "\n(* [?]: removed top-level value definition. *)"
+                from_string "\n(* [?]: removed recursive definition intended for another target. -/"
+          | _ -> from_string "\n(* [?]: removed top-level value definition. -/"
       end
     and clauses (inside_instance: bool) clause_list =
       let gather_names clause_list =
@@ -632,7 +636,7 @@ let generate_lean_record_update_notation e =
       in
       let indrelns =
         List.map (fun name ->
-          let name_string = Name.to_string name in
+          let name_string = Name.to_string (name_capitalize_type name) in
           let bodies = List.filter (compare_clauses_by_name name) clause_list in
           let index_types =
             match bodies with
@@ -646,7 +650,7 @@ let generate_lean_record_update_notation e =
           in
           let bodies =
             List.map (fun (Rule(name_lskips_t, skips0, skips, name_lskips_annot_list, skips', exp_opt, skips'', name_lskips_annot, c, exp_list),_) ->
-              let constructor_name = from_string (Name.to_string (Name.strip_lskip name_lskips_t)) in
+              let constructor_name = from_string (Name.to_string (name_uncapitalize_constructor (Name.strip_lskip name_lskips_t))) in
               let antecedent =
                 match exp_opt with
                   | None -> emp
@@ -709,7 +713,7 @@ let generate_lean_record_update_notation e =
         ) gathered
       in
         Output.flat [
-          from_string "\nInductive "; concat_str "\nwith " indrelns; from_string "."
+          from_string "\ninductive "; concat_str "\nwith " indrelns; from_string ""
         ]
     and let_body inside_instance i_ref_opt top_level tv_set ((lb, _):letbind) =
       match lb with
@@ -892,8 +896,8 @@ let generate_lean_record_update_notation e =
                   ])
           | Begin (skips, e, skips') ->
               Output.flat [
-                ws skips; from_string "(* begin block *)"; exp inside_instance e; ws skips';
-                from_string "(* end block *)"
+                ws skips; from_string "/- begin block -/"; exp inside_instance e; ws skips';
+                from_string "/- end block -/"
               ]
           | Record (skips, fields, skips') ->
             let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) (field_update inside_instance) (sep @@ from_string ";") fields in
@@ -983,8 +987,8 @@ let generate_lean_record_update_notation e =
                 quant; bindings; from_string ","; ws skips;
                 from_string "("; exp inside_instance e; from_string " : Prop)"
               ]
-          | Comp_binding (_, _, _, _, _, _, _, _, _) -> from_string "(* XXX: comp binding *)"
-          | Setcomp (_, _, _, _, _, _) -> from_string "(* XXX: setcomp *)"
+          | Comp_binding (_, _, _, _, _, _, _, _, _) -> from_string "/- XXX: comp binding -/"
+          | Setcomp (_, _, _, _, _, _) -> from_string "/- XXX: setcomp -/"
           | Nvar_e (skips, nvar) ->
             let nvar = id Nexpr_var @@ Ulib.Text.(^^^) (r "") (Nvar.to_rope nvar) in
               Output.flat [
@@ -1082,7 +1086,7 @@ let generate_lean_record_update_notation e =
           let src_t = C.t_to_src_t typ in
             Output.flat [
               ws skips; default_value src_t;
-              from_string " (* "; from_string explanation; from_string " *)"
+              from_string " (* "; from_string explanation; from_string " -/"
             ]
     and fun_pattern_list inside_instance ps =
       let f =
@@ -1164,7 +1168,7 @@ let generate_lean_record_update_notation e =
               Output.flat [
                 ws skips; succs; name; close
               ]
-        | _ -> from_string "(* XXX: todo *)"
+        | _ -> from_string "/- XXX: todo -/"
     and def_pattern p =
       match p.term with
         | P_wild skips ->
@@ -1227,7 +1231,7 @@ let generate_lean_record_update_notation e =
               Output.flat [
                 ws skips; succs; name; close
               ]
-        | _ -> from_string "(* XXX: todo *)"
+        | _ -> from_string "/- XXX: todo -/"
     and type_def_abbreviation def =
     	match Seplist.hd def with
     		| ((n, _), tyvars, path, Te_abbrev (skips, t),_) ->
@@ -1240,7 +1244,7 @@ let generate_lean_record_update_notation e =
     						from_string "Definition"; name; tyvar_sep; tyvars';
                 from_string " : Type :="; ws skips; body; from_string ".\n";
     					]
-    		| _ -> from_string "(* Internal Lem error, please report. *)"
+    		| _ -> from_string "/- Internal Lem error, please report. -/"
     and type_def_record def =
     	match Seplist.hd def with
       	| (n, tyvars, path, (Te_record (skips, skips', fields, skips'') as r),_) ->
@@ -1256,14 +1260,14 @@ let generate_lean_record_update_notation e =
                 body; ws skips''; from_string "}.\n";
                 generate_lean_record_update_notation r;
       			  ]
-        | _ -> from_string "(* Internal Lem error, please report. *)"
+        | _ -> from_string "/- Internal Lem error, please report. -/"
     and type_def inside_module defs =
       let body = flat @@ Seplist.to_sep_list type_def' (sep @@ from_string "with") defs in
         Output.flat [
-          from_string "Inductive"; body; from_string ".\n";
+          from_string "inductive "; body; from_string "\n";
         ]
     and type_def' ((n0, l), ty_vars, t_path, ty, _) =
-      let n = B.type_path_to_name n0 t_path in 
+      let n = Name.add_lskip (name_capitalize_type (Name.strip_lskip (B.type_path_to_name n0 t_path))) in 
       let name = Name.to_output (Type_ctor (false, false)) n in
       let ty_vars =
         List.map (
@@ -1309,10 +1313,10 @@ let generate_lean_record_update_notation e =
         | Te_variant (skips, ctors) ->
           let body = flat @@ Seplist.to_sep_list_first Seplist.Optional (constructor name ty_vars) (sep @@ from_string "|") ctors in
             Output.flat [
-              from_string ":="; ws skips; body
+              from_string "where"; ws skips; body
             ]
     and constructor ind_name (ty_vars : variable list) ((name0, _), c_ref, skips, args) =
-      let ctor_name = B.const_ref_to_name name0 false c_ref in
+      let ctor_name = Name.add_lskip (name_uncapitalize_constructor (Name.strip_lskip (B.const_ref_to_name name0 false c_ref))) in
       let ctor_name = Name.to_output (Type_ctor (false, false)) ctor_name in
       let body = flat @@ Seplist.to_sep_list (* abbreviation_typ *) pat_typ (sep @@ from_string "-> ") args in
       let ty_vars_typeset =
@@ -1336,8 +1340,8 @@ let generate_lean_record_update_notation e =
           Output.flat [
             ctor_name; from_string ":"; ws skips; body; from_string " "; tail
           ]
-    and tyexp_abbreviation t = from_string "(* tyexp_abbreviation *)"
-    and tyexp_record fields = from_string "(* tyexp_record *)"
+    and tyexp_abbreviation t = from_string "/- tyexp_abbreviation -/"
+    and tyexp_record fields = from_string "/- tyexp_record -/"
     and pat_typ t =
       match t.term with
         | Typ_wild skips -> ws skips ^ from_string "_"
@@ -1510,10 +1514,10 @@ let generate_lean_record_update_notation e =
           ) tnvar_list
         in
           Output.flat [
-            from_string "Definition "; o; from_string "_default";
+            from_string "def "; o; from_string "_default";
             tnvar_list'; tnvar_list_sep; from_string ": "; o;
             from_string " "; mapped;
-            from_string " := "; default; from_string ".";
+            from_string " := "; default; from_string "";
           ]
       and default_value (s : src_t) : Output.t =
         match s.term with

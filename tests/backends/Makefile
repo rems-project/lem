@@ -9,6 +9,8 @@ holtests: TypesTheory.uo PatsTheory.uo ExpsTheory.uo HoltestTheory.uo
 
 coqtests: types.vo pats.vo exps.vo 
 
+leantests: types.olean pats.olean exps.olean
+
 ocamltests: types.byte pats.byte exps.byte classes.byte
 
 isabelletests: isatests/Pats.thy isatests/Types.thy isatests/Exps.thy
@@ -33,6 +35,9 @@ HoltestScript.sml: holtest.lem ../../lem
 %.v: %.lem ../../lem
 	../../lem -wl ign -coq $<
 
+%.lean: %.lem ../../lem
+	../../lem -wl ign -lean $<
+
 Types.thy: types.lem ../../lem
 	../../lem -wl ign -isa $<
 
@@ -47,6 +52,9 @@ Exps.thy: exps.lem ../../lem
 
 %.vo: %.v
 	coqc $<
+
+%.leano: %.v
+	leanc $<  # TODO
 
 extract.cma:
 	$(MAKE) -C ../../ocaml-lib

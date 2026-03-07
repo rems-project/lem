@@ -253,7 +253,7 @@ let inline_pat_macro (target : Target.non_ident_target) env _ _ p =
 
 let get_module_name_from_descr md mod_name extra_rename target = begin
   let transform_name_for_target n = match target with
-    | Target.Target_no_ident (Target.Target_coq) -> Util.uncapitalize_prefix n
+    | Target.Target_no_ident (Target.Target_coq)  -> Util.uncapitalize_prefix n
     | Target.Target_no_ident (Target.Target_lean) -> Util.uncapitalize_prefix n
     | Target.Target_no_ident (Target.Target_hol) -> Util.string_map (fun c -> if c = '-' then  '_' else c) (Util.uncapitalize_prefix n)
     | _ -> n
