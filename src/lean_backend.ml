@@ -1137,8 +1137,6 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               Output.flat [
                 ws skips; from_string "("; name; from_string " + "; from_string (Z.to_string k); from_string ")"
               ]
-        | P_record _ ->
-            print_and_fail p.locn "illegal record pattern in code extraction, should have been compiled away"
     and def_pattern p =
       match p.term with
         | P_wild skips ->
@@ -1204,8 +1202,6 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               Output.flat [
                 ws skips; from_string "("; name; from_string " + "; from_string (Z.to_string k); from_string ")"
               ]
-        | P_record _ ->
-            print_and_fail p.locn "illegal record pattern in code extraction, should have been compiled away"
     and src_t_has_fn (t : src_t) : bool =
       match t.term with
         | Typ_fn _ -> true
@@ -1235,7 +1231,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                 from_string "abbrev"; name; tyvar_sep; tyvars';
                 ws skips; from_string " := "; body; from_string "\n";
               ]
-        | _ -> from_string "/- Internal Lem error, please report. -/"
+        | _ -> raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: unexpected type definition form")
     and type_def_record def =
       match Seplist.hd def with
         | (n, tyvars, path, (Te_record (skips, skips', fields, skips'')),_) ->
@@ -1255,7 +1251,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                 ws skips; from_string " where"; ws skips';
                 from_string "\n"; body; ws skips''; deriving; from_string "\n";
               ]
-        | _ -> from_string "/- Internal Lem error, please report. -/"
+        | _ -> raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: unexpected type definition form")
     and type_def inside_module defs =
       (* Collect type names for "open" declarations *)
       let type_names = Seplist.to_list_map (fun ((n0, _), _, t_path, _, _) ->
@@ -1473,7 +1469,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               ]
         | Typ_paren(skips, t, skips') ->
             ws skips ^ from_string "(" ^ pat_typ t ^ ws skips' ^ from_string ")"
-        | Typ_with_sort(t,_) -> raise (Reporting_basic.err_general true t.locn "Target sort annotations not currently supported for Lean")
+        | Typ_with_sort(t,_) -> raise (Reporting_basic.err_general true t.locn "Lean backend: target sort annotations are not supported")
         | Typ_len nexp -> src_nexp nexp
         | Typ_backend (p, ts) ->
           let i = Path.to_ident (ident_get_lskip p) p.descr in
@@ -1501,7 +1497,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               Output.flat [ typ_ident_to_output p; args_space; args ]
         | Typ_paren (skips, t, skips') ->
             ws skips ^ from_string "(" ^ typ t ^ from_string ")" ^ ws skips'
-        | Typ_with_sort (t, sort) -> raise (Reporting_basic.err_general true t.locn "Target sort annotations not currently supported for Lean")
+        | Typ_with_sort (t, sort) -> raise (Reporting_basic.err_general true t.locn "Lean backend: target sort annotations are not supported")
         | Typ_len nexp -> src_nexp nexp
         | Typ_backend (p, ts) ->
           let i = Path.to_ident (ident_get_lskip p) p.descr in
@@ -1695,21 +1691,18 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
             let args = Seplist.to_list src_ts in
             not (List.exists (src_t_references_paths mutual_paths) args)
           ) ctors
-    and generate_inhabited_instance mutual_paths_opt ((name, _), tnvar_list, path, t, _name_sect_opt) : Output.t =
+    and generate_inhabited_instance mutual_paths ((name, _), tnvar_list, path, t, _name_sect_opt) : Output.t =
       let name = B.type_path_to_name name path in
       let o = lskips_t_to_output name in
       let tnvar_list' = default_type_variables tnvar_list in
       let default =
-        match mutual_paths_opt with
-          | None -> generate_default_value_texp t
-          | Some mutual_paths ->
-            (match t with
-              | Te_variant (_, seplist) ->
-                let ctors = Seplist.to_list seplist in
-                (match find_safe_ctor_for_mutual mutual_paths ctors with
-                  | Some ctor -> render_ctor_default ctor
-                  | None -> from_string "sorry /- mutual type -/")
-              | _ -> generate_default_value_texp t)
+        match t with
+          | Te_variant (_, seplist) ->
+            let ctors = Seplist.to_list seplist in
+            (match find_safe_ctor_for_mutual mutual_paths ctors with
+              | Some ctor -> render_ctor_default ctor
+              | None -> from_string "sorry /- mutual type -/")
+          | _ -> generate_default_value_texp t
       in
       let tnvar_names = concat_str " " @@ List.map (fun x ->
         match x with
@@ -1732,12 +1725,12 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
          constructors (e.g. Unop : op → op0 → op1 → op1) are detected and
          avoided when generating the Inhabited instance. *)
       let mapped = List.map (fun (((_, _), _, path, _, _) as t) ->
-        generate_inhabited_instance (Some [path]) t) ts in
+        generate_inhabited_instance [path] t) ts in
         concat_str "\n" mapped
     and generate_default_values_mutual ts : Output.t =
       let ts_list = Seplist.to_list ts in
       let mutual_paths = List.map (fun ((_, _), _, path, _, _) -> path) ts_list in
-      let mapped = List.map (generate_inhabited_instance (Some mutual_paths)) ts_list in
+      let mapped = List.map (generate_inhabited_instance mutual_paths) ts_list in
         concat_str "\n" mapped
     (* Default value for L_undefined (DAEMON) context — uses sorry for type variables
        since Inhabited constraints may not be available *)
