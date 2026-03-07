@@ -86,7 +86,7 @@ Running `make` only generates Lem. It not generate the libraries needed to use L
 - for HOL4 : `make hol-libs`
 - for Isabelle: `make isa-libs`
 - for Coq : `make coq-libs`
-- for Lean 4 : the Lean library is provided in `lean-lib/`
+- for Lean 4 : `make lean-libs`
 
 These targets depend on the corresponding tool being installed. If you
 just want to generate the input that Lem gives to these tools, please

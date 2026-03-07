@@ -41,7 +41,7 @@ Lem is tested against the following versions of the backend software:
   * Coq: 8.4pl3 and 8.4pl2
   * Isabelle: Isabelle-2013-2
   * HOL: HOL4 Kananaskis 9
-  * Lean: 4.x
+  * Lean: 4.28.0
 
 Older or newer versions of this software may work correctly with Lem, but are unsupported.
 
