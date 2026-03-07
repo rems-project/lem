@@ -168,6 +168,10 @@ val const_ref_to_name : Name.lskips_t -> bool -> const_descr_ref -> Name.lskips_
     format [n']. *)
 val type_path_to_name : Name.lskips_t -> Path.t -> Name.lskips_t
 
+(** [class_path_to_name p] returns the target-specific name for the class at path [p],
+    consulting the class_rename map for the current target. Falls back to the raw path name. *)
+val class_path_to_name : Path.t -> Name.t
+
 (** [type_id_to_ident ty_id] tries to format a type
     [ty_id] as an identifier for target [A.target] using the rules stored
     in environment [A.env]. 

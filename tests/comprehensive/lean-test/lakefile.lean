@@ -11,7 +11,6 @@ require LemLib from "../../../lean-lib"
 lean_lib LemComprehensiveTest where
   srcDir := "."
   roots := #[
-    `Pervasives_extra,
     `Test_assertions, `Test_assertions_auxiliary,
     `Test_classes_advanced, `Test_classes_advanced_auxiliary,
     `Test_comments_whitespace, `Test_comments_whitespace_auxiliary,

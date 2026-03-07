@@ -273,10 +273,18 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
       | OpenImportTarget(oi, _, []) -> ws (oi_get_lskip oi)
       | OpenImportTarget (Ast.OI_open skips, targets, mod_descrs) ->
           ws skips ^
+          let strip_lemlib_prefix s =
+            let prefix = "LemLib." in
+            let plen = String.length prefix in
+            if String.length s >= plen && String.sub s 0 plen = prefix then
+              String.sub s plen (String.length s - plen)
+            else s
+          in
           let handle_mod (sk, md) = begin
+            let open_name = strip_lemlib_prefix md in
             Output.flat [
               from_string "import"; ws sk; from_string md; from_string "\n"
-            ; from_string "open"; ws sk; from_string md; from_string "\n"
+            ; from_string "open"; ws sk; from_string open_name; from_string "\n"
             ]
           end in
           if (not (in_target targets)) then emp else Output.flat (List.map handle_mod mod_descrs)
@@ -290,9 +298,9 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
       | Val_spec val_spec -> from_string "\n/- removed value specification -/\n"
       | Class (Ast.Class_inline_decl (skips, _), _, _, _, _,_, _, _) -> ws skips
       | Class (Ast.Class_decl skips, skips', (name, l), tv, p, skips'', body, skips''') ->
-          let name_str = Name.to_string (Name.strip_lskip name) in
+          let name_str = Name.to_string (B.class_path_to_name p) in
           lean_auxiliary_opens := lean_qualified_name name_str :: !lean_auxiliary_opens;
-          let name = Name.to_output Term_var name in
+          let name = from_string name_str in
           let tv_kind =
             match tv with
               | Typed_ast.Tn_A _ -> "Type"
@@ -385,7 +393,9 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                                               | Typed_ast.Tn_N (_, var, _) ->
                                                   from_string @@ Ulib.Text.to_string var
                                           in
-                                          let ident = Name.to_output Term_var (Ident.get_name id) in
+                                          let (ns, n) = Ident.to_name_list id in
+                                          let class_name = B.class_path_to_name (Path.mk_path ns n) in
+                                          let ident = from_string (Name.to_string class_name) in
                                             Output.flat [
                                               from_string "["; ident; from_string " "; var; from_string "]"
                                             ]) ident_var_list)
@@ -397,7 +407,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                       end
                   end
                 in
-                let id = Name.to_output Term_var (Ident.get_name ident) in
+                let id = from_string (Name.to_string (B.class_path_to_name path)) in
                 let tyvars_typeset =
                   if tyvars = emp then
                     emp
@@ -448,8 +458,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
         let constraints =
           let body =
             Output.concat (from_string " ") (List.map (fun (path, tnvar) ->
-              let name = Path.get_name path in
-              let name = from_string (Ulib.Text.to_string (Name.to_rope name)) in
+              let name = from_string (Name.to_string (B.class_path_to_name path)) in
               let var = from_string @@ Ulib.Text.to_string @@ Types.tnvar_to_rope tnvar
               in
                 Output.flat [

@@ -365,9 +365,23 @@ let output1 env (out_dir : string option) (targ : Target.target) avoid m =
       | Target.Target_no_ident(Target.Target_lean) ->
           (try begin
             let (r, r_extra) = B.lean_defs m.typed_ast in
+            (* Convert dotted module names (e.g. LemLib.Bool) to path separators for Lean *)
+            let lean_module_path name =
+              let parts = String.split_on_char '.' name in
+              String.concat Filename.dir_sep parts
+            in
+            let ensure_parent_dir filename =
+              let full_path = Filename.concat dir filename in
+              let parent = Filename.dirname full_path in
+              if not (Sys.file_exists parent) then
+                ignore (Sys.command (Printf.sprintf "mkdir -p %s" (Filename.quote parent)))
+            in
+            let main_file = lean_module_path module_name ^ ".lean" in
+            let aux_file = lean_module_path module_name ^ "_auxiliary.lean" in
             let _ = if (!only_auxiliary) then () else
               begin
-                let (o, ext_o) = open_output_with_check dir (module_name ^ ".lean") in
+                ensure_parent_dir main_file;
+                let (o, ext_o) = open_output_with_check dir main_file in
                   Printf.fprintf o "/- %s -/\n\n" (generated_line m.filename);
                   Printf.fprintf o "import LemLib\n\n";
                   Printf.fprintf o "%s" (Ulib.Text.to_string r);
@@ -376,7 +390,8 @@ let output1 env (out_dir : string option) (targ : Target.target) avoid m =
             in
             let _ =
               begin
-                let (o, ext_o) = open_output_with_check dir (module_name ^ "_auxiliary.lean") in
+                ensure_parent_dir aux_file;
+                let (o, ext_o) = open_output_with_check dir aux_file in
                   Printf.fprintf o "/- %s -/\n\n" (generated_line m.filename);
                   Printf.fprintf o "import LemLib\n";
                   Printf.fprintf o "import %s\n\n" module_name;

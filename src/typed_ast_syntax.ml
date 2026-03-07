@@ -1178,7 +1178,13 @@ and add_def_aux_entities (t_opt : Target.target) (only_new : bool) (ue : used_en
           let ue = if only_new then ue else add_src_t_entities ue src_t in
           ue
         end
-      | Class(_,_,n,tvar,_,_,body,_) -> (* TODO: classes broken, needs fixing in typechecking and AST *) ue
+      | Class(_,_,n,tvar,class_path,_,body,_) ->
+          let ue = used_entities_add_type ue class_path in
+          let ue = List.fold_left (fun ue (_, _, _, c_ref, _, _, src_t) ->
+            let ue = used_entities_add_const ue c_ref in
+            if only_new then ue else add_src_t_entities ue src_t
+          ) ue body in
+          ue
       | Instance(_,_,_,_,_) -> (* TODO: broken, needs fixing in typechecking and AST *) ue
       | Declaration(_) -> ue
       | Comment _ -> ue

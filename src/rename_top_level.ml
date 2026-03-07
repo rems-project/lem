@@ -198,37 +198,57 @@ let rename_constant (targ : Target.non_ident_target) (consts : NameSet.t) (const
   end
 end
 
-let rename_type (targ : Target.non_ident_target) (consts : NameSet.t) (consts_new : NameSet.t) (env : env) (t : Path.t) : 
+let rename_type (targ : Target.non_ident_target) (consts : NameSet.t) (consts_new : NameSet.t) (env : env) (t : Path.t) :
   (NameSet.t * env) = begin
   let l = Ast.Trans (false, "rename_type", None) in
-  let td = Types.type_defs_lookup l env.t_env t in
-  let n = type_descr_to_name (Target_no_ident targ) t td in
+
+  (* Look up the type or class descriptor and extract rename map + updater *)
+  let (rename_map, do_rename) = match Types.type_defs_lookup_tc env.t_env t with
+    | Some (Types.Tc_type td) ->
+        (td.Types.type_rename,
+         fun n' ->
+           let (td', via_opt) = type_descr_rename targ n' l td in
+           ({env with t_env = Types.type_defs_update env.t_env t td'}, via_opt))
+    | Some (Types.Tc_class cd) ->
+        (cd.Types.class_rename,
+         fun n' ->
+           let old_rep = Target.Targetmap.apply cd.Types.class_rename targ in
+           let cr = Target.Targetmap.insert cd.Types.class_rename (targ, (l, n')) in
+           let cd' = {cd with Types.class_rename = cr} in
+           ({env with t_env = Types.type_defs_update_class env.t_env t cd'}, old_rep))
+    | None ->
+        raise (Reporting_basic.Fatal_error (Reporting_basic.Err_internal(l,
+          "rename_type: environment does not contain type/class '" ^ Path.to_string t ^ "'!")))
+  in
+
+  let n = match Target.Targetmap.apply_target rename_map (Target.Target_no_ident targ) with
+     | None -> Path.get_name t
+     | Some (_, n) -> n
+  in
 
   (* apply target specific renaming *)
   let n'_opt = compute_target_rename_constant_fun targ (Nk_typeconstr t) n in
   let n' = Util.option_default n n'_opt in
-    
+
   (* check whether the computed name is fresh and enforce it if necessary *)
-  let (is_auto_renamed, n''_opt) = 
+  let (is_auto_renamed, n''_opt) =
      match get_fresh_name consts consts_new n' with
          None -> (false, n'_opt)
        | Some n'' -> (true, Some n'') in
-    
+
   (** add name to the list of constants to avoid *)
   let n'' = Util.option_default n' n''_opt in
   let consts_new' = NameSet.add n'' consts_new  in
 
-  match Util.option_map (fun n'' -> type_descr_rename targ n'' l td) n''_opt with
+  match n''_opt with
       | None -> (* if no renaming is necessary or if renaming is not possible, do nothing *) (consts_new', env)
-      | Some (td', via_opt) -> begin
+      | Some n'' -> begin
+          let (env', via_opt) = do_rename n'' in
           (* print warning *)
           let n0 : string = Name.to_string (Path.get_name t) in
-          let _ = (if (not is_auto_renamed) then () else 
+          let _ = (if (not is_auto_renamed) then () else
                   (Reporting.report_warning env (Reporting.Warn_rename (Ast.Unknown, n0, Util.option_map (fun (l, n) -> (Name.to_string n, l)) via_opt, Name.to_string n'', Target_no_ident targ))))
           in
-
-          (* update environment *)
-          let env' = {env with t_env = Types.type_defs_update env.t_env t td'} in
           (consts_new', env')
         end
 end

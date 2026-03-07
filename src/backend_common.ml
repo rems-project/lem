@@ -255,6 +255,15 @@ let get_module_name_from_descr md mod_name extra_rename target = begin
   let transform_name_for_target n = match target with
     | Target.Target_no_ident (Target.Target_coq) -> Util.uncapitalize_prefix n
     | Target.Target_no_ident (Target.Target_hol) -> Util.string_map (fun c -> if c = '-' then  '_' else c) (Util.uncapitalize_prefix n)
+    | Target.Target_no_ident (Target.Target_lean) ->
+        (* Library modules get the LemLib. prefix so they live under the LemLib namespace.
+           We detect library modules by checking for a Coq rename — all library .lem files
+           declare one (e.g. {coq} rename module = lem_bool). *)
+        let is_library_module =
+          Target.Targetmap.apply_target md.mod_target_rep
+            (Target.Target_no_ident Target.Target_coq) <> None
+        in
+        if is_library_module then String.concat "" ["LemLib."; n] else n
     | _ -> n
   in
   let lem_mod_name = match Target.Targetmap.apply_target md.mod_target_rep target with
@@ -534,6 +543,15 @@ let type_path_to_name n0 (p : Path.t) : Name.lskips_t =
   let n = type_descr_to_name A.target p td in
   let n' = Name.replace_lskip (Name.add_lskip n) (Name.get_lskip n0) in
   n'
+
+let class_path_to_name (p : Path.t) : Name.t =
+  match Types.type_defs_lookup_tc A.env.t_env p with
+    | Some (Types.Tc_class cd) ->
+        begin match Target.Targetmap.apply_target cd.Types.class_rename A.target with
+          | Some (_, n) -> n
+          | None -> Path.get_name p
+        end
+    | _ -> Path.get_name p
 
 let type_id_to_ident_aux (p : Path.t id) =
    let l = Ast.Trans (false, "type_id_to_ident", None) in

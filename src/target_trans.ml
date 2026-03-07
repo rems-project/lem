@@ -440,17 +440,26 @@ begin
   let ns = if not avoid_consts then ns else List.fold_left add_avoid_const ns ue.used_consts in
 
   let add_avoid_type ns t = begin
-    let td = Types.type_defs_lookup l env.t_env t in
-    let n = type_descr_to_name targ t td in
-    match targ with
-    | Target_no_ident Target_hol ->
-       (* HOL records introduce a new constructor that we need to avoid *)
-       begin match td.type_fields with
-       | None -> ns
-       | Some _ -> NameSet.add n ns
+    match Types.type_defs_lookup_tc env.t_env t with
+    | Some (Types.Tc_type td) ->
+       let n = type_descr_to_name targ t td in
+       begin match targ with
+       | Target_no_ident Target_hol ->
+          (* HOL records introduce a new constructor that we need to avoid *)
+          begin match td.type_fields with
+          | None -> ns
+          | Some _ -> NameSet.add n ns
+          end
+       | _ ->
+          NameSet.add n ns
        end
-    | _ ->
+    | Some (Types.Tc_class cd) ->
+       let n = match Target.Targetmap.apply_target cd.Types.class_rename targ with
+         | None -> Path.get_name t
+         | Some (_, n) -> n
+       in
        NameSet.add n ns
+    | None -> ns
   end in
   let ns = if not avoid_types then ns else List.fold_left add_avoid_type ns ue.used_types in
   
