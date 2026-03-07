@@ -1,0 +1,33 @@
+open import Pervasives_extra
+
+(* === Cross-module constant resolution ===
+   Tests that constants from imported modules resolve correctly,
+   including operators with target_rep substitutions.
+   This exercises the e_env fallback in resolve_const_ref. *)
+
+(* Use equiv (<->) from Bool module — has target_rep infix == for Lean *)
+let test_equiv1 : bool = (true <-> true)
+let test_equiv2 : bool = not (true <-> false)
+
+(* Use xor which internally references <-> *)
+let test_xor1 : bool = xor true false
+let test_xor2 : bool = not (xor true true)
+
+(* Cross-module class method usage *)
+let test_eq1 : bool = ((1:nat) = 1)
+let test_eq2 : bool = ((1:nat) <> 2)
+
+(* Ordering from basic_classes — uses cross-module Eq instance *)
+let test_compare1 : bool = (compare (1:nat) 2 = LT)
+let test_compare2 : bool = (compare (2:nat) 1 = GT)
+let test_compare3 : bool = (compare (1:nat) 1 = EQ)
+
+assert cross_equiv1 : test_equiv1
+assert cross_equiv2 : test_equiv2
+assert cross_xor1 : test_xor1
+assert cross_xor2 : test_xor2
+assert cross_eq1 : test_eq1
+assert cross_eq2 : test_eq2
+assert cross_compare1 : test_compare1
+assert cross_compare2 : test_compare2
+assert cross_compare3 : test_compare3

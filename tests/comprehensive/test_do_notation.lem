@@ -54,3 +54,9 @@ let test5 f (x : nat) =
   in
     f (x + y)
   end
+
+(* === Assertions === *)
+assert simple_return : test1 = Just (4 : nat)
+assert seq_bind_ok : test2 = Just (3 : nat)
+assert tuple_bind_ok : test3 = Just ((1 : nat), 1)
+assert failure_prop : test4 = (Nothing : maybe nat)

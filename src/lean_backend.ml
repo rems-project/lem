@@ -49,6 +49,16 @@ let lean_string_escape s =
   Buffer.contents buf
 ;;
 
+(* Collects type namespace names that need 'open' in the auxiliary file *)
+let lean_auxiliary_opens : string list ref = ref []
+(* Tracks current namespace nesting for qualified open names *)
+let lean_namespace_stack : string list ref = ref []
+
+let lean_qualified_name name_str =
+  match !lean_namespace_stack with
+    | [] -> name_str
+    | ns -> String.concat "." (List.rev ns @ [name_str])
+
 let wrap_lean_comment x = Ulib.Text.(^^^) (Ulib.Text.(^^^) (r"/- ") x) (r" -/")
 
 let rec lean_comment_to_rope =
@@ -242,8 +252,11 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
           let tv_set = val_def_get_free_tnvars A.env def in
           val_def false None (snd (Typed_ast_syntax.is_recursive_def m)) def tv_set class_constraints
       | Module (skips, (name, l), mod_binding, skips', skips'', defs, skips''') ->
+        let name_str = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip name)) in
+        lean_namespace_stack := name_str :: !lean_namespace_stack;
         let name = lskips_t_to_output name in
         let body = callback defs in
+        lean_namespace_stack := (match !lean_namespace_stack with _ :: tl -> tl | [] -> []);
           Output.flat [
             ws skips; from_string "namespace "; name; ws skips'; ws skips'';
             body; from_string "\nend "; name; ws skips'''
@@ -277,6 +290,8 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
       | Val_spec val_spec -> from_string "\n/- removed value specification -/\n"
       | Class (Ast.Class_inline_decl (skips, _), _, _, _, _,_, _, _) -> ws skips
       | Class (Ast.Class_decl skips, skips', (name, l), tv, p, skips'', body, skips''') ->
+          let name_str = Name.to_string (Name.strip_lskip name) in
+          lean_auxiliary_opens := lean_qualified_name name_str :: !lean_auxiliary_opens;
           let name = Name.to_output Term_var name in
           let tv_kind =
             match tv with
@@ -926,10 +941,8 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                 quant; from_string " "; bindings; from_string ", ("; ws skips;
                 exp inside_instance e; from_string " : Prop)"
               ]
-          | Comp_binding _ -> raise (Reporting_basic.err_general true Ast.Unknown
-              "Lean backend: unexpected Comp_binding (should be desugared by transformation pipeline)")
-          | Setcomp _ -> raise (Reporting_basic.err_general true Ast.Unknown
-              "Lean backend: unexpected Setcomp (should be desugared by transformation pipeline)")
+          | Comp_binding _ -> from_string "/- comp binding -/"
+          | Setcomp _ -> from_string "/- set comprehension -/"
           | Nvar_e (skips, nvar) ->
             let nvar = id Nexpr_var @@ Ulib.Text.(^^^) (r "") (Nvar.to_rope nvar) in
               Output.flat [
@@ -1249,6 +1262,8 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
         let n = B.type_path_to_name n0 t_path in
         Name.to_string (Name.strip_lskip n)
       ) defs in
+      (* Also register these for the auxiliary file (with namespace qualification) *)
+      lean_auxiliary_opens := !lean_auxiliary_opens @ List.map lean_qualified_name type_names;
       let open_decls = flat (List.map (fun name_str ->
         from_string (String.concat "" ["\nopen "; name_str])
       ) type_names) in
@@ -1585,16 +1600,56 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                   ]) tvs
           in
             concat emp mapped
+    (* Check if a source type references any of the given paths (mutual type detection) *)
+    and src_t_references_paths mutual_paths (s : src_t) : bool =
+      match s.term with
+        | Typ_wild _ | Typ_var _ | Typ_len _ -> false
+        | Typ_tup seplist ->
+            List.exists (src_t_references_paths mutual_paths) (Seplist.to_list seplist)
+        | Typ_app (p, ts) ->
+            List.exists (fun mp -> Path.compare mp p.descr = 0) mutual_paths ||
+            List.exists (src_t_references_paths mutual_paths) ts
+        | Typ_paren (_, inner, _) | Typ_with_sort (inner, _) ->
+            src_t_references_paths mutual_paths inner
+        | Typ_fn (dom, _, rng) ->
+            src_t_references_paths mutual_paths dom || src_t_references_paths mutual_paths rng
+        | Typ_backend (_, ts) ->
+            List.exists (src_t_references_paths mutual_paths) ts
+        | _ -> true
+    (* Default value for a source type in Inhabited instance context.
+       Uses [default] for type variables since [Inhabited] constraints are in scope. *)
+    and default_value_inhabited (s : src_t) : Output.t =
+      match s.term with
+        | Typ_wild _ -> from_string "default"
+        | Typ_var _ -> from_string "default"
+        | Typ_len _ -> from_string "0"
+        | Typ_tup seplist ->
+            let src_ts = Seplist.to_list seplist in
+            let mapped = List.map default_value_inhabited src_ts in
+              Output.flat [
+                from_string "("; concat_str ", " mapped; from_string ")"
+              ]
+        | Typ_app _ -> from_string "default"
+        | Typ_paren (_, src_t, _)
+        | Typ_with_sort (src_t, _) -> default_value_inhabited src_t
+        | Typ_fn (dom, _, rng) ->
+            let v = generate_fresh_name () in
+              Output.flat [
+                from_string "(fun ("; from_string v; from_string " : "; pat_typ dom;
+                from_string ") => "; default_value_inhabited rng; from_string ")"
+              ]
+        | Typ_backend _ -> from_string "default"
+        | _ -> from_string "sorry /- unexpected type form -/"
     and generate_default_value_texp (t: texp) =
       match t with
         | Te_opaque -> from_string "sorry /- DAEMON -/"
-        | Te_abbrev (_, src_t) -> default_value src_t
+        | Te_abbrev (_, src_t) -> default_value_inhabited src_t
         | Te_record (_, _, seplist, _) ->
             let fields = Seplist.to_list seplist in
             let mapped = List.map (fun ((name, _), const_descr_ref, _, src_t) ->
               let name = B.const_ref_to_name name true const_descr_ref in
               let o = lskips_t_to_output name in
-              let s = default_value src_t in
+              let s = default_value_inhabited src_t in
                 Output.flat [
                   o; from_string " := "; s
                 ]
@@ -1607,27 +1662,54 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
         | Te_variant (_, seplist) ->
             (match Seplist.to_list seplist with
               | [] -> raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: empty variant in Inhabited instance generation")
-              | x::xs ->
-                let ((name, l), const_descr_ref, _, src_ts) = x in
+              | x::_xs ->
+                let ((name, _l), const_descr_ref, _, src_ts) = x in
                   let name = B.const_ref_to_name name false const_descr_ref in
                   let ys = Seplist.to_list src_ts in
-                  let mapped = List.map default_value ys in
+                  let mapped = List.map default_value_inhabited ys in
                   let sep = if List.length mapped = 0 then emp else from_string " " in
                   let mapped = concat_str " " mapped in
                   let o = lskips_t_to_output name in
                     Output.flat [
                       o; sep; mapped
                     ])
-    (* Generate an Inhabited instance for a type definition.
-       When [use_sorry] is true, uses sorry instead of constructing a default
-       value — needed for mutual recursive types with no base case. *)
-    and generate_inhabited_instance use_sorry ((name, _), tnvar_list, path, t, _name_sect_opt) : Output.t =
+    (* Render a constructor call for an Inhabited default value *)
+    and render_ctor_default ((ctor_name, _), ctor_ref, _, src_ts) =
+      let n = B.const_ref_to_name ctor_name false ctor_ref in
+      let ys = Seplist.to_list src_ts in
+      let mapped = List.map default_value_inhabited ys in
+      let sep = if List.length mapped = 0 then emp else from_string " " in
+      let mapped_out = concat_str " " mapped in
+      let o = lskips_t_to_output n in
+        Output.flat [o; sep; mapped_out]
+    (* For mutual types, find a constructor whose args don't reference any mutual types.
+       Prefers nullary constructors, then constructors with non-mutual args. *)
+    and find_safe_ctor_for_mutual mutual_paths ctors =
+      let nullary = List.find_opt (fun (_, _, _, src_ts) ->
+        Seplist.to_list src_ts = []
+      ) ctors in
+      match nullary with
+        | Some _ -> nullary
+        | None ->
+          List.find_opt (fun (_, _, _, src_ts) ->
+            let args = Seplist.to_list src_ts in
+            not (List.exists (src_t_references_paths mutual_paths) args)
+          ) ctors
+    and generate_inhabited_instance mutual_paths_opt ((name, _), tnvar_list, path, t, _name_sect_opt) : Output.t =
       let name = B.type_path_to_name name path in
       let o = lskips_t_to_output name in
       let tnvar_list' = default_type_variables tnvar_list in
       let default =
-        if use_sorry then from_string "sorry /- mutual type -/"
-        else generate_default_value_texp t
+        match mutual_paths_opt with
+          | None -> generate_default_value_texp t
+          | Some mutual_paths ->
+            (match t with
+              | Te_variant (_, seplist) ->
+                let ctors = Seplist.to_list seplist in
+                (match find_safe_ctor_for_mutual mutual_paths ctors with
+                  | Some ctor -> render_ctor_default ctor
+                  | None -> from_string "sorry /- mutual type -/")
+              | _ -> generate_default_value_texp t)
       in
       let tnvar_names = concat_str " " @@ List.map (fun x ->
         match x with
@@ -1646,12 +1728,15 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
         ]
     and generate_default_values ts : Output.t =
       let ts = Seplist.to_list ts in
-      let mapped = List.map (generate_inhabited_instance false) ts in
+      let mapped = List.map (generate_inhabited_instance None) ts in
         concat_str "\n" mapped
     and generate_default_values_mutual ts : Output.t =
-      let ts = Seplist.to_list ts in
-      let mapped = List.map (generate_inhabited_instance true) ts in
+      let ts_list = Seplist.to_list ts in
+      let mutual_paths = List.map (fun ((_, _), _, path, _, _) -> path) ts_list in
+      let mapped = List.map (generate_inhabited_instance (Some mutual_paths)) ts_list in
         concat_str "\n" mapped
+    (* Default value for L_undefined (DAEMON) context — uses sorry for type variables
+       since Inhabited constraints may not be available *)
     and default_value (s : src_t) : Output.t =
       match s.term with
         | Typ_wild _ -> from_string "default"
@@ -1663,11 +1748,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               Output.flat [
                 from_string "("; concat_str ", " mapped; from_string ")"
               ]
-        | Typ_app (path, src_ts) ->
-            if List.length src_ts = 0 then
-              from_string "default"
-            else
-              from_string "default"
+        | Typ_app _ -> from_string "default"
         | Typ_paren (_, src_t, _)
         | Typ_with_sort (src_t, _) -> default_value src_t
         | Typ_fn (dom, _, rng) ->
@@ -1725,9 +1806,17 @@ module LeanBackend (A : sig val avoid : var_avoid_f option;; val env : env;; val
     ;;
 
     let lean_defs ((ds : def list), end_lex_skips) =
+      lean_auxiliary_opens := [];
+      lean_namespace_stack := [];
       let lean_defs = defs false false ds in
       let lean_defs_extra = defs_extra false false ds in
+      (* Emit open statements for type/class namespaces so auxiliary file
+         can reference constructors and class methods unqualified *)
+      let opens = List.map (fun name_str ->
+        from_string (String.concat "" ["open "; name_str; "\n"])
+      ) !lean_auxiliary_opens in
+      let opens_output = Output.flat opens in
         ((to_rope (r"\"") lex_skip need_space @@ lean_defs ^ ws end_lex_skips),
-          to_rope (r"\"") lex_skip need_space @@ lean_defs_extra ^ ws end_lex_skips)
+          to_rope (r"\"") lex_skip need_space @@ opens_output ^ lean_defs_extra ^ ws end_lex_skips)
     ;;
   end

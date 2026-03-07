@@ -42,3 +42,6 @@ type tree = TLeaf of nat | TNode of tree * tree
 let test13 = TNode (TLeaf 1) (TNode (TLeaf 2) (TLeaf 3))
 
 assert test10_ok : (test10 = (42:nat))
+assert enum_ok : to_num B = (1:nat)
+assert single_ok : test9 (Only 3 4) = (7:nat)
+assert unbox_ok : unbox (Box true)

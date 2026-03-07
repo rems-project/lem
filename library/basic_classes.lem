@@ -139,7 +139,7 @@ assert ordering_match_6 : ((fun r -> (match r with GT -> true && true | _ -> fal
 val orderingEqual : ordering -> ordering -> bool
 let inline ~{ocaml;coq;lean} orderingEqual = unsafe_structural_equality
 declare coq   target_rep function orderingEqual left right = (`ordering_equal` left right)
-declare lean  target_rep function orderingEqual left right = (`decide` left right)
+declare lean  target_rep function orderingEqual = infix `==`
 declare ocaml target_rep function orderingEqual = `Lem.orderingEqual`
 
 instance (Eq ordering) 

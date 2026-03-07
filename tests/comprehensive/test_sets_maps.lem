@@ -41,3 +41,12 @@ let test16 s1 s2 = setEqual s1 s2
 
 (* === Null check on list === *)
 let test17 = null ([] : list nat)
+
+(* === Assertions === *)
+assert member_ok : test4
+assert non_member_ok : not test5
+assert subset_ok : test6
+assert forall_ok : test11
+assert exists_ok : test12
+assert null_ok : test17
+assert size_ok : test15 = (3 : nat)

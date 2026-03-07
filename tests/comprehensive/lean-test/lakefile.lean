@@ -39,5 +39,6 @@ lean_lib LemComprehensiveTest where
     `Test_typ_args, `Test_typ_args_auxiliary,
     `Test_type_features, `Test_type_features_auxiliary,
     `Test_vectors, `Test_vectors_auxiliary,
-    `Test_audit_regressions, `Test_audit_regressions_auxiliary
+    `Test_audit_regressions, `Test_audit_regressions_auxiliary,
+    `Test_cross_module, `Test_cross_module_auxiliary
   ]

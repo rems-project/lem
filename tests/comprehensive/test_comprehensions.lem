@@ -34,3 +34,10 @@ let test15 = { (x:nat) | forall (x::y IN { []; }) | x < 2 }
 
 (* === List comprehension with list source === *)
 let test16 = [ (x:nat) | forall (x MEM []) ([] MEM [ []; [(1:nat)]]) | x < 2 ]
+
+(* === Assertions === *)
+assert list_comp_ok : test5 = [(2:nat); 3]
+assert forall_set_ok : test10
+assert exists_set_ok : test11
+assert forall_list_ok : not test12
+assert exists_list_ok : test13

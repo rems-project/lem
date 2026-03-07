@@ -9,3 +9,6 @@ let vec_match (v : vector bool 2) : bool =
     | [| x; y |] -> x && y
     | _ -> false
   end
+
+assert vec_match_tt : vec_match [| true; true |]
+assert vec_match_tf : not (vec_match [| true; false |])

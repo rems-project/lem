@@ -17,3 +17,5 @@ indreln [mul_rel : nat -> nat -> nat -> bool]
   mul_zero : forall n. true ==> mul_rel n 0 0
 and
   mul_succ : forall m n p q. mul_rel m n p && add_rel p m q ==> mul_rel m (n + 1) q
+
+(* Inductive relations generate Prop types — verified by compilation only *)
