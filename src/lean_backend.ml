@@ -1728,7 +1728,11 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
         ]
     and generate_default_values ts : Output.t =
       let ts = Seplist.to_list ts in
-      let mapped = List.map (generate_inhabited_instance None) ts in
+      (* Treat each single type like a mutual block of one, so self-referential
+         constructors (e.g. Unop : op → op0 → op1 → op1) are detected and
+         avoided when generating the Inhabited instance. *)
+      let mapped = List.map (fun (((_, _), _, path, _, _) as t) ->
+        generate_inhabited_instance (Some [path]) t) ts in
         concat_str "\n" mapped
     and generate_default_values_mutual ts : Output.t =
       let ts_list = Seplist.to_list ts in

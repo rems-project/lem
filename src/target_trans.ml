@@ -359,7 +359,7 @@ let lean =
                      M.remove_import_include;
                      M.remove_types_with_target_rep (Target_no_ident Target_lean);
                      M.defs_with_target_rep_to_lemma env (Target_no_ident Target_lean);
-                     Patterns.compile_def (Target_no_ident Target_lean) Patterns.is_coq_pattern_match env
+                     Patterns.compile_def (Target_no_ident Target_lean) Patterns.is_lean_pattern_match env
                     ]);
       Pat_macros (fun env ->
         let m a1 a2 a3 =
@@ -384,7 +384,7 @@ let lean =
                            | None -> Macro_expander.Fail
                            | Some e -> Macro_expander.Continue e);
                        (fun a1 a2 ->
-                         match Patterns.compile_exp (Target_no_ident Target_lean) Patterns.is_coq_pattern_match env a1 a2 with
+                         match Patterns.compile_exp (Target_no_ident Target_lean) Patterns.is_lean_pattern_match env a1 a2 with
                            | None -> Macro_expander.Fail
                            | Some e -> Macro_expander.Continue e)]);
        Pat_macros (fun env ->

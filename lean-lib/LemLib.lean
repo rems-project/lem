@@ -287,3 +287,63 @@ def intAbs (n : Int) : Int := Int.ofNat n.natAbs
 /- List indexing wrappers -/
 def listGet? (l : List α) (n : Nat) : Option α := l[n]?
 def listGet! [Inhabited α] (l : List α) (n : Nat) : α := l[n]!
+
+/- ============================================================ -/
+/- Bitwise operations for fixed-width integers (represented as Int) -/
+/- ============================================================ -/
+
+/- Two's complement conversion helpers -/
+private def toNat32 (x : Int) : Nat :=
+  if x >= 0 then x.toNat % (2 ^ 32)
+  else (2 ^ 32 - x.natAbs % (2 ^ 32)) % (2 ^ 32)
+
+private def fromNat32 (n : Nat) : Int :=
+  if n >= 2 ^ 31 then Int.ofNat n - Int.ofNat (2 ^ 32)
+  else Int.ofNat n
+
+private def toNat64 (x : Int) : Nat :=
+  if x >= 0 then x.toNat % (2 ^ 64)
+  else (2 ^ 64 - x.natAbs % (2 ^ 64)) % (2 ^ 64)
+
+private def fromNat64 (n : Nat) : Int :=
+  if n >= 2 ^ 63 then Int.ofNat n - Int.ofNat (2 ^ 64)
+  else Int.ofNat n
+
+/- int32 bitwise operations -/
+def int32Lnot (x : Int) : Int := fromNat32 ((toNat32 x) ^^^ (2 ^ 32 - 1))
+def int32Lor (x y : Int) : Int := fromNat32 ((toNat32 x) ||| (toNat32 y))
+def int32Lxor (x y : Int) : Int := fromNat32 ((toNat32 x) ^^^ (toNat32 y))
+def int32Land (x y : Int) : Int := fromNat32 ((toNat32 x) &&& (toNat32 y))
+def int32Lsl (x : Int) (n : Nat) : Int := fromNat32 ((toNat32 x) <<< n)
+def int32Lsr (x : Int) (n : Nat) : Int := fromNat32 ((toNat32 x) >>> n)
+def int32Asr (x : Int) (n : Nat) : Int :=
+  let sx := fromNat32 (toNat32 x)
+  if sx < 0 then -((-sx - 1) >>> n) - 1
+  else Int.ofNat (x.toNat >>> n)
+
+/- int64 bitwise operations -/
+def int64Lnot (x : Int) : Int := fromNat64 ((toNat64 x) ^^^ (2 ^ 64 - 1))
+def int64Lor (x y : Int) : Int := fromNat64 ((toNat64 x) ||| (toNat64 y))
+def int64Lxor (x y : Int) : Int := fromNat64 ((toNat64 x) ^^^ (toNat64 y))
+def int64Land (x y : Int) : Int := fromNat64 ((toNat64 x) &&& (toNat64 y))
+def int64Lsl (x : Int) (n : Nat) : Int := fromNat64 ((toNat64 x) <<< n)
+def int64Lsr (x : Int) (n : Nat) : Int := fromNat64 ((toNat64 x) >>> n)
+def int64Asr (x : Int) (n : Nat) : Int :=
+  let sx := fromNat64 (toNat64 x)
+  if sx < 0 then -((-sx - 1) >>> n) - 1
+  else Int.ofNat (x.toNat >>> n)
+
+/- ============================================================ -/
+/- Missing library functions -/
+/- ============================================================ -/
+
+def naturalOfString (s : String) : Nat :=
+  match s.toNat? with
+  | some n => n
+  | none => 0
+
+def integerDiv_t (a b : Int) : Int := Int.tdiv a b
+def integerRem_t (a b : Int) : Int := Int.tmod a b
+def integerRem_f (a b : Int) : Int := Int.emod a b
+
+def THE (_p : α → Bool) : Option α := none

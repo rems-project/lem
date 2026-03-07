@@ -385,9 +385,8 @@ theorem  index_list_eq : ( (∀  l1  l2, ( ((∀  n, ( (maybeEqualBy  (fun x y =
   else throw (IO.userError "FAIL: genlist_3")
 theorem  genlist_length : ( (∀  f  n, ( (List.length  (genlist  f  n)  ==  n) : Prop)) : Prop) := by decide
 theorem  genlist_index : ( (∀  f  n  i, ( ((not  (natLtb  i  n))  ||  (maybeEqualBy  (fun x y => x == y)  (List.get?  (genlist  f  n)  i)  (some  (f  i)))) : Prop)) : Prop) := by decide
-theorem replicate_def_lemma : ((∀ n x, ((listEqualBy  (fun x y => x == y) 
-  match  n with  |  0 =>  [] |  (n' + 1) =>  x  ::  List.replicate  n'  x
-    (List.replicate  n  x)) : Prop)) : Prop) := by decide
+theorem replicate_def_lemma : ((∀ n x, ((listEqualBy  (fun x y => x == y)   (if (n ==   0) then  ([])  else (let n'0  := n -   1 
+x  ::  List.replicate  n'0  x))  (List.replicate  n  x)) : Prop)) : Prop) := by decide
 
 #eval do
   if ( ( (listEqualBy  (fun x y => x == y) (List.replicate (  0)  (  2 :Nat))  [])) : Bool)

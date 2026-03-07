@@ -180,9 +180,8 @@ def  findIndex  {a : Type}  (P : a → Bool) (l : List a)  : Option (Nat) :=  ma
 
 
 
- partial def  genlist  {a : Type}  (f : Nat → a)  (n  : Nat)  : List a := 
-  match  (n :  Nat) with  |  (0 : Nat) =>  [] |  (n' + 1) =>  snoc  (f  n')  (genlist  f  n')
-  
+ partial def  genlist  {a : Type}  (f : Nat → a)  (n  : Nat)  : List a :=   if ((n :  Nat) ==   0) then  ([])  else (let n'0  := (n :  Nat) -   1 
+snoc  (f  n'0)  (genlist  f  n'0))
 /- removed value specification -/
 
 /- 

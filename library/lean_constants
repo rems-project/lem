@@ -110,3 +110,14 @@ infixl
 infixr
 prefix
 postfix
+Add
+Sub
+Mul
+Div
+Mod
+Neg
+Pow
+Min
+Max
+Abs
+Append

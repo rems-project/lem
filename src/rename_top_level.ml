@@ -244,8 +244,14 @@ let rename_defs_target (targ : Target.target) ue consts env =
       ue.Typed_ast_syntax.used_types in
 
 
+    (* For Lean, constants must also avoid type names since they share a namespace *)
+    let const_initial_avoid = match targ_ni with
+      | Target.Target_lean -> new_types'
+      | _ -> NameSet.empty
+    in
+
     (* rename constants *)
-    let (new_consts', env) = List.fold_left (fun (consts_new, env) c -> rename_constant targ_ni consts consts_new env c) (NameSet.empty, env) 
+    let (new_consts', env) = List.fold_left (fun (consts_new, env) c -> rename_constant targ_ni consts consts_new env c) (const_initial_avoid, env)
       ue.Typed_ast_syntax.used_consts in
     env
   end

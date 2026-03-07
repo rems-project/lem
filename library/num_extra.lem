@@ -18,6 +18,7 @@ val naturalOfString : string -> natural
 declare compile_message naturalOfString = "naturalOfString can fail, potentially with an exception, if the string cannot be parsed"
 declare ocaml target_rep function naturalOfString = `Nat_big_num.of_string_nat`
 declare hol target_rep function naturalOfString = `toNum`
+declare lean target_rep function naturalOfString = `naturalOfString`
 
 val integerOfString : string -> integer
 
@@ -66,13 +67,16 @@ assert {ocaml;hol;isabelle} integerOfString_test_2 : (integerOfString "-4096" = 
 val integerDiv_t: integer -> integer -> integer
 declare ocaml target_rep function integerDiv_t = `Nat_big_num.integerDiv_t`
 declare hol target_rep function integerDiv_t = `$/`
+declare lean target_rep function integerDiv_t = `integerDiv_t`
 
 (* Truncation modulo *)
 val integerRem_t: integer -> integer -> integer
 declare ocaml target_rep function integerRem_t = `Nat_big_num.integerRem_t`
 declare hol target_rep function integerRem_t = `$%`
+declare lean target_rep function integerRem_t = `integerRem_t`
 
 (* Flooring modulo *)
 val integerRem_f: integer -> integer -> integer
 declare ocaml target_rep function integerRem_f = `Nat_big_num.integerRem_f`
 declare hol target_rep function integerRem_f = `$%`
+declare lean target_rep function integerRem_f = `integerRem_f`

@@ -197,17 +197,15 @@ theorem  null_singleton : ( (∀  x, ( (setCardinal  (setSingleton  x)  ==   1) 
   else throw (IO.userError "FAIL: set_patterns_8")
 
 #eval do
-  if ( (
-  match  ((setFromList [  5]) :  List  Nat) with  |  setEmpty =>   0 |  setSingleton 2 =>   0 |  setSingleton(  (x + 3)) =>  x |  _ =>   1
-  
+  if ( ( setCase  ((setFromList [  5]) :  List  Nat) (  0) (fun (n : Nat)=> match n with |  0 =>   1 |  1 =>   1 |  2 =>   0 |  n0 =>  (let x0  := n0 -   3 
+x0) ) (  1)
 )  ==   2 : Bool)
   then IO.println "PASS: set_patterns_9"
   else throw (IO.userError "FAIL: set_patterns_9")
 
 #eval do
-  if ( (
-  match  ((setFromList [  2]) :  List  Nat) with  |  setEmpty =>   0 |  setSingleton 2 =>   0 |  setSingleton(  (x + 3)) =>  x |  _ =>   1
-  
+  if ( ( setCase  ((setFromList [  2]) :  List  Nat) (  0) (fun (n : Nat)=> match n with |  0 =>   1 |  1 =>   1 |  2 =>   0 |  n0 =>  (let x0  := n0 -   3 
+x0) ) (  1)
 )  ==   0 : Bool)
   then IO.println "PASS: set_patterns_10"
   else throw (IO.userError "FAIL: set_patterns_10")

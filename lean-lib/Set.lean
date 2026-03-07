@@ -214,7 +214,8 @@ def  cross  {a : Type} {b : Type} [SetType a] [SetType b]  (s1 : List a) (s2 : L
 /- removed top-level value definition -/
 /- removed value specification -/
 
- partial def  leastFixedPoint  {a : Type} [SetType a]  (bound : Nat) (f : List a → List a) (x : List a)  : List a := 
-  match  bound with  |  0 =>  x | (bound' + 1) =>  let  fx   := f  x 
-                   if  (setSubsetBy  setElemCompare  fx  x) then  x                    else  leastFixedPoint  bound'  f  ( (setUnionBy  setElemCompare fx  x))
-   
+ partial def  leastFixedPoint  {a : Type} [SetType a]  (bound : Nat) (f : List a → List a) (x : List a)  : List a :=   if (bound ==   0) then  x  else (let bound'0  := bound -   1 
+let  fx   := f  x 
+
+                  if  (setSubsetBy  setElemCompare  fx  x) then  x
+                   else  leastFixedPoint  bound'0  f  ( (setUnionBy  setElemCompare fx  x))) 
