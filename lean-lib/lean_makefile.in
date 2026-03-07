@@ -1,0 +1,18 @@
+-R . Lem
+lem_basic_classes.v
+lem_bool.v
+lem_either.v
+lem_function.v
+lem_list.v
+lem_map.v
+lem_maybe.v
+lem_num.v
+lem_pervasives.v
+lem_relation.v
+lem_set.v
+lem_show.v
+lem_set_helpers.v
+lem_sorting.v
+lem_string.v
+lem_tuple.v
+lem_word.v
