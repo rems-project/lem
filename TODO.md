@@ -13,6 +13,8 @@ Updated: 2026-03-09
 - **Dynamic library namespace list**: Detected from module environment, no hardcoded list.
 - **deriving BEq, Ord**: Simple non-mutual types use `deriving` instead of sorry stubs.
 - **Heterogeneous mutual universe**: All types in heterogeneous mutual blocks emit `Type 1`.
+- **Propositional equality in indreln**: Both `Infix` and `App` AST paths convert `==`→`=` and `!=`→`≠` when `lean_prop_equality` is set. Covers direct `=`/`<>` syntax and Lem's `<>` decomposition to `not(isEqual x y)`. Regression tests use `(nat -> nat)` type (no BEq) to ensure correctness.
+- **10 library functions: `partial def` → `def`**: Added `{lean}` termination annotations for `map_tr`, `count_map`, `splitAtAcc`, `mapMaybe`, `mapiAux`, `catMaybes`, `init`, `stringFromListAux`, `concat`, `integerOfStringHelper`. All structurally recursive on lists.
 - **31 comprehensive tests, 231 assertions**: All passing.
 
 ## Remaining Issues
@@ -53,31 +55,21 @@ Since `int32`/`int64`/`int`/`integer` all map to `Int`, Machine_word generates i
 
 Fix: Resolves naturally once `int32`/`int64` get distinct types (issue #4) and `mword` gets `BitVec` (issue #1).
 
-### 6. 18 `partial def` functions in generated library
+### 6. 8 `partial def` functions in generated library
 
-These functions are actually structurally recursive (total) but Lean's termination checker rejects them because they lack `declare termination_argument = automatic` or have accumulator patterns the checker can't see:
+Remaining functions where Lean's termination checker can't prove termination automatically:
 
-- Num.lean: `rationalPowInteger`, `realPowInteger`
-- List.lean: `map_tr`, `count_map`, `splitAtAcc`, `mapMaybe`, `mapiAux`, `catMaybes`
-- List_extra.lean: `init`, `unfoldr`
-- Set.lean: `leastFixedPoint`
-- Set_extra.lean: `leastFixedPointUnbounded`
-- String.lean: `concat`
-- String_extra.lean: `stringFromNatHelper`, `stringFromNaturalHelper`
-- Show.lean: `stringFromListAux`
-- Num_extra.lean: `integerOfStringHelper`
+- Num.lean: `rationalPowInteger`, `realPowInteger` (integer recursion toward 0)
+- List_extra.lean: `unfoldr` (depends on user-supplied termination condition)
+- Set.lean: `leastFixedPoint` (n+k pattern desugared to guard)
+- Set_extra.lean: `leastFixedPointUnbounded` (genuinely non-terminating by design)
+- String_extra.lean: `stringFromNatHelper`, `stringFromNaturalHelper` (nat division n/10, Lean can't prove n/10 < n)
 
-Coq's termination checker accepts most of these. In Lean, `partial def` is safe at runtime but means the function can't be used in proofs.
+`partial def` is safe at runtime but means the function can't be used in proofs.
 
-Fix: Add `declare termination_argument = automatic` to the `.lem` library files for functions where Lean's checker can succeed (list recursion, nat countdown). For the rest, add explicit `termination_by` clauses via target reps or LemLib wrappers.
+Fix: For `rationalPowInteger`/`realPowInteger`, add explicit `termination_by` via Lean target rep or LemLib wrapper. For `stringFromNatHelper`/`stringFromNaturalHelper`, same approach with a `termination_by` proving `n/10 < n`. `unfoldr` and `leastFixedPointUnbounded` are genuinely partial — `partial` is correct.
 
-### 7. `!=` not converted in indreln antecedents
-
-The propositional equality fix converts `==` → `=` in indreln antecedents, but `!=` is not converted to `≠`. An indreln antecedent with `x <> y` where `x` has a function type would fail (no BEq instance for functions).
-
-Fix: Extend `lean_prop_equality` to also handle `!=` → `≠`.
-
-### 8. Missing Lean target reps for library functions
+### 7. Missing Lean target reps for library functions
 
 The Lean backend has ~44 declared target reps vs ~200+ in Coq. Many standard library functions fall through to the Lem-defined implementation (which works but may be suboptimal) or to sorry stubs. Key gaps:
 

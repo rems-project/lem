@@ -48,7 +48,7 @@ let rec integerOfStringHelper s = match s with
   | [] -> 0
 end
 
-declare {isabelle} termination_argument integerOfStringHelper = automatic
+declare {isabelle;lean} termination_argument integerOfStringHelper = automatic
 
 let ~{ocaml;hol} integerOfString s = match String.toCharList s with
   | #'-' :: ds -> integerNegate (integerOfStringHelper (List.reverse ds))

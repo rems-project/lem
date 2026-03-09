@@ -76,6 +76,7 @@ assert last_simple_2: (last [(5:nat);4] = 4)
 val init : forall 'a. list 'a -> list 'a
 let rec init l = match l with | [x] -> [] | x1::x2::xs -> x1::(init (x2::xs)) | [] -> failwith "List_extra.init of empty list" end
 
+declare {lean} termination_argument init = automatic
 declare compile_message init = "init is only defined on non-empty list and should therefore be avoided. Use matching instead and handle the empty case explicitly."
 
 declare hol      target_rep function init = `FRONT`

@@ -32,9 +32,24 @@ indreln [sum_rel : nat -> nat -> nat -> bool]
 indreln [swap_rel : nat -> nat -> nat -> nat -> bool]
   swap_rule : forall a b c d. a = d && b = c ==> swap_rel a b c d
 
-(* Inequality in antecedent *)
+(* Inequality in antecedent — not (x = y) uses negation *)
 indreln [neq_rel : nat -> nat -> bool]
   neq_rule : forall x y. not (x = y) ==> neq_rel x y
+
+(* Inequality via <> operator — Lem decomposes to not(isEqual x y).
+   Tests that == inside not() is converted to propositional = in App path. *)
+indreln [diff_rel : nat -> nat -> bool]
+  diff_rule : forall x y. x <> y ==> diff_rel x y
+
+(* Equality on function types — these LACK BEq instances in Lean.
+   Would fail to compile with == but works with propositional =. *)
+indreln [fn_eq : (nat -> nat) -> (nat -> nat) -> bool]
+  fn_eq_rule : forall f g. f = g ==> fn_eq f g
+
+(* <> on function types — the decomposed not(isEqual f g) path.
+   Would fail with not(f == g) since (Nat -> Nat) has no BEq. *)
+indreln [fn_diff : (nat -> nat) -> (nat -> nat) -> bool]
+  fn_diff_rule : forall f g. f <> g ==> fn_diff f g
 
 (* Nested function application in equality antecedent *)
 let double (x : nat) : nat = x * 2

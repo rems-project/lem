@@ -272,6 +272,7 @@ let rec map_tr rev_acc f l = match l with
   | [] -> reverse rev_acc
   | x :: xs -> map_tr ((f x) :: rev_acc) f xs
 end
+declare {lean} termination_argument map_tr = automatic
 
 (* taken from: https://blogs.janestreet.com/optimizing-list-map/ *)
 val count_map : forall 'a 'b. ('a -> 'b) -> list 'a -> nat -> list 'b
@@ -282,7 +283,8 @@ let rec count_map f l ctr =
     (if ctr < 5000 then count_map f tl (ctr + 1) 
     else map_tr [] f tl)
   end
- 
+declare {lean} termination_argument count_map = automatic
+
 val map : forall 'a 'b. ('a -> 'b) -> list 'a -> list 'b
 let map f l = count_map f l 0 
 
@@ -644,6 +646,8 @@ let rec splitAtAcc revAcc n l =
     | []    -> (reverse revAcc, [])
     | x::xs -> if n <= 0 then (reverse revAcc, l) else splitAtAcc (x::revAcc) (n-1) xs
   end
+
+declare {lean} termination_argument splitAtAcc = automatic
 
 val splitAt : forall 'a. nat -> list 'a -> (list 'a * list 'a)
 let rec splitAt n l = 
@@ -1043,12 +1047,14 @@ let rec mapMaybe f xs =
       | Just y -> y :: (mapMaybe f xs)
       end
   end
+declare {lean} termination_argument mapMaybe = automatic
 
 val mapi : forall 'a 'b. (nat -> 'a -> 'b) -> list 'a -> list 'b
 let rec mapiAux f (n : nat) l = match l with
   | [] -> []
   | x :: xs -> (f n x) :: mapiAux f (n + 1) xs
 end
+declare {lean} termination_argument mapiAux = automatic
 let mapi f l = mapiAux f 0 l
 
 val deletes: forall 'a. Eq 'a => list 'a -> list 'a -> list 'a
@@ -1210,3 +1216,4 @@ let rec catMaybes xs =
     | (Just x :: xs') ->
         x :: catMaybes xs'
   end
+declare {lean} termination_argument catMaybes = automatic

@@ -61,6 +61,17 @@ let lean_current_module_name : string ref = ref ""
    Set during indreln antecedent processing where Prop is needed. *)
 let lean_prop_equality : bool ref = ref false
 
+(* Check if a constant's Lean target rep is == or != (BEq operators).
+   Returns Some true for ==, Some false for !=, None otherwise. *)
+let check_beq_target_rep c_descr =
+  match Target.Targetmap.apply_target c_descr.target_rep (Target.Target_no_ident Target.Target_lean) with
+  | Some (CR_infix (_, _, _, ident)) ->
+    let name = Ident.to_string ident in
+    if name = "==" || name = " ==" then Some true
+    else if name = "!=" || name = " !=" then Some false
+    else None
+  | _ -> None
+
 (* Library modules live under the LemLib.* namespace (e.g. "LemLib.Set").
    User modules have no namespace prefix. *)
 let is_library_module mod_name =
@@ -920,7 +931,19 @@ let needs_parens term =
               let (e0, args) = strip_app_exp e in
                 match C.exp_to_term e0 with
                   | Constant cd ->
-                    B.function_application_to_output (exp_to_locn e) trans false e cd args (use_ascii_rep_for_const cd.descr)
+                    (* In indreln antecedents (Prop context), == and != applied via
+                       App nodes (e.g. from <> decomposition: not (isEqual x y)) must
+                       use propositional =/≠ instead of BEq ==/!=. *)
+                    let c_descr = c_env_lookup Ast.Unknown A.env.c_env cd.descr in
+                    begin match !lean_prop_equality, List.length args = 2, check_beq_target_rep c_descr with
+                    | true, true, Some is_eq ->
+                      let l_out = trans (List.nth args 0) in
+                      let r_out = trans (List.nth args 1) in
+                      if is_eq then [Output.flat [l_out; from_string "  =  "; r_out]]
+                      else [Output.flat [l_out; meta_utf8 "  \xe2\x89\xa0  "; r_out]]
+                    | _ ->
+                      B.function_application_to_output (exp_to_locn e) trans false e cd args (use_ascii_rep_for_const cd.descr)
+                    end
                   | _ ->
                     List.map trans (e0 :: args)
               end in
@@ -1079,19 +1102,15 @@ let needs_parens term =
                 match C.exp_to_term c with
                   | Constant cd ->
                     begin
-                      (* In indreln antecedents (Prop context), isEqual should use
-                         propositional = instead of BEq ==.  Functions and other types
-                         without BEq instances need propositional equality. *)
+                      (* In indreln antecedents (Prop context), == and != must use
+                         propositional =/≠. This handles the Infix AST case;
+                         the App case above handles decomposed forms like not(isEqual x y). *)
                       let c_descr = c_env_lookup Ast.Unknown A.env.c_env cd.descr in
-                      let use_prop_eq = !lean_prop_equality &&
-                        (match Target.Targetmap.apply_target c_descr.target_rep (Target.Target_no_ident Target.Target_lean) with
-                         | Some (CR_infix (_, _, _, ident)) ->
-                           let name = Ident.to_string ident in
-                           name = "==" || name = " =="
-                         | _ -> false) in
-                      if use_prop_eq then
-                        Output.flat [trans l; from_string "  =  "; trans r]
-                      else begin
+                      match !lean_prop_equality, check_beq_target_rep c_descr with
+                      | true, Some is_eq ->
+                        if is_eq then Output.flat [trans l; from_string "  =  "; trans r]
+                        else Output.flat [trans l; meta_utf8 "  \xe2\x89\xa0  "; trans r]
+                      | _ -> begin
                         let pieces = B.function_application_to_output (exp_to_locn e) trans true e cd [l; r] (use_ascii_rep_for_const cd.descr) in
                         Output.concat sep pieces
                       end
