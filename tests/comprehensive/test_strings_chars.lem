@@ -29,3 +29,18 @@ assert test3_not : (not test3)
 assert test4_ok : (test4 = "hello world")
 assert test5_ok : (test5 = (5:nat))
 assert test6_ok : (test6 = (0:nat))
+
+(* === String comparison (stringCompare was broken — always returned EQ) === *)
+open import String_extra
+
+let cmp1 = stringLess "abc" "bbc"
+let cmp2 = stringLessEq "abc" "abc"
+let cmp3 = stringGreater "bbc" "abc"
+let cmp4 = stringGreaterEq "abc" "abc"
+let cmp5 = stringLess "abc" "abc"
+
+assert cmp1_ok : cmp1
+assert cmp2_ok : cmp2
+assert cmp3_ok : cmp3
+assert cmp4_ok : cmp4
+assert cmp5_not : (not cmp5)

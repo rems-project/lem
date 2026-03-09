@@ -17,7 +17,8 @@ Updated: 2026-03-09
 - **10 library functions: `partial def` → `def`**: Added `{lean}` termination annotations for `map_tr`, `count_map`, `splitAtAcc`, `mapMaybe`, `mapiAux`, `catMaybes`, `init`, `stringFromListAux`, `concat`, `integerOfStringHelper`. All structurally recursive on lists.
 - **3 more: `partial def` → total via LemLib target reps**: `stringFromNatHelper`, `stringFromNaturalHelper` (n/10 division with `termination_by n`), `leastFixedPoint` (bounded countdown with `termination_by bound`). Total implementations in `LemLib.lean`, target reps in `.lem` files.
 - **2 LemLib.lean partial defs fixed**: `boolListFromNatural` (n/2 division), `bitSeqBinopAux` (dual-list recursion). Both now total with termination proofs.
-- **31 comprehensive tests, 231 assertions**: All passing.
+- **String comparison fixed**: `stringCompare` always returned `EQ` (broken default in `string_extra.lem`). Added `let inline {lean} stringCompare = defaultCompare`. All string ordering functions (`stringLess`, `stringLessEq`, etc.) and the `Ord0 String` instance now work correctly.
+- **31 comprehensive tests, 236 assertions**: All passing.
 
 ## Remaining Issues
 
@@ -29,11 +30,9 @@ Coq/HOL/Isabelle have full machine word libraries. Lean has `BitVec n` in Mathli
 
 Fix: Map `mword` to `BitVec n` and add `declare {lean} target_rep` for all 46 operations in `library/machine_word.lem`.
 
-### 2. Numeric type instances: 27 `sorry` in Num.lean, 3 in Map.lean
+### ~~2. Numeric type instances: 27 `sorry` in Num.lean, 3 in Map.lean~~ (Non-issue)
 
-`natural`, `int`, `integer`, `int32`, `int64`, `rational`, `real`, `float64`, `float32` are defined as empty inductives with sorry-based `Inhabited`, `BEq`, and `Ord` instances. The empty inductives are dead code (actual code uses target reps mapping to `Nat`/`Int`), but the sorry instances are unnecessary noise.
-
-Fix: Suppress instance generation for types that have target reps, or replace the empty inductives with `abbrev` aliases to the target types.
+These 30 sorry stubs are ALL inside `/- ... -/` block comments. The target rep mechanism already comments out the entire type definition block (inductive + instances) when a type has a Lean target rep. No active sorry, no compilation impact. Nothing to fix.
 
 ### 3. Floating-point types map to `Int` (semantically wrong)
 
@@ -78,12 +77,8 @@ Pre-existing unscoped annotations (from upstream, NOT our changes):
 
 These are likely harmless (they're already in the Isabelle/HOL codebase without issues), but should be verified.
 
-### 8. Missing Lean target reps for library functions
+### ~~8. Missing Lean target reps for library functions~~ (Resolved — parity achieved)
 
-The Lean backend has ~44 declared target reps vs ~200+ in Coq. Many standard library functions fall through to the Lem-defined implementation (which works but may be suboptimal) or to sorry stubs. Key gaps:
+Audit shows Lean has 288 `declare lean target_rep function` declarations vs Coq's 260. Lean has equal or better coverage across all library files: num.lem (149/149), list.lem (22/11), basic_classes.lem (21/20), set.lem (18/17), map.lem (12/12). The only significant gap remaining is machine_word.lem (TODO #1).
 
-- `library/num.lem`: Many numeric conversion/comparison functions lack Lean reps
-- `library/set.lem` / `library/set_extra.lem`: Set operations use list-based implementations (correct but O(n))
-- `library/map.lem` / `library/map_extra.lem`: Map operations use association list (no `RBMap` target rep)
-
-Fix: Audit all `declare {coq} target_rep` lines and add corresponding `declare {lean} target_rep` where Lean has equivalent stdlib functions. Prioritize hot paths (map lookup, set membership, numeric operations).
+Set/map operations use list-based implementations (same as Coq). Switching to `RBTree`/`RBMap` would be an optimization, not a correctness issue.
