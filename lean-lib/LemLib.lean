@@ -395,7 +395,70 @@ def listGet? (l : List α) (n : Nat) : Option α := l[n]?
 def listGet! [Inhabited α] (l : List α) (n : Nat) : α := l[n]!
 
 /- ============================================================ -/
-/- Bitwise operations for fixed-width integers (represented as Int) -/
+/- Fixed-width integer types                                   -/
+/- ============================================================ -/
+/- Lem's int32 and int64 types are represented as distinct newtype wrappers
+   around Int. This provides type safety (can't accidentally mix int32/int64/int)
+   and eliminates duplicate typeclass instances. Arithmetic uses Int operations
+   (arbitrary precision, no overflow) — same semantics as Coq's Z mapping.
+   For proper overflow semantics, these would need BitVec 32/BitVec 64. -/
+
+structure LemInt32 where val : Int
+structure LemInt64 where val : Int
+
+instance : Inhabited LemInt32 := ⟨⟨0⟩⟩
+instance : BEq LemInt32 where beq a b := a.val == b.val
+instance : Ord LemInt32 where compare a b := compare a.val b.val
+instance : Add LemInt32 where add a b := ⟨a.val + b.val⟩
+instance : Sub LemInt32 where sub a b := ⟨a.val - b.val⟩
+instance : Mul LemInt32 where mul a b := ⟨a.val * b.val⟩
+instance : Div LemInt32 where div a b := ⟨a.val / b.val⟩
+instance : Mod LemInt32 where mod a b := ⟨a.val % b.val⟩
+instance : Neg LemInt32 where neg a := ⟨-a.val⟩
+instance : HPow LemInt32 Nat LemInt32 where hPow a n := ⟨a.val ^ n⟩
+instance : Min LemInt32 where min a b := if a.val <= b.val then a else b
+instance : Max LemInt32 where max a b := if a.val >= b.val then a else b
+instance (n : Nat) : OfNat LemInt32 n where ofNat := ⟨n⟩
+
+instance : Inhabited LemInt64 := ⟨⟨0⟩⟩
+instance : BEq LemInt64 where beq a b := a.val == b.val
+instance : Ord LemInt64 where compare a b := compare a.val b.val
+instance : Add LemInt64 where add a b := ⟨a.val + b.val⟩
+instance : Sub LemInt64 where sub a b := ⟨a.val - b.val⟩
+instance : Mul LemInt64 where mul a b := ⟨a.val * b.val⟩
+instance : Div LemInt64 where div a b := ⟨a.val / b.val⟩
+instance : Mod LemInt64 where mod a b := ⟨a.val % b.val⟩
+instance : Neg LemInt64 where neg a := ⟨-a.val⟩
+instance : HPow LemInt64 Nat LemInt64 where hPow a n := ⟨a.val ^ n⟩
+instance : Min LemInt64 where min a b := if a.val <= b.val then a else b
+instance : Max LemInt64 where max a b := if a.val >= b.val then a else b
+instance (n : Nat) : OfNat LemInt64 n where ofNat := ⟨n⟩
+
+/- Target rep wrappers for int32 operations -/
+def lemInt32Ltb (a b : LemInt32) : Bool := a.val < b.val
+def lemInt32Lteb (a b : LemInt32) : Bool := a.val <= b.val
+def lemInt32Gtb (a b : LemInt32) : Bool := a.val > b.val
+def lemInt32Gteb (a b : LemInt32) : Bool := a.val >= b.val
+def lemInt32Abs (a : LemInt32) : LemInt32 := ⟨Int.ofNat a.val.natAbs⟩
+def lemInt32OfNat (n : Nat) : LemInt32 := ⟨Int.ofNat n⟩
+def lemInt32OfInt (n : Int) : LemInt32 := ⟨n⟩
+def lemInt32ToInt (n : LemInt32) : Int := n.val
+def lemInt32ToNat (n : LemInt32) : Nat := Int.toNat n.val
+def lemInt32FromInt64 (n : LemInt64) : LemInt32 := ⟨n.val⟩
+
+/- Target rep wrappers for int64 operations -/
+def lemInt64Ltb (a b : LemInt64) : Bool := a.val < b.val
+def lemInt64Lteb (a b : LemInt64) : Bool := a.val <= b.val
+def lemInt64Gtb (a b : LemInt64) : Bool := a.val > b.val
+def lemInt64Gteb (a b : LemInt64) : Bool := a.val >= b.val
+def lemInt64Abs (a : LemInt64) : LemInt64 := ⟨Int.ofNat a.val.natAbs⟩
+def lemInt64OfNat (n : Nat) : LemInt64 := ⟨Int.ofNat n⟩
+def lemInt64OfInt (n : Int) : LemInt64 := ⟨n⟩
+def lemInt64ToInt (n : LemInt64) : Int := n.val
+def lemInt64FromInt32 (n : LemInt32) : LemInt64 := ⟨n.val⟩
+
+/- ============================================================ -/
+/- Bitwise operations for fixed-width integers                  -/
 /- ============================================================ -/
 
 /- Two's complement conversion helpers -/
@@ -416,28 +479,28 @@ private def fromNat64 (n : Nat) : Int :=
   else Int.ofNat n
 
 /- int32 bitwise operations -/
-def int32Lnot (x : Int) : Int := fromNat32 ((toNat32 x) ^^^ (2 ^ 32 - 1))
-def int32Lor (x y : Int) : Int := fromNat32 ((toNat32 x) ||| (toNat32 y))
-def int32Lxor (x y : Int) : Int := fromNat32 ((toNat32 x) ^^^ (toNat32 y))
-def int32Land (x y : Int) : Int := fromNat32 ((toNat32 x) &&& (toNat32 y))
-def int32Lsl (x : Int) (n : Nat) : Int := fromNat32 ((toNat32 x) <<< n)
-def int32Lsr (x : Int) (n : Nat) : Int := fromNat32 ((toNat32 x) >>> n)
-def int32Asr (x : Int) (n : Nat) : Int :=
-  let sx := fromNat32 (toNat32 x)
-  if sx < 0 then -((-sx - 1) >>> n) - 1
-  else Int.ofNat (x.toNat >>> n)
+def int32Lnot (x : LemInt32) : LemInt32 := ⟨fromNat32 ((toNat32 x.val) ^^^ (2 ^ 32 - 1))⟩
+def int32Lor (x y : LemInt32) : LemInt32 := ⟨fromNat32 ((toNat32 x.val) ||| (toNat32 y.val))⟩
+def int32Lxor (x y : LemInt32) : LemInt32 := ⟨fromNat32 ((toNat32 x.val) ^^^ (toNat32 y.val))⟩
+def int32Land (x y : LemInt32) : LemInt32 := ⟨fromNat32 ((toNat32 x.val) &&& (toNat32 y.val))⟩
+def int32Lsl (x : LemInt32) (n : Nat) : LemInt32 := ⟨fromNat32 ((toNat32 x.val) <<< n)⟩
+def int32Lsr (x : LemInt32) (n : Nat) : LemInt32 := ⟨fromNat32 ((toNat32 x.val) >>> n)⟩
+def int32Asr (x : LemInt32) (n : Nat) : LemInt32 :=
+  let sx := fromNat32 (toNat32 x.val)
+  ⟨if sx < 0 then -((-sx - 1) >>> n) - 1
+  else Int.ofNat (x.val.toNat >>> n)⟩
 
 /- int64 bitwise operations -/
-def int64Lnot (x : Int) : Int := fromNat64 ((toNat64 x) ^^^ (2 ^ 64 - 1))
-def int64Lor (x y : Int) : Int := fromNat64 ((toNat64 x) ||| (toNat64 y))
-def int64Lxor (x y : Int) : Int := fromNat64 ((toNat64 x) ^^^ (toNat64 y))
-def int64Land (x y : Int) : Int := fromNat64 ((toNat64 x) &&& (toNat64 y))
-def int64Lsl (x : Int) (n : Nat) : Int := fromNat64 ((toNat64 x) <<< n)
-def int64Lsr (x : Int) (n : Nat) : Int := fromNat64 ((toNat64 x) >>> n)
-def int64Asr (x : Int) (n : Nat) : Int :=
-  let sx := fromNat64 (toNat64 x)
-  if sx < 0 then -((-sx - 1) >>> n) - 1
-  else Int.ofNat (x.toNat >>> n)
+def int64Lnot (x : LemInt64) : LemInt64 := ⟨fromNat64 ((toNat64 x.val) ^^^ (2 ^ 64 - 1))⟩
+def int64Lor (x y : LemInt64) : LemInt64 := ⟨fromNat64 ((toNat64 x.val) ||| (toNat64 y.val))⟩
+def int64Lxor (x y : LemInt64) : LemInt64 := ⟨fromNat64 ((toNat64 x.val) ^^^ (toNat64 y.val))⟩
+def int64Land (x y : LemInt64) : LemInt64 := ⟨fromNat64 ((toNat64 x.val) &&& (toNat64 y.val))⟩
+def int64Lsl (x : LemInt64) (n : Nat) : LemInt64 := ⟨fromNat64 ((toNat64 x.val) <<< n)⟩
+def int64Lsr (x : LemInt64) (n : Nat) : LemInt64 := ⟨fromNat64 ((toNat64 x.val) >>> n)⟩
+def int64Asr (x : LemInt64) (n : Nat) : LemInt64 :=
+  let sx := fromNat64 (toNat64 x.val)
+  ⟨if sx < 0 then -((-sx - 1) >>> n) - 1
+  else Int.ofNat (x.val.toNat >>> n)⟩
 
 /- ============================================================ -/
 /- Missing library functions -/
