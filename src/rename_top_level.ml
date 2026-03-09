@@ -109,6 +109,15 @@ let compute_ocaml_rename_constant_fun (nk : name_kind) (n : Name.t) : Name.t opt
     | Nk_module _     -> Name.capitalize n
     | Nk_class _      -> None
 
+let compute_lean_rename_constant_fun (nk : name_kind) (n : Name.t) : Name.t option =
+  match nk with
+    | Nk_typeconstr _ -> Name.capitalize n
+    | Nk_const _      -> Name.uncapitalize n (* TODO*)
+    | Nk_constr _     -> Name.uncapitalize n
+    | Nk_field _      -> Name.uncapitalize n (* TODO*)
+    | Nk_module _     -> Name.capitalize n   (* TODO*)
+    | Nk_class _      -> None
+
 let compute_isa_rename_constant_fun (nk : name_kind) (n : Name.t) : Name.t option =
   let n0 = Util.option_repeat Name.remove_underscore n in
   let n1 = Util.option_repeat Name.remove_underscore_suffix n0 in
@@ -124,6 +133,7 @@ let compute_target_rename_constant_fun (targ : Target.non_ident_target) (nk : na
     | Target_ocaml -> compute_ocaml_rename_constant_fun nk n 
     | Target_isa -> compute_isa_rename_constant_fun nk n 
     | Target_hol -> compute_hol_rename_constant_fun nk n 
+    | Target_lean -> compute_lean_rename_constant_fun nk n 
     | _ -> None
 
 let get_fresh_name consts consts' n = 

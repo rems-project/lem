@@ -60,10 +60,6 @@ open Typed_ast_syntax
 open Target
 open Types
 
-(* TODO: maybe this name mangling should better be done in a transform pass than in this backend? *)
-let name_uncapitalize_constructor n = match Name.uncapitalize n with None -> n | Some n' -> n' 
-let name_capitalize_type n = match Name.capitalize n with None -> n | Some n' -> n' 
-
 let print_and_fail l s =
   raise (Reporting_basic.err_general true l s)
 ;;
@@ -636,7 +632,7 @@ let generate_lean_record_update_notation e =
       in
       let indrelns =
         List.map (fun name ->
-          let name_string = Name.to_string (name_capitalize_type name) in
+          let name_string = Name.to_string name in
           let bodies = List.filter (compare_clauses_by_name name) clause_list in
           let index_types =
             match bodies with
@@ -650,7 +646,7 @@ let generate_lean_record_update_notation e =
           in
           let bodies =
             List.map (fun (Rule(name_lskips_t, skips0, skips, name_lskips_annot_list, skips', exp_opt, skips'', name_lskips_annot, c, exp_list),_) ->
-              let constructor_name = from_string (Name.to_string (name_uncapitalize_constructor (Name.strip_lskip name_lskips_t))) in
+              let constructor_name = from_string (Name.to_string (Name.strip_lskip name_lskips_t)) in
               let antecedent =
                 match exp_opt with
                   | None -> emp
@@ -713,7 +709,7 @@ let generate_lean_record_update_notation e =
         ) gathered
       in
         Output.flat [
-          from_string "\ninductive "; concat_str "\nwith " indrelns; from_string ""
+          from_string "\ninductive"; concat_str "\nwith " indrelns; from_string ""
         ]
     and let_body inside_instance i_ref_opt top_level tv_set ((lb, _):letbind) =
       match lb with
@@ -1264,10 +1260,10 @@ let generate_lean_record_update_notation e =
     and type_def inside_module defs =
       let body = flat @@ Seplist.to_sep_list type_def' (sep @@ from_string "with") defs in
         Output.flat [
-          from_string "inductive "; body; from_string "\n";
+          from_string "inductive"; body; from_string "\n";
         ]
     and type_def' ((n0, l), ty_vars, t_path, ty, _) =
-      let n = Name.add_lskip (name_capitalize_type (Name.strip_lskip (B.type_path_to_name n0 t_path))) in 
+      let n = B.type_path_to_name n0 t_path in 
       let name = Name.to_output (Type_ctor (false, false)) n in
       let ty_vars =
         List.map (
@@ -1290,7 +1286,7 @@ let generate_lean_record_update_notation e =
       let ty_vars = inductive_type_variables ty_vars in
       let name = Name.to_output (Type_ctor (false, false)) name in
         Output.flat [
-          name; ty_var_sep; ty_vars; from_string " : Type "
+          name; ty_var_sep; ty_vars; from_string " " (*" : Type "*)
         ]
     and inductive_type_variables vars =
       let mapped = List.map (fun v ->
@@ -1316,7 +1312,7 @@ let generate_lean_record_update_notation e =
               from_string "where"; ws skips; body
             ]
     and constructor ind_name (ty_vars : variable list) ((name0, _), c_ref, skips, args) =
-      let ctor_name = Name.add_lskip (name_uncapitalize_constructor (Name.strip_lskip (B.const_ref_to_name name0 false c_ref))) in
+      let ctor_name = B.const_ref_to_name name0 false c_ref in
       let ctor_name = Name.to_output (Type_ctor (false, false)) ctor_name in
       let body = flat @@ Seplist.to_sep_list (* abbreviation_typ *) pat_typ (sep @@ from_string "-> ") args in
       let ty_vars_typeset =
