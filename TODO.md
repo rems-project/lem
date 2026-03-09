@@ -19,18 +19,17 @@ Updated: 2026-03-09
 - **2 LemLib.lean partial defs fixed**: `boolListFromNatural` (n/2 division), `bitSeqBinopAux` (dual-list recursion). Both now total with termination proofs.
 - **String comparison fixed**: `stringCompare` always returned `EQ` (broken default in `string_extra.lem`). Added `let inline {lean} stringCompare = defaultCompare`. All string ordering functions (`stringLess`, `stringLessEq`, etc.) and the `Ord0 String` instance now work correctly.
 - **Unsupported numeric types panic instead of silently wrong**: `rational`, `real`, `float64`, `float32` now map to distinct opaque types (`LemRational`, `LemReal`, `LemFloat64`, `LemFloat32`) instead of `Int`. All operations panic at runtime with clear error messages. Previously `rationalFromFrac 1 3 = 0` (integer division); now panics. Reduces duplicate `Int` typeclass instances (partial fix for #5).
-- **31 comprehensive tests, 236 assertions**: All passing.
 - **`int32`/`int64` now distinct types**: `LemInt32` and `LemInt64` are newtype wrappers around `Int` (same semantics as Coq's `Z` mapping, but distinct types). All arithmetic, comparison, conversion, and bitwise operations forward through the wrapper. Eliminates duplicate typeclass instances with `int`/`integer` (partial fix for #5). ppcmem `bitwiseCompatibility.lem` shift target reps updated (`Int.toNat` → `lemInt32ToNat`).
+- **Machine word operations implemented**: `mword 'a` → `BitVec (@Size.size 'a _)` via TYR_subst. All 36 operations have Lean target reps mapping to LemLib BitVec wrappers. Compiler propagates [Size a] constraints from TYR_subst into function/instance signatures. 57 runtime-verified assertions (using Lem `assert` → `#eval` with throw-on-failure). Tested: LemLib, backend tests, comprehensive (32 tests), ppcmem-model, cpp example — all pass.
+- **32 comprehensive tests, 288+ assertions**: All passing (57 new mword assertions are runtime-verified via `#eval`).
 
 ## Remaining Issues
 
-### 1. Machine word operations: 942 `sorry` stubs
+### ~~1. Machine word operations: 942 `sorry` stubs~~ (Fixed — mword → BitVec)
 
-`mword` is an empty inductive with no constructors. All 46 machine word operations (`setBit`, `getBit`, `shiftLeft`, `lAnd`, `lOr`, `signedLess`, `wordFromInteger`, etc.) are `sorry` stubs. Code using `mword` compiles but has no real implementation.
+All 36 mword operations now have real implementations via `BitVec`. The remaining 939 active sorry stubs are `Inhabited`/`BEq`/`Ord` instances on 312 phantom types (`ty1`..`ty4096`) and `itself`. These types are zero-constructor inductives that exist only to carry a width via `Size` — they are never instantiated as values. The sorry stubs are harmless but noisy (942 compiler warnings).
 
-Coq/HOL/Isabelle have full machine word libraries. Lean has `BitVec n` in Mathlib which could serve as the backing type.
-
-Fix: Map `mword` to `BitVec n` and add `declare {lean} target_rep` for all 46 operations in `library/machine_word.lem`.
+Possible cleanup: Have the backend emit `deriving Inhabited, BEq, Ord` for zero-constructor inductives, or suppress instance generation for phantom types that have `TYR_subst` on their containing type.
 
 ### ~~2. Numeric type instances: 27 `sorry` in Num.lean, 3 in Map.lean~~ (Non-issue)
 
@@ -44,11 +43,9 @@ These 30 sorry stubs are ALL inside `/- ... -/` block comments. The target rep m
 
 `int32` → `LemInt32`, `int64` → `LemInt64`. These are `structure` wrappers around `Int` with forwarding instances for all arithmetic, comparison, and conversion operations. Same semantics as Coq's mapping to `Z` (arbitrary precision, no overflow), but now distinct types that don't collide with `int`/`integer`. Bitwise operations (`int32Lnot`, `int32Lor`, etc.) updated to use `LemInt32`/`LemInt64`. For proper overflow semantics: map to `BitVec 32` / `BitVec 64` (would require Mathlib dependency).
 
-### 5. Duplicate typeclass instances in Machine_word.lean
+### ~~5. Duplicate typeclass instances in Machine_word.lean~~ (Resolved)
 
-Since `int`/`integer` both map to `Int`, Machine_word generates some duplicate typeclass instances (e.g., multiple `WordNot Int`). Later instances silently override earlier ones. Currently harmless (all sorry), but would cause real conflicts with proper implementations. (Previously `int32`/`int64`/`rational`/`real`/`float64`/`float32` also contributed duplicates — resolved by issues #3 and #4.)
-
-Fix: Resolves naturally once `mword` gets `BitVec` (issue #1). The `int`/`integer` duplication is inherent (both map to `Int` in all backends).
+The mword→BitVec mapping means `mword ty8` resolves to `BitVec 8`, which gets its instances from Lean stdlib — not from the generated code. The remaining `int`/`integer` duplication is inherent (both map to `Int` in all backends, including Coq). No action needed.
 
 ### 6. 2 genuinely `partial def` functions in generated library
 
@@ -67,6 +64,10 @@ Additionally, `LemLib.lean` (hand-written runtime) has 2 partial defs: `natSqrtA
 
 ### ~~8. Missing Lean target reps for library functions~~ (Resolved — parity achieved)
 
-Audit shows Lean has 288 `declare lean target_rep function` declarations vs Coq's 260. Lean has equal or better coverage across all library files: num.lem (149/149), list.lem (22/11), basic_classes.lem (21/20), set.lem (18/17), map.lem (12/12). The only significant gap remaining is machine_word.lem (TODO #1).
+Audit shows Lean has 288 `declare lean target_rep function` declarations vs Coq's 260. Lean has equal or better coverage across all library files: num.lem (149/149), list.lem (22/11), basic_classes.lem (21/20), set.lem (18/17), map.lem (12/12), machine_word.lem (36 operations now covered).
 
 Set/map operations use list-based implementations (same as Coq). Switching to `RBTree`/`RBMap` would be an optimization, not a correctness issue.
+
+### ~~9. Phantom type sorry warnings (cosmetic)~~ (Fixed — skip instances for opaque types)
+
+`generate_default_values` and `generate_default_values_mutual` now filter out `Te_opaque` types before generating instances. Opaque types (zero-constructor inductives like `ty1`..`ty4096`, `itself`) are uninhabitable — they exist only to carry type-level information. Generating sorry-based `Inhabited`/`BEq`/`Ord` instances was both unsound and produced 942 compiler warnings. All eliminated.

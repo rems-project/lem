@@ -2251,6 +2251,12 @@ let needs_parens term =
             ]
     and generate_default_values ts : Output.t =
       let ts = Seplist.to_list ts in
+      (* Skip instance generation for opaque types (zero-constructor inductives
+         like phantom types ty1..ty4096). These types are uninhabitable —
+         they exist only to carry type-level information (e.g., bit widths
+         via Size). Generating sorry-based instances is unsound and produces
+         compiler warnings. *)
+      let ts = List.filter (fun (_, _, _, t, _) -> t <> Te_opaque) ts in
       (* Treat each single type like a mutual block of one, so self-referential
          constructors (e.g. Unop : op → op0 → op1 → op1) are detected and
          avoided when generating the Inhabited instance. *)
@@ -2260,6 +2266,7 @@ let needs_parens term =
         Output.flat [concat_str "\n" mapped; concat emp beq_instances]
     and generate_default_values_mutual ts : Output.t =
       let ts_list = Seplist.to_list ts in
+      let ts_list = List.filter (fun (_, _, _, t, _) -> t <> Te_opaque) ts_list in
       let mutual_paths = List.map (fun ((_, _), _, path, _, _) -> path) ts_list in
       let mapped = List.map (generate_inhabited_instance mutual_paths) ts_list in
       (* Check if mutual block has heterogeneous param counts (Type 1 universe) *)
