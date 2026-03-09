@@ -1,26 +1,22 @@
 /- Stub Pervasives_extra for the Lean backend.
-   In production, this file will be replaced by the version generated
-   from pervasives_extra.lem via `make lean-libs`.
-   This stub provides the minimal type class definitions needed by
-   generated Lean files.
-
-   Note: no namespace wrapper — generated library files are flat, and
-   the import already brings definitions into scope. -/
+   This file will be replaced by the version generated from
+   pervasives_extra.lem via `make lean-libs`, then restored via
+   `git checkout lean-lib/LemLib/Pervasives_extra.lean`. -/
 import LemLib
+import LemLib.Pervasives
 
-/- Numeric addition class, extending Lean's built-in Add. -/
-class NumAdd (a : Type) extends Add a where
+/- Bridge Lem's numeric classes to Lean's operator typeclasses.
+   Lem's NumAdd/NumMinus/NumMult classes don't extend Lean's Add/Sub/Mul,
+   so we provide these bridges so that `+`, `-`, `*` operators work. -/
+instance [Lem_Num.NumAdd α] : Add α where add := Lem_Num.numAdd
+instance [Lem_Num.NumMinus α] : Sub α where sub := Lem_Num.numMinus
+instance [Lem_Num.NumMult α] : Mul α where mul := Lem_Num.numMult
+instance [Lem_Num.NumNegate α] : Neg α where neg := Lem_Num.numNegate
 
-instance : NumAdd Nat where
-  add := Nat.add
+namespace Lem_Pervasives_extra
 
-/- Ordered set element class. Provides the comparison function used by
-   LemLib's set operations (setMemberBy, setUnionBy, etc.). -/
-class SetType (a : Type) where
-  setElemCompare : a → a → LemOrdering
+/- Pervasives_extra definitions go here when generated.
+   Currently empty — all needed definitions are in LemLib
+   and LemLib.Pervasives. -/
 
-export SetType (setElemCompare)
-
-/- Derive BEq from SetType's comparison function. -/
-instance {a : Type} [SetType a] : BEq a where
-  beq x y := match SetType.setElemCompare x y with | .EQ => true | _ => false
+end Lem_Pervasives_extra

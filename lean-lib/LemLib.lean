@@ -33,6 +33,14 @@ def isLessEqual (o : LemOrdering) : Bool := o != .GT
 def isGreater (o : LemOrdering) : Bool := o == .GT
 def isGreaterEqual (o : LemOrdering) : Bool := o != .LT
 
+/- Ord instance for Prod (not in Lean stdlib) -/
+instance [Ord α] [Ord β] : Ord (α × β) where
+  compare p q :=
+    match compare p.1 q.1 with
+    | .lt => .lt
+    | .gt => .gt
+    | .eq => compare p.2 q.2
+
 /- Default comparison via Ord -/
 def defaultCompare [Ord α] (x y : α) : LemOrdering :=
   match compare x y with
@@ -337,3 +345,42 @@ def integerRem_t (a b : Int) : Int := Int.tmod a b
 def integerRem_f (a b : Int) : Int := Int.emod a b
 
 def THE (_p : α → Bool) : Option α := none
+
+/- List indexing — replaces removed List.get? and List.get! -/
+def listGetOpt (l : List α) (n : Nat) : Option α := l[n]?
+def listGetBang [Inhabited α] (l : List α) (n : Nat) : α := l[n]!
+
+/- List update (set element at index) — replaces removed List.set -/
+def listSet (l : List α) (n : Nat) (v : α) : List α :=
+  l.set n v
+
+/- Convert a natural number to a list of bools (binary representation, LSB first) -/
+partial def boolListFromNatural (acc : List Bool) (remainder : Nat) : List Bool :=
+  if remainder > 0 then
+    boolListFromNatural ((remainder % 2 == 1) :: acc) (remainder / 2)
+  else
+    acc.reverse
+
+/- Bitwise binary operation on two bool lists, extending shorter with sign bit -/
+partial def bitSeqBinopAux (binop : Bool → Bool → Bool) (s1 : Bool) (bl1 : List Bool)
+    (s2 : Bool) (bl2 : List Bool) : List Bool :=
+  match bl1, bl2 with
+  | [], [] => []
+  | b1 :: bl1', [] => (binop b1 s2) :: bitSeqBinopAux binop s1 bl1' s2 []
+  | [], b2 :: bl2' => (binop s1 b2) :: bitSeqBinopAux binop s1 [] s2 bl2'
+  | b1 :: bl1', b2 :: bl2' => (binop b1 b2) :: bitSeqBinopAux binop s1 bl1' s2 bl2'
+
+/- Transitive closure of a relation represented as a list of pairs.
+   Iterates composition until no new pairs are added. Used by Relation module. -/
+partial def set_tc (eq : α → α → Bool) (r : List (α × α)) : List (α × α) :=
+  let mem (p : α × α) (s : List (α × α)) : Bool :=
+    s.any (fun q => eq p.1 q.1 && eq p.2 q.2)
+  let compose := r.foldl (fun acc (a, b) =>
+    r.foldl (fun acc2 (c, d) =>
+      let p := (a, d)
+      if eq b c && !mem p acc2 then p :: acc2
+      else acc2
+    ) acc
+  ) r
+  if compose.length == r.length then r
+  else set_tc eq compose

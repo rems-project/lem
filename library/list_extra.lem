@@ -116,7 +116,7 @@ declare hol      target_rep function nth l n = `EL` n l
 declare ocaml    target_rep function nth     = `List.nth`
 declare isabelle target_rep function nth     = `List.nth`
 declare coq      target_rep function nth l n = `List.nth` n l
-declare lean     target_rep function nth     = `List.get!`
+declare lean     target_rep function nth     = `listGetBang`
 
 assert nth_0: (nth [0;1;2;3;4;5] 0 = (0:nat))
 assert nth_1: (nth [0;1;2;3;4;5] 1 = (1:nat))

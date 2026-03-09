@@ -490,7 +490,7 @@ end
 declare termination_argument index = automatic
 
 declare isabelle target_rep function index = `index`
-declare lean     target_rep function index = `List.get?`
+declare lean     target_rep function index = `listGetOpt`
 declare {ocaml;hol} rename function index = list_index
 
 assert index_0: (index [(0:nat);1;2;3;4;5] 0 = Just 0)

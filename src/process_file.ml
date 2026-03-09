@@ -364,6 +364,7 @@ let output1 env (out_dir : string option) (targ : Target.target) avoid m =
 
       | Target.Target_no_ident(Target.Target_lean) ->
           (try begin
+            Lean_backend.lean_current_module_name := module_name;
             let (r, r_extra) = B.lean_defs m.typed_ast in
             (* Convert dotted module names (e.g. LemLib.Bool) to path separators for Lean *)
             let lean_module_path name =

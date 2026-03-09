@@ -386,7 +386,20 @@ let fix_module_name_list nl = begin
     | m :: rest' ->
         aux ((get_module_name A.env A.target path m)::acc) (path @ [m]) rest'
   in
-  aux [] [] nl
+  let names = aux [] [] nl in
+  (* For Lean, convert dotted library module names like "LemLib.Set" to flat
+     namespace names like "Lem_Set" to avoid shadowing stdlib namespaces *)
+  match A.target with
+  | Target.Target_no_ident (Target.Target_lean) ->
+      List.map (fun n ->
+        let s = Name.to_string n in
+        let prefix = "LemLib." in
+        let plen = String.length prefix in
+        if String.length s >= plen && String.sub s 0 plen = prefix then
+          Name.from_string (String.concat "" ["Lem_"; String.sub s plen (String.length s - plen)])
+        else n
+      ) names
+  | _ -> names
 end
 
 let fix_module_prefix_ident (i : Ident.t) =

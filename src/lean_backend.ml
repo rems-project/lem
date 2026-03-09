@@ -55,6 +55,17 @@ let lean_auxiliary_opens : string list ref = ref []
 let lean_namespace_stack : string list ref = ref []
 (* Collects import module names — emitted at top of file before any other content *)
 let lean_collected_imports : string list ref = ref []
+(* Set by process_file.ml before calling lean_defs — used for namespace wrapping *)
+let lean_current_module_name : string ref = ref ""
+
+(* Convert a module name like "LemLib.Set" to a flat namespace name "Lem_Set".
+   Non-library modules are unchanged. *)
+let lean_ns_name mod_name =
+  let prefix = "LemLib." in
+  let plen = String.length prefix in
+  if String.length mod_name >= plen && String.sub mod_name 0 plen = prefix then
+    String.concat "" ["Lem_"; String.sub mod_name plen (String.length mod_name - plen)]
+  else mod_name
 
 let lean_qualified_name name_str =
   match !lean_namespace_stack with
@@ -275,29 +286,12 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
       | OpenImportTarget(oi, _, []) -> ws (oi_get_lskip oi)
       | OpenImportTarget (Ast.OI_open skips, targets, mod_descrs) ->
           ws skips ^
-          let strip_lemlib_prefix s =
-            let prefix = "LemLib." in
-            let plen = String.length prefix in
-            if String.length s >= plen && String.sub s 0 plen = prefix then
-              String.sub s plen (String.length s - plen)
-            else s
-          in
-          let is_lemlib_module s =
-            let prefix = "LemLib." in
-            let plen = String.length prefix in
-            String.length s >= plen && String.sub s 0 plen = prefix
-          in
           let handle_mod (sk, md) =
             lean_collected_imports := md :: !lean_collected_imports;
-            (* Library modules under LemLib have no namespaces; skip the
-               import-open. Non-library modules need it for their namespaces. *)
-            if is_lemlib_module md then emp
-            else begin
-              let open_name = strip_lemlib_prefix md in
-              Output.flat [
-                from_string "open"; ws sk; from_string open_name; from_string "\n"
-              ]
-            end
+            let ns = lean_ns_name md in
+            Output.flat [
+              from_string "open"; ws sk; from_string ns; from_string "\n"
+            ]
           in
           if (not (in_target targets)) then emp else Output.flat (List.map handle_mod mod_descrs)
       | OpenImportTarget _ -> emp
@@ -356,9 +350,13 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                 Ident.to_string op_id = "=="
             | _ -> false
           ) body in
-          (* Also check if the class has a setElemCompare method (SetType class).
+          (* Check if the class has a comparison method (returns LemOrdering).
+             Known: setElemCompare (SetType), mapKeyCompare (MapKeyType).
              If so, derive BEq from the comparison function. *)
-          let has_setElemCompare = List.mem "setElemCompare" (List.rev !method_names) in
+          let compare_method_names = ["setElemCompare"; "mapKeyCompare"] in
+          let compare_method = List.find_opt (fun n ->
+            List.mem n compare_method_names
+          ) (List.rev !method_names) in
           let beq_bridge =
             if has_isEqual then
               Output.flat [
@@ -366,13 +364,14 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                 from_string "} ["; name; from_string " "; tv; from_string "] : BEq "; tv;
                 from_string " where\n  beq := isEqual\n"
               ]
-            else if has_setElemCompare then
+            else match compare_method with
+            | Some cmp_name ->
               Output.flat [
                 from_string "\ninstance {"; tv; from_string " : "; from_string tv_kind;
                 from_string "} ["; name; from_string " "; tv; from_string "] : BEq "; tv;
-                from_string " where\n  beq x y := match setElemCompare x y with | .EQ => true | _ => false\n"
+                from_string (String.concat "" [" where\n  beq x y := match "; cmp_name; " x y with | .EQ => true | _ => false\n"])
               ]
-            else emp
+            | None -> emp
           in
           (* Export class methods so they are visible to importing files.
              Skip names that clash with Lean stdlib globals. *)
@@ -575,6 +574,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                   | first_clause :: rest_clauses ->
                     (* Multi-clause: use Lean 4 equation compiler syntax *)
                     let ({term = n}, c, pats, typ_opt, _skips, _e) = first_clause in
+                    let n = B.const_ref_to_name n true c in
                     let name_skips = Name.get_lskip n in
                     let name = from_string (Name.to_string (Name.strip_lskip n)) in
                     (* Get the full type from the const_descr *)
@@ -881,10 +881,10 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                 Output.flat [
                   ws skips; from_string "["; lists; from_string "]"; ws skips'
                 ]
-          | Let (skips, bind, skips', e) ->
+          | Let (skips, bind, _skips', e) ->
               let body = let_body inside_instance None false Types.TNset.empty bind in
                 Output.flat [
-                  ws skips; from_string "let "; body; ws skips'; from_string "\n"; exp inside_instance e
+                  ws skips; from_string "let "; body; from_string "; "; exp inside_instance e
                 ]
           | Constant const ->
               Output.concat emp (B.function_application_to_output (exp_to_locn e) (exp inside_instance) false e const [] (use_ascii_rep_for_const const.descr))
@@ -1298,18 +1298,13 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
             let (n', _) = n in
             let n' = B.type_path_to_name n' path in
             let name = Name.to_output (Type_ctor (false, false)) n' in
-            let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) field (sep @@ from_string "\n") fields in
+            let field_list = Seplist.to_list fields in
+            let body = concat_str "\n" (List.map field field_list) in
             let tyvars' = type_def_type_variables tyvars in
             let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
-            let deriving =
-              if texp_can_derive_beq (Te_record (skips, skips', fields, skips'')) then
-                from_string "\n  deriving BEq"
-              else emp
-            in
               Output.flat [
                 from_string "structure"; name; tyvar_sep; tyvars';
-                ws skips; from_string " where"; ws skips';
-                from_string "\n"; body; ws skips''; deriving; from_string "\n";
+                from_string " where\n"; body; from_string "\n";
               ]
         | _ -> raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: unexpected type definition form")
     and type_def inside_module defs =
@@ -1356,11 +1351,11 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
         match ty with
           | Te_opaque ->
               Output.flat [
-                inductive ty_vars n; from_string " where"
+                inductive ty_vars n; from_string " : Type where"
               ]
           | _ ->
             Output.flat [
-              inductive ty_vars n; tyexp emit_deriving name ty_vars ty
+              inductive ty_vars n; from_string " : Type"; tyexp emit_deriving name ty_vars ty
             ]
     and type_def_indexed ((n0, l), ty_vars, t_path, ty, _) =
       (* Emit type with indices instead of parameters, for heterogeneous mutual blocks.
@@ -1465,13 +1460,8 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
         | Te_record (skips, _, fields, skips') -> ws skips ^ from_string " where\n" ^ tyexp_record fields ^ ws skips'
         | Te_variant (skips, ctors) ->
           let body = flat @@ Seplist.to_sep_list_first Seplist.Optional (constructor name ty_vars) (sep @@ from_string "\n") ctors in
-          let deriving =
-            if emit_deriving && texp_can_derive_beq (Te_variant (skips, ctors)) then
-              from_string "\n  deriving BEq"
-            else emp
-          in
             Output.flat [
-              from_string " where"; ws skips; from_string "\n"; body; deriving
+              from_string " where"; ws skips; from_string "\n"; body
             ]
     and constructor ind_name (ty_vars : variable list) ((name0, _), c_ref, skips, args) =
       let ctor_name = B.const_ref_to_name name0 false c_ref in
@@ -1626,11 +1616,12 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               i; space; concat emp ts_out
             ]
         | _ -> raise (Reporting_basic.err_general true t.locn "Lean backend: unexpected type form in indreln_typ")
-    and field ((n, _), f_ref, skips, t) =
+    and field ((n, _), f_ref, _skips, t) =
+      let fname = Name.add_lskip (Name.strip_lskip (B.const_ref_to_name n false f_ref)) in
       Output.flat [
           from_string "  ";
-          Name.to_output Term_field (B.const_ref_to_name n false f_ref);
-          ws skips; from_string " :"; pat_typ t
+          Name.to_output Term_field fname;
+          from_string " :"; pat_typ t
       ]
     and default_type_variables tvs =
       match tvs with
@@ -1779,6 +1770,45 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
           type_args;
           from_string ") where\n  default := "; default;
         ]
+    and generate_beq_ord_instances ?(is_type1=false) ((name, _), tnvar_list, path, t, _) : Output.t =
+      match t with
+        | Te_abbrev _ -> emp  (* type abbreviations don't need their own instances *)
+        | _ ->
+          let n = B.type_path_to_name name path in
+          let o = lskips_t_to_output n in
+          let tnvar_list' = default_type_variables tnvar_list in
+          let tnvar_names = concat_str " " @@ List.map (fun x ->
+            match x with
+              | Typed_ast.Tn_A (_, tv_name, _) -> from_string (Ulib.Text.to_string tv_name)
+              | Typed_ast.Tn_N (_, nv_name, _) -> from_string (Ulib.Text.to_string nv_name)
+            ) tnvar_list
+          in
+          let type_args =
+            if List.length tnvar_list = 0 then emp
+            else Output.flat [from_string " "; tnvar_names]
+          in
+          (* Ord is universe-polymorphic so it works for Type 1 too *)
+          let ord_instance = Output.flat [
+              from_string "\ninstance"; tnvar_list'; from_string " : Ord ("; o;
+              type_args;
+              from_string ") where\n  compare := sorry";
+            ]
+          in
+          (* SetType/Eq0/Ord0 are defined for (a : Type) only, skip for Type 1 *)
+          if is_type1 then ord_instance
+          else
+            Output.flat [
+              ord_instance;
+              from_string "\ninstance"; tnvar_list'; from_string " : Lem_Basic_classes.SetType ("; o;
+              type_args;
+              from_string ") where\n  setElemCompare := defaultCompare";
+              from_string "\ninstance"; tnvar_list'; from_string " : Lem_Basic_classes.Eq0 ("; o;
+              type_args;
+              from_string ") where\n  isEqual x y := x == y\n  isInequal x y := !(x == y)";
+              from_string "\ninstance"; tnvar_list'; from_string " : Lem_Basic_classes.Ord0 ("; o;
+              type_args;
+              from_string ") where\n  compare := defaultCompare\n  isLess := defaultLess\n  isLessEqual := defaultLessEq\n  isGreater := defaultGreater\n  isGreaterEqual := defaultGreaterEq";
+            ]
     and generate_default_values ts : Output.t =
       let ts = Seplist.to_list ts in
       (* Treat each single type like a mutual block of one, so self-referential
@@ -1786,12 +1816,20 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
          avoided when generating the Inhabited instance. *)
       let mapped = List.map (fun (((_, _), _, path, _, _) as t) ->
         generate_inhabited_instance [path] t) ts in
-        concat_str "\n" mapped
+      let beq_instances = List.map generate_beq_ord_instances ts in
+        Output.flat [concat_str "\n" mapped; concat emp beq_instances]
     and generate_default_values_mutual ts : Output.t =
       let ts_list = Seplist.to_list ts in
       let mutual_paths = List.map (fun ((_, _), _, path, _, _) -> path) ts_list in
       let mapped = List.map (generate_inhabited_instance mutual_paths) ts_list in
-        concat_str "\n" mapped
+      (* Check if mutual block has heterogeneous param counts (Type 1 universe) *)
+      let param_counts = List.map (fun (_, ty_vars, _, _, _) -> List.length ty_vars) ts_list in
+      let is_type1 = match param_counts with
+        | [] -> false
+        | x :: xs -> not (List.for_all (fun y -> y = x) xs)
+      in
+      let beq_instances = List.map (generate_beq_ord_instances ~is_type1) ts_list in
+        Output.flat [concat_str "\n" mapped; concat emp beq_instances]
     (* Default value for L_undefined (DAEMON) context — uses sorry for type variables
        since Inhabited constraints may not be available *)
     and default_value (s : src_t) : Output.t =
@@ -1878,13 +1916,63 @@ module LeanBackend (A : sig val avoid : var_avoid_f option;; val env : env;; val
       let imports_output = Output.flat (List.map (fun m ->
         from_string (String.concat "" ["import "; m; "\n"])
       ) unique_imports) in
+      (* For library modules with dotted names, wrap definitions in a namespace
+         so cross-module qualified references resolve correctly *)
+      let mod_name = !lean_current_module_name in
+      let ns_name = lean_ns_name mod_name in
+      let is_library = ns_name <> mod_name in
+      let ns_start = if is_library then
+        from_string (String.concat "" ["\nnamespace "; ns_name; "\n"])
+      else emp in
+      let ns_end = if is_library then
+        from_string (String.concat "" ["\nend "; ns_name; "\n"])
+      else emp in
+      (* For non-library modules, open all imported library namespaces so that
+         class/type names from transitive dependencies are in scope.
+         This is needed because Lean namespaces don't re-export opens.
+         We scan the imports collected by THIS file and open the corresponding
+         library namespaces. For transitive deps that come through Pervasives,
+         we add the well-known set of core library namespaces. *)
+      let transitive_opens = if not is_library then begin
+        let all_imports = List.rev !lean_collected_imports in
+        let has_pervasives = List.exists (fun m ->
+          m = "LemLib.Pervasives" || m = "LemLib.Pervasives_extra"
+        ) all_imports in
+        if has_pervasives then
+          (* Pervasives imports all core library modules; open their namespaces.
+             Also import Pervasives_extra for bridge instances (NumAdd → Add etc.) *)
+          let has_pervasives_extra = List.exists (fun m ->
+            m = "LemLib.Pervasives_extra"
+          ) all_imports in
+          let extra_import = if has_pervasives_extra then emp
+            else from_string "import LemLib.Pervasives_extra\n" in
+          let core_lib_ns = [
+            "Lem_Bool"; "Lem_Basic_classes"; "Lem_Function"; "Lem_Maybe";
+            "Lem_Num"; "Lem_Tuple"; "Lem_List"; "Lem_Either";
+            "Lem_Set_helpers"; "Lem_Set"; "Lem_Map"; "Lem_Relation";
+            "Lem_Sorting"; "Lem_String"; "Lem_Word"; "Lem_Show";
+            "Lem_Pervasives"; "Lem_Pervasives_extra"
+          ] in
+          Output.flat (extra_import :: List.map (fun ns ->
+            from_string (String.concat "" ["open "; ns; "\n"])
+          ) core_lib_ns)
+        else
+          (* Just open namespaces for direct imports *)
+          let ns_list = List.filter_map (fun m ->
+            let ns = lean_ns_name m in
+            if ns <> m then Some ns else None
+          ) all_imports in
+          Output.flat (List.map (fun ns ->
+            from_string (String.concat "" ["open "; ns; "\n"])
+          ) ns_list)
+      end else emp in
       (* Emit open statements for type/class namespaces so auxiliary file
          can reference constructors and class methods unqualified *)
       let opens = List.map (fun name_str ->
         from_string (String.concat "" ["open "; name_str; "\n"])
       ) !lean_auxiliary_opens in
       let opens_output = Output.flat opens in
-        ((to_rope (r"\"") lex_skip need_space @@ imports_output ^ lean_defs ^ ws end_lex_skips),
-          to_rope (r"\"") lex_skip need_space @@ opens_output ^ lean_defs_extra ^ ws end_lex_skips)
+        ((to_rope (r"\"") lex_skip need_space @@ imports_output ^ transitive_opens ^ ns_start ^ lean_defs ^ ns_end ^ ws end_lex_skips),
+          to_rope (r"\"") lex_skip need_space @@ transitive_opens ^ opens_output ^ lean_defs_extra ^ ws end_lex_skips)
     ;;
   end
