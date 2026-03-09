@@ -58,12 +58,19 @@ let lean_collected_imports : string list ref = ref []
 (* Set by process_file.ml before calling lean_defs — used for namespace wrapping *)
 let lean_current_module_name : string ref = ref ""
 
+(* Library modules live under the LemLib.* namespace (e.g. "LemLib.Set").
+   User modules have no namespace prefix. *)
+let is_library_module mod_name =
+  let prefix = "LemLib." in
+  let plen = String.length prefix in
+  String.length mod_name >= plen && String.sub mod_name 0 plen = prefix
+
 (* Convert a module name like "LemLib.Set" to a flat namespace name "Lem_Set".
    Non-library modules are unchanged. *)
 let lean_ns_name mod_name =
   let prefix = "LemLib." in
   let plen = String.length prefix in
-  if String.length mod_name >= plen && String.sub mod_name 0 plen = prefix then
+  if is_library_module mod_name then
     String.concat "" ["Lem_"; String.sub mod_name plen (String.length mod_name - plen)]
   else mod_name
 
@@ -74,15 +81,21 @@ let lean_qualified_name name_str =
 
 let wrap_lean_comment x = Ulib.Text.(^^^) (Ulib.Text.(^^^) (r"/- ") x) (r" -/")
 
+let sanitize_tabs r =
+  let s = Ulib.Text.to_string r in
+  if String.contains s '\t' then
+    Ulib.Text.of_string (String.map (fun c -> if c = '\t' then ' ' else c) s)
+  else r
+
 let rec lean_comment_to_rope =
   function
-    | Ast.Chars r -> r
+    | Ast.Chars r -> sanitize_tabs r
     | Ast.Comment coms -> wrap_lean_comment (Ulib.Text.concat (r"") (List.map lean_comment_to_rope coms))
 
 let lex_skip =
   function
     | Ast.Com r -> lean_comment_to_rope r
-    | Ast.Ws r -> r
+    | Ast.Ws r -> sanitize_tabs r
     | Ast.Nl -> r"\n"
 ;;
 
@@ -139,6 +152,18 @@ let need_space x y =
 ;;
 
 let from_string x = meta_utf8 x
+
+(* Lean 4 forbids tab characters. Replace tabs with spaces in whitespace and comment tokens. *)
+let ws s =
+  let sanitize_skip = function
+    | Ast.Ws r -> Ast.Ws (sanitize_tabs r)
+    | Ast.Com _ as c -> c  (* Comments sanitized in lean_comment_to_rope *)
+    | skip -> skip
+  in
+  match s with
+  | None -> Output.ws None
+  | Some ts -> Output.ws (Some (List.map sanitize_skip ts))
+
 let sep x s = ws s ^ x
 let path_sep = r"."
 
@@ -216,6 +241,16 @@ let field_ident_to_output fd ascii_alternative =
 
 let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
 
+(* Lean 4's greedy parser extends match/if/let/fun rightward, consuming
+   subsequent tokens. These forms must be parenthesized when nested inside:
+   - function arguments: f (match ...) instead of f match ...
+   - match arm bodies: | p => (match ...) to avoid consuming outer | arms
+   - if conditions: if (match ...) then ... to avoid misparsing *)
+let needs_parens term =
+  match term with
+    | Case _ | If _ | Let _ | Fun _ -> true
+    | _ -> false
+
     let rec def_extra (inside_instance: bool) (callback: def list -> Output.t) (inside_module: bool) (m: def_aux) =
       match m with
         | Lemma (skips, lemma_typ, targets, (name, _), skips', e) ->
@@ -288,10 +323,14 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
           ws skips ^
           let handle_mod (sk, md) =
             lean_collected_imports := md :: !lean_collected_imports;
-            let ns = lean_ns_name md in
-            Output.flat [
-              from_string "open"; ws sk; from_string ns; from_string "\n"
-            ]
+            (* Only emit 'open' for library modules (which have namespaces).
+               User modules have no namespace; import alone suffices. *)
+            if not (is_library_module md) then emp
+            else
+              let ns = lean_ns_name md in
+              Output.flat [
+                from_string "open"; ws sk; from_string ns; from_string "\n"
+              ]
           in
           if (not (in_target targets)) then emp else Output.flat (List.map handle_mod mod_descrs)
       | OpenImportTarget _ -> emp
@@ -852,7 +891,11 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                 from_string "  )"
               ]
           | App (e1, e2) ->
-              let trans e = exp inside_instance e in
+              let trans e_inner =
+                if needs_parens (C.exp_to_term e_inner) then
+                  Output.flat [from_string "("; exp inside_instance e_inner; from_string ")"]
+                else exp inside_instance e_inner
+              in
               let sep = from_string " " in
               let oL = begin
               let (e0, args) = strip_app_exp e in
@@ -964,9 +1007,14 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
                     end
               end
           | If (skips, test, skips', t, skips'', f) ->
+              let cond =
+                if needs_parens (C.exp_to_term test) then
+                  Output.flat [from_string "("; exp inside_instance test; from_string ")"]
+                else exp inside_instance test
+              in
               Output.flat [
                 ws skips; from_string "if";
-                from_string " "; exp inside_instance test;
+                from_string " "; cond;
                 ws skips'; from_string "then"; from_string " ";
                 exp inside_instance t;
                 ws skips''; from_string " else "; exp inside_instance f
@@ -1066,8 +1114,13 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
         | P_const (_, ps) -> List.exists pat_has_vector ps
         | _ -> false
     and case_line inside_instance (p, skips, e, _) =
+        let body =
+          if needs_parens (C.exp_to_term e) then
+            Output.flat [from_string "("; exp inside_instance e; from_string ")"]
+          else exp inside_instance e
+        in
         flatten_newlines (Output.flat [
-          from_string "| "; def_pattern p; from_string " => "; exp inside_instance e
+          from_string "| "; def_pattern p; from_string " => "; body
         ])
     and field_update inside_instance (fd, skips, e, _) =
       let name = field_ident_to_output fd (use_ascii_rep_for_const fd.descr) in
@@ -1122,6 +1175,14 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
         Output.flat [
           from_string " "; (concat_str " " @@ List.map f ps)
         ]
+    and src_t_has_wild t =
+      match t.term with
+        | Typ_wild _ -> true
+        | Typ_fn (t1, _, t2) -> src_t_has_wild t1 || src_t_has_wild t2
+        | Typ_tup ts -> Seplist.exists src_t_has_wild ts
+        | Typ_app (_, ts) -> List.exists src_t_has_wild ts
+        | Typ_paren (_, t, _) -> src_t_has_wild t
+        | _ -> false
     and fun_pattern p =
       match p.term with
         | P_wild skips ->
@@ -1141,6 +1202,7 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
             Output.flat [
               from_string "("; name; from_string " : "; pat_typ t; from_string ")"
             ]
+        | P_lit { term = L_unit _; _ } -> from_string "(_ : Unit)"
         | P_lit l -> literal l
         | P_as (skips, p, skips', (n, l), skips'') ->
           let name = Name.to_output Term_var n in
@@ -1148,9 +1210,13 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               ws skips; name; from_string "@("; fun_pattern p; from_string ")"; ws skips''
             ]
         | P_typ (skips, p, skips', t, skips'') ->
+            (* When source type has wildcards, use the resolved type from Lem's
+               type checker instead — Lean can't resolve partial wildcards like
+               `rel _ _` with autoImplicit=false *)
+            let actual_t = if src_t_has_wild t then C.t_to_src_t p.typ else t in
             Output.flat [
               ws skips; from_string "("; def_pattern p; ws skips'; from_string " :";
-              ws skips''; pat_typ t; from_string ")"
+              ws skips''; pat_typ actual_t; from_string ")"
             ]
         | P_tup (skips, ps, skips') ->
           let body = flat @@ Seplist.to_sep_list fun_pattern (sep @@ from_string ", ") ps in
@@ -1308,16 +1374,34 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
               ]
         | _ -> raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: unexpected type definition form")
     and type_def inside_module defs =
-      (* Collect type names for "open" declarations *)
-      let type_names = Seplist.to_list_map (fun ((n0, _), _, t_path, _, _) ->
+      (* Collect type names and their constructor names for "export" declarations.
+         Using "export" instead of "open" ensures constructors are visible
+         in files that import this module, not just in the defining file. *)
+      let type_info = Seplist.to_list_map (fun ((n0, _), _, t_path, ty, _) ->
         let n = B.type_path_to_name n0 t_path in
-        Name.to_string (Name.strip_lskip n)
+        let name_str = Name.to_string (Name.strip_lskip n) in
+        let ctor_names = match ty with
+          | Te_variant (_, ctors) ->
+            Seplist.to_list_map (fun ((ctor_n, _), ctor_ref, _, _) ->
+              let cn = B.const_ref_to_name ctor_n false ctor_ref in
+              Name.to_string (Name.strip_lskip cn)
+            ) ctors
+          | _ -> []
+        in
+        (name_str, ctor_names)
       ) defs in
+      let type_names = List.map fst type_info in
       (* Also register these for the auxiliary file (with namespace qualification) *)
       lean_auxiliary_opens := !lean_auxiliary_opens @ List.map lean_qualified_name type_names;
-      let open_decls = flat (List.map (fun name_str ->
-        from_string (String.concat "" ["\nopen "; name_str])
-      ) type_names) in
+      let open_decls = flat (List.map (fun (name_str, ctor_names) ->
+        if ctor_names = [] then
+          (* Records/opaque types: just open *)
+          from_string (String.concat "" ["\nopen "; name_str])
+        else
+          (* Inductive types: export constructors for cross-file visibility *)
+          let ctors_str = String.concat " " ctor_names in
+          from_string (String.concat "" ["\nexport "; name_str; " ("; ctors_str; ")"])
+      ) type_info) in
       let n = Seplist.length defs in
       if n > 1 then
         (* Check if all types in mutual block have the same number of type params *)
@@ -1598,10 +1682,12 @@ let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
             let body = flat @@ Seplist.to_sep_list indreln_typ (sep @@ from_string " ×") ts in
               from_string "(" ^ body ^ from_string ")"
         | Typ_app (p, ts) ->
-          let args = concat_str " " @@ List.map indreln_typ ts in
-          let args_space = if ts <> [] then from_string " " else emp in
+          (* Use type_app_to_output to handle target reps (e.g. set → List) *)
+          let (remaining_ts, name_output) = B.type_app_to_output indreln_typ p ts in
+          let args = concat_str " " @@ List.map indreln_typ remaining_ts in
+          let args_space = if remaining_ts <> [] then from_string " " else emp in
             Output.flat [
-              typ_ident_to_output p; args_space; args
+              name_output; args_space; args
             ]
         | Typ_paren(skips, t, skips') ->
             ws skips ^ from_string "(" ^ indreln_typ t ^ from_string ")" ^ ws skips'

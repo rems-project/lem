@@ -28,6 +28,7 @@ tex-lib/lem-libs*.tex
 # Lean backend build artifacts
 .lake/
 library/*.lean
+!library/gen_lean_constants.lean
 tests/backends/*.lean
 tests/backends/*_auxiliary.lean
 tests/backends/lean-test/[A-Z]*.lean
