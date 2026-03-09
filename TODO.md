@@ -65,17 +65,11 @@ These are correctly `partial` — no fix needed. All other previously-partial fu
 
 Additionally, `LemLib.lean` (hand-written runtime) has 2 partial defs: `natSqrtAux` (Newton's method) and `set_tc` (transitive closure iteration) — both genuinely partial.
 
-### 7. Audit ALL termination annotations on the branch
+### ~~7. Audit ALL termination annotations on the branch~~ (Audited — no issues)
 
-The upstream Lem codebase has many unscoped `declare termination_argument` lines (added before the Lean backend). These are universal — they affect all backends. Our branch's additions are all properly `{lean}` scoped, but we should audit the pre-existing unscoped ones to confirm they don't cause problems for other backends, and consider whether they should be target-qualified.
+**Our additions**: All 10 `{lean}` scoped — affect only the Lean backend. Verified by `git diff` against branch base.
 
-Pre-existing unscoped annotations (from upstream, NOT our changes):
-- `library/list.lem`: `partitionEither`, `length`, `listEqualBy`, `lexicographicCompareBy`, `lexicographicLessBy`, `lexicographicLessEqBy`, `append`, `reverseAppend`, `map`, `foldl`, `foldr`, `index`, `findIndices_aux`, `genlist`, `replicate`, `splitAt`, `splitWhile_tr`, `isPrefixOf`, `update`, `find`, `filter`, `deleteFirst`, `zip`, `unzip`, `allDistinct`
-- `library/list_extra.lem`: `zipSameLength`, `fromJust`, `isPermutationBy`, `isSortedBy`, `insertBy`, `dest_init_aux`
-- `library/num.lem`: `gen_pow_aux`
-- `library/word.lem`: `boolListFrombitSeqAux`, `bitSeqBinopAux`, `integerFromBoolListAux`, `boolListFromNatural`
-
-These are likely harmless (they're already in the Isabelle/HOL codebase without issues), but should be verified.
+**Pre-existing unscoped annotations** (from upstream): ~35 in list.lem, list_extra.lem, num.lem, word.lem. These are intentionally universal — `try_termination_proof` in `backend.ml` uses them for ALL backends (Coq: `fun` vs `function (sequential)`; HOL: `Define` vs `Hol_defn`; Isabelle: `termination by lexicographic_order`; Lean: `def` vs `partial def`). They've been in the codebase for years and work correctly — all affected functions are structurally recursive. No action needed.
 
 ### ~~8. Missing Lean target reps for library functions~~ (Resolved — parity achieved)
 
