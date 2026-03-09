@@ -47,6 +47,7 @@ let rec stringFromNatHelper n acc =
     stringFromNatHelper (n / 10) (chr (n mod 10 + 48) :: acc)
 
 declare {isabelle} termination_argument stringFromNatHelper = automatic
+declare lean target_rep function stringFromNatHelper = `lemStringFromNatHelper`
 
 val stringFromNat : nat -> string
 let ~{ocaml;hol} stringFromNat n = 
@@ -67,6 +68,7 @@ let rec stringFromNaturalHelper n acc =
     stringFromNaturalHelper (n / 10) (chr (natFromNatural (n mod 10 + 48)) :: acc)
 
 declare {isabelle} termination_argument stringFromNaturalHelper = automatic
+declare lean target_rep function stringFromNaturalHelper = `lemStringFromNaturalHelper`
 
 val stringFromNatural : natural -> string
 let ~{ocaml;hol} stringFromNatural n = 

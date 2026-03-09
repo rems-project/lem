@@ -369,20 +369,23 @@ def listSet (l : List α) (n : Nat) (v : α) : List α :=
   l.set n v
 
 /- Convert a natural number to a list of bools (binary representation, LSB first) -/
-partial def boolListFromNatural (acc : List Bool) (remainder : Nat) : List Bool :=
-  if remainder > 0 then
+def boolListFromNatural (acc : List Bool) (remainder : Nat) : List Bool :=
+  if h : remainder > 0 then
     boolListFromNatural ((remainder % 2 == 1) :: acc) (remainder / 2)
   else
     acc.reverse
+termination_by remainder
+decreasing_by exact Nat.div_lt_self h (by omega)
 
 /- Bitwise binary operation on two bool lists, extending shorter with sign bit -/
-partial def bitSeqBinopAux (binop : Bool → Bool → Bool) (s1 : Bool) (bl1 : List Bool)
+def bitSeqBinopAux (binop : Bool → Bool → Bool) (s1 : Bool) (bl1 : List Bool)
     (s2 : Bool) (bl2 : List Bool) : List Bool :=
   match bl1, bl2 with
   | [], [] => []
   | b1 :: bl1', [] => (binop b1 s2) :: bitSeqBinopAux binop s1 bl1' s2 []
   | [], b2 :: bl2' => (binop s1 b2) :: bitSeqBinopAux binop s1 [] s2 bl2'
   | b1 :: bl1', b2 :: bl2' => (binop b1 b2) :: bitSeqBinopAux binop s1 bl1' s2 bl2'
+termination_by bl1.length + bl2.length
 
 /- Nat bitwise operations (used by transform.lem compatibility layer) -/
 def natLand (a b : Nat) : Nat := a &&& b
@@ -407,3 +410,32 @@ partial def set_tc (eq : α → α → Bool) (r : List (α × α)) : List (α ×
   ) r
   if compose.length == r.length then r
   else set_tc eq compose
+
+/- ============================================================ -/
+/- Total implementations for generated library functions         -/
+/- ============================================================ -/
+
+/- Total stringFromNatHelper: converts nat to digit chars via n/10 recursion -/
+def lemStringFromNatHelper (n : Nat) (acc : List Char) : List Char :=
+  if h : n = 0 then acc
+  else lemStringFromNatHelper (n / 10) (Char.ofNat ((n % 10) + 48) :: acc)
+termination_by n
+decreasing_by exact Nat.div_lt_self (by omega) (by omega)
+
+/- Total stringFromNaturalHelper: identical logic (natural = nat in Lean) -/
+def lemStringFromNaturalHelper (n : Nat) (acc : List Char) : List Char :=
+  if h : n = 0 then acc
+  else lemStringFromNaturalHelper (n / 10) (Char.ofNat ((n % 10) + 48) :: acc)
+termination_by n
+decreasing_by exact Nat.div_lt_self (by omega) (by omega)
+
+/- Total leastFixedPoint: bounded set iteration with explicit comparator -/
+def lemLeastFixedPoint (cmp : α → α → LemOrdering) (bound : Nat)
+    (f : List α → List α) (x : List α) : List α :=
+  if h : bound = 0 then x
+  else
+    let fx := f x
+    if setSubsetBy cmp fx x then x
+    else lemLeastFixedPoint cmp (bound - 1) f (setUnionBy cmp fx x)
+termination_by bound
+decreasing_by omega

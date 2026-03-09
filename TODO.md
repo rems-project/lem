@@ -15,6 +15,8 @@ Updated: 2026-03-09
 - **Heterogeneous mutual universe**: All types in heterogeneous mutual blocks emit `Type 1`.
 - **Propositional equality in indreln**: Both `Infix` and `App` AST paths convert `==`→`=` and `!=`→`≠` when `lean_prop_equality` is set. Covers direct `=`/`<>` syntax and Lem's `<>` decomposition to `not(isEqual x y)`. Regression tests use `(nat -> nat)` type (no BEq) to ensure correctness.
 - **10 library functions: `partial def` → `def`**: Added `{lean}` termination annotations for `map_tr`, `count_map`, `splitAtAcc`, `mapMaybe`, `mapiAux`, `catMaybes`, `init`, `stringFromListAux`, `concat`, `integerOfStringHelper`. All structurally recursive on lists.
+- **3 more: `partial def` → total via LemLib target reps**: `stringFromNatHelper`, `stringFromNaturalHelper` (n/10 division with `termination_by n`), `leastFixedPoint` (bounded countdown with `termination_by bound`). Total implementations in `LemLib.lean`, target reps in `.lem` files.
+- **2 LemLib.lean partial defs fixed**: `boolListFromNatural` (n/2 division), `bitSeqBinopAux` (dual-list recursion). Both now total with termination proofs.
 - **31 comprehensive tests, 231 assertions**: All passing.
 
 ## Remaining Issues
@@ -55,21 +57,28 @@ Since `int32`/`int64`/`int`/`integer` all map to `Int`, Machine_word generates i
 
 Fix: Resolves naturally once `int32`/`int64` get distinct types (issue #4) and `mword` gets `BitVec` (issue #1).
 
-### 6. 8 `partial def` functions in generated library
+### 6. 2 genuinely `partial def` functions in generated library
 
-Remaining functions where Lean's termination checker can't prove termination automatically:
-
-- Num.lean: `rationalPowInteger`, `realPowInteger` (integer recursion toward 0)
 - List_extra.lean: `unfoldr` (depends on user-supplied termination condition)
-- Set.lean: `leastFixedPoint` (n+k pattern desugared to guard)
-- Set_extra.lean: `leastFixedPointUnbounded` (genuinely non-terminating by design)
-- String_extra.lean: `stringFromNatHelper`, `stringFromNaturalHelper` (nat division n/10, Lean can't prove n/10 < n)
+- Set_extra.lean: `leastFixedPointUnbounded` (no bound — iterates until fixpoint by design)
 
-`partial def` is safe at runtime but means the function can't be used in proofs.
+These are correctly `partial` — no fix needed. All other previously-partial functions are now total via termination annotations or LemLib target reps.
 
-Fix: For `rationalPowInteger`/`realPowInteger`, add explicit `termination_by` via Lean target rep or LemLib wrapper. For `stringFromNatHelper`/`stringFromNaturalHelper`, same approach with a `termination_by` proving `n/10 < n`. `unfoldr` and `leastFixedPointUnbounded` are genuinely partial — `partial` is correct.
+Additionally, `LemLib.lean` (hand-written runtime) has 2 partial defs: `natSqrtAux` (Newton's method) and `set_tc` (transitive closure iteration) — both genuinely partial.
 
-### 7. Missing Lean target reps for library functions
+### 7. Audit ALL termination annotations on the branch
+
+The upstream Lem codebase has many unscoped `declare termination_argument` lines (added before the Lean backend). These are universal — they affect all backends. Our branch's additions are all properly `{lean}` scoped, but we should audit the pre-existing unscoped ones to confirm they don't cause problems for other backends, and consider whether they should be target-qualified.
+
+Pre-existing unscoped annotations (from upstream, NOT our changes):
+- `library/list.lem`: `partitionEither`, `length`, `listEqualBy`, `lexicographicCompareBy`, `lexicographicLessBy`, `lexicographicLessEqBy`, `append`, `reverseAppend`, `map`, `foldl`, `foldr`, `index`, `findIndices_aux`, `genlist`, `replicate`, `splitAt`, `splitWhile_tr`, `isPrefixOf`, `update`, `find`, `filter`, `deleteFirst`, `zip`, `unzip`, `allDistinct`
+- `library/list_extra.lem`: `zipSameLength`, `fromJust`, `isPermutationBy`, `isSortedBy`, `insertBy`, `dest_init_aux`
+- `library/num.lem`: `gen_pow_aux`
+- `library/word.lem`: `boolListFrombitSeqAux`, `bitSeqBinopAux`, `integerFromBoolListAux`, `boolListFromNatural`
+
+These are likely harmless (they're already in the Isabelle/HOL codebase without issues), but should be verified.
+
+### 8. Missing Lean target reps for library functions
 
 The Lean backend has ~44 declared target reps vs ~200+ in Coq. Many standard library functions fall through to the Lem-defined implementation (which works but may be suboptimal) or to sorry stubs. Key gaps:
 

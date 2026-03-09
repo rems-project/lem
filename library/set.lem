@@ -703,6 +703,7 @@ let rec leastFixedPoint bound f x =
   end
 
 declare {isabelle} termination_argument leastFixedPoint = automatic
+declare lean target_rep function leastFixedPoint bound f x = `lemLeastFixedPoint` `setElemCompare` bound f x
 
 assert lfp_empty_0: leastFixedPoint 0 (map (fun x -> x)) ({} : set nat) = {}
 assert lfp_empty_1: leastFixedPoint 1 (map (fun x -> x)) ({} : set nat) = {}
