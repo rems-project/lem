@@ -60,6 +60,11 @@ let lean_current_module_name : string ref = ref ""
 (* When true, isEqual outputs propositional = instead of BEq ==.
    Set during indreln antecedent processing where Prop is needed. *)
 let lean_prop_equality : bool ref = ref false
+(* Deferred abbrev definitions for types with TYR_subst target reps.
+   These are collected during Comment processing and emitted after the
+   next non-Comment definition completes, solving ordering dependencies
+   (e.g., abbrev mword depends on class Size which is defined later). *)
+let lean_pending_abbrevs : Output.t list ref = ref []
 
 (* Check if a constant's Lean target rep is == or != (BEq operators).
    Returns Some true for ==, Some false for !=, None otherwise. *)
@@ -241,6 +246,105 @@ module LeanBackendAux (A : sig val avoid : var_avoid_f option;; val env : env;; 
         let avoid = A.avoid
       end)
     ;;
+
+(* Extract (class_name, type_var_name) pairs from @Class.method patterns
+   in a TYR_subst RHS src_t. These patterns indicate that the type requires
+   a typeclass instance parameter (e.g., @Size.size 'a _ means [Size 'a]). *)
+let collect_class_constraints_from_src_t (st : Types.src_t) : (string * string) list =
+  let rec collect (t : Types.src_t) = match t.term with
+    | Types.Typ_backend (p, args) ->
+      let path_str = Path.to_string p.descr in
+      let at_constraints =
+        if String.length path_str > 1 && path_str.[0] = '@' then
+          match String.index_opt path_str '.' with
+          | Some dot_pos ->
+            let class_name = String.sub path_str 1 (dot_pos - 1) in
+            List.filter_map (fun (arg : Types.src_t) ->
+              match arg.term with
+              | Types.Typ_var (_, v) ->
+                Some (class_name, Ulib.Text.to_string (Types.tnvar_to_rope (Types.Ty v)))
+              | _ -> None
+            ) args
+          | None -> []
+        else []
+      in
+      at_constraints @ List.concat_map collect args
+    | Types.Typ_app (_, args) -> List.concat_map collect args
+    | Types.Typ_paren (_, t', _) -> collect t'
+    | Types.Typ_fn (t1, _, t2) -> collect t1 @ collect t2
+    | Types.Typ_tup sl -> List.concat_map collect (Seplist.to_list sl)
+    | _ -> []
+  in
+  collect st
+;;
+
+(* Collect extra class constraints introduced by TYR_subst type target reps.
+   When a type like mword has a TYR_subst mapping to BitVec (@Size.size 'a _),
+   any function using mword 'a needs [Size 'a] but the Lem type doesn't
+   carry this constraint. This function walks a Lem type and finds all such
+   extra constraints by: (1) finding Tapp nodes whose type has a Lean TYR_subst,
+   (2) extracting @Class.method patterns from the TYR_subst RHS via
+   collect_class_constraints_from_src_t, (3) mapping TYR_subst type variables
+   to actual type arguments. *)
+let extra_constraints_for_tyr_subst (ty : Types.t) : (string * string) list =
+  let l_unk = Ast.Trans (true, "extra_constraints_for_tyr_subst", None) in
+  let constraints = ref [] in
+  let rec walk (ty : Types.t) =
+    match ty.t with
+    | Types.Tapp (args, path) ->
+      let td_opt = try Some (Types.type_defs_lookup l_unk A.env.t_env path)
+                   with _ -> None in
+      begin match td_opt with
+      | Some td ->
+        begin match Target.Targetmap.apply_target td.Types.type_target_rep
+                (Target.Target_no_ident Target.Target_lean) with
+        | Some (Types.TYR_subst (_, _, tvars, rhs_t)) ->
+          let tvar_strs = List.map (fun tv ->
+            Ulib.Text.to_string (Types.tnvar_to_rope tv)
+          ) tvars in
+          let var_map = List.combine tvar_strs args in
+          let raw = collect_class_constraints_from_src_t rhs_t in
+          List.iter (fun (cls, tv) ->
+            match List.assoc_opt tv var_map with
+            | Some actual_ty ->
+              begin match actual_ty.t with
+              | Types.Tvar v' ->
+                let actual_tv = Ulib.Text.to_string (Tyvar.to_rope v') in
+                if not (List.mem (cls, actual_tv) !constraints) then
+                  constraints := (cls, actual_tv) :: !constraints
+              | _ -> () (* Concrete type argument — no constraint needed *)
+              end
+            | None -> ()
+          ) raw
+        | _ -> ()
+        end
+      | None -> ()
+      end;
+      List.iter walk args
+    | Types.Tfn (t1, t2) -> walk t1; walk t2
+    | Types.Ttup ts -> List.iter walk ts
+    | Types.Tbackend (ts, _) -> List.iter walk ts
+    | _ -> ()
+  in
+  walk ty;
+  List.rev !constraints
+;;
+
+(* Filter out constraints that are already present in Lem's class_constraints. *)
+let filter_new_tyr_constraints extras class_constraints =
+  let existing = List.map (fun (path, tnvar) ->
+    (Name.to_string (B.class_path_to_name path),
+     Ulib.Text.to_string (Types.tnvar_to_rope tnvar))
+  ) class_constraints in
+  List.filter (fun c -> not (List.mem c existing)) extras
+;;
+
+(* Format extra TYR_subst constraints as Lean instance parameters: [Class tv] *)
+let format_tyr_constraints extras =
+  Output.flat (List.map (fun (cls, tv) ->
+    Output.flat [from_string " ["; from_string cls; from_string " "; from_string tv; from_string "]"]
+  ) extras)
+;;
 
 let use_ascii_rep_for_const (cd : const_descr_ref) : bool =
   Types.Cdset.mem cd A.ascii_rep_set
@@ -510,6 +614,10 @@ let needs_parens term =
                                 ]
                               ) instance_info.Types.inst_constraints)
                             in
+                            (* Add extra constraints from TYR_subst type target reps *)
+                            let extra_tyr = extra_constraints_for_tyr_subst instance_info.Types.inst_type in
+                            let new_extras = filter_new_tyr_constraints extra_tyr instance_info.Types.inst_constraints in
+                            let cs = cs ^ format_tyr_constraints new_extras in
                               Some tnvar_list, tnvars, cs
                       end
                   end
@@ -556,9 +664,42 @@ let needs_parens term =
       | Comment c ->
         let ((def_aux, skips_opt), l, lenv) = c in
         let skips = match skips_opt with None -> from_string "\n" | Some s -> ws s in
-          Output.flat [
-            skips; from_string "/- "; def inside_instance callback inside_module def_aux; from_string " -/"
-          ]
+        (* Check if this is a Type_def with a TYR_subst target rep for Lean.
+           If so, emit an abbrev definition instead of just a block comment.
+           This enables parameterized type mappings like mword 'a → BitVec (Size.size a). *)
+        let abbrev_for_target_rep = match def_aux with
+          | Type_def (_, sl) when Seplist.length sl = 1 ->
+            let ((n0, _), tyvars, t_path, _, _) = Seplist.hd sl in
+            let td = Types.type_defs_lookup l A.env.t_env t_path in
+            begin match Target.Targetmap.apply_target td.Types.type_target_rep
+                    (Target.Target_no_ident Target.Target_lean) with
+            | Some (Types.TYR_subst (_, _, _, rhs_t)) ->
+              let name = B.type_path_to_name n0 t_path in
+              let name_out = Name.to_output (Type_ctor (false, false)) name in
+              let tyvars_out = type_def_type_variables tyvars in
+              let rhs_out = pat_typ rhs_t in
+              let class_constraints = collect_class_constraints_from_src_t rhs_t in
+              let constraints_out = Output.flat (List.map (fun (cls, tv) ->
+                Output.flat [from_string "["; from_string cls; from_string " "; from_string tv; from_string "] "]
+              ) class_constraints) in
+              Some (Output.flat [
+                from_string "\nabbrev "; name_out; from_string " "; tyvars_out;
+                constraints_out;
+                from_string " := "; rhs_out; from_string "\n"
+              ])
+            | _ -> None
+            end
+          | _ -> None
+        in
+        let comment = Output.flat [
+          skips; from_string "/- "; def inside_instance callback inside_module def_aux; from_string " -/"
+        ] in
+        begin match abbrev_for_target_rep with
+        | Some abbrev_out ->
+          lean_pending_abbrevs := abbrev_out :: !lean_pending_abbrevs;
+          comment
+        | None -> comment
+        end
       | _ -> emp
     and val_def inside_instance i_ref_opt is_recursive try_term def tv_set class_constraints =
       begin
@@ -573,10 +714,28 @@ let needs_parens term =
                 ]
             ) class_constraints)
           in
-          if List.length class_constraints = 0 then
+          (* Collect extra constraints introduced by TYR_subst type target reps.
+             For example, mword 'a → BitVec (@Size.size 'a _) introduces [Size 'a].
+             Skip when inside_instance — the instance header already has the constraint. *)
+          let extra_tyr = if inside_instance then [] else
+            let l_unk = Ast.Trans (true, "lean_tyr_extra", None) in
+            let cs = match def with
+              | Let_def(_, _, (_, nm, _, _, _)) -> List.map snd nm
+              | Let_inline(_,_,_,_,c,_,_,_) -> [c]
+              | Fun_def(_, _, _, funs) ->
+                Seplist.to_list_map (fun ((_, c, _, _, _, _):funcl_aux) -> c) funs
+              | _ -> []
+            in
+            let cds = List.map (c_env_lookup l_unk A.env.c_env) cs in
+            let extras = List.concat_map (fun cd ->
+              extra_constraints_for_tyr_subst cd.const_type
+            ) cds in
+            filter_new_tyr_constraints extras class_constraints
+          in
+          if List.length class_constraints = 0 && extra_tyr = [] then
             emp
           else
-            body
+            body ^ format_tyr_constraints extra_tyr
         in
         match def with
           | Let_def (skips, targets, (p, name_map, topt, sk, e)) ->
@@ -2185,6 +2344,7 @@ module LeanBackend (A : sig val avoid : var_avoid_f option;; val env : env;; val
       lean_auxiliary_opens := [];
       lean_namespace_stack := [];
       lean_collected_imports := [];
+      lean_pending_abbrevs := [];
       let mod_name = !lean_current_module_name in
       let ns_name = lean_ns_name mod_name in
       let is_library = ns_name <> mod_name in
@@ -2195,6 +2355,10 @@ module LeanBackend (A : sig val avoid : var_avoid_f option;; val env : env;; val
       if is_library then
         lean_namespace_stack := [ns_name];
       let lean_defs = defs false false ds in
+      (* Drain any deferred abbrevs (e.g., abbrev mword after class Size) *)
+      let deferred = Output.flat (List.rev !lean_pending_abbrevs) in
+      lean_pending_abbrevs := [];
+      let lean_defs = lean_defs ^ deferred in
       let lean_defs_extra = defs_extra false false ds in
       (* Prepend collected imports (deduplicated, in order) to main body *)
       let imports = List.rev !lean_collected_imports in

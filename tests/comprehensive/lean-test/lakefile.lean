@@ -41,5 +41,6 @@ lean_lib LemComprehensiveTest where
     `Test_audit_regressions, `Test_audit_regressions_auxiliary,
     `Test_cross_module, `Test_cross_module_auxiliary,
     `Test_case_arm_nesting, `Test_case_arm_nesting_auxiliary,
-    `Test_termination, `Test_termination_auxiliary
+    `Test_termination, `Test_termination_auxiliary,
+    `Test_mword, `Test_mword_auxiliary
   ]

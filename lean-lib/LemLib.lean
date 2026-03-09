@@ -587,6 +587,89 @@ def lemStringFromNaturalHelper (n : Nat) (acc : List Char) : List Char :=
 termination_by n
 decreasing_by exact Nat.div_lt_self (by omega) (by omega)
 
+/- ========================================================================
+   Machine word (mword / BitVec) operations
+   ======================================================================== -/
+
+/- Conversion operations -/
+def mwordFromInteger {n : Nat} (i : Int) : BitVec n := BitVec.ofInt n i
+def mwordFromNatural {n : Nat} (i : Nat) : BitVec n := BitVec.ofNat n i
+def mwordSignedToInteger {n : Nat} (w : BitVec n) : Int := w.toInt
+def mwordUnsignedToInteger {n : Nat} (w : BitVec n) : Int := Int.ofNat w.toNat
+def mwordNaturalFromWord {n : Nat} (w : BitVec n) : Nat := w.toNat
+
+/- Bitwise operations -/
+def mwordLAnd {n : Nat} (a b : BitVec n) : BitVec n := a &&& b
+def mwordLOr {n : Nat} (a b : BitVec n) : BitVec n := a ||| b
+def mwordLXor {n : Nat} (a b : BitVec n) : BitVec n := a ^^^ b
+def mwordLNot {n : Nat} (a : BitVec n) : BitVec n := ~~~a
+
+/- Shift operations (Lem uses Nat for shift amount) -/
+def mwordShiftLeft {n : Nat} (w : BitVec n) (s : Nat) : BitVec n := w <<< s
+def mwordShiftRight {n : Nat} (w : BitVec n) (s : Nat) : BitVec n := w >>> s
+def mwordArithShiftRight {n : Nat} (w : BitVec n) (s : Nat) : BitVec n := BitVec.sshiftRight w s
+
+/- Rotate operations -/
+def mwordRotateLeft {n : Nat} (s : Nat) (w : BitVec n) : BitVec n := BitVec.rotateLeft w s
+def mwordRotateRight {n : Nat} (s : Nat) (w : BitVec n) : BitVec n := BitVec.rotateRight w s
+
+/- Bit access -/
+def mwordGetBit {n : Nat} (w : BitVec n) (i : Nat) : Bool := w.getLsbD i
+def mwordSetBit {n : Nat} (w : BitVec n) (i : Nat) (b : Bool) : BitVec n :=
+  if b then w ||| (BitVec.ofNat n (1 <<< i))
+  else w &&& ~~~(BitVec.ofNat n (1 <<< i))
+def mwordMsb {n : Nat} (w : BitVec n) : Bool := w.msb
+def mwordLsb {n : Nat} (w : BitVec n) : Bool := w.getLsbD 0
+
+/- Arithmetic operations -/
+def mwordPlus {n : Nat} (a b : BitVec n) : BitVec n := a + b
+def mwordMinus {n : Nat} (a b : BitVec n) : BitVec n := a - b
+def mwordUminus {n : Nat} (a : BitVec n) : BitVec n := -a
+def mwordTimes {n : Nat} (a b : BitVec n) : BitVec n := a * b
+def mwordUnsignedDivide {n : Nat} (a b : BitVec n) : BitVec n := BitVec.udiv a b
+def mwordSignedDivide {n : Nat} (a b : BitVec n) : BitVec n := BitVec.sdiv a b
+def mwordModulo {n : Nat} (a b : BitVec n) : BitVec n := BitVec.umod a b
+
+/- Comparison operations -/
+def mwordEq {n : Nat} (a b : BitVec n) : Bool := a == b
+def mwordSignedLess {n : Nat} (a b : BitVec n) : Bool := BitVec.slt a b
+def mwordSignedLessEq {n : Nat} (a b : BitVec n) : Bool := BitVec.sle a b
+def mwordUnsignedLess {n : Nat} (a b : BitVec n) : Bool := BitVec.ult a b
+def mwordUnsignedLessEq {n : Nat} (a b : BitVec n) : Bool := BitVec.ule a b
+
+/- Word concatenation and extraction -/
+def mwordConcat {n m result : Nat} (a : BitVec n) (b : BitVec m) : BitVec result :=
+  (a ++ b).setWidth result
+def mwordExtract {n result : Nat} (lo _hi : Nat) (w : BitVec n) : BitVec result :=
+  -- Lem passes (lo, hi, word); result width comes from the return type.
+  -- hi is redundant (same as Isabelle's Word.slice which also ignores hi).
+  BitVec.extractLsb' lo result w
+def mwordUpdate {n m : Nat} (w : BitVec n) (lo _hi : Nat) (v : BitVec m) : BitVec n :=
+  -- Lem passes (word, lo, hi, value); hi is redundant given v's width m.
+  let mask := ~~~(BitVec.ofNat n (((1 <<< m) - 1) <<< lo))
+  let shifted := BitVec.ofNat n (v.toNat <<< lo)
+  (w &&& mask) ||| shifted
+
+/- Width operations -/
+def mwordZeroExtend {w v : Nat} (a : BitVec w) : BitVec v := BitVec.zeroExtend v a
+def mwordSignExtend {w v : Nat} (a : BitVec w) : BitVec v := BitVec.signExtend v a
+
+/- Word length -/
+def mwordLength {n : Nat} (_ : BitVec n) : Nat := n
+
+/- Hex display -/
+def mwordToHex {n : Nat} (w : BitVec n) : String := BitVec.toHex w
+
+/- Bitlist conversion -/
+def mwordFromBitlist {n : Nat} (bits : List Bool) : BitVec n :=
+  -- Convert LSB-first list of bools to BitVec
+  let val := bits.foldl (fun (acc : Nat × Nat) b =>
+    (acc.1 + (if b then 1 <<< acc.2 else 0), acc.2 + 1)) (0, 0)
+  BitVec.ofNat n val.1
+
+def mwordToBitlist {n : Nat} (w : BitVec n) : List Bool :=
+  List.map (fun i => w.getLsbD i) (List.range n)
+
 /- Total leastFixedPoint: bounded set iteration with explicit comparator -/
 def lemLeastFixedPoint (cmp : α → α → LemOrdering) (bound : Nat)
     (f : List α → List α) (x : List α) : List α :=
