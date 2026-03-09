@@ -57,6 +57,9 @@ let lean_namespace_stack : string list ref = ref []
 let lean_collected_imports : string list ref = ref []
 (* Set by process_file.ml before calling lean_defs — used for namespace wrapping *)
 let lean_current_module_name : string ref = ref ""
+(* When true, isEqual outputs propositional = instead of BEq ==.
+   Set during indreln antecedent processing where Prop is needed. *)
+let lean_prop_equality : bool ref = ref false
 
 (* Library modules live under the LemLib.* namespace (e.g. "LemLib.Set").
    User modules have no namespace prefix. *)
@@ -666,17 +669,19 @@ let needs_parens term =
           | _ -> from_string "\n/- removed top-level value definition -/"
       end
     and clauses (inside_instance: bool) clause_list =
+      (* Gather unique relation names from clauses, paired with their
+         const_descr_ref so we can look up the renamed name for output *)
       let gather_names clause_list =
         let rec gather_names_aux buffer clauses =
           match clauses with
             | []    -> buffer
-            | (Rule(_,_, _, _, _, _, _, name_lskips_annot, _, _),_)::xs ->
+            | (Rule(_,_, _, _, _, _, _, name_lskips_annot, c, _),_)::xs ->
               let name = name_lskips_annot.term in
               let name = Name.strip_lskip name in
-              if List.mem name buffer then
+              if List.exists (fun (n, _) -> Stdlib.compare n name = 0) buffer then
                 gather_names_aux buffer xs
               else
-                gather_names_aux (name::buffer) xs
+                gather_names_aux ((name, c)::buffer) xs
         in
           gather_names_aux [] clause_list
       in
@@ -687,8 +692,13 @@ let needs_parens term =
           Stdlib.compare name name' = 0
       in
       let indrelns =
-        List.map (fun name ->
-          let name_string = Name.to_string name in
+        List.map (fun (name, c_ref) ->
+          (* Use the renamed name from the constant descriptor, not the raw AST name.
+             This handles cross-module collisions (e.g., indreln "thread_trans"
+             renamed to "thread_trans0" to avoid conflict with imported type). *)
+          let c_descr = c_env_lookup Ast.Unknown A.env.c_env c_ref in
+          let (_, renamed_name, _) = Typed_ast_syntax.constant_descr_to_name (Target.Target_no_ident Target.Target_lean) c_descr in
+          let name_string = Name.to_string renamed_name in
           let bodies = List.filter (compare_clauses_by_name name) clause_list in
           let index_types =
             match bodies with
@@ -710,14 +720,20 @@ let needs_parens term =
                     match dest_and_exps A.env e with
                     | [] -> emp
                     | ants ->
-                      flat [
+                      (* Use propositional = in indreln antecedents instead of BEq ==.
+                         Functions and other types without BEq need propositional equality. *)
+                      let saved = !lean_prop_equality in
+                      lean_prop_equality := true;
+                      let result = flat [
                         concat_str " → "
                           (List.map (fun e ->
                                flat [ from_string "(";
                                       exp inside_instance e;
                                       from_string ")" ]) ants);
                         from_string " → "
-                      ]
+                      ] in
+                      lean_prop_equality := saved;
+                      result
               in
               let bound_variables =
                 concat_str " " @@ List.map (fun b ->
@@ -735,7 +751,7 @@ let needs_parens term =
               let index_free_vars = List.map (fun t -> Types.free_vars (Typed_ast.exp_to_typ t)) exp_list in
               let index_free_vars = List.fold_right Types.TNset.union index_free_vars Types.TNset.empty in
               let index_free_vars_typeset = concat_str " " @@ List.map (fun v -> from_string (Name.to_string (Types.tnvar_to_name v))) (Types.TNset.elements index_free_vars) in
-              let relation_name = from_string (Name.to_string name) in
+              let relation_name = from_string name_string in
                 Output.flat [
                   from_string "  | "; constructor_name; from_string " : ";
                   binder; bound_variables; binder_sep; antecedent;
@@ -994,8 +1010,13 @@ let needs_parens term =
               ]
           | Record (skips, fields, skips') ->
             let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) (field_update inside_instance) (sep @@ from_string ",") fields in
+            (* Add type ascription so Lean can resolve the record type from
+               field names. Without it, { field := value } fails when the
+               expected type isn't known from context (e.g., in a let binding). *)
+            let typ = Typed_ast.exp_to_typ e in
+            let src_t = C.t_to_src_t typ in
               Output.flat [
-                ws skips; from_string "{ "; body; ws skips'; from_string " }"
+                ws skips; from_string "(({ "; body; ws skips'; from_string " } : "; pat_typ src_t; from_string "))"
               ]
           | Field (e, skips, fd) ->
             let name = field_ident_to_output fd (use_ascii_rep_for_const fd.descr) in
@@ -1058,8 +1079,22 @@ let needs_parens term =
                 match C.exp_to_term c with
                   | Constant cd ->
                     begin
-                      let pieces = B.function_application_to_output (exp_to_locn e) trans true e cd [l; r] (use_ascii_rep_for_const cd.descr) in
-                      Output.concat sep pieces
+                      (* In indreln antecedents (Prop context), isEqual should use
+                         propositional = instead of BEq ==.  Functions and other types
+                         without BEq instances need propositional equality. *)
+                      let c_descr = c_env_lookup Ast.Unknown A.env.c_env cd.descr in
+                      let use_prop_eq = !lean_prop_equality &&
+                        (match Target.Targetmap.apply_target c_descr.target_rep (Target.Target_no_ident Target.Target_lean) with
+                         | Some (CR_infix (_, _, _, ident)) ->
+                           let name = Ident.to_string ident in
+                           name = "==" || name = " =="
+                         | _ -> false) in
+                      if use_prop_eq then
+                        Output.flat [trans l; from_string "  =  "; trans r]
+                      else begin
+                        let pieces = B.function_application_to_output (exp_to_locn e) trans true e cd [l; r] (use_ascii_rep_for_const cd.descr) in
+                        Output.concat sep pieces
+                      end
                     end
                   | _           ->
                     begin
@@ -1444,7 +1479,7 @@ let needs_parens term =
         | _ -> raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: unexpected type definition form")
     and type_def_record def =
       match Seplist.hd def with
-        | (n, tyvars, path, (Te_record (skips, skips', fields, skips'')),_) ->
+        | (n, tyvars, path, (Te_record (_, _, fields, _) as ty),_) ->
             let (n', _) = n in
             let n' = B.type_path_to_name n' path in
             let name = Name.to_output (Type_ctor (false, false)) n' in
@@ -1452,9 +1487,12 @@ let needs_parens term =
             let body = concat_str "\n" (List.map field field_list) in
             let tyvars' = type_def_type_variables tyvars in
             let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
+            let deriving_clause = if texp_can_derive_beq ty then
+              from_string "  deriving BEq, Ord\n"
+            else emp in
               Output.flat [
                 from_string "structure"; name; tyvar_sep; tyvars';
-                from_string " where\n"; body; from_string "\n";
+                from_string " where\n"; body; from_string "\n"; deriving_clause;
               ]
         | _ -> raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: unexpected type definition form")
     and type_def inside_module defs =
@@ -1621,15 +1659,22 @@ let needs_parens term =
               ]) vars
       in
         concat_str " " mapped
-    and tyexp emit_deriving name ty_vars =
-      function
+    and tyexp emit_deriving name ty_vars ty =
+      match ty with
         | Te_opaque -> emp
         | Te_abbrev (skips, t) -> ws skips ^ from_string " := " ^ pat_typ t
-        | Te_record (skips, _, fields, skips') -> ws skips ^ from_string " where\n" ^ tyexp_record fields ^ ws skips'
+        | Te_record (skips, _, fields, skips') ->
+          let deriving_clause = if emit_deriving && texp_can_derive_beq ty then
+            from_string "\n  deriving BEq, Ord"
+          else emp in
+          ws skips ^ from_string " where\n" ^ tyexp_record fields ^ ws skips' ^ deriving_clause
         | Te_variant (skips, ctors) ->
           let body = flat @@ Seplist.to_sep_list_first Seplist.Optional (constructor name ty_vars) (sep @@ from_string "\n") ctors in
+          let deriving_clause = if emit_deriving && texp_can_derive_beq ty then
+            from_string "\n  deriving BEq, Ord"
+          else emp in
             Output.flat [
-              from_string " where"; ws skips; from_string "\n"; body
+              from_string " where"; ws skips; from_string "\n"; body; deriving_clause
             ]
     and constructor ind_name (ty_vars : variable list) ((name0, _), c_ref, skips, args) =
       let ctor_name = B.const_ref_to_name name0 false c_ref in
@@ -1940,7 +1985,7 @@ let needs_parens term =
           type_args;
           from_string ") where\n  default := "; default;
         ]
-    and generate_beq_ord_instances ?(is_type1=false) ((name, _), tnvar_list, path, t, _) : Output.t =
+    and generate_beq_ord_instances ?(is_type1=false) ?(emit_deriving=true) ((name, _), tnvar_list, path, t, _) : Output.t =
       match t with
         | Te_abbrev _ -> emp  (* type abbreviations don't need their own instances *)
         | _ ->
@@ -1957,32 +2002,55 @@ let needs_parens term =
             if List.length tnvar_list = 0 then emp
             else Output.flat [from_string " "; tnvar_names]
           in
-          (* Standalone BEq instance without [Inhabited] constraint.
-             Ord extends BEq in Lean 4, but Ord instances require [Inhabited a]
-             (since we use sorry for the compare body and Inhabited for the type).
-             Lem-sourced Eq instances may not have [Inhabited], so they need
-             a BEq that's available unconditionally. *)
-          let bare_tvs = concat emp @@ List.map (fun t ->
-            match t with
-              | Typed_ast.Tn_A (_, tv_name, _) ->
-                let tv_out = from_string @@ Ulib.Text.to_string tv_name in
-                Output.flat [from_string " {"; tv_out; from_string " : Type}"]
-              | Typed_ast.Tn_N (_, nv_name, _) ->
-                let nv_out = from_string @@ Ulib.Text.to_string nv_name in
-                Output.flat [from_string " {"; nv_out; from_string " : Nat}"]
-          ) tnvar_list in
-          let beq_instance = Output.flat [
-              from_string "\ninstance"; bare_tvs; from_string " : BEq ("; o;
-              type_args;
-              from_string ") where\n  beq _ _ := sorry";
-            ]
+          (* If the type uses deriving BEq, Ord (emitted by tyexp), skip sorry instances.
+             When deriving is used, downstream instances (SetType, Eq0, Ord0) need
+             [BEq a] [Ord a] constraints in addition to [Inhabited a].
+             Mutual types can't use deriving, so emit_deriving=false for them. *)
+          let has_deriving = emit_deriving && texp_can_derive_beq t in
+          let tnvar_list_with_beq_ord =
+            if has_deriving then
+              let extra_constraints = concat emp @@ List.filter_map (fun t ->
+                match t with
+                  | Typed_ast.Tn_A (_, tv_name, _) ->
+                    let tv = from_string @@ Ulib.Text.to_string tv_name in
+                    Some (Output.flat [
+                      from_string " [BEq "; tv; from_string "]";
+                      from_string " [Ord "; tv; from_string "]"
+                    ])
+                  | Typed_ast.Tn_N _ -> None
+              ) tnvar_list in
+              Output.flat [tnvar_list'; extra_constraints]
+            else tnvar_list'
           in
-          (* Ord is universe-polymorphic so it works for Type 1 too *)
-          let ord_instance = Output.flat [
-              from_string "\ninstance"; tnvar_list'; from_string " : Ord ("; o;
-              type_args;
-              from_string ") where\n  compare := sorry";
-            ]
+          let beq_instance, ord_instance =
+            if has_deriving then (emp, emp)
+            else begin
+              (* Standalone BEq instance without [Inhabited] constraint.
+                 Ord extends BEq in Lean 4, but Ord instances require [Inhabited a]
+                 (since we use sorry for the compare body and Inhabited for the type).
+                 Lem-sourced Eq instances may not have [Inhabited], so they need
+                 a BEq that's available unconditionally. *)
+              let bare_tvs = concat emp @@ List.map (fun t ->
+                match t with
+                  | Typed_ast.Tn_A (_, tv_name, _) ->
+                    let tv_out = from_string @@ Ulib.Text.to_string tv_name in
+                    Output.flat [from_string " {"; tv_out; from_string " : Type}"]
+                  | Typed_ast.Tn_N (_, nv_name, _) ->
+                    let nv_out = from_string @@ Ulib.Text.to_string nv_name in
+                    Output.flat [from_string " {"; nv_out; from_string " : Nat}"]
+              ) tnvar_list in
+              (Output.flat [
+                from_string "\ninstance"; bare_tvs; from_string " : BEq ("; o;
+                type_args;
+                from_string ") where\n  beq _ _ := sorry";
+              ],
+              (* Ord is universe-polymorphic so it works for Type 1 too *)
+              Output.flat [
+                from_string "\ninstance"; tnvar_list'; from_string " : Ord ("; o;
+                type_args;
+                from_string ") where\n  compare := sorry";
+              ])
+            end
           in
           (* SetType/Eq0/Ord0 are defined for (a : Type) only, skip for Type 1 *)
           if is_type1 then Output.flat [beq_instance; ord_instance]
@@ -1990,13 +2058,13 @@ let needs_parens term =
             Output.flat [
               beq_instance;
               ord_instance;
-              from_string "\ninstance"; tnvar_list'; from_string " : Lem_Basic_classes.SetType ("; o;
+              from_string "\ninstance"; tnvar_list_with_beq_ord; from_string " : Lem_Basic_classes.SetType ("; o;
               type_args;
               from_string ") where\n  setElemCompare := defaultCompare";
-              from_string "\ninstance"; tnvar_list'; from_string " : Lem_Basic_classes.Eq0 ("; o;
+              from_string "\ninstance"; tnvar_list_with_beq_ord; from_string " : Lem_Basic_classes.Eq0 ("; o;
               type_args;
               from_string ") where\n  isEqual x y := x == y\n  isInequal x y := !(x == y)";
-              from_string "\ninstance"; tnvar_list'; from_string " : Lem_Basic_classes.Ord0 ("; o;
+              from_string "\ninstance"; tnvar_list_with_beq_ord; from_string " : Lem_Basic_classes.Ord0 ("; o;
               type_args;
               from_string ") where\n  compare := defaultCompare\n  isLess := defaultLess\n  isLessEqual := defaultLessEq\n  isGreater := defaultGreater\n  isGreaterEqual := defaultGreaterEq";
             ]
@@ -2019,7 +2087,7 @@ let needs_parens term =
         | [] -> false
         | x :: xs -> not (List.for_all (fun y -> y = x) xs)
       in
-      let beq_instances = List.map (generate_beq_ord_instances ~is_type1) ts_list in
+      let beq_instances = List.map (generate_beq_ord_instances ~is_type1 ~emit_deriving:false) ts_list in
         Output.flat [concat_str "\n" mapped; concat emp beq_instances]
     (* Default value for L_undefined (DAEMON) context — uses sorry for type variables
        since Inhabited constraints may not be available *)
@@ -2127,7 +2195,7 @@ module LeanBackend (A : sig val avoid : var_avoid_f option;; val env : env;; val
          This is needed because Lean namespaces don't re-export opens.
          We scan the imports collected by THIS file and open the corresponding
          library namespaces. For transitive deps that come through Pervasives,
-         we add the well-known set of core library namespaces. *)
+         we derive all library namespaces from the module environment. *)
       let transitive_opens = if not is_library then begin
         let all_imports = List.rev !lean_collected_imports in
         let has_pervasives = List.exists (fun m ->
@@ -2135,7 +2203,9 @@ module LeanBackend (A : sig val avoid : var_avoid_f option;; val env : env;; val
         ) all_imports in
         if has_pervasives then
           (* Pervasives imports all core library modules; open their namespaces.
-             Also import Pervasives_extra for bridge instances (NumAdd → Add etc.) *)
+             Also import Pervasives_extra for bridge instances (NumAdd → Add etc.).
+             Derive the list of library namespaces from the module environment
+             (all modules with a Coq rename are library modules). *)
           let has_pervasives_extra = List.exists (fun m ->
             m = "LemLib.Pervasives_extra"
           ) all_imports in
@@ -2146,16 +2216,20 @@ module LeanBackend (A : sig val avoid : var_avoid_f option;; val env : env;; val
           ) all_imports in
           let bridges_import = if has_bridges then emp
             else from_string "import LemLib.Bridges\n" in
-          let core_lib_ns = [
-            "Lem_Bool"; "Lem_Basic_classes"; "Lem_Function"; "Lem_Maybe";
-            "Lem_Num"; "Lem_Tuple"; "Lem_List"; "Lem_Either";
-            "Lem_Set_helpers"; "Lem_Set"; "Lem_Map"; "Lem_Relation";
-            "Lem_Sorting"; "Lem_String"; "Lem_Word"; "Lem_Show";
-            "Lem_Pervasives"; "Lem_Pervasives_extra"
-          ] in
+          let lib_namespaces = Types.Pfmap.fold (fun acc _path md ->
+            let has_coq_rename =
+              Target.Targetmap.apply_target md.Typed_ast.mod_target_rep
+                (Target.Target_no_ident Target.Target_coq) <> None in
+            if has_coq_rename then begin
+              let mod_name = Path.to_string md.Typed_ast.mod_binding in
+              let lean_mod = String.concat "" ["LemLib."; String.capitalize_ascii mod_name] in
+              let ns = lean_ns_name lean_mod in
+              if List.mem ns acc then acc else acc @ [ns]
+            end else acc
+          ) [] A.env.e_env in
           Output.flat (extra_import :: bridges_import :: List.map (fun ns ->
             from_string (String.concat "" ["open "; ns; "\n"])
-          ) core_lib_ns)
+          ) lib_namespaces)
         else
           (* Just open namespaces for direct imports *)
           let ns_list = List.filter_map (fun m ->

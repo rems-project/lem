@@ -64,7 +64,7 @@ declare ocaml    target_rep function toString = `Xstring.implode`
 declare hol      target_rep function toString = `IMPLODE`
 declare isabelle target_rep function toString s = ``s
 declare coq      target_rep function toString = `string_from_char_list` (* TODO: check *)
-declare lean     target_rep function toString = `String.mk`
+declare lean     target_rep function toString = `String.ofList`
 
 assert toString_0 : (toString [#'H'; #'e'; #'l'; #'l'; #'o'] = "Hello")
 assert toString_1 : (toString [#'H'; #'\n'; #'A'] = "H\nA")

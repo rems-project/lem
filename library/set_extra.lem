@@ -23,7 +23,7 @@ declare compile_message choose = "choose is non-deterministic and only defined f
 declare hol      target_rep function choose = `CHOICE`
 declare isabelle target_rep function choose = `set_choose`
 declare ocaml    target_rep function choose = `Pset.choose`
-declare lean     target_rep function choose = `sorry`
+declare lean     target_rep function choose = `setChoose`
 
 lemma ~{coq;lean} choose_sing: (forall x. choose {x} = x)
 lemma ~{coq;lean} choose_in: (forall s. not (null s) --> ((choose s) IN s))
