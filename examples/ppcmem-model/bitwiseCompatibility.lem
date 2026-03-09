@@ -18,29 +18,36 @@ type word = int32
 val (land) : word -> word -> word
 declare ocaml    target_rep function (land) = infix `land`
 declare isabelle target_rep function (land) = `bitAND`
+declare lean     target_rep function (land) = `int32Land`
 
 val (lor) : word -> word -> word
 declare ocaml    target_rep function (lor) = infix `lor`
 declare isabelle target_rep function (lor) = `bitOR`
+declare lean     target_rep function (lor) = `int32Lor`
 
 val (lxor) : word -> word -> word
 declare ocaml    target_rep function (lxor) = infix `lxor`
 declare isabelle target_rep function (lxor) = `bitXOR`
+declare lean     target_rep function (lxor) = `int32Lxor`
 
 val lnot : word -> word
 declare ocaml    target_rep function lnot = `lnot`
 declare isabelle target_rep function lnot = `bitNOT`
+declare lean     target_rep function lnot = `int32Lnot`
 
 val (lsl) : word -> word -> word
 declare ocaml    target_rep function (lsl) = infix `lsl`
 declare isabelle target_rep function (lsl) u v =  ``u `<<`  (`unat` v)
+declare lean     target_rep function (lsl) x n = `int32Lsl` x (`Int.toNat` n)
 
 val (lsr) : word -> word -> word
 declare ocaml    target_rep function (lsr) = infix `lsr`
 declare isabelle target_rep function (lsr) u v = ``u `>>` (`unat` v)
+declare lean     target_rep function (lsr) x n = `int32Lsr` x (`Int.toNat` n)
 
 val (asr) : word -> word -> word
 declare ocaml    target_rep function (asr) = infix `asr`
 declare isabelle target_rep function (asr) u v = ``u `>>>` (`unat` v)
+declare lean     target_rep function (asr) x n = `int32Asr` x (`Int.toNat` n)
 
 

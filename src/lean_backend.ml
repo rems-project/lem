@@ -298,7 +298,11 @@ let needs_parens term =
       | Val_def (def) ->
           let class_constraints = val_def_get_class_constraints A.env def in
           let tv_set = val_def_get_free_tnvars A.env def in
-          val_def false None (snd (Typed_ast_syntax.is_recursive_def m)) def tv_set class_constraints
+          let (_, is_real_rec, try_term) =
+            Typed_ast_syntax.try_termination_proof
+              (Target_no_ident Target_lean) A.env.c_env m
+          in
+          val_def false None is_real_rec try_term def tv_set class_constraints
       | Module (skips, (name, l), mod_binding, skips', skips'', defs, skips''') ->
         let name_str = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip name)) in
         lean_namespace_stack := name_str :: !lean_namespace_stack;
@@ -528,7 +532,7 @@ let needs_parens term =
                   ]
           in
           let body =
-            Output.concat (from_string "\n") (List.map (fun d -> val_def true (Some i_ref) false d Types.TNset.empty []) vals)
+            Output.concat (from_string "\n") (List.map (fun d -> val_def true (Some i_ref) false true d Types.TNset.empty []) vals)
           in
             Output.flat [
               ws skips; from_string "instance"; prefix; from_string " where";
@@ -542,7 +546,7 @@ let needs_parens term =
             skips; from_string "/- "; def inside_instance callback inside_module def_aux; from_string " -/"
           ]
       | _ -> emp
-    and val_def inside_instance i_ref_opt is_recursive def tv_set class_constraints =
+    and val_def inside_instance i_ref_opt is_recursive try_term def tv_set class_constraints =
       begin
         let constraints =
           let body =
@@ -597,12 +601,11 @@ let needs_parens term =
                 let num_functions = List.length groups in
                 let is_truly_mutual = num_functions > 1 in
                 let def_keyword =
-                  if is_recursive then
-                    if inside_instance then emp
-                    else from_string "partial def"
+                  if inside_instance then emp
+                  else if is_recursive && not try_term then
+                    from_string "partial def"
                   else
-                    if inside_instance then emp
-                    else from_string "def"
+                    from_string "def"
                 in
                 let render_group group =
                   match group with
@@ -930,7 +933,35 @@ let needs_parens term =
                   ws skips; from_string "let "; body; from_string "; "; exp inside_instance e
                 ]
           | Constant const ->
-              Output.concat emp (B.function_application_to_output (exp_to_locn e) (exp inside_instance) false e const [] (use_ascii_rep_for_const const.descr))
+              let c_descr = c_env_lookup Ast.Unknown A.env.c_env const.descr in
+              let default_const_output () =
+                Output.concat emp (B.function_application_to_output (exp_to_locn e) (exp inside_instance) false e const [] (use_ascii_rep_for_const const.descr))
+              in
+              (* Class method constants used bare (no explicit arguments) need explicit
+                 @ type application in Lean 4. Without it, Lean can't infer the class
+                 type parameter for nullary methods like `size : {a : Type} → [Size a] → Nat`
+                 because the return type `Nat` doesn't mention the type parameter `a`.
+                 Using `@size a _` provides the type argument explicitly.
+                 Skip this for class methods that have a Lean target rep, since the
+                 target rep already handles resolution. *)
+              if c_descr.const_class <> [] then begin
+                match Target.Targetmap.apply_target c_descr.target_rep
+                        (Target.Target_no_ident Target.Target_lean) with
+                | Some _ -> default_const_output ()
+                | None ->
+                  let i = B.const_id_to_ident const false in
+                  let sk = Ident.get_lskip i in
+                  let type_args = List.map (fun t ->
+                    let src_t = C.t_to_src_t t in
+                    Output.flat [from_string " ("; pat_typ src_t; from_string ")"]
+                  ) const.instantiation in
+                  let num_classes = List.length c_descr.const_class in
+                  let class_holes = List.init num_classes (fun _ -> from_string " _") in
+                  (* Parenthesize the @name (type) _ expression so it can safely
+                     appear as an argument to another function *)
+                  Output.flat ([ws sk; from_string "(@"; Ident.to_output (Term_const (false, true)) path_sep (Ident.replace_lskip i no_lskips)] @ type_args @ class_holes @ [from_string ")"])
+              end else
+                default_const_output ()
           | Fun (skips, ps, skips', e) ->
               let ps = fun_pattern_list inside_instance ps in
                 block_hov (Typed_ast_syntax.is_pp_exp e) 2 (
@@ -985,10 +1016,40 @@ let needs_parens term =
           | Case (_, skips, e, skips', cases, skips'') ->
             let case_sep _ = from_string " " in
             let has_vec = Seplist.exists (fun (p, _, _, _) -> pat_has_vector p) cases in
-            let body = flat @@ Seplist.to_sep_list_last Seplist.Optional (case_line inside_instance) case_sep cases in
+            (* Use multi-discriminant match for tuple scrutinees:
+               match l1, l2 with | [], [] => ... instead of
+               match (l1, l2) with | ([], []) => ...
+               This lets Lean's termination checker see structural recursion.
+               Only apply when ALL case arm patterns are P_tup or P_wild. *)
+            let pat_is_tup_or_wild (p, _, _, _) = match p.term with
+              | P_tup _ | P_wild _ -> true
+              | P_paren (_, p', _) -> (match p'.term with P_tup _ | P_wild _ -> true | _ -> false)
+              | _ -> false
+            in
+            let tup_arity = match C.exp_to_term e with
+              | Tup (_, es, _) -> Seplist.length es
+              | _ -> 0
+            in
+            let is_tuple_match =
+              tup_arity > 0 && Seplist.for_all pat_is_tup_or_wild cases
+            in
+            let case_line' =
+              if is_tuple_match then case_line_multi inside_instance tup_arity
+              else case_line inside_instance
+            in
+            let body = flat @@ Seplist.to_sep_list_last Seplist.Optional case_line' case_sep cases in
             let match_suffix = if has_vec then from_string ".toList" else emp in
+            let match_expr =
+              if is_tuple_match then
+                match C.exp_to_term e with
+                | Tup (_, es, _) ->
+                  Output.concat (from_string ", ") (List.map (exp inside_instance) (Seplist.to_list es))
+                | _ -> exp inside_instance e
+              else
+                exp inside_instance e
+            in
                 Output.flat [
-                  ws skips; from_string "match "; exp inside_instance e; match_suffix; from_string " with "; body; ws skips''
+                  ws skips; from_string "match "; match_expr; match_suffix; from_string " with "; body; ws skips''
                 ]
           | Infix (l, c, r) ->
               let trans e = exp inside_instance e in
@@ -1121,6 +1182,29 @@ let needs_parens term =
         in
         flatten_newlines (Output.flat [
           from_string "| "; def_pattern p; from_string " => "; body
+        ])
+    (* Multi-discriminant case line: unwrap P_tup pattern into comma-separated
+       elements for match l1, l2, ... with | p1, p2, ... => body syntax.
+       P_wild is expanded to arity-many wildcards: _ => _, _, ... *)
+    and case_line_multi inside_instance arity (p, skips, e, l) =
+        let body =
+          if needs_parens (C.exp_to_term e) then
+            Output.flat [from_string "("; exp inside_instance e; from_string ")"]
+          else exp inside_instance e
+        in
+        let unwrap_tup p = match p.term with
+          | P_tup (_, ps, _) ->
+            Output.concat (from_string ", ") (List.map def_pattern (Seplist.to_list ps))
+          | P_wild _ ->
+            Output.concat (from_string ", ") (List.init arity (fun _ -> from_string "_"))
+          | _ -> def_pattern p
+        in
+        let pat_out = match p.term with
+          | P_paren (_, p', _) -> unwrap_tup p'
+          | _ -> unwrap_tup p
+        in
+        flatten_newlines (Output.flat [
+          from_string "| "; pat_out; from_string " => "; body
         ])
     and field_update inside_instance (fd, skips, e, _) =
       let name = field_ident_to_output fd (use_ascii_rep_for_const fd.descr) in
@@ -1873,6 +1957,26 @@ let needs_parens term =
             if List.length tnvar_list = 0 then emp
             else Output.flat [from_string " "; tnvar_names]
           in
+          (* Standalone BEq instance without [Inhabited] constraint.
+             Ord extends BEq in Lean 4, but Ord instances require [Inhabited a]
+             (since we use sorry for the compare body and Inhabited for the type).
+             Lem-sourced Eq instances may not have [Inhabited], so they need
+             a BEq that's available unconditionally. *)
+          let bare_tvs = concat emp @@ List.map (fun t ->
+            match t with
+              | Typed_ast.Tn_A (_, tv_name, _) ->
+                let tv_out = from_string @@ Ulib.Text.to_string tv_name in
+                Output.flat [from_string " {"; tv_out; from_string " : Type}"]
+              | Typed_ast.Tn_N (_, nv_name, _) ->
+                let nv_out = from_string @@ Ulib.Text.to_string nv_name in
+                Output.flat [from_string " {"; nv_out; from_string " : Nat}"]
+          ) tnvar_list in
+          let beq_instance = Output.flat [
+              from_string "\ninstance"; bare_tvs; from_string " : BEq ("; o;
+              type_args;
+              from_string ") where\n  beq _ _ := sorry";
+            ]
+          in
           (* Ord is universe-polymorphic so it works for Type 1 too *)
           let ord_instance = Output.flat [
               from_string "\ninstance"; tnvar_list'; from_string " : Ord ("; o;
@@ -1881,9 +1985,10 @@ let needs_parens term =
             ]
           in
           (* SetType/Eq0/Ord0 are defined for (a : Type) only, skip for Type 1 *)
-          if is_type1 then ord_instance
+          if is_type1 then Output.flat [beq_instance; ord_instance]
           else
             Output.flat [
+              beq_instance;
               ord_instance;
               from_string "\ninstance"; tnvar_list'; from_string " : Lem_Basic_classes.SetType ("; o;
               type_args;
@@ -1990,6 +2095,15 @@ module LeanBackend (A : sig val avoid : var_avoid_f option;; val env : env;; val
       lean_auxiliary_opens := [];
       lean_namespace_stack := [];
       lean_collected_imports := [];
+      let mod_name = !lean_current_module_name in
+      let ns_name = lean_ns_name mod_name in
+      let is_library = ns_name <> mod_name in
+      (* For library modules, push the top-level namespace so that
+         lean_qualified_name returns qualified names (e.g. "Lem_Basic_classes.Eq0"
+         instead of bare "Eq0"). Auxiliary files need these qualified opens
+         since they don't have the namespace wrapper. *)
+      if is_library then
+        lean_namespace_stack := [ns_name];
       let lean_defs = defs false false ds in
       let lean_defs_extra = defs_extra false false ds in
       (* Prepend collected imports (deduplicated, in order) to main body *)
@@ -2002,11 +2116,6 @@ module LeanBackend (A : sig val avoid : var_avoid_f option;; val env : env;; val
       let imports_output = Output.flat (List.map (fun m ->
         from_string (String.concat "" ["import "; m; "\n"])
       ) unique_imports) in
-      (* For library modules with dotted names, wrap definitions in a namespace
-         so cross-module qualified references resolve correctly *)
-      let mod_name = !lean_current_module_name in
-      let ns_name = lean_ns_name mod_name in
-      let is_library = ns_name <> mod_name in
       let ns_start = if is_library then
         from_string (String.concat "" ["\nnamespace "; ns_name; "\n"])
       else emp in
@@ -2032,6 +2141,11 @@ module LeanBackend (A : sig val avoid : var_avoid_f option;; val env : env;; val
           ) all_imports in
           let extra_import = if has_pervasives_extra then emp
             else from_string "import LemLib.Pervasives_extra\n" in
+          let has_bridges = List.exists (fun m ->
+            m = "LemLib.Bridges"
+          ) all_imports in
+          let bridges_import = if has_bridges then emp
+            else from_string "import LemLib.Bridges\n" in
           let core_lib_ns = [
             "Lem_Bool"; "Lem_Basic_classes"; "Lem_Function"; "Lem_Maybe";
             "Lem_Num"; "Lem_Tuple"; "Lem_List"; "Lem_Either";
@@ -2039,7 +2153,7 @@ module LeanBackend (A : sig val avoid : var_avoid_f option;; val env : env;; val
             "Lem_Sorting"; "Lem_String"; "Lem_Word"; "Lem_Show";
             "Lem_Pervasives"; "Lem_Pervasives_extra"
           ] in
-          Output.flat (extra_import :: List.map (fun ns ->
+          Output.flat (extra_import :: bridges_import :: List.map (fun ns ->
             from_string (String.concat "" ["open "; ns; "\n"])
           ) core_lib_ns)
         else

@@ -600,6 +600,7 @@ lemma genlist_index: (forall f n i. i < n --> index (genlist f n) i = Just (f i)
 
 declare hol      target_rep function genlist = `GENLIST`
 declare isabelle target_rep function genlist = `genlist`
+declare lean     target_rep function genlist f n = `List.map` f (`List.range` n)
 
 
 (* ------------------------- *)

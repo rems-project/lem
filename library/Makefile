@@ -32,6 +32,7 @@ coq-libs: ../lem
 
 lean-libs: ../lem
 	../lem -lean -outdir ../lean-lib -wl ign -wl_auto_import err ${LIBS} -auxiliary_level none -only_changed_output
+	rm -f ../lean-lib/LemLib/*_auxiliary.lean
 
 tex-libs: ../lem
 	../lem -tex_all ../tex-lib/lem-libs.tex -wl ign -wl_auto_import err ${LIBS} 

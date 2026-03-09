@@ -61,6 +61,7 @@ declare compile_message last = "last is only defined on non-empty list and shoul
 
 declare hol      target_rep function last = `LAST`
 declare isabelle target_rep function last = `List.last`
+declare lean     target_rep function last = `List.getLast!`
 
 
 assert last_simple_1: (last [(3:nat);1] = 1)
