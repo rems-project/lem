@@ -18,6 +18,7 @@ Updated: 2026-03-09
 - **3 more: `partial def` → total via LemLib target reps**: `stringFromNatHelper`, `stringFromNaturalHelper` (n/10 division with `termination_by n`), `leastFixedPoint` (bounded countdown with `termination_by bound`). Total implementations in `LemLib.lean`, target reps in `.lem` files.
 - **2 LemLib.lean partial defs fixed**: `boolListFromNatural` (n/2 division), `bitSeqBinopAux` (dual-list recursion). Both now total with termination proofs.
 - **String comparison fixed**: `stringCompare` always returned `EQ` (broken default in `string_extra.lem`). Added `let inline {lean} stringCompare = defaultCompare`. All string ordering functions (`stringLess`, `stringLessEq`, etc.) and the `Ord0 String` instance now work correctly.
+- **Unsupported numeric types panic instead of silently wrong**: `rational`, `real`, `float64`, `float32` now map to distinct opaque types (`LemRational`, `LemReal`, `LemFloat64`, `LemFloat32`) instead of `Int`. All operations panic at runtime with clear error messages. Previously `rationalFromFrac 1 3 = 0` (integer division); now panics. Reduces duplicate `Int` typeclass instances (partial fix for #5).
 - **31 comprehensive tests, 236 assertions**: All passing.
 
 ## Remaining Issues
@@ -34,13 +35,9 @@ Fix: Map `mword` to `BitVec n` and add `declare {lean} target_rep` for all 46 op
 
 These 30 sorry stubs are ALL inside `/- ... -/` block comments. The target rep mechanism already comments out the entire type definition block (inductive + instances) when a type has a Lean target rep. No active sorry, no compilation impact. Nothing to fix.
 
-### 3. Floating-point types map to `Int` (semantically wrong)
+### ~~3. Floating-point types map to `Int` (semantically wrong)~~ (Fixed — panic on use)
 
-`rational` → `Int`, `real` → `Int`, `float64` → `Int`, `float32` → `Int`. These are silently incorrect — any code using floating-point or rational arithmetic will compute wrong answers.
-
-Coq maps `rational` → `Q` and `real` → `R`. Lean has `Float` (64-bit IEEE) and Mathlib has `Rat`.
-
-Fix: Add proper Lean target reps: `rational` → `Rat` (or a Lean-native rational), `float64`/`float32` → `Float`, `real` → requires Mathlib or sorry. At minimum, these should `panic!` instead of silently returning wrong results.
+`rational` → `LemRational`, `real` → `LemReal`, `float64` → `LemFloat64`, `float32` → `LemFloat32`. These are now distinct opaque types (defined in LemLib.lean) that panic on any operation. Previously they silently mapped to `Int`, producing wrong results (e.g., `rationalFromFrac 1 3 = 0` via integer division). All arithmetic instances, comparison functions, and conversion functions panic with clear error messages. For proper support: rational needs Mathlib's `Rat`, real needs Mathlib's `Real`, float64/float32 need IEEE 754 floats.
 
 ### 4. `int32`/`int64` collapse to `Int` (no overflow semantics)
 
@@ -52,7 +49,7 @@ Fix: Map to `BitVec 32` / `BitVec 64`, or newtype wrappers with modular arithmet
 
 ### 5. Duplicate typeclass instances in Machine_word.lean
 
-Since `int32`/`int64`/`int`/`integer` all map to `Int`, Machine_word generates identical typeclass instances (e.g., multiple `WordNot Int`). Later instances silently override earlier ones. Currently harmless (all sorry), but would cause real conflicts with proper implementations.
+Since `int32`/`int64`/`int`/`integer` all map to `Int`, Machine_word generates identical typeclass instances (e.g., multiple `WordNot Int`). Later instances silently override earlier ones. Currently harmless (all sorry), but would cause real conflicts with proper implementations. (Previously `rational`/`real`/`float64`/`float32` also contributed duplicates — resolved by issue #3 fix.)
 
 Fix: Resolves naturally once `int32`/`int64` get distinct types (issue #4) and `mword` gets `BitVec` (issue #1).
 

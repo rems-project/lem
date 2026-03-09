@@ -191,7 +191,7 @@ declare lean     target_rep type int64 = `Int`
 type rational
 declare ocaml    target_rep type rational = `Rational.t`
 declare coq      target_rep type rational = `Q` (* ???: better type for this in Coq? *)
-declare lean     target_rep type rational = `Int` (* rough approximation *)
+declare lean     target_rep type rational = `LemRational` (* panics on use — needs Mathlib Rat *)
 declare isabelle target_rep type rational = `rat`
 declare hol      target_rep type rational = `rat` (* ???: better type for this in HOL? *)
 
@@ -206,7 +206,7 @@ declare hol      target_rep type rational = `rat` (* ???: better type for this i
 type real
 declare ocaml    target_rep type real = `float`
 declare coq      target_rep type real = `R` (* ???: better type for this in Coq? *)
-declare lean     target_rep type real = `Int` (* rough approximation *)
+declare lean     target_rep type real = `LemReal` (* panics on use — needs Mathlib Real *)
 declare isabelle target_rep type real = `real`
 declare hol      target_rep type real = `real` (* ???: better type for this in HOL? *)
 
@@ -220,14 +220,14 @@ declare hol      target_rep type real = `real` (* ???: better type for this in H
 type float64
 declare ocaml    target_rep type float64 = `double`
 declare coq      target_rep type float64 = `Q` (* ???: better type for this in Coq? *)
-declare lean     target_rep type float64 = `Int` (* rough approximation *)
+declare lean     target_rep type float64 = `LemFloat64` (* panics on use — needs IEEE 754 *)
 declare isabelle target_rep type float64 = `???` (* ???: better type for this in Isa? *)
 declare hol      target_rep type float64 = `XXX` (* ???: better type for this in HOL? *)
 
 type float32
 declare ocaml    target_rep type float32 = `float`
 declare coq      target_rep type float32 = `Q` (* ???: better type for this in Coq? *)
-declare lean     target_rep type float32 = `Int` (* rough approximation *)
+declare lean     target_rep type float32 = `LemFloat32` (* panics on use — needs IEEE 754 *)
 declare isabelle target_rep type float32 = `???` (* ???: better type for this in Isa? *)
 declare hol      target_rep type float32 = `XXX` (* ???: better type for this in HOL? *)
 
@@ -1454,7 +1454,7 @@ declare ocaml    target_rep function rationalFromNumeral n = (`Rational.of_big_i
 declare isabelle target_rep function rationalFromNumeral n = (`Fract` (``n : integer) (1 : integer))
 declare hol      target_rep function rationalFromNumeral n = (``n : rational)
 declare coq      target_rep function rationalFromNumeral n = (`inject_Z` (`Z.pred` (`Z.pos` (`P_of_succ_nat` n))))
-declare lean     target_rep function rationalFromNumeral n = (``n : rational)
+declare lean     target_rep function rationalFromNumeral = `unsupportedRationalFromNumeral`
 
 instance (Numeral rational)
   let fromNumeral n = rationalFromNumeral n
@@ -1465,14 +1465,14 @@ declare ocaml    target_rep function rationalFromInt n = (`Rational.of_int` n)
 declare isabelle target_rep function rationalFromInt n = (`Fract` n (1 : integer))
 declare hol      target_rep function rationalFromInt n = (`rat_of_int` n)
 declare coq      target_rep function rationalFromInt n = (`inject_Z` n)
-declare lean     target_rep function rationalFromInt = ``
+declare lean     target_rep function rationalFromInt = `unsupportedRationalFromInt`
 
 val rationalFromInteger : integer -> rational
 declare ocaml    target_rep function rationalFromInteger n = (`Rational.of_big_int` n)
 declare isabelle target_rep function rationalFromInteger n = (`Fract` n (1 : integer))
 declare hol      target_rep function rationalFromInteger n = (`rat_of_int` n)
 declare coq      target_rep function rationalFromInteger n = (`inject_Z` n)
-declare lean     target_rep function rationalFromInteger = ``
+declare lean     target_rep function rationalFromInteger = `unsupportedRationalFromInt`
 
 val rationalEq : rational -> rational -> bool
 let inline rationalEq = unsafe_structural_equality
@@ -1493,25 +1493,25 @@ declare hol      target_rep function rationalLess = infix `<`
 declare ocaml    target_rep function rationalLess = `Rational.lt`
 declare isabelle target_rep function rationalLess = infix `<`
 declare coq      target_rep function rationalLess = `Qlt_bool`
-declare lean     target_rep function rationalLess = `intLtb`
+declare lean     target_rep function rationalLess = `unsupportedRationalLess`
 
 declare hol      target_rep function rationalLessEqual = infix `<=`
 declare ocaml    target_rep function rationalLessEqual = `Rational.leq`
 declare isabelle target_rep function rationalLessEqual = infix `\<le>`
 declare coq      target_rep function rationalLessEqual = `Qle_bool`
-declare lean     target_rep function rationalLessEqual = `intLteb`
+declare lean     target_rep function rationalLessEqual = `unsupportedRationalLessEq`
 
 declare hol      target_rep function rationalGreater = infix `>`
 declare ocaml    target_rep function rationalGreater = `Rational.gt`
 declare isabelle target_rep function rationalGreater = infix `>`
 declare coq      target_rep function rationalGreater = `Qgt_bool`
-declare lean     target_rep function rationalGreater = `intGtb`
+declare lean     target_rep function rationalGreater = `unsupportedRationalGreater`
 
 declare hol      target_rep function rationalGreaterEqual = infix `>=`
 declare ocaml    target_rep function rationalGreaterEqual = `Rational.geq`
 declare isabelle target_rep function rationalGreaterEqual = infix `\<ge>`
 declare coq      target_rep function rationalGreaterEqual = `Qge_bool`
-declare lean     target_rep function rationalGreaterEqual = `intGteb`
+declare lean     target_rep function rationalGreaterEqual = `unsupportedRationalGreaterEq`
 
 val rationalCompare : rational -> rational -> ordering
 let inline rationalCompare = defaultCompare
@@ -1608,6 +1608,7 @@ let rationalFromFrac n d = (rationalFromInt n) / (rationalFromInt d)
 declare ocaml    target_rep function rationalFromFrac n d = (`Rational.of_ints` n d)
 declare isabelle target_rep function rationalFromFrac n d = (`Fract` n d)
 declare hol      target_rep function rationalFromFrac n d = (`rat_cons` n d)
+declare lean     target_rep function rationalFromFrac = `unsupportedRationalFromFrac`
 
 val rationalNumerator : rational -> integer
 declare ocaml    target_rep function rationalNumerator r = (`Rational.num` r)
@@ -1672,7 +1673,7 @@ declare ocaml    target_rep function realFromNumeral n = (`Nat_big_num.to_float`
 declare isabelle target_rep function realFromNumeral n = (``n : real)
 declare hol      target_rep function realFromNumeral n = (`real_of_num` n)
 declare coq      target_rep function realFromNumeral n = (`IZR` (`Z.pred` (`Z.pos` (`P_of_succ_nat` n))))
-declare lean     target_rep function realFromNumeral n = (``n : real)
+declare lean     target_rep function realFromNumeral = `unsupportedRealFromNumeral`
 
 instance (Numeral real)
   let fromNumeral n = realFromNumeral n
@@ -1683,7 +1684,7 @@ declare ocaml    target_rep function realFromInteger n = (`float_of_int` (`Nat_b
 declare isabelle target_rep function realFromInteger n = (`real_of_int` n)
 declare hol      target_rep function realFromInteger n = (`real_of_int` n)
 declare coq      target_rep function realFromInteger n = (`IZR` n)
-declare lean     target_rep function realFromInteger = ``
+declare lean     target_rep function realFromInteger = `unsupportedRealFromInt`
 
 val realEq : real -> real -> bool
 let inline realEq = unsafe_structural_equality
@@ -1703,25 +1704,25 @@ declare hol      target_rep function realLess = infix `<`
 declare ocaml    target_rep function realLess = infix `<`
 declare isabelle target_rep function realLess = infix `<`
 declare coq      target_rep function realLess = `Rlt_bool`
-declare lean     target_rep function realLess = `intLtb`
+declare lean     target_rep function realLess = `unsupportedRealLess`
 
 declare hol      target_rep function realLessEqual = infix `<=`
 declare ocaml    target_rep function realLessEqual = infix `<=`
 declare isabelle target_rep function realLessEqual = infix `\<le>`
 declare coq      target_rep function realLessEqual = `Rle_bool`
-declare lean     target_rep function realLessEqual = `intLteb`
+declare lean     target_rep function realLessEqual = `unsupportedRealLessEq`
 
 declare hol      target_rep function realGreater = infix `>`
 declare ocaml    target_rep function realGreater = infix `>`
 declare isabelle target_rep function realGreater = infix `>`
 declare coq      target_rep function realGreater = `Rgt_bool`
-declare lean     target_rep function realGreater = `intGtb`
+declare lean     target_rep function realGreater = `unsupportedRealGreater`
 
 declare hol      target_rep function realGreaterEqual = infix `>=`
 declare ocaml    target_rep function realGreaterEqual = infix `>=`
 declare isabelle target_rep function realGreaterEqual = infix `\<ge>`
 declare coq      target_rep function realGreaterEqual = `Rge_bool`
-declare lean     target_rep function realGreaterEqual = `intGteb`
+declare lean     target_rep function realGreaterEqual = `unsupportedRealGreaterEq`
 
 val realCompare : real -> real -> ordering
 let inline realCompare = defaultCompare
@@ -1766,7 +1767,7 @@ let inline realNegate n = 0 - n
 declare ocaml    target_rep function realNegate = `Lem.neg_float`
 declare isabelle target_rep function realNegate i = `-` i
 declare coq      target_rep function realNegate = `Ropp`
-declare lean     target_rep function realNegate = `Int.neg`
+declare lean     target_rep function realNegate = `Neg.neg`
 
 instance (NumNegate real)
   let ~ = realNegate
@@ -1777,7 +1778,7 @@ let inline realAbs n = (if n > 0 then n else ~n)
 declare ocaml    target_rep function realAbs = `abs_float`
 declare isabelle target_rep function realAbs = `abs`
 declare coq      target_rep function realAbs = `Rabs`
-declare lean     target_rep function realAbs = `intAbs`
+declare lean     target_rep function realAbs = `unsupportedRealAbs`
 
 instance (NumAbs real)
   let abs = realAbs
@@ -1820,6 +1821,7 @@ end
 val realFromFrac : integer -> integer -> real
 let realFromFrac n d = realDiv (realFromInteger n) (realFromInteger d)
 declare ocaml    target_rep function realFromFrac n d = (`Lem.div_float` (realFromInteger n) (realFromInteger d))
+declare lean     target_rep function realFromFrac = `unsupportedRealFromFrac`
 
 val realPowInteger : real -> integer -> real
 let rec realPowInteger b e =

@@ -270,6 +270,102 @@ def fmapUnion [BEq α] (m1 m2 : Fmap α β) : Fmap α β :=
 
 @[inline] def fmapElements (m : Fmap α β) : List (α × β) := m
 
+/- ============================================================================
+   Unsupported numeric types
+   ============================================================================
+   Lem's rational, real, float64, and float32 types have no proper Lean
+   implementation. Rather than silently mapping to Int (which produces
+   semantically wrong results — e.g., rationalFromFrac 1 3 = 0 via integer
+   division), we use distinct opaque types that panic on any operation.
+
+   For proper support: rational needs Mathlib's Rat, real needs Mathlib's Real,
+   and float64/float32 need IEEE 754 floats. Coq has similar limitations
+   (float64/float32 map to Q, also approximate). -/
+
+structure LemRational where
+  private mk :: private val : Unit
+
+structure LemReal where
+  private mk :: private val : Unit
+
+structure LemFloat64 where
+  private mk :: private val : Unit
+
+structure LemFloat32 where
+  private mk :: private val : Unit
+
+instance : Inhabited LemRational := ⟨⟨()⟩⟩
+instance : BEq LemRational where beq _ _ := panic! "rational: not supported in Lean backend"
+instance : Ord LemRational where compare _ _ := panic! "rational: not supported in Lean backend"
+instance : Add LemRational where add _ _ := panic! "rational: not supported in Lean backend"
+instance : Sub LemRational where sub _ _ := panic! "rational: not supported in Lean backend"
+instance : Mul LemRational where mul _ _ := panic! "rational: not supported in Lean backend"
+instance : Div LemRational where div _ _ := panic! "rational: not supported in Lean backend"
+instance : Neg LemRational where neg _ := panic! "rational: not supported in Lean backend"
+instance : HPow LemRational Int LemRational where hPow _ _ := panic! "rational: not supported in Lean backend"
+instance : HPow LemRational Nat LemRational where hPow _ _ := panic! "rational: not supported in Lean backend"
+instance : Min LemRational where min _ _ := panic! "rational: not supported in Lean backend"
+instance : Max LemRational where max _ _ := panic! "rational: not supported in Lean backend"
+instance (n : Nat) : OfNat LemRational n where ofNat := panic! "rational: not supported in Lean backend"
+
+instance : Inhabited LemReal := ⟨⟨()⟩⟩
+instance : BEq LemReal where beq _ _ := panic! "real: not supported in Lean backend"
+instance : Ord LemReal where compare _ _ := panic! "real: not supported in Lean backend"
+instance : Add LemReal where add _ _ := panic! "real: not supported in Lean backend"
+instance : Sub LemReal where sub _ _ := panic! "real: not supported in Lean backend"
+instance : Mul LemReal where mul _ _ := panic! "real: not supported in Lean backend"
+instance : Div LemReal where div _ _ := panic! "real: not supported in Lean backend"
+instance : Neg LemReal where neg _ := panic! "real: not supported in Lean backend"
+instance : HPow LemReal Int LemReal where hPow _ _ := panic! "real: not supported in Lean backend"
+instance : HPow LemReal Nat LemReal where hPow _ _ := panic! "real: not supported in Lean backend"
+instance : Min LemReal where min _ _ := panic! "real: not supported in Lean backend"
+instance : Max LemReal where max _ _ := panic! "real: not supported in Lean backend"
+instance (n : Nat) : OfNat LemReal n where ofNat := panic! "real: not supported in Lean backend"
+
+instance : Inhabited LemFloat64 := ⟨⟨()⟩⟩
+instance : BEq LemFloat64 where beq _ _ := panic! "float64: not supported in Lean backend"
+instance : Ord LemFloat64 where compare _ _ := panic! "float64: not supported in Lean backend"
+instance (n : Nat) : OfNat LemFloat64 n where ofNat := panic! "float64: not supported in Lean backend"
+
+instance : Inhabited LemFloat32 := ⟨⟨()⟩⟩
+instance : BEq LemFloat32 where beq _ _ := panic! "float32: not supported in Lean backend"
+instance : Ord LemFloat32 where compare _ _ := panic! "float32: not supported in Lean backend"
+instance (n : Nat) : OfNat LemFloat32 n where ofNat := panic! "float32: not supported in Lean backend"
+
+/- Target rep wrappers for rational operations that can't use infix operators -/
+def unsupportedRationalFromNumeral (_ : Nat) : LemRational :=
+  panic! "rational: not supported in Lean backend"
+def unsupportedRationalFromInt (_ : Int) : LemRational :=
+  panic! "rational: not supported in Lean backend"
+def unsupportedRationalFromFrac (_ _ : Int) : LemRational :=
+  panic! "rational: not supported in Lean backend"
+def unsupportedRationalLess (_ _ : LemRational) : Bool :=
+  panic! "rational: not supported in Lean backend"
+def unsupportedRationalLessEq (_ _ : LemRational) : Bool :=
+  panic! "rational: not supported in Lean backend"
+def unsupportedRationalGreater (_ _ : LemRational) : Bool :=
+  panic! "rational: not supported in Lean backend"
+def unsupportedRationalGreaterEq (_ _ : LemRational) : Bool :=
+  panic! "rational: not supported in Lean backend"
+
+/- Target rep wrappers for real operations that can't use infix operators -/
+def unsupportedRealFromNumeral (_ : Nat) : LemReal :=
+  panic! "real: not supported in Lean backend"
+def unsupportedRealFromInt (_ : Int) : LemReal :=
+  panic! "real: not supported in Lean backend"
+def unsupportedRealFromFrac (_ _ : Int) : LemReal :=
+  panic! "real: not supported in Lean backend"
+def unsupportedRealLess (_ _ : LemReal) : Bool :=
+  panic! "real: not supported in Lean backend"
+def unsupportedRealLessEq (_ _ : LemReal) : Bool :=
+  panic! "real: not supported in Lean backend"
+def unsupportedRealGreater (_ _ : LemReal) : Bool :=
+  panic! "real: not supported in Lean backend"
+def unsupportedRealGreaterEq (_ _ : LemReal) : Bool :=
+  panic! "real: not supported in Lean backend"
+def unsupportedRealAbs (_ : LemReal) : LemReal :=
+  panic! "real: not supported in Lean backend"
+
 /- Integer square root (floor of exact sqrt) -/
 private partial def natSqrtAux (n guess : Nat) : Nat :=
   let next := (guess + n / guess) / 2
@@ -279,18 +375,17 @@ def integerSqrt (n : Int) : Int :=
   let m := n.natAbs
   if m == 0 then 0 else Int.ofNat (natSqrtAux m m)
 
-/- Rational/real stubs — Lem's rational/real types have no Lean equivalent.
-   These panic rather than silently return wrong results. -/
-def rationalNumerator (_n : Int) : Int :=
-  panic! "rationalNumerator: rationals are not supported in the Lean backend"
-def rationalDenominator (_n : Int) : Int :=
-  panic! "rationalDenominator: rationals are not supported in the Lean backend"
-def realSqrt (_n : Int) : Int :=
-  panic! "realSqrt: reals are not supported in the Lean backend"
-def realFloor (_n : Int) : Int :=
-  panic! "realFloor: reals are not supported in the Lean backend"
-def realCeiling (_n : Int) : Int :=
-  panic! "realCeiling: reals are not supported in the Lean backend"
+/- Target rep wrappers for rational/real decomposition operations -/
+def rationalNumerator (_ : LemRational) : Int :=
+  panic! "rational: not supported in Lean backend"
+def rationalDenominator (_ : LemRational) : Int :=
+  panic! "rational: not supported in Lean backend"
+def realSqrt (_ : LemReal) : LemReal :=
+  panic! "real: not supported in Lean backend"
+def realFloor (_ : LemReal) : Int :=
+  panic! "real: not supported in Lean backend"
+def realCeiling (_ : LemReal) : Int :=
+  panic! "real: not supported in Lean backend"
 
 /- Integer absolute value returning Int (not Nat) -/
 def intAbs (n : Int) : Int := Int.ofNat n.natAbs
