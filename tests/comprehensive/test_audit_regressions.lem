@@ -31,3 +31,18 @@ let set_a : set nat = {1; 2; 3}
 let set_b : set nat = {3; 2; 1}
 
 assert set_eq_ok : set_a = set_b
+
+(* Fix #21: Tab sanitization — Lean 4 forbids tabs in source *)
+(* The line below contains a literal tab character between let and tab_var *)
+(* Backend must sanitize tabs to spaces in generated output *)
+let	tab_var : nat = 7
+let tab_result	: nat =	tab_var	+ 3
+
+(* Tab in comment — must not appear in generated output *)
+(*	comment with tab	inside	*)
+let	tab_in_type	:	bool	=	true
+type	tab_rec	=	<|	tab_field	:	nat	|>
+
+assert tab_ok : tab_result = 10
+assert tab_type_ok : tab_in_type
+assert tab_rec_ok : (<| tab_field = 5 |>).tab_field = 5

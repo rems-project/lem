@@ -1,0 +1,72 @@
+open import Pervasives_extra
+
+(* Tests: declare termination_argument = automatic *)
+(* Functions with this annotation get `def` instead of `partial def` in Lean *)
+(* Also tests multi-discriminant match decomposition (fix #10) *)
+
+(* === Simple structural recursion on a list === *)
+let rec my_sum (l : list nat) : nat =
+  match l with
+    | [] -> 0
+    | x :: rest -> x + my_sum rest
+  end
+declare termination_argument my_sum = automatic
+
+(* === Structural recursion with accumulator === *)
+let rec rev_acc (acc : list nat) (l : list nat) : list nat =
+  match l with
+    | [] -> acc
+    | x :: rest -> rev_acc (x :: acc) rest
+  end
+declare termination_argument rev_acc = automatic
+
+(* === Multi-discriminant match (tuple scrutinee decomposed) === *)
+(* Backend should generate `match l1, l2 with` not `match (l1, l2) with` *)
+(* so Lean's termination checker can see both arguments decrease *)
+let rec both_empty (l1 : list nat) (l2 : list nat) : bool =
+  match (l1, l2) with
+    | ([], []) -> true
+    | (_ :: xs, _ :: ys) -> both_empty xs ys
+    | _ -> false
+  end
+declare termination_argument both_empty = automatic
+
+(* === Recursion on natural number === *)
+let rec nat_to_list (n : nat) : list nat =
+  match n with
+    | 0 -> []
+    | _ -> n :: nat_to_list (n - 1)
+  end
+
+assert sum_ok1 : my_sum [] = 0
+assert sum_ok2 : my_sum [1;2;3] = 6
+assert sum_ok3 : my_sum [10;20;30;40] = 100
+assert rev_acc_ok1 : rev_acc [] [1;2;3] = [3;2;1]
+assert rev_acc_ok2 : rev_acc [0] [1;2] = [2;1;0]
+assert both_ok1 : both_empty [] [] = true
+assert both_ok2 : both_empty [1;2] [3;4] = true
+assert both_ok3 : both_empty [1] [2;3] = false
+assert both_ok4 : both_empty [1;2] [] = false
+(* === 3-scrutinee multi-discriminant match === *)
+let rec zip3 (l1 : list nat) (l2 : list nat) (l3 : list nat) : list (nat * nat * nat) =
+  match (l1, l2, l3) with
+    | (x :: xs, y :: ys, z :: zs) -> (x, y, z) :: zip3 xs ys zs
+    | _ -> []
+  end
+declare termination_argument zip3 = automatic
+
+(* === Partial def without termination annotation — must compile as partial === *)
+let rec collatz (n : nat) : list nat =
+  match n with
+    | 0 -> [0]
+    | 1 -> [1]
+    | _ -> if n mod 2 = 0 then n :: collatz (n / 2)
+           else n :: collatz (3 * n + 1)
+  end
+
+assert nat_list_ok1 : nat_to_list 0 = []
+assert nat_list_ok2 : nat_to_list 3 = [3;2;1]
+assert zip3_ok1 : zip3 [1;2] [3;4] [5;6] = [(1,3,5); (2,4,6)]
+assert zip3_ok2 : zip3 [1] [2;3] [4] = [(1,2,4)]
+assert zip3_ok3 : zip3 [] [] [] = []
+assert collatz_ok1 : collatz 1 = [1]

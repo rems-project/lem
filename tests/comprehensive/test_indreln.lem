@@ -18,4 +18,39 @@ indreln [mul_rel : nat -> nat -> nat -> bool]
 and
   mul_succ : forall m n p q. mul_rel m n p && add_rel p m q ==> mul_rel m (n + 1) q
 
+(* === Propositional equality in antecedent === *)
+(* Tests fix: backend uses = (not ==) in indreln antecedents *)
+(* This is crucial when comparing types that lack BEq instances *)
+indreln [eq_rel : nat -> nat -> bool]
+  eq_rule : forall x y. x = y ==> eq_rel x y
+
+(* Equality with computed values in antecedent *)
+indreln [sum_rel : nat -> nat -> nat -> bool]
+  sum_rule : forall x y z. x + y = z ==> sum_rel x y z
+
+(* Multiple equality premises *)
+indreln [swap_rel : nat -> nat -> nat -> nat -> bool]
+  swap_rule : forall a b c d. a = d && b = c ==> swap_rel a b c d
+
+(* Inequality in antecedent *)
+indreln [neq_rel : nat -> nat -> bool]
+  neq_rule : forall x y. not (x = y) ==> neq_rel x y
+
+(* Nested function application in equality antecedent *)
+let double (x : nat) : nat = x * 2
+indreln [double_eq : nat -> nat -> bool]
+  double_rule : forall x y. double x = y ==> double_eq x y
+
+(* Ordering in antecedent — uses >, not == *)
+indreln [gt_rel : nat -> nat -> bool]
+  gt_rule : forall x y. x > y ==> gt_rel x y
+
+(* Multiple named rules with the same relation *)
+indreln [classify : nat -> string -> bool]
+  cls_zero : forall n. n = 0 ==> classify n "zero"
+and
+  cls_small : forall n. n > 0 && n < 10 ==> classify n "small"
+and
+  cls_big : forall n. n >= 10 ==> classify n "big"
+
 (* Inductive relations generate Prop types — verified by compilation only *)

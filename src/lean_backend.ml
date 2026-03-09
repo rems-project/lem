@@ -1585,7 +1585,10 @@ let needs_parens term =
           ) ty_vars_list in
           concat emp mapped
       in
-      let universe = if List.length ty_vars_list > 0 then from_string "Type 1" else from_string "Type" in
+      (* All types in a heterogeneous mutual block must live in the same universe.
+         Since at least one type has indices (parameters promoted to indices),
+         that type lives in Type 1, so ALL types must be Type 1. *)
+      let universe = from_string "Type 1" in
       let ty_vars_names =
         concat_str " " @@ List.map (fun v ->
           match v with

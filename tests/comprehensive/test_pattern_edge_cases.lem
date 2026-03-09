@@ -85,6 +85,66 @@ let test_tuple_pat (x : nat * nat * bool) : nat =
   | (a, _, false) -> a
   end
 
+(* === Unit literal in pattern === *)
+(* Tests fix #27: P_lit L_unit → (_ : Unit) instead of raw () *)
+let handle_unit (x : unit) : nat =
+  match x with
+    | () -> 42
+  end
+
+(* === Typed wildcard in fun pattern === *)
+(* Tests fix #26: wildcards resolve to concrete types *)
+let typed_wild_fun = fun (_ : nat * bool) -> (99:nat)
+
+(* === Unit as fun argument pattern === *)
+let unit_fun = fun () -> (77:nat)
+
+(* === Unit nested in tuple pattern === *)
+let unit_in_tuple (x : nat * unit) : nat =
+  match x with
+    | (n, ()) -> n
+  end
+
+(* === Unit in let binding pattern === *)
+let unit_let_bind : nat =
+  let () = () in (55:nat)
+
+(* === n+k patterns (desugared to guards for Lean) === *)
+(* Tests fix #11: is_lean_pattern_match rejects P_num_add *)
+let rec nat_pred (n : nat) : nat =
+  match n with
+    | 0 -> 0
+    | m + 1 -> m
+  end
+
+let rec fib (n : nat) : nat =
+  match n with
+    | 0 -> 0
+    | 1 -> 1
+    | m + 2 -> fib m + fib (m + 1)
+  end
+
+(* n+k with larger constant *)
+let classify_nat (n : nat) : string =
+  match n with
+    | 0 -> "zero"
+    | 1 -> "one"
+    | _k + 2 -> "two or more"
+  end
+
+assert unit_match_ok : handle_unit () = (42:nat)
+assert typed_wild_fun_ok : typed_wild_fun (1, true) = (99:nat)
+assert unit_fun_ok : unit_fun () = (77:nat)
+assert unit_tuple_ok : unit_in_tuple (7, ()) = (7:nat)
+assert unit_let_ok : unit_let_bind = (55:nat)
+assert nat_pred_ok1 : nat_pred 0 = 0
+assert nat_pred_ok2 : nat_pred 5 = 4
+assert fib_ok1 : fib 0 = 0
+assert fib_ok2 : fib 1 = 1
+assert fib_ok3 : fib 6 = 8
+assert classify_ok1 : classify_nat 0 = "zero"
+assert classify_ok2 : classify_nat 1 = "one"
+assert classify_ok3 : classify_nat 5 = "two or more"
 assert test_list_ok1 : (test_list [] = (0:nat))
 assert test_list_ok2 : (test_list [1] = (1:nat))
 assert test_list_ok3 : (test_list [1;2;3;4] = (4:nat))

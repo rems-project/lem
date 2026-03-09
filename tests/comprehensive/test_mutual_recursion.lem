@@ -38,6 +38,23 @@ and is_odd (n : nat) : bool =
 let test3 = is_even 4
 let test4 = is_odd 5
 
+(* === Heterogeneous parameter counts (Type 1 universe in Lean) === *)
+(* foo has 0 type params, bar has 1 — backend must emit Type 1 for both *)
+type foo = A | B of bar nat
+and bar 'a = C of 'a | D of foo
+
+let test5 = A
+let test6 = B (C 42)
+let test7 = D A
+
+(* === 3-way mutual recursion === *)
+type m1 = M1A | M1B of m2
+and m2 = M2A | M2B of m3
+and m3 = M3A | M3B of m1
+
+let test8 = M1A
+let test9 = M1B (M2B (M3B M1A))
+
 assert test1_ok : (test1 = (1:nat))
 assert test2_ok : (test2 = (2:nat))
 assert test3_ok : test3

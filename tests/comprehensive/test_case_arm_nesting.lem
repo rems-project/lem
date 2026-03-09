@@ -1,0 +1,177 @@
+open import Pervasives_extra
+
+(* Tests fix #23: case arm parenthesization *)
+(* Tests fix #24: app/if argument parenthesization *)
+(* Without proper parenthesization, Lean's greedy match parser consumes *)
+(* subsequent outer | arms, producing parse errors *)
+
+type color = Red | Green | Blue
+
+(* === Match inside case arm === *)
+let match_in_case_arm (c : color) (x : nat) : nat =
+  match c with
+    | Red -> match x with
+               | 0 -> 10
+               | _ -> 20
+             end
+    | Green -> 30
+    | Blue -> 40
+  end
+
+(* === If inside case arm === *)
+let if_in_case_arm (c : color) (b : bool) : nat =
+  match c with
+    | Red -> if b then 1 else 2
+    | Green -> if b then 3 else 4
+    | Blue -> 5
+  end
+
+(* === Let inside case arm === *)
+let let_in_case_arm (c : color) : nat =
+  match c with
+    | Red -> let x = (10:nat) in x + 1
+    | Green -> let y = (20:nat) in y + 2
+    | Blue -> 30
+  end
+
+(* === Fun inside case arm === *)
+let fun_in_case_arm (c : color) : nat -> nat =
+  match c with
+    | Red -> fun x -> x + 1
+    | Green -> fun x -> x * 2
+    | Blue -> fun x -> x
+  end
+
+(* === Match as function argument === *)
+let id_nat (x : nat) : nat = x
+
+let match_as_arg (b : bool) : nat =
+  id_nat (match b with | true -> 1 | false -> 0 end)
+
+(* === If as function argument === *)
+let if_as_arg (b : bool) : nat =
+  id_nat (if b then 1 else 0)
+
+(* === Match in if-condition === *)
+let match_in_if_cond (c : color) : nat =
+  if (match c with | Red -> true | _ -> false end) then 1 else 0
+
+(* === Deeply nested: match inside match inside case arm === *)
+let double_nested (c : color) (x : nat) (b : bool) : nat =
+  match c with
+    | Red -> match x with
+               | 0 -> if b then 100 else 200
+               | _ -> 300
+             end
+    | Green -> 400
+    | Blue -> 500
+  end
+
+(* === If-match-if chain === *)
+let if_match_if (b1 : bool) (c : color) (b2 : bool) : nat =
+  if b1 then
+    match c with
+      | Red -> if b2 then 1 else 2
+      | Green -> 3
+      | Blue -> 4
+    end
+  else 5
+
+(* === Match result used in arithmetic (forces parenthesization) === *)
+let match_in_binop (b : bool) : nat =
+  (match b with | true -> 10 | false -> 20 end) + 5
+
+(* === If result used in arithmetic === *)
+let if_in_binop (b : bool) : nat =
+  (if b then 10 else 20) + 5
+
+(* === Multiple nested matches at different depths === *)
+let triple_match (c1 : color) (c2 : color) (c3 : color) : nat =
+  match c1 with
+    | Red -> match c2 with
+               | Red -> match c3 with
+                          | Red -> 1
+                          | Green -> 2
+                          | Blue -> 3
+                        end
+               | Green -> 4
+               | Blue -> 5
+             end
+    | Green -> 6
+    | Blue -> 7
+  end
+
+assert case_arm_match_ok1 : match_in_case_arm Red 0 = 10
+assert case_arm_match_ok2 : match_in_case_arm Red 1 = 20
+assert case_arm_match_ok3 : match_in_case_arm Green 0 = 30
+assert case_arm_match_ok4 : match_in_case_arm Blue 0 = 40
+assert case_arm_if_ok1 : if_in_case_arm Red true = 1
+assert case_arm_if_ok2 : if_in_case_arm Red false = 2
+assert case_arm_if_ok3 : if_in_case_arm Green true = 3
+assert case_arm_if_ok4 : if_in_case_arm Blue false = 5
+assert case_arm_let_ok1 : let_in_case_arm Red = 11
+assert case_arm_let_ok2 : let_in_case_arm Green = 22
+assert case_arm_let_ok3 : let_in_case_arm Blue = 30
+assert case_arm_fun_ok1 : (fun_in_case_arm Red) 5 = 6
+assert case_arm_fun_ok2 : (fun_in_case_arm Green) 5 = 10
+assert case_arm_fun_ok3 : (fun_in_case_arm Blue) 5 = 5
+assert match_arg_ok1 : match_as_arg true = 1
+assert match_arg_ok2 : match_as_arg false = 0
+assert if_arg_ok1 : if_as_arg true = 1
+assert if_arg_ok2 : if_as_arg false = 0
+assert match_cond_ok1 : match_in_if_cond Red = 1
+assert match_cond_ok2 : match_in_if_cond Green = 0
+assert double_nested_ok1 : double_nested Red 0 true = 100
+assert double_nested_ok2 : double_nested Red 0 false = 200
+assert double_nested_ok3 : double_nested Red 1 true = 300
+assert double_nested_ok4 : double_nested Green 0 true = 400
+assert if_match_if_ok1 : if_match_if true Red true = 1
+assert if_match_if_ok2 : if_match_if true Red false = 2
+assert if_match_if_ok3 : if_match_if true Green true = 3
+assert if_match_if_ok4 : if_match_if false Red true = 5
+assert match_binop_ok1 : match_in_binop true = 15
+assert match_binop_ok2 : match_in_binop false = 25
+assert if_binop_ok1 : if_in_binop true = 15
+assert if_binop_ok2 : if_in_binop false = 25
+(* === Let as function argument === *)
+let let_as_arg (b : bool) : nat =
+  id_nat (let x = (if b then 10 else 20) in x + 1)
+
+(* === Fun as function argument (higher-order) === *)
+let apply_fn (f : nat -> nat) (x : nat) : nat = f x
+
+let fun_as_arg (b : bool) : nat =
+  apply_fn (fun x -> if b then x + 1 else x * 2) 5
+
+(* === Let in if-condition === *)
+let let_in_if_cond (x : nat) : nat =
+  if (let y = x in y > 3) then 1 else 0
+
+(* === If in if-condition === *)
+let if_in_if_cond (a : bool) (b : bool) : nat =
+  if (if a then b else not b) then 1 else 0
+
+(* === Match in list constructor === *)
+let match_in_list (b : bool) : list nat =
+  [(match b with | true -> 1 | false -> 0 end); 2; 3]
+
+(* === Match in tuple === *)
+let match_in_tuple (b : bool) : nat * nat =
+  ((match b with | true -> 1 | false -> 0 end), 2)
+
+assert triple_ok1 : triple_match Red Red Red = 1
+assert triple_ok2 : triple_match Red Red Green = 2
+assert triple_ok3 : triple_match Red Green Red = 4
+assert triple_ok4 : triple_match Green Red Red = 6
+assert let_arg_ok1 : let_as_arg true = 11
+assert let_arg_ok2 : let_as_arg false = 21
+assert fun_arg_ok1 : fun_as_arg true = 6
+assert fun_arg_ok2 : fun_as_arg false = 10
+assert let_cond_ok1 : let_in_if_cond 5 = 1
+assert let_cond_ok2 : let_in_if_cond 2 = 0
+assert if_cond_ok1 : if_in_if_cond true true = 1
+assert if_cond_ok2 : if_in_if_cond true false = 0
+assert if_cond_ok3 : if_in_if_cond false true = 0
+assert if_cond_ok4 : if_in_if_cond false false = 1
+assert match_list_ok : match_in_list true = [1; 2; 3]
+assert match_tuple_ok : match_in_tuple true = (1, 2)
