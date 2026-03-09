@@ -265,7 +265,7 @@ def fmapUnion [BEq α] (m1 m2 : Fmap α β) : Fmap α β :=
 
 @[inline] def fmapElements (m : Fmap α β) : List (α × β) := m
 
-/- Numeric stubs (rational/real are approximated as Int) -/
+/- Integer square root (floor of exact sqrt) -/
 private partial def natSqrtAux (n guess : Nat) : Nat :=
   let next := (guess + n / guess) / 2
   if next >= guess then guess else natSqrtAux n next
@@ -273,11 +273,19 @@ private partial def natSqrtAux (n guess : Nat) : Nat :=
 def integerSqrt (n : Int) : Int :=
   let m := n.natAbs
   if m == 0 then 0 else Int.ofNat (natSqrtAux m m)
-def rationalNumerator (n : Int) : Int := n
-def rationalDenominator (_n : Int) : Int := 1
-def realSqrt := integerSqrt
-def realFloor (n : Int) : Int := n
-def realCeiling (n : Int) : Int := n
+
+/- Rational/real stubs — Lem's rational/real types have no Lean equivalent.
+   These panic rather than silently return wrong results. -/
+def rationalNumerator (_n : Int) : Int :=
+  panic! "rationalNumerator: rationals are not supported in the Lean backend"
+def rationalDenominator (_n : Int) : Int :=
+  panic! "rationalDenominator: rationals are not supported in the Lean backend"
+def realSqrt (_n : Int) : Int :=
+  panic! "realSqrt: reals are not supported in the Lean backend"
+def realFloor (_n : Int) : Int :=
+  panic! "realFloor: reals are not supported in the Lean backend"
+def realCeiling (_n : Int) : Int :=
+  panic! "realCeiling: reals are not supported in the Lean backend"
 
 /- Integer absolute value returning Int (not Nat) -/
 def intAbs (n : Int) : Int := Int.ofNat n.natAbs
@@ -338,13 +346,14 @@ def int64Asr (x : Int) (n : Nat) : Int :=
 def naturalOfString (s : String) : Nat :=
   match s.toNat? with
   | some n => n
-  | none => 0
+  | none => panic! s!"naturalOfString: invalid input: {s}"
 
 def integerDiv_t (a b : Int) : Int := Int.tdiv a b
 def integerRem_t (a b : Int) : Int := Int.tmod a b
 def integerRem_f (a b : Int) : Int := Int.emod a b
 
-def THE (_p : α → Bool) : Option α := none
+def THE (_p : α → Bool) : Option α :=
+  panic! "THE: Hilbert choice is not computable"
 
 /- List indexing — replaces removed List.get? and List.get! -/
 def listGetOpt (l : List α) (n : Nat) : Option α := l[n]?
@@ -369,6 +378,15 @@ partial def bitSeqBinopAux (binop : Bool → Bool → Bool) (s1 : Bool) (bl1 : L
   | b1 :: bl1', [] => (binop b1 s2) :: bitSeqBinopAux binop s1 bl1' s2 []
   | [], b2 :: bl2' => (binop s1 b2) :: bitSeqBinopAux binop s1 [] s2 bl2'
   | b1 :: bl1', b2 :: bl2' => (binop b1 b2) :: bitSeqBinopAux binop s1 bl1' s2 bl2'
+
+/- Nat bitwise operations (used by transform.lem compatibility layer) -/
+def natLand (a b : Nat) : Nat := a &&& b
+def natLor (a b : Nat) : Nat := a ||| b
+def natLxor (a b : Nat) : Nat := a ^^^ b
+def natLnot (_a : Nat) : Nat := panic! "natLnot: bitwise NOT is not defined for Nat"
+def natLsl (a b : Nat) : Nat := a <<< b
+def natLsr (a b : Nat) : Nat := a >>> b
+def natAsr (a b : Nat) : Nat := a >>> b  -- same as lsr for Nat (unsigned)
 
 /- Transitive closure of a relation represented as a list of pairs.
    Iterates composition until no new pairs are added. Used by Relation module. -/
