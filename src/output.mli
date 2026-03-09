@@ -204,6 +204,9 @@ val to_rope : Ulib.Text.t -> (Ast.lex_skip -> Ulib.Text.t) -> (t' -> t' -> bool)
 (** [ml_comment_to_rope com] formats an ML-comment as a text by putting [(*] and [*)] around it. *)
 val ml_comment_to_rope : Ast.ml_comment -> Ulib.Text.t
 
+(** [lean_comment_to_rope com] formats a lean comment as a text by putting [/-] and [-/] around it. *)
+val lean_comment_to_rope : Ast.ml_comment -> Ulib.Text.t
+
 
 (** {2 Latex Output} *)
 

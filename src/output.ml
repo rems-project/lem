@@ -259,6 +259,13 @@ let ml_comment_to_rope' = function
   | Ast.Chars(r) -> r
   | Ast.Comment(coms) -> Ulib.Text.concat (r"") (List.map ml_comment_to_rope coms)
 
+let wrap_slash_minus x = r"/-" ^^ x ^^ r"-/"
+
+let rec lean_comment_to_rope = function
+  | Ast.Chars(r) -> r
+  | Ast.Comment(coms) -> wrap_slash_minus (Ulib.Text.concat (r"") (List.map lean_comment_to_rope coms))
+
+
 let rec pp_raw_t t = 
   match t with
   | Empty -> r"Empty"

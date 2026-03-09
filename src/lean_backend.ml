@@ -66,7 +66,7 @@ let print_and_fail l s =
 
 let lex_skip =
 	function
-    | Ast.Com r -> ml_comment_to_rope r
+    | Ast.Com r -> lean_comment_to_rope r
     | Ast.Ws r -> r
     | Ast.Nl -> r"\n"
 ;;
