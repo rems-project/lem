@@ -65,6 +65,10 @@ let lean_prop_equality : bool ref = ref false
    next non-Comment definition completes, solving ordering dependencies
    (e.g., abbrev mword depends on class Size which is defined later). *)
 let lean_pending_abbrevs : Output.t list ref = ref []
+(* Map from const_descr_ref to type parameter names for polymorphic indreln.
+   Set during indreln antecedent rendering so that exp inserts type params
+   for self-references in premises (Lean requires explicit parameters). *)
+let lean_indreln_params : (Types.const_descr_ref * string) list ref = ref []
 
 (* Extract the name string from a type/numeric variable *)
 let tnvar_to_string = function
@@ -778,17 +782,30 @@ type pat_style = FunParam | MatchArm
         match def with
           | Let_def (skips, targets, (p, name_map, topt, sk, e)) ->
               if in_target targets then
-                let bind = (Let_val (p, topt, sk, e), Ast.Unknown) in
-                let body = let_body inside_instance i_ref_opt true tv_set bind in
-                let defn, ending =
-                  if inside_instance then
-                    emp, emp
-                  else
-                    from_string "def", emp
-                  in
-                    Output.flat [
-                      ws skips; defn; constraints; body; ending
-                    ]
+                (* Lean doesn't support destructuring in 'def' bindings.
+                   Emit one def per bound name: def x : T := let PAT := EXPR; x *)
+                let pat_out = def_pattern p in
+                let exp_out = exp inside_instance e in
+                let type_out = match topt with
+                  | None -> emp
+                  | Some (_, t) -> Output.flat [from_string " :"; pat_typ t]
+                in
+                let defs = List.map (fun (_orig_name, cref) ->
+                  let cd = c_env_lookup Ast.Unknown A.env.c_env cref in
+                  let (_, renamed, _) = Typed_ast_syntax.constant_descr_to_name
+                    (Target.Target_no_ident Target.Target_lean) cd in
+                  let name_str = Name.to_string renamed in
+                  let var_type = pat_typ (C.t_to_src_t cd.const_type) in
+                  let defn = if inside_instance then emp else from_string "def " in
+                  Output.flat [
+                    from_string "\n"; defn; from_string name_str; constraints;
+                    from_string "  : "; var_type;
+                    from_string " :=\n  let "; pat_out; type_out;
+                    ws sk; from_string " :="; exp_out;
+                    from_string "\n  "; from_string name_str
+                  ]
+                ) name_map in
+                Output.flat (ws skips :: defs)
               else
                 ws skips ^ from_string "/- removed value definition intended for another target -/"
           | Fun_def (skips, rec_flag, targets, funcl_skips_seplist) ->
@@ -894,6 +911,19 @@ type pat_style = FunParam | MatchArm
           gather_names_aux [] clause_list
       in
       let gathered = gather_names clause_list in
+      (* For polymorphic indreln: compute type parameter names per relation
+         and set lean_indreln_params so exp can insert them in premises. *)
+      let saved_indreln_params = !lean_indreln_params in
+      lean_indreln_params := List.filter_map (fun (_name, c_ref) ->
+        let cd = c_env_lookup Ast.Unknown A.env.c_env c_ref in
+        let tvs = Types.free_vars cd.const_type in
+        if Types.TNset.cardinal tvs = 0 then None
+        else
+          let params_str = String.concat " " @@
+            List.map (fun v -> Name.to_string (Types.tnvar_to_name v))
+              (Types.TNset.elements tvs) in
+          Some (c_ref, params_str)
+      ) gathered;
       let compare_clauses_by_name name (Rule(_,_, _, _, _, _, _, name', _, _),_) =
         let name' = name'.term in
         let name' = Name.strip_lskip name' in
@@ -995,6 +1025,7 @@ type pat_style = FunParam | MatchArm
         let is_mutual = List.length indrelns > 1 in
         let prefix = if is_mutual then from_string "\nmutual" else emp in
         let suffix = if is_mutual then from_string "\nend" else emp in
+        lean_indreln_params := saved_indreln_params;
         Output.flat [
           prefix;
           from_string "\ninductive "; concat_str "\ninductive " indrelns;
@@ -1149,7 +1180,17 @@ type pat_style = FunParam | MatchArm
                       if is_eq then [Output.flat [l_out; from_string "  =  "; r_out]]
                       else [Output.flat [l_out; meta_utf8 "  \xe2\x89\xa0  "; r_out]]
                     | _ ->
-                      B.function_application_to_output (exp_to_locn e) trans false e cd args (use_ascii_rep_for_const cd.descr)
+                      (* For polymorphic indreln self-references in antecedents,
+                         insert explicit type parameters (Lean requires them). *)
+                      begin match List.assoc_opt cd.descr !lean_indreln_params with
+                      | Some params_str ->
+                        let func_out = trans e0 in
+                        let args_out = List.map trans args in
+                        [Output.flat ([func_out; from_string " "; from_string params_str]
+                          @ List.map (fun a -> Output.flat [from_string " "; a]) args_out)]
+                      | None ->
+                        B.function_application_to_output (exp_to_locn e) trans false e cd args (use_ascii_rep_for_const cd.descr)
+                      end
                     end
                   | _ ->
                     List.map trans (e0 :: args)

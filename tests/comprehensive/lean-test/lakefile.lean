@@ -51,5 +51,6 @@ lean_lib LemComprehensiveTest where
     `Test_inline_target_rep, `Test_inline_target_rep_auxiliary,
     `Test_type_defs_advanced, `Test_type_defs_advanced_auxiliary,
     `Test_fun_and_function, `Test_fun_and_function_auxiliary,
-    `Test_quantifiers_and_sets, `Test_quantifiers_and_sets_auxiliary
+    `Test_quantifiers_and_sets, `Test_quantifiers_and_sets_auxiliary,
+    `Test_let_def_destructuring, `Test_let_def_destructuring_auxiliary
   ]

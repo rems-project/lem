@@ -73,7 +73,12 @@ and
 indreln [neq_app_rel : nat -> nat -> bool]
   neq_app_rule : forall (x:nat) (y:nat). isInequal x y ==> neq_app_rel x y
 
-(* NOTE: Polymorphic indreln (forall 'a. ...) triggers bug #21 — the backend
-   doesn't thread the type parameter through indreln premises. See TODO.md. *)
+(* === Polymorphic indreln (free type variables in indices) === *)
+(* Exercises index_free_vars_typeset (lean_backend.ml:964, 979-980) *)
+(* Bug #21 fix: type params are inductive parameters, not conclusion args *)
+indreln [poly_mem : forall 'a. list 'a -> 'a -> bool]
+  poly_mem_head : forall (x : 'a) (xs : list 'a). true ==> poly_mem (x :: xs) x
+and
+  poly_mem_tail : forall (x : 'a) (y : 'a) (xs : list 'a). poly_mem xs x ==> poly_mem (y :: xs) x
 
 (* Inductive relations generate Prop types — verified by compilation only *)
