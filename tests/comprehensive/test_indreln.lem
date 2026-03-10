@@ -81,4 +81,14 @@ indreln [poly_mem : forall 'a. list 'a -> 'a -> bool]
 and
   poly_mem_tail : forall (x : 'a) (y : 'a) (xs : list 'a). poly_mem xs x ==> poly_mem (y :: xs) x
 
+(* === Indreln with higher-order predicate argument === *)
+(* Exercises indreln_typ Typ_fn with Bool return → Prop conversion *)
+indreln [apply_pred : (nat -> bool) -> nat -> bool]
+  apply_rule : forall (p : nat -> bool) (n : nat). p n ==> apply_pred p n
+
+(* === Indreln with tuple-typed indices === *)
+(* Exercises indreln_typ Typ_tup path *)
+indreln [pair_rel : (nat * nat) -> bool]
+  pair_rule : forall (x : nat) (y : nat). x > y ==> pair_rel (x, y)
+
 (* Inductive relations generate Prop types — verified by compilation only *)
