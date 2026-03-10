@@ -1881,13 +1881,15 @@ type pat_style = FunParam | MatchArm
         concat_str " " mapped
     and tyexp emit_deriving name ty_vars ty =
       match ty with
-        | Te_opaque -> emp
-        | Te_abbrev (skips, t) -> ws skips ^ from_string " := " ^ pat_typ t
-        | Te_record (skips, _, fields, skips') ->
-          let deriving_clause = if emit_deriving && texp_can_derive_beq ty then
-            from_string "\n  deriving BEq, Ord"
-          else emp in
-          ws skips ^ from_string " where\n" ^ tyexp_record fields ^ ws skips' ^ deriving_clause
+        | Te_opaque ->
+            (* Unreachable: type_def_variant handles Te_opaque directly *)
+            raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: unexpected Te_opaque in tyexp")
+        | Te_abbrev _ ->
+            (* Unreachable: def dispatches abbreviations to type_def_abbreviation *)
+            raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: unexpected Te_abbrev in tyexp")
+        | Te_record _ ->
+            (* Unreachable: def dispatches records to type_def_record *)
+            raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: unexpected Te_record in tyexp")
         | Te_variant (skips, ctors) ->
           let body = flat @@ Seplist.to_sep_list_first Seplist.Optional (constructor name ty_vars) (sep @@ from_string "\n") ctors in
           let deriving_clause = if emit_deriving && texp_can_derive_beq ty then
