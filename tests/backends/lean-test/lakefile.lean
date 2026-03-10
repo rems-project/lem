@@ -13,7 +13,8 @@ require LemLib from "../../../lean-lib"
 lean_lib LemTest where
   srcDir := "."
   roots := #[`Types, `Pats3, `Coq_test, `Exps, `Classes2, `Classes3, `Pats,
-             `Indreln2, `Record_test, `Op, `Let_rec,
+             `Indreln2, `Record_test, `Op, `Let_rec, `Coq_exps_test,
              `Types_auxiliary, `Pats3_auxiliary, `Coq_test_auxiliary, `Exps_auxiliary,
              `Classes2_auxiliary, `Classes3_auxiliary, `Pats_auxiliary,
-             `Indreln2_auxiliary, `Record_test_auxiliary, `Op_auxiliary, `Let_rec_auxiliary]
+             `Indreln2_auxiliary, `Record_test_auxiliary, `Op_auxiliary, `Let_rec_auxiliary,
+             `Coq_exps_test_auxiliary]

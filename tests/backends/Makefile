@@ -11,7 +11,7 @@ coqtests: types.vo pats.vo exps.vo
 
 ocamltests: types.byte pats.byte exps.byte classes.byte
 
-leantests: Types.lean Pats.lean Pats3.lean Exps.lean Classes2.lean Classes3.lean Coq_test.lean Record_test.lean Op.lean Let_rec.lean Indreln2.lean
+leantests: Types.lean Pats.lean Pats3.lean Exps.lean Classes2.lean Classes3.lean Coq_test.lean Record_test.lean Op.lean Let_rec.lean Indreln2.lean Coq_exps_test.lean
 	cd lean-test && lake build
 
 isabelletests: isatests/Pats.thy isatests/Types.thy isatests/Exps.thy
@@ -67,6 +67,9 @@ Let_rec.lean: let_rec.lem ../../lem
 	../../lem -wl ign -lean $<
 
 Indreln2.lean: indreln2.lem ../../lem
+	../../lem -wl ign -lean $<
+
+Coq_exps_test.lean: coq_exps_test.lem ../../lem
 	../../lem -wl ign -lean $<
 
 Types.thy: types.lem ../../lem

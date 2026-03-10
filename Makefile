@@ -88,7 +88,35 @@ coq-libs:
 lean-libs:
 	$(MAKE) -C library lean-libs
 
-tex-libs: 
+# Run the full Lean backend test suite:
+#   1. Build the compiler
+#   2. Regenerate and compile the Lean library (lean-lib/)
+#   3. Backend tests (tests/backends/ — 12 .lem files)
+#   4. Comprehensive tests (tests/comprehensive/ — 32 .lem files, 288+ assertions)
+#   5. ppcmem-model example (examples/ppcmem-model/ — 10 .lem files)
+#   6. cpp example (examples/cpp/ — 1 large .lem file, ~1930 lines generated)
+lean-tests: bin/lem lean-libs
+	cd lean-lib && lake build
+	$(MAKE) -C tests/backends leantests
+	cd tests/comprehensive && bash run_tests.sh
+	cd examples/ppcmem-model && \
+		../../lem -wl ign -lean \
+			bitwiseCompatibility.lem \
+			machineDefUtils.lem \
+			machineDefFreshIds.lem \
+			machineDefValue.lem \
+			machineDefTypes.lem \
+			machineDefInstructionSemantics.lem \
+			machineDefStorageSubsystem.lem \
+			machineDefThreadSubsystem.lem \
+			machineDefSystem.lem \
+			machineDefAxiomaticCore.lem && \
+		lake build
+	cd examples/cpp && \
+		../../lem -wl ign -lean cmm.lem && \
+		lake build
+
+tex-libs:
 #	$(MAKE) -C library tex-libs
 	cd tex-lib; pdflatex lem-libs.tex
 	cd tex-lib; pdflatex lem-libs.tex

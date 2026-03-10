@@ -42,5 +42,9 @@ lean_lib LemComprehensiveTest where
     `Test_cross_module, `Test_cross_module_auxiliary,
     `Test_case_arm_nesting, `Test_case_arm_nesting_auxiliary,
     `Test_termination, `Test_termination_auxiliary,
-    `Test_mword, `Test_mword_auxiliary
+    `Test_mword, `Test_mword_auxiliary,
+    `Test_class_instance_constraints, `Test_class_instance_constraints_auxiliary,
+    `Test_pattern_complex, `Test_pattern_complex_auxiliary,
+    `Test_mutual_indreln, `Test_mutual_indreln_auxiliary,
+    `Test_set_comprehension_advanced, `Test_set_comprehension_advanced_auxiliary
   ]

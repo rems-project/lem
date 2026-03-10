@@ -66,6 +66,11 @@ let lean_prop_equality : bool ref = ref false
    (e.g., abbrev mword depends on class Size which is defined later). *)
 let lean_pending_abbrevs : Output.t list ref = ref []
 
+(* Extract the name string from a type/numeric variable *)
+let tnvar_to_string = function
+  | Typed_ast.Tn_A (_, tv, _) -> Ulib.Text.to_string tv
+  | Typed_ast.Tn_N (_, nv, _) -> Ulib.Text.to_string nv
+
 (* Check if a constant's Lean target rep is == or != (BEq operators).
    Returns Some true for ==, Some false for !=, None otherwise. *)
 let check_beq_target_rep c_descr =
@@ -227,6 +232,10 @@ let generate_fresh_name () =
 type variable
   = Tyvar of Output.t
   | Nvar of Output.t
+
+let tnvar_to_variable = function
+  | Typed_ast.Tn_A _ as tv -> Tyvar (from_string (tnvar_to_string tv))
+  | Typed_ast.Tn_N _ as nv -> Nvar (from_string (tnvar_to_string nv))
 ;;
 
 module LeanBackendAux (A : sig val avoid : var_avoid_f option;; val env : env;; val dir : string;; val ascii_rep_set : Types.Cdset.t end) =
@@ -369,6 +378,12 @@ let needs_parens term =
     | Case _ | If _ | Let _ | Fun _ -> true
     | _ -> false
 
+(* Pattern rendering has two modes:
+   - FunParam: adds type annotations to variables and wildcards (needed with
+     autoImplicit=false), resolves wildcard types, wraps cons/unit in parens
+   - MatchArm: bare output for match arms and let bindings *)
+type pat_style = FunParam | MatchArm
+
     let rec def_extra (inside_instance: bool) (callback: def list -> Output.t) (inside_module: bool) (m: def_aux) =
       match m with
         | Lemma (skips, lemma_typ, targets, (name, _), skips', e) ->
@@ -392,7 +407,7 @@ let needs_parens term =
               ]
           else
             from_string "/- removed lemma intended for another backend -/"
-        | _ -> emp
+        | _ -> emp  (* def_extra only handles Lemma; all other defs handled by def *)
     and def (inside_instance: bool) (callback : def list -> Output.t) (inside_module : bool) (m : def_aux) =
       match m with
       | Type_def (skips, def) ->
@@ -431,7 +446,7 @@ let needs_parens term =
             ws skips; from_string "namespace "; name; ws skips'; ws skips'';
             body; from_string "\nend "; name; ws skips'''
           ]
-      | Rename (skips, name, mod_binding, skips', mod_descr) -> emp
+      | Rename (skips, name, mod_binding, skips', mod_descr) -> emp  (* Module renames not applicable in Lean *)
       | OpenImport (oi, ms) ->
           let (ms', sk) = B.open_to_open_target ms in
           if (ms' = []) then
@@ -455,7 +470,7 @@ let needs_parens term =
               ]
           in
           if (not (in_target targets)) then emp else Output.flat (List.map handle_mod mod_descrs)
-      | OpenImportTarget _ -> emp
+      | OpenImportTarget _ -> emp  (* Unreachable: def_trans converts all OI variants to OI_open *)
       | Indreln (skips, targets, names, cs) ->
           if in_target targets then
             let c = Seplist.to_list cs in
@@ -468,20 +483,8 @@ let needs_parens term =
           let name_str = Name.to_string (B.class_path_to_name p) in
           lean_auxiliary_opens := lean_qualified_name name_str :: !lean_auxiliary_opens;
           let name = from_string name_str in
-          let tv_kind =
-            match tv with
-              | Typed_ast.Tn_A _ -> "Type"
-              | Typed_ast.Tn_N _ -> "Nat"
-          in
-          let tv =
-            begin
-              match tv with
-                | Typed_ast.Tn_A (_, tyvar, _) ->
-                    from_string @@ Ulib.Text.to_string tyvar
-                | Typed_ast.Tn_N (_, nvar, _) ->
-                    from_string @@ Ulib.Text.to_string nvar
-            end
-          in
+          let tv_kind = match tv with Typed_ast.Tn_A _ -> "Type" | Typed_ast.Tn_N _ -> "Nat" in
+          let tv = from_string (tnvar_to_string tv) in
           let method_names = ref [] in
           let body_entries =
             List.filter_map (fun (skips, targets_opt, (name, l), const_descr_ref, ascii_rep_opt, skips', src_t) ->
@@ -700,7 +703,7 @@ let needs_parens term =
           comment
         | None -> comment
         end
-      | _ -> emp
+      | _ -> emp  (* Unhandled def_aux nodes (e.g. target-specific constructs) *)
     and val_def inside_instance i_ref_opt is_recursive try_term def tv_set class_constraints =
       begin
         let constraints =
@@ -869,18 +872,18 @@ let needs_parens term =
           let c_descr = c_env_lookup Ast.Unknown A.env.c_env c_ref in
           let (_, renamed_name, _) = Typed_ast_syntax.constant_descr_to_name (Target.Target_no_ident Target.Target_lean) c_descr in
           let name_string = Name.to_string renamed_name in
-          let bodies = List.filter (compare_clauses_by_name name) clause_list in
-          let index_types =
-            match bodies with
+          let matching_clauses = List.filter (compare_clauses_by_name name) clause_list in
+          let index_type_parts =
+            match matching_clauses with
               | [] -> [from_string "Prop"]
-              | (Rule(_,_, _, _, _, _, _, _, _, exp_list),_)::xs ->
+              | (Rule(_,_, _, _, _, _, _, _, _, exp_list),_)::_ ->
                   List.map (fun t ->
                     Output.flat [
                       from_string "("; indreln_typ @@ C.t_to_src_t (Typed_ast.exp_to_typ t); from_string ")"
                     ]
                   ) exp_list
           in
-          let bodies =
+          let clause_outputs =
             List.map (fun (Rule(name_lskips_t, skips0, skips, name_lskips_annot_list, skips', exp_opt, skips'', name_lskips_annot, c, exp_list),_) ->
               let constructor_name = from_string (Name.to_string (Name.strip_lskip name_lskips_t)) in
               let antecedent =
@@ -915,42 +918,52 @@ let needs_parens term =
               let binder, binder_sep =
                 match name_lskips_annot_list with
                   | [] -> emp, emp
-                  | x::xs -> from_string "∀ ", from_string ", "
+                  | _ -> from_string "∀ ", from_string ", "
               in
               let indices = concat_str " " @@ List.map (exp inside_instance) exp_list in
-              let index_free_vars = List.map (fun t -> Types.free_vars (Typed_ast.exp_to_typ t)) exp_list in
-              let index_free_vars = List.fold_right Types.TNset.union index_free_vars Types.TNset.empty in
-              let index_free_vars_typeset = concat_str " " @@ List.map (fun v -> from_string (Name.to_string (Types.tnvar_to_name v))) (Types.TNset.elements index_free_vars) in
+              let index_free_vars_set =
+                List.fold_right Types.TNset.union
+                  (List.map (fun t -> Types.free_vars (Typed_ast.exp_to_typ t)) exp_list)
+                  Types.TNset.empty
+              in
+              let index_free_vars_typeset = concat_str " " @@ List.map (fun v -> from_string (Name.to_string (Types.tnvar_to_name v))) (Types.TNset.elements index_free_vars_set) in
               let relation_name = from_string name_string in
                 Output.flat [
                   from_string "  | "; constructor_name; from_string " : ";
                   binder; bound_variables; binder_sep; antecedent;
                   relation_name; from_string " "; index_free_vars_typeset; from_string " "; indices
-                ], index_free_vars
-            ) bodies
+                ], index_free_vars_set
+            ) matching_clauses
           in
-          let free_vars = List.map (fun (x, y) -> y) bodies in
-          let free_vars = Types.TNset.elements @@ List.fold_right Types.TNset.union free_vars Types.TNset.empty in
+          let all_free_vars =
+            Types.TNset.elements @@
+            List.fold_right Types.TNset.union (List.map snd clause_outputs) Types.TNset.empty
+          in
           let free_vars_typeset =
             concat_str " " @@ List.map (fun v ->
               Output.flat [
                 from_string "("; from_string (Name.to_string (Types.tnvar_to_name v)); from_string " : Type)"
-              ]) free_vars
+              ]) all_free_vars
           in
-          let index_types =
+          let index_type_sig =
             Output.flat [
-              concat_str " → " index_types; from_string " → Prop"
+              concat_str " → " index_type_parts; from_string " → Prop"
             ]
           in
-          let bodies = concat_str "\n" @@ List.map (fun (x, y) -> x) bodies in
+          let clause_body = concat_str "\n" @@ List.map fst clause_outputs in
           Output.flat [
-            from_string name_string; from_string " "; free_vars_typeset; from_string " : "; index_types; from_string " where\n";
-            bodies
+            from_string name_string; from_string " "; free_vars_typeset; from_string " : "; index_type_sig; from_string " where\n";
+            clause_body
           ]
         ) gathered
       in
+        let is_mutual = List.length indrelns > 1 in
+        let prefix = if is_mutual then from_string "\nmutual" else emp in
+        let suffix = if is_mutual then from_string "\nend" else emp in
         Output.flat [
-          from_string "\ninductive "; concat_str "\n" indrelns
+          prefix;
+          from_string "\ninductive "; concat_str "\ninductive " indrelns;
+          suffix
         ]
     and let_body inside_instance i_ref_opt top_level tv_set ((lb, _):letbind) =
       match lb with
@@ -1463,14 +1476,9 @@ let needs_parens term =
               from_string " /- "; from_string explanation; from_string " -/"
             ]
     and fun_pattern_list inside_instance ps =
-      let f =
-        if inside_instance then
-          def_pattern
-        else
-          fun_pattern
-      in
+      let style = if inside_instance then MatchArm else FunParam in
         Output.flat [
-          from_string " "; (concat_str " " @@ List.map f ps)
+          from_string " "; (concat_str " " @@ List.map (pattern ~style) ps)
         ]
     and src_t_has_wild t =
       match t.term with
@@ -1480,7 +1488,9 @@ let needs_parens term =
         | Typ_app (_, ts) -> List.exists src_t_has_wild ts
         | Typ_paren (_, t, _) -> src_t_has_wild t
         | _ -> false
-    and fun_pattern p =
+    and pattern ~(style : pat_style) p =
+      let self p = pattern ~style p in
+      let bare p = pattern ~style:MatchArm p in
       match p.term with
         | P_wild skips ->
           let skips =
@@ -1489,55 +1499,77 @@ let needs_parens term =
             else
               ws skips
           in
-          let t = C.t_to_src_t p.typ in
-            Output.flat [
-              from_string "("; skips; from_string "_ : "; pat_typ t; from_string ")"
-            ]
+            (match style with
+            | FunParam ->
+              let t = C.t_to_src_t p.typ in
+              Output.flat [from_string "("; skips; from_string "_ : "; pat_typ t; from_string ")"]
+            | MatchArm ->
+              Output.flat [skips; from_string "_"])
         | P_var v ->
-          let name = lskips_t_to_output v in
-          let t = C.t_to_src_t p.typ in
-            Output.flat [
-              from_string "("; name; from_string " : "; pat_typ t; from_string ")"
-            ]
-        | P_lit { term = L_unit _; _ } -> from_string "(_ : Unit)"
-        | P_lit l -> literal l
+            (match style with
+            | FunParam ->
+              let name = lskips_t_to_output v in
+              let t = C.t_to_src_t p.typ in
+              Output.flat [from_string "("; name; from_string " : "; pat_typ t; from_string ")"]
+            | MatchArm ->
+              Name.to_output Term_var v)
+        | P_lit l ->
+            (match style, l.term with
+            | FunParam, L_unit _ -> from_string "(_ : Unit)"
+            | _ -> literal l)
         | P_as (skips, p, skips', (n, l), skips'') ->
           let name = Name.to_output Term_var n in
             Output.flat [
-              ws skips; name; from_string "@("; fun_pattern p; from_string ")"; ws skips''
+              ws skips; name; from_string "@("; self p; from_string ")"; ws skips''
             ]
         | P_typ (skips, p, skips', t, skips'') ->
-            (* When source type has wildcards, use the resolved type from Lem's
-               type checker instead — Lean can't resolve partial wildcards like
-               `rel _ _` with autoImplicit=false *)
-            let actual_t = if src_t_has_wild t then C.t_to_src_t p.typ else t in
-            Output.flat [
-              ws skips; from_string "("; def_pattern p; ws skips'; from_string " :";
-              ws skips''; pat_typ actual_t; from_string ")"
-            ]
+            (match style with
+            | FunParam ->
+              (* When source type has wildcards, use the resolved type from Lem's
+                 type checker instead — Lean can't resolve partial wildcards like
+                 `rel _ _` with autoImplicit=false *)
+              let actual_t = if src_t_has_wild t then C.t_to_src_t p.typ else t in
+              Output.flat [
+                ws skips; from_string "("; bare p; ws skips'; from_string " :";
+                ws skips''; pat_typ actual_t; from_string ")"
+              ]
+            | MatchArm ->
+              Output.flat [
+                ws skips; from_string "("; self p; from_string " : "; pat_typ t; from_string ")"; ws skips'
+              ])
         | P_tup (skips, ps, skips') ->
-          let body = flat @@ Seplist.to_sep_list fun_pattern (sep @@ from_string ", ") ps in
-            Output.flat [
-              ws skips; from_string "("; body; ws skips'; from_string ")"
-            ]
+          let body = flat @@ Seplist.to_sep_list self (sep @@ from_string ", ") ps in
+            (match style with
+            | FunParam ->
+              Output.flat [ws skips; from_string "("; body; ws skips'; from_string ")"]
+            | MatchArm ->
+              Output.flat [ws skips; from_string "("; body; from_string ")"; ws skips'])
         | P_record (_, fields, _) ->
             print_and_fail p.locn "illegal record pattern in code extraction, should have been compiled away"
         | P_cons (p1, skips, p2) ->
-            Output.flat [
-              from_string "("; def_pattern p1; ws skips; from_string " :: "; def_pattern p2; from_string ")"
-            ]
-        | P_var_annot (n, t) ->
-            let name = Name.to_output Term_var n in
+            (match style with
+            | FunParam ->
               Output.flat [
-                from_string "("; name; from_string " : "; pat_typ t; from_string ")"
+                from_string "("; bare p1; ws skips; from_string " :: "; bare p2; from_string ")"
               ]
+            | MatchArm ->
+              Output.flat [
+                self p1; ws skips; from_string " :: "; self p2
+              ])
+        | P_var_annot (n, t) ->
+            (match style with
+            | FunParam ->
+              let name = Name.to_output Term_var n in
+              Output.flat [from_string "("; name; from_string " : "; pat_typ t; from_string ")"]
+            | MatchArm ->
+              Name.to_output Term_var n)
         | P_list (skips, ps, skips') ->
-          let body = flat @@ Seplist.to_sep_list_last Seplist.Optional fun_pattern (sep @@ from_string ", ") ps in
+          let body = flat @@ Seplist.to_sep_list_last Seplist.Optional self (sep @@ from_string ", ") ps in
             Output.flat [
               ws skips; from_string "["; body; from_string "]"; ws skips'
             ]
         | P_vector (skips, ps, skips') ->
-          let body = flat @@ Seplist.to_sep_list_last Seplist.Optional fun_pattern (sep @@ from_string ", ") ps in
+          let body = flat @@ Seplist.to_sep_list_last Seplist.Optional self (sep @@ from_string ", ") ps in
             Output.flat [
               ws skips; from_string "["; body; from_string "]"; ws skips'
             ]
@@ -1545,86 +1577,25 @@ let needs_parens term =
             raise (Reporting_basic.err_general true p.locn
               "Lean backend: vector concatenation patterns are not supported")
         | P_paren (skips, p, skips') ->
-            Output.flat [
-              ws skips; from_string "("; fun_pattern p; ws skips'; from_string ")"
-            ]
+            (match style with
+            | FunParam ->
+              Output.flat [ws skips; from_string "("; self p; ws skips'; from_string ")"]
+            | MatchArm ->
+              Output.flat [from_string "("; ws skips; self p; ws skips'; from_string ")"])
         | P_const(cd, ps) ->
-            let oL = B.pattern_application_to_output p.locn fun_pattern cd ps (use_ascii_rep_for_const cd.descr) in
+            let oL = B.pattern_application_to_output p.locn self cd ps (use_ascii_rep_for_const cd.descr) in
             concat (from_string " ") oL
         | P_backend(sk, i, _, ps) ->
             ws sk ^
             Ident.to_output (Term_const (false, true)) path_sep (Ident.replace_lskip i Typed_ast.no_lskips) ^
-            concat (from_string " ") (List.map fun_pattern ps)
+            concat (from_string " ") (List.map self ps)
         | P_num_add ((name, l), skips, skips', k) ->
             let name = lskips_t_to_output name in
               Output.flat [
                 ws skips; from_string "("; name; from_string " + "; from_string (Z.to_string k); from_string ")"
               ]
-    and def_pattern p =
-      match p.term with
-        | P_wild skips ->
-          let skips =
-            if skips = Typed_ast.no_lskips then
-              from_string " "
-            else
-              ws skips
-          in
-            Output.flat [
-              skips; from_string "_"
-            ]
-        | P_var v -> Name.to_output Term_var v
-        | P_lit l -> literal l
-        | P_as (skips, p, skips', (n, l), skips'') ->
-          let name = Name.to_output Term_var n in
-            Output.flat [
-              ws skips; name; from_string "@("; def_pattern p; from_string ")"; ws skips''
-            ]
-        | P_typ (skips, p, _, t, skips') ->
-            Output.flat [
-              ws skips; from_string "("; def_pattern p; from_string " : "; pat_typ t; from_string ")"; ws skips'
-            ]
-        | P_tup (skips, ps, skips') ->
-          let body = flat @@ Seplist.to_sep_list def_pattern (sep @@ from_string ", ") ps in
-            Output.flat [
-              ws skips; from_string "("; body; from_string ")"; ws skips'
-            ]
-        | P_record (_, fields, _) ->
-            print_and_fail p.locn "illegal record pattern in code extraction, should have been compiled away"
-        | P_cons (p1, skips, p2) ->
-            Output.flat [
-              def_pattern p1; ws skips; from_string " :: "; def_pattern p2
-            ]
-        | P_var_annot (n, t) ->
-            Name.to_output Term_var n
-        | P_list (skips, ps, skips') ->
-          let body = flat @@ Seplist.to_sep_list_last Seplist.Optional def_pattern (sep @@ from_string ", ") ps in
-            Output.flat [
-              ws skips; from_string "["; body; from_string "]"; ws skips'
-            ]
-        | P_vector (skips, ps, skips') ->
-          let body = flat @@ Seplist.to_sep_list_last Seplist.Optional def_pattern (sep @@ from_string ", ") ps in
-            Output.flat [
-              ws skips; from_string "["; body; from_string "]"; ws skips'
-            ]
-        | P_vectorC _ ->
-            raise (Reporting_basic.err_general true p.locn
-              "Lean backend: vector concatenation patterns are not supported")
-        | P_paren (skips, p, skips') ->
-            Output.flat [
-              from_string "("; ws skips; def_pattern p; ws skips'; from_string ")"
-            ]
-        | P_const(cd, ps) ->
-            let oL = B.pattern_application_to_output p.locn def_pattern cd ps (use_ascii_rep_for_const cd.descr) in
-            concat (from_string " ") oL
-        | P_backend(sk, i, _, ps) ->
-            ws sk ^
-            Ident.to_output (Term_const (false, true)) path_sep (Ident.replace_lskip i Typed_ast.no_lskips) ^
-            concat (from_string " ") (List.map def_pattern ps)
-        | P_num_add ((name, l), skips, skips', k) ->
-            let name = lskips_t_to_output name in
-              Output.flat [
-                ws skips; from_string "("; name; from_string " + "; from_string (Z.to_string k); from_string ")"
-              ]
+    and fun_pattern p = pattern ~style:FunParam p
+    and def_pattern p = pattern ~style:MatchArm p
     and src_t_has_fn (t : src_t) : bool =
       match t.term with
         | Typ_fn _ -> true
@@ -1726,11 +1697,7 @@ let needs_parens term =
       let n = B.type_path_to_name n0 t_path in
       let name = Name.to_output (Type_ctor (false, false)) n in
       let ty_vars =
-        List.map (
-          function
-            | Typed_ast.Tn_A (_, tyvar, _) -> Tyvar (from_string @@ Ulib.Text.to_string tyvar)
-            | Typed_ast.Tn_N (_, nvar, _) -> Nvar (from_string @@ Ulib.Text.to_string nvar)
-          ) ty_vars
+        List.map tnvar_to_variable ty_vars
       in
         match ty with
           | Te_opaque ->
@@ -1747,11 +1714,7 @@ let needs_parens term =
       let n = B.type_path_to_name n0 t_path in
       let name = Name.to_output (Type_ctor (false, false)) n in
       let ty_vars_list =
-        List.map (
-          function
-            | Typed_ast.Tn_A (_, tyvar, _) -> Tyvar (from_string @@ Ulib.Text.to_string tyvar)
-            | Typed_ast.Tn_N (_, nvar, _) -> Nvar (from_string @@ Ulib.Text.to_string nvar)
-          ) ty_vars
+        List.map tnvar_to_variable ty_vars
       in
       let indices =
         if List.length ty_vars_list = 0 then emp
@@ -1958,17 +1921,10 @@ let needs_parens term =
         | [Typed_ast.Tn_A tv] -> from_string "(" ^ tyvar tv ^ from_string " : Type)"
         | tvs ->
           let mapped = List.map (fun t ->
-            match t with
-              | Typed_ast.Tn_A (_, tv_name, _) ->
-                let tv_out = from_string @@ Ulib.Text.to_string tv_name in
-                  Output.flat [
-                    from_string "("; tv_out; from_string " : Type)"
-                  ]
-              | Typed_ast.Tn_N (_, nv_name, _) ->
-                let nv_out = from_string @@ Ulib.Text.to_string nv_name in
-                  Output.flat [
-                    from_string "("; nv_out; from_string " : Nat)"
-                  ]) tvs
+            let name = tnvar_to_string t in
+            let kind = match t with Typed_ast.Tn_A _ -> "Type" | Typed_ast.Tn_N _ -> "Nat" in
+            Output.flat [from_string "("; from_string name; from_string " : "; from_string kind; from_string ")"]
+          ) tvs
           in
             Output.flat [
               from_string " "; concat_str " " mapped
@@ -2029,18 +1985,17 @@ let needs_parens term =
             ]
         | tvs ->
           let mapped = List.map (fun t ->
+            let name = from_string (tnvar_to_string t) in
             match t with
-              | Typed_ast.Tn_A (_, tv_name, _) ->
-                let tv_out = from_string @@ Ulib.Text.to_string tv_name in
-                  Output.flat [
-                    from_string " {"; tv_out; from_string " : Type}";
-                    from_string " [Inhabited "; tv_out; from_string "]"
-                  ]
-              | Typed_ast.Tn_N (_, nv_name, _) ->
-                let nv_out = from_string @@ Ulib.Text.to_string nv_name in
-                  Output.flat [
-                    from_string " {"; nv_out; from_string " : Nat}"
-                  ]) tvs
+              | Typed_ast.Tn_A _ ->
+                Output.flat [
+                  from_string " {"; name; from_string " : Type}";
+                  from_string " [Inhabited "; name; from_string "]"
+                ]
+              | Typed_ast.Tn_N _ ->
+                Output.flat [
+                  from_string " {"; name; from_string " : Nat}"
+                ]) tvs
           in
             concat emp mapped
     (* Check if a source type references any of the given paths (mutual type detection) *)
@@ -2151,12 +2106,7 @@ let needs_parens term =
               | None -> from_string "sorry /- mutual type -/")
           | _ -> generate_default_value_texp t
       in
-      let tnvar_names = concat_str " " @@ List.map (fun x ->
-        match x with
-          | Typed_ast.Tn_A (_, tv_name, _) -> from_string (Ulib.Text.to_string tv_name)
-          | Typed_ast.Tn_N (_, nv_name, _) -> from_string (Ulib.Text.to_string nv_name)
-        ) tnvar_list
-      in
+      let tnvar_names = concat_str " " @@ List.map (fun x -> from_string (tnvar_to_string x)) tnvar_list in
       let type_args =
         if List.length tnvar_list = 0 then emp
         else Output.flat [from_string " "; tnvar_names]
@@ -2173,12 +2123,7 @@ let needs_parens term =
           let n = B.type_path_to_name name path in
           let o = lskips_t_to_output n in
           let tnvar_list' = default_type_variables tnvar_list in
-          let tnvar_names = concat_str " " @@ List.map (fun x ->
-            match x with
-              | Typed_ast.Tn_A (_, tv_name, _) -> from_string (Ulib.Text.to_string tv_name)
-              | Typed_ast.Tn_N (_, nv_name, _) -> from_string (Ulib.Text.to_string nv_name)
-            ) tnvar_list
-          in
+          let tnvar_names = concat_str " " @@ List.map (fun x -> from_string (tnvar_to_string x)) tnvar_list in
           let type_args =
             if List.length tnvar_list = 0 then emp
             else Output.flat [from_string " "; tnvar_names]
@@ -2192,8 +2137,8 @@ let needs_parens term =
             if has_deriving then
               let extra_constraints = concat emp @@ List.filter_map (fun t ->
                 match t with
-                  | Typed_ast.Tn_A (_, tv_name, _) ->
-                    let tv = from_string @@ Ulib.Text.to_string tv_name in
+                  | Typed_ast.Tn_A _ ->
+                    let tv = from_string (tnvar_to_string t) in
                     Some (Output.flat [
                       from_string " [BEq "; tv; from_string "]";
                       from_string " [Ord "; tv; from_string "]"
@@ -2212,13 +2157,9 @@ let needs_parens term =
                  Lem-sourced Eq instances may not have [Inhabited], so they need
                  a BEq that's available unconditionally. *)
               let bare_tvs = concat emp @@ List.map (fun t ->
-                match t with
-                  | Typed_ast.Tn_A (_, tv_name, _) ->
-                    let tv_out = from_string @@ Ulib.Text.to_string tv_name in
-                    Output.flat [from_string " {"; tv_out; from_string " : Type}"]
-                  | Typed_ast.Tn_N (_, nv_name, _) ->
-                    let nv_out = from_string @@ Ulib.Text.to_string nv_name in
-                    Output.flat [from_string " {"; nv_out; from_string " : Nat}"]
+                let name = tnvar_to_string t in
+                let kind = match t with Typed_ast.Tn_A _ -> "Type" | Typed_ast.Tn_N _ -> "Nat" in
+                Output.flat [from_string " {"; from_string name; from_string " : "; from_string kind; from_string "}"]
               ) tnvar_list in
               (Output.flat [
                 from_string "\ninstance"; bare_tvs; from_string " : BEq ("; o;
@@ -2251,12 +2192,16 @@ let needs_parens term =
             ]
     and generate_default_values ts : Output.t =
       let ts = Seplist.to_list ts in
-      (* Skip instance generation for opaque types (zero-constructor inductives
-         like phantom types ty1..ty4096). These types are uninhabitable —
-         they exist only to carry type-level information (e.g., bit widths
-         via Size). Generating sorry-based instances is unsound and produces
-         compiler warnings. *)
-      let ts = List.filter (fun (_, _, _, t, _) -> t <> Te_opaque) ts in
+      (* In library modules, skip instance generation for opaque types
+         (zero-constructor inductives like phantom types ty1..ty4096).
+         These types carry only type-level information (e.g., bit widths
+         via Size) and are never used as data — sorry-based instances are
+         useless and produce compiler warnings.
+         In user modules, opaque types (e.g., tid, location in cmm.lem) may
+         appear as constructor arguments, so downstream types need their
+         BEq/Ord instances for deriving to work. *)
+      let is_lib = is_library_module !lean_current_module_name in
+      let ts = if is_lib then List.filter (fun (_, _, _, t, _) -> t <> Te_opaque) ts else ts in
       (* Treat each single type like a mutual block of one, so self-referential
          constructors (e.g. Unop : op → op0 → op1 → op1) are detected and
          avoided when generating the Inhabited instance. *)
@@ -2266,7 +2211,8 @@ let needs_parens term =
         Output.flat [concat_str "\n" mapped; concat emp beq_instances]
     and generate_default_values_mutual ts : Output.t =
       let ts_list = Seplist.to_list ts in
-      let ts_list = List.filter (fun (_, _, _, t, _) -> t <> Te_opaque) ts_list in
+      let is_lib = is_library_module !lean_current_module_name in
+      let ts_list = if is_lib then List.filter (fun (_, _, _, t, _) -> t <> Te_opaque) ts_list else ts_list in
       let mutual_paths = List.map (fun ((_, _), _, path, _, _) -> path) ts_list in
       let mapped = List.map (generate_inhabited_instance mutual_paths) ts_list in
       (* Check if mutual block has heterogeneous param counts (Type 1 universe) *)
@@ -2311,6 +2257,12 @@ module CdsetE = Util.ExtraSet(Types.Cdset)
 module LeanBackend (A : sig val avoid : var_avoid_f option;; val env : env;; val dir : string end) =
   struct
 
+    (* Main definition processor: emits def output with location comments.
+       Intentionally parallel to defs_extra below — they share the module
+       setup but differ in which method they call (C.def vs C.def_extra)
+       and whether location comments are prepended. Unifying them would
+       require first-class modules which adds more complexity than the
+       duplication costs. *)
     let rec defs inside_instance inside_module (ds : def list) =
         List.fold_right (fun (((d, s), l, lenv):def) y ->
           let ue = add_def_entities (Target_no_ident Target_lean) true empty_used_entities ((d,s),l,lenv) in
@@ -2329,6 +2281,7 @@ module LeanBackend (A : sig val avoid : var_avoid_f option;; val env : env;; val
             | None   -> C.def inside_instance callback inside_module d' ^ y
             | Some s -> C.def inside_instance callback inside_module d' ^ ws s ^ y
         ) ds emp
+    (* Auxiliary file processor: emits def_extra output without location comments. *)
     and defs_extra inside_instance inside_module (ds: def list) =
         List.fold_right (fun (((d, s), l, lenv):def) y ->
           let ue = add_def_entities (Target_no_ident Target_lean) true empty_used_entities ((d,s),l,lenv) in

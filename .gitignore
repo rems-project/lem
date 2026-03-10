@@ -40,6 +40,9 @@ tests/comprehensive/lean-test/*_auxiliary.lean
 examples/cpp/Cmm.lean
 examples/cpp/Cmm_auxiliary.lean
 
+# Local files
+TODO.md
+
 # Tool directories
 .claude/
 _opam/
