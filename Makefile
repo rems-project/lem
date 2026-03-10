@@ -98,7 +98,7 @@ lean-libs:
 lean-tests: bin/lem lean-libs
 	cd lean-lib && lake build
 	$(MAKE) -C tests/backends leantests
-	cd tests/comprehensive && bash run_tests.sh
+	cd tests/comprehensive && bash run_tests_lean.sh
 	cd examples/ppcmem-model && \
 		../../lem -wl ign -lean \
 			bitwiseCompatibility.lem \
