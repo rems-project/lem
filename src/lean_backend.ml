@@ -386,8 +386,6 @@ let field_ident_to_output fd ascii_alternative =
     from_string (Name.to_string stripped)
 ;;
 
-let typ_ident_to_output (p : Path.t id) = B.type_id_to_output p
-
 (* Lean 4's greedy parser extends match/if/let/fun rightward, consuming
    subsequent tokens. These forms must be parenthesized when nested inside:
    - function arguments: f (match ...) instead of f match ...
@@ -1059,8 +1057,9 @@ type pat_style = FunParam | MatchArm
               Output.flat [
                 p; tv_set_sep; tv_set; topt; ws skips; from_string " :="; e
               ]
-        | Let_fun (n, pats, typ_opt, skips, e) ->
-          funcl_aux inside_instance i_ref_opt emp tv_set (n.term, pats, typ_opt, skips, e)
+        | Let_fun _ ->
+            (* Pattern compilation transforms Let_fun into funcl before the backend *)
+            raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: unexpected Let_fun in let_body (should be compiled away)")
     and funcl_aux inside_instance i_ref_opt constraints tv_set (n, pats, typ_opt, skips, e) =
       let name_skips = Name.get_lskip n in
       let name = from_string (Name.to_string (Name.strip_lskip n)) in
@@ -1134,7 +1133,6 @@ type pat_style = FunParam | MatchArm
           emp
         else
           from_string " " ^ concat_str " " bindings
-    and lean_function_application_to_output inside_instance l id args = B.function_application_to_output l (exp inside_instance) id args
     and exp inside_instance e =
       let is_user_exp = Typed_ast_syntax.is_pp_exp e in
         match C.exp_to_term e with
@@ -1964,35 +1962,6 @@ type pat_style = FunParam | MatchArm
             Output.flat [
               i; space; concat emp ts_out
             ]
-    and typ t =
-      match t.term with
-        | Typ_wild skips -> ws skips ^ from_string "_"
-        | Typ_var (skips, v) -> id Type_var @@ Ulib.Text.(^^^) (r"") (Tyvar.to_rope v)
-        | Typ_fn (t1, skips, t2) -> typ t1 ^ ws skips ^ kwd "→" ^ typ t2
-        | Typ_tup ts ->
-            let body = flat @@ Seplist.to_sep_list typ (sep @@ from_string " ×") ts in
-              from_string "(" ^ body ^ from_string ")"
-        | Typ_app (p, ts) ->
-            if Path.compare p.descr Path.unitpath = 0 then
-              let sk = Typed_ast.ident_get_lskip p in
-              Output.flat [ ws sk; from_string "Unit" ]
-            else
-              let args = concat_str " " @@ List.map typ ts in
-              let args_space = if ts <> [] then from_string " " else emp in
-              Output.flat [ typ_ident_to_output p; args_space; args ]
-        | Typ_paren (skips, t, skips') ->
-            ws skips ^ from_string "(" ^ typ t ^ from_string ")" ^ ws skips'
-        | Typ_with_sort (t, sort) -> raise (Reporting_basic.err_general true t.locn "Lean backend: target sort annotations are not supported")
-        | Typ_len nexp -> src_nexp nexp
-        | Typ_backend (p, ts) ->
-          let i = Path.to_ident (ident_get_lskip p) p.descr in
-          let i = Ident.to_output (Type_ctor (false, true)) path_sep i in
-          let ts_out = List.map typ ts in
-          let space = if ts_out = [] then emp else from_string " " in
-            Output.flat [
-              i; space; concat emp ts_out
-            ]
-        | _ -> raise (Reporting_basic.err_general true t.locn "Lean backend: unexpected type form in typ")
     and type_def_type_variables tvs =
       match tvs with
         | [] -> emp
@@ -2135,20 +2104,10 @@ type pat_style = FunParam | MatchArm
               Output.flat [
                 from_string "{ "; fields; from_string " }"
               ]
-        | Te_variant (_, seplist) ->
-            (match Seplist.to_list seplist with
-              | [] -> raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: empty variant in Inhabited instance generation")
-              | x::_xs ->
-                let ((name, _l), const_descr_ref, _, src_ts) = x in
-                  let name = B.const_ref_to_name name false const_descr_ref in
-                  let ys = Seplist.to_list src_ts in
-                  let mapped = List.map default_value_inhabited ys in
-                  let sep = if List.length mapped = 0 then emp else from_string " " in
-                  let mapped = concat_str " " mapped in
-                  let o = lskips_t_to_output name in
-                    Output.flat [
-                      o; sep; mapped
-                    ])
+        | Te_variant _ ->
+            (* Unreachable: generate_inhabited_instance handles Te_variant
+               directly via find_safe_ctor_for_mutual before calling this function *)
+            raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: Te_variant in generate_default_value_texp is unreachable")
     (* Render a constructor call for an Inhabited default value *)
     and render_ctor_default ((ctor_name, _), ctor_ref, _, src_ts) =
       let n = B.const_ref_to_name ctor_name false ctor_ref in
