@@ -92,7 +92,7 @@ lean-libs:
 #   1. Build the compiler
 #   2. Regenerate and compile the Lean library (lean-lib/)
 #   3. Backend tests (tests/backends/ — 12 .lem files)
-#   4. Comprehensive tests (tests/comprehensive/ — 32 .lem files, 288+ assertions)
+#   4. Comprehensive tests (tests/comprehensive/ — 36 .lem files, 251+ assertions)
 #   5. ppcmem-model example (examples/ppcmem-model/ — 10 .lem files)
 #   6. cpp example (examples/cpp/ — 1 large .lem file, ~1930 lines generated)
 lean-tests: bin/lem lean-libs
