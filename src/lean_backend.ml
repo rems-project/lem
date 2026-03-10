@@ -492,7 +492,9 @@ type pat_style = FunParam | MatchArm
               ]
           in
           if (not (in_target targets)) then emp else Output.flat (List.map handle_mod mod_descrs)
-      | OpenImportTarget _ -> emp  (* Unreachable: def_trans converts all OI variants to OI_open *)
+      | OpenImportTarget _ ->
+          (* Unreachable: def_trans converts all OI variants to OI_open *)
+          raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: unexpected non-OI_open OpenImportTarget")
       | Indreln (skips, targets, names, cs) ->
           if in_target targets then
             let c = Seplist.to_list cs in
@@ -744,7 +746,8 @@ type pat_style = FunParam | MatchArm
           comment
         | None -> comment
         end
-      | _ -> emp  (* Unhandled def_aux nodes (e.g. target-specific constructs) *)
+      | Declaration _ -> emp  (* Declarations (target_rep, rename, etc.) are processed earlier *)
+      | Lemma _ -> emp  (* Lemmas are handled by def_extra, not def *)
     and val_def inside_instance i_ref_opt is_recursive try_term def tv_set class_constraints =
       begin
         let constraints =
@@ -1573,7 +1576,7 @@ type pat_style = FunParam | MatchArm
       let bare p = pattern ~style:MatchArm p in
       match p.term with
         | P_wild skips ->
-          let skips =
+          let skips_out =
             if skips = Typed_ast.no_lskips then
               from_string " "
             else
@@ -1582,9 +1585,9 @@ type pat_style = FunParam | MatchArm
             (match style with
             | FunParam ->
               let t = C.t_to_src_t p.typ in
-              Output.flat [from_string "("; skips; from_string "_ : "; pat_typ t; from_string ")"]
+              Output.flat [from_string "("; skips_out; from_string "_ : "; pat_typ t; from_string ")"]
             | MatchArm ->
-              Output.flat [skips; from_string "_"])
+              Output.flat [skips_out; from_string "_"])
         | P_var v ->
             (match style with
             | FunParam ->

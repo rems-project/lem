@@ -220,10 +220,10 @@ def setCase (s : List α) (empty : β) (single : α → β) (otherwise : β) : �
   | [x] => single x
   | _ :: _ => otherwise
 
-def setChoose (s : List α) : α :=
+def setChoose [Inhabited α] (s : List α) : α :=
   match s with
   | x :: _ => x
-  | [] => sorry /- unreachable: choose is only defined for non-empty sets -/
+  | [] => panic! "setChoose: empty set"
 
 def chooseAndSplit (cmp : α → α → LemOrdering) (s : List α) : Option (List α × α × List α) :=
   match s with
