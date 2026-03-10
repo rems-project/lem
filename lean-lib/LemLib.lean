@@ -20,6 +20,12 @@ axiom DAEMON : ∀ {α : Type}, α
 /- Lem uses lowercase 'vector' for its built-in vector type -/
 abbrev vector (α : Type) (n : Nat) := Vector α n
 
+/- Vector slice: v.[i..j] extracts elements from index i to j (half-open) -/
+namespace Vector
+def slice [Inhabited α] {n m : Nat} (v : Vector α n) (start _stop : Nat) : Vector α m :=
+  Vector.ofFn fun i => (v.toArray.extract start (start + m)).getD i.val default
+end Vector
+
 /- Ordering type for comparisons -/
 inductive LemOrdering where
   | LT : LemOrdering
