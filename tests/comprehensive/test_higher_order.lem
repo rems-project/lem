@@ -1,0 +1,46 @@
+open import Pervasives_extra
+
+(* === Identity and constant functions === *)
+let my_id x = x
+let my_const x _ = x
+
+(* === Higher-order: map, filter, fold === *)
+let test1 = List.map (fun (x:nat) -> x + 1) [1;2;3]
+let test2 = List.filter (fun (x:nat) -> x > 2) [1;2;3;4;5]
+let test3 = List.foldl (fun acc (x:nat) -> acc + x) 0 [1;2;3]
+
+(* === Partial application === *)
+let add (x:nat) y = x + y
+let add5 = add 5
+let test4 = add5 3
+
+(* === Function composition === *)
+let compose f g x = f (g x)
+let double (x:nat) = x * 2
+let inc (x:nat) = x + 1
+let test5 = compose double inc 3
+
+(* === Functions returning functions === *)
+let make_adder (n:nat) = fun x -> x + n
+let test6 = (make_adder 10) 5
+
+(* === Nested lambdas === *)
+let test7 = (fun (x:nat) -> fun y -> fun z -> x + y + z) 1 2 3
+
+(* === Apply function to each element === *)
+let apply_both f g (x : nat) = (f x, g x)
+let test8 = apply_both double inc 5
+
+(* === Higher-order with polymorphism === *)
+val twice : forall 'a. ('a -> 'a) -> 'a -> 'a
+let twice f x = f (f x)
+let test9 = twice (fun (x:nat) -> x + 1) 0
+let test10 = twice (fun (x:nat) -> x * 2) 1
+
+assert test3_ok : (test3 = (6:nat))
+assert test4_ok : (test4 = (8:nat))
+assert test5_ok : (test5 = (8:nat))
+assert test6_ok : (test6 = (15:nat))
+assert test7_ok : (test7 = (6:nat))
+assert test9_ok : (test9 = (2:nat))
+assert test10_ok : (test10 = (4:nat))

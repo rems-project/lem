@@ -138,18 +138,18 @@ let adjacent_less_than_such_that pred ord s x y =
     pred x && (x,y) IN ord && not (exists (z IN s). pred z && (x,z) IN ord && (z,y) IN ord)
 
 val finite_prefixes : forall 'a. SetType 'a, Eq 'a => set ('a * 'a) -> set 'a -> bool
-let ~{ ocaml;coq} finite_prefixes r s =
+let ~{ ocaml;coq;lean} finite_prefixes r s =
       forall (b IN s). finite { a | forall a | (a,b) IN r}
-let {ocaml; coq} finite_prefixes r s = true
+let {ocaml; coq; lean} finite_prefixes r s = true
 declare hol target_rep function finite_prefixes = `finite_prefixes`
 
 
 val countable : forall 'a. set 'a -> bool
-let {ocaml; coq; isabelle; tex} countable s = true
+let {ocaml; coq; lean; isabelle; tex} countable s = true
 declare hol target_rep function countable = `countable`
 
 val minimal_elements: forall 'a. set 'a -> set ('a * 'a) -> set 'a
-let {ocaml; coq; isabelle; tex} minimal_elements s r = s
+let {ocaml; coq; lean; isabelle; tex} minimal_elements s r = s
 declare hol target_rep function minimal_elements = `minimal_elements`
 
 
@@ -285,7 +285,7 @@ type named_predicate_tree =
 
 
 val named_predicate_tree_measure : forall. named_predicate_tree -> nat
-let {coq} named_predicate_tree_measure t =
+let {coq;lean} named_predicate_tree_measure t =
   match t with
     | Leaf _ -> 0
     | Node l -> 1 + length l
@@ -791,7 +791,7 @@ let {hol; isabelle; tex}
             ((x,a) IN R && (x <> a) && (y = a')) ||
             ((a,a) IN R && (x = a') && (y = a'))
   }
-let {ocaml;coq}
+let {ocaml;coq;lean}
     relation_plug R a a' = {}
 
 
@@ -816,7 +816,7 @@ let same_prefix Xo1 Xo2 A =
 
 (* For all subsets of actions in a pre_execution, If there is an sb minimal read, just outside the set, then we can rewrite its value if it is a read, and then find another pre_execution containing the set of actions, with the modified read still minimal and in the same thread. *)
 val receptiveness : forall. (program -> pre_execution -> bool) -> bool
-let {ocaml;coq}
+let {ocaml;coq;lean}
     receptiveness opsem = true
 let {hol; isabelle; tex}
     receptiveness opsem =
@@ -844,7 +844,7 @@ let holds_over_prefix opsem p Xo A P =
 
 
 val extends_prefix : forall. pre_execution -> set (action) -> set (action) -> bool
-let {ocaml}
+let {ocaml;lean}
     extends_prefix Xo A A' = true
 let {hol; isabelle; tex}
     extends_prefix Xo A A' =
@@ -855,7 +855,7 @@ let {hol; isabelle; tex}
     (A union fs') subset A'
 
 val induction_support : forall. (program -> pre_execution -> bool) -> bool
-let {ocaml;coq}
+let {ocaml;coq;lean}
     induction_support opsem = true
 let {hol; isabelle; tex}
     induction_support opsem =
@@ -880,7 +880,7 @@ The above requires the fringe_set to be finite for tot_consistency and for induc
 *)
 
 val produce_well_formed_threads : forall. (program -> pre_execution -> bool) -> bool
-let {ocaml;coq}
+let {ocaml;coq;lean}
     produce_well_formed_threads opsem = true
 let {hol; isabelle; tex}
     produce_well_formed_threads opsem =
@@ -888,7 +888,7 @@ let {hol; isabelle; tex}
 
 
 val finite_action_set_has_finite_fringe : forall. (program -> pre_execution -> bool) -> bool
-let {ocaml;coq}
+let {ocaml;coq;lean}
     finite_action_set_has_finite_fringe opsem = true
 let {hol; isabelle; tex} finite_action_set_has_finite_fringe opsem =
   forall Xo p.
@@ -901,7 +901,7 @@ let {hol; isabelle; tex} finite_action_set_has_finite_fringe opsem =
 
 
 val bounded_executions : forall. (program -> pre_execution -> bool) -> bool
-let {ocaml;coq}
+let {ocaml;coq;lean}
     bounded_executions opsem = true
 let {hol; isabelle; tex} bounded_executions opsem =
   forall Xo p. exists N.

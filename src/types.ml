@@ -733,8 +733,14 @@ let type_defs_lookup l (d : type_defs) (p : Path.t) =
       | Some (Tc_type td) -> td
       | _ -> raise (env_no_type_exp l p)
 
+let type_defs_lookup_tc (d : type_defs) (p : Path.t) : tc_def option =
+    Pfmap.apply d p
+
 let type_defs_update (d : type_defs) (p : Path.t) td =
     Pfmap.insert d (p, Tc_type td)
+
+let type_defs_update_class (d : type_defs) (p : Path.t) cd =
+    Pfmap.insert d (p, Tc_class cd)
 
 let type_defs_lookup_typ l (d : type_defs) (t : t) =
     match t with 

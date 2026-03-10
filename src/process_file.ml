@@ -323,10 +323,10 @@ let output1 env (out_dir : string option) (targ : Target.target) avoid m =
                     raise (Reporting_basic.Fatal_error (Reporting_basic.Err_trans_header (l, msg)))
           end
 
-      | Target.Target_no_ident(Target.Target_coq) -> 
-          try begin
+      | Target.Target_no_ident(Target.Target_coq) ->
+          (try begin
             let (r, r_extra) = B.coq_defs m.typed_ast in
-            let _ = if (!only_auxiliary) then () else 
+            let _ = if (!only_auxiliary) then () else
               begin
                 let (o, ext_o) = open_output_with_check dir (module_name ^ ".v") in
                   Printf.fprintf o "(* %s *)\n\n" (generated_line m.filename);
@@ -360,7 +360,49 @@ let output1 env (out_dir : string option) (targ : Target.target) avoid m =
           end
             with
               | Trans.Trans_error(l,msg) ->
-                  raise (Reporting_basic.Fatal_error (Reporting_basic.Err_trans_header (l, msg)))
+                  raise (Reporting_basic.Fatal_error (Reporting_basic.Err_trans_header (l, msg))))
+
+      | Target.Target_no_ident(Target.Target_lean) ->
+          (try begin
+            Lean_backend.lean_current_module_name := module_name;
+            let (r, r_extra) = B.lean_defs m.typed_ast in
+            (* Convert dotted module names (e.g. LemLib.Bool) to path separators for Lean *)
+            let lean_module_path name =
+              let parts = String.split_on_char '.' name in
+              String.concat Filename.dir_sep parts
+            in
+            let ensure_parent_dir filename =
+              let full_path = Filename.concat dir filename in
+              let parent = Filename.dirname full_path in
+              if not (Sys.file_exists parent) then
+                ignore (Sys.command (Printf.sprintf "mkdir -p %s" (Filename.quote parent)))
+            in
+            let main_file = lean_module_path module_name ^ ".lean" in
+            let aux_file = lean_module_path module_name ^ "_auxiliary.lean" in
+            let _ = if (!only_auxiliary) then () else
+              begin
+                ensure_parent_dir main_file;
+                let (o, ext_o) = open_output_with_check dir main_file in
+                  Printf.fprintf o "/- %s -/\n\n" (generated_line m.filename);
+                  Printf.fprintf o "import LemLib\n\n";
+                  Printf.fprintf o "%s" (Ulib.Text.to_string r);
+                  close_output_with_check ext_o
+              end
+            in
+            let _ =
+              begin
+                ensure_parent_dir aux_file;
+                let (o, ext_o) = open_output_with_check dir aux_file in
+                  Printf.fprintf o "/- %s -/\n\n" (generated_line m.filename);
+                  Printf.fprintf o "import LemLib\n";
+                  Printf.fprintf o "import %s\n\n" module_name;
+                  Printf.fprintf o "%s" (Ulib.Text.to_string r_extra);
+                  close_output_with_check ext_o
+              end in ()
+          end
+            with
+              | Trans.Trans_error(l,msg) ->
+                  raise (Reporting_basic.Fatal_error (Reporting_basic.Err_trans_header (l, msg))))
 
 let output env consts (targ : Target.target)  (out_dir : string option) mods =
   List.iter

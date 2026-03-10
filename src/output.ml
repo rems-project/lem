@@ -93,6 +93,7 @@ type t =
   | Str of Ulib.Text.t             (* String literal, without surrounding "" *)
   | Err of string                  (* Causes to_rope to raise an exception *) 
   | Meta of string                 (* Data that is not subject to the target lexical convention *)
+  | Meta_utf8 of string            (* Like Meta, but the string is already UTF-8 encoded *)
   | Texspace                       (* Force latex space except at start or end of line *)
   | Internalspace                  (* An internal marker for space *)
   | Ensure_newline                 (* enters a newline if not already at beginning of line *)
@@ -123,6 +124,7 @@ let ws = function
 let str s = Str(s)
 let err s = Err(s)
 let meta s = Meta(s)
+let meta_utf8 s = Meta_utf8(s)
 
 let texspace = Texspace
 let space = ws (Some [Ast.Ws (r" ")])
@@ -156,6 +158,16 @@ let rec flat = function
   | [] -> Empty
   | x::y -> x ^ flat y
 
+(* Replace newlines with spaces in an Output.t tree.
+   Used by Lean backend to keep match alternatives on one line. *)
+let rec flatten_newlines t =
+  match t with
+  | Cons(a, b) -> Cons(flatten_newlines a, flatten_newlines b)
+  | Block(b, bt, inner) -> Block(b, bt, flatten_newlines inner)
+  | Inter(Ast.Nl) -> Inter(Ast.Ws (Ulib.Text.of_latin1 " "))
+  | Core inner -> Core (flatten_newlines inner)
+  | other -> other
+
 let comment_block min_l sl = 
   if sl = [] then emp else
   begin    
@@ -187,8 +199,8 @@ let conv = function
 
 let ns need_space t1 t2 =
   match (t1,t2) with
-    | ((Empty | Inter _ | Str _ | Err _ | Meta _ | Texspace | Internalspace | Ensure_newline | Break_hint _), _) -> false
-    | (_, (Empty | Inter _ | Str _ | Err _ | Meta _ | Texspace | Internalspace | Ensure_newline | Break_hint _)) -> false
+    | ((Empty | Inter _ | Str _ | Err _ | Meta _ | Meta_utf8 _ | Texspace | Internalspace | Ensure_newline | Break_hint _), _) -> false
+    | (_, (Empty | Inter _ | Str _ | Err _ | Meta _ | Meta_utf8 _ | Texspace | Internalspace | Ensure_newline | Break_hint _)) -> false
     | _ -> need_space (conv t1) (conv t2)
 
 
@@ -213,6 +225,7 @@ let rec extract_core = function
 let rec remove_initial_ws = function
   | Inter _ -> Empty
   | Meta "" -> Empty
+  | Meta_utf8 "" -> Empty
   | Kwd "" -> Empty
   | Texspace -> Empty
   | Cons(t1,t2) -> begin
@@ -271,6 +284,7 @@ let rec pp_raw_t t =
   | Str(s) -> r"Str(" ^^ s ^^ r")"
   | Err(s) -> r"Str(" ^^ Ulib.Text.of_latin1 s ^^ r")"
   | Meta(s) -> r"Str(" ^^ Ulib.Text.of_latin1 s ^^ r")"
+  | Meta_utf8(s) -> r"Str(" ^^ Ulib.Text.of_string s ^^ r")"
   | Texspace -> r"Texspace"
   | Ensure_newline -> r"Ensure_newline"
   | Cons(t1,t2) -> r"Cons(" ^^ pp_raw_t t1 ^^ r"," ^^ pp_raw_t t2 ^^ r")"
@@ -295,6 +309,7 @@ let to_rope_single quote_char lex_skips_to_rope preserve_ws t : Ulib.Text.t =
     | Str(s) -> quote_string quote_char s
     | Err(s) -> raise (Backend(s))
     | Meta(s) -> Ulib.Text.of_latin1 s
+    | Meta_utf8(s) -> Ulib.Text.of_string s
     | Texspace -> r""
     | Internalspace -> r" "
     | Break_hint _ -> r""
@@ -445,7 +460,7 @@ let to_rope quote_char lex_skips_to_rope need_space t =
    let _ = aux t'' in
    let _ = Format.pp_close_box Format.str_formatter () in
    let s = Format.flush_str_formatter () in
-   ([], r s, (0, Kwd s, Kwd s))
+   ([], Ulib.Text.of_string s, (0, Kwd s, Kwd s))
   end
   in
   let (rL,r',_) = to_rope_help 0 t in
@@ -664,13 +679,14 @@ let rec to_rope_tex_single t =
   | Str(s) ->  r"\\text{\\textit{" ^^ (r"``") ^^ (tex_escape s) ^^ (r"''") ^^ r"}}"
   | Err(s) -> raise (Backend(s))
   | Meta(s) -> Ulib.Text.of_latin1 s
-  | Texspace -> r""   
-  | Break_hint _ -> r""   
-  | Ensure_newline -> r""   
-  | Internalspace -> r""   
-  | Cons(t1,t2) -> raise (Failure "Cons in to_rope_tex") 
-  | Block _ -> raise (Failure "Block in to_rope_tex") 
-  | Core _ -> raise (Failure "Core in to_rope_tex") 
+  | Meta_utf8(s) -> Ulib.Text.of_string s
+  | Texspace -> r""
+  | Break_hint _ -> r""
+  | Ensure_newline -> r""
+  | Internalspace -> r""
+  | Cons(t1,t2) -> raise (Failure "Cons in to_rope_tex")
+  | Block _ -> raise (Failure "Block in to_rope_tex")
+  | Core _ -> raise (Failure "Core in to_rope_tex")
 
 (** [make_indent r] returns a text consisting only of spaces of the same length as [r] *)
 let make_indent (r : Ulib.Text.t) : Ulib.Text.t = 

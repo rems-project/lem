@@ -1,0 +1,62 @@
+(* Inline definitions, target-specific definitions, and declare forms.
+   Exercises let inline, target-scoped definitions, target_rep for
+   functions and types, and rename declarations. *)
+
+open import Pervasives_extra
+
+(* === Inline definitions === *)
+let inline isZero (n : nat) = (n = (0:nat))
+let inline double (n : nat) = n + n
+let inline compose f g x = f (g x)
+
+assert inline_zero_t  : isZero 0
+assert inline_zero_f  : not (isZero 3)
+assert inline_double   : double 5 = (10:nat)
+assert inline_compose  : compose (fun x -> x + (1:nat)) (fun x -> x * (2:nat)) 3 = (7:nat)
+
+(* === Inline with target scoping === *)
+val addThree : nat -> nat
+let inline {lean; ocaml; coq} addThree n = n + (3:nat)
+let {hol; isabelle} addThree n = n + (3:nat)
+
+assert addThree_ok : addThree 7 = (10:nat)
+
+(* === Target-specific function definition === *)
+val mySucc : nat -> nat
+let {lean; ocaml; coq; isabelle; hol} mySucc n = n + (1:nat)
+
+assert mySucc_ok : mySucc 9 = (10:nat)
+
+(* === Multiple target-specific definitions === *)
+val myPred : nat -> nat
+let {lean; ocaml; coq} myPred n = n - (1:nat)
+let {hol; isabelle} myPred n = n - (1:nat)
+
+assert myPred_ok : myPred 5 = (4:nat)
+
+(* === Renaming === *)
+type myPairType 'a 'b = | MkMyPair of 'a * 'b
+declare {lean} rename type myPairType = lem_myPairType
+
+let extractFirst (MkMyPair a _b) = a
+
+assert rename_ok : extractFirst (MkMyPair (3:nat) true) = (3:nat)
+
+(* === Type abbreviation with target-specific name === *)
+type counter = nat
+declare {lean} rename type counter = lem_counter
+
+let incr (c : counter) : counter = c + (1:nat)
+
+assert abbrev_rename_ok : incr (5:nat) = (6:nat)
+
+(* === Logical implication === *)
+let test_impl = true --> true
+let test_impl2 = false --> false
+let test_impl3 = false --> true
+let test_impl4 = not (true --> false)
+
+assert impl_tt : test_impl
+assert impl_ff : test_impl2
+assert impl_ft : test_impl3
+assert impl_tf : test_impl4

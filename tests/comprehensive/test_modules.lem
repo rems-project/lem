@@ -1,0 +1,47 @@
+open import Pervasives_extra
+
+(* === Basic module === *)
+module A = struct
+  let x = (1 : nat)
+  let f y = y + x
+end
+
+(* === Qualified access === *)
+let test_qual1 = A.x
+let test_qual2 = A.f 10
+
+(* === Module containing types === *)
+module E = struct
+  type color = Red | Green | Blue
+  type point = <| px : nat; py : nat |>
+  let origin = <| px = 0; py = 0 |>
+end
+
+let test_mod_record = E.origin
+
+(* === Nested modules === *)
+module Outer = struct
+  let outer_val = (1:nat)
+  module Inner = struct
+    let inner_val = (2:nat)
+  end
+end
+
+let test_nested1 = Outer.outer_val
+let test_nested2 = Outer.Inner.inner_val
+
+(* === Module with class === *)
+module F = struct
+  class (MyEq 'a)
+    val my_eq : 'a -> 'a -> bool
+  end
+end
+
+(* === Module rename/alias === *)
+(* Exercises Rename handler (lean_backend.ml:465) *)
+module AAlias = A
+
+assert test_qual1_ok : (test_qual1 = (1:nat))
+assert test_qual2_ok : (test_qual2 = (11:nat))
+assert test_nested1_ok : (test_nested1 = (1:nat))
+assert test_nested2_ok : (test_nested2 = (2:nat))

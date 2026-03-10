@@ -1,0 +1,60 @@
+(* Integer (signed) arithmetic tests.
+   Exercises the integer type which maps to Int in Lean,
+   covering negation, division, modulo, comparisons,
+   and conversion between nat and integer. *)
+
+open import Pervasives_extra
+
+(* === Basic integer literals and negation === *)
+let i1 : integer = 42
+let i2 : integer = ~1    (* Lem uses ~ for negation *)
+let i3 : integer = 0
+
+(* === Arithmetic === *)
+let test_add = (i1 + i2 : integer)               (* 42 + (-1) = 41 *)
+let test_sub = ((10 : integer) - (25 : integer))  (* 10 - 25 = -15 *)
+let test_mul = ((~3 : integer) * (7 : integer))   (* -3 * 7 = -21 *)
+let test_neg = integerNegate (5 : integer)         (* -5 *)
+
+(* === Division and modulo === *)
+let test_div_pos  = integerDiv_t (24 : integer) (10 : integer)   (* 2 *)
+let test_div_neg  = integerDiv_t (~24 : integer) (10 : integer)  (* -2 truncated *)
+let test_rem_pos  = integerRem_t (24 : integer) (10 : integer)   (* 4 *)
+let test_rem_neg  = integerRem_t (~24 : integer) (10 : integer)  (* -4 truncated *)
+
+(* === Comparisons === *)
+let test_lt  = ((~5 : integer) < (3 : integer))
+let test_le  = ((3 : integer) <= (3 : integer))
+let test_gt  = ((10 : integer) > (~10 : integer))
+let test_ge  = ((0 : integer) >= (0 : integer))
+let test_eq  = ((~7 : integer) = (~7 : integer))
+let test_neq = ((1 : integer) <> (~1 : integer))
+
+(* === Conversion === *)
+let test_from_nat = integerFromNat (5 : nat)       (* 5 as integer *)
+let test_abs      = abs (~42 : integer)             (* 42 *)
+
+(* === Power === *)
+let test_pow = ((2 : integer) ** (10 : nat))        (* 1024 *)
+
+(* === Mixed expressions === *)
+let test_mixed = integerNegate ((3 : integer) * (4 : integer)) + (2 : integer)  (* -10 *)
+
+assert add_ok      : test_add = (41 : integer)
+assert sub_ok      : test_sub = (~15 : integer)
+assert mul_ok      : test_mul = (~21 : integer)
+assert neg_ok      : test_neg = (~5 : integer)
+assert div_pos_ok  : test_div_pos = (2 : integer)
+assert div_neg_ok  : test_div_neg = (~2 : integer)
+assert rem_pos_ok  : test_rem_pos = (4 : integer)
+assert rem_neg_ok  : test_rem_neg = (~4 : integer)
+assert lt_ok       : test_lt
+assert le_ok       : test_le
+assert gt_ok       : test_gt
+assert ge_ok       : test_ge
+assert eq_ok       : test_eq
+assert neq_ok      : test_neq
+assert from_nat_ok : test_from_nat = (5 : integer)
+assert abs_ok      : test_abs = (42 : integer)
+assert pow_ok      : test_pow = (1024 : integer)
+assert mixed_ok    : test_mixed = (~10 : integer)

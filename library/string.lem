@@ -24,11 +24,13 @@ declare ocaml    target_rep type char = `char`
 declare hol      target_rep type char = `char`
 declare isabelle target_rep type char = `char`
 declare coq      target_rep type char = `ascii`
+declare lean     target_rep type char = `Char`
 
 declare ocaml    target_rep type string = `string`
 declare hol      target_rep type string = `string`
 declare isabelle target_rep type string = `string`
 declare coq      target_rep type string = `string`
+declare lean     target_rep type string = `String`
 
 assert char_simple_0: not (#'0' = ((#'1'):char))
 assert char_simple_1: not (#'X' = #'Y') 
@@ -52,6 +54,7 @@ declare ocaml    target_rep function toCharList = `Xstring.explode`
 declare hol      target_rep function toCharList = `EXPLODE`
 declare isabelle target_rep function toCharList s = ``s
 declare coq      target_rep function toCharList = `string_to_char_list` (* TODO: check *)
+declare lean     target_rep function toCharList = `String.toList`
 
 assert toCharList_0 : (toCharList "Hello" = [#'H'; #'e'; #'l'; #'l'; #'o'])
 assert toCharList_1 : (toCharList "H\nA" = [#'H'; #'\n'; #'A'])
@@ -61,6 +64,7 @@ declare ocaml    target_rep function toString = `Xstring.implode`
 declare hol      target_rep function toString = `IMPLODE`
 declare isabelle target_rep function toString s = ``s
 declare coq      target_rep function toString = `string_from_char_list` (* TODO: check *)
+declare lean     target_rep function toString = `String.ofList`
 
 assert toString_0 : (toString [#'H'; #'e'; #'l'; #'l'; #'o'] = "Hello")
 assert toString_1 : (toString [#'H'; #'\n'; #'A'] = "H\nA")
@@ -76,6 +80,7 @@ declare ocaml    target_rep function makeString = `String.make`
 declare isabelle target_rep function makeString = `List.replicate`
 declare hol      target_rep function makeString = `REPLICATE`
 declare coq      target_rep function makeString = `string_make_string`
+declare lean     target_rep function makeString = `stringMakeString`
 
 assert makeString_0: (makeString 0 #'a' = "")
 assert makeString_1: (makeString 5 #'a' = "aaaaa")
@@ -90,6 +95,7 @@ declare hol      target_rep function stringLength = `STRLEN`
 declare ocaml    target_rep function stringLength = `String.length`
 declare isabelle target_rep function stringLength = `List.length`
 declare coq      target_rep function stringLength = `String.length` (* TODO: check *)
+declare lean     target_rep function stringLength = `String.length`
 
 assert stringLength_0: (stringLength "" = 0)
 assert stringLength_1: (stringLength "abc" = 3)
@@ -105,6 +111,7 @@ declare ocaml    target_rep function stringAppend = infix `^`
 declare hol      target_rep function stringAppend = `STRCAT`
 declare isabelle target_rep function stringAppend = infix `@`
 declare coq      target_rep function stringAppend = `String.append`
+declare lean     target_rep function stringAppend = `String.append`
 
 assert stringAppend_0 : ("Hello" ^ " " ^ "World!" = "Hello World!")
 
@@ -168,4 +175,5 @@ let rec concat sep ss =
       end
   end
 
+declare {lean} termination_argument concat = automatic
 declare ocaml    target_rep function concat = `String.concat`

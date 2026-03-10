@@ -1,0 +1,86 @@
+(* Quantifiers, set operations, and map operations.
+   Exercises forall/exists over various collection types,
+   nested quantification, set operations beyond basics,
+   and map construction/lookup/update. *)
+
+open import Pervasives_extra
+
+(* === Universal quantification over sets === *)
+let s1 : set nat = {1; 2; 3; (4:nat)}
+let all_positive = forall (x IN s1). x > (0:nat)
+let all_small    = forall (x IN s1). x < (10:nat)
+let not_all_even = not (forall (x IN s1). x mod 2 = (0:nat))
+
+assert all_pos_ok   : all_positive
+assert all_small_ok : all_small
+assert not_even_ok  : not_all_even
+
+(* === Existential quantification over sets === *)
+let has_three = exists (x IN s1). x = (3:nat)
+let has_five  = not (exists (x IN s1). x = (5:nat))
+
+assert has_three_ok : has_three
+assert no_five_ok   : has_five
+
+(* === Quantification over lists === *)
+let xs : list nat = [(1:nat); 2; 3; 4; 5]
+let all_list_pos    = forall (x MEM xs). x > (0:nat)
+let exists_list_big = exists (x MEM xs). x > (4:nat)
+
+assert all_list_ok    : all_list_pos
+assert exists_list_ok : exists_list_big
+
+(* === Set difference and symmetric difference === *)
+let s2 : set nat = {3; 4; 5; (6:nat)}
+let test_diff  = s1 \ s2
+let test_inter = s1 inter s2
+
+assert diff_ok  : test_diff = {1; (2:nat)}
+assert inter_ok : test_inter = {3; (4:nat)}
+
+(* === Set image (map over set) === *)
+let doubled_set = Set.map (fun x -> x * (2:nat)) s1
+
+assert image_ok : (2:nat) IN doubled_set && (8:nat) IN doubled_set
+
+(* === Set filter === *)
+let evens = Set.filter (fun x -> x mod 2 = (0:nat)) s1
+
+assert filter_ok : evens = {2; (4:nat)}
+
+(* === Set cardinality === *)
+let card1 = Set.size s1
+
+assert card_ok : card1 = (4:nat)
+
+(* === Map construction and lookup === *)
+let m1 : map string nat = Map.fromList [("one", (1:nat)); ("two", 2); ("three", 3)]
+
+let lookup1 = Map.lookup "one" m1
+let lookup4 = Map.lookup "four" m1
+
+assert lookup_found   : lookup1 = Just (1:nat)
+assert lookup_missing : lookup4 = (Nothing : maybe nat)
+
+(* === Map insert and update === *)
+let m2 = Map.insert "four" (4:nat) m1
+let m3 = Map.insert "one" (100:nat) m1   (* overwrite *)
+
+assert insert_ok    : Map.lookup "four" m2 = Just (4:nat)
+assert overwrite_ok : Map.lookup "one" m3 = Just (100:nat)
+
+(* === Map delete === *)
+let m4 = Map.delete "two" m1
+
+assert delete_ok       : Map.lookup "two" m4 = (Nothing : maybe nat)
+assert delete_other_ok : Map.lookup "one" m4 = Just (1:nat)
+
+(* === Map size === *)
+assert map_size_ok : Map.size m1 = (3:nat)
+
+(* === Map domain and range === *)
+let dom = Map.domain m1
+let rng = Map.range m1
+
+assert dom_ok : "one" IN dom && "two" IN dom && "three" IN dom
+assert rng_ok : (1:nat) IN rng && (2:nat) IN rng

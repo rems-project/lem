@@ -1,10 +1,10 @@
 open import Pervasives_extra
 
-let rec counter n =
-	match n with
-	  | 0 -> 1
-	  | m -> counter (m - 1)
-	end
+let rec counter (n : nat) : nat =
+  match n with
+    | 0 -> 1
+    | m -> counter (m - 1)
+  end
 
 let rec fix (f : set 'a -> set 'a) (x : set 'a) : set 'a =
   let fx = f x in
