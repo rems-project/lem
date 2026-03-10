@@ -350,6 +350,11 @@ let coq =
     extra = [(* fun n -> Rename_top_level.rename_defs_target (Some Target_coq) consts fixed_renames [n]) *)];
     }
 
+(* Lean 4 transformation pipeline. Closely follows the Coq pipeline:
+   same typeclass resolution, same record update removal, same set/list
+   comprehension desugaring. Key difference: pattern compilation uses
+   is_lean_pattern_match which rejects n+k patterns (P_num_add), triggering
+   guard-based desugaring instead. *)
 let lean =
   { macros = indreln_macros @
       coq_typeclass_resolution_macros (Target_no_ident Target_lean) @

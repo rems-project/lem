@@ -58,7 +58,9 @@ let lean_collected_imports : string list ref = ref []
 (* Set by process_file.ml before calling lean_defs — used for namespace wrapping *)
 let lean_current_module_name : string ref = ref ""
 (* When true, isEqual outputs propositional = instead of BEq ==.
-   Set during indreln antecedent processing where Prop is needed. *)
+   Set during indreln antecedent processing where Prop is needed.
+   Reason: Lean's == requires BEq instances, but function types lack BEq.
+   Indreln antecedents live in Prop, so = (propositional equality) is correct. *)
 let lean_prop_equality : bool ref = ref false
 (* Deferred abbrev definitions for types with TYR_subst target reps.
    These are collected during Comment processing and emitted after the
@@ -817,7 +819,10 @@ type pat_style = FunParam | MatchArm
               if in_target targets then
                 let skips' = match rec_flag with FR_non_rec -> None | FR_rec sk -> sk in
                 let funcls = Seplist.to_list funcl_skips_seplist in
-                (* Group clauses by function name *)
+                (* Group clauses by function name, preserving definition order.
+                   Lem allows interleaving, but Lean's equation compiler requires
+                   all clauses for a function in sequence. Multi-clause groups
+                   render as Lean 4 pattern-matching equations. *)
                 let get_name ({term = n}, _, _, _, _, _) = Name.to_string (Name.strip_lskip n) in
                 let groups =
                   let order = ref [] in
@@ -898,6 +903,16 @@ type pat_style = FunParam | MatchArm
                 from_string "\n/- removed recursive definition intended for another target -/"
           | _ -> from_string "\n/- removed top-level value definition -/"
       end
+    (* Inductive relation (indreln) rendering. Phases:
+       1. Gather unique relation names with their const_descr_refs
+       2. Set lean_indreln_params so exp can insert type parameters for
+          polymorphic self-references in premises
+       3. Build inductive definitions using renamed names from const_descr
+          (handles cross-module collisions like thread_trans → thread_trans0)
+       4. Render clauses with lean_prop_equality set so antecedents use
+          propositional = instead of BEq ==
+       lean_indreln_params is saved/restored so nested indreln blocks don't
+       clobber the outer scope. *)
     and clauses (inside_instance: bool) clause_list =
       (* Gather unique relation names from clauses, paired with their
          const_descr_ref so we can look up the renamed name for output *)
@@ -1140,6 +1155,13 @@ type pat_style = FunParam | MatchArm
           emp
         else
           from_string " " ^ concat_str " " bindings
+    (* Expression rendering. Lean 4 parser-specific rules:
+       - Match/if/let/fun in function args or case bodies are parenthesized
+         (Lean's greedy rightward match would otherwise consume too much)
+       - In indreln antecedents (lean_prop_equality), == and != become = and ≠
+       - For polymorphic indreln self-references (lean_indreln_params), explicit
+         type parameters are inserted since Lean can't infer them
+       - Class method constants get explicit @ type application when used bare *)
     and exp inside_instance e =
       let is_user_exp = Typed_ast_syntax.is_pp_exp e in
         match C.exp_to_term e with
@@ -1696,6 +1718,16 @@ type pat_style = FunParam | MatchArm
         | Te_record (_, _, fields, _) ->
           not (Seplist.exists (fun (_, _, _, src_t) -> src_t_has_fn src_t) fields)
         | _ -> false
+    (* --- Type definition rendering ---
+       Dispatch by type form:
+       - Te_abbrev → type_def_abbreviation (Lean abbrev)
+       - Te_record → type_def_record (Lean structure)
+       - Te_variant, single type → type_def_variant (Lean inductive)
+       - Te_variant, mutual types with equal params → type_def_variant (mutual block)
+       - Te_variant, mutual types with unequal params → type_def_indexed
+         (parameters promoted to indices, all types in Type 1 universe)
+       After each inductive/structure, constructors are exported and
+       BEq/Ord/Inhabited instances are generated. *)
     and type_def_abbreviation def =
       match Seplist.hd def with
         | ((n, _), tyvars, path, Te_abbrev (skips, t),_) ->
@@ -2031,6 +2063,13 @@ type pat_style = FunParam | MatchArm
           Name.to_output Term_field fname;
           from_string " :"; pat_typ t
       ]
+    (* --- Instance generation ---
+       For each type definition, generates:
+       1. Inhabited instance (default constructor, or sorry for mutual/recursive types)
+       2. BEq + Ord (derived via `deriving` if possible, sorry-based otherwise)
+       3. SetType / Eq0 / Ord0 instances (with [BEq]/[Ord] constraints for parameterized types)
+       Mutual types use find_safe_ctor_for_mutual to avoid self-referential defaults.
+       Library opaque types (phantom types like ty1..ty4096) skip instance generation. *)
     and default_type_variables tvs =
       match tvs with
         | [] -> emp
@@ -2346,6 +2385,12 @@ module LeanBackend (A : sig val avoid : var_avoid_f option;; val env : env;; val
         ) ds emp
     ;;
 
+    (* --- Import and namespace management ---
+       Library modules: wrapped in 'namespace Lem_ModuleName ... end' with imports at top.
+       User modules: no namespace wrapper; automatically open all transitive library
+       namespaces so types/classes from Pervasives etc. are in scope.
+       Abbrev definitions may be deferred (lean_pending_abbrevs) until after their
+       dependencies are defined (e.g., abbrev mword after class Size). *)
     let lean_defs ((ds : def list), end_lex_skips) =
       lean_auxiliary_opens := [];
       lean_namespace_stack := [];
