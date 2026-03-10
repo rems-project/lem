@@ -819,7 +819,7 @@ type pat_style = FunParam | MatchArm
                     let key = get_name fcl in
                     (if not (Hashtbl.mem tbl key) then
                       order := key :: !order);
-                    let existing = try Hashtbl.find tbl key with Not_found -> [] in
+                    let existing = match Hashtbl.find_opt tbl key with Some v -> v | None -> [] in
                     Hashtbl.replace tbl key (existing @ [fcl])
                   ) funcls;
                   List.map (fun key -> Hashtbl.find tbl key) (List.rev !order)
@@ -1171,10 +1171,10 @@ type pat_style = FunParam | MatchArm
                        App nodes (e.g. from <> decomposition: not (isEqual x y)) must
                        use propositional =/≠ instead of BEq ==/!=. *)
                     let c_descr = c_env_lookup Ast.Unknown A.env.c_env cd.descr in
-                    begin match !lean_prop_equality, List.length args = 2, check_beq_target_rep c_descr with
-                    | true, true, Some is_eq ->
-                      let l_out = trans (List.nth args 0) in
-                      let r_out = trans (List.nth args 1) in
+                    begin match !lean_prop_equality, args, check_beq_target_rep c_descr with
+                    | true, [arg0; arg1], Some is_eq ->
+                      let l_out = trans arg0 in
+                      let r_out = trans arg1 in
                       if is_eq then [Output.flat [l_out; from_string "  =  "; r_out]]
                       else [Output.flat [l_out; meta_utf8 "  \xe2\x89\xa0  "; r_out]]
                     | _ ->
