@@ -52,5 +52,7 @@ lean_lib LemComprehensiveTest where
     `Test_type_defs_advanced, `Test_type_defs_advanced_auxiliary,
     `Test_fun_and_function, `Test_fun_and_function_auxiliary,
     `Test_quantifiers_and_sets, `Test_quantifiers_and_sets_auxiliary,
-    `Test_let_def_destructuring, `Test_let_def_destructuring_auxiliary
+    `Test_let_def_destructuring, `Test_let_def_destructuring_auxiliary,
+    `Test_cross_module_base, `Test_cross_module_base_auxiliary,
+    `Test_cross_module_import, `Test_cross_module_import_auxiliary
   ]
