@@ -460,7 +460,7 @@ let to_rope quote_char lex_skips_to_rope need_space t =
    let _ = aux t'' in
    let _ = Format.pp_close_box Format.str_formatter () in
    let s = Format.flush_str_formatter () in
-   ([], Ulib.Text.of_string s, (0, Meta_utf8 s, Meta_utf8 s))
+   ([], Ulib.Text.of_string s, (0, Kwd s, Kwd s))
   end
   in
   let (rL,r',_) = to_rope_help 0 t in

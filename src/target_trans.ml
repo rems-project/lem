@@ -454,11 +454,17 @@ begin
           NameSet.add n ns
        end
     | Some (Types.Tc_class cd) ->
-       let n = match Target.Targetmap.apply_target cd.Types.class_rename targ with
-         | None -> Path.get_name t
-         | Some (_, n) -> n
-       in
-       NameSet.add n ns
+       (* Only add class names to avoid set for Lean (other backends never had
+          class renaming, so we skip to preserve their existing behavior). *)
+       begin match targ with
+       | Target_no_ident Target_lean ->
+         let n = match Target.Targetmap.apply_target cd.Types.class_rename targ with
+           | None -> Path.get_name t
+           | Some (_, n) -> n
+         in
+         NameSet.add n ns
+       | _ -> ns
+       end
     | None -> ns
   end in
   let ns = if not avoid_types then ns else List.fold_left add_avoid_type ns ue.used_types in

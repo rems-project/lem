@@ -202,7 +202,14 @@ let rename_type (targ : Target.non_ident_target) (consts : NameSet.t) (consts_ne
   (NameSet.t * env) = begin
   let l = Ast.Trans (false, "rename_type", None) in
 
-  (* Look up the type or class descriptor and extract rename map + updater *)
+  (* Look up the type or class descriptor and extract rename map + updater.
+     Class paths appear in used_types but are only renamed for Lean (other backends
+     never had class renaming, so we skip to preserve their existing behavior). *)
+  match Types.type_defs_lookup_tc env.t_env t with
+    | Some (Types.Tc_class _) when targ <> Target.Target_lean ->
+        (* Non-Lean backends: skip class renaming (preserves pre-existing behavior) *)
+        (consts_new, env)
+    | _ ->
   let (rename_map, do_rename) = match Types.type_defs_lookup_tc env.t_env t with
     | Some (Types.Tc_type td) ->
         (td.Types.type_rename,
