@@ -37,6 +37,10 @@ module F = struct
   end
 end
 
+(* === Module rename/alias === *)
+(* Exercises Rename handler (lean_backend.ml:465) *)
+module AAlias = A
+
 assert test_qual1_ok : (test_qual1 = (1:nat))
 assert test_qual2_ok : (test_qual2 = (11:nat))
 assert test_nested1_ok : (test_nested1 = (1:nat))

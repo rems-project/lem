@@ -42,7 +42,7 @@ let lean_string_escape s =
     | '"' -> Buffer.add_string buf "\\\""
     | '\n' -> Buffer.add_string buf "\\n"
     | '\t' -> Buffer.add_string buf "\\t"
-    | '\000' -> Buffer.add_string buf "\\0"
+    | '\000' -> Buffer.add_string buf "\\x00"
     | '\r' -> Buffer.add_string buf "\\r"
     | c -> Buffer.add_char buf c
   ) s;
@@ -1380,12 +1380,14 @@ type pat_style = FunParam | MatchArm
               ]
           | VectorAcc (e, skips, nexp, skips') ->
               Output.flat [
-                from_string "Vector.get "; exp inside_instance e; ws skips; src_nexp nexp; ws skips'
+                from_string "Vector.get "; exp inside_instance e;
+                from_string " "; src_nexp nexp; ws skips'
               ]
           | VectorSub (e, skips, nexp, skips', nexp', skips'') ->
               Output.flat [
-                from_string "Vector.slice "; exp inside_instance e; ws skips; src_nexp nexp;
-                ws skips'; src_nexp nexp'; ws skips''
+                from_string "Vector.slice "; exp inside_instance e;
+                from_string " "; src_nexp nexp;
+                from_string " "; src_nexp nexp'; ws skips''
               ]
           | Vector (skips, es, skips') ->
             let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) (exp inside_instance) (sep @@ from_string ", ") es in

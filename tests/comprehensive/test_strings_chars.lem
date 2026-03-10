@@ -44,3 +44,17 @@ assert cmp2_ok : cmp2
 assert cmp3_ok : cmp3
 assert cmp4_ok : cmp4
 assert cmp5_not : (not cmp5)
+
+(* === String escape sequences === *)
+(* Exercises lean_string_escape for \0, \r, \n, \t, \\, \" *)
+let esc_newline = "hello\nworld"
+let esc_tab     = "hello\tworld"
+let esc_quote   = "he said \"hi\""
+let esc_backslash = "back\\slash"
+let esc_cr      = "line\rend"
+let esc_null    = "null\000char"
+
+assert esc_newline_len : stringLength esc_newline = (11:nat)
+assert esc_tab_len     : stringLength esc_tab = (11:nat)
+assert esc_quote_len   : stringLength esc_quote = (12:nat)
+assert esc_bs_len      : stringLength esc_backslash = (10:nat)

@@ -68,4 +68,12 @@ and
 and
   cls_big : forall n. n >= 10 ==> classify n "big"
 
+(* === Direct isInequal in indreln antecedent === *)
+(* Exercises App path != → ≠ conversion (lean_backend.ml:1150) *)
+indreln [neq_app_rel : nat -> nat -> bool]
+  neq_app_rule : forall (x:nat) (y:nat). isInequal x y ==> neq_app_rel x y
+
+(* NOTE: Polymorphic indreln (forall 'a. ...) triggers bug #21 — the backend
+   doesn't thread the type parameter through indreln premises. See TODO.md. *)
+
 (* Inductive relations generate Prop types — verified by compilation only *)

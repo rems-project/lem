@@ -12,3 +12,30 @@ let vec_match (v : vector bool 2) : bool =
 
 assert vec_match_tt : vec_match [| true; true |]
 assert vec_match_tf : not (vec_match [| true; false |])
+
+(* === Vector access === *)
+(* Exercises VectorAcc (lean_backend.ml:1381-1383) and src_nexp *)
+let vec2 : vector nat 4 = [| (10:nat); 20; 30; 40 |]
+let elem0 = vec2.[0]
+let elem2 = vec2.[2]
+
+assert elem0_ok : elem0 = (10:nat)
+assert elem2_ok : elem2 = (30:nat)
+
+(* NOTE: VectorSub (v.[i..j]) generates Vector.slice which is not yet
+   implemented in LemLib. The backend output is correct but cannot be
+   compiled until LemLib adds Vector.slice support. *)
+
+(* === Vector of nats === *)
+let vec3 : vector nat 2 = [| (5:nat); 10 |]
+let sum_vec = vec3.[0] + vec3.[1]
+
+assert sum_vec_ok : sum_vec = (15:nat)
+
+(* === Boolean vector operations === *)
+let bvec2 : vector bool 3 = [| true; false; true |]
+let first_elem = bvec2.[0]
+let last_elem  = bvec2.[2]
+
+assert first_ok : first_elem
+assert last_ok  : last_elem
