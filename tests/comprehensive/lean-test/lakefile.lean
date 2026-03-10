@@ -46,5 +46,10 @@ lean_lib LemComprehensiveTest where
     `Test_class_instance_constraints, `Test_class_instance_constraints_auxiliary,
     `Test_pattern_complex, `Test_pattern_complex_auxiliary,
     `Test_mutual_indreln, `Test_mutual_indreln_auxiliary,
-    `Test_set_comprehension_advanced, `Test_set_comprehension_advanced_auxiliary
+    `Test_set_comprehension_advanced, `Test_set_comprehension_advanced_auxiliary,
+    `Test_integer_arithmetic, `Test_integer_arithmetic_auxiliary,
+    `Test_inline_target_rep, `Test_inline_target_rep_auxiliary,
+    `Test_type_defs_advanced, `Test_type_defs_advanced_auxiliary,
+    `Test_fun_and_function, `Test_fun_and_function_auxiliary,
+    `Test_quantifiers_and_sets, `Test_quantifiers_and_sets_auxiliary
   ]

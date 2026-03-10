@@ -355,6 +355,22 @@ let format_tyr_constraints extras =
   ) extras)
 ;;
 
+(* Lean-native constraints for default instances.
+   Lem's default_instance declarations are unconstrained (forall 'a), but
+   their method bodies reference Lean functions requiring typeclass instances:
+   - Eq0 body uses == (BEq) and != (BEq)
+   - SetType body uses defaultCompare (Ord)
+   The other two defaults (OrdMaxMin, MapKeyType) already carry Lem-level
+   constraints that provide what Lean needs.
+   This extends the extra_constraints_for_tyr_subst pattern (above) to
+   handle function target rep constraints in default instances. *)
+let lean_default_instance_extra_constraints class_name =
+  match class_name with
+  | "Eq0" -> ["BEq"]
+  | "SetType" -> ["Ord"]
+  | _ -> []
+;;
+
 let use_ascii_rep_for_const (cd : const_descr_ref) : bool =
   Types.Cdset.mem cd A.ascii_rep_set
 ;;
@@ -559,8 +575,8 @@ type pat_style = FunParam | MatchArm
           ; ws skips'''; from_string "\n"; class_export
           ; beq_bridge
           ]
-      | Instance (Ast.Inst_default skips, i_ref, inst, vals, skips') -> emp
-      | Instance (Ast.Inst_decl skips, i_ref, inst, vals, skips') ->
+      | Instance ((Ast.Inst_default skips | Ast.Inst_decl skips) as inst_kind, i_ref, inst, vals, skips') ->
+        let is_default = match inst_kind with Ast.Inst_default _ -> true | _ -> false in
         (* Filter out instance methods whose corresponding class methods
            are not visible for the Lean target *)
         let instance_info = Types.i_env_lookup Ast.Unknown A.env.i_env i_ref in
@@ -621,6 +637,22 @@ type pat_style = FunParam | MatchArm
                             let extra_tyr = extra_constraints_for_tyr_subst instance_info.Types.inst_type in
                             let new_extras = filter_new_tyr_constraints extra_tyr instance_info.Types.inst_constraints in
                             let cs = cs ^ format_tyr_constraints new_extras in
+                            (* Add Lean-native constraints for default instances *)
+                            let cs =
+                              if is_default then
+                                let target_class = Name.to_string (B.class_path_to_name path) in
+                                let extra_classes = lean_default_instance_extra_constraints target_class in
+                                let pairs = List.concat_map (fun cls ->
+                                  List.filter_map (fun t ->
+                                    match t with
+                                    | Typed_ast.Tn_A (_, var, _) ->
+                                      Some (cls, Ulib.Text.to_string var)
+                                    | _ -> None
+                                  ) tnvar_list
+                                ) extra_classes in
+                                cs ^ format_tyr_constraints pairs
+                              else cs
+                            in
                               Some tnvar_list, tnvars, cs
                       end
                   end
@@ -659,8 +691,11 @@ type pat_style = FunParam | MatchArm
           let body =
             Output.concat (from_string "\n") (List.map (fun d -> val_def true (Some i_ref) false true d Types.TNset.empty []) vals)
           in
+            let inst_kw = if is_default
+              then from_string "instance (priority := low)"
+              else from_string "instance" in
             Output.flat [
-              ws skips; from_string "instance"; prefix; from_string " where";
+              ws skips; inst_kw; prefix; from_string " where";
               from_string "\n"; body;
               ws skips'
             ]
