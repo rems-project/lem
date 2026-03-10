@@ -476,11 +476,15 @@ type pat_style = FunParam | MatchArm
       | OpenImportTarget(oi, _, []) -> ws (oi_get_lskip oi)
       | OpenImportTarget (Ast.OI_open skips, targets, mod_descrs) ->
           ws skips ^
+          let is_user_module = not (is_library_module !lean_current_module_name) in
           let handle_mod (sk, md) =
             lean_collected_imports := md :: !lean_collected_imports;
             (* Only emit 'open' for library modules (which have namespaces).
-               User modules have no namespace; import alone suffices. *)
+               User modules have no namespace; import alone suffices.
+               In non-library (user) modules, skip inline opens for library imports —
+               transitive_opens will emit them for both main and auxiliary files. *)
             if not (is_library_module md) then emp
+            else if is_user_module then emp
             else
               let ns = lean_ns_name md in
               Output.flat [
