@@ -29,6 +29,7 @@ tex-lib/lem-libs*.tex
 .lake/
 library/*.lean
 !library/gen_lean_constants.lean
+lean-lib/LemLib/[A-Z]*.lean
 tests/backends/*.lean
 tests/backends/*_auxiliary.lean
 tests/backends/lean-test/[A-Z]*.lean
@@ -39,6 +40,17 @@ tests/comprehensive/lean-test/Test_*.lean
 tests/comprehensive/lean-test/*_auxiliary.lean
 examples/cpp/Cmm.lean
 examples/cpp/Cmm_auxiliary.lean
+examples/ppcmem-model/*.lean
+examples/ppcmem-model/*_auxiliary.lean
+!examples/ppcmem-model/lakefile.lean
+
+# Build artifacts
+_build/
+main.native
+
+# Coverage
+coverage-report/
+.coverage-switch/
 
 # Local files
 TODO.md
