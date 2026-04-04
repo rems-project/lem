@@ -2283,7 +2283,7 @@ declare hol      target_rep function naturalFromNat x = (``x:natural)
 declare ocaml    target_rep function naturalFromNat = `Nat_big_num.of_int`
 declare isabelle target_rep function naturalFromNat = ``
 declare coq      target_rep function naturalFromNat = ``
-declare lean     target_rep function naturalFromNat = ``
+declare lean     target_rep function naturalFromNat = `id`
 
 assert natural_from_nat_0: naturalFromNat 0 = 0
 assert natural_from_nat_1: naturalFromNat 1 = 1
@@ -2341,7 +2341,7 @@ declare hol      target_rep function natFromNatural x = (``x:nat)
 declare ocaml    target_rep function natFromNatural = `Nat_big_num.to_int`
 declare isabelle target_rep function natFromNatural = ``
 declare coq      target_rep function natFromNatural = ``
-declare lean     target_rep function natFromNatural = ``
+declare lean     target_rep function natFromNatural = `id`
 
 assert nat_from_natural_0: natFromNatural 0 = 0
 assert nat_from_natural_1: natFromNatural 1 = 1

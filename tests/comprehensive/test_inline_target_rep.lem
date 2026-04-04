@@ -60,3 +60,53 @@ assert impl_tt : test_impl
 assert impl_ff : test_impl2
 assert impl_ft : test_impl3
 assert impl_tf : test_impl4
+
+(* === Parameter-binding target reps (CR_inline style) === *)
+(* Like HOL's: declare hol target_rep function using_concurrency u = false
+   The parameter is consumed and the body is inlined. *)
+val is_feature_enabled : unit -> bool
+declare lean target_rep function is_feature_enabled u = false
+
+val get_feature_name : unit -> string
+declare lean target_rep function get_feature_name u = "none"
+
+val has_option : nat -> bool
+declare lean target_rep function has_option n = false
+
+let test_feature = is_feature_enabled ()
+let test_name = get_feature_name ()
+let test_option = has_option 42
+
+(* Use in if-condition — this is the pattern that caused Cerberus Ctype.lean
+   to fail when the target rep was bare sorry *)
+let test_if_feature (x : nat) : nat =
+  if is_feature_enabled () then x + 1 else x
+
+assert feature_off : not test_feature
+assert name_none : test_name = "none"
+assert option_off : not test_option
+assert if_feature_ok : test_if_feature 5 = (5:nat)
+
+(* === Target rep constructors in pattern match === *)
+(* When a constructor has a target rep (e.g., Just → some), using it
+   in a pattern with arguments must have proper spacing: "some x" not "some(x)".
+   This is the P_backend pattern spacing issue from Cerberus Annot.lean. *)
+let extract_or_default (x : maybe nat) (d : nat) : nat =
+  match x with
+    | Just v -> v
+    | Nothing -> d
+  end
+
+assert extract_ok : extract_or_default (Just 42) 0 = (42:nat)
+assert extract_default : extract_or_default Nothing 99 = (99:nat)
+
+(* === sorry as function target rep (argument dropping) === *)
+(* When a function maps to bare sorry via target_rep, and is then applied
+   to arguments, the backend must emit just 'sorry' (not 'sorry arg').
+   sorry in Lean 4 is a term, not a function. *)
+type mode = ModeA | ModeB
+val get_mode_val : mode -> nat
+declare lean target_rep function get_mode_val = `sorry`
+
+(* This should compile — sorry absorbs the argument *)
+let test_sorry_applied : nat = get_mode_val ModeA

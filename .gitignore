@@ -32,6 +32,12 @@ library/*.lean
 lean-lib/LemLib/[A-Z]*.lean
 tests/backends/*.lean
 tests/backends/*_auxiliary.lean
+tests/backends/*.ml
+tests/backends/*.v
+tests/backends/*.tex
+tests/backends/*.html
+tests/backends/*.thy
+tests/backends/*Script.sml
 tests/backends/lean-test/[A-Z]*.lean
 tests/backends/lean-test/*_auxiliary.lean
 tests/comprehensive/Test_*.lean

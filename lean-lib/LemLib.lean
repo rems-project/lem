@@ -254,6 +254,9 @@ def fmapDeleteBy (cmp : α → α → LemOrdering) (k : α) (m : Fmap α β) : F
 def fmapMap (f : β → γ) (m : Fmap α β) : Fmap α γ :=
   m.map (fun p => (p.1, f p.2))
 
+def fmapMapi (f : α → β → γ) (m : Fmap α β) : Fmap α γ :=
+  m.map (fun p => (p.1, f p.1 p.2))
+
 def fmapEqualBy (eqK : α → α → Bool) (eqV : β → β → Bool) (m1 m2 : Fmap α β) : Bool :=
   let check (m1 m2 : Fmap α β) : Bool :=
     m1.all (fun (k, v) =>

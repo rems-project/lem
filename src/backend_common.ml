@@ -387,18 +387,25 @@ let fix_module_name_list nl = begin
         aux ((get_module_name A.env A.target path m)::acc) (path @ [m]) rest'
   in
   let names = aux [] [] nl in
-  (* For Lean, convert dotted library module names like "LemLib.Set" to flat
-     namespace names like "Lem_Set" to avoid shadowing stdlib namespaces *)
+  (* For Lean, handle module qualifiers:
+     - Library modules (LemLib.X) → flat namespace names (Lem_X)
+     - User modules (Loc, Bimap, etc.) → stripped entirely, since user modules
+       don't create namespaces in Lean (no namespace wrapper in generated files) *)
   match A.target with
   | Target.Target_no_ident (Target.Target_lean) ->
+      let prefix = "LemLib." in
+      let plen = String.length prefix in
+      let is_library n =
+        let s = Name.to_string n in
+        String.length s >= plen && String.sub s 0 plen = prefix
+      in
+      (* Keep only library module names, drop user module names *)
+      let lib_names = List.filter is_library names in
+      (* Convert LemLib.X → Lem_X *)
       List.map (fun n ->
         let s = Name.to_string n in
-        let prefix = "LemLib." in
-        let plen = String.length prefix in
-        if String.length s >= plen && String.sub s 0 plen = prefix then
-          Name.from_string (String.concat "" ["Lem_"; String.sub s plen (String.length s - plen)])
-        else n
-      ) names
+        Name.from_string (String.concat "" ["Lem_"; String.sub s plen (String.length s - plen)])
+      ) lib_names
   | _ -> names
 end
 

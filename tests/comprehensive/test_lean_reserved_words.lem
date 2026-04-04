@@ -25,3 +25,74 @@ let test5 = test4.where_field
 
 assert test1_ok : (test1 = (6:nat))
 assert test5_ok : (test5 = (10:nat))
+
+(* === Lean-only keywords as local variable names === *)
+(* These are valid Lem identifiers but Lean 4 syntax keywords.
+   The backend must escape them with «» guillemets.
+   Note: in, match, let, if etc. are Lem keywords too, so they
+   can't appear as variable names in Lem source. Only names that
+   are NOT Lem keywords but ARE Lean keywords need escaping. *)
+
+(* 'def' — appeared in Cerberus Ctype.lem as a local variable *)
+let test_keyword_def =
+  let def = (10:nat) in
+  def + 1
+
+(* 'show' — valid Lem identifier, Lean keyword *)
+let test_keyword_show =
+  let show = (7:nat) in
+  show * 2
+
+(* 'where' — valid Lem identifier, Lean keyword *)
+let test_keyword_where =
+  let where = (3:nat) in
+  where + 4
+
+(* 'have' — valid Lem identifier, Lean keyword *)
+let test_keyword_have =
+  let have = true in
+  have
+
+(* 'by' — valid Lem identifier, Lean keyword *)
+let test_keyword_by =
+  let by = (5:nat) in
+  by + 1
+
+(* 'at' — valid Lem identifier, Lean keyword *)
+let test_keyword_at =
+  let at = (2:nat) in
+  at * 3
+
+(* Function parameters named with keywords *)
+let keyword_as_param (def : nat) (show : nat) : nat =
+  def + show
+
+(* Pattern match binding a keyword name *)
+let keyword_in_match (x : nat * nat) : nat =
+  match x with
+    | (def, show) -> def + show
+  end
+
+assert keyword_def_ok : test_keyword_def = (11:nat)
+assert keyword_show_ok : test_keyword_show = (14:nat)
+assert keyword_where_ok : test_keyword_where = (7:nat)
+assert keyword_have_ok : test_keyword_have
+assert keyword_by_ok : test_keyword_by = (6:nat)
+assert keyword_at_ok : test_keyword_at = (6:nat)
+(* 'meta' — Lean command keyword, appeared in Cerberus as type and variable *)
+let test_keyword_meta =
+  let meta = (8:nat) in
+  meta + 1
+
+(* Keywords bound by constructor pattern *)
+type kw_pair = KwPair of nat * nat
+
+let keyword_ctor_match (v : kw_pair) : nat =
+  match v with
+    | KwPair def show -> def + show
+  end
+
+assert keyword_param_ok : keyword_as_param 3 4 = (7:nat)
+assert keyword_match_ok : keyword_in_match (3, 4) = (7:nat)
+assert keyword_meta_ok : test_keyword_meta = (9:nat)
+assert keyword_ctor_ok : keyword_ctor_match (KwPair 10 20) = (30:nat)

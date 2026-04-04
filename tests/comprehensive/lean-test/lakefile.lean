@@ -54,5 +54,9 @@ lean_lib LemComprehensiveTest where
     `Test_quantifiers_and_sets, `Test_quantifiers_and_sets_auxiliary,
     `Test_let_def_destructuring, `Test_let_def_destructuring_auxiliary,
     `Test_cross_module_base, `Test_cross_module_base_auxiliary,
-    `Test_cross_module_import, `Test_cross_module_import_auxiliary
+    `Test_cross_module_import, `Test_cross_module_import_auxiliary,
+    `Test_mutual_records, `Test_mutual_records_auxiliary,
+    `Test_parameterized_instances, `Test_parameterized_instances_auxiliary,
+    `Test_local_modules, `Test_local_modules_auxiliary,
+    `Test_keyword_types, `Test_keyword_types_auxiliary
   ]

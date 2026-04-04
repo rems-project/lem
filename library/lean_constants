@@ -13,6 +13,7 @@ Bind
 BitVec
 Bool
 ByteArray
+bind
 ByteSlice
 Char
 Coe
@@ -85,9 +86,11 @@ InvImage
 LE
 LT
 List
+liftM
 MProd
 Max
 Membership
+mapM
 Min
 Mod
 Monad
@@ -195,6 +198,7 @@ deriving
 do
 else
 end
+decide
 example
 export
 extends
@@ -203,6 +207,7 @@ flip
 for
 fun
 funext
+get
 guard
 have
 id
@@ -219,6 +224,7 @@ lemma
 let
 local
 match
+meta
 measure
 modify
 mutual
@@ -234,6 +240,7 @@ optional
 panic
 partial
 postfix
+pure
 prefix
 private
 protected
@@ -241,8 +248,10 @@ rec
 repr
 return
 rfl
+run
 scoped
 section
+set
 set_option
 show
 some
@@ -253,6 +262,7 @@ syntax
 then
 theorem
 this
+throw
 trivial
 true
 unsafe

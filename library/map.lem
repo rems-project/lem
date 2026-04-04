@@ -318,6 +318,7 @@ val mapi : forall 'k 'v 'w. MapKeyType 'k => ('k -> 'v -> 'w) -> map 'k 'v -> ma
 (* TODO: add Coq *)
 declare ocaml    target_rep function mapi = `Pmap.mapi`
 declare isabelle target_rep function mapi = `map_domain_image`
+declare lean     target_rep function mapi = `fmapMapi`
 declare compile_message mapi = "Map.mapi is only defined for the ocaml backend"
 
 (* -------------------------------------------------------------------------- *)

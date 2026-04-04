@@ -1,0 +1,120 @@
+(* Tests for mutual blocks containing record types.
+   Lean 4 renders records in mutual blocks as single-constructor inductives
+   since mutual blocks cannot contain structure definitions.
+
+   Split into independent sections so each can pass/fail independently:
+   - Basic mutual variant+record (does it render at all?)
+   - Record construction in mutual block
+   - Field access in mutual block
+   - Record update in mutual block
+   - Parameterized mutual record *)
+
+open import Pervasives_extra
+
+(* === Section 0: Non-mutual record baseline (regression guard) === *)
+type simple_rec = <| sr_name : string; sr_val : nat |>
+
+let sr1 = <| sr_name = "hello"; sr_val = 42 |>
+let sr_get_name (r : simple_rec) : string = r.sr_name
+let sr_updated = <| sr1 with sr_val = 99 |>
+
+assert sr_baseline_construct : sr_get_name sr1 = "hello"
+assert sr_baseline_access : sr1.sr_val = (42:nat)
+assert sr_baseline_update : sr_updated.sr_val = (99:nat)
+
+(* === Section 1: Basic mutual variant + record renders correctly === *)
+type node =
+  | Leaf of nat
+  | Branch of node_info * list node
+and node_info = <| label : string; depth : nat |>
+
+let leaf1 = Leaf 42
+
+(* === Section 2: Record construction in mutual block === *)
+let info1 = <| label = "root"; depth = 0 |>
+
+assert info1_label : info1.label = "root"
+assert info1_depth : info1.depth = (0:nat)
+
+(* === Section 3: Field access in mutual block === *)
+let get_label (m : node_info) : string = m.label
+let get_depth (m : node_info) : nat = m.depth
+
+let test_label = get_label (<| label = "hello"; depth = 1 |>)
+let test_depth = get_depth (<| label = "hello"; depth = 1 |>)
+
+assert label_ok : test_label = "hello"
+assert depth_ok : test_depth = (1 : nat)
+
+(* === Section 4: Record update in mutual block === *)
+let info2 = <| info1 with label = "updated" |>
+
+assert info2_label : info2.label = "updated"
+assert info2_depth : info2.depth = (0:nat)
+
+(* === Section 5: Two mutual records (no variants) === *)
+type point2d = <| px : nat; py : nat |>
+and  color_point = <| pos : point2d; red : nat; green : nat; blue : nat |>
+
+let origin = (<| px = 0; py = 0 |> : point2d)
+let red_origin = (<| pos = origin; red = 255; green = 0; blue = 0 |> : color_point)
+
+let get_px (p : point2d) : nat = p.px
+let get_red (cp : color_point) : nat = cp.red
+
+assert origin_x : get_px origin = (0 : nat)
+assert red_ok : get_red red_origin = (255 : nat)
+
+(* === Section 6: Parameterized record + variant mutual === *)
+type expr 'a =
+  | Lit of 'a
+  | Add of expr 'a * expr 'a
+  | Annotated of annot_expr 'a
+and annot_expr 'a = <| ann_body : expr 'a; ann_tag : string |>
+
+let lit1 : expr nat = Lit 1
+let ann1 : annot_expr nat = <| ann_body = Lit 1; ann_tag = "test" |>
+let ann_wrapped : expr nat = Annotated ann1
+
+let get_tag (a : annot_expr nat) : string = a.ann_tag
+
+assert tag_ok : get_tag ann1 = "test"
+
+(* === Section 7: Multi-field record update on mutual record === *)
+let updated_cp = <| red_origin with red = 100; green = 50 |>
+
+assert multi_update_red : updated_cp.red = (100:nat)
+assert multi_update_green : updated_cp.green = (50:nat)
+assert multi_update_blue : updated_cp.blue = (0:nat)
+
+(* === Section 8: Abbreviation mixed into mutual block === *)
+type stmt =
+  | SSkip
+  | SSeq of stmt * stmt
+  | SAnnot of stmt_info
+and stmt_alias = stmt
+and stmt_info = <| si_body : stmt; si_loc : nat |>
+
+let skip1 = SSkip
+let seq1 = SSeq SSkip SSkip
+let info_s = <| si_body = SSkip; si_loc = 42 |>
+
+(* Note: can't assert structural equality on mutual types — BEq is sorry-based.
+   Test field access instead. *)
+assert abbrev_info_loc : info_s.si_loc = (42:nat)
+
+(* === Section 9: 3+ types in mutual block with records === *)
+type ast_node =
+  | AstLit of nat
+  | AstBin of ast_node * ast_node
+  | AstAnn of ast_annot
+and ast_annot = <| ann_node : ast_node; ann_src : string |>
+and ast_ctx =
+  | CtxTop
+  | CtxLeft of ast_ctx * ast_node
+
+let ctx1 = CtxLeft CtxTop (AstLit 1)
+let ann_node1 = <| ann_node = AstLit 5; ann_src = "test" |>
+
+(* Note: can't assert structural equality on 3-way mutual types — BEq is sorry-based. *)
+assert three_way_ann : ann_node1.ann_src = "test"

@@ -1,0 +1,68 @@
+(* Tests for locally-defined modules (module M = struct ... end).
+   In Lean, these become namespace/end blocks.
+   Contents should be accessible unqualified after the module definition,
+   and qualified access (M.x) should also work.
+   Exercises:
+   - Basic module with values and functions
+   - Module containing type definitions
+   - Nested modules
+   - Qualified and unqualified access after module *)
+
+open import Pervasives_extra
+
+(* === Basic module === *)
+module A = struct
+  let x : nat = 1
+  let f (y : nat) = y + x
+end
+
+(* After module A, contents should be available *)
+let test_qual1 : nat = A.x
+let test_qual2 : nat = A.f 10
+
+assert qual1_ok : test_qual1 = (1:nat)
+assert qual2_ok : test_qual2 = (11:nat)
+
+(* === Module with types === *)
+module B = struct
+  type color = Red | Green | Blue
+  let color_to_nat (c : color) : nat =
+    match c with
+      | Red -> 0
+      | Green -> 1
+      | Blue -> 2
+    end
+end
+
+let test_color = B.color_to_nat B.Green
+assert color_ok : test_color = (1:nat)
+
+(* === Module with monadic operations (do-notation) === *)
+module M = struct
+  type t 'a = maybe 'a
+  val return : forall 'a. 'a -> maybe 'a
+  val bind : forall 'a 'b. maybe 'a -> ('a -> maybe 'b) -> maybe 'b
+  let return x = Just x
+  let bind x f =
+    match x with
+      | Nothing -> Nothing
+      | Just y -> f y
+    end
+end
+
+let test_do1 =
+  do M
+  in
+    M.return (4 : nat)
+  end
+
+let test_do2 =
+  do M
+    x <- M.return (1 : nat) ;
+    y <- M.return (x + 1) ;
+  in
+    M.return (x + y)
+  end
+
+assert do1_ok : test_do1 = Just (4 : nat)
+assert do2_ok : test_do2 = Just (3 : nat)

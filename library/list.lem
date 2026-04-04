@@ -377,7 +377,7 @@ let concat = foldr append []
 declare hol      target_rep function concat = `FLAT`
 declare ocaml    target_rep function concat = `List.concat`
 declare isabelle target_rep function concat = `List.concat`
-declare lean     target_rep function concat = `List.join`
+declare lean     target_rep function concat = `List.flatten`
 
 assert concat_nil: (concat ([]:list (list nat)) = [])
 assert concat_1: (concat [[(1:nat)]] = [1])

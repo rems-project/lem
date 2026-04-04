@@ -52,9 +52,30 @@ let lean_string_escape s =
 (* Collects type namespace names that need 'open' in the auxiliary file *)
 let lean_auxiliary_opens : string list ref = ref []
 (* Tracks current namespace nesting for qualified open names *)
+(* Lean 4 syntax keywords that cannot be used as bare identifiers.
+   When these appear as local variable names, they're escaped with «» guillemets. *)
+let lean_syntax_keywords = [
+  "def"; "class"; "instance"; "where"; "let"; "match"; "if"; "then"; "else";
+  "do"; "return"; "import"; "open"; "namespace"; "structure"; "inductive";
+  "theorem"; "example"; "variable"; "section"; "end"; "mutual"; "partial";
+  "noncomputable"; "unsafe"; "private"; "protected"; "abbrev"; "fun"; "forall";
+  "by"; "have"; "show"; "with"; "at"; "in"; "for"; "macro"; "syntax";
+  "deriving"; "extends"; "set_option"; "attribute"; "meta"
+]
 let lean_namespace_stack : string list ref = ref []
+(* Record types that ended up in mutual blocks — rendered as inductives, not structures.
+   Record construction ({..}) and field projection (.field) don't work for these;
+   use constructor syntax and pattern matching instead. *)
+let lean_mutual_records : string list ref = ref []
 (* Collects import module names — emitted at top of file before any other content *)
 let lean_collected_imports : string list ref = ref []
+(* Tracks locally-defined module names within the current file (via Module definitions).
+   These should not be emitted as imports since they're namespaces, not separate files. *)
+let lean_local_modules : string list ref = ref []
+(* Fully-qualified paths of nested modules that need 'open' at file level.
+   Lean's 'open' inside a namespace is scoped, so nested module opens must
+   be deferred to the enclosing top-level scope. *)
+let lean_deferred_opens : string list ref = ref []
 (* Set by process_file.ml before calling lean_defs — used for namespace wrapping *)
 let lean_current_module_name : string ref = ref ""
 (* When true, isEqual outputs propositional = instead of BEq ==.
@@ -207,11 +228,41 @@ let flatten_newlines = Output.flatten_newlines
 let tyvar (_, tv, _) = id Type_var (Ulib.Text.(^^^) (r"") tv)
 let concat_str s = concat (from_string s)
 
+(* Escape a string if it's a Lean syntax keyword, using «» guillemets *)
+let lean_escape_keyword s =
+  if List.mem s lean_syntax_keywords then
+    String.concat "" ["\xC2\xAB"; s; "\xC2\xBB"]  (* «name» *)
+  else s
+
 let lskips_t_to_output name =
   let stripped = Name.strip_lskip name in
-  let rope = Name.to_rope stripped in
-    Output.id Term_var rope
+  let s = Ulib.Text.to_string (Name.to_rope stripped) in
+  let escaped = lean_escape_keyword s in
+  if escaped <> s then from_string escaped
+  else Output.id Term_var (Name.to_rope stripped)
 ;;
+
+(* Name output for variables with keyword escaping *)
+let name_var_output v =
+  let s = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip v)) in
+  let escaped = lean_escape_keyword s in
+  if escaped <> s then
+    Output.flat [ws (Name.get_lskip v); from_string escaped]
+  else
+    Name.to_output Term_var v
+
+(* Check if a type (from exp_to_typ) is a mutual record, i.e. a record type
+   that was rendered as an inductive due to being in a mutual block. *)
+let is_mutual_record_type typ =
+  match typ.Types.t with
+    | Types.Tapp (_, path) ->
+        let name = Path.to_string path in
+        let basename = match String.rindex_opt name '.' with
+          | Some i -> String.sub name (i + 1) (String.length name - i - 1)
+          | None -> name
+        in
+        List.mem basename !lean_mutual_records
+    | _ -> false
 
 let in_target targets = Typed_ast.in_targets_opt (Target.Target_no_ident Target.Target_lean) targets;;
 
@@ -458,14 +509,38 @@ type pat_style = FunParam | MatchArm
           val_def false None is_real_rec try_term def tv_set class_constraints
       | Module (skips, (name, l), mod_binding, skips', skips'', defs, skips''') ->
         let name_str = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip name)) in
+        lean_local_modules := name_str :: !lean_local_modules;
         lean_namespace_stack := name_str :: !lean_namespace_stack;
+        (* Build fully-qualified path for this module *)
+        let fq_path = String.concat "." (List.rev !lean_namespace_stack) in
         let name = lskips_t_to_output name in
         let body = callback defs in
         lean_namespace_stack := (match !lean_namespace_stack with _ :: tl -> tl | [] -> []);
-          Output.flat [
-            ws skips; from_string "namespace "; name; ws skips'; ws skips'';
-            body; from_string "\nend "; name; ws skips'''
-          ]
+          (* In Lem, module contents are implicitly available after the module
+             definition. Lean namespaces are not — we need an explicit 'open'.
+             For top-level modules, emit 'open' directly plus any deferred
+             opens from nested modules. For nested modules, defer the open
+             since Lean's 'open' inside a namespace is scoped to that block. *)
+          let is_top_level = !lean_namespace_stack = [] in
+          if is_top_level then
+            let deferred = !lean_deferred_opens in
+            lean_deferred_opens := [];
+            let deferred_opens = flat @@ List.map (fun p ->
+              from_string (String.concat "" ["\nopen "; p])
+            ) deferred in
+            Output.flat [
+              ws skips; from_string "namespace "; name; ws skips'; ws skips'';
+              body; from_string "\nend "; name;
+              from_string "\nopen "; name; deferred_opens; ws skips'''
+            ]
+          else begin
+            lean_deferred_opens := fq_path :: !lean_deferred_opens;
+            Output.flat [
+              ws skips; from_string "namespace "; name; ws skips'; ws skips'';
+              body; from_string "\nend "; name;
+              from_string "\nopen "; name; ws skips'''
+            ]
+          end
       | Rename (skips, name, mod_binding, skips', mod_descr) -> emp  (* Module renames not applicable in Lean *)
       | OpenImport (oi, ms) ->
           let (ms', sk) = B.open_to_open_target ms in
@@ -480,12 +555,19 @@ type pat_style = FunParam | MatchArm
           ws skips ^
           let is_user_module = not (is_library_module !lean_current_module_name) in
           let handle_mod (sk, md) =
-            lean_collected_imports := md :: !lean_collected_imports;
-            (* Only emit 'open' for library modules (which have namespaces).
-               User modules have no namespace; import alone suffices.
+            (if not (List.mem md !lean_local_modules) then
+              lean_collected_imports := md :: !lean_collected_imports);
+            (* Emit 'open' for:
+               - Local modules (defined in this file via Module) — they create namespaces
+               - Library modules in library context — they have Lem_X namespaces
+               User modules from other files have no namespace; import alone suffices.
                In non-library (user) modules, skip inline opens for library imports —
                transitive_opens will emit them for both main and auxiliary files. *)
-            if not (is_library_module md) then emp
+            if List.mem md !lean_local_modules then
+              Output.flat [
+                from_string "open"; ws sk; from_string md; from_string "\n"
+              ]
+            else if not (is_library_module md) then emp
             else if is_user_module then emp
             else
               let ns = lean_ns_name md in
@@ -1099,16 +1181,30 @@ type pat_style = FunParam | MatchArm
       let tv_set_sep, tv_set =
         if inside_instance then
           emp, emp
-        else
+        else begin
+          let tv_set =
+            if Types.TNset.cardinal tv_set = 0 then
+              Types.free_vars (Typed_ast.exp_to_typ e)
+            else tv_set
+          in
+          (* Filter out phantom type variables that don't appear in any explicit
+             parameter types or the return type. Lean can't infer these. *)
+          let sig_tvs =
+            let pat_tvs = List.fold_left (fun acc p ->
+              Types.TNset.union acc (Types.free_vars p.typ)
+            ) Types.TNset.empty pats in
+            let ret_tvs = match typ_opt with
+              | None -> Types.free_vars (Typed_ast.exp_to_typ e)
+              | Some (_, t) -> Types.free_vars t.typ
+            in
+            Types.TNset.union pat_tvs ret_tvs
+          in
+          let tv_set = Types.TNset.inter tv_set sig_tvs in
           if Types.TNset.cardinal tv_set = 0 then
-            let typ = Typed_ast.exp_to_typ e in
-            let tv_set = Types.free_vars typ in
-              if Types.TNset.cardinal tv_set = 0 then
-                emp, let_type_variables true tv_set
-              else
-                from_string " ", let_type_variables true tv_set
+            emp, let_type_variables true tv_set
           else
             from_string " ", let_type_variables true tv_set
+        end
       in
       let typ_opt =
         match typ_opt with
@@ -1118,9 +1214,15 @@ type pat_style = FunParam | MatchArm
                 ws s; from_string " : "; pat_typ t
               ]
       in
+        let body = exp inside_instance e in
+        (* Inside instance definitions, flatten newlines in the body expression.
+           Without this, multiline bodies (e.g., sorry-based opaque type instances)
+           can have arguments on a new line at field-name indentation, which Lean
+           misparses as a new field definition. *)
+        let body = if inside_instance then flatten_newlines body else body in
         Output.flat [
           ws name_skips; from_string " "; name; tv_set_sep; tv_set; constraints_sep; constraints; pat_skips;
-          fun_pattern_list inside_instance pats; ws skips; typ_opt; from_string " := "; exp inside_instance e
+          fun_pattern_list inside_instance pats; ws skips; typ_opt; from_string " := "; body
         ]
     and funcl inside_instance i_ref_opt constraints tv_set ({term = n}, c, pats, typ_opt, skips, e) =
       let n =
@@ -1166,7 +1268,7 @@ type pat_style = FunParam | MatchArm
       let is_user_exp = Typed_ast_syntax.is_pp_exp e in
         match C.exp_to_term e with
           | Var v ->
-              Name.to_output Term_var v
+              name_var_output v
           | Backend (sk, i) ->
               ws sk ^
               Ident.to_output (Term_const (false, true)) path_sep i
@@ -1219,6 +1321,9 @@ type pat_style = FunParam | MatchArm
                         B.function_application_to_output (exp_to_locn e) trans false e cd args (use_ascii_rep_for_const cd.descr)
                       end
                     end
+                  | Backend (_, i) when Ident.to_string i = "sorry" ->
+                    (* sorry is a term, not a function — drop applied arguments *)
+                    [from_string "sorry"]
                   | _ ->
                     List.map trans (e0 :: args)
               end in
@@ -1307,31 +1412,92 @@ type pat_style = FunParam | MatchArm
                 from_string "/- end block -/"
               ]
           | Record (skips, fields, skips') ->
-            let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) (field_update inside_instance) (sep @@ from_string ",") fields in
-            (* Add type ascription so Lean can resolve the record type from
-               field names. Without it, { field := value } fails when the
-               expected type isn't known from context (e.g., in a let binding). *)
             let typ = Typed_ast.exp_to_typ e in
-            let src_t = C.t_to_src_t typ in
-              Output.flat [
-                ws skips; from_string "(({ "; body; ws skips'; from_string " } : "; pat_typ src_t; from_string "))"
-              ]
+            if is_mutual_record_type typ then
+              (* Mutual records are rendered as inductives, not structures.
+                 Use constructor syntax: TypeName.mk val1 val2 ... *)
+              let field_vals = Seplist.to_list fields in
+              let vals = List.map (fun (_, _, e_val, _) ->
+                Output.flat [from_string " ("; exp inside_instance e_val; from_string ")"]
+              ) field_vals in
+              let src_t = C.t_to_src_t typ in
+              (* Build TypeName.mk — extract just the type name, ignoring params.
+                 This avoids dot-notation parsing issues with parenthesized type args. *)
+              let type_name_str = match typ.Types.t with
+                | Types.Tapp (_, path) ->
+                    let n = Path.get_name path in
+                    Ulib.Text.to_string (Name.to_rope n)
+                | _ -> "sorry /- unknown type -/"
+              in
+              Output.flat ([
+                ws skips; from_string "("; from_string type_name_str; from_string ".mk"
+              ] @ vals @ [
+                ws skips'; from_string ")"
+              ])
+            else begin
+              let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) (field_update inside_instance) (sep @@ from_string ",") fields in
+              (* Add type ascription so Lean can resolve the record type from
+                 field names. Without it, { field := value } fails when the
+                 expected type isn't known from context (e.g., in a let binding). *)
+              let src_t = C.t_to_src_t typ in
+                Output.flat [
+                  ws skips; from_string "(({ "; body; ws skips'; from_string " } : "; pat_typ src_t; from_string "))"
+                ]
+            end
           | Field (e, skips, fd) ->
             let name = field_ident_to_output fd (use_ascii_rep_for_const fd.descr) in
+            (* Dot notation works for both structures (.field accessor) and
+               mutual records (we generate explicit accessor functions). *)
               Output.flat [
                 exp inside_instance e; from_string "."; ws skips; name
               ]
           | Recup (skips, e, skips', fields, skips'') ->
-            let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) (field_update inside_instance) (sep @@ from_string ",") fields in
-            let skips'' =
-              if skips'' = Typed_ast.no_lskips then
-                from_string " "
-              else
-                ws skips''
-            in
-              Output.flat [
-                 ws skips; from_string "{ "; exp inside_instance e; ws skips'; from_string " with "; body; skips''; from_string " }"
-              ]
+            let e_typ = Typed_ast.exp_to_typ e in
+            if is_mutual_record_type e_typ then
+              (* Mutual records are inductives — { r with ... } doesn't work.
+                 Look up all fields from the type definition, reconstruct with
+                 accessor functions for unchanged fields and new values for updated ones. *)
+              let updated = Seplist.to_list fields in
+              let updated_names = List.map (fun (fd, _, _, _) ->
+                let c_descr = c_env_lookup Ast.Unknown A.env.c_env fd.descr in
+                Name.to_string (Path.get_name c_descr.const_binding)
+              ) updated in
+              let updated_map = List.map2 (fun name (_, _, e_val, _) -> (name, e_val)) updated_names updated in
+              (* Look up the type's fields from the environment *)
+              let src_t = C.t_to_src_t e_typ in
+              (match Types.type_defs_lookup_typ Ast.Unknown A.env.t_env e_typ with
+                | Some td ->
+                  let all_fields = match td.Types.type_fields with
+                    | Some fs -> fs | None -> [] in
+                  let field_vals = List.map (fun f_ref ->
+                    let c_descr = c_env_lookup Ast.Unknown A.env.c_env f_ref in
+                    let fname = Name.to_string (
+                      Path.get_name c_descr.const_binding) in
+                    match List.assoc_opt fname updated_map with
+                      | Some e_val -> Output.flat [from_string " ("; exp inside_instance e_val; from_string ")"]
+                      | None -> Output.flat [from_string " ("; exp inside_instance e; from_string "."; from_string fname; from_string ")"]
+                  ) all_fields in
+                  Output.flat ([
+                    ws skips; from_string "(("; pat_typ src_t; from_string ".mk"
+                  ] @ field_vals @ [
+                    from_string "))"
+                  ])
+                | None ->
+                  (* Fallback: emit sorry *)
+                  Output.flat [ws skips; from_string "sorry /- mutual record update -/"]
+              )
+            else begin
+              let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) (field_update inside_instance) (sep @@ from_string ",") fields in
+              let skips'' =
+                if skips'' = Typed_ast.no_lskips then
+                  from_string " "
+                else
+                  ws skips''
+              in
+                Output.flat [
+                   ws skips; from_string "{ "; exp inside_instance e; ws skips'; from_string " with "; body; skips''; from_string " }"
+                ]
+            end
           | Case (_, skips, e, skips', cases, skips'') ->
             let case_sep _ = from_string " " in
             let has_vec = Seplist.exists (fun (p, _, _, _) -> pat_has_vector p) cases in
@@ -1617,7 +1783,7 @@ type pat_style = FunParam | MatchArm
               let t = C.t_to_src_t p.typ in
               Output.flat [from_string "("; name; from_string " : "; pat_typ t; from_string ")"]
             | MatchArm ->
-              Name.to_output Term_var v)
+              name_var_output v)
         | P_lit l ->
             (match style, l.term with
             | FunParam, L_unit _ -> from_string "(_ : Unit)"
@@ -1664,10 +1830,10 @@ type pat_style = FunParam | MatchArm
         | P_var_annot (n, t) ->
             (match style with
             | FunParam ->
-              let name = Name.to_output Term_var n in
+              let name = lskips_t_to_output n in
               Output.flat [from_string "("; name; from_string " : "; pat_typ t; from_string ")"]
             | MatchArm ->
-              Name.to_output Term_var n)
+              name_var_output n)
         | P_list (skips, ps, skips') ->
           let body = flat @@ Seplist.to_sep_list_last Seplist.Optional self (sep @@ from_string ", ") ps in
             Output.flat [
@@ -1691,9 +1857,10 @@ type pat_style = FunParam | MatchArm
             let oL = B.pattern_application_to_output p.locn self cd ps (use_ascii_rep_for_const cd.descr) in
             concat (from_string " ") oL
         | P_backend(sk, i, _, ps) ->
-            ws sk ^
-            Ident.to_output (Term_const (false, true)) path_sep (Ident.replace_lskip i Typed_ast.no_lskips) ^
-            concat (from_string " ") (List.map self ps)
+            let name = Output.flat [ws sk;
+              Ident.to_output (Term_const (false, true)) path_sep (Ident.replace_lskip i Typed_ast.no_lskips)]
+            in
+            concat (from_string " ") (name :: List.map self ps)
         | P_num_add ((name, l), skips, skips', k) ->
             let name = lskips_t_to_output name in
               Output.flat [
@@ -1763,19 +1930,22 @@ type pat_style = FunParam | MatchArm
       (* Collect type names and their constructor names for "export" declarations.
          Using "export" instead of "open" ensures constructors are visible
          in files that import this module, not just in the defining file. *)
-      let type_info = Seplist.to_list_map (fun ((n0, _), _, t_path, ty, _) ->
-        let n = B.type_path_to_name n0 t_path in
-        let name_str = Name.to_string (Name.strip_lskip n) in
-        let ctor_names = match ty with
-          | Te_variant (_, ctors) ->
-            Seplist.to_list_map (fun ((ctor_n, _), ctor_ref, _, _) ->
-              let cn = B.const_ref_to_name ctor_n false ctor_ref in
-              Name.to_string (Name.strip_lskip cn)
-            ) ctors
-          | _ -> []
-        in
-        (name_str, ctor_names)
-      ) defs in
+      let type_info = List.filter_map (fun ((n0, _), _, t_path, ty, _) ->
+        match ty with
+          | Te_abbrev _ -> None  (* Abbreviations don't create namespaces *)
+          | _ ->
+            let n = B.type_path_to_name n0 t_path in
+            let name_str = Name.to_string (Name.strip_lskip n) in
+            let ctor_names = match ty with
+              | Te_variant (_, ctors) ->
+                Seplist.to_list_map (fun ((ctor_n, _), ctor_ref, _, _) ->
+                  let cn = B.const_ref_to_name ctor_n false ctor_ref in
+                  Name.to_string (Name.strip_lskip cn)
+                ) ctors
+              | _ -> []
+            in
+            Some (name_str, ctor_names)
+      ) (Seplist.to_list defs) in
       let type_names = List.map fst type_info in
       (* Also register these for the auxiliary file (with namespace qualification) *)
       lean_auxiliary_opens := !lean_auxiliary_opens @ List.map lean_qualified_name type_names;
@@ -1790,21 +1960,94 @@ type pat_style = FunParam | MatchArm
       ) type_info) in
       let n = Seplist.length defs in
       if n > 1 then
-        (* Check if all types in mutual block have the same number of type params *)
-        let param_counts = Seplist.to_list_map (fun (_, ty_vars, _, _, _) ->
-          List.length ty_vars
-        ) defs in
-        let all_same = match param_counts with
-          | [] -> true
-          | x :: xs -> List.for_all (fun y -> y = x) xs
+        (* Separate abbreviations from the mutual block — they are just type aliases
+           and can't participate in mutual recursion. Emit them after the mutual block. *)
+        let all_defs = Seplist.to_list defs in
+        let is_abbrev_def (_, _, _, ty, _) = match ty with Te_abbrev _ -> true | _ -> false in
+        let mutual_defs = List.filter (fun d -> not (is_abbrev_def d)) all_defs in
+        let abbrev_defs = List.filter is_abbrev_def all_defs in
+        let abbrevs_output = flat @@ List.map (fun ((n0, _), tyvars, path, ty, _) ->
+          match ty with
+            | Te_abbrev (skips, t) ->
+              let n = B.type_path_to_name n0 path in
+              let name = Name.to_output (Type_ctor (false, false)) n in
+              let tyvars' = type_def_type_variables tyvars in
+              let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
+              Output.flat [
+                from_string "\nabbrev"; name; tyvar_sep; tyvars';
+                ws skips; from_string " := "; pat_typ t
+              ]
+            | _ -> emp
+        ) abbrev_defs in
+        let mutual_n = List.length mutual_defs in
+        (* Note: mutual record names are pre-collected in lean_defs before the
+           main fold_right, so we don't register them here. See lean_mutual_records
+           pre-collection near lean_local_modules. *)
+        let mutual_output =
+          if mutual_n > 1 then
+            let mutual_sep = Seplist.from_list_default None mutual_defs in
+            (* Check if all types in mutual block have the same number of type params *)
+            let param_counts = List.map (fun (_, ty_vars, _, _, _) ->
+              List.length ty_vars
+            ) mutual_defs in
+            let all_same = match param_counts with
+              | [] -> true
+              | x :: xs -> List.for_all (fun y -> y = x) xs
+            in
+            if all_same then
+              let body = flat @@ Seplist.to_sep_list (type_def_variant false) (sep @@ from_string "\ninductive") mutual_sep in
+              Output.flat [ from_string "mutual\ninductive"; body; from_string "\nend" ]
+            else
+              let body = flat @@ Seplist.to_sep_list type_def_indexed (sep @@ from_string "\ninductive") mutual_sep in
+              Output.flat [ from_string "mutual\ninductive"; body; from_string "\nend" ]
+          else if mutual_n = 1 then
+            let single_sep = Seplist.from_list_default None mutual_defs in
+            let body = flat @@ Seplist.to_sep_list (type_def_variant true) (sep @@ from_string "\n") single_sep in
+            Output.flat [ from_string "inductive"; body ]
+          else
+            emp  (* All were abbreviations *)
         in
-        if all_same then
-          let body = flat @@ Seplist.to_sep_list (type_def_variant false) (sep @@ from_string "\ninductive") defs in
-          Output.flat [ from_string "mutual\ninductive"; body; from_string "\nend"; open_decls; from_string "\n" ]
-        else
-          (* Heterogeneous params: use indices instead of params for Lean 4 compatibility *)
-          let body = flat @@ Seplist.to_sep_list type_def_indexed (sep @@ from_string "\ninductive") defs in
-          Output.flat [ from_string "mutual\ninductive"; body; from_string "\nend"; open_decls; from_string "\n" ]
+        (* Generate accessor functions for record types in the mutual block.
+           Lean 4 doesn't create .field projectors for inductives in mutual blocks,
+           so we emit explicit defs to enable dot notation. *)
+        let accessor_defs = flat @@ List.filter_map (fun ((n0, _), ty_vars_raw, path, ty, _) ->
+          match ty with
+            | Te_record (_, _, fields, _) ->
+              let n = B.type_path_to_name n0 path in
+              let type_name = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip n)) in
+              let tv_decl = String.concat "" @@ List.map (fun tv ->
+                let s = tnvar_to_string tv in
+                match tv with
+                  | Typed_ast.Tn_A _ -> String.concat "" [" {"; s; " : Type}"]
+                  | Typed_ast.Tn_N _ -> String.concat "" [" {"; s; " : Nat}"]
+              ) ty_vars_raw in
+              let tv_applied = String.concat " " @@ List.map tnvar_to_string ty_vars_raw in
+              let tv_sep = if List.length ty_vars_raw = 0 then "" else " " in
+              let field_list = Seplist.to_list fields in
+              let n_fields = List.length field_list in
+              let accessors = List.mapi (fun i ((fname, _), f_ref, _, src_t) ->
+                let field_name = B.const_ref_to_name fname false f_ref in
+                let field_str = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip field_name)) in
+                let pre_wildcards = String.concat "" (List.init i (fun _ -> " _")) in
+                let post = if i < n_fields - 1 then " .." else "" in
+                Output.flat [
+                  from_string (String.concat "" [
+                    "\n@[inline] def "; type_name; "."; field_str;
+                    tv_decl;
+                    " (self : "; type_name; tv_sep; tv_applied;
+                    ") : "
+                  ]);
+                  pat_typ src_t;
+                  from_string (String.concat "" [
+                    " :=\n  match self with | .mk";
+                    pre_wildcards; " "; field_str; post; " => "; field_str
+                  ])
+                ]
+              ) field_list in
+              Some (flat accessors)
+            | _ -> None
+        ) mutual_defs in
+        Output.flat [ mutual_output; abbrevs_output; open_decls; accessor_defs; from_string "\n" ]
       else
         let body = flat @@ Seplist.to_sep_list (type_def_variant true) (sep @@ from_string "\n") defs in
         Output.flat [ from_string "inductive"; body; open_decls; from_string "\n" ]
@@ -1926,9 +2169,31 @@ type pat_style = FunParam | MatchArm
         | Te_abbrev _ ->
             (* Unreachable: def dispatches abbreviations to type_def_abbreviation *)
             raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: unexpected Te_abbrev in tyexp")
-        | Te_record _ ->
-            (* Unreachable: def dispatches records to type_def_record *)
-            raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: unexpected Te_record in tyexp")
+        | Te_record (_, _, fields, _) ->
+            (* Records in mutual blocks: emit as single-constructor inductive
+               (Lean 4 mutual blocks cannot contain structure definitions) *)
+            let field_list = Seplist.to_list fields in
+            let mk_args = flat @@ List.map (fun ((n, _), f_ref, _skips, t) ->
+              let fname = Name.add_lskip (Name.strip_lskip (B.const_ref_to_name n false f_ref)) in
+              Output.flat [
+                from_string " (";
+                Name.to_output Term_field fname;
+                from_string " :"; pat_typ t;
+                from_string ")"
+              ]
+            ) field_list in
+            (* Build return type with applied type variables: e.g. "statement a" *)
+            let ty_vars_applied =
+              concat_str " " @@ List.map (fun v ->
+                match v with
+                  | Tyvar out -> out
+                  | Nvar out -> out
+              ) ty_vars
+            in
+            let ty_vars_sep = if List.length ty_vars = 0 then emp else from_string " " in
+            Output.flat [
+              from_string " where\n  | mk"; mk_args; from_string " : "; name; ty_vars_sep; ty_vars_applied
+            ]
         | Te_variant (skips, ctors) ->
           let body = flat @@ Seplist.to_sep_list_first Seplist.Optional (constructor name ty_vars) (sep @@ from_string "\n") ctors in
           let deriving_clause = if emit_deriving && texp_can_derive_beq ty then
@@ -2181,15 +2446,37 @@ type pat_style = FunParam | MatchArm
     and generate_inhabited_instance mutual_paths ((name, _), tnvar_list, path, t, _name_sect_opt) : Output.t =
       let name = B.type_path_to_name name path in
       let o = lskips_t_to_output name in
-      let tnvar_list' = default_type_variables tnvar_list in
+      let is_mutual = mutual_paths <> [] in
       let default =
-        match t with
-          | Te_variant (_, seplist) ->
-            let ctors = Seplist.to_list seplist in
-            (match find_safe_ctor_for_mutual mutual_paths ctors with
-              | Some ctor -> render_ctor_default ctor
-              | None -> from_string "sorry /- mutual type -/")
-          | _ -> generate_default_value_texp t
+        if tnvar_list = [] then
+          (* Monomorphic types: use real defaults when possible *)
+          match t with
+            | Te_variant (_, seplist) ->
+              let ctors = Seplist.to_list seplist in
+              (match find_safe_ctor_for_mutual mutual_paths ctors with
+                | Some ctor -> render_ctor_default ctor
+                | None -> from_string "sorry /- mutual type -/")
+            | Te_record _ when is_mutual ->
+              (* Records in mutual blocks are rendered as single-constructor inductives,
+                 not structures, so { field := val } syntax doesn't work. Use sorry. *)
+              from_string "sorry /- mutual type -/"
+            | _ -> generate_default_value_texp t
+        else
+          (* Parameterized types: always use sorry to avoid [Inhabited a] constraints.
+             This allows partial functions to compile without needing constraints on
+             their type parameters. *)
+          from_string "sorry"
+      in
+      (* Use unconstrained {a : Type} for parameterized types (no [Inhabited a]) *)
+      let tnvar_list' =
+        if tnvar_list = [] then emp
+        else
+          let tvs = List.map (fun tv ->
+            match tv with
+            | Typed_ast.Tn_A (_, r, _) -> Types.Ty (Tyvar.from_rope r)
+            | Typed_ast.Tn_N (_, r, _) -> Types.Nv (Nvar.from_rope r)
+          ) tnvar_list in
+          let_type_variables true (Types.TNset.of_list tvs)
       in
       let tnvar_names = concat_str " " @@ List.map (fun x -> from_string (tnvar_to_string x)) tnvar_list in
       let type_args =
@@ -2251,9 +2538,11 @@ type pat_style = FunParam | MatchArm
                 type_args;
                 from_string ") where\n  beq _ _ := sorry";
               ],
-              (* Ord is universe-polymorphic so it works for Type 1 too *)
+              (* Ord is universe-polymorphic so it works for Type 1 too.
+                 Use bare_tvs (no [Inhabited]) since compare := sorry doesn't need it.
+                 This lets downstream types use 'deriving Ord' without extra constraints. *)
               Output.flat [
-                from_string "\ninstance"; tnvar_list'; from_string " : Ord ("; o;
+                from_string "\ninstance"; bare_tvs; from_string " : Ord ("; o;
                 type_args;
                 from_string ") where\n  compare := sorry";
               ])
@@ -2396,6 +2685,38 @@ module LeanBackend (A : sig val avoid : var_avoid_f option;; val env : env;; val
       lean_namespace_stack := [];
       lean_collected_imports := [];
       lean_pending_abbrevs := [];
+      lean_mutual_records := [];
+      lean_deferred_opens := [];
+      (* Pre-collect local module names before main processing, because
+         defs uses fold_right (processes last-to-first). Without this,
+         'open Operators' would be processed before 'module Operators',
+         causing a spurious import. *)
+      lean_local_modules := List.filter_map (fun (((d, _), _, _) : def) ->
+        match d with
+        | Module (_, (name, _), _, _, _, _, _) ->
+            Some (Ulib.Text.to_string (Name.to_rope (Name.strip_lskip name)))
+        | _ -> None
+      ) ds;
+      (* Pre-collect mutual record type names. Type_def blocks with >1 member
+         that contain Te_record entries will render records as inductives.
+         We need this list before defs runs (fold_right = last-to-first). *)
+      lean_mutual_records := List.concat_map (fun (((d, _), _, _) : def) ->
+        match d with
+        | Type_def (_, defs) when Seplist.length defs > 1 ->
+            let all = Seplist.to_list defs in
+            let non_abbrev = List.filter (fun (_, _, _, ty, _) ->
+              match ty with Te_abbrev _ -> false | _ -> true
+            ) all in
+            if List.length non_abbrev > 1 then
+              List.filter_map (fun ((n0, _), _, _, ty, _) ->
+                match ty with
+                  | Te_record _ ->
+                    Some (Ulib.Text.to_string (Name.to_rope (Name.strip_lskip n0)))
+                  | _ -> None
+              ) non_abbrev
+            else []
+        | _ -> []
+      ) ds;
       let mod_name = !lean_current_module_name in
       let ns_name = lean_ns_name mod_name in
       let is_library = ns_name <> mod_name in
@@ -2411,6 +2732,14 @@ module LeanBackend (A : sig val avoid : var_avoid_f option;; val env : env;; val
       lean_pending_abbrevs := [];
       let lean_defs = lean_defs ^ deferred in
       let lean_defs_extra = defs_extra false false ds in
+      (* Ensure LemLib.Pervasives is always imported for non-library modules.
+         This guarantees the standard namespace opens (Lem_Basic_classes, etc.)
+         are available for auto-generated instances even when the source .lem file
+         doesn't explicitly import Pervasives (e.g., linux.lem). *)
+      let _ = if not is_library &&
+                not (List.mem "LemLib.Pervasives" !lean_collected_imports) then
+        lean_collected_imports := "LemLib.Pervasives" :: !lean_collected_imports
+      in
       (* Prepend collected imports (deduplicated, in order) to main body *)
       let imports = List.rev !lean_collected_imports in
       let seen = Hashtbl.create 16 in
