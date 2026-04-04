@@ -1386,7 +1386,7 @@ type pat_style = FunParam | MatchArm
                   ws skips; from_string "["; lists; from_string "]"; ws skips'
                 ]
           | Let (skips, bind, _skips', e) ->
-              let body = let_body inside_instance None false Types.TNset.empty bind in
+              let body = flatten_newlines (let_body inside_instance None false Types.TNset.empty bind) in
                 Output.flat [
                   ws skips; from_string "let "; body; from_string "; "; exp inside_instance e
                 ]
@@ -1493,14 +1493,7 @@ type pat_style = FunParam | MatchArm
               ]
           | Recup (skips, e, skips', fields, skips'') ->
             let e_typ = Typed_ast.exp_to_typ e in
-            if is_mutual_record_type e_typ || (
-              (* Also use constructor reconstruction for cross-file records where
-                 is_mutual_record_type can't detect the mutual block. Safe because
-                 constructor reconstruction works for structures too. *)
-              match Types.type_defs_lookup_typ Ast.Unknown A.env.t_env e_typ with
-                | Some td -> td.Types.type_fields <> None
-                | None -> false
-            ) then
+            if is_mutual_record_type e_typ then
               (* Mutual records are inductives — { r with ... } doesn't work.
                  Look up all fields from the type definition, reconstruct with
                  accessor functions for unchanged fields and new values for updated ones. *)
@@ -2574,26 +2567,9 @@ type pat_style = FunParam | MatchArm
             if List.length tnvar_list = 0 then emp
             else Output.flat [from_string " "; tnvar_names]
           in
-          (* If the type uses deriving BEq, Ord (emitted by tyexp), skip sorry instances.
-             When deriving is used, downstream instances (SetType, Eq0, Ord0) need
-             [BEq a] [Ord a] constraints in addition to [Inhabited a].
-             Mutual types can't use deriving, so emit_deriving=false for them. *)
+          (* If the type uses deriving BEq, Ord (emitted by tyexp), skip sorry
+             BEq/Ord instances. Mutual types can't use deriving (emit_deriving=false). *)
           let has_deriving = emit_deriving && texp_can_derive_beq t in
-          let tnvar_list_with_beq_ord =
-            if has_deriving then
-              let extra_constraints = concat emp @@ List.filter_map (fun t ->
-                match t with
-                  | Typed_ast.Tn_A _ ->
-                    let tv = from_string (tnvar_to_string t) in
-                    Some (Output.flat [
-                      from_string " [BEq "; tv; from_string "]";
-                      from_string " [Ord "; tv; from_string "]"
-                    ])
-                  | Typed_ast.Tn_N _ -> None
-              ) tnvar_list in
-              Output.flat [tnvar_list'; extra_constraints]
-            else tnvar_list'
-          in
           let beq_instance, ord_instance =
             if has_deriving then (emp, emp)
             else begin
@@ -2625,18 +2601,27 @@ type pat_style = FunParam | MatchArm
           (* SetType/Eq0/Ord0 are defined for (a : Type) only, skip for Type 1 *)
           if is_type1 then Output.flat [beq_instance; ord_instance]
           else
+            (* SetType/Eq0/Ord0 use sorry-based implementations with bare type
+               variables (no [Inhabited], [BEq], [Ord] constraints) to avoid
+               propagating constraints to downstream code like Map.fold.
+               The derived BEq/Ord instances still work for direct == and compare. *)
+            let bare_tvs_all = concat emp @@ List.map (fun t ->
+              let name = tnvar_to_string t in
+              let kind = match t with Typed_ast.Tn_A _ -> "Type" | Typed_ast.Tn_N _ -> "Nat" in
+              Output.flat [from_string " {"; from_string name; from_string " : "; from_string kind; from_string "}"]
+            ) tnvar_list in
             Output.flat [
               beq_instance;
               ord_instance;
-              from_string "\ninstance"; tnvar_list_with_beq_ord; from_string " : Lem_Basic_classes.SetType ("; o;
+              from_string "\ninstance"; bare_tvs_all; from_string " : Lem_Basic_classes.SetType ("; o;
               type_args;
-              from_string ") where\n  setElemCompare := defaultCompare";
-              from_string "\ninstance"; tnvar_list_with_beq_ord; from_string " : Lem_Basic_classes.Eq0 ("; o;
+              from_string ") where\n  setElemCompare := sorry";
+              from_string "\ninstance"; bare_tvs_all; from_string " : Lem_Basic_classes.Eq0 ("; o;
               type_args;
-              from_string ") where\n  isEqual x y := x == y\n  isInequal x y := !(x == y)";
-              from_string "\ninstance"; tnvar_list_with_beq_ord; from_string " : Lem_Basic_classes.Ord0 ("; o;
+              from_string ") where\n  isEqual _ _ := sorry\n  isInequal _ _ := sorry";
+              from_string "\ninstance"; bare_tvs_all; from_string " : Lem_Basic_classes.Ord0 ("; o;
               type_args;
-              from_string ") where\n  compare := defaultCompare\n  isLess := defaultLess\n  isLessEqual := defaultLessEq\n  isGreater := defaultGreater\n  isGreaterEqual := defaultGreaterEq";
+              from_string ") where\n  compare := sorry\n  isLess := sorry\n  isLessEqual := sorry\n  isGreater := sorry\n  isGreaterEqual := sorry";
             ]
     and generate_default_values ts : Output.t =
       let ts = Seplist.to_list ts in

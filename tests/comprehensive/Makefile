@@ -33,6 +33,13 @@ lean-generate: $(TESTS)
 		fi; \
 	done; \
 	echo "=== Generation: $$pass passed, $$fail failed, $$skip skipped ==="
+	@# Multi-file tests: files that must be compiled together (like Cerberus)
+	@# so that lean_mutual_records accumulates across files.
+	@if $(LEM) $(LEMFLAGS) -lean test_cross_recup_base.lem test_cross_recup_import.lem > /dev/null 2>&1; then \
+		echo "  OK: test_cross_recup_base.lem + test_cross_recup_import.lem (joint)"; \
+	else \
+		echo "  FAIL: test_cross_recup_base.lem + test_cross_recup_import.lem (joint)"; \
+	fi
 
 # Symlink generated files into lean-test/ and compile with Lake
 lean-compile:

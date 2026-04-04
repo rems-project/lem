@@ -29,7 +29,9 @@ val const : forall 'a 'b. 'a -> 'b -> 'a
 let inline const x y = x
 
 declare coq target_rep function const = `const`
-declare lean target_rep function const = `Function.const`
+(* No Lean target_rep: Lean's Function.const has different argument conventions
+   (first explicit param is a type, not a value). The universal inline on line 29
+   handles Lean correctly by inlining const x y = x at call sites. *)
 declare hol      target_rep function const = `K`
 
 
