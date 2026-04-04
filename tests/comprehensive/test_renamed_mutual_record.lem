@@ -1,0 +1,21 @@
+open import Pervasives
+
+(* Bug reproduction: mutual record type whose name collides with lean_constants.
+
+   "Bool" is in lean_constants, so rename_top_level.ml renames the TYPE
+   "Bool" -> "Bool0". The inductive definition correctly emits "Bool0",
+   but record construction/update uses Path.get_name (raw "Bool") instead
+   of B.type_path_to_name (rename-aware "Bool0") for the .mk call.
+
+   Result: generated code has "Bool.mk" (references Lean's builtin Bool)
+   instead of "Bool0.mk" (the renamed type). This causes a compile error. *)
+
+(* Mutual block forces record -> inductive. "Bool" collides with Lean builtin. *)
+type boolWrapper = BWrap of Bool
+and Bool = <| flag : bool |>
+
+(* Record construction: generates "Bool.mk" but should generate "Bool0.mk" *)
+let make_bool : Bool = <| flag = true |>
+
+(* Record update: same bug *)
+let update_bool (b : Bool) : Bool = <| b with flag = false |>

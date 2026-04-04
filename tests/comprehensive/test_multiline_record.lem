@@ -1,0 +1,25 @@
+open import Pervasives_extra
+
+(* Minimal reproduction of Cerberus Translation.lean:565 error.
+   A record literal whose fields are on separate lines produces a
+   multiline { field := val, field := val } in the generated Lean,
+   which Lean's parser rejects ("unexpected identifier; expected '}'"). *)
+
+type my_state = <|
+  field_a : list nat ;
+  field_b : nat ;
+|>
+
+(* Record construction spanning multiple source lines *)
+let init_state : my_state =
+  <| field_a = []
+   ; field_b = (0 : nat) |>
+
+(* Also test a single-line record construction for baseline *)
+let init_state_single : my_state = <| field_a = []; field_b = (0 : nat) |>
+
+(* Record update spanning multiple source lines (Recup case) *)
+let updated_state : my_state =
+  <| init_state with
+     field_b = (42 : nat)
+  |>

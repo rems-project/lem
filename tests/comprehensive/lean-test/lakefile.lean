@@ -71,5 +71,8 @@ lean_lib LemComprehensiveTest where
     `Test_map_fold_mutual, `Test_map_fold_mutual_auxiliary,
     `Test_sorry_unit_match, `Test_sorry_unit_match_auxiliary,
     `Test_settype_unit, `Test_settype_unit_auxiliary,
-    `Test_deriving_deep, `Test_deriving_deep_auxiliary
+    `Test_deriving_deep, `Test_deriving_deep_auxiliary,
+    `Test_multiline_record,
+    `Test_let_scope, `Test_let_scope_auxiliary,
+    `Test_renamed_mutual_record, `Test_renamed_mutual_record_auxiliary
   ]

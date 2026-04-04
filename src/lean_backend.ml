@@ -1163,7 +1163,16 @@ type pat_style = FunParam | MatchArm
     and let_body inside_instance i_ref_opt top_level tv_set ((lb, _):letbind) =
       match lb with
         | Let_val (p, topt, skips, e) ->
-            let p = def_pattern p in
+            (* In Lean 4, `let (x : T) := val; body` is parsed as a pattern-matching
+               let where x is NOT bound into body's scope. The correct syntax is
+               `let x : T := val; body`. So when the pattern is P_typ at the top level,
+               extract the inner pattern and emit the type annotation separately. *)
+            let p_out, typ_from_pat = match p.term with
+              | P_typ (_skips, inner_p, _skips', t, _skips'') ->
+                  def_pattern inner_p, Some t
+              | _ ->
+                  def_pattern p, None
+            in
             let tv_set_sep, tv_set =
               if Types.TNset.cardinal tv_set = 0 then
                 let typ = Typed_ast.exp_to_typ e in
@@ -1178,7 +1187,11 @@ type pat_style = FunParam | MatchArm
             let tv_set = let_type_variables top_level tv_set in
             let topt =
               match topt with
-                | None        -> emp
+                | None ->
+                    (match typ_from_pat with
+                      | None -> emp
+                      | Some t ->
+                          Output.flat [from_string " :"; pat_typ t])
                 | Some (s, t) ->
                     Output.flat [
                       ws s; from_string " :"; pat_typ t
@@ -1186,7 +1199,7 @@ type pat_style = FunParam | MatchArm
             in
             let e = exp inside_instance e in
               Output.flat [
-                p; tv_set_sep; tv_set; topt; ws skips; from_string " :="; e
+                p_out; tv_set_sep; tv_set; topt; ws skips; from_string " :="; e
               ]
         | Let_fun _ ->
             (* Pattern compilation transforms Let_fun into funcl before the backend *)
@@ -1460,8 +1473,9 @@ type pat_style = FunParam | MatchArm
                  This avoids dot-notation parsing issues with parenthesized type args. *)
               let type_name_str = match typ.Types.t with
                 | Types.Tapp (_, path) ->
-                    let n = Path.get_name path in
-                    Ulib.Text.to_string (Name.to_rope n)
+                    let n0 = Name.add_lskip (Path.get_name path) in
+                    let n = B.type_path_to_name n0 path in
+                    Ulib.Text.to_string (Name.to_rope (Name.strip_lskip n))
                 | _ -> assert false  (* unreachable: is_mutual_record_type requires Tapp *)
               in
               Output.flat ([
@@ -1470,7 +1484,7 @@ type pat_style = FunParam | MatchArm
                 ws skips'; from_string ")"
               ])
             else begin
-              let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) (field_update inside_instance) (sep @@ from_string ",") fields in
+              let body = flatten_newlines (flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) (field_update inside_instance) (sep @@ from_string ",") fields) in
               (* Add type ascription so Lean can resolve the record type from
                  field names. Without it, { field := value } fails when the
                  expected type isn't known from context (e.g., in a let binding). *)
@@ -1516,7 +1530,9 @@ type pat_style = FunParam | MatchArm
                      dot-notation parsing issues: wrapper.mk not wrapper a.mk *)
                   let type_name_str = match e_typ.Types.t with
                     | Types.Tapp (_, path) ->
-                        Ulib.Text.to_string (Name.to_rope (Path.get_name path))
+                        let n0 = Name.add_lskip (Path.get_name path) in
+                        let n = B.type_path_to_name n0 path in
+                        Ulib.Text.to_string (Name.to_rope (Name.strip_lskip n))
                     | _ -> assert false
                   in
                   Output.flat ([
@@ -1529,7 +1545,7 @@ type pat_style = FunParam | MatchArm
                     "Lean backend: mutual record update could not find type definition")
               )
             else begin
-              let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) (field_update inside_instance) (sep @@ from_string ",") fields in
+              let body = flatten_newlines (flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) (field_update inside_instance) (sep @@ from_string ",") fields) in
               let skips'' =
                 if skips'' = Typed_ast.no_lskips then
                   from_string " "
