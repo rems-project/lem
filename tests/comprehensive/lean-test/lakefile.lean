@@ -64,7 +64,12 @@ lean_lib LemComprehensiveTest where
     `Test_cerberus_remaining, `Test_cerberus_remaining_auxiliary,
     `Test_cross_recup_base, `Test_cross_recup_base_auxiliary,
     `Test_cross_recup_import, `Test_cross_recup_import_auxiliary,
+    `Test_cross_field_access,
+    `Test_cross_field_access_import,
     `Test_inline_theorem, `Test_inline_theorem_auxiliary,
     `Test_monadic_let, `Test_monadic_let_auxiliary,
-    `Test_map_fold_mutual, `Test_map_fold_mutual_auxiliary
+    `Test_map_fold_mutual, `Test_map_fold_mutual_auxiliary,
+    `Test_sorry_unit_match, `Test_sorry_unit_match_auxiliary,
+    `Test_settype_unit, `Test_settype_unit_auxiliary,
+    `Test_deriving_deep, `Test_deriving_deep_auxiliary
   ]

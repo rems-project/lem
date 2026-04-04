@@ -1,0 +1,6 @@
+open import Pervasives_extra
+
+(* Test that Set.map returning set unit works.
+   Requires SetType Unit instance in LemLib. *)
+let test_set_map (s : set nat) : set unit =
+  Set.map (fun _ -> ()) s

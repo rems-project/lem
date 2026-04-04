@@ -1,0 +1,12 @@
+(* Base: parameterized mutual block with a record-like type.
+   Importing file uses .field notation on these types. *)
+
+open import Pervasives_extra
+
+type node 'a =
+  | Leaf of 'a
+  | Branch of wrapper 'a
+and wrapper 'a = <| payload : node 'a; label : string |>
+
+let make_wrapper (n : node 'a) (l : string) : wrapper 'a =
+  <| payload = n; label = l |>

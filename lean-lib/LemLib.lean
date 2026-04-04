@@ -39,6 +39,9 @@ def isLessEqual (o : LemOrdering) : Bool := o != .GT
 def isGreater (o : LemOrdering) : Bool := o == .GT
 def isGreaterEqual (o : LemOrdering) : Bool := o != .LT
 
+/- Ord for Unit (not in Lean stdlib, needed by generated code) -/
+instance : Ord Unit where compare _ _ := .eq
+
 /- Ord instance for Prod (not in Lean stdlib) -/
 instance [Ord α] [Ord β] : Ord (α × β) where
   compare p q :=

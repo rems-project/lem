@@ -40,6 +40,11 @@ lean-generate: $(TESTS)
 	else \
 		echo "  FAIL: test_cross_recup_base.lem + test_cross_recup_import.lem (joint)"; \
 	fi
+	@if $(LEM) $(LEMFLAGS) -lean test_cross_field_access.lem test_cross_field_access_import.lem > /dev/null 2>&1; then \
+		echo "  OK: test_cross_field_access.lem + test_cross_field_access_import.lem (joint)"; \
+	else \
+		echo "  FAIL: test_cross_field_access.lem + test_cross_field_access_import.lem (joint)"; \
+	fi
 
 # Symlink generated files into lean-test/ and compile with Lake
 lean-compile:

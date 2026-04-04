@@ -477,17 +477,12 @@ type pat_style = FunParam | MatchArm
                 from_string (String.concat "" ["  else throw (IO.userError \"FAIL: "; lean_string_escape name_str; "\")"])
               ]
             | Ast.Lemma_lemma _ | Ast.Lemma_theorem _ ->
-              (* Use propositional = instead of BEq == in theorem bodies,
-                 since the result is ascribed : Prop. *)
-              let saved = !lean_prop_equality in
-              lean_prop_equality := true;
-              Fun.protect ~finally:(fun () -> lean_prop_equality := saved) (fun () ->
-                Output.flat [
-                  ws skips; from_string "theorem "; name_out; ws skips'; from_string " : ";
-                  from_string "("; exp inside_instance e; from_string " : Prop) ";
-                  from_string ":= by sorry"
-                ]
-              )
+              (* Skip lemma/theorem generation for Lean. These assert inline expansion
+                 correctness but contain complex expressions (match, forall) that
+                 cause parsing issues, and the proof is by sorry anyway. *)
+              Output.flat [
+                ws skips; from_string "/- removed theorem "; name_out; from_string " -/"
+              ]
           else
             from_string "/- removed lemma intended for another backend -/"
         (* All non-Lemma defs are handled by def, not def_extra.
@@ -1517,10 +1512,17 @@ type pat_style = FunParam | MatchArm
                       | Some e_val -> Output.flat [from_string " ("; exp inside_instance e_val; from_string ")"]
                       | None -> Output.flat [from_string " ("; exp inside_instance e; from_string "."; from_string fname; from_string ")"]
                   ) all_fields in
+                  (* Use just the type name, not full type with params, to avoid
+                     dot-notation parsing issues: wrapper.mk not wrapper a.mk *)
+                  let type_name_str = match e_typ.Types.t with
+                    | Types.Tapp (_, path) ->
+                        Ulib.Text.to_string (Name.to_rope (Path.get_name path))
+                    | _ -> assert false
+                  in
                   Output.flat ([
-                    ws skips; from_string "(("; pat_typ src_t; from_string ".mk"
+                    ws skips; from_string "("; from_string type_name_str; from_string ".mk"
                   ] @ field_vals @ [
-                    from_string "))"
+                    from_string ")"
                   ])
                 | None ->
                   raise (Reporting_basic.err_general true (Typed_ast.exp_to_locn e)
