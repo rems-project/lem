@@ -1,0 +1,13 @@
+(* Base module: defines a mutual block containing a record type.
+   The record becomes a single-constructor inductive in Lean
+   (mutual blocks can't contain structures). *)
+
+open import Pervasives_extra
+
+type expr =
+  | Lit of nat
+  | Annotated of annot
+and annot = <| ann_body : expr; ann_tag : string |>
+
+let make_annot (e : expr) (t : string) : annot =
+  <| ann_body = e; ann_tag = t |>

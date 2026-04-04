@@ -1,0 +1,34 @@
+(* Minimal reproducer for Cerberus inline theorem parsing error.
+
+   When a function has both a target-specific {lean} definition and an
+   inline expansion that applies to lean (via ~{ocaml}), the auxiliary
+   file generates a theorem asserting equivalence. The theorem uses
+   chained == which Lean cannot parse:
+
+     theorem my_eq_def_lemma : ((forall a b, (fid a == fid b) == a == b : Prop)) ...
+
+   Error: unexpected token '=='; expected ')', ',' or ':'
+*)
+
+open import Pervasives_extra
+
+(* A simple type with a field *)
+type widget = <| fid : nat |>
+
+(* Helper to extract the field *)
+val widget_fid : widget -> nat
+let widget_fid w = w.fid
+
+(* Custom equality: compare by field.
+   The {ocaml; lean} definition is concrete.
+   The inline ~{ocaml} definition applies to lean (and all non-ocaml backends),
+   generating a theorem in the auxiliary file. *)
+val my_eq : widget -> widget -> bool
+let {ocaml; lean} my_eq a b = widget_fid a = widget_fid b
+let inline ~{ocaml} my_eq a b = unsafe_structural_equality a b
+
+(* Eq instance using the custom equality *)
+instance (Eq widget)
+  let (=)  = my_eq
+  let (<>) x y = not (my_eq x y)
+end

@@ -255,11 +255,13 @@ let name_var_output v =
   else
     Name.to_output Term_var v
 
-(* Check if a type (from exp_to_typ) is a mutual record, i.e. a record type
-   that was rendered as an inductive due to being in a mutual block. *)
+(* Check if a type is a record that was rendered as a single-constructor inductive
+   due to being in a mutual block. Uses the per-compilation-unit list
+   lean_mutual_records which accumulates across files in one lem invocation. *)
 let is_mutual_record_type typ =
   match typ.Types.t with
     | Types.Tapp (_, path) ->
+        (* First check the per-compilation-unit list (fast path) *)
         let name = Path.to_string path in
         let basename = match String.rindex_opt name '.' with
           | Some i -> String.sub name (i + 1) (String.length name - i - 1)
@@ -475,14 +477,24 @@ type pat_style = FunParam | MatchArm
                 from_string (String.concat "" ["  else throw (IO.userError \"FAIL: "; lean_string_escape name_str; "\")"])
               ]
             | Ast.Lemma_lemma _ | Ast.Lemma_theorem _ ->
-              Output.flat [
-                ws skips; from_string "theorem "; name_out; ws skips'; from_string " : ";
-                from_string "("; exp inside_instance e; from_string " : Prop) ";
-                from_string ":= by decide"
-              ]
+              (* Use propositional = instead of BEq == in theorem bodies,
+                 since the result is ascribed : Prop. *)
+              let saved = !lean_prop_equality in
+              lean_prop_equality := true;
+              Fun.protect ~finally:(fun () -> lean_prop_equality := saved) (fun () ->
+                Output.flat [
+                  ws skips; from_string "theorem "; name_out; ws skips'; from_string " : ";
+                  from_string "("; exp inside_instance e; from_string " : Prop) ";
+                  from_string ":= by sorry"
+                ]
+              )
           else
             from_string "/- removed lemma intended for another backend -/"
-        | _ -> emp  (* def_extra only handles Lemma; all other defs handled by def *)
+        (* All non-Lemma defs are handled by def, not def_extra.
+           Exhaustive match so new def_aux variants trigger a compiler warning. *)
+        | Type_def _ | Val_def _ | Module _ | Rename _ | OpenImport _
+        | OpenImportTarget _ | Indreln _ | Val_spec _ | Class _ | Instance _
+        | Comment _ | Declaration _ -> emp
     and def (inside_instance: bool) (callback : def list -> Output.t) (inside_module : bool) (m : def_aux) =
       match m with
       | Type_def (skips, def) ->
@@ -650,7 +662,9 @@ type pat_style = FunParam | MatchArm
             | None -> emp
           in
           (* Export class methods so they are visible to importing files.
-             Skip names that clash with Lean stdlib globals. *)
+             Skip names that clash with Lean stdlib globals — a clash here
+             causes a Lean compile error (ambiguous name), not silent failure.
+             Review this list when upgrading the Lean toolchain. *)
           let lean_global_names = ["max"; "min"; "compare"] in
           let exportable = List.filter (fun n ->
             not (List.mem n lean_global_names)
@@ -967,9 +981,14 @@ type pat_style = FunParam | MatchArm
                     (* Render each clause as | pat1, pat2, ... => body *)
                     let render_equation ({term = _}, _, pats, _, skips, e) =
                       let pat_out = concat_str ", " (List.map def_pattern pats) in
-                      Output.flat [
-                        from_string "\n  | "; pat_out; from_string " =>"; ws skips; from_string " "; exp inside_instance e
-                      ]
+                      let body =
+                        if needs_parens (C.exp_to_term e) then
+                          Output.flat [from_string "("; exp inside_instance e; from_string ")"]
+                        else exp inside_instance e
+                      in
+                      flatten_newlines (Output.flat [
+                        from_string "\n  | "; pat_out; from_string " =>"; ws skips; from_string " "; body
+                      ])
                     in
                     let equations = Output.flat (List.map render_equation (first_clause :: rest_clauses)) in
                     Output.flat [
@@ -1038,6 +1057,7 @@ type pat_style = FunParam | MatchArm
               (Types.TNset.elements tvs) in
           Some (c_ref, params_str)
       ) gathered;
+      Fun.protect ~finally:(fun () -> lean_indreln_params := saved_indreln_params) (fun () ->
       let compare_clauses_by_name name (Rule(_,_, _, _, _, _, _, name', _, _),_) =
         let name' = name'.term in
         let name' = Name.strip_lskip name' in
@@ -1076,16 +1096,16 @@ type pat_style = FunParam | MatchArm
                          Functions and other types without BEq need propositional equality. *)
                       let saved = !lean_prop_equality in
                       lean_prop_equality := true;
-                      let result = flat [
-                        concat_str " → "
-                          (List.map (fun e ->
-                               flat [ from_string "(";
-                                      exp inside_instance e;
-                                      from_string ")" ]) ants);
-                        from_string " → "
-                      ] in
-                      lean_prop_equality := saved;
-                      result
+                      Fun.protect ~finally:(fun () -> lean_prop_equality := saved) (fun () ->
+                        flat [
+                          concat_str " → "
+                            (List.map (fun e ->
+                                 flat [ from_string "(";
+                                        exp inside_instance e;
+                                        from_string ")" ]) ants);
+                          from_string " → "
+                        ]
+                      )
               in
               let bound_variables =
                 concat_str " " @@ List.map (fun b ->
@@ -1139,12 +1159,12 @@ type pat_style = FunParam | MatchArm
         let is_mutual = List.length indrelns > 1 in
         let prefix = if is_mutual then from_string "\nmutual" else emp in
         let suffix = if is_mutual then from_string "\nend" else emp in
-        lean_indreln_params := saved_indreln_params;
         Output.flat [
           prefix;
           from_string "\ninductive "; concat_str "\ninductive " indrelns;
           suffix
         ]
+      )
     and let_body inside_instance i_ref_opt top_level tv_set ((lb, _):letbind) =
       match lb with
         | Let_val (p, topt, skips, e) ->
@@ -1247,7 +1267,10 @@ type pat_style = FunParam | MatchArm
                 let filtered = List.filter (fun x -> snd x = c) instance.inst_methods in
                   match filtered with
                     | x::xs -> B.const_ref_to_name n true (fst x)
-                    | _ -> raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: instance method not found for class method")
+                    | _ ->
+                      let method_name = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip n)) in
+                      raise (Reporting_basic.err_general true Ast.Unknown
+                        (String.concat "" ["Lean backend: instance method not found for '"; method_name; "'"]))
               end
         else
           B.const_ref_to_name n true c
@@ -1334,8 +1357,12 @@ type pat_style = FunParam | MatchArm
                       end
                     end
                   | Backend (_, i) when Ident.to_string i = "sorry" ->
-                    (* sorry is a term, not a function — drop applied arguments *)
-                    [from_string "sorry"]
+                    (* sorry is a term, not a function — drop applied arguments.
+                       Annotate with the expression's type so Lean can infer it
+                       in contexts like let bindings. *)
+                    let typ = Typed_ast.exp_to_typ e in
+                    let src_t = C.t_to_src_t typ in
+                    [Output.flat [from_string "(sorry : "; pat_typ src_t; from_string ")"]]
                   | _ ->
                     List.map trans (e0 :: args)
               end in
@@ -1440,7 +1467,7 @@ type pat_style = FunParam | MatchArm
                 | Types.Tapp (_, path) ->
                     let n = Path.get_name path in
                     Ulib.Text.to_string (Name.to_rope n)
-                | _ -> "sorry /- unknown type -/"
+                | _ -> assert false  (* unreachable: is_mutual_record_type requires Tapp *)
               in
               Output.flat ([
                 ws skips; from_string "("; from_string type_name_str; from_string ".mk"
@@ -1466,7 +1493,14 @@ type pat_style = FunParam | MatchArm
               ]
           | Recup (skips, e, skips', fields, skips'') ->
             let e_typ = Typed_ast.exp_to_typ e in
-            if is_mutual_record_type e_typ then
+            if is_mutual_record_type e_typ || (
+              (* Also use constructor reconstruction for cross-file records where
+                 is_mutual_record_type can't detect the mutual block. Safe because
+                 constructor reconstruction works for structures too. *)
+              match Types.type_defs_lookup_typ Ast.Unknown A.env.t_env e_typ with
+                | Some td -> td.Types.type_fields <> None
+                | None -> false
+            ) then
               (* Mutual records are inductives — { r with ... } doesn't work.
                  Look up all fields from the type definition, reconstruct with
                  accessor functions for unchanged fields and new values for updated ones. *)
@@ -1496,8 +1530,8 @@ type pat_style = FunParam | MatchArm
                     from_string "))"
                   ])
                 | None ->
-                  (* Fallback: emit sorry *)
-                  Output.flat [ws skips; from_string "sorry /- mutual record update -/"]
+                  raise (Reporting_basic.err_general true (Typed_ast.exp_to_locn e)
+                    "Lean backend: mutual record update could not find type definition")
               )
             else begin
               let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) (field_update inside_instance) (sep @@ from_string ",") fields in
@@ -1566,8 +1600,11 @@ type pat_style = FunParam | MatchArm
                       let c_descr = c_env_lookup Ast.Unknown A.env.c_env cd.descr in
                       match !lean_prop_equality, check_beq_target_rep c_descr with
                       | true, Some is_eq ->
-                        if is_eq then Output.flat [trans l; from_string "  =  "; trans r]
-                        else Output.flat [trans l; meta_utf8 "  \xe2\x89\xa0  "; trans r]
+                        (* Parenthesize both sides to avoid chained = ambiguity *)
+                        let l_out = Output.flat [from_string "("; trans l; from_string ")"] in
+                        let r_out = Output.flat [from_string "("; trans r; from_string ")"] in
+                        if is_eq then Output.flat [l_out; from_string "  =  "; r_out]
+                        else Output.flat [l_out; meta_utf8 "  \xe2\x89\xa0  "; r_out]
                       | _ -> begin
                         let pieces = B.function_application_to_output (exp_to_locn e) trans true e cd [l; r] (use_ascii_rep_for_const cd.descr) in
                         Output.concat sep pieces
@@ -1722,8 +1759,11 @@ type pat_style = FunParam | MatchArm
         ])
     and field_update inside_instance (fd, skips, e, _) =
       let name = field_ident_to_output fd (use_ascii_rep_for_const fd.descr) in
+      (* Flatten newlines in record field values to prevent multiline expressions
+         (e.g., lambdas containing match) from breaking record { with } syntax. *)
+      let value = flatten_newlines (exp inside_instance e) in
         Output.flat [
-          name; ws skips; from_string " := "; exp inside_instance e
+          name; ws skips; from_string " := "; value
         ]
     and literal l =
       match l.term with
@@ -2005,7 +2045,7 @@ type pat_style = FunParam | MatchArm
               from_string "\nabbrev"; name; tyvar_sep; tyvars';
               ws skips; from_string " := "; pat_typ t
             ]
-          | _ -> emp
+          | _ -> assert false  (* unreachable: abbrev_defs is filtered to Te_abbrev only *)
         in
         let abbrevs_before_output = flat @@ List.map render_abbrev abbrevs_before in
         let abbrevs_after_output = flat @@ List.map render_abbrev abbrevs_after in
@@ -2719,7 +2759,8 @@ module LeanBackend (A : sig val avoid : var_avoid_f option;; val env : env;; val
       lean_namespace_stack := [];
       lean_collected_imports := [];
       lean_pending_abbrevs := [];
-      lean_mutual_records := [];
+      (* Note: lean_mutual_records is NOT reset — it accumulates across files
+         so that cross-file record updates on mutual-block records are detected. *)
       lean_deferred_opens := [];
       (* Pre-collect local module names before main processing, because
          defs uses fold_right (processes last-to-first). Without this,
@@ -2734,7 +2775,7 @@ module LeanBackend (A : sig val avoid : var_avoid_f option;; val env : env;; val
       (* Pre-collect mutual record type names. Type_def blocks with >1 member
          that contain Te_record entries will render records as inductives.
          We need this list before defs runs (fold_right = last-to-first). *)
-      lean_mutual_records := List.concat_map (fun (((d, _), _, _) : def) ->
+      lean_mutual_records := !lean_mutual_records @ List.concat_map (fun (((d, _), _, _) : def) ->
         match d with
         | Type_def (_, defs) when Seplist.length defs > 1 ->
             let all = Seplist.to_list defs in
@@ -2824,9 +2865,10 @@ module LeanBackend (A : sig val avoid : var_avoid_f option;; val env : env;; val
               let mod_name = Path.to_string md.Typed_ast.mod_binding in
               let lean_mod = String.concat "" ["LemLib."; String.capitalize_ascii mod_name] in
               let ns = lean_ns_name lean_mod in
-              if List.mem ns acc then acc else acc @ [ns]
+              if List.mem ns acc then acc else ns :: acc
             end else acc
           ) [] A.env.e_env in
+          let lib_namespaces = List.rev lib_namespaces in
           Output.flat (extra_import :: bridges_import :: List.map (fun ns ->
             from_string (String.concat "" ["open "; ns; "\n"])
           ) lib_namespaces)

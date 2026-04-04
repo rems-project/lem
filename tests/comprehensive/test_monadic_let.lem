@@ -1,0 +1,70 @@
+open import Pervasives_extra
+
+(* Minimal test case reproducing Lean compilation error from Cerberus:
+   "expected ';' or line break"
+
+   ROOT CAUSE: Lean 4's whitespace-sensitive parser requires that when
+   `let` appears on the same line as `fun =>`, the let body on the
+   continuation line must be indented past the column of `fun`/`let`.
+   The Lean backend places `let` on the `fun =>` line and preserves
+   Lem's original whitespace for the let body, which often has
+   insufficient indentation for Lean's parser.
+
+   Pattern that triggers the bug:
+     fun (_ : Unit) =>  let wevent :=
+       f x;            -- body indented less than `fun` column
+     continuation       -- "expected ';' or line break" error here
+
+   Pattern that works:
+     fun (_ : Unit) =>
+       let wevent :=
+         f x;          -- body indented past `let` column
+       continuation *)
+
+(* === Infrastructure === *)
+type write_event =
+  | WriteEvent of nat * nat * nat
+
+let process_access (x : nat) : nat = x + 1
+let my_bind (x : nat) (f : nat -> nat) : nat = f x
+
+(* === Test 1: let body starts on next line, but let on same line as fun -> === *)
+(* In Lem, `fun (loc : nat) -> let wevent = \n Ctor ... in` puts the
+   fun body (the let) on the same line as `->`. The Lean backend emits
+   `fun (loc : Nat) =>  let wevent := \n  Ctor ...;` which fails in
+   Lean because the let body's indentation is relative to the let, not
+   the fun, and Lean's parser gets confused. *)
+let test1 : nat =
+  my_bind 42 (fun (loc : nat) -> let wevent =
+    WriteEvent loc 2 3 in
+  process_access loc)
+
+(* === Test 2: Same with more arguments to check robustness === *)
+let test2 (x : nat) (y : nat) (z : nat) : nat =
+  my_bind x (fun (loc : nat) -> let wevent =
+    WriteEvent loc y z in
+  process_access loc)
+
+(* === Test 3: let body is a function application (not constructor) === *)
+let make_event (a : nat) (b : nat) : write_event =
+  WriteEvent a b 0
+
+let test3 : nat =
+  my_bind 42 (fun (loc : nat) -> let wevent =
+    make_event loc 2 in
+  process_access loc)
+
+(* === Test 4: Chained binds with inline fun -> let === *)
+let test4 : nat =
+  my_bind 42 (fun (loc : nat) -> let wevent =
+    WriteEvent loc 2 3 in
+  my_bind loc (fun (alloc_id : nat) ->
+    alloc_id + 1))
+
+(* === Test 5: Multiple lets with inline fun -> let === *)
+let test5 : nat =
+  my_bind 42 (fun (loc : nat) -> let wevent =
+    WriteEvent loc 2 3 in
+  let result =
+    process_access loc in
+  result)

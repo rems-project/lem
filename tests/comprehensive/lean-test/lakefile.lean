@@ -59,5 +59,12 @@ lean_lib LemComprehensiveTest where
     `Test_parameterized_instances, `Test_parameterized_instances_auxiliary,
     `Test_local_modules, `Test_local_modules_auxiliary,
     `Test_keyword_types, `Test_keyword_types_auxiliary,
-    `Test_nested_match, `Test_nested_match_auxiliary
+    `Test_nested_match, `Test_nested_match_auxiliary,
+    `Test_cerberus_patterns, `Test_cerberus_patterns_auxiliary,
+    `Test_cerberus_remaining, `Test_cerberus_remaining_auxiliary,
+    `Test_cross_recup_base, `Test_cross_recup_base_auxiliary,
+    `Test_cross_recup_import, `Test_cross_recup_import_auxiliary,
+    `Test_inline_theorem, `Test_inline_theorem_auxiliary,
+    `Test_monadic_let, `Test_monadic_let_auxiliary,
+    `Test_map_fold_mutual, `Test_map_fold_mutual_auxiliary
   ]
