@@ -58,5 +58,6 @@ lean_lib LemComprehensiveTest where
     `Test_mutual_records, `Test_mutual_records_auxiliary,
     `Test_parameterized_instances, `Test_parameterized_instances_auxiliary,
     `Test_local_modules, `Test_local_modules_auxiliary,
-    `Test_keyword_types, `Test_keyword_types_auxiliary
+    `Test_keyword_types, `Test_keyword_types_auxiliary,
+    `Test_nested_match, `Test_nested_match_auxiliary
   ]
