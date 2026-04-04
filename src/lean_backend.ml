@@ -60,7 +60,11 @@ let lean_syntax_keywords = [
   "theorem"; "example"; "variable"; "section"; "end"; "mutual"; "partial";
   "noncomputable"; "unsafe"; "private"; "protected"; "abbrev"; "fun"; "forall";
   "by"; "have"; "show"; "with"; "at"; "in"; "for"; "macro"; "syntax";
-  "deriving"; "extends"; "set_option"; "attribute"; "meta"
+  "deriving"; "extends"; "set_option"; "attribute"; "meta"; "catch";
+  "break"; "continue"; "try"; "finally"; "unless"; "suffices";
+  "nomatch"; "nofun"; "coinductive"; "axiom"; "opaque"; "universe";
+  "scoped"; "local"; "public"; "nonrec"; "omit";
+  "notation"; "prefix"; "postfix"; "infixl"; "infixr"
 ]
 let lean_namespace_stack : string list ref = ref []
 (* Record types that ended up in mutual blocks — rendered as inductives, not structures.
@@ -775,9 +779,17 @@ type pat_style = FunParam | MatchArm
                         from_string "("; tyvars; from_string " : Type)"
                       ]
                 in
+                  (* Wrap the class type argument in parens if it's a type application
+                     (e.g., mem_constraint a → (mem_constraint a)). Without this,
+                     Lean parses 'Constraints mem_constraint a' as two arguments. *)
+                  let type_arg = match src_t.term with
+                    | Typ_app (_, _ :: _) ->
+                      Output.flat [from_string " ("; pat_typ src_t; from_string ")"]
+                    | _ -> pat_typ src_t
+                  in
                   Output.flat [
                     ws skips; tyvars_typeset; from_string " "; c; from_string " : "; id
-                  ; pat_typ src_t
+                  ; type_arg
                   ]
           in
           let body =
@@ -1407,9 +1419,10 @@ type pat_style = FunParam | MatchArm
                     skips; from_string "(setFromList ["; body; from_string "])"; ws skips'
                   ])
           | Begin (skips, e, skips') ->
+              (* Lem's begin...end is a grouping construct. In Lean, use parens. *)
               Output.flat [
-                ws skips; from_string "/- begin block -/"; exp inside_instance e; ws skips';
-                from_string "/- end block -/"
+                ws skips; from_string "("; exp inside_instance e; ws skips';
+                from_string ")"
               ]
           | Record (skips, fields, skips') ->
             let typ = Typed_ast.exp_to_typ e in
@@ -1537,7 +1550,11 @@ type pat_style = FunParam | MatchArm
                   ws skips; from_string "match "; match_expr; match_suffix; from_string " with "; body; ws skips''
                 ]
           | Infix (l, c, r) ->
-              let trans e = exp inside_instance e in
+              let trans e =
+                if needs_parens (C.exp_to_term e) then
+                  Output.flat [from_string "("; exp inside_instance e; from_string ")"]
+                else exp inside_instance e
+              in
               let sep = from_string " " in
               begin
                 match C.exp_to_term c with
@@ -1966,19 +1983,32 @@ type pat_style = FunParam | MatchArm
         let is_abbrev_def (_, _, _, ty, _) = match ty with Te_abbrev _ -> true | _ -> false in
         let mutual_defs = List.filter (fun d -> not (is_abbrev_def d)) all_defs in
         let abbrev_defs = List.filter is_abbrev_def all_defs in
-        let abbrevs_output = flat @@ List.map (fun ((n0, _), tyvars, path, ty, _) ->
-          match ty with
-            | Te_abbrev (skips, t) ->
-              let n = B.type_path_to_name n0 path in
-              let name = Name.to_output (Type_ctor (false, false)) n in
-              let tyvars' = type_def_type_variables tyvars in
-              let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
-              Output.flat [
-                from_string "\nabbrev"; name; tyvar_sep; tyvars';
-                ws skips; from_string " := "; pat_typ t
-              ]
-            | _ -> emp
-        ) abbrev_defs in
+        (* Collect mutual type paths to check if abbreviations reference them *)
+        let mutual_paths = List.filter_map (fun ((_, _), _, path, _, _) ->
+          Some path
+        ) mutual_defs in
+        (* Split abbreviations: those referencing mutual types go after,
+           others go before (they may be needed by the mutual types). *)
+        let abbrev_references_mutual (_, _, _, ty, _) = match ty with
+          | Te_abbrev (_, t) -> src_t_references_paths mutual_paths t
+          | _ -> false
+        in
+        let abbrevs_before = List.filter (fun d -> not (abbrev_references_mutual d)) abbrev_defs in
+        let abbrevs_after = List.filter abbrev_references_mutual abbrev_defs in
+        let render_abbrev ((n0, _), tyvars, path, ty, _) = match ty with
+          | Te_abbrev (skips, t) ->
+            let n = B.type_path_to_name n0 path in
+            let name = Name.to_output (Type_ctor (false, false)) n in
+            let tyvars' = type_def_type_variables tyvars in
+            let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
+            Output.flat [
+              from_string "\nabbrev"; name; tyvar_sep; tyvars';
+              ws skips; from_string " := "; pat_typ t
+            ]
+          | _ -> emp
+        in
+        let abbrevs_before_output = flat @@ List.map render_abbrev abbrevs_before in
+        let abbrevs_after_output = flat @@ List.map render_abbrev abbrevs_after in
         let mutual_n = List.length mutual_defs in
         (* Note: mutual record names are pre-collected in lean_defs before the
            main fold_right, so we don't register them here. See lean_mutual_records
@@ -2047,7 +2077,11 @@ type pat_style = FunParam | MatchArm
               Some (flat accessors)
             | _ -> None
         ) mutual_defs in
-        Output.flat [ mutual_output; abbrevs_output; open_decls; accessor_defs; from_string "\n" ]
+        (* Abbreviations that don't reference mutual types go BEFORE (they may be
+           needed by the mutual types). Abbreviations that DO reference mutual types
+           go AFTER (they alias types defined in the block). *)
+        let before_sep = if abbrevs_before = [] then emp else from_string "\n" in
+        Output.flat [ abbrevs_before_output; before_sep; mutual_output; abbrevs_after_output; open_decls; accessor_defs; from_string "\n" ]
       else
         let body = flat @@ Seplist.to_sep_list (type_def_variant true) (sep @@ from_string "\n") defs in
         Output.flat [ from_string "inductive"; body; open_decls; from_string "\n" ]

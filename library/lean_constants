@@ -188,6 +188,7 @@ bool
 by
 calc
 cast
+catch
 class
 cond
 congr

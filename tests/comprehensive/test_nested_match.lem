@@ -134,3 +134,37 @@ let nested_with_multiline_comment (o : outer) (xs : list (nat * nat)) : nat =
 
 assert mlcomment1 : nested_with_multiline_comment (A 1) [(1, 10)] = (11:nat)
 assert mlcomment2 : nested_with_multiline_comment (A 1) [] = (0:nat)
+
+(* === Match inside && infix operator (AilTypesAux.are_compatible pattern) === *)
+(* When a match appears as the right operand of &&, Lean's parser can
+   confuse the inner match's | arms with outer match arms. The backend
+   must parenthesize match expressions in infix operand positions. *)
+let match_in_infix (o : outer) (xs : list (nat * nat)) : bool =
+  match o with
+    | A n ->
+        (n > 0)
+        && match lookup n xs with
+             | Just v -> v > 10
+             | Nothing -> false
+           end
+    | B n -> n > 0
+    | C -> true
+  end
+
+assert infix1 : match_in_infix (A 1) [(1, 20)]
+assert infix2 : not (match_in_infix (A 1) [(1, 5)])
+assert infix3 : not (match_in_infix (A 1) [])
+assert infix4 : match_in_infix C []
+
+(* === begin...end block as function argument (Cabs_to_ail_aux pattern) === *)
+(* Lem's begin...end is a grouping construct. When used as a function
+   argument containing a multi-word expression, the Lean backend must
+   emit parens so the expression is treated as a single argument. *)
+type container_type = Box of nat * list nat
+
+let make_box (n : nat) : container_type =
+  Box n begin
+    List.replicate n (0 : nat)
+  end
+
+assert begin_end1 : make_box 3 = Box 3 [0; 0; 0]

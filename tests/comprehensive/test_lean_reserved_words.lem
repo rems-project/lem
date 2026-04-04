@@ -84,6 +84,11 @@ let test_keyword_meta =
   let meta = (8:nat) in
   meta + 1
 
+(* 'catch' — valid Lem identifier, Lean keyword *)
+let test_keyword_catch =
+  let catch = (6:nat) in
+  catch + 1
+
 (* Keywords bound by constructor pattern *)
 type kw_pair = KwPair of nat * nat
 
@@ -95,4 +100,5 @@ let keyword_ctor_match (v : kw_pair) : nat =
 assert keyword_param_ok : keyword_as_param 3 4 = (7:nat)
 assert keyword_match_ok : keyword_in_match (3, 4) = (7:nat)
 assert keyword_meta_ok : test_keyword_meta = (9:nat)
+assert keyword_catch_ok : test_keyword_catch = (7:nat)
 assert keyword_ctor_ok : keyword_ctor_match (KwPair 10 20) = (30:nat)

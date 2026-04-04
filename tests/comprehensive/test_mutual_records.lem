@@ -118,3 +118,21 @@ let ann_node1 = <| ann_node = AstLit 5; ann_src = "test" |>
 
 (* Note: can't assert structural equality on 3-way mutual types — BEq is sorry-based. *)
 assert three_way_ann : ann_node1.ann_src = "test"
+
+(* === Section 10: Abbreviation referencing mutual type (emitted after) === *)
+(* stmt_alias references stmt (a mutual type) so it must go after the block. *)
+(* Already tested in section 8. *)
+
+(* === Section 11: Non-circular abbreviation in mutual block === *)
+(* An abbreviation that does NOT reference mutual types can go before.
+   Example: a type alias for a built-in type used by mutual types. *)
+type tag = nat
+and tagged_value =
+  | TV_int of nat
+  | TV_tagged of tag * tagged_value
+
+let tv1 = TV_int 42
+let tv2 = TV_tagged 1 (TV_int 10)
+
+(* Note: can't assert structural equality — BEq is sorry. *)
+(* Just verify construction compiles. *)

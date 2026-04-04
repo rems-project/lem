@@ -64,8 +64,30 @@ end
 let test_classify_list = classify ([(1:nat)])
 let test_default_list = is_default ([] : list nat)
 
+(* === Class instance on parameterized type application === *)
+(* When a class is instantiated on a type application like 'container 'a',
+   the Lean backend must parenthesize: Classify (container a)
+   not: Classify container a *)
+type container 'a = CEmpty | COne of 'a
+
+instance forall 'a. (Classify (container 'a))
+  let classify c = match c with
+    | CEmpty -> "empty"
+    | COne _ -> "one"
+  end
+  let is_default c = match c with
+    | CEmpty -> true
+    | COne _ -> false
+  end
+end
+
+let test_classify_container = classify (COne (42 : nat))
+let test_default_container = is_default (CEmpty : container nat)
+
 assert test_pair_eq_ok : test_pair_eq
 assert test_pair_neq_ok : not test_pair_neq
 assert test_triple_eq_ok : test_triple_eq
 assert test_classify_ok : test_classify_list = "nonempty"
 assert test_default_ok : test_default_list
+assert test_classify_container_ok : test_classify_container = "one"
+assert test_default_container_ok : test_default_container
