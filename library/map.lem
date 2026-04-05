@@ -16,6 +16,7 @@ declare ocaml    target_rep type map = `Pmap.map`
 declare isabelle target_rep type map = `Map.map` 
 declare hol      target_rep type map = `fmap`
 declare coq      target_rep type map = `fmap`
+declare lean     target_rep type map = `Fmap`
 
 
 
@@ -28,6 +29,7 @@ val mapEqualBy : forall 'k 'v. ('k -> 'k -> bool) -> ('v -> 'v -> bool) -> map '
 
 declare ocaml target_rep function mapEqualBy eq_k eq_v = `Pmap.equal` eq_v
 declare coq target_rep function mapEqualBy = `fmap_equal_by`
+declare lean target_rep function mapEqualBy = `fmapEqualBy`
 let inline ~{hol;isabelle} mapEqual = mapEqualBy (=) (=)
 let inline {hol;isabelle} mapEqual = unsafe_structural_equality
 
@@ -42,7 +44,7 @@ end
 (* -------------------------------------------------------------------------- *)
 
 class ( MapKeyType 'a )
-  val {ocaml;coq} mapKeyCompare : 'a -> 'a -> ordering
+  val {ocaml;coq;lean} mapKeyCompare : 'a -> 'a -> ordering
 end
 
 default_instance forall 'a. SetType 'a => ( MapKeyType 'a )
@@ -60,6 +62,7 @@ declare ocaml target_rep function emptyBy = `Pmap.empty`
 
 let inline {ocaml} empty = emptyBy mapKeyCompare
 declare coq target_rep function empty = `fmap_empty`
+declare lean target_rep function empty = `fmapEmpty`
 declare hol target_rep function empty = `FEMPTY`
 declare isabelle target_rep function empty = `Map.empty`
 
@@ -71,6 +74,7 @@ declare isabelle target_rep function empty = `Map.empty`
 val insert    : forall 'k 'v. MapKeyType 'k => 'k -> 'v -> map 'k 'v -> map 'k 'v
 
 declare coq      target_rep function insert = `fmap_add`
+declare lean     target_rep function insert = `fmapAdd`
 declare ocaml    target_rep function insert = `Pmap.add`
 (* declare hol      target_rep function insert k v m = `FUPDATE` m (k,v) *)
 declare hol      target_rep function insert k v m = special "%e |+ (%e, %e)" m k v
@@ -104,6 +108,7 @@ val null  : forall 'k 'v. MapKeyType 'k, Eq 'k, Eq 'v => map 'k 'v -> bool
 let inline null m = (m = empty)
 
 declare coq target_rep function null = `fmap_is_empty`
+declare lean target_rep function null = `fmapIsEmpty`
 declare ocaml target_rep function null = `Pmap.is_empty`
 
 assert empty_null: (null (empty : map nat bool))
@@ -115,9 +120,11 @@ assert empty_null: (null (empty : map nat bool))
 
 val lookupBy : forall 'k 'v. ('k -> 'k -> ordering) -> 'k -> map 'k 'v -> maybe 'v
 declare coq target_rep function lookupBy = `fmap_lookup_by`
+declare lean target_rep function lookupBy = `fmapLookupBy`
 
 val lookup          : forall 'k 'v. MapKeyType 'k => 'k -> map 'k 'v -> maybe 'v
 let inline {coq} lookup = lookupBy mapKeyCompare
+let inline {lean} lookup = lookupBy mapKeyCompare
 declare isabelle target_rep function lookup k m = ``m k
 declare hol      target_rep function lookup k m = `FLOOKUP` m k
 declare ocaml    target_rep function lookup = `Pmap.lookup`
@@ -168,6 +175,7 @@ let inline {ocaml} toSet = toSetBy setElemCompare
 declare isabelle target_rep function toSet = `map_to_set`
 declare hol target_rep function toSet = `FMAP_TO_SET`
 declare coq target_rep function toSet = `id`
+declare lean target_rep function toSet = `id`
 
 
 assert toSet_0: (toSet (empty : map nat bool) = {})
@@ -183,7 +191,9 @@ declare ocaml    target_rep function domain = `Pmap.domain`
 declare isabelle target_rep function domain = `Map.dom`
 declare hol      target_rep function domain = `FDOM`
 declare coq      target_rep function domainBy = `fmap_domain_by`
+declare lean     target_rep function domainBy = `fmapDomainBy`
 let inline {coq} domain = domainBy setElemCompare
+let inline {lean} domain = domainBy setElemCompare
 
 assert domain_0: (domain (empty : map nat bool) = {})
 assert domain_1: (domain (fromList [((2:nat), true);(3, true);(4, false)]) = 
@@ -199,7 +209,8 @@ declare ocaml    target_rep function rangeBy = `Pmap.range`
 declare hol      target_rep function range = `FRANGE`
 declare isabelle target_rep function range = `Map.ran`
 declare coq      target_rep function rangeBy = `fmap_range_by`
-let inline {ocaml;coq} range = rangeBy setElemCompare
+declare lean     target_rep function rangeBy = `fmapRangeBy`
+let inline {ocaml;coq;lean} range = rangeBy setElemCompare
 
 assert range_0: (range (empty : map nat bool) = {})
 assert range_1: (range (fromList [((2:nat), true);(3, true);(4, false)]) = 
@@ -238,6 +249,7 @@ let inline any P m = not (all (fun k v -> not (P k v)) m)
 declare ocaml target_rep function any = `Pmap.exist`
 declare ocaml target_rep function all = `Pmap.for_all`
 declare coq      target_rep function all = `fmap_all`
+declare lean     target_rep function all = `fmapAll`
 declare isabelle target_rep function any = `map_any`
 declare isabelle target_rep function all = `map_all`
 declare hol target_rep function all P = `FEVERY` (uncurry P)
@@ -261,12 +273,15 @@ val delete           : forall 'k 'v. MapKeyType 'k => 'k -> map 'k 'v -> map 'k 
 val deleteSwap      : forall 'k 'v. MapKeyType 'k => map 'k 'v -> 'k -> map 'k 'v
 
 declare coq      target_rep function deleteBy = `fmap_delete_by`
+declare lean     target_rep function deleteBy = `fmapDeleteBy`
 declare ocaml    target_rep function delete = `Pmap.remove`
 declare isabelle target_rep function delete = `map_remove`
 declare hol      target_rep function deleteSwap = infix `\\`
 let inline {hol} delete k m = deleteSwap m k
 let inline {coq} delete = deleteBy mapKeyCompare
+let inline {lean} delete = deleteBy mapKeyCompare
 let inline {coq} deleteSwap m k = delete k m
+let inline {lean} deleteSwap m k = delete k m
 
 assert delete_insert_1: (not (member (5 : nat) (delete 5 (insert 5 true empty))))
 assert delete_insert_2:      (member (7 : nat) (delete 5 (insert 7 true empty)))
@@ -274,6 +289,7 @@ assert delete_delete: (null (delete (5 : nat) (delete (5 : nat) (insert 5 true e
 
 val (union)          : forall 'k 'v. MapKeyType 'k => map 'k 'v -> map 'k 'v -> map 'k 'v
 declare coq      target_rep function (union) = (`@` `List.app` `_`)
+declare lean     target_rep function (union) = `fmapUnion`
 declare ocaml    target_rep function (union) = `Pmap.union`
 declare isabelle target_rep function (union) = infix `++`
 declare hol      target_rep function (union) = `FUNION`
@@ -290,6 +306,7 @@ val map             : forall 'k 'v 'w. MapKeyType 'k => ('v -> 'w) -> map 'k 'v 
 
 declare hol      target_rep function map = infix `o_f`
 declare coq      target_rep function map = `fmap_map`
+declare lean     target_rep function map = `fmapMap`
 declare ocaml    target_rep function map = `Pmap.map`
 declare isabelle target_rep function map = `map_image`
 
@@ -301,6 +318,7 @@ val mapi : forall 'k 'v 'w. MapKeyType 'k => ('k -> 'v -> 'w) -> map 'k 'v -> ma
 (* TODO: add Coq *)
 declare ocaml    target_rep function mapi = `Pmap.mapi`
 declare isabelle target_rep function mapi = `map_domain_image`
+declare lean     target_rep function mapi = `fmapMapi`
 declare compile_message mapi = "Map.mapi is only defined for the ocaml backend"
 
 (* -------------------------------------------------------------------------- *)

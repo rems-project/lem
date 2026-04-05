@@ -87,10 +87,10 @@ Lem allows to define recursive and even mutually recursive functions by using th
 		and odd (n + 1) = not (even n)
 
 ### Termination Proofs
-Recursive definitions require termination (or well-foundedness) proofs in the theorem prover backends. Isabelle and HOL4 are able to delay these proofs. The user has to fill in these proofs then, before using the defined functions. For simple functions like the ones in the example, this can be annoying. A `termination_argument` declaration can therefore be used to tell Isabelle and HOL to try automatic termination proofs. If multiple functions are defined in a single, mutually recursive definition, an automatic termination proof is only attempted, if automatic termination is declared for all defined functions.
+Recursive definitions require termination (or well-foundedness) proofs in the theorem prover backends. Isabelle and HOL4 are able to delay these proofs. The user has to fill in these proofs then, before using the defined functions. For simple functions like the ones in the example, this can be annoying. A `termination_argument` declaration can therefore be used to tell Isabelle, HOL, and Lean to try automatic termination proofs. If multiple functions are defined in a single, mutually recursive definition, an automatic termination proof is only attempted, if automatic termination is declared for all defined functions.
 
-    declare {hol; isabelle} termination_argument even = automatic
-    declare {hol; isabelle} termination_argument odd = automatic
+    declare {hol; isabelle; lean} termination_argument even = automatic
+    declare {hol; isabelle; lean} termination_argument odd = automatic
 
 
 ## Type definitions

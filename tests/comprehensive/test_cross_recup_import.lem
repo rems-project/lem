@@ -1,0 +1,14 @@
+(* Importing module: uses record update syntax on a mutual record
+   defined in a DIFFERENT file. This should trigger the bug:
+   lean_mutual_records is per-file, so 'annot' won't be in the list
+   when processing this file, causing { a with ... } to be emitted
+   instead of constructor reconstruction. *)
+
+open import Pervasives_extra
+open import Test_cross_recup_base
+
+let retag (a : annot) (new_tag : string) : annot =
+  <| a with ann_tag = new_tag |>
+
+let test_a : annot = make_annot (Lit 1) "original"
+let test_b : annot = retag test_a "updated"

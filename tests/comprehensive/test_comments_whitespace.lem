@@ -1,0 +1,37 @@
+open import Pervasives_extra
+
+(* Simple comment *)
+(* Nested (* comment *) here *)
+
+let (* before *) test1 (* middle *) = (* after *) (1:nat)
+
+(* === Comments in type definitions === *)
+type (* c1 *) mytype (* c2 *) =
+  | (* c4 *) Con1 (* c5 *)
+  | (* c6 *) Con2 (* c7 *) of (* c8 *) nat (* c9 *)
+
+(* === Comments in match === *)
+let test2 (x:nat) : nat =
+  match (* c1 *) x (* c2 *) with
+    (* c3 *) | (* c4 *) 0 (* c5 *) -> (* c6 *) (1:nat) (* c7 *)
+    | _ -> (0:nat)
+  end
+
+(* === Comments in records === *)
+type r = <| f_a : nat; f_b : bool; f_c : string |>
+
+let test3 = <|
+  (* field 1 *) f_a = 1 (* end field 1 *);
+  (* field 2 *) f_b = true;
+  (* field 3 *) f_c = "hello"
+|>
+
+(* === Semicolons: double-semicolon separator === *)
+let test4 = (1:nat)
+;;
+let test5 = (2:nat)
+
+assert test1_ok : (test1 = (1:nat))
+assert test2_ok : (test2 0 = (1:nat))
+assert test4_ok : (test4 = (1:nat))
+assert test5_ok : (test5 = (2:nat))

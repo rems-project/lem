@@ -1,0 +1,90 @@
+(* Tests for patterns found in Cerberus that the Lean backend must handle.
+   Each section targets a specific error category encountered during
+   Cerberus compilation. *)
+
+open import Pervasives_extra
+
+(* === 1. Record update on mutual-block record === *)
+(* AilSyntaxAux: { stmt with desug_info0 := ... }
+   'statement' is in a mutual block → rendered as inductive, not structure.
+   Record update syntax doesn't work on inductives. *)
+type stmt_kind = SKskip | SKexpr of nat
+and stmt_wrap = <| sw_kind : stmt_kind; sw_loc : nat |>
+
+let set_loc (s : stmt_wrap) (n : nat) : stmt_wrap =
+  <| s with sw_loc = n |>
+
+assert recup_mutual1 : (set_loc (<| sw_kind = SKskip; sw_loc = 0 |>) 42).sw_loc = (42:nat)
+
+(* === 2. Match inside record update value === *)
+(* Core_sequentialise: { file1 with funs := fmapMap (fun x => match x with ...) }
+   The match inside the record update value confuses Lean's parser
+   because match | arms look like they could be part of the record syntax. *)
+type config = <| cfg_name : string; cfg_val : nat |>
+
+let update_val_simple (c : config) (n : nat) : config =
+  <| c with cfg_val = n + 1 |>
+
+let update_val_match (c : config) (xs : list (string * nat)) : config =
+  <| c with cfg_val =
+    match lookup c.cfg_name xs with
+      | Just v -> v
+      | Nothing -> c.cfg_val
+    end
+  |>
+
+(* Record update where value is a function application with match inside *)
+let update_val_fun (c : config) (xs : list nat) : config =
+  <| c with cfg_val =
+    List.foldl (fun acc x -> acc + x) 0 xs
+  |>
+
+assert recup_match1 : (update_val_match (<| cfg_name = "x"; cfg_val = 0 |>) [("x", 42)]).cfg_val = (42:nat)
+assert recup_fun1 : (update_val_fun (<| cfg_name = "x"; cfg_val = 0 |>) [1; 2; 3]).cfg_val = (6:nat)
+
+(* Record update with multiline match in value — the | arms of the match
+   can conflict with record syntax parsing when flattened *)
+type item = IA | IB of nat | IC of string
+type state_rec = <| st_items : list item; st_count : nat |>
+
+let transform_state (s : state_rec) : state_rec =
+  <| s with st_items =
+    List.map (fun x -> match x with
+      | IA -> IA
+      | IB n -> IB (n + 1)
+      | IC _ -> IA
+    end) s.st_items
+  |>
+
+(* Record update passed as function argument *)
+let apply_to_state (f : state_rec -> state_rec) (s : state_rec) : state_rec = f s
+
+let pass_recup (s : state_rec) : state_rec =
+  apply_to_state (fun s -> <| s with st_count = s.st_count + 1 |>) s
+
+assert transform_ok : (transform_state (<| st_items = [IB 1; IB 2]; st_count = 0 |>)).st_count = (0:nat)
+assert pass_recup_ok : (pass_recup (<| st_items = []; st_count = 5 |>)).st_count = (6:nat)
+
+(* === 3. catch as a top-level function name === *)
+(* Cabs_to_ail_effect: def catch ... — 'catch' is a Lean keyword.
+   It should be renamed via lean_constants. *)
+val catch_error : forall 'a. maybe 'a -> 'a -> 'a
+let catch_error x d =
+  match x with
+    | Just v -> v
+    | Nothing -> d
+  end
+
+assert catch_ok : catch_error (Just (42:nat)) 0 = (42:nat)
+assert catch_default : catch_error (Nothing : maybe nat) 99 = (99:nat)
+
+(* === 4. Semicolon after let in do-like context === *)
+(* Defacto_memory: let wevent := WriteEvent ...;
+   Lean 4 uses newlines, not semicolons, to separate let bindings.
+   The backend should handle Lem's semicolons correctly. *)
+let let_semi_test (x : nat) : nat =
+  let a = x + 1 in
+  let b = a + 2 in
+  a + b
+
+assert let_semi_ok : let_semi_test 5 = (14:nat)

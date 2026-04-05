@@ -23,14 +23,15 @@ declare compile_message choose = "choose is non-deterministic and only defined f
 declare hol      target_rep function choose = `CHOICE`
 declare isabelle target_rep function choose = `set_choose`
 declare ocaml    target_rep function choose = `Pset.choose`
+declare lean     target_rep function choose = `setChoose`
 
-lemma ~{coq} choose_sing: (forall x. choose {x} = x)
-lemma ~{coq} choose_in: (forall s. not (null s) --> ((choose s) IN s))
+lemma ~{coq;lean} choose_sing: (forall x. choose {x} = x)
+lemma ~{coq;lean} choose_in: (forall s. not (null s) --> ((choose s) IN s))
 
-assert ~{coq} choose_0: choose {(2:nat)} = 2
-assert ~{coq} choose_1: choose {(5:nat)} = 5
-assert ~{coq} choose_2: choose {(6:nat)} = 6
-assert ~{coq} choose_3: choose {(6:nat);1;2} IN {6;1;2}
+assert ~{coq;lean} choose_0: choose {(2:nat)} = 2
+assert ~{coq;lean} choose_1: choose {(5:nat)} = 5
+assert ~{coq;lean} choose_2: choose {(6:nat)} = 6
+assert ~{coq;lean} choose_3: choose {(6:nat);1;2} IN {6;1;2}
 
 (* ------------------------ *)
 (* chooseAndSplit           *)
@@ -50,7 +51,7 @@ assert ~{coq} choose_3: choose {(6:nat);1;2} IN {6;1;2}
  * is the obvious choice).
  *)
 val chooseAndSplit : forall 'a. SetType 'a, Ord 'a => set 'a -> maybe (set 'a * 'a * set 'a)
-let ~{coq} chooseAndSplit s =
+let ~{coq;lean} chooseAndSplit s =
   if s = Set.empty then
     Nothing
   else
@@ -60,6 +61,7 @@ let ~{coq} chooseAndSplit s =
 
 declare ocaml target_rep function chooseAndSplit = `Pset.choose_and_split`
 declare coq   target_rep function chooseAndSplit = `choose_and_split`
+declare lean   target_rep function chooseAndSplit = `chooseAndSplit`
 
 (* ----------------------------*)
 (* universal set               *)
@@ -87,6 +89,7 @@ declare ocaml    target_rep function toList = `Pset.elements`
 declare isabelle target_rep function toList = `list_of_set`
 declare hol      target_rep function toList = `SET_TO_LIST`
 declare coq      target_rep function toList = `set_to_list`
+declare lean     target_rep function toList = `setToList`
 
 
 assert toList_0: toList ({} : set nat) = []
@@ -129,6 +132,7 @@ let {isabelle;hol} setCompareBy cmp ss ts =
     lexicographicCompareBy cmp ss' ts'
 
 declare coq target_rep function setCompareBy = `set_compare_by`
+declare lean target_rep function setCompareBy = `setCompareBy`
 declare ocaml target_rep function setCompareBy = `Pset.compare_by`
 
 val setCompare : forall 'a. SetType 'a, Ord 'a => set 'a -> set 'a -> ordering

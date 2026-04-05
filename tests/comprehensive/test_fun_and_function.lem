@@ -1,0 +1,93 @@
+(* Advanced fun and function keyword usage.
+   Exercises multi-argument lambdas, function keyword with complex
+   patterns, nested lambdas, fun with destructuring, and
+   lambda in various expression positions. *)
+
+open import Pervasives_extra
+
+(* === function keyword with literal patterns === *)
+type traffic = Stop | Go | Caution
+
+let traffic_priority : traffic -> nat = function
+  | Stop -> 0
+  | Caution -> 1
+  | Go -> 2
+end
+
+assert traffic_stop : traffic_priority Stop = (0:nat)
+assert traffic_go   : traffic_priority Go = (2:nat)
+
+(* === function with tuple patterns === *)
+let swap_pair : (nat * nat) -> (nat * nat) = function
+  | (a, b) -> (b, a)
+end
+
+assert swap_ok : swap_pair ((1:nat), 2) = ((2:nat), (1:nat))
+
+(* === function with nested constructor patterns === *)
+type wrapper 'a = Wrap of 'a
+
+let unwrap_add : (wrapper nat * wrapper nat) -> nat = function
+  | (Wrap a, Wrap b) -> a + b
+end
+
+assert unwrap_ok : unwrap_add (Wrap (3:nat), Wrap 4) = (7:nat)
+
+(* === function with list patterns === *)
+let head_or_zero : list nat -> nat = function
+  | x :: _ -> x
+  | [] -> 0
+end
+
+assert head_some : head_or_zero [(5:nat); 6; 7] = (5:nat)
+assert head_empty : head_or_zero [] = (0:nat)
+
+(* === Multi-argument fun with destructuring === *)
+let add_pairs = fun (a, b) (c, d) -> (a + c, b + (d:nat))
+
+assert add_pairs_ok : add_pairs ((1:nat), 2) ((3:nat), 4) = ((4:nat), (6:nat))
+
+(* === fun with constructor pattern === *)
+type box = Box of nat
+
+let box_value = fun (Box n) -> n
+
+assert box_val : box_value (Box (42:nat)) = (42:nat)
+
+(* === Nested lambdas === *)
+let nested_lambda = fun x -> fun y -> fun z -> x + y + (z:nat)
+
+assert nested_lam : nested_lambda 1 2 3 = (6:nat)
+
+(* === Lambda as argument === *)
+let apply_twice (f : nat -> nat) (x : nat) : nat = f (f x)
+
+assert twice_ok : apply_twice (fun x -> x + (1:nat)) 5 = (7:nat)
+
+(* === Lambda in let binding === *)
+let inc = (fun x -> x + (1:nat))
+let dec = (fun x -> x - (1:nat))
+
+assert inc_dec : inc (dec (10:nat)) = (10:nat)
+
+(* === Lambda returning lambda (currying) === *)
+let make_adder : nat -> nat -> nat = fun n -> fun m -> n + m
+let add5 = make_adder 5
+
+assert curried_ok : add5 (3:nat) = (8:nat)
+
+(* === function with overlapping patterns === *)
+let classify : nat -> string = function
+  | 0 -> "zero"
+  | 1 -> "one"
+  | _ -> "many"
+end
+
+assert classify_zero : classify 0 = "zero"
+assert classify_one  : classify 1 = "one"
+assert classify_many : classify (99:nat) = "many"
+
+(* === fun with wildcard and type annotation === *)
+let const_true = fun (_ : nat) -> true
+
+assert const_true_ok : const_true 42

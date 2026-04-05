@@ -1,0 +1,221 @@
+(* Comprehensive tests for machine word (mword/BitVec) operations.
+   Uses Lem assert statements which compile to #eval with throw-on-failure,
+   so lake build catches runtime assertion failures — not just type errors. *)
+
+open import Pervasives
+open import Machine_word
+
+(* ================================================================ *)
+(* Conversion tests                                                 *)
+(* ================================================================ *)
+
+assert mw_wordFromInteger_positive :
+  unsignedIntegerFromWord (wordFromInteger 42 : mword ty8) = 42
+
+assert mw_wordFromInteger_negative :
+  unsignedIntegerFromWord (wordFromInteger (~5) : mword ty8) = 251
+
+assert mw_wordFromInteger_wrap :
+  unsignedIntegerFromWord (wordFromInteger 256 : mword ty8) = 0
+
+assert mw_wordFromNatural_basic :
+  unsignedIntegerFromWord (wordFromNatural 130 : mword ty8) = 130
+
+assert mw_signedIntegerFromWord_positive :
+  signedIntegerFromWord (wordFromNatural 100 : mword ty8) = 100
+
+assert mw_signedIntegerFromWord_negative :
+  signedIntegerFromWord (wordFromNatural 200 : mword ty8) = ~56
+
+assert mw_naturalFromWord :
+  naturalFromWord (wordFromNatural 42 : mword ty8) = 42
+
+assert mw_word_length :
+  word_length (wordFromNatural 0 : mword ty16) = 16
+
+(* ================================================================ *)
+(* Arithmetic tests                                                 *)
+(* ================================================================ *)
+
+assert mw_plus_basic :
+  unsignedIntegerFromWord (plus (wordFromNatural 10 : mword ty8) (wordFromNatural 20)) = 30
+
+assert mw_plus_overflow :
+  unsignedIntegerFromWord (plus (wordFromNatural 200 : mword ty8) (wordFromNatural 100)) = 44
+
+assert mw_minus_basic :
+  unsignedIntegerFromWord (minus (wordFromNatural 30 : mword ty8) (wordFromNatural 10)) = 20
+
+assert mw_minus_underflow :
+  unsignedIntegerFromWord (minus (wordFromNatural 10 : mword ty8) (wordFromNatural 30)) = 236
+
+assert mw_times :
+  unsignedIntegerFromWord (times (wordFromNatural 7 : mword ty8) (wordFromNatural 6)) = 42
+
+assert mw_uminus :
+  unsignedIntegerFromWord (uminus (wordFromNatural 5 : mword ty8)) = 251
+
+assert mw_unsignedDivide :
+  unsignedIntegerFromWord (unsignedDivide (wordFromNatural 42 : mword ty8) (wordFromNatural 7)) = 6
+
+assert mw_modulo :
+  unsignedIntegerFromWord (modulo (wordFromNatural 43 : mword ty8) (wordFromNatural 7)) = 1
+
+assert mw_signedDivide_positive :
+  signedIntegerFromWord (signedDivide (wordFromInteger 42 : mword ty8) (wordFromInteger 7)) = 6
+
+assert mw_signedDivide_negative :
+  signedIntegerFromWord (signedDivide (wordFromInteger (~42) : mword ty8) (wordFromInteger 7)) = ~6
+
+(* ================================================================ *)
+(* Bitwise operation tests                                          *)
+(* ================================================================ *)
+
+assert mw_lAnd :
+  unsignedIntegerFromWord (lAnd (wordFromNatural 255 : mword ty8) (wordFromNatural 15)) = 15
+
+assert mw_lOr :
+  unsignedIntegerFromWord (lOr (wordFromNatural 240 : mword ty8) (wordFromNatural 15)) = 255
+
+assert mw_lXor :
+  unsignedIntegerFromWord (lXor (wordFromNatural 255 : mword ty8) (wordFromNatural 15)) = 240
+
+assert mw_lNot :
+  unsignedIntegerFromWord (lNot (wordFromNatural 15 : mword ty8)) = 240
+
+(* ================================================================ *)
+(* Shift and rotate tests                                           *)
+(* ================================================================ *)
+
+assert mw_shiftLeft :
+  unsignedIntegerFromWord (shiftLeft (wordFromNatural 5 : mword ty8) 2) = 20
+
+assert mw_shiftRight :
+  unsignedIntegerFromWord (shiftRight (wordFromNatural 20 : mword ty8) 2) = 5
+
+assert mw_arithShiftRight_positive :
+  unsignedIntegerFromWord (arithShiftRight (wordFromNatural 20 : mword ty8) 2) = 5
+
+assert mw_arithShiftRight_negative :
+  unsignedIntegerFromWord (arithShiftRight (wordFromNatural 128 : mword ty8) 2) = 224
+
+assert mw_rotateLeft :
+  unsignedIntegerFromWord (rotateLeft 1 (wordFromNatural 129 : mword ty8)) = 3
+
+assert mw_rotateRight :
+  unsignedIntegerFromWord (rotateRight 1 (wordFromNatural 129 : mword ty8)) = 192
+
+(* ================================================================ *)
+(* Bit access tests                                                 *)
+(* ================================================================ *)
+
+assert mw_getBit_true :
+  getBit (wordFromNatural 4 : mword ty8) 2 = true
+
+assert mw_getBit_false :
+  getBit (wordFromNatural 4 : mword ty8) 1 = false
+
+assert mw_setBit_set :
+  unsignedIntegerFromWord (setBit (wordFromNatural 0 : mword ty8) 3 true) = 8
+
+assert mw_setBit_clear :
+  unsignedIntegerFromWord (setBit (wordFromNatural 255 : mword ty8) 0 false) = 254
+
+assert mw_msb_true :
+  msb (wordFromNatural 128 : mword ty8) = true
+
+assert mw_msb_false :
+  msb (wordFromNatural 127 : mword ty8) = false
+
+assert mw_lsb_true :
+  lsb (wordFromNatural 1 : mword ty8) = true
+
+assert mw_lsb_false :
+  lsb (wordFromNatural 2 : mword ty8) = false
+
+(* ================================================================ *)
+(* Comparison tests                                                 *)
+(* ================================================================ *)
+
+assert mw_mwordEq_true :
+  mwordEq (wordFromNatural 42 : mword ty8) (wordFromNatural 42)
+
+assert mw_mwordEq_false :
+  not (mwordEq (wordFromNatural 42 : mword ty8) (wordFromNatural 43))
+
+assert mw_signedLess_true :
+  signedLess (wordFromInteger (~5) : mword ty8) (wordFromInteger 3)
+
+assert mw_signedLess_false :
+  not (signedLess (wordFromInteger 5 : mword ty8) (wordFromInteger 3))
+
+assert mw_unsignedLess_true :
+  unsignedLess (wordFromNatural 3 : mword ty8) (wordFromNatural 5)
+
+assert mw_unsignedLess_false :
+  not (unsignedLess (wordFromNatural 5 : mword ty8) (wordFromNatural 3))
+
+assert mw_signedLessEq_less :
+  signedLessEq (wordFromInteger (~5) : mword ty8) (wordFromInteger 3)
+
+assert mw_signedLessEq_equal :
+  signedLessEq (wordFromInteger 5 : mword ty8) (wordFromInteger 5)
+
+assert mw_unsignedLessEq_less :
+  unsignedLessEq (wordFromNatural 3 : mword ty8) (wordFromNatural 5)
+
+assert mw_unsignedLessEq_equal :
+  unsignedLessEq (wordFromNatural 5 : mword ty8) (wordFromNatural 5)
+
+(* ================================================================ *)
+(* Width operation tests                                            *)
+(* ================================================================ *)
+
+assert mw_zeroExtend :
+  unsignedIntegerFromWord (zeroExtend (wordFromNatural 255 : mword ty8) : mword ty16) = 255
+
+assert mw_signExtend_positive :
+  signedIntegerFromWord (signExtend (wordFromNatural 100 : mword ty8) : mword ty16) = 100
+
+assert mw_signExtend_negative :
+  signedIntegerFromWord (signExtend (wordFromNatural 200 : mword ty8) : mword ty16) = ~56
+
+(* ================================================================ *)
+(* Concatenation and extraction tests                               *)
+(* ================================================================ *)
+
+assert mw_word_concat :
+  unsignedIntegerFromWord (word_concat (wordFromNatural 171 : mword ty8) (wordFromNatural 205 : mword ty8) : mword ty16) = 43981
+
+assert mw_word_extract :
+  unsignedIntegerFromWord (word_extract 4 11 (wordFromNatural 43981 : mword ty16) : mword ty8) = 188
+
+assert mw_word_update :
+  unsignedIntegerFromWord (word_update (wordFromNatural 65280 : mword ty16) 0 7 (wordFromNatural 171 : mword ty8) : mword ty16) = 65451
+
+(* ================================================================ *)
+(* Hex display test                                                 *)
+(* ================================================================ *)
+
+assert mw_wordToHex :
+  wordToHex (wordFromNatural 255 : mword ty8) = "ff"
+
+(* ================================================================ *)
+(* Bitlist conversion tests                                         *)
+(* ================================================================ *)
+
+assert mw_bitlistFromWord_length :
+  List.length (bitlistFromWord (wordFromNatural 5 : mword ty8)) = 8
+
+assert mw_wordFromBitlist_roundtrip :
+  unsignedIntegerFromWord (wordFromBitlist (bitlistFromWord (wordFromNatural 42 : mword ty8)) : mword ty8) = 42
+
+(* ================================================================ *)
+(* Multi-width tests                                                *)
+(* ================================================================ *)
+
+assert mw_16bit_arithmetic :
+  unsignedIntegerFromWord (plus (wordFromNatural 1000 : mword ty16) (wordFromNatural 2000)) = 3000
+
+assert mw_32bit_arithmetic :
+  unsignedIntegerFromWord (plus (wordFromNatural 100000 : mword ty32) (wordFromNatural 200000)) = 300000

@@ -4050,6 +4050,10 @@ module Make(A : sig val avoid : var_avoid_f;; val env : env;; val dir : string e
     let module B = Coq_backend.CoqBackend (C) in
       B.coq_defs defs
 
+  let lean_defs defs =
+    let module B = Lean_backend.LeanBackend (C) in
+      B.lean_defs defs
+
   let ident_exp e =
     let module B = F(Identity)(C)(Dummy) in
     let (e', _) = alter_init_lskips (fun _ -> (None, None)) e in

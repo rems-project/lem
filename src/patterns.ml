@@ -2111,11 +2111,32 @@ let rec is_coq_exp env (e : exp) : bool =
 let is_coq_pat toplevel env = for_all_subpat (is_coq_pat_direct toplevel env)
 let is_coq_def = is_pat_match_def (is_coq_pat true) (fun mp -> mp.redundant_pats = [] && mp.is_exhaustive)
 
-let is_coq_pattern_match : match_check_arg = 
+let is_coq_pattern_match : match_check_arg =
    { exp_OK = (fun env e -> is_coq_exp env e &&
                  (match check_match_exp env e with Some mp -> mp.redundant_pats = [] && mp.is_exhaustive | None -> true));
      def_OK = is_coq_def;
      pat_OK = is_coq_pat false;
+     allow_redundant = false;
+     allow_non_exhaustive = false }
+
+(* Lean 4 pattern support: like Coq but rejects P_num_add (no n+k patterns in Lean 4) *)
+let is_lean_pat_direct (toplevel : bool) env (p : pat) : bool =
+  match p.term with
+    | P_num_add _ -> false
+    | P_record _ -> false
+    | P_tup _ -> not toplevel
+    | (P_vector _ | P_vectorC _) -> false
+    | P_const (c, _) -> not toplevel
+    | _ -> true
+
+let is_lean_pat toplevel env = for_all_subpat (is_lean_pat_direct toplevel env)
+let is_lean_def = is_pat_match_def (is_lean_pat true) (fun mp -> mp.redundant_pats = [] && mp.is_exhaustive)
+
+let is_lean_pattern_match : match_check_arg =
+   { exp_OK = (fun env e -> is_coq_exp env e &&
+                 (match check_match_exp env e with Some mp -> mp.redundant_pats = [] && mp.is_exhaustive | None -> true));
+     def_OK = is_lean_def;
+     pat_OK = is_lean_pat false;
      allow_redundant = false;
      allow_non_exhaustive = false }
 

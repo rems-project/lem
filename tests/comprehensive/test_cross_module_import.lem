@@ -1,0 +1,30 @@
+open import Pervasives_extra
+open import Test_cross_module_base
+
+(* Cross-user-module import test.
+   Imports types, constructors, and functions from test_cross_module_base.lem.
+   Exercises: auxiliary file transitive opens (#20), skip-open for user modules (#28),
+   cross-module name collision (#29), dynamic library namespace list (#35). *)
+
+(* Use imported type and constructors *)
+let my_colour : colour = Red
+let my_green : colour = Green
+
+(* Use imported function on imported constructors *)
+let red_val : nat = colour_to_nat Red
+let green_val : nat = colour_to_nat Green
+let blue_val : nat = colour_to_nat Blue
+
+(* Use imported polymorphic type and function *)
+let wrapped_nat : wrapped nat = Wrap (10 : nat)
+let unwrapped : nat = unwrap wrapped_nat
+
+(* Use imported constant *)
+let base_val : nat = base_constant
+
+(* Assertions *)
+assert red_ok : red_val = (1 : nat)
+assert green_ok : green_val = (2 : nat)
+assert blue_ok : blue_val = (3 : nat)
+assert unwrap_ok : unwrapped = (10 : nat)
+assert base_ok : base_val = (42 : nat)

@@ -1,0 +1,154 @@
+open import Pervasives_extra
+
+type t = C1 | C2 of nat | C3 of nat * nat
+type u 'a = CC1 | CC2 of nat | CC3 of 'a
+
+(* === As-patterns === *)
+let test_as1 z =
+  match z with
+    ((x, w) as y) -> (y, w + (2:nat))
+  end
+
+let test_as2 z =
+  match z with
+    (((x, w) as y), y2) -> (y, w + y2)
+  end
+
+(* === Nested constructor patterns === *)
+let test_nested (xx : u (u nat)) =
+  match xx with
+    | CC1 -> (1:nat)
+    | CC2 x -> x
+    | CC3 (CC3 y) -> y + y
+    | CC3 (CC2 x) -> x
+    | CC3 CC1 -> 0
+  end
+
+(* === List patterns of varying length === *)
+let test_list (x : list nat) =
+  match x with
+    | [] -> 0
+    | [x1] -> 1
+    | [x1;x2] -> 2
+    | [x1;x2;x3] -> (3:nat)
+    | x1 :: xs -> 4
+  end
+
+(* === Boolean exhaustiveness === *)
+let test_bool x y z =
+  match (x, y, z) with
+    (_, false, true) -> 1
+  | (false, true, _) -> (2:nat)
+  | (_, _, false) -> 3
+  | (_, _, _) -> 4
+  end
+
+(* === Option patterns === *)
+let test_opt xy =
+  match xy with
+    | (Just x, Just y) -> Just (x, y)
+    | _ -> Nothing
+  end
+
+(* === Record patterns === *)
+type r = <| f1 : nat; f2 : bool |>
+let test_rec (x : r) : nat = x.f1
+
+(* === Wildcard patterns === *)
+let test_wild (_ : nat) = (42:nat)
+
+(* === Literal patterns === *)
+let test_lit_nat (x : nat) : nat =
+  match x with
+    | 0 -> 1
+    | 1 -> 2
+    | _ -> 0
+  end
+
+let test_lit_bool (x : bool) : nat =
+  match x with
+    | true -> 1
+    | false -> 0
+  end
+
+let test_lit_string (x : string) : nat =
+  match x with
+    | "" -> 0
+    | "hello" -> 1
+    | _ -> 2
+  end
+
+(* === Tuple patterns in match === *)
+let test_tuple_pat (x : nat * nat * bool) : nat =
+  match x with
+    (a, b, true) -> a + b
+  | (a, _, false) -> a
+  end
+
+(* === Unit literal in pattern === *)
+(* Tests fix #27: P_lit L_unit → (_ : Unit) instead of raw () *)
+let handle_unit (x : unit) : nat =
+  match x with
+    | () -> 42
+  end
+
+(* === Typed wildcard in fun pattern === *)
+(* Tests fix #26: wildcards resolve to concrete types *)
+let typed_wild_fun = fun (_ : nat * bool) -> (99:nat)
+
+(* === Unit as fun argument pattern === *)
+let unit_fun = fun () -> (77:nat)
+
+(* === Unit nested in tuple pattern === *)
+let unit_in_tuple (x : nat * unit) : nat =
+  match x with
+    | (n, ()) -> n
+  end
+
+(* === Unit in let binding pattern === *)
+let unit_let_bind : nat =
+  let () = () in (55:nat)
+
+(* === n+k patterns (desugared to guards for Lean) === *)
+(* Tests fix #11: is_lean_pattern_match rejects P_num_add *)
+let rec nat_pred (n : nat) : nat =
+  match n with
+    | 0 -> 0
+    | m + 1 -> m
+  end
+
+let rec fib (n : nat) : nat =
+  match n with
+    | 0 -> 0
+    | 1 -> 1
+    | m + 2 -> fib m + fib (m + 1)
+  end
+
+(* n+k with larger constant *)
+let classify_nat (n : nat) : string =
+  match n with
+    | 0 -> "zero"
+    | 1 -> "one"
+    | _k + 2 -> "two or more"
+  end
+
+assert unit_match_ok : handle_unit () = (42:nat)
+assert typed_wild_fun_ok : typed_wild_fun (1, true) = (99:nat)
+assert unit_fun_ok : unit_fun () = (77:nat)
+assert unit_tuple_ok : unit_in_tuple (7, ()) = (7:nat)
+assert unit_let_ok : unit_let_bind = (55:nat)
+assert nat_pred_ok1 : nat_pred 0 = 0
+assert nat_pred_ok2 : nat_pred 5 = 4
+assert fib_ok1 : fib 0 = 0
+assert fib_ok2 : fib 1 = 1
+assert fib_ok3 : fib 6 = 8
+assert classify_ok1 : classify_nat 0 = "zero"
+assert classify_ok2 : classify_nat 1 = "one"
+assert classify_ok3 : classify_nat 5 = "two or more"
+assert test_list_ok1 : (test_list [] = (0:nat))
+assert test_list_ok2 : (test_list [1] = (1:nat))
+assert test_list_ok3 : (test_list [1;2;3;4] = (4:nat))
+assert test_bool_ok : (test_bool true false true = (1:nat))
+assert test_rec_ok : (test_rec <| f1 = 5; f2 = false |> = (5:nat))
+assert test_rec_ok2 : (test_rec <| f1 = 3; f2 = true |> = (3:nat))
+assert test_wild_ok : (test_wild 99 = (42:nat))

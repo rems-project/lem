@@ -1,0 +1,94 @@
+open import Pervasives_extra
+
+(* === Simple inductive relation === *)
+indreln [even : nat -> bool]
+  even_zero : forall. true ==> even 0
+and
+  even_plus : forall n. even n ==> even (n + 2)
+
+(* === Binary inductive relation === *)
+indreln [add_rel : nat -> nat -> nat -> bool]
+  add_zero : forall n. true ==> add_rel n 0 n
+and
+  add_succ : forall m n p. add_rel m n p ==> add_rel m (n + 1) (p + 1)
+
+(* === Relation with multiple premises === *)
+indreln [mul_rel : nat -> nat -> nat -> bool]
+  mul_zero : forall n. true ==> mul_rel n 0 0
+and
+  mul_succ : forall m n p q. mul_rel m n p && add_rel p m q ==> mul_rel m (n + 1) q
+
+(* === Propositional equality in antecedent === *)
+(* Tests fix: backend uses = (not ==) in indreln antecedents *)
+(* This is crucial when comparing types that lack BEq instances *)
+indreln [eq_rel : nat -> nat -> bool]
+  eq_rule : forall x y. x = y ==> eq_rel x y
+
+(* Equality with computed values in antecedent *)
+indreln [sum_rel : nat -> nat -> nat -> bool]
+  sum_rule : forall x y z. x + y = z ==> sum_rel x y z
+
+(* Multiple equality premises *)
+indreln [swap_rel : nat -> nat -> nat -> nat -> bool]
+  swap_rule : forall a b c d. a = d && b = c ==> swap_rel a b c d
+
+(* Inequality in antecedent — not (x = y) uses negation *)
+indreln [neq_rel : nat -> nat -> bool]
+  neq_rule : forall x y. not (x = y) ==> neq_rel x y
+
+(* Inequality via <> operator — Lem decomposes to not(isEqual x y).
+   Tests that == inside not() is converted to propositional = in App path. *)
+indreln [diff_rel : nat -> nat -> bool]
+  diff_rule : forall x y. x <> y ==> diff_rel x y
+
+(* Equality on function types — these LACK BEq instances in Lean.
+   Would fail to compile with == but works with propositional =. *)
+indreln [fn_eq : (nat -> nat) -> (nat -> nat) -> bool]
+  fn_eq_rule : forall f g. f = g ==> fn_eq f g
+
+(* <> on function types — the decomposed not(isEqual f g) path.
+   Would fail with not(f == g) since (Nat -> Nat) has no BEq. *)
+indreln [fn_diff : (nat -> nat) -> (nat -> nat) -> bool]
+  fn_diff_rule : forall f g. f <> g ==> fn_diff f g
+
+(* Nested function application in equality antecedent *)
+let double (x : nat) : nat = x * 2
+indreln [double_eq : nat -> nat -> bool]
+  double_rule : forall x y. double x = y ==> double_eq x y
+
+(* Ordering in antecedent — uses >, not == *)
+indreln [gt_rel : nat -> nat -> bool]
+  gt_rule : forall x y. x > y ==> gt_rel x y
+
+(* Multiple named rules with the same relation *)
+indreln [classify : nat -> string -> bool]
+  cls_zero : forall n. n = 0 ==> classify n "zero"
+and
+  cls_small : forall n. n > 0 && n < 10 ==> classify n "small"
+and
+  cls_big : forall n. n >= 10 ==> classify n "big"
+
+(* === Direct isInequal in indreln antecedent === *)
+(* Exercises App path != → ≠ conversion (lean_backend.ml:1150) *)
+indreln [neq_app_rel : nat -> nat -> bool]
+  neq_app_rule : forall (x:nat) (y:nat). isInequal x y ==> neq_app_rel x y
+
+(* === Polymorphic indreln (free type variables in indices) === *)
+(* Exercises index_free_vars_typeset (lean_backend.ml:964, 979-980) *)
+(* Bug #21 fix: type params are inductive parameters, not conclusion args *)
+indreln [poly_mem : forall 'a. list 'a -> 'a -> bool]
+  poly_mem_head : forall (x : 'a) (xs : list 'a). true ==> poly_mem (x :: xs) x
+and
+  poly_mem_tail : forall (x : 'a) (y : 'a) (xs : list 'a). poly_mem xs x ==> poly_mem (y :: xs) x
+
+(* === Indreln with higher-order predicate argument === *)
+(* Exercises indreln_typ Typ_fn with Bool return → Prop conversion *)
+indreln [apply_pred : (nat -> bool) -> nat -> bool]
+  apply_rule : forall (p : nat -> bool) (n : nat). p n ==> apply_pred p n
+
+(* === Indreln with tuple-typed indices === *)
+(* Exercises indreln_typ Typ_tup path *)
+indreln [pair_rel : (nat * nat) -> bool]
+  pair_rule : forall (x : nat) (y : nat). x > y ==> pair_rel (x, y)
+
+(* Inductive relations generate Prop types — verified by compilation only *)

@@ -34,6 +34,8 @@ let rec stringFromListAux showX x =
       end
   end
 
+declare {lean} termination_argument stringFromListAux = automatic
+
 val stringFromList : forall 'a. ('a -> string) -> list 'a -> string
 let stringFromList showX xs =
   "[" ^ stringFromListAux showX xs ^ "]"

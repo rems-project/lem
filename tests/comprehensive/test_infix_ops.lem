@@ -1,0 +1,30 @@
+open import Pervasives_extra
+
+(* === Standard operators as values === *)
+let test3 = (+) (1:nat) 2
+let test4 = (&&) true false
+let test5 = (||) true false
+
+(* === Boolean operators === *)
+let test6 x y = x && y
+let test7 x y = x || y
+let test8 x y = x --> y
+
+(* === Comparison operators === *)
+let test9 (x:nat) y = x >= y
+let test10 (x:nat) y = x = y
+
+(* === Arithmetic operator precedence === *)
+let test11 = (2:nat) + 3 * 4
+let test12 = ((2:nat) + 3) * 4
+
+assert test3_ok : (test3 = (3:nat))
+assert test4_ok : (test4 = false)
+assert test5_ok : (test5 = true)
+assert test6_ok : (test6 true true = true)
+assert test7_ok : (test7 false true = true)
+assert test8_ok : (test8 false true = true)
+assert test9_ok : (test9 5 3 = true)
+assert test10_ok : (test10 3 3 = true)
+assert test11_ok : (test11 = (14:nat))
+assert test12_ok : (test12 = (20:nat))
