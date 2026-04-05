@@ -64,13 +64,16 @@ let lean_syntax_keywords = [
   "break"; "continue"; "try"; "finally"; "unless"; "suffices";
   "nomatch"; "nofun"; "coinductive"; "axiom"; "opaque"; "universe";
   "scoped"; "local"; "public"; "nonrec"; "omit";
-  "notation"; "prefix"; "postfix"; "infixl"; "infixr"
+  "notation"; "prefix"; "postfix"; "infixl"; "infixr"; "infix";
+  "none"; "some"; "true"; "false"; "default";
+  "this"; "rfl"; "calc"; "decide"; "sorry";
+  "pure"; "get"; "set"; "throw"; "panic"; "admit"; "trivial"
 ]
 let lean_namespace_stack : string list ref = ref []
 (* Record types that ended up in mutual blocks — rendered as inductives, not structures.
    Record construction ({..}) and field projection (.field) don't work for these;
    use constructor syntax and pattern matching instead. *)
-let lean_mutual_records : string list ref = ref []
+let lean_mutual_records : Path.t list ref = ref []
 (* Collects import module names — emitted at top of file before any other content *)
 let lean_collected_imports : string list ref = ref []
 (* Tracks locally-defined module names within the current file (via Module definitions).
@@ -261,13 +264,7 @@ let name_var_output v =
 let is_mutual_record_type typ =
   match typ.Types.t with
     | Types.Tapp (_, path) ->
-        (* First check the per-compilation-unit list (fast path) *)
-        let name = Path.to_string path in
-        let basename = match String.rindex_opt name '.' with
-          | Some i -> String.sub name (i + 1) (String.length name - i - 1)
-          | None -> name
-        in
-        List.mem basename !lean_mutual_records
+        List.exists (fun p -> Path.compare p path = 0) !lean_mutual_records
     | _ -> false
 
 let in_target targets = Typed_ast.in_targets_opt (Target.Target_no_ident Target.Target_lean) targets;;
@@ -2786,10 +2783,9 @@ module LeanBackend (A : sig val avoid : var_avoid_f option;; val env : env;; val
               match ty with Te_abbrev _ -> false | _ -> true
             ) all in
             if List.length non_abbrev > 1 then
-              List.filter_map (fun ((n0, _), _, _, ty, _) ->
+              List.filter_map (fun (_, _, path, ty, _) ->
                 match ty with
-                  | Te_record _ ->
-                    Some (Ulib.Text.to_string (Name.to_rope (Name.strip_lskip n0)))
+                  | Te_record _ -> Some path
                   | _ -> None
               ) non_abbrev
             else []
