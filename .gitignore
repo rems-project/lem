@@ -29,7 +29,9 @@ tex-lib/lem-libs*.tex
 .lake/
 library/*.lean
 !library/gen_lean_constants.lean
-lean-lib/LemLib/[A-Z]*.lean
+# Generated LemLib files are now tracked (needed for Lake git dependency).
+# Regenerate with: make lean-libs
+# lean-lib/LemLib/[A-Z]*.lean
 tests/backends/*.lean
 tests/backends/*_auxiliary.lean
 tests/backends/*.ml
