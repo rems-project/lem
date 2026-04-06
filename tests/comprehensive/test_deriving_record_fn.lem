@@ -1,0 +1,13 @@
+(* Pattern 9/10: record with direct and aliased function fields.
+   Tests that records correctly skip deriving BEq, Ord. *)
+open import Pervasives
+
+(* Pattern 9: record with direct function field *)
+type rec_direct_fn = <| rdf_field : nat -> bool |>
+
+(* Pattern 10: record with aliased function field *)
+type fn_type = nat -> bool
+type rec_alias_fn = <| raf_field : fn_type |>
+
+(* Record with function in tuple field *)
+type rec_fn_tuple = <| rft_field : (nat -> bool) * nat |>

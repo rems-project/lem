@@ -1,0 +1,17 @@
+(* Positive tests: types that SHOULD get deriving BEq, Ord *)
+open import Pervasives
+
+(* Simple variant - no function types *)
+type color = Red | Green | Blue
+
+(* Variant with data *)
+type shaped = Circle of nat | Square of nat * nat
+
+(* Variant with container of non-function *)
+type wrapped = WrapList of list nat | WrapMaybe of maybe bool
+
+(* Record with simple fields *)
+type point = <| x : nat; y : nat |>
+
+(* Parameterized type - deriving should add constraints automatically *)
+type box 'a = Box of 'a | Empty

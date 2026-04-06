@@ -75,5 +75,9 @@ lean_lib LemComprehensiveTest where
     `Test_multiline_record,
     `Test_let_scope, `Test_let_scope_auxiliary,
     `Test_renamed_mutual_record, `Test_renamed_mutual_record_auxiliary,
-    `Test_deriving_abbrev_fn, `Test_deriving_abbrev_fn_auxiliary
+    `Test_deriving_abbrev_fn, `Test_deriving_abbrev_fn_auxiliary,
+    `Test_deriving_nested_abbrev, `Test_deriving_nested_abbrev_auxiliary,
+    `Test_deriving_fn_in_container, `Test_deriving_fn_in_container_auxiliary,
+    `Test_deriving_record_fn, `Test_deriving_record_fn_auxiliary,
+    `Test_deriving_positive, `Test_deriving_positive_auxiliary
   ]

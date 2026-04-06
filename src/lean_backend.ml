@@ -1948,8 +1948,11 @@ type pat_style = FunParam | MatchArm
              let td = Types.type_defs_lookup l A.env.t_env id.descr in
              match td.Types.type_abbrev with
                | Some expanded_t ->
-                 (* Check if the expanded type contains a function *)
+                 (* Check if the expanded type contains a function.
+                    Use head_norm to fully expand nested abbreviations
+                    (e.g., wrap = fn, fn = nat -> bool). *)
                  let rec types_t_has_fn (ty : Types.t) =
+                   let ty = Types.head_norm A.env.t_env ty in
                    match ty.Types.t with
                      | Types.Tfn _ -> true
                      | Types.Ttup ts -> List.exists types_t_has_fn ts
