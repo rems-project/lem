@@ -1937,7 +1937,28 @@ type pat_style = FunParam | MatchArm
       match t.term with
         | Typ_fn _ -> true
         | Typ_tup ts -> Seplist.exists src_t_has_fn ts
-        | Typ_app (_, ts) -> List.exists src_t_has_fn ts
+        | Typ_app (id, ts) ->
+          (* Check type arguments for functions *)
+          List.exists src_t_has_fn ts ||
+          (* Also check if the type itself is an abbreviation expanding to a function type.
+             This catches cases like stateM 'a 'st = 'st -> maybe ('a * 'st) where the
+             abbreviation hides a function type. *)
+          (let l = Ast.Trans (false, "src_t_has_fn", None) in
+           try
+             let td = Types.type_defs_lookup l A.env.t_env id.descr in
+             match td.Types.type_abbrev with
+               | Some expanded_t ->
+                 (* Check if the expanded type contains a function *)
+                 let rec types_t_has_fn (ty : Types.t) =
+                   match ty.Types.t with
+                     | Types.Tfn _ -> true
+                     | Types.Ttup ts -> List.exists types_t_has_fn ts
+                     | Types.Tapp (ts, _) -> List.exists types_t_has_fn ts
+                     | _ -> false
+                 in
+                 types_t_has_fn expanded_t
+               | None -> false
+           with _ -> false)
         | Typ_paren (_, t, _) -> src_t_has_fn t
         | Typ_with_sort (t, _) -> src_t_has_fn t
         | _ -> false
