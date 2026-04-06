@@ -1,0 +1,91 @@
+(* Consolidated instance tests: parameterized instances, map/fold over
+   mutual types, SetType unit.
+   Merged from test_parameterized_instances.lem, test_map_fold_mutual.lem,
+   test_settype_unit.lem. *)
+
+open import Pervasives_extra
+open import Map_extra
+
+(* ================================================================ *)
+(* Section 1: Parameterized instances                               *)
+(*   (from test_parameterized_instances)                            *)
+(* ================================================================ *)
+
+(* === Phantom-like type parameter in function === *)
+(* 'a appears in the return type but not in any explicit parameter.
+   The Lean backend should filter it from the implicit binding list
+   since Lean can't infer it. *)
+type box 'a = Box of 'a
+
+let make_default_box : box nat = Box 0
+
+assert box_ok : make_default_box = Box (0:nat)
+
+(* === Parameterized recursive type (Inhabited without constraints) === *)
+(* Inhabited instance should use sorry without [Inhabited a] constraint,
+   so that partial functions returning this type compile. *)
+type wrapped 'a =
+  | Wrap of 'a
+  | WrapPair of wrapped 'a * wrapped 'a
+
+let rec depth (w : wrapped nat) : nat =
+  match w with
+    | Wrap _ -> 0
+    | WrapPair l r -> 1 + depth l + depth r
+  end
+
+assert depth_ok : depth (WrapPair (Wrap 1) (Wrap 2)) = (1:nat)
+
+(* === Downstream types that derive BEq/Ord from parameterized base types === *)
+(* The sorry-based Ord instance on inst_container 'a should NOT require [Inhabited a],
+   so that inst_wrapper can use deriving BEq/Ord successfully. *)
+type inst_container 'a =
+  | ICEmpty
+  | ICSingle of 'a
+  | ICPair of inst_container 'a * inst_container 'a
+
+type inst_wrapper =
+  | IW of inst_container nat * nat
+
+let test_container = ICSingle (42:nat)
+let test_wrapper = IW (ICSingle 1) 2
+
+assert container_ok : test_container = ICSingle (42:nat)
+
+(* === Opaque parameterized type (instance body flattening) === *)
+(* Opaque types get sorry-based instances. When the type has parameters,
+   the instance body can span multiple lines. The Lean backend must
+   flatten these to avoid misparse as separate field definitions. *)
+type opaque_thing 'a
+
+(* The type is opaque -- instances (Inhabited, BEq, Ord) are auto-generated with sorry. *)
+
+(* ================================================================ *)
+(* Section 2: Map/fold over mutual types                            *)
+(*   (from test_map_fold_mutual)                                    *)
+(* ================================================================ *)
+
+(* A parameterized type whose constructors carry 'a -- will get
+   'deriving BEq, Ord' in the generated Lean. *)
+type decl 'a = Fun0 of nat | Proc0 of 'a
+
+(* Polymorphic function: 'a has no Eq/Ord/BEq constraints in Lem.
+   Map_extra.fold requires SetType (decl 'a), but the generated
+   SetType instance needs [Inhabited a] [BEq a] [Ord a]. *)
+val count_decls : forall 'a. map nat (decl 'a) -> nat
+let count_decls m =
+  Map_extra.fold (fun (k : nat) (v : decl 'a) (acc : nat) ->
+    match v with
+      | Fun0 _ -> acc + 1
+      | Proc0 _ -> acc + 2
+    end
+  ) m 0
+
+(* ================================================================ *)
+(* Section 3: SetType unit (from test_settype_unit)                 *)
+(* ================================================================ *)
+
+(* Test that Set.map returning set unit works.
+   Requires SetType Unit instance in LemLib. *)
+let test_set_map (s : set nat) : set unit =
+  Set.map (fun _ -> ()) s

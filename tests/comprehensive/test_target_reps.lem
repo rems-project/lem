@@ -1,0 +1,302 @@
+(* Consolidated tests for target representations, sorry patterns, inline
+   definitions, and theorem generation.
+
+   Merged from:
+   - test_inline_target_rep.lem  (inline definitions, target-specific defs,
+     parameter-binding target reps, sorry as function target rep)
+   - test_inline_theorem.lem     (let {lean} + let inline ~{lean} theorem
+     generation in auxiliary file)
+   - test_sorry_edge_cases.lem   (sorry-based stub edge cases from Cerberus)
+   - test_sorry_unit_match.lem   (sorry-unit-match causing parser ambiguity
+     in auxiliary theorem) *)
+
+open import Pervasives_extra
+
+(* ================================================================== *)
+(* Section 1: Inline definitions                                      *)
+(* ================================================================== *)
+
+let inline isZero (n : nat) = (n = (0:nat))
+let inline double (n : nat) = n + n
+let inline compose f g x = f (g x)
+
+assert inline_zero_t  : isZero 0
+assert inline_zero_f  : not (isZero 3)
+assert inline_double   : double 5 = (10:nat)
+assert inline_compose  : compose (fun x -> x + (1:nat)) (fun x -> x * (2:nat)) 3 = (7:nat)
+
+(* Inline with target scoping *)
+val addThree : nat -> nat
+let inline {lean; ocaml; coq} addThree n = n + (3:nat)
+let {hol; isabelle} addThree n = n + (3:nat)
+
+assert addThree_ok : addThree 7 = (10:nat)
+
+(* Target-specific function definition *)
+val mySucc : nat -> nat
+let {lean; ocaml; coq; isabelle; hol} mySucc n = n + (1:nat)
+
+assert mySucc_ok : mySucc 9 = (10:nat)
+
+(* Multiple target-specific definitions *)
+val myPred : nat -> nat
+let {lean; ocaml; coq} myPred n = n - (1:nat)
+let {hol; isabelle} myPred n = n - (1:nat)
+
+assert myPred_ok : myPred 5 = (4:nat)
+
+(* Renaming *)
+type myPairType 'a 'b = | MkMyPair of 'a * 'b
+declare {lean} rename type myPairType = lem_myPairType
+
+let extractFirst (MkMyPair a _b) = a
+
+assert rename_ok : extractFirst (MkMyPair (3:nat) true) = (3:nat)
+
+(* Type abbreviation with target-specific name *)
+type counter = nat
+declare {lean} rename type counter = lem_counter
+
+let incr (c : counter) : counter = c + (1:nat)
+
+assert abbrev_rename_ok : incr (5:nat) = (6:nat)
+
+(* Logical implication *)
+let test_impl = true --> true
+let test_impl2 = false --> false
+let test_impl3 = false --> true
+let test_impl4 = not (true --> false)
+
+assert impl_tt : test_impl
+assert impl_ff : test_impl2
+assert impl_ft : test_impl3
+assert impl_tf : test_impl4
+
+(* ================================================================== *)
+(* Section 2: Parameter-binding target reps (CR_inline style)         *)
+(* ================================================================== *)
+
+(* Like HOL's: declare hol target_rep function using_concurrency u = false
+   The parameter is consumed and the body is inlined. *)
+val is_feature_enabled : unit -> bool
+declare lean target_rep function is_feature_enabled u = false
+
+val get_feature_name : unit -> string
+declare lean target_rep function get_feature_name u = "none"
+
+val has_option : nat -> bool
+declare lean target_rep function has_option n = false
+
+let test_feature = is_feature_enabled ()
+let test_name = get_feature_name ()
+let test_option = has_option 42
+
+(* Use in if-condition — this is the pattern that caused Cerberus Ctype.lean
+   to fail when the target rep was bare sorry *)
+let test_if_feature (x : nat) : nat =
+  if is_feature_enabled () then x + 1 else x
+
+assert feature_off : not test_feature
+assert name_none : test_name = "none"
+assert option_off : not test_option
+assert if_feature_ok : test_if_feature 5 = (5:nat)
+
+(* Target rep constructors in pattern match *)
+(* When a constructor has a target rep (e.g., Just -> some), using it
+   in a pattern with arguments must have proper spacing: "some x" not "some(x)".
+   This is the P_backend pattern spacing issue from Cerberus Annot.lean. *)
+let extract_or_default (x : maybe nat) (d : nat) : nat =
+  match x with
+    | Just v -> v
+    | Nothing -> d
+  end
+
+assert extract_ok : extract_or_default (Just 42) 0 = (42:nat)
+assert extract_default : extract_or_default Nothing 99 = (99:nat)
+
+(* sorry as function target rep (argument dropping) *)
+(* When a function maps to bare sorry via target_rep, and is then applied
+   to arguments, the backend must emit just 'sorry' (not 'sorry arg').
+   sorry in Lean 4 is a term, not a function. *)
+type tr_mode = TrModeA | TrModeB
+val get_mode_val : tr_mode -> nat
+declare lean target_rep function get_mode_val = `sorry`
+
+(* This should compile — sorry absorbs the argument *)
+let test_sorry_applied : nat = get_mode_val TrModeA
+
+(* ================================================================== *)
+(* Section 3: Inline theorem generation                               *)
+(* ================================================================== *)
+
+(* Minimal reproducer for Cerberus inline theorem parsing error.
+
+   When a function has both a target-specific {lean} definition and an
+   inline expansion that applies to lean (via ~{ocaml}), the auxiliary
+   file generates a theorem asserting equivalence. The theorem uses
+   chained == which Lean cannot parse:
+
+     theorem my_eq_def_lemma : ((forall a b, (fid a == fid b) == a == b : Prop)) ...
+
+   Error: unexpected token '=='; expected ')', ',' or ':'
+*)
+
+(* A simple type with a field *)
+type widget = <| fid : nat |>
+
+(* Helper to extract the field *)
+val widget_fid : widget -> nat
+let widget_fid w = w.fid
+
+(* Custom equality: compare by field.
+   The {ocaml; lean} definition is concrete.
+   The inline ~{ocaml} definition applies to lean (and all non-ocaml backends),
+   generating a theorem in the auxiliary file. *)
+val my_eq : widget -> widget -> bool
+let {ocaml; lean} my_eq a b = widget_fid a = widget_fid b
+let inline ~{ocaml} my_eq a b = unsafe_structural_equality a b
+
+(* Eq instance using the custom equality *)
+instance (Eq widget)
+  let (=)  = my_eq
+  let (<>) x y = not (my_eq x y)
+end
+
+(* ================================================================== *)
+(* Section 4: Sorry-based stub edge cases                             *)
+(* ================================================================== *)
+
+(* Exercises patterns found in Cerberus-generated code:
+   1. sorry in App head with polymorphic return type
+   2. sorry in record field without explicit type annotation
+   3. sorry in match discriminant (Option type)
+   4. sorry as operand of == (BEq)
+   5. sorry as constructor argument
+   6. sorry-based opaque type in record field (L_undefined context)
+   7. Parameterized sorry-Inhabited used via default *)
+
+(* Opaque types for sorry generation *)
+type digest
+type layout_state
+
+(* sorry target_rep applied with arguments *)
+(* When a function mapped to sorry is called with args, backend must
+   drop args and emit (sorry : ReturnType).  Test with polymorphic return. *)
+val make_digest : nat -> digest
+declare lean target_rep function make_digest = `sorry`
+
+let my_digest : digest = make_digest 42
+
+(* sorry in record field (DAEMON context) *)
+(* L_undefined on an opaque type should produce default or sorry in a
+   record literal with type ascription.  Verifies Lean can infer field type. *)
+type my_state = <|
+  st_count : nat;
+  st_layout : layout_state;
+  st_name : string
+|>
+
+(* sorry target_rep returning Option *)
+(* sorry with Option return type, then used in match discriminant *)
+val get_mode : unit -> maybe nat
+declare lean target_rep function get_mode = `sorry`
+
+let check_mode (u : unit) : nat =
+  match get_mode () with
+    | Just n -> n
+    | Nothing -> (0 : nat)
+  end
+
+(* sorry as operand of == *)
+(* When a function returning 'a is mapped to sorry, the result
+   used with == needs BEq instance.  Opaque types get sorry-BEq. *)
+type exec_mode =
+  | ModeA
+  | ModeB
+  | ModeC
+
+val current_mode : unit -> exec_mode
+declare lean target_rep function current_mode = `sorry`
+
+let is_mode_a (u : unit) : bool =
+  current_mode () = ModeA
+
+(* sorry as constructor argument *)
+(* sorry value used directly as argument to a data constructor. *)
+type error_info 'a =
+  | ErrSimple of string
+  | ErrWithCtx of 'a * string
+
+val get_error_ctx : unit -> nat
+declare lean target_rep function get_error_ctx = `sorry`
+
+let make_error (msg : string) : error_info nat =
+  ErrWithCtx (get_error_ctx ()) msg
+
+(* sorry target_rep in let binding chain *)
+(* Multiple sorry-mapped functions in a let chain.  Each let binding
+   gets (sorry : T) and the chain must type-check through. *)
+val get_name : unit -> string
+declare lean target_rep function get_name = `sorry`
+
+val get_count : unit -> nat
+declare lean target_rep function get_count = `sorry`
+
+let describe (u : unit) : string =
+  let n = get_name () in
+  let c = get_count () in
+  n ^ ": " ^ show c
+
+(* sorry-based function passed as higher-order argument *)
+(* sorry in function position passed to map/filter. *)
+val transform_val : nat -> nat
+declare lean target_rep function transform_val = `sorry`
+
+let mapped_list : list nat = List.map transform_val [1; 2; 3]
+
+(* Assertions (where possible) *)
+(* Most sorry-based values can't be asserted for equality since they
+   produce sorry at runtime. But we verify compilation succeeds. *)
+assert mode_check_compiles : true
+
+(* ================================================================== *)
+(* Section 5: Sorry-unit-match auxiliary theorem parsing               *)
+(* ================================================================== *)
+
+(* Minimal repro for Cerberus Defacto_memory_auxiliary.lean:37:369 error.
+
+   Root cause: def_trans.ml generates _def_lemma theorems for recursive
+   functions with target_reps. These theorems wrap the function body in
+     theorem ... : (forall args, (body = sorry_result) : Prop) := by sorry
+   When the body contains match ... with | Ctor1 ... | Ctor2 ..., Lean's
+   parser treats the | as forall's alternative binder syntax (not match arms).
+
+   The sorry-unit-match (from let () = debug_func () in ..., where
+   debug_func has target_rep = sorry) wraps the body in
+     match (sorry : Unit) with | () => ...
+   which makes the subsequent inner match's | arms ambiguous.
+
+   Cerberus error: "MVarray mvals has type impl_mem_value but expected Type"
+   Our repro: "Invalid match expression: pattern contains metavariables: []"
+   Same root cause: forall consuming match | arms on a single line.
+
+   The error appears in the _auxiliary.lean file, not the main .lean file. *)
+
+type myval =
+  | Base of nat
+  | Arr of list nat
+
+val debug_print : unit -> unit
+declare lean target_rep function debug_print = `sorry`
+
+val process_val : myval -> list nat -> nat
+let rec process_val v path =
+  let () = debug_print () in
+  match (v, path) with
+    | (_, []) -> (0 : nat)
+    | (Arr ns, _ :: rest) -> process_val (Base (List.length ns)) rest
+    | (Base n, _ :: _) -> n
+  end
+
+(* target_rep triggers _def_lemma generation in def_trans.ml *)
+declare lean target_rep function process_val = `sorry`

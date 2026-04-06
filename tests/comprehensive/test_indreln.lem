@@ -1,5 +1,11 @@
 open import Pervasives_extra
 
+(* ======================================================================
+   Inductive relations: single, mutual, propositional equality,
+   polymorphic, higher-order, tuple-typed indices.
+   Merged from: test_indreln (original), test_mutual_indreln
+   ====================================================================== *)
+
 (* === Simple inductive relation === *)
 indreln [even : nat -> bool]
   even_zero : forall. true ==> even 0
@@ -32,21 +38,21 @@ indreln [sum_rel : nat -> nat -> nat -> bool]
 indreln [swap_rel : nat -> nat -> nat -> nat -> bool]
   swap_rule : forall a b c d. a = d && b = c ==> swap_rel a b c d
 
-(* Inequality in antecedent — not (x = y) uses negation *)
+(* Inequality in antecedent -- not (x = y) uses negation *)
 indreln [neq_rel : nat -> nat -> bool]
   neq_rule : forall x y. not (x = y) ==> neq_rel x y
 
-(* Inequality via <> operator — Lem decomposes to not(isEqual x y).
+(* Inequality via <> operator -- Lem decomposes to not(isEqual x y).
    Tests that == inside not() is converted to propositional = in App path. *)
 indreln [diff_rel : nat -> nat -> bool]
   diff_rule : forall x y. x <> y ==> diff_rel x y
 
-(* Equality on function types — these LACK BEq instances in Lean.
+(* Equality on function types -- these LACK BEq instances in Lean.
    Would fail to compile with == but works with propositional =. *)
 indreln [fn_eq : (nat -> nat) -> (nat -> nat) -> bool]
   fn_eq_rule : forall f g. f = g ==> fn_eq f g
 
-(* <> on function types — the decomposed not(isEqual f g) path.
+(* <> on function types -- the decomposed not(isEqual f g) path.
    Would fail with not(f == g) since (Nat -> Nat) has no BEq. *)
 indreln [fn_diff : (nat -> nat) -> (nat -> nat) -> bool]
   fn_diff_rule : forall f g. f <> g ==> fn_diff f g
@@ -56,7 +62,7 @@ let double (x : nat) : nat = x * 2
 indreln [double_eq : nat -> nat -> bool]
   double_rule : forall x y. double x = y ==> double_eq x y
 
-(* Ordering in antecedent — uses >, not == *)
+(* Ordering in antecedent -- uses >, not == *)
 indreln [gt_rel : nat -> nat -> bool]
   gt_rule : forall x y. x > y ==> gt_rel x y
 
@@ -69,26 +75,38 @@ and
   cls_big : forall n. n >= 10 ==> classify n "big"
 
 (* === Direct isInequal in indreln antecedent === *)
-(* Exercises App path != → ≠ conversion (lean_backend.ml:1150) *)
+(* Exercises App path != -> != conversion *)
 indreln [neq_app_rel : nat -> nat -> bool]
   neq_app_rule : forall (x:nat) (y:nat). isInequal x y ==> neq_app_rel x y
 
 (* === Polymorphic indreln (free type variables in indices) === *)
-(* Exercises index_free_vars_typeset (lean_backend.ml:964, 979-980) *)
-(* Bug #21 fix: type params are inductive parameters, not conclusion args *)
 indreln [poly_mem : forall 'a. list 'a -> 'a -> bool]
   poly_mem_head : forall (x : 'a) (xs : list 'a). true ==> poly_mem (x :: xs) x
 and
   poly_mem_tail : forall (x : 'a) (y : 'a) (xs : list 'a). poly_mem xs x ==> poly_mem (y :: xs) x
 
 (* === Indreln with higher-order predicate argument === *)
-(* Exercises indreln_typ Typ_fn with Bool return → Prop conversion *)
 indreln [apply_pred : (nat -> bool) -> nat -> bool]
   apply_rule : forall (p : nat -> bool) (n : nat). p n ==> apply_pred p n
 
 (* === Indreln with tuple-typed indices === *)
-(* Exercises indreln_typ Typ_tup path *)
 indreln [pair_rel : (nat * nat) -> bool]
   pair_rule : forall (x : nat) (y : nat). x > y ==> pair_rel (x, y)
 
-(* Inductive relations generate Prop types — verified by compilation only *)
+(* === Mutual even/odd via indreln === *)
+indreln [myeven : nat -> bool] and [myodd : nat -> bool]
+  even_zero2 : forall. true ==> myeven 0
+and
+  even_succ : forall n. myodd n ==> myeven (n + 1)
+and
+  odd_succ : forall n. myeven n ==> myodd (n + 1)
+
+(* === Mutual relation with multiple premises === *)
+indreln [reachable : nat -> nat -> bool] and [connected : nat -> nat -> bool]
+  reach_direct : forall x y. connected x y ==> reachable x y
+and
+  reach_trans : forall x y z. reachable x y && connected y z ==> reachable x z
+and
+  conn_base : forall x. true ==> connected x (x + 1)
+
+(* Inductive relations generate Prop types -- verified by compilation only *)

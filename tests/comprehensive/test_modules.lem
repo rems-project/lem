@@ -1,16 +1,39 @@
 open import Pervasives_extra
 
-(* === Basic module === *)
+(* =====================================================
+   Section 1: Basic modules
+   ===================================================== *)
+
+(* Simple module with values and functions *)
 module A = struct
   let x = (1 : nat)
   let f y = y + x
 end
 
-(* === Qualified access === *)
+(* Qualified access *)
 let test_qual1 = A.x
 let test_qual2 = A.f 10
 
-(* === Module containing types === *)
+assert test_qual1_ok : (test_qual1 = (1:nat))
+assert test_qual2_ok : (test_qual2 = (11:nat))
+
+(* Another basic module with explicit types *)
+module A2 = struct
+  let x : nat = 1
+  let f (y : nat) = y + x
+end
+
+let test_a2_qual1 : nat = A2.x
+let test_a2_qual2 : nat = A2.f 10
+
+assert a2_qual1_ok : test_a2_qual1 = (1:nat)
+assert a2_qual2_ok : test_a2_qual2 = (11:nat)
+
+(* =====================================================
+   Section 2: Types in modules
+   ===================================================== *)
+
+(* Module containing variant type and record type *)
 module E = struct
   type color = Red | Green | Blue
   type point = <| px : nat; py : nat |>
@@ -19,7 +42,24 @@ end
 
 let test_mod_record = E.origin
 
-(* === Nested modules === *)
+(* Module with variant type and function over it *)
+module B2 = struct
+  type color = Red | Green | Blue
+  let color_to_nat (c : color) : nat =
+    match c with
+      | Red -> 0
+      | Green -> 1
+      | Blue -> 2
+    end
+end
+
+let test_color = B2.color_to_nat B2.Green
+assert color_ok : test_color = (1:nat)
+
+(* =====================================================
+   Section 3: Nested modules
+   ===================================================== *)
+
 module Outer = struct
   let outer_val = (1:nat)
   module Inner = struct
@@ -30,18 +70,118 @@ end
 let test_nested1 = Outer.outer_val
 let test_nested2 = Outer.Inner.inner_val
 
-(* === Module with class === *)
+assert test_nested1_ok : (test_nested1 = (1:nat))
+assert test_nested2_ok : (test_nested2 = (2:nat))
+
+(* =====================================================
+   Section 4: Classes in modules
+   ===================================================== *)
+
 module F = struct
   class (MyEq 'a)
     val my_eq : 'a -> 'a -> bool
   end
 end
 
-(* === Module rename/alias === *)
+(* Module rename/alias *)
 (* Exercises Rename handler (lean_backend.ml:465) *)
 module AAlias = A
 
-assert test_qual1_ok : (test_qual1 = (1:nat))
-assert test_qual2_ok : (test_qual2 = (11:nat))
-assert test_nested1_ok : (test_nested1 = (1:nat))
-assert test_nested2_ok : (test_nested2 = (2:nat))
+(* =====================================================
+   Section 5: Do-notation with modules
+   ===================================================== *)
+
+(* Module defining monadic operations for do-notation *)
+module M = struct
+  type t 'a = maybe 'a
+  val return : forall 'a. 'a -> maybe 'a
+  val bind : forall 'a 'b. maybe 'a -> ('a -> maybe 'b) -> maybe 'b
+  let return x = Just x
+  let bind x f =
+    match x with
+      | Nothing -> Nothing
+      | Just y -> f y
+    end
+end
+
+(* Simple do *)
+let test1 =
+  do M
+  in
+    M.return (4 : nat)
+  end
+
+(* Sequential bind *)
+let test2 =
+  do M
+    x <- M.return (1 : nat) ;
+    y <- M.return (x + 1) ;
+  in
+    M.return (x + y)
+  end
+
+(* Pattern in bind *)
+let test3 =
+  (do M
+    (x, y) <- M.return (1, true) ;
+    z <- M.return x ;
+  in
+    M.return (x, z)
+  end : maybe (nat * nat))
+
+(* Failure propagation *)
+let test4 =
+  do M
+    x <- M.return (1 : nat) ;
+    y <- Nothing ;
+  in
+    M.return (x + y)
+  end
+
+(* Higher-order do *)
+let test5 f (x : nat) =
+  do M
+    x <- f x ;
+    y <- f (x + 4) ;
+  in
+    f (x + y)
+  end
+
+assert simple_return : test1 = Just (4 : nat)
+assert seq_bind_ok : test2 = Just (3 : nat)
+assert tuple_bind_ok : test3 = Just ((1 : nat), 1)
+assert failure_prop : test4 = (Nothing : maybe nat)
+
+(* =====================================================
+   Section 6: Local module scoping (do-notation variant)
+   ===================================================== *)
+
+(* Second module with monadic operations, testing local scoping *)
+module M2 = struct
+  type t 'a = maybe 'a
+  val return : forall 'a. 'a -> maybe 'a
+  val bind : forall 'a 'b. maybe 'a -> ('a -> maybe 'b) -> maybe 'b
+  let return x = Just x
+  let bind x f =
+    match x with
+      | Nothing -> Nothing
+      | Just y -> f y
+    end
+end
+
+let test_do1 =
+  do M2
+  in
+    M2.return (4 : nat)
+  end
+
+let test_do2 =
+  do M2
+    x <- M2.return (1 : nat) ;
+    y <- M2.return (x + 1) ;
+  in
+    M2.return (x + y)
+  end
+
+assert do1_ok : test_do1 = Just (4 : nat)
+assert do2_ok : test_do2 = Just (3 : nat)

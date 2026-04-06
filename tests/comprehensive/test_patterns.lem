@@ -1,7 +1,19 @@
+(* Consolidated pattern matching tests.
+   Merged from test_pattern_edge_cases.lem and test_pattern_complex.lem.
+   Covers as-patterns, nested constructors, list patterns, boolean
+   exhaustiveness, option/record/wildcard/literal/tuple/unit patterns,
+   n+k desugaring, field access on match/if, type-annotated patterns,
+   overlapping n+k clauses, and deeply nested as-patterns. *)
+
 open import Pervasives_extra
 
+(* === Types from edge cases === *)
 type t = C1 | C2 of nat | C3 of nat * nat
 type u 'a = CC1 | CC2 of nat | CC3 of 'a
+
+(* === Types from complex patterns === *)
+type color = Red | Green | Blue of nat
+type wrapper = Wrap of (nat * bool)
 
 (* === As-patterns === *)
 let test_as1 z =
@@ -12,6 +24,25 @@ let test_as1 z =
 let test_as2 z =
   match z with
     (((x, w) as y), y2) -> (y, w + y2)
+  end
+
+(* === Triple nested as-pattern === *)
+let test_triple_as (z : (nat * nat) * (nat * nat)) =
+  match z with
+    ((((x1, x2) as x12), ((x3, x4) as x34)) as x1234) -> (x1234, x12, x34, x1 + x2 + x3 + x4)
+  end
+
+(* === As-pattern with constructor === *)
+let as_with_ctor (c : color) : (color * nat) =
+  match c with
+    | (Blue n as x) -> (x, n)
+    | (y) -> (y, (0:nat))
+  end
+
+(* === Multiple as-patterns in same match arm === *)
+let multi_as (p : (nat * nat) * nat) =
+  match p with
+    (((a, b) as ab), (c as d)) -> (ab, a + b, c + d)
   end
 
 (* === Nested constructor patterns === *)
@@ -86,7 +117,7 @@ let test_tuple_pat (x : nat * nat * bool) : nat =
   end
 
 (* === Unit literal in pattern === *)
-(* Tests fix #27: P_lit L_unit → (_ : Unit) instead of raw () *)
+(* Tests fix #27: P_lit L_unit -> (_ : Unit) instead of raw () *)
 let handle_unit (x : unit) : nat =
   match x with
     | () -> 42
@@ -132,6 +163,66 @@ let classify_nat (n : nat) : string =
     | _k + 2 -> "two or more"
   end
 
+(* === Field access on match/if result === *)
+(* Tests fix: needs_parens in Field expression *)
+let r_a : r = <| f1 = 10; f2 = true |>
+let r_b : r = <| f1 = 20; f2 = false |>
+
+let field_on_match (b : bool) : nat =
+  (match b with | true -> r_a | false -> r_b end).f1
+
+let field_on_if (b : bool) : nat =
+  (if b then r_a else r_b).f1
+
+(* === Type-annotated patterns in match arms === *)
+let test_annotated_match (c : color) : nat =
+  match c with
+    | (Blue (n:nat)) -> n
+    | Red -> (0:nat)
+    | Green -> 1
+  end
+
+(* === Overlapping n+k pattern clauses with multiple constants === *)
+let classify_detailed (n : nat) : string =
+  match n with
+    | 0 -> "zero"
+    | 1 -> "one"
+    | 2 -> "two"
+    | 3 -> "three"
+    | _k + 4 -> "four or more"
+  end
+
+(* === Nested n+k via sequential match === *)
+let bucket (n : nat) : nat =
+  match n with
+    | 0 -> 0
+    | k + 1 -> match k with
+        | 0 -> 1
+        | j + 1 -> match j with
+            | 0 -> 2
+            | _ -> (3:nat)
+          end
+      end
+  end
+
+(* === Constructor with type annotation in nested position === *)
+let unwrap_annotated (w : wrapper) : nat =
+  match w with
+    | (Wrap ((n : nat), true)) -> n
+    | (Wrap (_, false)) -> 0
+  end
+
+(* === Fibonacci with n+k in deeper nesting === *)
+let rec fib_deep (n : nat) : nat =
+  match n with
+    | 0 -> 0
+    | 1 -> 1
+    | m + 2 -> let a = fib_deep m in
+               let b = fib_deep (m + 1) in
+               a + b
+  end
+
+(* === Assertions from edge cases === *)
 assert unit_match_ok : handle_unit () = (42:nat)
 assert typed_wild_fun_ok : typed_wild_fun (1, true) = (99:nat)
 assert unit_fun_ok : unit_fun () = (77:nat)
@@ -145,23 +236,10 @@ assert fib_ok3 : fib 6 = 8
 assert classify_ok1 : classify_nat 0 = "zero"
 assert classify_ok2 : classify_nat 1 = "one"
 assert classify_ok3 : classify_nat 5 = "two or more"
-(* === Field access on match/if result === *)
-(* Tests fix: needs_parens in Field expression *)
-(* Without parens, .field binds to last arm body, not the whole match *)
-let r_a : r = <| f1 = 10; f2 = true |>
-let r_b : r = <| f1 = 20; f2 = false |>
-
-let field_on_match (b : bool) : nat =
-  (match b with | true -> r_a | false -> r_b end).f1
-
-let field_on_if (b : bool) : nat =
-  (if b then r_a else r_b).f1
-
 assert field_match_ok1 : field_on_match true = (10:nat)
 assert field_match_ok2 : field_on_match false = (20:nat)
 assert field_if_ok1 : field_on_if true = (10:nat)
 assert field_if_ok2 : field_on_if false = (20:nat)
-
 assert test_list_ok1 : (test_list [] = (0:nat))
 assert test_list_ok2 : (test_list [1] = (1:nat))
 assert test_list_ok3 : (test_list [1;2;3;4] = (4:nat))
@@ -169,3 +247,20 @@ assert test_bool_ok : (test_bool true false true = (1:nat))
 assert test_rec_ok : (test_rec <| f1 = 5; f2 = false |> = (5:nat))
 assert test_rec_ok2 : (test_rec <| f1 = 3; f2 = true |> = (3:nat))
 assert test_wild_ok : (test_wild 99 = (42:nat))
+
+(* === Assertions from complex patterns === *)
+assert triple_as_ok : let (whole, left, right, sum) = test_triple_as ((1, 2), (3, 4)) in sum = (10:nat)
+assert annot_match_ok1 : test_annotated_match (Blue 42) = (42:nat)
+assert annot_match_ok2 : test_annotated_match Red = (0:nat)
+assert classify_det_ok1 : classify_detailed 0 = "zero"
+assert classify_det_ok2 : classify_detailed 3 = "three"
+assert classify_det_ok3 : classify_detailed 10 = "four or more"
+assert bucket_ok1 : bucket 0 = 0
+assert bucket_ok2 : bucket 1 = 1
+assert bucket_ok3 : bucket 2 = 2
+assert bucket_ok4 : bucket 99 = 3
+assert unwrap_ok1 : unwrap_annotated (Wrap (7, true)) = (7:nat)
+assert unwrap_ok2 : unwrap_annotated (Wrap (7, false)) = (0:nat)
+assert as_ctor_ok : let (_, n) = as_with_ctor (Blue 5) in n = (5:nat)
+assert multi_as_ok : let (_, sum1, sum2) = multi_as ((3, 4), 5) in sum1 = (7:nat) && sum2 = 10
+assert fib_deep_ok : fib_deep 7 = (13:nat)
