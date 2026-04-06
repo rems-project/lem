@@ -1293,10 +1293,7 @@ type pat_style = FunParam | MatchArm
             Output.flat [from_string "{"; id Type_var (Nvar.to_rope nv); from_string " : Nat}"])
         (Types.TNset.elements tv_set)
       in
-        if List.length bindings = 0 || not top_level then
-          emp
-        else
-          from_string " " ^ concat_str " " bindings
+        from_string " " ^ concat_str " " bindings
     (* Expression rendering. Lean 4 parser-specific rules:
        - Match/if/let/fun in function args or case bodies are parenthesized
          (Lean's greedy rightward match would otherwise consume too much)
@@ -1674,8 +1671,13 @@ type pat_style = FunParam | MatchArm
                 quant; from_string " "; bindings; from_string ", ("; ws skips;
                 exp inside_instance e; from_string " : Prop)"
               ]
-          | Comp_binding _ -> from_string "/- comp binding -/"
-          | Setcomp _ -> from_string "/- set comprehension -/"
+          | Comp_binding (_, _, _, _, _, _, _, _, _) ->
+              (* Set comprehension binding — not directly supported in Lean.
+                 Library functions with comprehensions have Lean target reps
+                 that bypass this code path. If reached, emit sorry. *)
+              from_string "(sorry /- set comprehension binding not supported -/)"
+          | Setcomp (_, _, _, _, _, _) ->
+              from_string "(sorry /- set comprehension not supported -/)"
           | Nvar_e (skips, nvar) ->
             let nvar = id Nexpr_var @@ Ulib.Text.(^^^) (r "") (Nvar.to_rope nvar) in
               Output.flat [
@@ -2650,7 +2652,6 @@ type pat_style = FunParam | MatchArm
         | _ ->
           let n = B.type_path_to_name name path in
           let o = lskips_t_to_output n in
-          let tnvar_list' = default_type_variables tnvar_list in
           let tnvar_names = concat_str " " @@ List.map (fun x -> from_string (tnvar_to_string x)) tnvar_list in
           let type_args =
             if List.length tnvar_list = 0 then emp
@@ -2735,15 +2736,22 @@ type pat_style = FunParam | MatchArm
       let ts_list = Seplist.to_list ts in
       let is_lib = is_library_module !lean_current_module_name in
       let ts_list = if is_lib then List.filter (fun (_, _, _, t, _) -> t <> Te_opaque) ts_list else ts_list in
-      let mutual_paths = List.map (fun ((_, _), _, path, _, _) -> path) ts_list in
+      (* Filter out abbreviations for mutual_paths, is_type1, and emit_deriving decisions.
+         Abbreviations don't participate in mutual recursion or instance generation. *)
+      let non_abbrev = List.filter (fun (_, _, _, t, _) ->
+        match t with Te_abbrev _ -> false | _ -> true) ts_list in
+      let mutual_paths = List.map (fun ((_, _), _, path, _, _) -> path) non_abbrev in
       let mapped = List.map (generate_inhabited_instance mutual_paths) ts_list in
-      (* Check if mutual block has heterogeneous param counts (Type 1 universe) *)
-      let param_counts = List.map (fun (_, ty_vars, _, _, _) -> List.length ty_vars) ts_list in
+      (* Check if the non-abbreviation types have heterogeneous param counts *)
+      let param_counts = List.map (fun (_, ty_vars, _, _, _) -> List.length ty_vars) non_abbrev in
       let is_type1 = match param_counts with
         | [] -> false
         | x :: xs -> not (List.for_all (fun y -> y = x) xs)
       in
-      let beq_instances = List.map (generate_beq_ord_instances ~is_type1 ~emit_deriving:false) ts_list in
+      (* If only 1 non-abbreviation type remains, it was rendered with deriving
+         (not as a mutual block), so emit_deriving:true to avoid duplicate instances. *)
+      let emit_deriving = List.length non_abbrev <= 1 in
+      let beq_instances = List.map (generate_beq_ord_instances ~is_type1 ~emit_deriving) ts_list in
         Output.flat [concat_str "\n" mapped; concat emp beq_instances]
     (* Default value for L_undefined (DAEMON) context — uses sorry for type variables
        since Inhabited constraints may not be available *)
