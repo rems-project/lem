@@ -1102,7 +1102,7 @@ type pat_style = FunParam | MatchArm
               let bound_variables =
                 concat_str " " @@ List.map (fun b ->
                   match b with
-                    | QName n -> from_string (Name.to_string (Name.strip_lskip n.term))
+                    | QName n -> from_string (lean_escape_keyword (Name.to_string (Name.strip_lskip n.term)))
                     | _ -> raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: unexpected binding form in indreln quantifier")
                 ) name_lskips_annot_list
               in
@@ -1493,9 +1493,16 @@ type pat_style = FunParam | MatchArm
           | Field (e, skips, fd) ->
             let name = field_ident_to_output fd (use_ascii_rep_for_const fd.descr) in
             (* Dot notation works for both structures (.field accessor) and
-               mutual records (we generate explicit accessor functions). *)
+               mutual records (we generate explicit accessor functions).
+               Parenthesize match/if/let/fun: without parens, .field binds
+               to the last arm body, not the whole expression. *)
+            let e_out =
+              if needs_parens (C.exp_to_term e) then
+                Output.flat [from_string "("; exp inside_instance e; from_string ")"]
+              else exp inside_instance e
+            in
               Output.flat [
-                exp inside_instance e; from_string "."; ws skips; name
+                e_out; from_string "."; ws skips; name
               ]
           | Recup (skips, e, skips', fields, skips'') ->
             let e_typ = Typed_ast.exp_to_typ e in
@@ -1651,7 +1658,7 @@ type pat_style = FunParam | MatchArm
                       let name = name_lskips_annot.term in
                       let skip = Name.get_lskip name in
                       let name = Name.strip_lskip name in
-                      let name = Ulib.Text.to_string (Name.to_rope name) in
+                      let name = lean_escape_keyword (Ulib.Text.to_string (Name.to_rope name)) in
                         Output.flat [
                           ws skip; from_string name
                         ]
@@ -1675,13 +1682,24 @@ type pat_style = FunParam | MatchArm
                 ws skips; nvar
               ]
           | VectorAcc (e, skips, nexp, skips') ->
+              (* Parenthesize match/if/let/fun in function argument position *)
+              let e_out =
+                if needs_parens (C.exp_to_term e) then
+                  Output.flat [from_string "("; exp inside_instance e; from_string ")"]
+                else exp inside_instance e
+              in
               Output.flat [
-                from_string "Vector.get "; exp inside_instance e;
+                from_string "Vector.get "; e_out;
                 from_string " "; src_nexp nexp; ws skips'
               ]
           | VectorSub (e, skips, nexp, skips', nexp', skips'') ->
+              let e_out =
+                if needs_parens (C.exp_to_term e) then
+                  Output.flat [from_string "("; exp inside_instance e; from_string ")"]
+                else exp inside_instance e
+              in
               Output.flat [
-                from_string "Vector.slice "; exp inside_instance e;
+                from_string "Vector.slice "; e_out;
                 from_string " "; src_nexp nexp;
                 from_string " "; src_nexp nexp'; ws skips''
               ]
@@ -1854,7 +1872,7 @@ type pat_style = FunParam | MatchArm
             | FunParam, L_unit _ -> from_string "(_ : Unit)"
             | _ -> literal l)
         | P_as (skips, p, skips', (n, l), skips'') ->
-          let name = Name.to_output Term_var n in
+          let name = name_var_output n in
             Output.flat [
               ws skips; name; from_string "@("; self p; from_string ")"; ws skips''
             ]
@@ -2214,7 +2232,39 @@ type pat_style = FunParam | MatchArm
           Output.flat [
             from_string " "; name; from_string " : "; indices; universe; from_string " where"
           ]
+        | Te_record (_, _, fields, _) ->
+          (* Records in heterogeneous mutual blocks: emit as single-constructor
+             indexed inductive with named fields.  Use the same (fname : type) →
+             syntax as tyexp's Te_record case but prefix implicit type bindings
+             (like constructor_indexed) since parameters are promoted to indices. *)
+          let field_list = Seplist.to_list fields in
+          let mk_args = flat @@ List.map (fun ((n, _), f_ref, _skips, t) ->
+            let fname = Name.add_lskip (Name.strip_lskip (B.const_ref_to_name n false f_ref)) in
+            Output.flat [
+              from_string "(";
+              Name.to_output Term_field fname;
+              from_string " :"; pat_typ t;
+              from_string ") → "
+            ]
+          ) field_list in
+          let implicit_bindings =
+            if List.length ty_vars_list = 0 then emp
+            else
+              let mapped = List.map (fun v ->
+                match v with
+                  | Tyvar x -> Output.flat [ from_string "{"; x; from_string " : Type} → " ]
+                  | Nvar x -> Output.flat [ from_string "{"; x; from_string " : Nat} → " ]
+              ) ty_vars_list in
+              concat emp mapped
+          in
+          Output.flat [
+            from_string " "; name; from_string " : "; indices; universe; from_string " where\n";
+            from_string "  | mk : "; implicit_bindings; mk_args;
+            name; ty_vars_names_space; ty_vars_names
+          ]
         | _ ->
+          (* Te_abbrev is filtered out before reaching here; this catch-all
+             handles any unexpected future type forms. *)
           Output.flat [
             from_string " "; name; from_string " : "; indices; universe; from_string " where"
           ]

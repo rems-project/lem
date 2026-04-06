@@ -145,6 +145,23 @@ assert fib_ok3 : fib 6 = 8
 assert classify_ok1 : classify_nat 0 = "zero"
 assert classify_ok2 : classify_nat 1 = "one"
 assert classify_ok3 : classify_nat 5 = "two or more"
+(* === Field access on match/if result === *)
+(* Tests fix: needs_parens in Field expression *)
+(* Without parens, .field binds to last arm body, not the whole match *)
+let r_a : r = <| f1 = 10; f2 = true |>
+let r_b : r = <| f1 = 20; f2 = false |>
+
+let field_on_match (b : bool) : nat =
+  (match b with | true -> r_a | false -> r_b end).f1
+
+let field_on_if (b : bool) : nat =
+  (if b then r_a else r_b).f1
+
+assert field_match_ok1 : field_on_match true = (10:nat)
+assert field_match_ok2 : field_on_match false = (20:nat)
+assert field_if_ok1 : field_on_if true = (10:nat)
+assert field_if_ok2 : field_on_if false = (20:nat)
+
 assert test_list_ok1 : (test_list [] = (0:nat))
 assert test_list_ok2 : (test_list [1] = (1:nat))
 assert test_list_ok3 : (test_list [1;2;3;4] = (4:nat))

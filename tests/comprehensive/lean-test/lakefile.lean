@@ -79,5 +79,8 @@ lean_lib LemComprehensiveTest where
     `Test_deriving_nested_abbrev, `Test_deriving_nested_abbrev_auxiliary,
     `Test_deriving_fn_in_container, `Test_deriving_fn_in_container_auxiliary,
     `Test_deriving_record_fn, `Test_deriving_record_fn_auxiliary,
-    `Test_deriving_positive, `Test_deriving_positive_auxiliary
+    `Test_deriving_positive, `Test_deriving_positive_auxiliary,
+    `Test_sorry_edge_cases, `Test_sorry_edge_cases_auxiliary,
+    `Test_type_edge_cases, `Test_type_edge_cases_auxiliary,
+    `Test_hetero_record, `Test_hetero_record_auxiliary
   ]

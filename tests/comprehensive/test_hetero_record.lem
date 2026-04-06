@@ -1,0 +1,36 @@
+(* Records in heterogeneous mutual blocks.
+   type_def_indexed must handle Te_record (previously a bug: records
+   lost their mk constructor when param counts differed). *)
+
+open import Pervasives_extra
+
+(* === Record in heterogeneous mutual block (different param counts) === *)
+type tree_node 'a =
+  | TLeaf of 'a
+  | TBranch of tree_meta
+and tree_meta = <| tm_depth : nat; tm_label : string |>
+
+let meta1 = <| tm_depth = 3; tm_label = "root" |>
+let leaf1 : tree_node nat = TLeaf 42
+let branch1 : tree_node nat = TBranch meta1
+
+let get_label (m : tree_meta) : string = m.tm_label
+let get_depth (m : tree_meta) : nat = m.tm_depth
+
+assert hetero_label : get_label meta1 = "root"
+assert hetero_depth : get_depth meta1 = (3:nat)
+
+(* === 3-way heterogeneous with record === *)
+type expr2 'a 'b =
+  | E2Lit of 'a
+  | E2Pair of 'a * 'b
+  | E2Ann of ann2
+and ann2 = <| a2_line : nat; a2_col : nat |>
+and ctx2 =
+  | C2Top
+  | C2Nested of ctx2
+
+let ann = <| a2_line = 10; a2_col = 5 |>
+
+assert three_way_line : ann.a2_line = (10:nat)
+assert three_way_col  : ann.a2_col  = (5:nat)

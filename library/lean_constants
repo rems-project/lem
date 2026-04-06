@@ -182,16 +182,20 @@ abbrev
 absurd
 admit
 assume
+at
 attribute
 axiom
 bool
+break
 by
 calc
 cast
 catch
 class
+coinductive
 cond
 congr
+continue
 control
 default
 def
@@ -204,8 +208,10 @@ example
 export
 extends
 false
+finally
 flip
 for
+forall
 fun
 funext
 get
@@ -224,6 +230,7 @@ ite
 lemma
 let
 local
+macro
 match
 meta
 measure
@@ -234,7 +241,9 @@ nomatch
 nofun
 none
 noncomputable
+nonrec
 notation
+omit
 opaque
 open
 optional
@@ -245,6 +254,7 @@ pure
 prefix
 private
 protected
+public
 rec
 repr
 return
@@ -266,6 +276,8 @@ this
 throw
 trivial
 true
+try
+unless
 unsafe
 universe
 variable
