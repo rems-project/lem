@@ -63,25 +63,20 @@ instance (priority := low) (a : Type)  [BEq a] : Eq0 a where
 /-  ==========================================================================  -/
 
 /-  The type-class Ord represents total orders (also called linear orders)  -/
-inductive  ordering : Type where 
-  |  LT : ordering  
-  |  EQ : ordering  
-  |  GT : ordering 
-  deriving BEq, Ord
-export ordering (LT EQ GT)
+abbrev  ordering := LemOrdering
 instance : Inhabited (ordering) where
   default := LT
 instance : Lem_Basic_classes.SetType (ordering) where
-  setElemCompare := sorry
+  setElemCompare := defaultCompare
 instance : Lem_Basic_classes.Eq0 (ordering) where
-  isEqual _ _ := sorry
-  isInequal _ _ := sorry
+  isEqual x y := x == y
+  isInequal x y := !(x == y)
 instance : Lem_Basic_classes.Ord0 (ordering) where
-  compare := sorry
-  isLess := sorry
-  isLessEqual := sorry
-  isGreater := sorry
-  isGreaterEqual := sorry -/
+  compare := defaultCompare
+  isLess := defaultLess
+  isLessEqual := defaultLessEq
+  isGreater := defaultGreater
+  isGreaterEqual := defaultGreaterEq -/
 
 def  orderingIsLess  (r : LemOrdering)        : Bool :=  (match  r with |  LemOrdering.LT =>  true |  _ =>  false )
 def  orderingIsGreater  (r : LemOrdering)     : Bool :=  (match  r with |  LemOrdering.GT =>  true |  _ =>  false )

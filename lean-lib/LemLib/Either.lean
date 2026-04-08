@@ -19,21 +19,15 @@ open Lem_Tuple
 
 /- 
 
-inductive  either (a : Type) (b : Type) : Type where
-  
-  |  Left :   a →  either a b
-  
-  |  Right :  b →  either a b
-  deriving BEq, Ord
-export either (Left Right)
+abbrev  either  (a : Type) (b : Type) := Sum
 instance {a : Type} {b : Type} : Inhabited (either a b) where
   default := sorry
-instance {a : Type} {b : Type} : Lem_Basic_classes.SetType (either a b) where
+instance (priority := low) {a : Type} {b : Type} : Lem_Basic_classes.SetType (either a b) where
   setElemCompare := sorry
-instance {a : Type} {b : Type} : Lem_Basic_classes.Eq0 (either a b) where
+instance (priority := low) {a : Type} {b : Type} : Lem_Basic_classes.Eq0 (either a b) where
   isEqual _ _ := sorry
   isInequal _ _ := sorry
-instance {a : Type} {b : Type} : Lem_Basic_classes.Ord0 (either a b) where
+instance (priority := low) {a : Type} {b : Type} : Lem_Basic_classes.Ord0 (either a b) where
   compare := sorry
   isLess := sorry
   isLessEqual := sorry

@@ -100,6 +100,26 @@ let lean_pending_abbrevs : Output.t list ref = ref []
    for self-references in premises (Lean requires explicit parameters). *)
 let lean_indreln_params : (Types.const_descr_ref * string) list ref = ref []
 
+(* Collect import for a qualified identifier from a target_rep.
+   If the identifier has a module prefix (e.g., CerberusImpl.sizeof_ity),
+   add the module to lean_collected_imports for the current file. *)
+(* Extract a module import from a CR_simple target rep body expression.
+   Called via Backend_common.on_cr_simple_applied callback during rendering.
+   Only fires for the current file's expressions — giving per-file scoping. *)
+let collect_cr_simple_import (is_library : bool) (id_str : string) =
+  (* Only collect imports for non-library target reps — library target reps
+     reference Lean stdlib or LemLib names already available via import LemLib. *)
+  if is_library then ()
+  else
+  match String.index_opt id_str '.' with
+    | Some dot_pos when dot_pos > 0 ->
+      let mod_name = String.sub id_str 0 dot_pos in
+      if String.length mod_name > 0 &&
+         Char.uppercase_ascii mod_name.[0] = mod_name.[0] &&
+         not (List.mem mod_name !lean_collected_imports) then
+        lean_collected_imports := mod_name :: !lean_collected_imports
+    | _ -> ()
+
 (* Extract the name string from a type/numeric variable *)
 let tnvar_to_string = function
   | Typed_ast.Tn_A (_, tv, _) -> Ulib.Text.to_string tv
@@ -2042,6 +2062,16 @@ type pat_style = FunParam | MatchArm
       let type_info = List.filter_map (fun ((n0, _), _, t_path, ty, _) ->
         match ty with
           | Te_abbrev _ -> None  (* Abbreviations don't create namespaces *)
+          | Te_opaque ->
+            (* Opaque types with target_rep become abbrevs — no namespace *)
+            let l = Ast.Trans (false, "type_info", None) in
+            let td = Types.type_defs_lookup l A.env.t_env t_path in
+            (match Target.Targetmap.apply_target td.Types.type_target_rep
+                    (Target.Target_no_ident Target.Target_lean) with
+              | Some (Types.TYR_simple _) -> None
+              | _ ->
+                let n = B.type_path_to_name n0 t_path in
+                Some (Name.to_string (Name.strip_lskip n), []))
           | _ ->
             let n = B.type_path_to_name n0 t_path in
             let name_str = Name.to_string (Name.strip_lskip n) in
@@ -2175,8 +2205,45 @@ type pat_style = FunParam | MatchArm
         let before_sep = if abbrevs_before = [] then emp else from_string "\n" in
         Output.flat [ abbrevs_before_output; before_sep; mutual_output; abbrevs_after_output; open_decls; accessor_defs; from_string "\n" ]
       else
-        let body = flat @@ Seplist.to_sep_list (type_def_variant true) (sep @@ from_string "\n") defs in
-        Output.flat [ from_string "inductive"; body; open_decls; from_string "\n" ]
+        (* Check if this type has a Lean target_rep type (TYR_simple).
+           If so, emit abbrev instead of inductive — the type is defined
+           in external Lean code. Works for both opaque types and types
+           with constructors that have their own target_reps. *)
+        let ((n0, _), tyvars, t_path, ty, _) = Seplist.hd defs in
+        let target_rep_abbrev =
+            let l = Ast.Trans (false, "type_def", None) in
+            let td = Types.type_defs_lookup l A.env.t_env t_path in
+            begin match Target.Targetmap.apply_target td.Types.type_target_rep
+                    (Target.Target_no_ident Target.Target_lean) with
+              | Some (Types.TYR_simple (_, _, target_ident)) ->
+                (* Collect import for the type target rep's module *)
+                let target_id_str = Ident.to_string target_ident in
+                (match String.index_opt target_id_str '.' with
+                  | Some dot_pos when dot_pos > 0 ->
+                    let mod_name = String.sub target_id_str 0 dot_pos in
+                    if String.length mod_name > 0 &&
+                       Char.uppercase_ascii mod_name.[0] = mod_name.[0] &&
+                       not (List.mem mod_name !lean_collected_imports) then
+                      lean_collected_imports := mod_name :: !lean_collected_imports
+                  | _ -> ());
+                let name = B.type_path_to_name n0 t_path in
+                let name_out = Name.to_output (Type_ctor (false, false)) name in
+                let tyvars_out = type_def_type_variables tyvars in
+                let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
+                Some (Output.flat [
+                  from_string "abbrev "; name_out; tyvar_sep; tyvars_out;
+                  from_string " := ";
+                  Ident.to_output (Type_ctor (false, true)) (r".") target_ident;
+                  from_string "\n"
+                ])
+              | _ -> None
+            end
+        in
+        match target_rep_abbrev with
+          | Some abbrev_out -> abbrev_out
+          | None ->
+            let body = flat @@ Seplist.to_sep_list (type_def_variant true) (sep @@ from_string "\n") defs in
+            Output.flat [ from_string "inductive"; body; open_decls; from_string "\n" ]
     and type_def_variant emit_deriving ((n0, l), ty_vars, t_path, ty, _) =
       let n = B.type_path_to_name n0 t_path in
       let name = Name.to_output (Type_ctor (false, false)) n in
@@ -2602,6 +2669,17 @@ type pat_style = FunParam | MatchArm
             not (List.exists (src_t_references_paths mutual_paths) args)
           ) ctors
     and generate_inhabited_instance mutual_paths ((name, _), tnvar_list, path, t, _name_sect_opt) : Output.t =
+      (* Opaque types with target_rep type inherit Inhabited from the target type *)
+      let has_type_target_rep = match t with
+        | Te_opaque ->
+          let l = Ast.Trans (false, "generate_inhabited_instance", None) in
+          let td = Types.type_defs_lookup l A.env.t_env path in
+          Target.Targetmap.apply_target td.Types.type_target_rep
+            (Target.Target_no_ident Target.Target_lean) <> None
+        | _ -> false
+      in
+      if has_type_target_rep then emp
+      else
       let name = B.type_path_to_name name path in
       let o = lskips_t_to_output name in
       let is_mutual = mutual_paths <> [] in
@@ -2647,8 +2725,21 @@ type pat_style = FunParam | MatchArm
           from_string ") where\n  default := "; default;
         ]
     and generate_beq_ord_instances ?(is_type1=false) ?(emit_deriving=true) ((name, _), tnvar_list, path, t, _) : Output.t =
+      (* Skip instance generation for abbreviations and opaque types with target reps
+         (they inherit instances from the target/aliased type). *)
+      let skip_instances = match t with
+        | Te_abbrev _ -> true
+        | Te_opaque ->
+          let l = Ast.Trans (false, "generate_beq_ord_instances", None) in
+          let td = Types.type_defs_lookup l A.env.t_env path in
+          Target.Targetmap.apply_target td.Types.type_target_rep
+            (Target.Target_no_ident Target.Target_lean) <> None
+        | _ -> false
+      in
+      if skip_instances then emp
+      else
       match t with
-        | Te_abbrev _ -> emp  (* type abbreviations don't need their own instances *)
+        | Te_abbrev _ -> emp  (* unreachable due to skip_instances *)
         | _ ->
           let n = B.type_path_to_name name path in
           let o = lskips_t_to_output n in
@@ -2673,8 +2764,9 @@ type pat_style = FunParam | MatchArm
                 let kind = match t with Typed_ast.Tn_A _ -> "Type" | Typed_ast.Tn_N _ -> "Nat" in
                 Output.flat [from_string " {"; from_string name; from_string " : "; from_string kind; from_string "}"]
               ) tnvar_list in
+              (* Low priority so hand-written BEq instances can override sorry *)
               (Output.flat [
-                from_string "\ninstance"; bare_tvs; from_string " : BEq ("; o;
+                from_string "\ninstance (priority := low)"; bare_tvs; from_string " : BEq ("; o;
                 type_args;
                 from_string ") where\n  beq _ _ := sorry";
               ],
@@ -2682,7 +2774,7 @@ type pat_style = FunParam | MatchArm
                  Use bare_tvs (no [Inhabited]) since compare := sorry doesn't need it.
                  This lets downstream types use 'deriving Ord' without extra constraints. *)
               Output.flat [
-                from_string "\ninstance"; bare_tvs; from_string " : Ord ("; o;
+                from_string "\ninstance (priority := low)"; bare_tvs; from_string " : Ord ("; o;
                 type_args;
                 from_string ") where\n  compare := sorry";
               ])
@@ -2691,27 +2783,47 @@ type pat_style = FunParam | MatchArm
           (* SetType/Eq0/Ord0 are defined for (a : Type) only, skip for Type 1 *)
           if is_type1 then Output.flat [beq_instance; ord_instance]
           else
-            (* SetType/Eq0/Ord0 use sorry-based implementations with bare type
-               variables (no [Inhabited], [BEq], [Ord] constraints) to avoid
-               propagating constraints to downstream code like Map.fold.
-               The derived BEq/Ord instances still work for direct == and compare. *)
+            (* SetType/Eq0/Ord0: use real implementations when possible.
+               For types with deriving BEq/Ord, bridge to the derived instances.
+               For types without, use sorry (can't derive or bridge). *)
             let bare_tvs_all = concat emp @@ List.map (fun t ->
               let name = tnvar_to_string t in
               let kind = match t with Typed_ast.Tn_A _ -> "Type" | Typed_ast.Tn_N _ -> "Nat" in
               Output.flat [from_string " {"; from_string name; from_string " : "; from_string kind; from_string "}"]
             ) tnvar_list in
+            (* SetType/Eq0/Ord0: use real implementations for monomorphic types
+               with deriving (no constraint propagation issue). For parameterized
+               types or non-deriving types, use sorry to avoid constraint issues. *)
+            let (settype_body, eq0_body, ord0_body) =
+              if has_deriving && tnvar_list = [] then
+                (* Monomorphic + deriving: bridge to derived BEq/Ord *)
+                ("setElemCompare := defaultCompare",
+                 "isEqual x y := x == y\n  isInequal x y := !(x == y)",
+                 "compare := defaultCompare\n  isLess := defaultLess\n  isLessEqual := defaultLessEq\n  isGreater := defaultGreater\n  isGreaterEqual := defaultGreaterEq")
+              else
+                (* Parameterized or non-deriving: sorry to avoid constraint propagation *)
+                ("setElemCompare := sorry",
+                 "isEqual _ _ := sorry\n  isInequal _ _ := sorry",
+                 "compare := sorry\n  isLess := sorry\n  isLessEqual := sorry\n  isGreater := sorry\n  isGreaterEqual := sorry")
+            in
+            let instance_tvs = bare_tvs_all
+            in
+            let inst_kw = if has_deriving && tnvar_list = []
+              then "\ninstance"  (* Real implementations — default priority *)
+              else "\ninstance (priority := low)"  (* Sorry — overridable *)
+            in
             Output.flat [
               beq_instance;
               ord_instance;
-              from_string "\ninstance"; bare_tvs_all; from_string " : Lem_Basic_classes.SetType ("; o;
+              from_string inst_kw; instance_tvs; from_string " : Lem_Basic_classes.SetType ("; o;
               type_args;
-              from_string ") where\n  setElemCompare := sorry";
-              from_string "\ninstance"; bare_tvs_all; from_string " : Lem_Basic_classes.Eq0 ("; o;
+              from_string ") where\n  "; from_string settype_body;
+              from_string inst_kw; instance_tvs; from_string " : Lem_Basic_classes.Eq0 ("; o;
               type_args;
-              from_string ") where\n  isEqual _ _ := sorry\n  isInequal _ _ := sorry";
-              from_string "\ninstance"; bare_tvs_all; from_string " : Lem_Basic_classes.Ord0 ("; o;
+              from_string ") where\n  "; from_string eq0_body;
+              from_string inst_kw; instance_tvs; from_string " : Lem_Basic_classes.Ord0 ("; o;
               type_args;
-              from_string ") where\n  compare := sorry\n  isLess := sorry\n  isLessEqual := sorry\n  isGreater := sorry\n  isGreaterEqual := sorry";
+              from_string ") where\n  "; from_string ord0_body;
             ]
     and generate_default_values ts : Output.t =
       let ts = Seplist.to_list ts in
@@ -2841,6 +2953,8 @@ module LeanBackend (A : sig val avoid : var_avoid_f option;; val env : env;; val
       lean_namespace_stack := [];
       lean_collected_imports := [];
       lean_pending_abbrevs := [];
+      (* Set callback for per-file CR_simple import collection *)
+      Backend_common.on_cr_simple_applied := collect_cr_simple_import;
       (* Note: lean_mutual_records is NOT reset — it accumulates across files
          so that cross-file record updates on mutual-block records are detected. *)
       lean_deferred_opens := [];
@@ -2896,6 +3010,10 @@ module LeanBackend (A : sig val avoid : var_avoid_f option;; val env : env;; val
                 not (List.mem "LemLib.Pervasives" !lean_collected_imports) then
         lean_collected_imports := "LemLib.Pervasives" :: !lean_collected_imports
       in
+      (* Imports for target_rep references are collected per-file during rendering:
+         - Function CR_simple target reps: via Backend_common.on_cr_simple_applied callback
+         - Type TYR_simple target reps: directly in type_def_variant
+         This ensures each file only imports modules it actually references. *)
       (* Prepend collected imports (deduplicated, in order) to main body *)
       let imports = List.rev !lean_collected_imports in
       let seen = Hashtbl.create 16 in

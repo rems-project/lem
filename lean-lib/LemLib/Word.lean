@@ -36,16 +36,16 @@ export bitSequence (BitSeq)
 instance : Inhabited (bitSequence) where
   default := BitSeq default default default
 instance : Lem_Basic_classes.SetType (bitSequence) where
-  setElemCompare := sorry
+  setElemCompare := defaultCompare
 instance : Lem_Basic_classes.Eq0 (bitSequence) where
-  isEqual _ _ := sorry
-  isInequal _ _ := sorry
+  isEqual x y := x == y
+  isInequal x y := !(x == y)
 instance : Lem_Basic_classes.Ord0 (bitSequence) where
-  compare := sorry
-  isLess := sorry
-  isLessEqual := sorry
-  isGreater := sorry
-  isGreaterEqual := sorry
+  compare := defaultCompare
+  isLess := defaultLess
+  isLessEqual := defaultLessEq
+  isGreater := defaultGreater
+  isGreaterEqual := defaultGreaterEq
 /- removed value specification -/
 
 /- removed top-level value definition -/

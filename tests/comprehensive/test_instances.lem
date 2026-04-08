@@ -89,3 +89,19 @@ let count_decls m =
    Requires SetType Unit instance in LemLib. *)
 let test_set_map (s : set nat) : set unit =
   Set.map (fun _ -> ()) s
+
+(* ================================================================ *)
+(* Section 4: Runtime Eq0/Ord0 on monomorphic deriving types        *)
+(* ================================================================ *)
+
+(* Monomorphic types with deriving BEq/Ord should have working
+   Eq0/Ord0/SetType instances that use the derived implementations,
+   not sorry. Assertions using isEqual/isInequal will panic at runtime
+   with "executed sorry" if the instances are sorry-based. *)
+type color2 = CRed | CGreen | CBlue
+
+let eq0_works : bool = isEqual CRed CRed
+let eq0_neq : bool = isInequal CRed CBlue
+
+assert eq0_runtime_ok : eq0_works
+assert eq0_runtime_neq : eq0_neq

@@ -366,8 +366,15 @@ let imported_modules_to_strings env target dir iml relative =
   let ms = Imported_Modules_Set.elements iml in
     List.flatten (List.map (imported_module_to_strings env target dir relative) ms)
 
-module Make(A : sig 
-  val env : env;; 
+(* Callback invoked when a CR_simple target rep is applied during rendering.
+   Called with (is_library, identifier_string) where is_library indicates
+   whether the constant is defined in a library module.
+   The Lean backend uses this to collect per-file import requirements
+   for non-library target reps only. *)
+let on_cr_simple_applied : (bool -> string -> unit) ref = ref (fun _ _ -> ())
+
+module Make(A : sig
+  val env : env;;
   val target : Target.target;;
   val dir : string;;
   val id_format_args : (bool -> Output.id_annot -> Ulib.Text.t -> Output.t) * Ulib.Text.t
@@ -514,6 +521,23 @@ let function_application_to_output l (arg_f0 : exp -> Output.t) (is_infix_pos : 
               constant_application_to_output_special c_id to_out (cr_special_fun_to_fun_exp A.env tsubst) (arg_f false) args vars 
             end
      | Some (CR_simple (_, _, params,body)) when not ascii_alternative -> begin
+         (* Notify callback: check if constant is from a library module *)
+         let module C = Exps_in_context(struct let env_opt = Some A.env;; let avoid = None end) in
+         let is_lib =
+           let (mod_path, _) = Path.to_name_list c_descr.const_binding in
+           match mod_path with
+             | [mod_name] ->
+               let mod_path_t = Path.mk_path [] mod_name in
+               (match Types.Pfmap.apply A.env.e_env mod_path_t with
+                 | Some md ->
+                   Target.Targetmap.apply_target md.Typed_ast.mod_target_rep
+                     (Target.Target_no_ident Target.Target_coq) <> None
+                 | None -> false)
+             | _ -> false
+         in
+         (match C.exp_to_term body with
+           | Backend (_, i) -> !on_cr_simple_applied is_lib (Ident.to_string i)
+           | _ -> ());
          let tsubst = Types.TNfmap.from_list2 c_descr.const_tparams c_id.instantiation in
          let new_exp = inline_exp l A.target A.env is_infix_pos params (ident_get_lskip c_id) body tsubst args in
          [arg_f false new_exp]

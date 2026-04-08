@@ -107,8 +107,13 @@ val get_imported_target_modules : Typed_ast.def list * Ast.lex_skips -> Imported
 val imported_modules_to_strings : env -> Target.target -> string -> Imported_Modules_Set.t -> bool -> string list
 
 
+(** Callback invoked when a CR_simple target rep is applied during rendering.
+    Called with the identifier string (e.g., "CerberusImpl.sizeof_ity").
+    Set by the Lean backend to collect per-file import requirements. *)
+val on_cr_simple_applied : (bool -> string -> unit) ref
+
 module Make(A : sig
-  val env : env;; 
+  val env : env;;
   val target : Target.target;;
   val dir : string;;
   val id_format_args : (bool -> Output.id_annot -> Ulib.Text.t -> Output.t) * Ulib.Text.t

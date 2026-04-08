@@ -120,8 +120,7 @@ export NumPred (pred)
 /-  -----------------------  -/
 
 /-  unbounded size natural numbers  -/
-inductive  natural : Type where
-open natural
+abbrev  natural := Nat
  -/
 /- 
 
@@ -132,8 +131,7 @@ open natural
 
 /-  bounded size integers with uncertain length  -/
 
-inductive  int : Type where
-open int
+abbrev  int := Int
  -/
 /- 
 
@@ -144,8 +142,7 @@ open int
 
 /-  unbounded size integers  -/
 
-inductive  integer : Type where
-open integer
+abbrev  integer := Int
  -/
 /- 
 
@@ -156,14 +153,12 @@ open integer
 /-  TODO the bounded ints are only partially implemented, use with care.  -/
 
 /-  32 bit integers  -/
-inductive  int32 : Type where
-open int32
+abbrev  int32 := LemInt32
  -/
 /-  /-  newtype wrapper â distinct from Int  -/
 
 /-  64 bit integers  -/
-inductive  int64 : Type where
-open int64
+abbrev  int64 := LemInt64
  -/
 /-  /-  newtype wrapper â distinct from Int  -/
 
@@ -174,8 +169,7 @@ open int64
 
 /-  unbounded size and precision rational numbers  -/
 
-inductive  rational : Type where
-open rational
+abbrev  rational := LemRational
  -/
 /-  /-  ???: better type for this in HOL?  -/
 
@@ -187,8 +181,7 @@ open rational
 /-  real numbers  -/
 /-  Note that for OCaml, this is mapped to floats with 64 bits.  -/
 
-inductive  real : Type where
-open real
+abbrev  real := LemReal
  -/
 /-  /-  ???: better type for this in HOL?  -/
 
@@ -199,13 +192,11 @@ open real
 
 /-  double precision floating point (64 bits)  -/
 
-inductive  float64 : Type where
-open float64
+abbrev  float64 := LemFloat64
  -/
 /-  /-  ???: better type for this in HOL?  -/
 
-inductive  float32 : Type where
-open float32
+abbrev  float32 := LemFloat32
  -/
 /- removed value specification -/
 

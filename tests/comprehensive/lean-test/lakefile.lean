@@ -39,5 +39,6 @@ lean_lib LemComprehensiveTest where
     `Test_target_reps, `Test_target_reps_auxiliary,
     `Test_target_specific, `Test_target_specific_auxiliary,
     `Test_termination, `Test_termination_auxiliary,
-    `Test_vectors, `Test_vectors_auxiliary
+    `Test_vectors, `Test_vectors_auxiliary,
+    `Test_beq_override  -- hand-written Lean test for BEq priority override
   ]

@@ -26,8 +26,7 @@ open Lem_Num
 
 /- 
 
-inductive  map (k : Type) (v : Type) : Type where
-open map
+abbrev  map  (k : Type) (v : Type) := Fmap
  -/
 /- removed value specification -/
 

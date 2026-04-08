@@ -29,12 +29,12 @@ inductive  maybe (a : Type) : Type where
 export maybe (Nothing Just)
 instance {a : Type} : Inhabited (maybe a) where
   default := sorry
-instance {a : Type} : Lem_Basic_classes.SetType (maybe a) where
+instance (priority := low) {a : Type} : Lem_Basic_classes.SetType (maybe a) where
   setElemCompare := sorry
-instance {a : Type} : Lem_Basic_classes.Eq0 (maybe a) where
+instance (priority := low) {a : Type} : Lem_Basic_classes.Eq0 (maybe a) where
   isEqual _ _ := sorry
   isInequal _ _ := sorry
-instance {a : Type} : Lem_Basic_classes.Ord0 (maybe a) where
+instance (priority := low) {a : Type} : Lem_Basic_classes.Ord0 (maybe a) where
   compare := sorry
   isLess := sorry
   isLessEqual := sorry

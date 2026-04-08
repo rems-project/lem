@@ -300,3 +300,11 @@ let rec process_val v path =
 
 (* target_rep triggers _def_lemma generation in def_trans.ml *)
 declare lean target_rep function process_val = `sorry`
+
+(* ================================================================== *)
+(* Section 6: Opaque type with target_rep type                        *)
+(* ================================================================== *)
+
+(* Opaque type with target_rep type: should emit abbrev, not empty inductive *)
+type my_opaque_target
+declare lean target_rep type my_opaque_target = `Nat`
