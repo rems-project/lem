@@ -20,19 +20,7 @@ open Lem_Tuple
 /- 
 
 abbrev  either  (a : Type) (b : Type) := Sum
-instance {a : Type} {b : Type} : Inhabited (either a b) where
-  default := sorry
-instance (priority := low) {a : Type} {b : Type} : Lem_Basic_classes.SetType (either a b) where
-  setElemCompare := sorry
-instance (priority := low) {a : Type} {b : Type} : Lem_Basic_classes.Eq0 (either a b) where
-  isEqual _ _ := sorry
-  isInequal _ _ := sorry
-instance (priority := low) {a : Type} {b : Type} : Lem_Basic_classes.Ord0 (either a b) where
-  compare := sorry
-  isLess := sorry
-  isLessEqual := sorry
-  isGreater := sorry
-  isGreaterEqual := sorry -/
+ -/
 /- removed value specification -/
 
 /- removed value specification -/

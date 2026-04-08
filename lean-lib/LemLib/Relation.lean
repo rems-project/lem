@@ -24,11 +24,9 @@ open Lem_Num
 /-  ==========================================================================  -/
 
 abbrev rel_pred  (a : Type) (b : Type)  :=  a →  b →  Bool
-instance {a : Type} {b : Type} : Inhabited (rel_pred a b) where
-  default := sorry
+
 abbrev rel_set  (a : Type) (b : Type)  :=  List  ((a  × b))
-instance {a : Type} {b : Type} : Inhabited (rel_set a b) where
-  default := sorry
+
 
 /-  Binary relations are usually represented as either
    sets of pairs (rel_set) or as curried functions (rel_pred). 
@@ -40,8 +38,7 @@ instance {a : Type} {b : Type} : Inhabited (rel_set a b) where
    let's implement relations as sets to get them working more quickly.  -/
 
 abbrev rel  (a : Type) (b : Type)  :=  rel_set  a  b
-instance {a : Type} {b : Type} : Inhabited (rel a b) where
-  default := sorry
+
 /- removed value specification -/
 
 /- removed value specification -/

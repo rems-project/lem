@@ -26,20 +26,7 @@ inductive  maybe (a : Type) : Type where
   
   |  Just :  a →  maybe a
   deriving BEq, Ord
-export maybe (Nothing Just)
-instance {a : Type} : Inhabited (maybe a) where
-  default := sorry
-instance (priority := low) {a : Type} : Lem_Basic_classes.SetType (maybe a) where
-  setElemCompare := sorry
-instance (priority := low) {a : Type} : Lem_Basic_classes.Eq0 (maybe a) where
-  isEqual _ _ := sorry
-  isInequal _ _ := sorry
-instance (priority := low) {a : Type} : Lem_Basic_classes.Ord0 (maybe a) where
-  compare := sorry
-  isLess := sorry
-  isLessEqual := sorry
-  isGreater := sorry
-  isGreaterEqual := sorry -/
+ -/
 /- removed value specification -/
 
 /- removed value specification -/

@@ -185,3 +185,23 @@ let test_do2 =
 
 assert do1_ok : test_do1 = Just (4 : nat)
 assert do2_ok : test_do2 = Just (3 : nat)
+
+(* =====================================================
+   Section 6: Nested local modules
+   ===================================================== *)
+
+(* A nested module should not generate bogus 'import Operators'.
+   The nested module is locally defined, not an external file. *)
+module SEU = struct
+  module Operators = struct
+    let seu_bind (x : maybe nat) (f : nat -> maybe nat) : maybe nat =
+      match x with
+        | Just v -> f v
+        | Nothing -> Nothing
+      end
+  end
+end
+
+let test_nested_mod = SEU.Operators.seu_bind (Just 5) (fun x -> Just (x + 1))
+
+assert nested_mod_ok : test_nested_mod = Just (6 : nat)

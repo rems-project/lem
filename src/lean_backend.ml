@@ -2073,6 +2073,13 @@ type pat_style = FunParam | MatchArm
                 let n = B.type_path_to_name n0 t_path in
                 Some (Name.to_string (Name.strip_lskip n), []))
           | _ ->
+            (* Check if this type has a target_rep — if so, it becomes
+               an abbrev and doesn't create a namespace *)
+            let l = Ast.Trans (false, "type_info", None) in
+            let td = Types.type_defs_lookup l A.env.t_env t_path in
+            if Target.Targetmap.apply_target td.Types.type_target_rep
+                 (Target.Target_no_ident Target.Target_lean) <> None then None
+            else
             let n = B.type_path_to_name n0 t_path in
             let name_str = Name.to_string (Name.strip_lskip n) in
             let ctor_names = match ty with
@@ -2655,6 +2662,17 @@ type pat_style = FunParam | MatchArm
       let mapped_out = concat_str " " mapped in
       let o = lskips_t_to_output n in
         Output.flat [o; sep; mapped_out]
+    (* Check if a src_t is directly one of the mutual types (not wrapped
+       in List, Option, etc.). Used for Inhabited generation: indirect
+       references through containers are safe because List.default = [],
+       Option.default = none, etc. — they don't evaluate the element's default. *)
+    and src_t_is_directly_mutual mutual_paths (s : src_t) : bool =
+      match s.term with
+        | Typ_app (id, _) ->
+          List.exists (fun p -> Path.compare p id.descr = 0) mutual_paths
+        | Typ_paren (_, t, _) -> src_t_is_directly_mutual mutual_paths t
+        | Typ_with_sort (t, _) -> src_t_is_directly_mutual mutual_paths t
+        | _ -> false
     (* For mutual types, find a constructor whose args don't reference any mutual types.
        Prefers nullary constructors, then constructors with non-mutual args. *)
     and find_safe_ctor_for_mutual mutual_paths ctors =
@@ -2669,16 +2687,24 @@ type pat_style = FunParam | MatchArm
             not (List.exists (src_t_references_paths mutual_paths) args)
           ) ctors
     and generate_inhabited_instance mutual_paths ((name, _), tnvar_list, path, t, _name_sect_opt) : Output.t =
-      (* Opaque types with target_rep type inherit Inhabited from the target type *)
-      let has_type_target_rep = match t with
+      (* Skip Inhabited for types that inherit it from the underlying type:
+         - Type abbreviations (abbrev in Lean — definitionally transparent)
+         - Opaque types with target_rep (abbrev pointing to target type) *)
+      let skip_inhabited = match t with
+        | Te_abbrev _ -> true
         | Te_opaque ->
           let l = Ast.Trans (false, "generate_inhabited_instance", None) in
           let td = Types.type_defs_lookup l A.env.t_env path in
           Target.Targetmap.apply_target td.Types.type_target_rep
             (Target.Target_no_ident Target.Target_lean) <> None
-        | _ -> false
+        | _ ->
+          (* Also skip non-opaque types with target_rep *)
+          let l = Ast.Trans (false, "generate_inhabited_instance", None) in
+          let td = Types.type_defs_lookup l A.env.t_env path in
+          Target.Targetmap.apply_target td.Types.type_target_rep
+            (Target.Target_no_ident Target.Target_lean) <> None
       in
-      if has_type_target_rep then emp
+      if skip_inhabited then emp
       else
       let name = B.type_path_to_name name path in
       let o = lskips_t_to_output name in
@@ -2691,11 +2717,28 @@ type pat_style = FunParam | MatchArm
               let ctors = Seplist.to_list seplist in
               (match find_safe_ctor_for_mutual mutual_paths ctors with
                 | Some ctor -> render_ctor_default ctor
-                | None -> from_string "sorry /- mutual type -/")
-            | Te_record _ when is_mutual ->
-              (* Records in mutual blocks are rendered as single-constructor inductives,
-                 not structures, so { field := val } syntax doesn't work. Use sorry. *)
-              from_string "sorry /- mutual type -/"
+                | None ->
+                  (* No constructor avoids ALL mutual references. Try a
+                     constructor whose args don't DIRECTLY reference mutual
+                     types — indirect refs through List, Option, etc. are safe
+                     because their Inhabited defaults ([], none) don't evaluate
+                     the element type's default. *)
+                  let safe_indirect = List.find_opt (fun (_, _, _, src_ts) ->
+                    let args = Seplist.to_list src_ts in
+                    (* Only reject direct self-references — other mutual types
+                       already have Inhabited (processed in declaration order). *)
+                    not (List.exists (src_t_is_directly_mutual [path]) args)
+                  ) ctors in
+                  match safe_indirect with
+                    | Some ctor -> render_ctor_default ctor
+                    | None -> from_string "sorry /- directly self-referential type -/")
+            | Te_record (_, _, fields, _) when List.length mutual_paths > 1 ->
+              (* Records in mutual blocks are single-constructor inductives.
+                 Use TypeName.mk with default for each field. *)
+              let n_fields = Seplist.length fields in
+              let defaults = String.concat " " (List.init n_fields (fun _ -> "default")) in
+              let type_name = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip (B.type_path_to_name name path))) in
+              from_string (String.concat "" [type_name; ".mk "; defaults])
             | _ -> generate_default_value_texp t
         else
           (* Parameterized types: always use sorry to avoid [Inhabited a] constraints.
@@ -2729,12 +2772,13 @@ type pat_style = FunParam | MatchArm
          (they inherit instances from the target/aliased type). *)
       let skip_instances = match t with
         | Te_abbrev _ -> true
-        | Te_opaque ->
+        | _ ->
+          (* Skip for any type with a Lean target_rep (opaque or not) —
+             they become abbrevs and inherit instances from the target type. *)
           let l = Ast.Trans (false, "generate_beq_ord_instances", None) in
           let td = Types.type_defs_lookup l A.env.t_env path in
           Target.Targetmap.apply_target td.Types.type_target_rep
             (Target.Target_no_ident Target.Target_lean) <> None
-        | _ -> false
       in
       if skip_instances then emp
       else
@@ -2962,12 +3006,17 @@ module LeanBackend (A : sig val avoid : var_avoid_f option;; val env : env;; val
          defs uses fold_right (processes last-to-first). Without this,
          'open Operators' would be processed before 'module Operators',
          causing a spurious import. *)
-      lean_local_modules := List.filter_map (fun (((d, _), _, _) : def) ->
-        match d with
-        | Module (_, (name, _), _, _, _, _, _) ->
-            Some (Ulib.Text.to_string (Name.to_rope (Name.strip_lskip name)))
-        | _ -> None
-      ) ds;
+      (* Recursively collect local module names including nested ones *)
+      let rec collect_local_modules (ds : def list) : string list =
+        List.concat_map (fun (((d, _), _, _) : def) ->
+          match d with
+          | Module (_, (name, _), _, _, _, defs, _) ->
+            let name_str = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip name)) in
+            name_str :: collect_local_modules defs
+          | _ -> []
+        ) ds
+      in
+      lean_local_modules := collect_local_modules ds;
       (* Pre-collect mutual record type names. Type_def blocks with >1 member
          that contain Te_record entries will render records as inductives.
          We need this list before defs runs (fold_right = last-to-first). *)

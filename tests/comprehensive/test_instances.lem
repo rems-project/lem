@@ -105,3 +105,21 @@ let eq0_neq : bool = isInequal CRed CBlue
 
 assert eq0_runtime_ok : eq0_works
 assert eq0_runtime_neq : eq0_neq
+
+(* ================================================================ *)
+(* Section 5: Inhabited on mutual types uses constructors not sorry *)
+(* ================================================================ *)
+
+(* Mutual types where one type's constructor references another.
+   The backend should use actual constructors for Inhabited defaults,
+   not sorry. Sorry would cause runtime panic at module init because
+   Inhabited defaults are evaluated eagerly.
+   - leaf_node has nullary constructor Leaf: default := Leaf
+   - tree_node references leaf_node: default := Branch default (using Leaf) *)
+type leaf_node = Leaf | LeafVal of nat
+and tree_node = Branch of leaf_node * list tree_node
+
+(* If Inhabited uses sorry, importing this module would panic at init.
+   Using real constructors means the module loads without panic.
+   No equality assertion — BEq is sorry for mutual types. The test
+   is that the module compiles and loads without runtime sorry panic. *)

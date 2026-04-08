@@ -308,3 +308,11 @@ declare lean target_rep function process_val = `sorry`
 (* Opaque type with target_rep type: should emit abbrev, not empty inductive *)
 type my_opaque_target
 declare lean target_rep type my_opaque_target = `Nat`
+
+(* Non-opaque type with target_rep type: should also emit abbrev.
+   The auxiliary file should NOT generate 'open my_variant_target'
+   since it's an abbrev, not an inductive with a namespace. *)
+type my_variant_target = VarA | VarB of nat
+declare lean target_rep type my_variant_target = `Nat`
+declare lean target_rep function VarA = `(0 : Nat)`
+declare lean target_rep function VarB = `id`
