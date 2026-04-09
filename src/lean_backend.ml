@@ -2662,6 +2662,36 @@ type pat_style = FunParam | MatchArm
       let mapped_out = concat_str " " mapped in
       let o = lskips_t_to_output n in
         Output.flat [o; sep; mapped_out]
+    (* Variant for mutual def blocks: direct references to mutual types use
+       TypeName.default_inhabited instead of default (which needs Inhabited
+       instances that don't exist yet inside the mutual def block). *)
+    and default_value_inhabited_mutual mutual_name_map (s : src_t) : Output.t =
+      match s.term with
+        | Typ_app (id, _) ->
+          (match List.assoc_opt id.descr mutual_name_map with
+            | Some type_name_str -> from_string (String.concat "" [type_name_str; ".default_inhabited"])
+            | None -> from_string "default")
+        | Typ_paren (_, src_t, _)
+        | Typ_with_sort (src_t, _) -> default_value_inhabited_mutual mutual_name_map src_t
+        | Typ_tup seplist ->
+            let src_ts = Seplist.to_list seplist in
+            let mapped = List.map (default_value_inhabited_mutual mutual_name_map) src_ts in
+              Output.flat [from_string "("; concat_str ", " mapped; from_string ")"]
+        | Typ_fn (dom, _, rng) ->
+            let v = generate_fresh_name () in
+              Output.flat [
+                from_string "(fun ("; from_string v; from_string " : "; pat_typ dom;
+                from_string ") => "; default_value_inhabited_mutual mutual_name_map rng; from_string ")"
+              ]
+        | _ -> from_string "default"
+    and render_ctor_default_mutual mutual_name_map ((ctor_name, _), ctor_ref, _, src_ts) =
+      let n = B.const_ref_to_name ctor_name false ctor_ref in
+      let ys = Seplist.to_list src_ts in
+      let mapped = List.map (default_value_inhabited_mutual mutual_name_map) ys in
+      let sep = if List.length mapped = 0 then emp else from_string " " in
+      let mapped_out = concat_str " " mapped in
+      let o = lskips_t_to_output n in
+        Output.flat [o; sep; mapped_out]
     (* Check if a src_t is directly one of the mutual types (not wrapped
        in List, Option, etc.). Used for Inhabited generation: indirect
        references through containers are safe because List.default = [],
@@ -2686,11 +2716,9 @@ type pat_style = FunParam | MatchArm
             let args = Seplist.to_list src_ts in
             not (List.exists (src_t_references_paths mutual_paths) args)
           ) ctors
-    and generate_inhabited_instance mutual_paths ((name, _), tnvar_list, path, t, _name_sect_opt) : Output.t =
-      (* Skip Inhabited for types that inherit it from the underlying type:
-         - Type abbreviations (abbrev in Lean — definitionally transparent)
-         - Opaque types with target_rep (abbrev pointing to target type) *)
-      let skip_inhabited = match t with
+    (* Compute whether to skip Inhabited for this type (abbreviations, types with target_rep) *)
+    and skip_inhabited_for_type t path =
+      match t with
         | Te_abbrev _ -> true
         | Te_opaque ->
           let l = Ast.Trans (false, "generate_inhabited_instance", None) in
@@ -2698,55 +2726,43 @@ type pat_style = FunParam | MatchArm
           Target.Targetmap.apply_target td.Types.type_target_rep
             (Target.Target_no_ident Target.Target_lean) <> None
         | _ ->
-          (* Also skip non-opaque types with target_rep *)
           let l = Ast.Trans (false, "generate_inhabited_instance", None) in
           let td = Types.type_defs_lookup l A.env.t_env path in
           Target.Targetmap.apply_target td.Types.type_target_rep
             (Target.Target_no_ident Target.Target_lean) <> None
-      in
-      if skip_inhabited then emp
+    (* Compute the default value expression for an Inhabited instance.
+       mutual_name_map: (Path.t * string) list mapping mutual type paths to their
+       Lean names. When non-empty, uses TypeName.default_inhabited for mutual type
+       args (for use inside mutual def blocks where Inhabited instances don't exist yet). *)
+    and inhabited_default_expr ?(mutual_name_map=[]) mutual_paths ((name, _), tnvar_list, path, t, _) : Output.t =
+      if tnvar_list = [] then
+        let render_ctor = if mutual_name_map = [] then render_ctor_default
+          else render_ctor_default_mutual mutual_name_map in
+        match t with
+          | Te_variant (_, seplist) ->
+            let ctors = Seplist.to_list seplist in
+            (match find_safe_ctor_for_mutual mutual_paths ctors with
+              | Some ctor -> render_ctor ctor
+              | None ->
+                let safe_indirect = List.find_opt (fun (_, _, _, src_ts) ->
+                  let args = Seplist.to_list src_ts in
+                  not (List.exists (src_t_is_directly_mutual [path]) args)
+                ) ctors in
+                match safe_indirect with
+                  | Some ctor -> render_ctor ctor
+                  | None -> from_string "sorry /- directly self-referential type -/")
+          | Te_record (_, _, fields, _) when List.length mutual_paths > 1 ->
+            let field_list = Seplist.to_list fields in
+            let default_fn = if mutual_name_map = [] then default_value_inhabited
+              else default_value_inhabited_mutual mutual_name_map in
+            let field_defaults = List.map (fun (_, _, _, src_t) -> default_fn src_t) field_list in
+            let type_name = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip (B.type_path_to_name name path))) in
+            Output.flat [from_string type_name; from_string ".mk "; concat_str " " field_defaults]
+          | _ -> generate_default_value_texp t
       else
-      let name = B.type_path_to_name name path in
-      let o = lskips_t_to_output name in
-      let is_mutual = mutual_paths <> [] in
-      let default =
-        if tnvar_list = [] then
-          (* Monomorphic types: use real defaults when possible *)
-          match t with
-            | Te_variant (_, seplist) ->
-              let ctors = Seplist.to_list seplist in
-              (match find_safe_ctor_for_mutual mutual_paths ctors with
-                | Some ctor -> render_ctor_default ctor
-                | None ->
-                  (* No constructor avoids ALL mutual references. Try a
-                     constructor whose args don't DIRECTLY reference mutual
-                     types — indirect refs through List, Option, etc. are safe
-                     because their Inhabited defaults ([], none) don't evaluate
-                     the element type's default. *)
-                  let safe_indirect = List.find_opt (fun (_, _, _, src_ts) ->
-                    let args = Seplist.to_list src_ts in
-                    (* Only reject direct self-references — other mutual types
-                       already have Inhabited (processed in declaration order). *)
-                    not (List.exists (src_t_is_directly_mutual [path]) args)
-                  ) ctors in
-                  match safe_indirect with
-                    | Some ctor -> render_ctor_default ctor
-                    | None -> from_string "sorry /- directly self-referential type -/")
-            | Te_record (_, _, fields, _) when List.length mutual_paths > 1 ->
-              (* Records in mutual blocks are single-constructor inductives.
-                 Use TypeName.mk with default for each field. *)
-              let n_fields = Seplist.length fields in
-              let defaults = String.concat " " (List.init n_fields (fun _ -> "default")) in
-              let type_name = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip (B.type_path_to_name name path))) in
-              from_string (String.concat "" [type_name; ".mk "; defaults])
-            | _ -> generate_default_value_texp t
-        else
-          (* Parameterized types: always use sorry to avoid [Inhabited a] constraints.
-             This allows partial functions to compile without needing constraints on
-             their type parameters. *)
-          from_string "sorry"
-      in
-      (* Use unconstrained {a : Type} for parameterized types (no [Inhabited a]) *)
+        from_string "sorry"
+    (* Type variable binding + type args for Inhabited instance header *)
+    and inhabited_type_parts tnvar_list =
       let tnvar_list' =
         if tnvar_list = [] then emp
         else
@@ -2762,11 +2778,68 @@ type pat_style = FunParam | MatchArm
         if List.length tnvar_list = 0 then emp
         else Output.flat [from_string " "; tnvar_names]
       in
+      (tnvar_list', type_args)
+    (* Generate a single Inhabited instance (non-mutual or single-type blocks) *)
+    and generate_inhabited_instance mutual_paths (((name, _), tnvar_list, path, t, _) as td) : Output.t =
+      if skip_inhabited_for_type t path then emp
+      else
+      let name_out = lskips_t_to_output (B.type_path_to_name name path) in
+      let default = inhabited_default_expr mutual_paths td in
+      let (tnvar_list', type_args) = inhabited_type_parts tnvar_list in
         Output.flat [
-          from_string "instance"; tnvar_list'; from_string " : Inhabited ("; o;
+          from_string "instance"; tnvar_list'; from_string " : Inhabited ("; name_out;
           type_args;
           from_string ") where\n  default := "; default;
         ]
+    (* Generate mutual def + instance pairs for Inhabited on mutual type blocks.
+       Uses `mutual def ... end` so forward references between defaults are allowed,
+       then non-mutual `instance` declarations referencing those defs. *)
+    and generate_inhabited_mutual mutual_paths ts_list : Output.t =
+      (* Filter to types that need Inhabited *)
+      let active = List.filter (fun (_, _, path, t, _) ->
+        not (skip_inhabited_for_type t path)) ts_list in
+      if active = [] then emp
+      else if List.length active = 1 then
+        (* Single type remaining: no need for mutual def *)
+        generate_inhabited_instance mutual_paths (List.hd active)
+      else
+      (* Build path → type name mapping for mutual def references.
+         Inside the mutual def block, we can't use `default` (Inhabited not defined yet),
+         so direct mutual type args use TypeName.default_inhabited instead. *)
+      let mutual_name_map = List.map (fun ((name, _), _, path, _, _) ->
+        let type_name_str = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip (B.type_path_to_name name path))) in
+        (path, type_name_str)
+      ) active in
+      (* Phase 1: mutual def block with default values *)
+      let defs = List.map (fun (((name, _), tnvar_list, path, _, _) as td) ->
+        let type_name_str = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip (B.type_path_to_name name path))) in
+        let name_out = lskips_t_to_output (B.type_path_to_name name path) in
+        let default = inhabited_default_expr ~mutual_name_map mutual_paths td in
+        let (tnvar_list', type_args) = inhabited_type_parts tnvar_list in
+        Output.flat [
+          from_string "def "; from_string type_name_str; from_string ".default_inhabited";
+          tnvar_list'; from_string " : "; name_out; type_args;
+          from_string " := "; default;
+        ]
+      ) active in
+      (* Phase 2: instance declarations referencing the mutual defs *)
+      let instances = List.map (fun ((name, _), tnvar_list, path, _, _) ->
+        let type_name_str = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip (B.type_path_to_name name path))) in
+        let name_out = lskips_t_to_output (B.type_path_to_name name path) in
+        let (tnvar_list', type_args) = inhabited_type_parts tnvar_list in
+        Output.flat [
+          from_string "instance"; tnvar_list'; from_string " : Inhabited ("; name_out;
+          type_args;
+          from_string ") where\n  default := "; from_string type_name_str;
+          from_string ".default_inhabited";
+        ]
+      ) active in
+      Output.flat [
+        from_string "mutual\n";
+        concat_str "\n" defs;
+        from_string "\nend\n";
+        concat_str "\n" instances;
+      ]
     and generate_beq_ord_instances ?(is_type1=false) ?(emit_deriving=true) ((name, _), tnvar_list, path, t, _) : Output.t =
       (* Skip instance generation for abbreviations and opaque types with target reps
          (they inherit instances from the target/aliased type). *)
@@ -2897,7 +2970,17 @@ type pat_style = FunParam | MatchArm
       let non_abbrev = List.filter (fun (_, _, _, t, _) ->
         match t with Te_abbrev _ -> false | _ -> true) ts_list in
       let mutual_paths = List.map (fun ((_, _), _, path, _, _) -> path) non_abbrev in
-      let mapped = List.map (generate_inhabited_instance mutual_paths) ts_list in
+      (* For mutual blocks with >1 type, use mutual def + instance to allow
+         forward references between Inhabited defaults. Cyclic dependencies
+         between types (common in large mutual blocks like Cabs.lean) make
+         topological sorting impossible. mutual def solves this. *)
+      let inhabited_output =
+        if List.length non_abbrev > 1 then
+          generate_inhabited_mutual mutual_paths ts_list
+        else
+          let mapped = List.map (generate_inhabited_instance mutual_paths) ts_list in
+          concat_str "\n" mapped
+      in
       (* Check if the non-abbreviation types have heterogeneous param counts *)
       let param_counts = List.map (fun (_, ty_vars, _, _, _) -> List.length ty_vars) non_abbrev in
       let is_type1 = match param_counts with
@@ -2908,7 +2991,7 @@ type pat_style = FunParam | MatchArm
          (not as a mutual block), so emit_deriving:true to avoid duplicate instances. *)
       let emit_deriving = List.length non_abbrev <= 1 in
       let beq_instances = List.map (generate_beq_ord_instances ~is_type1 ~emit_deriving) ts_list in
-        Output.flat [concat_str "\n" mapped; concat emp beq_instances]
+        Output.flat [inhabited_output; from_string "\n"; concat emp beq_instances]
     (* Default value for L_undefined (DAEMON) context — uses sorry for type variables
        since Inhabited constraints may not be available *)
     and default_value (s : src_t) : Output.t =

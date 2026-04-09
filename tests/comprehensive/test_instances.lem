@@ -123,3 +123,31 @@ and tree_node = Branch of leaf_node * list tree_node
    Using real constructors means the module loads without panic.
    No equality assertion — BEq is sorry for mutual types. The test
    is that the module compiles and loads without runtime sorry panic. *)
+
+(* === Section 6: Inhabited on mutual blocks with cyclic dependencies === *)
+
+(* Simple case: wrapper depends on payload, payload has nullary ctor. *)
+type wrapper_node = WNode of payload_node
+and payload_node = PEmpty | PVal of nat
+
+(* Cyclic case: 4 types forming A→B→C (nullary) and D→A (cycle through D).
+   Without mutual def, even nullary-first sorting fails:
+     Sorted: cycC (nullary), cycA, cycB, cycD (original order for non-nullary)
+     cycA needs Inhabited cycB → not defined yet → ERROR
+   With mutual def, all forward references resolve simultaneously. *)
+type cycA = MkCycA of cycB * nat
+and cycB = MkCycB of cycC
+and cycC = CycCEmpty | MkCycC of cycD
+and cycD = MkCycD of cycA * bool
+
+(* Cabs.lean pattern: gnulike is defined FIRST but its constructor
+   takes mini_tn directly. mini_tn's constructor args go through
+   containers (list, maybe) so its default is MiniTN [] None — no
+   Inhabited deps. But with definition-order emission, gnulike's
+   Inhabited is emitted first and fails: needs Inhabited mini_tn.
+   mutual def solves this via forward references. *)
+type gnulike = GnuBuiltin of mini_tn * mini_tn
+and mini_tn = MiniTN of list mini_sq * maybe mini_ad
+and mini_sq = MiniSQ of mini_tn | MiniSQBasic of nat
+and mini_ad = MiniAD of list nat * maybe mini_dad
+and mini_dad = MiniDADParen of mini_ad | MiniDADArray of nat | MiniDADFn of list mini_tn
