@@ -1,4 +1,5 @@
 open import Pervasives_extra
+open import Show
 
 (* ================================================================
    Section 1: Lean reserved words as variable/parameter/pattern names
@@ -140,3 +141,41 @@ let is_tagged (m : meta_kind) : bool =
   end
 
 assert meta_variant_ok : is_tagged mk2
+
+(* === 'prefix' as a type name (Cerberus A1) === *)
+(* 'prefix' is a Lean keyword (prefix notation). It must be escaped/renamed
+   in inductive declarations, constructor return types, and instance headers. *)
+type prefix = PrefA | PrefB of nat
+
+let get_prefix_val (p : prefix) : nat =
+  match p with
+    | PrefA -> 0
+    | PrefB n -> n
+  end
+
+assert prefix_type_ok : get_prefix_val (PrefB 42) = (42:nat)
+
+(* === 'guard' as a function name (Cerberus A3) === *)
+(* 'guard' is a Lean builtin. It must be renamed to guard0 at the top level. *)
+val guard : bool -> nat -> nat
+let guard b n = if b then n else 0
+
+assert guard_fn_ok : guard true 5 = (5:nat)
+assert guard_fn_false : guard false 5 = (0:nat)
+
+(* === 'show' as instance method name (Cerberus A2) === *)
+(* LemLib renames the Show class's 'show' method to 'show0' because 'show'
+   is a Lean tactic keyword. Instance declarations must use the renamed name. *)
+type widget = WA | WB
+
+val showWidget : widget -> string
+let showWidget w = match w with
+  | WA -> "WA"
+  | WB -> "WB"
+end
+
+instance (Show widget)
+  let show = showWidget
+end
+
+assert show_instance_ok : show WA = "WA"

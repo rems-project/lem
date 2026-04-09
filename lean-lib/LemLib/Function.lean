@@ -18,7 +18,7 @@ open Lem_Basic_classes
 /- removed value specification -/
 
 /- 
-def  id  {a : Type}  (x : a)  : a :=  x -/
+def  id0  {a : Type}  (x : a)  : a :=  x -/
 /- removed value specification -/
 
 /- removed top-level value definition -/
@@ -36,7 +36,7 @@ def  rev_apply  {a : Type} {b : Type}  (x : a) (f : a → b)  : b :=  f  x
 /- removed value specification -/
 
 /- 
-def  flip  {a : Type} {b : Type} {c : Type}  (f : a → b → c)  : b → a → c :=  (fun (x : b) (y : a) =>  f  y  x) -/
+def  flip0  {a : Type} {b : Type} {c : Type}  (f : a → b → c)  : b → a → c :=  (fun (x : b) (y : a) =>  f  y  x) -/
 /- removed value specification -/
 
 def  curry  {a : Type} {b : Type} {c : Type}  (f : (a ×b) → c)  : a → b → c :=  (fun (a1 : a) (b1 : b) =>  f  (a1, b1))
