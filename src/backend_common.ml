@@ -373,18 +373,6 @@ let imported_modules_to_strings env target dir iml relative =
    for non-library target reps only. *)
 let on_cr_simple_applied : (bool -> string -> unit) ref = ref (fun _ _ -> ())
 
-(* Lean reserved names fallback. When rename_top_level doesn't fire
-   (e.g., due to build environment issues), the backend can still
-   escape names by appending "0". Set by lean_backend.ml at startup. *)
-let lean_reserved_names : NameSet.t ref = ref NameSet.empty
-
-(* Check if a name needs escaping for Lean and apply the "0" suffix.
-   Used as a fallback when type_rename/class_rename/target_rename is empty. *)
-let lean_escape_reserved (n : Name.t) : Name.t =
-  if NameSet.mem n !lean_reserved_names then
-    Name.from_string (String.concat "" [Name.to_string n; "0"])
-  else n
-
 module Make(A : sig
   val env : env;;
   val target : Target.target;;
@@ -453,8 +441,6 @@ let const_ref_to_name n0 use_ascii c =
       | (Some ascii, true) -> ascii
       | _  -> n_no_ascii
   in
-  (* Fallback: if rename_top_level didn't fire, check lean_reserved_names *)
-  let n = lean_escape_reserved n in
   let n' = Name.replace_lskip (Name.add_lskip n) (Name.get_lskip n0) in
   n'
 
@@ -599,8 +585,6 @@ let type_path_to_name n0 (p : Path.t) : Name.lskips_t =
   let l = Ast.Trans (false, "type_path_to_name", None) in
   let td = Types.type_defs_lookup l A.env.t_env p in
   let n = type_descr_to_name A.target p td in
-  (* Fallback: if rename_top_level didn't fire, check lean_reserved_names *)
-  let n = lean_escape_reserved n in
   let n' = Name.replace_lskip (Name.add_lskip n) (Name.get_lskip n0) in
   n'
 
@@ -609,9 +593,9 @@ let class_path_to_name (p : Path.t) : Name.t =
     | Some (Types.Tc_class cd) ->
         begin match Target.Targetmap.apply_target cd.Types.class_rename A.target with
           | Some (_, n) -> n
-          | None -> lean_escape_reserved (Path.get_name p)
+          | None -> Path.get_name p
         end
-    | _ -> lean_escape_reserved (Path.get_name p)
+    | _ -> Path.get_name p
 
 let type_id_to_ident_aux (p : Path.t id) =
    let l = Ast.Trans (false, "type_id_to_ident", None) in

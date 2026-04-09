@@ -277,8 +277,6 @@ end
 
 let transform_for_target libpath modules env targ =
   let consts = Initial_env.read_target_constants libpath targ in
-  (* Make reserved names available to backend_common for fallback escaping *)
-  Backend_common.lean_reserved_names := consts;
 
   let _ = check_env_for_target targ env in
 

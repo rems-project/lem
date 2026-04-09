@@ -23,7 +23,6 @@ class ( Eq 'a )
   val (=) [`isEqual`] : 'a -> 'a -> bool
   val (<>) [`isInequal`] : 'a -> 'a -> bool
 end
-declare {lean} rename type Eq = Eq0
 
 declare coq target_rep function isEqual = infix `=`
 declare lean target_rep function isEqual = infix `==`
@@ -157,7 +156,6 @@ class ( Ord 'a )
   val (>)  [`isGreater`]      : 'a -> 'a -> bool
   val (>=) [`isGreaterEqual`] : 'a -> 'a -> bool
 end
-declare {lean} rename type Ord = Ord0
 
 declare coq target_rep function isLess = `isLess`
 declare coq target_rep function isLessEqual = `isLessEqual`

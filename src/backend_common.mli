@@ -112,11 +112,6 @@ val imported_modules_to_strings : env -> Target.target -> string -> Imported_Mod
     Set by the Lean backend to collect per-file import requirements. *)
 val on_cr_simple_applied : (bool -> string -> unit) ref
 
-(** Lean reserved names fallback. When rename_top_level doesn't fire,
-    the backend escapes names that collide with Lean keywords by
-    appending "0". Set by lean_backend.ml at startup from lean_constants. *)
-val lean_reserved_names : Typed_ast.NameSet.t ref
-
 module Make(A : sig
   val env : env;;
   val target : Target.target;;
