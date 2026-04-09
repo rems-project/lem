@@ -26,7 +26,7 @@ open Lem_Bool
    might have fancy equalities.  -/
 
 class Eq0 (a : Type) where 
- 
+
   isEqual :  a →  a →  Bool
 
   isInequal :  a →  a →  Bool
@@ -87,7 +87,7 @@ instance   : Eq0 LemOrdering where
 
 
 class Ord0 (a : Type) where 
- 
+
   compare :                  a →  a →  LemOrdering
 
   isLess :          a →  a →  Bool
@@ -96,7 +96,7 @@ class Ord0 (a : Type) where
 
   isGreater :       a →  a →  Bool
 
-  isGreaterEqual :  a →  a →  Bool 
+  isGreaterEqual :  a →  a →  Bool
 
 
 export Ord0 (isLess isLessEqual isGreater isGreaterEqual)

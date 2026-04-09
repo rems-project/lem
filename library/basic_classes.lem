@@ -19,10 +19,11 @@ open import {hol} `ternaryComparisonsTheory`
    For OCaml, it might be different, since abstract datatypes like sets
    might have fancy equalities. *)
 
-class ( Eq 'a ) 
+class ( Eq 'a )
   val (=) [`isEqual`] : 'a -> 'a -> bool
   val (<>) [`isInequal`] : 'a -> 'a -> bool
 end
+declare {lean} rename type Eq = Eq0
 
 declare coq target_rep function isEqual = infix `=`
 declare lean target_rep function isEqual = infix `==`
@@ -149,13 +150,14 @@ instance (Eq ordering)
   let (<>) x y = not (orderingEqual x y)
 end
 
-class ( Ord 'a ) 
+class ( Ord 'a )
   val compare                 : 'a -> 'a -> ordering
   val (<)  [`isLess`]         : 'a -> 'a -> bool
   val (<=) [`isLessEqual`]    : 'a -> 'a -> bool
   val (>)  [`isGreater`]      : 'a -> 'a -> bool
-  val (>=) [`isGreaterEqual`] : 'a -> 'a -> bool 
+  val (>=) [`isGreaterEqual`] : 'a -> 'a -> bool
 end
+declare {lean} rename type Ord = Ord0
 
 declare coq target_rep function isLess = `isLess`
 declare coq target_rep function isLessEqual = `isLessEqual`
