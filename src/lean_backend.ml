@@ -2760,7 +2760,20 @@ type pat_style = FunParam | MatchArm
             Output.flat [from_string type_name; from_string ".mk "; concat_str " " field_defaults]
           | _ -> generate_default_value_texp t
       else
-        from_string "sorry"
+        (* Parameterized types: try nullary constructors first. A nullary ctor
+           like FNil needs no type variable values, so no [Inhabited a] constraint
+           is required. Only fall back to sorry if no nullary ctor exists. *)
+        match t with
+          | Te_variant (_, seplist) ->
+            let ctors = Seplist.to_list seplist in
+            let render_ctor = if mutual_name_map = [] then render_ctor_default
+              else render_ctor_default_mutual mutual_name_map in
+            let nullary = List.find_opt (fun (_, _, _, src_ts) ->
+              Seplist.to_list src_ts = []) ctors in
+            (match nullary with
+              | Some ctor -> render_ctor ctor
+              | None -> from_string "sorry")
+          | _ -> from_string "sorry"
     (* Type variable binding + type args for Inhabited instance header *)
     and inhabited_type_parts tnvar_list =
       let tnvar_list' =
