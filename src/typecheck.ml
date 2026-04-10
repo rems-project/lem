@@ -3066,23 +3066,6 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let ctxt' = {ctxt with all_tdefs = all_tdefs'} in
           let def' = Some (Declaration (Decl_skip_instances (sk1, targs, sk2, sk3, p_id))) in
           (ctxt', def')
-      | Ast.Declaration(Ast.Decl_inhabited_decl (sk1, targets_opt, sk2, sk3, type_id, sk4, sk5, expr_str)) ->
-          let targs = check_target_opt targets_opt in
-          let p = lookup_p "" (defn_ctxt_to_env ctxt) type_id in
-          let p_id = {id_path = Id_some (Ident.from_id type_id);
-                      id_locn = l; descr = p; instantiation = []} in
-          let ts = targets_opt_to_set targets_opt in
-          let td = match Pfmap.apply ctxt.all_tdefs p with
-            | Some(Tc_type(td)) -> td
-            | _ -> raise (Reporting_basic.err_type l
-                ("inhabited: '" ^ (Ident.to_string (Ident.from_id type_id)) ^ "' is not a type"))
-          in
-          let inh' = Targetset.fold (fun t r -> Targetmap.insert r (t, (l, expr_str))) ts td.type_inhabited_override in
-          let td' = {td with type_inhabited_override = inh'} in
-          let all_tdefs' = Pfmap.insert ctxt.all_tdefs (p, Tc_type td') in
-          let ctxt' = {ctxt with all_tdefs = all_tdefs'} in
-          let def' = Some (Declaration (Decl_inhabited (sk1, targs, sk2, sk3, p_id, sk4, sk5, expr_str))) in
-          (ctxt', def')
       | Ast.Declaration(Ast.Decl_set_flag_decl (_, _, _, _, _)) ->
           let _ = prerr_endline "set flag declaration encountered" in
             ctxt, None

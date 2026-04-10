@@ -169,26 +169,11 @@ and nd_result 'a = NDresult of 'a * nd_action 'a
 type skip_me = SkipA | SkipB of nat
 declare {lean} skip_instances type skip_me
 
-(* === Section 9: declare inhabited override === *)
+(* === Section 9: Inhabited fallback for parametric mutual types === *)
 
-(* User-specified Inhabited default, replacing sorry with a real expression.
-   Avoids init-time panic without needing a separate hand-written .lean file. *)
+(* Parametric types without nullary constructors get sorry-based Inhabited.
+   This is safe because parametric instances are compiled as functions —
+   sorry is only evaluated when called, not at init. Monomorphic types
+   without safe constructors get noncomputable DAEMON instead (see Op backend test). *)
 type action 'a = Active of 'a | Kill of result 'a
 and result 'a = Result of 'a * action 'a
-
-declare {lean} inhabited type action = `Active default`
-declare {lean} inhabited type result = `Result default (Active default)`
-
-(* === Section 10: skip_instances + inhabited together === *)
-
-(* When both skip_instances and inhabited are declared on a type,
-   skip_instances suppresses BEq/Ord/SetType/Eq0/Ord0 but the
-   inhabited override must still generate an Inhabited instance.
-   This tests the interaction: skip must NOT suppress inhabited override. *)
-type nd_act 'a = NDAct of 'a | NDStop of (unit -> (nd_mon 'a * unit))
-and nd_mon 'a = NDMon of (unit -> (nd_act 'a * unit))
-
-declare {lean} skip_instances type nd_act
-declare {lean} skip_instances type nd_mon
-declare {lean} inhabited type nd_act = `NDAct default`
-declare {lean} inhabited type nd_mon = `NDMon (fun () => (NDAct default, ()))`

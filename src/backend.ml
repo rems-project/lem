@@ -3683,21 +3683,6 @@ let rec def_internal callback (inside_module: bool) d is_user_def : Output.t = m
         T.bkwd "type" ^
         B.type_id_to_output t_id
       end
-  | Declaration (Decl_inhabited (sk1, targets, sk2, sk3, t_id, sk4, sk5, expr)) ->
-      if (not (Target.is_human_target T.target)) then emp else begin
-        ws sk1 ^
-        T.bkwd "declare" ^
-        targets_opt targets ^
-        ws sk2 ^
-        T.bkwd "inhabited" ^
-        ws sk3 ^
-        T.bkwd "type" ^
-        B.type_id_to_output t_id ^
-        ws sk4 ^
-        kwd "=" ^
-        ws sk5 ^
-        core (str (Ulib.Text.of_string expr))
-      end
   | Comment(d) ->
       let (d',sk) = def_alter_init_lskips (fun sk -> (None, sk)) d in
         ws sk ^ ws (Some([Ast.Com(Ast.Comment([Ast.Chars(X.comment_def d')]))]))

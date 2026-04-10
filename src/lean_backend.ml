@@ -2684,11 +2684,6 @@ type pat_style = FunParam | MatchArm
     and skip_inhabited_for_type t path =
       let l = Ast.Trans (false, "skip_inhabited_for_type", None) in
       let td = Types.type_defs_lookup l A.env.t_env path in
-      (* Don't skip if there's an inhabited override — it takes priority *)
-      let has_override = Target.Targetmap.apply_target td.Types.type_inhabited_override
-        (Target.Target_no_ident Target.Target_lean) <> None in
-      if has_override then false
-      else
       (* Skip if declared with 'skip instances' for Lean *)
       Target.Targetset.mem Target.Target_lean td.Types.type_skip_instances ||
       match t with
@@ -2700,16 +2695,12 @@ type pat_style = FunParam | MatchArm
        mutual_name_map: (Path.t * string) list mapping mutual type paths to their
        Lean names. When non-empty, uses TypeName.default_inhabited for mutual type
        args (for use inside mutual def blocks where Inhabited instances don't exist yet). *)
-    and inhabited_default_expr ?(mutual_name_map=[]) mutual_paths ((name, _), tnvar_list, path, t, _) : Output.t =
-      (* Check for user-provided override: declare {lean} inhabited T = `expr` *)
-      let l = Ast.Trans (false, "inhabited_default_expr", None) in
-      let td = Types.type_defs_lookup l A.env.t_env path in
-      (match Target.Targetmap.apply_target td.Types.type_inhabited_override
-               (Target.Target_no_ident Target.Target_lean) with
-        | Some (_, expr_str) -> from_string expr_str
-        | None ->
+    (* Returns (default_expr, uses_daemon). When uses_daemon is true, the
+       instance must be noncomputable (priority := low) to avoid init panic. *)
+    and inhabited_default_expr ?(mutual_name_map=[]) mutual_paths ((name, _), tnvar_list, path, t, _) : Output.t * bool =
+      let daemon = (from_string "DAEMON", true) in
       if tnvar_list = [] then
-        let render_ctor = render_ctor_default ~mutual_name_map in
+        let render_ctor c = (render_ctor_default ~mutual_name_map c, false) in
         match t with
           | Te_variant (_, seplist) ->
             let ctors = Seplist.to_list seplist in
@@ -2722,48 +2713,34 @@ type pat_style = FunParam | MatchArm
                 ) ctors in
                 match safe_indirect with
                   | Some ctor -> render_ctor ctor
-                  | None -> from_string "sorry /- directly self-referential type -/")
+                  | None -> daemon)
           | Te_record (_, _, fields, _) when List.length mutual_paths > 1 ->
             let field_list = Seplist.to_list fields in
             let field_defaults = List.map (fun (_, _, _, src_t) -> default_value_inhabited ~mutual_name_map src_t) field_list in
             let type_name = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip (B.type_path_to_name name path))) in
-            Output.flat [from_string type_name; from_string ".mk "; concat_str " " field_defaults]
-          | _ -> generate_default_value_texp t
+            (Output.flat [from_string type_name; from_string ".mk "; concat_str " " field_defaults], false)
+          | _ -> (generate_default_value_texp t, false)
       else
-        (* Parameterized types: try nullary constructors only (no type variable
-           args needed, so no [Inhabited a] constraint required). For types
-           without nullary constructors, fall back to sorry. If the sorry causes
-           an init-time panic, the user should add 'declare {lean} skip_instances'
-           and provide a hand-written instance. *)
+        (* Parameterized types: try nullary constructors only. For types without
+           nullary constructors, use sorry — parametric instances are compiled as
+           functions, so sorry is only evaluated when called, not at init. *)
         match t with
           | Te_variant (_, seplist) ->
             let ctors = Seplist.to_list seplist in
             let nullary = List.find_opt (fun (_, _, _, src_ts) ->
               Seplist.to_list src_ts = []) ctors in
             (match nullary with
-              | Some ctor -> render_ctor_default ~mutual_name_map ctor
-              | None -> from_string "sorry")
-          | _ -> from_string "sorry")
+              | Some ctor -> (render_ctor_default ~mutual_name_map ctor, false)
+              | None -> (from_string "sorry", false))
+          | _ -> (from_string "sorry", false)
     (* Type variable binding + type args for Inhabited instance header *)
-    and inhabited_type_parts ?(needs_inhabited=false) tnvar_list =
+    and inhabited_type_parts tnvar_list =
       let tnvar_list' =
         if tnvar_list = [] then emp
-        else if needs_inhabited then
-          (* Add {a : Type} [Inhabited a] — needed when the default expression
-             uses `default` for type variable args (user-provided overrides). *)
-          let bindings = List.map (fun tv ->
-            let name = tnvar_to_string tv in
-            let kind = match tv with Typed_ast.Tn_A _ -> "Type" | Typed_ast.Tn_N _ -> "Nat" in
-            Output.flat [from_string " {"; from_string name; from_string " : "; from_string kind; from_string "}"]
-          ) tnvar_list in
-          let constraints = List.filter_map (fun tv ->
-            match tv with
-            | Typed_ast.Tn_A _ ->
-              Some (Output.flat [from_string " [Inhabited "; from_string (tnvar_to_string tv); from_string "]"])
-            | Typed_ast.Tn_N _ -> None
-          ) tnvar_list in
-          Output.flat (bindings @ constraints)
         else
+          (* Unconstrained {a : Type} bindings. No [Inhabited a] constraints —
+             user-provided overrides (declare {lean} inhabited) take responsibility
+             for the expression being valid at all type instantiations. *)
           let tvs = List.map (fun tv ->
             match tv with
             | Typed_ast.Tn_A (_, r, _) -> Types.Ty (Tyvar.from_rope r)
@@ -2782,14 +2759,12 @@ type pat_style = FunParam | MatchArm
       if skip_inhabited_for_type t path then emp
       else
       let name_out = lskips_t_to_output (B.type_path_to_name name path) in
-      let default = inhabited_default_expr mutual_paths td in
-      let l = Ast.Trans (false, "generate_inhabited_instance", None) in
-      let td_desc = Types.type_defs_lookup l A.env.t_env path in
-      let needs_inhabited = Target.Targetmap.apply_target td_desc.Types.type_inhabited_override
-        (Target.Target_no_ident Target.Target_lean) <> None && tnvar_list <> [] in
-      let (tnvar_list', type_args) = inhabited_type_parts ~needs_inhabited tnvar_list in
+      let (default, uses_daemon) = inhabited_default_expr mutual_paths td in
+      let (tnvar_list', type_args) = inhabited_type_parts tnvar_list in
+      let inst_kw = if uses_daemon then "noncomputable instance (priority := low)"
+        else "instance" in
         Output.flat [
-          from_string "instance"; tnvar_list'; from_string " : Inhabited ("; name_out;
+          from_string inst_kw; tnvar_list'; from_string " : Inhabited ("; name_out;
           type_args;
           from_string ") where\n  default := "; default;
         ]
@@ -2812,43 +2787,39 @@ type pat_style = FunParam | MatchArm
         let type_name_str = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip (B.type_path_to_name name path))) in
         (path, type_name_str)
       ) active in
-      (* Phase 1: mutual def block with default values *)
-      let has_override path =
-        let l = Ast.Trans (false, "generate_inhabited_mutual", None) in
-        let td = Types.type_defs_lookup l A.env.t_env path in
-        Target.Targetmap.apply_target td.Types.type_inhabited_override
-          (Target.Target_no_ident Target.Target_lean) <> None
-      in
-      let defs = List.map (fun (((name, _), tnvar_list, path, _, _) as td) ->
+      (* Phase 1: mutual def block with default values.
+         Track which types use DAEMON so their defs/instances are noncomputable. *)
+      let defs_with_flags = List.map (fun (((name, _), tnvar_list, path, _, _) as td) ->
         let type_name_str = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip (B.type_path_to_name name path))) in
         let name_out = lskips_t_to_output (B.type_path_to_name name path) in
-        let default = inhabited_default_expr ~mutual_name_map mutual_paths td in
-        let needs_inhabited = has_override path && tnvar_list <> [] in
-        let (tnvar_list', type_args) = inhabited_type_parts ~needs_inhabited tnvar_list in
-        Output.flat [
-          from_string "def "; from_string type_name_str; from_string ".default_inhabited";
+        let (default, uses_daemon) = inhabited_default_expr ~mutual_name_map mutual_paths td in
+        let (tnvar_list', type_args) = inhabited_type_parts tnvar_list in
+        let def_kw = if uses_daemon then "noncomputable def " else "def " in
+        let def_out = Output.flat [
+          from_string def_kw; from_string type_name_str; from_string ".default_inhabited";
           tnvar_list'; from_string " : "; name_out; type_args;
           from_string " := "; default;
-        ]
+        ] in
+        (def_out, type_name_str, tnvar_list, path, uses_daemon)
       ) active in
+      let defs = List.map (fun (d, _, _, _, _) -> d) defs_with_flags in
       (* Phase 2: instance declarations referencing the mutual defs *)
-      let instances = List.map (fun ((name, _), tnvar_list, path, _, _) ->
-        let type_name_str = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip (B.type_path_to_name name path))) in
-        let name_out = lskips_t_to_output (B.type_path_to_name name path) in
-        let needs_inhabited = has_override path && tnvar_list <> [] in
-        let (tnvar_list', type_args) = inhabited_type_parts ~needs_inhabited tnvar_list in
+      let instances = List.map (fun (_, type_name_str, tnvar_list, _, uses_daemon) ->
+        let (tnvar_list', type_args) = inhabited_type_parts tnvar_list in
+        let inst_kw = if uses_daemon then "\nnoncomputable instance (priority := low)"
+          else "\ninstance" in
         Output.flat [
-          from_string "instance"; tnvar_list'; from_string " : Inhabited ("; name_out;
-          type_args;
+          from_string inst_kw; tnvar_list'; from_string " : Inhabited (";
+          from_string type_name_str; type_args;
           from_string ") where\n  default := "; from_string type_name_str;
           from_string ".default_inhabited";
         ]
-      ) active in
+      ) defs_with_flags in
       Output.flat [
         from_string "mutual\n";
         concat_str "\n" defs;
         from_string "\nend\n";
-        concat_str "\n" instances;
+        concat emp instances;
       ]
     and generate_beq_ord_instances ?(is_type1=false) ?(emit_deriving=true) ((name, _), tnvar_list, path, t, _) : Output.t =
       (* Skip instance generation for abbreviations, types with target reps,
