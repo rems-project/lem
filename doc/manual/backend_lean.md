@@ -34,7 +34,16 @@ Lem inductive relation definitions are translated to Lean `inductive` types with
 Lem's `mword` type (machine words parameterised by bit width) is mapped to Lean's `BitVec` type. All standard machine word operations (arithmetic, bitwise, comparison, conversion) have Lean target representations in the library. The `int32` and `int64` types are mapped to distinct newtype wrappers (`LemInt32`, `LemInt64`) around `Int`.
 
 ### Automatic Derivation
-The Lean backend automatically derives `BEq` and `Ord` instances for generated inductive types and records, provided none of their constructor arguments have function types and the type is not part of a mutual block. This allows equality testing and comparison on most generated types without manual instance declarations. Types that cannot use `deriving` (e.g. those with function-typed fields or mutual definitions) get `sorry`-based stub instances instead.
+The Lean backend automatically derives `BEq` and `Ord` instances for generated inductive types and records, provided none of their constructor arguments have function types and the type is not part of a mutual block. This allows equality testing and comparison on most generated types without manual instance declarations. Types that cannot use `deriving` (e.g. those with function-typed fields or mutual definitions) get `sorry`-based stub instances at low priority instead.
+
+### Skipping Instance Generation
+For complex types where the automatically generated instances are insufficient (e.g. mutual recursive types where `sorry` defaults cause runtime panics), the `skip_instances` declaration suppresses all auto-generated typeclass instances for a type:
+
+    declare {lean} skip_instances type my_type
+
+This skips generation of `Inhabited`, `BEq`, `Ord`, `SetType`, `Eq0`, and `Ord0` instances. The user must provide these instances in a hand-written Lean file included in their Lake project. This is useful for large mutual type blocks where the backend cannot automatically construct valid defaults.
+
+The declaration is scoped to the Lean backend (`{lean}`) and has no effect on other backends.
 
 ### Automatic Renaming
 Lean 4 types and values share a single namespace, unlike many other backends. The Lean backend automatically renames constants that would collide with type names in the same module or in imported modules. Additionally, certain names that clash with Lean 4 standard library type classes (such as `Add`, `Sub`, `Neg`, `Mul`, `Div`, `Mod`, `Pow`, `Min`, `Max`, `Abs`, `Not`, `Append`) are automatically renamed to avoid ambiguity.
