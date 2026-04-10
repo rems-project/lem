@@ -2906,7 +2906,7 @@ type pat_style = FunParam | MatchArm
               Output.flat [
                 from_string "\ninstance (priority := low)"; bare_tvs; from_string " : Ord ("; o;
                 type_args;
-                from_string ") where\n  compare := sorry";
+                from_string ") where\n  compare _ _ := sorry";
               ])
             end
           in
@@ -2932,9 +2932,9 @@ type pat_style = FunParam | MatchArm
                  "compare := defaultCompare\n  isLess := defaultLess\n  isLessEqual := defaultLessEq\n  isGreater := defaultGreater\n  isGreaterEqual := defaultGreaterEq")
               else
                 (* Parameterized or non-deriving: sorry to avoid constraint propagation *)
-                ("setElemCompare := sorry",
+                ("setElemCompare _ _ := sorry",
                  "isEqual _ _ := sorry\n  isInequal _ _ := sorry",
-                 "compare := sorry\n  isLess := sorry\n  isLessEqual := sorry\n  isGreater := sorry\n  isGreaterEqual := sorry")
+                 "compare _ _ := sorry\n  isLess _ _ := sorry\n  isLessEqual _ _ := sorry\n  isGreater _ _ := sorry\n  isGreaterEqual _ _ := sorry")
             in
             let instance_tvs = bare_tvs_all
             in
