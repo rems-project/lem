@@ -14,9 +14,13 @@ comparator. Functions without `By` use Lean's `BEq` or `Ord` type classes.
 
 /- Lem standard library support for Lean 4 -/
 
-/- DAEMON: undefined value placeholder, analogous to Coq's DAEMON axiom -/
-axiom DAEMON : ∀ {α : Type}, α
-axiom DAEMON1 : ∀ {α : Type 1}, α
+/- DAEMON: undefined value placeholder, analogous to Coq's DAEMON axiom.
+   Uses @[implemented_by] so it's computable (works with partial def)
+   but the runtime value is never meaningfully evaluated. -/
+private unsafe def DAEMON_impl {α : Type} : α := unsafeCast ()
+private unsafe def DAEMON1_impl {α : Type 1} : α := unsafeCast ()
+@[implemented_by DAEMON_impl] axiom DAEMON : ∀ {α : Type}, α
+@[implemented_by DAEMON1_impl] axiom DAEMON1 : ∀ {α : Type 1}, α
 
 /- Lem uses lowercase 'vector' for its built-in vector type -/
 abbrev vector (α : Type) (n : Nat) := Vector α n

@@ -18,7 +18,7 @@
 (*  - Target-specific class methods ({hol}, {coq}, etc.) are filtered     *)
 (*    from both class and instance definitions                            *)
 (*  - BEq is derived for types without function-typed constructor args    *)
-(*  - Inhabited instances use DAEMON (noncomputable) when no safe ctor    *)
+(*  - Inhabited instances use DAEMON when no safe constructor is found    *)
 (*                                                                        *)
 (**************************************************************************)
 
@@ -2562,7 +2562,7 @@ type pat_style = FunParam | MatchArm
       ]
     (* --- Instance generation ---
        For each type definition, generates:
-       1. Inhabited instance (real constructor, or noncomputable DAEMON fallback)
+       1. Inhabited instance (real constructor, or DAEMON fallback)
        2. BEq + Ord (derived via `deriving` if possible, sorry-based otherwise)
        3. SetType / Eq0 / Ord0 instances (with [BEq]/[Ord] constraints for parameterized types)
        Mutual types use find_safe_ctor_for_mutual to avoid self-referential defaults.
@@ -2696,7 +2696,7 @@ type pat_style = FunParam | MatchArm
        Lean names. When non-empty, uses TypeName.default_inhabited for mutual type
        args (for use inside mutual def blocks where Inhabited instances don't exist yet). *)
     (* Returns (default_expr, uses_daemon). When uses_daemon is true, the
-       instance must be noncomputable (priority := low) to avoid init panic. *)
+       instance uses (priority := low) so user overrides take precedence. *)
     and inhabited_default_expr ?(mutual_name_map=[]) ?(is_type1=false) mutual_paths ((name, _), tnvar_list, path, t, _) : Output.t * bool =
       let daemon = (from_string (if is_type1 then "DAEMON1" else "DAEMON"), true) in
       if tnvar_list = [] then
@@ -2759,7 +2759,7 @@ type pat_style = FunParam | MatchArm
       let name_out = lskips_t_to_output (B.type_path_to_name name path) in
       let (default, uses_daemon) = inhabited_default_expr mutual_paths td in
       let (tnvar_list', type_args) = inhabited_type_parts tnvar_list in
-      let inst_kw = if uses_daemon then "noncomputable instance (priority := low)"
+      let inst_kw = if uses_daemon then "instance (priority := low)"
         else "instance" in
         Output.flat [
           from_string inst_kw; tnvar_list'; from_string " : Inhabited ("; name_out;
@@ -2786,7 +2786,7 @@ type pat_style = FunParam | MatchArm
         (path, type_name_str)
       ) active in
       (* Compute defaults and split into tier 1 (real ctors, need mutual def)
-         and tier 2 (DAEMON, standalone noncomputable instance). *)
+         and tier 2 (DAEMON, standalone low-priority instance). *)
       let typed_defaults = List.map (fun (((name, _), tnvar_list, path, _, _) as td) ->
         let type_name_str = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip (B.type_path_to_name name path))) in
         let name_out = lskips_t_to_output (B.type_path_to_name name path) in
@@ -2819,11 +2819,11 @@ type pat_style = FunParam | MatchArm
           from_string "\nend"; concat emp instances;
         ]
       in
-      (* Tier 2: standalone noncomputable instances with DAEMON *)
+      (* Tier 2: standalone DAEMON instances (computable, low priority) *)
       let daemon_instances = List.map (fun (type_name_str, _, tnvar_list, _, _) ->
         let (tnvar_list', type_args) = inhabited_type_parts tnvar_list in
         Output.flat [
-          from_string "\nnoncomputable instance (priority := low)"; tnvar_list';
+          from_string "\ninstance (priority := low)"; tnvar_list';
           from_string " : Inhabited ("; from_string type_name_str; type_args;
           from_string ") where\n  default := "; from_string (if is_type1 then "DAEMON1" else "DAEMON");
         ]
