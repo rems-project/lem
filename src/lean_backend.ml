@@ -2758,52 +2758,37 @@ type pat_style = FunParam | MatchArm
             Output.flat [from_string type_name; from_string ".mk "; concat_str " " field_defaults]
           | _ -> generate_default_value_texp t
       else
-        (* Parameterized types: use the same constructor-selection logic as
-           monomorphic types. [Inhabited a] constraints are added to the instance
-           header so `default` works for type-variable args. The render_ctor
-           function handles mutual type args via TypeName.default_inhabited. *)
-        let render_ctor = if mutual_name_map = [] then render_ctor_default
-          else render_ctor_default_mutual mutual_name_map in
+        (* Parameterized types: try nullary constructors only (no type variable
+           args needed, so no [Inhabited a] constraint required). For types
+           without nullary constructors, fall back to sorry. If the sorry causes
+           an init-time panic, the user should add 'declare {lean} skip_instances'
+           and provide a hand-written instance. *)
         match t with
           | Te_variant (_, seplist) ->
             let ctors = Seplist.to_list seplist in
-            (match find_safe_ctor_for_mutual mutual_paths ctors with
-              | Some ctor -> render_ctor ctor
-              | None ->
-                (* For parametric types, reject constructors with ANY direct mutual
-                   type arg (not just self). In mutual def blocks, cross-references
-                   like x.default_inhabited → y.default_inhabited create non-terminating
-                   cycles. Indirect refs through containers (List, Option) are safe. *)
-                let safe_indirect = List.find_opt (fun (_, _, _, src_ts) ->
-                  let args = Seplist.to_list src_ts in
-                  not (List.exists (src_t_is_directly_mutual mutual_paths) args)
-                ) ctors in
-                match safe_indirect with
-                  | Some ctor -> render_ctor ctor
-                  | None -> from_string "sorry /- directly self-referential type -/")
+            let nullary = List.find_opt (fun (_, _, _, src_ts) ->
+              Seplist.to_list src_ts = []) ctors in
+            (match nullary with
+              | Some ctor ->
+                let render_ctor = if mutual_name_map = [] then render_ctor_default
+                  else render_ctor_default_mutual mutual_name_map in
+                render_ctor ctor
+              | None -> from_string "sorry")
           | _ -> from_string "sorry"
     (* Type variable binding + type args for Inhabited instance header *)
     and inhabited_type_parts tnvar_list =
       let tnvar_list' =
         if tnvar_list = [] then emp
         else
-          (* Emit {a : Type} [Inhabited a] for type parameters.
-             The [Inhabited a] constraint is needed when the default uses
-             `default` for constructor args involving type variables.
-             Harmless for nullary-ctor types where it's not actually needed. *)
-          let bindings = List.map (fun tv ->
-            let name = tnvar_to_string tv in
-            let kind = match tv with Typed_ast.Tn_A _ -> "Type" | Typed_ast.Tn_N _ -> "Nat" in
-            Output.flat [from_string " {"; from_string name; from_string " : "; from_string kind; from_string "}"]
-          ) tnvar_list in
-          let constraints = List.filter_map (fun tv ->
+          (* Unconstrained {a : Type} bindings — no [Inhabited a] constraints.
+             Parameterized types use nullary constructors (no type variable args)
+             or sorry. If sorry panics at init, user adds skip_instances. *)
+          let tvs = List.map (fun tv ->
             match tv with
-            | Typed_ast.Tn_A _ ->
-              let name = tnvar_to_string tv in
-              Some (Output.flat [from_string " [Inhabited "; from_string name; from_string "]"])
-            | Typed_ast.Tn_N _ -> None
+            | Typed_ast.Tn_A (_, r, _) -> Types.Ty (Tyvar.from_rope r)
+            | Typed_ast.Tn_N (_, r, _) -> Types.Nv (Nvar.from_rope r)
           ) tnvar_list in
-          Output.flat (bindings @ constraints)
+          let_type_variables true (Types.TNset.of_list tvs)
       in
       let tnvar_names = concat_str " " @@ List.map (fun x -> from_string (tnvar_to_string x)) tnvar_list in
       let type_args =
