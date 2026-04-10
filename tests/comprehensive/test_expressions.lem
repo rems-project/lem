@@ -98,14 +98,3 @@ assert infix_geq_ok : (infix_geq 5 3 = true)
 assert infix_eq_ok : (infix_eq 3 3 = true)
 assert infix_prec1_ok : (infix_prec1 = (14:nat))
 assert infix_prec2_ok : (infix_prec2 = (20:nat))
-
-(* === Eq class rename: Lean's Eq is Prop, Lem's Eq must become Eq0 === *)
-(* Tests that Eq constraints in function signatures use Eq0, not bare Eq *)
-val eq_lookup : forall 'a 'b. Eq 'a => 'a -> list ('a * 'b) -> maybe 'b
-let rec eq_lookup k xs = match xs with
-  | [] -> Nothing
-  | (k', v) :: rest -> if k = k' then Just v else eq_lookup k rest
-end
-
-assert eq_lookup_ok : eq_lookup (1:nat) [(1, "a"); (2, "b")] = Just "a"
-assert eq_lookup_miss : eq_lookup (3:nat) [(1, "a"); (2, "b")] = Nothing

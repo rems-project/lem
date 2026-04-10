@@ -179,3 +179,14 @@ instance (Show widget)
 end
 
 assert show_instance_ok : show WA = "WA"
+
+(* === Eq class rename: Lean's Eq is Prop, Lem's Eq must become Eq0 === *)
+(* Tests that Eq constraints in function signatures use Eq0, not bare Eq *)
+val eq_lookup : forall 'a 'b. Eq 'a => 'a -> list ('a * 'b) -> maybe 'b
+let rec eq_lookup k xs = match xs with
+  | [] -> Nothing
+  | (k', v) :: rest -> if k = k' then Just v else eq_lookup k rest
+end
+
+assert eq_lookup_ok : eq_lookup (1:nat) [(1, "a"); (2, "b")] = Just "a"
+assert eq_lookup_miss : eq_lookup (3:nat) [(1, "a"); (2, "b")] = Nothing

@@ -1,6 +1,7 @@
 (* Tests for patterns found in Cerberus that the Lean backend must handle.
    Each section targets a specific error category encountered during
-   Cerberus compilation. *)
+   Cerberus compilation. Merged from test_cerberus_patterns.lem and
+   test_cerberus_remaining.lem. *)
 
 open import Pervasives_extra
 
@@ -15,6 +16,19 @@ let set_loc (s : stmt_wrap) (n : nat) : stmt_wrap =
   <| s with sw_loc = n |>
 
 assert recup_mutual1 : (set_loc (<| sw_kind = SKskip; sw_loc = 0 |>) 42).sw_loc = (42:nat)
+
+(* Variant: record with bool field in mutual block *)
+type outer_kind = K1 | K2 of outer_wrap
+and outer_wrap = <| ow_inner : bool; ow_tag : nat |>
+
+let set_tag (w : outer_wrap) : outer_wrap =
+  <| w with ow_tag = 42 |>
+
+let set_inner (w : outer_wrap) : outer_wrap =
+  <| w with ow_inner = true |>
+
+assert set_tag_ok : (set_tag (<| ow_inner = false; ow_tag = 0 |>)).ow_tag = (42:nat)
+assert set_inner_ok : (set_inner (<| ow_inner = false; ow_tag = 0 |>)).ow_inner
 
 (* === 2. Match inside record update value === *)
 (* Core_sequentialise: { file1 with funs := fmapMap (fun x => match x with ...) }
@@ -66,8 +80,7 @@ assert transform_ok : (transform_state (<| st_items = [IB 1; IB 2]; st_count = 0
 assert pass_recup_ok : (pass_recup (<| st_items = []; st_count = 5 |>)).st_count = (6:nat)
 
 (* === 3. catch as a top-level function name === *)
-(* Cabs_to_ail_effect: def catch ... — 'catch' is a Lean keyword.
-   It should be renamed via lean_constants. *)
+(* Cabs_to_ail_effect: def catch ... — 'catch' is a Lean keyword. *)
 val catch_error : forall 'a. maybe 'a -> 'a -> 'a
 let catch_error x d =
   match x with
@@ -78,13 +91,50 @@ let catch_error x d =
 assert catch_ok : catch_error (Just (42:nat)) 0 = (42:nat)
 assert catch_default : catch_error (Nothing : maybe nat) 99 = (99:nat)
 
-(* === 4. Semicolon after let in do-like context === *)
-(* Defacto_memory: let wevent := WriteEvent ...;
-   Lean 4 uses newlines, not semicolons, to separate let bindings.
-   The backend should handle Lem's semicolons correctly. *)
+(* === 4. Equality instance with == chaining === *)
+(* Cmm_csem_auxiliary: (aid_of a1 == aid_of a2) == a1 == a2 *)
+type my_id = MkId of nat
+
+let my_id_val (x : my_id) : nat = match x with MkId n -> n end
+let my_id_eq (a : my_id) (b : my_id) : bool = my_id_val a = my_id_val b
+
+instance (Eq my_id)
+  let (=)  = my_id_eq
+  let (<>) = fun x y -> not (my_id_eq x y)
+end
+
+assert my_id_eq_ok : MkId 1 = MkId 1
+
+(* === 5. Function.const () — unit resolution === *)
+(* Cabs_to_ail_effect: () resolves as Prop not Unit *)
+let void_result (x : nat) : unit = Function.const () x
+
+(* === 6. Let bindings in monadic-style chains === *)
+(* Defacto_memory: let wevent := ...; *)
 let let_semi_test (x : nat) : nat =
   let a = x + 1 in
   let b = a + 2 in
   a + b
 
+type write_event = WriteEvent of nat * string
+
+let make_and_use (n : nat) (s : string) : write_event =
+  let ev = WriteEvent n s in
+  ev
+
 assert let_semi_ok : let_semi_test 5 = (14:nat)
+assert make_use_ok : make_and_use 1 "x" = WriteEvent 1 "x"
+
+(* === 7. SetType on parameterized type === *)
+(* Core_aux: SetType (generic_fun_map_decl Unit a) *)
+type proc_decl 'a = ProcD of 'a | FunD of nat
+
+let sum_procs (xs : list (proc_decl nat)) : nat =
+  List.foldl (fun acc v ->
+    match v with
+      | ProcD n -> acc + n
+      | FunD n -> acc + n
+    end
+  ) 0 xs
+
+assert fold_ok : sum_procs [ProcD 1; FunD 2; ProcD 3] = (6:nat)
