@@ -2716,18 +2716,16 @@ type pat_style = FunParam | MatchArm
             let args = Seplist.to_list src_ts in
             not (List.exists (src_t_references_paths mutual_paths) args)
           ) ctors
-    (* Compute whether to skip Inhabited for this type (abbreviations, types with target_rep) *)
+    (* Compute whether to skip Inhabited for this type (abbreviations, types with
+       target_rep, or types annotated with 'declare {lean} skip instances') *)
     and skip_inhabited_for_type t path =
+      let l = Ast.Trans (false, "skip_inhabited_for_type", None) in
+      let td = Types.type_defs_lookup l A.env.t_env path in
+      (* Skip if declared with 'skip instances' for Lean *)
+      Target.Targetset.mem Target.Target_lean td.Types.type_skip_instances ||
       match t with
         | Te_abbrev _ -> true
-        | Te_opaque ->
-          let l = Ast.Trans (false, "generate_inhabited_instance", None) in
-          let td = Types.type_defs_lookup l A.env.t_env path in
-          Target.Targetmap.apply_target td.Types.type_target_rep
-            (Target.Target_no_ident Target.Target_lean) <> None
         | _ ->
-          let l = Ast.Trans (false, "generate_inhabited_instance", None) in
-          let td = Types.type_defs_lookup l A.env.t_env path in
           Target.Targetmap.apply_target td.Types.type_target_rep
             (Target.Target_no_ident Target.Target_lean) <> None
     (* Compute the default value expression for an Inhabited instance.
@@ -2760,31 +2758,52 @@ type pat_style = FunParam | MatchArm
             Output.flat [from_string type_name; from_string ".mk "; concat_str " " field_defaults]
           | _ -> generate_default_value_texp t
       else
-        (* Parameterized types: try nullary constructors first. A nullary ctor
-           like FNil needs no type variable values, so no [Inhabited a] constraint
-           is required. Only fall back to sorry if no nullary ctor exists. *)
+        (* Parameterized types: use the same constructor-selection logic as
+           monomorphic types. [Inhabited a] constraints are added to the instance
+           header so `default` works for type-variable args. The render_ctor
+           function handles mutual type args via TypeName.default_inhabited. *)
+        let render_ctor = if mutual_name_map = [] then render_ctor_default
+          else render_ctor_default_mutual mutual_name_map in
         match t with
           | Te_variant (_, seplist) ->
             let ctors = Seplist.to_list seplist in
-            let render_ctor = if mutual_name_map = [] then render_ctor_default
-              else render_ctor_default_mutual mutual_name_map in
-            let nullary = List.find_opt (fun (_, _, _, src_ts) ->
-              Seplist.to_list src_ts = []) ctors in
-            (match nullary with
+            (match find_safe_ctor_for_mutual mutual_paths ctors with
               | Some ctor -> render_ctor ctor
-              | None -> from_string "sorry")
+              | None ->
+                (* For parametric types, reject constructors with ANY direct mutual
+                   type arg (not just self). In mutual def blocks, cross-references
+                   like x.default_inhabited → y.default_inhabited create non-terminating
+                   cycles. Indirect refs through containers (List, Option) are safe. *)
+                let safe_indirect = List.find_opt (fun (_, _, _, src_ts) ->
+                  let args = Seplist.to_list src_ts in
+                  not (List.exists (src_t_is_directly_mutual mutual_paths) args)
+                ) ctors in
+                match safe_indirect with
+                  | Some ctor -> render_ctor ctor
+                  | None -> from_string "sorry /- directly self-referential type -/")
           | _ -> from_string "sorry"
     (* Type variable binding + type args for Inhabited instance header *)
     and inhabited_type_parts tnvar_list =
       let tnvar_list' =
         if tnvar_list = [] then emp
         else
-          let tvs = List.map (fun tv ->
-            match tv with
-            | Typed_ast.Tn_A (_, r, _) -> Types.Ty (Tyvar.from_rope r)
-            | Typed_ast.Tn_N (_, r, _) -> Types.Nv (Nvar.from_rope r)
+          (* Emit {a : Type} [Inhabited a] for type parameters.
+             The [Inhabited a] constraint is needed when the default uses
+             `default` for constructor args involving type variables.
+             Harmless for nullary-ctor types where it's not actually needed. *)
+          let bindings = List.map (fun tv ->
+            let name = tnvar_to_string tv in
+            let kind = match tv with Typed_ast.Tn_A _ -> "Type" | Typed_ast.Tn_N _ -> "Nat" in
+            Output.flat [from_string " {"; from_string name; from_string " : "; from_string kind; from_string "}"]
           ) tnvar_list in
-          let_type_variables true (Types.TNset.of_list tvs)
+          let constraints = List.filter_map (fun tv ->
+            match tv with
+            | Typed_ast.Tn_A _ ->
+              let name = tnvar_to_string tv in
+              Some (Output.flat [from_string " [Inhabited "; from_string name; from_string "]"])
+            | Typed_ast.Tn_N _ -> None
+          ) tnvar_list in
+          Output.flat (bindings @ constraints)
       in
       let tnvar_names = concat_str " " @@ List.map (fun x -> from_string (tnvar_to_string x)) tnvar_list in
       let type_args =
@@ -2854,15 +2873,15 @@ type pat_style = FunParam | MatchArm
         concat_str "\n" instances;
       ]
     and generate_beq_ord_instances ?(is_type1=false) ?(emit_deriving=true) ((name, _), tnvar_list, path, t, _) : Output.t =
-      (* Skip instance generation for abbreviations and opaque types with target reps
-         (they inherit instances from the target/aliased type). *)
+      (* Skip instance generation for abbreviations, types with target reps,
+         and types annotated with 'declare {lean} skip instances'. *)
       let skip_instances = match t with
         | Te_abbrev _ -> true
         | _ ->
-          (* Skip for any type with a Lean target_rep (opaque or not) —
-             they become abbrevs and inherit instances from the target type. *)
           let l = Ast.Trans (false, "generate_beq_ord_instances", None) in
           let td = Types.type_defs_lookup l A.env.t_env path in
+          (* Skip if declared with 'skip instances' for Lean *)
+          Target.Targetset.mem Target.Target_lean td.Types.type_skip_instances ||
           Target.Targetmap.apply_target td.Types.type_target_rep
             (Target.Target_no_ident Target.Target_lean) <> None
       in

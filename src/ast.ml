@@ -504,9 +504,10 @@ declare_def =  (* declarations *)
  | Decl_set_flag_decl of terminal * terminal * x_l * terminal * x_l
  | Decl_termination_argument_decl of terminal * targets option * terminal * id * terminal * termination_setting
  | Decl_pattern_match_decl of terminal * targets option * terminal * exhaustivity_setting * id * tnvar list * terminal * terminal * (id * terminal) list * terminal * bool * terminal * elim_opt
+ | Decl_skip_instances_decl of terminal * targets option * terminal * terminal * id
 
 
-type 
+type
 class_decl =  (* is a class an inlined one? *)
    Class_decl of terminal
  | Class_inline_decl of terminal * terminal

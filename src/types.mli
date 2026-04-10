@@ -272,6 +272,9 @@ type type_descr = {
 
   type_target_sorts : (Ast.l * (sort list)) Target.Targetmap.t;
   (** sort annotations for target representation of the type *)
+
+  type_skip_instances : Target.Targetset.t;
+  (** targets for which auto-generated typeclass instances should be skipped *)
 }
 
 type class_descr = { 

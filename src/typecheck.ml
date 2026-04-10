@@ -3049,6 +3049,23 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           raise (Reporting_basic.err_type l "illformed target-representation declaration")
       | Ast.Declaration(Ast.Decl_target_sorts_decl (sk1, target, sk2, id, sk3, Ast.Target_sortssorts sorts)) ->
          check_declare_target_sorts backend_targets mod_path l ctxt sk1 target sk2 id sk3 sorts
+      | Ast.Declaration(Ast.Decl_skip_instances_decl (sk1, targets_opt, sk2, sk3, type_id)) ->
+          let targs = check_target_opt targets_opt in
+          let p = lookup_p "" (defn_ctxt_to_env ctxt) type_id in
+          let p_id = {id_path = Id_some (Ident.from_id type_id);
+                      id_locn = l; descr = p; instantiation = []} in
+          let ts = targets_opt_to_set targets_opt in
+          let td = match Pfmap.apply ctxt.all_tdefs p with
+            | Some(Tc_type(td)) -> td
+            | _ -> raise (Reporting_basic.err_type l
+                ("skip_instances: '" ^ (Ident.to_string (Ident.from_id type_id)) ^ "' is not a type"))
+          in
+          let skip' = Targetset.union td.type_skip_instances ts in
+          let td' = {td with type_skip_instances = skip'} in
+          let all_tdefs' = Pfmap.insert ctxt.all_tdefs (p, Tc_type td') in
+          let ctxt' = {ctxt with all_tdefs = all_tdefs'} in
+          let def' = Some (Declaration (Decl_skip_instances (sk1, targs, sk2, sk3, p_id))) in
+          (ctxt', def')
       | Ast.Declaration(Ast.Decl_set_flag_decl (_, _, _, _, _)) ->
           let _ = prerr_endline "set flag declaration encountered" in
             ctxt, None
