@@ -2684,6 +2684,11 @@ type pat_style = FunParam | MatchArm
     and skip_inhabited_for_type t path =
       let l = Ast.Trans (false, "skip_inhabited_for_type", None) in
       let td = Types.type_defs_lookup l A.env.t_env path in
+      (* Don't skip if there's an inhabited override — it takes priority *)
+      let has_override = Target.Targetmap.apply_target td.Types.type_inhabited_override
+        (Target.Target_no_ident Target.Target_lean) <> None in
+      if has_override then false
+      else
       (* Skip if declared with 'skip instances' for Lean *)
       Target.Targetset.mem Target.Target_lean td.Types.type_skip_instances ||
       match t with
