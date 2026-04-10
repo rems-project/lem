@@ -18,7 +18,7 @@
 (*  - Target-specific class methods ({hol}, {coq}, etc.) are filtered     *)
 (*    from both class and instance definitions                            *)
 (*  - BEq is derived for types without function-typed constructor args    *)
-(*  - Inhabited instances use sorry for mutual recursive types            *)
+(*  - Inhabited instances use DAEMON (noncomputable) when no safe ctor    *)
 (*                                                                        *)
 (**************************************************************************)
 
@@ -1490,7 +1490,7 @@ type pat_style = FunParam | MatchArm
                     let n0 = Name.add_lskip (Path.get_name path) in
                     let n = B.type_path_to_name n0 path in
                     Ulib.Text.to_string (Name.to_rope (Name.strip_lskip n))
-                | _ -> assert false  (* unreachable: is_mutual_record_type requires Tapp *)
+                | _ -> raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: unreachable — is_mutual_record_type requires Tapp")
               in
               Output.flat ([
                 ws skips; from_string "("; from_string type_name_str; from_string ".mk"
@@ -1554,7 +1554,7 @@ type pat_style = FunParam | MatchArm
                         let n0 = Name.add_lskip (Path.get_name path) in
                         let n = B.type_path_to_name n0 path in
                         Ulib.Text.to_string (Name.to_rope (Name.strip_lskip n))
-                    | _ -> assert false
+                    | _ -> raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: unreachable — record update requires Tapp type")
                   in
                   Output.flat ([
                     ws skips; from_string "("; from_string type_name_str; from_string ".mk"
@@ -2134,7 +2134,7 @@ type pat_style = FunParam | MatchArm
               from_string "\nabbrev"; name; tyvar_sep; tyvars';
               ws skips; from_string " := "; pat_typ t
             ]
-          | _ -> assert false  (* unreachable: abbrev_defs is filtered to Te_abbrev only *)
+          | _ -> raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: unreachable — abbrev_defs filtered to Te_abbrev only")
         in
         let abbrevs_before_output = flat @@ List.map render_abbrev abbrevs_before in
         let abbrevs_after_output = flat @@ List.map render_abbrev abbrevs_after in
@@ -2562,7 +2562,7 @@ type pat_style = FunParam | MatchArm
       ]
     (* --- Instance generation ---
        For each type definition, generates:
-       1. Inhabited instance (default constructor, or sorry for mutual/recursive types)
+       1. Inhabited instance (real constructor, or noncomputable DAEMON fallback)
        2. BEq + Ord (derived via `deriving` if possible, sorry-based otherwise)
        3. SetType / Eq0 / Ord0 instances (with [BEq]/[Ord] constraints for parameterized types)
        Mutual types use find_safe_ctor_for_mutual to avoid self-referential defaults.

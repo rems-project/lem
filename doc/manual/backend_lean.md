@@ -36,20 +36,19 @@ Lem's `mword` type (machine words parameterised by bit width) is mapped to Lean'
 ### Automatic Derivation
 The Lean backend automatically derives `BEq` and `Ord` instances for generated inductive types and records, provided none of their constructor arguments have function types and the type is not part of a mutual block. This allows equality testing and comparison on most generated types without manual instance declarations. Types that cannot use `deriving` (e.g. those with function-typed fields or mutual definitions) get `sorry`-based stub instances at low priority instead.
 
+### Inhabited Instances
+The backend generates `Inhabited` instances for all types. When a safe constructor is available (nullary, or non-self-referential), it provides a real default value. When no safe constructor exists, the backend generates a `noncomputable instance` using the `DAEMON` axiom from LemLib. This satisfies Lean's `Inhabited` requirement for `partial def` without causing init-time panics, and without requiring typeclass constraints or `unsafe` code.
+
+Types containing `DAEMON`-backed types as direct constructor arguments may trigger compile errors ("depends on noncomputable definition"). This is intentional: these types genuinely have no computable default. The fix is `skip_instances` (see below) or marking downstream code as `noncomputable`.
+
 ### Skipping Instance Generation
-For complex types where the automatically generated instances are insufficient (e.g. mutual recursive types where `sorry` defaults cause runtime panics), the `skip_instances` declaration suppresses all auto-generated typeclass instances for a type:
+The `skip_instances` declaration suppresses all auto-generated typeclass instances for a type:
 
     declare {lean} skip_instances type my_type
 
-This skips generation of `Inhabited`, `BEq`, `Ord`, `SetType`, `Eq0`, and `Ord0` instances. The user must provide these instances in a hand-written Lean file included in their Lake project. This is useful for large mutual type blocks where the backend cannot automatically construct valid defaults.
+This skips generation of `Inhabited`, `BEq`, `Ord`, `SetType`, `Eq0`, and `Ord0` instances. The user provides these instances in a hand-written Lean file included in their Lake project. This is useful for types where the user needs full control over instance implementations (e.g. real BEq/Ord for mutual types, or computable Inhabited for types that would otherwise get DAEMON).
 
 The declaration is scoped to the Lean backend (`{lean}`) and has no effect on other backends.
-
-For types where only the `Inhabited` instance needs a specific default value (e.g. parametric mutual types where `sorry` would panic at module init), use the `inhabited` declaration instead:
-
-    declare {lean} inhabited type my_type = `MyConstructor default`
-
-This replaces the auto-generated `Inhabited` default with the given Lean expression. For parameterized types, `[Inhabited a]` constraints are added automatically so that `default` works for type-variable arguments. This avoids the need for a separate hand-written Lean file and the circular import issues that would entail.
 
 ### Automatic Renaming
 Lean 4 types and values share a single namespace, unlike many other backends. The Lean backend automatically renames constants that would collide with type names in the same module or in imported modules. Additionally, certain names that clash with Lean 4 standard library type classes (such as `Add`, `Sub`, `Neg`, `Mul`, `Div`, `Mod`, `Pow`, `Min`, `Max`, `Abs`, `Not`, `Append`) are automatically renamed to avoid ambiguity.
@@ -61,7 +60,7 @@ The Lean backend is structurally modelled on the Coq backend, as Lean 4 and Coq 
 - Unicode operators: `→`, `×`, `∀`, `∃` instead of ASCII equivalents
 - Native record update syntax: `{ r with field := value }`
 - Constructors brought into scope via `export TypeName` after each `inductive` definition
-- `Inhabited` typeclass instances generated for all types (uses `sorry` for mutual or recursive types without base cases)
+- `Inhabited` typeclass instances generated for all types (uses `noncomputable` DAEMON axiom for types without safe constructors)
 - `BEq` and `Ord` derivation for types without function-typed arguments
 - `sorry` for undefined/opaque terms instead of Coq's `DAEMON`
 - `partial` for recursive definitions by default (can be overridden with `termination_argument`)
