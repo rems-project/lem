@@ -2608,28 +2608,31 @@ type pat_style = FunParam | MatchArm
         | _ -> true
     (* Default value for a source type in Inhabited instance context.
        Uses [default] for type variables since [Inhabited] constraints are in scope. *)
-    and default_value_inhabited (s : src_t) : Output.t =
+    (* Default value for a source type in Inhabited context.
+       mutual_name_map: when non-empty, direct references to mutual types use
+       TypeName.default_inhabited instead of default (for mutual def blocks
+       where Inhabited instances don't exist yet). *)
+    and default_value_inhabited ?(mutual_name_map=[]) (s : src_t) : Output.t =
+      let recurse = default_value_inhabited ~mutual_name_map in
       match s.term with
-        | Typ_wild _ -> from_string "default"
-        | Typ_var _ -> from_string "default"
+        | Typ_app (id, _) when mutual_name_map <> [] ->
+          (match List.assoc_opt id.descr mutual_name_map with
+            | Some type_name_str -> from_string (String.concat "" [type_name_str; ".default_inhabited"])
+            | None -> from_string "default")
+        | Typ_wild _ | Typ_var _ | Typ_app _ | Typ_backend _ -> from_string "default"
         | Typ_len _ -> from_string "0"
         | Typ_tup seplist ->
-            let src_ts = Seplist.to_list seplist in
-            let mapped = List.map default_value_inhabited src_ts in
-              Output.flat [
-                from_string "("; concat_str ", " mapped; from_string ")"
-              ]
-        | Typ_app _ -> from_string "default"
+            let mapped = List.map recurse (Seplist.to_list seplist) in
+            Output.flat [from_string "("; concat_str ", " mapped; from_string ")"]
         | Typ_paren (_, src_t, _)
-        | Typ_with_sort (src_t, _) -> default_value_inhabited src_t
+        | Typ_with_sort (src_t, _) -> recurse src_t
         | Typ_fn (dom, _, rng) ->
             let v = generate_fresh_name () in
-              Output.flat [
-                from_string "(fun ("; from_string v; from_string " : "; pat_typ dom;
-                from_string ") => "; default_value_inhabited rng; from_string ")"
-              ]
-        | Typ_backend _ -> from_string "default"
-        | _ -> from_string "sorry /- unexpected type form -/"
+            Output.flat [
+              from_string "(fun ("; from_string v; from_string " : "; pat_typ dom;
+              from_string ") => "; recurse rng; from_string ")"
+            ]
+        | _ -> from_string "default"
     and generate_default_value_texp (t: texp) =
       match t with
         | Te_opaque -> from_string "sorry /- DAEMON -/"
@@ -2640,58 +2643,18 @@ type pat_style = FunParam | MatchArm
               let name = B.const_ref_to_name name true const_descr_ref in
               let o = lskips_t_to_output name in
               let s = default_value_inhabited src_t in
-                Output.flat [
-                  o; from_string " := "; s
-                ]
-              ) fields
-            in
-            let fields = concat_str ", " mapped in
-              Output.flat [
-                from_string "{ "; fields; from_string " }"
-              ]
+              Output.flat [o; from_string " := "; s]
+            ) fields in
+            Output.flat [from_string "{ "; concat_str ", " mapped; from_string " }"]
         | Te_variant _ ->
-            (* Unreachable: generate_inhabited_instance handles Te_variant
-               directly via find_safe_ctor_for_mutual before calling this function *)
             raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: Te_variant in generate_default_value_texp is unreachable")
     (* Render a constructor call for an Inhabited default value *)
-    and render_ctor_default ((ctor_name, _), ctor_ref, _, src_ts) =
+    and render_ctor_default ?(mutual_name_map=[]) ((ctor_name, _), ctor_ref, _, src_ts) =
       let n = B.const_ref_to_name ctor_name false ctor_ref in
       let ys = Seplist.to_list src_ts in
-      let mapped = List.map default_value_inhabited ys in
+      let mapped = List.map (default_value_inhabited ~mutual_name_map) ys in
       let sep = if List.length mapped = 0 then emp else from_string " " in
-      let mapped_out = concat_str " " mapped in
-      let o = lskips_t_to_output n in
-        Output.flat [o; sep; mapped_out]
-    (* Variant for mutual def blocks: direct references to mutual types use
-       TypeName.default_inhabited instead of default (which needs Inhabited
-       instances that don't exist yet inside the mutual def block). *)
-    and default_value_inhabited_mutual mutual_name_map (s : src_t) : Output.t =
-      match s.term with
-        | Typ_app (id, _) ->
-          (match List.assoc_opt id.descr mutual_name_map with
-            | Some type_name_str -> from_string (String.concat "" [type_name_str; ".default_inhabited"])
-            | None -> from_string "default")
-        | Typ_paren (_, src_t, _)
-        | Typ_with_sort (src_t, _) -> default_value_inhabited_mutual mutual_name_map src_t
-        | Typ_tup seplist ->
-            let src_ts = Seplist.to_list seplist in
-            let mapped = List.map (default_value_inhabited_mutual mutual_name_map) src_ts in
-              Output.flat [from_string "("; concat_str ", " mapped; from_string ")"]
-        | Typ_fn (dom, _, rng) ->
-            let v = generate_fresh_name () in
-              Output.flat [
-                from_string "(fun ("; from_string v; from_string " : "; pat_typ dom;
-                from_string ") => "; default_value_inhabited_mutual mutual_name_map rng; from_string ")"
-              ]
-        | _ -> from_string "default"
-    and render_ctor_default_mutual mutual_name_map ((ctor_name, _), ctor_ref, _, src_ts) =
-      let n = B.const_ref_to_name ctor_name false ctor_ref in
-      let ys = Seplist.to_list src_ts in
-      let mapped = List.map (default_value_inhabited_mutual mutual_name_map) ys in
-      let sep = if List.length mapped = 0 then emp else from_string " " in
-      let mapped_out = concat_str " " mapped in
-      let o = lskips_t_to_output n in
-        Output.flat [o; sep; mapped_out]
+      Output.flat [lskips_t_to_output n; sep; concat_str " " mapped]
     (* Check if a src_t is directly one of the mutual types (not wrapped
        in List, Option, etc.). Used for Inhabited generation: indirect
        references through containers are safe because List.default = [],
@@ -2734,8 +2697,7 @@ type pat_style = FunParam | MatchArm
        args (for use inside mutual def blocks where Inhabited instances don't exist yet). *)
     and inhabited_default_expr ?(mutual_name_map=[]) mutual_paths ((name, _), tnvar_list, path, t, _) : Output.t =
       if tnvar_list = [] then
-        let render_ctor = if mutual_name_map = [] then render_ctor_default
-          else render_ctor_default_mutual mutual_name_map in
+        let render_ctor = render_ctor_default ~mutual_name_map in
         match t with
           | Te_variant (_, seplist) ->
             let ctors = Seplist.to_list seplist in
@@ -2751,9 +2713,7 @@ type pat_style = FunParam | MatchArm
                   | None -> from_string "sorry /- directly self-referential type -/")
           | Te_record (_, _, fields, _) when List.length mutual_paths > 1 ->
             let field_list = Seplist.to_list fields in
-            let default_fn = if mutual_name_map = [] then default_value_inhabited
-              else default_value_inhabited_mutual mutual_name_map in
-            let field_defaults = List.map (fun (_, _, _, src_t) -> default_fn src_t) field_list in
+            let field_defaults = List.map (fun (_, _, _, src_t) -> default_value_inhabited ~mutual_name_map src_t) field_list in
             let type_name = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip (B.type_path_to_name name path))) in
             Output.flat [from_string type_name; from_string ".mk "; concat_str " " field_defaults]
           | _ -> generate_default_value_texp t
@@ -2769,10 +2729,7 @@ type pat_style = FunParam | MatchArm
             let nullary = List.find_opt (fun (_, _, _, src_ts) ->
               Seplist.to_list src_ts = []) ctors in
             (match nullary with
-              | Some ctor ->
-                let render_ctor = if mutual_name_map = [] then render_ctor_default
-                  else render_ctor_default_mutual mutual_name_map in
-                render_ctor ctor
+              | Some ctor -> render_ctor_default ~mutual_name_map ctor
               | None -> from_string "sorry")
           | _ -> from_string "sorry"
     (* Type variable binding + type args for Inhabited instance header *)
