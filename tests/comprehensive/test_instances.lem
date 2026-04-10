@@ -152,14 +152,19 @@ and mini_sq = MiniSQ of mini_tn | MiniSQBasic of nat
 and mini_ad = MiniAD of list nat * maybe mini_dad
 and mini_dad = MiniDADParen of mini_ad | MiniDADArray of nat | MiniDADFn of list mini_tn
 
-(* === Section 7: Parametric mutual types without nullary constructors === *)
+(* === Section 7: DAEMON fallback for parametric types === *)
 
-(* Parametric mutual types where no constructor is nullary must use
-   [Inhabited a] constraints and real constructor defaults, not sorry.
-   sorry in a def is eagerly evaluated at module init, causing panic.
-   This test verifies the module loads without init-time panic. *)
+(* Parametric types without nullary constructors get noncomputable
+   DAEMON-based Inhabited instances. DAEMON is an axiom — no init code,
+   no panic, no [Inhabited a] constraints needed. The module loading
+   without panic is the test. *)
 type nd_action 'a = NDactive of 'a | NDkill of nd_result 'a
 and nd_result 'a = NDresult of 'a * nd_action 'a
+
+(* Self-referential parametric mutual: both types have only constructors
+   that reference the other. Both should get DAEMON, not sorry. *)
+type action 'a = Active of 'a | Kill of result 'a
+and result 'a = Result of 'a * action 'a
 
 (* === Section 8: declare skip instances === *)
 
@@ -168,12 +173,3 @@ and nd_result 'a = NDresult of 'a * nd_action 'a
    all needed instances in a hand-written Lean file. *)
 type skip_me = SkipA | SkipB of nat
 declare {lean} skip_instances type skip_me
-
-(* === Section 9: Inhabited fallback for parametric mutual types === *)
-
-(* Parametric types without nullary constructors get sorry-based Inhabited.
-   This is safe because parametric instances are compiled as functions —
-   sorry is only evaluated when called, not at init. Monomorphic types
-   without safe constructors get noncomputable DAEMON instead (see Op backend test). *)
-type action 'a = Active of 'a | Kill of result 'a
-and result 'a = Result of 'a * action 'a

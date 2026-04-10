@@ -2697,8 +2697,8 @@ type pat_style = FunParam | MatchArm
        args (for use inside mutual def blocks where Inhabited instances don't exist yet). *)
     (* Returns (default_expr, uses_daemon). When uses_daemon is true, the
        instance must be noncomputable (priority := low) to avoid init panic. *)
-    and inhabited_default_expr ?(mutual_name_map=[]) mutual_paths ((name, _), tnvar_list, path, t, _) : Output.t * bool =
-      let daemon = (from_string "DAEMON", true) in
+    and inhabited_default_expr ?(mutual_name_map=[]) ?(is_type1=false) mutual_paths ((name, _), tnvar_list, path, t, _) : Output.t * bool =
+      let daemon = (from_string (if is_type1 then "DAEMON1" else "DAEMON"), true) in
       if tnvar_list = [] then
         let render_ctor c = (render_ctor_default ~mutual_name_map c, false) in
         match t with
@@ -2721,9 +2721,8 @@ type pat_style = FunParam | MatchArm
             (Output.flat [from_string type_name; from_string ".mk "; concat_str " " field_defaults], false)
           | _ -> (generate_default_value_texp t, false)
       else
-        (* Parameterized types: try nullary constructors only. For types without
-           nullary constructors, use sorry — parametric instances are compiled as
-           functions, so sorry is only evaluated when called, not at init. *)
+        (* Parameterized types: try nullary constructors only. Everything else
+           gets DAEMON — uniform fallback, no sorry anywhere in Inhabited. *)
         match t with
           | Te_variant (_, seplist) ->
             let ctors = Seplist.to_list seplist in
@@ -2731,16 +2730,15 @@ type pat_style = FunParam | MatchArm
               Seplist.to_list src_ts = []) ctors in
             (match nullary with
               | Some ctor -> (render_ctor_default ~mutual_name_map ctor, false)
-              | None -> (from_string "sorry", false))
-          | _ -> (from_string "sorry", false)
+              | None -> daemon)
+          | _ -> daemon
     (* Type variable binding + type args for Inhabited instance header *)
     and inhabited_type_parts tnvar_list =
       let tnvar_list' =
         if tnvar_list = [] then emp
         else
           (* Unconstrained {a : Type} bindings. No [Inhabited a] constraints —
-             user-provided overrides (declare {lean} inhabited) take responsibility
-             for the expression being valid at all type instantiations. *)
+             DAEMON fallback is unconditional, nullary ctors don't need them. *)
           let tvs = List.map (fun tv ->
             match tv with
             | Typed_ast.Tn_A (_, r, _) -> Types.Ty (Tyvar.from_rope r)
@@ -2771,7 +2769,7 @@ type pat_style = FunParam | MatchArm
     (* Generate mutual def + instance pairs for Inhabited on mutual type blocks.
        Uses `mutual def ... end` so forward references between defaults are allowed,
        then non-mutual `instance` declarations referencing those defs. *)
-    and generate_inhabited_mutual mutual_paths ts_list : Output.t =
+    and generate_inhabited_mutual ?(is_type1=false) mutual_paths ts_list : Output.t =
       (* Filter to types that need Inhabited *)
       let active = List.filter (fun (_, _, path, t, _) ->
         not (skip_inhabited_for_type t path)) ts_list in
@@ -2787,40 +2785,50 @@ type pat_style = FunParam | MatchArm
         let type_name_str = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip (B.type_path_to_name name path))) in
         (path, type_name_str)
       ) active in
-      (* Phase 1: mutual def block with default values.
-         Track which types use DAEMON so their defs/instances are noncomputable. *)
-      let defs_with_flags = List.map (fun (((name, _), tnvar_list, path, _, _) as td) ->
+      (* Compute defaults and split into tier 1 (real ctors, need mutual def)
+         and tier 2 (DAEMON, standalone noncomputable instance). *)
+      let typed_defaults = List.map (fun (((name, _), tnvar_list, path, _, _) as td) ->
         let type_name_str = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip (B.type_path_to_name name path))) in
         let name_out = lskips_t_to_output (B.type_path_to_name name path) in
-        let (default, uses_daemon) = inhabited_default_expr ~mutual_name_map mutual_paths td in
-        let (tnvar_list', type_args) = inhabited_type_parts tnvar_list in
-        let def_kw = if uses_daemon then "noncomputable def " else "def " in
-        let def_out = Output.flat [
-          from_string def_kw; from_string type_name_str; from_string ".default_inhabited";
-          tnvar_list'; from_string " : "; name_out; type_args;
-          from_string " := "; default;
-        ] in
-        (def_out, type_name_str, tnvar_list, path, uses_daemon)
+        let (default, uses_daemon) = inhabited_default_expr ~mutual_name_map ~is_type1 mutual_paths td in
+        (type_name_str, name_out, tnvar_list, default, uses_daemon)
       ) active in
-      let defs = List.map (fun (d, _, _, _, _) -> d) defs_with_flags in
-      (* Phase 2: instance declarations referencing the mutual defs *)
-      let instances = List.map (fun (_, type_name_str, tnvar_list, _, uses_daemon) ->
-        let (tnvar_list', type_args) = inhabited_type_parts tnvar_list in
-        let inst_kw = if uses_daemon then "\nnoncomputable instance (priority := low)"
-          else "\ninstance" in
+      let tier1 = List.filter (fun (_, _, _, _, d) -> not d) typed_defaults in
+      let tier2 = List.filter (fun (_, _, _, _, d) -> d) typed_defaults in
+      (* Tier 1: mutual def block with real constructor defaults *)
+      let mutual_block = if tier1 = [] then emp else
+        let defs = List.map (fun (type_name_str, name_out, tnvar_list, default, _) ->
+          let (tnvar_list', type_args) = inhabited_type_parts tnvar_list in
+          Output.flat [
+            from_string "def "; from_string type_name_str; from_string ".default_inhabited";
+            tnvar_list'; from_string " : "; name_out; type_args;
+            from_string " := "; default;
+          ]
+        ) tier1 in
+        let instances = List.map (fun (type_name_str, _, tnvar_list, _, _) ->
+          let (tnvar_list', type_args) = inhabited_type_parts tnvar_list in
+          Output.flat [
+            from_string "\ninstance"; tnvar_list'; from_string " : Inhabited (";
+            from_string type_name_str; type_args;
+            from_string ") where\n  default := "; from_string type_name_str;
+            from_string ".default_inhabited";
+          ]
+        ) tier1 in
         Output.flat [
-          from_string inst_kw; tnvar_list'; from_string " : Inhabited (";
-          from_string type_name_str; type_args;
-          from_string ") where\n  default := "; from_string type_name_str;
-          from_string ".default_inhabited";
+          from_string "mutual\n"; concat_str "\n" defs;
+          from_string "\nend"; concat emp instances;
         ]
-      ) defs_with_flags in
-      Output.flat [
-        from_string "mutual\n";
-        concat_str "\n" defs;
-        from_string "\nend\n";
-        concat emp instances;
-      ]
+      in
+      (* Tier 2: standalone noncomputable instances with DAEMON *)
+      let daemon_instances = List.map (fun (type_name_str, _, tnvar_list, _, _) ->
+        let (tnvar_list', type_args) = inhabited_type_parts tnvar_list in
+        Output.flat [
+          from_string "\nnoncomputable instance (priority := low)"; tnvar_list';
+          from_string " : Inhabited ("; from_string type_name_str; type_args;
+          from_string ") where\n  default := "; from_string (if is_type1 then "DAEMON1" else "DAEMON");
+        ]
+      ) tier2 in
+      Output.flat [mutual_block; concat emp daemon_instances]
     and generate_beq_ord_instances ?(is_type1=false) ?(emit_deriving=true) ((name, _), tnvar_list, path, t, _) : Output.t =
       (* Skip instance generation for abbreviations, types with target reps,
          and types annotated with 'declare {lean} skip instances'. *)
@@ -2951,22 +2959,18 @@ type pat_style = FunParam | MatchArm
       let non_abbrev = List.filter (fun (_, _, _, t, _) ->
         match t with Te_abbrev _ -> false | _ -> true) ts_list in
       let mutual_paths = List.map (fun ((_, _), _, path, _, _) -> path) non_abbrev in
-      (* For mutual blocks with >1 type, use mutual def + instance to allow
-         forward references between Inhabited defaults. Cyclic dependencies
-         between types (common in large mutual blocks like Cabs.lean) make
-         topological sorting impossible. mutual def solves this. *)
-      let inhabited_output =
-        if List.length non_abbrev > 1 then
-          generate_inhabited_mutual mutual_paths ts_list
-        else
-          let mapped = List.map (generate_inhabited_instance mutual_paths) ts_list in
-          concat_str "\n" mapped
-      in
       (* Check if the non-abbreviation types have heterogeneous param counts *)
       let param_counts = List.map (fun (_, ty_vars, _, _, _) -> List.length ty_vars) non_abbrev in
       let is_type1 = match param_counts with
         | [] -> false
         | x :: xs -> not (List.for_all (fun y -> y = x) xs)
+      in
+      let inhabited_output =
+        if List.length non_abbrev > 1 then
+          generate_inhabited_mutual ~is_type1 mutual_paths ts_list
+        else
+          let mapped = List.map (generate_inhabited_instance mutual_paths) ts_list in
+          concat_str "\n" mapped
       in
       (* If only 1 non-abbreviation type remains, it was rendered with deriving
          (not as a mutual block), so emit_deriving:true to avoid duplicate instances. *)
