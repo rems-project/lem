@@ -638,6 +638,7 @@ type type_descr = {
   type_target_rep : type_target_rep Target.Targetmap.t;
   type_target_sorts : (Ast.l * (sort list)) Target.Targetmap.t;
   type_skip_instances : Target.Targetset.t;
+  type_inhabited_override : (Ast.l * string) Target.Targetmap.t;
 }
 
 
@@ -663,7 +664,8 @@ let mk_tc_type_abbrev vars abbrev = Tc_type {
   type_rename = Target.Targetmap.empty;
   type_target_rep = Target.Targetmap.empty;
   type_target_sorts = Target.Targetmap.empty;
-  type_skip_instances = Target.Targetset.empty
+  type_skip_instances = Target.Targetset.empty;
+  type_inhabited_override = Target.Targetmap.empty
 }
 
 let mk_tc_type vars reg = Tc_type { 
@@ -676,7 +678,8 @@ let mk_tc_type vars reg = Tc_type {
   type_rename = Target.Targetmap.empty;
   type_target_rep = Target.Targetmap.empty;
   type_target_sorts = Target.Targetmap.empty;
-  type_skip_instances = Target.Targetset.empty
+  type_skip_instances = Target.Targetset.empty;
+  type_inhabited_override = Target.Targetmap.empty
 }
 
 type type_defs = tc_def Pfmap.t

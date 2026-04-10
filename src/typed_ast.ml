@@ -407,6 +407,7 @@ type declare_def =  (* declarations *)
  | Decl_termination_argument  of lskips * targets_opt * lskips * const_descr_ref id * lskips * Ast.termination_setting
  | Decl_pattern_match_decl    of lskips * targets_opt * lskips * Ast.exhaustivity_setting * Path.t id * tnvar list * lskips * lskips * (const_descr_ref id) lskips_seplist * lskips * (const_descr_ref id) option
  | Decl_skip_instances        of lskips * targets_opt * lskips * lskips * Path.t id
+ | Decl_inhabited             of lskips * targets_opt * lskips * lskips * Path.t id * lskips * lskips * string
 (*
  | Decl_set_flag              of lskips * lskips * Name.lskips_t * lskips * Name.lskips_t
 *)
@@ -777,6 +778,9 @@ let rec def_aux_alter_init_lskips (lskips_f : lskips -> lskips * lskips) d : def
             | Decl_skip_instances (sk1, targs, sk2, sk3, t_id) ->
                 let (sk1', s_ret) = lskips_f sk1 in
                 (Decl_skip_instances (sk1', targs, sk2, sk3, t_id), s_ret)
+            | Decl_inhabited (sk1, targs, sk2, sk3, t_id, sk4, sk5, expr) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_inhabited (sk1', targs, sk2, sk3, t_id, sk4, sk5, expr), s_ret)
           in
           res (Declaration d') s_ret
         end

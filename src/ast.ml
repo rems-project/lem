@@ -505,6 +505,7 @@ declare_def =  (* declarations *)
  | Decl_termination_argument_decl of terminal * targets option * terminal * id * terminal * termination_setting
  | Decl_pattern_match_decl of terminal * targets option * terminal * exhaustivity_setting * id * tnvar list * terminal * terminal * (id * terminal) list * terminal * bool * terminal * elim_opt
  | Decl_skip_instances_decl of terminal * targets option * terminal * terminal * id
+ | Decl_inhabited_decl of terminal * targets option * terminal * terminal * id * terminal * terminal * Ulib.UTF8.t
 
 
 type

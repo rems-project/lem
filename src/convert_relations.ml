@@ -1570,7 +1570,8 @@ let register_types rel_loc ctxt mod_path tds =
                    type_rename = Target.Targetmap.empty;
                    type_target_rep = Target.Targetmap.empty;
                    type_target_sorts = Target.Targetmap.empty;
-                   type_skip_instances = Target.Targetset.empty
+                   type_skip_instances = Target.Targetset.empty;
+                   type_inhabited_override = Target.Targetmap.empty
                  }
     in
     let ctxt = add_d_to_ctxt ctxt type_path (Tc_type tdescr) in

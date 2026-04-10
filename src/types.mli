@@ -275,6 +275,9 @@ type type_descr = {
 
   type_skip_instances : Target.Targetset.t;
   (** targets for which auto-generated typeclass instances should be skipped *)
+
+  type_inhabited_override : (Ast.l * string) Target.Targetmap.t;
+  (** per-target override expression for Inhabited default value *)
 }
 
 type class_descr = { 

@@ -168,3 +168,13 @@ and nd_result 'a = NDresult of 'a * nd_action 'a
    all needed instances in a hand-written Lean file. *)
 type skip_me = SkipA | SkipB of nat
 declare {lean} skip_instances type skip_me
+
+(* === Section 9: declare inhabited override === *)
+
+(* User-specified Inhabited default, replacing sorry with a real expression.
+   Avoids init-time panic without needing a separate hand-written .lean file. *)
+type action 'a = Active of 'a | Kill of result 'a
+and result 'a = Result of 'a * action 'a
+
+declare {lean} inhabited type action = `Active default`
+declare {lean} inhabited type result = `Result default (Active default)`
