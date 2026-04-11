@@ -1643,7 +1643,7 @@ instance   : Size ty262144 where
 /- removed value specification -/
 
 
-instance (a : Type)  [Size a] : Show (BitVec  (@Size.size  a _)) where
+instance (a : Type)  [Size a] : Show (BitVec  (@Size.size  a  _)) where
 
     show0   :=  mwordToHex
 
@@ -1653,12 +1653,12 @@ instance (a : Type)  [Size a] : Show (BitVec  (@Size.size  a _)) where
 
 /- removed value specification -/
 
-def  size_test_fn  {a : Type} [Size a]  ( _ : BitVec  (@Size.size a _))  : Nat :=  (@size (a) _)
+def  size_test_fn  {a : Type} [Size a]  ( _ : BitVec  (@Size.size a  _))  : Nat :=  (@size (a) _)
 /- removed value specification -/
 
 /- removed top-level value definition -/
 
-instance (a : Type)  [Size a] : Eq0 (BitVec  (@Size.size  a _)) where
+instance (a : Type)  [Size a] : Eq0 (BitVec  (@Size.size  a  _)) where
 
     isEqual          :=  mwordEq
 
@@ -1727,11 +1727,11 @@ instance (a : Type)  [Size a] : Eq0 (BitVec  (@Size.size  a _)) where
 /- removed top-level value definition -/
 /- 
 
-instance (a : Type) [Size a] : Numeral (BitVec  (@Size.size  a _)) where
+instance (a : Type) [Size a] : Numeral (BitVec  (@Size.size  a  _)) where
 
     fromNumeral   n  :=  wordFromNumeral  n
  -/
-abbrev  mword (a : Type)[Size a]  := BitVec  (@Size.size  a _)
+abbrev  mword (a : Type)[Size a]  := BitVec  (@Size.size  a  _)
 
 end Lem_Machine_word
 

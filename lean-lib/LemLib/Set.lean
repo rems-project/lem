@@ -199,7 +199,7 @@ def  removeMaybe  {a : Type} [SetType a]  (s : List (Option a))  : List a :=  se
 
 /- 
 
-def  sigma  {a : Type} {b : Type} [SetType a] [SetType b]  (sa : List a) (sb : a → List b)  : List ((a ×b)) := (sorry /- set comprehension binding not supported -/) -/
+def  sigma  {a : Type} {b : Type} [SetType a] [SetType b]  (sa : List a) (sb : a → List b)  : List ((a ×b)) := (sorry /- Lean backend: set comprehension binding not supported -/) -/
 /- removed value specification -/
 
 /- removed value specification -/

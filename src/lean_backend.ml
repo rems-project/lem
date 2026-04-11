@@ -10,8 +10,8 @@
 (*  Key design decisions:                                                  *)
 (*  - Block formatting is disabled (Lean 4 is whitespace-sensitive)       *)
 (*  - UTF-8 output uses Meta_utf8 to avoid double-encoding (×, →, etc.)  *)
-(*  - Constructors are brought into scope via 'open TypeName' after each  *)
-(*    inductive definition, instead of dot-notation                       *)
+(*  - Constructors are exported via 'export TypeName (Ctor1 Ctor2 ...)'   *)
+(*    after each inductive definition                                     *)
 (*  - Class methods are brought into scope via 'open ClassName'           *)
 (*  - Mutual inductives with heterogeneous parameter counts use indexed   *)
 (*    types (parameters become indices with Type 1 universe)              *)
@@ -91,9 +91,8 @@ let lean_current_module_name : string ref = ref ""
    Indreln antecedents live in Prop, so = (propositional equality) is correct. *)
 let lean_prop_equality : bool ref = ref false
 (* Deferred abbrev definitions for types with TYR_subst target reps.
-   These are collected during Comment processing and emitted after the
-   next non-Comment definition completes, solving ordering dependencies
-   (e.g., abbrev mword depends on class Size which is defined later). *)
+   These are collected during type processing and drained at the end of
+   lean_defs, after all definitions complete. *)
 let lean_pending_abbrevs : Output.t list ref = ref []
 (* Map from const_descr_ref to type parameter names for polymorphic indreln.
    Set during indreln antecedent rendering so that exp inserts type params
@@ -542,8 +541,9 @@ type pat_style = FunParam | MatchArm
         (* Build fully-qualified path for this module *)
         let fq_path = String.concat "." (List.rev !lean_namespace_stack) in
         let name = lskips_t_to_output name in
-        let body = callback defs in
-        lean_namespace_stack := (match !lean_namespace_stack with _ :: tl -> tl | [] -> []);
+        let body = Fun.protect ~finally:(fun () ->
+          lean_namespace_stack := (match !lean_namespace_stack with _ :: tl -> tl | [] -> [])
+        ) (fun () -> callback defs) in
           (* In Lem, module contents are implicitly available after the module
              definition. Lean namespaces are not — we need an explicit 'open'.
              For top-level modules, emit 'open' directly plus any deferred
@@ -1011,7 +1011,7 @@ type pat_style = FunParam | MatchArm
                 let bodies = List.map render_group groups in
                 let rec_skips =
                   if is_recursive && not inside_instance then
-                    ws (match skips' with Some s -> Some s | None -> None)
+                    ws skips'
                   else emp
                 in
                 if is_truly_mutual then
@@ -1403,7 +1403,7 @@ type pat_style = FunParam | MatchArm
                   ws skips; from_string "("; tups; from_string ")"; ws skips'
                 ]
           | List (skips, es, skips') ->
-              let lists = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> from_string " ")) (exp inside_instance) (sep @@ from_string ",") es in
+              let lists = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun _ -> from_string " ")) (exp inside_instance) (sep @@ from_string ",") es in
                 Output.flat [
                   ws skips; from_string "["; lists; from_string "]"; ws skips'
                 ]
@@ -1451,7 +1451,7 @@ type pat_style = FunParam | MatchArm
           | Function _ ->
               print_and_fail (Typed_ast.exp_to_locn e) "illegal function in extraction, should have been previously macro'd away"
           | Set (skips, es, skips') ->
-            let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) (exp inside_instance) (sep @@ from_string ", ") es in
+            let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun _ -> emp)) (exp inside_instance) (sep @@ from_string ", ") es in
             let skips =
               if skips = Typed_ast.no_lskips then
                 from_string " "
@@ -1498,7 +1498,7 @@ type pat_style = FunParam | MatchArm
                 ws skips'; from_string ")"
               ])
             else begin
-              let body = flatten_newlines (flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) (field_update inside_instance) (sep @@ from_string ",") fields) in
+              let body = flatten_newlines (flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun _ -> emp)) (field_update inside_instance) (sep @@ from_string ",") fields) in
               (* Add type ascription so Lean can resolve the record type from
                  field names. Without it, { field := value } fails when the
                  expected type isn't known from context (e.g., in a let binding). *)
@@ -1534,7 +1534,6 @@ type pat_style = FunParam | MatchArm
               ) updated in
               let updated_map = List.map2 (fun name (_, _, e_val, _) -> (name, e_val)) updated_names updated in
               (* Look up the type's fields from the environment *)
-              let src_t = C.t_to_src_t e_typ in
               (match Types.type_defs_lookup_typ Ast.Unknown A.env.t_env e_typ with
                 | Some td ->
                   let all_fields = match td.Types.type_fields with
@@ -1566,7 +1565,7 @@ type pat_style = FunParam | MatchArm
                     "Lean backend: mutual record update could not find type definition")
               )
             else begin
-              let body = flatten_newlines (flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) (field_update inside_instance) (sep @@ from_string ",") fields) in
+              let body = flatten_newlines (flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun _ -> emp)) (field_update inside_instance) (sep @@ from_string ",") fields) in
               let skips'' =
                 if skips'' = Typed_ast.no_lskips then
                   from_string " "
@@ -1679,7 +1678,7 @@ type pat_style = FunParam | MatchArm
                         Output.flat [
                           ws skip; from_string name
                         ]
-                    | Typed_ast.Qb_restr (bool, skips, pat, skips', e, skips'') ->
+                    | Typed_ast.Qb_restr (_bool, skips, pat, skips', e, skips'') ->
                       let pat_out = fun_pattern pat in
                         Output.flat [
                           ws skips; pat_out; ws skips'; from_string " : ";
@@ -1695,9 +1694,9 @@ type pat_style = FunParam | MatchArm
               (* Set comprehension binding — not directly supported in Lean.
                  Library functions with comprehensions have Lean target reps
                  that bypass this code path. If reached, emit sorry. *)
-              from_string "(sorry /- set comprehension binding not supported -/)"
+              from_string "(sorry /- Lean backend: set comprehension binding not supported -/)"
           | Setcomp (_, _, _, _, _, _) ->
-              from_string "(sorry /- set comprehension not supported -/)"
+              from_string "(sorry /- Lean backend: set comprehension not supported -/)"
           | Nvar_e (skips, nvar) ->
             let nvar = id Nexpr_var @@ Ulib.Text.(^^^) (r "") (Nvar.to_rope nvar) in
               Output.flat [
@@ -1726,7 +1725,7 @@ type pat_style = FunParam | MatchArm
                 from_string " "; src_nexp nexp'; ws skips''
               ]
           | Vector (skips, es, skips') ->
-            let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) (exp inside_instance) (sep @@ from_string ", ") es in
+            let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun _ -> emp)) (exp inside_instance) (sep @@ from_string ", ") es in
             let skips =
               if skips = Typed_ast.no_lskips then
                 from_string " "
@@ -1967,6 +1966,9 @@ type pat_style = FunParam | MatchArm
             in
             concat (from_string " ") (name :: List.map self ps)
         | P_num_add ((name, l), skips, skips', k) ->
+            (* n+k patterns should be desugared by is_lean_pattern_match before
+               reaching the backend. If one arrives here (e.g., in library code),
+               emit the pattern as (name + k) — invalid Lean but visible in output. *)
             let name = lskips_t_to_output name in
               Output.flat [
                 ws skips; from_string "("; name; from_string " + "; from_string (Z.to_string k); from_string ")"
@@ -2460,9 +2462,6 @@ type pat_style = FunParam | MatchArm
           Output.flat [
             from_string "  | "; ctor_name; from_string " :"; ws skips; body; tail
           ]
-    and tyexp_record fields =
-      let body = flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun x -> emp)) field (sep @@ from_string "\n") fields in
-        body
     and pat_typ t =
       match t.term with
         | Typ_wild skips -> ws skips ^ from_string "_"
@@ -2499,7 +2498,7 @@ type pat_style = FunParam | MatchArm
           let ts_out = List.map pat_typ ts in
           let space = if ts_out = [] then emp else from_string " " in
             Output.flat [
-              i; space; concat emp ts_out
+              i; space; concat_str " " ts_out
             ]
     and type_def_type_variables tvs =
       match tvs with
@@ -2518,7 +2517,7 @@ type pat_style = FunParam | MatchArm
     and indreln_typ t =
       match t.term with
         | Typ_wild skips -> ws skips ^ from_string "_"
-        | Typ_var (skips, v) -> id Type_var @@ Ulib.Text.(^^^) (r"") (Tyvar.to_rope v)
+        | Typ_var (skips, v) -> ws skips ^ (id Type_var @@ Ulib.Text.(^^^) (r"") (Tyvar.to_rope v))
         | Typ_fn (t1, skips, t2) ->
           begin
             match t2.term with
@@ -2551,7 +2550,7 @@ type pat_style = FunParam | MatchArm
           let ts_out = List.map indreln_typ ts in
           let space = if ts_out = [] then emp else from_string " " in
             Output.flat [
-              i; space; concat emp ts_out
+              i; space; concat_str " " ts_out
             ]
         | _ -> raise (Reporting_basic.err_general true t.locn "Lean backend: unexpected type form in indreln_typ")
     and field ((n, _), f_ref, _skips, t) =
@@ -2568,29 +2567,6 @@ type pat_style = FunParam | MatchArm
        3. SetType / Eq0 / Ord0 instances (with [BEq]/[Ord] constraints for parameterized types)
        Mutual types use find_safe_ctor_for_mutual to avoid self-referential defaults.
        Library opaque types (phantom types like ty1..ty4096) skip instance generation. *)
-    and default_type_variables tvs =
-      match tvs with
-        | [] -> emp
-        | [Typed_ast.Tn_A tv] ->
-            Output.flat [
-              from_string " {"; tyvar tv; from_string " : Type}";
-              from_string " [Inhabited "; tyvar tv; from_string "]"
-            ]
-        | tvs ->
-          let mapped = List.map (fun t ->
-            let name = from_string (tnvar_to_string t) in
-            match t with
-              | Typed_ast.Tn_A _ ->
-                Output.flat [
-                  from_string " {"; name; from_string " : Type}";
-                  from_string " [Inhabited "; name; from_string "]"
-                ]
-              | Typed_ast.Tn_N _ ->
-                Output.flat [
-                  from_string " {"; name; from_string " : Nat}"
-                ]) tvs
-          in
-            concat emp mapped
     (* Check if a source type references any of the given paths (mutual type detection) *)
     and src_t_references_paths mutual_paths (s : src_t) : bool =
       match s.term with
@@ -2607,8 +2583,6 @@ type pat_style = FunParam | MatchArm
         | Typ_backend (_, ts) ->
             List.exists (src_t_references_paths mutual_paths) ts
         | _ -> true
-    (* Default value for a source type in Inhabited instance context.
-       Uses [default] for type variables since [Inhabited] constraints are in scope. *)
     (* Default value for a source type in Inhabited context.
        mutual_name_map: when non-empty, direct references to mutual types use
        TypeName.default_inhabited instead of default (for mutual def blocks
