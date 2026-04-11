@@ -25,7 +25,8 @@ def  or  (b1 : Bool) (b2 : Bool)  : Bool :=  match b1,  b2 with  | false,  false
 /- 
 def  imp  (b1 : Bool) (b2 : Bool)  : Bool :=  match b1,  b2 with  | true,  false =>  false | _, _ =>  true
  -/
-/- removed top-level value definition -/
+
+
 /- removed value specification -/
 
 /- 
@@ -33,7 +34,7 @@ def  equiv  (b1 : Bool) (b2 : Bool)  : Bool :=  match b1,  b2 with  | true,  tru
  -/
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 end Lem_Bool
 
 

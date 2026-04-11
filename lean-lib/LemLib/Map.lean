@@ -32,8 +32,8 @@ abbrev  map  (k : Type) (v : Type) := Fmap
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+
+
 
 instance (k v : Type) [Eq0 k] [Eq0 v] : Eq0 (Fmap  k  v) where
 
@@ -66,24 +66,25 @@ instance (priority := low) (a : Type) [SetType a] : MapKeyType a where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed value specification -/
 
-/- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed value specification -/
-
-/- removed top-level value definition -/
 /- removed value specification -/
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
+/- removed value specification -/
+
+/- removed value specification -/
+
+
+
+/- removed value specification -/
+
+
 /- removed value specification -/
 
 def  fromList  {k : Type} {v : Type} [MapKeyType k]  (l : List ((k ×v)))  : Fmap k v :=  List.foldl  (fun (m : Fmap k v) (p : (k ×v)) =>  match m, p with |  m,  (k1, v1) =>  fmapAdd  k1  v1  m )  fmapEmpty  l
@@ -91,24 +92,24 @@ def  fromList  {k : Type} {v : Type} [MapKeyType k]  (l : List ((k ×v)))  : Fma
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed value specification -/
 
-/- removed value specification -/
-
-/- removed top-level value definition -/
-/- removed top-level value definition -/
 /- removed value specification -/
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
+
 /- removed value specification -/
 
-/- removed top-level value definition -/
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
+/- removed value specification -/
+
+
+/- removed value specification -/
+
+
 /- removed value specification -/
 
 /- removed value specification -/
@@ -116,30 +117,30 @@ def  fromList  {k : Type} {v : Type} [MapKeyType k]  (l : List ((k ×v)))  : Fma
 /-  
 
 def  all  {k : Type} {v : Type} [MapKeyType k] [Eq0 v]  (P : k → v → Bool) (m : Fmap k v)  : Bool :=  (∀  k  v, ( (P  k  v  &&  (=  lookup  k  m  some  v)) : Prop)) -/
-/- removed top-level value definition -/
-/- removed value specification -/
 
-/- removed value specification -/
-
-/- removed value specification -/
-
-/- removed top-level value definition -/
-/- removed top-level value definition -/
-/- removed top-level value definition -/
-/- removed top-level value definition -/
-/- removed top-level value definition -/
-/- removed value specification -/
-
-/- removed value specification -/
-
-/- removed top-level value definition -/
 /- removed value specification -/
 
 /- removed value specification -/
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
+
+
+
+
+/- removed value specification -/
+
+/- removed value specification -/
+
+
+/- removed value specification -/
+
+/- removed value specification -/
+
+/- removed value specification -/
+
+
 
 /-  instance of SetType  -/
 def  map_setElemCompare  {a : Type} {b : Type} {c : Type} {d : Type} {e : Type} [SetType a] [SetType b] [SetType c] [SetType d] [MapKeyType b] [MapKeyType d]  (cmp : List ((d ×c)) → List ((b ×a)) → e) (x : Fmap d c) (y : Fmap b a)  : e := 

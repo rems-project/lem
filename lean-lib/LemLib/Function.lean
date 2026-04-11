@@ -21,7 +21,7 @@ open Lem_Basic_classes
 def  id  {a : Type}  (x : a)  : a :=  x -/
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
 /- 

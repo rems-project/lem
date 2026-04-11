@@ -53,8 +53,11 @@ instance (priority := low) (a : Type)  [BEq a] : Eq0 a where
 
     isInequal   :=  (fun x y => x != y)
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+
+/-  for HOL and Isabelle, be even stronger and always(!) use
+   standard equality  -/
+
+
 /- 
 
 
@@ -69,15 +72,15 @@ abbrev  ordering := LemOrdering
 def  orderingIsLess  (r : LemOrdering)        : Bool :=  (match  r with |  LemOrdering.LT =>  true |  _ =>  false )
 def  orderingIsGreater  (r : LemOrdering)     : Bool :=  (match  r with |  LemOrdering.GT =>  true |  _ =>  false )
 def  orderingIsEqual  (r : LemOrdering)       : Bool :=  (match  r with |  LemOrdering.EQ =>  true |  _ =>  false )
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+
+
 
 def  ordering_cases  {a : Type}  (r : LemOrdering) (lt : a) (eq : a) (gt : a)  : a := 
   if  orderingIsLess  r then  lt  else 
   if  orderingIsEqual  r then  eq  else  gt
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 
 instance   : Eq0 LemOrdering where
  
@@ -143,10 +146,10 @@ def  minByLessEqual  {a : Type}  (le : a → a → Bool) (x : a) (y : a)  : a :=
 def  maxByLessEqual  {a : Type}  (le : a → a → Bool) (x : a) (y : a)  : a :=  if  (le  y  x) then  x  else  y
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 
 instance (priority := low) (a : Type) [Ord0 a] : OrdMaxMin a where
  
@@ -203,7 +206,7 @@ instance   : SetType Bool where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 
 instance   : Eq0 Char where
  
@@ -213,7 +216,7 @@ instance   : Eq0 Char where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 
 instance   : Eq0 String where
 

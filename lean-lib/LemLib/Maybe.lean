@@ -34,8 +34,8 @@ inductive  maybe (a : Type) : Type where
 
 def  maybeEqualBy  {a : Type}  (eq : a → a → Bool) (x : Option a) (y : Option a)  : Bool :=  match x, y with  | none,  none =>  true | none,  some  _ =>  false | some  _,  none =>  false | some  x',  some  y' =>  (eq  x'  y')
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+
+
 
 instance (a : Type) [Eq0 a] : Eq0 (Option  a) where
 

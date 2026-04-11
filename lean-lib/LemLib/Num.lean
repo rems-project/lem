@@ -208,7 +208,7 @@ instance   : Numeral Nat where
  -/
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 instance   : Eq0 Nat where
 
     isEqual   :=  (fun x y => x == y)
@@ -225,8 +225,8 @@ instance   : Eq0 Nat where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+
+
 
 instance   : Ord0 Nat where
 
@@ -269,7 +269,7 @@ instance   : NumSucc Nat where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 instance   : NumPred Nat where
 
     pred   :=  Nat.pred
@@ -319,10 +319,10 @@ instance   : NumPow Nat where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 
 instance   : OrdMaxMin Nat where
  
@@ -340,7 +340,7 @@ instance   : Numeral Nat where
  -/
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 instance   : Eq0 Nat where
 
     isEqual   :=  (fun x y => x == y)
@@ -357,8 +357,8 @@ instance   : Eq0 Nat where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+
+
 
 instance   : Ord0 Nat where
 
@@ -401,7 +401,7 @@ instance   : NumSucc Nat where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 instance   : NumPred Nat where
 
     pred   :=  Nat.pred
@@ -441,10 +441,10 @@ instance   : NumRemainder Nat where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 
 instance   : OrdMaxMin Nat where
  
@@ -462,7 +462,7 @@ instance   : Numeral Int where
  -/
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 instance   : Eq0 Int where
 
     isEqual   :=  (fun x y => x == y)
@@ -479,8 +479,8 @@ instance   : Eq0 Int where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+
+
 
 instance   : Ord0 Int where
 
@@ -529,14 +529,14 @@ instance   : NumMinus Int where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 instance   : NumSucc Int where
 
     succ   :=  (fun  n=> n  + ( 1 :  Int))
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 instance   : NumPred Int where
 
     pred   :=  (fun  n=> n  - ( 1 :  Int))
@@ -576,10 +576,10 @@ instance   : NumRemainder Int where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 
 instance   : OrdMaxMin Int where
  
@@ -597,7 +597,7 @@ instance   : Numeral LemInt32 where
  -/
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 
 instance   : Eq0 LemInt32 where
 
@@ -613,12 +613,12 @@ instance   : Eq0 LemInt32 where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+
+
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+
+
 
 instance   : Ord0 LemInt32 where
 
@@ -669,7 +669,7 @@ instance   : NumMinus LemInt32 where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 
 instance   : NumSucc LemInt32 where
 
@@ -677,7 +677,7 @@ instance   : NumSucc LemInt32 where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 instance   : NumPred LemInt32 where
 
     pred   :=  (fun  n=> n  - ( 1 :  LemInt32))
@@ -717,10 +717,10 @@ instance   : NumRemainder LemInt32 where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 
 instance   : OrdMaxMin LemInt32 where
  
@@ -738,7 +738,7 @@ instance   : Numeral LemInt64 where
  -/
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 
 instance   : Eq0 LemInt64 where
 
@@ -754,12 +754,12 @@ instance   : Eq0 LemInt64 where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+
+
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+
+
 
 instance   : Ord0 LemInt64 where
 
@@ -810,7 +810,7 @@ instance   : NumMinus LemInt64 where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 
 instance   : NumSucc LemInt64 where
 
@@ -818,7 +818,7 @@ instance   : NumSucc LemInt64 where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 instance   : NumPred LemInt64 where
 
     pred   :=  (fun  n=> n  - ( 1 :  LemInt64))
@@ -858,10 +858,10 @@ instance   : NumRemainder LemInt64 where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 
 instance   : OrdMaxMin LemInt64 where
  
@@ -881,7 +881,7 @@ instance   : Numeral Int where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 instance   : Eq0 Int where
 
     isEqual   :=  (fun x y => x == y)
@@ -898,8 +898,8 @@ instance   : Eq0 Int where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+
+
 
 instance   : Ord0 Int where
 
@@ -948,14 +948,14 @@ instance   : NumMinus Int where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 instance   : NumSucc Int where
 
     succ   :=  (fun  n=> n  + ( 1 :  Int))
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 instance   : NumPred Int where
 
     pred   :=  (fun  n=> n  - ( 1 :  Int))
@@ -995,10 +995,10 @@ instance   : NumRemainder Int where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 
 instance   : OrdMaxMin Int where
  
@@ -1020,7 +1020,7 @@ instance   : Numeral LemRational where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 instance   : Eq0 LemRational where
 
     isEqual   :=  (fun x y => x == y)
@@ -1037,8 +1037,8 @@ instance   : Eq0 LemRational where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+
+
 
 instance   : Ord0 LemRational where
 
@@ -1073,7 +1073,7 @@ instance   : NumMinus LemRational where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 
 instance   : NumNegate LemRational where
 
@@ -1081,7 +1081,7 @@ instance   : NumNegate LemRational where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 
 instance   : NumAbs LemRational where
 
@@ -1089,14 +1089,14 @@ instance   : NumAbs LemRational where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 instance   : NumSucc LemRational where
 
     succ   :=  (fun  n=> n  + unsupportedRationalFromNumeral  1)
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 instance   : NumPred LemRational where
 
     pred   :=  (fun  n=> n  - unsupportedRationalFromNumeral  1)
@@ -1141,10 +1141,10 @@ instance   : NumPow LemRational where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 
 instance   : OrdMaxMin LemRational where
 
@@ -1164,7 +1164,7 @@ instance   : Numeral LemReal where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 instance   : Eq0 LemReal where
 
     isEqual   :=  (fun x y => x == y)
@@ -1181,8 +1181,8 @@ instance   : Eq0 LemReal where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+
+
 
 instance   : Ord0 LemReal where
 
@@ -1217,7 +1217,7 @@ instance   : NumMinus LemReal where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 
 instance   : NumNegate LemReal where
 
@@ -1225,7 +1225,7 @@ instance   : NumNegate LemReal where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 
 instance   : NumAbs LemReal where
 
@@ -1233,14 +1233,14 @@ instance   : NumAbs LemReal where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 instance   : NumSucc LemReal where
 
     succ   :=  (fun  n=> n  + unsupportedRealFromNumeral  1)
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 instance   : NumPred LemReal where
 
     pred   :=  (fun  n=> n  - unsupportedRealFromNumeral  1)
@@ -1283,10 +1283,10 @@ instance   : NumPow LemReal where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 
 instance   : OrdMaxMin LemReal where
 
@@ -1366,26 +1366,29 @@ def  int64FromInt32  (i : LemInt32)  : LemInt64 :=  lemInt64OfInt  (lemInt32ToIn
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
-/- removed top-level value definition -/
-/- removed value specification -/
 
-/- removed value specification -/
 
-/- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
 /- removed value specification -/
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+
+
+
+
+/- removed value specification -/
+
+/- removed value specification -/
+
+/- removed value specification -/
+
+
+
+
+
 end Lem_Num
 

@@ -21,10 +21,10 @@ def  fst  {a : Type} {b : Type}   ((v1 : a), (v2 : b))  : a :=  v1 -/
 def  snd  {a : Type} {b : Type}   ((v1 : a), (v2 : b))  : b :=  v2 -/
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed value specification -/
 
-/- removed top-level value definition -/
+/- removed value specification -/
+ 
+
 /- removed value specification -/
  
 def  swap  {a : Type} {b : Type}  (p : (a ×b))  : (b ×a) := match p with |  (v1,  v2) =>  (v2, v1) 

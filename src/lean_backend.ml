@@ -188,26 +188,6 @@ let is_delim s = Str.string_match delim_regexp s 0
 let is_symbolic s = Str.string_match symbolic_regexp s 0
 ;;
 
-let is_abbreviation l =
-  let length = Seplist.length l in
-  let abbreviation =
-    match Seplist.hd l with
-      | (_, _, _, Te_abbrev _, _) -> true
-      | _ -> false
-  in
-    length = 1 && abbreviation
-;;
-
-let is_record l =
-  let length = Seplist.length l in
-  let record =
-    match Seplist.hd l with
-      | (_, _, _, Te_record _, _) -> true
-      | _ -> false
-  in
-    length = 1 && record
-;;
-
 let need_space x y =
   let f x =
     match x with
@@ -277,14 +257,16 @@ let name_var_output v =
   else
     Name.to_output Term_var v
 
-(* Check if a type is a record that was rendered as a single-constructor inductive
-   due to being in a mutual block. Uses the per-compilation-unit list
-   lean_mutual_records which accumulates across files in one lem invocation. *)
-let is_mutual_record_type typ =
+(* If the type is a record rendered as a single-constructor inductive
+   (due to being in a mutual block), return its path. Uses the per-compilation-unit
+   list lean_mutual_records which accumulates across files in one lem invocation. *)
+let mutual_record_path typ : Path.t option =
   match typ.Types.t with
     | Types.Tapp (_, path) ->
-        List.exists (fun p -> Path.compare p path = 0) !lean_mutual_records
-    | _ -> false
+        if List.exists (fun p -> Path.compare p path = 0) !lean_mutual_records
+        then Some path
+        else None
+    | _ -> None
 
 let in_target targets = Typed_ast.in_targets_opt (Target.Target_no_ident Target.Target_lean) targets;;
 
@@ -509,12 +491,16 @@ type pat_style = FunParam | MatchArm
     and def (inside_instance: bool) (callback : def list -> Output.t) (inside_module : bool) (m : def_aux) =
       match m with
       | Type_def (skips, def) ->
-          let funcl = if is_abbreviation def then
-              type_def_abbreviation
-            else if is_record def then
-              type_def_record
+          let type_output =
+            if Seplist.length def = 1 then
+              match Seplist.hd def with
+              | ((n, _), tyvars, path, Te_abbrev (sk, t), _) ->
+                  type_def_abbreviation n tyvars path sk t
+              | (n, tyvars, path, (Te_record (_, _, fields, _) as ty), _) ->
+                  type_def_record n tyvars path ty fields
+              | _ -> type_def inside_module def
             else
-              type_def inside_module
+              type_def inside_module def
           in
           let defaults =
             if Seplist.length def > 1 then
@@ -523,7 +509,7 @@ type pat_style = FunParam | MatchArm
               generate_default_values def
           in
             Output.flat [
-              ws skips; funcl def;
+              ws skips; type_output;
               defaults;
             ]
       | Val_def (def) ->
@@ -708,7 +694,9 @@ type pat_style = FunParam | MatchArm
           | (class_ref, _) :: _ ->
             let class_cd = c_env_lookup Ast.Unknown A.env.c_env class_ref in
             Typed_ast.in_target_set (Target.Target_no_ident Target.Target_lean) class_cd.const_targets
-          | [] -> true
+          | [] ->
+            raise (Reporting_basic.err_general true Ast.Unknown
+              "Lean backend: instance method has no corresponding class method in inst_methods")
         in
         let val_is_visible (d : Typed_ast.val_def) : bool =
           match d with
@@ -716,10 +704,11 @@ type pat_style = FunParam | MatchArm
             List.for_all (fun (_, cd_ref) -> class_method_visible cd_ref) name_map
           | Fun_def (_, _, _, funcl_sep) ->
             Seplist.for_all (fun ({term = _}, c, _, _, _, _) -> class_method_visible c) funcl_sep
-          | _ -> true
+          | Let_inline _ ->
+            raise (Reporting_basic.err_general true Ast.Unknown
+              "Lean backend: unexpected Let_inline in instance body")
         in
         let vals = List.filter val_is_visible vals in
-        let l_unk = Ast.Unknown in
           let prefix =
             match inst with
               | (constraint_prefix_opt, skips, ident, path, src_t, skips') ->
@@ -893,7 +882,6 @@ type pat_style = FunParam | MatchArm
               | Let_inline(_,_,_,_,c,_,_,_) -> [c]
               | Fun_def(_, _, _, funs) ->
                 Seplist.to_list_map (fun ((_, c, _, _, _, _):funcl_aux) -> c) funs
-              | _ -> []
             in
             let cds = List.map (c_env_lookup l_unk A.env.c_env) cs in
             let extras = List.concat_map (fun cd ->
@@ -1026,7 +1014,10 @@ type pat_style = FunParam | MatchArm
                   ]
               else
                 from_string "\n/- removed recursive definition intended for another target -/"
-          | _ -> from_string "\n/- removed top-level value definition -/"
+          | Let_inline (skips, _, _, _, _, _, _, _) ->
+              (* Let_inline declarations are inlined at use sites during compilation.
+                 The backend emits nothing — the definition body appears inline. *)
+              ws skips
       end
     (* Inductive relation (indreln) rendering. Phases:
        1. Gather unique relation names with their const_descr_refs
@@ -1475,29 +1466,23 @@ type pat_style = FunParam | MatchArm
               ]
           | Record (skips, fields, skips') ->
             let typ = Typed_ast.exp_to_typ e in
-            if is_mutual_record_type typ then
+            (match mutual_record_path typ with
+            | Some path ->
               (* Mutual records are rendered as inductives, not structures.
                  Use constructor syntax: TypeName.mk val1 val2 ... *)
               let field_vals = Seplist.to_list fields in
               let vals = List.map (fun (_, _, e_val, _) ->
                 Output.flat [from_string " ("; exp inside_instance e_val; from_string ")"]
               ) field_vals in
-              let src_t = C.t_to_src_t typ in
-              (* Build TypeName.mk — extract just the type name, ignoring params.
-                 This avoids dot-notation parsing issues with parenthesized type args. *)
-              let type_name_str = match typ.Types.t with
-                | Types.Tapp (_, path) ->
-                    let n0 = Name.add_lskip (Path.get_name path) in
-                    let n = B.type_path_to_name n0 path in
-                    Ulib.Text.to_string (Name.to_rope (Name.strip_lskip n))
-                | _ -> raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: unreachable — is_mutual_record_type requires Tapp")
-              in
+              let n0 = Name.add_lskip (Path.get_name path) in
+              let n = B.type_path_to_name n0 path in
+              let type_name_str = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip n)) in
               Output.flat ([
                 ws skips; from_string "("; from_string type_name_str; from_string ".mk"
               ] @ vals @ [
                 ws skips'; from_string ")"
               ])
-            else begin
+            | None ->
               let body = flatten_newlines (flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun _ -> emp)) (field_update inside_instance) (sep @@ from_string ",") fields) in
               (* Add type ascription so Lean can resolve the record type from
                  field names. Without it, { field := value } fails when the
@@ -1506,7 +1491,7 @@ type pat_style = FunParam | MatchArm
                 Output.flat [
                   ws skips; from_string "(({ "; body; ws skips'; from_string " } : "; pat_typ src_t; from_string "))"
                 ]
-            end
+            )
           | Field (e, skips, fd) ->
             let name = field_ident_to_output fd (use_ascii_rep_for_const fd.descr) in
             (* Dot notation works for both structures (.field accessor) and
@@ -1523,7 +1508,8 @@ type pat_style = FunParam | MatchArm
               ]
           | Recup (skips, e, skips', fields, skips'') ->
             let e_typ = Typed_ast.exp_to_typ e in
-            if is_mutual_record_type e_typ then
+            (match mutual_record_path e_typ with
+            | Some path ->
               (* Mutual records are inductives — { r with ... } doesn't work.
                  Look up all fields from the type definition, reconstruct with
                  accessor functions for unchanged fields and new values for updated ones. *)
@@ -1546,15 +1532,9 @@ type pat_style = FunParam | MatchArm
                       | Some e_val -> Output.flat [from_string " ("; exp inside_instance e_val; from_string ")"]
                       | None -> Output.flat [from_string " ("; exp inside_instance e; from_string "."; from_string fname; from_string ")"]
                   ) all_fields in
-                  (* Use just the type name, not full type with params, to avoid
-                     dot-notation parsing issues: wrapper.mk not wrapper a.mk *)
-                  let type_name_str = match e_typ.Types.t with
-                    | Types.Tapp (_, path) ->
-                        let n0 = Name.add_lskip (Path.get_name path) in
-                        let n = B.type_path_to_name n0 path in
-                        Ulib.Text.to_string (Name.to_rope (Name.strip_lskip n))
-                    | _ -> raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: unreachable — record update requires Tapp type")
-                  in
+                  let n0 = Name.add_lskip (Path.get_name path) in
+                  let n = B.type_path_to_name n0 path in
+                  let type_name_str = Ulib.Text.to_string (Name.to_rope (Name.strip_lskip n)) in
                   Output.flat ([
                     ws skips; from_string "("; from_string type_name_str; from_string ".mk"
                   ] @ field_vals @ [
@@ -1564,7 +1544,7 @@ type pat_style = FunParam | MatchArm
                   raise (Reporting_basic.err_general true (Typed_ast.exp_to_locn e)
                     "Lean backend: mutual record update could not find type definition")
               )
-            else begin
+            | None ->
               let body = flatten_newlines (flat @@ Seplist.to_sep_list_last (Seplist.Forbid (fun _ -> emp)) (field_update inside_instance) (sep @@ from_string ",") fields) in
               let skips'' =
                 if skips'' = Typed_ast.no_lskips then
@@ -1575,7 +1555,7 @@ type pat_style = FunParam | MatchArm
                 Output.flat [
                    ws skips; from_string "{ "; exp inside_instance e; ws skips'; from_string " with "; body; skips''; from_string " }"
                 ]
-            end
+            )
           | Case (_, skips, e, skips', cases, skips'') ->
             let case_sep _ = from_string " " in
             let has_vec = Seplist.exists (fun (p, _, _, _) -> pat_has_vector p) cases in
@@ -2026,37 +2006,30 @@ type pat_style = FunParam | MatchArm
          (parameters promoted to indices, all types in Type 1 universe)
        After each inductive/structure, constructors are exported and
        BEq/Ord/Inhabited instances are generated. *)
-    and type_def_abbreviation def =
-      match Seplist.hd def with
-        | ((n, _), tyvars, path, Te_abbrev (skips, t),_) ->
-            let n = B.type_path_to_name n path in
-            let name = Name.to_output (Type_ctor (false, false)) n in
-            let tyvars' = type_def_type_variables tyvars in
-            let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
-            let body = pat_typ t in
-              Output.flat [
-                from_string "abbrev"; name; tyvar_sep; tyvars';
-                ws skips; from_string " := "; body; from_string "\n";
-              ]
-        | _ -> raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: unexpected type definition form")
-    and type_def_record def =
-      match Seplist.hd def with
-        | (n, tyvars, path, (Te_record (_, _, fields, _) as ty),_) ->
-            let (n', _) = n in
-            let n' = B.type_path_to_name n' path in
-            let name = Name.to_output (Type_ctor (false, false)) n' in
-            let field_list = Seplist.to_list fields in
-            let body = concat_str "\n" (List.map field field_list) in
-            let tyvars' = type_def_type_variables tyvars in
-            let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
-            let deriving_clause = if texp_can_derive_beq ty then
-              from_string "  deriving BEq, Ord\n"
-            else emp in
-              Output.flat [
-                from_string "structure"; name; tyvar_sep; tyvars';
-                from_string " where\n"; body; from_string "\n"; deriving_clause;
-              ]
-        | _ -> raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: unexpected type definition form")
+    and type_def_abbreviation n tyvars path skips t =
+      let n = B.type_path_to_name n path in
+      let name = Name.to_output (Type_ctor (false, false)) n in
+      let tyvars' = type_def_type_variables tyvars in
+      let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
+      let body = pat_typ t in
+        Output.flat [
+          from_string "abbrev"; name; tyvar_sep; tyvars';
+          ws skips; from_string " := "; body; from_string "\n";
+        ]
+    and type_def_record (n', _) tyvars path ty fields =
+      let n' = B.type_path_to_name n' path in
+      let name = Name.to_output (Type_ctor (false, false)) n' in
+      let field_list = Seplist.to_list fields in
+      let body = concat_str "\n" (List.map field field_list) in
+      let tyvars' = type_def_type_variables tyvars in
+      let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
+      let deriving_clause = if texp_can_derive_beq ty then
+        from_string "  deriving BEq, Ord\n"
+      else emp in
+        Output.flat [
+          from_string "structure"; name; tyvar_sep; tyvars';
+          from_string " where\n"; body; from_string "\n"; deriving_clause;
+        ]
     and type_def inside_module defs =
       (* Collect type names and their constructor names for "export" declarations.
          Using "export" instead of "open" ensures constructors are visible
@@ -2111,32 +2084,31 @@ type pat_style = FunParam | MatchArm
         (* Separate abbreviations from the mutual block — they are just type aliases
            and can't participate in mutual recursion. Emit them after the mutual block. *)
         let all_defs = Seplist.to_list defs in
-        let is_abbrev_def (_, _, _, ty, _) = match ty with Te_abbrev _ -> true | _ -> false in
-        let mutual_defs = List.filter (fun d -> not (is_abbrev_def d)) all_defs in
-        let abbrev_defs = List.filter is_abbrev_def all_defs in
+        (* Partition into abbreviations (with extracted Te_abbrev data) and mutual types.
+           Abbreviations can't participate in mutual recursion — they're type aliases.
+           Extract Te_abbrev fields during partitioning so downstream code doesn't
+           need to re-match on Te_abbrev. *)
+        let mutual_defs, abbrev_extracted = List.fold_right (fun (((n0, _), tyvars, path, ty, _) as d) (mut, abbs) ->
+          match ty with
+          | Te_abbrev (skips, t) -> (mut, (n0, tyvars, path, skips, t) :: abbs)
+          | _ -> (d :: mut, abbs)
+        ) all_defs ([], []) in
         (* Collect mutual type paths to check if abbreviations reference them *)
-        let mutual_paths = List.filter_map (fun ((_, _), _, path, _, _) ->
-          Some path
-        ) mutual_defs in
+        let mutual_paths = List.map (fun ((_, _), _, path, _, _) -> path) mutual_defs in
         (* Split abbreviations: those referencing mutual types go after,
            others go before (they may be needed by the mutual types). *)
-        let abbrev_references_mutual (_, _, _, ty, _) = match ty with
-          | Te_abbrev (_, t) -> src_t_references_paths mutual_paths t
-          | _ -> false
-        in
-        let abbrevs_before = List.filter (fun d -> not (abbrev_references_mutual d)) abbrev_defs in
-        let abbrevs_after = List.filter abbrev_references_mutual abbrev_defs in
-        let render_abbrev ((n0, _), tyvars, path, ty, _) = match ty with
-          | Te_abbrev (skips, t) ->
-            let n = B.type_path_to_name n0 path in
-            let name = Name.to_output (Type_ctor (false, false)) n in
-            let tyvars' = type_def_type_variables tyvars in
-            let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
-            Output.flat [
-              from_string "\nabbrev"; name; tyvar_sep; tyvars';
-              ws skips; from_string " := "; pat_typ t
-            ]
-          | _ -> raise (Reporting_basic.err_general true Ast.Unknown "Lean backend: unreachable — abbrev_defs filtered to Te_abbrev only")
+        let abbrevs_before, abbrevs_after = List.partition
+          (fun (_, _, _, _, t) -> not (src_t_references_paths mutual_paths t))
+          abbrev_extracted in
+        let render_abbrev (n0, tyvars, path, skips, t) =
+          let n = B.type_path_to_name n0 path in
+          let name = Name.to_output (Type_ctor (false, false)) n in
+          let tyvars' = type_def_type_variables tyvars in
+          let tyvar_sep = if List.length tyvars = 0 then emp else from_string " " in
+          Output.flat [
+            from_string "\nabbrev"; name; tyvar_sep; tyvars';
+            ws skips; from_string " := "; pat_typ t
+          ]
         in
         let abbrevs_before_output = flat @@ List.map render_abbrev abbrevs_before in
         let abbrevs_after_output = flat @@ List.map render_abbrev abbrevs_after in
@@ -2552,7 +2524,6 @@ type pat_style = FunParam | MatchArm
             Output.flat [
               i; space; concat_str " " ts_out
             ]
-        | _ -> raise (Reporting_basic.err_general true t.locn "Lean backend: unexpected type form in indreln_typ")
     and field ((n, _), f_ref, _skips, t) =
       let fname = Name.add_lskip (Name.strip_lskip (B.const_ref_to_name n false f_ref)) in
       Output.flat [
@@ -2582,7 +2553,6 @@ type pat_style = FunParam | MatchArm
             src_t_references_paths mutual_paths dom || src_t_references_paths mutual_paths rng
         | Typ_backend (_, ts) ->
             List.exists (src_t_references_paths mutual_paths) ts
-        | _ -> true
     (* Default value for a source type in Inhabited context.
        mutual_name_map: when non-empty, direct references to mutual types use
        TypeName.default_inhabited instead of default (for mutual def blocks
@@ -2607,7 +2577,6 @@ type pat_style = FunParam | MatchArm
               from_string "(fun ("; from_string v; from_string " : "; pat_typ dom;
               from_string ") => "; recurse rng; from_string ")"
             ]
-        | _ -> from_string "default"
     and generate_default_value_texp (t: texp) =
       match t with
         | Te_opaque -> from_string "sorry /- DAEMON -/"
@@ -2820,7 +2789,9 @@ type pat_style = FunParam | MatchArm
       if skip_instances then emp
       else
       match t with
-        | Te_abbrev _ -> emp  (* unreachable due to skip_instances *)
+        | Te_abbrev _ ->
+          raise (Reporting_basic.err_general true Ast.Unknown
+            "Lean backend: Te_abbrev in generate_beq_ord_instances should be unreachable (skip_instances handles it)")
         | _ ->
           let n = B.type_path_to_name name path in
           let o = lskips_t_to_output n in
@@ -2982,7 +2953,6 @@ type pat_style = FunParam | MatchArm
                 from_string ") => "; default_value rng; from_string ")"
               ]
         | Typ_backend _ -> from_string "default"
-        | _ -> from_string "sorry /- unexpected type form -/"
       ;;
 end
 ;;

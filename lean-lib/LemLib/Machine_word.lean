@@ -35,7 +35,8 @@ export Size (size)
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
+
 /- removed value specification -/
 
 
@@ -1634,12 +1635,14 @@ instance   : Size ty262144 where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed value specification -/
+
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+/- removed value specification -/
+
+
+
 /- removed value specification -/
 
 
@@ -1656,7 +1659,7 @@ instance (a : Type)  [Size a] : Show (BitVec  (@Size.size  a  _)) where
 def  size_test_fn  {a : Type} [Size a]  ( _ : BitVec  (@Size.size a  _))  : Nat :=  (@size (a) _)
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 
 instance (a : Type)  [Size a] : Eq0 (BitVec  (@Size.size  a  _)) where
 
@@ -1724,7 +1727,7 @@ instance (a : Type)  [Size a] : Eq0 (BitVec  (@Size.size  a  _)) where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- 
 
 instance (a : Type) [Size a] : Numeral (BitVec  (@Size.size  a  _)) where

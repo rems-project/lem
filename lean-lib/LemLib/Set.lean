@@ -58,9 +58,9 @@ open Lem_Set_helpers
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+
+
+
 
 instance (a : Type) [SetType a] : Eq0 (List  a) where
 
@@ -72,41 +72,42 @@ instance (a : Type) [SetType a] : Eq0 (List  a) where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed value specification -/
 
-/- removed top-level value definition -/
 /- removed value specification -/
-
-/- removed top-level value definition -/
-/- removed value specification -/
+ 
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
-/- removed value specification -/
-
-/- removed top-level value definition -/
-/- removed value specification -/
-
-/- removed top-level value definition -/
-/- removed value specification -/
-
-/- removed value specification -/
-
-/- removed top-level value definition -/
-/- removed top-level value definition -/
-/- removed value specification -/
 
 /- removed value specification -/
 
 /- removed value specification -/
 
+
+
+/- removed value specification -/
+ 
+
+/- removed value specification -/
+ /-  before is_empty  -/
+
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+/- removed value specification -/
+
+
+
+
+/- removed value specification -/
+
+/- removed value specification -/
+
+/- removed value specification -/
+
+/- removed value specification -/
+
+
+
 /- removed value specification -/
 
 /- removed value specification -/
@@ -129,17 +130,19 @@ def  splitMember  {a : Type} [SetType a] [Ord0 a]  (p : a) (s : List a)  : (List
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
-/- removed top-level value definition -/
-/- removed top-level value definition -/
-/- removed top-level value definition -/
-/- removed value specification -/
+
+
+
+
+
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+/- removed value specification -/
+
+
+
+
 /- removed value specification -/
 
 /- removed value specification -/
@@ -153,16 +156,17 @@ def  bigintersection  {a : Type} [SetType a]  (bs : List (List a))  : List a := 
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
-/- removed top-level value definition -/
-/- removed value specification -/
+
+
+
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+/- removed value specification -/
+
+
+
+
 /- removed value specification -/
  /-  before image  -/
 def  map0  {a : Type} {b : Type} [SetType a] [SetType b]  (f : a → b) (s : List a)  : List b :=  let  x2   := (setEmpty);  setFold  (fun (e : a) (x2 : List b) =>  if  true then setAdd  (f  e)  x2  else  x2)  s  x2
@@ -172,8 +176,9 @@ def  map0  {a : Type} {b : Type} [SetType a] [SetType b]  (f : a → b) (s : Lis
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+
+
+
 /- removed value specification -/
 
 def  setMapMaybe  {a : Type} {b : Type} [SetType a] [SetType b]  (f : a → Option b) (s : List a)  : List b :=  
@@ -189,10 +194,10 @@ def  removeMaybe  {a : Type} [SetType a]  (s : List (Option a))  : List a :=  se
 /- removed value specification -/
 
 /- removed value specification -/
+ 
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+
+
 /- removed value specification -/
 
 /- removed value specification -/
@@ -208,7 +213,8 @@ def  sigma  {a : Type} {b : Type} [SetType a] [SetType b]  (sa : List a) (sb : a
 def  cross  {a : Type} {b : Type} [SetType a] [SetType b]  (s1 : List a) (s2 : List b)  : List ((a ×b)) :=  let  x2   := (setEmpty);  setFold  (fun (e1 : a) (x2 : List ((a ×b))) =>  setFold  (fun (e2 : b) (x2 : List ((a ×b))) =>  if  true then setAdd  (e1, e2)  x2  else  x2)  s2  x2)  s1  x2
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
+
 /- removed value specification -/
 
 /- 

@@ -43,8 +43,8 @@ open Lem_Set
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+
+
 /- removed value specification -/
 
 /- removed value specification -/

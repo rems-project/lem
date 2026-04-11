@@ -76,9 +76,11 @@ def  stringConcat  (s : List (String))  : String :=
   List.foldr  String.append  ""  s
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+
+/-  TODO:  -/
+ /-  XXX: broken  -/
+
+
 
 def  stringLess  (x : String) (y : String)  : Bool :=  orderingIsLess  (defaultCompare  x  y)
 def  stringLessEq  (x : String) (y : String)  : Bool :=  not  (orderingIsGreater  (defaultCompare  x  y))

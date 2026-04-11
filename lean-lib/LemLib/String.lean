@@ -28,7 +28,7 @@ def  makeString  (len : Nat) (c : Char)  : String :=  String.ofList  (List.repli
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
 
@@ -37,10 +37,10 @@ def  string_case  {a : Type}  (s : String) (c_empty : a) (c_cons : Char → Stri
   
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
  def  concat  (sep : String) (ss : List (String))  : String := 

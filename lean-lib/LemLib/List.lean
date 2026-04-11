@@ -43,7 +43,8 @@ def  null  {a : Type}  (l : List a)  : Bool :=  match  l with |  [] =>  true |  
 
  def  listEqualBy  {a : Type}  (eq : a → a → Bool) (l1 : List a) (l2 : List a)  : Bool :=  match l1, l2 with  | [],  [] =>  true | [], ( _ :: _) =>  false | (_ :: _),  [] =>  false | x :: xs,  y  ::  ys =>  (eq  x  y  &&  listEqualBy  eq  xs  ys)
  -/
-/- removed top-level value definition -/
+
+
 
 instance (a : Type) [Eq0 a] : Eq0 (List  a) where
 
@@ -58,21 +59,24 @@ instance (a : Type) [Eq0 a] : Eq0 (List  a) where
 
  def  lexicographicCompareBy  {a : Type}  (cmp : a → a → LemOrdering) (l1 : List a) (l2 : List a)  : LemOrdering :=  match l1, l2 with  | [],  [] =>  LemOrdering.EQ | [],  _ :: _ =>  LemOrdering.LT | _ :: _,  [] =>  LemOrdering.GT | x :: xs,  y :: ys =>  (       match  cmp  x  y with  |  LemOrdering.LT =>  LemOrdering.LT |  LemOrdering.GT =>  LemOrdering.GT |  LemOrdering.EQ =>  lexicographicCompareBy  cmp  xs  ys            )
 
-/- removed top-level value definition -/
+
+
 /- removed value specification -/
 
 /- removed value specification -/
 
  def  lexicographicLessBy  {a : Type}  (less : a → a → Bool) (less_eq : a → a → Bool) (l1 : List a) (l2 : List a)  : Bool :=  match l1, l2 with  | [],  [] =>  false | [],  _ :: _ =>  true | _ :: _,  [] =>  false | x :: xs,  y :: ys =>  ((less  x  y)  ||  ((less_eq  x  y)  &&  (lexicographicLessBy  less  less_eq  xs  ys)))
 
-/- removed top-level value definition -/
+
+
 /- removed value specification -/
 
 /- removed value specification -/
 
  def  lexicographicLessEqBy  {a : Type}  (less : a → a → Bool) (less_eq : a → a → Bool) (l1 : List a) (l2 : List a)  : Bool :=  match l1, l2 with  | [],  [] =>  true | [],  _ :: _ =>  true | _ :: _,  [] =>  false | x :: xs,  y :: ys =>  (less  x  y  ||  (less_eq  x  y  &&  lexicographicLessEqBy  less  less_eq  xs  ys))
 
-/- removed top-level value definition -/
+
+
 
 
 instance (a : Type) [Ord0 a] : Ord0 (List  a) where
@@ -119,7 +123,7 @@ def  reverse  {a : Type}  (l : List a)  : List a :=  List.reverseAux  l  [] -/
 def  map  {a : Type} {b : Type}  (f : a → b) (l : List a)  : List b :=  count_map  f  l  0 -/
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
 /-  /-  originally foldl  -/
@@ -137,7 +141,7 @@ def  map  {a : Type} {b : Type}  (f : a → b) (l : List a)  : List b :=  count_
 def  concat  {a : Type}   : List (List a) → List a :=  List.foldr  (fun x y => x ++ y)  [] -/
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
 /-  /-  originally for_all  -/
@@ -174,10 +178,10 @@ def  findIndex  {a : Type}  (P : a → Bool) (l : List a)  : Option (Nat) :=  ma
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
 /- 
@@ -250,7 +254,7 @@ def  elem  {a : Type} [Eq0 a]   : a → List a → Bool :=  listMemberBy  (fun x
 
 /-  DPM: eta-expansion for Coq backend type-inference.  -/
 def  lookupBy  {a : Type} {b : Type}  (eq : a → a → Bool) (k : a) (m : List ((a ×b)))  : Option b :=  Option.map  (fun (x : (a ×b)) =>  Prod.snd  x)  (find  (fun (p : (a ×b)) =>  match p with |  (k',  _) =>  eq  k  k' )  m)
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
 /- 
@@ -272,7 +276,7 @@ def  reversePartition  {a : Type}  (P : a → Bool) (l : List a)  : (List a ×Li
 
 
 def  deleteBy  {a : Type}  (eq : a → a → Bool) (x : a) (l : List a)  : List a :=  fromMaybe  l  (deleteFirst  (eq  x)  l)
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
 /-  /-  before combine  -/

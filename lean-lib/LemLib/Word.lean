@@ -48,7 +48,7 @@ instance : Lem_Basic_classes.Ord0 (bitSequence) where
   isGreaterEqual := defaultGreaterEq
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 instance   : Eq0 bitSequence where
 
     isEqual   :=  (fun x y => x == y)
@@ -158,7 +158,7 @@ def  bitSeqArithBinOp  (binop : Int → Int → Int) (bs1 : bitSequence) (bs2 : 
 def  bitSeqArithBinTest  {a : Type}  (binop : Int → Int → a) (bs1 : bitSequence) (bs2 : bitSequence)  : a :=  binop  (integerFromBitSeq  bs1)  (integerFromBitSeq  bs2)
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- 
 
 instance   : Numeral bitSequence where

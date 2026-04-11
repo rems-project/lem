@@ -43,8 +43,9 @@ abbrev rel  (a : Type) (b : Type)  :=  rel_set  a  b
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+
+
+
 /- removed value specification -/
 
 def  relEq  {a : Type} {b : Type} [SetType a] [SetType b]  (r1 : List ((a ×b))) (r2 : List ((a ×b)))  : Bool :=  ( (setEqualBy  (pairCompare  (@setElemCompare (a) _)  (@setElemCompare (b) _)) r1  r2))
@@ -57,13 +58,13 @@ def  relToPred  {a : Type} {b : Type} [SetType a] [SetType b] [Eq0 a] [Eq0 b]  (
 def  relFromPred  {a : Type} {b : Type} [SetType a] [SetType b] [Eq0 a] [Eq0 b]  (xs : List a) (ys : List b) (p : a → b → Bool)  : List ((a ×b)) :=  Lem_Set.filter  (fun (p0 : (a ×b)) =>  match p0 with |  (x, y) =>  p  x  y )  (cross  xs  ys)
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
 def  relIdOn  {a : Type} [SetType a] [Eq0 a]  (s : List a)  : List ((a ×a)) :=  relFromPred  s  s  (fun x y => x == y)
@@ -71,10 +72,10 @@ def  relIdOn  {a : Type} [SetType a] [Eq0 a]  (s : List a)  : List ((a ×a)) := 
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
 def  relComp  {a : Type} {b : Type} {c : Type} [SetType a] [SetType b] [SetType c] [Eq0 a] [Eq0 b]  (r1 : List ((a ×b))) (r2 : List ((b ×c)))  : List ((a ×c)) :=  let  x2   := (setEmpty);  setFold  (fun (p : (a ×b)) (x2 : List ((a ×c))) =>  match p, x2 with | (e1, e2),  x2 =>  setFold  (fun (p : (b ×c)) (x2 : List ((a ×c))) =>  match p, x2 with | (e2', e3),  x2 => ( if  e2  ==  e2' then setAdd (e1, e3)  x2  else  x2) )  (r2)  x2 )  (r1)  x2
@@ -92,7 +93,7 @@ def  relDomain  {a : Type} {b : Type} [SetType a] [SetType b]  (r : List ((a ×b
 def  relRange  {a : Type} {b : Type} [SetType a] [SetType b]  (r : List ((a ×b)))  : List b :=  Lem_Set.map0  (fun (x : (a ×b)) =>  Prod.snd  x)  (r)
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
 def  relOver  {a : Type} [SetType a]  (r : List ((a ×a))) (s : List a)  : Bool :=  ( (setSubsetBy  (@setElemCompare (a) _) (( (setUnionBy  (@setElemCompare (a) _) (relDomain  r)  (relRange  r))))  s))
@@ -101,7 +102,7 @@ def  relOver  {a : Type} [SetType a]  (r : List ((a ×a))) (s : List a)  : Bool 
 def  relApply  {a : Type} {b : Type} [SetType a] [SetType b] [Eq0 a]  (r : List ((a ×b))) (s : List a)  : List b :=  let  x2   := (setEmpty);  setFold  (fun (p : (a ×b)) (x2 : List b) =>  match p, x2 with | (x,  y),  x2 => ( if  (setMemberBy  (@setElemCompare (a) _)  x  s) then setAdd  y  x2  else  x2) )  (r)  x2
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
 def  isReflexiveOn  {a : Type} [SetType a] [Eq0 a]  (r : List ((a ×a))) (s : List a)  : Bool :=  (setForAll  (fun (e : a) =>  (setMemberBy  (pairCompare  (@setElemCompare (a) _)  (@setElemCompare (a) _))  (e, e)  r))  s)
@@ -183,9 +184,10 @@ def  isStrictTotalOrderOn  {a : Type} [SetType a] [Eq0 a]  (r : List ((a ×a))) 
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+
+
+
+
 /- removed value specification -/
 
 

@@ -48,10 +48,10 @@ instance (a b : Type) [SetType a] [SetType b] : SetType (Sum  a  b) where
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
 def  either0  {a : Type} {b : Type} {c : Type}  (fa : a → c) (fb : b → c) (x : Sum a b)  : c :=  match  x with  |  Sum.inl  a1 =>  fa  a1 |  Sum.inr  b1 =>  fb  b1
@@ -62,10 +62,10 @@ def  either0  {a : Type} {b : Type} {c : Type}  (fa : a → c) (fb : b → c) (x
 
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
-/- removed top-level value definition -/
+
 end Lem_Either
 
 

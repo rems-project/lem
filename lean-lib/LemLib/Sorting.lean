@@ -29,7 +29,8 @@ open Lem_Num
 
  def  isPermutationBy  {a : Type}  (eq : a → a → Bool) (l1 : List a) (l2 : List a)  : Bool :=  match  l1 with  |  [] =>  List.isEmpty  l2 | ( x  ::  xs) =>  (       match  deleteFirst  (eq  x)  l2 with  |  none =>  false |  some  ys =>  isPermutationBy  eq  xs  ys            )
 
-/- removed top-level value definition -/
+
+
 /- removed value specification -/
 
 /- removed value specification -/
@@ -38,7 +39,8 @@ open Lem_Num
 /-  DPM: rejigged the definition with a nested match to get past Coq's termination checker.  -/
  def  isSortedBy  {a : Type}  (cmp : a → a → Bool) (l : List a)  : Bool :=  match  l with  |  [] =>  true |  x1  ::  xs => (     match  xs with  |  [] =>  true |  x2  ::  _ =>  (cmp  x1  x2  &&  isSortedBy  cmp  xs)     )
 
-/- removed top-level value definition -/
+
+
 /- removed value specification -/
 
 /- removed value specification -/
@@ -50,10 +52,11 @@ open Lem_Num
 
  def  insertBy  {a : Type}  (cmp : a → a → Bool) (e : a) (l : List a)  : List a :=  match  l with  |  [] =>  [e] |  x  ::  xs => ( if  cmp  x  e then  x  ::  (insertBy  cmp  e  xs)  else  (e  ::  (x  ::  xs)))
 
-/- removed top-level value definition -/
+
+
 
 def  insertSortBy  {a : Type}  (cmp : a → a → Bool) (l : List a)  : List a :=  List.foldl  (fun (l : List a) (e : a) =>  insertBy  cmp  e  l)  []  l
-/- removed top-level value definition -/
+
 /- removed value specification -/
 
 /- removed value specification -/
@@ -65,10 +68,13 @@ def  insertSortBy  {a : Type}  (cmp : a → a → Bool) (l : List a)  : List a :
 def  predicate_of_ord  {a : Type}  (f : a → a → LemOrdering) (x : a) (y : a)  : Bool := 
   match  f  x  y with  |  LemOrdering.LT =>  true |  LemOrdering.EQ =>  true |  LemOrdering.GT =>  false
   
-/- removed top-level value definition -/
-/- removed top-level value definition -/
-/- removed top-level value definition -/
-/- removed top-level value definition -/
+
+
+
+
+
+
+
 end Lem_Sorting
 
 
