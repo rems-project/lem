@@ -173,3 +173,17 @@ and result 'a = Result of 'a * action 'a
    all needed instances in a hand-written Lean file. *)
 type skip_me = SkipA | SkipB of nat
 declare {lean} skip_instances type skip_me
+
+(* === Section 9: All-nullary enums in mutual blocks derive BEq/Ord === *)
+
+(* Simple enums (all nullary constructors) in a mutual block should get
+   deriving BEq, Ord even though they share a mutual block with complex
+   recursive types. They have no args, so no dependency on other types'
+   BEq instances. This tests the Cerberus pattern: storage_class_specifier
+   is a simple enum in the same mutual block as cabs_expression_. *)
+type my_specifier = SpecA | SpecB | SpecC
+and my_expr = ExprLit of nat | ExprOp of my_specifier * my_expr
+
+(* Runtime assertion: BEq on my_specifier should work (derived, not sorry) *)
+assert spec_eq : SpecA = SpecA
+assert spec_neq : not (SpecA = SpecB)

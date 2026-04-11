@@ -2428,7 +2428,8 @@ type pat_style = FunParam | MatchArm
             ]
         | Te_variant (skips, ctors) ->
           let body = flat @@ Seplist.to_sep_list_first Seplist.Optional (constructor name ty_vars) (sep @@ from_string "\n") ctors in
-          let deriving_clause = if emit_deriving && texp_can_derive_beq ty then
+          let is_all_nullary = Seplist.for_all (fun (_, _, _, args) -> Seplist.to_list args = []) ctors in
+          let deriving_clause = if (emit_deriving || is_all_nullary) && texp_can_derive_beq ty then
             from_string "\n  deriving BEq, Ord"
           else emp in
             Output.flat [
@@ -2855,8 +2856,15 @@ type pat_style = FunParam | MatchArm
             else Output.flat [from_string " "; tnvar_names]
           in
           (* If the type uses deriving BEq, Ord (emitted by tyexp), skip sorry
-             BEq/Ord instances. Mutual types can't use deriving (emit_deriving=false). *)
-          let has_deriving = emit_deriving && texp_can_derive_beq t in
+             BEq/Ord instances. Mutual types normally can't use deriving
+             (emit_deriving=false), but all-nullary enums in mutual blocks
+             CAN derive — they have no args so no dependency on other types. *)
+          let is_all_nullary = match t with
+            | Te_variant (_, ctors) ->
+              Seplist.for_all (fun (_, _, _, args) -> Seplist.to_list args = []) ctors
+            | _ -> false
+          in
+          let has_deriving = (emit_deriving || is_all_nullary) && texp_can_derive_beq t in
           let beq_instance, ord_instance =
             if has_deriving then (emp, emp)
             else begin
