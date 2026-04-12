@@ -1353,19 +1353,19 @@ type pat_style = FunParam | MatchArm
               let (e0, args) = strip_app_exp e in
                 match C.exp_to_term e0 with
                   | Constant cd ->
+                    let c_descr = c_env_lookup Ast.Unknown A.env.c_env cd.descr in
+                    (* Check if this function is marked effectful for Lean *)
+                    let is_effectful = Target.Targetset.mem Target.Target_lean c_descr.effectful in
                     (* In indreln antecedents (Prop context), == and != applied via
                        App nodes (e.g. from <> decomposition: not (isEqual x y)) must
                        use propositional =/≠ instead of BEq ==/!=. *)
-                    let c_descr = c_env_lookup Ast.Unknown A.env.c_env cd.descr in
-                    begin match !lean_prop_equality, args, check_beq_target_rep c_descr with
+                    let raw_output = begin match !lean_prop_equality, args, check_beq_target_rep c_descr with
                     | true, [arg0; arg1], Some is_eq ->
                       let l_out = trans arg0 in
                       let r_out = trans arg1 in
                       if is_eq then [Output.flat [l_out; from_string "  =  "; r_out]]
                       else [Output.flat [l_out; meta_utf8 "  \xe2\x89\xa0  "; r_out]]
                     | _ ->
-                      (* For polymorphic indreln self-references in antecedents,
-                         insert explicit type parameters (Lean requires them). *)
                       begin match List.assoc_opt cd.descr !lean_indreln_params with
                       | Some params_str ->
                         let func_out = trans e0 in
@@ -1375,7 +1375,13 @@ type pat_style = FunParam | MatchArm
                       | None ->
                         B.function_application_to_output (exp_to_locn e) trans false e cd args (use_ascii_rep_for_const cd.descr)
                       end
-                    end
+                    end in
+                    (* Wrap effectful calls in runEffectful to prevent CSE.
+                       runEffectful extracts the BaseIO result at each call site,
+                       preventing purity-based CSE on side-effecting functions. *)
+                    if is_effectful then
+                      [Output.flat [from_string "(runEffectful ("; Output.concat (from_string " ") raw_output; from_string "))"]]
+                    else raw_output
                   | Backend (_, i) when Ident.to_string i = "sorry" ->
                     (* sorry is a term, not a function — drop applied arguments.
                        Annotate with the expression's type so Lean can infer it

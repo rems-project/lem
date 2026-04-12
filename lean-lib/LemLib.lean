@@ -22,6 +22,15 @@ private unsafe def DAEMON1_impl {α : Type 1} : α := unsafeCast ()
 @[implemented_by DAEMON_impl] axiom DAEMON : ∀ {α : Type}, α
 @[implemented_by DAEMON1_impl] axiom DAEMON1 : ∀ {α : Type 1}, α
 
+/- runEffectful: execute a BaseIO action, extracting the result.
+   Used by the Lean backend for effectful target_rep functions to prevent
+   CSE (common subexpression elimination) on side-effecting calls. -/
+private unsafe def runEffectful_impl {α : Type} (action : BaseIO α) : α :=
+  let result := (unsafeCast action : Unit → α) ()
+  result
+@[implemented_by runEffectful_impl]
+axiom runEffectful {α : Type} : BaseIO α → α
+
 /- Lem uses lowercase 'vector' for its built-in vector type -/
 abbrev vector (α : Type) (n : Nat) := Vector α n
 
