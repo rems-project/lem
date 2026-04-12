@@ -124,6 +124,10 @@ let tnvar_to_string = function
   | Typed_ast.Tn_A (_, tv, _) -> Ulib.Text.to_string tv
   | Typed_ast.Tn_N (_, nv, _) -> Ulib.Text.to_string nv
 
+let tnvar_kind = function
+  | Typed_ast.Tn_A _ -> "Type"
+  | Typed_ast.Tn_N _ -> "Nat"
+
 (* Check if a constant's Lean target rep is == or != (BEq operators).
    Returns Some true for ==, Some false for !=, None otherwise. *)
 let check_beq_target_rep c_descr =
@@ -603,7 +607,7 @@ type pat_style = FunParam | MatchArm
           let name_str = Name.to_string (B.class_path_to_name p) in
           lean_auxiliary_opens := lean_qualified_name name_str :: !lean_auxiliary_opens;
           let name = from_string name_str in
-          let tv_kind = match tv with Typed_ast.Tn_A _ -> "Type" | Typed_ast.Tn_N _ -> "Nat" in
+          let tv_kind = tnvar_kind tv in
           let tv = from_string (tnvar_to_string tv) in
           let method_names = ref [] in
           let body_entries =
@@ -2473,8 +2477,7 @@ type pat_style = FunParam | MatchArm
         | tvs ->
           let mapped = List.map (fun t ->
             let name = tnvar_to_string t in
-            let kind = match t with Typed_ast.Tn_A _ -> "Type" | Typed_ast.Tn_N _ -> "Nat" in
-            Output.flat [from_string "("; from_string name; from_string " : "; from_string kind; from_string ")"]
+            Output.flat [from_string "("; from_string name; from_string " : "; from_string (tnvar_kind t); from_string ")"]
           ) tvs
           in
             Output.flat [
@@ -2814,7 +2817,7 @@ type pat_style = FunParam | MatchArm
                  a BEq that's available unconditionally. *)
               let bare_tvs = concat emp @@ List.map (fun t ->
                 let name = tnvar_to_string t in
-                let kind = match t with Typed_ast.Tn_A _ -> "Type" | Typed_ast.Tn_N _ -> "Nat" in
+                let kind = tnvar_kind t in
                 Output.flat [from_string " {"; from_string name; from_string " : "; from_string kind; from_string "}"]
               ) tnvar_list in
               (* Low priority so hand-written BEq instances can override sorry *)
@@ -2841,8 +2844,7 @@ type pat_style = FunParam | MatchArm
                For types without, use sorry (can't derive or bridge). *)
             let bare_tvs_all = concat emp @@ List.map (fun t ->
               let name = tnvar_to_string t in
-              let kind = match t with Typed_ast.Tn_A _ -> "Type" | Typed_ast.Tn_N _ -> "Nat" in
-              Output.flat [from_string " {"; from_string name; from_string " : "; from_string kind; from_string "}"]
+              Output.flat [from_string " {"; from_string name; from_string " : "; from_string (tnvar_kind t); from_string "}"]
             ) tnvar_list in
             (* SetType/Eq0/Ord0: use real implementations for monomorphic types
                with deriving (no constraint propagation issue). For parameterized
