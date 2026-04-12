@@ -357,15 +357,12 @@ let collect_class_constraints_from_src_t (st : Types.src_t) : (string * string) 
    collect_class_constraints_from_src_t, (3) mapping TYR_subst type variables
    to actual type arguments. *)
 let extra_constraints_for_tyr_subst (ty : Types.t) : (string * string) list =
-  let l_unk = Ast.Trans (true, "extra_constraints_for_tyr_subst", None) in
   let constraints = ref [] in
   let rec walk (ty : Types.t) =
     match ty.t with
     | Types.Tapp (args, path) ->
-      let td_opt = try Some (Types.type_defs_lookup l_unk A.env.t_env path)
-                   with _ -> None in
-      begin match td_opt with
-      | Some td ->
+      begin match Types.type_defs_lookup_tc A.env.t_env path with
+      | Some (Types.Tc_type td) ->
         begin match Target.Targetmap.apply_target td.Types.type_target_rep
                 (Target.Target_no_ident Target.Target_lean) with
         | Some (Types.TYR_subst (_, _, tvars, rhs_t)) ->
@@ -388,6 +385,7 @@ let extra_constraints_for_tyr_subst (ty : Types.t) : (string * string) list =
           ) raw
         | _ -> ()
         end
+      | Some (Types.Tc_class _) -> () (* Classes don't have TYR_subst *)
       | None -> ()
       end;
       List.iter walk args
@@ -1569,27 +1567,23 @@ type pat_style = FunParam | MatchArm
               | P_paren (_, p', _) -> (match p'.term with P_tup _ | P_wild _ -> true | _ -> false)
               | _ -> false
             in
-            let tup_arity = match C.exp_to_term e with
-              | Tup (_, es, _) -> Seplist.length es
-              | _ -> 0
+            (* Extract tuple elements if the scrutinee is a tuple and all patterns
+               are tuples/wilds. Yields (arity, elements) for multi-discriminant match. *)
+            let tuple_elems = match C.exp_to_term e with
+              | Tup (_, es, _) when Seplist.for_all pat_is_tup_or_wild cases ->
+                  Some (Seplist.length es, Seplist.to_list es)
+              | _ -> None
             in
-            let is_tuple_match =
-              tup_arity > 0 && Seplist.for_all pat_is_tup_or_wild cases
-            in
-            let case_line' =
-              if is_tuple_match then case_line_multi inside_instance tup_arity
-              else case_line inside_instance
+            let case_line' = match tuple_elems with
+              | Some (arity, _) -> case_line_multi inside_instance arity
+              | None -> case_line inside_instance
             in
             let body = flat @@ Seplist.to_sep_list_last Seplist.Optional case_line' case_sep cases in
             let match_suffix = if has_vec then from_string ".toList" else emp in
-            let match_expr =
-              if is_tuple_match then
-                match C.exp_to_term e with
-                | Tup (_, es, _) ->
-                  Output.concat (from_string ", ") (List.map (exp inside_instance) (Seplist.to_list es))
-                | _ -> exp inside_instance e
-              else
-                exp inside_instance e
+            let match_expr = match tuple_elems with
+              | Some (_, elems) ->
+                  Output.concat (from_string ", ") (List.map (exp inside_instance) elems)
+              | None -> exp inside_instance e
             in
                 Output.flat [
                   ws skips; from_string "match "; match_expr; match_suffix; from_string " with "; body; ws skips''
@@ -1965,10 +1959,9 @@ type pat_style = FunParam | MatchArm
           (* Also check if the type itself is an abbreviation expanding to a function type.
              This catches cases like stateM 'a 'st = 'st -> maybe ('a * 'st) where the
              abbreviation hides a function type. *)
-          (let l = Ast.Trans (false, "src_t_has_fn", None) in
-           try
-             let td = Types.type_defs_lookup l A.env.t_env id.descr in
-             match td.Types.type_abbrev with
+          (match Types.type_defs_lookup_tc A.env.t_env id.descr with
+           | Some (Types.Tc_type td) ->
+             (match td.Types.type_abbrev with
                | Some expanded_t ->
                  (* Check if the expanded type contains a function.
                     Use head_norm to fully expand nested abbreviations
@@ -1982,11 +1975,12 @@ type pat_style = FunParam | MatchArm
                      | _ -> false
                  in
                  types_t_has_fn expanded_t
-               | None -> false
-           with _ -> false)
+               | None -> false)
+           | _ -> false)
+        | Typ_backend (_, ts) -> List.exists src_t_has_fn ts
         | Typ_paren (_, t, _) -> src_t_has_fn t
         | Typ_with_sort (t, _) -> src_t_has_fn t
-        | _ -> false
+        | Typ_wild _ | Typ_var _ | Typ_len _ -> false
     and texp_can_derive_beq (t : texp) : bool =
       match t with
         | Te_variant (_, ctors) ->
@@ -1995,7 +1989,7 @@ type pat_style = FunParam | MatchArm
           ) ctors)
         | Te_record (_, _, fields, _) ->
           not (Seplist.exists (fun (_, _, _, src_t) -> src_t_has_fn src_t) fields)
-        | _ -> false
+        | Te_opaque | Te_abbrev _ -> false
     (* --- Type definition rendering ---
        Dispatch by type form:
        - Te_abbrev → type_def_abbreviation (Lean abbrev)
