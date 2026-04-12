@@ -859,7 +859,12 @@ type pat_style = FunParam | MatchArm
           comment
         | None -> comment
         end
-      | Declaration _ -> emp  (* Declarations (target_rep, rename, etc.) are processed earlier *)
+      | Declaration (Decl_extra_import (_, _, _, _, mod_name)) ->
+          (* Add user-requested import to this file's import list *)
+          if not (List.mem mod_name !lean_collected_imports) then
+            lean_collected_imports := mod_name :: !lean_collected_imports;
+          emp
+      | Declaration _ -> emp  (* Other declarations processed earlier *)
       | Lemma _ -> emp  (* Lemmas are handled by def_extra, not def *)
     and val_def inside_instance i_ref_opt is_recursive try_term def tv_set class_constraints =
       begin

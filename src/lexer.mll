@@ -132,6 +132,7 @@ let kw_table =
      ("set_flag"),               (fun x -> SetFlag(x));
      ("termination_argument"),   (fun x -> TerminationArgument(x));
      ("skip_instances"),         (fun x -> SkipInstances(x));
+     ("extra_import"),           (fun x -> ExtraImport(x));
      ("pattern_match"),          (fun x -> PatternMatch(x));
      ("right_assoc"),            (fun x -> RightAssoc(x));
      ("left_assoc"),             (fun x -> LeftAssoc(x));

@@ -50,6 +50,13 @@ This skips generation of `Inhabited`, `BEq`, `Ord`, `SetType`, `Eq0`, and `Ord0`
 
 The declaration is scoped to the Lean backend (`{lean}`) and has no effect on other backends.
 
+### Extra Imports
+The `extra_import` declaration injects an import into the generated Lean file:
+
+    declare {lean} extra_import `MyHandwrittenInstances`
+
+This causes the generated `.lean` file to include `import MyHandwrittenInstances` in its import list. Use this when a generated module needs to see typeclass instances (e.g. BEq, Ord) from a hand-written Lean file. Place the declaration in the consuming `.lem` file, not the file that defines the types, to avoid circular imports.
+
 ### Automatic Renaming
 Lean 4 types and values share a single namespace, unlike many other backends. The Lean backend automatically renames constants that would collide with type names in the same module or in imported modules. Additionally, certain names that clash with Lean 4 standard library type classes (such as `Add`, `Sub`, `Neg`, `Mul`, `Div`, `Mod`, `Pow`, `Min`, `Max`, `Abs`, `Not`, `Append`) are automatically renamed to avoid ambiguity.
 

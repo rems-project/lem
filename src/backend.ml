@@ -3683,6 +3683,16 @@ let rec def_internal callback (inside_module: bool) d is_user_def : Output.t = m
         T.bkwd "type" ^
         B.type_id_to_output t_id
       end
+  | Declaration (Decl_extra_import (sk1, targets, sk2, sk3, mod_name)) ->
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        T.bkwd "declare" ^
+        targets_opt targets ^
+        ws sk2 ^
+        T.bkwd "extra_import" ^
+        ws sk3 ^
+        core (str (Ulib.Text.of_string mod_name))
+      end
   | Comment(d) ->
       let (d',sk) = def_alter_init_lskips (fun sk -> (None, sk)) d in
         ws sk ^ ws (Some([Ast.Com(Ast.Comment([Ast.Chars(X.comment_def d')]))]))

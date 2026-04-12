@@ -3066,6 +3066,10 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let ctxt' = {ctxt with all_tdefs = all_tdefs'} in
           let def' = Some (Declaration (Decl_skip_instances (sk1, targs, sk2, sk3, p_id))) in
           (ctxt', def')
+      | Ast.Declaration(Ast.Decl_extra_import_decl (sk1, targets_opt, sk2, sk3, mod_name)) ->
+          let targs = check_target_opt targets_opt in
+          let def' = Some (Declaration (Decl_extra_import (sk1, targs, sk2, sk3, mod_name))) in
+          (ctxt, def')
       | Ast.Declaration(Ast.Decl_set_flag_decl (_, _, _, _, _)) ->
           let _ = prerr_endline "set flag declaration encountered" in
             ctxt, None

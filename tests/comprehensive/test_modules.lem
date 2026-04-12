@@ -205,3 +205,12 @@ end
 let test_nested_mod = SEU.Operators.seu_bind (Just 5) (fun x -> Just (x + 1))
 
 assert nested_mod_ok : test_nested_mod = Just (6 : nat)
+
+(* =====================================================
+   Section 7: declare extra_import
+   ===================================================== *)
+
+(* Tests that declare extra_import injects an import into the generated
+   Lean file. TestExtraImportHelper.lean defines extraImportedValue = 42.
+   The generated Test_modules.lean should import it. *)
+declare {lean} extra_import `TestExtraImportHelper`
