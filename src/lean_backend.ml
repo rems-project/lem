@@ -1376,11 +1376,11 @@ type pat_style = FunParam | MatchArm
                         B.function_application_to_output (exp_to_locn e) trans false e cd args (use_ascii_rep_for_const cd.descr)
                       end
                     end in
-                    (* Wrap effectful calls in runEffectful to prevent CSE.
-                       runEffectful extracts the BaseIO result at each call site,
-                       preventing purity-based CSE on side-effecting functions. *)
+                    (* Wrap effectful calls in runEffectful with a thunk to prevent CSE.
+                       Each call site creates a fresh lambda closure, preventing Lean's
+                       CSE from merging calls to side-effecting functions. *)
                     if is_effectful then
-                      [Output.flat [from_string "(runEffectful ("; Output.concat (from_string " ") raw_output; from_string "))"]]
+                      [Output.flat [from_string "(runEffectful (fun () => "; Output.concat (from_string " ") raw_output; from_string "))"]]
                     else raw_output
                   | Backend (_, i) when Ident.to_string i = "sorry" ->
                     (* sorry is a term, not a function — drop applied arguments.
