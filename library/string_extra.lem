@@ -24,6 +24,7 @@ declare ocaml target_rep function ord = `Char.code`
    search, they might not be the best options *)
 declare isabelle target_rep function ord = `of_char`
 declare coq target_rep function ord = `nat_of_ascii`
+declare lean target_rep function ord = `Char.toNat`
 
 val chr : nat -> char
 declare hol target_rep function chr = `CHR`
@@ -32,6 +33,7 @@ declare ocaml target_rep function chr = `Char.chr`
    search, they might not be the best options *)
 declare isabelle target_rep function chr = `(%n. char_of (n::nat))`
 declare coq target_rep function chr = `ascii_of_nat`
+declare lean target_rep function chr = `Char.ofNat`
 
 (******************************************************************************)
 (* Converting to strings                                                      *)
@@ -45,6 +47,7 @@ let rec stringFromNatHelper n acc =
     stringFromNatHelper (n / 10) (chr (n mod 10 + 48) :: acc)
 
 declare {isabelle} termination_argument stringFromNatHelper = automatic
+declare lean target_rep function stringFromNatHelper = `lemStringFromNatHelper`
 
 val stringFromNat : nat -> string
 let ~{ocaml;hol} stringFromNat n = 
@@ -65,6 +68,7 @@ let rec stringFromNaturalHelper n acc =
     stringFromNaturalHelper (n / 10) (chr (natFromNatural (n mod 10 + 48)) :: acc)
 
 declare {isabelle} termination_argument stringFromNaturalHelper = automatic
+declare lean target_rep function stringFromNaturalHelper = `lemStringFromNaturalHelper`
 
 val stringFromNatural : natural -> string
 let ~{ocaml;hol} stringFromNatural n = 
@@ -132,6 +136,7 @@ val stringCompare : string -> string -> ordering
 (* TODO: *)
 let inline stringCompare x y = EQ (* XXX: broken *)
 let inline {ocaml} stringCompare = defaultCompare
+let inline {lean} stringCompare = defaultCompare
 
 declare compile_message stringCompare = "It is highly unclear, what string comparison should do. Do we have abc < ABC < bbc or abc < bbc < Abc? How about A with various accents? We don't make any guarentees on what stringCompare does for the different backends."
 

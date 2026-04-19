@@ -1,0 +1,189 @@
+(* Consolidated instance tests: parameterized instances, map/fold over
+   mutual types, SetType unit.
+   Merged from test_parameterized_instances.lem, test_map_fold_mutual.lem,
+   test_settype_unit.lem. *)
+
+open import Pervasives_extra
+open import Map_extra
+
+(* ================================================================ *)
+(* Section 1: Parameterized instances                               *)
+(*   (from test_parameterized_instances)                            *)
+(* ================================================================ *)
+
+(* === Phantom-like type parameter in function === *)
+(* 'a appears in the return type but not in any explicit parameter.
+   The Lean backend should filter it from the implicit binding list
+   since Lean can't infer it. *)
+type box 'a = Box of 'a
+
+let make_default_box : box nat = Box 0
+
+assert box_ok : make_default_box = Box (0:nat)
+
+(* === Parameterized recursive type (Inhabited without constraints) === *)
+(* Inhabited instance should use sorry without [Inhabited a] constraint,
+   so that partial functions returning this type compile. *)
+type wrapped 'a =
+  | Wrap of 'a
+  | WrapPair of wrapped 'a * wrapped 'a
+
+let rec depth (w : wrapped nat) : nat =
+  match w with
+    | Wrap _ -> 0
+    | WrapPair l r -> 1 + depth l + depth r
+  end
+
+assert depth_ok : depth (WrapPair (Wrap 1) (Wrap 2)) = (1:nat)
+
+(* === Downstream types that derive BEq/Ord from parameterized base types === *)
+(* The sorry-based Ord instance on inst_container 'a should NOT require [Inhabited a],
+   so that inst_wrapper can use deriving BEq/Ord successfully. *)
+type inst_container 'a =
+  | ICEmpty
+  | ICSingle of 'a
+  | ICPair of inst_container 'a * inst_container 'a
+
+type inst_wrapper =
+  | IW of inst_container nat * nat
+
+let test_container = ICSingle (42:nat)
+let test_wrapper = IW (ICSingle 1) 2
+
+assert container_ok : test_container = ICSingle (42:nat)
+
+(* === Opaque parameterized type (instance body flattening) === *)
+(* Opaque types get sorry-based instances. When the type has parameters,
+   the instance body can span multiple lines. The Lean backend must
+   flatten these to avoid misparse as separate field definitions. *)
+type opaque_thing 'a
+
+(* The type is opaque -- instances (Inhabited, BEq, Ord) are auto-generated with sorry. *)
+
+(* ================================================================ *)
+(* Section 2: Map/fold over mutual types                            *)
+(*   (from test_map_fold_mutual)                                    *)
+(* ================================================================ *)
+
+(* A parameterized type whose constructors carry 'a -- will get
+   'deriving BEq, Ord' in the generated Lean. *)
+type decl 'a = Fun0 of nat | Proc0 of 'a
+
+(* Polymorphic function: 'a has no Eq/Ord/BEq constraints in Lem.
+   Map_extra.fold requires SetType (decl 'a), but the generated
+   SetType instance needs [Inhabited a] [BEq a] [Ord a]. *)
+val count_decls : forall 'a. map nat (decl 'a) -> nat
+let count_decls m =
+  Map_extra.fold (fun (k : nat) (v : decl 'a) (acc : nat) ->
+    match v with
+      | Fun0 _ -> acc + 1
+      | Proc0 _ -> acc + 2
+    end
+  ) m 0
+
+(* ================================================================ *)
+(* Section 3: SetType unit (from test_settype_unit)                 *)
+(* ================================================================ *)
+
+(* Test that Set.map returning set unit works.
+   Requires SetType Unit instance in LemLib. *)
+let test_set_map (s : set nat) : set unit =
+  Set.map (fun _ -> ()) s
+
+(* ================================================================ *)
+(* Section 4: Runtime Eq0/Ord0 on monomorphic deriving types        *)
+(* ================================================================ *)
+
+(* Monomorphic types with deriving BEq/Ord should have working
+   Eq0/Ord0/SetType instances that use the derived implementations,
+   not sorry. Assertions using isEqual/isInequal will panic at runtime
+   with "executed sorry" if the instances are sorry-based. *)
+type color2 = CRed | CGreen | CBlue
+
+let eq0_works : bool = isEqual CRed CRed
+let eq0_neq : bool = isInequal CRed CBlue
+
+assert eq0_runtime_ok : eq0_works
+assert eq0_runtime_neq : eq0_neq
+
+(* ================================================================ *)
+(* Section 5: Inhabited on mutual types uses constructors not sorry *)
+(* ================================================================ *)
+
+(* Mutual types where one type's constructor references another.
+   The backend should use actual constructors for Inhabited defaults,
+   not sorry. Sorry would cause runtime panic at module init because
+   Inhabited defaults are evaluated eagerly.
+   - leaf_node has nullary constructor Leaf: default := Leaf
+   - tree_node references leaf_node: default := Branch default (using Leaf) *)
+type leaf_node = Leaf | LeafVal of nat
+and tree_node = Branch of leaf_node * list tree_node
+
+(* If Inhabited uses sorry, importing this module would panic at init.
+   Using real constructors means the module loads without panic.
+   No equality assertion — BEq is sorry for mutual types. The test
+   is that the module compiles and loads without runtime sorry panic. *)
+
+(* === Section 6: Inhabited on mutual blocks with cyclic dependencies === *)
+
+(* Simple case: wrapper depends on payload, payload has nullary ctor. *)
+type wrapper_node = WNode of payload_node
+and payload_node = PEmpty | PVal of nat
+
+(* Cyclic case: 4 types forming A→B→C (nullary) and D→A (cycle through D).
+   Without mutual def, even nullary-first sorting fails:
+     Sorted: cycC (nullary), cycA, cycB, cycD (original order for non-nullary)
+     cycA needs Inhabited cycB → not defined yet → ERROR
+   With mutual def, all forward references resolve simultaneously. *)
+type cycA = MkCycA of cycB * nat
+and cycB = MkCycB of cycC
+and cycC = CycCEmpty | MkCycC of cycD
+and cycD = MkCycD of cycA * bool
+
+(* Cabs.lean pattern: gnulike is defined FIRST but its constructor
+   takes mini_tn directly. mini_tn's constructor args go through
+   containers (list, maybe) so its default is MiniTN [] None — no
+   Inhabited deps. But with definition-order emission, gnulike's
+   Inhabited is emitted first and fails: needs Inhabited mini_tn.
+   mutual def solves this via forward references. *)
+type gnulike = GnuBuiltin of mini_tn * mini_tn
+and mini_tn = MiniTN of list mini_sq * maybe mini_ad
+and mini_sq = MiniSQ of mini_tn | MiniSQBasic of nat
+and mini_ad = MiniAD of list nat * maybe mini_dad
+and mini_dad = MiniDADParen of mini_ad | MiniDADArray of nat | MiniDADFn of list mini_tn
+
+(* === Section 7: DAEMON fallback for parametric types === *)
+
+(* Parametric types without nullary constructors get noncomputable
+   DAEMON-based Inhabited instances. DAEMON is an axiom — no init code,
+   no panic, no [Inhabited a] constraints needed. The module loading
+   without panic is the test. *)
+type nd_action 'a = NDactive of 'a | NDkill of nd_result 'a
+and nd_result 'a = NDresult of 'a * nd_action 'a
+
+(* Self-referential parametric mutual: both types have only constructors
+   that reference the other. Both should get DAEMON, not sorry. *)
+type action 'a = Active of 'a | Kill of result 'a
+and result 'a = Result of 'a * action 'a
+
+(* === Section 8: declare skip instances === *)
+
+(* Types annotated with 'skip instances' should have NO auto-generated
+   instances (Inhabited, BEq, Ord, SetType, Eq0, Ord0). The user provides
+   all needed instances in a hand-written Lean file. *)
+type skip_me = SkipA | SkipB of nat
+declare {lean} skip_instances type skip_me
+
+(* === Section 9: All-nullary enums in mutual blocks derive BEq/Ord === *)
+
+(* Simple enums (all nullary constructors) in a mutual block should get
+   deriving BEq, Ord even though they share a mutual block with complex
+   recursive types. They have no args, so no dependency on other types'
+   BEq instances. This tests the Cerberus pattern: storage_class_specifier
+   is a simple enum in the same mutual block as cabs_expression_. *)
+type my_specifier = SpecA | SpecB | SpecC
+and my_expr = ExprLit of nat | ExprOp of my_specifier * my_expr
+
+(* Runtime assertion: BEq on my_specifier should work (derived, not sorry) *)
+assert spec_eq : SpecA = SpecA
+assert spec_neq : not (SpecA = SpecB)

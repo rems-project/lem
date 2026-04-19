@@ -1,0 +1,79 @@
+open import Pervasives_extra
+
+(* ================================================================ *)
+(* Records: construction, access, update, patterns                  *)
+(* (from test_records_advanced.lem)                                 *)
+(* ================================================================ *)
+
+type point = <| x : nat; y : nat |>
+type rect = <| top_left : point; bottom_right : point |>
+type labeled 'a = <| label : string; value : 'a |>
+
+(* === Record construction === *)
+let p1 = <| x = 1; y = 2 |>
+let p2 = <| x = 3; y = 4 |>
+
+(* === Field access === *)
+let rec_access1 = p1.x + p1.y
+let rec_access2 = p2.x
+
+(* === Record update === *)
+let rec_update1 = <| p1 with x = 10 |>
+let rec_update2 = <| p1 with x = 10; y = 20 |>
+
+(* === Nested records === *)
+let r1 = <| top_left = p1; bottom_right = p2 |>
+let rec_nested = r1.top_left.x + r1.bottom_right.y
+
+(* === Parameterized records === *)
+let l1 = <| label = "hello"; value = (42 : nat) |>
+let rec_param = l1.value
+
+(* === Record patterns in match === *)
+let get_x (p : point) =
+  match p with
+    <| x = xval; y = _ |> -> xval
+  end
+
+let rec_pat_match = get_x p1
+
+(* === Record with comments in fields === *)
+let p3 = <|
+  (* x coord *) x = 5 (* end x *);
+  (* y coord *) y = 10 (* end y *)
+|>
+
+(* === Record field order independence === *)
+let p4 = <| y = 20; x = 10 |>
+let rec_field_order = p4.x
+
+assert rec_access1_ok : (rec_access1 = (3:nat))
+assert rec_access2_ok : (rec_access2 = (3:nat))
+assert rec_nested_ok : (rec_nested = (5:nat))
+assert rec_param_ok : (rec_param = (42:nat))
+assert rec_pat_match_ok : (rec_pat_match = (1:nat))
+assert rec_field_order_ok : (rec_field_order = (10:nat))
+
+(* ================================================================ *)
+(* Multiline record construction                                    *)
+(* (from test_multiline_record.lem)                                 *)
+(* ================================================================ *)
+
+type my_state = <|
+  field_a : list nat ;
+  field_b : nat ;
+|>
+
+(* Record construction spanning multiple source lines *)
+let init_state : my_state =
+  <| field_a = []
+   ; field_b = (0 : nat) |>
+
+(* Also test a single-line record construction for baseline *)
+let init_state_single : my_state = <| field_a = []; field_b = (0 : nat) |>
+
+(* Record update spanning multiple source lines (Recup case) *)
+let updated_state : my_state =
+  <| init_state with
+     field_b = (42 : nat)
+  |>

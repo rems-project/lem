@@ -1,0 +1,100 @@
+open import Pervasives_extra
+
+(* ================================================================ *)
+(* Expression edge cases                                            *)
+(* (from test_expressions_edge.lem)                                 *)
+(* ================================================================ *)
+
+(* === Unit === *)
+let expr_unit1 = ()
+let expr_unit2 = ( )
+
+(* === Tuples === *)
+let expr_tuple1 = ((1:nat), true, "hello")
+let expr_tuple2 = ((1:nat), ((2:nat), true))
+
+(* === Operator precedence === *)
+let expr_prec1 = (2:nat) + 3 * 4
+let expr_prec2 = ((2:nat) + 3) * 4
+
+(* === Chained comparisons === *)
+let expr_cmp_lt = (1:nat) < 2
+let expr_cmp_chain = (1:nat) <= 2 && (2:nat) <= 3
+
+(* === If-then-else nesting === *)
+let expr_nested_if = if true then if false then (1:nat) else 2 else 3
+
+(* === Begin-end === *)
+let expr_begin_end = begin (2:nat) + 1 end
+
+(* === Type annotations === *)
+let expr_type_ann = ((1:nat) : nat)
+
+(* === Record field access chain === *)
+type inner = <| v : nat |>
+type outer_rec = <| inner_field : inner |>
+let o = <| inner_field = <| v = 42 |> |>
+let expr_field_chain = o.inner_field.v
+
+(* === Cons chains === *)
+let expr_cons1 = 1 :: (2:nat) :: [3; 4; 5]
+let expr_cons2 = 1 :: (2:nat) :: [3; 4; 5;]
+
+(* === Boolean operators (edge) === *)
+let expr_and x y = x && y
+let expr_or x y = x || y
+let expr_imp x y = x --> y
+
+(* === Comparison operators (edge) === *)
+let expr_geq (x:nat) y = x >= y
+let expr_eq (x:nat) y = x = y
+
+(* === Arithmetic === *)
+let expr_add = (10:nat) + 20
+let expr_sub = (100:nat) - 30
+let expr_mul = (7:nat) * 8
+
+assert expr_prec1_ok : (expr_prec1 = (14:nat))
+assert expr_prec2_ok : (expr_prec2 = (20:nat))
+assert expr_cmp_lt_ok : expr_cmp_lt
+assert expr_cmp_chain_ok : expr_cmp_chain
+assert expr_nested_if_ok : (expr_nested_if = (2:nat))
+assert expr_begin_end_ok : (expr_begin_end = (3:nat))
+assert expr_field_chain_ok : (expr_field_chain = (42:nat))
+assert expr_add_ok : (expr_add = (30:nat))
+assert expr_sub_ok : (expr_sub = (70:nat))
+assert expr_mul_ok : (expr_mul = (56:nat))
+
+(* ================================================================ *)
+(* Infix operators                                                  *)
+(* (from test_infix_ops.lem)                                        *)
+(* ================================================================ *)
+
+(* === Standard operators as values === *)
+let infix_plus_val = (+) (1:nat) 2
+let infix_and_val = (&&) true false
+let infix_or_val = (||) true false
+
+(* === Boolean operators (infix) === *)
+let infix_and x y = x && y
+let infix_or x y = x || y
+let infix_imp x y = x --> y
+
+(* === Comparison operators (infix) === *)
+let infix_geq (x:nat) y = x >= y
+let infix_eq (x:nat) y = x = y
+
+(* === Arithmetic operator precedence (infix) === *)
+let infix_prec1 = (2:nat) + 3 * 4
+let infix_prec2 = ((2:nat) + 3) * 4
+
+assert infix_plus_val_ok : (infix_plus_val = (3:nat))
+assert infix_and_val_ok : (infix_and_val = false)
+assert infix_or_val_ok : (infix_or_val = true)
+assert infix_and_ok : (infix_and true true = true)
+assert infix_or_ok : (infix_or false true = true)
+assert infix_imp_ok : (infix_imp false true = true)
+assert infix_geq_ok : (infix_geq 5 3 = true)
+assert infix_eq_ok : (infix_eq 3 3 = true)
+assert infix_prec1_ok : (infix_prec1 = (14:nat))
+assert infix_prec2_ok : (infix_prec2 = (20:nat))

@@ -107,8 +107,13 @@ val get_imported_target_modules : Typed_ast.def list * Ast.lex_skips -> Imported
 val imported_modules_to_strings : env -> Target.target -> string -> Imported_Modules_Set.t -> bool -> string list
 
 
+(** Callback invoked when a CR_simple target rep is applied during rendering.
+    Called with the identifier string (e.g., "CerberusImpl.sizeof_ity").
+    Set by the Lean backend to collect per-file import requirements. *)
+val on_cr_simple_applied : (bool -> string -> unit) ref
+
 module Make(A : sig
-  val env : env;; 
+  val env : env;;
   val target : Target.target;;
   val dir : string;;
   val id_format_args : (bool -> Output.id_annot -> Ulib.Text.t -> Output.t) * Ulib.Text.t
@@ -167,6 +172,10 @@ val const_ref_to_name : Name.lskips_t -> bool -> const_descr_ref -> Name.lskips_
     The argument [n] is the name used in the original input. It's whitespace is used to
     format [n']. *)
 val type_path_to_name : Name.lskips_t -> Path.t -> Name.lskips_t
+
+(** [class_path_to_name p] returns the target-specific name for the class at path [p],
+    consulting the class_rename map for the current target. Falls back to the raw path name. *)
+val class_path_to_name : Path.t -> Name.t
 
 (** [type_id_to_ident ty_id] tries to format a type
     [ty_id] as an identifier for target [A.target] using the rules stored

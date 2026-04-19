@@ -19,12 +19,14 @@ open import {hol} `ternaryComparisonsTheory`
    For OCaml, it might be different, since abstract datatypes like sets
    might have fancy equalities. *)
 
-class ( Eq 'a ) 
+class ( Eq 'a )
   val (=) [`isEqual`] : 'a -> 'a -> bool
   val (<>) [`isInequal`] : 'a -> 'a -> bool
 end
 
 declare coq target_rep function isEqual = infix `=`
+declare lean target_rep function isEqual = infix `==`
+declare lean target_rep function isInequal = infix `!=`
 (* declare coq target_rep function isEqual = infix `=`
 declare coq target_rep function isInequal = infix `<>` *)
 declare tex target_rep function isInequal = infix `$\neq$`
@@ -58,11 +60,13 @@ declare hol      target_rep function unsafe_structural_equality = infix `=`
 declare ocaml    target_rep function unsafe_structural_equality = infix `=`
 declare isabelle target_rep function unsafe_structural_equality = infix `=`
 declare coq      target_rep function unsafe_structural_equality = `classical_boolean_equivalence`
+declare lean     target_rep function unsafe_structural_equality = infix `==`
 
 val unsafe_structural_inequality : forall 'a. 'a -> 'a -> bool
 let unsafe_structural_inequality x y = not (unsafe_structural_equality x y)
 declare isabelle target_rep function unsafe_structural_inequality = infix `\<noteq>`
 declare hol      target_rep function unsafe_structural_inequality = infix `<>`
+declare lean     target_rep function unsafe_structural_inequality = infix `!=`
 
 (* The default for equality is the unsafe structural one. It can 
    (and should) be overriden for concrete types later. *)
@@ -94,6 +98,11 @@ declare coq target_rep type ordering = `ordering`
 declare coq target_rep function LT = `LT`
 declare coq target_rep function EQ = `EQ`
 declare coq target_rep function GT = `GT`
+
+declare lean target_rep type ordering = `LemOrdering`
+declare lean target_rep function LT = `LemOrdering.LT`
+declare lean target_rep function EQ = `LemOrdering.EQ`
+declare lean target_rep function GT = `LemOrdering.GT`
 
 declare hol target_rep type ordering = `ordering`
 declare hol target_rep function LT = `LESS`
@@ -130,8 +139,9 @@ assert ordering_match_6 : ((fun r -> (match r with GT -> true && true | _ -> fal
 
 
 val orderingEqual : ordering -> ordering -> bool
-let inline ~{ocaml;coq} orderingEqual = unsafe_structural_equality
+let inline ~{ocaml;coq;lean} orderingEqual = unsafe_structural_equality
 declare coq   target_rep function orderingEqual left right = (`ordering_equal` left right)
+declare lean  target_rep function orderingEqual = infix `==`
 declare ocaml target_rep function orderingEqual = `Lem.orderingEqual`
 
 instance (Eq ordering) 
@@ -139,18 +149,23 @@ instance (Eq ordering)
   let (<>) x y = not (orderingEqual x y)
 end
 
-class ( Ord 'a ) 
+class ( Ord 'a )
   val compare                 : 'a -> 'a -> ordering
   val (<)  [`isLess`]         : 'a -> 'a -> bool
   val (<=) [`isLessEqual`]    : 'a -> 'a -> bool
   val (>)  [`isGreater`]      : 'a -> 'a -> bool
-  val (>=) [`isGreaterEqual`] : 'a -> 'a -> bool 
+  val (>=) [`isGreaterEqual`] : 'a -> 'a -> bool
 end
 
 declare coq target_rep function isLess = `isLess`
 declare coq target_rep function isLessEqual = `isLessEqual`
 declare coq target_rep function isGreater = `isGreater`
 declare coq target_rep function isGreaterEqual = `isGreaterEqual`
+declare lean target_rep function compare = `Ord0.compare`
+declare lean target_rep function isLess = `isLess`
+declare lean target_rep function isLessEqual = `isLessEqual`
+declare lean target_rep function isGreater = `isGreater`
+declare lean target_rep function isGreaterEqual = `isGreaterEqual`
 declare tex target_rep function isLess = infix `$<$`
 declare tex target_rep function isLessEqual = infix `$\le$`
 declare tex target_rep function isGreater = infix `$>$`
@@ -173,26 +188,31 @@ declare ocaml    target_rep function defaultCompare = `compare`
 declare hol      target_rep function defaultCompare = 
 declare isabelle target_rep function defaultCompare = 
 declare coq      target_rep function defaultCompare x y = EQ
+declare lean     target_rep function defaultCompare = `defaultCompare`
 
 declare ocaml    target_rep function defaultLess = infix `<`
-declare hol      target_rep function defaultLess = 
-declare isabelle target_rep function defaultLess = 
-declare coq      target_rep function defaultLess = 
+declare hol      target_rep function defaultLess =
+declare isabelle target_rep function defaultLess =
+declare coq      target_rep function defaultLess =
+declare lean     target_rep function defaultLess = `defaultLess`
 
 declare ocaml    target_rep function defaultLessEq = infix `<=`
-declare hol      target_rep function defaultLessEq = 
-declare isabelle target_rep function defaultLessEq = 
-declare coq      target_rep function defaultLessEq = 
+declare hol      target_rep function defaultLessEq =
+declare isabelle target_rep function defaultLessEq =
+declare coq      target_rep function defaultLessEq =
+declare lean     target_rep function defaultLessEq = `defaultLessEq`
 
 declare ocaml    target_rep function defaultGreater = infix `>`
-declare hol      target_rep function defaultGreater = 
-declare isabelle target_rep function defaultGreater = 
-declare coq      target_rep function defaultGreater = 
+declare hol      target_rep function defaultGreater =
+declare isabelle target_rep function defaultGreater =
+declare coq      target_rep function defaultGreater =
+declare lean     target_rep function defaultGreater = `defaultGreater`
 
 declare ocaml    target_rep function defaultGreaterEq = infix `>=`
-declare hol      target_rep function defaultGreaterEq = 
-declare isabelle target_rep function defaultGreaterEq = 
-declare coq      target_rep function defaultGreaterEq = 
+declare hol      target_rep function defaultGreaterEq =
+declare isabelle target_rep function defaultGreaterEq =
+declare coq      target_rep function defaultGreaterEq =
+declare lean     target_rep function defaultGreaterEq = `defaultGreaterEq`
 ;;
 
 let genericCompare (less: 'a -> 'a -> bool) (equal: 'a -> 'a -> bool) (x : 'a) (y : 'a) =
@@ -261,7 +281,7 @@ end
    the functions "<", "<=" ... *)
 
 class ( SetType 'a ) 
-  val {ocaml;coq} setElemCompare : 'a -> 'a -> ordering
+  val {ocaml;coq;lean} setElemCompare : 'a -> 'a -> ordering
 end
 
 default_instance forall 'a. ( SetType 'a ) 
@@ -291,8 +311,9 @@ end
 (* strings *)
 
 val charEqual : char -> char -> bool
-let inline ~{coq} charEqual = unsafe_structural_equality
+let inline ~{coq;lean} charEqual = unsafe_structural_equality
 declare coq target_rep function charEqual left right = (`char_equal` left right)
+declare lean target_rep function charEqual = infix `==`
 
 instance (Eq char) 
   let (=) = charEqual
@@ -301,6 +322,7 @@ end
 
 val stringEquality : string -> string -> bool
 declare coq target_rep function stringEquality left right = (`string_equal` left right)
+declare lean target_rep function stringEquality = infix `==`
 let inline {ocaml;hol;isabelle} stringEquality = unsafe_structural_equality
 
 instance (Eq string)
@@ -316,6 +338,7 @@ let pairEqual (a1, b1) (a2, b2) = (a1 = a2) && (b1 = b2)
 val pairEqualBy : forall 'a 'b. ('a -> 'a -> bool) -> ('b -> 'b -> bool) -> ('a * 'b) -> ('a * 'b) -> bool
 declare ocaml    target_rep function pairEqualBy = `Lem.pair_equal`
 declare coq      target_rep function pairEqualBy leftEq rightEq left right = (`tuple_equal_by` leftEq rightEq left right)
+declare lean     target_rep function pairEqualBy leftEq rightEq left right = (`tupleEqualBy` leftEq rightEq left right)
 
 let inline {hol;isabelle} pairEqual = unsafe_structural_equality
 let inline {ocaml;coq} pairEqual = pairEqualBy isEqual isEqual

@@ -255,6 +255,15 @@ let get_module_name_from_descr md mod_name extra_rename target = begin
   let transform_name_for_target n = match target with
     | Target.Target_no_ident (Target.Target_coq) -> Util.uncapitalize_prefix n
     | Target.Target_no_ident (Target.Target_hol) -> Util.string_map (fun c -> if c = '-' then  '_' else c) (Util.uncapitalize_prefix n)
+    | Target.Target_no_ident (Target.Target_lean) ->
+        (* Library modules get the LemLib. prefix so they live under the LemLib namespace.
+           We detect library modules by checking for a Coq rename — all library .lem files
+           declare one (e.g. {coq} rename module = lem_bool). *)
+        let is_library_module =
+          Target.Targetmap.apply_target md.mod_target_rep
+            (Target.Target_no_ident Target.Target_coq) <> None
+        in
+        if is_library_module then String.concat "" ["LemLib."; n] else n
     | _ -> n
   in
   let lem_mod_name = match Target.Targetmap.apply_target md.mod_target_rep target with
@@ -357,8 +366,15 @@ let imported_modules_to_strings env target dir iml relative =
   let ms = Imported_Modules_Set.elements iml in
     List.flatten (List.map (imported_module_to_strings env target dir relative) ms)
 
-module Make(A : sig 
-  val env : env;; 
+(* Callback invoked when a CR_simple target rep is applied during rendering.
+   Called with (is_library, identifier_string) where is_library indicates
+   whether the constant is defined in a library module.
+   The Lean backend uses this to collect per-file import requirements
+   for non-library target reps only. *)
+let on_cr_simple_applied : (bool -> string -> unit) ref = ref (fun _ _ -> ())
+
+module Make(A : sig
+  val env : env;;
   val target : Target.target;;
   val dir : string;;
   val id_format_args : (bool -> Output.id_annot -> Ulib.Text.t -> Output.t) * Ulib.Text.t
@@ -377,7 +393,27 @@ let fix_module_name_list nl = begin
     | m :: rest' ->
         aux ((get_module_name A.env A.target path m)::acc) (path @ [m]) rest'
   in
-  aux [] [] nl
+  let names = aux [] [] nl in
+  (* For Lean, handle module qualifiers:
+     - Library modules (LemLib.X) → flat namespace names (Lem_X)
+     - User modules (Loc, Bimap, etc.) → stripped entirely, since user modules
+       don't create namespaces in Lean (no namespace wrapper in generated files) *)
+  match A.target with
+  | Target.Target_no_ident (Target.Target_lean) ->
+      let prefix = "LemLib." in
+      let plen = String.length prefix in
+      let is_library n =
+        let s = Name.to_string n in
+        String.length s >= plen && String.sub s 0 plen = prefix
+      in
+      (* Keep only library module names, drop user module names *)
+      let lib_names = List.filter is_library names in
+      (* Convert LemLib.X → Lem_X *)
+      List.map (fun n ->
+        let s = Name.to_string n in
+        Name.from_string (String.concat "" ["Lem_"; String.sub s plen (String.length s - plen)])
+      ) lib_names
+  | _ -> names
 end
 
 let fix_module_prefix_ident (i : Ident.t) =
@@ -400,7 +436,7 @@ let const_ref_to_name n0 use_ascii c =
   let l = Ast.Trans (false, "const_ref_to_name", None) in
   let c_descr = c_env_lookup l A.env.c_env c in
   let (_, n_no_ascii, n_ascii_opt) = constant_descr_to_name A.target c_descr in
-  let n =    
+  let n =
     match (n_ascii_opt, use_ascii) with
       | (Some ascii, true) -> ascii
       | _  -> n_no_ascii
@@ -485,6 +521,23 @@ let function_application_to_output l (arg_f0 : exp -> Output.t) (is_infix_pos : 
               constant_application_to_output_special c_id to_out (cr_special_fun_to_fun_exp A.env tsubst) (arg_f false) args vars 
             end
      | Some (CR_simple (_, _, params,body)) when not ascii_alternative -> begin
+         (* Notify callback: check if constant is from a library module *)
+         let module C = Exps_in_context(struct let env_opt = Some A.env;; let avoid = None end) in
+         let is_lib =
+           let (mod_path, _) = Path.to_name_list c_descr.const_binding in
+           match mod_path with
+             | [mod_name] ->
+               let mod_path_t = Path.mk_path [] mod_name in
+               (match Types.Pfmap.apply A.env.e_env mod_path_t with
+                 | Some md ->
+                   Target.Targetmap.apply_target md.Typed_ast.mod_target_rep
+                     (Target.Target_no_ident Target.Target_coq) <> None
+                 | None -> false)
+             | _ -> false
+         in
+         (match C.exp_to_term body with
+           | Backend (_, i) -> !on_cr_simple_applied is_lib (Ident.to_string i)
+           | _ -> ());
          let tsubst = Types.TNfmap.from_list2 c_descr.const_tparams c_id.instantiation in
          let new_exp = inline_exp l A.target A.env is_infix_pos params (ident_get_lskip c_id) body tsubst args in
          [arg_f false new_exp]
@@ -534,6 +587,15 @@ let type_path_to_name n0 (p : Path.t) : Name.lskips_t =
   let n = type_descr_to_name A.target p td in
   let n' = Name.replace_lskip (Name.add_lskip n) (Name.get_lskip n0) in
   n'
+
+let class_path_to_name (p : Path.t) : Name.t =
+  match Types.type_defs_lookup_tc A.env.t_env p with
+    | Some (Types.Tc_class cd) ->
+        begin match Target.Targetmap.apply_target cd.Types.class_rename A.target with
+          | Some (_, n) -> n
+          | None -> Path.get_name p
+        end
+    | _ -> Path.get_name p
 
 let type_id_to_ident_aux (p : Path.t id) =
    let l = Ast.Trans (false, "type_id_to_ident", None) in

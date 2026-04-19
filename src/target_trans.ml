@@ -347,7 +347,56 @@ let coq =
                        [T.coq_type_annot_pat_vars])
       ];
     (* TODO: coq_get_prec *)
-    extra = [(* fun n -> Rename_top_level.rename_defs_target (Some Target_coq) consts fixed_renames [n]) *)]; 
+    extra = [(* fun n -> Rename_top_level.rename_defs_target (Some Target_coq) consts fixed_renames [n]) *)];
+    }
+
+(* Lean 4 transformation pipeline. Closely follows the Coq pipeline:
+   same typeclass resolution, same record update removal, same set/list
+   comprehension desugaring. Key difference: pattern compilation uses
+   is_lean_pattern_match which rejects n+k patterns (P_num_add), triggering
+   guard-based desugaring instead. *)
+let lean =
+  { macros = indreln_macros @
+      coq_typeclass_resolution_macros (Target_no_ident Target_lean) @
+      [Def_macros (fun env ->
+                    [M.type_annotate_definitions;
+                     M.comment_out_inline_instances_and_classes (Target_no_ident Target_lean);
+                     M.remove_import_include;
+                     M.remove_types_with_target_rep (Target_no_ident Target_lean);
+                     M.defs_with_target_rep_to_lemma env (Target_no_ident Target_lean);
+                     Patterns.compile_def (Target_no_ident Target_lean) Patterns.is_lean_pattern_match env
+                    ]);
+      Pat_macros (fun env ->
+        let m a1 a2 a3 =
+          match Backend_common.inline_pat_macro Target_lean env a1 a2 a3 with
+            | None -> Macro_expander.Fail
+            | Some e -> Macro_expander.Continue e
+        in [m]);
+       Exp_macros (fun env ->
+                     let module T = T(struct let env = env end) in
+                      (if !prover_remove_failwith then
+                       [T.remove_failwith_matches]
+                      else
+                       []) @
+                       [T.remove_singleton_record_updates;
+                        T.remove_multiple_record_updates;
+                        T.remove_list_comprehension;
+                        T.remove_num_lit (fun _ -> true);
+                        T.remove_set_comprehension;
+                        T.remove_quant_coq;
+                       (fun a1 a2 ->
+                         match Backend_common.inline_exp_macro Target_lean env a1 a2 with
+                           | None -> Macro_expander.Fail
+                           | Some e -> Macro_expander.Continue e);
+                       (fun a1 a2 ->
+                         match Patterns.compile_exp (Target_no_ident Target_lean) Patterns.is_lean_pattern_match env a1 a2 with
+                           | None -> Macro_expander.Fail
+                           | Some e -> Macro_expander.Continue e)]);
+       Pat_macros (fun env ->
+                     let module T = T(struct let env = env end) in
+                       [T.coq_type_annot_pat_vars])
+      ];
+    extra = [];
     }
 
 let default_avoid_f ty_avoid (cL : (Name.t -> Name.t option) list) consts = 
@@ -396,17 +445,32 @@ begin
   let ns = if not avoid_consts then ns else List.fold_left add_avoid_const ns ue.used_consts in
 
   let add_avoid_type ns t = begin
-    let td = Types.type_defs_lookup l env.t_env t in
-    let n = type_descr_to_name targ t td in
-    match targ with
-    | Target_no_ident Target_hol ->
-       (* HOL records introduce a new constructor that we need to avoid *)
-       begin match td.type_fields with
-       | None -> ns
-       | Some _ -> NameSet.add n ns
+    match Types.type_defs_lookup_tc env.t_env t with
+    | Some (Types.Tc_type td) ->
+       let n = type_descr_to_name targ t td in
+       begin match targ with
+       | Target_no_ident Target_hol ->
+          (* HOL records introduce a new constructor that we need to avoid *)
+          begin match td.type_fields with
+          | None -> ns
+          | Some _ -> NameSet.add n ns
+          end
+       | _ ->
+          NameSet.add n ns
        end
-    | _ ->
-       NameSet.add n ns
+    | Some (Types.Tc_class cd) ->
+       (* Only add class names to avoid set for Lean (other backends never had
+          class renaming, so we skip to preserve their existing behavior). *)
+       begin match targ with
+       | Target_no_ident Target_lean ->
+         let n = match Target.Targetmap.apply_target cd.Types.class_rename targ with
+           | None -> Path.get_name t
+           | Some (_, n) -> n
+         in
+         NameSet.add n ns
+       | _ -> ns
+       end
+    | None -> ns
   end in
   let ns = if not avoid_types then ns else List.fold_left add_avoid_type ns ue.used_types in
   
@@ -420,7 +484,8 @@ let get_avoid_f targ : NameSet.t -> var_avoid_f =
     | Target_no_ident Target_ocaml -> ocaml_avoid_f 
     | Target_no_ident Target_isa -> underscore_both_avoid_f
     | Target_no_ident Target_hol -> underscore_avoid_f 
-    | Target_no_ident Target_coq -> default_avoid_f true [] 
+    | Target_no_ident Target_coq -> default_avoid_f true []
+    | Target_no_ident Target_lean -> default_avoid_f true []
     | _ -> default_avoid_f false [] 
 
 let rename_def_params_aux targ consts =
@@ -560,6 +625,7 @@ let get_transformation targ =
     | Target_no_ident Target_hol   -> hol
     | Target_no_ident Target_ocaml -> ocaml
     | Target_no_ident Target_coq   -> coq
+    | Target_no_ident Target_lean  -> lean
     | Target_no_ident Target_isa   -> isa
     | Target_no_ident Target_tex   -> tex
     | Target_no_ident Target_lem   -> lem ()

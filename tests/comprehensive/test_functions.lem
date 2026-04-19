@@ -1,0 +1,209 @@
+open import Pervasives_extra
+
+(* ======================================================================
+   Functions: patterns, fun/function keyword, higher-order, lambdas.
+   Merged from: test_function_patterns, test_fun_and_function,
+                test_higher_order
+   ====================================================================== *)
+
+(* ---- Function patterns ---- *)
+
+type fp_t = FPC1 | FPC2 of nat | FPC3 of nat * nat
+
+(* function keyword *)
+let fp_test1 = function
+  | (x, y) -> x + y
+end
+
+let fp_test2 = function
+    ((2:nat), y) -> y
+  | (x, (3:nat)) -> x
+  | _ -> 10
+end
+
+(* fun with destructuring *)
+let fp_test3 = fun (x, (y:nat)) -> x + y
+let fp_test4 = fun (FPC2 x) -> x
+
+(* fun with multiple args *)
+let fp_test5 = fun (x:nat) y z -> x + y + z
+
+(* fun with constructor patterns *)
+let fp_test6 = fun (x,FPC2 y) -> x + y
+let fp_test7 = fun ((x, (y:nat)), (z)) -> x
+
+(* Function definition with pattern args *)
+let fp_test8 (x:nat) y = x + y
+
+(* Function with type annotation on result *)
+let fp_test9 : nat -> nat -> nat = fun x y -> x + y
+
+(* Recursive with pattern matching *)
+let rec fp_length_of (l : list nat) : nat =
+  match l with
+    | [] -> 0
+    | _ :: rest -> 1 + fp_length_of rest
+  end
+
+(* Cons pattern in fun parameter *)
+let fp_head_or_zero = fun ((x:nat) :: _xs) -> x
+
+(* Parenthesized pattern in fun parameter *)
+let fp_paren_fun = fun ((x, (y:nat))) -> x + y
+
+(* Typed pattern in fun parameter (variable annotation) *)
+let fp_typed_param_fun (x : nat) (y : nat) = x + y + (1:nat)
+
+(* Multiple patterns in fun with nested constructor *)
+let fp_ctor_in_fun = fun (Just (x:nat)) -> x + 1
+
+(* Multi-clause polymorphic function *)
+let rec poly_length ([] : list 'a) : nat = 0
+and poly_length (_ :: xs) = 1 + poly_length xs
+
+assert fp_test1_ok : (fp_test1 (3, (4:nat)) = (7:nat))
+assert poly_len_ok : (poly_length [(1:nat); 2; 3] = (3:nat))
+assert poly_len_empty : (poly_length ([] : list nat) = (0:nat))
+assert fp_test5_ok : (fp_test5 1 2 3 = (6:nat))
+assert fp_test8_ok : (fp_test8 3 4 = (7:nat))
+assert fp_length_ok : (fp_length_of [1;2;(3:nat)] = (3:nat))
+assert fp_head_ok : (fp_head_or_zero [10; 20; (30:nat)] = (10:nat))
+assert fp_paren_ok : (fp_paren_fun (3, 4) = (7:nat))
+assert fp_typed_param_ok : (fp_typed_param_fun 2 3 = (6:nat))
+assert fp_ctor_fun_ok : (fp_ctor_in_fun (Just 5) = (6:nat))
+
+(* ---- fun and function keyword ---- *)
+
+(* function keyword with literal patterns *)
+type traffic = Stop | Go | Caution
+
+let traffic_priority : traffic -> nat = function
+  | Stop -> 0
+  | Caution -> 1
+  | Go -> 2
+end
+
+assert traffic_stop : traffic_priority Stop = (0:nat)
+assert traffic_go   : traffic_priority Go = (2:nat)
+
+(* function with tuple patterns *)
+let ff_swap_pair : (nat * nat) -> (nat * nat) = function
+  | (a, b) -> (b, a)
+end
+
+assert ff_swap_ok : ff_swap_pair ((1:nat), 2) = ((2:nat), (1:nat))
+
+(* function with nested constructor patterns *)
+type ff_wrapper 'a = FFWrap of 'a
+
+let ff_unwrap_add : (ff_wrapper nat * ff_wrapper nat) -> nat = function
+  | (FFWrap a, FFWrap b) -> a + b
+end
+
+assert ff_unwrap_ok : ff_unwrap_add (FFWrap (3:nat), FFWrap 4) = (7:nat)
+
+(* function with list patterns *)
+let ff_head_or_zero : list nat -> nat = function
+  | x :: _ -> x
+  | [] -> 0
+end
+
+assert ff_head_some : ff_head_or_zero [(5:nat); 6; 7] = (5:nat)
+assert ff_head_empty : ff_head_or_zero [] = (0:nat)
+
+(* Multi-argument fun with destructuring *)
+let ff_add_pairs = fun (a, b) (c, d) -> (a + c, b + (d:nat))
+
+assert ff_add_pairs_ok : ff_add_pairs ((1:nat), 2) ((3:nat), 4) = ((4:nat), (6:nat))
+
+(* fun with constructor pattern *)
+type ff_box = FFBox of nat
+
+let ff_box_value = fun (FFBox n) -> n
+
+assert ff_box_val : ff_box_value (FFBox (42:nat)) = (42:nat)
+
+(* Nested lambdas *)
+let ff_nested_lambda = fun x -> fun y -> fun z -> x + y + (z:nat)
+
+assert ff_nested_lam : ff_nested_lambda 1 2 3 = (6:nat)
+
+(* Lambda as argument *)
+let ff_apply_twice (f : nat -> nat) (x : nat) : nat = f (f x)
+
+assert ff_twice_ok : ff_apply_twice (fun x -> x + (1:nat)) 5 = (7:nat)
+
+(* Lambda in let binding *)
+let ff_inc = (fun x -> x + (1:nat))
+let ff_dec = (fun x -> x - (1:nat))
+
+assert ff_inc_dec : ff_inc (ff_dec (10:nat)) = (10:nat)
+
+(* Lambda returning lambda (currying) *)
+let ff_make_adder : nat -> nat -> nat = fun n -> fun m -> n + m
+let ff_add5 = ff_make_adder 5
+
+assert ff_curried_ok : ff_add5 (3:nat) = (8:nat)
+
+(* function with overlapping patterns *)
+let ff_classify : nat -> string = function
+  | 0 -> "zero"
+  | 1 -> "one"
+  | _ -> "many"
+end
+
+assert ff_classify_zero : ff_classify 0 = "zero"
+assert ff_classify_one  : ff_classify 1 = "one"
+assert ff_classify_many : ff_classify (99:nat) = "many"
+
+(* fun with wildcard and type annotation *)
+let ff_const_true = fun (_ : nat) -> true
+
+assert ff_const_true_ok : ff_const_true 42
+
+(* ---- Higher-order functions ---- *)
+
+(* Identity and constant functions *)
+let my_id x = x
+let my_const x _ = x
+
+(* Higher-order: map, filter, fold *)
+let ho_test1 = List.map (fun (x:nat) -> x + 1) [1;2;3]
+let ho_test2 = List.filter (fun (x:nat) -> x > 2) [1;2;3;4;5]
+let ho_test3 = List.foldl (fun acc (x:nat) -> acc + x) 0 [1;2;3]
+
+(* Partial application *)
+let ho_add (x:nat) y = x + y
+let ho_add5 = ho_add 5
+let ho_test4 = ho_add5 3
+
+(* Function composition *)
+let ho_compose f g x = f (g x)
+let ho_double (x:nat) = x * 2
+let ho_inc (x:nat) = x + 1
+let ho_test5 = ho_compose ho_double ho_inc 3
+
+(* Functions returning functions *)
+let ho_make_adder (n:nat) = fun x -> x + n
+let ho_test6 = (ho_make_adder 10) 5
+
+(* Nested lambdas *)
+let ho_test7 = (fun (x:nat) -> fun y -> fun z -> x + y + z) 1 2 3
+
+(* Apply function to each element *)
+let ho_apply_both f g (x : nat) = (f x, g x)
+let ho_test8 = ho_apply_both ho_double ho_inc 5
+
+(* Higher-order with polymorphism *)
+val ho_twice : forall 'a. ('a -> 'a) -> 'a -> 'a
+let ho_twice f x = f (f x)
+let ho_test9 = ho_twice (fun (x:nat) -> x + 1) 0
+let ho_test10 = ho_twice (fun (x:nat) -> x * 2) 1
+
+assert ho_test3_ok : (ho_test3 = (6:nat))
+assert ho_test4_ok : (ho_test4 = (8:nat))
+assert ho_test5_ok : (ho_test5 = (8:nat))
+assert ho_test6_ok : (ho_test6 = (15:nat))
+assert ho_test7_ok : (ho_test7 = (6:nat))
+assert ho_test9_ok : (ho_test9 = (2:nat))
+assert ho_test10_ok : (ho_test10 = (4:nat))

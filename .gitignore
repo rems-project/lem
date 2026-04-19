@@ -25,3 +25,44 @@ ocaml-lib/_build_zarith
 tex-lib/lem-libs*.tex
 
 
+# Lean backend build artifacts
+.lake/
+library/*.lean
+!library/gen_lean_constants.lean
+# Generated LemLib files are now tracked (needed for Lake git dependency).
+# Regenerate with: make lean-libs
+# lean-lib/LemLib/[A-Z]*.lean
+tests/backends/*.lean
+tests/backends/*_auxiliary.lean
+tests/backends/*.ml
+tests/backends/*.v
+tests/backends/*.tex
+tests/backends/*.html
+tests/backends/*.thy
+tests/backends/*Script.sml
+tests/backends/lean-test/[A-Z]*.lean
+tests/backends/lean-test/*_auxiliary.lean
+tests/comprehensive/Test_*.lean
+tests/comprehensive/*_auxiliary.lean
+tests/comprehensive/lean-test/Test_*.lean
+tests/comprehensive/lean-test/*_auxiliary.lean
+examples/cpp/Cmm.lean
+examples/cpp/Cmm_auxiliary.lean
+examples/ppcmem-model/*.lean
+examples/ppcmem-model/*_auxiliary.lean
+!examples/ppcmem-model/lakefile.lean
+
+# Build artifacts
+_build/
+main.native
+
+# Coverage
+coverage-report/
+.coverage-switch/
+
+# Local files
+TODO.md
+
+# Tool directories
+.claude/
+_opam/

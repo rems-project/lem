@@ -40,6 +40,7 @@ open import {isabelle} `$LIB_DIR/Lem`
 (* Type of sets and set comprehensions are hard-coded *)
 
 declare ocaml target_rep type set = `Pset.set`
+declare lean  target_rep type set 'a = `List` 'a
 
 (* ----------------------- *)
 (* Equality check          *)
@@ -47,10 +48,12 @@ declare ocaml target_rep type set = `Pset.set`
 
 val setEqualBy : forall 'a. ('a -> 'a -> ordering) -> set 'a -> set 'a -> bool
 declare coq target_rep function setEqualBy = `set_equal_by`
+declare lean target_rep function setEqualBy = `setEqualBy`
 
 val setEqual : forall 'a. SetType 'a => set 'a -> set 'a -> bool
 let inline {hol; isabelle} setEqual = unsafe_structural_equality
 let inline {coq} setEqual = setEqualBy setElemCompare
+let inline {lean} setEqual = setEqualBy setElemCompare
 declare ocaml    target_rep function setEqual = `Pset.equal`
 
 instance forall 'a. SetType 'a => (Eq (set 'a))
@@ -69,6 +72,7 @@ declare ocaml    target_rep function emptyBy = `Pset.empty`
 let inline {ocaml} empty = emptyBy setElemCompare
 
 declare coq      target_rep function empty = `set_empty`
+declare lean     target_rep function empty = `setEmpty`
 declare hol      target_rep function empty = `EMPTY`
 declare isabelle target_rep function empty = `{}`
 declare html     target_rep function empty = `&empty;`
@@ -87,6 +91,7 @@ val any : forall 'a. SetType 'a => ('a -> bool) -> set 'a -> bool
 let inline any P s = (exists (e IN s). P e)
 
 declare coq      target_rep function any = `set_any`
+declare lean     target_rep function any = `setAny`
 declare hol      target_rep function any P s = `EXISTS` P (`SET_TO_LIST` s)
 declare isabelle target_rep function any P s = `Set.Bex` s P
 declare ocaml    target_rep function any = `Pset.exists`
@@ -98,6 +103,7 @@ val all : forall 'a. SetType 'a => ('a -> bool) -> set 'a -> bool
 let inline all P s = (forall (e IN s). P e)
 
 declare coq      target_rep function all = `set_for_all`
+declare lean     target_rep function all = `setForAll`
 declare hol      target_rep function all P s = `EVERY` P (`SET_TO_LIST` s)
 declare isabelle target_rep function all P s = `Set.Ball` s P
 declare ocaml    target_rep function all = `Pset.for_all`
@@ -114,7 +120,9 @@ val (IN) [`member`] : forall 'a. SetType 'a => 'a -> set 'a -> bool
 val memberBy : forall 'a. ('a -> 'a -> ordering) -> 'a -> set 'a -> bool 
 
 declare coq      target_rep function memberBy = `set_member_by`
+declare lean     target_rep function memberBy = `setMemberBy`
 let inline {coq} member = memberBy setElemCompare
+let inline {lean} member = memberBy setElemCompare
 declare ocaml    target_rep function member = `Pset.mem`
 declare isabelle target_rep function member = infix `\<in>`
 declare hol      target_rep function member = infix `IN`
@@ -152,6 +160,7 @@ let inline null s = (s = {})
 
 declare ocaml    target_rep function null = `Pset.is_empty`
 declare coq      target_rep function null = `set_is_empty`
+declare lean     target_rep function null = `setIsEmpty`
 
 assert null_1: (null ({}: set nat))
 assert null_2: (not (null {(1:nat)}))
@@ -166,9 +175,10 @@ val singleton : forall 'a. SetType 'a => 'a -> set 'a
 
 declare ocaml    target_rep function singletonBy = `Pset.singleton`
 declare coq target_rep function singleton = `set_singleton`
+declare lean target_rep function singleton = `setSingleton`
 
 let inline {ocaml} singleton = singletonBy setElemCompare
-let inline ~{ocaml;coq} singleton x = {x}
+let inline ~{ocaml;coq;lean} singleton x = {x}
 
 assert singleton_1 : singleton (2:nat) = {2}
 assert singleton_2 : not (null (singleton (2:nat)))
@@ -184,6 +194,7 @@ val size : forall 'a. SetType 'a => set 'a -> nat
 
 declare ocaml    target_rep function size = `Pset.cardinal`
 declare coq      target_rep function size = `set_cardinal`
+declare lean     target_rep function size = `setCardinal`
 declare hol      target_rep function size = `CARD`
 declare isabelle target_rep function size = `card`
 
@@ -215,6 +226,7 @@ let set_case s c_empty c_sing c_else =
 declare hol      target_rep function set_case = `set_CASE`
 declare isabelle target_rep function set_case = `set_case`
 declare coq      target_rep function set_case = `set_case`
+declare lean     target_rep function set_case = `setCase`
 declare ocaml    target_rep function set_case = `Pset.set_case`
 
 declare pattern_match inexhaustive set 'a = [ empty; singleton ] set_case
@@ -318,8 +330,10 @@ declare ocaml    target_rep function (union) = `Pset.(union)`
 declare hol      target_rep function (union) = infix `UNION`
 declare isabelle target_rep function (union) = infix `\<union>`
 declare coq      target_rep function unionBy = `set_union_by`
+declare lean     target_rep function unionBy = `setUnionBy`
 declare tex      target_rep function (union) = infix `$\cup$`
 let inline {coq} (union) = unionBy setElemCompare
+let inline {lean} (union) = unionBy setElemCompare
 
 
 assert union_1: ({(1:nat);2;3} union {3;2;4} = {1;2;3;4})
@@ -333,6 +347,7 @@ val insert : forall 'a. SetType 'a => 'a -> set 'a -> set 'a (* before add *)
 
 declare ocaml    target_rep function insert = `Pset.add`
 declare coq      target_rep function insert = `set_add`
+declare lean     target_rep function insert = `setAdd`
 declare hol      target_rep function insert = infix `INSERT`
 declare isabelle target_rep function insert = `Set.insert`
 
@@ -399,7 +414,9 @@ declare isabelle target_rep function isSubsetOf = infix `\<subseteq>`
 declare html     target_rep function isSubsetOf = infix `&sube;`
 declare tex      target_rep function isSubsetOf = infix `$\subseteq$`
 declare coq      target_rep function isSubsetOfBy = `set_subset_by`
+declare lean     target_rep function isSubsetOfBy = `setSubsetBy`
 let inline {coq} isSubsetOf = isSubsetOfBy setElemCompare
+let inline {lean} isSubsetOf = isSubsetOfBy setElemCompare
 
 declare ocaml    target_rep function isProperSubsetOf = `Pset.subset_proper`
 declare hol      target_rep function isProperSubsetOf = infix `PSUBSET`
@@ -407,7 +424,9 @@ declare isabelle target_rep function isProperSubsetOf = infix `\<subset>`
 declare html     target_rep function isProperSubsetOf = infix `&sub;`
 declare tex      target_rep function isProperSubsetOf = infix `$\subset$`
 declare coq      target_rep function isProperSubsetOfBy = `set_proper_subset_by`
-let inline {coq} isProperSubsetOf = isProperSubsetOfBy setElemCompare 
+declare lean     target_rep function isProperSubsetOfBy = `setProperSubsetBy`
+let inline {coq} isProperSubsetOf = isProperSubsetOfBy setElemCompare
+let inline {lean} isProperSubsetOf = isProperSubsetOfBy setElemCompare
 
 let inline (subset) = isSubsetOf
 declare tex      target_rep function (subset) = infix `$\subseteq$`
@@ -479,7 +498,9 @@ declare hol      target_rep function difference = infix `DIFF`
 declare isabelle target_rep function difference = infix `-`
 declare tex      target_rep function difference = infix `$\setminus$`
 declare coq      target_rep function differenceBy = `set_diff_by`
+declare lean     target_rep function differenceBy = `setDiffBy`
 let inline {coq} difference = differenceBy setElemCompare
+let inline {lean} difference = differenceBy setElemCompare
 
 let inline (\) = difference
 
@@ -497,8 +518,10 @@ declare ocaml    target_rep function intersection = `Pset.inter`
 declare hol      target_rep function intersection = infix `INTER`
 declare isabelle target_rep function intersection = infix `\<inter>`
 declare coq      target_rep function intersectionBy = `set_inter_by`
+declare lean     target_rep function intersectionBy = `setInterBy`
 declare tex      target_rep function intersection = infix `$\cap$`
 let inline {coq} intersection = intersectionBy setElemCompare
+let inline {lean} intersection = intersectionBy setElemCompare
 let inline (inter) = intersection
 declare tex      target_rep function (inter) = infix `$\cap$`
 
@@ -601,7 +624,9 @@ let inline {ocaml} fromList = fromListBy setElemCompare
 declare hol      target_rep function fromList = `LIST_TO_SET`
 declare isabelle target_rep function fromList = `List.set`
 declare coq      target_rep function fromListBy = `set_from_list_by`
+declare lean     target_rep function fromListBy = `setFromListBy`
 let inline {coq} fromList = fromListBy setElemCompare
+let inline {lean} fromList = fromListBy setElemCompare
 
 
 assert fromList_1: (fromList [(2:nat);4;3] = {2;3;4}) 
@@ -623,7 +648,9 @@ let inline {ocaml} sigma = sigmaBy setElemCompare
 
 declare isabelle target_rep function sigma = `Sigma`
 declare coq      target_rep function sigmaBy = `set_sigma_by`
+declare lean     target_rep function sigmaBy = `setSigmaBy`
 let inline {coq} sigma = sigmaBy setElemCompare
+let inline {lean} sigma = sigmaBy setElemCompare
 declare hol      target_rep function sigma = `SET_SIGMA`
 
 assert Sigma_1: (sigma {(2:nat);3} (fun n -> {n*2; n * 3}) = {(2,4); (2,6); (3,6); (3,9)})
@@ -656,7 +683,7 @@ assert cross_1 : (cross {(2:nat);3} {true; false} = {(2,true);(3,true); (2,false
 
 val finite : forall 'a. SetType 'a => set 'a -> bool
 
-let inline {ocaml; coq} finite _s = true
+let inline {ocaml; coq; lean} finite _s = true
 declare hol      target_rep function finite = `FINITE`
 declare isabelle target_rep function finite = `finite`
 
@@ -676,6 +703,7 @@ let rec leastFixedPoint bound f x =
   end
 
 declare {isabelle} termination_argument leastFixedPoint = automatic
+declare lean target_rep function leastFixedPoint bound f x = `lemLeastFixedPoint` `setElemCompare` bound f x
 
 assert lfp_empty_0: leastFixedPoint 0 (map (fun x -> x)) ({} : set nat) = {}
 assert lfp_empty_1: leastFixedPoint 1 (map (fun x -> x)) ({} : set nat) = {}

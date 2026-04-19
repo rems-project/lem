@@ -1,0 +1,186 @@
+open import Pervasives_extra
+
+(* ======================================================================
+   Advanced types: non-mutual type...and blocks, opaque types, abbreviation
+   chains, edge cases (single-ctor, many-arg, heterogeneous mutual, etc.).
+   Merged from: test_type_defs_advanced, test_type_edge_cases
+   ====================================================================== *)
+
+(* --- Non-mutual type...and block --- *)
+type color = Red | Green | Blue
+and  shape = Circle | Square | Triangle
+
+let color_to_nat (c : color) : nat =
+  match c with
+    | Red -> 0
+    | Green -> 1
+    | Blue -> 2
+  end
+
+let shape_to_nat (s : shape) : nat =
+  match s with
+    | Circle -> 0
+    | Square -> 1
+    | Triangle -> 2
+  end
+
+assert color_ok : color_to_nat Green = (1:nat)
+assert shape_ok : shape_to_nat Triangle = (2:nat)
+
+(* --- Three-way non-mutual and block --- *)
+type weekday = Mon | Tue | Wed | Thu | Fri
+and  weekend = Sat | Sun
+and  meal    = Breakfast | Lunch | Dinner
+
+let is_friday (d : weekday) : bool =
+  match d with
+    | Fri -> true
+    | _ -> false
+  end
+
+assert friday_ok : is_friday Fri
+assert not_friday : not (is_friday Mon)
+
+(* --- Type abbreviation used in function signature --- *)
+type point = nat * nat
+type named_point = string * point
+
+let ta_origin : point = ((0:nat), 0)
+let ta_named : named_point = ("origin", ta_origin)
+
+let point_add (p1 : point) (p2 : point) : point =
+  let (x1, y1) = p1 in
+  let (x2, y2) = p2 in
+  (x1 + x2, y1 + y2)
+
+assert point_add_ok : point_add ((1:nat), 2) ((3:nat), 4) = ((4:nat), (6:nat))
+
+(* --- Abbreviation used in constructor --- *)
+type transform = Translate of point | Scale of nat
+
+let apply_transform (t : transform) (p : point) : point =
+  match t with
+    | Translate delta -> point_add p delta
+    | Scale factor ->
+        let (x, y) = p in
+        (x * factor, y * factor)
+  end
+
+assert translate_ok : apply_transform (Translate ((1:nat), 1)) ((3:nat), 4) = ((4:nat), (5:nat))
+assert scale_ok     : apply_transform (Scale 2) ((3:nat), 4) = ((6:nat), (8:nat))
+
+(* --- Abbreviation in list/set contexts --- *)
+type nat_list = list nat
+
+let sum_list (xs : nat_list) : nat =
+  List.foldl (fun acc x -> acc + x) 0 xs
+
+assert sum_list_ok : sum_list [(1:nat); 2; 3; 4] = (10:nat)
+
+(* --- Explicit type ascriptions on expressions --- *)
+let test_ascription1 = ((5 : nat) + (3 : nat) : nat)
+let test_ascription2 = ([] : list nat)
+let test_ascription3 = (true : bool)
+
+assert ascription1_ok : test_ascription1 = (8 : nat)
+assert ascription2_ok : test_ascription2 = ([] : list nat)
+assert ascription3_ok : test_ascription3
+
+(* --- Opaque user type (no definition body) --- *)
+type token
+
+(* --- Parameterized type abbreviation chains --- *)
+type pair_of 'a = 'a * 'a
+type nat_pair = pair_of nat
+
+let swap_pair (p : nat_pair) : nat_pair =
+  let (a, b) = p in (b, a)
+
+assert swap_ok : swap_pair ((1:nat), 2) = ((2:nat), (1:nat))
+
+(* --- Single-constructor variant (not record, not opaque) --- *)
+type ta_wrapper = TAWrap of nat * bool
+
+let ta_unwrap (w : ta_wrapper) : nat =
+  match w with
+    | TAWrap n _ -> n
+  end
+
+assert single_ctor_ok : ta_unwrap (TAWrap 42 true) = (42:nat)
+
+(* --- Constructor with many arguments (8 args) --- *)
+type big_ctor =
+  | Big of nat * nat * nat * nat * nat * nat * nat * nat
+  | Small
+
+let big_val = Big 1 2 3 4 5 6 7 8
+
+let get_first (b : big_ctor) : nat =
+  match b with
+    | Big x _ _ _ _ _ _ _ -> x
+    | Small -> 0
+  end
+
+assert big_ctor_ok : get_first big_val = (1:nat)
+
+(* --- Heterogeneous 3-type mutual block (different param counts) --- *)
+type tree3 'a 'b =
+  | T3Leaf of 'a
+  | T3Node of branch3 'a
+and branch3 'a =
+  | B3Single of tree3 'a nat
+  | B3Pair of tree3 'a nat * tree3 'a nat
+and leaf_count =
+  | LC of nat
+
+let lc1 = LC 0
+
+(* --- Opaque type in mutual block with variant --- *)
+type ta_phantom
+and uses_phantom =
+  | UP of list nat
+
+let up1 = UP [(1:nat); 2; 3]
+
+(* --- Abbreviation chains (3 levels) --- *)
+type alias1 = nat
+type alias2 = alias1
+type alias3 = alias2
+
+let chain_val : alias3 = (42:nat)
+assert chain_ok : chain_val = (42:nat)
+
+(* --- Parameterized abbreviation in mutual block --- *)
+type wrapper2 'a = Wrap2 of 'a
+and alias_wrap = wrapper2 nat
+
+let w2 = Wrap2 (10:nat)
+
+(* --- Many-field record --- *)
+type big_rec = <|
+  f1 : nat; f2 : nat; f3 : nat; f4 : nat; f5 : nat;
+  f6 : bool; f7 : string; f8 : nat
+|>
+
+let br1 = <| f1 = 1; f2 = 2; f3 = 3; f4 = 4; f5 = 5;
+             f6 = true; f7 = "hello"; f8 = 8 |>
+
+assert big_rec_f1 : br1.f1 = (1:nat)
+assert big_rec_f7 : br1.f7 = "hello"
+
+(* --- Variant where every constructor has args --- *)
+type all_data =
+  | AD1 of nat
+  | AD2 of bool
+  | AD3 of string
+  | AD4 of nat * bool
+
+let ad_to_nat (x : all_data) : nat =
+  match x with
+    | AD1 n -> n
+    | AD2 _ -> 0
+    | AD3 _ -> 1
+    | AD4 n _ -> n
+  end
+
+assert all_data_ok : ad_to_nat (AD4 99 true) = (99:nat)

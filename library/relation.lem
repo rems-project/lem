@@ -117,7 +117,7 @@ val relIdOn : forall 'a. SetType 'a, Eq 'a => set 'a -> rel 'a 'a
 let relIdOn s = relFromPred s s (=)
 
 val relId : forall 'a. SetType 'a, Eq 'a => rel 'a 'a
-let ~{coq;ocaml;isabelle} relId = {(x, x) | forall x | true}
+let ~{coq;ocaml;isabelle;lean} relId = {(x, x) | forall x | true}
 
 declare isabelle target_rep function relId = `Id`
 
@@ -164,7 +164,7 @@ declare hol target_rep function relComp = `rcomp`
 declare isabelle target_rep function relComp = infix `O`
 
 lemma rel_comp_1 : (forall r1 r2 e1 e2 e3. (inRel e1 e2 r1 && inRel e2 e3 r2) --> inRel e1 e3 (relComp r1 r2))
-lemma ~{coq;ocaml} rel_comp_2 : (forall r. (relComp r relId = r) && (relComp relId r = r))
+lemma ~{coq;ocaml;lean} rel_comp_2 : (forall r. (relComp r relId = r) && (relComp relId r = r))
 lemma rel_comp_3 : (forall r. (relComp r relEmpty = relEmpty) && (relComp relEmpty r = relEmpty))
 
 assert rel_comp_0: (relComp (relFromSet {((2:nat), (4:nat)); (2, 8)}) (relFromSet {(4, (3:nat)); (2, 8)}) = 
@@ -323,7 +323,7 @@ let isReflexiveOn r s = (forall (e IN s). inRel e e r)
 declare {hol} rename function isReflexiveOn = lem_is_reflexive_on
 
 val isReflexive : forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> bool
-let ~{ocaml;coq} isReflexive r = (forall e. inRel e e r)
+let ~{ocaml;coq;lean} isReflexive r = (forall e. inRel e e r)
 
 declare {hol} rename function isReflexive = lem_is_reflexive
 declare isabelle target_rep function isReflexive = `refl`
@@ -440,7 +440,7 @@ declare {hol} rename function isTotalOn = lem_is_total_on
 
 
 val isTotal : forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> bool
-let ~{ocaml;coq} isTotal r = (forall e1 e2. (inRel e1 e2 r) || (inRel e2 e1 r))
+let ~{ocaml;coq;lean} isTotal r = (forall e1 e2. (inRel e1 e2 r) || (inRel e2 e1 r))
 declare {hol} rename function isTotal = lem_is_total
 declare isabelle target_rep function isTotal = `total`
 
@@ -450,7 +450,7 @@ let isTrichotomousOn r s = (forall (e1 IN s) (e2 IN s). (inRel e1 e2 r) || (e1 =
 declare {hol} rename function isTrichotomousOn = lem_is_trichotomous_on
 
 val isTrichotomous : forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> bool
-let ~{ocaml;coq} isTrichotomous r = (forall e1 e2. (inRel e1 e2 r) || (e1 = e2) || (inRel e2 e1 r))
+let ~{ocaml;coq;lean} isTrichotomous r = (forall e1 e2. (inRel e1 e2 r) || (e1 = e2) || (inRel e2 e1 r))
 
 declare {hol} rename function isTrichotomous = lem_is_trichotomous
 
@@ -486,7 +486,7 @@ declare {hol} rename function isEquivalenceOn = lem_is_equivalence_on
 
 
 val isEquivalence : forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> bool
-let ~{ocaml;coq} isEquivalence r = isReflexive r && isSymmetric r && isTransitive r
+let ~{ocaml;coq;lean} isEquivalence r = isReflexive r && isSymmetric r && isTransitive r
 
 declare {hol} rename function isEquivalence = lem_is_equivalence
 
@@ -501,7 +501,7 @@ assert is_equivalence_2 : not (isEquivalenceOn (relFromSet {((2:nat), (3:nat)); 
 (* ----------------------- *)
 
 val isWellFounded : forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> bool
-let ~{ocaml;coq} isWellFounded r = (forall P. (forall x. (forall y. inRel y x r --> P x) --> P x) --> (forall x. P x))
+let ~{ocaml;coq;lean} isWellFounded r = (forall P. (forall x. (forall y. inRel y x r --> P x) --> P x) --> (forall x. P x))
 
 declare hol      target_rep function isWellFounded r = `WF` (`reln_to_rel` r)
 
@@ -521,7 +521,7 @@ let isPreorderOn r s = isReflexiveOn r s && isTransitiveOn r s
 declare {hol} rename function isPreorderOn = lem_is_preorder_on
 
 val isPreorder : forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> bool
-let ~{ocaml;coq} isPreorder r = isReflexive r && isTransitive r
+let ~{ocaml;coq;lean} isPreorder r = isReflexive r && isTransitive r
 
 declare {hol} rename function isPreorder = lem_is_preorder
 
@@ -571,7 +571,7 @@ assert is_strict_partialorder_3 : not (isStrictPartialOrder (relFromSet {((2:nat
 assert is_strict_partialorder_4 : not (isStrictPartialOrder (relFromSet {((2:nat), (3:nat)); (2,2)}))
 
 val isPartialOrder : forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> bool
-let ~{ocaml;coq} isPartialOrder r = isReflexive r && isTransitive r && isAntisymmetric r
+let ~{ocaml;coq;lean} isPartialOrder r = isReflexive r && isTransitive r && isAntisymmetric r
 
 declare {hol} rename function isPartialOrder = lem_is_partial_order
 
@@ -590,12 +590,12 @@ let isStrictTotalOrderOn r s = isStrictPartialOrderOn r s && isTrichotomousOn r 
 declare {hol} rename function isStrictTotalOrderOn = lem_is_strict_total_order_on
 
 val isTotalOrder : forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> bool
-let ~{ocaml;coq} isTotalOrder r = isPartialOrder r && isTotal r 
+let ~{ocaml;coq;lean} isTotalOrder r = isPartialOrder r && isTotal r
 
 declare {hol} rename function isTotalOrder = lem_is_total_order
 
 val isStrictTotalOrder : forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> bool
-let ~{ocaml;coq} isStrictTotalOrder r = isStrictPartialOrder r && isTrichotomous r 
+let ~{ocaml;coq;lean} isStrictTotalOrder r = isStrictPartialOrder r && isTrichotomous r
 
 declare {hol} rename function isStrictTotalOrder = lem_is_strict_total_order
 
@@ -625,8 +625,10 @@ declare ocaml    target_rep function transitiveClosureByCmp = `Pset.tc`
 declare hol      target_rep function transitiveClosure = `tc`
 declare isabelle target_rep function transitiveClosure = `trancl`
 declare coq      target_rep function transitiveClosureByEq = `set_tc`
+declare lean     target_rep function transitiveClosureByEq = `set_tc`
 
 let inline {coq} transitiveClosure = transitiveClosureByEq (=)
+let inline {lean} transitiveClosure = transitiveClosureByEq (=)
 let inline {ocaml} transitiveClosure = transitiveClosureByCmp setElemCompare
 
 
@@ -674,7 +676,7 @@ assert reflexive_transitive_closure_0: (reflexiveTransitiveClosureOn (relFromSet
 
 
 val reflexiveTransitiveClosure : forall 'a. SetType 'a, Eq 'a => rel 'a 'a -> rel 'a 'a
-let ~{ocaml;coq} reflexiveTransitiveClosure r = transitiveClosure (relUnion r relId)
+let ~{ocaml;coq;lean} reflexiveTransitiveClosure r = transitiveClosure (relUnion r relId)
 
 
 

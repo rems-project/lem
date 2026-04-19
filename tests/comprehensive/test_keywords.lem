@@ -1,0 +1,192 @@
+open import Pervasives_extra
+open import Show
+
+(* ================================================================
+   Section 1: Lean reserved words as variable/parameter/pattern names
+   (from test_lean_reserved_words.lem)
+   ================================================================ *)
+
+(* === Record fields that might clash with Lean keywords === *)
+type my_record = <| where_field : nat; have_field : bool |>
+
+(* === Variables named after potential keywords === *)
+let test1 =
+  let show = (1:nat) in
+  let have0 = 2 in
+  let by0 = 3 in
+  show + have0 + by0
+
+(* === Function named with common keyword-like names === *)
+let do_something (x : nat) = x + 1
+
+(* === Constructor names that might be problematic === *)
+type my_type = MyDefault of nat | MyType of bool
+
+let test2 = MyDefault 42
+let test3 = MyType true
+
+(* === Using record with potentially-clashing fields === *)
+let test4 = <| where_field = 10; have_field = true |>
+let test5 = test4.where_field
+
+assert test1_ok : (test1 = (6:nat))
+assert test5_ok : (test5 = (10:nat))
+
+(* === Lean-only keywords as local variable names === *)
+(* These are valid Lem identifiers but Lean 4 syntax keywords.
+   The backend must escape them with guillemets.
+   Note: in, match, let, if etc. are Lem keywords too, so they
+   can't appear as variable names in Lem source. Only names that
+   are NOT Lem keywords but ARE Lean keywords need escaping. *)
+
+(* 'def' -- appeared in Cerberus Ctype.lem as a local variable *)
+let test_keyword_def =
+  let def = (10:nat) in
+  def + 1
+
+(* 'show' -- valid Lem identifier, Lean keyword *)
+let test_keyword_show =
+  let show = (7:nat) in
+  show * 2
+
+(* 'where' -- valid Lem identifier, Lean keyword *)
+let test_keyword_where =
+  let where = (3:nat) in
+  where + 4
+
+(* 'have' -- valid Lem identifier, Lean keyword *)
+let test_keyword_have =
+  let have = true in
+  have
+
+(* 'by' -- valid Lem identifier, Lean keyword *)
+let test_keyword_by =
+  let by = (5:nat) in
+  by + 1
+
+(* 'at' -- valid Lem identifier, Lean keyword *)
+let test_keyword_at =
+  let at = (2:nat) in
+  at * 3
+
+(* Function parameters named with keywords *)
+let keyword_as_param (def : nat) (show : nat) : nat =
+  def + show
+
+(* Pattern match binding a keyword name *)
+let keyword_in_match (x : nat * nat) : nat =
+  match x with
+    | (def, show) -> def + show
+  end
+
+assert keyword_def_ok : test_keyword_def = (11:nat)
+assert keyword_show_ok : test_keyword_show = (14:nat)
+assert keyword_where_ok : test_keyword_where = (7:nat)
+assert keyword_have_ok : test_keyword_have
+assert keyword_by_ok : test_keyword_by = (6:nat)
+assert keyword_at_ok : test_keyword_at = (6:nat)
+
+(* 'meta' -- Lean command keyword, appeared in Cerberus as type and variable *)
+let test_keyword_meta =
+  let meta = (8:nat) in
+  meta + 1
+
+(* 'catch' -- valid Lem identifier, Lean keyword *)
+let test_keyword_catch =
+  let catch = (6:nat) in
+  catch + 1
+
+(* Keywords bound by constructor pattern *)
+type kw_pair = KwPair of nat * nat
+
+let keyword_ctor_match (v : kw_pair) : nat =
+  match v with
+    | KwPair def show -> def + show
+  end
+
+assert keyword_param_ok : keyword_as_param 3 4 = (7:nat)
+assert keyword_match_ok : keyword_in_match (3, 4) = (7:nat)
+assert keyword_meta_ok : test_keyword_meta = (9:nat)
+assert keyword_catch_ok : test_keyword_catch = (7:nat)
+assert keyword_ctor_ok : keyword_ctor_match (KwPair 10 20) = (30:nat)
+
+(* ================================================================
+   Section 2: Lean keywords as type names and constructor names
+   (from test_keyword_types.lem)
+   ================================================================ *)
+
+(* 'meta' is not a Lem keyword but is a Lean command keyword.
+   The backend must escape it in type definitions, constructor references,
+   field access, and instance generation. *)
+
+(* === 'meta' as a record type name === *)
+type meta = <| meta_val : nat; meta_tag : string |>
+
+let m1 : meta = <| meta_val = 5; meta_tag = "test" |>
+let get_meta_val (m : meta) : nat = m.meta_val
+
+assert meta_construct : get_meta_val m1 = (5:nat)
+assert meta_field : m1.meta_tag = "test"
+
+(* === 'meta' as a variant type name === *)
+type meta_kind = MK_plain | MK_tagged of string
+
+let mk1 = MK_plain
+let mk2 = MK_tagged "info"
+
+let is_tagged (m : meta_kind) : bool =
+  match m with
+    | MK_plain -> false
+    | MK_tagged _ -> true
+  end
+
+assert meta_variant_ok : is_tagged mk2
+
+(* === 'prefix' as a type name (Cerberus A1) === *)
+(* 'prefix' is a Lean keyword (prefix notation). It must be escaped/renamed
+   in inductive declarations, constructor return types, and instance headers. *)
+type prefix = PrefA | PrefB of nat
+
+let get_prefix_val (p : prefix) : nat =
+  match p with
+    | PrefA -> 0
+    | PrefB n -> n
+  end
+
+assert prefix_type_ok : get_prefix_val (PrefB 42) = (42:nat)
+
+(* === 'guard' as a function name (Cerberus A3) === *)
+(* 'guard' is a Lean builtin. It must be renamed to guard0 at the top level. *)
+val guard : bool -> nat -> nat
+let guard b n = if b then n else 0
+
+assert guard_fn_ok : guard true 5 = (5:nat)
+assert guard_fn_false : guard false 5 = (0:nat)
+
+(* === 'show' as instance method name (Cerberus A2) === *)
+(* LemLib renames the Show class's 'show' method to 'show0' because 'show'
+   is a Lean tactic keyword. Instance declarations must use the renamed name. *)
+type widget = WA | WB
+
+val showWidget : widget -> string
+let showWidget w = match w with
+  | WA -> "WA"
+  | WB -> "WB"
+end
+
+instance (Show widget)
+  let show = showWidget
+end
+
+assert show_instance_ok : show WA = "WA"
+
+(* === Eq class rename: Lean's Eq is Prop, Lem's Eq must become Eq0 === *)
+(* Tests that Eq constraints in function signatures use Eq0, not bare Eq *)
+val eq_lookup : forall 'a 'b. Eq 'a => 'a -> list ('a * 'b) -> maybe 'b
+let rec eq_lookup k xs = match xs with
+  | [] -> Nothing
+  | (k', v) :: rest -> if k = k' then Just v else eq_lookup k rest
+end
+
+assert eq_lookup_ok : eq_lookup (1:nat) [(1, "a"); (2, "b")] = Just "a"
+assert eq_lookup_miss : eq_lookup (3:nat) [(1, "a"); (2, "b")] = Nothing

@@ -272,6 +272,9 @@ type type_descr = {
 
   type_target_sorts : (Ast.l * (sort list)) Target.Targetmap.t;
   (** sort annotations for target representation of the type *)
+
+  type_skip_instances : Target.Targetset.t;
+  (** targets for which auto-generated typeclass instances should be skipped *)
 }
 
 type class_descr = { 
@@ -314,8 +317,14 @@ val type_defs_lookup_typ : Ast.l -> type_defs -> t -> type_descr option
 (** [type_defs_lookup l d p] looks up the description of type with path [p] in defs [d]. *)
 val type_defs_lookup : Ast.l -> type_defs -> Path.t -> type_descr
 
+(** [type_defs_lookup_tc d p] looks up the tc_def (type or class) with path [p] in defs [d]. *)
+val type_defs_lookup_tc : type_defs -> Path.t -> tc_def option
+
 (** [type_defs_update d p td] updates the description of type with path [p] in defs [d] with [td]. *)
 val type_defs_update : type_defs -> Path.t -> type_descr -> type_defs
+
+(** [type_defs_update_class d p cd] updates the class description with path [p] in defs [d] with [cd]. *)
+val type_defs_update_class : type_defs -> Path.t -> class_descr -> type_defs
 
 (** Generates a type abbreviation *)
 val mk_tc_type_abbrev : tnvar list -> t -> tc_def

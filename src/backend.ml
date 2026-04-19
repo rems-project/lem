@@ -3672,6 +3672,27 @@ let rec def_internal callback (inside_module: bool) d is_user_def : Output.t = m
         Util.option_default_map elim_id_opt emp (fun id ->
           (Ident.to_output (Term_const (false, false)) T.path_sep (B.const_id_to_ident id true)))
       end
+  | Declaration (Decl_skip_instances (sk1, targets, sk2, sk3, t_id)) ->
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        T.bkwd "declare" ^
+        targets_opt targets ^
+        ws sk2 ^
+        T.bkwd "skip_instances" ^
+        ws sk3 ^
+        T.bkwd "type" ^
+        B.type_id_to_output t_id
+      end
+  | Declaration (Decl_extra_import (sk1, targets, sk2, sk3, mod_name)) ->
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        T.bkwd "declare" ^
+        targets_opt targets ^
+        ws sk2 ^
+        T.bkwd "extra_import" ^
+        ws sk3 ^
+        core (str (Ulib.Text.of_string mod_name))
+      end
   | Comment(d) ->
       let (d',sk) = def_alter_init_lskips (fun sk -> (None, sk)) d in
         ws sk ^ ws (Some([Ast.Com(Ast.Comment([Ast.Chars(X.comment_def d')]))]))
@@ -4049,6 +4070,10 @@ module Make(A : sig val avoid : var_avoid_f;; val env : env;; val dir : string e
   let coq_defs defs =
     let module B = Coq_backend.CoqBackend (C) in
       B.coq_defs defs
+
+  let lean_defs defs =
+    let module B = Lean_backend.LeanBackend (C) in
+      B.lean_defs defs
 
   let ident_exp e =
     let module B = F(Identity)(C)(Dummy) in

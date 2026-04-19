@@ -1,0 +1,113 @@
+(* test_deriving.lem
+   Consolidated deriving BEq/Ord tests for the Lean backend.
+
+   Tests that the backend correctly decides when to emit `deriving BEq, Ord`
+   vs sorry-based instances. Types containing (directly or transitively)
+   function-typed fields must NOT get deriving annotations.
+
+   Sections:
+     1. Positive cases - types that SHOULD derive BEq, Ord
+     2. Abbreviation hiding function type - type alias expands to fn
+     3. Deeply nested aliases - chains of abbreviations
+     4. Function type inside container - list/maybe/set of functions
+     5. Nested abbreviation - multi-level alias chains
+     6. Record with function fields - direct and aliased
+*)
+
+open import Pervasives_extra
+
+(* ------------------------------------------------------------------ *)
+(* Section 1: Positive cases - types that SHOULD get deriving BEq, Ord *)
+(* ------------------------------------------------------------------ *)
+
+(* Simple variant - no function types *)
+type color = Red | Green | Blue
+
+(* Variant with data *)
+type shaped = Circle of nat | Square of nat * nat
+
+(* Variant with container of non-function *)
+type wrapped = WrapList of list nat | WrapMaybe of maybe bool
+
+(* Record with simple fields *)
+type point = <| x : nat; y : nat |>
+
+(* Parameterized type - deriving should add constraints automatically *)
+type box 'a = Box of 'a | Empty
+
+(* ------------------------------------------------------------------ *)
+(* Section 2: Abbreviation hiding function type                       *)
+(* ------------------------------------------------------------------ *)
+
+(* Type abbreviation that expands to contain a function type.
+   The backend must NOT emit deriving BEq, Ord for types using this. *)
+type stateM 'a 'st = 'st -> maybe ('a * 'st)
+
+type step 'st =
+  | Done of nat
+  | Pending of stateM nat 'st
+
+(* ------------------------------------------------------------------ *)
+(* Section 3: Deeply nested aliases through parameterized wrapper     *)
+(* ------------------------------------------------------------------ *)
+
+(* A parameterized type - deriving Ord will add [Ord a] constraint *)
+type wrapper 'a = Wrap of 'a | WrapNone
+
+(* Type alias instantiating with unit - Ord (wrapper unit) needs Ord unit,
+   which Lean 4 stdlib doesn't provide *)
+type unit_wrap = wrapper unit
+
+(* Record using the alias in a tuple field.
+   deriving Ord on this record needs Ord unit_wrap = Ord (wrapper unit),
+   which needs Ord unit - missing in Lean 4. *)
+type my_rec = <| name : string; payload : nat * unit_wrap |>
+
+let test_rec : my_rec = <| name = "test"; payload = (1, WrapNone) |>
+
+(* ------------------------------------------------------------------ *)
+(* Section 4: Function type inside containers                         *)
+(* ------------------------------------------------------------------ *)
+
+(* Direct function in tuple *)
+type fn_in_tuple = FnTup of (nat -> bool) * nat
+
+(* Function inside list *)
+type fn_in_list = FnList of list (nat -> bool)
+
+(* Function inside maybe *)
+type fn_in_maybe = FnMaybe of maybe (nat -> bool)
+
+(* Function inside nested container *)
+type fn_in_nested = FnNested of list (maybe (nat -> bool))
+
+(* Function alias inside container - abbreviation + container combo *)
+type fn_alias2 = nat -> bool
+type fn_alias_in_list = FnAlList of list fn_alias2
+
+(* ------------------------------------------------------------------ *)
+(* Section 5: Nested abbreviation hiding function type                *)
+(* ------------------------------------------------------------------ *)
+
+(* Chain: fn_alias -> wrap_alias -> nested_alias_variant / _record.
+   Backend must chase through multiple alias levels. *)
+type fn_alias = nat -> bool
+type wrap_alias = fn_alias
+type nested_alias_variant = NaV of wrap_alias
+
+(* Also test record form *)
+type nested_alias_record = <| nar_field : wrap_alias |>
+
+(* ------------------------------------------------------------------ *)
+(* Section 6: Records with function fields                            *)
+(* ------------------------------------------------------------------ *)
+
+(* Record with direct function field *)
+type rec_direct_fn = <| rdf_field : nat -> bool |>
+
+(* Record with aliased function field *)
+type fn_type = nat -> bool
+type rec_alias_fn = <| raf_field : fn_type |>
+
+(* Record with function in tuple field *)
+type rec_fn_tuple = <| rft_field : (nat -> bool) * nat |>

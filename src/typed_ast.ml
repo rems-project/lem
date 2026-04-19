@@ -406,6 +406,8 @@ type declare_def =  (* declarations *)
  | Decl_rename_current_module of lskips * targets_opt * lskips * lskips * lskips * Name.lskips_t 
  | Decl_termination_argument  of lskips * targets_opt * lskips * const_descr_ref id * lskips * Ast.termination_setting
  | Decl_pattern_match_decl    of lskips * targets_opt * lskips * Ast.exhaustivity_setting * Path.t id * tnvar list * lskips * lskips * (const_descr_ref id) lskips_seplist * lskips * (const_descr_ref id) option
+ | Decl_skip_instances        of lskips * targets_opt * lskips * lskips * Path.t id
+ | Decl_extra_import          of lskips * targets_opt * lskips * lskips * string
 (*
  | Decl_set_flag              of lskips * lskips * Name.lskips_t * lskips * Name.lskips_t
 *)
@@ -773,6 +775,12 @@ let rec def_aux_alter_init_lskips (lskips_f : lskips -> lskips * lskips) d : def
             | Decl_pattern_match_decl (sk1, targs, sk2, ex_set, p_id, args, sk3, sk4, constr_ids, sk5, elim_id_opt) ->
                 let (sk1', s_ret) = lskips_f sk1 in
                 (Decl_pattern_match_decl (sk1', targs, sk2, ex_set, p_id, args, sk3, sk4, constr_ids, sk5, elim_id_opt), s_ret)
+            | Decl_skip_instances (sk1, targs, sk2, sk3, t_id) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_skip_instances (sk1', targs, sk2, sk3, t_id), s_ret)
+            | Decl_extra_import (sk1, targs, sk2, sk3, mod_name) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_extra_import (sk1', targs, sk2, sk3, mod_name), s_ret)
           in
           res (Declaration d') s_ret
         end
