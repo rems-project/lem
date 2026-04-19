@@ -3683,17 +3683,6 @@ let rec def_internal callback (inside_module: bool) d is_user_def : Output.t = m
         T.bkwd "type" ^
         B.type_id_to_output t_id
       end
-  | Declaration (Decl_effectful (sk1, targets, sk2, sk3, c_id)) ->
-      if (not (Target.is_human_target T.target)) then emp else begin
-        ws sk1 ^
-        T.bkwd "declare" ^
-        targets_opt targets ^
-        ws sk2 ^
-        T.bkwd "effectful" ^
-        ws sk3 ^
-        T.bkwd "val" ^
-        (Ident.to_output (Term_const (false, false)) T.path_sep (B.const_id_to_ident c_id true))
-      end
   | Declaration (Decl_extra_import (sk1, targets, sk2, sk3, mod_name)) ->
       if (not (Target.is_human_target T.target)) then emp else begin
         ws sk1 ^

@@ -316,16 +316,3 @@ type my_variant_target = VarA | VarB of nat
 declare lean target_rep type my_variant_target = `Nat`
 declare lean target_rep function VarA = `(0 : Nat)`
 declare lean target_rep function VarB = `id`
-
-(* === Section 7: effectful target_rep functions === *)
-
-(* Functions marked effectful get their calls wrapped in unsafeBaseIO
-   to prevent Lean's CSE from merging calls to side-effecting functions.
-   The target_rep function should return BaseIO α, and unsafeBaseIO
-   extracts the result at each call site. *)
-val get_counter : unit -> nat
-declare lean target_rep function get_counter u = `(pure 42 : BaseIO Nat)`
-declare {lean} effectful val get_counter
-
-(* Call site should generate: runEffectful (get_counter ()) *)
-let use_counter (x : nat) : nat = get_counter () + x

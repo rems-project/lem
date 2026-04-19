@@ -253,10 +253,6 @@ and const_descr =
 
     termination_setting: Ast.termination_setting Target.Targetmap.t;
     (** Can termination be proved automatically by various backends? *)
-
-    effectful : Target.Targetset.t;
-    (** Targets for which this function's target_rep has side effects.
-        Backends use this to prevent purity-based optimizations (e.g., CSE). *)
   }
 
 and v_env = const_descr_ref Nfmap.t
@@ -502,7 +498,6 @@ type declare_def =  (** Declarations *)
  | Decl_pattern_match_decl    of lskips * targets_opt * lskips * Ast.exhaustivity_setting * Path.t id * tnvar list * lskips * lskips * (const_descr_ref id)  lskips_seplist * lskips * (const_descr_ref id) option
  | Decl_skip_instances        of lskips * targets_opt * lskips * lskips * Path.t id
  | Decl_extra_import          of lskips * targets_opt * lskips * lskips * string
- | Decl_effectful             of lskips * targets_opt * lskips * lskips * const_descr_ref id
 
 type def_aux =
   | Type_def of lskips * (name_l * tnvar list * Path.t * texp * name_sect option) lskips_seplist

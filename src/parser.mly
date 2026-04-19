@@ -172,7 +172,7 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 %token <Ast.terminal * Ulib.Text.t> IN MEM MinusMinusGt
 %token <Ast.terminal> Class_ Do LeftArrow
 %token <Ast.terminal> Inst Inst_default
-%token <Ast.terminal> Module CompileMessage Field Type Automatic Manual Exhaustive Inexhaustive AsciiRep SetFlag TerminationArgument PatternMatch SkipInstances ExtraImport Effectful
+%token <Ast.terminal> Module CompileMessage Field Type Automatic Manual Exhaustive Inexhaustive AsciiRep SetFlag TerminationArgument PatternMatch SkipInstances ExtraImport
 %token <Ast.terminal> RightAssoc LeftAssoc NonAssoc Infix Special TargetRep TargetSorts
 
 %start file
@@ -1021,8 +1021,6 @@ declaration :
     { Decl_skip_instances_decl($1, $2, $3, $4, $5) }
   | Declare targets_opt ExtraImport BacktickString
     { Decl_extra_import_decl($1, $2, $3, fst $4, snd $4) }
-  | Declare targets_opt Effectful Val id
-    { Decl_effectful_decl($1, $2, $3, $4, $5) }
 
 lemma_typ:
   | Lemma
