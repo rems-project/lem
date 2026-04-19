@@ -50,14 +50,6 @@ This skips generation of `Inhabited`, `BEq`, `Ord`, `SetType`, `Eq0`, and `Ord0`
 
 The declaration is scoped to the Lean backend (`{lean}`) and has no effect on other backends.
 
-### Effectful Target Representations
-Functions mapped via `target_rep` to side-effecting implementations (mutable counters, global state) should be marked with the `effectful` declaration. This prevents Lean's compiler from merging multiple calls to the same function:
-
-    declare lean target_rep function fresh_int u = `CerberusFresh.freshIntIO`
-    declare {lean} effectful val fresh_int
-
-The target function should return `BaseIO α`. The backend wraps each call site in `runEffectful(...)` to extract the result. Arguments must be passed through in the target_rep body — see the general `target_rep` documentation in `backend_linking.md`.
-
 ### Extra Imports
 The `extra_import` declaration injects an import into the generated Lean file:
 
