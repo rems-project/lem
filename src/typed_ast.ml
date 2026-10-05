@@ -422,7 +422,7 @@ type declare_def =  (* declarations *)
  | Decl_extra_import          of lskips * targets_opt * lskips * lskips * string
  | Decl_effectful             of lskips * targets_opt * lskips * lskips * const_descr_ref id
  | Decl_reader              of lskips * targets_opt * lskips * lskips * const_descr_ref id
- | Decl_reader_instance of lskips * targets_opt * lskips * lskips * const_descr_ref id * lskips * lskips * string
+ | Decl_reader_instance of lskips * targets_opt * lskips * lskips * const_descr_ref id * lskips * lskips * (lskips * string)
  | Decl_fuel                of lskips * targets_opt * lskips * lskips * const_descr_ref id * lskips * string
  | Decl_ground_rep          of lskips * targets_opt * lskips * lskips * const_descr_ref id * lskips * string
  | Decl_reader_seed         of lskips * targets_opt * lskips * lskips * const_descr_ref id

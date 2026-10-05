@@ -1333,11 +1333,13 @@ let lean_reader_prepass env (ds : def list) =
      member or consumer, where no `[Cls]` is in scope (instance methods,
      indreln rules, lemmas/asserts, target_rep'd bodies' contexts) is a
      generation-time error (ireader_scope_check) — there is no default
-     to inject. Declaration errors (malformed projection, a class shared
-     by two readers, a mix with another mechanism, a consumer naming a
-     non-instance reader, a consumer without a Lean target_rep) are
-     checked for every marked constant even if unused
-     (lean_ireader_check).
+     to inject. Declaration errors (malformed projection, a polymorphic
+     or non-`unit -> T` type, an inline Lean rep, a class shared by two
+     readers up to its last component, a mix with another mechanism, a
+     consumer naming a non-instance reader, a consumer without a Lean
+     target_rep) are checked for every marked constant even if unused
+     (lean_ireader_check); a reader with a lem body and no Lean
+     target_rep is refused at its definition (IR-body, in the pre-pass).
    - No `.lem` using neither declaration form is affected: every path
      below is guarded by membership in these (empty) sets, and the
      declarations are `{lean}`-scoped, so no other target's output moves
@@ -1432,7 +1434,7 @@ let lean_ireader_needs env (cref : Types.const_descr_ref) : Types.const_descr_re
     lean_ireader_filter env (fun r ->
         (direct && r = cref) || List.mem r cons || List.mem r lifted)
 
-(* Guards IR-mix / IR-type / IR-class (instance readers) and IRC-reader /
+(* Guards IR-mix / IR-type / IR-inline / IR-class (instance readers) and IRC-reader /
    IRC-rep / IRC-mix (consumers): fail-closed for every marked constant
    even if unused; idempotent; run at every pre-pass entry. *)
 let lean_ireader_check env =
@@ -1456,20 +1458,51 @@ let lean_ireader_check env =
        | Types.Tfn ({ Types.t = Types.Tapp ([], p) }, _) when Path.compare p Path.unitpath = 0 -> ()
        | _ ->
          refuse "Lean backend: instance reader %s must have type unit -> T (the read `%s ()` becomes the projection `%s`; IR-type)"
-           cname cname proj))
+           cname cname proj);
+      (* IR-type, monomorphic: the class field has ONE type, so a reader
+         whose type has free type variables (`forall 'a. unit -> 'a`)
+         would be read at every instantiation from the one field — refused
+         rather than left to an instantiation-dependent Lean error *)
+      if cd.const_tparams <> [] || not (Types.TNset.is_empty (Types.free_vars cd.const_type)) then
+        refuse "Lean backend: instance reader %s has a polymorphic type (free type variables); the class field `%s` has one type, so the reader's type must be a closed unit -> T (IR-type)"
+          cname proj;
+      (* IR-inline: a `let inline` body is a CR_inline Lean rep, expanded
+         by the inline macro BEFORE emission — every read `r ()` would
+         silently become the inlined body and never read the instance *)
+      (match Target.Targetmap.apply_target cd.target_rep (Target.Target_no_ident Target.Target_lean) with
+       | Some (CR_inline _) ->
+         refuse "Lean backend: instance reader %s has an inline Lean representation (`let inline` / a {lean} inline body): the inline macro would replace every read `%s ()` by the body before emission, so the instance `%s` would never be read (IR-inline: drop the inline; give the reader a non-inline 'declare lean target_rep')"
+           cname cname proj
+       | _ -> ()))
     readers;
   (* IR-class: two readers sharing a class would bind ONE instance and
-     silently read the same value *)
+     silently read the same value. The class text is not resolved here,
+     so the comparison is by the class's LAST dotted component: Lean name
+     resolution (the current namespace, `open`) can make `Sw` and
+     `Impl.Sw` name one class, but never changes the last component — and
+     two binders of one class are legal Lean, the reads taking the
+     innermost (measured on Lean 4.32.2: `def both [Impl.Sw] [Sw] … :=
+     Impl.Sw.sw + Sw.sw + x` under `open Impl` gives `@both ⟨1⟩ ⟨10⟩ 0 =
+     20`), so an alias would conflate SILENTLY (review F3; record §2). *)
+  let last_comp cls =
+    match List.rev (String.split_on_char '.' cls) with
+    | x :: _ -> x
+    | [] -> cls in
   let rec dup = function
     | [] -> ()
     | (c1, _, cls) :: rest ->
-      (match List.find_opt (fun (_, _, cls') -> cls' = cls) rest with
-       | Some (c2, _, _) ->
+      (match List.find_opt (fun (_, _, cls') -> last_comp cls' = last_comp cls) rest with
+       | Some (c2, _, cls') ->
          let cd = c_env_lookup Ast.Unknown env.c_env c1 in
          raise (Reporting_basic.err_general true cd.spec_l
-           (Printf.sprintf
-             "Lean backend: instance readers %s and %s share the class `%s` — both would read the ONE `[%s]` instance and silently conflate (IR-class: give each reader its own class)"
-             (lean_ireader_name env c1) (lean_ireader_name env c2) cls cls))
+           (if cls' = cls then
+              Printf.sprintf
+                "Lean backend: instance readers %s and %s share the class `%s` — both would read the ONE `[%s]` instance and silently conflate (IR-class: give each reader its own class)"
+                (lean_ireader_name env c1) (lean_ireader_name env c2) cls cls
+            else
+              Printf.sprintf
+                "Lean backend: instance readers %s and %s have the classes `%s` and `%s`, whose last components agree: Lean name resolution (the current namespace, open) may name one Lean class by both, and the two readers would then read the ONE instance and silently conflate (IR-class: classes of instance readers must differ in their last component)"
+                (lean_ireader_name env c1) (lean_ireader_name env c2) cls cls'))
        | None -> dup rest) in
   dup readers;
   List.iter (fun cref ->
@@ -1514,6 +1547,18 @@ let lean_ireader_prepass env (ds : def list) =
       | Module (_, _, _, _, _, inner_ds, _) -> List.fold_left def_infos acc inner_ds
       | Val_def _ ->
         let defined = (add_def_entities target true empty_used_entities d).used_consts_set in
+        (* IR-body: an instance reader defined by a lem body with no Lean
+           target_rep would be emitted as an ordinary def (`def r [Cls]
+           (u : Unit) : T := <body>`): hand-written Lean calling `r` would
+           get the lem body, not the instance — refused. (Explicit readers
+           have the same pre-existing gap; not changed here — record §6.) *)
+        Types.Cdset.iter (fun c ->
+            if lean_ireader_is_reader env c && not (lean_has_lean_rep env c) then
+              let (_, l, _) = d in
+              raise (Reporting_basic.err_general true l
+                (Printf.sprintf
+                  "Lean backend: instance reader %s ('declare {lean} reader val %s = instance `...`') has a lem definition but no Lean target_rep: it would be emitted as a def returning the lem body, so a hand-written caller of %s would not read the instance (IR-body: give it a 'declare lean target_rep', or drop the lem definition)"
+                  (lean_ireader_name env c) (lean_ireader_name env c) (lean_ireader_name env c)))) defined;
         if Types.Cdset.exists (lean_has_lean_rep env) defined then acc
         else
           let used = (add_def_entities target false empty_used_entities d).used_consts_set in

@@ -223,9 +223,22 @@ constant, even if unused:
 
 - **IR-proj:** the projection is not at least two plain dotted
   identifiers (no guillemets, spaces or `_root_`).
-- **IR-type:** the reader's type is not `unit -> T`.
+- **IR-type:** the reader's type is not `unit -> T`, or it has free type
+  variables (`forall 'a. unit -> 'a`): the class field has one type
+  (review F2).
+- **IR-inline:** the reader has an inline Lean representation
+  (`let inline`). The inline macro replaces every read before emission,
+  so the read would silently become the body and the reading definition
+  would not even bind the class (found while fixing review F1).
+- **IR-body** (checked in the pre-pass, at the definition): the reader
+  has a lem definition but no Lean target_rep. It would be emitted as
+  `def r [Cls] (u : Unit) : T := <body>`, and hand-written Lean calling
+  `r` would get the body, not the instance (review F1).
 - **IR-class:** two readers share a class. They would read the one
-  instance and silently conflate.
+  instance and silently conflate. The class text is not resolved at
+  generation, so the check is syntactic, and since review F3 it compares
+  the classes' LAST dotted components, not the whole texts [AGENT]. See
+  "IR-class and name resolution" below.
 - **IR-mix:** the reader is also an explicit `reader`, a `reader_seed`, a
   `supply`, a `reader_consumer`, a `fuel_consumer`, `fuel`, or an
   instance consumer.
@@ -236,6 +249,39 @@ constant, even if unused:
 - **IRC-rep:** a consumer has no Lean target_rep.
 - **IRC-mix:** a consumer is also a reader, a `reader_seed` or a
   `supply`.
+
+### IR-class and name resolution (review F3)
+
+The review's F3 said the guard compares class names syntactically, so
+`Impl.Sw.sw` and `_private.Impl.Sw.sw` count as two classes, and that
+Lean then fails loudly. The first half was right. The second half holds
+for that example, because `_private.Impl.Sw` names no class and Lean
+reports an unknown identifier. It does NOT hold in general.
+
+- **Measured (Lean 4.32.2, scratch files).** Lean name resolution can
+  make two different texts name one class: `Sw` under `open Impl`, or
+  inside `namespace Impl`. Two instance binders of one class are legal
+  Lean, and every read takes the innermost one. With `class Impl.Sw`,
+  `open Impl` and
+  `def both [Impl.Sw] [Sw] (x : Nat) : Nat := Impl.Sw.sw + Sw.sw + x`,
+  the file compiled and `#eval @both ⟨1⟩ ⟨10⟩ 0` printed `20`; the same
+  def inside `namespace Impl` also printed `20`. Both reads silently took
+  the second instance. (An `export Impl (Sw)` alias `B.Sw` and an
+  `abbrev Sw2 := Impl.Sw` were loud: the reads `B.Sw.sw` and `Sw2.sw`
+  failed with `Unknown constant`.)
+- **Fix [AGENT].** Namespaces and `open` never change a name's last
+  component. So IR-class now refuses two instance readers whose
+  classes have the same LAST dotted component, with a message naming
+  both classes. Probe: `neg_ireader_class_alias` (`NegImpl.Sw.sw` and
+  `Sw.sw`). The cost is that two genuinely different classes `A.Sw` and
+  `B.Sw` cannot both be instance-reader classes; renaming one is the
+  remedy. Under the brief, F3 was documentation-only. This tightening goes
+  beyond that, because the measured behaviour is a silent conflation;
+  it is fail-closed and reversible, and it is flagged for review.
+- **Residual.** A class reached under a different last component (an
+  `abbrev` of a class) has no projection of that name. The read
+  `Alias.field` is then an unknown constant at the Lean build, which is
+  loud (measured above).
 
 ## 3. Tests
 
@@ -289,34 +335,59 @@ Two `.lem` asserts check that the unbound definitions stay unbound.
 
 **Probes and invariance.**
 
-- `negative/neg_ireader_*.lem`: 15 probes, one or more per fail-closed
-  rule (§4 lists the plants).
+- `negative/neg_ireader_*.lem`: 19 probes, one or more per fail-closed
+  rule (§4 lists the plants). The review round added four:
+  `neg_ireader_body` (IR-body), `neg_ireader_inline` (IR-inline),
+  `neg_ireader_poly` (IR-type, polymorphic) and `neg_ireader_class_alias`
+  (IR-class, last component).
+- **No-instance gate** (review F6, phase `lean-no-ireader-instances`,
+  `tests/comprehensive/check_no_ireader_instances.sh`). It derives the
+  instance-reader classes from every `reader val … = instance` declaration
+  in the repository's `.lem` files, then scans every `.lean` file under
+  `tests/` and `lean-lib/` (`.lake/` excluded, comments stripped). It
+  fails on an `instance … : C`, an `@[instance]` definition of type `C`,
+  a `deriving instance … C … for`, or any `attribute [instance]` line.
+  It is vacuity-guarded: at least one class must be derived, at least 100
+  files scanned, and some scanned file must define a derived class. The
+  plants are in §4.
 - `invariance/inv_instance_reader.lem`: the two `{lean}` declarations are
   exact no-ops for OCaml, HOL, Isabelle and Coq.
 
-**Suite tail** (`make -C tests/comprehensive lean`, final run on the
-committed binary). The lines are verbatim; the bracketed note and the
-total are derived counts:
+**Suite tail** (`make -C tests/comprehensive lean`, review round, run
+on the final source; the binary is §5's `new` binary). The lines are
+verbatim; the bracketed notes are derived counts:
 
 ```
 === Generation: 74 passed, 0 failed, 0 skipped ===
 Build completed successfully (213 jobs).
-=== Instance-implicit readers (compiled): the entry point's instance reaches every lifted definition ===
   OK: compiled instance-reader lifting holds at two runtime instances
-  OK (rejected as declared): negative/neg_ireader_class_dup.lem      [and the 14 other neg_ireader_* probes; 130 probes rejected as declared in all]
+  OK (rejected as declared): negative/neg_ireader_body.lem
+  OK (rejected as declared): negative/neg_ireader_class_alias.lem
+  OK (rejected as declared): negative/neg_ireader_class_dup.lem
+  OK (rejected as declared): negative/neg_ireader_inline.lem
+  OK (rejected as declared): negative/neg_ireader_poly.lem
+      [these 5 shown; all 19 neg_ireader_* probes print this line; 134 probes rejected as declared in all]
   OK: inv_instance_reader.lem (5 artifacts byte-identical across ocaml/hol/isa/coq)
 parity: 49 probes: 38 OK, 11 XFAIL (registered, Lean side pinned), 0 FAIL
   OK: 12 proofs modules scanned; no sorry/admit/axiom/native_decide/bv_decide token
+  OK: 535 Lean files scanned; no instance of the 5 instance-reader classes (NegImpl.Sw, NegImpl.Sw2, Sw, TestInstanceReaderImpl.Md, TestInstanceReaderImpl.Sw)
   OK: 328 files scanned; no lemDefaultFuel, no LemFuel instance, no literal fuel (F1-F5)
-rc=0  (real 8m40.770s)
+rc=0
+/home/dev/projects/cerberus-lean-proj/scripts/ce make -C tests/comprehensive   425.89s user 29.23s system 95% cpu 7:57.71 total
 ```
 
-**Other gates, verbatim.**
+The S0 run's suite tail was the same apart from the probe count (15
+`neg_ireader_*`, 130 in all) and the new gate line; it was rc=0 in
+8m40.770s.
 
-- LemLib (`cd lean-lib && ../scripts/capped lake build`):
+**Other gates, verbatim (review round).**
+
+- LemLib (`cd lean-lib && <container>/cerberus-lean/scripts/capped lake build`):
   `Build completed successfully (39 jobs).`
 - `make nonlean-regress`:
-  `nonlean-regress: OK (893 artifact rows, 216 exit rows, 9 emitters, byte-identical to golden)`
+  `nonlean-regress: OK (893 artifact rows, 216 exit rows, 9 emitters, byte-identical to golden)`.
+  The goldens did not move. The corpus (library and `tests/backends`)
+  uses neither declaration form, so the F4 printer fix cannot reach it.
 
 ## 4. Plants (the guards are load-bearing)
 
@@ -391,6 +462,90 @@ invariance witness (§5):
 7cf258ca32ba288ceccf687219961bc5014e7be2467667ea6cf7326a17590aac  src/main.native
 7cf258ca32ba288ceccf687219961bc5014e7be2467667ea6cf7326a17590aac  .tmp/lem-final
 ```
+
+### Review-round plants (2026-10-05)
+
+The same method (`.tmp/plants2.py`, scratch) was used for the guards the
+review round added, and for IR-class's new comparison. Verbatim:
+
+```
+baseline: all 19 neg_ireader probes rejected as declared
+P10 IR-body off: 1 probe(s) turned red
+    neg_ireader_body.lem: ACCEPTED
+    restored src/lean_backend.ml (sha256 verified)
+P11 IR-inline off: 1 probe(s) turned red
+    neg_ireader_inline.lem: ACCEPTED
+    restored src/lean_backend.ml (sha256 verified)
+P12 IR-type polymorphism off: 1 probe(s) turned red
+    neg_ireader_poly.lem: ACCEPTED
+    restored src/lean_backend.ml (sha256 verified)
+P13 IR-class last-component comparison off (whole-text equality, as before F3): 1 probe(s) turned red
+    neg_ireader_class_alias.lem: ACCEPTED
+    restored src/lean_backend.ml (sha256 verified)
+P5 IR-class off entirely: 2 probe(s) turned red
+    neg_ireader_class_alias.lem: ACCEPTED
+    neg_ireader_class_dup.lem: ACCEPTED
+    restored src/lean_backend.ml (sha256 verified)
+after revert + rebuild: all probes rejected as declared
+```
+
+The rebuilt binary after the revert was
+`569ff23e799b8d50bcaf13df1a964f0e256b7379bcff65a3c9728d71cdebb68f`, the
+binary of the suite run (§3) and of §5's `new` side.
+
+**No-instance gate plants (F6).** Each line was appended to
+`lean-test/TestInstanceReaderCheck.lean`, the gate was run, and then the
+file was restored from a byte copy. Verbatim (the `==` headers and the
+`rc=` lines are printed by the plant loop):
+
+```
+== P-I1a: instance : Sw := ⟨5⟩
+  FAIL: an instance of an instance-reader class (a hidden default):
+  I1 /home/dev/projects/cerberus-lean-proj/worktrees/lem-lean-arc/pnvi-switches/tests/comprehensive/lean-test/TestInstanceReaderCheck.lean:94: instance : Sw := ⟨5⟩
+rc=1
+== P-I1b: instance (priority := low) swInst : TestInstanceReaderImpl.Sw where sw := 5
+  FAIL: an instance of an instance-reader class (a hidden default):
+  I1 /home/dev/projects/cerberus-lean-proj/worktrees/lem-lean-arc/pnvi-switches/tests/comprehensive/lean-test/TestInstanceReaderCheck.lean:94: instance (priority := low) swInst : TestInstanceReaderImpl.Sw where sw := 5
+rc=1
+== P-I1c: scoped instance foo {n : Nat} : _root_.TestInstanceReaderImpl.Md := ⟨true⟩
+  FAIL: an instance of an instance-reader class (a hidden default):
+  I1 /home/dev/projects/cerberus-lean-proj/worktrees/lem-lean-arc/pnvi-switches/tests/comprehensive/lean-test/TestInstanceReaderCheck.lean:94: scoped instance foo {n : Nat} : _root_.TestInstanceReaderImpl.Md := ⟨true⟩
+rc=1
+== P-I2: @[instance] def swDef : Sw := ⟨5⟩
+  FAIL: an instance of an instance-reader class (a hidden default):
+  I2 /home/dev/projects/cerberus-lean-proj/worktrees/lem-lean-arc/pnvi-switches/tests/comprehensive/lean-test/TestInstanceReaderCheck.lean:94: @[instance] def swDef : Sw := ⟨5⟩
+rc=1
+== P-I3: deriving instance Sw for Nat
+  FAIL: an instance of an instance-reader class (a hidden default):
+  I3 /home/dev/projects/cerberus-lean-proj/worktrees/lem-lean-arc/pnvi-switches/tests/comprehensive/lean-test/TestInstanceReaderCheck.lean:94: deriving instance Sw for Nat
+rc=1
+== P-I4: attribute [instance] swDef
+  FAIL: an instance of an instance-reader class (a hidden default):
+  I4 /home/dev/projects/cerberus-lean-proj/worktrees/lem-lean-arc/pnvi-switches/tests/comprehensive/lean-test/TestInstanceReaderCheck.lean:94: attribute [instance] swDef
+rc=1
+== N-ctl1: instance : Inhabited Nat := ⟨0⟩
+  OK: 535 Lean files scanned; no instance of the 5 instance-reader classes (NegImpl.Sw, NegImpl.Sw2, Sw, TestInstanceReaderImpl.Md, TestInstanceReaderImpl.Sw)
+rc=0
+== N-ctl2: example : (letI : Sw := ⟨5⟩; calls_get_sw 3) = 16 := rfl
+  OK: 535 Lean files scanned; no instance of the 5 instance-reader classes (NegImpl.Sw, NegImpl.Sw2, Sw, TestInstanceReaderImpl.Md, TestInstanceReaderImpl.Sw)
+rc=0
+== N-ctl3: -- instance : Sw := ⟨5⟩
+  OK: 535 Lean files scanned; no instance of the 5 instance-reader classes (NegImpl.Sw, NegImpl.Sw2, Sw, TestInstanceReaderImpl.Md, TestInstanceReaderImpl.Sw)
+rc=0
+restored lean-test/TestInstanceReaderCheck.lean (sha256 verified)
+  OK: 535 Lean files scanned; no instance of the 5 instance-reader classes (NegImpl.Sw, NegImpl.Sw2, Sw, TestInstanceReaderImpl.Md, TestInstanceReaderImpl.Sw)
+rc=0
+```
+
+The vacuity guards were run on a scratch copy of the script under a
+synthetic root. With no `.lem` declaration it printed
+`FAIL (vacuous): no instance-reader declaration found in the .lem files`.
+With declarations but no Lean files it printed
+`FAIL (vacuous): only 0 Lean files to scan (< 100)`. With 120 files but
+no class definition it printed
+`FAIL (vacuous): no scanned file defines a derived class (TestInstanceReaderImpl.Md, TestInstanceReaderImpl.Sw)`.
+After adding `class Sw` it printed
+`OK: 120 Lean files scanned; no instance of the 2 instance-reader classes (TestInstanceReaderImpl.Md, TestInstanceReaderImpl.Sw)`.
 
 ## 5. Invariance witness: S0 is a pure addition
 
@@ -477,6 +632,57 @@ parity.log identical
 
 (The table lines are derived per directory from the same two trees.)
 
+### Re-run after the review round (2026-10-05)
+
+The witness was re-run with the same method, from re-written scratch
+(`.tmp/gen_all.sh`; the S0 copy had been deleted with `.tmp/`).
+
+- **Baseline:** the opam `lem` of the shared switch, copied to scratch:
+  `Lem lean-backend-v0.1.0-alpha.1-63-g4e70bb5`.
+- **New:** the review-round binary, frozen
+  (`569ff23e…`; `Lem lean-backend-v0.1.0-alpha.1-64-gfc8fbef-dirty`;
+  "dirty" because it was built from the then-uncommitted final source,
+  which is this commit's source).
+- **Inputs.** `LEMLIB` was the pinned switch's `share/lem/library`.
+  Cerberus was read at the primary checkout `1806c5a23` (HEAD checked
+  before and after; unchanged). The Cerberus source lists came from
+  `make --eval` (85 Lean and 86 OCaml sources).
+- **Exclusions.** The new-form inputs were excluded on both sides:
+  `test_instance_reader.lem` and every `neg_ireader_*` probe.
+- **Layout change.** `comp-ocaml` now also holds one captured-output file
+  per test (73 of its 186 files), and each joint directory holds its log,
+  so those counts differ from the S0 table.
+
+Verbatim:
+
+```
+diff -r exit: 0
+0
+cerb-lean            170 files: identical
+cerb-ocaml            86 files: identical
+lib-lean              58 files: identical
+lib-ocaml             29 files: identical
+comp-lean            146 files: identical
+comp-ocaml           186 files: identical
+comp-lean-joint1       5 files: identical
+comp-lean-joint2       5 files: identical
+comp-neg             115 files: identical
+parity-lean           98 files: identical
+parity-ocaml          49 files: identical
+backends-lean         24 files: identical
+backends-ocaml        13 files: identical
+backends.log identical
+backends-refusals.txt identical
+cerb-lean.log identical
+cerb-ocaml.log identical
+comp-lean.log identical
+comp-ocaml.log identical
+comp-ocaml-refusals.txt identical
+lib-lean.log identical
+lib-ocaml.log identical
+parity.log identical
+```
+
 ### Cross-check against a checked-in tree
 
 **The scratch regeneration matches a real tree.** It was compared with
@@ -511,11 +717,44 @@ orchestrator.
 - **Instance readers are not seedable.** A seed definition binds the
   class; it cannot supply a value. A different value is supplied by the
   caller (`@f ⟨v⟩`, `letI`), lexically, as Lean's instances are.
-- **Positional instance arguments are sensitive to reader names.**
-  `@f ⟨n⟩ ⟨v⟩` depends on the binder order. Renaming an instance reader
+- **Positional instance arguments are sensitive to reader names**
+  (review F7). The binder order follows the lem reader NAME, not the
+  class. `@f ⟨n⟩ ⟨v⟩` depends on that order. Renaming an instance reader
   can reorder binders, which is the explicit readers' caveat. Distinct
   classes make a swap a type error unless the field types coincide.
-  `letI` is order-independent.
+  - A definition binds only the readers it reaches. So a definition that
+    reaches ONE reader keeps its positional signature when a second
+    reader is added elsewhere.
+  - A definition that comes to reach a second reader gains a binder, and
+    where the new reader's name sorts first, the new binder comes first.
+    So adding a second instance reader in a downstream project changes
+    the signature of every definition reaching both. That is a signature
+    change for consumers that apply them explicitly (`@f ⟨…⟩ ⟨…⟩`).
+  - Consumers should therefore prefer `letI : Cls := ⟨v⟩` (or named
+    instance arguments) over positional `@f ⟨…⟩` wherever two readers
+    meet. `letI` is order-independent.
+- **Kernel computation needs a non-`partial` definition** (review F5,
+  advisory for downstream). Binding `[Cls]` does not change how a
+  definition is compiled. A `partial def` that binds `[Cls]` runs, at
+  any instance, but it is opaque to the kernel. So a fact proved by
+  `rfl` or `decide` at a concrete instance (`@f ⟨v⟩ x = y`) holds only
+  where `f` and everything it unfolds to are fuel'd (`[LemFuel]`, a
+  closed fuel at the entry point) or structural. A consumer planning
+  `rfl`-level facts at a concrete switch setting must check that the
+  definitions under it are not `partial`; the instance mechanism does
+  not make an opaque definition computable.
+- **Explicit readers keep two pre-existing gaps** (found with review F1;
+  TODO #52). An explicit `declare {lean} reader val cfg` with a lem body
+  and no Lean target_rep is emitted as a dead
+  `def cfg (_lemReader_cfg : Nat) (u : Unit) : Nat := 0`. With
+  `let inline cfg u = 0`, a read is silently inlined, giving
+  `def g (x : Nat) : Nat := 0 + x`, with no reader binder. Both were
+  reproduced on the S0 branch. The instance form refuses both shapes
+  (IR-body, IR-inline). The explicit form is deliberately unchanged in
+  this slice, because changing it would break the S0 invariance witness
+  (§5). Cerberus's two explicit readers (`tagDefs`, `enum_definitions`)
+  both carry a non-inline Lean target_rep at `1806c5a23`, by reading, so
+  Cerberus is not affected today.
 - **Class shape is Lean's check.** The class's existence and the field's
   type are checked by Lean at build time ("unknown constant", a type
   mismatch at the read site), not at generation. Both are loud.
@@ -546,3 +785,20 @@ These are all [AGENT] decisions, recorded for review.
    the slice. Per this slice's brief it is not done here: no opam pin,
    Lake rev, manifest or `fork_drift_manifest.txt` change. The
    orchestrator does it after review.
+
+## 8. Adversarial review: findings and dispositions (2026-10-05)
+
+The adversarial review of `fc8fbef` found no soundness defects. The
+orchestrator's brief for this round set the dispositions below, and the
+operator approved the round on 2026-10-05 (as relayed by the brief).
+Where the worker departed from the brief, the entry is marked [AGENT].
+
+| # | Finding | Disposition |
+|---|---------|-------------|
+| F1 | An instance reader with a lem body and no Lean target_rep emitted a dead `def sw [Impl.Sw] (u : Unit) : Nat := 0`. | **Refused** (IR-body, in the pre-pass at the definition; probe `neg_ireader_body`). The brief preferred refusal to suppressing the def, and so did the worker [AGENT]. Suppressing it would leave a lem-defined constant with no Lean counterpart, which is silent for hand-written callers; refusing says so at generation. While reproducing F1, a worse variant was found: `let inline sw u = 0` is inlined before emission, so reads silently become `0` and the reading def binds no class. That is **refused** too (IR-inline, `neg_ireader_inline`) [AGENT]. The same two gaps exist for explicit readers; per the brief they are **not changed** here (they would break the invariance witness), but are recorded in §6 and as TODO #52. |
+| F2 | IR-type accepted `val sw : forall 'a. unit -> 'a`. | **Refused**: free type variables in the reader's type (IR-type; `neg_ireader_poly`). |
+| F3 | IR-class compares class texts syntactically. | **Documented** (§2, DESIGN.md) as the brief asked, and **tightened** [AGENT]. The brief's premise that "Lean then fails loudly" was measured. It holds for the review's `_private.` example, but not for a namespace-relative or `open`ed alias: two binders of one class are legal Lean and the reads silently conflate (§2, "IR-class and name resolution"). IR-class now compares last components (`neg_ireader_class_alias`). This goes beyond the brief and is flagged for review; reverting it is one line plus the probe. |
+| F4 | A double space in the human-target printers. | **Fixed.** The parser's skip before the backticked payload is now carried in the typed AST (`Decl_reader_instance` holds `lskips * string`) and printed, instead of a hard-coded leading space. html now prints ``<b>instance</b> `Impl.Sw.sw` ``, tex prints `\lemkw{instance}\  ` followed by the payload, and `-lem` round-trips the source line exactly. The `nonlean-regress` goldens did not move. |
+| F5 | `partial def` with `[Cls]` is kernel-opaque. | **Documented** (§6, advisory for downstream). |
+| F6 | Nothing stopped an instance of a reader class appearing in lem-lean's Lean tree. | **Gate added**: `check_no_ireader_instances.sh`, phase `lean-no-ireader-instances` in `make -C tests/comprehensive lean`. The classes are derived from the `.lem` declarations, the gate is vacuity-guarded, and it was plant-tested (§3, §4). |
+| F7 | The binder order follows the reader name, so positional application is fragile. | **Documented** (§6, DESIGN.md, manual). |

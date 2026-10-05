@@ -14,7 +14,7 @@ LAKE = "$(CAPPED)" lake
 
 TESTS = $(sort $(wildcard test_*.lem))
 
-.PHONY: all lean lean-wide-patterns lean-outdir-refusal lean-comments lean-layout lean-text-fidelity lean-multiclause lean-constants-required lean-generate lean-compile lean-negative lean-panic lean-untaken-failure lean-parity lean-fuel-param lean-fuel-mutual-reader lean-reader-multi lean-instance-reader lean-no-sorry-proofs lean-no-fuel-numerals lean-version lean-parity-admission check-capped clean
+.PHONY: all lean lean-wide-patterns lean-outdir-refusal lean-comments lean-layout lean-text-fidelity lean-multiclause lean-constants-required lean-generate lean-compile lean-negative lean-panic lean-untaken-failure lean-parity lean-fuel-param lean-fuel-mutual-reader lean-reader-multi lean-instance-reader lean-no-sorry-proofs lean-no-ireader-instances lean-no-fuel-numerals lean-version lean-parity-admission check-capped clean
 
 check-capped:
 	@test -x "$(CAPPED)" || { echo "FAIL: capped Lean runner '$(CAPPED)' not found or not executable (set CAPPED=...)"; exit 1; }
@@ -23,7 +23,7 @@ all: lean
 
 # === Lean Backend ===
 
-lean: lean-version lean-constants-required lean-parity-admission lean-wide-patterns lean-outdir-refusal lean-generate lean-comments lean-layout lean-text-fidelity lean-multiclause lean-compile lean-panic lean-untaken-failure lean-tuple-once lean-supply-draws lean-reader-consumer lean-reader-multi lean-instance-reader lean-fuel-param lean-fuel-mutual-reader lean-negative lean-invariance lean-parity lean-no-sorry-proofs lean-no-fuel-numerals
+lean: lean-version lean-constants-required lean-parity-admission lean-wide-patterns lean-outdir-refusal lean-generate lean-comments lean-layout lean-text-fidelity lean-multiclause lean-compile lean-panic lean-untaken-failure lean-tuple-once lean-supply-draws lean-reader-consumer lean-reader-multi lean-instance-reader lean-fuel-param lean-fuel-mutual-reader lean-negative lean-invariance lean-parity lean-no-sorry-proofs lean-no-ireader-instances lean-no-fuel-numerals
 
 # The reserved-name list is required (linksem 2026-09-28, B10): with the
 # library's lean_constants missing, lem must refuse to generate Lean (it used
@@ -129,6 +129,16 @@ lean-fuel-param:
 lean-no-sorry-proofs:
 	@echo "=== No sorry/admit/axiom/native_decide in fuel_measure proofs modules (gate) ==="
 	@./check_no_sorry_proofs.sh
+
+# No instance of an instance-reader class anywhere in lem-lean's Lean tree
+# (instance-reader slice, review F6, 2026-10-05): the classes are derived
+# from the .lem `reader val ... = instance` declarations; a global instance
+# would be a hidden default (the [LemFuel] rule). Plant-tested, see
+# check_no_ireader_instances.sh. Runs after generation and parity, so the
+# generated modules are under the scan.
+lean-no-ireader-instances:
+	@echo "=== No instance of an instance-reader class in the Lean tree (gate) ==="
+	@./check_no_ireader_instances.sh
 
 # No fuel numeral anywhere it could be magic (fuel-parameter arc gate;
 # plant-tested, see check_no_fuel_numerals.sh): LemLib, the generated

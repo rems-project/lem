@@ -501,7 +501,15 @@ fuel lifting puts it), the instance readers' `[Cls]` binders in the
 global order (sorted by the reader's lem name, then path), `[Inhabited
 tv]`, the fuel counter (workers), the explicit reader binders, the
 supply binders, the arguments — so `@f ⟨n⟩ ⟨v⟩ …` instantiates fuel
-then instance readers. **Seeds:** `reader_seed` cuts EXPLICIT readers
+then instance readers. The order follows the lem reader NAME, not the
+class. A definition binds only the readers it reaches, so a
+single-reader definition keeps its positional signature when a second
+reader is added; a definition that comes to reach two readers gains a
+binder, possibly in front. Adding a second instance reader in a
+downstream project is therefore a signature change for consumers that
+apply such definitions explicitly, and consumers should prefer `letI`
+over positional `@f ⟨…⟩ ⟨…⟩` wherever two readers meet (review F7).
+**Seeds:** `reader_seed` cuts EXPLICIT readers
 only; a seed definition is an ordinary member of the instance fixpoint,
 so an instance reader propagates through it (the seed def binds `[Cls]`
 itself), and its N positional seeds count explicit readers only.
@@ -514,7 +522,16 @@ instance reader, or a reference to a member or consumer, where its
 rule (relations are not lifted by this mechanism), a lem
 `assert`/`lemma` — is a generation-time error naming the site and the
 class; declaration errors are checked for every marked constant even if
-unused (the table below). Without either declaration form the output is
+unused (the table below). **IR-class is syntactic:** the class text is
+not resolved at generation. Two texts can name one Lean class (`Sw`
+under `open Impl` or inside `namespace Impl`, and `Impl.Sw`), and two
+binders of one class are legal Lean with every read taking the innermost
+— a silent conflation, measured. So the guard compares the classes' LAST
+dotted components, which namespaces and `open` never change; texts
+whose last components differ but which still name one class
+(`_private.Impl.Sw`, an `abbrev`, an `export` alias) have no projection
+of that name and fail loudly at the Lean build (review F3; record §2).
+Without either declaration form the output is
 byte-identical to the backend without the mechanism (measured on the
 lem suites, LemLib and the full Cerberus Lean and OCaml trees; record
 [2026-10-05](2026-10-05_instance-reader-record.md)). Tests:
@@ -856,7 +873,7 @@ unaffected:
 | `declare {lean} reader_seed val f` | do not lift `f`; with N declared readers its first N arguments are the seeds — one per reader, positionally in the GLOBAL SORTED reader order (the binder order of every lifted def and consumer stub; one order everywhere) — and supply the reader values to lifted callees and consumer calls in its body ([record](2026-09-19_nary-reader-seed-record.md); the seeds are referenced by name, so the seed positions must be simple variables). Refused fail-closed: no reader declared (nothing to seed), fewer than N arguments (the error names N and the order), a seed position that is not a simple variable, a multi-clause or mutual def, an instance, combination with `fuel` |
 | `declare {lean} supply val c` | supply-lift the counter `c : unit -> nat`: every function that (transitively) draws takes the current supply as an extra parameter and returns the successor supply paired with its result (deterministic state-passing; draws are `LemLib.supplySplit`) |
 | `declare {lean} reader_consumer val f` | pass all reader parameters as extra leading arguments at `f`'s call sites (callers get reader-lifted); `f` must carry an identifier-form Lean target_rep whose implementation takes the leading reader parameters explicitly |
-| ``declare {lean} reader val r = instance `Cls.field` `` | the INSTANCE-IMPLICIT reader: `r : unit -> T` is read through the projection `Cls.field` of a hand-written one-field class; every function that (transitively) reads it binds `[Cls]` (no positional parameter; call sites unchanged; no instance in generated code). Refused: a projection that is not ≥ 2 plain dotted identifiers (IR-proj), a type other than `unit -> T` (IR-type), two readers sharing a class (IR-class), a mix with `reader`/`reader_seed`/`supply`/`reader_consumer`/`fuel`/`fuel_consumer` on the same val (IR-mix), a second projection for the same target ([record](2026-10-05_instance-reader-record.md)) |
+| ``declare {lean} reader val r = instance `Cls.field` `` | the INSTANCE-IMPLICIT reader: `r : unit -> T` is read through the projection `Cls.field` of a hand-written one-field class; every function that (transitively) reads it binds `[Cls]` (no positional parameter; call sites unchanged; no instance in generated code). Refused: a projection that is not ≥ 2 plain dotted identifiers (IR-proj), a type other than a closed `unit -> T` (IR-type; free type variables included), an inline Lean representation, which would inline every read away (IR-inline), a lem body with no Lean target_rep, which would be emitted as a def returning the body (IR-body), two readers whose classes share their last dotted component (IR-class), a mix with `reader`/`reader_seed`/`supply`/`reader_consumer`/`fuel`/`fuel_consumer` on the same val (IR-mix), a second projection for the same target ([record](2026-10-05_instance-reader-record.md)) |
 | `declare {lean} reader_consumer val f = instance r` | `f`'s hand-written implementation binds `r`'s class itself: no argument at `f`'s call sites, its callers bind `[Cls]`; composes with `reader_consumer val f` and `fuel_consumer val f` on the same val. Refused: `r` not an instance reader (IRC-reader), no Lean target_rep (IRC-rep), `f` also a reader / reader_seed / supply (IRC-mix) |
 
 Qualified identifier target representations use a syntactic import heuristic:

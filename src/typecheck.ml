@@ -3087,7 +3087,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           let c_env' = c_env_update ctxt.ctxt_c_env c_id.descr {c_descr with reader = rd'} in
           let def' = Some (Declaration (Decl_reader (sk1, targs, sk2, sk3, c_id))) in
           ({ctxt with ctxt_c_env = c_env'}, def')
-      | Ast.Declaration(Ast.Decl_reader_instance_decl (sk1, targets_opt, sk2, sk3, id, sk4, sk5, (_, proj))) ->
+      | Ast.Declaration(Ast.Decl_reader_instance_decl (sk1, targets_opt, sk2, sk3, id, sk4, sk5, (sk6, proj))) ->
           (* instance-reader slice (2026-10-05): one projection per target;
              a second declaration for the same target is refused rather
              than silently overwriting the first (fail-closed) *)
@@ -3102,7 +3102,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
             ts;
           let ri' = Targetset.fold (fun t r -> Targetmap.insert r (t, proj)) ts c_descr.reader_instance in
           let c_env' = c_env_update ctxt.ctxt_c_env c_id.descr {c_descr with reader_instance = ri'} in
-          let def' = Some (Declaration (Decl_reader_instance (sk1, targs, sk2, sk3, c_id, sk4, sk5, proj))) in
+          let def' = Some (Declaration (Decl_reader_instance (sk1, targs, sk2, sk3, c_id, sk4, sk5, (sk6, proj)))) in
           ({ctxt with ctxt_c_env = c_env'}, def')
       | Ast.Declaration(Ast.Decl_reader_consumer_instance_decl (sk1, targets_opt, sk2, sk3, id, sk4, sk5, r_id)) ->
           let targs = check_target_opt targets_opt in
