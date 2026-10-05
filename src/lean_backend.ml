@@ -312,6 +312,23 @@ module St = struct
   (* [render] Set while rendering a lifted def so the three def-assembly
      sites emit the reader binder. *)
   let reader_binder : bool ref = ref false
+  (* [invocation] Instance-implicit readers (declare {lean} reader val r
+     = instance `Cls.field`; mechanism comment at lean_ireader_projection):
+     def cref -> the instance readers it binds, in the GLOBAL reader
+     order (lean_ireader_get_readers). A def is a member if it
+     (transitively) reads an instance reader, calls a consumer of one, or
+     calls a member. Grown to a fixpoint by lean_ireader_prepass; persists
+     across modules (the reader_lifted precedent). *)
+  let ireader_lifted : Types.const_descr_ref list Types.Cdmap.t ref = ref Types.Cdmap.empty
+  (* [render] The instance readers whose `[Cls]` binders are in scope for
+     the definition being rendered (global reader order). [] = none: a
+     read of an instance reader, or a reference to a member/consumer,
+     rendered here is the fail-closed ireader_scope_check error. *)
+  let ireader_binder : Types.const_descr_ref list ref = ref []
+  (* [invocation] Cache of the (cref, projection, class) instance-reader
+     list computed from the whole constant environment (stable within an
+     invocation; the reader_params_cache discipline). *)
+  let ireader_cache : (Types.const_descr_ref * string * string) list option ref = ref None
   (* [render] The [Inhabited tv] instance-implicit binders for the
      def group being rendered (tyvar names in parameter-declaration
      order, from the threading census failwith_threaded below). *)
@@ -471,6 +488,9 @@ module St = struct
     indreln_params := [];
     reader_lifted := Types.Cdset.empty;
     reader_binder := false;
+    ireader_lifted := Types.Cdmap.empty;
+    ireader_binder := [];
+    ireader_cache := None;
     inhabited_binder := [];
     fuel_emit := None;
     fuel_workers := [];
@@ -1265,6 +1285,254 @@ let lean_reader_prepass env (ds : def list) =
               changed := true
             end
           end) infos
+    done
+  end
+
+(* ===== Instance-implicit readers
+         (declare {lean} reader val r = instance `Cls.field`) =====
+
+   Classic mechanism name: an IMPLICIT PARAMETER — the environment of a
+   reader monad passed by type-class (instance) resolution, the shape of
+   Haskell's implicit parameters (Lewis, Launchbury, Meijer, Shields,
+   POPL 2000) and of Lean's own ambient-configuration classes. It is the
+   reader lifting above with a different binder kind, and the fuel
+   lifting with a user-named class:
+
+   - `declare {lean} reader val r = instance `Cls.field`` makes the
+     constant `r : unit -> T` an instance reader. The backticked text is
+     the PROJECTION of a one-field Lean class (`class Cls where field :
+     T`, hand-written by the consumer); the class is its namespace prefix
+     (Lean names a structure's projections `Cls.field`). A read `r ()`
+     emits `Cls.field` (a bare `r` emits `(fun (_ : Unit) => Cls.field)`).
+   - Every definition that (transitively) reads `r`, calls a consumer of
+     it, or calls such a definition binds `[Cls]` instance-implicitly —
+     the same transitive fixpoint as the reader and fuel liftings
+     (lean_ireader_prepass). Call sites are textually unchanged: Lean's
+     instance resolution passes the binder along.
+   - `declare {lean} reader_consumer val f = instance r` marks a
+     hand-written target_rep'd `f` whose implementation reads `r`'s class
+     itself (it declares `[Cls]` in its own signature): no argument is
+     passed at its call sites; its callers bind `[Cls]`.
+   - No instance exists in LemLib or in generated code (the fuel rule):
+     the entry point supplies it (`@f ⟨v⟩ …`, `letI : Cls := ⟨v⟩`), and a
+     theorem quantifies over it by binding `[Cls]`.
+   - Binder position: immediately after `[LemFuel]` (wherever the fuel
+     binder would stand), several instance readers in the GLOBAL order of
+     lean_ireader_get_readers (sorted by the reader's lem name), BEFORE
+     `[Inhabited tv]`, the fuel counter, the explicit reader binders and
+     the supply binders.
+   - Seeds: a `reader_seed` definition cuts EXPLICIT readers only; it is
+     an ordinary member of this fixpoint, so an instance reader
+     propagates THROUGH it (the seed def binds `[Cls]` itself). Instance
+     readers are not seedable and are not counted among a seed's N
+     positional seeds (N counts explicit readers only).
+   - Mutual blocks: a mutual Val_def is one defined set, so its members
+     are lifted all-or-none; fuel'd workers, wrappers, `_zero` lemmas and
+     measure obligations all carry the binder.
+   - Fail-closed: a read of an instance reader, or a reference to a
+     member or consumer, where no `[Cls]` is in scope (instance methods,
+     indreln rules, lemmas/asserts, target_rep'd bodies' contexts) is a
+     generation-time error (ireader_scope_check) — there is no default
+     to inject. Declaration errors (malformed projection, a class shared
+     by two readers, a mix with another mechanism, a consumer naming a
+     non-instance reader, a consumer without a Lean target_rep) are
+     checked for every marked constant even if unused
+     (lean_ireader_check).
+   - No `.lem` using neither declaration form is affected: every path
+     below is guarded by membership in these (empty) sets, and the
+     declarations are `{lean}`-scoped, so no other target's output moves
+     (record doc/lean-backend/2026-10-05_instance-reader-record.md). *)
+
+let lean_ireader_projection env cref : string option =
+  let cd = c_env_lookup Ast.Unknown env.c_env cref in
+  Target.Targetmap.apply_target cd.reader_instance (Target.Target_no_ident Target.Target_lean)
+
+let lean_ireader_is_reader env cref = lean_ireader_projection env cref <> None
+
+(* the instance readers a target_rep'd consumer's implementation reads *)
+let lean_ireader_consumer_of env cref : Types.const_descr_ref list =
+  let cd = c_env_lookup Ast.Unknown env.c_env cref in
+  match Target.Targetmap.apply_target cd.reader_consumer_instance
+          (Target.Target_no_ident Target.Target_lean) with
+  | Some l -> l
+  | None -> []
+
+(* `Cls.field` -> Some "Cls" when every dotted component is a plain Lean
+   identifier and there are at least two; None otherwise (refused by
+   lean_ireader_check: guillemets, spaces, `_root_` and single names have
+   no unambiguous class prefix). *)
+let lean_ireader_class_of_projection (proj : string) : string option =
+  let comps = String.split_on_char '.' proj in
+  let ident_ok c =
+    String.length c > 0
+    && c <> "_root_"
+    && (match c.[0] with 'A'..'Z' | 'a'..'z' | '_' -> true | _ -> false)
+    && String.for_all (fun ch -> match ch with
+        | 'A'..'Z' | 'a'..'z' | '0'..'9' | '_' | '\'' -> true | _ -> false) c in
+  if List.length comps < 2 || not (List.for_all ident_ok comps) then None
+  else
+    let rec drop_last = function
+      | [] | [_] -> []
+      | x :: rest -> x :: drop_last rest in
+    Some (String.concat "." (drop_last comps))
+
+let lean_ireader_name env cref =
+  Name.to_string (Path.get_name (c_env_lookup Ast.Unknown env.c_env cref).const_binding)
+
+(* Every instance reader as (cref, projection, class), in the GLOBAL
+   reader order: by the reader's unqualified lem name, then by its full
+   path (a total order; equal names in two modules are distinct readers
+   with distinct classes — lean_ireader_check). A malformed projection
+   is refused by lean_ireader_check before this is consulted. *)
+let lean_ireader_get_readers env : (Types.const_descr_ref * string * string) list =
+  match !St.ireader_cache with
+  | Some l -> l
+  | None ->
+    let l = List.filter_map (fun cref ->
+        match lean_ireader_projection env cref with
+        | None -> None
+        | Some proj ->
+          (match lean_ireader_class_of_projection proj with
+           | Some cls -> Some (cref, proj, cls)
+           | None ->
+             let cd = c_env_lookup Ast.Unknown env.c_env cref in
+             raise (Reporting_basic.err_general true cd.spec_l
+               (Printf.sprintf
+                 "Lean backend: 'declare {lean} reader val %s = instance `%s`': the instance text must be the PROJECTION of a one-field class, `Cls.field` — at least two dot-separated plain identifiers (no guillemets, spaces or `_root_`); the class is the prefix before the last dot (IR-proj)"
+                 (lean_ireader_name env cref) proj))))
+        (c_env_all_consts env.c_env) in
+    let key (cref, _, _) =
+      (lean_ireader_name env cref,
+       Path.to_string (c_env_lookup Ast.Unknown env.c_env cref).const_binding) in
+    let l = List.sort (fun a b ->
+        let (na, pa) = key a and (nb, pb) = key b in
+        match String.compare na nb with 0 -> String.compare pa pb | c -> c) l in
+    St.ireader_cache := Some l; l
+
+(* Keep exactly the instance readers satisfying [p], in the global order
+   — the one constructor of binder lists, so every list is sorted and
+   duplicate-free by construction. *)
+let lean_ireader_filter env (p : Types.const_descr_ref -> bool) : Types.const_descr_ref list =
+  List.filter_map (fun (cref, _, _) -> if p cref then Some cref else None)
+    (lean_ireader_get_readers env)
+
+let lean_ireader_lifted_of (cref : Types.const_descr_ref) : Types.const_descr_ref list =
+  match Types.Cdmap.apply !St.ireader_lifted cref with
+  | Some l -> l
+  | None -> []
+
+(* The instance readers a REFERENCE to [cref] needs in scope: the reader
+   itself, the readers a consumer reads, the readers a member binds. *)
+let lean_ireader_needs env (cref : Types.const_descr_ref) : Types.const_descr_ref list =
+  let direct = lean_ireader_is_reader env cref in
+  let cons = lean_ireader_consumer_of env cref in
+  let lifted = lean_ireader_lifted_of cref in
+  if not direct && cons = [] && lifted = [] then []
+  else
+    lean_ireader_filter env (fun r ->
+        (direct && r = cref) || List.mem r cons || List.mem r lifted)
+
+(* Guards IR-mix / IR-type / IR-class (instance readers) and IRC-reader /
+   IRC-rep / IRC-mix (consumers): fail-closed for every marked constant
+   even if unused; idempotent; run at every pre-pass entry. *)
+let lean_ireader_check env =
+  let readers = lean_ireader_get_readers env in
+  List.iter (fun (cref, proj, _) ->
+      let cd = c_env_lookup Ast.Unknown env.c_env cref in
+      let cname = lean_ireader_name env cref in
+      let refuse fmt = Printf.ksprintf (fun m ->
+          raise (Reporting_basic.err_general true cd.spec_l m)) fmt in
+      let mix which =
+        refuse "Lean backend: val %s is declared both an instance reader ('declare {lean} reader val %s = instance `%s`') and {lean} %s (unsupported: IR-mix — one mechanism per val)"
+          cname cname proj which in
+      if Targetset.mem Target_lean cd.reader then mix "reader (explicit)";
+      if Targetset.mem Target_lean cd.reader_seed then mix "reader_seed";
+      if Targetset.mem Target_lean cd.supply then mix "supply";
+      if Targetset.mem Target_lean cd.reader_consumer then mix "reader_consumer";
+      if Targetset.mem Target_lean cd.fuel_consumer then mix "fuel_consumer";
+      if lean_fuel_is_fuelled env cref then mix "fuel";
+      if lean_ireader_consumer_of env cref <> [] then mix "reader_consumer ... = instance";
+      (match cd.const_type.Types.t with
+       | Types.Tfn ({ Types.t = Types.Tapp ([], p) }, _) when Path.compare p Path.unitpath = 0 -> ()
+       | _ ->
+         refuse "Lean backend: instance reader %s must have type unit -> T (the read `%s ()` becomes the projection `%s`; IR-type)"
+           cname cname proj))
+    readers;
+  (* IR-class: two readers sharing a class would bind ONE instance and
+     silently read the same value *)
+  let rec dup = function
+    | [] -> ()
+    | (c1, _, cls) :: rest ->
+      (match List.find_opt (fun (_, _, cls') -> cls' = cls) rest with
+       | Some (c2, _, _) ->
+         let cd = c_env_lookup Ast.Unknown env.c_env c1 in
+         raise (Reporting_basic.err_general true cd.spec_l
+           (Printf.sprintf
+             "Lean backend: instance readers %s and %s share the class `%s` — both would read the ONE `[%s]` instance and silently conflate (IR-class: give each reader its own class)"
+             (lean_ireader_name env c1) (lean_ireader_name env c2) cls cls))
+       | None -> dup rest) in
+  dup readers;
+  List.iter (fun cref ->
+      match lean_ireader_consumer_of env cref with
+      | [] -> ()
+      | rs ->
+        let cd = c_env_lookup Ast.Unknown env.c_env cref in
+        let cname = lean_ireader_name env cref in
+        let refuse m = raise (Reporting_basic.err_general true cd.spec_l m) in
+        List.iter (fun r ->
+            if not (lean_ireader_is_reader env r) then
+              refuse (Printf.sprintf
+                "Lean backend: 'declare {lean} reader_consumer val %s = instance %s': %s is not an instance reader (declare it with 'declare {lean} reader val %s = instance `Cls.field`'; IRC-reader)"
+                cname (lean_ireader_name env r) (lean_ireader_name env r) (lean_ireader_name env r)))
+          rs;
+        if not (lean_has_lean_rep env cref) then
+          refuse (Printf.sprintf
+            "Lean backend: 'declare {lean} reader_consumer val %s = instance ...' on a val with no Lean target_rep (IRC-rep: the declare marks a hand-written implementation that binds the class itself; a generated definition's needs are computed by the fixpoint — drop the declare)"
+            cname);
+        if Targetset.mem Target_lean cd.reader || Targetset.mem Target_lean cd.reader_seed
+           || Targetset.mem Target_lean cd.supply then
+          refuse (Printf.sprintf
+            "Lean backend: val %s is an instance-reader consumer and also a {lean} reader / reader_seed / supply (unsupported: IRC-mix)"
+            cname))
+    (c_env_all_consts env.c_env)
+
+(* Pre-pass over one module's defs: grow St.ireader_lifted to a fixpoint.
+   Val_def granularity, nested modules recursed, instances skipped (their
+   methods cannot take binders: a read there is the scope error at
+   emission), target_rep'd defs skipped (dead text; a hand-written rep
+   that reads the class says so with `reader_consumer ... = instance`),
+   reader_seed defs INCLUDED (the seed cuts explicit readers only), indreln
+   blocks not lifted (a reference from a rule is the scope error) — the
+   fuel pre-pass shape. *)
+let lean_ireader_prepass env (ds : def list) =
+  lean_ireader_check env;
+  if lean_ireader_get_readers env <> [] then begin
+    let target = Target.Target_no_ident Target.Target_lean in
+    let rec def_infos acc (((d_aux, _), _, _) as d : def) =
+      match d_aux with
+      | Instance _ -> acc
+      | Module (_, _, _, _, _, inner_ds, _) -> List.fold_left def_infos acc inner_ds
+      | Val_def _ ->
+        let defined = (add_def_entities target true empty_used_entities d).used_consts_set in
+        if Types.Cdset.exists (lean_has_lean_rep env) defined then acc
+        else
+          let used = (add_def_entities target false empty_used_entities d).used_consts_set in
+          (Types.Cdset.elements defined, Types.Cdset.elements used) :: acc
+      | _ -> acc in
+    let infos = List.rev (List.fold_left def_infos [] ds) in
+    let changed = ref true in
+    while !changed do
+      changed := false;
+      List.iter (fun (defined, used) ->
+          let needs = List.concat_map (lean_ireader_needs env) used in
+          if needs <> [] then
+            List.iter (fun c ->
+                let cur = lean_ireader_lifted_of c in
+                if not (List.for_all (fun r -> List.mem r cur) needs) then begin
+                  let nw = lean_ireader_filter env (fun r -> List.mem r cur || List.mem r needs) in
+                  St.ireader_lifted := Types.Cdmap.insert !St.ireader_lifted (c, nw);
+                  changed := true
+                end) defined) infos
     done
   end
 
@@ -3421,6 +3689,7 @@ let lean_analysis_prepass_all env (mods : checked_module list) =
       let (ds, _) = m.typed_ast in
       (* the same passes as lean_defs runs per output module, in its order *)
       lean_reader_prepass env ds;
+      lean_ireader_prepass env ds;
       lean_cmp_prepass env ds;
       lean_fuel_prepass env ds;
       lean_supply_prepass env ds;
@@ -4568,6 +4837,62 @@ type pat_style = FunParam | MatchArm
             "Lean backend: fuel'd (or fuel-lifted) definition referenced outside a fuel scope — %s — where no [LemFuel] instance is in scope (instance methods, indreln rules, lemmas/asserts cannot take the ambient fuel; fuel is a parameter of the semantics with no default: call the definition from a fuel-lifted definition, or from hand-written Lean that supplies the fuel, e.g. `@f ⟨n⟩ …` or `letI : LemFuel := ⟨n⟩`)"
             ctx))
 
+    (* --- Instance-reader helpers (declare {lean} reader val r =
+       instance `Cls.field`; the mechanism comment is at
+       lean_ireader_projection). --- *)
+    let is_ireader_cref = lean_ireader_is_reader A.env
+    (* The read `r ()`: the class projection, resolved from the [Cls]
+       binder in scope (ireader_scope_check has run at the site). *)
+    let ireader_read_output cref =
+      match lean_ireader_projection A.env cref with
+      | Some proj ->
+        (* the projection is target text, like a target_rep: its module
+           prefix is imported by the same collector *)
+        collect_cr_simple_import (is_library_module !St.current_module_name) proj;
+        from_string proj
+      | None ->
+        raise (Reporting_basic.err_general true Ast.Unknown
+          "Lean backend: internal error — instance-reader read of a constant with no projection")
+    let ireader_class_of cref =
+      match List.find_opt (fun (c, _, _) -> c = cref) (lean_ireader_get_readers A.env) with
+      | Some (_, _, cls) -> cls
+      | None ->
+        raise (Reporting_basic.err_general true Ast.Unknown
+          "Lean backend: internal error — instance-reader binder for a constant that is not an instance reader")
+    (* The binders of a def group: the union of its members' lifted sets,
+       in the global reader order. *)
+    let ireader_group_binders (crefs : Types.const_descr_ref list) =
+      if crefs = [] || lean_ireader_get_readers A.env = [] then []
+      else lean_ireader_filter A.env (fun r ->
+          List.exists (fun c -> List.mem r (lean_ireader_lifted_of c)) crefs)
+    (* The instance-implicit binders: like `[LemFuel]`, no call site
+       changes — the ONE place each class name is spelled in a signature. *)
+    let ireader_binder_output () =
+      Output.flat (List.map (fun r ->
+          let cls = ireader_class_of r in
+          collect_cr_simple_import (is_library_module !St.current_module_name) cls;
+          Output.flat [from_string " ["; from_string cls; from_string "]"])
+        !St.ireader_binder)
+    (* THE FAIL-CLOSED INSTANCE-READER SCOPE NET: a read of an instance
+       reader, or a reference to a member/consumer, rendered where its
+       `[Cls]` binder is not in scope would leave Lean to fail at build
+       time ("failed to synthesize Cls") — or, worse, to pick up a stray
+       instance. There is no default to inject, by design: generation-time
+       error naming the context and the missing classes. Inert for block
+       comments (dead text). *)
+    let ireader_scope_check (l : Ast.l) (cref : Types.const_descr_ref) (ctx : string) : unit =
+      if not !St.rendering_comment then begin
+        let missing = List.filter (fun r -> not (List.mem r !St.ireader_binder))
+            (lean_ireader_needs A.env cref) in
+        if missing <> [] then
+          raise (Reporting_basic.err_general true l
+            (Printf.sprintf
+              "Lean backend: %s %s outside an instance-reader scope — %s — where no [%s] instance is in scope (instance methods, indreln rules, lemmas/asserts and other contexts the fixpoint cannot lift cannot bind it; the instance reader is a parameter with no default: read it from a definition the fixpoint lifts, or from hand-written Lean that supplies the instance, e.g. `@f ⟨v⟩ …` or `letI : Cls := ⟨v⟩`)"
+              (if is_ireader_cref cref then "instance reader" else "definition reading the instance reader(s)")
+              (lean_ireader_name A.env cref) ctx
+              (String.concat "] [" (List.map ireader_class_of missing))))
+      end
+
     (* --- Supply lifting helpers (declare {lean} supply val) ---
        thin wrappers over the top-level env-parameterized versions; the
        pre-pass lives at module-emission level (lean_supply_prepass).
@@ -5247,13 +5572,21 @@ type pat_style = FunParam | MatchArm
                 let saved_reader_binder = !St.reader_binder in
                 let saved_supply_binder = !St.supply_binder in
                 let saved_fuel_binder = !St.fuel_binder in
+                let saved_ireader_binder = !St.ireader_binder in
                 St.reader_binder := let_lifted;
                 St.supply_binder := supply_let_lifted;
                 St.fuel_binder := let_fuel_lifted;
+                (* instance readers: the bound names' lifted set (inside an
+                   instance there is no binder — a read there is the
+                   ireader_scope_check error) *)
+                St.ireader_binder :=
+                  (if inside_instance || !St.rendering_comment then []
+                   else ireader_group_binders (List.map snd name_map));
                 Fun.protect ~finally:(fun () ->
                     St.reader_binder := saved_reader_binder;
                     St.supply_binder := saved_supply_binder;
-                    St.fuel_binder := saved_fuel_binder) @@ fun () ->
+                    St.fuel_binder := saved_fuel_binder;
+                    St.ireader_binder := saved_ireader_binder) @@ fun () ->
                 let exp_out =
                   if supply_let_lifted then supply_block inside_instance e
                   else exp inside_instance e in
@@ -5302,7 +5635,7 @@ type pat_style = FunParam | MatchArm
                     Some (rhs_def_name, Output.flat [
                       from_string "\n";
                       from_string "private def "; from_string rhs_def_name;
-                      fuel_binder_output (); reader_binder_output (); supply_binder_output (); constraints; rhs_thread;
+                      fuel_binder_output (); ireader_binder_output (); reader_binder_output (); supply_binder_output (); constraints; rhs_thread;
                       from_string "  : "; rhs_typ;
                       from_string " :="; exp_out
                     ]) in
@@ -5337,7 +5670,7 @@ type pat_style = FunParam | MatchArm
                         [from_string ", "; from_string s]) states) in
                     Output.flat [
                       from_string "\n"; defn; from_string name_str;
-                      fuel_binder_output (); reader_binder_output (); supply_binder_output (); constraints; thread_out;
+                      fuel_binder_output (); ireader_binder_output (); reader_binder_output (); supply_binder_output (); constraints; thread_out;
                       from_string "  : (("; var_type; from_string ")";
                       supply_pair_suffix (); from_string ")";
                       from_string " :=\n  let (("; pat_out; type_out; from_string ")";
@@ -5348,7 +5681,7 @@ type pat_style = FunParam | MatchArm
                   end else
                   Output.flat [
                     from_string "\n"; defn; from_string name_str;
-                    fuel_binder_output (); reader_binder_output (); constraints; thread_out;
+                    fuel_binder_output (); ireader_binder_output (); reader_binder_output (); constraints; thread_out;
                     from_string "  : "; var_type;
                     from_string " :=\n  let "; pat_out; type_out;
                     ws sk; from_string " :="; body_out;
@@ -5607,7 +5940,7 @@ type pat_style = FunParam | MatchArm
                     let equations = Output.flat (List.map render_equation (first_clause :: rest_clauses)) in
                     Output.flat [
                       ws name_skips; from_string " "; name; tv_set_out; constraints_sep; constraints;
-                      fuel_binder_output (); inhabited_binder_output (); reader_binder_output ();
+                      fuel_binder_output (); ireader_binder_output (); inhabited_binder_output (); reader_binder_output ();
                       from_string " : "; full_type; equations
                     ]
                 in
@@ -5861,6 +6194,18 @@ type pat_style = FunParam | MatchArm
                     let saved_inh = !St.inhabited_binder in
                     St.inhabited_binder := thread_names;
                     Fun.protect ~finally:(fun () -> St.inhabited_binder := saved_inh) @@ fun () ->
+                    (* Instance readers: the group's lifted set, for every
+                       emitted piece — body or fuel worker, wrapper, `_zero`
+                       lemma, measure obligation (a fuel'd group's worker
+                       binds them unconditionally: unlike the fuel, whose
+                       worker recurses on its own counter, the class is read
+                       by the body itself). *)
+                    let saved_irb = !St.ireader_binder in
+                    St.ireader_binder :=
+                      (if inside_instance || !St.rendering_comment then []
+                       else ireader_group_binders
+                           (List.map (fun (_, c, _, _, _, _) -> c) g));
+                    Fun.protect ~finally:(fun () -> St.ireader_binder := saved_irb) @@ fun () ->
                     match fuel_info with
                     | None ->
                       let saved = !St.reader_binder in
@@ -6001,7 +6346,7 @@ type pat_style = FunParam | MatchArm
                           Output.flat [
                             from_string "\n\n";
                             from_string "def "; from_string base_name; tv_out; cons_out;
-                            from_string " [LemFuel]"; inhabited_binder_output ();
+                            from_string " [LemFuel]"; ireader_binder_output (); inhabited_binder_output ();
                             from_string " : "; reader_arrows; supply_arrows;
                             result_typ_out;
                             from_string " := "; from_string worker;
@@ -6063,7 +6408,7 @@ type pat_style = FunParam | MatchArm
                           let wrapper = Output.flat [
                             from_string "\n\n";
                             from_string "def "; from_string base_name; tv_out; cons_out;
-                            ambient_binder; inhabited_binder_output ();
+                            ambient_binder; ireader_binder_output (); inhabited_binder_output ();
                             reader_binders; arg_binders;
                             from_string " : "; result_out;
                             from_string " := "; from_string worker;
@@ -6092,7 +6437,7 @@ type pat_style = FunParam | MatchArm
                             from_string proofs_module; from_string "." ; from_string thm;
                             from_string "`, stated with exactly these binders; a missing or mistyped theorem fails the build (a `sorry` is the sorry/axiom gates' job). -/\n";
                             from_string "theorem "; from_string thm; tv_out; cons_out;
-                            ambient_binder; inhabited_binder_output ();
+                            ambient_binder; ireader_binder_output (); inhabited_binder_output ();
                             reader_binders; arg_binders; hyp_binder;
                             from_string " (lemFuel : Nat) (lemMeasureLe : ("; from_string measure_out;
                             from_string ") ≤ lemFuel) :\n    "; from_string worker; from_string " lemFuel";
@@ -6138,7 +6483,7 @@ type pat_style = FunParam | MatchArm
                               Output.flat ([
                                 from_string "theorem "; from_string worker; from_string "_zero";
                                 tv_out; cons_out;
-                                fuel_binder_output (); inhabited_binder_output ();
+                                fuel_binder_output (); ireader_binder_output (); inhabited_binder_output ();
                                 reader_binder_output (); supply_binder_output ()]
                                 @ List.map (fun (b, _, _, _) -> b) bs
                                 @ [from_string " :\n    ";
@@ -6492,7 +6837,7 @@ type pat_style = FunParam | MatchArm
            Output.flat [
              ws name_skips; from_string " "; name; from_string "_lemFuel";
              tv_set_sep; tv_set; constraints_sep; constraints;
-             fuel_binder_output (); inhabited_binder_output ();
+             fuel_binder_output (); ireader_binder_output (); inhabited_binder_output ();
              from_string " (lemFuel : Nat)"; reader_binder_output (); supply_binder_output (); pat_skips;
              fun_pattern_list inside_instance pats; ws skips; typ_opt;
              from_string " := match lemFuel with\n  | 0 => ";
@@ -6508,7 +6853,7 @@ type pat_style = FunParam | MatchArm
          | None ->
            Output.flat [
              ws name_skips; from_string " "; name; tv_set_sep; tv_set; constraints_sep; constraints;
-             fuel_binder_output (); inhabited_binder_output (); reader_binder_output (); supply_binder_output (); pat_skips;
+             fuel_binder_output (); ireader_binder_output (); inhabited_binder_output (); reader_binder_output (); supply_binder_output (); pat_skips;
              fun_pattern_list inside_instance pats; ws skips; typ_opt; from_string " := "; body
            ])
     and reader_binder_output () =
@@ -7143,6 +7488,7 @@ type pat_style = FunParam | MatchArm
                     supply_net_check (Typed_ast.exp_to_locn e) cd.descr
                       "an application outside a supply-lifted definition body (instance method, indreln rule, lemma/assert, or another context the pre-pass cannot lift)";
                     fuel_scope_check (Typed_ast.exp_to_locn e) cd.descr "an application";
+                    ireader_scope_check (Typed_ast.exp_to_locn e) cd.descr "an application";
                     (* In indreln antecedents (Prop context), == and != applied via
                        App nodes (e.g. from <> decomposition: not (isEqual x y)) must
                        use propositional =/≠ instead of BEq ==/!=. *)
@@ -7166,6 +7512,17 @@ type pat_style = FunParam | MatchArm
                         let args_out = List.map trans args in
                         [Output.flat (func_out
                           :: List.map (fun a -> Output.flat [from_string " "; a]) args_out)]
+                      else if is_ireader_cref cd.descr then begin
+                        (* Application of an INSTANCE reader: 'r ()' becomes
+                           the class projection; the unit-argument guard is
+                           the explicit reader's (the rewrite replaces the
+                           whole spine). *)
+                        if List.length args <> 1 then
+                          raise (Reporting_basic.err_general true
+                            (Typed_ast.exp_to_locn e)
+                            "Lean backend: an instance reader must be applied to exactly one (unit) argument (the rewrite replaces the whole application spine)");
+                        [ireader_read_output cd.descr]
+                      end
                       else if is_reader_cref cd.descr then begin
                         (* Application of the reader constant itself: 'tagDefs ()'
                            becomes the reader parameter. The only argument is
@@ -7294,6 +7651,7 @@ type pat_style = FunParam | MatchArm
               supply_net_check (Typed_ast.exp_to_locn e) const.descr
                 "a bare (unapplied) reference outside a supply-lifted definition body";
               fuel_scope_check (Typed_ast.exp_to_locn e) const.descr "a bare (unapplied) reference";
+              ireader_scope_check (Typed_ast.exp_to_locn e) const.descr "a bare (unapplied) reference";
               let default_const_output () =
                 Output.concat emp (B.function_application_to_output (exp_to_locn e) (exp inside_instance) false e const [] (use_ascii_rep_for_const const.descr))
               in
@@ -7308,7 +7666,12 @@ type pat_style = FunParam | MatchArm
                 Output.flat [from_string "("; from_string w;
                              from_string " lemFuel"; readers; from_string ")"]
               | None ->
-              if is_reader_cref const.descr then
+              if is_ireader_cref const.descr then
+                (* Bare reference to an instance reader: eta-expand so the
+                   unit-function type is preserved. *)
+                Output.flat [from_string "(fun (_ : Unit) => ";
+                             ireader_read_output const.descr; from_string ")"]
+              else if is_reader_cref const.descr then
                 (* Bare reference to the reader constant (unapplied):
                    eta-expand so the unit-function type is preserved. *)
                 Output.flat [from_string "(fun (_ : Unit) => ";
@@ -7603,6 +7966,7 @@ type pat_style = FunParam | MatchArm
                       supply_net_check (Typed_ast.exp_to_locn e) cd.descr
                         "infix position";
                       fuel_scope_check (Typed_ast.exp_to_locn e) cd.descr "infix position";
+                      ireader_scope_check (Typed_ast.exp_to_locn e) cd.descr "infix position";
                       (* reader_consumer in infix position: the leading
                          reader arguments have no sound infix placement *)
                       if is_consumer_cref cd.descr && not !St.rendering_comment then
@@ -10076,6 +10440,7 @@ module LeanBackend (A : sig val avoid : var_avoid_f option;; val env : env;; val
       if is_library then
         St.namespace_stack := [ns_name];
       lean_reader_prepass A.env ds;
+      lean_ireader_prepass A.env ds;
       lean_cmp_prepass A.env ds;
       lean_fuel_prepass A.env ds;
       lean_supply_prepass A.env ds;

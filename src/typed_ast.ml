@@ -184,7 +184,9 @@ and const_descr = { const_binding : Path.t;
                     reader_consumer: Targetset.t;
                     fuel_consumer: Targetset.t;
                     structural: Targetset.t;
-                    fuel_measure: (string * string option) Targetmap.t}
+                    fuel_measure: (string * string option) Targetmap.t;
+                    reader_instance: string Targetmap.t;
+                    reader_consumer_instance: const_descr_ref list Targetmap.t}
 
 and v_env = const_descr_ref Nfmap.t
 and f_env = const_descr_ref Nfmap.t
@@ -420,11 +422,13 @@ type declare_def =  (* declarations *)
  | Decl_extra_import          of lskips * targets_opt * lskips * lskips * string
  | Decl_effectful             of lskips * targets_opt * lskips * lskips * const_descr_ref id
  | Decl_reader              of lskips * targets_opt * lskips * lskips * const_descr_ref id
+ | Decl_reader_instance of lskips * targets_opt * lskips * lskips * const_descr_ref id * lskips * lskips * string
  | Decl_fuel                of lskips * targets_opt * lskips * lskips * const_descr_ref id * lskips * string
  | Decl_ground_rep          of lskips * targets_opt * lskips * lskips * const_descr_ref id * lskips * string
  | Decl_reader_seed         of lskips * targets_opt * lskips * lskips * const_descr_ref id
  | Decl_supply              of lskips * targets_opt * lskips * lskips * const_descr_ref id
  | Decl_reader_consumer     of lskips * targets_opt * lskips * lskips * const_descr_ref id
+ | Decl_reader_consumer_instance of lskips * targets_opt * lskips * lskips * const_descr_ref id * lskips * lskips * const_descr_ref id
  | Decl_fuel_consumer       of lskips * targets_opt * lskips * lskips * const_descr_ref id
  | Decl_structural          of lskips * targets_opt * lskips * lskips * const_descr_ref id
  | Decl_fuel_measure        of lskips * targets_opt * lskips * lskips * const_descr_ref id * lskips * string * (lskips * string) option
@@ -807,6 +811,9 @@ let rec def_aux_alter_init_lskips (lskips_f : lskips -> lskips * lskips) d : def
             | Decl_reader (sk1, targs, sk2, sk3, c_id) ->
                 let (sk1', s_ret) = lskips_f sk1 in
                 (Decl_reader (sk1', targs, sk2, sk3, c_id), s_ret)
+            | Decl_reader_instance (sk1, targs, sk2, sk3, c_id, sk4, sk5, proj) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_reader_instance (sk1', targs, sk2, sk3, c_id, sk4, sk5, proj), s_ret)
             | Decl_fuel (sk1, targs, sk2, sk3, c_id, sk4, sent) ->
                 let (sk1', s_ret) = lskips_f sk1 in
                 (Decl_fuel (sk1', targs, sk2, sk3, c_id, sk4, sent), s_ret)
@@ -822,6 +829,9 @@ let rec def_aux_alter_init_lskips (lskips_f : lskips -> lskips * lskips) d : def
             | Decl_reader_consumer (sk1, targs, sk2, sk3, c_id) ->
                 let (sk1', s_ret) = lskips_f sk1 in
                 (Decl_reader_consumer (sk1', targs, sk2, sk3, c_id), s_ret)
+            | Decl_reader_consumer_instance (sk1, targs, sk2, sk3, c_id, sk4, sk5, r_id) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_reader_consumer_instance (sk1', targs, sk2, sk3, c_id, sk4, sk5, r_id), s_ret)
             | Decl_fuel_consumer (sk1, targs, sk2, sk3, c_id) ->
                 let (sk1', s_ret) = lskips_f sk1 in
                 (Decl_fuel_consumer (sk1', targs, sk2, sk3, c_id), s_ret)

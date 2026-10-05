@@ -119,6 +119,11 @@ describe a design that is no longer current.
   one seed per declared reader, in global sorted reader order.
 - 2026-09-20 [Fuel with readers in mutual blocks](2026-09-20_fuel-mutual-reader-record.md):
   the refusal of fuel plus reader lifting in a mutual block removed.
+- 2026-10-05 [Instance-implicit readers](2026-10-05_instance-reader-record.md):
+  `reader val r = instance `Cls.field`` and `reader_consumer val f =
+  instance r` — the reader lifting with a type-class binder (the
+  `[LemFuel]` shape), built for Cerberus's switch set (PNVI arc S0); the
+  byte-identity witness for code that does not use it.
 
 ## Documentation and public release
 

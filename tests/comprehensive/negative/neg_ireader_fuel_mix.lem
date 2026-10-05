@@ -1,0 +1,8 @@
+(* EXPECT: IR-mix *)
+(* Instance-reader slice: an instance reader cannot also be a fuel
+   consumer (one mechanism per val). *)
+open import Pervasives
+val sw : unit -> nat
+declare lean target_rep function sw u = 0
+declare {lean} reader val sw = instance `NegImpl.Sw.sw`
+declare {lean} fuel_consumer val sw

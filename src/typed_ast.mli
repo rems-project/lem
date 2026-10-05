@@ -339,6 +339,25 @@ and const_descr =
         proof a hand-written companion module must supply. Requires the
         fuel sentinel on the same val; exclusive with fuel_consumer and
         structural. Lean backend only (fuel-measure slice, 2026-09-04). *)
+
+    reader_instance : string Target.Targetmap.t;
+    (** Per-target INSTANCE-IMPLICIT reader (declare {targets} reader val
+        r = instance `Cls.field`): like [reader], an ambient value read by
+        [r ()], but every definition that (transitively) reads it binds the
+        target's one-field class instance-implicitly (Lean: `[Cls]`) and
+        the read emits the projection (`Cls.field`) — call sites are
+        textually unchanged and no instance exists in generated code (the
+        entry point supplies it). The string is the projection text.
+        Exclusive with [reader] on the same constant. Lean backend only
+        (instance-reader slice, 2026-10-05). *)
+
+    reader_consumer_instance : const_descr_ref list Target.Targetmap.t;
+    (** Per-target instance readers that this target_rep'd constant's
+        hand-written implementation READS (declare {targets}
+        reader_consumer val f = instance r): no argument is passed at its
+        call sites; every caller binds the readers' classes by the
+        ordinary instance-reader fixpoint. Lean backend only
+        (instance-reader slice, 2026-10-05). *)
   }
 
 and v_env = const_descr_ref Nfmap.t
@@ -586,11 +605,13 @@ type declare_def =  (** Declarations *)
  | Decl_extra_import          of lskips * targets_opt * lskips * lskips * string
  | Decl_effectful             of lskips * targets_opt * lskips * lskips * const_descr_ref id
  | Decl_reader                of lskips * targets_opt * lskips * lskips * const_descr_ref id
+ | Decl_reader_instance of lskips * targets_opt * lskips * lskips * const_descr_ref id * lskips * lskips * string
  | Decl_fuel                  of lskips * targets_opt * lskips * lskips * const_descr_ref id * lskips * string
  | Decl_ground_rep            of lskips * targets_opt * lskips * lskips * const_descr_ref id * lskips * string
  | Decl_reader_seed           of lskips * targets_opt * lskips * lskips * const_descr_ref id
  | Decl_supply                of lskips * targets_opt * lskips * lskips * const_descr_ref id
  | Decl_reader_consumer       of lskips * targets_opt * lskips * lskips * const_descr_ref id
+ | Decl_reader_consumer_instance of lskips * targets_opt * lskips * lskips * const_descr_ref id * lskips * lskips * const_descr_ref id
  | Decl_fuel_consumer         of lskips * targets_opt * lskips * lskips * const_descr_ref id
  | Decl_structural            of lskips * targets_opt * lskips * lskips * const_descr_ref id
  | Decl_fuel_measure          of lskips * targets_opt * lskips * lskips * const_descr_ref id * lskips * string * (lskips * string) option

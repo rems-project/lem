@@ -1,0 +1,6 @@
+(* EXPECT: IR-type *)
+(* Instance-reader slice: an instance reader has type unit -> T. *)
+open import Pervasives
+val sw : nat -> nat
+declare lean target_rep function sw u = 0
+declare {lean} reader val sw = instance `NegImpl.Sw.sw`

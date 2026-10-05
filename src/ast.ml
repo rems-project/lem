@@ -508,11 +508,13 @@ declare_def =  (* declarations *)
  | Decl_extra_import_decl of terminal * targets option * terminal * terminal * Ulib.UTF8.t
  | Decl_effectful_decl of terminal * targets option * terminal * terminal * id
  | Decl_reader_decl of terminal * targets option * terminal * terminal * id
+ | Decl_reader_instance_decl of terminal * targets option * terminal * terminal * id * terminal * terminal * (terminal * string)
  | Decl_fuel_decl of terminal * targets option * terminal * terminal * id * terminal * (terminal * string)
  | Decl_ground_rep_decl of terminal * targets option * terminal * terminal * id * terminal * (terminal * string)
  | Decl_reader_seed_decl of terminal * targets option * terminal * terminal * id
  | Decl_supply_decl of terminal * targets option * terminal * terminal * id
  | Decl_reader_consumer_decl of terminal * targets option * terminal * terminal * id
+ | Decl_reader_consumer_instance_decl of terminal * targets option * terminal * terminal * id * terminal * terminal * id
  | Decl_fuel_consumer_decl of terminal * targets option * terminal * terminal * id
  | Decl_structural_decl of terminal * targets option * terminal * terminal * id
  | Decl_fuel_measure_decl of terminal * targets option * terminal * terminal * id * terminal * (terminal * string) * (terminal * (terminal * string)) option

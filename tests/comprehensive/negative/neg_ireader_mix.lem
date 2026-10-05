@@ -1,0 +1,8 @@
+(* EXPECT: IR-mix *)
+(* Instance-reader slice: one constant is an explicit reader or an
+   instance reader, never both. *)
+open import Pervasives
+val sw : unit -> nat
+declare lean target_rep function sw u = 0
+declare {lean} reader val sw = instance `NegImpl.Sw.sw`
+declare {lean} reader val sw

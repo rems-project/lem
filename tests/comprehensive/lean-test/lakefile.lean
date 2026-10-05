@@ -85,6 +85,10 @@ lean_lib LemComprehensiveTest where
     `Test_mword, `Test_mword_auxiliary,
     `Test_numeric, `Test_numeric_auxiliary,
     `Test_patterns, `Test_patterns_auxiliary,
+    `Test_instance_reader, `Test_instance_reader_auxiliary,  -- instance-implicit readers (instance-reader slice, 2026-10-05); the auxiliary file carries the measured ilen's obligation
+    `Test_instance_reader_lemMeasureProofs,  -- hand-written proof of that obligation ([Sw] before the parameters; the build fails without it)
+    `TestInstanceReaderImpl,  -- hand-written classes Sw/Md and the consumer implementations (they bind the class themselves)
+    `TestInstanceReaderCheck,  -- hand-written signature pins (binder kind and order) and kernel rfl pins at concrete instances
     `Test_reader_consumer, `Test_reader_consumer_auxiliary,
     `TestReaderConsumerImpl,   -- hand-written consumer implementation (leading reader params)
     `TestReaderConsumerCheck,  -- hand-written reader_consumer pins (effect-retirement L1)
@@ -166,3 +170,11 @@ lean_exe «test-fuel-param» where
 -- lean-fuel-mutual-reader).
 lean_exe «test-fuel-mutual-reader» where
   root := `TestFuelMutualReaderExec
+
+-- Instance-implicit readers (instance-reader slice, 2026-10-05): compiled
+-- binary that the runtime-chosen instance reaches every lifted definition
+-- (transitive callee, consumer, seed def, fuel'd mutual block,
+-- coexistence with an explicit reader and fuel; suite phase
+-- lean-instance-reader).
+lean_exe «test-instance-reader» where
+  root := `TestInstanceReaderExec

@@ -1067,6 +1067,12 @@ declaration :
     { Decl_effectful_decl($1, $2, $3, $4, $5) }
   | Declare targets_opt Reader Val id
     { Decl_reader_decl($1, $2, $3, $4, $5) }
+  | Declare targets_opt Reader Val id Eq Inst BacktickString
+    { (* The INSTANCE-IMPLICIT reader (instance-reader slice, 2026-10-05):
+         the backticked text is the target's projection of a one-field
+         class (Lean: `Cls.field`); lifted definitions bind `[Cls]`
+         instead of an explicit `_lemReader_<name>` parameter. *)
+      Decl_reader_instance_decl($1, $2, $3, $4, $5, fst $6, $7, $8) }
   | Declare targets_opt Fuel Val id Eq BacktickString
     { Decl_fuel_decl($1, $2, $3, $4, $5, fst $6, $7) }
   | Declare targets_opt Fuel Val id Eq Num
@@ -1082,6 +1088,10 @@ declaration :
     { Decl_supply_decl($1, $2, $3, $4, $5) }
   | Declare targets_opt ReaderConsumer Val id
     { Decl_reader_consumer_decl($1, $2, $3, $4, $5) }
+  | Declare targets_opt ReaderConsumer Val id Eq Inst id
+    { (* the consumer of the named INSTANCE reader: no argument is passed
+         at call sites; the callers bind the reader's class *)
+      Decl_reader_consumer_instance_decl($1, $2, $3, $4, $5, fst $6, $7, $8) }
   | Declare targets_opt FuelConsumer Val id
     { Decl_fuel_consumer_decl($1, $2, $3, $4, $5) }
   | Declare targets_opt Structural Val id

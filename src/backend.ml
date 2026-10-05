@@ -3711,6 +3711,38 @@ let rec def_internal callback (inside_module: bool) d is_user_def : Output.t = m
         T.bkwd "val" ^
         (Ident.to_output (Term_const (false, false)) T.path_sep (B.const_id_to_ident c_id true))
       end
+  | Declaration (Decl_reader_instance (sk1, targets, sk2, sk3, c_id, sk4, sk5, proj)) ->
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        T.bkwd "declare" ^
+        targets_opt targets ^
+        ws sk2 ^
+        T.bkwd "reader" ^
+        ws sk3 ^
+        T.bkwd "val" ^
+        (Ident.to_output (Term_const (false, false)) T.path_sep (B.const_id_to_ident c_id true)) ^
+        ws sk4 ^
+        kwd "=" ^
+        ws sk5 ^
+        T.bkwd "instance" ^
+        kwd (String.concat "" [" `"; proj; "`"])
+      end
+  | Declaration (Decl_reader_consumer_instance (sk1, targets, sk2, sk3, c_id, sk4, sk5, r_id)) ->
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        T.bkwd "declare" ^
+        targets_opt targets ^
+        ws sk2 ^
+        T.bkwd "reader_consumer" ^
+        ws sk3 ^
+        T.bkwd "val" ^
+        (Ident.to_output (Term_const (false, false)) T.path_sep (B.const_id_to_ident c_id true)) ^
+        ws sk4 ^
+        kwd "=" ^
+        ws sk5 ^
+        T.bkwd "instance" ^
+        (Ident.to_output (Term_const (false, false)) T.path_sep (B.const_id_to_ident r_id true))
+      end
   | Declaration (Decl_fuel (sk1, targets, sk2, sk3, c_id, sk4, sentinel)) ->
       if (not (Target.is_human_target T.target)) then emp else begin
         ws sk1 ^

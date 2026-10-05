@@ -1,0 +1,10 @@
+(* EXPECT: IRC-mix *)
+(* Instance-reader slice: a consumer cannot also be a supply. *)
+open import Pervasives
+val sw : unit -> nat
+declare lean target_rep function sw u = 0
+declare {lean} reader val sw = instance `NegImpl.Sw.sw`
+val tick : unit -> nat
+declare lean target_rep function tick u = 0
+declare {lean} supply val tick
+declare {lean} reader_consumer val tick = instance sw

@@ -14,7 +14,7 @@ LAKE = "$(CAPPED)" lake
 
 TESTS = $(sort $(wildcard test_*.lem))
 
-.PHONY: all lean lean-wide-patterns lean-outdir-refusal lean-comments lean-layout lean-text-fidelity lean-multiclause lean-constants-required lean-generate lean-compile lean-negative lean-panic lean-untaken-failure lean-parity lean-fuel-param lean-fuel-mutual-reader lean-reader-multi lean-no-sorry-proofs lean-no-fuel-numerals lean-version lean-parity-admission check-capped clean
+.PHONY: all lean lean-wide-patterns lean-outdir-refusal lean-comments lean-layout lean-text-fidelity lean-multiclause lean-constants-required lean-generate lean-compile lean-negative lean-panic lean-untaken-failure lean-parity lean-fuel-param lean-fuel-mutual-reader lean-reader-multi lean-instance-reader lean-no-sorry-proofs lean-no-fuel-numerals lean-version lean-parity-admission check-capped clean
 
 check-capped:
 	@test -x "$(CAPPED)" || { echo "FAIL: capped Lean runner '$(CAPPED)' not found or not executable (set CAPPED=...)"; exit 1; }
@@ -23,7 +23,7 @@ all: lean
 
 # === Lean Backend ===
 
-lean: lean-version lean-constants-required lean-parity-admission lean-wide-patterns lean-outdir-refusal lean-generate lean-comments lean-layout lean-text-fidelity lean-multiclause lean-compile lean-panic lean-untaken-failure lean-tuple-once lean-supply-draws lean-reader-consumer lean-reader-multi lean-fuel-param lean-fuel-mutual-reader lean-negative lean-invariance lean-parity lean-no-sorry-proofs lean-no-fuel-numerals
+lean: lean-version lean-constants-required lean-parity-admission lean-wide-patterns lean-outdir-refusal lean-generate lean-comments lean-layout lean-text-fidelity lean-multiclause lean-compile lean-panic lean-untaken-failure lean-tuple-once lean-supply-draws lean-reader-consumer lean-reader-multi lean-instance-reader lean-fuel-param lean-fuel-mutual-reader lean-negative lean-invariance lean-parity lean-no-sorry-proofs lean-no-fuel-numerals
 
 # The reserved-name list is required (linksem 2026-09-28, B10): with the
 # library's lean_constants missing, lem must refuse to generate Lean (it used
@@ -220,6 +220,26 @@ lean-reader-multi:
 	else \
 		echo "  OK: compiled N-ary seed injection holds"; \
 	fi
+
+# Instance-implicit readers (instance-reader slice, 2026-10-05;
+# doc/lean-backend/2026-10-05_instance-reader-record.md): the compiled
+# binary chooses the [Sw] instance at RUNTIME (from its argument count) and
+# re-asserts that it reaches every lifted definition — the transitive
+# callee, the consumer, the seed def, the fuel'd mutual block, the
+# coexistence def and the measured def (signature and kernel pins live in
+# TestInstanceReaderCheck.lean). Leg 2 runs it with one argument, so a
+# value folded at compile time from one instance would fail one leg.
+lean-instance-reader:
+	@echo "=== Instance-implicit readers (compiled): the entry point's instance reaches every lifted definition ==="
+	@cd lean-test && $(LAKE) build test-instance-reader > /dev/null
+	@for a in "" "x"; do \
+		out=$$(cd lean-test && ./.lake/build/bin/test-instance-reader $$a 2>&1); st=$$?; \
+		if [ $$st -ne 0 ]; then \
+			echo "  FAIL (args '$$a', exit $$st):"; echo "$$out"; exit 1; \
+		elif ! echo "$$out" | grep -q "instance reader: OK"; then \
+			echo "  FAIL (args '$$a'): no OK line"; echo "$$out"; exit 1; \
+		fi; \
+	done; echo "  OK: compiled instance-reader lifting holds at two runtime instances"
 
 # fuel x reader x truly-mutual blocks (program-data-parameters S1.5,
 # 2026-09-20): a fuel'd truly-mutual block whose members are reader-lifted
