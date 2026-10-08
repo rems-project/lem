@@ -24,20 +24,35 @@
 # Forbidden shapes (C = a derived class):
 #   I1  instance … : C …           (any modifiers, attributes, name,
 #                                   binders, priority; the class directly
-#                                   after a `:` on the header line)
-#   I2  @[… instance …] def/abbrev … : C …
+#                                   after a `:` on the header line, bare or
+#                                   behind one opening parenthesis: `: (C)`)
+#   I2  @[… instance …] def/abbrev … : C …   (likewise `: (C)`)
 #   I3  deriving instance … C … for …
 #   I4  attribute [… instance …] …  (the class of the named constant is not
 #                                   syntactically visible: ANY such line is
 #                                   refused; none exists in the tree)
-# Limitation: a header split so that the class is on a later line than
-# `instance` is not seen (none exists; the shapes above are line-based).
+# Scope, by design. This gate is a SPEEDBUMP against accidental instances,
+# not a trust surface: it is not adversarially robust, and the operator
+# ruled against making it so ([USER 2026-10-07]: "This sounds like a
+# classic case of 'gate cruft' - we don't want our gates to be
+# adversarially robust unless they are trust surfaces"). It catches the
+# plain written shapes I1-I4 above. It does NOT catch, by design:
+#   - a header split so that the class is on a later line than `instance`
+#     (the shapes are line-based; none exists in the tree);
+#   - an instance of an alias of a class (`abbrev SwA := Sw` then
+#     `instance : SwA`): names are not resolved and aliases are not
+#     tracked;
+#   - any other shape where the class text is not literally written after
+#     the header's `:` (e.g. inside a larger type expression).
+# Delta audit A-2 (2026-10-08) found these; the parenthesised form `: (C)`
+# was closed as a plain shape, the rest are recorded here as out of scope.
 #
 # Vacuity guards: at least one class must be derived; at least MIN_FILES
 # files must be scanned; and some scanned file must DEFINE a derived class
 # (`class C`), or the scan is not reaching the tree the declarations target.
 #
-# Plant test (by hand, quoted in the record §4): each of I1-I4 planted in
+# Plant test (by hand, quoted in the record §4): each of I1-I4 (and, since
+# A-2, the parenthesised I1/I2 forms) planted in
 # lean-test/TestInstanceReaderCheck.lean turns the gate red; reverted, green.
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -80,8 +95,8 @@ for my $f (@files) {
     my $why;
     if ($l =~ /\bderiving\s+instance\b.*(?<![\w\x27.])$C.*\bfor\b/) { $why = "I3" }
     elsif ($l =~ /^\s*attribute\s*\[[^\]]*\binstance\b/) { $why = "I4" }
-    elsif ($l =~ /\@\[[^\]]*\binstance\b[^\]]*\].*?:(?!=)\s*$C/) { $why = "I2" }
-    elsif ($l =~ /(?:^|[\s\]])instance\b.*?:(?!=)\s*$C/) { $why = "I1" }
+    elsif ($l =~ /\@\[[^\]]*\binstance\b[^\]]*\].*?:(?!=)\s*\(?\s*$C/) { $why = "I2" }
+    elsif ($l =~ /(?:^|[\s\]])instance\b.*?:(?!=)\s*\(?\s*$C/) { $why = "I1" }
     push @hits, "  $why $f:$n: $l" if $why } }
 if (!$defines) { print "  FAIL (vacuous): no scanned file defines a derived class (" . join(", ", @classes) . ")\n"; exit 1 }
 if (@hits) { print "  FAIL: an instance of an instance-reader class (a hidden default):\n"; print "$_\n" for @hits[0..($#hits < 19 ? $#hits : 19)]; exit 1 }

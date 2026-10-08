@@ -527,10 +527,13 @@ not resolved at generation. Two texts can name one Lean class (`Sw`
 under `open Impl` or inside `namespace Impl`, and `Impl.Sw`), and two
 binders of one class are legal Lean with every read taking the innermost
 — a silent conflation, measured. So the guard compares the classes' LAST
-dotted components, which namespaces and `open` never change; texts
-whose last components differ but which still name one class
-(`_private.Impl.Sw`, an `abbrev`, an `export` alias) have no projection
-of that name and fail loudly at the Lean build (review F3; record §2).
+dotted components, which namespaces and `open` never change. Texts
+that end in the same component as another reader's class
+(`_private.Impl.Sw`, an `export` alias `B.Sw`) are therefore refused at
+generation. A text whose last component differs but which still names
+the same class (`abbrev Sw2 := Impl.Sw`) has no projection of that name
+(`Sw2.sw`), so it fails loudly at the Lean build (review F3; record §2;
+delta audit A-1).
 Without either declaration form the output is
 byte-identical to the backend without the mechanism (measured on the
 lem suites, LemLib and the full Cerberus Lean and OCaml trees; record
