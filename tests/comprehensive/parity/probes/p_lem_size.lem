@@ -1,0 +1,31 @@
+(* Parity probe (D2-enablers slice, 2026-09-04): a fuel'd function
+   measured by the BACKEND-DERIVED structural size of its argument's type
+   (`lemSize t` — the type is defined in the SAME module, the case a
+   hand-written measure cannot serve) is an ordinary recursive definition
+   on the OCaml target (the {lean} declares are no-ops there) and a
+   fuel-free measured wrapper on Lean; both compute the same thing —
+   at the leaves, at empty nodes, on a deep tree. Expected values are the
+   OCaml target's output. The obligation is proved in
+   p_lem_size.proofs.lean (installed by the runner as
+   P_lem_size_lemMeasureProofs.lean). *)
+open import Pervasives_extra
+
+type ptree = PL of nat | PN of list (nat * ptree)
+
+val psum : ptree -> nat
+let rec psum t = match t with
+  | PL n -> n
+  | PN ts -> List.foldl (fun acc (w, t') -> acc + w * psum t') 0 ts
+  end
+declare {lean} fuel val psum = `fuelExhausted 0`
+declare {lean} fuel_measure val psum = `lemSize t`
+
+let rec chain (n : nat) : ptree = if n = 0 then PL 1 else PN [(1, chain (n - 1))]
+declare {lean} fuel val chain = `PL 0`
+declare {lean} fuel_measure val chain = `n + 1`
+
+let results : list string =
+  [ "psum leaf: " ^ show (psum (PL 7));
+    "psum empty node: " ^ show (psum (PN []));
+    "psum tree: " ^ show (psum (PN [(2, PL 3); (1, PN [(5, PL 1); (0, PL 9)])]));
+    "psum chain 300: " ^ show (psum (chain 300)) ]

@@ -1,0 +1,18 @@
+open import Pervasives
+
+(* Non-Lean invariance witness for the hypothesis-carrying fuel_measure
+   declare (measure-hypothesis slice, 2026-09-05): `declare {lean}
+   fuel_measure val f = `m` assuming `H`` must be an exact no-op for the
+   other backends (see inv_supply.lem for the harness contract) — the
+   OCaml output of a measured function is byte-identical with and without
+   the declares, by construction. *)
+
+val bdigits : nat -> nat -> nat
+let rec bdigits b n =
+  if n / b = 0 then 1
+  else 1 + bdigits b (n / b)
+declare {lean} fuel val bdigits = `999`
+declare {lean} fuel_measure val bdigits = `n + 1` assuming `2 ≤ b`
+
+val uses_bdigits : nat -> nat
+let uses_bdigits n = bdigits 10 n + 1

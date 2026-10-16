@@ -1,0 +1,9 @@
+(* EXPECT: collides with a reserved synthesized binder *)
+(* measure-hypothesis slice: `lemHyp` is the obligation's hypothesis binder
+   (bound after the parameters): a fuel'd function's parameter of that
+   name would be shadowed in the statement — reserved, like lemMeasureLe. *)
+open import Pervasives
+val spin : nat -> nat -> nat
+let rec spin lemHyp n = if n = 0 then lemHyp else spin lemHyp (n - 1)
+declare {lean} fuel val spin = `999`
+declare {lean} fuel_measure val spin = `n + 1` assuming `0 < lemHyp`

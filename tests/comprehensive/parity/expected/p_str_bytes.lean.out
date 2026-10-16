@@ -1,0 +1,20 @@
+lean-exit: 0
+--- lean stdout ---
+len ascii: 3
+len e-acute: 1
+len mixed: 4
+explode count e-acute: 1
+explode ords e-acute: [233]
+ord a: 97
+chr 65: A
+chr 200 ord roundtrip: 200
+chr 200 implode length: 1
+chr 200 implode: È
+nth 1 of e-acute+x: 120
+makeString 3 z: zzz
+append: abcd
+concat: a-b-c
+stringConcat: xyz
+string_case empty: E
+string_case nonempty: q|rs
+cons_string: hello

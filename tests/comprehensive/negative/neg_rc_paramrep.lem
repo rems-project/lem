@@ -1,0 +1,11 @@
+(* EXPECT: parameter-binding Lean target_rep *)
+(* reader_consumer guard RC-rep, parameter-binding leg: a substituting
+   rep would consume the leading reader arguments positionally. *)
+open import Pervasives
+val cfg : unit -> nat
+declare lean target_rep function cfg u = 0
+declare {lean} reader val cfg
+val bad_consumer : nat -> nat
+declare lean target_rep function bad_consumer x = 0
+declare {lean} reader_consumer val bad_consumer
+let uses_bad x = bad_consumer x

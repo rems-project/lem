@@ -1,0 +1,37 @@
+(* test_text_fidelity: text that must come through the spacing and layout
+   passes byte for byte (the pre-merge audit of output-niceness,
+   2026-10-03; arc record §13). Every shape here reaches the output through
+   `declare lean target_rep` text, which the backend copies as written.
+   check_text_fidelity.py checks the generated Test_text_fidelity.lean; the
+   file also compiles and runs its asserts (lean-compile). *)
+open import Pervasives
+
+declare {lean} extra_import `TestTextFidelityHelper`
+
+(* `(p).1`: the redundant parentheses go, the projection stays attached
+   (`p.1`, never `p .1`) *)
+val fst_of : nat * nat -> nat
+declare lean target_rep function fst_of = `(fun (p : Nat × Nat) => (p).1)`
+let use_fst : nat = fst_of (1, 2)
+assert fst_of_1 : (use_fst = 1)
+
+(* a character literal holding a multi-byte character stays a literal *)
+val times_sign : char
+declare lean target_rep function times_sign = `'×'`
+let use_times : char = times_sign
+
+(* `×'` (a dependent pair) is one token, not `×` followed by a quote *)
+type psig
+declare lean target_rep type psig = `((_ : Nat) ×' Nat)`
+val mk_psig : nat -> psig
+declare lean target_rep function mk_psig = `(fun (n : Nat) => ((⟨n, n⟩ : (_ : Nat) ×' Nat)))`
+let use_psig : psig = mk_psig 1
+
+(* a name in guillemets with a space inside is one token, never broken
+   over a line; «a b» is defined in the hand-written helper module *)
+val ab : nat
+declare lean target_rep function ab = `(«a b»)`
+let use_ab : nat = ab
+assert ab_is_7 : (use_ab = 7)
+
+(* the asserts above are `#eval do` blocks: the layout pass copies them *)

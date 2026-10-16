@@ -1,0 +1,16 @@
+$ lem -wl ign -ocaml libdefs.lem
+[lem exit 0]
+$ ocamlfind ocamlopt -package zarith -linkpkg -I <upstream ocaml-lib> extract.cmxa libdefs.ml main.ml -o libdefs.exe
+[ocamlopt exit 0]
+$ ./libdefs.exe
+split 3 {1..5}       = ({1; 2}, {4; 5})
+splitMember 3 {1..5} = ({4; 5}, true, {1; 2})
+defaultLnot (-6)     = 6
+integerLnot (-6)     = 5
+R 1 <= R 2           = false
+max (R 1) (R 2)      = R 2
+min (R 1) (R 2)      = R 1
+maxByLessEqual (<=) (R 1) (R 2) = R 1
+size (bigunionBy m3 {{1}; {4}})  = 2
+toList (bigunionBy rev {{1; 2}; {3}}) = [1; 2; 3]
+[run exit 0]

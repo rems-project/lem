@@ -1,0 +1,78 @@
+(* Parity probe (parity-fix slice 2026-09-03, F6): the supply-lifting
+   shapes of tests/comprehensive/test_supply.lem, run on BOTH targets —
+   on OCaml `tick` is an impure counter (p_supply_shapes.ext.ml, reset by
+   the driver to the seed before each shape and read back after it), on
+   Lean the shapes are supply-lifted and called with the seed. Each
+   shape's line is "<name> <seed> = <value> @ <final counter>", rendered
+   with lem's own `show` on both targets, so the two binaries print the
+   same text exactly when the Lean transform draws in the OCaml
+   evaluation order with the same final state. The OCaml output is the
+   reference; the kernel pins in lean-test/TestSupplyCheck.lean quote
+   these values. *)
+open import Pervasives_extra
+
+val tick : unit -> nat
+declare ocaml target_rep function tick = `Parity_ext.tick`
+declare lean target_rep function tick u = 0
+declare {lean} supply val tick
+
+type wrapped = | Wrap of nat * nat
+type srec = <| ra : nat; rb : nat |>
+type srec_rev = <| rc : nat; rd : nat |>
+
+let draw_two (u : unit) : nat * nat = let a = tick () in let b = tick () in (a, b)
+let draw_list (u : unit) : list nat = [tick (); tick ()]
+let mk_wrap (u : unit) : wrapped = Wrap (tick ()) (tick ())
+let mk_srec (u : unit) : srec = <| ra = tick (); rb = tick () |>
+let mk_srec_rev (u : unit) : srec_rev = <| rd = tick (); rc = tick () |>
+let read_ra (u : unit) : nat = (mk_srec ()).ra
+let sum_two (u : unit) : nat = tick () * 10 + tick ()
+let branchy (c : bool) : nat = if c then tick () else 0
+let matchy (m : maybe nat) : nat = match m with | Just v -> v + tick () | Nothing -> tick () end
+let sc_and (b : bool) : bool = b && (tick () = 7)
+let sc_or (b : bool) : bool = b || (tick () = 7)
+let sc_both (u : unit) : bool = (tick () = 1) && (tick () = 7)
+let sc_nested (a : bool) (b : bool) : bool = a || (b && (tick () = 5))
+let sc_imp (b : bool) : bool = b --> (tick () = 7)
+let chk (n : nat) : bool = tick () = n
+let prefsc_paren (a : bool) : bool = ((&&) a) (chk 4)
+let uses_draw_two (x : nat) : nat = let (a, b) = draw_two () in a * 100 + b + x
+let pair_draw (u : unit) : nat * nat = (tick (), tick ())
+let destructure_once (u : unit) : nat * nat * nat = let (a, b) = pair_draw () in let c = tick () in (a, b, c)
+let mk_just (u : unit) : maybe (nat * nat) = Just (tick (), tick ())
+(* fuel x supply (test_supply.lem Section 7): `tick () :: fuel_draws (n-1)` —
+   OCaml evaluates the recursive call FIRST (cons arguments right-to-left) *)
+let rec fuel_draws (n : nat) : list nat = if n = 0 then [] else tick () :: fuel_draws (n - 1)
+declare {lean} fuel val fuel_draws = `[]`
+let uses_fuel_draws (k : nat) : list nat = fuel_draws (k + 1)
+let wrap_s (w : wrapped) : string = match w with Wrap a b -> "Wrap " ^ show a ^ " " ^ show b end
+
+(* one string per shape: value rendered by lem `show` on both targets *)
+let s_draw_two (u : unit) : string = show (draw_two ())
+let s_draw_list (u : unit) : string = show (draw_list ())
+let s_mk_wrap (u : unit) : string = wrap_s (mk_wrap ())
+let s_mk_srec (u : unit) : string = let r = mk_srec () in show (r.ra, r.rb)
+let s_mk_srec_rev (u : unit) : string = let r = mk_srec_rev () in show (r.rc, r.rd)
+let s_read_ra (u : unit) : string = show (read_ra ())
+let s_sum_two (u : unit) : string = show (sum_two ())
+let s_branchy_t (u : unit) : string = show (branchy true)
+let s_branchy_f (u : unit) : string = show (branchy false)
+let s_matchy_j (u : unit) : string = show (matchy (Just 5))
+let s_matchy_n (u : unit) : string = show (matchy Nothing)
+let s_sc_and_f (u : unit) : string = show (sc_and false)
+let s_sc_and_t (u : unit) : string = show (sc_and true)
+let s_sc_or_t (u : unit) : string = show (sc_or true)
+let s_sc_or_f (u : unit) : string = show (sc_or false)
+let s_sc_both (u : unit) : string = show (sc_both ())
+let s_sc_nested_ft (u : unit) : string = show (sc_nested false true)
+let s_sc_nested_ff (u : unit) : string = show (sc_nested false false)
+let s_sc_imp_f (u : unit) : string = show (sc_imp false)
+let s_sc_imp_t (u : unit) : string = show (sc_imp true)
+let s_prefsc_paren_f (u : unit) : string = show (prefsc_paren false)
+let s_prefsc_paren_t (u : unit) : string = show (prefsc_paren true)
+let s_uses_draw_two (u : unit) : string = show (uses_draw_two 7)
+let s_pair_draw (u : unit) : string = show (pair_draw ())
+let s_destructure_once (u : unit) : string = let (a, b, c) = destructure_once () in show [a; b; c]
+let s_mk_just (u : unit) : string = show (mk_just ())
+let s_fuel_draws (u : unit) : string = show (fuel_draws 2)
+let s_uses_fuel_draws (u : unit) : string = show (uses_fuel_draws 2)

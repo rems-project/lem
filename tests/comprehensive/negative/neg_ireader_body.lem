@@ -1,0 +1,12 @@
+(* EXPECT: IR-body *)
+(* Instance-reader slice, review F1: an instance reader with a lem body and
+   no Lean target_rep would be emitted as `def sw [Cls] (u : Unit) : Nat :=
+   0`; hand-written Lean calling `sw` would get the lem body, not the
+   instance. Refused. *)
+open import Pervasives
+val sw : unit -> nat
+let sw u = 0
+declare {lean} reader val sw = instance `NegImpl.Sw.sw`
+
+val get_sw : nat -> nat
+let get_sw x = sw () + x

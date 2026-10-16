@@ -1,0 +1,96 @@
+open import Pervasives
+
+(* ================================================================
+   N-ary reader_seed: 'declare {lean} reader_seed val f' with SEVERAL
+   declared readers (program-data-parameters S0.5, 2026-09-19;
+   doc/lean-backend/2026-09-19_nary-reader-seed-record.md).
+
+   With N declared readers, a seed def's first N parameters are the
+   seeds, positionally in the GLOBAL SORTED reader order — the same
+   order every lifted def's binders and every consumer stub's leading
+   parameters already use (one rule everywhere). The three readers
+   below are DECLARED in the order gamma, alpha, beta, which differs
+   from the sorted order alpha, beta, gamma; two of them (alpha,
+   gamma) share a type, so a positional mix-up would type-check and is
+   caught only by VALUE: combine's value changes when alpha and gamma
+   swap. A supply-lifted def sits in the same reader cone (binder
+   order [readers] [supply] [own args]), and one seed def is
+   supply-lifted too ([supply] [seeds] [own args]).
+
+   Observation: defs that use a reader or a consumer are
+   reader-LIFTED, so asserts here cover only the seed-rooted entry
+   (via_seed3); the lifted-path pins live in
+   lean-test/TestReaderMultiCheck.lean (kernel rfl) and the compiled
+   lean-test/TestReaderMultiExec.lean (phase lean-reader-multi).
+   ================================================================ *)
+
+(* declaration order gamma, alpha, beta — sorted order alpha, beta, gamma *)
+val gamma : unit -> nat
+declare lean target_rep function gamma u = 0
+declare {lean} reader val gamma
+
+val alpha : unit -> nat
+declare lean target_rep function alpha u = 0
+declare {lean} reader val alpha
+
+val beta : unit -> string
+declare lean target_rep function beta u = ""
+declare {lean} reader val beta
+
+(* the consumer: implementation is TestReaderMultiImpl.combine
+   (alpha : Nat) (beta : String) (gamma : Nat) (x : Nat) : Nat :=
+     alpha * 1000 + beta.length * 100 + gamma * 10 + x *)
+val combine : nat -> nat
+declare lean target_rep function combine = `TestReaderMultiImpl.combine`
+declare {lean} reader_consumer val combine
+
+(* lifted defs reading one, two and all three readers *)
+val uses_one : nat -> nat
+let uses_one x = gamma () + x
+
+val uses_two : nat -> nat
+let uses_two x = alpha () * 10 + gamma () + x
+
+val uses_three : nat -> nat
+let uses_three x = alpha () * 100 + stringLength (beta ()) * 10 + gamma () + x
+
+(* consumer call from a plain def: the def gets lifted, the call site
+   passes the three injected binders in sorted order *)
+val uses_combine : nat -> nat
+let uses_combine x = combine x
+
+(* a supply-lifted def in the same reader cone: [readers] [supply] [x] *)
+val tick : unit -> nat
+declare lean target_rep function tick u = 0
+declare {lean} supply val tick
+
+val draws_and_reads : nat -> nat
+let draws_and_reads x = combine x + tick ()
+
+(* the seed def: three seeds in the SORTED reader order (av for alpha,
+   bv for beta, gv for gamma), then its own argument; the body calls
+   the consumer directly AND lifted callees — every injection site
+   inside picks up the seed associated with ITS reader *)
+val seed3 : nat -> string -> nat -> nat -> nat
+let seed3 av bv gv x = combine x + uses_three (x + 1) + uses_two (x + 2)
+declare {lean} reader_seed val seed3
+
+(* a seed def that is also supply-lifted (it draws transitively):
+   NOT reader-lifted, IS supply-lifted — [supply] [seeds] [x] *)
+val seed3_draws : nat -> string -> nat -> nat -> nat
+let seed3_draws av bv gv x = draws_and_reads x
+declare {lean} reader_seed val seed3_draws
+
+(* seed-rooted caller: NOT lifted (passes the seeds explicitly), so it
+   is assertable from .lem *)
+val via_seed3 : nat -> nat
+let via_seed3 x = seed3 7 "ab" 9 x
+
+(* seeds alpha=7, beta="ab" (length 2), gamma=9; x = 3:
+     combine 3    = 7*1000 + 2*100 + 9*10 + 3 = 7293
+     uses_three 4 = 7*100  + 2*10  + 9    + 4 =  733
+     uses_two 5   = 7*10   + 9     + 5        =   84
+     total                                    = 8110
+   under an alpha/gamma swap (alpha=9, gamma=7):
+     combine 3 = 9273, uses_three 4 = 931, uses_two 5 = 102 -> 10306 <> 8110 *)
+assert rm_seed_ok : (via_seed3 3 = 8110)

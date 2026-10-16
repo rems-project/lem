@@ -1,0 +1,9 @@
+(* EXPECT: FM-size-type *)
+(* D2-enablers slice: `lemSize x` is the backend-derived structural size
+   of x's GENERATED INDUCTIVE type; `n : nat` has none — refused, naming
+   the parameter (for a nat the measure is the parameter itself). *)
+open import Pervasives
+val spin : nat -> nat
+let rec spin n = if n = 0 then 0 else spin (n - 1)
+declare {lean} fuel val spin = `999`
+declare {lean} fuel_measure val spin = `lemSize n + 1`

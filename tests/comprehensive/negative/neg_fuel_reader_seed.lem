@@ -1,0 +1,13 @@
+(* EXPECT: reader_seed combined with fuel *)
+open import Pervasives
+(* NEGATIVE probe (arc 3 audit): reader_seed x fuel is unsupported ->
+   the backend must reject. *)
+val neg_env3 : unit -> nat
+declare lean target_rep function neg_env3 u = 0
+declare {lean} reader val neg_env3
+
+val neg_seeded_loop : nat -> nat -> nat
+let rec neg_seeded_loop amb_val x =
+  if x = neg_env3 () then x else neg_seeded_loop amb_val (x + 1)
+declare {lean} reader_seed val neg_seeded_loop
+declare {lean} fuel val neg_seeded_loop = `1`

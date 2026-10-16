@@ -1,0 +1,14 @@
+(* EXPECT: cannot derive an Inhabited instance for type 'stream' (no constructor with derivably-inhabitable fields), but generated code demands one; escape hatches: 'declare {lean} skip_instances type stream' plus a hand-written Lean instance, or 'declare lean target_rep type stream' mapping it to a hand-written Lean type *)
+open import Pervasives
+(* NEGATIVE probe (arc-8 S1, charter durability req 2): every
+   constructor of stream is self-referential, so there is NO derivable
+   Inhabited instance; the backend must fail CLOSED (no instance, no
+   fallback of any kind). The record type below then demands
+   `default : stream nat` inside a generated instance body — a
+   backend-visible demand on an underivable type — which must be a
+   GENERATION-TIME error whose text names the type and both escape
+   hatches (asserted verbatim by the EXPECT header above). *)
+
+type stream 'a = SCons of 'a * stream 'a
+
+type holder = <| h : stream nat |>

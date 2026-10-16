@@ -1,0 +1,13 @@
+(* Failure probe (linksem 2026-09-29, B15): `let () = e1 in e2` evaluates
+   e1 for its effect; OCaml is strict, so a failing e1 stops the program.
+   Lean's compiler dropped the unused (Unit) value: e1 was skipped and step
+   2 printed. The backend now emits lemSeq, which forces e1. Each step gets
+   a RUNTIME nat (0) so neither compiler can fold the failure. *)
+open import Pervasives_extra
+
+val must_be_positive : nat -> unit
+let must_be_positive n = if n = 0 then failwith "let_unit: discarded e1 failed" else ()
+
+let steps : list (nat -> string) =
+  [ (fun n -> "before: " ^ show n);
+    (fun n -> let () = must_be_positive n in "after (must not print): " ^ show n) ]

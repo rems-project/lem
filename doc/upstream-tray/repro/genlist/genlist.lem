@@ -1,0 +1,3 @@
+open import Pervasives
+
+let gl (n : nat) : nat = length (genlist (fun i -> i) n)

@@ -1,0 +1,14 @@
+(* EXPECT: reader_seed declared but no reader is declared *)
+open import Pervasives
+
+(* N-ary reader_seed (program-data-parameters S0.5): a reader_seed def
+   with NO declared reader has nothing to seed — a mistake, refused
+   fail-closed (the deleted "exactly one declared reader" guard refused
+   this shape too; the rule now names the reason). *)
+
+val plain : nat -> nat
+let plain x = x + 1
+
+val seed0 : nat -> nat -> nat
+let seed0 s x = plain x
+declare {lean} reader_seed val seed0

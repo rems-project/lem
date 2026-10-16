@@ -1,0 +1,13 @@
+(* EXPECT: set comprehensions *)
+(* Arc-10 S2 (decision log D1 ruling 3): a LIVE set comprehension that
+   survives lem's comprehension-expansion macros must be a loud
+   generation-time error naming the construct and the workaround, never
+   an opaque sorry stub. Quantified comprehensions over sets/lists are
+   macro-expanded to folds (and are fine); the unbounded
+   `{ x | condition }` Setcomp form reaches the backend and must be
+   rejected. (Library definitions whose Lean target uses an inline
+   render only as block comments and are exempt — e.g. set.lem sigma.) *)
+open import Pervasives_extra
+
+val bads : set nat
+let bads = { x | x < 3 }

@@ -1,0 +1,12 @@
+(* EXPECT: FM-supply *)
+(* fuel-measure slice: a measure on a supply-lifted definition is an
+   unsupported combination (the wrapper's threaded result type) — refused
+   fail-closed; extend when a consumer needs it. *)
+open import Pervasives
+val tick : unit -> nat
+declare lean target_rep function tick u = 0
+declare {lean} supply val tick
+val draws : nat -> list nat
+let rec draws n = if n = 0 then [] else tick () :: draws (n - 1)
+declare {lean} fuel val draws = `[]`
+declare {lean} fuel_measure val draws = `n + 1`

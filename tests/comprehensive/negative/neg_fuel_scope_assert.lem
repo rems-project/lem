@@ -1,0 +1,11 @@
+(* EXPECT: outside a fuel scope *)
+(* Fuel-parameter arc: a fuel'd def is fuel-lifted (takes [LemFuel]); a
+   lem assert has no fuel to supply and there is NO default — the
+   reference is a generation-time error naming the site. State such
+   pins in hand-written Lean with an explicit instance
+   (lean-test/TestFuelParamCheck.lean). *)
+open import Pervasives
+val spin : nat -> nat
+let rec spin n = if n = 0 then 0 else spin (n - 1)
+declare {lean} fuel val spin = `999`
+assert spin_ok : (spin 3 = (0:nat))

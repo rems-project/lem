@@ -1,0 +1,4 @@
+wordFromBitlist 4 bits at ty8: u=11 len=4 bits=1011
+wordFromBitlist 11 bits at ty8: u=1027 len=11 bits=10000000011
+word_extract 0 3 (171 : ty8) at ty8: u=11 len=4 bits=1011
+word_concat (10 : ty4) (5 : ty4) at ty16: u=165 len=8 bits=10100101

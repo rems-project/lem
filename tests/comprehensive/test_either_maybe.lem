@@ -1,0 +1,60 @@
+open import Pervasives_extra
+
+(* === Maybe construction === *)
+let test1 = (Just 42 : maybe nat)
+let test2 = (Nothing : maybe nat)
+
+(* === Maybe pattern matching === *)
+let unwrap_or_default (d : nat) (m : maybe nat) =
+  match m with
+    | Just x -> x
+    | Nothing -> d
+  end
+
+let test3 = unwrap_or_default 0 (Just 42)
+let test4 = unwrap_or_default 0 Nothing
+
+(* === Maybe map === *)
+let maybe_map f m =
+  match m with
+    | Just x -> Just (f x)
+    | Nothing -> Nothing
+  end
+
+let test5 = maybe_map (fun (x:nat) -> x + 1) (Just 5)
+
+(* === Either === *)
+let test6 = (Left 42 : either nat string)
+let test7 = (Right "error" : either nat string)
+
+(* === Either pattern matching === *)
+let either_map_left f e =
+  match e with
+    | Left x -> Left (f x)
+    | Right y -> Right y
+  end
+
+let test8 = either_map_left (fun (x:nat) -> x * 2) (Left 5)
+
+(* === Nested option === *)
+let test9 = Just (Just (1:nat))
+let test10 = (Nothing : maybe (maybe nat))
+
+(* === Maybe in list === *)
+let test11 = [Just 1; Nothing; Just (3:nat)]
+
+(* === Maybe bind / chain === *)
+let maybe_bind m f =
+  match m with
+    | Just x -> f x
+    | Nothing -> Nothing
+  end
+
+let safe_div (x:nat) (y:nat) : maybe nat =
+  if y = 0 then Nothing else Just (x / y)
+
+let test12 = maybe_bind (Just (10:nat)) (safe_div 100)
+let test13 = maybe_bind (Just (0:nat)) (safe_div 100)
+
+assert test3_ok : (test3 = (42:nat))
+assert test4_ok : (test4 = (0:nat))

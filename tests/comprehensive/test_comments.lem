@@ -1,0 +1,53 @@
+(* test_comments: the author's comments survive translation to Lean, at
+   every position the backend lays out itself (output-niceness S1,
+   doc/lean-backend/2026-10-03_output-niceness-arc-plan.md). Checked by
+   check_comments.py: every comment of this file appears in
+   Test_comments.lean exactly once, except one registered loss (tagged in
+   its own text); the generated file compiles (lean-compile). *)
+open import Pervasives
+
+(* comment before a val, which has no Lean counterpart *)
+val twice : nat (* the input *) -> nat (* the result *)
+let twice x = x + x
+
+(* comment before a declare *)
+declare {lean} rename function twice = twice_nat
+
+type colour =
+  | Red    (* trailing a constructor *)
+  | Green
+  (* leading a constructor *)
+  | Blue of nat
+
+type ctx = (* between the equals sign and the record *) <|
+  bits : nat;  (* trailing a field *)
+  (* leading a field *)
+  half : nat;
+  (* before the closing brace *)
+|>
+
+type tree = Leaf | Node of forest
+(* before an and in a type group *)
+and forest = list tree
+
+let pick (c : colour) : nat =
+  match c with
+  (* leading the first arm *)
+  | Red -> 1
+  (* leading a later arm,
+     over two lines inside a one-line match *)
+  | Green -> 2  (* trailing an arm *)
+  | Blue n -> n
+  end
+
+let body_comment (a : nat) = (* before a body *) a + (* inside an infix *) 1
+
+let rec ev (n : nat) : bool = if n = 0 then true else od (n - 1)
+(* KNOWN-LOST: before an and in a recursive function group; upstream's
+   prover pipeline drops these separators (doc/upstream-tray draft 23) *)
+and od (n : nat) : bool = if n = 0 then false else ev (n - 1)
+
+(* escapes: a -/ and a /- inside a comment *)
+(*- a comment starting with a dash *)
+(*! a comment starting with a bang *)
+let escapes : nat = 0

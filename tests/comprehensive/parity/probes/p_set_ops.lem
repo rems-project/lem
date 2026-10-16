@@ -1,0 +1,80 @@
+(* Parity probe (parity-fix slice 2026-09-03; census items F10/K1 and the
+   Pset port): set observables that depend on the OCaml Pset (AVL)
+   implementation — iteration/fold/toList order (ascending by the
+   comparator), the representative kept for comparator-EQ but
+   distinguishable elements by insert / fromList / union / map /
+   bigunion / filter, choose (= min), findMin/findMax, set_case,
+   chooseAndSplit (the ROOT), compare/equal/subset, sigma/cross,
+   transitive closure, and show. Elements of type k compare on the nat
+   only; the string tags make the representative observable. Expected
+   values are the OCaml target's output. *)
+open import Pervasives_extra
+
+type k = K of nat * string
+let k_cmp (K a _) (K b _) = compare a b
+instance (Ord k)
+  let compare = k_cmp
+  let (<) x y = k_cmp x y = LT
+  let (<=) x y = k_cmp x y <> GT
+  let (>) x y = k_cmp x y = GT
+  let (>=) x y = k_cmp x y <> LT
+end
+instance (SetType k)
+  let setElemCompare = k_cmp
+end
+instance (Show k)
+  let show k = match k with K a s -> "K" ^ stringFromNat a ^ s end
+end
+
+let ks (s : set k) : string = show (Set_extra.toList s)
+let ns (s : set nat) : string = show (Set_extra.toList s)
+let ord_s (o : ordering) : string = match o with LT -> "LT" | EQ -> "EQ" | GT -> "GT" end
+
+let s1 : set nat = Set.fromList [5; 3; 9; 1; 7; 3; 5]
+let s2 : set nat = Set.fromList [2; 3; 4; 5; 6]
+let big : set nat = Set.fromList (List.genlist (fun i -> (i * 7) mod 23) 23)
+let ka : set k = Set.fromList [K 1 "a"; K 2 "a"; K 1 "b"; K 3 "a"]
+let kb : set k = Set.fromList [K 2 "b"; K 3 "b"; K 4 "b"; K 1 "c"]
+let kbig : set k = Set.fromList (List.genlist (fun i -> K ((i * 5) mod 11) "x") 11)
+let ksmall : set k = Set.fromList [K 3 "y"; K 8 "y"]
+
+let results : list string =
+  [ "toList s1: " ^ ns s1;
+    "fold cons s1: " ^ show (Set_helpers.fold (fun x acc -> x :: acc) s1 []);
+    "union: " ^ ns (s1 union s2);
+    "inter: " ^ ns (s1 inter s2);
+    "diff: " ^ ns (s1 \ s2);
+    "insert existing rep: " ^ ks (Set.insert (K 1 "z") ka);
+    "fromList rep: " ^ ks ka;
+    "union rep ka kb: " ^ ks (ka union kb);
+    "union rep kb ka: " ^ ks (kb union ka);
+    "union rep small into big: " ^ ks (kbig union ksmall);
+    "union rep big into small: " ^ ks (ksmall union kbig);
+    "map rep: " ^ ks (Set.map (fun (K a s) -> K (a mod 2) s) ka);
+    "bigunion rep: " ^ ks (Set.bigunion (Set.fromList [ka; kb]));
+    "bigunionMap rep: " ^ ks (Set.bigunionMap (fun (K a s) -> Set.fromList [K a (s ^ "1"); K (a+10) s]) ka);
+    "filter: " ^ ks (Set.filter (fun (K a _) -> a mod 2 = 1) ka);
+    "partition: " ^ (let (p, q) = Set.partition (fun x -> x > 4) s1 in ns p ^ " / " ^ ns q);
+    "choose s1: " ^ show (Set_extra.choose s1);
+    "choose ka: " ^ show (Set_extra.choose ka);
+    "findMin/findMax: " ^ show (Set.findMin s1) ^ " " ^ show (Set.findMax s1);
+    "size: " ^ show (Set.size s1) ^ " " ^ show (Set.size ka);
+    "member: " ^ show (Set.member (K 2 "q") ka) ^ " " ^ show (Set.member (K 9 "q") ka);
+    "equal / eq: " ^ show (s1 = Set.fromList [9; 7; 5; 3; 1]) ^ " " ^ show (ka = Set.fromList [K 1 "q"; K 2 "q"; K 3 "q"]);
+    "subset / proper: " ^ show (Set.isSubsetOf (Set.fromList [3; 5]) s1) ^ " " ^ show (Set.isProperSubsetOf s1 s1) ^ " " ^ show (Set.isSubsetOf s1 s2);
+    "compare: " ^ ord_s (Set_extra.setCompare s1 s2) ^ " " ^ ord_s (Set_extra.setCompare s2 s1) ^ " " ^ ord_s (Set_extra.setCompare s1 s1) ^ " " ^ ord_s (Set_extra.setCompare (Set.fromList [(1 : nat); 2]) (Set.fromList [(1 : nat); 2; 3]));
+    "set_case: " ^ (Set.set_case ({} : set nat) "empty" (fun _ -> "single") "many") ^ " " ^ (Set.set_case (Set.fromList [(4 : nat)]) "empty" (fun x -> "single " ^ show x) "many") ^ " " ^ (Set.set_case s1 "empty" (fun _ -> "single") "many");
+    "chooseAndSplit s1: " ^ (match Set_extra.chooseAndSplit s1 with Just (l, x, r) -> ns l ^ " " ^ show x ^ " " ^ ns r | Nothing -> "none" end);
+    "chooseAndSplit big: " ^ (match Set_extra.chooseAndSplit big with Just (l, x, r) -> show (Set.size l) ^ " " ^ show x ^ " " ^ show (Set.size r) | Nothing -> "none" end);
+    "sigma: " ^ show (Set_extra.toList (Set.sigma (Set.fromList [(1 : nat); 2]) (fun a -> Set.fromList [a; a + 10])));
+    "cross: " ^ show (Set_extra.toList (Set.cross (Set.fromList [(2 : nat); 1]) (Set.fromList [(20 : nat); 10])));
+    "cross rep: " ^ show (List.map (fun (K a s, K b t) -> show a ^ s ^ show b ^ t) (Set_extra.toList (Set.cross ka kb)));
+    "tc: " ^ show (Set_extra.toList (Relation.transitiveClosure (Set.fromList [((1 : nat), (2 : nat)); (2, 3); (3, 4)])));
+    "delete: " ^ ns (Set.delete 5 s1);
+    "toOrderedList: " ^ show (Set_extra.toOrderedList (Set.fromList [(3 : nat); 1; 2]));
+    "show set: " ^ show s1;
+    "show set k: " ^ show ka;
+    "big: " ^ ns big;
+    "any/all: " ^ show (Set.any (fun x -> x > 8) s1) ^ " " ^ show (Set.all (fun x -> x > 0) s1);
+    "lfp: " ^ ns (Set.leastFixedPoint 10 (fun s -> Set.map (fun x -> (x * 2) mod 7) s union s) (Set.fromList [(1 : nat)]));
+    "domain/range of a map: " ^ ks (Map.domain (Map.fromList [(K 2 "m", (1 : nat)); (K 1 "m", 2); (K 2 "n", 3)])) ^ " " ^ ns (Map.range (Map.fromList [(K 2 "m", (1 : nat)); (K 1 "m", 2); (K 2 "n", 3)])) ]

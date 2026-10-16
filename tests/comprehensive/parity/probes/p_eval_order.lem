@@ -1,0 +1,92 @@
+(* Noodle probe: dynamic DRAW ORDER of a supply-lifted counter when
+   several draws sit in ONE expression (tuple, argument list, list
+   literal, record, nested application, operator operands). OCaml
+   evaluates constructor/tuple/application arguments RIGHT-TO-LEFT;
+   the Lean supply transform A-normalises LEFT-TO-RIGHT. The OCaml
+   target is the reference: `fresh` is an impure counter there
+   (p_eval_order.ext.ml) and a `declare {lean} supply` on the Lean target.
+   Expected values are the OCaml target's output. *)
+open import Pervasives_extra
+
+val fresh : unit -> nat
+declare ocaml target_rep function fresh = `Parity_ext.fresh`
+declare lean target_rep function fresh u = 0
+declare {lean} supply val fresh
+
+type rr = <| fa : nat; fb : nat |>
+type two = Two of nat * nat | One of nat
+
+let app2 (a : nat) (b : nat) : nat * nat = (a, b)
+let app3 (a : nat) (b : nat) (c : nat) : list nat = [a; b; c]
+
+let probe_tuple () : nat * nat = (fresh (), fresh ())
+let probe_app () : nat * nat = app2 (fresh ()) (fresh ())
+let probe_app3 () : list nat = app3 (fresh ()) (fresh ()) (fresh ())
+let probe_list () : list nat = [fresh (); fresh (); fresh ()]
+let probe_record () : nat * nat = let r = <| fa = fresh (); fb = fresh () |> in (r.fa, r.fb)
+let probe_cons () : list nat = fresh () :: [fresh ()]
+let probe_arith () : nat = fresh () * 10 + fresh ()
+let probe_nested () : nat * (nat * nat) = (fresh (), (fresh (), fresh ()))
+let probe_lets () : nat * nat = let a = fresh () in let b = fresh () in (a, b)
+(* parity-fix F6 extension (2026-09-03): the remaining multi-draw shapes *)
+let pick (u : unit) : nat -> nat -> nat * nat = let _ = fresh () in app2
+let probe_head () : nat * nat = (pick ()) (fresh ()) (fresh ())
+let probe_record_rev () : nat * nat = let r = <| fb = fresh (); fa = fresh () |> in (r.fa, r.fb)
+let probe_ctor () : nat * nat = match Two (fresh ()) (fresh ()) with Two a b -> (a, b) | One a -> (a, a) end
+let probe_ctor_tuple () : nat * nat = match One (fresh () + fresh () * 100) with Two a b -> (a, b) | One a -> (a, a) end
+let probe_nested_app () : nat * nat = app2 (fst (app2 (fresh ()) (fresh ()))) (fresh ())
+let probe_cmp () : bool * nat = let b = (fresh () = fresh ()) in (b, fresh ())
+let probe_str () : string = show (fresh ()) ^ "-" ^ show (fresh ())
+let probe_if () : nat * nat = let x = (if fresh () = 18 then fresh () else 0) in (x, fresh ())
+let probe_match () : nat * nat = let x = (match fresh () with 21 -> fresh () | _ -> 0 end) in (x, fresh ())
+let probe_field () : nat = (<| fa = fresh (); fb = fresh () |>).fb
+let probe_just () : maybe (nat * nat) = Just (fresh (), fresh ())
+let probe_just1 () : maybe nat = Just (fresh ())
+
+(* a FUNCTION of unit, not a top-level value binding: a drawing value
+   binding is evaluated once at module initialisation on OCaml, which
+   pure state-passing cannot mirror — the Lean backend refuses it (F6
+   deviation-4 disposition); both drivers call run_probe (). *)
+let run_probe (u : unit) : list string =
+  let t = probe_tuple () in
+  let a = probe_app () in
+  let a3 = probe_app3 () in
+  let l = probe_list () in
+  let r = probe_record () in
+  let c = probe_cons () in
+  let ar = probe_arith () in
+  let n = probe_nested () in
+  let ls = probe_lets () in
+  let hd = probe_head () in
+  let rr = probe_record_rev () in
+  let ct = probe_ctor () in
+  let ctt = probe_ctor_tuple () in
+  let na = probe_nested_app () in
+  let cm = probe_cmp () in
+  let st = probe_str () in
+  let pi = probe_if () in
+  let pm = probe_match () in
+  let pf = probe_field () in
+  let pj = probe_just () in
+  let pj1 = probe_just1 () in
+  [ "tuple: " ^ show t;
+    "app2: " ^ show a;
+    "app3: " ^ show a3;
+    "list: " ^ show l;
+    "record: " ^ show r;
+    "cons: " ^ show c;
+    "arith: " ^ show ar;
+    "nested: " ^ show n;
+    "lets: " ^ show ls;
+    "head: " ^ show hd;
+    "record_rev: " ^ show rr;
+    "ctor: " ^ show ct;
+    "ctor_tuple: " ^ show ctt;
+    "nested_app: " ^ show na;
+    "cmp: " ^ show cm;
+    "str: " ^ st;
+    "if: " ^ show pi;
+    "match: " ^ show pm;
+    "field: " ^ show pf;
+    "just: " ^ show pj;
+    "just1: " ^ show pj1 ]

@@ -1,0 +1,23 @@
+upd1: (9, 2)
+upd2: 15
+upd chain: r
+nested wrap: 2
+nested upd: 42
+fun field: 42
+fun field upd: 6
+rec eq: true
+rec neq: false
+rec pat: one:p
+rec pat2: y=2
+tree: 6
+forest: [0; 5]
+six: 21
+six eq: true
+eval: -2
+count: 3
+phantom: 4
+alias: n=3
+wrap poly: ("s", true)
+tuple nest: 10
+wild: 2
+unit: 1

@@ -1,0 +1,8 @@
+(* EXPECT: FH-ambient *)
+(* measure-hypothesis slice: a hypothesis reading the ambient fuel is not a
+   fact about the arguments (and the measured wrapper has no [LemFuel]). *)
+open import Pervasives
+val spin : nat -> nat
+let rec spin n = if n = 0 then 0 else spin (n - 1)
+declare {lean} fuel val spin = `999`
+declare {lean} fuel_measure val spin = `n + 1` assuming `n < LemFuel.fuel`

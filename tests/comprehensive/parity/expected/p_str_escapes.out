@@ -1,0 +1,14 @@
+tab:[	]
+newline-split:[
+]
+backslash:[\]
+quote:["]
+char tab ord: 9
+char newline ord: 10
+char backslash ord: 92
+char quote ord: 39
+char dquote ord: 34
+char space ord: 32
+char nul via chr: 1
+decimal escape ord: 200
+unicode literal: [206; 187]

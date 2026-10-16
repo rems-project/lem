@@ -1,0 +1,7 @@
+(* EXPECT: has a polymorphic type *)
+(* Instance-reader slice, review F2: the class field has one type, so a
+   reader whose type has free type variables is refused (IR-type). *)
+open import Pervasives
+val sw : forall 'a. unit -> 'a
+declare lean target_rep function sw u = `default`
+declare {lean} reader val sw = instance `NegImpl.Sw.sw`

@@ -1,0 +1,8 @@
+(* EXPECT: reserved 'lemLetRhs_' prefix *)
+(* L0 fix-first rider (m7): the lemLetRhs_ name family is synthesized
+   for multi-name destructuring-let RHS definitions; a user definition
+   in that namespace would collide with a synthesized def. Fail closed
+   at generation time under the reserved-name contract. *)
+open import Pervasives
+
+let lemLetRhs_a_b = (1:nat)

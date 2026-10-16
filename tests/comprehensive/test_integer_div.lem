@@ -1,0 +1,102 @@
+open import Pervasives
+
+(* ================================================================
+   Integer division/remainder parity pin (2026-08-31 backend quality
+   review M2, VERIFIED-NO-DEFECT — see the L0 fix-first record).
+
+   The review claimed lem's Lean `/` (Int.ediv) diverges from the
+   OCaml oracle's Z.div truncation. Measured reality: lem's OCaml
+   integerDiv is `Nat_big_num.div` = `Big_int_Z.div_big_int`, the
+   zarith num-compatibility layer, which is EUCLIDEAN — exactly
+   Int.ediv — and integerMod is `mod_big_int` = Euclidean remainder —
+   exactly Int.emod. Both targets agree at every signed corner; the
+   mapping is left unchanged, and this file pins the agreement.
+
+   Expected values (verbatim from the compiled OCaml probe of
+   Nat_big_num.div/modulus, byte-identical to Lean 4.28.0/4.32.2
+   #eval of / and %):
+     div: (-7,2)->-4 (7,-2)->-3 (-7,-2)->4 (7,2)->3 (-1,3)->-1 (1,-3)->0
+     mod: (-7,2)->1  (7,-2)->1  (-7,-2)->1 (7,2)->1 (-1,3)->2  (1,-3)->1
+
+   The elaborator asserts below run in the suite build; the COMPILED
+   two-target leg is the parity probe
+   tests/comprehensive/parity/probes/p_num_div.lem (suite phase
+   lean-parity): an OCaml binary and a Lean binary built from the same
+   source, outputs diffed byte-for-byte — it replaced the hand-measured
+   TestIntegerDivParity scaffold in the parity-fix slice (2026-09-03).
+
+   Parity-fix F1 (2026-09-03): lem `int`/`int32`/`int64` are NOT
+   Euclidean on the OCaml target — their reps are Nat_num.int_div /
+   int_mod (ocaml-lib/nat_num.ml:12-33):
+     let int_mod i n = let r = i mod n in if r < 0 then r + n else r
+     let int_div i n = let r = i / n in if (i mod n < 0) then r - 1 else r
+   over OCaml's truncating `/`,`mod`; for a negative divisor and a
+   negative dividend this gives int_div (-7) (-2) = 2, int_mod = -3
+   (2 * -2 + -3 = -7), where the previous Lean reps (Int.ediv/emod)
+   gave 4 and 1. Values below are the OCaml target's (parity pin
+   expected/p_num_div.out, verbatim rows:
+     integer -7 2  ... | int div=-4 mod=1 /=-4 | int32 div=-4 mod=1 | int64 div=-4 mod=1
+     integer 7 -2  ... | int div=-3 mod=1 /=-3 | int32 div=-3 mod=1 | int64 div=-3 mod=1
+     integer -7 -2 ... | int div=2 mod=-3 /=2  | int32 div=2 mod=-3 | int64 div=2 mod=-3
+     integer 1 -3  ... | int div=0 mod=1 /=0   | int32 div=0 mod=1  | int64 div=0 mod=1).
+   ================================================================ *)
+
+let div_m7_2 = integerDiv (0 - 7) 2
+let div_7_m2 = integerDiv 7 (0 - 2)
+let div_m7_m2 = integerDiv (0 - 7) (0 - 2)
+let div_7_2 = integerDiv 7 2
+let div_m1_3 = integerDiv (0 - 1) 3
+let div_1_m3 = integerDiv 1 (0 - 3)
+
+let mod_m7_2 = integerMod (0 - 7) 2
+let mod_7_m2 = integerMod 7 (0 - 2)
+let mod_m7_m2 = integerMod (0 - 7) (0 - 2)
+let mod_7_2 = integerMod 7 2
+let mod_m1_3 = integerMod (0 - 1) 3
+let mod_1_m3 = integerMod 1 (0 - 3)
+
+assert div_m7_2_ok : (div_m7_2 = 0 - 4)
+assert div_7_m2_ok : (div_7_m2 = 0 - 3)
+assert div_m7_m2_ok : (div_m7_m2 = 4)
+assert div_7_2_ok : (div_7_2 = 3)
+assert div_m1_3_ok : (div_m1_3 = 0 - 1)
+assert div_1_m3_ok : (div_1_m3 = 0)
+
+assert mod_m7_2_ok : (mod_m7_2 = 1)
+assert mod_7_m2_ok : (mod_7_m2 = 1)
+assert mod_m7_m2_ok : (mod_m7_m2 = 1)
+assert mod_7_2_ok : (mod_7_2 = 1)
+assert mod_m1_3_ok : (mod_m1_3 = 2)
+assert mod_1_m3_ok : (mod_1_m3 = 1)
+
+(* The operator routes must agree with the named functions. *)
+let op_div = ((0 - 7 : integer) / 2)
+let op_mod = ((0 - 7 : integer) mod 2)
+
+assert op_div_ok : (op_div = 0 - 4)
+assert op_mod_ok : (op_mod = 1)
+
+(* --- F1: int / int32 / int64 follow Nat_num.int_div / int_mod --- *)
+let i_div_m7_m2 = intDiv (0 - 7) (0 - 2)
+let i_mod_m7_m2 = intMod (0 - 7) (0 - 2)
+let i_div_7_m2 = intDiv 7 (0 - 2)
+let i_mod_7_m2 = intMod 7 (0 - 2)
+let i_div_m7_2 = intDiv (0 - 7) 2
+let i_mod_m7_2 = intMod (0 - 7) 2
+let i_div_1_m3 = intDiv 1 (0 - 3)
+let i_mod_1_m3 = intMod 1 (0 - 3)
+assert f1_int_div_m7_m2 : (i_div_m7_m2 = 2)
+assert f1_int_mod_m7_m2 : (i_mod_m7_m2 = 0 - 3)
+assert f1_int_div_7_m2 : (i_div_7_m2 = 0 - 3)
+assert f1_int_mod_7_m2 : (i_mod_7_m2 = 1)
+assert f1_int_div_m7_2 : (i_div_m7_2 = 0 - 4)
+assert f1_int_mod_m7_2 : (i_mod_m7_2 = 1)
+assert f1_int_div_1_m3 : (i_div_1_m3 = 0)
+assert f1_int_mod_1_m3 : (i_mod_1_m3 = 1)
+assert f1_int32_div_m7_m2 : (integerFromInt32 (int32FromInteger (0 - 7) div int32FromInteger (0 - 2)) = 2)
+assert f1_int32_mod_m7_m2 : (integerFromInt32 (int32FromInteger (0 - 7) mod int32FromInteger (0 - 2)) = 0 - 3)
+assert f1_int64_div_m7_m2 : (integerFromInt64 (int64FromInteger (0 - 7) div int64FromInteger (0 - 2)) = 2)
+assert f1_int64_mod_m7_m2 : (integerFromInt64 (int64FromInteger (0 - 7) mod int64FromInteger (0 - 2)) = 0 - 3)
+(* the operator route on int agrees with the named functions *)
+assert f1_int_op_div : (((0 - 7 : int) / (0 - 2)) = 2)
+assert f1_int_op_mod : (((0 - 7 : int) mod (0 - 2)) = 0 - 3)

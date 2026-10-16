@@ -1,0 +1,7 @@
+open import Pervasives
+
+(* The tree type for test_fuel_measure_tree.lem (fuel-measure slice,
+   2026-09-04): defined in its own module so that the hand-written
+   measure function lean-test/TestFuelMeasureImpl.lean can import it
+   while the measured functions' module imports the measure module. *)
+type mtree = MLeaf of nat | MNode of list mtree

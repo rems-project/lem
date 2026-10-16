@@ -1,0 +1,27 @@
+(* EXPECT: reader_seed def's seed arguments must be simple variables *)
+open import Pervasives
+
+(* N-ary reader_seed (program-data-parameters S0.5): every seed
+   position (the first N parameters, one per declared reader) must be a
+   simple variable — the seed is referenced BY NAME at every injection
+   site in the body, so a nameless pattern cannot seed anything. Here
+   the SECOND seed position (the seed for `beta`) is a wildcard.
+   (Literal, constructor and tuple patterns never reach this check:
+   lem's pattern compiler rewrites such a head into a fresh variable
+   plus a body `match` first, so the seed is the whole argument and a
+   type mismatch against the reader is Lean's build-time error.) *)
+
+val alpha : unit -> nat
+declare lean target_rep function alpha u = 0
+declare {lean} reader val alpha
+
+val beta : unit -> nat
+declare lean target_rep function beta u = 0
+declare {lean} reader val beta
+
+val uses_both : nat -> nat
+let uses_both x = alpha () + beta () + x
+
+val seed2 : nat -> nat -> nat -> nat
+let seed2 av _ x = uses_both x
+declare {lean} reader_seed val seed2

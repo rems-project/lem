@@ -1,0 +1,8 @@
+(* EXPECT: outside an instance-reader scope *)
+(* Instance-reader slice: a DIRECT read of an instance reader at assert
+   scope is the same fail-closed error (never a silent default). *)
+open import Pervasives
+val sw : unit -> nat
+declare lean target_rep function sw u = 0
+declare {lean} reader val sw = instance `NegImpl.Sw.sw`
+assert sw_ok : (sw () = 0)

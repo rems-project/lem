@@ -1,0 +1,11 @@
+(* EXPECT: unsupported Lean target_rep form *)
+(* reader_consumer guard RC-rep, unsupported-form leg (audit notes-a):
+   an INFIX rep has no sound leading-argument position. *)
+open import Pervasives
+val cfg : unit -> nat
+declare lean target_rep function cfg u = 0
+declare {lean} reader val cfg
+val myop : nat -> nat -> nat
+declare lean target_rep function myop = infix `+`
+declare {lean} reader_consumer val myop
+let uses x = myop x x

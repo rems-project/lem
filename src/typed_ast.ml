@@ -174,7 +174,19 @@ and const_descr = { const_binding : Path.t;
                     target_ascii_rep : (Ast.l * Name.t) Targetmap.t;
                     target_rep : const_target_rep Targetmap.t;
                     compile_message : string Target.Targetmap.t;
-                    termination_setting: Ast.termination_setting Targetmap.t}
+                    termination_setting: Ast.termination_setting Targetmap.t;
+                    effectful: Targetset.t;
+                    reader: Targetset.t;
+                    fuel_sentinel: string Targetmap.t;
+                    ground_rep: string Targetmap.t;
+                    reader_seed: Targetset.t;
+                    supply: Targetset.t;
+                    reader_consumer: Targetset.t;
+                    fuel_consumer: Targetset.t;
+                    structural: Targetset.t;
+                    fuel_measure: (string * string option) Targetmap.t;
+                    reader_instance: string Targetmap.t;
+                    reader_consumer_instance: const_descr_ref list Targetmap.t}
 
 and v_env = const_descr_ref Nfmap.t
 and f_env = const_descr_ref Nfmap.t
@@ -406,6 +418,20 @@ type declare_def =  (* declarations *)
  | Decl_rename_current_module of lskips * targets_opt * lskips * lskips * lskips * Name.lskips_t 
  | Decl_termination_argument  of lskips * targets_opt * lskips * const_descr_ref id * lskips * Ast.termination_setting
  | Decl_pattern_match_decl    of lskips * targets_opt * lskips * Ast.exhaustivity_setting * Path.t id * tnvar list * lskips * lskips * (const_descr_ref id) lskips_seplist * lskips * (const_descr_ref id) option
+ | Decl_skip_instances        of lskips * targets_opt * lskips * lskips * Path.t id
+ | Decl_extra_import          of lskips * targets_opt * lskips * lskips * string
+ | Decl_effectful             of lskips * targets_opt * lskips * lskips * const_descr_ref id
+ | Decl_reader              of lskips * targets_opt * lskips * lskips * const_descr_ref id
+ | Decl_reader_instance of lskips * targets_opt * lskips * lskips * const_descr_ref id * lskips * lskips * (lskips * string)
+ | Decl_fuel                of lskips * targets_opt * lskips * lskips * const_descr_ref id * lskips * string
+ | Decl_ground_rep          of lskips * targets_opt * lskips * lskips * const_descr_ref id * lskips * string
+ | Decl_reader_seed         of lskips * targets_opt * lskips * lskips * const_descr_ref id
+ | Decl_supply              of lskips * targets_opt * lskips * lskips * const_descr_ref id
+ | Decl_reader_consumer     of lskips * targets_opt * lskips * lskips * const_descr_ref id
+ | Decl_reader_consumer_instance of lskips * targets_opt * lskips * lskips * const_descr_ref id * lskips * lskips * const_descr_ref id
+ | Decl_fuel_consumer       of lskips * targets_opt * lskips * lskips * const_descr_ref id
+ | Decl_structural          of lskips * targets_opt * lskips * lskips * const_descr_ref id
+ | Decl_fuel_measure        of lskips * targets_opt * lskips * lskips * const_descr_ref id * lskips * string * (lskips * string) option
 (*
  | Decl_set_flag              of lskips * lskips * Name.lskips_t * lskips * Name.lskips_t
 *)
@@ -773,6 +799,48 @@ let rec def_aux_alter_init_lskips (lskips_f : lskips -> lskips * lskips) d : def
             | Decl_pattern_match_decl (sk1, targs, sk2, ex_set, p_id, args, sk3, sk4, constr_ids, sk5, elim_id_opt) ->
                 let (sk1', s_ret) = lskips_f sk1 in
                 (Decl_pattern_match_decl (sk1', targs, sk2, ex_set, p_id, args, sk3, sk4, constr_ids, sk5, elim_id_opt), s_ret)
+            | Decl_skip_instances (sk1, targs, sk2, sk3, t_id) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_skip_instances (sk1', targs, sk2, sk3, t_id), s_ret)
+            | Decl_extra_import (sk1, targs, sk2, sk3, mod_name) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_extra_import (sk1', targs, sk2, sk3, mod_name), s_ret)
+            | Decl_effectful (sk1, targs, sk2, sk3, c_id) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_effectful (sk1', targs, sk2, sk3, c_id), s_ret)
+            | Decl_reader (sk1, targs, sk2, sk3, c_id) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_reader (sk1', targs, sk2, sk3, c_id), s_ret)
+            | Decl_reader_instance (sk1, targs, sk2, sk3, c_id, sk4, sk5, proj) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_reader_instance (sk1', targs, sk2, sk3, c_id, sk4, sk5, proj), s_ret)
+            | Decl_fuel (sk1, targs, sk2, sk3, c_id, sk4, sent) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_fuel (sk1', targs, sk2, sk3, c_id, sk4, sent), s_ret)
+            | Decl_ground_rep (sk1, targs, sk2, sk3, c_id, sk4, rep) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_ground_rep (sk1', targs, sk2, sk3, c_id, sk4, rep), s_ret)
+            | Decl_reader_seed (sk1, targs, sk2, sk3, c_id) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_reader_seed (sk1', targs, sk2, sk3, c_id), s_ret)
+            | Decl_supply (sk1, targs, sk2, sk3, c_id) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_supply (sk1', targs, sk2, sk3, c_id), s_ret)
+            | Decl_reader_consumer (sk1, targs, sk2, sk3, c_id) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_reader_consumer (sk1', targs, sk2, sk3, c_id), s_ret)
+            | Decl_reader_consumer_instance (sk1, targs, sk2, sk3, c_id, sk4, sk5, r_id) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_reader_consumer_instance (sk1', targs, sk2, sk3, c_id, sk4, sk5, r_id), s_ret)
+            | Decl_fuel_consumer (sk1, targs, sk2, sk3, c_id) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_fuel_consumer (sk1', targs, sk2, sk3, c_id), s_ret)
+            | Decl_structural (sk1, targs, sk2, sk3, c_id) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_structural (sk1', targs, sk2, sk3, c_id), s_ret)
+            | Decl_fuel_measure (sk1, targs, sk2, sk3, c_id, sk4, m, h) ->
+                let (sk1', s_ret) = lskips_f sk1 in
+                (Decl_fuel_measure (sk1', targs, sk2, sk3, c_id, sk4, m, h), s_ret)
           in
           res (Declaration d') s_ret
         end

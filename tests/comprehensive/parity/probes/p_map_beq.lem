@@ -1,0 +1,43 @@
+(* Noodle probe: map/set behaviour on keys whose user Ord/SetType
+   comparator is COARSER than structural equality (the cerberus `sym`
+   shape: compare ignores a field that `=` sees). OCaml Pmap.add replaces
+   the comparator-equal binding (storing the new key); Lean fmapAddBy
+   keeps BEq-distinct keys side by side in a bucket. Expected values are
+   the OCaml target's output. *)
+open import Pervasives_extra
+
+type k = K of nat * string
+
+let k_cmp (K a _) (K b _) = compare a b
+instance (Ord k)
+  let compare = k_cmp
+  let (<) x y = k_cmp x y = LT
+  let (<=) x y = k_cmp x y <> GT
+  let (>) x y = k_cmp x y = GT
+  let (>=) x y = k_cmp x y <> LT
+end
+instance (SetType k)
+  let setElemCompare = k_cmp
+end
+instance (Show k)
+  let show k = match k with K a s -> "K(" ^ stringFromNat a ^ "," ^ s ^ ")" end
+end
+
+let m1 : map k nat = Map.insert (K 1 "a") 1 (Map.insert (K 1 "b") 2 Map.empty)
+let m2 : map k nat = Map.insert (K 1 "b") 1 Map.empty
+let s1 : set k = Set.insert (K 1 "a") (Set.insert (K 1 "b") Set.empty)
+
+let results : list string =
+  [ "m1 toList: " ^ show (Map_extra.toList m1);
+    "m1 size: " ^ stringFromNat (Map.size m1);
+    "m1 domain: " ^ show (Set_extra.toList (Map.domain m1));
+    "m1 lookup K(1,z): " ^ show (Map.lookup (K 1 "z") m1);
+    "m1 = m2 (mapEqual): " ^ show (m1 = m2);
+    "m1 delete then size: " ^ stringFromNat (Map.size (Map.delete (K 1 "q") m1));
+    "m1 fold sum: " ^ stringFromNat (Map_extra.fold (fun _ v acc -> v + acc) m1 0);
+    "s1 toList: " ^ show (Set_extra.toList s1);
+    "s1 size: " ^ stringFromNat (Set.size s1);
+    "K(1,a) = K(1,b): " ^ show (K 1 "a" = K 1 "b");
+    "compare K(1,a) K(1,b) is EQ: " ^ show (compare (K 1 "a") (K 1 "b") = EQ);
+    "s1 = {K(1,z)}: " ^ show (s1 = Set.insert (K 1 "z") Set.empty)
+  ]

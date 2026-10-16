@@ -1,0 +1,9 @@
+lean-exit: 0
+--- lean stdout ---
+le: false true
+min: (2, 0)
+max: (1, 0)
+min rev: (2, 0)
+max rev: (1, 0)
+maxByLessEqual: (1, 0)
+minByLessEqual: (2, 0)

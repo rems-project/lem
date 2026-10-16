@@ -1,0 +1,96 @@
+open import Pervasives_extra
+
+(* ======================================================================
+   Numeric: natural number arithmetic, integer (signed) arithmetic.
+   Merged from: test_numeric_formats, test_integer_arithmetic
+   ====================================================================== *)
+
+(* ---- Natural numbers ---- *)
+
+let n1 = (0 : nat)
+let n2 = (42 : nat)
+let n3 = (1000000 : nat)
+
+(* Arithmetic *)
+let nat_test1 = (10 : nat) + 20
+let nat_test2 = (100 : nat) - 30
+let nat_test3 = (7 : nat) * 8
+let nat_test4 = (100 : nat) / 3
+let nat_test5 = (100 : nat) mod 3
+
+(* Comparisons *)
+let nat_test6 = (10 : nat) < 20
+let nat_test7 = (10 : nat) <= 10
+let nat_test8 = (20 : nat) > 10
+let nat_test9 = (20 : nat) >= 20
+
+(* Natural number min/max *)
+let nat_test10 = min (3:nat) 5
+let nat_test11 = max (3:nat) 5
+
+assert nat_test1_ok : (nat_test1 = (30:nat))
+assert nat_test2_ok : (nat_test2 = (70:nat))
+assert nat_test3_ok : (nat_test3 = (56:nat))
+assert nat_test4_ok : (nat_test4 = (33:nat))
+assert nat_test5_ok : (nat_test5 = (1:nat))
+assert nat_test6_ok : nat_test6
+assert nat_test7_ok : nat_test7
+assert nat_test8_ok : nat_test8
+assert nat_test9_ok : nat_test9
+assert nat_test10_ok : (nat_test10 = (3:nat))
+assert nat_test11_ok : (nat_test11 = (5:nat))
+
+(* ---- Integer (signed) arithmetic ---- *)
+
+let i1 : integer = 42
+let i2 : integer = ~1    (* Lem uses ~ for negation *)
+let i3 : integer = 0
+
+(* Arithmetic *)
+let int_test_add = (i1 + i2 : integer)               (* 42 + (-1) = 41 *)
+let int_test_sub = ((10 : integer) - (25 : integer))  (* 10 - 25 = -15 *)
+let int_test_mul = ((~3 : integer) * (7 : integer))   (* -3 * 7 = -21 *)
+let int_test_neg = integerNegate (5 : integer)         (* -5 *)
+
+(* Division and modulo *)
+let int_test_div_pos  = integerDiv_t (24 : integer) (10 : integer)   (* 2 *)
+let int_test_div_neg  = integerDiv_t (~24 : integer) (10 : integer)  (* -2 truncated *)
+let int_test_rem_pos  = integerRem_t (24 : integer) (10 : integer)   (* 4 *)
+let int_test_rem_neg  = integerRem_t (~24 : integer) (10 : integer)  (* -4 truncated *)
+
+(* Comparisons *)
+let int_test_lt  = ((~5 : integer) < (3 : integer))
+let int_test_le  = ((3 : integer) <= (3 : integer))
+let int_test_gt  = ((10 : integer) > (~10 : integer))
+let int_test_ge  = ((0 : integer) >= (0 : integer))
+let int_test_eq  = ((~7 : integer) = (~7 : integer))
+let int_test_neq = ((1 : integer) <> (~1 : integer))
+
+(* Conversion *)
+let int_test_from_nat = integerFromNat (5 : nat)       (* 5 as integer *)
+let int_test_abs      = abs (~42 : integer)             (* 42 *)
+
+(* Power *)
+let int_test_pow = ((2 : integer) ** (10 : nat))        (* 1024 *)
+
+(* Mixed expressions *)
+let int_test_mixed = integerNegate ((3 : integer) * (4 : integer)) + (2 : integer)  (* -10 *)
+
+assert int_add_ok      : int_test_add = (41 : integer)
+assert int_sub_ok      : int_test_sub = (~15 : integer)
+assert int_mul_ok      : int_test_mul = (~21 : integer)
+assert int_neg_ok      : int_test_neg = (~5 : integer)
+assert int_div_pos_ok  : int_test_div_pos = (2 : integer)
+assert int_div_neg_ok  : int_test_div_neg = (~2 : integer)
+assert int_rem_pos_ok  : int_test_rem_pos = (4 : integer)
+assert int_rem_neg_ok  : int_test_rem_neg = (~4 : integer)
+assert int_lt_ok       : int_test_lt
+assert int_le_ok       : int_test_le
+assert int_gt_ok       : int_test_gt
+assert int_ge_ok       : int_test_ge
+assert int_eq_ok       : int_test_eq
+assert int_neq_ok      : int_test_neq
+assert int_from_nat_ok : int_test_from_nat = (5 : integer)
+assert int_abs_ok      : int_test_abs = (42 : integer)
+assert int_pow_ok      : int_test_pow = (1024 : integer)
+assert int_mixed_ok    : int_test_mixed = (~10 : integer)

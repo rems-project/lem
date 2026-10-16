@@ -1,0 +1,15 @@
+(* Failure probe (review finding HIGH-2, closure variant, 2026-09-30; see
+   f_let_float_branch.lem and the findings record "A5"): `let x = e1 in
+   e2` where x is used only inside a local closure that is never called.
+   OCaml evaluates e1 at the `let` and fails. Each step gets a RUNTIME
+   nat (0). *)
+open import Pervasives_extra
+
+val checked_pred : nat -> nat
+let checked_pred n = if n = 0 then failwith "let_float_closure: e1 failed" else n - 1
+
+let steps : list (nat -> string) =
+  [ (fun n -> "before: " ^ show n);
+    (fun n -> let x = checked_pred n in
+              let g = fun (u : unit) -> "used: " ^ show x in
+              if n = 7 then g () else "after (must not print): " ^ show n) ]

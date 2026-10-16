@@ -1,0 +1,512 @@
+rnd: [5499060245593035820; 3772560868736131339; 7174655974135432510; 17410714733367668533]
+wordFromInteger 0: w8 u=0 s=0 ui=0 len=8 bits=00000000 | w64 u=0 s=0 ui=0 len=64 bits=0000000000000000000000000000000000000000000000000000000000000000
+wordFromInteger 1: w8 u=1 s=1 ui=1 len=8 bits=00000001 | w64 u=1 s=1 ui=1 len=64 bits=0000000000000000000000000000000000000000000000000000000000000001
+wordFromInteger -1: w8 u=255 s=-1 ui=255 len=8 bits=11111111 | w64 u=18446744073709551615 s=-1 ui=18446744073709551615 len=64 bits=1111111111111111111111111111111111111111111111111111111111111111
+wordFromInteger 2: w8 u=2 s=2 ui=2 len=8 bits=00000010 | w64 u=2 s=2 ui=2 len=64 bits=0000000000000000000000000000000000000000000000000000000000000010
+wordFromInteger 5: w8 u=5 s=5 ui=5 len=8 bits=00000101 | w64 u=5 s=5 ui=5 len=64 bits=0000000000000000000000000000000000000000000000000000000000000101
+wordFromInteger -7: w8 u=249 s=-7 ui=249 len=8 bits=11111001 | w64 u=18446744073709551609 s=-7 ui=18446744073709551609 len=64 bits=1111111111111111111111111111111111111111111111111111111111111001
+wordFromInteger 7: w8 u=7 s=7 ui=7 len=8 bits=00000111 | w64 u=7 s=7 ui=7 len=64 bits=0000000000000000000000000000000000000000000000000000000000000111
+wordFromInteger 127: w8 u=127 s=127 ui=127 len=8 bits=01111111 | w64 u=127 s=127 ui=127 len=64 bits=0000000000000000000000000000000000000000000000000000000001111111
+wordFromInteger -127: w8 u=129 s=-127 ui=129 len=8 bits=10000001 | w64 u=18446744073709551489 s=-127 ui=18446744073709551489 len=64 bits=1111111111111111111111111111111111111111111111111111111110000001
+wordFromInteger 128: w8 u=128 s=-128 ui=128 len=8 bits=10000000 | w64 u=128 s=128 ui=128 len=64 bits=0000000000000000000000000000000000000000000000000000000010000000
+wordFromInteger 255: w8 u=255 s=-1 ui=255 len=8 bits=11111111 | w64 u=255 s=255 ui=255 len=64 bits=0000000000000000000000000000000000000000000000000000000011111111
+wordFromInteger 256: w8 u=0 s=0 ui=0 len=8 bits=00000000 | w64 u=256 s=256 ui=256 len=64 bits=0000000000000000000000000000000000000000000000000000000100000000
+wordFromInteger -255: w8 u=1 s=1 ui=1 len=8 bits=00000001 | w64 u=18446744073709551361 s=-255 ui=18446744073709551361 len=64 bits=1111111111111111111111111111111111111111111111111111111100000001
+wordFromInteger 32767: w8 u=255 s=-1 ui=255 len=8 bits=11111111 | w64 u=32767 s=32767 ui=32767 len=64 bits=0000000000000000000000000000000000000000000000000111111111111111
+wordFromInteger -32767: w8 u=1 s=1 ui=1 len=8 bits=00000001 | w64 u=18446744073709518849 s=-32767 ui=18446744073709518849 len=64 bits=1111111111111111111111111111111111111111111111111000000000000001
+wordFromInteger 65535: w8 u=255 s=-1 ui=255 len=8 bits=11111111 | w64 u=65535 s=65535 ui=65535 len=64 bits=0000000000000000000000000000000000000000000000001111111111111111
+wordFromInteger 65536: w8 u=0 s=0 ui=0 len=8 bits=00000000 | w64 u=65536 s=65536 ui=65536 len=64 bits=0000000000000000000000000000000000000000000000010000000000000000
+wordFromInteger 2147483647: w8 u=255 s=-1 ui=255 len=8 bits=11111111 | w64 u=2147483647 s=2147483647 ui=2147483647 len=64 bits=0000000000000000000000000000000001111111111111111111111111111111
+wordFromInteger -2147483647: w8 u=1 s=1 ui=1 len=8 bits=00000001 | w64 u=18446744071562067969 s=-2147483647 ui=18446744071562067969 len=64 bits=1111111111111111111111111111111110000000000000000000000000000001
+wordFromInteger 4294967295: w8 u=255 s=-1 ui=255 len=8 bits=11111111 | w64 u=4294967295 s=4294967295 ui=4294967295 len=64 bits=0000000000000000000000000000000011111111111111111111111111111111
+wordFromInteger 4294967296: w8 u=0 s=0 ui=0 len=8 bits=00000000 | w64 u=4294967296 s=4294967296 ui=4294967296 len=64 bits=0000000000000000000000000000000100000000000000000000000000000000
+wordFromInteger 9223372036854775807: w8 u=255 s=-1 ui=255 len=8 bits=11111111 | w64 u=9223372036854775807 s=9223372036854775807 ui=9223372036854775807 len=64 bits=0111111111111111111111111111111111111111111111111111111111111111
+wordFromInteger -9223372036854775807: w8 u=1 s=1 ui=1 len=8 bits=00000001 | w64 u=9223372036854775809 s=-9223372036854775807 ui=9223372036854775809 len=64 bits=1000000000000000000000000000000000000000000000000000000000000001
+wordFromInteger 18446744073709551615: w8 u=255 s=-1 ui=255 len=8 bits=11111111 | w64 u=18446744073709551615 s=-1 ui=18446744073709551615 len=64 bits=1111111111111111111111111111111111111111111111111111111111111111
+wordFromInteger 18446744073709551616: w8 u=0 s=0 ui=0 len=8 bits=00000000 | w64 u=0 s=0 ui=0 len=64 bits=0000000000000000000000000000000000000000000000000000000000000000
+wordFromInteger 0: w1 u=0 s=0 ui=0 len=1 bits=0 | w5 u=0 s=0 ui=0 len=5 bits=00000 | w16 0 | w32 0
+wordFromInteger 1: w1 u=1 s=-1 ui=1 len=1 bits=1 | w5 u=1 s=1 ui=1 len=5 bits=00001 | w16 1 | w32 1
+wordFromInteger -1: w1 u=1 s=-1 ui=1 len=1 bits=1 | w5 u=31 s=-1 ui=31 len=5 bits=11111 | w16 65535 | w32 4294967295
+wordFromInteger 2: w1 u=0 s=0 ui=0 len=1 bits=0 | w5 u=2 s=2 ui=2 len=5 bits=00010 | w16 2 | w32 2
+wordFromInteger 5: w1 u=1 s=-1 ui=1 len=1 bits=1 | w5 u=5 s=5 ui=5 len=5 bits=00101 | w16 5 | w32 5
+wordFromInteger -7: w1 u=1 s=-1 ui=1 len=1 bits=1 | w5 u=25 s=-7 ui=25 len=5 bits=11001 | w16 65529 | w32 4294967289
+wordFromInteger 7: w1 u=1 s=-1 ui=1 len=1 bits=1 | w5 u=7 s=7 ui=7 len=5 bits=00111 | w16 7 | w32 7
+wordFromInteger 127: w1 u=1 s=-1 ui=1 len=1 bits=1 | w5 u=31 s=-1 ui=31 len=5 bits=11111 | w16 127 | w32 127
+wordFromInteger -127: w1 u=1 s=-1 ui=1 len=1 bits=1 | w5 u=1 s=1 ui=1 len=5 bits=00001 | w16 65409 | w32 4294967169
+wordFromInteger 128: w1 u=0 s=0 ui=0 len=1 bits=0 | w5 u=0 s=0 ui=0 len=5 bits=00000 | w16 128 | w32 128
+wordFromInteger 255: w1 u=1 s=-1 ui=1 len=1 bits=1 | w5 u=31 s=-1 ui=31 len=5 bits=11111 | w16 255 | w32 255
+wordFromInteger 256: w1 u=0 s=0 ui=0 len=1 bits=0 | w5 u=0 s=0 ui=0 len=5 bits=00000 | w16 256 | w32 256
+wordFromInteger -255: w1 u=1 s=-1 ui=1 len=1 bits=1 | w5 u=1 s=1 ui=1 len=5 bits=00001 | w16 65281 | w32 4294967041
+wordFromInteger 32767: w1 u=1 s=-1 ui=1 len=1 bits=1 | w5 u=31 s=-1 ui=31 len=5 bits=11111 | w16 32767 | w32 32767
+wordFromInteger -32767: w1 u=1 s=-1 ui=1 len=1 bits=1 | w5 u=1 s=1 ui=1 len=5 bits=00001 | w16 32769 | w32 4294934529
+wordFromInteger 65535: w1 u=1 s=-1 ui=1 len=1 bits=1 | w5 u=31 s=-1 ui=31 len=5 bits=11111 | w16 65535 | w32 65535
+wordFromInteger 65536: w1 u=0 s=0 ui=0 len=1 bits=0 | w5 u=0 s=0 ui=0 len=5 bits=00000 | w16 0 | w32 65536
+wordFromInteger 2147483647: w1 u=1 s=-1 ui=1 len=1 bits=1 | w5 u=31 s=-1 ui=31 len=5 bits=11111 | w16 65535 | w32 2147483647
+wordFromInteger -2147483647: w1 u=1 s=-1 ui=1 len=1 bits=1 | w5 u=1 s=1 ui=1 len=5 bits=00001 | w16 1 | w32 2147483649
+wordFromInteger 4294967295: w1 u=1 s=-1 ui=1 len=1 bits=1 | w5 u=31 s=-1 ui=31 len=5 bits=11111 | w16 65535 | w32 4294967295
+wordFromInteger 4294967296: w1 u=0 s=0 ui=0 len=1 bits=0 | w5 u=0 s=0 ui=0 len=5 bits=00000 | w16 0 | w32 0
+wordFromInteger 9223372036854775807: w1 u=1 s=-1 ui=1 len=1 bits=1 | w5 u=31 s=-1 ui=31 len=5 bits=11111 | w16 65535 | w32 4294967295
+wordFromInteger -9223372036854775807: w1 u=1 s=-1 ui=1 len=1 bits=1 | w5 u=1 s=1 ui=1 len=5 bits=00001 | w16 1 | w32 1
+wordFromInteger 18446744073709551615: w1 u=1 s=-1 ui=1 len=1 bits=1 | w5 u=31 s=-1 ui=31 len=5 bits=11111 | w16 65535 | w32 4294967295
+wordFromInteger 18446744073709551616: w1 u=0 s=0 ui=0 len=1 bits=0 | w5 u=0 s=0 ui=0 len=5 bits=00000 | w16 0 | w32 0
+wordFromNatural 0: w8 u=0 s=0 ui=0 len=8 bits=00000000 w32 0
+wordFromNatural 255: w8 u=255 s=-1 ui=255 len=8 bits=11111111 w32 255
+wordFromNatural 256: w8 u=0 s=0 ui=0 len=8 bits=00000000 w32 256
+wordFromNatural 257: w8 u=1 s=1 ui=1 len=8 bits=00000001 w32 257
+wordFromNatural 4294967297: w8 u=1 s=1 ui=1 len=8 bits=00000001 w32 1
+wordFromNatural 18446744073709551617: w8 u=1 s=1 ui=1 len=8 bits=00000001 w32 1
+wordFromBitlist 0010 -> w4 (LP6): u=2 s=2 ui=2 len=4 bits=0010
+wordFromBitlist 10110001 -> w8: u=177 s=-79 ui=177 len=8 bits=10110001
+wordFromBitlist 1 -> w1: u=1 s=-1 ui=1 len=1 bits=1
+bitlistFromWord (w8 2) (LP6): 00000010
+round trip w16 0x1234: u=4660 s=4660 ui=4660 len=16 bits=0001001000110100
+size_itself/size_test_fn: 8 64 5
+word_concat w8 w8 -> w16: u=43981 s=-21555 ui=43981 len=16 bits=1010101111001101
+word_concat w8 w16 -> w24 (-1, 1): u=16711681 s=-65535 ui=16711681 len=24 bits=111111110000000000000001
+word_concat w5 w1 -> w6: u=19 s=19 ui=19 len=6 bits=010011
+word_extract 0 7 of w16 0xABCD: u=205 s=-51 ui=205 len=8 bits=11001101
+word_extract 8 15 of w16 0xABCD: u=171 s=-85 ui=171 len=8 bits=10101011
+word_extract 4 11 of w16 0xABCD: u=188 s=-68 ui=188 len=8 bits=10111100
+word_extract 0 3 of w8 0xAB -> w8, value only (LP7; OCaml's word length is 4, OM4): 11
+word_extract 0 3 of w8 0xAB -> w4: u=11 s=-5 ui=11 len=4 bits=1011
+word_extract 2 6 of w8 0xAB -> w5: u=10 s=10 ui=10 len=5 bits=01010
+word_update w16 1234 1 8 (w8 41): u=1106 s=1106 ui=1106 len=16 bits=0000010001010010
+word_update w16 0 8 15 (w8 0xFF): u=65280 s=-256 ui=65280 len=16 bits=1111111100000000
+word_update w8 0xFF 2 6 (w5 0): u=131 s=-125 ui=131 len=8 bits=10000011
+zeroExtend w8 -> w16 (-1): u=255 s=255 ui=255 len=16 bits=0000000011111111
+signExtend w8 -> w16 (-1): u=65535 s=-1 ui=65535 len=16 bits=1111111111111111
+signExtend w8 -> w16 (127): u=127 s=127 ui=127 len=16 bits=0000000001111111
+signExtend w8 -> w64 (-128): u=18446744073709551488 s=-128 ui=18446744073709551488 len=64 bits=1111111111111111111111111111111111111111111111111111111110000000
+zeroExtend w16 -> w8 (0x1234, narrowing): u=52 s=52 ui=52 len=8 bits=00110100
+signExtend w16 -> w8 (0x12F0, narrowing): u=240 s=-16 ui=240 len=8 bits=11110000
+shiftLeft w8 1 by 8 / 9: u=0 s=0 ui=0 len=8 bits=00000000 / u=0 s=0 ui=0 len=8 bits=00000000
+shiftRight w8 -1 by 8: u=0 s=0 ui=0 len=8 bits=00000000
+arithShiftRight w8 -128 by 7 / 8; 127 by 20: u=255 s=-1 ui=255 len=8 bits=11111111 / u=255 s=-1 ui=255 len=8 bits=11111111 / u=0 s=0 ui=0 len=8 bits=00000000
+shiftRight w8 -1 by 100: u=0 s=0 ui=0 len=8 bits=00000000
+rotateLeft 7 / rotateRight 7 of w8 0x81: u=192 s=-64 ui=192 len=8 bits=11000000 / u=3 s=3 ui=3 len=8 bits=00000011
+rotateLeft 63 / rotateRight 1 of w64 1: u=9223372036854775808 s=-9223372036854775808 ui=9223372036854775808 len=64 bits=1000000000000000000000000000000000000000000000000000000000000000 / u=9223372036854775808 s=-9223372036854775808 ui=9223372036854775808 len=64 bits=1000000000000000000000000000000000000000000000000000000000000000
+getBit w8 0x85 at 7 / 8 / 100: 1 0 0
+getBit w8 0x05 at 2 (bits 3..4 clear): 1
+numeral literal (mword ty8) 300: u=44 s=44 ui=44 len=8 bits=00101100
+w8 0: not=255 msb=0 lsb=0 getBit0=0 shl1=0 shl3=0 shr1=0 shr3=0 asr1=0 asr3=0 rol1=0 rol3=0 ror1=0 ror3=0 setBit0=1 clrBit1=0
+w8 1: not=254 neg=255 msb=0 lsb=1 getBit0=1 shl1=2 shl3=8 shr1=0 shr3=0 asr1=0 asr3=0 rol1=2 rol3=8 ror1=128 ror3=32 setBit0=1 clrBit1=1
+w8 255: not=0 neg=1 msb=1 lsb=1 getBit0=1 shl1=254 shl3=248 shr1=127 shr3=31 asr1=255 asr3=255 rol1=255 rol3=255 ror1=255 ror3=255 setBit0=255 clrBit1=253
+w8 5: not=250 neg=251 msb=0 lsb=1 getBit0=1 shl1=10 shl3=40 shr1=2 shr3=0 asr1=2 asr3=0 rol1=10 rol3=40 ror1=130 ror3=160 setBit0=5 clrBit1=5
+w8 249: not=6 neg=7 msb=1 lsb=1 getBit0=1 shl1=242 shl3=200 shr1=124 shr3=31 asr1=252 asr3=255 rol1=243 rol3=207 ror1=252 ror3=63 setBit0=249 clrBit1=249
+w8 127: not=128 neg=129 msb=0 lsb=1 getBit0=1 shl1=254 shl3=248 shr1=63 shr3=15 asr1=63 asr3=15 rol1=254 rol3=251 ror1=191 ror3=239 setBit0=127 clrBit1=125
+w8 129: not=126 neg=127 msb=1 lsb=1 getBit0=1 shl1=2 shl3=8 shr1=64 shr3=16 asr1=192 asr3=240 rol1=3 rol3=12 ror1=192 ror3=48 setBit0=129 clrBit1=129
+w8 85: not=170 neg=171 msb=0 lsb=1 getBit0=1 shl1=170 shl3=168 shr1=42 shr3=10 asr1=42 asr3=10 rol1=170 rol3=170 ror1=170 ror3=170 setBit0=85 clrBit1=85
+w8 170: not=85 neg=86 msb=1 lsb=0 getBit0=0 shl1=84 shl3=80 shr1=85 shr3=21 asr1=213 asr3=245 rol1=85 rol3=85 ror1=85 ror3=85 setBit0=171 clrBit1=168
+w8 44: not=211 neg=212 msb=0 lsb=0 getBit0=0 shl1=88 shl3=96 shr1=22 shr3=5 asr1=22 asr3=5 rol1=88 rol3=97 ror1=22 ror3=133 setBit0=45 clrBit1=44
+w8 11: not=244 neg=245 msb=0 lsb=1 getBit0=1 shl1=22 shl3=88 shr1=5 shr3=1 asr1=5 asr3=1 rol1=22 rol3=88 ror1=133 ror3=97 setBit0=11 clrBit1=9
+w8 62: not=193 neg=194 msb=0 lsb=0 getBit0=0 shl1=124 shl3=240 shr1=31 shr3=7 asr1=31 asr3=7 rol1=124 rol3=241 ror1=31 ror3=199 setBit0=63 clrBit1=60
+w8 53: not=202 neg=203 msb=0 lsb=1 getBit0=1 shl1=106 shl3=168 shr1=26 shr3=6 asr1=26 asr3=6 rol1=106 rol3=169 ror1=154 ror3=166 setBit0=53 clrBit1=53
+w16 0: not=65535 msb=0 lsb=0 getBit0=0 shl1=0 shl3=0 shr1=0 shr3=0 asr1=0 asr3=0 rol1=0 rol3=0 ror1=0 ror3=0 setBit0=1 clrBit1=0
+w16 1: not=65534 neg=65535 msb=0 lsb=1 getBit0=1 shl1=2 shl3=8 shr1=0 shr3=0 asr1=0 asr3=0 rol1=2 rol3=8 ror1=32768 ror3=8192 setBit0=1 clrBit1=1
+w16 65535: not=0 neg=1 msb=1 lsb=1 getBit0=1 shl1=65534 shl3=65528 shr1=32767 shr3=8191 asr1=65535 asr3=65535 rol1=65535 rol3=65535 ror1=65535 ror3=65535 setBit0=65535 clrBit1=65533
+w16 32769: not=32766 neg=32767 msb=1 lsb=1 getBit0=1 shl1=2 shl3=8 shr1=16384 shr3=4096 asr1=49152 asr3=61440 rol1=3 rol3=12 ror1=49152 ror3=12288 setBit0=32769 clrBit1=32769
+w16 32767: not=32768 neg=32769 msb=0 lsb=1 getBit0=1 shl1=65534 shl3=65528 shr1=16383 shr3=4095 asr1=16383 asr3=4095 rol1=65534 rol3=65531 ror1=49151 ror3=61439 setBit0=32767 clrBit1=32765
+w16 1234: not=64301 neg=64302 msb=0 lsb=0 getBit0=0 shl1=2468 shl3=9872 shr1=617 shr3=154 asr1=617 asr3=154 rol1=2468 rol3=9872 ror1=617 ror3=16538 setBit0=1235 clrBit1=1232
+w16 37932: not=27603 neg=27604 msb=1 lsb=0 getBit0=0 shl1=10328 shl3=41312 shr1=18966 shr3=4741 asr1=51734 asr3=62085 rol1=10329 rol3=41316 ror1=18966 ror3=37509 setBit0=37933 clrBit1=37932
+w16 24843: not=40692 neg=40693 msb=0 lsb=1 getBit0=1 shl1=49686 shl3=2136 shr1=12421 shr3=3105 asr1=12421 asr3=3105 rol1=49686 rol3=2139 ror1=45189 ror3=27681 setBit0=24843 clrBit1=24841
+w32 0: not=4294967295 msb=0 lsb=0 getBit0=0 shl1=0 shl3=0 shr1=0 shr3=0 asr1=0 asr3=0 rol1=0 rol3=0 ror1=0 ror3=0 setBit0=1 clrBit1=0
+w32 1: not=4294967294 neg=4294967295 msb=0 lsb=1 getBit0=1 shl1=2 shl3=8 shr1=0 shr3=0 asr1=0 asr3=0 rol1=2 rol3=8 ror1=2147483648 ror3=536870912 setBit0=1 clrBit1=1
+w32 4294967295: not=0 neg=1 msb=1 lsb=1 getBit0=1 shl1=4294967294 shl3=4294967288 shr1=2147483647 shr3=536870911 asr1=4294967295 asr3=4294967295 rol1=4294967295 rol3=4294967295 ror1=4294967295 ror3=4294967295 setBit0=4294967295 clrBit1=4294967293
+w32 2147483649: not=2147483646 neg=2147483647 msb=1 lsb=1 getBit0=1 shl1=2 shl3=8 shr1=1073741824 shr3=268435456 asr1=3221225472 asr3=4026531840 rol1=3 rol3=12 ror1=3221225472 ror3=805306368 setBit0=2147483649 clrBit1=2147483649
+w32 2147483647: not=2147483648 neg=2147483649 msb=0 lsb=1 getBit0=1 shl1=4294967294 shl3=4294967288 shr1=1073741823 shr3=268435455 asr1=1073741823 asr3=268435455 rol1=4294967294 rol3=4294967291 ror1=3221225471 ror3=4026531839 setBit0=2147483647 clrBit1=2147483645
+w32 2030801964: not=2264165331 neg=2264165332 msb=0 lsb=0 getBit0=0 shl1=4061603928 shl3=3361513824 shr1=1015400982 shr3=253850245 asr1=1015400982 asr3=253850245 rol1=4061603928 rol3=3361513827 ror1=1015400982 ror3=2401333893 setBit0=2030801965 clrBit1=2030801964
+w32 1250844939: not=3044122356 neg=3044122357 msb=0 lsb=1 getBit0=1 shl1=2501689878 shl3=1416824920 shr1=625422469 shr3=156355617 asr1=625422469 asr3=156355617 rol1=2501689878 rol3=1416824922 ror1=2772906117 ror3=1766968353 setBit0=1250844939 clrBit1=1250844937
+w64 0: not=18446744073709551615 msb=0 lsb=0 getBit0=0 shl1=0 shl3=0 shr1=0 shr3=0 asr1=0 asr3=0 rol1=0 rol3=0 ror1=0 ror3=0 setBit0=1 clrBit1=0
+w64 1: not=18446744073709551614 neg=18446744073709551615 msb=0 lsb=1 getBit0=1 shl1=2 shl3=8 shr1=0 shr3=0 asr1=0 asr3=0 rol1=2 rol3=8 ror1=9223372036854775808 ror3=2305843009213693952 setBit0=1 clrBit1=1
+w64 18446744073709551615: not=0 neg=1 msb=1 lsb=1 getBit0=1 shl1=18446744073709551614 shl3=18446744073709551608 shr1=9223372036854775807 shr3=2305843009213693951 asr1=18446744073709551615 asr3=18446744073709551615 rol1=18446744073709551615 rol3=18446744073709551615 ror1=18446744073709551615 ror3=18446744073709551615 setBit0=18446744073709551615 clrBit1=18446744073709551613
+w64 9223372036854775809: not=9223372036854775806 neg=9223372036854775807 msb=1 lsb=1 getBit0=1 shl1=2 shl3=8 shr1=4611686018427387904 shr3=1152921504606846976 asr1=13835058055282163712 asr3=17293822569102704640 rol1=3 rol3=12 ror1=13835058055282163712 ror3=3458764513820540928 setBit0=9223372036854775809 clrBit1=9223372036854775809
+w64 9223372036854775807: not=9223372036854775808 neg=9223372036854775809 msb=0 lsb=1 getBit0=1 shl1=18446744073709551614 shl3=18446744073709551608 shr1=4611686018427387903 shr3=1152921504606846975 asr1=4611686018427387903 asr3=1152921504606846975 rol1=18446744073709551614 rol3=18446744073709551611 ror1=13835058055282163711 ror3=17293822569102704639 setBit0=9223372036854775807 clrBit1=9223372036854775805
+w64 5499060245593035820: not=12947683828116515795 neg=12947683828116515796 msb=0 lsb=0 getBit0=0 shl1=10998120491186071640 shl3=7098993817325183328 shr1=2749530122796517910 shr3=687382530699129477 asr1=2749530122796517910 asr3=687382530699129477 rol1=10998120491186071640 rol3=7098993817325183330 ror1=2749530122796517910 ror3=9910754567553905285 setBit0=5499060245593035821 clrBit1=5499060245593035820
+w64 3772560868736131339: not=14674183204973420276 neg=14674183204973420277 msb=0 lsb=1 getBit0=1 shl1=7545121737472262678 shl3=11733742876179499096 shr1=1886280434368065669 shr3=471570108592016417 asr1=1886280434368065669 asr3=471570108592016417 rol1=7545121737472262678 rol3=11733742876179499097 ror1=11109652471222841477 ror3=7389099136233098273 setBit0=3772560868736131339 clrBit1=3772560868736131337
+w5 0: not=31 msb=0 lsb=0 getBit0=0 shl1=0 shl3=0 shr1=0 shr3=0 asr1=0 asr3=0 rol1=0 rol3=0 ror1=0 ror3=0 setBit0=1 clrBit1=0
+w5 1: not=30 neg=31 msb=0 lsb=1 getBit0=1 shl1=2 shl3=8 shr1=0 shr3=0 asr1=0 asr3=0 rol1=2 rol3=8 ror1=16 ror3=4 setBit0=1 clrBit1=1
+w5 31: not=0 neg=1 msb=1 lsb=1 getBit0=1 shl1=30 shl3=24 shr1=15 shr3=3 asr1=31 asr3=31 rol1=31 rol3=31 ror1=31 ror3=31 setBit0=31 clrBit1=29
+w5 17: not=14 neg=15 msb=1 lsb=1 getBit0=1 shl1=2 shl3=8 shr1=8 shr3=2 asr1=24 asr3=30 rol1=3 rol3=12 ror1=24 ror3=6 setBit0=17 clrBit1=17
+w5 15: not=16 neg=17 msb=0 lsb=1 getBit0=1 shl1=30 shl3=24 shr1=7 shr3=1 asr1=7 asr3=1 rol1=30 rol3=27 ror1=23 ror3=29 setBit0=15 clrBit1=13
+w5 9: not=22 neg=23 msb=0 lsb=1 getBit0=1 shl1=18 shl3=8 shr1=4 shr3=1 asr1=4 asr3=1 rol1=18 rol3=10 ror1=20 ror3=5 setBit0=9 clrBit1=9
+w5 16: not=15 neg=16 msb=1 lsb=0 getBit0=0 shl1=0 shl3=0 shr1=8 shr3=2 asr1=24 asr3=30 rol1=1 rol3=4 ror1=8 ror3=2 setBit0=17 clrBit1=16
+w8 0 0: eq=1 slt=0 sle=1 ult=0 ule=1 and=0 or=0 xor=0 plus=0 minus=0 times=0
+w8 0 1: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=1 xor=1 plus=1 minus=255 times=0 udiv=0 sdiv=0 mod=0
+w8 0 255: eq=0 slt=0 sle=0 ult=1 ule=1 and=0 or=255 xor=255 plus=255 minus=1 times=0 udiv=0 mod=0
+w8 0 5: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=5 xor=5 plus=5 minus=251 times=0 udiv=0 sdiv=0 mod=0
+w8 0 249: eq=0 slt=0 sle=0 ult=1 ule=1 and=0 or=249 xor=249 plus=249 minus=7 times=0 udiv=0 mod=0
+w8 0 127: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=127 xor=127 plus=127 minus=129 times=0 udiv=0 sdiv=0 mod=0
+w8 0 129: eq=0 slt=0 sle=0 ult=1 ule=1 and=0 or=129 xor=129 plus=129 minus=127 times=0 udiv=0 mod=0
+w8 0 85: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=85 xor=85 plus=85 minus=171 times=0 udiv=0 sdiv=0 mod=0
+w8 0 170: eq=0 slt=0 sle=0 ult=1 ule=1 and=0 or=170 xor=170 plus=170 minus=86 times=0 udiv=0 mod=0
+w8 0 44: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=44 xor=44 plus=44 minus=212 times=0 udiv=0 sdiv=0 mod=0
+w8 0 11: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=11 xor=11 plus=11 minus=245 times=0 udiv=0 sdiv=0 mod=0
+w8 0 62: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=62 xor=62 plus=62 minus=194 times=0 udiv=0 sdiv=0 mod=0
+w8 0 53: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=53 xor=53 plus=53 minus=203 times=0 udiv=0 sdiv=0 mod=0
+w8 1 0: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=1 xor=1 plus=1 minus=1 times=0
+w8 1 1: eq=1 slt=0 sle=1 ult=0 ule=1 and=1 or=1 xor=0 plus=2 minus=0 times=1 udiv=1 sdiv=1 mod=0
+w8 1 255: eq=0 slt=0 sle=0 ult=1 ule=1 and=1 or=255 xor=254 plus=0 minus=2 times=255 udiv=0 sdiv=255 mod=1
+w8 1 5: eq=0 slt=1 sle=1 ult=1 ule=1 and=1 or=5 xor=4 plus=6 minus=252 times=5 udiv=0 sdiv=0 mod=1
+w8 1 249: eq=0 slt=0 sle=0 ult=1 ule=1 and=1 or=249 xor=248 plus=250 minus=8 times=249 udiv=0 mod=1
+w8 1 127: eq=0 slt=1 sle=1 ult=1 ule=1 and=1 or=127 xor=126 plus=128 minus=130 times=127 udiv=0 sdiv=0 mod=1
+w8 1 129: eq=0 slt=0 sle=0 ult=1 ule=1 and=1 or=129 xor=128 plus=130 minus=128 times=129 udiv=0 mod=1
+w8 1 85: eq=0 slt=1 sle=1 ult=1 ule=1 and=1 or=85 xor=84 plus=86 minus=172 times=85 udiv=0 sdiv=0 mod=1
+w8 1 170: eq=0 slt=0 sle=0 ult=1 ule=1 and=0 or=171 xor=171 plus=171 minus=87 times=170 udiv=0 mod=1
+w8 1 44: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=45 xor=45 plus=45 minus=213 times=44 udiv=0 sdiv=0 mod=1
+w8 1 11: eq=0 slt=1 sle=1 ult=1 ule=1 and=1 or=11 xor=10 plus=12 minus=246 times=11 udiv=0 sdiv=0 mod=1
+w8 1 62: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=63 xor=63 plus=63 minus=195 times=62 udiv=0 sdiv=0 mod=1
+w8 1 53: eq=0 slt=1 sle=1 ult=1 ule=1 and=1 or=53 xor=52 plus=54 minus=204 times=53 udiv=0 sdiv=0 mod=1
+w8 255 0: eq=0 slt=1 sle=1 ult=0 ule=0 and=0 or=255 xor=255 plus=255 minus=255 times=0
+w8 255 1: eq=0 slt=1 sle=1 ult=0 ule=0 and=1 or=255 xor=254 plus=0 minus=254 times=255 udiv=255 sdiv=255 mod=0
+w8 255 255: eq=1 slt=0 sle=1 ult=0 ule=1 and=255 or=255 xor=0 plus=254 minus=0 times=1 udiv=1 sdiv=1 mod=0
+w8 255 5: eq=0 slt=1 sle=1 ult=0 ule=0 and=5 or=255 xor=250 plus=4 minus=250 times=251 udiv=51 mod=0
+w8 255 249: eq=0 slt=0 sle=0 ult=0 ule=0 and=249 or=255 xor=6 plus=248 minus=6 times=7 udiv=1 sdiv=0 mod=6
+w8 255 127: eq=0 slt=1 sle=1 ult=0 ule=0 and=127 or=255 xor=128 plus=126 minus=128 times=129 udiv=2 mod=1
+w8 255 129: eq=0 slt=0 sle=0 ult=0 ule=0 and=129 or=255 xor=126 plus=128 minus=126 times=127 udiv=1 sdiv=0 mod=126
+w8 255 85: eq=0 slt=1 sle=1 ult=0 ule=0 and=85 or=255 xor=170 plus=84 minus=170 times=171 udiv=3 mod=0
+w8 255 170: eq=0 slt=0 sle=0 ult=0 ule=0 and=170 or=255 xor=85 plus=169 minus=85 times=86 udiv=1 sdiv=0 mod=85
+w8 255 44: eq=0 slt=1 sle=1 ult=0 ule=0 and=44 or=255 xor=211 plus=43 minus=211 times=212 udiv=5 mod=35
+w8 255 11: eq=0 slt=1 sle=1 ult=0 ule=0 and=11 or=255 xor=244 plus=10 minus=244 times=245 udiv=23 mod=2
+w8 255 62: eq=0 slt=1 sle=1 ult=0 ule=0 and=62 or=255 xor=193 plus=61 minus=193 times=194 udiv=4 mod=7
+w8 255 53: eq=0 slt=1 sle=1 ult=0 ule=0 and=53 or=255 xor=202 plus=52 minus=202 times=203 udiv=4 mod=43
+w8 5 0: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=5 xor=5 plus=5 minus=5 times=0
+w8 5 1: eq=0 slt=0 sle=0 ult=0 ule=0 and=1 or=5 xor=4 plus=6 minus=4 times=5 udiv=5 sdiv=5 mod=0
+w8 5 255: eq=0 slt=0 sle=0 ult=1 ule=1 and=5 or=255 xor=250 plus=4 minus=6 times=251 udiv=0 sdiv=251 mod=5
+w8 5 5: eq=1 slt=0 sle=1 ult=0 ule=1 and=5 or=5 xor=0 plus=10 minus=0 times=25 udiv=1 sdiv=1 mod=0
+w8 5 249: eq=0 slt=0 sle=0 ult=1 ule=1 and=1 or=253 xor=252 plus=254 minus=12 times=221 udiv=0 mod=5
+w8 5 127: eq=0 slt=1 sle=1 ult=1 ule=1 and=5 or=127 xor=122 plus=132 minus=134 times=123 udiv=0 sdiv=0 mod=5
+w8 5 129: eq=0 slt=0 sle=0 ult=1 ule=1 and=1 or=133 xor=132 plus=134 minus=132 times=133 udiv=0 mod=5
+w8 5 85: eq=0 slt=1 sle=1 ult=1 ule=1 and=5 or=85 xor=80 plus=90 minus=176 times=169 udiv=0 sdiv=0 mod=5
+w8 5 170: eq=0 slt=0 sle=0 ult=1 ule=1 and=0 or=175 xor=175 plus=175 minus=91 times=82 udiv=0 mod=5
+w8 5 44: eq=0 slt=1 sle=1 ult=1 ule=1 and=4 or=45 xor=41 plus=49 minus=217 times=220 udiv=0 sdiv=0 mod=5
+w8 5 11: eq=0 slt=1 sle=1 ult=1 ule=1 and=1 or=15 xor=14 plus=16 minus=250 times=55 udiv=0 sdiv=0 mod=5
+w8 5 62: eq=0 slt=1 sle=1 ult=1 ule=1 and=4 or=63 xor=59 plus=67 minus=199 times=54 udiv=0 sdiv=0 mod=5
+w8 5 53: eq=0 slt=1 sle=1 ult=1 ule=1 and=5 or=53 xor=48 plus=58 minus=208 times=9 udiv=0 sdiv=0 mod=5
+w8 249 0: eq=0 slt=1 sle=1 ult=0 ule=0 and=0 or=249 xor=249 plus=249 minus=249 times=0
+w8 249 1: eq=0 slt=1 sle=1 ult=0 ule=0 and=1 or=249 xor=248 plus=250 minus=248 times=249 udiv=249 sdiv=249 mod=0
+w8 249 255: eq=0 slt=1 sle=1 ult=1 ule=1 and=249 or=255 xor=6 plus=248 minus=250 times=7 udiv=0 sdiv=7 mod=249
+w8 249 5: eq=0 slt=1 sle=1 ult=0 ule=0 and=1 or=253 xor=252 plus=254 minus=244 times=221 udiv=49 sdiv=255 mod=4
+w8 249 249: eq=1 slt=0 sle=1 ult=0 ule=1 and=249 or=249 xor=0 plus=242 minus=0 times=49 udiv=1 sdiv=1 mod=0
+w8 249 127: eq=0 slt=1 sle=1 ult=0 ule=0 and=121 or=255 xor=134 plus=120 minus=122 times=135 udiv=1 mod=122
+w8 249 129: eq=0 slt=0 sle=0 ult=0 ule=0 and=129 or=249 xor=120 plus=122 minus=120 times=121 udiv=1 sdiv=0 mod=120
+w8 249 85: eq=0 slt=1 sle=1 ult=0 ule=0 and=81 or=253 xor=172 plus=78 minus=164 times=173 udiv=2 mod=79
+w8 249 170: eq=0 slt=0 sle=0 ult=0 ule=0 and=168 or=251 xor=83 plus=163 minus=79 times=90 udiv=1 sdiv=0 mod=79
+w8 249 44: eq=0 slt=1 sle=1 ult=0 ule=0 and=40 or=253 xor=213 plus=37 minus=205 times=204 udiv=5 mod=29
+w8 249 11: eq=0 slt=1 sle=1 ult=0 ule=0 and=9 or=251 xor=242 plus=4 minus=238 times=179 udiv=22 mod=7
+w8 249 62: eq=0 slt=1 sle=1 ult=0 ule=0 and=56 or=255 xor=199 plus=55 minus=187 times=78 udiv=4 mod=1
+w8 249 53: eq=0 slt=1 sle=1 ult=0 ule=0 and=49 or=253 xor=204 plus=46 minus=196 times=141 udiv=4 mod=37
+w8 127 0: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=127 xor=127 plus=127 minus=127 times=0
+w8 127 1: eq=0 slt=0 sle=0 ult=0 ule=0 and=1 or=127 xor=126 plus=128 minus=126 times=127 udiv=127 sdiv=127 mod=0
+w8 127 255: eq=0 slt=0 sle=0 ult=1 ule=1 and=127 or=255 xor=128 plus=126 minus=128 times=129 udiv=0 sdiv=129 mod=127
+w8 127 5: eq=0 slt=0 sle=0 ult=0 ule=0 and=5 or=127 xor=122 plus=132 minus=122 times=123 udiv=25 sdiv=25 mod=2
+w8 127 249: eq=0 slt=0 sle=0 ult=1 ule=1 and=121 or=255 xor=134 plus=120 minus=134 times=135 udiv=0 sdiv=238 mod=127
+w8 127 127: eq=1 slt=0 sle=1 ult=0 ule=1 and=127 or=127 xor=0 plus=254 minus=0 times=1 udiv=1 sdiv=1 mod=0
+w8 127 129: eq=0 slt=0 sle=0 ult=1 ule=1 and=1 or=255 xor=254 plus=0 minus=254 times=255 udiv=0 sdiv=255 mod=127
+w8 127 85: eq=0 slt=0 sle=0 ult=0 ule=0 and=85 or=127 xor=42 plus=212 minus=42 times=43 udiv=1 sdiv=1 mod=42
+w8 127 170: eq=0 slt=0 sle=0 ult=1 ule=1 and=42 or=255 xor=213 plus=41 minus=213 times=86 udiv=0 sdiv=255 mod=127
+w8 127 44: eq=0 slt=0 sle=0 ult=0 ule=0 and=44 or=127 xor=83 plus=171 minus=83 times=212 udiv=2 sdiv=2 mod=39
+w8 127 11: eq=0 slt=0 sle=0 ult=0 ule=0 and=11 or=127 xor=116 plus=138 minus=116 times=117 udiv=11 sdiv=11 mod=6
+w8 127 62: eq=0 slt=0 sle=0 ult=0 ule=0 and=62 or=127 xor=65 plus=189 minus=65 times=194 udiv=2 sdiv=2 mod=3
+w8 127 53: eq=0 slt=0 sle=0 ult=0 ule=0 and=53 or=127 xor=74 plus=180 minus=74 times=75 udiv=2 sdiv=2 mod=21
+w8 129 0: eq=0 slt=1 sle=1 ult=0 ule=0 and=0 or=129 xor=129 plus=129 minus=129 times=0
+w8 129 1: eq=0 slt=1 sle=1 ult=0 ule=0 and=1 or=129 xor=128 plus=130 minus=128 times=129 udiv=129 sdiv=129 mod=0
+w8 129 255: eq=0 slt=1 sle=1 ult=1 ule=1 and=129 or=255 xor=126 plus=128 minus=130 times=127 udiv=0 sdiv=127 mod=129
+w8 129 5: eq=0 slt=1 sle=1 ult=0 ule=0 and=1 or=133 xor=132 plus=134 minus=124 times=133 udiv=25 sdiv=231 mod=4
+w8 129 249: eq=0 slt=1 sle=1 ult=1 ule=1 and=129 or=249 xor=120 plus=122 minus=136 times=121 udiv=0 sdiv=18 mod=129
+w8 129 127: eq=0 slt=1 sle=1 ult=0 ule=0 and=1 or=255 xor=254 plus=0 minus=2 times=255 udiv=1 sdiv=255 mod=2
+w8 129 129: eq=1 slt=0 sle=1 ult=0 ule=1 and=129 or=129 xor=0 plus=2 minus=0 times=1 udiv=1 sdiv=1 mod=0
+w8 129 85: eq=0 slt=1 sle=1 ult=0 ule=0 and=1 or=213 xor=212 plus=214 minus=44 times=213 udiv=1 sdiv=255 mod=44
+w8 129 170: eq=0 slt=1 sle=1 ult=1 ule=1 and=128 or=171 xor=43 plus=43 minus=215 times=170 udiv=0 sdiv=1 mod=129
+w8 129 44: eq=0 slt=1 sle=1 ult=0 ule=0 and=0 or=173 xor=173 plus=173 minus=85 times=44 udiv=2 sdiv=254 mod=41
+w8 129 11: eq=0 slt=1 sle=1 ult=0 ule=0 and=1 or=139 xor=138 plus=140 minus=118 times=139 udiv=11 sdiv=245 mod=8
+w8 129 62: eq=0 slt=1 sle=1 ult=0 ule=0 and=0 or=191 xor=191 plus=191 minus=67 times=62 udiv=2 sdiv=254 mod=5
+w8 129 53: eq=0 slt=1 sle=1 ult=0 ule=0 and=1 or=181 xor=180 plus=182 minus=76 times=181 udiv=2 sdiv=254 mod=23
+w8 85 0: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=85 xor=85 plus=85 minus=85 times=0
+w8 85 1: eq=0 slt=0 sle=0 ult=0 ule=0 and=1 or=85 xor=84 plus=86 minus=84 times=85 udiv=85 sdiv=85 mod=0
+w8 85 255: eq=0 slt=0 sle=0 ult=1 ule=1 and=85 or=255 xor=170 plus=84 minus=86 times=171 udiv=0 sdiv=171 mod=85
+w8 85 5: eq=0 slt=0 sle=0 ult=0 ule=0 and=5 or=85 xor=80 plus=90 minus=80 times=169 udiv=17 sdiv=17 mod=0
+w8 85 249: eq=0 slt=0 sle=0 ult=1 ule=1 and=81 or=253 xor=172 plus=78 minus=92 times=173 udiv=0 sdiv=244 mod=85
+w8 85 127: eq=0 slt=1 sle=1 ult=1 ule=1 and=85 or=127 xor=42 plus=212 minus=214 times=43 udiv=0 sdiv=0 mod=85
+w8 85 129: eq=0 slt=0 sle=0 ult=1 ule=1 and=1 or=213 xor=212 plus=214 minus=212 times=213 udiv=0 mod=85
+w8 85 85: eq=1 slt=0 sle=1 ult=0 ule=1 and=85 or=85 xor=0 plus=170 minus=0 times=57 udiv=1 sdiv=1 mod=0
+w8 85 170: eq=0 slt=0 sle=0 ult=1 ule=1 and=0 or=255 xor=255 plus=255 minus=171 times=114 udiv=0 mod=85
+w8 85 44: eq=0 slt=0 sle=0 ult=0 ule=0 and=4 or=125 xor=121 plus=129 minus=41 times=156 udiv=1 sdiv=1 mod=41
+w8 85 11: eq=0 slt=0 sle=0 ult=0 ule=0 and=1 or=95 xor=94 plus=96 minus=74 times=167 udiv=7 sdiv=7 mod=8
+w8 85 62: eq=0 slt=0 sle=0 ult=0 ule=0 and=20 or=127 xor=107 plus=147 minus=23 times=150 udiv=1 sdiv=1 mod=23
+w8 85 53: eq=0 slt=0 sle=0 ult=0 ule=0 and=21 or=117 xor=96 plus=138 minus=32 times=153 udiv=1 sdiv=1 mod=32
+w8 170 0: eq=0 slt=1 sle=1 ult=0 ule=0 and=0 or=170 xor=170 plus=170 minus=170 times=0
+w8 170 1: eq=0 slt=1 sle=1 ult=0 ule=0 and=0 or=171 xor=171 plus=171 minus=169 times=170 udiv=170 sdiv=170 mod=0
+w8 170 255: eq=0 slt=1 sle=1 ult=1 ule=1 and=170 or=255 xor=85 plus=169 minus=171 times=86 udiv=0 sdiv=86 mod=170
+w8 170 5: eq=0 slt=1 sle=1 ult=0 ule=0 and=0 or=175 xor=175 plus=175 minus=165 times=82 udiv=34 sdiv=239 mod=0
+w8 170 249: eq=0 slt=1 sle=1 ult=1 ule=1 and=168 or=251 xor=83 plus=163 minus=177 times=90 udiv=0 sdiv=12 mod=170
+w8 170 127: eq=0 slt=1 sle=1 ult=0 ule=0 and=42 or=255 xor=213 plus=41 minus=43 times=86 udiv=1 mod=43
+w8 170 129: eq=0 slt=0 sle=0 ult=0 ule=0 and=128 or=171 xor=43 plus=43 minus=41 times=170 udiv=1 sdiv=0 mod=41
+w8 170 85: eq=0 slt=1 sle=1 ult=0 ule=0 and=0 or=255 xor=255 plus=255 minus=85 times=114 udiv=2 sdiv=255 mod=0
+w8 170 170: eq=1 slt=0 sle=1 ult=0 ule=1 and=170 or=170 xor=0 plus=84 minus=0 times=228 udiv=1 sdiv=1 mod=0
+w8 170 44: eq=0 slt=1 sle=1 ult=0 ule=0 and=40 or=174 xor=134 plus=214 minus=126 times=56 udiv=3 sdiv=255 mod=38
+w8 170 11: eq=0 slt=1 sle=1 ult=0 ule=0 and=10 or=171 xor=161 plus=181 minus=159 times=78 udiv=15 sdiv=249 mod=5
+w8 170 62: eq=0 slt=1 sle=1 ult=0 ule=0 and=42 or=190 xor=148 plus=232 minus=108 times=44 udiv=2 sdiv=255 mod=46
+w8 170 53: eq=0 slt=1 sle=1 ult=0 ule=0 and=32 or=191 xor=159 plus=223 minus=117 times=50 udiv=3 sdiv=255 mod=11
+w8 44 0: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=44 xor=44 plus=44 minus=44 times=0
+w8 44 1: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=45 xor=45 plus=45 minus=43 times=44 udiv=44 sdiv=44 mod=0
+w8 44 255: eq=0 slt=0 sle=0 ult=1 ule=1 and=44 or=255 xor=211 plus=43 minus=45 times=212 udiv=0 sdiv=212 mod=44
+w8 44 5: eq=0 slt=0 sle=0 ult=0 ule=0 and=4 or=45 xor=41 plus=49 minus=39 times=220 udiv=8 sdiv=8 mod=4
+w8 44 249: eq=0 slt=0 sle=0 ult=1 ule=1 and=40 or=253 xor=213 plus=37 minus=51 times=204 udiv=0 sdiv=250 mod=44
+w8 44 127: eq=0 slt=1 sle=1 ult=1 ule=1 and=44 or=127 xor=83 plus=171 minus=173 times=212 udiv=0 sdiv=0 mod=44
+w8 44 129: eq=0 slt=0 sle=0 ult=1 ule=1 and=0 or=173 xor=173 plus=173 minus=171 times=44 udiv=0 mod=44
+w8 44 85: eq=0 slt=1 sle=1 ult=1 ule=1 and=4 or=125 xor=121 plus=129 minus=215 times=156 udiv=0 sdiv=0 mod=44
+w8 44 170: eq=0 slt=0 sle=0 ult=1 ule=1 and=40 or=174 xor=134 plus=214 minus=130 times=56 udiv=0 mod=44
+w8 44 44: eq=1 slt=0 sle=1 ult=0 ule=1 and=44 or=44 xor=0 plus=88 minus=0 times=144 udiv=1 sdiv=1 mod=0
+w8 44 11: eq=0 slt=0 sle=0 ult=0 ule=0 and=8 or=47 xor=39 plus=55 minus=33 times=228 udiv=4 sdiv=4 mod=0
+w8 44 62: eq=0 slt=1 sle=1 ult=1 ule=1 and=44 or=62 xor=18 plus=106 minus=238 times=168 udiv=0 sdiv=0 mod=44
+w8 44 53: eq=0 slt=1 sle=1 ult=1 ule=1 and=36 or=61 xor=25 plus=97 minus=247 times=28 udiv=0 sdiv=0 mod=44
+w8 11 0: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=11 xor=11 plus=11 minus=11 times=0
+w8 11 1: eq=0 slt=0 sle=0 ult=0 ule=0 and=1 or=11 xor=10 plus=12 minus=10 times=11 udiv=11 sdiv=11 mod=0
+w8 11 255: eq=0 slt=0 sle=0 ult=1 ule=1 and=11 or=255 xor=244 plus=10 minus=12 times=245 udiv=0 sdiv=245 mod=11
+w8 11 5: eq=0 slt=0 sle=0 ult=0 ule=0 and=1 or=15 xor=14 plus=16 minus=6 times=55 udiv=2 sdiv=2 mod=1
+w8 11 249: eq=0 slt=0 sle=0 ult=1 ule=1 and=9 or=251 xor=242 plus=4 minus=18 times=179 udiv=0 sdiv=255 mod=11
+w8 11 127: eq=0 slt=1 sle=1 ult=1 ule=1 and=11 or=127 xor=116 plus=138 minus=140 times=117 udiv=0 sdiv=0 mod=11
+w8 11 129: eq=0 slt=0 sle=0 ult=1 ule=1 and=1 or=139 xor=138 plus=140 minus=138 times=139 udiv=0 mod=11
+w8 11 85: eq=0 slt=1 sle=1 ult=1 ule=1 and=1 or=95 xor=94 plus=96 minus=182 times=167 udiv=0 sdiv=0 mod=11
+w8 11 170: eq=0 slt=0 sle=0 ult=1 ule=1 and=10 or=171 xor=161 plus=181 minus=97 times=78 udiv=0 mod=11
+w8 11 44: eq=0 slt=1 sle=1 ult=1 ule=1 and=8 or=47 xor=39 plus=55 minus=223 times=228 udiv=0 sdiv=0 mod=11
+w8 11 11: eq=1 slt=0 sle=1 ult=0 ule=1 and=11 or=11 xor=0 plus=22 minus=0 times=121 udiv=1 sdiv=1 mod=0
+w8 11 62: eq=0 slt=1 sle=1 ult=1 ule=1 and=10 or=63 xor=53 plus=73 minus=205 times=170 udiv=0 sdiv=0 mod=11
+w8 11 53: eq=0 slt=1 sle=1 ult=1 ule=1 and=1 or=63 xor=62 plus=64 minus=214 times=71 udiv=0 sdiv=0 mod=11
+w8 62 0: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=62 xor=62 plus=62 minus=62 times=0
+w8 62 1: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=63 xor=63 plus=63 minus=61 times=62 udiv=62 sdiv=62 mod=0
+w8 62 255: eq=0 slt=0 sle=0 ult=1 ule=1 and=62 or=255 xor=193 plus=61 minus=63 times=194 udiv=0 sdiv=194 mod=62
+w8 62 5: eq=0 slt=0 sle=0 ult=0 ule=0 and=4 or=63 xor=59 plus=67 minus=57 times=54 udiv=12 sdiv=12 mod=2
+w8 62 249: eq=0 slt=0 sle=0 ult=1 ule=1 and=56 or=255 xor=199 plus=55 minus=69 times=78 udiv=0 sdiv=248 mod=62
+w8 62 127: eq=0 slt=1 sle=1 ult=1 ule=1 and=62 or=127 xor=65 plus=189 minus=191 times=194 udiv=0 sdiv=0 mod=62
+w8 62 129: eq=0 slt=0 sle=0 ult=1 ule=1 and=0 or=191 xor=191 plus=191 minus=189 times=62 udiv=0 mod=62
+w8 62 85: eq=0 slt=1 sle=1 ult=1 ule=1 and=20 or=127 xor=107 plus=147 minus=233 times=150 udiv=0 sdiv=0 mod=62
+w8 62 170: eq=0 slt=0 sle=0 ult=1 ule=1 and=42 or=190 xor=148 plus=232 minus=148 times=44 udiv=0 mod=62
+w8 62 44: eq=0 slt=0 sle=0 ult=0 ule=0 and=44 or=62 xor=18 plus=106 minus=18 times=168 udiv=1 sdiv=1 mod=18
+w8 62 11: eq=0 slt=0 sle=0 ult=0 ule=0 and=10 or=63 xor=53 plus=73 minus=51 times=170 udiv=5 sdiv=5 mod=7
+w8 62 62: eq=1 slt=0 sle=1 ult=0 ule=1 and=62 or=62 xor=0 plus=124 minus=0 times=4 udiv=1 sdiv=1 mod=0
+w8 62 53: eq=0 slt=0 sle=0 ult=0 ule=0 and=52 or=63 xor=11 plus=115 minus=9 times=214 udiv=1 sdiv=1 mod=9
+w8 53 0: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=53 xor=53 plus=53 minus=53 times=0
+w8 53 1: eq=0 slt=0 sle=0 ult=0 ule=0 and=1 or=53 xor=52 plus=54 minus=52 times=53 udiv=53 sdiv=53 mod=0
+w8 53 255: eq=0 slt=0 sle=0 ult=1 ule=1 and=53 or=255 xor=202 plus=52 minus=54 times=203 udiv=0 sdiv=203 mod=53
+w8 53 5: eq=0 slt=0 sle=0 ult=0 ule=0 and=5 or=53 xor=48 plus=58 minus=48 times=9 udiv=10 sdiv=10 mod=3
+w8 53 249: eq=0 slt=0 sle=0 ult=1 ule=1 and=49 or=253 xor=204 plus=46 minus=60 times=141 udiv=0 sdiv=249 mod=53
+w8 53 127: eq=0 slt=1 sle=1 ult=1 ule=1 and=53 or=127 xor=74 plus=180 minus=182 times=75 udiv=0 sdiv=0 mod=53
+w8 53 129: eq=0 slt=0 sle=0 ult=1 ule=1 and=1 or=181 xor=180 plus=182 minus=180 times=181 udiv=0 mod=53
+w8 53 85: eq=0 slt=1 sle=1 ult=1 ule=1 and=21 or=117 xor=96 plus=138 minus=224 times=153 udiv=0 sdiv=0 mod=53
+w8 53 170: eq=0 slt=0 sle=0 ult=1 ule=1 and=32 or=191 xor=159 plus=223 minus=139 times=50 udiv=0 mod=53
+w8 53 44: eq=0 slt=0 sle=0 ult=0 ule=0 and=36 or=61 xor=25 plus=97 minus=9 times=28 udiv=1 sdiv=1 mod=9
+w8 53 11: eq=0 slt=0 sle=0 ult=0 ule=0 and=1 or=63 xor=62 plus=64 minus=42 times=71 udiv=4 sdiv=4 mod=9
+w8 53 62: eq=0 slt=1 sle=1 ult=1 ule=1 and=52 or=63 xor=11 plus=115 minus=247 times=214 udiv=0 sdiv=0 mod=53
+w8 53 53: eq=1 slt=0 sle=1 ult=0 ule=1 and=53 or=53 xor=0 plus=106 minus=0 times=249 udiv=1 sdiv=1 mod=0
+w16 0 0: eq=1 slt=0 sle=1 ult=0 ule=1 and=0 or=0 xor=0 plus=0 minus=0 times=0
+w16 0 1: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=1 xor=1 plus=1 minus=65535 times=0 udiv=0 sdiv=0 mod=0
+w16 0 65535: eq=0 slt=0 sle=0 ult=1 ule=1 and=0 or=65535 xor=65535 plus=65535 minus=1 times=0 udiv=0 mod=0
+w16 0 32769: eq=0 slt=0 sle=0 ult=1 ule=1 and=0 or=32769 xor=32769 plus=32769 minus=32767 times=0 udiv=0 mod=0
+w16 0 32767: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=32767 xor=32767 plus=32767 minus=32769 times=0 udiv=0 sdiv=0 mod=0
+w16 0 1234: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=1234 xor=1234 plus=1234 minus=64302 times=0 udiv=0 sdiv=0 mod=0
+w16 0 37932: eq=0 slt=0 sle=0 ult=1 ule=1 and=0 or=37932 xor=37932 plus=37932 minus=27604 times=0 udiv=0 mod=0
+w16 0 24843: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=24843 xor=24843 plus=24843 minus=40693 times=0 udiv=0 sdiv=0 mod=0
+w16 1 0: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=1 xor=1 plus=1 minus=1 times=0
+w16 1 1: eq=1 slt=0 sle=1 ult=0 ule=1 and=1 or=1 xor=0 plus=2 minus=0 times=1 udiv=1 sdiv=1 mod=0
+w16 1 65535: eq=0 slt=0 sle=0 ult=1 ule=1 and=1 or=65535 xor=65534 plus=0 minus=2 times=65535 udiv=0 sdiv=65535 mod=1
+w16 1 32769: eq=0 slt=0 sle=0 ult=1 ule=1 and=1 or=32769 xor=32768 plus=32770 minus=32768 times=32769 udiv=0 mod=1
+w16 1 32767: eq=0 slt=1 sle=1 ult=1 ule=1 and=1 or=32767 xor=32766 plus=32768 minus=32770 times=32767 udiv=0 sdiv=0 mod=1
+w16 1 1234: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=1235 xor=1235 plus=1235 minus=64303 times=1234 udiv=0 sdiv=0 mod=1
+w16 1 37932: eq=0 slt=0 sle=0 ult=1 ule=1 and=0 or=37933 xor=37933 plus=37933 minus=27605 times=37932 udiv=0 mod=1
+w16 1 24843: eq=0 slt=1 sle=1 ult=1 ule=1 and=1 or=24843 xor=24842 plus=24844 minus=40694 times=24843 udiv=0 sdiv=0 mod=1
+w16 65535 0: eq=0 slt=1 sle=1 ult=0 ule=0 and=0 or=65535 xor=65535 plus=65535 minus=65535 times=0
+w16 65535 1: eq=0 slt=1 sle=1 ult=0 ule=0 and=1 or=65535 xor=65534 plus=0 minus=65534 times=65535 udiv=65535 sdiv=65535 mod=0
+w16 65535 65535: eq=1 slt=0 sle=1 ult=0 ule=1 and=65535 or=65535 xor=0 plus=65534 minus=0 times=1 udiv=1 sdiv=1 mod=0
+w16 65535 32769: eq=0 slt=0 sle=0 ult=0 ule=0 and=32769 or=65535 xor=32766 plus=32768 minus=32766 times=32767 udiv=1 sdiv=0 mod=32766
+w16 65535 32767: eq=0 slt=1 sle=1 ult=0 ule=0 and=32767 or=65535 xor=32768 plus=32766 minus=32768 times=32769 udiv=2 mod=1
+w16 65535 1234: eq=0 slt=1 sle=1 ult=0 ule=0 and=1234 or=65535 xor=64301 plus=1233 minus=64301 times=64302 udiv=53 mod=133
+w16 65535 37932: eq=0 slt=0 sle=0 ult=0 ule=0 and=37932 or=65535 xor=27603 plus=37931 minus=27603 times=27604 udiv=1 sdiv=0 mod=27603
+w16 65535 24843: eq=0 slt=1 sle=1 ult=0 ule=0 and=24843 or=65535 xor=40692 plus=24842 minus=40692 times=40693 udiv=2 mod=15849
+w16 32769 0: eq=0 slt=1 sle=1 ult=0 ule=0 and=0 or=32769 xor=32769 plus=32769 minus=32769 times=0
+w16 32769 1: eq=0 slt=1 sle=1 ult=0 ule=0 and=1 or=32769 xor=32768 plus=32770 minus=32768 times=32769 udiv=32769 sdiv=32769 mod=0
+w16 32769 65535: eq=0 slt=1 sle=1 ult=1 ule=1 and=32769 or=65535 xor=32766 plus=32768 minus=32770 times=32767 udiv=0 sdiv=32767 mod=32769
+w16 32769 32769: eq=1 slt=0 sle=1 ult=0 ule=1 and=32769 or=32769 xor=0 plus=2 minus=0 times=1 udiv=1 sdiv=1 mod=0
+w16 32769 32767: eq=0 slt=1 sle=1 ult=0 ule=0 and=1 or=65535 xor=65534 plus=0 minus=2 times=65535 udiv=1 sdiv=65535 mod=2
+w16 32769 1234: eq=0 slt=1 sle=1 ult=0 ule=0 and=0 or=34003 xor=34003 plus=34003 minus=31535 times=1234 udiv=26 sdiv=65510 mod=685
+w16 32769 37932: eq=0 slt=1 sle=1 ult=1 ule=1 and=32768 or=37933 xor=5165 plus=5165 minus=60373 times=37932 udiv=0 sdiv=1 mod=32769
+w16 32769 24843: eq=0 slt=1 sle=1 ult=0 ule=0 and=1 or=57611 xor=57610 plus=57612 minus=7926 times=57611 udiv=1 sdiv=65535 mod=7926
+w16 32767 0: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=32767 xor=32767 plus=32767 minus=32767 times=0
+w16 32767 1: eq=0 slt=0 sle=0 ult=0 ule=0 and=1 or=32767 xor=32766 plus=32768 minus=32766 times=32767 udiv=32767 sdiv=32767 mod=0
+w16 32767 65535: eq=0 slt=0 sle=0 ult=1 ule=1 and=32767 or=65535 xor=32768 plus=32766 minus=32768 times=32769 udiv=0 sdiv=32769 mod=32767
+w16 32767 32769: eq=0 slt=0 sle=0 ult=1 ule=1 and=1 or=65535 xor=65534 plus=0 minus=65534 times=65535 udiv=0 sdiv=65535 mod=32767
+w16 32767 32767: eq=1 slt=0 sle=1 ult=0 ule=1 and=32767 or=32767 xor=0 plus=65534 minus=0 times=1 udiv=1 sdiv=1 mod=0
+w16 32767 1234: eq=0 slt=0 sle=0 ult=0 ule=0 and=1234 or=32767 xor=31533 plus=34001 minus=31533 times=64302 udiv=26 sdiv=26 mod=683
+w16 32767 37932: eq=0 slt=0 sle=0 ult=1 ule=1 and=5164 or=65535 xor=60371 plus=5163 minus=60371 times=27604 udiv=0 sdiv=65535 mod=32767
+w16 32767 24843: eq=0 slt=0 sle=0 ult=0 ule=0 and=24843 or=32767 xor=7924 plus=57610 minus=7924 times=7925 udiv=1 sdiv=1 mod=7924
+w16 1234 0: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=1234 xor=1234 plus=1234 minus=1234 times=0
+w16 1234 1: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=1235 xor=1235 plus=1235 minus=1233 times=1234 udiv=1234 sdiv=1234 mod=0
+w16 1234 65535: eq=0 slt=0 sle=0 ult=1 ule=1 and=1234 or=65535 xor=64301 plus=1233 minus=1235 times=64302 udiv=0 sdiv=64302 mod=1234
+w16 1234 32769: eq=0 slt=0 sle=0 ult=1 ule=1 and=0 or=34003 xor=34003 plus=34003 minus=34001 times=1234 udiv=0 mod=1234
+w16 1234 32767: eq=0 slt=1 sle=1 ult=1 ule=1 and=1234 or=32767 xor=31533 plus=34001 minus=34003 times=64302 udiv=0 sdiv=0 mod=1234
+w16 1234 1234: eq=1 slt=0 sle=1 ult=0 ule=1 and=1234 or=1234 xor=0 plus=2468 minus=0 times=15428 udiv=1 sdiv=1 mod=0
+w16 1234 37932: eq=0 slt=0 sle=0 ult=1 ule=1 and=1024 or=38142 xor=37118 plus=39166 minus=28838 times=15384 udiv=0 mod=1234
+w16 1234 24843: eq=0 slt=1 sle=1 ult=1 ule=1 and=2 or=26075 xor=26073 plus=26077 minus=41927 times=50950 udiv=0 sdiv=0 mod=1234
+w16 37932 0: eq=0 slt=1 sle=1 ult=0 ule=0 and=0 or=37932 xor=37932 plus=37932 minus=37932 times=0
+w16 37932 1: eq=0 slt=1 sle=1 ult=0 ule=0 and=0 or=37933 xor=37933 plus=37933 minus=37931 times=37932 udiv=37932 sdiv=37932 mod=0
+w16 37932 65535: eq=0 slt=1 sle=1 ult=1 ule=1 and=37932 or=65535 xor=27603 plus=37931 minus=37933 times=27604 udiv=0 sdiv=27604 mod=37932
+w16 37932 32769: eq=0 slt=0 sle=0 ult=0 ule=0 and=32768 or=37933 xor=5165 plus=5165 minus=5163 times=37932 udiv=1 sdiv=0 mod=5163
+w16 37932 32767: eq=0 slt=1 sle=1 ult=0 ule=0 and=5164 or=65535 xor=60371 plus=5163 minus=5165 times=27604 udiv=1 mod=5165
+w16 37932 1234: eq=0 slt=1 sle=1 ult=0 ule=0 and=1024 or=38142 xor=37118 plus=39166 minus=36698 times=15384 udiv=30 sdiv=65514 mod=912
+w16 37932 37932: eq=1 slt=0 sle=1 ult=0 ule=1 and=37932 or=37932 xor=0 plus=10328 minus=0 times=59280 udiv=1 sdiv=1 mod=0
+w16 37932 24843: eq=0 slt=1 sle=1 ult=0 ule=0 and=8 or=62767 xor=62759 plus=62775 minus=13089 times=2532 udiv=1 sdiv=65535 mod=13089
+w16 24843 0: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=24843 xor=24843 plus=24843 minus=24843 times=0
+w16 24843 1: eq=0 slt=0 sle=0 ult=0 ule=0 and=1 or=24843 xor=24842 plus=24844 minus=24842 times=24843 udiv=24843 sdiv=24843 mod=0
+w16 24843 65535: eq=0 slt=0 sle=0 ult=1 ule=1 and=24843 or=65535 xor=40692 plus=24842 minus=24844 times=40693 udiv=0 sdiv=40693 mod=24843
+w16 24843 32769: eq=0 slt=0 sle=0 ult=1 ule=1 and=1 or=57611 xor=57610 plus=57612 minus=57610 times=57611 udiv=0 mod=24843
+w16 24843 32767: eq=0 slt=1 sle=1 ult=1 ule=1 and=24843 or=32767 xor=7924 plus=57610 minus=57612 times=7925 udiv=0 sdiv=0 mod=24843
+w16 24843 1234: eq=0 slt=0 sle=0 ult=0 ule=0 and=2 or=26075 xor=26073 plus=26077 minus=23609 times=50950 udiv=20 sdiv=20 mod=163
+w16 24843 37932: eq=0 slt=0 sle=0 ult=1 ule=1 and=8 or=62767 xor=62759 plus=62775 minus=52447 times=2532 udiv=0 mod=24843
+w16 24843 24843: eq=1 slt=0 sle=1 ult=0 ule=1 and=24843 or=24843 xor=0 plus=49686 minus=0 times=22137 udiv=1 sdiv=1 mod=0
+w32 0 0: eq=1 slt=0 sle=1 ult=0 ule=1 and=0 or=0 xor=0 plus=0 minus=0 times=0
+w32 0 1: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=1 xor=1 plus=1 minus=4294967295 times=0 udiv=0 sdiv=0 mod=0
+w32 0 4294967295: eq=0 slt=0 sle=0 ult=1 ule=1 and=0 or=4294967295 xor=4294967295 plus=4294967295 minus=1 times=0 udiv=0 mod=0
+w32 0 2147483649: eq=0 slt=0 sle=0 ult=1 ule=1 and=0 or=2147483649 xor=2147483649 plus=2147483649 minus=2147483647 times=0 udiv=0 mod=0
+w32 0 2147483647: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=2147483647 xor=2147483647 plus=2147483647 minus=2147483649 times=0 udiv=0 sdiv=0 mod=0
+w32 0 2030801964: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=2030801964 xor=2030801964 plus=2030801964 minus=2264165332 times=0 udiv=0 sdiv=0 mod=0
+w32 0 1250844939: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=1250844939 xor=1250844939 plus=1250844939 minus=3044122357 times=0 udiv=0 sdiv=0 mod=0
+w32 1 0: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=1 xor=1 plus=1 minus=1 times=0
+w32 1 1: eq=1 slt=0 sle=1 ult=0 ule=1 and=1 or=1 xor=0 plus=2 minus=0 times=1 udiv=1 sdiv=1 mod=0
+w32 1 4294967295: eq=0 slt=0 sle=0 ult=1 ule=1 and=1 or=4294967295 xor=4294967294 plus=0 minus=2 times=4294967295 udiv=0 sdiv=4294967295 mod=1
+w32 1 2147483649: eq=0 slt=0 sle=0 ult=1 ule=1 and=1 or=2147483649 xor=2147483648 plus=2147483650 minus=2147483648 times=2147483649 udiv=0 mod=1
+w32 1 2147483647: eq=0 slt=1 sle=1 ult=1 ule=1 and=1 or=2147483647 xor=2147483646 plus=2147483648 minus=2147483650 times=2147483647 udiv=0 sdiv=0 mod=1
+w32 1 2030801964: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=2030801965 xor=2030801965 plus=2030801965 minus=2264165333 times=2030801964 udiv=0 sdiv=0 mod=1
+w32 1 1250844939: eq=0 slt=1 sle=1 ult=1 ule=1 and=1 or=1250844939 xor=1250844938 plus=1250844940 minus=3044122358 times=1250844939 udiv=0 sdiv=0 mod=1
+w32 4294967295 0: eq=0 slt=1 sle=1 ult=0 ule=0 and=0 or=4294967295 xor=4294967295 plus=4294967295 minus=4294967295 times=0
+w32 4294967295 1: eq=0 slt=1 sle=1 ult=0 ule=0 and=1 or=4294967295 xor=4294967294 plus=0 minus=4294967294 times=4294967295 udiv=4294967295 sdiv=4294967295 mod=0
+w32 4294967295 4294967295: eq=1 slt=0 sle=1 ult=0 ule=1 and=4294967295 or=4294967295 xor=0 plus=4294967294 minus=0 times=1 udiv=1 sdiv=1 mod=0
+w32 4294967295 2147483649: eq=0 slt=0 sle=0 ult=0 ule=0 and=2147483649 or=4294967295 xor=2147483646 plus=2147483648 minus=2147483646 times=2147483647 udiv=1 sdiv=0 mod=2147483646
+w32 4294967295 2147483647: eq=0 slt=1 sle=1 ult=0 ule=0 and=2147483647 or=4294967295 xor=2147483648 plus=2147483646 minus=2147483648 times=2147483649 udiv=2 mod=1
+w32 4294967295 2030801964: eq=0 slt=1 sle=1 ult=0 ule=0 and=2030801964 or=4294967295 xor=2264165331 plus=2030801963 minus=2264165331 times=2264165332 udiv=2 mod=233363367
+w32 4294967295 1250844939: eq=0 slt=1 sle=1 ult=0 ule=0 and=1250844939 or=4294967295 xor=3044122356 plus=1250844938 minus=3044122356 times=3044122357 udiv=3 mod=542432478
+w32 2147483649 0: eq=0 slt=1 sle=1 ult=0 ule=0 and=0 or=2147483649 xor=2147483649 plus=2147483649 minus=2147483649 times=0
+w32 2147483649 1: eq=0 slt=1 sle=1 ult=0 ule=0 and=1 or=2147483649 xor=2147483648 plus=2147483650 minus=2147483648 times=2147483649 udiv=2147483649 sdiv=2147483649 mod=0
+w32 2147483649 4294967295: eq=0 slt=1 sle=1 ult=1 ule=1 and=2147483649 or=4294967295 xor=2147483646 plus=2147483648 minus=2147483650 times=2147483647 udiv=0 sdiv=2147483647 mod=2147483649
+w32 2147483649 2147483649: eq=1 slt=0 sle=1 ult=0 ule=1 and=2147483649 or=2147483649 xor=0 plus=2 minus=0 times=1 udiv=1 sdiv=1 mod=0
+w32 2147483649 2147483647: eq=0 slt=1 sle=1 ult=0 ule=0 and=1 or=4294967295 xor=4294967294 plus=0 minus=2 times=4294967295 udiv=1 sdiv=4294967295 mod=2
+w32 2147483649 2030801964: eq=0 slt=1 sle=1 ult=0 ule=0 and=0 or=4178285613 xor=4178285613 plus=4178285613 minus=116681685 times=2030801964 udiv=1 sdiv=4294967295 mod=116681685
+w32 2147483649 1250844939: eq=0 slt=1 sle=1 ult=0 ule=0 and=1 or=3398328587 xor=3398328586 plus=3398328588 minus=896638710 times=3398328587 udiv=1 sdiv=4294967295 mod=896638710
+w32 2147483647 0: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=2147483647 xor=2147483647 plus=2147483647 minus=2147483647 times=0
+w32 2147483647 1: eq=0 slt=0 sle=0 ult=0 ule=0 and=1 or=2147483647 xor=2147483646 plus=2147483648 minus=2147483646 times=2147483647 udiv=2147483647 sdiv=2147483647 mod=0
+w32 2147483647 4294967295: eq=0 slt=0 sle=0 ult=1 ule=1 and=2147483647 or=4294967295 xor=2147483648 plus=2147483646 minus=2147483648 times=2147483649 udiv=0 sdiv=2147483649 mod=2147483647
+w32 2147483647 2147483649: eq=0 slt=0 sle=0 ult=1 ule=1 and=1 or=4294967295 xor=4294967294 plus=0 minus=4294967294 times=4294967295 udiv=0 sdiv=4294967295 mod=2147483647
+w32 2147483647 2147483647: eq=1 slt=0 sle=1 ult=0 ule=1 and=2147483647 or=2147483647 xor=0 plus=4294967294 minus=0 times=1 udiv=1 sdiv=1 mod=0
+w32 2147483647 2030801964: eq=0 slt=0 sle=0 ult=0 ule=0 and=2030801964 or=2147483647 xor=116681683 plus=4178285611 minus=116681683 times=2264165332 udiv=1 sdiv=1 mod=116681683
+w32 2147483647 1250844939: eq=0 slt=0 sle=0 ult=0 ule=0 and=1250844939 or=2147483647 xor=896638708 plus=3398328586 minus=896638708 times=896638709 udiv=1 sdiv=1 mod=896638708
+w32 2030801964 0: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=2030801964 xor=2030801964 plus=2030801964 minus=2030801964 times=0
+w32 2030801964 1: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=2030801965 xor=2030801965 plus=2030801965 minus=2030801963 times=2030801964 udiv=2030801964 sdiv=2030801964 mod=0
+w32 2030801964 4294967295: eq=0 slt=0 sle=0 ult=1 ule=1 and=2030801964 or=4294967295 xor=2264165331 plus=2030801963 minus=2030801965 times=2264165332 udiv=0 sdiv=2264165332 mod=2030801964
+w32 2030801964 2147483649: eq=0 slt=0 sle=0 ult=1 ule=1 and=0 or=4178285613 xor=4178285613 plus=4178285613 minus=4178285611 times=2030801964 udiv=0 mod=2030801964
+w32 2030801964 2147483647: eq=0 slt=1 sle=1 ult=1 ule=1 and=2030801964 or=2147483647 xor=116681683 plus=4178285611 minus=4178285613 times=2264165332 udiv=0 sdiv=0 mod=2030801964
+w32 2030801964 2030801964: eq=1 slt=0 sle=1 ult=0 ule=1 and=2030801964 or=2030801964 xor=0 plus=4061603928 minus=0 times=2844452752 udiv=1 sdiv=1 mod=0
+w32 2030801964 1250844939: eq=0 slt=0 sle=0 ult=0 ule=0 and=1208614920 or=2073031983 xor=864417063 plus=3281646903 minus=779957025 times=2131495396 udiv=1 sdiv=1 mod=779957025
+w32 1250844939 0: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=1250844939 xor=1250844939 plus=1250844939 minus=1250844939 times=0
+w32 1250844939 1: eq=0 slt=0 sle=0 ult=0 ule=0 and=1 or=1250844939 xor=1250844938 plus=1250844940 minus=1250844938 times=1250844939 udiv=1250844939 sdiv=1250844939 mod=0
+w32 1250844939 4294967295: eq=0 slt=0 sle=0 ult=1 ule=1 and=1250844939 or=4294967295 xor=3044122356 plus=1250844938 minus=1250844940 times=3044122357 udiv=0 sdiv=3044122357 mod=1250844939
+w32 1250844939 2147483649: eq=0 slt=0 sle=0 ult=1 ule=1 and=1 or=3398328587 xor=3398328586 plus=3398328588 minus=3398328586 times=3398328587 udiv=0 mod=1250844939
+w32 1250844939 2147483647: eq=0 slt=1 sle=1 ult=1 ule=1 and=1250844939 or=2147483647 xor=896638708 plus=3398328586 minus=3398328588 times=896638709 udiv=0 sdiv=0 mod=1250844939
+w32 1250844939 2030801964: eq=0 slt=1 sle=1 ult=1 ule=1 and=1208614920 or=2073031983 xor=864417063 plus=3281646903 minus=3515010271 times=2131495396 udiv=0 sdiv=0 mod=1250844939
+w32 1250844939 1250844939: eq=1 slt=0 sle=1 ult=0 ule=1 and=1250844939 or=1250844939 xor=0 plus=2501689878 minus=0 times=687691385 udiv=1 sdiv=1 mod=0
+w64 0 0: eq=1 slt=0 sle=1 ult=0 ule=1 and=0 or=0 xor=0 plus=0 minus=0 times=0
+w64 0 1: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=1 xor=1 plus=1 minus=18446744073709551615 times=0 udiv=0 sdiv=0 mod=0
+w64 0 18446744073709551615: eq=0 slt=0 sle=0 ult=1 ule=1 and=0 or=18446744073709551615 xor=18446744073709551615 plus=18446744073709551615 minus=1 times=0 udiv=0 mod=0
+w64 0 9223372036854775809: eq=0 slt=0 sle=0 ult=1 ule=1 and=0 or=9223372036854775809 xor=9223372036854775809 plus=9223372036854775809 minus=9223372036854775807 times=0 udiv=0 mod=0
+w64 0 9223372036854775807: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=9223372036854775807 xor=9223372036854775807 plus=9223372036854775807 minus=9223372036854775809 times=0 udiv=0 sdiv=0 mod=0
+w64 0 5499060245593035820: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=5499060245593035820 xor=5499060245593035820 plus=5499060245593035820 minus=12947683828116515796 times=0 udiv=0 sdiv=0 mod=0
+w64 0 3772560868736131339: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=3772560868736131339 xor=3772560868736131339 plus=3772560868736131339 minus=14674183204973420277 times=0 udiv=0 sdiv=0 mod=0
+w64 1 0: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=1 xor=1 plus=1 minus=1 times=0
+w64 1 1: eq=1 slt=0 sle=1 ult=0 ule=1 and=1 or=1 xor=0 plus=2 minus=0 times=1 udiv=1 sdiv=1 mod=0
+w64 1 18446744073709551615: eq=0 slt=0 sle=0 ult=1 ule=1 and=1 or=18446744073709551615 xor=18446744073709551614 plus=0 minus=2 times=18446744073709551615 udiv=0 sdiv=18446744073709551615 mod=1
+w64 1 9223372036854775809: eq=0 slt=0 sle=0 ult=1 ule=1 and=1 or=9223372036854775809 xor=9223372036854775808 plus=9223372036854775810 minus=9223372036854775808 times=9223372036854775809 udiv=0 mod=1
+w64 1 9223372036854775807: eq=0 slt=1 sle=1 ult=1 ule=1 and=1 or=9223372036854775807 xor=9223372036854775806 plus=9223372036854775808 minus=9223372036854775810 times=9223372036854775807 udiv=0 sdiv=0 mod=1
+w64 1 5499060245593035820: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=5499060245593035821 xor=5499060245593035821 plus=5499060245593035821 minus=12947683828116515797 times=5499060245593035820 udiv=0 sdiv=0 mod=1
+w64 1 3772560868736131339: eq=0 slt=1 sle=1 ult=1 ule=1 and=1 or=3772560868736131339 xor=3772560868736131338 plus=3772560868736131340 minus=14674183204973420278 times=3772560868736131339 udiv=0 sdiv=0 mod=1
+w64 18446744073709551615 0: eq=0 slt=1 sle=1 ult=0 ule=0 and=0 or=18446744073709551615 xor=18446744073709551615 plus=18446744073709551615 minus=18446744073709551615 times=0
+w64 18446744073709551615 1: eq=0 slt=1 sle=1 ult=0 ule=0 and=1 or=18446744073709551615 xor=18446744073709551614 plus=0 minus=18446744073709551614 times=18446744073709551615 udiv=18446744073709551615 sdiv=18446744073709551615 mod=0
+w64 18446744073709551615 18446744073709551615: eq=1 slt=0 sle=1 ult=0 ule=1 and=18446744073709551615 or=18446744073709551615 xor=0 plus=18446744073709551614 minus=0 times=1 udiv=1 sdiv=1 mod=0
+w64 18446744073709551615 9223372036854775809: eq=0 slt=0 sle=0 ult=0 ule=0 and=9223372036854775809 or=18446744073709551615 xor=9223372036854775806 plus=9223372036854775808 minus=9223372036854775806 times=9223372036854775807 udiv=1 sdiv=0 mod=9223372036854775806
+w64 18446744073709551615 9223372036854775807: eq=0 slt=1 sle=1 ult=0 ule=0 and=9223372036854775807 or=18446744073709551615 xor=9223372036854775808 plus=9223372036854775806 minus=9223372036854775808 times=9223372036854775809 udiv=2 mod=1
+w64 18446744073709551615 5499060245593035820: eq=0 slt=1 sle=1 ult=0 ule=0 and=5499060245593035820 or=18446744073709551615 xor=12947683828116515795 plus=5499060245593035819 minus=12947683828116515795 times=12947683828116515796 udiv=3 mod=1949563336930444155
+w64 18446744073709551615 3772560868736131339: eq=0 slt=1 sle=1 ult=0 ule=0 and=3772560868736131339 or=18446744073709551615 xor=14674183204973420276 plus=3772560868736131338 minus=14674183204973420276 times=14674183204973420277 udiv=4 mod=3356500598765026259
+w64 9223372036854775809 0: eq=0 slt=1 sle=1 ult=0 ule=0 and=0 or=9223372036854775809 xor=9223372036854775809 plus=9223372036854775809 minus=9223372036854775809 times=0
+w64 9223372036854775809 1: eq=0 slt=1 sle=1 ult=0 ule=0 and=1 or=9223372036854775809 xor=9223372036854775808 plus=9223372036854775810 minus=9223372036854775808 times=9223372036854775809 udiv=9223372036854775809 sdiv=9223372036854775809 mod=0
+w64 9223372036854775809 18446744073709551615: eq=0 slt=1 sle=1 ult=1 ule=1 and=9223372036854775809 or=18446744073709551615 xor=9223372036854775806 plus=9223372036854775808 minus=9223372036854775810 times=9223372036854775807 udiv=0 sdiv=9223372036854775807 mod=9223372036854775809
+w64 9223372036854775809 9223372036854775809: eq=1 slt=0 sle=1 ult=0 ule=1 and=9223372036854775809 or=9223372036854775809 xor=0 plus=2 minus=0 times=1 udiv=1 sdiv=1 mod=0
+w64 9223372036854775809 9223372036854775807: eq=0 slt=1 sle=1 ult=0 ule=0 and=1 or=18446744073709551615 xor=18446744073709551614 plus=0 minus=2 times=18446744073709551615 udiv=1 sdiv=18446744073709551615 mod=2
+w64 9223372036854775809 5499060245593035820: eq=0 slt=1 sle=1 ult=0 ule=0 and=0 or=14722432282447811629 xor=14722432282447811629 plus=14722432282447811629 minus=3724311791261739989 times=5499060245593035820 udiv=1 sdiv=18446744073709551615 mod=3724311791261739989
+w64 9223372036854775809 3772560868736131339: eq=0 slt=1 sle=1 ult=0 ule=0 and=1 or=12995932905590907147 xor=12995932905590907146 plus=12995932905590907148 minus=5450811168118644470 times=12995932905590907147 udiv=2 sdiv=18446744073709551614 mod=1678250299382513131
+w64 9223372036854775807 0: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=9223372036854775807 xor=9223372036854775807 plus=9223372036854775807 minus=9223372036854775807 times=0
+w64 9223372036854775807 1: eq=0 slt=0 sle=0 ult=0 ule=0 and=1 or=9223372036854775807 xor=9223372036854775806 plus=9223372036854775808 minus=9223372036854775806 times=9223372036854775807 udiv=9223372036854775807 sdiv=9223372036854775807 mod=0
+w64 9223372036854775807 18446744073709551615: eq=0 slt=0 sle=0 ult=1 ule=1 and=9223372036854775807 or=18446744073709551615 xor=9223372036854775808 plus=9223372036854775806 minus=9223372036854775808 times=9223372036854775809 udiv=0 sdiv=9223372036854775809 mod=9223372036854775807
+w64 9223372036854775807 9223372036854775809: eq=0 slt=0 sle=0 ult=1 ule=1 and=1 or=18446744073709551615 xor=18446744073709551614 plus=0 minus=18446744073709551614 times=18446744073709551615 udiv=0 sdiv=18446744073709551615 mod=9223372036854775807
+w64 9223372036854775807 9223372036854775807: eq=1 slt=0 sle=1 ult=0 ule=1 and=9223372036854775807 or=9223372036854775807 xor=0 plus=18446744073709551614 minus=0 times=1 udiv=1 sdiv=1 mod=0
+w64 9223372036854775807 5499060245593035820: eq=0 slt=0 sle=0 ult=0 ule=0 and=5499060245593035820 or=9223372036854775807 xor=3724311791261739987 plus=14722432282447811627 minus=3724311791261739987 times=12947683828116515796 udiv=1 sdiv=1 mod=3724311791261739987
+w64 9223372036854775807 3772560868736131339: eq=0 slt=0 sle=0 ult=0 ule=0 and=3772560868736131339 or=9223372036854775807 xor=5450811168118644468 plus=12995932905590907146 minus=5450811168118644468 times=5450811168118644469 udiv=2 sdiv=2 mod=1678250299382513129
+w64 5499060245593035820 0: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=5499060245593035820 xor=5499060245593035820 plus=5499060245593035820 minus=5499060245593035820 times=0
+w64 5499060245593035820 1: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=5499060245593035821 xor=5499060245593035821 plus=5499060245593035821 minus=5499060245593035819 times=5499060245593035820 udiv=5499060245593035820 sdiv=5499060245593035820 mod=0
+w64 5499060245593035820 18446744073709551615: eq=0 slt=0 sle=0 ult=1 ule=1 and=5499060245593035820 or=18446744073709551615 xor=12947683828116515795 plus=5499060245593035819 minus=5499060245593035821 times=12947683828116515796 udiv=0 sdiv=12947683828116515796 mod=5499060245593035820
+w64 5499060245593035820 9223372036854775809: eq=0 slt=0 sle=0 ult=1 ule=1 and=0 or=14722432282447811629 xor=14722432282447811629 plus=14722432282447811629 minus=14722432282447811627 times=5499060245593035820 udiv=0 mod=5499060245593035820
+w64 5499060245593035820 9223372036854775807: eq=0 slt=1 sle=1 ult=1 ule=1 and=5499060245593035820 or=9223372036854775807 xor=3724311791261739987 plus=14722432282447811627 minus=14722432282447811629 times=12947683828116515796 udiv=0 sdiv=0 mod=5499060245593035820
+w64 5499060245593035820 5499060245593035820: eq=1 slt=0 sle=1 ult=0 ule=1 and=5499060245593035820 or=5499060245593035820 xor=0 plus=10998120491186071640 minus=0 times=6484568113408567184 udiv=1 sdiv=1 mod=0
+w64 5499060245593035820 3772560868736131339: eq=0 slt=0 sle=0 ult=0 ule=0 and=310911137577828360 or=8960709976751338799 xor=8649798839173510439 plus=9271621114329167159 minus=1726499376856904481 times=1468076925494495716 udiv=1 sdiv=1 mod=1726499376856904481
+w64 3772560868736131339 0: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=3772560868736131339 xor=3772560868736131339 plus=3772560868736131339 minus=3772560868736131339 times=0
+w64 3772560868736131339 1: eq=0 slt=0 sle=0 ult=0 ule=0 and=1 or=3772560868736131339 xor=3772560868736131338 plus=3772560868736131340 minus=3772560868736131338 times=3772560868736131339 udiv=3772560868736131339 sdiv=3772560868736131339 mod=0
+w64 3772560868736131339 18446744073709551615: eq=0 slt=0 sle=0 ult=1 ule=1 and=3772560868736131339 or=18446744073709551615 xor=14674183204973420276 plus=3772560868736131338 minus=3772560868736131340 times=14674183204973420277 udiv=0 sdiv=14674183204973420277 mod=3772560868736131339
+w64 3772560868736131339 9223372036854775809: eq=0 slt=0 sle=0 ult=1 ule=1 and=1 or=12995932905590907147 xor=12995932905590907146 plus=12995932905590907148 minus=12995932905590907146 times=12995932905590907147 udiv=0 mod=3772560868736131339
+w64 3772560868736131339 9223372036854775807: eq=0 slt=1 sle=1 ult=1 ule=1 and=3772560868736131339 or=9223372036854775807 xor=5450811168118644468 plus=12995932905590907146 minus=12995932905590907148 times=5450811168118644469 udiv=0 sdiv=0 mod=3772560868736131339
+w64 3772560868736131339 5499060245593035820: eq=0 slt=1 sle=1 ult=1 ule=1 and=310911137577828360 or=8960709976751338799 xor=8649798839173510439 plus=9271621114329167159 minus=16720244696852647135 times=1468076925494495716 udiv=0 sdiv=0 mod=3772560868736131339
+w64 3772560868736131339 3772560868736131339: eq=1 slt=0 sle=1 ult=0 ule=1 and=3772560868736131339 or=3772560868736131339 xor=0 plus=7545121737472262678 minus=0 times=12153060300630611577 udiv=1 sdiv=1 mod=0
+w5 0 0: eq=1 slt=0 sle=1 ult=0 ule=1 and=0 or=0 xor=0 plus=0 minus=0 times=0
+w5 0 1: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=1 xor=1 plus=1 minus=31 times=0 udiv=0 sdiv=0 mod=0
+w5 0 31: eq=0 slt=0 sle=0 ult=1 ule=1 and=0 or=31 xor=31 plus=31 minus=1 times=0 udiv=0 mod=0
+w5 0 17: eq=0 slt=0 sle=0 ult=1 ule=1 and=0 or=17 xor=17 plus=17 minus=15 times=0 udiv=0 mod=0
+w5 0 15: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=15 xor=15 plus=15 minus=17 times=0 udiv=0 sdiv=0 mod=0
+w5 0 9: eq=0 slt=1 sle=1 ult=1 ule=1 and=0 or=9 xor=9 plus=9 minus=23 times=0 udiv=0 sdiv=0 mod=0
+w5 0 16: eq=0 slt=0 sle=0 ult=1 ule=1 and=0 or=16 xor=16 plus=16 minus=16 times=0 udiv=0 mod=0
+w5 1 0: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=1 xor=1 plus=1 minus=1 times=0
+w5 1 1: eq=1 slt=0 sle=1 ult=0 ule=1 and=1 or=1 xor=0 plus=2 minus=0 times=1 udiv=1 sdiv=1 mod=0
+w5 1 31: eq=0 slt=0 sle=0 ult=1 ule=1 and=1 or=31 xor=30 plus=0 minus=2 times=31 udiv=0 sdiv=31 mod=1
+w5 1 17: eq=0 slt=0 sle=0 ult=1 ule=1 and=1 or=17 xor=16 plus=18 minus=16 times=17 udiv=0 mod=1
+w5 1 15: eq=0 slt=1 sle=1 ult=1 ule=1 and=1 or=15 xor=14 plus=16 minus=18 times=15 udiv=0 sdiv=0 mod=1
+w5 1 9: eq=0 slt=1 sle=1 ult=1 ule=1 and=1 or=9 xor=8 plus=10 minus=24 times=9 udiv=0 sdiv=0 mod=1
+w5 1 16: eq=0 slt=0 sle=0 ult=1 ule=1 and=0 or=17 xor=17 plus=17 minus=17 times=16 udiv=0 mod=1
+w5 31 0: eq=0 slt=1 sle=1 ult=0 ule=0 and=0 or=31 xor=31 plus=31 minus=31 times=0
+w5 31 1: eq=0 slt=1 sle=1 ult=0 ule=0 and=1 or=31 xor=30 plus=0 minus=30 times=31 udiv=31 sdiv=31 mod=0
+w5 31 31: eq=1 slt=0 sle=1 ult=0 ule=1 and=31 or=31 xor=0 plus=30 minus=0 times=1 udiv=1 sdiv=1 mod=0
+w5 31 17: eq=0 slt=0 sle=0 ult=0 ule=0 and=17 or=31 xor=14 plus=16 minus=14 times=15 udiv=1 sdiv=0 mod=14
+w5 31 15: eq=0 slt=1 sle=1 ult=0 ule=0 and=15 or=31 xor=16 plus=14 minus=16 times=17 udiv=2 mod=1
+w5 31 9: eq=0 slt=1 sle=1 ult=0 ule=0 and=9 or=31 xor=22 plus=8 minus=22 times=23 udiv=3 mod=4
+w5 31 16: eq=0 slt=0 sle=0 ult=0 ule=0 and=16 or=31 xor=15 plus=15 minus=15 times=16 udiv=1 sdiv=0 mod=15
+w5 17 0: eq=0 slt=1 sle=1 ult=0 ule=0 and=0 or=17 xor=17 plus=17 minus=17 times=0
+w5 17 1: eq=0 slt=1 sle=1 ult=0 ule=0 and=1 or=17 xor=16 plus=18 minus=16 times=17 udiv=17 sdiv=17 mod=0
+w5 17 31: eq=0 slt=1 sle=1 ult=1 ule=1 and=17 or=31 xor=14 plus=16 minus=18 times=15 udiv=0 sdiv=15 mod=17
+w5 17 17: eq=1 slt=0 sle=1 ult=0 ule=1 and=17 or=17 xor=0 plus=2 minus=0 times=1 udiv=1 sdiv=1 mod=0
+w5 17 15: eq=0 slt=1 sle=1 ult=0 ule=0 and=1 or=31 xor=30 plus=0 minus=2 times=31 udiv=1 sdiv=31 mod=2
+w5 17 9: eq=0 slt=1 sle=1 ult=0 ule=0 and=1 or=25 xor=24 plus=26 minus=8 times=25 udiv=1 sdiv=31 mod=8
+w5 17 16: eq=0 slt=0 sle=0 ult=0 ule=0 and=16 or=17 xor=1 plus=1 minus=1 times=16 udiv=1 sdiv=0 mod=1
+w5 15 0: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=15 xor=15 plus=15 minus=15 times=0
+w5 15 1: eq=0 slt=0 sle=0 ult=0 ule=0 and=1 or=15 xor=14 plus=16 minus=14 times=15 udiv=15 sdiv=15 mod=0
+w5 15 31: eq=0 slt=0 sle=0 ult=1 ule=1 and=15 or=31 xor=16 plus=14 minus=16 times=17 udiv=0 sdiv=17 mod=15
+w5 15 17: eq=0 slt=0 sle=0 ult=1 ule=1 and=1 or=31 xor=30 plus=0 minus=30 times=31 udiv=0 sdiv=31 mod=15
+w5 15 15: eq=1 slt=0 sle=1 ult=0 ule=1 and=15 or=15 xor=0 plus=30 minus=0 times=1 udiv=1 sdiv=1 mod=0
+w5 15 9: eq=0 slt=0 sle=0 ult=0 ule=0 and=9 or=15 xor=6 plus=24 minus=6 times=7 udiv=1 sdiv=1 mod=6
+w5 15 16: eq=0 slt=0 sle=0 ult=1 ule=1 and=0 or=31 xor=31 plus=31 minus=31 times=16 udiv=0 mod=15
+w5 9 0: eq=0 slt=0 sle=0 ult=0 ule=0 and=0 or=9 xor=9 plus=9 minus=9 times=0
+w5 9 1: eq=0 slt=0 sle=0 ult=0 ule=0 and=1 or=9 xor=8 plus=10 minus=8 times=9 udiv=9 sdiv=9 mod=0
+w5 9 31: eq=0 slt=0 sle=0 ult=1 ule=1 and=9 or=31 xor=22 plus=8 minus=10 times=23 udiv=0 sdiv=23 mod=9
+w5 9 17: eq=0 slt=0 sle=0 ult=1 ule=1 and=1 or=25 xor=24 plus=26 minus=24 times=25 udiv=0 mod=9
+w5 9 15: eq=0 slt=1 sle=1 ult=1 ule=1 and=9 or=15 xor=6 plus=24 minus=26 times=7 udiv=0 sdiv=0 mod=9
+w5 9 9: eq=1 slt=0 sle=1 ult=0 ule=1 and=9 or=9 xor=0 plus=18 minus=0 times=17 udiv=1 sdiv=1 mod=0
+w5 9 16: eq=0 slt=0 sle=0 ult=1 ule=1 and=0 or=25 xor=25 plus=25 minus=25 times=16 udiv=0 mod=9
+w5 16 0: eq=0 slt=1 sle=1 ult=0 ule=0 and=0 or=16 xor=16 plus=16 minus=16 times=0
+w5 16 1: eq=0 slt=1 sle=1 ult=0 ule=0 and=0 or=17 xor=17 plus=17 minus=15 times=16 udiv=16 sdiv=16 mod=0
+w5 16 31: eq=0 slt=1 sle=1 ult=1 ule=1 and=16 or=31 xor=15 plus=15 minus=17 times=16 udiv=0 sdiv=16 mod=16
+w5 16 17: eq=0 slt=1 sle=1 ult=1 ule=1 and=16 or=17 xor=1 plus=1 minus=31 times=16 udiv=0 sdiv=1 mod=16
+w5 16 15: eq=0 slt=1 sle=1 ult=0 ule=0 and=0 or=31 xor=31 plus=31 minus=1 times=16 udiv=1 sdiv=31 mod=1
+w5 16 9: eq=0 slt=1 sle=1 ult=0 ule=0 and=0 or=25 xor=25 plus=25 minus=7 times=16 udiv=1 sdiv=31 mod=7
+w5 16 16: eq=1 slt=0 sle=1 ult=0 ule=1 and=16 or=16 xor=0 plus=0 minus=0 times=0 udiv=1 sdiv=1 mod=0

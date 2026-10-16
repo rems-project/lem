@@ -695,6 +695,7 @@ target :: 'Target_' ::=
   | isabelle							:: :: isa
   | ocaml							:: :: ocaml
   | coq								:: :: coq
+  | lean							:: :: lean
   | tex								:: :: tex
   | html							:: :: html
   | lem 							:: :: lem
@@ -815,6 +816,34 @@ declare_def :: 'Decl_' ::=
   | declare set_flag x_l1 = x_l2                                                                   :: :: set_flag_decl
   | declare targets_opt termination_argument id = termination_setting                              :: :: termination_argument_decl
   | declare targets_opt pattern_match exhaustivity_setting id tnvars = [ id1 ; ... ; idn semi_opt ] elim_opt :: :: pattern_match_decl
+% ----- Lean-backend fork declare forms (arc-14 S2 B2, be:G2 repair) -----
+% The productions below cover the declare forms the Lean-backend
+% fork added directly to src/ast.ml (Decl_skip_instances_decl ..
+% Decl_reader_seed_decl) without updating this grammar — restoring the
+% .ott file as the normative definition. Concrete syntax matches
+% src/parser.mly:1020-1034 and src/lexer.mll:134-140 exactly.
+% REGENERATION NOTE (registered residual, arc-14): `make ../src/ast.ml`
+% (the rule below in language/Makefile) must be re-run and byte-compared
+% once ott is installable (unfetchable in the offline sandbox at arc-14).
+% Two hand-edited ast.ml shapes deviate from ott's conventions and must
+% be resolved GRAMMAR-FIRST at that point: Decl_fuel_decl and
+% Decl_ground_rep_decl carry a `(terminal * string)` tuple for their
+% backtick_string where ott flattens to `terminal * Ulib.UTF8.t`
+% (cf. Decl_ascii_rep_decl / Decl_extra_import_decl); the regenerated
+% shapes win and parser.mly/consumers adapt.
+  | declare targets_opt skip_instances type id                                                     :: :: skip_instances_decl
+  | declare targets_opt extra_import backtick_string                                               :: :: extra_import_decl
+  | declare targets_opt effectful val id                                                           :: :: effectful_decl
+  | declare targets_opt reader val id                                                              :: :: reader_decl
+  | declare targets_opt fuel val id = backtick_string                                              :: :: fuel_decl
+  | declare targets_opt ground_rep val id = backtick_string                                        :: :: ground_rep_decl
+  | declare targets_opt reader_seed val id                                                         :: :: reader_seed_decl
+  | declare targets_opt supply val id                                                              :: :: supply_decl
+  | declare targets_opt reader_consumer val id                                                     :: :: reader_consumer_decl
+  | declare targets_opt fuel_consumer val id                                                       :: :: fuel_consumer_decl
+  | declare targets_opt structural val id                                                          :: :: structural_decl
+  | declare targets_opt fuel_measure val id = backtick_string                                      :: :: fuel_measure_decl
+  | declare targets_opt fuel_measure val id = backtick_string assuming backtick_string             :: :: fuel_measure_hyp_decl
 
 val_def :: '' ::= 
   {{ com Value definitions }}

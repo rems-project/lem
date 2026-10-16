@@ -1,0 +1,27 @@
+(* Noodle probe: string/char semantics where OCaml `string`/`char` are
+   BYTES and Lean `String`/`Char` are Unicode scalars: length, explode,
+   nth, chr/ord above 127, implode of high chars, makeString. Expected
+   values are the OCaml target's output. *)
+open import Pervasives_extra
+
+let s_nat (n : nat) : string = stringFromNat n
+let results : list string =
+  [ "len ascii: " ^ s_nat (stringLength "abc");
+    "len e-acute: " ^ s_nat (stringLength "é");
+    "len mixed: " ^ s_nat (stringLength "aé€b");
+    "explode count e-acute: " ^ s_nat (List.length (toCharList "é"));
+    "explode ords e-acute: " ^ show (List.map (fun c -> ord c) (toCharList "é"));
+    "ord a: " ^ s_nat (ord #'a');
+    "chr 65: " ^ toString [chr 65];
+    "chr 200 ord roundtrip: " ^ s_nat (ord (chr 200));
+    "chr 200 implode length: " ^ s_nat (stringLength (toString [chr 200]));
+    "chr 200 implode: " ^ toString [chr 200];
+    "nth 1 of e-acute+x: " ^ s_nat (ord (String_extra.nth "éx" 1));
+    "makeString 3 z: " ^ makeString 3 #'z';
+    "append: " ^ ("ab" ^ "cd");
+    "concat: " ^ String.concat "-" ["a"; "b"; "c"];
+    "stringConcat: " ^ stringConcat ["x"; "y"; "z"];
+    "string_case empty: " ^ string_case "" "E" (fun _ _ -> "NE");
+    "string_case nonempty: " ^ string_case "qrs" "E" (fun c s -> toString [c] ^ "|" ^ s);
+    "cons_string: " ^ cons_string #'h' "ello"
+  ]

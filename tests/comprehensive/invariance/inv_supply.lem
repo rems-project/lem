@@ -1,0 +1,26 @@
+open import Pervasives
+
+(* Non-Lean invariance witness (effect-retirement charter §6.1/§6.3):
+   every '{lean}'-scoped declare in this module must be an EXACT no-op
+   for the other backends. The suite (Makefile lean-invariance)
+   generates this module for the semantic emitters (ocaml hol isa coq)
+   twice — as-is and with all 'declare {lean} ...' lines stripped —
+   and asserts byte-identical output. (The echoing/human targets — lem,
+   ident, tex, html — deliberately re-render the declare lines and are
+   covered by the nonlean-regress golden net instead.)
+   Extended per feature as the arc lands them. *)
+
+val tick : unit -> nat
+let tick u = 0
+declare {lean} supply val tick
+
+val draws : unit -> nat * nat
+let draws u =
+  let a = tick () in
+  let b = tick () in
+  (a, b)
+
+val uses_draws : nat -> nat
+let uses_draws x =
+  let (a, b) = draws () in
+  a + b + x

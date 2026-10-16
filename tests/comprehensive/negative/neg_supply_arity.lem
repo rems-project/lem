@@ -1,0 +1,14 @@
+(* EXPECT: threading arity *)
+(* Supply exact-application guard (effect-retirement L1): a lifted def
+   must be applied to exactly its threading arity (the clause parameter
+   count) — over-application would try to apply arguments to the
+   value×supply pair; under-application has no repair. Here mk_adder is
+   defined with ONE parameter (arity 1) but applied to two arguments. *)
+open import Pervasives
+val tick : unit -> nat
+declare lean target_rep function tick u = 0
+declare {lean} supply val tick
+val mk_adder : unit -> nat -> nat
+let mk_adder u = let d = tick () in (fun x -> x + d)
+val use_adder : nat -> nat
+let use_adder y = mk_adder () y

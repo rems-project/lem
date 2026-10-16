@@ -1,0 +1,4 @@
+$ lem -ocaml norep.lem
+File "norep.lem", line 5, character 27 to line 5, character 29
+  Type error: unbound variable for targets {ocaml}: foo
+[exit 1]

@@ -1,0 +1,80 @@
+(* test_layout: the generated Lean reads like the source (output-niceness
+   S3-A, doc/lean-backend/2026-10-03_output-niceness-arc-plan.md §11).
+   Long declarations are broken over lines, match alternatives sit one per
+   line, nested matches, lambdas and lets are indented, and the comments
+   stay with their code. Checked by check_layout.py on Test_layout.lean;
+   the generated file compiles (lean-compile). *)
+open import Pervasives
+open import String_extra
+
+type shape =
+  | Circle of nat
+  | Rectangle of nat * nat
+  | Triangle of nat * nat * nat
+  | Polygon of list nat
+
+type config = <| cfg_name : string; cfg_width : nat; cfg_height : nat; cfg_depth : nat; cfg_flags : list bool |>
+
+(* a long header, a long match, a nested match whose first alternative is
+   long, an if-chain, and lets *)
+val describe_a_shape_with_a_rather_long_function_name : config -> shape -> maybe shape -> string
+let describe_a_shape_with_a_rather_long_function_name cfg s fallback =
+  match s with
+    | Circle r -> (* trailing an alternative *)
+        "circle of radius " ^ stringFromNat r ^ " in " ^ cfg.cfg_name
+    (* leading an alternative *)
+    | Rectangle w h ->
+        match fallback with
+          | Just (Circle r) -> "rectangle falling back to a circle of radius " ^ stringFromNat r ^ " with width " ^ stringFromNat w ^ " and height " ^ stringFromNat h
+          | Just _ -> "rectangle with some other fallback shape, width " ^ stringFromNat w ^ " and height " ^ stringFromNat h ^ " and depth " ^ stringFromNat cfg.cfg_depth
+          | Nothing -> "rectangle"
+        end
+    | Triangle a b c ->
+        (* a multi-line comment inside an expression:
+           it comes out on lines of its own, never in front of code *)
+        if a = b && b = c then "equilateral triangle" else if a = b || b = c || a = c then "isosceles triangle with sides " ^ stringFromNat a ^ ", " ^ stringFromNat b ^ " and " ^ stringFromNat c else "scalene triangle"
+    | Polygon sides ->
+        let n = List.length sides in
+        (* between two lets *)
+        let total = List.foldl (fun acc x -> acc + x) 0 sides in
+        "polygon with " ^ stringFromNat n ^ " sides and perimeter " ^ stringFromNat total ^ " drawn at " ^ stringFromNat cfg.cfg_width ^ "x" ^ stringFromNat cfg.cfg_height
+  end
+
+(* a bind chain: every continuation is a lambda, the monadic shape *)
+val bind_maybe : forall 'a 'b. maybe 'a -> ('a -> maybe 'b) -> maybe 'b
+let bind_maybe m f = match m with | Nothing -> Nothing | Just x -> f x end
+
+val assoc : nat -> list (nat * nat) -> maybe nat
+let rec assoc k l =
+  match l with
+    | [] -> Nothing
+    | (k', v) :: rest -> if k = k' then Just v else assoc k rest
+  end
+
+val lookup_three : list (nat * nat) -> nat -> nat -> nat -> maybe nat
+let lookup_three table k1 k2 k3 =
+  bind_maybe (assoc k1 table) (fun v1 ->
+  bind_maybe (assoc k2 table) (fun v2 ->
+  bind_maybe (assoc k3 table) (fun v3 ->
+  Just (v1 + v2 + v3))))
+
+(* a record literal that does not fit on one line *)
+val default_configuration : config
+let default_configuration = <| cfg_name = "default configuration with a long name"; cfg_width = 1920; cfg_height = 1080; cfg_depth = 32; cfg_flags = [true; false; true; true; false] |>
+
+(* a list with a comment on every element *)
+val shapes : list (string * shape)
+let shapes = [
+  ("unit circle", Circle 1); (* the simplest one *)
+  ("square", Rectangle 1 1); (* a square is a rectangle *)
+  ("egyptian", Triangle 3 4 5); (* the 3-4-5 right triangle *)
+  ("hexagon", Polygon [1; 1; 1; 1; 1; 1])
+]
+
+val classify : nat -> string
+let classify n =
+  if n = 0 then "zero" else if n < 10 then "small" else if n < 100 then "medium" else if n < 1000 then "large" else "huge"
+
+(* short declarations stay on one line *)
+val double : nat -> nat
+let double x = x + x

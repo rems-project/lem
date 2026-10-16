@@ -1,0 +1,20 @@
+(* EXPECT: supply lifting in a (truly) mutual block *)
+open import Pervasives
+
+(* The remaining composition gap after S1.5 (fuel x reader x mutual now
+   composes): supply lifting in a TRULY mutual block is still refused —
+   here on a FUEL'D block, the shape a user of the new composition would
+   try next (neg_supply_mutual.lem pins the un-fuel'd block with the
+   weaker fragment "mutual block"). The supply refusal precedes the fuel
+   emission, so this is the message. *)
+
+val tick : unit -> nat
+declare lean target_rep function tick u = 0
+declare {lean} supply val tick
+
+val sping : nat -> nat
+val spong : nat -> nat
+let rec sping n = if n = 0 then tick () else spong (n - 1)
+and spong n = if n = 0 then 1 else sping (n + 1)
+declare {lean} fuel val sping = `1`
+declare {lean} fuel val spong = `2`

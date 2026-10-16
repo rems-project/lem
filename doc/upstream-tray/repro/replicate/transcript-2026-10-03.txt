@@ -1,0 +1,29 @@
+$ lem -wl ign -ocaml replicate.lem
+[lem exit 0]
+$ ocamlfind ocamlopt -package zarith -linkpkg -I <upstream ocaml-lib> extract.cmxa replicate.ml main.ml -o replicate.exe
+[ocamlopt exit 0]
+$ ./replicate.exe
+replicate n=1000  length=1000
+[run exit 0]
+$ OCAMLRUNPARAM=l=1M ./replicate.exe 1000000
+Fatal error: exception Stack overflow
+[exit 2]
+$ OCAMLRUNPARAM=l=1M ./replicate.exe 10000000
+Fatal error: exception Stack overflow
+[exit 2]
+$ OCAMLRUNPARAM=b,l=1M ./replicate.exe 1000000 | head -8
+Fatal error: exception Stack overflow
+Raised by primitive operation at Lem_list.replicate in file "lem_list.ml", line 348, characters 46-61
+Called from Lem_list.replicate in file "lem_list.ml", line 348, characters 46-61
+Called from Lem_list.replicate in file "lem_list.ml", line 348, characters 46-61
+Called from Lem_list.replicate in file "lem_list.ml", line 348, characters 46-61
+Called from Lem_list.replicate in file "lem_list.ml", line 348, characters 46-61
+Called from Lem_list.replicate in file "lem_list.ml", line 348, characters 46-61
+Called from Lem_list.replicate in file "lem_list.ml", line 348, characters 46-61
+$ OCAMLRUNPARAM=l=1M ./control.exe 1000000
+List.init n=1000000  length=1000000
+[exit 0]
+$ /usr/bin/time -f '%e s %M kB' ./replicate.exe 10000000
+replicate n=10000000  length=10000000
+3.84 s 396016 kB
+[exit 0]

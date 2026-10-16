@@ -1,0 +1,16 @@
+(* EXPECT: share the unqualified name *)
+(* audit minor-1 (supply leg): two supply constants with the same
+   unqualified name (different modules) would emit the same binder and
+   silently conflate — fail closed, naming both. *)
+open import Pervasives
+module M1 = struct
+  val tick : unit -> nat
+  declare lean target_rep function tick u = 0
+  declare {lean} supply val tick
+end
+module M2 = struct
+  val tick : unit -> nat
+  declare lean target_rep function tick u = 0
+  declare {lean} supply val tick
+end
+let f u = M1.tick () + M2.tick ()

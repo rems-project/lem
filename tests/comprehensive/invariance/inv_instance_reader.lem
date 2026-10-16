@@ -1,0 +1,23 @@
+open import Pervasives
+
+(* Non-Lean invariance witness for the instance-implicit reader and its
+   consumer (instance-reader slice, 2026-10-05): the '{lean}'-scoped
+   'reader val ... = instance' and 'reader_consumer val ... = instance'
+   declares must be exact no-ops for the other backends (see
+   inv_supply.lem for the harness contract). *)
+
+val sw : unit -> nat
+let sw u = 0
+declare lean target_rep function sw u = 0
+declare {lean} reader val sw = instance `TestInstanceReaderImpl.Sw.sw`
+
+val scaled : nat -> nat
+let scaled x = x + 1
+declare lean target_rep function scaled = `TestInstanceReaderImpl.scaledI`
+declare {lean} reader_consumer val scaled = instance sw
+
+val get_sw : nat -> nat
+let get_sw x = sw () + scaled x
+
+val seed_entry : nat -> nat -> nat
+let seed_entry cfgv x = get_sw x + cfgv

@@ -1,0 +1,62 @@
+open import Pervasives
+
+(* ================================================================
+   reader_consumer: 'declare {lean} reader_consumer val f'
+   (effect-retirement arc, charter §4.2 — the completion of the
+   reader lifting for target_rep'd extern boundaries).
+
+   A consumer is a target_rep'd val whose generated CALL SITES pass
+   all declared reader parameters as extra leading arguments (global
+   sorted reader order, before f's own arguments); callers get lifted
+   by the ordinary reader fixpoint; the hand-written implementation
+   (lean-test/TestReaderConsumerImpl.lean here) takes the leading
+   parameters explicitly. Injection routes through the same resolver
+   as lifted-def calls, so inside a reader_seed def the SEED's first
+   argument is passed instead of the binder name — no new machinery.
+   Bare/HOF references repair by partial application over the reader
+   parameters (type-preserving, as for lifted defs).
+
+   Observation: defs that use a consumer are reader-LIFTED, so (as
+   with the reader tests) asserts here cover only the seed-rooted
+   entry; the lifted-path pins live in
+   lean-test/TestReaderConsumerCheck.lean and the compiled
+   lean-test/TestReaderConsumerExec.lean (phase lean-reader-consumer).
+   ================================================================ *)
+
+val cfg : unit -> nat
+declare lean target_rep function cfg u = 0
+declare {lean} reader val cfg
+
+(* the consumer: implementation is TestReaderConsumerImpl.scaled
+   (cfg : Nat) (x : Nat) : Nat := cfg * 100 + x *)
+val scaled : nat -> nat
+declare lean target_rep function scaled = `TestReaderConsumerImpl.scaled`
+declare {lean} reader_consumer val scaled
+
+(* consumer call from a plain def: the def gets lifted, the call site
+   passes the injected binder *)
+val uses_scaled : nat -> nat
+let uses_scaled x = scaled x
+
+(* consumer call from an ALREADY-lifted def (mixed with a direct
+   reader read) *)
+val uses_scaled_and_cfg : nat -> nat
+let uses_scaled_and_cfg x = scaled x + cfg ()
+
+(* bare reference / HOF use: partial-application repair *)
+val maps_scaled : list nat -> list nat
+let maps_scaled l = List.map scaled l
+
+(* reader_seed interaction: inside the seed def the consumer picks up
+   the SEED argument (cfgv), not a binder *)
+val seed_entry : nat -> nat -> nat
+let seed_entry cfgv x = scaled x + uses_scaled (x + 1)
+declare {lean} reader_seed val seed_entry
+
+(* seed-rooted caller: NOT lifted (passes the seed explicitly), so it
+   is assertable from .lem *)
+val via_seed : nat -> nat
+let via_seed x = seed_entry 7 x
+
+(* seed 7: scaled 3 = 703; uses_scaled 4 = 704; total 1407 *)
+assert rc_seed_ok : (via_seed 3 = 1407)

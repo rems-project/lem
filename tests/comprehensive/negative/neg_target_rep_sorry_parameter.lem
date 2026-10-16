@@ -1,0 +1,6 @@
+(* EXPECT: target representation `sorry` is forbidden *)
+(* Substitution-style target reps must be checked before inlining too. *)
+open import Pervasives
+val hole : nat -> nat
+declare lean target_rep function hole x = `sorry`
+let observed : nat = hole 0

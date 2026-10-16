@@ -1,0 +1,12 @@
+m1 toList: [(K(1,a), 1)]
+m1 size: 1
+m1 domain: [K(1,a)]
+m1 lookup K(1,z): Just (1)
+m1 = m2 (mapEqual): true
+m1 delete then size: 0
+m1 fold sum: 1
+s1 toList: [K(1,b)]
+s1 size: 1
+K(1,a) = K(1,b): false
+compare K(1,a) K(1,b) is EQ: true
+s1 = {K(1,z)}: true

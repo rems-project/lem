@@ -1,0 +1,28 @@
+(* EXPECT: reader_seed def must take *)
+open import Pervasives
+
+(* N-ary reader_seed (program-data-parameters S0.5): with THREE
+   declared readers a seed def must take three seed parameters (one per
+   reader, in the global sorted reader order digest, enum_defs,
+   tagDefs); this one takes ONE (`seed_entry tds x`) — the S0 failing
+   shape (S0 evidence probe_seed3.lem), formerly refused by the deleted
+   "exactly one declared reader" guard, now by the arity rule. *)
+
+val tagDefs : unit -> nat
+declare lean target_rep function tagDefs u = 0
+declare {lean} reader val tagDefs
+
+val digest : unit -> string
+declare lean target_rep function digest u = ""
+declare {lean} reader val digest
+
+val enum_defs : unit -> nat
+declare lean target_rep function enum_defs u = 0
+declare {lean} reader val enum_defs
+
+val uses_three : nat -> nat
+let uses_three x = tagDefs () + enum_defs () + stringLength (digest ()) + x
+
+val seed_entry : nat -> nat -> nat
+let seed_entry tds x = uses_three x
+declare {lean} reader_seed val seed_entry

@@ -1,0 +1,5 @@
+open import Pervasives
+
+val foo : nat -> nat
+
+let bar (n : nat) : nat = foo n

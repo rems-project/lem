@@ -1,0 +1,67 @@
+(* Noodle probe: derived comparison RESULTS (Lean derived Ord vs OCaml
+   polymorphic compare) on variants with mixed nullary/non-nullary
+   constructors, records, tuples, options, either, lists, strings, chars,
+   bools, nested. Expected values are the OCaml target's output. *)
+open import Pervasives_extra
+
+type v = A | B of nat | C | D of nat * nat | E of string | F
+type r = <| ra : nat; rb : string; rc : bool |>
+type nest = N of v * maybe r | M of list v
+(* parity-fix F4 extension (2026-09-03): recursive and polymorphic single
+   variants with a nullary constructor declared AFTER a block constructor —
+   the OCaml rank must hold at every depth, not only at the root. *)
+type tr = TNode of tr * nat | TLeaf
+type pv 'a = PSome of 'a | PNone | PTwo of 'a * 'a
+let tr_s (t : tr) : string = match t with TNode _ _ -> "TNode" | TLeaf -> "TLeaf" end
+
+let ord_s (o : ordering) : string = match o with LT -> "LT" | EQ -> "EQ" | GT -> "GT" end
+let cmpv (x : v) (y : v) : string = ord_s (setElemCompare x y)
+let cmp_lt (x : v) (y : v) : string = show (setElemCompare x y = LT)
+
+let results : list string =
+  [ "A vs B1: " ^ cmpv A (B 1);
+    "A vs C: " ^ cmpv A C;
+    "C vs A: " ^ cmpv C A;
+    "F vs A: " ^ cmpv F A;
+    "F vs B0: " ^ cmpv F (B 0);
+    "B5 vs C: " ^ cmpv (B 5) C;
+    "B5 vs D(0,0): " ^ cmpv (B 5) (D 0 0);
+    "D(1,2) vs D(1,3): " ^ cmpv (D 1 2) (D 1 3);
+    "D(2,0) vs D(1,9): " ^ cmpv (D 2 0) (D 1 9);
+    "E a vs D(9,9): " ^ cmpv (E "a") (D 9 9);
+    "E a vs E b: " ^ cmpv (E "a") (E "b");
+    "E ab vs E b: " ^ cmpv (E "ab") (E "b");
+    "E empty vs E a: " ^ cmpv (E "") (E "a");
+    "A < B1: " ^ cmp_lt A (B 1);
+    "F < A: " ^ cmp_lt F A;
+    "F <= F: " ^ show (setElemCompare F F <> GT);
+    "rec (1,a,true) vs (1,a,false): " ^ ord_s (setElemCompare <| ra = 1; rb = "a"; rc = true |> <| ra = 1; rb = "a"; rc = false |>);
+    "rec (1,b,false) vs (1,a,true): " ^ ord_s (setElemCompare <| ra = 1; rb = "b"; rc = false |> <| ra = 1; rb = "a"; rc = true |>);
+    "rec (0,z,true) vs (1,a,false): " ^ ord_s (setElemCompare <| ra = 0; rb = "z"; rc = true |> <| ra = 1; rb = "a"; rc = false |>);
+    "Nothing vs Just 0: " ^ ord_s (setElemCompare (Nothing : maybe nat) (Just 0));
+    "Just 1 vs Just 2: " ^ ord_s (setElemCompare (Just (1:nat)) (Just 2));
+    "Left 5 vs Right 0: " ^ ord_s (setElemCompare (Left 5 : either nat nat) (Right 0));
+    "Right 1 vs Right 2: " ^ ord_s (setElemCompare (Right 1 : either nat nat) (Right 2));
+    "[] vs [0]: " ^ ord_s (setElemCompare ([] : list nat) [0]);
+    "[1;2] vs [1;2;3]: " ^ ord_s (setElemCompare [(1:nat);2] [1;2;3]);
+    "[2] vs [1;9]: " ^ ord_s (setElemCompare [(2:nat)] [1;9]);
+    "(1,z) vs (2,a): " ^ ord_s (setElemCompare ((1:nat), "z") (2, "a"));
+    "true vs false: " ^ ord_s (setElemCompare true false);
+    "#a vs #b: " ^ ord_s (setElemCompare #'a' #'b');
+    "N(A,Nothing) vs M[]: " ^ ord_s (setElemCompare (N A Nothing) (M []));
+    "M[A] vs M[B 0]: " ^ ord_s (setElemCompare (M [A]) (M [B 0]));
+    "N(C,Just r) vs N(C,Nothing): " ^ ord_s (setElemCompare (N C (Just <| ra = 0; rb = ""; rc = false |>)) (N C Nothing));
+    "-1 vs 1 (integer): " ^ ord_s (setElemCompare (0-1 : integer) 1);
+    "-1 vs 1 (int): " ^ ord_s (setElemCompare (0-1 : int) 1);
+    "set {A,F,B0} toList: " ^ show (List.map (fun x -> match x with A -> "A" | B n -> "B" ^ show n | C -> "C" | D _ _ -> "D" | E _ -> "E" | F -> "F" end) (Sorting.sortByOrd setElemCompare (Set_extra.toList (Set.fromList [B 0; F; A]))));
+    "TLeaf vs TNode(TLeaf,0): " ^ ord_s (setElemCompare TLeaf (TNode TLeaf 0));
+    "TNode(TLeaf,1) vs TNode(TNode(TLeaf,0),1): " ^ ord_s (setElemCompare (TNode TLeaf 1) (TNode (TNode TLeaf 0) 1));
+    "TNode(TLeaf,2) vs TNode(TLeaf,1): " ^ ord_s (setElemCompare (TNode TLeaf 2) (TNode TLeaf 1));
+    "PNone vs PSome 0: " ^ ord_s (setElemCompare (PNone : pv nat) (PSome 0));
+    "PTwo(0,0) vs PSome 9: " ^ ord_s (setElemCompare (PTwo (0:nat) 0) (PSome 9));
+    "PSome A vs PSome F: " ^ ord_s (setElemCompare (PSome A) (PSome F));
+    "PSome F vs PNone (pv v): " ^ ord_s (setElemCompare (PSome F) (PNone : pv v));
+    "choose {B 3; F; C}: " ^ (match Set_extra.choose (Set.fromList [B 3; F; C]) with A -> "A" | B n -> "B" ^ show n | C -> "C" | D _ _ -> "D" | E _ -> "E" | F -> "F" end);
+    "sort [TNode(TLeaf,0); TLeaf]: " ^ show (List.map tr_s (Sorting.sortByOrd setElemCompare [TNode TLeaf 0; TLeaf]));
+    "sort [F;B 2;A;C;B 1]: " ^ show (List.map (fun x -> match x with A -> "A" | B n -> "B" ^ show n | C -> "C" | D _ _ -> "D" | E _ -> "E" | F -> "F" end) (Sorting.sortByOrd setElemCompare [F; B 2; A; C; B 1]))
+  ]

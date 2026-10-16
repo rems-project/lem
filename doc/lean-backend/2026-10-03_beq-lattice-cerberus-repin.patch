@@ -1,0 +1,40 @@
+Cerberus re-pin patch for the lem-lean BEq-lattice slice (2026-10-03).
+
+Apply from the cerberus-lean repository root (`git apply
+doc/.../2026-10-03_beq-lattice-cerberus-repin.patch` with the path below, or
+`patch -p1`) when re-pinning LemLib to a lem-lean commit at or after the
+BEq-lattice slice on `arc/backend-hardening`. The `[Eq0 a] : BEq a` bridge
+moved below core's `[DecidableEq a] : BEq a`, so `Lem_Basic_classes.isEqual`
+at `Nat` is core's `==` and `natEq0_iff`'s `show` of the comparator body no
+longer matches (verbatim build error, Lean 4.32.2, Cerberus `51a7402ce`:
+"'show' tactic failed, pattern (match defaultCompare n1 n2 with
+| LemOrdering.EQ => true | x => false) = true ↔ n1 = n2 is not
+definitionally equal to target Lem_Basic_classes.isEqual n1 n2 = true ↔
+n1 = n2"). `symEq_iff` re-elaborates unchanged and keeps using `natEq0_iff`.
+With this patch the CerberusLean library built green (252 jobs) against the
+changed LemLib in the slice's census; no other hand-written file broke.
+Record: lem-lean doc/lean-backend/2026-10-03_backend-hardening-record.md,
+"BEq-lattice slice".
+
+--- a/lean_frontend/CerbCtypeMeasure.lean
++++ b/lean_frontend/CerbCtypeMeasure.lean
+@@ -337,14 +337,12 @@
+     simp [String.lt_irrefl]
+ 
+ /-- The `Eq0 Nat` instance the symbol instance uses for the number (LemLib's
+-    `instEq0Nat_1`, which bottoms out in `defaultCompare` on `Ord Nat`). -/
++    `instEq0Nat_1`, whose `isEqual` is core's `==` on `Nat` since the BEq
++    lattice moved the `[Eq0 a] : BEq a` bridge below core's instance,
++    lem-lean 2026-10-03; before that it bottomed out in `defaultCompare`). -/
+ theorem natEq0_iff (n1 n2 : Nat) : Lem_Basic_classes.isEqual n1 n2 = true ↔ n1 = n2 := by
+-  show (match defaultCompare n1 n2 with | LemOrdering.EQ => true | _ => false) = true ↔ n1 = n2
+-  unfold defaultCompare
+-  cases h : compare n1 n2 with
+-  | lt => have := Nat.compare_eq_lt.mp h; simp; omega
+-  | eq => simp [Nat.compare_eq_eq.mp h]
+-  | gt => have := Nat.compare_eq_gt.mp h; simp; omega
++  show (n1 == n2) = true ↔ n1 = n2
++  exact beq_iff_eq
+ 
+ /-- The model's `Eq0 sym` instance (symbol.lem `symbolEqual`) is digest equality and
+     number equality; the description is ignored. -/

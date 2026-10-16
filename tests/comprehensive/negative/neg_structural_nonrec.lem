@@ -1,0 +1,8 @@
+(* EXPECT: ST-nonrec *)
+(* structural-declare slice: the declare on a definition that does not
+   recurse is inert (it is already an ordinary def) — refused, not
+   silently accepted. *)
+open import Pervasives
+val twice : nat -> nat
+let rec twice n = n + n
+declare {lean} structural val twice

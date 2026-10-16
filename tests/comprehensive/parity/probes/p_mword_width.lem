@@ -1,0 +1,31 @@
+(* Parity probe (review finding on LP6/LP7, 2026-09-30; OM4, a RULED
+   OCaml-target deviation, [USER 2026-09-30] agreed items 1-3,
+   under the 2026-09-03 X3 ruling; registered class `ruled`; record
+   doc/lean-backend/2026-09-30_library-parity-coverage.md LP6/LP7/OM4). OCaml's Lem.mword
+   carries its width at RUN TIME and takes it from the arguments:
+   wordFromBitlist from the list length (ocaml-lib/lem.ml:162),
+   word_extract from hi-lo+1 (:138), word_concat from n1+n2 (:135),
+   whatever the result type says. LemLib's mword is `BitVec n` with n the
+   TYPE width: bit lists are zero-extended/truncated to it, extracts and
+   concats are resized to it. Measured here at mismatched widths; the pin
+   is the OCaml output. *)
+open import Pervasives_extra
+
+let sb (b : bool) : string = if b then "1" else "0"
+let sbl (bl : list bool) : string = String.concat "" (List.map sb bl)
+let sw (w : mword 'a) : string =
+  "u=" ^ show (naturalFromWord w) ^ " len=" ^ show (word_length w) ^ " bits=" ^ sbl (bitlistFromWord w)
+
+let short : mword ty8 = wordFromBitlist [true; false; true; true]
+let long : mword ty8 = wordFromBitlist [true; false; false; false; false; false; false; false; false; true; true]
+let x8 : mword ty8 = wordFromNatural 171
+let ext : mword ty8 = word_extract 0 3 x8
+let a4 : mword ty4 = wordFromNatural 10
+let b4 : mword ty4 = wordFromNatural 5
+let cat : mword ty16 = word_concat a4 b4
+
+let results : list string =
+  [ "wordFromBitlist 4 bits at ty8: " ^ sw short;
+    "wordFromBitlist 11 bits at ty8: " ^ sw long;
+    "word_extract 0 3 (171 : ty8) at ty8: " ^ sw ext;
+    "word_concat (10 : ty4) (5 : ty4) at ty16: " ^ sw cat ]

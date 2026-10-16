@@ -1,0 +1,147 @@
+open import Pervasives_extra
+
+(* ================================================================
+   The Lean-backend annotation words — fuel, reader, effectful,
+   ground_rep, reader_seed, skip_instances, extra_import, supply,
+   reader_consumer, fuel_consumer, structural, fuel_measure, assuming — are CONTEXTUAL keywords: they act as keywords only inside `declare`
+   forms and must remain usable as ordinary identifiers everywhere
+   else, on every target (2026-08-31 backend quality review, M1).
+
+   This file is the standing acceptance test for that contract:
+   each word is used as a let-bound name, and the words are also
+   exercised as function names, parameters, pattern variables and
+   record fields.
+   ================================================================ *)
+
+(* === Each word as a let-bound value name === *)
+let fuel = (1:nat)
+let reader = (2:nat)
+let effectful = (3:nat)
+let ground_rep = (4:nat)
+let reader_seed = (5:nat)
+let skip_instances = (6:nat)
+let extra_import = (7:nat)
+let supply = (8:nat)
+let reader_consumer = (9:nat)
+let fuel_consumer = (10:nat)
+let structural = (11:nat)
+let fuel_measure = (12:nat)
+let assuming = (13:nat)
+
+assert ctx_kw_sum_ok :
+  (fuel + reader + effectful + ground_rep + reader_seed
+     + skip_instances + extra_import + supply + reader_consumer
+     + fuel_consumer + structural + fuel_measure + assuming = (91:nat))
+
+(* === As function name and as parameter names === *)
+let add_fuel (fuel : nat) (reader : nat) = fuel + reader
+
+assert ctx_kw_param_ok : (add_fuel 20 22 = (42:nat))
+
+let add_fuel_consumer (fuel_consumer : nat) (supply : nat) = fuel_consumer + supply
+
+assert ctx_kw_param2_ok : (add_fuel_consumer 30 12 = (42:nat))
+
+let add_structural (structural : nat) (fuel : nat) = structural + fuel
+
+assert ctx_kw_param3_ok : (add_structural 40 2 = (42:nat))
+
+let add_fuel_measure (fuel_measure : nat) (structural : nat) = fuel_measure + structural
+
+let add_assuming (assuming : nat) (fuel_measure : nat) = assuming + fuel_measure
+
+assert ctx_kw_param4_ok : (add_fuel_measure 41 1 = (42:nat))
+assert ctx_kw_param5_ok : (add_assuming 40 2 = (42:nat))
+
+(* === As pattern variables (match) === *)
+let match_fuel (x : maybe nat) =
+  match x with
+    | Just fuel -> fuel
+    | Nothing -> (0:nat)
+  end
+
+assert ctx_kw_match_ok : (match_fuel (Just 9) = (9:nat))
+
+(* === As record field names === *)
+type engine = <| fuel : nat; effectful : bool; fuel_consumer : nat; structural : bool; fuel_measure : nat; assuming : bool |>
+
+let my_engine = <| fuel = 11; effectful = true; fuel_consumer = 12; structural = false; fuel_measure = 13; assuming = true |>
+
+assert ctx_kw_field_ok : (my_engine.fuel = (11:nat))
+assert ctx_kw_field2_ok : (my_engine.effectful = true)
+assert ctx_kw_field3_ok : (my_engine.fuel_consumer = (12:nat))
+assert ctx_kw_field4_ok : (my_engine.structural = false)
+assert ctx_kw_field5_ok : (my_engine.fuel_measure = (13:nat))
+assert ctx_kw_field6_ok : (my_engine.assuming = true)
+
+(* === The declare forms themselves must keep working alongside === *)
+let rec count_down (n : nat) : nat =
+  match n with
+    | 0 -> 0
+    | _ -> count_down (n - 1)
+  end
+declare {lean} fuel val count_down = `100`
+
+(* count_down is fuel-lifted (takes [LemFuel]), so it is not assertable
+   from lem — the pin is lean-test/TestFuelParamCheck.lean (10):
+   `@count_down ⟨100⟩ 5 = 0` (fuel-parameter arc, 2026-09-04). *)
+
+(* the structural declare beside the identifier of the same name
+   (structural-declare slice, 2026-09-04); a structural def takes no
+   fuel, so it IS assertable from lem *)
+val count_list : list nat -> nat
+let rec count_list (l : list nat) : nat =
+  match l with
+    | [] -> 0
+    | _ :: xs -> 1 + count_list xs
+  end
+declare {lean} structural val count_list
+
+assert ctx_kw_structural_decl_ok : (count_list [1; 2; 3] = (3:nat))
+
+(* the fuel_measure declare beside the identifier of the same name
+   (fuel-measure slice, 2026-09-04); a measured function is fuel-free, so
+   it IS assertable from lem; its obligation is proved in
+   lean-test/Test_contextual_keywords_lemMeasureProofs.lean *)
+val count_list_measured : list nat -> nat
+let rec count_list_measured (l : list nat) : nat =
+  match l with
+    | [] -> 0
+    | _ :: xs -> 1 + count_list_measured xs
+  end
+declare {lean} fuel val count_list_measured = `999`
+declare {lean} fuel_measure val count_list_measured = `List.length l + 1`
+
+assert ctx_kw_fuel_measure_decl_ok : (count_list_measured [1; 2; 3] = (3:nat))
+
+(* the `assuming` clause beside the identifier of the same name
+   (measure-hypothesis slice, 2026-09-05): a bound PASSED BY THE CALLER
+   certified by the hypothesis — measure `k + 1`, hypothesis `List.length
+   l ≤ k` — the (a)-flavoured use of a hypothesis; the obligation is
+   proved in lean-test/Test_contextual_keywords_lemMeasureProofs.lean *)
+val count_list_bounded : nat -> list nat -> nat
+let rec count_list_bounded (k : nat) (l : list nat) : nat =
+  match l with
+    | [] -> 0
+    | _ :: xs -> 1 + count_list_bounded k xs
+  end
+declare {lean} fuel val count_list_bounded = `999`
+declare {lean} fuel_measure val count_list_bounded = `k + 1` assuming `List.length l ≤ k`
+
+assert ctx_kw_assuming_decl_ok : (count_list_bounded 5 [1; 2; 3] = (3:nat))
+
+(* === As target_rep parameter names (backend-hardening 2026-10-03, item 1):
+   the parameter list of `declare <target> target_rep function f <params>`
+   took the raw identifier token, so these words were a syntax error there
+   on every target, while upstream Lem accepts them. The OCaml form is only
+   parsed here (this file is generated for Lean); the Lean form is applied. *)
+val succ_fuel : nat -> nat
+let succ_fuel fuel = fuel + 1
+declare ocaml target_rep function succ_fuel fuel = `Stdlib.succ` fuel
+
+val add_reader_supply : nat -> nat -> nat
+let add_reader_supply reader supply = reader + supply
+declare lean target_rep function add_reader_supply reader supply = `Nat.add` reader supply
+
+assert ctx_kw_rep_param_ok : (succ_fuel 41 = (42:nat))
+assert ctx_kw_rep_param2_ok : (add_reader_supply 40 2 = (42:nat))

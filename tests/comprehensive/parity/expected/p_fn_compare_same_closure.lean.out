@@ -1,0 +1,3 @@
+lean-exit: 134
+--- lean stdout ---
+PANIC at _private.LemLib.0.failwithIImpl LemLib:<pos>: compare: functional value

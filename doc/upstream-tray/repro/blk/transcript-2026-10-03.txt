@@ -1,0 +1,21 @@
+$ lem -wl ign -ocaml -outdir out blk.lem
+[exit 0]
+$ lem -wl ign -hol -outdir out blk.lem
+[exit 0]
+$ lem -wl ign -isa -outdir out blk.lem
+[exit 0]
+$ lem -wl ign -coq -outdir out blk.lem
+[exit 0]
+$ grep -n '§\|Â\|zero\|succ' out/*
+out/blk.ml:5:  (if(n = 0) then "Â§zero" else "Â§succ")
+out/blkScript.sml:16:      0 => "\194\167zero"
+out/blkScript.sml:17:    |  (SUC m) => "\194\167succ"
+out/blk.v:20:    | 0%nat => "§zero"
+out/blk.v:21:    | S (m) => "§succ"
+$ sed -n 5p out/blk.ml | xxd
+00000000: 2020 2869 6628 6e20 3d20 3029 2074 6865    (if(n = 0) the
+00000010: 6e20 22c3 82c2 a77a 6572 6f22 2065 6c73  n "....zero" els
+00000020: 6520 22c3 82c2 a773 7563 6322 290a       e "....succ").
+$ ocamlfind ocamlopt ... blk.ml main.ml -o blk.exe && ./blk.exe
+String.length (g 0) = 8 (source literal is 6 bytes)
+[exit 0]

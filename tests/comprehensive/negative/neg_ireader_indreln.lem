@@ -1,0 +1,14 @@
+(* EXPECT: outside an instance-reader scope *)
+(* Instance-reader slice: inductive relations are NOT lifted (unlike the
+   fuel, which an indreln takes as a parameter): a rule referencing a
+   lifted def is the scope error (a recorded limitation). *)
+open import Pervasives
+val sw : unit -> nat
+declare lean target_rep function sw u = 0
+declare {lean} reader val sw = instance `NegImpl.Sw.sw`
+val get_sw : nat -> nat
+let get_sw x = sw () + x
+indreln [reach : nat -> nat -> bool]
+  reach_refl : forall n. true ==> reach n n
+and
+  reach_step : forall n m. reach n m && get_sw m = 0 ==> reach n (m + 1)

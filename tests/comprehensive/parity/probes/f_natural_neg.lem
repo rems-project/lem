@@ -1,0 +1,7 @@
+(* Failure probe (census N6): Nat_big_num.of_string_nat asserts on a
+   negative string (Assert_failure); Lean's naturalOfString fails loudly. *)
+open import Pervasives_extra
+
+let steps : list (nat -> string) =
+  [ (fun n -> "before: " ^ stringFromNatural (naturalOfString ("4" ^ stringFromNat n)));
+    (fun n -> "at negative: " ^ stringFromNatural (naturalOfString ("-4" ^ stringFromNat n))) ]

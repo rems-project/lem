@@ -1,0 +1,31 @@
+open import Pervasives_extra
+open import Word
+
+(* LU1: splitMember vs split *)
+let lu1_split () : set nat * set nat = Set.split 3 {1; 2; 3; 4; 5}
+let lu1_splitMember () : set nat * bool * set nat = Set.splitMember 3 {1; 2; 3; 4; 5}
+
+(* LU2: defaultLnot at integer, against the library's integerLnot *)
+let lu2_defaultLnot () : integer = defaultLnot integerFromBitSeq (bitSeqFromInteger Nothing) (~6)
+let lu2_integerLnot () : integer = integerLnot (~6)
+
+(* LP1: max/min at a type whose Ord instance is not structural *)
+type r = R of nat
+let r_cmp (R a) (R b) = compare b a
+instance (Ord r)
+  let compare = r_cmp
+  let (<) x y = (r_cmp x y = LT)
+  let (<=) x y = (r_cmp x y <> GT)
+  let (>) x y = (r_cmp x y = GT)
+  let (>=) x y = (r_cmp x y <> LT)
+end
+let lp1_le () : bool = (R 1 <= R 2)
+let lp1_max () : r = max (R 1) (R 2)
+let lp1_min () : r = min (R 1) (R 2)
+let lp1_maxBy () : r = maxByLessEqual (<=) (R 1) (R 2)
+
+(* LP9: bigunionBy with a comparator other than the member sets' *)
+let m3 (x : nat) (y : nat) : ordering = compare (x mod 3) (y mod 3)
+let rev (x : nat) (y : nat) : ordering = compare y x
+let lp9_size () : nat = Set.size (Set.bigunionBy m3 {{1}; {4}})
+let lp9_list () : list nat = Set_extra.toList (Set.bigunionBy rev {{1; 2}; {3}})

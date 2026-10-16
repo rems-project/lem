@@ -1,0 +1,12 @@
+(* EXPECT: Lean target_rep *)
+(* D2-enablers audit MINOR-2: a type with a Lean target_rep is rendered
+   as an abbrev of a hand-written type, so no size is derived for it —
+   `lemSize r` is refused naming that reason (the census walks the
+   Comment-wrapped type definition). *)
+open import Pervasives
+type rt = RL | RN of list rt
+declare lean target_rep type rt = `Nat`
+val rspin : rt -> nat -> nat
+let rec rspin r n = if n = 0 then 0 else rspin r (n - 1)
+declare {lean} fuel val rspin = `999`
+declare {lean} fuel_measure val rspin = `lemSize r`

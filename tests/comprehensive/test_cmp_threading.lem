@@ -1,0 +1,40 @@
+open import Pervasives_extra
+
+(* ======================================================================
+   Comparison dictionaries threaded through generic definitions
+   (linksem 2026-09-29, audit A1). linksem's memory_image.lem:
+     tag_image t ... img = <| img with by_range = Set.insert (k, t) img.by_range ... |>
+   where t : range_tag 'abifeature and nothing constrains 'abifeature: Lem
+   resolves SetType by its DEFAULT instance (OCaml polymorphic compare).
+   The backend used to leave such definitions without a dictionary, so
+   Lean chose a fallback instance that panicked and the set kept
+   duplicates (the linksem linker then built a broken executable). The
+   backend now threads [Ord a]/[BEq a] into generic definitions and their
+   callers; the fallbacks are gone (a missed demand is a compile error).
+   ====================================================================== *)
+
+type tag 'a = Base | Entry | Feat of 'a
+
+val add_tag : forall 'a. tag 'a -> nat -> set (nat * tag 'a) -> set (nat * tag 'a)
+let add_tag t n s = Set.insert (n, t) s
+
+(* transitive: a generic caller of a generic definition *)
+val add_twice : forall 'a. tag 'a -> set (nat * tag 'a) -> set (nat * tag 'a)
+let add_twice t s = add_tag t 1 (add_tag t 1 s)
+
+(* equality at a parameterized type, unconstrained *)
+val same_tag : forall 'a. tag 'a -> tag 'a -> bool
+let same_tag x y = (x = y)
+
+(* explicit tuple instance: needs nothing beyond the Lem constraints *)
+val pair_eq : forall 'a 'b. Eq 'a, Eq 'b => 'a * 'b -> 'a * 'b -> bool
+let pair_eq p q = (p = q)
+
+let s0 : set (nat * tag string) = Set.empty
+let s1 = add_tag Entry 4 (add_tag Entry 4 (add_tag Base 0 s0))
+let s2 = add_twice (Feat "x") s1
+
+assert cmp_thread_dedup : (Set.size s1 = 2)
+assert cmp_thread_transitive : (Set.size s2 = 3)
+assert cmp_thread_eq : (same_tag (Feat (3 : nat)) (Feat 3) && not (same_tag Base (Entry : tag nat)))
+assert cmp_thread_tuple : (pair_eq ((1 : nat), "a") (1, "a"))

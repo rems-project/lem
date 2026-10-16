@@ -1,0 +1,9 @@
+(* EXPECT: FH-vacuous *)
+(* measure-hypothesis slice: a hypothesis mentioning NO parameter (`True`
+   here) is the unconditional obligation in disguise — refused so that the
+   two forms stay distinct (a consumer gate reads `lemHyp` as "conditional"). *)
+open import Pervasives
+val len : list nat -> nat
+let rec len l = match l with | [] -> 0 | _ :: xs -> 1 + len xs end
+declare {lean} fuel val len = `999`
+declare {lean} fuel_measure val len = `List.length l + 1` assuming `True`

@@ -8,6 +8,8 @@ declare {isabelle;hol;ocaml;coq} rename module = lem_bool
 
 (* The type bool is hard-coded, so are true and false *)
 
+declare lean target_rep type bool = `Bool`
+
 (* ----------------------- *)
 (* not                     *)
 (* ----------------------- *)
@@ -23,6 +25,7 @@ declare ocaml    target_rep function not = `not`
 declare isabelle target_rep function not x = `\<not>` x
 declare html     target_rep function not = `&not;`
 declare coq      target_rep function not = `negb`
+declare lean     target_rep function not = `not`
 declare tex      target_rep function not b = `$\neg$` b
 
 assert not_1 : not (not true)
@@ -42,6 +45,7 @@ declare hol      target_rep function (&&) = infix right_assoc 0 `/\`
 declare ocaml    target_rep function (&&) = infix `&&`
 declare isabelle target_rep function (&&) = infix `\<and>`
 declare coq      target_rep function (&&) = infix `&&`
+declare lean     target_rep function (&&) = infix `&&`
 declare html     target_rep function (&&) = infix `&and;`
 declare tex      target_rep function (&&) = infix `$\wedge$`
 
@@ -65,6 +69,7 @@ declare hol      target_rep function (||) = infix `\/`
 declare ocaml    target_rep function (||) = infix `||`
 declare isabelle target_rep function (||) = infix `\<or>`
 declare coq      target_rep function (||) = infix `||`
+declare lean     target_rep function (||) = infix `||`
 declare html     target_rep function (||) = infix `&or;`
 declare tex      target_rep function (||) = infix `$\vee$`
 
@@ -90,7 +95,7 @@ declare isabelle target_rep function (-->) = infix `\<longrightarrow>`
 declare html     target_rep function (-->) = infix `&rarr;`
 declare tex      target_rep function (-->) = infix `$\longrightarrow$`
 
-let inline {ocaml; coq} imp x y = ((not x) || y)
+let inline {ocaml; coq; lean} imp x y = ((not x) || y)
 
 assert imp_1 : (not (true --> false))
 assert imp_2 : (false --> true)
@@ -112,6 +117,7 @@ end
 declare hol      target_rep function (<->) = infix `<=>`
 declare isabelle target_rep function (<->) = infix `\<longleftrightarrow>`
 declare coq      target_rep function (<->) = `Bool.eqb`
+declare lean     target_rep function (<->) = infix `==`
 declare ocaml    target_rep function (<->) = infix `=`
 declare html     target_rep function (<->) = infix `&harr;`
 declare tex      target_rep function (<->) = infix `$\longleftrightarrow$`

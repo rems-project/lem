@@ -1,0 +1,12 @@
+(* EXPECT: bare (unapplied) reference to a supply-lifted definition *)
+(* Supply guard G-bare (effect-retirement L1): a lifted def passed as
+   a value (HOF position) cannot be threaded — its type grew a × Nat,
+   so the reader's partial-application repair does not exist. *)
+open import Pervasives
+val tick : unit -> nat
+declare lean target_rep function tick u = 0
+declare {lean} supply val tick
+val draw1 : nat -> nat
+let draw1 x = x + tick ()
+val maps_draw : list nat -> list nat
+let maps_draw l = List.map draw1 l

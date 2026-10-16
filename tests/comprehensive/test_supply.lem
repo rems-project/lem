@@ -1,0 +1,209 @@
+open import Pervasives
+
+(* ================================================================
+   Supply lifting: 'declare {lean} supply val' (effect-retirement arc,
+   charter §3.2 — the state-passing analog of the reader lifting).
+
+   A supply val is a counter (unit -> nat). Every def that
+   (transitively) draws is LIFTED: it takes the current supply as an
+   extra explicit parameter (after any reader binders) and returns the
+   final supply paired with its result; a draw is
+   `let (v, s') := LemLib.supplySplit s` (supplySplit s = (s, s+1)).
+   The transform sequences draws in the OCaml target's evaluation
+   order (the reference semantics of the lem program; parity-fix F6,
+   2026-09-03): right-to-left within tuples, argument lists, list
+   literals, constructor/record fields (record fields in declaration
+   order) and infix operands; let/if/match as written. It is
+   DETERMINISTIC state-passing only: it never introduces a
+   nondeterminism branch point (charter non-goal O7). The two-target
+   pin of every shape here is tests/comprehensive/parity/probes/
+   p_supply_shapes.lem (OCaml counter vs Lean supply, byte-identical).
+
+   NOTE on observation: a lifted def cannot be referenced from an
+   assert (there is no supply value at assert scope — the fail-closed
+   net rejects it at generation time), so the behavioral pins for this
+   file live in hand-written Lean:
+   - lean-test/TestSupplyCheck.lean — elaborator/kernel pins of the
+     exact draw sequences and signatures generated from this file;
+   - lean-test/TestSupplyDraws.lean — the COMPILED-binary behavioral
+     test (suite phase lean-supply-draws).
+   Multi-supply ordering is covered by test_supply_multi.lem (supply
+   parameters are global per file, like readers, so the two-stream
+   case gets its own file).
+   ================================================================ *)
+
+val tick : unit -> nat
+(* The Lean target_rep satisfies target-coverage checking but is never
+   emitted at applied call sites: every draw is rewritten to
+   LemLib.supplySplit on the threaded parameter (bare references are a
+   generation-time error, so the rep is unreachable outside dead
+   text). *)
+declare lean target_rep function tick u = 0
+declare {lean} supply val tick
+
+(* === Section 1: draws in a let chain (the dominant shape) === *)
+val draw_two : unit -> nat * nat
+let draw_two u =
+  let a = tick () in
+  let b = tick () in
+  (a, b)
+
+(* === Section 2: draws in argument positions === *)
+
+(* list literal *)
+val draw_list : unit -> list nat
+let draw_list u = [tick (); tick ()]
+
+(* constructor arguments (the Symbol.fresh shape: draw inside a
+   constructor application) *)
+type wrapped = | Wrap of nat * nat
+val mk_wrap : unit -> wrapped
+let mk_wrap u = Wrap (tick ()) (tick ())
+
+(* record fields (the initial_core_run_state shape) *)
+type srec = <| ra : nat; rb : nat |>
+val mk_srec : unit -> srec
+let mk_srec u = <| ra = tick (); rb = tick () |>
+
+(* field access on a threaded value *)
+val read_ra : unit -> nat
+let read_ra u = (mk_srec ()).ra
+
+(* infix operands (hoisted right-to-left, OCaml order) *)
+val sum_two : unit -> nat
+let sum_two u = tick () + tick ()
+
+(* === Section 3: control forms === *)
+
+(* draw under exactly one if arm: the else branch must not consume *)
+val branchy : bool -> nat
+let branchy c = if c then tick () else 0
+
+(* draws in match arms *)
+val matchy : maybe nat -> nat
+let matchy m =
+  match m with
+    | Just v -> v + tick ()
+    | Nothing -> tick ()
+  end
+
+(* multi-clause definitions reach the backend as a single compiled
+   match (lem's pattern compiler) and thread normally; the backend's
+   multi-clause guard remains as a fail-closed backstop for any group
+   that survives compilation with >1 clause *)
+val clausy : maybe nat -> nat
+let rec clausy (Just (x : nat)) : nat = x + tick ()
+and clausy Nothing = tick ()
+
+(* short-circuit && / || (audit MAJOR-1, charter O1): the RIGHT
+   operand is a BRANCH — its draws fire only when it evaluates
+   (a && b ≡ if a then b else false; a || b ≡ if a then true else b);
+   the LEFT operand stays strict. Pins in TestSupplyCheck.lean;
+   compiled witnesses in TestSupplyDraws.lean. *)
+val sc_and : bool -> bool
+let sc_and b = b && (tick () = 7)
+
+val sc_or : bool -> bool
+let sc_or b = b || (tick () = 7)
+
+(* draw in BOTH operands: left strict, right conditional *)
+val sc_both : unit -> bool
+let sc_both u = (tick () = 1) && (tick () = 7)
+
+(* nested: a draw under && under || *)
+val sc_nested : bool -> bool -> bool
+let sc_nested a b = a || (b && (tick () = 5))
+
+(* implication inlines to (not b) || _ and rides the same arm path *)
+val sc_imp : bool -> bool
+let sc_imp b = b --> (tick () = 7)
+
+(* PAREN-SPLIT application spine of a short-circuit operator (L1 delta
+   audit NOTE-1; the registered L2 rider, charter §3.2): in
+   `((&&) a) (chk 4)` the head is the PARENTHESIZED partial
+   application `((&&) a)` — strip_app_exp does not unwrap Paren, so
+   the spine head is not the && constant and the application renders
+   through the supply transform's general-head branch: the argument
+   is hoisted and threads STRICTLY (the draw fires even when
+   a = false). This is ORACLE-FAITHFUL: OCaml is strict for exactly
+   this eta-expanded shape too (the flat `a && chk 4` short-circuits
+   on both targets). The coincidence rests on lem's Paren node
+   surviving to the backend — the kernel pins in TestSupplyCheck.lean
+   turn any future spine normalization into a loud diff. *)
+val chk : nat -> bool
+let chk n = tick () = n
+
+val prefsc_paren : bool -> bool
+let prefsc_paren a = ((&&) a) (chk 4)
+
+(* === Section 4: transitive lifting + threaded calls === *)
+val uses_draw_two : nat -> nat
+let uses_draw_two x =
+  let (a, b) = draw_two () in
+  a + b + x
+
+(* === Section 5: destructuring lets (the m7/L0 single-RHS shapes) === *)
+
+(* one opaque drawing call bound by an expression-level tuple let: the
+   RHS must evaluate ONCE (a duplicated RHS would fork the numbering) *)
+val pair_draw : unit -> nat * nat
+let pair_draw u = (tick (), tick ())
+
+val destructure_once : unit -> nat * nat * nat
+let destructure_once u =
+  let (a, b) = pair_draw () in
+  let c = tick () in
+  (a, b, c)
+
+(* A drawing TOP-LEVEL VALUE binding (`let (top_a, top_b) = pair_draw ()`)
+   is REFUSED since the parity-fix slice (2026-09-03, F6/deviation-4):
+   the OCaml reference evaluates a value binding once at module
+   initialisation, which per-use state passing cannot mirror; the
+   shape lives in negative/neg_supply_toplevel_value.lem. *)
+
+(* a supply draw under a target_rep'd LIBRARY constructor (`Just` = `some`)
+   — refused before the parity-fix slice (F5), now threaded like any
+   pure head: the drawing arguments become variables *)
+val mk_just : unit -> maybe (nat * nat)
+let mk_just u = Just (tick (), tick ())
+
+(* === Section 6: composition with reader === *)
+val cfg : unit -> nat
+declare lean target_rep function cfg u = 0
+declare {lean} reader val cfg
+
+(* both reader-lifted and supply-lifted: binder order is
+   [readers] [supply] [original args] *)
+val both : unit -> nat
+let both u = cfg () + tick ()
+
+val uses_both : nat -> nat
+let uses_both x = both () + x
+
+(* reader_seed composes with supply: the seed def is NOT reader-lifted
+   (its first argument seeds the reader injections) but IS
+   supply-lifted (it draws transitively) *)
+val seeded : nat -> nat -> nat
+let seeded cfg_val x = both () + x
+declare {lean} reader_seed val seeded
+
+val uses_seeded : nat -> nat
+let uses_seeded k = seeded 42 k
+
+(* === Section 7: composition with fuel === *)
+
+(* non-structural recursion (fuel) whose body draws each step: the
+   worker threads the supply through the decremented self-call; the
+   zero-fuel arm returns the sentinel with the supply unconsumed *)
+val fuel_draws : nat -> list nat
+let rec fuel_draws n =
+  if n = 0 then [] else tick () :: fuel_draws (n - 1)
+declare {lean} fuel val fuel_draws = `[]`
+
+val uses_fuel_draws : nat -> list nat
+let uses_fuel_draws k = fuel_draws (k + 1)
+
+(* (The per-declaration fuel BUDGET that stood here was deleted by the
+   fuel-parameter arc, 2026-09-04: the fuel is the caller's [LemFuel]
+   instance; exhaustion mid-stream at an insufficient caller fuel is
+   pinned in TestSupplyCheck.lean with the fuel passed explicitly.) *)

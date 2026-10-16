@@ -1,0 +1,7 @@
+(* Failure probe (census D1, the `integer` leg): zarith's Nat_big_num.modulus
+   raises Division_by_zero; Lean's lemIntegerMod fails loudly. *)
+open import Pervasives_extra
+
+let steps : list (nat -> string) =
+  [ (fun n -> "before: -7 mod 2 = " ^ show ((0 - 7 : integer) mod (integerFromNat n + 2)));
+    (fun n -> "at zero: " ^ show ((0 - 7 : integer) mod integerFromNat n)) ]

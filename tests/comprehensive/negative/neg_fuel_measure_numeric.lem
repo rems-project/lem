@@ -1,0 +1,8 @@
+(* EXPECT: a numeral is not a fuel measure *)
+(* fuel-measure slice: the bare-numeral form (no backticks) is refused
+   at parse time with its reason, as the deleted fuel-budget form is. *)
+open import Pervasives
+val len : list nat -> nat
+let rec len l = match l with | [] -> 0 | _ :: xs -> 1 + len xs end
+declare {lean} fuel val len = `999`
+declare {lean} fuel_measure val len = 5

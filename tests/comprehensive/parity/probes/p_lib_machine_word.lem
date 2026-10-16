@@ -1,0 +1,123 @@
+(* Library-coverage probe (2026-09-30, library-parity-coverage record):
+   library/machine_word.lem — `mword 'a` (OCaml Lem.mword: size + natural;
+   Lean BitVec) at widths 1, 5, 8, 16, 32, 64: conversions (signed/
+   unsigned/natural views, wordFromInteger/Natural/Bitlist, bitlist),
+   comparisons, concat/extract/update, bit access, shifts, rotates,
+   bitwise ops, extensions and arithmetic (plus/minus/uminus/times,
+   unsigned/signed divide, modulo; divisor zero excluded), on 0, 1, -1,
+   the sign boundary, the all-ones word, out-of-range injections, and LCG
+   values. Regression for LP6 (bit lists MSB-first) and LP7 (word_extract
+   masks by hi). NOT here, by finding (doc/lean-backend/
+   2026-09-30_library-parity-coverage.md): wordToHex / `show` on an mword
+   (OCaml's is the stub "wordToHex not yet implemented", LP5); and every
+   input on which the OCaml Lem.mword implementation is itself wrong
+   (OM1-OM5): uminus/wordFromInteger/signedDivide producing the
+   unreduced 2^n for a zero result, getBit i >= 1 reading bits i..2i,
+   setBit beyond the width, sizes taken from the value instead of the
+   type (wordFromBitlist/word_extract/word_concat at a mismatched width),
+   rotations by 0 or >= the width and arithShiftRight beyond the width
+   raising. Expected values are the OCaml target's output. *)
+open import Pervasives_extra
+
+let sI (i : integer) : string = stringFromInteger i
+let sb (b : bool) : string = if b then "1" else "0"
+let sbl (bl : list bool) : string = String.concat "" (List.map sb bl)
+let sw (w : mword 'a) : string =
+  "u=" ^ show (naturalFromWord w) ^ " s=" ^ sI (signedIntegerFromWord w) ^ " ui=" ^ sI (unsignedIntegerFromWord w)
+  ^ " len=" ^ show (word_length w) ^ " bits=" ^ sbl (bitlistFromWord w)
+
+let lcg (s : natural) : natural = (s * 6364136223846793005 + 1442695040888963407) mod 18446744073709551616
+let rec lcg_list (n : nat) (s : natural) : list natural =
+  match n with 0 -> [] | n' + 1 -> let s' = lcg s in s' :: lcg_list n' s' end
+let rnd : list natural = lcg_list 4 1618033
+
+(* negative inputs are odd: an even one is 0 modulo 2^1, where OCaml's
+   wordFromInteger returns the unreduced 2^n (OM1) *)
+let ivals : list integer = [0; 1; 0-1; 2; 5; 0-7; 7; 127; 0-127; 128; 255; 256; 0-255; 32767; 0-32767; 65535; 65536;
+  2147483647; 0-2147483647; 4294967295; 4294967296; 9223372036854775807; 0-9223372036854775807; 18446744073709551615; 18446744073709551616]
+
+let w8 (i : integer) : mword ty8 = wordFromInteger i
+let w16 (i : integer) : mword ty16 = wordFromInteger i
+let w32 (i : integer) : mword ty32 = wordFromInteger i
+let w64 (i : integer) : mword ty64 = wordFromInteger i
+let w5 (i : integer) : mword ty5 = wordFromInteger i
+let w1 (i : integer) : mword ty1 = wordFromInteger i
+
+let cross (xs : list 'a) (ys : list 'b) : list ('a * 'b) = List.concatMap (fun x -> List.map (fun y -> (x, y)) ys) xs
+
+let ops (nm : string) (a : mword 'a) (b : mword 'a) : string =
+  nm ^ " " ^ show (naturalFromWord a) ^ " " ^ show (naturalFromWord b) ^ ":"
+  ^ " eq=" ^ sb (mwordEq a b) ^ " slt=" ^ sb (signedLess a b) ^ " sle=" ^ sb (signedLessEq a b)
+  ^ " ult=" ^ sb (unsignedLess a b) ^ " ule=" ^ sb (unsignedLessEq a b)
+  ^ " and=" ^ show (naturalFromWord (lAnd a b)) ^ " or=" ^ show (naturalFromWord (lOr a b)) ^ " xor=" ^ show (naturalFromWord (lXor a b))
+  ^ " plus=" ^ show (naturalFromWord (plus a b)) ^ " minus=" ^ show (naturalFromWord (minus a b)) ^ " times=" ^ show (naturalFromWord (times a b))
+  ^ (if naturalFromWord b = 0 then "" else
+       " udiv=" ^ show (naturalFromWord (unsignedDivide a b))
+       ^ (let sa = signedIntegerFromWord a in let sb = signedIntegerFromWord b in
+          (* OM1: a zero quotient of opposite-sign operands is 2^n on OCaml *)
+          if (sa < 0) <> (sb < 0) && abs sa < abs sb then "" else " sdiv=" ^ show (naturalFromWord (signedDivide a b)))
+       ^ " mod=" ^ show (naturalFromWord (modulo a b)))
+
+let unops (nm : string) (a : mword 'a) : string =
+  nm ^ " " ^ show (naturalFromWord a) ^ ":" ^ " not=" ^ show (naturalFromWord (lNot a))
+  ^ (if naturalFromWord a = 0 then "" else " neg=" ^ show (naturalFromWord (uminus a)))  (* OM1 *)
+  ^ " msb=" ^ sb (msb a) ^ " lsb=" ^ sb (lsb a) ^ " getBit0=" ^ sb (getBit a 0)  (* OM2: getBit i >= 1 *)
+  ^ " shl1=" ^ show (naturalFromWord (shiftLeft a 1)) ^ " shl3=" ^ show (naturalFromWord (shiftLeft a 3))
+  ^ " shr1=" ^ show (naturalFromWord (shiftRight a 1)) ^ " shr3=" ^ show (naturalFromWord (shiftRight a 3))
+  ^ " asr1=" ^ show (naturalFromWord (arithShiftRight a 1)) ^ " asr3=" ^ show (naturalFromWord (arithShiftRight a 3))
+  ^ " rol1=" ^ show (naturalFromWord (rotateLeft 1 a)) ^ " rol3=" ^ show (naturalFromWord (rotateLeft 3 a))
+  ^ " ror1=" ^ show (naturalFromWord (rotateRight 1 a)) ^ " ror3=" ^ show (naturalFromWord (rotateRight 3 a))
+  ^ " setBit0=" ^ show (naturalFromWord (setBit a 0 true)) ^ " clrBit1=" ^ show (naturalFromWord (setBit a 1 false))
+
+let v8 : list (mword ty8) = List.map w8 [0; 1; 0-1; 5; 0-7; 127; 0-127; 85; 170] ++ List.map (fun r -> wordFromNatural r) rnd
+let v16 : list (mword ty16) = List.map w16 [0; 1; 0-1; 0-32767; 32767; 1234] ++ List.map (fun r -> wordFromNatural r) (List.take 2 rnd)
+let v32 : list (mword ty32) = List.map w32 [0; 1; 0-1; 0-2147483647; 2147483647] ++ List.map (fun r -> wordFromNatural r) (List.take 2 rnd)
+let v64 : list (mword ty64) = List.map w64 [0; 1; 0-1; 0-9223372036854775807; 9223372036854775807] ++ List.map (fun r -> wordFromNatural r) (List.take 2 rnd)
+let v5 : list (mword ty5) = List.map w5 [0; 1; 0-1; 0-15; 15; 9] ++ [wordFromNatural 16]
+
+let results : list string =
+  [ "rnd: " ^ show rnd ] ++
+  List.map (fun i -> "wordFromInteger " ^ sI i ^ ": w8 " ^ sw (w8 i) ^ " | w64 " ^ sw (w64 i)) ivals ++
+  List.map (fun i -> "wordFromInteger " ^ sI i ^ ": w1 " ^ sw (w1 i) ^ " | w5 " ^ sw (w5 i) ^ " | w16 " ^ show (naturalFromWord (w16 i)) ^ " | w32 " ^ show (naturalFromWord (w32 i))) ivals ++
+  List.map (fun (n : natural) -> "wordFromNatural " ^ show n ^ ": w8 " ^ sw (wordFromNatural n : mword ty8) ^ " w32 " ^ show (naturalFromWord (wordFromNatural n : mword ty32)))
+    [0; 255; 256; 257; 4294967297; 18446744073709551617] ++
+  [ "wordFromBitlist 0010 -> w4 (LP6): " ^ sw (wordFromBitlist [false; false; true; false] : mword ty4);
+    "wordFromBitlist 10110001 -> w8: " ^ sw (wordFromBitlist [true; false; true; true; false; false; false; true] : mword ty8);
+    "wordFromBitlist 1 -> w1: " ^ sw (wordFromBitlist [true] : mword ty1);
+    "bitlistFromWord (w8 2) (LP6): " ^ sbl (bitlistFromWord (w8 2));
+    "round trip w16 0x1234: " ^ sw (wordFromBitlist (bitlistFromWord (w16 0x1234)) : mword ty16);
+    "size_itself/size_test_fn: " ^ show (size_test_fn (w8 0)) ^ " " ^ show (size_test_fn (w64 0)) ^ " " ^ show (size_test_fn (w5 0));
+    "word_concat w8 w8 -> w16: " ^ sw (word_concat (w8 0xAB) (w8 0xCD) : mword ty16);
+    "word_concat w8 w16 -> w24 (-1, 1): " ^ sw (word_concat (w8 (0-1)) (w16 1) : mword ty24);
+    "word_concat w5 w1 -> w6: " ^ sw (word_concat (w5 9) (w1 1) : mword ty6);
+    "word_extract 0 7 of w16 0xABCD: " ^ sw (word_extract 0 7 (w16 0xABCD) : mword ty8);
+    "word_extract 8 15 of w16 0xABCD: " ^ sw (word_extract 8 15 (w16 0xABCD) : mword ty8);
+    "word_extract 4 11 of w16 0xABCD: " ^ sw (word_extract 4 11 (w16 0xABCD) : mword ty8);
+    "word_extract 0 3 of w8 0xAB -> w8, value only (LP7; OCaml's word length is 4, OM4): " ^ show (naturalFromWord (word_extract 0 3 (w8 0xAB) : mword ty8));
+    "word_extract 0 3 of w8 0xAB -> w4: " ^ sw (word_extract 0 3 (w8 0xAB) : mword ty4);
+    "word_extract 2 6 of w8 0xAB -> w5: " ^ sw (word_extract 2 6 (w8 0xAB) : mword ty5);
+    "word_update w16 1234 1 8 (w8 41): " ^ sw (word_update (w16 1234) 1 8 (w8 41));
+    "word_update w16 0 8 15 (w8 0xFF): " ^ sw (word_update (w16 0) 8 15 (w8 0xFF));
+    "word_update w8 0xFF 2 6 (w5 0): " ^ sw (word_update (w8 0xFF) 2 6 (w5 0));
+    "zeroExtend w8 -> w16 (-1): " ^ sw (zeroExtend (w8 (0-1)) : mword ty16);
+    "signExtend w8 -> w16 (-1): " ^ sw (signExtend (w8 (0-1)) : mword ty16);
+    "signExtend w8 -> w16 (127): " ^ sw (signExtend (w8 127) : mword ty16);
+    "signExtend w8 -> w64 (-128): " ^ sw (signExtend (w8 (0-128)) : mword ty64);
+    "zeroExtend w16 -> w8 (0x1234, narrowing): " ^ sw (zeroExtend (w16 0x1234) : mword ty8);
+    "signExtend w16 -> w8 (0x12F0, narrowing): " ^ sw (signExtend (w16 0x12F0) : mword ty8);
+    "shiftLeft w8 1 by 8 / 9: " ^ sw (shiftLeft (w8 1) 8) ^ " / " ^ sw (shiftLeft (w8 1) 9);
+    "shiftRight w8 -1 by 8: " ^ sw (shiftRight (w8 (0-1)) 8);
+    "arithShiftRight w8 -128 by 7 / 8; 127 by 20: " ^ sw (arithShiftRight (w8 (0-128)) 7) ^ " / " ^ sw (arithShiftRight (w8 (0-128)) 8) ^ " / " ^ sw (arithShiftRight (w8 127) 20);
+    "shiftRight w8 -1 by 100: " ^ sw (shiftRight (w8 (0-1)) 100);
+    "rotateLeft 7 / rotateRight 7 of w8 0x81: " ^ sw (rotateLeft 7 (w8 0x81)) ^ " / " ^ sw (rotateRight 7 (w8 0x81));
+    "rotateLeft 63 / rotateRight 1 of w64 1: " ^ sw (rotateLeft 63 (w64 1)) ^ " / " ^ sw (rotateRight 1 (w64 1));
+    "getBit w8 0x85 at 7 / 8 / 100: " ^ sb (getBit (w8 0x85) 7) ^ " " ^ sb (getBit (w8 0x85) 8) ^ " " ^ sb (getBit (w8 0x85) 100);
+    "getBit w8 0x05 at 2 (bits 3..4 clear): " ^ sb (getBit (w8 5) 2);
+    "numeral literal (mword ty8) 300: " ^ sw (300 : mword ty8)
+  ] ++
+  List.map (unops "w8") v8 ++ List.map (unops "w16") v16 ++ List.map (unops "w32") v32 ++ List.map (unops "w64") v64 ++ List.map (unops "w5") v5 ++
+  List.map (fun (a, b) -> ops "w8" a b) (cross v8 v8) ++
+  List.map (fun (a, b) -> ops "w16" a b) (cross v16 v16) ++
+  List.map (fun (a, b) -> ops "w32" a b) (cross v32 v32) ++
+  List.map (fun (a, b) -> ops "w64" a b) (cross v64 v64) ++
+  List.map (fun (a, b) -> ops "w5" a b) (cross v5 v5)

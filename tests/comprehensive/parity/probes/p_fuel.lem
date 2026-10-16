@@ -1,0 +1,49 @@
+(* Two-target parity probe for FUEL'D functions (fuel-parameter arc,
+   2026-09-04). The OCaml reference has no fuel. The Lean driver
+   (p_fuel.main.lean) evaluates `results` at TWO different sufficient
+   fuels (200 and 100000) and prints both blocks; the OCaml driver
+   (p_fuel.main.ml) prints its single block twice. Byte-identical stdout
+   means: above the depth the program needs, the fuel is invisible —
+   [USER 2026-09-03]: fuel is an execution parameter whose value does
+   not matter. (Exhaustion cannot be a parity row — the reference never
+   exhausts; it is pinned by tests/comprehensive lean-fuel-param leg 2.) *)
+open import Pervasives_extra
+
+val count : nat -> nat
+let rec count n = if n = 0 then 0 else count (n - 1)
+declare {lean} fuel val count = `fuelExhausted n`
+
+(* Collatz step count: genuinely non-structural (27 takes 111 steps) *)
+val collatz_steps : nat -> nat -> nat
+let rec collatz_steps n acc =
+  if n <= 1 then acc
+  else if n mod 2 = 0 then collatz_steps (n / 2) (acc + 1)
+  else collatz_steps (3 * n + 1) (acc + 1)
+declare {lean} fuel val collatz_steps = `fuelExhausted acc`
+
+(* fuel x mutual *)
+val ping : nat -> nat
+val pong : nat -> nat
+let rec ping n = if n = 0 then 0 else pong (n - 1)
+and pong n = if n = 0 then 1 else ping (n - 1)
+declare {lean} fuel val ping = `fuelExhausted n`
+declare {lean} fuel val pong = `fuelExhausted n`
+
+(* a fuel'd function calling another fuel'd function *)
+val nested : nat -> nat
+let rec nested n = if n = 0 then collatz_steps 27 0 else nested (n - 1)
+declare {lean} fuel val nested = `fuelExhausted n`
+
+(* lifted callers, HOF use, a value binding *)
+let uses_count (k : nat) : nat = count k + 1
+let mapped (l : list nat) : list nat = List.map count l
+
+let results : list string =
+  [ "count 50 = " ^ show (count 50);
+    "uses_count 7 = " ^ show (uses_count 7);
+    "collatz_steps 27 = " ^ show (collatz_steps 27 0);
+    "collatz_steps 97 = " ^ show (collatz_steps 97 0);
+    "ping 10 = " ^ show (ping 10);
+    "pong 11 = " ^ show (pong 11);
+    "nested 5 = " ^ show (nested 5);
+    "mapped = " ^ show (mapped [0; 1; 2; 150]) ]

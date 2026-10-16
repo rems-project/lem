@@ -1,0 +1,52 @@
+(* Noodle probe: records and variants — field update (single/multi,
+   nested), records with function fields, recursive and mutual types,
+   type abbreviations, phantom parameters, many-arity constructors,
+   record patterns with partial fields, equality on records. Expected
+   values are the OCaml target's output. *)
+open import Pervasives_extra
+
+type point = <| px : nat; py : nat; pname : string |>
+type wrap 'a = <| inner : 'a; tag : nat |>
+type phantom 'p = Ph of nat
+type alias = nat * string
+type withfun = <| f : nat -> nat; k : nat |>
+type tree = Leaf | Node of tree * nat * tree
+type forest = Forest of list tree
+type big6 = Six of nat * nat * nat * nat * nat * nat | Zero6
+type expr = Num of nat | Add of expr * expr | Neg of expr
+and stmt = Assign of string * expr | Seq of stmt * stmt | Skip
+
+let rec sum_tree (t : tree) : nat = match t with Leaf -> 0 | Node l v r -> sum_tree l + v + sum_tree r end
+let rec eval (e : expr) : integer = match e with Num n -> integerFromNat n | Add a b -> eval a + eval b | Neg a -> ~(eval a) end
+let rec count (s : stmt) : nat = match s with Assign _ e -> 1 + size_e e | Seq a b -> count a + count b | Skip -> 0 end
+and size_e (e : expr) : nat = match e with Num _ -> 1 | Add a b -> size_e a + size_e b | Neg a -> size_e a end
+
+let p0 = <| px = 1; py = 2; pname = "p" |>
+let ph (Ph n : phantom bool) : nat = n
+let use_alias ((n, s) : alias) : string = s ^ show n
+
+let results : list string =
+  [ "upd1: " ^ show ((<| p0 with px = 9 |>).px, (<| p0 with px = 9 |>).py);
+    "upd2: " ^ show ((<| p0 with px = 7; py = 8 |>).px + (<| p0 with px = 7; py = 8 |>).py);
+    "upd chain: " ^ (<| <| p0 with pname = "q" |> with pname = "r" |>).pname;
+    "nested wrap: " ^ show ((<| inner = p0; tag = 3 |>).inner.py);
+    "nested upd: " ^ show ((let w = <| inner = p0; tag = 3 |> in <| w with inner = <| w.inner with py = 42 |> |>).inner.py);
+    "fun field: " ^ show ((<| f = (fun x -> x * 2); k = 5 |>).f 21);
+    "fun field upd: " ^ show ((<| <| f = (fun x -> x * 2); k = 5 |> with k = 6 |>).k);
+    "rec eq: " ^ show (p0 = <| px = 1; py = 2; pname = "p" |>);
+    "rec neq: " ^ show (p0 = <| px = 1; py = 2; pname = "q" |>);
+    "rec pat: " ^ (match p0 with <| px = 1; pname = n |> -> "one:" ^ n | _ -> "other" end);
+    "rec pat2: " ^ (match p0 with <| py = 3 |> -> "three" | <| py = y |> -> "y=" ^ show y end);
+    "tree: " ^ show (sum_tree (Node (Node Leaf 1 Leaf) 2 (Node Leaf 3 Leaf)));
+    "forest: " ^ show (match Forest [Leaf; Node Leaf 5 Leaf] with Forest ts -> List.map sum_tree ts end);
+    "six: " ^ show (match Six 1 2 3 4 5 6 with Six a b c d e f -> a + b + c + d + e + f | Zero6 -> 0 end);
+    "six eq: " ^ show (Six 1 2 3 4 5 6 = Six 1 2 3 4 5 6 && Six 1 2 3 4 5 6 <> Six 1 2 3 4 5 7);
+    "eval: " ^ show (eval (Add (Num 3) (Neg (Num 5))));
+    "count: " ^ show (count (Seq (Assign "x" (Add (Num 1) (Num 2))) Skip));
+    "phantom: " ^ show (ph (Ph 4));
+    "alias: " ^ use_alias (3, "n=");
+    "wrap poly: " ^ show ((<| inner = "s"; tag = 1 |>).inner, (<| inner = true; tag = 2 |>).inner);
+    "tuple nest: " ^ show (let ((a, b), (c, d)) = (((1:nat), (2:nat)), ((3:nat), (4:nat))) in a + b + c + d);
+    "wild: " ^ show (let (_, (b, _)) = ((1:nat), ((2:nat), (3:nat))) in b);
+    "unit: " ^ show (let () = () in (1:nat))
+  ]

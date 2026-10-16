@@ -1,0 +1,114 @@
+open import Pervasives_extra
+
+(* ======================================================================
+   Miscellaneous: assertions, comments/whitespace, audit regressions.
+   Merged from: test_assertions, test_comments_whitespace,
+                test_audit_regressions
+   ====================================================================== *)
+
+(* ---- Assertions ---- *)
+
+assert assert_true : true
+assert assert_not_false : not false
+assert assert_and : (true && true)
+assert assert_or : (true || false)
+assert assert_imp : (false --> true)
+
+(* Arithmetic assertions *)
+assert assert_nat_eq : ((1 : nat) + 1 = 2)
+assert assert_nat_lt : ((1 : nat) < 2)
+assert assert_nat_ge : ((3 : nat) >= 2)
+
+(* Assertions involving defined functions *)
+let assert_double (x : nat) = x + x
+assert assert_double_ok : (assert_double 3 = (6:nat))
+
+(* Lemma declarations *)
+lemma lemma_trivial : true
+theorem theorem_trivial : (true || false)
+
+(* Assert with list operations *)
+assert assert_list_length : (List.length [1;2;(3:nat)] = 3)
+assert assert_list_head : (match [1;(2:nat)] with x :: _ -> x = 1 | _ -> false end)
+
+(* ---- Comments and whitespace ---- *)
+
+(* Simple comment *)
+(* Nested (* comment *) here *)
+
+let (* before *) cw_test1 (* middle *) = (* after *) (1:nat)
+
+(* Comments in type definitions *)
+type (* c1 *) cw_mytype (* c2 *) =
+  | (* c4 *) CWCon1 (* c5 *)
+  | (* c6 *) CWCon2 (* c7 *) of (* c8 *) nat (* c9 *)
+
+(* Comments in match *)
+let cw_test2 (x:nat) : nat =
+  match (* c1 *) x (* c2 *) with
+    (* c3 *) | (* c4 *) 0 (* c5 *) -> (* c6 *) (1:nat) (* c7 *)
+    | _ -> (0:nat)
+  end
+
+(* Comments in records *)
+type cw_r = <| cw_f_a : nat; cw_f_b : bool; cw_f_c : string |>
+
+let cw_test3 = <|
+  (* field 1 *) cw_f_a = 1 (* end field 1 *);
+  (* field 2 *) cw_f_b = true;
+  (* field 3 *) cw_f_c = "hello"
+|>
+
+(* Semicolons: double-semicolon separator *)
+let cw_test4 = (1:nat)
+;;
+let cw_test5 = (2:nat)
+
+assert cw_test1_ok : (cw_test1 = (1:nat))
+assert cw_test2_ok : (cw_test2 0 = (1:nat))
+assert cw_test4_ok : (cw_test4 = (1:nat))
+assert cw_test5_ok : (cw_test5 = (2:nat))
+
+(* ---- Audit regressions ---- *)
+
+(* C1: String literal escaping -- backslash must not form escape sequences *)
+let string_with_backslash : string = "\\"
+let string_with_newline : string = "\n"
+let string_with_tab : string = "\t"
+let string_with_quote : string = "\""
+
+assert string_backslash_ok : stringLength string_with_backslash = 1
+assert string_newline_ok : stringLength string_with_newline = 1
+assert string_tab_ok : stringLength string_with_tab = 1
+assert string_quote_ok : stringLength string_with_quote = 1
+
+(* M1/5B: P_cons in function pattern *)
+let ar_head_or_zero (xs : list nat) : nat =
+  match xs with
+    | x :: _rest -> x
+    | [] -> 0
+  end
+
+assert ar_cons_pat_ok : ar_head_or_zero [7; 8; 9] = 7
+assert ar_cons_pat_empty_ok : ar_head_or_zero [] = 0
+
+(* setEqualBy: order-independent equality *)
+let set_a : set nat = {1; 2; 3}
+let set_b : set nat = {3; 2; 1}
+
+assert set_eq_ok : set_a = set_b
+
+(* Fix #21: Tab sanitization -- Lean 4 forbids tabs in source *)
+(* The line below contains a literal tab character between let and tab_var *)
+(* Backend must sanitize tabs to spaces in generated output *)
+let	tab_var : nat = 7
+let tab_result	: nat =	tab_var	+ 3
+
+(* Tab in comment -- must not appear in generated output *)
+(*	comment with tab	inside	*)
+let	tab_in_type	:	bool	=	true
+type	tab_rec	=	<|	tab_field	:	nat	|>
+
+assert tab_ok : tab_result = 10
+assert tab_type_ok : tab_in_type
+assert tab_rec_ok : (<| tab_field = 5 |>).tab_field = 5

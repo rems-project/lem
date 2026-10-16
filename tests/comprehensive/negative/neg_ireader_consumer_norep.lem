@@ -1,0 +1,10 @@
+(* EXPECT: IRC-rep *)
+(* Instance-reader slice: a consumer is a hand-written implementation by
+   definition; a generated def's needs come from the fixpoint. *)
+open import Pervasives
+val sw : unit -> nat
+declare lean target_rep function sw u = 0
+declare {lean} reader val sw = instance `NegImpl.Sw.sw`
+val scaled : nat -> nat
+let scaled x = x
+declare {lean} reader_consumer val scaled = instance sw

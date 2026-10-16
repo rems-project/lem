@@ -1,0 +1,8 @@
+mapM ticks: ([10; 11; 12], 13)
+foldM order: ("7:0 8:1 9:2 ", 3)
+nested bind: ([100; 101; 102], 103)
+exn ok: Ok [2; 4; 6]
+exn err first: Err too big 9
+se ok: Ok [5; 6] st=7
+se err: Err boom 5
+se err after: Err early

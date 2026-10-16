@@ -1,0 +1,13 @@
+(* EXPECT: would shadow a parameter of the same name *)
+(* tails-and-pmap-laws slice: the binder synthesized for a measured
+   definition's trailing `function` is `lemTail`; a PARAMETER of that
+   name would be shadowed by the hoisted binder (the measure could not
+   tell them apart) — refused, rename the parameter. *)
+open import Pervasives
+val bad : nat -> list nat -> nat
+let rec bad lemTail = function
+  | [] -> lemTail
+  | _ :: xs -> bad (lemTail + 1) xs
+end
+declare {lean} fuel val bad = `fun _ => 0`
+declare {lean} fuel_measure val bad = `List.length lemTail + 1`

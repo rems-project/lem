@@ -1,0 +1,9 @@
+$ lem -wl ign -ocaml the.lem
+[lem exit 0]
+$ ocamlfind ocamlopt -package zarith -linkpkg -I <upstream ocaml-lib> extract.cmxa the.ml  -o the.exe
+File "the.ml", line 5, characters 29-32:
+5 | let pick () :  int option=  (THE (fun (x : int) -> x = 3))
+                                 ^^^
+Error: This variant expression is expected to have type int option
+       There is no constructor THE within type option
+[ocamlopt exit 2]

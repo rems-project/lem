@@ -184,13 +184,14 @@
       | c_pre ( id typ )						
 
     target ::=  {{ Backend target names }}
-      | hol		
-      | isabelle	
-      | ocaml	
-      | coq		
-      | tex		
-      | html	
-      | lem 	
+      | hol
+      | isabelle
+      | ocaml
+      | coq
+      | lean
+      | tex
+      | html
+      | lem
 
     open_import  ::=  {{ Open or import statements }}
       | open							

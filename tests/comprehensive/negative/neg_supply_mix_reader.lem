@@ -1,0 +1,9 @@
+(* EXPECT: both {lean} supply and {lean} reader *)
+(* Supply annotation-mix guard, reader leg (audit notes-a): a constant
+   is either threaded state or an ambient reader, not both. *)
+open import Pervasives
+val tick : unit -> nat
+declare lean target_rep function tick u = 0
+declare {lean} reader val tick
+declare {lean} supply val tick
+let f u = tick ()

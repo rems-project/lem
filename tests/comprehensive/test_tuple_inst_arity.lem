@@ -1,0 +1,65 @@
+open import Pervasives_extra
+
+(* ======================================================================
+   Class instances at several tuple arities (linksem 2026-09-29, B14).
+   linksem's Show has pair, triple and quad instances. Lean tuples are
+   right-nested pairs, so a triple whose last component is a pair has the
+   Lean type of a quadruple, and Lean picked the quad instance:
+   (1, 2, (3, 4)) showed as "(1, 2, 3, 4)". The backend now binds Lem's
+   chosen instance locally at such uses, innermost first.
+   ====================================================================== *)
+
+class ( Describe 'a )
+  val describe : 'a -> string
+end
+
+instance (Describe nat)
+  let describe n = show n
+end
+
+val describe_pair : forall 'a 'b. Describe 'a, Describe 'b => ('a * 'b) -> string
+let describe_pair (x, y) = "(" ^ describe x ^ ", " ^ describe y ^ ")"
+
+instance forall 'a 'b. Describe 'a, Describe 'b => (Describe ('a * 'b))
+  let describe = describe_pair
+end
+
+val describe_triple : forall 'a 'b 'c. Describe 'a, Describe 'b, Describe 'c => ('a * 'b * 'c) -> string
+let describe_triple (x, y, z) = "(" ^ describe x ^ ", " ^ describe y ^ ", " ^ describe z ^ ")"
+
+instance forall 'a 'b 'c. Describe 'a, Describe 'b, Describe 'c => (Describe ('a * 'b * 'c))
+  let describe = describe_triple
+end
+
+val describe_quad : forall 'a 'b 'c 'd. Describe 'a, Describe 'b, Describe 'c, Describe 'd => ('a * 'b * 'c * 'd) -> string
+let describe_quad (x, y, z, w) = "[" ^ describe x ^ ", " ^ describe y ^ ", " ^ describe z ^ ", " ^ describe w ^ "]"
+
+instance forall 'a 'b 'c 'd. Describe 'a, Describe 'b, Describe 'c, Describe 'd => (Describe ('a * 'b * 'c * 'd))
+  let describe = describe_quad
+end
+
+val describe_list : forall 'a. Describe 'a => list 'a -> string
+let describe_list xs = "<" ^ String.concat ";" (List.map describe xs) ^ ">"
+
+instance forall 'a. Describe 'a => (Describe (list 'a))
+  let describe = describe_list
+end
+
+type item = nat * nat * (nat * nat)
+
+val describe_item : item -> string
+let describe_item i = describe i
+
+(* a generic caller: the demand is resolved by the caller's instantiation *)
+val describe_twice : forall 'a. Describe 'a => 'a -> string
+let describe_twice x = describe x ^ describe x
+
+let v : item = (1, 2, (3, 4))
+
+assert tuple_arity_triple : (describe v = "(1, 2, (3, 4))")
+assert tuple_arity_pair : (describe ((1:nat), ((2:nat), (3:nat))) = "(1, (2, 3))")
+assert tuple_arity_quad : (describe ((1:nat), (2:nat), (3:nat), (4:nat)) = "[1, 2, 3, 4]")
+assert tuple_arity_nested : (describe ((1:nat), (2:nat), ((3:nat), ((4:nat), (5:nat)))) = "(1, 2, (3, (4, 5)))")
+assert tuple_arity_list : (describe [v; v] = "<(1, 2, (3, 4));(1, 2, (3, 4))>")
+assert tuple_arity_abbrev : (describe_item v = "(1, 2, (3, 4))")
+assert tuple_arity_generic : (describe_twice v = "(1, 2, (3, 4))(1, 2, (3, 4))")

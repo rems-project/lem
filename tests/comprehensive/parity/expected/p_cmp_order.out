@@ -1,0 +1,45 @@
+A vs B1: LT
+A vs C: LT
+C vs A: GT
+F vs A: GT
+F vs B0: LT
+B5 vs C: GT
+B5 vs D(0,0): LT
+D(1,2) vs D(1,3): LT
+D(2,0) vs D(1,9): GT
+E a vs D(9,9): GT
+E a vs E b: LT
+E ab vs E b: LT
+E empty vs E a: LT
+A < B1: true
+F < A: false
+F <= F: true
+rec (1,a,true) vs (1,a,false): GT
+rec (1,b,false) vs (1,a,true): GT
+rec (0,z,true) vs (1,a,false): LT
+Nothing vs Just 0: LT
+Just 1 vs Just 2: LT
+Left 5 vs Right 0: LT
+Right 1 vs Right 2: LT
+[] vs [0]: LT
+[1;2] vs [1;2;3]: LT
+[2] vs [1;9]: GT
+(1,z) vs (2,a): LT
+true vs false: GT
+#a vs #b: LT
+N(A,Nothing) vs M[]: LT
+M[A] vs M[B 0]: LT
+N(C,Just r) vs N(C,Nothing): GT
+-1 vs 1 (integer): LT
+-1 vs 1 (int): LT
+set {A,F,B0} toList: ["A"; "F"; "B0"]
+TLeaf vs TNode(TLeaf,0): LT
+TNode(TLeaf,1) vs TNode(TNode(TLeaf,0),1): LT
+TNode(TLeaf,2) vs TNode(TLeaf,1): GT
+PNone vs PSome 0: LT
+PTwo(0,0) vs PSome 9: GT
+PSome A vs PSome F: LT
+PSome F vs PNone (pv v): GT
+choose {B 3; F; C}: C
+sort [TNode(TLeaf,0); TLeaf]: ["TLeaf"; "TNode"]
+sort [F;B 2;A;C;B 1]: ["A"; "C"; "F"; "B1"; "B2"]

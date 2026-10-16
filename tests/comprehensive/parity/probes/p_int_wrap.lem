@@ -1,0 +1,60 @@
+(* Parity probe (parity-fix slice 2026-09-03, divergence census N3):
+   lem int32/int64 are OCaml Int32/Int64 — two's-complement machine
+   integers whose arithmetic WRAPS; conversions from `int`/`nat` take the
+   argument modulo 2^32 / 2^64 (Int32.of_int), int32FromInt64 keeps the
+   low 32 bits, abs/neg wrap at min_int, division truncates with the
+   Nat_num.int32_div/int32_mod adjustment (F1), shifts are logical or
+   arithmetic as named. Expected values are the OCaml target's output. *)
+open import Pervasives_extra
+
+let s32 (x : int32) : string = stringFromInteger (integerFromInt32 x)
+let s64 (x : int64) : string = stringFromInteger (integerFromInt64 x)
+
+let max32 : int32 = int32FromInteger 2147483647
+let min32 : int32 = int32FromInteger (0 - 2147483648)
+let max64 : int64 = int64FromInteger 9223372036854775807
+let min64 : int64 = int64FromInteger (0 - 9223372036854775808)
+
+let results : list string =
+  [ "max32 + 1: " ^ s32 (max32 + int32FromNat 1);
+    "min32 - 1: " ^ s32 (min32 - int32FromNat 1);
+    "max32 * 2: " ^ s32 (max32 * int32FromNat 2);
+    "neg min32: " ^ s32 (~ min32);
+    "abs min32: " ^ s32 (abs min32);
+    "abs (-5): " ^ s32 (abs (int32FromInt (0 - 5)));
+    "of_int 2^32+5: " ^ s32 (int32FromInt 4294967301);
+    "of_int -2^31-1: " ^ s32 (int32FromInt (0 - 2147483649));
+    "of_nat 2^31: " ^ s32 (int32FromNat 2147483648);
+    "from_int64 low bits: " ^ s32 (int32FromInt64 (int64FromInteger 4294967301));
+    "from_int64 negative: " ^ s32 (int32FromInt64 (int64FromInteger (0 - 4294967297)));
+    "to_int64 sign-extends: " ^ s64 (int64FromInt32 min32);
+    "min32 div -1: " ^ s32 (min32 div int32FromInt (0 - 1));
+    "min32 mod -1: " ^ s32 (min32 mod int32FromInt (0 - 1));
+    "-7 div -2 (int32): " ^ s32 (int32FromInt (0 - 7) div int32FromInt (0 - 2));
+    "-7 mod -2 (int32): " ^ s32 (int32FromInt (0 - 7) mod int32FromInt (0 - 2));
+    "7 div -2 (int32): " ^ s32 (int32FromInt 7 div int32FromInt (0 - 2));
+    "-7 mod 2 (int32): " ^ s32 (int32FromInt (0 - 7) mod int32FromInt 2);
+    "max64 + 1: " ^ s64 (max64 + int64FromNat 1);
+    "min64 - 1: " ^ s64 (min64 - int64FromNat 1);
+    "neg min64: " ^ s64 (~ min64);
+    "of_int (int64) -3: " ^ s64 (int64FromInt (0 - 3));
+    "min64 div -1: " ^ s64 (min64 div int64FromInt (0 - 1));
+    "-7 div -2 (int64): " ^ s64 (int64FromInt (0 - 7) div int64FromInt (0 - 2));
+    "-7 mod -2 (int64): " ^ s64 (int64FromInt (0 - 7) mod int64FromInt (0 - 2));
+    "pow wraps: " ^ s32 (int32FromNat 3 ** 21);
+    "compare min max: " ^ (match compare min32 max32 with LT -> "LT" | EQ -> "EQ" | GT -> "GT" end);
+    "min32 < 0: " ^ show (min32 < int32FromNat 0);
+    "lsl 1 31: " ^ s32 (int32Lsl (int32FromNat 1) 31);
+    "lsr min32 31: " ^ s32 (int32Lsr min32 31);
+    "asr min32 31: " ^ s32 (int32Asr min32 31);
+    "asr -8 1: " ^ s32 (int32Asr (int32FromInt (0 - 8)) 1);
+    "lnot 0: " ^ s32 (int32Lnot (int32FromNat 0));
+    "land -1 255: " ^ s32 (int32Land (int32FromInt (0 - 1)) (int32FromNat 255));
+    "lor min32 1: " ^ s32 (int32Lor min32 (int32FromNat 1));
+    "lxor -1 min32: " ^ s32 (int32Lxor (int32FromInt (0 - 1)) min32);
+    "lsl64 1 63: " ^ s64 (int64Lsl (int64FromNat 1) 63);
+    "lsr64 min64 63: " ^ s64 (int64Lsr min64 63);
+    "asr64 min64 63: " ^ s64 (int64Asr min64 63);
+    "succ max32: " ^ s32 (succ max32);
+    "pred min32: " ^ s32 (pred min32);
+    "min/max: " ^ s32 (min min32 max32) ^ " " ^ s32 (max min32 max32) ]

@@ -1,0 +1,13 @@
+(* EXPECT: would shadow a parameter of the same name *)
+(* tails-and-pmap-laws slice: a user-written `fun acc ->` above the
+   trailing `function` is hoisted with the user's name; it shadows the
+   parameter `acc` of the same name (legal lem, but the two would become
+   two head binders named acc) — refused, rename one of them. *)
+open import Pervasives
+val bad : nat -> nat -> list nat -> nat
+let rec bad acc = fun acc -> function
+  | [] -> acc
+  | x :: xs -> bad acc (acc + x) xs
+end
+declare {lean} fuel val bad = `fun _ _ => 0`
+declare {lean} fuel_measure val bad = `List.length lemTail + 1`

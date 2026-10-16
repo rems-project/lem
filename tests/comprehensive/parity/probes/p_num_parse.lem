@@ -1,0 +1,20 @@
+(* Parity probe (parity-fix slice 2026-09-03, divergence census N6):
+   Num_extra.integerOfString / naturalOfString. The OCaml reps are
+   zarith's Z.of_string (via Nat_big_num.of_string / of_string_nat):
+   an optional single sign, an optional base prefix 0x/0X (16), 0o/0O (8),
+   0b/0B (2), digits with interior/trailing underscores, and the EMPTY
+   digit string reading as 0 ("", "+", "-", "0x" are all 0). The Lean
+   side previously parsed decimal digits only. Expected values are the
+   OCaml target's output; the failing inputs (invalid digit, negative
+   natural) are the failure probes f_num_parse_invalid / f_natural_neg. *)
+open import Pervasives_extra
+
+let si (s : string) : string = s ^ " -> " ^ stringFromInteger (integerOfString s)
+let sn (s : string) : string = s ^ " -> " ^ stringFromNatural (naturalOfString s)
+
+let results : list string =
+  [ si "12"; si "-12"; si "+12"; si "0x1F"; si "0X1f"; si "0o17"; si "0O7"; si "0b101"; si "0B1";
+    si "1_000"; si "1__0"; si "1_"; si "007"; si "00"; si "-0"; si "+0"; si "-0x1F"; si "0x"; si "0b"; si "+"; si "-";
+    "empty -> " ^ stringFromInteger (integerOfString "");
+    si "99999999999999999999999"; si "-99999999999999999999999";
+    sn "12"; sn "+3"; sn "0x10"; sn "1_000"; "natural empty -> " ^ stringFromNatural (naturalOfString "") ]

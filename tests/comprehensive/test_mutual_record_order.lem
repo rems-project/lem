@@ -1,0 +1,67 @@
+open import Pervasives_extra
+
+(* ======================================================================
+   Mutual-record literals in any field order (linksem 2026-09-28, B7).
+   Since output-niceness S2 (2026-10-03) a record in a mutual block is a
+   Lean `structure`, and literals and updates use the structure syntax, so
+   the field order of a literal no longer matters to the emission. Here the
+   two swapped fields share the type nat, so a positional emission in
+   literal order would type-check and silently swap them; the asserts pin
+   every field. The second block has members with different numbers of type
+   parameters: it is emitted with indices, a structure cannot have indices,
+   and its record stays a single-constructor inductive built positionally in
+   DECLARATION order (the B7 rule).
+   ====================================================================== *)
+
+type node = <| n_lo : nat; n_hi : nat; n_tag : string; n_kids : list leaf |>
+and leaf = <| l_val : nat; l_up : maybe node |>
+
+let mk_node (lo : nat) (hi : nat) =
+  <| n_hi = hi; n_kids = [<| l_up = Nothing; l_val = lo + hi |>]; n_tag = "t"; n_lo = lo |>
+
+let sample_node = mk_node 3 50
+
+let upd_node = <| sample_node with n_hi = 7 |>
+
+assert mro_lo : (sample_node.n_lo = 3)
+assert mro_hi : (sample_node.n_hi = 50)
+assert mro_tag : (sample_node.n_tag = "t")
+assert mro_leaf : (match sample_node.n_kids with [l] -> l.l_val = 53 | _ -> false end)
+assert mro_upd : (upd_node.n_lo = 3 && upd_node.n_hi = 7)
+
+(* heterogeneous block: the record stays an inductive *)
+type hbox 'a = <| hb_lo : nat; hb_hi : nat; hb_val : 'a; hb_items : list hitem |>
+and hitem = HItem of nat
+declare {lean} skip_instances type hbox
+declare {lean} skip_instances type hitem
+
+let mk_hbox (lo : nat) (hi : nat) : hbox string =
+  <| hb_hi = hi; hb_items = [HItem lo]; hb_val = "v"; hb_lo = lo |>
+
+let upd_hbox = <| (mk_hbox 1 2) with hb_hi = 9 |>
+
+assert mro_h_lo : ((mk_hbox 1 2).hb_lo = 1)
+assert mro_h_hi : ((mk_hbox 1 2).hb_hi = 2)
+assert mro_h_upd : (upd_hbox.hb_lo = 1 && upd_hbox.hb_hi = 9 && upd_hbox.hb_val = "v")
+
+(* backend-hardening 2026-10-03, item 4: in the heterogeneous block the
+   update's base is bound once (`let lemRecBase := …`). An UNPARENTHESISED
+   application as the base used to be rendered per unchanged field without
+   parentheses — `(hbox.mk 9 (mk_hbox 1 2.hb_hi) …)`, which Lean reads as
+   `2.hb_hi` — and a conditional base likewise. Keyword-named fields of a
+   mutual record take the same escaping as structure fields (item 2). *)
+let upd_hbox_app = <| mk_hbox 1 2 with hb_hi = 9 |>
+let upd_hbox_if (b : bool) = <| (if b then mk_hbox 1 2 else mk_hbox 3 4) with hb_lo = 7 |>
+
+assert mro_h_upd_app : (upd_hbox_app.hb_lo = 1 && upd_hbox_app.hb_hi = 9 && upd_hbox_app.hb_val = "v")
+assert mro_h_upd_if : ((upd_hbox_if true).hb_lo = 7 && (upd_hbox_if true).hb_hi = 2 && (upd_hbox_if false).hb_hi = 4)
+
+type kbox 'a = <| at : nat; from : 'a; kb_items : list kitem |>
+and kitem = KItem of nat
+declare {lean} skip_instances type kbox
+declare {lean} skip_instances type kitem
+
+let mk_kbox (n : nat) : kbox string = <| at = n; from = "f"; kb_items = [KItem n] |>
+let upd_kbox = <| mk_kbox 1 with at = 5 |>
+
+assert mro_k_upd : (upd_kbox.at = 5 && upd_kbox.from = "f" && (mk_kbox 1).at = 1)

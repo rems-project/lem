@@ -1,0 +1,9 @@
+(* EXPECT: reserved word inside a measure *)
+(* D2-enablers audit NOTE-1: `lemSize` is reserved inside a measure; a
+   PARAMETER of that name cannot be mentioned there — the refusal says so
+   and does not list `lemSize` among the usable parameters. *)
+open import Pervasives
+val spin : nat -> nat -> nat
+let rec spin lemSize n = if n = 0 then lemSize else spin lemSize (n - 1)
+declare {lean} fuel val spin = `999`
+declare {lean} fuel_measure val spin = `lemSize + n + 1`

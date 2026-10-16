@@ -1,0 +1,7 @@
+(* EXPECT: IR-proj *)
+(* Instance-reader slice: _root_ (and guillemets, spaces) in the
+   projection are refused: the class prefix must be plain. *)
+open import Pervasives
+val sw : unit -> nat
+declare lean target_rep function sw u = 0
+declare {lean} reader val sw = instance `_root_.Sw.sw`

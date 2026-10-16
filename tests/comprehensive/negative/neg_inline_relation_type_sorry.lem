@@ -1,0 +1,6 @@
+(* EXPECT: forbidden (inline relation backend type) *)
+(* Substitution into a relation type uses the separate relation renderer. *)
+open import Pervasives
+declare lean target_rep type nat = (`sorry`)
+indreln [inline_relation : nat -> bool]
+  inline_rule : forall x. true ==> inline_relation x

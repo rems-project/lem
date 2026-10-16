@@ -1,0 +1,45 @@
+(* Noodle probe: list operations with DEFINED semantics at the edges —
+   take/drop beyond length, zip on unequal lengths, index out of range
+   (maybe), sort stability under sortByOrd with a coarse comparator,
+   dedup/lookup/delete/findIndex/splitAt/replicate/genlist/reverseAppend,
+   foldl vs foldr orientation (deep lists: p_list_deep). Expected values
+   are the OCaml target's output. *)
+open import Pervasives_extra
+
+let sn (n : nat) : string = stringFromNat n
+let by_fst ((a, _) : nat * nat) ((b, _) : nat * nat) : ordering = compare a b
+
+
+let results : list string =
+  [ "take 5 [1;2]: " ^ show (List.take 5 [(1:nat); 2]);
+    "drop 5 [1;2]: " ^ show (List.drop 5 [(1:nat); 2]);
+    "zip [1;2;3] [a;b]: " ^ show (List.zip [(1:nat); 2; 3] ["a"; "b"]);
+    "zip [] [a]: " ^ show (List.zip ([] : list nat) ["a"]);
+    "index 5 [1;2]: " ^ show (List.index [(1:nat); 2] 5);
+    "index 1 [1;2]: " ^ show (List.index [(1:nat); 2] 1);
+    "sortByOrd stable: " ^ show (Sorting.sortByOrd by_fst [(2, 1); (1, 1); (2, 2); (1, 2); (2, 3); (0, 1)]);
+    "sort nat: " ^ show (Sorting.sort [(3:nat); 1; 2; 1; 0]);
+    "sort strings: " ^ show (Sorting.sort ["b"; "B"; "a"; ""; "ab"]);
+    "lookup 2: " ^ show (List.lookup (2:nat) [(1, "a"); (2, "b"); (2, "c")]);
+    "lookup 9: " ^ show (List.lookup (9:nat) [(1, "a")]);
+    "delete 2: " ^ show (List.delete (2:nat) [1; 2; 3; 2]);
+    "findIndex: " ^ show (List.findIndex (fun x -> x > (1:nat)) [0; 1; 2; 3]);
+    "findIndex none: " ^ show (List.findIndex (fun x -> x > (10:nat)) [0; 1]);
+    "elemIndex: " ^ show (List.elemIndex (3:nat) [1; 3; 3]);
+    "splitAt 1: " ^ show (List.splitAt 1 [(1:nat); 2; 3]);
+    "splitAt 9: " ^ show (List.splitAt 9 [(1:nat); 2; 3]);
+    "replicate 3: " ^ show (List.replicate 3 "q");
+    "replicate 0: " ^ show (List.replicate 0 "q");
+    "genlist 4: " ^ show (List.genlist (fun i -> i * i) 4);
+    "reverseAppend: " ^ show (List.reverseAppend [(1:nat); 2] [3; 4]);
+    "foldl: " ^ show (List.foldl (fun acc x -> acc ^ show x) "" [(1:nat); 2; 3]);
+    "foldr: " ^ show (List.foldr (fun x acc -> acc ^ show x) "" [(1:nat); 2; 3]);
+    "concatMap: " ^ show (List.concatMap (fun x -> [x; x]) [(1:nat); 2]);
+    "filter: " ^ show (List.filter (fun x -> x mod 2 = 0) [(1:nat); 2; 3; 4]);
+    "partition: " ^ show (List.partition (fun x -> x mod 2 = 0) [(1:nat); 2; 3; 4]);
+    "unzip: " ^ show (List.unzip [((1:nat), "a"); (2, "b")]);
+    "last: " ^ show (List_extra.last [(1:nat); 2; 3]);
+    "nth 1: " ^ show (List_extra.nth [(1:nat); 2; 3] 1);
+    "elem: " ^ show (List.elem (2:nat) [1; 2]);
+    "count: " ^ show (List.length (List.filter (fun x -> x = (1:nat)) [1; 1; 2]))
+  ]

@@ -1,0 +1,19 @@
+open import Pervasives
+
+(* Non-Lean invariance witness for the fuel_measure declare (fuel-measure
+   slice, 2026-09-04): `declare {lean} fuel_measure val` must be an exact
+   no-op for the other backends (see inv_supply.lem for the harness
+   contract) — the OCaml output of a measured function is byte-identical
+   with and without the declare, by construction. *)
+
+val blen : list nat -> nat
+let rec blen l =
+  match l with
+    | [] -> 0
+    | _ :: xs -> 1 + blen xs
+  end
+declare {lean} fuel val blen = `999`
+declare {lean} fuel_measure val blen = `List.length l + 1`
+
+val uses_blen : list nat -> nat
+let uses_blen l = blen l + 1

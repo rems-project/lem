@@ -1,0 +1,9 @@
+(* EXPECT: both {lean} reader_consumer and {lean} reader *)
+(* reader_consumer guard RC-mix (charter §4.2): one mechanism per
+   val. *)
+open import Pervasives
+val cfg : unit -> nat
+declare lean target_rep function cfg u = 0
+declare {lean} reader val cfg
+declare {lean} reader_consumer val cfg
+let uses x = cfg ()

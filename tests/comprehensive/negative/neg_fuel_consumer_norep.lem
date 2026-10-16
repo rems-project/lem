@@ -1,0 +1,9 @@
+(* EXPECT: FC-rep *)
+(* Fuel-parameter arc: 'declare {lean} fuel_consumer val f' marks a
+   HAND-WRITTEN Lean implementation that reads LemFuel.fuel; on a val
+   without a Lean target_rep the declare is meaningless (a generated
+   definition's fuel needs are computed by the fuel lifting). *)
+open import Pervasives
+val f : nat -> nat
+let f x = x + 1
+declare {lean} fuel_consumer val f

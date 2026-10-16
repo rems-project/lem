@@ -1,0 +1,14 @@
+(* Failure probe (linksem 2026-09-29, B15b): `let x = e1 in e2` where e2
+   does not use x still evaluates e1 in OCaml (strict), so a failing e1
+   stops the program; Lean's compiler dropped the unused binding. Now
+   emitted like `let _ = e1 in e2` (lemSeq). Also a tuple pattern of unused
+   variables. Each step gets a RUNTIME nat (0). *)
+open import Pervasives_extra
+
+val checked_pred : nat -> nat
+let checked_pred n = if n = 0 then failwith "let_unused: discarded e1 failed" else n - 1
+
+let steps : list (nat -> string) =
+  [ (fun n -> "before: " ^ show n);
+    (fun n -> let (a, b) = (n + 1, n + 2) in "tuple used: " ^ show (a + b));
+    (fun n -> let x = checked_pred n in "after (must not print): " ^ show n) ]

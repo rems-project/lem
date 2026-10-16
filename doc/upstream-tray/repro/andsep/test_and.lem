@@ -1,0 +1,8 @@
+open import Pervasives
+type t = A | B of nat
+(* before f *)
+let rec f (x : t) : nat = match x with A -> 0 | B n -> g n end
+(* before g *)
+and g (n : nat) : nat = match n with 0 -> 1 | _ -> f (B (n - 1)) end
+(* before a *)
+and a (x : t) : nat = match x with A -> 1 | B n -> f (B n) end

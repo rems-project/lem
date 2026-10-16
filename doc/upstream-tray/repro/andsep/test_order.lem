@@ -1,0 +1,8 @@
+open import Pervasives
+type t = A | B of nat
+(* before zeta *)
+let rec zeta (x : t) : nat = match x with A -> 0 | B n -> mid (B n) end
+(* before mid *)
+and mid (x : t) : nat = match x with A -> 1 | B n -> beta (B n) end
+(* before beta *)
+and beta (x : t) : nat = match x with A -> 2 | B n -> zeta A end

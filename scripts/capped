@@ -1,0 +1,201 @@
+#!/usr/bin/env bash
+# Repository-local copy of cerberus-lean scripts/capped at e9f9d049f.
+# The container environment auto-loader is deliberately omitted.
+# Original license notice follows; local changes use the same BSD-2-Clause terms.
+#   Cerberus
+#
+# Copyright (c) 2011-2022
+#   Kayvan Memarian
+#   Victor B. F. Gomes
+#   Justus Matthiesen
+#   Peter Sewell
+#   Kyndylan Nienhuis
+#   Stella Lau
+#   Jean Pichon-Pharabod
+#   Christopher Pulte
+#   Rodolphe Lepigre
+#   James Lingard
+#   Thomas Sewell
+#   Dhruv Makwana
+#   Neel Krishnaswami
+#
+# All rights reserved.
+#
+# This software was developed largely within the Rigorous Engineering of
+# Mainstream Systems (REMS) project at the University of Cambridge.  It
+# has received funding from the European Research Council (ERC) under
+# the European Union's Horizon 2020 research and innovation programme
+# (grant agreement No 789108, ELVER); the EPSRC Programme Grant REMS:
+# Rigorous Engineering of Mainstream Systems (EP/K008528/1); an EPSRC
+# Leadership Fellowship EP/H005633 (Sewell); a Gates Cambridge
+# Scholarship (Nienhuis); an MIT EECS Graduate Alumni Fellowship
+# (Lau); and Google.
+#
+# This script is covered by Cerberus's BSD 2-clause license below.
+# The full Cerberus LICENSE lists exceptions for other files in that project.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice, this
+#    list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+#    this list of conditions and the following disclaimer in the documentation
+#    and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# capped — run a command inside its own cgroup with a hard memory cap.
+# Ported from golean (deps/golean CLAUDE.md "Never run a Lean build
+# uncapped", 2026-08-09) after this project's own OOM session kill
+# (arc-7 S5a: a whole-driver-run rfl ate a 125G box).
+#
+#   scripts/capped lake build ...
+#   CERB_MEM_MAX=32G scripts/capped lake env lean probe.lean
+#   CERB_MEM_MAX=none scripts/capped ...   # loud opt-out
+#
+# Why this mechanism: on breach the kernel kills INSIDE the scope, so the
+# build dies instead of the session (the OOM killer's badness score
+# otherwise picks the multiplexer/agent). Two knobs measured NOT to work
+# by golean, do not "simplify" back to them: `lean -M` (not enforced
+# during kernel reduction) and `prlimit --as` (kills Lean spuriously —
+# per-thread address-space reservation). Cgroup RSS is the honest knob.
+# The cap is a BLAST RADIUS, not a budget.
+set -euo pipefail
+# --- the KILL banner (arc-17 S2 micro-item) ---------------------------------
+# Three exit-code misreadings in one arc family (the tail-pipe swallow, the
+# lem-gate chain, the S1 cgroup kills read as green) earned this: a killed
+# child must SHOUT. 137 = 128+SIGKILL (cgroup/OOM kill lands here),
+# 143 = 128+SIGTERM. The banner goes to stderr and the exit code is
+# propagated unchanged — this is a loudness feature, never a rescue.
+# OOM WITNESS (mem-scale S2, 2026-09-02): exit 137 alone is NOT evidence of
+# a cap breach — `timeout -k` SIGKILLs and a program's own `exit(137)`
+# (found live: four csmith checksums, gcc-lane baseline rows) look the
+# same. In cgroup-direct mode the kernel's own counter is read before the
+# cgroup is removed (`memory.events` `oom_kill N`, cgroup v2): a breach
+# prints the distinct OOM-KILLED banner the harnesses key their KILL
+# classes on; any other 137/143 keeps the generic banner. Never a rescue.
+CAPPED_OOM_KILLS=""
+run_reporting_kills() {
+  local rc=0
+  "$@" || rc=$?
+  # cgroup-direct mode registers a cleanup hook (migrate back + rmdir);
+  # it must run BEFORE exit and never alters rc.
+  if declare -F capped_cleanup >/dev/null 2>&1; then capped_cleanup; fi
+  # Three witness states: N>0 (breach), "0" (read, no breach), "" (NOT
+  # READABLE — systemd-run fallback has no cgroup path, or memory.events
+  # could not be read): the banner never asserts "not a breach" without
+  # the counter (audit m1). A breach whose direct child exited otherwise
+  # (a grandchild OOM'd, the parent exited 1) is bannered too (audit m2).
+  if [[ $rc -eq 137 || $rc -eq 143 ]]; then
+    echo "==============================================================" >&2
+    if [[ -n "$CAPPED_OOM_KILLS" && "$CAPPED_OOM_KILLS" != "0" ]]; then
+      echo "capped: OOM-KILLED (exit $rc — cgroup memory cap CERB_MEM_MAX=$MEM breached; memory.events oom_kill=$CAPPED_OOM_KILLS; NOT a pass)" >&2
+    elif [[ -z "$CAPPED_OOM_KILLS" ]]; then
+      echo "capped: KILLED, OOM witness UNAVAILABLE (exit $rc — cannot distinguish a cap breach from a signal death: no readable cgroup memory.events on this path; NOT a pass)" >&2
+    else
+      echo "capped: KILLED (exit $rc — signal death, NOT a cap breach: cgroup memory.events oom_kill=0; e.g. timeout -k SIGKILL or the program's own exit status; NOT a pass)" >&2
+    fi
+    echo "==============================================================" >&2
+  elif [[ -n "$CAPPED_OOM_KILLS" && "$CAPPED_OOM_KILLS" != "0" ]]; then
+    echo "==============================================================" >&2
+    echo "capped: OOM-KILLED (memory.events oom_kill=$CAPPED_OOM_KILLS, cap CERB_MEM_MAX=$MEM; command exit $rc — a descendant was killed by the cap; NOT a clean pass)" >&2
+    echo "==============================================================" >&2
+  fi
+  exit $rc
+}
+MEM="${CERB_MEM_MAX:-64G}"
+if [[ "$MEM" == "none" ]]; then
+  echo "capped: CERB_MEM_MAX=none — running UNCAPPED (explicit opt-out)" >&2
+  run_reporting_kills "$@"
+fi
+# --- cgroup-direct mode (2026-09-01, bus-free) ------------------------------
+# `systemd-run --user --scope` needs the user manager's D-Bus AND private
+# socket, which the nono sandbox does not grant (profile history 1.9-1.11:
+# bus grants tried and rolled back 2026-08-29). The cap itself does not need
+# systemd at all: with cgroup v2 delegation (user@.service, Delegate=yes)
+# this process's parent slice (app.slice) is writable by us and already
+# enables the memory controller for children. So: create a sibling child
+# cgroup under that parent — the same shape systemd-run would create —
+# write memory.max/memory.swap.max, migrate THIS wrapper into it (children
+# inherit), run, migrate back, rmdir. Requires only a cgroupfs path grant
+# (nono profile 1.13.0). If any step is not permitted we fall through to
+# systemd-run; the wrapper is never silently uncapped by this path.
+# Sibling-not-child: cgroup v2's no-internal-processes rule forbids enabling
+# controllers under a cgroup that has processes (our own scope does).
+mem_to_bytes() {  # systemd suffix semantics: K/M/G/T are binary (1024^n)
+  local v="$1" n u
+  if [[ "$v" == "max" || "$v" == "infinity" ]]; then echo max; return 0; fi
+  n="${v%[KkMmGgTt]}"; u="${v#"$n"}"
+  [[ "$n" =~ ^[0-9]+$ ]] || return 1
+  case "$u" in
+    ''|B|b) echo "$n";;
+    K|k) echo $((n*1024));;
+    M|m) echo $((n*1024*1024));;
+    G|g) echo $((n*1024*1024*1024));;
+    T|t) echo $((n*1024*1024*1024*1024));;
+    *) return 1;;
+  esac
+}
+cgroup_direct_try() {
+  local mem_bytes self orig parent cg
+  mem_bytes="$(mem_to_bytes "$MEM")" || { echo "capped: ERROR — cannot parse CERB_MEM_MAX='$MEM' (want e.g. 32G, 512M, max)" >&2; exit 2; }
+  self="$(cut -d: -f3 /proc/self/cgroup 2>/dev/null)" || return 1
+  [[ -n "$self" && "$self" != "/" ]] || return 1
+  orig="/sys/fs/cgroup$self"; parent="$(dirname "$orig")"
+  if [[ -n "${CERB_JOB_CGROUP:-}" && "$orig" != "$CERB_JOB_CGROUP/"* ]]; then
+    echo "capped: ERROR — command escaped its owned runner cgroup $CERB_JOB_CGROUP" >&2
+    exit 2
+  fi
+  [[ -d "$parent" && -f "$parent/cgroup.subtree_control" ]] || return 1
+  grep -qw memory "$parent/cgroup.subtree_control" 2>/dev/null || return 1
+  cg="$parent/capped-$$-$(date +%s%N)"
+  mkdir "$cg" 2>/dev/null || return 1
+  if ! { echo "$mem_bytes" > "$cg/memory.max" && echo 0 > "$cg/memory.swap.max" \
+         && echo $$ > "$cg/cgroup.procs"; } 2>/dev/null; then
+    echo $$ > "$orig/cgroup.procs" 2>/dev/null || true
+    rmdir "$cg" 2>/dev/null || true
+    return 1
+  fi
+  CAPPED_CG="$cg"; CAPPED_ORIG="$orig"
+  return 0
+}
+if cgroup_direct_try; then
+  capped_cleanup() {
+    # the OOM witness, read while the cgroup still exists ("" if unreadable)
+    # (`|| true`: under `set -e` an unreadable file must yield "" — the
+    # UNAVAILABLE banner — not abort capped and replace the child's rc)
+    CAPPED_OOM_KILLS="$(sed -n 's/^oom_kill //p' "$CAPPED_CG/memory.events" 2>/dev/null || true)"
+    echo $$ > "$CAPPED_ORIG/cgroup.procs" 2>/dev/null || true
+    rmdir "$CAPPED_CG" 2>/dev/null \
+      || echo "capped: WARNING — could not remove cgroup $CAPPED_CG (processes still inside?)" >&2
+  }
+  run_reporting_kills "$@"
+fi
+# A managed runner owns the complete process subtree. Falling back to a
+# systemd scope would move work outside that lifetime and defeat cleanup.
+if [[ -n "${CERB_JOB_CGROUP:-}" ]]; then
+  echo "capped: ERROR — cannot establish a memory cap inside owned command cgroup $CERB_JOB_CGROUP" >&2
+  exit 2
+fi
+# Portability fallback (arc-7 S5c, audit-1 F4): on hosts without
+# systemd-run (containers, non-systemd distros) warn LOUDLY and
+# proceed uncapped rather than break every routed script. The warning
+# is the tripwire: an uncapped run on the dev box means a broken
+# environment, not a policy change. (cgroup-direct above is tried first.)
+if ! command -v systemd-run >/dev/null 2>&1; then
+  echo "capped: WARNING — systemd-run NOT FOUND; running UNCAPPED" >&2
+  echo "capped: WARNING — the D7 memory-cap rule is NOT enforced here" >&2
+  run_reporting_kills "$@"
+fi
+run_reporting_kills systemd-run --user --scope --quiet -p "MemoryMax=$MEM" -p "MemorySwapMax=0" "$@"

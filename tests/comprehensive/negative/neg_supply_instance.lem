@@ -1,0 +1,14 @@
+(* EXPECT: inside an instance method *)
+(* Supply guard G-inst (effect-retirement L1): instance fields cannot
+   take extra parameters or change their result type, so a draw inside
+   an instance method fails closed at generation time. *)
+open import Pervasives
+val tick : unit -> nat
+declare lean target_rep function tick u = 0
+declare {lean} supply val tick
+class ( drawable 'a )
+  val drawn : 'a -> nat
+end
+instance ( drawable nat )
+  let drawn x = x + tick ()
+end

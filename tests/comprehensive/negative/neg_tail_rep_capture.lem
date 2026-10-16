@@ -1,0 +1,15 @@
+(* EXPECT: renders on Lean as `lemTail` — a reserved synthesized binder name *)
+(* tails-and-pmap-laws audit response F1 (pre-merge audit probe p11b): a
+   constant whose Lean target_rep TEXT is `lemTail`, referenced in a
+   hoisted body, would render as the hoisted binder and be captured — the
+   audit measured Lean 4 vs OCaml 1 for this program. Refused: the capture
+   check compares what referenced constants RENDER as, not their lem
+   names. *)
+open import Pervasives
+val dl : list nat
+let dl = []
+declare lean target_rep function dl = `lemTail`
+val bad : nat -> list nat -> nat
+let rec bad acc = function | [] -> acc | _ :: xs -> bad (acc + 1) (if acc = 0 then dl else xs) end
+declare {lean} fuel val bad = `fun _ => acc`
+declare {lean} fuel_measure val bad = `List.length lemTail + 1`

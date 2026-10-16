@@ -1,0 +1,7 @@
+(* EXPECT: collides with the backend-derived size function *)
+(* D2-enablers slice: a mutual-block record renders as an inductive with
+   accessor defs `t.<field>`; a field named `lemSize_aux1` collides with
+   the derived size helpers and is refused at generation. *)
+open import Pervasives
+type q1 = Q of list q2
+and q2 = <| lemSize_aux1 : nat; kids : list q1 |>

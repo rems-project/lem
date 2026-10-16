@@ -1,0 +1,11 @@
+(* EXPECT: FM-mutual *)
+(* fuel-measure slice: in a truly mutual fuel'd block the members share
+   one counter — every member carries the measure or none does. *)
+open import Pervasives
+val ev : list nat -> bool
+val od : list nat -> bool
+let rec ev l = match l with | [] -> true | _ :: xs -> od xs end
+and od l = match l with | [] -> false | _ :: xs -> ev xs end
+declare {lean} fuel val ev = `false`
+declare {lean} fuel val od = `true`
+declare {lean} fuel_measure val ev = `List.length l + 1`

@@ -1,0 +1,15 @@
+(* Failure probe (parity-fix slice 2026-09-03, divergence census D1):
+   division by zero. OCaml raises Division_by_zero (native `/`, `mod`,
+   Int32/Int64 div/rem, zarith); the Lean reps previously totalised to 0
+   silently — Lean SUCCEEDED where the reference FAILS, which is not
+   covered by exception class (a). Now every division/remainder rep fails
+   loudly (failwithI) — under LEAN_ABORT_ON_PANIC=1 the binary aborts at
+   the same point. The runner compares the stdout prefix and requires
+   both exits non-zero; each step receives a RUNTIME nat (0) so neither
+   compiler can fold the failing operation into initialisation. *)
+open import Pervasives_extra
+
+let steps : list (nat -> string) =
+  [ (fun n -> "before: 7 / 1 = " ^ show ((7 : nat) / (n + 1)));
+    (fun n -> "before: 7 mod 2 = " ^ show ((7 : nat) mod (n + 2)));
+    (fun n -> "at zero: " ^ show ((7 : nat) / n)) ]

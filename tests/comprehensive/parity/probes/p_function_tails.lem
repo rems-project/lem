@@ -1,0 +1,72 @@
+(* Parity probe (tails-and-pmap-laws slice, 2026-09-05): definitions with a
+   trailing `function` (and `fun k -> function`, a destructuring parameter,
+   a pair-of-lists scrutinee, a mutual pair) are ordinary recursive
+   definitions on the OCaml target — every {lean} declare is a no-op there
+   and the Lean-emission eta-expansion never touches OCaml — and measured
+   / structural definitions over the hoisted `lemTail` binder on Lean;
+   both compute the same thing at several inputs, including the measure's
+   boundary (the empty list) and deep inputs. Expected values are the OCaml
+   target's output. Obligations: p_function_tails.proofs.lean. *)
+open import Pervasives_extra
+
+val tlen : nat -> list nat -> nat
+let rec tlen acc = function
+  | [] -> acc
+  | _ :: xs -> tlen (acc + 1) xs
+end
+declare {lean} fuel val tlen = `fun _ => acc`
+declare {lean} fuel_measure val tlen = `List.length lemTail + 1`
+
+val slen : nat -> list nat -> nat
+let rec slen acc = function
+  | [] -> acc
+  | _ :: xs -> slen (acc + 1) xs
+end
+declare {lean} structural val slen
+
+val tpair : (nat * nat) -> list nat -> (nat * nat)
+let rec tpair (a, b) = function
+  | [] -> (a, b)
+  | x :: xs -> tpair (a + x, b + 1) xs
+end
+declare {lean} fuel val tpair = `fun _ => (0, 0)`
+declare {lean} fuel_measure val tpair = `List.length lemTail + 1`
+
+val tscale : nat -> nat -> list nat -> nat
+let rec tscale acc = fun k -> function
+  | [] -> acc
+  | x :: xs -> tscale (acc + k * x) k xs
+end
+declare {lean} fuel val tscale = `fun _ _ => acc`
+declare {lean} fuel_measure val tscale = `List.length lemTail + 1`
+
+val tev : nat -> list nat -> nat
+val todd : nat -> list nat -> nat
+let rec tev acc l = match l with | [] -> acc | _ :: xs -> todd (acc + 1) xs end
+and todd acc = function | [] -> acc | _ :: xs -> tev (acc + 2) xs end
+declare {lean} fuel val tev = `999`
+declare {lean} fuel val todd = `fun _ => 999`
+declare {lean} fuel_measure val tev = `List.length l + 1`
+declare {lean} fuel_measure val todd = `List.length lemTail + 1`
+
+val tdot : nat -> (list nat * list nat) -> nat
+let rec tdot acc = function
+  | ([], []) -> acc
+  | (x :: xs, y :: ys) -> tdot (acc + x * y) (xs, ys)
+  | _ -> 0
+end
+declare {lean} fuel val tdot = `fun _ => 0`
+declare {lean} fuel_measure val tdot = `List.length lemTail.1 + 1`
+
+let results : list string =
+  [ "tlen []: " ^ show (tlen 7 []);
+    "tlen [1..5]: " ^ show (tlen 0 [1; 2; 3; 4; 5]);
+    "slen: " ^ show (slen 10 [1; 2]);
+    "tpair: " ^ show (tpair (0, 0) [1; 2; 3]);
+    "tscale: " ^ show (tscale 0 2 [1; 2; 3]);
+    "tev: " ^ show (tev 0 [1; 2; 3]);
+    "todd: " ^ show (todd 0 [1; 2; 3]);
+    "tdot: " ^ show (tdot 0 ([1; 2; 3], [4; 5; 6]));
+    "tdot ragged: " ^ show (tdot 0 ([1; 2], [4]));
+    "tlen deep: " ^ show (tlen 0 (List.replicate 5000 (0 : nat)));
+    "slen deep: " ^ show (slen 0 (List.replicate 5000 (0 : nat))) ]

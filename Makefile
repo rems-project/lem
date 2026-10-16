@@ -1,7 +1,8 @@
 # Attempt to ask git for a version (tag or hash) but fall back on LEMRELEASE.
 # Note that opam builds from a tar ball so LEMRELEASE will be used in that case.
 LEMRELEASE:=2026-05-01
-LEMVERSION:=$(shell git describe --dirty --always 2>/dev/null || echo $(LEMRELEASE))
+# --long keeps the commit suffix even at an exact annotated release tag.
+LEMVERSION:=$(shell git describe --long --dirty --always 2>/dev/null || echo $(LEMRELEASE))
 
 DDIR=lem-$(LEMVERSION)
 
@@ -26,6 +27,8 @@ install:
 	cp -R hol-lib "$(INSTALL_DIR)/share/lem"
 #	cp -R html-lib "$(INSTALL_DIR)/share/lem"
 	cp -R isabelle-lib "$(INSTALL_DIR)/share/lem"
+	cp -R lean-lib "$(INSTALL_DIR)/share/lem"
+	cp LICENSE "$(INSTALL_DIR)/share/lem/LICENSE"
 #	cp -R tex-lib "$(INSTALL_DIR)/share/lem"
 
 uninstall:
@@ -39,6 +42,23 @@ build-doc:
 do-tests:
 	$(MAKE) -C tests
 
+# Non-Lean output regression net (2026-08-31 backend quality review, m2):
+# regenerates the library + tests/backends corpora for the 9 non-Lean
+# emitters and compares sha256 manifests against the committed goldens.
+# Any drift fails loudly naming the target and file. See
+# tests/nonlean-regress/run.sh for the rebaseline protocol.
+.PHONY: nonlean-regress
+nonlean-regress:
+	tests/nonlean-regress/run.sh
+
+# Upstream drift check: this fork's non-Lean output vs pristine upstream Lem
+# (library + tests/backends for the 9 non-Lean emitters, and linksem's and
+# Cerberus's OCaml). Needs UPSTREAM_LEM, LINKSEM, CERBERUS (or NO_LINKSEM=1 /
+# NO_CERBERUS=1) and an output directory; see tests/upstream-drift/run.sh.
+.PHONY: upstream-drift
+upstream-drift:
+	tests/upstream-drift/run.sh $(or $(DRIFT_OUT),$(error set DRIFT_OUT to an empty output directory))
+
 lem_dep.tex: lem_dep.ott
 	ott -o lem_dep.tex -picky_multiple_parses true lem_dep.ott
 
@@ -46,7 +66,7 @@ lem_dep.pdf: lem_dep.tex
 	pdflatex lem_dep.tex
 
 # this runs Lem on the Lem library (library/*.lem), leaving the
-# generated OCaml, Coq, HOL4, and Isabelle files to ocaml-libs,
+# generated OCaml, Coq, HOL4, Isabelle, and Lean 4 files to ocaml-libs,
 # hol-libs, etc.
 libs_phase_1: 
 	$(MAKE) -C library
@@ -62,6 +82,7 @@ libs_phase_2:
 	$(MAKE) hol-libs
 	$(MAKE) coq-libs
 	$(MAKE) isa-libs
+	$(MAKE) lean-libs
 
 hol-libs: 
 #	$(MAKE) -C library hol-libs
@@ -77,13 +98,45 @@ isa-libs:
 #	$(MAKE) -C library isa-libs
 	isabelle build -d isabelle-lib -b LEM
 
-coq-libs: 
+coq-libs:
 #	$(MAKE) -C library coq-libs
 	cd coq-lib; coqc -R . Lem coqharness.v
 	cd coq-lib; coq_makefile -f coq_makefile.in > Makefile
 	$(MAKE) -C coq-lib
 
-tex-libs: 
+lean-libs:
+	$(MAKE) -C library lean-libs
+
+# Extended Lean targets, including historical examples; see the backend
+# README for the separately measured comprehensive gate and its limits.
+#   1. Build the compiler
+#   2. Regenerate and compile the Lean library (lean-lib/)
+#   3. Backend tests (tests/backends/ — 12 .lem files)
+#   4. Comprehensive tests (tests/comprehensive/)
+#   5. ppcmem-model example (examples/ppcmem-model/ — 10 .lem files)
+#   6. cpp example (examples/cpp/ — 1 large .lem file, ~1930 lines generated)
+lean-tests: bin/lem lean-libs
+	cd lean-lib && lake build
+	$(MAKE) -C tests/backends leantests
+	$(MAKE) -C tests/comprehensive lean
+	cd examples/ppcmem-model && \
+		../../lem -wl ign -lean \
+			bitwiseCompatibility.lem \
+			machineDefUtils.lem \
+			machineDefFreshIds.lem \
+			machineDefValue.lem \
+			machineDefTypes.lem \
+			machineDefInstructionSemantics.lem \
+			machineDefStorageSubsystem.lem \
+			machineDefThreadSubsystem.lem \
+			machineDefSystem.lem \
+			machineDefAxiomaticCore.lem && \
+		lake build
+	cd examples/cpp && \
+		../../lem -wl ign -lean cmm.lem && \
+		lake build
+
+tex-libs:
 #	$(MAKE) -C library tex-libs
 	cd tex-lib; pdflatex lem-libs.tex
 	cd tex-lib; pdflatex lem-libs.tex
@@ -261,6 +314,7 @@ distrib: src/ast.ml version
 	mkdir $(DDIR)/library/isabelle
 	mkdir $(DDIR)/library/ocaml
 	cp library/*.lem $(DDIR)/library/
+	cp library/*_constants $(DDIR)/library/
 	cp library/isabelle/constants $(DDIR)/library/isabelle/
 	cp library/isabelle/*.lem $(DDIR)/library/isabelle/
 	cp library/hol/constants $(DDIR)/library/hol/
@@ -271,6 +325,9 @@ distrib: src/ast.ml version
 	cp ocaml-lib/*.mli $(DDIR)/ocaml-lib	
 	cp ocaml-lib/*.mllib $(DDIR)/ocaml-lib	
 	cp ocaml-lib/Makefile $(DDIR)/ocaml-lib	
+	mkdir $(DDIR)/lean-lib
+	cp lean-lib/*.lean $(DDIR)/lean-lib
+	-cp lean-lib/lean-toolchain $(DDIR)/lean-lib
 	mkdir $(DDIR)/tex-lib
 	cp tex-lib/lem.sty $(DDIR)/tex-lib
 	cp Makefile-distrib $(DDIR)/Makefile
@@ -299,6 +356,7 @@ clean:
 	-rm -f coq-lib/Makefile
 	-rm -f coq-lib/coqharness.vo
 	-rm -f coq-lib/coqharness.glob
+	-rm -rf lean-lib/.lake lean-lib/build
 	-rm -rf src/version.ml lem library/lib_cache src/share_directory.ml
 	#-rm -rf lem_dep.tex lem_dep.pdf lem_dep.aux lem_dep.log
 

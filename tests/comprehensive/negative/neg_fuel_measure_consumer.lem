@@ -1,0 +1,9 @@
+(* EXPECT: FM-consumer *)
+(* fuel-measure slice: a fuel_consumer is a hand-written implementation
+   reading the ambient; a measure instantiates a generated worker — the
+   two exclude each other on one val. *)
+open import Pervasives
+val len : list nat -> nat
+declare lean target_rep function len = `SomeImpl.len`
+declare {lean} fuel_consumer val len
+declare {lean} fuel_measure val len = `List.length l + 1`

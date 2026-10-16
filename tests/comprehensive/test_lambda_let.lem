@@ -1,0 +1,23 @@
+open import Pervasives_extra
+
+(* ======================================================================
+   Local lambda lets with destructuring parameters (linksem 2026-09-28,
+   B11). linksem's link.lem binds
+     let apply_reloc = fun img -> fun (el_name, start, len) -> fun s -> fun a -> ...
+   Lem's pattern compiler makes the tuple parameter a `match`; without an
+   expected type Lean inferred a dependent motive and the local function
+   could not be applied ("Function expected"). The backend annotates such
+   lets with the right-hand side's type.
+   ====================================================================== *)
+
+let lambda_let_mono (base : nat) =
+  let step = fun acc -> fun (a, b, c) -> fun (k : nat) -> acc + a * b + c + k in
+  step base (1, 2, 3) 4
+
+val lambda_let_poly : forall 'a. 'a -> list 'a -> list ('a * nat)
+let lambda_let_poly x xs =
+  let tag = fun (y, n) -> fun (m : nat) -> (y, n + m) in
+  List.map (fun y -> tag (y, 1) 10) (x :: xs)
+
+assert lambda_let_mono_ok : (lambda_let_mono 100 = 109)
+assert lambda_let_poly_ok : (List.map snd (lambda_let_poly true [false]) = [11; 11])

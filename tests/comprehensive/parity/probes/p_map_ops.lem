@@ -1,0 +1,61 @@
+(* Parity probe (parity-fix slice 2026-09-03; census items F3/F10 and the
+   Pmap port): map observables that depend on the OCaml Pmap (AVL)
+   implementation — toList/fold order (ascending by key), which KEY and
+   VALUE a comparator-EQ insert keeps (the new one), union's key/value
+   choice (the second map's value; the key follows the merge traversal),
+   equality by the map's comparator, domain/range representatives,
+   map/mapi, delete, member, lookup, size, and show. Expected values are
+   the OCaml target's output. *)
+open import Pervasives_extra
+
+type k = K of nat * string
+let k_cmp (K a _) (K b _) = compare a b
+instance (Ord k)
+  let compare = k_cmp
+  let (<) x y = k_cmp x y = LT
+  let (<=) x y = k_cmp x y <> GT
+  let (>) x y = k_cmp x y = GT
+  let (>=) x y = k_cmp x y <> LT
+end
+instance (SetType k)
+  let setElemCompare = k_cmp
+end
+instance (Show k)
+  let show k = match k with K a s -> "K" ^ stringFromNat a ^ s end
+end
+
+let ml (m : map k nat) : string = show (Map_extra.toList m)
+let nl (m : map nat string) : string = show (Map_extra.toList m)
+
+let m1 : map k nat = Map.fromList [(K 3 "a", 30); (K 1 "a", 10); (K 2 "a", 20); (K 1 "b", 11)]
+let m2 : map k nat = Map.fromList [(K 2 "c", 200); (K 4 "c", 400); (K 1 "c", 100)]
+let mbig : map k nat = Map.fromList (List.genlist (fun i -> (K ((i * 5) mod 11) "x", i)) 11)
+let msmall : map k nat = Map.fromList [(K 3 "y", 1000); (K 8 "y", 2000)]
+let n1 : map nat string = Map.fromList [(5, "e"); (1, "a"); (3, "c")]
+
+let results : list string =
+  [ "toList m1: " ^ ml m1;
+    "fold: " ^ show (Map_extra.fold (fun k v acc -> (k, v) :: acc) m1 []);
+    "insert replaces key+value: " ^ ml (Map.insert (K 2 "z") 99 m1);
+    "union m1 m2: " ^ ml (Map.(union) m1 m2);
+    "union m2 m1: " ^ ml (Map.(union) m2 m1);
+    "union small into big: " ^ ml (Map.(union) mbig msmall);
+    "union big into small: " ^ ml (Map.(union) msmall mbig);
+    "lookup: " ^ show (Map.lookup (K 1 "q") m1) ^ " " ^ show (Map.lookup (K 9 "q") m1);
+    "member: " ^ show (Map.member (K 3 "q") m1) ^ " " ^ show (Map.member (K 7 "q") m1);
+    "domain: " ^ show (Set_extra.toList (Map.domain m1));
+    "range: " ^ show (Set_extra.toList (Map.range m1));
+    "size: " ^ show (Map.size m1);
+    "delete: " ^ ml (Map.delete (K 2 "q") m1);
+    "equal same keys diff tags: " ^ show (m1 = Map.fromList [(K 1 "z", 11); (K 2 "z", 20); (K 3 "z", 30)]);
+    "equal diff values: " ^ show (m1 = Map.fromList [(K 1 "a", 10); (K 2 "a", 20); (K 3 "a", 30)]);
+    "map: " ^ ml (Map.map (fun v -> v + 1) m1);
+    "mapi: " ^ ml (Map.mapi (fun (K a _) v -> v + a) m1);
+    "find: " ^ show (Map_extra.find (K 3 "q") m1);
+    "findWithDefault: " ^ show (Map.findWithDefault (K 8 "q") 0 m1);
+    "fromSet: " ^ ml (Map_extra.fromSet (fun (K a _) -> a * a) (Set.fromList [K 2 "s"; K 1 "s"]));
+    "toSet: " ^ show (Set_extra.toList (Map.toSet n1));
+    "null: " ^ show (Map.null (Map.empty : map nat string)) ^ " " ^ show (Map.null n1);
+    "all/any: " ^ show (Map.all (fun _ v -> v > 0) m1) ^ " " ^ show (Map.any (fun (K a _) v -> a = 3 && v = 30) m1);
+    "unions: " ^ ml (Map.unions [m1; m2; msmall]);
+    "toList mbig: " ^ ml mbig ]

@@ -19,15 +19,16 @@ authors: [
   "Lars Hupel"
   "Basile Clement"
 ]
-homepage: "http://www.cl.cam.ac.uk/~pes20/lem/"
-bug-reports: "https://github.com/rems-project/lem/issues"
-license: ["BSD-3-Clause" "LGPL-2.1-or-later"]
-dev-repo: "git+https://github.com/rems-project/lem.git"
+homepage: "https://github.com/OathTech/lem-lean"
+bug-reports: "https://github.com/OathTech/lem-lean/issues"
+# Base licenses; per-file scope and linking exceptions are in LICENSE.
+license: ["BSD-3-Clause" "BSD-2-Clause" "LGPL-2.0-only" "LGPL-2.1-or-later"]
+dev-repo: "git+https://github.com/OathTech/lem-lean.git"
 build: [make "INSTALL_DIR=%{prefix}%"]
 install: [make "INSTALL_DIR=%{prefix}%" "install"]
 remove: [make "INSTALL_DIR=%{prefix}%" "uninstall"]
 depends: [
-  "ocaml" {>= "4.07.0"}
+  "ocaml" {>= "4.10.0"}
   "ocamlfind" {build & >= "1.5.1"}
   "ocamlbuild" {build}
   "conf-findutils" {build}
@@ -41,6 +42,8 @@ Lem is a tool for lightweight executable mathematics, for writing,
 managing, and publishing large-scale portable semantic definitions,
 with export to LaTeX, executable code (currently OCaml) and
 interactive theorem provers (currently Coq, HOL4, and Isabelle/HOL).
+This OathTech fork adds an experimental Lean 4 backend; its status and
+limitations are documented in doc/lean-backend/README.md.
 
 It is also intended as an intermediate language for generating
 definitions from domain-specific tools, and for porting definitions

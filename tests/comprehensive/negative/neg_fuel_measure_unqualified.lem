@@ -1,0 +1,9 @@
+(* EXPECT: FM-free *)
+(* fuel-measure slice: an UNQUALIFIED global (`length l`) is
+   indistinguishable from a free variable at generation (Lean's global
+   namespace is not visible to the backend) — write `List.length l`. *)
+open import Pervasives
+val len : list nat -> nat
+let rec len l = match l with | [] -> 0 | _ :: xs -> 1 + len xs end
+declare {lean} fuel val len = `999`
+declare {lean} fuel_measure val len = `length l + 1`

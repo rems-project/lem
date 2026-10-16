@@ -1,0 +1,16 @@
+(* EXPECT: in non-call position (passed as a value *)
+(* structural-declare slice: the recursive function passed as a VALUE to
+   a higher-order function (List.map/List.all/zip …) is not a structural
+   call — Lean's checker cannot eliminate it either ("failed to
+   eliminate recursive application"); refused at generation with the
+   rewrite named (an explicit list-walking sibling). This is the shape of
+   cerberus's ctypeEqual / eq_core_base_type / fake_mem_value_eq. *)
+open import Pervasives
+type tree = Leaf of nat | Node of list tree
+val tsum : tree -> nat
+let rec tsum t =
+  match t with
+    | Leaf n -> n
+    | Node ts -> List.foldl (+) 0 (List.map tsum ts)
+  end
+declare {lean} structural val tsum

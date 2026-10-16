@@ -1,0 +1,11 @@
+(* EXPECT: reserved synthesized binder *)
+(* Reserved-name contract, the _lemSupply prefix (effect-retirement
+   L1): a supply-lifted def binding a parameter in the reserved supply
+   namespace fail-stops (it would silently shadow the threaded binder
+   or a synthesized state name). *)
+open import Pervasives
+val tick : unit -> nat
+declare lean target_rep function tick u = 0
+declare {lean} supply val tick
+val use_tick : nat -> nat
+let use_tick _lemSupply_tick = tick () + _lemSupply_tick

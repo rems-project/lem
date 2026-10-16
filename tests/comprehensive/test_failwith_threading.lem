@@ -1,0 +1,134 @@
+(* Arc-8 S2: failwith -> failwithI + selective [Inhabited] signature
+   threading — design note
+   doc/notes/2026-08-20_arc8-inhabited-threading-design.md, section S2
+   (rules 1-6). EVERY failure site emits axiom-free LemLib.failwithI;
+   sites whose type mentions tyvars not discharged by the S1 instance
+   census thread an [Inhabited tv] instance-implicit binder onto the
+   enclosing def (zero call-site rewrites), propagated depth-monotone
+   through the call graph. Companion hand-written signature-shape
+   checks live in lean-test/TestFailwithThreadingCheck.lean.
+   Negative probes (fail-closed generation errors) live in
+   negative/neg_failwith_instance_method.lem and
+   negative/neg_failwith_phantom.lem. *)
+
+open import Pervasives_extra
+
+(* ================================================================ *)
+(* 1. Bare-tyvar failure site -> [Inhabited a] binder (the census
+      Class-T shape: nd_mem / fromJust / illTypedAil ...).          *)
+(* ================================================================ *)
+
+val first_or_fail : forall 'a. list 'a -> 'a
+let first_or_fail l = match l with
+  | x :: _ -> x
+  | [] -> failwith "first_or_fail: empty"
+end
+
+(* Concrete callers: instance-implicit binders mean ZERO call-site
+   rewrites; the instances resolve silently. *)
+let use_first_nat : nat = first_or_fail [(7 : nat); 8]
+let use_first_str : string = first_or_fail ["a"; "b"]
+
+assert first_nat_ok : use_first_nat = 7
+assert first_str_ok : use_first_str = "a"
+
+(* ================================================================ *)
+(* 2. Depth-1 propagation (the monotone fixpoint): a caller passing
+      its OWN free tyvar into the threaded position inherits the
+      binder; its own call sites still need no rewrites.            *)
+(* ================================================================ *)
+
+val second_or_first : forall 'a. list 'a -> 'a
+let second_or_first l = match l with
+  | _ :: y :: _ -> y
+  | _ -> first_or_fail l
+end
+
+let use_second : nat = second_or_first [(1 : nat); 2; 3]
+assert second_ok : use_second = 2
+
+(* ================================================================ *)
+(* 3. Composite site types -> NO binder (discharged by unconditional
+      instances: List, and the bounded either/Sum pair on its bound
+      side only).                                                   *)
+(* ================================================================ *)
+
+val tail_or_fail : forall 'a. list 'a -> list 'a
+let tail_or_fail l = match l with
+  | _ :: xs -> xs
+  | [] -> failwith "tail_or_fail: empty"
+end
+
+let use_tail : list nat = tail_or_fail [(1 : nat); 2]
+assert tail_ok : use_tail = [(2 : nat)]
+
+(* either site: LemLib's Sum inl/inr instance pair — only the LEFT
+   bound ([Inhabited 'a]) is demanded (first satisfiable entry). *)
+val left_or_fail : forall 'a 'b. list ('a * 'b) -> either 'a 'b
+let left_or_fail l = match l with
+  | (x, _) :: _ -> Left x
+  | [] -> failwith "left_or_fail: empty"
+end
+
+let use_left : either nat string = left_or_fail [((3 : nat), "x")]
+assert left_ok : (match use_left with Left n -> n = 3 | Right _ -> false end)
+
+(* ================================================================ *)
+(* 4. L_undefined (the pattern-compiler's default arm for an
+      incomplete match) at a tyvar type: renders as an ascribed
+      failwithI carrying the Incomplete Pattern message (mirroring
+      the OCaml backend's `failwith m`, src/backend.ml:864 — audit
+      fix, arc-8; the earlier silent-`default` rendering and the
+      legacy `sorry` path are both gone) and threads the SAME
+      binder. The happy path is pinned by the assert below; the
+      PANIC path (message printed + post-panic default as a library
+      call; fail-stop under LEAN_ABORT_ON_PANIC=1) is pinned by
+      lean-test/TestFailwithThreadingPanic via the Makefile
+      `lean-panic` target.                                          *)
+(* ================================================================ *)
+
+val head_undef : forall 'a. list 'a -> 'a
+let head_undef l = match l with
+  | x :: _ -> x
+end
+
+let use_head_undef : nat = head_undef [(9 : nat)]
+assert head_undef_ok : use_head_undef = 9
+
+(* ================================================================ *)
+(* 5. Point-free / bare reference to a failwith-mapped constant at a
+      concrete type: emitted as an ascribed bare failwithI.         *)
+(* ================================================================ *)
+
+val fail_handlers : list (string -> nat)
+let fail_handlers = [failwith]
+
+let use_handlers : nat = List.length fail_handlers
+assert handlers_ok : use_handlers = 1
+
+(* ================================================================ *)
+(* 6. Function-field shape, POSITIVE: a threaded def stored in a
+      record field at a CONCRETE type — the instance argument is
+      determined and synthesized at the storage site. (The
+      undetermined-tyvar variant is the negative probe
+      neg_failwith_phantom.lem.)                                    *)
+(* ================================================================ *)
+
+type nat_extractor = <| ex_fun : list nat -> nat |>
+
+let my_extractor = <| ex_fun = first_or_fail |>
+
+let use_extractor : nat = my_extractor.ex_fun [(5 : nat); 6]
+assert extractor_ok : use_extractor = 5
+
+(* ================================================================ *)
+(* 7. Multi-clause definition (the equation-compiler emission path)
+      with a bare-tyvar failure site.                               *)
+(* ================================================================ *)
+
+val alt_or_fail : forall 'a. list 'a -> 'a
+let rec alt_or_fail [] = failwith "alt_or_fail: empty"
+and alt_or_fail (x :: _) = x
+
+let use_alt : nat = alt_or_fail [(4 : nat)]
+assert alt_ok : use_alt = 4

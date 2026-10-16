@@ -3,8 +3,8 @@
 Lem is a tool for lightweight executable mathematics, for writing,
 managing, and publishing large-scale portable semantic definitions,
 with export to LaTeX, executable code (currently OCaml) and
-interactive theorem provers (currently Coq, HOL4, and Isabelle/HOL,
-though the generated Coq is not necessarily idiomatic).  It is also
+interactive theorem provers (currently Coq, HOL4, Isabelle/HOL, and
+Lean 4).  It is also
 intended as an intermediate language for generating definitions from
 domain-specific tools, and for porting definitions between interactive
 theorem proving systems.
@@ -46,6 +46,15 @@ Documentation can be found in `doc/built-doc`, including:
 * the type signatures of the [pervasives](https://www.cl.cam.ac.uk/~pes20/lem/built-doc/lem-libs-pervasives.txt) and [pervasives-extra](https://www.cl.cam.ac.uk/~pes20/lem/built-doc/lem-libs-pervasives.txt) libaries, in `lem-libs-pervasives.txt` and `lem-libs-pervasives-extra.txt`; and
 * source documentation, in [`html-doc`](https://www.cl.cam.ac.uk/~pes20/lem/built-doc/html-doc) and [`lem-doc.pdf`](https://www.cl.cam.ac.uk/~pes20/lem/built-doc/lem-doc.pdf), with a dependency diagram of the source modules in [`dep.pdf`](https://www.cl.cam.ac.uk/~pes20/lem/built-doc/dep.pdf).
 
+This fork adds the **Lean 4 backend** (`lem -lean`) and its runtime
+library (`lean-lib/`) — see [`doc/lean-backend/README.md`](doc/lean-backend/README.md).
+The Lean backend was developed primarily by AI agents (Claude,
+Anthropic) under the direction and review of Mike Dodds; upstream Lem
+is by the authors listed above. The fork-specific installation instructions,
+measured versions and limitations (2026-09-24, `1235498fa300c79504684a3bf774b902bc3b7458`) are on that
+backend page; the upstream opam release described below does not include
+the Lean backend. Runtime translation notices: [lean-lib/NOTICE.md](lean-lib/NOTICE.md).
+
 
 ## To install and build
 
@@ -86,6 +95,7 @@ Running `make` only generates Lem. It not generate the libraries needed to use L
 - for HOL4 : `make hol-libs`
 - for Isabelle: `make isa-libs`
 - for Coq : `make coq-libs`
+- for Lean 4 : `make lean-libs`
 
 These targets depend on the corresponding tool being installed. If you
 just want to generate the input that Lem gives to these tools, please
@@ -113,6 +123,7 @@ Lem has been tested against the following versions of the backend software:
   * Coq: 8.16.0
   * Isabelle 2022
   * HOL: HOL4 Kananaskis 14
+  * Lean: 4.32.2 (via Lake build system)
 
 ## Examples
 
@@ -193,4 +204,6 @@ emersion.
 
 Lem is made available under the BSD 3-clause license, with the
 exception of a few files derived from OCaml, which are under the
-GNU Library GPL.
+GNU Library GPL. The fork runtime translations retain those source terms
+([NOTICE](lean-lib/NOTICE.md)); `scripts/capped` retains its inline
+Cerberus BSD-2-Clause notice (introduced by the 2026-09-24 cleanup, `1235498fa300c79504684a3bf774b902bc3b7458`).

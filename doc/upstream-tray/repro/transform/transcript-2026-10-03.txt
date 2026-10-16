@@ -1,0 +1,8 @@
+$ (cd $LEMSRC/library && lem -lem -outdir <scratch> transform.lem)
+File "transform.lem", line 213, character 28 to line 213, character 40
+  Type error: unbound variable: find_non_pure
+[exit 1]
+$ lem -lem -outdir out user.lem
+File "/home/dev/projects/linksem-lean/deps/lem-upstream/library/transform.lem", line 213, character 28 to line 213, character 40
+  Type error: unbound variable: find_non_pure
+[exit 1]

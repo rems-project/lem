@@ -1,0 +1,128 @@
+open import Pervasives
+
+(* ================================================================
+   Fuel as a QUANTIFIED PARAMETER (fuel-parameter arc, 2026-09-04).
+
+   'declare {lean} fuel val f = `sentinel`' emits f as a total worker
+   f_lemFuel (lemFuel : Nat) ... recursing structurally on its own
+   counter, plus a wrapper that starts the counter from the AMBIENT
+   fuel: `def f [LemFuel] : T := f_lemFuel LemFuel.fuel`. The ambient
+   is the LemLib class `LemFuel` — an instance-implicit parameter of
+   every fuel'd function and of every definition that (transitively)
+   reaches one (the fuel lifting; call sites are textually unchanged).
+   NO default exists anywhere: the entry point supplies the instance
+   (`@f ⟨n⟩ …` / `letI : LemFuel := ⟨n⟩`), a theorem quantifies over
+   it. [USER 2026-09-03]: fuel is an execution parameter whose value
+   does not matter; any fuel value can be chosen.
+
+   Pins: lean-test/TestFuelParamCheck.lean (kernel: rfl/decide/∀-fuel
+   theorems), lean-test/TestFuelParamExec.lean (compiled: two
+   sufficient fuels agree; exhaustion is loud), parity/probes/p_fuel.lem
+   (two-target: the OCaml reference vs Lean at two fuels). Fuel'd defs
+   are fuel-lifted, so they are NOT assertable from lem (no fuel to
+   supply — negative/neg_fuel_scope_assert.lem): the pins live in Lean.
+   ================================================================ *)
+
+(* plain fuel'd def, VALUE sentinel: exhaustion is observable *)
+val spin : nat -> nat
+let rec spin n = if n = 0 then 0 else spin (n - 1)
+declare {lean} fuel val spin = `999`
+
+(* lifted consumers: each takes [LemFuel], call sites unchanged *)
+val uses_spin : nat -> nat
+let uses_spin k = spin k + 1
+val uses_uses_spin : nat -> nat
+let uses_uses_spin k = uses_spin (k + 1) * 2
+
+(* bare reference passed to a HOF: instance resolution needs no repair *)
+let maps_spin (l : list nat) : list nat = List.map spin l
+
+(* LOUD sentinel (the convention): exhaustion panics; a harness under
+   LEAN_ABORT_ON_PANIC=1 fail-stops (TestFuelParamExec leg 2) *)
+val loud_spin : nat -> nat
+let rec loud_spin n = if n = 0 then 0 else loud_spin (n - 1)
+declare {lean} fuel val loud_spin = `fuelExhausted n`
+
+(* fuel x reader: the wrapper is [LemFuel] then reader-first *)
+val amb : unit -> nat
+declare lean target_rep function amb u = 0
+declare {lean} reader val amb
+val climb : nat -> nat
+let rec climb n = if n = amb () then n else climb (n + 1)
+declare {lean} fuel val climb = `998`
+let uses_climb (k : nat) : nat = climb k
+
+(* fuel x reader_seed: the seed def is fuel-lifted like any other def
+   (the [LemFuel] binder is orthogonal to the seed); its first argument
+   seeds the reader for its lifted callees *)
+val seeded_climb : nat -> nat -> nat
+let seeded_climb amb_val k = climb k
+declare {lean} reader_seed val seeded_climb
+
+(* a top-level VALUE binding reaching fuel becomes a function of the
+   instance (`def spun_value [LemFuel] : Nat`) *)
+let spun_value : nat = spin 7
+
+(* a fuel'd function calling ANOTHER fuel'd function: the worker takes
+   [LemFuel] (it passes the ambient on) and the callee starts from the
+   FULL ambient, never from the caller's remaining counter
+   (TestFuelParamCheck: outer 3 at fuel 4 completes) *)
+val outer : nat -> nat
+let rec outer n = if n = 0 then spin 3 else outer (n - 1)
+declare {lean} fuel val outer = `fuelExhausted n`
+
+(* fuel x mutual: a truly mutual block reaching fuel outside itself —
+   every worker takes [LemFuel] (all-or-none, like the counter) *)
+val mping : nat -> nat
+val mpong : nat -> nat
+let rec mping n = if n = 0 then spin 2 else mpong (n - 1)
+and mpong n = if n = 0 then 1 else mping (n - 1)
+declare {lean} fuel val mping = `995`
+declare {lean} fuel val mpong = `994`
+
+(* fuel_consumer: a hand-written Lean implementation that reads the
+   ambient (lean-test/TestFuelConsumerImpl.lean takes [LemFuel]); its
+   callers are fuel-lifted by the ordinary fixpoint *)
+val consumer_spin : nat -> nat
+declare lean target_rep function consumer_spin = `TestFuelConsumerImpl.spinAtFuel`
+declare {lean} fuel_consumer val consumer_spin
+let uses_consumer (k : nat) : nat = consumer_spin k
+
+(* wildcard parameter: the generated _zero lemma binds a fresh name *)
+val wild_spin : nat -> unit -> nat
+let rec wild_spin n _ = if n = 0 then 0 else wild_spin (n - 1) ()
+declare {lean} fuel val wild_spin = `997`
+
+(* destructuring parameter: lem's pattern compiler makes the parameter
+   a variable (`p`) with a match in the body, so the _zero lemma IS
+   generated (`tup_spin_lemFuel_zero (p : Nat × Nat)`); the backend's
+   "not generated" comment path is a backstop for parameter shapes lem
+   never emits *)
+val tup_spin : nat * nat -> nat
+let rec tup_spin (a, b) = if a = 0 then b else tup_spin (a - 1, b + 1)
+declare {lean} fuel val tup_spin = `996`
+
+(* point-free tail: the head binds fewer parameters than the type has
+   arrows, so the worker at counter 0 is a FUNCTION; the _zero lemma
+   ascribes the codomain to its left-hand side, or the sentinel lambda's
+   implicit type arguments have nothing to unify with (found on the
+   cerberus dry run of the fuel-measure slice, `liftAction_lemFuel_zero`:
+   `don't know how to synthesize implicit argument`) *)
+val tail_spin : forall 'a. nat -> 'a -> 'a
+let rec tail_spin n = if n = 0 then (fun x -> x) else tail_spin (n - 1)
+declare {lean} fuel val tail_spin = `fun x => x`
+
+(* an INDUCTIVE RELATION whose premise reaches the ambient fuel
+   (D2-enablers slice, 2026-09-04; cerberus cmm_op.lem:580 `monStep`):
+   the generated `inductive` takes `[LemFuel]` as an inductive PARAMETER
+   (Lean allows an instance-implicit binder on an inductive; the
+   constructors' premises resolve the ambient from it), and the relation
+   is fuel-lifted like a def — a definition mentioning it takes the
+   binder; a reference from a fuel-free context (an assert: negative/
+   neg_fuel_indreln_scope.lem) is the fuel-scope error. Pinned in
+   lean-test/TestFuelParamCheck.lean (a derivation at an explicit
+   instance). *)
+indreln [spin_reach : nat -> nat -> bool]
+  spin_reach_refl : forall n. true ==> spin_reach n n
+and
+  spin_reach_step : forall n m. spin_reach n m && spin m = 0 ==> spin_reach n (m + 1)

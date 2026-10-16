@@ -1,0 +1,3 @@
+open import Pervasives
+
+let rl (n : nat) : nat = length (replicate n (0 : nat))

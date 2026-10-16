@@ -1,0 +1,12 @@
+(* EXPECT: has no Lean target_rep *)
+(* reader_consumer guard RC-rep (charter §4.2): the consumer is an
+   extern boundary by definition — a consumer val without a Lean
+   target_rep is rejected at generation time. *)
+open import Pervasives
+val cfg : unit -> nat
+declare lean target_rep function cfg u = 0
+declare {lean} reader val cfg
+val bad_consumer : nat -> nat
+let bad_consumer x = x
+declare {lean} reader_consumer val bad_consumer
+let uses_bad x = bad_consumer x

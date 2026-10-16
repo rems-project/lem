@@ -1,0 +1,17 @@
+(* EXPECT: cannot derive BEq/Ord instances for type 't1': heterogeneous type-parameter counts put its mutual block in the Type 1 universe *)
+open import Pervasives
+(* NEGATIVE probe (arc-10 audit fix, auditor A F1): heterogeneous
+   type-parameter counts put this mutual block in Lean's Type 1
+   universe, where the historical residual was a pair of sorry-bodied
+   BEq/Ord instances — an opaque-inhabitant emission path (sorryAx),
+   banned since arc-8. The fixed backend must FAIL CLOSED at
+   generation time with an error naming the type and both escape
+   hatches (asserted verbatim by the EXPECT header above), exactly
+   like the Inhabited fail-closed path. The comparison demand below
+   (t1 equality) documents the use that would have silently completed
+   through the sorried instance. *)
+
+type t1 = K1 | K2 of t2 nat
+and t2 'a = L1 of 'a | L2 of t1
+
+let probe : bool = (K1 = K1)

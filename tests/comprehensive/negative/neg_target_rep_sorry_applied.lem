@@ -1,0 +1,6 @@
+(* EXPECT: target representation `sorry` is forbidden *)
+(* The public-readiness counterexample formerly emitted (sorry : Nat). *)
+open import Pervasives
+val hole : nat -> nat
+declare lean target_rep function hole = `sorry`
+let observed : nat = hole 0

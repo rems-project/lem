@@ -1,0 +1,12 @@
+$ lem -wl ign -ocaml failarg.lem
+[lem exit 0]
+$ ocamlfind ocamlopt -package zarith -linkpkg -I <upstream ocaml-lib> extract.cmxa failarg.ml  -o failarg.exe
+File "failarg.ml", line 6, characters 46-58:
+6 | let pick n:int=  (if n = 0 then (assert false "pick: zero") else n)
+                                                  ^^^^^^^^^^^^
+Error: Syntax error: ) expected
+File "failarg.ml", line 6, characters 32-33:
+6 | let pick n:int=  (if n = 0 then (assert false "pick: zero") else n)
+                                    ^
+  This ( might be unmatched
+[ocamlopt exit 2]

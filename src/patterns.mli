@@ -119,6 +119,7 @@ val compile_def : target -> match_check_arg -> env -> Def_trans.def_macro
 val is_isabelle_pattern_match : match_check_arg
 val is_hol_pattern_match : match_check_arg
 val is_coq_pattern_match : match_check_arg
+val is_lean_pattern_match : match_check_arg
 val is_ocaml_pattern_match : match_check_arg
 val is_pattern_match_const : bool -> match_check_arg
 

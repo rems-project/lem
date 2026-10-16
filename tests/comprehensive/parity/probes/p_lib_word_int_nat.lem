@@ -1,0 +1,35 @@
+(* Library-coverage probe (2026-09-30, library-parity-coverage record):
+   the NAMED bitwise operations at int and nat (intLnot, intLand, intLor,
+   intLxor, intLsl, intAsr, natLand, natLor, natLxor, natLsl, natAsr) and
+   the 31-bit bitSeq views intFromBitSeq/bitSeqFromInt/natFromBitSeq/
+   bitSeqFromNat. OCaml: native land/lor/lxor/lsl/asr/lnot on 63-bit int;
+   Lean: LemLib's unbounded lemInt*/lemNat* reps since LP4 (before, lem's
+   own definitions through a 31-bit bitSequence); operands and results stay
+   inside 63 bits (beyond: p_word_bitwise_wide). Expected values are the
+   OCaml target's output. *)
+open import Pervasives_extra
+
+let sI (i : int) : string = stringFromInt i
+let sn (n : nat) : string = stringFromNat n
+
+let cross (xs : list 'a) (ys : list 'b) : list ('a * 'b) = List.concatMap (fun x -> List.map (fun y -> (x, y)) ys) xs
+
+let ints : list int = [0; 1; 0-1; 6; 0-6; 255; 0-256; 1073741823; 0-1073741824]
+let nats : list nat = [0; 1; 6; 255; 256; 1073741823]
+let shifts : list nat = [0; 1; 3; 29; 30; 31; 32; 40; 57]
+let wide_ints : list int = [1073741824; 0-1073741825; 1099511627781; 0-1099511627776; 2305843009213693951; 0-2305843009213693952; 4611686018427387903; 0-4611686018427387904; 409114576149826901; 0-409114576149826902]
+let wide_nats : list nat = [1073741824; 1099511627781; 2305843009213693951; 4611686018427387903; 409114576149826901]
+
+let results : list string =
+  List.map (fun i -> "intLnot " ^ sI i ^ " = " ^ sI (intLnot i)) ints ++
+  List.map (fun (a, b) -> "int land/lor/lxor " ^ sI a ^ " " ^ sI b ^ " = " ^ sI (intLand a b) ^ " " ^ sI (intLor a b) ^ " " ^ sI (intLxor a b)) (cross ints ints) ++
+  List.map (fun (a, b) -> "int land/lor/lxor " ^ sI a ^ " " ^ sI b ^ " = " ^ sI (intLand a b) ^ " " ^ sI (intLor a b) ^ " " ^ sI (intLxor a b)) (cross wide_ints (0 :: 1 :: 0-1 :: wide_ints)) ++
+  List.map (fun i -> "intLnot " ^ sI i ^ " = " ^ sI (intLnot i)) wide_ints ++
+  List.map (fun (a, n) -> "int asr " ^ sI a ^ " " ^ show n ^ " = " ^ sI (intAsr a n)) (cross wide_ints [1; 30; 31; 61; 62]) ++
+  List.map (fun (a, n) -> "int lsl/asr " ^ sI a ^ " " ^ show n ^ " = " ^ sI (intLsl a n) ^ " " ^ sI (intAsr a n)) (cross [0; 1; 0-1; 5; 0-6] shifts) ++
+  List.map (fun (a, b) -> "nat land/lor/lxor " ^ sn a ^ " " ^ sn b ^ " = " ^ sn (natLand a b) ^ " " ^ sn (natLor a b) ^ " " ^ sn (natLxor a b)) (cross nats nats) ++
+  List.map (fun (a, b) -> "nat land/lor/lxor " ^ sn a ^ " " ^ sn b ^ " = " ^ sn (natLand a b) ^ " " ^ sn (natLor a b) ^ " " ^ sn (natLxor a b)) (cross wide_nats (0 :: 1 :: wide_nats)) ++
+  List.map (fun (a, n) -> "nat asr " ^ sn a ^ " " ^ show n ^ " = " ^ sn (natAsr a n)) (cross wide_nats [1; 30; 31; 61; 62]) ++
+  List.map (fun (a, n) -> "nat lsl/asr " ^ sn a ^ " " ^ show n ^ " = " ^ sn (natLsl a n) ^ " " ^ sn (natAsr a n)) (cross [0; 1; 5; 255] [0; 1; 3; 29; 30; 31; 32; 40; 53]) ++
+  [ "intFromBitSeq/bitSeqFromInt -6: " ^ sI (intFromBitSeq (bitSeqFromInt (0-6)));
+    "natFromBitSeq/bitSeqFromNat 77: " ^ sn (natFromBitSeq (bitSeqFromNat 77)) ]

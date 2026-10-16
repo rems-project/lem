@@ -1,0 +1,7 @@
+(* EXPECT: FM-sizeOf *)
+(* pre-merge audit M1: `SizeOf` in a non-head position is refused too. *)
+open import Pervasives
+val len : list nat -> nat
+let rec len l = match l with | [] -> 0 | _ :: xs -> 1 + len xs end
+declare {lean} fuel val len = `999`
+declare {lean} fuel_measure val len = `Some.SizeOf.sizeOf l`

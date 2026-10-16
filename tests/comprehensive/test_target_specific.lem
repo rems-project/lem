@@ -1,0 +1,52 @@
+open import Pervasives_extra
+
+(* === Value with target selection === *)
+val target_val : nat
+let ~{hol; isabelle} target_val = 1
+let {hol} target_val = 2
+let {isabelle} target_val = 3
+
+(* === Function with target selection === *)
+val target_fn : nat -> nat
+let {hol} target_fn x = x + 2
+let ~{hol; isabelle} target_fn x = x + 1
+let {isabelle} target_fn x = x + 3
+
+(* === Target-selective types === *)
+type shared_type = SA | SB of nat
+
+(* === Target-selective class method === *)
+class (TargetClass 'a)
+  val method_all : 'a -> nat
+  val {hol} method_hol_only : 'a -> bool
+end
+
+(* === Recursive function with target selection === *)
+(* Exercises "removed recursive definition" (lean_backend.ml:876) *)
+val target_rec : nat -> nat
+let rec {hol} target_rec n = n + (1:nat)
+let rec ~{hol; isabelle} target_rec n = n + (1:nat)
+let rec {isabelle} target_rec n = n + 2
+
+(* === Inductive relation with target selection === *)
+(* Exercises "removed inductive relation" (lean_backend.ml:495) *)
+indreln ~{hol; isabelle}
+[lean_rel : nat -> bool]
+lean_rel_base: forall. true ==> lean_rel (0:nat)
+and
+lean_rel_step: forall (n:nat). lean_rel n ==> lean_rel (n + 1)
+
+(* === Value filtered to non-Lean target === *)
+(* Exercises "removed value definition" (lean_backend.ml:793) *)
+val hol_only_val : nat
+let {hol} hol_only_val = 999
+let ~{hol} hol_only_val = 0
+
+(* === Lemma filtered to another backend === *)
+(* Exercises "removed lemma" (lean_backend.ml:425) *)
+lemma {hol} hol_lemma : (forall n. n >= (0:nat))
+
+assert target_val_ok : (target_val = (1:nat))
+assert target_fn_ok : (target_fn 5 = (6:nat))
+assert target_rec_ok : (target_rec 5 = (6:nat))
+assert hol_val_ok : (hol_only_val = (0:nat))

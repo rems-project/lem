@@ -1,0 +1,31 @@
+take 5 [1;2]: [1; 2]
+drop 5 [1;2]: []
+zip [1;2;3] [a;b]: [(1, "a"); (2, "b")]
+zip [] [a]: []
+index 5 [1;2]: Nothing
+index 1 [1;2]: Just (2)
+sortByOrd stable: [(0, 1); (1, 1); (1, 2); (2, 1); (2, 2); (2, 3)]
+sort nat: [0; 1; 1; 2; 3]
+sort strings: [""; "B"; "a"; "ab"; "b"]
+lookup 2: Just ("b")
+lookup 9: Nothing
+delete 2: [1; 3; 2]
+findIndex: Just (2)
+findIndex none: Nothing
+elemIndex: Just (1)
+splitAt 1: ([1], [2; 3])
+splitAt 9: ([1; 2; 3], [])
+replicate 3: ["q"; "q"; "q"]
+replicate 0: []
+genlist 4: [0; 1; 4; 9]
+reverseAppend: [2; 1; 3; 4]
+foldl: "123"
+foldr: "321"
+concatMap: [1; 1; 2; 2]
+filter: [2; 4]
+partition: ([2; 4], [1; 3])
+unzip: ([1; 2], ["a"; "b"])
+last: 3
+nth 1: 2
+elem: true
+count: 2

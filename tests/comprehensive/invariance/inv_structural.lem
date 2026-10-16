@@ -1,0 +1,17 @@
+open import Pervasives
+
+(* Non-Lean invariance witness for the structural declare
+   (structural-declare slice, 2026-09-04): `declare {lean} structural val`
+   must be an exact no-op for the other backends (see inv_supply.lem for
+   the harness contract). *)
+
+val blen : list nat -> nat
+let rec blen l =
+  match l with
+    | [] -> 0
+    | _ :: xs -> 1 + blen xs
+  end
+declare {lean} structural val blen
+
+val uses_blen : list nat -> nat
+let uses_blen l = blen l + 1

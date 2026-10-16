@@ -1,0 +1,13 @@
+(* EXPECT: numeric fuel-budget form *)
+(* Fuel-parameter arc (2026-09-04): the per-declaration numeric budget
+   'declare {lean} fuel val f = N' minted a magic value per declaration
+   — [USER 2026-09-03]: every hardcoded magic value that cannot be
+   quantified over is by definition a bug. The form is
+   DELETED; the parser refuses it naming the ruling (a bare syntax
+   error would not say why). Fuel is the caller's: the [LemFuel]
+   instance. *)
+open import Pervasives
+val spin : nat -> nat
+let rec spin n = if n = 0 then 0 else spin (n - 1)
+declare {lean} fuel val spin = `999`
+declare {lean} fuel val spin = 5

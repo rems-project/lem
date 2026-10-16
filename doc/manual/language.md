@@ -208,13 +208,14 @@
 ## Target Descriptions
 
     target ::=  {{ Backend target names }}
-      | hol             
-      | isabelle        
-      | ocaml   
-      | coq             
-      | tex             
-      | html    
-      | lem     
+      | hol
+      | isabelle
+      | ocaml
+      | coq
+      | lean
+      | tex
+      | html
+      | lem
 
     targets  ::=  {{ Backend target name lists }}
       | { target1 ; .. ; targetn }              

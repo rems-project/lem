@@ -1,0 +1,19 @@
+(* Test field ACCESS on a parameterized mutual record defined in a
+   different file.  Reproduces Cerberus AilSyntaxAux error:
+   "Invalid field notation: Field projection operates on types
+   of the form `C ...` where C is a constant." *)
+
+open import Pervasives_extra
+open import Test_cross_field_access
+
+(* Field access on parameterized cross-file mutual record *)
+let get_label (w : wrapper 'a) : string = w.label
+let get_payload (w : wrapper 'a) : node 'a = w.payload
+
+(* Use field access in construction *)
+let relabel (w : wrapper 'a) (new_label : string) : wrapper 'a =
+  make_wrapper w.payload new_label
+
+(* Use field access + record update *)
+let relabel2 (w : wrapper 'a) (new_label : string) : wrapper 'a =
+  <| w with label = new_label |>

@@ -1,0 +1,39 @@
+open import Pervasives_extra
+
+(* === Type name reused as variable === *)
+type op = OpAdd | OpSub
+
+let test1 op = match op with OpAdd -> (0:nat) | OpSub -> 1 end
+
+(* === Let shadowing === *)
+let test3 =
+  let x = (1 : nat) in
+  let x = x + 1 in
+  let x = x + 1 in
+  x
+
+(* === Match shadowing === *)
+let test4 (x : nat) =
+  match x with
+    | x -> x + 1
+  end
+
+(* === Nested lambda shadowing === *)
+let test2 = fun (x : nat) -> fun x -> x
+
+(* === Underscore variables === *)
+let test5 (_x : nat) _y = _x + _y
+
+(* === Variable shadows outer binding === *)
+let test6 =
+  let x = (10:nat) in
+  let f y =
+    let x = y + 1 in
+    x
+  in
+  f x
+
+assert test3_ok : (test3 = (3:nat))
+assert test4_ok : (test4 7 = (8:nat))
+assert test5_ok : (test5 3 4 = (7:nat))
+assert test6_ok : (test6 = (11:nat))

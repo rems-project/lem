@@ -1,0 +1,5 @@
+(* EXPECT: collides with `r.mk`, a declaration Lean generates *)
+open import Pervasives_extra
+(* backend-hardening 2026-10-03, item 2: `mk` is the structure constructor *)
+type r = <| mk : nat; other : nat |>
+let v : r = <| mk = 1; other = 2 |>

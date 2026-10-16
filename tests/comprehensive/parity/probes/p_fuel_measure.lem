@@ -1,0 +1,36 @@
+(* Parity probe (fuel-measure slice, 2026-09-04): a fuel'd function with a
+   `declare {lean} fuel_measure val` is an ordinary recursive definition
+   on the OCaml target (both {lean} declares are no-ops there) and a
+   fuel-free measured wrapper on Lean; both compute the same thing at
+   several inputs — including at the measure's boundary (the empty list,
+   n = 0) and deep inputs. Expected values are the OCaml target's output.
+   The obligations are proved in p_fuel_measure.proofs.lean (installed by
+   the runner as P_fuel_measure_lemMeasureProofs.lean). *)
+open import Pervasives_extra
+
+val len : list nat -> nat
+let rec len l = match l with | [] -> 0 | _ :: xs -> 1 + len xs end
+declare {lean} fuel val len = `999`
+declare {lean} fuel_measure val len = `List.length l + 1`
+
+val spin : nat -> nat
+let rec spin n = if n = 0 then 0 else spin (n - 1)
+declare {lean} fuel val spin = `999`
+declare {lean} fuel_measure val spin = `n + 1`
+
+let rec rev_acc (acc : list nat) (l : list nat) : list nat =
+  match l with | [] -> acc | x :: xs -> rev_acc (x :: acc) xs end
+declare {lean} fuel val rev_acc = `[]`
+declare {lean} fuel_measure val rev_acc = `List.length l + 1`
+
+let uses_len (l : list nat) : nat = len l * 10
+
+let results : list string =
+  [ "len []: " ^ show (len []);
+    "len [1..5]: " ^ show (len [1; 2; 3; 4; 5]);
+    "spin 0: " ^ show (spin 0);
+    "spin 1000: " ^ show (spin 1000);
+    "rev_acc: " ^ show (rev_acc [] [1; 2; 3; 4]);
+    "rev_acc empty: " ^ show (rev_acc [9] []);
+    "uses_len: " ^ show (uses_len [1; 2; 3]);
+    "len deep: " ^ show (len (List.replicate 5000 (0 : nat))) ]

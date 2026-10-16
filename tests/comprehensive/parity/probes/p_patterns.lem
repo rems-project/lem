@@ -1,0 +1,50 @@
+(* Noodle probe: pattern matching semantics — literal patterns (nat,
+   string, char, bool), n+1 patterns on nat/natural, nested constructor
+   patterns, wildcard vs variable shadowing, tuple patterns, list
+   patterns (cons chains, fixed-length), as-patterns, match on pairs of
+   naturals with successor patterns, first-match-wins ordering, guards
+   via nested if. Expected values are the OCaml target's output. *)
+open import Pervasives_extra
+
+let lit_nat (n : nat) : string = match n with 0 -> "zero" | 1 -> "one" | 42 -> "answer" | _ -> "other" end
+let lit_natural (n : natural) : string = match n with 0 -> "zero" | 1 -> "one" | 1000000000000 -> "big" | _ -> "other" end
+let lit_str (s : string) : string = match s with "" -> "empty" | "a" -> "A" | "hello world" -> "HW" | _ -> "other" end
+let lit_char (c : char) : string = match c with #'a' -> "A" | #'\n' -> "NL" | #' ' -> "SP" | _ -> "other" end
+let lit_bool (b : bool) : nat = match b with true -> 1 | false -> 0 end
+let succ_pat (n : nat) : string = match n with 0 -> "z" | n' + 1 -> "s(" ^ show n' ^ ")" end
+let succ2_pat (n : nat) : string = match n with 0 -> "z" | 1 -> "one" | n' + 2 -> "ss(" ^ show n' ^ ")" end
+let succ_natural (n : natural) : string = match n with 0 -> "z" | n' + 1 -> "s(" ^ show n' ^ ")" end
+let pair_succ (p : nat * nat) : string = match p with (0, 0) -> "00" | (0, _) -> "0_" | (m + 1, 0) -> "s" ^ show m ^ "0" | (m + 1, n + 1) -> show m ^ "," ^ show n end
+let shadow_wild (x : nat) : nat = match (x, x) with (_, y) -> let x = 99 in x + y end
+let list_pat (l : list nat) : string = match l with [] -> "nil" | [a] -> "one:" ^ show a | [a; b] -> "two:" ^ show (a + b) | a :: b :: rest -> "many:" ^ show a ^ show b ^ show (List.length rest) end
+let nested (m : maybe (maybe (nat * list nat))) : string =
+  match m with
+  | Nothing -> "N"
+  | Just Nothing -> "JN"
+  | Just (Just (0, [])) -> "JJ0nil"
+  | Just (Just (n, x :: _)) -> "JJ" ^ show n ^ "h" ^ show x
+  | Just (Just (n, [])) -> "JJ" ^ show n ^ "nil"
+  end
+let first_wins (n : nat) : string = match n with _ -> "first" | 0 -> "zero" end
+let either_pat (e : either nat string) : string = match e with Left 0 -> "L0" | Left n -> "L" ^ show n | Right "" -> "Rempty" | Right s -> "R" ^ s end
+let unit_pat (u : unit) : nat = match u with () -> 1 end
+let neg_lit (i : integer) : string = if i = ~1 then "minus one" else if i = 1 then "one" else "other"
+
+let results : list string =
+  [ show (List.map lit_nat [0; 1; 42; 43]);
+    show (List.map lit_natural [0; 1; 1000000000000; 5]);
+    show (List.map lit_str [""; "a"; "hello world"; "b"]);
+    show (List.map lit_char [#'a'; #'\n'; #' '; #'b']);
+    show (List.map lit_bool [true; false]);
+    show (List.map succ_pat [0; 1; 5]);
+    show (List.map succ2_pat [0; 1; 2; 7]);
+    show (List.map succ_natural [0; 1; 5]);
+    show (List.map pair_succ [(0, 0); (0, 3); (2, 0); (3, 4)]);
+    show (shadow_wild 1);
+    show (List.map list_pat [[]; [1]; [1; 2]; [1; 2; 3; 4]]);
+    show (List.map nested [Nothing; Just Nothing; Just (Just (0, [])); Just (Just (3, [7; 8])); Just (Just (4, []))]);
+    show (first_wins 0);
+    show (List.map either_pat [Left 0; Left 3; Right ""; Right "x"]);
+    show (unit_pat ());
+    show (List.map neg_lit [0 - 1; 1; 2])
+  ]

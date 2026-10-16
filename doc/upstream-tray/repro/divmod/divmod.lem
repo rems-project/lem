@@ -1,0 +1,6 @@
+open import Pervasives
+
+let int_dm     (a : int)     (b : int)     : int * int         = (a / b, a mod b)
+let int32_dm   (a : int32)   (b : int32)   : int32 * int32     = (a / b, a mod b)
+let int64_dm   (a : int64)   (b : int64)   : int64 * int64     = (a / b, a mod b)
+let integer_dm (a : integer) (b : integer) : integer * integer = (a / b, a mod b)

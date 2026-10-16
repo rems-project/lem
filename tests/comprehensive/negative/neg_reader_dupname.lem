@@ -1,0 +1,15 @@
+(* EXPECT: share the unqualified name *)
+(* audit minor-1 (reader leg): two reader constants with the same
+   unqualified name would emit the same binder and silently conflate. *)
+open import Pervasives
+module M1 = struct
+  val amb : unit -> nat
+  declare lean target_rep function amb u = 0
+  declare {lean} reader val amb
+end
+module M2 = struct
+  val amb : unit -> nat
+  declare lean target_rep function amb u = 0
+  declare {lean} reader val amb
+end
+let f u = M1.amb () + M2.amb ()

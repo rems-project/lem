@@ -1,0 +1,24 @@
+open import Pervasives_extra
+
+(* ======================================================================
+   Comparing values of types with function-typed fields (linksem
+   2026-09-29, audit A1). linksem's amd64_abi_feature = GOT of list (...
+   function ...) | PLT of ...: OCaml's polymorphic compare (Lem's default
+   SetType/Eq/Ord instances) compares such values structurally and raises
+   only when it REACHES a closure. The backend used to emit instances that
+   panicked on EVERY comparison; it now derives a structural comparison in
+   which only function-typed positions panic.
+   ====================================================================== *)
+
+type feat = GOT of list (nat -> nat) | PLT of list (nat -> nat) | Plain of nat
+type rfeat = <| rf_name : string; rf_fns : list (nat -> nat) |>
+
+let fset = Set.fromList [Plain 3; GOT []; Plain 1; GOT []; PLT []]
+let rset = Set.fromList [<| rf_name = "b"; rf_fns = [] |>; <| rf_name = "a"; rf_fns = [] |>]
+
+assert fn_field_set_card : (Set.size fset = 4)
+assert fn_field_set_order : (match Set_extra.toList fset with
+    [GOT []; PLT []; Plain 1; Plain 3] -> true | _ -> false end)
+assert fn_field_eq : (GOT [] = GOT [])
+assert fn_field_neq : (GOT [] <> Plain 0)
+assert fn_record_set_card : (Set.size rset = 2)

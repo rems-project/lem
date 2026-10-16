@@ -3678,6 +3678,190 @@ let rec def_internal callback (inside_module: bool) d is_user_def : Output.t = m
         Util.option_default_map elim_id_opt emp (fun id ->
           (Ident.to_output (Term_const (false, false)) T.path_sep (B.const_id_to_ident id true)))
       end
+  | Declaration (Decl_skip_instances (sk1, targets, sk2, sk3, t_id)) ->
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        T.bkwd "declare" ^
+        targets_opt targets ^
+        ws sk2 ^
+        T.bkwd "skip_instances" ^
+        ws sk3 ^
+        T.bkwd "type" ^
+        B.type_id_to_output t_id
+      end
+  | Declaration (Decl_effectful (sk1, targets, sk2, sk3, c_id)) ->
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        T.bkwd "declare" ^
+        targets_opt targets ^
+        ws sk2 ^
+        T.bkwd "effectful" ^
+        ws sk3 ^
+        T.bkwd "val" ^
+        (Ident.to_output (Term_const (false, false)) T.path_sep (B.const_id_to_ident c_id true))
+      end
+  | Declaration (Decl_reader (sk1, targets, sk2, sk3, c_id)) ->
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        T.bkwd "declare" ^
+        targets_opt targets ^
+        ws sk2 ^
+        T.bkwd "reader" ^
+        ws sk3 ^
+        T.bkwd "val" ^
+        (Ident.to_output (Term_const (false, false)) T.path_sep (B.const_id_to_ident c_id true))
+      end
+  | Declaration (Decl_reader_instance (sk1, targets, sk2, sk3, c_id, sk4, sk5, (sk6, proj))) ->
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        T.bkwd "declare" ^
+        targets_opt targets ^
+        ws sk2 ^
+        T.bkwd "reader" ^
+        ws sk3 ^
+        T.bkwd "val" ^
+        (Ident.to_output (Term_const (false, false)) T.path_sep (B.const_id_to_ident c_id true)) ^
+        ws sk4 ^
+        kwd "=" ^
+        ws sk5 ^
+        T.bkwd "instance" ^
+        (* the payload's own source skip, carried from the parser (F4:
+           a hard-coded leading space doubled the separator in the human
+           targets) *)
+        ws sk6 ^
+        kwd (String.concat "" ["`"; proj; "`"])
+      end
+  | Declaration (Decl_reader_consumer_instance (sk1, targets, sk2, sk3, c_id, sk4, sk5, r_id)) ->
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        T.bkwd "declare" ^
+        targets_opt targets ^
+        ws sk2 ^
+        T.bkwd "reader_consumer" ^
+        ws sk3 ^
+        T.bkwd "val" ^
+        (Ident.to_output (Term_const (false, false)) T.path_sep (B.const_id_to_ident c_id true)) ^
+        ws sk4 ^
+        kwd "=" ^
+        ws sk5 ^
+        T.bkwd "instance" ^
+        (Ident.to_output (Term_const (false, false)) T.path_sep (B.const_id_to_ident r_id true))
+      end
+  | Declaration (Decl_fuel (sk1, targets, sk2, sk3, c_id, sk4, sentinel)) ->
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        T.bkwd "declare" ^
+        targets_opt targets ^
+        ws sk2 ^
+        T.bkwd "fuel" ^
+        ws sk3 ^
+        T.bkwd "val" ^
+        (Ident.to_output (Term_const (false, false)) T.path_sep (B.const_id_to_ident c_id true)) ^
+        ws sk4 ^
+        kwd "=" ^
+        kwd (String.concat "" ["`"; sentinel; "`"])
+      end
+  | Declaration (Decl_ground_rep (sk1, targets, sk2, sk3, c_id, sk4, rep)) ->
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        T.bkwd "declare" ^
+        targets_opt targets ^
+        ws sk2 ^
+        T.bkwd "ground_rep" ^
+        ws sk3 ^
+        T.bkwd "val" ^
+        (Ident.to_output (Term_const (false, false)) T.path_sep (B.const_id_to_ident c_id true)) ^
+        ws sk4 ^
+        kwd "=" ^
+        kwd (String.concat "" ["`"; rep; "`"])
+      end
+  | Declaration (Decl_reader_seed (sk1, targets, sk2, sk3, c_id)) ->
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        T.bkwd "declare" ^
+        targets_opt targets ^
+        ws sk2 ^
+        T.bkwd "reader_seed" ^
+        ws sk3 ^
+        T.bkwd "val" ^
+        (Ident.to_output (Term_const (false, false)) T.path_sep (B.const_id_to_ident c_id true))
+      end
+  | Declaration (Decl_supply (sk1, targets, sk2, sk3, c_id)) ->
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        T.bkwd "declare" ^
+        targets_opt targets ^
+        ws sk2 ^
+        T.bkwd "supply" ^
+        ws sk3 ^
+        T.bkwd "val" ^
+        (Ident.to_output (Term_const (false, false)) T.path_sep (B.const_id_to_ident c_id true))
+      end
+  | Declaration (Decl_reader_consumer (sk1, targets, sk2, sk3, c_id)) ->
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        T.bkwd "declare" ^
+        targets_opt targets ^
+        ws sk2 ^
+        T.bkwd "reader_consumer" ^
+        ws sk3 ^
+        T.bkwd "val" ^
+        (Ident.to_output (Term_const (false, false)) T.path_sep (B.const_id_to_ident c_id true))
+      end
+  | Declaration (Decl_fuel_consumer (sk1, targets, sk2, sk3, c_id)) ->
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        T.bkwd "declare" ^
+        targets_opt targets ^
+        ws sk2 ^
+        T.bkwd "fuel_consumer" ^
+        ws sk3 ^
+        T.bkwd "val" ^
+        (Ident.to_output (Term_const (false, false)) T.path_sep (B.const_id_to_ident c_id true))
+      end
+  | Declaration (Decl_structural (sk1, targets, sk2, sk3, c_id)) ->
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        T.bkwd "declare" ^
+        targets_opt targets ^
+        ws sk2 ^
+        T.bkwd "structural" ^
+        ws sk3 ^
+        T.bkwd "val" ^
+        (Ident.to_output (Term_const (false, false)) T.path_sep (B.const_id_to_ident c_id true))
+      end
+  | Declaration (Decl_fuel_measure (sk1, targets, sk2, sk3, c_id, sk4, measure, hyp)) ->
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        T.bkwd "declare" ^
+        targets_opt targets ^
+        ws sk2 ^
+        T.bkwd "fuel_measure" ^
+        ws sk3 ^
+        T.bkwd "val" ^
+        (Ident.to_output (Term_const (false, false)) T.path_sep (B.const_id_to_ident c_id true)) ^
+        ws sk4 ^
+        kwd "=" ^
+        kwd (String.concat "" ["`"; measure; "`"]) ^
+        (match hyp with
+         | None -> emp
+         | Some (sk5, h) ->
+           ws sk5 ^ T.bkwd "assuming" ^ kwd (String.concat "" [" `"; h; "`"]))
+      end
+  | Declaration (Decl_extra_import (sk1, targets, sk2, sk3, mod_name)) ->
+      if (not (Target.is_human_target T.target)) then emp else begin
+        ws sk1 ^
+        T.bkwd "declare" ^
+        targets_opt targets ^
+        ws sk2 ^
+        T.bkwd "extra_import" ^
+        ws sk3 ^
+        (* m1 (2026-08-31 review): the -lem identity echo must
+           round-trip — the backtick form, not the "..." string form
+           (which lem's own parser rejects). Matches the Decl_fuel /
+           Decl_ground_rep echoes. *)
+        kwd (String.concat "" ["`"; mod_name; "`"])
+      end
   | Comment(d) ->
       let (d',sk) = def_alter_init_lskips (fun sk -> (None, sk)) d in
         ws sk ^ ws (Some([Ast.Com(Ast.Comment([Ast.Chars(X.comment_def d')]))]))
@@ -4055,6 +4239,10 @@ module Make(A : sig val avoid : var_avoid_f;; val env : env;; val dir : string e
   let coq_defs defs =
     let module B = Coq_backend.CoqBackend (C) in
       B.coq_defs defs
+
+  let lean_defs defs =
+    let module B = Lean_backend.LeanBackend (C) in
+      B.lean_defs defs
 
   let ident_exp e =
     let module B = F(Identity)(C)(Dummy) in

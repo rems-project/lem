@@ -1,0 +1,12 @@
+$ lem -wl ign -ocaml divmod.lem
+[lem exit 0]
+$ ocamlfind ocamlopt -package zarith -linkpkg -I <upstream ocaml-lib> extract.cmxa divmod.ml main.ml -o divmod.exe
+[ocamlopt exit 0]
+$ ./divmod.exe
+a=-7 b=-2 | int 2 -3 | int32 2 -3 | int64 2 -3 | integer 4 1
+a=7 b=-2 | int -3 1 | int32 -3 1 | int64 -3 1 | integer -3 1
+a=-7 b=2 | int -4 1 | int32 -4 1 | int64 -4 1 | integer -4 1
+a=7 b=2 | int 3 1 | int32 3 1 | int64 3 1 | integer 3 1
+a=-6 b=-2 | int 3 0 | int32 3 0 | int64 3 0 | integer 3 0
+a=-7 b=-2^61 | int -1 -2305843009213693959 | int64 -1 -2305843009213693959 | integer 1 2305843009213693945
+[run exit 0]

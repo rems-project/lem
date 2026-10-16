@@ -1,0 +1,17 @@
+(* Failure probe (review finding HIGH-2, 2026-09-30; OPEN discrepancy,
+   registered in expected_failures.txt; record doc/lean-backend/
+   2026-09-28_linksem-findings.md "A5"): `let x = e1 in e2` where x is
+   used only in a branch that is NOT taken. OCaml is strict: e1 is
+   evaluated at the `let` and fails. Lean's compiler floats the binding
+   into the branch that uses it (LCNF let-floating), so e1 is never
+   evaluated and the program continues. B15b covers only a binding whose
+   variable is not free in e2 at all. Each step gets a RUNTIME nat (0). *)
+open import Pervasives_extra
+
+val checked_pred : nat -> nat
+let checked_pred n = if n = 0 then failwith "let_float_branch: e1 failed" else n - 1
+
+let steps : list (nat -> string) =
+  [ (fun n -> "before: " ^ show n);
+    (fun n -> let x = checked_pred n in
+              if n = 7 then "used: " ^ show x else "after (must not print): " ^ show n) ]

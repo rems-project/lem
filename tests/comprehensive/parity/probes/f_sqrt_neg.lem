@@ -1,0 +1,9 @@
+(* Failure probe (census N5): Nat_big_num.sqrt = Z.sqrt raises
+   Invalid_argument on a negative argument; Lean's integerSqrt previously
+   returned the root of the absolute value (SUCCEEDED where the reference
+   fails), now fails loudly. *)
+open import Pervasives_extra
+
+let steps : list (nat -> string) =
+  [ (fun n -> "before: sqrt 17 = " ^ stringFromInteger (integerSqrt (17 + integerFromNat n)));
+    (fun n -> "at negative: " ^ stringFromInteger (integerSqrt (0 - 4 - integerFromNat n))) ]

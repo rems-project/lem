@@ -1,0 +1,11 @@
+(* EXPECT: FM-size-param *)
+(* D2-enablers slice: `lemSize` must be applied directly to a parameter
+   (`lemSize t`) — the backend resolves the PARAMETER's type to its size
+   function; any other argument shape (here a parenthesised expression)
+   is refused. *)
+open import Pervasives
+type tr = TL | TN of list tr
+val tcount : tr -> nat
+let rec tcount t = match t with | TL -> 1 | TN ts -> List.foldl (fun acc t' -> acc + tcount t') 1 ts end
+declare {lean} fuel val tcount = `fuelExhausted 0`
+declare {lean} fuel_measure val tcount = `lemSize (t)`

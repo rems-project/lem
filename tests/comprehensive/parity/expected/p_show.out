@@ -1,0 +1,23 @@
+-42
+-42
+42
+42
+true
+false
+"plain"
+"with "quotes" and \ backslash"
+[]
+[1; 2; 3]
+[[1]; []]
+(1, "x")
+(Just (3), Nothing)
+[Just (true); Nothing]
+[Red; Green 2; Blue (3, "b")]
+{1; 2; 3}
+{"a"; "b"}
+(-1, (-2, 3))
+("nested", [("a", 1)])
+1000000000000000000000
+-1000000000000000000000
+0
+0

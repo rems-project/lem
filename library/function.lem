@@ -16,6 +16,7 @@ val id : forall 'a. 'a -> 'a
 let id x = x
 
 let inline {coq} id x = x
+let inline {lean} id x = x
 declare isabelle target_rep function id = `id`
 declare hol      target_rep function id = `I`
 
@@ -28,6 +29,9 @@ val const : forall 'a 'b. 'a -> 'b -> 'a
 let inline const x y = x
 
 declare coq target_rep function const = `const`
+(* No Lean target_rep: Lean's Function.const has different argument conventions
+   (first explicit param is a type, not a value). The universal inline on line 29
+   handles Lean correctly by inlining const x y = x at call sites. *)
 declare hol      target_rep function const = `K`
 
 
@@ -39,6 +43,7 @@ val comb : forall 'a 'b 'c. ('b -> 'c) -> ('a -> 'b) -> ('a -> 'c)
 let comb f g = (fun x -> f (g x))
 
 declare coq target_rep function comb = `compose`
+declare lean target_rep function comb = `Function.comp`
 declare isabelle target_rep function comb = infix `o`
 declare hol      target_rep function comb = infix `o`
 
@@ -51,7 +56,7 @@ val ($) [`apply`] : forall 'a 'b. ('a -> 'b) -> ('a -> 'b)
 let apply f = (fun x -> f x)
 
 declare coq target_rep function apply = `apply`
-let inline {isabelle;ocaml;hol} apply f x = f x
+let inline {isabelle;ocaml;hol;lean} apply f x = f x
 
 val ($>) [`rev_apply`] : forall 'a 'b. 'a -> ('a -> 'b) -> 'b
 let rev_apply x f = f x
@@ -65,6 +70,7 @@ val flip : forall 'a 'b 'c. ('a -> 'b -> 'c) -> ('b -> 'a -> 'c)
 let flip f = (fun x y -> f y x)
 
 declare coq target_rep function flip = `flip`
+declare lean target_rep function flip = `flip`
 let inline {isabelle} flip f x y = f y x
 declare hol      target_rep function flip = `combin$C`
 

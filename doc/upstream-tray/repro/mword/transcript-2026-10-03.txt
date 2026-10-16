@@ -1,0 +1,29 @@
+$ lem -wl ign -ocaml mword.lem
+[lem exit 0]
+$ ocamlfind ocamlopt -package zarith -linkpkg -I <upstream ocaml-lib> extract.cmxa mword.ml main.ml -o mword.exe
+[ocamlopt exit 0]
+$ ./mword.exe
+om1_uminus_zero        = 256
+om1_uminus_zero_eq     = false
+om1_from_integer       = 256
+om1_signed_divide      = 256
+om2_getbit_4_1         = true
+om2_getbit_8_2         = true
+om2_getbit_2_1         = true
+om3_setbit_10          = 1024
+om3_setbit_10_len      = 8
+om4_bitlist4_len       = 4
+om4_bitlist4_bits      = 4
+om4_bitlist11          = 1027
+om4_extract_len        = 4
+om4_concat_len         = 8
+om5_ror0               raises Invalid_argument("Z.extract: nonpositive bit length")
+om5_rol8               raises Invalid_argument("Z.extract: nonpositive bit length")
+om5_rol9               raises Invalid_argument("Z.extract: negative bit offset")
+om5_ror9               raises Invalid_argument("Z.shift_left: count argument must be positive")
+om5_ror1               = 128
+om5_asr9               raises Invalid_argument("Z.shift_left: count argument must be positive")
+om5_asr3               = 240
+lp5_hex                = "wordToHex not yet implemented"
+lp5_show               = "wordToHex not yet implemented"
+[run exit 0]

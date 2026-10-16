@@ -1,0 +1,88 @@
+open import Pervasives
+
+(* ================================================================
+   fuel x reader x TRULY-MUTUAL blocks (program-data-parameters S1.5,
+   2026-09-20; doc/lean-backend/2026-09-20_fuel-mutual-reader-record.md).
+
+   Until this slice the backend refused a fuel'd truly-mutual block whose
+   members are reader-lifted ("'declare {lean} fuel val' in a mutual block
+   combined with reader lifting (unsupported; extend when needed)" —
+   arc 3 B2's scope cut, a618b9c). Now every member's WORKER takes
+   [LemFuel]-if-needed, [Inhabited], the fuel counter, the reader
+   binders, its own arguments; sibling calls pass the decremented
+   counter AND re-inject the readers; every WRAPPER after `end` is
+   point-free and reader-prefixed (`f [LemFuel] : (Nat) -> … := f_lemFuel
+   LemFuel.fuel`) or, under fuel_measure, the measured wrapper with the
+   reader binders; the `_zero` lemmas and the obligations carry the
+   readers as the single-def fuel x reader path does.
+
+   Observation: every def here is reader-lifted (and the fuel'd ones read
+   the ambient), so nothing is assertable from the .lem; the pins live in
+   lean-test/TestFuelMutualReaderCheck.lean (kernel) and the compiled
+   lean-test/TestFuelMutualReaderExec.lean (phase lean-fuel-mutual-reader);
+   the measured pair's obligations are proved in
+   lean-test/Test_fuel_mutual_reader_lemMeasureProofs.lean.
+   ================================================================ *)
+
+val amb : unit -> nat
+declare lean target_rep function amb u = 0
+declare {lean} reader val amb
+
+(* (1) a fuel'd truly-mutual pair where BOTH members read the reader:
+   climb n towards amb, alternating; the member that reaches it decides
+   the value (rping -> 0, rpong -> 1), so the value depends on the
+   reader: amb=7, n=3 -> 4 hops -> rping reaches -> 0; amb=8 -> 5 hops
+   -> rpong reaches -> 1. Exhaustion returns the sentinel of the member
+   whose counter hits 0 (at fuel 3 from rping 3: rpong at 0 -> 992). *)
+val rping : nat -> nat
+val rpong : nat -> nat
+let rec rping n = if n = amb () then 0 else rpong (n + 1)
+and rpong n = if n = amb () then 1 else rping (n + 1)
+declare {lean} fuel val rping = `991`
+declare {lean} fuel val rpong = `992`
+
+(* a non-fuel'd lifted caller of the block: injects into the wrapper *)
+val uses_rping : nat -> nat
+let uses_rping k = rping k
+
+(* (2) only ONE member reads the reader — the other must still lift
+   (all-or-none by the prepass fixpoint: the mutual Val_def is one
+   defined set): oping n = amb () for even n, 1 for odd n; opong swaps. *)
+val oping : nat -> nat
+val opong : nat -> nat
+let rec oping n = if n = 0 then amb () else opong (n - 1)
+and opong n = if n = 0 then 1 else oping (n - 1)
+declare {lean} fuel val oping = `981`
+declare {lean} fuel val opong = `982`
+
+(* (3) a fuel'd (non-mutual) callee reached from inside a member, so the
+   block's workers take [LemFuel] (workers_need_fuel) WITH the readers;
+   the callee starts from the FULL ambient, never from the caller's
+   remaining counter: fping 2 at ambient 8 = cdown 7 at fuel 8 = 0; at
+   ambient 3 the block itself completes (3 hops need 3) but cdown 7 at
+   fuel 3 exhausts -> 971. *)
+val cdown : nat -> nat
+let rec cdown n = if n = 0 then 0 else cdown (n - 1)
+declare {lean} fuel val cdown = `971`
+
+val fping : nat -> nat
+val fpong : nat -> nat
+let rec fping n = if n = 0 then cdown (amb ()) else fpong (n - 1)
+and fpong n = if n = 0 then 1 else fping (n - 1)
+declare {lean} fuel val fping = `961`
+declare {lean} fuel val fpong = `962`
+
+(* (4) a truly-mutual MEASURED pair reading the reader: both wrappers
+   start the shared counter from their own measure and carry the reader
+   binder; the obligations are proved in
+   Test_fuel_mutual_reader_lemMeasureProofs.lean. rmev [] = (amb = 0),
+   rmodd [] = not (amb = 0); each hop swaps: rmev [1,2] = rmev [] and
+   rmev [1] = rmodd []. *)
+val rmev : list nat -> bool
+val rmodd : list nat -> bool
+let rec rmev l = match l with | [] -> amb () = 0 | _ :: xs -> rmodd xs end
+and rmodd l = match l with | [] -> not (amb () = 0) | _ :: xs -> rmev xs end
+declare {lean} fuel val rmev = `false`
+declare {lean} fuel val rmodd = `true`
+declare {lean} fuel_measure val rmev = `List.length l + 1`
+declare {lean} fuel_measure val rmodd = `List.length l + 1`

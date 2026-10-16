@@ -1,0 +1,8 @@
+(* EXPECT: ST-fuel *)
+(* structural-declare slice: a definition carries fuel OR structural,
+   never both (the two admissible shapes (B) and (A) of a recursion). *)
+open import Pervasives
+val len : list nat -> nat
+let rec len l = match l with | [] -> 0 | _ :: xs -> 1 + len xs end
+declare {lean} fuel val len = `999`
+declare {lean} structural val len

@@ -1,0 +1,10 @@
+$ lem -wl ign -ocaml nat63.lem
+[lem exit 0]
+$ ocamlfind ocamlopt -package zarith -linkpkg -I <upstream ocaml-lib> extract.cmxa nat63.ml main.ml -o nat63.exe
+[ocamlopt exit 0]
+$ ./nat63.exe
+wrapped = -4611686018427387904
+wrapped >= 0 = false
+2 ** 64 = 0
+int_wrap = -4611686018427387904
+[run exit 0]

@@ -1,0 +1,11 @@
+(* EXPECT: all-or-none *)
+(* structural-declare slice: in a truly mutual block every member carries
+   the declare (Lean's mutual structural recursion wants a clause on
+   each), as for fuel. *)
+open import Pervasives
+type tree = Leaf of nat | Node of list tree
+val tsum : tree -> nat
+val tsums : list tree -> nat
+let rec tsum t = match t with | Leaf n -> n | Node ts -> tsums ts end
+and tsums ts = match ts with | [] -> 0 | t :: ts' -> tsum t + tsums ts' end
+declare {lean} structural val tsum

@@ -1,0 +1,8 @@
+(* EXPECT: both {lean} supply and {lean} reader_seed *)
+(* Supply annotation-mix guard, reader_seed leg (audit notes-a). *)
+open import Pervasives
+val tick : unit -> nat
+declare lean target_rep function tick u = 0
+declare {lean} reader_seed val tick
+declare {lean} supply val tick
+let f u = tick ()
