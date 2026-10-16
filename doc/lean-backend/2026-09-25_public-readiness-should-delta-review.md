@@ -4,8 +4,8 @@
 2026-09-25]
 
 **Range reviewed:** `6b20bfd..67ec5de` on `cleanup/public-readiness-should-20260925`
-(base = the landed MUST head; `[USER 2026-09-25] "Go ahead with merge as
-planned"` per the coordinator; mainline `mdd/lean-backend` = `6b20bfd`).
+(base = the landed MUST head; [USER 2026-09-25] approved the merge as
+planned, per the coordinator; mainline `mdd/lean-backend` = `6b20bfd`).
 
 ```
 $ git log --oneline 6b20bfd..67ec5de

@@ -8,6 +8,10 @@ here. The records are historical: each describes the code at its own date,
 and later records may supersede it. They stay at their paths, which other
 repositories cite.
 
+The operator's rulings are recorded in the agent's own words with their
+`[USER date]` tag, never quoted verbatim ([USER 2026-10-16]); records written
+before that date were paraphrased on 2026-10-16, history not rewritten.
+
 Records are in `doc/lean-backend/` unless the path says `doc/notes/`.
 Grouped by topic; within a group, by date. Records marked *historical*
 describe a design that is no longer current.
@@ -98,7 +102,7 @@ describe a design that is no longer current.
   monotonicity exemplar.
 - 2026-09-04 [Fuel-measure record](2026-09-04_fuel-measure-record.md):
   `fuel_measure` and its sufficiency obligation; the ruling [USER
-  2026-09-04] "we don't change the lem structure for ocaml".
+  2026-09-04] that the lem structure is not changed for OCaml's sake.
   [Pre-merge audit of both](2026-09-04_structural-measure-audit-premerge.md).
 - 2026-09-04 [Derived-size record](2026-09-04_d2-enablers-record.md):
   backend-derived `t.lemSize`; fuel'd equalities usable as instance
@@ -171,14 +175,14 @@ describe a design that is no longer current.
   once, the layout printer's exponential re-decision, the 128-field
   run-time limit refused, the `termination_argument` promise corrected,
   fail-open spots and state fixes; the `min`/`max` OCaml-target deviation
-  registered ([USER 2026-10-03] "Register as deviation", rulings X5).
+  registered ([USER 2026-10-03], rulings X5).
   Its "Package C" section (same day) is the cleanup slice: dead code and
   LemLib's dead definitions deleted with per-name consumer-grep evidence,
   one reserved-name table, one instance-priority constant, the comment and
   message sweep, the TODO 39 test, and the gate tails per commit. Its
   "BEq-lattice slice" section (same day) lands the ruling on the
   [BEq instance-lattice design note](2026-10-03_beq-instance-lattice-design.md)
-  ([USER 2026-10-03] "(a) 450/400"): the `[Eq0 a] : BEq a` bridge at 450
+  ([USER 2026-10-03] chose option (a), 450/400): the `[Eq0 a] : BEq a` bridge at 450
   and the comparator bridges at 400, below core's `BEq`; the kernel
   agreement theorems (`LemLibTheorems`, namespace `BeqLattice`), the
   plant-tested probe legs, the before/after census of both consumers, the
@@ -186,7 +190,7 @@ describe a design that is no longer current.
   ([`2026-10-03_beq-lattice-cerberus-repin.patch`](2026-10-03_beq-lattice-cerberus-repin.patch)),
   the cerberus-sl re-pin note and the TODO 45 re-measurement.
 - 2026-10-03 [BEq instance-lattice design note](2026-10-03_beq-instance-lattice-design.md):
-  the design pass ruled "Design pass first" on code-review finding L1 —
+  the design pass the operator ruled must come first on code-review finding L1 —
   the lattice as measured (core's `BEq` at 500, the undocumented tie),
   the consumer census, options (a)–(d) and the recommendation the
   operator adopted.

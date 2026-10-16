@@ -81,8 +81,8 @@ the hazard; B4 makes the intended winner win by construction.
 
 ## Addendum 2026-10-03: the `BEq` bridges below core (the BEq-lattice slice)
 
-Ruling, verbatim [USER 2026-10-03]: "(a) 450/400 (Recommended)", landing as
-its "Own slice after A and C". Design pass:
+Ruling [USER 2026-10-03]: option (a), 450/400 (the recommended one), landing as
+its own slice after A and C. Design pass:
 `doc/lean-backend/2026-10-03_beq-instance-lattice-design.md`; the slice's
 measurements and gates: `doc/lean-backend/2026-10-03_backend-hardening-record.md`,
 "BEq-lattice slice". Everything below that is not the ruling is [AGENT].

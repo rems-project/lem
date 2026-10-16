@@ -10,8 +10,8 @@ open import Pervasives
    the list and the structural analysis has no parameter to designate
    (six cerberus census rows: `one_step_unseq_aux`, `get_ctx` /
    `get_ctx_unseq_aux`, ail `are_compatible` / `are_compatible_params_aux`
-   / `are_compatible_params`). [USER 2026-09-04] "we don't change the lem
-   structure for ocaml": the `.lem` stays as written; for a definition
+   / `are_compatible_params`). [USER 2026-09-04] ruled that the lem
+   structure is not changed for OCaml: the `.lem` stays as written; for a definition
    that carries `fuel_measure` or `structural` the LEAN EMISSION hoists
    the trailing binders into the head — one fresh binder per `function`,
    its scrutinee, deterministically named `lemTail` (so the measure can

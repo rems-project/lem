@@ -148,21 +148,13 @@ incorrect tally: **23** target representations were replaced by
 `frontend/concurrency/cmm_csem.lem` diff against `e9f9d049f`). The original
 body is retained as the record of the first checkpoint.
 
-The operator's M1 split, quoted verbatim:
+The operator's M1 split, paraphrased:
 
-[USER 2026-09-24]
+[USER 2026-09-24]: M1 is split. The absolute container defaults and the hard GIT_CONFIG_GLOBAL requirement are MUST; the cap wrapper's uncapped fallback is loud and by design, so documenting the cap prerequisites is SHOULD, not MUST.
 
-> M1 should be split. The absolute container defaults and the hard GIT_CONFIG_GLOBAL requirement are MUST. The cap wrapper's uncapped fallback is loud and by design, so documenting the cap prerequisites is SHOULD, not MUST.
+The operator's remediation engagement rules, paraphrased:
 
-Verbatim excerpts of the operator's remediation engagement rules:
-
-[USER 2026-09-24]
-
-> Current-facing pages only; dated records and quoted rulings are never edited.
-
-> All lem-lean non-doc changes land before ONE cerberus re-pin at the end.
-
-> Stop and report at the end of the MUST block with verbatim gate tails; merges are ff-only on the operator's per-merge sign-off after a delta review of the range.
+[USER 2026-09-24]: only current-facing pages are edited; dated records and quoted rulings are never edited (superseded for the quotes by the [USER 2026-10-16] ruling that the operator's words are never quoted verbatim: the quoted rulings in dated records were paraphrased on 2026-10-16). All lem-lean non-doc changes land before a single cerberus re-pin at the end. Work stops and reports at the end of the MUST block with verbatim gate tails; merges are ff-only on the operator's per-merge sign-off after a delta review of the range.
 
 [AGENT] The subsequently relayed orchestrator note (Cerberus `aab00b9b6`,
 `lean_frontend/docs/2026-09-24_public-readiness-must-checkpoint-orchestrator-note.md`

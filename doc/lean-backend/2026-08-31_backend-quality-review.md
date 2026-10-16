@@ -1,11 +1,12 @@
 # Lean backend quality review — 2026-08-31
 
 Provenance: professor-class review commissioned [USER 2026-08-31] ahead of
-the effect-retirement + fuel-budget arc ("roll in a quick review of Lem-lean
-as a backend for any quality issues"). Review lens = the four project aims,
-[USER] verbatim: "(1) minimal blast radius for non-Lean lem users, (2)
-obviously right output for Lean, (3) clean and understandable design, (4)
-built to be reviewed by the upstream lem team, and eventually upstreamed as
+the effect-retirement + fuel-budget arc (a quick quality review of lem-lean
+as a backend, folded into the arc). Review lens = the four project aims as
+set by the operator [USER], paraphrased: (1) minimal blast radius for non-Lean
+lem users, (2) obviously right output for Lean, (3) a clean and
+understandable design, (4) built to be reviewed by the upstream lem team and
+eventually upstreamed as
 a lem feature." Reviewer: independent agent on branch `review/backend-quality`
 @ 95ac6a5 vs `master` @ 3802cb0. Report reproduced verbatim below from the
 reviewer's final message; committed by the orchestrator [AGENT] as the record.

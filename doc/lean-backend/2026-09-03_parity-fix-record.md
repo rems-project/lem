@@ -3,27 +3,26 @@
 Provenance: parity-fix worker slice on branch `arc/lem-parity` (base
 mainline `mdd/lean-backend` @ bc1bae7), briefed on the noodler's
 findings (`2026-09-03_noodle-backend.md`, branch `noodle/backend`
-@ a02cb6f5a). Rulings that govern every disposition below, verbatim:
+@ a02cb6f5a). Rulings that govern every disposition below, paraphrased:
 
-- [USER 2026-09-03] "the discrepancies above should be *fixed* — no
-  'documented discrepancies' (specifically the left-to-right v.
-  right-to-left). We should follow the **LEM** semantics." The OCaml
+- [USER 2026-09-03]: the discrepancies found are to be *fixed*, not
+  recorded as documented discrepancies (specifically the left-to-right
+  v. right-to-left one); the LEM semantics is followed. The OCaml
   target is the reference semantics of a lem program; the Lean target
   must compute the same thing.
-- [USER 2026-09-03] "the aim with lem-lean is there should be ZERO
-  discrepancies between the ocaml reference and Lean in terms of
-  behavior. All such discrepancies are definitionally bugs (unless
-  there is an extraordinarily compelling case why this would not work
-  — which should be made now, all legacy permission revoked as of
-  now)."
-- [USER 2026-09-03] "Agree on the two exceptions": (a) failure-path
+- [USER 2026-09-03]: the aim with lem-lean is zero behavioural
+  discrepancies between the OCaml reference and Lean; every such
+  discrepancy is by definition a bug unless an extraordinarily
+  compelling case against that is made now, and all legacy permission
+  is revoked as of that date.
+- [USER 2026-09-03] agreed on the two exceptions: (a) failure-path
   MESSAGE TEXT may differ — failure-vs-success must agree per program
   (Lean fails exactly where OCaml fails; a Lean SUCCESS where OCaml
   raises is a FIX); (b) RESOURCE LIMITS, direction-sensitive — Lean
   must not fail where the OCaml reference succeeds; the converse is
   acceptable.
-- [USER 2026-09-03] "*missing features* are allowed deviations if they
-  are cleanly identified" — (c) a construct the Lean backend does not
+- [USER 2026-09-03]: *missing features* are allowed deviations if they
+  are cleanly identified — (c) a construct the Lean backend does not
   support may be REFUSED at generation time with a loud,
   construct-naming error; emitting something that computes a
   different result, or silently dropping, is never allowed.
@@ -590,7 +589,7 @@ the gates above were run on the FINAL tree.
 
 ## 4. EXCEPTION-CASE arguments for the operator (not decided here)
 
-> RULED 2026-09-03 ([USER] "Agree re lem."): X1 and X3/N4 are recorded as
+> RULED 2026-09-03 ([USER] agreed with the lem framing): X1 and X3/N4 are recorded as
 > OCaml-backend deviations from lem's own prover-side semantics — the Lean
 > target follows lem; not exceptions. X2/X4 were fixed as class-(c)
 > generation-time refusals in this same commit. Record:

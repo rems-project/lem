@@ -7,16 +7,16 @@ X2 and X4 were fixed as class-(c) generation-time refusals (the
 
 ## 1. The rule and the ruling
 
-The standing rule [USER 2026-09-03]: "there should be ZERO discrepancies
-between the ocaml reference and Lean in terms of behavior. All such
-discrepancies are definitionally bugs (unless there is an extraordinarily
-compelling case why this would not work - which should be made now, all
-legacy permission revoked as of now)". Accepted exception classes: (a)
+The standing rule [USER 2026-09-03]: zero behavioural discrepancies
+between the OCaml reference and Lean; every such discrepancy is by
+definition a bug unless an extraordinarily compelling case against that
+is made now, and all legacy permission is revoked as of that date.
+Accepted exception classes: (a)
 failure-path message text; (b) resource limits (Lean must not fail where
 OCaml succeeds); (c) missing features refused at generation time.
 
-The operator asked "for the lem-lean cases, are these bugs in
-lem-upstream?" The orchestrator's [AGENT] answer, put to the operator
+The operator asked whether the lem-lean cases are bugs in upstream
+lem. The orchestrator's [AGENT] answer, put to the operator
 2026-09-03 (verbatim excerpts):
 
 > Not bugs in the sense of "upstream got it wrong" — and the check
@@ -48,7 +48,7 @@ lem-upstream?" The orchestrator's [AGENT] answer, put to the operator
 > follows lem (prover-side); parity is not required in the OCaml→Lean
 > direction here".
 
-[USER 2026-09-03], verbatim: "Agree re lem." — the framing above is the
+[USER 2026-09-03] agreed with the lem framing — the framing above is the
 ruling.
 
 ## 2. Disposition
@@ -94,9 +94,9 @@ classes (a)–(c) and do not widen them.
 
   **Addendum 2026-09-04 (fuel-parameter arc, commit on branch
   `arc/fuel-parameter`) — the "conversion checks STAY" sentence above is
-  SUPERSEDED.** [USER 2026-09-03], verbatim: "ocaml limits that are
-  hardcoded thanks to ocaml-level execution issues are also forbidden,
-  the real thing is the logical semantics". The 63-bit checks in
+  SUPERSEDED.** [USER 2026-09-03]: OCaml limits hardcoded because of
+  OCaml-level execution issues are forbidden as well; the logical
+  semantics is what counts. The 63-bit checks in
   `lemNatFromNatural`/`lemIntFromInteger` (added at `3c88f0d`) were an
   OCaml-execution artifact, not lem's semantics: REMOVED; both
   conversions are the identity on Lean's unbounded `Nat`/`Int`, end to
@@ -124,11 +124,11 @@ classes (a)–(c) and do not widen them.
   `n2w` (HOL) — MODULAR (`library/num.lem:831-832`, `:1040-1041`,
   `:2378-2470`); the `Nat_big_num.to_int32/to_int64: Overflow` raise is
   the OCaml backend's, an OCaml-execution artifact of the X3 kind under
-  [USER 2026-09-03] "the real thing is the logical semantics"; the
+  [USER 2026-09-03] (the logical semantics is what counts); the
   record recommended that the Lean reps become the modular conversions.
   [USER 2026-09-04], adopting the orchestrator's recommendations
-  verbatim: "go ahead with the merges as proposed, then work on this as
-  you suggest" — D4 = WRAP. Done: the Lean reps are `lemInt32OfInt`
+  (proceed with the merges as proposed, then work on this as
+  suggested) — D4 = WRAP. Done: the Lean reps are `lemInt32OfInt`
   (`Int32.ofInt`) / `lemInt32OfNat` (`Int32.ofNat`) and the `Int64`
   pair; `lemInt32FromNumeral`/`lemInt64FromNumeral` are `Int32.ofNat`/
   `Int64.ofNat`; `lemInt32OfIntegerExact`, `lemInt32OfNaturalExact`,
@@ -143,8 +143,8 @@ classes (a)–(c) and do not widen them.
   above (failure parity for raises that are not limits) stands.
 
   **Addendum 2026-09-30 (branch `arc/linksem`): the arithmetic-wrap
-  runner row now EXISTS.** [USER 2026-09-30], verbatim: "Yes, agree on
-  1-3. Go ahead", on the orchestrator's questions. Question (2) was to keep
+  runner row now EXISTS.** [USER 2026-09-30] agreed on points 1-3 of the
+  orchestrator's questions and approved proceeding. Question (2) was to keep
   the `p_word_bitwise_wide_mul` runner row, reversing this section's "the
   arithmetic wrap has no runner row by design". The row is
   `tests/comprehensive/parity/probes/p_word_bitwise_wide_mul.lem`, entry
@@ -190,7 +190,7 @@ instead of refused — was not put to the operator today and stays in
 
 ## 3. Provenance
 
-[USER 2026-09-03]: the rule (§1) and the ruling "Agree re lem." [AGENT]
+[USER 2026-09-03]: the rule (§1) and the ruling agreeing with the lem framing. [AGENT]
 (orchestrator): the framing quoted in §1, the disposition wording of §2,
 the decision to keep the conversion checks, the upstream-note plan.
 [AGENT] (parity-fix worker, `3c88f0d`): the measurements quoted from the
@@ -214,7 +214,7 @@ OCaml target and `T 2 0` on Lean; `<`, `compare`, `Sorting.sort`,
   not (tcmp x y == GT))`). Upstream report: `doc/upstream-tray/11-default-max-min-structural-on-ocaml.md`
   (LP1; the record `2026-09-30_library-parity-coverage.md` §2 had
   classified it as a question).
-- Ruling, verbatim: [USER 2026-10-03] "Register as deviation". The same
+- Ruling: [USER 2026-10-03] register it as a deviation. The same
   class as X1 and X3: an OCaml-backend deviation from lem's own semantics;
   the Lean target follows lem; parity is not required in the OCaml→Lean
   direction. No OCaml representation is changed.

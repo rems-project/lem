@@ -20,14 +20,14 @@ cerberus-lean read-only (the dry run is on a scratch copy under `.tmp/`).
 
 ## 1. The ruling this slice implements
 
-[USER 2026-09-05], verbatim (as relayed in the charter): "agree, go ahead
-with option 1" — on the orchestrator's D-C2-1 recommendation: a
+[USER 2026-09-05] (as relayed in the charter) agreed to proceed with
+option 1 — the orchestrator's D-C2-1 recommendation: a
 hypothesis-carrying obligation form on the lem side — extend the measure
 declare so it can name a hypothesis on the parameters (a predicate the
 consumer-side module defines); the generated obligation becomes `H xs → μ
 xs ≤ fuel → f_lemFuel fuel xs = f xs`; Lean-only, no `.lem` body change;
-the wrapper stays fuel-free. Standing rules, all kept: "we don't change
-the lem structure for ocaml" (OCaml and every other emitter byte-identical,
+the wrapper stays fuel-free. Standing rules, all kept: the lem structure
+is not changed for OCaml's sake (OCaml and every other emitter byte-identical,
 §5.5/§5.6); no magic values; zero axioms; kernel-only proofs; the three
 admissible forms (caller parameter / termination proof / data measure)
 and the consumer's (A)/(B)/(C) requirement.

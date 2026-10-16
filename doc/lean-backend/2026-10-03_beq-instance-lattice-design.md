@@ -4,7 +4,7 @@ Status: a DESIGN PASS for the operator to rule on. No code is changed by this
 note. Branch `docs/beq-lattice-design`, from `mdd/lean-backend` at `5dfcd25`.
 
 Ruling that commissioned it, as relayed by the orchestrator: operator ruling
-[USER 2026-10-03], #2 "Design pass first". Background: codereview finding L1
+[USER 2026-10-03], #2: design pass first. Background: codereview finding L1
 (container-local `.tmp/codereview/REPORT.md` §6 L1, F-I1 in
 `notes-lemlib.md`), the lattice note
 `doc/notes/2026-08-22_arc14-instance-priority-lattice.md`, and DESIGN.md

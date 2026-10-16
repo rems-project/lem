@@ -75,7 +75,7 @@ checkout, `doc/lean-backend/2026-09-30_library-parity-coverage.md` §2 "LU2
 — `defaultLnot` negates instead of complementing (LEM)": "No library
 instance uses it … identical on both targets. Upstream candidate."). That
 record is [AGENT] work; cut from mainline in the downscope of 2026-09-30,
-brought back by [USER 2026-10-03] "All 16, re-verified".
+brought back by the [USER 2026-10-03] ruling (all 16 findings, re-verified).
 
 ## Provenance
 

@@ -14,9 +14,9 @@ threads the Cerberus switch set as an instance-implicit ambient parameter
 `[CerbGlobal.Switches]`, in the `[LemFuel]` shape. The aim is that no
 positional signature changes in the consumer.
 
-The operator's ruling on that record is quoted verbatim in its §1.4 as
-[USER 2026-10-05]: "Re PNVI - agree on your recs except for mirroring
-crashes / obviously wrong behavior. These should be refusals surely?"
+The operator's ruling on that record is recorded in its §1.4 as
+[USER 2026-10-05]: agreement with the PNVI recommendations, except that
+mirroring crashes or obviously wrong behaviour should be refusals.
 The coordinator's reading, also recorded there, is that this accepts
 option 3 with S0 in lem-lean included. The orchestrator's brief for this
 slice restates it as "[USER 2026-10-05] accepted option 3".
@@ -817,7 +817,7 @@ the pin `2d3a492`.
 | # | Finding | Disposition |
 |---|---------|-------------|
 | A-1 | DESIGN.md gave `_private.Impl.Sw` and an `export` alias as texts whose last component differs from `Impl.Sw`. Both end in `Sw`, so the tightened IR-class check refuses them at generation. Only the `abbrev` example was right. | **Fixed** in DESIGN.md ("IR-class is syntactic"). §2 above gets a dated note: its `export`/`_private.` measurements predate the tightening. The manual (`doc/manual/backend_lean.md`) states the rule without examples and was already correct. |
-| A-2 | The F6 gate missed `instance : (Sw)`, a header split across lines, and `abbrev SwA := Sw` followed by `instance : SwA`. | The gate is a speedbump, not a trust surface ([USER 2026-10-07]: "This sounds like a classic case of 'gate cruft' - we don't want our gates to be adversarially robust unless they are trust surfaces"). **The parenthesised class is closed** [AGENT]: I1 and I2 now accept one optional `(` before the class, a one-token regex change. **Split headers and aliases are out of scope by design**, and the script header now says so. No alias tracking was added. |
+| A-2 | The F6 gate missed `instance : (Sw)`, a header split across lines, and `abbrev SwA := Sw` followed by `instance : SwA`. | The gate is a speedbump, not a trust surface ([USER 2026-10-07]: a classic case of gate cruft — gates are not to be adversarially robust unless they are trust surfaces). **The parenthesised class is closed** [AGENT]: I1 and I2 now accept one optional `(` before the class, a one-token regex change. **Split headers and aliases are out of scope by design**, and the script header now says so. No alias tracking was added. |
 | A-2b | The IR-body message suggests "drop the lem definition", but a bare `val` that is then read fails to typecheck. | **Measured**: a bare `val sw`, declared as an instance reader and read, gives `Type error: unbound variable for targets {lean}: sw`. The message is in `src/`, so this slice does not change it. Recorded as TODO #53. |
 
 **Plants (A-2).** Method: append the line to

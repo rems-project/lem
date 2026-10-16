@@ -19,9 +19,9 @@ cerberus-lean read-only (the dry run is on a scratch copy).
 
 ## 1. The rulings this slice implements
 
-[USER 2026-09-04] (fuel-measure record §1, verbatim there): "I think
-sticking to our principle that we don't change the lem structure for ocaml
-is a very good design rule." — so the seven census rows whose recursion
+[USER 2026-09-04] (fuel-measure record §1): keeping to the principle that
+the lem structure is not changed for OCaml's sake is a good design rule
+— so the seven census rows whose recursion
 argument is an anonymous `function` scrutinee are NOT eta-expanded in the
 `.lem` (the row-17 option (1)); the LEAN EMISSION is. The brief's rules,
 all met: no magic values, zero axioms, kernel-only proofs (no

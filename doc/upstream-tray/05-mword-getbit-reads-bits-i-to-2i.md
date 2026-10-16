@@ -86,7 +86,7 @@ mainline `doc/lean-backend/2026-09-30_library-parity-coverage.md` §2 item 3.
 The record's recommendation is [AGENT]: "treat OM1–OM5 as OCaml-library
 bugs, keep Lean on the prover semantics, and send them upstream". The
 operator's ruling of 2026-10-03 put every such finding in this tray
-([USER 2026-10-03] "All 16, re-verified").
+([USER 2026-10-03]: all 16 findings, re-verified).
 
 ## Provenance
 

@@ -102,10 +102,10 @@ checkout, `doc/lean-backend/2026-09-30_library-parity-coverage.md` §2 "LP1
 record's reproducer is the one above). The record's recommendation is
 [AGENT]: "treat as an OCaml-target deviation (an upstream report: the rep
 is only valid when the instance is structural)". The finding was cut from
-mainline in the downscope of 2026-09-30 ([USER 2026-09-30] "we went
-through a pretty agressive downscope after some drift on the lem-lean
-build"); the tray scope that brings it back is [USER 2026-10-03] "All 16,
-re-verified".
+mainline in the downscope of 2026-09-30 ([USER 2026-09-30]: an
+aggressive downscope after some drift on the lem-lean
+build); the tray scope that brings it back is the [USER 2026-10-03] ruling
+(all 16 findings, re-verified).
 
 ## Provenance
 

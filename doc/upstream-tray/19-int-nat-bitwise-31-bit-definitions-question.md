@@ -111,10 +111,10 @@ lem-lean library-parity work, finding LP4 (lem-lean mainline
 bitwise were 31-bit on Lean (ACCEPTED: ruled OCaml-target deviation,
 2026-09-30)"; the archived record `8ccbe40` §2 "LP4" with the same
 numbers as above). The fork's Lean target now uses unbounded operations
-and treats the OCaml wrap as a deviation: [USER 2026-09-30] "Yes, agree on
-1-3. Go ahead". The question of whether "the 31-bit prover definitions
+and treats the OCaml wrap as a deviation: [USER 2026-09-30] agreed items
+1-3. The question of whether "the 31-bit prover definitions
 (LP4) go into the upstream Lem report bundle" was left open there
-(§3 item 4) and is answered by [USER 2026-10-03] "All 16, re-verified".
+(§3 item 4) and is answered by the [USER 2026-10-03] ruling (all 16 findings, re-verified).
 
 ## Provenance
 

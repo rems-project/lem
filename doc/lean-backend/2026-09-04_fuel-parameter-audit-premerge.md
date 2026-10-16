@@ -228,7 +228,7 @@ applying the quoted [USER] general form).
   refusal (this worktree's `lem` on `negative/neg_fuel_numeric_budget.lem`):
 
 ```
-  Syntax error: the numeric fuel-budget form 'declare {lean} fuel val f = N' was removed (fuel-parameter arc, 2026-09-04): a per-declaration fuel literal is a magic value -- [USER 2026-09-03] "any and all magic values that are hardcoded and can't be quantified over are definitionally bugs"; fuel is a parameter of the generated code (the [LemFuel] instance), chosen by the caller at the entry point. Keep only the sentinel form: declare {lean} fuel val f = `sentinel`
+  Syntax error: the numeric fuel-budget form 'declare {lean} fuel val f = N' was removed (fuel-parameter arc, 2026-09-04): a per-declaration fuel literal is a magic value -- [USER 2026-09-03] (ruling against hard-coded magic values; message text paraphrased here)
 ```
 
   and on the ORIGINAL cerberus sources (first of the five):
@@ -360,9 +360,9 @@ exit=0
   / ocaml: failed as expected (exit 2): Fatal error: exception
   Failure("int_of_big_int") / FAIL: failure probe, but the Lean binary
   SUCCEEDED (exit 0) where the OCaml reference fails / XFAIL (expected,
-  registered): RULED OCaml-target deviation ([USER 2026-09-03] "ocaml
-  limits that are hardcoded thanks to ocaml-level execution issues are
-  also forbidden, the real thing is the logical semantics"): …`.
+  registered): RULED OCaml-target deviation ([USER 2026-09-03] ruled that
+  hard-coded OCaml-level limits are forbidden too, the logical semantics
+  being what counts): …` (runner text paraphrased here).
 - `lemLeastFixedPoint`: untouched (N9).
 
 ## Scope 4 — non-Lean blast radius

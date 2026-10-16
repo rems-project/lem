@@ -84,7 +84,7 @@ generated code.
 
 linksem (`linksem-lean`), `lean/docs/upstream-tray/lem/01-assert-extra-fail-applied-prints-invalid-ocaml.md`
 (branch `lean/port`, commit `9cafe16`, 2026-09-30). That draft stays where
-it is, unchanged ([USER 2026-10-03] "lem-lean, copies stay"); this draft is
+it is, unchanged ([USER 2026-10-03]: the tray lives in lem-lean and the copies stay); this draft is
 based on it. Its reproducer was run on upstream `f5529b2`, an ancestor of
 `3802cb0` with an identical `assert_extra.lem`; the output above is a
 fresh run on `3802cb0`, and its compiler error is the same as the one

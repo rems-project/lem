@@ -31,13 +31,13 @@ lean-lib` → empty); `deps/lem-pinned` and the switch's `lem` untouched
 - [USER 2026-09-19] delegation (charter §0): implementation-focused —
   the semantics does not move; a backend limit is lifted so the decided
   E-A route generates.
-- [USER 2026-09-04]: *"we don't change the lem structure for ocaml"* — the
+- [USER 2026-09-04]: the lem structure is not changed for OCaml's sake — the
   `are_compatible` blocks need the enum map on BOTH targets, so the
   backend composes the mechanisms; no `.lem` reshaping. The invariance
   witness (§3.4) shows the `{lean}` declares are no-ops for the other
   emitters.
-- [USER 2026-09-08] *"we should \*NOT\* be building anything new
-  out-of-policy"* — a guard deletion, tests/probes, docs, this record; the
+- [USER 2026-09-08] nothing new is to be built out of policy — a guard
+  deletion, tests/probes, docs, this record; the
   kernel pins are `rfl`/`decide` on concrete values and one joint
   stability proof in the C2 template.
 

@@ -12,8 +12,8 @@ open import Pervasives
    reaches one (the fuel lifting; call sites are textually unchanged).
    NO default exists anywhere: the entry point supplies the instance
    (`@f ⟨n⟩ …` / `letI : LemFuel := ⟨n⟩`), a theorem quantifies over
-   it. [USER 2026-09-03]: "fuel is an execution parameter that
-   'doesn't matter' — any fuel value can be chosen".
+   it. [USER 2026-09-03]: fuel is an execution parameter whose value
+   does not matter; any fuel value can be chosen.
 
    Pins: lean-test/TestFuelParamCheck.lean (kernel: rfl/decide/∀-fuel
    theorems), lean-test/TestFuelParamExec.lean (compiled: two

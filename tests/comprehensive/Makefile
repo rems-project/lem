@@ -87,8 +87,8 @@ lean-parity:
 	@./parity/run.sh
 
 # Fuel as a quantified parameter (fuel-parameter arc, 2026-09-04;
-# [USER 2026-09-03] "fuel is an execution parameter that 'doesn't
-# matter'"): compiled witnesses that two different sufficient fuels give
+# [USER 2026-09-03]: fuel is an execution parameter whose value does
+# not matter): compiled witnesses that two different sufficient fuels give
 # identical results, that an insufficient fuel gives exactly the declared
 # sentinel, that a fuel'd callee starts from the FULL ambient, that a
 # fuel_consumer reads the same ambient, and (leg 2, under

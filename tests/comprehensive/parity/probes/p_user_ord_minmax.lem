@@ -5,8 +5,8 @@
    (library/basic_classes.lem), which the Lean target emits; the OCaml
    target represents them as Stdlib's structural `max`/`min`
    (`declare ocaml target_rep function defaultMax = `max``), which
-   ignores the instance's `<=`. Ruling: [USER 2026-10-03] "Register as
-   deviation" (backend-hardening record; upstream report: doc/upstream-tray
+   ignores the instance's `<=`. Ruling: [USER 2026-10-03] register it as a
+   deviation (backend-hardening record; upstream report: doc/upstream-tray
    draft 11). The pin expected/p_user_ord_minmax.lean.out is the Lean side
    (lem's own semantics); the OCaml pin is the reference's deviating output. *)
 open import Pervasives_extra

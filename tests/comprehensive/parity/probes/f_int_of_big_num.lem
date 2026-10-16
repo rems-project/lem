@@ -4,9 +4,8 @@
    which raises Failure "int_of_big_int" at 2^62 (the 63-bit OCaml int
    range); lem's nat/int are unbounded (num.lem:104-111, prover-side
    semantics) and the Lean conversions are the identity — [USER
-   2026-09-03] "ocaml limits that are hardcoded thanks to ocaml-level
-   execution issues are also forbidden, the real thing is the logical
-   semantics". The runner therefore EXPECTS this probe to fail parity
+   2026-09-03] ruled that hard-coded OCaml limits arising from OCaml-level
+   execution are forbidden too; the logical semantics is what counts. The runner therefore EXPECTS this probe to fail parity
    (Lean succeeds where the OCaml reference raises); until 2026-09-04 the
    Lean side failed loudly at the same bound (parity-fix slice 3c88f0d,
    exception-case rulings X3 — superseded by the X3 addendum). *)

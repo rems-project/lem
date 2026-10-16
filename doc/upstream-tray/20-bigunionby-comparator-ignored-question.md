@@ -85,7 +85,7 @@ checkout, `doc/lean-backend/2026-09-30_library-parity-coverage.md` §2 "LP9
 view: "using a `*By` comparator that disagrees with the members' `SetType`
 is outside what the Pset port can mirror without carrying comparators in
 the value; needs a ruling". Cut from mainline in the downscope of
-2026-09-30; brought back by [USER 2026-10-03] "All 16, re-verified". The
+2026-09-30; brought back by the [USER 2026-10-03] ruling (all 16 findings, re-verified). The
 classification as a question rather than a bug is [AGENT] (this tray),
 because the OCaml answers are the mathematically expected ones.
 

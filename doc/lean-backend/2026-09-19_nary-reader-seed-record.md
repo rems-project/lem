@@ -22,17 +22,16 @@ and the shared switch's `lem` untouched (the orchestrator's boundary step).
 
 ## 1. Rulings and decisions honoured (provenance)
 
-- [USER 2026-09-19] (charter §0): *"I'm interested in making decisions that
-  are consequential in some way but for the other kinds of decisions,
-  which are really more implementation-focused, I think you can make the
-  calls."* and on Q2: *"yeah, I agree on Q2, let's roll it together"* —
+- [USER 2026-09-19] (charter §0): the operator decides the consequential questions and leaves
+  implementation-focused calls to the agent; on Q2, agreed to roll the two
+  together —
   D-A and E-A are one arc with one consumer re-pin; S0.5 is that arc's
   backend prerequisite.
-- [USER 2026-09-04] (S0 record §1.6): *"we don't change the lem structure
-  for ocaml"* — the rule below changes NO `.lem` in cerberus and no
+- [USER 2026-09-04] (S0 record §1.6): the lem structure is not changed for
+  OCaml's sake — the rule below changes NO `.lem` in cerberus and no
   non-Lean emitter; the invariance witness (§3.4) is the check.
-- [USER 2026-09-08]: *"we should \*NOT\* be building anything new
-  out-of-policy"* — one backend rule, its tests/probes, docs, this record;
+- [USER 2026-09-08]: nothing new is to be built out of
+  policy — one backend rule, its tests/probes, docs, this record;
   no new proof or artefact surface (the kernel pins are plain `rfl`/`decide`
   on concrete values; `#print axioms` on the two named defs is the trio).
 - **Q-B, decided [AGENT] by the orchestrator, flagged to the operator**

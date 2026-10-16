@@ -48,7 +48,7 @@ open Lem_Basic_classes
 #guard (match SetType.setElemCompare (Prio_coarse 0 1) (Prio_coarse 0 2) with
         | LemOrdering.EQ => true | _ => false) == true
 
-/- 5. The BEq lattice below core ([USER 2026-10-03] "(a) 450/400"; design
+/- 5. The BEq lattice below core ([USER 2026-10-03] chose option (a), 450/400; design
    note doc/lean-backend/2026-10-03_beq-instance-lattice-design.md): the
    `[Eq0 a] : BEq a` bridge (450) and the comparator bridges
    `[SetType a]`/`[MapKeyType a] : BEq a` (400) sit BELOW core's

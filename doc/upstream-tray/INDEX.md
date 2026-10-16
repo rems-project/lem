@@ -90,13 +90,13 @@ are questions, and for 22 the behaviour is documented upstream.
 
 The operator's ruling ([USER 2026-10-03], recorded in lem-lean
 `doc/lean-backend/2026-10-03_output-niceness-arc-plan.md` §3, branch
-`arc/output-niceness` at `b8bf958`): Tray scope "All 16, re-verified" — "Every
-upstream-Lem finding recorded in the Cerberus, linksem and lem-lean docs
-gets a draft. This includes the five that are only on the archive branch
-`archive/linksem-fixes-2026-09-30` and the machine-word findings."
+`arc/output-niceness` at `b8bf958`): tray scope is all 16 findings, re-verified —
+every upstream-Lem finding recorded in the Cerberus, linksem and lem-lean docs
+gets a draft, including the five that are only on the archive branch
+`archive/linksem-fixes-2026-09-30` and the machine-word findings.
 
 The count does not reconcile exactly with the survey that preceded it,
-so this tray follows the ruling's text ("every … finding") rather than the
+so this tray follows the ruling's every-finding wording rather than the
 number. The survey listed 16 numbered items (the five machine-word OCaml
 findings OM1–OM5 as separate items) plus the five archive-only ones,
 which is 21; the operator was told 16 "including the five archive-only
@@ -150,7 +150,7 @@ Considered, not upstream (no draft):
 | 23 | lem-lean orchestrator, 2026-10-03 (output-readability work), reported to this slice with the `test_and.lem` reproducer | — |
 
 The Cerberus and linksem `lem/01` drafts stay where they are, untouched
-([USER 2026-10-03] Tray home: "lem-lean, copies stay"). If one of those
+([USER 2026-10-03]: the tray's home is lem-lean and the copies stay). If one of those
 reports is filed, record it in both places.
 
 ## Fixes checked locally (no patch branches)
@@ -172,7 +172,7 @@ after an independent verifier's recount.)
   `8c3a4ca` adapted to upstream's targets.
 
 These fixes were built and checked on local branches that were then
-deleted: [USER 2026-10-03] "We aren't doing upstream-pr writing, that's a waste of time. Delete those" (README §5).
+deleted ([USER 2026-10-03] ruled out upstream-PR writing and had the branches deleted; README §5).
 
 No other finding has an existing fix to adapt.
 

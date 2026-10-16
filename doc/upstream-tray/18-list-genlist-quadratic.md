@@ -94,7 +94,7 @@ the noodle bisect … give OCaml `genlist` a `List.init` rep (upstream lem,
 non-Lean change)"); `doc/lean-backend/2026-09-03_parity-fix-record.md`
 §F9; the noodle record `2026-09-03_noodle-backend.md` (lem-lean commit
 `a02cb6f`, not on mainline). These are [AGENT] records; the tray scope is
-[USER 2026-10-03] "All 16, re-verified".
+the [USER 2026-10-03] ruling (all 16 findings, re-verified).
 
 ## Provenance
 

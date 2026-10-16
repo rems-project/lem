@@ -4,8 +4,8 @@ Branch `arc/fuel-parameter` (lem-lean), base mainline `mdd/lean-backend`
 @ `0890229` + the design note (`774569c`) + the operator's general form
 (`0db35ec`). Charter: `2026-09-03_fuel-parameter-design.md` (§4 lists the
 questions settled here; its R1 section carries the deltas from the
-draft). Worker [AGENT] (lem-lean); rulings [USER 2026-09-03] quoted
-verbatim; every quoted output is verbatim from this tree; tallies marked
+draft). Worker [AGENT] (lem-lean); rulings [USER 2026-09-03] paraphrased;
+every quoted output is verbatim from this tree; tallies marked
 "derived" are derived. Nothing merged, nothing pushed.
 
 ## 0. Commits
@@ -20,26 +20,25 @@ verbatim; every quoted output is verbatim from this tree; tallies marked
 
 ## 1. The rulings this slice implements
 
-- [USER 2026-09-03] "fuel is an execution parameter that 'doesn't matter'
-  — that is, any fuel value can be chosen [...] this and all other magic
-  values are completely forbidden [...] fuel [is] a parameter which can be
-  chosen as 10^8 or any other value when calling the interpreter"; "All
-  similar such magic values should be removed and replaced by quantified
-  parameters"; "the lemlib bounds are fine if they are passed as
-  parameters to the semantics and can be chosen by a calling context.
-  Otherwise they are forbidden magic values."
-- General form [USER 2026-09-03]: "Generally, any instance of a value
-  that can be quantified over by a context / theorem is fine. Defaults
-  that are chosen eg. in test suites are fine. Any and all magic values
-  that are hardcoded and can't be quantified over are definitionally bugs
-  (unless they mirror lem or ISO-C design choices)".
-- Third form [USER 2026-09-03]: "my aim here is to forbid values that
-  limit the semantics or limit the ways the customer can reason about the
-  semantics. It doesn't seem like this proposal does that?" — structural
+- [USER 2026-09-03]: fuel is an execution parameter whose value does not
+  matter — any fuel value can be chosen; this and all other magic values
+  are completely forbidden; fuel is a parameter chosen by the caller of
+  the interpreter (10^8 or any other value). All similar magic values
+  are to be removed and replaced by quantified parameters. The LemLib
+  bounds are fine if they are passed to the semantics as parameters that
+  a calling context can choose; otherwise they are forbidden magic
+  values.
+- General form [USER 2026-09-03]: any value that a context or theorem can
+  quantify over is fine; defaults chosen e.g. in test suites are fine;
+  any hardcoded magic value that cannot be quantified over is by
+  definition a bug, unless it mirrors a lem or ISO-C design choice.
+- Third form [USER 2026-09-03]: the aim is to forbid values that limit the
+  semantics or limit the ways the customer can reason about the
+  semantics, and the proposal did not seem to do that — structural
   recursion on a DATA measure is admissible.
-- [USER 2026-09-03] "ocaml limits that are hardcoded thanks to ocaml-level
-  execution issues are also forbidden, the real thing is the logical
-  semantics".
+- [USER 2026-09-03]: OCaml limits hardcoded because of OCaml-level
+  execution issues are forbidden as well; the logical semantics is what
+  counts.
 
 Every value touched below is classified against the general form: a
 caller parameter (quantifiable), a test-suite choice (fine), a data
@@ -570,7 +569,7 @@ files is byte-identical. The cerberus tree: §6.2.
   isabelle `word_of_int`, hol `n2w` — modular. Conclusion: lem's
   prover-side meaning of an out-of-range conversion is WRAP; the
   `Overflow` raise is an OCaml-execution artifact of the same kind as X3,
-  and under "the real thing is the logical semantics" the Lean reps
+  and under the ruling that the logical semantics is what counts the Lean reps
   (`lemInt32OfIntegerExact`, `lemInt32OfNaturalExact`,
   `lemInt32FromNumeral`, and the `Int64` trio) should become
   `Int32.ofInt`/`Int64.ofInt` (modular), moving parity rows

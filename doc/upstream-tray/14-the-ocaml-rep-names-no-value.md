@@ -91,7 +91,7 @@ exists (`p_zz_the`: "There is no constructor THE within type option" — the
 OCaml build fails)"). Also recorded as row X5 of lem-lean
 `doc/lean-backend/2026-09-03_parity-fix-record.md` ("no OCaml definition
 (comment only)"). Both are [AGENT] work; the tray scope is
-[USER 2026-10-03] "All 16, re-verified".
+the [USER 2026-10-03] ruling (all 16 findings, re-verified).
 
 ## Provenance
 

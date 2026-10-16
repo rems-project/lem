@@ -1,6 +1,6 @@
 # Comparison dictionaries and function-field comparisons (linksem audit A1)
 
-Date: 2026-09-29. [USER 2026-09-29] "go ahead" on the audit fixes; design
+Date: 2026-09-29. [USER 2026-09-29] approved the audit fixes; design
 [AGENT]. Finding: `doc/lean-backend/2026-09-28_linksem-findings.md`, audit
 follow-up A1.
 

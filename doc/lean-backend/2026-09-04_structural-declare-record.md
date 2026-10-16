@@ -6,7 +6,7 @@ response to the consumer's review, cerberus-lean
 `lean_frontend/docs/2026-09-04_fuel-parameter-consumer-review-response.md`
 §3–§4 (the structural declare as the mechanism for the consumer's form
 (A); D4 as ruled; monotonicity, TODO row 13). Worker [AGENT] (lem-lean);
-rulings quoted verbatim with [USER] provenance; every quoted output is
+rulings paraphrased with [USER] provenance; every quoted output is
 verbatim from this worktree; tallies marked "derived" are derived.
 Nothing merged, nothing pushed.
 
@@ -21,14 +21,14 @@ Nothing merged, nothing pushed.
 
 ## 1. The rulings this slice implements
 
-- [USER 2026-09-03] general form: "any instance of a value that can be
-  quantified over by a context / theorem is fine … Any and all magic
-  values that are hardcoded and can't be quantified over are
-  definitionally bugs (unless they mirror lem or ISO-C design choices)";
-  "ocaml limits that are hardcoded thanks to ocaml-level execution issues
-  are also forbidden, the real thing is the logical semantics".
-- [USER 2026-09-04], adopting the orchestrator's recommendations: "go
-  ahead with the merges as proposed, then work on this as you suggest" —
+- [USER 2026-09-03] general form: any value that a context or theorem can
+  quantify over is fine; any hardcoded magic value that cannot be
+  quantified over is by definition a bug, unless it mirrors a lem or
+  ISO-C design choice; OCaml limits hardcoded because of OCaml-level
+  execution issues are forbidden as well — the logical semantics is what
+  counts.
+- [USER 2026-09-04], adopting the orchestrator's recommendations (proceed
+  with the merges as proposed, then work on this as suggested) —
   D4 = WRAP; the structural declare is the mechanism for the consumer's
   form (A).
 - The consumer's requirement (refined-cerberus review §2, [AGENT],
@@ -226,8 +226,8 @@ why the cerberus census (§6) runs in rounds.
 ## 4. D4 — WRAP (the `int32`/`int64` conversions)
 
 [USER 2026-09-04] adopting the fuel-parameter record's D4 recommendation
-("go ahead with the merges as proposed, then work on this as you
-suggest"). lem's own semantics of `int32FromInteger`/`int32FromNatural`/
+(proceed with the merges as proposed, then work on this as
+suggested). lem's own semantics of `int32FromInteger`/`int32FromNatural`/
 `int32FromNumeral` and the `int64` trio is modular — the prover-side reps
 are `word_of_int` (Isabelle) / `n2w` (HOL), `library/num.lem:831-832`,
 `:1040-1041`, `:2378-2470`; `Nat_big_num.to_int32/to_int64: Overflow` is

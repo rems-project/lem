@@ -99,11 +99,11 @@ comment does not say the wrap is silent and can produce negative `nat`s.
   theorem-prover targets map them to unbounded numbers".
 - lem-lean `doc/lean-backend/2026-09-03_exception-case-rulings.md` §2 "X3 /
   N4"; the ruling recorded in `2026-09-03_parity-fix-record.md` §4:
-  "RULED 2026-09-03 ([USER] "Agree re lem."): X1 and X3/N4 are recorded as
-  OCaml-backend deviations from lem's own prover-side semantics". The
+  RULED 2026-09-03 ([USER] agreed as regards lem): X1 and X3/N4 are recorded as
+  OCaml-backend deviations from lem's own prover-side semantics. The
   [AGENT] answer put to the operator there called it "a documented design
   compromise in upstream lem, not a bug".
-- Drafted here because [USER 2026-10-03] "All 16, re-verified" asks for a
+- Drafted here because the [USER 2026-10-03] ruling (all 16 findings, re-verified) asks for a
   draft for every finding; filed as a note, if at all.
 
 ## Provenance

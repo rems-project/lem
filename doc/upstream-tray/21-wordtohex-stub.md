@@ -82,7 +82,7 @@ lem-lean library-parity work, finding LP5: mainline
 archived record `8ccbe40` §2 "LP5 — `wordToHex` / `show` on `mword` is a
 stub on OCaml (QUESTION)", whose [AGENT] recommendation is "record as an
 OCaml-library gap (upstream), keep Lean's real rendering". The tray scope
-is [USER 2026-10-03] "All 16, re-verified".
+is the [USER 2026-10-03] ruling (all 16 findings, re-verified).
 
 ## Provenance
 

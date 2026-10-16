@@ -3,7 +3,7 @@
    at build time — `rfl`, `decide`, or a small ∀-fuel theorem — with no
    `native_decide`, no axioms beyond Lean's own. A failing pin fails the
    build. The numerals below are TEST-SUITE choices ([USER 2026-09-03]:
-   "Defaults that are chosen eg. in test suites are fine"); none exists
+   defaults chosen in test suites are fine); none exists
    in LemLib or in the generated code (check_no_fuel_numerals.sh). -/
 import Test_fuel_param
 import Test_contextual_keywords

@@ -2,29 +2,22 @@
 
 Branch `arc/fuel-parameter` (lem-lean), paired with cerberus-lean
 `arc/fuel-parameter` (the pin dance: lem merges first). Author: the
-orchestrator [AGENT]; rulings [USER 2026-09-03] quoted verbatim. Status:
+orchestrator [AGENT]; rulings [USER 2026-09-03] paraphrased. Status:
 DRAFT for the refined-cerberus consumer review before either merge (the
 fuel-arc practice, `cerberus-lean/lean_frontend/docs/2026-09-02_fuel-arc-design.md`).
 
 ## 1. The ruling
 
 The refined-cerberus team found that the fuel design bakes in a budget.
-[USER 2026-09-03]:
-
-> "The correct way for this to work is that fuel is an execution
-> parameter that 'doesn't matter' - that is, any fuel value can be
-> chosen. The current design does this for the 'outer' loop but it bakes
-> in a magic 10^8 value. This is wrong - this and all other magic values
-> are completely forbidden. [...] The correct structure is for fuel to be
-> a parameter which can be chosen as 10^8 or any other value when calling
-> the interpreter."
->
-> "All similar such magic values should be removed and replaced by
-> quantified parameters"
->
-> "magic values like this (or any similar 'magical' choices over
-> nondeterminism) are absolutely completely forbidden and are
-> definitionally bugs"
+[USER 2026-09-03]: fuel is an execution parameter whose value does not
+matter, so any fuel value can be chosen; the current design does this for
+the outer loop but bakes in a magic 10^8 value, which is wrong — this and
+all other magic values are completely forbidden; the correct structure is
+for fuel to be a parameter chosen by the caller of the interpreter (10^8
+or any other value). All similar magic values are to be removed and
+replaced by quantified parameters. Magic values like this, and any similar
+magical choices over nondeterminism, are completely forbidden and are
+definitionally bugs.
 
 The principle is recorded in `DESIGN.md` ("No magic values") and in
 cerberus-lean `lean_frontend/DESIGN.md` §4.
@@ -40,14 +33,14 @@ cerberus-lean `lean_frontend/DESIGN.md` §4.
 Consequence: a program that exhausts an inner `lemDefaultFuel` budget
 (a fuel-declared model function recursing more than 10^6 deep) cannot be
 rescued by ANY choice of the outer fuel — the accepted fuel exception
-("we could always just run the semantics with more fuel", [USER
+(that the semantics could always be run with more fuel, [USER
 2026-09-03]) is therefore false as implemented. The LemLib set/map recursions (`Pset.unionGo/interGo/diffGo/subsetGo`,
 `compareAux`, `Pmap.merge`, the closure `tc`) run on budgets computed
 from the data (`height s1 + height s2 + 1`, `cardinal + 1`, `(2n)^2 +
-1`), and `Pset.lfp` on a budget its caller supplies. [USER 2026-09-03],
-verbatim: "the lemlib bounds are fine if they are passed as parameters
-to the semantics and can be chosen by a calling context. Otherwise they
-are forbidden magic values." So a bound computed inside the definition
+1`), and `Pset.lfp` on a budget its caller supplies. [USER 2026-09-03]:
+the LemLib bounds are fine if they are passed to the semantics as
+parameters that a calling context can choose; otherwise they are
+forbidden magic values. So a bound computed inside the definition
 is NOT exempt: each of these either (a) takes its fuel from the same
 ambient parameter as everything else, or (b) is rewritten so it needs
 no bound — well-founded recursion on the measure the bound encodes
@@ -183,9 +176,9 @@ only states the deltas against §3–§5 above.
    a sub-call's sentinel and change value at a larger fuel), and with the
    panic payload `fuelExhausted x` — opaque — "≠ payload" is not even
    statable. What it requires is stated in the record §5.
-5. **LemLib (§4.5) under the third-form ruling** ([USER 2026-09-03] "my aim
-   here is to forbid values that limit the semantics or limit the ways the
-   customer can reason about the semantics"): structural recursion on a
+5. **LemLib (§4.5) under the third-form ruling** ([USER 2026-09-03]: the aim
+   is to forbid values that limit the semantics or limit the ways the
+   customer can reason about the semantics): structural recursion on a
    DATA MEASURE (the AVL height stored in a node, an element count, the
    finite square of a relation's endpoints) is admissible — nothing is
    chosen, nothing bounds the semantics, a proof unfolds it. So the
@@ -250,8 +243,8 @@ ACCEPT; requirement §2 — every fuel'd function on the execution path is
 (A) structural on its data, (B) absorbing typed exhaustion, or (C)
 unreachable) and the orchestrator's response (cerberus-lean
 `lean_frontend/docs/2026-09-04_fuel-parameter-consumer-review-response.md`
-§3–§4), adopted by the operator ([USER 2026-09-04] "go ahead with the
-merges as proposed, then work on this as you suggest"). Record:
+§3–§4), adopted by the operator ([USER 2026-09-04]: proceed with the
+merges as proposed, then work on this as suggested). Record:
 `2026-09-04_structural-declare-record.md`. Deltas against R1:
 
 1. **Form (A) has its declare: `declare {lean} structural val f`.** An
@@ -285,13 +278,12 @@ merges as proposed, then work on this as you suggest"). Record:
 ## R3 (2026-09-04) — fuel instantiated from a data measure
 
 Revision by the lem-lean worker [AGENT] implementing the operator's
-ruling on the (A) census ([USER 2026-09-04], verbatim: "I think sticking
-to our principle that we don't change the lem structure for ocaml is a
-very good design rule. That's available here with (2) right, and the
-effect is that we have to do more work, but it's just bounded kernel
-checked work. [...] we should do the [hard for us in terms of work] but
-[trust=surface preserving] one"; "we maintain the lem structure, and we
-get additional properties we want without any trust decrease"). Record:
+ruling on the (A) census ([USER 2026-09-04]: keep to the principle that
+the lem structure is not changed for OCaml's sake — a good design rule,
+available here via option (2); it costs more work, but bounded,
+kernel-checked work, so take the harder, trust-surface-preserving
+option: the lem structure is maintained and the additional properties
+come without any trust decrease). Record:
 `2026-09-04_fuel-measure-record.md`. Deltas against R2:
 
 1. **Form (c) for fuel'd functions: ``declare {lean} fuel_measure val f =
@@ -333,7 +325,7 @@ get additional properties we want without any trust decrease"). Record:
 ## R4 (2026-09-05) — a hypothesis on the measure
 
 Revision by the lem-lean worker [AGENT] implementing [USER 2026-09-05]
-("agree, go ahead with option 1", on the orchestrator's D-C2-1
+(agreement to proceed with option 1 of the orchestrator's D-C2-1
 recommendation): the cerberus C2 census left nine tag-lookup rows, the
 basis recursion and a few others as "P" because their recursion is
 bounded only under a well-formedness fact the unconditional obligation
@@ -345,8 +337,8 @@ against R3:
    rules and forbidden names; a parameter-free `H` — `True`, a closed
    proposition — is refused as vacuous so the two forms stay distinct; the
    fuel may not be mentioned). Lean-only: the `.lem` body, the OCaml
-   output and every other emitter are unchanged (the standing rule "we
-   don't change the lem structure for ocaml").
+   output and every other emitter are unchanged (the standing rule that the
+   lem structure is not changed for OCaml's sake).
 2. **The wrapper stays form (c) and fuel-free** — `def f xs := f_lemFuel
    (μ xs) xs`, no hypothesis, no `[LemFuel]`; the hypothesis is a
    proof-side fact only. **The obligation becomes `H xs → μ xs ≤ fuel →

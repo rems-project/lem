@@ -111,7 +111,7 @@ checkout, `doc/lean-backend/2026-09-30_library-parity-coverage.md` §2 "OM5
 mainline `doc/lean-backend/2026-09-30_library-parity-coverage.md` §2 item 6.
 The recommendation is [AGENT]: "the OCaml failures are bugs (rotation by 0
 is the identity in every prover backend)"; the tray scope is
-[USER 2026-10-03] "All 16, re-verified".
+the [USER 2026-10-03] ruling (all 16 findings, re-verified).
 
 ## Provenance
 

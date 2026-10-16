@@ -7,12 +7,12 @@ backend and LemLib (the "code review": items H1, H2, M1, M2, W8, TODO 37)
 and the behavioural noodler (the "noodle report": findings 1–6). Package C
 (cleanup, no output change) is a later slice; package D is out of scope.
 
-## Rulings (verbatim, operator, 2026-10-03)
+## Rulings (operator, 2026-10-03, paraphrased)
 
-- Packages: "A: correctness + fail-closed (Recommended)" and "C: cleanup,
-  no output change (Recommended)". C is a later slice; D is not in scope.
-- #1 min/max: "Register as deviation".
-- #2 the BEq bridge: "Design pass first". Another agent handles it; LemLib's
+- Packages: A (correctness + fail-closed) and C (cleanup, no output
+  change), both the recommended options. C is a later slice; D is not in scope.
+- #1 min/max: register as a deviation.
+- #2 the BEq bridge: design pass first. Another agent handles it; LemLib's
   instance priorities are not changed here.
 
 Every decision below that is not one of these is [AGENT].
@@ -245,7 +245,7 @@ were frozen: Cerberus at `51a7402ce`, linksem at `f54d119`.
 - Cause: `library/basic_classes.lem` `defaultMax = maxByLessEqual (<=)`
   with ``declare ocaml target_rep function defaultMax = `max` `` (Stdlib's
   structural `max`); upstream report `doc/upstream-tray/11-default-max-min-structural-on-ocaml.md`.
-- Ruling: [USER 2026-10-03] "Register as deviation". No OCaml
+- Ruling: [USER 2026-10-03] register it as a deviation. No OCaml
   representation is changed.
 - Register: `parity/probes/p_user_ord_minmax.lem` (the instance's `<=`,
   `min`/`max` both ways, and the explicit `maxByLessEqual (<=)` /
@@ -440,13 +440,13 @@ upstream-drift: 944 upstream files; 198 differ   [library code rows all comments
 ```
 
 **Rulings since the slice began**, all [USER 2026-10-03]:
-- #2 (the `BEq` bridge): "(a) 450/400 (Recommended)", landing as its "Own slice
-  after A and C". Design note: branch `docs/beq-lattice-design`, `39c4e0c`.
+- #2 (the `BEq` bridge): option (a), 450/400 (the recommended one), landing as its
+  own slice after A and C. Design note: branch `docs/beq-lattice-design`, `39c4e0c`.
   TODO 45 (`automatic` termination under the bridge) is retested in that
   slice.
 
-**Attribution note.** "Agree, this is minor but lets get it right from now
-on": `Co-Authored-By` trailers name the model that actually did the work.
+**Attribution note.** The operator agreed this is minor but is to be got
+right from now on: `Co-Authored-By` trailers name the model that actually did the work.
 - `f33cf4f` correctly says Claude Fable 5.1.
 - The earlier Fable-written output-niceness commits `ac5565b`, `131b922` and
   `0885bf6` say Claude Opus 5.5, because the orchestrator's brief prescribed
@@ -455,8 +455,8 @@ on": `Co-Authored-By` trailers name the model that actually did the work.
 
 ## Package C: cleanup, no output change (2026-10-03)
 
-Ruling, verbatim [USER 2026-10-03]: "C: cleanup, no output change
-(Recommended)". Worked on `arc/backend-hardening` from `a1fdf6e` (package A
+Ruling [USER 2026-10-03]: package C (cleanup, no output change), the
+recommended option. Worked on `arc/backend-hardening` from `a1fdf6e` (package A
 verified). Every decision below not quoted as a ruling is [AGENT]. The
 source is the code review of 2026-10-03 (`REPORT.md` §3–§7 and its notes);
 every claim acted on was re-verified first (grep, build, or a run).
@@ -718,8 +718,8 @@ regenerated consumer trees either.
 
 ## BEq-lattice slice: the `[Eq0 a] : BEq a` bridge below core (2026-10-03)
 
-Rulings, verbatim [USER 2026-10-03]: "(a) 450/400 (Recommended)" and
-"Own slice after A and C". The design pass it lands is
+Rulings [USER 2026-10-03]: option (a), 450/400 (the recommended one), and
+its own slice after A and C. The design pass it lands is
 [`2026-10-03_beq-instance-lattice-design.md`](2026-10-03_beq-instance-lattice-design.md)
 (code-review finding L1, TODO item 46). Worked on `arc/backend-hardening`
 from `8666b7f` (packages A and C verified). Every decision below that is
@@ -1207,7 +1207,7 @@ Direct probes against the new LemLib:
 
 ## Pre-merge audit (2026-10-04)
 
-[USER 2026-10-03] "Fresh Fable audit, full range". Auditor: Claude Fable 5.1,
+[USER 2026-10-03] asked for a fresh Fable audit over the full range. Auditor: Claude Fable 5.1,
 fresh, on `5dfcd25..653ea3f`. Verdict: **merge after fixes**, all
 documentation; no BLOCKER, no MAJOR. Notes and probes are in scratch,
 `.tmp/audit-hardening/`.
@@ -1232,7 +1232,7 @@ Findings and fixes (this commit):
   sites.
 - **MINOR-2.** TODO 45 still said "awaits the operator" after the ruling, and
   DESIGN's `automatic` row and the manual posed the question as open. Both now
-  cite [USER 2026-10-03] "Leave open".
+  cite the [USER 2026-10-03] ruling to leave it open.
 - **MINOR-3.** The 127-field admission is a runtime bound only. A variant
   constructor with 127 fields and derived comparisons exceeds Lean's
   elaboration recursion depth (`maximum recursion depth has been reached`).

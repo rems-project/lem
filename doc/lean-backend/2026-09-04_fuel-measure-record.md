@@ -5,7 +5,7 @@ structural-declare slice) on mainline `mdd/lean-backend` @ `9ba8970`.
 Charter: the FUEL-MEASURE enabler for the cerberus half of the
 fuel-parameter arc — the Lean-only mechanism for the PURE case of the
 operator's ruling on the (A) census. Worker [AGENT] (lem-lean); the ruling
-quoted verbatim with [USER] provenance; every quoted output is verbatim
+paraphrased with [USER] provenance; every quoted output is verbatim
 from this worktree (`.tmp/` logs named); tallies marked "derived" are
 derived. Nothing merged, nothing pushed.
 
@@ -19,13 +19,11 @@ derived. Nothing merged, nothing pushed.
 
 ## 1. The ruling this slice implements
 
-[USER 2026-09-04], verbatim: "I think sticking to our principle that we
-don't change the lem structure for ocaml is a very good design rule.
-That's available here with (2) right, and the effect is that we have to
-do more work, but it's just bounded kernel checked work. [...] we should
-do the [hard for us in terms of work] but [trust=surface preserving] one"
-and "we maintain the lem structure, and we get additional properties we
-want without any trust decrease".
+[USER 2026-09-04]: keep to the principle that the lem structure is not
+changed for OCaml's sake — a good design rule, available here via option
+(2); it costs more work, but bounded, kernel-checked work, so take the
+harder, trust-surface-preserving option: the lem structure is maintained
+and the additional properties come without any trust decrease.
 
 Operationally (the charter): cerberus's `.lem` bodies are NOT restructured
 for Lean's structural checker. For every fuel'd function reachable from
@@ -792,7 +790,7 @@ comment stood) — no code token differs.
    `…_params` in ail) would be MEASURED after an eta-expansion naming the
    `function` argument — a one-line, semantics-preserving lem edit per
    function that changes the OCaml text trivially (an explicit parameter).
-   Is that within "we maintain the lem structure"?
+   Is that within the ruling that the lem structure is maintained?
 3. **The (B) payloads.** For the 11 (B) rows the cerberus half must make
    each sentinel the monad's absorbing element (`NDkilled …` for ND; an EU
    exception for `eval_pexpr_aux2`/`…_broken`/`full_eval_pexpr`) — the

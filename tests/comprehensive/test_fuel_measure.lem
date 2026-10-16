@@ -3,8 +3,8 @@ open import Pervasives
 (* ================================================================
    Fuel INSTANTIATED FROM A DATA MEASURE (fuel-measure slice, 2026-09-04).
 
-   [USER 2026-09-04]: "we maintain the lem structure, and we get
-   additional properties we want without any trust decrease". A fuel'd
+   [USER 2026-09-04]: the lem structure is kept, and the extra
+   properties come without any decrease in trust. A fuel'd
    function whose recursion is bounded by its data is NOT restructured
    for Lean's structural checker; instead
 

@@ -5,27 +5,21 @@ Branch `arc/output-niceness`, from `mdd/lean-backend` at `6e2526e`.
 ## 1. Trigger
 
 Feedback from a Lem developer after reading linksem's `src/dwarf.lem` next to
-the generated `Dwarf.lean` (relayed by the operator, 2026-10-03, verbatim):
+the generated `Dwarf.lean` (relayed by the operator, 2026-10-03; paraphrased):
+the Lean output had lost many of the source comments; comments added by the
+translation were not marked as such; there were extra blank lines between
+inductive cases; some Lem record types became readable Lean while others (for
+example `sdt_subroutine`) became a single-constructor inductive taking a long
+list of positional arguments, which looked bad though the developer was unsure
+what idiomatic Lean would force (for example for mutual recursion through
+records); and a build needing more than 20G of memory, as an agent's note had
+described, looked suspicious.
 
-> - the latter has lost a bunch of comments
-> - comments added by the translation aren't flagged as such
-> - extra blank lines between inductive cases
-> - some Lem record types turn into sensible-looking things, but some (eg
->   sdt_subroutine) turn into a Lean inductive with a single constructor that
->   takes a whole mess of positional arguments. On the face of it that looks
->   bad, but I don't know what's idiomatic Lean and what's forced (eg wrt
->   mutual recursive types through records)
-> - Claude said "One false start: my first lake build ran under a 20 GB
->   address-space cap and Lean failed to create threads, and a second used a
->   -j flag lake does not take; the third, plain lake build, succeeded." - if
->   building this takes more than 20G, something's suspicious
-
-Operator direction [USER 2026-10-03]: "We should fix these specific things,
-then do a general 'niceness' pass intended to make the output nice and
-reasonable", and later in the same session: "we should probably rationalize
-docs and make sure we have a clean todo list. And I think there are some
-lem-upstream findings in documented in linksem / cerberus - we should lift
-these to lem using cerberus's 'tray' style".
+Operator direction [USER 2026-10-03]: fix these specific things, then do a
+general niceness pass to make the output nice and reasonable; and later in
+the same session: rationalise the docs, make sure the TODO list is clean,
+and lift the lem-upstream findings documented in linksem and cerberus into
+lem, using cerberus's tray style.
 
 ## 2. Measurements (2026-10-03, lem `6e2526e`; [AGENT])
 
@@ -82,16 +76,16 @@ files, regenerated with `lem` at `6e2526e`. linksem's checked-in
 ## 3. Rulings
 
 - [USER 2026-10-03] Ordering against the failure-monad translation (TODO 24,
-  the side-effect-free output Cerberus asked for): "Niceness first". S1–S3
+  the side-effect-free output Cerberus asked for): niceness first. S1–S3
   land first under a text-only gate. The failure-monad design pass then
   works on readable output.
-- [USER 2026-10-03] Tray scope: "All 16, re-verified". Every upstream-Lem
+- [USER 2026-10-03] Tray scope: all 16, re-verified. Every upstream-Lem
   finding recorded in the Cerberus, linksem and lem-lean docs gets a draft.
   This includes the five that are only on the archive branch
   `archive/linksem-fixes-2026-09-30` and the machine-word findings. Each
   draft's reproducer is run against pristine upstream `3802cb0`. Filing
   stays with the operator.
-- [USER 2026-10-03] Tray home: "lem-lean, copies stay". The new tray is
+- [USER 2026-10-03] Tray home: lem-lean, with the existing copies staying. The new tray is
   `doc/upstream-tray/` in lem-lean. The existing Cerberus
   `upstream-tray/lem/01` and linksem `upstream-tray/lem/01` drafts are left
   untouched, so no consumer-repo changes are needed.
@@ -148,7 +142,7 @@ How this arc complies [AGENT]:
   `output.ml` block-format decode to be a genuine upstream bug, and the
   orchestrator found the comments-before-`and` loss. The tray therefore
   holds 23 drafts, and its INDEX.md carries the arithmetic. The ruling's
-  intent was "all, re-verified"; the number put to the operator was wrong.
+  intent was all of them, re-verified; the number put to the operator was wrong.
 - **Comments before `and` in recursive function groups (not fixed in S1).**
   The Lean pipeline loses them, as upstream's prover backends do (tray
   draft 23, reproduced on pristine `3802cb0`):
@@ -363,8 +357,8 @@ The packages:
   renamed locals, fewer ascriptions. Consumer-visible.
 
 **Ruling** [USER 2026-10-03], answering "Which packages should the S3
-niceness pass include?": "A: Layout engine (Recommended), B: Printer
-cleanup (Recommended)". C and D are not in this arc; they stay candidates
+niceness pass include?": A (layout engine) and B (printer cleanup), the
+recommended ones. C and D are not in this arc; they stay candidates
 for later decisions. Order [AGENT]: B, then A. Gate for both: the
 generated declarations are unchanged, as shown by the declaration census
 on both consumers; the token check also applies to whitespace-only steps.
@@ -965,8 +959,8 @@ because the accessors they unfold are now projections. Neither is a
 behaviour change. The §8 statement is corrected by this note; §8 itself is
 left as written.
 
-**Audit close.** Fresh Fable audit [USER 2026-10-03] "Fresh Fable audit,
-full range". Verdict: `arc/output-niceness` merge after fixes;
+**Audit close.** Fresh Fable audit, asked for by [USER 2026-10-03] over the
+full range. Verdict: `arc/output-niceness` merge after fixes;
 `docs/lem-upstream-tray` merge.
 - The fixes are `131b922` and `0885bf6` (§13), by the S3-A worker.
 - The orchestrator reproduced MAJOR-1, MAJOR-2 and MINOR-2 before the fix,

@@ -22,7 +22,7 @@ tallies marked "derived" are derived. Nothing merged, nothing pushed.
 ## 1. The ruling this slice implements
 
 [USER 2026-09-04], relayed by the orchestrator: cerberus's `.lem` BODIES are
-not restructured ("we don't change the lem structure for ocaml"); Lean-only
+not restructured (the lem structure is not changed for OCaml's sake); Lean-only
 declares are fine; the semantics is a reasoning artifact. So the remedies for
 the four D2 sites are backend features, Lean-target only, OCaml
 byte-identical — and the sibling rewrite the structural-declare record
@@ -663,4 +663,4 @@ four registered XFAILs, as in the previous runs.) Pre-merge audit
 MINORs fixed in `bc5e04a`, §8). The cerberus OCaml byte-identity was
 verified by the worker and reproduced three ways by the auditor; not
 re-run here. Merged ff-only on the operator's standing authorisation for
-this branch ([USER 2026-09-04] "once the fixes land, go ahead and merge").
+this branch ([USER 2026-09-04] authorised the merge once the fixes landed).

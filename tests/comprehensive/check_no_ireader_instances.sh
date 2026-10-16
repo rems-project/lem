@@ -33,9 +33,9 @@
 #                                   refused; none exists in the tree)
 # Scope, by design. This gate is a SPEEDBUMP against accidental instances,
 # not a trust surface: it is not adversarially robust, and the operator
-# ruled against making it so ([USER 2026-10-07]: "This sounds like a
-# classic case of 'gate cruft' - we don't want our gates to be
-# adversarially robust unless they are trust surfaces"). It catches the
+# ruled against making it so ([USER 2026-10-07]: that would be gate
+# cruft; gates are not to be adversarially robust unless they are
+# trust surfaces). It catches the
 # plain written shapes I1-I4 above. It does NOT catch, by design:
 #   - a header split so that the class is on a later line than `instance`
 #     (the shapes are line-based; none exists in the tree);

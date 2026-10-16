@@ -51,7 +51,7 @@ Each draft is a self-contained issue report with:
 - **Observed vs expected**, **impact**, and a **proposed remedy** (a
   suggestion, not a demand).
 - **Origin**: where the finding was first recorded, with any decision
-  quoted verbatim and tagged `[USER]` (the human operator) or `[AGENT]`
+  recorded in the agent's own words and tagged `[USER]` (the human operator) or `[AGENT]`
   (an AI agent).
 - **Provenance**: how the finding was made (section 7).
 
@@ -82,7 +82,7 @@ file.
 
 ## 5. No patch branches
 
-This tray prepares reports, not pull requests: [USER 2026-10-03] "We aren't doing upstream-pr writing, that's a waste of time. Delete those". Drafts 01 and 03 describe a fix that was
+This tray prepares reports, not pull requests ([USER 2026-10-03] ruled out upstream-PR writing and had the patch branches deleted). Drafts 01 and 03 describe a fix that was
 built and checked on a local branch (since deleted); the reports carry the
 fix as a proposed remedy.
 

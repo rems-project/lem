@@ -1,7 +1,7 @@
 #!/bin/sh
 # Gate: no fuel numeral in LemLib or in generated code (fuel-parameter
-# arc, 2026-09-04; [USER 2026-09-03] "Any and all magic values that are
-# hardcoded and can't be quantified over are definitionally bugs").
+# arc, 2026-09-04; [USER 2026-09-03]: every hardcoded magic value that
+# cannot be quantified over is by definition a bug).
 #
 # Scanned (the code a consumer reasons against):
 #   lean-lib/LemLib.lean, lean-lib/LemLib/*.lean (the generated library),

@@ -5,7 +5,7 @@ filed. Drafted 2026-10-03.
 
 No patch branch. A fix (below) was built and checked on a local branch on
 `3802cb0`; that branch was deleted, as this tray prepares reports only,
-not pull requests: [USER 2026-10-03] "We aren't doing upstream-pr writing, that's a waste of time. Delete those".
+not pull requests ([USER 2026-10-03] ruled out upstream-PR writing and had the branches deleted).
 
 ## Affected code (upstream `3802cb0`)
 

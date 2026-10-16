@@ -5,8 +5,8 @@ off mainline `mdd/lean-backend` @ `045dcb0`, worktree
 `worktrees/lem-lean-docs/release-hygiene`. Brief: the 2026-09-02
 release-quality sweep found stale, reasoning-era or false statements in
 this repo's shop-window docs; the operator ruled [USER 2026-09-02] that
-the semantics product's trust surface must read as the "obviously
-right" Lean port of Cerberus, with reasoning-era machinery gone
+the semantics product's trust surface must read as an obviously
+right Lean port of Cerberus, with reasoning-era machinery gone
 (runEffectful axiom DELETED 2026-09-01; DAEMON long gone; effect
 erasure retired). Governing standard: shop-window docs describe the
 system AS IT IS; history lives in dated records. Scope: docs + one

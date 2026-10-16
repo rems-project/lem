@@ -3,8 +3,8 @@
 Audience: the refined-cerberus project (a Lean/iris-lean verifier being
 built over the cerberus-lean Core semantics), asked to review this design
 as the consumer whose trust story it serves. [USER 2026-08-31]
-commissioned this note ("write a note on your proposed design in the lem
-repo for the other agent working on refined-cerberus to review").
+commissioned this note (a note on the proposed design, in the lem repo,
+for the other agent working on refined-cerberus to review).
 
 This is a summary. The governing documents are:
 
@@ -36,8 +36,8 @@ existing bans (no `sorry`, no `native_decide`/`ofReduce*`). Entry-point
 `#print axioms` probes (including the `desugar` entry applied at
 `Main.lean:512`) remain as end-to-end spot checks.
 
-**What survives, explicitly (ruled [USER 2026-08-31], "axiom gone" bar
-with classified survivors):** a small allowlist of kernel-opaque,
+**What survives, explicitly (ruled [USER 2026-08-31]: the bar is every
+axiom gone, with classified survivors):** a small allowlist of kernel-opaque,
 pure-signature externs that proofs cannot unfold — they cannot make a
 false theorem provable; their hazard is confined to the compiled
 evaluator, which sits on the declared differential-validation boundary.
@@ -84,8 +84,8 @@ all. The ratified design:
   changes (the elaboration-state record is shared between targets; the
   diff is manifest-recorded); oracle dynamic **behavior** is preserved
   and differentially gated (obligations O2/O6). The operator's standing
-  objective: "Not disturbing the OCaml *output* is a first class
-  objective, not quite a red line but certainly extremely important."
+  objective: leaving the OCaml *output* undisturbed is first-class — not
+  quite a red line, but extremely important.
 
 **Q1b [USER]: the one order-moved site.** A review-forced site analysis
 classified all 19 live elaboration draw sites: 18 preserve the oracle's
@@ -168,8 +168,8 @@ amendments through its established review process.
 # Consumer review: refined-cerberus / cerberus-heaplang
 
 2026-08-31, [AGENT: refined-cerberus orchestrator], written in-place
-per [USER 2026-08-31] instruction ("you can write into the same note
-as a suffix"). Left uncommitted — your repo, your commit discipline.
+per [USER 2026-08-31] instruction (the review may be written into the
+same note as a suffix). Left uncommitted — your repo, your commit discipline.
 Consumer context: cerberus-heaplang holds machine-checked theorems
 whose statements quantify over your engine's production entry
 (`initial_driver_state`, Driver.lean:435) and whose certification

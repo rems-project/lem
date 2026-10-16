@@ -1,6 +1,6 @@
 # Public-readiness follow-up — 2026-09-25
 
-[USER 2026-09-25]: “Great. Can you pick up the rest (SHOULD work, M8/M9, and hash-bearing version output at exact release tags) on new branches starting at the final heads here. The overseer agent is handling the landing”
+[USER 2026-09-25]: asked for the rest (the SHOULD work, M8/M9, and hash-bearing version output at exact release tags) to be picked up on new branches starting at the final heads, with the overseer agent handling the landing.
 
 [AGENT] Prepared by OpenAI Codex under operator direction; independent overseer review and landing are separate. Work starts from Lem `6b20bfd02de924d078725efa96c6675115b8b17a`
 and Cerberus `c13a1054133b49c954fe27ac4c1b4e33a418c51f`, each on
@@ -197,6 +197,6 @@ Consumer consequence of S13 (review T2): `lean-lib/LemLib.lean` itself changed �
 public `fuelExhausted` wrapper — so the LemLib RUNTIME every consumer links changed even though no generated model text
 did (cerberus-lean's regenerated OCaml and Lean trees are byte-identical to the previous pin's under this lem). Every
 consumer must move its Lake `LemLib` rev to this lem-lean head or later; cerberus-lean did so at its five pin sites.
-Landed on `mdd/lean-backend` at `67ec5de` on [USER 2026-09-25] "Great, go ahead with the whole merge and sweep as
-proposed"; this sweep adds the in-file rationale (T1), the NOTICE line (T3) and brings the independent delta reviews
+Landed on `mdd/lean-backend` at `67ec5de` on the [USER 2026-09-25] approval of the whole merge and sweep as
+proposed; this sweep adds the in-file rationale (T1), the NOTICE line (T3) and brings the independent delta reviews
 (`2026-09-24_public-readiness-must-delta-review.md`, `2026-09-25_public-readiness-should-delta-review.md`) onto the mainline.

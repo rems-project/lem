@@ -3,7 +3,7 @@ open import Pervasives
 (* ================================================================
    A HYPOTHESIS on the fuel measure (measure-hypothesis slice, 2026-09-05).
 
-   [USER 2026-09-05] ("agree, go ahead with option 1", on D-C2-1 of the
+   [USER 2026-09-05] (agreed and approved option 1, on D-C2-1 of the
    cerberus C2 record): a measured function whose measure is sufficient
    only on inputs satisfying a well-formedness / precondition fact adds
 

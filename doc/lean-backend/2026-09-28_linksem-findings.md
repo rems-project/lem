@@ -7,8 +7,8 @@ against LemLib as a second large consumer after Cerberus. Every finding
 below was hit by real linksem code; each fix carries a regression test in
 `tests/comprehensive` (listed per item).
 
-Provenance: [USER 2026-09-28] charter: "the main purpose of this exercise is
-to see whether we shake out any bugs in lem-lean"; fixes and designs below
+Provenance: [USER 2026-09-28] charter: the main purpose of the exercise is
+to see whether it shakes out any bugs in lem-lean; fixes and designs below
 are [AGENT] unless marked.
 
 Toolchain: Lean 4.28.0 (the `lean-lib/lean-toolchain` pin). Cerberus builds
@@ -533,8 +533,8 @@ build; the linksem record lists every item. Backend-side:
 
 A native seam is an `@[implemented_by]` body (or an `@[extern]`) whose
 run-time behaviour is not the logical definition the kernel sees. The
-orchestrator relayed the operator's rulings, verbatim: D1 [USER
-2026-09-30] "D1: agree"; D2 [USER 2026-09-30] "D2: okay, agreed". Each was
+orchestrator relayed the operator's rulings: D1 [USER
+2026-09-30] agreed; D2 [USER 2026-09-30] agreed. Each was
 given on the orchestrator's recommendation, which is paraphrased below
 and is not the operator's words.
 
@@ -574,9 +574,9 @@ and is not the operator's words.
   measurement that the OCaml reps are unbounded. The measurement
   (`p_word_bitwise_wide`) shows they WRAP at 63 bits, so the condition is
   not met and LP4 went back to the operator. **Ruling, 2026-09-30:**
-  [USER 2026-09-30] "Yes, agree on 1-3. Go ahead", on the orchestrator's questions (1) accept LP4 and OM4 as
+  [USER 2026-09-30] agreed on points 1-3 of the orchestrator's questions and approved proceeding: (1) accept LP4 and OM4 as
   registered OCaml-target deviations under the 2026-09-03 X3 ruling
-  ([USER 2026-09-03] "ocaml limits that are hardcoded thanks to ocaml-level execution issues are also forbidden, the real thing is the logical semantics") and (2) keep the `p_word_bitwise_wide_mul` runner
+  ([USER 2026-09-03]: OCaml limits hardcoded because of OCaml-level execution issues are forbidden as well; the logical semantics is what counts) and (2) keep the `p_word_bitwise_wide_mul` runner
   row, and (3) a fresh delta review of round 2 before landing (done:
   review round 3, below). LP4 and OM4 are ACCEPTED; `p_word_bitwise_wide`
   and `p_mword_width` are class `ruled`. The verbatim diff and the upstream-Lem candidate (the

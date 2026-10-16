@@ -8,8 +8,8 @@ open import Test_fuel_measure_types
    mutual structural recursion over the nested inductive `mtree`),
    referenced QUALIFIED in the measure and brought into scope with
    extra_import. The recursion is the census's HOF/nested shape as
-   WRITTEN — the lem body is not restructured ([USER 2026-09-04] "we
-   maintain the lem structure"): mtsum folds over the children with a
+   WRITTEN — the lem body is not restructured ([USER 2026-09-04]: the
+   lem structure is kept): mtsum folds over the children with a
    higher-order List.foldl, which the structural declare refuses
    (neg_structural_hof) and a fuel measure handles as is.
    ================================================================ *)

@@ -82,8 +82,8 @@ lem-lean mainline `doc/lean-backend/2026-09-30_library-parity-coverage.md`
 §2, paragraph "`lnot` at `nat` is not a reachable discrepancy (correction,
 review round 2)": "`library/transform.lem`, which does not typecheck
 ("Type error: unbound variable: find_non_pure") and is not in the library
-build". That record is [AGENT] work; the tray scope is [USER 2026-10-03]
-"All 16, re-verified".
+build". That record is [AGENT] work; the tray scope is the [USER 2026-10-03]
+ruling: all 16, re-verified.
 
 ## Provenance
 

@@ -253,9 +253,9 @@ The largest two are `2026-09-22_match-pattern-arity-rereview-evidence/pristine-c
 (8,384,640 bytes) and `2026-09-22_run-digest-audit-evidence/pristine-captures.tar.gz`
 (8,380,976 bytes). This conflicts with the explicit `.gitignore` policy:
 
-> [USER 2026-09-06]: "These should not be git committed, and will not be pushed ... The important thing is that runs can be reconstructed"
+> [USER 2026-09-06]: such archives are not to be git-committed and will not be pushed; what matters is that runs can be reconstructed
 
-The quotation is the wording preserved in `.gitignore`; the ignored pattern
+The ruling is the one recorded in `.gitignore`; the ignored pattern
 does not untrack an already committed file. Removing archives at HEAD does
 not remove their blobs from history. The history inventory walked
 **all local refs**, then separately checked membership in the reviewed

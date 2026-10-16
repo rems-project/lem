@@ -722,8 +722,8 @@ let lean_has_lean_rep env cref =
    Classic mechanism name: a DATA MEASURE instantiating the fuel — form
    (c) of DESIGN.md's "No magic values" for a fuel'd function. The
    ruling ([USER 2026-09-04]): the lem sources are NOT restructured for
-   Lean's structural checker ("we maintain the lem structure, and we get
-   additional properties we want without any trust decrease"); the fuel
+   Lean's structural checker (the lem structure is kept, and the extra
+   properties come without any decrease in trust); the fuel
    worker stays exactly as generated (the OCaml output is untouched by
    construction), and the WRAPPER of a measured function instantiates the
    worker's counter from a Lean expression over the function's own
@@ -746,8 +746,8 @@ let lean_has_lean_rep env cref =
    build FAILS without it — no measured function ships without its
    theorem.
 
-   The HYPOTHESIS-CARRYING form ([USER 2026-09-05] "agree, go ahead with
-   option 1"; doc/lean-backend/2026-09-05_measure-hypothesis-record.md):
+   The HYPOTHESIS-CARRYING form ([USER 2026-09-05] agreed and chose
+   option 1; doc/lean-backend/2026-09-05_measure-hypothesis-record.md):
    ``fuel_measure val f = `<measure>` assuming
    `<H>` `` where H is a Lean Prop over the same parameters. The WRAPPER
    is unchanged (fuel-free: `def f x := f_lemFuel (<measure>) x`); the
@@ -2756,7 +2756,7 @@ let lean_reserved_names_text (names : string list) : string =
    (Init/Prelude), so the two library bridges that make a `BEq` out of a Lem
    dictionary sit BELOW it — `[Eq0 a] : BEq a` at 450 and the
    comparator-derived `[SetType a]`/`[MapKeyType a] : BEq a` at 400 ([USER
-   2026-10-03] "(a) 450/400"): `==` at a base type is core's structural
+   2026-10-03] chose option (a), 450/400): `==` at a base type is core's structural
    equality, with `LawfulBEq` and the core simp set, and where no core
    instance exists the Eq0 bridge still beats the comparator route, which can
    be coarser than the type's own equality; generic defaults and residual
@@ -4693,7 +4693,7 @@ type pat_style = FunParam | MatchArm
        arrows, and neither the structural-parameter analysis (which ranges
        over the head's parameters) nor a fuel measure (an expression over
        the parameters) can name the recursion argument. [USER 2026-09-04]
-       "we don't change the lem structure for ocaml": the `.lem` is not
+       ruled that the lem structure is not changed for OCaml: the `.lem` is not
        eta-expanded — the LEAN EMISSION is. For a definition that carries
        `declare {lean} fuel_measure val` or `declare {lean} structural val`
        (nothing else changes: an ambient fuel'd or plain definition renders

@@ -377,7 +377,7 @@ end PmapJoin
 /- ---- The BEq lattice: the old `==` at every switched base type equals core's ---- -/
 /-! `[Eq0 a] : BEq a` sits at priority 450 and the comparator bridges
 `[SetType a]`/`[MapKeyType a] : BEq a` at 400, below core's
-`[DecidableEq a] : BEq a` (500) ([USER 2026-10-03] "(a) 450/400";
+`[DecidableEq a] : BEq a` (500) ([USER 2026-10-03] chose option (a), 450/400;
 doc/lean-backend/2026-10-03_beq-instance-lattice-design.md). Before that,
 `==` at a base type resolved to a LemLib bridge whose body ends in
 `defaultCompare` over the type's `Ord`: the Eq0 route at Nat, Int, String,

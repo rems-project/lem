@@ -4,8 +4,8 @@
    fuels (200 and 100000) and prints both blocks; the OCaml driver
    (p_fuel.main.ml) prints its single block twice. Byte-identical stdout
    means: above the depth the program needs, the fuel is invisible —
-   [USER 2026-09-03] "fuel is an execution parameter that 'doesn't
-   matter'". (Exhaustion cannot be a parity row — the reference never
+   [USER 2026-09-03]: fuel is an execution parameter whose value does
+   not matter. (Exhaustion cannot be a parity row — the reference never
    exhausts; it is pinned by tests/comprehensive lean-fuel-param leg 2.) *)
 open import Pervasives_extra
 

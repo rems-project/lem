@@ -103,16 +103,16 @@ on OCaml only.
 - Cerberus (`cerberus-lean`) `lean_frontend/docs/upstream-tray/lem/01-polymorphic-compare-on-set-values.md`
   (mainline `mdd/cerberus-lean`, added in commit `56ab39ea0`, drafted
   2026-09-03). That draft stays where it is, unchanged
-  ([USER 2026-10-03] "lem-lean, copies stay"); this draft is based on its
+  ([USER 2026-10-03]: the tray lives in lem-lean and the copies stay); this draft is based on its
   text and reproducer. Its "Verbatim output" section was never filled in
   ("Not executed in the slice that drafted this report"); the run above
   is the first execution, and it confirms that draft's expectation,
   including that reflexive equality raises.
 - lem-lean `doc/lean-backend/2026-09-03_parity-fix-record.md` §2 row X1
   ("reading; not probed") and `doc/lean-backend/2026-09-03_exception-case-rulings.md`
-  §2 X1; ruling recorded in the parity-fix record §4: "RULED 2026-09-03
-  ([USER] "Agree re lem."): X1 and X3/N4 are recorded as OCaml-backend
-  deviations from lem's own prover-side semantics".
+  §2 X1; ruling recorded in the parity-fix record §4: RULED 2026-09-03
+  ([USER] agreed as regards lem): X1 and X3/N4 are recorded as OCaml-backend
+  deviations from lem's own prover-side semantics.
 
 ## Provenance
 

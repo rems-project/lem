@@ -21,8 +21,8 @@ The fixes were found by a wider coverage effort on another checkout
 `tests/comprehensive/parity/tools/lib_coverage.py`. It also had a longer
 version of this record, with findings LP1, LP2, LP5, LP9, OM1–OM5, LU1, LU2
 and THE, and a per-module coverage table (557 of 569 eligible library vals
-referenced). [USER 2026-09-30]: "we went through a pretty agressive
-downscope after some drift on the lem-lean build". The wider probe set,
+referenced). [USER 2026-09-30]: an aggressive downscope followed some
+drift on the lem-lean build. The wider probe set,
 the tool and the longer record were cut in that downscope. They are
 preserved, not merged, in commit `8ccbe40` ("Parity lane: library coverage
 probes, coverage tool, record (library-parity-coverage)") on branch
@@ -67,7 +67,7 @@ LemLibTest examples for each sign case.
 Isabelle and Coq have no rep, so they run Lem's 31-bit `bitSequence`
 definition. Lean's reps are unbounded.
 
-**Ruling D2** [USER 2026-09-30], verbatim: "D2: okay, agreed". It came
+**Ruling D2** [USER 2026-09-30]: agreed. It came
 with the orchestrator's conditions: LP4 is ACCEPTED (Lean's bitwise reps
 are unbounded two's complement) SUBJECT TO a measurement confirming that
 the OCaml backend's reps for `intLand`/`Lor`/`Lxor`/`Lsl`/`Asr` and the nat
@@ -151,10 +151,10 @@ differs. The `asr`-by-64 rows are pinned in the same probe, in the same
 [USER 2026-09-03], but D2 was given subject to the opposite finding. So
 LP4's acceptance went BACK TO THE OPERATOR with this measurement.
 
-**Ruling, 2026-09-30:** [USER 2026-09-30] "Yes, agree on 1-3. Go ahead", on the orchestrator's question (1): accept
+**Ruling, 2026-09-30:** [USER 2026-09-30] agreed on points 1-3 of the orchestrator's questions and approved proceeding; question (1): accept
 LP4 (unbounded bitwise reps; OCaml wraps at 63 bits) as a registered
 OCaml-target deviation under the 2026-09-03 X3 ruling, [USER 2026-09-03]
-"ocaml limits that are hardcoded thanks to ocaml-level execution issues are also forbidden, the real thing is the logical semantics". LP4 is ACCEPTED. `p_word_bitwise_wide` is registered in
+(OCaml limits hardcoded because of OCaml-level execution issues are forbidden as well; the logical semantics is what counts). LP4 is ACCEPTED. `p_word_bitwise_wide` is registered in
 `parity/expected_failures.txt` as class `ruled` (it was `open`); its Lean
 pin is unchanged. The same ruling's question (2) keeps the
 `p_word_bitwise_wide_mul` runner row (addendum in
@@ -224,7 +224,7 @@ word). Lean follows the type, as HOL and Isabelle do. [AGENT]
 recommendation was to rule it an OCaml-target deviation (a Lem type is a
 width, and a `ty8` word of length 4 has no meaning in the prover backends).
 
-**Ruling, 2026-09-30:** [USER 2026-09-30] "Yes, agree on 1-3. Go ahead", on the orchestrator's question (1): accept
+**Ruling, 2026-09-30:** [USER 2026-09-30] agreed on points 1-3 of the orchestrator's questions and approved proceeding; question (1): accept
 OM4 (mword width from the type; OCaml uses the runtime width) as a
 registered OCaml-target deviation under the 2026-09-03 X3 ruling. OM4 is
 ACCEPTED. `p_mword_width` is registered as class `ruled` (it was `open`);
@@ -299,7 +299,7 @@ if an instance ever appears. No parity probe is possible.
 
 ## 3. Decisions (this branch)
 
-1. **LP4 / D2: DECIDED.** [USER 2026-09-30] "Yes, agree on 1-3. Go ahead": LP4 is accepted as a registered
+1. **LP4 / D2: DECIDED.** [USER 2026-09-30] agreed on points 1-3 and approved proceeding: LP4 is accepted as a registered
    OCaml-target deviation under the 2026-09-03 X3 ruling
    (`p_word_bitwise_wide`, class `ruled`).
 2. **OM4: DECIDED.** Same ruling: accepted as a registered OCaml-target

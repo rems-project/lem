@@ -105,8 +105,8 @@ commit `8ccbe40`, `doc/lean-backend/2026-09-30_library-parity-coverage.md`
 carried into mainline `doc/lean-backend/2026-09-30_library-parity-coverage.md`
 §1 "LP6/LP7 width question" and §2 item 5, measured there by the probe
 `p_mword_width`. The fork ruled it an OCaml-target deviation for its own
-Lean target: [USER 2026-09-30] "Yes, agree on 1-3. Go ahead". The tray
-scope is [USER 2026-10-03] "All 16, re-verified".
+Lean target: [USER 2026-09-30] agreed items 1-3. The tray
+scope is the [USER 2026-10-03] ruling (all 16 findings, re-verified).
 
 ## Provenance
 

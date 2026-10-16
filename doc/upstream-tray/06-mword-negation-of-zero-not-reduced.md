@@ -93,7 +93,7 @@ checkout, `doc/lean-backend/2026-09-30_library-parity-coverage.md` §2 "OM1
 — OCaml `mword` negation not reduced (OCAML)"), carried into mainline
 `doc/lean-backend/2026-09-30_library-parity-coverage.md` §2 item 2. The
 recommendation to send OM1–OM5 upstream is [AGENT]; the tray scope is
-[USER 2026-10-03] "All 16, re-verified".
+the [USER 2026-10-03] ruling (all 16 findings, re-verified).
 
 ## Provenance
 

@@ -91,10 +91,10 @@ comparator. Functions without `By` use Lean's `BEq` or `Ord` type classes.
    so `@f ⟨n⟩ = f_lemFuel n` by rfl, a theorem quantifies `∀ [LemFuel]`
    (or over `n` via `⟨n⟩`), and the executable entry point instantiates it
    once (`letI : LemFuel := ⟨n⟩` at the CLI). NO INSTANCE IS DECLARED
-   HERE OR IN ANY GENERATED CODE, by design: [USER 2026-09-03] "fuel is an
-   execution parameter that 'doesn't matter' — any fuel value can be
-   chosen […] All similar such magic values should be removed and replaced
-   by quantified parameters"; a global instance would silently give every
+   HERE OR IN ANY GENERATED CODE, by design: [USER 2026-09-03] fuel is an
+   execution parameter whose value does not matter, any fuel value can be
+   chosen, and every similar magic value is to be removed and replaced
+   by a quantified parameter; a global instance would silently give every
    fuel'd function a default, which is exactly the forbidden magic value;
    so would a library default fuel constant, which this file once had
    (tests/comprehensive/check_no_fuel_numerals.sh gates the absence of
@@ -232,7 +232,7 @@ def defaultGreaterEq [Ord α] (x y : α) : Bool := isGreaterEqual (defaultCompar
 @[implemented_by failwithIImpl, never_extract]
 opaque failwithI {α : Type} [Inhabited α] (msg : String) : α := default
 
-/- Fail-stop for executables ([USER 2026-09-30] "D1: agree"). A reached
+/- Fail-stop for executables ([USER 2026-09-30] agreed D1). A reached
    `failwithI` is a Lean `panic!`:
    unless the runtime aborts, it prints the message and CONTINUES with the
    `Inhabited` default ("library-call semantics"), so a program whose model
@@ -266,7 +266,7 @@ def lemRequireAbortOnPanic : IO Unit := do
    reference: a `BaseIO` effect the compiler must keep. (A pure "use" is not
    enough: an `if ptrAddrUnsafe x == 1 then b () else b ()` was simplified
    away, and arity reduction then dropped `a` altogether.)
-   BOUNDARY ([USER 2026-09-30] "D1: agree"): `lemSeqImpl` is on the
+   BOUNDARY ([USER 2026-09-30] agreed D1): `lemSeqImpl` is on the
    native-seam boundary list as TEMPORARY. Kernel-vs-runtime gap: `lemSeq`
    is a transparent def, logically `b ()`; at run time it also forces `a`.
    It is an exception, by that ruling, to the no-unsafe-effect-projection
@@ -450,9 +450,9 @@ def sort_by_ordering (cmp : α → α → LemOrdering) (l : List α) : List α :
    heights (`height s1 + height s2 + 1`: each level strictly decreases
    the sum; split never increases a height), the element counts, the
    finite square of a relation's endpoints. This is the admissible third
-   form of the no-magic-values rule ([USER 2026-09-03] "my aim here is to
-   forbid values that limit the semantics or limit the ways the customer
-   can reason about the semantics"): nothing is chosen, the kernel
+   form of the no-magic-values rule ([USER 2026-09-03]: the rule's aim is to
+   forbid values that limit the semantics or limit the ways a customer
+   can reason about the semantics): nothing is chosen, the kernel
    unfolds it (unlike well-founded recursion, which blocks closed-term
    `rfl`/`decide` — `join` was moved off WF recursion for exactly that
    reason), and the exhaustion arm —
@@ -832,9 +832,9 @@ def lfpGo (cmp : α → α → LemOrdering) (f : Pset α → Pset α) : Nat → 
     square of r's endpoints (at most (2|r|)^2 of them), so the closure is
     reached within (2|r|)^2 + 1 steps for any comparator that is a total
     preorder (every generated comparator is); the form is the admissible
-    third form of the no-magic-values rule ([USER 2026-09-03] "my aim here
-    is to forbid values that limit the semantics or limit the ways the
-    customer can reason about the semantics" — nothing is chosen here and a
+    third form of the no-magic-values rule ([USER 2026-09-03]: the rule's aim
+    is to forbid values that limit the semantics or limit the ways a
+    customer can reason about the semantics — nothing is chosen here and a
     proof can unfold it), the same form as the height-indexed set/map
     recursions above. On an ill-behaved comparator the OCaml loops; the
     port's `lfpGo` exhausts LOUDLY instead (the accepted direction).
@@ -1617,9 +1617,9 @@ end LemUnsupported
    one (library/num.lem:104-111; [USER 2026-09-03] exception-case rulings,
    X3); the OCaml target's `Nat_big_num.to_int` raising `Failure
    "int_of_big_int"` outside [-2^62, 2^62-1] is an OCaml-execution limit,
-   not lem's meaning — [USER 2026-09-03] "ocaml limits that are hardcoded
-   thanks to ocaml-level execution issues are also forbidden, the real
-   thing is the logical semantics" (an earlier rep failed loudly at the
+   not lem's meaning — [USER 2026-09-03]: hardcoded limits that come from
+   OCaml-level execution issues are forbidden too; the logical semantics
+   is what counts (an earlier rep failed loudly at the
    OCaml bound). The parity runner's `f_int_of_big_num`
    row is a registered OCaml-target deviation (parity/expected_failures.txt).
    natFromNumeral / intFromNumeral keep their literal-passthrough reps. -/
@@ -1675,7 +1675,7 @@ def lemNatAsr (a b : Nat) : Nat := a >>> b  -- same as lsr for Nat (unsigned)
 
 /- Int bitwise operations: UNBOUNDED two's complement, the Lean reps of
    word.lem's intLand/intLor/intLxor/intLsl/intAsr (a ruled OCaml-target
-   deviation: [USER 2026-09-30] "Yes, agree on 1-3. Go ahead"; probe
+   deviation: [USER 2026-09-30] agreed items 1-3; probe
    p_word_bitwise_wide, class ruled). The OCaml
    reference is native 63-bit `land`/`lor`/`lxor`/`lsl`/`asr`; these agree
    with it on its whole domain and DIFFER where OCaml wraps (the accepted
