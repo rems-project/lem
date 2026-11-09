@@ -1,0 +1,16 @@
+count 50 = 0
+uses_count 7 = 1
+collatz_steps 27 = 111
+collatz_steps 97 = 118
+ping 10 = 0
+pong 11 = 0
+nested 5 = 111
+mapped = [0; 0; 0; 0]
+count 50 = 0
+uses_count 7 = 1
+collatz_steps 27 = 111
+collatz_steps 97 = 118
+ping 10 = 0
+pong 11 = 0
+nested 5 = 111
+mapped = [0; 0; 0; 0]

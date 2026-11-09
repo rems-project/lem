@@ -1,0 +1,10 @@
+$ lem -wl ign -ocaml genlist.lem
+[lem exit 0]
+$ ocamlfind ocamlopt -package zarith -linkpkg -I <upstream ocaml-lib> extract.cmxa genlist.ml main.ml -o genlist.exe
+[ocamlopt exit 0]
+$ ./genlist.exe
+genlist n=  5000  length=  5000  cpu=0.05s
+genlist n= 10000  length= 10000  cpu=0.25s
+genlist n= 20000  length= 20000  cpu=1.77s
+genlist n= 40000  length= 40000  cpu=12.95s
+[run exit 0]

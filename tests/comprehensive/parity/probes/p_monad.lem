@@ -1,0 +1,40 @@
+(* Noodle probe: hand-rolled state / exception / state+exception monads
+   in the shape cerberus uses (fun st -> ...): bind ordering, exception
+   propagation, foldM/mapM order, nested binds, early exit. Expected
+   values are the OCaml target's output. *)
+open import Pervasives_extra
+
+type stM 'a = St of (nat -> 'a * nat)
+let runSt (St f) (s : nat) : 'a * nat = f s
+let retS (x : 'a) : stM 'a = St (fun s -> (x, s))
+let bindS (St m) (f : 'a -> stM 'b) : stM 'b = St (fun s -> let (a, s') = m s in runSt (f a) s')
+let tick : stM nat = St (fun s -> (s, s + 1))
+let rec mapMS (f : 'a -> stM 'b) (l : list 'a) : stM (list 'b) =
+  match l with [] -> retS [] | x :: xs -> bindS (f x) (fun y -> bindS (mapMS f xs) (fun ys -> retS (y :: ys))) end
+let rec foldMS (f : 'b -> 'a -> stM 'b) (acc : 'b) (l : list 'a) : stM 'b =
+  match l with [] -> retS acc | x :: xs -> bindS (f acc x) (fun acc' -> foldMS f acc' xs) end
+
+type exM 'a = Ok of 'a | Err of string
+let bindE (m : exM 'a) (f : 'a -> exM 'b) : exM 'b = match m with Ok a -> f a | Err e -> Err e end
+let rec mapME (f : 'a -> exM 'b) (l : list 'a) : exM (list 'b) =
+  match l with [] -> Ok [] | x :: xs -> bindE (f x) (fun y -> bindE (mapME f xs) (fun ys -> Ok (y :: ys))) end
+let showE (m : exM (list nat)) : string = match m with Ok l -> "Ok " ^ show l | Err e -> "Err " ^ e end
+
+type seM 'a = Se of (nat -> exM ('a * nat))
+let runSe (Se f) (s : nat) : exM ('a * nat) = f s
+let retSe (x : 'a) : seM 'a = Se (fun s -> Ok (x, s))
+let bindSe (Se m) (f : 'a -> seM 'b) : seM 'b = Se (fun s -> match m s with Ok (a, s') -> runSe (f a) s' | Err e -> Err e end)
+let tickSe : seM nat = Se (fun s -> Ok (s, s + 1))
+let failSe (msg : string) : seM 'a = Se (fun _ -> Err msg)
+let showSe (m : exM (list nat * nat)) : string = match m with Ok (l, s) -> "Ok " ^ show l ^ " st=" ^ show s | Err e -> "Err " ^ e end
+
+let results : list string =
+  [ "mapM ticks: " ^ show (runSt (mapMS (fun _ -> tick) [(); (); ()]) 10);
+    "foldM order: " ^ show (runSt (foldMS (fun acc x -> bindS tick (fun t -> retS (acc ^ show x ^ ":" ^ show t ^ " "))) "" [(7:nat); 8; 9]) 0);
+    "nested bind: " ^ show (runSt (bindS tick (fun a -> bindS tick (fun b -> bindS tick (fun c -> retS [a; b; c])))) 100);
+    "exn ok: " ^ showE (mapME (fun x -> if x > 5 then Err ("too big " ^ show x) else Ok (x * 2)) [(1:nat); 2; 3]);
+    "exn err first: " ^ showE (mapME (fun x -> if x > 5 then Err ("too big " ^ show x) else Ok (x * 2)) [(1:nat); 9; 3; 8]);
+    "se ok: " ^ showSe (runSe (bindSe tickSe (fun a -> bindSe tickSe (fun b -> retSe [a; b]))) 5);
+    "se err: " ^ showSe (runSe (bindSe tickSe (fun a -> bindSe (failSe ("boom " ^ show a)) (fun b -> retSe [a; b]))) 5);
+    "se err after: " ^ showSe (runSe (bindSe (failSe "early") (fun a -> bindSe tickSe (fun b -> retSe [a; b]))) 5)
+  ]

@@ -1,0 +1,54 @@
+open import Pervasives
+
+(* Non-Lean invariance witness for the N-ary reader_seed (three
+   readers; program-data-parameters S0.5, 2026-09-19): the
+   '{lean}'-scoped declares must be exact no-ops for the other
+   backends (see inv_supply.lem for the harness contract;
+   inv_reader_consumer.lem is the one-reader witness). The shape is
+   test_reader_multi.lem's, with lem bodies for the rep'd vals so the
+   semantic emitters have something to generate. *)
+
+val gamma : unit -> nat
+let gamma u = 0
+declare lean target_rep function gamma u = 0
+declare {lean} reader val gamma
+
+val alpha : unit -> nat
+let alpha u = 0
+declare lean target_rep function alpha u = 0
+declare {lean} reader val alpha
+
+val beta : unit -> string
+let beta u = ""
+declare lean target_rep function beta u = ""
+declare {lean} reader val beta
+
+val combine : nat -> nat
+let combine x = x + 1
+declare lean target_rep function combine = `TestReaderMultiImpl.combine`
+declare {lean} reader_consumer val combine
+
+val tick : unit -> nat
+let tick u = 0
+declare lean target_rep function tick u = 0
+declare {lean} supply val tick
+
+val uses_three : nat -> nat
+let uses_three x = alpha () * 100 + stringLength (beta ()) * 10 + gamma () + x
+
+val uses_combine : nat -> nat
+let uses_combine x = combine x
+
+val draws_and_reads : nat -> nat
+let draws_and_reads x = combine x + tick ()
+
+val seed3 : nat -> string -> nat -> nat -> nat
+let seed3 av bv gv x = combine x + uses_three (x + 1)
+declare {lean} reader_seed val seed3
+
+val seed3_draws : nat -> string -> nat -> nat -> nat
+let seed3_draws av bv gv x = draws_and_reads x
+declare {lean} reader_seed val seed3_draws
+
+val via_seed3 : nat -> nat
+let via_seed3 x = seed3 7 "ab" 9 x

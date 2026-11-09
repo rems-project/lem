@@ -1,0 +1,6 @@
+lean-exit: 0
+--- lean stdout ---
+wordFromBitlist 4 bits at ty8: u=11 len=8 bits=00001011
+wordFromBitlist 11 bits at ty8: u=3 len=8 bits=00000011
+word_extract 0 3 (171 : ty8) at ty8: u=11 len=8 bits=00001011
+word_concat (10 : ty4) (5 : ty4) at ty16: u=165 len=16 bits=0000000010100101

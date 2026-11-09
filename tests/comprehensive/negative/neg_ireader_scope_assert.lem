@@ -1,0 +1,12 @@
+(* EXPECT: outside an instance-reader scope *)
+(* Instance-reader slice: a def that reads an instance reader binds [Cls];
+   a lem assert has no instance to supply and there is NO default — the
+   reference is a generation-time error naming the site (state such pins in
+   hand-written Lean with an explicit instance, TestInstanceReaderCheck). *)
+open import Pervasives
+val sw : unit -> nat
+declare lean target_rep function sw u = 0
+declare {lean} reader val sw = instance `NegImpl.Sw.sw`
+val get_sw : nat -> nat
+let get_sw x = sw () + x
+assert get_sw_ok : (get_sw 1 = 1)

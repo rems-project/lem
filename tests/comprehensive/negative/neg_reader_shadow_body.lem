@@ -1,0 +1,14 @@
+(* EXPECT: reserved synthesized binder *)
+(* arc-14 re-mark RG1 (professor A', witness 2 — the one that COMPILED
+   AND RAN SILENTLY WRONG pre-fix: use2 100 (1,2) = 5, not 103): a
+   reader-LIFTED def binding _lemReader_amb in a body tuple pattern
+   shadowed the injected reader parameter at the injection site. Now
+   scanned (exp_bound_names) and rejected loud. *)
+open import Pervasives_extra
+val amb : unit -> nat
+declare {lean} reader val amb
+declare lean target_rep function amb u = 0
+val use2 : nat -> (nat * nat) -> nat
+let use2 x p = match p with
+  | (_lemReader_amb, y) -> amb () + x + y
+  end

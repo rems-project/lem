@@ -1,0 +1,36 @@
+open import Pervasives
+
+(* ================================================================
+   Multi-supply ordering (charter §6.3 checklist row): with more than
+   one 'declare {lean} supply val', every lifted def takes ONE binder
+   per supply in sorted-name order (the reader-parameter discipline)
+   and returns its result paired with one final state per supply, in
+   the same order. Draws consume only their own stream.
+
+   Behavioral pins: lean-test/TestSupplyCheck.lean (elaborator/kernel)
+   and the compiled lean-test/TestSupplyDraws.lean.
+   ================================================================ *)
+
+val tick : unit -> nat
+declare lean target_rep function tick u = 0
+declare {lean} supply val tick
+
+val tock : unit -> nat
+declare lean target_rep function tock u = 0
+declare {lean} supply val tock
+
+(* interleaved draws from the two streams: binders sort as
+   [_lemSupply_tick; _lemSupply_tock]; each draw advances only its own
+   stream; the result is value × tick' × tock' *)
+val two_streams : unit -> nat * nat * nat
+let two_streams u =
+  let a = tick () in
+  let b = tock () in
+  let c = tick () in
+  (a, b, c)
+
+(* a lifted callee threads BOTH streams through one call *)
+val uses_two_streams : unit -> nat * nat * nat
+let uses_two_streams u =
+  let (a, b, c) = two_streams () in
+  (a + 1, b + 1, c + 1)

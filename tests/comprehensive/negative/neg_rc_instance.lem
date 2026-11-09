@@ -1,0 +1,18 @@
+(* EXPECT: instance method *)
+(* reader_consumer guard RC-inst (charter §4.2): a consumer call
+   inside an instance method cannot be lifted (instance fields cannot
+   take extra parameters) — same fail-closed class as the reader's
+   instance guard. *)
+open import Pervasives
+val cfg : unit -> nat
+declare lean target_rep function cfg u = 0
+declare {lean} reader val cfg
+val scaled : nat -> nat
+declare lean target_rep function scaled = `RCImpl.scaled`
+declare {lean} reader_consumer val scaled
+class ( scalable 'a )
+  val scale_it : 'a -> nat
+end
+instance ( scalable nat )
+  let scale_it x = scaled x
+end

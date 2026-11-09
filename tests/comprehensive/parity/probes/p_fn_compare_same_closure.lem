@@ -1,0 +1,17 @@
+(* Parity probe (review finding MEDIUM-1, 2026-09-30; OPEN discrepancy,
+   registered in expected_failures.txt; record doc/lean-backend/
+   2026-09-28_linksem-findings.md A1 "Residual discrepancy"). Lem's
+   default SetType is OCaml's polymorphic `compare`, which returns 0 for
+   two occurrences of the SAME closure object (physical-equality short
+   cut) and raises `compare: functional value` only for distinct
+   closures; OCaml's `=` raises whenever it reaches a closure. LemLib's
+   lemFunctionalCompare fails on every closure it reaches, so the Lean
+   binary fails where the OCaml reference computes the set. *)
+open import Pervasives_extra
+
+type feat = GOT of list (nat -> nat) | Plain of nat
+
+let f (x : nat) : nat = x + 1
+
+let results : list string =
+  [ "size: " ^ show (Set.size (Set.fromList [GOT [f]; GOT [f]; Plain 1])) ]

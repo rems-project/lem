@@ -1,0 +1,78 @@
+open import Pervasives_extra
+
+(* === Many type definitions === *)
+type t01 = T01a | T01b of nat
+type t02 = T02a | T02b of nat | T02c of bool
+type t03 = <| f03a : nat; f03b : bool; f03c : string |>
+type t04 'a = T04 of 'a
+type t05 'a 'b = T05a of 'a | T05b of 'b
+type t06 = T06a | T06b | T06c | T06d | T06e
+type t07 = <| f07a : nat; f07b : nat; f07c : nat; f07d : nat |>
+type t08 = T08 of t01 * t02
+type t09 'a = T09nil | T09cons of 'a * t09 'a
+type t10 = T10 of nat * nat * nat * nat * nat
+
+(* === Many function definitions === *)
+let f01 (x:nat) = x + 1
+let f02 (x:nat) = x * 2
+let f03 (x:nat) = x - 1
+let f04 (x:nat) = if x > 0 then x else 0
+let f05 (x:nat) (y:nat) = x + y
+let f06 (x:nat) (y:nat) = x * y
+let f07 (x:nat) (y:nat) (z:nat) = x + y + z
+let f08 (x:bool) = not x
+let f09 (x:nat) = x = 0
+let f10 (x:nat) (y:nat) = x >= y
+let f11 (x:nat) = (x, x + 1)
+let f12 (x:nat) = [x; x + 1; x + 2]
+let f13 (x:nat) (y:nat) = if x > y then x else y
+let f14 (x:nat) = match x with 0 -> true | _ -> false end
+let f15 (x:nat) = f01 (f02 (f03 x))
+let f16 (x:nat) = f05 (f01 x) (f02 x)
+let f17 x = (f08 x, f08 (f08 x))
+let f18 (x:nat) = T04 x
+let f19 (x:nat) (y:bool) = T05a x
+let f20 (x:nat) = <| f03a = x; f03b = true; f03c = "test" |>
+
+(* === Long match === *)
+let big_match (x:nat) =
+  match x with
+    | 0 -> "zero"
+    | 1 -> "one"
+    | 2 -> "two"
+    | 3 -> "three"
+    | 4 -> "four"
+    | 5 -> "five"
+    | 6 -> "six"
+    | 7 -> "seven"
+    | 8 -> "eight"
+    | 9 -> "nine"
+    | 10 -> "ten"
+    | 11 -> "eleven"
+    | 12 -> "twelve"
+    | 13 -> "thirteen"
+    | 14 -> "fourteen"
+    | 15 -> "fifteen"
+    | 16 -> "sixteen"
+    | 17 -> "seventeen"
+    | 18 -> "eighteen"
+    | 19 -> "nineteen"
+    | _ -> "other"
+  end
+
+(* === Long list === *)
+let long_list = [1;2;3;4;5;6;7;8;9;(10:nat);11;12;13;14;15;16;17;18;19;20]
+
+(* === Deeply nested mutually recursive types === *)
+type deep1 = D1 of deep2
+and deep2 = D2 of deep3
+and deep3 = D3 of nat | D3Rec of deep1
+
+(* === Chain of function applications === *)
+let test_chain = f01 (f01 (f01 (f01 (f01 (f01 (f01 (f01 (f01 (f01 (0:nat))))))))))
+
+assert f01_ok : (f01 5 = (6:nat))
+assert f02_ok : (f02 5 = (10:nat))
+assert f05_ok : (f05 3 4 = (7:nat))
+assert big_match_ok : (big_match 5 = "five")
+assert test_chain_ok : (test_chain = (10:nat))

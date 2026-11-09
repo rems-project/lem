@@ -1,0 +1,9 @@
+digits 10 0: 1
+digits 10 255: 3
+digits 2 255: 8
+digits 16 65535: 4
+digits 2 deep: 27
+steps (10,3): 4
+steps (0,1): 0
+steps deep: 100000
+uses_digits: 40

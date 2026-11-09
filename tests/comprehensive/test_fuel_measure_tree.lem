@@ -1,0 +1,40 @@
+open import Pervasives
+open import Test_fuel_measure_types
+
+(* ================================================================
+   fuel_measure over a USER INDUCTIVE TYPE (fuel-measure slice,
+   2026-09-04): the measure is a hand-written COMPUTABLE structural size
+   function (lean-test/TestFuelMeasureImpl.lean: `treeSize`/`treesSize`,
+   mutual structural recursion over the nested inductive `mtree`),
+   referenced QUALIFIED in the measure and brought into scope with
+   extra_import. The recursion is the census's HOF/nested shape as
+   WRITTEN — the lem body is not restructured ([USER 2026-09-04]: the
+   lem structure is kept): mtsum folds over the children with a
+   higher-order List.foldl, which the structural declare refuses
+   (neg_structural_hof) and a fuel measure handles as is.
+   ================================================================ *)
+
+declare {lean} extra_import `TestFuelMeasureImpl`
+
+val mtsum : mtree -> nat
+let rec mtsum t = match t with
+  | MLeaf n -> n
+  | MNode ts -> List.foldl (fun acc t' -> acc + mtsum t') 0 ts
+  end
+declare {lean} fuel val mtsum = `fuelExhausted 0`
+declare {lean} fuel_measure val mtsum = `TestFuelMeasureImpl.treeSize t`
+
+(* the mutual pair over the type and its list (the tsum/tsums shape) *)
+val mdepth : mtree -> nat
+val mdepths : list mtree -> nat
+let rec mdepth t = match t with | MLeaf _ -> 0 | MNode ts -> 1 + mdepths ts end
+and mdepths ts = match ts with | [] -> 0 | t :: ts' -> max (mdepth t) (mdepths ts') end
+declare {lean} fuel val mdepth = `fuelExhausted 0`
+declare {lean} fuel val mdepths = `fuelExhausted 0`
+declare {lean} fuel_measure val mdepth = `TestFuelMeasureImpl.treeSize t`
+declare {lean} fuel_measure val mdepths = `TestFuelMeasureImpl.treesSize ts`
+
+let sample : mtree = MNode [MLeaf 1; MNode [MLeaf 2; MNode []; MLeaf 3]; MLeaf 4]
+
+assert mtsum_ok : (mtsum sample = (10 : nat))
+assert mdepth_ok : (mdepth sample = (3 : nat))

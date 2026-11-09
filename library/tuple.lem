@@ -19,6 +19,7 @@ declare hol      target_rep function fst = `FST`
 declare ocaml    target_rep function fst = `fst`
 declare isabelle target_rep function fst = `fst`
 declare coq      target_rep function fst = (`@` `fst` `_` `_`)
+declare lean     target_rep function fst = `Prod.fst`
 
 assert fst_1 : (fst (true, false) = true) 
 assert fst_2 : (fst (false, true) = false)
@@ -34,6 +35,7 @@ declare hol      target_rep function snd = `SND`
 declare ocaml    target_rep function snd = `snd`
 declare isabelle target_rep function snd = `snd`
 declare coq      target_rep function snd = (`@` `snd` `_` `_`)
+declare lean     target_rep function snd = `Prod.snd`
 
 lemma fst_snd: (forall v. v = (fst v, snd v))
 
@@ -52,6 +54,7 @@ declare hol      target_rep function curry = `CURRY`
 declare isabelle target_rep function curry = `curry`
 declare ocaml    target_rep function curry = `Lem.curry`
 declare coq      target_rep function curry = `prod_curry`
+declare lean     target_rep function curry = `Function.curry`
 
 assert curry_1 : (curry (fun (x,y) -> x && y) true false = false)
 
@@ -66,6 +69,7 @@ declare hol      target_rep function uncurry = `UNCURRY`
 declare isabelle target_rep function uncurry = `case_prod`
 declare ocaml    target_rep function uncurry = `Lem.uncurry`
 declare coq      target_rep function uncurry = `prod_uncurry`
+declare lean     target_rep function uncurry = `Function.uncurry`
 
 lemma curry_uncurry: (forall f xy. uncurry (curry f) xy = f xy)
 lemma uncurry_curry: (forall f x y. curry (uncurry f) x y = f x y)

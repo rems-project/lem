@@ -1,0 +1,32 @@
+open import Pervasives
+
+(* Non-Lean invariance witness for the point-free `function` tail
+   eta-expansion (tails-and-pmap-laws slice, 2026-09-05): the hoisting is
+   a LEAN-EMISSION rule keyed on `declare {lean} fuel_measure val` /
+   `declare {lean} structural val`; with the declares stripped the source
+   is the same lem, and the OCaml/HOL/Isabelle/Coq outputs must be
+   byte-identical with and without them (see inv_supply.lem for the
+   harness contract). *)
+
+val blen : nat -> list nat -> nat
+let rec blen acc = function
+  | [] -> acc
+  | _ :: xs -> blen (acc + 1) xs
+end
+declare {lean} fuel val blen = `fun _ => acc`
+declare {lean} fuel_measure val blen = `List.length lemTail + 1`
+
+val slen : nat -> list nat -> nat
+let rec slen acc = function
+  | [] -> acc
+  | _ :: xs -> slen (acc + 1) xs
+end
+declare {lean} structural val slen
+
+val bpair : (nat * nat) -> list nat -> (nat * nat)
+let rec bpair (a, b) = function
+  | [] -> (a, b)
+  | x :: xs -> bpair (a + x, b + 1) xs
+end
+declare {lean} fuel val bpair = `fun _ => (0, 0)`
+declare {lean} fuel_measure val bpair = `List.length lemTail + 1`

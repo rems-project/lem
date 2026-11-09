@@ -1,0 +1,39 @@
+(* Registered OCaml-target deviation (expected_failures.txt, class
+   `ruled`): `min`/`max` on a type with a user `Ord` instance and no
+   `OrdMaxMin` instance of its own. Lem's definition is
+   `defaultMax = maxByLessEqual (<=)` / `defaultMin = minByLessEqual (<=)`
+   (library/basic_classes.lem), which the Lean target emits; the OCaml
+   target represents them as Stdlib's structural `max`/`min`
+   (`declare ocaml target_rep function defaultMax = `max``), which
+   ignores the instance's `<=`. Ruling: [USER 2026-10-03] register it as a
+   deviation (backend-hardening record; upstream report: doc/upstream-tray
+   draft 11). The pin expected/p_user_ord_minmax.lean.out is the Lean side
+   (lem's own semantics); the OCaml pin is the reference's deviating output. *)
+open import Pervasives_extra
+
+(* a user Ord instance that REVERSES the order on the first component *)
+type t = T of nat * nat
+let tcmp (x : t) (y : t) : ordering = match (x, y) with (T a _, T b _) -> compare b a end
+instance (Ord t)
+  let compare = tcmp
+  let (<) x y = tcmp x y = LT
+  let (<=) x y = tcmp x y <> GT
+  let (>) x y = tcmp x y = GT
+  let (>=) x y = tcmp x y <> LT
+end
+let ts (x : t) : string = match x with T a b -> show (a, b) end
+
+let results : list string = [
+  (* the instance itself agrees on both targets: T 1 0 is above T 2 0 *)
+  "le: " ^ show (T 1 0 <= T 2 0) ^ " " ^ show (T 2 0 <= T 1 0);
+  (* the default-method min/max: lem's definition follows the instance
+     (min = T 2 0, max = T 1 0); the OCaml target's structural Stdlib
+     max/min give min = T 1 0, max = T 2 0 *)
+  "min: " ^ ts (min (T 1 0) (T 2 0));
+  "max: " ^ ts (max (T 1 0) (T 2 0));
+  "min rev: " ^ ts (min (T 2 0) (T 1 0));
+  "max rev: " ^ ts (max (T 2 0) (T 1 0));
+  (* the explicit by-instance forms agree on both targets *)
+  "maxByLessEqual: " ^ ts (maxByLessEqual (<=) (T 1 0) (T 2 0));
+  "minByLessEqual: " ^ ts (minByLessEqual (<=) (T 1 0) (T 2 0))
+]

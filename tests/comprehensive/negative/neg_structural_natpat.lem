@@ -1,0 +1,15 @@
+(* EXPECT: is a variable that is not bound by a constructor pattern *)
+(* structural-declare slice: a nat recursion through an `m + 1` pattern
+   is NOT structural on the Lean target — the backend desugars n+k
+   patterns to guards (`if n = 0 … else let m0 = n - 1 …`, test_patterns
+   fix #11), so the self-call's argument is a let-bound variable of an
+   arithmetic value, not a Nat.succ subterm. Nat-indexed recursion is fuel's job (or a data-measure
+   structural index in a hand-written rep). *)
+open import Pervasives
+val tri : nat -> nat
+let rec tri n =
+  match n with
+    | 0 -> 0
+    | m + 1 -> n + tri m
+  end
+declare {lean} structural val tri

@@ -1,0 +1,7 @@
+(* EXPECT: FM-nofuel *)
+(* fuel-measure slice: a measure instantiates the fuel WORKER's counter,
+   so the fuel declare (the worker) must exist on the same val. *)
+open import Pervasives
+val len : list nat -> nat
+let rec len l = match l with | [] -> 0 | _ :: xs -> 1 + len xs end
+declare {lean} fuel_measure val len = `List.length l + 1`

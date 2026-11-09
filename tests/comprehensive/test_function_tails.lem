@@ -1,0 +1,137 @@
+open import Pervasives
+
+(* ================================================================
+   POINT-FREE `function` TAILS (tails-and-pmap-laws slice, 2026-09-05;
+   TODO row 17).
+
+   `let rec f acc = function | [] -> … | x :: xs -> f … xs` recurses on
+   the anonymous scrutinee of a trailing `function`: the head binds one
+   parameter fewer than the type has arrows, so no fuel measure can name
+   the list and the structural analysis has no parameter to designate
+   (six cerberus census rows: `one_step_unseq_aux`, `get_ctx` /
+   `get_ctx_unseq_aux`, ail `are_compatible` / `are_compatible_params_aux`
+   / `are_compatible_params`). [USER 2026-09-04] ruled that the lem
+   structure is not changed for OCaml: the `.lem` stays as written; for a definition
+   that carries `fuel_measure` or `structural` the LEAN EMISSION hoists
+   the trailing binders into the head — one fresh binder per `function`,
+   its scrutinee, deterministically named `lemTail` (so the measure can
+   name it from the `.lem`), a user-written `fun y ->` above it with the
+   user's name. The OCaml output is untouched (invariance/inv_function_tails.lem),
+   the fuel sentinel — written at the head's original, function-typed
+   codomain — is applied to the hoisted binders in the worker's exhaustion
+   arm and the `_zero` lemma.
+
+   Pins: lean-test/TestFunctionTailsCheck.lean (kernel: decide/rfl
+   through the measured wrappers and the structural defs; the `_zero`
+   lemmas; signatures binder-free), the proofs module
+   Test_function_tails_lemMeasureProofs.lean (the obligations,
+   #print axioms), parity/probes/p_function_tails.lem (two-target). The
+   negative/neg_tail_* probes are the hygiene refusals.
+   ================================================================ *)
+
+(* (a) the flagship shape (cerberus `one_step_unseq_aux` without the
+   tuple; `get_ctx_unseq_aux`): accumulator, then `function` — measured
+   over the hoisted binder *)
+val tlen : nat -> list nat -> nat
+let rec tlen acc = function
+  | [] -> acc
+  | _ :: xs -> tlen (acc + 1) xs
+end
+declare {lean} fuel val tlen = `fun _ => acc`
+declare {lean} fuel_measure val tlen = `List.length lemTail + 1`
+
+(* (b) the same shape, structural: the analysis designates lemTail *)
+val slen : nat -> list nat -> nat
+let rec slen acc = function
+  | [] -> acc
+  | _ :: xs -> slen (acc + 1) xs
+end
+declare {lean} structural val slen
+
+(* (c) a DESTRUCTURING parameter before the `function` (cerberus
+   `one_step_unseq_aux (fps_acc, cvals_acc) = function …`): lem's pattern
+   compiler makes the body `match p with | (a, b) => fun x => …` — the
+   binder is hoisted through that single-arm match *)
+val tpair : (nat * nat) -> list nat -> (nat * nat)
+let rec tpair (a, b) = function
+  | [] -> (a, b)
+  | x :: xs -> tpair (a + x, b + 1) xs
+end
+declare {lean} fuel val tpair = `fun _ => (0, 0)`
+declare {lean} fuel_measure val tpair = `List.length lemTail + 1`
+
+(* (d) `fun k -> function …`: the user's binder k and then lemTail are
+   both hoisted (the measure may name either) *)
+val tscale : nat -> nat -> list nat -> nat
+let rec tscale acc = fun k -> function
+  | [] -> acc
+  | x :: xs -> tscale (acc + k * x) k xs
+end
+declare {lean} fuel val tscale = `fun _ _ => acc`
+declare {lean} fuel_measure val tscale = `List.length lemTail + 1`
+
+(* (e) a truly mutual block with a named-parameter member and a
+   `function`-tail member (cerberus `get_ctx` / `get_ctx_unseq_aux`):
+   all-or-none measures, one shared counter *)
+val tev : nat -> list nat -> nat
+val todd : nat -> list nat -> nat
+let rec tev acc l = match l with | [] -> acc | _ :: xs -> todd (acc + 1) xs end
+and todd acc = function | [] -> acc | _ :: xs -> tev (acc + 2) xs end
+declare {lean} fuel val tev = `999`
+declare {lean} fuel val todd = `fun _ => 999`
+declare {lean} fuel_measure val tev = `List.length l + 1`
+declare {lean} fuel_measure val todd = `List.length lemTail + 1`
+
+(* (f) `function` over a PAIR of lists (ail `are_compatible_params_aux acc
+   = function | ([], []) -> … | (_ :: ps1, _ :: ps2) -> …`): the measure
+   projects the hoisted binder *)
+val tdot : nat -> (list nat * list nat) -> nat
+let rec tdot acc = function
+  | ([], []) -> acc
+  | (x :: xs, y :: ys) -> tdot (acc + x * y) (xs, ys)
+  | _ -> 0
+end
+declare {lean} fuel val tdot = `fun _ => 0`
+declare {lean} fuel_measure val tdot = `List.length lemTail.1 + 1`
+
+(* (g) structural under `fun k -> function` *)
+val sscale : nat -> nat -> list nat -> nat
+let rec sscale acc = fun k -> function
+  | [] -> acc
+  | x :: xs -> sscale (acc + k * x) k xs
+end
+declare {lean} structural val sscale
+
+(* (h) a trailing user lambda with NO `function` beneath it (pre-merge
+   audit probe p13, F3): the rule hoists EVERY trailing variable-binder
+   lambda of a measured/structural clause body — here `k` — so the head
+   binds n and k and the wrapper is `def tuser (n : Nat) (k : Nat) : Nat`
+   (a consumer-visible arity change for such a definition, extensionally
+   the same function; the point-free form is recovered by funext) *)
+val tuser : nat -> nat -> nat
+let rec tuser n = fun k -> if n = 0 then k else tuser (n - 1) (k + 1)
+declare {lean} fuel val tuser = `fun _ => 0`
+declare {lean} fuel_measure val tuser = `n + 1`
+
+(* NOT hoisted (unchanged emission): an ambient fuel'd point-free tail
+   without a measure keeps the `_zero` lemma's codomain ascription of the
+   fuel-measure slice (test_fuel_param.lem `tail_spin`); a plain
+   definition with a `function` tail renders as before *)
+val plain_tail : nat -> list nat -> nat
+let rec plain_tail acc = function
+  | [] -> acc
+  | _ :: xs -> plain_tail (acc + 1) xs
+end
+declare {lean} fuel val plain_tail = `fun _ => acc`
+
+(* measured and structural definitions are fuel-free: assertable *)
+assert tlen_ok : (tlen 0 [1; 2; 3] = (3 : nat))
+assert slen_ok : (slen 10 [1; 2] = (12 : nat))
+assert tpair_ok : (tpair (0, 0) [1; 2; 3] = ((6 : nat), (3 : nat)))
+assert tscale_ok : (tscale 0 2 [1; 2; 3] = (12 : nat))
+assert tev_ok : (tev 0 [1; 2; 3] = (4 : nat))
+assert todd_ok : (todd 0 [1; 2; 3] = (5 : nat))
+assert tdot_ok : (tdot 0 ([1; 2; 3], [4; 5; 6]) = (32 : nat))
+assert tdot_ragged : (tdot 0 ([1; 2], [4]) = (0 : nat))
+assert sscale_ok : (sscale 1 3 [1; 2] = (10 : nat))
+assert tuser_ok : (tuser 3 10 = (13 : nat))

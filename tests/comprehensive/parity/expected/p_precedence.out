@@ -1,0 +1,44 @@
+a: 2
+b: -8
+c: 4
+d: 23
+e: 5
+f: 5
+g: 512
+h: 64
+i: 4
+j: -12
+k: -16
+l: 4
+m: 4
+n: [1; 2; 3; 4; 5]
+o: [1; 2; 3]
+p: [1; 2; 3]
+q: abc
+r: true
+s: true
+t: false
+u: true
+v: true
+w: true
+x: 21
+y: 101
+z: 12
+aa: 20
+ab: 9
+ac: [2; 4; 7]
+ad: 5
+ae: 9
+af: -3
+ag: true
+ah: true
+ai: true
+aj: 5
+ak: 5
+al: -7
+am: -6
+an: 841
+ao: true
+ap: true
+aq: 1
+ar: 2

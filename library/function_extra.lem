@@ -37,6 +37,7 @@ val THE : forall 'a. ('a -> bool) -> maybe 'a
 declare hol      target_rep function THE = `$THE`
 declare ocaml    target_rep function THE = `THE`
 declare isabelle target_rep function THE = `The_opt`
+declare lean     target_rep function THE = `THE`
 
-lemma ~{coq} THE_spec : (forall p x. (THE p = Just x) <-> ((p x) && (forall y. p y --> (x = y))))
+lemma ~{coq;lean} THE_spec : (forall p x. (THE p = Just x) <-> ((p x) && (forall y. p y --> (x = y))))
 

@@ -114,6 +114,7 @@ let rec insertBy cmp e l = match l with
   | x :: xs -> if cmp x e then x :: (insertBy cmp e xs) else (e :: x :: xs)
 end
 declare termination_argument insertBy = automatic
+declare lean     target_rep function insertBy = `lemInsertBy`
 
 let inline insert = insertBy (<=)
 
@@ -157,9 +158,10 @@ declare ocaml    target_rep function sortByOrd = `List.sort`
 
 let inline {isabelle;hol} sortByOrd f xs = sortBy (predicate_of_ord f) xs
 declare coq      target_rep function sortByOrd      = `sort_by_ordering`
+declare lean     target_rep function sortByOrd      = `sort_by_ordering`
 
-let inline ~{ocaml} sort = sortBy (<=)
-let inline {ocaml} sort = sortByOrd compare
+let inline ~{ocaml;lean} sort = sortBy (<=)
+let inline {ocaml;lean} sort = sortByOrd compare
 
 
 assert sort_1 : (sort ([] : list nat) = [])

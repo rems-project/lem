@@ -1,0 +1,7 @@
+(* Failure probe (census D1, the `int` leg): Nat_num.int_div raises
+   Division_by_zero through OCaml's `/`; Lean's lemIntDiv fails loudly. *)
+open import Pervasives_extra
+
+let steps : list (nat -> string) =
+  [ (fun n -> "before: -7 div -2 = " ^ show ((0 - 7 : int) div (intFromNat n - 2)));
+    (fun n -> "at zero: " ^ show ((0 - 7 : int) div intFromNat n)) ]

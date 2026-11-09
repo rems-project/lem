@@ -8,6 +8,7 @@ INPUT_FILES := \
     backend_hol.md \
     backend_isa.md \
     backend_coq.md \
+    backend_lean.md \
     backend_tex.md \
     backend_html.md \
   library.md \

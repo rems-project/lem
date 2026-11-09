@@ -1,0 +1,11 @@
+tlen []: 7
+tlen [1..5]: 5
+slen: 12
+tpair: (6, 3)
+tscale: 12
+tev: 4
+todd: 5
+tdot: 32
+tdot ragged: 0
+tlen deep: 5000
+slen deep: 5000

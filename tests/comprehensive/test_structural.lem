@@ -1,0 +1,128 @@
+open import Pervasives
+
+(* ================================================================
+   STRUCTURAL recursion on demand (structural-declare slice, 2026-09-04).
+
+   'declare {lean} structural val f' emits the recursive definition f as
+   an ORDINARY Lean `def` — no `partial`, no fuel worker, no `[LemFuel]`
+   — with an explicit `termination_by structural <param>` clause, so
+   Lean's own termination checker must prove structural recursion on
+   the parameter the backend designates, and may NOT fall back to
+   well-founded recursion (which the kernel cannot compute through).
+   This is the admissible form (c) of DESIGN.md's "No magic values":
+   nothing is chosen, no bound exists, a proof unfolds the definition.
+   The designated parameter is found by the backend's syntactic analysis
+   (at every self/sibling call the argument must be a variable bound by
+   a constructor pattern on that parameter); Lean's checker is the
+   fail-closed backstop at build time.
+
+   Pins: lean-test/TestStructuralCheck.lean (kernel: `decide`/`rfl`
+   closed-term computation, `#print axioms`), parity/probes/p_structural.lem
+   (two-target: OCaml reference vs Lean). The negative/neg_structural_*
+   probes are the refusal classes.
+   ================================================================ *)
+
+(* plain list recursion: designated parameter l *)
+val len : list nat -> nat
+let rec len l =
+  match l with
+    | [] -> 0
+    | _ :: xs -> 1 + len xs
+  end
+declare {lean} structural val len
+
+(* accumulator FIRST, structural parameter second (the analysis picks
+   l, not acc: acc is passed a non-subterm) *)
+let rec rev_acc (acc : list nat) (l : list nat) : list nat =
+  match l with
+    | [] -> acc
+    | x :: xs -> rev_acc (x :: acc) xs
+  end
+declare {lean} structural val rev_acc
+
+(* NOT here: nat recursion through an `m + 1` pattern. The Lean target
+   desugars n+k patterns to guards (`if n = 0 … else let m = n - 1`, fix
+   #11), so the self-call's argument is arithmetic, not a Nat.succ
+   subterm — negative/neg_structural_natpat.lem. Nat recursion is fuel's
+   job on this backend. *)
+
+(* a user tree with a NESTED list of children: mutual structural
+   recursion over the nested inductive — both members carry the declare
+   (all-or-none), each gets its own termination_by clause *)
+type tree = Leaf of nat | Node of list tree
+val tsum : tree -> nat
+val tsums : list tree -> nat
+let rec tsum t =
+  match t with
+    | Leaf n -> n
+    | Node ts -> tsums ts
+  end
+and tsums ts =
+  match ts with
+    | [] -> 0
+    | t :: ts' -> tsum t + tsums ts'
+  end
+declare {lean} structural val tsum
+declare {lean} structural val tsums
+
+(* a tuple of VARIABLES as the scrutinee: bound component-wise (the
+   renderer emits a multi-discriminant match), structural on l1 *)
+let rec zipsum (l1 : list nat) (l2 : list nat) : nat =
+  match (l1, l2) with
+    | (x :: xs, y :: ys) -> x + y + zipsum xs ys
+    | _ -> 0
+  end
+declare {lean} structural val zipsum
+
+(* a nested match: the subterm of a subterm is still structural *)
+val skip2 : list nat -> nat
+let rec skip2 l =
+  match l with
+    | [] -> 0
+    | x :: rest ->
+        match rest with
+          | [] -> x
+          | _ :: rest' -> x + skip2 rest'
+        end
+  end
+declare {lean} structural val skip2
+
+(* a recursive call INSIDE a lambda passed to a HOF, on a strict subterm
+   bound OUTSIDE the lambda: the call is a call, not a bare reference *)
+val sum_with : list nat -> nat
+let rec sum_with l =
+  match l with
+    | [] -> 0
+    | x :: xs -> List.foldl (fun acc y -> acc + y) (sum_with xs) [x]
+  end
+declare {lean} structural val sum_with
+
+(* NOT here: recursion through a RECORD pattern on a recursive record
+   type. lem compiles the record pattern into a match on the field
+   projections (`match c.head, c.tail with | _, some c' => chain_len c'`),
+   and Lean's structural checker cannot eliminate the application through
+   a projection — negative/neg_structural_record.lem quotes the Lean
+   error; the analysis refuses it at generation time instead. *)
+
+(* structural x fuel lifting: a structural def that CALLS a fuel'd def
+   is fuel-lifted like any def (it takes [LemFuel]); its own recursion
+   is still structural, so no worker and no counter of its own *)
+val spin : nat -> nat
+let rec spin n = if n = 0 then 0 else spin (n - 1)
+declare {lean} fuel val spin = `999`
+val spin_each : list nat -> nat
+let rec spin_each l =
+  match l with
+    | [] -> 0
+    | x :: xs -> spin x + spin_each xs
+  end
+declare {lean} structural val spin_each
+
+(* the declares are Lean-only: the OCaml target (and every other) sees
+   ordinary recursive definitions — these asserts run on all targets *)
+assert len_ok : len [1; 2; 3] = 3
+assert rev_acc_ok : rev_acc [] [1; 2; 3] = [3; 2; 1]
+assert tsum_ok : tsum (Node [Leaf 1; Node [Leaf 2; Leaf 3]; Leaf 4]) = 10
+assert zipsum_ok : zipsum [1; 2; 3] [10; 20] = 33
+assert skip2_ok : skip2 [1; 2; 3; 4; 5] = 9
+assert sum_with_ok : sum_with [1; 2; 3] = 6

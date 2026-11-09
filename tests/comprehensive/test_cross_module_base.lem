@@ -1,0 +1,25 @@
+open import Pervasives_extra
+
+(* Base module for cross-user-module import test.
+   Defines types, constructors, and functions to be used by test_cross_module_import.lem.
+   Exercises: auxiliary file transitive opens (#20), skip-open for user modules (#28),
+   cross-module name collision (#29), dynamic library namespace list (#35). *)
+
+type colour = Red | Green | Blue
+
+let colour_to_nat (c : colour) : nat =
+  match c with
+    | Red -> 1
+    | Green -> 2
+    | Blue -> 3
+  end
+
+type wrapped 'a = Wrap of 'a
+
+val unwrap : forall 'a. wrapped 'a -> 'a
+let unwrap (w : wrapped 'a) : 'a =
+  match w with
+    | Wrap x -> x
+  end
+
+let base_constant : nat = 42

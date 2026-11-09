@@ -1,0 +1,35 @@
+(* Parity probe (structural-declare slice, 2026-09-04): a `declare {lean}
+   structural val` definition is an ordinary recursive definition on the
+   OCaml target and a kernel-computable `def` on Lean; both compute the
+   same thing at several inputs. Expected values are the OCaml target's
+   output. *)
+open import Pervasives_extra
+
+val len : list nat -> nat
+let rec len l = match l with | [] -> 0 | _ :: xs -> 1 + len xs end
+declare {lean} structural val len
+
+let rec rev_acc (acc : list nat) (l : list nat) : list nat =
+  match l with | [] -> acc | x :: xs -> rev_acc (x :: acc) xs end
+declare {lean} structural val rev_acc
+
+type tree = Leaf of nat | Node of list tree
+val tsum : tree -> nat
+val tsums : list tree -> nat
+let rec tsum t = match t with | Leaf n -> n | Node ts -> tsums ts end
+and tsums ts = match ts with | [] -> 0 | t :: ts' -> tsum t + tsums ts' end
+declare {lean} structural val tsum
+declare {lean} structural val tsums
+
+let rec zipsum (l1 : list nat) (l2 : list nat) : nat =
+  match (l1, l2) with | (x :: xs, y :: ys) -> x + y + zipsum xs ys | _ -> 0 end
+declare {lean} structural val zipsum
+
+let results : list string =
+  [ "len []: " ^ show (len []);
+    "len [1..5]: " ^ show (len [1; 2; 3; 4; 5]);
+    "rev_acc: " ^ show (rev_acc [] [1; 2; 3; 4]);
+    "tsum: " ^ show (tsum (Node [Leaf 1; Node [Leaf 2; Node []; Leaf 3]; Leaf 4]));
+    "tsum leaf: " ^ show (tsum (Leaf 7));
+    "zipsum: " ^ show (zipsum [1; 2; 3] [10; 20]);
+    "zipsum empty: " ^ show (zipsum [] [1]) ]

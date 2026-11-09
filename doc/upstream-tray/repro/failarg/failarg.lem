@@ -1,0 +1,5 @@
+open import Pervasives_extra
+open import Assert_extra
+
+val pick : nat -> nat
+let pick n = if n = 0 then fail "pick: zero" else n

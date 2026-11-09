@@ -1,0 +1,8 @@
+(* EXPECT: collides with `r.casesOn`, a declaration Lean generates *)
+open import Pervasives_extra
+(* backend-hardening 2026-10-03, item 2: a record in a heterogeneous mutual
+   block (an inductive with accessors) is checked the same way *)
+type r = <| casesOn : nat; others : list (q nat) |>
+and q 'a = Q of 'a
+declare {lean} skip_instances type r
+declare {lean} skip_instances type q

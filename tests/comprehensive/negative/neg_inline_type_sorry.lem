@@ -1,0 +1,5 @@
+(* EXPECT: forbidden (inline backend type) *)
+(* Parentheses select TYR_subst, bypassing the simple declared-type guard. *)
+open import Pervasives
+declare lean target_rep type nat = (`sorry`)
+type inline_hole = Hole of nat

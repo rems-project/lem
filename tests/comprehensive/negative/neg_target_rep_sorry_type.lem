@@ -1,0 +1,4 @@
+(* EXPECT: target representation `sorry` is forbidden *)
+(* An unused type representation is also a proof hole. *)
+type missing
+declare lean target_rep type missing = `sorry`

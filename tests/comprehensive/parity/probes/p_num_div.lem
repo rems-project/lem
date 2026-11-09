@@ -1,0 +1,24 @@
+(* Noodle probe: division/remainder sign corners for every integral type
+   whose Lean rep is `/` `%` (int, int32, int64 — Euclidean in Lean) vs
+   the OCaml reps Nat_num.int_div/int_mod/int32_div/... (a different
+   convention when the divisor is negative). integer is the M2-verified
+   control. Expected values are the OCaml target's output. *)
+open import Pervasives_extra
+
+let s_int (x : int) : string = stringFromInt x
+let s_integer (x : integer) : string = stringFromInteger x
+let s_i32 (x : int32) : string = stringFromInteger (integerFromInt32 x)
+let s_i64 (x : int64) : string = stringFromInteger (integerFromInt64 x)
+
+let pairs : list (integer * integer) =
+  [(7, 2); (0-7, 2); (7, 0-2); (0-7, 0-2); (1, 0-3); (0-1, 3); (6, 0-3); (0-6, 3); (0, 0-5); (5, 5); (0-5, 0-5)]
+
+let results : list string =
+  List.map (fun (a, b) ->
+    let ai = intFromInteger a in let bi = intFromInteger b in
+    let a32 = int32FromInteger a in let b32 = int32FromInteger b in
+    let a64 = int64FromInteger a in let b64 = int64FromInteger b in
+    "integer " ^ s_integer a ^ " " ^ s_integer b ^ " div=" ^ s_integer (a div b) ^ " mod=" ^ s_integer (a mod b) ^ " /=" ^ s_integer (a / b) ^
+    " | int div=" ^ s_int (ai div bi) ^ " mod=" ^ s_int (ai mod bi) ^ " /=" ^ s_int (ai / bi) ^
+    " | int32 div=" ^ s_i32 (a32 div b32) ^ " mod=" ^ s_i32 (a32 mod b32) ^
+    " | int64 div=" ^ s_i64 (a64 div b64) ^ " mod=" ^ s_i64 (a64 mod b64)) pairs

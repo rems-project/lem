@@ -1,0 +1,9 @@
+(* EXPECT: must have type unit -> nat *)
+(* Supply guard G-type (effect-retirement L1): the v1 supply is a
+   counter — a supply val of any other type is rejected at generation
+   time. *)
+open import Pervasives
+val bad_supply : nat -> nat
+declare lean target_rep function bad_supply n = 0
+declare {lean} supply val bad_supply
+let uses_bad x = bad_supply x

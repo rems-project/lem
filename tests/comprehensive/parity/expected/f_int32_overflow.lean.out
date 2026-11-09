@@ -1,0 +1,5 @@
+lean-exit: 0
+--- lean stdout ---
+before: in range: 2147483647
+at overflow: -2147483648
+--- lean stderr ---

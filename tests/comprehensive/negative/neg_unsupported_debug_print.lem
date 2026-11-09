@@ -1,0 +1,9 @@
+(* EXPECT: constant 'Debug.print_endline' has no implementation on the Lean target *)
+(* Parity-fix audit response (2026-09-03, F1): Debug.print_endline prints to
+   stdout on the OCaml reference; pure Lean code cannot. A Unit-valued
+   runtime refusal was measured to be dead-code-eliminated (this exact
+   shape printed nothing and exited 0), so the refusal is at GENERATION
+   time — the [USER 2026-09-03] class-(c) form. *)
+open import Pervasives_extra
+open import Debug
+let probe (u : unit) : string = let u = Debug.print_endline "dbg" in match u with () -> "after" end

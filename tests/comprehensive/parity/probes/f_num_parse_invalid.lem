@@ -1,0 +1,8 @@
+(* Failure probe (census N6): Z.of_string raises Invalid_argument on an
+   invalid digit ("abc", " 5", "+-5", "1e3", "_1", "0x_1"); the Lean
+   lemIntegerOfString fails loudly at the same input. *)
+open import Pervasives_extra
+
+let steps : list (nat -> string) =
+  [ (fun n -> "before: " ^ stringFromInteger (integerOfString ("0x1" ^ stringFromNat n)));
+    (fun n -> "at invalid: " ^ stringFromInteger (integerOfString ("abc" ^ stringFromNat n))) ]

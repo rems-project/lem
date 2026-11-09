@@ -1,0 +1,9 @@
+(* EXPECT: FM-structural *)
+(* fuel-measure slice: a structural def has no fuel counter to
+   instantiate — one shape per definition. *)
+open import Pervasives
+val len : list nat -> nat
+let rec len l = match l with | [] -> 0 | _ :: xs -> 1 + len xs end
+declare {lean} fuel val len = `999`
+declare {lean} structural val len
+declare {lean} fuel_measure val len = `List.length l + 1`

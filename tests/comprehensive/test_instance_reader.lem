@@ -1,0 +1,167 @@
+open import Pervasives
+
+(* ================================================================
+   Instance-implicit readers (instance-reader slice, 2026-10-05;
+   doc/lean-backend/2026-10-05_instance-reader-record.md).
+
+     declare {lean} reader val r = instance `Cls.field`
+     declare {lean} reader_consumer val f = instance r
+
+   An instance reader `r : unit -> T` is an IMPLICIT PARAMETER: every
+   definition that (transitively) reads it binds the one-field class
+   `Cls` instance-implicitly (`[Cls]`), the read `r ()` emits the
+   projection `Cls.field`, and call sites are textually unchanged — the
+   fuel lifting's `[LemFuel]` shape with a user-named class. A consumer
+   is a target_rep'd val whose hand-written implementation binds `[Cls]`
+   itself; it receives no argument and its callers bind the class. No
+   instance exists in generated code: the classes and the consumer
+   implementations are hand-written in lean-test/TestInstanceReaderImpl.lean,
+   and every instance is supplied by the pins in
+   lean-test/TestInstanceReaderCheck.lean (kernel `rfl`) and the compiled
+   lean-test/TestInstanceReaderExec.lean (phase lean-instance-reader).
+
+   Observation: a lifted definition cannot be referenced from a .lem
+   assert (no instance at assert scope — the fail-closed scope error,
+   negative/neg_ireader_scope_assert.lem); the asserts below cover only
+   the definitions the fixpoint must leave UNBOUND.
+   ================================================================ *)
+
+(* two instance readers (global binder order: by lem name, md before sw)
+   and one explicit reader *)
+val sw : unit -> nat
+declare lean target_rep function sw u = 0
+declare {lean} reader val sw = instance `TestInstanceReaderImpl.Sw.sw`
+
+val md : unit -> bool
+declare lean target_rep function md u = false
+declare {lean} reader val md = instance `TestInstanceReaderImpl.Md.md`
+
+val cfg : unit -> nat
+declare lean target_rep function cfg u = 0
+declare {lean} reader val cfg
+
+(* === (1) simple lifting: a direct read === *)
+val get_sw : nat -> nat
+let get_sw x = sw () + x
+
+(* === (2) transitive lifting: no read in the body, a lifted callee === *)
+val calls_get_sw : nat -> nat
+let calls_get_sw x = get_sw x * 2
+
+(* not lifted: reaches no instance reader *)
+val plain : nat -> nat
+let plain x = x + 1
+
+(* a bare (unapplied) reference: eta-expanded projection *)
+val apply_unit : (unit -> nat) -> nat
+let apply_unit f = f ()
+
+val via_bare : nat -> nat
+let via_bare x = apply_unit sw + x
+
+(* a value binding (the Let_def emission path) *)
+val sw_plus_one : nat
+let sw_plus_one = sw () + 1
+
+(* a multi-name destructuring value binding (one private RHS def plus a
+   projection per name; every piece binds [Sw]) *)
+let (sw_a, sw_b) = (sw (), sw () + 1)
+
+(* a multi-clause group (the equation emission path) *)
+let rec mc (0 : nat) : nat = sw () and mc (n : nat) : nat = n
+
+(* two instance readers in one body: binders [Md] [Sw] *)
+val both_readers : nat -> nat
+let both_readers x = if md () then sw () + x else x
+
+(* === (3) consumers === *)
+(* implementation: TestInstanceReaderImpl.scaledI [Sw] (x : Nat) : Nat *)
+val scaled_i : nat -> nat
+declare lean target_rep function scaled_i = `TestInstanceReaderImpl.scaledI`
+declare {lean} reader_consumer val scaled_i = instance sw
+
+val uses_scaled_i : nat -> nat
+let uses_scaled_i x = scaled_i x
+
+(* bare/HOF reference to a consumer: nothing to inject *)
+val maps_scaled_i : list nat -> list nat
+let maps_scaled_i l = List.map scaled_i l
+
+(* a consumer of the explicit reader, the instance reader AND the fuel at
+   once (the Cerberus memory-operation shape): implementation
+   TestInstanceReaderImpl.bothC [LemFuel] [Sw] (cfg : Nat) (x : Nat) — the
+   explicit reader still arrives as a leading argument *)
+val both_c : nat -> nat
+declare lean target_rep function both_c = `TestInstanceReaderImpl.bothC`
+declare {lean} reader_consumer val both_c
+declare {lean} reader_consumer val both_c = instance sw
+declare {lean} fuel_consumer val both_c
+
+val uses_both_c : nat -> nat
+let uses_both_c x = both_c x
+
+(* === (4) reader_seed: the seed cuts the EXPLICIT reader only; the
+   instance reader propagates through it (the seed def binds [Sw]) === *)
+val get_cfg : nat -> nat
+let get_cfg x = cfg () + x
+
+val seed_entry : nat -> nat -> nat
+let seed_entry cfgv x = get_cfg x + get_sw x
+declare {lean} reader_seed val seed_entry
+
+(* seed-rooted caller: no explicit reader binder, but [Sw] *)
+val via_seed : nat -> nat
+let via_seed x = seed_entry 7 x
+
+(* a seed def that reaches no instance reader stays unbound *)
+val seed_plain : nat -> nat -> nat
+let seed_plain cfgv x = get_cfg x
+declare {lean} reader_seed val seed_plain
+
+val via_seed_plain : nat -> nat
+let via_seed_plain x = seed_plain 7 x
+
+(* === (5) mutual blocks === *)
+(* a structural truly-mutual pair where only ONE member reads: both bind
+   (all-or-none: the mutual Val_def is one defined set) *)
+val iev : list nat -> bool
+val iodd : list nat -> bool
+let rec iev l = match l with | [] -> sw () = 0 | _ :: xs -> iodd xs end
+and iodd l = match l with | [] -> false | _ :: xs -> iev xs end
+declare {lean} structural val iev
+declare {lean} structural val iodd
+
+(* a fuel'd truly-mutual pair where both members read: workers, wrappers
+   and `_zero` lemmas bind [Sw]; rping 3 at sw=7 reaches 7 at rping -> 0 *)
+val rping : nat -> nat
+val rpong : nat -> nat
+let rec rping n = if n = sw () then 0 else rpong (n + 1)
+and rpong n = if n = sw () then 1 else rping (n + 1)
+declare {lean} fuel val rping = `991`
+declare {lean} fuel val rpong = `992`
+
+val uses_rping : nat -> nat
+let uses_rping k = rping k
+
+(* === (6) coexistence: explicit reader + instance reader + fuel in one
+   fuel'd def, and a measured def (its obligation binds [Sw]; proved in
+   lean-test/Test_instance_reader_lemMeasureProofs.lean) === *)
+val mixed : nat -> nat
+let rec mixed n = if n = 0 then cfg () * 1000 + sw () else mixed (n - 1)
+declare {lean} fuel val mixed = `999`
+
+val ilen : list nat -> nat
+let rec ilen l = match l with | [] -> sw () | _ :: xs -> 1 + ilen xs end
+declare {lean} fuel val ilen = `0`
+declare {lean} fuel_measure val ilen = `List.length l + 1`
+
+(* a supply-lifted def reading the instance reader *)
+val tick : unit -> nat
+declare lean target_rep function tick u = 0
+declare {lean} supply val tick
+
+val draw_sw : unit -> nat * nat
+let draw_sw u = let a = tick () in (a, sw ())
+
+assert plain_ok : (plain 1 = 2)
+assert seed_plain_ok : (via_seed_plain 3 = 10)

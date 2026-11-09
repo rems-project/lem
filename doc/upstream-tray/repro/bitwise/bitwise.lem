@@ -1,0 +1,13 @@
+open import Pervasives
+open import Word
+
+(* OCaml target: the target_rep (native 63-bit lsl/lor/land). *)
+let rep_lsl  : int = intLsl 1 30
+let rep_lor  : int = intLor 1073741824 0
+let rep_nlor : nat = natLor 1099511627776 1
+
+(* The library's own definitions, which HOL4, Isabelle and Coq use
+   (those targets have no target_rep for these functions). *)
+let def_lsl  : int = defaultLsl intFromBitSeq bitSeqFromInt 1 30
+let def_lor  : int = defaultLor intFromBitSeq bitSeqFromInt 1073741824 0
+let def_nlor : nat = defaultLor natFromBitSeq bitSeqFromNat 1099511627776 1

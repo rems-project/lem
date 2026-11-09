@@ -1,0 +1,119 @@
+open import Pervasives
+open import Test_fuel_measure_types
+
+(* ================================================================
+   BACKEND-DERIVED COMPUTABLE SIZE FUNCTIONS (D2-enablers slice,
+   2026-09-04; lem-lean TODO row 15).
+
+   For every RECURSIVE block of generated inductive types the Lean
+   backend emits, in the type's own module, a computable structural size
+   `t.lemSize : t → Nat` (one mutual block per type block; list/option/
+   sum helpers `t.lemSize_aux<k>`; `termination_by structural`; the kernel
+   computes through it). It exists because a `fuel_measure` over a type
+   defined in the SAME module as the measured function cannot be a
+   hand-written Lean function (import cycle) and Lean's automatic `sizeOf`
+   is noncomputable — the two cerberus D2 equalities (`ctypeEqual`,
+   `eq_core_base_type`) are exactly this case. A measure names the size
+   as `lemSize x` (x a parameter; the backend resolves x's type) or as the
+   qualified global `t.lemSize x`.
+
+   Size semantics: every constructor node of the block's types counts 1;
+   every non-nullary container constructor (`::`, `Some`, `inl`, `inr`)
+   counts 1, `[]`/`none` 0; tuples are transparent; every other field is
+   a leaf counting 0 (type variables, base types, other blocks' types,
+   function types, siblings under an unsupported head). Non-recursive
+   types get NO size function (constant size 1; negative/neg_lem_size_nonrec).
+
+   Pins: lean-test/TestLemSizeCheck.lean (kernel: the sizes by decide, the
+   measured wrappers, fuel-freeness, #print axioms); the proofs module
+   Test_lem_size_lemMeasureProofs.lean (the obligations, kernel-checked);
+   parity/probes/p_lem_size.lem (two-target); negative/neg_lem_size_*.lem.
+   ================================================================ *)
+
+(* the same-module type: a nested list of TUPLES and a maybe *)
+type tm = TLeaf of nat | TNode of list (nat * tm) * maybe tm
+
+(* a parametric type: fields of type 'a are leaves (the size cannot
+   recurse into 'a); the size function takes {a : Type} *)
+type sbox 'a = SB of 'a * list (sbox 'a) | SE
+
+(* a mutual block with a record and an either *)
+type r1 = R1 of list (either nat r2)
+and r2 = <| r2_tag : nat; r2_kids : list r1 |>
+
+(* a NON-recursive type: no size function is emitted (its size would be
+   the constant 1 — a measure over it is refused: neg_lem_size_nonrec) *)
+type flat = FL of nat * list nat
+
+(* a fuel'd recursion through `List.foldl` over a list of tuples and a
+   maybe, AS WRITTEN (the structural declare refuses it: neg_structural_hof);
+   measured by the derived size of its argument — SAME module as the type *)
+val tm_sum : tm -> nat
+let rec tm_sum t = match t with
+  | TLeaf n -> n
+  | TNode xs o ->
+      List.foldl (fun acc (_, c) -> acc + tm_sum c) 0 xs
+      + (match o with Just c -> tm_sum c | Nothing -> 0 end)
+  end
+declare {lean} fuel val tm_sum = `fuelExhausted 0`
+declare {lean} fuel_measure val tm_sum = `lemSize t`
+
+(* THE D2 SHAPE (cerberus ctype.lem:183 / core.lem:91 /
+   defacto_memory_aux.lem:38): a fuel'd equality whose list traversal is
+   `List.all (fun …) (List.zip …)` AS WRITTEN, measured by the derived
+   size of its first argument, and used as the `Eq` instance's method —
+   a measured function is fuel-FREE, so the instance check accepts it
+   (contrast negative/neg_fuel_instance.lem: an AMBIENT fuel'd method is
+   refused) *)
+val tm_eq : tm -> tm -> bool
+let rec tm_eq t1 t2 = match (t1, t2) with
+  | (TLeaf n1, TLeaf n2) -> n1 = n2
+  | (TNode xs1 o1, TNode xs2 o2) ->
+      List.all (fun ((n1, c1), (n2, c2)) -> n1 = n2 && tm_eq c1 c2) (List.zip xs1 xs2)
+      && (match (o1, o2) with
+            | (Just a, Just b) -> tm_eq a b
+            | (Nothing, Nothing) -> true
+            | _ -> false
+          end)
+  | _ -> false
+  end
+declare {lean} fuel val tm_eq = `fuelExhausted false`
+declare {lean} fuel_measure val tm_eq = `lemSize t1`
+
+instance (Eq tm)
+  let (=) = tm_eq
+  let (<>) = fun a b -> not (tm_eq a b)
+end
+
+(* a user class whose instance method is a measured function (fuel-free) *)
+class (Sz 'a) val sz : 'a -> nat end
+instance (Sz tm) let sz t = tm_sum t end
+
+(* a type from ANOTHER module (mtree, Test_fuel_measure_types): its size
+   function is emitted in that module and imported *)
+val mcount : mtree -> nat
+let rec mcount t = match t with
+  | MLeaf _ -> 1
+  | MNode ts -> List.foldl (fun acc t' -> acc + mcount t') 1 ts
+  end
+declare {lean} fuel val mcount = `fuelExhausted 0`
+declare {lean} fuel_measure val mcount = `lemSize t`
+
+(* the explicit qualified form, over a parametric type *)
+val sb_count : sbox nat -> nat
+let rec sb_count s = match s with
+  | SE -> 0
+  | SB _ ks -> 1 + List.foldl (fun acc k -> acc + sb_count k) 0 ks
+  end
+declare {lean} fuel val sb_count = `fuelExhausted 0`
+declare {lean} fuel_measure val sb_count = `sbox.lemSize s`
+
+let sample_tm : tm = TNode [(1, TLeaf 2); (3, TNode [] Nothing)] (Just (TLeaf 4))
+
+(* measured functions are fuel-free, so they are assertable from lem *)
+assert tm_sum_ok : (tm_sum sample_tm = (6 : nat))
+assert tm_eq_ok : (sample_tm = sample_tm)
+assert tm_neq_ok : (sample_tm <> TLeaf 0)
+assert sz_ok : (sz sample_tm = (6 : nat))
+assert mcount_ok : (mcount (MNode [MLeaf 1; MNode []]) = (3 : nat))
+assert sb_count_ok : (sb_count (SB 1 [SB 2 []; SE]) = (2 : nat))

@@ -64,6 +64,7 @@ type non_ident_target =
   | Target_tex
   | Target_html
   | Target_lem
+  | Target_lean
 
 (** [target] for the typechecked ast is either a real target as in the AST or
     the identity target *)

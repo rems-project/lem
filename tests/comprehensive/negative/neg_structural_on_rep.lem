@@ -1,0 +1,9 @@
+(* EXPECT: ST-inert *)
+(* structural-declare slice: on a val with a Lean target_rep the lem
+   definition renders as a comment and the declare is silently inert —
+   refused (the FC-inert rule). *)
+open import Pervasives
+val len : list nat -> nat
+let rec len l = match l with | [] -> 0 | _ :: xs -> 1 + len xs end
+declare lean target_rep function len = `List.length`
+declare {lean} structural val len

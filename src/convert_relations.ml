@@ -157,7 +157,8 @@ let const_descr
     target_rep = target_rep ;
     target_ascii_rep = target_ascii_rep ;
     compile_message = compile_message ;
-    termination_setting = termination_setting }
+    termination_setting = termination_setting;
+    effectful = Target.Targetset.empty; reader = Target.Targetset.empty; fuel_sentinel = Target.Targetmap.empty; ground_rep = Target.Targetmap.empty; reader_seed = Target.Targetset.empty; supply = Target.Targetset.empty; reader_consumer = Target.Targetset.empty; fuel_consumer = Target.Targetset.empty; structural = Target.Targetset.empty; fuel_measure = Target.Targetmap.empty; reader_instance = Target.Targetmap.empty; reader_consumer_instance = Target.Targetmap.empty }
 
 (** [and_const_ref env] represent the Lem constant [&&] in environment
     [env] *)
@@ -1569,7 +1570,8 @@ let register_types rel_loc ctxt mod_path tds =
                    type_constr = [constrset];
                    type_rename = Target.Targetmap.empty;
                    type_target_rep = Target.Targetmap.empty;
-                   type_target_sorts = Target.Targetmap.empty
+                   type_target_sorts = Target.Targetmap.empty;
+                   type_skip_instances = Target.Targetset.empty
                  }
     in
     let ctxt = add_d_to_ctxt ctxt type_path (Tc_type tdescr) in

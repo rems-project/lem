@@ -38,5 +38,6 @@ declare hol      target_rep function fold = `ITSET`
 declare isabelle target_rep function fold f A q = `Finite_Set.fold` f q A
 declare ocaml    target_rep function fold = `Pset.fold`
 declare coq      target_rep function fold = `set_fold`
+declare lean     target_rep function fold = `setFold`
 
 

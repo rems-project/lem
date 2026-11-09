@@ -14,6 +14,11 @@ open import Basic_classes Maybe Assert_extra
 val fromJust : forall 'a. maybe 'a -> 'a
 let fromJust op = match op with | Just v -> v | Nothing -> failwith "fromJust of Nothing" end
 declare termination_argument fromJust = automatic
+(* Lean: at call sites with a ground result type, emit the
+   [Inhabited]-bounded LemLib.fromJustI instead (axiom-free failure leaf;
+   success equation still holds by rfl). Type-variable sites keep this
+   generated fromJust — no constraint propagation. *)
+declare {lean} ground_rep val fromJust = `fromJustI1`
 declare compile_message fromJust = "fromJust is only defined on Just. Better use `fromMaybe` or use explicit matching to handle the Nothing-case."
 
 declare hol      target_rep function fromJust = `THE`

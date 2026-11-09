@@ -1,0 +1,35 @@
+open import Pervasives_extra
+
+(* ======================================================================
+   User-defined constants with symbolic names (linksem 2026-09-28, B1).
+   linksem's error.lem defines `let (>>=) x f = bind x f` and uses it
+   infix throughout. Lean cannot name a definition `>>=`, and an infix
+   `x >>= f` in the output would resolve to Lean's own Bind operator. With
+   `declare {lean} ascii_rep` the constant is rendered by its ASCII name at
+   the definition AND at every use, infix or prefix. (Without an ASCII rep
+   the definition is refused: negative/neg_symbolic_def.lem.)
+   ====================================================================== *)
+
+type res 'a = Ok of 'a | Err of string
+
+val (>>=) : forall 'a 'b. res 'a -> ('a -> res 'b) -> res 'b
+declare {lean} ascii_rep function (>>=) = `res_bind`
+let (>>=) x f = match x with Ok v -> f v | Err e -> Err e end
+
+val (<+>) : nat -> nat -> nat
+declare {lean} ascii_rep function (<+>) = `plus_twice`
+let (<+>) x y = x + y + y
+
+let sym_infix (x : res nat) = x >>= (fun v -> Ok (v + v))
+let sym_prefix (x : res nat) = (>>=) x (fun v -> Ok (v * 3))
+let sym_chain (x : res nat) = x >>= (fun a -> Ok (a + 1) >>= (fun b -> Ok (a * b)))
+let sym_section = List.map ((<+>) 1) [1; 2]
+
+let from_ok (x : res nat) = match x with Ok v -> v | Err _ -> 0 end
+
+assert sym_infix_ok : (from_ok (sym_infix (Ok 4)) = 8)
+assert sym_infix_err : (match sym_infix (Err "e") with Err s -> s = "e" | Ok _ -> false end)
+assert sym_prefix_ok : (from_ok (sym_prefix (Ok 4)) = 12)
+assert sym_chain_ok : (from_ok (sym_chain (Ok 4)) = 20)
+assert sym_nat_infix : ((2 <+> 3) = (8 : nat))
+assert sym_section_ok : (sym_section = [3; 5])

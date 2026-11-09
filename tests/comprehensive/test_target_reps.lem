@@ -1,0 +1,428 @@
+(* Target representations, inline definitions and auxiliary generation.
+   Public-readiness M4, 2026-09-24: formerly positive sorry fixtures now
+   use concrete representations. Refusal is covered by neg_target_rep_sorry*. *)
+
+open import Pervasives_extra
+
+(* ================================================================== *)
+(* Section 1: Inline definitions                                      *)
+(* ================================================================== *)
+
+let inline isZero (n : nat) = (n = (0:nat))
+let inline double (n : nat) = n + n
+let inline compose f g x = f (g x)
+
+assert inline_zero_t  : isZero 0
+assert inline_zero_f  : not (isZero 3)
+assert inline_double   : double 5 = (10:nat)
+assert inline_compose  : compose (fun x -> x + (1:nat)) (fun x -> x * (2:nat)) 3 = (7:nat)
+
+(* Inline with target scoping *)
+val addThree : nat -> nat
+let inline {lean; ocaml; coq} addThree n = n + (3:nat)
+let {hol; isabelle} addThree n = n + (3:nat)
+
+assert addThree_ok : addThree 7 = (10:nat)
+
+(* Target-specific function definition *)
+val mySucc : nat -> nat
+let {lean; ocaml; coq; isabelle; hol} mySucc n = n + (1:nat)
+
+assert mySucc_ok : mySucc 9 = (10:nat)
+
+(* Multiple target-specific definitions *)
+val myPred : nat -> nat
+let {lean; ocaml; coq} myPred n = n - (1:nat)
+let {hol; isabelle} myPred n = n - (1:nat)
+
+assert myPred_ok : myPred 5 = (4:nat)
+
+(* Renaming *)
+type myPairType 'a 'b = | MkMyPair of 'a * 'b
+declare {lean} rename type myPairType = lem_myPairType
+
+let extractFirst (MkMyPair a _b) = a
+
+assert rename_ok : extractFirst (MkMyPair (3:nat) true) = (3:nat)
+
+(* Type abbreviation with target-specific name *)
+type counter = nat
+declare {lean} rename type counter = lem_counter
+
+let incr (c : counter) : counter = c + (1:nat)
+
+assert abbrev_rename_ok : incr (5:nat) = (6:nat)
+
+(* Logical implication *)
+let test_impl = true --> true
+let test_impl2 = false --> false
+let test_impl3 = false --> true
+let test_impl4 = not (true --> false)
+
+assert impl_tt : test_impl
+assert impl_ff : test_impl2
+assert impl_ft : test_impl3
+assert impl_tf : test_impl4
+
+(* ================================================================== *)
+(* Section 2: Parameter-binding target reps (CR_inline style)         *)
+(* ================================================================== *)
+
+(* Like HOL's: declare hol target_rep function using_concurrency u = false
+   The parameter is consumed and the body is inlined. *)
+val is_feature_enabled : unit -> bool
+declare lean target_rep function is_feature_enabled u = false
+
+val get_feature_name : unit -> string
+declare lean target_rep function get_feature_name u = "none"
+
+val has_option : nat -> bool
+declare lean target_rep function has_option n = false
+
+let test_feature = is_feature_enabled ()
+let test_name = get_feature_name ()
+let test_option = has_option 42
+
+(* Use in if-condition — this is the pattern that caused Cerberus Ctype.lean
+   to fail when the target rep was bare sorry *)
+let test_if_feature (x : nat) : nat =
+  if is_feature_enabled () then x + 1 else x
+
+assert feature_off : not test_feature
+assert name_none : test_name = "none"
+assert option_off : not test_option
+assert if_feature_ok : test_if_feature 5 = (5:nat)
+
+(* Target rep constructors in pattern match *)
+(* When a constructor has a target rep (e.g., Just -> some), using it
+   in a pattern with arguments must have proper spacing: "some x" not "some(x)".
+   This is the P_backend pattern spacing issue from Cerberus Annot.lean. *)
+let extract_or_default (x : maybe nat) (d : nat) : nat =
+  match x with
+    | Just v -> v
+    | Nothing -> d
+  end
+
+assert extract_ok : extract_or_default (Just 42) 0 = (42:nat)
+assert extract_default : extract_or_default Nothing 99 = (99:nat)
+
+(* A concrete representation consumes the declared argument. *)
+type tr_mode = TrModeA | TrModeB
+val get_mode_val : tr_mode -> nat
+declare lean target_rep function get_mode_val m = (42 : nat)
+let test_rep_applied : nat = get_mode_val TrModeA
+assert rep_applied : test_rep_applied = (42 : nat)
+
+(* ================================================================== *)
+(* Section 3: Inline theorem generation                               *)
+(* ================================================================== *)
+
+(* Minimal reproducer for Cerberus inline theorem parsing error.
+
+   When a function has both a target-specific {lean} definition and an
+   inline expansion that applies to lean (via ~{ocaml}), the auxiliary
+   file generates a theorem asserting equivalence. The theorem uses
+   chained == which Lean cannot parse:
+
+     theorem my_eq_def_lemma : ((forall a b, (fid a == fid b) == a == b : Prop)) ...
+
+   Error: unexpected token '=='; expected ')', ',' or ':'
+*)
+
+(* A simple type with a field *)
+type widget = <| fid : nat |>
+
+(* Helper to extract the field *)
+val widget_fid : widget -> nat
+let widget_fid w = w.fid
+
+(* Custom equality: compare by field.
+   The {ocaml; lean} definition is concrete.
+   The inline ~{ocaml} definition applies to lean (and all non-ocaml backends),
+   generating a theorem in the auxiliary file. *)
+val my_eq : widget -> widget -> bool
+let {ocaml; lean} my_eq a b = widget_fid a = widget_fid b
+let inline ~{ocaml} my_eq a b = unsafe_structural_equality a b
+
+(* Eq instance using the custom equality *)
+instance (Eq widget)
+  let (=)  = my_eq
+  let (<>) x y = not (my_eq x y)
+end
+
+(* ================================================================== *)
+(* Section 4: Concrete reps in expression contexts                     *)
+(* ================================================================== *)
+
+let rep_succ (n : nat) : nat = n + 1
+
+type digest
+declare lean target_rep type digest = `Nat`
+type layout_state
+val make_digest : nat -> digest
+declare lean target_rep function make_digest = `rep_succ`
+let my_digest : digest = make_digest 42
+
+(* The opaque layout cannot supply Inhabited: skip the demanding instance. *)
+type my_state = <| st_count : nat; st_layout : layout_state; st_name : string |>
+declare {lean} skip_instances type my_state
+
+val get_mode : unit -> maybe nat
+declare lean target_rep function get_mode u = Just (7 : nat)
+let check_mode (u : unit) : nat =
+  match get_mode () with | Just n -> n | Nothing -> (0 : nat) end
+
+type exec_mode = ModeA | ModeB | ModeC
+val current_mode : unit -> exec_mode
+declare lean target_rep function current_mode u = ModeA
+let is_mode_a (u : unit) : bool = current_mode () = ModeA
+
+type error_info 'a = ErrSimple of string | ErrWithCtx of 'a * string
+val get_error_ctx : unit -> nat
+declare lean target_rep function get_error_ctx u = (9 : nat)
+let make_error (msg : string) : error_info nat = ErrWithCtx (get_error_ctx ()) msg
+
+val get_name : unit -> string
+declare lean target_rep function get_name u = "context"
+val get_count : unit -> nat
+declare lean target_rep function get_count u = (3 : nat)
+let describe (u : unit) : string =
+  let n = get_name () in let c = get_count () in n ^ ": " ^ show c
+
+val transform_val : nat -> nat
+declare lean target_rep function transform_val = `rep_succ`
+let mapped_list : list nat = List.map transform_val [1; 2; 3]
+assert mode_check : check_mode () = (7 : nat)
+assert current_mode_check : is_mode_a ()
+assert rep_hof : mapped_list = [2; 3; 4]
+assert rep_chain : describe () = "context: 3"
+
+(* ================================================================== *)
+(* Section 5: Unit-match followed by tuple-match                       *)
+(* ================================================================== *)
+
+type myval = Base of nat | Arr of list nat
+val debug_print : unit -> unit
+declare lean target_rep function debug_print u = ()
+val process_val_body : myval -> list nat -> nat
+let rec process_val_body v path =
+  let () = debug_print () in
+  match (v, path) with
+    | (_, []) -> (0 : nat)
+    | (Arr ns, _ :: rest) -> process_val_body (Base (List.length ns)) rest
+    | (Base n, _ :: _) -> n
+  end
+(* Closure F5, 2026-09-24: retain the recursive target-rep route that
+   def_trans turns into process_val_def_lemma in the auxiliary output.
+   The concrete helper also keeps the unit/tuple-match runtime check. *)
+val process_val : myval -> list nat -> nat
+let rec process_val v path =
+  let () = debug_print () in
+  match (v, path) with
+    | (_, []) -> (0 : nat)
+    | (Arr ns, _ :: rest) -> process_val (Base (List.length ns)) rest
+    | (Base n, _ :: _) -> n
+  end
+declare lean target_rep function process_val v path = process_val_body v path
+assert unit_match : process_val (Arr [1; 2; 3]) [0; 1] = (3 : nat)
+
+(* ================================================================== *)
+(* Section 6: Opaque type with target_rep type                        *)
+(* ================================================================== *)
+
+(* Opaque type with target_rep type: should emit abbrev, not empty inductive *)
+type my_opaque_target
+declare lean target_rep type my_opaque_target = `Nat`
+
+(* Non-opaque type with target_rep type: should also emit abbrev.
+   The auxiliary file should NOT generate 'open my_variant_target'
+   since it's an abbrev, not an inductive with a namespace. *)
+type my_variant_target = VarA | VarB of nat
+declare lean target_rep type my_variant_target = `Nat`
+declare lean target_rep function VarA = `(0 : Nat)`
+declare lean target_rep function VarB = `id`
+
+(* === Section 7: RETIRED — effectful target_rep functions === *)
+
+(* 'declare {lean} effectful val' (runEffectful call-site wraps over
+   BaseIO target reps) was retired by the effect-retirement arc
+   (L2, 2026-09-01): the Lean backend now REFUSES the annotation with
+   a fail-closed error naming supply lifting as the migration path.
+   The refusal is pinned by negative/neg_effectful_retired.lem; the
+   replacement mechanism is covered by test_supply.lem. *)
+
+(* === Section 8: reader-lifted constants === *)
+
+(* Constants marked 'declare {lean} reader val' are ambient readers: every
+   function that (transitively) uses one takes the reader values as leading
+   extra parameters, and calls of the constant become the parameter. The
+   dynamic-rebinding combinator pattern (with_x) is NOT supported. *)
+val ambient_env : unit -> nat
+(* The lean target_rep is required to satisfy target-coverage checking but is
+   never emitted at applied call sites: reader lifting replaces them with the
+   threaded parameter. (Bare unapplied references eta-expand to the parameter,
+   not to this rep, as well.) *)
+declare lean target_rep function ambient_env u = 0
+declare {lean} reader val ambient_env
+
+(* Direct use: lifted, 'ambient_env ()' becomes the parameter. *)
+let reads_env (x : nat) : nat = ambient_env () + x
+
+(* Transitive use: lifted because it calls a lifted function. *)
+let reads_env_indirect (y : nat) : nat = reads_env (y + 1)
+
+(* Multi-clause + recursion through a lifted callee. *)
+let rec reads_env_rec (n : nat) : nat =
+  match n with
+    | 0 -> reads_env 0
+    | _ -> reads_env_rec (n - 1)
+  end
+
+(* === Section 9: fuel-threaded totality === *)
+
+(* 'declare {lean} fuel val f = `sentinel`' emits f as a total worker
+   f_lemFuel (lemFuel : Nat) ... that returns the sentinel at zero fuel and
+   decrements on self-calls, plus a point-free wrapper at lemDefaultFuel so
+   call sites are unchanged. For recursion Lean's equation compiler cannot
+   prove terminating (non-structural descent, env-mediated recursion). *)
+val fuel_countdown : nat -> nat
+let rec fuel_countdown n =
+  if n = 0 then 0 else fuel_countdown (n - 1)
+declare {lean} fuel val fuel_countdown = `999`
+
+(* Callers use the wrapper — unchanged. *)
+let uses_countdown (k : nat) : nat = fuel_countdown k + 1
+
+(* === Section 10: failwithI emission (arc-8 S2: EVERY site) === *)
+
+(* Call sites of failwith-mapped constants emit LemLib.failwithI
+   (opaque, [Inhabited]-bounded, axiom-free) at EVERY site — arc-8 S2.
+   Ground sites are unchanged from arc-2; tyvar sites now thread an
+   [Inhabited tv] binder onto the enclosing def instead of falling
+   back to legacy failwith (threading shapes are covered in depth by
+   test_failwith_threading.lem). Legacy failwith is never emitted. *)
+
+(* ground result type -> failwithI *)
+val ground_fail : nat -> nat
+let ground_fail n = if n = 0 then failwith "ground" else n
+
+(* type-variable result -> failwithI + [Inhabited a] binder (arc-8 S2;
+   pre-S2 this kept legacy failwith) *)
+val poly_fail : forall 'a. list 'a -> 'a
+let poly_fail l = match l with
+  | [] -> failwith "poly"
+  | x :: _ -> x
+end
+
+(* ground site inside recursive (partial def) code *)
+val ground_fail_rec : nat -> nat
+let rec ground_fail_rec n =
+  match n with
+    | 0 -> failwith "rec-ground"
+    | _ -> ground_fail_rec (n - 1)
+end
+
+(* ground COMPOUND type (List nat is variable-free -> failwithI) *)
+val ground_list_fail : unit -> list nat
+let ground_list_fail u = failwith "ground-list"
+
+(* ground_rep classification: ground site -> LemLib.fromJustI (success
+   equation intact); tyvar site keeps generated fromJust *)
+val ground_just : maybe nat -> nat
+let ground_just m = Maybe_extra.fromJust m
+
+val poly_just : forall 'a. maybe 'a -> 'a
+let poly_just m = Maybe_extra.fromJust m
+
+(* === Section 11: reader_seed === *)
+
+(* A def marked reader_seed is NOT lifted; its FIRST argument is the
+   injection value for reader-lifted callees in its body (lexical
+   seeding, not dynamic rebinding). Callers pass the seed explicitly. *)
+val seeded_reads : nat -> nat -> nat
+let seeded_reads amb_val x = reads_env x + reads_env_indirect x
+declare {lean} reader_seed val seeded_reads
+
+val uses_seeded : nat -> nat
+let uses_seeded k = seeded_reads 42 k
+
+(* === Section 12: fuel x reader composition (arc 3, B1) === *)
+
+(* A reader-lifted def may also be fuel'd: the worker takes the fuel binder
+   FIRST, then the reader parameters, then the original arguments; the
+   point-free wrapper 'f := f_lemFuel lemDefaultFuel' then has the
+   reader-prefixed type, so lifted callers inject the reader into the
+   wrapper exactly as for any lifted def, and worker self-calls re-inject
+   the reader binder alongside the decremented fuel. *)
+
+(* Genuinely non-structural: climbs toward the ambient value. *)
+val fuel_env_loop : nat -> nat
+let rec fuel_env_loop n =
+  if n = ambient_env () then n else fuel_env_loop (n + 1)
+declare {lean} fuel val fuel_env_loop = `997`
+
+(* Applied call from a (transitively lifted) caller: uses the wrapper. *)
+let uses_fuel_env_loop (k : nat) : nat = fuel_env_loop k + k
+
+(* Bare reference passed to a HOF: wrapper partially applied to the reader. *)
+let maps_fuel_env (l : list nat) : list nat = List.map fuel_env_loop l
+
+(* === Section 13: fuel x mutual composition (arc 3, B2) === *)
+
+(* In a truly-mutual block, EITHER every member is fuel'd or none: fuel'd
+   workers share the fuel discipline — every cross-member call passes the
+   decremented fuel binder, so Lean sees mutual structural recursion on
+   fuel. Point-free wrappers at lemDefaultFuel are emitted AFTER the mutual
+   block (a wrapper inside the block would join the recursion set). *)
+val ping : nat -> nat
+val pong : nat -> nat
+let rec ping n = if n = 0 then 0 else pong (n - 1)
+and pong n = if n = 0 then 1 else ping (n + 1)
+declare {lean} fuel val ping = `991`
+declare {lean} fuel val pong = `992`
+
+let uses_pingpong (k : nat) : nat = ping k + pong k
+
+(* Section 12b: fuel with a pure polymorphic return type — sentinel via
+   fuelExhausted, witness = an in-scope argument of the worker. No
+   [Inhabited] constraint, no generated-instance fallback in the cone. *)
+val fuel_spin : forall 'a. nat -> 'a -> 'a
+let rec fuel_spin n x = if n = 0 then x else fuel_spin (n + 1) x
+declare {lean} fuel val fuel_spin = `fuelExhausted x`
+
+let uses_fuel_spin (k : nat) : nat = fuel_spin k (k + 1)
+
+(* === Section 14: acyclic de-mutualization (arc 3) === *)
+
+(* A 'let rec ... and ...' block whose call graph is a DAG (ignoring
+   self-loops) is emitted as SEQUENTIAL defs in dependency order — no
+   'mutual' block. Members with self-loops stay 'partial def' (or 'def'
+   under a termination declare); members with no self-call become plain
+   defs. Genuinely cyclic blocks (section 13's ping/pong) stay mutual. *)
+val dag_top : nat -> nat
+val dag_mid : list nat -> nat
+val dag_leaf : nat -> nat
+let rec dag_top n = dag_mid [n; n + 1]
+and dag_mid l = match l with | [] -> 0 | x :: xs -> dag_leaf x + dag_mid xs end
+and dag_leaf n = n * 2
+declare {lean} termination_argument dag_mid = automatic
+
+let uses_dag (k : nat) : nat = dag_top k
+
+(* Section 12c: fuel'd def with a class constraint — the wrapper must
+   re-emit the class binders (arc-3 batch D regression). *)
+val fuel_constrained : forall 'a. Eq 'a => nat -> 'a -> 'a -> 'a
+let rec fuel_constrained n x y =
+  if x = y then x else fuel_constrained (n + 1) x y
+declare {lean} fuel val fuel_constrained = `fuelExhausted x`
+
+let uses_fuel_constrained (k : nat) : nat = fuel_constrained 0 k (k + 1)
+
+(* Public-readiness S11, 2026-09-25: a core namespace is not a module.
+   Both applied and bare/higher-order references must elaborate. *)
+val core_successor : nat -> nat
+declare lean target_rep function core_successor = `Nat.succ`
+let {lean} core_successor_applied = core_successor 41
+let {lean} core_successor_bare : nat -> nat = core_successor
+assert {lean} core_successor_applied_ok : core_successor_applied = (42:nat)
+assert {lean} core_successor_bare_ok : core_successor_bare 41 = (42:nat)

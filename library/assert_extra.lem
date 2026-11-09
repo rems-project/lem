@@ -19,6 +19,7 @@ declare ocaml    target_rep function failwith = `failwith`
 declare hol      target_rep function failwith = `failwith`
 declare isabelle target_rep function failwith = `failwith`
 declare coq      target_rep function failwith s = `DAEMON`
+declare lean     target_rep function failwith = `failwith`
 
 (* ------------------------------------ *)
 (* failing without an error message     *)

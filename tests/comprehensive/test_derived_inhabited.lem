@@ -1,0 +1,178 @@
+(* Arc-8 S1: derived REAL Inhabited instances (per-constructor, bounded)
+   replacing the DAEMON fallback — design note
+   doc/notes/2026-08-20_arc8-inhabited-threading-design.md rules 1-6.
+   Companion hand-written checks (instance existence + exact bound
+   shapes via inferInstance) live in
+   lean-test/TestDerivedInhabitedCheck.lean.
+   Negative probes (fail-closed generation errors) live in
+   negative/neg_inhabited_underivable.lem and
+   negative/neg_inhabited_fn_codomain.lem. *)
+
+open import Pervasives_extra
+
+(* ================================================================ *)
+(* 1. Two-constructor monadic shape (the exceptM / except_foldlM /
+      trysM class from the S0 census): the backend must emit ONE
+      instance PER usable constructor — [Inhabited a] via ROk at
+      default priority, [Inhabited e] via RErr at low priority — so
+      that both a-side and e-side demands discharge.               *)
+(* ================================================================ *)
+
+type res 'a 'e = ROk of 'a | RErr of 'e
+
+let rec res_foldlM (f : 'a -> 'b -> res 'a 'e) (acc : 'a) (l : list 'b) : res 'a 'e =
+  match l with
+    | [] -> ROk acc
+    | x :: xs ->
+      match f acc x with
+        | ROk acc' -> res_foldlM f acc' xs
+        | RErr e -> RErr e
+      end
+  end
+
+let rec res_trysM (err : 'e) (f : 'a -> res 'b 'e) (l : list 'a) : res 'b 'e =
+  match l with
+    | [] -> RErr err
+    | x :: xs ->
+      match f x with
+        | ROk b -> ROk b
+        | RErr _ -> res_trysM err f xs
+      end
+  end
+
+let foldl_res : res nat string =
+  res_foldlM (fun (a : nat) (b : nat) -> ROk (a + b)) 0 [1; 2; 3]
+
+let foldl_val : nat =
+  match foldl_res with
+    | ROk n -> n
+    | RErr _ -> 999
+  end
+
+assert derived_res_foldl : foldl_val = 6
+
+let trys_res : res nat string =
+  res_trysM "all failed" (fun (x : nat) -> if x < 2 then RErr "small" else ROk x) [1; 2; 3]
+
+let trys_val : nat =
+  match trys_res with
+    | ROk n -> n
+    | RErr _ -> 999
+  end
+
+assert derived_res_trys : trys_val = 2
+
+(* ================================================================ *)
+(* 2. Mutual wrapper pair (the generic_pexpr_/generic_pexpr shape):
+      the underscore type derives first (ground + bounded ctors, the
+      mutual reference NRec is skipped), then the wrapper derives
+      THROUGH the just-emitted sibling instance.                    *)
+(* ================================================================ *)
+
+type node_ 'b = NLeaf of nat | NVal of 'b | NRec of node 'b
+and node 'b = Node of list nat * 'b * node_ 'b
+
+let sample_node : node nat = Node [1] 2 (NLeaf 3)
+
+let node_tag : nat =
+  match sample_node with
+    | Node _ _ (NLeaf n) -> n
+    | Node _ _ _ -> 0
+  end
+
+assert derived_mutual_wrapper : node_tag = 3
+
+(* ================================================================ *)
+(* 3. either-typed field: resolves through LemLib's bounded Sum
+      inl/inr instance pair (the builtin census entry), inducing
+      [Inhabited a] via the left side. (The extra function field
+      suppresses `deriving BEq, Ord` — LemLib has no Ord for Sum, a
+      pre-existing deriving limitation orthogonal to Inhabited.)    *)
+(* ================================================================ *)
+
+type ebox 'a = EBox of either 'a nat * (nat -> nat)
+
+let eb : ebox nat = EBox (Left 5) (fun n -> n)
+
+let eb_val : nat =
+  match eb with
+    | EBox (Left n) _ -> n
+    | EBox (Right m) _ -> m
+  end
+
+assert derived_either_field : eb_val = 5
+
+(* ================================================================ *)
+(* 4. Function-typed field: derivable iff the CODOMAIN is derivable
+      (fun _ => default); the domain tyvar must NOT be bounded.     *)
+(* ================================================================ *)
+
+type fnbox 'a 'b = FnBox of ('a -> 'b) * nat
+
+(* ================================================================ *)
+(* 5. Parameterized records (the generic_file shape): all fields
+      container-headed -> UNCONDITIONAL instance; a direct tyvar
+      field -> bounded instance.                                    *)
+(* ================================================================ *)
+
+type pfile 'a = <| pf_items : list 'a; pf_name : maybe 'a; pf_size : nat |>
+type plabeled 'a = <| pl_label : string; pl_value : 'a |>
+
+let pf : pfile nat = <| pf_items = [1; 2]; pf_name = Nothing; pf_size = 2 |>
+
+assert derived_param_record : pf.pf_size = 2
+
+(* ================================================================ *)
+(* 6. Only the LAST constructor is usable (shape NOT in today's
+      cerberus corpus, durability req 1): self-reference and
+      fn-codomain self-reference are skipped; the ground constructor
+      still yields an (unconditional, default-priority) instance.   *)
+(* ================================================================ *)
+
+type third 'a = TSelf of third 'a | TFun of (nat -> third 'a) | TGround of nat
+
+(* ================================================================ *)
+(* 7. Deep container nesting over a tyvar (shape NOT in today's
+      corpus): everything shielded by list/maybe/either-with-ground-
+      side and a fn codomain -> unconditional instance.             *)
+(* ================================================================ *)
+
+type deep 'a = Deep of list (maybe (either nat 'a)) * (nat -> list 'a)
+
+(* ================================================================ *)
+(* 8. Self-recursive parameterized type (the April 'wrapped' shape):
+      only the non-recursive constructor is usable -> [Inhabited a]. *)
+(* ================================================================ *)
+
+type wrapped2 'a = Wrap2 of 'a | WrapPair2 of wrapped2 'a * wrapped2 'a
+
+let rec depth2 (w : wrapped2 nat) : nat =
+  match w with
+    | Wrap2 _ -> 0
+    | WrapPair2 l r -> 1 + depth2 l + depth2 r
+  end
+
+assert derived_self_rec : depth2 (WrapPair2 (Wrap2 1) (Wrap2 2)) = 1
+
+(* ================================================================ *)
+(* 9. Downstream deriving BEq/Ord chains over bounded-instance base
+      types (April class 2 — must PASS with real instances: the
+      bounded Inhabited instances place no constraints on BEq/Ord). *)
+(* ================================================================ *)
+
+type container2 'a = CEmpty2 | CSingle2 of 'a | CPair2 of container2 'a * container2 'a
+type wrapper2 = W2 of container2 nat * nat
+type boundedbase 'a = BB of 'a | BBPair of boundedbase 'a * boundedbase 'a
+type chain = Chain of boundedbase nat * wrapper2
+
+assert derived_deriving_chain :
+  Chain (BB 1) (W2 CEmpty2 2) = Chain (BB 1) (W2 CEmpty2 2)
+
+(* ================================================================ *)
+(* 10. Opaque parameterized type with NO demand: fail-closed means
+       NO instance and NO fallback is emitted — and that is fine as
+       long as nothing demands it (the module compiling is the test;
+       the DEMANDED case is the negative probes' job).              *)
+(* ================================================================ *)
+
+type opq 'a

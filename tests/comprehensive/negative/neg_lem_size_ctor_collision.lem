@@ -1,0 +1,6 @@
+(* EXPECT: collides with the backend-derived size function *)
+(* D2-enablers slice: the derived names `t.lemSize` / `t.lemSize_aux<k>`
+   live in the type's namespace, as constructors do — a constructor of a
+   recursive type named `lemSize` is refused at generation. *)
+open import Pervasives
+type bad = lemSize of nat * list bad | BadE

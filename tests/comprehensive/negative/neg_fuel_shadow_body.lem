@@ -1,0 +1,12 @@
+(* EXPECT: reserved synthesized binder *)
+(* arc-14 re-mark RG1 (professor A', witness 1): the PARAMETER-only scan
+   missed BODY-level binders — a fuel'd def binding lemFuel inside a
+   tuple pattern in its body shadows the synthesized fuel binder at the
+   self-call rewrite. Now scanned (exp_bound_names) and rejected loud. *)
+open import Pervasives_extra
+val body_shadow : nat -> nat
+let rec body_shadow n =
+  match (n, n) with
+  | (lemFuel, _) -> if lemFuel = 0 then 0 else body_shadow (n - 1)
+  end
+declare {lean} fuel val body_shadow = `999`

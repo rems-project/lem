@@ -1,0 +1,16 @@
+(* EXPECT: not bound by a constructor pattern *)
+(* structural-declare slice: a lambda parameter that SHADOWS the
+   structural subterm's name is a fresh, untracked variable — the
+   self-call `bad xs` under it passes the SHADOWING `xs`, not the
+   constructor-bound one, and is refused for that reason (the analysis is
+   shadowing-aware, so a rebinding cannot smuggle a non-subterm through).
+   Pre-merge audit M4 (2026-09-04): the previous probe passed `bad (xs ::
+   [])` and was refused for the wrong reason (a non-variable argument). *)
+open import Pervasives
+val bad : list nat -> nat
+let rec bad l =
+  match l with
+    | [] -> 0
+    | _ :: xs -> List.foldl (fun acc xs -> acc + bad xs) 0 [xs]
+  end
+declare {lean} structural val bad

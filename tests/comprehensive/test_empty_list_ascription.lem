@@ -1,0 +1,25 @@
+(* Review fix 2026-09-30 (LOW c; linksem findings B15): an empty list
+   literal of a closed Lem type is ascribed with that type wherever it
+   occurs. The shape is Cerberus's `print_debug_pure : Nat -> List d -> ...`
+   for Lem's `list domain`: a Lean target rep MORE GENERAL than its Lem type,
+   applied to `[]` in a position whose surroundings do not fix the element
+   type. The rule used to apply only inside a discarded `let _ = e1`; the
+   `used_let` case below failed to elaborate then ("don't know how to
+   synthesize implicit argument `α`"), in the discarded case ascribing the
+   whole e1 does not help (its type, nat, does not mention `α`). *)
+open import Pervasives_extra
+
+val count_bools : list bool -> nat
+declare lean target_rep function count_bools = `List.length`
+declare ocaml target_rep function count_bools = `List.length`
+
+let discarded (n : nat) : nat = let _ = count_bools [] in n + 1
+let used_let (n : nat) : nat = let y = count_bools [] in y + n
+let unit_let (n : nat) : nat = let () = (let _ = count_bools [] in ()) in n
+let in_match (n : nat) : nat =
+  let _ = count_bools (match (Nothing : maybe bool) with Nothing -> [] | Just b -> [b] end) in n
+
+assert empty_list_discarded : (discarded 1 = 2)
+assert empty_list_used_let : (used_let 3 = 3)
+assert empty_list_unit_let : (unit_let 4 = 4)
+assert empty_list_in_match : (in_match 5 = 5)

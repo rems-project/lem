@@ -2003,7 +2003,8 @@ let add_let_defs_to_ctxt
                       target_rep = Targetmap.empty;
                       target_ascii_rep = Targetmap.empty;
                       termination_setting = Target.Targetmap.empty;
-                      compile_message = Targetmap.empty } in
+                      compile_message = Targetmap.empty;
+                      effectful = Targetset.empty; reader = Targetset.empty; fuel_sentinel = Targetmap.empty; ground_rep = Targetmap.empty; reader_seed = Targetset.empty; supply = Targetset.empty; reader_consumer = Targetset.empty; fuel_consumer = Targetset.empty; structural = Targetset.empty; fuel_measure = Targetmap.empty; reader_instance = Targetmap.empty; reader_consumer_instance = Targetmap.empty } in
               let (c_env', c) = c_env_save c_env None c_d in
               (c_env', Nfmap.insert new_env (n, c))
           | Some(c) -> 
@@ -2212,7 +2213,8 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
                    target_rep = Targetmap.empty;
                    target_ascii_rep = Targetmap.empty;
                    termination_setting = Targetmap.empty;
-                   compile_message = Targetmap.empty })
+                   compile_message = Targetmap.empty;
+                      effectful = Targetset.empty; reader = Targetset.empty; fuel_sentinel = Targetmap.empty; ground_rep = Targetmap.empty; reader_seed = Targetset.empty; supply = Targetset.empty; reader_consumer = Targetset.empty; fuel_consumer = Targetset.empty; structural = Targetset.empty; fuel_measure = Targetmap.empty; reader_instance = Targetmap.empty; reader_consumer_instance = Targetmap.empty })
               context
               (Seplist.map (fun (x,y,src_t) -> (x,y,src_t,all_targets)) recs)
           in
@@ -2240,7 +2242,8 @@ let build_ctor_def (mod_path : Name.t list) (context : defn_ctxt)
                    target_rep = Targetmap.empty;
                    target_ascii_rep = Targetmap.empty;
                    termination_setting = Targetmap.empty;
-                   compile_message = Targetmap.empty })
+                   compile_message = Targetmap.empty;
+                      effectful = Targetset.empty; reader = Targetset.empty; fuel_sentinel = Targetmap.empty; ground_rep = Targetmap.empty; reader_seed = Targetset.empty; supply = Targetset.empty; reader_consumer = Targetset.empty; fuel_consumer = Targetset.empty; structural = Targetset.empty; fuel_measure = Targetmap.empty; reader_instance = Targetmap.empty; reader_consumer_instance = Targetmap.empty })
               tvs_set
               context
               ntyps
@@ -2314,7 +2317,8 @@ let check_val_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
       target_rep = Targetmap.empty;
       target_ascii_rep = ascii_rep_map;
       termination_setting = Targetmap.empty;
-      compile_message = Targetmap.empty }
+      compile_message = Targetmap.empty;
+                      effectful = Targetset.empty; reader = Targetset.empty; fuel_sentinel = Targetmap.empty; ground_rep = Targetmap.empty; reader_seed = Targetset.empty; supply = Targetset.empty; reader_consumer = Targetset.empty; fuel_consumer = Targetset.empty; structural = Targetset.empty; fuel_measure = Targetmap.empty; reader_instance = Targetmap.empty; reader_consumer_instance = Targetmap.empty }
   in
   let (c_env', v) = c_env_save ctxt.ctxt_c_env None v_d in
   let ctxt = { ctxt with ctxt_c_env = c_env' } in
@@ -2368,7 +2372,8 @@ let check_class_spec l (mod_path : Name.t list) (ctxt : defn_ctxt)
       target_rename = Targetmap.empty;
       target_rep = Targetmap.empty;
       target_ascii_rep = ascii_rep_map;
-      compile_message = Targetmap.empty }
+      compile_message = Targetmap.empty;
+                      effectful = Targetset.empty; reader = Targetset.empty; fuel_sentinel = Targetmap.empty; ground_rep = Targetmap.empty; reader_seed = Targetset.empty; supply = Targetset.empty; reader_consumer = Targetset.empty; fuel_consumer = Targetset.empty; structural = Targetset.empty; fuel_measure = Targetmap.empty; reader_instance = Targetmap.empty; reader_consumer_instance = Targetmap.empty }
   in
   let (c_env', v) = c_env_save ctxt.ctxt_c_env None v_d in
   let ctxt = { ctxt with ctxt_c_env = c_env' } in
@@ -3049,6 +3054,141 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
           raise (Reporting_basic.err_type l "illformed target-representation declaration")
       | Ast.Declaration(Ast.Decl_target_sorts_decl (sk1, target, sk2, id, sk3, Ast.Target_sortssorts sorts)) ->
          check_declare_target_sorts backend_targets mod_path l ctxt sk1 target sk2 id sk3 sorts
+      | Ast.Declaration(Ast.Decl_skip_instances_decl (sk1, targets_opt, sk2, sk3, type_id)) ->
+          let targs = check_target_opt targets_opt in
+          let p = lookup_p "" (defn_ctxt_to_env ctxt) type_id in
+          let p_id = {id_path = Id_some (Ident.from_id type_id);
+                      id_locn = l; descr = p; instantiation = []} in
+          let ts = targets_opt_to_set targets_opt in
+          let td = match Pfmap.apply ctxt.all_tdefs p with
+            | Some(Tc_type(td)) -> td
+            | _ -> raise (Reporting_basic.err_type l
+                ("skip_instances: '" ^ (Ident.to_string (Ident.from_id type_id)) ^ "' is not a type"))
+          in
+          let skip' = Targetset.union td.type_skip_instances ts in
+          let td' = {td with type_skip_instances = skip'} in
+          let all_tdefs' = Pfmap.insert ctxt.all_tdefs (p, Tc_type td') in
+          let ctxt' = {ctxt with all_tdefs = all_tdefs'} in
+          let def' = Some (Declaration (Decl_skip_instances (sk1, targs, sk2, sk3, p_id))) in
+          (ctxt', def')
+      | Ast.Declaration(Ast.Decl_effectful_decl (sk1, targets_opt, sk2, sk3, id)) ->
+          let targs = check_target_opt targets_opt in
+          let (c_id, c_descr) = component_term_id_lookup l ctxt (Ast.Component_function None) id in
+          let ts = targets_opt_to_set targets_opt in
+          let eff' = Targetset.union c_descr.effectful ts in
+          let c_env' = c_env_update ctxt.ctxt_c_env c_id.descr {c_descr with effectful = eff'} in
+          let def' = Some (Declaration (Decl_effectful (sk1, targs, sk2, sk3, c_id))) in
+          ({ctxt with ctxt_c_env = c_env'}, def')
+      | Ast.Declaration(Ast.Decl_reader_decl (sk1, targets_opt, sk2, sk3, id)) ->
+          let targs = check_target_opt targets_opt in
+          let (c_id, c_descr) = component_term_id_lookup l ctxt (Ast.Component_function None) id in
+          let ts = targets_opt_to_set targets_opt in
+          let rd' = Targetset.union c_descr.reader ts in
+          let c_env' = c_env_update ctxt.ctxt_c_env c_id.descr {c_descr with reader = rd'} in
+          let def' = Some (Declaration (Decl_reader (sk1, targs, sk2, sk3, c_id))) in
+          ({ctxt with ctxt_c_env = c_env'}, def')
+      | Ast.Declaration(Ast.Decl_reader_instance_decl (sk1, targets_opt, sk2, sk3, id, sk4, sk5, (sk6, proj))) ->
+          (* instance-reader slice (2026-10-05): one projection per target;
+             a second declaration for the same target is refused rather
+             than silently overwriting the first (fail-closed) *)
+          let targs = check_target_opt targets_opt in
+          let (c_id, c_descr) = component_term_id_lookup l ctxt (Ast.Component_function None) id in
+          let ts = targets_opt_to_set targets_opt in
+          Targetset.iter (fun t ->
+              if Targetmap.apply c_descr.reader_instance t <> None then
+                raise (Reporting_basic.err_type l
+                  ("declare reader val ... = instance: '" ^ Ident.to_string (Ident.from_id id)
+                   ^ "' already carries an instance-reader declaration for this target")))
+            ts;
+          let ri' = Targetset.fold (fun t r -> Targetmap.insert r (t, proj)) ts c_descr.reader_instance in
+          let c_env' = c_env_update ctxt.ctxt_c_env c_id.descr {c_descr with reader_instance = ri'} in
+          let def' = Some (Declaration (Decl_reader_instance (sk1, targs, sk2, sk3, c_id, sk4, sk5, (sk6, proj)))) in
+          ({ctxt with ctxt_c_env = c_env'}, def')
+      | Ast.Declaration(Ast.Decl_reader_consumer_instance_decl (sk1, targets_opt, sk2, sk3, id, sk4, sk5, r_id)) ->
+          let targs = check_target_opt targets_opt in
+          let (c_id, c_descr) = component_term_id_lookup l ctxt (Ast.Component_function None) id in
+          let (r_cid, _) = component_term_id_lookup l ctxt (Ast.Component_function None) r_id in
+          let ts = targets_opt_to_set targets_opt in
+          let add t r =
+            let prev = match Targetmap.apply r t with Some l -> l | None -> [] in
+            if List.mem r_cid.descr prev then r
+            else Targetmap.insert r (t, r_cid.descr :: prev) in
+          let rci' = Targetset.fold add ts c_descr.reader_consumer_instance in
+          let c_env' = c_env_update ctxt.ctxt_c_env c_id.descr {c_descr with reader_consumer_instance = rci'} in
+          let def' = Some (Declaration (Decl_reader_consumer_instance (sk1, targs, sk2, sk3, c_id, sk4, sk5, r_cid))) in
+          ({ctxt with ctxt_c_env = c_env'}, def')
+      | Ast.Declaration(Ast.Decl_fuel_decl (sk1, targets_opt, sk2, sk3, id, sk4, (_, sentinel))) ->
+          let targs = check_target_opt targets_opt in
+          let (c_id, c_descr) = component_term_id_lookup l ctxt (Ast.Component_function None) id in
+          let ts = targets_opt_to_set targets_opt in
+          let fs' = Targetset.fold (fun t r -> Targetmap.insert r (t, sentinel)) ts c_descr.fuel_sentinel in
+          let c_env' = c_env_update ctxt.ctxt_c_env c_id.descr {c_descr with fuel_sentinel = fs'} in
+          let def' = Some (Declaration (Decl_fuel (sk1, targs, sk2, sk3, c_id, sk4, sentinel))) in
+          ({ctxt with ctxt_c_env = c_env'}, def')
+      | Ast.Declaration(Ast.Decl_ground_rep_decl (sk1, targets_opt, sk2, sk3, id, sk4, (_, rep))) ->
+          let targs = check_target_opt targets_opt in
+          let (c_id, c_descr) = component_term_id_lookup l ctxt (Ast.Component_function None) id in
+          let ts = targets_opt_to_set targets_opt in
+          let gr' = Targetset.fold (fun t r -> Targetmap.insert r (t, rep)) ts c_descr.ground_rep in
+          let c_env' = c_env_update ctxt.ctxt_c_env c_id.descr {c_descr with ground_rep = gr'} in
+          let def' = Some (Declaration (Decl_ground_rep (sk1, targs, sk2, sk3, c_id, sk4, rep))) in
+          ({ctxt with ctxt_c_env = c_env'}, def')
+      | Ast.Declaration(Ast.Decl_supply_decl (sk1, targets_opt, sk2, sk3, id)) ->
+          let targs = check_target_opt targets_opt in
+          let (c_id, c_descr) = component_term_id_lookup l ctxt (Ast.Component_function None) id in
+          let ts = targets_opt_to_set targets_opt in
+          let sp' = Targetset.union c_descr.supply ts in
+          let c_env' = c_env_update ctxt.ctxt_c_env c_id.descr {c_descr with supply = sp'} in
+          let def' = Some (Declaration (Decl_supply (sk1, targs, sk2, sk3, c_id))) in
+          ({ctxt with ctxt_c_env = c_env'}, def')
+      | Ast.Declaration(Ast.Decl_structural_decl (sk1, targets_opt, sk2, sk3, id)) ->
+          let targs = check_target_opt targets_opt in
+          let (c_id, c_descr) = component_term_id_lookup l ctxt (Ast.Component_function None) id in
+          let ts = targets_opt_to_set targets_opt in
+          let st' = Targetset.union c_descr.structural ts in
+          let c_env' = c_env_update ctxt.ctxt_c_env c_id.descr {c_descr with structural = st'} in
+          let def' = Some (Declaration (Decl_structural (sk1, targs, sk2, sk3, c_id))) in
+          ({ctxt with ctxt_c_env = c_env'}, def')
+      | Ast.Declaration(Ast.Decl_fuel_measure_decl (sk1, targets_opt, sk2, sk3, id, sk4, (_, measure), hyp_opt)) ->
+          let targs = check_target_opt targets_opt in
+          let (c_id, c_descr) = component_term_id_lookup l ctxt (Ast.Component_function None) id in
+          let ts = targets_opt_to_set targets_opt in
+          (* the optional `assuming `H`` (measure-hypothesis slice, 2026-09-05)
+             travels with the measure: one declaration, one Targetmap entry *)
+          let hyp = Option.map (fun (_, (_, h)) -> h) hyp_opt in
+          let hyp_skips = Option.map (fun (sk5, (_, h)) -> (sk5, h)) hyp_opt in
+          let fm' = Targetset.fold (fun t r -> Targetmap.insert r (t, (measure, hyp))) ts c_descr.fuel_measure in
+          let c_env' = c_env_update ctxt.ctxt_c_env c_id.descr {c_descr with fuel_measure = fm'} in
+          let def' = Some (Declaration (Decl_fuel_measure (sk1, targs, sk2, sk3, c_id, sk4, measure, hyp_skips))) in
+          ({ctxt with ctxt_c_env = c_env'}, def')
+      | Ast.Declaration(Ast.Decl_fuel_consumer_decl (sk1, targets_opt, sk2, sk3, id)) ->
+          let targs = check_target_opt targets_opt in
+          let (c_id, c_descr) = component_term_id_lookup l ctxt (Ast.Component_function None) id in
+          let ts = targets_opt_to_set targets_opt in
+          let fc' = Targetset.union c_descr.fuel_consumer ts in
+          let c_env' = c_env_update ctxt.ctxt_c_env c_id.descr {c_descr with fuel_consumer = fc'} in
+          let def' = Some (Declaration (Decl_fuel_consumer (sk1, targs, sk2, sk3, c_id))) in
+          ({ctxt with ctxt_c_env = c_env'}, def')
+      | Ast.Declaration(Ast.Decl_reader_consumer_decl (sk1, targets_opt, sk2, sk3, id)) ->
+          let targs = check_target_opt targets_opt in
+          let (c_id, c_descr) = component_term_id_lookup l ctxt (Ast.Component_function None) id in
+          let ts = targets_opt_to_set targets_opt in
+          let rc' = Targetset.union c_descr.reader_consumer ts in
+          let c_env' = c_env_update ctxt.ctxt_c_env c_id.descr {c_descr with reader_consumer = rc'} in
+          let def' = Some (Declaration (Decl_reader_consumer (sk1, targs, sk2, sk3, c_id))) in
+          ({ctxt with ctxt_c_env = c_env'}, def')
+      | Ast.Declaration(Ast.Decl_reader_seed_decl (sk1, targets_opt, sk2, sk3, id)) ->
+          let targs = check_target_opt targets_opt in
+          let (c_id, c_descr) = component_term_id_lookup l ctxt (Ast.Component_function None) id in
+          let ts = targets_opt_to_set targets_opt in
+          let rs' = Targetset.union c_descr.reader_seed ts in
+          let c_env' = c_env_update ctxt.ctxt_c_env c_id.descr {c_descr with reader_seed = rs'} in
+          let def' = Some (Declaration (Decl_reader_seed (sk1, targs, sk2, sk3, c_id))) in
+          ({ctxt with ctxt_c_env = c_env'}, def')
+      | Ast.Declaration(Ast.Decl_extra_import_decl (sk1, targets_opt, sk2, sk3, mod_name)) ->
+          let targs = check_target_opt targets_opt in
+          let def' = Some (Declaration (Decl_extra_import (sk1, targs, sk2, sk3, mod_name))) in
+          (ctxt, def')
       | Ast.Declaration(Ast.Decl_set_flag_decl (_, _, _, _, _)) ->
           let _ = prerr_endline "set flag declaration encountered" in
             ctxt, None
@@ -3279,7 +3419,8 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
                    target_rename = Targetmap.empty;
                    target_rep = Targetmap.empty;
                    target_ascii_rep = Targetmap.empty;
-                   compile_message = Targetmap.empty })
+                   compile_message = Targetmap.empty;
+                      effectful = Targetset.empty; reader = Targetset.empty; fuel_sentinel = Targetmap.empty; ground_rep = Targetmap.empty; reader_seed = Targetset.empty; supply = Targetset.empty; reader_consumer = Targetset.empty; fuel_consumer = Targetset.empty; structural = Targetset.empty; fuel_measure = Targetmap.empty; reader_instance = Targetmap.empty; reader_consumer_instance = Targetmap.empty })
               ctxt''
               (Seplist.from_list (List.map 
                                     (fun ((n,l),c,src_t,targs) -> 
@@ -3473,6 +3614,7 @@ let rec check_def (backend_targets : Targetset.t) (mod_path : Name.t list)
               target_rep = Targetmap.empty;
               target_ascii_rep = Targetmap.empty;
               compile_message = Targetmap.empty;
+              effectful = Targetset.empty; reader = Targetset.empty; fuel_sentinel = Targetmap.empty; ground_rep = Targetmap.empty; reader_seed = Targetset.empty; supply = Targetset.empty; reader_consumer = Targetset.empty; fuel_consumer = Targetset.empty; structural = Targetset.empty; fuel_measure = Targetmap.empty; reader_instance = Targetmap.empty; reader_consumer_instance = Targetmap.empty;
             }
           in
           let (c_env',dict_ref) = Typed_ast_syntax.c_env_store ctxt_inst.ctxt_c_env dict_d in

@@ -1,0 +1,9 @@
+$ lem -wl ign -ocaml x1.lem
+[lem exit 0]
+$ ocamlfind ocamlopt -package zarith -linkpkg -I <upstream ocaml-lib> extract.cmxa x1.ml main.ml -o x1.exe
+[ocamlopt exit 0]
+$ ./x1.exe
+members_same = true
+same raises Invalid_argument("compare: functional value")
+refl raises Invalid_argument("compare: functional value")
+[run exit 0]

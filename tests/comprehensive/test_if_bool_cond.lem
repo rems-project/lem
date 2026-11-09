@@ -1,0 +1,42 @@
+open import Pervasives_extra
+
+(* ======================================================================
+   Lem's Bool `if` in a context where Lean's `if` gets stuck
+   (linksem 2026-09-28, B13). The shape of linksem's link.lem
+   mark_fate_of_relocs: inside a List.foldl lambda, a let-bound typed
+   lambda whose body matches on an option, a value from a polymorphic
+   helper with class constraints, a destructuring match on it, then
+   `if isFinal r1 b then ...`. Emitted as Lean's `if`, the Bool->Prop
+   coercion problem got stuck ("Application type mismatch ... Bool ...
+   expected Prop"). The backend now emits LemLib's `lem_if`.
+   ====================================================================== *)
+
+type bnd = (nat * string * (string * nat)) * maybe (nat * string * (string * nat))
+
+let retrieve k tbl =
+  match List.filter (fun (_, ((k', _, _), _)) -> k' = k) tbl with
+  | (_, v) :: _ -> v
+  | [] -> failwith "retrieve: no binding"
+  end
+
+val fate : nat -> list (nat * bnd) -> list (string * maybe nat) -> nat * list nat
+let fate idx tbl xs =
+  match List.foldl (fun (acc, rev) -> fun (tag, mr) ->
+      let pass = (acc, rev) in
+      match mr with
+      | Just r1 ->
+          let (isFinal : nat -> bnd -> bool) = fun o -> fun ((i, s, it), md) ->
+            match md with Nothing -> true | Just (di, ds, dit) -> di = o end in
+          let b = retrieve idx tbl in
+          match b with ((i, _, it), md) ->
+            let dec = fun (d : nat) -> (acc + d, d :: rev) in
+            if tag = "x" then dec 100 else if isFinal r1 b then dec 1 else dec 10
+          end
+      | Nothing -> pass
+      end) (0, []) xs with
+  (n, l) -> (n, l)
+  end
+
+let fate_tbl : list (nat * bnd) = [(0, ((3, "s", ("i", 0)), Just (7, "d", ("j", 1))))]
+
+assert fate_mixed : (fate 3 fate_tbl [("a", Just 7); ("x", Just 0); ("b", Just 8); ("c", Nothing)] = (111, [10; 100; 1]))

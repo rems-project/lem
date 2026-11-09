@@ -1,0 +1,8 @@
+(* EXPECT: FM-ambient *)
+(* fuel-measure slice: a measure that reads the ambient fuel is not a
+   data measure (and the measured wrapper has no [LemFuel] to read). *)
+open import Pervasives
+val len : list nat -> nat
+let rec len l = match l with | [] -> 0 | _ :: xs -> 1 + len xs end
+declare {lean} fuel val len = `999`
+declare {lean} fuel_measure val len = `List.length l + LemFuel.fuel`

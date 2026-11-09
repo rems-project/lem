@@ -1,0 +1,12 @@
+(* EXPECT: IR-inline *)
+(* Instance-reader slice, review F1 (inline variant): a `let inline` body is
+   expanded by the inline macro before emission, so every read `sw ()`
+   would silently become `0` and the instance would never be read (the
+   reading def would not even bind the class). Refused. *)
+open import Pervasives
+val sw : unit -> nat
+let inline sw u = 0
+declare {lean} reader val sw = instance `NegImpl.Sw.sw`
+
+val get_sw : nat -> nat
+let get_sw x = sw () + x

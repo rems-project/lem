@@ -1,0 +1,26 @@
+(* arc-14 re-mark, be:S1 (probe-first pin): a lem binder named `none`
+   (a Lean CONSTRUCTOR name) in pattern position. The register's sketch
+   feared silent constructor-pattern capture; probe-measured 2026-08-22:
+   lem's avoid machinery RENAMES the binder (none -> none1), so pattern
+   AND body use the renamed variable — semantics preserved. This file +
+   lean-test/TestNameCaptureCheck.lean pin that defense as a regression
+   tripwire (if renaming ever regresses to «none» guillemets in pattern
+   position, the guards break). *)
+open import Pervasives_extra
+
+val cap_use : maybe (maybe nat) -> maybe nat
+let cap_use x = match x with
+  | Just none -> none        (* binder named `none`, USED in the body *)
+  | Nothing   -> Nothing
+end
+
+val cap_shadow : maybe (maybe nat) -> maybe nat
+let cap_shadow x = match x with
+  | Just none -> Nothing     (* binder named `none`, unused: arm takes EVERY Just *)
+  | Nothing   -> Nothing
+end
+
+let cap_use_r = cap_use (Just (Just 5))
+let cap_shadow_r = cap_shadow (Just (Just 5))
+assert cap_use_ok : (cap_use_r = Just 5)
+assert cap_shadow_ok : (cap_shadow_r = Nothing)

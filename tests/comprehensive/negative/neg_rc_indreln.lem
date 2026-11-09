@@ -1,0 +1,12 @@
+(* EXPECT: reader-injection scope *)
+(* reader_consumer guard RC-rel (charter §4.2): a consumer use inside
+   an indreln rule has no reader value to pass. *)
+open import Pervasives
+val cfg : unit -> nat
+declare lean target_rep function cfg u = 0
+declare {lean} reader val cfg
+val scaled : nat -> nat
+declare lean target_rep function scaled = `RCImpl.scaled`
+declare {lean} reader_consumer val scaled
+indreln [rel : nat -> nat -> bool]
+  step : forall x y. y = scaled x ==> rel x y

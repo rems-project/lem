@@ -1,0 +1,159 @@
+(* test_derived_comparison.lem
+   Arc-10 S2: derived structural comparisons for mutual type blocks.
+
+   The Lean backend now derives real BEq/Ord (and bridges
+   SetType/Eq0/Ord0) for derivable mutual types, replacing the sorried
+   instance bodies. Parity convention under test = OCaml polymorphic
+   (=) / compare:
+     - structural equality (same constructor, equal fields);
+     - constructor rank: NULLARY constructors (OCaml immediates) sort
+       BELOW every non-nullary (block) constructor; declaration order
+       within each class;
+     - equal constructors compare fields left-to-right lexicographically;
+     - list: [] < _::_ then elementwise; maybe: Nothing < Just;
+       either: Left < Right.
+   Fail-closed residual: function-carrying mutual members (where OCaml
+   comparison raises on closures) and members referencing them derive
+   NOTHING real — their instances are loud failwithI residuals
+   (compile-only coverage below; calling them would panic).
+
+   NOTE on deriving-path leaves: types compared through Lean `deriving
+   Ord` keep Lean's flat constructor-index order, which diverges from
+   the OCaml two-class rank on MIXED nullary/non-nullary variants
+   (pre-existing, registered in the arc-10 register) — no cross-class
+   pin is made on deriving types here. *)
+
+open import Pervasives_extra
+
+(* Pin helpers: route through the CLASS instances (not inlined defaults),
+   so the asserts exercise the generated instance bodies. *)
+val scmp : forall 'a. SetType 'a => 'a -> 'a -> ordering
+let scmp x y = setElemCompare x y
+
+val eqVia : forall 'a. Eq 'a => 'a -> 'a -> bool
+let eqVia x y = (x = y)
+
+(* NOTE: lem's Ord class has no default instance, so Ord-constrained
+   helpers cannot be instantiated at these types from lem source — the
+   generated Ord0 instances are exercised through setElemCompare's
+   defaultCompare bridge instead (scmp above). *)
+
+(* --- Parameterized mutual family with the cerberus expr-family
+       container shapes: direct sibling, list of sibling, tuple with
+       sibling, list of (tuple with sibling), maybe of sibling. --- *)
+type mexp 'a =
+  | MUnit                                    (* nullary #1 (declared first) *)
+  | MVal of 'a
+  | MPair of ('a * mexp 'a)
+  | MSeq of list (mexp 'a)
+  | MTag of nat * mstmt 'a
+  | MNil                                     (* nullary #2 (declared LAST) *)
+and mstmt 'a =
+  | MSkip
+  | MCase of mexp 'a * list (nat * mexp 'a)
+  | MOpt of maybe (mexp 'a)
+
+(* Structural equality (BEq via the derived instances) *)
+assert dc_eq_deep : ((MPair (1, MSeq [MVal 2; MUnit]) : mexp nat) = MPair (1, MSeq [MVal 2; MUnit]))
+assert dc_eq_neq_payload : (not ((MSeq [MVal 1; MVal 2] : mexp nat) = MSeq [MVal 1; MVal 3]))
+assert dc_eq_neq_ctor : (not ((MUnit : mexp nat) = MNil))
+assert dc_eq_stmt : ((MCase (MVal 1) [(7, MUnit)] : mstmt nat) = MCase (MVal 1) [(7, MUnit)])
+assert dc_eq0_via_class : (eqVia (MOpt (Just (MVal 4)) : mstmt nat) (MOpt (Just (MVal 4))))
+
+(* THE two-class rank pin: MNil is declared LAST but is nullary, so it
+   sorts below every block constructor (OCaml immediates < blocks) —
+   this is exactly where a flat constructor-index order would differ. *)
+assert dc_rank_nullary_below_block : (scmp (MNil : mexp nat) (MVal 0) = LT)
+assert dc_rank_block_above_nullary : (scmp (MVal 0 : mexp nat) MNil = GT)
+assert dc_rank_nullary_decl_order : (scmp (MUnit : mexp nat) MNil = LT)
+assert dc_rank_block_decl_order : (scmp (MVal 99 : mexp nat) (MPair (0, MUnit)) = LT)
+assert dc_rank_same_ctor_payload : (scmp (MVal 1 : mexp nat) (MVal 2) = LT)
+assert dc_rank_eq : (scmp (MTag 1 MSkip : mexp nat) (MTag 1 MSkip) = EQ)
+
+(* Field lexicographic order: first field decides; later fields decide on tie *)
+assert dc_lex_first_field : (scmp (MTag 1 (MOpt (Just MNil)) : mexp nat) (MTag 2 MSkip) = LT)
+assert dc_lex_second_field : (scmp (MTag 1 MSkip : mexp nat) (MTag 1 (MOpt Nothing)) = LT)
+
+(* List order: [] < cons; elementwise lex *)
+assert dc_list_nil_below_cons : (scmp (MSeq [] : mexp nat) (MSeq [MUnit]) = LT)
+assert dc_list_elementwise : (scmp (MSeq [MVal 1; MVal 9] : mexp nat) (MSeq [MVal 2; MVal 0]) = LT)
+assert dc_list_prefix : (scmp (MSeq [MVal 1] : mexp nat) (MSeq [MVal 1; MUnit]) = LT)
+
+(* Maybe order: Nothing < Just *)
+assert dc_maybe_order : (scmp (MOpt Nothing : mstmt nat) (MOpt (Just MUnit)) = LT)
+
+(* Tuples inside lists (the Ecase/PEcase shape) *)
+assert dc_case_lex : (scmp (MCase (MVal 1) [(1, MUnit)] : mstmt nat) (MCase (MVal 1) [(2, MUnit)]) = LT)
+
+(* --- Monomorphic mutual pair (the object_value/loaded_value shape) --- *)
+type onode =
+  | OLeaf of nat
+  | OStruct of string * list ((nat * pnode))
+and pnode =
+  | PSpec of onode
+  | PUnspec
+
+assert dc_mono_eq : (OStruct "s" [(1, PSpec (OLeaf 2))] = OStruct "s" [(1, PSpec (OLeaf 2))])
+assert dc_mono_rank : (scmp PUnspec (PSpec (OLeaf 0)) = LT)
+assert dc_mono_lex : (scmp (OStruct "a" []) (OStruct "b" []) = LT)
+
+(* --- Either-typed fields (R1: LemLib Sum BEq/Ord) --- *)
+(* Non-mutual, fn-free: gets `deriving BEq, Ord` — compiles only with the
+   new Sum instances (the arc-8 ebox blocker). Left < Right pinned via
+   the SetType bridge on the same constructor. *)
+type esum = ES of either nat bool | EN
+assert dc_esum_eq : (ES (Left 1) = ES (Left 1))
+assert dc_esum_neq : (not (ES (Left 1) = ES (Right true)))
+assert dc_esum_left_right : (scmp (ES (Left 9)) (ES (Right false)) = LT)
+assert dc_esum_left_payload : (scmp (ES (Left 1)) (ES (Left 2)) = LT)
+
+(* Parameterized either field: deriving with [BEq 'a]/[Ord 'a] bounds
+   resolving through the bounded Sum instances. *)
+type ebox2 'a = EB2 of either 'a (list 'a)
+assert dc_ebox2_eq : ((EB2 (Left 5) : ebox2 nat) = EB2 (Left 5))
+assert dc_ebox2_ord : (scmp (EB2 (Left 5) : ebox2 nat) (EB2 (Right [1])) = LT)
+
+(* Either of siblings INSIDE a mutual member (CSsum helper path) *)
+type enode 'a =
+  | ELeafE of 'a
+  | EPick of either (enode 'a) (fnode2 'a)
+and fnode2 'a =
+  | FWrap of enode 'a
+assert dc_enode_eq : ((EPick (Left (ELeafE 1)) : enode nat) = EPick (Left (ELeafE 1)))
+assert dc_enode_ord : (scmp (EPick (Left (ELeafE 9)) : enode nat) (EPick (Right (FWrap (ELeafE 0)))) = LT)
+
+(* --- Fail-closed residual: function-carrying member + referencer ---
+   fnode carries a closure (OCaml (=)/compare would RAISE); gnode
+   references fnode, so neither derives — their comparison instances are
+   loud failwithI residuals. Compile-only: constructing values is fine,
+   comparing them would panic (as the OCaml raise mirrors). *)
+type fnode =
+  | FN of (nat -> nat) * gnode
+and gnode =
+  | GN of nat
+  | GWrap of fnode
+
+val residual_value : gnode
+let residual_value = GWrap (FN (fun n -> n + 1) (GN 0))
+
+(* ================================================================
+   Parity-fix F4 (2026-09-03; noodle probe p_cmp_order): derived Ord on a
+   SINGLE variant that declares a nullary constructor after a block
+   constructor must rank like OCaml's polymorphic compare (nullary
+   constructors below block constructors, declaration order within each
+   class) — previously only mutual blocks took the ctor_rank_ocaml path
+   and single variants got Lean's declaration-index order. Expected
+   values are the compiled OCaml target's output (parity pin
+   tests/comprehensive/parity/expected/p_cmp_order.out):
+     F vs B 0 = LT, B 5 vs C = GT, TLeaf vs TNode = LT (at depth too).
+   ================================================================ *)
+type f4v = F4A | F4B of nat | F4C | F4D of nat * nat | F4E of string | F4F
+type f4tr = F4Node of f4tr * nat | F4Leaf
+assert f4_nullary_below_block : (setElemCompare F4F (F4B 0) = LT)
+assert f4_block_above_nullary : (setElemCompare (F4B 5) F4C = GT)
+assert f4_nullary_decl_order : (setElemCompare F4A F4C = LT && setElemCompare F4C F4F = LT)
+assert f4_block_decl_order : (setElemCompare (F4B 9) (F4D 0 0) = LT && setElemCompare (F4D 9 9) (F4E "") = LT)
+assert f4_fields_lex : (setElemCompare (F4D 1 2) (F4D 1 3) = LT && setElemCompare (F4D 2 0) (F4D 1 9) = GT)
+assert f4_recursive_root : (setElemCompare F4Leaf (F4Node F4Leaf 0) = LT)
+assert f4_recursive_depth : (setElemCompare (F4Node F4Leaf 1) (F4Node (F4Node F4Leaf 0) 1) = LT)
+assert f4_beq_structural : (F4D 1 2 = F4D 1 2 && not (F4D 1 2 = F4D 2 1) && not (F4A = F4C))

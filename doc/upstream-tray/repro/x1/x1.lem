@@ -1,0 +1,10 @@
+open import Pervasives
+
+type config = <| label : nat; members : set nat |>
+
+let c1 : config = <| label = 1; members = {1; 2; 3} |>
+let c2 : config = <| label = 1; members = {3; 2; 1} |>
+
+let members_same () : bool = (c1.members = c2.members)
+let same () : bool = (c1 = c2)
+let refl () : bool = (c1 = c1)

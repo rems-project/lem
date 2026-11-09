@@ -1,0 +1,19 @@
+(* Noodle probe: escape sequences in lem string/char literals, rendered
+   byte-for-byte on both targets. Expected values are the OCaml target's output. *)
+open import Pervasives_extra
+
+let results : list string =
+  [ "tab:[\t]";
+    "newline-split:[\n]";
+    "backslash:[\\]";
+    "quote:[\"]";
+    "char tab ord: " ^ stringFromNat (ord #'\t');
+    "char newline ord: " ^ stringFromNat (ord #'\n');
+    "char backslash ord: " ^ stringFromNat (ord #'\\');
+    "char quote ord: " ^ stringFromNat (ord #'\'');
+    "char dquote ord: " ^ stringFromNat (ord #'\"');
+    "char space ord: " ^ stringFromNat (ord #' ');
+    "char nul via chr: " ^ stringFromNat (stringLength (toString [chr 0]));
+    "decimal escape ord: " ^ stringFromNat (ord #'\200');
+    "unicode literal: " ^ show (List.map (fun c -> ord c) (toCharList "λ"))
+  ]

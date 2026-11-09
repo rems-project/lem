@@ -1,0 +1,10 @@
+(* EXPECT: IR-class *)
+(* Instance-reader slice: two readers sharing a class would read the ONE
+   instance and silently conflate. *)
+open import Pervasives
+val sw : unit -> nat
+declare lean target_rep function sw u = 0
+declare {lean} reader val sw = instance `NegImpl.Sw.sw`
+val sw2 : unit -> nat
+declare lean target_rep function sw2 u = 0
+declare {lean} reader val sw2 = instance `NegImpl.Sw.other`

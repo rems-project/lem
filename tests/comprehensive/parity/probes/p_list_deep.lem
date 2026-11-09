@@ -1,0 +1,50 @@
+(* Noodle probe: DEEP lists (300k elements) through the library list
+   operations — the OCaml binary (OCaml 5, growable stack) vs the Lean
+   binary (fixed native stack; non-tail-recursive generated or core
+   functions overflow). Every operation takes the size as a RUNTIME
+   argument so Lean's closed-term extraction cannot hoist the work to
+   module initialisation; the Lean driver (p_list_deep.main.lean) prints
+   each line before computing the next; the OCaml driver
+   (p_list_deep.main.ml) calls results_of 300000 — no top-level constant
+   holds the work on either target. Expected values are the OCaml
+   target's output. *)
+open import Pervasives_extra
+
+let sn (n : nat) : string = stringFromNat n
+let rec upto (acc : list nat) (n : nat) : list nat = if n = 0 then acc else upto ((n - 1) :: acc) (n - 1)
+let big (n : nat) : list nat = upto [] n
+
+let d_length (n : nat) = "length: " ^ sn (List.length (big n))
+let d_foldl (n : nat) = "foldl: " ^ sn (List.foldl (fun acc _ -> acc + 1) 0 (big n))
+let d_foldr (n : nat) = "foldr: " ^ sn (List.foldr (fun _ acc -> acc + 1) 0 (big n))
+let d_map (n : nat) = "map sum: " ^ sn (List.foldl (fun acc x -> acc + x) 0 (List.map (fun x -> x mod 7) (big n)))
+let d_append (n : nat) = "append: " ^ sn (List.length (big n ++ big n))
+let d_zip (n : nat) = "zip: " ^ sn (List.length (List.zip (big n) (big n)))
+let d_reverse (n : nat) = "reverse hd: " ^ show (List.index (List.reverse (big n)) 0)
+let d_filter (n : nat) = "filter: " ^ sn (List.length (List.filter (fun x -> x mod 2 = 0) (big n)))
+let d_concat (n : nat) = "concat: " ^ sn (List.length (List.concat [big n; big n]))
+let d_all (n : nat) = "all: " ^ show (List.all (fun x -> x < n) (big n))
+let d_take (n : nat) = "take: " ^ sn (List.length (List.take (n - 1) (big n)))
+let d_drop (n : nat) = "drop: " ^ sn (List.length (List.drop 1 (big n)))
+let d_splitAt (n : nat) = "splitAt: " ^ sn (List.length (fst (List.splitAt (n - 1) (big n))))
+let d_compare (n : nat) = "compare: " ^ show (compare (big n) (big n ++ [0]) = LT)
+let d_eq (n : nat) = "equal: " ^ show (big n = big n ++ [])
+let d_fromList (n : nat) = "set fromList: " ^ sn (Set.size (Set.fromList (List.take (n / 15) (big n))))
+let d_sort (n : nat) = "sort: " ^ show (List.index (Sorting.sort (List.reverse (List.take (n / 100) (big n)))) 0)
+let d_sortByOrd (n : nat) = "sortByOrd: " ^ show (List.index (Sorting.sortByOrd compare (List.reverse (big n))) 0)
+let d_concatMap (n : nat) = "concatMap: " ^ sn (List.length (List.concatMap (fun x -> [x]) (big n)))
+let d_unzip (n : nat) = "unzip: " ^ sn (List.length (fst (List.unzip (List.zip (big n) (big n)))))
+let d_partition (n : nat) = "partition: " ^ sn (List.length (fst (List.partition (fun x -> x mod 2 = 0) (big n))))
+let d_lookup (n : nat) = "lookup: " ^ show (List.lookup (n - 1) (List.zip (big n) (big n)))
+let d_show (n : nat) = "show len: " ^ sn (stringLength (show (List.take (n / 6) (big n))))
+let d_map_fold (n : nat) = "Map fold: " ^ sn (Map_extra.fold (fun _ v acc -> acc + v) (Map.fromList (List.zip (List.take (n / 6) (big n)) (List.take (n / 6) (big n)))) 0)
+let d_stringFromList (n : nat) = "string of list: " ^ sn (stringLength (toString (List.map (fun _ -> #'a') (big n))))
+let d_string_concat (n : nat) = "string concat: " ^ sn (stringLength (String.concat "" (List.map (fun _ -> "ab") (big n))))
+let d_genlist (n : nat) = "genlist: " ^ sn (List.length (List.genlist (fun i -> i) (n / 100)))
+let d_length_int (n : nat) = "integer sum: " ^ show (List.foldl (fun acc x -> acc + integerFromNat x) (0 : integer) (big n))
+
+let results_of (n0 : nat) : list string =
+  [ d_length n0; d_foldl n0; d_foldr n0; d_map n0; d_append n0; d_zip n0; d_reverse n0; d_filter n0;
+    d_concat n0; d_all n0; d_take n0; d_drop n0; d_splitAt n0; d_compare n0; d_eq n0; d_fromList n0;
+    d_sort n0; d_sortByOrd n0; d_concatMap n0; d_unzip n0; d_partition n0; d_lookup n0; d_show n0; d_map_fold n0;
+    d_stringFromList n0; d_string_concat n0; d_genlist n0; d_length_int n0 ]

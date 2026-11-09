@@ -1,0 +1,37 @@
+(* Parity probe (measure-hypothesis slice, 2026-09-05): a fuel'd function
+   with a `declare {lean} fuel_measure … assuming …` is an ordinary
+   recursive definition on the OCaml target (both {lean} declares are
+   no-ops there) and a fuel-free measured wrapper on Lean; both compute the
+   same thing at several inputs INSIDE the hypothesis (`2 ≤ b`; a positive
+   step) — including the measure's boundary (n = 0) and deep inputs. Inputs
+   outside the hypothesis are not probed: there the OCaml reference does
+   not terminate (`digits 1 n`), which is exactly why the hypothesis
+   exists. Expected values are the OCaml target's output. The obligations
+   are proved in p_fuel_measure_hyp.proofs.lean (installed by the runner as
+   P_fuel_measure_hyp_lemMeasureProofs.lean). *)
+open import Pervasives_extra
+
+val digits : nat -> nat -> nat
+let rec digits b n = if n / b = 0 then 1 else 1 + digits b (n / b)
+declare {lean} fuel val digits = `999`
+declare {lean} fuel_measure val digits = `n + 1` assuming `2 ≤ b`
+
+val steps : nat * nat -> nat
+let rec steps p =
+  let (a, step) = p in
+  if a = 0 then 0 else 1 + steps (a - step, step)
+declare {lean} fuel val steps = `999`
+declare {lean} fuel_measure val steps = `p.1 + 1` assuming `0 < p.2`
+
+let uses_digits (n : nat) : nat = digits 10 n * 10
+
+let results : list string =
+  [ "digits 10 0: " ^ show (digits 10 0);
+    "digits 10 255: " ^ show (digits 10 255);
+    "digits 2 255: " ^ show (digits 2 255);
+    "digits 16 65535: " ^ show (digits 16 65535);
+    "digits 2 deep: " ^ show (digits 2 123456789);
+    "steps (10,3): " ^ show (steps (10, 3));
+    "steps (0,1): " ^ show (steps (0, 1));
+    "steps deep: " ^ show (steps (100000, 1));
+    "uses_digits: " ^ show (uses_digits 4321) ]

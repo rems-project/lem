@@ -1,0 +1,13 @@
+(* EXPECT: reserved synthesized binder *)
+(* arc-14 re-mark, be:S2 (probe-first): a fuel'd def whose PARAMETER is
+   named lemFuel shadows the synthesized fuel binder. Pre-fix this
+   generated `def shadow_probe_lemFuel (lemFuel : Nat) (lemFuel : Nat)
+   (n : Nat) := match lemFuel with ...` — the worker matched the USER's
+   value, so shadow_probe 0 3 returned the 999 SENTINEL instead of 0
+   (measured 2026-08-22). Now a located generation-time error (the
+   reserved-name contract, doc/notes/2026-08-22_arc14-reserved-names.md). *)
+open import Pervasives_extra
+val shadow_probe : nat -> nat -> nat
+let rec shadow_probe lemFuel n =
+  if n = 0 then lemFuel else shadow_probe lemFuel (n - 1)
+declare {lean} fuel val shadow_probe = `999`

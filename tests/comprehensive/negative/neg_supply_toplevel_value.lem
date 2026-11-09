@@ -1,0 +1,12 @@
+(* EXPECT: supply draw in the top-level VALUE binding *)
+(* Parity-fix F6 / L1 deviation-4 (2026-09-03): a drawing top-level VALUE
+   binding is evaluated ONCE at module initialisation by the OCaml
+   reference; per-use supply threading (each use re-runs the draws with
+   the caller's supply) was a behavioural divergence, so the shape is
+   refused. Both the plain and the destructuring form. *)
+open import Pervasives
+val tick : unit -> nat
+declare lean target_rep function tick u = 0
+declare {lean} supply val tick
+let pair_draw (u : unit) : nat * nat = (tick (), tick ())
+let (top_a, top_b) = pair_draw ()

@@ -1,0 +1,9 @@
+(* EXPECT: on a multi-clause definition *)
+(* structural-declare slice: the equation-compiler form has no named
+   parameter for the termination_by clause to designate; write a single
+   match. *)
+open import Pervasives
+val len : list nat -> nat
+let rec len [] = 0
+and len (_ :: xs) = 1 + len xs
+declare {lean} structural val len

@@ -1,0 +1,9 @@
+(* EXPECT: fuel in a mutual block requires EVERY member *)
+open import Pervasives
+(* NEGATIVE probe (arc 3, B2): fuel in a mutual block is all-or-none.
+   Only one member fuel'd -> the backend must reject. *)
+val neg_ping : nat -> nat
+val neg_pong : nat -> nat
+let rec neg_ping n = if n = 0 then 0 else neg_pong (n - 1)
+and neg_pong n = if n = 0 then 1 else neg_ping (n + 1)
+declare {lean} fuel val neg_ping = `1`

@@ -1,0 +1,88 @@
+open import Pervasives
+
+(* ================================================================
+   A HYPOTHESIS on the fuel measure (measure-hypothesis slice, 2026-09-05).
+
+   [USER 2026-09-05] (agreed and approved option 1, on D-C2-1 of the
+   cerberus C2 record): a measured function whose measure is sufficient
+   only on inputs satisfying a well-formedness / precondition fact adds
+
+     declare {lean} fuel_measure val f = `<measure>` assuming `<H>`
+
+   where `<H>` is a Lean Prop over the function's parameters (the same
+   scope rules as the measure). The WRAPPER is unchanged — fuel-free,
+   `def f x := f_lemFuel (<measure>) x` — and the generated obligation
+   gains the hypothesis as its binder `lemHyp`, immediately before
+   `lemFuel`:
+
+     theorem f_measure_sufficient (x) (lemHyp : H) (lemFuel : Nat)
+         (lemMeasureLe : <measure> ≤ lemFuel) : f_lemFuel lemFuel x = f x
+
+   i.e. `H x → μ x ≤ fuel → f_lemFuel fuel x = f x`. Operationally: on
+   inputs VIOLATING H the wrapper may exhaust (the sentinel — loud by
+   convention in production; a quiet numeral here so the kernel pin can
+   show it), which is admissible because the oracle's own behaviour on
+   those inputs is not the semantics anyone relies on (`ndigits 1 n`
+   loops forever on the OCaml target); the consumer's theorems carry H
+   exactly as they already assume well-formedness.
+
+   Pins: lean-test/TestFuelMeasureHypCheck.lean (kernel: decide/rfl
+   through the wrappers; fuel-free signatures; the obligation applied
+   with its hypothesis; the exhaustion OUTSIDE the hypothesis), the
+   proofs module Test_fuel_measure_hyp_lemMeasureProofs.lean (the
+   obligations, each proof USING its hypothesis; #print axioms),
+   parity/probes/p_fuel_measure_hyp.lem (two-target, inputs inside H).
+   ================================================================ *)
+
+(* (1) a division-based recursion — the digit count of n in basis b
+   (cerberus `showNonNegativeWithBasis_aux`'s shape): `n / b` decreases
+   only for b ≥ 2 (at b = 1 the OCaml target loops; at b = 0 it raises),
+   so no measure over the data alone is sufficient; with `2 ≤ b` the
+   depth is at most n + 1 *)
+val ndigits : nat -> nat -> nat
+let rec ndigits b n = if n / b = 0 then 1 else 1 + ndigits b (n / b)
+declare {lean} fuel val ndigits = `999`
+declare {lean} fuel_measure val ndigits = `n + 1` assuming `2 ≤ b`
+
+(* a consumer of a hypothesis-measured function: NO [LemFuel] binder and
+   no hypothesis — the hypothesis lives in the proof world only *)
+val uses_ndigits : nat -> nat
+let uses_ndigits n = ndigits 10 n + 1
+
+(* (2) a lookup-recursion through a finite table of definitions (the
+   cerberus tag-environment shape: `Map.lookup tag tagDefs`, then the
+   member types): entry i refers to the entries listed in its body, and
+   the size of entry i counts every node reached. The recursion is
+   bounded only if the references are acyclic; the hypothesis is a RANK
+   — every reference points to an EARLIER entry (a table in declaration
+   order), stated as `TestFuelMeasureHypImpl.Ranked defs` in the
+   hand-written module the generated module imports — under which the
+   recursion from entry i is at most i + 1 deep: measure `i + 1`. The
+   self-call is inside a lambda passed to `List.foldl` (the census's HOF
+   shape): fuel, not structural. *)
+val size_of : list (list nat) -> nat -> nat
+let rec size_of defs i =
+  match List.index defs i with
+    | Nothing -> 1
+    | Just body -> List.foldl (fun acc j -> acc + size_of defs j) 1 body
+  end
+declare {lean} fuel val size_of = `999`
+declare {lean} fuel_measure val size_of = `i + 1` assuming `TestFuelMeasureHypImpl.Ranked defs`
+declare {lean} extra_import `TestFuelMeasureHypImpl`
+
+(* (3) the hypothesis through a dotted projection on a PAIR parameter
+   (cerberus `are_compatible_aux`'s `p : (tagDefs × tagDefs)` shape):
+   count the subtractions of p.2 from p.1 down to zero — terminates only
+   for a positive step; hypothesis `0 < p.2`, measure `p.1 + 1` *)
+val down_steps : nat * nat -> nat
+let rec down_steps p =
+  let (a, step) = p in
+  if a = 0 then 0 else 1 + down_steps (a - step, step)
+declare {lean} fuel val down_steps = `999`
+declare {lean} fuel_measure val down_steps = `p.1 + 1` assuming `0 < p.2`
+
+(* fuel-free, so assertable from lem (inputs inside the hypotheses) *)
+assert ndigits_ok : (ndigits 10 255 = (3 : nat) && ndigits 2 255 = (8 : nat) && ndigits 16 0 = (1 : nat))
+assert uses_ndigits_ok : (uses_ndigits 1000 = (5 : nat))
+assert size_of_ok : (size_of [[]; [0]; [0; 1]; [2; 2]] 3 = (9 : nat))
+assert down_steps_ok : (down_steps (10, 3) = (4 : nat))

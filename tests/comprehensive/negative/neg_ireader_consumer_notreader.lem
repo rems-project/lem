@@ -1,0 +1,10 @@
+(* EXPECT: IRC-reader *)
+(* Instance-reader slice: a consumer must name an INSTANCE reader (an
+   explicit reader's consumer is 'reader_consumer val f'). *)
+open import Pervasives
+val cfg : unit -> nat
+declare lean target_rep function cfg u = 0
+declare {lean} reader val cfg
+val scaled : nat -> nat
+declare lean target_rep function scaled = `NegImpl.scaled`
+declare {lean} reader_consumer val scaled = instance cfg

@@ -1,0 +1,11 @@
+integer 7 2 div=3 mod=1 /=3 | int div=3 mod=1 /=3 | int32 div=3 mod=1 | int64 div=3 mod=1
+integer -7 2 div=-4 mod=1 /=-4 | int div=-4 mod=1 /=-4 | int32 div=-4 mod=1 | int64 div=-4 mod=1
+integer 7 -2 div=-3 mod=1 /=-3 | int div=-3 mod=1 /=-3 | int32 div=-3 mod=1 | int64 div=-3 mod=1
+integer -7 -2 div=4 mod=1 /=4 | int div=2 mod=-3 /=2 | int32 div=2 mod=-3 | int64 div=2 mod=-3
+integer 1 -3 div=0 mod=1 /=0 | int div=0 mod=1 /=0 | int32 div=0 mod=1 | int64 div=0 mod=1
+integer -1 3 div=-1 mod=2 /=-1 | int div=-1 mod=2 /=-1 | int32 div=-1 mod=2 | int64 div=-1 mod=2
+integer 6 -3 div=-2 mod=0 /=-2 | int div=-2 mod=0 /=-2 | int32 div=-2 mod=0 | int64 div=-2 mod=0
+integer -6 3 div=-2 mod=0 /=-2 | int div=-2 mod=0 /=-2 | int32 div=-2 mod=0 | int64 div=-2 mod=0
+integer 0 -5 div=0 mod=0 /=0 | int div=0 mod=0 /=0 | int32 div=0 mod=0 | int64 div=0 mod=0
+integer 5 5 div=1 mod=0 /=1 | int div=1 mod=0 /=1 | int32 div=1 mod=0 | int64 div=1 mod=0
+integer -5 -5 div=1 mod=0 /=1 | int div=1 mod=0 /=1 | int32 div=1 mod=0 | int64 div=1 mod=0

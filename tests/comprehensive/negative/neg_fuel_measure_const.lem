@@ -1,0 +1,8 @@
+(* EXPECT: FM-const *)
+(* fuel-measure slice: a measure mentioning NO parameter is not a DATA
+   measure, however it is spelled (here a qualified constant expression). *)
+open import Pervasives
+val len : list nat -> nat
+let rec len l = match l with | [] -> 0 | _ :: xs -> 1 + len xs end
+declare {lean} fuel val len = `999`
+declare {lean} fuel_measure val len = `Nat.succ Nat.zero`

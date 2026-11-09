@@ -1,0 +1,10 @@
+(* EXPECT: variable 'lemRecBase' is the reserved binder of a mutual-record update *)
+open import Pervasives_extra
+(* backend-hardening 2026-10-03, item 4: the update of a record in a
+   heterogeneous block binds its base to `lemRecBase`; a user variable of
+   that name in the updated values would be captured, so it is refused *)
+type r = <| f : nat; g : nat |>
+and q 'a = Q of 'a * list r
+declare {lean} skip_instances type r
+declare {lean} skip_instances type q
+let upd (x : r) (lemRecBase : nat) : r = <| x with f = lemRecBase |>

@@ -1,0 +1,16 @@
+["zero"; "one"; "answer"; "other"]
+["zero"; "one"; "big"; "other"]
+["empty"; "A"; "HW"; "other"]
+["A"; "NL"; "SP"; "other"]
+[1; 0]
+["z"; "s(0)"; "s(4)"]
+["z"; "one"; "ss(0)"; "ss(5)"]
+["z"; "s(0)"; "s(4)"]
+["00"; "0_"; "s10"; "2,3"]
+100
+["nil"; "one:1"; "two:3"; "many:122"]
+["N"; "JN"; "JJ0nil"; "JJ3h7"; "JJ4nil"]
+"first"
+["L0"; "L3"; "Rempty"; "Rx"]
+1
+["minus one"; "one"; "other"]

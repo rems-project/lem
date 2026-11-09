@@ -1,0 +1,27 @@
+$ lem -wl ign -ocaml -outdir out sect.lem
+[exit 0]
+$ lem -wl ign -hol -outdir out sect.lem
+[exit 0]
+$ lem -wl ign -isa -outdir out sect.lem
+[exit 0]
+$ lem -wl ign -coq -outdir out sect.lem
+[exit 0]
+$ grep -n '§\|Â\|zero\|succ' out/*
+out/sect.ml:2:(* See C11 Â§6.5.6 and the Ã sign *)
+out/sect.ml:5:(* Â§ before a definition *)
+out/sect.ml:8:  (* Â§ inside a definition *)x + 1)
+out/sect.ml:10:let s : string=  "§"
+out/sectScript.sml:11:(* See C11 Â§6.5.6 and the Ã sign *)
+out/sectScript.sml:14:(* Â§ before a definition *)
+out/sectScript.sml:18:  (* Â§ inside a definition *)x +( 1 : num)))`;
+out/Sect.thy:11:\<comment> \<open>\<open> See C11 Â§6.5.6 and the Ã sign \<close>\<close>
+out/Sect.thy:14:\<comment> \<open>\<open> Â§ before a definition \<close>\<close>
+out/Sect.thy:17:  \<comment> \<open>\<open> Â§ inside a definition \<close>\<close>
+out/sect.v:14:(* See C11 Â§6.5.6 and the Ã sign *)
+out/sect.v:19:(* Â§ before a definition *)
+out/sect.v:21:  (* Â§ inside a definition *)
+out/sect.v:24:Definition s    :  string :=  "§".
+$ sed -n 2p out/sect.ml | xxd
+00000000: 282a 2053 6565 2043 3131 20c3 82c2 a736  (* See C11 ....6
+00000010: 2e35 2e36 2061 6e64 2074 6865 20c3 83c2  .5.6 and the ...
+00000020: 9720 7369 676e 202a 290a                 . sign *).

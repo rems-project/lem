@@ -338,11 +338,23 @@ let type_descr_rename  (targ : Target.non_ident_target) (n':Name.t) (l' : Ast.l)
 
 let type_defs_rename_type l (d : type_defs) (p : Path.t) (t: Target.non_ident_target) (n : Name.t) : type_defs =
   let l' = Ast.Trans (false, "type_defs_rename_type", Some l) in
-  let up td = begin
-    let (res, _) = type_descr_rename t n l td in
-    Some res
-  end in
-  Types.type_defs_update_tc_type l' d p up
+  (* Try as a type first; if p is a class, update class_rename instead *)
+  match Types.Pfmap.apply d p with
+    | Some (Types.Tc_type _) ->
+      let up td = begin
+        let (res, _) = type_descr_rename t n l td in
+        Some res
+      end in
+      Types.type_defs_update_tc_type l' d p up
+    | Some (Types.Tc_class _) ->
+      let up cd =
+        let cr = Target.Targetmap.insert cd.Types.class_rename (t, (l, n)) in
+        Some {cd with Types.class_rename = cr}
+      in
+      Types.type_defs_update_tc_class l' d p up
+    | None ->
+      raise (Reporting_basic.err_general true l
+        ("type_defs_rename_type: environment does not contain type/class '" ^ Path.to_string p ^ "'"))
 
 let const_target_rep_to_loc= function
   | CR_inline (l, _, _, _) -> l
@@ -788,7 +800,21 @@ let dest_app_exp (e :exp) : (exp * exp) option =
     | App (e1, e2) -> Some (e1, e2)
     | _ -> None
 
-let strip_app_exp (e : exp) : exp * exp list = 
+(* NOTE (Lean backend, L1 delta audit NOTE-1): strip_app_exp does NOT
+   unwrap Paren, so a parenthesized partial application used as a
+   spine head — e.g. `((&&) a) (chk 4)` — yields the Paren node as
+   the head, not the underlying constant. The Lean backend's supply
+   transform depends on this: such spines miss its special head
+   classes (short-circuit legs included) and render via its strict
+   general-head branch, which happens to be oracle-faithful for the
+   short-circuit operators (OCaml is strict on the eta-expanded shape
+   too). That coincidence is kernel-pinned in
+   tests/comprehensive/test_supply.lem (prefsc_paren) /
+   lean-test/TestSupplyCheck.lean — if you make this function (or any
+   pre-pass) normalize Paren away, those pins fail and the threading
+   class of paren-split spines must be re-adjudicated against the
+   OCaml oracle (see the general-head note in lean_backend.ml). *)
+let strip_app_exp (e : exp) : exp * exp list =
   let rec aux acc e =
     match dest_app_exp e with
       | None -> (e, acc)
@@ -1178,7 +1204,13 @@ and add_def_aux_entities (t_opt : Target.target) (only_new : bool) (ue : used_en
           let ue = if only_new then ue else add_src_t_entities ue src_t in
           ue
         end
-      | Class(_,_,n,tvar,_,_,body,_) -> (* TODO: classes broken, needs fixing in typechecking and AST *) ue
+      | Class(_,_,n,tvar,class_path,_,body,_) ->
+          let ue = used_entities_add_type ue class_path in
+          let ue = List.fold_left (fun ue (_, _, _, c_ref, _, _, src_t) ->
+            let ue = used_entities_add_const ue c_ref in
+            if only_new then ue else add_src_t_entities ue src_t
+          ) ue body in
+          ue
       | Instance(_,_,_,_,_) -> (* TODO: broken, needs fixing in typechecking and AST *) ue
       | Declaration(_) -> ue
       | Comment _ -> ue

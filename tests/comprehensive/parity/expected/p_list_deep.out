@@ -1,0 +1,28 @@
+length: 300000
+foldl: 300000
+foldr: 300000
+map sum: 899997
+append: 600000
+zip: 300000
+reverse hd: Just (299999)
+filter: 150000
+concat: 600000
+all: true
+take: 299999
+drop: 299999
+splitAt: 299999
+compare: true
+equal: true
+set fromList: 20000
+sort: Just (0)
+sortByOrd: Just (0)
+concatMap: 300000
+unzip: 300000
+partition: 150000
+lookup: Just (299999)
+show len: 338890
+Map fold: 1249975000
+string of list: 300000
+string concat: 600000
+genlist: 3000
+integer sum: 44999850000

@@ -1,0 +1,9 @@
+$ lem -wl ign -ocaml bitwise.lem
+[lem exit 0]
+$ ocamlfind ocamlopt -package zarith -linkpkg -I <upstream ocaml-lib> extract.cmxa bitwise.ml main.ml -o bitwise.exe
+[ocamlopt exit 0]
+$ ./bitwise.exe
+intLsl 1 30:          rep 1073741824  def 0
+intLor 2^30 0:        rep 1073741824  def -1073741824
+natLor 2^40 1:        rep 1099511627777  def 1
+[run exit 0]

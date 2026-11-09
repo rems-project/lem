@@ -1,0 +1,10 @@
+(* EXPECT: FM-sizeOf *)
+(* fuel-measure slice: Lean's automatic `SizeOf` instances have no
+   executable code (measured: `depends on declaration 'List._sizeOf_inst',
+   which has no executable code`) — a wrapper's runtime counter must be a
+   computable expression. *)
+open import Pervasives
+val len : list nat -> nat
+let rec len l = match l with | [] -> 0 | _ :: xs -> 1 + len xs end
+declare {lean} fuel val len = `999`
+declare {lean} fuel_measure val len = `sizeOf l`

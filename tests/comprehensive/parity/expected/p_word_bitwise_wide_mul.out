@@ -1,0 +1,7 @@
+operand p61*4 (2^63): 0
+intLor (p61*4) 1 = 1
+intLand (p61*4) (p61*4) = 0
+intLxor (p61*8) 1 = 1
+natLor (n61*4) 1 = 1
+natLand (n61*4) (n61*4) = 0
+natLxor (n61*8) 1 = 1

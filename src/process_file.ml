@@ -323,10 +323,10 @@ let output1 env (out_dir : string option) (targ : Target.target) avoid m =
                     raise (Reporting_basic.Fatal_error (Reporting_basic.Err_trans_header (l, msg)))
           end
 
-      | Target.Target_no_ident(Target.Target_coq) -> 
-          try begin
+      | Target.Target_no_ident(Target.Target_coq) ->
+          (try begin
             let (r, r_extra) = B.coq_defs m.typed_ast in
-            let _ = if (!only_auxiliary) then () else 
+            let _ = if (!only_auxiliary) then () else
               begin
                 let (o, ext_o) = open_output_with_check dir (module_name ^ ".v") in
                   Printf.fprintf o "(* %s *)\n\n" (generated_line m.filename);
@@ -360,9 +360,75 @@ let output1 env (out_dir : string option) (targ : Target.target) avoid m =
           end
             with
               | Trans.Trans_error(l,msg) ->
-                  raise (Reporting_basic.Fatal_error (Reporting_basic.Err_trans_header (l, msg)))
+                  raise (Reporting_basic.Fatal_error (Reporting_basic.Err_trans_header (l, msg))))
+
+      | Target.Target_no_ident(Target.Target_lean) ->
+          (try begin
+            Lean_backend.St.current_module_name := module_name;
+            let (r, r_extra) = B.lean_defs m.typed_ast in
+            (* Convert dotted module names (e.g. LemLib.Bool) to path separators for Lean *)
+            let lean_module_path name =
+              let parts = String.split_on_char '.' name in
+              String.concat Filename.dir_sep parts
+            in
+            (* Create the output directory and its parents; a failure is a
+               fatal error naming the directory (it used to be an ignored
+               `mkdir -p` exit code, so lem went on and failed later with the
+               temp-file rename's message; backend-hardening record,
+               2026-10-03). *)
+            let rec mkdir_p d =
+              if d = "" || d = Filename.current_dir_name || Sys.file_exists d then ()
+              else begin
+                let parent = Filename.dirname d in
+                if parent <> d then mkdir_p parent;
+                try Sys.mkdir d 0o777 with
+                | Sys_error msg ->
+                  raise (Reporting_basic.Fatal_error (Reporting_basic.Err_general (false, Ast.Unknown,
+                    Printf.sprintf "Lean backend: cannot create the output directory %s: %s" d msg)))
+              end
+            in
+            let ensure_parent_dir filename =
+              let full_path = Filename.concat dir filename in
+              let parent = Filename.dirname full_path in
+              if not (Sys.file_exists parent) then mkdir_p parent
+            in
+            let main_file = lean_module_path module_name ^ ".lean" in
+            let aux_file = lean_module_path module_name ^ "_auxiliary.lean" in
+            let _ = if (!only_auxiliary) then () else
+              begin
+                ensure_parent_dir main_file;
+                let (o, ext_o) = open_output_with_check dir main_file in
+                  Printf.fprintf o "/- %s -/\n\n" (generated_line m.filename);
+                  Printf.fprintf o "import LemLib\n\n";
+                  Printf.fprintf o "%s" (Lean_backend.normalize_layout (Ulib.Text.to_string r));
+                  close_output_with_check ext_o
+              end
+            in
+            let _ =
+              begin
+                ensure_parent_dir aux_file;
+                let (o, ext_o) = open_output_with_check dir aux_file in
+                  Printf.fprintf o "/- %s -/\n\n" (generated_line m.filename);
+                  Printf.fprintf o "import LemLib\n";
+                  Printf.fprintf o "import %s\n\n" module_name;
+                  Printf.fprintf o "%s" (Lean_backend.normalize_layout (Ulib.Text.to_string r_extra));
+                  close_output_with_check ext_o
+              end in ()
+          end
+            with
+              | Trans.Trans_error(l,msg) ->
+                  raise (Reporting_basic.Fatal_error (Reporting_basic.Err_trans_header (l, msg))))
 
 let output env consts (targ : Target.target)  (out_dir : string option) mods =
+  (* Arc-8 S2: the Lean backend's analysis pre-passes (Inhabited
+     instance census + [Inhabited] threading) must see EVERY module of
+     the invocation — including non-output library modules — before any
+     emission, so caller-side demands against library defs are computed
+     with the same knowledge the library was emitted with. *)
+  (match targ with
+    | Target.Target_no_ident Target.Target_lean ->
+      Lean_backend.lean_analysis_prepass_all env mods
+    | _ -> ());
   List.iter
     (fun m ->
        if m.generate_output then

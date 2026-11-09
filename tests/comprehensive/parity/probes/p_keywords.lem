@@ -1,0 +1,128 @@
+(* Noodle probe: identifiers that are Lean keywords / core names (lowercase; OCaml
+   keywords and capitalised names are excluded — lem itself emits invalid
+   OCaml for those) / carry primes, used as values, parameters,
+   fields, constructors and local binders. Emission must stay valid Lean
+   and mean the same thing. Expected values are the OCaml target's output. *)
+open import Pervasives_extra
+
+let from (x : nat) : nat = x + 1
+let at (x : nat) : nat = x + 2
+let by (x : nat) : nat = x + 3
+let where (x : nat) : nat = x + 6
+let have (x : nat) : nat = x + 7
+let deriving (x : nat) : nat = x + 8
+let namespace (x : nat) : nat = x + 9
+let section (x : nat) : nat = x + 10
+let variable (x : nat) : nat = x + 11
+let universe (x : nat) : nat = x + 12
+let axiom (x : nat) : nat = x + 13
+let abbrev (x : nat) : nat = x + 14
+let structure (x : nat) : nat = x + 15
+let inductive (x : nat) : nat = x + 16
+let mutual (x : nat) : nat = x + 17
+let partial (x : nat) : nat = x + 18
+let def (x : nat) : nat = x + 19
+let example (x : nat) : nat = x + 20
+let calc (x : nat) : nat = x + 21
+let this (x : nat) : nat = x + 22
+let sorry (x : nat) : nat = x + 23
+let default (x : nat) : nat = x + 24
+let panic (x : nat) : nat = x + 25
+let some (x : nat) : nat = x + 26
+let none (x : nat) : nat = x + 27
+let id (x : nat) : nat = x + 28
+let max (x : nat) : nat = x + 29
+let min (x : nat) : nat = x + 30
+let compare (x : nat) : nat = x + 31
+let protected (x : nat) : nat = x + 33
+let unsafe (x : nat) : nat = x + 34
+let opaque (x : nat) : nat = x + 35
+let local (x : nat) : nat = x + 36
+let macro (x : nat) : nat = x + 37
+let syntax (x : nat) : nat = x + 38
+let notation (x : nat) : nat = x + 39
+let prefix (x : nat) : nat = x + 41
+let omit (x : nat) : nat = x + 42
+let nomatch (x : nat) : nat = x + 44
+let nofun (x : nat) : nat = x + 45
+let noncomputable (x : nat) : nat = x + 46
+let termination_by (x : nat) : nat = x + 47
+let decreasing_by (x : nat) : nat = x + 48
+let set_option (x : nat) : nat = x + 49
+let elab (x : nat) : nat = x + 50
+let attribute (x : nat) : nat = x + 51
+let instance_ (x : nat) : nat = x + 52
+let lemFuel (x : nat) : nat = x + 53
+let x' (x : nat) : nat = x + 54
+let x'' (x : nat) : nat = x + 55
+let foo_bar (x : nat) : nat = x + 56
+let fooBar (x : nat) : nat = x + 57
+let show_ (x : nat) : nat = x + 58
+let main (x : nat) : nat = x + 59
+let results_ (x : nat) : nat = x + 60
+let string (x : nat) : nat = x + 61
+let nat (x : nat) : nat = x + 62
+let list (x : nat) : nat = x + 63
+let bool (x : nat) : nat = x + 64
+let unit (x : nat) : nat = x + 65
+let option (x : nat) : nat = x + 66
+let prod (x : nat) : nat = x + 67
+let sum (x : nat) : nat = x + 68
+let ordering (x : nat) : nat = x + 69
+let lt (x : nat) : nat = x + 70
+let eq (x : nat) : nat = x + 71
+let gt (x : nat) : nat = x + 72
+let inl (x : nat) : nat = x + 73
+let inr (x : nat) : nat = x + 74
+let fst_ (x : nat) : nat = x + 75
+let cons (x : nat) : nat = x + 76
+let nil (x : nat) : nat = x + 77
+let pure (x : nat) : nat = x + 78
+let bind (x : nat) : nat = x + 79
+let return_ (x : nat) : nat = x + 80
+let val_ (x : nat) : nat = x + 81
+let ite (x : nat) : nat = x + 82
+let dite (x : nat) : nat = x + 83
+let toString_ (x : nat) : nat = x + 84
+let succ (x : nat) : nat = x + 85
+let zero (x : nat) : nat = x + 86
+let pred (x : nat) : nat = x + 87
+let length (x : nat) : nat = x + 88
+let append (x : nat) : nat = x + 89
+let map_ (x : nat) : nat = x + 90
+let filter (x : nat) : nat = x + 91
+let foldl (x : nat) : nat = x + 92
+let rfl (x : nat) : nat = x + 93
+
+type kwrec = <| from_f : nat; at_f : nat; do_ : nat; where_ : nat; by_ : nat; theorem_ : nat; sorry_ : nat; default_ : nat; deriving_ : nat |>
+type kwvar = From of nat | At of nat | By | Do | Theorem | Where | Have | Sorry_c | Default_c | Some_c of nat | None_c | Inl of nat | Inr of nat | Nil_c | Cons_c of nat
+let rec mapv (f : kwvar -> nat) (l : list kwvar) : list nat = match l with [] -> [] | x :: xs -> f x :: mapv f xs end
+
+let use_locals (from : nat) (at : nat) (by : nat) (where : nat) (sorry : nat) (default : nat) : nat =
+  let have = from + at in
+  let deriving = by + where in
+  let calc = have + deriving in
+  let this = sorry + default in
+  have + deriving + calc + this
+
+let results : list string =
+  [ show (from 0); show (at 0); show (by 0); show (where 0); show (have 0); show (deriving 0);
+    show (namespace 0); show (section 0); show (variable 0); show (universe 0); show (axiom 0); show (abbrev 0); show (structure 0);
+    show (inductive 0); show (mutual 0); show (partial 0); show (def 0); show (example 0); show (calc 0); show (this 0); show (sorry 0);
+    show (default 0); show (panic 0); show (some 0); show (none 0); show (id 0); show (max 0); show (min 0); show (compare 0);
+    show (protected 0); show (unsafe 0); show (opaque 0); show (local 0); show (macro 0); show (syntax 0); show (notation 0);
+    show (prefix 0); show (omit 0); show (nomatch 0); show (nofun 0); show (noncomputable 0);
+    show (termination_by 0); show (decreasing_by 0); show (set_option 0); show (elab 0); show (attribute 0); show (instance_ 0); show (lemFuel 0);
+    show (x' 0); show (x'' 0); show (foo_bar 0); show (fooBar 0); show (show_ 0); show (main 0); show (results_ 0);
+    show (string 0); show (nat 0); show (list 0); show (bool 0); show (unit 0); show (option 0); show (prod 0); show (sum 0); show (ordering 0);
+    show (lt 0); show (eq 0); show (gt 0); show (inl 0); show (inr 0); show (fst_ 0); show (cons 0); show (nil 0); show (pure 0); show (bind 0);
+    show (return_ 0); show (val_ 0); show (ite 0); show (dite 0); show (toString_ 0); show (succ 0); show (zero 0); show (pred 0); show (length 0);
+    show (append 0); show (map_ 0); show (filter 0); show (foldl 0); show (rfl 0);
+   
+   
+    show (use_locals 1 2 3 4 5 6);
+    (let r = <| from_f = 1; at_f = 2; do_ = 3; where_ = 4; by_ = 5; theorem_ = 6; sorry_ = 7; default_ = 8; deriving_ = 9 |> in
+     show (r.from_f + r.at_f + r.do_ + r.where_ + r.by_ + r.theorem_ + r.sorry_ + r.default_ + (<| r with from_f = 10 |>).from_f));
+    show (mapv (fun v -> match v with From n -> n | At n -> n + 100 | By -> 1 | Do -> 2 | Theorem -> 3 | Where -> 4 | Have -> 5 | Sorry_c -> 6 | Default_c -> 7 | Some_c n -> n + 200 | None_c -> 8 | Inl n -> n + 300 | Inr n -> n + 400 | Nil_c -> 9 | Cons_c n -> n + 500 end)
+              [From 1; At 1; By; Do; Theorem; Where; Have; Sorry_c; Default_c; Some_c 1; None_c; Inl 1; Inr 1; Nil_c; Cons_c 1])
+  ]

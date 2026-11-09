@@ -1,0 +1,10 @@
+(* EXPECT: under a lambda *)
+(* Supply guard G-λ (effect-retirement L1): a draw under a lambda
+   cannot be threaded — a linear supply cannot be captured by a
+   closure, and no partial-application repair exists. *)
+open import Pervasives
+val tick : unit -> nat
+declare lean target_rep function tick u = 0
+declare {lean} supply val tick
+val draws_in_map : list nat -> list nat
+let draws_in_map l = List.map (fun x -> x + tick ()) l

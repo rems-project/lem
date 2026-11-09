@@ -23,6 +23,7 @@ A `target_rep` declaration allows specifing which _existing_ target function sho
     declare hol      target_rep function not x = `~` x
     declare isabelle target_rep function not x = `\<not>` x
     declare coq      target_rep function not = `negb`
+    declare lean     target_rep function not = `not`
 
     declare html     target_rep function not = `&not;`
     declare tex      target_rep function not b = `$\neg$` b
@@ -39,10 +40,11 @@ A `target_rep` declaration allows specifing which _existing_ target function sho
 ## Target Representations of Types
 
     type map 'k 'v
-    declare ocaml    target_rep type map = `Pmap.map` 
-    declare isabelle target_rep type map = `Map.map` 
+    declare ocaml    target_rep type map = `Pmap.map`
+    declare isabelle target_rep type map = `Map.map`
     declare hol      target_rep type map = `fmap`
     declare coq      target_rep type map = `fmap`
+    declare lean     target_rep type map = `Fmap`
 
 
 ## Infix Operations
@@ -57,6 +59,7 @@ A `target_rep` declaration allows specifing which _existing_ target function sho
     declare ocaml    target_rep function (&&) = infix `&&`
     declare isabelle target_rep function (&&) = infix `\<and>`
     declare coq      target_rep function (&&) = infix `&&`
+    declare lean     target_rep function (&&) = infix `&&`
     declare html     target_rep function (&&) = infix `&and;`
     declare tex      target_rep function (&&) = infix `$\wedge$`
 

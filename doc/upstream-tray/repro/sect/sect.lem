@@ -1,0 +1,9 @@
+(* See C11 §6.5.6 and the × sign *)
+open import Pervasives
+
+(* § before a definition *)
+let f (x : nat) : nat =
+  (* § inside a definition *)
+  x + 1
+
+let s : string = "§"

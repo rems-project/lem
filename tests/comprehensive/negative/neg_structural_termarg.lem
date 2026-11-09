@@ -1,0 +1,9 @@
+(* EXPECT: ST-term *)
+(* structural-declare slice: `termination_argument = automatic` (a plain
+   def, Lean may fall back to well-founded recursion) and `structural`
+   (the fallback forbidden) contradict on one val — declare one. *)
+open import Pervasives
+val len : list nat -> nat
+let rec len l = match l with | [] -> 0 | _ :: xs -> 1 + len xs end
+declare {lean} termination_argument len = automatic
+declare {lean} structural val len

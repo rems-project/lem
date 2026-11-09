@@ -1,0 +1,12 @@
+(* EXPECT: outside supply-threaded code *)
+(* Supply guard G-rel (effect-retirement L1): a supply-lifted
+   definition used inside an indreln rule cannot be threaded (relations
+   are Prop-level; there is no supply to pass). *)
+open import Pervasives
+val tick : unit -> nat
+declare lean target_rep function tick u = 0
+declare {lean} supply val tick
+val draw1 : nat -> nat
+let draw1 x = x + tick ()
+indreln [rel : nat -> nat -> bool]
+  step : forall x y. y = draw1 x ==> rel x y

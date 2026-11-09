@@ -1,0 +1,10 @@
+(* EXPECT: is a projection on `q`, which is not a parameter *)
+(* measure-hypothesis slice: `q.2` when the parameter is `p` — a numeral
+   component is a projection, never a namespace, so the head must be a
+   parameter (found on the cerberus dry run, where lem's rename pass had
+   made `env` into `env1`). *)
+open import Pervasives
+val down : nat * nat -> nat
+let rec down p = let (a, step) = p in if a = 0 then 0 else 1 + down (a - step, step)
+declare {lean} fuel val down = `999`
+declare {lean} fuel_measure val down = `p.1 + 1` assuming `0 < q.2`

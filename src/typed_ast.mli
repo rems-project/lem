@@ -253,6 +253,111 @@ and const_descr =
 
     termination_setting: Ast.termination_setting Target.Targetmap.t;
     (** Can termination be proved automatically by various backends? *)
+
+    effectful : Target.Targetset.t;
+    (** Targets for which this function's target_rep has side effects.
+        Backends use this to prevent purity-based optimizations (e.g., CSE). *)
+
+    reader : Target.Targetset.t;
+    (** Targets for which this constant is an ambient READER: backends
+        thread its value as an extra parameter through every function that
+        (transitively) uses it, replacing calls with the parameter.
+        Currently implemented by the Lean backend only. *)
+
+    fuel_sentinel : string Target.Targetmap.t;
+    (** Per-target fuel sentinel: when set, the backend emits the function
+        as a fuel-threaded total worker (recursion decrements an explicit
+        Nat) whose zero-fuel result is the given target-syntax expression,
+        plus a wrapper starting the counter from the AMBIENT fuel (Lean:
+        the instance-implicit `[LemFuel]` parameter; no default exists) so
+        call sites are unchanged. Currently implemented by the Lean backend
+        only. *)
+
+    ground_rep : string Target.Targetmap.t;
+    (** Per-target GROUND-SITE alternative head: at call sites whose
+        result type is syntactically ground (no type variables), the
+        backend emits this identifier instead of the constant; other
+        sites render normally. Lets a typeclass-bounded target function
+        serve exactly the sites where the instance resolves without any
+        constraint propagation. Lean backend only. *)
+
+    reader_seed : Target.Targetset.t;
+    (** Targets for which this function SEEDS the ambient reader: the def
+        is not reader-lifted; instead its FIRST argument is used as the
+        injection value for reader-lifted callees (and reader-constant
+        reads) within its body. Lexically-scoped seeding — NOT dynamic
+        rebinding. Lean backend only. *)
+
+    supply : Target.Targetset.t;
+    (** Targets for which this constant is a lifted SUPPLY (declare
+        {targets} supply val): a state-threaded counter. The constant
+        must have type [unit -> nat]; every def that (transitively)
+        draws from it takes the current supply as an extra parameter
+        and returns the successor supply paired with its result
+        (deterministic state-passing — a draw is
+        [LemLib.supplySplit s = (s, s+1)]). Lean backend only. *)
+
+    reader_consumer : Target.Targetset.t;
+    (** Targets for which this target_rep'd constant is a READER
+        CONSUMER (declare {targets} reader_consumer val): its
+        generated call sites pass ALL declared reader parameters as
+        extra leading arguments (before its own arguments, in the
+        global sorted reader order), its callers get reader-lifted by
+        the ordinary fixpoint, and the hand-written target
+        representation declares the matching leading parameters
+        explicitly. Lean backend only. *)
+
+    fuel_consumer : Target.Targetset.t;
+    (** Targets on which this constant is declared a FUEL CONSUMER
+        (declare {targets} fuel_consumer val f): its hand-written target
+        representation reads the ambient fuel (Lean: `LemFuel.fuel`), so
+        every definition that calls it is fuel-lifted — takes the
+        `[LemFuel]` binder — by the ordinary fuel fixpoint. Requires a
+        target_rep on the same val. Lean backend only (fuel-parameter
+        arc, 2026-09-04; replaces the deleted per-declaration numeric
+        fuel budget). *)
+
+    structural : Target.Targetset.t;
+    (** Targets on which this recursive constant is declared STRUCTURAL
+        (declare {targets} structural val f): emitted as an ordinary
+        total definition whose termination the target's own checker
+        proves by structural recursion on one parameter (Lean:
+        `def … termination_by structural x`; the well-founded fallback
+        is forbidden so the kernel can compute through it). Refused when
+        combined with a fuel sentinel, a termination_argument or a
+        target_rep on the same val. Lean backend only (structural-declare
+        slice, 2026-09-04). *)
+
+    fuel_measure : (string * string option) Target.Targetmap.t;
+    (** Per-target FUEL MEASURE (declare {targets} fuel_measure val f =
+        `expr`): for a fuel-declared constant, a target-syntax expression
+        over the constant's own parameters from which the wrapper
+        INSTANTIATES the worker's fuel counter (Lean: `def f x := f_lemFuel
+        (expr) x`) instead of reading the ambient `[LemFuel]`; the
+        constant is then fuel-free for its callers, and the backend emits a
+        per-function sufficiency OBLIGATION (`f_measure_sufficient`) whose
+        proof a hand-written companion module must supply. Requires the
+        fuel sentinel on the same val; exclusive with fuel_consumer and
+        structural. Lean backend only (fuel-measure slice, 2026-09-04). *)
+
+    reader_instance : string Target.Targetmap.t;
+    (** Per-target INSTANCE-IMPLICIT reader (declare {targets} reader val
+        r = instance `Cls.field`): like [reader], an ambient value read by
+        [r ()], but every definition that (transitively) reads it binds the
+        target's one-field class instance-implicitly (Lean: `[Cls]`) and
+        the read emits the projection (`Cls.field`) — call sites are
+        textually unchanged and no instance exists in generated code (the
+        entry point supplies it). The string is the projection text.
+        Exclusive with [reader] on the same constant. Lean backend only
+        (instance-reader slice, 2026-10-05). *)
+
+    reader_consumer_instance : const_descr_ref list Target.Targetmap.t;
+    (** Per-target instance readers that this target_rep'd constant's
+        hand-written implementation READS (declare {targets}
+        reader_consumer val f = instance r): no argument is passed at its
+        call sites; every caller binds the readers' classes by the
+        ordinary instance-reader fixpoint. Lean backend only
+        (instance-reader slice, 2026-10-05). *)
   }
 
 and v_env = const_descr_ref Nfmap.t
@@ -496,6 +601,20 @@ type declare_def =  (** Declarations *)
  | Decl_rename_current_module of lskips * targets_opt * lskips * lskips * lskips * Name.lskips_t 
  | Decl_termination_argument  of lskips * targets_opt * lskips * const_descr_ref id * lskips * Ast.termination_setting
  | Decl_pattern_match_decl    of lskips * targets_opt * lskips * Ast.exhaustivity_setting * Path.t id * tnvar list * lskips * lskips * (const_descr_ref id)  lskips_seplist * lskips * (const_descr_ref id) option
+ | Decl_skip_instances        of lskips * targets_opt * lskips * lskips * Path.t id
+ | Decl_extra_import          of lskips * targets_opt * lskips * lskips * string
+ | Decl_effectful             of lskips * targets_opt * lskips * lskips * const_descr_ref id
+ | Decl_reader                of lskips * targets_opt * lskips * lskips * const_descr_ref id
+ | Decl_reader_instance of lskips * targets_opt * lskips * lskips * const_descr_ref id * lskips * lskips * (lskips * string)
+ | Decl_fuel                  of lskips * targets_opt * lskips * lskips * const_descr_ref id * lskips * string
+ | Decl_ground_rep            of lskips * targets_opt * lskips * lskips * const_descr_ref id * lskips * string
+ | Decl_reader_seed           of lskips * targets_opt * lskips * lskips * const_descr_ref id
+ | Decl_supply                of lskips * targets_opt * lskips * lskips * const_descr_ref id
+ | Decl_reader_consumer       of lskips * targets_opt * lskips * lskips * const_descr_ref id
+ | Decl_reader_consumer_instance of lskips * targets_opt * lskips * lskips * const_descr_ref id * lskips * lskips * const_descr_ref id
+ | Decl_fuel_consumer         of lskips * targets_opt * lskips * lskips * const_descr_ref id
+ | Decl_structural            of lskips * targets_opt * lskips * lskips * const_descr_ref id
+ | Decl_fuel_measure          of lskips * targets_opt * lskips * lskips * const_descr_ref id * lskips * string * (lskips * string) option
 
 type def_aux =
   | Type_def of lskips * (name_l * tnvar list * Path.t * texp * name_sect option) lskips_seplist

@@ -1,0 +1,22 @@
+open import Pervasives
+
+(* Non-Lean invariance witness for the derived-size measure form
+   (D2-enablers slice, 2026-09-04): `lemSize t` in a `{lean} fuel_measure`
+   declare, and the size functions the Lean backend derives for the
+   recursive type, must be exact no-ops for the other backends (see
+   inv_supply.lem for the harness contract) — the OCaml output is
+   byte-identical with and without the declares, by construction. *)
+
+type itree = ILeaf of nat | INode of list (nat * itree)
+
+val icount : itree -> nat
+let rec icount t =
+  match t with
+    | ILeaf _ -> 1
+    | INode ts -> List.foldl (fun acc (_, t') -> acc + icount t') 1 ts
+  end
+declare {lean} fuel val icount = `fuelExhausted 0`
+declare {lean} fuel_measure val icount = `lemSize t`
+
+val uses_icount : itree -> nat
+let uses_icount t = icount t + 1

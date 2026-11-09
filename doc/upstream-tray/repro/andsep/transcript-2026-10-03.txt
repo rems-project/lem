@@ -1,0 +1,216 @@
+$ lem -wl ign -ocaml -outdir out_test_and test_and.lem
+[exit 0]
+$ lem -wl ign -coq -outdir out_test_and test_and.lem
+[exit 0]
+$ lem -wl ign -hol -outdir out_test_and test_and.lem
+[exit 0]
+$ lem -wl ign -isa -outdir out_test_and test_and.lem
+[exit 0]
+$ lem -wl ign -hol -hol_remove_matches -outdir out_test_and/holrm test_and.lem
+[exit 0]
+$ lem -wl ign -ocaml -outdir out_test_nomatch test_nomatch.lem
+[exit 0]
+$ lem -wl ign -coq -outdir out_test_nomatch test_nomatch.lem
+[exit 0]
+$ lem -wl ign -hol -outdir out_test_nomatch test_nomatch.lem
+[exit 0]
+$ lem -wl ign -isa -outdir out_test_nomatch test_nomatch.lem
+[exit 0]
+$ lem -wl ign -hol -hol_remove_matches -outdir out_test_nomatch/holrm test_nomatch.lem
+[exit 0]
+$ lem -wl ign -ocaml -outdir out_test_order test_order.lem
+[exit 0]
+$ lem -wl ign -coq -outdir out_test_order test_order.lem
+[exit 0]
+$ lem -wl ign -hol -outdir out_test_order test_order.lem
+[exit 0]
+$ lem -wl ign -isa -outdir out_test_order test_order.lem
+[exit 0]
+$ lem -wl ign -hol -hol_remove_matches -outdir out_test_order/holrm test_order.lem
+[exit 0]
+$ lem -wl ign -ocaml -outdir out_test_sorted test_sorted.lem
+[exit 0]
+$ lem -wl ign -coq -outdir out_test_sorted test_sorted.lem
+[exit 0]
+$ lem -wl ign -hol -outdir out_test_sorted test_sorted.lem
+[exit 0]
+$ lem -wl ign -isa -outdir out_test_sorted test_sorted.lem
+[exit 0]
+$ lem -wl ign -hol -hol_remove_matches -outdir out_test_sorted/holrm test_sorted.lem
+[exit 0]
+=== test_and: OCaml
+4:(* before f *)
+5:let rec f (x : t) : int=  ((match x with A -> 0 | B n -> g n ))
+6:(* before g *)
+7:and g (n : int) : int=  ((match n with 0 -> 1 | _ -> f (B ( Nat_num.nat_monus n 1)) ))
+8:(* before a *)
+9:and a (x : t) : int=  ((match x with A -> 1 | B n -> f (B n) ))
+=== test_and: Coq
+19:(* before f *)
+20:Program Fixpoint f   (x : t )   :  nat :=  match ( x) with  A => 0%nat | B n => g n end
+21:with g   (n : nat )   :  nat :=  match ( n) with  0%nat => 1%nat | _ => f (B ( Coq.Init.Peano.minus n( 1%nat))) end
+22:with a   (x : t )   :  nat :=  match ( x) with  A => 1%nat | B n => f (B n) end.
+=== test_and: HOL4
+(* before f *)
+ val f_defn = Defn.Hol_multi_defns `
+ ((f:t -> num) (x : t) : num=  ((case x of A =>( 0 : num) | B n => g n )))
+(* before g *)
+/\ ((g:num -> num) (n : num) : num=  ((case n of 0 =>( 1 : num) | _ => f (B (n -( 1 : num))) )))
+(* before a *)
+/\ ((a:t -> num) (x : t) : num=  ((case x of A =>( 1 : num) | B n => f (B n) )))`;
+
+val _ = Lib.with_flag (computeLib.auto_import_definitions, false) (List.map Defn.save_defn) f_defn;
+=== test_and: HOL4 -hol_remove_matches
+(* before f *)
+ val g_defn = Defn.Hol_multi_defns `
+ ((g:num -> num) (n : num) : num=  ((case n of 0 =>( 1 : num) | _ => f (B (n -( 1 : num))) ))) /\ ((f:t -> num) (A : t) : num= (( 0 : num)))
+/\ ((f:t -> num) ((B n) : t) : num=  (g n)) /\ ((a:t -> num) (A : t) : num= (( 1 : num)))
+/\ ((a:t -> num) ((B n) : t) : num=  (f (B n)))`;
+
+val _ = Lib.with_flag (computeLib.auto_import_definitions, false) (List.map Defn.save_defn) g_defn;
+=== test_and: Isabelle
+\<comment> \<open>\<open> before f \<close>\<close>
+function (sequential,domintros)  a  :: \<open> t \<Rightarrow> nat \<close>  
+                   and f  :: \<open> t \<Rightarrow> nat \<close>  
+                   and g  :: \<open> nat \<Rightarrow> nat \<close>  where 
+     \<open> g (n :: nat) = ( (case  n of 0 =>( 1 :: nat) | _ => f (B (n -( 1 :: nat))) ))\<close> 
+  for  "n"  :: " nat " |\<open> f (A :: t) = (( 0 :: nat))\<close>
+|\<open> f ((B n) :: t) = ( g n )\<close> 
+  for  "n"  :: " nat " |\<open> a (A :: t) = (( 1 :: nat))\<close>
+|\<open> a ((B n) :: t) = ( f (B n))\<close> 
+  for  "n"  :: " nat " 
+by pat_completeness auto
+=== test_nomatch: OCaml
+3:(* before f *)
+4:let rec f (x : int) : int=  (if x = 0 then 0 else g ( Nat_num.nat_monus x 1))
+5:(* before g *)
+6:and g (n : int) : int=  (if n = 0 then 1 else f ( Nat_num.nat_monus n 1))
+7:(* before a *)
+8:and a (x : int) : int=  (if x = 0 then 1 else f x)
+=== test_nomatch: Coq
+17:(* before f *)
+18:Program Fixpoint f   (x : nat )   :  nat :=  if beq_nat x( 0%nat) then 0%nat else g ( Coq.Init.Peano.minus x( 1%nat))
+19:with g   (n : nat )   :  nat :=  if beq_nat n( 0%nat) then 1%nat else f ( Coq.Init.Peano.minus n( 1%nat))
+20:with a   (x : nat )   :  nat :=  if beq_nat x( 0%nat) then 1%nat else f x.
+=== test_nomatch: HOL4
+(* before f *)
+ val f_defn = Defn.Hol_multi_defns `
+ ((f:num -> num) (x : num) : num=  (if x =( 0 : num) then( 0 : num) else g (x -( 1 : num))))
+(* before g *)
+/\ ((g:num -> num) (n : num) : num=  (if n =( 0 : num) then( 1 : num) else f (n -( 1 : num))))
+(* before a *)
+/\ ((a:num -> num) (x : num) : num=  (if x =( 0 : num) then( 1 : num) else f x))`;
+
+val _ = Lib.with_flag (computeLib.auto_import_definitions, false) (List.map Defn.save_defn) f_defn;
+=== test_nomatch: HOL4 -hol_remove_matches
+(* before f *)
+ val f_defn = Defn.Hol_multi_defns `
+ ((f:num -> num) (x : num) : num=  (if x =( 0 : num) then( 0 : num) else g (x -( 1 : num))))
+(* before g *)
+/\ ((g:num -> num) (n : num) : num=  (if n =( 0 : num) then( 1 : num) else f (n -( 1 : num))))
+(* before a *)
+/\ ((a:num -> num) (x : num) : num=  (if x =( 0 : num) then( 1 : num) else f x))`;
+
+val _ = Lib.with_flag (computeLib.auto_import_definitions, false) (List.map Defn.save_defn) f_defn;
+=== test_nomatch: Isabelle
+\<comment> \<open>\<open> before f \<close>\<close>
+function (sequential,domintros)  a  :: \<open> nat \<Rightarrow> nat \<close>  
+                   and g  :: \<open> nat \<Rightarrow> nat \<close>  
+                   and f  :: \<open> nat \<Rightarrow> nat \<close>  where 
+     \<open> f (x :: nat) = ( if x =( 0 :: nat) then( 0 :: nat) else g (x -( 1 :: nat)))\<close> 
+  for  "x"  :: " nat "
+\<comment> \<open>\<open> before g \<close>\<close>
+|\<open> g (n :: nat) = ( if n =( 0 :: nat) then( 1 :: nat) else f (n -( 1 :: nat)))\<close> 
+  for  "n"  :: " nat "
+\<comment> \<open>\<open> before a \<close>\<close>
+|\<open> a (x :: nat) = ( if x =( 0 :: nat) then( 1 :: nat) else f x )\<close> 
+  for  "x"  :: " nat " 
+by pat_completeness auto
+=== test_order: OCaml
+4:(* before zeta *)
+5:let rec zeta (x : t) : int=  ((match x with A -> 0 | B n -> mid (B n) ))
+6:(* before mid *)
+7:and mid (x : t) : int=  ((match x with A -> 1 | B n -> beta (B n) ))
+8:(* before beta *)
+9:and beta (x : t) : int=  ((match x with A -> 2 | B n -> zeta A ))
+=== test_order: Coq
+19:(* before zeta *)
+20:Program Fixpoint zeta   (x : t )   :  nat :=  match ( x) with  A => 0%nat | B n => mid (B n) end
+21:with mid   (x : t )   :  nat :=  match ( x) with  A => 1%nat | B n => beta (B n) end
+22:with beta   (x : t )   :  nat :=  match ( x) with  A => 2%nat | B n => zeta A end.
+=== test_order: HOL4
+(* before zeta *)
+ val zeta_defn = Defn.Hol_multi_defns `
+ ((zeta:t -> num) (x : t) : num=  ((case x of A =>( 0 : num) | B n => mid (B n) )))
+(* before mid *)
+/\ ((mid:t -> num) (x : t) : num=  ((case x of A =>( 1 : num) | B n => beta (B n) )))
+(* before beta *)
+/\ ((beta:t -> num) (x : t) : num=  ((case x of A =>( 2 : num) | B n => zeta A )))`;
+
+val _ = Lib.with_flag (computeLib.auto_import_definitions, false) (List.map Defn.save_defn) zeta_defn;
+=== test_order: HOL4 -hol_remove_matches
+(* before zeta *)
+ val zeta_defn = Defn.Hol_multi_defns `
+ ((zeta:t -> num) (A : t) : num= (( 0 : num)))
+/\ ((zeta:t -> num) ((B n) : t) : num=  (mid (B n))) /\ ((mid:t -> num) (A : t) : num= (( 1 : num)))
+/\ ((mid:t -> num) ((B n) : t) : num=  (beta (B n))) /\ ((beta:t -> num) (A : t) : num= (( 2 : num)))
+/\ ((beta:t -> num) ((B n) : t) : num=  (zeta A))`;
+
+val _ = Lib.with_flag (computeLib.auto_import_definitions, false) (List.map Defn.save_defn) zeta_defn;
+=== test_order: Isabelle
+\<comment> \<open>\<open> before zeta \<close>\<close>
+function (sequential,domintros)  beta  :: \<open> t \<Rightarrow> nat \<close>  
+                   and mid  :: \<open> t \<Rightarrow> nat \<close>  
+                   and zeta  :: \<open> t \<Rightarrow> nat \<close>  where 
+     \<open> zeta (A :: t) = (( 0 :: nat))\<close>
+|\<open> zeta ((B n) :: t) = ( mid (B n))\<close> 
+  for  "n"  :: " nat " |\<open> mid (A :: t) = (( 1 :: nat))\<close>
+|\<open> mid ((B n) :: t) = ( beta (B n))\<close> 
+  for  "n"  :: " nat " |\<open> beta (A :: t) = (( 2 :: nat))\<close>
+|\<open> beta ((B n) :: t) = ( zeta A )\<close> 
+  for  "n"  :: " nat " 
+by pat_completeness auto
+=== test_sorted: OCaml
+4:(* before alpha *)
+5:let rec alpha (x : t) : int=  ((match x with A -> 0 | B n -> beta (B n) ))
+6:(* before beta *)
+7:and beta (x : t) : int=  ((match x with A -> 1 | B n -> gamma (B n) ))
+8:(* before gamma *)
+9:and gamma (x : t) : int=  ((match x with A -> 2 | B n -> alpha A ))
+=== test_sorted: Coq
+19:(* before alpha *)
+20:Program Fixpoint alpha   (x : t )   :  nat :=  match ( x) with  A => 0%nat | B n => beta (B n) end
+21:with beta   (x : t )   :  nat :=  match ( x) with  A => 1%nat | B n => gamma (B n) end
+22:with gamma   (x : t )   :  nat :=  match ( x) with  A => 2%nat | B n => alpha A end.
+=== test_sorted: HOL4
+(* before alpha *)
+ val alpha_defn = Defn.Hol_multi_defns `
+ ((alpha:t -> num) (x : t) : num=  ((case x of A =>( 0 : num) | B n => beta (B n) )))
+(* before beta *)
+/\ ((beta:t -> num) (x : t) : num=  ((case x of A =>( 1 : num) | B n => gamma (B n) )))
+(* before gamma *)
+/\ ((gamma:t -> num) (x : t) : num=  ((case x of A =>( 2 : num) | B n => alpha A )))`;
+
+val _ = Lib.with_flag (computeLib.auto_import_definitions, false) (List.map Defn.save_defn) alpha_defn;
+=== test_sorted: HOL4 -hol_remove_matches
+(* before alpha *)
+ val alpha_defn = Defn.Hol_multi_defns `
+ ((alpha:t -> num) (A : t) : num= (( 0 : num)))
+/\ ((alpha:t -> num) ((B n) : t) : num=  (beta (B n))) /\ ((beta:t -> num) (A : t) : num= (( 1 : num)))
+/\ ((beta:t -> num) ((B n) : t) : num=  (gamma (B n))) /\ ((gamma:t -> num) (A : t) : num= (( 2 : num)))
+/\ ((gamma:t -> num) ((B n) : t) : num=  (alpha A))`;
+
+val _ = Lib.with_flag (computeLib.auto_import_definitions, false) (List.map Defn.save_defn) alpha_defn;
+=== test_sorted: Isabelle
+\<comment> \<open>\<open> before alpha \<close>\<close>
+function (sequential,domintros)  gamma  :: \<open> t \<Rightarrow> nat \<close>  
+                   and beta  :: \<open> t \<Rightarrow> nat \<close>  
+                   and alpha  :: \<open> t \<Rightarrow> nat \<close>  where 
+     \<open> alpha (A :: t) = (( 0 :: nat))\<close>
+|\<open> alpha ((B n) :: t) = ( beta (B n))\<close> 
+  for  "n"  :: " nat " |\<open> beta (A :: t) = (( 1 :: nat))\<close>
+|\<open> beta ((B n) :: t) = ( gamma (B n))\<close> 
+  for  "n"  :: " nat " |\<open> gamma (A :: t) = (( 2 :: nat))\<close>
+|\<open> gamma ((B n) :: t) = ( alpha A )\<close> 
+  for  "n"  :: " nat " 
+by pat_completeness auto

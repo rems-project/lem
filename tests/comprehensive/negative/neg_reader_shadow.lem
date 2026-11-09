@@ -1,0 +1,11 @@
+(* EXPECT: reserved synthesized binder *)
+(* arc-14 re-mark, be:S2: same contract, the _lemReader_ prefix — a
+   reader-LIFTED def binding a parameter in the reserved reader
+   namespace fail-stops (the injected leading parameter would be
+   silently shadowed by the user's). *)
+open import Pervasives_extra
+val amb : unit -> nat
+declare {lean} reader val amb
+declare lean target_rep function amb u = 0
+val use_amb : nat -> nat
+let use_amb _lemReader_amb = amb () + _lemReader_amb

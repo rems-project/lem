@@ -1,0 +1,27 @@
+open import Pervasives
+
+(* ================================================================
+   m7 single-evaluation pin (2026-08-31 backend quality review).
+
+   A multi-name destructuring let must evaluate its RHS ONCE — OCaml
+   binds the tuple once; the historical Lean emission duplicated the
+   RHS per bound name, so an impure RHS ran its effect once per
+   binding (and a supply-drawing RHS would fork the numbering).
+
+   The RHS is ONE opaque impure call returning a pair of consecutive
+   counter draws (hand-written TupleLetTick.lean in lean-test/ — a
+   pure-typed extern whose unsafe implementation and never_extract
+   armour are entirely hand-written, since the effect-retirement arc
+   deleted the backend's effectful mechanism) — deliberately NOT a
+   literal tuple: a literal tuple's per-name copies are
+   projection-simplified by the Lean compiler, which happens to erase
+   the sibling draws and mask the duplication. The compiled binary
+   TestTupleLetOnce.lean asserts the two bound values are exactly
+   (1, 2). Under RHS duplication the second binding re-evaluates the
+   call and binds (3, 4)'s second component: (1, 4) — the pin fails.
+   ================================================================ *)
+
+val tick_pair : unit -> nat * nat
+declare lean target_rep function tick_pair = `TupleLetTick.tickPair`
+
+let (first_draw, second_draw) = tick_pair ()

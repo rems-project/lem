@@ -1,0 +1,41 @@
+open import Pervasives_extra
+
+(* ======================================================================
+   Type variables named like a type or a value the definition mentions
+   (backend-hardening 2026-10-03, item 3). A definition's type variables
+   are Lean implicit binders ({t : Type}) and shadow every global of that
+   name inside the definition: `(y : t)` referred to the binder and `a`
+   became the Type. Lem renames a PARAMETER named like a type variable
+   (test p_tyvar_shadow); the backend now renames the type variable
+   ({t' : Type}) when the definition mentions a type or constant of its
+   name, choosing a primed name that is not a binder of the definition
+   either (primed, because Lem's own renamer turns a colliding LOCAL
+   binder into t1, t2, … at render time — the `let t = tn y` below
+   becomes `t1` — so a digit-suffixed choice could meet it).
+   ====================================================================== *)
+
+type t = A | B
+let tn (y : t) : nat = match y with A -> 1 | B -> 2 end
+
+let tv_f (x : 't) (y : t) : nat = tn y
+let tv_g (x : 't) (y : t) : 't = x
+let tv_h (x : 't) (y : t) : bool = y = A
+
+let a : nat = 3
+let tv_k (x : 'a) : nat = a
+let tv_m (x : 'a) : 'a * nat = (x, a + 1)
+(* a binder named like the first fresh candidate must not be captured *)
+let tv_n (x : 'a) (a' : nat) : nat = a + a'
+(* a nested annotation mentioning the renamed variable, and a local
+   binder named like the type *)
+let tv_p (x : 't) (y : t) : list 't =
+  let t = tn y in
+  if t = 1 then ([x] : list 't) else []
+
+assert tv_f_ok : (tv_f "s" B = (2:nat))
+assert tv_g_ok : (tv_g (3:nat) A = (3:nat))
+assert tv_h_ok : (tv_h "s" A = true)
+assert tv_k_ok : (tv_k "s" = (3:nat))
+assert tv_m_ok : (tv_m true = (true, (4:nat)))
+assert tv_n_ok : (tv_n "s" 2 = (5:nat))
+assert tv_p_ok : (tv_p "s" A = ["s"] && tv_p "s" B = [])

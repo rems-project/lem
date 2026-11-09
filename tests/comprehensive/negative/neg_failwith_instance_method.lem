@@ -1,0 +1,20 @@
+(* EXPECT: instance methods cannot carry [Inhabited] binders *)
+open import Pervasives_extra
+(* NEGATIVE probe (arc-8 S2, design note rule 3): a failure site whose
+   type mentions a type variable INSIDE a generated instance method.
+   [Inhabited] binders cannot be threaded onto instance methods (their
+   signatures are fixed by the class), so this must be a fail-closed
+   GENERATION-TIME error naming the instance's class and the escape
+   hatches — never a silent legacy-failwith / DAEMON fallback. The
+   site type is `wrap 'b`, whose derived instance is [Inhabited 'b]-
+   bounded, i.e. NOT unconditionally discharged. *)
+
+type wrap 'b = Wrap of 'b
+
+class ( unwrappy 'a )
+  val unwrap_swap : 'a -> 'a
+end
+
+instance forall 'b. ( unwrappy (wrap 'b) )
+  let unwrap_swap w = failwith "no swap"
+end

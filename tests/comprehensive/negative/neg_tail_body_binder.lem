@@ -1,0 +1,12 @@
+(* EXPECT: collide with a binder of the same name in the body *)
+(* tails-and-pmap-laws slice: a body-level binder named `lemTail` (here a
+   let under the `function` arm) would be indistinguishable from the
+   synthesized scrutinee binder in the generated text — refused, rename
+   the variable. *)
+open import Pervasives
+val bad : nat -> list nat -> nat
+let rec bad acc = function
+  | [] -> acc
+  | x :: xs -> let lemTail = x + 1 in bad (acc + lemTail) xs
+end
+declare {lean} structural val bad

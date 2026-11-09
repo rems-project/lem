@@ -1,0 +1,11 @@
+(* EXPECT: unsatisfied type class constraint *)
+(* Review round 2, 2026-09-30 (LOW-3): `lnot` at `nat` is NOT a reachable
+   Lean-vs-OCaml discrepancy. The Word library has no `WordNot nat`
+   instance, so a Lem program cannot apply `lnot` to a nat on ANY target
+   ("unsatisfied type class constraint: (Word.WordNot nat)"). The only Lean
+   binding of LemLib's lemNatLnot is library/transform.lem, which does not
+   typecheck (`unbound variable: find_non_pure`) and is not in the library
+   build. This probe pins the refusal, so the day an instance appears the
+   question returns (library-parity record §2). *)
+open import Pervasives_extra
+let v (n : nat) : nat = lnot n

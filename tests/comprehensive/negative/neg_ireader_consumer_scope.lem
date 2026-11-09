@@ -1,0 +1,11 @@
+(* EXPECT: outside an instance-reader scope *)
+(* Instance-reader slice: a consumer call at assert scope is the scope
+   error (the consumer's implementation needs the class). *)
+open import Pervasives
+val sw : unit -> nat
+declare lean target_rep function sw u = 0
+declare {lean} reader val sw = instance `NegImpl.Sw.sw`
+val scaled : nat -> nat
+declare lean target_rep function scaled = `NegImpl.scaled`
+declare {lean} reader_consumer val scaled = instance sw
+assert scaled_ok : (scaled 1 = 1)

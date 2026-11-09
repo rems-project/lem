@@ -121,8 +121,10 @@ let get_target (s1,n) =
     Target_html(s1)
   else if Ulib.Text.compare n (r"lem") = 0 then
     Target_lem(s1)
+  else if Ulib.Text.compare n (r"lean") = 0 then
+    Target_lean(s1)
   else
-    raise (Parse_error_locn(loc (),"Expected substitution target in {hol; isabelle; ocaml; coq; tex; html}, given " ^ Ulib.Text.to_string n))
+    raise (Parse_error_locn(loc (),"Expected substitution target in {hol; isabelle; ocaml; coq; lean; tex; html}, given " ^ Ulib.Text.to_string n))
 
 let build_fexp (Expr_l(e,_)) l =
   match e with
@@ -170,7 +172,7 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 %token <Ast.terminal * Ulib.Text.t> IN MEM MinusMinusGt
 %token <Ast.terminal> Class_ Do LeftArrow
 %token <Ast.terminal> Inst Inst_default
-%token <Ast.terminal> Module CompileMessage Field Type Automatic Manual Exhaustive Inexhaustive AsciiRep SetFlag TerminationArgument PatternMatch
+%token <Ast.terminal> Module CompileMessage Field Type Automatic Manual Exhaustive Inexhaustive AsciiRep SetFlag TerminationArgument PatternMatch SkipInstances ExtraImport Effectful Reader Fuel GroundRep ReaderSeed Supply ReaderConsumer FuelConsumer Structural FuelMeasure Assuming
 %token <Ast.terminal> RightAssoc LeftAssoc NonAssoc Infix Special TargetRep TargetSorts
 
 %start file
@@ -183,8 +185,50 @@ let mk_pre_x_l sk1 (sk2,id) sk3 l =
 
 %%
 
-x:
+/* A bare identifier token: `X`, or one of the Lean-backend annotation
+   words. Those words are CONTEXTUAL keywords: the lexer always tokenizes
+   them, but they act as keywords only in the `declare` productions (the
+   sole grammar positions expecting these tokens, and positions where an
+   identifier can never occur, so no LR conflict arises). Everywhere else
+   they reduce to ordinary identifiers, so `let fuel = 1` etc. keep parsing
+   for every target (blast-radius containment for non-Lean lem users).
+   Every production that takes a bare identifier token goes through this
+   nonterminal: `x` below, and the `target_rep` parameter list `x_ls`
+   (which took the raw `X` token until 2026-10-03, so `declare ocaml
+   target_rep function f fuel = ...` was a syntax error that upstream Lem
+   accepts; backend-hardening record). */
+x_tok:
   | X
+    { $1 }
+  | SkipInstances
+    { ($1, r"skip_instances") }
+  | ExtraImport
+    { ($1, r"extra_import") }
+  | Effectful
+    { ($1, r"effectful") }
+  | Reader
+    { ($1, r"reader") }
+  | Fuel
+    { ($1, r"fuel") }
+  | GroundRep
+    { ($1, r"ground_rep") }
+  | ReaderSeed
+    { ($1, r"reader_seed") }
+  | Supply
+    { ($1, r"supply") }
+  | ReaderConsumer
+    { ($1, r"reader_consumer") }
+  | FuelConsumer
+    { ($1, r"fuel_consumer") }
+  | Structural
+    { ($1, r"structural") }
+  | FuelMeasure
+    { ($1, r"fuel_measure") }
+  | Assuming
+    { ($1, r"assuming") }
+
+x:
+  | x_tok
     { X_l($1, loc ()) }
   | Lparen Eq Rparen
     { mk_pre_x_l $1 $2 $3 (loc ()) }
@@ -979,7 +1023,7 @@ target_rep_rhs_type :
 x_ls :
   |
     { [] }
-  | X x_ls
+  | x_tok x_ls
     { (Ast.X_l ($1, loc()))::$2 }
 
 sort :
@@ -1015,6 +1059,61 @@ declaration :
     { Decl_termination_argument_decl($1, $2, $3, $4, fst $5, $6) }
   | Declare targets_opt PatternMatch exhaustivity_setting id tnvar_list Eq Lsquare semi_ids Rsquare elim_opt
     { Decl_pattern_match_decl($1, $2, $3, $4, $5, $6, fst $7, $8, fst $9, fst (snd $9),snd (snd $9), $10, $11) }
+  | Declare targets_opt SkipInstances Type id
+    { Decl_skip_instances_decl($1, $2, $3, $4, $5) }
+  | Declare targets_opt ExtraImport BacktickString
+    { Decl_extra_import_decl($1, $2, $3, fst $4, snd $4) }
+  | Declare targets_opt Effectful Val id
+    { Decl_effectful_decl($1, $2, $3, $4, $5) }
+  | Declare targets_opt Reader Val id
+    { Decl_reader_decl($1, $2, $3, $4, $5) }
+  | Declare targets_opt Reader Val id Eq Inst BacktickString
+    { (* The INSTANCE-IMPLICIT reader (instance-reader slice, 2026-10-05):
+         the backticked text is the target's projection of a one-field
+         class (Lean: `Cls.field`); lifted definitions bind `[Cls]`
+         instead of an explicit `_lemReader_<name>` parameter. *)
+      Decl_reader_instance_decl($1, $2, $3, $4, $5, fst $6, $7, $8) }
+  | Declare targets_opt Fuel Val id Eq BacktickString
+    { Decl_fuel_decl($1, $2, $3, $4, $5, fst $6, $7) }
+  | Declare targets_opt Fuel Val id Eq Num
+    { (* A numeric per-declaration fuel BUDGET is a magic value (DESIGN,
+         "No magic values"). The production exists only so the form is
+         refused with its reason instead of a bare syntax error. *)
+      raise (Parse_error_locn(loc (), "the numeric fuel-budget form 'declare {lean} fuel val f = N' is not accepted: a per-declaration fuel literal is a magic value (doc/lean-backend/DESIGN.md, \"No magic values\"); fuel is a parameter of the generated code (the [LemFuel] instance), chosen by the caller at the entry point. Use the sentinel form: declare {lean} fuel val f = `sentinel`")) }
+  | Declare targets_opt GroundRep Val id Eq BacktickString
+    { Decl_ground_rep_decl($1, $2, $3, $4, $5, fst $6, $7) }
+  | Declare targets_opt ReaderSeed Val id
+    { Decl_reader_seed_decl($1, $2, $3, $4, $5) }
+  | Declare targets_opt Supply Val id
+    { Decl_supply_decl($1, $2, $3, $4, $5) }
+  | Declare targets_opt ReaderConsumer Val id
+    { Decl_reader_consumer_decl($1, $2, $3, $4, $5) }
+  | Declare targets_opt ReaderConsumer Val id Eq Inst id
+    { (* the consumer of the named INSTANCE reader: no argument is passed
+         at call sites; the callers bind the reader's class *)
+      Decl_reader_consumer_instance_decl($1, $2, $3, $4, $5, fst $6, $7, $8) }
+  | Declare targets_opt FuelConsumer Val id
+    { Decl_fuel_consumer_decl($1, $2, $3, $4, $5) }
+  | Declare targets_opt Structural Val id
+    { Decl_structural_decl($1, $2, $3, $4, $5) }
+  | Declare targets_opt FuelMeasure Val id Eq BacktickString
+    { Decl_fuel_measure_decl($1, $2, $3, $4, $5, fst $6, $7, None) }
+  | Declare targets_opt FuelMeasure Val id Eq BacktickString Assuming BacktickString
+    { (* The hypothesis-carrying form: the backticked Prop over the
+         function's parameters becomes the
+         FIRST hypothesis binder of the generated sufficiency obligation
+         (`lemHyp`); the wrapper is unchanged (fuel-free). *)
+      Decl_fuel_measure_decl($1, $2, $3, $4, $5, fst $6, $7, Some ($8, $9)) }
+  | Declare targets_opt FuelMeasure Val id Assuming BacktickString
+    { (* refused with its reason: a hypothesis qualifies a MEASURE *)
+      raise (Parse_error_locn(loc (), "'declare {lean} fuel_measure val f assuming `H`' has no measure: the hypothesis qualifies the sufficiency obligation OF a measure (`H -> measure <= fuel -> worker = wrapper`), so write declare {lean} fuel_measure val f = `<measure>` assuming `<H>`")) }
+  | Declare targets_opt Fuel Val id Eq BacktickString Assuming BacktickString
+    { (* refused with its reason: `assuming` belongs to fuel_measure *)
+      raise (Parse_error_locn(loc (), "'assuming' is not part of the fuel sentinel declare: a hypothesis qualifies a fuel MEASURE's sufficiency obligation -- keep declare {lean} fuel val f = `sentinel` and write declare {lean} fuel_measure val f = `<measure>` assuming `<H>`")) }
+  | Declare targets_opt FuelMeasure Val id Eq Num
+    { (* A numeral is not a data measure: the production exists only to
+         refuse the form with its reason. *)
+      raise (Parse_error_locn(loc (), "a numeral is not a fuel measure: 'declare {lean} fuel_measure val f = N' would hardcode the fuel, a magic value (doc/lean-backend/DESIGN.md, \"No magic values\"); a fuel measure is a Lean expression over the function's parameters, e.g. declare {lean} fuel_measure val f = `List.length xs + 1`")) }
 
 lemma_typ:
   | Lemma

@@ -1,0 +1,12 @@
+(* EXPECT: outside an instance-reader scope *)
+(* Instance-reader slice: instance fields cannot take the [Cls] binder,
+   so a read (or a lifted call) inside an instance method is a
+   generation-time error. *)
+open import Pervasives
+class (Sz 'a) val sz : 'a -> nat end
+val sw : unit -> nat
+declare lean target_rep function sw u = 0
+declare {lean} reader val sw = instance `NegImpl.Sw.sw`
+val get_sw : nat -> nat
+let get_sw x = sw () + x
+instance (Sz nat) let sz x = get_sw x end

@@ -1,0 +1,13 @@
+(* EXPECT: has a symbolic name, which is not a Lean identifier *)
+(* A user constant with a symbolic name and no `declare {lean} ascii_rep`
+   (linksem 2026-09-28, B1): the definition must be refused at generation
+   time, naming the ascii_rep fix, never emitted as `def >>=` (a Lean parse
+   error) with infix uses silently bound to Lean's Bind. *)
+open import Pervasives_extra
+
+type res 'a = Ok of 'a | Err of string
+
+val (>>=) : forall 'a 'b. res 'a -> ('a -> res 'b) -> res 'b
+let (>>=) x f = match x with Ok v -> f v | Err e -> Err e end
+
+let twice (x : res nat) = x >>= (fun v -> Ok (v + v))

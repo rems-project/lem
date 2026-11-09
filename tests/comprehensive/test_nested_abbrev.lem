@@ -1,0 +1,43 @@
+open import Pervasives_extra
+
+(* ======================================================================
+   Nested inductives through type abbreviations (linksem 2026-09-28, B4).
+   linksem's dwarf.lem ties a knot through a parameter:
+     type c_type_top 't = ... | CT_array of cupdie * 't * list (array_dimension 't)
+     type c_type = CT of c_type_top c_type
+   where array_dimension is an ABBREVIATION. Lean's kernel rejects the
+   nested occurrence unless the abbreviation is unfolded in the constructor
+   argument; the backend prints such abbreviations expanded (closed ones,
+   like `pair_nb` here, keep their names).
+   ====================================================================== *)
+
+type dim 't = maybe nat * maybe 't
+type member 't = string * 't
+type pair_nb = nat * bool
+
+type top 't =
+  | Leaf of nat
+  | Arr of 't * list (dim 't)
+  | Strct of maybe (list (member 't))
+  | Plain of list pair_nb
+
+type ty = CT of top ty
+
+(* an abbreviation inside a mutual group, mentioning the group *)
+type tree = Node of list forest_entry
+and forest_entry = Entry of nat * tree
+
+let rec ty_size (t : ty) : nat =
+  match t with
+  | CT (Leaf n) -> n
+  | CT (Arr t' ds) -> 1 + ty_size t' + List.length ds
+  | CT (Strct Nothing) -> 0
+  | CT (Strct (Just ms)) -> List.foldl (fun acc (_, t') -> acc + ty_size t') 0 ms
+  | CT (Plain l) -> List.length l
+  end
+
+let sample = CT (Arr (CT (Leaf 3)) [(Just 1, Nothing); (Nothing, Just (CT (Leaf 9)))])
+let sample_struct = CT (Strct (Just [("a", CT (Leaf 2)); ("b", CT (Plain [(1, true)]))]))
+
+assert nested_abbrev_arr : (ty_size sample = 6)
+assert nested_abbrev_struct : (ty_size sample_struct = 3)

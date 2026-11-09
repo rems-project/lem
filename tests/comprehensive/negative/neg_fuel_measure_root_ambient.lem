@@ -1,0 +1,10 @@
+(* EXPECT: FM-root *)
+(* pre-merge audit M1 (2026-09-04): `_root_.LemFuel.fuel` evaded the
+   head-only FM-ambient check and compiled to a fuel-DEPENDENT wrapper
+   (its obligation false, hence unprovable — the kernel backstop held);
+   a `_root_` head is now refused outright. *)
+open import Pervasives
+val len : list nat -> nat
+let rec len l = match l with | [] -> 0 | _ :: xs -> 1 + len xs end
+declare {lean} fuel val len = `999`
+declare {lean} fuel_measure val len = `_root_.LemFuel.fuel + 0 * List.length l`

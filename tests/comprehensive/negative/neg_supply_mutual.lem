@@ -1,0 +1,12 @@
+(* EXPECT: mutual block *)
+(* Supply v1 restriction (effect-retirement L1): supply lifting in a
+   TRULY mutual block is unsupported (extend when needed) — acyclic
+   rec-and blocks de-mutualize and thread fine. *)
+open import Pervasives
+val tick : unit -> nat
+declare lean target_rep function tick u = 0
+declare {lean} supply val tick
+val ping2 : nat -> nat
+val pong2 : nat -> nat
+let rec ping2 n = if n = 0 then tick () else pong2 (n - 1)
+and pong2 n = if n = 0 then 1 else ping2 (n + 1)

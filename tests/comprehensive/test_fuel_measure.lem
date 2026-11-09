@@ -1,0 +1,111 @@
+open import Pervasives
+
+(* ================================================================
+   Fuel INSTANTIATED FROM A DATA MEASURE (fuel-measure slice, 2026-09-04).
+
+   [USER 2026-09-04]: the lem structure is kept, and the extra
+   properties come without any decrease in trust. A fuel'd
+   function whose recursion is bounded by its data is NOT restructured
+   for Lean's structural checker; instead
+
+     declare {lean} fuel_measure val f = `<Lean expr over f's parameters>`
+
+   makes the WRAPPER instantiate the worker's counter from the measure:
+   `def f (x : T) : R := f_lemFuel (<measure>) x` — no `[LemFuel]`
+   binder, no ambient fuel, so `f` is fuel-FREE for its callers (its
+   consumers inherit no binder) and the kernel computes through it. The
+   worker (and the OCaml output) are untouched. The companion obligation
+   `f_measure_sufficient` — the measure is a sufficient fuel — is emitted
+   as a theorem STATEMENT into the auxiliary file, proved by hand in
+   `Test_fuel_measure_lemMeasureProofs.lean` (imported by the auxiliary
+   file; the build fails without it).
+
+   Pins: lean-test/TestFuelMeasureCheck.lean (kernel: decide/rfl through
+   the measured wrappers; consumers have no binder), the proofs module
+   (the obligations, kernel-checked, #print axioms), parity/probes/
+   p_fuel_measure.lem (two-target). Measured functions are fuel-free, so
+   they ARE assertable from lem (below). A measure over a user inductive
+   type is a hand-written structural size function in a Lean module the
+   generated module imports — test_fuel_measure_tree.lem (the type must
+   live in an earlier module: a size function over a type defined in the
+   SAME module as the measured function would need to import that module
+   — a cycle; see the record).
+   ================================================================ *)
+
+(* list recursion: one counter step per element plus the base case. The
+   measure is a COMPUTABLE Lean expression — the wrapper executes it
+   (Lean's automatic `sizeOf` is noncomputable and is refused:
+   negative/neg_fuel_measure_sizeof.lem); `l.length + 1` (dot notation on
+   the parameter) and `List.length l + 1` (a qualified global) are both
+   admitted, an unqualified global is not (neg_fuel_measure_freevar) *)
+val mlen : list nat -> nat
+let rec mlen l = match l with | [] -> 0 | _ :: xs -> 1 + mlen xs end
+declare {lean} fuel val mlen = `999`
+declare {lean} fuel_measure val mlen = `List.length l + 1`
+
+(* a consumer of a measured function: NO [LemFuel] binder *)
+val uses_mlen : list nat -> nat
+let uses_mlen l = mlen l + 1
+
+(* nat recursion by subtraction (not structural on this backend — the
+   n+k pattern desugars to arithmetic): the measure carries the +1 for
+   the base case; a numeral INSIDE a data measure is not a magic value
+   (the sufficiency theorem certifies the measure), only a measure that
+   IS a numeral is (negative/neg_fuel_measure_literal.lem) *)
+val mspin : nat -> nat
+let rec mspin n = if n = 0 then 0 else mspin (n - 1)
+declare {lean} fuel val mspin = `fuelExhausted n`
+declare {lean} fuel_measure val mspin = `n + 1`
+
+(* two parameters, the measure on the second; a primed parameter name
+   (the measure is written with the lem name and rendered with the Lean
+   binder) *)
+val mrev_acc : list nat -> list nat -> list nat
+let rec mrev_acc acc l' = match l' with | [] -> acc | x :: xs -> mrev_acc (x :: acc) xs end
+declare {lean} fuel val mrev_acc = `[]`
+declare {lean} fuel_measure val mrev_acc = `l'.length + 1`
+
+(* a measured function whose body calls an AMBIENT fuel'd function: its
+   own counter is the measure, but it passes the ambient on, so the
+   wrapper (and its consumers) take [LemFuel] — measured ≠ fuel-lifted *)
+val aspin : nat -> nat
+let rec aspin n = if n = 0 then 0 else aspin (n - 1)
+declare {lean} fuel val aspin = `998`
+val mouter : list nat -> nat
+let rec mouter l = match l with | [] -> aspin 3 | _ :: xs -> mouter xs end
+declare {lean} fuel val mouter = `997`
+declare {lean} fuel_measure val mouter = `List.length l + 1`
+
+(* fuel x reader x measure: the wrapper binds the reader parameter before
+   the arguments and passes it to the worker *)
+val amb : unit -> nat
+declare lean target_rep function amb u = 0
+declare {lean} reader val amb
+val msum_amb : list nat -> nat
+let rec msum_amb l = match l with | [] -> amb () | x :: xs -> x + msum_amb xs end
+declare {lean} fuel val msum_amb = `996`
+declare {lean} fuel_measure val msum_amb = `List.length l + 1`
+
+(* a truly mutual measured block (all-or-none): the members share one
+   counter; each wrapper starts it from its own measure *)
+val mev : list nat -> bool
+val modd : list nat -> bool
+let rec mev l = match l with | [] -> true | _ :: xs -> modd xs end
+and modd l = match l with | [] -> false | _ :: xs -> mev xs end
+declare {lean} fuel val mev = `false`
+declare {lean} fuel val modd = `true`
+declare {lean} fuel_measure val mev = `List.length l + 1`
+declare {lean} fuel_measure val modd = `List.length l + 1`
+
+(* a measured function used as a VALUE (a bare reference to a HOF) and
+   as an instance method's implementation would both be legal — it is an
+   ordinary def; the HOF use: *)
+let maps_mspin (l : list nat) : list nat = List.map mspin l
+
+(* fuel-free, so assertable from lem (a fuel'd ambient function is not:
+   negative/neg_fuel_scope_assert.lem) *)
+assert mlen_ok : (mlen [1; 2; 3] = (3 : nat))
+assert mspin_ok : (mspin 5 = (0 : nat))
+assert mrev_acc_ok : (mrev_acc [] [1; 2; 3] = [3; 2; 1])
+assert mev_ok : (mev [1; 2] && not (mev [1; 2; 3]))
+assert maps_mspin_ok : (maps_mspin [1; 2] = [0; 0])

@@ -62,6 +62,7 @@ type non_ident_target =
   | Target_tex
   | Target_html
   | Target_lem
+  | Target_lean
 
 type target =
   | Target_no_ident of non_ident_target 
@@ -72,9 +73,10 @@ let all_targets_list = [
   Target_lem; 
   Target_hol; 
   Target_isa; 
-  Target_coq; 
-  Target_tex; 
-  Target_html;] 
+  Target_coq;
+  Target_lean;
+  Target_tex;
+  Target_html;]
 
 let all_targets_only_exec_list = [
   Target_ocaml
@@ -88,6 +90,7 @@ let ast_target_to_target t = match t with
   | Ast.Target_tex   _ -> Target_tex
   | Ast.Target_html  _ -> Target_html
   | Ast.Target_lem   _ -> Target_lem
+  | Ast.Target_lean  _ -> Target_lean
 
 let target_to_ast_target t = match t with
   | Target_hol   -> Ast.Target_hol None
@@ -97,11 +100,13 @@ let target_to_ast_target t = match t with
   | Target_tex   -> Ast.Target_tex None
   | Target_html  -> Ast.Target_html None
   | Target_lem   -> Ast.Target_lem None
+  | Target_lean  -> Ast.Target_lean None
 
 let target_compare = Stdlib.compare
 
 let ast_target_to_int = function
-  | Ast.Target_lem _   -> 7
+  | Ast.Target_lem _   -> 8
+  | Ast.Target_lean _  -> 7
   | Ast.Target_hol _   -> 6
   | Ast.Target_ocaml _ -> 5
   | Ast.Target_isa _   -> 4
@@ -152,6 +157,7 @@ let non_ident_target_to_string = function
   | Target_tex -> "tex"
   | Target_html -> "html"
   | Target_lem -> "lem"
+  | Target_lean -> "lean"
 
 let target_to_string = function
   | Target_ident -> "ident"
@@ -168,6 +174,7 @@ let target_to_output t =
       | Ast.Target_tex(s) -> ws s ^ id a (r"tex")
       | Ast.Target_html(s) -> ws s ^ id a (r"html")
       | Ast.Target_lem(s) -> ws s ^ id a (r"lem")
+      | Ast.Target_lean(s) -> ws s ^ id a (r"lean")
 
 let non_ident_target_to_mname = function
   | Target_hol -> Name.from_rope (r"Hol")
@@ -177,6 +184,7 @@ let non_ident_target_to_mname = function
   | Target_tex -> Name.from_rope (r"Tex")
   | Target_html -> Name.from_rope (r"Html")
   | Target_lem -> Name.from_rope (r"Lem")
+  | Target_lean -> Name.from_rope (r"Lean")
 
 
 let is_human_target = function
@@ -184,6 +192,7 @@ let is_human_target = function
   | Target_no_ident Target_isa   -> false
   | Target_no_ident Target_hol   -> false
   | Target_no_ident Target_coq   -> false
+  | Target_no_ident Target_lean  -> false
   | Target_no_ident Target_ocaml -> false
   | Target_no_ident Target_html  -> true
   | Target_no_ident Target_tex   -> true

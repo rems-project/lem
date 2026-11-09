@@ -1,0 +1,14 @@
+(* EXPECT: renders on Lean as `lemFuel` — a reserved synthesized binder name *)
+(* tails-and-pmap-laws audit response F1 (pre-merge audit probe p11c, a
+   PRE-EXISTING hole: accepted by the ecf75b4 lem): a constant whose Lean
+   target_rep text is `lemFuel`, referenced in a fuel'd body, renders as
+   the worker's counter binder — captured. The same generic check covers
+   every reserved name ('lemFuel', 'lemMeasureLe', 'LemFuel', 'lemTail',
+   the '_lemReader_'/'_lemSupply' prefixes). *)
+open import Pervasives
+val seven : nat
+let seven = 7
+declare lean target_rep function seven = `lemFuel`
+val g : nat -> nat
+let rec g n = if n = 0 then seven else g (n - 1)
+declare {lean} fuel val g = `0`

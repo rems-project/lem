@@ -1,0 +1,8 @@
+(* EXPECT: type 'Num.real' has no implementation on the Lean target *)
+(* Census X4, the value entry-point leg: a real is only ever built through
+   realFromNumeral/realFromInteger/realFromFrac (or a literal at type real),
+   all marked unsupported for Lean; the inferred result type `real` in the
+   emitted signature is refused first (the constant-level check is
+   exercised by neg_unsupported_debug_print, a Unit-typed constant). *)
+open import Pervasives_extra
+let r = realFromInteger 3

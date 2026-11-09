@@ -1,0 +1,10 @@
+(* EXPECT: inside an instance method *)
+(* Fuel-parameter arc: instance fields cannot take the [LemFuel] binder,
+   so a fuel'd (or fuel-lifted) call inside an instance method is a
+   generation-time error (the reader-lifting rule applied to fuel). *)
+open import Pervasives
+class (Sz 'a) val sz : 'a -> nat end
+val spin : nat -> nat
+let rec spin n = if n = 0 then 0 else spin (n - 1)
+declare {lean} fuel val spin = `999`
+instance (Sz nat) let sz x = spin x end

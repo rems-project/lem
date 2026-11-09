@@ -1,0 +1,56 @@
+(* Noodle probe: assorted numeric corners — natural/nat monus and pred,
+   abs, pow, min/max, conversions (natFromInteger/naturalFromInteger on
+   negatives, int32FromInteger in range), integer/natural bitwise ops on
+   negatives (lem-generic bitSeq path on Lean vs Nat_big_num/Z on OCaml),
+   integerSqrt on non-negatives. Expected values are the OCaml target's output. *)
+open import Pervasives_extra
+
+let si (x : integer) : string = stringFromInteger x
+let sn (x : nat) : string = stringFromNat x
+let sN (x : natural) : string = stringFromNatural x
+let sI (x : int) : string = stringFromInt x
+
+let results : list string =
+  [ "nat 3-5: " ^ sn ((3:nat) - 5);
+    "natural 3-5: " ^ sN ((3:natural) - 5);
+    "nat pred 0: " ^ sn (pred (0:nat));
+    "natural pred 0: " ^ sN (pred (0:natural));
+    "integer pred 0: " ^ si (pred (0:integer));
+    "int pred 0: " ^ sI (pred (0:int));
+    "integer abs -5: " ^ si (abs (0-5:integer));
+    "int abs -5: " ^ sI (abs (0-5:int));
+    "integer pow -2 3: " ^ si ((0-2:integer) ** 3);
+    "int pow -2 3: " ^ sI ((0-2:int) ** 3);
+    "integer pow 2 0: " ^ si ((2:integer) ** 0);
+    "nat pow 2 10: " ^ sn ((2:nat) ** 10);
+    "natural pow 3 4: " ^ sN ((3:natural) ** 4);
+    "integer min -3 2: " ^ si (min (0-3:integer) 2);
+    "integer max -3 2: " ^ si (max (0-3:integer) 2);
+    "int min -3 2: " ^ sI (min (0-3:int) 2);
+    "natFromInteger -7: " ^ sn (natFromInteger (0-7));
+    "naturalFromInteger -7: " ^ sN (naturalFromInteger (0-7));
+    "natFromInt -7: " ^ sn (natFromInt (0-7));
+    "intFromInteger -7: " ^ sI (intFromInteger (0-7));
+    "integerFromInt32 (int32FromInteger -7): " ^ si (integerFromInt32 (int32FromInteger (0-7)));
+    "integerFromInt64 (int64FromInteger -7): " ^ si (integerFromInt64 (int64FromInteger (0-7)));
+    "integer land -6 3: " ^ si (integerLand (0-6) 3);
+    "integer lor -6 3: " ^ si (integerLor (0-6) 3);
+    "integer lxor -6 3: " ^ si (integerLxor (0-6) 3);
+    "integer lsl -1 3: " ^ si (integerLsl (0-1) 3);
+    "integer asr -7 1: " ^ si (integerAsr (0-7) 1);
+    "integer asr -1 5: " ^ si (integerAsr (0-1) 5);
+    "integer asr 7 1: " ^ si (integerAsr 7 1);
+    "integer lsl 1 70: " ^ si (integerLsl 1 70);
+    "integer asr huge: " ^ si (integerAsr (integerLsl 1 70) 69);
+    "natural land 12 10: " ^ sN (naturalLand 12 10);
+    "natural lor 12 10: " ^ sN (naturalLor 12 10);
+    "natural lxor 12 10: " ^ sN (naturalLxor 12 10);
+    "natural lsl 3 4: " ^ sN (naturalLsl 3 4);
+    "natural asr 48 3: " ^ sN (naturalAsr 48 3);
+    "integerSqrt 17: " ^ si (integerSqrt 17);
+    "integerSqrt 0: " ^ si (integerSqrt 0);
+    "integer succ -1: " ^ si (succ (0-1:integer));
+    "integer div_t -7 2: " ^ si (integerDiv_t (0-7) 2) ^ " rem_t: " ^ si (integerRem_t (0-7) 2) ^ " rem_f: " ^ si (integerRem_f (0-7) 2);
+    "integer div_t 7 -2: " ^ si (integerDiv_t 7 (0-2)) ^ " rem_t: " ^ si (integerRem_t 7 (0-2)) ^ " rem_f: " ^ si (integerRem_f 7 (0-2));
+    "integer div_t -7 -2: " ^ si (integerDiv_t (0-7) (0-2)) ^ " rem_t: " ^ si (integerRem_t (0-7) (0-2)) ^ " rem_f: " ^ si (integerRem_f (0-7) (0-2))
+  ]

@@ -1,0 +1,26 @@
+(* EXPECT: is a variable that is not bound by a constructor pattern *)
+(* structural-declare slice: recursion through a RECORD pattern on a
+   recursive record type. lem compiles the record pattern into a match
+   on the field projections — the generated Lean reads
+     def chain_len (c : chain) : Nat := match c.head, c.tail with
+       | _, none => 1 | _, some c' => 1 + chain_len c'
+   — and Lean's structural checker cannot eliminate a recursive
+   application through a projection. Measured (development of this
+   slice, Lean 4.28.0, verbatim):
+     error: Test_structural.lean:128:1: failed to infer structural recursion:
+     Cannot use parameter c:
+       failed to eliminate recursive application
+         chain_len c'
+   The analysis therefore does not track projections and refuses here at
+   generation time, naming the variable. (A recursive record is not
+   structurally recursable through record patterns on this backend; the
+   Lean build is the backstop for anything the analysis cannot see.) *)
+open import Pervasives
+type chain = <| head : nat; tail : maybe chain |>
+val chain_len : chain -> nat
+let rec chain_len c =
+  match c with
+    | <| head = _; tail = Nothing |> -> 1
+    | <| head = _; tail = Just c' |> -> 1 + chain_len c'
+  end
+declare {lean} structural val chain_len

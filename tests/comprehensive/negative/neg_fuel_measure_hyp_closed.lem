@@ -1,0 +1,8 @@
+(* EXPECT: FH-vacuous *)
+(* measure-hypothesis slice: a CLOSED proposition (qualified constants only,
+   no parameter) is as vacuous as `True` — the same refusal. *)
+open import Pervasives
+val len : list nat -> nat
+let rec len l = match l with | [] -> 0 | _ :: xs -> 1 + len xs end
+declare {lean} fuel val len = `999`
+declare {lean} fuel_measure val len = `List.length l + 1` assuming `Nat.zero = Nat.zero`

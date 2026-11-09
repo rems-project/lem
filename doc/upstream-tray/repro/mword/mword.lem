@@ -1,0 +1,40 @@
+open import Pervasives_extra
+open import Machine_word
+
+let w8 (n : natural) : mword ty8 = wordFromNatural n
+let w4 (n : natural) : mword ty4 = wordFromNatural n
+
+(* OM1: negation *)
+let om1_uminus_zero () : natural = naturalFromWord (uminus (w8 0))
+let om1_uminus_zero_eq () : bool = (uminus (w8 0) = w8 0)
+let om1_from_integer () : natural = naturalFromWord (wordFromInteger (~256) : mword ty8)
+let om1_signed_divide () : natural = naturalFromWord (signedDivide (w8 255) (w8 5))
+
+(* OM2: getBit *)
+let om2_getbit_4_1 () : bool = getBit (w8 4) 1   (* 4 = 0b100: bit 1 is 0 *)
+let om2_getbit_8_2 () : bool = getBit (w8 8) 2   (* 8 = 0b1000: bit 2 is 0 *)
+let om2_getbit_2_1 () : bool = getBit (w8 2) 1   (* control: bit 1 is 1 *)
+
+(* OM3: setBit beyond the width *)
+let om3_setbit_10 () : natural = naturalFromWord (setBit (w8 0) 10 true)
+let om3_setbit_10_len () : nat = word_length (setBit (w8 0) 10 true)
+
+(* OM4: width from the value, not the type *)
+let om4_bitlist4_len () : nat = word_length (wordFromBitlist [true; false; true; true] : mword ty8)
+let om4_bitlist4_bits () : nat = length (bitlistFromWord (wordFromBitlist [true; false; true; true] : mword ty8))
+let om4_bitlist11 () : natural = naturalFromWord (wordFromBitlist [true; false; false; false; false; false; false; false; false; true; true] : mword ty8)
+let om4_extract_len () : nat = word_length (word_extract 0 3 (w8 171) : mword ty8)
+let om4_concat_len () : nat = word_length (word_concat (w4 10) (w4 5) : mword ty16)
+
+(* OM5: rotations and arithmetic shifts *)
+let om5_ror0 () : natural = naturalFromWord (rotateRight 0 (w8 1))
+let om5_rol8 () : natural = naturalFromWord (rotateLeft 8 (w8 1))
+let om5_rol9 () : natural = naturalFromWord (rotateLeft 9 (w8 1))
+let om5_ror9 () : natural = naturalFromWord (rotateRight 9 (w8 1))
+let om5_ror1 () : natural = naturalFromWord (rotateRight 1 (w8 1))
+let om5_asr9 () : natural = naturalFromWord (arithShiftRight (w8 128) 9)
+let om5_asr3 () : natural = naturalFromWord (arithShiftRight (w8 128) 3)
+
+(* LP5: wordToHex / show *)
+let lp5_hex () : string = wordToHex (w8 171)
+let lp5_show () : string = show (w8 171)

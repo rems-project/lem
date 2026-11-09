@@ -84,12 +84,19 @@ val (mod) : num -> num -> num
 (* ----------------------- *)
 (**)
 val (land) : num -> num -> num
+declare lean target_rep function (land) = `lemNatLand`
 val (lor) : num -> num -> num
+declare lean target_rep function (lor) = `lemNatLor`
 val (lxor) : num -> num -> num
+declare lean target_rep function (lxor) = `lemNatLxor`
 val lnot : num -> num
+declare lean target_rep function lnot = `lemNatLnot`
 val (lsl) : num -> num -> num
+declare lean target_rep function (lsl) = `lemNatLsl`
 val (lsr) : num -> num -> num
+declare lean target_rep function (lsr) = `lemNatLsr`
 val (asr) : num -> num -> num
+declare lean target_rep function (asr) = `lemNatAsr`
 (*
 val bigunion = forall 'a. set (set 'a) -> set 'a
 val biginter : forall 'a. set (set 'a) -> set 'a

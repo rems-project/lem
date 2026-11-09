@@ -1,0 +1,4 @@
+psum leaf: 7
+psum empty node: 0
+psum tree: 11
+psum chain 300: 1

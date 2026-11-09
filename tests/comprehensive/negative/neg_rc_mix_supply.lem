@@ -1,0 +1,11 @@
+(* EXPECT: both {lean} reader_consumer and {lean} supply *)
+(* reader_consumer guard RC-mix, supply leg (audit notes-a). *)
+open import Pervasives
+val cfg : unit -> nat
+declare lean target_rep function cfg u = 0
+declare {lean} reader val cfg
+val scaled : unit -> nat
+declare lean target_rep function scaled = `RCImpl.scaled`
+declare {lean} supply val scaled
+declare {lean} reader_consumer val scaled
+let uses x = scaled ()

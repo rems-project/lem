@@ -1,0 +1,7 @@
+(* EXPECT: type 'Num.rational' has no implementation on the Lean target *)
+(* Parity-fix audit response (2026-09-03, census X4): lem rational/real/
+   float64/float32 compute on the OCaml reference; the Lean backend has no
+   implementation and refuses any reference to the types or their value
+   entry points at generation time. *)
+open import Pervasives_extra
+let half (x : rational) : rational = x + x

@@ -1,0 +1,168 @@
+open import Pervasives_extra
+
+(* ================================================================
+   Unreferenced binders and the per-definition `termination_by` (TODO
+   item 54, 2026-11-07; record
+   doc/lean-backend/2026-11-07_unreferenced-binders-record.md).
+
+   Lean 4.32+ warns `Variable name … is not explicitly referenced` on a
+   pattern variable or parameter bound by name and unused in its scope,
+   and `unused termination_by, function is not recursive` on a clause
+   attached to a definition outside every cycle of its mutual block.
+   The backend (a) binds an unreferenced variable under its source name
+   with a leading underscore (`_v`; a name already spelled `_x` is left as
+   it is), decided on the typed AST's free
+   variables of the scope — every binding form below; (b) attaches the
+   derived comparison and size emitters' `termination_by structural`
+   clause exactly to the members of the emitted block that recurse (a
+   self-call or a cycle through other members), the rule Lean applies
+   per strongly connected component.
+
+   Pins: the Makefile target lean-unreferenced-binders (the generated
+   text: the underscored binders, the clause present or absent per
+   definition, the kept-name leg, the negative plant
+   lean-test/TestWarningPlant.lean that must FAIL to build under the
+   package's -DwarningAsError=true); lean-compile at zero warnings under
+   that flag; lean-test/TestUnreferencedBindersCheck.lean (the rendered
+   binder names by Lean's named-argument syntax; values by rfl/decide).
+   ================================================================ *)
+
+(* ---- (b) derived comparisons and sizes: the clause per definition ---- *)
+
+(* a non-recursive type with constructor arguments (a nullary constructor
+   AFTER a block one routes it through the backend's derivation rather
+   than Lean's `deriving`): beq_derived and compare_derived carry NO
+   clause (before: an inert one each); no lemSize is derived for a
+   non-recursive type *)
+type nonrec_t = NA of nat | NB of nat * bool | NZ
+
+(* a recursive type: the clause on both comparisons and on lemSize *)
+type rec_t = RNode of rec_t * nat | RLeaf
+
+(* a type block with one recursive member (mA), one that only calls into
+   it (mC: a clause there is inert — Lean's rule is per strongly connected
+   component, measured on 4.35.0) and one outside every cycle (mB): the
+   clause on mA's definitions only *)
+type mA = MA_leaf | MA_node of mA * nat
+and mB = MB of nat * bool
+and mC = MC of mA * nat
+
+(* the option helper IN a cycle keeps its clause (it calls ot's
+   comparison, which calls it back) *)
+type ot = ONode of maybe ot | OLeaf
+
+assert ub_nonrec_eq : ((NB 1 true : nonrec_t) = NB 1 true)
+assert ub_nonrec_ne : (not ((NA 1 : nonrec_t) = NB 1 true))
+assert ub_rec_eq : ((RNode (RNode RLeaf 1) 2 : rec_t) = RNode (RNode RLeaf 1) 2)
+assert ub_rec_ne : (not ((RNode RLeaf 1 : rec_t) = RNode RLeaf 2))
+assert ub_mc_eq : ((MC (MA_node MA_leaf 3) 4 : mC) = MC (MA_node MA_leaf 3) 4)
+assert ub_mb_ne : (not ((MB 1 true : mB) = MB 1 false))
+assert ub_ot_eq : ((ONode (Just (ONode Nothing)) : ot) = ONode (Just (ONode Nothing)))
+assert ub_ot_ne : (not ((ONode (Just OLeaf) : ot) = ONode Nothing))
+
+(* ---- (a) unreferenced binders, one per binding form ---- *)
+
+(* def parameters: y unreferenced -> `_y`; x keeps its name *)
+let def_params (x : nat) (y : nat) : nat = x
+
+(* lambda parameters: x unreferenced *)
+let lambda_params : nat -> nat -> nat = fun x y -> y
+
+(* match arm: v unreferenced *)
+let match_arm (o : maybe nat) : nat = match o with | Just v -> 0 | Nothing -> 1 end
+
+(* `function` arms (compiled to a lambda and a match): v unreferenced *)
+let function_arm : maybe nat -> nat = function | Just v -> 7 | Nothing -> 8 end
+
+(* tuple pattern in a match, nested: b unreferenced, a and c referenced *)
+let tuple_arm (p : nat * (nat * nat)) : nat = match p with | (a, (b, c)) -> a + c end
+
+(* let pattern: b unreferenced *)
+let let_pattern (p : nat * nat) : nat = let (a, b) = p in a
+
+(* a named pattern: x unreferenced, the alias y and w referenced *)
+let as_pattern (p : nat * nat) : nat * nat =
+  match p with | ((x, w) as y) -> (fst y, w + 2) end
+
+(* a local lambda bound by let: y unreferenced *)
+let local_fun (n : nat) : nat = let f = fun (x : nat) (y : nat) -> x in f n n
+
+(* shadowing: the outer x is unreferenced (the inner let rebinds x) *)
+let shadowed : nat -> nat = fun x -> let x = (5 : nat) in x
+
+(* a recursive definition (partial def): tag unreferenced in the body *)
+let rec rec_unused (tag : nat) (l : list nat) : nat =
+  match l with | [] -> 0 | _ :: xs -> 1 + rec_unused 0 xs end
+
+(* equation clauses: y unreferenced in both clauses *)
+let rec eq_clauses (0 : nat) (y : nat) : nat = 1 and eq_clauses (n : nat) (y : nat) : nat = n
+
+(* an instance method: x unreferenced *)
+class ( Tagged 'a )
+  val tag_of : 'a -> nat
+end
+instance (Tagged nonrec_t)
+  let tag_of x = 42
+end
+
+(* a do line: x is referenced by no later line *)
+module M = struct
+  type t 'a = maybe 'a
+  val return : forall 'a. 'a -> maybe 'a
+  val bind : forall 'a 'b. maybe 'a -> ('a -> maybe 'b) -> maybe 'b
+  let return x = Just x
+  let bind x f = match x with | Nothing -> Nothing | Just y -> f y end
+end
+let do_line : maybe nat =
+  do M
+    x <- M.return (1 : nat) ;
+    y <- M.return (2 : nat) ;
+  in
+    M.return y
+  end
+
+(* a top-level destructuring let: each projection def binds only its own
+   name (`let (ta, _tb) := …; ta` and `let (_ta, tb) := …; tb`) *)
+let (ta, tb) = ((3 : nat), (4 : nat))
+
+(* a kept name: the fuel sentinel's text names `tag`, which the body never
+   references — the worker binds it under its own name *)
+let rec loop (tag : nat) (n : nat) : nat = if n = 0 then 0 else loop 7 (n - 1)
+declare {lean} fuel val loop = `fuelExhausted tag`
+
+(* a source name already spelled with the underscore (the OCaml convention
+   for an unused variable; pre-merge review F1): an unreferenced `_x` stays
+   `_x`, never `__x`; a referenced `_x` is untouched; so in an arm *)
+let keep_us (_x : nat) (y : nat) : nat = y
+let use_us (_x : nat) : nat = _x + 1
+let arm_us (o : maybe nat) : nat = match o with | Just _v -> 0 | Nothing -> 1 end
+
+(* the kept names protect the clause head's parameters only (pre-merge
+   review F3): a nested arm binder spelled like the sentinel's parameter
+   `tag`, and a nested lambda binder spelled like the structural parameter
+   `l`, are decided on the body alone *)
+let rec loop_arm (tag : nat) (o : maybe nat) : nat =
+  match o with | Just tag -> loop_arm 7 Nothing | Nothing -> 0 end
+declare {lean} fuel val loop_arm = `fuelExhausted tag`
+let rec slen (l : list nat) : nat =
+  match l with | [] -> 0 | _ :: l2 -> (fun (l : list nat) -> 1) [] + slen l2 end
+declare {lean} structural val slen
+
+assert ub_keep_us : (keep_us 1 2 = 2)
+assert ub_use_us : (use_us 1 = 2)
+assert ub_arm_us : (arm_us (Just 5) = 0 && arm_us Nothing = 1)
+assert ub_slen : (slen [1; 2; 3] = 3)
+assert ub_def_params : (def_params 1 2 = 1)
+assert ub_lambda_params : (lambda_params 1 2 = 2)
+assert ub_match_arm : (match_arm (Just 5) = 0 && match_arm Nothing = 1)
+assert ub_function_arm : (function_arm (Just 5) = 7 && function_arm Nothing = 8)
+assert ub_tuple_arm : (tuple_arm (1, (2, 3)) = 4)
+assert ub_let_pattern : (let_pattern (1, 2) = 1)
+assert ub_as_pattern : (as_pattern (1, 2) = (1, 4))
+assert ub_local_fun : (local_fun 6 = 6)
+assert ub_shadowed : (shadowed 1 = 5)
+assert ub_rec_unused : (rec_unused 9 [1; 2; 3] = 3)
+assert ub_eq_clauses : (eq_clauses 0 9 = 1 && eq_clauses 4 9 = 4)
+assert ub_tag_of : (tag_of (NA 0) = 42)
+assert ub_do_line : (do_line = Just 2)
+assert ub_tuple_let : (ta + tb = 7)

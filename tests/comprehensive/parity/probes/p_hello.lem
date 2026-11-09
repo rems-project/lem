@@ -1,0 +1,2 @@
+open import Pervasives_extra
+let results : list string = ["hello"; show (1:nat); show (0-3:integer)]

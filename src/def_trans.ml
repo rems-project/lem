@@ -360,7 +360,9 @@ let comment_out_inline_instances_and_classes targ mod_path (env : env) (((d,s),l
   let l_unk = Ast.Trans(false, "comment_out_inline_instances", Some l) in
   match d with
       | Instance(Ast.Inst_default sk1, i_ref, (prefix, sk2, id, class_path, t, sk3), vdefs, sk4) ->
-            Some(env,[comment_def def])
+            (* Lean emits default_instance as low-priority instances *)
+            if targ = Target.Target_no_ident Target.Target_lean then None
+            else Some(env,[comment_def def])
       | Instance(Ast.Inst_decl sk1, i_ref, (prefix, sk2, id, class_path, t, sk3), vdefs, sk4) ->
           let cd = lookup_class_descr l_unk env class_path in
           if cd.class_is_inline || class_all_methods_inlined_for_target l env targ class_path then Some(env,[comment_def def]) else None

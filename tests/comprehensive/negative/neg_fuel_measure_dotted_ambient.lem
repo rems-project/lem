@@ -1,0 +1,8 @@
+(* EXPECT: FM-ambient *)
+(* pre-merge audit M1: the forbidden names are tested on EVERY dotted
+   component — `LemFuel` in a non-head position is refused too. *)
+open import Pervasives
+val len : list nat -> nat
+let rec len l = match l with | [] -> 0 | _ :: xs -> 1 + len xs end
+declare {lean} fuel val len = `999`
+declare {lean} fuel_measure val len = `Some.Ns.LemFuel.fuel + List.length l`

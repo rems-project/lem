@@ -1,0 +1,21 @@
+tuple: (1, 0)
+app2: (3, 2)
+app3: [6; 5; 4]
+list: [9; 8; 7]
+record: (11, 10)
+cons: [13; 12]
+arith: 164
+nested: (18, (17, 16))
+lets: (19, 20)
+head: (22, 21)
+record_rev: (25, 24)
+ctor: (27, 26)
+ctor_tuple: (2829, 2829)
+nested_app: (32, 30)
+cmp: (false, 35)
+str: 37-36
+if: (0, 39)
+match: (0, 41)
+field: 42
+just: Just ((45, 44))
+just1: Just (46)

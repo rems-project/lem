@@ -1,0 +1,12 @@
+(* EXPECT: infix position *)
+(* Supply guard G-infix (effect-retirement L1): a supply-lifted
+   definition (here a drawing operator) used in infix position cannot
+   be threaded. *)
+open import Pervasives
+val tick : unit -> nat
+declare lean target_rep function tick u = 0
+declare {lean} supply val tick
+val (+++) : nat -> nat -> nat
+let (+++) x y = x + y + tick ()
+val uses_op : nat -> nat
+let uses_op a = a +++ 2

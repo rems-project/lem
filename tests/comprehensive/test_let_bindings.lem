@@ -1,0 +1,163 @@
+open import Pervasives_extra
+
+(* ================================================================ *)
+(* Simple let forms                                                 *)
+(* (from test_let_forms.lem)                                        *)
+(* ================================================================ *)
+
+(* === Simple let bindings === *)
+let let_simple1 = let x = (2 : nat) in x
+let let_simple2 = let x : nat = 2 in x
+
+(* === Let with pattern === *)
+let let_tuple = let (x, y) = ((2:nat), 3) in x + y
+let let_just = let Just x = Just (5:nat) in x
+
+(* === Let function === *)
+let let_fun1 = let f x = x + x in f (2 : nat)
+let let_fun2 = let f (x, y) z = x + y + z in f (1, 2) (3 : nat)
+
+(* === Nested lets === *)
+let let_nested = let x = (1:nat) in let y = x + 1 in let z = y + 1 in z
+
+(* === Let rec === *)
+let rec counter (n:nat) : nat =
+  match n with
+    | 0 -> (1:nat)
+    | m -> counter (m - 1)
+  end
+
+(* === Let rec with type annotation === *)
+let rec sum_list (l : list nat) : nat =
+  match l with
+    | [] -> 0
+    | x :: xs -> x + sum_list xs
+  end
+
+(* === Function with multiple args === *)
+let add_pair (x : nat) (y : nat) = x + y
+let let_multi_arg = add_pair 3 4
+
+(* === Let with type-annotated pattern === *)
+let let_typed_pat = let f (x : nat) = (2:nat) in f 1
+
+assert let_simple1_ok : (let_simple1 = (2:nat))
+assert let_tuple_ok : (let_tuple = (5:nat))
+assert let_nested_ok : (let_nested = (3:nat))
+assert let_multi_arg_ok : (let_multi_arg = (7:nat))
+assert counter_ok : (counter 5 = (1:nat))
+assert sum_list_ok : (sum_list [1;2;3] = (6:nat))
+
+(* ================================================================ *)
+(* Top-level destructuring let                                      *)
+(* (from test_let_def_destructuring.lem)                            *)
+(* ================================================================ *)
+
+(* Simple tuple destructuring *)
+let (pair_a, pair_b) = ((10:nat), (20:nat))
+
+(* Triple destructuring *)
+let (tri_x, tri_y, tri_z) = ((1:nat), true, "hello")
+
+(* Nested tuple *)
+let (nest_a, (nest_b, nest_c)) = ((1:nat), ((2:nat), (3:nat)))
+
+assert pair_a_ok : (pair_a = (10:nat))
+assert pair_b_ok : (pair_b = (20:nat))
+assert tri_x_ok : (tri_x = (1:nat))
+assert tri_y_ok : tri_y
+assert tri_z_ok : (tri_z = "hello")
+assert nest_a_ok : (nest_a = (1:nat))
+assert nest_b_ok : (nest_b = (2:nat))
+assert nest_c_ok : (nest_c = (3:nat))
+
+(* ================================================================ *)
+(* Typed let scope                                                  *)
+(* (from test_let_scope.lem)                                        *)
+(* ================================================================ *)
+
+(* The bug triggers when Lem source has an explicit type annotation on a let binding:
+   let (xs : list nat) = expr in ... *)
+let scope_typed_simple (n : nat) : nat =
+  let (x : nat) = n + 1 in
+  x * 2
+
+(* With a complex type annotation *)
+let scope_typed_list (cvals : list nat) : list (nat * list nat) =
+  let (xs : list (nat * list nat)) =
+    List.foldl (fun acc cval ->
+      List.map (fun (cs, pes) -> (cs, cval :: pes)) acc
+    ) [(0, [])] cvals in
+  List.map (fun (cs, pes') -> (cs, pes')) xs
+
+(* Typed let inside if-then-else *)
+let scope_typed_in_if (flag : bool) (cvals : list nat) : list (nat * list nat) =
+  if flag then
+    let (xs : list (nat * list nat)) =
+      List.foldl (fun acc cval ->
+        List.map (fun (cs, pes) -> (cs, cval :: pes)) acc
+      ) [(0, [])] cvals in
+    List.map (fun (cs, pes') -> (cs, pes')) xs
+  else
+    [(0, cvals)]
+
+(* Typed let inside match arm *)
+let scope_typed_in_match (input : nat) (cvals : list nat) : list (nat * list nat) =
+  match input with
+  | 0 -> [(0, [])]
+  | _ ->
+    let (xs : list (nat * list nat)) =
+      List.foldl (fun acc cval ->
+        List.map (fun (cs, pes) -> (cs, cval :: pes)) acc
+      ) [(0, [])] cvals in
+    List.map (fun (cs, pes') -> (cs, pes')) xs
+  end
+
+assert scope_typed_simple_ok: scope_typed_simple 5 = (12 : nat)
+
+(* ================================================================ *)
+(* Monadic let (fun -> let indentation)                             *)
+(* (from test_monadic_let.lem)                                      *)
+(* ================================================================ *)
+
+type write_event =
+  | WriteEvent of nat * nat * nat
+
+let process_access (x : nat) : nat = x + 1
+let my_bind (x : nat) (f : nat -> nat) : nat = f x
+
+(* let body starts on next line, but let on same line as fun -> *)
+let monadic_test1 : nat =
+  my_bind 42 (fun (loc : nat) -> let wevent =
+    WriteEvent loc 2 3 in
+  process_access loc)
+
+(* Same with more arguments to check robustness *)
+let monadic_test2 (x : nat) (y : nat) (z : nat) : nat =
+  my_bind x (fun (loc : nat) -> let wevent =
+    WriteEvent loc y z in
+  process_access loc)
+
+(* let body is a function application (not constructor) *)
+let make_event (a : nat) (b : nat) : write_event =
+  WriteEvent a b 0
+
+let monadic_test3 : nat =
+  my_bind 42 (fun (loc : nat) -> let wevent =
+    make_event loc 2 in
+  process_access loc)
+
+(* Chained binds with inline fun -> let *)
+let monadic_test4 : nat =
+  my_bind 42 (fun (loc : nat) -> let wevent =
+    WriteEvent loc 2 3 in
+  my_bind loc (fun (alloc_id : nat) ->
+    alloc_id + 1))
+
+(* Multiple lets with inline fun -> let *)
+let monadic_test5 : nat =
+  my_bind 42 (fun (loc : nat) -> let wevent =
+    WriteEvent loc 2 3 in
+  let result =
+    process_access loc in
+  result)

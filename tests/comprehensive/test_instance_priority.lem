@@ -1,0 +1,55 @@
+(* Instance-priority resolution probe (arc-14 S2 B4, be:G1 + sem:S2).
+
+   The normative lattice: doc/notes/2026-08-22_arc14-instance-priority-
+   lattice.md. This module supplies the two type shapes the lattice's
+   invariant quantifies over; the build-failing resolution checks live in
+   lean-test/TestInstancePriorityCheck.lean (the TestDerivedInhabitedCheck
+   pattern — #guards that fail `make lean` if the WRONG instance wins):
+
+   - prio_pair carries its OWN Eq instance with distinguishable semantics
+     (FIRST-field-only equality — the symbol.lem name-only-Eq0 shape).
+     The model instance must beat the backend's auto Eq0 trio BY
+     PRIORITY (1000 > 500), independent of declaration order.
+   - prio_auto has NO model instance: the auto trio (structural) must
+     win over the generic low-priority defaults and fallbacks
+     (500 > 100 > 50), never a failwithI body. *)
+
+open import Pervasives_extra
+
+type prio_pair = Prio_pair of nat * nat
+
+(* The model's own equality: FIRST field only — deliberately coarser
+   than the auto trio's structural equality so the resolution winner is
+   observable. *)
+instance (Eq prio_pair)
+  let (=) x y = match (x, y) with
+    | (Prio_pair a1 _, Prio_pair a2 _) -> a1 = a2
+  end
+  let (<>) x y = not (match (x, y) with
+    | (Prio_pair a1 _, Prio_pair a2 _) -> a1 = a2
+  end)
+end
+
+type prio_auto = Prio_auto of nat * nat
+
+(* Value-level witnesses (also usable from the hand-written check file). *)
+let prio_model_decides : bool = (Prio_pair 0 1 = Prio_pair 0 2)
+let prio_auto_structural : bool = not (Prio_auto 0 1 = Prio_auto 0 2)
+
+assert prio_model_decides_ok : prio_model_decides
+assert prio_auto_structural_ok : prio_auto_structural
+
+(* RG2 (arc-14 re-mark, professor A'): the de-tie probe. prio_coarse has
+   a COARSE model SetType instance (first field only) beside the derived
+   structural BEq. The comparator-derived [SetType a] : BEq a bridge
+   must NOT decide `=` here: derived BEq (1000) beats the bridge (400,
+   was 500 before the BEq-lattice slice of 2026-10-03)
+   BY PRIORITY. The check lives in the separately-importing module
+   TestInstancePriorityCheck.lean (build-failing). *)
+type prio_coarse = Prio_coarse of nat * nat
+
+instance (SetType prio_coarse)
+  let setElemCompare x y = match (x, y) with
+    | (Prio_coarse a1 _, Prio_coarse a2 _) -> compare a1 a2
+  end
+end

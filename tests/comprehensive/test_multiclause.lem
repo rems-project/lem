@@ -1,0 +1,32 @@
+open import Pervasives_extra
+
+(* ================================================================
+   Multi-clause definitions and Lean's equation compiler (TODO item 39).
+
+   A `let rec f p1 = e1 and f p2 = e2` group whose top-level patterns Lean's
+   equation compiler accepts directly — literals, list cons, variables
+   (src/patterns.ml is_lean_pat_direct) — is emitted as a Lean definition
+   by equations:
+
+       def f : Nat → Nat
+         | (0 : Nat) => 1
+         | (n : Nat) => n
+
+   A group whose top-level pattern is a constructor application, a tuple
+   or a record is compiled by Lem's pattern compiler into one clause with
+   a `match` (`g` below). The suite phase lean-multiclause pins the
+   equation form in the generated Test_multiclause.lean; the asserts pin
+   its behaviour.
+   ================================================================ *)
+
+let rec f (0 : nat) : nat = 1 and f (n : nat) : nat = n
+
+let rec len2 ([] : list nat) : nat = 0 and len2 (x :: xs) = 1 + len2 xs
+
+let rec g (Just x) = x and g Nothing = (0 : nat)
+
+assert mc_f_zero : (f 0 = 1)
+assert mc_f_succ : (f 5 = 5)
+assert mc_len2 : (len2 [1; 2; 3] = 3)
+assert mc_g_just : (g (Just 7) = 7)
+assert mc_g_nothing : (g Nothing = 0)

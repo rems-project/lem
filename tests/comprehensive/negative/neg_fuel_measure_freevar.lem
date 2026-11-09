@@ -1,0 +1,10 @@
+(* EXPECT: FM-free *)
+(* fuel-measure slice: the measure mentions only the function's
+   parameters and QUALIFIED Lean names; `xs` is not a parameter of len
+   (its parameter is `l`) — a free variable is a generation-time error
+   naming it. *)
+open import Pervasives
+val len : list nat -> nat
+let rec len l = match l with | [] -> 0 | _ :: xs -> 1 + len xs end
+declare {lean} fuel val len = `999`
+declare {lean} fuel_measure val len = `List.length xs + 1`

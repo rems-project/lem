@@ -1,0 +1,21 @@
+add3 4: 7
+twice add3 0: 6
+twice twice: 12
+compose: "4"
+even 10 odd 7: (true, true)
+adder: 11
+shadow 1: 4
+local_rec 100: 5050
+apply_all: [13; 16; 12]
+pick: (2, 100)
+sw: ["zero"; "one"; "many"]
+curried_pair: 42
+poly_id: (1, ("s", true))
+const_fn: 1
+hof_ret: (1, 2)
+fact 25: 15511210043330985984000000
+fib 25: 75025
+ackermann 2 3: 9
+map partial: [11; 12]
+foldl partial: 6
+fn eq via app: 11

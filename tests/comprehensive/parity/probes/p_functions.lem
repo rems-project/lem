@@ -1,0 +1,56 @@
+(* Noodle probe: functions & evaluation — partial application, HOFs with
+   polymorphism, mutual recursion with `and`, partially-applied recursive helpers,
+   closures capturing, shadowing, function-returning functions, currying
+   through tuples, `function` sugar, guards-by-if. Expected values are
+   the OCaml target's output. *)
+open import Pervasives_extra
+
+let add (a : nat) (b : nat) : nat = a + b
+let add3 = add 3
+let twice (f : 'a -> 'a) (x : 'a) : 'a = f (f x)
+let compose (f : 'b -> 'c) (g : 'a -> 'b) : 'a -> 'c = fun x -> f (g x)
+let rec even (n : nat) : bool = if n = 0 then true else odd (n - 1)
+and odd (n : nat) : bool = if n = 0 then false else even (n - 1)
+let adder (n : nat) : nat -> nat = let k = n * 2 in fun x -> x + k
+let shadow (x : nat) : nat = let x = x + 1 in let x = x * 2 in x
+let rec go (acc : nat) (i : nat) : nat = if i = 0 then acc else go (acc + i) (i - 1)
+let local_rec (n : nat) : nat =
+  let go2 = go (n * 0) in
+  go2 n
+let apply_all (fs : list (nat -> nat)) (x : nat) : list nat = List.map (fun f -> f x) fs
+let pick (b : bool) : nat -> nat = if b then (fun x -> x + 1) else (fun x -> x * 100)
+val sw : nat -> string
+let sw = function 0 -> "zero" | 1 -> "one" | _ -> "many" end
+val curried_pair : nat * nat -> nat
+let curried_pair = fun (a, b) -> a * b
+let poly_id (x : 'a) : 'a = x
+let const_fn (x : 'a) (_ : 'b) : 'a = x
+let hof_ret () : (nat -> nat) * (nat -> nat) = (add 1, add 2)
+let rec fact (n : natural) : natural = if n = 0 then 1 else n * fact (n - 1)
+let rec fib (n : nat) : natural = if n < 2 then naturalFromNat n else fib (n - 1) + fib (n - 2)
+let rec ackermann (m : nat) (n : nat) : nat =
+  if m = 0 then n + 1 else if n = 0 then ackermann (m - 1) 1 else ackermann (m - 1) (ackermann m (n - 1))
+
+let results : list string =
+  [ "add3 4: " ^ show (add3 4);
+    "twice add3 0: " ^ show (twice add3 0);
+    "twice twice: " ^ show (twice (twice add3) 0);
+    "compose: " ^ show ((compose show add3) 1);
+    "even 10 odd 7: " ^ show (even 10, odd 7);
+    "adder: " ^ show (adder 5 1);
+    "shadow 1: " ^ show (shadow 1);
+    "local_rec 100: " ^ show (local_rec 100);
+    "apply_all: " ^ show (apply_all [add3; twice add3; adder 1] 10);
+    "pick: " ^ show (pick true 1, pick false 1);
+    "sw: " ^ show (List.map sw [0; 1; 2]);
+    "curried_pair: " ^ show (curried_pair (6, 7));
+    "poly_id: " ^ show (poly_id (1:nat), (poly_id "s", poly_id true));
+    "const_fn: " ^ show (const_fn (1:nat) "ignored");
+    "hof_ret: " ^ show (let (f, g) = hof_ret () in (f 0, g 0));
+    "fact 25: " ^ show (fact 25);
+    "fib 25: " ^ show (fib 25);
+    "ackermann 2 3: " ^ show (ackermann 2 3);
+    "map partial: " ^ show (List.map (add 10) [1; 2]);
+    "foldl partial: " ^ show (List.foldl add 0 [1; 2; 3]);
+    "fn eq via app: " ^ show ((fun x -> x) (compose (fun x -> x + 1) (fun x -> x * 2)) (5 : nat))
+  ]

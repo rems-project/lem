@@ -1,0 +1,25 @@
+toList m1: [(K1b, 11); (K2a, 20); (K3a, 30)]
+fold: [(K3a, 30); (K2a, 20); (K1b, 11)]
+insert replaces key+value: [(K1b, 11); (K2z, 99); (K3a, 30)]
+union m1 m2: [(K1b, 100); (K2a, 200); (K3a, 30); (K4c, 400)]
+union m2 m1: [(K1c, 11); (K2c, 20); (K3a, 30); (K4c, 400)]
+union small into big: [(K0x, 0); (K1x, 9); (K2x, 7); (K3x, 1000); (K4x, 3); (K5x, 1); (K6x, 10); (K7x, 8); (K8x, 2000); (K9x, 4); (K10x, 2)]
+union big into small: [(K0x, 0); (K1x, 9); (K2x, 7); (K3x, 5); (K4x, 3); (K5x, 1); (K6x, 10); (K7x, 8); (K8x, 6); (K9x, 4); (K10x, 2)]
+lookup: Just (11) Nothing
+member: true false
+domain: [K1b; K2a; K3a]
+range: [11; 20; 30]
+size: 3
+delete: [(K1b, 11); (K3a, 30)]
+equal same keys diff tags: true
+equal diff values: false
+map: [(K1b, 12); (K2a, 21); (K3a, 31)]
+mapi: [(K1b, 12); (K2a, 22); (K3a, 33)]
+find: 30
+findWithDefault: 0
+fromSet: [(K1s, 1); (K2s, 4)]
+toSet: [(1, "a"); (3, "c"); (5, "e")]
+null: true false
+all/any: true true
+unions: [(K1b, 100); (K2c, 200); (K3a, 1000); (K4c, 400); (K8y, 2000)]
+toList mbig: [(K0x, 0); (K1x, 9); (K2x, 7); (K3x, 5); (K4x, 3); (K5x, 1); (K6x, 10); (K7x, 8); (K8x, 6); (K9x, 4); (K10x, 2)]

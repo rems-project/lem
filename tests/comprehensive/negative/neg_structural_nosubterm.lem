@@ -1,0 +1,9 @@
+(* EXPECT: the argument is not a variable *)
+(* structural-declare slice: a self-call whose argument is computed
+   (n - 1) rather than bound by a constructor pattern is not structural;
+   the refusal names the parameter, the call and the reason. Such a
+   recursion is fuel's job (or a `m + 1` pattern). *)
+open import Pervasives
+val count : nat -> nat
+let rec count n = if n = 0 then 0 else 1 + count (n - 1)
+declare {lean} structural val count

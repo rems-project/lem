@@ -1,0 +1,21 @@
+open import Pervasives
+
+(* Non-Lean invariance witness for the fuel declares (fuel-parameter
+   arc, 2026-09-04): the sentinel form and `fuel_consumer` must be exact
+   no-ops for the other backends (see inv_supply.lem for the harness
+   contract). *)
+
+val bspin : nat -> nat
+let rec bspin n = if n = 0 then 0 else bspin (n - 1)
+declare {lean} fuel val bspin = `999`
+
+val uses_bspin : nat -> nat
+let uses_bspin k = bspin k + 1
+
+val cons_spin : nat -> nat
+let cons_spin x = x
+declare lean target_rep function cons_spin = `Foo.consSpin`
+declare {lean} fuel_consumer val cons_spin
+
+val uses_cons : nat -> nat
+let uses_cons k = cons_spin k

@@ -1,0 +1,10 @@
+(* EXPECT: non-recursive type *)
+(* D2-enablers slice: a non-recursive type gets NO derived size function
+   (its size would be the constant 1 — a measure over it is a magic
+   value); `lemSize f` on such a parameter is refused with the reason. *)
+open import Pervasives
+type flat = FL of nat * list nat
+val fspin : flat -> nat -> nat
+let rec fspin f n = if n = 0 then 0 else fspin f (n - 1)
+declare {lean} fuel val fspin = `999`
+declare {lean} fuel_measure val fspin = `lemSize f`

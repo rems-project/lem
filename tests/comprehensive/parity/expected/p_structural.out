@@ -1,0 +1,7 @@
+len []: 0
+len [1..5]: 5
+rev_acc: [4; 3; 2; 1]
+tsum: 10
+tsum leaf: 7
+zipsum: 33
+zipsum empty: 0

@@ -1,0 +1,15 @@
+(* EXPECT: outside a fuel scope *)
+(* D2-enablers slice: an inductive relation whose premise reaches the
+   ambient fuel takes `[LemFuel]` as an inductive parameter and is
+   fuel-lifted like a def; a lem assert has no fuel to supply, so a
+   reference to the relation from it is the fuel-scope error (state such
+   pins in hand-written Lean with an explicit instance). *)
+open import Pervasives
+val spin : nat -> nat
+let rec spin n = if n = 0 then 0 else spin (n - 1)
+declare {lean} fuel val spin = `999`
+indreln [reach : nat -> nat -> bool]
+  reach_refl : forall n. true ==> reach n n
+and
+  reach_step : forall n m. reach n m && spin m = 0 ==> reach n (m + 1)
+assert reach_ok : (reach 0 0)

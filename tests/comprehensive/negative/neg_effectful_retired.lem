@@ -1,0 +1,13 @@
+(* EXPECT: 'declare {lean} effectful' is retired on the lean target *)
+(* Effectful retirement refusal (effect-retirement arc L2, charter
+   §7.1): the runEffectful axiom and the call-site wrap are DELETED;
+   a '{lean} effectful' declare must be refused fail-closed at
+   generation time, with the error naming the migration path (supply
+   lifting). The check fires even for an unused val — this probe's
+   val is deliberately never called. Supersedes neg_supply_mix.lem
+   (the transitional supply x effectful mix guard, deleted with the
+   mechanism). *)
+open import Pervasives
+val old_counter : unit -> nat
+declare lean target_rep function old_counter u = `(pure 42 : BaseIO Nat)`
+declare {lean} effectful val old_counter

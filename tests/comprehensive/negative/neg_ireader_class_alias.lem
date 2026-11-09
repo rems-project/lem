@@ -1,0 +1,13 @@
+(* EXPECT: whose last components agree *)
+(* Instance-reader slice, review F3: `NegImpl.Sw` and `Sw` are different
+   texts, but Lean name resolution (inside `namespace NegImpl`, or under
+   `open NegImpl`) can make them one class; two binders of one class are
+   legal Lean and the reads would silently conflate. IR-class compares
+   the classes' last components. *)
+open import Pervasives
+val sw : unit -> nat
+declare lean target_rep function sw u = 0
+declare {lean} reader val sw = instance `NegImpl.Sw.sw`
+val sw2 : unit -> nat
+declare lean target_rep function sw2 u = 0
+declare {lean} reader val sw2 = instance `Sw.sw`

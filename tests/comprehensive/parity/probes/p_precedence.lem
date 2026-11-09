@@ -1,0 +1,58 @@
+(* Noodle probe: operator precedence / associativity / parenthesisation
+   of emitted expressions — negation, mixed arithmetic, cons chains,
+   string ^ vs numeric **, comparisons inside boolean ops, if/match in
+   operand position, application of negative literals, nested lets.
+   Expected values are the OCaml target's output. *)
+open import Pervasives_extra
+
+let si (x : integer) : string = stringFromInteger x
+let sn (x : nat) : string = stringFromNat x
+let f2 (a : integer) (b : integer) : integer = a * 10 + b
+let neg (x : integer) : integer = ~x
+
+let results : list string =
+  [ "a: " ^ si ((~(3:integer)) - (~(5:integer)));
+    "b: " ^ si ((0 : integer) - 3 - 5);
+    "c: " ^ si ((2 : integer) - (3 - 5));
+    "d: " ^ si ((2 : integer) * 3 + 4 * 5 - 6 / 2);
+    "e: " ^ si ((7 : integer) - 2 * 3 mod 4);
+    "f: " ^ si ((100 : integer) / 10 / 2);
+    "g: " ^ si ((2 : integer) ** 3 ** 2);
+    "h: " ^ si (((2 : integer) ** 3) ** 2);
+    "i: " ^ si ((~(2 : integer)) ** 2);
+    "j: " ^ si (f2 (~1) (~2));
+    "k: " ^ si (f2 (0 - 1) 2 - f2 1 (0 - 2));
+    "l: " ^ si (neg (neg 4));
+    "m: " ^ si (~(~(4 : integer)));
+    "n: " ^ show ((1:nat) :: 2 :: [3] ++ [4; 5]);
+    "o: " ^ show (([(1:nat)] ++ [2]) ++ [3]);
+    "p: " ^ show ([(1:nat)] ++ [2] ++ [3]);
+    "q: " ^ ("a" ^ "b" ^ "c");
+    "r: " ^ show ((1 : nat) < 2 && 2 < (3 : nat) || false);
+    "s: " ^ show (not true || true);
+    "t: " ^ show (not (true || true));
+    "u: " ^ show (true && false || true);
+    "v: " ^ show (true || false && false);
+    "w: " ^ show ((1 : nat) = 1 && (2 : nat) <> 3);
+    "x: " ^ si ((if true then 1 else 2) + (if false then 10 else 20));
+    "y: " ^ si ((match (1:nat) with 1 -> 100 | _ -> 200 end) + 1);
+    "z: " ^ si (let a = 1 in let b = a + 1 in a * 10 + b);
+    "aa: " ^ si ((let a = 1 in a + 1) * 10);
+    "ab: " ^ show ((fun x -> x + 1) (2 : nat) * 3);
+    "ac: " ^ show (List.map (fun x -> x * 2) [(1:nat); 2] ++ [7]);
+    "ad: " ^ sn ((10 : nat) - 3 - 2);
+    "ae: " ^ sn ((10 : nat) - (3 - 2));
+    "af: " ^ si (abs (~(3:integer)) * (~1));
+    "ag: " ^ show (((1:nat), (2:nat)) = (1, 2) && fst ((3:nat), (4:nat)) = 3);
+    "ah: " ^ show (((3:nat) >= 3) = ((2:nat) <= 2));
+    "ai: " ^ show (compare (1:nat) 2 = LT = true);
+    "aj: " ^ si (~(0 - 5 : integer));
+    "ak: " ^ si (0 - (~(5 : integer)));
+    "al: " ^ si ((~(7 : integer)) div 2 * 2 + (~(7 : integer)) mod 2);
+    "am: " ^ si (2 * (~(3 : integer)));
+    "an: " ^ si (f2 (~3) 1 ** 2);
+    "ao: " ^ show (Just (1 : nat) = Just 1 && Nothing <> Just (2 : nat));
+    "ap: " ^ show ([] ++ [(1:nat)] = [1] && not ([] = [(1:nat)]));
+    "aq: " ^ si (if (1 : integer) < 2 then if true then 1 else 2 else 3);
+    "ar: " ^ si (if (1 : integer) > 2 then 1 else if true then 2 else 3)
+  ]

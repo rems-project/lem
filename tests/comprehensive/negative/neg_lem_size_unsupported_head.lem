@@ -1,0 +1,13 @@
+(* EXPECT: unsupported container head *)
+(* D2-enablers audit MINOR-1: a type recursive ONLY through a head the
+   size derivation cannot count (here a user type `box` applied to the
+   recursive type; likewise `set t`) gets no derived size — refused with
+   THAT reason (not "non-recursive") and the remedy: a hand-written
+   computable size via extra_import, named qualified in the measure. *)
+open import Pervasives
+type box 'a = Box of list 'a
+type tb = TL | TB of box tb
+val tbcount : tb -> nat
+let rec tbcount t = match t with | TL -> 1 | TB (Box ts) -> List.foldl (fun acc t' -> acc + tbcount t') 1 ts end
+declare {lean} fuel val tbcount = `fuelExhausted 0`
+declare {lean} fuel_measure val tbcount = `lemSize t`

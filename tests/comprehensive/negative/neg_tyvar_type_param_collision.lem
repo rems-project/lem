@@ -1,0 +1,7 @@
+(* EXPECT: type variable 'a of type `t` is named like a type constructor its definition mentions *)
+open import Pervasives_extra
+(* backend-hardening 2026-10-03, item 3: value definitions rename a colliding
+   type variable; a type definition's parameter is part of the generated API
+   (`inductive t (a : Type)`), so the collision is refused instead *)
+type a = MkA of nat
+type t 'a = T of a * 'a

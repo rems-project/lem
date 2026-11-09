@@ -113,9 +113,31 @@ let read_constants file =
   let const_set = List.fold_left (fun s c -> NameSet.add (Name.from_rope c) s) NameSet.empty const_list in
   const_set
 
+(* linksem-lean 2026-09-28 (B10): this used to be `try ... with _ ->
+   NameSet.empty`: ANY failure to read a target's reserved-name list (a
+   missing library file, an I/O error) silently disabled the renaming pass
+   for that target. For Lean that emits unescaped keywords (`from`, `by`),
+   constructors ambiguous with the root namespace (`One`, `Add`) and
+   class names colliding with Lean's (`Ord`), i.e. broken output with no
+   diagnostic; one full test-suite run produced exactly that. Targets that
+   ship a constants file now fail loudly if it is missing or unreadable;
+   targets without one (tex, html, lem) keep the empty set. *)
 let read_target_constants lib_path targ =
   match targ with
     | Target_ident -> NameSet.empty
-    | Target_no_ident targ' -> (try 
-        read_constants (lib_path ^^ (non_ident_target_to_string targ' ^ "_constants"))
-      with _ -> NameSet.empty)
+    | Target_no_ident targ' ->
+        let file = lib_path ^^ (non_ident_target_to_string targ' ^ "_constants") in
+        let ships_constants = match targ' with
+          | Target_hol | Target_ocaml | Target_isa | Target_coq | Target_lean -> true
+          | Target_tex | Target_html | Target_lem -> false in
+        if not (Sys.file_exists file) then begin
+          if ships_constants then
+            raise (Reporting_basic.Fatal_error (Reporting_basic.Err_general (true, Ast.Unknown,
+              "the reserved-name list for target " ^ non_ident_target_to_string targ' ^
+              " is missing: " ^ file ^ " (check LEMLIB / the library path)")))
+          else NameSet.empty
+        end else
+          (try read_constants file with
+           | Sys_error msg ->
+             raise (Reporting_basic.Fatal_error (Reporting_basic.Err_general (true, Ast.Unknown,
+               "cannot read the reserved-name list " ^ file ^ ": " ^ msg))))

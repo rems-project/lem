@@ -1,0 +1,7 @@
+open import Pervasives
+
+let max_nat_ocaml : nat = 4611686018427387903   (* 2^62 - 1 *)
+let wrapped : nat = max_nat_ocaml + 1
+let wrapped_is_zero_or_more : bool = (wrapped >= 0)
+let pow_wrap : nat = 2 ** 64
+let int_wrap : int = (4611686018427387903 : int) + 1

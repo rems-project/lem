@@ -1,0 +1,9 @@
+(* EXPECT: FM-literal *)
+(* fuel-measure slice: a measure that IS a numeral is the magic value the
+   fuel-parameter arc deleted ([USER 2026-09-03]); refused with its
+   reason (the no-numerals gate is the second net: `_lemFuel (5)`). *)
+open import Pervasives
+val len : list nat -> nat
+let rec len l = match l with | [] -> 0 | _ :: xs -> 1 + len xs end
+declare {lean} fuel val len = `999`
+declare {lean} fuel_measure val len = `5`

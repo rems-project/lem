@@ -1,0 +1,10 @@
+(* Library-coverage failure probe (2026-09-30, library-parity-coverage
+   record, finding LP8): String_extra.chr outside 0..255 must FAIL on both
+   targets (OCaml Char.chr: Invalid_argument "Char.chr"; Lean lemChr fails
+   loudly — previously Char.ofNat returned the Unicode scalar and
+   SUCCEEDED). The steps take the RUNTIME nat n = 0. *)
+open import Pervasives_extra
+
+let steps : list (nat -> string) =
+  [ (fun n -> "in domain: ord (chr 0) = " ^ show (ord (chr n)) ^ ", ord (chr 255) = " ^ show (ord (chr (n + 255))));
+    (fun n -> "failing: ord (chr 256) = " ^ show (ord (chr (n + 256)))) ]

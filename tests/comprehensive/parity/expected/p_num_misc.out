@@ -1,0 +1,42 @@
+nat 3-5: 0
+natural 3-5: 0
+nat pred 0: 0
+natural pred 0: 0
+integer pred 0: -1
+int pred 0: -1
+integer abs -5: 5
+int abs -5: 5
+integer pow -2 3: -8
+int pow -2 3: -8
+integer pow 2 0: 1
+nat pow 2 10: 1024
+natural pow 3 4: 81
+integer min -3 2: -3
+integer max -3 2: 2
+int min -3 2: -3
+natFromInteger -7: 7
+naturalFromInteger -7: 7
+natFromInt -7: 7
+intFromInteger -7: -7
+integerFromInt32 (int32FromInteger -7): -7
+integerFromInt64 (int64FromInteger -7): -7
+integer land -6 3: 2
+integer lor -6 3: -5
+integer lxor -6 3: -7
+integer lsl -1 3: -8
+integer asr -7 1: -4
+integer asr -1 5: -1
+integer asr 7 1: 3
+integer lsl 1 70: 1180591620717411303424
+integer asr huge: 2
+natural land 12 10: 8
+natural lor 12 10: 14
+natural lxor 12 10: 6
+natural lsl 3 4: 48
+natural asr 48 3: 6
+integerSqrt 17: 4
+integerSqrt 0: 0
+integer succ -1: 0
+integer div_t -7 2: -3 rem_t: -1 rem_f: 1
+integer div_t 7 -2: -3 rem_t: 1 rem_f: 1
+integer div_t -7 -2: 3 rem_t: -1 rem_f: 1

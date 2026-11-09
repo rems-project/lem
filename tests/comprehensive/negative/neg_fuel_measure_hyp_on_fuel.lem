@@ -1,0 +1,8 @@
+(* EXPECT: 'assuming' is not part of the fuel sentinel declare *)
+(* measure-hypothesis slice: `assuming` belongs to `fuel_measure`, not to the
+   fuel sentinel declare — refused at parse with the reason. *)
+open import Pervasives
+val ndigits : nat -> nat -> nat
+let rec ndigits b n = if n / b = 0 then 1 else 1 + ndigits b (n / b)
+declare {lean} fuel val ndigits = `999` assuming `2 ≤ b`
+declare {lean} fuel_measure val ndigits = `n + 1`

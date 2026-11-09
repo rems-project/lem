@@ -1,0 +1,23 @@
+open import Pervasives
+
+(* Non-Lean invariance witness for reader / reader_consumer /
+   reader_seed (effect-retirement charter §6.1, §4.2): the
+   '{lean}'-scoped declares must be exact no-ops for the other
+   backends (see inv_supply.lem for the harness contract). *)
+
+val cfg : unit -> nat
+let cfg u = 0
+declare lean target_rep function cfg u = 0
+declare {lean} reader val cfg
+
+val scaled : nat -> nat
+let scaled x = x + 1
+declare lean target_rep function scaled = `TestReaderConsumerImpl.scaled`
+declare {lean} reader_consumer val scaled
+
+val uses_scaled : nat -> nat
+let uses_scaled x = scaled x + cfg ()
+
+val seed_entry : nat -> nat -> nat
+let seed_entry cfgv x = scaled x
+declare {lean} reader_seed val seed_entry

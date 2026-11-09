@@ -1,0 +1,43 @@
+open import Pervasives
+
+(* Non-Lean invariance witness for fuel x reader x truly-mutual blocks
+   (program-data-parameters S1.5, 2026-09-20): the '{lean}'-scoped
+   declares must be exact no-ops for the other backends (see
+   inv_supply.lem for the harness contract; inv_fuel.lem is the
+   single-def fuel witness). The shape is test_fuel_mutual_reader.lem's,
+   with a lem body for the rep'd reader. *)
+
+val amb : unit -> nat
+let amb u = 0
+declare lean target_rep function amb u = 0
+declare {lean} reader val amb
+
+val rping : nat -> nat
+val rpong : nat -> nat
+let rec rping n = if n = amb () then 0 else rpong (n + 1)
+and rpong n = if n = amb () then 1 else rping (n + 1)
+declare {lean} fuel val rping = `991`
+declare {lean} fuel val rpong = `992`
+
+val uses_rping : nat -> nat
+let uses_rping k = rping k
+
+val cdown : nat -> nat
+let rec cdown n = if n = 0 then 0 else cdown (n - 1)
+declare {lean} fuel val cdown = `971`
+
+val fping : nat -> nat
+val fpong : nat -> nat
+let rec fping n = if n = 0 then cdown (amb ()) else fpong (n - 1)
+and fpong n = if n = 0 then 1 else fping (n - 1)
+declare {lean} fuel val fping = `961`
+declare {lean} fuel val fpong = `962`
+
+val rmev : list nat -> bool
+val rmodd : list nat -> bool
+let rec rmev l = match l with | [] -> amb () = 0 | _ :: xs -> rmodd xs end
+and rmodd l = match l with | [] -> not (amb () = 0) | _ :: xs -> rmev xs end
+declare {lean} fuel val rmev = `false`
+declare {lean} fuel val rmodd = `true`
+declare {lean} fuel_measure val rmev = `List.length l + 1`
+declare {lean} fuel_measure val rmodd = `List.length l + 1`

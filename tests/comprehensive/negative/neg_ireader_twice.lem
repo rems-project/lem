@@ -1,0 +1,8 @@
+(* EXPECT: already carries an instance-reader declaration *)
+(* Instance-reader slice: a second projection for the same target is
+   refused, never a silent overwrite. *)
+open import Pervasives
+val sw : unit -> nat
+declare lean target_rep function sw u = 0
+declare {lean} reader val sw = instance `NegImpl.Sw.sw`
+declare {lean} reader val sw = instance `NegImpl.Sw2.sw`

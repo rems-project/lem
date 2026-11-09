@@ -1,0 +1,33 @@
+(* Noodle probe: Show renderings of base/compound values (cerberus prints
+   verdicts through these). Expected values are the OCaml target's output. *)
+open import Pervasives_extra
+
+type col = Red | Green of nat | Blue of (nat * string)
+instance (Show col)
+  let show c = match c with Red -> "Red" | Green n -> "Green " ^ show n | Blue p -> "Blue " ^ show p end
+end
+
+let results : list string =
+  [ show (0 - 42 : integer);
+    show (0 - 42 : int);
+    show (42 : nat);
+    show (42 : natural);
+    show true; show false;
+    show "plain";
+    show "with \"quotes\" and \\ backslash";
+    show ([] : list nat);
+    show [(1:nat); 2; 3];
+    show [[(1:nat)]; []];
+    show ((1:nat), "x");
+    show ((Just (3:nat)), (Nothing : maybe nat));
+    show [Just true; Nothing];
+    show [Red; Green 2; Blue (3, "b")];
+    show (Set.fromList [(3:nat); 1; 2]);
+    show (Set.fromList ["b"; "a"]);
+    show ((0-1 : integer), ((0-2 : int), (3 : nat)));
+    show ("nested", [("a", (1:nat))]);
+    show (1000000000000000000000 : integer);
+    show (0 - 1000000000000000000000 : integer);
+    stringFromInt (0 - 0);
+    stringFromInteger (0 - 0)
+  ]

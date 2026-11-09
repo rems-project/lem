@@ -1,0 +1,13 @@
+(* EXPECT: cannot derive an Inhabited instance for type 'tricky' *)
+open import Pervasives
+(* NEGATIVE probe (arc-8 S1, durability req 1 — a shape NOT present in
+   today's cerberus corpus): the only constructor's field is a FUNCTION
+   whose codomain is the type itself. The derivation's function-type
+   rule looks THROUGH the arrow at the codomain, finds the
+   self-reference there, and must skip the constructor — fail-closed,
+   no instance. The record demand below turns the refusal into a
+   generation-time error naming the type. *)
+
+type tricky 'a = TrickyMk of (nat -> tricky 'a)
+
+type tuser = <| tu : tricky bool |>

@@ -1,0 +1,25 @@
+open import Pervasives_extra
+
+(* ======================================================================
+   Untaken failure branches stay untaken (linksem 2026-09-28, B8/B9).
+   Lean 4.28 hoists CLOSED subterms out of function bodies into module
+   initialisers; `if b then must_be_small 10 else 0` then ran
+   `must_be_small 10` when the module LOADED and panicked (silently: panic
+   messages are off during initialisation), although the OCaml target only
+   evaluates it when the branch is taken. Likewise every use of the
+   polymorphic `fail` (B8, which stays never_extract). Lean 4.32 initialises
+   closed terms lazily, so since the 4.32.2 toolchain move this test guards
+   that property (the per-module `extract_closed false` of B9 is retired).
+   Executed by the Makefile `lean-untaken-failure` target
+   (test-untaken-failure, LEAN_ABORT_ON_PANIC=1): untaken -> exit 0,
+   taken -> loud abort with the message.
+   ====================================================================== *)
+
+val must_be_small : nat -> nat
+let must_be_small n = if n < 5 then n else failwith "must_be_small: too big"
+
+val pick : bool -> nat
+let pick b = if b then must_be_small 10 else 0
+
+val pick_char : nat -> char
+let pick_char n = if n = 0 then #'z' else Assert_extra.fail

@@ -1,0 +1,23 @@
+(* Parity probe (split from p_word_bitwise_wide, review round 2,
+   2026-09-30): int/nat bitwise operations on operands at and beyond 2^63
+   that are BUILT BY MULTIPLICATION. The multiplication itself wraps on
+   OCaml (native 63-bit int), which is the RULED X3/N4 class
+   (doc/lean-backend/2026-09-03_exception-case-rulings.md: the wrap of
+   `+`/`*`/`abs` above 2^62 on OCaml is not mirrored), so these rows do not
+   isolate the bitwise operations (p_word_bitwise_wide does). The first row
+   shows the wrapped operand itself. The pin is the OCaml output. *)
+open import Pervasives_extra
+
+let p61 : int = 2305843009213693952
+let n61 : nat = 2305843009213693952
+let si (i : int) : string = show i
+let sn (n : nat) : string = show n
+
+let results : list string =
+  [ "operand p61*4 (2^63): " ^ si (p61 * 4);
+    "intLor (p61*4) 1 = " ^ si (intLor (p61 * 4) 1);
+    "intLand (p61*4) (p61*4) = " ^ si (intLand (p61 * 4) (p61 * 4));
+    "intLxor (p61*8) 1 = " ^ si (intLxor (p61 * 8) 1);
+    "natLor (n61*4) 1 = " ^ sn (natLor (n61 * 4) 1);
+    "natLand (n61*4) (n61*4) = " ^ sn (natLand (n61 * 4) (n61 * 4));
+    "natLxor (n61*8) 1 = " ^ sn (natLxor (n61 * 8) 1) ]

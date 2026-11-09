@@ -1,0 +1,5 @@
+(* EXPECT: target representation `sorry` is forbidden *)
+(* The declaration must be refused even when the val is never used. *)
+open import Pervasives
+val hole : nat -> nat
+declare lean target_rep function hole = `sorry`

@@ -1,0 +1,5 @@
+lean-exit: 0
+--- lean stdout ---
+before: 0
+after (must not print): 0
+--- lean stderr ---

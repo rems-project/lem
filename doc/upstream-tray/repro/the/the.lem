@@ -1,0 +1,4 @@
+open import Pervasives_extra
+open import Function_extra
+
+let pick () : maybe nat = THE (fun (x : nat) -> x = 3)

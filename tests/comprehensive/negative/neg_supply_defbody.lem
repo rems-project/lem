@@ -1,0 +1,9 @@
+(* EXPECT: one constant, two semantics *)
+(* audit minor-2: a supply val with a LIVE lem definition (no Lean
+   target_rep) would emit an ordinary referenceable def while its draw
+   sites rewrite to LemLib.supplySplit — rejected. *)
+open import Pervasives
+val tick : unit -> nat
+let tick u = 0
+declare {lean} supply val tick
+let f u = tick ()

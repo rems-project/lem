@@ -1,0 +1,42 @@
+max32 + 1: -2147483648
+min32 - 1: 2147483647
+max32 * 2: -2
+neg min32: -2147483648
+abs min32: -2147483648
+abs (-5): 5
+of_int 2^32+5: 5
+of_int -2^31-1: 2147483647
+of_nat 2^31: -2147483648
+from_int64 low bits: 5
+from_int64 negative: -1
+to_int64 sign-extends: -2147483648
+min32 div -1: -2147483648
+min32 mod -1: 0
+-7 div -2 (int32): 2
+-7 mod -2 (int32): -3
+7 div -2 (int32): -3
+-7 mod 2 (int32): 1
+max64 + 1: -9223372036854775808
+min64 - 1: 9223372036854775807
+neg min64: -9223372036854775808
+of_int (int64) -3: -3
+min64 div -1: -9223372036854775808
+-7 div -2 (int64): 2
+-7 mod -2 (int64): -3
+pow wraps: 1870418611
+compare min max: LT
+min32 < 0: true
+lsl 1 31: -2147483648
+lsr min32 31: 1
+asr min32 31: -1
+asr -8 1: -4
+lnot 0: -1
+land -1 255: 255
+lor min32 1: -2147483647
+lxor -1 min32: 2147483647
+lsl64 1 63: -9223372036854775808
+lsr64 min64 63: 1
+asr64 min64 63: -1
+succ max32: -2147483648
+pred min32: 2147483647
+min/max: -2147483648 2147483647

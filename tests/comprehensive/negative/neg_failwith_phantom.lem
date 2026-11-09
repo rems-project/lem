@@ -1,0 +1,22 @@
+(* EXPECT: unconstrained polymorphic let expression *)
+open import Pervasives_extra
+(* NEGATIVE probe (arc-8 S2, design note rule 4 — the undetermined
+   function-field / point-free shape, durability req 1: a shape NOT in
+   today's cerberus corpus): a failure value whose type variable is
+   UNDETERMINED — nothing in the enclosing definition's signature or
+   body constrains it, so no [Inhabited] binder could be threaded and
+   no call site could ever determine it.
+
+   MEASURED RESULT (recorded 2026-08-20): lem's TYPECHECKER rejects
+   this shape outright ("unconstrained polymorphic let expression,
+   generating free type variables") — the undetermined-tyvar shape
+   cannot even reach the backend, so a phantom [Inhabited] demand is
+   unreachable by construction. The backend nevertheless keeps a
+   defensive generation-time guard for it ("does not occur in the
+   signature of", lean_backend.ml threading pre-pass) per the
+   fail-closed doctrine; this probe pins the FRONT gate. *)
+
+val phantom_fail : unit -> nat
+let phantom_fail u =
+  let _ignored = failwith "poly" in
+  (42 : nat)
