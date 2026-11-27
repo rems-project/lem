@@ -1,5 +1,7 @@
 declare {isabelle;ocaml;hol;coq} rename module = lem_debug
 
+open import {hol} `stringTheory`
+
 (* debugging functions; these should *not* be used in production code,
    but are invaluable in debugging the OCaml extraction, as long as
    one pays attention to the interaction with monads;
