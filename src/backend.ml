@@ -1268,9 +1268,9 @@ module Hol : Target = struct
     | (n::ns) -> let n = Ulib.Text.to_string (Name.to_rope n) in
               if (rrr && not try_term) then
                 if (List.length ns == 0) then
-                  meta (Format.sprintf "\nval _ = Lib.with_flag (computeLib.auto_import_definitions, false) Defn.save_defn %s_defn;" n)
+                  meta (Format.sprintf "\nval _ = HOLFlags.with_bflags [(computeLib.auto_import_definitions, false)] Defn.save_defn %s_defn;" n)
                 else
-                  meta (Format.sprintf "\nval _ = Lib.with_flag (computeLib.auto_import_definitions, false) (List.map Defn.save_defn) %s_defn;" n)
+                  meta (Format.sprintf "\nval _ = HOLFlags.with_bflags [(computeLib.auto_import_definitions, false)] (List.map Defn.save_defn) %s_defn;" n)
               else emp
   let funcase_start = kwd "("
   let funcase_end = kwd ")"
